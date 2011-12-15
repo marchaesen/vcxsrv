@@ -135,7 +135,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\utils.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_aaline.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_aatriangle.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\swrast\s_accum.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_alpha.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_atifragshader.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_bitmap.c" />
@@ -145,6 +144,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_context.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_copypix.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_depth.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\swrast\s_depthstencil.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_drawpix.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_feedback.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_fog.c" />
@@ -153,6 +153,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_logic.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_masking.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_points.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\swrast\s_renderbuffer.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_span.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_stencil.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_texcombine.c" />

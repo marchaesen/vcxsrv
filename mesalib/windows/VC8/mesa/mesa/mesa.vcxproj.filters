@@ -68,9 +68,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\depth.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\main\depthstencil.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\dlist.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -687,6 +684,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\texstorage.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\format_pack.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

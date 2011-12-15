@@ -190,6 +190,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\api_validate.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\arbprogram.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\atifragshader.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\format_pack.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\nvprogram.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pack.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pixeltransfer.c" />
@@ -217,7 +218,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\cpuinfo.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\debug.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\depth.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\main\depthstencil.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\dlist.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\dlopen.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\drawpix.c" />
