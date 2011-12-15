@@ -373,7 +373,7 @@ extern _X_EXPORT unsigned long serverGeneration;
 #define __BUG_WARN_MSG(cond, with_msg, ...)                                \
           do { if (cond) {                                                \
               ErrorF("BUG: triggered 'if (" #cond ")'\nBUG: %s:%d in %s()\n",     \
-                      __FILE__, __LINE__, __func__);                      \
+                      __FILE__, __LINE__, __FUNCTION__);                      \
               if (with_msg) ErrorF(__VA_ARGS__);                          \
               xorg_backtrace();                                           \
           } } while(0)
