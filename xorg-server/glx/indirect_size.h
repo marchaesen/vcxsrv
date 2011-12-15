@@ -36,6 +36,8 @@
  * \author Ian Romanick <idr@us.ibm.com>
  */
 
+#include <X11/Xfuncproto.h>
+
 #  if defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
 #    define PURE __attribute__((pure))
 #  else
@@ -48,15 +50,8 @@
 #    define FASTCALL
 #  endif
 
-#  if (defined(__GNUC__) && !defined(__CYGWIN__) && !defined(__MINGW32__)) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590) && defined(__ELF__))
-#    define INTERNAL  __attribute__((visibility("internal")))
-#  else
-#    define INTERNAL
-#  endif
-
 
 #  undef PURE
 #  undef FASTCALL
-#  undef INTERNAL
 
 #endif /* !defined( _INDIRECT_SIZE_H_ ) */
