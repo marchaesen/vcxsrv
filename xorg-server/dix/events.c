@@ -1218,7 +1218,7 @@ void
 PlayReleasedEvents(void)
 {
     QdEventPtr tmp;
-    QdEventPtr qe;
+    QdEventPtr qe=NULL;
     DeviceIntPtr dev;
     DeviceIntPtr pDev;
 
@@ -5259,7 +5259,8 @@ void
 InitEvents(void)
 {
     int i;
-    QdEventPtr qe, tmp;
+    QdEventPtr qe=NULL;
+    QdEventPtr tmp;
 
     inputInfo.numDevices = 0;
     inputInfo.devices = (DeviceIntPtr)NULL;
