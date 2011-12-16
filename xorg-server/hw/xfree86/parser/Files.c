@@ -162,7 +162,7 @@ xf86parseFilesSection (void)
 			ptr->file_xkbdir = val.str;
 			break;
 		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG, NULL);
+			Error (UNEXPECTED_EOF_MSG);
 			break;
 		case OBSOLETE_TOKEN:
 			xf86parseError (OBSOLETE_MSG, xf86tokenString ());

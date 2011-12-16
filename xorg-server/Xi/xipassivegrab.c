@@ -139,7 +139,7 @@ ProcXIPassiveGrabDevice(ClientPtr client)
     rep.num_modifiers = 0;
 
     memset(&param, 0, sizeof(param));
-    param.grabtype = GRABTYPE_XI2;
+    param.grabtype = XI2;
     param.ownerEvents = stuff->owner_events;
     param.this_device_mode = stuff->grab_mode;
     param.other_devices_mode = stuff->paired_device_mode;
@@ -183,11 +183,11 @@ ProcXIPassiveGrabDevice(ClientPtr client)
         {
             case XIGrabtypeButton:
                 status = GrabButton(client, dev, mod_dev, stuff->detail,
-                                    &param, GRABTYPE_XI2, &mask);
+                                    &param, XI2, &mask);
                 break;
             case XIGrabtypeKeycode:
                 status = GrabKey(client, dev, mod_dev, stuff->detail,
-                                 &param, GRABTYPE_XI2, &mask);
+                                 &param, XI2, &mask);
                 break;
             case XIGrabtypeEnter:
             case XIGrabtypeFocusIn:
@@ -313,7 +313,7 @@ ProcXIPassiveUngrabDevice(ClientPtr client)
         case XIGrabtypeEnter:   tempGrab->type = XI_Enter;       break;
         case XIGrabtypeFocusIn: tempGrab->type = XI_FocusIn;     break;
     }
-    tempGrab->grabtype = GRABTYPE_XI2;
+    tempGrab->grabtype = XI2;
     tempGrab->modifierDevice = mod_dev;
     tempGrab->modifiersDetail.pMask = NULL;
     tempGrab->detail.exact = stuff->detail;

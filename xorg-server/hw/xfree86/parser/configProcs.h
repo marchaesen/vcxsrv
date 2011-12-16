@@ -95,8 +95,8 @@ int xf86getSubToken(char **comment);
 int xf86getSubTokenWithTab(char **comment, xf86ConfigSymTabRec *tab);
 void xf86unGetToken(int token);
 char *xf86tokenString(void);
-void xf86parseError(const char *format, ...);
-void xf86validationError(const char *format, ...);
+void xf86parseError(const char *format, ...) _X_ATTRIBUTE_PRINTF(1,2);
+void xf86validationError(const char *format, ...) _X_ATTRIBUTE_PRINTF(1,2);
 void xf86setSection(const char *section);
 int xf86getStringToken(xf86ConfigSymTabRec *tab);
 /* write.c */

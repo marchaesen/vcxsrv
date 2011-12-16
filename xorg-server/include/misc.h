@@ -89,6 +89,8 @@ OF THIS SOFTWARE.
 #define MAXFORMATS	8
 #define MAXDEVICES	40 /* input devices */
 
+/* 128 event opcodes for core + extension events, excluding GE */
+#define MAXEVENTS       128
 #define EXTENSION_EVENT_BASE 64
 #define EXTENSION_BASE 128
 

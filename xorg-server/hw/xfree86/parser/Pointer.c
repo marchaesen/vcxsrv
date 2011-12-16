@@ -184,10 +184,10 @@ xf86parsePointerSection (void)
 			switch (xf86getToken(ZMapTab)) {
 			case NUMBER:
 				if (val.num < 0)
-					Error (ZAXISMAPPING_MSG, NULL);
+					Error (ZAXISMAPPING_MSG);
 				val1 = val.num;
 				if (xf86getSubToken (&(ptr->inp_comment)) != NUMBER || val.num < 0) {
-					Error (ZAXISMAPPING_MSG, NULL);
+					Error (ZAXISMAPPING_MSG);
 				}
 				if (asprintf(&s, "%lu %u", val1, val.num) == -1)
 				    s = NULL;
@@ -199,7 +199,7 @@ xf86parsePointerSection (void)
 				s = strdup("y");
 				break;
 			default:
-				Error (ZAXISMAPPING_MSG, NULL);
+				Error (ZAXISMAPPING_MSG);
 				break;
 			}
 			ptr->inp_option_lst = xf86addNewOption(ptr->inp_option_lst,
@@ -209,7 +209,7 @@ xf86parsePointerSection (void)
 		case ALWAYSCORE:
 			break;
 		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG, NULL);
+			Error (UNEXPECTED_EOF_MSG);
 			break;
 		default:
 			Error (INVALID_KEYWORD_MSG, xf86tokenString ());

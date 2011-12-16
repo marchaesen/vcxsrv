@@ -152,7 +152,7 @@ CheckForEmptyMask(CursorBitsPtr bits)
     if (bits->argb)
     {
 	CARD32 *argb = bits->argb;
-	int n = bits->width * bits->height;
+	n = bits->width * bits->height;
 	while (n--)
 	    if (*argb++ & 0xff000000) return;
     }

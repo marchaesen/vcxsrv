@@ -823,7 +823,7 @@ WriteToClient (ClientPtr who, int count, const void *__buf)
 	    CARD32 replylen;
 	    unsigned long bytesleft;
 
-	    replylen = ((xGenericReply *)buf)->length;
+	    replylen = ((const xGenericReply *)buf)->length;
 	    if (who->swapped)
 		swapl(&replylen);
 	    bytesleft = (replylen * 4) + SIZEOF(xReply) - count - padBytes;

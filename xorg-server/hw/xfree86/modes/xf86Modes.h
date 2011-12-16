@@ -99,10 +99,6 @@ extern _X_EXPORT DisplayModePtr
 xf86PruneDuplicateModes(DisplayModePtr modes);
 
 extern _X_EXPORT void
-xf86ValidateModesFlags(ScrnInfoPtr pScrn, DisplayModePtr modeList,
-		       int flags);
-
-extern _X_EXPORT void
 xf86ValidateModesUserConfig(ScrnInfoPtr pScrn, DisplayModePtr modeList);
 
 extern _X_EXPORT DisplayModePtr

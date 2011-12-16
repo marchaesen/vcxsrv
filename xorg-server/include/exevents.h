@@ -159,7 +159,7 @@ typedef struct _XIClientRec {
 
 
 typedef struct _GrabParameters {
-    int                 grabtype;               /* GRABTYPE_CORE, etc. */
+    int                 grabtype;               /* CORE, etc. */
     unsigned int        ownerEvents;
     unsigned int        this_device_mode;
     unsigned int        other_devices_mode;
@@ -200,7 +200,7 @@ GrabButton(
 	DeviceIntPtr           /* modifier_device */,
 	int                    /* button */,
         GrabParameters*        /* param */,
-        GrabType               /* grabtype */,
+        enum InputLevel        /* grabtype */,
 	GrabMask*              /* eventMask */);
 
 extern int
@@ -210,7 +210,7 @@ GrabKey(
 	DeviceIntPtr           /* modifier_device */,
 	int                    /* key */,
         GrabParameters*        /* param */,
-        GrabType               /* grabtype */,
+        enum InputLevel        /* grabtype */,
 	GrabMask*              /* eventMask */);
 
 extern int

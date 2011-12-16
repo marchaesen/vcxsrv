@@ -1094,6 +1094,30 @@ transformAbsolute(DeviceIntPtr dev, ValuatorMask *mask)
         valuator_mask_set_double(mask, 1, y);
 }
 
+static void
+storeLastValuators(DeviceIntPtr dev, ValuatorMask *mask,
+                   int xaxis, int yaxis,
+                   double devx, double devy)
+{
+    int i;
+
+    /* store desktop-wide in last.valuators */
+    if (valuator_mask_isset(mask, xaxis))
+        dev->last.valuators[0] = devx;
+    if (valuator_mask_isset(mask, yaxis))
+        dev->last.valuators[1] = devy;
+
+    for (i = 0; i < valuator_mask_size(mask); i++)
+    {
+        if (i == xaxis || i == yaxis)
+            continue;
+
+        if (valuator_mask_isset(mask, i))
+            dev->last.valuators[i] = valuator_mask_get_double(mask, i);
+    }
+
+}
+
 /**
  * Generate internal events representing this pointer event and enqueue them
  * on the event queue.
@@ -1162,7 +1186,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
                     int buttons, CARD32 ms, int flags,
                     const ValuatorMask *mask_in)
 {
-    int num_events = 1, i;
+    int num_events = 1;
     DeviceEvent *event;
     RawDeviceEvent *raw;
     double screenx = 0.0, screeny = 0.0; /* desktop coordinate system */
@@ -1237,17 +1261,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
 
     clipValuators(pDev, &mask);
 
-    /* store desktop-wide in last.valuators */
-    if (valuator_mask_isset(&mask, 0))
-        pDev->last.valuators[0] = devx;
-    if (valuator_mask_isset(&mask, 1))
-        pDev->last.valuators[1] = devy;
-
-    for (i = 2; i < valuator_mask_size(&mask); i++)
-    {
-        if (valuator_mask_isset(&mask, i))
-            pDev->last.valuators[i] = valuator_mask_get_double(&mask, i);
-    }
+    storeLastValuators(pDev, &mask, 0, 1, devx, devy);
 
     /* Update the MD's co-ordinates, which are always in desktop space. */
     if (!IsMaster(pDev) || !IsFloating(pDev)) {

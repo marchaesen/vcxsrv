@@ -163,13 +163,13 @@ void x86emu_inc_decoded_inst_len (int x)
 	M.x86.enc_pos += x;
 }
 
-void x86emu_decode_printf (char *x)
+void x86emu_decode_printf (const char *x)
 {
 	sprintf(M.x86.decoded_buf+M.x86.enc_str_pos,"%s",x);
 	M.x86.enc_str_pos += strlen(x);
 }
 
-void x86emu_decode_printf2 (char *x, int y)
+void x86emu_decode_printf2 (const char *x, int y)
 {
 	char temp[100];
 	snprintf(temp,sizeof(temp),x,y);

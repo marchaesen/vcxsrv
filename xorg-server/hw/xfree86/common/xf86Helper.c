@@ -1734,7 +1734,6 @@ xf86RegisterRootWindowProperty(int ScrnIndex, Atom property, Atom type,
 			       int format, unsigned long len, pointer value )
 {
     RootWinPropPtr pNewProp = NULL, pRegProp;
-    int i;
     Bool existing = FALSE;
 
     DebugF("xf86RegisterRootWindowProperty(%d, %ld, %ld, %d, %ld, %p)\n",
@@ -1775,15 +1774,11 @@ xf86RegisterRootWindowProperty(int ScrnIndex, Atom property, Atom type,
 
     DebugF("new property filled\n");
 
-    if (NULL==xf86RegisteredPropertiesTable) {
+    if (xf86RegisteredPropertiesTable == NULL) {
       DebugF("creating xf86RegisteredPropertiesTable[] size %d\n",
 	     xf86NumScreens);
-      if ( NULL==(xf86RegisteredPropertiesTable=(RootWinPropPtr*)xnfcalloc(sizeof(RootWinProp),xf86NumScreens) )) {
-	return BadAlloc;
-      }
-      for (i=0; i<xf86NumScreens; i++) {
-	xf86RegisteredPropertiesTable[i] = NULL;
-      }
+      xf86RegisteredPropertiesTable =
+	  xnfcalloc(sizeof(RootWinProp), xf86NumScreens);
     }
 
     DebugF("xf86RegisteredPropertiesTable %p\n",

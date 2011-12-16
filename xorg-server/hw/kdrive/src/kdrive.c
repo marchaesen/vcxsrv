@@ -113,19 +113,14 @@ KdDisableScreen (ScreenPtr pScreen)
 }
 
 static void
-KdDoSwitchCmd (char *reason)
+KdDoSwitchCmd (const char *reason)
 {
     if (kdSwitchCmd)
     {
-	char    *command = malloc(strlen (kdSwitchCmd) +
-				   1 +
-				   strlen (reason) +
-				   1);
-	if (!command)
+	char    *command;
+
+	if (asprintf(&command, "%s %s", kdSwitchCmd, reason) == -1)
 	    return;
-	strcpy (command, kdSwitchCmd);
-	strcat (command, " ");
-	strcat (command, reason);
 	system (command);
 	free(command);
     }
@@ -258,7 +253,7 @@ Bool	kdDumbDriver;
 Bool	kdSoftCursor;
 
 char *
-KdParseFindNext (char *cur, char *delim, char *save, char *last)
+KdParseFindNext (char *cur, const char *delim, char *save, char *last)
 {
     while (*cur && !strchr (delim, *cur))
     {

@@ -190,7 +190,7 @@ core_get_type(const xEvent *event)
 static inline int
 xi2_get_type(const xEvent *event)
 {
-    xGenericEvent* e = (xGenericEvent*)event;
+    const xGenericEvent* e = (const xGenericEvent*)event;
 
     return (e->type != GenericEvent || e->extension != IReqCode) ? 0 : e->evtype;
 }
@@ -367,9 +367,9 @@ extern int DeviceMotionNotify;
  * time a button is pressed, the filter is modified to also contain the
  * matching ButtonXMotion mask.
  */
-static Mask filters[MAXDEVICES][128];
+Mask event_filters[MAXDEVICES][MAXEVENTS];
 
-static const Mask default_filter[128] =
+static const Mask default_filter[MAXEVENTS] =
 {
 	NoSuchEvent,		       /* 0 */
 	NoSuchEvent,		       /* 1 */
@@ -408,18 +408,6 @@ static const Mask default_filter[128] =
 	CantBeFiltered		       /* MappingNotify */
 };
 
-static inline Mask
-GetEventFilterMask(DeviceIntPtr dev, int evtype)
-{
-    return filters[dev ? dev->id : 0][evtype];
-}
-
-static inline Mask
-GetXI2EventFilterMask(int evtype)
-{
-    return (1 << (evtype % 8));
-}
-
 /**
  * For the given event, return the matching event filter. This filter may then
  * be AND'ed with the selected event mask.
@@ -441,9 +429,9 @@ GetEventFilter(DeviceIntPtr dev, xEvent *event)
     int evtype = 0;
 
     if (event->u.u.type != GenericEvent)
-        return GetEventFilterMask(dev, event->u.u.type);
+        return event_get_filter_from_type(dev, event->u.u.type);
     else if ((evtype = xi2_get_type(event)))
-        return GetXI2EventFilterMask(evtype);
+        return event_get_filter_from_xi2type(evtype);
     ErrorF("[dix] Unknown event type %d. No filter\n", event->u.u.type);
     return 0;
 }
@@ -452,14 +440,14 @@ GetEventFilter(DeviceIntPtr dev, xEvent *event)
  * Return the single byte of the device's XI2 mask that contains the mask
  * for the event_type.
  */
-static int
+int
 GetXI2MaskByte(XI2Mask *mask, DeviceIntPtr dev, int event_type)
 {
     /* we just return the matching filter because that's the only use
      * for this mask anyway.
      */
     if (xi2mask_isset(mask, dev, event_type))
-        return GetXI2EventFilterMask(event_type);
+        return event_get_filter_from_xi2type(event_type);
     else
         return 0;
 }
@@ -679,13 +667,13 @@ SetMaskForEvent(int deviceid, Mask mask, int event)
 {
     if (deviceid < 0 || deviceid >= MAXDEVICES)
         FatalError("SetMaskForEvent: bogus device id");
-    filters[deviceid][event] = mask;
+    event_filters[deviceid][event] = mask;
 }
 
 void
 SetCriticalEvent(int event)
 {
-    if (event >= 128)
+    if (event >= MAXEVENTS)
 	FatalError("SetCriticalEvent: bogus event number");
     criticalEvents[event >> 3] |= 1 << (event & 7);
 }
@@ -1484,7 +1472,7 @@ ActivatePointerGrab(DeviceIntPtr mouse, GrabPtr grab,
     Bool isPassive = autoGrab & ~ImplicitGrabMask;
 
     /* slave devices need to float for the duration of the grab. */
-    if (grab->grabtype == GRABTYPE_XI2 &&
+    if (grab->grabtype == XI2 &&
         !(autoGrab & ImplicitGrabMask) && !IsMaster(mouse))
         DetachFromMaster(mouse);
 
@@ -1543,7 +1531,7 @@ DeactivatePointerGrab(DeviceIntPtr mouse)
     if (grab->cursor)
 	FreeCursor(grab->cursor, (Cursor)0);
 
-    if (!wasImplicit && grab->grabtype == GRABTYPE_XI2)
+    if (!wasImplicit && grab->grabtype == XI2)
         ReattachToOldMaster(mouse);
 
     ComputeFreezes();
@@ -1561,7 +1549,7 @@ ActivateKeyboardGrab(DeviceIntPtr keybd, GrabPtr grab, TimeStamp time, Bool pass
     WindowPtr oldWin;
 
     /* slave devices need to float for the duration of the grab. */
-    if (grab->grabtype == GRABTYPE_XI2 &&
+    if (grab->grabtype == XI2 &&
         !(passive & ImplicitGrabMask) &&
         !IsMaster(keybd))
         DetachFromMaster(keybd);
@@ -1616,7 +1604,7 @@ DeactivateKeyboardGrab(DeviceIntPtr keybd)
     }
     DoFocusEvents(keybd, grab->window, focusWin, NotifyUngrab);
 
-    if (!wasImplicit && grab->grabtype == GRABTYPE_XI2)
+    if (!wasImplicit && grab->grabtype == XI2)
         ReattachToOldMaster(keybd);
 
     ComputeFreezes();
@@ -1974,14 +1962,14 @@ ActivateImplicitGrab(DeviceIntPtr dev, ClientPtr client, WindowPtr win,
     GrabPtr tempGrab;
     OtherInputMasks *inputMasks;
     CARD8 type = event->u.u.type;
-    GrabType grabtype;
+    enum InputLevel grabtype;
 
     if (type == ButtonPress)
-        grabtype = GRABTYPE_CORE;
+        grabtype = CORE;
     else if (type == DeviceButtonPress)
-        grabtype = GRABTYPE_XI;
+        grabtype = XI;
     else if ((type = xi2_get_type(event)) == XI_ButtonPress)
-        grabtype = GRABTYPE_XI2;
+        grabtype = XI2;
     else
         return FALSE;
 
@@ -2013,13 +2001,6 @@ ActivateImplicitGrab(DeviceIntPtr dev, ClientPtr client, WindowPtr win,
     FreeGrab(tempGrab);
     return TRUE;
 }
-
-enum EventDeliveryState {
-    EVENT_DELIVERED,     /**< Event has been delivered to a client  */
-    EVENT_NOT_DELIVERED, /**< Event was not delivered to any client */
-    EVENT_SKIP,          /**< Event can be discarded by the caller  */
-    EVENT_REJECTED,      /**< Event was rejected for delivery to the client */
-};
 
 /**
  * Attempt event delivery to the client owning the window.
@@ -2539,29 +2520,29 @@ FixUpEventFromWindow(
  * client.
  *
  * @param[in] dev The device this event is being sent for.
- * @param[in] event The event that is to be sent.
+ * @param[in] evtype The event type of the event that is to be sent.
  * @param[in] win The current event window.
  *
  * @return Bitmask of ::EVENT_XI2_MASK, ::EVENT_XI1_MASK, ::EVENT_CORE_MASK, and
  *         ::EVENT_DONT_PROPAGATE_MASK.
  */
 int
-EventIsDeliverable(DeviceIntPtr dev, InternalEvent* event, WindowPtr win)
+EventIsDeliverable(DeviceIntPtr dev, int evtype, WindowPtr win)
 {
     int rc = 0;
     int filter = 0;
     int type;
     OtherInputMasks *inputMasks = wOtherInputMasks(win);
 
-    if ((type = GetXI2Type(event)) != 0)
+    if ((type = GetXI2Type(evtype)) != 0)
     {
         if (inputMasks && xi2mask_isset(inputMasks->xi2mask, dev, type))
             rc |= EVENT_XI2_MASK;
     }
 
-    if ((type = GetXIType(event)) != 0)
+    if ((type = GetXIType(evtype)) != 0)
     {
-        filter = GetEventFilterMask(dev, type);
+        filter = event_get_filter_from_type(dev, type);
 
         /* Check for XI mask */
         if (inputMasks &&
@@ -2575,9 +2556,9 @@ EventIsDeliverable(DeviceIntPtr dev, InternalEvent* event, WindowPtr win)
 
     }
 
-    if ((type = GetCoreType(event)) != 0)
+    if ((type = GetCoreType(evtype)) != 0)
     {
-        filter = GetEventFilterMask(dev, type);
+        filter = event_get_filter_from_type(dev, type);
 
         /* Check for core mask */
         if ((win->deliverableEvents & filter) &&
@@ -2590,6 +2571,57 @@ EventIsDeliverable(DeviceIntPtr dev, InternalEvent* event, WindowPtr win)
     }
 
     return rc;
+}
+
+static int
+DeliverEvent(DeviceIntPtr dev, xEvent *xE, int count,
+             WindowPtr win, Window child, GrabPtr grab)
+{
+    SpritePtr pSprite = dev->spriteInfo->sprite;
+    Mask filter;
+    int deliveries = 0;
+
+    if (XaceHook(XACE_SEND_ACCESS, NULL, dev, win, xE, count) == Success) {
+        filter = GetEventFilter(dev, xE);
+        FixUpEventFromWindow(pSprite, xE, win, child, FALSE);
+        deliveries = DeliverEventsToWindow(dev, win, xE, count,
+                filter, grab);
+    }
+
+    return deliveries;
+}
+
+static int
+DeliverOneEvent(InternalEvent *event, DeviceIntPtr dev, enum InputLevel level,
+                WindowPtr win, Window child, GrabPtr grab)
+{
+    xEvent *xE = NULL;
+    int count = 0;
+    int deliveries = 0;
+    int rc;
+
+    switch(level)
+    {
+        case XI2:
+            rc = EventToXI2(event, &xE);
+            count = 1;
+            break;
+        case XI:
+            rc = EventToXI(event, &xE, &count);
+            break;
+        case CORE:
+            rc = EventToCore(event, &xE, &count);
+            break;
+    }
+
+    if (rc == Success)
+    {
+        deliveries = DeliverEvent(dev, xE, count, win, child, grab);
+        free(xE);
+    } else
+        BUG_WARN_MSG(rc != BadMatch, "%s: conversion to level %d failed with rc %d\n",
+                     dev->name, level, rc);
+    return deliveries;
 }
 
 /**
@@ -2615,90 +2647,53 @@ int
 DeliverDeviceEvents(WindowPtr pWin, InternalEvent *event, GrabPtr grab,
                     WindowPtr stopAt, DeviceIntPtr dev)
 {
-    SpritePtr pSprite = dev->spriteInfo->sprite;
     Window child = None;
-    Mask filter;
     int deliveries = 0;
-    xEvent *xE = NULL, *core = NULL;
-    int rc, mask, count = 0;
+    int mask;
 
     verify_internal_event(event);
 
     while (pWin)
     {
-        if ((mask = EventIsDeliverable(dev, event, pWin)))
+        if ((mask = EventIsDeliverable(dev, event->any.type, pWin)))
         {
             /* XI2 events first */
             if (mask & EVENT_XI2_MASK)
             {
-                xEvent *xi2 = NULL;
-                rc = EventToXI2(event, &xi2);
-                if (rc == Success)
-                {
-                    /* XXX: XACE */
-                    filter = GetEventFilter(dev, xi2);
-                    FixUpEventFromWindow(pSprite, xi2, pWin, child, FALSE);
-                    deliveries = DeliverEventsToWindow(dev, pWin, xi2, 1,
-                                                       filter, grab);
-                    free(xi2);
-                    if (deliveries > 0)
-                        goto unwind;
-                } else if (rc != BadMatch)
-                    ErrorF("[dix] %s: XI2 conversion failed in DDE (%d).\n",
-                            dev->name, rc);
+                deliveries = DeliverOneEvent(event, dev, XI2, pWin, child, grab);
+                if (deliveries > 0)
+                    break;
             }
 
             /* XI events */
             if (mask & EVENT_XI1_MASK)
             {
-                rc = EventToXI(event, &xE, &count);
-                if (rc == Success) {
-                    if (XaceHook(XACE_SEND_ACCESS, NULL, dev, pWin, xE, count) == Success) {
-                        filter = GetEventFilter(dev, xE);
-                        FixUpEventFromWindow(pSprite, xE, pWin, child, FALSE);
-                        deliveries = DeliverEventsToWindow(dev, pWin, xE, count,
-                                                           filter, grab);
-                        if (deliveries > 0)
-                            goto unwind;
-                    }
-                } else if (rc != BadMatch)
-                    ErrorF("[dix] %s: XI conversion failed in DDE (%d, %d). Skipping delivery.\n",
-                            dev->name, event->any.type, rc);
+                deliveries = DeliverOneEvent(event, dev, XI, pWin, child, grab);
+                if (deliveries > 0)
+                    break;
             }
 
             /* Core event */
             if ((mask & EVENT_CORE_MASK) && IsMaster(dev) && dev->coreEvents)
             {
-                rc = EventToCore(event, &core, &count);
-                if (rc == Success) {
-                    if (XaceHook(XACE_SEND_ACCESS, NULL, dev, pWin, core, count) == Success) {
-                        filter = GetEventFilter(dev, core);
-                        FixUpEventFromWindow(pSprite, core, pWin, child, FALSE);
-                        deliveries = DeliverEventsToWindow(dev, pWin, core,
-                                                           count, filter, grab);
-                        if (deliveries > 0)
-                            goto unwind;
-                    }
-                } else if (rc != BadMatch)
-                        ErrorF("[dix] %s: Core conversion failed in DDE (%d, %d).\n",
-                                dev->name, event->any.type, rc);
+                deliveries = DeliverOneEvent(event, dev, CORE, pWin, child, grab);
+                if (deliveries > 0)
+                    break;
             }
 
-            if ((deliveries < 0) || (pWin == stopAt) ||
-                (mask & EVENT_DONT_PROPAGATE_MASK))
-            {
-                deliveries = 0;
-                goto unwind;
-            }
+        }
+
+        if ((deliveries < 0) || (pWin == stopAt) ||
+            (mask & EVENT_DONT_PROPAGATE_MASK))
+        {
+            deliveries = 0;
+            break;
         }
 
         child = pWin->drawable.id;
         pWin = pWin->parent;
     }
 
-unwind:
-    free(core);
-    free(xE);
     return deliveries;
 }
 
@@ -3629,6 +3624,257 @@ BorderSizeNotEmpty(DeviceIntPtr pDev, WindowPtr pWin)
 }
 
 /**
+ * Activate the given passive grab. If the grab is activated successfully, the
+ * event has been delivered to the client.
+ *
+ * @param device The device of the event to check.
+ * @param grab The grab to check.
+ * @param event The current device event.
+ *
+ * @return Whether the grab has been activated.
+ */
+Bool
+ActivatePassiveGrab(DeviceIntPtr device, GrabPtr grab, InternalEvent *event)
+{
+    SpritePtr pSprite = device->spriteInfo->sprite;
+    GrabInfoPtr grabinfo = &device->deviceGrab;
+    xEvent *xE = NULL;
+    int count;
+    int rc;
+
+    /* The only consumers of corestate are Xi 1.x and core events, which
+     * are guaranteed to come from DeviceEvents. */
+    if (grab->grabtype == XI || grab->grabtype == CORE)
+    {
+        DeviceIntPtr gdev;
+
+        event->device_event.corestate &= 0x1f00;
+
+        if (grab->grabtype == CORE)
+            gdev = GetMaster(device, KEYBOARD_OR_FLOAT);
+        else
+            gdev = grab->modifierDevice;
+
+        if (gdev && gdev->key && gdev->key->xkbInfo)
+            event->device_event.corestate |=
+                gdev->key->xkbInfo->state.grab_mods & (~0x1f00);
+    }
+
+    if (grab->grabtype == CORE)
+    {
+        rc = EventToCore(event, &xE, &count);
+        if (rc != Success)
+        {
+            BUG_WARN_MSG(rc != BadMatch,"[dix] %s: core conversion failed"
+                         "(%d, %d).\n", device->name, event->any.type, rc);
+            return FALSE;
+        }
+    } else if (grab->grabtype == XI2)
+    {
+        rc = EventToXI2(event, &xE);
+        if (rc != Success)
+        {
+            if (rc != BadMatch)
+                BUG_WARN_MSG(rc != BadMatch,"[dix] %s: XI2 conversion failed"
+                             "(%d, %d).\n", device->name, event->any.type, rc);
+            return FALSE;
+        }
+        count = 1;
+    } else
+    {
+        rc = EventToXI(event, &xE, &count);
+        if (rc != Success)
+        {
+            if (rc != BadMatch)
+                BUG_WARN_MSG(rc != BadMatch,"[dix] %s: XI conversion failed"
+                             "(%d, %d).\n", device->name, event->any.type, rc);
+            return FALSE;
+        }
+    }
+
+    (*grabinfo->ActivateGrab)(device, grab, currentTime, TRUE);
+
+    if (xE)
+    {
+        FixUpEventFromWindow(pSprite, xE, grab->window, None, TRUE);
+
+        /* XXX: XACE? */
+        TryClientEvents(rClient(grab), device, xE, count,
+                        GetEventFilter(device, xE),
+                        GetEventFilter(device, xE), grab);
+    }
+
+    if (grabinfo->sync.state == FROZEN_NO_EVENT)
+        grabinfo->sync.state = FROZEN_WITH_EVENT;
+    *grabinfo->sync.event = event->device_event;
+
+    free(xE);
+    return TRUE;
+}
+
+static BOOL
+CoreGrabInterferes(DeviceIntPtr device, GrabPtr grab)
+{
+    DeviceIntPtr other;
+    BOOL interfering = FALSE;
+
+    for (other = inputInfo.devices; other; other = other->next)
+    {
+        GrabPtr othergrab = other->deviceGrab.grab;
+        if (othergrab && othergrab->grabtype == CORE &&
+                SameClient(grab, rClient(othergrab)) &&
+                ((IsPointerDevice(grab->device) &&
+                  IsPointerDevice(othergrab->device)) ||
+                 (IsKeyboardDevice(grab->device) &&
+                  IsKeyboardDevice(othergrab->device))))
+        {
+            interfering = TRUE;
+            break;
+        }
+    }
+
+    return interfering;
+}
+
+enum MatchFlags {
+    NO_MATCH    = 0x0,
+    CORE_MATCH  = 0x1,
+    XI_MATCH    = 0x2,
+    XI2_MATCH   = 0x4,
+};
+
+/**
+ * Match the grab against the temporary grab on the given input level.
+ * Modifies the temporary grab pointer.
+ *
+ * @param grab The grab to match against
+ * @param tmp The temporary grab to use for matching
+ * @param level The input level we want to match on
+ * @param event_type Wire protocol event type
+ *
+ * @return The respective matched flag or 0 for no match
+ */
+static enum MatchFlags
+MatchForType(const GrabPtr grab, GrabPtr tmp, enum InputLevel level, int event_type)
+{
+    enum MatchFlags match;
+    BOOL ignore_device = FALSE;
+    int grabtype;
+    int evtype;
+
+    switch(level)
+    {
+        case XI2:
+            grabtype = XI2;
+            evtype = GetXI2Type(event_type);
+            BUG_WARN(!evtype);
+            match = XI2_MATCH;
+            break;
+        case XI:
+            grabtype = XI;
+            evtype = GetXIType(event_type);
+            match = XI_MATCH;
+            break;
+        case CORE:
+            grabtype = CORE;
+            evtype = GetCoreType(event_type);
+            match = CORE_MATCH;
+            ignore_device = TRUE;
+            break;
+    }
+
+    tmp->grabtype = grabtype;
+    tmp->type = evtype;
+
+    if (tmp->type && GrabMatchesSecond(tmp, grab, ignore_device))
+        return match;
+
+    return NO_MATCH;
+}
+
+/**
+ * Check an individual grab against an event to determine if a passive grab
+ * should be activated.
+ *
+ * @param device The device of the event to check.
+ * @param grab The grab to check.
+ * @param event The current device event.
+ * @param checkCore Check for core grabs too.
+ * @param tempGrab A pre-allocated temporary grab record for matching. This
+ *        must have the window and device values filled in.
+ *
+ * @return Whether the grab matches the event.
+ */
+static Bool
+CheckPassiveGrab(DeviceIntPtr device, GrabPtr grab, InternalEvent *event,
+                 Bool checkCore, GrabPtr tempGrab)
+{
+    DeviceIntPtr gdev;
+    XkbSrvInfoPtr xkbi = NULL;
+    enum MatchFlags match = 0;
+
+    gdev = grab->modifierDevice;
+    if (grab->grabtype == CORE)
+    {
+        gdev = GetMaster(device, KEYBOARD_OR_FLOAT);
+    } else if (grab->grabtype == XI2)
+    {
+        /* if the device is an attached slave device, gdev must be the
+         * attached master keyboard. Since the slave may have been
+         * reattached after the grab, the modifier device may not be the
+         * same. */
+        if (!IsMaster(grab->device) && !IsFloating(device))
+            gdev = GetMaster(device, MASTER_KEYBOARD);
+    }
+
+    if (gdev && gdev->key)
+        xkbi= gdev->key->xkbInfo;
+    tempGrab->modifierDevice = grab->modifierDevice;
+    tempGrab->modifiersDetail.exact = xkbi ? xkbi->state.grab_mods : 0;
+
+    /* Check for XI2 and XI grabs first */
+    match = MatchForType(grab, tempGrab, XI2, GetXI2Type(event->any.type));
+
+    if (!match)
+        match = MatchForType(grab, tempGrab, XI, GetXIType(event->any.type));
+
+    if (!match && checkCore)
+        match = MatchForType(grab, tempGrab, CORE, GetCoreType(event->any.type));
+
+    if (!match || (grab->confineTo &&
+                   (!grab->confineTo->realized ||
+                    !BorderSizeNotEmpty(device, grab->confineTo))))
+        return FALSE;
+
+    /* In some cases a passive core grab may exist, but the client
+     * already has a core grab on some other device. In this case we
+     * must not get the grab, otherwise we may never ungrab the
+     * device.
+     */
+
+    if (grab->grabtype == CORE)
+    {
+        /* A passive grab may have been created for a different device
+           than it is assigned to at this point in time.
+           Update the grab's device and modifier device to reflect the
+           current state.
+           Since XGrabDeviceButton requires to specify the
+           modifierDevice explicitly, we don't override this choice.
+         */
+        if (grab->type < GenericEvent)
+        {
+            grab->device = device;
+            grab->modifierDevice = GetMaster(device, MASTER_KEYBOARD);
+        }
+
+        if (CoreGrabInterferes(device, grab))
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
  * "CheckPassiveGrabsOnWindow" checks to see if the event passed in causes a
  * passive grab set on the window to be activated.
  * If activate is true and a passive grab is found, it will be activated,
@@ -3649,14 +3895,8 @@ CheckPassiveGrabsOnWindow(
     BOOL checkCore,
     BOOL activate)
 {
-    SpritePtr pSprite = device->spriteInfo->sprite;
     GrabPtr grab = wPassiveGrabs(pWin);
     GrabPtr tempGrab;
-    GrabInfoPtr grabinfo;
-#define CORE_MATCH      0x1
-#define XI_MATCH        0x2
-#define XI2_MATCH        0x4
-    int match = 0;
 
     if (!grab)
 	return NULL;
@@ -3684,185 +3924,20 @@ CheckPassiveGrabsOnWindow(
     tempGrab->detail.pMask = NULL;
     tempGrab->modifiersDetail.pMask = NULL;
     tempGrab->next = NULL;
+
     for (; grab; grab = grab->next)
     {
-	DeviceIntPtr	gdev;
-	XkbSrvInfoPtr	xkbi = NULL;
-	xEvent *xE = NULL;
-        int count, rc;
-
-	gdev= grab->modifierDevice;
-        if (grab->grabtype == GRABTYPE_CORE)
-        {
-            gdev = GetMaster(device, KEYBOARD_OR_FLOAT);
-        } else if (grab->grabtype == GRABTYPE_XI2)
-        {
-            /* if the device is an attached slave device, gdev must be the
-             * attached master keyboard. Since the slave may have been
-             * reattached after the grab, the modifier device may not be the
-             * same. */
-            if (!IsMaster(grab->device) && !IsFloating(device))
-                gdev = GetMaster(device, MASTER_KEYBOARD);
-        }
-
-
-        if (gdev && gdev->key)
-            xkbi= gdev->key->xkbInfo;
-        tempGrab->modifierDevice = grab->modifierDevice;
-        tempGrab->modifiersDetail.exact = xkbi ? xkbi->state.grab_mods : 0;
-
-        /* Check for XI2 and XI grabs first */
-        tempGrab->type = GetXI2Type(event);
-        tempGrab->grabtype = GRABTYPE_XI2;
-        if (GrabMatchesSecond(tempGrab, grab, FALSE))
-            match = XI2_MATCH;
-
-        if (!match)
-        {
-            tempGrab->grabtype = GRABTYPE_XI;
-            if ((tempGrab->type = GetXIType(event)) &&
-                (GrabMatchesSecond(tempGrab, grab, FALSE)))
-                match = XI_MATCH;
-        }
-
-        /* Check for a core grab (ignore the device when comparing) */
-        if (!match && checkCore)
-        {
-            tempGrab->grabtype = GRABTYPE_CORE;
-            if ((tempGrab->type = GetCoreType(event)) &&
-                (GrabMatchesSecond(tempGrab, grab, TRUE)))
-                match = CORE_MATCH;
-        }
-
-        if (!match || (grab->confineTo &&
-                       (!grab->confineTo->realized ||
-                        !BorderSizeNotEmpty(device, grab->confineTo))))
+        if (!CheckPassiveGrab(device, grab, event, checkCore, tempGrab))
             continue;
 
-        grabinfo = &device->deviceGrab;
-        /* In some cases a passive core grab may exist, but the client
-         * already has a core grab on some other device. In this case we
-         * must not get the grab, otherwise we may never ungrab the
-         * device.
-         */
+        if (activate && !ActivatePassiveGrab(device, grab, event))
+            continue;
 
-        if (grab->grabtype == GRABTYPE_CORE)
-        {
-            DeviceIntPtr other;
-            BOOL interfering = FALSE;
-
-            /* A passive grab may have been created for a different device
-               than it is assigned to at this point in time.
-               Update the grab's device and modifier device to reflect the
-               current state.
-               Since XGrabDeviceButton requires to specify the
-               modifierDevice explicitly, we don't override this choice.
-               */
-            if (tempGrab->type < GenericEvent)
-            {
-                grab->device = device;
-                grab->modifierDevice = GetMaster(device, MASTER_KEYBOARD);
-            }
-
-            for (other = inputInfo.devices; other; other = other->next)
-            {
-                GrabPtr othergrab = other->deviceGrab.grab;
-                if (othergrab && othergrab->grabtype == GRABTYPE_CORE &&
-                    SameClient(grab, rClient(othergrab)) &&
-                    ((IsPointerDevice(grab->device) &&
-                     IsPointerDevice(othergrab->device)) ||
-                     (IsKeyboardDevice(grab->device) &&
-                      IsKeyboardDevice(othergrab->device))))
-                {
-                    interfering = TRUE;
-                    break;
-                }
-            }
-            if (interfering)
-                continue;
-        }
-
-        if (!activate)
-            break;
-        else if (!GetXIType(event) && !GetCoreType(event))
-        {
-            ErrorF("Event type %d in CheckPassiveGrabsOnWindow is neither"
-                   " XI 1.x nor core\n", event->any.type);
-            grab = NULL;
-            break;
-        }
-
-        /* The only consumers of corestate are Xi 1.x and core events, which
-         * are guaranteed to come from DeviceEvents. */
-        if (match & (XI_MATCH | CORE_MATCH))
-        {
-            event->device_event.corestate &= 0x1f00;
-            event->device_event.corestate |= tempGrab->modifiersDetail.exact &
-                                              (~0x1f00);
-        }
-
-        if (match & CORE_MATCH)
-        {
-            rc = EventToCore(event, &xE, &count);
-            if (rc != Success)
-            {
-                if (rc != BadMatch)
-                    ErrorF("[dix] %s: core conversion failed in CPGFW "
-                            "(%d, %d).\n", device->name, event->any.type, rc);
-                continue;
-            }
-        } else if (match & XI2_MATCH)
-        {
-            rc = EventToXI2(event, &xE);
-            if (rc != Success)
-            {
-                if (rc != BadMatch)
-                    ErrorF("[dix] %s: XI2 conversion failed in CPGFW "
-                            "(%d, %d).\n", device->name, event->any.type, rc);
-                continue;
-            }
-            count = 1;
-        } else
-        {
-            rc = EventToXI(event, &xE, &count);
-            if (rc != Success)
-            {
-                if (rc != BadMatch)
-                    ErrorF("[dix] %s: XI conversion failed in CPGFW "
-                            "(%d, %d).\n", device->name, event->any.type, rc);
-                continue;
-            }
-        }
-
-        (*grabinfo->ActivateGrab)(device, grab, currentTime, TRUE);
-
-        if (xE)
-        {
-            FixUpEventFromWindow(pSprite, xE, grab->window, None, TRUE);
-
-            /* XXX: XACE? */
-            TryClientEvents(rClient(grab), device, xE, count,
-                            GetEventFilter(device, xE),
-                            GetEventFilter(device, xE), grab);
-        }
-
-        if (grabinfo->sync.state == FROZEN_NO_EVENT)
-        {
-            if (!grabinfo->sync.event)
-                grabinfo->sync.event = calloc(1, sizeof(DeviceEvent));
-            *grabinfo->sync.event = event->device_event;
-            grabinfo->sync.state = FROZEN_WITH_EVENT;
-        }
-
-        free(xE);
         break;
     }
 
     FreeGrab(tempGrab);
     return grab;
-#undef CORE_MATCH
-#undef XI_MATCH
-#undef XI2_MATCH
 }
 
 /**
@@ -4048,6 +4123,75 @@ unwind:
     return;
 }
 
+
+int
+DeliverOneGrabbedEvent(InternalEvent *event, DeviceIntPtr dev, enum InputLevel level)
+{
+    SpritePtr pSprite = dev->spriteInfo->sprite;
+    int rc;
+    xEvent *xE = NULL;
+    int count = 0;
+    int deliveries = 0;
+    Mask mask;
+    GrabInfoPtr grabinfo = &dev->deviceGrab;
+    GrabPtr grab = grabinfo->grab;
+    Mask filter;
+
+    switch(level)
+    {
+        case XI2:
+            rc = EventToXI2(event, &xE);
+            count = 1;
+            if (rc == Success)
+            {
+                int evtype = xi2_get_type(xE);
+                mask = xi2mask_isset(grab->xi2mask, dev, evtype);
+                filter = 1;
+            }
+            break;
+        case XI:
+            if (grabinfo->fromPassiveGrab && grabinfo->implicitGrab)
+                mask = grab->deviceMask;
+            else
+                mask = grab->eventMask;
+            rc = EventToXI(event, &xE, &count);
+            if (rc == Success)
+                filter = GetEventFilter(dev, xE);
+            break;
+        case CORE:
+            rc = EventToCore(event, &xE, &count);
+            mask = grab->eventMask;
+            if (rc == Success)
+                filter = GetEventFilter(dev, xE);
+            break;
+        default:
+            BUG_WARN_MSG(1, "Invalid input level %d\n", level);
+            return 0;
+    }
+
+    if (rc == Success)
+    {
+        FixUpEventFromWindow(pSprite, xE, grab->window, None, TRUE);
+        if (XaceHook(XACE_SEND_ACCESS, 0, dev,
+                    grab->window, xE, count) ||
+                XaceHook(XACE_RECEIVE_ACCESS, rClient(grab),
+                    grab->window, xE, count))
+            deliveries = 1; /* don't send, but pretend we did */
+        else if (level != CORE || !IsInterferingGrab(rClient(grab), dev, xE))
+        {
+            deliveries = TryClientEvents(rClient(grab), dev,
+                    xE, count, mask, filter,
+                    grab);
+        }
+    } else
+        BUG_WARN_MSG(rc != BadMatch, "%s: conversion to mode %d failed on %d with %d\n",
+                dev->name, level, event->any.type, rc);
+
+    free(xE);
+    return deliveries;
+}
+
+
 /**
  * Deliver an event from a device that is currently grabbed. Uses
  * DeliverDeviceEvents() for further delivery if a ownerEvents is set on the
@@ -4067,10 +4211,6 @@ DeliverGrabbedEvent(InternalEvent *event, DeviceIntPtr thisDev,
     DeviceIntPtr dev;
     SpritePtr pSprite = thisDev->spriteInfo->sprite;
     BOOL sendCore = FALSE;
-    int rc, count = 0;
-    xEvent *xi = NULL;
-    xEvent *xi2 = NULL;
-    xEvent *core = NULL;
 
     grabinfo = &thisDev->deviceGrab;
     grab = grabinfo->grab;
@@ -4078,6 +4218,7 @@ DeliverGrabbedEvent(InternalEvent *event, DeviceIntPtr thisDev,
     if (grab->ownerEvents)
     {
 	WindowPtr focus;
+	WindowPtr win;
 
         /* Hack: Some pointer device have a focus class. So we need to check
          * for the type of event, to see if we really want to deliver it to
@@ -4094,99 +4235,40 @@ DeliverGrabbedEvent(InternalEvent *event, DeviceIntPtr thisDev,
 	else
 	    focus = PointerRootWin;
 	if (focus == PointerRootWin)
-	    deliveries = DeliverDeviceEvents(pSprite->win, event, grab,
-                                             NullWindow, thisDev);
-	else if (focus && (focus == pSprite->win ||
-                    IsParent(focus, pSprite->win)))
-	    deliveries = DeliverDeviceEvents(pSprite->win, event, grab, focus,
-					     thisDev);
+	{
+	    win = pSprite->win;
+	    focus = NullWindow;
+	} else if (focus && (focus == pSprite->win ||
+		    IsParent(focus, pSprite->win)))
+	    win = pSprite->win;
 	else if (focus)
-	    deliveries = DeliverDeviceEvents(focus, event, grab, focus,
-					     thisDev);
+	    win = focus;
+
+	deliveries = DeliverDeviceEvents(win, event, grab, focus, thisDev);
     }
     if (!deliveries)
     {
-        Mask mask;
-
         /* XXX: In theory, we could pass the internal events through to
          * everything and only convert just before hitting the wire. We can't
          * do that yet, so DGE is the last stop for internal events. From here
          * onwards, we deal with core/XI events.
          */
 
-        mask = grab->eventMask;
-
         sendCore = (IsMaster(thisDev) && thisDev->coreEvents);
         /* try core event */
-        if (sendCore && grab->grabtype == GRABTYPE_CORE)
+        if (sendCore && grab->grabtype == CORE)
         {
-            rc = EventToCore(event, &core, &count);
-            if (rc == Success)
-            {
-                FixUpEventFromWindow(pSprite, core, grab->window, None, TRUE);
-                if (XaceHook(XACE_SEND_ACCESS, 0, thisDev,
-                            grab->window, core, count) ||
-                        XaceHook(XACE_RECEIVE_ACCESS, rClient(grab),
-                            grab->window, core, count))
-                    deliveries = 1; /* don't send, but pretend we did */
-                else if (!IsInterferingGrab(rClient(grab), thisDev, core))
-                {
-                    deliveries = TryClientEvents(rClient(grab), thisDev,
-                            core, count, mask,
-                            GetEventFilter(thisDev, core),
-                            grab);
-                }
-            } else if (rc != BadMatch)
-                ErrorF("[dix] DeliverGrabbedEvent. Core conversion failed.\n");
+            deliveries = DeliverOneGrabbedEvent(event, thisDev, CORE);
         }
 
         if (!deliveries)
         {
-            rc = EventToXI2(event, &xi2);
-            if (rc == Success)
-            {
-                int evtype = xi2_get_type(xi2);
-                mask = xi2mask_isset(grab->xi2mask, thisDev, evtype);
-                /* try XI2 event */
-                FixUpEventFromWindow(pSprite, xi2, grab->window, None, TRUE);
-                /* XXX: XACE */
-                deliveries = TryClientEvents(rClient(grab), thisDev, xi2, 1, mask, 1, grab);
-            } else if (rc != BadMatch)
-                ErrorF("[dix] %s: XI2 conversion failed in DGE (%d, %d). Skipping delivery.\n",
-                        thisDev->name, event->any.type, rc);
+            deliveries = DeliverOneGrabbedEvent(event, thisDev, XI2);
         }
 
         if (!deliveries)
         {
-            rc = EventToXI(event, &xi, &count);
-            if (rc == Success)
-            {
-                /* try XI event */
-                if (grabinfo->fromPassiveGrab  &&
-                        grabinfo->implicitGrab)
-                    mask = grab->deviceMask;
-                else
-                    mask = grab->eventMask;
-
-                FixUpEventFromWindow(pSprite, xi, grab->window, None, TRUE);
-
-                if (XaceHook(XACE_SEND_ACCESS, 0, thisDev,
-                            grab->window, xi, count) ||
-                        XaceHook(XACE_RECEIVE_ACCESS, rClient(grab),
-                            grab->window, xi, count))
-                    deliveries = 1; /* don't send, but pretend we did */
-                else
-                {
-                    deliveries =
-                        TryClientEvents(rClient(grab), thisDev,
-                                xi, count,
-                                mask,
-                                GetEventFilter(thisDev, xi),
-                                grab);
-                }
-            } else if (rc != BadMatch)
-                ErrorF("[dix] %s: XI conversion failed in DGE (%d, %d). Skipping delivery.\n",
-                        thisDev->name, event->any.type, rc);
+            deliveries = DeliverOneGrabbedEvent(event, thisDev, XI);
         }
 
         if (deliveries && (event->any.type == ET_Motion))
@@ -4212,16 +4294,10 @@ DeliverGrabbedEvent(InternalEvent *event, DeviceIntPtr thisDev,
 	case FREEZE_NEXT_EVENT:
 	    grabinfo->sync.state = FROZEN_WITH_EVENT;
 	    FreezeThaw(thisDev, TRUE);
-	    if (!grabinfo->sync.event)
-		grabinfo->sync.event = calloc(1, sizeof(InternalEvent));
 	    *grabinfo->sync.event = event->device_event;
 	    break;
 	}
     }
-
-    free(core);
-    free(xi);
-    free(xi2);
 
     return deliveries;
 }
@@ -4876,7 +4952,7 @@ ProcGrabPointer(ClientPtr client)
 
     rc = GrabDevice(client, device, stuff->pointerMode, stuff->keyboardMode,
                     stuff->grabWindow, stuff->ownerEvents, stuff->time,
-                    &mask, GRABTYPE_CORE, stuff->cursor,
+                    &mask, CORE, stuff->cursor,
                     stuff->confineTo, &rep.status);
     if (rc != Success)
         return rc;
@@ -5084,9 +5160,9 @@ GrabDevice(ClientPtr client, DeviceIntPtr dev,
 	tempGrab->ownerEvents = ownerEvents;
 	tempGrab->keyboardMode = keyboard_mode;
 	tempGrab->pointerMode = pointer_mode;
-	if (grabtype == GRABTYPE_CORE)
+	if (grabtype == CORE)
 	    tempGrab->eventMask = mask->core;
-	else if (grabtype == GRABTYPE_XI)
+	else if (grabtype == XI)
 	    tempGrab->eventMask = mask->xi;
 	else
             xi2mask_merge(tempGrab->xi2mask, mask->xi2mask);
@@ -5123,7 +5199,7 @@ ProcGrabKeyboard(ClientPtr client)
 
     result = GrabDevice(client, keyboard, stuff->pointerMode,
             stuff->keyboardMode, stuff->grabWindow, stuff->ownerEvents,
-            stuff->time, &mask, GRABTYPE_CORE, None, None,
+            stuff->time, &mask, CORE, None, None,
             &rep.status);
 
     if (result != Success)
@@ -5156,7 +5232,7 @@ ProcUngrabKeyboard(ClientPtr client)
     time = ClientTimeToServerTime(stuff->id);
     if ((CompareTimeStamps(time, currentTime) != LATER) &&
 	(CompareTimeStamps(time, device->deviceGrab.grabTime) != EARLIER) &&
-	(grab) && SameClient(grab, client) && grab->grabtype == GRABTYPE_CORE)
+	(grab) && SameClient(grab, client) && grab->grabtype == CORE)
 	(*device->deviceGrab.DeactivateGrab)(device);
     return Success;
 }
@@ -5262,7 +5338,7 @@ InitEvents(void)
     inputInfo.pointer = (DeviceIntPtr)NULL;
     for (i = 0; i < MAXDEVICES; i++)
     {
-        memcpy(&filters[i], default_filter, sizeof(default_filter));
+        memcpy(&event_filters[i], default_filter, sizeof(default_filter));
     }
 
     syncEvents.replayDev = (DeviceIntPtr)NULL;
@@ -5448,7 +5524,7 @@ ProcUngrabKey(ClientPtr client)
     tempGrab->modifiersDetail.pMask = NULL;
     tempGrab->modifierDevice = keybd;
     tempGrab->type = KeyPress;
-    tempGrab->grabtype = GRABTYPE_CORE;
+    tempGrab->grabtype = CORE;
     tempGrab->detail.exact = stuff->key;
     tempGrab->detail.pMask = NULL;
     tempGrab->next = NULL;
@@ -5481,7 +5557,7 @@ ProcGrabKey(ClientPtr client)
     REQUEST_SIZE_MATCH(xGrabKeyReq);
 
     memset(&param, 0, sizeof(param));
-    param.grabtype = GRABTYPE_CORE;
+    param.grabtype = CORE;
     param.ownerEvents = stuff->ownerEvents;
     param.this_device_mode = stuff->keyboardMode;
     param.other_devices_mode = stuff->pointerMode;
@@ -5505,7 +5581,7 @@ ProcGrabKey(ClientPtr client)
 
     mask.core = (KeyPressMask | KeyReleaseMask);
 
-    grab = CreateGrab(client->index, keybd, keybd, pWin, GRABTYPE_CORE, &mask,
+    grab = CreateGrab(client->index, keybd, keybd, pWin, CORE, &mask,
                       &param, KeyPress, stuff->key, NullWindow, NullCursor);
     if (!grab)
 	return BadAlloc;
@@ -5596,7 +5672,7 @@ ProcGrabButton(ClientPtr client)
 	return rc;
 
     memset(&param, 0, sizeof(param));
-    param.grabtype = GRABTYPE_CORE;
+    param.grabtype = CORE;
     param.ownerEvents = stuff->ownerEvents;
     param.this_device_mode = stuff->keyboardMode;
     param.other_devices_mode = stuff->pointerMode;
@@ -5605,7 +5681,7 @@ ProcGrabButton(ClientPtr client)
     mask.core = stuff->eventMask;
 
     grab = CreateGrab(client->index, ptr, modifierDevice, pWin,
-                      GRABTYPE_CORE, &mask, &param, ButtonPress,
+                      CORE, &mask, &param, ButtonPress,
                       stuff->button, confineTo, cursor);
     if (!grab)
 	return BadAlloc;
@@ -5650,7 +5726,7 @@ ProcUngrabButton(ClientPtr client)
     tempGrab->modifierDevice = GetMaster(ptr, MASTER_KEYBOARD);
     tempGrab->type = ButtonPress;
     tempGrab->detail.exact = stuff->button;
-    tempGrab->grabtype = GRABTYPE_CORE;
+    tempGrab->grabtype = CORE;
     tempGrab->detail.pMask = NULL;
     tempGrab->next = NULL;
 
@@ -6057,7 +6133,7 @@ PickPointer(ClientPtr client)
     for(it = inputInfo.devices; it; it = it->next)
     {
         GrabPtr grab = it->deviceGrab.grab;
-        if (grab && grab->grabtype == GRABTYPE_CORE && SameClient(grab, client))
+        if (grab && grab->grabtype == CORE && SameClient(grab, client))
         {
             it = GetMaster(it, MASTER_POINTER);
             return it; /* Always return a core grabbed device */

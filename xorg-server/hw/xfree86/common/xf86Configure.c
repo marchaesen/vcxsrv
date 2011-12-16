@@ -778,7 +778,8 @@ void DoShowOptions (void) {
 	free(vlist);
 	for (i = 0; i < xf86NumDrivers; i++) {
 		if (xf86DriverList[i]->AvailableOptions) {
-			OptionInfoPtr pOption = (OptionInfoPtr)(*xf86DriverList[i]->AvailableOptions)(0,0);
+			const OptionInfoRec *pOption =
+			    (*xf86DriverList[i]->AvailableOptions)(0,0);
 			if (! pOption) {
 				ErrorF ("(EE) Couldn't read option table for %s driver\n",
 					xf86DriverList[i]->driverName
@@ -790,7 +791,7 @@ void DoShowOptions (void) {
 			initData = LoaderSymbol (pSymbol);
 			if (initData) {
 				XF86ModuleVersionInfo *vers = initData->vers;
-				OptionInfoPtr p;
+				const OptionInfoRec *p;
 				ErrorF ("Driver[%d]:%s[%s] {\n",
 					i,xf86DriverList[i]->driverName,vers->vendor
 				);

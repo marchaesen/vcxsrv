@@ -62,7 +62,7 @@ xf86parseExtensionsSection (void)
 		ptr->ext_option_lst = xf86parseOption(ptr->ext_option_lst);
 		break;
 	    case EOF_TOKEN:
-		Error (UNEXPECTED_EOF_MSG, NULL);
+		Error (UNEXPECTED_EOF_MSG);
 		break;
 	    case COMMENT:
 		ptr->extensions_comment =

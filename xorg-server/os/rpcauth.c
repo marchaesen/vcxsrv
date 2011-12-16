@@ -128,7 +128,7 @@ static char rpc_error[MAXNETNAMELEN+50];
 
 _X_HIDDEN XID
 SecureRPCCheck (unsigned short data_length, const char *data,
-    ClientPtr client, char **reason)
+    ClientPtr client, const char **reason)
 {
     char *fullname;
     

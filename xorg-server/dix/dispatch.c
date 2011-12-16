@@ -3600,7 +3600,7 @@ ProcInitialConnection(ClientPtr client)
 }
 
 static int
-SendConnSetup(ClientPtr client, char *reason)
+SendConnSetup(ClientPtr client, const char *reason)
 {
     xWindowRoot *root;
     int i;
@@ -3699,7 +3699,8 @@ SendConnSetup(ClientPtr client, char *reason)
 int
 ProcEstablishConnection(ClientPtr client)
 {
-    char *reason, *auth_proto, *auth_string;
+    const char *reason;
+    char *auth_proto, *auth_string;
     xConnClientPrefix *prefix;
     REQUEST(xReq);
 

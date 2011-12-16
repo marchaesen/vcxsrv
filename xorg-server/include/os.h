@@ -127,7 +127,7 @@ extern _X_EXPORT void CloseWellKnownConnections(void);
 
 extern _X_EXPORT XID AuthorizationIDOfClient(ClientPtr /*client*/);
 
-extern _X_EXPORT char *ClientAuthorized(
+extern _X_EXPORT const char *ClientAuthorized(
     ClientPtr /*client*/,
     unsigned int /*proto_n*/,
     char* /*auth_proto*/,
@@ -405,7 +405,7 @@ extern _X_EXPORT void InitAuthorization(char * /*filename*/);
 extern _X_EXPORT int AuthorizationFromID (
 	XID 		id,
 	unsigned short	*name_lenp,
-	char		**namep,
+	const char	**namep,
 	unsigned short	*data_lenp,
 	char		**datap);
 
@@ -415,7 +415,7 @@ extern _X_EXPORT XID CheckAuthorization(
     unsigned int /*datalength*/,
     const char * /*data*/,
     ClientPtr /*client*/,
-    char ** /*reason*/
+    const char ** /*reason*/
 );
 
 extern _X_EXPORT void ResetAuthorization(void);

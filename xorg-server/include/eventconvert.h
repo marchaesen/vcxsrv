@@ -27,14 +27,15 @@
 #include <X11/extensions/XIproto.h>
 #include "input.h"
 #include "events.h"
+#include "eventstr.h"
 
 #define FP1616(integral, frac) ((integral) * (1 << 16) + (frac) * (1 << 16))
 
 _X_EXPORT int EventToCore(InternalEvent *event, xEvent **core, int *count);
 _X_EXPORT int EventToXI(InternalEvent *ev, xEvent **xi, int *count);
 _X_EXPORT int EventToXI2(InternalEvent *ev, xEvent **xi);
-_X_INTERNAL int GetCoreType(InternalEvent* ev);
-_X_INTERNAL int GetXIType(InternalEvent* ev);
-_X_INTERNAL int GetXI2Type(InternalEvent* ev);
+_X_INTERNAL int GetCoreType(enum EventType type);
+_X_INTERNAL int GetXIType(enum EventType type);
+_X_INTERNAL int GetXI2Type(enum EventType type);
 
 #endif /* _EVENTCONVERT_H_ */

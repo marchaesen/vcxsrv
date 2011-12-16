@@ -56,7 +56,8 @@ PictureGetFilterId (const char *filter, int len, Bool makeit)
     if (len < 0)
 	len = strlen (filter);
     for (i = 0; i < nfilterNames; i++)
-	if (!CompareISOLatin1Lowered ((unsigned char *) filterNames[i], -1, (unsigned char *) filter, len))
+	if (!CompareISOLatin1Lowered ((const unsigned char *) filterNames[i], -1,
+				      (const unsigned char *) filter, len))
 	    return i;
     if (!makeit)
 	return -1;

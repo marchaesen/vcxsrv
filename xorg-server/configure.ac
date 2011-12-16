@@ -771,6 +771,20 @@ VIDMODEPROTO="xf86vidmodeproto >= 2.2.99.1"
 WINDOWSWMPROTO="windowswmproto"
 APPLEWMPROTO="applewmproto >= 1.4"
 
+dnl Required modules
+XPROTO="xproto >= 7.0.22"
+RANDRPROTO="randrproto >= 1.2.99.3"
+RENDERPROTO="renderproto >= 0.11"
+XEXTPROTO="xextproto >= 7.1.99"
+INPUTPROTO="inputproto >= 2.0.99.1"
+KBPROTO="kbproto >= 1.0.3"
+FONTSPROTO="fontsproto"
+FIXESPROTO="fixesproto >= 5.0"
+DAMAGEPROTO="damageproto >= 1.1"
+XCMISCPROTO="xcmiscproto >= 1.2.0"
+BIGREQSPROTO="bigreqsproto >= 1.1.0"
+XTRANS="xtrans >= 1.2.2"
+
 dnl List of libraries that require a specific version
 LIBAPPLEWM="applewm >= 1.4"
 LIBDMX="dmx >= 1.0.99.1"
@@ -793,11 +807,11 @@ PKG_CHECK_MODULES(PIXMAN, $LIBPIXMAN)
 REQUIRED_LIBS="$REQUIRED_LIBS $LIBPIXMAN $LIBXFONT xau"
 
 dnl Core modules for most extensions, et al.
-SDK_REQUIRED_MODULES="[xproto >= 7.0.22] [randrproto >= 1.2.99.3] [renderproto >= 0.11] [xextproto >= 7.1.99] [inputproto >= 2.0.99.1] [kbproto >= 1.0.3] fontsproto $LIBPIXMAN"
+SDK_REQUIRED_MODULES="$XPROTO $RANDRPROTO $RENDERPROTO $XEXTPROTO $INPUTPROTO $KBPROTO $FONTSPROTO $LIBPIXMAN"
 # Make SDK_REQUIRED_MODULES available for inclusion in xorg-server.pc
 AC_SUBST(SDK_REQUIRED_MODULES)
 
-REQUIRED_MODULES="[fixesproto >= 5.0] [damageproto >= 1.1] [xcmiscproto >= 1.2.0] [xtrans >= 1.2.2] [bigreqsproto >= 1.1.0] $SDK_REQUIRED_MODULES"
+REQUIRED_MODULES="$FIXESPROTO $DAMAGEPROTO $XCMISCPROTO $XTRANS $BIGREQSPROTO $SDK_REQUIRED_MODULES"
 
 if test "x$CONFIG_UDEV" = xyes &&
  { test "x$CONFIG_DBUS_API" = xyes || test "x$CONFIG_HAL" = xyes; }; then

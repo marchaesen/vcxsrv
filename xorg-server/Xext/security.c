@@ -97,7 +97,7 @@ static const Mask SecurityClientMask = DixGetAttrAccess;
  *	Writes the message to the log file if security logging is on.
  */
 
-static void
+static void _X_ATTRIBUTE_PRINTF(1,2)
 SecurityAudit(const char *format, ...)
 {
     va_list args;
@@ -171,7 +171,8 @@ SecurityDeleteAuthorization(
 {
     SecurityAuthorizationPtr pAuth = (SecurityAuthorizationPtr)value;
     unsigned short name_len, data_len;
-    char *name, *data;
+    const char *name;
+    char *data;
     int status;
     int i;
     OtherClientsPtr pEventClient;

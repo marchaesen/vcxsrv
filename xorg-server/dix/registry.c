@@ -41,7 +41,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 static FILE *fh;
 
-static char ***requests, **events, **errors, **resources;
+static char ***requests, **events, **errors;
+static const char **resources;
 static unsigned nmajor, *nminor, nevent, nerror, nresource;
 
 /*
@@ -197,7 +198,7 @@ RegisterExtensionNames(ExtensionEntry *extEntry)
  */
 
 void
-RegisterResourceName(RESTYPE resource, char *name)
+RegisterResourceName(RESTYPE resource, const char *name)
 {
     resource &= TypeMask;
 

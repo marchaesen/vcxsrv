@@ -173,7 +173,7 @@ extern _X_EXPORT void xf86VIDrvMsgVerb(InputInfoPtr dev,
 				       MessageType type,
 				       int verb,
 				       const char *format,
-				       va_list args);
+				       va_list args) _X_ATTRIBUTE_PRINTF(4,0);
 
 /* xf86Option.c */
 extern _X_EXPORT void xf86CollectInputOptions(InputInfoPtr pInfo, const char **defaultOpts);

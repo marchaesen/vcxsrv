@@ -242,7 +242,7 @@ CallResourceStateCallback(ResourceState state, ResourceRec *res)
 }
 
 RESTYPE
-CreateNewResourceType(DeleteType deleteFunc, char *name)
+CreateNewResourceType(DeleteType deleteFunc, const char *name)
 {
     RESTYPE next = lastResourceType + 1;
     struct ResourceType *types;

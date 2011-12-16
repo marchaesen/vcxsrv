@@ -424,7 +424,7 @@ KdKeyboardInfo *
 KdParseKeyboard (char *arg);
 
 char *
-KdParseFindNext (char *cur, char *delim, char *save, char *last);
+KdParseFindNext (char *cur, const char *delim, char *save, char *last);
 
 void
 KdParseRgba (char *rgba);
@@ -502,12 +502,6 @@ void
 KdInitInput(void);
 void
 KdCloseInput(void);
-
-void
-KdAddPointerDriver(KdPointerDriver *);
-
-void
-KdAddKeyboardDriver(KdKeyboardDriver *);
 
 Bool
 KdRegisterFd (int fd, void (*read) (int fd, void *closure), void *closure);

@@ -124,7 +124,7 @@ xf86parseLayoutSection (void)
 				iptr->list.next = NULL;
 				if (xf86getSubToken (&(ptr->lay_comment)) != STRING) {
 					free (iptr);
-					Error (INACTIVE_MSG, NULL);
+					Error (INACTIVE_MSG);
 				}
 				iptr->inactive_device_str = val.str;
 				ptr->lay_inactive_lst = (XF86ConfInactivePtr)
@@ -150,7 +150,7 @@ xf86parseLayoutSection (void)
 				token = xf86getSubToken(&(ptr->lay_comment));
 				if (token != STRING) {
 					free(aptr);
-					Error (SCREEN_MSG, NULL);
+					Error (SCREEN_MSG);
 				}
 				aptr->adj_screen_str = val.str;
 
@@ -178,7 +178,7 @@ xf86parseLayoutSection (void)
 					break;
 				case EOF_TOKEN:
 					free(aptr);
-					Error (UNEXPECTED_EOF_MSG, NULL);
+					Error (UNEXPECTED_EOF_MSG);
 					break;
 				default:
 					xf86unGetToken (token);
@@ -199,13 +199,13 @@ xf86parseLayoutSection (void)
 						token = xf86getSubToken(&(ptr->lay_comment));
 						if (token != NUMBER) {
 							free(aptr);
-							Error(INVALID_SCR_MSG, NULL);
+							Error(INVALID_SCR_MSG);
 						}
 						aptr->adj_y = val.num;
 					} else {
 						if (absKeyword) {
 							free(aptr);
-							Error(INVALID_SCR_MSG, NULL);
+							Error(INVALID_SCR_MSG);
 						} else
 							xf86unGetToken (token);
 					}
@@ -218,7 +218,7 @@ xf86parseLayoutSection (void)
 					token = xf86getSubToken(&(ptr->lay_comment));
 					if (token != STRING) {
 						free(aptr);
-						Error(INVALID_SCR_MSG, NULL);
+						Error(INVALID_SCR_MSG);
 					}
 					aptr->adj_refscreen = val.str;
 					if (aptr->adj_where == CONF_ADJ_RELATIVE)
@@ -226,13 +226,13 @@ xf86parseLayoutSection (void)
 						token = xf86getSubToken(&(ptr->lay_comment));
 						if (token != NUMBER) {
 							free(aptr);
-							Error(INVALID_SCR_MSG, NULL);
+							Error(INVALID_SCR_MSG);
 						}
 						aptr->adj_x = val.num;
 						token = xf86getSubToken(&(ptr->lay_comment));
 						if (token != NUMBER) {
 							free(aptr);
-							Error(INVALID_SCR_MSG, NULL);
+							Error(INVALID_SCR_MSG);
 						}
 						aptr->adj_y = val.num;
 					}
@@ -244,21 +244,21 @@ xf86parseLayoutSection (void)
 					/* bottom */
 					if (xf86getSubToken (&(ptr->lay_comment)) != STRING) {
 						free(aptr);
-						Error (SCREEN_MSG, NULL);
+						Error (SCREEN_MSG);
 					}
 					aptr->adj_bottom_str = val.str;
 
 					/* left */
 					if (xf86getSubToken (&(ptr->lay_comment)) != STRING) {
 						free(aptr);
-						Error (SCREEN_MSG, NULL);
+						Error (SCREEN_MSG);
 					}
 					aptr->adj_left_str = val.str;
 
 					/* right */
 					if (xf86getSubToken (&(ptr->lay_comment)) != STRING) {
 						free(aptr);
-						Error (SCREEN_MSG, NULL);
+						Error (SCREEN_MSG);
 					}
 					aptr->adj_right_str = val.str;
 
@@ -276,7 +276,7 @@ xf86parseLayoutSection (void)
 				iptr->iref_option_lst = NULL;
 				if (xf86getSubToken (&(ptr->lay_comment)) != STRING) {
 					free(iptr);
-					Error (INPUTDEV_MSG, NULL);
+					Error (INPUTDEV_MSG);
 				}
 				iptr->iref_inputdev_str = val.str;
 				while ((token = xf86getSubToken (&(ptr->lay_comment))) == STRING)
@@ -293,7 +293,7 @@ xf86parseLayoutSection (void)
 			ptr->lay_option_lst = xf86parseOption(ptr->lay_option_lst);
 			break;
 		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG, NULL);
+			Error (UNEXPECTED_EOF_MSG);
 			break;
 		default:
 			Error (INVALID_KEYWORD_MSG, xf86tokenString ());
@@ -302,7 +302,7 @@ xf86parseLayoutSection (void)
 	}
 
 	if (!has_ident)
-		Error (NO_IDENT_MSG, NULL);
+		Error (NO_IDENT_MSG);
 
 #ifdef DEBUG
 	printf ("Layout section parsed\n");

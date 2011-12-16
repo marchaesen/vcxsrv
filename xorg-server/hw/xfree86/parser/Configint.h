@@ -119,8 +119,8 @@ else\
 }\
 }
 
-#define Error(a,b) do { \
-			xf86parseError (a, b); CLEANUP (ptr); return NULL; \
+#define Error(...) do { \
+		xf86parseError (__VA_ARGS__); CLEANUP (ptr); return NULL; \
 		   } while (0)
 
 /* 

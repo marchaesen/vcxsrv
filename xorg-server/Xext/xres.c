@@ -147,12 +147,12 @@ ProcXResQueryClientResources (ClientPtr client)
 
     if(num_types) {
         xXResType scratch;
-	char *name;
+	const char *name;
 
         for(i = 0; i < lastResourceType; i++) {
             if(!counts[i]) continue;
 
-	    name = (char *)LookupResourceName(i + 1);
+	    name = LookupResourceName(i + 1);
             if (strcmp(name, XREGISTRY_UNKNOWN))
 		scratch.resource_type = MakeAtom(name, strlen(name), TRUE);
 	    else {

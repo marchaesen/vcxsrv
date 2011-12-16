@@ -137,7 +137,7 @@ typedef void (*AuthInitFunc) (AuthInitArgs);
 #define AuthAddCArgs unsigned short data_length, const char *data, XID id
 typedef int (*AuthAddCFunc) (AuthAddCArgs);
 
-#define AuthCheckArgs unsigned short data_length, const char *data, ClientPtr client, char **reason
+#define AuthCheckArgs unsigned short data_length, const char *data, ClientPtr client, const char **reason
 typedef XID (*AuthCheckFunc) (AuthCheckArgs);
 
 #define AuthFromIDArgs XID id, unsigned short *data_lenp, char **datap

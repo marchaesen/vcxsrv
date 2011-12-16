@@ -114,7 +114,7 @@ xf86parseInputSection (void)
 			ptr->inp_option_lst = xf86parseOption(ptr->inp_option_lst);
 			break;
 		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG, NULL);
+			Error (UNEXPECTED_EOF_MSG);
 			break;
 		default:
 			Error (INVALID_KEYWORD_MSG, xf86tokenString ());
@@ -123,7 +123,7 @@ xf86parseInputSection (void)
 	}
 
 	if (!has_ident)
-		Error (NO_IDENT_MSG, NULL);
+		Error (NO_IDENT_MSG);
 
 #ifdef DEBUG
 	printf ("InputDevice section parsed\n");
