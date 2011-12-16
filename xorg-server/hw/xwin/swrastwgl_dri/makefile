@@ -1,7 +1,7 @@
 SHAREDLIB = swrastwgl_dri
 
 INCLUDES += $(OBJDIR) ..\..\.. ..
-DEFINES += INSERVER
+DEFINES += INSERVER HAVE_XWIN_CONFIG_H PTW32_STATIC_LIB
 
 ifeq ($(DEBUG),1)
 LINKLIBS += ..\..\..\obj\servdebug\vcxsrv_dbg.lib
