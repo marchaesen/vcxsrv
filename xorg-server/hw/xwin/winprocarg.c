@@ -1160,6 +1160,18 @@ ddxProcessArgument (int argc, char *argv[], int i)
       g_fswrastwgl = TRUE;
       return 1;
     }
+  else if (IS_OPTION("-parentprocessid"))
+    {
+      DWORD dwProcessId;
+      CHECK_ARGS (1);
+      dwProcessId = atoi(argv[++i]);
+      if (!AllowSetForegroundWindow(dwProcessId))
+        {
+          winMessageBoxF ("Error calling AllowSetForegroundWindow.", MB_ICONINFORMATION);
+          return 0;
+      	}	
+      return 2;
+    }
 
   return 0;
 }
