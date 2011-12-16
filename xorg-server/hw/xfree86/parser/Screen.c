@@ -101,18 +101,18 @@ xf86parseDisplaySubSection (void)
 			break;
 		case VIEWPORT:
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (VIEWPORT_MSG, NULL);
+				Error (VIEWPORT_MSG);
 			ptr->disp_frameX0 = val.num;
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (VIEWPORT_MSG, NULL);
+				Error (VIEWPORT_MSG);
 			ptr->disp_frameY0 = val.num;
 			break;
 		case VIRTUAL:
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (VIRTUAL_MSG, NULL);
+				Error (VIRTUAL_MSG);
 			ptr->disp_virtualX = val.num;
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (VIRTUAL_MSG, NULL);
+				Error (VIRTUAL_MSG);
 			ptr->disp_virtualY = val.num;
 			break;
 		case DEPTH:
@@ -132,35 +132,35 @@ xf86parseDisplaySubSection (void)
 			break;
 		case WEIGHT:
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (WEIGHT_MSG, NULL);
+				Error (WEIGHT_MSG);
 			ptr->disp_weight.red = val.num;
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (WEIGHT_MSG, NULL);
+				Error (WEIGHT_MSG);
 			ptr->disp_weight.green = val.num;
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (WEIGHT_MSG, NULL);
+				Error (WEIGHT_MSG);
 			ptr->disp_weight.blue = val.num;
 			break;
 		case BLACK_TOK:
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (BLACK_MSG, NULL);
+				Error (BLACK_MSG);
 			ptr->disp_black.red = val.num;
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (BLACK_MSG, NULL);
+				Error (BLACK_MSG);
 			ptr->disp_black.green = val.num;
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (BLACK_MSG, NULL);
+				Error (BLACK_MSG);
 			ptr->disp_black.blue = val.num;
 			break;
 		case WHITE_TOK:
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (WHITE_MSG, NULL);
+				Error (WHITE_MSG);
 			ptr->disp_white.red = val.num;
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (WHITE_MSG, NULL);
+				Error (WHITE_MSG);
 			ptr->disp_white.green = val.num;
 			if (xf86getSubToken (&(ptr->disp_comment)) != NUMBER)
-				Error (WHITE_MSG, NULL);
+				Error (WHITE_MSG);
 			ptr->disp_white.blue = val.num;
 			break;
 		case MODES:
@@ -183,7 +183,7 @@ xf86parseDisplaySubSection (void)
 			break;
 			
 		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG, NULL);
+			Error (UNEXPECTED_EOF_MSG);
 			break;
 		default:
 			Error (INVALID_KEYWORD_MSG, xf86tokenString ());
@@ -302,10 +302,10 @@ xf86parseScreenSection (void)
 			break;
 		case VIRTUAL:
 			if (xf86getSubToken (&(ptr->scrn_comment)) != NUMBER)
-				Error (VIRTUAL_MSG, NULL);
+				Error (VIRTUAL_MSG);
 			ptr->scrn_virtualX = val.num;
 			if (xf86getSubToken (&(ptr->scrn_comment)) != NUMBER)
-				Error (VIRTUAL_MSG, NULL);
+				Error (VIRTUAL_MSG);
 			ptr->scrn_virtualY = val.num;
 			break;
 		case OPTION:
@@ -321,7 +321,7 @@ xf86parseScreenSection (void)
 			}
 			break;
 		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG, NULL);
+			Error (UNEXPECTED_EOF_MSG);
 			break;
 		default:
 			Error (INVALID_KEYWORD_MSG, xf86tokenString ());
@@ -330,7 +330,7 @@ xf86parseScreenSection (void)
 	}
 
 	if (!has_ident && !has_driver)
-		Error (NO_IDENT_MSG, NULL);
+		Error (NO_IDENT_MSG);
 
 #ifdef DEBUG
 	printf ("Screen section parsed\n");

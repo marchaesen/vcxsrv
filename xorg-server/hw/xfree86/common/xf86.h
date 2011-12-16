@@ -232,7 +232,7 @@ extern _X_EXPORT void xf86SetDpi(ScrnInfoPtr pScrn, int x, int y);
 extern _X_EXPORT void xf86SetBlackWhitePixels(ScreenPtr pScreen);
 extern _X_EXPORT void xf86EnableDisableFBAccess(int scrnIndex, Bool enable);
 extern _X_EXPORT void xf86VDrvMsgVerb(int scrnIndex, MessageType type, int verb,
-		     const char *format, va_list args);
+		     const char *format, va_list args) _X_ATTRIBUTE_PRINTF(4,0);
 extern _X_EXPORT void xf86DrvMsgVerb(int scrnIndex, MessageType type, int verb,
 		    const char *format, ...) _X_ATTRIBUTE_PRINTF(4,5);
 extern _X_EXPORT void xf86DrvMsg(int scrnIndex, MessageType type, const char *format, ...)

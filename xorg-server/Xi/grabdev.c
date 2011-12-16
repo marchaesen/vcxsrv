@@ -130,7 +130,7 @@ ProcXGrabDevice(ClientPtr client)
     rc = GrabDevice(client, dev, stuff->other_devices_mode,
                     stuff->this_device_mode, stuff->grabWindow,
 		    stuff->ownerEvents, stuff->time,
-		    &mask, GRABTYPE_XI, None, None,
+		    &mask, XI, None, None,
 		    &rep.status);
 
     if (rc != Success)

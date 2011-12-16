@@ -48,7 +48,7 @@ from The Open Group.
 
 struct protocol {
     unsigned short   name_length;
-    char    *name;
+    const char         *name;
     AuthAddCFunc	Add;	/* new authorization data */
     AuthCheckFunc	Check;	/* verify client authorization data */
     AuthRstCFunc	Reset;	/* delete all authorization data entries */
@@ -163,7 +163,7 @@ CheckAuthorization (
     unsigned int data_length,
     const char	*data,
     ClientPtr client,
-    char	**reason)	/* failure message.  NULL for default msg */
+    const char	**reason)	/* failure message.  NULL for default msg */
 {
     int	i;
     struct stat buf;
@@ -236,7 +236,7 @@ int
 AuthorizationFromID (
 	XID 		id,
 	unsigned short	*name_lenp,
-	char		**namep,
+	const char	**namep,
 	unsigned short	*data_lenp,
 	char		**datap)
 {

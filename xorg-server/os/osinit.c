@@ -151,7 +151,7 @@ void
 OsInit(void)
 {
     static Bool been_here = FALSE;
-    static char* devnull = "/dev/null";
+    static const char* devnull = "/dev/null";
     char fname[PATH_MAX];
 
     if (!been_here) {

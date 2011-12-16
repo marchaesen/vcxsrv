@@ -64,7 +64,7 @@ xf86parseDRISection (void)
 		else if (token == NUMBER)
 		    ptr->dri_group = val.num;
 		else
-		    Error (GROUP_MSG, NULL);
+		    Error (GROUP_MSG);
 		break;
 	    case MODE:
 		if (xf86getSubToken (&(ptr->dri_comment)) != NUMBER)
@@ -74,7 +74,7 @@ xf86parseDRISection (void)
 		ptr->dri_mode = val.num;
 		break;
 	    case EOF_TOKEN:
-		Error (UNEXPECTED_EOF_MSG, NULL);
+		Error (UNEXPECTED_EOF_MSG);
 		break;
 	    case COMMENT:
 		ptr->dri_comment = xf86addComment(ptr->dri_comment, val.str);

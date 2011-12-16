@@ -57,7 +57,7 @@ SOFTWARE.
 #include "geext.h"
 #include "privates.h"
 
-#define BitIsOn(ptr, bit) (!!(((BYTE *) (ptr))[(bit)>>3] & (1 << ((bit) & 7))))
+#define BitIsOn(ptr, bit) (!!(((const BYTE *) (ptr))[(bit)>>3] & (1 << ((bit) & 7))))
 #define SetBit(ptr, bit)  (((BYTE *) (ptr))[(bit)>>3] |= (1 << ((bit) & 7)))
 #define ClearBit(ptr, bit) (((BYTE *)(ptr))[(bit)>>3] &= ~(1 << ((bit) & 7)))
 extern _X_EXPORT int CountBits(const uint8_t *mask, int len);
@@ -167,12 +167,6 @@ typedef struct _DetailRec {		/* Grab details may be bit masks */
     Mask                *pMask;
 } DetailRec;
 
-typedef enum {
-    GRABTYPE_CORE,
-    GRABTYPE_XI,
-    GRABTYPE_XI2
-} GrabType;
-
 union _GrabMask {
     Mask core;
     Mask xi;
@@ -200,7 +194,7 @@ typedef struct _GrabRec {
     unsigned		ownerEvents:1;
     unsigned		keyboardMode:1;
     unsigned		pointerMode:1;
-    GrabType		grabtype;
+    enum InputLevel	grabtype;
     CARD8		type;		/* event type */
     DetailRec		modifiersDetail;
     DeviceIntPtr	modifierDevice;

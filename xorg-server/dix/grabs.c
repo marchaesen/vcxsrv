@@ -60,7 +60,9 @@ SOFTWARE.
 #include "dixgrabs.h"
 #include "xace.h"
 #include "exevents.h"
+#include "exglobals.h"
 #include "inpututils.h"
+#include "client.h"
 
 #define BITMASK(i) (((Mask)1) << ((i) & 31))
 #define MASKIDX(i) ((i) >> 5)
@@ -77,25 +79,41 @@ PrintDeviceGrabInfo(DeviceIntPtr dev)
     int i, j;
     GrabInfoPtr devGrab = &dev->deviceGrab;
     GrabPtr grab = devGrab->grab;
+    Bool clientIdPrinted = FALSE;
 
-    ErrorF("Active grab 0x%lx (%s) on device '%s' (%d):",
+    ErrorF("Active grab 0x%lx (%s) on device '%s' (%d):\n",
            (unsigned long) grab->resource,
-           (grab->grabtype == GRABTYPE_XI2) ? "xi2" :
-            ((grab->grabtype == GRABTYPE_CORE) ? "core" : "xi1"),
+           (grab->grabtype == XI2) ? "xi2" :
+            ((grab->grabtype == CORE) ? "core" : "xi1"),
            dev->name, dev->id);
 
     client = clients[CLIENT_ID(grab->resource)];
-    if (client && GetLocalClientCreds(client, &lcc) != -1)
+    if (client)
     {
-        ErrorF("      client pid %ld uid %ld gid %ld\n",
-               (lcc->fieldsSet & LCC_PID_SET) ? (long) lcc->pid : 0,
-               (lcc->fieldsSet & LCC_UID_SET) ? (long) lcc->euid : 0,
-               (lcc->fieldsSet & LCC_GID_SET) ? (long) lcc->egid : 0);
-        FreeLocalClientCreds(lcc);
+        pid_t clientpid = GetClientPid(client);
+        const char *cmdname = GetClientCmdName(client);
+        const char *cmdargs = GetClientCmdArgs(client);
+
+        if ((clientpid > 0) && (cmdname != NULL))
+        {
+            ErrorF("      client pid %ld %s %s\n",
+                   (long) clientpid, cmdname, cmdargs ? cmdargs : "");
+            clientIdPrinted = TRUE;
+        }
+        else if (GetLocalClientCreds(client, &lcc) != -1)
+        {
+            ErrorF("      client pid %ld uid %ld gid %ld\n",
+                   (lcc->fieldsSet & LCC_PID_SET) ? (long) lcc->pid : 0,
+                   (lcc->fieldsSet & LCC_UID_SET) ? (long) lcc->euid : 0,
+                   (lcc->fieldsSet & LCC_GID_SET) ? (long) lcc->egid : 0);
+            FreeLocalClientCreds(lcc);
+            clientIdPrinted = TRUE;
+        }
     }
-    else
+    if (!clientIdPrinted)
     {
-        ErrorF("      (no client information available)\n");
+        ErrorF("      (no client information available for client %d)\n",
+               CLIENT_ID(grab->resource));
     }
 
     /* XXX is this even correct? */
@@ -110,18 +128,18 @@ PrintDeviceGrabInfo(DeviceIntPtr dev)
            devGrab->sync.frozen ? "frozen" : "thawed",
            devGrab->sync.state);
 
-    if (grab->grabtype == GRABTYPE_CORE)
+    if (grab->grabtype == CORE)
     {
         ErrorF("        core event mask 0x%lx\n",
                (unsigned long) grab->eventMask);
     }
-    else if (grab->grabtype == GRABTYPE_XI)
+    else if (grab->grabtype == XI)
     {
         ErrorF("      xi1 event mask 0x%lx\n",
                devGrab->implicitGrab ? (unsigned long) grab->deviceMask :
                                        (unsigned long) grab->eventMask);
     }
-    else if (grab->grabtype == GRABTYPE_XI2)
+    else if (grab->grabtype == XI2)
     {
         for (i = 0; i < xi2mask_num_masks(grab->xi2mask); i++)
         {
@@ -205,7 +223,7 @@ CreateGrab(
     DeviceIntPtr device,
     DeviceIntPtr modDevice,
     WindowPtr window,
-    GrabType grabtype,
+    enum InputLevel grabtype,
     GrabMask *mask,
     GrabParameters *param,
     int type,
@@ -237,7 +255,7 @@ CreateGrab(
     grab->cursor = cursor;
     grab->next = NULL;
 
-    if (grabtype == GRABTYPE_XI2)
+    if (grabtype == XI2)
         xi2mask_merge(grab->xi2mask, mask->xi2mask);
     if (cursor)
 	cursor->refcnt++;
@@ -409,7 +427,7 @@ DetailSupersedesSecond(
 static Bool
 GrabSupersedesSecond(GrabPtr pFirstGrab, GrabPtr pSecondGrab)
 {
-    unsigned int any_modifier = (pFirstGrab->grabtype == GRABTYPE_XI2) ?
+    unsigned int any_modifier = (pFirstGrab->grabtype == XI2) ?
                                 (unsigned int)XIAnyModifier :
                                 (unsigned int)AnyModifier;
     if (!DetailSupersedesSecond(pFirstGrab->modifiersDetail,
@@ -440,14 +458,14 @@ GrabSupersedesSecond(GrabPtr pFirstGrab, GrabPtr pSecondGrab)
 Bool
 GrabMatchesSecond(GrabPtr pFirstGrab, GrabPtr pSecondGrab, Bool ignoreDevice)
 {
-    unsigned int any_modifier = (pFirstGrab->grabtype == GRABTYPE_XI2) ?
+    unsigned int any_modifier = (pFirstGrab->grabtype == XI2) ?
                                 (unsigned int)XIAnyModifier :
                                 (unsigned int)AnyModifier;
 
     if (pFirstGrab->grabtype != pSecondGrab->grabtype)
         return FALSE;
 
-    if (pFirstGrab->grabtype == GRABTYPE_XI2)
+    if (pFirstGrab->grabtype == XI2)
     {
         if (pFirstGrab->device == inputInfo.all_devices ||
             pSecondGrab->device == inputInfo.all_devices)
@@ -499,7 +517,7 @@ GrabMatchesSecond(GrabPtr pFirstGrab, GrabPtr pSecondGrab, Bool ignoreDevice)
 static Bool
 GrabsAreIdentical(GrabPtr pFirstGrab, GrabPtr pSecondGrab)
 {
-    unsigned int any_modifier = (pFirstGrab->grabtype == GRABTYPE_XI2) ?
+    unsigned int any_modifier = (pFirstGrab->grabtype == XI2) ?
                                 (unsigned int)XIAnyModifier :
                                 (unsigned int)AnyModifier;
 
@@ -549,7 +567,7 @@ AddPassiveGrabToList(ClientPtr client, GrabPtr pGrab)
 
     for (grab = wPassiveGrabs(pGrab->window); grab; grab = grab->next)
     {
-	if (GrabMatchesSecond(pGrab, grab, (pGrab->grabtype == GRABTYPE_CORE)))
+	if (GrabMatchesSecond(pGrab, grab, (pGrab->grabtype == CORE)))
 	{
 	    if (CLIENT_BITS(pGrab->resource) != CLIENT_BITS(grab->resource))
 	    {
@@ -627,9 +645,9 @@ DeletePassiveGrabFromList(GrabPtr pMinuendGrab)
 	return FALSE;
     }
 
-    any_modifier = (pMinuendGrab->grabtype == GRABTYPE_XI2) ?
+    any_modifier = (pMinuendGrab->grabtype == XI2) ?
                    (unsigned int)XIAnyModifier : (unsigned int)AnyModifier;
-    any_key = (pMinuendGrab->grabtype == GRABTYPE_XI2) ?
+    any_key = (pMinuendGrab->grabtype == XI2) ?
                    (unsigned int)XIAnyKeycode : (unsigned int)AnyKey;
     ndels = nadds = nups = 0;
     ok = TRUE;
@@ -639,7 +657,7 @@ DeletePassiveGrabFromList(GrabPtr pMinuendGrab)
     {
 	if ((CLIENT_BITS(grab->resource) != CLIENT_BITS(pMinuendGrab->resource)) ||
 	    !GrabMatchesSecond(grab, pMinuendGrab,
-                               (grab->grabtype == GRABTYPE_CORE)))
+                               (grab->grabtype == CORE)))
 	    continue;
 	if (GrabSupersedesSecond(pMinuendGrab, grab))
 	{
@@ -736,4 +754,20 @@ DeletePassiveGrabFromList(GrabPtr pMinuendGrab)
     return ok;
 
 #undef UPDATE
+}
+
+Bool
+GrabIsPointerGrab(GrabPtr grab)
+{
+    return (grab->type == ButtonPress ||
+            grab->type == DeviceButtonPress ||
+            grab->type == XI_ButtonPress);
+}
+
+Bool
+GrabIsKeyboardGrab(GrabPtr grab)
+{
+   return (grab->type == KeyPress ||
+           grab->type == DeviceKeyPress ||
+           grab->type == XI_KeyPress);
 }

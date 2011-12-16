@@ -658,7 +658,7 @@ AuthorizationIDOfClient(ClientPtr client)
  *
  *****************************************************************/
 
-char *
+const char *
 ClientAuthorized(ClientPtr client, 
     unsigned int proto_n, char *auth_proto, 
     unsigned int string_n, char *auth_string)
@@ -668,7 +668,7 @@ ClientAuthorized(ClientPtr client,
     int 		family;
     int			fromlen;
     XID	 		auth_id;
-    char	 	*reason = NULL;
+    const char	 	*reason = NULL;
     XtransConnInfo	trans_conn;
 
     priv = (OsCommPtr)client->osPrivate;

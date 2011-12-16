@@ -269,7 +269,7 @@ LockServer(void)
 #else
   char tmp[PATH_MAX], pid_str[12];
   int lfd, i, haslock, l_pid, t;
-  char *tmppath = NULL;
+  const char *tmppath = LOCK_DIR;
   int len;
   char port[20];
 
@@ -277,8 +277,6 @@ LockServer(void)
   /*
    * Path names
    */
-  tmppath = LOCK_DIR;
-
   snprintf(port, sizeof(port), "%d", atoi(display));
   len = strlen(LOCK_PREFIX) > strlen(LOCK_TMP_PREFIX) ? strlen(LOCK_PREFIX) :
 						strlen(LOCK_TMP_PREFIX);

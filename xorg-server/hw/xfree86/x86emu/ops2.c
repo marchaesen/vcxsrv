@@ -110,7 +110,7 @@ Handles opcode 0x0f,0x80-0x8F
 static void x86emuOp2_long_jump(u8 op2)
 {
     s32 target;
-    char *name = NULL;
+    const char *name = NULL;
     int cond = 0;
 
     /* conditional jump to word offset. */
@@ -204,7 +204,7 @@ static void x86emuOp2_set_byte(u8 op2)
     int mod, rl, rh;
     uint destoffset;
     u8  *destreg;
-    char *name = NULL;
+    const char *name = NULL;
     int cond = 0;
 
     START_OF_INSTR();

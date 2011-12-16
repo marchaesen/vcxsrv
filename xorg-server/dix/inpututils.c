@@ -626,7 +626,7 @@ void verify_internal_event(const InternalEvent *ev)
     if (ev && ev->any.header != ET_Internal)
     {
         int i;
-        unsigned char *data = (unsigned char*)ev;
+        const unsigned char *data = (const unsigned char*)ev;
 
         ErrorF("dix: invalid event type %d\n", ev->any.header);
 
@@ -655,6 +655,64 @@ void init_device_event(DeviceEvent *event, DeviceIntPtr dev, Time ms)
     event->time = ms;
     event->deviceid = dev->id;
     event->sourceid = dev->id;
+}
+
+int event_get_corestate(DeviceIntPtr mouse, DeviceIntPtr kbd)
+{
+    int corestate;
+    /* core state needs to be assembled BEFORE the device is updated. */
+    corestate = (kbd && kbd->key) ? XkbStateFieldFromRec(&kbd->key->xkbInfo->state) : 0;
+    corestate |= (mouse && mouse->button) ? (mouse->button->state) : 0;
+    return corestate;
+}
+
+void event_set_state(DeviceIntPtr mouse, DeviceIntPtr kbd, DeviceEvent *event)
+{
+    int i;
+
+    for (i = 0; mouse && mouse->button && i < mouse->button->numButtons; i++)
+        if (BitIsOn(mouse->button->down, i))
+            SetBit(event->buttons, i);
+
+    if (kbd && kbd->key)
+    {
+        XkbStatePtr state;
+        /* we need the state before the event happens */
+        if (event->type == ET_KeyPress || event->type == ET_KeyRelease)
+            state = &kbd->key->xkbInfo->prev_state;
+        else
+            state = &kbd->key->xkbInfo->state;
+
+        event->mods.base = state->base_mods;
+        event->mods.latched = state->latched_mods;
+        event->mods.locked = state->locked_mods;
+        event->mods.effective = state->mods;
+
+        event->group.base = state->base_group;
+        event->group.latched = state->latched_group;
+        event->group.locked = state->locked_group;
+        event->group.effective = state->group;
+    }
+}
+
+/**
+ * Return the event filter mask for the given device and the given core or
+ * XI1 protocol type.
+ */
+Mask
+event_get_filter_from_type(DeviceIntPtr dev, int evtype)
+{
+    return event_filters[dev ? dev->id : 0][evtype];
+}
+
+/**
+ * Return the event filter mask for the given device and the given core or
+ * XI2 protocol type.
+ */
+Mask
+event_get_filter_from_xi2type(int evtype)
+{
+    return (1 << (evtype % 8));
 }
 
 Bool

@@ -135,7 +135,7 @@ ProcXGrabDeviceKey(ClientPtr client)
 
 
     memset(&param, 0, sizeof(param));
-    param.grabtype = GRABTYPE_XI;
+    param.grabtype = XI;
     param.ownerEvents = stuff->ownerEvents;
     param.this_device_mode = stuff->this_device_mode;
     param.other_devices_mode = stuff->other_devices_mode;
@@ -143,7 +143,7 @@ ProcXGrabDeviceKey(ClientPtr client)
     param.modifiers = stuff->modifiers;
     mask.xi = tmp[stuff->grabbed_device].mask;
 
-    ret = GrabKey(client, dev, mdev, stuff->key, &param, GRABTYPE_XI, &mask);
+    ret = GrabKey(client, dev, mdev, stuff->key, &param, XI, &mask);
 
     return ret;
 }

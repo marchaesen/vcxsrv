@@ -248,7 +248,7 @@ XdmClientAuthTimeout (long now)
 
 static XdmClientAuthPtr
 XdmAuthorizationValidate (unsigned char *plain, int length, 
-    XdmAuthKeyPtr rho, ClientPtr xclient, char **reason)
+    XdmAuthKeyPtr rho, ClientPtr xclient, const char **reason)
 {
     XdmClientAuthPtr	client, existing;
     long		now;
@@ -376,7 +376,7 @@ XdmAddCookie (unsigned short data_length, const char *data, XID id)
 
 XID
 XdmCheckCookie (unsigned short cookie_length, const char *cookie,
-    ClientPtr xclient, char **reason)
+    ClientPtr xclient, const char **reason)
 {
     XdmAuthorizationPtr	auth;
     XdmClientAuthPtr	client;

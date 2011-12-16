@@ -592,7 +592,7 @@ int (* SwappedProcVector[256]) (
     ProcBadRequest
 };
 
-EventSwapPtr EventSwapVector[128] =
+EventSwapPtr EventSwapVector[MAXEVENTS] =
 {
     (EventSwapPtr)SErrorEvent,
     NotImplemented,

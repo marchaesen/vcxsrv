@@ -96,7 +96,7 @@ ProcXIGrabDevice(ClientPtr client)
                      stuff->owner_events,
                      stuff->time,
                      &mask,
-                     GRABTYPE_XI2,
+                     XI2,
                      stuff->cursor,
                      None /* confineTo */,
                      &status);
@@ -148,7 +148,7 @@ ProcXIUngrabDevice(ClientPtr client)
     time = ClientTimeToServerTime(stuff->time);
     if ((CompareTimeStamps(time, currentTime) != LATER) &&
 	(CompareTimeStamps(time, dev->deviceGrab.grabTime) != EARLIER) &&
-	(grab) && SameClient(grab, client) && grab->grabtype == GRABTYPE_XI2)
+	(grab) && SameClient(grab, client) && grab->grabtype == XI2)
 	(*dev->deviceGrab.DeactivateGrab) (dev);
 
     return Success;

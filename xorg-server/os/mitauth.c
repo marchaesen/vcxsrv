@@ -76,7 +76,7 @@ MitCheckCookie (
     unsigned short	data_length,
     const char		*data,
     ClientPtr		client,
-    char		**reason)
+    const char		**reason)
 {
     struct auth	*auth;
 

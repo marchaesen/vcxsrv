@@ -61,7 +61,6 @@ SOFTWARE.
 #include "registry.h"
 #include "xace.h"
 
-#define LAST_EVENT  128
 #define LAST_ERROR 255
 
 static ExtensionEntry **extensions = (ExtensionEntry **)NULL;
@@ -82,7 +81,7 @@ AddExtension(const char *name, int NumEvents, int NumErrors,
 
     if (!MainProc || !SwappedMainProc || !MinorOpcodeProc)
         return((ExtensionEntry *) NULL);
-    if ((lastEvent + NumEvents > LAST_EVENT) || 
+    if ((lastEvent + NumEvents > MAXEVENTS) || 
 	        (unsigned)(lastError + NumErrors > LAST_ERROR)) {
         LogMessage(X_ERROR, "Not enabling extension %s: maximum number of "
                    "events or errors exceeded.\n", name);

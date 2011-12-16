@@ -176,12 +176,10 @@ SOFTWARE.
 
 Bool defeatAccessControl = FALSE;
 
-#define acmp(a1, a2, len) memcmp((char *)(a1), (char *)(a2), len)
-#define acopy(a1, a2, len) memmove((char *)(a2), (char *)(a1), len)
 #define addrEqual(fam, address, length, host) \
 			 ((fam) == (host)->family &&\
 			  (length) == (host)->len &&\
-			  !acmp (address, (host)->addr, length))
+			  !memcmp (address, (host)->addr, length))
 
 static int ConvertAddr(struct sockaddr * /*saddr*/,
 		       int * /*len*/,
@@ -478,7 +476,7 @@ DefineSelf (int fd, const int protocol)
 	    ErrorF(" %s", ad);
 	    saddr.sa.sa_family = AF_INET6;
 	    inet6addr = (struct sockaddr_in6 *) (&(saddr.sa));
-	    acopy (ha.addr, &(inet6addr->sin6_addr), ha.len);
+	    memcpy (&(inet6addr->sin6_addr), ha.addr, ha.len);
 	    len = sizeof(saddr.in6);
 	    family = ConvertAddr (&(saddr.sa), &len, (pointer *)&addr);
 	    if ( family != -1 && family != FamilyLocal ) {
@@ -491,7 +489,7 @@ DefineSelf (int fd, const int protocol)
 		    if (host) {
 			host->family = family;
 			host->len = len;
-			acopy (addr, host->addr, len);
+			memcpy (host->addr, addr, len);
 			host->next = selfhosts;
 			selfhosts = host;
 		    }
@@ -538,7 +536,7 @@ CarryOnTheOldWay:
 #if 0 /* We never used to get here and AF_INET6 is now processed by getaddrinfo() */
 	    case AF_INET6:
 		inet6addr = (struct sockaddr_in6 *) (&(saddr.sa));
-		acopy ( hp_addr, &(inet6addr->sin6_addr), hp->h_length);
+	        memcpy ( &(inet6addr->sin6_addr), hp->h_addr, hp->h_length);
 		len = sizeof(saddr.in6);
 		break;
 #endif
@@ -548,9 +546,9 @@ CarryOnTheOldWay:
 
       for (i = -1; i < 0 || hp->h_addr_list[i]; i++)
       {
-	if (i < 0) acopy ( hp->h_addr_list[j], &(inetaddr->sin_addr), hp->h_length);
+	if (i < 0) memcpy ( &(inetaddr->sin_addr), hp->h_addr_list[j], hp->h_length);
 	else if (i == j) continue;
-	else acopy ( hp->h_addr_list[i], &(inetaddr->sin_addr), hp->h_length);
+	else memcpy ( &(inetaddr->sin_addr), hp->h_addr_list[i], hp->h_length);
 	len = sizeof(saddr.sa);
 	    family = ConvertAddr ( &(saddr.sa), &len, (pointer *)&addr);
 	    if ( family != -1 && family != FamilyLocal )
@@ -566,7 +564,7 @@ CarryOnTheOldWay:
 		    {
 			host->family = family;
 			host->len = len;
-			acopy ( addr, host->addr, len);
+			memcpy ( host->addr, addr, len);
 			host->next = selfhosts;
 			selfhosts = host;
 		    }
@@ -618,7 +616,7 @@ DefineLocalHost:
 	{
 	    host->family = FamilyLocalHost;
 	    host->len = 0;
-	    acopy("", host->addr, 0);
+	    /* Nothing to store in host->addr */
 	    host->next = selfhosts;
 	    selfhosts = host;
 	}
@@ -755,7 +753,7 @@ DefineSelf (int fd)
 	{
 	    host->family = family;
 	    host->len = len;
-	    acopy(addr, host->addr, len);
+	    memcpy(host->addr, addr, len);
 	    host->next = selfhosts;
 	    selfhosts = host;
 	}
@@ -887,7 +885,7 @@ DefineSelf (int fd)
 	if (host != NULL) {
 	    host->family = family;
 	    host->len = len;
-	    acopy(addr, host->addr, len);
+	    memcpy(host->addr, addr, len);
 	    host->next = selfhosts;
 	    selfhosts = host;
 	}
@@ -962,7 +960,7 @@ DefineSelf (int fd)
 	{
 	    host->family = FamilyLocalHost;
 	    host->len = 0;
-	    acopy("", host->addr, 0);
+	    /* Nothing to store in host->addr */
 	    host->next = selfhosts;
 	    selfhosts = host;
 	}
@@ -991,7 +989,7 @@ AugmentSelf(pointer from, int len)
 	return;
     host->family = family;
     host->len = len;
-    acopy(addr, host->addr, len);
+    memcpy(host->addr, addr, len);
     host->next = selfhosts;
     selfhosts = host;
 }
@@ -1483,7 +1481,7 @@ NewHost (int		family,
 	return FALSE;
     host->family = family;
     host->len = len;
-    acopy(addr, host->addr, len);
+    memcpy(host->addr, addr, len);
     host->next = validhosts;
     validhosts = host;
     return TRUE;
@@ -1577,7 +1575,7 @@ GetHosts (
 	    ((xHostEntry *)ptr)->family = host->family;
 	    ((xHostEntry *)ptr)->length = len;
 	    ptr += sizeof(xHostEntry);
-	    acopy (host->addr, ptr, len);
+	    memcpy (ptr, host->addr, len);
 	    ptr += pad_to_int32(len);
         }
     } else {
@@ -1944,7 +1942,7 @@ siHostnameAddrMatch(int family, pointer addr, int len,
 		hostaddrlen = a->ai_addrlen;
 		f = ConvertAddr(a->ai_addr,&hostaddrlen,&hostaddr);
 		if ((f == family) && (len == hostaddrlen) &&
-		  (acmp (addr, hostaddr, len) == 0) ) {
+		  (memcmp (addr, hostaddr, len) == 0) ) {
 		    res = TRUE;
 		    break;
 		}
@@ -1979,12 +1977,12 @@ siHostnameAddrMatch(int family, pointer addr, int len,
 		struct  sockaddr_in  sin;
 
     		sin.sin_family = hp->h_addrtype;
-		acopy ( *addrlist, &(sin.sin_addr), hp->h_length);
+		memcpy ( &(sin.sin_addr), *addrlist, hp->h_length);
 		hostaddrlen = sizeof(sin);
     		f = ConvertAddr ((struct sockaddr *)&sin, 
 		  &hostaddrlen, &hostaddr);
 		if ((f == family) && (len == hostaddrlen) &&
-		  (acmp (addr, hostaddr, len) == 0) ) {
+		  (memcmp (addr, hostaddr, len) == 0) ) {
 		    res = TRUE;
 		    break;
 		}

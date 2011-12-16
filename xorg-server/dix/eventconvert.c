@@ -647,7 +647,7 @@ eventToDeviceEvent(DeviceEvent *ev, xEvent **xi)
     xde = (xXIDeviceEvent*)*xi;
     xde->type           = GenericEvent;
     xde->extension      = IReqCode;
-    xde->evtype         = GetXI2Type((InternalEvent*)ev);
+    xde->evtype         = GetXI2Type(ev->type);
     xde->time           = ev->time;
     xde->length         = bytes_to_int32(len - sizeof(xEvent));
     xde->detail         = ev->detail.button;
@@ -714,7 +714,7 @@ eventToRawEvent(RawDeviceEvent *ev, xEvent **xi)
     raw = (xXIRawEvent*)*xi;
     raw->type           = GenericEvent;
     raw->extension      = IReqCode;
-    raw->evtype         = GetXI2Type((InternalEvent*)ev);
+    raw->evtype         = GetXI2Type(ev->type);
     raw->time           = ev->time;
     raw->length         = bytes_to_int32(len - sizeof(xEvent));
     raw->detail         = ev->detail.button;
@@ -746,10 +746,10 @@ eventToRawEvent(RawDeviceEvent *ev, xEvent **xi)
  * equivalent exists.
  */
 int
-GetCoreType(InternalEvent *event)
+GetCoreType(enum EventType type)
 {
     int coretype = 0;
-    switch(event->any.type)
+    switch(type)
     {
         case ET_Motion:         coretype = MotionNotify;  break;
         case ET_ButtonPress:    coretype = ButtonPress;   break;
@@ -767,10 +767,10 @@ GetCoreType(InternalEvent *event)
  * equivalent exists.
  */
 int
-GetXIType(InternalEvent *event)
+GetXIType(enum EventType type)
 {
     int xitype = 0;
-    switch(event->any.type)
+    switch(type)
     {
         case ET_Motion:         xitype = DeviceMotionNotify;  break;
         case ET_ButtonPress:    xitype = DeviceButtonPress;   break;
@@ -790,11 +790,11 @@ GetXIType(InternalEvent *event)
  * equivalent exists.
  */
 int
-GetXI2Type(InternalEvent *event)
+GetXI2Type(enum EventType type)
 {
     int xi2type = 0;
 
-    switch(event->any.type)
+    switch(type)
     {
         case ET_Motion:         xi2type = XI_Motion;           break;
         case ET_ButtonPress:    xi2type = XI_ButtonPress;      break;

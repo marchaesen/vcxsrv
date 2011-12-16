@@ -167,8 +167,8 @@ ISOLatin1ToLower (unsigned char source)
 
 
 int
-CompareISOLatin1Lowered(unsigned char *s1, int s1len, 
-			unsigned char *s2, int s2len)
+CompareISOLatin1Lowered(const unsigned char *s1, int s1len,
+			const unsigned char *s2, int s2len)
 {
     unsigned char   c1, c2;
     

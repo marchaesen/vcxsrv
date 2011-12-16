@@ -241,7 +241,7 @@ xf86parseInputClassSection(void)
                 Error(BOOL_MSG, "MatchIsTouchscreen");
             break;
         case EOF_TOKEN:
-            Error(UNEXPECTED_EOF_MSG, NULL);
+            Error(UNEXPECTED_EOF_MSG);
             break;
         default:
             Error(INVALID_KEYWORD_MSG, xf86tokenString ());
@@ -250,7 +250,7 @@ xf86parseInputClassSection(void)
     }
 
     if (!has_ident)
-        Error(NO_IDENT_MSG, NULL);
+        Error(NO_IDENT_MSG);
 
 #ifdef DEBUG
     printf("InputClass section parsed\n");

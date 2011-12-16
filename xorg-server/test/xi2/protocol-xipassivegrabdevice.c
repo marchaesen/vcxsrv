@@ -49,7 +49,7 @@ struct test_data {
 } testdata;
 
 int __wrap_GrabButton(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr modifier_device,
-                      int button, GrabParameters *param, GrabType grabtype,
+                      int button, GrabParameters *param, enum InputLevel grabtype,
                       GrabMask *mask);
 static void reply_XIPassiveGrabDevice_data(ClientPtr client, int len, char *data, void *userdata);
 
@@ -69,7 +69,7 @@ int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access
 }
 
 int __wrap_GrabButton(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr modifier_device,
-                      int button, GrabParameters *param, GrabType grabtype,
+                      int button, GrabParameters *param, enum InputLevel grabtype,
                       GrabMask *mask)
 {
     /* Fail every odd modifier */

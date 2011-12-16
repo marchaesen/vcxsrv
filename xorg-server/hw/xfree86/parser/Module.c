@@ -107,7 +107,7 @@ xf86parseModuleSubSection (XF86LoadPtr head, char *name)
 			ptr->load_opt = xf86parseOption(ptr->load_opt);
 			break;
 		case EOF_TOKEN:
-			xf86parseError (UNEXPECTED_EOF_MSG, NULL);
+			xf86parseError (UNEXPECTED_EOF_MSG);
 			free(ptr);
 			return NULL;
 		default:
@@ -163,7 +163,7 @@ xf86parseModuleSection (void)
 				xf86parseModuleSubSection (ptr->mod_load_lst, val.str);
 			break;
 		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG, NULL);
+			Error (UNEXPECTED_EOF_MSG);
 			break;
 		default:
 			Error (INVALID_KEYWORD_MSG, xf86tokenString ());

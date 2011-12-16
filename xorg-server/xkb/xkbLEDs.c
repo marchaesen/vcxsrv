@@ -680,11 +680,9 @@ XkbSrvLedInfoPtr	sli;
 
     /* optimization to check for most common case */
     if (((class==XkbDfltXIClass)&&(id==XkbDfltXIId))&&(dev->kbdfeed)) {
-	XkbSrvLedInfoPtr	sli;
-	sli= dev->kbdfeed->xkb_sli;
 	if (dev->kbdfeed->xkb_sli==NULL) {
-	    sli= XkbAllocSrvLedInfo(dev,dev->kbdfeed,NULL,needed_parts);
-	    dev->kbdfeed->xkb_sli= sli;
+	    dev->kbdfeed->xkb_sli=
+		XkbAllocSrvLedInfo(dev,dev->kbdfeed,NULL,needed_parts);
 	}
 	return dev->kbdfeed->xkb_sli;
     }

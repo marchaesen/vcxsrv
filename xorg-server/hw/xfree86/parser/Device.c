@@ -245,7 +245,7 @@ xf86parseDeviceSection (void)
 			ptr->dev_screen = val.num;
 			break;
 		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG, NULL);
+			Error (UNEXPECTED_EOF_MSG);
 			break;
 		default:
 			Error (INVALID_KEYWORD_MSG, xf86tokenString ());
@@ -254,7 +254,7 @@ xf86parseDeviceSection (void)
 	}
 
 	if (!has_ident)
-		Error (NO_IDENT_MSG, NULL);
+		Error (NO_IDENT_MSG);
 
 #ifdef DEBUG
 	printf ("Device section parsed\n");

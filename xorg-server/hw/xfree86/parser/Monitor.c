@@ -145,52 +145,52 @@ xf86parseModeLine (void)
 
 	/* Identifier */
 	if (xf86getSubToken (&(ptr->ml_comment)) != STRING)
-		Error ("ModeLine identifier expected", NULL);
+		Error ("ModeLine identifier expected");
 	ptr->ml_identifier = val.str;
 
 	/* DotClock */
 	if (xf86getSubToken (&(ptr->ml_comment)) != NUMBER)
-		Error ("ModeLine dotclock expected", NULL);
+		Error ("ModeLine dotclock expected");
 	ptr->ml_clock = (int) (val.realnum * 1000.0 + 0.5);
 
 	/* HDisplay */
 	if (xf86getSubToken (&(ptr->ml_comment)) != NUMBER)
-		Error ("ModeLine Hdisplay expected", NULL);
+		Error ("ModeLine Hdisplay expected");
 	ptr->ml_hdisplay = val.num;
 
 	/* HSyncStart */
 	if (xf86getSubToken (&(ptr->ml_comment)) != NUMBER)
-		Error ("ModeLine HSyncStart expected", NULL);
+		Error ("ModeLine HSyncStart expected");
 	ptr->ml_hsyncstart = val.num;
 
 	/* HSyncEnd */
 	if (xf86getSubToken (&(ptr->ml_comment)) != NUMBER)
-		Error ("ModeLine HSyncEnd expected", NULL);
+		Error ("ModeLine HSyncEnd expected");
 	ptr->ml_hsyncend = val.num;
 
 	/* HTotal */
 	if (xf86getSubToken (&(ptr->ml_comment)) != NUMBER)
-		Error ("ModeLine HTotal expected", NULL);
+		Error ("ModeLine HTotal expected");
 	ptr->ml_htotal = val.num;
 
 	/* VDisplay */
 	if (xf86getSubToken (&(ptr->ml_comment)) != NUMBER)
-		Error ("ModeLine Vdisplay expected", NULL);
+		Error ("ModeLine Vdisplay expected");
 	ptr->ml_vdisplay = val.num;
 
 	/* VSyncStart */
 	if (xf86getSubToken (&(ptr->ml_comment)) != NUMBER)
-		Error ("ModeLine VSyncStart expected", NULL);
+		Error ("ModeLine VSyncStart expected");
 	ptr->ml_vsyncstart = val.num;
 
 	/* VSyncEnd */
 	if (xf86getSubToken (&(ptr->ml_comment)) != NUMBER)
-		Error ("ModeLine VSyncEnd expected", NULL);
+		Error ("ModeLine VSyncEnd expected");
 	ptr->ml_vsyncend = val.num;
 
 	/* VTotal */
 	if (xf86getSubToken (&(ptr->ml_comment)) != NUMBER)
-		Error ("ModeLine VTotal expected", NULL);
+		Error ("ModeLine VTotal expected");
 	ptr->ml_vtotal = val.num;
 
 	token = xf86getSubTokenWithTab (&(ptr->ml_comment), TimingTab);
@@ -247,7 +247,7 @@ xf86parseModeLine (void)
 			ptr->ml_flags |= XF86CONF_VSCAN;
 			break;
 		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG, NULL);
+			Error (UNEXPECTED_EOF_MSG);
 			break;
 		default:
 			Error (INVALID_KEYWORD_MSG, xf86tokenString ());
@@ -271,7 +271,7 @@ xf86parseVerboseMode (void)
 	parsePrologue (XF86ConfModeLinePtr, XF86ConfModeLineRec)
 
 		if (xf86getSubToken (&(ptr->ml_comment)) != STRING)
-		Error ("Mode name expected", NULL);
+		Error ("Mode name expected");
 	ptr->ml_identifier = val.str;
 	while ((token = xf86getToken (ModeTab)) != ENDMODE)
 	{
@@ -290,44 +290,44 @@ xf86parseVerboseMode (void)
 			if (xf86getSubToken (&(ptr->ml_comment)) == NUMBER)
 				ptr->ml_hdisplay = val.num;
 			else
-				Error ("Horizontal display expected", NULL);
+				Error ("Horizontal display expected");
 
 			if (xf86getSubToken (&(ptr->ml_comment)) == NUMBER)
 				ptr->ml_hsyncstart = val.num;
 			else
-				Error ("Horizontal sync start expected", NULL);
+				Error ("Horizontal sync start expected");
 
 			if (xf86getSubToken (&(ptr->ml_comment)) == NUMBER)
 				ptr->ml_hsyncend = val.num;
 			else
-				Error ("Horizontal sync end expected", NULL);
+				Error ("Horizontal sync end expected");
 
 			if (xf86getSubToken (&(ptr->ml_comment)) == NUMBER)
 				ptr->ml_htotal = val.num;
 			else
-				Error ("Horizontal total expected", NULL);
+				Error ("Horizontal total expected");
 			had_htimings = 1;
 			break;
 		case VTIMINGS:
 			if (xf86getSubToken (&(ptr->ml_comment)) == NUMBER)
 				ptr->ml_vdisplay = val.num;
 			else
-				Error ("Vertical display expected", NULL);
+				Error ("Vertical display expected");
 
 			if (xf86getSubToken (&(ptr->ml_comment)) == NUMBER)
 				ptr->ml_vsyncstart = val.num;
 			else
-				Error ("Vertical sync start expected", NULL);
+				Error ("Vertical sync start expected");
 
 			if (xf86getSubToken (&(ptr->ml_comment)) == NUMBER)
 				ptr->ml_vsyncend = val.num;
 			else
-				Error ("Vertical sync end expected", NULL);
+				Error ("Vertical sync end expected");
 
 			if (xf86getSubToken (&(ptr->ml_comment)) == NUMBER)
 				ptr->ml_vtotal = val.num;
 			else
-				Error ("Vertical total expected", NULL);
+				Error ("Vertical total expected");
 			had_vtimings = 1;
 			break;
 		case FLAGS:
@@ -367,10 +367,10 @@ xf86parseVerboseMode (void)
 					ptr->ml_flags |= XF86CONF_DBLSCAN;
 					break;
 				case EOF_TOKEN:
-					Error (UNEXPECTED_EOF_MSG, NULL);
+					Error (UNEXPECTED_EOF_MSG);
 					break;
 				default:
-					Error ("Unknown flag string", NULL);
+					Error ("Unknown flag string");
 					break;
 				}
 				token = xf86getSubToken (&(ptr->ml_comment));
@@ -379,29 +379,29 @@ xf86parseVerboseMode (void)
 			break;
 		case HSKEW:
 			if (xf86getSubToken (&(ptr->ml_comment)) != NUMBER)
-				Error ("Horizontal skew expected", NULL);
+				Error ("Horizontal skew expected");
 			ptr->ml_flags |= XF86CONF_HSKEW;
 			ptr->ml_hskew = val.num;
 			break;
 		case VSCAN:
 			if (xf86getSubToken (&(ptr->ml_comment)) != NUMBER)
-				Error ("Vertical scan count expected", NULL);
+				Error ("Vertical scan count expected");
 			ptr->ml_flags |= XF86CONF_VSCAN;
 			ptr->ml_vscan = val.num;
 			break;
 		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG, NULL);
+			Error (UNEXPECTED_EOF_MSG);
 			break;
 		default:
-			Error ("Unexepcted token in verbose \"Mode\" entry\n", NULL);
+			Error ("Unexepcted token in verbose \"Mode\" entry\n");
 		}
 	}
 	if (!had_dotclock)
-		Error ("the dotclock is missing", NULL);
+		Error ("the dotclock is missing");
 	if (!had_htimings)
-		Error ("the horizontal timings are missing", NULL);
+		Error ("the horizontal timings are missing");
 	if (!had_vtimings)
-		Error ("the vertical timings are missing", NULL);
+		Error ("the vertical timings are missing");
 
 #ifdef DEBUG
 	printf ("Verbose Mode parsed\n");
@@ -455,19 +455,19 @@ xf86parseMonitorSection (void)
 			break;
 		case DISPLAYSIZE:
 			if (xf86getSubToken (&(ptr->mon_comment)) != NUMBER)
-				Error (DISPLAYSIZE_MSG, NULL);
+				Error (DISPLAYSIZE_MSG);
 			ptr->mon_width = val.realnum;
 			if (xf86getSubToken (&(ptr->mon_comment)) != NUMBER)
-				Error (DISPLAYSIZE_MSG, NULL);
+				Error (DISPLAYSIZE_MSG);
 			ptr->mon_height = val.realnum;
 			break;
 
 		case HORIZSYNC:
 			if (xf86getSubToken (&(ptr->mon_comment)) != NUMBER)
-				Error (HORIZSYNC_MSG, NULL);
+				Error (HORIZSYNC_MSG);
 			do {
 				if (ptr->mon_n_hsync >= CONF_MAX_HSYNC)
-					Error ("Sorry. Too many horizontal sync intervals.", NULL);
+					Error ("Sorry. Too many horizontal sync intervals.");
 				ptr->mon_hsync[ptr->mon_n_hsync].lo = val.realnum;
 				switch (token = xf86getSubToken (&(ptr->mon_comment)))
 				{
@@ -478,7 +478,7 @@ xf86parseMonitorSection (void)
 					case DASH:
 						if (xf86getSubToken (&(ptr->mon_comment)) != NUMBER ||
 						    (float)val.realnum < ptr->mon_hsync[ptr->mon_n_hsync].lo)
-							Error (HORIZSYNC_MSG, NULL);
+							Error (HORIZSYNC_MSG);
 						ptr->mon_hsync[ptr->mon_n_hsync].hi = val.realnum;
 						if ((token = xf86getSubToken (&(ptr->mon_comment))) == COMMA)
 							break;
@@ -501,7 +501,7 @@ HorizDone:
 
 		case VERTREFRESH:
 			if (xf86getSubToken (&(ptr->mon_comment)) != NUMBER)
-				Error (VERTREFRESH_MSG, NULL);
+				Error (VERTREFRESH_MSG);
 			do {
 				ptr->mon_vrefresh[ptr->mon_n_vrefresh].lo = val.realnum;
 				switch (token = xf86getSubToken (&(ptr->mon_comment)))
@@ -513,7 +513,7 @@ HorizDone:
 					case DASH:
 						if (xf86getSubToken (&(ptr->mon_comment)) != NUMBER ||
 						    (float)val.realnum < ptr->mon_vrefresh[ptr->mon_n_vrefresh].lo)
-							Error (VERTREFRESH_MSG, NULL);
+							Error (VERTREFRESH_MSG);
 						ptr->mon_vrefresh[ptr->mon_n_vrefresh].hi = val.realnum;
 						if ((token = xf86getSubToken (&(ptr->mon_comment))) == COMMA)
 							break;
@@ -529,7 +529,7 @@ HorizDone:
 						goto VertDone;
 				}
 				if (ptr->mon_n_vrefresh >= CONF_MAX_VREFRESH)
-					Error ("Sorry. Too many vertical refresh intervals.", NULL);
+					Error ("Sorry. Too many vertical refresh intervals.");
 				ptr->mon_n_vrefresh++;
 			} while ((token = xf86getSubToken (&(ptr->mon_comment))) == NUMBER);
 VertDone:
@@ -539,7 +539,7 @@ VertDone:
 		case GAMMA:
 			if( xf86getSubToken (&(ptr->mon_comment)) != NUMBER )
 			{
-				Error (INVALID_GAMMA_MSG, NULL);
+				Error (INVALID_GAMMA_MSG);
 			}
 			else
 			{
@@ -554,7 +554,7 @@ VertDone:
 					}
 					else
 					{
-						Error (INVALID_GAMMA_MSG, NULL);
+						Error (INVALID_GAMMA_MSG);
 					}
 				}
 				else
@@ -583,7 +583,7 @@ VertDone:
 			}
 			break;
 		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG, NULL);
+			Error (UNEXPECTED_EOF_MSG);
 			break;
 		default:
 			xf86parseError (INVALID_KEYWORD_MSG, xf86tokenString ());
@@ -594,7 +594,7 @@ VertDone:
 	}
 
 	if (!has_ident)
-		Error (NO_IDENT_MSG, NULL);
+		Error (NO_IDENT_MSG);
 
 #ifdef DEBUG
 	printf ("Monitor section parsed\n");
@@ -644,7 +644,7 @@ xf86parseModesSection (void)
 	}
 
 	if (!has_ident)
-		Error (NO_IDENT_MSG, NULL);
+		Error (NO_IDENT_MSG);
 
 #ifdef DEBUG
 	printf ("Modes section parsed\n");

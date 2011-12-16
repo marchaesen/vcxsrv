@@ -157,7 +157,7 @@ typedef Bool (*FindComplexResType)(
     pointer /*cdata*/);
 
 extern _X_EXPORT RESTYPE CreateNewResourceType(
-    DeleteType /*deleteFunc*/, char * /*name*/);
+    DeleteType /*deleteFunc*/, const char * /*name*/);
 
 extern _X_EXPORT void SetResourceTypeErrorValue(
     RESTYPE /*type*/, int /*errorValue*/);

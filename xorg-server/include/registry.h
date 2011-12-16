@@ -28,7 +28,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * Registration functions.  The name string is not copied, so it must
  * not be a stack variable.
  */
-extern _X_EXPORT void RegisterResourceName(RESTYPE type, char *name);
+extern _X_EXPORT void RegisterResourceName(RESTYPE type, const char *name);
 extern _X_EXPORT void RegisterExtensionNames(ExtensionEntry *ext);
 
 /*

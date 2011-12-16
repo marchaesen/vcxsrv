@@ -32,6 +32,8 @@
 #include "input.h"
 #include <X11/extensions/XI2proto.h>
 
+extern Mask event_filters[MAXDEVICES][MAXEVENTS];
+
 struct _ValuatorMask {
     int8_t      last_bit; /* highest bit set in mask */
     uint8_t     mask[(MAX_VALUATORS + 7)/8];
@@ -40,6 +42,10 @@ struct _ValuatorMask {
 
 extern void verify_internal_event(const InternalEvent *ev);
 extern void init_device_event(DeviceEvent *event, DeviceIntPtr dev, Time ms);
+extern int event_get_corestate(DeviceIntPtr mouse, DeviceIntPtr kbd);
+extern void event_set_state(DeviceIntPtr mouse, DeviceIntPtr kbd, DeviceEvent *event);
+extern Mask event_get_filter_from_type(DeviceIntPtr dev, int evtype);
+extern Mask event_get_filter_from_xi2type(int evtype);
 
 FP3232 double_to_fp3232(double in);
 FP1616 double_to_fp1616(double in);
