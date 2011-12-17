@@ -130,4 +130,10 @@
 /* Use libpciaccess */
 #undef XSERVER_LIBPCIACCESS
 
+/* Have setugid */
+#undef HAVE_ISSETUGID
+
+/* Have getresuid */
+#undef HAVE_GETRESUID
+
 #endif /* _XORG_CONFIG_H_ */

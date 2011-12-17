@@ -238,6 +238,65 @@ xf86PrintMarkers(void)
   LogPrintMarkers();
 }
 
+Bool xf86PrivsElevated(void)
+{
+  static Bool privsTested = FALSE;
+  static Bool privsElevated = TRUE;
+
+  if (!privsTested) {
+#if defined(WIN32)
+    privsElevated = FALSE;
+#else
+    if ((getuid() != geteuid()) || (getgid() != getegid())) {
+      privsElevated = TRUE;
+    } else {
+#if defined(HAVE_ISSETUGID)
+      privsElevated = issetugid();
+#elif defined(HAVE_GETRESUID)
+      uid_t ruid, euid, suid;
+      gid_t rgid, egid, sgid;
+
+      if ((getresuid(&ruid, &euid, &suid) == 0) &&
+          (getresgid(&rgid, &egid, &sgid) == 0)) {
+        privsElevated = (euid != suid) || (egid != sgid);
+      }
+      else {
+        printf("Failed getresuid or getresgid");
+        /* Something went wrong, make defensive assumption */
+        privsElevated = TRUE;
+      }
+#else
+      if (getuid()==0) {
+        /* running as root: uid==euid==0 */
+        privsElevated = FALSE;
+      }
+      else {
+        /*
+         * If there are saved ID's the process might still be privileged
+         * even though the above test succeeded. If issetugid() and
+         * getresgid() aren't available, test this by trying to set
+         * euid to 0.
+         */
+        unsigned int oldeuid;
+        oldeuid = geteuid();
+
+        if (seteuid(0) != 0) {
+          privsElevated = FALSE;
+        } else {
+          if (seteuid(oldeuid) != 0) {
+            FatalError("Failed to drop privileges.  Exiting\n");
+          }
+          privsElevated = TRUE;
+        }
+      }
+#endif
+    }
+#endif
+    privsTested = TRUE;
+  }
+  return privsElevated;
+}
+
 static Bool
 xf86CreateRootWindow(WindowPtr pWin)
 {
@@ -872,7 +931,7 @@ OsVendorInit(void)
 
 #ifdef O_NONBLOCK
   if (!beenHere) {
-    if (geteuid() == 0 && getuid() != geteuid())
+    if (xf86PrivsElevated())
     {
       int status;
 
@@ -1043,10 +1102,11 @@ ddxProcessArgument(int argc, char **argv, int i)
       FatalError("Required argument to %s not specified\n", argv[i]);	\
     }
 
-  /* First the options that are only allowed for root */
+  /* First the options that are not allowed with elevated privileges */
   if (!strcmp(argv[i], "-modulepath") || !strcmp(argv[i], "-logfile")) {
-    if ( (geteuid() == 0) && (getuid() != 0) ) {
-      FatalError("The '%s' option can only be used by root.\n", argv[i]);
+    if (xf86PrivsElevated()) {
+      FatalError("The '%s' option cannot be used with "
+                 "elevated privileges.\n", argv[i]);
     }
     else if (!strcmp(argv[i], "-modulepath"))
     {
@@ -1074,9 +1134,9 @@ ddxProcessArgument(int argc, char **argv, int i)
   if (!strcmp(argv[i], "-config") || !strcmp(argv[i], "-xf86config"))
   {
     CHECK_FOR_REQUIRED_ARGUMENT();
-    if (getuid() != 0 && !xf86PathIsSafe(argv[i + 1])) {
+    if (xf86PrivsElevated() && !xf86PathIsSafe(argv[i + 1])) {
       FatalError("\nInvalid argument for %s\n"
-	  "\tFor non-root users, the file specified with %s must be\n"
+	  "\tWith elevated privileges, the file specified with %s must be\n"
 	  "\ta relative path and must not contain any \"..\" elements.\n"
 	  "\tUsing default "__XCONFIGFILE__" search path.\n\n",
 	  argv[i], argv[i]);
@@ -1087,9 +1147,9 @@ ddxProcessArgument(int argc, char **argv, int i)
   if (!strcmp(argv[i], "-configdir"))
   {
     CHECK_FOR_REQUIRED_ARGUMENT();
-    if (getuid() != 0 && !xf86PathIsSafe(argv[i + 1])) {
+    if (xf86PrivsElevated() && !xf86PathIsSafe(argv[i + 1])) {
       FatalError("\nInvalid argument for %s\n"
-	  "\tFor non-root users, the file specified with %s must be\n"
+	  "\tWith elevated privileges, the file specified with %s must be\n"
 	  "\ta relative path and must not contain any \"..\" elements.\n"
 	  "\tUsing default "__XCONFIGDIR__" search path.\n\n",
 	  argv[i], argv[i]);
@@ -1375,7 +1435,7 @@ ddxUseMsg(void)
   ErrorF("\n");
   ErrorF("\n");
   ErrorF("Device Dependent Usage\n");
-  if (getuid() == 0 || geteuid() != 0)
+  if (!xf86PrivsElevated())
   {
     ErrorF("-modulepath paths      specify the module search path\n");
     ErrorF("-logfile file          specify a log file name\n");
