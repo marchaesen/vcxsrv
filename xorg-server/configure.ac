@@ -212,7 +212,7 @@ AC_CHECK_FUNC([dlopen], [],
 AC_SUBST(DLOPEN_LIBS)
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS([backtrace ffs \
+AC_CHECK_FUNCS([backtrace ffs geteuid getuid issetugid getresuid \
 	getdtablesize getifaddrs getpeereid getpeerucred getzoneid \
 	mmap shmctl64 strncasecmp vasprintf vsnprintf walkcontext])
 AC_REPLACE_FUNCS([strcasecmp strcasestr strlcat strlcpy strndup])

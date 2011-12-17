@@ -145,6 +145,7 @@ extern _X_EXPORT Bool xf86LoadModules(char **list, pointer *optlist);
 extern _X_EXPORT int xf86SetVerbosity(int verb);
 extern _X_EXPORT int xf86SetLogVerbosity(int verb);
 extern _X_EXPORT Bool xf86CallDriverProbe( struct _DriverRec * drv, Bool detect_only );
+extern _X_EXPORT Bool xf86PrivsElevated(void);
 
 #endif /* _NO_XF86_PROTOTYPES */
 

@@ -458,6 +458,7 @@ TRANS(SocketReopen) (int i _X_UNUSED, int type, int fd, char *port)
     XtransConnInfo	ciptr;
     int portlen;
     struct sockaddr *addr;
+    size_t addrlen;
 
     prmsg (3,"SocketReopen(%d,%d,%s)\n", type, fd, port);
 
@@ -488,26 +489,27 @@ TRANS(SocketReopen) (int i _X_UNUSED, int type, int fd, char *port)
 
     ciptr->fd = fd;
 
-    if ((addr = calloc (1, portlen + 2)) == NULL) {
+    addrlen = portlen + offsetof(struct sockaddr, sa_data);
+    if ((addr = calloc (1, addrlen)) == NULL) {
 	prmsg (1, "SocketReopen: malloc(addr) failed\n");
 	free (ciptr);
 	return NULL;
     }
     ciptr->addr = (char *) addr;
-    ciptr->addrlen = portlen + 2;
+    ciptr->addrlen = addrlen;
 
-    if ((ciptr->peeraddr = calloc (1, portlen + 2)) == NULL) {
+    if ((ciptr->peeraddr = calloc (1, addrlen)) == NULL) {
 	prmsg (1, "SocketReopen: malloc(portaddr) failed\n");
 	free (addr);
 	free (ciptr);
 	return NULL;
     }
-    ciptr->peeraddrlen = portlen + 2;
+    ciptr->peeraddrlen = addrlen;
 
     /* Initialize ciptr structure as if it were a normally-opened unix socket */
     ciptr->flags = TRANS_LOCAL | TRANS_NOUNLINK;
 #ifdef BSD44SOCKETS
-    addr->sa_len = portlen + 1;
+    addr->sa_len = addrlen;
 #endif
     addr->sa_family = AF_UNIX;
 #ifdef HAS_STRLCPY
@@ -516,7 +518,7 @@ TRANS(SocketReopen) (int i _X_UNUSED, int type, int fd, char *port)
     strncpy(addr->sa_data, port, portlen);
 #endif
     ciptr->family = AF_UNIX;
-    memcpy(ciptr->peeraddr, ciptr->addr, sizeof(struct sockaddr));
+    memcpy(ciptr->peeraddr, ciptr->addr, addrlen);
     ciptr->port = rindex(addr->sa_data, ':');
     if (ciptr->port == NULL) {
 	if (is_numeric(addr->sa_data)) {

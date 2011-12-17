@@ -51,6 +51,7 @@
 #include "st_context.h"
 #include "st_atom.h"
 #include "st_cb_bufferobjects.h"
+#include "st_cb_xformfb.h"
 #include "st_draw.h"
 #include "st_program.h"
 
@@ -926,7 +927,8 @@ st_draw_vbo(struct gl_context *ctx,
             const struct _mesa_index_buffer *ib,
 	    GLboolean index_bounds_valid,
             GLuint min_index,
-            GLuint max_index)
+            GLuint max_index,
+            struct gl_transform_feedback_object *tfb_vertcount)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
@@ -1032,6 +1034,11 @@ st_draw_vbo(struct gl_context *ctx,
       info.restart_index = ctx->Array.RestartIndex;
    }
 
+   /* Set info.count_from_stream_output. */
+   if (tfb_vertcount) {
+      st_transform_feedback_draw_init(tfb_vertcount, &info);
+   }
+
    /* do actual drawing */
    for (i = 0; i < nr_prims; i++) {
       info.mode = translate_prim( ctx, prims[i].mode );
@@ -1044,7 +1051,10 @@ st_draw_vbo(struct gl_context *ctx,
          info.max_index = info.start + info.count - 1;
       }
 
-      if (info.primitive_restart) {
+      if (info.count_from_stream_output) {
+         pipe->draw_vbo(pipe, &info);
+      }
+      else if (info.primitive_restart) {
          if (st->sw_primitive_restart) {
             /* Handle primitive restart for drivers that doesn't support it */
             handle_fallback_primitive_restart(pipe, ib, &ibuffer, &info);

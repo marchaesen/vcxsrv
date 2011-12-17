@@ -104,6 +104,9 @@ struct blitter_context
 
    int saved_num_vertex_buffers;
    struct pipe_vertex_buffer saved_vertex_buffers[PIPE_MAX_ATTRIBS];
+
+   int saved_num_so_targets;
+   struct pipe_stream_output_target *saved_so_targets[PIPE_MAX_SO_BUFFERS];
 };
 
 /**
@@ -131,6 +134,7 @@ struct pipe_context *util_blitter_get_pipe(struct blitter_context *blitter)
  * - vertex elements
  * - vertex shader
  * - geometry shader (if supported)
+ * - stream output targets (if supported)
  * - rasterizer state
  */
 
@@ -212,6 +216,17 @@ void util_blitter_copy_texture_view(struct blitter_context *blitter,
                                     struct pipe_sampler_view *src,
                                     const struct pipe_box *srcbox,
                                     unsigned src_width0, unsigned src_height0);
+
+/**
+ * Copy data from one buffer to another using the Stream Output functionality.
+ * Some alignment is required, otherwise software fallback is used.
+ */
+void util_blitter_copy_buffer(struct blitter_context *blitter,
+                              struct pipe_resource *dst,
+                              unsigned dstx,
+                              struct pipe_resource *src,
+                              unsigned srcx,
+                              unsigned size);
 
 /**
  * Clear a region of a (color) surface to a constant value.
@@ -377,6 +392,20 @@ util_blitter_save_vertex_buffers(struct blitter_context *blitter,
                             (unsigned*)&blitter->saved_num_vertex_buffers,
                             vertex_buffers,
                             num_vertex_buffers);
+}
+
+static INLINE void
+util_blitter_save_so_targets(struct blitter_context *blitter,
+                             int num_targets,
+                             struct pipe_stream_output_target **targets)
+{
+   unsigned i;
+   assert(num_targets <= Elements(blitter->saved_so_targets));
+
+   blitter->saved_num_so_targets = num_targets;
+   for (i = 0; i < num_targets; i++)
+      pipe_so_target_reference(&blitter->saved_so_targets[i],
+                               targets[i]);
 }
 
 #ifdef __cplusplus
