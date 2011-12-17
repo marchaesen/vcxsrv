@@ -56,4 +56,4 @@ LINKLIBS += $(MHMAKECONF)\freetype\lib\freetype248MT.lib \
 endif
 
 $(OBJDIR)\xkbparse.c $(OBJDIR)\xkbparse.h: xkbparse.y
-	bison -d -o$(OBJDIR)\xkbparse.c $<
+	bison.bat -d -o$(OBJDIR)\xkbparse.c $<
