@@ -39,6 +39,7 @@ libdix_la_SOURCES = 	\
 	swaprep.c	\
 	swapreq.c	\
 	tables.c	\
+	touch.c		\
 	window.c
 
 CSRCS = $(filter %.c,$(libdix_la_SOURCES))

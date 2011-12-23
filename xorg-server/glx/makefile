@@ -10,16 +10,16 @@ glapi_sources =					\
 	indirect_size_get.c			\
 	indirect_table.c			\
 	glapi.c					\
+	glapi_gentable.c			\
 	glthread.c				\
-
-libglxdri_la_SOURCES = \
-        extension_string.c \
 
 
 CSRCS = \
 	$(indirect_sources) \
 	$(glapi_sources) \
-	$(libglxdri_la_SOURCES) \
+	clientinfo.c \
+	createcontext.c \
+	extension_string.c \
 	indirect_util.c \
 	indirect_program.c \
 	indirect_texture_compression.c \
