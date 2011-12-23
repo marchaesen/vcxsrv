@@ -25,16 +25,6 @@
 #ifndef _XI2_H_
 #define _XI2_H_
 
-#warning "XI 2.1 is not stable yet."
-#warning "Applications relying on this header will break as the protocol sees updates."
-#ifndef XINPUT2_1_USE_UNSTABLE_PROTOCOL
-#error "Define XINPUT2_1_USE_UNSTABLE_PROTOCOL to disable this error"
-#endif
-#warning "XI 2.2 is not stable yet."
-#warning "Applications relying on this header will break as the protocol sees updates."
-#ifndef XINPUT2_2_USE_UNSTABLE_PROTOCOL
-#error "Define XINPUT2_2_USE_UNSTABLE_PROTOCOL to disable this error"
-#endif
 #define XInput_2_0                              7
 /* DO NOT ADD TO THIS LIST. These are libXi-specific defines.
    See commit libXi-1.4.2-21-ge8531dd */
@@ -201,14 +191,14 @@
 #define XI_RawButtonPress                15
 #define XI_RawButtonRelease              16
 #define XI_RawMotion                     17
-#define XI_TouchBegin                    18 /* XI 2.1 */
-#define XI_TouchEnd                      19
-#define XI_TouchOwnership                20
-#define XI_TouchUpdate                   21
+#define XI_TouchBegin                    18 /* XI 2.2 */
+#define XI_TouchUpdate                   19
+#define XI_TouchEnd                      20
+#define XI_TouchOwnership                21
 #define XI_RawTouchBegin                 22
-#define XI_RawTouchEnd                   23
-#define XI_RawTouchUpdate                24
-#define XI_LASTEVENT                     XI_RawTouchUpdate
+#define XI_RawTouchUpdate                23
+#define XI_RawTouchEnd                   24
+#define XI_LASTEVENT                     XI_RawTouchEnd
 /* NOTE: XI2LASTEVENT in xserver/include/inputstr.h must be the same value
  * as XI_LASTEVENT if the server is supposed to handle masks etc. for this
  * type of event. */
