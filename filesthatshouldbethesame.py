@@ -1,5 +1,5 @@
 from itertools import *
-import sys,os
+import sys,os,difflib
 
 FilesStr=r"""
 libX11\include\X11\cursorfont.h                   X11\cursorfont.h
@@ -8,7 +8,7 @@ libX11\include\X11\XKBlib.h                       X11\XKBlib.h
 libX11\include\X11\Xcms.h                         X11\Xcms.h   
 libX11\include\X11\Xregion.h                      X11\Xregion.h
 libX11\include\X11\ImUtil.h                       X11\ImUtil.h 
-libX11\include\X11\Xlib.h                         X11\Xlib.h     
+libX11\include\X11\Xlib.h                         X11\Xlib.h
 libX11\include\X11\Xresource.h                    X11\Xresource.h
 libX11\include\X11\Xlib-xcb.h                     X11\Xlib-xcb.h 
 libX11\include\X11\Xutil.h                        X11\Xutil.h
@@ -194,20 +194,21 @@ def CompareFiles(f1name, f2name):
   try:
     if len(sys.argv)>1:
       print "Comparing",f1name,f2name
-    f1 = open(f1name, 'U')
-    f2 = open(f2name, 'U')
+    f1 = open(f1name, 'rU')
+    f2 = open(f2name, 'rU')
 
     a = f1.readlines(); f1.close()
     b = f2.readlines(); f2.close()
     for line in difflib.ndiff(a, b):
       if line[0]!=' ':
+        print f1name,"and",f2name,"are different"
         return True
 
     return False
   except:
     if not os.path.exists(f1name): print "\n",f1name,"does not exist\n"
     if not os.path.exists(f2name): print "\n",f2name,"does not exist\n"
-    return False
+    return True
 
 for SrcFile,DestFile in izip(Files[0::2], Files[1::2]):
   Diff |= CompareFiles(SrcFile, DestFile)
