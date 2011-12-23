@@ -131,6 +131,7 @@ Equipment Corporation.
 
 #include "privates.h"
 #include "xace.h"
+#include "exevents.h"
 
 #include <X11/Xatom.h> /* must come after server includes */
 
@@ -2971,8 +2972,10 @@ UnmapWindow(WindowPtr pWin, Bool fromConfigure)
 	if (!fromConfigure && pScreen->PostValidateTree)
 	    (*pScreen->PostValidateTree)(pLayerWin->parent, pWin, VTUnmap);
     }
-    if (wasRealized && !fromConfigure)
+    if (wasRealized && !fromConfigure) {
 	WindowsRestructured ();
+	WindowGone(pWin);
+    }
     return Success;
 }
 
@@ -3055,8 +3058,10 @@ UnmapSubwindows(WindowPtr pWin)
 	if (anyMarked && pScreen->PostValidateTree)
 	    (*pScreen->PostValidateTree)(pLayerWin->parent, pHead, VTUnmap);
     }
-    if (wasRealized)
+    if (wasRealized) {
 	WindowsRestructured ();
+	WindowGone(pWin);
+    }
 }
 
 

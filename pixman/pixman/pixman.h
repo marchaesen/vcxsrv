@@ -466,6 +466,7 @@ pixman_bool_t           pixman_region_equal              (pixman_region16_t *reg
 pixman_bool_t           pixman_region_selfcheck          (pixman_region16_t *region);
 void                    pixman_region_reset              (pixman_region16_t *region,
 							  pixman_box16_t    *box);
+void			pixman_region_clear		 (pixman_region16_t *region);
 /*
  * 32 bit regions
  */
@@ -560,6 +561,7 @@ pixman_bool_t           pixman_region32_equal              (pixman_region32_t *r
 pixman_bool_t           pixman_region32_selfcheck          (pixman_region32_t *region);
 void                    pixman_region32_reset              (pixman_region32_t *region,
 							    pixman_box32_t    *box);
+void			pixman_region32_clear		   (pixman_region32_t *region);
 
 
 /* Copy / Fill / Misc */

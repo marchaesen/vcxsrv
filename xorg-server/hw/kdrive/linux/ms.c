@@ -152,7 +152,7 @@ MsEnable (KdPointerInfo *pi)
     }
     if (KdRegisterFd (port, MsRead, pi))
 	return TRUE;
-    pi->driverPrivate = (void *)port;
+    pi->driverPrivate = (void *)(intptr_t)port;
 
     return Success;
 
@@ -164,7 +164,7 @@ MsEnable (KdPointerInfo *pi)
 static void
 MsDisable (KdPointerInfo *pi)
 {
-    KdUnregisterFd (pi, (int)pi->driverPrivate, TRUE);
+    KdUnregisterFd (pi, (int)(intptr_t)pi->driverPrivate, TRUE);
 }
 
 static void

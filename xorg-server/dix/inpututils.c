@@ -663,6 +663,8 @@ int event_get_corestate(DeviceIntPtr mouse, DeviceIntPtr kbd)
     /* core state needs to be assembled BEFORE the device is updated. */
     corestate = (kbd && kbd->key) ? XkbStateFieldFromRec(&kbd->key->xkbInfo->state) : 0;
     corestate |= (mouse && mouse->button) ? (mouse->button->state) : 0;
+    corestate |= (mouse && mouse->touch) ? (mouse->touch->state) : 0;
+
     return corestate;
 }
 
@@ -672,7 +674,10 @@ void event_set_state(DeviceIntPtr mouse, DeviceIntPtr kbd, DeviceEvent *event)
 
     for (i = 0; mouse && mouse->button && i < mouse->button->numButtons; i++)
         if (BitIsOn(mouse->button->down, i))
-            SetBit(event->buttons, i);
+            SetBit(event->buttons, mouse->button->map[i]);
+
+    if (mouse && mouse->touch && mouse->touch->buttonsDown > 0)
+        SetBit(event->buttons, mouse->button->map[1]);
 
     if (kbd && kbd->key)
     {

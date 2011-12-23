@@ -156,13 +156,13 @@ ProcDRI2Authenticate(ClientPtr client)
 }
 
 static void
-DRI2InvalidateBuffersEvent(DrawablePtr pDraw, void *priv)
+DRI2InvalidateBuffersEvent(DrawablePtr pDraw, void *priv, XID id)
 {
     xDRI2InvalidateBuffers event;
     ClientPtr client = priv;
 
     event.type = DRI2EventBase + DRI2_InvalidateBuffers;
-    event.drawable = pDraw->id;
+    event.drawable = id;
 
     WriteEventsToClient(client, 1, (xEvent *)&event);
 }

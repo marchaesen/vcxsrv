@@ -4192,7 +4192,7 @@
         <name>rs</name>
         <!-- Keyboard indicator for Serbian layouts -->
         <_shortDescription>sr</_shortDescription>
-        <_description>Serbian</_description>
+        <_description>Serbian (Cyrillic)</_description>
         <languageList>
           <iso639Id>srp</iso639Id>
         </languageList>
@@ -4201,7 +4201,7 @@
         <variant>
           <configItem>
             <name>yz</name>
-            <_description>Serbian (Z and ZHE swapped)</_description>
+            <_description>Serbian (Cyrillic, Z and ZHE swapped)</_description>
           </configItem>
         </variant>
         <variant>
@@ -4231,7 +4231,7 @@
         <variant>
           <configItem>
             <name>alternatequotes</name>
-            <_description>Serbian (with guillemets)</_description>
+            <_description>Serbian (Cyrillic with guillemets)</_description>
           </configItem>
         </variant>
         <variant>

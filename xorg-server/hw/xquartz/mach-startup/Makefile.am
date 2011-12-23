@@ -12,6 +12,13 @@ x11app_PROGRAMS = X11.bin
 dist_X11_bin_SOURCES = \
 	bundle-main.c 
 
+# strndup(3) was added in Mac OS X 10.7, but we do this unconditionally to deal
+# with the case where we build on Lion but target Snow Leopard as the minimum
+# OS version.
+#if NEED_STRNDUP
+dist_X11_bin_SOURCES += $(top_srcdir)/os/strndup.c
+#endif
+
 nodist_X11_bin_SOURCES = \
 	mach_startupServer.c \
 	mach_startupUser.c

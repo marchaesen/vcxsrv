@@ -404,7 +404,11 @@ bind_buffer_range(struct gl_context *ctx, GLuint index,
 {
    struct gl_transform_feedback_object *obj =
       ctx->TransformFeedback.CurrentObject;
-   FLUSH_VERTICES(ctx, _NEW_TRANSFORM_FEEDBACK);
+
+   /* Note: no need to FLUSH_VERTICES or flag _NEW_TRANSFORM_FEEDBACK, because
+    * transform feedback buffers can't be changed while transform feedback is
+    * active.
+    */
 
    /* The general binding point */
    _mesa_reference_buffer_object(ctx,
@@ -473,7 +477,7 @@ _mesa_BindBufferRange(GLenum target, GLuint index,
       return;
    }
 
-   if (offset + size >= bufObj->Size) {
+   if (offset + size > bufObj->Size) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glBindBufferRange(offset + size %d > buffer size %d)",
 		  (int) (offset + size), (int) (bufObj->Size));

@@ -108,16 +108,26 @@ ProcXIPassiveGrabDevice(ClientPtr client)
     if (stuff->grab_type != XIGrabtypeButton &&
         stuff->grab_type != XIGrabtypeKeycode &&
         stuff->grab_type != XIGrabtypeEnter &&
-        stuff->grab_type != XIGrabtypeFocusIn)
+        stuff->grab_type != XIGrabtypeFocusIn &&
+        stuff->grab_type != XIGrabtypeTouchBegin)
     {
         client->errorValue = stuff->grab_type;
         return BadValue;
     }
 
     if ((stuff->grab_type == XIGrabtypeEnter ||
-         stuff->grab_type == XIGrabtypeFocusIn) && stuff->detail != 0)
+         stuff->grab_type == XIGrabtypeFocusIn ||
+         stuff->grab_type == XIGrabtypeTouchBegin) && stuff->detail != 0)
     {
         client->errorValue = stuff->detail;
+        return BadValue;
+    }
+
+    if (stuff->grab_type == XIGrabtypeTouchBegin &&
+        (stuff->grab_mode != XIGrabModeTouch ||
+         stuff->paired_device_mode != GrabModeAsync))
+    {
+        client->errorValue = stuff->grab_mode;
         return BadValue;
     }
 
@@ -141,10 +151,16 @@ ProcXIPassiveGrabDevice(ClientPtr client)
     memset(&param, 0, sizeof(param));
     param.grabtype = XI2;
     param.ownerEvents = stuff->owner_events;
-    param.this_device_mode = stuff->grab_mode;
-    param.other_devices_mode = stuff->paired_device_mode;
     param.grabWindow = stuff->grab_window;
     param.cursor = stuff->cursor;
+
+    if (IsKeyboardDevice(dev)) {
+        param.this_device_mode = stuff->grab_mode;
+        param.other_devices_mode = stuff->paired_device_mode;
+    } else {
+        param.this_device_mode = stuff->paired_device_mode;
+        param.other_devices_mode = stuff->grab_mode;
+    }
 
     if (stuff->cursor != None)
     {
@@ -193,6 +209,9 @@ ProcXIPassiveGrabDevice(ClientPtr client)
             case XIGrabtypeFocusIn:
                 status = GrabWindow(client, dev, stuff->grab_type,
                                     &param, &mask);
+                break;
+            case XIGrabtypeTouchBegin:
+                status = GrabTouch(client, dev, mod_dev, &param, &mask);
                 break;
         }
 

@@ -49,9 +49,10 @@
 #include <unistd.h>
 
 #include "glapi.h"
+#include "dispatch.h"
 #include "glapitable.h"
 
-#define _gloffset_FIRST_DYNAMIC (sizeof(struct _glapi_table) / sizeof(void *))
+#define FIRST_DYNAMIC_OFFSET (sizeof(struct _glapi_table) / sizeof(void *))
 
 #if defined(PTHREADS) || defined(GLX_USE_TLS)
 static void init_glapi_relocs(void);
@@ -206,7 +207,7 @@ _glapi_get_dispatch(void)
  ***/
 
 #if defined(USE_X64_64_ASM) && defined(GLX_USE_TLS)
-#  define DISPATCH_FUNCTION_SIZE  16
+# define DISPATCH_FUNCTION_SIZE  16
 #elif defined(USE_X86_ASM)
 # if defined(THREADS) && !defined(GLX_USE_TLS)
 #  define DISPATCH_FUNCTION_SIZE  32
@@ -386,7 +387,7 @@ PUBLIC int
 _glapi_add_dispatch( const char * const * function_names,
 		     const char * parameter_signature )
 {
-   static int next_dynamic_offset = _gloffset_FIRST_DYNAMIC;
+   static int next_dynamic_offset = FIRST_DYNAMIC_OFFSET;
    const char * const real_sig = (parameter_signature != NULL)
      ? parameter_signature : "";
    struct _glapi_function * entry[8];

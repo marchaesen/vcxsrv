@@ -106,6 +106,8 @@ void __glXDisp_CallLists(GLbyte * pc)
     const GLenum type = *(GLenum   *)(pc +  4);
     const GLvoid * lists =  (const GLvoid *)(pc +  8);
 
+    lists = (const GLvoid *) (pc + 8);
+
     CALL_CallLists( GET_DISPATCH(), (
         n,
         type,
@@ -166,7 +168,7 @@ void __glXDisp_Begin(GLbyte * pc)
 
 void __glXDisp_Bitmap(GLbyte * pc)
 {
-    const GLubyte * const bitmap = (const GLubyte *) (pc + 44);
+    const GLubyte * const bitmap = (const GLubyte *) ((pc + 44));
     __GLXpixelHeader * const hdr = (__GLXpixelHeader *)(pc);
 
     CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_LSB_FIRST,    hdr->lsbFirst) );
@@ -1043,7 +1045,7 @@ void __glXDisp_PolygonMode(GLbyte * pc)
 
 void __glXDisp_PolygonStipple(GLbyte * pc)
 {
-    const GLubyte * const mask = (const GLubyte *) (pc + 20);
+    const GLubyte * const mask = (const GLubyte *) ((pc + 20));
     __GLXpixelHeader * const hdr = (__GLXpixelHeader *)(pc);
 
     CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_LSB_FIRST,    hdr->lsbFirst) );
@@ -1122,7 +1124,7 @@ void __glXDisp_TexParameteriv(GLbyte * pc)
 
 void __glXDisp_TexImage1D(GLbyte * pc)
 {
-    const GLvoid * const pixels = (const GLvoid *) (pc + 52);
+    const GLvoid * const pixels = (const GLvoid *) ((pc + 52));
     __GLXpixelHeader * const hdr = (__GLXpixelHeader *)(pc);
 
     CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES,   hdr->swapBytes) );
@@ -1146,7 +1148,7 @@ void __glXDisp_TexImage1D(GLbyte * pc)
 
 void __glXDisp_TexImage2D(GLbyte * pc)
 {
-    const GLvoid * const pixels = (const GLvoid *) (pc + 52);
+    const GLvoid * const pixels = (const GLvoid *) ((pc + 52));
     __GLXpixelHeader * const hdr = (__GLXpixelHeader *)(pc);
 
     CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES,   hdr->swapBytes) );
@@ -1752,7 +1754,7 @@ void __glXDisp_CopyPixels(GLbyte * pc)
 
 void __glXDisp_DrawPixels(GLbyte * pc)
 {
-    const GLvoid * const pixels = (const GLvoid *) (pc + 36);
+    const GLvoid * const pixels = (const GLvoid *) ((pc + 36));
     __GLXpixelHeader * const hdr = (__GLXpixelHeader *)(pc);
 
     CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES,   hdr->swapBytes) );
@@ -2978,7 +2980,7 @@ void __glXDisp_PrioritizeTextures(GLbyte * pc)
 
 void __glXDisp_TexSubImage1D(GLbyte * pc)
 {
-    const GLvoid * const pixels = (const GLvoid *) (pc + 56);
+    const GLvoid * const pixels = (const GLvoid *) ((pc + 56));
     __GLXpixelHeader * const hdr = (__GLXpixelHeader *)(pc);
 
     CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES,   hdr->swapBytes) );
@@ -3001,7 +3003,7 @@ void __glXDisp_TexSubImage1D(GLbyte * pc)
 
 void __glXDisp_TexSubImage2D(GLbyte * pc)
 {
-    const GLvoid * const pixels = (const GLvoid *) (pc + 56);
+    const GLvoid * const pixels = (const GLvoid *) ((pc + 56));
     __GLXpixelHeader * const hdr = (__GLXpixelHeader *)(pc);
 
     CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES,   hdr->swapBytes) );
@@ -3043,7 +3045,7 @@ void __glXDisp_BlendEquation(GLbyte * pc)
 
 void __glXDisp_ColorTable(GLbyte * pc)
 {
-    const GLvoid * const table = (const GLvoid *) (pc + 40);
+    const GLvoid * const table = (const GLvoid *) ((pc + 40));
     __GLXpixelHeader * const hdr = (__GLXpixelHeader *)(pc);
 
     CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES,   hdr->swapBytes) );
@@ -3220,7 +3222,7 @@ int __glXDisp_GetColorTableParameterivSGI(__GLXclientState *cl, GLbyte *pc)
 
 void __glXDisp_ColorSubTable(GLbyte * pc)
 {
-    const GLvoid * const data = (const GLvoid *) (pc + 40);
+    const GLvoid * const data = (const GLvoid *) ((pc + 40));
     __GLXpixelHeader * const hdr = (__GLXpixelHeader *)(pc);
 
     CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES,   hdr->swapBytes) );
@@ -3253,7 +3255,7 @@ void __glXDisp_CopyColorSubTable(GLbyte * pc)
 
 void __glXDisp_ConvolutionFilter1D(GLbyte * pc)
 {
-    const GLvoid * const image = (const GLvoid *) (pc + 44);
+    const GLvoid * const image = (const GLvoid *) ((pc + 44));
     __GLXpixelHeader * const hdr = (__GLXpixelHeader *)(pc);
 
     CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES,   hdr->swapBytes) );
@@ -3275,7 +3277,7 @@ void __glXDisp_ConvolutionFilter1D(GLbyte * pc)
 
 void __glXDisp_ConvolutionFilter2D(GLbyte * pc)
 {
-    const GLvoid * const image = (const GLvoid *) (pc + 44);
+    const GLvoid * const image = (const GLvoid *) ((pc + 44));
     __GLXpixelHeader * const hdr = (__GLXpixelHeader *)(pc);
 
     CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES,   hdr->swapBytes) );
@@ -3777,7 +3779,7 @@ void __glXDisp_TexImage3D(GLbyte * pc)
 
 void __glXDisp_TexSubImage3D(GLbyte * pc)
 {
-    const GLvoid * const pixels = (const GLvoid *) (pc + 88);
+    const GLvoid * const pixels = (const GLvoid *) ((pc + 88));
     __GLXpixel3DHeader * const hdr = (__GLXpixel3DHeader *)(pc);
 
     CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES,   hdr->swapBytes) );

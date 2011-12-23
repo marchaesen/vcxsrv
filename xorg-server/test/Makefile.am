@@ -1,6 +1,6 @@
 if ENABLE_UNIT_TESTS
 SUBDIRS= .
-noinst_PROGRAMS = list string
+noinst_PROGRAMS = list string touch
 if XORG
 # Tests that require at least some DDX functions in order to fully link
 # For now, requires xf86 ddx, could be adjusted to use another
@@ -35,6 +35,7 @@ list_LDADD=$(TEST_LDADD)
 misc_LDADD=$(TEST_LDADD)
 fixes_LDADD=$(TEST_LDADD)
 xfree86_LDADD=$(TEST_LDADD)
+touch_LDADD=$(TEST_LDADD)
 
 libxservertest_la_LIBADD = $(XSERVER_LIBS)
 if XORG

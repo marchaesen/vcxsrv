@@ -125,6 +125,28 @@ static void request_XISelectEvent(xXISelectEventsReq *req, int error)
     assert(rc == error);
 }
 
+static void _set_bit(unsigned char *bits, int bit)
+{
+    SetBit(bits, bit);
+    if (bit >= XI_TouchBegin && bit <= XI_TouchOwnership)
+    {
+        SetBit(bits, XI_TouchBegin);
+        SetBit(bits, XI_TouchUpdate);
+        SetBit(bits, XI_TouchEnd);
+    }
+}
+
+static void _clear_bit(unsigned char *bits, int bit)
+{
+    ClearBit(bits, bit);
+    if (bit >= XI_TouchBegin && bit <= XI_TouchOwnership)
+    {
+        ClearBit(bits, XI_TouchBegin);
+        ClearBit(bits, XI_TouchUpdate);
+        ClearBit(bits, XI_TouchEnd);
+    }
+}
+
 static void request_XISelectEvents_masks(xXISelectEventsReq *req)
 {
     int i, j;
@@ -157,9 +179,9 @@ static void request_XISelectEvents_masks(xXISelectEventsReq *req)
         memset(bits, 0, mask->mask_len * 4);
         for (j = 0; j <= XI2LASTEVENT; j++)
         {
-            SetBit(bits, j);
+            _set_bit(bits, j);
             request_XISelectEvent(req, Success);
-            ClearBit(bits, j);
+            _clear_bit(bits, j);
         }
 
         /* Test 2:
@@ -173,7 +195,7 @@ static void request_XISelectEvents_masks(xXISelectEventsReq *req)
 
         for (j = 0; j <= XI2LASTEVENT; j++)
         {
-            SetBit(bits, j);
+            _set_bit(bits, j);
             request_XISelectEvent(req, Success);
         }
 
@@ -187,9 +209,9 @@ static void request_XISelectEvents_masks(xXISelectEventsReq *req)
 
         for (j = XI2LASTEVENT + 1; j < mask->mask_len * 4; j++)
         {
-            SetBit(bits, j);
+            _set_bit(bits, j);
             request_XISelectEvent(req, BadValue);
-            ClearBit(bits, j);
+            _clear_bit(bits, j);
         }
 
         /* Test 4:
@@ -200,7 +222,7 @@ static void request_XISelectEvents_masks(xXISelectEventsReq *req)
         memset(bits, 0, mask->mask_len * 4);
         for (j = 0; j <= XI2LASTEVENT; j++)
         {
-            SetBit(bits, j);
+            _set_bit(bits, j);
             request_XISelectEvent(req, Success);
         }
 
@@ -227,8 +249,8 @@ static void request_XISelectEvents_masks(xXISelectEventsReq *req)
         mask->mask_len = (nmasks + 3)/4;
         memset(bits, 0, mask->mask_len * 4);
         for (j = 0; j <= XI2LASTEVENT; j++)
-            SetBit(bits, j);
-        ClearBit(bits, XI_HierarchyChanged);
+            _set_bit(bits, j);
+        _clear_bit(bits, XI_HierarchyChanged);
         for (j = 1; j < 6; j++)
         {
             mask->deviceid = j;

@@ -405,6 +405,12 @@ extern int DeliverOneGrabbedEvent(
     DeviceIntPtr /* dev */,
     enum InputLevel /* level */);
 
+extern void DeliverTouchEvents(
+    DeviceIntPtr /* dev */,
+    TouchPointInfoPtr /* ti */,
+    InternalEvent* /* ev */,
+    XID /* resource */);
+
 extern void InitializeSprite(
     DeviceIntPtr /* pDev */,
     WindowPtr    /* pWin */);
@@ -582,6 +588,7 @@ extern Bool DevHasCursor(DeviceIntPtr pDev);
 extern _X_EXPORT Bool IsPointerDevice(DeviceIntPtr dev);
 extern _X_EXPORT Bool IsKeyboardDevice(DeviceIntPtr dev);
 extern Bool IsPointerEvent(InternalEvent *event);
+extern Bool IsTouchEvent(InternalEvent *event);
 extern _X_EXPORT Bool IsMaster(DeviceIntPtr dev);
 extern _X_EXPORT Bool IsFloating(DeviceIntPtr dev);
 

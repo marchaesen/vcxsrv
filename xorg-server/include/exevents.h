@@ -222,6 +222,14 @@ GrabWindow(
 	GrabMask*              /* eventMask */);
 
 extern int
+GrabTouch(
+       ClientPtr              /* client */,
+       DeviceIntPtr           /* dev */,
+       DeviceIntPtr           /* mod_dev */,
+       GrabParameters*        /* param */,
+       GrabMask*              /* eventMask */);
+
+extern int
 SelectForWindow(
 	DeviceIntPtr           /* dev */,
 	WindowPtr              /* pWin */,
@@ -244,6 +252,10 @@ extern int
 InputClientGone(
 	WindowPtr              /* pWin */,
 	XID                    /* id */);
+
+extern void
+WindowGone(
+	WindowPtr              /* win */);
 
 extern int
 SendEvent (

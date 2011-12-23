@@ -29,7 +29,6 @@
 #  define _DISPATCH_H_
 
 
-#include "glapitable.h"
 /**
  * \file main/dispatch.h
  * Macros for handling GL dispatch tables.
