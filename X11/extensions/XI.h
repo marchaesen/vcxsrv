@@ -135,6 +135,17 @@ SOFTWARE.
 #define XI_FOOTMOUSE	"FOOTMOUSE"
 #define XI_JOYSTICK	"JOYSTICK"
 
+/* Indices into the versions[] array (XExtInt.c). Used as a index to
+ * retrieve the minimum version of XI from _XiCheckExtInit */
+#define Dont_Check			0
+#define XInput_Initial_Release		1
+#define XInput_Add_XDeviceBell		2
+#define XInput_Add_XSetDeviceValuators	3
+#define XInput_Add_XChangeDeviceControl	4
+#define XInput_Add_DevicePresenceNotify	5
+#define XInput_Add_DeviceProperties	6
+/* DO NOT ADD TO HERE -> XI2 */
+
 #define XI_Absent		0
 #define XI_Present		1
 

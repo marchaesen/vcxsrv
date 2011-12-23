@@ -652,7 +652,7 @@ typedef struct {
     uint16_t    deviceid;
     uint8_t     mode;
     uint8_t     pad;
-    uint32_t    touch_id;               /**< Since XI 2.2 */
+    uint32_t    touchid;                /**< Since XI 2.2 */
     Window      grab_window;            /**< Since XI 2.2 */
 } xXIAllowEventsReq;
 #define sz_xXIAllowEventsReq                   20 /**< Was 12 before XI 2.2 */
@@ -906,7 +906,7 @@ typedef struct
     Window      event;
     Window      child;
 /* └──────── 32 byte boundary ────────┘ */
-    uint16_t    sourceid;           /**< Source of the new classes */
+    uint16_t    sourceid;
     uint16_t    pad0;
     uint32_t    flags;
     uint32_t    pad1;
@@ -941,7 +941,6 @@ typedef struct
     uint32_t    flags;                  /**< ::XIKeyRepeat */
     xXIModifierInfo     mods;
     xXIGroupInfo        group;
-    uint32_t    active_touches;         /**< Number of touches on source device (XI 2.1 only) */
 } xXIDeviceEvent;
 
 
