@@ -29,6 +29,10 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "Xlibint.h"
 
+#ifdef _MSC_VER
+#undef CreateWindow
+#endif
+
 Window XCreateSimpleWindow(
     register Display *dpy,
     Window parent,
