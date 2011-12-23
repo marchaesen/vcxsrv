@@ -73,8 +73,8 @@ _XQueryColors(
 
 int
 XQueryColors(
-    register Display * const dpy,
-    const Colormap cmap,
+    register Display * dpy,
+    Colormap cmap,
     XColor *defs, 		/* RETURN */
     int ncolors)
 {

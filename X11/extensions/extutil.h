@@ -23,7 +23,7 @@ used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
  *
  * Author:  Jim Fulton, MIT The Open Group
- * 
+ *
  *                     Xlib Extension-Writing Utilities
  *
  * This package contains utilities for writing the client API for various
@@ -123,7 +123,7 @@ extern void XextDestroyExtension(
 extern XExtDisplayInfo *XextAddDisplay(
     XExtensionInfo*	/* extinfo */,
     Display*		/* dpy */,
-    char*		/* ext_name */,
+    _Xconst char*	/* ext_name */,
     XExtensionHooks*	/* hooks */,
     int			/* nevents */,
     XPointer		/* data */
@@ -147,7 +147,7 @@ extern XExtDisplayInfo *XextFindDisplay(
 /*
  * helper macros to generate code that is common to all extensions; caller
  * should prefix it with static if extension source is in one file; this
- * could be a utility function, but have to stack 6 unused arguments for 
+ * could be a utility function, but have to stack 6 unused arguments for
  * something that is called many, many times would be bad.
  */
 #define XEXT_GENERATE_FIND_DISPLAY(proc,extinfo,extname,hooks,nev,data) \

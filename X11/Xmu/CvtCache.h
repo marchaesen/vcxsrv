@@ -1,5 +1,5 @@
 /*
- 
+
 Copyright 1989, 1998  The Open Group
 
 Permission to use, copy, modify, distribute, and sell this software and its
@@ -26,7 +26,7 @@ in this Software without prior written authorization from The Open Group.
 
 /*
  *			       Public Interfaces
- * 
+ *
  * XmuCvtCache *XmuCvtCacheLookupDisplay (dpy)
  *     Display *dpy;
  */

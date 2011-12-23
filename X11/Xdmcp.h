@@ -25,7 +25,7 @@ _XFUNCPROTOBEGIN
 #define XDM_PROTOCOL_VERSION	1
 #define XDM_UDP_PORT		177
 
-/* IANA has assigned FF0X:0:0:0:0:0:0:12B as the permanently assigned 
+/* IANA has assigned FF0X:0:0:0:0:0:0:12B as the permanently assigned
  * multicast addresses for XDMCP, where X in the prefix may be replaced
  * by any valid scope identifier, such as 1 for Node-Local, 2 for Link-Local,
  * 5 for Site-Local, and so on.  We set the default here to the Link-Local

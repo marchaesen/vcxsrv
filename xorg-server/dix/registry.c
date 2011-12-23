@@ -204,7 +204,7 @@ RegisterResourceName(RESTYPE resource, const char *name)
     resource &= TypeMask;
 
     while (resource >= nresource) {
-	if (!double_size(&resources, nresource, sizeof(char *)))
+	if (!double_size((void*)&resources, nresource, sizeof(char *)))
 	    return;
 	nresource = nresource ? nresource * 2 : BASE_SIZE;
     }
@@ -300,7 +300,7 @@ dixResetRegistry(void)
 	free(errors[nerror]);
     free(errors);
 
-    free(resources);
+    free((void*)resources);
 
     requests = NULL;
     nminor = NULL;

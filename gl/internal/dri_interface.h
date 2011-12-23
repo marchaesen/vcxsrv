@@ -84,6 +84,7 @@ typedef struct __DRIbufferRec			__DRIbuffer;
 typedef struct __DRIdri2ExtensionRec		__DRIdri2Extension;
 typedef struct __DRIdri2LoaderExtensionRec	__DRIdri2LoaderExtension;
 typedef struct __DRI2flushExtensionRec	__DRI2flushExtension;
+typedef struct __DRI2throttleExtensionRec	__DRI2throttleExtension;
 
 /*@}*/
 
@@ -282,6 +283,27 @@ struct __DRI2flushExtensionRec {
     void (*invalidate)(__DRIdrawable *drawable);
 };
 
+
+/**
+ * Extension that the driver uses to request
+ * throttle callbacks.
+ */
+
+#define __DRI2_THROTTLE "DRI2_Throttle"
+#define __DRI2_THROTTLE_VERSION 1
+
+enum __DRI2throttleReason {
+   __DRI2_THROTTLE_SWAPBUFFER,
+   __DRI2_THROTTLE_COPYSUBBUFFER,
+   __DRI2_THROTTLE_FLUSHFRONT
+};
+
+struct __DRI2throttleExtensionRec {
+   __DRIextension base;
+   void (*throttle)(__DRIcontext *ctx,
+		    __DRIdrawable *drawable,
+		    enum __DRI2throttleReason reason);
+};
 
 /**
  * XML document describing the configuration options supported by the
@@ -819,6 +841,7 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_FORMAT_RGB565       0x1001
 #define __DRI_IMAGE_FORMAT_XRGB8888     0x1002
 #define __DRI_IMAGE_FORMAT_ARGB8888     0x1003
+#define __DRI_IMAGE_FORMAT_ABGR8888     0x1004
 
 #define __DRI_IMAGE_USE_SHARE		0x0001
 #define __DRI_IMAGE_USE_SCANOUT		0x0002

@@ -3863,6 +3863,7 @@ typedef struct xcb_change_keyboard_mapping_request_t {
     uint16_t      length; /**<  */
     xcb_keycode_t first_keycode; /**<  */
     uint8_t       keysyms_per_keycode; /**<  */
+    uint8_t       pad0[2]; /**<  */
 } xcb_change_keyboard_mapping_request_t;
 
 /**

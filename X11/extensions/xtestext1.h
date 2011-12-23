@@ -41,8 +41,8 @@ documentation, and that the name of Hewlett-Packard not be used in
 advertising or publicity pertaining to distribution of the
 software without specific, written prior permission.
 
-Hewlett-Packard makes no representations about the 
-suitability of this software for any purpose.  It is provided 
+Hewlett-Packard makes no representations about the
+suitability of this software for any purpose.  It is provided
 "as is" without express or implied warranty.
 
 This software is not subject to any license of the American

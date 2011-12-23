@@ -32,13 +32,13 @@ in this Software without prior written authorization from The Open Group.
 
 /*
  *			      Public Entry Points
- * 
- * 
+ *
+ *
  * XmuDisplayQueue *XmuDQCreate (closefunc, freefunc, data)
  *     XmuCloseDisplayQueueProc closefunc;
  *     XmuFreeDisplayQueueProc freefunc;
  *     XPointer data;
- * 
+ *
  *         Creates and returns a queue into which displays may be placed.  When
  *         the display is closed, the closefunc (if non-NULL) is upcalled with
  *         as follows:
@@ -53,12 +53,12 @@ in this Software without prior written authorization from The Open Group.
  * Bool XmuDQDestroy (q, docallbacks)
  *     XmuDisplayQueue *q;
  *     Bool docallbacks;
- * 
+ *
  *         Releases all memory for the indicated display queue.  If docallbacks
- *         is true, then the closefunc (if non-NULL) is called for each 
+ *         is true, then the closefunc (if non-NULL) is called for each
  *         display.
- * 
- * 
+ *
+ *
  * XmuDisplayQueueEntry *XmuDQLookupDisplay (q, dpy)
  *     XmuDisplayQueue *q;
  *     Display *dpy;
@@ -66,7 +66,7 @@ in this Software without prior written authorization from The Open Group.
  *         Returns the queue entry for the specified display or NULL if the
  *         display is not in the queue.
  *
- * 
+ *
  * XmuDisplayQueueEntry *XmuDQAddDisplay (q, dpy, data)
  *     XmuDisplayQueue *q;
  *     Display *dpy;
@@ -77,13 +77,13 @@ in this Software without prior written authorization from The Open Group.
  *         caller to attach arbitrary data to this display in this queue.  The
  *         caller should use XmuDQLookupDisplay to make sure that the display
  *         hasn't already been added.
- * 
- * 
+ *
+ *
  * Bool XmuDQRemoveDisplay (q, dpy)
  *     XmuDisplayQueue *q;
  *     Display *dpy;
  *
- *         Removes the specified display from the given queue.  If the 
+ *         Removes the specified display from the given queue.  If the
  *         indicated display is not found on this queue, False is returned,
  *         otherwise True is returned.
  */

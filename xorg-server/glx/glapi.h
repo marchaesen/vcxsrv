@@ -44,6 +44,13 @@
 #ifndef _GLAPI_H
 #define _GLAPI_H
 
+#include "glapi/glthread.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef _GLAPI_NO_EXPORTS
 #  define _GLAPI_EXPORT
 #else /* _GLAPI_NO_EXPORTS */
@@ -80,7 +87,6 @@ typedef void (*_glapi_warning_func)(void *ctx, const char *str, ...);
 #define _glapi_Context _mglapi_Context
 #define _glapi_Dispatch _mglapi_Dispatch
 #endif
-
 
 /*
  * Number of extension functions which we can dynamically add at runtime.
@@ -177,4 +183,8 @@ _glapi_get_proc_address(const char *funcName);
 extern struct _glapi_table *
 _glapi_create_table_from_handle(void *handle, const char *symbol_prefix);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

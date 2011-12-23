@@ -1,4 +1,4 @@
-/* 
+/*
 
 Copyright 1988, 1998  The Open Group
 
@@ -49,14 +49,14 @@ typedef struct _XmuSegment {
   struct _XmuSegment *next;
 } XmuSegment;
 
-typedef struct _XmuScanline {   
+typedef struct _XmuScanline {
   int y;
   XmuSegment *segment;
   struct _XmuScanline *next;
 } XmuScanline;
-                              
+
 typedef struct _XmuArea {
-  XmuScanline *scanline;     
+  XmuScanline *scanline;
 } XmuArea;
 
 #define XmuCreateArea()		XmuNewArea(0, 0, 0, 0)
