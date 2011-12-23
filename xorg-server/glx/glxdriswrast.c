@@ -255,7 +255,7 @@ __glXDRIscreenDestroy(__GLXscreen *baseScreen)
     if (screen->driConfigs) {
 	for (i = 0; screen->driConfigs[i] != NULL; i++)
 	    free((__DRIconfig **)screen->driConfigs[i]);
-	free(screen->driConfigs);
+	free((void*)screen->driConfigs);
     }
 
     free(screen);
