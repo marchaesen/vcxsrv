@@ -1076,7 +1076,7 @@ DeliverOneTouchEvent(ClientPtr client, DeviceIntPtr dev, TouchPointInfoPtr ti,
     err = EventToXI2(ev, &xi2);
     if (err != Success)
         FatalError("[Xi] %s: XI2 conversion failed in %s"
-                   " (%d)\n", dev->name, __func__, err);
+                   " (%d)\n", dev->name, __FUNCTION__, err);
 
     FixUpEventFromWindow(&ti->sprite, xi2, win, child, FALSE);
     filter = GetEventFilter(dev, xi2);
