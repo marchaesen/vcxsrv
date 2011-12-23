@@ -180,7 +180,7 @@ static void test_XIPassiveGrabDevice(void)
     request->deviceid = XIAllMasterDevices;
 
     printf("Testing invalid grab types\n");
-    for (i = XIGrabtypeFocusIn + 1; i < 0xFF; i++)
+    for (i = XIGrabtypeTouchBegin + 1; i < 0xFF; i++)
     {
         request->grab_type = i;
         request_XIPassiveGrabDevice(&client_request, request, BadValue, request->grab_type);

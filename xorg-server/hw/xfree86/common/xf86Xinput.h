@@ -141,6 +141,9 @@ extern _X_EXPORT void xf86PostKeyEventP(DeviceIntPtr device, unsigned int key_co
 		       const int *valuators);
 extern _X_EXPORT void xf86PostKeyboardEvent(DeviceIntPtr device, unsigned int key_code,
                            int is_down);
+extern _X_EXPORT void xf86PostTouchEvent(DeviceIntPtr dev, uint32_t touchid,
+                                         uint16_t type, uint32_t flags,
+                                         const ValuatorMask *mask);
 extern _X_EXPORT InputInfoPtr xf86FirstLocalDevice(void);
 extern _X_EXPORT int xf86ScaleAxis(int Cx, int to_max, int to_min, int from_max, int from_min);
 extern _X_EXPORT void xf86ProcessCommonOptions(InputInfoPtr pInfo, XF86OptionPtr options);

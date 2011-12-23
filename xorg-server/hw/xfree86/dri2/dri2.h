@@ -166,7 +166,8 @@ typedef int		(*DRI2ScheduleWaitMSCProcPtr)(ClientPtr client,
 						      CARD64 remainder);
 
 typedef void		(*DRI2InvalidateProcPtr)(DrawablePtr pDraw,
-						 void *data);
+						 void *data,
+						 XID id);
 
 /**
  * DRI2 calls this hook when ever swap_limit is going to be changed. Default

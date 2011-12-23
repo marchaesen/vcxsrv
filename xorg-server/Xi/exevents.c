@@ -44,6 +44,32 @@ SOFTWARE.
 
 ********************************************************/
 
+/*
+ * Copyright © 2010 Collabora Ltd.
+ * Copyright © 2011 Red Hat, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * Author: Daniel Stone <daniel@fooishbar.org>
+ */
+
 /********************************************************************
  *
  *  Routines to register and initialize extension input devices.
@@ -78,6 +104,7 @@ SOFTWARE.
 #include "eventconvert.h"
 #include "eventstr.h"
 #include "inpututils.h"
+#include "mi.h"
 
 #include <X11/extensions/XKBproto.h>
 #include "xkbsrv.h"
@@ -121,6 +148,21 @@ IsPointerEvent(InternalEvent* event)
         case ET_ButtonRelease:
         case ET_Motion:
             /* XXX: enter/leave ?? */
+            return TRUE;
+        default:
+            break;
+    }
+    return FALSE;
+}
+
+Bool
+IsTouchEvent(InternalEvent* event)
+{
+    switch(event->any.type)
+    {
+        case ET_TouchBegin:
+        case ET_TouchUpdate:
+        case ET_TouchEnd:
             return TRUE;
         default:
             break;
@@ -492,6 +534,8 @@ DeepCopyKeyboardClasses(DeviceIntPtr from, DeviceIntPtr to)
 
 }
 
+/* FIXME: this should really be shared with the InitValuatorAxisClassRec and
+ * similar */
 static void
 DeepCopyPointerClasses(DeviceIntPtr from, DeviceIntPtr to)
 {
@@ -623,6 +667,41 @@ DeepCopyPointerClasses(DeviceIntPtr from, DeviceIntPtr to)
         classes = to->unused_classes;
         classes->proximity = to->proximity;
         to->proximity      = NULL;
+    }
+
+    if (from->touch)
+    {
+        TouchPointInfoPtr tmp;
+        if (!to->touch)
+        {
+            classes = to->unused_classes;
+            to->touch = classes->touch;
+            if (!to->touch)
+            {
+                int i;
+                to->touch = calloc(1, sizeof(TouchClassRec));
+                if (!to->touch)
+                    FatalError("[Xi] no memory for class shift.\n");
+                to->touch->num_touches = from->touch->num_touches;
+                to->touch->touches = calloc(to->touch->num_touches,
+                                            sizeof(TouchPointInfoRec));
+                for (i = 0; i < to->touch->num_touches; i++)
+                    TouchInitTouchPoint(to->touch, to->valuator, i);
+                if (!to->touch)
+                    FatalError("[Xi] no memory for class shift.\n");
+            } else
+                classes->touch = NULL;
+        }
+        tmp = to->touch->touches;
+        memcpy(to->touch, from->touch, sizeof(TouchClassRec));
+        to->touch->touches = tmp;
+        to->touch->sourceid = from->id;
+    } else if (to->touch)
+    {
+        ClassesPtr classes;
+        classes = to->unused_classes;
+        classes->touch = to->touch;
+        to->touch      = NULL;
     }
 }
 
@@ -771,6 +850,7 @@ UpdateDeviceState(DeviceIntPtr device, DeviceEvent* event)
     KeyClassPtr k       = NULL;
     ButtonClassPtr b    = NULL;
     ValuatorClassPtr v  = NULL;
+    TouchClassPtr t     = NULL;
 
     /* This event is always the first we get, before the actual events with
      * the data. However, the way how the DDX is set up, "device" will
@@ -788,6 +868,9 @@ UpdateDeviceState(DeviceIntPtr device, DeviceEvent* event)
         case ET_KeyRelease:
         case ET_ProximityIn:
         case ET_ProximityOut:
+        case ET_TouchBegin:
+        case ET_TouchUpdate:
+        case ET_TouchEnd:
             break;
         default:
             /* other events don't update the device */
@@ -797,6 +880,7 @@ UpdateDeviceState(DeviceIntPtr device, DeviceEvent* event)
     k = device->key;
     v = device->valuator;
     b = device->button;
+    t = device->touch;
 
     key = event->detail.key;
 
@@ -898,17 +982,602 @@ UpdateDeviceState(DeviceIntPtr device, DeviceEvent* event)
 	device->proximity->in_proximity = TRUE;
     else if (event->type == ET_ProximityOut)
 	device->proximity->in_proximity = FALSE;
+    else if (event->type == ET_TouchBegin) {
+        BUG_WARN(!b || !v);
+        BUG_WARN(!t);
+
+        if (!b || !t || !b->map[key])
+            return DONT_PROCESS;
+
+        if (!(event->flags & TOUCH_POINTER_EMULATED) ||
+            (event->flags & TOUCH_REPLAYING))
+            return DONT_PROCESS;
+
+        IncreaseButtonCount(device, key, &t->buttonsDown, &t->motionMask, &t->state);
+        UpdateDeviceMotionMask(device, t->state, DeviceButtonMotionMask);
+    } else if (event->type == ET_TouchEnd) {
+        BUG_WARN(!b || !v);
+        BUG_WARN(!t);
+
+        if (!b || !t || t->buttonsDown <= 0 || !b->map[key])
+            return DONT_PROCESS;
+
+        if (!(event->flags & TOUCH_POINTER_EMULATED))
+            return DONT_PROCESS;
+        if (!(event->flags & TOUCH_END))
+            return DONT_PROCESS;
+
+        DecreaseButtonCount(device, key, &t->buttonsDown, &t->motionMask, &t->state);
+        UpdateDeviceMotionMask(device, t->state, DeviceButtonMotionMask);
+    }
 
     return DEFAULT;
 }
 
 /**
- * Main device event processing function.
- * Called from when processing the events from the event queue.
+ * A client that does not have the TouchOwnership mask set may not receive a
+ * TouchBegin event if there is at least one grab active.
  *
+ * @return TRUE if the client selected for ownership events on the given
+ * window for this device, FALSE otherwise
  */
-void
-ProcessOtherEvent(InternalEvent *ev, DeviceIntPtr device)
+static inline Bool
+TouchClientWantsOwnershipEvents(ClientPtr client, DeviceIntPtr dev, WindowPtr win)
+{
+    InputClients *iclient;
+
+    nt_list_for_each_entry(iclient, wOtherInputMasks(win)->inputClients, next)
+    {
+        if (rClient(iclient) != client)
+            continue;
+
+        return xi2mask_isset(iclient->xi2mask, dev, XI_TouchOwnership);
+    }
+
+    return FALSE;
+}
+
+static void
+TouchSendOwnershipEvent(DeviceIntPtr dev, TouchPointInfoPtr ti, int reason, XID resource)
+{
+    int nev, i;
+    InternalEvent *tel = InitEventList(GetMaximumEventsNum());
+
+    nev = GetTouchOwnershipEvents(tel, dev, ti, reason, resource, 0);
+    for (i = 0; i < nev; i++)
+        mieqProcessDeviceEvent(dev, tel + i, NULL);
+
+    FreeEventList(tel, GetMaximumEventsNum());
+}
+
+/**
+ * Attempts to deliver a touch event to the given client.
+ */
+static Bool
+DeliverOneTouchEvent(ClientPtr client, DeviceIntPtr dev, TouchPointInfoPtr ti,
+                     GrabPtr grab, WindowPtr win, InternalEvent *ev)
+{
+    int err;
+    xEvent *xi2;
+    Mask filter;
+    Window child = DeepestSpriteWin(&ti->sprite)->drawable.id;
+
+    /* FIXME: owner event handling */
+
+    /* If the client does not have the ownership mask set and is not
+     * the current owner of the touch, only pretend we delivered */
+    if (!grab && ti->num_grabs != 0 &&
+           !TouchClientWantsOwnershipEvents(client, dev,win))
+           return TRUE;
+
+    /* If we fail here, we're going to leave a client hanging. */
+    err = EventToXI2(ev, &xi2);
+    if (err != Success)
+        FatalError("[Xi] %s: XI2 conversion failed in %s"
+                   " (%d)\n", dev->name, __func__, err);
+
+    FixUpEventFromWindow(&ti->sprite, xi2, win, child, FALSE);
+    filter = GetEventFilter(dev, xi2);
+    if (XaceHook(XACE_RECEIVE_ACCESS, client, win, xi2, 1) != Success)
+        return FALSE;
+    err = TryClientEvents(client, dev, xi2, 1, filter, filter, NullGrab);
+    free(xi2);
+
+    /* Returning the value from TryClientEvents isn't useful, since all our
+     * resource-gone cleanups will update the delivery list anyway. */
+    return TRUE;
+}
+
+/**
+ * If the current owner has rejected the event, deliver the
+ * TouchOwnership/TouchBegin to the next item in the sprite stack.
+ */
+static void
+TouchPuntToNextOwner(DeviceIntPtr dev, TouchPointInfoPtr ti,
+                     TouchOwnershipEvent *ev)
+{
+    InternalEvent *tel = InitEventList(GetMaximumEventsNum());
+    ValuatorMask *mask = valuator_mask_new(2);
+    int i, nev;
+
+    /* Deliver the ownership */
+    if (ti->listeners[0].state == LISTENER_AWAITING_OWNER)
+        DeliverTouchEvents(dev, ti, (InternalEvent*)ev, ti->listeners[0].listener);
+    else if (ti->listeners[0].state == LISTENER_AWAITING_BEGIN)
+        TouchEventHistoryReplay(ti, dev, ti->listeners[0].listener);
+
+    /* If we've just removed the last grab and the touch has physically
+     * ended, send a TouchEnd event too and finalise the touch. */
+    if (ti->num_listeners == 1 && ti->num_grabs == 0 &&
+            ti->pending_finish)
+    {
+        int flags;
+        valuator_mask_set_double(mask, 0,
+                                 valuator_mask_get_double(ti->valuators, 0));
+        valuator_mask_set_double(mask, 1,
+                                 valuator_mask_get_double(ti->valuators, 1));
+
+        flags = TOUCH_CLIENT_ID;
+        if (ti->emulate_pointer)
+            flags |= TOUCH_POINTER_EMULATED;
+        nev = GetTouchEvents(tel, dev, ti->client_id, XI_TouchEnd, flags, mask);
+        for (i = 0; i < nev; i++)
+            DeliverTouchEvents(dev, ti, tel + i, 0);
+        TouchEndTouch(dev, ti);
+    }
+
+    valuator_mask_free(&mask);
+    FreeEventList(tel, GetMaximumEventsNum());
+}
+
+static void
+TouchEventRejected(DeviceIntPtr sourcedev, TouchPointInfoPtr ti,
+                   TouchOwnershipEvent *ev)
+{
+    InternalEvent *tel = InitEventList(GetMaximumEventsNum());
+    ValuatorMask *mask = valuator_mask_new(2);
+    Bool was_owner = (ev->resource == ti->listeners[0].listener);
+    void *grab;
+    int nev, i;
+
+
+    /* Send a TouchEnd event to the resource being removed, but only if they
+     * haven't received one yet already */
+    if (ti->listeners[0].state != LISTENER_HAS_END)
+    {
+        int flags;
+        valuator_mask_set_double(mask, 0,
+                                 valuator_mask_get_double(ti->valuators, 0));
+        valuator_mask_set_double(mask, 1,
+                                 valuator_mask_get_double(ti->valuators, 1));
+
+        flags = TOUCH_CLIENT_ID|TOUCH_REJECT;
+        if (ti->emulate_pointer)
+            flags |= TOUCH_POINTER_EMULATED;
+        nev = GetTouchEvents(tel, sourcedev, ti->client_id, XI_TouchEnd, flags, mask);
+        for (i = 0; i < nev; i++)
+            DeliverTouchEvents(sourcedev, ti, tel + i, ev->resource);
+    }
+
+    /* If there are no other listeners left, then don't bother sending an
+     * ownership change event to no-one; if the touchpoint is pending
+     * finish, then we can just kill it now. */
+    if (ti->num_listeners == 1)
+    {
+        if (ti->pending_finish)
+            TouchEndTouch(sourcedev, ti);
+        goto out;
+    }
+
+    /* Remove the resource from the listener list, updating
+     * ti->num_listeners, as well as ti->num_grabs if it was a grab. */
+    if (TouchRemoveListener(ti, ev->resource))
+    {
+        if (dixLookupResourceByType(&grab, ev->resource, RT_PASSIVEGRAB,
+                                    serverClient, DixGetAttrAccess) == Success)
+            ti->num_grabs--;
+    }
+
+    /* If the current owner was removed, deliver the TouchOwnership or TouchBegin
+       event to the new owner. */
+    if (was_owner)
+        TouchPuntToNextOwner(sourcedev, ti, ev);
+
+out:
+    FreeEventList(tel, GetMaximumEventsNum());
+    valuator_mask_free(&mask);
+}
+
+/**
+ * Processes a TouchOwnership event, indicating a grab has accepted the touch
+ * it currently owns, or a grab or selection has been removed.  Will generate
+ * and send TouchEnd events to all clients removed from the delivery list, as
+ * well as possibly sending the new TouchOwnership event.  May end the
+ * touchpoint if it is pending finish.
+ */
+static void
+ProcessTouchOwnershipEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
+                           TouchOwnershipEvent *ev)
+{
+
+    if (ev->reason == XIRejectTouch)
+        TouchEventRejected(dev, ti, ev);
+    else if (ev->reason == XIAcceptTouch) {
+        int flags;
+        int nev, i;
+        ValuatorMask *mask;
+
+        InternalEvent *tel = InitEventList(GetMaximumEventsNum());
+
+        mask = valuator_mask_new(dev->valuator->numAxes);
+        valuator_mask_set_double(mask, 0,
+                                 valuator_mask_get_double(ti->valuators, 0));
+        valuator_mask_set_double(mask, 1,
+                                 valuator_mask_get_double(ti->valuators, 1));
+
+        /* FIXME: what about early acceptance? a client may accept before it
+         * owns the touch. */
+
+        /* The touch owner has accepted the touch.  Send TouchEnd events to
+         * everyone else, and truncate the list of listeners. */
+        flags = TOUCH_ACCEPT|TOUCH_CLIENT_ID;
+        if (ti->emulate_pointer)
+            flags |= TOUCH_POINTER_EMULATED;
+        nev = GetTouchEvents(tel, dev, ti->client_id, XI_TouchEnd,
+                             flags, mask);
+        for (i = 0; i < nev; i++)
+            DeliverTouchEvents(dev, ti, tel + i, 0);
+
+        FreeEventList(tel, GetMaximumEventsNum());
+        valuator_mask_free(&mask);
+
+        while (ti->num_listeners > 1)
+            TouchRemoveListener(ti, ti->listeners[1].listener);
+        /* Owner accepted after receiving end */
+        if (ti->listeners[0].state == LISTENER_HAS_END)
+            TouchEndTouch(dev, ti);
+    } else { /* this is the very first ownership event for a grab */
+        DeliverTouchEvents(dev, ti, (InternalEvent*)ev, ev->resource);
+    }
+}
+
+/**
+ * Copy the event's valuator information into the touchpoint, we may need
+ * this for emulated TouchEnd events.
+ */
+static void
+TouchCopyValuatorData(DeviceEvent *ev, TouchPointInfoPtr ti)
+{
+    int i;
+    for (i = 0; i < sizeof(ev->valuators.mask) * 8; i++)
+        if (BitIsOn(ev->valuators.mask, i))
+            valuator_mask_set_double(ti->valuators, i, ev->valuators.data[i]);
+}
+
+/**
+ * Given a touch event and a potential listener, retrieve info needed for
+ * processing the event.
+ *
+ * @param dev The device generating the touch event.
+ * @param ti The touch point info record for the touch event.
+ * @param ev The touch event to process.
+ * @param listener The touch event listener that may receive the touch event.
+ * @param[out] client The client that should receive the touch event.
+ * @param[out] win The window to deliver the event on.
+ * @param[out] grab The grab to deliver the event through, if any.
+ * @param[out] mask The XI 2.x event mask of the grab or selection, if any.
+ * @return TRUE if an event should be delivered to the listener, FALSE
+ *         otherwise.
+ */
+static Bool
+RetrieveTouchDeliveryData(DeviceIntPtr dev, TouchPointInfoPtr ti,
+                          InternalEvent *ev, TouchListener *listener,
+                          ClientPtr *client, WindowPtr *win, GrabPtr *grab,
+                          XI2Mask **mask)
+{
+     int rc;
+     InputClients *iclients = NULL;
+
+    if (listener->type == LISTENER_GRAB ||
+        listener->type == LISTENER_POINTER_GRAB)
+    {
+        rc = dixLookupResourceByType((pointer*)grab, listener->listener,
+                RT_PASSIVEGRAB,
+                serverClient, DixSendAccess);
+        if (rc != Success)
+        {
+            /* the grab doesn't exist but we have a grabbing listener - this
+             * is an implicit/active grab */
+            rc = dixLookupClient(client, listener->listener, serverClient, DixSendAccess);
+            if (rc != Success)
+                return FALSE;
+
+            *grab = dev->deviceGrab.grab;
+            if (!*grab)
+                return FALSE;
+        }
+
+        *client = rClient(*grab);
+        *win = (*grab)->window;
+        *mask = (*grab)->xi2mask;
+    } else {
+        if (listener->level == CORE)
+            rc = dixLookupWindow(win, listener->listener,
+                                 serverClient, DixSendAccess);
+        else
+            rc = dixLookupResourceByType((pointer*)win, listener->listener,
+                                         RT_INPUTCLIENT,
+                                         serverClient, DixSendAccess);
+        if (rc != Success)
+            return FALSE;
+
+
+        if (listener->level == XI2)
+        {
+            int evtype;
+            if (ti->emulate_pointer && listener->type == LISTENER_POINTER_REGULAR)
+                evtype = GetXI2Type(TouchGetPointerEventType(ev));
+            else
+                evtype = GetXI2Type(ev->any.type);
+
+            nt_list_for_each_entry(iclients, wOtherInputMasks(*win)->inputClients, next)
+                if (xi2mask_isset(iclients->xi2mask, dev, evtype))
+                    break;
+            BUG_WARN(!iclients);
+            if (!iclients)
+                return FALSE;
+        } else if (listener->level == XI)
+        {
+            int xi_type = GetXIType(TouchGetPointerEventType(ev));
+            Mask xi_filter = event_get_filter_from_type(dev, xi_type);
+            nt_list_for_each_entry(iclients, wOtherInputMasks(*win)->inputClients, next)
+                if (iclients->mask[dev->id] & xi_filter)
+                    break;
+            BUG_WARN(!iclients);
+            if (!iclients)
+                return FALSE;
+        } else
+        {
+            int coretype = GetCoreType(TouchGetPointerEventType(ev));
+            Mask core_filter = event_get_filter_from_type(dev, coretype);
+
+            /* all others */
+            nt_list_for_each_entry(iclients, (InputClients*)wOtherClients(*win), next)
+                if (iclients->mask[XIAllDevices] & core_filter)
+                    break;
+            /* if owner selected, iclients is NULL */
+        }
+
+        *client = iclients ? rClient(iclients) : wClient(*win);
+        *mask = iclients ? iclients->xi2mask : NULL;
+        *grab = NULL;
+    }
+
+    return TRUE;
+}
+
+static int
+DeliverTouchEmulatedEvent(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev,
+                          TouchListener *listener, ClientPtr client,
+                          WindowPtr win, GrabPtr grab, XI2Mask *xi2mask)
+{
+    InternalEvent motion, button;
+    InternalEvent *ptrev = &motion;
+    int nevents;
+    DeviceIntPtr kbd;
+
+    /* We don't deliver pointer events to non-owners */
+    if (!TouchResourceIsOwner(ti, listener->listener))
+        return Success;
+
+    nevents = TouchConvertToPointerEvent(ev, &motion, &button);
+    BUG_WARN(nevents == 0);
+    if (nevents == 0)
+        return BadValue;
+
+    if (nevents > 1)
+        ptrev = &button;
+
+    kbd = GetMaster(dev, KEYBOARD_OR_FLOAT);
+    event_set_state(dev, kbd, &ptrev->device_event);
+    ptrev->device_event.corestate = event_get_corestate(dev, kbd);
+
+    if (grab)
+    {
+        /* this side-steps the usual activation mechansims, but... */
+        if (ev->any.type == ET_TouchBegin && !dev->deviceGrab.grab)
+                ActivatePassiveGrab(dev, grab, ptrev, ev); /* also delivers the event */
+        else {
+            int deliveries = 0;
+            /* 'grab' is the passive grab, but if the grab isn't active,
+             * don't deliver */
+            if (!dev->deviceGrab.grab)
+                return Success;
+
+            if (grab->ownerEvents)
+            {
+                WindowPtr focus = NullWindow;
+                WindowPtr win = dev->spriteInfo->sprite->win;
+                deliveries = DeliverDeviceEvents(win, ptrev, grab, focus, dev);
+            }
+
+            if (!deliveries)
+                DeliverOneGrabbedEvent(ptrev, dev, grab->grabtype);
+
+            if (ev->any.type == ET_TouchEnd &&
+                !dev->button->buttonsDown &&
+                dev->deviceGrab.fromPassiveGrab &&
+                GrabIsPointerGrab(grab))
+                (*dev->deviceGrab.DeactivateGrab)(dev);
+        }
+    } else
+    {
+        GrabPtr devgrab = dev->deviceGrab.grab;
+
+        DeliverDeviceEvents(win, ptrev, grab, win, dev);
+        /* FIXME: bad hack
+         * Implicit passive grab activated in response to this event. Store
+         * the event.
+         */
+        if (!devgrab && dev->deviceGrab.grab && dev->deviceGrab.implicitGrab)
+        {
+            TouchListener *listener;
+
+            devgrab = dev->deviceGrab.grab;
+
+            *dev->deviceGrab.sync.event = ev->device_event;
+
+            /* The listener array has a sequence of grabs and then one event
+             * selection. Implicit grab activation occurs through delivering an
+             * event selection. Thus, we update the last listener in the array.
+             */
+            listener = &ti->listeners[ti->num_listeners - 1];
+            listener->listener = devgrab->resource;
+
+            if (devgrab->grabtype != XI2 ||
+                devgrab->type != XI_TouchBegin)
+                listener->type = LISTENER_POINTER_GRAB;
+            else
+                listener->type = LISTENER_GRAB;
+        }
+
+    }
+    if (ev->any.type == ET_TouchBegin)
+        listener->state = LISTENER_IS_OWNER;
+    else if (ev->any.type == ET_TouchEnd)
+        listener->state = LISTENER_HAS_END;
+
+    return Success;
+}
+
+
+
+
+static void
+DeliverEmulatedMotionEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
+                           InternalEvent *ev)
+{
+    InternalEvent motion;
+
+    if (ti->num_listeners)
+    {
+        ClientPtr client;
+        WindowPtr win;
+        GrabPtr grab;
+        XI2Mask *mask;
+
+        if (ti->listeners[0].type != LISTENER_POINTER_REGULAR ||
+            ti->listeners[0].type != LISTENER_POINTER_GRAB)
+            return;
+
+        motion = *ev;
+        motion.any.type = ET_TouchUpdate;
+        motion.device_event.detail.button = 0;
+
+        if (!RetrieveTouchDeliveryData(dev, ti, &motion,
+                                       &ti->listeners[0], &client, &win, &grab,
+                                       &mask))
+            return;
+
+        /* There may be a pointer grab on the device */
+        if (!grab)
+        {
+            grab = dev->deviceGrab.grab;
+            if (grab)
+            {
+                win = grab->window;
+                mask = grab->xi2mask;
+                client = rClient(grab);
+            }
+        }
+
+        DeliverTouchEmulatedEvent(dev, ti, &motion, &ti->listeners[0], client, win, grab, mask);
+    } else {
+        InternalEvent button;
+        int converted;
+        converted = TouchConvertToPointerEvent(ev, &motion, &button);
+
+        BUG_WARN(converted == 0);
+        if (converted)
+            ProcessOtherEvent(&motion, dev);
+    }
+}
+
+/**
+ * Processes and delivers a TouchBegin, TouchUpdate, or a
+ * TouchEnd event.
+ *
+ * Due to having rather different delivery semantics (see the Xi 2.2 protocol
+ * spec for more information), this implements its own grab and event-selection
+ * delivery logic.
+ */
+static void
+ProcessTouchEvent(InternalEvent *ev, DeviceIntPtr dev)
+{
+    TouchClassPtr t = dev->touch;
+    TouchPointInfoPtr ti;
+    uint32_t touchid;
+    int type = ev->any.type;
+    int emulate_pointer = !!(ev->device_event.flags & TOUCH_POINTER_EMULATED);
+
+    if (!t)
+        return;
+
+    if (ev->any.type == ET_TouchOwnership)
+        touchid = ev->touch_ownership_event.touchid;
+    else
+        touchid = ev->device_event.touchid;
+
+    if (type == ET_TouchBegin) {
+        ti = TouchBeginTouch(dev, ev->device_event.sourceid, touchid,
+                             emulate_pointer);
+    } else
+        ti = TouchFindByClientID(dev, touchid);
+
+    if (!ti)
+    {
+        DebugF("[Xi] %s: Failed to get event %d for touchpoint %d\n",
+               dev->name, type, touchid);
+        return;
+    }
+
+
+    /* if emulate_pointer is set, emulate the motion event right
+     * here, so we can ignore it for button event emulation. TouchUpdate
+     * events which _only_ emulate motion just work normally */
+    if (emulate_pointer && ev->any.type != ET_TouchUpdate)
+        DeliverEmulatedMotionEvent(dev, ti, ev);
+    if (emulate_pointer && IsMaster(dev))
+        CheckMotion(&ev->device_event, dev);
+
+    /* Make sure we have a valid window trace for event delivery; must be
+     * called after event type mutation. */
+    /* FIXME: check this */
+    if (!TouchEnsureSprite(dev, ti, ev))
+        return;
+
+    /* TouchOwnership events are handled separately from the rest, as they
+     * have more complex semantics. */
+    if (ev->any.type == ET_TouchOwnership)
+        ProcessTouchOwnershipEvent(dev, ti, &ev->touch_ownership_event);
+    else
+    {
+        TouchCopyValuatorData(&ev->device_event, ti);
+        /* WARNING: the event type may change to TouchUpdate in
+         * DeliverTouchEvents if a TouchEnd was delivered to a grabbing
+         * owner */
+        DeliverTouchEvents(dev, ti, (InternalEvent *) ev, 0);
+        if (ev->any.type == ET_TouchEnd)
+            TouchEndTouch(dev, ti);
+    }
+}
+
+
+/**
+ * Process DeviceEvents and DeviceChangedEvents.
+ */
+static void
+ProcessDeviceEvent(InternalEvent *ev, DeviceIntPtr device)
 {
     GrabPtr grab;
     Bool deactivateDeviceGrab = FALSE;
@@ -918,18 +1587,6 @@ ProcessOtherEvent(InternalEvent *ev, DeviceIntPtr device)
     int corestate;
     DeviceIntPtr mouse = NULL, kbd = NULL;
     DeviceEvent *event = &ev->device_event;
-
-    verify_internal_event(ev);
-
-    if (ev->any.type == ET_RawKeyPress ||
-        ev->any.type == ET_RawKeyRelease ||
-        ev->any.type == ET_RawButtonPress ||
-        ev->any.type == ET_RawButtonRelease ||
-        ev->any.type == ET_RawMotion)
-    {
-        DeliverRawEvent(&ev->raw_event, device);
-        return;
-    }
 
     if (IsPointerDevice(device))
     {
@@ -1040,6 +1697,204 @@ ProcessOtherEvent(InternalEvent *ev, DeviceIntPtr device)
     if (deactivateDeviceGrab == TRUE)
 	(*device->deviceGrab.DeactivateGrab) (device);
     event->detail.key = key;
+}
+
+/**
+ * Main device event processing function.
+ * Called from when processing the events from the event queue.
+ *
+ */
+void
+ProcessOtherEvent(InternalEvent *ev, DeviceIntPtr device)
+{
+    verify_internal_event(ev);
+
+    switch(ev->any.type)
+    {
+        case  ET_RawKeyPress:
+        case  ET_RawKeyRelease:
+        case  ET_RawButtonPress:
+        case  ET_RawButtonRelease:
+        case  ET_RawMotion:
+        case  ET_RawTouchBegin:
+        case  ET_RawTouchUpdate:
+        case  ET_RawTouchEnd:
+            DeliverRawEvent(&ev->raw_event, device);
+            break;
+        case  ET_TouchBegin:
+        case  ET_TouchUpdate:
+        case  ET_TouchOwnership:
+        case  ET_TouchEnd:
+            ProcessTouchEvent(ev, device);
+            break;
+        default:
+            ProcessDeviceEvent(ev, device);
+            break;
+    }
+}
+
+static int
+DeliverTouchBeginEvent(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev,
+                       TouchListener *listener, ClientPtr client,
+                       WindowPtr win, GrabPtr grab, XI2Mask *xi2mask)
+{
+    enum TouchListenerState state;
+    int rc = Success;
+    Bool has_ownershipmask;
+
+    if (listener->type == LISTENER_POINTER_REGULAR ||
+        listener->type == LISTENER_POINTER_GRAB)
+    {
+        rc = DeliverTouchEmulatedEvent(dev, ti, ev, listener, client, win,
+                                       grab, xi2mask);
+        goto out;
+    }
+
+
+    has_ownershipmask = xi2mask_isset(xi2mask, dev, XI_TouchOwnership);
+
+    if (TouchResourceIsOwner(ti, listener->listener) || has_ownershipmask)
+        rc = DeliverOneTouchEvent(client, dev, ti, grab, win, ev);
+    if (!TouchResourceIsOwner(ti, listener->listener))
+    {
+        if (has_ownershipmask)
+            state = LISTENER_AWAITING_OWNER;
+        else
+            state = LISTENER_AWAITING_BEGIN;
+    } else
+    {
+        if (has_ownershipmask)
+            TouchSendOwnershipEvent(dev, ti, 0, listener->listener);
+        state = LISTENER_IS_OWNER;
+    }
+    listener->state = state;
+
+out:
+    return rc;
+}
+
+static int
+DeliverTouchEndEvent(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev,
+                     TouchListener *listener, ClientPtr client,
+                     WindowPtr win, GrabPtr grab, XI2Mask *xi2mask)
+{
+    int rc = Success;
+
+    if (listener->type == LISTENER_POINTER_REGULAR ||
+        listener->type == LISTENER_POINTER_GRAB)
+    {
+        rc = DeliverTouchEmulatedEvent(dev, ti, ev, listener, client, win,
+                                       grab, xi2mask);
+        goto out;
+    }
+
+    /* Event in response to reject */
+    if (ev->device_event.flags & TOUCH_REJECT)
+    {
+        if (listener->state != LISTENER_HAS_END)
+            rc = DeliverOneTouchEvent(client, dev, ti, grab, win, ev);
+        listener->state = LISTENER_HAS_END;
+    } else if (TouchResourceIsOwner(ti, listener->listener))
+    {
+        /* FIXME: what about early acceptance */
+        if (!(ev->device_event.flags & TOUCH_ACCEPT))
+        {
+            if (listener->state != LISTENER_HAS_END)
+                rc = DeliverOneTouchEvent(client, dev, ti, grab, win, ev);
+            listener->state = LISTENER_HAS_END;
+        }
+        if (ti->num_listeners > 1 &&
+           (ev->device_event.flags & (TOUCH_ACCEPT|TOUCH_REJECT)) == 0)
+        {
+            ev->any.type = ET_TouchUpdate;
+            ev->device_event.flags |= TOUCH_PENDING_END;
+            ti->pending_finish = TRUE;
+        }
+    }
+
+out:
+    return rc;
+}
+
+static int
+DeliverTouchEvent(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev,
+                  TouchListener *listener, ClientPtr client,
+                  WindowPtr win, GrabPtr grab, XI2Mask *xi2mask)
+{
+    Bool has_ownershipmask = FALSE;
+    int rc = Success;
+
+    if (xi2mask)
+        has_ownershipmask = xi2mask_isset(xi2mask, dev, XI_TouchOwnership);
+
+    if (ev->any.type == ET_TouchOwnership)
+    {
+        ev->touch_ownership_event.deviceid = dev->id;
+        if (!TouchResourceIsOwner(ti, listener->listener))
+            goto out;
+        rc = DeliverOneTouchEvent(client, dev, ti, grab, win, ev);
+        listener->state = LISTENER_IS_OWNER;
+    } else
+        ev->device_event.deviceid = dev->id;
+
+    if (ev->any.type == ET_TouchBegin)
+    {
+        rc = DeliverTouchBeginEvent(dev, ti, ev, listener, client, win, grab, xi2mask);
+    } else if (ev->any.type == ET_TouchUpdate)
+    {
+        if (listener->type == LISTENER_POINTER_REGULAR ||
+            listener->type == LISTENER_POINTER_GRAB)
+            DeliverTouchEmulatedEvent(dev, ti, ev, listener, client, win, grab, xi2mask);
+        else if (TouchResourceIsOwner(ti, listener->listener) || has_ownershipmask)
+            rc = DeliverOneTouchEvent(client, dev, ti, grab, win, ev);
+    } else if (ev->any.type == ET_TouchEnd)
+        rc = DeliverTouchEndEvent(dev, ti, ev, listener, client, win, grab, xi2mask);
+
+out:
+    return rc;
+}
+
+/**
+ * Delivers a touch events to all interested clients.  For TouchBegin events,
+ * will update ti->listeners, ti->num_listeners, and ti->num_grabs.
+ * May also mutate ev (type and flags) upon successful delivery.  If
+ * @resource is non-zero, will only attempt delivery to the owner of that
+ * resource.
+ *
+ * @return TRUE if the event was delivered at least once, FALSE otherwise
+ */
+void
+DeliverTouchEvents(DeviceIntPtr dev, TouchPointInfoPtr ti,
+                   InternalEvent *ev, XID resource)
+{
+    int i;
+
+    if (ev->any.type == ET_TouchBegin &&
+        !(ev->device_event.flags & (TOUCH_CLIENT_ID|TOUCH_REPLAYING)))
+        TouchSetupListeners(dev, ti, ev);
+
+    TouchEventHistoryPush(ti, &ev->device_event);
+
+    for (i = 0; i < ti->num_listeners; i++)
+    {
+        GrabPtr grab = NULL;
+        ClientPtr client;
+        WindowPtr win;
+        XI2Mask *mask;
+        TouchListener *listener = &ti->listeners[i];
+
+        if (resource && listener->listener != resource)
+            continue;
+
+        if (!RetrieveTouchDeliveryData(dev, ti, ev, listener, &client, &win,
+                                       &grab, &mask))
+            continue;
+
+        DeliverTouchEvent(dev, ti, ev, listener, client, win, grab, mask);
+    }
+
+    if (ti->emulate_pointer)
+        UpdateDeviceState(dev, &ev->device_event);
 }
 
 int
@@ -1398,12 +2253,14 @@ CheckGrabValues(ClientPtr client, GrabParameters* param)
     }
 
     if ((param->this_device_mode != GrabModeSync) &&
-	(param->this_device_mode != GrabModeAsync)) {
+	(param->this_device_mode != GrabModeAsync) &&
+        (param->this_device_mode != XIGrabModeTouch)) {
 	client->errorValue = param->this_device_mode;
 	return BadValue;
     }
     if ((param->other_devices_mode != GrabModeSync) &&
-	(param->other_devices_mode != GrabModeAsync)) {
+	(param->other_devices_mode != GrabModeAsync) &&
+        (param->other_devices_mode != XIGrabModeTouch)) {
 	client->errorValue = param->other_devices_mode;
 	return BadValue;
     }
@@ -1562,6 +2419,34 @@ GrabWindow(ClientPtr client, DeviceIntPtr dev, int type,
                       mask, param, (type == XIGrabtypeEnter) ? XI_Enter : XI_FocusIn,
                       0, NULL, cursor);
 
+    if (!grab)
+        return BadAlloc;
+
+    return AddPassiveGrabToList(client, grab);
+}
+
+/* Touch grab */
+int
+GrabTouch(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr mod_dev,
+          GrabParameters *param, GrabMask *mask)
+{
+    WindowPtr pWin;
+    GrabPtr grab;
+    int rc;
+
+    rc = CheckGrabValues(client, param);
+    if (rc != Success)
+        return rc;
+
+    rc = dixLookupWindow(&pWin, param->grabWindow, client, DixSetAttrAccess);
+    if (rc != Success)
+       return rc;
+    rc = XaceHook(XACE_DEVICE_ACCESS, client, dev, DixGrabAccess);
+    if (rc != Success)
+       return rc;
+
+    grab = CreateGrab(client->index, dev, mod_dev, pWin, XI2,
+                      mask, param, XI_TouchBegin, 0, NullWindow, NullCursor);
     if (!grab)
         return BadAlloc;
 
@@ -1771,6 +2656,36 @@ InputClientGone(WindowPtr pWin, XID id)
 	prev = other;
     }
     FatalError("client not on device event list");
+}
+
+/**
+ * Search for window in each touch trace for each device. Remove the window
+ * and all its subwindows from the trace when found. The initial window
+ * order is preserved.
+ */
+void WindowGone(WindowPtr win)
+{
+    DeviceIntPtr dev;
+
+    for (dev = inputInfo.devices; dev; dev = dev->next) {
+        TouchClassPtr t = dev->touch;
+        int i;
+
+        if (!t)
+            continue;
+
+        for (i = 0; i < t->num_touches; i++) {
+            SpritePtr sprite = &t->touches[i].sprite;
+            int j;
+
+            for (j = 0; j < sprite->spriteTraceGood; j++) {
+                if (sprite->spriteTrace[j] == win) {
+                    sprite->spriteTraceGood = j;
+                    break;
+                }
+            }
+        }
+    }
 }
 
 int

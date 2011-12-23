@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009 Red Hat, Inc.
+ * Copyright © 2011 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,21 +19,30 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- *
  */
+#ifdef HAVE_DIX_CONFIG_H
+#include <dix-config.h>
+#endif
 
-#ifndef EVENTS_H
-#define EVENTS_H
-typedef struct _DeviceEvent DeviceEvent;
-typedef struct _DeviceChangedEvent DeviceChangedEvent;
-typedef struct _TouchOwnershipEvent TouchOwnershipEvent;
-#if XFreeXDGA
-typedef struct _DGAEvent DGAEvent;
-#endif
-typedef struct _RawDeviceEvent RawDeviceEvent;
-#ifdef XQUARTZ
-typedef struct _XQuartzEvent XQuartzEvent;
-#endif
-typedef union _InternalEvent InternalEvent;
+#include "glxserver.h"
+#include "indirect_dispatch.h"
 
-#endif
+int __glXDisp_SetClientInfoARB(__GLXclientState *cl, GLbyte *pc)
+{
+    return BadRequest;
+}
+
+int __glXDispSwap_SetClientInfoARB(__GLXclientState *cl, GLbyte *pc)
+{
+    return BadRequest;
+}
+
+int __glXDisp_SetClientInfo2ARB(__GLXclientState *cl, GLbyte *pc)
+{
+    return BadRequest;
+}
+
+int __glXDispSwap_SetClientInfo2ARB(__GLXclientState *cl, GLbyte *pc)
+{
+    return BadRequest;
+}

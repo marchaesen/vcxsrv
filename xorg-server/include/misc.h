@@ -370,8 +370,8 @@ extern _X_EXPORT unsigned long serverGeneration;
               xorg_backtrace();                                           \
           } } while(0)
 
-#define BUG_WARN_MSG(cond, msg, ...)                                      \
-          __BUG_WARN_MSG(cond, 1, msg, __VA_ARGS__)
+#define BUG_WARN_MSG(cond, ...)                                           \
+          __BUG_WARN_MSG(cond, 1, __VA_ARGS__)
 
 #define BUG_WARN(cond)  __BUG_WARN_MSG(cond, 0, NULL)
 

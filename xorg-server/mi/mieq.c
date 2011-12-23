@@ -370,7 +370,13 @@ ChangeDeviceID(DeviceIntPtr dev, InternalEvent* event)
         case ET_ProximityOut:
         case ET_Hierarchy:
         case ET_DeviceChanged:
+        case ET_TouchBegin:
+        case ET_TouchUpdate:
+        case ET_TouchEnd:
             event->device_event.deviceid = dev->id;
+            break;
+        case ET_TouchOwnership:
+            event->touch_ownership_event.deviceid = dev->id;
             break;
 #if XFreeXDGA
         case ET_DGAEvent:
@@ -381,6 +387,9 @@ ChangeDeviceID(DeviceIntPtr dev, InternalEvent* event)
         case ET_RawButtonPress:
         case ET_RawButtonRelease:
         case ET_RawMotion:
+        case ET_RawTouchBegin:
+        case ET_RawTouchEnd:
+        case ET_RawTouchUpdate:
             event->raw_event.deviceid = dev->id;
             break;
         default:
@@ -462,6 +471,19 @@ CopyGetMasterEvent(DeviceIntPtr sdev,
 }
 
 
+static void
+mieqMoveToNewScreen(DeviceIntPtr dev, ScreenPtr screen, DeviceEvent *event)
+{
+    if (dev && screen && screen != DequeueScreen(dev))
+    {
+        int x = 0, y = 0;
+        DequeueScreen(dev) = screen;
+        x = event->root_x;
+        y = event->root_y;
+        NewCurrentScreen (dev, DequeueScreen(dev), x, y);
+    }
+}
+
 /**
  * Post the given @event through the device hierarchy, as appropriate.
  * Use this function if an event must be posted for a given device during the
@@ -473,7 +495,6 @@ mieqProcessDeviceEvent(DeviceIntPtr dev,
                        ScreenPtr screen)
 {
     mieqHandler handler;
-    int x = 0, y = 0;
     DeviceIntPtr master;
     InternalEvent mevent; /* master event */
 
@@ -490,12 +511,14 @@ mieqProcessDeviceEvent(DeviceIntPtr dev,
         case ET_KeyRelease:
         case ET_ButtonPress:
         case ET_ButtonRelease:
-            if (dev && screen && screen != DequeueScreen(dev) && !handler) {
-                DequeueScreen(dev) = screen;
-                x = event->device_event.root_x;
-                y = event->device_event.root_y;
-                NewCurrentScreen (dev, DequeueScreen(dev), x, y);
-            }
+            if (!handler)
+                mieqMoveToNewScreen(dev, screen, &event->device_event);
+            break;
+        case ET_TouchBegin:
+        case ET_TouchUpdate:
+        case ET_TouchEnd:
+            if (!handler && (event->device_event.flags & TOUCH_POINTER_EMULATED))
+                mieqMoveToNewScreen(dev, screen, &event->device_event);
             break;
         default:
             break;

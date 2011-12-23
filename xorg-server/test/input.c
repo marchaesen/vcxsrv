@@ -161,22 +161,31 @@ static void dix_check_grab_values(void)
     rc = CheckGrabValues(&client, &param);
     assert(rc == Success);
 
-    param.this_device_mode = GrabModeAsync + 1;
+    param.this_device_mode = XIGrabModeTouch;
+    rc = CheckGrabValues(&client, &param);
+    assert(rc == Success);
+
+    param.this_device_mode = XIGrabModeTouch + 1;
     rc = CheckGrabValues(&client, &param);
     assert(rc == BadValue);
     assert(client.errorValue == param.this_device_mode);
-    assert(client.errorValue == GrabModeAsync + 1);
+    assert(client.errorValue == XIGrabModeTouch + 1);
 
     param.this_device_mode = GrabModeSync;
     param.other_devices_mode = GrabModeAsync;
     rc = CheckGrabValues(&client, &param);
+
+    param.this_device_mode = GrabModeSync;
+    param.other_devices_mode = XIGrabModeTouch;
+    rc = CheckGrabValues(&client, &param);
+    assert(rc == Success);
     assert(rc == Success);
 
-    param.other_devices_mode = GrabModeAsync + 1;
+    param.other_devices_mode = XIGrabModeTouch + 1;
     rc = CheckGrabValues(&client, &param);
     assert(rc == BadValue);
     assert(client.errorValue == param.other_devices_mode);
-    assert(client.errorValue == GrabModeAsync + 1);
+    assert(client.errorValue == XIGrabModeTouch + 1);
 
     param.other_devices_mode = GrabModeSync;
 

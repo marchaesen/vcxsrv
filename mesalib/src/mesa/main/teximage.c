@@ -541,18 +541,18 @@ _mesa_tex_target_to_face(GLenum target)
 
 
 /**
- * Store a gl_texture_image pointer in a gl_texture_object structure
- * according to the target and level parameters.
+ * Install gl_texture_image in a gl_texture_object according to the target
+ * and level parameters.
  * 
  * \param tObj texture object.
  * \param target texture target.
  * \param level image level.
  * \param texImage texture image.
  */
-void
-_mesa_set_tex_image(struct gl_texture_object *tObj,
-                    GLenum target, GLint level,
-                    struct gl_texture_image *texImage)
+static void
+set_tex_image(struct gl_texture_object *tObj,
+              GLenum target, GLint level,
+              struct gl_texture_image *texImage)
 {
    const GLuint face = _mesa_tex_target_to_face(target);
 
@@ -604,6 +604,7 @@ _mesa_delete_texture_image(struct gl_context *ctx,
     */
    ASSERT(ctx->Driver.FreeTextureImageBuffer);
    ctx->Driver.FreeTextureImageBuffer( ctx, texImage );
+   free(texImage);
 }
 
 
@@ -804,7 +805,7 @@ _mesa_get_tex_image(struct gl_context *ctx, struct gl_texture_object *texObj,
          return NULL;
       }
 
-      _mesa_set_tex_image(texObj, target, level, texImage);
+      set_tex_image(texObj, target, level, texImage);
    }
 
    return texImage;

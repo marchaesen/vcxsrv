@@ -181,6 +181,7 @@ DRI2AllocateDrawable(DrawablePtr pDraw)
     pPriv->last_swap_ust = 0;
     list_init(&pPriv->reference_list);
     pPriv->serialNumber = DRI2DrawableSerial(pDraw);
+    pPriv->needInvalidate = FALSE;
 
     if (pDraw->type == DRAWABLE_WINDOW) {
 	pWin = (WindowPtr) pDraw;
@@ -376,6 +377,7 @@ allocate_or_reuse_buffer(DrawablePtr pDraw, DRI2ScreenPtr ds,
     int old_buf = find_attachment(pPriv, attachment);
 
     if ((old_buf < 0)
+	|| attachment == DRI2BufferFrontLeft
 	|| !dimensions_match
 	|| (pPriv->buffers[old_buf]->format != format)) {
 	*buffer = (*ds->CreateBuffer)(pDraw, attachment, format);
@@ -585,7 +587,7 @@ DRI2InvalidateDrawable(DrawablePtr pDraw)
     pPriv->needInvalidate = FALSE;
 
     list_for_each_entry(ref, &pPriv->reference_list, link)
-	ref->invalidate(pDraw, ref->priv);
+	ref->invalidate(pDraw, ref->priv, ref->id);
 }
 
 /*
@@ -828,6 +830,19 @@ DRI2WaitSwap(ClientPtr client, DrawablePtr pDrawable)
     return FALSE;
 }
 
+/*
+ * A TraverseTree callback to invalidate all windows using the same
+ * pixmap
+ */
+static int
+DRI2InvalidateWalk(WindowPtr pWin, pointer data)
+{
+    if (pWin->drawable.pScreen->GetWindowPixmap(pWin) != data)
+	return WT_DONTWALKCHILDREN;
+    DRI2InvalidateDrawable(&pWin->drawable);
+    return WT_WALKCHILDREN;
+}
+
 int
 DRI2SwapBuffers(ClientPtr client, DrawablePtr pDraw, CARD64 target_msc,
 		CARD64 divisor, CARD64 remainder, CARD64 *swap_target,
@@ -928,7 +943,24 @@ DRI2SwapBuffers(ClientPtr client, DrawablePtr pDraw, CARD64 target_msc,
      */
     *swap_target = pPriv->swap_count + pPriv->swapsPending;
 
-    DRI2InvalidateDrawable(pDraw);
+    if (pDraw->type == DRAWABLE_WINDOW) {
+	WindowPtr	pWin = (WindowPtr) pDraw;
+	PixmapPtr	pPixmap = pScreen->GetWindowPixmap(pWin);
+
+	/*
+	 * Find the top-most window using this pixmap
+	 */
+	while (pWin->parent && pScreen->GetWindowPixmap(pWin->parent) == pPixmap)
+	    pWin = pWin->parent;
+
+	/*
+	 * Walk the sub-tree to invalidate all of the
+	 * windows using the same pixmap
+	 */
+	TraverseTree(pWin, DRI2InvalidateWalk, pPixmap);
+	DRI2InvalidateDrawable(&pPixmap->drawable);
+    } else
+	DRI2InvalidateDrawable(pDraw);
 
     return Success;
 }

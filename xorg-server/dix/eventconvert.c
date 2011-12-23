@@ -58,6 +58,7 @@ static int eventToKeyButtonPointer(DeviceEvent *ev, xEvent **xi, int *count);
 static int eventToDeviceChanged(DeviceChangedEvent *ev, xEvent **dcce);
 static int eventToDeviceEvent(DeviceEvent *ev, xEvent **xi);
 static int eventToRawEvent(RawDeviceEvent *ev, xEvent **xi);
+static int eventToTouchOwnershipEvent(TouchOwnershipEvent *ev, xEvent **xi);
 
 /* Do not use, read comments below */
 BOOL EventIsKeyRepeat(xEvent *event);
@@ -158,6 +159,13 @@ EventToCore(InternalEvent *event, xEvent **core_out, int *count_out)
         case ET_RawButtonPress:
         case ET_RawButtonRelease:
         case ET_RawMotion:
+        case ET_RawTouchBegin:
+        case ET_RawTouchUpdate:
+        case ET_RawTouchEnd:
+        case ET_TouchBegin:
+        case ET_TouchUpdate:
+        case ET_TouchEnd:
+        case ET_TouchOwnership:
             ret = BadMatch;
             break;
         default:
@@ -208,6 +216,13 @@ EventToXI(InternalEvent *ev, xEvent **xi, int *count)
         case ET_RawButtonPress:
         case ET_RawButtonRelease:
         case ET_RawMotion:
+        case ET_RawTouchBegin:
+        case ET_RawTouchUpdate:
+        case ET_RawTouchEnd:
+        case ET_TouchBegin:
+        case ET_TouchUpdate:
+        case ET_TouchEnd:
+        case ET_TouchOwnership:
             *count = 0;
             *xi = NULL;
             return BadMatch;
@@ -249,7 +264,12 @@ EventToXI2(InternalEvent *ev, xEvent **xi)
         case ET_ButtonRelease:
         case ET_KeyPress:
         case ET_KeyRelease:
+        case ET_TouchBegin:
+        case ET_TouchUpdate:
+        case ET_TouchEnd:
             return eventToDeviceEvent(&ev->device_event, xi);
+        case ET_TouchOwnership:
+            return eventToTouchOwnershipEvent(&ev->touch_ownership_event, xi);
         case ET_ProximityIn:
         case ET_ProximityOut:
             *xi = NULL;
@@ -261,6 +281,9 @@ EventToXI2(InternalEvent *ev, xEvent **xi)
         case ET_RawButtonPress:
         case ET_RawButtonRelease:
         case ET_RawMotion:
+        case ET_RawTouchBegin:
+        case ET_RawTouchUpdate:
+        case ET_RawTouchEnd:
             return eventToRawEvent(&ev->raw_event, xi);
         default:
             break;
@@ -650,7 +673,11 @@ eventToDeviceEvent(DeviceEvent *ev, xEvent **xi)
     xde->evtype         = GetXI2Type(ev->type);
     xde->time           = ev->time;
     xde->length         = bytes_to_int32(len - sizeof(xEvent));
-    xde->detail         = ev->detail.button;
+    if (IsTouchEvent((InternalEvent*)ev))
+        xde->detail     = ev->touchid;
+    else
+        xde->detail     = ev->detail.button;
+
     xde->root           = ev->root;
     xde->buttons_len    = btlen;
     xde->valuators_len  = vallen;
@@ -659,7 +686,11 @@ eventToDeviceEvent(DeviceEvent *ev, xEvent **xi)
     xde->root_x         = FP1616(ev->root_x, ev->root_x_frac);
     xde->root_y         = FP1616(ev->root_y, ev->root_y_frac);
 
-    xde->flags          = ev->flags;
+    if (ev->type == ET_TouchUpdate)
+        xde->flags |= (ev->flags & TOUCH_PENDING_END) ? XITouchPendingEnd : 0;
+    else
+        xde->flags = ev->flags;
+
     if (ev->key_repeat)
         xde->flags      |= XIKeyRepeat;
 
@@ -691,6 +722,27 @@ eventToDeviceEvent(DeviceEvent *ev, xEvent **xi)
             axisval++;
         }
     }
+
+    return Success;
+}
+
+static int
+eventToTouchOwnershipEvent(TouchOwnershipEvent *ev, xEvent **xi)
+{
+    int len = sizeof(xXITouchOwnershipEvent);
+    xXITouchOwnershipEvent *xtoe;
+
+    *xi = calloc(1, len);
+    xtoe = (xXITouchOwnershipEvent*)*xi;
+    xtoe->type          = GenericEvent;
+    xtoe->extension     = IReqCode;
+    xtoe->length        = bytes_to_int32(len - sizeof(xEvent));
+    xtoe->evtype        = GetXI2Type(ev->type);
+    xtoe->deviceid      = ev->deviceid;
+    xtoe->time          = ev->time;
+    xtoe->sourceid      = ev->sourceid;
+    xtoe->touchid       = ev->touchid;
+    xtoe->flags         = 0; /* we don't have wire flags for ownership yet */
 
     return Success;
 }
@@ -810,8 +862,15 @@ GetXI2Type(enum EventType type)
         case ET_RawButtonPress: xi2type = XI_RawButtonPress;   break;
         case ET_RawButtonRelease: xi2type = XI_RawButtonRelease; break;
         case ET_RawMotion:      xi2type = XI_RawMotion;        break;
+        case ET_RawTouchBegin:  xi2type = XI_RawTouchBegin;    break;
+        case ET_RawTouchUpdate: xi2type = XI_RawTouchUpdate;  break;
+        case ET_RawTouchEnd:    xi2type = XI_RawTouchEnd;      break;
         case ET_FocusIn:        xi2type = XI_FocusIn;          break;
         case ET_FocusOut:       xi2type = XI_FocusOut;         break;
+        case ET_TouchBegin:     xi2type = XI_TouchBegin;       break;
+        case ET_TouchEnd:       xi2type = XI_TouchEnd;         break;
+        case ET_TouchUpdate:    xi2type = XI_TouchUpdate;      break;
+        case ET_TouchOwnership: xi2type = XI_TouchOwnership;   break;
         default:
             break;
     }

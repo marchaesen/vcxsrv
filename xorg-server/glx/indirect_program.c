@@ -44,7 +44,6 @@
 #include "glapi.h"
 #include "glthread.h"
 #include "dispatch.h"
-#include "glapioffsets.h"
 
 static int DoGetProgramString(struct __GLXclientStateRec *cl, GLbyte *pc,
     unsigned get_programiv_offset, unsigned get_program_string_offset,

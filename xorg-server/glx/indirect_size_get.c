@@ -26,47 +26,42 @@
  */
 
 
+#include <X11/Xfuncproto.h>
 #include <GL/gl.h>
 #include "indirect_size_get.h"
 #include "glxserver.h"
 #include "indirect_util.h"
 #include "indirect_size.h"
 
-#  if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 96) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
-#    define PURE __attribute__((pure))
-#  else
-#    define PURE
-#  endif
+#if defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
+#define PURE __attribute__((pure))
+#else
+#define PURE
+#endif
 
-#  if defined(__i386__) && defined(__GNUC__) && !defined(__CYGWIN__) && !defined(__MINGW32__)
-#    define FASTCALL __attribute__((fastcall))
-#  else
-#    define FASTCALL
-#  endif
-
-#  if (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))) && defined(__ELF__)
-#    define INTERNAL  __attribute__((visibility("internal")))
-#  else
-#    define INTERNAL
-#  endif
+#if defined(__i386__) && defined(__GNUC__) && !defined(__CYGWIN__) && !defined(__MINGW32__)
+#define FASTCALL __attribute__((fastcall))
+#else
+#define FASTCALL
+#endif
 
 
-#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__APPLE__)
-#  undef HAVE_ALIAS
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(GLX_USE_APPLEGL)
+#undef HAVE_ALIAS
 #endif
 #ifdef HAVE_ALIAS
-#  define ALIAS2(from,to) \
-    INTERNAL PURE FASTCALL GLint __gl ## from ## _size( GLenum e ) \
+#define ALIAS2(from,to) \
+    _X_INTERNAL PURE FASTCALL GLint __gl ## from ## _size( GLenum e ) \
         __attribute__ ((alias( # to )));
-#  define ALIAS(from,to) ALIAS2( from, __gl ## to ## _size )
+#define ALIAS(from,to) ALIAS2( from, __gl ## to ## _size )
 #else
-#  define ALIAS(from,to) \
-    INTERNAL PURE FASTCALL GLint __gl ## from ## _size( GLenum e ) \
+#define ALIAS(from,to) \
+    _X_INTERNAL PURE FASTCALL GLint __gl ## from ## _size( GLenum e ) \
     { return __gl ## to ## _size( e ); }
 #endif
 
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glCallLists_size(GLenum e)
 {
     switch (e) {
@@ -76,6 +71,7 @@ __glCallLists_size(GLenum e)
     case GL_SHORT:
     case GL_UNSIGNED_SHORT:
     case GL_2_BYTES:
+    case GL_HALF_FLOAT:
         return 2;
     case GL_3_BYTES:
         return 3;
@@ -89,7 +85,7 @@ __glCallLists_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glFogfv_size(GLenum e)
 {
     switch (e) {
@@ -108,7 +104,7 @@ __glFogfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glLightfv_size(GLenum e)
 {
     switch (e) {
@@ -130,7 +126,7 @@ __glLightfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glLightModelfv_size(GLenum e)
 {
     switch (e) {
@@ -146,7 +142,7 @@ __glLightModelfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glMaterialfv_size(GLenum e)
 {
     switch (e) {
@@ -165,7 +161,7 @@ __glMaterialfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glTexParameterfv_size(GLenum e)
 {
     switch (e) {
@@ -195,6 +191,10 @@ __glTexParameterfv_size(GLenum e)
     case GL_TEXTURE_MAX_ANISOTROPY_EXT:
     case GL_TEXTURE_LOD_BIAS:
 /*      case GL_TEXTURE_LOD_BIAS_EXT:*/
+    case GL_TEXTURE_STORAGE_HINT_APPLE:
+    case GL_STORAGE_PRIVATE_APPLE:
+    case GL_STORAGE_CACHED_APPLE:
+    case GL_STORAGE_SHARED_APPLE:
     case GL_DEPTH_TEXTURE_MODE:
 /*      case GL_DEPTH_TEXTURE_MODE_ARB:*/
     case GL_TEXTURE_COMPARE_MODE:
@@ -217,7 +217,7 @@ __glTexParameterfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glTexEnvfv_size(GLenum e)
 {
     switch (e) {
@@ -243,6 +243,7 @@ __glTexEnvfv_size(GLenum e)
     case GL_OPERAND1_ALPHA:
     case GL_OPERAND2_ALPHA:
     case GL_OPERAND3_ALPHA_NV:
+    case GL_BUMP_TARGET_ATI:
     case GL_COORD_REPLACE_ARB:
 /*      case GL_COORD_REPLACE_NV:*/
         return 1;
@@ -253,7 +254,7 @@ __glTexEnvfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glTexGendv_size(GLenum e)
 {
     switch (e) {
@@ -267,7 +268,7 @@ __glTexGendv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glMap1d_size(GLenum e)
 {
     switch (e) {
@@ -289,7 +290,7 @@ __glMap1d_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glMap2d_size(GLenum e)
 {
     switch (e) {
@@ -311,7 +312,7 @@ __glMap2d_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetBooleanv_size(GLenum e)
 {
     switch (e) {
@@ -601,6 +602,7 @@ __glGetBooleanv_size(GLenum e)
     case GL_OCCLUSION_TEST_HP:
     case GL_OCCLUSION_TEST_RESULT_HP:
     case GL_LIGHT_MODEL_COLOR_CONTROL:
+    case GL_RESET_NOTIFICATION_STRATEGY_ARB:
     case GL_CURRENT_FOG_COORD:
     case GL_FOG_COORDINATE_ARRAY_TYPE:
     case GL_FOG_COORDINATE_ARRAY_STRIDE:
@@ -616,7 +618,8 @@ __glGetBooleanv_size(GLenum e)
 /*      case GL_CLIENT_ACTIVE_TEXTURE_ARB:*/
     case GL_MAX_TEXTURE_UNITS:
 /*      case GL_MAX_TEXTURE_UNITS_ARB:*/
-    case GL_MAX_RENDERBUFFER_SIZE_EXT:
+    case GL_MAX_RENDERBUFFER_SIZE:
+/*      case GL_MAX_RENDERBUFFER_SIZE_EXT:*/
     case GL_TEXTURE_COMPRESSION_HINT:
 /*      case GL_TEXTURE_COMPRESSION_HINT_ARB:*/
     case GL_TEXTURE_RECTANGLE_ARB:
@@ -644,7 +647,8 @@ __glGetBooleanv_size(GLenum e)
     case GL_VERTEX_PROGRAM_POINT_SIZE_ARB:
     case GL_VERTEX_PROGRAM_TWO_SIDE_ARB:
     case GL_PROGRAM_ERROR_POSITION_ARB:
-    case GL_DEPTH_CLAMP_NV:
+    case GL_DEPTH_CLAMP:
+/*      case GL_DEPTH_CLAMP_NV:*/
     case GL_NUM_COMPRESSED_TEXTURE_FORMATS:
 /*      case GL_NUM_COMPRESSED_TEXTURE_FORMATS_ARB:*/
     case GL_MAX_VERTEX_UNITS_ARB:
@@ -663,11 +667,11 @@ __glGetBooleanv_size(GLenum e)
     case GL_STENCIL_BACK_PASS_DEPTH_PASS_ATI:
     case GL_FRAGMENT_PROGRAM_ARB:
     case GL_MAX_DRAW_BUFFERS_ARB:
-/*      case GL_MAX_DRAW_BUFFERS_ATI:*/
+/*      case GL_MAX_DRAW_BUFFERS_NV:*/
     case GL_DRAW_BUFFER0_ARB:
 /*      case GL_DRAW_BUFFER0_ATI:*/
     case GL_DRAW_BUFFER1_ARB:
-/*      case GL_DRAW_BUFFER1_ATI:*/
+/*      case GL_DRAW_BUFFER1_NV:*/
     case GL_DRAW_BUFFER2_ARB:
 /*      case GL_DRAW_BUFFER2_ATI:*/
     case GL_DRAW_BUFFER3_ARB:
@@ -685,15 +689,15 @@ __glGetBooleanv_size(GLenum e)
     case GL_DRAW_BUFFER9_ARB:
 /*      case GL_DRAW_BUFFER9_ATI:*/
     case GL_DRAW_BUFFER10_ARB:
-/*      case GL_DRAW_BUFFER10_ATI:*/
+/*      case GL_DRAW_BUFFER10_NV:*/
     case GL_DRAW_BUFFER11_ARB:
-/*      case GL_DRAW_BUFFER11_ATI:*/
+/*      case GL_DRAW_BUFFER11_NV:*/
     case GL_DRAW_BUFFER12_ARB:
 /*      case GL_DRAW_BUFFER12_ATI:*/
     case GL_DRAW_BUFFER13_ARB:
 /*      case GL_DRAW_BUFFER13_ATI:*/
     case GL_DRAW_BUFFER14_ARB:
-/*      case GL_DRAW_BUFFER14_ATI:*/
+/*      case GL_DRAW_BUFFER14_NV:*/
     case GL_DRAW_BUFFER15_ARB:
 /*      case GL_DRAW_BUFFER15_ATI:*/
     case GL_BLEND_EQUATION_ALPHA_EXT:
@@ -725,15 +729,24 @@ __glGetBooleanv_size(GLenum e)
     case GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING_ARB:
     case GL_FOG_COORDINATE_ARRAY_BUFFER_BINDING_ARB:
     case GL_WEIGHT_ARRAY_BUFFER_BINDING_ARB:
+    case GL_TEXTURE_CUBE_MAP_SEAMLESS:
     case GL_MAX_ARRAY_TEXTURE_LAYERS_EXT:
     case GL_STENCIL_TEST_TWO_SIDE_EXT:
     case GL_ACTIVE_STENCIL_FACE_EXT:
+    case GL_SAMPLER_BINDING:
     case GL_TEXTURE_BINDING_1D_ARRAY_EXT:
     case GL_TEXTURE_BINDING_2D_ARRAY_EXT:
-    case GL_DRAW_FRAMEBUFFER_BINDING_EXT:
-    case GL_RENDERBUFFER_BINDING_EXT:
-    case GL_READ_FRAMEBUFFER_BINDING_EXT:
-    case GL_MAX_COLOR_ATTACHMENTS_EXT:
+    case GL_FRAMEBUFFER_BINDING:
+/*      case GL_DRAW_FRAMEBUFFER_BINDING_EXT:*/
+    case GL_RENDERBUFFER_BINDING:
+/*      case GL_RENDERBUFFER_BINDING_EXT:*/
+    case GL_READ_FRAMEBUFFER_BINDING:
+/*      case GL_READ_FRAMEBUFFER_BINDING_EXT:*/
+    case GL_MAX_COLOR_ATTACHMENTS:
+/*      case GL_MAX_COLOR_ATTACHMENTS_EXT:*/
+    case GL_MAX_SAMPLES:
+/*      case GL_MAX_SAMPLES_EXT:*/
+    case GL_MAX_SERVER_WAIT_TIMEOUT:
     case GL_RASTER_POSITION_UNCLIPPED_IBM:
         return 1;
     case GL_SMOOTH_POINT_SIZE_RANGE:
@@ -808,13 +821,14 @@ __glGetBooleanv_size(GLenum e)
         return 16;
     case GL_FOG_COORDINATE_SOURCE:
     case GL_COMPRESSED_TEXTURE_FORMATS:
+    case GL_RGBA_INTEGER_MODE_EXT:
         return __glGetBooleanv_variable_size(e);
     default:
         return 0;
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetTexParameterfv_size(GLenum e)
 {
     switch (e) {
@@ -845,6 +859,8 @@ __glGetTexParameterfv_size(GLenum e)
     case GL_TEXTURE_MAX_ANISOTROPY_EXT:
     case GL_TEXTURE_LOD_BIAS:
 /*      case GL_TEXTURE_LOD_BIAS_EXT:*/
+    case GL_TEXTURE_RANGE_LENGTH_APPLE:
+    case GL_TEXTURE_STORAGE_HINT_APPLE:
     case GL_DEPTH_TEXTURE_MODE:
 /*      case GL_DEPTH_TEXTURE_MODE_ARB:*/
     case GL_TEXTURE_COMPARE_MODE:
@@ -867,7 +883,7 @@ __glGetTexParameterfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetTexLevelParameterfv_size(GLenum e)
 {
     switch (e) {
@@ -895,13 +911,15 @@ __glGetTexLevelParameterfv_size(GLenum e)
 /*      case GL_TEXTURE_COMPRESSED_ARB:*/
     case GL_TEXTURE_DEPTH_SIZE:
 /*      case GL_TEXTURE_DEPTH_SIZE_ARB:*/
+    case GL_TEXTURE_STENCIL_SIZE:
+/*      case GL_TEXTURE_STENCIL_SIZE_EXT:*/
         return 1;
     default:
         return 0;
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glColorTableParameterfv_size(GLenum e)
 {
     switch (e) {
@@ -913,7 +931,7 @@ __glColorTableParameterfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetColorTableParameterfv_size(GLenum e)
 {
     switch (e) {
@@ -942,7 +960,7 @@ __glGetColorTableParameterfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glConvolutionParameterfv_size(GLenum e)
 {
     switch (e) {
@@ -961,7 +979,7 @@ __glConvolutionParameterfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetConvolutionParameterfv_size(GLenum e)
 {
     switch (e) {
@@ -990,7 +1008,7 @@ __glGetConvolutionParameterfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetHistogramParameterfv_size(GLenum e)
 {
     switch (e) {
@@ -1008,7 +1026,7 @@ __glGetHistogramParameterfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetMinmaxParameterfv_size(GLenum e)
 {
     switch (e) {
@@ -1020,7 +1038,7 @@ __glGetMinmaxParameterfv_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetProgramivARB_size(GLenum e)
 {
     switch (e) {
@@ -1073,7 +1091,7 @@ __glGetProgramivARB_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetVertexAttribdvARB_size(GLenum e)
 {
     switch (e) {
@@ -1090,7 +1108,7 @@ __glGetVertexAttribdvARB_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetQueryObjectivARB_size(GLenum e)
 {
     switch (e) {
@@ -1102,7 +1120,7 @@ __glGetQueryObjectivARB_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetQueryivARB_size(GLenum e)
 {
     switch (e) {
@@ -1114,7 +1132,7 @@ __glGetQueryivARB_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glPointParameterfvEXT_size(GLenum e)
 {
     switch (e) {
@@ -1139,7 +1157,7 @@ __glPointParameterfvEXT_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetProgramivNV_size(GLenum e)
 {
     switch (e) {
@@ -1152,7 +1170,7 @@ __glGetProgramivNV_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetVertexAttribdvNV_size(GLenum e)
 {
     switch (e) {
@@ -1166,7 +1184,7 @@ __glGetVertexAttribdvNV_size(GLenum e)
     }
 }
 
-INTERNAL PURE FASTCALL GLint
+_X_INTERNAL PURE FASTCALL GLint
 __glGetFramebufferAttachmentParameterivEXT_size(GLenum e)
 {
     switch (e) {
@@ -1217,6 +1235,5 @@ ALIAS(Fogiv, Fogfv)
     ALIAS(GetVertexAttribfvNV, GetVertexAttribdvNV)
     ALIAS(GetVertexAttribivNV, GetVertexAttribdvNV)
     ALIAS(PointParameterivNV, PointParameterfvEXT)
-#  undef PURE
-#  undef FASTCALL
-#  undef INTERNAL
+#undef PURE
+#undef FASTCALL

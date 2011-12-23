@@ -423,7 +423,7 @@ __glXDRIscreenCreateContext(__GLXscreen *baseScreen,
 }
 
 static void
-__glXDRIinvalidateBuffers(DrawablePtr pDraw, void *priv)
+__glXDRIinvalidateBuffers(DrawablePtr pDraw, void *priv, XID id)
 {
 #if __DRI2_FLUSH_VERSION >= 3
     __GLXDRIdrawable *private = priv;

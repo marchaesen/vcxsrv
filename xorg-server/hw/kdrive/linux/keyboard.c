@@ -692,7 +692,7 @@ LinuxKeyboardEnable (KdKeyboardInfo *ki)
         return !Success;
 
     fd = LinuxConsoleFd;
-    ki->driverPrivate = (void *) fd;
+    ki->driverPrivate = (void *) (intptr_t) fd;
 
     ioctl (fd, KDGKBMODE, &LinuxKbdTrans);
     tcgetattr (fd, &LinuxTermios);
@@ -724,7 +724,7 @@ LinuxKeyboardDisable (KdKeyboardInfo *ki)
     if (!ki)
         return;
 
-    fd = (int) ki->driverPrivate;
+    fd = (int) (intptr_t) ki->driverPrivate;
 
     KdUnregisterFd(ki, fd, FALSE);
     ioctl(fd, KDSKBMODE, LinuxKbdTrans);
@@ -753,7 +753,7 @@ LinuxKeyboardLeds (KdKeyboardInfo *ki, int leds)
     if (!ki)
         return;
 
-    ioctl ((int)ki->driverPrivate, KDSETLED, leds & 7);
+    ioctl ((int)(intptr_t)ki->driverPrivate, KDSETLED, leds & 7);
 }
 
 KdKeyboardDriver LinuxKeyboardDriver = {

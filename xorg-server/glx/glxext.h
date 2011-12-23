@@ -44,8 +44,6 @@ extern void __glXClearErrorOccured(void);
 extern GLboolean __glXErrorOccured(void);
 extern void __glXResetLargeCommandStatus(__GLXclientState*);
 
-extern void GlxExtensionInit(void);
-
 extern const char GLServerVersion[];
 extern int DoGetString(__GLXclientState *cl, GLbyte *pc, GLboolean need_swap);
 

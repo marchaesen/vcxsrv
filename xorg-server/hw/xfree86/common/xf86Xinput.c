@@ -1410,4 +1410,28 @@ xf86EnableDevice(DeviceIntPtr dev)
     EnableDevice(dev, TRUE);
 }
 
+/**
+ * Post a touch event with optional valuators.  If this is the first touch in
+ * the sequence, at least x & y valuators must be provided. The driver is
+ * responsible for maintaining the correct event sequence (TouchBegin, TouchUpdate,
+ * TouchEnd). Submitting an update or end event for a unregistered touchid will
+ * result in errors.
+ * Touch IDs may be reused by the driver but only after a TouchEnd has been
+ * submitted for that touch ID.
+ *
+ * @param dev The device to post the event for
+ * @param touchid The touchid of the current touch event. Must be an
+ * existing ID for TouchUpdate or TouchEnd events
+ * @param type One of XI_TouchBegin, XI_TouchUpdate, XI_TouchEnd
+ * @param flags Flags for this event
+ * @param The valuator mask with all valuators set for this event.
+ */
+void
+xf86PostTouchEvent(DeviceIntPtr dev, uint32_t touchid, uint16_t type,
+                   uint32_t flags, const ValuatorMask *mask)
+{
+
+    QueueTouchEvents(dev, type, touchid, flags, mask);
+}
+
 /* end of xf86Xinput.c */

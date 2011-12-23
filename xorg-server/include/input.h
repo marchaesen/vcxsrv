@@ -71,6 +71,15 @@ SOFTWARE.
 #define POINTER_NORAW		(1 << 5)	/* Don't generate RawEvents */
 #define POINTER_EMULATED	(1 << 6)	/* Event was emulated from another event */
 
+/* GetTouchEvent flags */
+#define TOUCH_ACCEPT            (1 << 0)
+#define TOUCH_REJECT            (1 << 1)
+#define TOUCH_PENDING_END       (1 << 2)
+#define TOUCH_CLIENT_ID         (1 << 3)        /* touch ID is the client-visible id */
+#define TOUCH_REPLAYING         (1 << 4)        /* event is being replayed */
+#define TOUCH_POINTER_EMULATED  (1 << 5)        /* touch event may be pointer emulated */
+#define TOUCH_END               (1 << 6)        /* really end this touch now */
+
 /*int constants for pointer acceleration schemes*/
 #define PtrAccelNoOp            0
 #define PtrAccelPredictable     1
@@ -115,6 +124,9 @@ typedef struct _DeviceIntRec *DeviceIntPtr;
 typedef struct _ValuatorClassRec *ValuatorClassPtr;
 typedef struct _ClassesRec *ClassesPtr;
 typedef struct _SpriteRec *SpritePtr;
+typedef struct _TouchClassRec *TouchClassPtr;
+typedef struct _TouchPointInfo *TouchPointInfoPtr;
+typedef struct _DDXTouchPointInfo *DDXTouchPointInfoPtr;
 typedef union _GrabMask GrabMask;
 
 typedef struct _ValuatorMask ValuatorMask;
@@ -315,6 +327,12 @@ extern _X_EXPORT Bool InitPointerAccelerationScheme(
 extern _X_EXPORT Bool InitFocusClassDeviceStruct(
     DeviceIntPtr /*device*/);
 
+extern _X_EXPORT Bool InitTouchClassDeviceStruct(
+    DeviceIntPtr /*device*/,
+    unsigned int /*max_touches*/,
+    unsigned int /*mode*/,
+    unsigned int /*numAxes*/);
+
 typedef void (*BellProcPtr)(
     int /*percent*/,
     DeviceIntPtr /*device*/,
@@ -471,6 +489,28 @@ extern _X_EXPORT void QueueKeyboardEvents(
     int key_code,
     const ValuatorMask *mask);
 
+extern int GetTouchEvents(
+    InternalEvent *events,
+    DeviceIntPtr pDev,
+    uint32_t ddx_touchid,
+    uint16_t type,
+    uint32_t flags,
+    const ValuatorMask *mask);
+
+void QueueTouchEvents(DeviceIntPtr device,
+                      int type,
+                      uint32_t ddx_touchid,
+                      int flags,
+                      const ValuatorMask *mask);
+
+extern int GetTouchOwnershipEvents(
+    InternalEvent *events,
+    DeviceIntPtr pDev,
+    TouchPointInfoPtr ti,
+    uint8_t mode,
+    XID resource,
+    uint32_t flags);
+
 extern _X_EXPORT int GetProximityEvents(
     InternalEvent *events,
     DeviceIntPtr pDev,
@@ -540,6 +580,51 @@ extern void SendDevicePresenceEvent(int deviceid, int type);
 extern _X_EXPORT InputAttributes *DuplicateInputAttributes(InputAttributes *attrs);
 extern _X_EXPORT void FreeInputAttributes(InputAttributes *attrs);
 
+enum TouchListenerState{
+    LISTENER_AWAITING_BEGIN = 0,   /**< Waiting for a TouchBegin event */
+    LISTENER_AWAITING_OWNER,       /**< Waiting for a TouchOwnership event */
+    LISTENER_IS_OWNER,             /**< Is the current owner */
+    LISTENER_HAS_END,              /**< Has already received the end event */
+};
+
+enum TouchListenerType {
+    LISTENER_GRAB,
+    LISTENER_POINTER_GRAB,
+    LISTENER_REGULAR,
+    LISTENER_POINTER_REGULAR,
+};
+
+extern void TouchInitDDXTouchPoint(DeviceIntPtr dev, DDXTouchPointInfoPtr ddxtouch);
+extern DDXTouchPointInfoPtr TouchBeginDDXTouch(DeviceIntPtr dev, uint32_t ddx_id);
+extern void TouchEndDDXTouch(DeviceIntPtr dev, DDXTouchPointInfoPtr ti);
+extern DDXTouchPointInfoPtr TouchFindByDDXID(DeviceIntPtr dev,
+                                             uint32_t ddx_id,
+                                             Bool create);
+extern Bool TouchInitTouchPoint(TouchClassPtr touch, ValuatorClassPtr v, int index);
+extern void TouchFreeTouchPoint(DeviceIntPtr dev, int index);
+extern TouchPointInfoPtr TouchBeginTouch(DeviceIntPtr dev, int sourceid,
+                                         uint32_t touchid, Bool emulate_pointer);
+extern TouchPointInfoPtr TouchFindByClientID(DeviceIntPtr dev,
+                                             uint32_t client_id);
+extern void TouchEndTouch(DeviceIntPtr dev, TouchPointInfoPtr ti);
+extern Bool TouchEventHistoryAllocate(TouchPointInfoPtr ti);
+extern void TouchEventHistoryFree(TouchPointInfoPtr ti);
+extern void TouchEventHistoryPush(TouchPointInfoPtr ti, const DeviceEvent *ev);
+extern void TouchEventHistoryReplay(TouchPointInfoPtr ti, DeviceIntPtr dev, XID resource);
+extern Bool TouchResourceIsOwner(TouchPointInfoPtr ti, XID resource);
+extern void TouchAddListener(TouchPointInfoPtr ti, XID resource, enum InputLevel level,
+                                     enum TouchListenerType type, enum TouchListenerState state);
+extern Bool TouchRemoveListener(TouchPointInfoPtr ti, XID resource);
+extern void TouchSetupListeners(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev);
+extern Bool TouchEnsureSprite(DeviceIntPtr sourcedev, TouchPointInfoPtr ti,
+                              InternalEvent *ev);
+extern Bool TouchBuildDependentSpriteTrace(DeviceIntPtr dev, SpritePtr sprite);
+extern int TouchConvertToPointerEvent(const InternalEvent *ev,
+                                      InternalEvent *motion, InternalEvent *button);
+extern int TouchGetPointerEventType(const InternalEvent *ev);
+extern void TouchRemovePointerGrab(DeviceIntPtr dev);
+extern void TouchListenerGone(XID resource);
+
 /* misc event helpers */
 extern Mask GetEventMask(DeviceIntPtr dev, xEvent* ev, InputClientsPtr clients);
 extern Mask GetEventFilter(DeviceIntPtr dev, xEvent *event);
@@ -553,7 +638,7 @@ void FixUpEventFromWindow(SpritePtr pSprite,
 extern WindowPtr XYToWindow(SpritePtr pSprite, int x, int y);
 extern int EventIsDeliverable(DeviceIntPtr dev, int evtype, WindowPtr win);
 extern Bool ActivatePassiveGrab(DeviceIntPtr dev, GrabPtr grab,
-                                InternalEvent *ev);
+                                InternalEvent *ev, InternalEvent *real_event);
 /**
  * Masks specifying the type of event to deliver for an InternalEvent; used
  * by EventIsDeliverable.

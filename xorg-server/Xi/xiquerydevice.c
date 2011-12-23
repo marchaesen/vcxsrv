@@ -240,6 +240,8 @@ SizeDeviceClasses(DeviceIntPtr dev)
         }
     }
 
+    if (dev->touch)
+        len += sizeof(xXITouchInfo);
 
     return len;
 }
@@ -427,6 +429,31 @@ SwapScrollInfo(DeviceIntPtr dev, xXIScrollInfo* info)
     swapl(&info->increment.frac);
 }
 
+/**
+ * List multitouch information
+ *
+ * @return The number of bytes written into info.
+ */
+int
+ListTouchInfo(DeviceIntPtr dev, xXITouchInfo *touch)
+{
+    touch->type = XITouchClass;
+    touch->length = sizeof(xXITouchInfo) >> 2;
+    touch->sourceid = touch->sourceid;
+    touch->mode = dev->touch->mode;
+    touch->num_touches = dev->touch->num_touches;
+
+    return touch->length << 2;
+}
+
+static void
+SwapTouchInfo(DeviceIntPtr dev, xXITouchInfo* touch)
+{
+    swaps(&touch->type);
+    swaps(&touch->length);
+    swaps(&touch->sourceid);
+}
+
 int GetDeviceUse(DeviceIntPtr dev, uint16_t *attachment)
 {
     DeviceIntPtr master = GetMaster(dev, MASTER_ATTACHED);
@@ -525,6 +552,14 @@ ListDeviceClasses(ClientPtr client, DeviceIntPtr dev,
         total_len += len;
     }
 
+    if (dev->touch)
+    {
+        (*nclasses)++;
+        len = ListTouchInfo(dev, (xXITouchInfo*)any);
+        any += len;
+        total_len += len;
+    }
+
     return total_len;
 }
 
@@ -554,6 +589,10 @@ SwapDeviceInfo(DeviceIntPtr dev, xXIDeviceInfo* info)
             case XIScrollClass:
                 SwapScrollInfo(dev, (xXIScrollInfo*)any);
                 break;
+            case XITouchClass:
+                SwapTouchInfo(dev, (xXITouchInfo*)any);
+                break;
+
         }
 
         any += len * 4;

@@ -266,6 +266,9 @@ CreateGrab(
 void
 FreeGrab(GrabPtr pGrab)
 {
+    if (pGrab->grabtype == XI2 && pGrab->type == XI_TouchBegin)
+        TouchListenerGone(pGrab->resource);
+
     free(pGrab->modifiersDetail.pMask);
     free(pGrab->detail.pMask);
 

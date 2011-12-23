@@ -2356,6 +2356,16 @@ PREFIX (_reset) (region_type_t *region, box_type_t *box)
     region->data = NULL;
 }
 
+PIXMAN_EXPORT void
+PREFIX (_clear) (region_type_t *region)
+{
+    GOOD (region);
+    FREE_DATA (region);
+
+    region->extents = *pixman_region_empty_box;
+    region->data = pixman_region_empty_data;
+}
+
 /* box is "return" value */
 PIXMAN_EXPORT int
 PREFIX (_contains_point) (region_type_t * region,

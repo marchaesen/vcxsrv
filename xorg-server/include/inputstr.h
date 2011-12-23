@@ -49,6 +49,8 @@ SOFTWARE.
 #ifndef INPUTSTRUCT_H
 #define INPUTSTRUCT_H
 
+#include <X11/extensions/XI2proto.h>
+
 #include <pixman.h>
 #include "input.h"
 #include "window.h"
@@ -71,7 +73,7 @@ extern _X_EXPORT int CountBits(const uint8_t *mask, int len);
  * events to the protocol, the server will not support these events until
  * this number here is bumped.
  */
-#define XI2LASTEVENT    17 /* XI_RawMotion */
+#define XI2LASTEVENT    XI_RawTouchEnd
 #define XI2MASKSIZE     ((XI2LASTEVENT >> 3) + 1) /* no of bytes for masks */
 
 /**
@@ -298,6 +300,53 @@ typedef struct _ValuatorClassRec {
     int                   v_scroll_axis; /* vert smooth-scrolling axis */
 } ValuatorClassRec;
 
+typedef struct _TouchPointInfo {
+    uint32_t    client_id;          /* touch ID as seen in client events */
+    int         sourceid;           /* Source device's ID for this touchpoint */
+    Bool        active;             /* whether or not the touch is active */
+    Bool        pending_finish;     /* true if the touch is physically inactive
+                                     * but still owned by a grab */
+    SpriteRec   sprite;             /* window trace for delivery */
+    ValuatorMask *valuators;        /* last recorded axis values */
+    struct _TouchListener {
+        XID         listener;           /* grabs/event selection IDs receiving
+                                         * events for this touch */
+        enum TouchListenerType type;
+        enum TouchListenerState state;
+        enum InputLevel level;      /* matters only for emulating touches */
+    } *listeners;
+    int         num_listeners;
+    int         num_grabs;          /* number of open grabs on this touch
+                                     * which have not accepted or rejected */
+    Bool        emulate_pointer;
+    DeviceEvent *history;           /* History of events on this touchpoint */
+    size_t      history_elements;   /* Number of current elements in history */
+    size_t      history_size;       /* Size of history in elements */
+} TouchPointInfoRec;
+
+typedef struct _TouchListener TouchListener;
+
+typedef struct _DDXTouchPointInfo {
+    uint32_t    client_id;          /* touch ID as seen in client events */
+    Bool        active;             /* whether or not the touch is active */
+    uint32_t    ddx_id;             /* touch ID given by the DDX */
+    Bool        emulate_pointer;
+
+    ValuatorMask* valuators;        /* last recorded axis values */
+} DDXTouchPointInfoRec;
+
+typedef struct _TouchClassRec {
+    int                sourceid;
+    TouchPointInfoPtr  touches;
+    unsigned short     num_touches;    /* number of allocated touches */
+    unsigned short     max_touches;    /* maximum number of touches, may be 0 */
+    CARD8              mode;           /* ::XIDirectTouch, XIDependentTouch */
+    /* for pointer-emulation */
+    CARD8              buttonsDown;    /* number of buttons down */
+    unsigned short     state;          /* logical button state */
+    Mask               motionMask;
+} TouchClassRec;
+
 typedef struct _ButtonClassRec {
     int			sourceid;
     CARD8		numButtons;
@@ -381,6 +430,7 @@ typedef struct _LedFeedbackClassRec {
 typedef struct _ClassesRec {
     KeyClassPtr		key;
     ValuatorClassPtr	valuator;
+    TouchClassPtr	touch;
     ButtonClassPtr	button;
     FocusClassPtr	focus;
     ProximityClassPtr	proximity;
@@ -508,6 +558,7 @@ typedef struct _DeviceIntRec {
     int			id;
     KeyClassPtr		key;
     ValuatorClassPtr	valuator;
+    TouchClassPtr	touch;
     ButtonClassPtr	button;
     FocusClassPtr	focus;
     ProximityClassPtr	proximity;
@@ -539,6 +590,8 @@ typedef struct _DeviceIntRec {
         int             numValuators;
         DeviceIntPtr    slave;
         ValuatorMask    *scroll;
+        int             num_touches; /* size of the touches array */
+        DDXTouchPointInfoPtr touches;
     } last;
 
     /* Input device property handling. */

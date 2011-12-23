@@ -35,16 +35,16 @@
 #define __GLX_PAD(x)  (((x) + 3) & ~3)
 
 #if defined(__CYGWIN__) || defined(__MINGW32__)
-#  undef HAVE_ALIAS
+#undef HAVE_ALIAS
 #endif
 #ifdef HAVE_ALIAS
-#  define ALIAS2(from,to) \
-    int __glX ## from ## ReqSize( const GLbyte * pc, Bool swap ) \
+#define ALIAS2(from,to) \
+    GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap ) \
         __attribute__ ((alias( # to )));
-#  define ALIAS(from,to) ALIAS2( from, __glX ## to ## ReqSize )
+#define ALIAS(from,to) ALIAS2( from, __glX ## to ## ReqSize )
 #else
-#  define ALIAS(from,to) \
-    int __glX ## from ## ReqSize( const GLbyte * pc, Bool swap ) \
+#define ALIAS(from,to) \
+    GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap ) \
     { return __glX ## to ## ReqSize( pc, swap ); }
 #endif
 
@@ -703,7 +703,7 @@ __glXPointParameterfvEXTReqSize(const GLbyte *pc, Bool swap)
 int
 __glXProgramParameters4dvNVReqSize(const GLbyte *pc, Bool swap)
 {
-    GLuint num = *(GLuint *) (pc + 8);
+    GLsizei num = *(GLsizei *) (pc + 8);
 
     if (swap) {
         num = bswap_32(num);
@@ -715,7 +715,7 @@ __glXProgramParameters4dvNVReqSize(const GLbyte *pc, Bool swap)
 int
 __glXProgramParameters4fvNVReqSize(const GLbyte *pc, Bool swap)
 {
-    GLuint num = *(GLuint *) (pc + 8);
+    GLsizei num = *(GLsizei *) (pc + 8);
 
     if (swap) {
         num = bswap_32(num);

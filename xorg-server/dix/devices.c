@@ -263,6 +263,7 @@ AddInputDevice(ClientPtr client, DeviceProc deviceProc, Bool autoStart)
 	return (DeviceIntPtr)NULL;
 
     dev->last.scroll = NULL;
+    dev->last.touches = NULL;
     dev->id = devid;
     dev->public.processInputProc = ProcessOtherEvent;
     dev->public.realInputProc = ProcessOtherEvent;
@@ -761,6 +762,21 @@ FreeDeviceClass(int type, pointer *class)
                 free((*v));
                 break;
             }
+        case XITouchClass:
+            {
+                TouchClassPtr *t = (TouchClassPtr*)class;
+                int i;
+
+                for (i = 0; i < (*t)->num_touches; i++)
+                {
+                    free((*t)->touches[i].sprite.spriteTrace);
+                    free((*t)->touches[i].listeners);
+                    free((*t)->touches[i].valuators);
+                }
+
+                free((*t));
+                break;
+            }
         case FocusClass:
             {
                 FocusClassPtr *f = (FocusClassPtr*)class;
@@ -869,6 +885,7 @@ FreeAllDeviceClasses(ClassesPtr classes)
 
     FreeDeviceClass(KeyClass, (pointer)&classes->key);
     FreeDeviceClass(ValuatorClass, (pointer)&classes->valuator);
+    FreeDeviceClass(XITouchClass, (pointer)&classes->touch);
     FreeDeviceClass(ButtonClass, (pointer)&classes->button);
     FreeDeviceClass(FocusClass, (pointer)&classes->focus);
     FreeDeviceClass(ProximityClass, (pointer)&classes->proximity);
@@ -948,6 +965,9 @@ CloseDevice(DeviceIntPtr dev)
     free(dev->deviceGrab.sync.event);
     free(dev->config_info);     /* Allocated in xf86ActivateDevice. */
     free(dev->last.scroll);
+    for (j = 0; j < dev->last.num_touches; j++)
+        free(dev->last.touches[j].valuators);
+    free(dev->last.touches);
     dev->config_info = NULL;
     dixFreeObjectWithPrivates(dev, PRIVATE_DEVICE);
 }
@@ -1419,7 +1439,6 @@ InitPtrFeedbackClassDeviceStruct(DeviceIntPtr dev, PtrCtrlProcPtr controlProc)
     return TRUE;
 }
 
-
 static LedCtrl defaultLedControl = {
 	DEFAULT_LEDS, DEFAULT_LEDS_MASK, 0};
 
@@ -1540,6 +1559,72 @@ InitPointerDeviceStruct(DevicePtr device, CARD8 *map, int numButtons, Atom* btn_
 	   InitValuatorClassDeviceStruct(dev, numAxes, axes_labels,
 					 numMotionEvents, Relative) &&
 	   InitPtrFeedbackClassDeviceStruct(dev, controlProc));
+}
+
+/**
+ * Sets up multitouch capabilities on @device.
+ *
+ * @max_touches The maximum number of simultaneous touches, or 0 for unlimited.
+ * @mode The mode of the touch device (XIDirectTouch or XIDependentTouch).
+ * @num_axes The number of touch valuator axes.
+ */
+Bool
+InitTouchClassDeviceStruct(DeviceIntPtr device, unsigned int max_touches,
+                           unsigned int mode, unsigned int num_axes)
+{
+    TouchClassPtr touch;
+    int i;
+
+    if (device->touch || !device->valuator)
+        return FALSE;
+
+    /* Check the mode is valid, and at least X and Y axes. */
+    if (mode != XIDirectTouch && mode != XIDependentTouch)
+        return FALSE;
+    if (num_axes < 2)
+        return FALSE;
+
+    if (num_axes > MAX_VALUATORS)
+    {
+        LogMessage(X_WARNING,
+                   "Device '%s' has %d touch axes, only using first %d.\n",
+                   device->name, num_axes, MAX_VALUATORS);
+        num_axes = MAX_VALUATORS;
+    }
+
+    touch = calloc(1, sizeof(*touch));
+    if (!touch)
+        return FALSE;
+
+    touch->max_touches = max_touches;
+    if (max_touches == 0)
+        max_touches = 5; /* arbitrary number plucked out of the air */
+    touch->touches = calloc(max_touches, sizeof(*touch->touches));
+    if (!touch->touches)
+        goto err;
+    touch->num_touches = max_touches;
+    for (i = 0; i < max_touches; i++)
+        TouchInitTouchPoint(touch, device->valuator, i);
+
+    touch->mode = mode;
+    touch->sourceid = device->id;
+
+    device->touch = touch;
+    device->last.touches = calloc(max_touches, sizeof(*device->last.touches));
+    device->last.num_touches = touch->num_touches;
+    for (i = 0; i < touch->num_touches; i++)
+        TouchInitDDXTouchPoint(device, &device->last.touches[i]);
+
+    return TRUE;
+
+err:
+    for (i = 0; i < touch->num_touches; i++)
+        TouchFreeTouchPoint(device, i);
+
+    free(touch->touches);
+    free(touch);
+
+    return FALSE;
 }
 
 /*

@@ -1821,7 +1821,17 @@ struct gl_transform_feedback_info {
       unsigned OutputRegister;
       unsigned OutputBuffer;
       unsigned NumComponents;
+
+      /** offset (in DWORDs) of this output within the interleaved structure */
+      unsigned DstOffset;
    } Outputs[MAX_PROGRAM_OUTPUTS];
+
+   /**
+    * Total number of components stored in each buffer.  This may be used by
+    * hardware back-ends to determine the correct stride when interleaving
+    * multiple transform feedback outputs in the same buffer.
+    */
+   unsigned BufferStride[MAX_FEEDBACK_ATTRIBS];
 };
 
 /**
@@ -2375,8 +2385,6 @@ struct gl_transform_feedback_object
 struct gl_transform_feedback
 {
    GLenum Mode;       /**< GL_POINTS, GL_LINES or GL_TRIANGLES */
-
-   GLboolean RasterDiscard;  /**< GL_RASTERIZER_DISCARD */
 
    /** The general binding point (GL_TRANSFORM_FEEDBACK_BUFFER) */
    struct gl_buffer_object *CurrentBuffer;
@@ -3065,6 +3073,12 @@ struct gl_matrix_stack
 #define _NEW_FRAG_CLAMP        (1 << 29)
 #define _NEW_TRANSFORM_FEEDBACK (1 << 30) /**< gl_context::TransformFeedback */
 #define _NEW_ALL ~0
+
+/**
+ * We use _NEW_TRANSFORM for GL_RASTERIZER_DISCARD.  This #define is for
+ * clarity.
+ */
+#define _NEW_RASTERIZER_DISCARD _NEW_TRANSFORM
 /*@}*/
 
 
@@ -3396,6 +3410,8 @@ struct gl_context
     * transformation?
     */
    GLboolean mvp_with_dp4;
+
+   GLboolean RasterDiscard;  /**< GL_RASTERIZER_DISCARD */
 
    /**
     * \name Hooks for module contexts.  

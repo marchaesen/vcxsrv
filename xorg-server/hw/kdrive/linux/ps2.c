@@ -159,7 +159,7 @@ Ps2Enable (KdPointerInfo *pi)
         return BadAlloc;
     }
 
-    pi->driverPrivate = (void *)fd;
+    pi->driverPrivate = (void *)(intptr_t)fd;
 
     return Success;
 }
@@ -168,7 +168,7 @@ Ps2Enable (KdPointerInfo *pi)
 static void
 Ps2Disable (KdPointerInfo *pi)
 {
-    KdUnregisterFd (pi, (int)pi->driverPrivate, TRUE);
+    KdUnregisterFd (pi, (int)(intptr_t)pi->driverPrivate, TRUE);
 }
 
 static void

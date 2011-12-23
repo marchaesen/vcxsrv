@@ -62,14 +62,6 @@ xkb_symbols "basic" {
     key <AB09> { [ 0x1000ec3,       dollar	]};
     key <AB10> { [ 0x1000e9d,       parenright	]};
 
-override key <LFSH> {
-	type[Group1]="PC_ALT_LEVEL2",
-	[ 	 Shift_L,		ISO_First_Group		]
-    };
-override key <RTSH> {
-	type[Group1]="PC_ALT_LEVEL2",
-	[ 	Shift_R,		ISO_Last_Group 		]
-    };
 };
 
 partial
