@@ -142,7 +142,7 @@ _swrast_culltriangle( struct gl_context *ctx,
 
 #define RENDER_SPAN( span )						\
    GLuint i;								\
-   GLubyte rgb[MAX_WIDTH][3];						\
+   GLubyte rgba[MAX_WIDTH][4];						\
    span.intTex[0] -= FIXED_HALF; /* off-by-one error? */		\
    span.intTex[1] -= FIXED_HALF;					\
    for (i = 0; i < span.end; i++) {					\
@@ -150,13 +150,14 @@ _swrast_culltriangle( struct gl_context *ctx,
       GLint t = FixedToInt(span.intTex[1]) & tmask;			\
       GLint pos = (t << twidth_log2) + s;				\
       pos = pos + pos + pos;  /* multiply by 3 */			\
-      rgb[i][RCOMP] = texture[pos+2];					\
-      rgb[i][GCOMP] = texture[pos+1];					\
-      rgb[i][BCOMP] = texture[pos+0];					\
+      rgba[i][RCOMP] = texture[pos+2];					\
+      rgba[i][GCOMP] = texture[pos+1];					\
+      rgba[i][BCOMP] = texture[pos+0];					\
+      rgba[i][ACOMP] = 0xff;                                            \
       span.intTex[0] += span.intTexStep[0];				\
       span.intTex[1] += span.intTexStep[1];				\
    }									\
-   rb->PutRowRGB(ctx, rb, span.end, span.x, span.y, rgb, NULL);
+   rb->PutRow(ctx, rb, span.end, span.x, span.y, rgba, NULL);
 
 #include "s_tritemp.h"
 
@@ -198,7 +199,7 @@ _swrast_culltriangle( struct gl_context *ctx,
 
 #define RENDER_SPAN( span )						\
    GLuint i;				    				\
-   GLubyte rgb[MAX_WIDTH][3];						\
+   GLubyte rgba[MAX_WIDTH][4];						\
    span.intTex[0] -= FIXED_HALF; /* off-by-one error? */		\
    span.intTex[1] -= FIXED_HALF;					\
    for (i = 0; i < span.end; i++) {					\
@@ -208,9 +209,10 @@ _swrast_culltriangle( struct gl_context *ctx,
          GLint t = FixedToInt(span.intTex[1]) & tmask;			\
          GLint pos = (t << twidth_log2) + s;				\
          pos = pos + pos + pos;  /* multiply by 3 */			\
-         rgb[i][RCOMP] = texture[pos+2];				\
-         rgb[i][GCOMP] = texture[pos+1];				\
-         rgb[i][BCOMP] = texture[pos+0];				\
+         rgba[i][RCOMP] = texture[pos+2];				\
+         rgba[i][GCOMP] = texture[pos+1];				\
+         rgba[i][BCOMP] = texture[pos+0];				\
+         rgba[i][ACOMP] = 0xff;          				\
          zRow[i] = z;							\
          span.array->mask[i] = 1;					\
       }									\
@@ -221,7 +223,7 @@ _swrast_culltriangle( struct gl_context *ctx,
       span.intTex[1] += span.intTexStep[1];				\
       span.z += span.zStep;						\
    }									\
-   rb->PutRowRGB(ctx, rb, span.end, span.x, span.y, rgb, span.array->mask);
+   rb->PutRow(ctx, rb, span.end, span.x, span.y, rgba, span.array->mask);
 
 #include "s_tritemp.h"
 
@@ -872,36 +874,27 @@ fast_persp_span(struct gl_context *ctx, SWspan *span,
 /*
  * Special tri function for occlusion testing
  */
-#define NAME occlusion_zless_triangle
+#define NAME occlusion_zless_16_triangle
 #define INTERP_Z 1
 #define SETUP_CODE							\
-   struct gl_renderbuffer *rb = ctx->DrawBuffer->_DepthBuffer;		\
+   struct gl_renderbuffer *rb =                                         \
+      ctx->DrawBuffer->Attachment[BUFFER_DEPTH].Renderbuffer;           \
    struct gl_query_object *q = ctx->Query.CurrentOcclusionObject;	\
    ASSERT(ctx->Depth.Test);						\
    ASSERT(!ctx->Depth.Mask);						\
    ASSERT(ctx->Depth.Func == GL_LESS);					\
+   assert(rb->Format == MESA_FORMAT_Z16);                               \
    if (!q) {								\
       return;								\
    }
 #define RENDER_SPAN( span )						\
-   if (rb->Format == MESA_FORMAT_Z16) {					\
+   {                                                                    \
       GLuint i;								\
       const GLushort *zRow = (const GLushort *)				\
-         rb->GetPointer(ctx, rb, span.x, span.y);			\
+         _swrast_pixel_address(rb, span.x, span.y);                     \
       for (i = 0; i < span.end; i++) {					\
          GLuint z = FixedToDepth(span.z);				\
          if (z < zRow[i]) {						\
-            q->Result++;						\
-         }								\
-         span.z += span.zStep;						\
-      }									\
-   }									\
-   else {								\
-      GLuint i;								\
-      const GLuint *zRow = (const GLuint *)				\
-         rb->GetPointer(ctx, rb, span.x, span.y);			\
-      for (i = 0; i < span.end; i++) {					\
-         if ((GLuint)span.z < zRow[i]) {				\
             q->Result++;						\
          }								\
          span.z += span.zStep;						\
@@ -1012,6 +1005,8 @@ _swrast_choose_triangle( struct gl_context *ctx )
    }
 
    if (ctx->RenderMode==GL_RENDER) {
+      struct gl_renderbuffer *depthRb =
+         ctx->DrawBuffer->Attachment[BUFFER_DEPTH].Renderbuffer;
 
       if (ctx->Polygon.SmoothFlag) {
          _swrast_set_aa_triangle_function(ctx);
@@ -1024,12 +1019,14 @@ _swrast_choose_triangle( struct gl_context *ctx )
           ctx->Depth.Test &&
           ctx->Depth.Mask == GL_FALSE &&
           ctx->Depth.Func == GL_LESS &&
-          !ctx->Stencil._Enabled) {
+          !ctx->Stencil._Enabled &&
+          depthRb &&
+          depthRb->Format == MESA_FORMAT_Z16) {
          if (ctx->Color.ColorMask[0][0] == 0 &&
 	     ctx->Color.ColorMask[0][1] == 0 &&
 	     ctx->Color.ColorMask[0][2] == 0 &&
 	     ctx->Color.ColorMask[0][3] == 0) {
-            USE(occlusion_zless_triangle);
+            USE(occlusion_zless_16_triangle);
             return;
          }
       }
