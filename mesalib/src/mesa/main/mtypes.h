@@ -2538,33 +2538,12 @@ struct gl_renderbuffer
    void (*PutRow)(struct gl_context *ctx, struct gl_renderbuffer *rb, GLuint count,
                   GLint x, GLint y, const void *values, const GLubyte *mask);
 
-   /* Put/Write a row of RGB values.  This is a special-case routine that's
-    * only used for RGBA renderbuffers when the source data is GL_RGB. That's
-    * a common case for glDrawPixels and some triangle routines.
-    * The values will be of format GL_RGB and type DataType.
-    */
-   void (*PutRowRGB)(struct gl_context *ctx, struct gl_renderbuffer *rb, GLuint count,
-                    GLint x, GLint y, const void *values, const GLubyte *mask);
-
-
-   /* Put/Write a row of identical values.
-    * The values will be of format _BaseFormat and type DataType.
-    */
-   void (*PutMonoRow)(struct gl_context *ctx, struct gl_renderbuffer *rb, GLuint count,
-                     GLint x, GLint y, const void *value, const GLubyte *mask);
-
    /* Put/Write values at arbitrary locations.
     * The values will be of format _BaseFormat and type DataType.
     */
    void (*PutValues)(struct gl_context *ctx, struct gl_renderbuffer *rb, GLuint count,
                      const GLint x[], const GLint y[], const void *values,
                      const GLubyte *mask);
-   /* Put/Write identical values at arbitrary locations.
-    * The values will be of format _BaseFormat and type DataType.
-    */
-   void (*PutMonoValues)(struct gl_context *ctx, struct gl_renderbuffer *rb,
-                         GLuint count, const GLint x[], const GLint y[],
-                         const void *value, const GLubyte *mask);
 };
 
 

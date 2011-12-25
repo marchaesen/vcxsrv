@@ -98,7 +98,8 @@ reference_transform_feedback_object(struct gl_transform_feedback_object **ptr,
 GLboolean
 _mesa_validate_primitive_mode(struct gl_context *ctx, GLenum mode)
 {
-   if (ctx->TransformFeedback.CurrentObject->Active) {
+   if (ctx->TransformFeedback.CurrentObject->Active &&
+       !ctx->TransformFeedback.CurrentObject->Paused) {
       switch (mode) {
       case GL_POINTS:
          return ctx->TransformFeedback.Mode == GL_POINTS;
@@ -387,6 +388,7 @@ _mesa_EndTransformFeedback(void)
 
    FLUSH_VERTICES(ctx, _NEW_TRANSFORM_FEEDBACK);
    ctx->TransformFeedback.CurrentObject->Active = GL_FALSE;
+   ctx->TransformFeedback.CurrentObject->Paused = GL_FALSE;
    ctx->TransformFeedback.CurrentObject->EndedAnytime = GL_TRUE;
 
    assert(ctx->Driver.EndTransformFeedback);

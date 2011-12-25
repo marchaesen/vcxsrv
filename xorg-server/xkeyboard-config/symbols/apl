@@ -6,6 +6,7 @@
 // -	The Sharp APL for Unix (SAX) layout
 // -	The IBM APL2 layout
 // -	The Manugistics APL*PLUS II (Version 5.1, 1993) keyboard layout
+// -	The Dyalog APL layout - with additions for box drawing and commands
 
 // Unicode APL table: http://aplwiki.com/UnicodeAplTable
 // ...and another: http://publibfp.boulder.ibm.com/epubs/pdf/h2110611.pdf (appendix A)
@@ -25,272 +26,581 @@
 // I'm assuming that this will be used with another keyboard layout (ie. for 
 // your language), with a special shift key to use these maps.  
 
-partial alphanumeric_keys modifier_keys 
+// 2011-12-22 Geoff Streeter: geoff@dyalog.com
+// Added the Dyalog support.
+// Corrected (what he thinks) are some errors.
+// 	Resolving the confusion between APL's and Unicode's concept of Left and Right tacks.
+// 	Unsure about some of the inheritance from APL2 into APLPLUS. Patches welcome.
+// Complied with freedesktop.org requirement that the keycodes be in sorted order. Which
+// leads to the bottom to top (roughly) definitions.
+
+// default layout seems to have to be the first one. Choosing the basic Dyalog layout is definitely
+// better than using the "common" one. Choosing the complete Dyalog layout is not useful to non-Dyalog
+// users.
+
+default partial alphanumeric_keys
+xkb_symbols "basic" {
+	include "apl(dyalog_base)"	// forward reference good APL keyboard without Dyalogs extras
+};
+
+// ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
+// │     │     │     │     │     │     │     │     │     │     │     │     │     ┃         ┃
+// │     │ ¨   │ ¯   │ <   │ ≤   │ =   │ ≥   │ >   │ ≠   │ ∨   │ ∧   │     │     ┃         ┃
+// ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
+// ┃       ┃     │     │     │     │     │     │     │     │     │     │     │     ┃       ┃
+// ┃       ┃ ?   │ ⍵   │ ∊   │ ⍴   │ ~   │ ↑   │ ↓   │ ⍳   │ ○   │ *   │ ←   │     ┃       ┃
+// ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
+// ┃        ┃     │     │     │     │     │     │     │     │     │     │     │     ┃      ┃
+// ┃        ┃ ⍺   │ ⌈   │ ⌊   │ _   │ ∇   │ ∆   │ ∘   │ '   │ ⎕   │     │     │     ┃      ┃
+// ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
+// ┃       ┃     │     │     │     │     │     │     │     │     │     │     ┃             ┃
+// ┃       ┃     │ ⊂   │ ⊃   │ ∩   │ ∪   │ ⊥   │ ⊤   │ |   │     │     │     ┃             ┃
+// ┣━━━━━━━╋━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
+
+partial hidden alphanumeric_keys
 xkb_symbols "common" {
 	name[Group1]= "APL";
 
+	key <AB01> { [	U2282		] }; // Z: ⊂ -- Subset Of
+	key <AB02> { [	U2283		] }; // X: ⊃ -- Superset Of
+	key <AB03> { [	U2229		] }; // C: ∩ -- Intersection
+	key <AB04> { [	U222A		] }; // V: ∪ -- Union
+	key <AB05> { [	U22A5		] }; // B: ⊥ -- Up Tack
+	key <AB06> { [	U22A4		] }; // N: ⊤ -- Down Tack
+	key <AB07> { [	U007C		] }; // M: | -- Vertical Line
+
+	key <AC01> { [	U237A		] }; // A: ⍺ -- APL Functional Symbol Alpha
+	key <AC02> { [	U2308		] }; // S: ⌈ -- Left Ceiling
+	key <AC03> { [	U230A		] }; // D: ⌊ -- Left Floor
+	key <AC04> { [	underscore	] }; // F:
+	key <AC05> { [	U2207		] }; // G: ∇ -- Nabla
+	key <AC06> { [	U2206		] }; // H: ∆ -- Increment
+	key <AC07> { [	U2218		] }; // J: ∘ -- Ring Operator
+	key <AC08> { [	apostrophe 	] }; // K:
+	key <AC09> { [	U2395		] }; // L: ⎕ -- APL Functional Symbol Quad
+
+	key <AD01> { [	question	] }; // Q:
+	key <AD02> { [	U2375		] }; // W: ⍵ -- APL Functional Symbol Omega
+	key <AD03> { [	U220A		] }; // E: ∊ -- Small Element Of
+	key <AD04> { [	U2374		] }; // R: ⍴ -- APL Functional Symbol Rho
+	key <AD05> { [	asciitilde	] }; // T:
+	key <AD06> { [	U2191		] }; // Y: ↑ -- Upwards Arrow
+	key <AD07> { [	U2193		] }; // U: ↓ -- Downwards Arrow
+	key <AD08> { [	U2373		] }; // I: ⍳ -- APL Functional Symbol Iota
+	key <AD09> { [	U25CB		] }; // O: ○ -- White Circle
+	key <AD10> { [	asterisk	] }; // P: * -- asterisk
+	key <AD11> { [	U2190		] }; // [: ← -- Leftwards Arrow
+
 	key <AE01> { [	diaeresis	] };
-	key <AE02> { [	U00AF	] }; // ¯ -- Macron
-	key <AE03> { [	less	] };
-	key <AE04> { [	U2264	] }; // ≤ -- Less-than Or Equal To
-	key <AE05> { [	equal	] };
-	key <AE06> { [	U2265	] }; // ≥ -- Greater-than Or Equal To
-	key <AE07> { [	greater	] };
-	key <AE08> { [	U2260	] }; // ≠ -- Not Equal To
-	key <AE09> { [	U2228	] }; // ∨ -- Logical Or
-	key <AE10> { [	U2227	] }; // ∧ -- Logical And
-
-	// Q
-	key <AD01> { [	question	] };
-	// W
-	key <AD02> { [	U2375		] }; // ⍵ -- APL Functional Symbol Omega
-	// E
-	key <AD03> { [	U220A		] }; // ∊ -- Small Element Of
-	// R
-	key <AD04> { [	U2374		] }; // ⍴ -- APL Functional Symbol Rho
-	// T
-	key <AD05> { [	asciitilde		] };
-	// Y
-	key <AD06> { [	U2191		] }; // ↑ -- Upwards Arrow
-	// U
-	key <AD07> { [	U2193		] }; // ↓ -- Downwards Arrow
-	// I
-	key <AD08> { [	U2373	] }; // ⍳ -- APL Functional Symbol Iota
-	// O
-	key <AD09> { [	U25CB	] }; // ○ -- White Circle
-	// P
-	key <AD10> { [	U22C6	] }; // ⋆ -- Should this be a plain asterisk, or the star operator???
-	// [
-	key <AD11> { [	U2190	] }; // ← -- Leftwards Arrow
-
-	// A
-	key <AC01> { [	U237A	] }; // ⍺ -- APL Functional Symbol Alpha
-	// S
-	key <AC02> { [	U2308	] }; // ⌈ -- Left Ceiling
-	// D
-	key <AC03> { [	U230A	] }; // ⌊ -- Left Floor
-	// F
-	key <AC04> { [	underscore	] };
-	// G
-	key <AC05> { [	U2207	] }; // ∇ -- Nabla
-	// H
-	key <AC06> { [	U2206	] }; // ∆ -- Increment
-	// J
-	key <AC07> { [	U2218	] }; // ∘ -- Ring Operator
-	// K
-	key <AC08> { [	apostrophe ] };
-	// L
-	key <AC09> { [	U2395	] }; // ⎕ -- APL Functional Symbol Quad
-
-	// Z
-	key <AB01> { [	U2282	] }; // ⊂ -- Subset Of
-	// X
-	key <AB02> { [	U2283	] }; // ⊃ -- Superset Of
-	// C
-	key <AB03> { [	U2229	] }; // ∩ -- Intersection
-	// V
-	key <AB04> { [	U222A	] }; // ∪ -- Union
-	// B
-	key <AB05> { [	U22A5	] }; // ⊥ -- Up Tack
-	// N
-	key <AB06> { [	U22A4	] }; // ⊤ -- Down Tack
-	// M
-	key <AB07> { [	U007C	] }; // | -- Vertical Line
+	key <AE02> { [	U00AF		] }; // ¯ -- Macron
+	key <AE03> { [	less		] };
+	key <AE04> { [	U2264		] }; // ≤ -- Less-than Or Equal To
+	key <AE05> { [	equal		] };
+	key <AE06> { [	U2265		] }; // ≥ -- Greater-than Or Equal To
+	key <AE07> { [	greater		] };
+	key <AE08> { [	U2260		] }; // ≠ -- Not Equal To
+	key <AE09> { [	U2228		] }; // ∨ -- Logical Or
+	key <AE10> { [	U2227		] }; // ∧ -- Logical And
 };
 
 // Keys common to a number of keyboards that allow normal language usage alongside APL
-partial alphanumeric_keys modifier_keys 
+
+// ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
+// │     │     │     │     │     │     │     │     │     │ ⍱   │ ⍲   │     │  ⌹  ┃         ┃
+// │ ⋄   │ ¨   │ ¯   │ <   │ ≤   │ =   │ ≥   │ >   │ ≠   │ ∨   │ ∧   │  ×  │  ÷  ┃         ┃
+// ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
+// ┃       ┃     │     │     │     │     │     │     │     │     │     │     │     ┃       ┃
+// ┃       ┃ ?   │ ⍵   │ ∊   │ ⍴   │ ~   │ ↑   │ ↓   │ ⍳   │ ○   │ *   │ ←   │  →  ┃       ┃
+// ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
+// ┃        ┃     │     │     │     │     │     │     │     │     │     │     │     ┃      ┃
+// ┃        ┃ ⍺   │ ⌈   │ ⌊   │ _   │ ∇   │ ∆   │ ∘   │ '   │ ⎕   │     │     │     ┃      ┃
+// ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
+// ┃       ┃     │     │     │     │     │     │     │     │     │     │     ┃             ┃
+// ┃       ┃     │ ⊂   │ ⊃   │ ∩   │ ∪   │ ⊥   │ ⊤   │ |   │     │     │     ┃             ┃
+// ┣━━━━━━━╋━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
+
+partial alphanumeric_keys
 xkb_symbols "unified" {
 	name[Group1]= "APL Keyboard Symbols: Unified Layout";
 
 	include "apl(common)"
 
-	// `
-	key <TLDE> { [	U22C4	] }; // ⋄ -- Diamond Operator
-	key <AE09> { [	NoSymbol,	U2371	] }; // ⍱ -- APL Functional Symbol Down Caret Tilde
-	key <AE10> { [	NoSymbol,	U2372	] }; // ⍲ -- APL Functional Symbol Up Caret Tilde
-	// -
-	key <AE11> { [	U00D7	] }; // × -- Multiplication Sign
-	// =
-	key <AE12> { [	U00F7,	U2339	] }; // ÷ ⌹ -- Division Sign / APL Functional Symbol Quad Divide
-
-	// ]
-	key <AD12> { [	U2192		] }; // → -- Rightwards Arrow
+	key <AD12> { [ U2192			] }; // ]: → -- Rightwards Arrow
+	key <AE09> { [ NoSymbol,	U2371	] }; // 9: ⍱ -- APL Functional Symbol Down Caret Tilde
+	key <AE10> { [ NoSymbol,	U2372	] }; // 0: ⍲ -- APL Functional Symbol Up Caret Tilde
+	key <AE11> { [ U00D7			] }; // -: × -- Multiplication Sign
+	key <AE12> { [ U00F7,		U2339	] }; // =: ÷ ⌹ -- Division Sign / APL Functional Symbol Quad Divide
+	key <TLDE> { [ U22C4			] }; // `: ⋄ -- Diamond Operator
 };
 
 // Layout: http://www.wickensonline.co.uk/apl-unicomp.html
-default
-partial alphanumeric_keys modifier_keys 
+
+// ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
+// │     │ ¡   │     │     │ ¢   │     │     │     │ ⍂   │ ⍱   │ ⍲   │  ≡  │  ⌹  ┃         ┃
+// │ ⋄   │ ¨   │ ¯   │ <   │ ≤   │ =   │ ≥   │ >   │ ≠   │ ∨   │ ∧   │  ×  │  ÷  ┃         ┃
+// ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
+// ┃       ┃ ¿   │ ⌽   │ ⍷   │     │ ⍉   │     │     │ ⍸   │ ⍥   │ ⍣   │     │     ┃       ┃
+// ┃       ┃ ?   │ ⍵   │ ∊   │ ⍴   │ ~   │ ↑   │ ↓   │ ⍳   │ ○   │ *   │ ←   │  →  ┃       ┃
+// ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
+// ┃        ┃ ⊖   │     │     │ ⍫   │ ⍒   │ ⍋   │ ⍤   │ ⌻   │ ⍞   │     │     │  ⍀  ┃      ┃
+// ┃        ┃ ⍺   │ ⌈   │ ⌊   │ _   │ ∇   │ ∆   │ ∘   │ '   │ ⎕   │  ⊢  │  ⊣  │  ⍝  ┃      ┃
+// ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
+// ┃       ┃     │     │     │ ⍝   │     │  ⍎  │  ⍕  │ ⌶   │  ⍪  │  ⍙  │  ⌿  ┃             ┃
+// ┃       ┃     │ ⊂   │ ⊃   │ ∩   │ ∪   │ ⊥   │ ⊤   │ |   │  ⍞  │  ⍎  │  ⍕  ┃             ┃
+// ┣━━━━━━━╋━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
+
+partial alphanumeric_keys
 xkb_symbols "sax" {
 	name[Group1]= "APL Keyboard Symbols";
 
 	include "apl(unified)"
 
-	key <AE01> { [	NoSymbol,	U00A1	] }; // ¡ -- Inverted Exclamation Mark
-	key <AE04> { [	NoSymbol,	cent	] };
-	key <AE08> { [	NoSymbol,	U2342	] }; // ⍂ -- APL Functional Symbol Quad Backslash
-	// -
-	key <AE11> { [	NoSymbol,	U2261	] }; // ≡ -- Identical To
+	key <AB03> { [	NoSymbol,	U235D	] }; // C: ⍝ -- APL Functional Symbol Up Shoe Jot
+	key <AB05> { [	NoSymbol,	U234E	] }; // B: ⍎ -- APL Functional Symbol Down Tack Jot (Unicode got the name wrong; it should have been "Up Tack")
+	key <AB06> { [	NoSymbol,	U2355	] }; // N: ⍕ -- APL Functional Symbol Up Tack Jot (Unicode got the name wrong; it should have been "Down Tack")
+	key <AB07> { [	NoSymbol,	U2336	] }; // M: ⌶ -- APL Functional Symbol I-Beam
+	key <AB08> { [	U235E,		U236A	] }; // ,: ⍞ ⍪ -- APL Functional Symbol Quote Quad / APL Functional Symbol Comma Bar
+	key <AB09> { [	U234E,		U2359	] }; // .: ⍎ ⍙ -- [See B key] / APL Functional Symbol Delta Underbar
+	key <AB10> { [	U2355,		U233F	] }; // /: ⍕ ⌿ -- [See N key] / APL Functional Symbol Slash Bar
 
-	// Q
-	key <AD01> { [	NoSymbol,	U00BF	] }; // ¿ -- Inverted Question Mark
-	// W
-	key <AD02> { [	NoSymbol,	U233D	] }; // ⌽ -- APL Functional Symbol Circle Stile
-	// E
-	key <AD03> { [	NoSymbol,	U2377	] }; // ⍷ -- APL Functional Symbol Epsilon Underbar
-	// T
-	key <AD05> { [	NoSymbol,	U2349	] }; // ⍉ -- APL Functional Symbol Circle Backslash
-	// I
-	key <AD08> { [	NoSymbol,	U2378	] }; // ⍸ -- APL Functional Symbol Iota Underbar
-	// O
-	key <AD09> { [	NoSymbol,	U2365	] }; // ⍥ -- APL Functional Symbol Circle Diaeresis
-	// P
-	key <AD10> { [	NoSymbol,	U235F	] }; // ⍟ -- APL Functional Symbol Circle Star
+	key <AC01> { [	NoSymbol,	U2296	] }; // A: ⊖ -- Circled Minus
+	key <AC04> { [	NoSymbol,	U236B	] }; // F: ⍫ -- APL Functional Symbol Del Tilde
+	key <AC05> { [	NoSymbol,	U2352	] }; // G: ∇ ⍒ -- APL Functional Symbol Del Stile
+	key <AC06> { [	NoSymbol,	U234B	] }; // H: ∆ ⍋ -- APL Functional Symbol Delta Stile
+	key <AC07> { [	NoSymbol,	U2364	] }; // J: ⍤ -- APL Functional Symbol Jot Diaeresis
+	key <AC08> { [	NoSymbol,	U233B	] }; // K: ⌻
+	key <AC09> { [	NoSymbol,	U235E	] }; // L: ⍞ -- APL Functional Symbol Quote Quad
+	key <AC10> { [	U22A2			] }; // ;: ⊢ -- Right Tack
+	key <AC11> { [	U22A3			] }; // ': ⊣ -- Left Tack
 
-	// A
-	key <AC01> { [	NoSymbol,	U2296	] }; // ⊖ -- Circled Minus
-	// F
-	key <AC04> { [	NoSymbol,	U236B	] }; // ⍫ -- APL Functional Symbol Del Tilde
-	// G
-	key <AC05> { [	NoSymbol,	U2352	] }; // ∇ ⍒ -- APL Functional Symbol Del Stile
-	// H
-	key <AC06> { [	NoSymbol,	U234B	] }; // ∆ ⍋ -- APL Functional Symbol Delta Stile
-	// J
-	key <AC07> { [	NoSymbol,	U2364	] }; // ⍤ -- APL Functional Symbol Jot Diaeresis
-	// K
-	key <AC08> { [	NoSymbol,	U233B	] }; // ⌻
-	// L
-	key <AC09> { [	NoSymbol,	U235E	] }; // ⍞ -- APL Functional Symbol Quote Quad
-	// ;
-	key <AC10> { [	U22A2	] }; // ⊢ -- Right Tack
-	// '
-	key <AC11> { [	U22A3	] }; // ⊣ -- Left Tack
+	key <AD01> { [	NoSymbol,	U00BF	] }; // Q: ¿ -- Inverted Question Mark
+	key <AD02> { [	NoSymbol,	U233D	] }; // W: ⌽ -- APL Functional Symbol Circle Stile
+	key <AD03> { [	NoSymbol,	U2377	] }; // E: ⍷ -- APL Functional Symbol Epsilon Underbar
+	key <AD05> { [	NoSymbol,	U2349	] }; // T: ⍉ -- APL Functional Symbol Circle Backslash
+	key <AD08> { [	NoSymbol,	U2378	] }; // I: ⍸ -- APL Functional Symbol Iota Underbar
+	key <AD09> { [	NoSymbol,	U2365	] }; // O: ⍥ -- APL Functional Symbol Circle Diaeresis
+	key <AD10> { [	NoSymbol,	U235F	] }; // P: ⍟ -- APL Functional Symbol Circle Star
+	key <AE01> { [	NoSymbol,	U00A1	] }; // 1: ¡ -- Inverted Exclamation Mark
+	key <AE04> { [	NoSymbol,	cent	] }; // 4:
+	key <AE08> { [	NoSymbol,	U2342	] }; // 8: ⍂ -- APL Functional Symbol Quad Backslash
+	key <AE11> { [	NoSymbol,	U2261	] }; // -: ≡ -- Identical To
 
-	// C
-	key <AB03> { [	NoSymbol,	U235D	] }; // ⍝ -- APL Functional Symbol Up Shoe Jot
-	// B
-	key <AB05> { [	NoSymbol,	U234E	] }; // ⍎ -- APL Functional Symbol Down Tack Jot (Unicode got the name wrong; it should have been "Up Tack")
-	// N
-	key <AB06> { [	NoSymbol,	U2355	] }; // ⍕ -- APL Functional Symbol Up Tack Jot (Unicode got the name wrong; it should have been "Down Tack")
-	// M
-	key <AB07> { [	NoSymbol,	U2336	] }; // ⌶ -- APL Functional Symbol I-Beam
-	// ,
-	key <AB08> { [	U235E,	U236A	] }; // ⍞ ⍪ -- APL Functional Symbol Quote Quad / APL Functional Symbol Comma Bar
-	// .
-	key <AB09> { [	U234E,	U2359	] }; // ⍎ ⍙ -- [See B key] / APL Functional Symbol Delta Underbar
-	// /
-	key <AB10> { [	U2355,	U233F	] }; // ⍕ ⌿ -- [See N key] / APL Functional Symbol Slash Bar
-
-	key <BKSL> { [	U235D,	U2340	] }; // ⍝ ⍀ -- APL Functional Symbol Up Shoe Jot / APL Functional Symbol Backslash Bar
+	key <BKSL> { [	U235D,		U2340	] }; // \: ⍝ ⍀ -- APL Functional Symbol Up Shoe Jot / APL Functional Symbol Backslash Bar
 };
 
 // Layout: http://www.wickensonline.co.uk/apl-unicomp.html
-partial alphanumeric_keys modifier_keys 
+
+// ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
+// │  ⍂  │ ⌶   │ ⍫   │ ⍒   │ ⍋   │ ⌽   │ ⍉   │ ⊖   │ ⍟   │ ⍱   │ ⍲   │  !  │  ⌹  ┃         ┃
+// │  ⌻  │     │     │     │     │     │     │     │     │     │     │  -  │  ÷  ┃         ┃
+// │     │ ¨   │ ¯   │ <   │ ≤   │ =   │ ≥   │ >   │ ≠   │ ∨   │ ∧   │  +  │  ×  ┃         ┃
+// ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
+// ┃       ┃     │     │     │     │     │     │     │     │     │     │ ⍞   │  ⍙  ┃       ┃
+// ┃       ┃     │     │     │     │     │     │     │     │     │     │ →   │  ⍸  ┃       ┃
+// ┃       ┃ ?   │ ⍵   │ ∊   │ ⍴   │ ~   │ ↑   │ ↓   │ ⍳   │ ○   │ *   │ ←   │  ⌷  ┃       ┃
+// ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
+// ┃        ┃     │     │     │     │     │     │     │     │     │  ⍎  │  ⍕  │  ⍤  ┃      ┃
+// ┃        ┃     │     │     │     │     │     │     │     │     │  (  │  )  │  ⍷  ┃      ┃
+// ┃        ┃ ⍺   │ ⌈   │ ⌊   │ _   │ ∇   │ ∆   │ ∘   │ '   │ ⎕   │  [  │  ]  │  ≡  ┃      ┃
+// ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
+// ┃       ┃     │     │     │     │     │     │     │     │  ⍝  │  ⍀  │  ⌿  ┃             ┃
+// ┃       ┃     │     │     │     │     │     │     │     │  ;  │  :  │  \  ┃             ┃
+// ┃       ┃     │ ⊂   │ ⊃   │ ∩   │ ∪   │ ⊥   │ ⊤   │ |   │  ,  │  .  │  /  ┃             ┃
+// ┣━━━━━━━╋━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
+
+partial alphanumeric_keys
 xkb_symbols "apl2" {
 	name[Group1]= "APL Keyboard Symbols: IBM APL2";
 
 	include "apl(common)"
 
 	// The first column is NoSymbol because it inherits.  The second is NoSymbol because those keys don't do anything
+	// AFS - short for APL Functional Symbol
 
-	// `
-	key <TLDE> { [	NoSymbol,	U233B,	U2342	] }; // ⌻ ⍂ -- 
-	key <AE01> { [	NoSymbol, NoSymbol, U2336	] }; // ⌶ -- APL Functional Symbol I-Beam
-	key <AE02> { [	NoSymbol, NoSymbol,	U236B	] }; // ⍫ -- APL Functional Symbol Del Tilde
-	key <AE03> { [	NoSymbol, NoSymbol,	U2353	] }; // ⍒ -- APL Functional Symbol Del Stile
-	key <AE04> { [	NoSymbol, NoSymbol,	U234B	] }; // ⍋ -- APL Functional Symbol Delta Stile
-	key <AE05> { [	NoSymbol, NoSymbol,	U233D	] }; // ⌽ -- APL Functional Symbol Circle Stile
-	key <AE06> { [	NoSymbol, NoSymbol,	U2349	] }; // ⍉ -- APL Functional Symbol Circle Backslash
-	key <AE07> { [	NoSymbol, NoSymbol,	U2296	] }; // ⊖ -- Circled Minus
-	key <AE08> { [	NoSymbol, NoSymbol,	U235F	] }; // ⍟ -- APL Functional Symbol Circle Star
-	key <AE09> { [	NoSymbol, NoSymbol,	U2371	] }; // ⍱ -- APL Functional Symbol Down Caret Tilde
-	key <AE10> { [	NoSymbol, NoSymbol,	U2372	] }; // ⍲ -- APL Functional Symbol Up Caret Tilde
-	// -
-	key <AE11> { [	plus,	minus,	exclam	] };
-	// =
-	key <AE12> { [	U00D7,	U00F7,	U2339	] }; // × ÷ ⌹ -- Multiplication Sign / Division Sign / APL Functional Symbol Quad Divide
+	key <AB08> { [	comma,		semicolon,	U235D	] }; // ,: ⍝ -- AFS Up Shoe Jot
+	key <AB09> { [	period,		colon,		U2340	] }; // .: ⍀ -- AFS Backslash Bar
+	key <AB10> { [	slash,		backslash,	U233F	] }; // /: ⌿ -- AFS Slash Bar
 
-	// [
-	key <AD11> { [	NoSymbol,	U2192,	U235E	] }; // (←) → ⍞ -- Rightwards Arrow / APL Functional Symbol Quote Quad
-	// ]
-	key <AD12> { [	U2337,	U2378,	U2359	] }; // ⌷ ⍸ ⍙ -- APL Functional Symbol Squish Quad / APL Functional Symbol Iota Underbar / APL Functional Symbol Delta Underbar
+	key <AC10> { [	bracketleft, 	parenleft,	U234E	] }; // ;: ⍎ -- [See B key in SAX layout]
+	key <AC11> { [	bracketright, 	parenright, 	U2355	] }; // ': ⍕ -- [See N key in SAX layout] 
 
-	// ;
-	key <AC10> { [	bracketleft, parenleft,	U234E	] }; // ⍎ -- [See B key in SAX layout]
-	// '
-	key <AC11> { [	bracketright, parenright, U2355	] }; // ⍕ -- [See N key in SAX layout] 
+	key <AD11> { [	NoSymbol,	U2192,		U235E	] }; // [: (←) → ⍞ -- Rightwards Arrow / AFS Quote Quad
+	key <AD12> { [	U2337,		U2378,		U2359	] }; // ]: ⌷ ⍸ ⍙ -- AFS Squish Quad / AFS Iota Underbar / AFS Delta Underbar
 
-	// ,
-	key <AB08> { [	comma,	semicolon, U235D ] }; // ⍝ -- APL Functional Symbol Up Shoe Jot
-	// .
-	key <AB09> { [	period,	colon,	U2340	] }; // ⍀ -- APL Functional Symbol Backslash Bar
-	// /
-	key <AB10> { [	slash,	backslash, U233F ] }; // ⌿ -- APL Functional Symbol Slash Bar
+	key <AE01> { [	NoSymbol, 	NoSymbol,	U2336	] }; // 1: ⌶ -- AFS I-Beam
+	key <AE02> { [	NoSymbol, 	NoSymbol,	U236B	] }; // 2: ⍫ -- AFS Del Tilde
+	key <AE03> { [	NoSymbol, 	NoSymbol,	U2353	] }; // 3: ⍒ -- AFS Del Stile
+	key <AE04> { [	NoSymbol, 	NoSymbol,	U234B	] }; // 4: ⍋ -- AFS Delta Stile
+	key <AE05> { [	NoSymbol, 	NoSymbol,	U233D	] }; // 5: ⌽ -- AFS Circle Stile
+	key <AE06> { [	NoSymbol, 	NoSymbol,	U2349	] }; // 6: ⍉ -- AFS Circle Backslash
+	key <AE07> { [	NoSymbol, 	NoSymbol,	U2296	] }; // 7: ⊖ -- Circled Minus
+	key <AE08> { [	NoSymbol, 	NoSymbol,	U235F	] }; // 8: ⍟ -- AFS Circle Star
+	key <AE09> { [	NoSymbol, 	NoSymbol,	U2371	] }; // 9: ⍱ -- AFS Down Caret Tilde
+	key <AE10> { [	NoSymbol, 	NoSymbol,	U2372	] }; // 0: ⍲ -- AFS Up Caret Tilde
+	key <AE11> { [	plus,		minus,		exclam	] }; // -:
+	key <AE12> { [	U00D7,		U00F7,		U2339	] }; // =: × ÷ ⌹ -- Multiplication Sign / Division Sign / AFS Quad Divide
 
-	key <BKSL> { [	U2261,	U2377, U2364	] }; // ≡ ⍷ ⍤ -- Identical To / APL Functional Symbol Epsilon Underbar / APL Functional Symbol Jot Diaeresis
+	key <BKSL> { [	U2261,		U2377,		U2364	] }; // \: ≡ ⍷ ⍤ -- Identical To / AFS Epsilon Underbar / AFS Jot Diaeresis
+
+	key <TLDE> { [	NoSymbol,	U233B,		U2342	] }; // `: ⌻ ⍂ -- 
+
+	include "level3(ralt_switch)"
 };
 
-partial alphanumeric_keys modifier_keys 
+// ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
+// │  ⍪  │ ≡   │ ⍫   │ ⍒   │ ⍋   │ ⌽   │ ⍉   │ ⊖   │ ⍟   │ ⍱   │ ⍲   │  !  │  ⌹  ┃         ┃
+// │  ⋄  │     │     │     │     │     │     │     │     │     │     │  -  │  ÷  ┃         ┃
+// │  $  │ ¨   │ ¯   │ <   │ ≤   │ =   │ ≥   │ >   │ ≠   │ ∨   │ ∧   │  +  │  ×  ┃         ┃
+// ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
+// ┃       ┃     │     │     │     │     │     │     │     │     │     │ ⍞   │  ⍬  ┃       ┃
+// ┃       ┃     │     │     │     │     │     │     │     │     │     │ →   │  ⍸  ┃       ┃
+// ┃       ┃ ?   │ ⍵   │ ∊   │ ⍴   │ ~   │ ↑   │ ↓   │ ⍳   │ ○   │ *   │ ←   │  →  ┃       ┃
+// ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
+// ┃        ┃     │     │     │     │     │     │     │     │     │  ⍎  │  ⍕  │  ⍙  ┃      ┃
+// ┃        ┃     │     │     │     │     │     │     │     │     │  (  │  )  │  ⊣  ┃      ┃
+// ┃        ┃ ⍺   │ ⌈   │ ⌊   │ _   │ ∇   │ ∆   │ ∘   │ '   │ ⎕   │  [  │  ]  │  ⊢  ┃      ┃
+// ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
+// ┃       ┃     │     │     │     │     │     │     │     │  ⍝  │  ⍀  │  ⌿  ┃             ┃
+// ┃       ┃     │     │     │     │     │     │     │     │  ;  │  :  │  \  ┃             ┃
+// ┃       ┃     │ ⊂   │ ⊃   │ ∩   │ ∪   │ ⊥   │ ⊤   │ |   │  ,  │  .  │  /  ┃             ┃
+// ┣━━━━━━━╋━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
+
+partial alphanumeric_keys
 xkb_symbols "aplplusII" {
 	name[Group1]= "APL Keyboard Symbols: Manugistics APL*PLUS II";
+	// AFS - short for APL Functional Symbol
 
 	include "apl(apl2)"
 
-	// `
-	key <TLDE> { [	dollar,	U22C4,	U236A	] }; // ⋄ ⍪ -- Diamond Operator / APL Functional Symbol Comma Bar
-	key <AE01> { [	NoSymbol, NoSymbol, U2261	] }; // ≡ -- Identical To
-
-	// [
-	key <AD11> { [	U2190,	NoSymbol,	U235E	] }; // ← ⍞ -- Leftwards Arrow / APL Functional Symbol Quote Quad
-	// ]
-	key <AD12> { [	U2192,	NoSymbol,	U236C	] }; // → ⍬ -- Rightwards Arrow / APL Functional Symbol Zilde
-
-	// ;
-	key <AC10> { [	bracketleft, parenleft,	U234E	] }; // ⍎ -- [See B key in SAX layout]
-	// '
-	key <AC11> { [	bracketright, parenright, U2355	] }; // ⍕ -- [See N key in SAX layout] 
-
-	key <BKSL> { [	U22A3,	U22A2,	U2359	] }; // ⊣ ⊢ ⍙ -- Left Tack / Right Tack / APL Functional Symbol Delta Underbar
+	key <AC10> { [	bracketleft,	parenleft,	U234E	] }; // ;: ⍎ -- [See B key in SAX layout]
+	key <AC11> { [	bracketright,	parenright,	U2355	] }; // ': ⍕ -- [See N key in SAX layout] 
+	key <AD11> { [	U2190,		NoSymbol,	U235E	] }; // [: ← ⍞ -- Leftwards Arrow / AFS Quote Quad
+	key <AD12> { [	U2192,		NoSymbol,	U236C	] }; // ]: → ⍬ -- Rightwards Arrow / AFS Zilde
+	key <AE01> { [	NoSymbol, 	NoSymbol, 	U2261	] }; // 1: ≡ -- Identical To
+	key <BKSL> { [	U22A2,		U22A3,		U2359	] }; // \: ⊢ ⊣ ⍙ -- Left Tack / Right Tack / AFS Delta Underbar
+	key <TLDE> { [	dollar,		U22C4,		U236A	] }; // `: ⋄ ⍪ -- Diamond Operator / AFS Comma Bar
 };
 
 
 // MicroAPL layout: http://aplwiki.com/APLXKeyboardLayouts
 // I didn't do the old-style MicroAPL layout; patches gratefully accepted
-partial alphanumeric_keys modifier_keys 
+
+// ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
+// │ ⍞   │ ⌶   │ ⍫   │ ⍒   │ ⍋   │ ⌽   │ ⍉   │ ⊖   │ ⍟   │ ⍱   │ ⍲   │  !  │  ⌹  ┃         ┃
+// │ ⋄   │ ¨   │ ¯   │ <   │ ≤   │ =   │ ≥   │ >   │ ≠   │ ∨   │ ∧   │  ×  │  ÷  ┃         ┃
+// ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
+// ┃       ┃     │     │     │     │     │     │     │     │     │     │ ⍇   │  ⍈  ┃       ┃
+// ┃       ┃ ?   │ ⍵   │ ∊   │ ⍴   │ ~   │ ↑   │ ↓   │ ⍳   │ ○   │ *   │ ←   │  →  ┃       ┃
+// ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
+// ┃        ┃     │     │     │     │     │     │     │     │     │  ≡  │  ≢  │  ⊣  ┃      ┃
+// ┃        ┃ ⍺   │ ⌈   │ ⌊   │ _   │ ∇   │ ∆   │ ∘   │ '   │ ⎕   │  ⍎  │  ⍕  │  ⊢  ┃      ┃
+// ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
+// ┃       ┃     │     │     │     │     │     │     │     │  ⍪  │  ⍤  │     ┃             ┃
+// ┃       ┃     │ ⊂   │ ⊃   │ ∩   │ ∪   │ ⊥   │ ⊤   │ |   │  ⍝  │  ⍀  │  ⌿  ┃             ┃
+// ┣━━━━━━━╋━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
+
+partial alphanumeric_keys
 xkb_symbols "aplx" {
 	name[Group1]= "APL Keyboard Symbols: APLX Unified APL Layout";
 
 	include "apl(unified)"
 
-	// `
-	key <TLDE> { [	NoSymbol,	U235E	] }; // ⍞ -- APL Functional Symbol Quote Quad
-	key <AE01> { [	NoSymbol,	U2336	] }; // ⌶ -- APL Functional Symbol I-Beam
-	key <AE02> { [	NoSymbol,	U236B	] }; // ⍫ -- APL Functional Symbol Del Tilde
-	key <AE03> { [	NoSymbol,	U2353	] }; // ⍒ -- APL Functional Symbol Del Stile
-	key <AE04> { [	NoSymbol,	U234B	] }; // ⍋ -- APL Functional Symbol Delta Stile
-	key <AE05> { [	NoSymbol,	U233D	] }; // ⌽ -- APL Functional Symbol Circle Stile
-	key <AE06> { [	NoSymbol,	U2349	] }; // ⍉ -- APL Functional Symbol Circle Backslash
-	key <AE07> { [	NoSymbol,	U2296	] }; // ⊖ -- Circled Minus
-	key <AE08> { [	NoSymbol,	U235F	] }; // ⍟ -- APL Functional Symbol Circle Star
-	// -
-	key <AE11> { [	NoSymbol,	exclam ] };
+	key <AB08> { [	U235D,		U236A	] }; // ,: ⍝ ⍪ -- APL Functional Symbol Up Shoe Jot / APL Functional Symbol Comma Bar
+	key <AB09> { [	U2340,		U2364	] }; // .: ⍀ ⍤ -- APL Functional Symbol Backslash Bar / APL Functional Symbol Jot Diaeresis
+	key <AB10> { [	U233F 			] }; // /: ⌿ -- APL Functional Symbol Slash Bar
 
-	// [
-	key <AD11> { [	NoSymbol,	U2347	] }; // ⍇ -- Box With Left Arrow
-	// ]
-	key <AD12> { [	NoSymbol,	U2348	] }; // ⍈ -- Box With Right Arrow
+	key <AC10> { [	U234E,		U2261	] }; // ;: ⍎ ≡ -- [See B key in SAX layout] / Identical To
+	key <AC11> { [	U2355,		U2262	] }; // ': ⍕ ≢ -- [See N key in SAX layout] / Not Identical To
 
-	// ;
-	key <AC10> { [	U234E,	U2261	] }; // ⍎ ≡ -- [See B key in SAX layout] / Identical To
-	// '
-	key <AC11> { [	U2355,	U2262	] }; // ⍕ ≢ -- [See N key in SAX layout] / Not Identical To
+	key <AD11> { [	NoSymbol,	U2347	] }; // [: ⍇ -- Box With Left Arrow
+	key <AD12> { [	NoSymbol,	U2348	] }; // ]: ⍈ -- Box With Right Arrow
 
-	// ,
-	key <AB08> { [	U235D,	U236A	] }; // ⍝ ⍪ -- APL Functional Symbol Up Shoe Jot / APL Functional Symbol Comma Bar
-	// .
-	key <AB09> { [	U2340,	U2364	] }; // ⍀ ⍤ -- APL Functional Symbol Backslash Bar / APL Functional Symbol Jot Diaeresis
-	// /
-	key <AB10> { [	U233F ] }; // ⌿ -- APL Functional Symbol Slash Bar
+	key <AE01> { [	NoSymbol,	U2336	] }; // 1: ⌶ -- APL Functional Symbol I-Beam
+	key <AE02> { [	NoSymbol,	U236B	] }; // 2: ⍫ -- APL Functional Symbol Del Tilde
+	key <AE03> { [	NoSymbol,	U2353	] }; // 3: ⍒ -- APL Functional Symbol Del Stile
+	key <AE04> { [	NoSymbol,	U234B	] }; // 4: ⍋ -- APL Functional Symbol Delta Stile
+	key <AE05> { [	NoSymbol,	U233D	] }; // 5: ⌽ -- APL Functional Symbol Circle Stile
+	key <AE06> { [	NoSymbol,	U2349	] }; // 6: ⍉ -- APL Functional Symbol Circle Backslash
+	key <AE07> { [	NoSymbol,	U2296	] }; // 7: ⊖ -- Circled Minus
+	key <AE08> { [	NoSymbol,	U235F	] }; // 8: ⍟ -- APL Functional Symbol Circle Star
+	key <AE11> { [	NoSymbol,	exclam 	] }; // -:
 
-	key <BKSL> { [	U22A3,	U22A3	] }; // ⊣ ⊢ -- Left Tack / Right Tack
+	key <BKSL> { [	U22A2,		U22A3	] }; // \: ⊢ ⊣ -- Right Tack / Left Tack
+
+	key <TLDE> { [	NoSymbol,	U235E	] }; // `: ⍞ -- APL Functional Symbol Quote Quad
 };
+
+// APL language support for the Dyalog keyboard.
+// Dyalog Ltd sell this keyboard with APL engravings. The current model is 
+// engraved on a Cherry G80. Base languages for US, UK and DK are availible.
+
+// Geoff Streeter, Dyalog Ltd. 2007-09-03
+// geoff@dyalog.com
+// extended for APL special actions 2008-09-09
+// add variant 2010-11-26
+
+// The intention is that this keyboard layout overlays a base keyboard that provides 
+// the alphabet and similar. If this keyboard is placed as the 2nd layout then it can
+// be reached with a latching shift to increase group by one.
+
+partial alphanumeric_keys
+xkb_symbols "dyalog_base" {
+	name[Group1]="APL";
+
+
+// ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
+// │     │ ⌶   │ ⍫   │ ⍒   │ ⍋   │ ⌽   │ ⍉   │ ⊖   │ ⍟   │ ⍱   │ ⍲   │ !   │ ⌹   ┃         ┃
+// │ ⋄   │ ¨   │ ¯   │ <   │ ≤   │ =   │ ≥   │ >   │ ≠   │ ∨   │ ∧   │ ×   │ ÷   ┃         ┃
+// ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
+// ┃       ┃     │     │ ⍷   │     │ ⍨   │     │     │ ⍸   │ ⍥   │ ⍣   │ ⍞   │ ⍬   ┃       ┃
+// ┃       ┃ ?   │ ⍵   │ ∊   │ ⍴   │ ~   │ ↑   │ ↓   │ ⍳   │ ○   │ *   │ ←   │ →   ┃       ┃
+// ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
+// ┃        ┃     │     │     │     │     │     │ ⍤   │     │ ⌷   │ ≡   │ ≢   │ ⊣   ┃      ┃
+// ┃        ┃ ⍺   │ ⌈   │ ⌊   │ _   │ ∇   │ ∆   │ ∘   │ '   │ ⎕   │ ⍎   │ ⍕   │ ⊢   ┃      ┃
+// ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
+// ┃       ┃     │     │     │     │     │     │     │     │ ⍪   │ ⍙   │ ⍠   ┃             ┃
+// ┃       ┃     │ ⊂   │ ⊃   │ ∩   │ ∪   │ ⊥   │ ⊤   │ |   │ ⍝   │ ⍀   │ ⌿   ┃             ┃
+// ┣━━━━━━━╋━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
+// ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
+
+
+	key <AB01> { [ U2282			] };	// subset of
+	key <AB02> { [ U2283			] };	// superset of
+	key <AB03> { [ U2229			] };	// intersection
+	key <AB04> { [ U222A			] };	// union
+	key <AB05> { [ U22a5			] };	// up tack
+	key <AB06> { [ U22a4			] };	// down tack
+	key <AB07> { [ U007c			] };	// vertical line
+	key <AB08> { [ U235d,		U236a	] };	// up shoe jot, comma bar
+	key <AB09> { [ U2340,		U2359	] };	// backslash bar, delta underbar
+	key <AB10> { [ U233f,		U2360	] };	// slash bar, quad colon
+	key <AC01> { [ U237a			] };	// alpha
+	key <AC02> { [ U2308			] };	// left ceiling
+	key <AC03> { [ U230a			] };	// left floor
+	key <AC04> { [ underscore		] };	// low line
+	key <AC05> { [ U2207			] };	// nabla
+	key <AC06> { [ U2206			] };	// increment
+	key <AC07> { [ U2218,		U2364	] };	// ring operator, jot diaeresis
+	key <AC08> { [ apostrophe		] };
+	key <AC09> { [ U2395,		U2337	] };	// quad, squish quad
+	key <AC10> { [ U234e,		U2261	] };	// up tack jot, identical to
+	key <AC11> { [ U2355,		U2262	] };	// down tack jot,  not identical to
+	key <AD01> { [ question			] };
+	key <AD02> { [ U2375			] };	// omega
+	key <AD03> { [ U220a,		U2377	] };	// small element of, epsilon underbar
+	key <AD04> { [ U2374			] };	// rho
+	key <AD05> { [ asciitilde,	U2368	] };	// tilde, tilde diaeresis
+	key <AD06> { [ U2191			] };	// upwards arrow
+	key <AD07> { [ U2193			] };	// downwards arrow
+	key <AD08> { [ U2373,		U2378	] };	// iota, iota underbar
+	key <AD09> { [ U25cb,		U2365	] };	// circle, circle diaeresis
+	key <AD10> { [ asterisk,	U2363	] };	// asterisk, star diaeresis
+	key <AD11> { [ U2190,		U235e	] };	// left arrow, quote quad
+	key <AD12> { [ U2192,		U236c	] };	// right arrow, zilde
+	key <AE01> { [ diaeresis,	U2336	] };	// i-beam
+	key <AE02> { [ overbar,		U236B	] };	// deltilde
+	key <AE03> { [ less,		U2352	] };	// downgrade
+	key <AE04> { [ U2264,		U234b	] };	// lesseq upgrade
+	key <AE05> { [ equal,		U233d	] };	// circlestile
+	key <AE06> { [ U2265,		U2349	] };	// greatereq circleslope
+	key <AE07> { [ greater,		U2296	] };	// circlebar
+	key <AE08> { [ U2260,		U235f	] };	// notequal, circlestar
+	key <AE09> { [ U2228,		U2371	] };	// logical or, down caret tilde
+	key <AE10> { [ U2227,		U2372	] };	// logical and, up caret tilde
+	key <AE11> { [ multiply,	exclam	] };
+	key <AE12> { [ division,	U2339	] };	//  quad divide
+	key <BKSL> { [ U22a2,		U22a3	] };	// right tack, left tack
+	key <TLDE> { [ U22c4			] };	// diamond
+};
+
+partial keypad_keys
+xkb_symbols "dyalog_box" {
+	name[Group1]="Dyalog box";
+
+// ┌───┬───┬───┬───┐
+// │   │   │   │   │
+// ├───┼───┼───┼───┤
+// │ ┌ │ ┬ │ ┐ │   │
+// ├───┼───┼───┤   │
+// │ ├ │ ┼ │ ┤ │   │
+// ├───┼───┼───┼───┤
+// │ └ │ ┴ │ ┘ │   │
+// ├───┴───┼───┤   │
+// │   ─   │ │ │   │
+// └───────┴───┴───┘
+
+	key <KP0>  { [ U2500 ] };	// box drawing light horizontal
+	key <KP1>  { [ U2514 ] };	// box drawing light up and right
+	key <KP2>  { [ U2534 ] };	// box drawing light up and horizontal
+	key <KP3>  { [ U2518 ] };	// box drawing light up and left
+	key <KP4>  { [ U251c ] };	// box drawing light veritcal and right
+	key <KP5>  { [ U253c ] };	// box drawing light veritcal and horizontal
+	key <KP6>  { [ U2524 ] };	// box drawing light veritcal and left
+	key <KP7>  { [ U250c ] };	// box drawing light down and right
+	key <KP8>  { [ U252c ] };	// box drawing light down and horizontal
+	key <KP9>  { [ U2510 ] };	// box drawing light down and left
+	key <KPDL> { [ U2502 ] };	// box drawing light vertical
+
+}; 
+
+xkb_symbols "dyalog_codes" {
+	name[Group1]="Dyalog Codes";
+
+//	Layout of private use area for this. In the style of the Unicode book
+//
+//				APL special actions		F800-F88F
+//
+//	│F800 F810 F820 F830 F840 F850 F860 F870 F880
+//	├────┬────┬────┬────┬────┬────┬────┬────┬────┐
+//     0│QT  │LL  │BK  │FX  │Rc  │BP  │PA  │    │    │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     1│ER  │HO  │ZM  │LN  │LW  │AB  │    │    │    │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     2│TB  │CT  │SC  │MC  │RW  │HT  │    │    │    │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     3│BT  │PT  │RP  │MR  │Lw  │TH  │    │    │    │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     4│EP  │IN  │NX  │JP  │Rw  │RM  │    │    │    │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     5│UC  │II  │PV  │D1  │Uc  │CB  │    │    │    │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     6│DC  │DI  │RT  │D2  │Dc  │PR  │    │    │TO  │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     7│RC  │DP  │RA  │D3  │Ll  │SR  │    │    │MO  │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     8│LC  │DB  │ED  │D4  │Rl  │    │    │    │    │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     9│US  │RD  │TC  │D5  │Ul  │TL  │    │    │    │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     A│DS  │TG  │NB  │U1  │Dl  │UA  │    │    │    │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     B│RS  │DK  │NS  │U2  │Us  │AO  │    │    │    │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     C│LS  │OP  │ST  │U3  │Ds  │DO  │    │    │    │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     D│UL  │CP  │EN  │U4  │DD  │GL  │    │    │S1  │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     E│DL  │MV  │IF  │U5  │DH  │CH  │    │    │S2  │
+//	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
+//     F│RL  │FD  │HK  │Lc  │BH  │PU  │    │    │OS  │
+//	└────┴────┴────┴────┴────┴────┴────┴────┴────┘
+//
+//				APL Function Keys		F700-F7FF
+//
+//	│F700 ...                           ...  F7F0
+//	├────┬────┬────┬────┬....┬────┬────┬────┬────┐
+//     0│F0  │F16 │F32 │F48 │    │F192│F208│F224│F240│
+//	.
+//	.
+//	.
+//     F│F15 │F31 │F47 │F63 │    │F207│F223│F239│F255│
+//	└────┴────┴────┴────┴....┴────┴────┴────┴────┘
+//	
+//	whilst these locations are defined. Dyalog's "aplkeys/xterm" file copes with
+//	normal function keys from the base keyboard rather than this overlay
+
+// ┌─────┐                                                                       ┌───┐
+// │     │                                                                       │ZM │
+// │ QT  │                                                                       │ZM │
+// └─────┘                                                                       └───┘
+
+// ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
+// │     │     │     │     │     │     │     │     │     │     │     │     │     ┃   CB    ┃
+// │     │     │     │     │     │     │     │     │     │     │     │     │     ┃   BP    ┃
+// ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
+// ┃ BT    ┃     │     │     │     │     │     │     │     │     │     │     │     ┃       ┃
+// ┃ TB    ┃     │     │     │     │     │     │     │     │     │     │     │     ┃       ┃
+// ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
+// ┃        ┃     │     │     │     │     │     │     │     │     │     │     │     ┃ TC   ┃
+// ┃        ┃     │     │     │     │     │     │     │     │     │     │     │     ┃ ED   ┃
+// ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
+// ┃       ┃     │     │     │     │     │     │     │     │     │     │     ┃             ┃
+// ┃       ┃     │     │     │     │     │     │     │     │     │     │     ┃             ┃
+// ┣━━━━━━━╋━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
+// ┃       ┃       ┃       ┃              MO                   ┃       ┃       ┃       ┃
+// ┃       ┃       ┃       ┃              TO                   ┃       ┃       ┃       ┃
+// ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
+
+
+	key <BKSP> { [ Uf850,	Uf855	] };	// BP CB
+	key <ESC>  { [ Uf800		] };	// QT
+	key <FK11> { [ Uf821,	Uf821	] };	// ZM, ZM put this on both, the unshifted one sometimes gets lost
+	key <RTRN> { [ Uf828,	Uf829	] };	// ED, TC
+	key <SPCE> { [ Uf886,	Uf887	] };	// TO, MO
+	key <TAB>  { [ Uf802,	Uf803	] };	// TB, BT
+
+//      ┌─────┐
+//      │     │
+//      │ BK  │
+// ┌────┼─────┼────┐
+// │ BH │     │ RM │
+// │ PV │ FD  │ NX │
+// └────┴─────┴────┘
+
+	key <DOWN> { [ Uf81f		] };	// FD
+	key <LEFT> { [ Uf825,	Uf84f	] };	// PV, BH
+	key <RGHT> { [ Uf824,	Uf854	] };	// NX, RM
+	key <UP>   { [ Uf820		] };	// BK
+
+
+// ┌───┬───┬───┐
+// │PT │LL │UL │
+// │CP │LS │US │
+// ├───┼───┼───┤
+// │CT │RL │DL │
+// │DK │RS │DS │
+// └───┴───┴───┘
+
+	key <DELE> { [ Uf81b, Uf812 ] };	// DK, CT
+	key <END>  { [ Uf80b, Uf80f ] };	// RS, RL
+	key <HOME> { [ Uf80c, Uf810 ] };	// LS, LL
+	key <INS>  { [ Uf81d, Uf813 ] };	// CP, PT
+	key <PGDN> { [ Uf80a, Uf80e ] };	// DS, DL
+	key <PGUP> { [ Uf809, Uf80d ] };	// US, UL
+
+// ┌───┬───┬───┬───┐
+// │   │RD │TG │LN │
+// ├───┼───┼───┼───┤
+// │   │   │   │   │
+// ├───┼───┼───┤TL │
+// │   │   │   │   │
+// ├───┼───┼───┼───┤
+// │   │   │   │   │
+// ├───┴───┼───┤   │
+// │       │   │   │
+// └───────┴───┴───┘
+
+
+	key <KPAD> { [ Uf859 ] };	// TL
+	key <KPDV> { [ Uf819 ] };	// RD
+	key <KPMU> { [ Uf81a ] };	// TG
+	key <KPSU> { [ Uf831 ] };	// LN
+};
+
+xkb_symbols "dyalog" {
+	include "apl(dyalog_base)"
+	include "apl(dyalog_box)"
+	include "apl(dyalog_codes)"
+	name[Group1] = "Dyalog APL complete";
+};
+
