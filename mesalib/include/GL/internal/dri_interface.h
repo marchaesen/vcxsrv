@@ -55,6 +55,8 @@ typedef unsigned int drm_drawable_t;
 typedef struct drm_clip_rect drm_clip_rect_t;
 #endif
 
+#include <stdint.h>
+
 /**
  * \name DRI interface structures
  *
