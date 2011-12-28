@@ -85,51 +85,6 @@ xkb_symbols "shifts_toggle" {
     key <RTSH>	{	[	Shift_R,	ISO_Next_Group ]	};
 };
 
-// using the group(ctrl_shift_toggle) map, pressing:
-//     Control_L+Shift_L locks the previous group
-//     Control_R+Shift_R locks the next group
-// If you have two groups and group wrap is enabled, the effect is
-// indistinguishable.
-partial modifier_keys 
-xkb_symbols "ctrl_shift_toggle" {
-    key <LFSH> {
-	type[Group1]="PC_CONTROL_LEVEL2",
-	symbols[Group1]= [ Shift_L,	ISO_Prev_Group ]
-    };
-    key <RTSH> {
-	type[Group1]="PC_CONTROL_LEVEL2",
-	symbols[Group1]= [ Shift_R,	ISO_Next_Group ]
-    };
-    key <LCTL>	{	[	Control_L,	ISO_Prev_Group ]	};
-    key <RCTL>	{	[	Control_R,	ISO_Next_Group ]	};
-};
-
-// using the group(lctrl_lshift_toggle) map, pressing:
-//     Control_L+Shift_L locks the next group
-// If you have two groups and group wrap is enabled, the effect is
-// indistinguishable.
-partial modifier_keys 
-xkb_symbols "lctrl_lshift_toggle" {
-    key <LFSH> {
-	type[Group1]="PC_CONTROL_LEVEL2",
-	symbols[Group1]= [ Shift_L,	ISO_Next_Group ]
-    };
-    key <LCTL>	{	[	Control_L,	ISO_Next_Group ]	};
-};
-
-// using the group(rctrl_rshift_toggle) map, pressing:
-//     Control_R+Shift_R locks the next group
-// If you have two groups and group wrap is enabled, the effect is
-// indistinguishable.
-partial modifier_keys
-xkb_symbols "rctrl_rshift_toggle" {
-    key <RTSH> {
-    type[Group1]="PC_CONTROL_LEVEL2",
-    symbols[Group1]= [ Shift_R, ISO_Next_Group ]
-    };
-    key <RCTL>  {   [   Control_R,  ISO_Next_Group ]    };
-};
-
 // using the group(shift_caps_toggle) map, pressing:
 //     Shift+Caps Lock toggles group
 partial modifier_keys
@@ -181,59 +136,162 @@ xkb_symbols "lctrl_rctrl_switch" {
     };
 };
 
-// using the group(ctrl_alt_toggle) map, pressing:
-//     Control_L+Alt_L locks the previous group
-//     Control_R+Alt_R locks the next group
-// If you have two groups and group wrap is enabled, the effect is
-// indistinguishable.
+
+//
+// CTRL-SHIFT toggle section
+//
 partial modifier_keys 
-xkb_symbols "ctrl_alt_toggle" {
+xkb_symbols "lctrl_lshift_toggle" {
+    key <LFSH> {
+        type[Group1]="PC_CONTROL_LEVEL2",
+        symbols[Group1]= [ Shift_L, ISO_Next_Group ]
+    };
+    key <LCTL> { [ Control_L, ISO_Next_Group ] };
+};
+
+partial modifier_keys 
+xkb_symbols "lctrl_lshift_toggle_rev" {
+    key <LFSH> {
+        type[Group1]="PC_CONTROL_LEVEL2",
+        symbols[Group1]= [ Shift_L, ISO_Prev_Group ]
+    };
+    key <LCTL> { [ Control_L, ISO_Prev_Group ] };
+};
+
+partial modifier_keys
+xkb_symbols "rctrl_rshift_toggle" {
+    key <RTSH> {
+        type[Group1]="PC_CONTROL_LEVEL2",
+        symbols[Group1]= [ Shift_R, ISO_Next_Group ]
+    };
+    key <RCTL> { [ Control_R, ISO_Next_Group ] };
+};
+
+partial modifier_keys 
+xkb_symbols "ctrl_shift_toggle" {
+    include "group(lctrl_lshift_toggle)"
+    include "group(rctrl_rshift_toggle)"
+};
+
+partial modifier_keys 
+xkb_symbols "ctrl_shift_toggle_bidir" {
+    include "group(lctrl_lshift_toggle_rev)"
+    include "group(rctrl_rshift_toggle)"
+};
+
+
+//
+// CTRL-ALT toggle section
+//
+partial modifier_keys
+xkb_symbols "lctrl_lalt_toggle" {
     virtual_modifiers Alt;
     key <LALT> {
-	type[Group1]="PC_CONTROL_LEVEL2",
-	symbols[Group1]= [ NoSymbol,	ISO_Prev_Group ],
-	virtualMods= Alt
-    };
-    key <RALT> {
-	type[Group1]="PC_CONTROL_LEVEL2",
-	symbols[Group1]= [ NoSymbol,	ISO_Next_Group ],
-	virtualMods= Alt
+        type[Group1]="PC_CONTROL_LEVEL2",
+        symbols[Group1]= [ NoSymbol,    ISO_Next_Group ],
+        virtualMods= Alt
     };
     key <LCTL> {
-	type[Group1]="PC_ALT_LEVEL2",
-	symbols[Group1]= [ Control_L,	ISO_Prev_Group ]
-    };
-    key <RCTL> {
-	type[Group1]="PC_ALT_LEVEL2",
-	symbols[Group1]= [ Control_R,	ISO_Next_Group ]
+        type[Group1]="PC_ALT_LEVEL2",
+        symbols[Group1]= [ Control_L,   ISO_Next_Group ]
     };
 };
 
-// using the group(alt_shift_toggle) map, pressing:
-//     Shift_L+Alt_L locks the previous group
-//     Shift_R+Alt_R locks the next group
-// If you have two groups and group wrap is enabled, the effect is
-// indistinguishable.
-partial modifier_keys 
-xkb_symbols "alt_shift_toggle" {
+partial modifier_keys
+xkb_symbols "lctrl_lalt_toggle_rev" {
     virtual_modifiers Alt;
     key <LALT> {
-	symbols[Group1]= [ NoSymbol,	ISO_Prev_Group ],
-	virtualMods= Alt
+        type[Group1]="PC_CONTROL_LEVEL2",
+        symbols[Group1]= [ NoSymbol,    ISO_Prev_Group ],
+        virtualMods= Alt
     };
-    key <RALT> {
-	symbols[Group1]= [ NoSymbol,	ISO_Next_Group ],
-	virtualMods= Alt
-    };
-    key <LFSH> {
-	type[Group1]="PC_ALT_LEVEL2",
-	symbols[Group1]= [ Shift_L,	ISO_Prev_Group ]
-    };
-    key <RTSH> {
-	type[Group1]="PC_ALT_LEVEL2",
-	symbols[Group1]= [ Shift_R,	ISO_Next_Group ]
+    key <LCTL> {
+        type[Group1]="PC_ALT_LEVEL2",
+        symbols[Group1]= [ Control_L,   ISO_Prev_Group ]
     };
 };
+
+partial modifier_keys
+xkb_symbols "rctrl_ralt_toggle" {
+    virtual_modifiers Alt;
+    key <RALT> {
+        type[Group1]="PC_CONTROL_LEVEL2",
+        symbols[Group1]= [ NoSymbol,    ISO_Next_Group ],
+        virtualMods= Alt
+    };
+    key <RCTL> {
+        type[Group1]="PC_ALT_LEVEL2",
+        symbols[Group1]= [ Control_R,   ISO_Next_Group ]
+    };
+};
+
+partial modifier_keys 
+xkb_symbols "ctrl_alt_toggle" {
+    include "group(lctrl_lalt_toggle)"
+    include "group(rctrl_ralt_toggle)"
+};
+
+partial modifier_keys 
+xkb_symbols "ctrl_alt_toggle_bidir" {
+    include "group(lctrl_lalt_toggle_rev)"
+    include "group(rctrl_ralt_toggle)"
+};
+
+
+//
+// ALT-SHIFT toggle section
+//
+partial modifier_keys
+xkb_symbols "lalt_lshift_toggle" {
+    virtual_modifiers Alt;
+    key <LALT> {
+        symbols[Group1]= [ NoSymbol,    ISO_Next_Group ],
+        virtualMods= Alt
+    };
+    key <LFSH> {
+        type[Group1]="PC_ALT_LEVEL2",
+        symbols[Group1]= [ Shift_L,     ISO_Next_Group ]
+    };
+};
+
+partial modifier_keys
+xkb_symbols "lalt_lshift_toggle_rev" {
+    virtual_modifiers Alt;
+    key <LALT> {
+        symbols[Group1]= [ NoSymbol,    ISO_Prev_Group ],
+        virtualMods= Alt
+    };
+    key <LFSH> {
+        type[Group1]="PC_ALT_LEVEL2",
+        symbols[Group1]= [ Shift_L,     ISO_Prev_Group ]
+    };
+};
+
+partial modifier_keys
+xkb_symbols "ralt_rshift_toggle" {
+    virtual_modifiers Alt;
+    key <RALT> {
+        symbols[Group1]= [ NoSymbol,    ISO_Next_Group ],
+        virtualMods= Alt
+    };
+    key <RTSH> {
+        type[Group1]="PC_ALT_LEVEL2",
+        symbols[Group1]= [ Shift_R,     ISO_Next_Group ]
+    };
+};
+
+partial modifier_keys 
+xkb_symbols "alt_shift_toggle" {
+    include "group(lalt_lshift_toggle)"
+    include "group(ralt_rshift_toggle)"
+};
+
+partial modifier_keys 
+xkb_symbols "alt_shift_toggle_bidir" {
+    include "group(lalt_lshift_toggle_rev)"
+    include "group(ralt_rshift_toggle)"
+};
+
 
 // using the group(menu_toggle) map, pressing:
 //     Menu key toggles groups

@@ -59,6 +59,11 @@
 #include "os.h"
 #include "dixstruct.h"
 
+#ifdef __sun
+#include <errno.h>
+#include <procfs.h>
+#endif
+
 /**
  * Try to determine a PID for a client from its connection
  * information. This should be called only once when new client has
@@ -117,8 +122,6 @@ void DetermineClientCmd(pid_t pid, const char **cmdname, const char **cmdargs)
 {
     char path[PATH_MAX + 1];
     int totsize = 0;
-    int cmdsize = 0;
-    int argsize = 0;
     int fd = 0;
 
     if (cmdname)
@@ -128,6 +131,48 @@ void DetermineClientCmd(pid_t pid, const char **cmdname, const char **cmdargs)
 
     if (pid == -1)
         return;
+
+#ifdef __sun /* Solaris */
+    /* Solaris does not support /proc/pid/cmdline, but makes information
+     * similar to what ps shows available in a binary structure in the
+     * /proc/pid/psinfo file. */
+    if (snprintf(path, sizeof(path), "/proc/%d/psinfo", pid) < 0)
+        return;
+    fd = open(path, O_RDONLY);
+    if (fd < 0)
+    {
+        ErrorF ("Failed to open %s: %s\n", path, strerror(errno));
+        return;
+    }
+    else
+    {
+        psinfo_t psinfo = { 0 };
+        char *sp;
+
+        totsize = read(fd, &psinfo, sizeof(psinfo_t));
+        close(fd);
+        if (totsize <= 0)
+            return;
+
+        /* pr_psargs is the first PRARGSZ (80) characters of the command
+         * line string - assume up to the first space is the command name,
+         * since it's not delimited.   While there is also pr_fname, that's
+         * more limited, giving only the first 16 chars of the basename of
+         * the file that was exec'ed, thus cutting off many long gnome
+         * command names, or returning "isapython2.6" for all python scripts.
+         */
+        psinfo.pr_psargs[PRARGSZ-1] = '\0';
+        sp = strchr(psinfo.pr_psargs, ' ');
+        if (sp)
+            *sp++ = '\0';
+
+        if (cmdname)
+            *cmdname = strdup(psinfo.pr_psargs);
+
+        if (cmdargs && sp)
+            *cmdargs = strdup(sp);
+    }
+#else /* not Solaris */
 
     /* Check if /proc/pid/cmdline exists. It's not supported on all
      * operating systems. */
@@ -146,17 +191,20 @@ void DetermineClientCmd(pid_t pid, const char **cmdname, const char **cmdargs)
     path[totsize - 1] = '\0';
 
     /* Contruct the process name without arguments. */
-    cmdsize = strlen(path) + 1;
     if (cmdname)
     {
         *cmdname = strdup(path);
     }
 
     /* Construct the arguments for client process. */
-    argsize = totsize - cmdsize;
-    if (cmdargs && (argsize > 0))
+    if (cmdargs)
     {
-        char *args = malloc(argsize);
+        int cmdsize = strlen(path) + 1;
+        int argsize = totsize - cmdsize;
+        char *args = NULL;
+
+        if (argsize > 0)
+            args = malloc(argsize);
         if (args)
         {
             int i = 0;
@@ -169,6 +217,7 @@ void DetermineClientCmd(pid_t pid, const char **cmdname, const char **cmdargs)
             *cmdargs = args;
         }
     }
+#endif
 }
 
 /**
@@ -192,9 +241,9 @@ void ReserveClientIds(struct _Client *client)
         DetermineClientCmd(client->clientIds->pid, &client->clientIds->cmdname, &client->clientIds->cmdargs);
 
     DebugF("client(%lx): Reserved pid(%d).\n",
-           client->clientAsMask, client->clientIds->pid);
+           (unsigned long) client->clientAsMask, client->clientIds->pid);
     DebugF("client(%lx): Reserved cmdname(%s) and cmdargs(%s).\n",
-           client->clientAsMask,
+           (unsigned long) client->clientAsMask,
            client->clientIds->cmdname ? client->clientIds->cmdname : "NULL",
            client->clientIds->cmdargs ? client->clientIds->cmdargs : "NULL");
 #endif /* CLIENTIDS */
@@ -216,9 +265,9 @@ void ReleaseClientIds(struct _Client *client)
         return;
 
     DebugF("client(%lx): Released pid(%d).\n",
-           client->clientAsMask, client->clientIds->pid);
+           (unsigned long) client->clientAsMask, client->clientIds->pid);
     DebugF("client(%lx): Released cmdline(%s) and cmdargs(%s).\n",
-           client->clientAsMask,
+           (unsigned long) client->clientAsMask,
            client->clientIds->cmdname ? client->clientIds->cmdname : "NULL",
            client->clientIds->cmdargs ? client->clientIds->cmdargs : "NULL");
 

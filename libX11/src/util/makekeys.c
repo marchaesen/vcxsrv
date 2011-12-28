@@ -51,7 +51,6 @@ static char tab[KTNUM];
 static unsigned short offsets[KTNUM];
 static unsigned short indexes[KTNUM];
 static KeySym values[KTNUM];
-static char buf[1024];
 static int ksnum = 0;
 
 static int
@@ -112,6 +111,7 @@ main(int argc, char *argv[])
     int num_found;
     KeySym val;
     char key[128], prefix[128];
+    static char buf[1024];
 
     for (l = 1; l < argc; l++) {
         fptr = fopen(argv[l], "r");

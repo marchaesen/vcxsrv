@@ -43,7 +43,6 @@ glapi_sources =					\
 	glapi.c					\
 	glapi.h					\
 	glapi_gentable.c			\
-	glapioffsets.h				\
 	glprocs.h				\
 	glthread.c				\
 	glthread.h
