@@ -5604,6 +5604,12 @@
       </option>
       <option>
         <configItem>
+          <name>grp:lalt_lshift_toggle</name>
+          <_description>Left Alt+Left Shift</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
           <name>grp:alt_space_toggle</name>
           <_description>Alt+Space</_description>
         </configItem>

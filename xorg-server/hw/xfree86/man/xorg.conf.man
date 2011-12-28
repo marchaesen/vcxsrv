@@ -2,7 +2,7 @@
 .ds q \N'34'
 .TH __xconfigfile__ __filemansuffix__ __vendorversion__
 .SH NAME
-__xconfigfile__ and __xconfigdir__ \- configuration files for
+__xconfigfile__, __xconfigdir__ \- configuration files for
 __xservername__ X server
 .SH INTRODUCTION
 .B __xservername__
