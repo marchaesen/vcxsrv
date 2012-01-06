@@ -1817,9 +1817,20 @@ struct prog_instruction;
 struct gl_program_parameter_list;
 struct gl_uniform_list;
 
+struct gl_transform_feedback_varying_info {
+   char *Name;
+   GLenum Type;
+   GLint Size;
+};
+
 /** Post-link transform feedback info. */
 struct gl_transform_feedback_info {
    unsigned NumOutputs;
+
+   /**
+    * Number of transform feedback buffers in use by this program.
+    */
+   unsigned NumBuffers;
 
    struct {
       unsigned OutputRegister;
@@ -1828,7 +1839,21 @@ struct gl_transform_feedback_info {
 
       /** offset (in DWORDs) of this output within the interleaved structure */
       unsigned DstOffset;
+
+      /**
+       * Offset into the output register of the data to output.  For example,
+       * if NumComponents is 2 and ComponentOffset is 1, then the data to
+       * offset is in the y and z components of the output register.
+       */
+      unsigned ComponentOffset;
    } Outputs[MAX_PROGRAM_OUTPUTS];
+
+   /** Transform feedback varyings used for the linking of this shader program.
+    *
+    * Use for glGetTransformFeedbackVarying().
+    */
+   struct gl_transform_feedback_varying_info *Varyings;
+   GLint NumVarying;
 
    /**
     * Total number of components stored in each buffer.  This may be used by
@@ -2222,7 +2247,13 @@ struct gl_shader_program
     */
    struct string_to_uint_map *FragDataBindings;
 
-   /** Transform feedback varyings */
+   /**
+    * Transform feedback varyings last specified by
+    * glTransformFeedbackVaryings().
+    *
+    * For the current set of transform feeedback varyings used for transform
+    * feedback output, see LinkedTransformFeedback.
+    */
    struct {
       GLenum BufferMode;
       GLuint NumVarying;
@@ -2273,7 +2304,6 @@ struct gl_shader_program
    /** Which texture target is being sampled (TEXTURE_1D/2D/3D/etc_INDEX) */
    gl_texture_index SamplerTargets[MAX_SAMPLERS];
 
-   struct gl_program_parameter_list *Varying;
    GLboolean LinkStatus;   /**< GL_LINK_STATUS */
    GLboolean Validated;
    GLboolean _Used;        /**< Ever used for drawing? */

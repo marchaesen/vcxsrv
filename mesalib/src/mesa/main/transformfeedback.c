@@ -342,9 +342,25 @@ void GLAPIENTRY
 _mesa_BeginTransformFeedback(GLenum mode)
 {
    struct gl_transform_feedback_object *obj;
+   struct gl_transform_feedback_info *info;
+   int i;
    GET_CURRENT_CONTEXT(ctx);
 
    obj = ctx->TransformFeedback.CurrentObject;
+
+   if (ctx->Shader.CurrentVertexProgram == NULL) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glBeginTransformFeedback(no program active)");
+      return;
+   }
+
+   info = &ctx->Shader.CurrentVertexProgram->LinkedTransformFeedback;
+
+   if (info->NumOutputs == 0) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glBeginTransformFeedback(no varyings to record)");
+      return;
+   }
 
    switch (mode) {
    case GL_POINTS:
@@ -361,6 +377,15 @@ _mesa_BeginTransformFeedback(GLenum mode)
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glBeginTransformFeedback(already active)");
       return;
+   }
+
+   for (i = 0; i < info->NumBuffers; ++i) {
+      if (obj->BufferNames[i] == 0) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glBeginTransformFeedback(binding point %d does not have "
+                     "a buffer object bound)", i);
+         return;
+      }
    }
 
    FLUSH_VERTICES(ctx, _NEW_TRANSFORM_FEEDBACK);
@@ -461,7 +486,7 @@ _mesa_BindBufferRange(GLenum target, GLuint index,
 
    if ((size <= 0) || (size & 0x3)) {
       /* must be positive and multiple of four */
-      _mesa_error(ctx, GL_INVALID_VALUE, "glBindBufferRange(size%d)", (int) size);
+      _mesa_error(ctx, GL_INVALID_VALUE, "glBindBufferRange(size=%d)", (int) size);
       return;
    }  
 
@@ -569,6 +594,13 @@ _mesa_BindBufferOffsetEXT(GLenum target, GLuint index, GLuint buffer,
       return;
    }
 
+   if (offset & 0x3) {
+      /* must be multiple of four */
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glBindBufferOffsetEXT(offset=%d)", (int) offset);
+      return;
+   }
+
    bufObj = _mesa_lookup_bufferobj(ctx, buffer);
    if (!bufObj) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
@@ -662,8 +694,7 @@ _mesa_GetTransformFeedbackVarying(GLuint program, GLuint index,
                                   GLsizei *size, GLenum *type, GLchar *name)
 {
    const struct gl_shader_program *shProg;
-   const GLchar *varyingName;
-   GLint v;
+   const struct gl_transform_feedback_info *linked_xfb_info;
    GET_CURRENT_CONTEXT(ctx);
 
    shProg = _mesa_lookup_shader_program(ctx, program);
@@ -673,36 +704,22 @@ _mesa_GetTransformFeedbackVarying(GLuint program, GLuint index,
       return;
    }
 
-   if (index >= shProg->TransformFeedback.NumVarying) {
+   linked_xfb_info = &shProg->LinkedTransformFeedback;
+   if (index >= linked_xfb_info->NumVarying) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glGetTransformFeedbackVaryings(index=%u)", index);
       return;
    }
 
-   varyingName = shProg->TransformFeedback.VaryingNames[index];
+   /* return the varying's name and length */
+   _mesa_copy_string(name, bufSize, length,
+		     linked_xfb_info->Varyings[index].Name);
 
-   v = _mesa_lookup_parameter_index(shProg->Varying, -1, varyingName);
-   if (v >= 0) {
-      struct gl_program_parameter *param = &shProg->Varying->Parameters[v];
-
-      /* return the varying's name and length */
-      _mesa_copy_string(name, bufSize, length, varyingName);
-
-      /* return the datatype and value's size (in datatype units) */
-      if (type)
-         *type = param->DataType;
-      if (size)
-         *size = param->Size;
-   }
-   else {
-      name[0] = 0;
-      if (length)
-         *length = 0;
-      if (type)
-         *type = 0;
-      if (size)
-         *size = 0;
-   }
+   /* return the datatype and value's size (in datatype units) */
+   if (type)
+      *type = linked_xfb_info->Varyings[index].Type;
+   if (size)
+      *size = linked_xfb_info->Varyings[index].Size;
 }
 
 

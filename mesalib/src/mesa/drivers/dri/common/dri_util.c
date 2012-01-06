@@ -134,35 +134,98 @@ static const __DRIextension **driGetExtensions(__DRIscreen *psp)
 /*@{*/
 
 static __DRIcontext *
-dri2CreateNewContextForAPI(__DRIscreen *screen, int api,
-			   const __DRIconfig *config,
-			   __DRIcontext *shared, void *data)
+dri2CreateContextAttribs(__DRIscreen *screen, int api,
+			 const __DRIconfig *config,
+			 __DRIcontext *shared,
+			 unsigned num_attribs,
+			 const uint32_t *attribs,
+			 unsigned *error,
+			 void *data)
 {
     __DRIcontext *context;
     const struct gl_config *modes = (config != NULL) ? &config->modes : NULL;
     void *shareCtx = (shared != NULL) ? shared->driverPrivate : NULL;
     gl_api mesa_api;
+    unsigned major_version = 1;
+    unsigned minor_version = 0;
+    uint32_t flags = 0;
 
-    if (!(screen->api_mask & (1 << api)))
+    assert((num_attribs == 0) || (attribs != NULL));
+
+    if (!(screen->api_mask & (1 << api))) {
+	*error = __DRI_CTX_ERROR_BAD_API;
 	return NULL;
+    }
 
     switch (api) {
     case __DRI_API_OPENGL:
-	    mesa_api = API_OPENGL;
-	    break;
+	mesa_api = API_OPENGL;
+	break;
     case __DRI_API_GLES:
-	    mesa_api = API_OPENGLES;
-	    break;
+	mesa_api = API_OPENGLES;
+	break;
     case __DRI_API_GLES2:
-	    mesa_api = API_OPENGLES2;
-	    break;
+	mesa_api = API_OPENGLES2;
+	break;
+    case __DRI_API_OPENGL_CORE:
     default:
+	*error = __DRI_CTX_ERROR_BAD_API;
+	return NULL;
+    }
+
+    if (mesa_api != API_OPENGL && num_attribs != 0) {
+	*error = __DRI_CTX_ERROR_UNKNOWN_ATTRIBUTE;
+	assert(!"Should not get here.");
+	return NULL;
+    }
+
+    for (unsigned i = 0; i < num_attribs; i++) {
+	switch (attribs[i * 2]) {
+	case __DRI_CTX_ATTRIB_MAJOR_VERSION:
+	    major_version = attribs[i * 2 + 1];
+	    break;
+	case __DRI_CTX_ATTRIB_MINOR_VERSION:
+	    minor_version = attribs[i * 2 + 1];
+	    break;
+	case __DRI_CTX_ATTRIB_FLAGS:
+	    flags = attribs[i * 2 + 1];
+	    break;
+	default:
+	    /* We can't create a context that satisfies the requirements of an
+	     * attribute that we don't understand.  Return failure.
+	     */
+	    assert(!"Should not get here.");
+	    *error = __DRI_CTX_ERROR_UNKNOWN_ATTRIBUTE;
 	    return NULL;
+	}
+    }
+
+    /* There are no forward-compatible contexts before OpenGL 3.0.  The
+     * GLX_ARB_create_context spec says:
+     *
+     *     "Forward-compatible contexts are defined only for OpenGL versions
+     *     3.0 and later."
+     *
+     * Moreover, Mesa can't fulfill the requirements of a forward-looking
+     * context.  Return failure if a forward-looking context is requested.
+     *
+     * In Mesa, a debug context is the same as a regular context.
+     */
+    if ((flags & __DRI_CTX_FLAG_FORWARD_COMPATIBLE) != 0) {
+	*error = __DRI_CTX_ERROR_BAD_FLAG;
+	return NULL;
+    }
+
+    if ((flags & ~__DRI_CTX_FLAG_DEBUG) != 0) {
+	*error = __DRI_CTX_ERROR_UNKNOWN_FLAG;
+	return NULL;
     }
 
     context = malloc(sizeof *context);
-    if (!context)
+    if (!context) {
+	*error = __DRI_CTX_ERROR_NO_MEMORY;
 	return NULL;
+    }
 
     context->loaderPrivate = data;
 
@@ -170,14 +233,27 @@ dri2CreateNewContextForAPI(__DRIscreen *screen, int api,
     context->driDrawablePriv = NULL;
     context->driReadablePriv = NULL;
 
-    if (!driDriverAPI.CreateContext(mesa_api, modes, context, shareCtx) ) {
+    if (!driDriverAPI.CreateContext(mesa_api, modes, context,
+				    major_version, minor_version,
+				    flags, error, shareCtx) ) {
         free(context);
         return NULL;
     }
 
+    *error = __DRI_CTX_ERROR_SUCCESS;
     return context;
 }
 
+static __DRIcontext *
+dri2CreateNewContextForAPI(__DRIscreen *screen, int api,
+			   const __DRIconfig *config,
+			   __DRIcontext *shared, void *data)
+{
+    unsigned error;
+
+    return dri2CreateContextAttribs(screen, api, config, shared, 0, NULL,
+				    &error, data);
+}
 
 static __DRIcontext *
 dri2CreateNewContext(__DRIscreen *screen, const __DRIconfig *config,
@@ -454,10 +530,7 @@ const __DRIcoreExtension driCoreExtension = {
 
 /** DRI2 interface */
 const __DRIdri2Extension driDRI2Extension = {
-    /* Force the version to 2 because the underlying drivers don't (can't!)
-     * support the extra requirements of CreateContextAttribs.
-     */
-    { __DRI_DRI2, 2 },
+    { __DRI_DRI2, __DRI_DRI2_VERSION },
     dri2CreateNewScreen,
     dri2CreateNewDrawable,
     dri2CreateNewContext,
@@ -465,7 +538,7 @@ const __DRIdri2Extension driDRI2Extension = {
     dri2CreateNewContextForAPI,
     dri2AllocateBuffer,
     dri2ReleaseBuffer,
-    NULL
+    dri2CreateContextAttribs
 };
 
 const __DRI2configQueryExtension dri2ConfigQueryExtension = {

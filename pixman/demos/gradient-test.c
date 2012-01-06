@@ -15,12 +15,11 @@ main (int argc, char **argv)
     int i;
     pixman_gradient_stop_t stops[2] =
 	{
-	    { pixman_int_to_fixed (0), { 0xffff, 0xeeee, 0xeeee, 0xeeee } },
-	    { pixman_int_to_fixed (1), { 0xffff, 0x1111, 0x1111, 0x1111 } }
+	    { pixman_int_to_fixed (0), { 0x0000, 0x0000, 0xffff, 0xffff } },
+	    { pixman_int_to_fixed (1), { 0xffff, 0x1111, 0x1111, 0xffff } }
 	};
-    pixman_point_fixed_t p1 = { pixman_double_to_fixed (0), 0 };
-    pixman_point_fixed_t p2 = { pixman_double_to_fixed (WIDTH / 8.),
-				pixman_int_to_fixed (0) };
+    pixman_point_fixed_t p1 = { pixman_double_to_fixed (50), 0 };
+    pixman_point_fixed_t p2 = { pixman_double_to_fixed (200), 0 };
 #if 0
     pixman_transform_t trans = {
 	{ { pixman_double_to_fixed (2), pixman_double_to_fixed (0.5), pixman_double_to_fixed (-100), },
@@ -44,7 +43,7 @@ main (int argc, char **argv)
 #endif
     
     for (i = 0; i < WIDTH * HEIGHT; ++i)
-	dest[i] = 0x4f00004f; /* pale blue */
+	dest[i] = 0xff00ff00;
     
     dest_img = pixman_image_create_bits (PIXMAN_a8r8g8b8,
 					 WIDTH, HEIGHT, 
@@ -74,7 +73,7 @@ main (int argc, char **argv)
 						    stops, 2);
     
     pixman_image_set_transform (src_img, &trans);
-    pixman_image_set_repeat (src_img, PIXMAN_REPEAT_PAD);
+    pixman_image_set_repeat (src_img, PIXMAN_REPEAT_NONE);
     
     pixman_image_composite (PIXMAN_OP_OVER, src_img, NULL, dest_img,
 			    0, 0, 0, 0, 0, 0, 10 * WIDTH, HEIGHT);

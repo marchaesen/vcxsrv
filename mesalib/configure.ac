@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to create configure.
 
-AC_PREREQ([2.59])
+AC_PREREQ([2.60])
 
 dnl Versioning - scrape the version from configs/default
 m4_define([mesa_version],
@@ -16,6 +16,7 @@ AC_INIT([Mesa],[mesa_version],
     [https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa])
 AC_CONFIG_AUX_DIR([bin])
 AC_CANONICAL_HOST
+AM_INIT_AUTOMAKE([foreign])
 
 dnl Save user CFLAGS and CXXFLAGS so one can override the default ones
 USER_CFLAGS="$CFLAGS"
@@ -24,7 +25,7 @@ USER_CXXFLAGS="$CXXFLAGS"
 dnl Versions for external dependencies
 LIBDRM_REQUIRED=2.4.24
 LIBDRM_RADEON_REQUIRED=2.4.24
-LIBDRM_INTEL_REQUIRED=2.4.27
+LIBDRM_INTEL_REQUIRED=2.4.30
 LIBDRM_NOUVEAU_REQUIRED=0.6
 DRI2PROTO_REQUIRED=2.6
 GLPROTO_REQUIRED=1.4.14
@@ -64,6 +65,19 @@ solaris*)
     SHELL="$POSIX_SHELL"
     ;;
 esac
+
+AC_PATH_PROG([GTESTCONFIG], [gtest-config])
+if test "x$GTESTCONFIG" != "x"; then
+    GTEST_CFLAGS=`gtest-config --cppflags --cxxflags`
+    GTEST_LIBS=`gtest-config --ldflags --libs`
+    HAVE_GTEST=1
+    AC_SUBST([GTEST_CFLAGS])
+    AC_SUBST([GTEST_LIBS])
+    HAVE_GTEST=yes
+else
+    HAVE_GTEST=no
+fi
+AM_CONDITIONAL(HAVE_GTEST, test x$HAVE_GTEST = xyes)
 
 dnl clang is mostly GCC-compatible, but its version is much lower,
 dnl so we have to check for it.
@@ -926,16 +940,8 @@ if test "x$enable_glx" = xyes -a "x$no_x" = xyes; then
     AC_MSG_ERROR([X11 development libraries needed for GLX])
 fi
 
-dnl XCB - this is only used for GLX right now
-AC_ARG_ENABLE([xcb],
-    [AS_HELP_STRING([--enable-xcb],
-        [use XCB for GLX @<:@default=disabled@:>@])],
-    [enable_xcb="$enableval"],
-    [enable_xcb=no])
-if test "x$enable_xcb" = xyes; then
+if test "x$enable_glx" = xyes; then
     DEFINES="$DEFINES -DUSE_XCB"
-else
-    enable_xcb=no
 fi
 
 dnl Direct rendering or just indirect rendering
@@ -994,17 +1000,12 @@ xyesno)
 
     # find the DRI deps for libGL
     if test "$x11_pkgconfig" = yes; then
-        dri_modules="x11 xext xdamage xfixes"
+        dri_modules="x11 xext xdamage xfixes x11-xcb xcb-glx"
 
         # add xf86vidmode if available
         PKG_CHECK_MODULES([XF86VIDMODE], [xxf86vm], HAVE_XF86VIDMODE=yes, HAVE_XF86VIDMODE=no)
         if test "$HAVE_XF86VIDMODE" = yes ; then
             dri_modules="$dri_modules xxf86vm"
-        fi
-
-        # add xcb modules if necessary
-        if test "$enable_xcb" = yes; then
-            dri_modules="$dri_modules x11-xcb xcb-glx"
         fi
 
         PKG_CHECK_MODULES([DRIGL], [$dri_modules])
@@ -1023,12 +1024,27 @@ xyesno)
         GL_PC_CFLAGS="$X11_INCLUDES"
 
         # XCB can only be used from pkg-config
-        if test "$enable_xcb" = yes; then
-            PKG_CHECK_MODULES([XCB],[x11-xcb xcb-glx])
-            GL_PC_REQ_PRIV="$GL_PC_REQ_PRIV x11-xcb xcb-glx"
-            X11_INCLUDES="$X11_INCLUDES $XCB_CFLAGS"
-            GL_LIB_DEPS="$GL_LIB_DEPS $XCB_LIBS"
-        fi
+        PKG_CHECK_MODULES([XCB],[x11-xcb xcb-glx])
+        GL_PC_REQ_PRIV="$GL_PC_REQ_PRIV x11-xcb xcb-glx"
+        X11_INCLUDES="$X11_INCLUDES $XCB_CFLAGS"
+        GL_LIB_DEPS="$GL_LIB_DEPS $XCB_LIBS"
+    fi
+
+    # Check to see if the xcb-glx library is new enough to support
+    # GLX_ARB_create_context.  This bit of hackery is necessary until XCB 1.8
+    # is released.
+    save_CPPFLAGS="$CPPFLAGS"
+    save_LDFLAGS="$LDFLAGS"
+    CPPFLAGS="$CPPFLAGS $X11_INCLUDES"
+    LDFLAGS="$LDFLAGS $GL_LIB_DEPS"
+    AC_CHECK_LIB(xcb-glx, xcb_glx_create_context_attribs_arb_checked,
+        [HAVE_XCB_GLX_CREATE_CONTEXT=yes],
+        [HAVE_XCB_GLX_CREATE_CONTEXT=no])
+    CPPFLAGS="$save_CPPFLAGS"
+    LDFLAGS="$save_LDFLAGS"
+
+    if test x$HAVE_XCB_GLX_CREATE_CONTEXT = xyes; then
+        X11_INCLUDES="$X11_INCLUDES -DHAVE_XCB_GLX_CREATE_CONTEXT"
     fi
 
     # need DRM libs, -lpthread, etc.
@@ -1036,6 +1052,11 @@ xyesno)
     GL_PC_LIB_PRIV="-lm -lpthread $DLOPEN_LIBS"
     ;;
 esac
+
+# This is outside the case (above) so that it is invoked even for non-GLX
+# builds.
+AM_CONDITIONAL(HAVE_XCB_GLX_CREATE_CONTEXT,
+    test x$HAVE_XCB_GLX_CREATE_CONTEXT = xyes)
 
 GLESv1_CM_LIB_DEPS="$LIBDRM_LIBS -lm -lpthread $DLOPEN_LIBS"
 GLESv1_CM_PC_LIB_PRIV="-lm -lpthread $DLOPEN_LIBS"
@@ -1752,7 +1773,7 @@ if test "x$enable_gallium_llvm" = xyes; then
     AC_PATH_PROG([LLVM_CONFIG], [llvm-config], [no])
 
     if test "x$LLVM_CONFIG" != xno; then
-	LLVM_VERSION=`$LLVM_CONFIG --version`
+	LLVM_VERSION=`$LLVM_CONFIG --version | sed 's/svn.*//g'`
 	LLVM_CFLAGS=`$LLVM_CONFIG --cppflags|sed -e 's/-DNDEBUG\>//g' -e 's/-pedantic//g'`
 	LLVM_LIBS="`$LLVM_CONFIG --libs`"
 
@@ -1907,7 +1928,9 @@ CFLAGS="$CFLAGS $USER_CFLAGS"
 CXXFLAGS="$CXXFLAGS $USER_CXXFLAGS"
 
 dnl Substitute the config
-AC_CONFIG_FILES([configs/autoconf])
+AC_CONFIG_FILES([configs/autoconf
+		tests/Makefile
+		tests/glx/Makefile])
 
 dnl Replace the configs/current symlink
 AC_CONFIG_COMMANDS([configs],[
@@ -1965,7 +1988,6 @@ xyesyes)
     ;;
 xyesno)
     echo "        GLX:             DRI-based"
-    echo "        Use XCB:         $enable_xcb"
     ;;
 *)
     echo "        GLX:             $enable_glx"

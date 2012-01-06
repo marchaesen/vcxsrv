@@ -184,7 +184,10 @@ buffer_object_subdata_range_good( struct gl_context * ctx, GLenum target,
    }
    if (offset + size > bufObj->Size) {
       _mesa_error(ctx, GL_INVALID_VALUE,
-		  "%s(size + offset > buffer size)", caller);
+		  "%s(offset %lu + size %lu > buffer size %lu)", caller,
+                  (unsigned long) offset,
+                  (unsigned long) size,
+                  (unsigned long) bufObj->Size);
       return NULL;
    }
    if (_mesa_bufferobj_mapped(bufObj)) {
@@ -499,19 +502,20 @@ _mesa_copy_buffer_subdata(struct gl_context *ctx,
                           GLintptr readOffset, GLintptr writeOffset,
                           GLsizeiptr size)
 {
-   GLubyte *srcPtr, *dstPtr;
+   void *srcPtr, *dstPtr;
 
    /* buffer should not already be mapped */
    assert(!_mesa_bufferobj_mapped(src));
    assert(!_mesa_bufferobj_mapped(dst));
 
-   srcPtr = (GLubyte *) ctx->Driver.MapBufferRange(ctx, 0, src->Size,
-						   GL_MAP_READ_BIT, src);
-   dstPtr = (GLubyte *) ctx->Driver.MapBufferRange(ctx, 0, dst->Size,
-						   GL_MAP_WRITE_BIT, dst);
+   srcPtr = ctx->Driver.MapBufferRange(ctx, readOffset, size,
+                                       GL_MAP_READ_BIT, src);
+   dstPtr = ctx->Driver.MapBufferRange(ctx, writeOffset, size,
+                                       (GL_MAP_WRITE_BIT |
+                                        GL_MAP_INVALIDATE_RANGE_BIT), dst);
 
    if (srcPtr && dstPtr)
-      memcpy(dstPtr + writeOffset, srcPtr + readOffset, size);
+      memcpy(dstPtr, srcPtr, size);
 
    ctx->Driver.UnmapBuffer(ctx, src);
    ctx->Driver.UnmapBuffer(ctx, dst);

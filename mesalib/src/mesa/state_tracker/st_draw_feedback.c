@@ -196,7 +196,8 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          st_pipe_vertex_format(arrays[mesaAttr]->Type,
                                arrays[mesaAttr]->Size,
                                arrays[mesaAttr]->Format,
-                               arrays[mesaAttr]->Normalized);
+                               arrays[mesaAttr]->Normalized,
+                               arrays[mesaAttr]->Integer);
       assert(velements[attr].src_format);
 
       /* tell draw about this attribute */
@@ -218,20 +219,9 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    if (ib) {
       struct gl_buffer_object *bufobj = ib->obj;
 
-      switch (ib->type) {
-      case GL_UNSIGNED_INT:
-         ibuffer.index_size = 4;
-         break;
-      case GL_UNSIGNED_SHORT:
-         ibuffer.index_size = 2;
-         break;
-      case GL_UNSIGNED_BYTE:
-         ibuffer.index_size = 1;
-         break;
-      default:
-         assert(0);
-	 goto out_unref_vertex;
-      }
+      ibuffer.index_size = vbo_sizeof_ib_type(ib->type);
+      if (ibuffer.index_size == 0)
+         goto out_unref_vertex;
 
       if (bufobj && bufobj->Name) {
          struct st_buffer_object *stobj = st_buffer_object(bufobj);

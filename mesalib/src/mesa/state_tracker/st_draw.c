@@ -102,6 +102,13 @@ static GLuint uint_types_scale[4] = {
    PIPE_FORMAT_R32G32B32A32_USCALED
 };
 
+static GLuint uint_types_int[4] = {
+   PIPE_FORMAT_R32_UINT,
+   PIPE_FORMAT_R32G32_UINT,
+   PIPE_FORMAT_R32G32B32_UINT,
+   PIPE_FORMAT_R32G32B32A32_UINT
+};
+
 static GLuint int_types_norm[4] = {
    PIPE_FORMAT_R32_SNORM,
    PIPE_FORMAT_R32G32_SNORM,
@@ -114,6 +121,13 @@ static GLuint int_types_scale[4] = {
    PIPE_FORMAT_R32G32_SSCALED,
    PIPE_FORMAT_R32G32B32_SSCALED,
    PIPE_FORMAT_R32G32B32A32_SSCALED
+};
+
+static GLuint int_types_int[4] = {
+   PIPE_FORMAT_R32_SINT,
+   PIPE_FORMAT_R32G32_SINT,
+   PIPE_FORMAT_R32G32B32_SINT,
+   PIPE_FORMAT_R32G32B32A32_SINT
 };
 
 static GLuint ushort_types_norm[4] = {
@@ -130,6 +144,13 @@ static GLuint ushort_types_scale[4] = {
    PIPE_FORMAT_R16G16B16A16_USCALED
 };
 
+static GLuint ushort_types_int[4] = {
+   PIPE_FORMAT_R16_UINT,
+   PIPE_FORMAT_R16G16_UINT,
+   PIPE_FORMAT_R16G16B16_UINT,
+   PIPE_FORMAT_R16G16B16A16_UINT
+};
+
 static GLuint short_types_norm[4] = {
    PIPE_FORMAT_R16_SNORM,
    PIPE_FORMAT_R16G16_SNORM,
@@ -142,6 +163,13 @@ static GLuint short_types_scale[4] = {
    PIPE_FORMAT_R16G16_SSCALED,
    PIPE_FORMAT_R16G16B16_SSCALED,
    PIPE_FORMAT_R16G16B16A16_SSCALED
+};
+
+static GLuint short_types_int[4] = {
+   PIPE_FORMAT_R16_SINT,
+   PIPE_FORMAT_R16G16_SINT,
+   PIPE_FORMAT_R16G16B16_SINT,
+   PIPE_FORMAT_R16G16B16A16_SINT
 };
 
 static GLuint ubyte_types_norm[4] = {
@@ -158,6 +186,13 @@ static GLuint ubyte_types_scale[4] = {
    PIPE_FORMAT_R8G8B8A8_USCALED
 };
 
+static GLuint ubyte_types_int[4] = {
+   PIPE_FORMAT_R8_UINT,
+   PIPE_FORMAT_R8G8_UINT,
+   PIPE_FORMAT_R8G8B8_UINT,
+   PIPE_FORMAT_R8G8B8A8_UINT
+};
+
 static GLuint byte_types_norm[4] = {
    PIPE_FORMAT_R8_SNORM,
    PIPE_FORMAT_R8G8_SNORM,
@@ -170,6 +205,13 @@ static GLuint byte_types_scale[4] = {
    PIPE_FORMAT_R8G8_SSCALED,
    PIPE_FORMAT_R8G8B8_SSCALED,
    PIPE_FORMAT_R8G8B8A8_SSCALED
+};
+
+static GLuint byte_types_int[4] = {
+   PIPE_FORMAT_R8_SINT,
+   PIPE_FORMAT_R8G8_SINT,
+   PIPE_FORMAT_R8G8B8_SINT,
+   PIPE_FORMAT_R8G8B8A8_SINT
 };
 
 static GLuint fixed_types[4] = {
@@ -186,7 +228,7 @@ static GLuint fixed_types[4] = {
  */
 enum pipe_format
 st_pipe_vertex_format(GLenum type, GLuint size, GLenum format,
-                      GLboolean normalized)
+                      GLboolean normalized, GLboolean integer)
 {
    assert((type >= GL_BYTE && type <= GL_DOUBLE) ||
           type == GL_FIXED || type == GL_HALF_FLOAT ||
@@ -199,6 +241,7 @@ st_pipe_vertex_format(GLenum type, GLuint size, GLenum format,
    if (type == GL_INT_2_10_10_10_REV ||
        type == GL_UNSIGNED_INT_2_10_10_10_REV) {
       assert(size == 4);
+      assert(!integer);
 
       if (format == GL_BGRA) {
          if (type == GL_INT_2_10_10_10_REV) {
@@ -234,7 +277,18 @@ st_pipe_vertex_format(GLenum type, GLuint size, GLenum format,
       return PIPE_FORMAT_B8G8R8A8_UNORM;
    }
 
-   if (normalized) {
+   if (integer) {
+      switch (type) {
+      case GL_INT: return int_types_int[size-1];
+      case GL_SHORT: return short_types_int[size-1];
+      case GL_BYTE: return byte_types_int[size-1];
+      case GL_UNSIGNED_INT: return uint_types_int[size-1];
+      case GL_UNSIGNED_SHORT: return ushort_types_int[size-1];
+      case GL_UNSIGNED_BYTE: return ubyte_types_int[size-1];
+      default: assert(0); return 0;
+      }
+   }
+   else if (normalized) {
       switch (type) {
       case GL_DOUBLE: return double_types[size-1];
       case GL_FLOAT: return float_types[size-1];
@@ -407,7 +461,8 @@ setup_interleaved_attribs(struct gl_context *ctx,
       velements[attr].src_format = st_pipe_vertex_format(array->Type,
                                                          array->Size,
                                                          array->Format,
-                                                         array->Normalized);
+                                                         array->Normalized,
+                                                         array->Integer);
       assert(velements[attr].src_format);
 
       if (!usingVBO) {
@@ -564,7 +619,8 @@ setup_non_interleaved_attribs(struct gl_context *ctx,
       velements[attr].src_format = st_pipe_vertex_format(array->Type,
                                                          array->Size,
                                                          array->Format,
-                                                         array->Normalized);
+                                                         array->Normalized,
+                                                         array->Integer);
       assert(velements[attr].src_format);
    }
 
@@ -584,20 +640,7 @@ setup_index_buffer(struct gl_context *ctx,
    if (ib) {
       struct gl_buffer_object *bufobj = ib->obj;
 
-      switch (ib->type) {
-      case GL_UNSIGNED_INT:
-         ibuffer->index_size = 4;
-         break;
-      case GL_UNSIGNED_SHORT:
-         ibuffer->index_size = 2;
-         break;
-      case GL_UNSIGNED_BYTE:
-         ibuffer->index_size = 1;
-         break;
-      default:
-         assert(0);
-	 return;
-      }
+      ibuffer->index_size = vbo_sizeof_ib_type(ib->type);
 
       /* get/create the index buffer object */
       if (_mesa_is_bufferobj(bufobj)) {
@@ -781,15 +824,16 @@ handle_fallback_primitive_restart(struct pipe_context *pipe,
                                   start * ibuffer->index_size, /* start */
                                   count * ibuffer->index_size, /* length */
                                   PIPE_TRANSFER_READ, &transfer);
+      if (!ptr)
+         return;
+
+      ptr = (uint8_t*)ptr + (ibuffer->offset - start * ibuffer->index_size);
    }
    else {
       ptr = ib->ptr;
+      if (!ptr)
+         return;
    }
-
-   if (!ptr)
-      return;
-
-   ptr = ADD_POINTERS(ptr, ibuffer->offset);
 
    sub_prims = find_sub_primitives(ptr, ibuffer->index_size,
                                    0, count, orig_info->restart_index,

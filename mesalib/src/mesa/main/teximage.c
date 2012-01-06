@@ -1059,7 +1059,6 @@ clear_teximage_fields(struct gl_texture_image *img)
  * Initialize basic fields of the gl_texture_image struct.
  *
  * \param ctx GL context.
- * \param target texture target (GL_TEXTURE_1D, GL_TEXTURE_RECTANGLE, etc).
  * \param img texture image structure to be initialized.
  * \param width image width.
  * \param height image height.
@@ -1072,7 +1071,7 @@ clear_teximage_fields(struct gl_texture_image *img)
  * Note: width, height and depth include the border.
  */
 void
-_mesa_init_teximage_fields(struct gl_context *ctx, GLenum target,
+_mesa_init_teximage_fields(struct gl_context *ctx,
                            struct gl_texture_image *img,
                            GLsizei width, GLsizei height, GLsizei depth,
                            GLint border, GLenum internalFormat,
@@ -2422,7 +2421,7 @@ teximage(struct gl_context *ctx, GLuint dims,
                                                            format, type);
 
          if (legal_texture_size(ctx, texFormat, width, height, depth)) {
-            _mesa_init_teximage_fields(ctx, target, texImage, width, height,
+            _mesa_init_teximage_fields(ctx, texImage, width, height,
                                        depth, border, internalFormat,
                                        texFormat);
          }
@@ -2473,7 +2472,7 @@ teximage(struct gl_context *ctx, GLuint dims,
                                                     type);
 
             if (legal_texture_size(ctx, texFormat, width, height, depth)) {
-               _mesa_init_teximage_fields(ctx, target, texImage,
+               _mesa_init_teximage_fields(ctx, texImage,
                                           width, height, depth,
                                           border, internalFormat, texFormat);
 
@@ -2481,22 +2480,19 @@ teximage(struct gl_context *ctx, GLuint dims,
                ASSERT(ctx->Driver.TexImage3D);
                switch (dims) {
                case 1:
-                  ctx->Driver.TexImage1D(ctx, target, level, internalFormat,
+                  ctx->Driver.TexImage1D(ctx, texImage, internalFormat,
                                          width, border, format,
-                                         type, pixels, unpack, texObj,
-                                         texImage);
+                                         type, pixels, unpack);
                   break;
                case 2:
-                  ctx->Driver.TexImage2D(ctx, target, level, internalFormat,
+                  ctx->Driver.TexImage2D(ctx, texImage, internalFormat,
                                          width, height, border, format,
-                                         type, pixels, unpack, texObj,
-                                         texImage);
+                                         type, pixels, unpack);
                   break;
                case 3:
-                  ctx->Driver.TexImage3D(ctx, target, level, internalFormat,
+                  ctx->Driver.TexImage3D(ctx, texImage, internalFormat,
                                          width, height, depth, border, format,
-                                         type, pixels, unpack, texObj,
-                                         texImage);
+                                         type, pixels, unpack);
                   break;
                default:
                   _mesa_problem(ctx, "invalid dims=%u in teximage()", dims);
@@ -2681,23 +2677,20 @@ texsubimage(struct gl_context *ctx, GLuint dims, GLenum target, GLint level,
 
          switch (dims) {
          case 1:
-            ctx->Driver.TexSubImage1D(ctx, target, level,
+            ctx->Driver.TexSubImage1D(ctx, texImage,
                                       xoffset, width,
-                                      format, type, pixels,
-                                      &ctx->Unpack, texObj, texImage );
+                                      format, type, pixels, &ctx->Unpack);
             break;
          case 2:
-            ctx->Driver.TexSubImage2D(ctx, target, level,
+            ctx->Driver.TexSubImage2D(ctx, texImage,
                                       xoffset, yoffset, width, height,
-                                      format, type, pixels,
-                                      &ctx->Unpack, texObj, texImage );
+                                      format, type, pixels, &ctx->Unpack);
             break;
          case 3:
-            ctx->Driver.TexSubImage3D(ctx, target, level,
+            ctx->Driver.TexSubImage3D(ctx, texImage,
                                       xoffset, yoffset, zoffset,
                                       width, height, depth,
-                                      format, type, pixels,
-                                      &ctx->Unpack, texObj, texImage );
+                                      format, type, pixels, &ctx->Unpack);
             break;
          default:
             _mesa_problem(ctx, "unexpected dims in subteximage()");
@@ -2818,19 +2811,19 @@ copyteximage(struct gl_context *ctx, GLuint dims,
             /* Free old texture image */
             ctx->Driver.FreeTextureImageBuffer(ctx, texImage);
 
-            _mesa_init_teximage_fields(ctx, target, texImage, width, height, 1,
+            _mesa_init_teximage_fields(ctx, texImage, width, height, 1,
                                        border, internalFormat, texFormat);
 
             /* Allocate texture memory (no pixel data yet) */
             if (dims == 1) {
-               ctx->Driver.TexImage1D(ctx, target, level, internalFormat,
+               ctx->Driver.TexImage1D(ctx, texImage, internalFormat,
                                       width, border, GL_NONE, GL_NONE, NULL,
-                                      &ctx->Unpack, texObj, texImage);
+                                      &ctx->Unpack);
             }
             else {
-               ctx->Driver.TexImage2D(ctx, target, level, internalFormat,
+               ctx->Driver.TexImage2D(ctx, texImage, internalFormat,
                                       width, height, border, GL_NONE, GL_NONE,
-                                      NULL, &ctx->Unpack, texObj, texImage);
+                                      NULL, &ctx->Unpack);
             }
 
             if (_mesa_clip_copytexsubimage(ctx, &dstX, &dstY, &srcX, &srcY,
@@ -3410,7 +3403,7 @@ compressedteximage(struct gl_context *ctx, GLuint dims,
          }
          else {
             /* no error: store the teximage parameters */
-            _mesa_init_teximage_fields(ctx, target, texImage, width, height,
+            _mesa_init_teximage_fields(ctx, texImage, width, height,
                                        depth, border, internalFormat,
                                        MESA_FORMAT_NONE);
          }
@@ -3445,34 +3438,31 @@ compressedteximage(struct gl_context *ctx, GLuint dims,
                                                     GL_NONE);
 
             if (legal_texture_size(ctx, texFormat, width, height, depth)) {
-               _mesa_init_teximage_fields(ctx, target, texImage,
+               _mesa_init_teximage_fields(ctx, texImage,
                                           width, height, depth,
                                           border, internalFormat, texFormat);
 
                switch (dims) {
                case 1:
                   ASSERT(ctx->Driver.CompressedTexImage1D);
-                  ctx->Driver.CompressedTexImage1D(ctx, target, level,
+                  ctx->Driver.CompressedTexImage1D(ctx, texImage,
                                                    internalFormat,
                                                    width,
-                                                   border, imageSize, data,
-                                                   texObj, texImage);
+                                                   border, imageSize, data);
                   break;
                case 2:
                   ASSERT(ctx->Driver.CompressedTexImage2D);
-                  ctx->Driver.CompressedTexImage2D(ctx, target, level,
+                  ctx->Driver.CompressedTexImage2D(ctx, texImage,
                                                    internalFormat,
                                                    width, height,
-                                                   border, imageSize, data,
-                                                   texObj, texImage);
+                                                   border, imageSize, data);
                   break;
                case 3:
                   ASSERT(ctx->Driver.CompressedTexImage3D);
-                  ctx->Driver.CompressedTexImage3D(ctx, target, level,
+                  ctx->Driver.CompressedTexImage3D(ctx, texImage,
                                                    internalFormat,
                                                    width, height, depth,
-                                                   border, imageSize, data,
-                                                   texObj, texImage);
+                                                   border, imageSize, data);
                   break;
                default:
                   _mesa_problem(ctx, "bad dims in compressedteximage");
@@ -3570,28 +3560,25 @@ compressed_tex_sub_image(GLuint dims, GLenum target, GLint level,
          switch (dims) {
          case 1:
             if (ctx->Driver.CompressedTexSubImage1D) {
-               ctx->Driver.CompressedTexSubImage1D(ctx, target, level,
+               ctx->Driver.CompressedTexSubImage1D(ctx, texImage,
                                                    xoffset, width,
-                                                   format, imageSize, data,
-                                                   texObj, texImage);
+                                                   format, imageSize, data);
             }
             break;
          case 2:
             if (ctx->Driver.CompressedTexSubImage2D) {
-               ctx->Driver.CompressedTexSubImage2D(ctx, target, level,
+               ctx->Driver.CompressedTexSubImage2D(ctx, texImage,
                                                    xoffset, yoffset,
                                                    width, height,
-                                                   format, imageSize, data,
-                                                   texObj, texImage);
+                                                   format, imageSize, data);
             }
             break;
          case 3:
             if (ctx->Driver.CompressedTexSubImage3D) {
-               ctx->Driver.CompressedTexSubImage3D(ctx, target, level,
+               ctx->Driver.CompressedTexSubImage3D(ctx, texImage,
                                                    xoffset, yoffset, zoffset,
                                                    width, height, depth,
-                                                   format, imageSize, data,
-                                                   texObj, texImage);
+                                                   format, imageSize, data);
             }
             break;
          default:

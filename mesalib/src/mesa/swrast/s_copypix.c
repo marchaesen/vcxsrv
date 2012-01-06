@@ -422,13 +422,13 @@ copy_stencil_pixels( struct gl_context *ctx, GLint srcx, GLint srcy,
 
 
 /**
- * Try to do a fast copy pixels with memcpy.
+ * Try to do a fast 1:1 blit with memcpy.
  * \return GL_TRUE if successful, GL_FALSE otherwise.
  */
-static GLboolean
-fast_copy_pixels(struct gl_context *ctx,
-                 GLint srcX, GLint srcY, GLsizei width, GLsizei height,
-                 GLint dstX, GLint dstY, GLenum type)
+GLboolean
+swrast_fast_copy_pixels(struct gl_context *ctx,
+			GLint srcX, GLint srcY, GLsizei width, GLsizei height,
+			GLint dstX, GLint dstY, GLenum type)
 {
    struct gl_framebuffer *srcFb = ctx->ReadBuffer;
    struct gl_framebuffer *dstFb = ctx->DrawBuffer;
@@ -437,14 +437,6 @@ fast_copy_pixels(struct gl_context *ctx,
    GLuint pixelBytes, widthInBytes;
    GLubyte *srcMap, *dstMap;
    GLint srcRowStride, dstRowStride;
-
-   if (SWRAST_CONTEXT(ctx)->_RasterMask != 0x0 ||
-       ctx->Pixel.ZoomX != 1.0F ||
-       ctx->Pixel.ZoomY != 1.0F ||
-       ctx->_ImageTransferState) {
-      /* can't handle these */
-      return GL_FALSE;
-   }
 
    if (type == GL_COLOR) {
       if (dstFb->_NumColorDrawBuffers != 1)
@@ -508,7 +500,7 @@ fast_copy_pixels(struct gl_context *ctx,
                                   srcRb->Width, srcRb->Height,
                                   GL_MAP_READ_BIT | GL_MAP_WRITE_BIT,
                                   &map, &rowStride);
-      if (!srcMap) {
+      if (!map) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCopyPixels");
          return GL_TRUE; /* don't retry with slow path */
       }
@@ -582,7 +574,12 @@ _swrast_CopyPixels( struct gl_context *ctx,
    if (swrast->NewState)
       _swrast_validate_derived( ctx );
 
-   if (fast_copy_pixels(ctx, srcx, srcy, width, height, destx, desty, type)) {
+   if (!(SWRAST_CONTEXT(ctx)->_RasterMask != 0x0 ||
+	 ctx->Pixel.ZoomX != 1.0F ||
+	 ctx->Pixel.ZoomY != 1.0F ||
+	 ctx->_ImageTransferState) &&
+       swrast_fast_copy_pixels(ctx, srcx, srcy, width, height, destx, desty,
+			       type)) {
       /* all done */
       return;
    }
