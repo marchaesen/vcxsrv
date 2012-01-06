@@ -169,15 +169,10 @@ _mesa_texstore_rgb_dxt1(TEXSTORE_PARAMS)
 {
    const GLubyte *pixels;
    GLubyte *dst;
-   const GLint texWidth = dstRowStride * 4 / 8; /* a bit of a hack */
    const GLubyte *tempImage = NULL;
 
    ASSERT(dstFormat == MESA_FORMAT_RGB_DXT1 ||
           dstFormat == MESA_FORMAT_SRGB_DXT1);
-   ASSERT(dstXoffset % 4 == 0);
-   ASSERT(dstYoffset % 4 == 0);
-   ASSERT(dstZoffset % 4 == 0);
-   (void) dstZoffset;
 
    if (srcFormat != GL_RGB ||
        srcType != GL_UNSIGNED_BYTE ||
@@ -201,9 +196,7 @@ _mesa_texstore_rgb_dxt1(TEXSTORE_PARAMS)
                                      srcFormat, srcType, 0, 0);
    }
 
-   dst = _mesa_compressed_image_address(dstXoffset, dstYoffset, 0,
-                                        dstFormat,
-                                        texWidth, dstSlices[0]);
+   dst = dstSlices[0];
 
    if (ext_tx_compress_dxtn) {
       (*ext_tx_compress_dxtn)(3, srcWidth, srcHeight, pixels,
@@ -229,15 +222,10 @@ _mesa_texstore_rgba_dxt1(TEXSTORE_PARAMS)
 {
    const GLubyte *pixels;
    GLubyte *dst;
-   const GLint texWidth = dstRowStride * 4 / 8; /* a bit of a hack */
    const GLubyte *tempImage = NULL;
 
    ASSERT(dstFormat == MESA_FORMAT_RGBA_DXT1 ||
           dstFormat == MESA_FORMAT_SRGBA_DXT1);
-   ASSERT(dstXoffset % 4 == 0);
-   ASSERT(dstYoffset % 4 == 0);
-   ASSERT(dstZoffset % 4 == 0);
-   (void) dstZoffset;
 
    if (srcFormat != GL_RGBA ||
        srcType != GL_UNSIGNED_BYTE ||
@@ -261,9 +249,8 @@ _mesa_texstore_rgba_dxt1(TEXSTORE_PARAMS)
                                      srcFormat, srcType, 0, 0);
    }
 
-   dst = _mesa_compressed_image_address(dstXoffset, dstYoffset, 0,
-                                        dstFormat,
-                                        texWidth, dstSlices[0]);
+   dst = dstSlices[0];
+
    if (ext_tx_compress_dxtn) {
       (*ext_tx_compress_dxtn)(4, srcWidth, srcHeight, pixels,
                               GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
@@ -288,15 +275,10 @@ _mesa_texstore_rgba_dxt3(TEXSTORE_PARAMS)
 {
    const GLubyte *pixels;
    GLubyte *dst;
-   const GLint texWidth = dstRowStride * 4 / 16; /* a bit of a hack */
    const GLubyte *tempImage = NULL;
 
    ASSERT(dstFormat == MESA_FORMAT_RGBA_DXT3 ||
           dstFormat == MESA_FORMAT_SRGBA_DXT3);
-   ASSERT(dstXoffset % 4 == 0);
-   ASSERT(dstYoffset % 4 == 0);
-   ASSERT(dstZoffset % 4 == 0);
-   (void) dstZoffset;
 
    if (srcFormat != GL_RGBA ||
        srcType != GL_UNSIGNED_BYTE ||
@@ -319,9 +301,8 @@ _mesa_texstore_rgba_dxt3(TEXSTORE_PARAMS)
                                      srcFormat, srcType, 0, 0);
    }
 
-   dst = _mesa_compressed_image_address(dstXoffset, dstYoffset, 0,
-                                        dstFormat,
-                                        texWidth, dstSlices[0]);
+   dst = dstSlices[0];
+
    if (ext_tx_compress_dxtn) {
       (*ext_tx_compress_dxtn)(4, srcWidth, srcHeight, pixels,
                               GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,
@@ -346,15 +327,10 @@ _mesa_texstore_rgba_dxt5(TEXSTORE_PARAMS)
 {
    const GLubyte *pixels;
    GLubyte *dst;
-   const GLint texWidth = dstRowStride * 4 / 16; /* a bit of a hack */
    const GLubyte *tempImage = NULL;
 
    ASSERT(dstFormat == MESA_FORMAT_RGBA_DXT5 ||
           dstFormat == MESA_FORMAT_SRGBA_DXT5);
-   ASSERT(dstXoffset % 4 == 0);
-   ASSERT(dstYoffset % 4 == 0);
-   ASSERT(dstZoffset % 4 == 0);
-   (void) dstZoffset;
 
    if (srcFormat != GL_RGBA ||
        srcType != GL_UNSIGNED_BYTE ||
@@ -377,9 +353,8 @@ _mesa_texstore_rgba_dxt5(TEXSTORE_PARAMS)
                                      srcFormat, srcType, 0, 0);
    }
 
-   dst = _mesa_compressed_image_address(dstXoffset, dstYoffset, 0,
-                                        dstFormat,
-                                        texWidth, dstSlices[0]);
+   dst = dstSlices[0];
+
    if (ext_tx_compress_dxtn) {
       (*ext_tx_compress_dxtn)(4, srcWidth, srcHeight, pixels,
                               GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,

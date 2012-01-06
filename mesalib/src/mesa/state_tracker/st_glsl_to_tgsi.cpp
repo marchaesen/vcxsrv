@@ -304,6 +304,7 @@ public:
    int samplers_used;
    bool indirect_addr_temps;
    bool indirect_addr_consts;
+   int num_clip_distances;
    
    int glsl_version;
    bool native_integers;
@@ -413,7 +414,6 @@ public:
 
    bool process_move_condition(ir_rvalue *ir);
 
-   void remove_output_reads(gl_register_file type);
    void simplify_cmp(void);
 
    void rename_temp_register(int index, int new_index);
@@ -1781,6 +1781,9 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
    case ir_unop_floor:
       emit(ir, TGSI_OPCODE_FLR, result_dst, op[0]);
       break;
+   case ir_unop_round_even:
+      emit(ir, TGSI_OPCODE_ROUND, result_dst, op[0]);
+      break;
    case ir_unop_fract:
       emit(ir, TGSI_OPCODE_FRC, result_dst, op[0]);
       break;
@@ -1830,7 +1833,7 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
          emit(ir, TGSI_OPCODE_OR, result_dst, op[0], op[1]);
          break;
       }
-   case ir_unop_round_even:
+
       assert(!"GLSL 1.30 features unsupported");
       break;
 
@@ -2920,89 +2923,6 @@ set_uniform_initializer(struct gl_context *ctx, void *mem_ctx,
    }
 }
 
-/*
- * Scan/rewrite program to remove reads of custom (output) registers.
- * The passed type has to be either PROGRAM_OUTPUT or PROGRAM_VARYING
- * (for vertex shaders).
- * In GLSL shaders, varying vars can be read and written.
- * On some hardware, trying to read an output register causes trouble.
- * So, rewrite the program to use a temporary register in this case.
- * 
- * Based on _mesa_remove_output_reads from programopt.c.
- */
-void
-glsl_to_tgsi_visitor::remove_output_reads(gl_register_file type)
-{
-   GLuint i;
-   GLint outputMap[VERT_RESULT_MAX];
-   GLint outputTypes[VERT_RESULT_MAX];
-   GLuint numVaryingReads = 0;
-   GLboolean *usedTemps;
-   GLuint firstTemp = 0;
-
-   usedTemps = new GLboolean[MAX_TEMPS];
-   if (!usedTemps) {
-      return;
-   }
-   _mesa_find_used_registers(prog, PROGRAM_TEMPORARY,
-                             usedTemps, MAX_TEMPS);
-
-   assert(type == PROGRAM_VARYING || type == PROGRAM_OUTPUT);
-   assert(prog->Target == GL_VERTEX_PROGRAM_ARB || type != PROGRAM_VARYING);
-
-   for (i = 0; i < VERT_RESULT_MAX; i++)
-      outputMap[i] = -1;
-
-   /* look for instructions which read from varying vars */
-   foreach_iter(exec_list_iterator, iter, this->instructions) {
-      glsl_to_tgsi_instruction *inst = (glsl_to_tgsi_instruction *)iter.get();
-      const GLuint numSrc = num_inst_src_regs(inst->op);
-      GLuint j;
-      for (j = 0; j < numSrc; j++) {
-         if (inst->src[j].file == type) {
-            /* replace the read with a temp reg */
-            const GLuint var = inst->src[j].index;
-            if (outputMap[var] == -1) {
-               numVaryingReads++;
-               outputMap[var] = _mesa_find_free_register(usedTemps,
-                                                         MAX_TEMPS,
-                                                         firstTemp);
-               outputTypes[var] = inst->src[j].type;
-               firstTemp = outputMap[var] + 1;
-            }
-            inst->src[j].file = PROGRAM_TEMPORARY;
-            inst->src[j].index = outputMap[var];
-         }
-      }
-   }
-
-   delete [] usedTemps;
-
-   if (numVaryingReads == 0)
-      return; /* nothing to be done */
-
-   /* look for instructions which write to the varying vars identified above */
-   foreach_iter(exec_list_iterator, iter, this->instructions) {
-      glsl_to_tgsi_instruction *inst = (glsl_to_tgsi_instruction *)iter.get();
-      if (inst->dst.file == type && outputMap[inst->dst.index] >= 0) {
-         /* change inst to write to the temp reg, instead of the varying */
-         inst->dst.file = PROGRAM_TEMPORARY;
-         inst->dst.index = outputMap[inst->dst.index];
-      }
-   }
-   
-   /* insert new MOV instructions at the end */
-   for (i = 0; i < VERT_RESULT_MAX; i++) {
-      if (outputMap[i] >= 0) {
-         /* MOV VAR[i], TEMP[tmp]; */
-         st_src_reg src = st_src_reg(PROGRAM_TEMPORARY, outputMap[i], outputTypes[i]);
-         st_dst_reg dst = st_dst_reg(type, WRITEMASK_XYZW, outputTypes[i]);
-         dst.index = i;
-         this->emit(NULL, TGSI_OPCODE_MOV, dst, src);
-      }
-   }
-}
-
 /**
  * Returns the mask of channels (bitmask of WRITEMASK_X,Y,Z,W) which
  * are read from the given src in this instruction
@@ -3505,10 +3425,15 @@ glsl_to_tgsi_visitor::eliminate_dead_code_advanced(void)
       switch (inst->op) {
       case TGSI_OPCODE_BGNLOOP:
       case TGSI_OPCODE_ENDLOOP:
+      case TGSI_OPCODE_CONT:
+      case TGSI_OPCODE_BRK:
          /* End of a basic block, clear the write array entirely.
-          * FIXME: This keeps us from killing dead code when the writes are
+          *
+          * This keeps us from killing dead code when the writes are
           * on either side of a loop, even when the register isn't touched
-          * inside the loop.
+          * inside the loop.  However, glsl_to_tgsi_visitor doesn't seem to emit
+          * dead code of this type, so it shouldn't make a difference as long as
+          * the dead code elimination pass in the GLSL compiler does its job.
           */
          memset(writes, 0, sizeof(*writes) * this->next_temp * 4);
          break;
@@ -3708,6 +3633,7 @@ get_pixel_transfer_visitor(struct st_fragment_program *fp,
    /* Copy attributes of the glsl_to_tgsi_visitor in the original shader. */
    v->ctx = original->ctx;
    v->prog = prog;
+   v->shader_program = NULL;
    v->glsl_version = original->glsl_version;
    v->native_integers = original->native_integers;
    v->options = original->options;
@@ -3837,6 +3763,7 @@ get_bitmap_visitor(struct st_fragment_program *fp,
    /* Copy attributes of the glsl_to_tgsi_visitor in the original shader. */
    v->ctx = original->ctx;
    v->prog = prog;
+   v->shader_program = NULL;
    v->glsl_version = original->glsl_version;
    v->native_integers = original->native_integers;
    v->options = original->options;
@@ -4550,6 +4477,15 @@ st_translate_program(
    t->pointSizeOutIndex = -1;
    t->prevInstWrotePointSize = GL_FALSE;
 
+   if (program->shader_program) {
+      for (i = 0; i < program->shader_program->NumUserUniformStorage; i++) {
+         struct gl_uniform_storage *const storage =
+               &program->shader_program->UniformStorage[i];
+
+         _mesa_uniform_detach_all_driver_storage(storage);
+      }
+   }
+
    /*
     * Declare input attributes.
     */
@@ -4622,9 +4558,17 @@ st_translate_program(
       }
 
       for (i = 0; i < numOutputs; i++) {
-         t->outputs[i] = ureg_DECL_output(ureg,
-                                          outputSemanticName[i],
-                                          outputSemanticIndex[i]);
+         if (outputSemanticName[i] == TGSI_SEMANTIC_CLIPDIST) {
+            int mask = ((1 << (program->num_clip_distances - 4*outputSemanticIndex[i])) - 1) & TGSI_WRITEMASK_XYZW;
+            t->outputs[i] = ureg_DECL_output_masked(ureg,
+                                                    outputSemanticName[i],
+                                                    outputSemanticIndex[i],
+                                                    mask);
+         } else {
+            t->outputs[i] = ureg_DECL_output(ureg,
+                                             outputSemanticName[i],
+                                             outputSemanticIndex[i]);
+         }
          if ((outputSemanticName[i] == TGSI_SEMANTIC_PSIZE) && proginfo->Id) {
             /* Writing to the point size result register requires special
              * handling to implement clamping.
@@ -4776,6 +4720,20 @@ st_translate_program(
                        t->insn[t->labels[i].branch_target]);
    }
 
+   if (program->shader_program) {
+      /* This has to be done last.  Any operation the can cause
+       * prog->ParameterValues to get reallocated (e.g., anything that adds a
+       * program constant) has to happen before creating this linkage.
+       */
+      for (unsigned i = 0; i < MESA_SHADER_TYPES; i++) {
+         if (program->shader_program->_LinkedShaders[i] == NULL)
+            continue;
+
+         _mesa_associate_uniform_storage(ctx, program->shader_program,
+               program->shader_program->_LinkedShaders[i]->Program->Parameters);
+      }
+   }
+
 out:
    if (t) {
       FREE(t->insn);
@@ -4801,7 +4759,8 @@ out:
 static struct gl_program *
 get_mesa_program(struct gl_context *ctx,
                  struct gl_shader_program *shader_program,
-        	 struct gl_shader *shader)
+                 struct gl_shader *shader,
+                 int num_clip_distances)
 {
    glsl_to_tgsi_visitor* v = new glsl_to_tgsi_visitor();
    struct gl_program *prog;
@@ -4846,9 +4805,17 @@ get_mesa_program(struct gl_context *ctx,
    v->options = options;
    v->glsl_version = ctx->Const.GLSLVersion;
    v->native_integers = ctx->Const.NativeIntegers;
+   v->num_clip_distances = num_clip_distances;
 
    _mesa_generate_parameters_list_for_uniforms(shader_program, shader,
 					       prog->Parameters);
+
+   if (!screen->get_shader_param(screen, pipe_shader_type,
+                                 PIPE_SHADER_CAP_OUTPUT_READ)) {
+      /* Remove reads to output registers, and to varyings in vertex shaders. */
+      lower_output_reads(shader->ir);
+   }
+
 
    /* Emit intermediate IR for main(). */
    visit_exec_list(shader->ir, v);
@@ -4896,14 +4863,6 @@ get_mesa_program(struct gl_context *ctx,
    }
 #endif
 
-   if (!screen->get_shader_param(screen, pipe_shader_type,
-                                 PIPE_SHADER_CAP_OUTPUT_READ)) {
-      /* Remove reads to output registers, and to varyings in vertex shaders. */
-      v->remove_output_reads(PROGRAM_OUTPUT);
-      if (target == GL_VERTEX_PROGRAM_ARB)
-         v->remove_output_reads(PROGRAM_VARYING);
-   }
-   
    /* Perform optimizations on the instructions in the glsl_to_tgsi_visitor. */
    v->simplify_cmp();
    v->copy_propagate();
@@ -4975,6 +4934,25 @@ get_mesa_program(struct gl_context *ctx,
    return prog;
 }
 
+/**
+ * Searches through the IR for a declaration of gl_ClipDistance and returns the
+ * declared size of the gl_ClipDistance array.  Returns 0 if gl_ClipDistance is
+ * not declared in the IR.
+ */
+int get_clip_distance_size(exec_list *ir)
+{
+   foreach_iter (exec_list_iterator, iter, *ir) {
+      ir_instruction *inst = (ir_instruction *)iter.get();
+      ir_variable *var = inst->as_variable();
+      if (var == NULL) continue;
+      if (!strcmp(var->name, "gl_ClipDistance")) {
+         return var->type->length;
+      }
+   }
+   
+   return 0;
+}
+
 extern "C" {
 
 struct gl_shader *
@@ -5013,6 +4991,7 @@ st_new_shader_program(struct gl_context *ctx, GLuint name)
 GLboolean
 st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 {
+   int num_clip_distances[MESA_SHADER_TYPES];
    assert(prog->LinkStatus);
 
    for (unsigned i = 0; i < MESA_SHADER_TYPES; i++) {
@@ -5023,6 +5002,11 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       exec_list *ir = prog->_LinkedShaders[i]->ir;
       const struct gl_shader_compiler_options *options =
             &ctx->ShaderCompilerOptions[_mesa_shader_type_to_index(prog->_LinkedShaders[i]->Type)];
+
+      /* We have to determine the length of the gl_ClipDistance array before
+       * the array is lowered to two vec4s by lower_clip_distance().
+       */
+      num_clip_distances[i] = get_clip_distance_size(ir);
 
       do {
          progress = false;
@@ -5040,6 +5024,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 	   || progress;
 
          progress = lower_quadop_vector(ir, false) || progress;
+         progress = lower_clip_distance(ir) || progress;
 
          if (options->MaxIfDepth == 0)
             progress = lower_discard(ir) || progress;
@@ -5074,7 +5059,8 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       if (prog->_LinkedShaders[i] == NULL)
          continue;
 
-      linked_prog = get_mesa_program(ctx, prog, prog->_LinkedShaders[i]);
+      linked_prog = get_mesa_program(ctx, prog, prog->_LinkedShaders[i],
+                                     num_clip_distances[i]);
 
       if (linked_prog) {
 	 static const GLenum targets[] = {
@@ -5120,7 +5106,8 @@ st_translate_stream_output_info(struct glsl_to_tgsi_visitor *glsl_to_tgsi,
       so->output[i].register_index =
          outputMapping[info->Outputs[i].OutputRegister];
       so->output[i].register_mask =
-         comps_to_mask[info->Outputs[i].NumComponents];
+         comps_to_mask[info->Outputs[i].NumComponents]
+         << info->Outputs[i].ComponentOffset;
       so->output[i].output_buffer = info->Outputs[i].OutputBuffer;
    }
    so->num_outputs = info->NumOutputs;

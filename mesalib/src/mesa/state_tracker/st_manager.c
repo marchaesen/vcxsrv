@@ -535,7 +535,7 @@ st_context_teximage(struct st_context_iface *stctxi,
       texFormat = st_ChooseTextureFormat(ctx, internalFormat,
                                          GL_BGRA, GL_UNSIGNED_BYTE);
 
-      _mesa_init_teximage_fields(ctx, target, texImage,
+      _mesa_init_teximage_fields(ctx, texImage,
                                  tex->width0, tex->height0, 1, 0,
                                  internalFormat, texFormat);
 
@@ -647,9 +647,13 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    if (attribs->major > 1 || attribs->minor > 0) {
       _mesa_compute_version(st->ctx);
 
-      /* is the actual version less than the requested version? */
+      /* Is the actual version less than the requested version?  Mesa can't
+       * yet enforce the added restrictions of a forward-looking context, so
+       * fail that too.
+       */
       if (st->ctx->VersionMajor * 10 + st->ctx->VersionMinor <
-          attribs->major * 10 + attribs->minor) {
+          attribs->major * 10 + attribs->minor
+	  || (attribs->flags & ~ST_CONTEXT_FLAG_DEBUG) != 0) {
 	 *error = ST_CONTEXT_ERROR_BAD_VERSION;
          st_destroy_context(st);
          return NULL;

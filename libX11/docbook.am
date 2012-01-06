@@ -30,11 +30,9 @@ XMLTO_HTML_OLINK_FLAGS = \
 	--stringparam target.database.document=$(XORG_SGML_PATH)/X11/dbs/masterdb.html.xml \
 	--stringparam current.docid="$(<:.xml=)"
 XMLTO_HTML_STYLESHEET_FLAGS = -x $(STYLESHEET_SRCDIR)/xorg-xhtml.xsl
-XMLTO_HTML_CSS_STYLESHEET_FLAGS = --stringparam html.stylesheet=$(STYLESHEET_SRCDIR)/xorg.css
 XMLTO_HTML_FLAGS = 					\
 	$(XMLTO_SEARCHPATH_FLAGS)			\
 	$(XMLTO_HTML_STYLESHEET_FLAGS)			\
-	$(XMLTO_HTML_CSS_STYLESHEET_FLAGS)		\
 	$(XMLTO_HTML_OLINK_FLAGS)
 
 shelf_DATA += $(docbook:.xml=.html)
