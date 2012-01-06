@@ -109,6 +109,7 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
     unsigned major_version = 1;
     unsigned minor_version = 0;
     uint32_t flags = 0;
+    unsigned i;
 
     /* Either num_attribs is zero and attribs is NULL, or num_attribs is not
      * zero and attribs is not NULL.
@@ -130,7 +131,7 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
             return NULL;
     }
 
-    for (unsigned i = 0; i < num_attribs; i++) {
+    for (i = 0; i < num_attribs; i++) {
 	switch (attribs[i * 2]) {
 	case __DRI_CTX_ATTRIB_MAJOR_VERSION:
 	    major_version = attribs[i * 2 + 1];
