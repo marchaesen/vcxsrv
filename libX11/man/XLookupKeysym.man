@@ -267,6 +267,8 @@ Note that you can rebind a KeySym that may not exist.
 XButtonEvent(__libmansuffix__),
 XMapEvent(__libmansuffix__),
 XStringToKeysym(__libmansuffix__),
+XkbLookupKeySym(__libmansuffix__),
+XkbRefreshKeyboardMapping(__libmansuffix__),
 XmbLookupString(__libmansuffix__),
 XwcLookupString(__libmansuffix__),
 Xutf8LookupString(__libmansuffix__),

@@ -442,6 +442,7 @@ by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 XFree(__libmansuffix__),
+XkbGetMap(__libmansuffix__),
 XSetPointerMapping(__libmansuffix__) 
 .br
 \fI\*(xL\fP

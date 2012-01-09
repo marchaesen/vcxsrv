@@ -203,6 +203,7 @@ macro returns
 .ZN True
 if the specified KeySym is a vendor-private keypad key.
 .SH "SEE ALSO"
+XkbKeyTypesForCoreSymbols(__libmansuffix__),
 AllPlanes(__libmansuffix__),
 BlackPixelOfScreen(__libmansuffix__),
 ImageByteOrder(__libmansuffix__)

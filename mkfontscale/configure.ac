@@ -1,5 +1,5 @@
 dnl  Copyright 2005 Red Hat, Inc.
-dnl 
+dnl
 dnl  Permission to use, copy, modify, distribute, and sell this software
 dnl  and its documentation for any purpose is hereby granted without fee,
 dnl  provided that the above copyright notice appear in all copies and
@@ -9,7 +9,7 @@ dnl  advertising or publicity pertaining to distribution of the software
 dnl  without specific, written prior permission.  Red Hat makes no
 dnl  representations about the suitability of this software for any
 dnl  purpose.  It is provided "as is" without express or implied warranty.
-dnl 
+dnl
 dnl  RED HAT DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
 dnl  INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN
 dnl  NO EVENT SHALL RED HAT BE LIABLE FOR ANY SPECIAL, INDIRECT OR
@@ -38,11 +38,11 @@ m4_ifndef([XORG_MACROS_VERSION],
 XORG_MACROS_VERSION(1.8)
 XORG_DEFAULT_OPTIONS
 
-AC_CHECK_LIB(z, gzopen, [], 
+AC_CHECK_LIB(z, gzopen, [],
 	[AC_MSG_ERROR([zlib is required, but was not found.])])
 
-AC_ARG_WITH(bzip2, 
-	AS_HELP_STRING([--with-bzip2], 
+AC_ARG_WITH(bzip2,
+	AS_HELP_STRING([--with-bzip2],
 			[Support bzip2 compressed bitmap fonts]),
 	[], [with_bzip2=no])
 if test "x$with_bzip2" = xyes; then
