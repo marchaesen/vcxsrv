@@ -220,6 +220,7 @@ upper_return.
 Support for conversion of other than Latin and Cyrillic KeySyms is
 implementation-dependent.
 .SH "SEE ALSO"
+XkbKeycodeToKeysym(__libmansuffix__),
 XLookupKeysym(__libmansuffix__)
 .br
 \fI\*(xL\fP

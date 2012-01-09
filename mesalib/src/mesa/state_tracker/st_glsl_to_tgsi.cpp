@@ -1402,8 +1402,7 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
       }
       break;
    case ir_unop_neg:
-      assert(result_dst.type == GLSL_TYPE_FLOAT || result_dst.type == GLSL_TYPE_INT);
-      if (result_dst.type == GLSL_TYPE_INT)
+      if (result_dst.type == GLSL_TYPE_INT || result_dst.type == GLSL_TYPE_UINT)
          emit(ir, TGSI_OPCODE_INEG, result_dst, op[0]);
       else {
          op[0].negate = ~op[0].negate;
@@ -1411,8 +1410,10 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
       }
       break;
    case ir_unop_abs:
-      assert(result_dst.type == GLSL_TYPE_FLOAT);
-      emit(ir, TGSI_OPCODE_ABS, result_dst, op[0]);
+      if (result_dst.type == GLSL_TYPE_INT || result_dst.type == GLSL_TYPE_UINT)
+         emit(ir, TGSI_OPCODE_IABS, result_dst, op[0]);
+      else
+         emit(ir, TGSI_OPCODE_ABS, result_dst, op[0]);
       break;
    case ir_unop_sign:
       emit(ir, TGSI_OPCODE_SSG, result_dst, op[0]);
@@ -2375,7 +2376,7 @@ glsl_to_tgsi_visitor::visit(ir_constant *ir)
       gl_type = native_integers ? GL_BOOL : GL_FLOAT;
       for (i = 0; i < ir->type->vector_elements; i++) {
          if (native_integers)
-            values[i].b = ir->value.b[i];
+            values[i].u = ir->value.b[i] ? ~0 : 0;
          else
             values[i].f = ir->value.b[i];
       }

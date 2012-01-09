@@ -10,7 +10,57 @@
         <_description>APL Keyboard Symbols</_description>
         <languageList><iso639Id>eng</iso639Id></languageList>
       </configItem>
-      <variantList/>
+      <variantList>
+        <variant>
+          <configItem>
+            <name>dyalog</name>
+            <shortDescription>dyalog</shortDescription>
+            <description>dyalog</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>sax</name>
+            <shortDescription>sax</shortDescription>
+            <description>sax</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>unified</name>
+            <shortDescription>unified</shortDescription>
+            <description>unified</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>apl2</name>
+            <shortDescription>apl2</shortDescription>
+            <description>apl2</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>aplplusII</name>
+            <shortDescription>aplplusII</shortDescription>
+            <description>aplplusII</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>aplx</name>
+            <shortDescription>aplx</shortDescription>
+            <description>aplx</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>dyalog_base</name>
+            <shortDescription>dyalog_base</shortDescription>
+            <description>dyalog without box or op-codes</description>
+          </configItem>
+        </variant>
+      </variantList>
     </layout>
     <layout>
       <configItem>
