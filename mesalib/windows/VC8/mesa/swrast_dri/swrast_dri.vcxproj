@@ -144,7 +144,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_context.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_copypix.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_depth.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\swrast\s_depthstencil.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_drawpix.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_feedback.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_fog.c" />

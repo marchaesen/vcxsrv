@@ -126,9 +126,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_renderbuffer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\swrast\s_depthstencil.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\mesa\drivers\dri\swrast\swrast_priv.h">
