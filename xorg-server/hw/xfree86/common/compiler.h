@@ -397,25 +397,6 @@ extern _X_EXPORT unsigned int inl(unsigned int port);
 #include <machine/pio.h>
 #endif /* __NetBSD__ */
 
-#   elif defined(linux) && defined(__ia64__) 
- 
-#    include <inttypes.h>
-
-#    include <sys/io.h>
-
-#    undef outb
-#    undef outw
-#    undef outl
-#    undef inb
-#    undef inw
-#    undef inl
-extern _X_EXPORT void outb(unsigned long port, unsigned char val);
-extern _X_EXPORT void outw(unsigned long port, unsigned short val);
-extern _X_EXPORT void outl(unsigned long port, unsigned int val);
-extern _X_EXPORT unsigned int inb(unsigned long port);
-extern _X_EXPORT unsigned int inw(unsigned long port);
-extern _X_EXPORT unsigned int inl(unsigned long port);
- 
 #   elif (defined(linux) || defined(__FreeBSD__)) && defined(__amd64__)
  
 #    include <inttypes.h>

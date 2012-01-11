@@ -175,7 +175,8 @@ install-exec-hook:
 EXTRA_DIST = \
 	$(xwinconfig_DATA) \
 	X.ico \
-	XWin.rc
+	XWin.rc \
+	XWin.exe.manifest
 
 relink:
 	$(AM_V_at)rm -f XWin$(EXEEXT) && $(MAKE) XWin$(EXEEXT)

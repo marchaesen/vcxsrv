@@ -1969,9 +1969,9 @@ static const pixman_fast_path_t c_fast_paths[] =
 };
 
 #ifdef WORDS_BIGENDIAN
-#define A1_FILL_MASK(n, offs) (((1 << (n)) - 1) << (32 - (offs) - (n)))
+#define A1_FILL_MASK(n, offs) (((1U << (n)) - 1) << (32 - (offs) - (n)))
 #else
-#define A1_FILL_MASK(n, offs) (((1 << (n)) - 1) << (offs))
+#define A1_FILL_MASK(n, offs) (((1U << (n)) - 1) << (offs))
 #endif
 
 static force_inline void

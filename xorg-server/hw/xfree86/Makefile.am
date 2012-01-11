@@ -11,9 +11,7 @@ if XF86UTILS
 XF86UTILS_SUBDIR = utils
 endif
 
-if XAA
 XAA_SUBDIR = xaa
-endif
 
 if VGAHW
 VGAHW_SUBDIR = vgahw

@@ -77,17 +77,38 @@ _mm_empty (void)
 
 /* --------------- MMX primitives ------------------------------------- */
 
-#ifdef __GNUC__
+/* If __m64 is defined as a struct or union, then define M64_MEMBER to be
+ * the name of the member used to access the data.
+ * If __m64 requires using mm_cvt* intrinsics functions to convert between
+ * uint64_t and __m64 values, then define USE_CVT_INTRINSICS.
+ * If __m64 and uint64_t values can just be cast to each other directly,
+ * then define USE_M64_CASTS.
+ */
+#ifdef _MSC_VER
+# define M64_MEMBER m64_u64
+#elif defined(__ICC)
+# define USE_CVT_INTRINSICS
+#elif defined(__GNUC__)
+# define USE_M64_CASTS
+#elif defined(__SUNPRO_C)
+# if (__SUNPRO_C >= 0x5120) && !defined(__NOVECTORSIZE__)
+/* Solaris Studio 12.3 (Sun C 5.12) introduces __attribute__(__vector_size__)
+ * support, and defaults to using it to define __m64, unless __NOVECTORSIZE__
+ * is defined.   If it is used, then the mm_cvt* intrinsics must be used.
+ */
+#  define USE_CVT_INTRINSICS
+# else
+/* For Studio 12.2 or older, or when __attribute__(__vector_size__) is
+ * disabled, __m64 is defined as a struct containing "unsigned long long l_".
+ */
+#  define M64_MEMBER l_
+# endif
+#endif
+
+#if defined(USE_M64_CASTS) || defined(USE_CVT_INTRINSICS)
 typedef uint64_t mmxdatafield;
 #else
 typedef __m64 mmxdatafield;
-/* If __m64 is defined as a struct or union, define M64_MEMBER to be the
-   name of the member used to access the data */
-# ifdef _MSC_VER
-#  define M64_MEMBER m64_u64
-# elif defined(__SUNPRO_C)
-#  define M64_MEMBER l_
-# endif
 #endif
 
 typedef struct
@@ -113,7 +134,7 @@ typedef struct
 # define MMXDATA_INIT(field, val) { val ## UI64 }
 #elif defined(M64_MEMBER)       /* __m64 is a struct, not an integral type */
 # define MMXDATA_INIT(field, val) field =   { val ## ULL }
-#else                           /* __m64 is an integral type */
+#else                           /* mmxdatafield is an integral type */
 # define MMXDATA_INIT(field, val) field =   val ## ULL
 #endif
 
@@ -136,12 +157,10 @@ static const mmx_data_t c =
     MMXDATA_INIT (.mmx_000000000000ffff,         0x000000000000ffff),
 };
 
-#ifdef __GNUC__
-#    ifdef __ICC
-#        define MC(x) to_m64 (c.mmx_ ## x)
-#    else
-#        define MC(x) ((__m64)c.mmx_ ## x)
-#    endif
+#ifdef USE_CVT_INTRINSICS
+#    define MC(x) to_m64 (c.mmx_ ## x)
+#elif defined(USE_M64_CASTS)
+#    define MC(x) ((__m64)c.mmx_ ## x)
 #else
 #    define MC(x) c.mmx_ ## x
 #endif
@@ -149,14 +168,14 @@ static const mmx_data_t c =
 static force_inline __m64
 to_m64 (uint64_t x)
 {
-#ifdef __ICC
+#ifdef USE_CVT_INTRINSICS
     return _mm_cvtsi64_m64 (x);
 #elif defined M64_MEMBER        /* __m64 is a struct, not an integral type */
     __m64 res;
 
     res.M64_MEMBER = x;
     return res;
-#else                           /* __m64 is an integral type */
+#else /* USE_M64_CASTS */
     return (__m64)x;
 #endif
 }
@@ -164,12 +183,12 @@ to_m64 (uint64_t x)
 static force_inline uint64_t
 to_uint64 (__m64 x)
 {
-#ifdef __ICC
+#ifdef USE_CVT_INTRINSICS
     return _mm_cvtm64_si64 (x);
 #elif defined M64_MEMBER        /* __m64 is a struct, not an integral type */
     uint64_t res = x.M64_MEMBER;
     return res;
-#else                           /* __m64 is an integral type */
+#else /* USE_M64_CASTS */
     return (uint64_t)x;
 #endif
 }

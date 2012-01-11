@@ -212,10 +212,20 @@ xf86OpenConsole(void)
             tcgetattr(xf86Info.consoleFd, &tty_attr);
 	    SYSCALL(ioctl(xf86Info.consoleFd, KDGKBMODE, &tty_mode));
 
-	    SYSCALL(ret = ioctl(xf86Info.consoleFd, KDSKBMODE, K_RAW));
+#ifdef K_OFF
+	    /* disable kernel special keys and buffering */
+	    SYSCALL(ret = ioctl(xf86Info.consoleFd, KDSKBMODE, K_OFF));
 	    if (ret < 0)
-		FatalError("xf86OpenConsole: KDSKBMODE K_RAW failed %s\n",
-			strerror(errno));
+#endif
+	    {
+		SYSCALL(ret = ioctl(xf86Info.consoleFd, KDSKBMODE, K_RAW));
+		if (ret < 0)
+		    FatalError("xf86OpenConsole: KDSKBMODE K_RAW failed %s\n",
+			    strerror(errno));
+
+		/* need to keep the buffer clean, else the kernel gets angry */
+		xf86SetConsoleHandler(drain_console, NULL);
+	    }
 
             nTty = tty_attr;
             nTty.c_iflag = (IGNPAR | IGNBRK) & (~PARMRK) & (~ISTRIP);
@@ -227,9 +237,6 @@ xf86OpenConsole(void)
             cfsetispeed(&nTty, 9600);
             cfsetospeed(&nTty, 9600);
             tcsetattr(xf86Info.consoleFd, TCSANOW, &nTty);
-
-            /* need to keep the buffer clean, else the kernel gets angry */
-	    xf86SetConsoleHandler(drain_console, NULL);
 
 	    /* we really should have a InitOSInputDevices() function instead
 	     * of Init?$#*&Device(). So I just place it here */

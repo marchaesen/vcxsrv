@@ -84,6 +84,23 @@ SOFTWARE.
 CallbackListPtr       ReplyCallback;
 CallbackListPtr       FlushCallback;
 
+typedef struct _connectionInput {
+    struct _connectionInput *next;
+    char *buffer;               /* contains current client input */
+    char *bufptr;               /* pointer to current start of data */
+    int  bufcnt;                /* count of bytes in buffer */
+    int lenLastReq;
+    int size;
+    unsigned int ignoreBytes;   /* bytes to ignore before the next request */
+} ConnectionInput, *ConnectionInputPtr;
+
+typedef struct _connectionOutput {
+    struct _connectionOutput *next;
+    unsigned char *buf;
+    int size;
+    int count;
+} ConnectionOutput, *ConnectionOutputPtr;
+
 static ConnectionInputPtr AllocateInputBuffer(void);
 static ConnectionOutputPtr AllocateOutputBuffer(void);
 
@@ -112,6 +129,8 @@ static OsCommPtr AvailableInput = (OsCommPtr)NULL;
 				  ((xBigReq *)(req))->length)
 
 #define MAX_TIMES_PER         10
+#define BUFSIZE 4096
+#define BUFWATERMARK 8192
 
 /*
  *   A lot of the code in this file manipulates a ConnectionInputPtr:
@@ -889,7 +908,7 @@ FlushClient(ClientPtr who, OsCommPtr oc, const void *__extraBuf, int extraCount)
     long notWritten;
     long todo;
 
-    if (!oco)
+    if (!oco || !oco->count)
 	return 0;
     written = 0;
     padsize = padlength[extraCount & 3];

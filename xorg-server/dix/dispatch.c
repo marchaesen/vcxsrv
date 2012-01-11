@@ -425,9 +425,11 @@ Dispatch(void)
 			client->minorOp = ext->MinorOpcode(client);
 		}
 #ifdef XSERVER_DTRACE
-		XSERVER_REQUEST_START(LookupMajorName(client->majorOp), client->majorOp,
-			      ((xReq *)client->requestBuffer)->length,
-			      client->index, client->requestBuffer);
+		if (XSERVER_REQUEST_START_ENABLED())
+		    XSERVER_REQUEST_START(LookupMajorName(client->majorOp),
+					  client->majorOp,
+					  ((xReq *)client->requestBuffer)->length,
+					  client->index, client->requestBuffer);
 #endif
 		if (result > (maxBigRequestSize << 2))
 		    result = BadLength;
@@ -438,8 +440,10 @@ Dispatch(void)
 		    XaceHookAuditEnd(client, result);
 		}
 #ifdef XSERVER_DTRACE
-		XSERVER_REQUEST_DONE(LookupMajorName(client->majorOp), client->majorOp,
-			      client->sequence, client->index, result);
+		if (XSERVER_REQUEST_DONE_ENABLED())
+		    XSERVER_REQUEST_DONE(LookupMajorName(client->majorOp),
+					 client->majorOp, client->sequence,
+					 client->index, result);
 #endif
 
 		if (client->noClientException != Success)
@@ -3578,12 +3582,14 @@ ProcInitialConnection(ClientPtr client)
     REQUEST(xReq);
     xConnClientPrefix *prefix;
     int whichbyte = 1;
+    char order;
 
     prefix = (xConnClientPrefix *)((char *)stuff + sz_xReq);
-    if ((prefix->byteOrder != 'l') && (prefix->byteOrder != 'B'))
+    order = prefix->byteOrder;
+    if (order != 'l' && order != 'B' && order != 'r' && order != 'R')
 	return client->noClientException = -1;
-    if (((*(char *) &whichbyte) && (prefix->byteOrder == 'B')) ||
-	(!(*(char *) &whichbyte) && (prefix->byteOrder == 'l')))
+    if (((*(char *) &whichbyte) && (order == 'B' || order == 'R')) ||
+	(!(*(char *) &whichbyte) && (order == 'l' || order == 'r')))
     {
 	client->swapped = TRUE;
 	SwapConnClientPrefix(prefix);
@@ -3594,6 +3600,10 @@ ProcInitialConnection(ClientPtr client)
     if (client->swapped)
     {
 	swaps(&stuff->length);
+    }
+    if (order == 'r' || order == 'R')
+    {
+	client->local = FALSE;
     }
     ResetCurrentRequest(client);
     return Success;

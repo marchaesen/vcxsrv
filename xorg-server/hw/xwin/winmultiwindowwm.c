@@ -1201,11 +1201,13 @@ winInitWM (void **ppWMInfo,
   XMsgProcArgPtr	pXMsgArg = (XMsgProcArgPtr) malloc (sizeof(XMsgProcArgRec));
 
   /* Bail if the input parameters are bad */
-  if (pArg == NULL || pWMInfo == NULL)
-    {
-      ErrorF ("winInitWM - malloc failed.\n");
-      return FALSE;
-    }
+  if (pArg == NULL || pWMInfo == NULL || pXMsgArg == NULL) {
+    ErrorF ("winInitWM - malloc failed.\n");
+    free(pArg);
+    free(pWMInfo);
+    free(pXMsgArg);
+    return FALSE;
+  }
   
   /* Zero the allocated memory */
   ZeroMemory (pArg, sizeof (WMProcArgRec));

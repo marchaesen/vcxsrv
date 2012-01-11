@@ -101,6 +101,10 @@ int XaceHook(int hook, ...)
     } u;
     int *prv = NULL;	/* points to return value from callback */
     va_list ap;		/* argument list */
+
+    if (!XaceHooks[hook])
+	return Success;
+
     va_start(ap, hook);
 
     /* Marshal arguments for passing to callback.

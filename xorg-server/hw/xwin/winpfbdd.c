@@ -461,12 +461,12 @@ static Bool
 winActivateAppPrimaryDD (ScreenPtr pScreen)
 {
   winScreenPriv(pScreen);
-  winScreenInfo		*pScreenInfo = pScreenPriv->pScreenInfo;
   RECT			rcSrc, rcClient;
   HRESULT		ddrval = DD_OK;
 
   /* Check for errors */
   if (pScreenPriv == NULL
+      || pScreenPriv->pScreenInfo == NULL
       || pScreenPriv->pddsPrimary == NULL
       || pScreenPriv->pddsOffscreen == NULL)
     return FALSE;
@@ -500,8 +500,8 @@ winActivateAppPrimaryDD (ScreenPtr pScreen)
   /* Setup a source rectangle */
   rcSrc.left = 0;
   rcSrc.top = 0;
-  rcSrc.right = pScreenInfo->dwWidth;
-  rcSrc.bottom = pScreenInfo->dwHeight;
+  rcSrc.right = pScreenPriv->pScreenInfo->dwWidth;
+  rcSrc.bottom = pScreenPriv->pScreenInfo->dwHeight;
 
   ddrval = IDirectDrawSurface2_Blt (pScreenPriv->pddsPrimary,
 				    &rcClient,

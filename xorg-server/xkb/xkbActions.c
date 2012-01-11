@@ -784,7 +784,7 @@ DeviceIntPtr		kbd;
 	filter->active= 0;
 	return ((pMsg->flags&XkbSA_MessageGenKeyEvent)!=0);
     }
-    return 0;
+    return 1;
 }
 
 static int

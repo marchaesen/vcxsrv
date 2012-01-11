@@ -1159,13 +1159,11 @@ TouchEventRejected(DeviceIntPtr sourcedev, TouchPointInfoPtr ti,
             DeliverTouchEvents(sourcedev, ti, tel + i, ev->resource);
     }
 
-    /* If there are no other listeners left, then don't bother sending an
-     * ownership change event to no-one; if the touchpoint is pending
+    /* If there are no other listeners left, and the touchpoint is pending
      * finish, then we can just kill it now. */
-    if (ti->num_listeners == 1)
+    if (ti->num_listeners == 1 && ti->pending_finish)
     {
-        if (ti->pending_finish)
-            TouchEndTouch(sourcedev, ti);
+        TouchEndTouch(sourcedev, ti);
         goto out;
     }
 
@@ -1178,9 +1176,9 @@ TouchEventRejected(DeviceIntPtr sourcedev, TouchPointInfoPtr ti,
             ti->num_grabs--;
     }
 
-    /* If the current owner was removed, deliver the TouchOwnership or TouchBegin
-       event to the new owner. */
-    if (was_owner)
+    /* If the current owner was removed and there are further listeners, deliver
+     * the TouchOwnership or TouchBegin event to the new owner. */
+    if (ti->num_listeners > 0 && was_owner)
         TouchPuntToNextOwner(sourcedev, ti, ev);
 
 out:
@@ -1803,8 +1801,10 @@ DeliverTouchEndEvent(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev,
                 rc = DeliverOneTouchEvent(client, dev, ti, grab, win, ev);
             listener->state = LISTENER_HAS_END;
         }
-        if (ti->num_listeners > 1 &&
-           (ev->device_event.flags & (TOUCH_ACCEPT|TOUCH_REJECT)) == 0)
+        if ((ti->num_listeners > 1 ||
+             (listener->type == LISTENER_GRAB &&
+              xi2mask_isset(xi2mask, dev, XI_TouchOwnership))) &&
+            (ev->device_event.flags & (TOUCH_ACCEPT|TOUCH_REJECT)) == 0)
         {
             ev->any.type = ET_TouchUpdate;
             ev->device_event.flags |= TOUCH_PENDING_END;

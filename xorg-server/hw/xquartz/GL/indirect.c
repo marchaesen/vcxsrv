@@ -48,9 +48,6 @@
 #include <glxserver.h>
 #include <glxutil.h>
 
-typedef unsigned long long GLuint64EXT;
-typedef long long GLint64EXT;
-#include <dispatch.h>
 #include <glapi.h>
 
 #include "x-hash.h"

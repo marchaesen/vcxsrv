@@ -691,6 +691,10 @@ eventToDeviceEvent(DeviceEvent *ev, xEvent **xi)
     else
         xde->flags = ev->flags;
 
+    if (IsTouchEvent((InternalEvent*)ev) &&
+        ev->flags & TOUCH_POINTER_EMULATED)
+        xde->flags |= XITouchEmulatingPointer;
+
     if (ev->key_repeat)
         xde->flags      |= XIKeyRepeat;
 

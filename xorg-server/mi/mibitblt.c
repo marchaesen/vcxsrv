@@ -648,7 +648,7 @@ miGetImage( DrawablePtr pDraw, int sx, int sy, int w, int h,
     depth = pDraw->depth;
     if(format == ZPixmap)
     {
-	if ( (((1<<depth)-1)&planeMask) != (1<<depth)-1 )
+	if ( (((1LL<<depth)-1)&planeMask) != (1LL<<depth)-1 )
 	{
 	    ChangeGCVal gcv;
 	    xPoint pt;

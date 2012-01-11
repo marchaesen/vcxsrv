@@ -39,7 +39,6 @@
 #include <sys/select.h>
 #else
 #include <X11/Xwinsock.h>
-#define HAS_WINSOCK
 #endif
 #include <fcntl.h>
 #include <setjmp.h>

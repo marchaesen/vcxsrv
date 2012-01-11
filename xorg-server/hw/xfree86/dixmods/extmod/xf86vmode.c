@@ -1527,7 +1527,7 @@ ProcXF86VidModeGetPermissions(ClientPtr client)
     rep.sequenceNumber = client->sequence;
     rep.permissions = XF86VM_READ_PERMISSION;
     if (xf86GetVidModeEnabled() &&
-	(xf86GetVidModeAllowNonLocal() || LocalClient (client))) {
+	(xf86GetVidModeAllowNonLocal() || client->local)) {
 	rep.permissions |= XF86VM_WRITE_PERMISSION;
     }
     if(client->swapped) {
@@ -1597,7 +1597,7 @@ ProcXF86VidModeDispatch(ClientPtr client)
     default:
 	if (!xf86GetVidModeEnabled())
 	    return VidModeErrorBase + XF86VidModeExtensionDisabled;
-	if (xf86GetVidModeAllowNonLocal() || LocalClient (client)) {
+	if (xf86GetVidModeAllowNonLocal() || client->local) {
 	    switch (stuff->data) {
 	    case X_XF86VidModeAddModeLine:
 		return ProcXF86VidModeAddModeLine(client);
@@ -2017,7 +2017,7 @@ SProcXF86VidModeDispatch(ClientPtr client)
     default:
 	if (!xf86GetVidModeEnabled())
 	    return VidModeErrorBase + XF86VidModeExtensionDisabled;
-	if (xf86GetVidModeAllowNonLocal() || LocalClient(client)) {
+	if (xf86GetVidModeAllowNonLocal() || client->local) {
 	    switch (stuff->data) {
 	    case X_XF86VidModeAddModeLine:
 		return SProcXF86VidModeAddModeLine(client);

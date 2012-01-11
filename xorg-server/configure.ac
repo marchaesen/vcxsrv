@@ -776,7 +776,7 @@ XPROTO="xproto >= 7.0.22"
 RANDRPROTO="randrproto >= 1.2.99.3"
 RENDERPROTO="renderproto >= 0.11"
 XEXTPROTO="xextproto >= 7.1.99"
-INPUTPROTO="inputproto >= 2.1.99.3"
+INPUTPROTO="inputproto >= 2.1.99.5"
 KBPROTO="kbproto >= 1.0.3"
 FONTSPROTO="fontsproto"
 FIXESPROTO="fixesproto >= 5.0"
@@ -1023,6 +1023,13 @@ if test "x$RES" = xyes && test "x$CLIENTIDS" = xyes; then
 	AC_DEFINE(CLIENTIDS, 1, [Support client ID tracking])
 else
 	CLIENTIDS=no
+fi
+if test "x$CLIENTIDS" = xyes; then
+	case $host_os in
+	openbsd*)
+		SYS_LIBS="$SYS_LIBS -lkvm"
+	;;
+	esac
 fi
 AC_MSG_RESULT([$CLIENTIDS])
 AM_CONDITIONAL(CLIENTIDS, [test "x$CLIENTIDS" = xyes])

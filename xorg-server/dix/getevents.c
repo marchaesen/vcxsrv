@@ -1328,7 +1328,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
     storeLastValuators(pDev, &mask, 0, 1, devx, devy);
 
     /* Update the MD's co-ordinates, which are always in desktop space. */
-    if (!IsMaster(pDev) || !IsFloating(pDev)) {
+    if (!IsMaster(pDev) && !IsFloating(pDev)) {
         DeviceIntPtr master = GetMaster(pDev, MASTER_POINTER);
         master->last.valuators[0] = screenx;
         master->last.valuators[1] = screeny;

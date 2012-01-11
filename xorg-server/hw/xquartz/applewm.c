@@ -630,7 +630,7 @@ ProcAppleWMDispatch (
         return ProcAppleWMQueryVersion(client);
     }
 
-    if (!LocalClient(client))
+    if (!client->local)
         return WMErrorBase + AppleWMClientNotLocal;
 
     switch (stuff->data)
@@ -693,7 +693,7 @@ SProcAppleWMDispatch (
     REQUEST(xReq);
 
     /* It is bound to be non-local when there is byte swapping */
-    if (!LocalClient(client))
+    if (!client->local)
         return WMErrorBase + AppleWMClientNotLocal;
 
     /* only local clients are allowed WM access */

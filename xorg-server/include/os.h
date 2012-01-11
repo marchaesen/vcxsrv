@@ -353,8 +353,6 @@ typedef struct sockaddr * sockaddrPtr;
 
 extern _X_EXPORT int InvalidHost(sockaddrPtr /*saddr*/, int /*len*/, ClientPtr client);
 
-extern _X_EXPORT int LocalClient(ClientPtr /* client */);
-
 extern _X_EXPORT int LocalClientCred(ClientPtr, int *, int *);
 
 #define LCC_UID_SET	(1 << 0)
