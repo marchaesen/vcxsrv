@@ -158,6 +158,7 @@
 #define XIPointerEmulated                       (1 << 16)
 /* Device event flags (touch events only) */
 #define XITouchPendingEnd                       (1 << 16)
+#define XITouchEmulatingPointer                 (1 << 17)
 
 /* Touch modes */
 #define XIDirectTouch                           1
