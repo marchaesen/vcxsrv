@@ -32,6 +32,8 @@
 
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
+#else
+#define HAS_WINSOCK 1
 #endif
 #include <sys/types.h>
 #include "winclipboard.h"

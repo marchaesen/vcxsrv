@@ -52,10 +52,6 @@ SOFTWARE.
 #ifndef _OSDEP_H_
 #define _OSDEP_H_ 1
 
-#define BOTIMEOUT 200 /* in milliseconds */
-#define BUFSIZE 4096
-#define BUFWATERMARK 8192
-
 #if defined(XDMCP) || defined(HASXDMAUTH)
 #include <X11/Xdmcp.h>
 #endif
@@ -112,22 +108,8 @@ typedef Bool (*AddAuthorFunc)(unsigned name_length, const char *name,
 			      unsigned data_length, char *data);
 #endif
 
-typedef struct _connectionInput {
-    struct _connectionInput *next;
-    char *buffer;               /* contains current client input */
-    char *bufptr;               /* pointer to current start of data */
-    int  bufcnt;                /* count of bytes in buffer */
-    int lenLastReq;
-    int size;
-    unsigned int ignoreBytes;   /* bytes to ignore before the next request */
-} ConnectionInput, *ConnectionInputPtr;
-
-typedef struct _connectionOutput {
-    struct _connectionOutput *next;
-    int size;
-    unsigned char *buf;
-    int count;
-} ConnectionOutput, *ConnectionOutputPtr;
+typedef struct _connectionInput *ConnectionInputPtr;
+typedef struct _connectionOutput *ConnectionOutputPtr;
 
 struct _osComm;
 
@@ -166,7 +148,6 @@ typedef struct _osComm {
     XID	auth_id;		/* authorization id */
     CARD32 conn_time;		/* timestamp if not established, else 0  */
     struct _XtransConnInfo *trans_conn; /* transport connection object */
-    Bool local_client;
 } OsCommRec, *OsCommPtr;
 
 extern int FlushClient(

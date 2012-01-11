@@ -166,7 +166,8 @@ fake_reader (const void *src, int size)
     uint32_t r = lcg_rand_u32 ();
 
     assert (size == 1 || size == 2 || size == 4);
-    return r & ((1 << (size * 8)) - 1);
+
+    return r >> (32 - (size * 8));
 }
 
 static void

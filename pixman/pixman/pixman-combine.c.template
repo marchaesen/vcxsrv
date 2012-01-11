@@ -522,7 +522,7 @@ combine_multiply_ca (pixman_implementation_t *imp,
 	    UNcx4_MUL_UNc_ADD_UNcx4_MUL_UNc (result, isa, s, ida);	\
 	    								\
 	    *(dest + i) = result +					\
-		(DIV_ONE_UNc (sa * da) << A_SHIFT) +			\
+		(DIV_ONE_UNc (sa * (comp4_t)da) << A_SHIFT) +		\
 		(blend_ ## name (RED_c (d), da, RED_c (s), sa) << R_SHIFT) + \
 		(blend_ ## name (GREEN_c (d), da, GREEN_c (s), sa) << G_SHIFT) + \
 		(blend_ ## name (BLUE_c (d), da, BLUE_c (s), sa));	\
@@ -552,7 +552,7 @@ combine_multiply_ca (pixman_implementation_t *imp,
 	    UNcx4_MUL_UNcx4_ADD_UNcx4_MUL_UNc (result, ~m, s, ida);     \
             								\
 	    result +=							\
-	        (DIV_ONE_UNc (ALPHA_c (m) * da) << A_SHIFT) +		\
+	        (DIV_ONE_UNc (ALPHA_c (m) * (comp4_t)da) << A_SHIFT) +	\
 	        (blend_ ## name (RED_c (d), da, RED_c (s), RED_c (m)) << R_SHIFT) + \
 	        (blend_ ## name (GREEN_c (d), da, GREEN_c (s), GREEN_c (m)) << G_SHIFT) + \
 	        (blend_ ## name (BLUE_c (d), da, BLUE_c (s), BLUE_c (m))); \
@@ -926,7 +926,7 @@ PDF_SEPARABLE_BLEND_MODE (exclusion)
 	    blend_ ## name (c, dc, da, sc, sa);				\
             								\
 	    *(dest + i) = result +					\
-		(DIV_ONE_UNc (sa * da) << A_SHIFT) +			\
+		(DIV_ONE_UNc (sa * (comp4_t)da) << A_SHIFT) +		\
 		(DIV_ONE_UNc (c[0]) << R_SHIFT) +			\
 		(DIV_ONE_UNc (c[1]) << G_SHIFT) +			\
 		(DIV_ONE_UNc (c[2]));					\

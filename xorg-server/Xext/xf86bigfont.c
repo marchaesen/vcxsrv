@@ -300,7 +300,7 @@ ProcXF86BigfontQueryVersion(
 #endif
     reply.capabilities =
 #ifdef HAS_SHM
-	(LocalClient(client) && !client->swapped ? XF86Bigfont_CAP_LocalShm : 0)
+	(client->local && !client->swapped ? XF86Bigfont_CAP_LocalShm : 0)
 #else
 	0
 #endif
@@ -367,7 +367,7 @@ ProcXF86BigfontQueryFont(
 #else
     switch (client->req_len) {
 	case 2: /* client with version 1.0 libX11 */
-	    stuff_flags = (LocalClient(client) && !client->swapped ? XF86Bigfont_FLAGS_Shm : 0);
+	    stuff_flags = (client->local && !client->swapped ? XF86Bigfont_FLAGS_Shm : 0);
 	    break;
 	case 3: /* client with version 1.1 libX11 */
 	    stuff_flags = stuff->flags;

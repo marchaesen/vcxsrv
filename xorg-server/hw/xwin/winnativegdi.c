@@ -313,7 +313,6 @@ static Bool
 winActivateAppNativeGDI (ScreenPtr pScreen)
 {
   winScreenPriv(pScreen);
-  winScreenInfo		*pScreenInfo = pScreenPriv->pScreenInfo;
 
   /*
    * Are we active?
@@ -321,7 +320,8 @@ winActivateAppNativeGDI (ScreenPtr pScreen)
    */
   if (pScreenPriv != NULL
       && pScreenPriv->fActive
-      && pScreenInfo->fFullScreen)
+      && pScreenPriv->pScreenInfo
+      && pScreenPriv->pScreenInfo->fFullScreen)
     {
       /*
        * Activating, attempt to bring our window 
@@ -336,7 +336,8 @@ winActivateAppNativeGDI (ScreenPtr pScreen)
    */
   if (pScreenPriv != NULL
       && !pScreenPriv->fActive
-      && pScreenInfo->fFullScreen)
+      && pScreenPriv->pScreenInfo
+      && pScreenPriv->pScreenInfo->fFullScreen)
     {
       /*
        * Deactivating, stuff our window onto the

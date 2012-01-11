@@ -220,16 +220,33 @@ pixman_expand (uint64_t *           dst,
     for (i = width - 1; i >= 0; i--)
     {
 	const uint32_t pixel = src[i];
-	const uint8_t a = (pixel >> a_shift) & a_mask,
-	              r = (pixel >> r_shift) & r_mask,
-	              g = (pixel >> g_shift) & g_mask,
-	              b = (pixel >> b_shift) & b_mask;
-	const uint64_t
-	    a16 = a_size ? unorm_to_unorm (a, a_size, 16) : 0xffff,
-	    r16 = unorm_to_unorm (r, r_size, 16),
-	    g16 = unorm_to_unorm (g, g_size, 16),
-	    b16 = unorm_to_unorm (b, b_size, 16);
+	uint8_t a, r, g, b;
+	uint64_t a16, r16, g16, b16;
 
+	if (a_size)
+	{
+	    a = (pixel >> a_shift) & a_mask;
+	    a16 = unorm_to_unorm (a, a_size, 16);
+	}
+	else
+	{
+	    a16 = 0xffff;
+	}
+
+	if (r_size)
+	{
+	    r = (pixel >> r_shift) & r_mask;
+	    g = (pixel >> g_shift) & g_mask;
+	    b = (pixel >> b_shift) & b_mask;
+	    r16 = unorm_to_unorm (r, r_size, 16);
+	    g16 = unorm_to_unorm (g, g_size, 16);
+	    b16 = unorm_to_unorm (b, b_size, 16);
+	}
+	else
+	{
+	    r16 = g16 = b16 = 0;
+	}
+	
 	dst[i] = a16 << 48 | r16 << 32 | g16 << 16 | b16;
     }
 }

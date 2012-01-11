@@ -299,13 +299,12 @@ compute_image_info (pixman_image_t *image)
 	             image->common.transform->matrix[1][1] == 0)
 	    {
 		pixman_fixed_t m01 = image->common.transform->matrix[0][1];
-		if (m01 == -image->common.transform->matrix[1][0])
-		{
-			if (m01 == -pixman_fixed_1)
-			    flags |= FAST_PATH_ROTATE_90_TRANSFORM;
-			else if (m01 == pixman_fixed_1)
-			    flags |= FAST_PATH_ROTATE_270_TRANSFORM;
-		}
+		pixman_fixed_t m10 = image->common.transform->matrix[1][0];
+
+		if (m01 == -1 && m10 == 1)
+		    flags |= FAST_PATH_ROTATE_90_TRANSFORM;
+		else if (m01 == 1 && m10 == -1)
+		    flags |= FAST_PATH_ROTATE_270_TRANSFORM;
 	    }
 	}
 
@@ -631,7 +630,7 @@ pixman_image_set_transform (pixman_image_t *          image,
     }
 
     if (common->transform &&
-	memcmp (common->transform, transform, sizeof (pixman_transform_t) == 0))
+	memcmp (common->transform, transform, sizeof (pixman_transform_t)) == 0)
     {
 	return TRUE;
     }

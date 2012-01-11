@@ -2579,6 +2579,44 @@ find_attachment(const struct gl_framebuffer *fb,
 }
 
 
+/**
+ * Helper function for checking if the datatypes of color buffers are
+ * compatible for glBlitFramebuffer.  From the 3.1 spec, page 198:
+ *
+ * "GL_INVALID_OPERATION is generated if mask contains GL_COLOR_BUFFER_BIT
+ *  and any of the following conditions hold:
+ *   - The read buffer contains fixed-point or floating-point values and any
+ *     draw buffer contains neither fixed-point nor floating-point values.
+ *   - The read buffer contains unsigned integer values and any draw buffer
+ *     does not contain unsigned integer values.
+ *   - The read buffer contains signed integer values and any draw buffer
+ *     does not contain signed integer values."
+ */
+static GLboolean
+compatible_color_datatypes(gl_format srcFormat, gl_format dstFormat)
+{
+   GLenum srcType = _mesa_get_format_datatype(srcFormat);
+   GLenum dstType = _mesa_get_format_datatype(dstFormat);
+
+   if (srcType != GL_INT && srcType != GL_UNSIGNED_INT) {
+      assert(srcType == GL_UNSIGNED_NORMALIZED ||
+             srcType == GL_SIGNED_NORMALIZED ||
+             srcType == GL_FLOAT);
+      /* Boil any of those types down to GL_FLOAT */
+      srcType = GL_FLOAT;
+   }
+
+   if (dstType != GL_INT && dstType != GL_UNSIGNED_INT) {
+      assert(dstType == GL_UNSIGNED_NORMALIZED ||
+             dstType == GL_SIGNED_NORMALIZED ||
+             dstType == GL_FLOAT);
+      /* Boil any of those types down to GL_FLOAT */
+      dstType = GL_FLOAT;
+   }
+
+   return srcType == dstType;
+}
+
 
 /**
  * Blit rectangular region, optionally from one framebuffer to another.
@@ -2663,6 +2701,12 @@ _mesa_BlitFramebufferEXT(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
 	 colorReadRb = colorDrawRb = NULL;
 	 mask &= ~GL_COLOR_BUFFER_BIT;
       }
+      else if (!compatible_color_datatypes(colorReadRb->Format,
+                                           colorDrawRb->Format)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glBlitFramebufferEXT(color buffer datatypes mismatch)");
+         return;
+      }
    }
    else {
       colorReadRb = colorDrawRb = NULL;
@@ -2683,10 +2727,9 @@ _mesa_BlitFramebufferEXT(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
       if ((readRb == NULL) || (drawRb == NULL)) {
 	 mask &= ~GL_STENCIL_BUFFER_BIT;
       }
-      else if (_mesa_get_format_bits(readRb->Format, GL_STENCIL_BITS) !=
-	       _mesa_get_format_bits(drawRb->Format, GL_STENCIL_BITS)) {
+      else if (readRb->Format != drawRb->Format) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glBlitFramebufferEXT(stencil buffer size mismatch)");
+                     "glBlitFramebufferEXT(stencil buffer format mismatch)");
          return;
       }
    }
@@ -2706,10 +2749,9 @@ _mesa_BlitFramebufferEXT(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
       if ((readRb == NULL) || (drawRb == NULL)) {
 	 mask &= ~GL_DEPTH_BUFFER_BIT;
       }
-      else if (_mesa_get_format_bits(readRb->Format, GL_DEPTH_BITS) !=
-	       _mesa_get_format_bits(drawRb->Format, GL_DEPTH_BITS)) {
+      else if (readRb->Format != drawRb->Format) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glBlitFramebufferEXT(depth buffer size mismatch)");
+                     "glBlitFramebufferEXT(depth buffer format mismatch)");
          return;
       }
    }
@@ -2718,7 +2760,7 @@ _mesa_BlitFramebufferEXT(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
        drawFb->Visual.samples > 0 &&
        readFb->Visual.samples != drawFb->Visual.samples) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glBlitFramebufferEXT(mismatched samples");
+                  "glBlitFramebufferEXT(mismatched samples)");
       return;
    }
 
@@ -2738,6 +2780,19 @@ _mesa_BlitFramebufferEXT(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
           colorReadRb->Format != colorDrawRb->Format) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                 "glBlitFramebufferEXT(bad src/dst multisample pixel formats)");
+         return;
+      }
+   }
+
+   if (filter == GL_LINEAR && (mask & GL_COLOR_BUFFER_BIT)) {
+      /* 3.1 spec, page 199:
+       * "Calling BlitFramebuffer will result in an INVALID_OPERATION error
+       * if filter is LINEAR and read buffer contains integer data."
+       */
+      GLenum type = _mesa_get_format_datatype(colorReadRb->Format);
+      if (type == GL_INT || type == GL_UNSIGNED_INT) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glBlitFramebufferEXT(integer color type)");
          return;
       }
    }

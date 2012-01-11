@@ -270,7 +270,6 @@ winQueryRGBBitsAndMasks (ScreenPtr pScreen)
   else
     {
       ErrorF ("winQueryRGBBitsAndMasks - winQueryScreenDIBFormat failed\n");
-      free (pbmih);
       fReturn = FALSE;
     }
 

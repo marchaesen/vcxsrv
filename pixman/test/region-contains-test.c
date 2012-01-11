@@ -73,7 +73,7 @@ random_coord (pixman_region32_t *region, pixman_bool_t x)
     case 3:
 	return begin;
     default:
-	return (begin + end) / 2;
+	return (end - begin) / 2 + begin;
     }
     return 0;
 }
@@ -163,7 +163,7 @@ main (int argc, const char *argv[])
 {
     return fuzzer_test_main ("region_contains",
 			     1000000,
-			     0xD7C297CC,
+			     0xD2BF8C73,
 			     test_region_contains_rectangle,
 			     argc, argv);
 }

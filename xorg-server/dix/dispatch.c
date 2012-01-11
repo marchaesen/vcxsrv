@@ -432,10 +432,14 @@ Dispatch(void)
 			client->minorOp = ext->MinorOpcode(client);
 		}
 #ifdef XSERVER_DTRACE
-		StartMajorOp=client->majorOp;
-		XSERVER_REQUEST_START(LookupMajorName(client->majorOp), client->majorOp,
-			      ((xReq *)client->requestBuffer)->length,
-			      client->index, client->requestBuffer);
+		if (XSERVER_REQUEST_START_ENABLED())
+		{
+		  StartMajorOp=client->majorOp;
+		  XSERVER_REQUEST_START(LookupMajorName(client->majorOp),
+		                                        client->majorOp,
+		                                        ((xReq *)client->requestBuffer)->length,
+		                                        client->index, client->requestBuffer);
+		}
 #endif
 		if (result > (maxBigRequestSize << 2))
 		    result = BadLength;
@@ -446,26 +450,32 @@ Dispatch(void)
 		    XaceHookAuditEnd(client, result);
 		}
 #ifdef XSERVER_DTRACE
-		if (result!=Success)
+		if (XSERVER_REQUEST_DONE_ENABLED())
 		{
-		  char Message[255];
-		  sprintf(Message,"ERROR: %s (0x%x)",LookupMajorName(client->majorOp),client->errorValue);
-		  XSERVER_REQUEST_DONE(Message, client->majorOp,
-		                       client->sequence, client->index, result);
-		}
-		else
-		{
-		  if (StartMajorOp!=client->majorOp)
+		  if (result!=Success)
 		  {
 		    char Message[255];
-		    sprintf(Message,"Changed request: %s -> %s",LookupMajorName(StartMajorOp),LookupMajorName(client->majorOp));
-		    XSERVER_REQUEST_DONE(Message, client->majorOp,
-		                         client->sequence, client->index, result);
+		    sprintf(Message,"ERROR: %s (0x%x)",LookupMajorName(client->majorOp),client->errorValue);
+		    XSERVER_REQUEST_DONE(Message,
+		                         client->majorOp, client->sequence,
+		                         client->index, result);
 		  }
 		  else
 		  {
-		    XSERVER_REQUEST_DONE(LookupMajorName(client->majorOp), client->majorOp,
-		                         client->sequence, client->index, result);
+		    if (StartMajorOp!=client->majorOp)
+		    {
+		      char Message[255];
+		      sprintf(Message,"Changed request: %s -> %s",LookupMajorName(StartMajorOp),LookupMajorName(client->majorOp));
+		      XSERVER_REQUEST_DONE(Message,
+		                           client->majorOp, client->sequence,
+		                           client->index, result);
+		    }
+		    else
+		    {
+		      XSERVER_REQUEST_DONE(LookupMajorName(client->majorOp),
+		                           client->majorOp, client->sequence,
+		                           client->index, result);
+		    }
 		  }
 		}
 #endif
@@ -3619,12 +3629,14 @@ ProcInitialConnection(ClientPtr client)
     REQUEST(xReq);
     xConnClientPrefix *prefix;
     int whichbyte = 1;
+    char order;
 
     prefix = (xConnClientPrefix *)((char *)stuff + sz_xReq);
-    if ((prefix->byteOrder != 'l') && (prefix->byteOrder != 'B'))
+    order = prefix->byteOrder;
+    if (order != 'l' && order != 'B' && order != 'r' && order != 'R')
 	return client->noClientException = -1;
-    if (((*(char *) &whichbyte) && (prefix->byteOrder == 'B')) ||
-	(!(*(char *) &whichbyte) && (prefix->byteOrder == 'l')))
+    if (((*(char *) &whichbyte) && (order == 'B' || order == 'R')) ||
+	(!(*(char *) &whichbyte) && (order == 'l' || order == 'r')))
     {
 	client->swapped = TRUE;
 	SwapConnClientPrefix(prefix);
@@ -3635,6 +3647,10 @@ ProcInitialConnection(ClientPtr client)
     if (client->swapped)
     {
 	swaps(&stuff->length);
+    }
+    if (order == 'r' || order == 'R')
+    {
+	client->local = FALSE;
     }
     ResetCurrentRequest(client);
     return Success;

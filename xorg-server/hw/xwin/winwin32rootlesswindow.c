@@ -202,7 +202,8 @@ winMWExtWMDecorateWindow (HWND hwnd, LPARAM lParam)
   /* Check if the Windows window property for our X window pointer is valid */
   if ((pRLWinPriv = (win32RootlessWindowPtr)GetProp (hwnd, WIN_WINDOW_PROP)) != NULL)
     {
-      pScreen				= pRLWinPriv->pFrame->win->drawable.pScreen;
+      if (pRLWinPriv != NULL && pRLWinPriv->pFrame != NULL && pRLWinPriv->pFrame->win != NULL)
+        pScreen				= pRLWinPriv->pFrame->win->drawable.pScreen;
       if (pScreen) pScreenPriv		= winGetScreenPriv(pScreen);
       if (pScreenPriv) pScreenInfo	= pScreenPriv->pScreenInfo;
       if (pRLWinPriv && pScreenInfo) winMWExtWMUpdateWindowDecoration (pRLWinPriv, pScreenInfo);

@@ -64,6 +64,15 @@
 #include <procfs.h>
 #endif
 
+#ifdef __OpenBSD__
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <sys/types.h>
+
+#include <kvm.h>
+#include <limits.h>
+#endif
+
 /**
  * Try to determine a PID for a client from its connection
  * information. This should be called only once when new client has
@@ -172,7 +181,39 @@ void DetermineClientCmd(pid_t pid, const char **cmdname, const char **cmdargs)
         if (cmdargs && sp)
             *cmdargs = strdup(sp);
     }
-#else /* not Solaris */
+#elif defined(__OpenBSD__)
+    /* on OpenBSD use kvm_getargv() */
+    {
+	kvm_t *kd;
+	char errbuf[_POSIX2_LINE_MAX];
+	char **argv;
+	struct kinfo_proc *kp;
+	size_t len = 0;
+	int i, n;
+
+	kd = kvm_open(NULL, NULL, NULL, KVM_NO_FILES, errbuf);
+	if (kd == NULL)
+		return;
+	kp = kvm_getprocs(kd, KERN_PROC_PID, pid, sizeof(struct kinfo_proc), &n);
+	if (n != 1)
+		return;
+	argv = kvm_getargv(kd, kp, 0);
+	*cmdname = strdup(argv[0]);
+	i = 1;
+	while (argv[i] != NULL) {
+		len += strlen(argv[i]) + 1;
+		i++;
+	}
+	*cmdargs = calloc(1, len);
+	i = 1;
+	while (argv[i] != NULL) {
+		strlcat(*cmdargs, argv[i], len);
+		strlcat(*cmdargs, " ", len);
+		i++;
+	}
+	kvm_close(kd);
+    }
+#else /* Linux using /proc/pid/cmdline */
 
     /* Check if /proc/pid/cmdline exists. It's not supported on all
      * operating systems. */

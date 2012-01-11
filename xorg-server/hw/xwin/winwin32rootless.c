@@ -488,7 +488,7 @@ winMWExtWMRestackFrame (RootlessFrameID wid, RootlessFrameID nextWid)
   winDebug ("winMWExtWMRestackFrame (%08x)\n", (int) pRLWinPriv);
 
 
-  if (pScreenPriv->fRestacking) return;
+  if (pScreenPriv && pScreenPriv->fRestacking) return;
 
   if (pScreenPriv) pScreenInfo = pScreenPriv->pScreenInfo;
 

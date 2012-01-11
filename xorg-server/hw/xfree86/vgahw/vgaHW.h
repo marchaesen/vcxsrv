@@ -170,10 +170,10 @@ typedef struct _vgaHWRec {
 #define BITS_PER_GUN 6
 #define COLORMAP_SIZE 256
 
-#define DACDelay(hw)							 \
-	do {								 \
-	    pci_io_read8((hw)->io, (hw)->IOBase + VGA_IN_STAT_1_OFFSET); \
-	    pci_io_read8((hw)->io, (hw)->IOBase + VGA_IN_STAT_1_OFFSET); \
+#define DACDelay(hw) \
+	do { \
+	    (hw)->readST01((hw)); \
+	    (hw)->readST01((hw)); \
 	} while (0)
 
 /* Function Prototypes */

@@ -46,7 +46,11 @@ void xorg_backtrace(void)
     ErrorF("\nBacktrace:\n");
     size = backtrace(array, 64);
     for (i = 0; i < size; i++) {
-	dladdr(array[i], &info);
+	int rc = dladdr(array[i], &info);
+	if (rc == 0) {
+	    ErrorF("%d: ?? [%p]\n", i, array[i]);
+	    continue;
+	}
 	mod = (info.dli_fname && *info.dli_fname) ? info.dli_fname : "(vdso)";
 	if (info.dli_saddr)
 	    ErrorF("%d: %s (%s+0x%lx) [%p]\n", i, mod,

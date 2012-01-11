@@ -706,7 +706,7 @@ XIDeleteDeviceProperty (DeviceIntPtr device, Atom property, Bool fromClient)
 int
 XIChangeDeviceProperty (DeviceIntPtr dev, Atom property, Atom type,
                         int format, int mode, unsigned long len,
-                        const pointer value, Bool sendevent)
+                        const void *value, Bool sendevent)
 {
     XIPropertyPtr               prop;
     int                         size_in_bytes;

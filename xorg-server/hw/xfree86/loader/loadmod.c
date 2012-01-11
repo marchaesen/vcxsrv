@@ -1090,6 +1090,9 @@ UnloadSubModule(pointer _mod)
 {
     ModuleDescPtr mod = (ModuleDescPtr)_mod;
 
+    /* Some drivers are calling us on built-in submodules, ignore them */
+    if (mod == (ModuleDescPtr)1)
+	return;
     RemoveChild(mod);
     UnloadModuleOrDriver(mod);
 }
