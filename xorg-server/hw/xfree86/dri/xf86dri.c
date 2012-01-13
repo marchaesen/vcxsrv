@@ -130,7 +130,7 @@ ProcXF86DRIQueryDirectRenderingCapable(
     }
     rep.isCapable = isCapable;
 
-    if (!client->local || client->swapped)
+    if (!LocalClient(client) || client->swapped)
 	rep.isCapable = 0;
 
     if (client->swapped) {
@@ -557,7 +557,7 @@ ProcXF86DRIDispatch (
 	return ProcXF86DRIQueryDirectRenderingCapable(client);
     }
 
-    if (!client->local)
+    if (!LocalClient(client))
 	return DRIErrorBase + XF86DRIClientNotLocal;
 
     switch (stuff->data)

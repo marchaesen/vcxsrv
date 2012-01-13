@@ -246,7 +246,8 @@ count_attribute_slots(const glsl_type *t)
 /**
  * Verify that a vertex shader executable meets all semantic requirements.
  *
- * Also sets prog->Vert.UsesClipDistance as a side effect.
+ * Also sets prog->Vert.UsesClipDistance and prog->Vert.ClipDistanceArraySize
+ * as a side effect.
  *
  * \param shader  Vertex shader executable to be verified
  */
@@ -263,6 +264,8 @@ validate_vertex_shader_executable(struct gl_shader_program *prog,
       linker_error(prog, "vertex shader does not write to `gl_Position'\n");
       return false;
    }
+
+   prog->Vert.ClipDistanceArraySize = 0;
 
    if (prog->Version >= 130) {
       /* From section 7.1 (Vertex Shader Special Variables) of the
@@ -282,6 +285,10 @@ validate_vertex_shader_executable(struct gl_shader_program *prog,
          return false;
       }
       prog->Vert.UsesClipDistance = clip_distance.variable_found();
+      ir_variable *clip_distance_var =
+         shader->symbols->get_variable("gl_ClipDistance");
+      if (clip_distance_var)
+         prog->Vert.ClipDistanceArraySize = clip_distance_var->type->length;
    }
 
    return true;
@@ -1381,7 +1388,7 @@ public:
    static bool is_same(const tfeedback_decl &x, const tfeedback_decl &y);
    bool assign_location(struct gl_context *ctx, struct gl_shader_program *prog,
                         ir_variable *output_var);
-   bool store(struct gl_shader_program *prog,
+   bool store(struct gl_context *ctx, struct gl_shader_program *prog,
               struct gl_transform_feedback_info *info, unsigned buffer,
 	      unsigned varying) const;
 
@@ -1399,7 +1406,10 @@ public:
     */
    bool matches_var(ir_variable *var) const
    {
-      return strcmp(var->name, this->var_name) == 0;
+      if (this->is_clip_distance_mesa)
+         return strcmp(var->name, "gl_ClipDistanceMESA") == 0;
+      else
+         return strcmp(var->name, this->var_name) == 0;
    }
 
    /**
@@ -1408,7 +1418,10 @@ public:
     */
    unsigned num_components() const
    {
-      return this->vector_elements * this->matrix_columns;
+      if (this->is_clip_distance_mesa)
+         return this->size;
+      else
+         return this->vector_elements * this->matrix_columns * this->size;
    }
 
 private:
@@ -1434,11 +1447,10 @@ private:
    unsigned array_subscript;
 
    /**
-    * Which component to extract from the vertex shader output location that
-    * the linker assigned to this variable.  -1 if all components should be
-    * extracted.
+    * True if the variable is gl_ClipDistance and the driver lowers
+    * gl_ClipDistance to gl_ClipDistanceMESA.
     */
-   int single_component;
+   bool is_clip_distance_mesa;
 
    /**
     * The vertex shader output location that the linker assigned for this
@@ -1484,7 +1496,7 @@ tfeedback_decl::init(struct gl_context *ctx, struct gl_shader_program *prog,
 
    this->location = -1;
    this->orig_name = input;
-   this->single_component = -1;
+   this->is_clip_distance_mesa = false;
 
    const char *bracket = strrchr(input, '[');
 
@@ -1500,17 +1512,13 @@ tfeedback_decl::init(struct gl_context *ctx, struct gl_shader_program *prog,
       this->is_subscripted = false;
    }
 
-   /* For drivers that lower gl_ClipDistance to gl_ClipDistanceMESA, we need
-    * to convert a request for gl_ClipDistance[n] into a request for a
-    * component of gl_ClipDistanceMESA[n/4].
+   /* For drivers that lower gl_ClipDistance to gl_ClipDistanceMESA, this
+    * class must behave specially to account for the fact that gl_ClipDistance
+    * is converted from a float[8] to a vec4[2].
     */
    if (ctx->ShaderCompilerOptions[MESA_SHADER_VERTEX].LowerClipDistance &&
        strcmp(this->var_name, "gl_ClipDistance") == 0) {
-      this->var_name = "gl_ClipDistanceMESA";
-      if (this->is_subscripted) {
-         this->single_component = this->array_subscript % 4;
-         this->array_subscript /= 4;
-      }
+      this->is_clip_distance_mesa = true;
    }
 
    return true;
@@ -1529,8 +1537,6 @@ tfeedback_decl::is_same(const tfeedback_decl &x, const tfeedback_decl &y)
    if (x.is_subscripted != y.is_subscripted)
       return false;
    if (x.is_subscripted && x.array_subscript != y.array_subscript)
-      return false;
-   if (x.single_component != y.single_component)
       return false;
    return true;
 }
@@ -1552,27 +1558,36 @@ tfeedback_decl::assign_location(struct gl_context *ctx,
       /* Array variable */
       const unsigned matrix_cols =
          output_var->type->fields.array->matrix_columns;
+      unsigned actual_array_size = this->is_clip_distance_mesa ?
+         prog->Vert.ClipDistanceArraySize : output_var->type->array_size();
 
       if (this->is_subscripted) {
          /* Check array bounds. */
-         if (this->array_subscript >=
-             (unsigned) output_var->type->array_size()) {
+         if (this->array_subscript >= actual_array_size) {
             linker_error(prog, "Transform feedback varying %s has index "
-                         "%i, but the array size is %i.",
+                         "%i, but the array size is %u.",
                          this->orig_name, this->array_subscript,
-                         output_var->type->array_size());
+                         actual_array_size);
             return false;
          }
-         this->location =
-            output_var->location + this->array_subscript * matrix_cols;
+         if (this->is_clip_distance_mesa) {
+            this->location =
+               output_var->location + this->array_subscript / 4;
+         } else {
+            this->location =
+               output_var->location + this->array_subscript * matrix_cols;
+         }
          this->size = 1;
       } else {
          this->location = output_var->location;
-         this->size = (unsigned) output_var->type->array_size();
+         this->size = actual_array_size;
       }
       this->vector_elements = output_var->type->fields.array->vector_elements;
       this->matrix_columns = matrix_cols;
-      this->type = output_var->type->fields.array->gl_type;
+      if (this->is_clip_distance_mesa)
+         this->type = GL_FLOAT;
+      else
+         this->type = output_var->type->fields.array->gl_type;
    } else {
       /* Regular variable (scalar, vector, or matrix) */
       if (this->is_subscripted) {
@@ -1587,6 +1602,7 @@ tfeedback_decl::assign_location(struct gl_context *ctx,
       this->matrix_columns = output_var->type->matrix_columns;
       this->type = output_var->type->gl_type;
    }
+
    /* From GL_EXT_transform_feedback:
     *   A program will fail to link if:
     *
@@ -1615,7 +1631,7 @@ tfeedback_decl::assign_location(struct gl_context *ctx,
  * is returned.
  */
 bool
-tfeedback_decl::store(struct gl_shader_program *prog,
+tfeedback_decl::store(struct gl_context *ctx, struct gl_shader_program *prog,
                       struct gl_transform_feedback_info *info,
                       unsigned buffer, unsigned varying) const
 {
@@ -1631,21 +1647,63 @@ tfeedback_decl::store(struct gl_shader_program *prog,
                    this->orig_name);
       return false;
    }
-   for (unsigned index = 0; index < this->size; ++index) {
+
+   /* From GL_EXT_transform_feedback:
+    *   A program will fail to link if:
+    *
+    *     * the total number of components to capture is greater than
+    *       the constant MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS_EXT
+    *       and the buffer mode is INTERLEAVED_ATTRIBS_EXT.
+    */
+   if (prog->TransformFeedback.BufferMode == GL_INTERLEAVED_ATTRIBS &&
+       info->BufferStride[buffer] + this->num_components() >
+       ctx->Const.MaxTransformFeedbackInterleavedComponents) {
+      linker_error(prog, "The MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS "
+                   "limit has been exceeded.");
+      return false;
+   }
+
+   /* Verify that the checks on MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS
+    * and MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS are sufficient to prevent
+    * overflow of info->Outputs[].  In worst case we generate one entry in
+    * Outputs[] per component so a conservative check is to verify that the
+    * size of the array is greater than or equal to both
+    * MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS and
+    * MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS.
+    */
+   assert(Elements(info->Outputs) >=
+          ctx->Const.MaxTransformFeedbackInterleavedComponents);
+   assert(Elements(info->Outputs) >=
+          ctx->Const.MaxTransformFeedbackSeparateComponents);
+
+   unsigned translated_size = this->size;
+   if (this->is_clip_distance_mesa)
+      translated_size = (translated_size + 3) / 4;
+   unsigned components_so_far = 0;
+   for (unsigned index = 0; index < translated_size; ++index) {
       for (unsigned v = 0; v < this->matrix_columns; ++v) {
-         unsigned num_components =
-            this->single_component >= 0 ? 1 : this->vector_elements;
+         unsigned num_components = this->vector_elements;
+         info->Outputs[info->NumOutputs].ComponentOffset = 0;
+         if (this->is_clip_distance_mesa) {
+            if (this->is_subscripted) {
+               num_components = 1;
+               info->Outputs[info->NumOutputs].ComponentOffset =
+                  this->array_subscript % 4;
+            } else {
+               num_components = MIN2(4, this->size - components_so_far);
+            }
+         }
          info->Outputs[info->NumOutputs].OutputRegister =
             this->location + v + index * this->matrix_columns;
          info->Outputs[info->NumOutputs].NumComponents = num_components;
          info->Outputs[info->NumOutputs].OutputBuffer = buffer;
          info->Outputs[info->NumOutputs].DstOffset = info->BufferStride[buffer];
-         info->Outputs[info->NumOutputs].ComponentOffset =
-            this->single_component >= 0 ? this->single_component : 0;
          ++info->NumOutputs;
          info->BufferStride[buffer] += num_components;
+         components_so_far += num_components;
       }
    }
+   assert(components_so_far == this->num_components());
 
    info->Varyings[varying].Name = ralloc_strdup(prog, this->orig_name);
    info->Varyings[varying].Type = this->type;
@@ -1914,7 +1972,6 @@ store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
                      unsigned num_tfeedback_decls,
                      tfeedback_decl *tfeedback_decls)
 {
-   unsigned total_tfeedback_components = 0;
    bool separate_attribs_mode =
       prog->TransformFeedback.BufferMode == GL_SEPARATE_ATTRIBS;
 
@@ -1933,25 +1990,9 @@ store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
 
    for (unsigned i = 0; i < num_tfeedback_decls; ++i) {
       unsigned buffer = separate_attribs_mode ? i : 0;
-      if (!tfeedback_decls[i].store(prog, &prog->LinkedTransformFeedback,
+      if (!tfeedback_decls[i].store(ctx, prog, &prog->LinkedTransformFeedback,
                                     buffer, i))
          return false;
-      total_tfeedback_components += tfeedback_decls[i].num_components();
-   }
-
-   /* From GL_EXT_transform_feedback:
-    *   A program will fail to link if:
-    *
-    *     * the total number of components to capture is greater than
-    *       the constant MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS_EXT
-    *       and the buffer mode is INTERLEAVED_ATTRIBS_EXT.
-    */
-   if (prog->TransformFeedback.BufferMode == GL_INTERLEAVED_ATTRIBS &&
-       total_tfeedback_components >
-       ctx->Const.MaxTransformFeedbackInterleavedComponents) {
-      linker_error(prog, "The MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS "
-                   "limit has been exceeded.");
-      return false;
    }
 
    return true;

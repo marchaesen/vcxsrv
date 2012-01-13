@@ -208,6 +208,9 @@ AnimCurDisplayCursor (DeviceIntPtr pDev,
     AnimCurScreenPtr    as = GetAnimCurScreen(pScreen);
     Bool		ret;
 
+    if (IsFloating(pDev))
+	    return FALSE;
+
     Unwrap (as, pScreen, DisplayCursor);
     if (IsAnimCur(pCursor))
     {

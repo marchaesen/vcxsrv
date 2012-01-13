@@ -659,8 +659,8 @@ Allow modules built for a different, potentially incompatible version of
 the X server to load. Disabled by default.
 .TP 7
 .BI "Option \*qAutoAddDevices\*q \*q" boolean \*q
-If this option is disabled, then no devices will be added from HAL events.
-Enabled by default.
+If this option is disabled, then no devices will be added from the HAL or
+udev backends. Enabled by default.
 .TP 7
 .BI "Option \*qAutoEnableDevices\*q \*q" boolean \*q
 If this option is disabled, then the devices will be added (and the
@@ -802,8 +802,8 @@ Recent X servers employ HAL or udev backends for input device enumeration
 and input hotplugging. It is usually not
 necessary to provide
 .B InputDevice
-sections in the xorg.conf if hotplugging is in use. If hotplugging is
-enabled,
+sections in the xorg.conf if hotplugging is in use (i.e. AutoAddDevices is
+enabled). If hotplugging is enabled,
 .B InputDevice
 sections using the
 .B mouse, kbd

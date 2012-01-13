@@ -173,7 +173,7 @@ unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vect
             const xcb_query_extension_reply_t *extension = xcb_get_extension_data(c, req->ext);
             if(!(extension && extension->present))
             {
-                _xcb_conn_shutdown(c);
+                _xcb_conn_shutdown(c, XCB_CONN_CLOSED_EXT_NOTSUPPORTED);
                 return 0;
             }
             ((uint8_t *) vector[0].iov_base)[0] = extension->major_opcode;
@@ -203,7 +203,7 @@ unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vect
         }
         else if(longlen > xcb_get_maximum_request_length(c))
         {
-            _xcb_conn_shutdown(c);
+            _xcb_conn_shutdown(c, XCB_CONN_CLOSED_REQ_LEN_EXCEED);
             return 0; /* server can't take this; maybe need BIGREQUESTS? */
         }
 
@@ -263,7 +263,13 @@ int xcb_take_socket(xcb_connection_t *c, void (*return_socket)(void *closure), v
         return 0;
     pthread_mutex_lock(&c->iolock);
     get_socket_back(c);
-    ret = _xcb_out_flush_to(c, c->out.request);
+
+    /* _xcb_out_flush may drop the iolock allowing other threads to
+     * write requests, so keep flushing until we're done
+     */
+    do
+	    ret = _xcb_out_flush_to(c, c->out.request);
+    while (ret && c->out.request != c->out.request_written);
     if(ret)
     {
         c->out.return_socket = return_socket;

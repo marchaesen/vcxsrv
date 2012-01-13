@@ -672,9 +672,11 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
 		     return;
 		  }
 		  /* Don't support GL_DEPTH_COMPONENT for cube maps */
-		  if (t->Image[face][i]->_BaseFormat == GL_DEPTH_COMPONENT) {
-		     incomplete(t, "GL_DEPTH_COMPONENT only works with 1/2D tex");
-		     return;
+                  if (ctx->VersionMajor < 3 && !ctx->Extensions.EXT_gpu_shader4) {
+                     if (t->Image[face][i]->_BaseFormat == GL_DEPTH_COMPONENT) {
+                        incomplete(t, "GL_DEPTH_COMPONENT only works with 1/2D tex");
+                        return;
+                     }
 		  }
 		  /* check that all six images have same size */
                   if (t->Image[face][i]->Width2 != width || 
@@ -891,7 +893,7 @@ unbind_texobj_from_fbo(struct gl_context *ctx,
 
    for (i = 0; i < n; i++) {
       struct gl_framebuffer *fb = (i == 0) ? ctx->DrawBuffer : ctx->ReadBuffer;
-      if (fb->Name) {
+      if (_mesa_is_user_fbo(fb)) {
          GLuint j;
          for (j = 0; j < BUFFER_COUNT; j++) {
             if (fb->Attachment[j].Type == GL_TEXTURE &&

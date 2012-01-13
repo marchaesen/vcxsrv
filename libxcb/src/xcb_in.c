@@ -174,7 +174,7 @@ static int read_packet(xcb_connection_t *c)
             (genrep.response_type == XCB_REPLY ? 0 : sizeof(uint32_t)));
     if(!buf)
     {
-        _xcb_conn_shutdown(c);
+        _xcb_conn_shutdown(c, XCB_CONN_CLOSED_MEM_INSUFFICIENT);
         return 0;
     }
 
@@ -210,7 +210,7 @@ static int read_packet(xcb_connection_t *c)
         struct reply_list *cur = malloc(sizeof(struct reply_list));
         if(!cur)
         {
-            _xcb_conn_shutdown(c);
+            _xcb_conn_shutdown(c, XCB_CONN_CLOSED_MEM_INSUFFICIENT);
             free(buf);
             return 0;
         }
@@ -227,7 +227,7 @@ static int read_packet(xcb_connection_t *c)
     event = malloc(sizeof(struct event_list));
     if(!event)
     {
-        _xcb_conn_shutdown(c);
+        _xcb_conn_shutdown(c, XCB_CONN_CLOSED_MEM_INSUFFICIENT);
         free(buf);
         return 0;
     }
@@ -433,7 +433,7 @@ static void insert_pending_discard(xcb_connection_t *c, pending_reply **prev_nex
     pend = malloc(sizeof(*pend));
     if(!pend)
     {
-        _xcb_conn_shutdown(c);
+        _xcb_conn_shutdown(c, XCB_CONN_CLOSED_MEM_INSUFFICIENT);
         return;
     }
 
@@ -633,7 +633,7 @@ int _xcb_in_expect_reply(xcb_connection_t *c, uint64_t request, enum workarounds
     assert(workaround != WORKAROUND_NONE || flags != 0);
     if(!pend)
     {
-        _xcb_conn_shutdown(c);
+        _xcb_conn_shutdown(c, XCB_CONN_CLOSED_MEM_INSUFFICIENT);
         return 0;
     }
     pend->first_request = pend->last_request = request;
@@ -672,7 +672,7 @@ int _xcb_in_read(xcb_connection_t *c)
     if((n > 0) || (n < 0 && WSAGetLastError() == WSAEWOULDBLOCK))
 #endif /* !_WIN32 */
         return 1;
-    _xcb_conn_shutdown(c);
+    _xcb_conn_shutdown(c, XCB_CONN_ERROR);
     return 0;
 }
 
@@ -691,7 +691,7 @@ int _xcb_in_read_block(xcb_connection_t *c, void *buf, int len)
         int ret = read_block(c->fd, (char *) buf + done, len - done);
         if(ret <= 0)
         {
-            _xcb_conn_shutdown(c);
+            _xcb_conn_shutdown(c, XCB_CONN_ERROR);
             return ret;
         }
     }

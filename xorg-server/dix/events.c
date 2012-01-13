@@ -1368,7 +1368,7 @@ ScreenRestructured (ScreenPtr pScreen)
 
     for (pDev = inputInfo.devices; pDev; pDev = pDev->next)
     {
-        if (!DevHasCursor(pDev))
+        if (!IsFloating(pDev) && !DevHasCursor(pDev))
             continue;
 
         /* GrabDevice doesn't have a confineTo field, so we don't need to
@@ -3723,7 +3723,8 @@ ActivatePassiveGrab(DeviceIntPtr device, GrabPtr grab, InternalEvent *event,
         }
     }
 
-    (*grabinfo->ActivateGrab)(device, grab, currentTime, TRUE);
+    (*grabinfo->ActivateGrab)(device, grab,
+                              ClientTimeToServerTime(event->any.time), TRUE);
 
     if (xE)
     {

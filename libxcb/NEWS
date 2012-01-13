@@ -1,3 +1,48 @@
+Release 1.8 (2012-01-11)
+========================
+- xcb_disconnect: call shutdown() to force a disconnect
+- Use special path to sockets when running under Solaris Trusted Extensions
+- Remove unused DECnet code
+- Add #include <sys/socket.h> to xcb_conn.c
+- Make launchd code in xcb_util.c match surrounding code indent levels
+- If protocol is "unix", use a Unix domain socket, not TCP
+- Added more error states and removed global error_connection
+- Handle XGE events with the "send event" flag
+- added xcb_sumof() with restriction to uint8_t
+- xkb: updated configure.ac/Makefile.am
+- xkb: added pkg config file
+- special case 'intermixed variable and fixed size fields': fixed reply side, needs testing
+- added accessors for special cases
+- Add support for building with Python 3
+- Insert, not append explicit xcbgen dir python path
+- xcb_request_check: Sync even if an event was read for this sequence.
+- _xcb_conn_wait: Shut down the connection on unexpected poll() events.
+- xcb_send_request: Send all requests using a common internal send_request.
+- xcb_request_check: Hold the I/O lock while deciding to sync.
+- xcb_discard_reply: Simplify by re-using poll_for_reply helper.
+- xcb_in: Use 64-bit sequence numbers internally everywhere.
+- Enable AM_SILENT_RULES on automake 1.11 or newer.
+- Factor reader_list management out of wait_for_reply.
+- Dequeue readers that can't receive any new responses.
+- Delete the old c-client.xsl.
+- Keep ALIGNOF definition out of the public namespace.
+- darwin: Don't use poll() when expected to run on darwin10 and prior
+- Add Win32
+- Allow disconnecting connections that are in error state.
+- Make xcb_take_socket keep flushing until idle
+- Support pre-IPv6 systems (without getaddrinfo)
+- Drop AI_ADDRCONFIG when resolving TCP addresses
+- xcb_auth: Fix memory leak in _xcb_get_auth_info.
+- Don't emit out-of-module sizeof definitions
+- Clean up a couple of warnings in xprint
+- Prevent reply waiters from being blocked.
+- Prevent theoretical double free and leak on get_peer_sock_name.
+- Introduce a variant of xcb_poll_for_event for examining event queue.
+- xcb_take_socket: Document sequence wrap requirements
+- Compute alignment correctly
+- Fix a dead-lock due to xcb_poll_for_reply
+
+
 Release 1.7 (2010-08-13)
 ========================
 - Always wake up readers after writing

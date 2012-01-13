@@ -174,8 +174,6 @@ void _xcb_ext_destroy(xcb_connection_t *c);
 
 /* xcb_conn.c */
 
-extern const int error_connection;
-
 struct xcb_connection_t {
     int has_error;
 
@@ -193,7 +191,10 @@ struct xcb_connection_t {
     _xcb_xid xid;
 };
 
-void _xcb_conn_shutdown(xcb_connection_t *c);
+void _xcb_conn_shutdown(xcb_connection_t *c, int err);
+
+xcb_connection_t *_xcb_conn_ret_error(int err);
+
 int _xcb_conn_wait(xcb_connection_t *c, pthread_cond_t *cond, struct iovec **vector, int *count);
 
 

@@ -35,6 +35,7 @@
 #include "colormac.h"
 #include "context.h"
 #include "enums.h"
+#include "fbobject.h"
 #include "mtypes.h"
 
 
@@ -51,11 +52,12 @@
  * \return  bitmask of BUFFER_BIT_* flags
  */
 static GLbitfield
-supported_buffer_bitmask(const struct gl_context *ctx, const struct gl_framebuffer *fb)
+supported_buffer_bitmask(const struct gl_context *ctx,
+                         const struct gl_framebuffer *fb)
 {
    GLbitfield mask = 0x0;
 
-   if (fb->Name > 0) {
+   if (_mesa_is_user_fbo(fb)) {
       /* A user-created renderbuffer */
       GLuint i;
       ASSERT(ctx->Extensions.EXT_framebuffer_object);
@@ -242,7 +244,8 @@ _mesa_DrawBuffer(GLenum buffer)
       destMask = draw_buffer_enum_to_bitmask(buffer);
       if (destMask == BAD_MASK) {
          /* totally bogus buffer */
-         _mesa_error(ctx, GL_INVALID_ENUM, "glDrawBuffer(buffer=0x%x)", buffer);
+         _mesa_error(ctx, GL_INVALID_ENUM,
+                     "glDrawBuffer(buffer=0x%x)", buffer);
          return;
       }
       destMask &= supportedMask;
@@ -340,6 +343,7 @@ _mesa_DrawBuffersARB(GLsizei n, const GLenum *buffers)
       ctx->Driver.DrawBuffer(ctx, n > 0 ? buffers[0] : GL_NONE);
 }
 
+
 /**
  * Performs necessary state updates when _mesa_drawbuffers makes an
  * actual change.
@@ -354,12 +358,13 @@ updated_drawbuffers(struct gl_context *ctx)
       struct gl_framebuffer *fb = ctx->DrawBuffer;
 
       /* Flag the FBO as requiring validation. */
-      if (fb->Name != 0) {
+      if (_mesa_is_user_fbo(fb)) {
 	 fb->_Status = 0;
       }
    }
 #endif
 }
+
 
 /**
  * Helper function to set the GL_DRAW_BUFFER state in the context and
@@ -402,7 +407,7 @@ _mesa_drawbuffers(struct gl_context *ctx, GLuint n, const GLenum *buffers,
    if (n == 1) {
       GLuint count = 0, destMask0 = destMask[0];
       while (destMask0) {
-         GLint bufIndex = _mesa_ffs(destMask0) - 1;
+         GLint bufIndex = ffs(destMask0) - 1;
          if (fb->_ColorDrawBufferIndexes[count] != bufIndex) {
             updated_drawbuffers(ctx);
             fb->_ColorDrawBufferIndexes[count] = bufIndex;
@@ -417,7 +422,7 @@ _mesa_drawbuffers(struct gl_context *ctx, GLuint n, const GLenum *buffers,
       GLuint count = 0;
       for (buf = 0; buf < n; buf++ ) {
          if (destMask[buf]) {
-            GLint bufIndex = _mesa_ffs(destMask[buf]) - 1;
+            GLint bufIndex = ffs(destMask[buf]) - 1;
             /* only one bit should be set in the destMask[buf] field */
             ASSERT(_mesa_bitcount(destMask[buf]) == 1);
             if (fb->_ColorDrawBufferIndexes[buf] != bufIndex) {
@@ -448,7 +453,7 @@ _mesa_drawbuffers(struct gl_context *ctx, GLuint n, const GLenum *buffers,
       fb->ColorDrawBuffer[buf] = GL_NONE;
    }
 
-   if (fb->Name == 0) {
+   if (_mesa_is_winsys_fbo(fb)) {
       /* also set context drawbuffer state */
       for (buf = 0; buf < ctx->Const.MaxDrawBuffers; buf++) {
          if (ctx->Color.DrawBuffer[buf] != fb->ColorDrawBuffer[buf]) {
@@ -472,7 +477,7 @@ _mesa_update_draw_buffers(struct gl_context *ctx)
    GLuint i;
 
    /* should be a window system FBO */
-   assert(ctx->DrawBuffer->Name == 0);
+   assert(_mesa_is_winsys_fbo(ctx->DrawBuffer));
 
    for (i = 0; i < ctx->Const.MaxDrawBuffers; i++)
       buffers[i] = ctx->Color.DrawBuffer[i];
@@ -493,7 +498,7 @@ _mesa_readbuffer(struct gl_context *ctx, GLenum buffer, GLint bufferIndex)
 {
    struct gl_framebuffer *fb = ctx->ReadBuffer;
 
-   if (fb->Name == 0) {
+   if (_mesa_is_winsys_fbo(fb)) {
       /* Only update the per-context READ_BUFFER state if we're bound to
        * a window-system framebuffer.
        */
@@ -529,7 +534,7 @@ _mesa_ReadBuffer(GLenum buffer)
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glReadBuffer %s\n", _mesa_lookup_enum_by_nr(buffer));
 
-   if (fb->Name > 0 && buffer == GL_NONE) {
+   if (_mesa_is_user_fbo(fb) && buffer == GL_NONE) {
       /* This is legal for user-created framebuffer objects */
       srcBuffer = -1;
    }

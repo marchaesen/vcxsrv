@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.57)
 AC_INIT([libxcb],
-        1.7,
+        1.8,
         [xcb@lists.freedesktop.org])
 AC_CONFIG_SRCDIR([xcb.pc.in])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -34,7 +34,7 @@ fi
 AC_SUBST(HTML_CHECK_RESULT)
 
 # Checks for pkg-config packages
-PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.6)
+PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.7)
 NEEDED="pthread-stubs xau >= 0.99.2"
 PKG_CHECK_MODULES(NEEDED, $NEEDED)
 

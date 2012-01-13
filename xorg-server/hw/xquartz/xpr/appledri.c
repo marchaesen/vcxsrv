@@ -133,7 +133,7 @@ ProcAppleDRIQueryDirectRenderingCapable(
     }
     rep.isCapable = isCapable;
 
-    if (!client->local)
+    if (!LocalClient(client))
         rep.isCapable = 0;
 
     if (client->swapped) {
@@ -365,7 +365,7 @@ ProcAppleDRIDispatch (
         return ProcAppleDRIQueryDirectRenderingCapable(client);
     }
 
-    if (!client->local)
+    if (!LocalClient(client))
         return DRIErrorBase + AppleDRIClientNotLocal;
 
     switch (stuff->data)
