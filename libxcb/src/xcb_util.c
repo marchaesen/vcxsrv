@@ -34,8 +34,6 @@
 #include <stddef.h>
 #include <unistd.h>
 #include <string.h>
-#ifndef _MSC_VER
-#endif
 
 #ifdef _WIN32
 #include "xcb_windefs.h"
@@ -461,7 +459,7 @@ xcb_connection_t *xcb_connect_to_display_with_auth_info(const char *displayname,
 #ifdef _WIN32
         WSADATA wsaData;
         if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-            c = (xcb_connection_t *) &error_connection;
+            c = _xcb_conn_ret_error(XCB_CONN_ERROR);
             goto out;
         }
 #endif
