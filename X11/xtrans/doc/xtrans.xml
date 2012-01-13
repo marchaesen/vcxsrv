@@ -956,13 +956,14 @@ In X11R7 modular releases, these flags are set when running
 <function>XTRANS_CONNECTION_FLAGS</function> macro from
 <filename>xtrans.m4</filename>.
 </para>
-<informaltable pgwide='0' frame='none'>
-  <tgroup cols='3' align='left'>
-    <colspec colname='define' align='center'/>
-    <colspec colname='enable'/>
-    <colspec colname='desc'/>
+
+<informaltable frame='topbot'>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+    <colspec colname='define' colwidth='1.0*' />
+    <colspec colname='enable' colwidth='2.0*' />
+    <colspec colname='desc'   colwidth='2.0*'/>
     <thead>
-      <row>
+      <row rowsep='1'>
 	<entry><code>#define</code></entry>
 	<entry>configure flag</entry>
 	<entry>Description</entry>
@@ -1021,15 +1022,15 @@ In X11R7 modular releases, these flags are set when running
 <chapter id='Transport_Specific_Definitions'>
 <title>Transport Specific Definitions</title>
 
-<informaltable pgwide='0' frame='none'>
+<informaltable frame='all' colsep='1' rowsep='1'>
   <tgroup cols='4' align='center'>
-    <colspec colname='c1'/>
-    <colspec colname='c2'/>
-    <colspec colname='c3'/>
-    <colspec colname='c4'/>
+    <colspec colname='c1' colwidth='1.0*'/>
+    <colspec colname='c2' colwidth='1.0*'/>
+    <colspec colname='c3' colwidth='3.0*'/>
+    <colspec colname='c4' colwidth='2.0*'/>
     <thead>
       <row>
-        <entry morerows="1" align='center'>Protocol Family</entry>
+        <entry morerows="1">Protocol Family</entry>
         <entry namest="c2" nameend="c4"  align='center'>Address Component</entry>
       </row>
       <row>
@@ -1040,34 +1041,34 @@ In X11R7 modular releases, these flags are set when running
     </thead>
     <tbody>
       <row>
-        <entry align='center'>Internet</entry>
-        <entry align='center'>inet inet6 tcp udp</entry>
-        <entry align='center'>name of an internet addressable host</entry>
-        <entry align='center'>string containing the name of a service or a valid port number.  Example: "xserver0", "7100"</entry>
+        <entry>Internet</entry>
+        <entry>inet inet6 tcp udp</entry>
+        <entry>name of an internet addressable host</entry>
+        <entry>string containing the name of a service or a valid port number.  Example: "xserver0", "7100"</entry>
       </row>
       <row>
-        <entry align='center'>DECnet</entry>
-        <entry align='center'>decnet</entry>
-        <entry align='center'>name of a DECnet addressable host</entry>
-        <entry align='center'>string containing the complete name of the object.  Example: "X$X0"</entry>
+        <entry>DECnet</entry>
+        <entry>decnet</entry>
+        <entry>name of a DECnet addressable host</entry>
+        <entry>string containing the complete name of the object.  Example: "X$X0"</entry>
       </row>
       <row>
-        <entry align='center'>NETware</entry>
-        <entry align='center'>ipx</entry>
-        <entry align='center'>name of a NETware addressable host</entry>
-        <entry align='center'>Not sure of the specifics yet.</entry>
+        <entry>NETware</entry>
+        <entry>ipx</entry>
+        <entry>name of a NETware addressable host</entry>
+        <entry>Not sure of the specifics yet.</entry>
       </row>
       <row>
-        <entry align='center'>OSI</entry>
-        <entry align='center'>osi</entry>
-        <entry align='center'>name of an OSI adressable host.</entry>
-        <entry align='center'>Not sure of the specifics yet.</entry>
+        <entry>OSI</entry>
+        <entry>osi</entry>
+        <entry>name of an OSI adressable host.</entry>
+        <entry>Not sure of the specifics yet.</entry>
       </row>
       <row>
-        <entry align='center'>Local</entry>
-        <entry align='center'>local pts named sco isc</entry>
-        <entry align='center'>(ignored)</entry>
-        <entry align='center'>String containing the port name, ie "xserver0", "fontserver0".</entry>
+        <entry>Local</entry>
+        <entry>local pts named sco isc</entry>
+        <entry>(ignored)</entry>
+        <entry>String containing the port name, ie "xserver0", "fontserver0".</entry>
       </row>
     </tbody>
   </tgroup>

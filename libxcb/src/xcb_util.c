@@ -35,12 +35,12 @@
 #include <unistd.h>
 #include <string.h>
 #ifndef _MSC_VER
-#include <arpa/inet.h>
 #endif
 
 #ifdef _WIN32
 #include "xcb_windefs.h"
 #else
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
@@ -455,13 +455,24 @@ xcb_connection_t *xcb_connect_to_display_with_auth_info(const char *displayname,
     int parsed = _xcb_parse_display(displayname, &host, &protocol, &display, screenp);
     
     if(!parsed) {
-        c = (xcb_connection_t *) &error_connection;
+        c = _xcb_conn_ret_error(XCB_CONN_CLOSED_PARSE_ERR);
         goto out;
-    } else
+    } else {
+#ifdef _WIN32
+        WSADATA wsaData;
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+            c = (xcb_connection_t *) &error_connection;
+            goto out;
+        }
+#endif
         fd = _xcb_open(host, protocol, display);
+    }
 
     if(fd == -1) {
-        c = (xcb_connection_t *) &error_connection;
+        c = _xcb_conn_ret_error(XCB_CONN_ERROR);
+#ifdef _WIN32
+        WSACleanup();
+#endif
         goto out;
     }
 

@@ -547,7 +547,7 @@ ProcDRI2Dispatch (ClientPtr client)
 	return ProcDRI2QueryVersion(client);
     }
 
-    if (!client->local)
+    if (!LocalClient(client))
 	return BadRequest;
 
     switch (stuff->data) {

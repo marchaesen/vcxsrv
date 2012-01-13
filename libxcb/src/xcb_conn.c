@@ -65,7 +65,9 @@ typedef struct {
     uint16_t length;
 } xcb_setup_generic_t;
 
-const int error_connection = 1;
+static const int xcb_con_error = XCB_CONN_ERROR;
+static const int xcb_con_closed_mem_er = XCB_CONN_CLOSED_MEM_INSUFFICIENT;
+static const int xcb_con_closed_parse_er = XCB_CONN_CLOSED_PARSE_ERR;
 
 static int set_fd_flags(const int fd)
 {
@@ -230,7 +232,7 @@ static int write_vec(xcb_connection_t *c, struct iovec **vector, int *count)
 
     if(n <= 0)
     {
-        _xcb_conn_shutdown(c);
+        _xcb_conn_shutdown(c, XCB_CONN_ERROR);
         return 0;
     }
 
@@ -284,7 +286,7 @@ xcb_connection_t *xcb_connect_to_fd(int fd, xcb_auth_info_t *auth_info)
     if(fd >= FD_SETSIZE) /* would overflow in FD_SET */
     {
         close(fd);
-        return (xcb_connection_t *) &error_connection;
+        return _xcb_conn_ret_error(XCB_CONN_ERROR);
     }
 #endif
 #endif /* !_WIN32*/
@@ -292,7 +294,7 @@ xcb_connection_t *xcb_connect_to_fd(int fd, xcb_auth_info_t *auth_info)
     c = calloc(1, sizeof(xcb_connection_t));
     if(!c) {
         close(fd);
-        return (xcb_connection_t *) &error_connection;
+        return _xcb_conn_ret_error(XCB_CONN_CLOSED_MEM_INSUFFICIENT) ;
     }
 
     c->fd = fd;
@@ -309,7 +311,7 @@ xcb_connection_t *xcb_connect_to_fd(int fd, xcb_auth_info_t *auth_info)
         ))
     {
         xcb_disconnect(c);
-        return (xcb_connection_t *) &error_connection;
+        return _xcb_conn_ret_error(XCB_CONN_ERROR);
     }
 
     return c;
@@ -317,7 +319,7 @@ xcb_connection_t *xcb_connect_to_fd(int fd, xcb_auth_info_t *auth_info)
 
 void xcb_disconnect(xcb_connection_t *c)
 {
-    if(c == (xcb_connection_t *) &error_connection)
+    if(c->has_error)
         return;
 
     free(c->setup);
@@ -334,13 +336,42 @@ void xcb_disconnect(xcb_connection_t *c)
     _xcb_xid_destroy(c);
 
     free(c);
+
+#ifdef _WIN32
+    WSACleanup();
+#endif
 }
 
 /* Private interface */
 
-void _xcb_conn_shutdown(xcb_connection_t *c)
+void _xcb_conn_shutdown(xcb_connection_t *c, int err)
 {
-    c->has_error = 1;
+    c->has_error = err;
+}
+
+/* Return connection error state.
+ * To make thread-safe, I need a seperate static
+ * variable for every possible error.
+ */
+xcb_connection_t *_xcb_conn_ret_error(int err)
+{
+
+    switch(err)
+    {
+        case XCB_CONN_CLOSED_MEM_INSUFFICIENT:
+        {
+            return (xcb_connection_t *) &xcb_con_closed_mem_er;
+        }
+        case XCB_CONN_CLOSED_PARSE_ERR:
+        {
+            return (xcb_connection_t *) &xcb_con_closed_parse_er;
+        }
+        case XCB_CONN_ERROR:
+        default:
+        {
+            return (xcb_connection_t *) &xcb_con_error;
+        }
+    }
 }
 
 int _xcb_conn_wait(xcb_connection_t *c, pthread_cond_t *cond, struct iovec **vector, int *count)
@@ -408,7 +439,7 @@ int _xcb_conn_wait(xcb_connection_t *c, pthread_cond_t *cond, struct iovec **vec
     } while (ret == -1 && errno == EINTR);
     if(ret < 0)
     {
-        _xcb_conn_shutdown(c);
+        _xcb_conn_shutdown(c, XCB_CONN_ERROR);
         ret = 0;
     }
     pthread_mutex_lock(&c->iolock);

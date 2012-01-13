@@ -664,6 +664,9 @@ glsl_to_tgsi_visitor::get_opcode(ir_instruction *ir, unsigned op,
       case3(SLT, ISLT, USLT);
       
       case2iu(ISHR, USHR);
+
+      case2fi(SSG, ISSG);
+      case3(ABS, IABS, IABS);
       
       default: break;
    }
@@ -1410,10 +1413,7 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
       }
       break;
    case ir_unop_abs:
-      if (result_dst.type == GLSL_TYPE_INT || result_dst.type == GLSL_TYPE_UINT)
-         emit(ir, TGSI_OPCODE_IABS, result_dst, op[0]);
-      else
-         emit(ir, TGSI_OPCODE_ABS, result_dst, op[0]);
+      emit(ir, TGSI_OPCODE_ABS, result_dst, op[0]);
       break;
    case ir_unop_sign:
       emit(ir, TGSI_OPCODE_SSG, result_dst, op[0]);
@@ -2646,8 +2646,9 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       ir->shadow_comparitor->accept(this);
 
       /* XXX This will need to be updated for cubemap array samplers. */
-      if (sampler_type->sampler_dimensionality == GLSL_SAMPLER_DIM_2D &&
-          sampler_type->sampler_array) {
+      if ((sampler_type->sampler_dimensionality == GLSL_SAMPLER_DIM_2D &&
+	   sampler_type->sampler_array) ||
+	  sampler_type->sampler_dimensionality == GLSL_SAMPLER_DIM_CUBE) {
          coord_dst.writemask = WRITEMASK_W;
       } else {
          coord_dst.writemask = WRITEMASK_Z;
@@ -2842,8 +2843,6 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
       if (is_tex_instruction(inst->op)) {
          v->samplers_used |= 1 << inst->sampler;
 
-         prog->SamplerTargets[inst->sampler] =
-            (gl_texture_index)inst->tex_target;
          if (inst->tex_shadow) {
             prog->ShadowSamplers |= 1 << inst->sampler;
          }
@@ -2851,7 +2850,9 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
    }
    
    prog->SamplersUsed = v->samplers_used;
-   _mesa_update_shader_textures_used(prog);
+
+   if (v->shader_program != NULL)
+      _mesa_update_shader_textures_used(v->shader_program, prog);
 }
 
 static void
@@ -4181,7 +4182,7 @@ compile_tgsi_instruction(struct st_translate *t,
       ureg_tex_insn(ureg,
                     inst->op,
                     dst, num_dst, 
-                    translate_texture_target(inst->tex_target, inst->tex_shadow),
+                    st_translate_texture_target(inst->tex_target, inst->tex_shadow),
                     texoffsets, inst->tex_offset_num_offset,
                     src, num_src);
       return;
@@ -5010,13 +5011,18 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       num_clip_distances[i] = get_clip_distance_size(ir);
 
       do {
+         unsigned what_to_lower = MOD_TO_FRACT | DIV_TO_MUL_RCP |
+            EXP_TO_EXP2 | LOG_TO_LOG2;
+         if (options->EmitNoPow)
+            what_to_lower |= POW_TO_EXP2;
+         if (!ctx->Const.NativeIntegers)
+            what_to_lower |= INT_DIV_TO_MUL_RCP;
+
          progress = false;
 
          /* Lowering */
          do_mat_op_to_vec(ir);
-         lower_instructions(ir, (MOD_TO_FRACT | DIV_TO_MUL_RCP | EXP_TO_EXP2
-				 | LOG_TO_LOG2 | INT_DIV_TO_MUL_RCP
-        			 | ((options->EmitNoPow) ? POW_TO_EXP2 : 0)));
+         lower_instructions(ir, what_to_lower);
 
          progress = do_lower_jumps(ir, true, true, options->EmitNoMainReturn, options->EmitNoCont, options->EmitNoLoops) || progress;
 
@@ -5087,7 +5093,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 }
 
 void
-st_translate_stream_output_info(struct glsl_to_tgsi_visitor *glsl_to_tgsi,
+st_translate_stream_output_info(glsl_to_tgsi_visitor *glsl_to_tgsi,
                                 const GLuint outputMapping[],
                                 struct pipe_stream_output_info *so)
 {

@@ -90,23 +90,23 @@ typedef struct _Client {
     Mask        clientAsMask;
     pointer     requestBuffer;
     pointer     osPrivate;	/* for OS layer, including scheduler */
-    char        swapped;
-    char        local;
-    char        big_requests;
-    char        closeDownMode;
-    char        clientGone;
-    char        noClientException;	/* this client died or needs to be
-					 * killed */
-    char	clientState;
+    Bool        swapped;
     ReplySwapPtr pSwapReplyFunc;
     XID         errorValue;
     unsigned short sequence;    //MH
+    int         closeDownMode;
+    int         clientGone;
+    int         noClientException;	/* this client died or needs to be
+					 * killed */
     int         ignoreCount;		/* count for Attend/IgnoreClient */
-    int         numSaved;
     SaveSetElt	*saveSet;
-    int         (**requestVector) (ClientPtr /* pClient */);
+    int         numSaved;
+    int         (**requestVector) (
+		ClientPtr /* pClient */);
     CARD32	req_len;		/* length of current request */
+    Bool	big_requests;		/* supports large requests */
     int		priority;
+    ClientState clientState;
     PrivateRec	*devPrivates;
     unsigned short	xkbClientFlags;
     unsigned short	mapNotifyMask;
@@ -114,16 +114,16 @@ typedef struct _Client {
     unsigned short	vMajor,vMinor;
     KeyCode		minKC,maxKC;
 
-    unsigned int replyBytesRemaining;
+    unsigned long replyBytesRemaining;
     int	    smart_priority;
-    int     smart_start_tick;
-    int     smart_stop_tick;
-    int     smart_check_tick;
+    long    smart_start_tick;
+    long    smart_stop_tick;
+    long    smart_check_tick;
     
     DeviceIntPtr clientPtr;
     ClientIdPtr  clientIds;
     unsigned short majorOp, minorOp;
-} ClientRec;
+}           ClientRec;
 
 /*
  * Scheduling interface

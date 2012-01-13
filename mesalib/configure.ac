@@ -38,8 +38,8 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_CHECK_PROGS([MAKE], [gmake make])
 AC_CHECK_PROGS([PYTHON2], [python2 python])
+AC_PROG_SED
 AC_PATH_PROG([MKDEP], [makedepend])
-AC_PATH_PROG([SED], [sed])
 
 if test "x$MKDEP" = "x"; then
     AC_MSG_ERROR([makedepend is required to build Mesa])
@@ -70,7 +70,6 @@ AC_PATH_PROG([GTESTCONFIG], [gtest-config])
 if test "x$GTESTCONFIG" != "x"; then
     GTEST_CFLAGS=`gtest-config --cppflags --cxxflags`
     GTEST_LIBS=`gtest-config --ldflags --libs`
-    HAVE_GTEST=1
     AC_SUBST([GTEST_CFLAGS])
     AC_SUBST([GTEST_LIBS])
     HAVE_GTEST=yes
@@ -663,7 +662,7 @@ AC_ARG_ENABLE([gallium_gbm],
     [enable_gallium_gbm=auto])
 
 # Option for Gallium drivers
-GALLIUM_DRIVERS_DEFAULT="r300,r600,swrast"
+GALLIUM_DRIVERS_DEFAULT="r300,r600,svga,swrast"
 
 AC_ARG_WITH([gallium-drivers],
     [AS_HELP_STRING([--with-gallium-drivers@<:@=DIRS...@:>@],

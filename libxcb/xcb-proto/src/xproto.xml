@@ -1482,7 +1482,10 @@ authorization from the authors.
   <request name="SetFontPath" opcode="51">
     <pad bytes="1" />
     <field type="CARD16" name="font_qty" />
-    <list type="char" name="path" />
+    <pad bytes="2" />
+    <list type="STR" name="font">
+      <fieldref>font_qty</fieldref>
+    </list>
   </request>
 
   <request name="GetFontPath" opcode="52">
@@ -2295,7 +2298,7 @@ authorization from the authors.
     <field type="CARD8" name="family" enum="Family" />
     <pad bytes="1" />
     <field type="CARD16" name="address_len" />
-    <list type="char" name="address">
+    <list type="BYTE" name="address">
       <fieldref>address_len</fieldref>
     </list>
   </request>

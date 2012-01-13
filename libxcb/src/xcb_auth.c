@@ -31,7 +31,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #ifndef _MSC_VER
-#include <arpa/inet.h>
 #endif
 
 #ifdef __INTERIX
@@ -39,9 +38,14 @@
 #include <rpc/types.h>
 #endif
 
+#ifdef HASXDMAUTH
+#include <X11/Xdmcp.h>
+#endif
+
 #ifdef _WIN32
 #include "xcb_windefs.h"
 #else
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/un.h>
@@ -50,9 +54,6 @@
 #include "xcb.h"
 #include "xcbint.h"
 
-#ifdef HASXDMAUTH
-#include <X11/Xdmcp.h>
-#endif
 
 enum auth_protos {
 #ifdef HASXDMAUTH

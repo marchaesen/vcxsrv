@@ -2920,8 +2920,8 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
 
    /* setup texcoords (XXX what about border?) */
    setup_texture_coords(faceTarget,
-                        0.0f, 0.0f, /* width, height never used here */
                         slice,
+                        0, 0, /* width, height never used here */
                         verts[0].tex,
                         verts[1].tex,
                         verts[2].tex,
@@ -3071,6 +3071,8 @@ get_temp_image_type(struct gl_context *ctx, GLenum baseFormat)
    switch (baseFormat) {
    case GL_RGBA:
    case GL_RGB:
+   case GL_RG:
+   case GL_RED:
    case GL_ALPHA:
    case GL_LUMINANCE:
    case GL_LUMINANCE_ALPHA:
@@ -3086,7 +3088,8 @@ get_temp_image_type(struct gl_context *ctx, GLenum baseFormat)
    case GL_DEPTH_STENCIL:
       return GL_UNSIGNED_INT_24_8;
    default:
-      _mesa_problem(ctx, "Unexpected format in get_temp_image_type()");
+      _mesa_problem(ctx, "Unexpected format %d in get_temp_image_type()",
+		    baseFormat);
       return 0;
    }
 }

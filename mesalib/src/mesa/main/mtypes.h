@@ -1894,8 +1894,6 @@ struct gl_program
 
    /** Map from sampler unit to texture unit (set by glUniform1i()) */
    GLubyte SamplerUnits[MAX_SAMPLERS];
-   /** Which texture target is being sampled (TEXTURE_1D/2D/3D/etc_INDEX) */
-   gl_texture_index SamplerTargets[MAX_SAMPLERS];
 
    /** Bitmask of which register files are read/written with indirect
     * addressing.  Mask of (1 << PROGRAM_x) bits.
@@ -2185,9 +2183,17 @@ struct gl_shader
 
    unsigned Version;       /**< GLSL version used for linking */
 
-   unsigned num_samplers;	/**< Number of samplers used by this shader.
-				 * This field is only set post-linking.
-				 */
+   /**
+    * \name Sampler tracking
+    *
+    * \note Each of these fields is only set post-linking.
+    */
+   /*@{*/
+   unsigned num_samplers;	/**< Number of samplers used by this shader. */
+   GLbitfield active_samplers;	/**< Bitfield of which samplers are used */
+   GLbitfield shadow_samplers;	/**< Samplers used for shadow sampling. */
+   /*@}*/
+
    /**
     * Number of uniform components used by this shader.
     *
@@ -2277,6 +2283,8 @@ struct gl_shader_program
    /** Vertex shader state - copied into gl_vertex_program at link time */
    struct {
       GLboolean UsesClipDistance; /**< True if gl_ClipDistance is written to. */
+      GLuint ClipDistanceArraySize; /**< Size of the gl_ClipDistance array, or
+                                         0 if not present. */
    } Vert;
 
    /* post-link info: */
@@ -2347,6 +2355,8 @@ struct gl_shader_state
    struct gl_shader_program *CurrentVertexProgram;
    struct gl_shader_program *CurrentGeometryProgram;
    struct gl_shader_program *CurrentFragmentProgram;
+
+   struct gl_shader_program *_CurrentFragmentProgram;
 
    /**
     * Program used by glUniform calls.

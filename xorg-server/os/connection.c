@@ -774,7 +774,7 @@ AllocNewConnection (XtransConnInfo trans_conn, int fd, CARD32 conn_time)
 	free(oc);
 	return NullClient;
     }
-    client->local = ComputeLocalClient(client);
+    oc->local_client = ComputeLocalClient(client);
 #if !defined(WIN32)
     ConnectionTranslation[fd] = client->index;
 #else
@@ -911,7 +911,7 @@ ErrorConnMax(XtransConnInfo trans_conn)
     xConnSetupPrefix csp;
     char pad[3];
     struct iovec iov[3];
-    char order = 0;
+    char byteOrder = 0;
     int whichbyte = 1;
     struct timeval waittime;
     fd_set mask;
@@ -924,16 +924,16 @@ ErrorConnMax(XtransConnInfo trans_conn)
     FD_SET(fd, &mask);
     (void)Select(fd + 1, &mask, NULL, NULL, &waittime);
     /* try to read the byte-order of the connection */
-    (void)_XSERVTransRead(trans_conn, &order, 1);
-    if (order == 'l' || order == 'B' || order == 'r' || order == 'R')
+    (void)_XSERVTransRead(trans_conn, &byteOrder, 1);
+    if ((byteOrder == 'l') || (byteOrder == 'B'))
     {
 	csp.success = xFalse;
 	csp.lengthReason = sizeof(NOROOM) - 1;
 	csp.length = (sizeof(NOROOM) + 2) >> 2;
 	csp.majorVersion = X_PROTOCOL;
 	csp.minorVersion = X_PROTOCOL_REVISION;
-	if (((*(char *) &whichbyte) && (order == 'B' || order == 'R')) ||
-	    (!(*(char *) &whichbyte) && (order == 'l' || order == 'r')))
+	if (((*(char *) &whichbyte) && (byteOrder == 'B')) ||
+	    (!(*(char *) &whichbyte) && (byteOrder == 'l')))
 	{
 	    swaps(&csp.majorVersion);
 	    swaps(&csp.minorVersion);
@@ -1072,7 +1072,7 @@ CloseDownConnection(ClientPtr client)
     ErrorF("CloseDownConnection: client index = %d, socket fd = %d\n",
 	   client->index, oc->fd);
 #endif
-    if (oc->output)
+    if (oc->output && oc->output->count)
 	FlushClient(client, oc, (char *)NULL, 0);
 #ifdef XDMCP
     XdmcpCloseDisplay(oc->fd);

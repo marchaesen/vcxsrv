@@ -212,8 +212,12 @@ _mesa_propagate_uniforms_to_driver_storage(struct gl_uniform_storage *uni,
 					   unsigned count);
 
 extern void
-_mesa_update_shader_textures_used(struct gl_program *prog);
+_mesa_update_shader_textures_used(struct gl_shader_program *shProg,
+				  struct gl_program *prog);
 
+extern bool
+_mesa_sampler_uniforms_are_valid(const struct gl_shader_program *shProg,
+				 char *errMsg, size_t errMsgLength);
 
 extern void
 _mesa_init_shader_uniform_dispatch(struct _glapi_table *exec);

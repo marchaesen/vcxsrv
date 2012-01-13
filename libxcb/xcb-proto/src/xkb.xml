@@ -1162,6 +1162,7 @@ authorization from the authors.
 			<field name="compatState" type="CARD8" mask="ModMask" />
 			<field name="grabMods" type="CARD8" mask="ModMask" />
 			<field name="compatGrabMods" type="CARD8" mask="ModMask" />
+                        <field name="lookupMods" type="CARD8" mask="ModMask" />
 			<field name="compatLookupMods" type="CARD8" mask="ModMask" />
 			<pad bytes="1" />
 			<field name="ptrBtnState" type="CARD16" mask="KeyButMask" />
@@ -1222,13 +1223,13 @@ authorization from the authors.
 	<request name="SetControls" opcode="7">
 		<field name="deviceSpec" type="DeviceSpec" />
 		<field name="affectInternalRealMods" type="CARD8" mask="ModMask" />
-		<field name="interanlRealMods" type="CARD8" mask="ModMask" />
+		<field name="internalRealMods" type="CARD8" mask="ModMask" />
 		<field name="affectIgnoreLockRealMods" type="CARD8" mask="ModMask" />
 		<field name="ignoreLockRealMods" type="CARD8" mask="ModMask" />
 		<field name="affectInternalVirtualMods" type="CARD16" mask="VMod" />
 		<field name="internalVirtualMods" type="CARD16" mask="VMod" />
-		<field name="affectInternalLockVirtualMods" type="CARD16" mask="VMod" />
-		<field name="internalLockVirtualMods" type="CARD16" mask="VMod" />
+		<field name="affectIgnoreLockVirtualMods" type="CARD16" mask="VMod" />
+		<field name="ignoreLockVirtualMods" type="CARD16" mask="VMod" />
 		<field name="mouseKeysDfltBtn" type="CARD8" />
 		<field name="groupsWrap" type="CARD8" />
 		<field name="accessXOptions" type="AXOption" />
