@@ -50,11 +50,60 @@ libxservertest_la_LIBADD += \
             $(top_builddir)/hw/xfree86/ramdac/libramdac.la \
             $(top_builddir)/hw/xfree86/ddc/libddc.la \
             $(top_builddir)/hw/xfree86/i2c/libi2c.la \
-            $(top_builddir)/hw/xfree86/dixmods/libxorgxkb.la
-endif
-libxservertest_la_LIBADD += \
-            $(top_builddir)/mi/libmi.la \
-            $(top_builddir)/os/libos.la \
+            $(top_builddir)/hw/xfree86/dixmods/libxorgxkb.la \
             @XORG_LIBS@
+else
+nodist_libxservertest_la_SOURCES = \
+            ddxstubs.c \
+            $(top_srcdir)/mi/miinitext.c \
+            $(top_srcdir)/Xext/dpmsstubs.c \
+            $(top_srcdir)/Xi/stubs.c
+
+libxservertest_la_LIBADD += \
+            $(top_builddir)/damageext/libdamageext.la \
+            $(top_builddir)/fb/libfb.la \
+            $(top_builddir)/fb/libwfb.la \
+            $(top_builddir)/miext/damage/libdamage.la \
+            $(top_builddir)/miext/sync/libsync.la \
+            $(top_builddir)/randr/librandr.la \
+            $(top_builddir)/render/librender.la \
+            $(top_builddir)/Xext/libXext.la \
+            $(top_builddir)/Xi/libXi.la \
+            $(top_builddir)/xfixes/libxfixes.la \
+            $(top_builddir)/xkb/libxkb.la \
+            $(top_builddir)/xkb/libxkbstubs.la
+
+if COMPOSITE
+libxservertest_la_LIBADD += \
+            $(top_builddir)/composite/libcomposite.la
+endif
+
+if DBE
+libxservertest_la_LIBADD += \
+            $(top_builddir)/dbe/libdbe.la
+endif
+
+if GLX
+libxservertest_la_LIBADD += \
+            $(top_builddir)/glx/libglx.la
+endif
+
+if RECORD
+libxservertest_la_LIBADD += \
+            $(top_builddir)/record/librecord.la
+endif
+
+if XQUARTZ
+libxservertest_la_LIBADD += \
+            $(top_builddir)/miext/rootless/librootless.la
+TEST_LDADD += -lXplugin
+endif
+
+if XWIN_MULTIWINDOWEXTWM
+libxservertest_la_LIBADD += \
+            $(top_builddir)/miext/rootless/librootless.la
+endif
+endif
+
 libxservertest_la_DEPENDENCIES = $(libxservertest_la_LIBADD)
 endif

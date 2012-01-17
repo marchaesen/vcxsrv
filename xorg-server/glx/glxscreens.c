@@ -419,15 +419,6 @@ void __glXScreenInit(__GLXscreen *pGlxScreen, ScreenPtr pScreen)
 
 void __glXScreenDestroy(__GLXscreen *screen)
 {
-    __GLXconfig *head, *next;
-
-    head = screen->fbconfigs;
-    while (head) {
-	next = head->next;
-	free(head);
-	head = next;
-    }
-
     free(screen->GLXvendor);
     free(screen->GLXextensions);
     free(screen->GLextensions);

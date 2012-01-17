@@ -171,20 +171,8 @@ general_composite_rect  (pixman_implementation_t *imp,
 	imp->toplevel, &dest_iter, dest_image, dest_x, dest_y, width, height,
 	dest_buffer, narrow | op_flags[op].dst);
 
-    if (narrow)
-    {
-	if (component_alpha)
-	    compose = _pixman_implementation_combine_32_ca;
-	else
-	    compose = _pixman_implementation_combine_32;
-    }
-    else
-    {
-	if (component_alpha)
-	    compose = (pixman_combine_32_func_t)_pixman_implementation_combine_64_ca;
-	else
-	    compose = (pixman_combine_32_func_t)_pixman_implementation_combine_64;
-    }
+    compose = _pixman_implementation_lookup_combiner (
+	imp->toplevel, op, component_alpha, narrow);
 
     if (!compose)
 	return;

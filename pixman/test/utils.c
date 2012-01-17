@@ -703,3 +703,178 @@ initialize_palette (pixman_indexed_t *palette, uint32_t depth, int is_rgb)
 	assert (palette->ent[CONVERT_15 (palette->rgba[i], is_rgb)] == i);
     }
 }
+
+static double
+round_channel (double p, int m)
+{
+    int t;
+    double r;
+
+    t = p * ((1 << m));
+    t -= t >> m;
+
+    r = t / (double)((1 << m) - 1);
+
+    return r;
+}
+
+void
+round_color (pixman_format_code_t format, color_t *color)
+{
+    if (PIXMAN_FORMAT_R (format) == 0)
+    {
+	color->r = 0.0;
+	color->g = 0.0;
+	color->b = 0.0;
+    }
+    else
+    {
+	color->r = round_channel (color->r, PIXMAN_FORMAT_R (format));
+	color->g = round_channel (color->g, PIXMAN_FORMAT_G (format));
+	color->b = round_channel (color->b, PIXMAN_FORMAT_B (format));
+    }
+
+    if (PIXMAN_FORMAT_A (format) == 0)
+	color->a = 1;
+    else
+	color->a = round_channel (color->a, PIXMAN_FORMAT_A (format));
+}
+
+/* Check whether @pixel is a valid quantization of the a, r, g, b
+ * parameters. Some slack is permitted.
+ */
+void
+pixel_checker_init (pixel_checker_t *checker, pixman_format_code_t format)
+{
+    assert (PIXMAN_FORMAT_VIS (format));
+
+    checker->format = format;
+
+    switch (PIXMAN_FORMAT_TYPE (format))
+    {
+    case PIXMAN_TYPE_A:
+	checker->bs = 0;
+	checker->gs = 0;
+	checker->rs = 0;
+	checker->as = 0;
+	break;
+
+    case PIXMAN_TYPE_ARGB:
+	checker->bs = 0;
+	checker->gs = checker->bs + PIXMAN_FORMAT_B (format);
+	checker->rs = checker->gs + PIXMAN_FORMAT_G (format);
+	checker->as = checker->rs + PIXMAN_FORMAT_R (format);
+	break;
+
+    case PIXMAN_TYPE_ABGR:
+	checker->rs = 0;
+	checker->gs = checker->rs + PIXMAN_FORMAT_R (format);
+	checker->bs = checker->gs + PIXMAN_FORMAT_G (format);
+	checker->as = checker->bs + PIXMAN_FORMAT_B (format);
+	break;
+
+    case PIXMAN_TYPE_BGRA:
+	/* With BGRA formats we start counting at the high end of the pixel */
+	checker->bs = PIXMAN_FORMAT_BPP (format) - PIXMAN_FORMAT_B (format);
+	checker->gs = checker->bs - PIXMAN_FORMAT_B (format);
+	checker->rs = checker->gs - PIXMAN_FORMAT_G (format);
+	checker->as = checker->rs - PIXMAN_FORMAT_R (format);
+	break;
+
+    case PIXMAN_TYPE_RGBA:
+	/* With BGRA formats we start counting at the high end of the pixel */
+	checker->rs = PIXMAN_FORMAT_BPP (format) - PIXMAN_FORMAT_R (format);
+	checker->gs = checker->rs - PIXMAN_FORMAT_R (format);
+	checker->bs = checker->gs - PIXMAN_FORMAT_G (format);
+	checker->as = checker->bs - PIXMAN_FORMAT_B (format);
+	break;
+
+    default:
+	assert (0);
+	break;
+    }
+
+    checker->am = ((1 << PIXMAN_FORMAT_A (format)) - 1) << checker->as;
+    checker->rm = ((1 << PIXMAN_FORMAT_R (format)) - 1) << checker->rs;
+    checker->gm = ((1 << PIXMAN_FORMAT_G (format)) - 1) << checker->gs;
+    checker->bm = ((1 << PIXMAN_FORMAT_B (format)) - 1) << checker->bs;
+
+    checker->aw = PIXMAN_FORMAT_A (format);
+    checker->rw = PIXMAN_FORMAT_R (format);
+    checker->gw = PIXMAN_FORMAT_G (format);
+    checker->bw = PIXMAN_FORMAT_B (format);
+}
+
+void
+pixel_checker_split_pixel (const pixel_checker_t *checker, uint32_t pixel,
+			   int *a, int *r, int *g, int *b)
+{
+    *a = (pixel & checker->am) >> checker->as;
+    *r = (pixel & checker->rm) >> checker->rs;
+    *g = (pixel & checker->gm) >> checker->gs;
+    *b = (pixel & checker->bm) >> checker->bs;
+}
+
+static int32_t
+convert (double v, uint32_t width, uint32_t mask, uint32_t shift, double def)
+{
+    int32_t r;
+
+    if (!mask)
+	v = def;
+
+    r = (v * ((mask >> shift) + 1));
+    r -= r >> width;
+
+    return r;
+}
+
+static void
+get_limits (const pixel_checker_t *checker, double limit,
+	    color_t *color,
+	    int *ao, int *ro, int *go, int *bo)
+{
+    *ao = convert (color->a + limit, checker->aw, checker->am, checker->as, 1.0);
+    *ro = convert (color->r + limit, checker->rw, checker->rm, checker->rs, 0.0);
+    *go = convert (color->g + limit, checker->gw, checker->gm, checker->gs, 0.0);
+    *bo = convert (color->b + limit, checker->bw, checker->bm, checker->bs, 0.0);
+}
+
+/* The acceptable deviation in units of [0.0, 1.0]
+ */
+#define DEVIATION (0.004)
+
+void
+pixel_checker_get_max (const pixel_checker_t *checker, color_t *color,
+		       int *am, int *rm, int *gm, int *bm)
+{
+    get_limits (checker, DEVIATION, color, am, rm, gm, bm);
+}
+
+void
+pixel_checker_get_min (const pixel_checker_t *checker, color_t *color,
+		       int *am, int *rm, int *gm, int *bm)
+{
+    get_limits (checker, - DEVIATION, color, am, rm, gm, bm);
+}
+
+pixman_bool_t
+pixel_checker_check (const pixel_checker_t *checker, uint32_t pixel,
+		     color_t *color)
+{
+    int32_t a_lo, a_hi, r_lo, r_hi, g_lo, g_hi, b_lo, b_hi;
+    int32_t ai, ri, gi, bi;
+    pixman_bool_t result;
+
+    pixel_checker_get_min (checker, color, &a_lo, &r_lo, &g_lo, &b_lo);
+    pixel_checker_get_max (checker, color, &a_hi, &r_hi, &g_hi, &b_hi);
+    pixel_checker_split_pixel (checker, pixel, &ai, &ri, &gi, &bi);
+
+    result =
+	a_lo <= ai && ai <= a_hi	&&
+	r_lo <= ri && ri <= r_hi	&&
+	g_lo <= gi && gi <= g_hi	&&
+	b_lo <= bi && bi <= b_hi;
+
+    return result;
+}

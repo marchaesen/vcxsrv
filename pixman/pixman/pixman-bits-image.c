@@ -1294,12 +1294,27 @@ dest_get_scanline_narrow (pixman_iter_t *iter, const uint32_t *mask)
     image->bits.fetch_scanline_32 (image, x, y, width, buffer, mask);
     if (image->common.alpha_map)
     {
-	x -= image->common.alpha_origin_x;
-	y -= image->common.alpha_origin_y;
+	uint32_t *alpha;
 
-	image->common.alpha_map->fetch_scanline_32 (
-	    (pixman_image_t *)image->common.alpha_map,
-	    x, y, width, buffer, mask);
+	if ((alpha = malloc (width * sizeof (uint32_t))))
+	{
+	    int i;
+
+	    x -= image->common.alpha_origin_x;
+	    y -= image->common.alpha_origin_y;
+
+	    image->common.alpha_map->fetch_scanline_32 (
+		(pixman_image_t *)image->common.alpha_map,
+		x, y, width, alpha, mask);
+
+	    for (i = 0; i < width; ++i)
+	    {
+		buffer[i] &= ~0xff000000;
+		buffer[i] |= (alpha[i] & 0xff000000);
+	    }
+
+	    free (alpha);
+	}
     }
 
     return iter->buffer;
@@ -1312,17 +1327,33 @@ dest_get_scanline_wide (pixman_iter_t *iter, const uint32_t *mask)
     int             x      = iter->x;
     int             y      = iter->y;
     int             width  = iter->width;
-    uint32_t *	    buffer = iter->buffer;
+    uint64_t *	    buffer = (uint64_t *)iter->buffer;
 
     image->fetch_scanline_64 (
-	(pixman_image_t *)image, x, y, width, buffer, mask);
+	(pixman_image_t *)image, x, y, width, (uint32_t *)buffer, mask);
     if (image->common.alpha_map)
     {
-	x -= image->common.alpha_origin_x;
-	y -= image->common.alpha_origin_y;
+	uint64_t *alpha;
 
-	image->common.alpha_map->fetch_scanline_64 (
-	    (pixman_image_t *)image->common.alpha_map, x, y, width, buffer, mask);
+	if ((alpha = malloc (width * sizeof (uint64_t))))
+	{
+	    int i;
+
+	    x -= image->common.alpha_origin_x;
+	    y -= image->common.alpha_origin_y;
+
+	    image->common.alpha_map->fetch_scanline_64 (
+		(pixman_image_t *)image->common.alpha_map,
+		x, y, width, (uint32_t *)alpha, mask);
+
+	    for (i = 0; i < width; ++i)
+	    {
+		buffer[i] &= ~0xffff000000000000ULL;
+		buffer[i] |= (alpha[i] & 0xffff000000000000ULL);
+	    }
+
+	    free (alpha);
+	}
     }
 
     return iter->buffer;

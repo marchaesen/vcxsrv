@@ -324,6 +324,7 @@ topdir=$1
 shift
 LC_ALL=C
 export LC_ALL
+${CPP:-cpp} "$@" -DXorgLoader sdksyms.c > /dev/null || exit $?
 ${CPP:-cpp} "$@" -DXorgLoader sdksyms.c | ${AWK:-awk} -v topdir=$topdir '
 BEGIN {
     sdk = 0;

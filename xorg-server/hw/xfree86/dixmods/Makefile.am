@@ -65,4 +65,3 @@ libdixmods_la_SOURCES = $(top_srcdir)/mi/miinitext.c
 libdixmods_la_CFLAGS = -DXFree86LOADER $(AM_CFLAGS)
 
 libxorgxkb_la_SOURCES = xkbVT.c xkbPrivate.c xkbKillSrv.c
-libxorgxkb_la_LIBADD = $(top_builddir)/dix/libdix.la
