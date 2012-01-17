@@ -475,34 +475,11 @@ pixman_implementation_t *
 _pixman_implementation_create (pixman_implementation_t *delegate,
 			       const pixman_fast_path_t *fast_paths);
 
-void
-_pixman_implementation_combine_32 (pixman_implementation_t *imp,
-                                   pixman_op_t              op,
-                                   uint32_t *               dest,
-                                   const uint32_t *         src,
-                                   const uint32_t *         mask,
-                                   int                      width);
-void
-_pixman_implementation_combine_64 (pixman_implementation_t *imp,
-                                   pixman_op_t              op,
-                                   uint64_t *               dest,
-                                   const uint64_t *         src,
-                                   const uint64_t *         mask,
-                                   int                      width);
-void
-_pixman_implementation_combine_32_ca (pixman_implementation_t *imp,
-                                      pixman_op_t              op,
-                                      uint32_t *               dest,
-                                      const uint32_t *         src,
-                                      const uint32_t *         mask,
-                                      int                      width);
-void
-_pixman_implementation_combine_64_ca (pixman_implementation_t *imp,
-                                      pixman_op_t              op,
-                                      uint64_t *               dest,
-                                      const uint64_t *         src,
-                                      const uint64_t *         mask,
-                                      int                      width);
+pixman_combine_32_func_t
+_pixman_implementation_lookup_combiner (pixman_implementation_t *imp,
+					pixman_op_t		 op,
+					pixman_bool_t		 component_alpha,
+					pixman_bool_t		 wide);
 
 pixman_bool_t
 _pixman_implementation_blt (pixman_implementation_t *imp,

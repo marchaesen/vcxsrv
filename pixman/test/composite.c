@@ -28,15 +28,9 @@
 #include <time.h>
 #include "utils.h"
 
-typedef struct color_t color_t;
 typedef struct format_t format_t;
 typedef struct image_t image_t;
 typedef struct operator_t operator_t;
-
-struct color_t
-{
-    double r, g, b, a;
-};
 
 struct format_t
 {
@@ -480,147 +474,19 @@ do_composite (pixman_op_t op,
     result->a = calc_op (op, srcval.a, dst->a, srcalpha.a, dst->a);
 }
 
-static void
-color_correct (pixman_format_code_t format,
-	       color_t *color)
+static uint32_t
+get_value (pixman_image_t *image)
 {
-#define MASK(x) ((1 << (x)) - 1)
-#define round_pix(pix, m)						\
-    ((int)((pix) * (MASK(m)) + .5) / (double) (MASK(m)))
+    uint32_t value = *(uint32_t *)pixman_image_get_data (image);
 
-    if (PIXMAN_FORMAT_R (format) == 0)
-    {
-	color->r = 0.0;
-	color->g = 0.0;
-	color->b = 0.0;
-    }
-    else
-    {
-	color->r = round_pix (color->r, PIXMAN_FORMAT_R (format));
-	color->g = round_pix (color->g, PIXMAN_FORMAT_G (format));
-	color->b = round_pix (color->b, PIXMAN_FORMAT_B (format));
-    }
-
-    if (PIXMAN_FORMAT_A (format) == 0)
-	color->a = 1.0;
-    else
-	color->a = round_pix (color->a, PIXMAN_FORMAT_A (format));
-
-#undef round_pix
-#undef MASK
-}
-
-static void
-get_pixel (pixman_image_t *image,
-	   pixman_format_code_t format,
-	   color_t *color)
-{
-#define MASK(N) ((1UL << (N))-1)
-
-    unsigned long rs, gs, bs, as;
-    int a, r, g, b;
-    unsigned long val;
-
-    val = *(unsigned long *) pixman_image_get_data (image);
 #ifdef WORDS_BIGENDIAN
-    val >>= 8 * sizeof(val) - PIXMAN_FORMAT_BPP (format);
+    {
+	pixman_format_code_t format = pixman_image_get_format (image);
+	value >>= 8 * sizeof(value) - PIXMAN_FORMAT_BPP (format);
+    }
 #endif
 
-    /* Number of bits in each channel */
-    a = PIXMAN_FORMAT_A (format);
-    r = PIXMAN_FORMAT_R (format);
-    g = PIXMAN_FORMAT_G (format);
-    b = PIXMAN_FORMAT_B (format);
-
-    switch (PIXMAN_FORMAT_TYPE (format))
-    {
-    case PIXMAN_TYPE_ARGB:
-        bs = 0;
-        gs = b + bs;
-        rs = g + gs;
-        as = r + rs;
-	break;
-
-    case PIXMAN_TYPE_ABGR:
-        rs = 0;
-        gs = r + rs;
-        bs = g + gs;
-        as = b + bs;
-	break;
-
-    case PIXMAN_TYPE_BGRA:
-        as = 0;
-	rs = PIXMAN_FORMAT_BPP (format) - (b + g + r);
-        gs = r + rs;
-        bs = g + gs;
-	break;
-
-    case PIXMAN_TYPE_RGBA:
-	as = 0;
-	bs = PIXMAN_FORMAT_BPP (format) - (b + g + r);
-	gs = b + bs;
-	rs = g + gs;
-	break;
-
-    case PIXMAN_TYPE_A:
-        as = 0;
-        rs = 0;
-        gs = 0;
-        bs = 0;
-	break;
-
-    case PIXMAN_TYPE_OTHER:
-    case PIXMAN_TYPE_COLOR:
-    case PIXMAN_TYPE_GRAY:
-    case PIXMAN_TYPE_YUY2:
-    case PIXMAN_TYPE_YV12:
-    default:
-	abort ();
-        as = 0;
-        rs = 0;
-        gs = 0;
-        bs = 0;
-	break;
-    }
-
-    if (MASK (a) != 0)
-	color->a = ((val >> as) & MASK (a)) / (double) MASK (a);
-    else
-	color->a = 1.0;
-
-    if (MASK (r) != 0)
-    {
-	color->r = ((val >> rs) & MASK (r)) / (double) MASK (r);
-	color->g = ((val >> gs) & MASK (g)) / (double) MASK (g);
-	color->b = ((val >> bs) & MASK (b)) / (double) MASK (b);
-    }
-    else
-    {
-	color->r = 0.0;
-	color->g = 0.0;
-	color->b = 0.0;
-    }
-
-#undef MASK
-}
-
-static double
-eval_diff (color_t *expected, color_t *test, pixman_format_code_t format)
-{
-    double rscale, gscale, bscale, ascale;
-    double rdiff, gdiff, bdiff, adiff;
-
-    rscale = 1.0 * ((1 << PIXMAN_FORMAT_R (format)) - 1);
-    gscale = 1.0 * ((1 << PIXMAN_FORMAT_G (format)) - 1);
-    bscale = 1.0 * ((1 << PIXMAN_FORMAT_B (format)) - 1);
-    ascale = 1.0 * ((1 << PIXMAN_FORMAT_A (format)) - 1);
-
-    rdiff = fabs (test->r - expected->r) * rscale;
-    bdiff = fabs (test->g - expected->g) * gscale;
-    gdiff = fabs (test->b - expected->b) * bscale;
-    adiff = fabs (test->a - expected->a) * ascale;
-
-    return MAX (MAX (MAX (rdiff, gdiff), bdiff), adiff);
+    return value;
 }
 
 static char *
@@ -628,10 +494,10 @@ describe_image (image_t *info, char *buf)
 {
     if (info->size)
     {
-	sprintf (buf, "%s %dx%d%s",
+	sprintf (buf, "%s, %dx%d%s",
 		 info->format->name,
 		 info->size, info->size,
-		 info->repeat ? "R" :"");
+		 info->repeat ? " R" :"");
     }
     else
     {
@@ -641,52 +507,40 @@ describe_image (image_t *info, char *buf)
     return buf;
 }
 
-/* Test a composite of a given operation, source, mask, and destination
- * picture.
- * Fills the window, and samples from the 0,0 pixel corner.
- */
+static char *
+describe_color (const color_t *color, char *buf)
+{
+    sprintf (buf, "%.3f %.3f %.3f %.3f",
+	     color->r, color->g, color->b, color->a);
+
+    return buf;
+}
+
 static pixman_bool_t
 composite_test (image_t *dst,
 		const operator_t *op,
 		image_t *src,
 		image_t *mask,
-		pixman_bool_t component_alpha)
+		pixman_bool_t component_alpha,
+		int testno)
 {
     pixman_color_t fill;
     pixman_rectangle16_t rect;
-    color_t expected, result, tdst, tsrc, tmsk;
-    double diff;
-    pixman_bool_t success = TRUE;
+    color_t expected, tdst, tsrc, tmsk;
+    pixel_checker_t checker;
 
+    /* Initialize dst */
     compute_pixman_color (dst->color, &fill);
     rect.x = rect.y = 0;
     rect.width = rect.height = dst->size;
-    pixman_image_fill_rectangles (PIXMAN_OP_SRC, dst->image,
-				  &fill, 1, &rect);
+    pixman_image_fill_rectangles (PIXMAN_OP_SRC, dst->image, &fill, 1, &rect);
 
-    if (mask != NULL)
+    if (mask)
     {
 	pixman_image_set_component_alpha (mask->image, component_alpha);
+
 	pixman_image_composite (op->op, src->image, mask->image, dst->image,
-				0, 0,
-				0, 0,
-				0, 0,
-				dst->size, dst->size);
-
-	tmsk = *mask->color;
-	if (mask->size)
-	{
-	    color_correct (mask->format->format, &tmsk);
-
-	    if (component_alpha &&
-		PIXMAN_FORMAT_R (mask->format->format) == 0)
-	    {
-		/* Ax component-alpha masks expand alpha into
-		 * all color channels.
-		 */
-		tmsk.r = tmsk.g = tmsk.b = tmsk.a;
-	    }
-	}
+				0, 0, 0, 0, 0, 0, dst->size, dst->size);
     }
     else
     {
@@ -696,71 +550,81 @@ composite_test (image_t *dst,
 				0, 0,
 				dst->size, dst->size);
     }
-    get_pixel (dst->image, dst->format->format, &result);
 
     tdst = *dst->color;
-    color_correct (dst->format->format, &tdst);
+    round_color (dst->format->format, &tdst);
+
     tsrc = *src->color;
     if (src->size)
-	color_correct (src->format->format, &tsrc);
-    do_composite (op->op, &tsrc, mask ? &tmsk : NULL, &tdst,
-		  &expected, component_alpha);
-    color_correct (dst->format->format, &expected);
+	round_color (src->format->format, &tsrc);
 
-    diff = eval_diff (&expected, &result, dst->format->format);
-
-    /* FIXME: We should find out what deviation is acceptable. 3.0
-     * is clearly absurd for 2 bit formats for example. On the other
-     * hand currently 1.0 does not work.
-     */
-    if (diff > 3.0)
+    if (mask)
     {
-	char buf[40];
-
-	sprintf (buf, "%s %scomposite",
-		 op->name,
-		 component_alpha ? "CA " : "");
-
-	printf ("%s test error of %.4f --\n"
-		"           R    G    B    A\n"
-		"got:       %.2f %.2f %.2f %.2f [%08lx]\n"
-		"expected:  %.2f %.2f %.2f %.2f\n",
-		buf, diff,
-		result.r, result.g, result.b, result.a,
-		*(unsigned long *) pixman_image_get_data (dst->image),
-		expected.r, expected.g, expected.b, expected.a);
-
-	if (mask != NULL)
+	tmsk = *mask->color;
+	if (mask->size)
+	    round_color (mask->format->format, &tmsk);
+	if (component_alpha && PIXMAN_FORMAT_R (mask->format->format) == 0)
 	{
-	    printf ("src color: %.2f %.2f %.2f %.2f\n"
-		    "msk color: %.2f %.2f %.2f %.2f\n"
-		    "dst color: %.2f %.2f %.2f %.2f\n",
-		    src->color->r, src->color->g,
-		    src->color->b, src->color->a,
-		    mask->color->r, mask->color->g,
-		    mask->color->b, mask->color->a,
-		    dst->color->r, dst->color->g,
-		    dst->color->b, dst->color->a);
-	    printf ("src: %s, ", describe_image (src, buf));
-	    printf ("mask: %s, ", describe_image (mask, buf));
-	    printf ("dst: %s\n\n", describe_image (dst, buf));
+	    /* Ax component-alpha masks expand alpha into
+	     * all color channels.
+	     */
+	    tmsk.r = tmsk.g = tmsk.b = tmsk.a;
 	}
-	else
-	{
-	    printf ("src color: %.2f %.2f %.2f %.2f\n"
-		    "dst color: %.2f %.2f %.2f %.2f\n",
-		    src->color->r, src->color->g,
-		    src->color->b, src->color->a,
-		    dst->color->r, dst->color->g,
-		    dst->color->b, dst->color->a);
-	    printf ("src: %s, ", describe_image (src, buf));
-	    printf ("dst: %s\n\n", describe_image (dst, buf));
-	}
-
-	success = FALSE;
     }
 
-    return success;
+    do_composite (op->op,
+		  &tsrc,
+		  mask? &tmsk : NULL,
+		  &tdst,
+		  &expected,
+		  component_alpha);
+
+    pixel_checker_init (&checker, dst->format->format);
+
+    if (!pixel_checker_check (&checker, get_value (dst->image), &expected))
+    {
+	char buf[40], buf2[40];
+	int a, r, g, b;
+	uint32_t pixel;
+
+	printf ("---- Test %d failed ----\n", testno);
+	printf ("Operator:      %s %s\n",
+		 op->name, component_alpha ? "CA" : "");
+
+	printf ("Source:        %s\n", describe_image (src, buf));
+	if (mask != NULL)
+	    printf ("Mask:          %s\n", describe_image (mask, buf));
+
+	printf ("Destination:   %s\n\n", describe_image (dst, buf));
+	printf ("               R     G     B     A         Rounded\n");
+	printf ("Source color:  %s     %s\n",
+		describe_color (src->color, buf),
+		describe_color (&tsrc, buf2));
+	if (mask)
+	{
+	    printf ("Mask color:    %s     %s\n",
+		    describe_color (mask->color, buf),
+		    describe_color (&tmsk, buf2));
+	}
+	printf ("Dest. color:   %s     %s\n",
+		describe_color (dst->color, buf),
+		describe_color (&tdst, buf2));
+
+	pixel = get_value (dst->image);
+
+	printf ("Expected:      %s\n", describe_color (&expected, buf));
+
+	pixel_checker_split_pixel (&checker, pixel, &a, &r, &g, &b);
+
+	printf ("Got:           %5d %5d %5d %5d  [pixel: 0x%08x]\n", r, g, b, a, pixel);
+	pixel_checker_get_min (&checker, &expected, &a, &r, &g, &b);
+	printf ("Min accepted:  %5d %5d %5d %5d\n", r, g, b, a);
+	pixel_checker_get_max (&checker, &expected, &a, &r, &g, &b);
+	printf ("Max accepted:  %5d %5d %5d %5d\n", r, g, b, a);
+
+	return FALSE;
+    }
+    return TRUE;
 }
 
 static void
@@ -791,7 +655,7 @@ image_init (image_t *info,
 	pixman_image_fill_rectangles (PIXMAN_OP_SRC, info->image, &fill,
 				      1, &rect);
 
-	if (size & REPEAT)
+	if (sizes[size] & REPEAT)
 	{
 	    pixman_image_set_repeat (info->image, PIXMAN_REPEAT_NORMAL);
 	    info->repeat = PIXMAN_REPEAT_NORMAL;
@@ -836,7 +700,7 @@ run_test (uint32_t seed)
     int ok;
 
     lcg_srand (seed);
-    
+
     image_init (&dst, random_color(), random_format(), 1);
     image_init (&src, random_color(), random_format(), random_size());
     image_init (&mask, random_color(), random_format(), random_size());
@@ -848,14 +712,14 @@ run_test (uint32_t seed)
     switch (ca)
     {
     case 0:
-	ok = composite_test (&dst, op, &src, NULL, FALSE);
+	ok = composite_test (&dst, op, &src, NULL, FALSE, seed);
 	break;
     case 1:
-	ok = composite_test (&dst, op, &src, &mask, FALSE);
+	ok = composite_test (&dst, op, &src, &mask, FALSE, seed);
 	break;
     case 2:
 	ok = composite_test (&dst, op, &src, &mask,
-			     mask.size? TRUE : FALSE);
+			     mask.size? TRUE : FALSE, seed);
 	break;
     default:
 	ok = FALSE;
@@ -879,7 +743,7 @@ main (int argc, char **argv)
     if (argc > 1)
     {
 	char *end;
-	
+
 	i = strtol (argv[1], &end, 0);
 
 	if (end != argv[1])
@@ -900,7 +764,7 @@ main (int argc, char **argv)
 	seed = get_random_seed();
     else
 	seed = 1;
-    
+
 #ifdef USE_OPENMP
 #   pragma omp parallel for default(none) shared(result, argv, seed)
 #endif
@@ -909,10 +773,10 @@ main (int argc, char **argv)
 	if (!result && !run_test (i + seed))
 	{
 	    printf ("Test 0x%08X failed.\n", seed + i);
-	    
+
 	    result = seed + i;
 	}
     }
-    
+
     return result;
 }
