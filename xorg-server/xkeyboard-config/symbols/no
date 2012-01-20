@@ -83,7 +83,7 @@ xkb_symbols "dvorak" {
     key <AD08> { [	    c,	C,      ccedilla, copyright	 ] };
     key <AD09> { [	    r,	R,      registered		 ] };
     key <AD11> { [  apostrophe,	asterisk, dead_circumflex, acute ] };
-    key <AD12> { [  asciitilde,	asciicircum, dead_diaeresis, dead_tilde	] };
+    key <AD12> { [dead_diaeresis, dead_circumflex, dead_tilde, dead_caron ] };
 
     key <AC03> { [	    e,	E,      EuroSign,	cent	 ] };
     key <AC05> { [	    i,	I,      idotless,       Iabovedot] };

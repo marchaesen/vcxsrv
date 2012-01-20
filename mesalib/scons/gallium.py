@@ -289,6 +289,8 @@ def generate(env):
             cppdefines += ['_DEBUG']
     if platform == 'windows':
         cppdefines += ['PIPE_SUBSYSTEM_WINDOWS_USER']
+    if platform == 'haiku':
+        cppdefines += ['BEOS_THREADS']
     if env['embedded']:
         cppdefines += ['PIPE_SUBSYSTEM_EMBEDDED']
     env.Append(CPPDEFINES = cppdefines)
@@ -348,7 +350,7 @@ def generate(env):
             ccflags += ['-m64']
             if platform == 'darwin':
                 ccflags += ['-fno-common']
-        if env['platform'] != 'windows':
+        if env['platform'] not in ('windows', 'haiku'):
             ccflags += ['-fvisibility=hidden']
         # See also:
         # - http://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
