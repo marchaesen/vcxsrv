@@ -6278,6 +6278,12 @@
           <_description>Toggle PointerKeys with Shift + NumLock.</_description>
         </configItem>
       </option>
+      <option>
+        <configItem>
+          <name>grab:break_actions</name>
+          <_description>Allow breaking grabs with keyboard actions (warning: security risk)</_description>
+        </configItem>
+      </option>
     </group>
     <group allowMultipleSelection="true">
       <!-- Special shortcuts for the Euro character -->
