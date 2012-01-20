@@ -502,6 +502,12 @@ winConfigKeyboard (DeviceIntPtr pDevice)
             s = winSetStrOption (kbd->inp_option_lst, "XkbOptions", NULL);
             from = X_CONFIG;
           }
+#else
+        else
+          {
+            if (!g_winInfo.xkb.options)
+              s="grab:break_actions";  /* Currently attach default CTRL+ALT+NKP/ and CTRL+ALT+NKP* mappings to release grab functions */
+          }
 #endif
         if (s)
 	  {
