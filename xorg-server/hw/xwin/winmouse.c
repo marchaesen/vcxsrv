@@ -51,21 +51,6 @@
 /* Peek the internal button mapping */
 static CARD8 const *g_winMouseButtonMap = NULL;
 
-
-/*
- * Local prototypes
- */
-
-static void
-winMouseCtrl (DeviceIntPtr pDevice, PtrCtrl *pCtrl);
-
-
-static void
-winMouseCtrl (DeviceIntPtr pDevice, PtrCtrl *pCtrl)
-{
-}
-
-
 /*
  * See Porting Layer Definition - p. 18
  * This is known as a DeviceProc
@@ -75,7 +60,7 @@ int
 winMouseProc (DeviceIntPtr pDeviceInt, int iState)
 {
   int 			lngMouseButtons, i;
-  int			lngWheelEvents = 2;
+  int			lngWheelEvents = 4;
   CARD8			*map;
   DevicePtr		pDevice = (DevicePtr) pDeviceInt;
   Atom *btn_labels;
@@ -114,6 +99,8 @@ winMouseProc (DeviceIntPtr pDeviceInt, int iState)
       btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
       btn_labels[3] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_UP);
       btn_labels[4] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_DOWN);
+      btn_labels[5] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_LEFT);
+      btn_labels[6] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_RIGHT);
 
       axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
       axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
@@ -122,7 +109,7 @@ winMouseProc (DeviceIntPtr pDeviceInt, int iState)
 			       map,
 			       lngMouseButtons + lngWheelEvents,
 			       btn_labels,
-			       winMouseCtrl,
+			       (PtrCtrlProcPtr)NoopDDA,
 			       GetMotionHistorySize(),
 			       2,
 			       axes_labels);
