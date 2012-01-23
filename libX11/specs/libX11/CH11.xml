@@ -2049,14 +2049,15 @@ chapter:
 <indexterm significance="preferred"><primary>BadFont</primary></indexterm>
 <indexterm significance="preferred"><primary>BadGC</primary></indexterm>
 <indexterm significance="preferred"><primary>BadIDChoice</primary></indexterm>
-<informaltable frame='none'>
-  <tgroup cols='2'>
-  <colspec colname='c1'/>
-  <colspec colname='c2'/>
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.0*'/>
+  <colspec colname='c2' colwidth='3.5*'/>
   <thead>
-    <row>
-      <entry align='left'>Error Code</entry>
-      <entry align='left'>Description</entry>
+    <row rowsep='1'>
+      <entry>Error Code</entry>
+      <entry>Description</entry>
     </row>
   </thead>
   <tbody>

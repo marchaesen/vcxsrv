@@ -238,79 +238,80 @@ keyboard mappings in the server database is not specified by the Xkb extension,
 although this format is one possible example):
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Example Key Type</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Symbolic Description</entry>
   <entry>Key Type Data Structure</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>type "ALPHATHREE" {</entry>
     <entry>Xkb-&gt;map-&gt;types[i].name</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>modifiers = Shift+Lock+LevelThree;</entry>
     <entry>Xkb-&gt;map-&gt;types[i].mods</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>map[None]= Level1;</emphasis></entry>
     <entry>Xkb-&gt;map-&gt;types[i].map[0]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>map[Lock]= Level1;</emphasis></entry>
     <entry>Xkb-&gt;map-&gt;types[i].map[1]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>map[Shift]= Level2;</entry>
     <entry>Xkb-&gt;map-&gt;types[i].map[2]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>map[LevelThree]= Level3;</entry>
     <entry>Xkb-&gt;map-&gt;types[i].map[3]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>map[Shift+LevelThree]= Level3;</entry>
     <entry>Xkb-&gt;map-&gt;types[i].map[4]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>preserve[None]= None;</emphasis></entry>
     <entry>Xkb-&gt;map-&gt;types[i].perserve[0]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>preserve[Lock]= Lock;</entry>
     <entry>Xkb-&gt;map-&gt;types[i].preserve[1]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>preserve[Shift]= None;</emphasis></entry>
     <entry>Xkb-&gt;map-&gt;types[i].preserve[2]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>preserve[LevelThree]= None;</emphasis></entry>
     <entry>Xkb-&gt;map-&gt;types[i].preserve[3]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>preserve[Shift+Level3]= None;</emphasis> </entry>
     <entry>Xkb-&gt;map-&gt;types[i].preserve[4]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>level_name[Level1]= "Base";</entry>
     <entry>Xkb-&gt;map-&gt;types[i].level_names[0]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>level_name[Level2]= "Caps";</entry>
     <entry>Xkb-&gt;map-&gt;types[i].level_names[1]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>level_name[Level3]= "Level3";</entry>
     <entry>Xkb-&gt;map-&gt;types[i].level_names[2]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>};</entry>
     <entry></entry>
   </row>
@@ -645,10 +646,11 @@ XkbInitCanonicalKeyTypes.</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbInitCanonicalKeyTypes</emphasis>
@@ -657,21 +659,21 @@ xkb, which, keypadVMod</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;            /* keyboard description containing client map to initialize */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 which</emphasis>
 ;            /* mask of types to initialize */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 keypadVMod</emphasis>
@@ -751,10 +753,11 @@ XkbGetKeyTypes</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetKeyTypes</emphasis>
@@ -769,28 +772,28 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             first</emphasis>
 ;            /* index to first type to get, 0 =&gt; 1st type */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 num</emphasis>
 ;            /* number of key types to be returned */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr             <emphasis>
 xkb</emphasis>
@@ -844,10 +847,11 @@ XkbResizeKeyType</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbResizeKeyType</emphasis>
@@ -864,28 +868,28 @@ xkb</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr<emphasis>
             xkb</emphasis>
 ;            /* keyboard description containing client map to update */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             type_ndx</emphasis>
 ;            /* index in xkb-&gt;map-&gt;types of type to change */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int             <emphasis>
 map_count</emphasis>
 ;            /* total # of map entries needed for the type */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool             <emphasis>
 want_preserve</emphasis>
@@ -894,7 +898,7 @@ True</emphasis>
  =&gt; list of preserved modifiers is necessary */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             new_num_lvls</emphasis>
@@ -1018,10 +1022,11 @@ XkbKeyTypeRec</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbCopyKeyType</emphasis>
@@ -1032,14 +1037,14 @@ from</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbKeyTypePtr <emphasis>
             from</emphasis>
 ;            /* pointer to XkbKeyTypeRec to be copied */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbKeyTypePtr <emphasis>
             into</emphasis>
@@ -1094,10 +1099,11 @@ Success</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbCopyKeyTypes</emphasis>
@@ -1110,21 +1116,21 @@ num_types</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbKeyTypePtr <emphasis>
             from</emphasis>
 ;            /* pointer to array of XkbKeyTypeRecs to copy */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbKeyTypePtr <emphasis>
             into</emphasis>
 ;            /* pointer to array of XkbKeyTypeRecs to change */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             num_types</emphasis>
@@ -1286,10 +1292,11 @@ XkbNumKbdGroups</emphasis>
  groups, the extra key types are reported but ignored.</para></note>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbKeyTypeIndex</emphasis>
@@ -1298,21 +1305,21 @@ xkb, keycode, group</emphasis>
 )                              /* macro*/
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
 ;                  /* keycode of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 group</emphasis>
@@ -1339,10 +1346,11 @@ group</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbKeyTypePtr <emphasis>
 XkbKeyType</emphasis>
@@ -1351,21 +1359,21 @@ xkb, keycode, group</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
 ;                  /* keycode of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 group</emphasis>
@@ -1453,27 +1461,28 @@ group_info</emphasis>
 normalization methods in this table.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>group_info Range Normalization</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Bits set in group_info</entry>
   <entry>Normalization method</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>XkbRedirectIntoRange</entry>
     <entry>XkbRedirectIntoRange</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbClampIntoRange</entry>
     <entry>XkbClampIntoRange</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>none of the above</entry>
     <entry>XkbWrapIntoRange</entry>
   </row>
@@ -1486,10 +1495,11 @@ Xkb provides the following macros to access group information:
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbKeyNumGroups</emphasis>
@@ -1498,14 +1508,14 @@ xkb, keycode</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
@@ -1527,10 +1537,11 @@ keycode</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 unsigned char <emphasis>
 XkbKeyGroupInfo</emphasis>
@@ -1539,14 +1550,14 @@ xkb, keycode</emphasis>
 )                              /*macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
@@ -1571,10 +1582,11 @@ keycode</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 unsigned char <emphasis>
 XkbOutOfRangeGroupInfo</emphasis>
@@ -1583,7 +1595,7 @@ grp_inf</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned char            <emphasis>
 grp_inf</emphasis>
@@ -1608,10 +1620,11 @@ XkbSymMapRec</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 unsigned char <emphasis>
 XkbOutOfRangeGroupNumber</emphasis>
@@ -1620,7 +1633,7 @@ grp_inf</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned char            <emphasis>
 grp_inf</emphasis>
@@ -1703,10 +1716,11 @@ of symbols bound to the key:
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbKeyGroupsWidth</emphasis>
@@ -1715,14 +1729,14 @@ xkb, keycode</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
@@ -1743,10 +1757,11 @@ keycode</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbKeyGroupWidth</emphasis>
@@ -1755,21 +1770,21 @@ xkb, keycode, grp</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
 ;                  /* keycode of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 grp</emphasis>
@@ -1792,10 +1807,11 @@ keycode</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbKeySymsOffset</emphasis>
@@ -1804,14 +1820,14 @@ xkb, keycode</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
@@ -1833,10 +1849,11 @@ keycode</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbKeyNumSyms</emphasis>
@@ -1845,14 +1862,14 @@ xkb, keycode</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
@@ -1873,10 +1890,11 @@ keycode</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 KeySym * <emphasis>
 XkbKeySymsPtr</emphasis>
@@ -1885,14 +1903,14 @@ xkb, keycode</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
@@ -1914,10 +1932,11 @@ keycode</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 KeySym <emphasis>
 XkbKeySymEntry</emphasis>
@@ -1926,28 +1945,28 @@ xkb, keycode, shift, grp</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
 ;                  /* keycode of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 shift</emphasis>
 ;                  /* shift level of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 grp</emphasis>
@@ -1985,10 +2004,11 @@ XkbGetKeySyms</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetKeySyms</emphasis>
@@ -2003,28 +2023,28 @@ num</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             first</emphasis>
 ;            /* keycode of first key to get */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
       num</emphasis>
 ;            /* number of keycodes for which syms desired */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr             <emphasis>
 xkb</emphasis>
@@ -2119,38 +2139,39 @@ xkb</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
             xkb</emphasis>
 ;            /* keyboard description to be changed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             key</emphasis>
 ;            /* keycode for key of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             n_groups</emphasis>
 ;            /* new number of groups for key */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 groups</emphasis>
 ;            /* mask indicating groups to change */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *            <emphasis>
 new_types_in</emphasis>
@@ -2159,7 +2180,7 @@ groups</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbMapChangesPtr            <emphasis>
 p_changes</emphasis>
@@ -2265,31 +2286,32 @@ For convenience, Xkb provides the following constants to use as indices to the
 groups:
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Group Index Constants</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Constant Name</entry>
   <entry>Value</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGroup1Index</entry>
     <entry>0</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGroup2Index</entry>
     <entry>1</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGroup3Index</entry>
     <entry>2</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGroup4Index</entry>
     <entry>3</entry>
   </row>
@@ -2342,10 +2364,11 @@ XkbResizeKeySyms</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 KeySym *<emphasis>
 XkbResizeKeySyms</emphasis>
@@ -2358,21 +2381,21 @@ xkb</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescRec *<emphasis>
             xkb</emphasis>
 ;            /* keyboard description to be changed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             key</emphasis>
 ;            /* keycode for key to modify */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             needed</emphasis>
@@ -2507,10 +2530,11 @@ XkbGetKeyModifierMap</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetKeyModifierMap</emphasis>
@@ -2525,28 +2549,28 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 first</emphasis>
 ;            /* keycode of first key to get */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 num</emphasis>
 ;            /* number of keys for which information is desired */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr             <emphasis>
 xkb</emphasis>

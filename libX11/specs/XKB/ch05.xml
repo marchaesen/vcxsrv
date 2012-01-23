@@ -308,34 +308,35 @@ affect</emphasis>
 
 <table frame='none'>
 <title>Real Modifier Masks</title>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='1'>
+  <row>
     <entry>Mask</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>ShiftMask</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>LockMask</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>ControlMask</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Mod1Mask</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Mod2Mask</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Mod3Mask</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Mod4Mask</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Mod5Mask</entry>
   </row>
 </tbody>
@@ -348,10 +349,11 @@ XkbLockModifiers:</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis> XkbLockModifiers</emphasis>
 (<emphasis>
@@ -359,14 +361,14 @@ display, device_spec, affect, values</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
 display</emphasis>
 ;            /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
@@ -375,14 +377,14 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       affect</emphasis>
 ;            /* mask of real modifiers whose lock state is to change */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 values</emphasis>
@@ -423,10 +425,11 @@ XkbLatchModifiers:</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbLatchModifiers</emphasis>
@@ -435,14 +438,14 @@ isplay, device_spec, affect, values</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
 display</emphasis>
 ;            /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
@@ -451,14 +454,14 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       affect</emphasis>
 ;            /* mask of modifiers whose latch state is to change */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int <emphasis>values</emphasis>;
 /* 1 =&gt; latch, 0 =&gt; unlatch; only for mods selected by <emphasis>
@@ -499,28 +502,30 @@ False</emphasis>
 Reference the keysym group indices with these symbolic constants:
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Symbolic Group Names</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row rowsep='1'>
     <entry>Symbolic Name</entry>
     <entry>Value</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGroup1Index</entry>
     <entry>0</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGroup2Index</entry>
     <entry>1</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGroup3Index</entry>
     <entry>2</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGroup4Index</entry>
     <entry>3</entry>
   </row>
@@ -534,10 +539,11 @@ XkbLockGroup. </emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbLockGroup</emphasis>
@@ -546,14 +552,14 @@ display, device_spec, group</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
 display</emphasis>
 ;            /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
@@ -562,7 +568,7 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 group</emphasis>
@@ -593,10 +599,11 @@ XkbLatchGroup.</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbLatchGroup</emphasis>
@@ -605,14 +612,14 @@ display, device_spec, group</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
 display</emphasis>
 ;            /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       device_spec</emphasis>
@@ -621,7 +628,7 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       group</emphasis>
@@ -681,10 +688,11 @@ XkbGetState.</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetState</emphasis>
@@ -697,14 +705,14 @@ state_return</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 display</emphasis>
 ;            /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 device_spec</emphasis>
@@ -713,7 +721,7 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbStatePtr            <emphasis>
 state_return</emphasis>
@@ -755,74 +763,76 @@ XkbStateNotify</emphasis>
 There are many different types of Xkb state changes. Xkb defines an event detail mask corresponding to each type of change. The event detail masks are listed in Table 5.3.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>XkbStateNotify Event Detail Masks</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
 <thead>
-  <row rowsep='0'>
+  <row rowsep='1'>
     <entry>Mask</entry>
     <entry>Value</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>XkbModifierStateMask</entry>
     <entry>(1L &lt;&lt; 0)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbModifierBaseMask</entry>
     <entry>(1L &lt;&lt; 1)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbModifierLatchMask</entry>
     <entry>(1L &lt;&lt; 2)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbModifierLockMask</entry>
     <entry>(1L &lt;&lt; 3)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGroupStateMask</entry>
     <entry>(1L &lt;&lt; 4)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGroupBaseMask</entry>
     <entry>(1L &lt;&lt; 5)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGroupLatchMask</entry>
     <entry>(1L &lt;&lt; 6)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGroupLockMask</entry>
     <entry>(1L &lt;&lt; 7)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbCompatStateMask</entry>
     <entry>(1L &lt;&lt; 8)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGrabModsMask</entry>
     <entry>(1L &lt;&lt; 9)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbCompatGrabModsMask</entry>
     <entry>(1L &lt;&lt; 10)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbLookupModsMask</entry>
     <entry>(1L &lt;&lt; 11)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbCompatLookupModsMask</entry>
     <entry>(1L &lt;&lt; 12)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbPointerButtonMask</entry>
     <entry>(1L &lt;&lt; 13)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAllStateComponentsMask</entry>
     <entry>(0x3fff)</entry>
   </row>

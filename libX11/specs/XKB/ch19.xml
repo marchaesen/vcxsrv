@@ -208,12 +208,13 @@ and<emphasis>
  detail parameter to a mask composed of a bitwise OR of masks in Table 19.1.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>XkbNewKeyboardNotifyEvent Details</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='2.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='2.0*'/>
 <thead>
 <row rowsep='1'>
   <entry>XkbNewKeyboardNotify Event Details</entry>
@@ -222,22 +223,22 @@ and<emphasis>
   </row>
 </thead>
 <tbody>
-  <row rowsep='1'>
+  <row>
     <entry><emphasis>XkbNKN_KeycodesMask</emphasis></entry>
     <entry>(1L&lt;&lt;0)</entry>
     <entry>Notification of keycode range changes wanted</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbNKN_GeometryMask</emphasis></entry>
     <entry>(1L&lt;&lt;1)</entry>
     <entry>Notification of geometry changes wanted</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbNKN_DeviceIDMask</entry>
     <entry>(1L&lt;&lt;2)</entry>
     <entry>Notification of device ID changes wanted</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbNKN_AllChangesMask</emphasis></entry>
     <entry>(0x7)</entry>
     <entry>Includes all of the above masks</entry>

@@ -73,15 +73,16 @@ Xkb.h</emphasis>
 event.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Xkb Event Types</title>
-<tgroup cols='4'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='4' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='3.0*'/>
+<colspec colname='c2' colwidth='4.0*'/>
+<colspec colname='c3' colwidth='1.0*'/>
+<colspec colname='c4' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Event Type</entry>
   <entry>Conditions Generating Event</entry>
   <entry>Section</entry>
@@ -89,7 +90,7 @@ event.
 </row>
 </thead>
 <tbody>
-<row rowsep='0'>
+<row>
   <entry>
     <para><emphasis>XkbNewKeyboardNotify</emphasis></para>
   </entry>
@@ -103,7 +104,7 @@ event.
     <para>187</para>
   </entry>
 </row>
-<row rowsep='0'>
+<row>
   <entry>
     <para>
     <emphasis>XkbMapNotify</emphasis>
@@ -119,7 +120,7 @@ event.
     <para>122</para>
   </entry>
 </row>
-<row rowsep='0'>
+<row>
   <entry>
     <para><emphasis>XkbStateNotify</emphasis></para>
   </entry>
@@ -133,7 +134,7 @@ event.
     <para>25</para>
   </entry>
 </row>
-<row rowsep='0'>
+<row>
   <entry>
     <para><emphasis>XkbControlsNotify</emphasis></para>
   </entry>
@@ -147,7 +148,7 @@ event.
     <para>79</para>
   </entry>
 </row>
-<row rowsep='0'>
+<row>
   <entry>
     <para><emphasis>XkbIndicatorStateNotify</emphasis></para>
   </entry>
@@ -161,7 +162,7 @@ event.
     <para>45</para>
   </entry>
 </row>
-<row rowsep='0'>
+<row>
   <entry>
     <para><emphasis>XkbIndicatorMapNotify</emphasis></para>
   </entry>
@@ -175,7 +176,7 @@ event.
     <para>45</para>
   </entry>
 </row>
-<row rowsep='0'>
+<row>
   <entry>
     <para><emphasis>XkbNamesNotify</emphasis></para>
   </entry>
@@ -189,7 +190,7 @@ event.
     <para>185</para>
   </entry>
 </row>
-<row rowsep='0'>
+<row>
   <entry>
     <para><emphasis>XkbCompatMapNotify</emphasis></para>
   </entry>
@@ -203,7 +204,7 @@ event.
     <para>178</para>
   </entry>
 </row>
-<row rowsep='0'>
+<row>
   <entry>
     <para><emphasis>XkbBellNotify</emphasis></para>
   </entry>
@@ -217,7 +218,7 @@ event.
     <para>52</para>
   </entry>
 </row>
-<row rowsep='0'>
+<row>
   <entry>
     <para><emphasis>XkbActionMessage</emphasis></para>
   </entry>
@@ -231,7 +232,7 @@ event.
     <para>155</para>
   </entry>
 </row>
-<row rowsep='0'>
+<row>
   <entry>
     <para><emphasis>XkbAccessXNotify</emphasis></para>
   </entry>
@@ -245,7 +246,7 @@ event.
     <para>65</para>
   </entry>
 </row>
-<row rowsep='0'>
+<row>
   <entry>
     <para><emphasis>XkbExtensionDeviceNotify</emphasis></para>
   </entry>
@@ -387,10 +388,11 @@ XkbSelectEvents</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSelectEvents</emphasis>
@@ -399,14 +401,14 @@ display, device_spec, bits_to_change, values_for_bits</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
 display</emphasis>
 ;      /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
@@ -415,14 +417,14 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned long int      <emphasis>
 bits_to_change;      </emphasis>
 /* determines events to be selected / deselected */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned long int      <emphasis>
 values_for_bits</emphasis>
@@ -516,10 +518,11 @@ XkbSelectEvents</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSelectEventDetails</emphasis>
@@ -530,14 +533,14 @@ values_for_bits</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
 display</emphasis>
 ;      /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
@@ -546,21 +549,21 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 event_type</emphasis>
 ;      /* Xkb event type of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned long int      <emphasis>
 bits_to_change</emphasis>
 ;      /* event selection details */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned long int      <emphasis>
 values_for_bits</emphasis>
@@ -656,105 +659,106 @@ XkbSelectEvents</emphasis>
  request and the circumstances in which the mask should be specified.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>XkbSelectEvents Mask Constants</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='2.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Event Mask</entry>
   <entry>Value</entry>
   <entry>Notification Wanted</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>
 <emphasis>XkbNewKeyboardNotifyMask</emphasis>
     </entry>
     <entry>(1L&lt;&lt;0)</entry>
     <entry>Keyboard geometry change</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
       <emphasis>XkbMapNotifyMask</emphasis>
     </entry>
     <entry>(1L&lt;&lt;1)</entry>
     <entry>Keyboard mapping change</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <para><emphasis>XkbStateNotifyMask</emphasis></para>
     </entry>
     <entry>(1L&lt;&lt;2)</entry>
     <entry><para>Keyboard state change</para></entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <para><emphasis>XkbControlsNotifyMask</emphasis></para>
     </entry>
     <entry>(1L&lt;&lt;3)</entry>
     <entry>Keyboard control change</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <emphasis>XkbIndicatorStateNotifyMask</emphasis>
     </entry>
     <entry>(1L&lt;&lt;4)</entry>
     <entry>Keyboard indicator state change</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <emphasis>XkbIndicatorMapNotifyMask</emphasis>
     </entry>
     <entry>(1L&lt;&lt;5)</entry>
     <entry>Keyboard indicator map change</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <emphasis>XkbNamesNotifyMask</emphasis>
     </entry>
     <entry>(1L&lt;&lt;6)</entry>
     <entry>Keyboard name change</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <emphasis>XkbCompatMapNotifyMask</emphasis>
     </entry>
     <entry>(1L&lt;&lt;7)</entry>
     <entry>Keyboard compat map change</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <emphasis>XkbBellNotifyMask</emphasis>
     </entry>
     <entry>(1L&lt;&lt;8)</entry>
     <entry>Bell</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <emphasis>XkbActionMessageMask</emphasis>
     </entry>
     <entry>(1L&lt;&lt;9)</entry>
     <entry>Action message</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <emphasis>XkbAccessXNotifyMask</emphasis>
     </entry>
     <entry>(1L&lt;&lt;10)</entry>
     <entry>AccessX features</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <emphasis>XkbExtensionDeviceNotifyMask</emphasis>
     </entry>
     <entry>(1L&lt;&lt;11)</entry>
     <entry>Extension device</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <emphasis>XkbAllEventsMask</emphasis>
     </entry>

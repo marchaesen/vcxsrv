@@ -79,14 +79,15 @@ The processing associated with these events is discussed in section 10.5.
 </para>
 <para>
 <!-- .LP -->
-<informaltable>
-  <tgroup cols='2'>
-  <colspec colname='c1'/>
-  <colspec colname='c2'/>
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.0*'/>
+  <colspec colname='c2' colwidth='4.0*'/>
   <thead>
-    <row>
-      <entry align='left'>Event Category</entry>
-      <entry align='left'>Event Type</entry>
+    <row rowsep='1'>
+      <entry>Event Category</entry>
+      <entry>Event Type</entry>
     </row>
   </thead>
   <tbody>
@@ -369,14 +370,15 @@ event mask:
 <!-- .LP -->
 <!-- .\" .CP T 2 -->
 <!-- .\"Event Mask Definitions -->
-<informaltable>
-  <tgroup cols='2'>
-  <colspec colname='c1'/>
-  <colspec colname='c2'/>
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.0*'/>
+  <colspec colname='c2' colwidth='2.5*'/>
   <thead>
-    <row>
-      <entry align='left'>Event Mask</entry>
-      <entry align='left'>Circumstances</entry>
+    <row rowsep='1'>
+      <entry>Event Mask</entry>
+      <entry>Circumstances</entry>
     </row>
   </thead>
   <tbody>
@@ -557,18 +559,19 @@ Note that N.A. appears in columns for which the information is not applicable.
 <!-- .LP -->
 <!-- .ps 9 -->
 <!-- .nr PS 9 -->
-<informaltable>
-  <tgroup cols='4'>
-  <colspec colname='c1'/>
-  <colspec colname='c2'/>
-  <colspec colname='c3'/>
-  <colspec colname='c4'/>
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='4' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.2*'/>
+  <colspec colname='c2' colwidth='1.0*'/>
+  <colspec colname='c3' colwidth='1.2*'/>
+  <colspec colname='c4' colwidth='1.0*'/>
   <thead>
-    <row>
-      <entry align='left'>Event Mask</entry>
-      <entry align='left'>Event Type</entry>
-      <entry align='left'>Structure</entry>
-      <entry align='left'>Generic Structure</entry>
+    <row rowsep='1'>
+      <entry>Event Mask</entry>
+      <entry>Event Type</entry>
+      <entry>Structure</entry>
+      <entry>Generic Structure</entry>
     </row>
   </thead>
   <tbody>
@@ -890,14 +893,15 @@ The effect is essentially equivalent to an
 <xref linkend='XGrabButton' xrefstyle='select: title'/>
 with these client passed arguments:
 </para>
-<informaltable>
-  <tgroup cols='2'>
-  <colspec colname='c1'/>
-  <colspec colname='c2'/>
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.0*'/>
+  <colspec colname='c2' colwidth='4.0*'/>
   <thead>
-    <row>
-      <entry align='left'>Argument</entry>
-      <entry align='left'>Value</entry>
+    <row rowsep='1'>
+      <entry>Argument</entry>
+      <entry>Value</entry>
     </row>
   </thead>
   <tbody>
@@ -1287,14 +1291,15 @@ or
 Some of the symbols mentioned in this section have fixed values, as
 follows:
 </para>
-<informaltable>
-  <tgroup cols='2'>
-  <colspec colname='c1'/>
-  <colspec colname='c2'/>
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.0*'/>
+  <colspec colname='c2' colwidth='3.0*'/>
   <thead>
-    <row>
-      <entry align='left'>Symbol</entry>
-      <entry align='left'>Value</entry>
+    <row rowsep='1'>
+      <entry>Symbol</entry>
+      <entry>Value</entry>
     </row>
   </thead>
   <tbody>

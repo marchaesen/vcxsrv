@@ -164,10 +164,11 @@ to key actions:
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbKeyHasActions</emphasis>
@@ -176,14 +177,14 @@ xkb, keycode</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
@@ -208,10 +209,11 @@ False</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbKeyNumActions</emphasis>
@@ -220,14 +222,14 @@ xkb, keycode</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
@@ -251,10 +253,11 @@ XkbKeyNumSyms</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbKeyActionPtr <emphasis>
 XkbKeyActionsPtr</emphasis>
@@ -263,14 +266,14 @@ xkb, keycode</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
@@ -297,10 +300,11 @@ XkbKeyNumActions</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbAction <emphasis>
 XkbKeyAction</emphasis>
@@ -309,21 +313,21 @@ xkb, keycode, idx</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
 ;                  /* keycode of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 idx</emphasis>
@@ -352,10 +356,11 @@ idx</emphasis>
 </literallayout>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbAction <emphasis>
 XkbKeyActionEntry</emphasis>
@@ -364,28 +369,28 @@ xkb, keycode, shift, grp</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;                  /* Xkb description of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 keycode</emphasis>
 ;                  /* keycode of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 shift</emphasis>
 ;                  /* shift level within group */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 grp</emphasis>
@@ -479,15 +484,16 @@ type</emphasis>
  field, and the data structures associated with them are shown in Table 16.1:
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Action Types</title>
-<tgroup cols='4'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='4' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.8*'/>
+<colspec colname='c2' colwidth='2.0*'/>
+<colspec colname='c3' colwidth='1.5*'/>
+<colspec colname='c4' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Type</entry>
   <entry>Structure for Data</entry>
   <entry>XkbAction Union Member</entry>
@@ -495,7 +501,7 @@ type</emphasis>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_NoAction</emphasis></entry>
     <entry>
 <emphasis>XkbSA_NoAction</emphasis>
@@ -505,7 +511,7 @@ have an associated data structure.
     <entry>any</entry>
     <entry></entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <para><emphasis>XkbSA_SetMods</emphasis></para>
 <para><emphasis>XkbSA_LatchMods</emphasis></para>
@@ -515,7 +521,7 @@ have an associated data structure.
     <entry>mods</entry>
     <entry>16.1.3</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <para><emphasis>XkbSA_SetGroup</emphasis></para>
 <para><emphasis>XkbSA_LatchGroup</emphasis></para>
@@ -525,13 +531,13 @@ have an associated data structure.
     <entry>group</entry>
     <entry>16.1.4</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_MovePtr</emphasis></entry>
     <entry><emphasis>XkbPtrAction</emphasis></entry>
     <entry>ptr</entry>
     <entry>16.1.5</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <para><emphasis>XKbSA_PtrBtn</emphasis></para>
 <para><emphasis>XkbSA_LockPtrBtn</emphasis></para>
@@ -539,25 +545,25 @@ have an associated data structure.
     <entry><emphasis>XkbPtrBtnAction</emphasis></entry><entry>btn</entry>
     <entry>16.1.6</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_SetPtrDflt</emphasis></entry>
     <entry><emphasis>XkbPtrDfltAction</emphasis></entry>
     <entry>dflt</entry>
     <entry>16.1.7</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISOLock</emphasis></entry>
     <entry><emphasis>XkbISOAction</emphasis></entry>
     <entry>iso</entry>
     <entry>16.1.8</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_SwitchScreen</emphasis></entry>
     <entry><emphasis>XkbSwitchScreenAction</emphasis></entry>
     <entry>screen</entry>
     <entry>16.1.9</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <para><emphasis>XkbSA_SetControls</emphasis></para>
 <para><emphasis>XkbSA_LockControls</emphasis></para>
@@ -566,19 +572,19 @@ have an associated data structure.
     <entry>ctrls</entry>
     <entry>16.1.10</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ActionMessage</emphasis></entry>
     <entry><emphasis>XkbMessgeAction</emphasis></entry>
     <entry>msg</entry>
     <entry>16.1.11</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_RedirectKey</emphasis></entry>
     <entry><emphasis>XkbRedirectKeyAction</emphasis></entry>
     <entry>redirect</entry>
     <entry>16.1.12</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>
 <para><emphasis>XkbSA_DeviceBtn</emphasis></para>
 <para><emphasis>XKbSA_LockDeviceBtn</emphasis></para>
@@ -587,7 +593,7 @@ have an associated data structure.
     <entry>devbtn</entry>
     <entry>16.1.13</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_DeviceValuator</emphasis></entry>
     <entry><emphasis>XkbDeviceValuatorAction</emphasis></entry>
     <entry>devval</entry>
@@ -646,18 +652,20 @@ type</emphasis>
  field can have any of the values shown in Table 16.2.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Modifier Action Types</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Type</entry>
   <entry>Effect</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_SetMods</emphasis></entry>
     <entry>
 <itemizedlist>
@@ -685,7 +693,7 @@ flags</emphasis>
 </itemizedlist>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LatchMods</emphasis></entry>
     <entry>
 <itemizedlist>
@@ -726,7 +734,7 @@ XkbSA_LatchToLock</emphasis>
   </itemizedlist>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockMods</emphasis></entry>
     <entry>
 <itemizedlist>
@@ -765,19 +773,20 @@ flags</emphasis>
 the action <emphasis>type</emphasis>.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Modifier Action Flags</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Flag</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_UseModMapMods</emphasis></entry>
     <entry>
 If set, the action modifiers are determined by the modifiers bound by the
@@ -793,14 +802,14 @@ vmod2</emphasis>
  fields.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ClearLocks</emphasis></entry>
     <entry>
 If set and no keys are physically depressed when this key transition
 occurs, the server unlocks any action modifiers.
    </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LatchToLock</emphasis></entry>
     <entry>
 If set, and the action type is <emphasis>
@@ -808,7 +817,7 @@ XkbSA_LatchMods</emphasis>
 , the server locks the action modifiers if they are already latched.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockNoLock</emphasis></entry>
     <entry>
 If set, and the action type is <emphasis>
@@ -816,7 +825,7 @@ XkbSA_LockMods</emphasis>
 , the server only unlocks the action modifiers.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockNoUnlock</emphasis></entry>
     <entry>
 If set, and the action is <emphasis>
@@ -881,10 +890,11 @@ convert between the two formats:
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 unsigned short <emphasis>
 XkbModActionVMods</emphasis>
@@ -893,7 +903,7 @@ act</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbAction            <emphasis>
 act</emphasis>
@@ -920,10 +930,11 @@ vmods</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbSetModActionVMods</emphasis>
@@ -932,14 +943,14 @@ act, vmods</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbAction            <emphasis>
 act</emphasis>
 ;                  /* action in which to set vmods */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned short            <emphasis>
 vmods</emphasis>
@@ -997,19 +1008,20 @@ type</emphasis>
  field can have any of the following values:
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Group Action Types</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Type</entry>
   <entry>Effect</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_SetGroup</emphasis></entry>
     <entry>
 <itemizedlist>
@@ -1055,7 +1067,7 @@ Group1</emphasis>
 </itemizedlist>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LatchGroup</emphasis></entry>
     <entry>
 <itemizedlist>
@@ -1090,7 +1102,7 @@ Otherwise, the key press adds the key press delta to the latched keyboard group.
 </itemizedlist>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockGroup</emphasis></entry>
     <entry>
 <itemizedlist>
@@ -1134,19 +1146,20 @@ type</emphasis>
 .
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Group Action Flags</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Flag</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ClearLocks</emphasis></entry>
     <entry>
 If set and no keys are physically depressed when this key transition occurs,
@@ -1155,7 +1168,7 @@ Group1</emphasis>
  on a key release.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LatchToLock</emphasis></entry>
     <entry>
 If set, and the action type is <emphasis>
@@ -1163,7 +1176,7 @@ SA_LatchGroup</emphasis>
 , the server locks the action group if it is already latched.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_GroupAbsolute</emphasis></entry>
     <entry>
 If set, the <emphasis>
@@ -1184,10 +1197,11 @@ convert between a signed integer value and a signed character:
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbSAGroup</emphasis>
@@ -1196,7 +1210,7 @@ act</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbAction            <emphasis>
 act</emphasis>
@@ -1219,10 +1233,11 @@ act</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbSASetGroup</emphasis>
@@ -1231,14 +1246,14 @@ act, grp</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbAction            <emphasis>
 act</emphasis>
 ;                  /* action from which to set group */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 grp</emphasis>
@@ -1338,19 +1353,20 @@ flags</emphasis>
  field is a bitwise inclusive OR of the masks shown in Table 16.6.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Pointer Action Types</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Action Type</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_NoAcceleration</emphasis></entry>
     <entry>
 If not set, and the <emphasis>
@@ -1361,14 +1377,14 @@ KeyPress</emphasis>
 cursor moves.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_MoveAbsoluteX</emphasis></entry>
     <entry>If set, the X portion of the structure specifies the new pointer X
 coordinate. Otherwise, the X portion is added to the current pointer X
 coordinate to determine the new pointer X coordinate.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_MoveAbsoluteY</emphasis></entry>
     <entry>
 If set, the Y portion of the structure specifies the new
@@ -1395,10 +1411,11 @@ XkbPtrAction</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbPtrActionX</emphasis>
@@ -1407,7 +1424,7 @@ act</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbPtrAction            <emphasis>
 act</emphasis>
@@ -1432,10 +1449,11 @@ act</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbPtrActionY</emphasis>
@@ -1444,7 +1462,7 @@ act</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbPtrAction            <emphasis>
 act</emphasis>
@@ -1469,10 +1487,11 @@ act</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbSetPtrActionX</emphasis>
@@ -1483,14 +1502,14 @@ x</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbPtrAction            <emphasis>
 act</emphasis>
 ;                  /* action in which to set X */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 x;      </emphasis>
@@ -1517,10 +1536,11 @@ x</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbSetPtrActionY</emphasis>
@@ -1529,14 +1549,14 @@ act, y</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbPtrAction            <emphasis>
 act</emphasis>
 ;                  /* action in which to set Y */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 y</emphasis>
@@ -1601,19 +1621,20 @@ type</emphasis>
  field can have any one of the values shown in Table 16.7.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Pointer Button Action Types</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Type</entry>
   <entry>Effect</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_PtrBtn</emphasis></entry>
     <entry>
 <itemizedlist>
@@ -1682,7 +1703,7 @@ KeyRelease</emphasis>
 </itemizedlist>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockPtrBtn</emphasis></entry>
     <entry>
 <itemizedlist>
@@ -1736,19 +1757,20 @@ type.</emphasis>
 :
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Pointer Button Action Flags</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Flag</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_UseDfltButton</emphasis></entry>
     <entry>
 If set, the action uses the pointer button specified by the <emphasis>
@@ -1761,7 +1783,7 @@ specified by the<emphasis>
 field.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockNoLock</emphasis></entry>
     <entry>
 If set, and the action type is <emphasis>
@@ -1769,7 +1791,7 @@ XkbSA_LockPtrBtn</emphasis>
 , the server only unlocks the pointer button.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockNoUnlock</emphasis></entry>
     <entry>
 If set, and the action type is <emphasis>
@@ -1839,19 +1861,20 @@ flags</emphasis>
 16.9 (currently there is only one value defined).
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Pointer Default Flags</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Flag</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_DfltBtnAbsolute</emphasis></entry>
     <entry>
 If set, the <emphasis>
@@ -1899,10 +1922,11 @@ XkbPtrDfltAction</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbSAPtrDfltValue</emphasis>
@@ -1911,7 +1935,7 @@ act</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbAction            <emphasis>
 act</emphasis>
@@ -1934,10 +1958,11 @@ act</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbSASetPtrDfltValue</emphasis>
@@ -1946,7 +1971,7 @@ act, val</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbPtrDfltAction            <emphasis>
 act</emphasis>
@@ -1955,7 +1980,7 @@ valueXXX</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 val</emphasis>
@@ -2076,19 +2101,20 @@ flags</emphasis>
 16.10.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>ISO Action Flags when XkbSA_ISODfltIsGroup is Set</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Flag</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISODfltIsGroup</emphasis></entry>
     <entry>
       <para>
@@ -2109,7 +2135,7 @@ set by the key press.
       </para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_GroupAbsolute</emphasis></entry>
     <entry>
 If set, the <emphasis>
@@ -2118,7 +2144,7 @@ group_XXX</emphasis>
 delta to be added to the current group to determine the new group number.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISONoAffectMods</emphasis></entry>
     <entry>
 If not set, any <emphasis>
@@ -2132,7 +2158,7 @@ XkbSA_LockMod</emphasis>
  actions instead.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISONoAffectGroup</emphasis></entry>
     <entry>
 If not set, any <emphasis>
@@ -2146,7 +2172,7 @@ XkbSA_LockGroup</emphasis>
  actions instead.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISONoAffectPtr</emphasis></entry>
     <entry>
 If not set, any <emphasis>
@@ -2158,7 +2184,7 @@ XkbSA_LockPtrBtn</emphasis>
  actions instead.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISONoAffectCtrls</emphasis></entry>
     <entry>
 If not set, any <emphasis>
@@ -2186,19 +2212,20 @@ flags</emphasis>
 16.11.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>ISO Action Flags when XkbSA_ISODfltIsGroup is Not Set</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Flag</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISODfltIsGroup</emphasis> </entry>
     <entry>
       <para>
@@ -2223,7 +2250,7 @@ clears the base modifiers set by the key press.
       </para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_UseModMapMods</emphasis></entry>
     <entry>
 If set, the action modifiers are determined by the modifiers bound by the
@@ -2239,15 +2266,15 @@ vmod2</emphasis>
  fields.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockNoLock</emphasis></entry>
     <entry>If set, the server only unlocks the action modifiers.</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockNoUnlock</emphasis></entry>
     <entry>If set, the server only locks the action modifiers. </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISONoAffectMods</emphasis></entry>
     <entry>
 If not set, any <emphasis>
@@ -2261,7 +2288,7 @@ XkbSA_LockMod</emphasis>
  actions instead.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISONoAffectGroup</emphasis></entry>
     <entry>
 If not set, any <emphasis>
@@ -2275,7 +2302,7 @@ XkbSA_LockGroup</emphasis>
  actions instead.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISONoAffectPtr</emphasis></entry>
     <entry>
 If not set, any <emphasis>
@@ -2287,7 +2314,7 @@ XkbSA_LockPtrBtn</emphasis>
  actions instead.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISONoAffectCtrls</emphasis></entry>
     <entry>
 If not set, any <emphasis>
@@ -2347,19 +2374,20 @@ affect</emphasis>
 16.11.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>ISO Action Affect Field Values</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Affect</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISODNoAffectMods</emphasis></entry>
     <entry>
 If <emphasis>
@@ -2375,7 +2403,7 @@ SA_LockMods</emphasis>
  instead.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISONoAffectGroup</emphasis></entry>
     <entry>
 If <emphasis>
@@ -2391,7 +2419,7 @@ SA_LockGroup</emphasis>
  instead.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISONoAffectPtr</emphasis></entry>
     <entry>
 If <emphasis>
@@ -2405,7 +2433,7 @@ SA_LockPtrBtn</emphasis>
  instead.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_ISONoAffectCtrls</emphasis></entry>
     <entry>
 If <emphasis>
@@ -2465,19 +2493,20 @@ flags</emphasis>
 16.13.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Switch Screen Action Flags</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Flag</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_SwitchAbsolute</emphasis></entry>
     <entry>
 If set, the <emphasis>
@@ -2486,7 +2515,7 @@ screenXXX</emphasis>
 offset from the current screen to the new screen.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_SwitchApplication</emphasis></entry>
     <entry>
 If not set, the action should switch to another screen on the same
@@ -2513,10 +2542,11 @@ XkbSwitchScreenAction</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbSAScreen</emphasis>
@@ -2525,7 +2555,7 @@ act</emphasis>
 )                        /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSwitchScreenAction                  <emphasis>
 act</emphasis>
@@ -2548,10 +2578,11 @@ act</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbSASetScreen</emphasis>
@@ -2560,7 +2591,7 @@ act, s</emphasis>
 )                        /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSwitchScreenAction                  <emphasis>
 act</emphasis>
@@ -2569,7 +2600,7 @@ screenXXX</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int                  <emphasis>
 s</emphasis>
@@ -2628,19 +2659,20 @@ type</emphasis>
  field can have any one of the values shown in Table 16.14.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Controls Action Types</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Type</entry>
   <entry>Effect</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_SetControls</emphasis></entry>
     <entry>
 <itemizedlist>
@@ -2666,7 +2698,7 @@ XkbControlsNotify</emphasis>
 </itemizedlist>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockControls</emphasis></entry>
     <entry>
 <itemizedlist>
@@ -2713,19 +2745,20 @@ flags</emphasis>
 16.15.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Control Action Flags</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Flag</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockNoLock</emphasis></entry>
     <entry>
 If set, and the action type is <emphasis>
@@ -2733,7 +2766,7 @@ XkbSA_LockControls</emphasis>
 , the server only disables controls.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockNoUnlock</emphasis></entry>
     <entry>
 If set, and the action type is <emphasis>
@@ -2777,10 +2810,11 @@ macros, to convert between the two formats:
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 unsigned int <emphasis>
 XkbActionCtrls</emphasis>
@@ -2789,7 +2823,7 @@ act</emphasis>
 )                        /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbCtrlsAction            <emphasis>
 act</emphasis>
@@ -2812,10 +2846,11 @@ act</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbSAActionSetCtrls</emphasis>
@@ -2824,14 +2859,14 @@ act, ctrls</emphasis>
 )                        /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbCtrlsAction                  <emphasis>
 act</emphasis>
 ;      /* action in which to set ctrls0-ctrls3 */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int                  <emphasis>
 ctrls</emphasis>
@@ -2898,19 +2933,20 @@ flags</emphasis>
 16.16.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Message Action Flags</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Flag</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_MessageOnPress</emphasis></entry>
     <entry>
 If set, key press events generate an <emphasis>
@@ -2920,7 +2956,7 @@ message</emphasis>
  field.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_MessageOnRelease</emphasis></entry>
     <entry>
 If set, key release events generate an <emphasis>
@@ -2930,7 +2966,7 @@ message</emphasis>
  field.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_MessageGenKeyEvent</emphasis></entry>
     <entry>
 If set, key press and key release events generate <emphasis>
@@ -3191,10 +3227,11 @@ convert between the two formats:
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 unsigned int <emphasis>
 XkbSARedirectVModsMask</emphasis>
@@ -3203,7 +3240,7 @@ act</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbRedirectKeyAction                  <emphasis>
 act</emphasis>
@@ -3228,10 +3265,11 @@ act</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbSARedirectSetVModsMask</emphasis>
@@ -3240,14 +3278,14 @@ act, vm</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbRedirectKeyAction                  <emphasis>
 act</emphasis>
 ;            /* action in which to set vmods */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int                  <emphasis>
 vm</emphasis>
@@ -3286,10 +3324,11 @@ provides the following convenience macros:
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 unsigned int <emphasis>
 XkbSARedirectVMods</emphasis>
@@ -3298,7 +3337,7 @@ act</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbRedirectKeyAction                  <emphasis>
 act</emphasis>
@@ -3316,10 +3355,11 @@ act</emphasis>
 </literallayout>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbSARedirectSetVMods</emphasis>
@@ -3328,14 +3368,14 @@ act, vm</emphasis>
 )                              /* macro */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbRedirectKeyAction                  <emphasis>
 act</emphasis>
 ;            /* action in which to set vmods */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int                  <emphasis>
 v</emphasis>
@@ -3384,19 +3424,20 @@ type</emphasis>
  field can have any one of the values shown in Table 16.17.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Device Button Action Types</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Type</entry>
   <entry>Effect</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_DeviceBtn</emphasis></entry>
     <entry>
 <itemizedlist>
@@ -3443,7 +3484,7 @@ KeyRelease</emphasis>
 </itemizedlist>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockDeviceBtn</emphasis></entry>
     <entry>
 <itemizedlist>
@@ -3498,19 +3539,20 @@ flags</emphasis>
 16.18.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Device Button Action Flags</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Flag</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockNoLock</emphasis></entry>
     <entry>
 If set, and the action type is <emphasis>
@@ -3518,7 +3560,7 @@ XkbSA_LockDeviceBtn</emphasis>
 , the server only unlocks the button.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_LockNoUnlock</emphasis></entry>
     <entry>
 If set, and the action type is <emphasis>
@@ -3590,41 +3632,42 @@ val&lt;n&gt;Scale</emphasis>
  is shown in that table also.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Device Valuator v&lt;n&gt;_what High Bits Values</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Value of high bits</entry>
   <entry>Effect</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_IgnoreVal</emphasis></entry>
     <entry>No action</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_SetValMin</emphasis></entry>
     <entry>
 <emphasis>v&lt;n&gt;_value</emphasis> is set to its minimum legal value.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_SetValCenter</emphasis></entry>
     <entry>
 <emphasis>v&lt;n&gt;_value</emphasis>is centered (to (max-min)/2).
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_SetValMax</emphasis></entry>
     <entry>
 <emphasis>v&lt;n&gt;_value</emphasis> is set to its maximum legal value.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_SetValRelative</emphasis></entry>
     <entry>
 <emphasis>v&lt;n&gt;_value</emphasis> * (2
@@ -3632,7 +3675,7 @@ val&lt;n&gt;Scale</emphasis>
 <emphasis>v&lt;n&gt;_value</emphasis>.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSA_SetValAbsolute</emphasis></entry>
     <entry>
 <emphasis>v&lt;n&gt;_value</emphasis>
@@ -3695,10 +3738,11 @@ XkbGetKeyActions</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetKeyActions</emphasis>
@@ -3713,28 +3757,28 @@ num</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 first</emphasis>
 ;            /* keycode of first key of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 num</emphasis>
 ;            /* number of keys desired */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr             <emphasis>
 xkb</emphasis>
@@ -3812,10 +3856,11 @@ XkbResizeKeyAction</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbAction *<emphasis>
 XkbResizeKeyActions</emphasis>
@@ -3828,21 +3873,21 @@ xkb</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescRec *<emphasis>
             xkb</emphasis>
 ;            /* keyboard description to change */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             key</emphasis>
 ;            /* keycode of key to change */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             needed</emphasis>
@@ -4021,19 +4066,20 @@ type</emphasis>
 . Xkb supports the key behaviors shown in Table 16.20.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Key Behaviors</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Type</entry>
   <entry>Effect</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKB_Default</emphasis></entry>
     <entry>
 Press and release events are processed normally. The <emphasis>
@@ -4041,7 +4087,7 @@ data</emphasis>
  field is unused.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKB_Lock</emphasis></entry>
     <entry>
 If a key is logically up (that is, the corresponding bit of the core key map is
@@ -4053,7 +4099,7 @@ data</emphasis>
  field is unused.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKB_RadioGroup</emphasis></entry>
     <entry>
       <para>
@@ -4078,7 +4124,7 @@ All other key release events are ignored.
       </para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKB_Overlay1</emphasis></entry>
     <entry>
 If the <emphasis>
@@ -4091,7 +4137,7 @@ data</emphasis>
 ’s keycode. Otherwise, press and release events are processed normally.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKB_Overlay2</emphasis></entry>
     <entry>
 If the <emphasis>
@@ -4136,10 +4182,11 @@ XkbGetKeyBehaviors</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetKeyBehaviors</emphasis>
@@ -4154,28 +4201,28 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             dpy</emphasis>
 ;            /* connection to server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 first</emphasis>
 ;            /* keycode of first key to get */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 num</emphasis>
 ;            /* number of keys for which behaviors are desired */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr             <emphasis>
 xkb</emphasis>
@@ -4270,21 +4317,22 @@ this array is a mask that is a bitwise inclusive OR of the values shown in
 Table 16.21.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Explicit Component Masks</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Bit in Explicit Mask</entry>
   <entry>Value</entry>
   <entry>Protects Against</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>ExplicitKeyType1</emphasis></entry>
     <entry>(1&lt;&lt;0)</entry>
     <entry>
@@ -4292,7 +4340,7 @@ Automatic determination of the key type associated with <emphasis>
 Group1.</emphasis>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>ExplicitKeyType2</emphasis></entry>
     <entry>(1&lt;&lt;1)</entry>
     <entry>
@@ -4300,7 +4348,7 @@ Automatic determination of the key type associated with <emphasis>
 Group2.</emphasis>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>ExplicitKeyType3</emphasis></entry>
     <entry>(1&lt;&lt;2)</entry>
     <entry>
@@ -4308,7 +4356,7 @@ Automatic determination of the key type associated with <emphasis>
 Group3.</emphasis>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>ExplicitKeyType4</emphasis></entry>
     <entry>(1&lt;&lt;3)</entry>
     <entry>
@@ -4316,7 +4364,7 @@ Automatic determination of the key type associated with <emphasis>
 Group4.</emphasis>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>ExplicitInterpret</emphasis></entry>
     <entry>(1&lt;&lt;4)</entry>
     <entry>
@@ -4324,13 +4372,13 @@ Application of any of the fields of a symbol interpretation to the
 key in question.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>ExplicitAutoRepeat</emphasis></entry>
     <entry>(1&lt;&lt;5)</entry>
     <entry>Automatic determination of auto-repeat status for the key, as
 specified in a symbol interpretation.</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>ExplicitBehavior</emphasis></entry>
     <entry>(1&lt;&lt;6)</entry>
     <entry>
@@ -4341,7 +4389,7 @@ XkbSI_LockingKey</emphasis>
  flag is set in a symbol interpretation.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>ExplicitVModMap</emphasis></entry>
     <entry>(1&lt;&lt;7)</entry>
     <entry>
@@ -4365,10 +4413,11 @@ XkbGetKeyExplicitComponents</emphasis>.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetKeyExplicitComponents</emphasis>
@@ -4383,28 +4432,28 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             dpy</emphasis>
 ;            /* connection to server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 first</emphasis>
 ;            /* keycode of first key to fetch */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 num</emphasis>
 ;            /* number of keys for which to get explicit info */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr             <emphasis>
 xkb</emphasis>
@@ -4577,10 +4626,11 @@ XkbGetVirtualMods</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetVirtualMods</emphasis>
@@ -4593,21 +4643,21 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             dpy</emphasis>
 ;            /* connection to server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 which</emphasis>
 ;            /* mask indicating virtual modifier bindings to get */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
@@ -4682,10 +4732,11 @@ XkbGetKeyVirtualModMap</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetKeyVirtualModMap</emphasis>
@@ -4700,28 +4751,28 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             dpy</emphasis>
 ;            /* connection to server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 first</emphasis>
 ;            /* keycode of first key to fetch */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 num</emphasis>
 ;            /* # keys for which virtual mod maps are desired */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr             <emphasis>
 xkb</emphasis>

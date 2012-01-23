@@ -619,16 +619,17 @@ XICATTR
 
 (*2) The value types are defined as follows:
 </literallayout>
-<informaltable id="valuetypes" frame="none">
-  <tgroup cols="5">
-  <colspec colname="col1" colsep="0"/>
-  <colspec colname="col2" colsep="0"/>
-  <colspec colname="col3" colsep="0"/>
-  <colspec colname="col4" colsep="0"/>
-  <colspec colname="col5" colsep="0"/>
+<informaltable id="valuetypes" frame="topbot">
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols="5" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="0.9*"/>
+  <colspec colname="col2" colwidth="3.0*"/>
+  <colspec colname="col3" colwidth="3.2*"/>
+  <colspec colname="col4" colwidth="2.9*"/>
+  <colspec colname="col5" colwidth="2.9*"/>
   <spanspec namest="col3" nameend="col5" spanname="span-horiz" align="center"/>
   <thead>
-    <row>
+    <row rowsep='1'>
       <entry>values</entry>
       <entry>data</entry>
       <entry>format</entry>
@@ -636,159 +637,159 @@ XICATTR
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>#0</entry>
       <entry>Separator of NestedList</entry>
       <entry>-----(*3)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#1</entry>
       <entry>byte data</entry>
       <entry>CARD8</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#2</entry>
       <entry>word data</entry>
       <entry>CARD16</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#3</entry>
       <entry>long data</entry>
       <entry>CARD32</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#4</entry>
       <entry>char data</entry>
       <entry>STRING8</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#5</entry>
       <entry>Window</entry>
       <entry>CARD32</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#10</entry>
       <entry>XIMStyles</entry>
       <entry>2</entry>
       <entry>n</entry>
       <entry>number of XIMStyle list</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry></entry>
       <entry>2</entry>
       <entry></entry>
       <entry>unused</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry></entry>
       <entry>n</entry>
       <entry>CARD32</entry>
       <entry>XIMStyle list</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#11</entry>
       <entry>XRectangle</entry>
       <entry>2</entry>
       <entry>INT16</entry>
       <entry>X</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry></entry>
       <entry>2</entry>
       <entry>INT16</entry>
       <entry>Y</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry></entry>
       <entry>2</entry>
       <entry>CARD16</entry>
       <entry>width</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry></entry>
       <entry>2</entry>
       <entry>CARD16</entry>
       <entry>height</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#12</entry>
       <entry>XPoint</entry>
       <entry>2</entry>
       <entry>INT16</entry>
       <entry>X</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry></entry>
       <entry>2</entry>
       <entry>INT16</entry>
       <entry>Y</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#13</entry>
       <entry>XFontSet</entry>
       <entry>2</entry>
       <entry>n</entry>
       <entry>length of Base font name</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry></entry>
       <entry>n</entry>
       <entry>STRING8</entry>
       <entry>Base font name list</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry></entry>
       <entry>p</entry>
       <entry></entry>
       <entry>unused, p = Pad(2+n)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#15</entry>
       <entry>XIMHotKeyTriggers</entry>
       <entry>4</entry>
       <entry>n</entry>
       <entry>number of XIMTRIGGERKEY list (*4)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry></entry>
       <entry>n</entry>
       <entry>XIMTRIGGERKEY</entry>
       <entry>XIMHotkeyTrigger list</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry></entry>
       <entry>n</entry>
       <entry>XIMHOTKEYSTATE</entry>
       <entry>HotKey processing state</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#17</entry>
       <entry>XIMStringConversion</entry>
       <entry>XIMSTRCONVTEXT</entry>
       <entry></entry>
       <entry></entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#18</entry>
       <entry>XIMPreeditState</entry>
       <entry>XIMPREEDITSTATE</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#19</entry>
       <entry>XIMResetState</entry>
       <entry>XIMRESETSTATE</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>#x7fff</entry>
       <entry>NestedList</entry>
       <entry>-----</entry>
@@ -3039,66 +3040,67 @@ window of XIM_SERVER selection, which the IM Server has created.
 Refer to "The Input Method Protocol" for the XIM_SERVER atom. <!-- xref -->
 </para>
 
-<table frame="none" id="clientmessage_sent_to_the_ims_window">
-<title>The ClientMessage sent to the IMS window.</title>
-  <tgroup cols="3">
-  <colspec colname="col1" colwidth="1*" colsep="0"/>
-  <colspec colname="col2" colwidth="1*" colsep="1"/>
-  <colspec colname="col3" colwidth="3.5*" colsep="0"/>
+<table frame="topbot" id="clientmessage_sent_to_the_ims_window">
+  <?dbfo keep-together="always" ?>
+  <title>The ClientMessage sent to the IMS window.</title>
+  <tgroup cols="3" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*" colsep="1"/>
+  <colspec colname="col3" colwidth="3.5*"/>
   <spanspec namest="col1" nameend="col2" spanname="span-horiz" align="center"/>
   <thead>
-    <row>
-      <entry spanname="span-horiz">Structure Member</entry>
+    <row rowsep='1'>
+      <entry spanname="span-horiz" colsep='1'>Structure Member</entry>
       <entry>Contents</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>type</entry>
       <entry>ClientMessage</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>u_long</entry>
       <entry>serial</entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Bool</entry>
       <entry>send_event</entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Display</entry>
       <entry>*display</entry>
       <entry>The display to which connects</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Window</entry>
       <entry>window</entry>
       <entry>IMS Window ID</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Atom</entry>
       <entry>message_type</entry>
       <entry>XInternAtom(display, "_XIM_XCONNECT", False)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>format</entry>
       <entry>32</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>long</entry>
       <entry>data.l[0]</entry>
       <entry>client communication window ID</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>long</entry>
       <entry>data.l[1]</entry>
       <entry>client-major-transport-version (*1)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>long</entry>
       <entry>data.l[2]</entry>
       <entry>client-major-transport-version (*1)</entry>
@@ -3113,71 +3115,72 @@ window), the IM Server sends a ClientMessage in the following event's
 format to the client communication window.
 </para>
 
-<table frame="none" id="clientmessage_sent_by_the_im_server">
-<title>The ClientMessage sent by the IM Server.</title>
-  <tgroup cols="3">
-  <colspec colname="col1" colwidth="1*" colsep="0"/>
-  <colspec colname="col2" colwidth="1*" colsep="1"/>
-  <colspec colname="col3" colwidth="3.5*" colsep="0"/>
+<table frame="topbot" id="clientmessage_sent_by_the_im_server">
+  <?dbfo keep-together="always" ?>
+  <title>The ClientMessage sent by the IM Server.</title>
+  <tgroup cols="3" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*" colsep="1"/>
+  <colspec colname="col3" colwidth="3.5*"/>
   <spanspec namest="col1" nameend="col2" spanname="span-horiz" align="center"/>
   <thead>
-    <row>
-      <entry spanname="span-horiz">Structure Member</entry>
+    <row rowsep='1'>
+      <entry spanname="span-horiz" colsep='1'>Structure Member</entry>
       <entry>Contents</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>type</entry>
       <entry>ClientMessage</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>u_long</entry>
       <entry>serial</entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Bool</entry>
       <entry>send_event</entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Display</entry>
       <entry>*display</entry>
       <entry>The display to which connects</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Window</entry>
       <entry>window</entry>
       <entry>client communication window ID</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Atom</entry>
       <entry>message_type</entry>
       <entry>XInternAtom(display, "_XIM_XCONNECT", False)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>format</entry>
       <entry>32</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>long</entry>
       <entry>data.l[0]</entry>
       <entry>IMS communication window ID</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>long</entry>
       <entry>data.l[1]</entry>
       <entry>server-major-transport-version (*1)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>long</entry>
       <entry>data.l[2]</entry>
       <entry>server-minor-transport-version (*1)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>long</entry>
       <entry>data.l[3]</entry>
       <entry>dividing size between ClientMessage and Property (*2)</entry>
@@ -3196,15 +3199,16 @@ major/minor-transport-version, as follows:
 
 
 <table frame="all" id="readwrite_method_and_the_majorminor_transport_version">
-<title>The read/write method and the major/minor-transport-version</title>
-  <tgroup cols="3">
-  <colspec colname="col1" colwidth="1*" colsep="1"/>
-  <colspec colname="col2" colwidth="1*" colsep="1"/>
-  <colspec colname="col3" colwidth="3*" colsep="1"/>
+  <?dbfo keep-together="always" ?>
+  <title>The read/write method and the major/minor-transport-version</title>
+  <tgroup cols="3" align='left' colsep='1' rowsep='1'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*"/>
+  <colspec colname="col3" colwidth="3.0*"/>
   <spanspec namest="col1" nameend="col2" spanname="span-horiz" align="center"/>
   <thead>
     <row>
-      <entry spanname="span-horiz">Transport-version</entry>
+      <entry spanname="span-horiz" colsep='1'>Transport-version</entry>
       <entry>read/write</entry>
     </row>
     <row>
@@ -3214,12 +3218,12 @@ major/minor-transport-version, as follows:
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry morerows="2">0</entry>
       <entry>0</entry>
       <entry>only-CM &amp; Property-with-CM</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>1</entry>
       <entry>only-CM &amp; multi-CM</entry>
     </row>
@@ -3232,7 +3236,7 @@ major/minor-transport-version, as follows:
       <entry>0</entry>
       <entry>PropertyNotify</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry morerows="1">2</entry>
       <entry>0</entry>
       <entry>only-CM &amp; PropertyNotify</entry>
@@ -3317,56 +3321,57 @@ If data is sent via ClientMessage event, the format is as follows:
 </para>
 
 
-<table frame="none" id="clientmessage_events_format_first_or_middle">
+<table frame="topbot" id="clientmessage_events_format_first_or_middle">
+  <?dbfo keep-together="always" ?>
 <title>The ClientMessage event's format (first or middle)</title>
-  <tgroup cols="3">
-  <colspec colname="col1" colwidth="1*" colsep="0"/>
-  <colspec colname="col2" colwidth="1*" colsep="1"/>
-  <colspec colname="col3" colwidth="3.5*" colsep="0"/>
+  <tgroup cols="3" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*" colsep="1"/>
+  <colspec colname="col3" colwidth="3.5*"/>
   <spanspec namest="col1" nameend="col2" spanname="span-horiz" align="center"/>
   <thead>
-    <row>
-      <entry spanname="span-horiz">Structure Member</entry>
+    <row rowsep='1'>
+      <entry spanname="span-horiz" colsep='1'>Structure Member</entry>
       <entry>Contents</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>type</entry>
       <entry>ClientMessage</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>u_long</entry>
       <entry>serial</entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Bool</entry>
       <entry>send_event</entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Display</entry>
       <entry>*display</entry>
       <entry>The display to which connects</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Window</entry>
       <entry>window</entry>
       <entry>IMS communication window ID</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Atom</entry>
       <entry>message_type</entry>
       <entry>XInternAtom(display, "_XIM_MOREDATA", False)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>format</entry>
       <entry>8</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>char</entry>
       <entry>data.b[20]</entry>
       <entry>(read/write DATA : 20 byte)</entry>
@@ -3375,56 +3380,57 @@ If data is sent via ClientMessage event, the format is as follows:
   </tgroup>
 </table>
 
-<table frame="none" id="clientmessage_events_format_only_or_last">
+<table frame="topbot" id="clientmessage_events_format_only_or_last">
+  <?dbfo keep-together="always" ?>
 <title>The ClientMessage event's format (only or last)</title>
-  <tgroup cols="3">
-  <colspec colname="col1" colwidth="1*" colsep="0"/>
-  <colspec colname="col2" colwidth="1*" colsep="1"/>
-  <colspec colname="col3" colwidth="3.5*" colsep="0"/>
+  <tgroup cols="3" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*" colsep="1"/>
+  <colspec colname="col3" colwidth="3.5*"/>
   <spanspec namest="col1" nameend="col2" spanname="span-horiz" align="center"/>
   <thead>
-    <row>
-      <entry spanname="span-horiz">Structure Member</entry>
+    <row rowsep='1'>
+      <entry spanname="span-horiz" colsep='1'>Structure Member</entry>
       <entry>Contents</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>type</entry>
       <entry>ClientMessage</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>u_long</entry>
       <entry>serial</entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Bool</entry>
       <entry>send_event</entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Display</entry>
       <entry>*display</entry>
       <entry>The display to which connects</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Window</entry>
       <entry>window</entry>
       <entry>IMS communication window ID</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Atom</entry>
       <entry>message_type</entry>
       <entry>XInternAtom(display, "_XIM_PROTOCOL", False)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>format</entry>
       <entry>8</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>char</entry>
       <entry>data.b[20]</entry>
       <entry>(read/write DATA : MAX 20 byte)  (*1)</entry>
@@ -3469,56 +3475,57 @@ IM Server via PropertyNotify event.
 The arguments of the XChangeProperty are as follows:
 </para>
 
-<table frame="none" id="xchangeproperty_events_format">
+<table frame="topbot" id="xchangeproperty_events_format">
+  <?dbfo keep-together="always" ?>
 <title>The XChangeProperty event's format</title>
-  <tgroup cols="3">
-  <colspec colname="col1" colwidth="1*" colsep="0"/>
-  <colspec colname="col2" colwidth="1*" colsep="1"/>
-  <colspec colname="col3" colwidth="3.5*" colsep="0"/>
+  <tgroup cols="3" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*" colsep="1"/>
+  <colspec colname="col3" colwidth="3.5*"/>
   <spanspec namest="col1" nameend="col2" spanname="span-horiz" align="center"/>
   <thead>
-    <row>
-      <entry spanname="span-horiz">Argument</entry>
+    <row rowsep='1'>
+      <entry spanname="span-horiz" colsep='1'>Argument</entry>
       <entry>Contents</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>Display</entry>
       <entry>*display</entry>
       <entry>The display to which connects</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Window</entry>
       <entry>window</entry>
       <entry>IMS communication window ID</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Atom</entry>
       <entry>property</entry>
       <entry>read/write property Atom (*1)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Atom</entry>
       <entry>type</entry>
       <entry>XA_STRING  </entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>format</entry>
       <entry>8</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>mode</entry>
       <entry>PropModeAppend</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>u_char</entry>
       <entry>*data</entry>
       <entry>read/write DATA</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>nelements</entry>
       <entry>length of DATA</entry>
@@ -3546,61 +3553,62 @@ If Atom is notified via ClientMessage event, the format of the ClientMessage
 is as follows:
 </para>
 
-<table frame="none" id="clientmessage_events_format_to_send_atom_of_property">
+<table frame="topbot" id="clientmessage_events_format_to_send_atom_of_property">
+  <?dbfo keep-together="always" ?>
 <title>The ClientMessage event's format to send Atom of property</title>
-  <tgroup cols="3">
-  <colspec colname="col1" colwidth="1*" colsep="0"/>
-  <colspec colname="col2" colwidth="1*" colsep="1"/>
-  <colspec colname="col3" colwidth="3.5*" colsep="0"/>
+  <tgroup cols="3" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*" colsep="1"/>
+  <colspec colname="col3" colwidth="3.5*"/>
   <spanspec namest="col1" nameend="col2" spanname="span-horiz" align="center"/>
   <thead>
-    <row>
-      <entry spanname="span-horiz">Structure Members</entry>
+    <row rowsep='1'>
+      <entry spanname="span-horiz" colsep='1'>Structure Members</entry>
       <entry>Contents</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>type</entry>
       <entry>ClientMessage</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>u_long</entry>
       <entry>serial</entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Bool</entry>
       <entry>send_event</entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Display</entry>
       <entry>*display</entry>
       <entry>The display to which connects</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Window</entry>
       <entry>window</entry>
       <entry>IMS communication window ID</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Atom</entry>
       <entry>message_type</entry>
       <entry>XInternAtom(display, "_XIM_PROTOCOL", False)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>format</entry>
       <entry>32</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>long</entry>
       <entry>data.l[0]</entry>
       <entry>length of read/write property Atom</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>long</entry>
       <entry>data.l[1]</entry>
       <entry>read/write property Atom</entry>
@@ -3626,56 +3634,57 @@ The format of the ClientMessage is as follows:
 
 
 
-<table frame="none" id="clientmessage_events_format_for_first_or_middle">
+<table frame="topbot" id="clientmessage_events_format_for_first_or_middle">
+  <?dbfo keep-together="always" ?>
 <title>The ClientMessage event's format (first or middle)</title>
-  <tgroup cols="3">
-  <colspec colname="col1" colwidth="1*" colsep="0"/>
-  <colspec colname="col2" colwidth="1*" colsep="1"/>
-  <colspec colname="col3" colwidth="3.5*" colsep="0"/>
+  <tgroup cols="3" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*" colsep="1"/>
+  <colspec colname="col3" colwidth="3.5*"/>
   <spanspec namest="col1" nameend="col2" spanname="span-horiz" align="center"/>
   <thead>
-    <row>
-      <entry align="left" spanname="span-horiz">Structure Members</entry>
-      <entry align="left">Contents</entry>
+    <row rowsep='1'>
+      <entry spanname="span-horiz" colsep='1'>Structure Members</entry>
+      <entry>Contents</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>type</entry>
       <entry>ClientMessage</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>u_long</entry>
       <entry>serial</entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Bool</entry>
       <entry>send_event </entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Display</entry>
       <entry>*display</entry>
       <entry>The display to which connects</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Window</entry>
       <entry>window</entry>
       <entry>client communication window ID</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Atom</entry>
       <entry>message_type</entry>
       <entry>XInternAtom(display, "_XIM_MOREDATA", False)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>format</entry>
       <entry>8</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>char</entry>
       <entry>data.b[20]</entry>
       <entry>(read/write DATA : 20 byte)</entry>
@@ -3685,56 +3694,57 @@ The format of the ClientMessage is as follows:
 </table>
 
 
-<table frame="none" id="clientmessage_events_format_for_only_or_last">
+<table frame="topbot" id="clientmessage_events_format_for_only_or_last">
+  <?dbfo keep-together="always" ?>
 <title>The ClientMessage event's format (only or last)</title>
-  <tgroup cols="3">
-  <colspec colname="col1" colwidth="1*" colsep="0"/>
-  <colspec colname="col2" colwidth="1*" colsep="1"/>
-  <colspec colname="col3" colwidth="3.5*" colsep="0"/>
+  <tgroup cols="3" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*" colsep="1"/>
+  <colspec colname="col3" colwidth="3.5*"/>
   <spanspec namest="col1" nameend="col2" spanname="span-horiz" align="center"/>
   <thead>
-    <row>
-      <entry align="left" spanname="span-horiz">Structure Members</entry>
-      <entry align="left">Contents</entry>
+    <row rowsep='1'>
+      <entry spanname="span-horiz" colsep='1'>Structure Members</entry>
+      <entry>Contents</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>type</entry>
       <entry>ClientMessage</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>u_long</entry>
       <entry>serial</entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Bool</entry>
       <entry>send_event </entry>
       <entry>Set by the X Window System</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Display</entry>
       <entry>*display</entry>
       <entry>The display to which connects</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Window</entry>
       <entry>window</entry>
       <entry>client communication window ID</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Atom</entry>
       <entry>message_type</entry>
       <entry>XInternAtom(display, "_XIM_PROTOCOL", False)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>format</entry>
       <entry>8</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>char</entry>
       <entry>data.b[20]</entry>
       <entry>(read/write DATA : MAX 20 byte) (*1)</entry>
@@ -3779,56 +3789,57 @@ PropertyNotify event.
 The arguments of the XChangeProperty are as follows:
 </para>
 
-<table frame="none" id="xchangeproperty_events_format_2">
+<table frame="topbot" id="xchangeproperty_events_format_2">
+  <?dbfo keep-together="always" ?>
 <title>The XChangeProperty event's format</title>
-  <tgroup cols="3">
-  <colspec colname="col1" colwidth="1*" colsep="0"/>
-  <colspec colname="col2" colwidth="1*" colsep="1"/>
-  <colspec colname="col3" colwidth="3.5*" colsep="0"/>
+  <tgroup cols="3" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*" colsep="1"/>
+  <colspec colname="col3" colwidth="3.5*"/>
   <spanspec namest="col1" nameend="col2" spanname="span-horiz" align="center"/>
   <thead>
-    <row>
-      <entry align="left" spanname="span-horiz">Argument</entry>
-      <entry align="left">Contents</entry>
+    <row rowsep='1'>
+      <entry spanname="span-horiz" colsep='1'>Argument</entry>
+      <entry>Contents</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>Display</entry>
       <entry>*display</entry>
       <entry>The display which to connects</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Window</entry>
       <entry>window</entry>
       <entry>client communication window ID</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Atom</entry>
       <entry>property</entry>
       <entry>read/write property Atom (*1)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Atom</entry>
       <entry>type</entry>
       <entry>XA_STRING</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>format</entry>
       <entry>8</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>mode</entry>
       <entry>PropModeAppend</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>u_char</entry>
       <entry>*data</entry>
       <entry>read/write DATA</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>nelements</entry>
       <entry>length of DATA</entry>
@@ -3853,61 +3864,62 @@ is as follows:
 </para>
 
 
-<table frame="none" id="clientmessage_events_format_to_send_atom_of_property_2">
+<table frame="topbot" id="clientmessage_events_format_to_send_atom_of_property_2">
+  <?dbfo keep-together="always" ?>
 <title>The ClientMessage event's format to send Atom of property</title>
-  <tgroup cols="3">
-  <colspec colname="col1" colwidth="1*" colsep="0"/>
-  <colspec colname="col2" colwidth="1*"/>
+  <tgroup cols="3" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*" colsep='1'/>
   <colspec colname="col3" colwidth="3.5*"/>
   <spanspec namest="col1" nameend="col2" spanname="span-horiz" align="center"/>
   <thead>
-    <row>
-      <entry align="left" spanname="span-horiz">Structure Member</entry>
-      <entry align="left">Contents</entry>
+    <row rowsep='1'>
+      <entry spanname="span-horiz" colsep='1'>Structure Member</entry>
+      <entry>Contents</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>type</entry>
       <entry>ClientMessage  </entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>u_long</entry>
       <entry>serial</entry>
       <entry>Set by the X Window System  </entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Bool</entry>
       <entry>send_event</entry>
       <entry>Set by the X Window System  </entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Display</entry>
       <entry>*display</entry>
       <entry>The display to which connects  </entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Window</entry>
       <entry>window</entry>
       <entry>client communication window ID  </entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Atom</entry>
       <entry>message_type</entry>
       <entry>XInternAtom(display, "_XIM_PROTOCOL", False)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>int</entry>
       <entry>format</entry>
       <entry>32  </entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>long</entry>
       <entry>data.l[0]</entry>
       <entry>length of read/write property ATOM  </entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>long</entry>
       <entry>data.l[1]</entry>
       <entry>read/write property ATOM  </entry>

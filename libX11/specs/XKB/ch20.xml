@@ -9,21 +9,22 @@ partial descriptions. Table 20.1 identifies the component types and the type of
 information they contain.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Server Database Keyboard Components</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='1.5*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Component Type</entry>
   <entry>Component Primary Contents</entry>
   <entry>May also contain</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>Keymap</entry>
     <entry>
 <para>Complete keyboard description</para>
@@ -31,7 +32,7 @@ information they contain.
     </entry>
     <entry></entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Keycodes</entry>
     <entry>
 <para>Symbolic name for each key</para>
@@ -43,14 +44,14 @@ information they contain.
 <para>Description of indicators physically present</para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Types</entry>
     <entry>Key types</entry>
     <entry>
 Real modifier bindings and symbolic names for some virtual modifiers
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Compatibility</entry>
     <entry>Rules used to assign actions to keysyms</entry>
     <entry>
@@ -58,7 +59,7 @@ Real modifier bindings and symbolic names for some virtual modifiers
 <para>Real modifier bindings and symbolic names for some virtual modifiers</para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Symbols</entry>
     <entry>
 <para>Symbol mapping for keyboard keys</para>
@@ -70,7 +71,7 @@ Real modifier bindings and symbolic names for some virtual modifiers
 <para>Real modifier bindings and symbolic names for some virtual modifiers</para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Geometry</entry>
     <entry>Layout of the keyboard</entry>
     <entry>
@@ -164,10 +165,11 @@ XkbListComponents</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbComponentListPtr<emphasis>
  XkbListComponents</emphasis>
@@ -182,14 +184,14 @@ max_inout</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
             dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int                  <emphasis>
 device_spec</emphasis>
@@ -198,14 +200,14 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbComponentNamesPtr                  <emphasis>
 ptrns</emphasis>
 ;            /* namelist for components of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *                  <emphasis>
 max_inout</emphasis>
@@ -366,17 +368,18 @@ XkbFreeComponentList</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeComponentList</emphasis>
 (list)
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbComponentListPtr                   list;      /* pointer to <emphasis>
 XkbComponentListRec</emphasis>
@@ -424,15 +427,16 @@ XkbLC_AlternateGroup</emphasis>
  may be combined with any of the other flags).
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>XkbComponentNameRec Flags Bits</title>
-<tgroup cols='4'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='4' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.5*'/>
+<colspec colname='c2' colwidth='3.0*'/>
+<colspec colname='c3' colwidth='2.0*'/>
+<colspec colname='c4' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Component Type</entry>
   <entry>Component Hints (flags)</entry>
   <entry>Meaning</entry>
@@ -440,79 +444,79 @@ XkbLC_AlternateGroup</emphasis>
 </row>
 </thead>
 <tbody>
-<row rowsep='0'>
+<row>
     <entry>All Components</entry>
     <entry><para><emphasis>XkbLC_Hidden</emphasis></para></entry>
     <entry>Do not present to user</entry>
     <entry>(1L&lt;&lt;0)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry></entry>
     <entry><emphasis>XkbLC_Default</emphasis></entry>
     <entry>Default member of class</entry>
     <entry>(1L&lt;&lt;1)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry></entry>
     <entry><emphasis>XkbLC_Partial</emphasis></entry>
     <entry>Partial component</entry>
     <entry>(1L&lt;&lt;2)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>Keymap</entry>
     <entry>none</entry>
     <entry></entry>
     <entry></entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>Keycodes</entry>
     <entry>none</entry>
     <entry></entry>
     <entry></entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>Types</entry>
     <entry>none</entry>
     <entry></entry>
     <entry></entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>Compatibility</entry>
     <entry>none</entry>
     <entry></entry>
     <entry></entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>Symbols</entry>
     <entry><emphasis>XkbLC_AlphanumericKeys</emphasis></entry>
     <entry>Bindings primarily for alphanumeric keyboard section</entry>
     <entry>(1L&lt;&lt;8)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry></entry>
     <entry><emphasis>XkbLC_ModifierKeys</emphasis></entry>
     <entry>Bindings primarily for modifier keys</entry>
     <entry>(1L&lt;&lt;9)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry></entry>
     <entry><emphasis>XkbLC_KeypadKeys</emphasis></entry>
     <entry>Bindings primarily for numeric keypad keys</entry>
     <entry>(1L&lt;&lt;10)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry></entry>
     <entry><emphasis>XkbLC_FunctionKeys</emphasis></entry>
     <entry>Bindings primarily for function keys</entry>
     <entry>(1L&lt;&lt;11)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry></entry>
     <entry><emphasis>XkbLC_AlternateGroup</emphasis></entry>
     <entry>Bindings for an alternate group</entry>
     <entry>(1L&lt;&lt;12)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>Geometry</entry>
     <entry>none</entry>
     <entry></entry>
@@ -549,10 +553,11 @@ XkbGetKeyboardByName</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbDescPtr <emphasis>
 XkbGetKeyboardByName</emphasis>
@@ -571,14 +576,14 @@ load</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
             dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int                  <emphasis>
 device_spec</emphasis>
@@ -587,28 +592,28 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbComponentNamesPtr                  <emphasis>
 names</emphasis>
 ;            /* names of components to fetch */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int                  <emphasis>
 want</emphasis>
 ;            /* desired structures in returned record */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int                  <emphasis>
 need</emphasis>
 ;            /* mandatory structures in returned record */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool                  <emphasis>
 load</emphasis>
@@ -832,66 +837,67 @@ compat</emphasis>
 </emphasis>
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Want and Need Mask Bits and Required Names Components</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='2.4*'/>
+<colspec colname='c2' colwidth='2.6*'/>
+<colspec colname='c3' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>want or need mask bit</entry>
   <entry>Required names Components</entry>
   <entry>value</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_TypesMask</entry>
     <entry>Types</entry>
     <entry>(1L&lt;&lt;0)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_CompatMapMask</entry>
     <entry>Compat</entry>
     <entry>(1L&lt;&lt;1)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_ClientSymbolsMask</entry>
     <entry>Types + Symbols + Keycodes</entry>
     <entry>(1L&lt;&lt;2)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_ServerSymbolsMask</entry>
     <entry>Types + Symbols + Keycodes</entry>
     <entry>(1L&lt;&lt;3)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_SymbolsMask</entry>
     <entry>Symbols</entry>
     <entry>(1L&lt;&lt;1)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_IndicatorMapMask</entry>
     <entry>Compat</entry>
     <entry>(1L&lt;&lt;4)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_KeyNamesMask</entry>
     <entry>Keycodes</entry>
     <entry>(1L&lt;&lt;5)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_GeometryMask</entry>
     <entry>Geometry</entry>
     <entry>(1L&lt;&lt;6)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_OtherNamesMask</entry>
     <entry>Types + Symbols + Keycodes + Compat + Geometry</entry>
     <entry>(1L&lt;&lt;7)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_AllComponentsMask</entry>
     <entry></entry>
     <entry>(0xff)</entry>
@@ -988,51 +994,52 @@ XkbDescRec</emphasis>
  components that are filled in.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>XkbDescRec Components Returned for Values of Want &amp; Needs</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Request (want+need)</entry>
   <entry>Fills in Xkb components</entry>
   <entry>Equivalent Function Call</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_TypesMask</entry>
     <entry>map.types</entry>
     <entry>XkbGetUpdatedMap(dpy, XkbTypesMask, Xkb)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_ServerSymbolsMask</entry>
     <entry>server</entry>
     <entry>XkbGetUpdatedMap(dpy, XkbAllClientInfoMask, Xkb)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_ClientSymbolsMask</entry>
     <entry>map, including map.types</entry>
     <entry>XkbGetUpdatedMap(dpy, XkbAllServerInfoMask, Xkb)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_IndicatorMaps</entry>
     <entry>indicators</entry>
     <entry>XkbGetIndicatorMap(dpy, XkbAllIndicators, Xkb)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_CompatMapMask</entry>
     <entry>compat</entry>
     <entry>XkbGetCompatMap(dpy, XkbAllCompatMask, Xkb)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_GeometryMask</entry>
     <entry>geom</entry>
     <entry>XkbGetGeometry(dpy, Xkb)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_KeyNamesMask</entry>
     <entry>
 <para>names.keys</para>
@@ -1042,7 +1049,7 @@ XkbDescRec</emphasis>
 XkbGetNames(dpy, XkbKeyNamesMask | XkbKeyAliasesMask, Xkb)
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbGBN_OtherNamesMask</entry>
     <entry>
 <para>names.keycodes</para>
@@ -1113,10 +1120,11 @@ XkbGetKeyboard</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbDescPtr <emphasis>
 XkbGetKeyboard</emphasis>
@@ -1129,14 +1137,14 @@ device_spec</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
       dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             which</emphasis>
@@ -1145,7 +1153,7 @@ XkbDescRec</emphasis>
  of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
       device_spec</emphasis>

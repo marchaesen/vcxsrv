@@ -237,10 +237,11 @@ level, use <emphasis>XkbKeycodeToKeysym</emphasis>.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 KeySym <emphasis>
 XkbKeycodeToKeysym</emphasis>
@@ -249,22 +250,22 @@ dpy, kc, group, level</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            dpy;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            kc;            /* key of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            group;            /* group of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            level;            /* shift level of interest */
     </entry>
@@ -300,10 +301,11 @@ XkbKeysymToModifiers</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 unsigned<emphasis>
  </emphasis>
@@ -316,14 +318,14 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeySym <emphasis>
             ks</emphasis>
@@ -373,10 +375,11 @@ XkbLookupKeySym</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbLookupKeySym</emphasis>
@@ -393,35 +396,35 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display * <emphasis>
             dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode <emphasis>
             key</emphasis>
 ;            /* key for which symbols are to be found */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int <emphasis>
             state</emphasis>
 ;            /* state for which symbol should be found */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int * <emphasis>
             mods_rtrn</emphasis>
 ;            /* backfilled with unconsumed modifiers */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeySym *<emphasis>
             sym_rtrn</emphasis>
@@ -475,10 +478,11 @@ XLookupString</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbLookupKeyBinding</emphasis>
@@ -497,42 +501,42 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display * <emphasis>
             dpy</emphasis>
 ;            /* connection to server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeySym<emphasis>
             sym</emphasis>
 ;            /* symbol to be looked up */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 state</emphasis>
 ;            /* state for which string is to be looked up */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 char * <emphasis>
             buf</emphasis>
 ;            /* buffer into which returned string is written */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             nbytes</emphasis>
 ;            /* size of buffer in bytes */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int * <emphasis>
             extra_rtrn</emphasis>
@@ -581,10 +585,11 @@ XkbTranslateKeySym</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbTranslateKeySym</emphasis>
@@ -603,21 +608,21 @@ extra_rtrn</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display * <emphasis>
             dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeySym * <emphasis>
             sym_inout</emphasis>
 ;            /* symbol to be translated; result of translation */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int <emphasis>
             mods</emphasis>
@@ -626,21 +631,21 @@ sym_inout</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 char * <emphasis>
             buf</emphasis>
 ;            /* buffer into which returned string is written */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             nbytes</emphasis>
 ;            /* size of buffer in bytes */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *<emphasis>
             extra_rtrn</emphasis>
@@ -685,10 +690,11 @@ XkbRefreshKeyboardMapping</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbRefreshKeyboardMapping</emphasis>
@@ -696,7 +702,7 @@ XkbRefreshKeyboardMapping</emphasis>
 event)</emphasis>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbMapNotifyEvent * <emphasis>
             event</emphasis>
@@ -749,10 +755,11 @@ XkbTranslateKeyCode</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Booll <emphasis>
 XkbTranslateKeyCode</emphasis>
@@ -760,21 +767,21 @@ XkbTranslateKeyCode</emphasis>
 xkb, key, mods, mods_rtrn, keysym_rtrn)</emphasis>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;            /* keyboard description to use for translation */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode            <emphasis>
 key</emphasis>
 ;            /* keycode to translate */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 mods</emphasis>
@@ -783,14 +790,14 @@ key</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *            <emphasis>
 mods_rtrn</emphasis>
 ;            /* backfilled with unconsumed modifiers */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeySym *            <emphasis>
 keysym_rtrn</emphasis>

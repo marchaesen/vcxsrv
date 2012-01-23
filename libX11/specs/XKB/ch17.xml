@@ -205,30 +205,31 @@ ButtonPress</emphasis>
  event, encoded as follows:
 </para>
 
-<informaltable frame='none'>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<informaltable frame='topbot'>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c1' colwidth='2.0*'/>
 <thead>
-  <row rowsep='0'>
+  <row rowsep='1'>
     <entry>bits</entry>
     <entry>meaning</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>15</entry>
     <entry>0</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>13-14</entry>
     <entry>Group index</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>8-12</entry>
     <entry>Pointer Buttons</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>0-7</entry>
     <entry>Modifiers</entry>
   </row>
@@ -470,10 +471,13 @@ modifiers specified in <emphasis>mods</emphasis>
 are to be interpreted.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Symbol Interpretation Match Criteria</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='2.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='3.0*'/>
 <thead>
 <row rowsep='1'>
   <entry>Match Criteria</entry>
@@ -482,7 +486,7 @@ are to be interpreted.
   </row>
 </thead>
 <tbody>
-  <row rowsep='1'>
+  <row>
     <entry><emphasis>XkbSI_NoneOf</emphasis></entry>
     <entry>(0)</entry>
     <entry>
@@ -490,7 +494,7 @@ None of the bits that are on in <emphasis>mods</emphasis>
  can be set, but other bits can be.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSI_AnyOfOrNone</emphasis></entry>
     <entry>(1)</entry>
     <entry>
@@ -499,7 +503,7 @@ mods</emphasis>
  can be set, as well as others.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSI_AnyOf</emphasis></entry>
     <entry>(2)</entry>
     <entry>
@@ -508,7 +512,7 @@ mods</emphasis>
  can be set, as well as any others.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSI_AllOf</emphasis></entry>
     <entry>(3)</entry>
     <entry>
@@ -517,7 +521,7 @@ mods</emphasis>
  must be set, but others may be set as well.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSI_Exactly</emphasis></entry>
     <entry>(4)</entry>
     <entry>
@@ -559,31 +563,32 @@ interpretation where:
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c1' colwidth='3.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>sym</emphasis> =</entry>
     <entry>0</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>flags</emphasis> =</entry>
     <entry><emphasis>XkbSI_AutoRepeat</emphasis></entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>match</emphasis> =</entry>
     <entry><emphasis>XkbSI_AnyOfOrNone</emphasis></entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>mods</emphasis> =</entry>
     <entry>0</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>virtual_mod</emphasis> =</entry>
     <entry><emphasis>XkbNoModifier</emphasis></entry>
   </row>
-  <row rowsep='0'>
+  <row>
 
    <entry><emphasis>act</emphasis> =</entry>
     <entry><emphasis>SA_NoAction</emphasis></entry>
@@ -756,10 +761,11 @@ compatibility map may be used to reconfigure other servers.
 explicit override components of the server state.</para></note>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetCompatMap</emphasis>
@@ -768,21 +774,21 @@ display, which, xkb</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display * <emphasis>
             display</emphasis>
 ;            /* connection to server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             which</emphasis>
 ;            /* mask of compatibility map components to fetch */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescRec * <emphasis>
             xkb</emphasis>
@@ -809,29 +815,32 @@ which</emphasis>
  are an inclusive OR of the values shown in Table 17.2.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Compatibility Map Component Masks</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.5*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Mask</entry>
   <entry>Value</entry>
   <entry>Affecting</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbSymInterpMask</emphasis></entry>
     <entry>(1&lt;&lt;0)</entry>
     <entry>Symbol interpretations</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbGroupCompatMask</emphasis></entry>
     <entry>(1&lt;&lt;1)</entry>
     <entry>Group maps</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbAllCompatMask</emphasis></entry>
     <entry>(0x3)</entry>
     <entry>All compatibility map components</entry>
@@ -903,10 +912,11 @@ XkbUpdateMapFromCore</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbUpdateMapFromCore</emphasis>
@@ -925,42 +935,42 @@ xkb</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
             xkb</emphasis>
 ;            /* keyboard description to update */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeyCode <emphasis>
             first_key</emphasis>
 ;            /* keycode of first key description to update */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             num_keys</emphasis>
 ;            /* number of key descriptions to update */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int <emphasis>
             map_width</emphasis>
 ;            /* width of core protocol keymap */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeySym *<emphasis>
             core_keysyms</emphasis>
 ;            /* symbols in core protocol keymap */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbChangesPtr       <emphasis>
       changes</emphasis>
@@ -1044,10 +1054,11 @@ XkbKeyTypesForCoreSymbols</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 int <emphasis>
 XkbKeyTypesForCoreSymbols</emphasis>
@@ -1060,14 +1071,14 @@ map_width</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr<emphasis>
       xkb</emphasis>
 ;            /* keyboard description in which to place symbols*/
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int<emphasis>
       map_width</emphasis>
@@ -1076,21 +1087,21 @@ xkb_syms_rtrn</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeySym *<emphasis>
       core_syms</emphasis>
 ;            /* core protocol format array of KeySyms */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int       <emphasis>
 protected</emphasis>
 ;            /* explicit key types */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *<emphasis>
       types_inout;</emphasis>
@@ -1098,7 +1109,7 @@ int *<emphasis>
 for the key */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 KeySym *      <emphasis>
 xkb_syms_rtrn</emphasis>
@@ -1190,10 +1201,11 @@ XkbApplyCompatMapToKey</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbApplyCompatMapToKey</emphasis>
@@ -1206,21 +1218,21 @@ xkb</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
   XkbDescPtr<emphasis>
             xkb;            </emphasis>
 /* keyboard description to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
   KeyCode<emphasis>
             key</emphasis>
 ;            /* key to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
   XkbChangesPtr<emphasis>
             changes</emphasis>
@@ -1264,10 +1276,11 @@ XkbSymInterpretRec</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetCompatMap</emphasis>
@@ -1276,28 +1289,28 @@ display, which, xkb, update_actions</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display * <emphasis>
             display</emphasis>
 ;            /* connection to server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             which</emphasis>
 ;            /* mask of compat map components to set */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
             xkb</emphasis>
 ;            /* source for compat map components */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool <emphasis>
             update_actions</emphasis>
@@ -1380,10 +1393,11 @@ XkbAddSymInterpret</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbSymInterpretPtr <emphasis>
 XkbAddSymInterpret</emphasis>
@@ -1392,21 +1406,21 @@ xkb, si, updateMap, changes</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr<emphasis>
             xkb</emphasis>
 ;            /* keyboard description to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSymInterpretPtr<emphasis>
             si</emphasis>
 ;            /* symbol interpretation to be added */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool<emphasis>
             updateMap</emphasis>
@@ -1415,7 +1429,7 @@ True</emphasis>
 =&gt;apply compatibility map to keys */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbChangesPtr<emphasis>
             changes</emphasis>
@@ -1597,10 +1611,11 @@ XkbAllocCompatMap</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocCompatMap</emphasis>
@@ -1609,21 +1624,21 @@ xkb, which, num_si</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
       xkb</emphasis>
 ;            /* keyboard description in which to allocate compat map */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       which</emphasis>
 ;            /* mask of compatibility map components to allocate */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       num_si</emphasis>
@@ -1709,10 +1724,11 @@ XkbFreeCompatMap</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeCompatMap</emphasis>
@@ -1721,21 +1737,21 @@ xkb, which, free_map</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
       xkb</emphasis>
 ;            /* Xkb description in which to free compatibility map */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       which</emphasis>
 ;            /* mask of compatibility map components to free */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool <emphasis>
       free_map</emphasis>

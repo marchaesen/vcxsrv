@@ -47,6 +47,7 @@ AC_PROG_CXX
 AC_CHECK_PROGS([MAKE], [gmake make])
 AC_CHECK_PROGS([PYTHON2], [python2 python])
 AC_PROG_SED
+AC_PROG_MKDIR_P
 AC_PATH_PROG([MKDEP], [makedepend])
 
 if test "x$MKDEP" = "x"; then
@@ -176,9 +177,6 @@ esac
 dnl Add flags for gcc and g++
 if test "x$GCC" = xyes; then
     CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -std=c99"
-    if test "x$CLANG" = "xno"; then
-       CFLAGS="$CFLAGS -ffast-math"
-    fi
 
     # Enable -fvisibility=hidden if using a gcc that supports it
     save_CFLAGS="$CFLAGS"
@@ -522,11 +520,6 @@ if test "x$enable_asm" = xyes; then
         GLAPI_ASM_SOURCES='$(X86-64_API)'
         AC_MSG_RESULT([yes, x86_64])
         ;;
-    ppc)
-        ASM_FLAGS="-DUSE_PPC_ASM -DUSE_VMX_ASM"
-        MESA_ASM_SOURCES='$(PPC_SOURCES)'
-        AC_MSG_RESULT([yes, ppc])
-        ;;
     sparc)
         ASM_FLAGS="-DUSE_SPARC_ASM"
         MESA_ASM_SOURCES='$(SPARC_SOURCES)'
@@ -714,18 +707,6 @@ if test "x$enable_gles2" = xyes; then
 fi
 AC_SUBST([API_DEFINES])
 
-AC_ARG_ENABLE([shared-glapi],
-    [AS_HELP_STRING([--enable-shared-glapi],
-        [EXPERIMENTAL.  Enable shared glapi for OpenGL @<:@default=no@:>@])],
-    [enable_shared_glapi="$enableval"],
-    [enable_shared_glapi=no])
-
-SHARED_GLAPI="0"
-if test "x$enable_shared_glapi" = xyes; then
-    SHARED_GLAPI="1"
-fi
-AC_SUBST([SHARED_GLAPI])
-
 dnl
 dnl Driver configuration. Options are xlib, dri and osmesa right now.
 dnl More later: fbdev, ...
@@ -809,7 +790,7 @@ dnl Driver specific build directories
 dnl
 
 dnl this variable will be prepended to SRC_DIRS and is not exported
-CORE_DIRS=""
+CORE_DIRS="mapi/shared-glapi"
 
 SRC_DIRS=""
 GLU_DIRS="sgi"
@@ -818,13 +799,6 @@ GALLIUM_TARGET_DIRS=""
 GALLIUM_WINSYS_DIRS="sw"
 GALLIUM_DRIVERS_DIRS="galahad trace rbug noop identity"
 GALLIUM_STATE_TRACKERS_DIRS=""
-
-# build shared-glapi if enabled for OpenGL or if OpenGL ES is enabled
-case "x$enable_shared_glapi$enable_gles1$enable_gles2" in
-x*yes*)
-    CORE_DIRS="$CORE_DIRS mapi/shared-glapi"
-    ;;
-esac
 
 # build glapi if OpenGL is enabled
 if test "x$enable_opengl" = xyes; then
@@ -1086,26 +1060,14 @@ DRI_CXXFLAGS='$(CXXFLAGS)'
 DRI_LIB_DEPS='$(TOP)/src/mesa/libmesa.a'
 MESA_MODULES='$(TOP)/src/mesa/libmesa.a'
 
-AC_ARG_ENABLE([shared-dricore],
-    [AS_HELP_STRING([--enable-shared-dricore],
-        [link DRI modules with shared core DRI routines @<:@default=disabled@:>@])],
-    [enable_dricore="$enableval"],
-    [enable_dricore=no])
 if test "x$enable_dri" = xyes ; then
-   if test "$enable_dricore" = yes ; then
-      if test "$GCC$GXX" != yesyes ; then
-      	 AC_MSG_WARN([Shared dricore requires GCC-compatible rpath handling.  Disabling shared dricore])
-	 enable_dricore=no
-      else
-	 DRICORE_GLSL_LIBS='$(TOP)/$(LIB_DIR)/libglsl.so'
-	 DRICORE_LIBS='$(TOP)/$(LIB_DIR)/libdricore.so'
-	 DRICORE_LIB_DEPS='-L$(TOP)/$(LIB_DIR) -Wl,-R$(DRI_DRIVER_INSTALL_DIR) -lglsl'
-      	 DRI_LIB_DEPS='-L$(TOP)/$(LIB_DIR) -Wl,-R$(DRI_DRIVER_INSTALL_DIR) -ldricore -lglsl'
-      	 DRI_CFLAGS='$(CFLAGS_NOVISIBILITY) -DUSE_DRICORE'
-      	 DRI_CXXFLAGS='$(CXXFLAGS_NOVISIBILITY) -DUSE_DRICORE'
-      	 MESA_MODULES='$(DRICORE_LIBS) $(DRICORE_GLSL_LIBS)'
-      fi
-   fi
+    DRICORE_GLSL_LIBS='$(TOP)/$(LIB_DIR)/libglsl.so'
+    DRICORE_LIBS='$(TOP)/$(LIB_DIR)/libdricore.so'
+    DRICORE_LIB_DEPS='-L$(TOP)/$(LIB_DIR) -Wl,-R$(DRI_DRIVER_INSTALL_DIR) -lglsl'
+    DRI_LIB_DEPS='-L$(TOP)/$(LIB_DIR) -Wl,-R$(DRI_DRIVER_INSTALL_DIR) -ldricore -lglsl'
+    DRI_CFLAGS='$(CFLAGS_NOVISIBILITY) -DUSE_DRICORE'
+    DRI_CXXFLAGS='$(CXXFLAGS_NOVISIBILITY) -DUSE_DRICORE'
+    MESA_MODULES='$(DRICORE_LIBS) $(DRICORE_GLSL_LIBS)'
 fi
 AC_SUBST([DRICORE_LIBS])
 AC_SUBST([DRICORE_GLSL_LIBS])
@@ -1280,7 +1242,7 @@ if test "x$enable_dri" = xyes; then
         fi
     fi
 
-    # put all the necessary libs together, including possibly libdricore
+    # put all the necessary libs together
     DRI_LIB_DEPS="$DRI_LIB_DEPS $SELINUX_LIBS $LIBDRM_LIBS $EXPAT_LIB -lm -lpthread $DLOPEN_LIBS"
 fi
 AC_SUBST([DRI_DIRS])
@@ -1291,29 +1253,57 @@ case $DRI_DIRS in
 *i915*|*i965*)
     PKG_CHECK_MODULES([INTEL], [libdrm_intel >= $LIBDRM_INTEL_REQUIRED])
 
-    case $DRI_DIRS in
-    *i965*)
-	HAVE_I965_DRI=yes;
-	;;
-    esac
+    for d in $(echo $DRI_DIRS | sed 's/,/ /g'); do
+        case $d in
+        i915)
+            HAVE_I915_DRI=yes;
+            ;;
+        i965)
+            HAVE_I965_DRI=yes;
+            ;;
+        esac
+    done
 
     ;;
 esac
 
-AM_CONDITIONAL(HAVE_I965_DRI, test x$HAVE_I965_DRI = xyes)
-
 case $DRI_DIRS in
 *nouveau*)
     PKG_CHECK_MODULES([NOUVEAU], [libdrm_nouveau >= $LIBDRM_NOUVEAU_REQUIRED])
+    HAVE_NOUVEAU_DRI=yes;
     ;;
 esac
 
 case $DRI_DIRS in
 *radeon*|*r200*)
     PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
+
+    for d in $(echo $DRI_DIRS | sed 's/,/ /g'); do
+        case $d in
+        radeon)
+            HAVE_RADEON_DRI=yes;
+            ;;
+        r200)
+            HAVE_R200_DRI=yes;
+            ;;
+        esac
+    done
+
     ;;
 esac
 
+case $DRI_DIRS in
+*swrast*)
+    HAVE_SWRAST_DRI=yes;
+    ;;
+esac
+
+AM_CONDITIONAL(HAVE_I915_DRI, test x$HAVE_I915_DRI = xyes)
+AM_CONDITIONAL(HAVE_I965_DRI, test x$HAVE_I965_DRI = xyes)
+AM_CONDITIONAL(HAVE_NOUVEAU_DRI, test x$HAVE_NOUVEAU_DRI = xyes)
+AM_CONDITIONAL(HAVE_R200_DRI, test x$HAVE_R200_DRI = xyes)
+AM_CONDITIONAL(HAVE_RADEON_DRI, test x$HAVE_RADEON_DRI = xyes)
+AM_CONDITIONAL(HAVE_SWRAST_DRI, test x$HAVE_SWRAST_DRI = xyes)
 
 dnl
 dnl OSMesa configuration
@@ -1380,9 +1370,6 @@ if test "x$enable_gbm" = xyes; then
 
     if test "x$enable_dri" = xyes; then
         GBM_BACKEND_DIRS="$GBM_BACKEND_DIRS dri"
-        if test "$SHARED_GLAPI" -eq 0; then
-            AC_MSG_ERROR([gbm_dri requires --enable-shared-glapi])
-        fi
     fi
 fi
 AC_SUBST([GBM_LIB_DEPS])
@@ -1941,7 +1928,14 @@ CXXFLAGS="$CXXFLAGS $USER_CXXFLAGS"
 
 dnl Substitute the config
 AC_CONFIG_FILES([configs/autoconf
+		src/mesa/drivers/dri/dri.pc
+		src/mesa/drivers/dri/Makefile
+		src/mesa/drivers/dri/i915/Makefile
 		src/mesa/drivers/dri/i965/Makefile
+		src/mesa/drivers/dri/nouveau/Makefile
+		src/mesa/drivers/dri/r200/Makefile
+		src/mesa/drivers/dri/radeon/Makefile
+		src/mesa/drivers/dri/swrast/Makefile
 		tests/Makefile
 		tests/glx/Makefile])
 
@@ -1992,7 +1986,6 @@ if test "x$enable_dri" != xno; then
             echo "        DRI drivers:     $dri_dirs"
         fi
         echo "        DRI driver dir:  $DRI_DRIVER_INSTALL_DIR"
-        echo "        Shared dricore:  $enable_dricore"
 fi
 
 case "x$enable_glx$enable_xlib_glx" in

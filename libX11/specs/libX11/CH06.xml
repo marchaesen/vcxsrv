@@ -6995,16 +6995,17 @@ Conversion functions are available globally for use by other color
 spaces.
 The conversion functions provided by Xlib are:
 </para>
-<informaltable>
-  <tgroup cols='3'>
-  <colspec colname='c1'/>
-  <colspec colname='c2'/>
-  <colspec colname='c3'/>
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.0*'/>
+  <colspec colname='c2' colwidth='1.0*'/>
+  <colspec colname='c3' colwidth='1.0*'/>
   <thead>
-    <row>
-      <entry align='center'>Function</entry>
-      <entry align='center'>Converts from</entry>
-      <entry align='center'>Converts to</entry>
+    <row rowsep='1'>
+      <entry>Function</entry>
+      <entry>Converts from</entry>
+      <entry>Converts to</entry>
     </row>
   </thead>
   <tbody>

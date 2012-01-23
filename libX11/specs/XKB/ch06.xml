@@ -77,43 +77,44 @@ XkbDescRec</emphasis>
 .
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>XkbDescRec Component References</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>XkbDescRec Field</entry>
   <entry>For more info</entry>
 </row>
 </thead>
 <tbody>
-<row rowsep='0'>
+<row>
     <entry>ctrls</entry>
     <entry>Chapter 10</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>server</entry>
     <entry>Chapter 16</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>map</entry>
     <entry>Chapter 15</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>indicators</entry>
     <entry>Chapter 8</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>names</entry>
     <entry>Chapter 18</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>compat</entry>
     <entry>Chapter 17</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>geom</entry>
     <entry>Chapter 13</entry>
   </row>
@@ -130,56 +131,57 @@ XkbDescRec</emphasis>
  are shown in Table 6.2. <!-- xref -->
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Mask Bits for XkbDescRec</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Mask Bit</entry>
   <entry>XkbDescRec Field</entry>
   <entry>Value</entry>
 </row>
 </thead>
 <tbody>
-<row rowsep='0'>
+<row>
     <entry>XkbControlsMask</entry>
     <entry>ctrls</entry>
     <entry>(1L&lt;&lt;0)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbServerMapMask</entry>
     <entry>server</entry>
     <entry>(1L&lt;&lt;1)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbIClientMapMask</entry>
     <entry>map</entry>
     <entry>(1L&lt;&lt;2)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbIndicatorMapMask</entry>
     <entry>indicators</entry>
     <entry>(1L&lt;&lt;3)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbNamesMask</entry>
     <entry>names</entry>
     <entry>(1L&lt;&lt;4)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbCompatMapMask</entry>
     <entry>compat</entry>
     <entry>(1L&lt;&lt;5)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbGeometryMask</entry>
     <entry>geom</entry>
     <entry>(1L&lt;&lt;6)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbAllComponentsMask</entry>
     <entry>All Fields</entry>
     <entry>(0x7f)</entry>
@@ -202,10 +204,11 @@ XkbGetKeyboardbyName</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbDescPtr <emphasis>
 XkbGetKeyboard</emphasis>
@@ -214,21 +217,21 @@ display, which, device_spec</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display * <emphasis>
       display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 which</emphasis>
 ;            /* mask indicating components to return */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       device_spec</emphasis>
@@ -306,10 +309,11 @@ Xmalloc</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbDescRec * <emphasis>
 XkbAllocKeyboard</emphasis>
@@ -344,10 +348,11 @@ XkbFreeKeyboard.</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeKeyboard</emphasis>
@@ -356,21 +361,21 @@ XkbFreeKeyboard</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
             xkb</emphasis>
 ;            /* keyboard description with components to free */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
       which</emphasis>
 ;            /* mask selecting components to free */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool <emphasis>
             free_all</emphasis>
