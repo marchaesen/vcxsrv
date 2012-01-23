@@ -163,6 +163,16 @@ static volatile int nameserver_timedout;
 
 static char *ProgramName;
 
+#ifdef WIN32
+#define alarm(arg) 
+
+void sethostent(int x)
+{}
+
+void endhostent()
+{}
+#endif
+
 #ifdef NEEDSOCKETS
 static int 
 XFamily(int af)
@@ -791,7 +801,7 @@ get_hostname(XHostAddress *ha)
 	sa.sa_handler = nameserver_lost;
 	sa.sa_flags = 0;	/* don't restart syscalls */
 	sigaction(SIGALRM, &sa, NULL);
-#else
+#elif !defined(WIN32)
 	signal(SIGALRM, nameserver_lost);
 #endif
 	alarm(NAMESERVER_TIMEOUT);
@@ -969,12 +979,3 @@ local_xerror(Display *dpy, XErrorEvent *rep)
     XmuPrintDefaultErrorMessage (dpy, rep, stderr);
     return 0;
 }
-
-#ifdef __CYGWIN__
-void sethostent(int x)
-{}
-
-void endhostent()
-{}
-#endif
-
