@@ -83,6 +83,7 @@ xclock-1.0.5
 xcmiscproto-1.2.1
 xextproto git version
 xf86bigfontproto-1.2.0
+xhost-1.0.4
 xineramaproto-1.2.1
 xkbcomp git version
 xkeyboard-config git version
