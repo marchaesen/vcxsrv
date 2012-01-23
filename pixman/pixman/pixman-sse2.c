@@ -5292,10 +5292,10 @@ FAST_NEAREST_MAINLOOP_COMMON (sse2_8888_n_8888_none_OVER,
     const __m128i xmm_wb = _mm_set_epi16 (wb, wb, wb, wb, wb, wb, wb, wb);	\
     const __m128i xmm_xorc = _mm_set_epi16 (0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff);\
     const __m128i xmm_addc = _mm_set_epi16 (0, 0, 0, 0, 1, 1, 1, 1);		\
-    const __m128i xmm_ux = _mm_set_epi16 (unit_x, unit_x, unit_x, unit_x,	\
-					  unit_x, unit_x, unit_x, unit_x);	\
+    const __m128i xmm_ux = _mm_set_epi16 (unit_x&0xffff, unit_x&0xffff, unit_x&0xffff, unit_x&0xffff,	\
+					  unit_x&0xffff, unit_x&0xffff, unit_x&0xffff, unit_x&0xffff);	\
     const __m128i xmm_zero = _mm_setzero_si128 ();				\
-    __m128i xmm_x = _mm_set_epi16 (vx, vx, vx, vx, vx, vx, vx, vx)
+    __m128i xmm_x = _mm_set_epi16 (vx&0xffff, vx&0xffff, vx&0xffff, vx&0xffff, vx&0xffff, vx&0xffff, vx&0xffff, vx&0xffff)
 
 #define BILINEAR_INTERPOLATE_ONE_PIXEL(pix)					\
 do {										\
