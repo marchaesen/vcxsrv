@@ -327,7 +327,7 @@
 #define XDMCP 1
 
 /* Build XFree86 BigFont extension */
-#undef XF86BIGFONT
+#define XF86BIGFONT 1
 
 /* Support XFree86 Video Mode extension */
 #undef XF86VIDMODE

@@ -291,8 +291,13 @@ ProcXF86BigfontQueryVersion(
     reply.sequenceNumber = client->sequence;
     reply.majorVersion = SERVER_XF86BIGFONT_MAJOR_VERSION;
     reply.minorVersion = SERVER_XF86BIGFONT_MINOR_VERSION;
+    #ifdef WIN32
+    reply.uid = 0;
+    reply.gid = 0;
+    #else
     reply.uid = geteuid();
     reply.gid = getegid();
+    #endif
 #ifdef HAS_SHM
     reply.signature = signature;
 #else

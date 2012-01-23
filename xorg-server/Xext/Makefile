@@ -14,6 +14,7 @@ xtest.c \
 geext.c \
 panoramiX.c \
 panoramiXprocs.c \
+xf86bigfont.c \
 panoramiXSwap.c 
 
 #shm.c \
@@ -22,7 +23,6 @@ panoramiXSwap.c
 #mbufbf.c \
 #mbufpx.c \
 #xcalibrate.c \
-#xf86bigfont.c \
 #xprint.c \
 #xselinux.c \
 #xvdisp.c \
