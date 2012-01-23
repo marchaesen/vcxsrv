@@ -21,10 +21,11 @@ XkbSetDebuggingFlags</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetDebuggingFlags</emphasis>
@@ -33,21 +34,21 @@ display, mask, flags, msg, ctrls_mask, ctrls, ret_flags, ret_ctrls</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display * <emphasis>
             display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int <emphasis>
             mask</emphasis>
 ;            /* mask selecting debug output flags to change */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int <emphasis>
             flags</emphasis>
@@ -56,21 +57,21 @@ mask</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 char * <emphasis>
             msg</emphasis>
 ;            /* message to print right now */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 ctrls_mask</emphasis>
 ;            /* mask selecting debug controls to change */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 ctrls</emphasis>
@@ -79,14 +80,14 @@ ctrls_mask</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int * <emphasis>
             ret_flags</emphasis>
 ;            /* resulting state of all debug output flags */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *            <emphasis>
 ret_ctrls</emphasis>
@@ -160,21 +161,22 @@ flags</emphasis>
  are. The valid controls bits are defined in Table 22.1.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Debug Control Masks</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.5*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Debug Control Mask</entry>
   <entry>Value</entry>
   <entry>Meaning</entry>
 </row>
 </thead>
 <tbody>
-<row rowsep='0'>
+<row>
     <entry>XkbDF_DisableLocks</entry>
     <entry>(1 &lt;&lt; 0)</entry>
     <entry>Disable actions that lock modifiers</entry>

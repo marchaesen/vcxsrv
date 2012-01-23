@@ -237,15 +237,16 @@ above. These masks and their relationships to the fields in a keyboard
 description are shown in Table 18.1.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Symbolic Names Masks</title>
-<tgroup cols='4'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='4' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='3.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='1.5*'/>
+<colspec colname='c4' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Mask Bit</entry>
   <entry>Value</entry>
   <entry>Keyboard Component</entry>
@@ -253,91 +254,91 @@ description are shown in Table 18.1.
 </row>
 </thead>
 <tbody>
-<row rowsep='0'>
+<row>
     <entry>XkbKeycodesNameMask</entry>
     <entry>(1&lt;&lt;0)</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>keycodes</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbGeometryNameMask</entry>
     <entry>(1&lt;&lt;1)</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>geometry</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbSymbolsNameMask</entry>
     <entry>(1&lt;&lt;2)</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>symbols</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbPhysSymbolsNameMask</entry>
     <entry>(1&lt;&lt;3)</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>phys_symbols</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbTypesNameMask</entry>
     <entry>(1&lt;&lt;4)</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>type</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbCompatNameMask</entry>
     <entry>(1&lt;&lt;5)</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>compat</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbKeyTypeNamesMask</entry>
     <entry>(1&lt;&lt;6)</entry>
     <entry>Xkb-&gt;map</entry>
     <entry>type[*].name</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbKTLevelNamesMask</entry>
     <entry>(1&lt;&lt;7)</entry>
     <entry>Xkb-&gt;map</entry>
     <entry>type[*].lvl_names[*]</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbIndicatorNamesMask</entry>
     <entry>(1&lt;&lt;8)</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>indicators[*]</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbKeyNamesMask</entry>
     <entry>(1&lt;&lt;9)</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>keys[*], num_keys</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbKeyAliasesMask</entry>
     <entry>(1&lt;&lt;10)</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>key_aliases[*], num_key_aliases</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbVirtualModNamesMask</entry>
     <entry>(1&lt;&lt;11)</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>vmods[*]</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbGroupNamesMask</entry>
     <entry>(1&lt;&lt;12)</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>groups[*]</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbRGNamesMask</entry>
     <entry>(1&lt;&lt;13)</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>radio_groups[*], num_rg</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbComponentNamesMask</entry>
     <entry>(0x3f)</entry>
     <entry>Xkb-&gt;names</entry>
@@ -350,7 +351,7 @@ description are shown in Table 18.1.
 <para>compatibility map</para>
     </entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbAllNamesMask</entry>
     <entry>(0x3fff)</entry>
     <entry>Xkb-&gt;names</entry>
@@ -371,10 +372,11 @@ XkbGetNames</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetNames</emphasis>
@@ -383,21 +385,21 @@ dpy, which, Xkb</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
 dpy</emphasis>
 ;      /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 which</emphasis>
 ;      /* mask of names or map components to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr      <emphasis>
 xkb</emphasis>
@@ -524,10 +526,11 @@ BadImplementation</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetNames</emphasis>
@@ -536,35 +539,35 @@ dpy, which, first_type, num_types, xkb</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
 dpy</emphasis>
 ;            /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 which</emphasis>
 ;            /* mask of names or map components to be changed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 first_type</emphasis>
       ;      /* first type whose name is to be changed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 num_types</emphasis>
 ;            /* number of types for which names are to be changed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr      <emphasis>
 xkb</emphasis>
@@ -668,15 +671,16 @@ the fields in the structure specify the ranges that have changed for the
 various kinds of symbolic names, as shown in Table 18.2.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>XkbNameChanges Fields</title>
-<tgroup cols='4'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='4' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='2.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='1.0*'/>
+<colspec colname='c4' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Mask</entry>
   <entry>Fields</entry>
   <entry>Component</entry>
@@ -684,7 +688,7 @@ various kinds of symbolic names, as shown in Table 18.2.
 </row>
 </thead>
 <tbody>
-<row rowsep='0'>
+<row>
     <entry>XkbKeyTypeNamesMask</entry>
     <entry>
 <para>first_type,</para>
@@ -693,7 +697,7 @@ various kinds of symbolic names, as shown in Table 18.2.
     <entry>Xkb-&gt;map</entry>
     <entry>type[*].name</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbKTLevelNamesMask</entry>
     <entry>
 <para>first_lvl,</para>
@@ -702,19 +706,19 @@ various kinds of symbolic names, as shown in Table 18.2.
     <entry>Xkb-&gt;map</entry>
     <entry>type[*].lvl_names[*]</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbKeyAliasesMask</entry>
     <entry>num_aliases</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>key_aliases[*]</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbRGNamesMask</entry>
     <entry>num_rg</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>radio_groups[*]</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbKeyNamesMask</entry>
     <entry>
 <para>first_key,</para>
@@ -723,19 +727,19 @@ various kinds of symbolic names, as shown in Table 18.2.
     <entry>Xkb-&gt;names</entry>
     <entry>keys[*]</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbVirtualModNamesMask</entry>
     <entry>changed_vmods</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>vmods[*]</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbIndicatorNamesMask</entry>
     <entry>changed_indicators</entry>
     <entry>Xkb-&gt;names</entry>
     <entry>indicators[*]</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbGroupNamesMask</entry>
     <entry>changed_groups</entry>
     <entry>Xkb-&gt;names</entry>
@@ -756,10 +760,11 @@ XkbNameChangesRec</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbChangeNames</emphasis>
@@ -768,21 +773,21 @@ dpy, xkb, changes</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr      <emphasis>
       xkb</emphasis>
 ;            /* keyboard description from which names are to be taken */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbNameChangesPtr      <emphasis>
       changes</emphasis>
@@ -907,10 +912,11 @@ XkbNoteNameChanges</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbNoteNameChanges</emphasis>
@@ -923,7 +929,7 @@ old</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbNameChangesPtr            <emphasis>
 old</emphasis>
@@ -932,14 +938,14 @@ XkbNameChanges</emphasis>
  structure to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbNamesNotifyEvent *            <emphasis>
 new</emphasis>
 ;            /* event from which changes are to be copied */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 wanted</emphasis>
@@ -977,10 +983,11 @@ XkbNoteNameChanges</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetNameChanges</emphasis>
@@ -993,21 +1000,21 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
 ;            /* keyboard description to which names are copied */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbNameChangesPtr            <emphasis>
 changes</emphasis>
@@ -1061,10 +1068,11 @@ XkbAllocNames</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocNames</emphasis>
@@ -1072,28 +1080,28 @@ XkbAllocNames</emphasis>
 xkb, which, num_rg, num_key_aliases)</emphasis>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr      <emphasis>
 xkb;</emphasis>
       /* keyboard description for which names are to be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 which;</emphasis>
       /* mask of names to be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
 num_rg;</emphasis>
       /* total number of radio group names needed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
 num_key_aliases;</emphasis>
@@ -1134,10 +1142,11 @@ XkbFreeNames</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeNames</emphasis>
@@ -1145,21 +1154,21 @@ XkbFreeNames</emphasis>
 xkb, which, free_map)</emphasis>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr      <emphasis>
 xkb</emphasis>
 ;      /* keyboard description for which names are to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 which</emphasis>
 ;      /* mask of names components to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
 free_map</emphasis>

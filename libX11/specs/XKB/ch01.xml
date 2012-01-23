@@ -361,28 +361,29 @@ BadMatch</emphasis>
 generated.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <!-- <caption>Function Error Returns Due to Extension Problems</caption> -->
 <title>Function Error Returns Due to Extension Problems</title>
-<tgroup cols='2'>
-<colspec align="left" colsep="0"/>
-<colspec align="left" colsep="0"/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
 <thead>
-  <row>
+  <row rowsep='1'>
     <entry>Functions return type</entry>
     <entry>Return value</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>pointer to a structure</entry>
     <entry>NULL</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Bool</entry>
     <entry>False</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Status</entry>
     <entry>BadAccess</entry>
   </row>

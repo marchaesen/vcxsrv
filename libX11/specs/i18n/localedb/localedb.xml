@@ -155,127 +155,128 @@ The format of category definition is;
 </para>
 
 <informaltable frame="none">
-  <tgroup cols='3' align='left'>
-  <colspec colname='c1' colwidth="3*" colsep="0"/>
-  <colspec colname='c2' colwidth="1*" colsep="0"/>
-  <colspec colname='c3' colwidth="6*" colsep="0"/>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='3.0*'/>
+  <colspec colname='c2' colwidth='1.0*'/>
+  <colspec colname='c3' colwidth='6.0*'/>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>CategoryDefinition</entry>
       <entry>::=</entry>
       <entry>CategoryHeader CategorySpec CategoryTrailer</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>CategoryHeader</entry>
       <entry>::=</entry>
       <entry>CategoryName NL</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>CategorySpec</entry>
       <entry>::=</entry>
       <entry>{ ClassSpec }</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>CategoryTrailer</entry>
       <entry>::=</entry>
       <entry>"END" Delimiter CategoryName NL</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>CategoryName</entry>
       <entry>::=</entry>
       <entry>String</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ClassSpec</entry>
       <entry>::=</entry>
       <entry>ClassName Delimiter ClassValue NL</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ClassName</entry>
       <entry>::=</entry>
       <entry>String</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ClassValue</entry>
       <entry>::=</entry>
       <entry>ValueList | "{" NL { ClassSpec } "}"</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ValueList</entry>
       <entry>::=</entry>
       <entry>Value | Value ";" ValueList</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Value</entry>
       <entry>::=</entry>
       <entry>ValuePiece | ValuePiece Value</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ValuePiece</entry>
       <entry>::=</entry>
       <entry>String | QuotedString | NumericString</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>String</entry>
       <entry>::=</entry>
       <entry>Char { Char }</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>QuotedString</entry>
       <entry>::=</entry>
       <entry>""" QuotedChar { QuotedChar } """</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>NumericString</entry>
       <entry>::=</entry>
       <entry>"\\o" OctDigit { OctDigit }</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry>|</entry>
       <entry>"\\d" DecDigit { DecDigit }</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry>|</entry>
       <entry>"\\x" HexDigit { HexDigit }</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Char</entry>
       <entry>::=</entry>
       <entry>&lt;XPCS except NL, Space or unescaped reserved symbols&gt;</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>QuotedChar</entry>
       <entry>::=</entry>
       <entry>&lt;XPCS except unescaped """&gt;</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>OctDigit</entry>
       <entry>::=</entry>
       <entry>&lt;character in the range of "0" - "7"&gt;</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>DecDigit</entry>
       <entry>::=</entry>
       <entry>&lt;character in the range of "0" - "9"&gt;</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>HexDigit</entry>
       <entry>::=</entry>
       <entry>&lt;character in the range of "0" - "9", "a" - "f", "A" - "F"&gt;</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Delimiter</entry>
       <entry>::=</entry>
       <entry>Space { Space }</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>Space</entry>
       <entry>::=</entry>
       <entry>&lt;space&gt; | &lt;horizontal tab&gt;</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>NL</entry>
       <entry>::=</entry>
       <entry>&lt;newline&gt;</entry>
@@ -317,14 +318,14 @@ In current sample implementation, categories listed below are available.
 </para>
 
 <informaltable frame="none">
-  <tgroup cols='3' align='left'>
-  <colspec colname='c1' colwidth="2*" colsep="0"/>
-  <colspec colname='c2' colwidth="1*" colsep="0"/>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='1' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.0*'/>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>XLC_FONTSET:XFontSet relative information</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XLC_XLOCALE:Character classification and conversion information</entry>
     </row>
   </tbody>
@@ -340,30 +341,31 @@ It contains the CHARSET_REGISTRY-CHARSET_ENCODING name and character
 mapping side (GL, GR, etc), and is used in Output Method (OM).
 </para>
 
-<informaltable frame="none">
-  <tgroup cols='3' align='left'>
+<informaltable frame="topbot">
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
   <thead>
-  <colspec colname='c1' colwidth="3*" colsep="0"/>
-  <colspec colname='c2' colwidth="1*" colsep="0"/>
-  <colspec colname='c3' colwidth="3*" colsep="0"/>
-    <row>
+  <colspec colname='c1' colwidth='3.0*'/>
+  <colspec colname='c2' colwidth='1.0*'/>
+  <colspec colname='c3' colwidth='3.0*'/>
+    <row rowsep='1'>
       <entry>class</entry>
       <entry>super class</entry>
       <entry>description</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>fsN</entry>
       <entry></entry>
       <entry>Nth fontset (N=0,1,2, ...)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>charset</entry>
       <entry>fsN</entry>
       <entry>list of encoding name</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>font</entry>
       <entry>fsN</entry>
       <entry>list of font encoding name</entry>
@@ -393,22 +395,23 @@ Specifies an encoding information to be used internally in Xlib
 for this fontset.  The format of value is;
       </para>
 <informaltable frame="none">
-  <tgroup cols='3' align='left'>
-  <colspec colname='c1' colwidth="3*" colsep="0"/>
-  <colspec colname='c2' colwidth="1*" colsep="0"/>
-  <colspec colname='c3' colwidth="4*" colsep="0"/>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='3.0*'/>
+  <colspec colname='c2' colwidth='1.0*'/>
+  <colspec colname='c3' colwidth='4.0*'/>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>EncodingInfo</entry>
       <entry>::=</entry>
       <entry>EncodingName [ ":" EncodingSide ]</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>EncodingName</entry>
       <entry>::=</entry>
       <entry>CHARSET_REGISTRY-CHARSET_ENCODING</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>EncodingSide</entry>
       <entry>::=</entry>
       <entry>"GL" | "GR"</entry>
@@ -447,70 +450,71 @@ The XLC_XLOCALE category defines character classification, conversion
 and other character attributes.
 </para>
 
-<informaltable frame="none">
-  <tgroup cols='3' align='left'>
-  <colspec colname='c1' colwidth="3*" colsep="0"/>
-  <colspec colname='c2' colwidth="1*" colsep="0"/>
-  <colspec colname='c3' colwidth="3*" colsep="0"/>
+<informaltable frame="topbot">
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='3.0*'/>
+  <colspec colname='c2' colwidth='1.0*'/>
+  <colspec colname='c3' colwidth='3.0*'/>
   <thead>
-    <row>
+    <row rowsep='1'>
       <entry>class</entry>
       <entry>super class</entry>
       <entry>description</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>encoding_name</entry>
       <entry></entry>
       <entry>codeset name</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>mb_cur_max</entry>
       <entry></entry>
       <entry>MB_CUR_MAX</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>state_depend_encoding</entry>
       <entry></entry>
       <entry>state dependent or not</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>wc_encoding_mask</entry>
       <entry></entry>
       <entry>for parsing wc string</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>wc_shift_bits</entry>
       <entry></entry>
       <entry>for conversion between wc and mb</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>csN</entry>
       <entry></entry>
       <entry>Nth charset (N=0,1,2,...)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>side</entry>
       <entry>csN</entry>
       <entry>mapping side (GL, etc)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>length</entry>
       <entry>csN</entry>
       <entry>length of a character</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>mb_encoding</entry>
       <entry>csN</entry>
       <entry>for parsing mb string</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>wc_encoding</entry>
       <entry>csN</entry>
       <entry>for parsing wc string</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ct_encoding</entry>
       <entry>csN</entry>
       <entry>list of encoding name for ct</entry>
@@ -610,32 +614,33 @@ Specifies a list of shift sequence for parsing multi-byte string.
 The format of this value is;
       </para>
 <informaltable frame="none">
-  <tgroup cols='3' align='left'>
-  <colspec colname='c1' colwidth="3*" colsep="0"/>
-  <colspec colname='c2' colwidth="1*" colsep="0"/>
-  <colspec colname='c3' colwidth="5*" colsep="0"/>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='3.0*'/>
+  <colspec colname='c2' colwidth='1.0*'/>
+  <colspec colname='c3' colwidth='5.0*'/>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>MBEncoding</entry>
       <entry>::=</entry>
       <entry>ShiftType ShiftSequence</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry>|</entry>
       <entry>ShiftType ShiftSequence ";" MBEncoding</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ShiftType</entry>
       <entry>::=</entry>
       <entry>"&lt;SS&gt;"|"&lt;LSL&gt;"|"&lt;LSR&gt;"</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ShiftSequence</entry>
       <entry>::=</entry>
       <entry>SequenceValue|SequenceValue ShiftSequence</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>SequenceValue</entry>
       <entry>::=</entry>
       <entry>NumericString</entry>

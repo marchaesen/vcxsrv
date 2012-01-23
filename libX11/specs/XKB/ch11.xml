@@ -370,47 +370,48 @@ indicate which controls to manipulate. The controls are identified by the masks
 defined in Table 11.1. <!-- xref -->
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Library Control Masks</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Library Control Mask</entry>
   <entry>Value</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>XkbLC_ForceLatin1Lookup</entry>
     <entry>(1 &lt;&lt; 0)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbLC_ConsumeLookupMods</entry>
     <entry>(1 &lt;&lt; 1)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbLC_AlwaysConsumeShiftAndLock</entry>
     <entry>(1 &lt;&lt; 2)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbLC_IgnoreNewKeyboards</entry>
     <entry>(1 &lt;&lt; 3)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbLC_ConsumeKeysOnComposeFail</entry>
     <entry>(1 &lt;&lt; 29)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbLC_ComposeLED</entry>
     <entry>(1 &lt;&lt; 30)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbLC_BeepOnComposeFail</entry>
     <entry>(1 &lt;&lt; 31)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbLC_AllControls</entry>
     <entry>(0xc0000007)</entry>
   </row>
@@ -427,10 +428,11 @@ implemented, use <emphasis>XkbXlibControlsImplemented</emphasis>.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 unsigned int <emphasis>
 XkbXlibControlsImplemented</emphasis>
@@ -439,7 +441,7 @@ display</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             display</emphasis>
@@ -469,10 +471,11 @@ XkbGetXlibControls</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 unsigned int <emphasis>
 XkbGetXlibControls</emphasis>
@@ -481,7 +484,7 @@ display</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             display</emphasis>
@@ -511,10 +514,11 @@ To change the state of the Library Controls, use
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetXlibControls</emphasis>
@@ -523,21 +527,21 @@ display, bits_to_change, values_for_bits</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             display</emphasis>
 ;                  /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned long            <emphasis>
 bits_to_change</emphasis>
 ;                  /* selects controls to be modified */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned long            <emphasis>
 values_for_bits</emphasis>

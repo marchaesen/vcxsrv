@@ -225,15 +225,16 @@ same bits are used to indicate the specific information desired in many of the
 functions described subsequently in this section.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>XkbDeviceInfoRec Mask Bits</title>
-<tgroup cols='4'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='4' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='2.9*'/>
+<colspec colname='c2' colwidth='2.0*'/>
+<colspec colname='c3' colwidth='0.9*'/>
+<colspec colname='c4' colwidth='2.0*'/>
 <thead>
-  <row rowsep='0'>
+  <row rowsep='1'>
     <entry>Name</entry>
     <entry>XkbDeviceInfoRec Fields Effected</entry>
     <entry>Value</entry>
@@ -241,7 +242,7 @@ functions described subsequently in this section.
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>XkbXI_KeyboardsMask</entry>
     <entry></entry>
     <entry>(1L &lt;&lt; 0)</entry>
@@ -251,7 +252,7 @@ Clients can use all Xkb requests and events with
 devices supported by the input device extension.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbXI_ButtonActionsMask</entry>
     <entry>
 <para>num_btns</para>
@@ -264,7 +265,7 @@ KeyClass</emphasis>
 input extension devices.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbXI_IndicatorNamesMask</entry>
     <entry>leds-&gt;names</entry>
     <entry>(1L &lt;&lt;2)</entry>
@@ -274,7 +275,7 @@ KeyClass</emphasis>
  input extension devices.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbXI_IndicatorMapsMask</entry>
     <entry>leds-&gt;maps</entry>
     <entry>(1L &lt;&lt;3)</entry>
@@ -284,7 +285,7 @@ KeyClass</emphasis>
  input extension devices.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbXI_IndicatorStateMask</entry>
     <entry>leds-&gt;state</entry>
     <entry>(1L &lt;&lt;4)</entry>
@@ -294,7 +295,7 @@ KeyClass</emphasis>
  input extension devices.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbXI_IndicatorsMask</entry>
     <entry>
 <para>sz_leds</para>
@@ -303,42 +304,42 @@ KeyClass</emphasis>
     </entry>
     <entry>(0x1c)</entry>
     <entry>
-<para>XkbXI_IndicatorNamesMask |</para>
-<para>XkbXI_IndicatorMapsMask |</para>
-<para>XkbXI_IndicatorStateMask</para>
+<para>XkbXI_IndicatorNames&#xAD;Mask |</para>
+<para>XkbXI_IndicatorMaps&#xAD;Mask |</para>
+<para>XkbXI_IndicatorState&#xAD;Mask</para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbXI_UnsupportedFeaturesMask</entry>
     <entry>unsupported</entry>
     <entry>(1L &lt;&lt;15)</entry>
     <entry></entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbXI_AllDeviceFeaturesMask</entry>
     <entry>Those selected by Value column masks</entry>
     <entry>(0x1e)</entry>
     <entry>
-<para>XkbXI_IndicatorsMask | </para>
-<para>XkbSI_ButtonActionsMask</para>
+<para>XkbXI_Indicators&#xAD;Mask | </para>
+<para>XkbSI_ButtonActions&#xAD;Mask</para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbXI_AllFeaturesMask</entry>
     <entry>Those selected by Value column masks</entry>
     <entry>(0x1f)</entry>
     <entry>
-<para>XkbSI_AllDeviceFeaturesMask |</para>
-<para>XkbSI_KeyboardsMask</para>
+<para>XkbSI_AllDevice&#xAD;FeaturesMask |</para>
+<para>XkbSI_Keyboards&#xAD;Mask</para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbXI_AllDetailsMask</entry>
     <entry>Those selected by Value column masks</entry>
     <entry>(0x801f)</entry>
     <entry>
-<para>XkbXI_AllFeaturesMask | </para>
-<para>XkbXI_UnsupportedFeaturesMask</para>
+<para>XkbXI_AllFeatures&#xAD;Mask | </para>
+<para>XkbXI_Unsupported&#xAD;FeaturesMask</para>
     </entry>
   </row>
 </tbody>
@@ -376,10 +377,11 @@ KeyClass</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbDeviceInfoPtr <emphasis>
 XkbGetDeviceInfo</emphasis>
@@ -388,20 +390,20 @@ dpy</emphasis>
 , which, device_spec, ind_class, ind_id)
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            which;            /* mask indicating information to
 return */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 device_spec</emphasis>
@@ -410,14 +412,14 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 ind_class</emphasis>
 ;            /* feedback class for indicator requests */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 ind_id</emphasis>
@@ -613,10 +615,11 @@ XkbGetDeviceButtonActions.
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetDeviceButtonActions</emphasis>
@@ -625,20 +628,20 @@ dpy, device_info, all_buttons, first_button, num_buttons</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceInfoPtr            device_info;            /* structure to update with
 results */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool            <emphasis>
 all_buttons</emphasis>
@@ -647,13 +650,13 @@ True</emphasis>
  =&gt; get information for all buttons */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            first_button;            /* number of first button for
 which info is desired */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            num_buttons;            /* number of buttons for which
 info is desired */
@@ -746,10 +749,11 @@ of an input extension device, use XkbGetDeviceLedInfo.
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetDeviceLedInfo</emphasis>
@@ -758,33 +762,33 @@ dpy, device_i</emphasis>
 nfo, led_class, led_id, which)
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceInfoPtr            device_info;            /* structure to update with
 results */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 led_class</emphasis>
 ;            /* LED feedback class assigned by input extension */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            led_id;            /* LED feedback ID assigned by input
 extension */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            which;            /* mask indicating desired
 information */
@@ -934,30 +938,31 @@ XkbDeviceInfoRec</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbDeviceInfoPtr <emphasis>
 XkbAllocDeviceInfo</emphasis>
 (device_spec, n_buttons, sz_leds)
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            device_spec;            /* device ID with which
 structure will be used */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 n_buttons</emphasis>
 ;            /* number of button actions to allocate space for*/
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 sz_leds</emphasis>
@@ -1004,24 +1009,25 @@ XkbDeviceLedInfoRec</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocDeviceLedInfo</emphasis>
 (devi, num_needed)
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceInfoPtr            <emphasis>
 device_info</emphasis>
 ;            /* structure in which to allocate LED space */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 num_needed</emphasis>
@@ -1060,30 +1066,31 @@ XkbDeviceLedInfoRec</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbDeviceLedInfoPtr <emphasis>
 XkbAddDeviceLedInfo</emphasis>
 (device_info, led_class, led_id)
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceInfoPtr            device_info;            /* structure in which to
 add LED info */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 led_class</emphasis>
 ;            /* input extension class for LED device of interest */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 led_id</emphasis>
@@ -1154,23 +1161,24 @@ XkbDeviceInfoRec</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbResizeDeviceButtonActions</emphasis>
 (device_info, new_total)
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceInfoPtr            device_info;            /* structure in which to
 allocate button actions */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 new_total</emphasis>
@@ -1217,24 +1225,25 @@ XkbDeviceInfoRec</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeDeviceInfo</emphasis>
 (device_info, which, free_all)
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceInfoPtr            device_info;            /* pointer to <emphasis>
 XkbDeviceInfoRec</emphasis>
  in which to free items */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 which</emphasis>
@@ -1243,7 +1252,7 @@ device_info</emphasis>
  to free */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool            <emphasis>
 free_all</emphasis>
@@ -1379,10 +1388,11 @@ use XkbSetDeviceInfo.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetDeviceInfo</emphasis>
@@ -1391,21 +1401,21 @@ dpy</emphasis>
 , which, device_info)
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 which</emphasis>
 ;            /* mask indicating characteristics to modify */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceInfoPtr            device_info;            /* structure defining the
 device and modifications */
@@ -1577,10 +1587,11 @@ XkbSetDeviceButtonActions.
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetDeviceButtonActions</emphasis>
@@ -1589,26 +1600,26 @@ dpy</emphasis>
 , device, first_button, num_buttons, actions)
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceInfoPtr            device_info;            /* structure defining the
 device and modifications */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            first_button;            /* number of first button to
 update, 0 relative */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            num_buttons;            /* number of buttons to update
 */
@@ -1842,10 +1853,11 @@ XkbExtensionDeviceNotify</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbNoteDeviceChanges</emphasis>
@@ -1854,21 +1866,21 @@ old, new, wanted</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceChangesPtr                        <emphasis>
 old</emphasis>
 ;            /* structure tracking state changes */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbExtensionDeviceNotifyEvent             *            <emphasis>
 new</emphasis>
 ;            /* event indicating state changes */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int                        <emphasis>
 wanted</emphasis>
@@ -1921,10 +1933,11 @@ XkbGetDeviceInfoChanges.
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetDeviceInfoChanges</emphasis>
@@ -1935,20 +1948,20 @@ device_info</emphasis>
 , changes)
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceInfoPtr            device_info;            /* structure to update with
 results */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceChangesPtr            <emphasis>
 changes</emphasis>
@@ -1985,10 +1998,11 @@ XkbDeviceChangesRec, use XkbChangeDeviceInfo.
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbChangeDeviceInfo</emphasis>
@@ -1997,21 +2011,21 @@ dpy, device_info, changes</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceInfoPtr            <emphasis>
 device_info</emphasis>
 ;            /* local copy of device state and configuration */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDeviceChangesPtr            <emphasis>
 changes</emphasis>

@@ -9,13 +9,16 @@ and the X protocol.
 The following table lists each Xlib function (in alphabetical order)
 and the corresponding protocol request that it generates.
 </para>
-<table>
+<table frame='topbot'>
+  <?dbfo keep-together="auto" ?>
   <title>Protocol requests made by each Xlib function</title>
-  <tgroup cols="2">
+  <tgroup cols="2" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*"/>
     <thead>
-      <row>
-	<entry align='left'>Xlib Function</entry>
-	<entry align='left'>Protocol Request</entry>
+      <row rowsep='1'>
+	<entry>Xlib Function</entry>
+	<entry>Protocol Request</entry>
       </row>
     </thead>
     <tbody>
@@ -1057,13 +1060,16 @@ and the corresponding protocol request that it generates.
 The following table lists each X protocol request (in alphabetical
 order) and the Xlib functions that reference it.
 </para>
-<table>
+<table frame='topbot'>
+  <?dbfo keep-together="auto" ?>
   <title>Xlib functions which use each Protocol Request</title>
-  <tgroup cols="2">
+  <tgroup cols="2" align='left' colsep='0' rowsep='0'>
+  <colspec colname="col1" colwidth="1.0*"/>
+  <colspec colname="col2" colwidth="1.0*"/>
     <thead>
-      <row>
-	<entry align='left'>Protocol Request</entry>
-	<entry align='left'>Xlib Function</entry>
+      <row rowsep='1'>
+	<entry>Protocol Request</entry>
+	<entry>Xlib Function</entry>
       </row>
     </thead>
     <tbody>

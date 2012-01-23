@@ -350,50 +350,51 @@ The following values are defined as standard arguments. Other values
 are implementation dependent.
 </para>
 
-<informaltable frame="none">
-  <tgroup cols='3' align='left'>
-  <colspec colname='c1' colwidth="3*" colsep="0"/>
-  <colspec colname='c2' colwidth="1*" colsep="0"/>
-  <colspec colname='c3' colwidth="3*" colsep="0"/>
+<informaltable frame="topbot">
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth="3.0*"/>
+  <colspec colname='c2' colwidth="1.0*"/>
+  <colspec colname='c3' colwidth="3.0*"/>
   <thead>
-    <row>
+    <row rowsep='1'>
       <entry>Name</entry>
       <entry>Type</entry>
       <entry>Description</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>XlcNCodeset</entry>
       <entry>char*</entry>
       <entry>codeset part of locale name</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNDefaultString</entry>
       <entry>char*</entry>
       <entry>XDefaultString()</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNEncodingName</entry>
       <entry>char*</entry>
       <entry>encoding name</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNLanguage</entry>
       <entry>char*</entry>
       <entry>language part of locale name</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNMbCurMax</entry>
       <entry>int</entry>
       <entry>ANSI C MB_CUR_MAX</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNStateDependentEncoding</entry>
       <entry>Bool</entry>
       <entry>is state-dependent encoding or not</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNTerritory</entry>
       <entry>char*</entry>
       <entry>territory part of locale name</entry>
@@ -465,130 +466,131 @@ returns NULL, if no XlcCharSet bound to specified "<emphasis remap='I'>name</emp
 The following character sets are pre-registered.
 </para>
 
-<informaltable frame="none">
-  <tgroup cols='2' align='left'>
-  <colspec colname='c1' colwidth="1*" colsep="0"/>
-  <colspec colname='c2' colwidth="2*" colsep="0"/>
+<informaltable frame="topbot">
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth="1.0*"/>
+  <colspec colname='c2' colwidth="2.0*"/>
   <thead>
-    <row>
+    <row rowsep='1'>
       <entry>Name</entry>
       <entry>Description</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>ISO8859-1:GL</entry>
       <entry>7-bit ASCII graphics (ANSI X3.4-1968),</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry>Left half of ISO 8859 sets</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>JISX0201.1976-0:GL</entry>
       <entry>Left half of JIS X0201-1976 (reaffirmed 1984),</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry>8-Bit Alphanumeric-Katakana Code</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ISO8859-1:GR</entry>
       <entry>Right half of ISO 8859-1, Latin alphabet No. 1</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ISO8859-2:GR</entry>
       <entry>Right half of ISO 8859-2, Latin alphabet No. 2</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ISO8859-3:GR</entry>
       <entry>Right half of ISO 8859-3, Latin alphabet No. 3</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ISO8859-4:GR</entry>
       <entry>Right half of ISO 8859-4, Latin alphabet No. 4</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ISO8859-7:GR</entry>
       <entry>Right half of ISO 8859-7, Latin/Greek alphabet</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ISO8859-6:GR</entry>
       <entry>Right half of ISO 8859-6, Latin/Arabic alphabet</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ISO8859-8:GR</entry>
       <entry>Right half of ISO 8859-8, Latin/Hebrew alphabet</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ISO8859-5:GR</entry>
       <entry>Right half of ISO 8859-5, Latin/Cyrillic alphabet</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>ISO8859-9:GR</entry>
       <entry>Right half of ISO 8859-9, Latin alphabet No. 5</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>JISX0201.1976-0:GR</entry>
       <entry>Right half of JIS X0201-1976 (reaffirmed 1984),</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry>8-Bit Alphanumeric-Katakana Code</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>GB2312.1980-0:GL</entry>
       <entry>GB2312-1980, China (PRC) Hanzi defined as GL</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>GB2312.1980-0:GR</entry>
       <entry>GB2312-1980, China (PRC) Hanzi defined as GR</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>JISX0208.1983-0:GL</entry>
       <entry>JIS X0208-1983, Japanese Graphic Character Set</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry>defined as GL</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>JISX0208.1983-0:GR</entry>
       <entry>JIS X0208-1983, Japanese Graphic Character Set</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry>defined as GR</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>KSC5601.1987-0:GL</entry>
       <entry>KS C5601-1987, Korean Graphic Character Set</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry>defined as GL</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>KSC5601.1987-0:GR</entry>
       <entry>KS C5601-1987, Korean Graphic Character Set</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry>defined as GR</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>JISX0212.1990-0:GL</entry>
       <entry>JIS X0212-1990, Japanese Graphic Character Set</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry>defined as GL</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>JISX0212.1990-0:GR</entry>
       <entry>JIS X0212-1990, Japanese Graphic Character Set</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry></entry>
       <entry>defined as GR</entry>
     </row>
@@ -636,45 +638,46 @@ be obtained.  The following values are defined as standard arguments.
 Other values are implementation dependent.
 </para>
 
-<informaltable frame="none">
-  <tgroup cols='3' align='left'>
-  <colspec colname='c1' colwidth="3*" colsep="0"/>
-  <colspec colname='c2' colwidth="1*" colsep="0"/>
-  <colspec colname='c3' colwidth="3*" colsep="0"/>
+<informaltable frame="topbot">
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth="2.0*"/>
+  <colspec colname='c2' colwidth="1.0*"/>
+  <colspec colname='c3' colwidth="3.0*"/>
   <thead>
-    <row>
+    <row rowsep='1'>
       <entry>Name</entry>
       <entry>Type</entry>
       <entry>Description</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>XlcNName</entry>
       <entry>char*</entry>
       <entry>charset name</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNEncodingName</entry>
       <entry>char*</entry>
       <entry>XLFD CharSet Registry and Encoding</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNSide</entry>
       <entry>XlcSide</entry>
       <entry>charset side (GL, GR, ...)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNCharSize</entry>
       <entry>int</entry>
       <entry>number of octets per character</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNSetSize</entry>
       <entry>int</entry>
       <entry>number of character sets</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNControlSequence</entry>
       <entry>char*</entry>
       <entry>control sequence of Compound Text</entry>
@@ -750,14 +753,15 @@ The following types are pre-defined. Other types are implementation
 dependent.
 </para>
 
-<informaltable>
-  <tgroup cols='4' align='left'>
-  <colspec colname='c1' colwidth="3*" colsep="0"/>
-  <colspec colname='c2' colwidth="1*" colsep="0"/>
-  <colspec colname='c3' colwidth="3*" colsep="0"/>
-  <colspec colname='c4' colwidth="2*" colsep="0"/>
+<informaltable frame="topbot">
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='4' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth="2.0*"/>
+  <colspec colname='c2' colwidth="1.0*"/>
+  <colspec colname='c3' colwidth="2.0*"/>
+  <colspec colname='c4' colwidth="3.0*"/>
   <thead>
-    <row>
+    <row rowsep='1'>
       <entry>Name</entry>
       <entry>Type</entry>
       <entry>Description</entry>
@@ -765,37 +769,37 @@ dependent.
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>XlcNMultiByte</entry>
       <entry>char *</entry>
       <entry>multibyte</entry>
       <entry>-</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNWideChar</entry>
       <entry>wchar_t *</entry>
       <entry>wide character</entry>
       <entry>-</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNCompoundText</entry>
       <entry>char *</entry>
       <entry>COMPOUND_TEXT</entry>
       <entry>-</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNString</entry>
       <entry>char *</entry>
       <entry>STRING</entry>
       <entry>-</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNCharSet</entry>
       <entry>char *</entry>
       <entry>per charset</entry>
       <entry>XlcCharSet</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNChar</entry>
       <entry>char *</entry>
       <entry>per character</entry>
@@ -863,25 +867,26 @@ The following 2 converters prepared by locale returns appropriate
 charset (XlcCharSet) in an area pointed by args[0].
 </para>
 
-<informaltable frame="none">
-  <tgroup cols='3' align='left'>
-  <colspec colname='c1' colwidth="1*" colsep="0"/>
-  <colspec colname='c2' colwidth="1*" colsep="0"/>
-  <colspec colname='c3' colwidth="2*" colsep="0"/>
+<informaltable frame="topbot">
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth="1.0*"/>
+  <colspec colname='c2' colwidth="1.0*"/>
+  <colspec colname='c3' colwidth="2.0*"/>
   <thead>
-    <row>
+    <row rowsep='1'>
       <entry>From</entry>
       <entry>To</entry>
       <entry>Description</entry>
     </row>
   </thead>
   <tbody>
-    <row rowsep="0">
+    <row>
       <entry>XlcNMultiByte</entry>
       <entry>XlcNCharSet</entry>
       <entry>Segmentation (Decomposing)</entry>
     </row>
-    <row rowsep="0">
+    <row>
       <entry>XlcNWideChar</entry>
       <entry>XlcNCharSet</entry>
       <entry>Segmentation (Decomposing)</entry>

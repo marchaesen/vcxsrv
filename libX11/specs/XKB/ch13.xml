@@ -557,19 +557,22 @@ type</emphasis>
  fields are shown in Table 13.1.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Doodad Types</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Doodad</entry>
   <entry>Structure</entry>
   <entry>Type</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>
 indicator doodad</emphasis>
 </entry>
@@ -580,7 +583,7 @@ XkbIndicatorDoodadRec</emphasis>
 XkbIndicatorDoodad</emphasis>
 </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>
 outline doodad</emphasis>
 </entry>
@@ -591,7 +594,7 @@ XkbShapeDoodadRec</emphasis>
 XkbOutlineDoodad</emphasis>
 </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>
 solid doodad</emphasis>
 </entry>
@@ -602,7 +605,7 @@ XkbShapeDoodadRec</emphasis>
 XkbSolidDoodad</emphasis>
 </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>
 text doodad</emphasis>
 </entry>
@@ -613,7 +616,7 @@ XkbTextDoodadRec</emphasis>
 XkbTextDoodad</emphasis>
 </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>
 logo doodad</emphasis>
 </entry>
@@ -1091,10 +1094,11 @@ To load a keyboard geometry if you already have the keyboard description, use
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetGeometry</emphasis>
@@ -1105,14 +1109,14 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;      /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr      <emphasis>
       xkb</emphasis>
@@ -1150,10 +1154,11 @@ XkbGetNamedGeometry</emphasis>.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetNamedGeometry</emphasis>
@@ -1166,21 +1171,21 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
 dpy</emphasis>
 ;      /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr      <emphasis>
 xkb</emphasis>
 ;      /* keyboard description into which the geometry should be loaded */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Atom      <emphasis>
 name</emphasis>
@@ -1235,10 +1240,11 @@ XkbComputeShapeTop</emphasis>.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbComputeShapeTop</emphasis>
@@ -1249,14 +1255,14 @@ shape</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbShapePtr      <emphasis>
       shape</emphasis>
 ;      /* shape to be examined */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbBoundsPtr      <emphasis>
       bounds_rtrn</emphasis>
@@ -1312,10 +1318,11 @@ shape, use <emphasis>XkbComputeShapeBounds</emphasis>.
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbComputeShapeBounds</emphasis>
@@ -1324,7 +1331,7 @@ shape</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbShapePtr      <emphasis>
       shape</emphasis>
@@ -1365,10 +1372,11 @@ To update the bounding box of a row, use <emphasis>XkbComputeRowBounds</emphasis
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbComputeRowBounds</emphasis>
@@ -1381,7 +1389,7 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
@@ -1390,14 +1398,14 @@ section</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr      <emphasis>
       section</emphasis>
 ;      /* section that contains the row */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbRowPtr            <emphasis>
 row</emphasis>
@@ -1432,10 +1440,11 @@ that section. To update the bounding box of a section, use
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbComputeSectionBounds</emphasis>
@@ -1446,7 +1455,7 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
@@ -1455,7 +1464,7 @@ section</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr      <emphasis>
       section</emphasis>
@@ -1491,10 +1500,11 @@ XkbFindOverlayForKey</emphasis>.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 char * <emphasis>
 XkbFindOverlayForKey</emphasis>
@@ -1507,7 +1517,7 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
@@ -1516,14 +1526,14 @@ section</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr      <emphasis>
       section</emphasis>
 ;      /* section to be searched for matching keys */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 char *      <emphasis>
       under</emphasis>
@@ -1581,10 +1591,11 @@ XkbAddGeomProperty</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbPropertyPtr <emphasis>
 XkbAddGeomProperty</emphasis>
@@ -1597,21 +1608,21 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 char *      <emphasis>
       name</emphasis>
 ;      /* name of the new property */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 char *      <emphasis>
       value</emphasis>
@@ -1650,10 +1661,11 @@ XkbAddGeomKeyAlias</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbKeyAliasPtr <emphasis>
 XkbAddGeomKeyAlias</emphasis>
@@ -1664,21 +1676,21 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 char *      <emphasis>
       alias</emphasis>
 ;      /* alias to be added */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 char *      <emphasis>
       real</emphasis>
@@ -1712,10 +1724,11 @@ XkbAddGeomColor</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbColorPtr <emphasis>
 XkbAddGeomColor</emphasis>
@@ -1728,21 +1741,21 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 char *      <emphasis>
       spec</emphasis>
 ;      /* color to be added */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
       pixel</emphasis>
@@ -1790,10 +1803,11 @@ XkbAddGeomOutline</emphasis>.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbOutlinePtr <emphasis>
 XkbAddGeomOutline</emphasis>
@@ -1804,14 +1818,14 @@ shape</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbShapePtr      <emphasis>
       shape</emphasis>
 ;      /* shape to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       sz_points</emphasis>
@@ -1847,10 +1861,11 @@ XkbAddGeomShape</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbShapePtr <emphasis>
 XkbAddGeomShape</emphasis>
@@ -1863,21 +1878,21 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Atom      <emphasis>
       name</emphasis>
 ;      /* name of the new shape */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       sz_outlines</emphasis>
@@ -1919,10 +1934,11 @@ XkbAddGeomKey</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbKeyPtr <emphasis>
 XkbAddGeomKey</emphasis>
@@ -1931,7 +1947,7 @@ row</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbRowPtr      <emphasis>
       row</emphasis>
@@ -1966,10 +1982,11 @@ XkbAddGeomSection</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbSectionPtr <emphasis>
 XkbAddGeomSection</emphasis>
@@ -1986,35 +2003,35 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Atom      <emphasis>
       name</emphasis>
 ;      /* name of the new section */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       sz_rows</emphasis>
 ;      /* number of rows to reserve in the section */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       sz_doodads</emphasis>
 ;      /* number of doodads to reserve in the section */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       sz_overlays</emphasis>
@@ -2061,10 +2078,11 @@ XkbAddGeomRow</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbRowPtr <emphasis>
 XkbAddGeomRow</emphasis>
@@ -2075,14 +2093,14 @@ section</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr      <emphasis>
       section</emphasis>
 ;      /* section to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int            <emphasis>
 sz_keys</emphasis>
@@ -2121,10 +2139,11 @@ XkbAddGeomDoodad</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbDoodadPtr <emphasis>
 XkbAddGeomDoodad</emphasis>
@@ -2137,21 +2156,21 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry to which the doodad is added */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr      <emphasis>
       section</emphasis>
 ;      /* section, if any, to which the doodad is added */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Atom      <emphasis>
       name</emphasis>
@@ -2206,10 +2225,11 @@ XkbAddGeomOverlay</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbOverlayPtr <emphasis>
 XkbAddGeomOverlay</emphasis>
@@ -2222,21 +2242,21 @@ section</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr      <emphasis>
       section</emphasis>
 ;      /* section to which an overlay will be added */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Atom      <emphasis>
       name</emphasis>
 ;      /* name of the overlay */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       sz_rows</emphasis>
@@ -2274,10 +2294,11 @@ XkbAddGeomOverlayRow</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbOverlayRowPtr <emphasis>
 XkbAddGeomOverlayRow</emphasis>
@@ -2288,14 +2309,14 @@ overlay</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbOverlayPtr      <emphasis>
       overlay</emphasis>
 ;      /* overlay to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbRowPtr      <emphasis>
       row_under</emphasis>
@@ -2304,7 +2325,7 @@ overlay</emphasis>
  overlays */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       sz_keys</emphasis>
@@ -2345,10 +2366,11 @@ XkbAddGeomOverlayKey</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbOverlayKeyPtr <emphasis>
 XkbAddGeomOverlayKey</emphasis>
@@ -2359,21 +2381,21 @@ overlay</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbOverlayPtr      <emphasis>
       overlay</emphasis>
 ;      /* overlay to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbRowPtr      <emphasis>
       row</emphasis>
 ;      /* row in overlay to be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 char *      <emphasis>
       under</emphasis>
@@ -2443,10 +2465,11 @@ XkbAllocGeomOutlines.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomOutlines</emphasis>
@@ -2457,14 +2480,14 @@ shape</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbShapePtr            <emphasis>
 shape</emphasis>
 ;      /* shape for which outlines should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -2494,10 +2517,11 @@ XkbFreeGeomOutlines</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomOutlines</emphasis>
@@ -2512,28 +2536,28 @@ shape</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbShapePtr      <emphasis>
       shape</emphasis>
 ;      /* shape in which outlines should be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       first</emphasis>
 ;      /* first outline to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of outlines to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -2561,10 +2585,11 @@ XkbAllocGeomKeys.
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomKeys</emphasis>
@@ -2575,14 +2600,14 @@ row</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbRowPtr      <emphasis>
       row</emphasis>
 ;      /* row to which keys should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -2609,10 +2634,11 @@ XkbFreeGeomKeys</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomKeys</emphasis>
@@ -2627,28 +2653,28 @@ row</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbRowPtr      <emphasis>
       row</emphasis>
 ;      /* row in which keys should be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       first</emphasis>
 ;      /* first key to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of keys to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -2677,10 +2703,11 @@ XkbAllocGeomProps</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomProps</emphasis>
@@ -2691,14 +2718,14 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry for which properties should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -2731,10 +2758,11 @@ XkbFreeGeomProperties</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomProperties</emphasis>
@@ -2749,28 +2777,28 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry in which properties should be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       first</emphasis>
 ;      /* first property to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of properties to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -2799,10 +2827,11 @@ XkbAllocGeomKeyAliases</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomKeyAliases</emphasis>
@@ -2813,14 +2842,14 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry for which key aliases should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -2850,10 +2879,11 @@ XkbFreeGeomKeyAliases</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomKeyAliases</emphasis>
@@ -2868,28 +2898,28 @@ free_all</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry in which key aliases should be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       first</emphasis>
 ;      /* first key alias to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of key aliases to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -2922,10 +2952,11 @@ XkbAllocGeomColors</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomColors</emphasis>
@@ -2936,14 +2967,14 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry for which colors should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -2974,10 +3005,11 @@ XkbFreeGeomColors</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomColors</emphasis>
@@ -2992,28 +3024,28 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry in which colors should be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       first</emphasis>
 ;      /* first color to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of colors to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -3042,10 +3074,11 @@ XkbAllocGeomPoints</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomPoints</emphasis>
@@ -3056,14 +3089,14 @@ outline</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbOutlinePtr      <emphasis>
       outline</emphasis>
 ;      /* outline for which points should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -3093,10 +3126,11 @@ XkbFreeGeomPoints</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomPoints</emphasis>
@@ -3111,28 +3145,28 @@ outline</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbOutlinePtr      <emphasis>
       outline</emphasis>
 ;      /* outline in which points should be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       first</emphasis>
 ;      /* first point to be freed. */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of points to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -3162,10 +3196,11 @@ XkbAllocGeomShapes</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomShapes</emphasis>
@@ -3176,14 +3211,14 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry for which shapes should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -3213,10 +3248,11 @@ XkbFreeGeomShapes</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomShapes</emphasis>
@@ -3231,28 +3267,28 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry in which shapes should be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       first</emphasis>
 ;      /* first shape to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of shapes to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -3282,10 +3318,11 @@ XkbAllocGeomSections</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomSections</emphasis>
@@ -3296,14 +3333,14 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /*geometry for which sections should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -3330,10 +3367,11 @@ XkbFreeGeomSections</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomSections</emphasis>
@@ -3348,28 +3386,28 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry in which sections should be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       first</emphasis>
 ;      /* first section to be freed. */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of sections to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -3399,10 +3437,11 @@ XkbAllocGeomRows</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomRows</emphasis>
@@ -3413,14 +3452,14 @@ section</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr            <emphasis>
 section</emphasis>
 ;      /* section for which rows should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -3447,10 +3486,11 @@ XkbFreeGeomRows</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomRows</emphasis>
@@ -3465,28 +3505,28 @@ section</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr      <emphasis>
       section</emphasis>
 ;      /* section in which rows should be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       first</emphasis>
 ;      /* first row to be freed. */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of rows to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -3516,10 +3556,11 @@ XkbAllocGeomOverlays</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomOverlays</emphasis>
@@ -3530,14 +3571,14 @@ section</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr            <emphasis>
 section</emphasis>
 ;      /* section for which overlays should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -3564,10 +3605,11 @@ XkbFreeGeomOverlays</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomOverlays</emphasis>
@@ -3582,28 +3624,28 @@ section</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr      <emphasis>
       section</emphasis>
 ;      /* section in which overlays should be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       first</emphasis>
 ;      /* first overlay to be freed. */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of overlays to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -3633,10 +3675,11 @@ XkbAllocGeomOverlayRows</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomOverlayRows</emphasis>
@@ -3647,14 +3690,14 @@ overlay</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr            <emphasis>
 overlay</emphasis>
 ;      /* section for which rows should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -3681,10 +3724,11 @@ XkbFreeGeomOverlayRows</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomOverlayRows</emphasis>
@@ -3699,28 +3743,28 @@ overlay</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr      <emphasis>
       overlay</emphasis>
 ;      /* section in which rows should be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       first</emphasis>
 ;      /* first row to be freed. */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of rows to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -3750,10 +3794,11 @@ XkbAllocGeomOverlayKeys</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomOverlayKeys</emphasis>
@@ -3764,14 +3809,14 @@ row</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbRowPtr            <emphasis>
 row</emphasis>
 ;      /* section for which rows should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -3798,10 +3843,11 @@ XkbFreeGeomOverlayKeys</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomOverlayKeys</emphasis>
@@ -3816,28 +3862,28 @@ row</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbRowPtr      <emphasis>
       row</emphasis>
 ;      /* row in which keys should be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       first</emphasis>
 ;      /* first key to be freed. */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of keys to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -3867,10 +3913,11 @@ XkbAllocGeomDoodads</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomDoodads</emphasis>
@@ -3881,14 +3928,14 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry for which doodads should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -3916,10 +3963,11 @@ XkbAllocGeomSectionDoodads</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeomSectionDoodads</emphasis>
@@ -3930,14 +3978,14 @@ section</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbSectionPtr      <emphasis>
       section</emphasis>
 ;      /* section for which doodads should be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       num_needed</emphasis>
@@ -3965,10 +4013,11 @@ XkbFreeGeomDoodads</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeomDoodads</emphasis>
@@ -3981,21 +4030,21 @@ doodads</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDoodadPtr      <emphasis>
       doodads</emphasis>
 ;      /* doodads to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int      <emphasis>
       count</emphasis>
 ;      /* number of doodads to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>
@@ -4026,10 +4075,11 @@ XkbAllocGeometry</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocGeometry</emphasis>
@@ -4040,14 +4090,14 @@ xkb</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr      <emphasis>
       xkb</emphasis>
 ;      /* keyboard description for which geometry is to be allocated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometrySizesPtr<emphasis>
             sizes</emphasis>
@@ -4078,10 +4128,11 @@ XkbFreeGeometry</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeGeometry</emphasis>
@@ -4094,21 +4145,21 @@ geom</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbGeometryPtr      <emphasis>
       geom</emphasis>
 ;      /* geometry to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
       which</emphasis>
 ;      /* mask of geometry components to be freed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
       free_all;</emphasis>

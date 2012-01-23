@@ -93,10 +93,11 @@ To determine the compatibility of a library at runtime, call <emphasis>
 XkbLibraryVersion</emphasis>.
 </para>
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbLibraryVersion</emphasis>
@@ -107,14 +108,14 @@ lib_minor_in_out</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *      <emphasis>
 lib_major_in_out;</emphasis>
                   /* specifies and returns the major Xkb library version. */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *      <emphasis>
 lib_minor_in_out;</emphasis>
@@ -201,10 +202,11 @@ and initializes the extension when it is present.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbQueryExtension</emphasis>
@@ -213,42 +215,42 @@ dpy, opcode_rtrn, event_rtrn, error_rtrn, major_in_out, minor_in_out</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
 dpy;      </emphasis>
       /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *      <emphasis>
 opcode_rtrn</emphasis>
 ;            /* backfilled with the major extension opcode */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *      <emphasis>
 event_rtrn</emphasis>
 ;            /* backfilled with the extension base event code */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *      <emphasis>
 error_rtrn</emphasis>
 ;            /* backfilled with the extension base error code */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *      <emphasis>
 major_in_out</emphasis>
 ;            /* compile time lib major version in, server major version out */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *      <emphasis>
 minor_in_out;      </emphasis>
@@ -303,10 +305,11 @@ server, and initialize the extension for use.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Display *<emphasis>
 XkbOpenDisplay</emphasis>
@@ -315,7 +318,7 @@ display_name, event_rtrn, error_rtrn, major_in_out, minor_in_out,
 reason_rtrn)</emphasis>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 char *      <emphasis>
 display_name</emphasis>
@@ -323,35 +326,35 @@ display_name</emphasis>
 communications domain to be used */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *      <emphasis>
 event_rtrn</emphasis>
 ;      /* backfilled with the extension base event code */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *      <emphasis>
 error_rtrn</emphasis>
 ;      /* backfilled with the extension base error code */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *      <emphasis>
 major_in_out</emphasis>
 ;      /* compile time lib major version in, server major version out */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *      <emphasis>
 minor_in_out</emphasis>
 ;      /* compile time lib minor version in, server minor version out */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 int *      <emphasis>
 reason_rtrn</emphasis>
@@ -491,10 +494,11 @@ disable use of the extension once a connection is established.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool<emphasis>
  XkbIgnoreExtension</emphasis>
@@ -503,7 +507,7 @@ ignore</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
 ignore</emphasis>
@@ -557,11 +561,12 @@ requests in Xlib and the server.
 Table 2.1 lists the protocol errors that can be generated, and their causes. <!-- xref -->
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Xkb Protocol Errors</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='3.0*'/>
 <thead>
   <row rowsep='1'>
     <entry>Error</entry>
@@ -569,7 +574,7 @@ Table 2.1 lists the protocol errors that can be generated, and their causes. <!-
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>BadAccess</entry>
     <entry>
 <para>
@@ -577,7 +582,7 @@ The Xkb extension has not been properly initialized
 </para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>BadKeyboard</entry>
     <entry>
 <para>
@@ -585,7 +590,7 @@ The device specified was not a valid core or input extension device
 </para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>BadImplementation</entry>
     <entry>
 <para>
@@ -593,7 +598,7 @@ Invalid reply from server
 </para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>BadAlloc</entry>
     <entry>
 <para>
@@ -601,7 +606,7 @@ Unable to allocate storage
 </para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>BadMatch</entry>
     <entry>
 <para>
@@ -610,7 +615,7 @@ correct type and range, but is otherwise invalid
 </para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>BadValue</entry>
     <entry>
 <para>
@@ -618,7 +623,7 @@ An argument is out of range
 </para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>BadAtom</entry>
     <entry>
 <para>
@@ -627,7 +632,7 @@ None</emphasis>
 </para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>BadDevice</entry>
     <entry>
 <para>
@@ -660,15 +665,16 @@ significant byte will contain the device, class, or feedback ID as indicated in
 the table.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>BadKeyboard Protocol Error resource_id Values</title>
-<tgroup cols='4'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='4' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='2.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='3.0*'/>
+<colspec colname='c4' colwidth='2.0*'/>
 <thead>
-  <row rowsep='0'>
+  <row rowsep='1'>
     <entry>high-order byte</entry>
     <entry>value</entry>
     <entry>meaning</entry>
@@ -676,7 +682,7 @@ the table.
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>XkbErr_BadDevice</entry>
     <entry>0xff</entry>
     <entry>
@@ -686,7 +692,7 @@ device not found
     </entry>
     <entry>device ID</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbErr_BadClass</entry>
     <entry>0xfe</entry>
     <entry>
@@ -696,7 +702,7 @@ device found, but it is of the wrong class
     </entry>
     <entry>class ID</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbErr_BadId</entry>
     <entry>0xfd</entry>
     <entry>

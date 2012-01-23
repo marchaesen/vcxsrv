@@ -136,14 +136,15 @@ typedef struct {
 <!-- .eM  -->
 The default GC values are:
 </para>
-<informaltable>
-  <tgroup cols='2'>
-  <colspec colname='c1'/>
-  <colspec colname='c2'/>
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.0*'/>
+  <colspec colname='c2' colwidth='1.0*'/>
   <thead>
-    <row>
-      <entry align='center'>Component</entry>
-      <entry align='center'>Default</entry>
+    <row rowsep='1'>
+      <entry>Component</entry>
+      <entry>Default</entry>
     </row>
   </thead>
   <tbody>
@@ -278,16 +279,17 @@ are:
 <!-- .\" and operation. -->
 <!-- .\".CP T 1 -->
 <!-- .\"Display Functions -->
-<informaltable>
-  <tgroup cols='3'>
-  <colspec colname='c1'/>
-  <colspec colname='c2'/>
-  <colspec colname='c3'/>
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.0*'/>
+  <colspec colname='c2' colwidth='1.0*'/>
+  <colspec colname='c3' colwidth='1.0*'/>
   <thead>
-    <row>
-      <entry align='center'>Function Name</entry>
-      <entry align='center'>Value</entry>
-      <entry align='center'>Operation</entry>
+    <row rowsep='1'>
+      <entry>Function Name</entry>
+      <entry>Value</entry>
+      <entry>Operation</entry>
     </row>
   </thead>
   <tbody>
@@ -626,11 +628,12 @@ when the cap-style is applied to both endpoints,
 the semantics depends on the line-width and the cap-style:
 </para>
 
-<informaltable>
-  <tgroup cols='3'>
-  <colspec colname='c1'/>
-  <colspec colname='c2'/>
-  <colspec colname='c3'/>
+<informaltable frame='none'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.0*'/>
+  <colspec colname='c2' colwidth='1.0*'/>
+  <colspec colname='c3' colwidth='3.0*'/>
   <tbody>
     <row>
       <entry><symbol>CapNotLast</symbol></entry>
@@ -741,10 +744,11 @@ or
 the following apply:
 </para>
 
-<informaltable>
-  <tgroup cols='2'>
-  <colspec colname='c1'/>
-  <colspec colname='c2'/>
+<informaltable frame='none'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.0*'/>
+  <colspec colname='c2' colwidth='2.0*'/>
   <tbody>
     <row>
       <entry><symbol>FillSolid</symbol></entry>
@@ -775,10 +779,11 @@ When drawing lines with line-style
 the odd dashes are controlled by the fill-style in the following manner:
 </para>
 
-<informaltable>
-  <tgroup cols='2'>
-  <colspec colname='c1'/>
-  <colspec colname='c2'/>
+<informaltable frame='none'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colname='c1' colwidth='1.0*'/>
+  <colspec colname='c2' colwidth='2.0*'/>
   <tbody>
     <row>
       <entry><symbol>FillSolid</symbol></entry>

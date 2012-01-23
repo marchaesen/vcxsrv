@@ -56,131 +56,132 @@ XkbControlsRec</emphasis>
 The Xkb controls are grouped as shown in Table 10.1. <!-- xref -->
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Xkb Keyboard Controls</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.5*'/>
+<colspec colname='c2' colwidth='1.5*'/>
+<colspec colname='c3' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Type of Control</entry>
   <entry>Control Name</entry>
   <entry>Boolean Control?</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>Controls for enabling and disabling other controls</entry>
     <entry>EnabledControls</entry>
     <entry>No</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>AutoReset</entry>
     <entry>No</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Control for bell behavior</entry>
     <entry>AudibleBell</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Controls for repeat key behavior</entry>
     <entry>PerKeyRepeat</entry>
     <entry>No</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>RepeatKeys</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>DetectableAutorepeat</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Controls for keyboard overlays</entry>
     <entry>Overlay1</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>Overlay2</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Controls for using the mouse from the keyboard</entry>
     <entry>MouseKeys</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>MouseKeysAccel</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Controls for better keyboard access by </entry>
     <entry>AccessXFeedback</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>physically impaired persons</entry>
     <entry>AccessXKeys</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>AccessXTimeout</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>BounceKeys</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>SlowKeys</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>StickyKeys</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Controls for general keyboard mapping</entry>
     <entry>GroupsWrap</entry>
     <entry>No</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>IgnoreGroupLock</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>IgnoreLockMods</entry>
     <entry>No</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>InternalMods</entry>
     <entry>No</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Miscellaneous per-client controls</entry>
     <entry>GrabsUseXKBState</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>LookupStateWhenGrabbed</entry>
     <entry>Boolean</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>SendEventUsesXKBState</entry>
     <entry>Boolean</entry>
@@ -237,10 +238,11 @@ EnabledControls</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbChangeEnabledControls</emphasis>
@@ -255,28 +257,28 @@ mask</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 device_spec</emphasis>
 ;            /* keyboard device to modify */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 mask</emphasis>
 ;            /* 1 bit -&gt; controls to enable / disable */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 values</emphasis>
@@ -378,10 +380,11 @@ XkbGetAutoResetControls</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbGetAutoResetControls</emphasis>
@@ -394,14 +397,14 @@ auto_values</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *            <emphasis>
 auto_ctrls</emphasis>
@@ -410,7 +413,7 @@ auto_values</emphasis>
  are relevant */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *            <emphasis>
 auto_values</emphasis>
@@ -447,10 +450,11 @@ XkbSetAutoResetControls.</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetAutoResetControls</emphasis>
@@ -465,28 +469,28 @@ auto_values</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 changes</emphasis>
 ;            /* controls for which to change auto-reset values */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *            <emphasis>
 auto_ctrls</emphasis>
 ;            /* controls from changes that should auto reset */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *            <emphasis>
 auto_values</emphasis>
@@ -710,10 +714,11 @@ XkbGetAutoRepeatRate</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbGetAutoRepeatRate</emphasis>
@@ -722,14 +727,14 @@ display, device_spec, timeout_rtrn, interval_rtrn</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
       device_spec</emphasis>
@@ -738,14 +743,14 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int <emphasis>
 *            timeout_rtrn</emphasis>
 ;            /* backfilled with initial repeat delay, ms */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int <emphasis>
 *            interval_rtrn</emphasis>
@@ -785,10 +790,11 @@ XkbSetAutoRepeatRate</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetAutoRepeatRate</emphasis>
@@ -797,14 +803,14 @@ display, device_spec, timeout, interval</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 device_spec</emphasis>
@@ -813,14 +819,14 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             timeout</emphasis>
 ;            /* initial delay, ms */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
       interval</emphasis>
@@ -947,10 +953,11 @@ XkbGetDetectableAutorepeat</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbGetDetectableAutorepeat</emphasis>
@@ -959,14 +966,14 @@ display, supported_rtrn</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
       display</emphasis>
 ;                  /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool *<emphasis>
       supported_rtrn</emphasis>
@@ -1022,10 +1029,11 @@ they have requested otherwise.
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetDetectableAutorepeat</emphasis>
@@ -1034,14 +1042,14 @@ display, detectable, supported_rtrn</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
       display</emphasis>
 ;                  /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool<emphasis>
       detectable</emphasis>
@@ -1052,7 +1060,7 @@ DetectableAutorepeat</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool *<emphasis>
       supported_rtrn</emphasis>
@@ -1244,37 +1252,38 @@ XkbControlsRec</emphasis>
  structure (see section 10.8). <!-- xref -->
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>MouseKeysAccel Fields</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Field</entry>
   <entry>Function</entry>
 </row>
 </thead>
 <tbody>
-<row rowsep='0'>
+<row>
     <entry>mk_delay</entry>
     <entry>Time (ms) between the initial key press and the first repeated
 motion event</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>mk_interval</entry>
     <entry>Time (ms) between repeated motion events</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>mk_time_to_max</entry>
     <entry>Number of events (count) before the pointer reaches maximum
 speed</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>mk_max_speed</entry>
     <entry>The maximum speed (in pixels per event) the pointer reaches</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>mk_curve</entry>
     <entry>The ramp used to reach maximum pointer speed</entry>
   </row>
@@ -1602,10 +1611,11 @@ AccessXTimeout</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbGetAccessXTimeout</emphasis>
@@ -1624,14 +1634,14 @@ display</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
       display</emphasis>
 ;                  /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
@@ -1640,28 +1650,28 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned short *      <emphasis>
 timeout_rtrn</emphasis>
 ;                  /* delay until AccessXTimeout, seconds */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *<emphasis>
       ctrls_mask_rtrn</emphasis>
 ;                  /* backfilled with controls to modify */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *      <emphasis>
 ctrls_values_rtrn</emphasis>
 ;                  /* backfilled with on/off status for controls */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned short *      <emphasis>
 opts_mask_rtrn</emphasis>
@@ -1670,7 +1680,7 @@ ax_options</emphasis>
  to modify */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned short *      <emphasis>
 opts_values_rtrn</emphasis>
@@ -1725,10 +1735,11 @@ XkbSetAccessXTimeout</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetAccessXTimeout</emphasis>
@@ -1740,14 +1751,14 @@ opts_values</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
       display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       device_spec</emphasis>
@@ -1756,21 +1767,21 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned short      <emphasis>
 timeout</emphasis>
 ;            /* seconds idle until AccessXTimeout occurs */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       ctrls_mask</emphasis>
 ;            /* boolean controls to modify */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       ctrls_values</emphasis>
@@ -1779,7 +1790,7 @@ ctrls_mask</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned short      <emphasis>
 opts_mask</emphasis>
@@ -1788,7 +1799,7 @@ ax_options</emphasis>
  to change */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned short      <emphasis>
 opts_values</emphasis>
@@ -1875,91 +1886,92 @@ XkbSetControls</emphasis>
  (see section 10.10): <!-- xref -->
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>AccessXFeedback Masks</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Action</entry>
   <entry>Beep Code</entry>
   <entry>ax_options bit</entry>
   </row>
 </thead>
 <tbody>
-<row rowsep='0'>
+<row>
     <entry>LED turned on</entry>
     <entry>High-pitched beep</entry>
     <entry>XkbAX_IndicatorFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>LED turned off</entry>
     <entry>Low-pitched beep</entry>
     <entry>XkbAX_IndicatorFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>More than one LED changed state</entry>
     <entry>Two high-pitched beeps</entry>
     <entry>XkbAX_IndicatorFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>Control turned on</entry>
     <entry>Rising tone</entry>
     <entry>XkbAX_FeatureFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>Control turned off</entry>
     <entry>Falling tone</entry>
     <entry>XkbAX_FeatureFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>More than one control changed state</entry>
     <entry>Two high-pitched beeps</entry>
     <entry>XkbAX_FeatureFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>SlowKeys and BounceKeys about to be turned on or off</entry>
     <entry>Three high-pitched beeps</entry>
     <entry>XkbAX_SlowWarnFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>SlowKeys key pressed</entry>
     <entry>Medium-pitched beep</entry>
     <entry>XkbAX_SKPressFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>SlowKeys key accepted</entry>
     <entry>Medium-pitched beep</entry>
     <entry>XkbAX_SKAcceptFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>SlowKeys key rejected</entry>
     <entry>Low-pitched beep</entry>
     <entry>XkbAX_SKRejectFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>Accepted SlowKeys key released</entry>
     <entry>Medium-pitched beep</entry>
     <entry>XkbAX_SKReleaseFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>BounceKeys key rejected</entry>
     <entry>Low-pitched beep</entry>
     <entry>XkbAX_BKRejectFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>StickyKeys key latched</entry>
     <entry>Low-pitched beep followed by high-pitched beep</entry>
     <entry>XkbAX_StickyKeysFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>StickyKeys key locked</entry>
     <entry>High-pitched beep</entry>
     <entry>XkbAX_StickyKeysFBMask</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>StickyKeys key unlocked</entry>
     <entry>Low-pitched beep</entry>
     <entry>XkbAX_StickyKeysFBMask</entry>
@@ -2024,45 +2036,46 @@ detail</emphasis>
 in Table 10.4. <!-- xref -->
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>AccessXNotify Events</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>detail</entry>
   <entry>Reason</entry>
 </row>
 </thead>
 <tbody>
-<row rowsep='0'>
+<row>
     <entry>XkbAXN_SKPress</entry>
     <entry>A key was pressed when SlowKeys was enabled.</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbAXN_SKAccept</entry>
     <entry>A key was accepted (held longer than the SlowKeys delay).</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbAXN_SKRelease</entry>
     <entry>An accepted SlowKeys key was released.</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbAXN_SKReject</entry>
     <entry>A key was rejected (released before the SlowKeys delay
 expired).</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbAXN_BKAccept</entry>
     <entry>A key was accepted by BounceKeys.</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbAXN_BKReject</entry>
     <entry>A key was rejected (pressed before the BounceKeys delay
 expired).</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbAXN_AXKWarning</entry>
     <entry>AccessXKeys is about to turn on/off StickyKeys or BounceKeys.</entry>
   </row>
@@ -2123,56 +2136,57 @@ values_for_bits</emphasis>
  using mask bits from Table 10.5. <!-- xref -->
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>AccessXNotify Event Details</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.5*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>XkbAccessXNotify Event Details</entry>
   <entry>Value</entry>
   <entry>Circumstances</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAXN_SKPressMask</entry>
     <entry>(1&lt;&lt;0)</entry>
     <entry>Slow key press notification wanted</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAXN_SKAcceptMask</entry>
     <entry>(1&lt;&lt;1)</entry>
     <entry>Slow key accept notification wanted</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAXN_SKRejectMask</entry>
     <entry>(1&lt;&lt;2)</entry>
     <entry>Slow key reject notification wanted</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAXN_SKReleaseMask</entry>
     <entry>(1&lt;&lt;3)</entry>
     <entry>Slow key release notification wanted</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAXN_BKAcceptMask</entry>
     <entry>(1&lt;&lt;4)</entry>
     <entry>Bounce key accept notification wanted</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAXN_BKRejectMask</entry>
     <entry>(1&lt;&lt;5)</entry>
     <entry>Bounce key reject notification wanted</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAXN_AXKWarningMask</entry>
     <entry>(1&lt;&lt;6)</entry>
     <entry>AccessX warning notification wanted</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAXN_AllEventsMask</entry>
     <entry>(0x7f)</entry>
     <entry>All AccessX features notifications wanted</entry>
@@ -2250,10 +2264,11 @@ XkbGetSlowKeysDelay</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbGetSlowKeysDelay</emphasis>
@@ -2266,14 +2281,14 @@ display</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
@@ -2282,7 +2297,7 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *      <emphasis>
 delay_rtrn</emphasis>
@@ -2327,10 +2342,11 @@ XkbSetSlowKeysDelay</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetSlowKeysDelay</emphasis>
@@ -2343,14 +2359,14 @@ display</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
       display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
@@ -2359,7 +2375,7 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 delay</emphasis>
@@ -2435,10 +2451,11 @@ BounceKeys</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbGetBounceKeysDelay</emphasis>
@@ -2451,14 +2468,14 @@ display</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
       display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
@@ -2467,7 +2484,7 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *      <emphasis>
 delay_rtrn</emphasis>
@@ -2512,10 +2529,11 @@ XkbSetBounceKeysDelay</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetBounceKeysDelay</emphasis>
@@ -2528,14 +2546,14 @@ display</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
       display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       device_spec</emphasis>
@@ -2544,7 +2562,7 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 delay</emphasis>
@@ -2735,10 +2753,11 @@ StickyKeys</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbGetStickyKeysOptions</emphasis>
@@ -2751,14 +2770,14 @@ display</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
       display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
@@ -2767,7 +2786,7 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *      <emphasis>
 options_rtrn</emphasis>
@@ -2823,10 +2842,11 @@ XkbSetStickyKeysOptions</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetStickyKeysOptions</emphasis>
@@ -2837,28 +2857,28 @@ display</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
       display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
 ;            /* device to configure, or XkbUseCoreKbd */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 mask</emphasis>
 ;            /* selects StickyKeys attributes to modify */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 values;</emphasis>
@@ -3067,10 +3087,11 @@ XkbSetIgnoreLockMods.</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetIgnoreLockMods</emphasis>
@@ -3080,14 +3101,14 @@ virtual_values</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
 display</emphasis>
 ;            /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
@@ -3096,28 +3117,28 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       affect_real</emphasis>
 ;            /* mask of real modifiers affected by this call */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       real_values</emphasis>
 ;            /* values for affected real modifiers (1=&gt;set, 0=&gt;unset) */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       affect_virtual</emphasis>
 ;            /* mask of virtual modifiers affected by this call */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       virtual_values</emphasis>
@@ -3268,10 +3289,11 @@ XkbSetServerInternalMods.</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetServerInternalMods</emphasis>
@@ -3281,14 +3303,14 @@ virtual_values</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *      <emphasis>
 display</emphasis>
 ;            /* connection to the X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 device_spec</emphasis>
@@ -3297,28 +3319,28 @@ XkbUseCoreKbd</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       affect_real</emphasis>
 ;            /* mask of real modifiers affected by this call */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       real_values</emphasis>
 ;            /* values for affected real modifiers (1=&gt;set, 0=&gt;unset) */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       affect_virtual</emphasis>
 ;            /* mask of virtual modifiers affected by this call */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       virtual_values</emphasis>
@@ -3470,12 +3492,17 @@ bit used to turn boolean controls on and off and the section where each control
 is described in more detail.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Xkb Controls</title>
-<tgroup cols='5'>
-<colspec colsep='0'/>
+<?dbfo keep-together="auto" ?>
+<tgroup cols='5' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='2.0*'/>
+<colspec colname='c2' colwidth='3.1*'/>
+<colspec colname='c3' colwidth='2.2*'/>
+<colspec colname='c4' colwidth='2.6*'/>
+<colspec colname='c5' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Control</entry>
   <entry>Control Selection Mask (which parameter)</entry>
   <entry>Relevant XkbControlsRec Data Fields</entry>
@@ -3484,21 +3511,21 @@ is described in more detail.
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>AccessXFeedback</entry>
     <entry>XkbAccessXFeedbackMask</entry>
     <entry>ax_options:      XkbAX_*FBMask</entry>
-    <entry>XkbAccessXFeedbackMask</entry>
+    <entry>XkbAccessXFeedback&#xAD;Mask</entry>
     <entry>10.6.3</entry> <!-- xref -->
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>AccessXKeys</entry>
     <entry></entry>
     <entry></entry>
-    <entry>XkbAccessXKeysMask</entry>
+    <entry>XkbAccessXKeys&#xAD;Mask</entry>
     <entry>10.6.1</entry> <!-- xref -->
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>AccessXTimeout</entry>
     <entry>XkbAccessXTimeoutMask</entry>
     <entry>
@@ -3508,80 +3535,80 @@ is described in more detail.
       <para>axt_ctrls_mask</para>
       <para>axt_ctrls_values</para>
     </entry>
-    <entry>XkbAccessXTimeoutMask</entry>
+    <entry>XkbAccessXTimeout&#xAD;Mask</entry>
     <entry>10.6.2</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>AudibleBell</entry>
     <entry></entry>
     <entry></entry>
     <entry>XkbAudibleBellMask</entry>
     <entry>9.2</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>AutoReset</entry>
     <entry></entry>
     <entry></entry>
     <entry></entry>
     <entry>10.1.2</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>BounceKeys</entry>
     <entry>XkbBounceKeysMask</entry>
     <entry>debounce_delay</entry>
     <entry>XkbBounceKeysMask</entry>
     <entry>10.6.7</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Detectable-Autorepeat</entry>
     <entry></entry>
     <entry></entry>
     <entry></entry>
     <entry>10.3.3</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>EnabledControls</entry>
     <entry>XkbControlsEnabledMask</entry>
     <entry>enabled_ctrls</entry>
     <entry><emphasis>Non-Boolean Control</emphasis></entry>
     <entry>10.1.1</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>GroupsWrap</entry>
     <entry>XkbGroupsWrapMask</entry>
     <entry>groups_wrap</entry>
     <entry><emphasis>Non-Boolean Control</emphasis></entry>
     <entry>10.7.1</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>IgnoreGroupLock</entry>
     <entry></entry>
     <entry></entry>
-    <entry>XkbIgnoreGroupLockMask</entry>
+    <entry>XkbIgnoreGroupLock&#xAD;Mask</entry>
     <entry>10.7.3</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>IgnoreLockMods</entry>
     <entry>XkbIgnoreLockModsMask</entry>
     <entry>ignore_lock</entry>
     <entry><emphasis>Non-Boolean Control</emphasis></entry>
     <entry>5.1</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>InternalMods</entry>
     <entry>XkbInternalModsMask</entry>
     <entry>internal</entry>
     <entry><emphasis>Non-Boolean Control</emphasis></entry>
     <entry>5.1</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>MouseKeys</entry>
     <entry>XkbMouseKeysMask</entry>
     <entry>mk_dflt_btn</entry>
     <entry>XkbMouseKeysMask</entry>
     <entry>10.5.1</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>MouseKeysAccel</entry>
     <entry>XkbMouseKeysAccelMask</entry>
     <entry>
@@ -3591,31 +3618,31 @@ is described in more detail.
       <para>mk_max_speed</para>
       <para>mk_curve</para>
     </entry>
-    <entry>XkbMouseKeysAccelMask</entry>
+    <entry>XkbMouseKeysAccel&#xAD;Mask</entry>
     <entry>10.5.2</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Overlay1</entry>
     <entry></entry>
     <entry></entry>
     <entry>XkbOverlay1Mask</entry>
     <entry>10.4</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>Overlay2</entry>
     <entry></entry>
     <entry></entry>
     <entry>XkbOverlay2Mask</entry>
     <entry>10.4</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>PerKeyRepeat</entry>
     <entry>XkbPerKeyRepeatMask</entry>
     <entry>per_key_repeat</entry>
     <entry><emphasis>Non-Boolean Control</emphasis></entry>
     <entry>10.3.1</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>RepeatKeys</entry>
     <entry>XkbRepeatKeysMask</entry>
     <entry>
@@ -3625,20 +3652,20 @@ is described in more detail.
     <entry>XkbRepeatKeysMask</entry>
     <entry>10.3</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>SlowKeys</entry>
     <entry>XkbSlowKeysMask</entry>
     <entry>slow_keys_delay</entry>
     <entry>XkbSlowKeysMask</entry>
     <entry>10.6.6</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>StickyKeys</entry>
     <entry>XkbStickyKeysMask</entry>
     <entry>
       <para>ax_options:</para>
-      <para>XkbAX_TwoKeysMask</para>
-      <para>XkbAX_LatchToLockMask</para>
+      <para>XkbAX_Two&#xAD;KeysMask</para>
+      <para>XkbAX_Latch&#xAD;ToLockMask</para>
     </entry>
     <entry>XkbStickyKeysMask</entry>
     <entry>10.6.8</entry>
@@ -3660,15 +3687,16 @@ configurable attributes; and for controls that are not boolean controls and
 therefore cannot be enabled or disabled.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Controls Mask Bits</title>
-<tgroup cols='4'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='4' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='2.6*'/>
+<colspec colname='c2' colwidth='2.0*'/>
+<colspec colname='c3' colwidth='1.3*'/>
+<colspec colname='c4' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Mask Bit</entry>
   <entry>which or changed_ctrls</entry>
   <entry>enabled_ctrls</entry>
@@ -3676,127 +3704,127 @@ therefore cannot be enabled or disabled.
 </row>
 </thead>
 <tbody>
-<row rowsep='0'>
+<row>
     <entry>XkbRepeatKeysMask</entry>
     <entry>ok</entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;0)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbSlowKeysMask</entry>
     <entry>ok</entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;1)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbBounceKeysMask</entry>
     <entry>ok</entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;2)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbStickyKeysMask</entry>
     <entry>ok</entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;3)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbMouseKeysMask</entry>
     <entry>ok</entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;4)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbMouseKeysAccelMask</entry>
     <entry>ok</entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;5)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAccessXKeysMask</entry>
     <entry>ok</entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;6)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAccessXTimeoutMask</entry>
     <entry>ok</entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;7)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAccessXFeedbackMask</entry>
     <entry>ok</entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;8)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAudibleBellMask</entry>
     <entry></entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;9)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbOverlay1Mask</entry>
     <entry></entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;10)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbOverlay2Mask</entry>
     <entry></entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;11)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbIgnoreGroupLockMask</entry>
     <entry></entry>
     <entry>ok</entry>
     <entry>(1L&lt;&lt;12)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbGroupsWrapMask</entry>
     <entry>ok</entry>
     <entry></entry>
     <entry>(1L&lt;&lt;27)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbInternalModsMask</entry>
     <entry>ok</entry>
     <entry></entry>
     <entry>(1L&lt;&lt;28)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbIgnoreLockModsMask</entry>
     <entry>ok</entry>
     <entry></entry>
     <entry>(1L&lt;&lt;29)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbPerKeyRepeatMask</entry>
     <entry>ok</entry>
     <entry></entry>
     <entry>(1L&lt;&lt;30)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbControlsEnabledMask</entry>
     <entry>ok</entry>
     <entry></entry>
     <entry>(1L&lt;&lt;31)</entry>
 </row>
-<row rowsep='0'>
+<row>
     <entry>XkbAccessXOptionsMask</entry>
     <entry>ok</entry>
     <entry>ok</entry>
     <entry>(XkbStickyKeysMask | XkbAccessXFeedbackMask)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAllBooleanCtrlsMask</entry>
     <entry></entry>
     <entry>ok</entry>
     <entry>(0x00001FFF) </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbAllControlsMask</entry>
     <entry>ok</entry>
     <entry></entry>
@@ -3865,27 +3893,28 @@ groups_wrap</emphasis>
  are shown in Table 10.8.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>GroupsWrap options (groups_wrap field)</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>groups_wrap symbolic name</entry>
   <entry>value</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>XkbWrapIntoRange</entry>
     <entry>(0x00)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbClampIntoRange</entry>
     <entry>(0x40)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbRedirectIntoRange</entry>
     <entry>(0x80)</entry>
   </row>
@@ -4061,81 +4090,82 @@ ax_options</emphasis>
 Table 10.9.  <!-- xref -->
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Access X Enable/Disable Bits (ax_options field)</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.3*'/>
+<colspec colname='c3' colwidth='0.7*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Access X Control</entry>
   <entry>ax_options bit</entry>
   <entry>value</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>AccessXFeedback</entry>
     <entry>XkbAX_SKPressFBMask</entry>
     <entry>(1L&lt;&lt;0)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>XkbAX_SKAcceptFBMask</entry>
     <entry>(1L &lt;&lt; 1)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>XkbAX_FeatureFBMask</entry>
     <entry>(1L &lt;&lt; 2)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>XkbAX_SlowWarnFBMask</entry>
     <entry>(1L &lt;&lt; 3)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>XkbAX_IndicatorFBMask</entry>
     <entry>(1L &lt;&lt; 4)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>XkbAX_StickyKeysFBMask</entry>
     <entry>(1L &lt;&lt; 5)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>XkbAX_SKReleaseFBMask</entry>
     <entry>(1L &lt;&lt; 8)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>XkbAX_SKRejectFBMask</entry>
     <entry>(1L &lt;&lt; 9)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>XkbAX_BKRejectFBMask</entry>
     <entry>(1L &lt;&lt; 10)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>XkbAX_DumbBellFBMask</entry>
     <entry>(1L &lt;&lt; 11)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>StickyKeys</entry>
     <entry>XkbAX_TwoKeysMask</entry>
     <entry>(1L &lt;&lt; 6)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>XkbAX_LatchToLockMask</entry>
     <entry>(1L &lt;&lt; 7)</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry></entry>
     <entry>XkbAX_AllOptionsMask</entry>
     <entry>(0xFFF)</entry>
@@ -4313,10 +4343,11 @@ XkbGetControls</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetControls</emphasis>
@@ -4324,21 +4355,21 @@ XkbGetControls</emphasis>
 display, which, xkb)</emphasis>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned long<emphasis>
             which</emphasis>
 ;            /* mask of controls requested */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr<emphasis>
             xkb</emphasis>
@@ -4467,10 +4498,11 @@ XkbSetControls</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetControls</emphasis>
@@ -4478,21 +4510,21 @@ XkbSetControls</emphasis>
 display, which, xkb)</emphasis>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned long      <emphasis>
       which      </emphasis>
 ;      /* mask of controls to change */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
@@ -4649,10 +4681,11 @@ match those in the changed keyboard description.
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbChangeControls</emphasis>
@@ -4661,14 +4694,14 @@ dpy, xkb, changes</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *                  <emphasis>
 dpy</emphasis>
 ;      /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr                  <emphasis>
 xkb</emphasis>
@@ -4677,7 +4710,7 @@ xkb-&gt;ctrls</emphasis>
  */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbControlsChangesPtr                  <emphasis>
 changes</emphasis>
@@ -4863,10 +4896,11 @@ XkbNoteControlsChanges</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbNoteControlsChanges</emphasis>
@@ -4879,21 +4913,21 @@ changes</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbControlsChangesPtr            <emphasis>
       changes</emphasis>
 ;      /* records changes indicated by new */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbControlsNotifyEvent *            <emphasis>
       new</emphasis>
 ;      /* tells which things have changed */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
       wanted</emphasis>
@@ -4932,10 +4966,11 @@ XkbNoteControlsChanges.</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetControlsChanges</emphasis>
@@ -4948,14 +4983,14 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
@@ -4964,7 +4999,7 @@ xkb-&gt;ctrls</emphasis>
  will be updated */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbNameChangesPtr            <emphasis>
 changes</emphasis>
@@ -5037,10 +5072,11 @@ XkbAllocControls</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocControls</emphasis>
@@ -5049,14 +5085,14 @@ xkb, which</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
             xkb</emphasis>
 ;            /* Xkb description in which to allocate ctrls rec */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             which</emphasis>
@@ -5124,10 +5160,11 @@ XkbFreeControls:</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeControls</emphasis>
@@ -5136,14 +5173,14 @@ xkb, which, free_all</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr<emphasis>
       xkb</emphasis>
 ;            /* Xkb description in which to free controls components */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
 which</emphasis>
@@ -5152,7 +5189,7 @@ ctrls</emphasis>
  to free */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool      <emphasis>
 free_all</emphasis>
@@ -5227,10 +5264,11 @@ XkbGetPerClientControls</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbGetPerClientControls</emphasis>
@@ -5241,14 +5279,14 @@ ctrls</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *            <emphasis>
 ctrls</emphasis>
@@ -5283,10 +5321,11 @@ XkbSetPerClientControls.</emphasis>
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetPerClientControls</emphasis>
@@ -5297,21 +5336,21 @@ ctrls</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *            <emphasis>
 dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int            <emphasis>
 change</emphasis>
 ;            /* 1 bit =&gt; change control */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int *            <emphasis>
 value</emphasis>

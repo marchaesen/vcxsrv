@@ -249,10 +249,11 @@ XkbGetMap</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 XkbDescPtr <emphasis>
 XkbGetMap</emphasis>
@@ -261,21 +262,21 @@ display, which, device_spec</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *       <emphasis>
       display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
       which</emphasis>
 ;            /* mask selecting subcomponents to populate */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int      <emphasis>
       device_spec</emphasis>
@@ -354,12 +355,18 @@ column in Table 14.1. Refer to the sections listed in the table for more
 information on these functions.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>Xkb Mapping Component Masks and Convenience Functions</title>
-<tgroup cols='6'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='6' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='3.0*'/>
+<colspec colname='c2' colwidth='0.9*'/>
+<colspec colname='c3' colwidth='0.9*'/>
+<colspec colname='c4' colwidth='1.6*'/>
+<colspec colname='c5' colwidth='2.1*'/>
+<colspec colname='c6' colwidth='0.9*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Mask</entry>
   <entry>Value</entry>
   <entry>Map</entry>
@@ -369,7 +376,7 @@ information on these functions.
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKeyTypesMask</emphasis></entry>
     <entry>(1&lt;&lt;0)</entry>
     <entry>client</entry>
@@ -386,7 +393,7 @@ information on these functions.
     </entry>
     <entry>15.2</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKeySymsMask</emphasis></entry>
     <entry>(1&lt;&lt;1)</entry>
     <entry>client</entry>
@@ -399,27 +406,27 @@ information on these functions.
     <entry>
       <para><emphasis>XkbGetKeySyms</emphasis></para>
       <para><emphasis>XkbResizeKeySyms</emphasis></para>
-      <para><emphasis>XkbChangeTypesOfKey</emphasis></para>
+      <para><emphasis>XkbChangeTypes&#xAD;OfKey</emphasis></para>
     </entry>
     <entry>15.3</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbModifierMapMask</emphasis></entry>
     <entry>(1&lt;&lt;2)</entry>
     <entry>client</entry>
     <entry><emphasis>modmap</emphasis></entry>
-    <entry><emphasis>XkbGetKeyModifierMap</emphasis></entry>
+    <entry><emphasis>XkbGetKeyModifier&#xAD;Map</emphasis></entry>
     <entry>15.4</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbExplicitComponentsMask</emphasis></entry>
     <entry>(1&lt;&lt;3)</entry>
     <entry>server</entry>
     <entry><emphasis>explicit</emphasis></entry>
-    <entry><emphasis>XkbGetKeyExplicitComponents</emphasis></entry>
+    <entry><emphasis>XkbGetKeyExplicit&#xAD;Components</emphasis></entry>
     <entry>16.3</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKeyActionsMask</emphasis></entry>
     <entry>(1&lt;&lt;4)</entry>
     <entry>server</entry>
@@ -431,19 +438,19 @@ information on these functions.
     </entry>
     <entry>
       <para><emphasis>XkbGetKeyActions</emphasis></para>
-      <para><emphasis>XkbResizeKeyActions</emphasis></para>
+      <para><emphasis>XkbResizeKey&#xAD;Actions</emphasis></para>
     </entry>
     <entry>16.1</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKeyBehaviorsMask</emphasis></entry>
     <entry>(1&lt;&lt;5)</entry>
     <entry>server</entry>
     <entry><emphasis>behaviors</emphasis></entry>
-    <entry><emphasis>XkbGetKeyBehaviors</emphasis></entry>
+    <entry><emphasis>XkbGetKey&#xAD;Behaviors</emphasis></entry>
     <entry>16.2</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbVirtualModsMask</emphasis></entry>
     <entry>(1&lt;&lt;6)</entry>
     <entry>server</entry>
@@ -451,12 +458,12 @@ information on these functions.
     <entry><emphasis>XkbGetVirtualMods</emphasis></entry>
     <entry>16.4</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbVirtualModMapMask</emphasis></entry>
     <entry>(1&lt;&lt;7)</entry>
     <entry>server</entry>
     <entry><emphasis>vmodmap</emphasis></entry>
-    <entry><emphasis>XkbGetVirtualModMap</emphasis></entry>
+    <entry><emphasis>XkbGetVirtualMod&#xAD;Map</emphasis></entry>
     <entry>16.4</entry>
   </row>
 </tbody>
@@ -491,10 +498,11 @@ description, use <emphasis>XkbGetUpdatedMap</emphasis>.
 
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbGetUpdatedMap</emphasis>
@@ -503,21 +511,21 @@ display, which, xkb</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display * <emphasis>
             display</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             which</emphasis>
 ;            /* mask selecting subcomponents to populate */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr            <emphasis>
 xkb</emphasis>
@@ -585,10 +593,11 @@ an<emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbSetMap</emphasis>
@@ -601,21 +610,21 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             which</emphasis>
 ;            /* mask selecting subcomponents to update */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
             xkb</emphasis>
@@ -751,19 +760,22 @@ XkbMapChangesRec</emphasis>
 .
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>XkbMapChangesRec Masks</title>
-<tgroup cols='3'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='3' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='1.0*'/>
+<colspec colname='c3' colwidth='1.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Mask</entry>
   <entry>Valid XkbMapChangesRec Fields</entry>
   <entry>XkbDescRec Field Containing Changed Data</entry>
 </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKeyTypesMask</emphasis></entry>
     <entry>
 <para>first_type</para>,
@@ -774,7 +786,7 @@ XkbMapChangesRec</emphasis>
 <para>map-&gt;type[first_type + num_types - 1]</para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKeySymsMask</emphasis></entry>
     <entry>
 <para>first_key_sym</para>,
@@ -785,7 +797,7 @@ XkbMapChangesRec</emphasis>
 <para>map-&gt;key_sym_map[first_key_sym + num_key_syms - 1]</para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbModifierMapMask</emphasis></entry>
     <entry>
 <para>first_modmap_key</para>,
@@ -796,7 +808,7 @@ XkbMapChangesRec</emphasis>
 <para>map-&gt;modmap[first_modmap_key + num_modmap_keys-1]</para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbExplicitComponentsMask</emphasis></entry>
     <entry>
 <para>first_key_explicit</para>,
@@ -807,7 +819,7 @@ XkbMapChangesRec</emphasis>
 <para>server-&gt;explicit[first_key_explicit + num_key_explicit - 1]</para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKeyActionsMask</emphasis></entry>
     <entry>
 <para>first_key_act,</para>
@@ -818,7 +830,7 @@ XkbMapChangesRec</emphasis>
 <para>server-&gt;key_acts[first_key_act + num_key_acts - 1]</para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbKeyBehaviorsMask</emphasis></entry>
     <entry>
 <para>first_key_behavior,</para>
@@ -829,12 +841,12 @@ XkbMapChangesRec</emphasis>
 <para>server-&gt;behaviors[first_key_behavior + num_key_behaviors - 1]</para>
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbVirtuawModsMask</emphasis></entry>
     <entry>vmods</entry>
     <entry>server-&gt;vmods[*]</entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry><emphasis>XkbVirtualModMapMask</emphasis></entry>
     <entry>
 <para>first_vmodmap_key,</para>
@@ -860,10 +872,11 @@ XkbMapChangesRec</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Bool <emphasis>
 XkbChangeMap</emphasis>
@@ -876,21 +889,21 @@ dpy</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Display *<emphasis>
             dpy</emphasis>
 ;            /* connection to X server */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
             xkb</emphasis>
 ;            /* description from which new values are taken */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbMapChangesPtr <emphasis>
             changes</emphasis>
@@ -1092,10 +1105,11 @@ XkbAllocClientMap.</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocClientMap</emphasis>
@@ -1104,21 +1118,21 @@ xkb, which, type_count</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
             xkb</emphasis>
 ;            /* keyboard description in which to allocate client map */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             which</emphasis>
 ;            /* mask selecting map components to allocate */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             type_count</emphasis>
@@ -1145,18 +1159,20 @@ allocate and is a mask composed by a bitwise inclusive OR of one or more of the
 masks shown in Table 14.3.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>XkbAllocClientMap Masks</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Mask</entry>
   <entry>Effect</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>XkbKeyTypesMask</entry>
     <entry>
 The <emphasis>
@@ -1171,7 +1187,7 @@ XkbNumRequiredTypes</emphasis>
 BadValue</emphasis>.
 </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbKeySymsMask</entry>
 <entry>
 The <emphasis>
@@ -1192,7 +1208,7 @@ min_key_code</emphasis>
  + 1 keys.
 </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbModifierMapMask</entry>
 <entry>
 The <emphasis>
@@ -1282,10 +1298,11 @@ XkbFreeClientMap.</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeClientMap</emphasis>
@@ -1294,21 +1311,21 @@ xkb, which, free_all</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
       xkb</emphasis>
 ;            /* keyboard description containing client map to free */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       which</emphasis>
 ;            /* mask identifying components of map to free */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool <emphasis>
       free_all</emphasis>
@@ -1373,10 +1390,11 @@ XkbAllocServerMap.</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 Status <emphasis>
 XkbAllocServerMap</emphasis>
@@ -1385,21 +1403,21 @@ xkb, which, count_acts</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
             xkb</emphasis>
 ;            /* keyboard description in which to allocate server map */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             which</emphasis>
 ;            /* mask selecting map components to allocate */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
             count_acts</emphasis>
@@ -1425,18 +1443,20 @@ which</emphasis>
 allocate, as specified in Table 14.4.
 </para>
 
-<table frame='none'>
+<table frame='topbot'>
 <title>XkbAllocServerMap Masks</title>
-<tgroup cols='2'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='2' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
+<colspec colname='c2' colwidth='2.0*'/>
 <thead>
-<row rowsep='0'>
+<row rowsep='1'>
   <entry>Mask</entry>
   <entry>Effect</entry>
   </row>
 </thead>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry>XkbExplicitComponentsMask</entry>
     <entry>
 The <emphasis>
@@ -1450,7 +1470,7 @@ explicit </emphasis>
 field of the server map.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbKeyActionsMask</entry>
     <entry>
 The <emphasis>
@@ -1468,7 +1488,7 @@ acts</emphasis>
  field of the server map.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbKeyBehaviorsMask</entry>
     <entry>
 The <emphasis>
@@ -1482,7 +1502,7 @@ behaviors </emphasis>
 field of the server map.
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry>XkbVirtualModMapMask</entry>
     <entry>
 The <emphasis>
@@ -1559,10 +1579,11 @@ XkbFreeServerMap.</emphasis>
 </para>
 
 <informaltable frame='none'>
-<tgroup cols='1'>
-<colspec colsep='0'/>
+<?dbfo keep-together="always" ?>
+<tgroup cols='1' align='left' colsep='0' rowsep='0'>
+<colspec colname='c1' colwidth='1.0*'/>
 <tbody>
-  <row rowsep='0'>
+  <row>
     <entry role='functiondecl'>
 void <emphasis>
 XkbFreeServerMap</emphasis>
@@ -1571,21 +1592,21 @@ xkb, which, free_all</emphasis>
 )
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 XkbDescPtr <emphasis>
       xkb</emphasis>
 ;            /* keyboard description containing server map to free */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 unsigned int<emphasis>
       which</emphasis>
 ;            /* mask identifying components of map to free */
     </entry>
   </row>
-  <row rowsep='0'>
+  <row>
     <entry role='functionargdecl'>
 Bool <emphasis>
       free_all</emphasis>
