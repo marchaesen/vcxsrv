@@ -48,6 +48,7 @@
 #include "glxext.h"
 #include "indirect_table.h"
 #include "indirect_util.h"
+#include "glapi.h"
 
 extern void FlushContext(__GLXcontext *cx);
 
@@ -138,7 +139,7 @@ static Bool DrawableGone(__GLXdrawable *glxPriv, XID xid)
     for (c = glxAllContexts; c; c = next) {
 	next = c->next;
 	if (c->isCurrent && (c->drawPriv == glxPriv || c->readPriv == glxPriv)) {
-	    FlushContext(c);
+	    if (GET_DISPATCH()) FlushContext(c); /* Only flush if we still have a context */
 
 	    (*c->loseCurrent)(c);
 	    c->isCurrent = GL_FALSE;
