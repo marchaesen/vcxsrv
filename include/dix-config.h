@@ -276,7 +276,7 @@
 #define RES 1
 
 /* Support client ID tracking in X resource extension */
-#undef CLIENTIDS
+#define CLIENTIDS 1
 
 /* Support MIT-SCREEN-SAVER extension */
 #define SCREENSAVER 1
