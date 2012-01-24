@@ -1,0 +1,588 @@
+commit b67f0df2dbfa372417d0687e26704635e2d10034
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Mon May 23 19:38:50 2011 -0700
+
+    configure.ac: Bump to 1.0.6
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 48f87d48fb7b51535534ef2fb18d2fd1e451c2b5
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Sun May 8 16:08:29 2011 -0700
+
+    auth_finalize: Attempt to rename() if link() fails
+    
+    On some file systems (like AFP), hard links are not supported. If
+    link fails, try rename() before giving up.
+    
+    Reported-by: Jamie Kennea <jamie@pompey.org>
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 5032c286df16737277c9a04e1083171ffec89000
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Fri May 6 23:12:50 2011 -0700
+
+    Error out and avoid a call to malloc(0) if given a bad hex string
+    
+    process.c:567:14: warning: Call to 'malloc' has an allocation size of 0 bytes
+        retval = malloc (len);
+                 ^       ~~~
+    1 warning generated.
+    
+    Found-by: clang static analyzer
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 9197410a2b5c875885266713f5dc470b6dac476b
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 19 10:06:55 2011 -0500
+
+    config: move man pages into their own directory
+    
+    Use services provided by XORG_MANPAGE_SECTIONS.
+    Use standard Makefile for man pages.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 404e5ccc404574906978570781705c73bf24b31b
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 12 16:28:02 2011 -0500
+
+    config: replace deprecated AM_CONFIG_HEADER with AC_CONFIG_HEADERS
+    
+    This silences an Autoconf warning
+
+commit 1a2ad8ef43c82dcbe0c6fc024c5a627ebb927a82
+Author: Jesse Adkins <jesserayadkins@gmail.com>
+Date:   Tue Sep 28 13:29:49 2010 -0700
+
+    Purge cvs tags.
+    
+    Signed-off-by: Jesse Adkins <jesserayadkins@gmail.com>
+
+commit da552fc4c69a62b6227383452e56428cd5d696a0
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Sep 23 17:57:16 2010 -0700
+
+    xauth 1.0.5
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit eec190f060cd61b44e0e7029309f7db841c824b8
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Sep 23 07:33:02 2010 -0700
+
+    config: upgrade to util-macros 1.8 for additional man page support
+    
+    Use MAN_SUBST now supplied in XORG_MANPAGE_SECTIONS
+    The value of MAN_SUBST is the same for all X.Org packages.
+    
+    Use AC_PROG_SED now supplied by XORG_DEFAULT_OPTIONS
+    The existing statement can now be removed from the configuration file.
+    
+    Use automake provided $(AM_V_GEN) and XORG_DEFAULT_OPTIONS provided $(SED)
+    Enables silent rule and use platform appropriate version of sed.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 732922acd465f081f8cbd315aa687dd745da2337
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Sep 23 07:29:53 2010 -0700
+
+    config: Remove unnecessary calls from configure.ac
+    
+    AC_PROG_CC & AC_PROG_INSTALL are provided by XORG_DEFAULT_OPTIONS now
+    PKG_CONFIG_MODULES handles AC_SUBST of the CFLAGS & LIBS variables
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6eef00c1021930444e09d8334b06bbad83d7f2fb
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Jul 20 18:45:18 2010 -0400
+
+    config: update AC_PREREQ statement to 2.60
+    
+    Unrelated to the previous patches, the new value simply reflects
+    the reality that the minimum level for autoconf to configure
+    all x.org modules is 2.60 dated June 2006.
+    
+    ftp://ftp.gnu.org/gnu/autoconf/autoconf-2.60.tar.gz
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 4f6dea33200af6d42e29b43269d8ee389db1b98f
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Thu Aug 26 08:26:31 2010 -0700
+
+    Fix build failure resulting from previous commit on systems without strlcpy
+    
+    Found-by: Tinderbox
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 135338af9a141d609e07e42208b9104465346ae4
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Wed Aug 25 18:23:26 2010 -0700
+
+    launchd: Properly support launchd sockets in xauth
+    
+    What we had in place before was a hack that always used ':0'.  This change
+    results in the bundle id being used to differentiate different connections.
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 96ea88d3aeae710d8fc04f23151d5b669c5e8a0c
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Nov 26 09:19:52 2009 -0500
+
+    Makefile.am: add ChangeLog and INSTALL on MAINTAINERCLEANFILES
+    
+    Now that the INSTALL file is generated.
+    Allows running make maintainer-clean.
+
+commit 1eb55d8efd568c31e8bc9f1f7ab91558ceecfc06
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Oct 28 14:09:08 2009 -0400
+
+    INSTALL, NEWS, README or AUTHORS files are missing/incorrect #24206
+    
+    Add missing INSTALL file. Use standard GNU file on building tarball
+    README may have been updated
+    Remove AUTHORS file as it is empty and no content available yet.
+    Remove NEWS file as it is empty and no content available yet.
+
+commit f326a1fe16f6717fb822228051a7fdfd30048cab
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Oct 27 15:07:24 2009 -0400
+
+    Deploy the new XORG_DEFAULT_OPTIONS #24242
+    
+    This macro aggregate a number of existing macros that sets commmon
+    X.Org components configuration options. It shields the configuration file from
+    future changes.
+
+commit e3a895e81611d881e74fb5106319af513f78df07
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Oct 26 22:08:38 2009 -0400
+
+    Makefile.am: ChangeLog not required: EXTRA_DIST or *CLEANFILES #24432
+    
+    ChangeLog filename is known to Automake and requires no further
+    coding in the makefile.
+
+commit b0f1523247680c9a6045c3a6296bf45d4106de1e
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Oct 22 12:34:15 2009 -0400
+
+    .gitignore: use common defaults with custom section # 24239
+    
+    Using common defaults will reduce errors and maintenance.
+    Only the very small or inexistent custom section need periodic maintenance
+    when the structure of the component changes. Do not edit defaults.
+
+commit b6c280336a6cf681917692933589d878e9984470
+Author: Jeremy Huddleston <jeremyhu@freedesktop.org>
+Date:   Wed Oct 21 12:47:20 2009 -0700
+
+    This is not a GNU project, so declare it foreign.
+    
+    On Wed, 2009-10-21 at 13:36 +1000, Peter Hutterer wrote:
+    > On Tue, Oct 20, 2009 at 08:23:55PM -0700, Jeremy Huddleston wrote:
+    > > I noticed an INSTALL file in xlsclients and libXvMC today, and it
+    > > was quite annoying to work around since 'autoreconf -fvi' replaces
+    > > it and git wants to commit it.  Should these files even be in git?
+    > > Can I nuke them for the betterment of humanity and since they get
+    > > created by autoreconf anyways?
+    >
+    > See https://bugs.freedesktop.org/show_bug.cgi?id=24206
+    
+    As an interim measure, replace AM_INIT_AUTOMAKE([dist-bzip2]) with
+    AM_INIT_AUTOMAKE([foreign dist-bzip2]). This will prevent the generation
+    of the INSTALL file. It is also part of the 24206 solution.
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@freedesktop.org>
+
+commit 1c701094169b6e33f7faf21a269e949bf134a326
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Fri Oct 9 22:58:52 2009 -0700
+
+    Bug 7051: xauth says creating new authority file even though it does not
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=7051
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit d2d802ea9f882b7b7eac1251309d8141e55f213e
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Sep 21 20:25:09 2009 -0700
+
+    xauth 1.0.4
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit e4ab625fd4e31a6cc043dfabbb7d5a801e87d526
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Sep 21 20:22:28 2009 -0700
+
+    Migrate to xorg macros 1.3 & XORG_DEFAULT_OPTIONS
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit 2cbcbed9dedb696535fe54290189478c6c007270
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Sep 21 20:17:48 2009 -0700
+
+    Man page updates: add "SEE ALSO", update xdm references
+    
+    Also trim trailing whitespaces and fix a spelling error
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit d376341c3cbeca0aec335462dffb796e5a8e5d03
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Sep 21 20:08:10 2009 -0700
+
+    Add pointers to mailing list, bugzilla, wiki & git repo to README
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit 6d47c482a198f5421a7007221a69ee24d5f0a2a4
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Sun Jul 19 10:27:49 2009 +0200
+
+    Initialize ed.used_stdout at the beginning of do_extract()
+    
+    This avoids reading uninitialized memory later.
+    Problem reported by Philip Guenther. Thanks.
+    
+    Signed-off-by: Matthieu Herrb <matthieu.herrb@laas.fr>
+
+commit b0aec5d07ea5c9fccacf250fe1c665d92243fb61
+Author: Michael Scherer <misc@mandriva.org>
+Date:   Sat Mar 7 12:14:26 2009 +0100
+
+    Fix format error
+
+commit 31395a96cff3570440229b2715c8ba557a6ce8d4
+Author: Paulo Cesar Pereira de Andrade <pcpa@mandriva.com.br>
+Date:   Mon Jan 19 19:05:44 2009 -0200
+
+    Correct make distcheck.
+    
+      No warnings were generated by gcc 4.3 neither sparse when using
+    XORG_CWARNFLAGS.
+
+commit 64d1fe69362bb0edcd5736ee6988d9bd394ea5c0
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Tue Jun 17 23:31:58 2008 +0200
+
+    Replace rsh by ssh the extract/merge example. Rsh is no more.
+
+commit 3cc17297124ea5c9917e6eacc0ab7ae021e8a386
+Author: Jens Granseuer <jensgr@gmx.net>
+Date:   Sun Mar 9 20:06:49 2008 +0100
+
+    C89 fix
+    
+    65a0917d4661e370b50beed8f06f5577bfeea59f broke the build with non-C99
+    aware compilers.
+
+commit 85459f9fee2ad4d5954e8f549df9a269cf3bff76
+Author: Julien Cristau <jcristau@debian.org>
+Date:   Fri Mar 7 18:20:15 2008 +0100
+
+    Change xauth_CFLAGS to AM_CFLAGS to make automake-1.10 happier
+    
+    Makefile.am:27: compiling `gethost.c' with per-target flags requires `AM_PROG_CC_C_O' in `configure.ac'
+
+commit a9c0960c94b9299bcf2bb08c05a6f66579d4a862
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Thu Mar 6 16:56:33 2008 -0500
+
+    xauth 1.0.3
+
+commit 65a0917d4661e370b50beed8f06f5577bfeea59f
+Author: Jeremy Huddleston <jeremy@tifa.local>
+Date:   Thu Jan 10 21:15:56 2008 -0800
+
+    get_address_info: don't allow duplicate entries to be returned in the list
+    OS-X's getaddrinfo() can return duplicate entries (and does for localhost with
+    the default 10.5 /etc/hosts).  This caused some annoying crashes which this
+    patch takes care of.
+    
+    See http://trac.macosforge.org/projects/xquartz/ticket/44
+
+commit 40e1769f4c631713c32c73a5244f3d65aea89ab7
+Author: Jeremy Huddleston <jeremy@tifa.local>
+Date:   Sat Dec 1 20:01:23 2007 -0800
+
+    Added support for launchd socket
+    From Martin Costabel
+
+commit 60615bc52f685b7ddfd574e10ed8fdcf2b6e43f5
+Author: Daniel Drake <ddrake@brontes3d.com>
+Date:   Wed May 16 14:24:00 2007 -0800
+
+    Bug #10971: xauth COPYING file
+    
+    X.Org Bugzilla #10971 <https://bugs.freedesktop.org/show_bug.cgi?id=10971>
+
+commit a1602ecd22a800a6c5348c00fece3287cdcf00ce
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Tue Dec 12 15:00:29 2006 -0800
+
+    Version bump: 1.0.2
+
+commit 140965e6a565e338e07cf6fcc0dd5313acd67716
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Dec 11 19:31:37 2006 -0800
+
+    Remove Imake compatibility #ifdefs - require configure's AC_TYPE_SIGNAL
+
+commit cfb36499790b764d87af7d6f4713f4fe8d3d88f7
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Dec 11 19:25:48 2006 -0800
+
+    Replace platform #ifdefs with AC_CHECK_HEADERS([net/errno.h])
+
+commit 42815405686498bb464fa20621bbcde00096a42d
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Dec 11 18:59:14 2006 -0800
+
+    sparse warning: non-ANSI definition of function 'get_hostname'
+
+commit a527e14d16de2955dcdd6d14141f51987af7af2c
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Dec 11 18:54:51 2006 -0800
+
+    Add hooks for checking source code with lint/sparse/etc.
+
+commit fa9b494baacab74d354ee4d5e0f6a1342b2bc723
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Dec 11 18:48:54 2006 -0800
+
+    Replace static ChangeLog with disthook to generate from git log
+
+commit 2c2900cef3722580fa7b32721809365fad77348a
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Dec 11 14:53:38 2006 -0800
+
+    Add *~ to .gitignore to skip emacs/patch droppings
+
+commit 1c42ae4c711b646fff5aae562f43047b0c4e9d81
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Dec 11 14:53:13 2006 -0800
+
+    renamed: .cvsignore -> .gitignore
+
+commit df9747b1706b0f35dd24484da05a8221369508a1
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Dec 11 14:50:29 2006 -0800
+
+    Sun bug 6494972: "is is" is a typo in xauth(1) man page
+    
+    <http://bugs.opensolaris.org/bugdatabase/view_bug.do?bug_id=6494972>
+
+commit 900f18b99fcdd1e404bea3e25c5f52f3fdb4a8c5
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Dec 21 02:29:48 2005 +0000
+
+    Update package version for X11R7 release.
+
+commit a147a93a8469bc6c53e644f304f022e5c4b21083
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Mon Dec 19 16:22:42 2005 +0000
+
+    Stub COPYING files
+
+commit 80dae7f47a96a58ec1b008eb6a44c6b990d69d2f
+Author: Kevin E Martin <kem@kem.org>
+Date:   Thu Dec 15 00:24:04 2005 +0000
+
+    Update package version number for final X11R7 release candidate.
+
+commit 2b0af47b8252e239fe0201802ef5b71c4732949a
+Author: Kevin E Martin <kem@kem.org>
+Date:   Tue Dec 6 22:48:19 2005 +0000
+
+    Change *man_SOURCES ==> *man_PRE to fix autotools warnings.
+
+commit da2726e8d0cab3dd0e5e8653572d3c91bfd10bd4
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Dec 3 05:49:18 2005 +0000
+
+    Update package version number for X11R7 RC3 release.
+
+commit 31daf53e50be410f581f7b05d579136a8e1fd04a
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Mon Nov 28 22:01:39 2005 +0000
+
+    Change *mandir targets to use new *_MAN_DIR variables set by xorg-macros.m4
+        update to fix bug #5167 (Linux prefers *.1x man pages in man1 subdir)
+
+commit 653fe719513d43e3ad42bb086f91fc00d8f79228
+Author: Eric Anholt <anholt@freebsd.org>
+Date:   Mon Nov 21 10:34:58 2005 +0000
+
+    Another pass at .cvsignores for apps.
+
+commit e4cb9726562b4acea76a683ed411e38845d91265
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Mon Nov 21 03:14:16 2005 +0000
+
+    Change dependency from xmu to xmuu since the full xmu (with all its baggage
+        like Xt) is not needed here.
+
+commit 32ee4696ea37c04562229dccacffe7dc8341eca0
+Author: Eric Anholt <anholt@freebsd.org>
+Date:   Sun Nov 20 22:08:50 2005 +0000
+
+    Add/improve .cvsignore files for apps.
+
+commit ccbf3e05dad84647b62fa3fd8f5730c5dd094977
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Nov 9 21:09:20 2005 +0000
+
+    Update package version number for X11R7 RC2 release.
+
+commit 0f59380f98d7fdae7ce32b67ba8f2c3798e71502
+Author: Kean Johnson <kean@armory.com>
+Date:   Tue Nov 8 06:33:31 2005 +0000
+
+    See ChangeLog entry 2005-11-07 for details.
+
+commit bb5b65a587478663bd50f083bc8c17213c5c5ab7
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Oct 19 02:47:51 2005 +0000
+
+    Update package version number for RC1 release.
+
+commit 00fdcaca12f7b8f17d23a90bab864ec538987d3e
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Mon Oct 17 23:56:21 2005 +0000
+
+    Use @APP_MAN_SUFFIX@ instead of $(APP_MAN_SUFFIX) in macro substitutions to
+        work better with BSD make
+
+commit 2c0557cea41fab82bf8d8d5b8f65d18705999513
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Fri Oct 14 00:25:43 2005 +0000
+
+    Use sed to fill in variables in man page
+
+commit 429ec4dfe91ea5aa803295c3d3bd18a091a78572
+Author: Kevin E Martin <kem@kem.org>
+Date:   Fri Jul 29 21:22:30 2005 +0000
+
+    Various changes preparing packages for RC0:
+    - Verify and update package version numbers as needed
+    - Implement versioning scheme
+    - Change bug address to point to bugzilla bug entry form
+    - Disable loadable i18n in libX11 by default (use --enable-loadable-i18n to
+        reenable it)
+    - Fix makedepend to use pkgconfig and pass distcheck
+    - Update build script to build macros first
+    - Update modular Xorg version
+
+commit 6d58b9aac2e339f1caa30882d6cb5c3bd3cd53e1
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Wed Jul 27 01:54:17 2005 +0000
+
+    Move manpages to section 1 instead of section m.
+
+commit 7e7777e930bd2b25df25edfc26bbbab026d41827
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Tue Jul 26 17:15:43 2005 +0000
+
+    Add XTRANS_CONNECTION_FLAGS & AC_TYPE_SIGNAL to replace Imake's
+        CONN_DEFINES & SIGNAL_DEFINES
+
+commit d3ef3afdb8242590ed289d0c512289c51b6f3240
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Tue Jul 26 16:58:27 2005 +0000
+
+    Add config.h includes for modularization Use RETSIGTYPE if defined by
+        autoconf in addition to Imake's SIGNALRETURNSINT.
+
+commit aea947181d0185bf9512d71ea58bf8192b42c478
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Wed Jul 20 19:31:51 2005 +0000
+
+    Use a unique token for PKG_CHECK_MODULES. Otherwise, if you use a global
+        configure cache, you cache it, and the cached value is probably wrong.
+
+commit d26b6760781675316ccf755cd39b295aa88dcaab
+Author: Alexander Gottwald <alexander.gottwald@s1999.tu-chemnitz.de>
+Date:   Thu Jun 30 14:14:02 2005 +0000
+
+    Check for xau.pc
+
+commit 9ec316349f351f654a6bf9ac2492a5c7bfa87492
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Wed Jun 29 23:04:46 2005 +0000
+
+    Add xauth build system
+
+commit 4449eae1558daf1618ae9bcc2f53278bfc3e1fe2
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Sat Apr 24 23:26:55 2004 +0000
+
+    Bugzilla #550: xauth doesn't unlock .Xauthority on SIGPIPE
+
+commit a6249acfcb65447dcb9759cd4acefdf22263cc7d
+Author: Egbert Eich <eich@suse.de>
+Date:   Fri Apr 23 19:54:38 2004 +0000
+
+    Merging XORG-CURRENT into trunk
+
+commit b27f9af9997bcc99fe4c9ce2d6b24c065e36be0a
+Author: Egbert Eich <eich@suse.de>
+Date:   Sun Mar 14 08:35:00 2004 +0000
+
+    Importing vendor version xf86-4_4_99_1 on Sun Mar 14 00:26:39 PST 2004
+
+commit 28ec313e66802039788199d807a3cd923634d0af
+Author: Egbert Eich <eich@suse.de>
+Date:   Wed Mar 3 12:12:55 2004 +0000
+
+    Importing vendor version xf86-4_4_0 on Wed Mar 3 04:09:24 PST 2004
+
+commit ec7585272a7b7791c30a52e372ee3ae485744875
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Feb 26 13:36:16 2004 +0000
+
+    readding XFree86's cvs IDs
+
+commit a682e3bf548a271d97cecd5c616ef84555a1b54c
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Feb 26 09:23:58 2004 +0000
+
+    Importing vendor version xf86-4_3_99_903 on Wed Feb 26 01:21:00 PST 2004
+
+commit 740c103a2711826b40bd838b1fe14e47f03544ca
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Jan 29 08:09:02 2004 +0000
+
+    Importing vendor version xf86-012804-2330 on Thu Jan 29 00:06:33 PST 2004
+
+commit 48a153ab92b7ebde3483408993f08c208e67079c
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Thu Dec 4 22:03:46 2003 +0000
+
+    XFree86 4.3.99.901 (RC 1)
+
+commit 09cf02b0457f774bd10574c0facf1df29fb83b53
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Tue Nov 25 19:29:03 2003 +0000
+
+    XFree86 4.3.99.16 Bring the tree up to date for the Cygwin folks
+
+commit d013d0b3ecb18ae2f1c162c6a1db89c6b4f063d3
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Nov 14 16:48:58 2003 +0000
+
+    XFree86 4.3.0.1
+
+commit 2f9dac1bee2aa9d396899f42c10e84a432ac31ff
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Nov 14 15:54:53 2003 +0000
+
+    R6.6 is the Xorg base-line
