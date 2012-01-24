@@ -68,8 +68,7 @@ static const struct plug_function_table dummy_plug = {
     dummy_plug_sent, dummy_plug_accepting
 };
 
-struct X11Display *x11_setup_display(char *display, int authtype,
-				     const Config *cfg)
+struct X11Display *x11_setup_display(char *display, int authtype, Conf *conf)
 {
     struct X11Display *disp = snew(struct X11Display);
     char *localcopy;
@@ -166,7 +165,7 @@ struct X11Display *x11_setup_display(char *display, int authtype,
 
 	disp->port = 6000 + disp->displaynum;
 	disp->addr = name_lookup(disp->hostname, disp->port,
-				 &disp->realhost, cfg, ADDRTYPE_UNSPEC);
+				 &disp->realhost, conf, ADDRTYPE_UNSPEC);
     
 	if ((err = sk_addr_error(disp->addr)) != NULL) {
 	    sk_addr_free(disp->addr);
@@ -249,7 +248,7 @@ struct X11Display *x11_setup_display(char *display, int authtype,
     disp->localauthproto = X11_NO_AUTH;
     disp->localauthdata = NULL;
     disp->localauthdatalen = 0;
-    platform_get_x11_auth(disp, cfg);
+    platform_get_x11_auth(disp, conf);
 
     return disp;
 }
@@ -508,9 +507,12 @@ static int x11_closing(Plug plug, const char *error_msg, int error_code,
      * We have no way to communicate down the forwarded connection,
      * so if an error occurred on the socket, we just ignore it
      * and treat it like a proper close.
+     *
+     * FIXME: except we could initiate a full close here instead of
+     * just an outgoing EOF? ssh.c currently has no API for that, but
+     * it could.
      */
-    sshfwd_close(pr->c);
-    x11_close(pr->s);
+    sshfwd_write_eof(pr->c);
     return 1;
 }
 
@@ -558,8 +560,7 @@ int x11_get_screen_number(char *display)
  * also, fills the SocketsStructure
  */
 extern const char *x11_init(Socket *s, struct X11Display *disp, void *c,
-			    const char *peeraddr, int peerport,
-			    const Config *cfg)
+			    const char *peeraddr, int peerport, Conf *conf)
 {
     static const struct plug_function_table fn_table = {
 	x11_log,
@@ -586,7 +587,7 @@ extern const char *x11_init(Socket *s, struct X11Display *disp, void *c,
 
     pr->s = *s = new_connection(sk_addr_dup(disp->addr),
 				disp->realhost, disp->port,
-				0, 1, 0, 0, (Plug) pr, cfg);
+				0, 1, 0, 0, (Plug) pr, conf);
     if ((err = sk_socket_error(*s)) != NULL) {
 	sfree(pr);
 	return err;
@@ -723,8 +724,7 @@ int x11_send(Socket s, char *data, int len)
 	    memset(reply + 8, 0, msgsize);
 	    memcpy(reply + 8, message, msglen);
 	    sshfwd_write(pr->c, (char *)reply, 8 + msgsize);
-	    sshfwd_close(pr->c);
-	    x11_close(s);
+	    sshfwd_write_eof(pr->c);
 	    sfree(reply);
 	    sfree(message);
 	    return 0;
@@ -788,4 +788,9 @@ int x11_send(Socket s, char *data, int len)
      */
 
     return sk_write(s, data, len);
+}
+
+void x11_send_eof(Socket s)
+{
+    sk_write_eof(s);
 }

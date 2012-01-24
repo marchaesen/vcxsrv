@@ -14,12 +14,16 @@ char *platform_get_x_display(void) {
     return dupstr(getenv("DISPLAY"));
 }
 
-Filename filename_from_str(const char *str)
+Filename *filename_from_str(const char *str)
 {
-    Filename ret;
-    strncpy(ret.path, str, sizeof(ret.path));
-    ret.path[sizeof(ret.path)-1] = '\0';
+    Filename *ret = snew(Filename);
+    ret->path = dupstr(str);
     return ret;
+}
+
+Filename *filename_copy(const Filename *fn)
+{
+    return filename_from_str(fn->path);
 }
 
 const char *filename_to_str(const Filename *fn)
@@ -27,14 +31,41 @@ const char *filename_to_str(const Filename *fn)
     return fn->path;
 }
 
-int filename_equal(Filename f1, Filename f2)
+int filename_equal(const Filename *f1, const Filename *f2)
 {
-    return !strcmp(f1.path, f2.path);
+    return !strcmp(f1->path, f2->path);
 }
 
-int filename_is_null(Filename fn)
+int filename_is_null(const Filename *fn)
 {
-    return !*fn.path;
+    return !*fn->path;
+}
+
+void filename_free(Filename *fn)
+{
+    sfree(fn->path);
+    sfree(fn);
+}
+
+int filename_serialise(const Filename *f, void *vdata)
+{
+    char *data = (char *)vdata;
+    int len = strlen(f->path) + 1;     /* include trailing NUL */
+    if (data) {
+        strcpy(data, f->path);
+    }
+    return len;
+}
+Filename *filename_deserialise(void *vdata, int maxsize, int *used)
+{
+    char *data = (char *)vdata;
+    char *end;
+    end = memchr(data, '\0', maxsize);
+    if (!end)
+        return NULL;
+    end++;
+    *used = end - data;
+    return filename_from_str(data);
 }
 
 char *get_username(void)
@@ -379,3 +410,51 @@ void *minefield_c_realloc(void *p, size_t size)
 }
 
 #endif				/* MINEFIELD */
+
+FontSpec *fontspec_new(const char *name,
+                        int bold, int height, int charset)
+{
+    FontSpec *f = snew(FontSpec);
+    f->name = dupstr(name);
+    f->isbold = bold;
+    f->height = height;
+    f->charset = charset;
+    return f;
+}
+FontSpec *fontspec_copy(const FontSpec *f)
+{
+    return fontspec_new(f->name, f->isbold, f->height, f->charset);
+}
+void fontspec_free(FontSpec *f)
+{
+    sfree(f->name);
+    sfree(f);
+}
+int fontspec_serialise(FontSpec *f, void *vdata)
+{
+    char *data = (char *)vdata;
+    int len = strlen(f->name) + 1;     /* include trailing NUL */
+    if (data) {
+        strcpy(data, f->name);
+        PUT_32BIT_MSB_FIRST(data + len, f->isbold);
+        PUT_32BIT_MSB_FIRST(data + len + 4, f->height);
+        PUT_32BIT_MSB_FIRST(data + len + 8, f->charset);
+    }
+    return len + 12;                   /* also include three 4-byte ints */
+}
+FontSpec *fontspec_deserialise(void *vdata, int maxsize, int *used)
+{
+    char *data = (char *)vdata;
+    char *end;
+    if (maxsize < 13)
+        return NULL;
+    end = memchr(data, '\0', maxsize-12);
+    if (!end)
+        return NULL;
+    end++;
+    *used = end - data + 12;
+    return fontspec_new(data,
+                        GET_32BIT_MSB_FIRST(end),
+                        GET_32BIT_MSB_FIRST(end + 4),
+                        GET_32BIT_MSB_FIRST(end + 8));
+}

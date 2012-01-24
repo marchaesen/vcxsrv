@@ -61,14 +61,20 @@ static int pfd_closing(Plug plug, const char *error_msg, int error_code,
 {
     struct PFwdPrivate *pr = (struct PFwdPrivate *) plug;
 
-    /*
-     * We have no way to communicate down the forwarded connection,
-     * so if an error occurred on the socket, we just ignore it
-     * and treat it like a proper close.
-     */
-    if (pr->c)
-	sshfwd_close(pr->c);
-    pfd_close(pr->s);
+    if (error_msg) {
+        /*
+         * Socket error. Slam the connection instantly shut.
+         */
+        sshfwd_unclean_close(pr->c);
+    } else {
+        /*
+         * Ordinary EOF received on socket. Send an EOF on the SSH
+         * channel.
+         */
+        if (pr->c)
+            sshfwd_write_eof(pr->c);
+    }
+
     return 1;
 }
 
@@ -325,7 +331,7 @@ static void pfd_sent(Plug plug, int bufsize)
  * Called when receiving a PORT OPEN from the server
  */
 const char *pfd_newconnect(Socket *s, char *hostname, int port,
-			   void *c, const Config *cfg, int addressfamily)
+			   void *c, Conf *conf, int addressfamily)
 {
     static const struct plug_function_table fn_table = {
 	pfd_log,
@@ -343,7 +349,7 @@ const char *pfd_newconnect(Socket *s, char *hostname, int port,
     /*
      * Try to find host.
      */
-    addr = name_lookup(hostname, port, &dummy_realhost, cfg, addressfamily);
+    addr = name_lookup(hostname, port, &dummy_realhost, conf, addressfamily);
     if ((err = sk_addr_error(addr)) != NULL) {
 	sk_addr_free(addr);
 	return err;
@@ -362,7 +368,7 @@ const char *pfd_newconnect(Socket *s, char *hostname, int port,
     pr->dynamic = 0;
 
     pr->s = *s = new_connection(addr, dummy_realhost, port,
-				0, 1, 0, 0, (Plug) pr, cfg);
+				0, 1, 0, 0, (Plug) pr, conf);
     if ((err = sk_socket_error(*s)) != NULL) {
 	sfree(pr);
 	return err;
@@ -435,7 +441,7 @@ static int pfd_accepting(Plug p, OSSocket sock)
  sets up a listener on the local machine on (srcaddr:)port
  */
 const char *pfd_addforward(char *desthost, int destport, char *srcaddr,
-			   int port, void *backhandle, const Config *cfg,
+			   int port, void *backhandle, Conf *conf,
 			   void **sockdata, int address_family)
 {
     static const struct plug_function_table fn_table = {
@@ -468,7 +474,8 @@ const char *pfd_addforward(char *desthost, int destport, char *srcaddr,
     pr->backhandle = backhandle;
 
     pr->s = s = new_listener(srcaddr, port, (Plug) pr,
-			     !cfg->lport_acceptall, cfg, address_family);
+			     !conf_get_int(conf, CONF_lport_acceptall),
+			     conf, address_family);
     if ((err = sk_socket_error(s)) != NULL) {
 	sfree(pr);
 	return err;
@@ -536,6 +543,10 @@ int pfd_send(Socket s, char *data, int len)
     return sk_write(s, data, len);
 }
 
+void pfd_send_eof(Socket s)
+{
+    sk_write_eof(s);
+}
 
 void pfd_confirm(Socket s)
 {
