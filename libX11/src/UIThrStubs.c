@@ -81,9 +81,7 @@ typedef thread_t xthread_t;
 #pragma weak cond_broadcast = _Xthr_zero_stub_
 #else /* !SVR4 */
 #ifdef WIN32
-    /*
-     * Don't know what to do here. Is there something do be done at all?
-     */
+#include <X11/Xthreads.h>
 #else /* !WIN32 */
 #ifdef USE_TIS_SUPPORT
 #include <tis.h>

@@ -194,7 +194,8 @@ UngrabAllDevices(Bool kill_client)
         PrintDeviceGrabInfo(dev);
         client = clients[CLIENT_ID(dev->deviceGrab.grab->resource)];
         dev->deviceGrab.DeactivateGrab(dev);
-        if (kill_client) CloseDownClient(client);
+        if (kill_client)
+            CloseDownClient(client);
     }
 
     ErrorF("End list of ungrabbed devices\n");

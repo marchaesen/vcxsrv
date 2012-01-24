@@ -7,6 +7,9 @@
 #include <assert.h>
 #include <stdint.h>
 #include <X11/Xlibint.h>
+#ifdef WIN32
+#include <X11/Xwindows.h>
+#endif
 #include <X11/Xlib-xcb.h>
 #include "locking.h"
 
