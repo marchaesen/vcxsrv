@@ -99,24 +99,48 @@ prompts_t *new_prompts(void *frontend)
     p->name_reqd = p->instr_reqd = FALSE;
     return p;
 }
-void add_prompt(prompts_t *p, char *promptstr, int echo, size_t len)
+void add_prompt(prompts_t *p, char *promptstr, int echo)
 {
     prompt_t *pr = snew(prompt_t);
-    char *result = snewn(len, char);
     pr->prompt = promptstr;
     pr->echo = echo;
-    pr->result = result;
-    pr->result_len = len;
+    pr->result = NULL;
+    pr->resultsize = 0;
     p->n_prompts++;
     p->prompts = sresize(p->prompts, p->n_prompts, prompt_t *);
     p->prompts[p->n_prompts-1] = pr;
+}
+void prompt_ensure_result_size(prompt_t *pr, int newlen)
+{
+    if ((int)pr->resultsize < newlen) {
+        char *newbuf;
+        newlen = newlen * 5 / 4 + 512; /* avoid too many small allocs */
+
+        /*
+         * We don't use sresize / realloc here, because we will be
+         * storing sensitive stuff like passwords in here, and we want
+         * to make sure that the data doesn't get copied around in
+         * memory without the old copy being destroyed.
+         */
+        newbuf = snewn(newlen, char);
+        memcpy(newbuf, pr->result, pr->resultsize);
+        memset(pr->result, '\0', pr->resultsize);
+        sfree(pr->result);
+        pr->result = newbuf;
+        pr->resultsize = newlen;
+    }
+}
+void prompt_set_result(prompt_t *pr, const char *newstr)
+{
+    prompt_ensure_result_size(pr, strlen(newstr) + 1);
+    strcpy(pr->result, newstr);
 }
 void free_prompts(prompts_t *p)
 {
     size_t i;
     for (i=0; i < p->n_prompts; i++) {
 	prompt_t *pr = p->prompts[i];
-	memset(pr->result, 0, pr->result_len); /* burn the evidence */
+	memset(pr->result, 0, pr->resultsize); /* burn the evidence */
 	sfree(pr->result);
 	sfree(pr->prompt);
 	sfree(pr);
@@ -174,6 +198,14 @@ char *dupcat(const char *s1, ...)
     va_end(ap);
 
     return p;
+}
+
+void burnstr(char *string)             /* sfree(str), only clear it first */
+{
+    if (string) {
+        memset(string, 0, strlen(string));
+        sfree(string);
+    }
 }
 
 /*
@@ -635,21 +667,21 @@ void debug_memdump(void *buf, int len, int L)
 #endif				/* def DEBUG */
 
 /*
- * Determine whether or not a Config structure represents a session
- * which can sensibly be launched right now.
+ * Determine whether or not a Conf represents a session which can
+ * sensibly be launched right now.
  */
-int cfg_launchable(const Config *cfg)
+int conf_launchable(Conf *conf)
 {
-    if (cfg->protocol == PROT_SERIAL)
-	return cfg->serline[0] != 0;
+    if (conf_get_int(conf, CONF_protocol) == PROT_SERIAL)
+	return conf_get_str(conf, CONF_serline)[0] != 0;
     else
-	return cfg->host[0] != 0;
+	return conf_get_str(conf, CONF_host)[0] != 0;
 }
 
-char const *cfg_dest(const Config *cfg)
+char const *conf_dest(Conf *conf)
 {
-    if (cfg->protocol == PROT_SERIAL)
-	return cfg->serline;
+    if (conf_get_int(conf, CONF_protocol) == PROT_SERIAL)
+	return conf_get_str(conf, CONF_serline);
     else
-	return cfg->host;
+	return conf_get_str(conf, CONF_host);
 }

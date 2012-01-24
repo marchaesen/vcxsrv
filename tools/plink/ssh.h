@@ -9,8 +9,9 @@
 
 struct ssh_channel;
 
-extern void sshfwd_close(struct ssh_channel *c);
 extern int sshfwd_write(struct ssh_channel *c, char *, int);
+extern void sshfwd_write_eof(struct ssh_channel *c);
+extern void sshfwd_unclean_close(struct ssh_channel *c);
 extern void sshfwd_unthrottle(struct ssh_channel *c, int bufsize);
 
 /*
@@ -251,6 +252,9 @@ struct ssh_signkey {
 
 struct ssh_compress {
     char *name;
+    /* For zlib@openssh.com: if non-NULL, this name will be considered once
+     * userauth has completed successfully. */
+    char *delayed_name;
     void *(*compress_init) (void);
     void (*compress_cleanup) (void *);
     int (*compress) (void *, unsigned char *block, int len,
@@ -331,16 +335,15 @@ void ssh_send_port_open(void *channel, char *hostname, int port, char *org);
 
 /* Exports from portfwd.c */
 extern const char *pfd_newconnect(Socket * s, char *hostname, int port,
-				  void *c, const Config *cfg,
-				  int addressfamily);
+				  void *c, Conf *conf, int addressfamily);
 /* desthost == NULL indicates dynamic (SOCKS) port forwarding */
 extern const char *pfd_addforward(char *desthost, int destport, char *srcaddr,
-				  int port, void *backhandle,
-				  const Config *cfg, void **sockdata,
-				  int address_family);
+				  int port, void *backhandle, Conf *conf,
+				  void **sockdata, int address_family);
 extern void pfd_close(Socket s);
 extern void pfd_terminate(void *sockdata);
 extern int pfd_send(Socket s, char *data, int len);
+extern void pfd_send_eof(Socket s);
 extern void pfd_confirm(Socket s);
 extern void pfd_unthrottle(Socket s);
 extern void pfd_override_throttle(Socket s, int enable);
@@ -390,18 +393,18 @@ struct X11Display {
  * details are looked up by calling platform_get_x11_auth.
  */
 extern struct X11Display *x11_setup_display(char *display, int authtype,
-					    const Config *);
+					    Conf *);
 void x11_free_display(struct X11Display *disp);
 extern const char *x11_init(Socket *, struct X11Display *, void *,
-			    const char *, int, const Config *);
+			    const char *, int, Conf *);
 extern void x11_close(Socket);
 extern int x11_send(Socket, char *, int);
+extern void x11_send_eof(Socket s);
 extern void x11_unthrottle(Socket s);
 extern void x11_override_throttle(Socket s, int enable);
 char *x11_display(const char *display);
 /* Platform-dependent X11 functions */
-extern void platform_get_x11_auth(struct X11Display *display,
-				  const Config *);
+extern void platform_get_x11_auth(struct X11Display *display, Conf *);
     /* examine a mostly-filled-in X11Display and fill in localauth* */
 extern const int platform_uses_x11_unix_by_default;
     /* choose default X transport in the absence of a specified one */
@@ -447,6 +450,8 @@ int ssh1_write_bignum(void *data, Bignum bn);
 Bignum biggcd(Bignum a, Bignum b);
 unsigned short bignum_mod_short(Bignum number, unsigned short modulus);
 Bignum bignum_add_long(Bignum number, unsigned long addend);
+Bignum bigadd(Bignum a, Bignum b);
+Bignum bigsub(Bignum a, Bignum b);
 Bignum bigmul(Bignum a, Bignum b);
 Bignum bigmuladd(Bignum a, Bignum b, Bignum addend);
 Bignum bigdiv(Bignum a, Bignum b);
