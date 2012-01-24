@@ -1,6 +1,4 @@
-DEFINES += BAD_ARPAINET TCPCONN IPv6
-
-TTYAPP = xhost
+TTYAPP = xauth
 
 INCLUDELIBFILES = \
  ..\common\$(OBJDIR)\common.lib \
@@ -15,6 +13,7 @@ INCLUDELIBFILES = \
  $(MHMAKECONF)\libxcb\src\$(OBJDIR)\libxcb.lib \
  $(MHMAKECONF)\libxau\$(OBJDIR)\libXau.lib \
  $(MHMAKECONF)\libXmu\src\$(OBJDIR)\libXmu.lib \
+ $(MHMAKECONF)\libXext\src\$(OBJDIR)\libXext.lib \
  $(MHMAKECONF)\libX11\src\$(OBJDIR)\libx11.lib \
 
 LIBDIRS=$(dir $(INCLUDELIBFILES))
@@ -27,4 +26,9 @@ else
 LINKLIBS += $(MHMAKECONF)\pthreads\pthreadVC2.lib
 endif
 
-CSRCS = xhost.c
+CSRCS =	\
+        gethost.c \
+        parsedpy.c \
+        process.c \
+        xauth.c
+
