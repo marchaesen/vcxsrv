@@ -363,6 +363,10 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       fWMMsgInitialized = TRUE;
 
     }
+  else if (message!=WM_CREATE)
+    {  // Avoid crashes when pWin == NULL, which happens sometimes (I think during closing of windows)
+      return DefWindowProc (hwnd, message, wParam, lParam);
+    }
 
   /* Branch on message type */
   switch (message)
