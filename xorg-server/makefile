@@ -121,6 +121,10 @@ load_makefile ..\apps\xhost\makefile MAKESERVER=0 DEBUG=0
 xhost.exe: ..\apps\xhost\obj\release\xhost.exe
 	copy $< $@
 
+load_makefile ..\apps\xauth\makefile MAKESERVER=0 DEBUG=0
+xauth.exe: ..\apps\xauth\obj\release\xauth.exe
+	copy $< $@
+
 load_makefile ..\tools\plink\makefile MAKESERVER=0 DEBUG=0
 plink.exe: ..\tools\plink\obj\release\plink.exe
 	copy $< $@
@@ -129,7 +133,7 @@ load_makefile ..\libX11\nls\makefile MAKESERVER=0 DEBUG=0
 load_makefile fonts.src\makefile MAKESERVER=0 DEBUG=0
 load_makefile xkeyboard-config\makefile MAKESERVER=0 DEBUG=0
 
-all: $(APP).exe xlaunch.exe xkbcomp.exe protocol.txt XErrorDB xhost.exe \
+all: $(APP).exe xlaunch.exe xkbcomp.exe protocol.txt XErrorDB xhost.exe xauth.exe \
      ..\libX11\nls\all fonts.src\all xkeyboard-config\all plink.exe xclock.exe xcalc.exe \
      xwininfo.exe swrast_dri_dbg.dll swrast_dri.dll dxtn.dll dxtn_dbg.dll \
      swrastwgl_dri.dll swrastwgl_dri_dbg.dll
