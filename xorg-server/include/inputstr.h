@@ -544,7 +544,7 @@ typedef struct _DeviceIntRec {
     DeviceRec	public;
     DeviceIntPtr next;
     Bool	startup;		/* true if needs to be turned on at
-				          server intialization time */
+				          server initialization time */
     DeviceProc	deviceProc;		/* proc(DevicePtr, DEVICE_xx). It is
 					  used to initialize, turn on, or
 					  turn off the device */
