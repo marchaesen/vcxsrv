@@ -752,9 +752,6 @@ _swrast_CreateContext( struct gl_context *ctx )
    swrast->Driver.SpanRenderStart = _swrast_span_render_start;
    swrast->Driver.SpanRenderFinish = _swrast_span_render_finish;
 
-   ctx->Driver.MapTexture = _swrast_map_texture;
-   ctx->Driver.UnmapTexture = _swrast_unmap_texture;
-
    for (i = 0; i < MAX_TEXTURE_IMAGE_UNITS; i++)
       swrast->TextureSample[i] = NULL;
 
@@ -872,10 +869,11 @@ void
 _swrast_render_finish( struct gl_context *ctx )
 {
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
-   if (swrast->Driver.SpanRenderFinish)
-      swrast->Driver.SpanRenderFinish( ctx );
 
    _swrast_flush(ctx);
+
+   if (swrast->Driver.SpanRenderFinish)
+      swrast->Driver.SpanRenderFinish( ctx );
 }
 
 

@@ -33,17 +33,6 @@
 
 
 /**
- * Default GetPointer routine.  Always return NULL to indicate that
- * direct buffer access is not supported.
- */
-static void *
-nop_get_pointer(struct gl_context *ctx, struct gl_renderbuffer *rb, GLint x, GLint y)
-{
-   return NULL;
-}
-
-
-/**
  * Initialize the fields of a gl_renderbuffer to default values.
  */
 void
@@ -65,20 +54,6 @@ _mesa_init_renderbuffer(struct gl_renderbuffer *rb, GLuint name)
    rb->Height = 0;
    rb->InternalFormat = GL_RGBA;
    rb->Format = MESA_FORMAT_NONE;
-
-   rb->DataType = GL_NONE;
-   rb->Data = NULL;
-
-   /* Point back to ourself so that we don't have to check for Wrapped==NULL
-    * all over the drivers.
-    */
-   rb->Wrapped = rb;
-
-   rb->GetPointer = nop_get_pointer;
-   rb->GetRow = NULL;
-   rb->GetValues = NULL;
-   rb->PutRow = NULL;
-   rb->PutValues = NULL;
 }
 
 
@@ -104,10 +79,7 @@ _mesa_new_renderbuffer(struct gl_context *ctx, GLuint name)
 void
 _mesa_delete_renderbuffer(struct gl_renderbuffer *rb)
 {
-   if (rb->Data) {
-      free(rb->Data);
-   }
-   free(rb);
+   /* no-op */
 }
 
 

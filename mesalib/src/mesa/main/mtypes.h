@@ -1614,7 +1614,22 @@ struct gl_array_object
 
    GLint RefCount;
    _glthread_Mutex Mutex;
-   GLboolean VBOonly;  /**< require all arrays to live in VBOs? */
+
+   /**
+    * Does the VAO use ARB semantics or Apple semantics?
+    *
+    * There are several ways in which ARB_vertex_array_object and
+    * APPLE_vertex_array_object VAOs have differing semantics.  At the very
+    * least,
+    *
+    *     - ARB VAOs require that all array data be sourced from vertex buffer
+    *       objects, but Apple VAOs do not.
+    *
+    *     - ARB VAOs require that names come from GenVertexArrays.
+    *
+    * This flag notes which behavior governs this VAO.
+    */
+   GLboolean ARBsemantics;
 
    /** Vertex attribute arrays */
    struct gl_client_array VertexAttrib[VERT_ATTRIB_MAX];
@@ -2515,85 +2530,34 @@ struct gl_shared_state
 
 
 
-
 /**
- * A renderbuffer stores colors or depth values or stencil values.
- * A framebuffer object will have a collection of these.
- * Data are read/written to the buffer with a handful of Get/Put functions.
- *
- * Instances of this object are allocated with the Driver's NewRenderbuffer
- * hook.  Drivers will likely wrap this class inside a driver-specific
- * class to simulate inheritance.
+ * Renderbuffers represent drawing surfaces such as color, depth and/or
+ * stencil.  A framebuffer object has a set of renderbuffers.
+ * Drivers will typically derive subclasses of this type.
  */
 struct gl_renderbuffer
 {
-   _glthread_Mutex Mutex;		   /**< for thread safety */
+   _glthread_Mutex Mutex; /**< for thread safety */
    GLuint ClassID;        /**< Useful for drivers */
    GLuint Name;
    GLint RefCount;
    GLuint Width, Height;
-   GLint RowStride;       /**< Padded width in units of pixels */
-   GLboolean Purgeable;   /**< Is the buffer purgeable under memory pressure? */
-
+   GLboolean Purgeable;  /**< Is the buffer purgeable under memory pressure? */
    GLboolean AttachedAnytime; /**< TRUE if it was attached to a framebuffer */
-
    GLubyte NumSamples;
-
    GLenum InternalFormat; /**< The user-specified format */
    GLenum _BaseFormat;    /**< Either GL_RGB, GL_RGBA, GL_DEPTH_COMPONENT or
                                GL_STENCIL_INDEX. */
    gl_format Format;      /**< The actual renderbuffer memory format */
 
-   GLenum DataType;      /**< Type of values passed to the Get/Put functions */
-   GLvoid *Data;        /**< This may not be used by some kinds of RBs */
-
-   /* Used to wrap one renderbuffer around another: */
-   struct gl_renderbuffer *Wrapped;
-
-   /* Delete this renderbuffer */
+   /** Delete this renderbuffer */
    void (*Delete)(struct gl_renderbuffer *rb);
 
-   /* Allocate new storage for this renderbuffer */
-   GLboolean (*AllocStorage)(struct gl_context *ctx, struct gl_renderbuffer *rb,
+   /** Allocate new storage for this renderbuffer */
+   GLboolean (*AllocStorage)(struct gl_context *ctx,
+                             struct gl_renderbuffer *rb,
                              GLenum internalFormat,
                              GLuint width, GLuint height);
-
-   /* Lock/Unlock are called before/after calling the Get/Put functions.
-    * Not sure this is the right place for these yet.
-   void (*Lock)(struct gl_context *ctx, struct gl_renderbuffer *rb);
-   void (*Unlock)(struct gl_context *ctx, struct gl_renderbuffer *rb);
-    */
-
-   /* Return a pointer to the element/pixel at (x,y).
-    * Should return NULL if the buffer memory can't be directly addressed.
-    */
-   void *(*GetPointer)(struct gl_context *ctx, struct gl_renderbuffer *rb,
-                       GLint x, GLint y);
-
-   /* Get/Read a row of values.
-    * The values will be of format _BaseFormat and type DataType.
-    */
-   void (*GetRow)(struct gl_context *ctx, struct gl_renderbuffer *rb, GLuint count,
-                  GLint x, GLint y, void *values);
-
-   /* Get/Read values at arbitrary locations.
-    * The values will be of format _BaseFormat and type DataType.
-    */
-   void (*GetValues)(struct gl_context *ctx, struct gl_renderbuffer *rb, GLuint count,
-                     const GLint x[], const GLint y[], void *values);
-
-   /* Put/Write a row of values.
-    * The values will be of format _BaseFormat and type DataType.
-    */
-   void (*PutRow)(struct gl_context *ctx, struct gl_renderbuffer *rb, GLuint count,
-                  GLint x, GLint y, const void *values, const GLubyte *mask);
-
-   /* Put/Write values at arbitrary locations.
-    * The values will be of format _BaseFormat and type DataType.
-    */
-   void (*PutValues)(struct gl_context *ctx, struct gl_renderbuffer *rb, GLuint count,
-                     const GLint x[], const GLint y[], const void *values,
-                     const GLubyte *mask);
 };
 
 

@@ -378,7 +378,7 @@ fetch_texel_2d_rgb_dxt1( const struct swrast_texture_image *texImage,
    (void) k;
    if (fetch_ext_rgb_dxt1) {
       fetch_ext_rgb_dxt1(texImage->RowStride,
-                         texImage->Data, i, j, texel);
+                         texImage->Map, i, j, texel);
    }
    else
       _mesa_debug(NULL, "attempted to decode s3tc texture without library available: fetch_texel_2d_rgb_dxt1");
@@ -406,7 +406,7 @@ fetch_texel_2d_rgba_dxt1( const struct swrast_texture_image *texImage,
    (void) k;
    if (fetch_ext_rgba_dxt1) {
       fetch_ext_rgba_dxt1(texImage->RowStride,
-                          texImage->Data, i, j, texel);
+                          texImage->Map, i, j, texel);
    }
    else
       _mesa_debug(NULL, "attempted to decode s3tc texture without library available: fetch_texel_2d_rgba_dxt1\n");
@@ -434,7 +434,7 @@ fetch_texel_2d_rgba_dxt3( const struct swrast_texture_image *texImage,
    (void) k;
    if (fetch_ext_rgba_dxt3) {
       fetch_ext_rgba_dxt3(texImage->RowStride,
-                          texImage->Data, i, j, texel);
+                          texImage->Map, i, j, texel);
    }
    else
       _mesa_debug(NULL, "attempted to decode s3tc texture without library available: fetch_texel_2d_rgba_dxt3\n");
@@ -462,7 +462,7 @@ fetch_texel_2d_rgba_dxt5( const struct swrast_texture_image *texImage,
    (void) k;
    if (fetch_ext_rgba_dxt5) {
       fetch_ext_rgba_dxt5(texImage->RowStride,
-                          texImage->Data, i, j, texel);
+                          texImage->Map, i, j, texel);
    }
    else
       _mesa_debug(NULL, "attempted to decode s3tc texture without library available: fetch_texel_2d_rgba_dxt5\n");

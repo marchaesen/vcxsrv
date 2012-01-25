@@ -429,11 +429,14 @@ draw_rgba_pixels( struct gl_context *ctx, GLint x, GLint y,
    span.arrayMask = SPAN_RGBA;
    span.arrayAttribs = FRAG_BIT_COL0; /* we're fill in COL0 attrib values */
 
-   if (ctx->DrawBuffer->_NumColorDrawBuffers > 0 &&
-       ctx->DrawBuffer->_ColorDrawBuffers[0]->DataType != GL_FLOAT &&
-       ctx->Color.ClampFragmentColor != GL_FALSE) {
-      /* need to clamp colors before applying fragment ops */
-      transferOps |= IMAGE_CLAMP_BIT;
+   if (ctx->DrawBuffer->_NumColorDrawBuffers > 0) {
+      GLenum datatype = _mesa_get_format_datatype(
+                 ctx->DrawBuffer->_ColorDrawBuffers[0]->Format);
+      if (datatype != GL_FLOAT &&
+          ctx->Color.ClampFragmentColor != GL_FALSE) {
+         /* need to clamp colors before applying fragment ops */
+         transferOps |= IMAGE_CLAMP_BIT;
+      }
    }
 
    /*
@@ -510,6 +513,7 @@ fast_draw_depth_stencil(struct gl_context *ctx, GLint x, GLint y,
    const GLenum type = GL_UNSIGNED_INT_24_8;
    struct gl_renderbuffer *rb =
       ctx->DrawBuffer->Attachment[BUFFER_DEPTH].Renderbuffer;
+   struct swrast_renderbuffer *srb = swrast_renderbuffer(rb);
    GLubyte *src, *dst;
    GLint srcRowStride, dstRowStride;
    GLint i;
@@ -519,7 +523,7 @@ fast_draw_depth_stencil(struct gl_context *ctx, GLint x, GLint y,
    srcRowStride = _mesa_image_row_stride(unpack, width, format, type);
 
    dst = _swrast_pixel_address(rb, x, y);
-   dstRowStride = rb->RowStride * 4;
+   dstRowStride = srb->RowStride;
 
    for (i = 0; i < height; i++) {
       _mesa_pack_uint_24_8_depth_stencil_row(rb->Format, width,
