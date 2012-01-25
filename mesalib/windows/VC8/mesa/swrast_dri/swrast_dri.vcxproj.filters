@@ -24,9 +24,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\swrast\swrast.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\swrast\swrast_span.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\utils.c">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -131,7 +131,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\drivers\common\meta.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\drisw_util.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\swrast\swrast.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\swrast\swrast_span.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\utils.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_aaline.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_aatriangle.c" />
