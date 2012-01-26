@@ -363,10 +363,12 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       fWMMsgInitialized = TRUE;
 
     }
+  #ifdef _DEBUG
   else if (message!=WM_CREATE)
-    {  // Avoid crashes when pWin == NULL, which happens sometimes (I think during closing of windows)
-      return DefWindowProc (hwnd, message, wParam, lParam);
+    {
+      ErrorLog("Error; WIN_WINDOW_PROP should be different from NULL\n");
     }
+  #endif
 
   /* Branch on message type */
   switch (message)
@@ -699,9 +701,10 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 
       /* Remove our keyboard hook if it is installed */
       winRemoveKeyboardHookLL ();
+       /* Revert the X focus as well, but only if the Windows focus is going to another window */
       if (!wParam)
-	/* Revert the X focus as well, but only if the Windows focus is going to another window */
-	DeleteWindowFromAnyEvents(pWin, FALSE);
+	if (pWin)
+	  DeleteWindowFromAnyEvents(pWin, FALSE);
       return 0;
 
     case WM_SYSDEADCHAR:      
