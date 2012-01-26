@@ -366,7 +366,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
   #ifdef _DEBUG
   else if (message!=WM_CREATE)
     {
-      ErrorLog("Error; WIN_WINDOW_PROP should be different from NULL\n");
+      ErrorF("Error: WIN_WINDOW_PROP should be different from NULL\n");
     }
   #endif
 
