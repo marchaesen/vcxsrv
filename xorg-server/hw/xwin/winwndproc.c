@@ -182,6 +182,10 @@ winWindowProc (HWND hwnd, UINT message,
 	      "new height: %d new bpp: %d\n",
 	      LOWORD (lParam), HIWORD (lParam), wParam);
 
+      /* 0 bpp has no defined meaning, ignore this message */
+      if (wParam == 0)
+        break;
+
       /*
        * Check for a disruptive change in depth.
        * We can only display a message for a disruptive depth change,
