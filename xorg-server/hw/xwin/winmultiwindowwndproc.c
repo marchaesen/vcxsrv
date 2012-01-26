@@ -35,6 +35,10 @@
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
+#define GC tempGC  // This is to avoid name conflicts when including the next headers which also define GC
+#include <X11/Xutil.h>
+#undef GC
+
 #include "win.h"
 #include "dixevents.h"
 #include "winmultiwindowclass.h"
