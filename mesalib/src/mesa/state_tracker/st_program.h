@@ -55,6 +55,9 @@ struct st_fp_variant_key
    GLuint pixelMaps:1;            /**< glDrawPixels w/ pixel lookup map? */
    GLuint drawpixels_z:1;         /**< glDrawPixels(GL_DEPTH) */
    GLuint drawpixels_stencil:1;   /**< glDrawPixels(GL_STENCIL) */
+
+   /** for ARB_color_buffer_float */
+   GLuint clamp_color:1;
 };
 
 
@@ -65,6 +68,8 @@ struct st_fp_variant
 {
    /** Parameters which generated this version of fragment program */
    struct st_fp_variant_key key;
+
+   struct pipe_shader_state tgsi;
 
    /** Driver's compiled shader */
    void *driver_shader;
@@ -86,8 +91,6 @@ struct st_fragment_program
    struct gl_fragment_program Base;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
 
-   struct pipe_shader_state tgsi;
-
    struct st_fp_variant *variants;
 };
 
@@ -98,6 +101,9 @@ struct st_vp_variant_key
 {
    struct st_context *st;          /**< variants are per-context */
    boolean passthrough_edgeflags;
+
+   /** for ARB_color_buffer_float */
+   boolean clamp_color;
 };
 
 

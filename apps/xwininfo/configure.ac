@@ -21,34 +21,35 @@ dnl  PERFORMANCE OF THIS SOFTWARE.
 dnl
 dnl Process this file with autoconf to create configure.
 
+# Initialize Autoconf
 AC_PREREQ([2.60])
 AC_INIT([xwininfo], [1.1.2],
 	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [xwininfo])
+AC_CONFIG_SRCDIR([Makefile.am])
+AC_CONFIG_HEADERS([config.h])
+AC_USE_SYSTEM_EXTENSIONS
+
+# Initialize Automake
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_MAINTAINER_MODE
+AM_ICONV
 
 # Require X.Org macros 1.8 or later for MAN_SUBSTS set by XORG_MANPAGE_SECTIONS
 m4_ifndef([XORG_MACROS_VERSION],
 	  [m4_fatal([must install xorg-macros 1.8 or later before running autoconf/autogen])])
 XORG_MACROS_VERSION(1.8)
-
-AC_CONFIG_HEADERS([config.h])
-
-AC_USE_SYSTEM_EXTENSIONS
-
 XORG_DEFAULT_OPTIONS
 
+# Checks for library functions
 AC_CHECK_FUNCS([strlcat])
 
+# Use POSIX strnlen or the implementation supplied in this module
 AC_FUNC_STRNLEN
 if test "x$ac_cv_func_strnlen_working" = xyes; then
   AC_DEFINE(HAVE_STRNLEN, 1, [Define to 1 if you have a working strnlen function.])
 fi
 
-AM_ICONV
-
-# Allow using xcb-icccm, but don't make it the default while the API is
-# still being changed.
+# Define a configure option for using the XCB ICCCM helper functions
 AC_MSG_CHECKING([whether to use xcb-icccm library])
 AC_ARG_WITH([xcb-icccm],
 	    [AS_HELP_STRING([--with-xcb-icccm],
@@ -61,7 +62,7 @@ if test "x$with_xcb_icccm" != xno ; then
 	xcb_icccm_pc='xcb-icccm >= 0.3.8'
 fi
 
-# Checks for pkg-config packages
+# Obtain compiler/linker options for xwininfo dependencies
 PKG_CHECK_MODULES(XWININFO, [xcb >= 1.6] xcb-shape ${xcb_icccm_pc})
 
 # Even when using xcb, xproto is still required for Xfuncproto.h
