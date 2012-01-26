@@ -726,7 +726,7 @@ xf86Int10SaveRestoreBIOSVars(xf86Int10InfoPtr pInt, Bool save)
 	}
     }
     
-    pci_device_unmap_legacy(pInt->dev, base, pagesize);
+    pci_device_unmap_legacy(pInt->dev, base - BIOS_SCRATCH_OFF, pagesize);
 }
 #endif
 

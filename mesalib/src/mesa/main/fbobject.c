@@ -1225,7 +1225,8 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_RGBA8I_EXT:
    case GL_RGBA16I_EXT:
    case GL_RGBA32I_EXT:
-      return ctx->Extensions.EXT_texture_integer ? GL_RGBA : 0;
+      return ctx->VersionMajor >= 3 ||
+             ctx->Extensions.EXT_texture_integer ? GL_RGBA : 0;
 
    case GL_RGB8UI_EXT:
    case GL_RGB16UI_EXT:
@@ -1233,7 +1234,8 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_RGB8I_EXT:
    case GL_RGB16I_EXT:
    case GL_RGB32I_EXT:
-      return ctx->Extensions.EXT_texture_integer ? GL_RGB : 0;
+      return ctx->VersionMajor >= 3 ||
+             ctx->Extensions.EXT_texture_integer ? GL_RGB : 0;
 
    case GL_R8UI:
    case GL_R8I:
@@ -1241,8 +1243,9 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_R16I:
    case GL_R32UI:
    case GL_R32I:
-      return ctx->Extensions.ARB_texture_rg &&
-             ctx->Extensions.EXT_texture_integer ? GL_RED : 0;
+      return ctx->VersionMajor >= 3 ||
+             (ctx->Extensions.ARB_texture_rg &&
+              ctx->Extensions.EXT_texture_integer) ? GL_RED : 0;
 
    case GL_RG8UI:
    case GL_RG8I:
@@ -1250,8 +1253,9 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_RG16I:
    case GL_RG32UI:
    case GL_RG32I:
-      return ctx->Extensions.ARB_texture_rg &&
-             ctx->Extensions.EXT_texture_integer ? GL_RG : 0;
+      return ctx->VersionMajor >= 3 ||
+             (ctx->Extensions.ARB_texture_rg &&
+              ctx->Extensions.EXT_texture_integer) ? GL_RG : 0;
 
    case GL_INTENSITY8I_EXT:
    case GL_INTENSITY8UI_EXT:
@@ -1279,6 +1283,15 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_LUMINANCE_ALPHA32UI_EXT:
       return ctx->Extensions.EXT_texture_integer &&
              ctx->Extensions.ARB_framebuffer_object ? GL_LUMINANCE_ALPHA : 0;
+
+   case GL_ALPHA8I_EXT:
+   case GL_ALPHA8UI_EXT:
+   case GL_ALPHA16I_EXT:
+   case GL_ALPHA16UI_EXT:
+   case GL_ALPHA32I_EXT:
+   case GL_ALPHA32UI_EXT:
+      return ctx->Extensions.EXT_texture_integer &&
+             ctx->Extensions.ARB_framebuffer_object ? GL_ALPHA : 0;
 
    case GL_RGB10_A2UI:
       return ctx->Extensions.ARB_texture_rgb10_a2ui ? GL_RGBA : 0;
@@ -2392,7 +2405,7 @@ _mesa_GetFramebufferAttachmentParameterivEXT(GLenum target, GLenum attachment,
                      "glGetFramebufferAttachmentParameterivEXT(pname)");
       }
       else {
-         if (ctx->Extensions.EXT_framebuffer_sRGB && ctx->Const.sRGBCapable) {
+         if (ctx->Extensions.EXT_framebuffer_sRGB) {
             *params = _mesa_get_format_color_encoding(att->Renderbuffer->Format);
          }
          else {
