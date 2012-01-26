@@ -144,7 +144,7 @@
 #define KEY_KP_0         /* 0           Insert    0x52  */   82
 #define KEY_KP_Decimal   /* . (Decimal) Delete    0x53  */   83 
 #define KEY_SysReqest    /* SysReqest             0x54  */   84
-                         /* NOTUSED               0x55  */
+#define KEY_Fn           /* Fn                    0x55  */   85
 #define KEY_Less         /* < (Less)   >(Greater) 0x56  */   86
 #define KEY_F11          /* F11                   0x57  */   87
 #define KEY_F12          /* F12                   0x58  */   88
