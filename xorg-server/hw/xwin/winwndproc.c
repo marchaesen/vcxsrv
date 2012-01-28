@@ -1065,7 +1065,7 @@ winWindowProc (HWND hwnd, UINT message,
 
       /* Discard fake Ctrl_L events that precede AltGR on non-US keyboards */
       if (winIsFakeCtrl_L (message, wParam, lParam))
-        return 0;
+	return 0;
 
       /* 
        * Discard presses generated from Windows auto-repeat

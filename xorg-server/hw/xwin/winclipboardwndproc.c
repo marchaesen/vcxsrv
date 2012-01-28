@@ -138,10 +138,9 @@ winProcessXEventsTimeout (HWND hwnd, int iWindow, Display *pDisplay,
 					      pDisplay,
 					      fUseUnicode,
 					      TRUE);
-	  if (WIN_XEVENTS_NOTIFY == iReturn
-	      || WIN_XEVENTS_CONVERT == iReturn)
+	  if (WIN_XEVENTS_NOTIFY == iReturn)
 	    {
-	      /* Bail out if convert or notify processed */
+	      /* Bail out if notify processed */
 	      return iReturn;
 	    }
 	}
@@ -487,15 +486,12 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 	  }
 
 	/* Process the SelectionNotify event */
-	do {
-	  iReturn = winProcessXEventsTimeout (hwnd,
+	iReturn = winProcessXEventsTimeout (hwnd,
 					    iWindow,
 					    pDisplay,
 					    fConvertToUnicode,
 					    WIN_POLL_TIMEOUT);
-	} while (WIN_XEVENTS_CONVERT == iReturn);
 
-	
 	/*
 	 * The last call to winProcessXEventsTimeout
 	 * from above had better have seen a notify event, or else we

@@ -270,7 +270,7 @@ g_iKeyMap [] = {
   /* 220 */	0,		0,		0,
   /* 221 */	0,		0,		0,
   /* 222 */	0,		0,		0,
-  /* 223 */	VK_OEM_8,	0,		KEY_RCtrl,  /* at least on Candian Multilingual Standard layout */
+  /* 223 */	VK_OEM_8,	0,		KEY_RCtrl,  /* at least on Canadian Multilingual Standard layout */
   /* 224 */	0,		0,		0,
   /* 225 */	0,		0,		0,
   /* 226 */	0,		0,		0,

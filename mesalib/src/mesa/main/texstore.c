@@ -1139,11 +1139,9 @@ _mesa_texstore_rgb565(TEXSTORE_PARAMS)
    ASSERT(_mesa_get_format_bytes(dstFormat) == 2);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-       dstFormat == MESA_FORMAT_RGB565 &&
        baseInternalFormat == GL_RGB &&
-       srcFormat == GL_RGB &&
-       srcType == GL_UNSIGNED_SHORT_5_6_5) {
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,
@@ -1243,30 +1241,9 @@ _mesa_texstore_rgba8888(TEXSTORE_PARAMS)
    ASSERT(_mesa_get_format_bytes(dstFormat) == 4);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-      (dstFormat == MESA_FORMAT_RGBA8888 ||
-       dstFormat == MESA_FORMAT_RGBX8888) &&
        baseInternalFormat == GL_RGBA &&
-      ((srcFormat == GL_RGBA && srcType == GL_UNSIGNED_INT_8_8_8_8) ||
-       (srcFormat == GL_RGBA && srcType == GL_UNSIGNED_BYTE && !littleEndian) ||
-       (srcFormat == GL_ABGR_EXT && srcType == GL_UNSIGNED_INT_8_8_8_8_REV) ||
-       (srcFormat == GL_ABGR_EXT && srcType == GL_UNSIGNED_BYTE && littleEndian))) {
-       /* simple memcpy path */
-      memcpy_texture(ctx, dims,
-                     dstFormat,
-                     dstRowStride, dstSlices,
-                     srcWidth, srcHeight, srcDepth, srcFormat, srcType,
-                     srcAddr, srcPacking);
-   }
-   else if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-      (dstFormat == MESA_FORMAT_RGBA8888_REV ||
-       dstFormat == MESA_FORMAT_RGBX8888_REV) &&
-       baseInternalFormat == GL_RGBA &&
-      ((srcFormat == GL_RGBA && srcType == GL_UNSIGNED_INT_8_8_8_8_REV) ||
-       (srcFormat == GL_RGBA && srcType == GL_UNSIGNED_BYTE && littleEndian) ||
-       (srcFormat == GL_ABGR_EXT && srcType == GL_UNSIGNED_INT_8_8_8_8) ||
-       (srcFormat == GL_ABGR_EXT && srcType == GL_UNSIGNED_BYTE && !littleEndian))) {
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,
@@ -1367,28 +1344,9 @@ _mesa_texstore_argb8888(TEXSTORE_PARAMS)
    ASSERT(_mesa_get_format_bytes(dstFormat) == 4);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-       (dstFormat == MESA_FORMAT_ARGB8888 ||
-        dstFormat == MESA_FORMAT_XRGB8888) &&
        baseInternalFormat == GL_RGBA &&
-       srcFormat == GL_BGRA &&
-       ((srcType == GL_UNSIGNED_BYTE && littleEndian) ||
-        srcType == GL_UNSIGNED_INT_8_8_8_8_REV)) {
-      /* simple memcpy path (little endian) */
-      memcpy_texture(ctx, dims,
-                     dstFormat,
-                     dstRowStride, dstSlices,
-                     srcWidth, srcHeight, srcDepth, srcFormat, srcType,
-                     srcAddr, srcPacking);
-   }
-   else if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-       (dstFormat == MESA_FORMAT_ARGB8888_REV ||
-        dstFormat == MESA_FORMAT_XRGB8888_REV) &&
-       baseInternalFormat == GL_RGBA &&
-       srcFormat == GL_BGRA &&
-       ((srcType == GL_UNSIGNED_BYTE && !littleEndian) ||
-        srcType == GL_UNSIGNED_INT_8_8_8_8)) {
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path (big endian) */
       memcpy_texture(ctx, dims,
                      dstFormat,
@@ -1553,18 +1511,15 @@ _mesa_texstore_argb8888(TEXSTORE_PARAMS)
 static GLboolean
 _mesa_texstore_rgb888(TEXSTORE_PARAMS)
 {
-   const GLboolean littleEndian = _mesa_little_endian();
    const GLenum baseFormat = _mesa_get_format_base_format(dstFormat);
 
    ASSERT(dstFormat == MESA_FORMAT_RGB888);
    ASSERT(_mesa_get_format_bytes(dstFormat) == 3);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
        baseInternalFormat == GL_RGB &&
-       srcFormat == GL_BGR &&
-       srcType == GL_UNSIGNED_BYTE &&
-       littleEndian) {
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,
@@ -1670,18 +1625,15 @@ _mesa_texstore_rgb888(TEXSTORE_PARAMS)
 static GLboolean
 _mesa_texstore_bgr888(TEXSTORE_PARAMS)
 {
-   const GLboolean littleEndian = _mesa_little_endian();
    const GLenum baseFormat = _mesa_get_format_base_format(dstFormat);
 
    ASSERT(dstFormat == MESA_FORMAT_BGR888);
    ASSERT(_mesa_get_format_bytes(dstFormat) == 3);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
        baseInternalFormat == GL_RGB &&
-       srcFormat == GL_RGB &&
-       srcType == GL_UNSIGNED_BYTE &&
-       littleEndian) {
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,
@@ -1775,11 +1727,9 @@ _mesa_texstore_argb4444(TEXSTORE_PARAMS)
    ASSERT(_mesa_get_format_bytes(dstFormat) == 2);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-       dstFormat == MESA_FORMAT_ARGB4444 &&
        baseInternalFormat == GL_RGBA &&
-       srcFormat == GL_BGRA &&
-       srcType == GL_UNSIGNED_SHORT_4_4_4_4_REV) {
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,
@@ -1838,11 +1788,9 @@ _mesa_texstore_rgba5551(TEXSTORE_PARAMS)
    ASSERT(_mesa_get_format_bytes(dstFormat) == 2);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-       dstFormat == MESA_FORMAT_RGBA5551 &&
        baseInternalFormat == GL_RGBA &&
-       srcFormat == GL_RGBA &&
-       srcType == GL_UNSIGNED_SHORT_5_5_5_1) {
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,
@@ -1891,11 +1839,9 @@ _mesa_texstore_argb1555(TEXSTORE_PARAMS)
    ASSERT(_mesa_get_format_bytes(dstFormat) == 2);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-       dstFormat == MESA_FORMAT_ARGB1555 &&
        baseInternalFormat == GL_RGBA &&
-       srcFormat == GL_BGRA &&
-       srcType == GL_UNSIGNED_SHORT_1_5_5_5_REV) {
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,
@@ -1955,11 +1901,9 @@ _mesa_texstore_argb2101010(TEXSTORE_PARAMS)
    ASSERT(_mesa_get_format_bytes(dstFormat) == 4);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-       dstFormat == MESA_FORMAT_ARGB2101010 &&
-       srcFormat == GL_BGRA &&
-       srcType == GL_UNSIGNED_INT_2_10_10_10_REV &&
-       baseInternalFormat == GL_RGBA) {
+       baseInternalFormat == GL_RGBA &&
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,
@@ -2458,9 +2402,9 @@ _mesa_texstore_rgb332(TEXSTORE_PARAMS)
    ASSERT(_mesa_get_format_bytes(dstFormat) == 1);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
        baseInternalFormat == GL_RGB &&
-       srcFormat == GL_RGB && srcType == GL_UNSIGNED_BYTE_3_3_2) {
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,
@@ -2990,7 +2934,6 @@ _mesa_texstore_signed_rgbx8888(TEXSTORE_PARAMS)
 static GLboolean
 _mesa_texstore_signed_rgba8888(TEXSTORE_PARAMS)
 {
-   const GLboolean littleEndian = _mesa_little_endian();
    const GLenum baseFormat = _mesa_get_format_base_format(dstFormat);
 
    ASSERT(dstFormat == MESA_FORMAT_SIGNED_RGBA8888 ||
@@ -2998,25 +2941,10 @@ _mesa_texstore_signed_rgba8888(TEXSTORE_PARAMS)
    ASSERT(_mesa_get_format_bytes(dstFormat) == 4);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-       dstFormat == MESA_FORMAT_SIGNED_RGBA8888 &&
        baseInternalFormat == GL_RGBA &&
-      ((srcFormat == GL_RGBA && srcType == GL_BYTE && !littleEndian) ||
-       (srcFormat == GL_ABGR_EXT && srcType == GL_BYTE && littleEndian))) {
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
        /* simple memcpy path */
-      memcpy_texture(ctx, dims,
-                     dstFormat,
-                     dstRowStride, dstSlices,
-                     srcWidth, srcHeight, srcDepth, srcFormat, srcType,
-                     srcAddr, srcPacking);
-   }
-   else if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-       dstFormat == MESA_FORMAT_SIGNED_RGBA8888_REV &&
-       baseInternalFormat == GL_RGBA &&
-      ((srcFormat == GL_RGBA && srcType == GL_BYTE && littleEndian) ||
-       (srcFormat == GL_ABGR_EXT && srcType == GL_BYTE && !littleEndian))) {
-      /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,
                      dstRowStride, dstSlices,
@@ -3465,13 +3393,14 @@ _mesa_texstore_rgba_int8(TEXSTORE_PARAMS)
    }
    else {
       /* general path */
-      const GLfloat *tempImage = _mesa_make_temp_float_image(ctx, dims,
-                                                 baseInternalFormat,
-                                                 baseFormat,
-                                                 srcWidth, srcHeight, srcDepth,
-                                                 srcFormat, srcType, srcAddr,
-                                                 srcPacking, 0x0);
-      const GLfloat *src = tempImage;
+      const GLuint *tempImage = make_temp_uint_image(ctx, dims,
+						     baseInternalFormat,
+						     baseFormat,
+						     srcWidth, srcHeight, srcDepth,
+						     srcFormat, srcType,
+						     srcAddr,
+						     srcPacking);
+      const GLuint *src = tempImage;
       GLint img, row;
       if (!tempImage)
          return GL_FALSE;
@@ -3534,13 +3463,14 @@ _mesa_texstore_rgba_int16(TEXSTORE_PARAMS)
    }
    else {
       /* general path */
-      const GLfloat *tempImage = _mesa_make_temp_float_image(ctx, dims,
-                                                 baseInternalFormat,
-                                                 baseFormat,
-                                                 srcWidth, srcHeight, srcDepth,
-                                                 srcFormat, srcType, srcAddr,
-                                                 srcPacking, 0x0);
-      const GLfloat *src = tempImage;
+      const GLuint *tempImage = make_temp_uint_image(ctx, dims,
+						     baseInternalFormat,
+						     baseFormat,
+						     srcWidth, srcHeight, srcDepth,
+						     srcFormat, srcType,
+						     srcAddr,
+						     srcPacking);
+      const GLuint *src = tempImage;
       GLint img, row;
       if (!tempImage)
          return GL_FALSE;
@@ -3603,13 +3533,14 @@ _mesa_texstore_rgba_int32(TEXSTORE_PARAMS)
    }
    else {
       /* general path */
-      const GLfloat *tempImage = _mesa_make_temp_float_image(ctx, dims,
-                                                 baseInternalFormat,
-                                                 baseFormat,
-                                                 srcWidth, srcHeight, srcDepth,
-                                                 srcFormat, srcType, srcAddr,
-                                                 srcPacking, 0x0);
-      const GLfloat *src = tempImage;
+      const GLuint *tempImage = make_temp_uint_image(ctx, dims,
+						     baseInternalFormat,
+						     baseFormat,
+						     srcWidth, srcHeight, srcDepth,
+						     srcFormat, srcType,
+						     srcAddr,
+						     srcPacking);
+      const GLuint *src = tempImage;
       GLint img, row;
       if (!tempImage)
          return GL_FALSE;
@@ -3959,9 +3890,8 @@ _mesa_texstore_rgb9_e5(TEXSTORE_PARAMS)
    ASSERT(baseInternalFormat == GL_RGB);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-       srcFormat == GL_RGB &&
-       srcType == GL_UNSIGNED_INT_5_9_9_9_REV) {
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,
@@ -4008,9 +3938,8 @@ _mesa_texstore_r11_g11_b10f(TEXSTORE_PARAMS)
    ASSERT(baseInternalFormat == GL_RGB);
 
    if (!ctx->_ImageTransferState &&
-       !srcPacking->SwapBytes &&
-       srcFormat == GL_RGB &&
-       srcType == GL_UNSIGNED_INT_10F_11F_11F_REV) {
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,
@@ -4119,11 +4048,9 @@ _mesa_texstore_argb2101010_uint(TEXSTORE_PARAMS)
    ASSERT(dstFormat == MESA_FORMAT_ARGB2101010_UINT);
    ASSERT(_mesa_get_format_bytes(dstFormat) == 4);
 
-   if (!srcPacking->SwapBytes &&
-       dstFormat == MESA_FORMAT_ARGB2101010_UINT &&
-       srcFormat == GL_BGRA_INTEGER_EXT &&
-       srcType == GL_UNSIGNED_INT_2_10_10_10_REV &&
-       baseInternalFormat == GL_RGBA) {
+   if (baseInternalFormat == GL_RGBA &&
+       _mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
+                                            srcPacking->SwapBytes)) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat,

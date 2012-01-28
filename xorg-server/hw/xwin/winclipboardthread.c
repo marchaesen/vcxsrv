@@ -53,8 +53,8 @@
 
 extern Bool		g_fUnicodeClipboard;
 extern unsigned long	serverGeneration;
-extern Bool		g_fClipboardLaunched;
 extern Bool		g_fClipboardStarted;
+extern Bool		g_fClipboardLaunched;
 extern HWND		g_hwndClipboard;
 extern void		*g_pClipboardDisplay;
 extern Window		g_iClipboardWindow;
@@ -85,7 +85,6 @@ winClipboardIOErrorHandler (Display *pDisplay);
 
 static void
 winClipboardThreadExit(void *arg);
-
 /*
  * Main thread function
  */
@@ -151,7 +150,6 @@ winClipboardProc (void *pvNotUsed)
     {
       /* TODO: Cleanup the Win32 window and free any allocated memory */
       ErrorF ("winClipboardProc - setjmp returned for IO Error Handler.\n");
-      //goto thread_errorexit;
     }
 
   /* Use our generated cookie for authentication */

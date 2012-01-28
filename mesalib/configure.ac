@@ -97,13 +97,13 @@ AC_COMPILE_IFELSE(
        not clang
 #endif
 ]])],
-[CLANG=yes], [CLANG=no])
+[acv_mesa_CLANG=yes], [acv_mesa_CLANG=no])
 
-AC_MSG_RESULT([$CLANG])
+AC_MSG_RESULT([$acv_mesa_CLANG])
 
 dnl If we're using GCC, make sure that it is at least version 3.3.0.  Older
 dnl versions are explictly not supported.
-if test "x$GCC" = xyes -a "x$CLANG" = xno; then
+if test "x$GCC" = xyes -a "x$acv_mesa_CLANG" = xno; then
     AC_MSG_CHECKING([whether gcc version is sufficient])
     major=0
     minor=0
@@ -273,39 +273,9 @@ if test "x$enable_64bit" = xyes; then
     fi
 fi
 
-dnl
-dnl shared/static libraries, mimic libtool options
-dnl
-AC_ARG_ENABLE([static],
-    [AS_HELP_STRING([--enable-static],
-        [build static libraries @<:@default=disabled@:>@])],
-    [enable_static="$enableval"],
-    [enable_static=no]
-)
-case "x$enable_static" in
-xyes|xno ) ;;
-x ) enable_static=no ;;
-* )
-    AC_MSG_ERROR([Static library option '$enable_static' is not a valid])
-    ;;
-esac
-AC_ARG_ENABLE([shared],
-    [AS_HELP_STRING([--disable-shared],
-        [build shared libraries @<:@default=enabled@:>@])],
-    [enable_shared="$enableval"],
-    [enable_shared=yes]
-)
-case "x$enable_shared" in
-xyes|xno ) ;;
-x ) enable_shared=yes ;;
-* )
-    AC_MSG_ERROR([Shared library option '$enable_shared' is not a valid])
-    ;;
-esac
-
 dnl Can't have static and shared libraries, default to static if user
 dnl explicitly requested. If both disabled, set to static since shared
-dnl was explicitly requirested.
+dnl was explicitly requested.
 case "x$enable_static$enable_shared" in
 xyesyes )
     AC_MSG_WARN([Can't build static and shared libraries, disabling shared])
@@ -413,7 +383,6 @@ GLESv1_CM_LIB_NAME='lib$(GLESv1_CM_LIB).'${LIB_EXTENSION}
 GLESv2_LIB_NAME='lib$(GLESv2_LIB).'${LIB_EXTENSION}
 VG_LIB_NAME='lib$(VG_LIB).'${LIB_EXTENSION}
 GLAPI_LIB_NAME='lib$(GLAPI_LIB).'${LIB_EXTENSION}
-WAYLAND_EGL_LIB_NAME='lib$(WAYLAND_EGL_LIB).'${LIB_EXTENSION}
 
 GL_LIB_GLOB=${LIB_PREFIX_GLOB}'$(GL_LIB)'${LIB_VERSION_SEPARATOR}'*'${LIB_EXTENSION}'*'
 GLU_LIB_GLOB=${LIB_PREFIX_GLOB}'$(GLU_LIB)'${LIB_VERSION_SEPARATOR}'*'${LIB_EXTENSION}'*'
@@ -424,7 +393,6 @@ GLESv1_CM_LIB_GLOB=${LIB_PREFIX_GLOB}'$(GLESv1_CM_LIB)'${LIB_VERSION_SEPARATOR}'
 GLESv2_LIB_GLOB=${LIB_PREFIX_GLOB}'$(GLESv2_LIB)'${LIB_VERSION_SEPARATOR}'*'${LIB_EXTENSION}'*'
 VG_LIB_GLOB=${LIB_PREFIX_GLOB}'$(VG_LIB)'${LIB_VERSION_SEPARATOR}'*'${LIB_EXTENSION}'*'
 GLAPI_LIB_GLOB=${LIB_PREFIX_GLOB}'$(GLAPI_LIB)'${LIB_VERSION_SEPARATOR}'*'${LIB_EXTENSION}'*'
-WAYLAND_EGL_LIB_GLOB=${LIB_PREFIX_GLOB}'$(WAYLAND_EGL_LIB)'${LIB_VERSION_SEPARATOR}'*'${LIB_EXTENSION}'*'
 
 AC_SUBST([GL_LIB_NAME])
 AC_SUBST([GLU_LIB_NAME])
@@ -434,7 +402,6 @@ AC_SUBST([GLESv1_CM_LIB_NAME])
 AC_SUBST([GLESv2_LIB_NAME])
 AC_SUBST([VG_LIB_NAME])
 AC_SUBST([GLAPI_LIB_NAME])
-AC_SUBST([WAYLAND_EGL_LIB_NAME])
 
 AC_SUBST([GL_LIB_GLOB])
 AC_SUBST([GLU_LIB_GLOB])
@@ -444,7 +411,6 @@ AC_SUBST([GLESv1_CM_LIB_GLOB])
 AC_SUBST([GLESv2_LIB_GLOB])
 AC_SUBST([VG_LIB_GLOB])
 AC_SUBST([GLAPI_LIB_GLOB])
-AC_SUBST([WAYLAND_EGL_LIB_GLOB])
 
 dnl
 dnl Arch/platform-specific settings
@@ -1687,7 +1653,6 @@ AC_ARG_WITH([egl-platforms],
     [with_egl_platforms=yes])
 
 EGL_PLATFORMS=""
-WAYLAND_EGL_LIB_DEPS=""
 
 case "$with_egl_platforms" in
 yes)
@@ -1703,7 +1668,7 @@ yes)
     egl_platforms=`IFS=', '; echo $with_egl_platforms`
     for plat in $egl_platforms; do
         test -d "$srcdir/src/gallium/state_trackers/egl/$plat" || \
-            AC_MSG_ERROR([EGL platform '$plat' doesn't exist])
+            AC_MSG_ERROR([EGL platform '$plat' does not exist])
         if test "$plat" = "fbdev"; then
                 GALLIUM_WINSYS_DIRS="$GALLIUM_WINSYS_DIRS sw/fbdev"
         fi
@@ -1713,8 +1678,10 @@ yes)
 	if test "$plat" = "wayland"; then
 		PKG_CHECK_MODULES([WAYLAND], [wayland-client wayland-server],, \
 				  [AC_MSG_ERROR([cannot find libwayland-client])])
-		WAYLAND_EGL_LIB_DEPS="$WAYLAND_LIBS $LIBDRM_LIBS"
                 GALLIUM_WINSYS_DIRS="$GALLIUM_WINSYS_DIRS sw/wayland"
+
+                m4_ifdef([WAYLAND_SCANNER_RULES],
+                         [WAYLAND_SCANNER_RULES(['$(top_srcdir)/src/egl/wayland/wayland-drm/protocol'])])
 	fi
         if test "$plat" = "drm" && test "x$enable_gbm" = "xno"; then
                 AC_MSG_ERROR([EGL platform drm needs gbm])
@@ -1728,16 +1695,6 @@ yes)
     ;;
 esac
 AC_SUBST([EGL_PLATFORMS])
-
-AC_SUBST([WAYLAND_EGL_LIB_DEPS])
-WAYLAND_EGL_PC_REQ_PRIV="wayland-client libdrm"
-WAYLAND_EGL_PC_LIB_PRIV=
-WAYLAND_EGL_PC_CFLAGS=
-
-AC_SUBST([WAYLAND_EGL_PC_REQ_PRIV])
-AC_SUBST([WAYLAND_EGL_PC_LIB_PRIV])
-AC_SUBST([WAYLAND_EGL_PC_CFLAGS])
-
 
 AC_ARG_WITH([egl-driver-dir],
     [AS_HELP_STRING([--with-egl-driver-dir=DIR],
@@ -1946,8 +1903,13 @@ dnl Substitute the config
 AC_CONFIG_FILES([configs/autoconf
 		src/gbm/Makefile
 		src/gbm/main/gbm.pc
+		src/egl/wayland/Makefile
+		src/egl/wayland/wayland-egl/Makefile
+		src/egl/wayland/wayland-egl/wayland-egl.pc
+		src/egl/wayland/wayland-drm/Makefile
 		src/mesa/drivers/dri/dri.pc
 		src/mesa/drivers/dri/Makefile
+		src/mesa/drivers/dri/common/Makefile
 		src/mesa/drivers/dri/i915/Makefile
 		src/mesa/drivers/dri/i965/Makefile
 		src/mesa/drivers/dri/nouveau/Makefile

@@ -360,7 +360,7 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
       /* Get time of current message */
       lTime = GetMessageTime ();
 
-      /* Look for next press message. */
+      /* Look for next press message */
       fReturn = PeekMessage (&msgNext, NULL,
 			     WM_KEYDOWN, WM_SYSKEYDOWN,
 			     PM_NOREMOVE);
@@ -429,16 +429,16 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
       /* Get time of current message */
       lTime = GetMessageTime ();
 
-      /* Look for next release message. */
+      /* Look for next release message */
       fReturn = PeekMessage (&msgNext, NULL,
 			     WM_KEYUP, WM_SYSKEYUP,
 			     PM_NOREMOVE);
- 
+
       if (fReturn && msgNext.message != WM_KEYUP && msgNext.message != WM_SYSKEYUP)
           fReturn = 0;
- 
+
       lastWasControlL = FALSE;
- 
+
       /* Is next press an Alt_R with the same timestamp? */
       if (fReturn
 	  && (msgNext.message == WM_KEYUP

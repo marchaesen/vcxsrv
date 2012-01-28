@@ -53,6 +53,8 @@
 
 int winProcEstablishConnection(ClientPtr /* client */);
 int winProcSetSelectionOwner(ClientPtr /* client */);
+DISPATCH_PROC(winProcEstablishConnection);
+DISPATCH_PROC(winProcSetSelectionOwner);
 
 
 /*

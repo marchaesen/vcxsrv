@@ -348,17 +348,12 @@ winMouseButtonsHandle (ScreenPtr pScreen,
 /**
  * Enqueue a motion event.
  *
- *  XXX: miPointerMove does exactly this, but is static :-( (and uses a static buffer)
- *
  */
 void winEnqueueMotion(int x, int y)
 {
   int valuators[2];
   ValuatorMask mask;
-  double dbl_x=(double)x;
-  double dbl_y=(double)y;
 
-  miPointerSetPosition(g_pwinPointer, Absolute, &dbl_x, &dbl_y);
   valuators[0] = x;
   valuators[1] = y;
 

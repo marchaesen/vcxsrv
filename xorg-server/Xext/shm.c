@@ -181,7 +181,7 @@ SigSysHandler(int signo)
 
 static Bool CheckForShmSyscall(void)
 {
-    void (*oldHandler)();
+    void (*oldHandler)(int);
     int shmid = -1;
 
     /* If no SHM support in the kernel, the bad syscall will generate SIGSYS */
