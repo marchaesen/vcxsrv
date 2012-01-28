@@ -328,8 +328,12 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
   LONG		lTime;
   Bool		fReturn;
 
+  static Bool   lastWasControlL = FALSE;
+  static UINT   lastMessage;
+  static LONG   lastTime;
+
   /*
-   * Fake Ctrl_L presses will be followed by an Alt_R keypress
+   * Fake Ctrl_L presses will be followed by an Alt_R press
    * with the same timestamp as the Ctrl_L press.
    */
   if ((message == WM_KEYDOWN || message == WM_SYSKEYDOWN)
@@ -341,34 +345,31 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
       /* Get time of current message */
       lTime = GetMessageTime ();
 
-      /* Look for fake Ctrl_L preceeding an Alt_R press. */
+      /* Look for next press message */
       fReturn = PeekMessage (&msgNext, NULL,
 			     WM_KEYDOWN, WM_SYSKEYDOWN,
 			     PM_NOREMOVE);
 
-      /*
-       * Try again if the first call fails.
-       * NOTE: This usually happens when TweakUI is enabled.
-       */
-      if (!fReturn)
-	{
-	  /* Voodoo to make sure that the Alt_R message has posted */
-	  Sleep (0);
-
-	  /* Look for fake Ctrl_L preceeding an Alt_R press. */
-	  fReturn = PeekMessage (&msgNext, NULL,
-				 WM_KEYDOWN, WM_SYSKEYDOWN,
-				 PM_NOREMOVE);
-	}
-      if (msgNext.message != WM_KEYDOWN && msgNext.message != WM_SYSKEYDOWN)
+      if (fReturn &&  msgNext.message != WM_KEYDOWN && msgNext.message != WM_SYSKEYDOWN)
           fReturn = 0;
+
+      if (!fReturn)
+        {
+          lastWasControlL = TRUE;
+          lastMessage = message;
+          lastTime = lTime;
+        }
+      else
+        {
+          lastWasControlL = FALSE;
+        }
 
       /* Is next press an Alt_R with the same timestamp? */
       if (fReturn && msgNext.wParam == VK_MENU
 	  && msgNext.time == lTime
 	  && (HIWORD (msgNext.lParam) & KF_EXTENDED))
 	{
-	  /* 
+	  /*
 	   * Next key press is Alt_R with same timestamp as current
 	   * Ctrl_L message.  Therefore, this Ctrl_L press is a fake
 	   * event, so discard it.
@@ -376,12 +377,35 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
 	  return TRUE;
 	}
     }
+  /*
+   * Sometimes, the Alt_R press message is not yet posted when the
+   * fake Ctrl_L press message arrives (even though it has the
+   * same timestamp), so check for an Alt_R press message that has
+   * arrived since the last Ctrl_L message.
+   */
+  else if ((message == WM_KEYDOWN || message == WM_SYSKEYDOWN)
+      && wParam == VK_MENU
+      && (HIWORD (lParam) & KF_EXTENDED))
+    {
+      /* Got a Alt_R press */
 
-  /* 
+      if (lastWasControlL)
+        {
+          lTime = GetMessageTime ();
+
+          if (lastTime == lTime)
+            {
+                /* Undo the fake Ctrl_L press by sending a fake Ctrl_L release */
+                winSendKeyEvent (KEY_LCtrl, FALSE);
+            }
+          lastWasControlL = FALSE;
+        }
+    }
+  /*
    * Fake Ctrl_L releases will be followed by an Alt_R release
    * with the same timestamp as the Ctrl_L release.
    */
-  if ((message == WM_KEYUP || message == WM_SYSKEYUP)
+  else if ((message == WM_KEYUP || message == WM_SYSKEYUP)
       && wParam == VK_CONTROL
       && (HIWORD (lParam) & KF_EXTENDED) == 0)
     {
@@ -390,29 +414,16 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
       /* Get time of current message */
       lTime = GetMessageTime ();
 
-      /* Look for fake Ctrl_L release preceeding an Alt_R release. */
+      /* Look for next release message */
       fReturn = PeekMessage (&msgNext, NULL,
-			     WM_KEYUP, WM_SYSKEYUP, 
+			     WM_KEYUP, WM_SYSKEYUP,
 			     PM_NOREMOVE);
 
-      /*
-       * Try again if the first call fails.
-       * NOTE: This usually happens when TweakUI is enabled.
-       */
-      if (!fReturn)
-	{
-	  /* Voodoo to make sure that the Alt_R message has posted */
-	  Sleep (0);
-
-	  /* Look for fake Ctrl_L release preceeding an Alt_R release. */
-	  fReturn = PeekMessage (&msgNext, NULL,
-				 WM_KEYUP, WM_SYSKEYUP, 
-				 PM_NOREMOVE);
-	}
-
-      if (msgNext.message != WM_KEYUP && msgNext.message != WM_SYSKEYUP)
+      if (fReturn && msgNext.message != WM_KEYUP && msgNext.message != WM_SYSKEYUP)
           fReturn = 0;
-      
+
+      lastWasControlL = FALSE;
+
       /* Is next press an Alt_R with the same timestamp? */
       if (fReturn
 	  && (msgNext.message == WM_KEYUP
@@ -429,7 +440,13 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
 	  return TRUE;
 	}
     }
-  
+  else
+    {
+      /* On any other press or release message, we don't have a
+         potentially fake Ctrl_L to worry about anymore... */
+      lastWasControlL = FALSE;
+    }
+
   /* Not a fake control left press/release */
   return FALSE;
 }

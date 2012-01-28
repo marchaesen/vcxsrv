@@ -713,9 +713,11 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 
       /* Remove our keyboard hook if it is installed */
       winRemoveKeyboardHookLL ();
-      if (!wParam)
-	/* Revert the X focus as well, but only if the Windows focus is going to another window */
-	DeleteWindowFromAnyEvents(pWin, FALSE);
+
+      /* Revert the X focus as well, but only if the Windows focus is going to another window */
+      if (!wParam && pWin)
+          DeleteWindowFromAnyEvents(pWin, FALSE);
+
       return 0;
 
     case WM_SYSDEADCHAR:      
@@ -898,7 +900,22 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 		   & ~WS_CAPTION & ~WS_SIZEBOX);
 
 	      winUpdateWindowPosition (hwnd, FALSE, &zstyle);
-	      SetForegroundWindow (hwnd);
+
+              {
+                WinXWMHints hints;
+                if (winMultiWindowGetWMHints(pWin, &hints))
+                  {
+                    /*
+                      Give the window focus, unless it has an InputHint
+                      which is FALSE (this is used by e.g. glean to
+                      avoid every test window grabbing the focus)
+                     */
+                    if (!((hints.flags & InputHint) && (!hints.input)))
+                      {
+                        SetForegroundWindow (hwnd);
+                      }
+                  }
+              }
 	    }
 	  wmMsg.msg = WM_WM_MAP3;
 	}

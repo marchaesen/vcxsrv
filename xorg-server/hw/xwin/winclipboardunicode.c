@@ -44,7 +44,7 @@ winClipboardDetectUnicodeSupport (void)
 {
   Bool			fReturn = FALSE;
   OSVERSIONINFO		osvi = {0};
-  
+
   /* Get operating system version information */
   osvi.dwOSVersionInfoSize = sizeof (osvi);
   GetVersionEx (&osvi);
@@ -54,13 +54,11 @@ winClipboardDetectUnicodeSupport (void)
     {
     case VER_PLATFORM_WIN32_NT:
       /* Unicode supported on NT only */
-      ErrorF ("DetectUnicodeSupport - Windows NT/2000/XP\n");
       fReturn = TRUE;
       break;
 
     case VER_PLATFORM_WIN32_WINDOWS:
       /* Unicode is not supported on non-NT */
-      ErrorF ("DetectUnicodeSupport - Windows 95/98/Me\n");
       fReturn = FALSE;
       break;
     }

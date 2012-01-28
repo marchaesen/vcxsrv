@@ -102,6 +102,8 @@
 #define MOUSE_POLLING_INTERVAL		50
 
 #define WIN_E3B_OFF		-1
+#define WIN_E3B_DEFAULT         0
+
 #define WIN_FD_INVALID		-1
 
 #define WIN_SERVER_NONE		0x0L	/* 0 */

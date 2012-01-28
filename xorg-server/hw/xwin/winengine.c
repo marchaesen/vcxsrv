@@ -68,20 +68,6 @@ winDetectSupportedEngines (void)
   osvi.dwOSVersionInfoSize = sizeof (osvi);
   GetVersionEx (&osvi);
 
-  /* Branch on platform ID */
-  switch (osvi.dwPlatformId)
-    {
-    case VER_PLATFORM_WIN32_NT:
-      /* Engine 4 is supported on NT only */
-      winErrorFVerb (2, "winDetectSupportedEngines - Windows NT/2000/XP\n");
-      break;
-
-    case VER_PLATFORM_WIN32_WINDOWS:
-      /* Engine 4 is supported on NT only */
-      winErrorFVerb (2, "winDetectSupportedEngines - Windows 95/98/Me\n");
-      break;
-    }
-
   /* Do we have DirectDraw? */
   if (g_hmodDirectDraw != NULL)
     {

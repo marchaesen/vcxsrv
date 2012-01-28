@@ -141,7 +141,7 @@ winInitializeScreenDefaults(void)
   defaultScreenInfo.fLessPointer = FALSE;
   defaultScreenInfo.iResizeMode = notAllowed;
   defaultScreenInfo.fNoTrayIcon = FALSE;
-  defaultScreenInfo.iE3BTimeout = WIN_E3B_OFF;
+  defaultScreenInfo.iE3BTimeout = WIN_E3B_DEFAULT;
   defaultScreenInfo.fUseWinKillKey = WIN_DEFAULT_WIN_KILL;
   defaultScreenInfo.fUseUnixKillKey = WIN_DEFAULT_UNIX_KILL;
   defaultScreenInfo.fIgnoreInput = FALSE;
@@ -789,6 +789,17 @@ ddxProcessArgument (int argc, char *argv[], int i)
     }
 
   /*
+   * Look for the '-noemulate3buttons' argument
+   */
+  if (IS_OPTION ("-noemulate3buttons"))
+    {
+      screenInfoPtr->iE3BTimeout = WIN_E3B_OFF;
+
+      /* Indicate that we have processed this argument */
+      return 1;
+    }
+
+  /*
    * Look for the '-depth n' argument
    */
   if (IS_OPTION ("-depth"))
@@ -1209,7 +1220,7 @@ winLogCommandLine (int argc, char *argv[])
 
 
 /*
- * winLogVersionInfo - Log Cygwin/X version information
+ * winLogVersionInfo - Log version information
  */
 
 void

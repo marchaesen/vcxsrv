@@ -182,6 +182,10 @@ winWindowProc (HWND hwnd, UINT message,
 	      "new height: %d new bpp: %d\n",
 	      LOWORD (lParam), HIWORD (lParam), wParam);
 
+      /* 0 bpp has no defined meaning, ignore this message */
+      if (wParam == 0)
+        break;
+
       /*
        * Check for a disruptive change in depth.
        * We can only display a message for a disruptive depth change,
@@ -1060,6 +1064,10 @@ winWindowProc (HWND hwnd, UINT message,
       if ((wParam == VK_LWIN || wParam == VK_RWIN) && !g_fKeyboardHookLL)
 	break;
 
+      /* Discard fake Ctrl_L events that precede AltGR on non-US keyboards */
+      if (winIsFakeCtrl_L (message, wParam, lParam))
+	return 0;
+
       /* 
        * Discard presses generated from Windows auto-repeat
        */
@@ -1079,10 +1087,6 @@ winWindowProc (HWND hwnd, UINT message,
             return 0;
         }
       } 
-      
-      /* Discard fake Ctrl_L presses that precede AltGR on non-US keyboards */
-      if (winIsFakeCtrl_L (message, wParam, lParam))
-	return 0;
       
       /* Translate Windows key code to X scan code */
       winTranslateKey (wParam, lParam, &iScanCode);

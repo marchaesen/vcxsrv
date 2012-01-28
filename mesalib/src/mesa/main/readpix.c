@@ -209,14 +209,9 @@ fast_read_rgba_pixels_memcpy( struct gl_context *ctx,
    GLubyte *dst, *map;
    int dstStride, stride, j, texelBytes;
 
-   if (!_mesa_format_matches_format_and_type(rb->Format, format, type))
+   if (!_mesa_format_matches_format_and_type(rb->Format, format, type,
+                                             ctx->Pack.SwapBytes))
       return GL_FALSE;
-
-   /* check for things we can't handle here */
-   if (packing->SwapBytes ||
-       packing->LsbFirst) {
-      return GL_FALSE;
-   }
 
    dstStride = _mesa_image_row_stride(packing, width, format, type);
    dst = (GLubyte *) _mesa_image_address2d(packing, pixels, width, height,

@@ -114,8 +114,6 @@ winInitializeGlobals (void)
 {
   g_dwCurrentThreadID = GetCurrentThreadId ();
 #ifdef XWIN_CLIPBOARD
-  g_fClipboardLaunched = FALSE;
-  g_fClipboardStarted = FALSE;
   g_iClipboardWindow = None;
   g_pClipboardDisplay = NULL;
   g_atomLastOwnedSelection = None;

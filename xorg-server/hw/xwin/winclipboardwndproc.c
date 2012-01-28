@@ -42,7 +42,6 @@
  * Constants
  */
 
-#define WIN_CLIPBOARD_PROP	"cyg_clipboard_prop"
 #define WIN_POLL_TIMEOUT	1
 
 
@@ -124,10 +123,9 @@ winProcessXEventsTimeout (HWND hwnd, int iWindow, Display *pDisplay,
 					      iWindow,
 					      pDisplay,
 					      fUseUnicode);
-	  if (WIN_XEVENTS_NOTIFY == iReturn
-	      || WIN_XEVENTS_CONVERT == iReturn)
+	  if (WIN_XEVENTS_NOTIFY == iReturn)
 	    {
-	      /* Bail out if convert or notify processed */
+	      /* Bail out if notify processed */
 	      return iReturn;
 	    }
 	}
@@ -503,22 +501,9 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 					    pDisplay,
 					    fConvertToUnicode,
 					    WIN_POLL_TIMEOUT);
-	if (WIN_XEVENTS_CONVERT == iReturn)
-	  {
-	    /*
-	     * The selection was offered for conversion first, so we have
-	     * to process a second SelectionNotify event to get the actual
-	     * data in the selection.
-	     */
-	    iReturn = winProcessXEventsTimeout (hwnd,
-						iWindow,
-						pDisplay,
-						fConvertToUnicode,
-						WIN_POLL_TIMEOUT);
-	  }
-	
+
 	/*
-	 * The last of the up-to two calls to winProcessXEventsTimeout
+	 * The last call to winProcessXEventsTimeout
 	 * from above had better have seen a notify event, or else we
 	 * are dealing with a buggy or old X11 app.  In these cases we
 	 * have to paste some fake data to the Win32 clipboard to

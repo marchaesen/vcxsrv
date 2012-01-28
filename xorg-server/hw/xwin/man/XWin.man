@@ -176,7 +176,8 @@ milliseconds causes an emulated middle button press.  The default
 .I timeout
 is 50 milliseconds.  Note that most mice with scroll wheel have middle
 button functionality, usually you will need this option only if you have
-a two button mouse without scroll wheel.
+a two button mouse without scroll wheel.  Default is to enable this
+option if  \fIWindows\fP reports a two button mouse, disabled otherwise.
 .TP 8
 .B \-[no]keyhook
 Enable [disable] a low-level keyboard hook for catching

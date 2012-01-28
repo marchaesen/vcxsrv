@@ -19,9 +19,9 @@
 	<key>CFBundlePackageType</key>
 		<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-		<string>2.7.0</string>
+		<string>2.7.2</string>
 	<key>CFBundleVersion</key>
-		<string>2.7.0</string>
+		<string>2.7.2</string>
 	<key>CFBundleSignature</key>
 		<string>x11a</string>
 	<key>CSResourcesFileMapped</key>
@@ -37,9 +37,9 @@
 	<key>LSApplicationCategoryType</key>
 		<string>public.app-category.utilities</string>
 	<key>NSHumanReadableCopyright</key>
-		<string>© 2003-2011 Apple Inc.
+		<string>© 2003-2012 Apple Inc.
 © 2003 XFree86 Project, Inc.
-© 2003-2011 X.org Foundation, Inc.
+© 2003-2012 X.org Foundation, Inc.
 </string>
 	<key>NSMainNibFile</key>
 		<string>main</string>

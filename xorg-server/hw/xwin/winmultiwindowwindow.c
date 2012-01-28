@@ -638,8 +638,6 @@ winDestroyWindowsWindow (WindowPtr pWin)
   hIcon = (HICON)SendMessage(pWinPriv->hWnd, WM_GETICON, ICON_BIG, 0);
   hIconSm = (HICON)SendMessage(pWinPriv->hWnd, WM_GETICON, ICON_SMALL, 0);
 
-  SetProp (pWinPriv->hWnd, WIN_WINDOW_PROP, NULL);
-
   /* Destroy the Windows window */
   DestroyWindow (pWinPriv->hWnd);
 

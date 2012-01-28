@@ -204,7 +204,11 @@ winUpdateWindowPosition (HWND hWnd, Bool reshape, HWND *zstyle);
  */
 
 static jmp_buf			g_jmpWMEntry;
+static XIOErrorHandler g_winMultiWindowWMOldIOErrorHandler;
+static pthread_t g_winMultiWindowWMThread;
 static jmp_buf			g_jmpXMsgProcEntry;
+static XIOErrorHandler g_winMultiWindowXMsgProcOldIOErrorHandler;
+static pthread_t g_winMultiWindowXMsgProcThread;
 static Bool			g_shutdown = FALSE;
 static Bool			redirectError = FALSE;
 static Bool			g_fAnotherWMRunning = FALSE;
@@ -901,9 +905,14 @@ winMultiWindowXMsgProc (void *pArg)
 
   ErrorF ("winMultiWindowXMsgProc - pthread_mutex_unlock () returned.\n");
 
+  /* Install our error handler */
+  XSetErrorHandler (winMultiWindowXMsgProcErrorHandler);
+  g_winMultiWindowXMsgProcThread = pthread_self();
+  g_winMultiWindowXMsgProcOldIOErrorHandler = XSetIOErrorHandler (winMultiWindowXMsgProcIOErrorHandler);
+
   /* Set jump point for IO Error exits */
   iReturn = setjmp (g_jmpXMsgProcEntry);
-  
+
   /* Check if we should continue operations */
   if (iReturn != WIN_JMP_ERROR_IO
       && iReturn != WIN_JMP_OKAY)
@@ -918,10 +927,6 @@ winMultiWindowXMsgProc (void *pArg)
       ErrorF ("winInitMultiWindowXMsgProc - Caught IO Error.  Exiting.\n");
       pthread_exit (NULL);
     }
-
-  /* Install our error handler */
-  XSetErrorHandler (winMultiWindowXMsgProcErrorHandler);
-  XSetIOErrorHandler (winMultiWindowXMsgProcIOErrorHandler);
 
   /* Setup the display connection string x */
   snprintf (pszDisplay,
@@ -1310,9 +1315,14 @@ winInitMultiWindowWM (WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
 
   ErrorF ("winInitMultiWindowWM - pthread_mutex_unlock () returned.\n");
 
+  /* Install our error handler */
+  XSetErrorHandler (winMultiWindowWMErrorHandler);
+  g_winMultiWindowWMThread = pthread_self();
+  g_winMultiWindowWMOldIOErrorHandler = XSetIOErrorHandler (winMultiWindowWMIOErrorHandler);
+
   /* Set jump point for IO Error exits */
   iReturn = setjmp (g_jmpWMEntry);
-  
+
   /* Check if we should continue operations */
   if (iReturn != WIN_JMP_ERROR_IO
       && iReturn != WIN_JMP_OKAY)
@@ -1327,10 +1337,6 @@ winInitMultiWindowWM (WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
       ErrorF ("winInitMultiWindowWM - Caught IO Error.  Exiting.\n");
       pthread_exit (NULL);
     }
-
-  /* Install our error handler */
-  XSetErrorHandler (winMultiWindowWMErrorHandler);
-  XSetIOErrorHandler (winMultiWindowWMIOErrorHandler);
 
   /* Setup the display connection string x */
   snprintf (pszDisplay,
@@ -1458,12 +1464,18 @@ winMultiWindowWMIOErrorHandler (Display *pDisplay)
 {
   ErrorF ("winMultiWindowWMIOErrorHandler!\n\n");
 
-  if (g_shutdown)
-    pthread_exit(NULL);
+  if (pthread_equal(pthread_self(),g_winMultiWindowWMThread))
+    {
+      if (g_shutdown)
+        pthread_exit(NULL);
 
-  /* Restart at the main entry point */
-  longjmp (g_jmpWMEntry, WIN_JMP_ERROR_IO);
-  
+      /* Restart at the main entry point */
+      longjmp (g_jmpWMEntry, WIN_JMP_ERROR_IO);
+    }
+
+  if (g_winMultiWindowWMOldIOErrorHandler)
+    g_winMultiWindowWMOldIOErrorHandler(pDisplay);
+
   return 0;
 }
 
@@ -1498,9 +1510,15 @@ winMultiWindowXMsgProcIOErrorHandler (Display *pDisplay)
 {
   ErrorF ("winMultiWindowXMsgProcIOErrorHandler!\n\n");
 
-  /* Restart at the main entry point */
-  longjmp (g_jmpXMsgProcEntry, WIN_JMP_ERROR_IO);
-  
+  if (pthread_equal(pthread_self(),g_winMultiWindowXMsgProcThread))
+    {
+      /* Restart at the main entry point */
+      longjmp (g_jmpXMsgProcEntry, WIN_JMP_ERROR_IO);
+    }
+
+  if (g_winMultiWindowXMsgProcOldIOErrorHandler)
+    g_winMultiWindowXMsgProcOldIOErrorHandler(pDisplay);
+
   return 0;
 }
 
@@ -1564,6 +1582,8 @@ winDeinitMultiWindowWM (void)
 #define HINT_SIZEBOX	(1l<<2)
 #define HINT_CAPTION	(1l<<3)
 #define HINT_NOMAXIMIZE (1L<<4)
+#define HINT_NOMINIMIZE (1L<<5)
+#define HINT_NOSYSMENU  (1L<<6)
 /* These two are used on their own */
 #define HINT_MAX	(1L<<0)
 #define HINT_MIN	(1L<<1)
@@ -1622,6 +1642,16 @@ winApplyHints (Display *pDisplay, Window iWindow, HWND hWnd, HWND *zstyle)
 	if (mwm_hint->decorations & MwmDecorBorder) hint |= HINT_BORDER;
 	if (mwm_hint->decorations & MwmDecorHandle) hint |= HINT_SIZEBOX;
 	if (mwm_hint->decorations & MwmDecorTitle) hint |= HINT_CAPTION;
+	if (!(mwm_hint->decorations & MwmDecorMenu)) hint |= HINT_NOSYSMENU;
+	if (!(mwm_hint->decorations & MwmDecorMinimize)) hint |= HINT_NOMINIMIZE;
+	if (!(mwm_hint->decorations & MwmDecorMaximize)) hint |= HINT_NOMAXIMIZE;
+      }
+      else
+      {
+        /*
+           MwmDecorAll means all decorations *except* those specified by other flag
+           bits that are set.  Not yet implemented.
+        */
       }
     }
     if (mwm_hint) XFree(mwm_hint);
@@ -1719,6 +1749,12 @@ winApplyHints (Display *pDisplay, Window iWindow, HWND hWnd, HWND *zstyle)
 
   if (hint & HINT_NOMAXIMIZE)
     style = style & ~WS_MAXIMIZEBOX;
+
+  if (hint & HINT_NOMINIMIZE)
+    style = style & ~WS_MINIMIZEBOX;
+
+  if (hint & HINT_NOSYSMENU)
+    style = style & ~WS_SYSMENU;
 
   SetWindowLongPtr (hWnd, GWL_STYLE, style);
 }

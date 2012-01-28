@@ -42,7 +42,6 @@
  * Constants
  */
 
-#define CLIP_NUM_CALLS			4
 #define CLIP_NUM_SELECTIONS		2
 #define CLIP_OWN_PRIMARY		0
 #define CLIP_OWN_CLIPBOARD		1
@@ -55,6 +54,8 @@
 int winProcEstablishConnection(ClientPtr /* client */);
 int winProcQueryTree(ClientPtr /* client */);
 int winProcSetSelectionOwner(ClientPtr /* client */);
+DISPATCH_PROC(winProcEstablishConnection);
+DISPATCH_PROC(winProcSetSelectionOwner);
 
 
 /*
@@ -79,104 +80,6 @@ extern winDispatchProcPtr	winProcSetSelectionOwnerOrig;
 
 
 /*
- * Wrapper for internal QueryTree function.
- * Hides the clipboard client when it is the only client remaining.
- */
-
-int
-winProcQueryTree (ClientPtr client)
-{
-  int			iReturn;
-
-  ErrorF ("winProcQueryTree - Hello\n");
-
-  /*
-   * This procedure is only used for initialization.
-   * We can unwrap the original procedure at this point
-   * so that this function is no longer called until the
-   * server resets and the function is wrapped again.
-   */
-  ProcVector[X_QueryTree] = winProcQueryTreeOrig;
-
-  /*
-   * Call original function and bail if it fails.
-   * NOTE: We must do this first, since we need XdmcpOpenDisplay
-   * to be called before we initialize our clipboard client.
-   */
-  iReturn = (*winProcQueryTreeOrig) (client);
-  if (iReturn != 0)
-    {
-      ErrorF ("winProcQueryTree - ProcQueryTree failed, bailing.\n");
-      return iReturn;
-    }
-
-  /* Make errors more obvious */
-  winProcQueryTreeOrig = NULL;
-
-  /* Do nothing if clipboard is not enabled */
-  if (!g_fClipboard)
-    {
-      ErrorF ("winProcQueryTree - Clipboard is not enabled, "
-	      "returning.\n");
-      return iReturn;
-    }
-
-  /* If the clipboard client has already been started, abort */
-  if (g_fClipboardLaunched)
-    {
-      ErrorF ("winProcQueryTree - Clipboard client already "
-	      "launched, returning.\n");
-      return iReturn;
-    }
-
-  /* Startup the clipboard client if clipboard mode is being used */
-  if (g_fXdmcpEnabled && g_fClipboard)
-    {
-      /*
-       * NOTE: The clipboard client is started here for a reason:
-       * 1) Assume you are using XDMCP (e.g. XWin -query %hostname%)
-       * 2) If the clipboard client attaches during X Server startup,
-       *    then it becomes the "magic client" that causes the X Server
-       *    to reset if it exits.
-       * 3) XDMCP calls KillAllClients when it starts up.
-       * 4) The clipboard client is a client, so it is killed.
-       * 5) The clipboard client is the "magic client", so the X Server
-       *    resets itself.
-       * 6) This repeats ad infinitum.
-       * 7) We avoid this by waiting until at least one client (could
-       *    be XDM, could be another client) connects, which makes it
-       *    almost certain that the clipboard client will not connect
-       *    until after XDM when using XDMCP.
-       * 8) Unfortunately, there is another problem.
-       * 9) XDM walks the list of windows with XQueryTree,
-       *    killing any client it finds with a window.
-       * 10)Thus, when using XDMCP we wait until the first call
-       *    to ProcQueryTree before we startup the clipboard client.
-       *    This should prevent XDM from finding the clipboard client,
-       *    since it has not yet created a window.
-       * 11)Startup when not using XDMCP is handled in
-       *    winProcEstablishConnection.
-       */
-      
-      /* Create the clipboard client thread */
-      if (!winInitClipboard ())
-	{
-	  ErrorF ("winProcQueryTree - winClipboardInit "
-		  "failed.\n");
-	  return iReturn;
-	}
-      
-      ErrorF ("winProcQueryTree - winInitClipboard returned.\n");
-    }
-  
-  /* Flag that clipboard client has been launched */
-  g_fClipboardLaunched = TRUE;
-
-  return iReturn;
-}
-
-
-/*
  * Wrapper for internal EstablishConnection function.
  * Initializes internal clients that must not be started until
  * an external client has connected.
@@ -189,7 +92,7 @@ winProcEstablishConnection (ClientPtr client)
   static int		s_iCallCount = 0;
   static unsigned long	s_ulServerGeneration = 0;
 
-  if (s_iCallCount == 0 || s_iCallCount == CLIP_NUM_CALLS) ErrorF ("winProcEstablishConnection - Hello\n");
+  if (s_iCallCount == 0) ErrorF ("winProcEstablishConnection - Hello\n");
 
   /* Do nothing if clipboard is not enabled */
   if (!g_fClipboard)
@@ -216,18 +119,6 @@ winProcEstablishConnection (ClientPtr client)
 
   /* Increment call count */
   ++s_iCallCount;
-
-  /* Wait for CLIP_NUM_CALLS when Xdmcp is enabled */
-  if (g_fXdmcpEnabled
-      && !g_fClipboardLaunched
-      && s_iCallCount < CLIP_NUM_CALLS)
-    {
-      if (s_iCallCount == 1) ErrorF ("winProcEstablishConnection - Xdmcp, waiting to "
-	      "start clipboard client until %dth call", CLIP_NUM_CALLS);
-      if (s_iCallCount == CLIP_NUM_CALLS - 1) ErrorF (".\n");
-      else ErrorF (".");
-      return (*winProcEstablishConnectionOrig) (client);
-    }
 
   /*
    * This procedure is only used for initialization.
@@ -279,13 +170,6 @@ winProcEstablishConnection (ClientPtr client)
        *    be XDM, could be another client) connects, which makes it
        *    almost certain that the clipboard client will not connect
        *    until after XDM when using XDMCP.
-       * 8) Unfortunately, there is another problem.
-       * 9) XDM walks the list of windows with XQueryTree,
-       *    killing any client it finds with a window.
-       * 10)Thus, when using XDMCP we wait until CLIP_NUM_CALLS
-       *    to ProcEstablishCeonnection before we startup the clipboard
-       *    client.  This should prevent XDM from finding the clipboard
-       *    client, since it has not yet created a window.
        */
       
       /* Create the clipboard client thread */

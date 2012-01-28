@@ -127,10 +127,13 @@ typedef struct _winWMMessageRec{
 
 #define		MwmHintsDecorations	(1L << 1)
 
-#define		MwmDecorAll		(1l << 0)
-#define		MwmDecorBorder		(1l << 1)
-#define		MwmDecorHandle		(1l << 2)
-#define		MwmDecorTitle		(1l << 3)
+#define		MwmDecorAll		(1L << 0)
+#define		MwmDecorBorder		(1L << 1)
+#define		MwmDecorHandle		(1L << 2)
+#define		MwmDecorTitle		(1L << 3)
+#define		MwmDecorMenu		(1L << 4)
+#define		MwmDecorMinimize	(1L << 5)
+#define		MwmDecorMaximize	(1L << 6)
 
 /* This structure only contains 3 elements... the Motif 2.0 structure
 contains 5... we only need the first 3... so that is all we will define */
