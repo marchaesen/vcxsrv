@@ -722,6 +722,7 @@ winPrefsLoadPreferences (char *path)
 
   if (path)
     prefFile = fopen (path, "r");
+#ifndef _MSC_VER
   else
     {
       char defaultPrefs[] =
@@ -737,6 +738,7 @@ winPrefsLoadPreferences (char *path)
       path = "built-in default";
       prefFile = fmemopen(defaultPrefs, strlen(defaultPrefs), "r");
     }
+#endif
 
   if (!prefFile)
     {
