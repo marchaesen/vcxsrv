@@ -1609,6 +1609,7 @@ glxWinContextMakeCurrent(__GLXcontext *base)
     {
       glxWinDeferredCreateContext(gc, drawPriv);
     }
+  _glapi_set_dispatch(gc->Dispatch);
 
   if (gc->ctx == NULL)
     {
@@ -1696,6 +1697,7 @@ glxWinContextLoseCurrent(__GLXcontext *base)
   }
 
   base->isCurrent=FALSE;  /* It looks like glx is not doing this */
+  _glapi_set_dispatch(NULL);
 
   return ret;
 }
@@ -1753,6 +1755,7 @@ glxWinContextDestroy(__GLXcontext *base)
 
       free(gc->Dispatch);
       free(gc);
+      _glapi_set_dispatch(NULL);
     }
 }
 
@@ -1787,7 +1790,7 @@ glxWinCreateContext(__GLXscreen *screen,
     // actual native GL context creation is deferred until attach()
     //context->ctx = NULL; already done with memset
     context->shareContext = shareContext;
-    
+
     context->Dispatch=calloc(sizeof(void*), (sizeof(struct _glapi_table) / sizeof(void *) + MAX_EXTENSION_FUNCS));
     _glapi_set_dispatch(context->Dispatch);
 

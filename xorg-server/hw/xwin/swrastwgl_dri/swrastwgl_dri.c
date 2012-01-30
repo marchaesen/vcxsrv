@@ -1053,6 +1053,7 @@ static int driBindContext(__DRIcontext *pcp, __DRIdrawable *pdp, __DRIdrawable *
       wglResolveExtensionProcs();
     }
     current_pcp=pcp;
+    _glapi_set_dispatch(pcp->Dispatch);
   }
 
   return GL_TRUE;
@@ -1110,6 +1111,7 @@ static int driUnbindContext(__DRIcontext *pcp)
 
   pcp->driDrawablePriv = NULL;
   pcp->driReadablePriv = NULL;
+  _glapi_set_dispatch(NULL);
 
   return GL_TRUE;
 }
