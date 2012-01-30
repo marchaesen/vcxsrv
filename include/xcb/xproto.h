@@ -2668,6 +2668,7 @@ typedef struct xcb_set_font_path_request_t {
     uint8_t  pad0; /**<  */
     uint16_t length; /**<  */
     uint16_t font_qty; /**<  */
+    uint8_t  pad1[2]; /**<  */
 } xcb_set_font_path_request_t;
 
 /**
@@ -9950,8 +9951,7 @@ xcb_list_fonts_with_info_reply (xcb_connection_t                   *c  /**< */,
                                 xcb_generic_error_t               **e  /**< */);
 
 int
-xcb_set_font_path_sizeof (const void  *_buffer  /**< */,
-                          uint32_t     path_len  /**< */);
+xcb_set_font_path_sizeof (const void  *_buffer  /**< */);
 
 /**
  * Delivers a request to the X server
@@ -9971,8 +9971,7 @@ xcb_set_font_path_sizeof (const void  *_buffer  /**< */,
  ** 
  ** @param xcb_connection_t *c
  ** @param uint16_t          font_qty
- ** @param uint32_t          path_len
- ** @param const char       *path
+ ** @param const xcb_str_t  *font
  ** @returns xcb_void_cookie_t
  **
  *****************************************************************************/
@@ -9980,8 +9979,7 @@ xcb_set_font_path_sizeof (const void  *_buffer  /**< */,
 xcb_void_cookie_t
 xcb_set_font_path_checked (xcb_connection_t *c  /**< */,
                            uint16_t          font_qty  /**< */,
-                           uint32_t          path_len  /**< */,
-                           const char       *path  /**< */);
+                           const xcb_str_t  *font  /**< */);
 
 /**
  * Delivers a request to the X server
@@ -9998,8 +9996,7 @@ xcb_set_font_path_checked (xcb_connection_t *c  /**< */,
  ** 
  ** @param xcb_connection_t *c
  ** @param uint16_t          font_qty
- ** @param uint32_t          path_len
- ** @param const char       *path
+ ** @param const xcb_str_t  *font
  ** @returns xcb_void_cookie_t
  **
  *****************************************************************************/
@@ -10007,8 +10004,7 @@ xcb_set_font_path_checked (xcb_connection_t *c  /**< */,
 xcb_void_cookie_t
 xcb_set_font_path (xcb_connection_t *c  /**< */,
                    uint16_t          font_qty  /**< */,
-                   uint32_t          path_len  /**< */,
-                   const char       *path  /**< */);
+                   const xcb_str_t  *font  /**< */);
 
 int
 xcb_get_font_path_sizeof (const void  *_buffer  /**< */);
@@ -14578,7 +14574,7 @@ xcb_change_hosts_sizeof (const void  *_buffer  /**< */);
  ** @param uint8_t           mode
  ** @param uint8_t           family
  ** @param uint16_t          address_len
- ** @param const char       *address
+ ** @param const uint8_t    *address
  ** @returns xcb_void_cookie_t
  **
  *****************************************************************************/
@@ -14588,7 +14584,7 @@ xcb_change_hosts_checked (xcb_connection_t *c  /**< */,
                           uint8_t           mode  /**< */,
                           uint8_t           family  /**< */,
                           uint16_t          address_len  /**< */,
-                          const char       *address  /**< */);
+                          const uint8_t    *address  /**< */);
 
 /**
  * Delivers a request to the X server
@@ -14607,7 +14603,7 @@ xcb_change_hosts_checked (xcb_connection_t *c  /**< */,
  ** @param uint8_t           mode
  ** @param uint8_t           family
  ** @param uint16_t          address_len
- ** @param const char       *address
+ ** @param const uint8_t    *address
  ** @returns xcb_void_cookie_t
  **
  *****************************************************************************/
@@ -14617,7 +14613,7 @@ xcb_change_hosts (xcb_connection_t *c  /**< */,
                   uint8_t           mode  /**< */,
                   uint8_t           family  /**< */,
                   uint16_t          address_len  /**< */,
-                  const char       *address  /**< */);
+                  const uint8_t    *address  /**< */);
 
 int
 xcb_host_sizeof (const void  *_buffer  /**< */);

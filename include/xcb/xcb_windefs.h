@@ -40,6 +40,8 @@
 #include <ws2tcpip.h>
 #include <windef.h>
 
+typedef unsigned char BYTE;
+
 typedef unsigned int in_addr_t;
 
 #define HANDLE void *
