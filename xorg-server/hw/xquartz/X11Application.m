@@ -68,9 +68,6 @@ extern int xpbproxy_run (void);
 static dispatch_queue_t eventTranslationQueue;
 #endif
 
-/* Stuck modifier / button state... force release when we context switch */
-static NSEventType keyState[NUM_KEYCODES];
-
 extern Bool noTestExtensions;
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
@@ -194,7 +191,6 @@ static void message_kit_thread (SEL selector, NSObject *arg) {
 }
 
 - (void) activateX:(OSX_BOOL)state {
-    size_t i;
     DEBUG_LOG("state=%d, _x_active=%d, \n", state, _x_active);
     if (state) {
         if(bgMouseLocationUpdated) {
@@ -206,13 +202,13 @@ static void message_kit_thread (SEL selector, NSObject *arg) {
 
         if(darwin_all_modifier_flags)
             DarwinUpdateModKeys(0);
-        for(i=0; i < NUM_KEYCODES; i++) {
-            if(keyState[i] == NSKeyDown) {
-                DarwinSendKeyboardEvents(KeyRelease, i);
-                keyState[i] = NSKeyUp;
-            }
-        }
-        
+
+        DarwinInputReleaseButtonsAndKeys(darwinKeyboard);
+        DarwinInputReleaseButtonsAndKeys(darwinPointer);
+        DarwinInputReleaseButtonsAndKeys(darwinTabletCursor);
+        DarwinInputReleaseButtonsAndKeys(darwinTabletStylus);
+        DarwinInputReleaseButtonsAndKeys(darwinTabletEraser);
+
         DarwinSendDDXEvent(kXquartzDeactivate, 0);
     }
 
@@ -1407,12 +1403,8 @@ static const char *untrusted_str(NSEvent *e) {
                 }
             }
 
-            /* Avoid stuck keys on context switch */
-            if(keyState[[e keyCode]] == [e type])
-                return;
-            keyState[[e keyCode]] = [e type];
-
-            DarwinSendKeyboardEvents(([e type] == NSKeyDown) ? KeyPress : KeyRelease, [e keyCode]);
+            ev_type = ([e type] == NSKeyDown) ? KeyPress : KeyRelease;
+            DarwinSendKeyboardEvents(ev_type, [e keyCode]);
             break;
             
         default: break; /* for gcc */

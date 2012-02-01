@@ -294,7 +294,7 @@ msgstr "Retroklino"
 
 #: ../rules/base.xml.in.h:70
 msgid "Backslash chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
-msgstr "Retroklavo elektas 3-an nivelon, funkcias kiel unufoja ŝloso kiam premita kun alia 3-nivela elektilo"
+msgstr "Retroklino elektas 3-an nivelon, funkcias kiel unufoja ŝloso kiam premita kun alia 3-nivela elektilo"
 
 #: ../rules/base.xml.in.h:71
 msgid "Bambara"
@@ -322,7 +322,7 @@ msgstr "Belga"
 
 #: ../rules/base.xml.in.h:77
 msgid "Belgian (ISO alternate)"
-msgstr "Belga (Alternativa ISO)"
+msgstr "Belga (alternativa ISO)"
 
 #: ../rules/base.xml.in.h:78
 msgid "Belgian (Sun dead keys)"
@@ -494,7 +494,7 @@ msgstr "Birma"
 
 #: ../rules/base.xml.in.h:120
 msgid "Cameroon Multilingual (Dvorak)"
-msgstr "Kameruna Plurlingva (Dvorak)"
+msgstr "Kameruna Plurlingva (Dvorako)"
 
 #: ../rules/base.xml.in.h:121
 msgid "Cameroon Multilingual (azerty)"
@@ -734,7 +734,7 @@ msgstr "Ĉeĥa (Aranĝo UCW, nur diakritaĵoj)"
 
 #: ../rules/base.xml.in.h:180
 msgid "Czech (US Dvorak with CZ UCW support)"
-msgstr "Ĉeĥa (Usona Dvorak kun subteno al CZ UCW)"
+msgstr "Ĉeĥa (usona Dvorako kun subteno al CZ UCW)"
 
 #: ../rules/base.xml.in.h:181
 msgid "Czech (qwerty)"
@@ -834,7 +834,7 @@ msgstr "Nederlanda (Macintosh)"
 
 #: ../rules/base.xml.in.h:205
 msgid "Dutch (Sun dead keys)"
-msgstr "Nederlanda (Senpaŝaj klavoj de Sun)"
+msgstr "Nederlanda (senpaŝaj klavoj de Sun)"
 
 #: ../rules/base.xml.in.h:206
 msgid "Dutch (standard)"
@@ -862,11 +862,11 @@ msgstr "Angla (Colemak)"
 
 #: ../rules/base.xml.in.h:212
 msgid "English (Dvorak alternative international no dead keys)"
-msgstr "Angla (Dvoraka alternativa internacia, neniu senpaŝa klavo)"
+msgstr "Angla (dvoraka alternativa internacia, neniu senpaŝa klavo)"
 
 #: ../rules/base.xml.in.h:213
 msgid "English (Dvorak international with dead keys)"
-msgstr "Angla (Dvorak internacia kun senpaŝaj klavoj)"
+msgstr "Angla (dvoraka internacia kun senpaŝaj klavoj)"
 
 #: ../rules/base.xml.in.h:214
 msgid "English (Dvorak)"
@@ -918,11 +918,11 @@ msgstr "Angla (UK, Colemak)"
 
 #: ../rules/base.xml.in.h:226
 msgid "English (UK, Dvorak with UK punctuation)"
-msgstr "Angla (UK, Dvoraka kun interpunkcio de UK)"
+msgstr "Angla (UK, Dvorako kun interpunkcio de UK)"
 
 #: ../rules/base.xml.in.h:227
 msgid "English (UK, Dvorak)"
-msgstr "Angla (UK, Dvoraka)"
+msgstr "Angla (UK, Dvorako)"
 
 #: ../rules/base.xml.in.h:228
 msgid "English (UK, Macintosh international)"
@@ -1082,7 +1082,7 @@ msgstr "Filipina (Colemak, latina)"
 
 #: ../rules/base.xml.in.h:267
 msgid "Filipino (Dvorak Baybayin)"
-msgstr "Filipina (Dvoraka Baybayin)"
+msgstr "Filipina (Dvorako Baybayin)"
 
 #: ../rules/base.xml.in.h:268
 msgid "Filipino (Dvorak Latin)"
@@ -1136,11 +1136,11 @@ msgstr "Franca"
 
 #: ../rules/base.xml.in.h:282
 msgid "French (Bepo, ergonomic, Dvorak way)"
-msgstr "Franca (Bepo, komforteca, Dvorake)"
+msgstr "Franca (Bepo, komforteca, dvorake)"
 
 #: ../rules/base.xml.in.h:283
 msgid "French (Bepo, ergonomic, Dvorak way, latin-9 only)"
-msgstr "Franca (Bepo, komforteca, Dvorake, nur latin-9)"
+msgstr "Franca (Bepo, komforteca, dvorake, nur latin-9)"
 
 #: ../rules/base.xml.in.h:284
 msgid "French (Breton)"
@@ -1896,7 +1896,7 @@ msgstr "La maldekstra 'Alt' estas permutita kun la maldekstra klavo 'Win'"
 
 #: ../rules/base.xml.in.h:472
 msgid "Left Alt+Left Shift"
-msgstr "Maldekstra Alt+Maldekstra Shift"
+msgstr "Maldekstra Alt+maldekstra Shift"
 
 #: ../rules/base.xml.in.h:473
 msgid "Left Ctrl"
@@ -1904,7 +1904,7 @@ msgstr "Maldekstra Ctrl"
 
 #: ../rules/base.xml.in.h:474
 msgid "Left Ctrl (to first layout), Right Ctrl (to last layout)"
-msgstr "Maldekstra Ctrl (por la unua aranĝo), Dekstra Ctrl (por la lasta aranĝo)"
+msgstr "Maldekstra Ctrl (por la unua aranĝo), dekstra Ctrl (por la lasta aranĝo)"
 
 #: ../rules/base.xml.in.h:475
 msgid "Left Ctrl as Meta"
@@ -1912,7 +1912,7 @@ msgstr "Maldekstra Ctrl kiel Meta"
 
 #: ../rules/base.xml.in.h:476
 msgid "Left Ctrl+Left Shift"
-msgstr "Maldekstra Ctrl+Maldekstra Shift"
+msgstr "Maldekstra Ctrl+maldekstra Shift"
 
 #: ../rules/base.xml.in.h:477
 msgid "Left Shift"
@@ -1924,7 +1924,7 @@ msgstr "Maldekstra Win"
 
 #: ../rules/base.xml.in.h:479
 msgid "Left Win (to first layout), Right Win/Menu (to last layout)"
-msgstr "Maldekstra Win (al la unua aranĝo), Dekstra Win/Menu (al la lasta aranĝo)"
+msgstr "Maldekstra Win (al la unua aranĝo), dekstra Win/Menu (al la lasta aranĝo)"
 
 #: ../rules/base.xml.in.h:480
 msgid "Left Win (while pressed)"
@@ -1936,7 +1936,7 @@ msgstr "Maldekstra Win elektas 5-an nivelon, ŝlosas kiam premite kun alia 5-niv
 
 #: ../rules/base.xml.in.h:482
 msgid "LeftCtrl+LeftWin (to first layout), RightCtrl+Menu (to second layout)"
-msgstr "Maldekstra Ctrl + Dekstra Win (por la unua aranĝo), Dekstra Ctrl + Menu (por la dua aranĝo)"
+msgstr "Maldekstra Ctrl + dekstra Win (por la unua aranĝo), dekstra Ctrl + Menu (por la dua aranĝo)"
 
 #: ../rules/base.xml.in.h:483
 msgid "Legacy"
@@ -2077,7 +2077,7 @@ msgstr "Logitech iTouch Internet Navigator Keyboard SE (USB)"
 
 #: ../rules/base.xml.in.h:518
 msgid "Lower Sorbian"
-msgstr "Malsupra Soraba)"
+msgstr "Malsupra Soraba"
 
 #: ../rules/base.xml.in.h:519
 msgid "Lower Sorbian (qwertz)"
@@ -2181,11 +2181,11 @@ msgstr "Menu"
 
 #: ../rules/base.xml.in.h:544
 msgid "Menu as Right Ctrl"
-msgstr "Menu kiel Dekstran Ctrl"
+msgstr "Menu kiel dekstran Ctrl"
 
 #: ../rules/base.xml.in.h:545
 msgid "Meta is mapped to Left Win"
-msgstr "Meta estas mapita al la Maldekstra Win"
+msgstr "Meta estas mapita al la maldekstra Win"
 
 #: ../rules/base.xml.in.h:546
 msgid "Meta is mapped to Win keys"
@@ -2473,7 +2473,7 @@ msgstr "Portugala (Brazilo)"
 
 #: ../rules/base.xml.in.h:617
 msgid "Portuguese (Brazil, Dvorak)"
-msgstr "Portugala (Brazilo, Dvorak)"
+msgstr "Portugala (Brazilo, Dvorako)"
 
 #: ../rules/base.xml.in.h:618
 msgid "Portuguese (Brazil, eliminate dead keys)"
@@ -2549,7 +2549,7 @@ msgstr "Dekstra Alt (dum premata)"
 
 #: ../rules/base.xml.in.h:636
 msgid "Right Alt as Right Ctrl"
-msgstr "Dekstra alt kiel Dekstran Ctrl"
+msgstr "Dekstra Alt kiel dekstran Ctrl"
 
 #: ../rules/base.xml.in.h:637
 msgid "Right Alt chooses 5th level, locks when pressed together with another 5th-level-chooser"
@@ -2561,7 +2561,7 @@ msgstr "Dekstra Alt neniam elektas la 3-an nivelon"
 
 #: ../rules/base.xml.in.h:639
 msgid "Right Alt, Shift+Right Alt key is Multi_Key"
-msgstr "Dekstra Alt, Shift+Dekstra Alt estas Multi_Key"
+msgstr "Dekstra Alt, Shift+dekstra Alt estas Multi_Key"
 
 #: ../rules/base.xml.in.h:640
 msgid "Right Ctrl"
@@ -2573,11 +2573,11 @@ msgstr "Dekstra Ctrl (dum premata)"
 
 #: ../rules/base.xml.in.h:642
 msgid "Right Ctrl as Right Alt"
-msgstr "Dekstra Ctrl kiel Dekstran Alt"
+msgstr "Dekstra Ctrl kiel dekstran Alt"
 
 #: ../rules/base.xml.in.h:643
 msgid "Right Ctrl+Right Shift"
-msgstr "Dekstra Ctrl+Dekstra Shift"
+msgstr "Dekstra Ctrl+dekstra Shift"
 
 #: ../rules/base.xml.in.h:644
 msgid "Right Shift"
@@ -2921,7 +2921,7 @@ msgstr "Sveda (forigi senpaŝajn klavojn)"
 
 #: ../rules/base.xml.in.h:729
 msgid "Swedish Sign Language"
-msgstr "Sveda Gesto-Lingvo"
+msgstr "Sveda gestlingvo"
 
 #: ../rules/base.xml.in.h:730
 msgid "Symplon PaceBook (tablet PC)"
@@ -3014,7 +3014,7 @@ msgstr "Tibeta (kun ciferoj ASCII)"
 
 #: ../rules/base.xml.in.h:752
 msgid "To the corresponding key in a Dvorak keyboard."
-msgstr "Al la ekvivalenta klavo en Dvoraka klavaro."
+msgstr "Al la ekvivalenta klavo en dvoraka klavaro."
 
 #: ../rules/base.xml.in.h:753
 msgid "To the corresponding key in a Qwerty keyboard."
@@ -3801,39 +3801,39 @@ msgstr "Kutenai"
 
 #: ../rules/base.extras.xml.in.h:17
 msgid "Latvian (US Colemak)"
-msgstr "Latva (Usona Colemak)"
+msgstr "Latva (usona Colemak)"
 
 #: ../rules/base.extras.xml.in.h:18
 msgid "Latvian (US Colemak, apostrophe variant)"
-msgstr "Latva (Usona Colemak, citila variaĵo)"
+msgstr "Latva (usona Colemak, citila variaĵo)"
 
 #: ../rules/base.extras.xml.in.h:19
 msgid "Latvian (US Dvorak)"
-msgstr "Latva (Usona Dvorako)"
+msgstr "Latva (usona Dvorako)"
 
 #: ../rules/base.extras.xml.in.h:20
 msgid "Latvian (US Dvorak, Y variant)"
-msgstr "Latva (Usona Dvorako, variaĵo Y)"
+msgstr "Latva (usona Dvorako, variaĵo Y)"
 
 #: ../rules/base.extras.xml.in.h:21
 msgid "Latvian (US Dvorak, minus variant)"
-msgstr "Latva (Usona Dvorako, variaĵo minusa)"
+msgstr "Latva (usona Dvorako, variaĵo minusa)"
 
 #: ../rules/base.extras.xml.in.h:22
 msgid "Latvian (programmer US Dvorak)"
-msgstr "Latva (Usona Dvorako por programistoj)"
+msgstr "Latva (usona Dvorako por programistoj)"
 
 #: ../rules/base.extras.xml.in.h:23
 msgid "Latvian (programmer US Dvorak, Y variant)"
-msgstr "Latva (Usona Dvorak por programistoj, variaĵo Y)"
+msgstr "Latva (usona Dvorako por programistoj, variaĵo Y)"
 
 #: ../rules/base.extras.xml.in.h:24
 msgid "Latvian (programmer US Dvorak, minus variant)"
-msgstr "Latva (Usona Dvorak por programistoj, variaĵo minusa)"
+msgstr "Latva (usona Dvorako por programistoj, variaĵo minusa)"
 
 #: ../rules/base.extras.xml.in.h:26
 msgid "Lithuanian (US Dvorak with Lithuanian letters)"
-msgstr "Litova (Usona Dvorako kun litovaj literoj)"
+msgstr "Litova (usona Dvorako kun litovaj literoj)"
 
 #: ../rules/base.extras.xml.in.h:29
 msgid "Polish (international with dead keys)"
@@ -3911,7 +3911,7 @@ msgstr "shs"
 #~ msgstr "Igi Caps Lock kroman Ctrl"
 
 #~ msgid "Meta on Left Ctrl"
-#~ msgstr "Meta ĉe Maldekstra Ctrl"
+#~ msgstr "Meta ĉe maldekstra Ctrl"
 
 #~ msgid "Right Ctrl is mapped to Menu"
 #~ msgstr "Dekstra Ctrl estas mapita al Menu"

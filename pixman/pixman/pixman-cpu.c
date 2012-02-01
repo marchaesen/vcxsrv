@@ -30,6 +30,10 @@
 #include <windows.h>
 #endif
 
+#if defined(__APPLE__)
+#include "TargetConditionals.h"
+#endif
+
 #include "pixman-private.h"
 
 #ifdef USE_VMX
@@ -243,6 +247,47 @@ pixman_have_arm_neon (void)
 }
 
 #endif /* USE_ARM_NEON */
+
+#elif (defined (__APPLE__) && defined(TARGET_OS_IPHONE)) /* iOS (iPhone/iPad/iPod touch) */
+
+/* Detection of ARM NEON on iOS is fairly simple because iOS binaries
+ * contain separate executable images for each processor architecture.
+ * So all we have to do is detect the armv7 architecture build. The
+ * operating system automatically runs the armv7 binary for armv7 devices
+ * and the armv6 binary for armv6 devices.
+ */
+
+pixman_bool_t
+pixman_have_arm_simd (void)
+{
+#if defined(USE_ARM_SIMD)
+    return TRUE;
+#else
+    return FALSE;
+#endif
+}
+
+pixman_bool_t
+pixman_have_arm_neon (void)
+{
+#if defined(USE_ARM_NEON) && defined(__ARM_NEON__)
+    /* This is an armv7 cpu build */
+    return TRUE;
+#else
+    /* This is an armv6 cpu build */
+    return FALSE;
+#endif
+}
+
+pixman_bool_t
+pixman_have_arm_iwmmxt (void)
+{
+#if defined(USE_ARM_IWMMXT)
+    return FALSE;
+#else
+    return FALSE;
+#endif
+}
 
 #elif defined (__linux__) || defined(__ANDROID__) || defined(ANDROID) /* linux ELF or ANDROID */
 

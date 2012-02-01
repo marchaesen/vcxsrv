@@ -54,11 +54,14 @@ if test "x$MKDEP" = "x"; then
     AC_MSG_ERROR([makedepend is required to build Mesa])
 fi
 
-AC_PATH_PROG([FLEX], [flex])
-test "x$FLEX" = "x" && AC_MSG_ERROR([flex is needed to build Mesa])
-
-AC_PATH_PROG([BISON], [bison])
-test "x$BISON" = "x" && AC_MSG_ERROR([bison is needed to build Mesa])
+AC_PROG_YACC
+AC_PATH_PROG([YACC_INST], $YACC)
+if test ! -f "$srcdir/src/glsl/glcpp/glcpp-parse.y"; then
+    if test -z "$YACC_INST"; then
+        AC_MSG_ERROR([yacc not found - unable to compile glcpp-parse.y])
+    fi
+fi
+AC_PROG_LEX
 
 dnl Our fallback install-sh is a symlink to minstall. Use the existing
 dnl configuration in that case.
@@ -176,7 +179,20 @@ esac
 
 dnl Add flags for gcc and g++
 if test "x$GCC" = xyes; then
-    CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -std=c99"
+    CFLAGS="$CFLAGS -Wall -std=c99"
+
+    # Enable -Werror=implicit-function-declaration and
+    # -Werror=missing-prototypes, if available, or otherwise, just
+    # -Wmissing-prototypes.  This is particularly useful to avoid
+    # generating a loadable driver module that has undefined symbols.
+    save_CFLAGS="$CFLAGS"
+    AC_MSG_CHECKING([whether $CC supports -Werror=missing-prototypes])
+    CFLAGS="$CFLAGS -Werror=implicit-function-declaration"
+    CFLAGS="$CFLAGS -Werror=missing-prototypes"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM()],
+		   AC_MSG_RESULT([yes]),
+		   [CFLAGS="$save_CFLAGS -Wmissing-prototypes";
+		    AC_MSG_RESULT([no])]);
 
     # Enable -fvisibility=hidden if using a gcc that supports it
     save_CFLAGS="$CFLAGS"
@@ -1747,7 +1763,7 @@ if test "x$enable_gallium_llvm" = xyes; then
     if test "x$LLVM_CONFIG" != xno; then
 	LLVM_VERSION=`$LLVM_CONFIG --version | sed 's/svn.*//g'`
 	LLVM_CFLAGS=`$LLVM_CONFIG --cppflags|sed -e 's/-DNDEBUG\>//g' -e 's/-pedantic//g'`
-	LLVM_LIBS="`$LLVM_CONFIG --libs`"
+	LLVM_LIBS="`$LLVM_CONFIG --libs engine bitwriter`"
 
 	LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags`
 	DEFINES="$DEFINES -D__STDC_CONSTANT_MACROS"

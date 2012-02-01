@@ -434,6 +434,28 @@ static void DarwinPrepareValuators(DeviceIntPtr pDev, int *valuators, ScreenPtr 
     //          valuators[0], valuators[1], valuators[2], valuators[3], valuators[4]);
 }
 
+void DarwinInputReleaseButtonsAndKeys(DeviceIntPtr pDev) {
+    darwinEvents_lock(); {
+        int i;
+        if (pDev->button) {
+            for (i = 0; i < pDev->button->numButtons; i++) {
+                if (BitIsOn(pDev->button->down, i)) {
+                    QueuePointerEvents(pDev, ButtonRelease, i, POINTER_ABSOLUTE, NULL);
+                }
+            }
+        }
+
+        if (pDev->key) {
+            for (i = 0; i < NUM_KEYCODES; i++) {
+                if (BitIsOn(pDev->key->down, i + MIN_KEYCODE)) {
+                    QueueKeyboardEvents(pDev, KeyRelease, i + MIN_KEYCODE, NULL);
+                }
+            }
+        }
+        DarwinPokeEQ();
+    } darwinEvents_unlock();
+}
+
 void DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button, float pointer_x, float pointer_y, 
 			     float pressure, float tilt_x, float tilt_y) {
 	static int darwinFakeMouseButtonDown = 0;
