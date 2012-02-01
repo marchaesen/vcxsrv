@@ -615,16 +615,16 @@ yyGetNumber(int ch)
     nInBuf = 1;
     while (((ch = scanchar()) != EOF)
            && (isxdigit(ch) || ((nInBuf == 1) && (ch == 'x')))
-           && nInBuf < nMaxBuffSize)
+           && nInBuf < (nMaxBuffSize - 1))
     {
         buf[nInBuf++] = ch;
     }
-    if (ch == '.')
+    if ((ch == '.') && (nInBuf < (nMaxBuffSize - 1)))
     {
         isFloat = 1;
         buf[nInBuf++] = ch;
         while (((ch = scanchar()) != EOF) && (isxdigit(ch))
-               && nInBuf < nMaxBuffSize)
+               && nInBuf < (nMaxBuffSize - 1))
         {
             buf[nInBuf++] = ch;
         }

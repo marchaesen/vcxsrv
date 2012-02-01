@@ -908,14 +908,10 @@ struct pixman_triangle
 };
 
 /* whether 't' is a well defined not obviously empty trapezoid */
-#define pixman_trapezoid_valid(t)					\
-    ((t)->left.p1.y != (t)->left.p2.y &&				\
-     (t)->right.p1.y != (t)->right.p2.y &&				\
-     (int) ((t)->bottom - (t)->top) > 0 &&				\
-     (t)->bottom <= (t)->left.p2.y &&					\
-     (t)->bottom <= (t)->right.p2.y &&					\
-     (t)->top >= (t)->left.p1.y &&					\
-     (t)->top >= (t)->right.p1.y)
+#define pixman_trapezoid_valid(t)				   \
+    ((t)->left.p1.y != (t)->left.p2.y &&			   \
+     (t)->right.p1.y != (t)->right.p2.y &&			   \
+     (int) ((t)->bottom - (t)->top) > 0)
 
 struct pixman_span_fix
 {

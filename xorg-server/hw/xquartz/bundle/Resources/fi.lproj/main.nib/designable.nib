@@ -2,13 +2,13 @@
 <archive type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="8.00">
 	<data>
 		<int key="IBDocument.SystemTarget">1040</int>
-		<string key="IBDocument.SystemVersion">11A289</string>
-		<string key="IBDocument.InterfaceBuilderVersion">900</string>
-		<string key="IBDocument.AppKitVersion">1094.2</string>
-		<string key="IBDocument.HIToolboxVersion">521.00</string>
+		<string key="IBDocument.SystemVersion">11A444d</string>
+		<string key="IBDocument.InterfaceBuilderVersion">905</string>
+		<string key="IBDocument.AppKitVersion">1119.1</string>
+		<string key="IBDocument.HIToolboxVersion">555.00</string>
 		<object class="NSMutableDictionary" key="IBDocument.PluginVersions">
 			<string key="NS.key.0">com.apple.InterfaceBuilder.CocoaPlugin</string>
-			<string key="NS.object.0">900</string>
+			<string key="NS.object.0">905</string>
 		</object>
 		<array class="NSMutableArray" key="IBDocument.EditedObjectIDs"/>
 		<array key="IBDocument.PluginDependencies">
@@ -404,7 +404,7 @@
 													<object class="NSFont" key="NSSupport" id="463863101">
 														<string key="NSName">LucidaGrande</string>
 														<double key="NSSize">13</double>
-														<int key="NSfFlags">1044</int>
+														<int key="NSfFlags">1040</int>
 													</object>
 													<reference key="NSControlView" ref="119157981"/>
 													<int key="NSButtonFlags">1211912703</int>
@@ -436,7 +436,7 @@
 													<object class="NSFont" key="NSSupport" id="26">
 														<string key="NSName">LucidaGrande</string>
 														<double key="NSSize">11</double>
-														<int key="NSfFlags">3100</int>
+														<int key="NSfFlags">3088</int>
 													</object>
 													<string key="NSPlaceholderString"/>
 													<reference key="NSControlView" ref="443008216"/>
@@ -553,7 +553,7 @@ dGFpIEtvbWVudG8tbsOkcHDDpGltacOkIHBhaW5ldHR1bmEgb3NvaXRldHRhZXNzYS4KA</string>
 												<object class="NSTextFieldCell" key="NSCell" id="617441821">
 													<int key="NSCellFlags">67239424</int>
 													<int key="NSCellFlags2">4194304</int>
-													<string key="NSContents">Kun käytössä, Optio-näppäimet lähettävät Alt_L- ja Alt_R X11 -näppäinsymbolit Mode_switchin sijaan.</string>
+													<string key="NSContents">Kun käytössä, Optio-näppäimet lähettävät X11:n Alt_L- ja Alt_R-näppäinsymbolit Mode_switchin sijaan.</string>
 													<reference key="NSSupport" ref="26"/>
 													<reference key="NSControlView" ref="278155937"/>
 													<reference key="NSBackgroundColor" ref="57160303"/>
@@ -1285,6 +1285,7 @@ dGFpIEtvbWVudG8tbsOkcHDDpGltacOkIHBhaW5ldHR1bmEgb3NvaXRldHRhZXNzYS4KA</string>
 				<string key="NSMinSize">{320, 262}</string>
 				<string key="NSMaxSize">{1.7976931348623157e+308, 1.7976931348623157e+308}</string>
 				<string key="NSFrameAutosaveName">x11_prefs</string>
+				<bool key="NSWindowIsRestorable">YES</bool>
 			</object>
 			<object class="NSWindowTemplate" id="604417141">
 				<int key="NSWindowStyleMask">11</int>
@@ -1594,6 +1595,7 @@ dGFpIEtvbWVudG8tbsOkcHDDpGltacOkIHBhaW5ldHR1bmEgb3NvaXRldHRhZXNzYS4KA</string>
 				<string key="NSMinSize">{450, 262}</string>
 				<string key="NSMaxSize">{1.7976931348623157e+308, 1.7976931348623157e+308}</string>
 				<string key="NSFrameAutosaveName">x11_apps</string>
+				<bool key="NSWindowIsRestorable">YES</bool>
 			</object>
 			<object class="NSMenu" id="294137138">
 				<string key="NSTitle">Valikko</string>

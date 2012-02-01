@@ -773,6 +773,13 @@ objectValueForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
 - (void) applicationDidHide:(NSNotification *)notify
 {
   DarwinSendDDXEvent(kXquartzControllerNotify, 1, AppleWMHideAll);
+
+  /* Toggle off fullscreen mode to leave our non-default video 
+   * mode and hide our guard window.                          
+   */
+  if (!XQuartzIsRootless && XQuartzFullscreenVisible) {
+    DarwinSendDDXEvent(kXquartzToggleFullscreen, 0);
+  }
 }
 
 - (void) applicationDidUnhide:(NSNotification *)notify

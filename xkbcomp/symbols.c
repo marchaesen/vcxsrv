@@ -40,10 +40,6 @@
 #include "misc.h"
 #include "alias.h"
 
-extern Atom tok_ONE_LEVEL;
-extern Atom tok_TWO_LEVEL;
-extern Atom tok_KEYPAD;
-
 /***====================================================================***/
 
 #define	RepeatYes	1
