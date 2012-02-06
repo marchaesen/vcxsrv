@@ -1671,6 +1671,7 @@ switch_statement:
 	SWITCH '(' expression ')' switch_body
 	{
 	   $$ = new(state) ast_switch_statement($3, $5);
+	   $$->set_location(yylloc);
 	}
 	;
 
@@ -1691,10 +1692,12 @@ case_label:
 	CASE expression ':'
 	{
 	   $$ = new(state) ast_case_label($2);
+	   $$->set_location(yylloc);
 	}
 	| DEFAULT ':'
 	{
 	   $$ = new(state) ast_case_label(NULL);
+	   $$->set_location(yylloc);
 	}
 	;
 
@@ -1705,6 +1708,7 @@ case_label_list:
 
 	   labels->labels.push_tail(& $1->link);
 	   $$ = labels;
+	   $$->set_location(yylloc);
 	}
 	| case_label_list case_label
 	{
@@ -1717,6 +1721,7 @@ case_statement:
 	case_label_list statement
 	{
 	   ast_case_statement *stmts = new(state) ast_case_statement($1);
+	   stmts->set_location(yylloc);
 
 	   stmts->stmts.push_tail(& $2->link);
 	   $$ = stmts;
@@ -1732,6 +1737,7 @@ case_statement_list:
 	case_statement
 	{
 	   ast_case_statement_list *cases= new(state) ast_case_statement_list();
+	   cases->set_location(yylloc);
 
 	   cases->cases.push_tail(& $1->link);
 	   $$ = cases;
