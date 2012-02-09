@@ -4961,6 +4961,57 @@ XCOMM
 <dead_grave> <V>   		      : "Ǜ"   U01DB               # LATIN CAPITAL LETTER U WITH DIAERESIS AND GRAVE
 <dead_grave> <v>   		      : "ǜ"   U01DC               # LATIN SMALL LETTER U WITH DIAERESIS AND GRAVE
 <dead_grave> <nobreakspace> 	      : "̀"   U0300      # COMBINING GRAVE ACCENT
+<dead_greek> <A>            : "Α"   U0391    # GREEK CAPITAL LETTER ALPHA
+<dead_greek> <a>            : "α"   U03B1    # GREEK SMALL LETTER ALPHA
+<dead_greek> <B>            : "Β"   U0392    # GREEK CAPITAL LETTER BETA
+<dead_greek> <b>            : "β"   U03B2    # GREEK SMALL LETTER BETA
+<dead_greek> <D>            : "Δ"   U0394    # GREEK CAPITAL LETTER DELTA
+<dead_greek> <d>            : "δ"   U03B4    # GREEK SMALL LETTER DELTA
+<dead_greek> <E>            : "Ε"   U0395    # GREEK CAPITAL LETTER EPSILON
+<dead_greek> <e>            : "ε"   U03B5    # GREEK SMALL LETTER EPSILON
+<dead_greek> <F>            : "Φ"   U03A6    # GREEK CAPITAL LETTER PHI
+<dead_greek> <f>            : "φ"   U03C6    # GREEK SMALL LETTER PHI
+<dead_greek> <G>            : "Γ"   U0393    # GREEK CAPITAL LETTER GAMMA
+<dead_greek> <g>            : "γ"   U03B3    # GREEK SMALL LETTER GAMMA
+<dead_greek> <H>            : "Η"   U0397    # GREEK CAPITAL LETTER ETA
+<dead_greek> <h>            : "η"   U03B7    # GREEK SMALL LETTER ETA
+<dead_greek> <I>            : "Ι"   U0399    # GREEK CAPITAL LETTER IOTA
+<dead_greek> <i>            : "ι"   U03B9    # GREEK SMALL LETTER IOTA
+<dead_greek> <J>            : "Θ"   U0398    # GREEK CAPITAL LETTER THETA
+<dead_greek> <j>            : "θ"   U03B8    # GREEK SMALL LETTER THETA
+<dead_greek> <K>            : "Κ"   U039A    # GREEK CAPITAL LETTER KAPPA
+<dead_greek> <k>            : "κ"   U03BA    # GREEK SMALL LETTER KAPPA
+<dead_greek> <L>            : "Λ"   U039B    # GREEK CAPITAL LETTER LAMDA
+<dead_greek> <l>            : "λ"   U03BB    # GREEK SMALL LETTER LAMDA
+<dead_greek> <M>            : "Μ"   U039C    # GREEK CAPITAL LETTER MU
+<dead_greek> <m>            : "μ"   U03BC    # GREEK SMALL LETTER MU
+<dead_greek> <N>            : "Ν"   U039D    # GREEK CAPITAL LETTER NU
+<dead_greek> <n>            : "ν"   U03BD    # GREEK SMALL LETTER NU
+<dead_greek> <O>            : "Ο"   U039F    # GREEK CAPITAL LETTER OMICRON
+<dead_greek> <o>            : "ο"   U03BF    # GREEK SMALL LETTER OMICRON
+<dead_greek> <P>            : "Π"   U03A0    # GREEK CAPITAL LETTER PI
+<dead_greek> <p>            : "π"   U03C0    # GREEK SMALL LETTER PI
+<dead_greek> <Q>            : "Χ"   U03A7    # GREEK CAPITAL LETTER CHI
+<dead_greek> <q>            : "χ"   U03C7    # GREEK SMALL LETTER CHI
+<dead_greek> <R>            : "Ρ"   U03A1    # GREEK CAPITAL LETTER RHO
+<dead_greek> <r>            : "ρ"   U03C1    # GREEK SMALL LETTER RHO
+<dead_greek> <S>            : "Σ"   U03A3    # GREEK CAPITAL LETTER SIGMA
+<dead_greek> <s>            : "σ"   U03C3    # GREEK SMALL LETTER SIGMA
+<dead_greek> <T>            : "Τ"   U03A4    # GREEK CAPITAL LETTER TAU
+<dead_greek> <t>            : "τ"   U03C4    # GREEK SMALL LETTER TAU
+<dead_greek> <U>            : "Υ"   U03A5    # GREEK CAPITAL LETTER UPSILON
+<dead_greek> <u>            : "υ"   U03C5    # GREEK SMALL LETTER UPSILON
+<dead_greek> <W>            : "Ω"   U03A9    # GREEK CAPITAL LETTER OMEGA
+<dead_greek> <w>            : "ω"   U03C9    # GREEK SMALL LETTER OMEGA
+<dead_greek> <X>            : "Ξ"   U039E    # GREEK CAPITAL LETTER XI
+<dead_greek> <x>            : "ξ"   U03BE    # GREEK SMALL LETTER XI
+<dead_greek> <Y>            : "Ψ"   U03A8    # GREEK CAPITAL LETTER PSI
+<dead_greek> <y>            : "ψ"   U03C8    # GREEK SMALL LETTER PSI
+<dead_greek> <Z>            : "Ζ"   U0396    # GREEK CAPITAL LETTER ZETA
+<dead_greek> <z>            : "ζ"   U03B6    # GREEK SMALL LETTER ZETA
+<dead_greek> <dead_greek>   : "µ"   U00B5    # MICRO SIGN
+<dead_greek> <nobreakspace> : "µ"   U00B5    # MICRO SIGN
+<dead_greek> <space>        : "µ"   U00B5    # MICRO SIGN
 <dead_hook> <B> 		      : "Ɓ"   U0181               # LATIN CAPITAL LETTER B WITH HOOK
 <dead_hook> <b> 		      : "ɓ"   U0253               # LATIN SMALL LETTER B WITH HOOK
 <dead_hook> <C> 		      : "Ƈ"   U0187               # LATIN CAPITAL LETTER C WITH HOOK
@@ -5197,6 +5248,22 @@ XCOMM
 <dead_ogonek> <dead_macron> <o>       : "ǭ"   U01ED               # LATIN SMALL LETTER O WITH OGONEK AND MACRON
 <dead_tilde> <dead_macron> <O> 	      : "Ȭ"   U022C               # LATIN CAPITAL LETTER O WITH TILDE AND MACRON
 <dead_tilde> <dead_macron> <o> 	      : "ȭ"   U022D               # LATIN SMALL LETTER O WITH TILDE AND MACRON
+<dead_greek>  <dead_hook>   <U> : "ϒ"    U03D2    # GREEK UPSILON WITH HOOK SYMBOL
+<dead_hook>   <dead_greek>  <U> : "ϒ"    U03D2    # GREEK UPSILON WITH HOOK SYMBOL
+<dead_greek>  <dead_macron> <A> : "Ᾱ"    U1FB9    # GREEK CAPITAL LETTER ALPHA WITH MACRON
+<dead_macron> <dead_greek>  <A> : "Ᾱ"    U1FB9    # GREEK CAPITAL LETTER ALPHA WITH MACRON
+<dead_greek>  <dead_macron> <a> : "ᾱ"    U1FB1    # GREEK SMALL LETTER ALPHA WITH MACRON
+<dead_macron> <dead_greek>  <a> : "ᾱ"    U1FB1    # GREEK SMALL LETTER ALPHA WITH MACRON
+<dead_greek>  <dead_macron> <I> : "Ῑ"    U1FD9    # GREEK CAPITAL LETTER IOTA WITH MACRON
+<dead_macron> <dead_greek>  <I> : "Ῑ"    U1FD9    # GREEK CAPITAL LETTER IOTA WITH MACRON
+<dead_greek>  <dead_macron> <i> : "ῑ"    U1FD1    # GREEK SMALL LETTER IOTA WITH MACRON
+<dead_macron> <dead_greek>  <i> : "ῑ"    U1FD1    # GREEK SMALL LETTER IOTA WITH MACRON
+<dead_greek>  <dead_macron> <U> : "Ῡ"    U1FE9    # GREEK CAPITAL LETTER UPSILON WITH MACRON
+<dead_macron> <dead_greek>  <U> : "Ῡ"    U1FE9    # GREEK CAPITAL LETTER UPSILON WITH MACRON
+<dead_greek>  <dead_macron> <u> : "ῡ"    U1FE1    # GREEK SMALL LETTER UPSILON WITH MACRON
+<dead_macron> <dead_greek>  <u> : "ῡ"    U1FE1    # GREEK SMALL LETTER UPSILON WITH MACRON
+<dead_greek>  <dead_stroke> <r> : "ϼ"    U03FC    # GREEK RHO WITH STROKE SYMBOL
+<dead_stroke> <dead_greek>  <r> : "ϼ"    U03FC    # GREEK RHO WITH STROKE SYMBOL
 
 XCOMM
 XCOMM Cyrillic NFDs
