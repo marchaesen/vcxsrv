@@ -46,7 +46,7 @@ fontconfig git version
 fontsproto-2.1.1
 freetype-2.4.8
 glproto git version
-inputproto-2.1.99.5
+inputproto-2.1.99.6
 kbproto-1.0.5
 libX11 git version
 libXau git version
