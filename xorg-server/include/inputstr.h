@@ -314,6 +314,7 @@ typedef struct _TouchPointInfo {
         enum TouchListenerType type;
         enum TouchListenerState state;
         enum InputLevel level;      /* matters only for emulating touches */
+        WindowPtr window;
     } *listeners;
     int         num_listeners;
     int         num_grabs;          /* number of open grabs on this touch
@@ -622,7 +623,7 @@ extern _X_EXPORT InputInfo inputInfo;
 /* for keeping the events for devices grabbed synchronously */
 typedef struct _QdEvent *QdEventPtr;
 typedef struct _QdEvent {
-    struct list		next;
+    struct xorg_list	next;
     DeviceIntPtr	device;
     ScreenPtr		pScreen;	/* what screen the pointer was on */
     unsigned long	months;		/* milliseconds is in the event */
@@ -638,7 +639,7 @@ typedef struct _QdEvent {
  * replayed and processed as if they would come from the device directly.
  */
 typedef struct _EventSyncInfo {
-    struct list         pending;
+    struct xorg_list    pending;
 
     /** The device to replay events for. Only set in AllowEvents(), in which
      * case it is set to the device specified in the request. */

@@ -33,18 +33,18 @@
 
 struct parent {
     int a;
-    struct list children;
+    struct xorg_list children;
     int b;
 };
 
 struct child {
     int foo;
     int bar;
-    struct list node;
+    struct xorg_list node;
 };
 
 static void
-test_list_init(void)
+test_xorg_list_init(void)
 {
     struct parent parent, tmp;
 
@@ -54,146 +54,146 @@ test_list_init(void)
 
     tmp = parent;
 
-    list_init(&parent.children);
+    xorg_list_init(&parent.children);
 
     /* test we haven't touched anything else. */
     assert(parent.a == tmp.a);
     assert(parent.b == tmp.b);
 
-    assert(list_is_empty(&parent.children));
+    assert(xorg_list_is_empty(&parent.children));
 }
 
 static void
-test_list_add(void)
+test_xorg_list_add(void)
 {
     struct parent parent = {0};
     struct child child[3];
     struct child *c;
 
-    list_init(&parent.children);
+    xorg_list_init(&parent.children);
 
-    list_add(&child[0].node, &parent.children);
-    assert(!list_is_empty(&parent.children));
+    xorg_list_add(&child[0].node, &parent.children);
+    assert(!xorg_list_is_empty(&parent.children));
 
-    c = list_first_entry(&parent.children, struct child, node);
+    c = xorg_list_first_entry(&parent.children, struct child, node);
     assert(memcmp(c, &child[0], sizeof(struct child)) == 0);
 
-    /* note: list_add prepends */
-    list_add(&child[1].node, &parent.children);
-    c = list_first_entry(&parent.children, struct child, node);
+    /* note: xorg_list_add prepends */
+    xorg_list_add(&child[1].node, &parent.children);
+    c = xorg_list_first_entry(&parent.children, struct child, node);
     assert(memcmp(c, &child[1], sizeof(struct child)) == 0);
 
-    list_add(&child[2].node, &parent.children);
-    c = list_first_entry(&parent.children, struct child, node);
+    xorg_list_add(&child[2].node, &parent.children);
+    c = xorg_list_first_entry(&parent.children, struct child, node);
     assert(memcmp(c, &child[2], sizeof(struct child)) == 0);
 };
 
 static void
-test_list_append(void)
+test_xorg_list_append(void)
 {
     struct parent parent = {0};
     struct child child[3];
     struct child *c;
     int i;
 
-    list_init(&parent.children);
+    xorg_list_init(&parent.children);
 
-    list_append(&child[0].node, &parent.children);
-    assert(!list_is_empty(&parent.children));
+    xorg_list_append(&child[0].node, &parent.children);
+    assert(!xorg_list_is_empty(&parent.children));
 
-    c = list_first_entry(&parent.children, struct child, node);
+    c = xorg_list_first_entry(&parent.children, struct child, node);
     assert(memcmp(c, &child[0], sizeof(struct child)) == 0);
-    c = list_last_entry(&parent.children, struct child, node);
+    c = xorg_list_last_entry(&parent.children, struct child, node);
     assert(memcmp(c, &child[0], sizeof(struct child)) == 0);
 
-    list_append(&child[1].node, &parent.children);
-    c = list_first_entry(&parent.children, struct child, node);
+    xorg_list_append(&child[1].node, &parent.children);
+    c = xorg_list_first_entry(&parent.children, struct child, node);
     assert(memcmp(c, &child[0], sizeof(struct child)) == 0);
-    c = list_last_entry(&parent.children, struct child, node);
+    c = xorg_list_last_entry(&parent.children, struct child, node);
     assert(memcmp(c, &child[1], sizeof(struct child)) == 0);
 
-    list_append(&child[2].node, &parent.children);
-    c = list_first_entry(&parent.children, struct child, node);
+    xorg_list_append(&child[2].node, &parent.children);
+    c = xorg_list_first_entry(&parent.children, struct child, node);
     assert(memcmp(c, &child[0], sizeof(struct child)) == 0);
-    c = list_last_entry(&parent.children, struct child, node);
+    c = xorg_list_last_entry(&parent.children, struct child, node);
     assert(memcmp(c, &child[2], sizeof(struct child)) == 0);
 
     i = 0;
-    list_for_each_entry(c, &parent.children, node) {
+    xorg_list_for_each_entry(c, &parent.children, node) {
         assert(memcmp(c, &child[i++], sizeof(struct child)) == 0);
     }
 };
 
 static void
-test_list_del(void)
+test_xorg_list_del(void)
 {
     struct parent parent = {0};
     struct child child[3];
     struct child *c;
 
-    list_init(&parent.children);
+    xorg_list_init(&parent.children);
 
-    list_add(&child[0].node, &parent.children);
-    assert(!list_is_empty(&parent.children));
+    xorg_list_add(&child[0].node, &parent.children);
+    assert(!xorg_list_is_empty(&parent.children));
 
-    list_del(&parent.children);
-    assert(list_is_empty(&parent.children));
+    xorg_list_del(&parent.children);
+    assert(xorg_list_is_empty(&parent.children));
 
-    list_add(&child[0].node, &parent.children);
-    list_del(&child[0].node);
-    assert(list_is_empty(&parent.children));
+    xorg_list_add(&child[0].node, &parent.children);
+    xorg_list_del(&child[0].node);
+    assert(xorg_list_is_empty(&parent.children));
 
-    list_add(&child[0].node, &parent.children);
-    list_add(&child[1].node, &parent.children);
+    xorg_list_add(&child[0].node, &parent.children);
+    xorg_list_add(&child[1].node, &parent.children);
 
-    c = list_first_entry(&parent.children, struct child, node);
+    c = xorg_list_first_entry(&parent.children, struct child, node);
     assert(memcmp(c, &child[1], sizeof(struct child)) == 0);
 
     /* delete first node */
-    list_del(&child[1].node);
-    assert(!list_is_empty(&parent.children));
-    assert(list_is_empty(&child[1].node));
-    c = list_first_entry(&parent.children, struct child, node);
+    xorg_list_del(&child[1].node);
+    assert(!xorg_list_is_empty(&parent.children));
+    assert(xorg_list_is_empty(&child[1].node));
+    c = xorg_list_first_entry(&parent.children, struct child, node);
     assert(memcmp(c, &child[0], sizeof(struct child)) == 0);
 
     /* delete last node */
-    list_add(&child[1].node, &parent.children);
-    list_del(&child[0].node);
-    c = list_first_entry(&parent.children, struct child, node);
+    xorg_list_add(&child[1].node, &parent.children);
+    xorg_list_del(&child[0].node);
+    c = xorg_list_first_entry(&parent.children, struct child, node);
     assert(memcmp(c, &child[1], sizeof(struct child)) == 0);
 
     /* delete list head */
-    list_add(&child[0].node, &parent.children);
-    list_del(&parent.children);
-    assert(list_is_empty(&parent.children));
-    assert(!list_is_empty(&child[1].node));
-    assert(!list_is_empty(&child[2].node));
+    xorg_list_add(&child[0].node, &parent.children);
+    xorg_list_del(&parent.children);
+    assert(xorg_list_is_empty(&parent.children));
+    assert(!xorg_list_is_empty(&child[1].node));
+    assert(!xorg_list_is_empty(&child[2].node));
 }
 
 static void
-test_list_for_each(void)
+test_xorg_list_for_each(void)
 {
     struct parent parent = {0};
     struct child child[3];
     struct child *c;
     int i = 0;
 
-    list_init(&parent.children);
+    xorg_list_init(&parent.children);
 
-    list_add(&child[2].node, &parent.children);
-    list_add(&child[1].node, &parent.children);
-    list_add(&child[0].node, &parent.children);
+    xorg_list_add(&child[2].node, &parent.children);
+    xorg_list_add(&child[1].node, &parent.children);
+    xorg_list_add(&child[0].node, &parent.children);
 
-    list_for_each_entry(c, &parent.children, node) {
+    xorg_list_for_each_entry(c, &parent.children, node) {
         assert(memcmp(c, &child[i], sizeof(struct child)) == 0);
         i++;
     }
 
     /* foreach on empty list */
-    list_del(&parent.children);
-    assert(list_is_empty(&parent.children));
+    xorg_list_del(&parent.children);
+    assert(xorg_list_is_empty(&parent.children));
 
-    list_for_each_entry(c, &parent.children, node) {
+    xorg_list_for_each_entry(c, &parent.children, node) {
         assert(0); /* we must not get here */
     }
 }
@@ -359,11 +359,11 @@ test_nt_list_delete(void)
 
 int main(int argc, char** argv)
 {
-    test_list_init();
-    test_list_add();
-    test_list_append();
-    test_list_del();
-    test_list_for_each();
+    test_xorg_list_init();
+    test_xorg_list_add();
+    test_xorg_list_append();
+    test_xorg_list_del();
+    test_xorg_list_for_each();
 
     test_nt_list_init();
     test_nt_list_append();

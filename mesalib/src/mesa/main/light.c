@@ -154,7 +154,6 @@ _mesa_light(struct gl_context *ctx, GLuint lnum, GLenum pname, const GLfloat *pa
 	 return;
       FLUSH_VERTICES(ctx, _NEW_LIGHT);
       light->SpotExponent = params[0];
-      _mesa_invalidate_spot_exp_table(light);
       break;
    case GL_SPOT_CUTOFF:
       ASSERT(params[0] == 180.0 || (params[0] >= 0.0 && params[0] <= 90.0));
@@ -624,6 +623,11 @@ _mesa_material_bitmask( struct gl_context *ctx, GLenum face, GLenum pname,
 
 
 
+static void
+invalidate_shine_table( struct gl_context *ctx, GLuint side );
+
+
+
 /* Update derived values following a change in ctx->Light.Material
  */
 void
@@ -697,11 +701,11 @@ _mesa_update_material( struct gl_context *ctx, GLuint bitmask )
    }
 
    if (bitmask & MAT_BIT_FRONT_SHININESS) {
-      _mesa_invalidate_shine_table( ctx, 0 );
+      invalidate_shine_table( ctx, 0 );
    }
 
    if (bitmask & MAT_BIT_BACK_SHININESS) {
-      _mesa_invalidate_shine_table( ctx, 1 );
+      invalidate_shine_table( ctx, 1 );
    }
 }
 
@@ -911,52 +915,12 @@ _mesa_GetMaterialiv( GLenum face, GLenum pname, GLint *params )
 
 
 
-/*
- * Whenever the spotlight exponent for a light changes we must call
- * this function to recompute the exponent lookup table.
- */
-void
-_mesa_invalidate_spot_exp_table( struct gl_light *l )
-{
-   l->_SpotExpTable[0][0] = -1;
-}
-
-
-static void
-validate_spot_exp_table( struct gl_light *l )
-{
-   GLint i;
-   GLdouble exponent = l->SpotExponent;
-   GLdouble tmp = 0;
-   GLint clamp = 0;
-
-   l->_SpotExpTable[0][0] = 0.0;
-
-   for (i = EXP_TABLE_SIZE - 1; i > 0 ;i--) {
-      if (clamp == 0) {
-	 tmp = pow(i / (GLdouble) (EXP_TABLE_SIZE - 1), exponent);
-	 if (tmp < FLT_MIN * 100.0) {
-	    tmp = 0.0;
-	    clamp = 1;
-	 }
-      }
-      l->_SpotExpTable[i][0] = (GLfloat) tmp;
-   }
-   for (i = 0; i < EXP_TABLE_SIZE - 1; i++) {
-      l->_SpotExpTable[i][1] = (l->_SpotExpTable[i+1][0] -
-				l->_SpotExpTable[i][0]);
-   }
-   l->_SpotExpTable[EXP_TABLE_SIZE-1][1] = 0.0;
-}
-
-
-
 /* Calculate a new shine table.  Doing this here saves a branch in
  * lighting, and the cost of doing it early may be partially offset
  * by keeping a MRU cache of shine tables for various shine values.
  */
-void
-_mesa_invalidate_shine_table( struct gl_context *ctx, GLuint side )
+static void
+invalidate_shine_table( struct gl_context *ctx, GLuint side )
 {
    ASSERT(side < 2);
    if (ctx->_ShineTable[side])
@@ -1020,7 +984,6 @@ validate_shine_table( struct gl_context *ctx, GLuint side, GLfloat shininess )
 void
 _mesa_validate_all_lighting_tables( struct gl_context *ctx )
 {
-   GLuint i;
    GLfloat shininess;
    
    shininess = ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_SHININESS][0];
@@ -1030,10 +993,6 @@ _mesa_validate_all_lighting_tables( struct gl_context *ctx )
    shininess = ctx->Light.Material.Attrib[MAT_ATTRIB_BACK_SHININESS][0];
    if (!ctx->_ShineTable[1] || ctx->_ShineTable[1]->shininess != shininess)
       validate_shine_table( ctx, 1, shininess );
-
-   for (i = 0; i < ctx->Const.MaxLights; i++)
-      if (ctx->Light.Light[i]._SpotExpTable[0][0] == -1)
-	 validate_spot_exp_table( &ctx->Light.Light[i] );
 }
 
 
@@ -1180,11 +1139,8 @@ compute_light_positions( struct gl_context *ctx )
 					light->_NormSpotDirection);
 
 	    if (PV_dot_dir > light->_CosCutoff) {
-	       double x = PV_dot_dir * (EXP_TABLE_SIZE-1);
-	       int k = (int) x;
 	       light->_VP_inf_spot_attenuation =
-		  (GLfloat) (light->_SpotExpTable[k][0] +
-		   (x-k)*light->_SpotExpTable[k][1]);
+                  powf(PV_dot_dir, light->SpotExponent);
 	    }
 	    else {
 	       light->_VP_inf_spot_attenuation = 0;
@@ -1303,7 +1259,6 @@ init_light( struct gl_light *l, GLuint n )
    ASSIGN_4V( l->EyePosition, 0.0, 0.0, 1.0, 0.0 );
    ASSIGN_3V( l->SpotDirection, 0.0, 0.0, -1.0 );
    l->SpotExponent = 0.0;
-   _mesa_invalidate_spot_exp_table( l );
    l->SpotCutoff = 180.0;
    l->_CosCutoffNeg = -1.0f;
    l->_CosCutoff = 0.0;		/* KW: -ve values not admitted */

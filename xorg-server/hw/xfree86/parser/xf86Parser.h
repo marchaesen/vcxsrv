@@ -340,7 +340,7 @@ xf86TriState;
 
 typedef struct
 {
-	struct list entry;
+	struct xorg_list entry;
 	char **values;
 }
 xf86MatchGroup;
@@ -350,15 +350,15 @@ typedef struct
 	GenericListRec list;
 	char *identifier;
 	char *driver;
-	struct list match_product;
-	struct list match_vendor;
-	struct list match_device;
-	struct list match_os;
-	struct list match_pnpid;
-	struct list match_usbid;
-	struct list match_driver;
-	struct list match_tag;
-	struct list match_layout;
+	struct xorg_list match_product;
+	struct xorg_list match_vendor;
+	struct xorg_list match_device;
+	struct xorg_list match_os;
+	struct xorg_list match_pnpid;
+	struct xorg_list match_usbid;
+	struct xorg_list match_driver;
+	struct xorg_list match_tag;
+	struct xorg_list match_layout;
 	xf86TriState is_keyboard;
 	xf86TriState is_pointer;
 	xf86TriState is_joystick;

@@ -1122,8 +1122,8 @@ EnqueueEvent(InternalEvent *ev, DeviceIntPtr device)
     int		eventlen;
     DeviceEvent *event = &ev->device_event;
 
-    if (!list_is_empty(&syncEvents.pending))
-        tail = list_last_entry(&syncEvents.pending, QdEventRec, next);
+    if (!xorg_list_is_empty(&syncEvents.pending))
+        tail = xorg_list_last_entry(&syncEvents.pending, QdEventRec, next);
 
     NoticeTime((InternalEvent*)event);
 
@@ -1183,13 +1183,13 @@ EnqueueEvent(InternalEvent *ev, DeviceIntPtr device)
     qe = malloc(sizeof(QdEventRec) + eventlen);
     if (!qe)
 	return;
-    list_init(&qe->next);
+    xorg_list_init(&qe->next);
     qe->device = device;
     qe->pScreen = pSprite->hotPhys.pScreen;
     qe->months = currentTime.months;
     qe->event = (InternalEvent *)(qe + 1);
     memcpy(qe->event, event, eventlen);
-    list_append(&qe->next, &syncEvents.pending);
+    xorg_list_append(&qe->next, &syncEvents.pending);
 }
 
 /**
@@ -1210,10 +1210,10 @@ PlayReleasedEvents(void)
     DeviceIntPtr pDev;
 
 restart:
-    list_for_each_entry_safe(qe, tmp, &syncEvents.pending, next) {
+    xorg_list_for_each_entry_safe(qe, tmp, &syncEvents.pending, next) {
 	if (!qe->device->deviceGrab.sync.frozen)
 	{
-	    list_del(&qe->next);
+	    xorg_list_del(&qe->next);
 	    pDev = qe->device;
 	    if (qe->event->any.type == ET_Motion)
 		CheckVirtualMotion(pDev, qe, NullWindow);
@@ -1297,7 +1297,7 @@ ComputeFreezes(void)
 	FreezeThaw(dev, dev->deviceGrab.sync.other ||
                 (dev->deviceGrab.sync.state >= FROZEN));
     if (syncEvents.playingEvents ||
-        (!replayDev && list_is_empty(&syncEvents.pending)))
+        (!replayDev && xorg_list_is_empty(&syncEvents.pending)))
 	return;
     syncEvents.playingEvents = TRUE;
     if (replayDev)
@@ -4266,7 +4266,6 @@ DeliverGrabbedEvent(InternalEvent *event, DeviceIntPtr thisDev,
     if (grab->ownerEvents)
     {
 	WindowPtr focus;
-	WindowPtr win;
 
         /* Hack: Some pointer device have a focus class. So we need to check
          * for the type of event, to see if we really want to deliver it to
@@ -4283,16 +4282,15 @@ DeliverGrabbedEvent(InternalEvent *event, DeviceIntPtr thisDev,
 	else
 	    focus = PointerRootWin;
 	if (focus == PointerRootWin)
-	{
-	    win = pSprite->win;
-	    focus = NullWindow;
-	} else if (focus && (focus == pSprite->win ||
-		    IsParent(focus, pSprite->win)))
-	    win = pSprite->win;
+	    deliveries = DeliverDeviceEvents(pSprite->win, event, grab,
+                                             NullWindow, thisDev);
+	else if (focus && (focus == pSprite->win ||
+                    IsParent(focus, pSprite->win)))
+	    deliveries = DeliverDeviceEvents(pSprite->win, event, grab, focus,
+					     thisDev);
 	else if (focus)
-	    win = focus;
-
-	deliveries = DeliverDeviceEvents(win, event, grab, focus, thisDev);
+	    deliveries = DeliverDeviceEvents(focus, event, grab, focus,
+					     thisDev);
     }
     if (!deliveries)
     {
@@ -5392,9 +5390,9 @@ InitEvents(void)
     syncEvents.replayDev = (DeviceIntPtr)NULL;
     syncEvents.replayWin = NullWindow;
     if (syncEvents.pending.next)
-        list_for_each_entry_safe(qe, tmp, &syncEvents.pending, next)
+        xorg_list_for_each_entry_safe(qe, tmp, &syncEvents.pending, next)
             free(qe);
-    list_init(&syncEvents.pending);
+    xorg_list_init(&syncEvents.pending);
     syncEvents.playingEvents = FALSE;
     syncEvents.time.months = 0;
     syncEvents.time.milliseconds = 0;	/* hardly matters */

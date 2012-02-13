@@ -432,6 +432,9 @@ valuator_mask_new(int num_valuators)
      * flying-car future, when we can dynamically alloc the masks and are
      * not constrained by signals, we can start using num_valuators */
     ValuatorMask *mask = calloc(1, sizeof(ValuatorMask));
+    if (mask == NULL)
+        return NULL;
+
     mask->last_bit = -1;
     return mask;
 }

@@ -2,7 +2,7 @@
 # Rules for generating files using the C pre-processor
 # (Replaces CppFileTarget from Imake)
 
-SED = sed
+SED = LC_CTYPE=C sed
 
 SUFFIXES += .pre
 

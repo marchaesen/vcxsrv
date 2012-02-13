@@ -689,7 +689,6 @@ struct gl_light
    GLfloat _NormSpotDirection[4]; /**< normalized spotlight direction */
    GLfloat _VP_inf_spot_attenuation;
 
-   GLfloat _SpotExpTable[EXP_TABLE_SIZE][2];  /**< to replace a pow() call */
    GLfloat _MatAmbient[2][3];	/**< material ambient * light ambient */
    GLfloat _MatDiffuse[2][3];	/**< material diffuse * light diffuse */
    GLfloat _MatSpecular[2][3];	/**< material spec * light specular */
@@ -1046,7 +1045,6 @@ struct gl_pixelmap
 {
    GLint Size;
    GLfloat Map[MAX_PIXEL_MAP_TABLE];
-   GLubyte Map8[MAX_PIXEL_MAP_TABLE];  /**< converted to 8-bit color */
 };
 
 
@@ -2529,8 +2527,6 @@ struct gl_shared_state
 
    /** GL_ARB_sampler_objects */
    struct _mesa_HashTable *SamplerObjects;
-
-   void *DriverData;  /**< Device driver shared state */
 };
 
 
@@ -2829,7 +2825,7 @@ struct gl_constants
     * borders and mipmapped textures.  (Note: not static border color, but the
     * old 1-pixel border around each edge).  Implementations then have to do
     * slow fallbacks to be correct, or just ignore the border and be fast but
-    * wrong.  Setting the flag stripts the border off of TexImage calls,
+    * wrong.  Setting the flag strips the border off of TexImage calls,
     * providing "fast but wrong" at significantly reduced driver complexity.
     *
     * Texture borders are deprecated in GL 3.0.

@@ -67,7 +67,7 @@ typedef struct _DRI2Screen *DRI2ScreenPtr;
 typedef struct _DRI2Drawable {
     DRI2ScreenPtr        dri2_screen;
     DrawablePtr		 drawable;
-    struct list		 reference_list;
+    struct xorg_list	 reference_list;
     int			 width;
     int			 height;
     DRI2BufferPtr	*buffers;
@@ -179,7 +179,7 @@ DRI2AllocateDrawable(DrawablePtr pDraw)
     pPriv->swap_limit = 1; /* default to double buffering */
     pPriv->last_swap_msc = 0;
     pPriv->last_swap_ust = 0;
-    list_init(&pPriv->reference_list);
+    xorg_list_init(&pPriv->reference_list);
     pPriv->serialNumber = DRI2DrawableSerial(pDraw);
     pPriv->needInvalidate = FALSE;
 
@@ -229,7 +229,7 @@ typedef struct DRI2DrawableRefRec {
     XID		  dri2_id;
     DRI2InvalidateProcPtr	invalidate;
     void	 *priv;
-    struct list	  link;
+    struct xorg_list		link;
 } DRI2DrawableRefRec, *DRI2DrawableRefPtr;
 
 static DRI2DrawableRefPtr
@@ -237,7 +237,7 @@ DRI2LookupDrawableRef(DRI2DrawablePtr pPriv, XID id)
 {
     DRI2DrawableRefPtr ref;
 
-    list_for_each_entry(ref, &pPriv->reference_list, link) {
+    xorg_list_for_each_entry(ref, &pPriv->reference_list, link) {
 	if (ref->id == id)
 	    return ref;
     }
@@ -270,7 +270,7 @@ DRI2AddDrawableRef(DRI2DrawablePtr pPriv, XID id, XID dri2_id,
     ref->dri2_id = dri2_id; 
     ref->invalidate = invalidate;
     ref->priv = priv;
-    list_add(&ref->link, &pPriv->reference_list);
+    xorg_list_add(&ref->link, &pPriv->reference_list);
 
     return Success;
 }
@@ -307,9 +307,9 @@ static int DRI2DrawableGone(pointer p, XID id)
     DrawablePtr pDraw;
     int i;
 
-    list_for_each_entry_safe(ref, next, &pPriv->reference_list, link) {
+    xorg_list_for_each_entry_safe(ref, next, &pPriv->reference_list, link) {
 	if (ref->dri2_id == id) {
-	    list_del(&ref->link);
+	    xorg_list_del(&ref->link);
 	    /* If this was the last ref under this X drawable XID,
 	     * unregister the X drawable resource. */
 	    if (!DRI2LookupDrawableRef(pPriv, ref->id))
@@ -319,13 +319,13 @@ static int DRI2DrawableGone(pointer p, XID id)
 	}
 
 	if (ref->id == id) {
-	    list_del(&ref->link);
+	    xorg_list_del(&ref->link);
 	    FreeResourceByType(ref->dri2_id, dri2DrawableRes, TRUE);
 	    free(ref);
 	}
     }
 
-    if (!list_is_empty(&pPriv->reference_list))
+    if (!xorg_list_is_empty(&pPriv->reference_list))
 	return Success;
 
     pDraw = pPriv->drawable;
@@ -586,7 +586,7 @@ DRI2InvalidateDrawable(DrawablePtr pDraw)
 
     pPriv->needInvalidate = FALSE;
 
-    list_for_each_entry(ref, &pPriv->reference_list, link)
+    xorg_list_for_each_entry(ref, &pPriv->reference_list, link)
 	ref->invalidate(pDraw, ref->priv, ref->id);
 }
 

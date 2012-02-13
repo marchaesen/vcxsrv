@@ -1714,7 +1714,7 @@ dix_enqueue_events(void) {
     spriteInfo.sprite = &sprite;
 
     InitEvents();
-    assert(list_is_empty(&syncEvents.pending));
+    assert(xorg_list_is_empty(&syncEvents.pending));
 
     /* this way PlayReleasedEvents really runs through all events in the
      * queue */
@@ -1728,22 +1728,22 @@ dix_enqueue_events(void) {
         ev[i].any.length = sizeof(*ev);
         ev[i].any.type = i;
         EnqueueEvent(&ev[i], &dev);
-        assert(!list_is_empty(&syncEvents.pending));
-        qe = list_last_entry(&syncEvents.pending, QdEventRec, next);
+        assert(!xorg_list_is_empty(&syncEvents.pending));
+        qe = xorg_list_last_entry(&syncEvents.pending, QdEventRec, next);
         assert(memcmp(qe->event, &ev[i], ev[i].any.length) == 0);
-        qe = list_first_entry(&syncEvents.pending, QdEventRec, next);
+        qe = xorg_list_first_entry(&syncEvents.pending, QdEventRec, next);
         assert(memcmp(qe->event, &ev[0], ev[i].any.length) == 0);
     }
 
     /* calls process_input_proc */
     dev.deviceGrab.sync.frozen = 1;
     PlayReleasedEvents();
-    assert(!list_is_empty(&syncEvents.pending));
+    assert(!xorg_list_is_empty(&syncEvents.pending));
 
 
     dev.deviceGrab.sync.frozen = 0;
     PlayReleasedEvents();
-    assert(list_is_empty(&syncEvents.pending));
+    assert(xorg_list_is_empty(&syncEvents.pending));
 
     inputInfo.devices = NULL;
 }

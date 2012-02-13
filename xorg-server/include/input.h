@@ -583,6 +583,8 @@ extern _X_EXPORT void FreeInputAttributes(InputAttributes *attrs);
 enum TouchListenerState{
     LISTENER_AWAITING_BEGIN = 0,   /**< Waiting for a TouchBegin event */
     LISTENER_AWAITING_OWNER,       /**< Waiting for a TouchOwnership event */
+    LISTENER_EARLY_ACCEPT,         /**< Waiting for ownership, has already
+                                        accepted */
     LISTENER_IS_OWNER,             /**< Is the current owner */
     LISTENER_HAS_END,              /**< Has already received the end event */
 };
@@ -613,7 +615,8 @@ extern void TouchEventHistoryPush(TouchPointInfoPtr ti, const DeviceEvent *ev);
 extern void TouchEventHistoryReplay(TouchPointInfoPtr ti, DeviceIntPtr dev, XID resource);
 extern Bool TouchResourceIsOwner(TouchPointInfoPtr ti, XID resource);
 extern void TouchAddListener(TouchPointInfoPtr ti, XID resource, enum InputLevel level,
-                                     enum TouchListenerType type, enum TouchListenerState state);
+                             enum TouchListenerType type, enum TouchListenerState state,
+                             WindowPtr window);
 extern Bool TouchRemoveListener(TouchPointInfoPtr ti, XID resource);
 extern void TouchSetupListeners(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev);
 extern Bool TouchEnsureSprite(DeviceIntPtr sourcedev, TouchPointInfoPtr ti,
@@ -624,6 +627,8 @@ extern int TouchConvertToPointerEvent(const InternalEvent *ev,
 extern int TouchGetPointerEventType(const InternalEvent *ev);
 extern void TouchRemovePointerGrab(DeviceIntPtr dev);
 extern void TouchListenerGone(XID resource);
+extern int TouchAcceptReject(ClientPtr client, DeviceIntPtr dev, int mode,
+                             uint32_t touchid, Window grab_window, XID *error);
 
 /* misc event helpers */
 extern Mask GetEventMask(DeviceIntPtr dev, xEvent* ev, InputClientsPtr clients);

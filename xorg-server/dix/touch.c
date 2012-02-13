@@ -34,6 +34,7 @@
 
 #include "eventstr.h"
 #include "exevents.h"
+#include "exglobals.h"
 #include "inpututils.h"
 #include "eventconvert.h"
 #include "windowstr.h"
@@ -697,12 +698,14 @@ TouchResourceIsOwner(TouchPointInfoPtr ti, XID resource)
  */
 void
 TouchAddListener(TouchPointInfoPtr ti, XID resource, enum InputLevel level,
-                 enum TouchListenerType type, enum TouchListenerState state)
+                 enum TouchListenerType type, enum TouchListenerState state,
+                 WindowPtr window)
 {
     ti->listeners[ti->num_listeners].listener = resource;
     ti->listeners[ti->num_listeners].level = level;
     ti->listeners[ti->num_listeners].state = state;
     ti->listeners[ti->num_listeners].type = type;
+    ti->listeners[ti->num_listeners].window = window;
     ti->num_listeners++;
 }
 
@@ -753,7 +756,7 @@ TouchAddGrabListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
     }
 
     TouchAddListener(ti, grab->resource, grab->grabtype,
-                     type, LISTENER_AWAITING_BEGIN);
+                     type, LISTENER_AWAITING_BEGIN, grab->window);
     ti->num_grabs++;
 }
 
@@ -814,7 +817,7 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
                 TouchEventHistoryAllocate(ti);
 
             TouchAddListener(ti, iclients->resource, XI2,
-                             type, LISTENER_AWAITING_BEGIN);
+                             type, LISTENER_AWAITING_BEGIN, win);
             return TRUE;
         }
     }
@@ -830,7 +833,8 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
 
             TouchEventHistoryAllocate(ti);
             TouchAddListener(ti, iclients->resource, XI,
-                             LISTENER_POINTER_REGULAR, LISTENER_AWAITING_BEGIN);
+                             LISTENER_POINTER_REGULAR, LISTENER_AWAITING_BEGIN,
+                             win);
             return TRUE;
         }
     }
@@ -845,7 +849,8 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
         {
             TouchEventHistoryAllocate(ti);
             TouchAddListener(ti, win->drawable.id, CORE,
-                             LISTENER_POINTER_REGULAR, LISTENER_AWAITING_BEGIN);
+                             LISTENER_POINTER_REGULAR, LISTENER_AWAITING_BEGIN,
+                             win);
             return TRUE;
         }
 
@@ -857,7 +862,7 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
 
             TouchEventHistoryAllocate(ti);
             TouchAddListener(ti, iclients->resource, CORE,
-                             type, LISTENER_AWAITING_BEGIN);
+                             type, LISTENER_AWAITING_BEGIN, win);
             return TRUE;
         }
     }
@@ -979,4 +984,60 @@ TouchListenerGone(XID resource)
     }
 
     FreeEventList(events, GetMaximumEventsNum());
+}
+
+int
+TouchAcceptReject(ClientPtr client, DeviceIntPtr dev, int mode,
+                  uint32_t touchid, Window grab_window, XID *error)
+{
+    TouchPointInfoPtr ti;
+    int nev, i;
+    InternalEvent *events = InitEventList(GetMaximumEventsNum());
+
+    if (!events)
+        return BadAlloc;
+
+    if (!dev->touch)
+    {
+        *error = dev->id;
+        return BadDevice;
+    }
+
+    ti = TouchFindByClientID(dev, touchid);
+    if (!ti)
+    {
+        *error = touchid;
+        return BadValue;
+    }
+
+    for (i = 0; i < ti->num_listeners; i++)
+    {
+        if (CLIENT_ID(ti->listeners[i].listener) == client->index &&
+            ti->listeners[i].window->drawable.id == grab_window)
+            break;
+    }
+    if (i == ti->num_listeners)
+        return BadAccess;
+
+    if (i > 0)
+    {
+        if (mode == XIRejectTouch)
+            TouchRejected(dev, ti, ti->listeners[i].listener, NULL);
+        else
+            ti->listeners[i].state = LISTENER_EARLY_ACCEPT;
+
+        return Success;
+    }
+
+    nev = GetTouchOwnershipEvents(events, dev, ti, mode,
+                                  ti->listeners[0].listener, 0);
+    if (nev == 0)
+        return BadAlloc;
+    for (i = 0; i < nev; i++)
+        mieqProcessDeviceEvent(dev, events + i, NULL);
+
+    ProcessInputEvents();
+
+    FreeEventList(events, GetMaximumEventsNum());
+    return Success;
 }
