@@ -98,8 +98,8 @@
 #  if !(defined (sun) && defined (SVR4))
 #    include <sys/immu.h>
 #    include <sys/region.h>
+#    include <sys/proc.h>
 #  endif
-#  include <sys/proc.h>
 #  include <sys/tss.h>
 #  include <sys/sysi86.h>
 #  if defined(SVR4) && !defined(sun)

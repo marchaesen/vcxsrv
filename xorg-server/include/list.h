@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef _LIST_H_
-#define _LIST_H_
+#ifndef _XORG_LIST_H_
+#define _XORG_LIST_H_
 
 /**
  * @file Classic doubly-link circular list implementation.
@@ -41,17 +41,17 @@
  *     }
  *
  * We need one list head in bar and a list element in all list_of_foos (both are of
- * data type 'struct list').
+ * data type 'struct xorg_list').
  *
  *     struct bar {
  *          ...
- *          struct list list_of_foos;
+ *          struct xorg_list list_of_foos;
  *          ...
  *     }
  *
  *     struct foo {
  *          ...
- *          struct list entry;
+ *          struct xorg_list entry;
  *          ...
  *     }
  *
@@ -59,74 +59,74 @@
  *
  *     struct bar bar;
  *     ...
- *     list_init(&bar.list_of_foos);
+ *     xorg_list_init(&bar.list_of_foos);
  *
  * Then we create the first element and add it to this list:
  *
  *     struct foo *foo = malloc(...);
  *     ....
- *     list_add(&foo->entry, &bar.list_of_foos);
+ *     xorg_list_add(&foo->entry, &bar.list_of_foos);
  *
  * Repeat the above for each element you want to add to the list. Deleting
  * works with the element itself.
- *      list_del(&foo->entry);
+ *      xorg_list_del(&foo->entry);
  *      free(foo);
  *
- * Note: calling list_del(&bar.list_of_foos) will set bar.list_of_foos to an empty
+ * Note: calling xorg_list_del(&bar.list_of_foos) will set bar.list_of_foos to an empty
  * list again.
  *
  * Looping through the list requires a 'struct foo' as iterator and the
  * name of the field the subnodes use.
  *
  * struct foo *iterator;
- * list_for_each_entry(iterator, &bar.list_of_foos, entry) {
+ * xorg_list_for_each_entry(iterator, &bar.list_of_foos, entry) {
  *      if (iterator->something == ...)
  *             ...
  * }
  *
- * Note: You must not call list_del() on the iterator if you continue the
+ * Note: You must not call xorg_list_del() on the iterator if you continue the
  * loop. You need to run the safe for-each loop instead:
  *
  * struct foo *iterator, *next;
- * list_for_each_entry_safe(iterator, next, &bar.list_of_foos, entry) {
+ * xorg_list_for_each_entry_safe(iterator, next, &bar.list_of_foos, entry) {
  *      if (...)
- *              list_del(&iterator->entry);
+ *              xorg_list_del(&iterator->entry);
  * }
  *
  */
 
 /**
  * The linkage struct for list nodes. This struct must be part of your
- * to-be-linked struct. struct list is required for both the head of the
+ * to-be-linked struct. struct xorg_list is required for both the head of the
  * list and for each list node.
  *
- * Position and name of the struct list field is irrelevant.
+ * Position and name of the struct xorg_list field is irrelevant.
  * There are no requirements that elements of a list are of the same type.
- * There are no requirements for a list head, any struct list can be a list
+ * There are no requirements for a list head, any struct xorg_list can be a list
  * head.
  */
-struct list {
-    struct list *next, *prev;
+struct xorg_list {
+    struct xorg_list *next, *prev;
 };
 
 /**
  * Initialize the list as an empty list.
  *
  * Example:
- * list_init(&bar->list_of_foos);
+ * xorg_list_init(&bar->list_of_foos);
  *
  * @param The list to initialized.
  */
 static void
-list_init(struct list *list)
+xorg_list_init(struct xorg_list *list)
 {
     list->next = list->prev = list;
 }
 
 static inline void
-__list_add(struct list *entry,
-	    struct list *prev,
-	    struct list *next)
+__xorg_list_add(struct xorg_list *entry,
+	    struct xorg_list *prev,
+	    struct xorg_list *next)
 {
     next->prev = entry;
     entry->next = next;
@@ -144,15 +144,15 @@ __list_add(struct list *entry,
  *
  * Example:
  * struct foo *newfoo = malloc(...);
- * list_add(&newfoo->entry, &bar->list_of_foos);
+ * xorg_list_add(&newfoo->entry, &bar->list_of_foos);
  *
  * @param entry The new element to prepend to the list.
  * @param head The existing list.
  */
 static inline void
-list_add(struct list *entry, struct list *head)
+xorg_list_add(struct xorg_list *entry, struct xorg_list *head)
 {
-    __list_add(entry, head, head->next);
+    __xorg_list_add(entry, head, head->next);
 }
 
 /**
@@ -165,20 +165,20 @@ list_add(struct list *entry, struct list *head)
  *
  * Example:
  * struct foo *newfoo = malloc(...);
- * list_append(&newfoo->entry, &bar->list_of_foos);
+ * xorg_list_append(&newfoo->entry, &bar->list_of_foos);
  *
  * @param entry The new element to prepend to the list.
  * @param head The existing list.
  */
 static inline void
-list_append(struct list *entry, struct list *head)
+xorg_list_append(struct xorg_list *entry, struct xorg_list *head)
 {
-    __list_add(entry, head->prev, head);
+    __xorg_list_add(entry, head->prev, head);
 }
 
 
 static inline void
-__list_del(struct list *prev, struct list *next)
+__xorg_list_del(struct xorg_list *prev, struct xorg_list *next)
 {
     next->prev = prev;
     prev->next = next;
@@ -189,32 +189,32 @@ __list_del(struct list *prev, struct list *next)
  * the pointers to/from this element so it is removed from the list. It does
  * NOT free the element itself or manipulate it otherwise.
  *
- * Using list_del on a pure list head (like in the example at the top of
+ * Using xorg_list_del on a pure list head (like in the example at the top of
  * this file) will NOT remove the first element from
  * the list but rather reset the list as empty list.
  *
  * Example:
- * list_del(&foo->entry);
+ * xorg_list_del(&foo->entry);
  *
  * @param entry The element to remove.
  */
 static inline void
-list_del(struct list *entry)
+xorg_list_del(struct xorg_list *entry)
 {
-    __list_del(entry->prev, entry->next);
-    list_init(entry);
+    __xorg_list_del(entry->prev, entry->next);
+    xorg_list_init(entry);
 }
 
 /**
  * Check if the list is empty.
  *
  * Example:
- * list_is_empty(&bar->list_of_foos);
+ * xorg_list_is_empty(&bar->list_of_foos);
  *
  * @return True if the list contains one or more elements or False otherwise.
  */
 static inline Bool
-list_is_empty(struct list *head)
+xorg_list_is_empty(struct xorg_list *head)
 {
     return head->next == head;
 }
@@ -227,9 +227,9 @@ list_is_empty(struct list *head)
  * f = container_of(&foo->entry, struct foo, entry);
  * assert(f == foo);
  *
- * @param ptr Pointer to the struct list.
+ * @param ptr Pointer to the struct xorg_list.
  * @param type Data type of the list element.
- * @param member Member name of the struct list field in the list element.
+ * @param member Member name of the struct xorg_list field in the list element.
  * @return A pointer to the data struct containing the list head.
  */
 #ifndef container_of
@@ -240,7 +240,7 @@ list_is_empty(struct list *head)
 /**
  * Alias of container_of
  */
-#define list_entry(ptr, type, member) \
+#define xorg_list_entry(ptr, type, member) \
     container_of(ptr, type, member)
 
 /**
@@ -248,30 +248,30 @@ list_is_empty(struct list *head)
  *
  * Example:
  * struct foo *first;
- * first = list_first_entry(&bar->list_of_foos, struct foo, list_of_foos);
+ * first = xorg_list_first_entry(&bar->list_of_foos, struct foo, list_of_foos);
  *
  * @param ptr The list head
  * @param type Data type of the list element to retrieve
- * @param member Member name of the struct list field in the list element.
+ * @param member Member name of the struct xorg_list field in the list element.
  * @return A pointer to the first list element.
  */
-#define list_first_entry(ptr, type, member) \
-    list_entry((ptr)->next, type, member)
+#define xorg_list_first_entry(ptr, type, member) \
+    xorg_list_entry((ptr)->next, type, member)
 
 /**
  * Retrieve the last list entry for the given listpointer.
  *
  * Example:
  * struct foo *first;
- * first = list_last_entry(&bar->list_of_foos, struct foo, list_of_foos);
+ * first = xorg_list_last_entry(&bar->list_of_foos, struct foo, list_of_foos);
  *
  * @param ptr The list head
  * @param type Data type of the list element to retrieve
- * @param member Member name of the struct list field in the list element.
+ * @param member Member name of the struct xorg_list field in the list element.
  * @return A pointer to the last list element.
  */
-#define list_last_entry(ptr, type, member) \
-    list_entry((ptr)->prev, type, member)
+#define xorg_list_last_entry(ptr, type, member) \
+    xorg_list_entry((ptr)->prev, type, member)
 
 #define __container_of(ptr, sample, member)				\
     (void *)((char *)(ptr)						\
@@ -281,19 +281,19 @@ list_is_empty(struct list *head)
  *
  * Example:
  * struct foo *iterator;
- * list_for_each_entry(iterator, &bar->list_of_foos, entry) {
+ * xorg_list_for_each_entry(iterator, &bar->list_of_foos, entry) {
  *      [modify iterator]
  * }
  *
- * This macro is not safe for node deletion. Use list_for_each_entry_safe
+ * This macro is not safe for node deletion. Use xorg_list_for_each_entry_safe
  * instead.
  *
  * @param pos Iterator variable of the type of the list elements.
  * @param head List head
- * @param member Member name of the struct list in the list elements.
+ * @param member Member name of the struct xorg_list in the list elements.
  *
  */
-#define list_for_each_entry(pos, head, member)				\
+#define xorg_list_for_each_entry(pos, head, member)				\
     for (pos = __container_of((head)->next, pos, member);		\
 	 &pos->member != (head);					\
 	 pos = __container_of(pos->member.next, pos, member))
@@ -303,9 +303,9 @@ list_is_empty(struct list *head)
  * macro allows for the deletion of a list element while looping through the
  * list.
  *
- * See list_for_each_entry for more details.
+ * See xorg_list_for_each_entry for more details.
  */
-#define list_for_each_entry_safe(pos, tmp, head, member)		\
+#define xorg_list_for_each_entry_safe(pos, tmp, head, member)		\
     for (pos = __container_of((head)->next, pos, member),		\
 	 tmp = __container_of(pos->member.next, pos, member);		\
 	 &pos->member != (head);					\
@@ -315,9 +315,9 @@ list_is_empty(struct list *head)
 
 /* NULL-Terminated List Interface
  *
- * The interface below does _not_ use the struct list as described above.
+ * The interface below does _not_ use the struct xorg_list as described above.
  * It is mainly for legacy structures that cannot easily be switched to
- * struct list.
+ * struct xorg_list.
  *
  * This interface is for structs like
  *      struct foo {
@@ -349,7 +349,7 @@ list_is_empty(struct list *head)
  * struct foo *element = list;
  * while ((element = nt_list_next(element, next)) { }
  *
- * This macro is not safe for node deletion. Use list_for_each_entry_safe
+ * This macro is not safe for node deletion. Use xorg_list_for_each_entry_safe
  * instead.
  *
  * @param list The list or current element.

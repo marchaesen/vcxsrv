@@ -323,6 +323,13 @@ SendEventToAllWindows(
         xEvent *               /* ev */,
         int                    /* count */);
 
+extern void
+TouchRejected(
+        DeviceIntPtr           /* sourcedev */,
+        TouchPointInfoPtr      /* ti */,
+        XID                    /* resource */,
+        TouchOwnershipEvent *  /* ev */);
+
 extern _X_HIDDEN void XI2EventSwap(
         xGenericEvent  *              /* from */,
         xGenericEvent  *              /* to */);

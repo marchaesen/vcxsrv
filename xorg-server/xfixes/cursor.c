@@ -118,7 +118,7 @@ typedef struct PointerBarrierClient *PointerBarrierClientPtr;
 struct PointerBarrierClient {
     ScreenPtr screen;
     struct PointerBarrier barrier;
-    struct list entry;
+    struct xorg_list entry;
 };
 
 /*
@@ -130,7 +130,7 @@ typedef struct _CursorScreen {
     CloseScreenProcPtr		CloseScreen;
     ConstrainCursorHarderProcPtr ConstrainCursorHarder;
     CursorHideCountPtr          pCursorHideCounts;
-    struct list                 barriers;
+    struct xorg_list            barriers;
 } CursorScreenRec, *CursorScreenPtr;
 
 #define GetCursorScreen(s) ((CursorScreenPtr)dixLookupPrivate(&(s)->devPrivates, CursorScreenPrivateKey))
@@ -1174,7 +1174,7 @@ barrier_find_nearest(CursorScreenPtr cs, int dir,
     struct PointerBarrier *nearest = NULL;
     double min_distance = INT_MAX; /* can't get higher than that in X anyway */
 
-    list_for_each_entry(c, &cs->barriers, entry) {
+    xorg_list_for_each_entry(c, &cs->barriers, entry) {
 	struct PointerBarrier *b = &c->barrier;
 	double distance;
 
@@ -1226,7 +1226,7 @@ CursorConstrainCursorHarder(DeviceIntPtr dev, ScreenPtr screen, int mode, int *x
 {
     CursorScreenPtr cs = GetCursorScreen(screen);
 
-    if (!list_is_empty(&cs->barriers) && !IsFloating(dev) && mode == Relative) {
+    if (!xorg_list_is_empty(&cs->barriers) && !IsFloating(dev) && mode == Relative) {
 	int ox, oy;
 	int dir;
 	struct PointerBarrier *nearest = NULL;
@@ -1287,7 +1287,7 @@ CreatePointerBarrierClient(ScreenPtr screen, ClientPtr client,
 	    ret->barrier.directions &= ~(BarrierPositiveX | BarrierNegativeX);
 	if (barrier_is_vertical(&ret->barrier))
 	    ret->barrier.directions &= ~(BarrierPositiveY | BarrierNegativeY);
-	list_add(&ret->entry, &cs->barriers);
+	xorg_list_add(&ret->entry, &cs->barriers);
     }
 
     return ret;
@@ -1366,9 +1366,9 @@ CursorFreeBarrier(void *data, XID id)
     cs = GetCursorScreen(screen);
 
     /* find and unlink from the screen private */
-    list_for_each_entry(b, &cs->barriers, entry) {
+    xorg_list_for_each_entry(b, &cs->barriers, entry) {
 	if (b == barrier) {
-	    list_del(&b->entry);
+	    xorg_list_del(&b->entry);
 	    break;
 	}
     }
@@ -1428,7 +1428,7 @@ XFixesCursorInit (void)
 	cs = (CursorScreenPtr) calloc(1, sizeof (CursorScreenRec));
 	if (!cs)
 	    return FALSE;
-	list_init(&cs->barriers);
+	xorg_list_init(&cs->barriers);
 	Wrap (cs, pScreen, CloseScreen, CursorCloseScreen);
 	Wrap (cs, pScreen, DisplayCursor, CursorDisplayCursor);
 	Wrap (cs, pScreen, ConstrainCursorHarder, CursorConstrainCursorHarder);

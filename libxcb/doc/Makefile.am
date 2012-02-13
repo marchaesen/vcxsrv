@@ -2,7 +2,9 @@
 EXTRA_DIST = \
 tutorial/index.html \
 tutorial/xcb.css \
-xcb.doxygen.in
+xcb.doxygen.in \
+xkb_internals \
+xkb_issues
 
 docdirs = $(srcdir)/tutorial
 

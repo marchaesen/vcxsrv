@@ -516,13 +516,13 @@ match_string_implicit(const char *attr, const char *pattern)
  * If a pattern in each list entry is matched, return TRUE.
  */
 static Bool
-MatchAttrToken(const char *attr, struct list *patterns,
+MatchAttrToken(const char *attr, struct xorg_list *patterns,
                int (*compare)(const char *attr, const char *pattern))
 {
     const xf86MatchGroup *group;
 
     /* If there are no patterns, accept the match */
-    if (list_is_empty(patterns))
+    if (xorg_list_is_empty(patterns))
         return TRUE;
 
     /* If there are patterns but no attribute, reject the match */
@@ -533,7 +533,7 @@ MatchAttrToken(const char *attr, struct list *patterns,
      * Otherwise, iterate the list of patterns ensuring each entry has a
      * match. Each list entry is a separate Match line of the same type.
      */
-    list_for_each_entry(group, patterns, entry) {
+    xorg_list_for_each_entry(group, patterns, entry) {
         char * const *cur;
         Bool match = FALSE;
 
@@ -590,7 +590,7 @@ InputClassMatches(const XF86ConfInputClassPtr iclass, const InputInfoPtr idev,
      * MatchTag string
      * See if any of the device's tags match any of the MatchTag tokens.
      */
-    if (!list_is_empty(&iclass->match_tag)) {
+    if (!xorg_list_is_empty(&iclass->match_tag)) {
         char * const *tag;
         Bool match;
 
@@ -607,7 +607,7 @@ InputClassMatches(const XF86ConfInputClassPtr iclass, const InputInfoPtr idev,
     }
 
     /* MatchLayout string */
-    if (!list_is_empty(&iclass->match_layout)) {
+    if (!xorg_list_is_empty(&iclass->match_layout)) {
         if (!MatchAttrToken(xf86ConfigLayout.id,
                             &iclass->match_layout, match_string_implicit))
             return FALSE;
