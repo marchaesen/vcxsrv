@@ -647,10 +647,25 @@ typedef struct {
     uint16_t    deviceid;
     uint8_t     mode;
     uint8_t     pad;
+} xXIAllowEventsReq;
+#define sz_xXIAllowEventsReq                   12
+
+/**
+ * Allow or replay events on the specified grabbed device.
+ * Since XI 2.2
+ */
+typedef struct {
+    uint8_t     reqType;
+    uint8_t     ReqType;                /**< Always ::X_XIAllowEvents */
+    uint16_t    length;                 /**< Length in 4 byte units */
+    Time        time;
+    uint16_t    deviceid;
+    uint8_t     mode;
+    uint8_t     pad;
     uint32_t    touchid;                /**< Since XI 2.2 */
     Window      grab_window;            /**< Since XI 2.2 */
-} xXIAllowEventsReq;
-#define sz_xXIAllowEventsReq                   20 /**< Was 12 before XI 2.2 */
+} xXI2_2AllowEventsReq;
+#define sz_xXI2_2AllowEventsReq                20
 
 
 /**
