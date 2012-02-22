@@ -48,7 +48,6 @@ struct st_renderbuffer
    struct gl_renderbuffer Base;
    struct pipe_resource *texture;
    struct pipe_surface *surface; /* temporary view into texture */
-   enum pipe_format format;  /** preferred format, or PIPE_FORMAT_NONE */
    GLboolean defined;        /**< defined contents? */
 
    struct pipe_transfer *transfer; /**< only used when mapping the resource */
@@ -57,7 +56,6 @@ struct st_renderbuffer
     * Used only when hardware accumulation buffers are not supported.
     */
    boolean software;
-   size_t stride;
    void *data;
 
    struct st_texture_object *rtt;  /**< GL render to texture's texture */

@@ -609,8 +609,7 @@ decompress_with_blit(struct gl_context * ctx,
    struct pipe_context *pipe = st->pipe;
    struct st_texture_image *stImage = st_texture_image(texImage);
    struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
-   struct pipe_sampler_view *src_view =
-      st_get_texture_sampler_view(stObj, pipe);
+   struct pipe_sampler_view *src_view;
    const GLuint width = texImage->Width;
    const GLuint height = texImage->Height;
    struct pipe_surface *dst_surface;
@@ -632,8 +631,21 @@ decompress_with_blit(struct gl_context * ctx,
       pipe->render_condition(pipe, NULL, 0);
    }
 
-   /* Choose the source mipmap level */
-   src_view->u.tex.first_level = src_view->u.tex.last_level = texImage->Level;
+   /* Create sampler view that limits fetches to the source mipmap level */
+   {
+      struct pipe_sampler_view sv_temp;
+
+      u_sampler_view_default_template(&sv_temp, stObj->pt, stObj->pt->format);
+
+      sv_temp.u.tex.first_level =
+      sv_temp.u.tex.last_level = texImage->Level;
+
+      src_view = pipe->create_sampler_view(pipe, stObj->pt, &sv_temp);
+      if (!src_view) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glGetTexImage");
+         return;
+      }
+   }
 
    /* blit/render/decompress */
    util_blit_pixels_tex(st->blit,
@@ -661,7 +673,9 @@ decompress_with_blit(struct gl_context * ctx,
    pixels = _mesa_map_pbo_dest(ctx, &ctx->Pack, pixels);
 
    /* copy/pack data into user buffer */
-   if (st_equal_formats(stImage->pt->format, format, type)) {
+   if (_mesa_format_matches_format_and_type(stImage->base.TexFormat,
+                                            format, type,
+                                            ctx->Pack.SwapBytes)) {
       /* memcpy */
       const uint bytesPerRow = width * util_format_get_blocksize(stImage->pt->format);
       ubyte *map = pipe_transfer_map(pipe, tex_xfer);
@@ -702,6 +716,8 @@ decompress_with_blit(struct gl_context * ctx,
 
    /* destroy the temp / dest surface */
    util_destroy_rgba_surface(dst_texture, dst_surface);
+
+   pipe_sampler_view_reference(&src_view, NULL);
 }
 
 
@@ -1333,57 +1349,6 @@ st_finalize_texture(struct gl_context *ctx,
    }
 
    return GL_TRUE;
-}
-
-
-/**
- * Returns pointer to a default/dummy texture.
- * This is typically used when the current shader has tex/sample instructions
- * but the user has not provided a (any) texture(s).
- */
-struct gl_texture_object *
-st_get_default_texture(struct st_context *st)
-{
-   if (!st->default_texture) {
-      static const GLenum target = GL_TEXTURE_2D;
-      GLubyte pixels[16][16][4];
-      struct gl_texture_object *texObj;
-      struct gl_texture_image *texImg;
-      GLuint i, j;
-
-      /* The ARB_fragment_program spec says (0,0,0,1) should be returned
-       * when attempting to sample incomplete textures.
-       */
-      for (i = 0; i < 16; i++) {
-         for (j = 0; j < 16; j++) {
-            pixels[i][j][0] = 0;
-            pixels[i][j][1] = 0;
-            pixels[i][j][2] = 0;
-            pixels[i][j][3] = 255;
-         }
-      }
-
-      texObj = st->ctx->Driver.NewTextureObject(st->ctx, 0, target);
-
-      texImg = _mesa_get_tex_image(st->ctx, texObj, target, 0);
-
-      _mesa_init_teximage_fields(st->ctx, texImg,
-                                 16, 16, 1, 0,  /* w, h, d, border */
-                                 GL_RGBA, MESA_FORMAT_RGBA8888);
-
-      _mesa_store_teximage2d(st->ctx, texImg, 
-                             GL_RGBA,    /* level, intformat */
-                             16, 16, 1,  /* w, h, d, border */
-                             GL_RGBA, GL_UNSIGNED_BYTE, pixels,
-                             &st->ctx->DefaultPacking);
-
-      texObj->Sampler.MinFilter = GL_NEAREST;
-      texObj->Sampler.MagFilter = GL_NEAREST;
-      texObj->_Complete = GL_TRUE;
-
-      st->default_texture = texObj;
-   }
-   return st->default_texture;
 }
 
 

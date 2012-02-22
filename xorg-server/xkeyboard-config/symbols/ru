@@ -273,13 +273,13 @@ xkb_symbols "cv" {
     key.type[group1]="FOUR_LEVEL";
 
     key        <AD03> {        [      Cyrillic_u,	Cyrillic_U,
-                            0x010004f3,    0x010004f2      ]       };
+                          U04F3,    U04F2      ]       };
     key        <AD05> {        [      Cyrillic_ie,     Cyrillic_IE,
-                       0x01000115,	0x01000114     ]       };
+                          U04D7,    U04D6     ]       };
     key        <AC04> {        [      Cyrillic_a,	Cyrillic_A,
-                          abreve,  Abreve      ]       };
+                          U04D1,    U04D0      ]       };
     key        <AB03> {        [      Cyrillic_es,     Cyrillic_ES,
-                            ccedilla,    Ccedilla      ]       };
+                          U04AB,    U04AA      ]       };
 
     include "level3(ralt_switch)"
 };

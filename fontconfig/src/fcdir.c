@@ -235,7 +235,6 @@ FcCache *
 FcDirCacheScan (const FcChar8 *dir, FcConfig *config)
 {
     FcStrSet		*dirs;
-    FcBool		ret = FcTrue;
     FcFontSet		*set;
     FcCache		*cache = NULL;
     struct stat		dir_stat;
@@ -244,44 +243,28 @@ FcDirCacheScan (const FcChar8 *dir, FcConfig *config)
 	printf ("cache scan dir %s\n", dir);
 
     if (FcStat (dir, &dir_stat) < 0)
-    {
-	if (errno != ENOENT)
-	    ret = FcFalse;
 	goto bail;
-    }
 
     set = FcFontSetCreate();
     if (!set)
-    {
-	ret = FcFalse;
 	goto bail;
-    }
 
     dirs = FcStrSetCreate ();
     if (!dirs)
-    {
-	ret = FcFalse;
 	goto bail1;
-    }
 
     /*
      * Scan the dir
      */
     if (!FcDirScanConfig (set, dirs, NULL, dir, FcTrue, config))
-    {
-	ret = FcFalse;
 	goto bail2;
-    }
 
     /*
      * Build the cache object
      */
     cache = FcDirCacheBuild (set, dir, &dir_stat, dirs);
     if (!cache)
-    {
-	ret = FcFalse;
 	goto bail2;
-    }
 
     /*
      * Write out the cache file, ignoring any troubles

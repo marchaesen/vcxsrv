@@ -708,6 +708,7 @@ vbo_exec_DrawArraysInstanced(GLenum mode, GLint start, GLsizei count,
  * Map GL_ELEMENT_ARRAY_BUFFER and print contents.
  * For debugging.
  */
+#if 0
 static void
 dump_element_buffer(struct gl_context *ctx, GLenum type)
 {
@@ -759,6 +760,7 @@ dump_element_buffer(struct gl_context *ctx, GLenum type)
 
    ctx->Driver.UnmapBuffer(ctx, ctx->Array.ArrayObj->ElementArrayBufferObj);
 }
+#endif
 
 
 /**
@@ -857,6 +859,7 @@ vbo_exec_DrawRangeElementsBaseVertex(GLenum mode,
 				     GLint basevertex)
 {
    static GLuint warnCount = 0;
+   GLboolean index_bounds_valid = GL_TRUE;
    GET_CURRENT_CONTEXT(ctx);
 
    if (MESA_VERBOSE & VERBOSE_DRAW)
@@ -868,6 +871,26 @@ vbo_exec_DrawRangeElementsBaseVertex(GLenum mode,
    if (!_mesa_validate_DrawRangeElements( ctx, mode, start, end, count,
                                           type, indices, basevertex ))
       return;
+
+   if ((int) end + basevertex < 0 ||
+       start + basevertex >= ctx->Array.ArrayObj->_MaxElement) {
+      /* The application requested we draw using a range of indices that's
+       * outside the bounds of the current VBO.  This is invalid and appears
+       * to give undefined results.  The safest thing to do is to simply
+       * ignore the range, in case the application botched their range tracking
+       * but did provide valid indices.  Also issue a warning indicating that
+       * the application is broken.
+       */
+      if (warnCount++ < 10) {
+         _mesa_warning(ctx, "glDrawRangeElements(start %u, end %u, "
+                       "basevertex %d, count %d, type 0x%x, indices=%p):\n"
+                       "\trange is outside VBO bounds (max=%u); ignoring.\n"
+                       "\tThis should be fixed in the application.",
+                       start, end, basevertex, count, type, indices,
+                       ctx->Array.ArrayObj->_MaxElement - 1);
+      }
+      index_bounds_valid = GL_FALSE;
+   }
 
    /* NOTE: It's important that 'end' is a reasonable value.
     * in _tnl_draw_prims(), we use end to determine how many vertices
@@ -885,62 +908,6 @@ vbo_exec_DrawRangeElementsBaseVertex(GLenum mode,
       end = MIN2(end, 0xffff);
    }
 
-   if (end >= ctx->Array.ArrayObj->_MaxElement) {
-      /* the max element is out of bounds of one or more enabled arrays */
-      warnCount++;
-
-      if (warnCount < 10) {
-         _mesa_warning(ctx, "glDraw[Range]Elements(start %u, end %u, count %d, "
-                       "type 0x%x, indices=%p)\n"
-                       "\tend is out of bounds (max=%u)  "
-                       "Element Buffer %u (size %d)\n"
-                       "\tThis should probably be fixed in the application.",
-                       start, end, count, type, indices,
-                       ctx->Array.ArrayObj->_MaxElement - 1,
-                       ctx->Array.ArrayObj->ElementArrayBufferObj->Name,
-                       (int) ctx->Array.ArrayObj->ElementArrayBufferObj->Size);
-      }
-
-      if (0)
-         dump_element_buffer(ctx, type);
-
-      if (0)
-         _mesa_print_arrays(ctx);
-
-      /* 'end' was out of bounds, but now let's check the actual array
-       * indexes to see if any of them are out of bounds.
-       */
-      if (0) {
-         GLuint max = _mesa_max_buffer_index(ctx, count, type, indices,
-                                             ctx->Array.ArrayObj->ElementArrayBufferObj);
-         if (max >= ctx->Array.ArrayObj->_MaxElement) {
-            if (warnCount < 10) {
-               _mesa_warning(ctx, "glDraw[Range]Elements(start %u, end %u, "
-                             "count %d, type 0x%x, indices=%p)\n"
-                             "\tindex=%u is out of bounds (max=%u)  "
-                             "Element Buffer %u (size %d)\n"
-                             "\tSkipping the glDrawRangeElements() call",
-                             start, end, count, type, indices, max,
-                             ctx->Array.ArrayObj->_MaxElement - 1,
-                             ctx->Array.ArrayObj->ElementArrayBufferObj->Name,
-                             (int) ctx->Array.ArrayObj->ElementArrayBufferObj->Size);
-            }
-         }
-         /* XXX we could also find the min index and compare to 'start'
-          * to see if start is correct.  But it's more likely to get the
-          * upper bound wrong.
-          */
-      }
-
-      /* Set 'end' to the max possible legal value */
-      assert(ctx->Array.ArrayObj->_MaxElement >= 1);
-      end = ctx->Array.ArrayObj->_MaxElement - 1;
-
-      if (end < start) {
-         return;
-      }
-   }
-
    if (0) {
       printf("glDraw[Range]Elements{,BaseVertex}"
 	     "(start %u, end %u, type 0x%x, count %d) ElemBuf %u, "
@@ -950,13 +917,17 @@ vbo_exec_DrawRangeElementsBaseVertex(GLenum mode,
 	     basevertex);
    }
 
+   if ((int) start + basevertex < 0 ||
+       end + basevertex >= ctx->Array.ArrayObj->_MaxElement)
+      index_bounds_valid = GL_FALSE;
+
 #if 0
    check_draw_elements_data(ctx, count, type, indices);
 #else
    (void) check_draw_elements_data;
 #endif
 
-   vbo_validated_drawrangeelements(ctx, mode, GL_TRUE, start, end,
+   vbo_validated_drawrangeelements(ctx, mode, index_bounds_valid, start, end,
 				   count, type, indices, basevertex, 1);
 }
 

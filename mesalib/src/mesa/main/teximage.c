@@ -1083,11 +1083,13 @@ _mesa_init_teximage_fields(struct gl_context *ctx,
                            GLint border, GLenum internalFormat,
                            gl_format format)
 {
+   GLenum target;
    ASSERT(img);
    ASSERT(width >= 0);
    ASSERT(height >= 0);
    ASSERT(depth >= 0);
 
+   target = img->TexObject->Target;
    img->_BaseFormat = _mesa_base_tex_format( ctx, internalFormat );
    ASSERT(img->_BaseFormat > 0);
    img->InternalFormat = internalFormat;
@@ -1099,26 +1101,72 @@ _mesa_init_teximage_fields(struct gl_context *ctx,
    img->Width2 = width - 2 * border;   /* == 1 << img->WidthLog2; */
    img->WidthLog2 = _mesa_logbase2(img->Width2);
 
-   if (height == 1) { /* 1-D texture */
-      img->Height2 = 1;
+   switch(target) {
+   case GL_TEXTURE_1D:
+   case GL_TEXTURE_BUFFER:
+   case GL_PROXY_TEXTURE_1D:
+      if (height == 0)
+         img->Height2 = 0;
+      else
+         img->Height2 = 1;
       img->HeightLog2 = 0;
-   }
-   else {
+      if (depth == 0)
+         img->Depth2 = 0;
+      else
+         img->Depth2 = 1;
+      img->DepthLog2 = 0;
+      break;
+   case GL_TEXTURE_1D_ARRAY:
+   case GL_PROXY_TEXTURE_1D_ARRAY:
+      img->Height2 = height; /* no border */
+      img->HeightLog2 = 0; /* not used */
+      if (depth == 0)
+         img->Depth2 = 0;
+      else
+         img->Depth2 = 1;
+      img->DepthLog2 = 0;
+      break;
+   case GL_TEXTURE_2D:
+   case GL_TEXTURE_RECTANGLE:
+   case GL_TEXTURE_CUBE_MAP:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+   case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+   case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+   case GL_TEXTURE_EXTERNAL_OES:
+   case GL_PROXY_TEXTURE_2D:
+   case GL_PROXY_TEXTURE_RECTANGLE:
+   case GL_PROXY_TEXTURE_CUBE_MAP:
       img->Height2 = height - 2 * border; /* == 1 << img->HeightLog2; */
       img->HeightLog2 = _mesa_logbase2(img->Height2);
-   }
-
-   if (depth == 1) {  /* 2-D texture */
-      img->Depth2 = 1;
+      if (depth == 0)
+         img->Depth2 = 0;
+      else
+         img->Depth2 = 1;
       img->DepthLog2 = 0;
-   }
-   else {
+      break;
+   case GL_TEXTURE_2D_ARRAY:
+   case GL_PROXY_TEXTURE_2D_ARRAY:
+      img->Height2 = height - 2 * border; /* == 1 << img->HeightLog2; */
+      img->HeightLog2 = _mesa_logbase2(img->Height2);
+      img->Depth2 = depth; /* no border */
+      img->DepthLog2 = 0; /* not used */
+      break;
+   case GL_TEXTURE_3D:
+   case GL_PROXY_TEXTURE_3D:
+      img->Height2 = height - 2 * border; /* == 1 << img->HeightLog2; */
+      img->HeightLog2 = _mesa_logbase2(img->Height2);
       img->Depth2 = depth - 2 * border;   /* == 1 << img->DepthLog2; */
       img->DepthLog2 = _mesa_logbase2(img->Depth2);
+      break;
+   default:
+      _mesa_problem(NULL, "invalid target 0x%x in _mesa_init_teximage_fields()",
+                    target);
    }
 
    img->MaxLog2 = MAX2(img->WidthLog2, img->HeightLog2);
-
    img->TexFormat = format;
 }
 
@@ -1850,6 +1898,17 @@ subtexture_error_check2( struct gl_context *ctx, GLuint dimensions,
                      "glTexSubImage%dD(height = %d)", dimensions, height);
          return GL_TRUE;
       }         
+   }
+
+   if (ctx->VersionMajor >= 3 || ctx->Extensions.EXT_texture_integer) {
+      /* both source and dest must be integer-valued, or neither */
+      if (_mesa_is_format_integer_color(destTex->TexFormat) !=
+          _mesa_is_integer_format(format)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glTexSubImage%dD(integer/non-integer format mismatch)",
+                     dimensions);
+         return GL_TRUE;
+      }
    }
 
    return GL_FALSE;

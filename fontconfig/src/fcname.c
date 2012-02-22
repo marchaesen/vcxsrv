@@ -296,8 +296,6 @@ FcObjectValidType (FcObject object, FcType type)
 
     if (t) {
 	switch (t->type) {
-	case -1:
-	    return FcTrue;
 	case FcTypeDouble:
 	case FcTypeInteger:
 	    if (type == FcTypeDouble || type == FcTypeInteger)
@@ -308,7 +306,7 @@ FcObjectValidType (FcObject object, FcType type)
 		return FcTrue;
 	    break;
 	default:
-	    if (type == t->type)
+	    if (t->type == -1 || type == t->type)
 		return FcTrue;
 	    break;
 	}
@@ -511,7 +509,7 @@ FcNameUnregisterConstants (const FcConstant *consts, int nconsts)
 }
 
 const FcConstant *
-FcNameGetConstant (FcChar8 *string)
+FcNameGetConstant (const FcChar8 *string)
 {
     const FcConstantList    *l;
     int			    i;
@@ -526,7 +524,7 @@ FcNameGetConstant (FcChar8 *string)
 }
 
 FcBool
-FcNameConstant (FcChar8 *string, int *result)
+FcNameConstant (const FcChar8 *string, int *result)
 {
     const FcConstant	*c;
 

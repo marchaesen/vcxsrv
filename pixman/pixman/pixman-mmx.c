@@ -56,6 +56,37 @@ _mm_empty (void)
 }
 #endif
 
+#ifdef USE_X86_MMX
+/* We have to compile with -msse to use xmmintrin.h, but that causes SSE
+ * instructions to be generated that we don't want. Just duplicate the
+ * functions we want to use.  */
+extern __inline __m64 __attribute__((__gnu_inline__, __always_inline__, __artificial__))
+_mm_mulhi_pu16 (__m64 __A, __m64 __B)
+{
+    asm("pmulhuw %1, %0\n\t"
+	: "+y" (__A)
+	: "y" (__B)
+    );
+    return __A;
+}
+
+extern __inline __m64 __attribute__((__gnu_inline__, __always_inline__, __artificial__))
+_mm_shuffle_pi16 (__m64 __A, int8_t const __N)
+{
+    __m64 ret;
+
+    asm("pshufw %2, %1, %0\n\t"
+	: "=y" (ret)
+	: "y" (__A), "K" (__N)
+    );
+
+    return ret;
+}
+#endif
+
+#define _MM_SHUFFLE(fp3,fp2,fp1,fp0) \
+ (((fp3) << 6) | ((fp2) << 4) | ((fp1) << 2) | (fp0))
+
 /* Notes about writing mmx code
  *
  * give memory operands as the second operand. If you give it as the
@@ -125,9 +156,7 @@ typedef struct
     mmxdatafield mmx_mask_2;
     mmxdatafield mmx_mask_3;
     mmxdatafield mmx_full_alpha;
-    mmxdatafield mmx_ffff0000ffff0000;
-    mmxdatafield mmx_0000ffff00000000;
-    mmxdatafield mmx_000000000000ffff;
+    mmxdatafield mmx_4x0101;
 } mmx_data_t;
 
 #if defined(_MSC_VER)
@@ -152,9 +181,7 @@ static const mmx_data_t c =
     MMXDATA_INIT (.mmx_mask_2,                   0xffff0000ffffffff),
     MMXDATA_INIT (.mmx_mask_3,                   0x0000ffffffffffff),
     MMXDATA_INIT (.mmx_full_alpha,               0x00ff000000000000),
-    MMXDATA_INIT (.mmx_ffff0000ffff0000,         0xffff0000ffff0000),
-    MMXDATA_INIT (.mmx_0000ffff00000000,         0x0000ffff00000000),
-    MMXDATA_INIT (.mmx_000000000000ffff,         0x000000000000ffff),
+    MMXDATA_INIT (.mmx_4x0101,                   0x0101010101010101),
 };
 
 #ifdef USE_CVT_INTRINSICS
@@ -218,8 +245,7 @@ pix_multiply (__m64 a, __m64 b)
 
     res = _mm_mullo_pi16 (a, b);
     res = _mm_adds_pu16 (res, MC (4x0080));
-    res = _mm_adds_pu16 (res, _mm_srli_pi16 (res, 8));
-    res = _mm_srli_pi16 (res, 8);
+    res = _mm_mulhi_pu16 (res, MC (4x0101));
 
     return res;
 }
@@ -233,52 +259,19 @@ pix_add (__m64 a, __m64 b)
 static force_inline __m64
 expand_alpha (__m64 pixel)
 {
-    __m64 t1, t2;
-
-    t1 = shift (pixel, -48);
-    t2 = shift (t1, 16);
-    t1 = _mm_or_si64 (t1, t2);
-    t2 = shift (t1, 32);
-    t1 = _mm_or_si64 (t1, t2);
-
-    return t1;
+    return _mm_shuffle_pi16(pixel, _MM_SHUFFLE (3, 3, 3, 3));
 }
 
 static force_inline __m64
 expand_alpha_rev (__m64 pixel)
 {
-    __m64 t1, t2;
-
-    /* move alpha to low 16 bits and zero the rest */
-    t1 = shift (pixel,  48);
-    t1 = shift (t1, -48);
-
-    t2 = shift (t1, 16);
-    t1 = _mm_or_si64 (t1, t2);
-    t2 = shift (t1, 32);
-    t1 = _mm_or_si64 (t1, t2);
-
-    return t1;
+    return _mm_shuffle_pi16(pixel, _MM_SHUFFLE (0, 0, 0, 0));
 }
 
 static force_inline __m64
 invert_colors (__m64 pixel)
 {
-    __m64 x, y, z;
-
-    x = y = z = pixel;
-
-    x = _mm_and_si64 (x, MC (ffff0000ffff0000));
-    y = _mm_and_si64 (y, MC (000000000000ffff));
-    z = _mm_and_si64 (z, MC (0000ffff00000000));
-
-    y = shift (y, 32);
-    z = shift (z, -32);
-
-    x = _mm_or_si64 (x, y);
-    x = _mm_or_si64 (x, z);
-
-    return x;
+    return _mm_shuffle_pi16(pixel, _MM_SHUFFLE (3, 0, 1, 2));
 }
 
 static force_inline __m64
@@ -471,7 +464,7 @@ pix_add_mul (__m64 x, __m64 a, __m64 y, __m64 b)
 
 #define pix_add_mul(x, a, y, b)	 \
     ( x = pix_multiply (x, a),	 \
-      y = pix_multiply (y, a),	 \
+      y = pix_multiply (y, b),	 \
       pix_add (x, y) )
 
 #endif
@@ -1360,7 +1353,7 @@ mmx_composite_over_n_8888_8888_ca (pixman_implementation_t *imp,
 	    twidth -= 2;
 	}
 
-	while (twidth)
+	if (twidth)
 	{
 	    uint32_t m = *(uint32_t *)p;
 
@@ -1901,14 +1894,14 @@ pixman_fill_mmx (uint32_t *bits,
 	byte_line += stride;
 	w = byte_width;
 
-	while (w >= 1 && ((unsigned long)d & 1))
+	if (w >= 1 && ((unsigned long)d & 1))
 	{
 	    *(uint8_t *)d = (xor & 0xff);
 	    w--;
 	    d++;
 	}
 
-	while (w >= 2 && ((unsigned long)d & 3))
+	if (w >= 2 && ((unsigned long)d & 3))
 	{
 	    *(uint16_t *)d = xor;
 	    w -= 2;
@@ -1961,13 +1954,13 @@ pixman_fill_mmx (uint32_t *bits,
 	    w -= 4;
 	    d += 4;
 	}
-	while (w >= 2)
+	if (w >= 2)
 	{
 	    *(uint16_t *)d = xor;
 	    w -= 2;
 	    d += 2;
 	}
-	while (w >= 1)
+	if (w >= 1)
 	{
 	    *(uint8_t *)d = (xor & 0xff);
 	    w--;
@@ -2925,7 +2918,7 @@ pixman_blt_mmx (uint32_t *src_bits,
 	dst_bytes += dst_stride;
 	w = byte_width;
 
-	while (w >= 1 && ((unsigned long)d & 1))
+	if (w >= 1 && ((unsigned long)d & 1))
 	{
 	    *(uint8_t *)d = *(uint8_t *)s;
 	    w -= 1;
@@ -2933,7 +2926,7 @@ pixman_blt_mmx (uint32_t *src_bits,
 	    d += 1;
 	}
 
-	while (w >= 2 && ((unsigned long)d & 3))
+	if (w >= 2 && ((unsigned long)d & 3))
 	{
 	    *(uint16_t *)d = *(uint16_t *)s;
 	    w -= 2;
@@ -3036,7 +3029,7 @@ mmx_composite_copy_area (pixman_implementation_t *imp,
                     src_x, src_y, dest_x, dest_y, width, height);
 }
 
-#if 0
+#ifdef USE_ARM_IWMMXT
 static void
 mmx_composite_over_x888_8_8888 (pixman_implementation_t *imp,
                                 pixman_composite_info_t *info)
@@ -3123,9 +3116,9 @@ static const pixman_fast_path_t mmx_fast_paths[] =
     PIXMAN_STD_FAST_PATH    (OVER, a8r8g8b8, solid,    x8r8g8b8, mmx_composite_over_8888_n_8888    ),
     PIXMAN_STD_FAST_PATH    (OVER, a8b8g8r8, solid,    a8b8g8r8, mmx_composite_over_8888_n_8888    ),
     PIXMAN_STD_FAST_PATH    (OVER, a8b8g8r8, solid,    x8b8g8r8, mmx_composite_over_8888_n_8888    ),
-#if 0
+#ifdef USE_ARM_IWMMXT
     /* FIXME: This code is commented out since it's apparently
-     * not actually faster than the generic code.
+     * not actually faster than the generic code on x86.
      */
     PIXMAN_STD_FAST_PATH    (OVER, x8r8g8b8, a8,       x8r8g8b8, mmx_composite_over_x888_8_8888    ),
     PIXMAN_STD_FAST_PATH    (OVER, x8r8g8b8, a8,       a8r8g8b8, mmx_composite_over_x888_8_8888    ),

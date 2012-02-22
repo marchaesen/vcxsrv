@@ -227,7 +227,7 @@ cache_print_set (FcFontSet *set, FcStrSet *dirs, const FcChar8 *base_name, FcBoo
 	FcPattern   *font = set->fonts[n];
 	FcChar8 *s;
 
-	s = FcPatternFormat (font, "%{=fccat}\n");
+	s = FcPatternFormat (font, (const FcChar8 *) "%{=fccat}\n");
 	if (s)
 	{
 	    printf ("%s", s);

@@ -545,7 +545,7 @@ FcPrivate void
 FcDirCacheReference (FcCache *cache, int nref);
 
 FcPrivate int
-FcStat (const char *file, struct stat *statb);
+FcStat (const FcChar8 *file, struct stat *statb);
 
 /* fccfg.c */
 

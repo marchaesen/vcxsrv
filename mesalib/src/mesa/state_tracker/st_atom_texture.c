@@ -35,6 +35,7 @@
 #include "main/macros.h"
 #include "main/mtypes.h"
 #include "main/samplerobj.h"
+#include "main/texobj.h"
 #include "program/prog_instruction.h"
 
 #include "st_context.h"
@@ -137,7 +138,7 @@ check_sampler_swizzle(struct pipe_sampler_view *sv,
 }
 
 
-static INLINE struct pipe_sampler_view *
+static struct pipe_sampler_view *
 st_create_texture_sampler_view_from_stobj(struct pipe_context *pipe,
 					  struct st_texture_object *stObj,
                                           const struct gl_sampler_object *samp,
@@ -164,7 +165,7 @@ st_create_texture_sampler_view_from_stobj(struct pipe_context *pipe,
 }
 
 
-static INLINE struct pipe_sampler_view *
+static struct pipe_sampler_view *
 st_get_texture_sampler_view_from_stobj(struct st_texture_object *stObj,
 				       struct pipe_context *pipe,
                                        const struct gl_sampler_object *samp,
@@ -201,7 +202,7 @@ update_single_texture(struct st_context *st,
    texObj = ctx->Texture.Unit[texUnit]._Current;
 
    if (!texObj) {
-      texObj = st_get_default_texture(st);
+      texObj = _mesa_get_fallback_texture(ctx, TEXTURE_2D_INDEX);
       samp = &texObj->Sampler;
    }
    stObj = st_texture_object(texObj);

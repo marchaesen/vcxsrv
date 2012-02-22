@@ -97,7 +97,6 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
    strb->Base.Height = height;
    strb->Base.Format = st_pipe_format_to_mesa_format(format);
    strb->Base._BaseFormat = _mesa_base_fbo_format(ctx, internalFormat);
-   strb->format = format;
 
    strb->defined = GL_FALSE;  /* undefined contents now */
 
@@ -106,10 +105,7 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
       
       free(strb->data);
 
-      assert(strb->format != PIPE_FORMAT_NONE);
-      
-      strb->stride = util_format_get_stride(strb->format, width);
-      size = util_format_get_2d_size(strb->format, strb->stride, height);
+      size = _mesa_format_image_size(strb->Base.Format, width, height, 1);
       
       strb->data = malloc(size);
       
@@ -142,7 +138,12 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
       if (util_format_is_depth_or_stencil(format)) {
          template.bind = PIPE_BIND_DEPTH_STENCIL;
       }
+      else if (strb->Base.Name != 0) {
+         /* this is a user-created renderbuffer */
+         template.bind = PIPE_BIND_RENDER_TARGET;
+      }
       else {
+         /* this is a window-system buffer */
          template.bind = (PIPE_BIND_DISPLAY_TARGET |
                           PIPE_BIND_RENDER_TARGET);
       }
@@ -152,7 +153,6 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
       if (!strb->texture) 
          return FALSE;
 
-      memset(&surf_tmpl, 0, sizeof(surf_tmpl));
       u_surface_default_template(&surf_tmpl, strb->texture, template.bind);
       strb->surface = pipe->create_surface(pipe,
                                            strb->texture,
@@ -203,10 +203,10 @@ st_new_renderbuffer(struct gl_context *ctx, GLuint name)
 {
    struct st_renderbuffer *strb = ST_CALLOC_STRUCT(st_renderbuffer);
    if (strb) {
+      assert(name != 0);
       _mesa_init_renderbuffer(&strb->Base, name);
       strb->Base.Delete = st_renderbuffer_delete;
       strb->Base.AllocStorage = st_renderbuffer_alloc_storage;
-      strb->format = PIPE_FORMAT_NONE;
       return &strb->Base;
    }
    return NULL;
@@ -233,7 +233,6 @@ st_new_renderbuffer_fb(enum pipe_format format, int samples, boolean sw)
    strb->Base.NumSamples = samples;
    strb->Base.Format = st_pipe_format_to_mesa_format(format);
    strb->Base._BaseFormat = _mesa_get_format_base_format(strb->Base.Format);
-   strb->format = format;
    strb->software = sw;
    
    switch (format) {
@@ -297,8 +296,6 @@ st_new_renderbuffer_fb(enum pipe_format format, int samples, boolean sw)
 }
 
 
-
-
 /**
  * Called via ctx->Driver.BindFramebufferEXT().
  */
@@ -306,20 +303,7 @@ static void
 st_bind_framebuffer(struct gl_context *ctx, GLenum target,
                     struct gl_framebuffer *fb, struct gl_framebuffer *fbread)
 {
-
-}
-
-/**
- * Called by ctx->Driver.FramebufferRenderbuffer
- */
-static void
-st_framebuffer_renderbuffer(struct gl_context *ctx, 
-                            struct gl_framebuffer *fb,
-                            GLenum attachment,
-                            struct gl_renderbuffer *rb)
-{
-   /* XXX no need for derivation? */
-   _mesa_framebuffer_renderbuffer(ctx, fb, attachment, rb);
+   /* no-op */
 }
 
 
@@ -380,9 +364,6 @@ st_render_texture(struct gl_context *ctx,
    rb->Height = texImage->Height2;
    rb->_BaseFormat = texImage->_BaseFormat;
    rb->InternalFormat = texImage->InternalFormat;
-   /*printf("***** render to texture level %d: %d x %d\n", att->TextureLevel, rb->Width, rb->Height);*/
-
-   /*printf("***** pipe texture %d x %d\n", pt->width0, pt->height0);*/
 
    pipe_resource_reference( &strb->texture, pt );
 
@@ -392,7 +373,8 @@ st_render_texture(struct gl_context *ctx,
 
    /* new surface for rendering into the texture */
    memset(&surf_tmpl, 0, sizeof(surf_tmpl));
-   surf_tmpl.format = ctx->Color.sRGBEnabled ? strb->texture->format : util_format_linear(strb->texture->format);
+   surf_tmpl.format = ctx->Color.sRGBEnabled
+      ? strb->texture->format : util_format_linear(strb->texture->format);
    surf_tmpl.usage = PIPE_BIND_RENDER_TARGET;
    surf_tmpl.u.tex.level = strb->rtt_level;
    surf_tmpl.u.tex.first_layer = strb->rtt_face + strb->rtt_slice;
@@ -401,14 +383,7 @@ st_render_texture(struct gl_context *ctx,
                                         strb->texture,
                                         &surf_tmpl);
 
-   strb->format = pt->format;
-
    strb->Base.Format = st_pipe_format_to_mesa_format(pt->format);
-
-   /*
-   printf("RENDER TO TEXTURE obj=%p pt=%p surf=%p  %d x %d\n",
-          att->Texture, pt, strb->surface, rb->Width, rb->Height);
-   */
 
    /* Invalidate buffer state so that the pipe's framebuffer state
     * gets updated.
@@ -432,10 +407,6 @@ st_finish_render_texture(struct gl_context *ctx,
       return;
 
    strb->rtt = NULL;
-
-   /*
-   printf("FINISH RENDER TO TEXTURE surf=%p\n", strb->surface);
-   */
 
    /* restore previous framebuffer state */
    st_invalidate_state(ctx, _NEW_BUFFERS);
@@ -647,12 +618,12 @@ st_MapRenderbuffer(struct gl_context *ctx,
 
    if (strb->software) {
       /* software-allocated renderbuffer (probably an accum buffer) */
-      GLubyte *map = (GLubyte *) strb->data;
       if (strb->data) {
-         map += strb->stride * y;
-         map += util_format_get_blocksize(strb->format) * x;
-         *mapOut = map;
-         *rowStrideOut = strb->stride;
+         GLint bpp = _mesa_get_format_bytes(strb->Base.Format);
+         GLint stride = _mesa_format_row_stride(strb->Base.Format,
+                                                strb->Base.Width);
+         *mapOut = (GLubyte *) strb->data + y * stride + x * bpp;
+         *rowStrideOut = stride;
       }
       else {
          *mapOut = NULL;
@@ -730,14 +701,11 @@ void st_init_fbo_functions(struct dd_function_table *functions)
    functions->NewFramebuffer = st_new_framebuffer;
    functions->NewRenderbuffer = st_new_renderbuffer;
    functions->BindFramebuffer = st_bind_framebuffer;
-   functions->FramebufferRenderbuffer = st_framebuffer_renderbuffer;
+   functions->FramebufferRenderbuffer = _mesa_framebuffer_renderbuffer;
    functions->RenderTexture = st_render_texture;
    functions->FinishRenderTexture = st_finish_render_texture;
    functions->ValidateFramebuffer = st_validate_framebuffer;
 #endif
-   /* no longer needed by core Mesa, drivers handle resizes...
-   functions->ResizeBuffers = st_resize_buffers;
-   */
 
    functions->DrawBuffers = st_DrawBuffers;
    functions->ReadBuffer = st_ReadBuffer;

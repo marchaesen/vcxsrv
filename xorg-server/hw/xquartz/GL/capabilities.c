@@ -23,17 +23,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+
+#define Cursor Mac_Cursor
+#define BOOL Mac_BOOL
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
 #include <OpenGL/glext.h>
 #include <ApplicationServices/ApplicationServices.h>
+#undef Cursor
+#undef BOOL
 
 #include "capabilities.h"
 
-#define Cursor X_Cursor
 #include "os.h"
-#undef Cursor
 
 static void handleBufferModes(struct glCapabilitiesConfig *c, GLint bufferModes) {
     if(bufferModes & kCGLStereoscopicBit) {

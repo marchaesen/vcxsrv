@@ -739,10 +739,10 @@ FcPublic FcBool
 FcNameUnregisterConstants (const FcConstant *consts, int nconsts);
     
 FcPublic const FcConstant *
-FcNameGetConstant (FcChar8 *string);
+FcNameGetConstant (const FcChar8 *string);
 
 FcPublic FcBool
-FcNameConstant (FcChar8 *string, int *result);
+FcNameConstant (const FcChar8 *string, int *result);
 
 FcPublic FcPattern *
 FcNameParse (const FcChar8 *name);
