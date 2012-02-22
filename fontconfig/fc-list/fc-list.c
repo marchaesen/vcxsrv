@@ -94,16 +94,16 @@ usage (char *program, int error)
 int
 main (int argc, char **argv)
 {
-    int		verbose = 0;
-    int		quiet = 0;
-    FcChar8     *format = NULL;
-    int		nfont = 0;
-    int		i;
-    FcObjectSet *os = 0;
-    FcFontSet	*fs;
-    FcPattern   *pat;
+    int			verbose = 0;
+    int			quiet = 0;
+    const FcChar8	*format = NULL;
+    int			nfont = 0;
+    int			i;
+    FcObjectSet		*os = 0;
+    FcFontSet		*fs;
+    FcPattern		*pat;
 #if HAVE_GETOPT_LONG || HAVE_GETOPT
-    int		c;
+    int			c;
 
 #if HAVE_GETOPT_LONG
     while ((c = getopt_long (argc, argv, "vf:qVh", longopts, NULL)) != -1)
@@ -158,7 +158,7 @@ main (int argc, char **argv)
     if (!verbose && !format && !os)
 	os = FcObjectSetBuild (FC_FAMILY, FC_STYLE, FC_FILE, (char *) 0);
     if (!format)
-        format = "%{=fclist}\n";
+        format = (const FcChar8 *) "%{=fclist}\n";
     fs = FcFontList (0, pat, os);
     if (os)
 	FcObjectSetDestroy (os);

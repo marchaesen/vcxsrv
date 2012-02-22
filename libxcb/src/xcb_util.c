@@ -242,6 +242,11 @@ static int _xcb_open(const char *host, char *protocol, const int display)
     fd = _xcb_open_unix(protocol, file);
     free(file);
 
+    if (fd < 0 && !protocol && *host == '\0') {
+	    unsigned short port = X_TCP_PORT + display;
+	    fd = _xcb_open_tcp(host, protocol, port);
+    }
+
     return fd;
 #endif /* !_WIN32 */
     return -1; /* if control reaches here then something has gone wrong */

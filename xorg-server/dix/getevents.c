@@ -375,6 +375,7 @@ updateSlaveDeviceCoords(DeviceIntPtr master, DeviceIntPtr pDev)
             if (i >= lastSlave->valuator->numAxes)
             {
                 pDev->last.valuators[i] = 0;
+                valuator_mask_set_double(pDev->last.scroll, i, 0);
             }
             else
             {
@@ -382,6 +383,7 @@ updateSlaveDeviceCoords(DeviceIntPtr master, DeviceIntPtr pDev)
                 val = rescaleValuatorAxis(val, lastSlave->valuator->axes + i,
                                           pDev->valuator->axes + i, 0, 0);
                 pDev->last.valuators[i] = val;
+                valuator_mask_set_double(pDev->last.scroll, i, val);
             }
         }
     }

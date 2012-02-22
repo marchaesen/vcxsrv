@@ -23,6 +23,7 @@
  */
 
 #include "fcint.h"
+#include <assert.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -395,6 +396,9 @@ FcFontRenderPrepare (FcConfig	    *config,
     FcValue	    v;
     FcResult	    result;
 
+    assert (pat != NULL);
+    assert (font != NULL);
+
     new = FcPatternCreate ();
     if (!new)
 	return 0;
@@ -514,6 +518,10 @@ FcFontSetMatch (FcConfig    *config,
 {
     FcPattern	    *best;
 
+    assert (sets != NULL);
+    assert (p != NULL);
+    assert (result != NULL);
+
     if (!config)
     {
 	config = FcConfigGetCurrent ();
@@ -535,6 +543,9 @@ FcFontMatch (FcConfig	*config,
     FcFontSet	*sets[2];
     int		nsets;
     FcPattern   *best;
+
+    assert (p != NULL);
+    assert (result != NULL);
 
     if (!config)
     {
@@ -672,6 +683,19 @@ FcFontSetSort (FcConfig	    *config,
     FcBool    	    *patternLangSat;
     FcValue	    patternLang;
 
+    assert (sets != NULL);
+    assert (p != NULL);
+    assert (result != NULL);
+
+    /* There are some implementation that relying on the result of
+     * "result" to check if the return value of FcFontSetSort
+     * is valid or not.
+     * So we should initialize it to the conservative way since
+     * this function doesn't return NULL anymore.
+     */
+    if (result)
+	*result = FcResultNoMatch;
+
     if (FcDebug () & FC_DBG_MATCH)
     {
 	printf ("Sort ");
@@ -686,7 +710,7 @@ FcFontSetSort (FcConfig	    *config,
 	nnodes += s->nfont;
     }
     if (!nnodes)
-	goto bail0;
+	return FcFontSetCreate ();
 
     for (nPatternLang = 0;
 	 FcPatternGet (p, FC_LANG, nPatternLang, &patternLang) == FcResultMatch;
@@ -821,6 +845,9 @@ FcFontSort (FcConfig	*config,
 {
     FcFontSet	*sets[2];
     int		nsets;
+
+    assert (p != NULL);
+    assert (result != NULL);
 
     if (!config)
     {

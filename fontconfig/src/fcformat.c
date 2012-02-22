@@ -353,13 +353,12 @@ skip_subexpr (FcFormatContext *c);
 static FcBool
 skip_percent (FcFormatContext *c)
 {
-    int width;
-
     if (!expect_char (c, '%'))
 	return FcFalse;
 
     /* skip an optional width specifier */
-    width = strtol ((const char *) c->format, (char **) &c->format, 10);
+    if (strtol ((const char *) c->format, (char **) &c->format, 10))
+	/* don't care */;
 
     if (!expect_char (c, '{'))
 	return FcFalse;

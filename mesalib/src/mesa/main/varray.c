@@ -185,6 +185,7 @@ update_array(struct gl_context *ctx,
        (type == GL_UNSIGNED_INT_2_10_10_10_REV ||
         type == GL_INT_2_10_10_10_REV) && size != 4) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(size=%d)", func, size);
+      return;
    }
 
    ASSERT(size <= 4);
@@ -482,6 +483,7 @@ _mesa_VertexAttribIPointer(GLuint index, GLint size, GLenum type,
 void GLAPIENTRY
 _mesa_EnableVertexAttribArrayARB(GLuint index)
 {
+   struct gl_array_object *arrayObj;
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
@@ -491,18 +493,24 @@ _mesa_EnableVertexAttribArrayARB(GLuint index)
       return;
    }
 
-   ASSERT(VERT_ATTRIB_GENERIC(index) < Elements(ctx->Array.ArrayObj->VertexAttrib));
+   arrayObj = ctx->Array.ArrayObj;
 
-   FLUSH_VERTICES(ctx, _NEW_ARRAY);
-   ctx->Array.ArrayObj->VertexAttrib[VERT_ATTRIB_GENERIC(index)].Enabled = GL_TRUE;
-   ctx->Array.ArrayObj->_Enabled |= VERT_BIT_GENERIC(index);
-   ctx->Array.NewState |= VERT_BIT_GENERIC(index);
+   ASSERT(VERT_ATTRIB_GENERIC(index) < Elements(arrayObj->VertexAttrib));
+
+   if (!arrayObj->VertexAttrib[VERT_ATTRIB_GENERIC(index)].Enabled) {
+      /* was disabled, now being enabled */
+      FLUSH_VERTICES(ctx, _NEW_ARRAY);
+      arrayObj->VertexAttrib[VERT_ATTRIB_GENERIC(index)].Enabled = GL_TRUE;
+      arrayObj->_Enabled |= VERT_BIT_GENERIC(index);
+      ctx->Array.NewState |= VERT_BIT_GENERIC(index);
+   }
 }
 
 
 void GLAPIENTRY
 _mesa_DisableVertexAttribArrayARB(GLuint index)
 {
+   struct gl_array_object *arrayObj;
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
@@ -512,12 +520,17 @@ _mesa_DisableVertexAttribArrayARB(GLuint index)
       return;
    }
 
-   ASSERT(VERT_ATTRIB_GENERIC(index) < Elements(ctx->Array.ArrayObj->VertexAttrib));
+   arrayObj = ctx->Array.ArrayObj;
 
-   FLUSH_VERTICES(ctx, _NEW_ARRAY);
-   ctx->Array.ArrayObj->VertexAttrib[VERT_ATTRIB_GENERIC(index)].Enabled = GL_FALSE;
-   ctx->Array.ArrayObj->_Enabled &= ~VERT_BIT_GENERIC(index);
-   ctx->Array.NewState |= VERT_BIT_GENERIC(index);
+   ASSERT(VERT_ATTRIB_GENERIC(index) < Elements(arrayObj->VertexAttrib));
+
+   if (arrayObj->VertexAttrib[VERT_ATTRIB_GENERIC(index)].Enabled) {
+      /* was enabled, now being disabled */
+      FLUSH_VERTICES(ctx, _NEW_ARRAY);
+      arrayObj->VertexAttrib[VERT_ATTRIB_GENERIC(index)].Enabled = GL_FALSE;
+      arrayObj->_Enabled &= ~VERT_BIT_GENERIC(index);
+      ctx->Array.NewState |= VERT_BIT_GENERIC(index);
+   }
 }
 
 
@@ -1087,11 +1100,12 @@ _mesa_PrimitiveRestartIndex(GLuint index)
       return;
    }
 
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
-   FLUSH_VERTICES(ctx, _NEW_TRANSFORM);
-
-   ctx->Array.RestartIndex = index;
+   if (ctx->Array.RestartIndex != index) {
+      FLUSH_VERTICES(ctx, _NEW_TRANSFORM);
+      ctx->Array.RestartIndex = index;
+   }
 }
 
 

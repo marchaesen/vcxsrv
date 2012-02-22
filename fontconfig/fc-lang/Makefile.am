@@ -299,5 +299,6 @@ ORTH = \
 	ty.orth \
 	wal.orth \
 	za.orth \
-	lah.orth
+	lah.orth \
+	nqo.orth
 #	^-------------- Add new orth files here

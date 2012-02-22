@@ -84,7 +84,7 @@ typedef __int64 INT64;
  */
 
 int
-FcStat (const char *file, struct stat *statb)
+FcStat (const FcChar8 *file, struct stat *statb)
 {
     WIN32_FILE_ATTRIBUTE_DATA wfad;
     char full_path_name[MAX_PATH];
@@ -133,7 +133,7 @@ FcStat (const char *file, struct stat *statb)
 #else
 
 int
-FcStat (const char *file, struct stat *statb)
+FcStat (const FcChar8 *file, struct stat *statb)
 {
   return stat ((char *) file, statb);
 }
@@ -724,8 +724,6 @@ FcDirCacheBuild (FcFontSet *set, const FcChar8 *dir, struct stat *dir_stat, FcSt
     FcSerialize	*serialize = FcSerializeCreate ();
     FcCache *cache;
     int i;
-    intptr_t	cache_offset;
-    intptr_t	dirs_offset;
     FcChar8	*dir_serialize;
     intptr_t	*dirs_serialize;
     FcFontSet	*set_serialize;
@@ -735,7 +733,7 @@ FcDirCacheBuild (FcFontSet *set, const FcChar8 *dir, struct stat *dir_stat, FcSt
     /*
      * Space for cache structure
      */
-    cache_offset = FcSerializeReserve (serialize, sizeof (FcCache));
+    FcSerializeReserve (serialize, sizeof (FcCache));
     /*
      * Directory name
      */
@@ -744,7 +742,7 @@ FcDirCacheBuild (FcFontSet *set, const FcChar8 *dir, struct stat *dir_stat, FcSt
     /*
      * Subdirs
      */
-    dirs_offset = FcSerializeAlloc (serialize, dirs, dirs->num * sizeof (FcChar8 *));
+    FcSerializeAlloc (serialize, dirs, dirs->num * sizeof (FcChar8 *));
     for (i = 0; i < dirs->num; i++)
 	if (!FcStrSerializeAlloc (serialize, dirs->strs[i]))
 	    goto bail1;

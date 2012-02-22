@@ -42,6 +42,14 @@
 #include "../../gallium/auxiliary/util/u_format_r11g11b10f.h"
 
 
+/** Helper struct for MESA_FORMAT_Z32_FLOAT_X24S8 */
+struct z32f_x24s8
+{
+   float z;
+   uint32_t x24s8;
+};
+
+
 typedef void (*pack_ubyte_rgba_row_func)(GLuint n,
                                          const GLubyte src[][4], void *dst);
 
@@ -2372,10 +2380,10 @@ _mesa_pack_float_z_row(gl_format format, GLuint n,
       break;
    case MESA_FORMAT_Z32_FLOAT_X24S8:
       {
-         GLfloat *d = ((GLfloat *) dst);
+         struct z32f_x24s8 *d = (struct z32f_x24s8 *) dst;
          GLuint i;
          for (i = 0; i < n; i++) {
-            d[i * 2] = src[i];
+            d[i].z = src[i];
          }
       }
       break;
@@ -2445,13 +2453,13 @@ _mesa_pack_uint_z_row(gl_format format, GLuint n,
       break;
    case MESA_FORMAT_Z32_FLOAT_X24S8:
       {
-         GLfloat *d = ((GLfloat *) dst);
+         struct z32f_x24s8 *d = (struct z32f_x24s8 *) dst;
          const GLdouble scale = 1.0 / (GLdouble) 0xffffffff;
          GLuint i;
          for (i = 0; i < n; i++) {
-            d[i * 2] = src[i] * scale;
-            assert(d[i * 2] >= 0.0f);
-            assert(d[i * 2] <= 1.0f);
+            d[i].z = src[i] * scale;
+            assert(d[i].z >= 0.0f);
+            assert(d[i].z <= 1.0f);
          }
       }
       break;
@@ -2495,10 +2503,10 @@ _mesa_pack_ubyte_stencil_row(gl_format format, GLuint n,
       break;
    case MESA_FORMAT_Z32_FLOAT_X24S8:
       {
-         GLuint *d = dst;
+         struct z32f_x24s8 *d = (struct z32f_x24s8 *) dst;
          GLuint i;
          for (i = 0; i < n; i++) {
-            d[i * 2 + 1] = src[i];
+            d[i].x24s8 = src[i];
          }
       }
       break;
@@ -2527,6 +2535,18 @@ _mesa_pack_uint_24_8_depth_stencil_row(gl_format format, GLuint n,
             GLuint s = src[i] << 24;
             GLuint z = src[i] >> 8;
             d[i] = s | z;
+         }
+      }
+      break;
+   case MESA_FORMAT_Z32_FLOAT_X24S8:
+      {
+         const GLdouble scale = 1.0 / (GLdouble) 0xffffff;
+         struct z32f_x24s8 *d = (struct z32f_x24s8 *) dst;
+         GLint i;
+         for (i = 0; i < n; i++) {
+            GLfloat z = (src[i] >> 8) * scale;
+            d[i].z = z;
+            d[i].x24s8 = src[i];
          }
       }
       break;

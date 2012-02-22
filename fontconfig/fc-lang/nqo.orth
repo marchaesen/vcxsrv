@@ -1,7 +1,7 @@
 #
-# fontconfig/fc-lang/ast.orth
+# fontconfig/fc-lang/nqo.orth
 #
-# Copyright © 2002 Keith Packard
+# Copyright © 2011 Akira TAGOH
 #
 # Permission to use, copy, modify, distribute, and sell this software and its
 # documentation for any purpose is hereby granted without fee, provided that
@@ -21,27 +21,11 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 #
-# Orthography from http://www.evertype.com/alphabets/asturian.pdf
+# N'Ko (nqo)
 #
-# Asturian/Bable/Leonese/Asturleonese (ast)
+# See:
+#  http://www.unicode.org/charts/PDF/U07C0.pdf
+#  http://en.wikipedia.org/wiki/N'Ko_alphabet
 #
-0041-005a
-0061-007a
-00c1
-00c9
-00cd
-00d1
-00d3
-00da
-00dc
-00e1
-00e9
-00ed
-00f1
-00f3
-00fa
-00fc
-1e24
-1e25
-1e36
-1e37
+07c0-07ff
+

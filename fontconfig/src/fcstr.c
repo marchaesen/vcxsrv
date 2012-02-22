@@ -50,14 +50,16 @@ FcStrCopy (const FcChar8 *s)
 FcChar8 *
 FcStrPlus (const FcChar8 *s1, const FcChar8 *s2)
 {
-    int	    l = strlen ((char *)s1) + strlen ((char *) s2) + 1;
+    int	    s1l = strlen ((char *) s1);
+    int	    s2l = strlen ((char *) s2);
+    int	    l = s1l + s2l + 1;
     FcChar8 *s = malloc (l);
 
     if (!s)
 	return 0;
     FcMemAlloc (FC_MEM_STRING, l);
-    strcpy ((char *) s, (char *) s1);
-    strcat ((char *) s, (char *) s2);
+    memcpy (s, s1, s1l);
+    memcpy (s + s1l, s2, s2l + 1);
     return s;
 }
 

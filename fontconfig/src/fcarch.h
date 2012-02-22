@@ -62,9 +62,8 @@
 # define FC_ARCH_SIZE_ALIGN "64"
 #endif
 
-#ifdef ARCHITECTURE
-# define ARCHITECTURE FC_ARCHITECTURE
-#else
+/* config.h might override this */
+#ifndef FC_ARCHITECTURE
 # define FC_ARCHITECTURE FC_ARCH_ENDIAN FC_ARCH_SIZE_ALIGN
 #endif
 

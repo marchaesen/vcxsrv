@@ -673,7 +673,7 @@ DeepCopyPointerClasses(DeviceIntPtr from, DeviceIntPtr to)
 
     if (from->touch)
     {
-        TouchPointInfoPtr tmp;
+        TouchClassPtr t, f;
         if (!to->touch)
         {
             classes = to->unused_classes;
@@ -694,17 +694,22 @@ DeepCopyPointerClasses(DeviceIntPtr from, DeviceIntPtr to)
             } else
                 classes->touch = NULL;
         }
-        tmp = to->touch->touches;
-        memcpy(to->touch, from->touch, sizeof(TouchClassRec));
-        to->touch->touches = tmp;
-        to->touch->sourceid = from->id;
-    } else if (to->touch)
-    {
-        ClassesPtr classes;
-        classes = to->unused_classes;
-        classes->touch = to->touch;
-        to->touch      = NULL;
+
+
+        t = to->touch;
+        f = from->touch;
+        t->sourceid = f->sourceid;
+        t->max_touches = f->max_touches;
+        t->mode = f->mode;
+        t->buttonsDown = f->buttonsDown;
+        t->state = f->state;
+        t->motionMask = f->motionMask;
+        /* to->touches and to->num_touches are separate on the master,
+         * don't copy */
     }
+    /* Don't remove touch class if from->touch is non-existent. The to device
+     * may have an active touch grab, so we need to keep the touch class record
+     * around. */
 }
 
 /**
@@ -1166,6 +1171,7 @@ TouchPuntToNextOwner(DeviceIntPtr dev, TouchPointInfoPtr ti,
     {
         EmitTouchEnd(dev, ti, 0, 0);
         TouchEndTouch(dev, ti);
+        return;
     }
 
     if (ti->listeners[0].state == LISTENER_EARLY_ACCEPT)
@@ -2219,7 +2225,7 @@ DeviceFocusEvent(DeviceIntPtr dev, int type, int mode, int detail,
 
     for (i = 0; mouse && mouse->button && i < mouse->button->numButtons; i++)
         if (BitIsOn(mouse->button->down, i))
-            SetBit(&xi2event[1], i);
+            SetBit(&xi2event[1], mouse->button->map[i]);
 
     if (dev->key)
     {

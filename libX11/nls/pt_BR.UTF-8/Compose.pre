@@ -1028,10 +1028,10 @@ XCOMM group 1: cluster jamos made of three basic jamos
 <Multi_key> <macron> <semicolon> <o>	: "ǭ" U01ED # LATIN SMALL LETTER O WITH OGONEK AND MACRON
 <Multi_key> <underscore> <dead_ogonek> <o>	: "ǭ" U01ED # LATIN SMALL LETTER O WITH OGONEK AND MACRON
 <Multi_key> <underscore> <semicolon> <o>	: "ǭ" U01ED # LATIN SMALL LETTER O WITH OGONEK AND MACRON
-<dead_caron> <U01b7>	: "Ǯ" U01EE # LATIN CAPITAL LETTER EZH WITH CARON
-<Multi_key> <c> <U01b7>	: "Ǯ" U01EE # LATIN CAPITAL LETTER EZH WITH CARON
-<dead_caron> <U0292>	: "ǯ" U01EF # LATIN SMALL LETTER EZH WITH CARON
-<Multi_key> <c> <U0292>	: "ǯ" U01EF # LATIN SMALL LETTER EZH WITH CARON
+<dead_caron> <EZH>	: "Ǯ" U01EE # LATIN CAPITAL LETTER EZH WITH CARON
+<Multi_key> <c> <EZH>	: "Ǯ" U01EE # LATIN CAPITAL LETTER EZH WITH CARON
+<dead_caron> <ezh>	: "ǯ" U01EF # LATIN SMALL LETTER EZH WITH CARON
+<Multi_key> <c> <ezh>	: "ǯ" U01EF # LATIN SMALL LETTER EZH WITH CARON
 <dead_caron> <j>	: "ǰ" U01F0 # LATIN SMALL LETTER J WITH CARON
 <Multi_key> <c> <j>	: "ǰ" U01F0 # LATIN SMALL LETTER J WITH CARON
 <dead_acute> <G>	: "Ǵ" U01F4 # LATIN CAPITAL LETTER G WITH ACUTE

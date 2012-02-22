@@ -104,8 +104,8 @@ XCOMM Sequences with COMBINING CARON / <dead_caron>
 <dead_caron> <U>                        : "Ǔ"   # LATIN CAPITAL LETTER U WITH CARON
 <dead_caron> <z>                        : "ž"   # LATIN SMALL LETTER Z WITH CARON
 <dead_caron> <Z>                        : "Ž"   # LATIN CAPITAL LETTER Z WITH CARON
-<dead_caron> <U0292>                    : "ǯ"   # LATIN SMALL LETTER EZH WITH CARON
-<dead_caron> <U01B7>                    : "Ǯ"   # LATIN CAPITAL LETTER EZH WITH CARON
+<dead_caron> <ezh>                      : "ǯ"   # LATIN SMALL LETTER EZH WITH CARON
+<dead_caron> <EZH>                      : "Ǯ"   # LATIN CAPITAL LETTER EZH WITH CARON
 
 XCOMM Sequences with COMBINING CEDILLA / <dead_cedilla>
 <dead_cedilla> <space>                  : "¸"   # CEDILLA

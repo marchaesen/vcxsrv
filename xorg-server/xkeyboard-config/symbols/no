@@ -64,7 +64,7 @@ xkb_symbols "dvorak" {
     key <AE01> { [	    1,	exclam, exclamdown, onesuperior	] };
     key <AE02> { [	    2,	quotedbl,   at,     twosuperior	] };
     key <AE03> { [	    3,	numbersign, sterling, threesuperior ] };
-    key <AE04> { [	    4,	dollar,     currency,onequarter	] };
+    key <AE04> { [	    4,	currency,     dollar,onequarter	] };
     key <AE05> { [	    5,	percent,    onehalf,	onehalf	] };
     key <AE06> { [	    6,	ampersand,  threequarters, threequarters ] };
     key <AE07> { [	    7,	slash,      braceleft, division	] };

@@ -3291,7 +3291,7 @@ pixman_fill_sse2 (uint32_t *bits,
 	byte_line += stride;
 	w = byte_width;
 
-	while (w >= 1 && ((unsigned long)d & 1))
+	if (w >= 1 && ((unsigned long)d & 1))
 	{
 	    *(uint8_t *)d = data;
 	    w -= 1;

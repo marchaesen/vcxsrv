@@ -259,14 +259,14 @@ PIXMAN_CHECK_CFLAG([-fvisibility=hidden], [dnl
 #error Have -fvisibility but it is ignored and generates a warning
 #endif
 #else
-error Need GCC 4.0 for visibility
+#error Need GCC 4.0 for visibility
 #endif
 ])
 
 PIXMAN_CHECK_CFLAG([-xldscope=hidden], [dnl
 #if defined(__SUNPRO_C) && (__SUNPRO_C >= 0x550)
 #else
-error Need Sun Studio 8 for visibility
+#error Need Sun Studio 8 for visibility
 #endif
 ])
 
@@ -292,7 +292,7 @@ xserver_save_CFLAGS=$CFLAGS
 CFLAGS="$MMX_CFLAGS $CFLAGS"
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #if defined(__GNUC__) && (__GNUC__ < 3 || (__GNUC__ == 3 && __GNUC_MINOR__ < 4))
-error "Need GCC >= 3.4 for MMX intrinsics"
+#error "Need GCC >= 3.4 for MMX intrinsics"
 #endif
 #include <mmintrin.h>
 int main () {
@@ -407,6 +407,7 @@ case $host_os in
       ;;
 esac
 
+AC_SUBST(IWMMXT_CFLAGS)
 AC_SUBST(MMX_CFLAGS)
 AC_SUBST(MMX_LDFLAGS)
 AC_SUBST(SSE2_CFLAGS)
@@ -426,7 +427,7 @@ xserver_save_CFLAGS=$CFLAGS
 CFLAGS="$VMX_CFLAGS $CFLAGS"
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #if defined(__GNUC__) && (__GNUC__ < 3 || (__GNUC__ == 3 && __GNUC_MINOR__ < 4))
-error "Need GCC >= 3.4 for sane altivec support"
+#error "Need GCC >= 3.4 for sane altivec support"
 #endif
 #include <altivec.h>
 int main () {
@@ -551,7 +552,7 @@ have_iwmmxt_intrinsics=no
 AC_MSG_CHECKING(whether to use ARM IWMMXT intrinsics)
 xserver_save_CFLAGS=$CFLAGS
 CFLAGS="$IWMMXT_CFLAGS $CFLAGS"
-AC_COMPILE_IFELSE([
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #ifndef __arm__
 #error "IWMMXT is only available on ARM"
 #endif
@@ -562,11 +563,11 @@ AC_COMPILE_IFELSE([
 int main () {
 	union {
 		__m64 v;
-		[char c[8];]
+		char c[8];
 	} a = { .c = {1, 2, 3, 4, 5, 6, 7, 8} };
 	int b = 4;
 	__m64 c = _mm_srli_si64 (a.v, b);
-}], have_iwmmxt_intrinsics=yes)
+}]])], have_iwmmxt_intrinsics=yes)
 CFLAGS=$xserver_save_CFLAGS
 
 AC_ARG_ENABLE(arm-iwmmxt,
@@ -855,7 +856,14 @@ AC_SUBST(TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR)
 dnl ==================
 dnl libpng
 
-PKG_CHECK_MODULES(PNG, [libpng], have_libpng=yes, have_libpng=no)
+AC_ARG_ENABLE(libpng, AS_HELP_STRING([--enable-libpng], [Build support for libpng (default: auto)]),
+                      [have_libpng=$enableval], [have_libpng=auto])
+
+case x$have_libpng in
+	xyes) PKG_CHECK_MODULES(PNG, [libpng]) ;;
+	xno) ;;
+	*) PKG_CHECK_MODULES(PNG, [libpng], have_libpng=yes, have_libpng=no) ;;
+esac
 
 if test x$have_libpng = xyes; then
     AC_DEFINE([HAVE_LIBPNG], [1], [Whether we have libpng])

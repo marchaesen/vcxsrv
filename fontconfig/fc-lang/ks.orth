@@ -23,8 +23,10 @@
 #
 # Kashmiri (ks)
 #
-# Kashmiri is written in Arabic in both India and Pakistan. The problem is,
-# Unicode 5.1 does not contain all the letters required in the orthography,
-# including Wavy Hamza Below and the Alef Maksura With Ring Below. We'll
-# just include Urdu for now.
 include ur.orth
+0620
+0657
+065f
+0672
+0673
+06c4
