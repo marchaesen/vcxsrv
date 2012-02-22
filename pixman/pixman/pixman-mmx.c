@@ -56,7 +56,7 @@ _mm_empty (void)
 }
 #endif
 
-#ifdef USE_X86_MMX
+#if defined __GNUC__ && defined USE_X86_MMX
 /* We have to compile with -msse to use xmmintrin.h, but that causes SSE
  * instructions to be generated that we don't want. Just duplicate the
  * functions we want to use.  */
@@ -82,10 +82,14 @@ _mm_shuffle_pi16 (__m64 __A, int8_t const __N)
 
     return ret;
 }
-#endif
 
 #define _MM_SHUFFLE(fp3,fp2,fp1,fp0) \
  (((fp3) << 6) | ((fp2) << 4) | ((fp1) << 2) | (fp0))
+
+#else
+#include <xmmintrin.h> /* for _mm_shuffle_pi16 and _MM_SHUFFLE */
+#include <emmintrin.h> /* for SSE2 intrinsics */
+#endif
 
 /* Notes about writing mmx code
  *
