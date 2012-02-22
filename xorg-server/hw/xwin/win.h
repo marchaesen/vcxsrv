@@ -556,7 +556,6 @@ typedef struct _winPrivScreenRec
   UnrealizeWindowProcPtr		UnrealizeWindow;
   ValidateTreeProcPtr			ValidateTree;
   PostValidateTreeProcPtr		PostValidateTree;
-  WindowExposuresProcPtr		WindowExposures;
   CopyWindowProcPtr			CopyWindow;
   ClearToBackgroundProcPtr		ClearToBackground;
   ClipNotifyProcPtr			ClipNotify;
