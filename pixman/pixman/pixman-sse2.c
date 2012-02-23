@@ -3293,14 +3293,14 @@ pixman_fill_sse2 (uint32_t *bits,
 
 	if (w >= 1 && ((unsigned long)d & 1))
 	{
-	    *(uint8_t *)d = data;
+	    *(uint8_t *)d = data&0xff;
 	    w -= 1;
 	    d += 1;
 	}
 
 	while (w >= 2 && ((unsigned long)d & 3))
 	{
-	    *(uint16_t *)d = data;
+	    *(uint16_t *)d = data&0xffff;
 	    w -= 2;
 	    d += 2;
 	}
@@ -3366,7 +3366,7 @@ pixman_fill_sse2 (uint32_t *bits,
 
 	if (w >= 2)
 	{
-	    *(uint16_t *)d = data;
+	    *(uint16_t *)d = data&0xffff;
 	    w -= 2;
 	    d += 2;
 	}
