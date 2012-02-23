@@ -332,6 +332,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
   static Bool		s_fTracking = FALSE;
   Bool			needRestack = FALSE;
   LRESULT		ret;
+  static Bool		hasEnteredSizeMove = FALSE;
 
   winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam, lParam);
   
@@ -825,6 +826,9 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       break;
 
     case WM_CLOSE:
+      /* Remove property AppUserModelID */
+      winSetAppID (hwnd, NULL);
+
       /* Branch on if the window was killed in X already */
       if (pWinPriv->fXKilled)
         {
@@ -861,7 +865,8 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 
     case WM_MOVE:
       /* Adjust the X Window to the moved Windows window */
-      winAdjustXWindow (pWin, hwnd);
+      if (!hasEnteredSizeMove) winAdjustXWindow (pWin, hwnd);
+      /* else: Wait for WM_EXITSIZEMOVE */
       return 0;
 
     case WM_SHOWWINDOW:
@@ -940,6 +945,26 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       /* for applications like xterm */
       return ValidateSizing (hwnd, pWin, wParam, lParam);
 
+    case WM_WINDOWPOSCHANGING:
+      {
+        /*
+          When window is moved or resized, force it to be redrawn, so that
+          any OpenGL content is re-drawn correctly, rather than copying bits
+          (which seem to be wrong, either because we are copying the wrong
+          window in the window heirarchy, or because we don't have the bits
+          drawn by OpenGL at all)
+
+          XXX: really this should check if any child has fWglUsed set, but
+          that might be expensive to check....
+         */
+        if (g_fNativeGl)
+          {
+            LPWINDOWPOS pWinPos = (LPWINDOWPOS)lParam;
+            pWinPos->flags |= SWP_NOCOPYBITS;
+          }
+      }
+      break;
+
     case WM_WINDOWPOSCHANGED:
       {
 	LPWINDOWPOS pWinPos = (LPWINDOWPOS) lParam;
@@ -1000,6 +1025,16 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       */
       break; 
 
+    case WM_ENTERSIZEMOVE:
+      hasEnteredSizeMove = TRUE;
+      return 0;
+
+    case WM_EXITSIZEMOVE:
+      /* Adjust the X Window to the moved Windows window */
+      hasEnteredSizeMove = FALSE;
+      winAdjustXWindow (pWin, hwnd);
+      return 0;
+
     case WM_SIZE:
       /* see dix/window.c */
 #ifdef WINDBG
@@ -1024,9 +1059,13 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 		(int)(GetTickCount ()));
       }
 #endif
-      /* Adjust the X Window to the moved Windows window */
-      winAdjustXWindow (pWin, hwnd);
-      if (wParam == SIZE_MINIMIZED) winReorderWindowsMultiWindow();
+      if (!hasEnteredSizeMove)
+        {
+          /* Adjust the X Window to the moved Windows window */
+          winAdjustXWindow (pWin, hwnd);
+          if (wParam == SIZE_MINIMIZED) winReorderWindowsMultiWindow();
+        }
+        /* else: wait for WM_EXITSIZEMOVE */
       return 0; /* end of WM_SIZE handler */
 
     case WM_STYLECHANGED:

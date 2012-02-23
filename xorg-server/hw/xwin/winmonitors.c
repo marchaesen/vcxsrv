@@ -53,6 +53,7 @@ wBOOL CALLBACK getMonitorInfo(HMONITOR hMonitor, HDC hdc, LPRECT rect, LPARAM _d
 	data->monitorOffsetY = rect->top;
 	data->monitorHeight  = rect->bottom - rect->top;
 	data->monitorWidth   = rect->right  - rect->left;
+        data->monitorHandle  = hMonitor;
     return FALSE;
   }
   return TRUE;

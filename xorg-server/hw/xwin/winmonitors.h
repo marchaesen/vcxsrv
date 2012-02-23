@@ -9,6 +9,7 @@ struct GetMonitorInfoData {
     int  monitorOffsetY;
     int  monitorHeight;
     int  monitorWidth;
+    HMONITOR monitorHandle;
 };
 
 Bool QueryMonitor(int index, struct GetMonitorInfoData *data);

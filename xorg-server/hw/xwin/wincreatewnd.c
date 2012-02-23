@@ -34,10 +34,6 @@
 #include "win.h"
 #include "shellapi.h"
 
-#ifndef ABS_AUTOHIDE
-#define ABS_AUTOHIDE 1
-#endif
-
 /*
  * Local function prototypes
  */
@@ -46,7 +42,7 @@ static Bool
 winGetWorkArea (RECT *prcWorkArea, winScreenInfo *pScreenInfo);
 
 static Bool
-winAdjustForAutoHide (RECT *prcWorkArea);
+winAdjustForAutoHide (RECT *prcWorkArea, winScreenInfo *pScreenInfo);
 
 
 /*
@@ -225,7 +221,7 @@ winCreateBoundingWindowWindowed (ScreenPtr pScreen)
   winGetWorkArea (&rcWorkArea, pScreenInfo);
 
   /* Adjust for auto-hide taskbars */
-  winAdjustForAutoHide (&rcWorkArea);
+  winAdjustForAutoHide (&rcWorkArea, pScreenInfo);
 
   /* Did the user specify a position? */
   if (pScreenInfo->fUserGavePosition)
@@ -519,14 +515,33 @@ winGetWorkArea (RECT *prcWorkArea, winScreenInfo *pScreenInfo)
   int			iLeft, iTop;
   int			iPrimaryNonWorkAreaWidth, iPrimaryNonWorkAreaHeight;
 
-  /* SPI_GETWORKAREA only gets the work area of the primary screen. */
-  SystemParametersInfo (SPI_GETWORKAREA, 0, prcWorkArea, 0);
+  /* Use GetMonitorInfo to get work area for monitor */
+  if (!pScreenInfo->fMultipleMonitors)
+  {
+    MONITORINFO mi;
+    mi.cbSize = sizeof(MONITORINFO);
+    if (GetMonitorInfo(pScreenInfo->hMonitor, &mi))
+      {
+        *prcWorkArea = mi.rcWork;
+
+        winDebug ("winGetWorkArea - Monitor %d WorkArea: %d %d %d %d\n",
+                  pScreenInfo->iMonitor,
+                  (int) prcWorkArea->top, (int) prcWorkArea->left,
+                  (int) prcWorkArea->bottom, (int) prcWorkArea->right);
+      }
+    else
+      {
+        ErrorF ("winGetWorkArea - GetMonitorInfo() failed for monitor %d\n", pScreenInfo->iMonitor);
+      }
 
   /* Bail out here if we aren't using multiple monitors */
-  if (!pScreenInfo->fMultipleMonitors)
     return TRUE;
+  }
+
+  /* SPI_GETWORKAREA only gets the work area of the primary screen. */
+  SystemParametersInfo (SPI_GETWORKAREA, 0, prcWorkArea, 0);
   
-  winDebug ("winGetWorkArea - Original WorkArea: %d %d %d %d\n",
+  winDebug ("winGetWorkArea - Primary Monitor WorkArea: %d %d %d %d\n",
 	  (int) prcWorkArea->top, (int) prcWorkArea->left,
 	  (int) prcWorkArea->bottom, (int) prcWorkArea->right);
 
@@ -577,6 +592,28 @@ winGetWorkArea (RECT *prcWorkArea, winScreenInfo *pScreenInfo)
   return TRUE;
 }
 
+static Bool
+winTaskbarOnScreenEdge(unsigned int uEdge, winScreenInfo *pScreenInfo)
+{
+  APPBARDATA abd;
+  HWND hwndAutoHide;
+
+  ZeroMemory (&abd, sizeof (abd));
+  abd.cbSize = sizeof (abd);
+  abd.uEdge = uEdge;
+
+  hwndAutoHide = (HWND) SHAppBarMessage (ABM_GETAUTOHIDEBAR, &abd);
+  if (hwndAutoHide != NULL)
+    {
+      /*
+        Found an autohide taskbar on that edge, but is it on the
+        same monitor as the screen window?
+      */
+      if (pScreenInfo->fMultipleMonitors || (MonitorFromWindow(hwndAutoHide, MONITOR_DEFAULTTONULL) == pScreenInfo->hMonitor))
+        return TRUE;
+    }
+  return FALSE;
+}
 
 /*
  * Adjust the client area so that any auto-hide toolbars
@@ -584,10 +621,9 @@ winGetWorkArea (RECT *prcWorkArea, winScreenInfo *pScreenInfo)
  */
 
 static Bool
-winAdjustForAutoHide (RECT *prcWorkArea)
+winAdjustForAutoHide (RECT *prcWorkArea, winScreenInfo *pScreenInfo)
 {
   APPBARDATA		abd;
-  HWND			hwndAutoHide;
 
   winDebug ("winAdjustForAutoHide - Original WorkArea: %d %d %d %d\n",
 	  (int) prcWorkArea->top, (int) prcWorkArea->left,
@@ -599,37 +635,34 @@ winAdjustForAutoHide (RECT *prcWorkArea)
   if (SHAppBarMessage (ABM_GETSTATE, &abd) & ABS_AUTOHIDE)
     winDebug ("winAdjustForAutoHide - Taskbar is auto hide\n");
 
+  /*
+    Despite the forgoing, we are checking for any AppBar
+    hiding along a monitor edge, not just the Windows TaskBar.
+  */
+
   /* Look for a TOP auto-hide taskbar */
-  abd.uEdge = ABE_TOP;
-  hwndAutoHide = (HWND) SHAppBarMessage (ABM_GETAUTOHIDEBAR, &abd);
-  if (hwndAutoHide != NULL)
+  if (winTaskbarOnScreenEdge(ABE_TOP, pScreenInfo))
     {
       winDebug ("winAdjustForAutoHide - Found TOP auto-hide taskbar\n");
       prcWorkArea->top += 1;
     }
 
   /* Look for a LEFT auto-hide taskbar */
-  abd.uEdge = ABE_LEFT;
-  hwndAutoHide = (HWND) SHAppBarMessage (ABM_GETAUTOHIDEBAR, &abd);
-  if (hwndAutoHide != NULL)
+  if (winTaskbarOnScreenEdge(ABE_LEFT, pScreenInfo))
     {
       winDebug ("winAdjustForAutoHide - Found LEFT auto-hide taskbar\n");
       prcWorkArea->left += 1;
     }
 
   /* Look for a BOTTOM auto-hide taskbar */
-  abd.uEdge = ABE_BOTTOM;
-  hwndAutoHide = (HWND) SHAppBarMessage (ABM_GETAUTOHIDEBAR, &abd);
-  if (hwndAutoHide != NULL)
+  if (winTaskbarOnScreenEdge(ABE_BOTTOM, pScreenInfo))
     {
       winDebug ("winAdjustForAutoHide - Found BOTTOM auto-hide taskbar\n");
       prcWorkArea->bottom -= 1;
     }
 
   /* Look for a RIGHT auto-hide taskbar */
-  abd.uEdge = ABE_RIGHT;
-  hwndAutoHide = (HWND) SHAppBarMessage (ABM_GETAUTOHIDEBAR, &abd);
-  if (hwndAutoHide != NULL)
+  if (winTaskbarOnScreenEdge(ABE_RIGHT, pScreenInfo))
     {
       winDebug ("winAdjustForAutoHide - Found RIGHT auto-hide taskbar\n");
       prcWorkArea->right -= 1;
@@ -638,15 +671,6 @@ winAdjustForAutoHide (RECT *prcWorkArea)
   winDebug ("winAdjustForAutoHide - Adjusted WorkArea: %d %d %d %d\n",
 	  (int) prcWorkArea->top, (int) prcWorkArea->left,
 	  (int) prcWorkArea->bottom, (int) prcWorkArea->right);
-  
-#if 0
-  /* Obtain the task bar window dimensions */
-  abd.hWnd = hwndAutoHide;
-  hwndAutoHide = (HWND) SHAppBarMessage (ABM_GETTASKBARPOS, &abd);
-  winDebug ("hwndAutoHide %08x abd.hWnd %08x %d %d %d %d\n",
-	  hwndAutoHide, abd.hWnd,
-	  abd.rc.top, abd.rc.left, abd.rc.bottom, abd.rc.right);
-#endif
 
   return TRUE;
 }

@@ -530,8 +530,15 @@ glxLogExtensions(const char *prefix, const char *extensions)
     }
 
   strl = strtok(str, " ");
-  winDebug("%s%s", prefix, strl);
-  length = strlen(prefix) + strlen(strl);
+  if (!strl)
+  {
+    winDebug("%s", prefix);
+  }
+  else
+  {
+    winDebug("%s%s", prefix, strl);
+    length = strlen(prefix) + strlen(strl);
+  }
 
   while (1)
     {

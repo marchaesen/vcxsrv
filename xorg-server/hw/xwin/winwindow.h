@@ -157,6 +157,14 @@ winDeinitMultiWindowWM (void);
 void
 winMinimizeWindow (Window id);
 
+void
+winTaskbarInit (void);
+
+void
+winTaskbarDestroy (void);
+
+void
+winSetAppID (HWND hWnd, const char* AppID);
 
 /*
  * winmultiwindowicons.c

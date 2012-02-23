@@ -67,6 +67,9 @@ typedef int pid_t;
 #include "windowstr.h"
 #include "winmultiwindowclass.h"
 
+#include <shlwapi.h>
+#include "taskbar.h"
+
 #ifdef XWIN_MULTIWINDOWEXTWM
 #define _WINDOWSWM_SERVER_
 #include <X11/extensions/windowswmstr.h>
@@ -215,6 +218,10 @@ static pthread_t g_winMultiWindowXMsgProcThread;
 static Bool			g_shutdown = FALSE;
 static Bool			redirectError = FALSE;
 static Bool			g_fAnotherWMRunning = FALSE;
+static HMODULE                  g_hmodShell32Dll = NULL;
+static HMODULE                  g_hmodOle32Dll = NULL;
+static SHGETPROPERTYSTOREFORWINDOWPROC g_pSHGetPropertyStoreForWindow = NULL;
+static PROPVARIANTCLEARPROC     g_pPropVariantClear = NULL;
 
 /*
  * PushMessage - Push a message onto the queue
@@ -1657,12 +1664,26 @@ winApplyHints (Display *pDisplay, Window iWindow, HWND hWnd, HWND *zstyle)
     if (XGetClassHint(pDisplay, iWindow, &class_hint))
       {
         char *window_name = 0;
+        char *application_id = 0;
         XFetchName(pDisplay, iWindow, &window_name);
 
         style = winOverrideStyle(class_hint.res_name, class_hint.res_class, window_name);
 
+#define APPLICATION_ID_FORMAT	"%s.vcxsrv.%s"
+#define APPLICATION_ID_UNKNOWN "unknown"
+        if (class_hint.res_class)
+          {
+            asprintf (&application_id, APPLICATION_ID_FORMAT, XVENDORNAME, class_hint.res_class);
+          }
+        else
+          {
+            asprintf (&application_id, APPLICATION_ID_FORMAT, XVENDORNAME, APPLICATION_ID_UNKNOWN);
+          }
+        winSetAppID (hWnd, application_id);
+
         if (class_hint.res_name) XFree(class_hint.res_name);
         if (class_hint.res_class) XFree(class_hint.res_class);
+        if (application_id) free(application_id);
         if (window_name) XFree(window_name);
       }
     else
@@ -1772,4 +1793,101 @@ winUpdateWindowPosition (HWND hWnd, Bool reshape, HWND *zstyle)
     winReshapeMultiWindow(pWin);
     winUpdateRgnMultiWindow(pWin);
   }
+}
+
+void
+winTaskbarInit (void)
+{
+  /*
+    Load libraries and get function pointers to SHGetPropertyStoreForWindow
+    and PropVariantClear for winSetAppID()
+  */
+
+  /*
+    SHGetPropertyStoreForWindow is only supported since Windows 7. On previous
+    versions the pointer will be NULL and taskbar grouping is not supported.
+    winSetAppID() will do nothing in this case.
+  */
+  g_hmodShell32Dll = LoadLibrary ("shell32.dll");
+  if (g_hmodShell32Dll == NULL)
+    {
+      ErrorF ("winTaskbarInit - Could not load shell32.dll\n");
+      return;
+    }
+
+  g_pSHGetPropertyStoreForWindow = (SHGETPROPERTYSTOREFORWINDOWPROC) GetProcAddress (g_hmodShell32Dll, "SHGetPropertyStoreForWindow");
+  if (g_pSHGetPropertyStoreForWindow == NULL)
+    {
+      ErrorF ("winTaskbarInit - Could not get SHGetPropertyStoreForWindow address\n");
+      return;
+    }
+
+  /*
+    PropVariantClear is supported since NT4, but we have no propidl.h to
+    provide a prototype for it
+  */
+  g_hmodOle32Dll = LoadLibrary ("ole32.dll");
+  if (g_hmodOle32Dll == NULL)
+    {
+      ErrorF ("winTaskbarInit - Could not load ole32.dll\n");
+      return;
+    }
+
+  g_pPropVariantClear = (PROPVARIANTCLEARPROC) GetProcAddress (g_hmodOle32Dll, "PropVariantClear");
+  if (g_pPropVariantClear == NULL)
+    {
+      ErrorF ("winTaskbarInit - Could not get g_pPropVariantClear address\n");
+      return;
+    }
+}
+
+void
+winTaskbarDestroy (void)
+{
+  if (g_hmodOle32Dll != NULL)
+    {
+      FreeLibrary (g_hmodOle32Dll);
+      g_hmodOle32Dll = NULL;
+      g_pPropVariantClear = NULL;
+    }
+  if (g_hmodShell32Dll != NULL)
+    {
+      FreeLibrary (g_hmodShell32Dll);
+      g_hmodShell32Dll = NULL;
+      g_pSHGetPropertyStoreForWindow = NULL;
+    }
+}
+
+void
+winSetAppID (HWND hWnd, const char* AppID)
+{
+  PROPVARIANT pv;
+  IPropertyStore *pps = NULL;
+  HRESULT hr;
+
+  if (g_pSHGetPropertyStoreForWindow == NULL ||
+      g_pPropVariantClear == NULL)
+    {
+      return;
+    }
+
+  winDebug ("winSetAppID - hwnd 0x%08x appid '%s'\n", hWnd, AppID);
+
+  hr = g_pSHGetPropertyStoreForWindow (hWnd, &IID_IPropertyStore, (void**)&pps);
+  if(SUCCEEDED(hr) && pps)
+    {
+      memset(&pv, 0, sizeof(PROPVARIANT));
+      if(AppID)
+        {
+          pv.vt = VT_LPWSTR;
+          hr = SHStrDupA(AppID, &pv.pwszVal);
+        }
+
+      if(SUCCEEDED(hr))
+        {
+          hr = pps->lpVtbl->SetValue(pps, &PKEY_AppUserModel_ID, &pv);
+          g_pPropVariantClear(&pv);
+        }
+      pps->lpVtbl->Release(pps);
+    }
 }
