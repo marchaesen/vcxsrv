@@ -334,6 +334,13 @@ __glXDRIscreenCreateDrawable(ClientPtr client,
 	(*driScreen->swrast->createNewDrawable)(driScreen->driScreen,
 						config->driConfig,
 						private);
+	if (!private->driDrawable)
+	{
+		FreeGC(private->gc, (GContext)0);
+		FreeGC(private->swapgc, (GContext)0);
+		free(private);
+		return NULL;
+	}
 
     return &private->base;
 }

@@ -499,6 +499,12 @@ __glXGetDrawable(__GLXcontext *glxc, GLXDrawable drawId, ClientPtr client,
 						pDraw, drawId,
 						GLX_DRAWABLE_WINDOW,
 						drawId, glxc->config);
+	if (!pGlxDraw)
+	{
+	    client->errorValue = drawId;
+	    *error = BadMatch;
+		return NULL;
+	}
 
     /* since we are creating the drawablePrivate, drawId should be new */
     if (!AddResource(drawId, __glXDrawableRes, pGlxDraw)) {
