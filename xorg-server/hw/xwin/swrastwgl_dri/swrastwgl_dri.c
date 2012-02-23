@@ -49,6 +49,7 @@ struct __DRIdrawableRec
   HBITMAP hBitmap;
   int winWidth;
   int winHeight;
+  int bitsPerPixel;
   VOID *bits;
 
   void *driverPrivate;
@@ -290,6 +291,7 @@ void setupDIB(__DRIdrawable * pdp)
 
   bmiSize = sizeof(*bmInfo);
   bitsPerPixel = GetDeviceCaps(pdp->hDC, BITSPIXEL);
+  pdp->bitsPerPixel=bitsPerPixel;
 
   switch (bitsPerPixel) {
   case 8:
@@ -914,6 +916,15 @@ static __DRIscreen *driCreateNewScreen(int scrn, const __DRIextension **extensio
 {
   static const __DRIextension *emptyExtensionList[] = { NULL };
   __DRIscreen *psp;
+
+  HDC hDc = GetDC(NULL);
+  int bitsPerPixel= GetDeviceCaps(hDc, BITSPIXEL);
+  ReleaseDC(NULL, hDc);
+  if (bitsPerPixel<24)
+  {
+    PRINTF(__FUNCTION__": bitsPerPixel not supported %d\n", bitsPerPixel);
+    return NULL;
+  }
 
   psp = calloc(sizeof(struct __DRIscreenRec),1);
   if (!psp)
