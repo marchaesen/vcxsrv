@@ -894,7 +894,7 @@ static const __DRIconfig **dri_init_screen(__DRIscreen * psp)
 {
   __DRIconfig **configs8, **configs16, **configs24, **configs32;
 
-  PRINTF(__FUNCTION__": psp %x\n");
+  PRINTF(__FUNCTION__": psp %x\n", psp);
 
   psp->extensions = dri_screen_extensions;
 
@@ -919,7 +919,7 @@ static __DRIscreen *driCreateNewScreen(int scrn, const __DRIextension **extensio
   if (!psp)
     return NULL;
 
-  PRINTF(__FUNCTION__": psp %x\n",psp);
+  PRINTF(__FUNCTION__": psp %x\n", psp);
 
   setupLoaderExtensions(psp, extensions);
 
