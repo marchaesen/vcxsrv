@@ -104,7 +104,7 @@ XCOMM Spaces
 <Multi_key> <minus> <d>          	: "đ"   dstroke # LATIN SMALL LETTER D WITH STROKE
 <Multi_key> <minus> <D>          	: "Đ"   Dstroke # LATIN CAPITAL LETTER D WITH STROKE
 <Multi_key> <s> <s>              	: "ß"   ssharp # LATIN SMALL LETTER SHARP S
-<Multi_key> <S> <S>              	: "ẞ"   Ssharp # LATIN CAPITAL LETTER SHARP S
+<Multi_key> <S> <S>              	: "ẞ"   U1e9e # LATIN CAPITAL LETTER SHARP S
 
 <Multi_key> <o> <e>              	: "œ"   oe # LATIN SMALL LIGATURE OE
 <Multi_key> <O> <E>              	: "Œ"   OE # LATIN CAPITAL LIGATURE OE

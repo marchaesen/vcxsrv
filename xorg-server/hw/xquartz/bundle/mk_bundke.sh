@@ -6,7 +6,7 @@ SRCDIR=$1
 BUILDDIR=$2
 BUNDLE_ROOT=$3
 
-localities="Dutch English French German Italian Japanese Spanish da fi ko no pl pt pt_PT ru sv zh_CN zh_TW"
+localities="Dutch English French German Italian Japanese Spanish ar ca cs da el fi he hr hu ko no pl pt pt_PT ro ru sk sv th tr uk zh_CN zh_TW"
 for lang in ${localities} ; do
     [ -d ${BUNDLE_ROOT}/Contents/Resources/${lang}.lproj ] && rm -rf ${BUNDLE_ROOT}/Contents/Resources/${lang}.lproj
     mkdir -p ${BUNDLE_ROOT}/Contents/Resources/${lang}.lproj/main.nib

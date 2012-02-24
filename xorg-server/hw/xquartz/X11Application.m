@@ -191,6 +191,9 @@ static void message_kit_thread (SEL selector, NSObject *arg) {
 }
 
 - (void) activateX:(OSX_BOOL)state {
+    if (_x_active == state)
+        return;
+
     DEBUG_LOG("state=%d, _x_active=%d, \n", state, _x_active);
     if (state) {
         if(bgMouseLocationUpdated) {
