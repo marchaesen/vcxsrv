@@ -300,5 +300,7 @@ ORTH = \
 	wal.orth \
 	za.orth \
 	lah.orth \
-	nqo.orth
+	nqo.orth \
+	brx.orth \
+	sat.orth
 #	^-------------- Add new orth files here

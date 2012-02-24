@@ -2023,7 +2023,15 @@ FcConfigGlobMatch (const FcChar8    *glob,
 		return FcTrue;
 	    /* short circuit another common case */
 	    if (strchr ((char *) glob, '*') == 0)
-		string += strlen ((char *) string) - strlen ((char *) glob);
+	    {
+		size_t l1, l2;
+
+		l1 = strlen ((char *) string);
+		l2 = strlen ((char *) glob);
+		if (l1 < l2)
+		    return FcFalse;
+		string += (l1 - l2);
+	    }
 	    while (*string)
 	    {
 		if (FcConfigGlobMatch (glob, string))

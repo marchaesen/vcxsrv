@@ -32,6 +32,9 @@ CONF_FILES = \
 	10-sub-pixel-vbgr.conf \
 	10-sub-pixel-vrgb.conf \
 	10-unhinted.conf \
+	11-lcdfilter-default.conf \
+	11-lcdfilter-legacy.conf \
+	11-lcdfilter-light.conf \
 	20-fix-globaladvance.conf \
 	20-unhint-small-vera.conf \
 	25-unhint-nonlatin.conf \
