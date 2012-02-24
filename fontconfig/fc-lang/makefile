@@ -257,7 +257,10 @@ ORTH = \
 	ty.orth \
 	wal.orth \
 	za.orth \
-	lah.orth
+	lah.orth \
+	nqo.orth \
+	brx.orth \
+	sat.orth
 #	^-------------- Add new orth files here
 
 DEFINES += HAVE_CONFIG_H
