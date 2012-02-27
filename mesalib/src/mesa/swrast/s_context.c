@@ -726,6 +726,18 @@ _swrast_CreateContext( struct gl_context *ctx )
    const GLuint maxThreads = 1;
 #endif
 
+   assert(ctx->Const.MaxViewportWidth <= SWRAST_MAX_WIDTH);
+   assert(ctx->Const.MaxViewportHeight <= SWRAST_MAX_WIDTH);
+
+   assert(ctx->Const.MaxRenderbufferSize <= SWRAST_MAX_WIDTH);
+
+   /* make sure largest texture image is <= SWRAST_MAX_WIDTH in size */
+   assert((1 << (ctx->Const.MaxTextureLevels - 1)) <= SWRAST_MAX_WIDTH);
+   assert((1 << (ctx->Const.MaxCubeTextureLevels - 1)) <= SWRAST_MAX_WIDTH);
+   assert((1 << (ctx->Const.Max3DTextureLevels - 1)) <= SWRAST_MAX_WIDTH);
+
+   assert(PROG_MAX_WIDTH == SWRAST_MAX_WIDTH);
+
    if (SWRAST_DEBUG) {
       _mesa_debug(ctx, "_swrast_CreateContext\n");
    }
@@ -790,6 +802,19 @@ _swrast_CreateContext( struct gl_context *ctx )
 
    ctx->swrast_context = swrast;
 
+   swrast->stencil_temp.buf1 = (GLubyte *) malloc(SWRAST_MAX_WIDTH * sizeof(GLubyte));
+   swrast->stencil_temp.buf2 = (GLubyte *) malloc(SWRAST_MAX_WIDTH * sizeof(GLubyte));
+   swrast->stencil_temp.buf3 = (GLubyte *) malloc(SWRAST_MAX_WIDTH * sizeof(GLubyte));
+   swrast->stencil_temp.buf4 = (GLubyte *) malloc(SWRAST_MAX_WIDTH * sizeof(GLubyte));
+
+   if (!swrast->stencil_temp.buf1 ||
+       !swrast->stencil_temp.buf2 ||
+       !swrast->stencil_temp.buf3 ||
+       !swrast->stencil_temp.buf4) {
+      _swrast_DestroyContext(ctx);
+      return GL_FALSE;
+   }
+
    return GL_TRUE;
 }
 
@@ -806,6 +831,12 @@ _swrast_DestroyContext( struct gl_context *ctx )
    if (swrast->ZoomedArrays)
       FREE( swrast->ZoomedArrays );
    FREE( swrast->TexelBuffer );
+
+   free(swrast->stencil_temp.buf1);
+   free(swrast->stencil_temp.buf2);
+   free(swrast->stencil_temp.buf3);
+   free(swrast->stencil_temp.buf4);
+
    FREE( swrast );
 
    ctx->swrast_context = 0;

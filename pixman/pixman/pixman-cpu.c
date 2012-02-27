@@ -427,6 +427,54 @@ pixman_have_arm_iwmmxt (void)
 
 #endif /* USE_ARM_SIMD || USE_ARM_NEON || USE_ARM_IWMMXT */
 
+#if defined(USE_MIPS_DSPR2)
+
+#if defined (__linux__) /* linux ELF */
+
+pixman_bool_t
+pixman_have_mips_dspr2 (void)
+{
+    const char *search_string = "MIPS 74K";
+    const char *file_name = "/proc/cpuinfo";
+    /* Simple detection of MIPS DSP ASE (revision 2) at runtime for Linux.
+     * It is based on /proc/cpuinfo, which reveals hardware configuration
+     * to user-space applications.  According to MIPS (early 2010), no similar
+     * facility is universally available on the MIPS architectures, so it's up
+     * to individual OSes to provide such.
+     *
+     * Only currently available MIPS core that supports DSPr2 is 74K.
+     */
+
+    char cpuinfo_line[256];
+
+    FILE *f = NULL;
+
+    if ((f = fopen (file_name, "r")) == NULL)
+        return FALSE;
+
+    while (fgets (cpuinfo_line, sizeof (cpuinfo_line), f) != NULL)
+    {
+        if (strstr (cpuinfo_line, search_string) != NULL)
+        {
+            fclose (f);
+            return TRUE;
+        }
+    }
+
+    fclose (f);
+
+    /* Did not find string in the proc file. */
+    return FALSE;
+}
+
+#else /* linux ELF */
+
+#define pixman_have_mips_dspr2() FALSE
+
+#endif /* linux ELF */
+
+#endif /* USE_MIPS_DSPR2 */
+
 #if defined(USE_X86_MMX) || defined(USE_SSE2)
 /* The CPU detection code needs to be in a file not compiled with
  * "-mmmx -msse", as gcc would generate CMOV instructions otherwise
@@ -694,6 +742,11 @@ _pixman_choose_implementation (void)
 #ifdef USE_ARM_NEON
     if (pixman_have_arm_neon ())
 	imp = _pixman_implementation_create_arm_neon (imp);
+#endif
+
+#ifdef USE_MIPS_DSPR2
+    if (pixman_have_mips_dspr2 ())
+	imp = _pixman_implementation_create_mips_dspr2 (imp);
 #endif
 
 #ifdef USE_VMX

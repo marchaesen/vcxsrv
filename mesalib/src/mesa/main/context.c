@@ -268,7 +268,7 @@ _mesa_initialize_visual( struct gl_config *vis,
    if (depthBits < 0 || depthBits > 32) {
       return GL_FALSE;
    }
-   if (stencilBits < 0 || stencilBits > STENCIL_BITS) {
+   if (stencilBits < 0 || stencilBits > 8) {
       return GL_FALSE;
    }
    assert(accumRedBits >= 0);
@@ -586,8 +586,8 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MaxLights = MAX_LIGHTS;
    ctx->Const.MaxShininess = 128.0;
    ctx->Const.MaxSpotExponent = 128.0;
-   ctx->Const.MaxViewportWidth = MAX_WIDTH;
-   ctx->Const.MaxViewportHeight = MAX_HEIGHT;
+   ctx->Const.MaxViewportWidth = MAX_VIEWPORT_WIDTH;
+   ctx->Const.MaxViewportHeight = MAX_VIEWPORT_HEIGHT;
 #if FEATURE_ARB_vertex_program
    init_program_limits(GL_VERTEX_PROGRAM_ARB, &ctx->Const.VertexProgram);
 #endif
@@ -608,7 +608,7 @@ _mesa_init_constants(struct gl_context *ctx)
 
 #if FEATURE_EXT_framebuffer_object
    ctx->Const.MaxColorAttachments = MAX_COLOR_ATTACHMENTS;
-   ctx->Const.MaxRenderbufferSize = MAX_WIDTH;
+   ctx->Const.MaxRenderbufferSize = MAX_RENDERBUFFER_SIZE;
 #endif
 
 #if FEATURE_ARB_vertex_shader
@@ -712,20 +712,15 @@ check_context_limits(struct gl_context *ctx)
    assert(ctx->Const.MaxCubeTextureLevels <= MAX_CUBE_TEXTURE_LEVELS);
    assert(ctx->Const.MaxTextureRectSize <= MAX_TEXTURE_RECT_SIZE);
 
-   /* make sure largest texture image is <= MAX_WIDTH in size */
-   assert((1 << (ctx->Const.MaxTextureLevels - 1)) <= MAX_WIDTH);
-   assert((1 << (ctx->Const.MaxCubeTextureLevels - 1)) <= MAX_WIDTH);
-   assert((1 << (ctx->Const.Max3DTextureLevels - 1)) <= MAX_WIDTH);
-
    /* Texture level checks */
    assert(MAX_TEXTURE_LEVELS >= MAX_3D_TEXTURE_LEVELS);
    assert(MAX_TEXTURE_LEVELS >= MAX_CUBE_TEXTURE_LEVELS);
 
    /* Max texture size should be <= max viewport size (render to texture) */
-   assert((1 << (MAX_TEXTURE_LEVELS - 1)) <= MAX_WIDTH);
-
-   assert(ctx->Const.MaxViewportWidth <= MAX_WIDTH);
-   assert(ctx->Const.MaxViewportHeight <= MAX_WIDTH);
+   assert((1 << (ctx->Const.MaxTextureLevels - 1))
+          <= ctx->Const.MaxViewportWidth);
+   assert((1 << (ctx->Const.MaxTextureLevels - 1))
+          <= ctx->Const.MaxViewportHeight);
 
    assert(ctx->Const.MaxDrawBuffers <= MAX_DRAW_BUFFERS);
 

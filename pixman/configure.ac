@@ -294,6 +294,9 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #if defined(__GNUC__) && (__GNUC__ < 3 || (__GNUC__ == 3 && __GNUC_MINOR__ < 4))
 #error "Need GCC >= 3.4 for MMX intrinsics"
 #endif
+#if defined(__clang__)
+#error "clang chokes on the inline assembly in pixman-mmx.c"
+#endif
 #include <mmintrin.h>
 int main () {
     __m64 v = _mm_cvtsi32_si64 (1);
@@ -591,6 +594,51 @@ if test $enable_iwmmxt = yes && test $have_iwmmxt_intrinsics = no ; then
 fi
 
 AM_CONDITIONAL(USE_ARM_IWMMXT, test $have_iwmmxt_intrinsics = yes)
+
+dnl ==========================================================================
+dnl Check if assembler is gas compatible and supports MIPS DSPr2 instructions
+
+have_mips_dspr2=no
+AC_MSG_CHECKING(whether to use MIPS DSPr2 assembler)
+xserver_save_CFLAGS=$CFLAGS
+CFLAGS="-mdspr2 $CFLAGS"
+
+AC_COMPILE_IFELSE([[
+#if !(defined(__mips__) &&  __mips_isa_rev >= 2)
+#error MIPS DSPr2 is currently only available on MIPS32r2 platforms.
+#endif
+int
+main ()
+{
+    int c = 0, a = 0, b = 0;
+    __asm__ __volatile__ (
+        "precr.qb.ph %[c], %[a], %[b]          \n\t"
+        : [c] "=r" (c)
+        : [a] "r" (a), [b] "r" (b)
+    );
+    return c;
+}]], have_mips_dspr2=yes)
+CFLAGS=$xserver_save_CFLAGS
+
+AC_ARG_ENABLE(mips-dspr2,
+   [AC_HELP_STRING([--disable-mips-dspr2],
+                   [disable MIPS DSPr2 fast paths])],
+   [enable_mips_dspr2=$enableval], [enable_mips_dspr2=auto])
+
+if test $enable_mips_dspr2 = no ; then
+   have_mips_dspr2=disabled
+fi
+
+if test $have_mips_dspr2 = yes ; then
+   AC_DEFINE(USE_MIPS_DSPR2, 1, [use MIPS DSPr2 assembly optimizations])
+fi
+
+AM_CONDITIONAL(USE_MIPS_DSPR2, test $have_mips_dspr2 = yes)
+
+AC_MSG_RESULT($have_mips_dspr2)
+if test $enable_mips_dspr2 = yes && test $have_mips_dspr2 = no ; then
+   AC_MSG_ERROR([MIPS DSPr2 instructions not detected])
+fi
 
 dnl =========================================================================================
 dnl Check for GNU-style inline assembly support

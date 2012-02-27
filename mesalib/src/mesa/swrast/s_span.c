@@ -1164,7 +1164,7 @@ _swrast_write_rgba_span( struct gl_context *ctx, SWspan *span)
       return;
    }
 
-   ASSERT(span->end <= MAX_WIDTH);
+   ASSERT(span->end <= SWRAST_MAX_WIDTH);
 
    /* Depth bounds test */
    if (ctx->Depth.BoundsTest && fb->Visual.depthBits > 0) {
@@ -1319,7 +1319,8 @@ _swrast_write_rgba_span( struct gl_context *ctx, SWspan *span)
          /* color[fragOutput] will be written to buffer[buf] */
 
          if (rb) {
-            GLchan rgbaSave[MAX_WIDTH][4];
+            /* re-use one of the attribute array buffers for rgbaSave */
+            GLchan (*rgbaSave)[4] = (GLchan (*)[4]) span->array->attribs[0];
             struct swrast_renderbuffer *srb = swrast_renderbuffer(rb);
             GLenum colorType = srb->ColorType;
 
