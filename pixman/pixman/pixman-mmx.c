@@ -340,7 +340,7 @@ static __inline__ __m64 ldq_u(uint64_t *p)
 #endif
 }
 
-static __inline__ uint32_t ldl_u(uint32_t *p)
+static __inline__ uint32_t ldl_u(const uint32_t *p)
 {
 #ifdef USE_X86_MMX
     /* x86's alignment restrictions are very relaxed. */
@@ -371,12 +371,16 @@ pack8888 (__m64 lo, __m64 hi)
     return _mm_packs_pu16 (lo, hi);
 }
 
+#ifdef _MSC_VER
+#define store8888(dest,v) *(dest)=_mm_cvtsi64_si32 (pack8888 (v, _mm_setzero_si64 ()))
+#define ret_store8888(v) _mm_cvtsi64_si32 (pack8888 (v, _mm_setzero_si64 ()))
+#else
 static force_inline void
 store8888 (uint32_t *dest, __m64 v)
 {
-    v = pack8888 (v, _mm_setzero_si64());
-    *dest = _mm_cvtsi64_si32 (v);
+    *dest = _mm_cvtsi64_si32 (pack8888 (v, _mm_setzero_si64()));
 }
+#endif
 
 /* Expand 16 bits positioned at @pos (0-3) of a mmx register into
  *
@@ -479,6 +483,13 @@ pix_add_mul (__m64 x, __m64 a, __m64 y, __m64 b)
 
 /* --------------- MMX code patch for fbcompose.c --------------------- */
 
+#ifdef _MSC_VER
+#define combine(src, mask)                                                        \
+  ((mask) ?                                                                         \
+      ret_store8888 (pix_multiply (load8888 (src), expand_alpha (load8888 (mask))))  \
+    :                                                                              \
+      *src)
+#else
 static force_inline uint32_t
 combine (const uint32_t *src, const uint32_t *mask)
 {
@@ -497,6 +508,7 @@ combine (const uint32_t *src, const uint32_t *mask)
 
     return ssrc;
 }
+#endif
 
 static void
 mmx_combine_over_u (pixman_implementation_t *imp,
