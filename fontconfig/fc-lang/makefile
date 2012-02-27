@@ -260,7 +260,9 @@ ORTH = \
 	lah.orth \
 	nqo.orth \
 	brx.orth \
-	sat.orth
+	sat.orth \
+	doi.orth \
+	mni.orth
 #	^-------------- Add new orth files here
 
 DEFINES += HAVE_CONFIG_H
