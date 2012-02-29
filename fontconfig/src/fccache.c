@@ -20,14 +20,18 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "fcint.h"
 #include "fcarch.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <string.h>
 #include <sys/types.h>
+#include <time.h>
 #include <assert.h>
 #if defined(HAVE_MMAP) || defined(__CYGWIN__)
 #  include <unistd.h>
@@ -304,17 +308,62 @@ struct _FcCacheSkip {
 static FcCacheSkip	*fcCacheChains[FC_CACHE_MAX_LEVEL];
 static int		fcCacheMaxLevel;
 
-#if HAVE_RANDOM
-# define FcRandom()  random()
+
+static int32_t
+FcRandom(void)
+{
+    int32_t result;
+
+#if HAVE_RANDOM_R
+    static struct random_data fcrandbuf;
+    static char statebuf[256];
+    static FcBool initialized = FcFalse;
+
+    if (initialized != FcTrue)
+    {
+	initstate_r(time(NULL), statebuf, 256, &fcrandbuf);
+	initialized = FcTrue;
+    }
+
+    random_r(&fcrandbuf, &result);
+#elif HAVE_RANDOM
+    static char statebuf[256];
+    char *state;
+    static FcBool initialized = FcFalse;
+
+    if (initialized != FcTrue)
+    {
+	state = initstate(time(NULL), statebuf, 256);
+	initialized = FcTrue;
+    }
+    else
+	state = setstate(statebuf);
+
+    result = random();
+
+    setstate(state);
+#elif HAVE_LRAND48
+    result = lrand48();
+#elif HAVE_RAND_R
+    static unsigned int seed = time(NULL);
+
+    result = rand_r(&seed);
+#elif HAVE_RAND
+    static FcBool initialized = FcFalse;
+
+    if (initialized != FcTrue)
+    {
+	srand(time(NULL));
+	initialized = FcTrue;
+    }
+    result = rand();
 #else
-# if HAVE_LRAND48
-#  define FcRandom()  lrand48()
-# else
-#  if HAVE_RAND
-#   define FcRandom()  rand()
-#  endif
-# endif
+# error no random number generator function available.
 #endif
+
+    return result;
+}
+
 /*
  * Generate a random level number, distributed
  * so that each level is 1/4 as likely as the one before
