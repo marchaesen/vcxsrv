@@ -19,6 +19,7 @@
 #  TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 #  PERFORMANCE OF THIS SOFTWARE.
 
+SUBDIRS = man
 bin_PROGRAMS = xclock
 
 AM_CFLAGS = $(CWARNFLAGS) $(XCLOCK_CFLAGS)
@@ -29,9 +30,6 @@ xclock_SOURCES =	\
         Clock.h \
         ClockP.h \
         xclock.c
-
-appman_PRE = \
-        xclock.man
 
 # App default files  (*.ad)
 
@@ -47,16 +45,8 @@ EXTRA_DIST = \
 	clmask.bit \
 	clock.bit
 
-MAINTAINERCLEANFILES = ChangeLog INSTALL
 CLEANFILES = $(APPDEFAULTFILES)
-
-appmandir = $(APP_MAN_DIR)
-
-appman_DATA = $(appman_PRE:man=@APP_MAN_SUFFIX@)
-
-EXTRA_DIST += $(appman_PRE)
-CLEANFILES += $(appman_DATA)
-
+MAINTAINERCLEANFILES = ChangeLog INSTALL
 
 .PHONY: ChangeLog INSTALL
 
@@ -67,9 +57,3 @@ ChangeLog:
 	$(CHANGELOG_CMD)
 
 dist-hook: ChangeLog INSTALL
-
-SUFFIXES = .$(APP_MAN_SUFFIX) .man
-
-# String replacements in MAN_SUBSTS now come from xorg-macros.m4 via configure
-.man.$(APP_MAN_SUFFIX):
-	$(AM_V_GEN)$(SED) $(MAN_SUBSTS) < $< > $@

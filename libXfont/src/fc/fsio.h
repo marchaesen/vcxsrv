@@ -110,9 +110,9 @@ typedef struct _fs_fpe_data {
     CARD32	brokenWriteTime;	/* time to retry broken write */
     CARD32	blockedConnectTime;	/* time to abort blocked connect */
     CARD32	brokenConnectionTime;	/* time to retry broken connection */
-    
+
     FSBlockDataPtr  blockedRequests;
-    
+
     struct _XtransConnInfo *trans_conn; /* transport connection object */
 }           FSFpeRec;
 
@@ -129,8 +129,8 @@ typedef struct _fs_fpe_data {
 #define FSIO_ERROR  -1
 
 extern Bool _fs_reopen_server ( FSFpePtr conn );
-extern int _fs_write ( FSFpePtr conn, char *data, long size );
-extern int _fs_write_pad ( FSFpePtr conn, char *data, long len );
+extern int _fs_write ( FSFpePtr conn, const char *data, long size );
+extern int _fs_write_pad ( FSFpePtr conn, const char *data, long len );
 extern int _fs_wait_for_readable ( FSFpePtr conn, int ms );
 extern long _fs_pad_length (long len);
 

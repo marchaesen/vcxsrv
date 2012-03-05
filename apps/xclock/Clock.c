@@ -591,7 +591,7 @@ Initialize (Widget request, Widget new, ArgList args, Cardinal *num_args)
        w->clock.utf8 = False;
 
        if (!no_locale) {
-	   char *time_locale = setlocale(LC_TIME, NULL);
+	   char *time_locale = setlocale(LC_CTYPE, NULL);
 
 	   if (strstr(time_locale, "UTF-8") || strstr(time_locale, "utf8")) {
 	       w->clock.utf8 = True;
@@ -2214,7 +2214,7 @@ clock_to_utf8(const char *str, int in_len)
     char *buf;
     size_t buf_size;
     size_t ileft, oleft;
-    const char *inptr;
+    ICONV_CONST char *inptr;
     char *outptr;
     size_t ret;
     const char *code_set = nl_langinfo(CODESET);

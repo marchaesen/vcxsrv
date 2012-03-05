@@ -49,6 +49,119 @@ PIXMAN_MIPS_BIND_FAST_PATH_SRC_DST (DO_FAST_MEMCPY, src_8888_8888,
 PIXMAN_MIPS_BIND_FAST_PATH_SRC_DST (DO_FAST_MEMCPY, src_0888_0888,
                                     uint8_t, 3, uint8_t, 3)
 
+static pixman_bool_t
+pixman_fill_mips (uint32_t *bits,
+                  int       stride,
+                  int       bpp,
+                  int       x,
+                  int       y,
+                  int       width,
+                  int       height,
+                  uint32_t  _xor)
+{
+    uint8_t *byte_line;
+    uint32_t byte_width;
+    switch (bpp)
+    {
+    case 16:
+        stride = stride * (int) sizeof (uint32_t) / 2;
+        byte_line = (uint8_t *)(((uint16_t *)bits) + stride * y + x);
+        byte_width = width * 2;
+        stride *= 2;
+
+        while (height--)
+        {
+            uint8_t *dst = byte_line;
+            byte_line += stride;
+            pixman_fill_buff16_mips (dst, byte_width, _xor & 0xffff);
+        }
+        return TRUE;
+    case 32:
+        stride = stride * (int) sizeof (uint32_t) / 4;
+        byte_line = (uint8_t *)(((uint32_t *)bits) + stride * y + x);
+        byte_width = width * 4;
+        stride *= 4;
+
+        while (height--)
+        {
+            uint8_t *dst = byte_line;
+            byte_line += stride;
+            pixman_fill_buff32_mips (dst, byte_width, _xor);
+        }
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static pixman_bool_t
+pixman_blt_mips (uint32_t *src_bits,
+                 uint32_t *dst_bits,
+                 int       src_stride,
+                 int       dst_stride,
+                 int       src_bpp,
+                 int       dst_bpp,
+                 int       src_x,
+                 int       src_y,
+                 int       dest_x,
+                 int       dest_y,
+                 int       width,
+                 int       height)
+{
+    if (src_bpp != dst_bpp)
+        return FALSE;
+
+    uint8_t *src_bytes;
+    uint8_t *dst_bytes;
+    uint32_t byte_width;
+
+    switch (src_bpp)
+    {
+    case 16:
+        src_stride = src_stride * (int) sizeof (uint32_t) / 2;
+        dst_stride = dst_stride * (int) sizeof (uint32_t) / 2;
+        src_bytes =(uint8_t *)(((uint16_t *)src_bits)
+                                          + src_stride * (src_y) + (src_x));
+        dst_bytes = (uint8_t *)(((uint16_t *)dst_bits)
+                                           + dst_stride * (dest_y) + (dest_x));
+        byte_width = width * 2;
+        src_stride *= 2;
+        dst_stride *= 2;
+
+        while (height--)
+        {
+            uint8_t *src = src_bytes;
+            uint8_t *dst = dst_bytes;
+            src_bytes += src_stride;
+            dst_bytes += dst_stride;
+            pixman_mips_fast_memcpy (dst, src, byte_width);
+        }
+        return TRUE;
+    case 32:
+        src_stride = src_stride * (int) sizeof (uint32_t) / 4;
+        dst_stride = dst_stride * (int) sizeof (uint32_t) / 4;
+        src_bytes = (uint8_t *)(((uint32_t *)src_bits)
+                                           + src_stride * (src_y) + (src_x));
+        dst_bytes = (uint8_t *)(((uint32_t *)dst_bits)
+                                           + dst_stride * (dest_y) + (dest_x));
+        byte_width = width * 4;
+        src_stride *= 4;
+        dst_stride *= 4;
+
+        while (height--)
+        {
+            uint8_t *src = src_bytes;
+            uint8_t *dst = dst_bytes;
+            src_bytes += src_stride;
+            dst_bytes += dst_stride;
+            pixman_mips_fast_memcpy (dst, src, byte_width);
+        }
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
 static const pixman_fast_path_t mips_dspr2_fast_paths[] =
 {
     PIXMAN_STD_FAST_PATH (SRC, r5g6b5,   null, r5g6b5,   mips_composite_src_0565_0565),
@@ -74,11 +187,61 @@ static const pixman_fast_path_t mips_dspr2_fast_paths[] =
     { PIXMAN_OP_NONE },
 };
 
+static pixman_bool_t
+mips_dspr2_blt (pixman_implementation_t *imp,
+                uint32_t *               src_bits,
+                uint32_t *               dst_bits,
+                int                      src_stride,
+                int                      dst_stride,
+                int                      src_bpp,
+                int                      dst_bpp,
+                int                      src_x,
+                int                      src_y,
+                int                      dest_x,
+                int                      dest_y,
+                int                      width,
+                int                      height)
+{
+    if (!pixman_blt_mips (
+            src_bits, dst_bits, src_stride, dst_stride, src_bpp, dst_bpp,
+            src_x, src_y, dest_x, dest_y, width, height))
+
+    {
+        return _pixman_implementation_blt (
+            imp->delegate,
+            src_bits, dst_bits, src_stride, dst_stride, src_bpp, dst_bpp,
+            src_x, src_y, dest_x, dest_y, width, height);
+    }
+
+    return TRUE;
+}
+
+static pixman_bool_t
+mips_dspr2_fill (pixman_implementation_t *imp,
+                 uint32_t *               bits,
+                 int                      stride,
+                 int                      bpp,
+                 int                      x,
+                 int                      y,
+                 int                      width,
+                 int                      height,
+                 uint32_t xor)
+{
+    if (pixman_fill_mips (bits, stride, bpp, x, y, width, height, xor))
+        return TRUE;
+
+    return _pixman_implementation_fill (
+        imp->delegate, bits, stride, bpp, x, y, width, height, xor);
+}
+
 pixman_implementation_t *
 _pixman_implementation_create_mips_dspr2 (pixman_implementation_t *fallback)
 {
     pixman_implementation_t *imp =
         _pixman_implementation_create (fallback, mips_dspr2_fast_paths);
+
+    imp->blt = mips_dspr2_blt;
+    imp->fill = mips_dspr2_fill;
 
     return imp;
 }

@@ -21,13 +21,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-#
-# This is the package version number, not the shared library
-# version.  This same version number must appear in Xfont.h
-# Yes, it is a pain to synchronize version numbers.  Unfortunately, it's
-# not possible to extract the version number here from Xfont.h
-#
-AC_INIT([libXfont], [1.4.4],
+AC_INIT([libXfont], [1.4.5],
 	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXfont])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h include/X11/fonts/fontconf.h])
@@ -75,13 +69,13 @@ AM_CONDITIONAL(XFONT_FREETYPE, [test x$XFONT_FREETYPE = xyes])
 if test x$XFONT_FREETYPE = xyes; then
 	AC_DEFINE(XFONT_FREETYPE,1,[Support FreeType rasterizer for nearly all font file formats])
 	AC_ARG_WITH(freetype-config, [  --with-freetype-config=PROG   Use FreeType configuration program PROG], freetype_config=$withval, freetype_config=auto)
-	
+
 	if test "$freetype_config" = "auto" ; then
-		PKG_CHECK_MODULES(FREETYPE, freetype2, 
+		PKG_CHECK_MODULES(FREETYPE, freetype2,
 			freetype_config=no, freetype_config=yes)
 	fi
 
-	if test "$freetype_config" = "yes"; then 
+	if test "$freetype_config" = "yes"; then
 		AC_PATH_PROG(ft_config,freetype-config,no)
 		if test "$ft_config" = "no"; then
 			AC_MSG_ERROR([You must have freetype installed; see http://www.freetype.org/])
@@ -90,7 +84,7 @@ if test x$XFONT_FREETYPE = xyes; then
 		ft_config="$freetype_config"
 	fi
 
-	if test "$freetype_config" != "no"; then 	
+	if test "$freetype_config" != "no"; then
 		FREETYPE_CFLAGS="`$ft_config --cflags`"
 		FREETYPE_LIBS="`$ft_config --libs`"
 	fi
@@ -118,8 +112,8 @@ X_GZIP_FONT_COMPRESSION=1
 AC_SUBST(X_GZIP_FONT_COMPRESSION)
 AC_CHECK_LIB(z, gzopen, [Z_LIBS=-lz], AC_MSG_ERROR([*** zlib is required]))
 
-AC_ARG_WITH(bzip2, 
-	AS_HELP_STRING([--with-bzip2], 
+AC_ARG_WITH(bzip2,
+	AS_HELP_STRING([--with-bzip2],
 			[Support bzip2 compressed bitmap fonts]),
 	[], [with_bzip2=no])
 if test "x$with_bzip2" = xyes; then

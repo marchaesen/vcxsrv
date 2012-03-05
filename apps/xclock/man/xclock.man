@@ -71,8 +71,8 @@ the Epoch (in format '970012340 seconds since Epoch' instead of a standard
 24-hour time.
 .TP 8
 .B \-strftime \fIformat\fP
-This option allows an strftime(3) format string to be specified for the
-digital clock's display.
+This option allows an strftime(__libmansuffix__) format string to be specified
+for the digital clock's display.
 .TP 8
 .B \-twelve
 This option indicates that a digital clock should display the time in
@@ -258,7 +258,7 @@ stored in the RESOURCE_MANAGER property.
 .I __apploaddir__/XClock
 specifies required resources
 .SH "SEE ALSO"
-X(__miscmansuffix__), xrdb(1), time(3C), fonts.conf (__filemansuffix__).
+X(__miscmansuffix__), xrdb(__appmansuffix__), time(__libmansuffix__), fonts.conf (__filemansuffix__).
 .SH BUGS
 .I Xclock
 believes the system clock.

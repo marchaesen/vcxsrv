@@ -41,6 +41,10 @@
 
 void
 pixman_mips_fast_memcpy (void *dst, void *src, uint32_t n_bytes);
+void
+pixman_fill_buff16_mips (void *dst, uint32_t n_bytes, uint16_t value);
+void
+pixman_fill_buff32_mips (void *dst, uint32_t n_bytes, uint32_t value);
 
 /****************************************************************/
 

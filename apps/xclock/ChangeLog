@@ -1,3 +1,127 @@
+commit cd184e2f1a6f8f4f9178d29e43dc08d1534504e3
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Feb 10 22:03:24 2012 -0800
+
+    xclock 1.0.6
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 251461d84de4220f05ffa35a3138aad1cd2e0302
+Author: Peter Stuge <peter@stuge.se>
+Date:   Thu Aug 26 04:14:27 2010 +0200
+
+    Calculate text and window size from LC_CTYPE instead of LC_TIME
+    
+    LC_TIME only defines what will be displayed, LC_CTYPE is what defines
+    the character encoding.
+    
+    References:
+    
+      Bug 15903 - LANG=en_US xclock -digital -font fixed has wrong size
+      https://bugs.freedesktop.org/show_bug.cgi?id=15903
+    
+    Reviewed-by: Julien Cristau <jcristau@debian.org>
+    Reviewed-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 45e936174e39637c09cd10c0a5c6f8752ee2d709
+Author: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+Date:   Tue Aug 23 19:05:20 2011 -0500
+
+    Use AM_ICONV
+    
+    AC_SEARCH_LIBS does not detect GNU libiconv because its symbols are
+    exported in the "libiconv" namespace instead of "iconv".  The AM_ICONV
+    macro correctly detects both glibc and GNU libiconv, defines HAVE_ICONV,
+    ICONV_CONST, and LIBICONV depending on the system.  The config.rpath
+    file is required by this macro.
+    
+    This adds a dependency on the aclocal macros from gettext (gettext-devel
+    in some distros) when building from git, but not when building from a
+    tarball.
+    
+    Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 27e10658010d314b40dfc9403a92864b26a9d576
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 19 10:06:55 2011 -0500
+
+    config: move man pages into their own directory
+    
+    Use services provided by XORG_MANPAGE_SECTIONS.
+    Use standard Makefile for man pages.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 5f26fbf5384ec03260edfa7d2bd8b39fde380d5b
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Jan 13 17:15:36 2011 -0500
+
+    man: replace hard coded man page section with substitution strings
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 64a5168667d30cfac2f6c6038a3b095b824580ac
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 12 16:28:02 2011 -0500
+
+    config: replace deprecated AM_CONFIG_HEADER with AC_CONFIG_HEADERS
+    
+    This silences an Autoconf warning
+
+commit 0c5674fe5c12ae4258b23bf6d9cdbaac443162b7
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 12 15:29:50 2011 -0500
+
+    config: replace deprecated AC_HELP_STRING with AS_HELP_STRING
+    
+    This silences an Automake warning.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 8e2adc61b09ca2a2959ed96091b2a49d306339fe
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 12 15:12:08 2011 -0500
+
+    config: remove unrequired AC_SUBST([*_LIBS])
+    
+    This macro is called by PKG_CHECK_MODULES
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 4995928a94c7cc2a295fbdf36d9949ae8f444cf6
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 12 13:33:47 2011 -0500
+
+    config: remove unrequired AC_SUBST([*_CFLAGS])
+    
+    This macro is called by PKG_CHECK_MODULES
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit b7b7a6c4b9227c7b429362c8ef232bf06cea57d1
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 12 13:10:21 2011 -0500
+
+    config: remove AC_PROG_CC as it overrides AC_PROG_C_C99
+    
+    XORG_STRICT_OPTION from XORG_DEFAULT_OPTIONS calls
+    AC_PROG_C_C99. This sets gcc with -std=gnu99.
+    If AC_PROG_CC macro is called afterwards, it resets CC to gcc.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit c37ee6e4b42776b6dd4147db6022c574e68288b7
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 12 11:54:40 2011 -0500
+
+    config: use AC_PROG_INSTALL now supplied by XORG_DEFAULT_OPTIONS
+    
+    It depends on util-macros 1.8 or later
+    The existing statement can now be removed from the configuration file.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
 commit 97110e50013fc5735c6220f559588b0be9a8b821
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Thu Sep 23 18:34:13 2010 -0700

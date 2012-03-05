@@ -72,7 +72,7 @@ _fs_resize (FSBufPtr buf, long size);
 
 static void
 _fs_downsize (FSBufPtr buf, long size);
-    
+
 int
 _fs_poll_connect (XtransConnInfo trans_conn, int timeout)
 {
@@ -149,7 +149,7 @@ _fs_fill (FSFpePtr conn)
     long    avail;
     long    bytes_read;
     Bool    waited = FALSE;
-    
+
     if (_fs_flush (conn) < 0)
 	return FSIO_ERROR;
     /*
@@ -199,7 +199,7 @@ int
 _fs_start_read (FSFpePtr conn, long size, char **buf)
 {
     int	    ret;
-    
+
     conn->inNeed = size;
     if (fs_inqueued(conn) < size)
     {
@@ -245,7 +245,7 @@ _fs_flush (FSFpePtr conn)
 {
     long    bytes_written;
     long    remain;
-    
+
     /* XXX - hack.  The right fix is to remember that the font server
        has gone away when we first discovered it. */
     if (conn->fs_fd < 0)
@@ -295,7 +295,7 @@ _fs_resize (FSBufPtr buf, long size)
     {
 	if (buf->remove != buf->insert)
 	{
-	    memmove (buf->buf, 
+	    memmove (buf->buf,
 		     buf->buf + buf->remove,
 		     buf->insert - buf->remove);
 	}
@@ -345,7 +345,7 @@ _fs_io_init (FSFpePtr conn)
     if (!conn->outBuf.buf)
 	return FALSE;
     conn->outBuf.size = FS_BUF_INC;
-    
+
     conn->inBuf.insert = conn->inBuf.remove = 0;
     conn->inBuf.buf = malloc (FS_BUF_INC);
     if (!conn->inBuf.buf)
@@ -355,7 +355,7 @@ _fs_io_init (FSFpePtr conn)
 	return FALSE;
     }
     conn->inBuf.size = FS_BUF_INC;
-    
+
     return TRUE;
 }
 
@@ -369,7 +369,7 @@ _fs_io_fini (FSFpePtr conn)
 }
 
 static int
-_fs_do_write(FSFpePtr conn, char *data, long len, long size)
+_fs_do_write(FSFpePtr conn, const char *data, long len, long size)
 {
     if (size == 0) {
 #ifdef DEBUG
@@ -380,8 +380,8 @@ _fs_do_write(FSFpePtr conn, char *data, long len, long size)
 
     if (conn->fs_fd == -1)
 	return FSIO_ERROR;
-    
-    while (conn->outBuf.insert + size > conn->outBuf.size) 
+
+    while (conn->outBuf.insert + size > conn->outBuf.size)
     {
 	if (_fs_flush (conn) < 0)
 	    return FSIO_ERROR;
@@ -403,16 +403,16 @@ _fs_do_write(FSFpePtr conn, char *data, long len, long size)
  * Write the indicated bytes
  */
 int
-_fs_write (FSFpePtr conn, char *data, long len)
+_fs_write (FSFpePtr conn, const char *data, long len)
 {
     return _fs_do_write (conn, data, len, len);
 }
-    
+
 /*
  * Write the indicated bytes adding any appropriate pad
  */
 int
-_fs_write_pad(FSFpePtr conn, char *data, long len)
+_fs_write_pad(FSFpePtr conn, const char *data, long len)
 {
     return _fs_do_write (conn, data, len, len + padlength[len & 3]);
 }

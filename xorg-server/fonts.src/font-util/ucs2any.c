@@ -173,7 +173,7 @@ typedef struct {
 } da_t;
 
 static da_t *
-da_new(char *name)
+da_new(const char *name)
 {
 	da_t *da;
 
@@ -246,7 +246,7 @@ da_add(da_t *da, int key, void *value)
 }
 
 static void 
-da_add_str(da_t *da, int key, char *value)
+da_add_str(da_t *da, int key, const char *value)
 {
 	da_add(da, key, value?zstrdup(value):NULL);
 }
@@ -447,8 +447,8 @@ usage(void) {
 static int 
 chars_compare(const void *aa, const void *bb)
 {
-	int a = *(int *)aa;
-	int b = *(int *)bb;
+	int a = *(const int *)aa;
+	int b = *(const int *)bb;
 
 	return a - b;
 }
@@ -737,7 +737,6 @@ main(int argc, char *argv[])
 			if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
 				ucs = strtol(p+2, &endp, 16);
 				if (*endp == '\0') goto bad;
-				p = endp;
 			} else
 				goto bad;
 

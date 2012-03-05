@@ -20,42 +20,36 @@ noinst_DATA =
 # DocBook/XML file with chapters, appendix and images it includes
 dist_noinst_DATA = $(docbook) $(chapters)
 
-#
-# Generate DocBook/XML output formats with or without stylesheets
-#
-
-# Stylesheets are available if the package xorg-sgml-doctools is installed
 if HAVE_STYLESHEETS
 
-# The location where all cross reference databases are installed
-XMLTO_FLAGS =					\
-	--searchpath "$(XORG_SGML_PATH)/X11"	\
-	--stringparam current.docid="$(<:.xml=)"
-
-XMLTO_XHTML_FLAGS = \
-	-m $(STYLESHEET_SRCDIR)/xorg-xhtml.xsl \
-	--stringparam html.stylesheet=$(STYLESHEET_SRCDIR)/xorg.css
-
-XMLTO_FO_FLAGS = \
-	-m $(STYLESHEET_SRCDIR)/xorg-fo.xsl
-endif HAVE_STYLESHEETS
+XMLTO_HTML_FLAGS = 					\
+	--searchpath "$(XORG_SGML_PATH)/X11" 		\
+	--searchpath "$(abs_top_builddir)"		\
+	-x $(STYLESHEET_SRCDIR)/xorg-xhtml.xsl
 
 noinst_DATA += $(docbook:.xml=.html)
 %.html: %.xml  $(chapters)
-	$(AM_V_GEN)$(XMLTO) $(XMLTO_FLAGS) $(XMLTO_XHTML_FLAGS) xhtml-nochunks $<
-
-if HAVE_FOP
-noinst_DATA += $(docbook:.xml=.pdf) $(docbook:.xml=.ps)
-%.pdf: %.xml $(chapters)
-	$(AM_V_GEN)$(XMLTO) $(XMLTO_FLAGS) $(XMLTO_FO_FLAGS) --with-fop pdf $<
-%.ps: %.xml $(chapters)
-	$(AM_V_GEN)$(XMLTO) $(XMLTO_FLAGS) $(XMLTO_FO_FLAGS) --with-fop ps $<
-endif HAVE_FOP
+	$(AM_V_GEN)$(XMLTO) $(XMLTO_HTML_FLAGS) xhtml-nochunks $<
 
 if HAVE_XMLTO_TEXT
 noinst_DATA += $(docbook:.xml=.txt)
 %.txt: %.xml $(chapters)
-	$(AM_V_GEN)$(XMLTO) $(XMLTO_FLAGS) $(XMLTO_XHTML_FLAGS) txt $<
+	$(AM_V_GEN)$(XMLTO) $(XMLTO_HTML_FLAGS) txt $<
 endif HAVE_XMLTO_TEXT
+
+if HAVE_FOP
+XMLTO_FO_FLAGS = 					\
+	--searchpath "$(XORG_SGML_PATH)/X11" 		\
+	--searchpath "$(abs_top_builddir)"		\
+	--stringparam img.src.path=$(abs_builddir)/	\
+	-x $(STYLESHEET_SRCDIR)/xorg-fo.xsl
+
+noinst_DATA += $(docbook:.xml=.pdf) $(docbook:.xml=.ps)
+%.pdf: %.xml $(chapters)
+	$(AM_V_GEN)$(XMLTO) $(XMLTO_FO_FLAGS) --with-fop pdf $<
+%.ps: %.xml $(chapters)
+	$(AM_V_GEN)$(XMLTO) $(XMLTO_FO_FLAGS) --with-fop ps $<
+endif HAVE_FOP
+endif HAVE_STYLESHEETS
 
 CLEANFILES = $(noinst_DATA)
