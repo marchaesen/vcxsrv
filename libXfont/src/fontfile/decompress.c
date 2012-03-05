@@ -44,7 +44,7 @@ used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
 */
-/* 
+/*
  * decompress - cat a compressed file
  */
 
@@ -93,11 +93,11 @@ static char_type magic_header[] = { "\037\235" };	/* 1F 9D */
 /*
  * the next two codes should not be changed lightly, as they must not
  * lie within the contiguous general code space.
- */ 
+ */
 #define FIRST	257	/* first free entry */
 #define	CLEAR	256	/* table clear output code */
 
-#define STACK_SIZE  8192
+#define STACK_SIZE  65300
 
 typedef struct _compressedFILE {
     BufFilePtr	    file;
@@ -124,14 +124,6 @@ typedef struct _compressedFILE {
 } CompressedFile;
 
 
-static int hsize_table[] = {
-    5003,	/* 12 bits - 80% occupancy */
-    9001,	/* 13 bits - 91% occupancy */
-    18013,	/* 14 bits - 91% occupancy */
-    35023,	/* 15 bits - 94% occupancy */
-    69001	/* 16 bits - 95% occupancy */
-};
-
 static int BufCompressedClose ( BufFilePtr f, int doClose );
 static int BufCompressedFill ( BufFilePtr f );
 static code_int getcode ( CompressedFile *file );
@@ -142,7 +134,6 @@ BufFilePushCompressed (BufFilePtr f)
 {
     int		    code;
     int		    maxbits;
-    int		    hsize;
     CompressedFile  *file;
     int		    extra;
 
@@ -153,13 +144,12 @@ BufFilePushCompressed (BufFilePtr f)
     }
     code = BufFileGet (f);
     if (code == BUFFILEEOF) return 0;
-    
+
     maxbits = code & BIT_MASK;
-    if (maxbits > BITS || maxbits < 12)
+    if (maxbits > BITS || maxbits <= INIT_BITS)
 	return 0;
-    hsize = hsize_table[maxbits - 12];
     extra = (1 << maxbits) * sizeof (char_type) +
-	    hsize * sizeof (unsigned short);
+	    (1 << maxbits) * sizeof (unsigned short);
     file = malloc (sizeof (CompressedFile) + extra);
     if (!file)
 	return 0;
@@ -178,14 +168,12 @@ BufFilePushCompressed (BufFilePtr f)
 	file->tab_suffix[code] = (char_type) code;
     }
     file->free_ent = ((file->block_compress) ? FIRST : 256 );
+    file->oldcode = -1;
     file->clear_flg = 0;
     file->offset = 0;
     file->size = 0;
     file->stackp = file->de_stack;
     bzero(file->buf, BITS);
-    file->finchar = file->oldcode = getcode (file);
-    if (file->oldcode != -1)
-	*file->stackp++ = file->finchar;
     return BufFileCreate ((char *) file,
 			  BufCompressedFill,
 			  0,
@@ -230,51 +218,56 @@ BufCompressedFill (BufFilePtr f)
 	if (buf == bufend)
 	    break;
 
-	if (oldcode == -1)
-	    break;
-
 	code = getcode (file);
 	if (code == -1)
 	    break;
-    
+
     	if ( (code == CLEAR) && file->block_compress ) {
 	    for ( code = 255; code >= 0; code-- )
 	    	file->tab_prefix[code] = 0;
 	    file->clear_flg = 1;
-	    file->free_ent = FIRST - 1;
-	    if ( (code = getcode (file)) == -1 )	/* O, untimely death! */
-	    	break;
+	    file->free_ent = FIRST;
+	    oldcode = -1;
+	    continue;
     	}
     	incode = code;
     	/*
      	 * Special case for KwKwK string.
      	 */
     	if ( code >= file->free_ent ) {
+	    if ( code > file->free_ent || oldcode == -1 ) {
+		/* Bad stream. */
+		return BUFFILEEOF;
+	    }
 	    *stackp++ = finchar;
 	    code = oldcode;
     	}
-    
+	/*
+	 * The above condition ensures that code < free_ent.
+	 * The construction of tab_prefixof in turn guarantees that
+	 * each iteration decreases code and therefore stack usage is
+	 * bound by 1 << BITS - 256.
+	 */
+
     	/*
      	 * Generate output characters in reverse order
      	 */
     	while ( code >= 256 )
     	{
-	    if (stackp - de_stack >= STACK_SIZE - 1)
-		return BUFFILEEOF;
 	    *stackp++ = file->tab_suffix[code];
 	    code = file->tab_prefix[code];
     	}
 	finchar = file->tab_suffix[code];
 	*stackp++ = finchar;
-    
+
     	/*
      	 * Generate the new entry.
      	 */
-    	if ( (code=file->free_ent) < file->maxmaxcode ) {
+    	if ( (code=file->free_ent) < file->maxmaxcode && oldcode != -1) {
 	    file->tab_prefix[code] = (unsigned short)oldcode;
 	    file->tab_suffix[code] = finchar;
 	    file->free_ent = code+1;
-    	} 
+    	}
 	/*
 	 * Remember previous code.
 	 */
@@ -382,7 +375,7 @@ static int
 BufCompressedSkip (BufFilePtr f, int bytes)
 {
     int		    c;
-    while (bytes--) 
+    while (bytes--)
     {
 	c = BufFileGet(f);
 	if (c == BUFFILEEOF)
@@ -397,7 +390,7 @@ main (int argc, char *argv[])
 {
     BufFilePtr	    inputraw, input, output;
     int		    c;
-    
+
     inputraw = BufFileOpenRead (0);
     input = BufFilePushCompressed (inputraw);
     output = BufFileOpenWrite (1);

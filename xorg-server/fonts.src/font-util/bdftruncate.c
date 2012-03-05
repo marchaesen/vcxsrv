@@ -41,16 +41,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int iswide(unsigned int);
-static void usage(void);
+#if (defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 205))	\
+        || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
+# define ATTR_NORETURN __attribute((noreturn))
+#else
+# define ATTR_NORETURN
+#endif /* GNUC  */
 
-static int opt_minus_w;
-static int opt_plus_w;
-static int removewide;
-static unsigned long threshold;
+static int iswide(unsigned int);
+static void usage(void) ATTR_NORETURN;
+static int parse_threshold(const char *str, unsigned long *threshold);
 
 static int
-parse_threshold(const char *str)
+parse_threshold(const char *str, unsigned long *threshold)
 {
 	int base;
 	char *end_ptr;
@@ -63,14 +66,14 @@ parse_threshold(const char *str)
 		base = 10;
 
 	errno = 0;
-	threshold = strtoul(str, &end_ptr, base);
-	if (errno != 0 || threshold == 0)
+	*threshold = strtoul(str, &end_ptr, base);
+	if (errno != 0 || *threshold == 0)
 		return 1;
 	return 0;
 }
 
 static void
-process_line(const char *line)
+process_line(const char *line, int removewide, unsigned long threshold)
 {
 	if (strncmp(line, "ENCODING", 8) == 0) {
 		unsigned long enc;
@@ -120,6 +123,9 @@ int
 main(int argc, char **argv)
 {
 	int removewide;
+	unsigned long threshold;
+	int opt_minus_w = 0;
+	int opt_plus_w = 0;
 	char *line, *input_ptr;
 	size_t line_len, rest_len;
 
@@ -139,7 +145,7 @@ main(int argc, char **argv)
 
 	if (argc != 1 || (opt_plus_w && opt_minus_w))
 		usage();
-	if (parse_threshold(*argv)) {
+	if (parse_threshold(*argv, &threshold)) {
 		fprintf(stderr, "Illegal threshold %s\n", *argv);
 		usage();
 	}
@@ -178,7 +184,7 @@ main(int argc, char **argv)
 				break;
 			}
 		}
-		process_line(line);
+		process_line(line, removewide, threshold);
 	}
 
 	return EXIT_SUCCESS;

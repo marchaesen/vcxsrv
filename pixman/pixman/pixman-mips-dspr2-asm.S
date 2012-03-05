@@ -31,6 +31,111 @@
 
 #include "pixman-mips-dspr2-asm.h"
 
+LEAF_MIPS_DSPR2(pixman_fill_buff16_mips)
+/*
+ * a0 - *dest
+ * a1 - count (bytes)
+ * a2 - value to fill buffer with
+ */
+
+    beqz     a1, 3f
+     andi    t1, a0, 0x0002
+    beqz     t1, 0f          /* check if address is 4-byte aligned */
+     nop
+    sh       a2, 0(a0)
+    addiu    a0, a0, 2
+    addiu    a1, a1, -2
+0:
+    srl      t1, a1, 5       /* t1 how many multiples of 32 bytes */
+    replv.ph a2, a2          /* replicate fill value (16bit) in a2 */
+    beqz     t1, 2f
+     nop
+1:
+    addiu    t1, t1, -1
+    beqz     t1, 11f
+     addiu   a1, a1, -32
+    pref     30, 32(a0)
+    sw       a2, 0(a0)
+    sw       a2, 4(a0)
+    sw       a2, 8(a0)
+    sw       a2, 12(a0)
+    sw       a2, 16(a0)
+    sw       a2, 20(a0)
+    sw       a2, 24(a0)
+    sw       a2, 28(a0)
+    b        1b
+     addiu   a0, a0, 32
+11:
+    sw       a2, 0(a0)
+    sw       a2, 4(a0)
+    sw       a2, 8(a0)
+    sw       a2, 12(a0)
+    sw       a2, 16(a0)
+    sw       a2, 20(a0)
+    sw       a2, 24(a0)
+    sw       a2, 28(a0)
+    addiu    a0, a0, 32
+2:
+    blez     a1, 3f
+     addiu   a1, a1, -2
+    sh       a2, 0(a0)
+    b        2b
+     addiu   a0, a0, 2
+3:
+    jr       ra
+     nop
+
+END(pixman_fill_buff16_mips)
+
+LEAF_MIPS32R2(pixman_fill_buff32_mips)
+/*
+ * a0 - *dest
+ * a1 - count (bytes)
+ * a2 - value to fill buffer with
+ */
+
+    beqz     a1, 3f
+     nop
+    srl      t1, a1, 5 /* t1 how many multiples of 32 bytes */
+    beqz     t1, 2f
+     nop
+1:
+    addiu    t1, t1, -1
+    beqz     t1, 11f
+     addiu   a1, a1, -32
+    pref     30, 32(a0)
+    sw       a2, 0(a0)
+    sw       a2, 4(a0)
+    sw       a2, 8(a0)
+    sw       a2, 12(a0)
+    sw       a2, 16(a0)
+    sw       a2, 20(a0)
+    sw       a2, 24(a0)
+    sw       a2, 28(a0)
+    b        1b
+     addiu   a0, a0, 32
+11:
+    sw       a2, 0(a0)
+    sw       a2, 4(a0)
+    sw       a2, 8(a0)
+    sw       a2, 12(a0)
+    sw       a2, 16(a0)
+    sw       a2, 20(a0)
+    sw       a2, 24(a0)
+    sw       a2, 28(a0)
+    addiu    a0, a0, 32
+2:
+    blez     a1, 3f
+     addiu   a1, a1, -4
+    sw       a2, 0(a0)
+    b        2b
+     addiu   a0, a0, 4
+3:
+    jr       ra
+     nop
+
+END(pixman_fill_buff32_mips)
+
 LEAF_MIPS_DSPR2(pixman_composite_src_8888_0565_asm_mips)
 /*
  * a0 - dst (r5g6b5)

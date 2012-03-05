@@ -1,3 +1,194 @@
+commit 4b67ad5486c322c01a2ca86b0b4af0a74228f813
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Mar 2 10:05:21 2012 -0800
+
+    libXfont 1.4.5
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3f87a8b0b86de83ea8944a53de82caf254a9988a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Oct 21 20:49:50 2011 -0700
+
+    Use * precision notation instead of computing sprintf format strings
+    
+    Allows gcc to check format strings instead of just warning about them
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 613faa245437bb948b4c86ea6c7fbb716e38f0bf
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Oct 2 09:30:09 2011 -0700
+
+    Fix printf warnings about incorrect argument types
+    
+    Mostly due to difference between sizeof & int on 64-bit platforms
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit f24c559bcb42e3ea9321c3e6a9ecf0720a581e33
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Oct 2 09:19:47 2011 -0700
+
+    Add _X_ATTRIBUTE_PRINTF to *Error/*Warning functions taking printf formats
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 3715cd752bac912a56aa1cbb9dd874624a709aab
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Oct 2 09:16:05 2011 -0700
+
+    Add const attributes to fix gcc -Wwrite-strings warnings
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 8d130ac0fcf19e0e0dd0a404d9317fd8860baad4
+Author: Tomas Hoger <thoger@redhat.com>
+Date:   Mon Oct 10 14:38:06 2011 -0700
+
+    Support compress files with maxbits < 12
+    
+    The compress decompression code used by libXfont rejects valid archives
+    with maxbits less than 12 (compress allows values 9 - 16, 16 is the
+    default).  This is because maxbits-12 is used as index to hsize_table[].
+    
+    That looks like an incorrect port of the original compress code, where:
+    - hsize depended on BITS, the maximum maxbits value supported by particular
+      build, rather than on maxbits value from the particular input file
+    - the same hsize was used for all BITS <= 12
+    
+    The quick way to verify the problem is:
+      compress -b 11 fontfile.bdf
+      bdftopcf -o /dev/null fontfile.bdf.Z
+    which fails, while 12-16 works correctly.
+    
+    This fix removes hsize_table and uses 1 << maxbits (aka maxmaxcode) as
+    tab_prefix size.  As decompression code does not use hashing as compression
+    code, there does not seem to be a reason to allocate any extra space.
+    
+    Note: In this fix, maxbits == 9 is still rejected early.  AFAICS compress
+    is able to generate such files (unknown how correct such output is), but is
+    unable to uncompress them correctly.
+    
+    Reviewed-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit bb97dbf56dff50bef936c0631587ed08dd6c8fa9
+Author: Matt Dew <marcoz@osource.org>
+Date:   Mon Oct 3 20:23:47 2011 -0600
+
+        1 - fix the capitalization of the ID attriutes to match either the
+            <title> or <funcdef> string it goes with.
+        2 - fix any <linkend>'s that were affected by 1.
+        3 - any <function> in the docs that has an actual funcdef,
+            will become an olink.
+    
+        Signed-off-by: Matt Dew <marcoz@osource.org>
+
+commit c73a0e09a2713d0dc16ca5cd9d288b8868846a19
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Sep 22 14:00:36 2011 -0400
+
+    doc: fix typo in copyright statement
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit d86d8f34f5c2ac5c80230aea2de49bb97eaf5f92
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Sep 22 09:20:38 2011 -0400
+
+    doc: refactor legal text for multi licensing copyrights
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 43d587d89bee679850bb18ff25aa77c961712728
+Author: Olli Vertanen <olli.vertanen@symbio.com>
+Date:   Tue Sep 6 19:00:55 2011 +0000
+
+    libxfont: An uninitialized pointer causes a crash if pcf header is corrupted.
+    
+    If pcfReadTOC() or pcfGetProperties() fail in the beginning
+    of execution of pcfReadFont(), function tries to free an
+    uninitialized pointer (isStringProp) when bailing out.
+    
+    The pointer gets now initialized correctly.
+    
+    Signed-off-by: Olli Vertanen <olli.vertanen@symbio.com>
+    Reviewed-by: Rami Ylimäki <rami.ylimaki@vincit.fi>
+
+commit 73e6c94a351c891ed85446df84c9a30a4224f478
+Author: Joerg Sonnenberger <joerg@britannica.bec.de>
+Date:   Sun Aug 21 19:07:51 2011 +0200
+
+    Fix empty statement in if conditional.
+    
+    Assume for a moment that the intention here is to do
+    something useful.
+    
+    Signed-off-by: Matthieu Herrb <matthieu.herrb@laas.fr>
+
+commit bd48ad11fd11412c62c3ac8ed5d52c4f10a985aa
+Author: Joerg Sonnenberger <joerg@britannica.bec.de>
+Date:   Sun Aug 21 18:51:53 2011 +0200
+
+    Do proper input validation to fix for CVE-2011-2895.
+    
+    It ensures that all valid input can be decompressed, checks that the
+    overflow conditions doesn't happen and generally tightens the
+    validation of the LZW stream and doesn't pessimize the inner loop for
+    no good reason. It's derived from a change in libarchive from 2004.
+    
+    Signed-off-by: Matthieu Herrb <matthieu.herrb@laas.fr>
+    Reviewed-by: Tomas Hoger <thoger@redhat.com>
+
+commit 098ab294deed98371ee362fadafcf2e510e0cc50
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Sep 16 22:21:21 2011 -0700
+
+    Strip trailing whitespace
+    
+    Performed with: find * -type f | xargs perl -i -p -e 's{[ \t]+$}{}'
+    git diff -w & git diff -b show no diffs from this change
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 211368b8d04ed13ba520de2dd49a875cb1d663a7
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Sep 12 11:09:50 2011 -0400
+
+    docs: use the &fullrelvers; entity to set X11 release information
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 425ee265c61b3815a0ef1e4e0445dc91921d71ee
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Fri Sep 9 13:08:04 2011 -0400
+
+    devbook.am: maintenance update from docbook.am
+    
+    The developer docs are generated from a subset of docbook.am
+    which is sometimes updated.
+    
+    The one difference is the embedded css style in the HEAD element.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 1c7cfd7a2b89329f27951c0437f925dd3301e3de
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Aug 10 22:19:44 2011 -0700
+
+    Remove configure comment about synchronizing version numbers
+    
+    This appears to have been a mistaken copy-and-paste from something like
+    libXcursor - I can't find any Xfont.h header, nor any libXfont header
+    containing a version number.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Matthieu Herrb <matthieu.herrb@laas.fr>
+
 commit a7970f5c817b5c75d945389cfaf1384ff23437f3
 Author: Matthieu Herrb <matthieu.herrb@laas.fr>
 Date:   Mon Aug 8 18:08:05 2011 +0200

@@ -45,15 +45,6 @@
      (((s) >> 6) & 0x03e0) |                                            \
      (((s) >> 9) & 0x7c00))
 
-#define RGB15_TO_ENTRY(mif,rgb15)					\
-    ((mif)->ent[rgb15])
-
-#define RGB24_TO_ENTRY(mif,rgb24)					\
-    RGB15_TO_ENTRY (mif,CONVERT_RGB24_TO_RGB15 (rgb24))
-
-#define RGB24_TO_ENTRY_Y(mif,rgb24)					\
-    ((mif)->ent[CONVERT_RGB24_TO_Y15 (rgb24)])
-
 /* Fetch macros */
 
 #ifdef WORDS_BIGENDIAN

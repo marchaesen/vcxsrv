@@ -21,9 +21,14 @@ dnl  CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 dnl
 dnl Process this file with autoconf to create configure.
 
+# Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([font-util], [1.2.0],
+AC_INIT([font-util], [1.3.0],
 	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [font-util])
+AC_CONFIG_SRCDIR([Makefile.am])
+AC_CONFIG_HEADERS([config.h])
+
+# Initialize Automake
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_MAINTAINER_MODE
 
@@ -31,23 +36,18 @@ AM_MAINTAINER_MODE
 m4_ifndef([XORG_MACROS_VERSION],
 	  [m4_fatal([must install xorg-macros 1.8 or later before running autoconf/autogen])])
 XORG_MACROS_VERSION(1.8)
-AM_CONFIG_HEADER(config.h)
-
 XORG_DEFAULT_OPTIONS
-
-AC_PROG_CC
-AC_PROG_INSTALL
 
 AC_MSG_CHECKING([for root directory for font files])
 fontrootdir='${datadir}/fonts/X11'
-AC_ARG_WITH(fontrootdir, [AC_HELP_STRING([--with-fontrootdir=DIR],
+AC_ARG_WITH(fontrootdir, [AS_HELP_STRING([--with-fontrootdir=DIR],
 	[Path to parent of font subdirectories [DATADIR/fonts/X11]])],
 	[fontrootdir="${withval}"])
 AC_SUBST(fontrootdir)
 AC_MSG_RESULT([${fontrootdir}])
 
 mapdir='${fontrootdir}/util'
-AC_ARG_WITH(mapdir, [AC_HELP_STRING([--with-mapdir=DIR],
+AC_ARG_WITH(mapdir, [AS_HELP_STRING([--with-mapdir=DIR],
 	[Path to install font maps [FONTROOTDIR/util]])],
 	[mapdir="${withval}"])
 MAPDIR="$mapdir"

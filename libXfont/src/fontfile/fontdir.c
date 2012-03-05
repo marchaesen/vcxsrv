@@ -43,7 +43,7 @@ in this Software without prior written authorization from The Open Group.
 Bool
 FontFileInitTable (FontTablePtr table, int size)
 {
-    if (size < 0 || (size > INT32_MAX/sizeof(FontEntryRec))) 
+    if (size < 0 || (size > INT32_MAX/sizeof(FontEntryRec)))
 	return FALSE;
     if (size)
     {
@@ -102,12 +102,12 @@ FontFileFreeTable (FontTablePtr table)
 }
 
 FontDirectoryPtr
-FontFileMakeDir(char *dirName, int size)
+FontFileMakeDir(const char *dirName, int size)
 {
     FontDirectoryPtr	dir;
     int			dirlen;
     int			needslash = 0;
-    char		*attrib;
+    const char		*attrib;
     int			attriblen;
 
 #if !defined(WIN32)
@@ -279,7 +279,7 @@ FontFileSortDir(FontDirectoryPtr dir)
 #define isDigit(c)  (XK_0 <= (c) && (c) <= XK_9)
 
 static int
-SetupWildMatch(FontTablePtr table, FontNamePtr pat, 
+SetupWildMatch(FontTablePtr table, FontNamePtr pat,
 	       int *leftp, int *rightp, int *privatep)
 {
     int         nDashes;
@@ -438,7 +438,7 @@ FontFileSaveString (char *s)
 }
 
 FontEntryPtr
-FontFileFindNameInScalableDir(FontTablePtr table, FontNamePtr pat, 
+FontFileFindNameInScalableDir(FontTablePtr table, FontNamePtr pat,
 			      FontScalablePtr vals)
 {
     int         i,
@@ -491,7 +491,7 @@ FontFileFindNameInDir(FontTablePtr table, FontNamePtr pat)
 }
 
 int
-FontFileFindNamesInScalableDir(FontTablePtr table, FontNamePtr pat, int max, 
+FontFileFindNamesInScalableDir(FontTablePtr table, FontNamePtr pat, int max,
 			       FontNamesPtr names, FontScalablePtr vals,
 			       int alias_behavior, int *newmax)
 {
@@ -578,7 +578,7 @@ FontFileFindNamesInScalableDir(FontTablePtr table, FontNamePtr pat, int max,
 }
 
 int
-FontFileFindNamesInDir(FontTablePtr table, FontNamePtr pat, 
+FontFileFindNamesInDir(FontTablePtr table, FontNamePtr pat,
 		       int max, FontNamesPtr names)
 {
     return FontFileFindNamesInScalableDir(table, pat, max, names,
@@ -767,7 +767,7 @@ FontFileAddFontFile (FontDirectoryPtr dir, char *fontName, char *fileName)
 		    extra->defaults.y = 75;
 	        }
 	     }
-	     else 
+	     else
 	     {
 		extra->defaults.x = vals.x;
 		extra->defaults.y = vals.y;

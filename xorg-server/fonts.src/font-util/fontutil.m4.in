@@ -160,15 +160,16 @@ AC_DEFUN([XORG_FONT_REQUIRED_PROG],[
 #
 # Set FCCACHE to path to fc-cache (fontconfig cache builder) if found
 # Set RUN_FCCACHE to a rule suitable for substituting into a makefile
-# to run fc-cache if found and not installing to $DESTDIR
+# to run fc-cache if found and not installing to $DESTDIR and not
+# cross-compiling
 #
 # fc-cache is optional, not required, and should be skipped when making
-# packages (installing to $DESTDIR).
+# packages (installing to $DESTDIR) or cross-compiling
 #
 AC_DEFUN([XORG_FONT_FCCACHE],[
 	AC_PATH_PROG(FCCACHE, fc-cache)
 	FCCACHE_WARN='echo "** Warning: fonts.cache not built" ; echo "** Generate this file manually on host system using fc-cache"'
-	if test x"$FCCACHE" = x ; then
+	if test x"$FCCACHE" = x || test x"$cross_compiling" != x"no" ; then
 		RUN_FCCACHE="${FCCACHE_WARN}"
 	else
 		RUN_FCCACHE='@(if test -z "$(DESTDIR)"; then echo $(FCCACHE) $(fontdir); $(FCCACHE) $(fontdir); else'
@@ -177,6 +178,31 @@ AC_DEFUN([XORG_FONT_FCCACHE],[
 	AC_SUBST([RUN_FCCACHE])
 ])
 
+# XORG_FONT_MKFONTDIR()
+# -------------------
+# Minimum version: 1.3.0
+#
+# Set MKFONTDIR to path to mkfontdir.
+#
+# If cross-compiling, and if mkdir is not found, use a shell command
+# which warns mkfontdir needs to be run on the target
+#
+# If not cross-compiling, mkfontdir must be found
+#
+AC_DEFUN([XORG_FONT_MKFONTDIR],[
+	if test x"$cross_compiling" != x"no" ; then
+		AC_PATH_PROG(MKFONTDIR, mkfontdir, "")
+		MKFONTDIR_WARN='echo "** Warning: mkfontdir not run" ; echo "** Run mkfontdir manually on host system"'
+
+		if test x"$MKFONTDIR" = x; then
+			MKFONTDIR="${MKFONTDIR_WARN} ; echo '** mkfontdir'"
+		fi
+	else
+		XORG_FONT_REQUIRED_PROG(MKFONTDIR, mkfontdir)
+	fi
+
+	AC_SUBST([MKFONTDIR])
+])
 
 # XORG_FONT_COMMON_UTILS()
 # ------------------------
@@ -186,7 +212,7 @@ AC_DEFUN([XORG_FONT_FCCACHE],[
 
 AC_DEFUN([XORG_FONT_COMMON_UTILS],[
 	XORG_FONT_FCCACHE
-	XORG_FONT_REQUIRED_PROG(MKFONTDIR, mkfontdir)
+	XORG_FONT_MKFONTDIR
 ])
 
 # XORG_FONT_SCALED_UTILS()
