@@ -1,11 +1,21 @@
 			Xft
 		X FreeType library
-		  Version 2.2.0
-		    2010-10-29
+		  Version 2.3.0
+		    2012-03-07
 
-Xft version 2.1 is the first stand alone release of Xft, a library that
+Xft version 2.1 was the first stand alone release of Xft, a library that
 connects X applications with the FreeType font rasterization library. Xft
 uses fontconfig to locate fonts so it has no configuration files.
+
+Version 2.3.0
+
+Subpixel LCD text rendering improvements
+
+Dropped support for versions of freetype2, fontconfig & libXrender that
+pre-dated pkgconfig support.
+
+Raised minimum required versions to freetype2 2.1.6 & fontconfig 2.5.92.
+
 
 Version 2.2.0
 

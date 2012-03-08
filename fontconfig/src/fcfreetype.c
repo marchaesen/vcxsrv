@@ -2513,31 +2513,27 @@ FcFreeTypeCharSetAndSpacing (FT_Face face, FcBlanks *blanks, int *spacing)
 {
     FcCharSet	*cs;
 
-    cs = FcFreeTypeCharSetAndSpacingForSize (face, blanks, spacing, -1);
     /*
      * Check for bitmap-only ttf fonts that are missing the glyf table.
      * In that case, pick a size and look for glyphs in that size instead
      */
-    if (FcCharSetCount (cs) == 0)
+    if (!(face->face_flags & FT_FACE_FLAG_SCALABLE) &&
+	face->num_fixed_sizes > 0 &&
+	FT_Get_Sfnt_Table (face, ft_sfnt_head))
     {
-	/* Check for non-scalable TT fonts */
-	if (!(face->face_flags & FT_FACE_FLAG_SCALABLE) &&
-	    face->num_fixed_sizes > 0 &&
-	    FT_Get_Sfnt_Table (face, ft_sfnt_head))
-	{
-	    FT_Int  strike_index = 0;
-	    int	    i;
+	FT_Int  strike_index = 0;
+	int	    i;
 
-	    /* Select the face closest to 16 pixels tall */
-	    for (i = 1; i < face->num_fixed_sizes; i++) {
-		if (abs (face->available_sizes[i].height - 16) <
-		    abs (face->available_sizes[strike_index].height - 16))
-		    strike_index = i;
-	    }
-	    FcCharSetDestroy (cs);
-	    cs = FcFreeTypeCharSetAndSpacingForSize (face, blanks, spacing, strike_index);
+	/* Select the face closest to 16 pixels tall */
+	for (i = 1; i < face->num_fixed_sizes; i++) {
+	    if (abs (face->available_sizes[i].height - 16) <
+		abs (face->available_sizes[strike_index].height - 16))
+		strike_index = i;
 	}
+	cs = FcFreeTypeCharSetAndSpacingForSize (face, blanks, spacing, strike_index);
     }
+    else
+	cs = FcFreeTypeCharSetAndSpacingForSize (face, blanks, spacing, -1);
     return cs;
 }
 

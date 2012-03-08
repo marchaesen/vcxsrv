@@ -54,28 +54,31 @@ FcCharSetDestroy (FcCharSet *fcs)
 {
     int i;
 
-    if (fcs->ref == FC_REF_CONSTANT)
+    if (fcs)
     {
-	FcCacheObjectDereference (fcs);
-	return;
+	if (fcs->ref == FC_REF_CONSTANT)
+	{
+	    FcCacheObjectDereference (fcs);
+	    return;
+	}
+	if (--fcs->ref > 0)
+	    return;
+	for (i = 0; i < fcs->num; i++)
+	{
+	    FcMemFree (FC_MEM_CHARLEAF, sizeof (FcCharLeaf));
+	    free (FcCharSetLeaf (fcs, i));
+	}
+	if (fcs->num)
+	{
+	    /* the numbers here are estimates */
+	    FcMemFree (FC_MEM_CHARSET, fcs->num * sizeof (intptr_t));
+	    free (FcCharSetLeaves (fcs));
+	    FcMemFree (FC_MEM_CHARSET, fcs->num * sizeof (FcChar16));
+	    free (FcCharSetNumbers (fcs));
+	}
+	FcMemFree (FC_MEM_CHARSET, sizeof (FcCharSet));
+	free (fcs);
     }
-    if (--fcs->ref > 0)
-	return;
-    for (i = 0; i < fcs->num; i++)
-    {
-	FcMemFree (FC_MEM_CHARLEAF, sizeof (FcCharLeaf));
-	free (FcCharSetLeaf (fcs, i));
-    }
-    if (fcs->num)
-    {
-        /* the numbers here are estimates */
-	FcMemFree (FC_MEM_CHARSET, fcs->num * sizeof (intptr_t));
-	free (FcCharSetLeaves (fcs));
-	FcMemFree (FC_MEM_CHARSET, fcs->num * sizeof (FcChar16));
-	free (FcCharSetNumbers (fcs));
-    }
-    FcMemFree (FC_MEM_CHARSET, sizeof (FcCharSet));
-    free (fcs);
 }
 
 /*
@@ -252,7 +255,7 @@ FcCharSetAddChar (FcCharSet *fcs, FcChar32 ucs4)
     FcCharLeaf	*leaf;
     FcChar32	*b;
 
-    if (fcs->ref == FC_REF_CONSTANT)
+    if (fcs == NULL || fcs->ref == FC_REF_CONSTANT)
 	return FcFalse;
     leaf = FcCharSetFindLeafCreate (fcs, ucs4);
     if (!leaf)
@@ -268,7 +271,7 @@ FcCharSetDelChar (FcCharSet *fcs, FcChar32 ucs4)
     FcCharLeaf	*leaf;
     FcChar32	*b;
 
-    if (fcs->ref == FC_REF_CONSTANT)
+    if (fcs == NULL || fcs->ref == FC_REF_CONSTANT)
 	return FcFalse;
     leaf = FcCharSetFindLeaf (fcs, ucs4);
     if (!leaf)
@@ -342,10 +345,13 @@ FcCharSetIterStart (const FcCharSet *fcs, FcCharSetIter *iter)
 FcCharSet *
 FcCharSetCopy (FcCharSet *src)
 {
-    if (src->ref != FC_REF_CONSTANT)
-	src->ref++;
-    else
-	FcCacheObjectReference (src);
+    if (src)
+    {
+	if (src->ref != FC_REF_CONSTANT)
+	    src->ref++;
+	else
+	    FcCacheObjectReference (src);
+    }
     return src;
 }
 
@@ -357,6 +363,8 @@ FcCharSetEqual (const FcCharSet *a, const FcCharSet *b)
 
     if (a == b)
 	return FcTrue;
+    if (!a || !b)
+	return FcFalse;
     for (FcCharSetIterStart (a, &ai), FcCharSetIterStart (b, &bi);
 	 ai.leaf && bi.leaf;
 	 FcCharSetIterNext (a, &ai), FcCharSetIterNext (b, &bi))
@@ -394,6 +402,8 @@ FcCharSetOperate (const FcCharSet   *a,
     FcCharSet	    *fcs;
     FcCharSetIter   ai, bi;
 
+    if (!a || !b)
+	goto bail0;
     fcs = FcCharSetCreate ();
     if (!fcs)
 	goto bail0;
@@ -493,6 +503,9 @@ FcCharSetMerge (FcCharSet *a, const FcCharSet *b, FcBool *changed)
     int		ai = 0, bi = 0;
     FcChar16	an, bn;
 
+    if (!a || !b)
+	return FcFalse;
+
     if (a->ref == FC_REF_CONSTANT) {
 	if (changed)
 	    *changed = FcFalse;
@@ -561,7 +574,11 @@ FcCharSetSubtract (const FcCharSet *a, const FcCharSet *b)
 FcBool
 FcCharSetHasChar (const FcCharSet *fcs, FcChar32 ucs4)
 {
-    FcCharLeaf	*leaf = FcCharSetFindLeaf (fcs, ucs4);
+    FcCharLeaf	*leaf;
+
+    if (!fcs)
+	return FcFalse;
+    leaf = FcCharSetFindLeaf (fcs, ucs4);
     if (!leaf)
 	return FcFalse;
     return (leaf->map[(ucs4 & 0xff) >> 5] & (1 << (ucs4 & 0x1f))) != 0;
@@ -586,28 +603,31 @@ FcCharSetIntersectCount (const FcCharSet *a, const FcCharSet *b)
     FcCharSetIter   ai, bi;
     FcChar32	    count = 0;
 
-    FcCharSetIterStart (a, &ai);
-    FcCharSetIterStart (b, &bi);
-    while (ai.leaf && bi.leaf)
+    if (a && b)
     {
-	if (ai.ucs4 == bi.ucs4)
+	FcCharSetIterStart (a, &ai);
+	FcCharSetIterStart (b, &bi);
+	while (ai.leaf && bi.leaf)
 	{
-	    FcChar32	*am = ai.leaf->map;
-	    FcChar32	*bm = bi.leaf->map;
-	    int		i = 256/32;
-	    while (i--)
-		count += FcCharSetPopCount (*am++ & *bm++);
-	    FcCharSetIterNext (a, &ai);
-	}
-	else if (ai.ucs4 < bi.ucs4)
-	{
-	    ai.ucs4 = bi.ucs4;
-	    FcCharSetIterSet (a, &ai);
-	}
-	if (bi.ucs4 < ai.ucs4)
-	{
-	    bi.ucs4 = ai.ucs4;
-	    FcCharSetIterSet (b, &bi);
+	    if (ai.ucs4 == bi.ucs4)
+	    {
+		FcChar32	*am = ai.leaf->map;
+		FcChar32	*bm = bi.leaf->map;
+		int		i = 256/32;
+		while (i--)
+		    count += FcCharSetPopCount (*am++ & *bm++);
+		FcCharSetIterNext (a, &ai);
+	    }
+	    else if (ai.ucs4 < bi.ucs4)
+	    {
+		ai.ucs4 = bi.ucs4;
+		FcCharSetIterSet (a, &ai);
+	    }
+	    if (bi.ucs4 < ai.ucs4)
+	    {
+		bi.ucs4 = ai.ucs4;
+		FcCharSetIterSet (b, &bi);
+	    }
 	}
     }
     return count;
@@ -619,13 +639,16 @@ FcCharSetCount (const FcCharSet *a)
     FcCharSetIter   ai;
     FcChar32	    count = 0;
 
-    for (FcCharSetIterStart (a, &ai); ai.leaf; FcCharSetIterNext (a, &ai))
+    if (a)
     {
-	int		    i = 256/32;
-	FcChar32	    *am = ai.leaf->map;
+	for (FcCharSetIterStart (a, &ai); ai.leaf; FcCharSetIterNext (a, &ai))
+	{
+	    int		    i = 256/32;
+	    FcChar32	    *am = ai.leaf->map;
 
-	while (i--)
-	    count += FcCharSetPopCount (*am++);
+	    while (i--)
+		count += FcCharSetPopCount (*am++);
+	}
     }
     return count;
 }
@@ -636,31 +659,34 @@ FcCharSetSubtractCount (const FcCharSet *a, const FcCharSet *b)
     FcCharSetIter   ai, bi;
     FcChar32	    count = 0;
 
-    FcCharSetIterStart (a, &ai);
-    FcCharSetIterStart (b, &bi);
-    while (ai.leaf)
+    if (a && b)
     {
-	if (ai.ucs4 <= bi.ucs4)
+	FcCharSetIterStart (a, &ai);
+	FcCharSetIterStart (b, &bi);
+	while (ai.leaf)
 	{
-	    FcChar32	*am = ai.leaf->map;
-	    int		i = 256/32;
-	    if (ai.ucs4 == bi.ucs4)
+	    if (ai.ucs4 <= bi.ucs4)
 	    {
-		FcChar32	*bm = bi.leaf->map;
-		while (i--)
-		    count += FcCharSetPopCount (*am++ & ~*bm++);
+		FcChar32	*am = ai.leaf->map;
+		int		i = 256/32;
+		if (ai.ucs4 == bi.ucs4)
+		{
+		    FcChar32	*bm = bi.leaf->map;
+		    while (i--)
+			count += FcCharSetPopCount (*am++ & ~*bm++);
+		}
+		else
+		{
+		    while (i--)
+			count += FcCharSetPopCount (*am++);
+		}
+		FcCharSetIterNext (a, &ai);
 	    }
-	    else
+	    else if (bi.leaf)
 	    {
-		while (i--)
-		    count += FcCharSetPopCount (*am++);
+		bi.ucs4 = ai.ucs4;
+		FcCharSetIterSet (b, &bi);
 	    }
-	    FcCharSetIterNext (a, &ai);
-	}
-	else if (bi.leaf)
-	{
-	    bi.ucs4 = ai.ucs4;
-	    FcCharSetIterSet (b, &bi);
 	}
     }
     return count;
@@ -675,7 +701,10 @@ FcCharSetIsSubset (const FcCharSet *a, const FcCharSet *b)
     int		ai, bi;
     FcChar16	an, bn;
 
-    if (a == b) return FcTrue;
+    if (a == b)
+	return FcTrue;
+    if (!a || !b)
+	return FcFalse;
     bi = 0;
     ai = 0;
     while (ai < a->num && bi < b->num)
@@ -734,6 +763,8 @@ FcCharSetNextPage (const FcCharSet  *a,
     FcCharSetIter   ai;
     FcChar32	    page;
 
+    if (!a)
+	return FC_CHARSET_DONE;
     ai.ucs4 = *next;
     FcCharSetIterSet (a, &ai);
     if (!ai.leaf)
