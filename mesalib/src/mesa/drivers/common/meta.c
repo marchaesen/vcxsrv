@@ -174,15 +174,19 @@ struct save_state
    struct gl_query_object *CondRenderQuery;
    GLenum CondRenderMode;
 
+#if FEATURE_feedback
    /** MESA_META_SELECT_FEEDBACK */
    GLenum RenderMode;
    struct gl_selection Select;
    struct gl_feedback Feedback;
+#endif
 
    /** Miscellaneous (always disabled) */
    GLboolean Lighting;
    GLboolean RasterDiscard;
+#if FEATURE_EXT_transform_feedback
    GLboolean TransformFeedbackNeedsResume;
+#endif
 };
 
 /**
@@ -425,6 +429,7 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
    memset(save, 0, sizeof(*save));
    save->SavedState = state;
 
+#if FEATURE_EXT_transform_feedback
    /* Pausing transform feedback needs to be done early, or else we won't be
     * able to change other state.
     */
@@ -433,6 +438,7 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
       !ctx->TransformFeedback.CurrentObject->Paused;
    if (save->TransformFeedbackNeedsResume)
       _mesa_PauseTransformFeedback();
+#endif
 
    if (state & MESA_META_ALPHA_TEST) {
       save->AlphaEnabled = ctx->Color.AlphaEnabled;
@@ -700,6 +706,7 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
 	 _mesa_EndConditionalRender();
    }
 
+#if FEATURE_feedback
    if (state & MESA_META_SELECT_FEEDBACK) {
       save->RenderMode = ctx->RenderMode;
       if (ctx->RenderMode == GL_SELECT) {
@@ -710,6 +717,7 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
 	 _mesa_RenderMode(GL_RENDER);
       }
    }
+#endif
 
    /* misc */
    {
@@ -984,6 +992,7 @@ _mesa_meta_end(struct gl_context *ctx)
 				      save->CondRenderMode);
    }
 
+#if FEATURE_feedback
    if (state & MESA_META_SELECT_FEEDBACK) {
       if (save->RenderMode == GL_SELECT) {
 	 _mesa_RenderMode(GL_SELECT);
@@ -993,6 +1002,7 @@ _mesa_meta_end(struct gl_context *ctx)
 	 ctx->Feedback = save->Feedback;
       }
    }
+#endif
 
    /* misc */
    if (save->Lighting) {
@@ -1001,8 +1011,10 @@ _mesa_meta_end(struct gl_context *ctx)
    if (save->RasterDiscard) {
       _mesa_set_enable(ctx, GL_RASTERIZER_DISCARD, GL_TRUE);
    }
+#if FEATURE_EXT_transform_feedback
    if (save->TransformFeedbackNeedsResume)
       _mesa_ResumeTransformFeedback();
+#endif
 }
 
 

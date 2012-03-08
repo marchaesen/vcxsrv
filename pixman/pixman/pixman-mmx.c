@@ -57,6 +57,9 @@ _mm_empty (void)
 #endif
 
 #ifdef USE_X86_MMX
+# ifdef __SUNPRO_C
+#  include <xmmintrin.h>
+# else
 /* We have to compile with -msse to use xmmintrin.h, but that causes SSE
  * instructions to be generated that we don't want. Just duplicate the
  * functions we want to use.  */
@@ -82,6 +85,7 @@ _mm_shuffle_pi16 (__m64 __A, int8_t const __N)
 
     return ret;
 }
+# endif
 #endif
 
 #define _MM_SHUFFLE(fp3,fp2,fp1,fp0) \
