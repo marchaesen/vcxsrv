@@ -51,11 +51,6 @@
 #define XCB_REPLY 1
 #define XCB_XGE_EVENT 35
 
-/* required for compiling for Win32 using MinGW */
-#ifndef MSG_WAITALL
-#define MSG_WAITALL 0
-#endif
-
 struct event_list {
     xcb_generic_event_t *event;
     struct event_list *next;
@@ -269,7 +264,7 @@ static int read_block(const int fd, void *buf, const ssize_t len)
     int done = 0;
     while(done < len)
     {
-        int ret = recv(fd, ((char *) buf) + done, len - done,MSG_WAITALL);
+        int ret = recv(fd, ((char *) buf) + done, len - done, 0);
         if(ret > 0)
             done += ret;
 #ifndef _WIN32
@@ -661,7 +656,7 @@ void _xcb_in_replies_done(xcb_connection_t *c)
 
 int _xcb_in_read(xcb_connection_t *c)
 {
-    int n = recv(c->fd, c->in.queue + c->in.queue_len, sizeof(c->in.queue) - c->in.queue_len,MSG_WAITALL);
+    int n = recv(c->fd, c->in.queue + c->in.queue_len, sizeof(c->in.queue) - c->in.queue_len, 0);
     if(n > 0)
         c->in.queue_len += n;
     while(read_packet(c))

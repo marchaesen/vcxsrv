@@ -336,7 +336,7 @@ static __inline__ __m64 ldq_u(uint64_t *p)
 #endif
 }
 
-static __inline__ uint32_t ldl_u(uint32_t *p)
+static __inline__ uint32_t ldl_u(const uint32_t *p)
 {
 #ifdef USE_X86_MMX
     /* x86's alignment restrictions are very relaxed. */
