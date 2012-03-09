@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 #
 # $Id $
 #
@@ -53,5 +54,7 @@ $(ALIAS_FILES):
 	touch $(ALIAS_FILES)
 
 CLEANFILES = $(ALIAS_FILES)
+
+DISTCLEANFILES = $(TARG)
 
 MAINTAINERCLEANFILES = $(TARG)
