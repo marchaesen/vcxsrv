@@ -33,7 +33,7 @@ dnl This is the package version number, not the shared library
 dnl version.  This same version number must appear in fontconfig/fontconfig.h
 dnl Yes, it is a pain to synchronize version numbers.  Unfortunately, it's
 dnl not possible to extract the version number here from fontconfig.h
-AM_INIT_AUTOMAKE(fontconfig, 2.8.90)
+AM_INIT_AUTOMAKE(fontconfig, 2.9.0)
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
 dnl libtool versioning
@@ -41,11 +41,11 @@ dnl libtool versioning
 dnl bump revision when fixing bugs
 dnl bump current and age, reset revision to zero when adding APIs
 dnl bump current, leave age, reset revision to zero when changing/removing APIS
-LIBT_CURRENT=5
-LIBT_REVISION=4
+LIBT_CURRENT=6
+LIBT_REVISION=0
 AC_SUBST(LIBT_CURRENT)
 AC_SUBST(LIBT_REVISION)
-LIBT_AGE=4
+LIBT_AGE=5
 
 LIBT_VERSION_INFO="$LIBT_CURRENT:$LIBT_REVISION:$LIBT_AGE"
 AC_SUBST(LIBT_VERSION_INFO)

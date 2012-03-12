@@ -1,9 +1,0 @@
-// Put any otherwise normal keys that you don't want to repeat in
-// this file
-
-default partial xkb_compatibility "norepeat"  {
-    interpret Return {
-	action= NoAction();
-	repeat= False;
-    };
-};

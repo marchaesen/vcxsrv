@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if git status -a > /dev/null; then
+if [ "x`git status -s -uno`" != "x" ]; then
 	echo 'Uncommited changes in repository' 1>&2
 	exit 1
 fi

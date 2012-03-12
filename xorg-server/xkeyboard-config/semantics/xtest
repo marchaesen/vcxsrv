@@ -1,6 +1,0 @@
-default xkb_semantics "xtest" {
-
-xkb_types		{ include "basic" 	};
-xkb_compatibility	{ include "xtest"	};
-
-};

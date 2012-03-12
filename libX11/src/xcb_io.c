@@ -478,9 +478,9 @@ void _XSend(Display *dpy, const char *data, long size)
 
 	vec[0].iov_base = dpy->buffer;
 	vec[0].iov_len = dpy->bufptr - dpy->buffer;
-	vec[1].iov_base = (caddr_t) data;
+	vec[1].iov_base = (char *)data;
 	vec[1].iov_len = size;
-	vec[2].iov_base = (caddr_t) pad;
+	vec[2].iov_base = (char *)pad;
 	vec[2].iov_len = -size & 3;
 
 	for(ext = dpy->flushes; ext; ext = ext->next_flush)

@@ -71,7 +71,7 @@ $(srcdir)/ChangeLog:
 	if test -d "$(srcdir)/.git"; then \
 	  (GIT_DIR=$(top_srcdir)/.git ./missing --run git log --stat) | fmt --split-only > $@.tmp \
 	  && mv -f $@.tmp $@ \
-	  || ($(RM) $@.tmp; \
+	  || (rm -f $@.tmp; \
 	      echo Failed to generate ChangeLog, your ChangeLog may be outdated >&2; \
 	      (test -f $@ || echo git-log is required to generate this file >> $@)); \
 	else \
@@ -89,7 +89,7 @@ fonts.conf: fonts.conf.in Makefile
 		-e 's,@FC_FONTPATH\@,$(FC_FONTPATH),g' \
 		-e 's,@PACKAGE\@,$(PACKAGE),g' \
 		-e 's,@VERSION\@,$(VERSION),g' \
-		$< > $@.tmp && \
+		$(srcdir)/$@.in > $@.tmp && \
 	mv $@.tmp $@
 
 install-data-local: fonts.conf

@@ -1,6 +1,0 @@
-The keymap component provides a way how to set up one pre-defined keyboard
-mapping from a given set. It has been obsoleted by 'rules' component which
-is simplier and more flexible. The directory is preserved for compatibility
-reasons. Avoid using it if it is possible.
-
-The keymap files are in .xkm format and useful when using xkbcomp.  

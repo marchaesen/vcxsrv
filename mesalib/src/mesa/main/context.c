@@ -759,6 +759,7 @@ init_attrib_groups(struct gl_context *ctx)
    _mesa_init_depth( ctx );
    _mesa_init_debug( ctx );
    _mesa_init_display_list( ctx );
+   _mesa_init_errors( ctx );
    _mesa_init_eval( ctx );
    _mesa_init_fbobjects( ctx );
    _mesa_init_feedback( ctx );
@@ -1136,6 +1137,8 @@ _mesa_free_context_data( struct gl_context *ctx )
 
    /* needs to be after freeing shared state */
    _mesa_free_display_list_data(ctx);
+
+   _mesa_free_errors_data(ctx);
 
    if (ctx->Extensions.String)
       free((void *) ctx->Extensions.String);

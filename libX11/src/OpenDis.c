@@ -127,28 +127,9 @@ XOpenDisplay (
  */
 
 	if(!_XConnectXCB(dpy, display, &iscreen)) {
-		/* Try falling back on other transports if no transport specified */
-		const char *slash = strrchr(display_name, '/');
-		if(slash == NULL) {
-			const char *protocols[] = {"local", "unix", "tcp", "inet6", "inet", NULL};
-			const char **s;
-			size_t buf_size = strlen(display_name) + 7; // max strlen + 2 (null + /)
-			char *buf = Xmalloc(buf_size * sizeof(char));
-
-			if(buf) {
-				for(s = protocols; buf && *s; s++) {
-					snprintf(buf, buf_size, "%s/%s", *s, display_name);
-					if(_XConnectXCB(dpy, buf, &iscreen))
-						goto fallback_success;
-				}
-				Xfree(buf);
-			}
-		}
-
 		OutOfMemory(dpy);
 		return NULL;
 	}
-fallback_success:
 
 	/* Initialize as much of the display structure as we can.
 	 * Initialize pointers to NULL so that XFreeDisplayStructure will

@@ -3186,6 +3186,70 @@ struct gl_dlist_state
    } Current;
 };
 
+/**
+ * An error, warning, or other piece of debug information for an application
+ * to consume via GL_ARB_debug_output.
+ */
+struct gl_debug_msg
+{
+   GLenum source;
+   GLenum type;
+   GLuint id;
+   GLenum severity;
+   GLsizei length;
+   GLcharARB *message;
+};
+
+typedef enum {
+   API_ERROR_UNKNOWN,
+   API_ERROR_COUNT
+} gl_api_error;
+
+typedef enum {
+   WINSYS_ERROR_UNKNOWN,
+   WINSYS_ERROR_COUNT
+} gl_winsys_error;
+
+typedef enum {
+   SHADER_ERROR_UNKNOWN,
+   SHADER_ERROR_COUNT
+} gl_shader_error;
+
+typedef enum {
+   OTHER_ERROR_UNKNOWN,
+   OTHER_ERROR_OUT_OF_MEMORY,
+   OTHER_ERROR_COUNT
+} gl_other_error;
+
+struct gl_client_namespace
+{
+   struct _mesa_HashTable *IDs;
+   unsigned ZeroID; /* a HashTable won't take zero, so store its state here */
+   struct simple_node Severity[3]; /* lists of IDs in the hash table */
+};
+
+struct gl_client_debug
+{
+   GLboolean Defaults[3][2][6]; /* severity, source, type */
+   struct gl_client_namespace Namespaces[2][6]; /* source, type */
+};
+
+struct gl_debug_state
+{
+   GLDEBUGPROCARB Callback;
+   GLvoid *CallbackData;
+   GLboolean SyncOutput;
+   GLboolean ApiErrors[API_ERROR_COUNT];
+   GLboolean WinsysErrors[WINSYS_ERROR_COUNT];
+   GLboolean ShaderErrors[SHADER_ERROR_COUNT];
+   GLboolean OtherErrors[OTHER_ERROR_COUNT];
+   struct gl_client_debug ClientIDs;
+   struct gl_debug_msg Log[MAX_DEBUG_LOGGED_MESSAGES];
+   GLint NumMessages;
+   GLint NextMsg;
+   GLint NextMsgLength; /* redundant, but copied here from Log[NextMsg].length
+                           for the sake of the offsetof() code in get.c */
+};
 
 /**
  * Enum for the OpenGL APIs we know about and may support.
@@ -3350,6 +3414,9 @@ struct gl_context
     */
    const char *ErrorDebugFmtString;
    GLuint ErrorDebugCount;
+
+   /* GL_ARB_debug_output */
+   struct gl_debug_state Debug;
 
    GLenum RenderMode;        /**< either GL_RENDER, GL_SELECT, GL_FEEDBACK */
    GLbitfield NewState;      /**< bitwise-or of _NEW_* flags */

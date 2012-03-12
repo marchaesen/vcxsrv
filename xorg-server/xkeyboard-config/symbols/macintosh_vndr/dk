@@ -46,14 +46,6 @@ xkb_symbols "basic" {
     include "level3(ralt_switch)"
 };
 
-
-partial default alphanumeric_keys 
-xkb_symbols "full" {
-    include "iso9995-3(full)"
-    include "dk(basic)"
-};
-
-
 partial alphanumeric_keys 
 xkb_symbols "nodeadkeys" {
     include "macintosh_vndr/dk(basic)"

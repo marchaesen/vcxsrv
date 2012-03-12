@@ -90,11 +90,6 @@ geometry/sgi_vndr/Makefile
 keycodes/Makefile
 keycodes/digital_vndr/Makefile
 keycodes/sgi_vndr/Makefile
-keymap/Makefile
-keymap/digital_vndr/Makefile
-keymap/sgi_vndr/Makefile
-keymap/sun_vndr/Makefile
-semantics/Makefile
 rules/Makefile
 rules/bin/Makefile
 rules/compat/Makefile
