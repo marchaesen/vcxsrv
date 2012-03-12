@@ -1,4 +1,32 @@
 
+CHANGES BETWEEN 2.4.8 and 2.4.9
+
+  I. IMPORTANT BUG FIXES
+
+    - Another round of fixes to better handle invalid fonts.   Many of
+      them are vulnerabilities  (see CVE-2012-1126 up to CVE-2012-1144
+      and SA48320) so all users should upgrade.
+
+
+  II. MISCELLANEOUS
+
+    - The `ENCODING -1 <n>' format of BDF fonts is now supported.
+
+    - For BDF fonts,  support for the whole Unicode encoding range has
+      been added.
+
+    - Better TTF support for x_ppem != y_ppem.
+
+    - `FT_Get_Advances' sometimes returned bogus values.
+
+    - The  demo  programs  no  longer  recognize  and  handle  default
+      suffixes; you now have to always specify the complete font name.
+
+    - Better rendering and LCD mode cycling added to ftview.
+
+
+======================================================================
+
 CHANGES BETWEEN 2.4.7 and 2.4.8
 
   I. IMPORTANT BUG FIXES
@@ -3601,7 +3629,7 @@ Extensions support:
 
 ------------------------------------------------------------------------
 
-Copyright 2000-2011 by
+Copyright 2000-2012 by
 David Turner, Robert Wilhelm, and Werner Lemberg.
 
 This  file  is  part  of the  FreeType  project, and may  only be  used,
