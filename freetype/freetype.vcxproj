@@ -203,7 +203,9 @@
     <ClCompile Include="src\autofit\aflatin.c" />
     <ClCompile Include="src\autofit\afloader.c" />
     <ClCompile Include="src\autofit\afmodule.c" />
+    <ClCompile Include="src\base\ftbitmap.c" />
     <ClCompile Include="src\base\ftlcdfil.c" />
+    <ClCompile Include="src\base\ftsynth.c" />
     <ClCompile Include="src\psaux\afmparse.c" />
     <ClCompile Include="src\bdf\bdfdrivr.c" />
     <ClCompile Include="src\bdf\bdflib.c" />

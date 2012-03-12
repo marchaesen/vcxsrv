@@ -191,6 +191,12 @@
     <ClCompile Include="src\base\ftlcdfil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\base\ftsynth.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\base\ftbitmap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\freetype\freetype.h">
