@@ -87,6 +87,7 @@ extern _X_INTERNAL PURE FASTCALL GLint __glGetTexParameterfv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetTexParameteriv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetTexLevelParameterfv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetTexLevelParameteriv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetPointerv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glColorTableParameterfv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glColorTableParameteriv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetColorTableParameterfv_size(GLenum);

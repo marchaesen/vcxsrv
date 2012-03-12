@@ -599,6 +599,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_OCCLUSION_TEST_HP:
         case GL_OCCLUSION_TEST_RESULT_HP:
         case GL_LIGHT_MODEL_COLOR_CONTROL:
+        case GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH_ARB:
         case GL_RESET_NOTIFICATION_STRATEGY_ARB:
         case GL_CURRENT_FOG_COORD:
         case GL_FOG_COORDINATE_ARRAY_TYPE:
@@ -708,6 +709,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_MATRIX_INDEX_ARRAY_TYPE_ARB:
         case GL_MATRIX_INDEX_ARRAY_STRIDE_ARB:
         case GL_COMPARE_REF_DEPTH_TO_TEXTURE_EXT:
+        case GL_TEXTURE_CUBE_MAP_SEAMLESS:
         case GL_POINT_SPRITE_ARB:
 /*      case GL_POINT_SPRITE_NV:*/
         case GL_POINT_SPRITE_R_MODE_NV:
@@ -726,7 +728,6 @@ __glGetBooleanv_size( GLenum e )
         case GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING_ARB:
         case GL_FOG_COORDINATE_ARRAY_BUFFER_BINDING_ARB:
         case GL_WEIGHT_ARRAY_BUFFER_BINDING_ARB:
-        case GL_TEXTURE_CUBE_MAP_SEAMLESS:
         case GL_MAX_ARRAY_TEXTURE_LAYERS_EXT:
         case GL_STENCIL_TEST_TWO_SIDE_EXT:
         case GL_ACTIVE_STENCIL_FACE_EXT:
@@ -744,6 +745,9 @@ __glGetBooleanv_size( GLenum e )
         case GL_MAX_SAMPLES:
 /*      case GL_MAX_SAMPLES_EXT:*/
         case GL_MAX_SERVER_WAIT_TIMEOUT:
+        case GL_MAX_DEBUG_MESSAGE_LENGTH_ARB:
+        case GL_MAX_DEBUG_LOGGED_MESSAGES_ARB:
+        case GL_DEBUG_LOGGED_MESSAGES_ARB:
         case GL_RASTER_POSITION_UNCLIPPED_IBM:
             return 1;
         case GL_SMOOTH_POINT_SIZE_RANGE:
@@ -910,6 +914,17 @@ __glGetTexLevelParameterfv_size( GLenum e )
 /*      case GL_TEXTURE_DEPTH_SIZE_ARB:*/
         case GL_TEXTURE_STENCIL_SIZE:
 /*      case GL_TEXTURE_STENCIL_SIZE_EXT:*/
+            return 1;
+        default: return 0;
+    }
+}
+
+_X_INTERNAL PURE FASTCALL GLint
+__glGetPointerv_size( GLenum e )
+{
+    switch( e ) {
+        case GL_DEBUG_CALLBACK_FUNCTION_ARB:
+        case GL_DEBUG_CALLBACK_USER_PARAM_ARB:
             return 1;
         default: return 0;
     }
