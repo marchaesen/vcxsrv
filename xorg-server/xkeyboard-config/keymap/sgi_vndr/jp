@@ -1,7 +1,0 @@
-default xkb_keymap "indy" {
-    xkb_keycodes	{ include "sgi_vndr/indy(jp106)"			};
-    xkb_types		{ include "default"				};
-    xkb_compatibility	{ include "default"				};
-    xkb_symbols 	{ include "us(pc101)+sgi_vndr/jp"			};
-    xkb_geometry	{ include "sgi_vndr/indy(jp106)"			};
-};

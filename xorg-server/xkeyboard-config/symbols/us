@@ -1129,6 +1129,8 @@ xkb_symbols "hbs" {
 
   key <TLDE> { [ grave, asciitilde ] };
   key <AE06> { [ 6, dead_caron, asciicircum, asciicircum ] };
+  key <AE08> { [ 8, asterisk, multiply, division ] };
+  key <AE11> { [ minus, underscore, endash, emdash ] };
   key <AC09> { [ l, L, U1C9, U1C8 ] };
   key <AB06> { [ n, N, U1CC, U1CB ] };
   key <AB01> { [ z, Z, U1C6, U1C5 ] };
@@ -1136,8 +1138,8 @@ xkb_symbols "hbs" {
   key <AC03> { [ d, D, dstroke, Dstroke ] };
   key <AC11> { [ dead_acute, quotedbl, apostrophe, apostrophe ] };
   key <SPCE> { [ space, space, nobreakspace, nobreakspace ] };
-  key <AB08> { [ comma, less, NoSymbol, guillemotright ] };
-  key <AB09> { [ period, greater, NoSymbol, guillemotleft ] };
+  key <AB08> { [ comma, less, U3003, guillemotright ] };
+  key <AB09> { [ period, greater, ellipsis, guillemotleft ] };
 
   include "level3(ralt_switch)"
 };

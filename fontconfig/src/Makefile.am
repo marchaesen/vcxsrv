@@ -164,4 +164,4 @@ fontconfig.def: $(PUBLIC_FILES) $(PUBLIC_FT_FILES)
 	sort; \
 	echo LIBRARY libfontconfig-@LIBT_CURRENT_MINUS_AGE@.dll; \
 	echo VERSION @LIBT_CURRENT@.@LIBT_REVISION@) >$@
-	@ ! grep -q FcERROR $@ || ($(RM) $@; false)
+	@ ! grep -q FcERROR $@ || (rm $@; false)

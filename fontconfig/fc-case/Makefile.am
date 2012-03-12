@@ -33,10 +33,8 @@ noinst_PROGRAMS=fc-case
 
 noinst_HEADERS=$(TARG)
 
-fc_case_SRCS= \
-	fc-case.c \
-	fccaseint.h \
-	fccaseread.c
+fc_case_SOURCES= \
+	fc-case.c
 
 CASEFOLDING=CaseFolding.txt
 SCASEFOLDING=${top_srcdir}/fc-case/CaseFolding.txt
@@ -48,8 +46,8 @@ $(TARG): $(STMPL) fc-case.c $(SCASEFOLDING)
 	@echo Warning: cannot rebuild $(TARG) when cross-compiling
 else
 $(TARG): $(STMPL) fc-case$(EXEEXT) $(SCASEFOLDING)
-	$(AM_V_GEN) $(RM) $(TARG); \
-	./fc-case$(EXEEXT) $(SCASEFOLDING) < $(STMPL) > $(TARG).tmp && \
+	-@rm $(TARG)
+	$(AM_V_GEN) $(builddir)/fc-case$(EXEEXT) $(SCASEFOLDING) < $(STMPL) > $(TARG).tmp && \
 	mv $(TARG).tmp $(TARG)
 endif
 

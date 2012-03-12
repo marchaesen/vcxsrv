@@ -24,9 +24,7 @@
 #include <freetype/ftoutln.h>
 #include <freetype/ftlcdfil.h>
 
-#if HAVE_FT_GLYPHSLOT_EMBOLDEN
 #include <freetype/ftsynth.h>
-#endif
 
 /*
  * Validate the memory info for a font
@@ -434,12 +432,10 @@ XftFontLoadGlyphs (Display	    *dpy,
 
 	glyphslot = face->glyph;
 
-#if HAVE_FT_GLYPHSLOT_EMBOLDEN
 	/*
 	 * Embolden if required
 	 */
 	if (font->info.embolden) FT_GlyphSlot_Embolden(glyphslot);
-#endif
 
 	/*
 	 * Compute glyph metrics from FreeType information

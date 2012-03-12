@@ -1106,6 +1106,8 @@
     
     <type name="void"    size="1"/>
 
+    <type name="DEBUGPROCARB" size="4" pointer="true"/>
+
     <function name="NewList" offset="0">
         <param name="list" type="GLuint"/>
         <param name="mode" type="GLenum"/>
@@ -7924,6 +7926,8 @@
 <xi:include href="ARB_geometry_shader4.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="ARB_color_buffer_float.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<xi:include href="ARB_debug_output.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="ARB_robustness.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
