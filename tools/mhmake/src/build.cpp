@@ -771,12 +771,12 @@ string mhmakefileparser::GetFullCommand(const string &CommandIn)
   return pFound->second;
 }
 
-static void CommandSep(const string &Command, int &EndPos, int &NextBegin)
+static void CommandSep(const string &Command, unsigned &EndPos, unsigned &NextBegin)
 {
   while (1)
   {
     EndPos=Command.find('&',NextBegin);
-    if (EndPos==string::npos || !EndPos)
+    if (EndPos==(unsigned)string::npos || !EndPos)
     {
       // When there is only one command return that command, so we run %comspec% commands
       // always via a temporary batch file. This is to avoid problems when quotes and pipe
@@ -790,15 +790,15 @@ static void CommandSep(const string &Command, int &EndPos, int &NextBegin)
     {
       continue;
     }
-    if (NextBegin!=Command.length())
+    if (NextBegin<Command.length())
     {
       C=Command[NextBegin];
       if (strchr("|<>",C))
       {
         continue;
       }
-    }
     while (strchr(" \t|<>",Command[NextBegin])) NextBegin++;
+    }
     while (strchr(" \t|<>",Command[EndPos])) EndPos--;
     break;
   };
@@ -817,30 +817,41 @@ mh_pid_t mhmakefileparser::OsExeCommand(const string &Command, const string &Par
 
   if (Command.substr(0,ComSpec.size())==ComSpec)
   {
+    static char Filename[MAX_PATH];
+    static char *pFilenameOffset;
+
+    if (pFilenameOffset==NULL)
+    {
+      const char *pDir=getenv("TEMP");
+      if (!pDir)
+        pDir=getenv("TMP");
+      if (!pDir)
+        pDir=m_MakeDir->GetFullFileName().c_str();
+      sprintf(Filename, "%s\\tmp%d_", pDir, GetCurrentProcessId());
+      pFilenameOffset=Filename+strlen(Filename);
+    }
+
     string tmpCommand=Command.substr(ComSpec.size(),Command.size());
     FullCommandLine=ComSpec;
 
     string ComspecCommandLine=tmpCommand+Params;
-    int NextBegin=0;
-    int EndPos=0;
+    unsigned NextBegin=0;
+    unsigned EndPos=0;
     CommandSep(ComspecCommandLine,EndPos,NextBegin);
       // We have multiple commands so create an temporary batch file
-    FILE *pFile=(FILE*)1;
-    char Filename[MAX_PATH];
-    int Nr=1;
+    FILE *pFile;
     while (1)
     {
-      sprintf(Filename,"%s\\tmp%d.bat",m_MakeDir->GetFullFileName().c_str(),Nr);
+      sprintf(pFilenameOffset,"%d.bat",rand());
       pFile=fopen(Filename,"r");
       if (!pFile)
         break;
       fclose(pFile);
-      Nr++;
     }
     pFile=fopen(Filename,"w");
     fprintf(pFile,"@echo off\n");
-    int PrevPos=0;
-    while (EndPos!=string::npos)
+    unsigned PrevPos=0;
+    while (EndPos!=(unsigned)string::npos)
     {
       string SubCommand=ComspecCommandLine.substr(PrevPos,EndPos-PrevPos+1);
       fprintf(pFile,"%s\n",SubCommand.c_str());
@@ -1144,9 +1155,9 @@ string EscapeQuotes(const string &Params)
     string ToReplace(Quote);
     int Inc=1;
 
-    if (Pos==string::npos)
+    if (Pos==(int)string::npos)
     {
-      if (Pos2==string::npos)
+      if (Pos2==(int)string::npos)
         break;
       Pos=Pos2;
       ToReplace=SemiColon;
@@ -1154,7 +1165,7 @@ string EscapeQuotes(const string &Params)
     }
     else
     {
-      if (Pos2!=string::npos && Pos2<Pos)
+      if (Pos2!=(int)string::npos && Pos2<Pos)
       {
         Pos=Pos2;
         ToReplace=SemiColon;
@@ -1169,6 +1180,29 @@ string EscapeQuotes(const string &Params)
   return Ret;
 }
 #endif
+
+///////////////////////////////////////////////////////////////////////////////
+static bool NeedsShell(const string &Params)
+{
+  unsigned i;
+  int Detect=1;
+  for (i=0; i<Params.size(); i++)
+  {
+    char Char=Params[i];
+    if (Char=='"')
+    {
+      Detect=1-Detect;
+    }
+    else if (Detect)
+    {
+      if (strchr("<>|&",Char))
+      {
+        break;
+      }
+    }
+  }
+  return i!=Params.size();
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 mh_pid_t mhmakefileparser::ExecuteCommand(string Command, bool &IgnoreError, string *pOutput)
@@ -1218,15 +1252,7 @@ mh_pid_t mhmakefileparser::ExecuteCommand(string Command, bool &IgnoreError, str
   Command=Command.substr(StartCommandPos,EndCommandPos-StartCommandPos);
 
   // If we have special characters in the params we always call the command via the shell
-  unsigned i;
-  for (i=0; i<Params.size(); i++)
-  {
-    if (strchr("<>|&",Params[i]))
-    {
-      break;
-    }
-  }
-  if (i==Params.size())
+  if (!NeedsShell(Params))
   {
     if (Command!="del" && Command!="touch" && Command!="copy" && Command!="echo" && Command!="mkdir")
       Command=GetFullCommand(Command);
@@ -1488,7 +1514,7 @@ mh_time_t mhmakefileparser::StartBuildTarget(fileinfo* pTarget,bool bCheckTarget
         #endif
         if (ImplicitRuleDepsIt==ResultIt->first.end()) // All deps exists
         {
-          ThisYoungestDate=YoungestDate;
+          YoungestDate=ThisYoungestDate;
           pRule=ResultIt->second;
           pTarget->InsertDeps(ResultIt->first);
           pTarget->SetRule(pRule);  /* This is an implicit rule so do not add the target */

@@ -42,7 +42,7 @@ string QuoteFileName(const string &Filename)
 #else
   int Pos=0;
   /* Escape the spaces with a backslash */
-  while ((Pos=Ret.find_first_of(' ',Pos))!=string::npos)
+  while ((Pos=Ret.find_first_of(' ',Pos))!=(int)string::npos)
   {
     Ret=Ret.replace(Pos,1,"\\ ");
     Pos+=2;

@@ -41,6 +41,7 @@ funcdef mhmakefileparser::m_FunctionsDef[]= {
  ,{"dir",        &mhmakefileparser::f_dir}
  ,{"shell",      &mhmakefileparser::f_shell}
  ,{"relpath",    &mhmakefileparser::f_relpath}
+ ,{"realpath",   &mhmakefileparser::f_realpath}
  ,{"toupper",    &mhmakefileparser::f_toupper}
  ,{"tolower",    &mhmakefileparser::f_tolower}
  ,{"exist",      &mhmakefileparser::f_exist}
@@ -826,6 +827,24 @@ static string relpath(const string &FileName,void *pvDir)
 string mhmakefileparser::f_relpath(const string & FileNames) const
 {
   return IterList(ExpandExpression(FileNames),relpath,(void*)&m_MakeDir);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+static string realpath(const string &FileName,void *pvDir)
+{
+  const fileinfo *pDir=*(const fileinfo **)pvDir;
+  const fileinfo *pPath=GetFileInfo(FileName,pDir);
+  if (pPath->Exists())
+    return pPath->GetQuotedFullFileName();
+  else
+    return "";
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Make a path name relative to the current directory
+string mhmakefileparser::f_realpath(const string & FileNames) const
+{
+  return IterList(ExpandExpression(FileNames),realpath,(void*)&m_MakeDir);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -290,6 +290,7 @@ public:
   string f_dir(const string & Arg) const;
   string f_shell(const string & Arg) const;
   string f_relpath(const string & Arg) const;
+  string f_realpath(const string & Arg) const;
   string f_toupper(const string & Arg) const;
   string f_tolower(const string & Arg) const;
   string f_exist(const string & Arg) const;

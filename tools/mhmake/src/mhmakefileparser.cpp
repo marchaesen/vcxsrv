@@ -517,7 +517,7 @@ void mhmakefileparser::GetAutoDeps(const fileinfo *pFirstDep, deps_t &Autodeps)
       Type[0]='"';
       if (Ret=='i')
       {
-        Ret=fscanf(pIn,"mport %254[^\"\n]",IncludeList);
+        Ret=fscanf(pIn,"mport%*[ \t]%254[^\"\n]",IncludeList);
         if (Ret==1)
         {
           if (IncludeList[0]!='*')
@@ -552,10 +552,10 @@ void mhmakefileparser::GetAutoDeps(const fileinfo *pFirstDep, deps_t &Autodeps)
         if (Ret=='#')
         {
           Ret=fscanf(pIn,"%*[ \t]");
-          Ret=fscanf(pIn,"include %1[\"<]%254[^>\"]%*[\">]",(char*)&Type,IncludeList);
+          Ret=fscanf(pIn,"include%*[ \t]%1[\"<]%254[^>\"]%*[\">]",(char*)&Type,IncludeList);
         }
         else
-          Ret=fscanf(pIn,"import %1[\"<]%254[^>\"]%*[\">]",(char*)&Type,IncludeList);
+          Ret=fscanf(pIn,"import%*[ \t]%1[\"<]%254[^>\"]%*[\">]",(char*)&Type,IncludeList);
         if (Ret==2)
         {
           bFound=true;

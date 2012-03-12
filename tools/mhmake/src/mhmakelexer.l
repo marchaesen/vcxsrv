@@ -59,7 +59,7 @@ static void SaveMakMd5(fileinfo *pTarget)
 static void ReplaceCurlyBraces(string &String)
 {
   int Pos=String.find_first_of('{',0);
-  if (Pos!=string::npos)
+  if (Pos!=(int)string::npos)
   {
     /* if not { found, } will not be there eather (or it is a valid syntax, so it may generate an error) */
     do
@@ -67,9 +67,9 @@ static void ReplaceCurlyBraces(string &String)
       String.replace(Pos,1,1,'(');
       Pos=String.find_first_of('{',Pos);
     }
-    while (Pos!=string::npos);
+    while (Pos!=(int)string::npos);
     Pos=0;
-    while ((Pos=String.find_first_of('}',Pos))!=string::npos)
+    while ((Pos=String.find_first_of('}',Pos))!=(int)string::npos)
       String.replace(Pos,1,1,')');
         }
 }
@@ -661,7 +661,7 @@ export {
 }
 
  /*---------------------------------------------------------------------------*/
-([a-zA-Z0-9\\\._\~\-\+%\@<&;/\*\|]|\\\ |\\#)+\\[ \t\r]*\n  {
+([a-zA-Z0-9\\\._\~\-\+%\@<&;/\*\|]|\\\ |\\#|\\\")+\\[ \t\r]*\n  {
   size_t EndIndex=yyleng;
   while (strchr(" \t\r\n\\",yytext[--EndIndex]));
   yyless(EndIndex+1);
@@ -671,14 +671,14 @@ export {
   return yy::mhmakeparser::token::STRING;
 }
 
-([a-zA-Z0-9\\\._\~\-\+%\@<&;/\*\|]|\\\ |\\#)+\+=  {
+([a-zA-Z0-9\\\._\~\-\+%\@<&;/\*\|]|\\\ |\\#|\\\")+\+=  {
   PRINTF(("%s %d: STRING: %s\n",m_InputFileName.c_str(),lineno(),yytext));
   yyless(yyleng-2);
   yylval->theString=(const char *)yytext;
   return yy::mhmakeparser::token::STRING;
 }
 
-([a-zA-Z0-9\\\._\~\-\+%\@<&;/\*\|\[\]]|\\\ |\\#)+  {
+([a-zA-Z0-9\\\._\~\-\+%\@<&;/\*\|\[\]]|\\\ |\\#|\\\")+  {
   PRINTF(("%s %d: STRING: %s\n",m_InputFileName.c_str(),lineno(),yytext));
   yylval->theString=(const char *)yytext;
   return yy::mhmakeparser::token::STRING;
