@@ -2,7 +2,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# Copyright 2001-2011 by
+# Copyright 2001-2012 by
 # David Turner, Robert Wilhelm, and Werner Lemberg.
 #
 # This file is part of the FreeType project, and may only be used, modified,
@@ -11,13 +11,13 @@
 # indicate that you have read the license and understand and accept it
 # fully.
 
-AC_INIT([FreeType], [2.4.8], [freetype@nongnu.org], [freetype])
+AC_INIT([FreeType], [2.4.9], [freetype@nongnu.org], [freetype])
 AC_CONFIG_SRCDIR([ftconfig.in])
 
 
 # Don't forget to update docs/VERSION.DLL!
 
-version_info='14:0:8'
+version_info='14:1:8'
 AC_SUBST([version_info])
 ft_version=`echo $version_info | tr : .`
 AC_SUBST([ft_version])
@@ -124,7 +124,7 @@ AC_CHECK_SIZEOF([long])
 
 # check whether cpp computation of size of int and long in ftconfig.in works
 
-AC_MSG_CHECKING([cpp computation of bit length in ftconfig.in works])
+AC_MSG_CHECKING([whether cpp computation of bit length in ftconfig.in works])
 orig_CPPFLAGS="${CPPFLAGS}"
 CPPFLAGS="-I${srcdir} -I. ${CPPFLAGS}"
 ac_clean_files="ft2build.h ftoption.h ftstdlib.h"
@@ -330,8 +330,8 @@ if test x$with_old_mac_fonts = xyes; then
       ])],
     [AC_MSG_RESULT([ok])
      ftmac_c='ftmac.c'
-     AC_MSG_CHECKING([OS_INLINE macro is ANSI compatible])
-     orig_CFLAGS="$CFLAGS"
+     AC_MSG_CHECKING([whether OS_INLINE macro is ANSI compatible])
+     orig_CFLAGS="$CFLAGS -DFT_MACINTOSH"
      CFLAGS="$CFLAGS $XX_CFLAGS $XX_ANSIFLAGS"
      AC_COMPILE_IFELSE([
        AC_LANG_PROGRAM([
