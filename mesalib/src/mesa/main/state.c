@@ -370,16 +370,13 @@ update_twoside(struct gl_context *ctx)
 
 
 /*
- * Check polygon state and set DD_TRI_CULL_FRONT_BACK and/or DD_TRI_OFFSET
+ * Check polygon state and set DD_TRI_OFFSET
  * in ctx->_TriangleCaps if needed.
  */
 static void
 update_polygon(struct gl_context *ctx)
 {
-   ctx->_TriangleCaps &= ~(DD_TRI_CULL_FRONT_BACK | DD_TRI_OFFSET);
-
-   if (ctx->Polygon.CullFlag && ctx->Polygon.CullFaceMode == GL_FRONT_AND_BACK)
-      ctx->_TriangleCaps |= DD_TRI_CULL_FRONT_BACK;
+   ctx->_TriangleCaps &= ~DD_TRI_OFFSET;
 
    if (   ctx->Polygon.OffsetPoint
        || ctx->Polygon.OffsetLine
@@ -431,9 +428,6 @@ update_tricaps(struct gl_context *ctx, GLbitfield new_state)
       if (ctx->Polygon.FrontMode != GL_FILL
           || ctx->Polygon.BackMode != GL_FILL)
          ctx->_TriangleCaps |= DD_TRI_UNFILLED;
-      if (ctx->Polygon.CullFlag
-          && ctx->Polygon.CullFaceMode == GL_FRONT_AND_BACK)
-         ctx->_TriangleCaps |= DD_TRI_CULL_FRONT_BACK;
       if (ctx->Polygon.OffsetPoint ||
           ctx->Polygon.OffsetLine ||
           ctx->Polygon.OffsetFill)
@@ -445,16 +439,8 @@ update_tricaps(struct gl_context *ctx, GLbitfield new_state)
     */
    if (ctx->Light.Enabled && ctx->Light.Model.TwoSide)
       ctx->_TriangleCaps |= DD_TRI_LIGHT_TWOSIDE;
-   if (ctx->Light.ShadeModel == GL_FLAT)
-      ctx->_TriangleCaps |= DD_FLATSHADE;
    if (_mesa_need_secondary_color(ctx))
       ctx->_TriangleCaps |= DD_SEPARATE_SPECULAR;
-
-   /*
-    * Stencil
-    */
-   if (ctx->Stencil._TestTwoSide)
-      ctx->_TriangleCaps |= DD_TRI_TWOSTENCIL;
 }
 #endif
 
@@ -534,7 +520,7 @@ _mesa_update_state_locked( struct gl_context *ctx )
    if (new_state & _NEW_PIXEL)
       _mesa_update_pixel( ctx, new_state );
 
-   if (new_state & _DD_NEW_SEPARATE_SPECULAR)
+   if (new_state & _MESA_NEW_SEPARATE_SPECULAR)
       update_separate_specular( ctx );
 
    if (new_state & (_NEW_BUFFERS | _NEW_VIEWPORT))
@@ -551,7 +537,7 @@ _mesa_update_state_locked( struct gl_context *ctx )
 
 #if 0
    if (new_state & (_NEW_POINT | _NEW_LINE | _NEW_POLYGON | _NEW_LIGHT
-                    | _NEW_STENCIL | _DD_NEW_SEPARATE_SPECULAR))
+                    | _NEW_STENCIL | _MESA_NEW_SEPARATE_SPECULAR))
       update_tricaps( ctx, new_state );
 #endif
 

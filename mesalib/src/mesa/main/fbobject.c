@@ -1914,7 +1914,10 @@ reuse_framebuffer_texture_attachment(struct gl_framebuffer *fb,
 
 
 /**
- * Common code called by glFramebufferTexture1D/2D/3DEXT().
+ * Common code called by glFramebufferTexture1D/2D/3DEXT() and
+ * glFramebufferTextureLayerEXT().
+ * Note: glFramebufferTextureLayerEXT() has no textarget parameter so we'll
+ * get textarget=0 in that case.
  */
 static void
 framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target, 
@@ -1924,6 +1927,7 @@ framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
    struct gl_renderbuffer_attachment *att;
    struct gl_texture_object *texObj = NULL;
    struct gl_framebuffer *fb;
+   GLenum maxLevelsTarget;
 
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
@@ -1950,12 +1954,17 @@ framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
       texObj = _mesa_lookup_texture(ctx, texture);
       if (texObj != NULL) {
          if (textarget == 0) {
-            /* XXX what's the purpose of this? */
+            /* If textarget == 0 it means we're being called by
+             * glFramebufferTextureLayer() and textarget is not used.
+             * The only legal texture types for that function are 3D and
+             * 1D/2D arrays textures.
+             */
             err = (texObj->Target != GL_TEXTURE_3D) &&
                 (texObj->Target != GL_TEXTURE_1D_ARRAY_EXT) &&
                 (texObj->Target != GL_TEXTURE_2D_ARRAY_EXT);
          }
          else {
+            /* Make sure textarget is consistent with the texture's type */
             err = (texObj->Target == GL_TEXTURE_CUBE_MAP)
                 ? !_mesa_is_cube_face(textarget)
                 : (texObj->Target != textarget);
@@ -1993,8 +2002,9 @@ framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
          }
       }
 
+      maxLevelsTarget = textarget ? textarget : texObj->Target;
       if ((level < 0) ||
-          (level >= _mesa_max_texture_levels(ctx, textarget))) {
+          (level >= _mesa_max_texture_levels(ctx, maxLevelsTarget))) {
          _mesa_error(ctx, GL_INVALID_VALUE,
                      "glFramebufferTexture%sEXT(level)", caller);
          return;
