@@ -3071,40 +3071,16 @@ struct gl_matrix_stack
  * Set in the __struct gl_contextRec::_TriangleCaps bitfield.
  */
 /*@{*/
-#define DD_FLATSHADE                0x1
-#define DD_SEPARATE_SPECULAR        0x2
-#define DD_TRI_CULL_FRONT_BACK      0x4 /* special case on some hw */
-#define DD_TRI_LIGHT_TWOSIDE        0x8
-#define DD_TRI_UNFILLED             0x10
-#define DD_TRI_SMOOTH               0x20
-#define DD_TRI_STIPPLE              0x40
-#define DD_TRI_OFFSET               0x80
-#define DD_LINE_SMOOTH              0x100
-#define DD_LINE_STIPPLE             0x200
-#define DD_POINT_SMOOTH             0x400
-#define DD_POINT_ATTEN              0x800
-#define DD_TRI_TWOSTENCIL           0x1000
-/*@}*/
-
-
-/**
- * \name Define the state changes under which each of these bits might change
- */
-/*@{*/
-#define _DD_NEW_FLATSHADE                _NEW_LIGHT
-#define _DD_NEW_SEPARATE_SPECULAR        (_NEW_LIGHT | _NEW_FOG | _NEW_PROGRAM)
-#define _DD_NEW_TRI_CULL_FRONT_BACK      _NEW_POLYGON
-#define _DD_NEW_TRI_LIGHT_TWOSIDE        _NEW_LIGHT
-#define _DD_NEW_TRI_UNFILLED             _NEW_POLYGON
-#define _DD_NEW_TRI_SMOOTH               _NEW_POLYGON
-#define _DD_NEW_TRI_STIPPLE              _NEW_POLYGON
-#define _DD_NEW_TRI_OFFSET               _NEW_POLYGON
-#define _DD_NEW_LINE_SMOOTH              _NEW_LINE
-#define _DD_NEW_LINE_STIPPLE             _NEW_LINE
-#define _DD_NEW_LINE_WIDTH               _NEW_LINE
-#define _DD_NEW_POINT_SMOOTH             _NEW_POINT
-#define _DD_NEW_POINT_SIZE               _NEW_POINT
-#define _DD_NEW_POINT_ATTEN              _NEW_POINT
+#define DD_SEPARATE_SPECULAR        (1 << 0)
+#define DD_TRI_LIGHT_TWOSIDE        (1 << 1)
+#define DD_TRI_UNFILLED             (1 << 2)
+#define DD_TRI_SMOOTH               (1 << 3)
+#define DD_TRI_STIPPLE              (1 << 4)
+#define DD_TRI_OFFSET               (1 << 5)
+#define DD_LINE_SMOOTH              (1 << 6)
+#define DD_LINE_STIPPLE             (1 << 7)
+#define DD_POINT_SMOOTH             (1 << 8)
+#define DD_POINT_ATTEN              (1 << 9)
 /*@}*/
 
 
@@ -3117,6 +3093,12 @@ struct gl_matrix_stack
                                            _NEW_POINT |		\
                                            _NEW_PROGRAM |	\
                                            _NEW_MODELVIEW)
+
+#define _MESA_NEW_SEPARATE_SPECULAR        (_NEW_LIGHT | \
+                                            _NEW_FOG | \
+                                            _NEW_PROGRAM)
+
+
 /*@}*/
 
 
