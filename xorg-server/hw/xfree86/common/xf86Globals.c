@@ -50,9 +50,9 @@
 DevPrivateKeyRec xf86CreateRootWindowKeyRec;
 DevPrivateKeyRec xf86ScreenKeyRec;
 
-ScrnInfoPtr *xf86Screens = NULL;	/* List of ScrnInfos */
-const unsigned char byte_reversed[256] =
-{
+ScrnInfoPtr *xf86Screens = NULL;        /* List of ScrnInfos */
+
+const unsigned char byte_reversed[256] = {
     0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0,
     0x10, 0x90, 0x50, 0xd0, 0x30, 0xb0, 0x70, 0xf0,
     0x08, 0x88, 0x48, 0xc8, 0x28, 0xa8, 0x68, 0xe8,
@@ -90,49 +90,49 @@ const unsigned char byte_reversed[256] =
 /* Globals that input drivers may access */
 InputInfoPtr xf86InputDevs = NULL;
 
-
 /* Globals that video drivers may not access */
 
 xf86InfoRec xf86Info = {
-    .consoleFd                  = -1,
-    .vtno                       = -1,
-    .lastEventTime              = -1,
-    .vtRequestsPending          = FALSE,
+    .consoleFd = -1,
+    .vtno = -1,
+    .lastEventTime = -1,
+    .vtRequestsPending = FALSE,
 #ifdef sun
-    .vtPendingNum               = -1,
+    .vtPendingNum = -1,
 #endif
-    .dontVTSwitch               = FALSE,
-    .autoVTSwitch               = TRUE,
-    .ShareVTs                   = FALSE,
-    .dontZap                    = FALSE,
-    .dontZoom                   = FALSE,
-    .notrapSignals              = FALSE,
-    .caughtSignal               = FALSE,
-    .currentScreen              = NULL,
+    .dontVTSwitch = FALSE,
+    .autoVTSwitch = TRUE,
+    .ShareVTs = FALSE,
+    .dontZap = FALSE,
+    .dontZoom = FALSE,
+    .notrapSignals = FALSE,
+    .caughtSignal = FALSE,
+    .currentScreen = NULL,
 #ifdef CSRG_BASED
-    .consType                   = -1,
+    .consType = -1,
 #endif
-    .allowMouseOpenFail         = FALSE,
-    .vidModeEnabled             = TRUE,
-    .vidModeAllowNonLocal       = FALSE,
-    .miscModInDevEnabled        = TRUE,
-    .miscModInDevAllowNonLocal  = FALSE,
-    .pixmap24                   = Pix24DontCare,
-    .pix24From                  = X_DEFAULT,
-    .pmFlag                     = TRUE,
-    .log                        = LogNone,
-    .disableRandR               = FALSE,
-    .randRFrom                  = X_DEFAULT,
+    .allowMouseOpenFail = FALSE,
+    .vidModeEnabled = TRUE,
+    .vidModeAllowNonLocal = FALSE,
+    .miscModInDevEnabled = TRUE,
+    .miscModInDevAllowNonLocal = FALSE,
+    .pixmap24 = Pix24DontCare,
+    .pix24From = X_DEFAULT,
+    .pmFlag = TRUE,
+    .log = LogNone,
+    .disableRandR = FALSE,
+    .randRFrom = X_DEFAULT,
 #if defined(CONFIG_HAL) || defined(CONFIG_UDEV) || defined(CONFIG_WSCONS)
-    .forceInputDevices          = FALSE,
-    .autoAddDevices             = TRUE,
-    .autoEnableDevices          = TRUE
+    .forceInputDevices = FALSE,
+    .autoAddDevices = TRUE,
+    .autoEnableDevices = TRUE
 #else
-    .forceInputDevices          = TRUE,
-    .autoAddDevices             = FALSE,
-    .autoEnableDevices          = FALSE
+    .forceInputDevices = TRUE,
+    .autoAddDevices = FALSE,
+    .autoEnableDevices = FALSE
 #endif
 };
+
 const char *xf86ConfigFile = NULL;
 const char *xf86ConfigDir = NULL;
 const char *xf86ModulePath = DEFAULT_MODULE_PATH;
@@ -140,8 +140,9 @@ MessageType xf86ModPathFrom = X_DEFAULT;
 const char *xf86LogFile = DEFAULT_LOGPREFIX;
 MessageType xf86LogFileFrom = X_DEFAULT;
 Bool xf86LogFileWasOpened = FALSE;
-serverLayoutRec xf86ConfigLayout = {NULL, };
-confDRIRec xf86ConfigDRI = {0, };
+serverLayoutRec xf86ConfigLayout = { NULL, };
+confDRIRec xf86ConfigDRI = { 0, };
+
 XF86ConfigPtr xf86configptr = NULL;
 Bool xf86Resetting = FALSE;
 Bool xf86Initialising = FALSE;
@@ -154,12 +155,12 @@ int xf86NumInputDrivers = 0;
 int xf86NumScreens = 0;
 
 const char *xf86VisualNames[] = {
-	"StaticGray",
-	"GrayScale",
-	"StaticColor",
-	"PseudoColor",
-	"TrueColor",
-	"DirectColor"
+    "StaticGray",
+    "GrayScale",
+    "StaticColor",
+    "PseudoColor",
+    "TrueColor",
+    "DirectColor"
 };
 
 /* Parameters set only from the command line */
@@ -170,6 +171,7 @@ Bool xf86bsEnableFlag = FALSE;
 Bool xf86bsDisableFlag = FALSE;
 Bool xf86silkenMouseDisableFlag = FALSE;
 Bool xf86xkbdirFlag = FALSE;
+
 #ifdef HAVE_ACPI
 Bool xf86acpiDisableFlag = FALSE;
 #endif
@@ -182,10 +184,13 @@ int xf86LogVerbose = DEFAULT_LOG_VERBOSE;
 int xf86FbBpp = -1;
 Pix24Flags xf86Pix24 = Pix24DontCare;
 int xf86Depth = -1;
-rgb xf86Weight = {0, 0, 0};
+rgb xf86Weight = { 0, 0, 0 };
+
 Bool xf86FlipPixels = FALSE;
-Gamma xf86Gamma = {0.0, 0.0, 0.0};
+Gamma xf86Gamma = { 0.0, 0.0, 0.0 };
+
 Bool xf86AllowMouseOpenFail = FALSE;
+
 #ifdef XF86VIDMODE
 Bool xf86VidModeDisabled = FALSE;
 Bool xf86VidModeAllowNonLocal = FALSE;

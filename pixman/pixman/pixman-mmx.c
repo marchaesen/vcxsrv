@@ -57,7 +57,7 @@ _mm_empty (void)
 #endif
 
 #ifdef USE_X86_MMX
-# ifdef __SUNPRO_C
+# if (defined(__SUNPRO_C) || defined(_MSC_VER))
 #  include <xmmintrin.h>
 # else
 /* We have to compile with -msse to use xmmintrin.h, but that causes SSE
@@ -88,8 +88,10 @@ _mm_shuffle_pi16 (__m64 __A, int8_t const __N)
 # endif
 #endif
 
+#ifndef _MSC_VER
 #define _MM_SHUFFLE(fp3,fp2,fp1,fp0) \
  (((fp3) << 6) | ((fp2) << 4) | ((fp1) << 2) | (fp0))
+#endif
 
 /* Notes about writing mmx code
  *

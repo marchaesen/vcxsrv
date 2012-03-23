@@ -109,36 +109,36 @@
 #endif
 
 static ModuleDefault ModuleDefaults[] = {
-    {.name = "extmod",   .toLoad = TRUE,    .load_opt=NULL},
+    {.name = "extmod",.toLoad = TRUE,.load_opt = NULL},
 #ifdef DBE
-    {.name = "dbe",      .toLoad = TRUE,    .load_opt=NULL},
+    {.name = "dbe",.toLoad = TRUE,.load_opt = NULL},
 #endif
 #ifdef GLXEXT
-    {.name = "glx",      .toLoad = TRUE,    .load_opt=NULL},
+    {.name = "glx",.toLoad = TRUE,.load_opt = NULL},
 #endif
 #ifdef XRECORD
-    {.name = "record",   .toLoad = TRUE,    .load_opt=NULL},
+    {.name = "record",.toLoad = TRUE,.load_opt = NULL},
 #endif
 #ifdef XF86DRI
-    {.name = "dri",      .toLoad = TRUE,    .load_opt=NULL},
+    {.name = "dri",.toLoad = TRUE,.load_opt = NULL},
 #endif
 #ifdef DRI2
-    {.name = "dri2",     .toLoad = TRUE,    .load_opt=NULL},
+    {.name = "dri2",.toLoad = TRUE,.load_opt = NULL},
 #endif
-    {.name = NULL,       .toLoad = FALSE,   .load_opt=NULL}
+    {.name = NULL,.toLoad = FALSE,.load_opt = NULL}
 };
-
 
 /* Forward declarations */
 static Bool configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen,
-			 int scrnum, MessageType from);
+                         int scrnum, MessageType from);
 static Bool configMonitor(MonPtr monitorp, XF86ConfMonitorPtr conf_monitor);
 static Bool configDevice(GDevPtr devicep, XF86ConfDevicePtr conf_device,
-			 Bool active);
+                         Bool active);
 static Bool configInput(InputInfoPtr pInfo, XF86ConfInputPtr conf_input,
-			MessageType from);
+                        MessageType from);
 static Bool configDisplay(DispPtr displayp, XF86ConfDisplayPtr conf_display);
 static Bool addDefaultModes(MonPtr monitorp);
+
 #ifdef XF86DRI
 static void configDRI(XF86ConfDRIPtr drip);
 #endif
@@ -154,15 +154,15 @@ static void configExtensions(XF86ConfExtensionsPtr conf_ext);
 static char *
 xf86GetPathElem(char **pnt)
 {
-  char *p1;
+    char *p1;
 
-  p1 = *pnt;
-  *pnt = index(*pnt, ',');
-  if (*pnt != NULL) {
-    **pnt = '\0';
-    *pnt += 1;
-  }
-  return p1;
+    p1 = *pnt;
+    *pnt = index(*pnt, ',');
+    if (*pnt != NULL) {
+        **pnt = '\0';
+        *pnt += 1;
+    }
+    return p1;
 }
 
 /*
@@ -178,66 +178,66 @@ xf86GetPathElem(char **pnt)
 static char *
 xf86ValidateFontPath(char *path)
 {
-  char *tmp_path, *out_pnt, *path_elem, *next, *p1, *dir_elem;
-  struct stat stat_buf;
-  int flag;
-  int dirlen;
+    char *tmp_path, *out_pnt, *path_elem, *next, *p1, *dir_elem;
+    struct stat stat_buf;
+    int flag;
+    int dirlen;
 
-  tmp_path = calloc(1,strlen(path)+1);
-  out_pnt = tmp_path;
-  path_elem = NULL;
-  next = path;
-  while (next != NULL) {
-    path_elem = xf86GetPathElem(&next);
-    if (*path_elem == '/') {
-      dir_elem = xnfcalloc(1, strlen(path_elem) + 1);
-      if ((p1 = strchr(path_elem, ':')) != 0)
-	dirlen = p1 - path_elem;
-      else
-	dirlen = strlen(path_elem);
-      strlcpy(dir_elem, path_elem, dirlen + 1);
-      flag = stat(dir_elem, &stat_buf);
-      if (flag == 0)
-	if (!S_ISDIR(stat_buf.st_mode))
-	  flag = -1;
-      if (flag != 0) {
-        xf86Msg(X_WARNING, "The directory \"%s\" does not exist.\n", dir_elem);
-	xf86ErrorF("\tEntry deleted from font path.\n");
-	free(dir_elem);
-	continue;
-      }
-      else {
-	XNFasprintf(&p1, "%s%s", dir_elem, DIR_FILE);
-	flag = stat(p1, &stat_buf);
-	if (flag == 0)
-	  if (!S_ISREG(stat_buf.st_mode))
-	    flag = -1;
-	free(p1);
-	if (flag != 0) {
-	  xf86Msg(X_WARNING,
-		  "`fonts.dir' not found (or not valid) in \"%s\".\n", 
-		  dir_elem);
-	  xf86ErrorF("\tEntry deleted from font path.\n");
-	  xf86ErrorF("\t(Run 'mkfontdir' on \"%s\").\n", dir_elem);
-	  free(dir_elem);
-	  continue;
-	}
-      }
-      free(dir_elem);
+    tmp_path = calloc(1, strlen(path) + 1);
+    out_pnt = tmp_path;
+    path_elem = NULL;
+    next = path;
+    while (next != NULL) {
+        path_elem = xf86GetPathElem(&next);
+        if (*path_elem == '/') {
+            dir_elem = xnfcalloc(1, strlen(path_elem) + 1);
+            if ((p1 = strchr(path_elem, ':')) != 0)
+                dirlen = p1 - path_elem;
+            else
+                dirlen = strlen(path_elem);
+            strlcpy(dir_elem, path_elem, dirlen + 1);
+            flag = stat(dir_elem, &stat_buf);
+            if (flag == 0)
+                if (!S_ISDIR(stat_buf.st_mode))
+                    flag = -1;
+            if (flag != 0) {
+                xf86Msg(X_WARNING, "The directory \"%s\" does not exist.\n",
+                        dir_elem);
+                xf86ErrorF("\tEntry deleted from font path.\n");
+                free(dir_elem);
+                continue;
+            }
+            else {
+                XNFasprintf(&p1, "%s%s", dir_elem, DIR_FILE);
+                flag = stat(p1, &stat_buf);
+                if (flag == 0)
+                    if (!S_ISREG(stat_buf.st_mode))
+                        flag = -1;
+                free(p1);
+                if (flag != 0) {
+                    xf86Msg(X_WARNING,
+                            "`fonts.dir' not found (or not valid) in \"%s\".\n",
+                            dir_elem);
+                    xf86ErrorF("\tEntry deleted from font path.\n");
+                    xf86ErrorF("\t(Run 'mkfontdir' on \"%s\").\n", dir_elem);
+                    free(dir_elem);
+                    continue;
+                }
+            }
+            free(dir_elem);
+        }
+
+        /*
+         * Either an OK directory, or a font server name.  So add it to
+         * the path.
+         */
+        if (out_pnt != tmp_path)
+            *out_pnt++ = ',';
+        strcat(out_pnt, path_elem);
+        out_pnt += strlen(path_elem);
     }
-
-    /*
-     * Either an OK directory, or a font server name.  So add it to
-     * the path.
-     */
-    if (out_pnt != tmp_path)
-      *out_pnt++ = ',';
-    strcat(out_pnt, path_elem);
-    out_pnt += strlen(path_elem);
-  }
-  return tmp_path;
+    return tmp_path;
 }
-
 
 /*
  * use the datastructure that the parser provides and pick out the parts
@@ -248,13 +248,15 @@ xf86ModulelistFromConfig(pointer **optlist)
 {
     int count = 0, i = 0;
     char **modulearray;
+
     const char *ignore[] = { "GLcore", "speedo", "bitmap", "drm",
-                             "freetype", "type1",
-                             NULL };
+        "freetype", "type1",
+        NULL
+    };
     pointer *optarray;
     XF86LoadPtr modp;
     Bool found;
-    
+
     /*
      * make sure the config file has been parsed and that we have a
      * ModulePath set; if no ModulePath was given, use the default
@@ -264,15 +266,17 @@ xf86ModulelistFromConfig(pointer **optlist)
         xf86Msg(X_ERROR, "Cannot access global config data structure\n");
         return NULL;
     }
-    
+
     if (xf86configptr->conf_modules) {
         /* Walk the disable list and let people know what we've parsed to
          * not be loaded 
          */
         modp = xf86configptr->conf_modules->mod_disable_lst;
         while (modp) {
-            xf86Msg(X_WARNING, "\"%s\" will not be loaded unless you've specified it to be loaded elsewhere.\n", modp->load_name);
-	        modp = (XF86LoadPtr) modp->list.next;
+            xf86Msg(X_WARNING,
+                    "\"%s\" will not be loaded unless you've specified it to be loaded elsewhere.\n",
+                    modp->load_name);
+            modp = (XF86LoadPtr) modp->list.next;
         }
         /*
          * Walk the default settings table. For each module listed to be
@@ -280,89 +284,102 @@ xf86ModulelistFromConfig(pointer **optlist)
          * sure it's not in the mod_no_load_lst. If it's not disabled,
          * append it to mod_load_lst
          */
-         for (i=0 ; ModuleDefaults[i].name != NULL ; i++) {
+        for (i = 0; ModuleDefaults[i].name != NULL; i++) {
             if (ModuleDefaults[i].toLoad == FALSE) {
-                xf86Msg(X_WARNING, "\"%s\" is not to be loaded by default. Skipping.\n", ModuleDefaults[i].name);
+                xf86Msg(X_WARNING,
+                        "\"%s\" is not to be loaded by default. Skipping.\n",
+                        ModuleDefaults[i].name);
                 continue;
             }
             found = FALSE;
             modp = xf86configptr->conf_modules->mod_load_lst;
             while (modp) {
                 if (strcmp(modp->load_name, ModuleDefaults[i].name) == 0) {
-                    xf86Msg(X_INFO, "\"%s\" will be loaded. This was enabled by default and also specified in the config file.\n", ModuleDefaults[i].name);
+                    xf86Msg(X_INFO,
+                            "\"%s\" will be loaded. This was enabled by default and also specified in the config file.\n",
+                            ModuleDefaults[i].name);
                     found = TRUE;
                     break;
                 }
-	        modp = (XF86LoadPtr) modp->list.next;
+                modp = (XF86LoadPtr) modp->list.next;
             }
             if (found == FALSE) {
                 modp = xf86configptr->conf_modules->mod_disable_lst;
                 while (modp) {
                     if (strcmp(modp->load_name, ModuleDefaults[i].name) == 0) {
-                        xf86Msg(X_INFO, "\"%s\" will be loaded even though the default is to disable it.\n", ModuleDefaults[i].name);
+                        xf86Msg(X_INFO,
+                                "\"%s\" will be loaded even though the default is to disable it.\n",
+                                ModuleDefaults[i].name);
                         found = TRUE;
                         break;
                     }
-	                modp = (XF86LoadPtr) modp->list.next;
+                    modp = (XF86LoadPtr) modp->list.next;
                 }
             }
             if (found == FALSE) {
-		XF86LoadPtr ptr = (XF86LoadPtr)xf86configptr->conf_modules;
-                xf86addNewLoadDirective(ptr, ModuleDefaults[i].name, XF86_LOAD_MODULE, ModuleDefaults[i].load_opt);
-                xf86Msg(X_INFO, "\"%s\" will be loaded by default.\n", ModuleDefaults[i].name);
+                XF86LoadPtr ptr = (XF86LoadPtr) xf86configptr->conf_modules;
+
+                xf86addNewLoadDirective(ptr, ModuleDefaults[i].name,
+                                        XF86_LOAD_MODULE,
+                                        ModuleDefaults[i].load_opt);
+                xf86Msg(X_INFO, "\"%s\" will be loaded by default.\n",
+                        ModuleDefaults[i].name);
             }
-         }
-    } else {
-	xf86configptr->conf_modules = xnfcalloc(1, sizeof(XF86ConfModuleRec));
-	for (i=0 ; ModuleDefaults[i].name != NULL ; i++) {
-	    if (ModuleDefaults[i].toLoad == TRUE) {
-		XF86LoadPtr ptr = (XF86LoadPtr)xf86configptr->conf_modules;
-		xf86addNewLoadDirective(ptr, ModuleDefaults[i].name, XF86_LOAD_MODULE, ModuleDefaults[i].load_opt);
-	    }
-	}
+        }
+    }
+    else {
+        xf86configptr->conf_modules = xnfcalloc(1, sizeof(XF86ConfModuleRec));
+        for (i = 0; ModuleDefaults[i].name != NULL; i++) {
+            if (ModuleDefaults[i].toLoad == TRUE) {
+                XF86LoadPtr ptr = (XF86LoadPtr) xf86configptr->conf_modules;
+
+                xf86addNewLoadDirective(ptr, ModuleDefaults[i].name,
+                                        XF86_LOAD_MODULE,
+                                        ModuleDefaults[i].load_opt);
+            }
+        }
     }
 
-	    /*
-	     * Walk the list of modules in the "Module" section to determine how
-	     * many we have.
-	    */
-	    modp = xf86configptr->conf_modules->mod_load_lst;
-	    while (modp) {
-                for (i = 0; ignore[i]; i++) {
-                    if (strcmp(modp->load_name, ignore[i]) == 0)
-                        modp->ignore = 1;
-                }
-                if (!modp->ignore)
-	            count++;
-	        modp = (XF86LoadPtr) modp->list.next;
-	    }
+    /*
+     * Walk the list of modules in the "Module" section to determine how
+     * many we have.
+     */
+    modp = xf86configptr->conf_modules->mod_load_lst;
+    while (modp) {
+        for (i = 0; ignore[i]; i++) {
+            if (strcmp(modp->load_name, ignore[i]) == 0)
+                modp->ignore = 1;
+        }
+        if (!modp->ignore)
+            count++;
+        modp = (XF86LoadPtr) modp->list.next;
+    }
 
     /*
      * allocate the memory and walk the list again to fill in the pointers
      */
-    modulearray = xnfalloc((count + 1) * sizeof(char*));
+    modulearray = xnfalloc((count + 1) * sizeof(char *));
     optarray = xnfalloc((count + 1) * sizeof(pointer));
     count = 0;
     if (xf86configptr->conf_modules) {
-	    modp = xf86configptr->conf_modules->mod_load_lst;
-	    while (modp) {
+        modp = xf86configptr->conf_modules->mod_load_lst;
+        while (modp) {
             if (!modp->ignore) {
-	            modulearray[count] = modp->load_name;
-	            optarray[count] = modp->load_opt;
-	            count++;
+                modulearray[count] = modp->load_name;
+                optarray[count] = modp->load_opt;
+                count++;
             }
-	        modp = (XF86LoadPtr) modp->list.next;
-	    }
+            modp = (XF86LoadPtr) modp->list.next;
+        }
     }
     modulearray[count] = NULL;
     optarray[count] = NULL;
     if (optlist)
-	    *optlist = optarray;
+        *optlist = optarray;
     else
-	    free(optarray);
+        free(optarray);
     return modulearray;
 }
-
 
 char **
 xf86DriverlistFromConfig(void)
@@ -371,7 +388,7 @@ xf86DriverlistFromConfig(void)
     int j;
     char **modulearray;
     screenLayoutPtr slp;
-    
+
     /*
      * make sure the config file has been parsed and that we have a
      * ModulePath set; if no ModulePath was given, use the default
@@ -381,7 +398,7 @@ xf86DriverlistFromConfig(void)
         xf86Msg(X_ERROR, "Cannot access global config data structure\n");
         return NULL;
     }
-    
+
     /*
      * Walk the list of driver lines in active "Device" sections to
      * determine now many implicitly loaded modules there are.
@@ -390,7 +407,7 @@ xf86DriverlistFromConfig(void)
     if (xf86ConfigLayout.screens) {
         slp = xf86ConfigLayout.screens;
         while ((slp++)->screen) {
-	    count++;
+            count++;
         }
     }
 
@@ -399,39 +416,39 @@ xf86DriverlistFromConfig(void)
      */
     j = 0;
     while (xf86ConfigLayout.inactives[j++].identifier)
-	count++;
+        count++;
 
     if (count == 0)
-	return NULL;
+        return NULL;
 
     /*
      * allocate the memory and walk the list again to fill in the pointers
      */
-    modulearray = xnfalloc((count + 1) * sizeof(char*));
+    modulearray = xnfalloc((count + 1) * sizeof(char *));
     count = 0;
     slp = xf86ConfigLayout.screens;
     while (slp->screen) {
-	modulearray[count] = slp->screen->device->driver;
-	count++;
-	slp++;
+        modulearray[count] = slp->screen->device->driver;
+        count++;
+        slp++;
     }
 
     j = 0;
 
-    while (xf86ConfigLayout.inactives[j].identifier) 
-	modulearray[count++] = xf86ConfigLayout.inactives[j++].driver;
+    while (xf86ConfigLayout.inactives[j].identifier)
+        modulearray[count++] = xf86ConfigLayout.inactives[j++].driver;
 
     modulearray[count] = NULL;
 
     /* Remove duplicates */
     for (count = 0; modulearray[count] != NULL; count++) {
-	int i;
+        int i;
 
-	for (i = 0; i < count; i++)
-	    if (xf86NameCmp(modulearray[i], modulearray[count]) == 0) {
-		modulearray[count] = "";
-		break;
-	    }
+        for (i = 0; i < count; i++)
+            if (xf86NameCmp(modulearray[i], modulearray[count]) == 0) {
+                modulearray[count] = "";
+                break;
+            }
     }
     return modulearray;
 }
@@ -452,7 +469,7 @@ xf86InputDriverlistFromConfig(void)
         xf86Msg(X_ERROR, "Cannot access global config data structure\n");
         return NULL;
     }
-    
+
     /*
      * Walk the list of driver lines in active "InputDevice" sections to
      * determine now many implicitly loaded modules there are.
@@ -460,36 +477,36 @@ xf86InputDriverlistFromConfig(void)
     if (xf86ConfigLayout.inputs) {
         idp = xf86ConfigLayout.inputs;
         while (*idp) {
-	    count++;
-	    idp++;
+            count++;
+            idp++;
         }
     }
 
     if (count == 0)
-	return NULL;
+        return NULL;
 
     /*
      * allocate the memory and walk the list again to fill in the pointers
      */
-    modulearray = xnfalloc((count + 1) * sizeof(char*));
+    modulearray = xnfalloc((count + 1) * sizeof(char *));
     count = 0;
     idp = xf86ConfigLayout.inputs;
     while (idp && *idp) {
         modulearray[count] = (*idp)->driver;
-	count++;
-	idp++;
+        count++;
+        idp++;
     }
     modulearray[count] = NULL;
 
     /* Remove duplicates */
     for (count = 0; modulearray[count] != NULL; count++) {
-	int i;
+        int i;
 
-	for (i = 0; i < count; i++)
-	    if (xf86NameCmp(modulearray[i], modulearray[count]) == 0) {
-		modulearray[count] = "";
-		break;
-	    }
+        for (i = 0; i < count; i++)
+            if (xf86NameCmp(modulearray[i], modulearray[count]) == 0) {
+                modulearray[count] = "";
+                break;
+            }
     }
     return modulearray;
 }
@@ -503,7 +520,7 @@ fixup_video_driver_list(char **drivers)
     int i;
 
     /* walk to the end of the list */
-    for (end = drivers; *end && **end; end++) ;
+    for (end = drivers; *end && **end; end++);
     end--;
 
     /*
@@ -513,7 +530,9 @@ fixup_video_driver_list(char **drivers)
     for (i = 0; fallback[i]; i++) {
         for (drv = drivers; drv != end; drv++) {
             if (strstr(*drv, fallback[i])) {
-                x = *drv; *drv = *end; *end = x;
+                x = *drv;
+                *drv = *end;
+                *end = x;
                 end--;
                 break;
             }
@@ -522,13 +541,13 @@ fixup_video_driver_list(char **drivers)
 }
 
 static char **
-GenerateDriverlist(const char * dirname)
+GenerateDriverlist(const char *dirname)
 {
     char **ret;
     const char *subdirs[] = { dirname, NULL };
-    static const char *patlist[] = {"(.*)_drv\\.so", NULL};
+    static const char *patlist[] = { "(.*)_drv\\.so", NULL };
     ret = LoaderListDirs(subdirs, patlist);
-    
+
     /* fix up the probe order for video drivers */
     if (strstr(dirname, "drivers") && ret != NULL)
         fixup_video_driver_list(ret);
@@ -552,7 +571,8 @@ xf86DriverlistFromCompile(void)
  *      Print a READABLE ErrorMessage!!!  All information that is 
  *      available is printed.
  */
-static void _X_ATTRIBUTE_PRINTF(1,2)
+static void
+_X_ATTRIBUTE_PRINTF(1, 2)
 xf86ConfigError(const char *msg, ...)
 {
     va_list ap;
@@ -568,31 +588,31 @@ xf86ConfigError(const char *msg, ...)
 static void
 configFiles(XF86ConfFilesPtr fileconf)
 {
-    MessageType	 pathFrom;
-    Bool	 must_copy;
-    int		 size, countDirs;
-    char	*temp_path, *log_buf, *start, *end;
+    MessageType pathFrom;
+    Bool must_copy;
+    int size, countDirs;
+    char *temp_path, *log_buf, *start, *end;
 
     /* FontPath */
     must_copy = TRUE;
 
     temp_path = defaultFontPath ? defaultFontPath : "";
     if (xf86fpFlag)
-	pathFrom = X_CMDLINE;
+        pathFrom = X_CMDLINE;
     else if (fileconf && fileconf->file_fontpath) {
-	pathFrom = X_CONFIG;
-	if (xf86Info.useDefaultFontPath) {
-	    if (asprintf(&defaultFontPath, "%s%s%s", fileconf->file_fontpath,
-			 *temp_path ? "," : "", temp_path) == -1)
-		defaultFontPath = NULL;
-	    else
-		must_copy = FALSE;
-	}
-	else
-	    defaultFontPath = fileconf->file_fontpath;
+        pathFrom = X_CONFIG;
+        if (xf86Info.useDefaultFontPath) {
+            if (asprintf(&defaultFontPath, "%s%s%s", fileconf->file_fontpath,
+                         *temp_path ? "," : "", temp_path) == -1)
+                defaultFontPath = NULL;
+            else
+                must_copy = FALSE;
+        }
+        else
+            defaultFontPath = fileconf->file_fontpath;
     }
     else
-	pathFrom = X_DEFAULT;
+        pathFrom = X_DEFAULT;
     temp_path = defaultFontPath ? defaultFontPath : "";
 
     /* xf86ValidateFontPath modifies its argument, but returns a copy of it. */
@@ -604,61 +624,61 @@ configFiles(XF86ConfFilesPtr fileconf)
     countDirs = 1;
     temp_path = defaultFontPath;
     while ((temp_path = index(temp_path, ',')) != NULL) {
-	countDirs++;
-	temp_path++;
+        countDirs++;
+        temp_path++;
     }
 
     log_buf = xnfalloc(strlen(defaultFontPath) + (2 * countDirs) + 1);
     temp_path = log_buf;
     start = defaultFontPath;
-    while((end = index(start, ',')) != NULL) {
-      size = (end - start) + 1;
-      *(temp_path++) = '\t';
-      strncpy(temp_path, start, size);
-      temp_path += size;
-      *(temp_path++) = '\n';
-      start += size;
+    while ((end = index(start, ',')) != NULL) {
+        size = (end - start) + 1;
+        *(temp_path++) = '\t';
+        strncpy(temp_path, start, size);
+        temp_path += size;
+        *(temp_path++) = '\n';
+        start += size;
     }
     /* copy last entry */
     *(temp_path++) = '\t';
     strcpy(temp_path, start);
     xf86Msg(pathFrom, "FontPath set to:\n%s\n", log_buf);
     free(log_buf);
-  
-  /* ModulePath */
 
-  if (fileconf) {
-    if (xf86ModPathFrom != X_CMDLINE && fileconf->file_modulepath) {
-      xf86ModulePath = fileconf->file_modulepath;
-      xf86ModPathFrom = X_CONFIG;
+    /* ModulePath */
+
+    if (fileconf) {
+        if (xf86ModPathFrom != X_CMDLINE && fileconf->file_modulepath) {
+            xf86ModulePath = fileconf->file_modulepath;
+            xf86ModPathFrom = X_CONFIG;
+        }
     }
-  }
 
-  xf86Msg(xf86ModPathFrom, "ModulePath set to \"%s\"\n", xf86ModulePath);
+    xf86Msg(xf86ModPathFrom, "ModulePath set to \"%s\"\n", xf86ModulePath);
 
-  if (!xf86xkbdirFlag && fileconf && fileconf->file_xkbdir) {
-    XkbBaseDirectory = fileconf->file_xkbdir;
-    xf86Msg(X_CONFIG, "XKB base directory set to \"%s\"\n",
-	    XkbBaseDirectory);
-  }
+    if (!xf86xkbdirFlag && fileconf && fileconf->file_xkbdir) {
+        XkbBaseDirectory = fileconf->file_xkbdir;
+        xf86Msg(X_CONFIG, "XKB base directory set to \"%s\"\n",
+                XkbBaseDirectory);
+    }
 #if 0
-  /* LogFile */
-  /*
-   * XXX The problem with this is that the log file is already open.
-   * One option might be to copy the exiting contents to the new location.
-   * and re-open it.  The down side is that the default location would
-   * already have been overwritten.  Another option would be to start with
-   * unique temporary location, then copy it once the correct name is known.
-   * A problem with this is what happens if the server exits before that
-   * happens.
-   */
-  if (xf86LogFileFrom == X_DEFAULT && fileconf->file_logfile) {
-    xf86LogFile = fileconf->file_logfile;
-    xf86LogFileFrom = X_CONFIG;
-  }
+    /* LogFile */
+    /*
+     * XXX The problem with this is that the log file is already open.
+     * One option might be to copy the exiting contents to the new location.
+     * and re-open it.  The down side is that the default location would
+     * already have been overwritten.  Another option would be to start with
+     * unique temporary location, then copy it once the correct name is known.
+     * A problem with this is what happens if the server exits before that
+     * happens.
+     */
+    if (xf86LogFileFrom == X_DEFAULT && fileconf->file_logfile) {
+        xf86LogFile = fileconf->file_logfile;
+        xf86LogFileFrom = X_CONFIG;
+    }
 #endif
 
-  return;
+    return;
 }
 
 typedef enum {
@@ -695,58 +715,58 @@ typedef enum {
  * if the parser found the option in the config file.
  */
 static OptionInfoRec FlagOptions[] = {
-  { FLAG_NOTRAPSIGNALS,		"NoTrapSignals",		OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_DONTVTSWITCH,		"DontVTSwitch",			OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_DONTZAP,		"DontZap",			OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_DONTZOOM,		"DontZoom",			OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_DISABLEVIDMODE,	"DisableVidModeExtension",	OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_ALLOWNONLOCAL,		"AllowNonLocalXvidtune",	OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_ALLOWMOUSEOPENFAIL,	"AllowMouseOpenFail",		OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_SAVER_BLANKTIME,	"BlankTime"		,	OPTV_INTEGER,
-	{0}, FALSE },
-  { FLAG_DPMS_STANDBYTIME,	"StandbyTime",			OPTV_INTEGER,
-	{0}, FALSE },
-  { FLAG_DPMS_SUSPENDTIME,	"SuspendTime",			OPTV_INTEGER,
-	{0}, FALSE },
-  { FLAG_DPMS_OFFTIME,		"OffTime",			OPTV_INTEGER,
-	{0}, FALSE },
-  { FLAG_PIXMAP,		"Pixmap",			OPTV_INTEGER,
-	{0}, FALSE },
-  { FLAG_NOPM,			"NoPM",				OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_XINERAMA,		"Xinerama",			OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_LOG,			"Log",				OPTV_STRING,
-	{0}, FALSE },
-  { FLAG_RENDER_COLORMAP_MODE,	"RenderColormapMode",		OPTV_STRING,
-        {0}, FALSE },
-  { FLAG_RANDR,			"RandR",			OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_AIGLX,			"AIGLX",			OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_IGNORE_ABI,		"IgnoreABI",			OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_USE_DEFAULT_FONT_PATH,  "UseDefaultFontPath",		OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_AUTO_ADD_DEVICES,       "AutoAddDevices",		OPTV_BOOLEAN,
-        {0}, FALSE },
-  { FLAG_AUTO_ENABLE_DEVICES,    "AutoEnableDevices",		OPTV_BOOLEAN,
-        {0}, FALSE },
-  { FLAG_GLX_VISUALS,		"GlxVisuals",			OPTV_STRING,
-        {0}, FALSE },
-  { FLAG_DRI2,			"DRI2",				OPTV_BOOLEAN,
-	{0}, FALSE },
-  { FLAG_USE_SIGIO,		"UseSIGIO",			OPTV_BOOLEAN,
-	{0}, FALSE },
-  { -1,				NULL,				OPTV_NONE,
-	{0}, FALSE },
+    {FLAG_NOTRAPSIGNALS, "NoTrapSignals", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_DONTVTSWITCH, "DontVTSwitch", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_DONTZAP, "DontZap", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_DONTZOOM, "DontZoom", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_DISABLEVIDMODE, "DisableVidModeExtension", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_ALLOWNONLOCAL, "AllowNonLocalXvidtune", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_ALLOWMOUSEOPENFAIL, "AllowMouseOpenFail", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_SAVER_BLANKTIME, "BlankTime", OPTV_INTEGER,
+     {0}, FALSE},
+    {FLAG_DPMS_STANDBYTIME, "StandbyTime", OPTV_INTEGER,
+     {0}, FALSE},
+    {FLAG_DPMS_SUSPENDTIME, "SuspendTime", OPTV_INTEGER,
+     {0}, FALSE},
+    {FLAG_DPMS_OFFTIME, "OffTime", OPTV_INTEGER,
+     {0}, FALSE},
+    {FLAG_PIXMAP, "Pixmap", OPTV_INTEGER,
+     {0}, FALSE},
+    {FLAG_NOPM, "NoPM", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_XINERAMA, "Xinerama", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_LOG, "Log", OPTV_STRING,
+     {0}, FALSE},
+    {FLAG_RENDER_COLORMAP_MODE, "RenderColormapMode", OPTV_STRING,
+     {0}, FALSE},
+    {FLAG_RANDR, "RandR", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_AIGLX, "AIGLX", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_IGNORE_ABI, "IgnoreABI", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_USE_DEFAULT_FONT_PATH, "UseDefaultFontPath", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_AUTO_ADD_DEVICES, "AutoAddDevices", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_AUTO_ENABLE_DEVICES, "AutoEnableDevices", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_GLX_VISUALS, "GlxVisuals", OPTV_STRING,
+     {0}, FALSE},
+    {FLAG_DRI2, "DRI2", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_USE_SIGIO, "UseSIGIO", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {-1, NULL, OPTV_NONE,
+     {0}, FALSE},
 };
 
 static Bool
@@ -759,6 +779,7 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     MessageType from;
     const char *s;
     XkbRMLVOSet set;
+
     /* Default options. */
     set.rules = "base";
     set.model = "pc105";
@@ -772,13 +793,13 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
      */
     optp = NULL;
     if (flagsconf && flagsconf->flg_option_lst)
-	optp = xf86optionListDup(flagsconf->flg_option_lst);
+        optp = xf86optionListDup(flagsconf->flg_option_lst);
     if (layoutopts) {
-	tmp = xf86optionListDup(layoutopts);
-	if (optp)
-	    optp = xf86optionListMerge(optp, tmp);
-	else
-	    optp = tmp;
+        tmp = xf86optionListDup(layoutopts);
+        if (optp)
+            optp = xf86optionListMerge(optp, tmp);
+        else
+            optp = tmp;
     }
 
     xf86ProcessOptions(-1, optp, FlagOptions);
@@ -790,23 +811,28 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
 
     xf86GetOptValBool(FlagOptions, FLAG_IGNORE_ABI, &xf86Info.ignoreABI);
     if (xf86Info.ignoreABI) {
-	    xf86Msg(X_CONFIG, "Ignoring ABI Version\n");
+        xf86Msg(X_CONFIG, "Ignoring ABI Version\n");
     }
 
     if (xf86SIGIOSupported()) {
-	xf86Info.useSIGIO = xf86ReturnOptValBool(FlagOptions, FLAG_USE_SIGIO, USE_SIGIO_BY_DEFAULT);
-	if (xf86IsOptionSet(FlagOptions, FLAG_USE_SIGIO)) {
-	    from = X_CONFIG;
-	} else {
-	    from = X_DEFAULT;
-	}
-	if (!xf86Info.useSIGIO) {
-	    xf86Msg(from, "Disabling SIGIO handlers for input devices\n");
-	} else if (from == X_CONFIG) {
-	    xf86Msg(from, "Enabling SIGIO handlers for input devices\n");
-	}
-    } else {
-	xf86Info.useSIGIO = FALSE;
+        xf86Info.useSIGIO =
+            xf86ReturnOptValBool(FlagOptions, FLAG_USE_SIGIO,
+                                 USE_SIGIO_BY_DEFAULT);
+        if (xf86IsOptionSet(FlagOptions, FLAG_USE_SIGIO)) {
+            from = X_CONFIG;
+        }
+        else {
+            from = X_DEFAULT;
+        }
+        if (!xf86Info.useSIGIO) {
+            xf86Msg(from, "Disabling SIGIO handlers for input devices\n");
+        }
+        else if (from == X_CONFIG) {
+            xf86Msg(from, "Enabling SIGIO handlers for input devices\n");
+        }
+    }
+    else {
+        xf86Info.useSIGIO = FALSE;
     }
 
     if (xf86IsOptionSet(FlagOptions, FLAG_AUTO_ADD_DEVICES)) {
@@ -838,86 +864,92 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
      */
 #ifdef XF86VIDMODE
     if (xf86GetOptValBool(FlagOptions, FLAG_DISABLEVIDMODE, &value))
-	xf86Info.vidModeEnabled = !value;
+        xf86Info.vidModeEnabled = !value;
     if (xf86GetOptValBool(FlagOptions, FLAG_ALLOWNONLOCAL, &value))
-	xf86Info.vidModeAllowNonLocal = value;
+        xf86Info.vidModeAllowNonLocal = value;
 #endif
 
     if (xf86GetOptValBool(FlagOptions, FLAG_ALLOWMOUSEOPENFAIL, &value))
-	xf86Info.allowMouseOpenFail = value;
+        xf86Info.allowMouseOpenFail = value;
 
     xf86Info.pmFlag = TRUE;
-    if (xf86GetOptValBool(FlagOptions, FLAG_NOPM, &value)) 
-	xf86Info.pmFlag = !value;
+    if (xf86GetOptValBool(FlagOptions, FLAG_NOPM, &value))
+        xf86Info.pmFlag = !value;
     {
-	if ((s = xf86GetOptValString(FlagOptions, FLAG_LOG))) {
-	    if (!xf86NameCmp(s,"flush")) {
-		xf86Msg(X_CONFIG, "Flushing logfile enabled\n");
-		xf86Info.log = LogFlush;
-		LogSetParameter(XLOG_FLUSH, TRUE);
-	    } else if (!xf86NameCmp(s,"sync")) {
-		xf86Msg(X_CONFIG, "Syncing logfile enabled\n");
-		xf86Info.log = LogSync;
-		LogSetParameter(XLOG_FLUSH, TRUE);
-		LogSetParameter(XLOG_SYNC, TRUE);
-	    } else {
-		xf86Msg(X_WARNING,"Unknown Log option\n");
-	    }
+        if ((s = xf86GetOptValString(FlagOptions, FLAG_LOG))) {
+            if (!xf86NameCmp(s, "flush")) {
+                xf86Msg(X_CONFIG, "Flushing logfile enabled\n");
+                xf86Info.log = LogFlush;
+                LogSetParameter(XLOG_FLUSH, TRUE);
+            }
+            else if (!xf86NameCmp(s, "sync")) {
+                xf86Msg(X_CONFIG, "Syncing logfile enabled\n");
+                xf86Info.log = LogSync;
+                LogSetParameter(XLOG_FLUSH, TRUE);
+                LogSetParameter(XLOG_SYNC, TRUE);
+            }
+            else {
+                xf86Msg(X_WARNING, "Unknown Log option\n");
+            }
         }
     }
-    
+
     {
-	if ((s = xf86GetOptValString(FlagOptions, FLAG_RENDER_COLORMAP_MODE))){
-	    int policy = PictureParseCmapPolicy (s);
-	    if (policy == PictureCmapPolicyInvalid)
-		xf86Msg(X_WARNING, "Unknown colormap policy \"%s\"\n", s);
-	    else
-	    {
-		xf86Msg(X_CONFIG, "Render colormap policy set to %s\n", s);
-		PictureCmapPolicy = policy;
-	    }
-	}
+        if ((s = xf86GetOptValString(FlagOptions, FLAG_RENDER_COLORMAP_MODE))) {
+            int policy = PictureParseCmapPolicy(s);
+
+            if (policy == PictureCmapPolicyInvalid)
+                xf86Msg(X_WARNING, "Unknown colormap policy \"%s\"\n", s);
+            else {
+                xf86Msg(X_CONFIG, "Render colormap policy set to %s\n", s);
+                PictureCmapPolicy = policy;
+            }
+        }
     }
 
 #ifdef RANDR
     xf86Info.disableRandR = FALSE;
     xf86Info.randRFrom = X_DEFAULT;
     if (xf86GetOptValBool(FlagOptions, FLAG_RANDR, &value)) {
-	xf86Info.disableRandR = !value;
-	xf86Info.randRFrom = X_CONFIG;
+        xf86Info.disableRandR = !value;
+        xf86Info.randRFrom = X_CONFIG;
     }
 #endif
 
     xf86Info.aiglx = TRUE;
     xf86Info.aiglxFrom = X_DEFAULT;
     if (xf86GetOptValBool(FlagOptions, FLAG_AIGLX, &value)) {
-	xf86Info.aiglx = value;
-	xf86Info.aiglxFrom = X_CONFIG;
+        xf86Info.aiglx = value;
+        xf86Info.aiglxFrom = X_CONFIG;
     }
 
 #ifdef GLXEXT
     xf86Info.glxVisuals = XF86_GlxVisualsTypical;
     xf86Info.glxVisualsFrom = X_DEFAULT;
     if ((s = xf86GetOptValString(FlagOptions, FLAG_GLX_VISUALS))) {
-	if (!xf86NameCmp(s, "minimal")) {
-	    xf86Info.glxVisuals = XF86_GlxVisualsMinimal;
-	} else if (!xf86NameCmp(s, "typical")) {
-	    xf86Info.glxVisuals = XF86_GlxVisualsTypical;
-	} else if (!xf86NameCmp(s, "all")) {
-	    xf86Info.glxVisuals = XF86_GlxVisualsAll;
-	} else {
-	    xf86Msg(X_WARNING,"Unknown GlxVisuals option\n");
-	}
+        if (!xf86NameCmp(s, "minimal")) {
+            xf86Info.glxVisuals = XF86_GlxVisualsMinimal;
+        }
+        else if (!xf86NameCmp(s, "typical")) {
+            xf86Info.glxVisuals = XF86_GlxVisualsTypical;
+        }
+        else if (!xf86NameCmp(s, "all")) {
+            xf86Info.glxVisuals = XF86_GlxVisualsAll;
+        }
+        else {
+            xf86Msg(X_WARNING, "Unknown GlxVisuals option\n");
+        }
     }
 
     if (xf86GetOptValBool(FlagOptions, FLAG_AIGLX, &value)) {
-	xf86Info.aiglx = value;
-	xf86Info.aiglxFrom = X_CONFIG;
+        xf86Info.aiglx = value;
+        xf86Info.aiglxFrom = X_CONFIG;
     }
 #endif
 
     /* if we're not hotplugging, force some input devices to exist */
-    xf86Info.forceInputDevices = !(xf86Info.autoAddDevices && xf86Info.autoEnableDevices);
+    xf86Info.forceInputDevices = !(xf86Info.autoAddDevices &&
+                                   xf86Info.autoEnableDevices);
 
     /* when forcing input devices, we use kbd. otherwise evdev, so use the
      * evdev rules set. */
@@ -930,8 +962,8 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     xf86Info.useDefaultFontPath = TRUE;
     xf86Info.useDefaultFontPathFrom = X_DEFAULT;
     if (xf86GetOptValBool(FlagOptions, FLAG_USE_DEFAULT_FONT_PATH, &value)) {
-	xf86Info.useDefaultFontPath = value;
-	xf86Info.useDefaultFontPathFrom = X_CONFIG;
+        xf86Info.useDefaultFontPath = value;
+        xf86Info.useDefaultFontPathFrom = X_CONFIG;
     }
 
 /* Make sure that timers don't overflow CARD32's after multiplying */
@@ -940,86 +972,93 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     i = -1;
     xf86GetOptValInteger(FlagOptions, FLAG_SAVER_BLANKTIME, &i);
     if ((i >= 0) && (i < MAX_TIME_IN_MIN))
-	ScreenSaverTime = defaultScreenSaverTime = i * MILLI_PER_MIN;
+        ScreenSaverTime = defaultScreenSaverTime = i * MILLI_PER_MIN;
     else if (i != -1)
-	xf86ConfigError("BlankTime value %d outside legal range of 0 - %d minutes",
-			i, MAX_TIME_IN_MIN);
+        xf86ConfigError
+            ("BlankTime value %d outside legal range of 0 - %d minutes", i,
+             MAX_TIME_IN_MIN);
 
 #ifdef DPMSExtension
     i = -1;
     xf86GetOptValInteger(FlagOptions, FLAG_DPMS_STANDBYTIME, &i);
     if ((i >= 0) && (i < MAX_TIME_IN_MIN))
-	DPMSStandbyTime = i * MILLI_PER_MIN;
+        DPMSStandbyTime = i * MILLI_PER_MIN;
     else if (i != -1)
-	xf86ConfigError("StandbyTime value %d outside legal range of 0 - %d minutes",
-			i, MAX_TIME_IN_MIN);
+        xf86ConfigError
+            ("StandbyTime value %d outside legal range of 0 - %d minutes", i,
+             MAX_TIME_IN_MIN);
     i = -1;
     xf86GetOptValInteger(FlagOptions, FLAG_DPMS_SUSPENDTIME, &i);
     if ((i >= 0) && (i < MAX_TIME_IN_MIN))
-	DPMSSuspendTime = i * MILLI_PER_MIN;
+        DPMSSuspendTime = i * MILLI_PER_MIN;
     else if (i != -1)
-	xf86ConfigError("SuspendTime value %d outside legal range of 0 - %d minutes",
-			i, MAX_TIME_IN_MIN);
+        xf86ConfigError
+            ("SuspendTime value %d outside legal range of 0 - %d minutes", i,
+             MAX_TIME_IN_MIN);
     i = -1;
     xf86GetOptValInteger(FlagOptions, FLAG_DPMS_OFFTIME, &i);
     if ((i >= 0) && (i < MAX_TIME_IN_MIN))
-	DPMSOffTime = i * MILLI_PER_MIN;
+        DPMSOffTime = i * MILLI_PER_MIN;
     else if (i != -1)
-	xf86ConfigError("OffTime value %d outside legal range of 0 - %d minutes",
-			i, MAX_TIME_IN_MIN);
+        xf86ConfigError
+            ("OffTime value %d outside legal range of 0 - %d minutes", i,
+             MAX_TIME_IN_MIN);
 #endif
 
     i = -1;
     xf86GetOptValInteger(FlagOptions, FLAG_PIXMAP, &i);
     switch (i) {
     case 24:
-	pix24 = Pix24Use24;
-	break;
+        pix24 = Pix24Use24;
+        break;
     case 32:
-	pix24 = Pix24Use32;
-	break;
+        pix24 = Pix24Use32;
+        break;
     case -1:
-	break;
+        break;
     default:
-	xf86ConfigError("Pixmap option's value (%d) must be 24 or 32\n", i);
-	return FALSE;
+        xf86ConfigError("Pixmap option's value (%d) must be 24 or 32\n", i);
+        return FALSE;
     }
     if (xf86Pix24 != Pix24DontCare) {
-	xf86Info.pixmap24 = xf86Pix24;
-	xf86Info.pix24From = X_CMDLINE;
-    } else if (pix24 != Pix24DontCare) {
-	xf86Info.pixmap24 = pix24;
-	xf86Info.pix24From = X_CONFIG;
-    } else {
-	xf86Info.pixmap24 = Pix24DontCare;
-	xf86Info.pix24From = X_DEFAULT;
+        xf86Info.pixmap24 = xf86Pix24;
+        xf86Info.pix24From = X_CMDLINE;
+    }
+    else if (pix24 != Pix24DontCare) {
+        xf86Info.pixmap24 = pix24;
+        xf86Info.pix24From = X_CONFIG;
+    }
+    else {
+        xf86Info.pixmap24 = Pix24DontCare;
+        xf86Info.pix24From = X_DEFAULT;
     }
 
 #ifdef PANORAMIX
     from = X_DEFAULT;
     if (!noPanoramiXExtension)
-      from = X_CMDLINE;
+        from = X_CMDLINE;
     else if (xf86GetOptValBool(FlagOptions, FLAG_XINERAMA, &value)) {
-      noPanoramiXExtension = !value;
-      from = X_CONFIG;
+        noPanoramiXExtension = !value;
+        from = X_CONFIG;
     }
     if (!noPanoramiXExtension)
-      xf86Msg(from, "Xinerama: enabled\n");
+        xf86Msg(from, "Xinerama: enabled\n");
 #endif
 
 #ifdef DRI2
     xf86Info.dri2 = FALSE;
     xf86Info.dri2From = X_DEFAULT;
     if (xf86GetOptValBool(FlagOptions, FLAG_DRI2, &value)) {
-	xf86Info.dri2 = value;
-	xf86Info.dri2From = X_CONFIG;
+        xf86Info.dri2 = value;
+        xf86Info.dri2From = X_CONFIG;
     }
 #endif
 
     return TRUE;
 }
 
-Bool xf86DRI2Enabled(void)
+Bool
+xf86DRI2Enabled(void)
 {
     return xf86Info.dri2;
 }
@@ -1029,17 +1068,17 @@ Bool xf86DRI2Enabled(void)
  * free) it if present. All other devices are moved forward.
  */
 static void
-freeDevice(InputInfoPtr *list, InputInfoPtr pInfo)
+freeDevice(InputInfoPtr * list, InputInfoPtr pInfo)
 {
     InputInfoPtr *devs;
 
     for (devs = list; devs && *devs; devs++) {
-	if (*devs == pInfo) {
-	    free(*devs);
-	    for (; devs && *devs; devs++)
-		devs[0] = devs[1];
-	    break;
-	}
+        if (*devs == pInfo) {
+            free(*devs);
+            for (; devs && *devs; devs++)
+                devs[0] = devs[1];
+            break;
+        }
     }
 }
 
@@ -1047,14 +1086,14 @@ freeDevice(InputInfoPtr *list, InputInfoPtr pInfo)
  * Append pInfo to the null-terminated list, allocating space as necessary.
  * pInfo is used as the last element.
  */
-static InputInfoPtr*
-addDevice(InputInfoPtr *list, InputInfoPtr pInfo)
+static InputInfoPtr *
+addDevice(InputInfoPtr * list, InputInfoPtr pInfo)
 {
     InputInfoPtr *devs;
     int count = 1;
 
     for (devs = list; devs && *devs; devs++)
-	count++;
+        count++;
 
     list = xnfrealloc(list, (count + 1) * sizeof(InputInfoPtr));
     list[count] = NULL;
@@ -1084,14 +1123,16 @@ checkCoreInputDevices(serverLayoutPtr servlayoutp, Bool implicitLayout)
     InputInfoPtr corePointer = NULL, coreKeyboard = NULL;
     Bool foundPointer = FALSE, foundKeyboard = FALSE;
     const char *pointerMsg = NULL, *keyboardMsg = NULL;
-    InputInfoPtr *devs, /* iterator */
-            indp;
+    InputInfoPtr *devs,         /* iterator */
+     indp;
     InputInfoPtr Pointer, Keyboard;
     XF86ConfInputPtr confInput;
     XF86ConfInputRec defPtr, defKbd;
     MessageType from = X_DEFAULT;
+
     const char *mousedrivers[] = { "mouse", "synaptics", "evdev", "vmmouse",
-				   "void", NULL };
+        "void", NULL
+    };
 
     /*
      * First check if a core pointer or core keyboard have been specified
@@ -1100,249 +1141,255 @@ checkCoreInputDevices(serverLayoutPtr servlayoutp, Bool implicitLayout)
      */
     for (devs = servlayoutp->inputs; devs && *devs; devs++) {
         indp = *devs;
-	if (indp->options &&
-	    xf86CheckBoolOption(indp->options, "CorePointer", FALSE)) {
-	    if (!corePointer) {
-		corePointer = indp;
-	    }
-	}
-	if (indp->options &&
-	    xf86CheckBoolOption(indp->options, "CoreKeyboard", FALSE)) {
-	    if (!coreKeyboard) {
-		coreKeyboard = indp;
-	    }
-	}
+        if (indp->options &&
+            xf86CheckBoolOption(indp->options, "CorePointer", FALSE)) {
+            if (!corePointer) {
+                corePointer = indp;
+            }
+        }
+        if (indp->options &&
+            xf86CheckBoolOption(indp->options, "CoreKeyboard", FALSE)) {
+            if (!coreKeyboard) {
+                coreKeyboard = indp;
+            }
+        }
     }
 
     confInput = NULL;
 
     /* 1. Check for the -pointer command line option. */
     if (xf86PointerName) {
-	confInput = xf86findInput(xf86PointerName,
-				  xf86configptr->conf_input_lst);
-	if (!confInput) {
-	    xf86Msg(X_ERROR, "No InputDevice section called \"%s\"\n",
-		    xf86PointerName);
-	    return FALSE;
-	}
-	from = X_CMDLINE;
-	/*
-	 * If one was already specified in the ServerLayout, it needs to be
-	 * removed.
-	 */
-	if (corePointer) {
-	    freeDevice(servlayoutp->inputs, corePointer);
-	    corePointer = NULL;
-	}
-	foundPointer = TRUE;
+        confInput = xf86findInput(xf86PointerName,
+                                  xf86configptr->conf_input_lst);
+        if (!confInput) {
+            xf86Msg(X_ERROR, "No InputDevice section called \"%s\"\n",
+                    xf86PointerName);
+            return FALSE;
+        }
+        from = X_CMDLINE;
+        /*
+         * If one was already specified in the ServerLayout, it needs to be
+         * removed.
+         */
+        if (corePointer) {
+            freeDevice(servlayoutp->inputs, corePointer);
+            corePointer = NULL;
+        }
+        foundPointer = TRUE;
     }
 
     /* 2. ServerLayout-specified core pointer. */
     if (corePointer) {
-	foundPointer = TRUE;
-	from = X_CONFIG;
+        foundPointer = TRUE;
+        from = X_CONFIG;
     }
 
     /* 3. First core pointer device. */
     if (!foundPointer && (xf86Info.forceInputDevices || implicitLayout)) {
-	XF86ConfInputPtr p;
+        XF86ConfInputPtr p;
 
-	for (p = xf86configptr->conf_input_lst; p; p = p->list.next) {
-	    if (p->inp_option_lst &&
-		xf86CheckBoolOption(p->inp_option_lst, "CorePointer", FALSE)) {
-		confInput = p;
-		foundPointer = TRUE;
-		from = X_DEFAULT;
-		pointerMsg = "first core pointer device";
-		break;
-	    }
-	}
+        for (p = xf86configptr->conf_input_lst; p; p = p->list.next) {
+            if (p->inp_option_lst &&
+                xf86CheckBoolOption(p->inp_option_lst, "CorePointer", FALSE)) {
+                confInput = p;
+                foundPointer = TRUE;
+                from = X_DEFAULT;
+                pointerMsg = "first core pointer device";
+                break;
+            }
+        }
     }
 
     /* 4. First pointer with an allowed mouse driver. */
     if (!foundPointer && xf86Info.forceInputDevices) {
-	const char **driver = mousedrivers;
-	confInput = xf86findInput(CONF_IMPLICIT_POINTER,
-				  xf86configptr->conf_input_lst);
-	while (*driver && !confInput) {
-	    confInput = xf86findInputByDriver(*driver,
-					      xf86configptr->conf_input_lst);
-	    driver++;
-	}
-	if (confInput) {
-	    foundPointer = TRUE;
-	    from = X_DEFAULT;
-	    pointerMsg = "first mouse device";
-	}
+        const char **driver = mousedrivers;
+
+        confInput = xf86findInput(CONF_IMPLICIT_POINTER,
+                                  xf86configptr->conf_input_lst);
+        while (*driver && !confInput) {
+            confInput = xf86findInputByDriver(*driver,
+                                              xf86configptr->conf_input_lst);
+            driver++;
+        }
+        if (confInput) {
+            foundPointer = TRUE;
+            from = X_DEFAULT;
+            pointerMsg = "first mouse device";
+        }
     }
 
     /* 5. Built-in default. */
     if (!foundPointer && xf86Info.forceInputDevices) {
-	memset(&defPtr, 0, sizeof(defPtr));
-	defPtr.inp_identifier = strdup("<default pointer>");
-	defPtr.inp_driver = strdup("mouse");
-	confInput = &defPtr;
-	foundPointer = TRUE;
-	from = X_DEFAULT;
-	pointerMsg = "default mouse configuration";
+        memset(&defPtr, 0, sizeof(defPtr));
+        defPtr.inp_identifier = strdup("<default pointer>");
+        defPtr.inp_driver = strdup("mouse");
+        confInput = &defPtr;
+        foundPointer = TRUE;
+        from = X_DEFAULT;
+        pointerMsg = "default mouse configuration";
     }
 
     /* Add the core pointer device to the layout, and set it to Core. */
     if (foundPointer && confInput) {
-	Pointer = xf86AllocateInput();
-	if (Pointer)
-	    foundPointer = configInput(Pointer, confInput, from);
-	if (foundPointer) {
-	    Pointer->options = xf86AddNewOption(Pointer->options,
-					        "CorePointer", "on");
-	    Pointer->options = xf86AddNewOption(Pointer->options,
-						"driver", confInput->inp_driver);
-	    Pointer->options = xf86AddNewOption(Pointer->options,
-						"identifier", confInput->inp_identifier);
-	    servlayoutp->inputs = addDevice(servlayoutp->inputs, Pointer);
-	}
+        Pointer = xf86AllocateInput();
+        if (Pointer)
+            foundPointer = configInput(Pointer, confInput, from);
+        if (foundPointer) {
+            Pointer->options = xf86AddNewOption(Pointer->options,
+                                                "CorePointer", "on");
+            Pointer->options = xf86AddNewOption(Pointer->options,
+                                                "driver",
+                                                confInput->inp_driver);
+            Pointer->options =
+                xf86AddNewOption(Pointer->options, "identifier",
+                                 confInput->inp_identifier);
+            servlayoutp->inputs = addDevice(servlayoutp->inputs, Pointer);
+        }
     }
 
     if (!foundPointer && xf86Info.forceInputDevices) {
-	/* This shouldn't happen. */
-	xf86Msg(X_ERROR, "Cannot locate a core pointer device.\n");
-	xf86DeleteInput(Pointer, 0);
-	return FALSE;
+        /* This shouldn't happen. */
+        xf86Msg(X_ERROR, "Cannot locate a core pointer device.\n");
+        xf86DeleteInput(Pointer, 0);
+        return FALSE;
     }
 
     confInput = NULL;
 
     /* 1. Check for the -keyboard command line option. */
     if (xf86KeyboardName) {
-	confInput = xf86findInput(xf86KeyboardName,
-				  xf86configptr->conf_input_lst);
-	if (!confInput) {
-	    xf86Msg(X_ERROR, "No InputDevice section called \"%s\"\n",
-		    xf86KeyboardName);
-	    return FALSE;
-	}
-	from = X_CMDLINE;
-	/*
-	 * If one was already specified in the ServerLayout, it needs to be
-	 * removed.
-	 */
-	if (coreKeyboard) {
-	    freeDevice(servlayoutp->inputs, coreKeyboard);
-	    coreKeyboard = NULL;
-	}
-	foundKeyboard = TRUE;
+        confInput = xf86findInput(xf86KeyboardName,
+                                  xf86configptr->conf_input_lst);
+        if (!confInput) {
+            xf86Msg(X_ERROR, "No InputDevice section called \"%s\"\n",
+                    xf86KeyboardName);
+            return FALSE;
+        }
+        from = X_CMDLINE;
+        /*
+         * If one was already specified in the ServerLayout, it needs to be
+         * removed.
+         */
+        if (coreKeyboard) {
+            freeDevice(servlayoutp->inputs, coreKeyboard);
+            coreKeyboard = NULL;
+        }
+        foundKeyboard = TRUE;
     }
 
     /* 2. ServerLayout-specified core keyboard. */
     if (coreKeyboard) {
-	foundKeyboard = TRUE;
-	from = X_CONFIG;
+        foundKeyboard = TRUE;
+        from = X_CONFIG;
     }
 
     /* 3. First core keyboard device. */
     if (!foundKeyboard && (xf86Info.forceInputDevices || implicitLayout)) {
-	XF86ConfInputPtr p;
+        XF86ConfInputPtr p;
 
-	for (p = xf86configptr->conf_input_lst; p; p = p->list.next) {
-	    if (p->inp_option_lst &&
-		xf86CheckBoolOption(p->inp_option_lst, "CoreKeyboard", FALSE)) {
-		confInput = p;
-		foundKeyboard = TRUE;
-		from = X_DEFAULT;
-		keyboardMsg = "first core keyboard device";
-		break;
-	    }
-	}
+        for (p = xf86configptr->conf_input_lst; p; p = p->list.next) {
+            if (p->inp_option_lst &&
+                xf86CheckBoolOption(p->inp_option_lst, "CoreKeyboard", FALSE)) {
+                confInput = p;
+                foundKeyboard = TRUE;
+                from = X_DEFAULT;
+                keyboardMsg = "first core keyboard device";
+                break;
+            }
+        }
     }
 
     /* 4. First keyboard with 'keyboard' or 'kbd' as the driver. */
     if (!foundKeyboard && xf86Info.forceInputDevices) {
-	confInput = xf86findInput(CONF_IMPLICIT_KEYBOARD,
-				  xf86configptr->conf_input_lst);
-	if (!confInput) {
-	    confInput = xf86findInputByDriver("kbd",
-					      xf86configptr->conf_input_lst);
-	}
-	if (confInput) {
-	    foundKeyboard = TRUE;
-	    from = X_DEFAULT;
-	    keyboardMsg = "first keyboard device";
-	}
+        confInput = xf86findInput(CONF_IMPLICIT_KEYBOARD,
+                                  xf86configptr->conf_input_lst);
+        if (!confInput) {
+            confInput = xf86findInputByDriver("kbd",
+                                              xf86configptr->conf_input_lst);
+        }
+        if (confInput) {
+            foundKeyboard = TRUE;
+            from = X_DEFAULT;
+            keyboardMsg = "first keyboard device";
+        }
     }
 
     /* 5. Built-in default. */
     if (!foundKeyboard && xf86Info.forceInputDevices) {
-	memset(&defKbd, 0, sizeof(defKbd));
-	defKbd.inp_identifier = strdup("<default keyboard>");
-	defKbd.inp_driver = strdup("kbd");
-	confInput = &defKbd;
-	foundKeyboard = TRUE;
-	keyboardMsg = "default keyboard configuration";
-	from = X_DEFAULT;
+        memset(&defKbd, 0, sizeof(defKbd));
+        defKbd.inp_identifier = strdup("<default keyboard>");
+        defKbd.inp_driver = strdup("kbd");
+        confInput = &defKbd;
+        foundKeyboard = TRUE;
+        keyboardMsg = "default keyboard configuration";
+        from = X_DEFAULT;
     }
 
     /* Add the core keyboard device to the layout, and set it to Core. */
     if (foundKeyboard && confInput) {
-	Keyboard = xf86AllocateInput();
-	if (Keyboard)
-	    foundKeyboard = configInput(Keyboard, confInput, from);
-	if (foundKeyboard) {
-	    Keyboard->options = xf86AddNewOption(Keyboard->options,
-						 "CoreKeyboard", "on");
-	    Keyboard->options = xf86AddNewOption(Keyboard->options,
-						 "driver", confInput->inp_driver);
-	    Keyboard->options = xf86AddNewOption(Keyboard->options,
-						 "identifier", confInput->inp_identifier);
-	    servlayoutp->inputs = addDevice(servlayoutp->inputs, Keyboard);
-	}
+        Keyboard = xf86AllocateInput();
+        if (Keyboard)
+            foundKeyboard = configInput(Keyboard, confInput, from);
+        if (foundKeyboard) {
+            Keyboard->options = xf86AddNewOption(Keyboard->options,
+                                                 "CoreKeyboard", "on");
+            Keyboard->options = xf86AddNewOption(Keyboard->options,
+                                                 "driver",
+                                                 confInput->inp_driver);
+            Keyboard->options =
+                xf86AddNewOption(Keyboard->options, "identifier",
+                                 confInput->inp_identifier);
+            servlayoutp->inputs = addDevice(servlayoutp->inputs, Keyboard);
+        }
     }
 
     if (!foundKeyboard && xf86Info.forceInputDevices) {
-	/* This shouldn't happen. */
-	xf86Msg(X_ERROR, "Cannot locate a core keyboard device.\n");
-	xf86DeleteInput(Keyboard, 0);
-	return FALSE;
+        /* This shouldn't happen. */
+        xf86Msg(X_ERROR, "Cannot locate a core keyboard device.\n");
+        xf86DeleteInput(Keyboard, 0);
+        return FALSE;
     }
 
     if (pointerMsg) {
-	if (implicitLayout)
-	    xf86Msg(X_DEFAULT, "No Layout section. Using the %s.\n",
-	            pointerMsg);
-	else
-	    xf86Msg(X_DEFAULT, "The core pointer device wasn't specified "
-	            "explicitly in the layout.\n"
-	            "\tUsing the %s.\n", pointerMsg);
+        if (implicitLayout)
+            xf86Msg(X_DEFAULT, "No Layout section. Using the %s.\n",
+                    pointerMsg);
+        else
+            xf86Msg(X_DEFAULT, "The core pointer device wasn't specified "
+                    "explicitly in the layout.\n"
+                    "\tUsing the %s.\n", pointerMsg);
     }
 
     if (keyboardMsg) {
-	if (implicitLayout)
-	    xf86Msg(X_DEFAULT, "No Layout section. Using the %s.\n",
-	            keyboardMsg);
-	else
-	    xf86Msg(X_DEFAULT, "The core keyboard device wasn't specified "
-	            "explicitly in the layout.\n"
-	            "\tUsing the %s.\n", keyboardMsg);
+        if (implicitLayout)
+            xf86Msg(X_DEFAULT, "No Layout section. Using the %s.\n",
+                    keyboardMsg);
+        else
+            xf86Msg(X_DEFAULT, "The core keyboard device wasn't specified "
+                    "explicitly in the layout.\n"
+                    "\tUsing the %s.\n", keyboardMsg);
     }
 
     if (!xf86Info.forceInputDevices && !(foundPointer && foundKeyboard)) {
 #if defined(CONFIG_HAL) || defined(CONFIG_UDEV) || defined(CONFIG_WSCONS)
-	const char *config_backend;
+        const char *config_backend;
+
 #if defined(CONFIG_HAL)
-	config_backend = "HAL";
+        config_backend = "HAL";
 #elif defined(CONFIG_UDEV)
-	config_backend = "udev";
+        config_backend = "udev";
 #else
-	config_backend = "wscons";
+        config_backend = "wscons";
 #endif
-	xf86Msg(X_INFO, "The server relies on %s to provide the list of "
-	                "input devices.\n\tIf no devices become available, "
-	                "reconfigure %s or disable AutoAddDevices.\n",
-			config_backend, config_backend);
+        xf86Msg(X_INFO, "The server relies on %s to provide the list of "
+                "input devices.\n\tIf no devices become available, "
+                "reconfigure %s or disable AutoAddDevices.\n",
+                config_backend, config_backend);
 #else
-	xf86Msg(X_WARNING, "Hotplugging requested but the server was "
-			   "compiled without a config backend. "
-			   "No input devices were configured, the server "
-			   "will start without any input devices.\n");
+        xf86Msg(X_WARNING, "Hotplugging requested but the server was "
+                "compiled without a config backend. "
+                "No input devices were configured, the server "
+                "will start without any input devices.\n");
 #endif
     }
 
@@ -1355,12 +1402,12 @@ typedef enum {
 } LayoutValues;
 
 static OptionInfoRec LayoutOptions[] = {
-  { LAYOUT_ISOLATEDEVICE,      "IsolateDevice",        OPTV_STRING,
-       {0}, FALSE },
-  { LAYOUT_SINGLECARD,         "SingleCard",           OPTV_BOOLEAN,
-       {0}, FALSE },
-  { -1,                                NULL,                   OPTV_NONE,
-       {0}, FALSE },
+    {LAYOUT_ISOLATEDEVICE, "IsolateDevice", OPTV_STRING,
+     {0}, FALSE},
+    {LAYOUT_SINGLECARD, "SingleCard", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {-1, NULL, OPTV_NONE,
+     {0}, FALSE},
 };
 
 static Bool
@@ -1375,34 +1422,33 @@ configInputDevices(XF86ConfLayoutPtr layout, serverLayoutPtr servlayoutp)
      */
     irp = layout->lay_input_lst;
     while (irp) {
-	count++;
-	irp = (XF86ConfInputrefPtr)irp->list.next;
+        count++;
+        irp = (XF86ConfInputrefPtr) irp->list.next;
     }
     DebugF("Found %d input devices in the layout section %s\n",
-	    count, layout->lay_identifier);
+           count, layout->lay_identifier);
     indp = xnfcalloc((count + 1), sizeof(InputInfoPtr));
     indp[count] = NULL;
     irp = layout->lay_input_lst;
     count = 0;
     while (irp) {
-	indp[count] = xf86AllocateInput();
-	if (!configInput(indp[count], irp->iref_inputdev, X_CONFIG)) {
-	    do {
-		free(indp[count]);
-	    } while(count--);
-	    free(indp);
-	    return FALSE;
-	}
-	indp[count]->options = xf86OptionListMerge(indp[count]->options,
-						   irp->iref_option_lst);
-	count++;
-	irp = (XF86ConfInputrefPtr)irp->list.next;
+        indp[count] = xf86AllocateInput();
+        if (!configInput(indp[count], irp->iref_inputdev, X_CONFIG)) {
+            do {
+                free(indp[count]);
+            } while (count--);
+            free(indp);
+            return FALSE;
+        }
+        indp[count]->options = xf86OptionListMerge(indp[count]->options,
+                                                   irp->iref_option_lst);
+        count++;
+        irp = (XF86ConfInputrefPtr) irp->list.next;
     }
     servlayoutp->inputs = indp;
 
     return TRUE;
 }
-
 
 /*
  * figure out which layout is active, which screens are used in that layout,
@@ -1410,7 +1456,7 @@ configInputDevices(XF86ConfLayoutPtr layout, serverLayoutPtr servlayoutp)
  */
 static Bool
 configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
-	     char *default_layout)
+             char *default_layout)
 {
     XF86ConfAdjacencyPtr adjp;
     XF86ConfInactivePtr idp;
@@ -1423,7 +1469,7 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
     int i = 0, j;
 
     if (!servlayoutp)
-	return FALSE;
+        return FALSE;
 
     /*
      * which layout section is the active one?
@@ -1433,18 +1479,18 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
      */
     from = X_DEFAULT;
     if (xf86LayoutName != NULL)
-	from = X_CMDLINE;
+        from = X_CMDLINE;
     else if (default_layout) {
-	xf86LayoutName = default_layout;
-	from = X_CONFIG;
+        xf86LayoutName = default_layout;
+        from = X_CONFIG;
     }
     if (xf86LayoutName != NULL) {
-	if ((l = xf86findLayout(xf86LayoutName, conf_layout)) == NULL) {
-	    xf86Msg(X_ERROR, "No ServerLayout section called \"%s\"\n",
-		    xf86LayoutName);
-	    return FALSE;
-	}
-	conf_layout = l;
+        if ((l = xf86findLayout(xf86LayoutName, conf_layout)) == NULL) {
+            xf86Msg(X_ERROR, "No ServerLayout section called \"%s\"\n",
+                    xf86LayoutName);
+            return FALSE;
+        }
+        conf_layout = l;
     }
     xf86Msg(from, "ServerLayout \"%s\"\n", conf_layout->lay_identifier);
     adjp = conf_layout->lay_adjacency_lst;
@@ -1457,12 +1503,12 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
      */
     while (adjp) {
         count++;
-        adjp = (XF86ConfAdjacencyPtr)adjp->list.next;
+        adjp = (XF86ConfAdjacencyPtr) adjp->list.next;
     }
 
     DebugF("Found %d screens in the layout section %s",
            count, conf_layout->lay_identifier);
-    if (!count) /* alloc enough storage even if no screen is specified */
+    if (!count)                 /* alloc enough storage even if no screen is specified */
         count = 1;
 
     slp = xnfcalloc(1, (count + 1) * sizeof(screenLayoutRec));
@@ -1476,107 +1522,105 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
     count = 0;
     while (adjp) {
         slp[count].screen = xnfcalloc(1, sizeof(confScreenRec));
-	if (adjp->adj_scrnum < 0)
-	    scrnum = count;
-	else
-	    scrnum = adjp->adj_scrnum;
-	if (!configScreen(slp[count].screen, adjp->adj_screen, scrnum,
-			  X_CONFIG)) {
-	    do {
-		free(slp[count].screen);
-	    } while(count--);
-	    free(slp);
-	    return FALSE;
-	}
-	slp[count].x = adjp->adj_x;
-	slp[count].y = adjp->adj_y;
-	slp[count].refname = adjp->adj_refscreen;
-	switch (adjp->adj_where) {
-	case CONF_ADJ_OBSOLETE:
-	    slp[count].where = PosObsolete;
-	    slp[count].topname = adjp->adj_top_str;
-	    slp[count].bottomname = adjp->adj_bottom_str;
-	    slp[count].leftname = adjp->adj_left_str;
-	    slp[count].rightname = adjp->adj_right_str;
-	    break;
-	case CONF_ADJ_ABSOLUTE:
-	    slp[count].where = PosAbsolute;
-	    break;
-	case CONF_ADJ_RIGHTOF:
-	    slp[count].where = PosRightOf;
-	    break;
-	case CONF_ADJ_LEFTOF:
-	    slp[count].where = PosLeftOf;
-	    break;
-	case CONF_ADJ_ABOVE:
-	    slp[count].where = PosAbove;
-	    break;
-	case CONF_ADJ_BELOW:
-	    slp[count].where = PosBelow;
-	    break;
-	case CONF_ADJ_RELATIVE:
-	    slp[count].where = PosRelative;
-	    break;
-	}
+        if (adjp->adj_scrnum < 0)
+            scrnum = count;
+        else
+            scrnum = adjp->adj_scrnum;
+        if (!configScreen(slp[count].screen, adjp->adj_screen, scrnum,
+                          X_CONFIG)) {
+            do {
+                free(slp[count].screen);
+            } while (count--);
+            free(slp);
+            return FALSE;
+        }
+        slp[count].x = adjp->adj_x;
+        slp[count].y = adjp->adj_y;
+        slp[count].refname = adjp->adj_refscreen;
+        switch (adjp->adj_where) {
+        case CONF_ADJ_OBSOLETE:
+            slp[count].where = PosObsolete;
+            slp[count].topname = adjp->adj_top_str;
+            slp[count].bottomname = adjp->adj_bottom_str;
+            slp[count].leftname = adjp->adj_left_str;
+            slp[count].rightname = adjp->adj_right_str;
+            break;
+        case CONF_ADJ_ABSOLUTE:
+            slp[count].where = PosAbsolute;
+            break;
+        case CONF_ADJ_RIGHTOF:
+            slp[count].where = PosRightOf;
+            break;
+        case CONF_ADJ_LEFTOF:
+            slp[count].where = PosLeftOf;
+            break;
+        case CONF_ADJ_ABOVE:
+            slp[count].where = PosAbove;
+            break;
+        case CONF_ADJ_BELOW:
+            slp[count].where = PosBelow;
+            break;
+        case CONF_ADJ_RELATIVE:
+            slp[count].where = PosRelative;
+            break;
+        }
         count++;
-        adjp = (XF86ConfAdjacencyPtr)adjp->list.next;
+        adjp = (XF86ConfAdjacencyPtr) adjp->list.next;
     }
 
     /* No screen was specified in the layout. take the first one from the
      * config file, or - if it is NULL - configScreen autogenerates one for
      * us */
-    if (!count)
-    {
+    if (!count) {
         slp[0].screen = xnfcalloc(1, sizeof(confScreenRec));
-	if (!configScreen(slp[0].screen, xf86configptr->conf_screen_lst,
+        if (!configScreen(slp[0].screen, xf86configptr->conf_screen_lst,
                           0, X_CONFIG)) {
-	    free(slp[0].screen);
-	    free(slp);
-	    return FALSE;
-	}
+            free(slp[0].screen);
+            free(slp);
+            return FALSE;
+        }
     }
 
     /* XXX Need to tie down the upper left screen. */
 
     /* Fill in the refscreen and top/bottom/left/right values */
     for (i = 0; i < count; i++) {
-	for (j = 0; j < count; j++) {
-	    if (slp[i].refname &&
-		strcmp(slp[i].refname, slp[j].screen->id) == 0) {
-		slp[i].refscreen = slp[j].screen;
-	    }
-	    if (slp[i].topname &&
-		strcmp(slp[i].topname, slp[j].screen->id) == 0) {
-		slp[i].top = slp[j].screen;
-	    }
-	    if (slp[i].bottomname &&
-		strcmp(slp[i].bottomname, slp[j].screen->id) == 0) {
-		slp[i].bottom = slp[j].screen;
-	    }
-	    if (slp[i].leftname &&
-		strcmp(slp[i].leftname, slp[j].screen->id) == 0) {
-		slp[i].left = slp[j].screen;
-	    }
-	    if (slp[i].rightname &&
-		strcmp(slp[i].rightname, slp[j].screen->id) == 0) {
-		slp[i].right = slp[j].screen;
-	    }
-	}
-	if (slp[i].where != PosObsolete
-	    && slp[i].where != PosAbsolute
-	    && !slp[i].refscreen) {
-	    xf86Msg(X_ERROR,"Screen %s doesn't exist: deleting placement\n",
-		     slp[i].refname);
-	    slp[i].where = PosAbsolute;
-	    slp[i].x = 0;
-	    slp[i].y = 0;
-	}
+        for (j = 0; j < count; j++) {
+            if (slp[i].refname &&
+                strcmp(slp[i].refname, slp[j].screen->id) == 0) {
+                slp[i].refscreen = slp[j].screen;
+            }
+            if (slp[i].topname &&
+                strcmp(slp[i].topname, slp[j].screen->id) == 0) {
+                slp[i].top = slp[j].screen;
+            }
+            if (slp[i].bottomname &&
+                strcmp(slp[i].bottomname, slp[j].screen->id) == 0) {
+                slp[i].bottom = slp[j].screen;
+            }
+            if (slp[i].leftname &&
+                strcmp(slp[i].leftname, slp[j].screen->id) == 0) {
+                slp[i].left = slp[j].screen;
+            }
+            if (slp[i].rightname &&
+                strcmp(slp[i].rightname, slp[j].screen->id) == 0) {
+                slp[i].right = slp[j].screen;
+            }
+        }
+        if (slp[i].where != PosObsolete
+            && slp[i].where != PosAbsolute && !slp[i].refscreen) {
+            xf86Msg(X_ERROR, "Screen %s doesn't exist: deleting placement\n",
+                    slp[i].refname);
+            slp[i].where = PosAbsolute;
+            slp[i].x = 0;
+            slp[i].y = 0;
+        }
     }
 
     if (!count)
-	saved_count = 1;
+        saved_count = 1;
     else
-	saved_count = count;
+        saved_count = count;
     /*
      * Count the number of inactive devices.
      */
@@ -1584,7 +1628,7 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
     idp = conf_layout->lay_inactive_lst;
     while (idp) {
         count++;
-        idp = (XF86ConfInactivePtr)idp->list.next;
+        idp = (XF86ConfInactivePtr) idp->list.next;
     }
     DebugF("Found %d inactive devices in the layout section %s\n",
            count, conf_layout->lay_identifier);
@@ -1593,14 +1637,14 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
     idp = conf_layout->lay_inactive_lst;
     count = 0;
     while (idp) {
-	if (!configDevice(&gdp[count], idp->inactive_device, FALSE))
-	    goto bail;
+        if (!configDevice(&gdp[count], idp->inactive_device, FALSE))
+            goto bail;
         count++;
-        idp = (XF86ConfInactivePtr)idp->list.next;
+        idp = (XF86ConfInactivePtr) idp->list.next;
     }
 
     if (!configInputDevices(conf_layout, servlayoutp))
-	goto bail;
+        goto bail;
 
     servlayoutp->id = conf_layout->lay_identifier;
     servlayoutp->screens = slp;
@@ -1610,10 +1654,10 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
 
     return TRUE;
 
-bail:
+ bail:
     do {
-	free(slp[saved_count].screen);
-    } while(saved_count--);
+        free(slp[saved_count].screen);
+    } while (saved_count--);
     free(slp);
     free(gdp);
     return FALSE;
@@ -1634,7 +1678,7 @@ configImpliedLayout(serverLayoutPtr servlayoutp, XF86ConfScreenPtr conf_screen,
     XF86ConfLayoutRec layout;
 
     if (!servlayoutp)
-	return FALSE;
+        return FALSE;
 
     /*
      * which screen section is the active one?
@@ -1645,13 +1689,13 @@ configImpliedLayout(serverLayoutPtr servlayoutp, XF86ConfScreenPtr conf_screen,
 
     from = X_CONFIG;
     if (xf86ScreenName != NULL) {
-	if ((s = xf86findScreen(xf86ScreenName, conf_screen)) == NULL) {
-	    xf86Msg(X_ERROR, "No Screen section called \"%s\"\n",
-		    xf86ScreenName);
-	    return FALSE;
-	}
-	conf_screen = s;
-	from = X_CMDLINE;
+        if ((s = xf86findScreen(xf86ScreenName, conf_screen)) == NULL) {
+            xf86Msg(X_ERROR, "No Screen section called \"%s\"\n",
+                    xf86ScreenName);
+            return FALSE;
+        }
+        conf_screen = s;
+        from = X_CMDLINE;
     }
 
     /* We have exactly one screen */
@@ -1660,8 +1704,8 @@ configImpliedLayout(serverLayoutPtr servlayoutp, XF86ConfScreenPtr conf_screen,
     slp[0].screen = xnfcalloc(1, sizeof(confScreenRec));
     slp[1].screen = NULL;
     if (!configScreen(slp[0].screen, conf_screen, 0, from)) {
-	free(slp);
-	return FALSE;
+        free(slp);
+        return FALSE;
     }
     servlayoutp->id = "(implicit)";
     servlayoutp->screens = slp;
@@ -1671,14 +1715,15 @@ configImpliedLayout(serverLayoutPtr servlayoutp, XF86ConfScreenPtr conf_screen,
     memset(&layout, 0, sizeof(layout));
     layout.lay_identifier = servlayoutp->id;
     if (xf86layoutAddInputDevices(xf86configptr, &layout) > 0) {
-	if (!configInputDevices(&layout, servlayoutp))
-	    return FALSE;
-	from = X_DEFAULT;
-    } else {
-	/* Set up an empty input device list, then look for some core devices. */
-	indp = xnfalloc(sizeof(InputInfoPtr));
-	*indp = NULL;
-	servlayoutp->inputs = indp;
+        if (!configInputDevices(&layout, servlayoutp))
+            return FALSE;
+        from = X_DEFAULT;
+    }
+    else {
+        /* Set up an empty input device list, then look for some core devices. */
+        indp = xnfalloc(sizeof(InputInfoPtr));
+        *indp = NULL;
+        servlayoutp->inputs = indp;
     }
 
     return TRUE;
@@ -1691,31 +1736,31 @@ configXvAdaptor(confXvAdaptorPtr adaptor, XF86ConfVideoAdaptorPtr conf_adaptor)
     XF86ConfVideoPortPtr conf_port;
 
     xf86Msg(X_CONFIG, "|   |-->VideoAdaptor \"%s\"\n",
-	    conf_adaptor->va_identifier);
+            conf_adaptor->va_identifier);
     adaptor->identifier = conf_adaptor->va_identifier;
     adaptor->options = conf_adaptor->va_option_lst;
     if (conf_adaptor->va_busid || conf_adaptor->va_driver) {
-	xf86Msg(X_CONFIG, "|   | Unsupported device type, skipping entry\n");
-	return FALSE;
+        xf86Msg(X_CONFIG, "|   | Unsupported device type, skipping entry\n");
+        return FALSE;
     }
 
     /*
      * figure out how many videoport subsections there are and fill them in
      */
     conf_port = conf_adaptor->va_port_lst;
-    while(conf_port) {
+    while (conf_port) {
         count++;
-        conf_port = (XF86ConfVideoPortPtr)conf_port->list.next;
+        conf_port = (XF86ConfVideoPortPtr) conf_port->list.next;
     }
     adaptor->ports = xnfalloc((count) * sizeof(confXvPortRec));
     adaptor->numports = count;
     count = 0;
     conf_port = conf_adaptor->va_port_lst;
-    while(conf_port) {
-	adaptor->ports[count].identifier = conf_port->vp_identifier;
-	adaptor->ports[count].options = conf_port->vp_option_lst;
+    while (conf_port) {
+        adaptor->ports[count].identifier = conf_port->vp_identifier;
+        adaptor->ports[count].options = conf_port->vp_option_lst;
         count++;
-        conf_port = (XF86ConfVideoPortPtr)conf_port->list.next;
+        conf_port = (XF86ConfVideoPortPtr) conf_port->list.next;
     }
 
     return TRUE;
@@ -1723,7 +1768,7 @@ configXvAdaptor(confXvAdaptorPtr adaptor, XF86ConfVideoAdaptorPtr conf_adaptor)
 
 static Bool
 configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen, int scrnum,
-	     MessageType from)
+             MessageType from)
 {
     int count = 0;
     XF86ConfDisplayPtr dispptr;
@@ -1739,96 +1784,98 @@ configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen, int scrnum,
     }
 
     xf86Msg(from, "|-->Screen \"%s\" (%d)\n", conf_screen->scrn_identifier,
-	    scrnum);
+            scrnum);
     /*
      * now we fill in the elements of the screen
      */
-    screenp->id         = conf_screen->scrn_identifier;
-    screenp->screennum  = scrnum;
+    screenp->id = conf_screen->scrn_identifier;
+    screenp->screennum = scrnum;
     screenp->defaultdepth = conf_screen->scrn_defaultdepth;
     screenp->defaultbpp = conf_screen->scrn_defaultbpp;
     screenp->defaultfbbpp = conf_screen->scrn_defaultfbbpp;
-    screenp->monitor    = xnfcalloc(1, sizeof(MonRec));
+    screenp->monitor = xnfcalloc(1, sizeof(MonRec));
     /* If no monitor is specified, create a default one. */
     if (!conf_screen->scrn_monitor) {
-	XF86ConfMonitorRec defMon;
+        XF86ConfMonitorRec defMon;
 
-	memset(&defMon, 0, sizeof(defMon));
-	defMon.mon_identifier = "<default monitor>";
-	if (!configMonitor(screenp->monitor, &defMon))
-	    return FALSE;
-	defaultMonitor = TRUE;
-    } else {
-	if (!configMonitor(screenp->monitor,conf_screen->scrn_monitor))
-	    return FALSE;
+        memset(&defMon, 0, sizeof(defMon));
+        defMon.mon_identifier = "<default monitor>";
+        if (!configMonitor(screenp->monitor, &defMon))
+            return FALSE;
+        defaultMonitor = TRUE;
+    }
+    else {
+        if (!configMonitor(screenp->monitor, conf_screen->scrn_monitor))
+            return FALSE;
     }
     /* Configure the device. If there isn't one configured, attach to the
      * first inactive one that we can configure. If there's none that work,
      * set it to NULL so that the section can be autoconfigured later */
-    screenp->device     = xnfcalloc(1, sizeof(GDevRec));
+    screenp->device = xnfcalloc(1, sizeof(GDevRec));
     if ((!conf_screen->scrn_device) && (xf86configptr->conf_device_lst)) {
         conf_screen->scrn_device = xf86configptr->conf_device_lst;
-	xf86Msg(X_DEFAULT, "No device specified for screen \"%s\".\n"
-		"\tUsing the first device section listed.\n", screenp->id);
+        xf86Msg(X_DEFAULT, "No device specified for screen \"%s\".\n"
+                "\tUsing the first device section listed.\n", screenp->id);
     }
-    if (configDevice(screenp->device,conf_screen->scrn_device, TRUE)) {
+    if (configDevice(screenp->device, conf_screen->scrn_device, TRUE)) {
         screenp->device->myScreenSection = screenp;
-    } else {
+    }
+    else {
         screenp->device = NULL;
     }
     screenp->options = conf_screen->scrn_option_lst;
-    
+
     /*
      * figure out how many display subsections there are and fill them in
      */
     dispptr = conf_screen->scrn_display_lst;
-    while(dispptr) {
+    while (dispptr) {
         count++;
-        dispptr = (XF86ConfDisplayPtr)dispptr->list.next;
+        dispptr = (XF86ConfDisplayPtr) dispptr->list.next;
     }
-    screenp->displays   = xnfalloc((count) * sizeof(DispRec));
+    screenp->displays = xnfalloc((count) * sizeof(DispRec));
     screenp->numdisplays = count;
-    
+
     /* Fill in the default Virtual size, if any */
     if (conf_screen->scrn_virtualX && conf_screen->scrn_virtualY) {
-	for (count = 0, dispptr = conf_screen->scrn_display_lst;
-	     dispptr;
-	     dispptr = (XF86ConfDisplayPtr)dispptr->list.next, count++) {
-	    screenp->displays[count].virtualX = conf_screen->scrn_virtualX;
-	    screenp->displays[count].virtualY = conf_screen->scrn_virtualY;
-	}
+        for (count = 0, dispptr = conf_screen->scrn_display_lst;
+             dispptr;
+             dispptr = (XF86ConfDisplayPtr) dispptr->list.next, count++) {
+            screenp->displays[count].virtualX = conf_screen->scrn_virtualX;
+            screenp->displays[count].virtualY = conf_screen->scrn_virtualY;
+        }
     }
 
     /* Now do the per-Display Virtual sizes */
     count = 0;
     dispptr = conf_screen->scrn_display_lst;
-    while(dispptr) {
-        configDisplay(&(screenp->displays[count]),dispptr);
+    while (dispptr) {
+        configDisplay(&(screenp->displays[count]), dispptr);
         count++;
-        dispptr = (XF86ConfDisplayPtr)dispptr->list.next;
+        dispptr = (XF86ConfDisplayPtr) dispptr->list.next;
     }
 
     /*
      * figure out how many videoadaptor references there are and fill them in
      */
     conf_adaptor = conf_screen->scrn_adaptor_lst;
-    while(conf_adaptor) {
+    while (conf_adaptor) {
         count++;
-        conf_adaptor = (XF86ConfAdaptorLinkPtr)conf_adaptor->list.next;
+        conf_adaptor = (XF86ConfAdaptorLinkPtr) conf_adaptor->list.next;
     }
     screenp->xvadaptors = xnfalloc((count) * sizeof(confXvAdaptorRec));
     screenp->numxvadaptors = 0;
     conf_adaptor = conf_screen->scrn_adaptor_lst;
-    while(conf_adaptor) {
+    while (conf_adaptor) {
         if (configXvAdaptor(&(screenp->xvadaptors[screenp->numxvadaptors]),
-			    conf_adaptor->al_adaptor))
-    	    screenp->numxvadaptors++;
-        conf_adaptor = (XF86ConfAdaptorLinkPtr)conf_adaptor->list.next;
+                            conf_adaptor->al_adaptor))
+            screenp->numxvadaptors++;
+        conf_adaptor = (XF86ConfAdaptorLinkPtr) conf_adaptor->list.next;
     }
 
     if (defaultMonitor) {
-	xf86Msg(X_DEFAULT, "No monitor specified for screen \"%s\".\n"
-		"\tUsing a default monitor configuration.\n", screenp->id);
+        xf86Msg(X_DEFAULT, "No monitor specified for screen \"%s\".\n"
+                "\tUsing a default monitor configuration.\n", screenp->id);
     }
     return TRUE;
 }
@@ -1839,28 +1886,27 @@ typedef enum {
 } MonitorValues;
 
 static OptionInfoRec MonitorOptions[] = {
-  { MON_REDUCEDBLANKING,      "ReducedBlanking",        OPTV_BOOLEAN,
-       {0}, FALSE },
-  { MON_MAX_PIX_CLOCK,	      "MaxPixClock",		OPTV_FREQ,
-       {0}, FALSE },
-  { -1,                                NULL,                   OPTV_NONE,
-       {0}, FALSE },
+    {MON_REDUCEDBLANKING, "ReducedBlanking", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {MON_MAX_PIX_CLOCK, "MaxPixClock", OPTV_FREQ,
+     {0}, FALSE},
+    {-1, NULL, OPTV_NONE,
+     {0}, FALSE},
 };
 
 static Bool
 configMonitor(MonPtr monitorp, XF86ConfMonitorPtr conf_monitor)
 {
     int count;
-    DisplayModePtr mode,last = NULL;
+    DisplayModePtr mode, last = NULL;
     XF86ConfModeLinePtr cmodep;
     XF86ConfModesPtr modes;
     XF86ConfModesLinkPtr modeslnk = conf_monitor->mon_modes_sect_lst;
-    Gamma zeros = {0.0, 0.0, 0.0};
+    Gamma zeros = { 0.0, 0.0, 0.0 };
     float badgamma = 0.0;
     double maxPixClock;
-    
-    xf86Msg(X_CONFIG, "|   |-->Monitor \"%s\"\n",
-	    conf_monitor->mon_identifier);
+
+    xf86Msg(X_CONFIG, "|   |-->Monitor \"%s\"\n", conf_monitor->mon_identifier);
     monitorp->id = conf_monitor->mon_identifier;
     monitorp->vendor = conf_monitor->mon_vendor;
     monitorp->model = conf_monitor->mon_modelname;
@@ -1875,17 +1921,16 @@ configMonitor(MonPtr monitorp, XF86ConfMonitorPtr conf_monitor)
 
     /*
      * fill in the monitor structure
-     */    
-    for( count = 0 ;
-	 count < conf_monitor->mon_n_hsync && count < MAX_HSYNC;
-	 count++) {
+     */
+    for (count = 0;
+         count < conf_monitor->mon_n_hsync && count < MAX_HSYNC; count++) {
         monitorp->hsync[count].hi = conf_monitor->mon_hsync[count].hi;
         monitorp->hsync[count].lo = conf_monitor->mon_hsync[count].lo;
     }
     monitorp->nHsync = count;
-    for( count = 0 ;
-	 count < conf_monitor->mon_n_vrefresh && count < MAX_VREFRESH;
-	 count++) {
+    for (count = 0;
+         count < conf_monitor->mon_n_vrefresh && count < MAX_VREFRESH;
+         count++) {
         monitorp->vrefresh[count].hi = conf_monitor->mon_vrefresh[count].hi;
         monitorp->vrefresh[count].lo = conf_monitor->mon_vrefresh[count].lo;
     }
@@ -1894,27 +1939,23 @@ configMonitor(MonPtr monitorp, XF86ConfMonitorPtr conf_monitor)
     /*
      * first we collect the mode lines from the UseModes directive
      */
-    while(modeslnk)
-    {
-        modes = xf86findModes (modeslnk->ml_modes_str, 
-			       xf86configptr->conf_modes_lst);
-	modeslnk->ml_modes = modes;
-	
-	    
-	/* now add the modes found in the modes
-	   section to the list of modes for this
-	   monitor unless it has been added before
-	   because we are reusing the same section 
-	   for another screen */
-	if (xf86itemNotSublist(
-			       (GenericListPtr)conf_monitor->mon_modeline_lst,
-			       (GenericListPtr)modes->mon_modeline_lst)) {
-	    conf_monitor->mon_modeline_lst = (XF86ConfModeLinePtr)
-	        xf86addListItem(
-				(GenericListPtr)conf_monitor->mon_modeline_lst,
-				(GenericListPtr)modes->mon_modeline_lst);
-	}
-	modeslnk = modeslnk->list.next;
+    while (modeslnk) {
+        modes = xf86findModes(modeslnk->ml_modes_str,
+                              xf86configptr->conf_modes_lst);
+        modeslnk->ml_modes = modes;
+
+        /* now add the modes found in the modes
+           section to the list of modes for this
+           monitor unless it has been added before
+           because we are reusing the same section 
+           for another screen */
+        if (xf86itemNotSublist((GenericListPtr) conf_monitor->mon_modeline_lst,
+                               (GenericListPtr) modes->mon_modeline_lst)) {
+            conf_monitor->mon_modeline_lst = (XF86ConfModeLinePtr)
+                xf86addListItem((GenericListPtr) conf_monitor->mon_modeline_lst,
+                                (GenericListPtr) modes->mon_modeline_lst);
+        }
+        modeslnk = modeslnk->list.next;
     }
 
     /*
@@ -1923,23 +1964,23 @@ configMonitor(MonPtr monitorp, XF86ConfMonitorPtr conf_monitor)
      * is double linked
      */
     cmodep = conf_monitor->mon_modeline_lst;
-    while( cmodep ) {
+    while (cmodep) {
         mode = xnfcalloc(1, sizeof(DisplayModeRec));
-	mode->type       = 0;
-        mode->Clock      = cmodep->ml_clock;
-        mode->HDisplay   = cmodep->ml_hdisplay;
+        mode->type = 0;
+        mode->Clock = cmodep->ml_clock;
+        mode->HDisplay = cmodep->ml_hdisplay;
         mode->HSyncStart = cmodep->ml_hsyncstart;
-        mode->HSyncEnd   = cmodep->ml_hsyncend;
-        mode->HTotal     = cmodep->ml_htotal;
-        mode->VDisplay   = cmodep->ml_vdisplay;
+        mode->HSyncEnd = cmodep->ml_hsyncend;
+        mode->HTotal = cmodep->ml_htotal;
+        mode->VDisplay = cmodep->ml_vdisplay;
         mode->VSyncStart = cmodep->ml_vsyncstart;
-        mode->VSyncEnd   = cmodep->ml_vsyncend;
-        mode->VTotal     = cmodep->ml_vtotal;
-        mode->Flags      = cmodep->ml_flags;
-        mode->HSkew      = cmodep->ml_hskew;
-        mode->VScan      = cmodep->ml_vscan;
-        mode->name       = xnfstrdup(cmodep->ml_identifier);
-        if( last ) {
+        mode->VSyncEnd = cmodep->ml_vsyncend;
+        mode->VTotal = cmodep->ml_vtotal;
+        mode->Flags = cmodep->ml_flags;
+        mode->HSkew = cmodep->ml_hskew;
+        mode->VScan = cmodep->ml_vscan;
+        mode->name = xnfstrdup(cmodep->ml_identifier);
+        if (last) {
             mode->prev = last;
             last->next = mode;
         }
@@ -1951,52 +1992,53 @@ configMonitor(MonPtr monitorp, XF86ConfMonitorPtr conf_monitor)
             mode->prev = NULL;
         }
         last = mode;
-        cmodep = (XF86ConfModeLinePtr)cmodep->list.next;
+        cmodep = (XF86ConfModeLinePtr) cmodep->list.next;
     }
-    if(last){
-      last->next = NULL;
+    if (last) {
+        last->next = NULL;
     }
     monitorp->Last = last;
 
     /* add the (VESA) default modes */
-    if (! addDefaultModes(monitorp) )
-	return FALSE;
+    if (!addDefaultModes(monitorp))
+        return FALSE;
 
     if (conf_monitor->mon_gamma_red > GAMMA_ZERO)
-	monitorp->gamma.red = conf_monitor->mon_gamma_red;
+        monitorp->gamma.red = conf_monitor->mon_gamma_red;
     if (conf_monitor->mon_gamma_green > GAMMA_ZERO)
-	monitorp->gamma.green = conf_monitor->mon_gamma_green;
+        monitorp->gamma.green = conf_monitor->mon_gamma_green;
     if (conf_monitor->mon_gamma_blue > GAMMA_ZERO)
-	monitorp->gamma.blue = conf_monitor->mon_gamma_blue;
-    
+        monitorp->gamma.blue = conf_monitor->mon_gamma_blue;
+
     /* Check that the gamma values are within range */
     if (monitorp->gamma.red > GAMMA_ZERO &&
-	(monitorp->gamma.red < GAMMA_MIN ||
-	 monitorp->gamma.red > GAMMA_MAX)) {
-	badgamma = monitorp->gamma.red;
-    } else if (monitorp->gamma.green > GAMMA_ZERO &&
-	(monitorp->gamma.green < GAMMA_MIN ||
-	 monitorp->gamma.green > GAMMA_MAX)) {
-	badgamma = monitorp->gamma.green;
-    } else if (monitorp->gamma.blue > GAMMA_ZERO &&
-	(monitorp->gamma.blue < GAMMA_MIN ||
-	 monitorp->gamma.blue > GAMMA_MAX)) {
-	badgamma = monitorp->gamma.blue;
+        (monitorp->gamma.red < GAMMA_MIN || monitorp->gamma.red > GAMMA_MAX)) {
+        badgamma = monitorp->gamma.red;
+    }
+    else if (monitorp->gamma.green > GAMMA_ZERO &&
+             (monitorp->gamma.green < GAMMA_MIN ||
+              monitorp->gamma.green > GAMMA_MAX)) {
+        badgamma = monitorp->gamma.green;
+    }
+    else if (monitorp->gamma.blue > GAMMA_ZERO &&
+             (monitorp->gamma.blue < GAMMA_MIN ||
+              monitorp->gamma.blue > GAMMA_MAX)) {
+        badgamma = monitorp->gamma.blue;
     }
     if (badgamma > GAMMA_ZERO) {
-	xf86ConfigError("Gamma value %.f is out of range (%.2f - %.1f)\n",
-			badgamma, GAMMA_MIN, GAMMA_MAX);
-	    return FALSE;
+        xf86ConfigError("Gamma value %.f is out of range (%.2f - %.1f)\n",
+                        badgamma, GAMMA_MIN, GAMMA_MAX);
+        return FALSE;
     }
 
     xf86ProcessOptions(-1, monitorp->options, MonitorOptions);
     xf86GetOptValBool(MonitorOptions, MON_REDUCEDBLANKING,
                       &monitorp->reducedblanking);
     if (xf86GetOptValFreq(MonitorOptions, MON_MAX_PIX_CLOCK, OPTUNITS_KHZ,
-			  &maxPixClock) == TRUE) {
-	monitorp->maxPixClock = (int) maxPixClock;
+                          &maxPixClock) == TRUE) {
+        monitorp->maxPixClock = (int) maxPixClock;
     }
-	
+
     return TRUE;
 }
 
@@ -2006,71 +2048,71 @@ lookupVisual(const char *visname)
     int i;
 
     if (!visname || !*visname)
-	return -1;
+        return -1;
 
     for (i = 0; i <= DirectColor; i++) {
-	if (!xf86nameCompare(visname, xf86VisualNames[i]))
-	    break;
+        if (!xf86nameCompare(visname, xf86VisualNames[i]))
+            break;
     }
 
     if (i <= DirectColor)
-	return i;
+        return i;
 
     return -1;
 }
-
 
 static Bool
 configDisplay(DispPtr displayp, XF86ConfDisplayPtr conf_display)
 {
     int count = 0;
     XF86ModePtr modep;
-    
-    displayp->frameX0           = conf_display->disp_frameX0;
-    displayp->frameY0           = conf_display->disp_frameY0;
-    displayp->virtualX          = conf_display->disp_virtualX;
-    displayp->virtualY          = conf_display->disp_virtualY;
-    displayp->depth             = conf_display->disp_depth;
-    displayp->fbbpp             = conf_display->disp_bpp;
-    displayp->weight.red        = conf_display->disp_weight.red;
-    displayp->weight.green      = conf_display->disp_weight.green;
-    displayp->weight.blue       = conf_display->disp_weight.blue;
-    displayp->blackColour.red   = conf_display->disp_black.red;
+
+    displayp->frameX0 = conf_display->disp_frameX0;
+    displayp->frameY0 = conf_display->disp_frameY0;
+    displayp->virtualX = conf_display->disp_virtualX;
+    displayp->virtualY = conf_display->disp_virtualY;
+    displayp->depth = conf_display->disp_depth;
+    displayp->fbbpp = conf_display->disp_bpp;
+    displayp->weight.red = conf_display->disp_weight.red;
+    displayp->weight.green = conf_display->disp_weight.green;
+    displayp->weight.blue = conf_display->disp_weight.blue;
+    displayp->blackColour.red = conf_display->disp_black.red;
     displayp->blackColour.green = conf_display->disp_black.green;
-    displayp->blackColour.blue  = conf_display->disp_black.blue;
-    displayp->whiteColour.red   = conf_display->disp_white.red;
+    displayp->blackColour.blue = conf_display->disp_black.blue;
+    displayp->whiteColour.red = conf_display->disp_white.red;
     displayp->whiteColour.green = conf_display->disp_white.green;
-    displayp->whiteColour.blue  = conf_display->disp_white.blue;
-    displayp->options           = conf_display->disp_option_lst;
+    displayp->whiteColour.blue = conf_display->disp_white.blue;
+    displayp->options = conf_display->disp_option_lst;
     if (conf_display->disp_visual) {
-	displayp->defaultVisual = lookupVisual(conf_display->disp_visual);
-	if (displayp->defaultVisual == -1) {
-	    xf86ConfigError("Invalid visual name: \"%s\"",
-			    conf_display->disp_visual);
-	    return FALSE;
-	}
-    } else {
-	displayp->defaultVisual = -1;
+        displayp->defaultVisual = lookupVisual(conf_display->disp_visual);
+        if (displayp->defaultVisual == -1) {
+            xf86ConfigError("Invalid visual name: \"%s\"",
+                            conf_display->disp_visual);
+            return FALSE;
+        }
     }
-	
+    else {
+        displayp->defaultVisual = -1;
+    }
+
     /*
      * now hook in the modes
      */
     modep = conf_display->disp_mode_lst;
-    while(modep) {
+    while (modep) {
         count++;
-        modep = (XF86ModePtr)modep->list.next;
+        modep = (XF86ModePtr) modep->list.next;
     }
-    displayp->modes = xnfalloc((count+1) * sizeof(char*));
+    displayp->modes = xnfalloc((count + 1) * sizeof(char *));
     modep = conf_display->disp_mode_lst;
     count = 0;
-    while(modep) {
+    while (modep) {
         displayp->modes[count] = modep->mode_name;
         count++;
-        modep = (XF86ModePtr)modep->list.next;
+        modep = (XF86ModePtr) modep->list.next;
     }
     displayp->modes[count] = NULL;
-    
+
     return TRUE;
 }
 
@@ -2084,11 +2126,11 @@ configDevice(GDevPtr devicep, XF86ConfDevicePtr conf_device, Bool active)
     }
 
     if (active)
-	xf86Msg(X_CONFIG, "|   |-->Device \"%s\"\n",
-		conf_device->dev_identifier);
+        xf86Msg(X_CONFIG, "|   |-->Device \"%s\"\n",
+                conf_device->dev_identifier);
     else
-	xf86Msg(X_CONFIG, "|-->Inactive Device \"%s\"\n",
-		conf_device->dev_identifier);
+        xf86Msg(X_CONFIG, "|-->Inactive Device \"%s\"\n",
+                conf_device->dev_identifier);
 
     devicep->identifier = conf_device->dev_identifier;
     devicep->vendor = conf_device->dev_vendor;
@@ -2111,16 +2153,16 @@ configDevice(GDevPtr devicep, XF86ConfDevicePtr conf_device, Bool active)
     devicep->screen = conf_device->dev_screen;
 
     for (i = 0; i < MAXDACSPEEDS; i++) {
-	if (i < CONF_MAXDACSPEEDS)
+        if (i < CONF_MAXDACSPEEDS)
             devicep->dacSpeeds[i] = conf_device->dev_dacSpeeds[i];
-	else
-	    devicep->dacSpeeds[i] = 0;
+        else
+            devicep->dacSpeeds[i] = 0;
     }
     devicep->numclocks = conf_device->dev_clocks;
     if (devicep->numclocks > MAXCLOCKS)
-	devicep->numclocks = MAXCLOCKS;
+        devicep->numclocks = MAXCLOCKS;
     for (i = 0; i < devicep->numclocks; i++) {
-	devicep->clock[i] = conf_device->dev_clock[i];
+        devicep->clock[i] = conf_device->dev_clock[i];
     }
     devicep->claimed = FALSE;
 
@@ -2131,20 +2173,21 @@ configDevice(GDevPtr devicep, XF86ConfDevicePtr conf_device, Bool active)
 static void
 configDRI(XF86ConfDRIPtr drip)
 {
-    struct group       *grp;
+    struct group *grp;
 
-    xf86ConfigDRI.group      = -1;
-    xf86ConfigDRI.mode       = 0;
+    xf86ConfigDRI.group = -1;
+    xf86ConfigDRI.mode = 0;
 
     if (drip) {
-	if (drip->dri_group_name) {
-	    if ((grp = getgrnam(drip->dri_group_name)))
-		xf86ConfigDRI.group = grp->gr_gid;
-	} else {
-	    if (drip->dri_group >= 0)
-		xf86ConfigDRI.group = drip->dri_group;
-	}
-	xf86ConfigDRI.mode = drip->dri_mode;
+        if (drip->dri_group_name) {
+            if ((grp = getgrnam(drip->dri_group_name)))
+                xf86ConfigDRI.group = grp->gr_gid;
+        }
+        else {
+            if (drip->dri_group >= 0)
+                xf86ConfigDRI.group = drip->dri_group;
+        }
+        xf86ConfigDRI.mode = drip->dri_mode;
     }
 }
 #endif
@@ -2155,49 +2198,51 @@ configExtensions(XF86ConfExtensionsPtr conf_ext)
     XF86OptionPtr o;
 
     if (conf_ext && conf_ext->ext_option_lst) {
-	for (o = conf_ext->ext_option_lst; o; o = xf86NextOption(o)) {
-	    char *name   = xf86OptionName(o);
-	    char *val    = xf86OptionValue(o);
-	    char *n;
-	    Bool  enable = TRUE;
+        for (o = conf_ext->ext_option_lst; o; o = xf86NextOption(o)) {
+            char *name = xf86OptionName(o);
+            char *val = xf86OptionValue(o);
+            char *n;
+            Bool enable = TRUE;
 
-	    /* Handle "No<ExtensionName>" */
-	    n = xf86NormalizeName(name);
-	    if (strncmp(n, "no", 2) == 0) {
-		name += 2;
-		enable = FALSE;
-	    }
+            /* Handle "No<ExtensionName>" */
+            n = xf86NormalizeName(name);
+            if (strncmp(n, "no", 2) == 0) {
+                name += 2;
+                enable = FALSE;
+            }
 
-	    if (!val ||
-		xf86NameCmp(val, "enable") == 0 ||
-		xf86NameCmp(val, "enabled") == 0 ||
-		xf86NameCmp(val, "on") == 0 ||
-		xf86NameCmp(val, "1") == 0 ||
-		xf86NameCmp(val, "yes") == 0 ||
-		xf86NameCmp(val, "true") == 0) {
-		/* NOTHING NEEDED -- enabling is handled below */
-	    } else if (xf86NameCmp(val, "disable") == 0 ||
-                       xf86NameCmp(val, "disabled") == 0 ||
-		       xf86NameCmp(val, "off") == 0 ||
-		       xf86NameCmp(val, "0") == 0 ||
-		       xf86NameCmp(val, "no") == 0 ||
-		       xf86NameCmp(val, "false") == 0) {
-		enable = !enable;
-	    } else {
-		xf86Msg(X_WARNING, "Ignoring unrecognized value \"%s\"\n", val);
-		free(n);
-		continue;
-	    }
+            if (!val ||
+                xf86NameCmp(val, "enable") == 0 ||
+                xf86NameCmp(val, "enabled") == 0 ||
+                xf86NameCmp(val, "on") == 0 ||
+                xf86NameCmp(val, "1") == 0 ||
+                xf86NameCmp(val, "yes") == 0 || xf86NameCmp(val, "true") == 0) {
+                /* NOTHING NEEDED -- enabling is handled below */
+            }
+            else if (xf86NameCmp(val, "disable") == 0 ||
+                     xf86NameCmp(val, "disabled") == 0 ||
+                     xf86NameCmp(val, "off") == 0 ||
+                     xf86NameCmp(val, "0") == 0 ||
+                     xf86NameCmp(val, "no") == 0 ||
+                     xf86NameCmp(val, "false") == 0) {
+                enable = !enable;
+            }
+            else {
+                xf86Msg(X_WARNING, "Ignoring unrecognized value \"%s\"\n", val);
+                free(n);
+                continue;
+            }
 
-	    if (EnableDisableExtension(name, enable)) {
-		xf86Msg(X_CONFIG, "Extension \"%s\" is %s\n",
-			name, enable ? "enabled" : "disabled");
-	    } else {
-		xf86Msg(X_WARNING, "Ignoring unrecognized extension \"%s\"\n",
+            if (EnableDisableExtension(name, enable)) {
+                xf86Msg(X_CONFIG, "Extension \"%s\" is %s\n",
+                        name, enable ? "enabled" : "disabled");
+            }
+            else {
+                xf86Msg(X_WARNING, "Ignoring unrecognized extension \"%s\"\n",
                         name);
-	    }
-	    free(n);
-	}
+            }
+            free(n);
+        }
     }
 }
 
@@ -2219,12 +2264,11 @@ modeIsPresent(DisplayModePtr mode, MonPtr monitorp)
     DisplayModePtr knownmodes = monitorp->Modes;
 
     /* all I can think of is a linear search... */
-    while(knownmodes != NULL)
-    {
-	if(!strcmp(mode->name, knownmodes->name) &&
-	   !(knownmodes->type & M_T_DEFAULT))
-	    return TRUE;
-	knownmodes = knownmodes->next;
+    while (knownmodes != NULL) {
+        if (!strcmp(mode->name, knownmodes->name) &&
+            !(knownmodes->type & M_T_DEFAULT))
+            return TRUE;
+        knownmodes = knownmodes->next;
     }
     return FALSE;
 }
@@ -2236,16 +2280,15 @@ addDefaultModes(MonPtr monitorp)
     DisplayModePtr last = monitorp->Last;
     int i = 0;
 
-    for (i = 0; i < xf86NumDefaultModes; i++)
-    {
-	mode = xf86DuplicateMode(&xf86DefaultModes[i]);
-	if (!modeIsPresent(mode, monitorp))
-	{
-	    monitorp->Modes = xf86ModesAdd(monitorp->Modes, mode);
-	    last = mode;
-	} else {
-	    free(mode);
-	}
+    for (i = 0; i < xf86NumDefaultModes; i++) {
+        mode = xf86DuplicateMode(&xf86DefaultModes[i]);
+        if (!modeIsPresent(mode, monitorp)) {
+            monitorp->Modes = xf86ModesAdd(monitorp->Modes, mode);
+            last = mode;
+        }
+        else {
+            free(mode);
+        }
     }
     monitorp->Last = last;
 
@@ -2253,27 +2296,25 @@ addDefaultModes(MonPtr monitorp)
 }
 
 static void
-checkInput(serverLayoutPtr layout, Bool implicit_layout) {
+checkInput(serverLayoutPtr layout, Bool implicit_layout)
+{
     checkCoreInputDevices(layout, implicit_layout);
 
     /* Unless we're forcing input devices, disable mouse/kbd devices in the
      * config. Otherwise the same physical device is added multiple times,
      * leading to duplicate events.
      */
-    if (!xf86Info.forceInputDevices && layout->inputs)
-    {
+    if (!xf86Info.forceInputDevices && layout->inputs) {
         InputInfoPtr *dev = layout->inputs;
         BOOL warned = FALSE;
 
-        while(*dev)
-        {
+        while (*dev) {
             if (strcmp((*dev)->driver, "kbd") == 0 ||
                 strcmp((*dev)->driver, "mouse") == 0 ||
-                strcmp((*dev)->driver, "vmmouse") == 0)
-            {
+                strcmp((*dev)->driver, "vmmouse") == 0) {
                 InputInfoPtr *current;
-                if (!warned)
-                {
+
+                if (!warned) {
                     xf86Msg(X_WARNING, "Hotplugging is on, devices using "
                             "drivers 'kbd', 'mouse' or 'vmmouse' will be disabled.\n");
                     warned = TRUE;
@@ -2287,8 +2328,9 @@ checkInput(serverLayoutPtr layout, Bool implicit_layout) {
                 do {
                     *current = *(current + 1);
                     current++;
-                } while(*current);
-            } else
+                } while (*current);
+            }
+            else
                 dev++;
         }
     }
@@ -2305,63 +2347,66 @@ xf86HandleConfigFile(Bool autoconfig)
     Bool implicit_layout = FALSE;
 
     if (!autoconfig) {
-	char *filename, *dirname, *sysdirname;
-	const char *filesearch, *dirsearch;
-	MessageType filefrom = X_DEFAULT;
-	MessageType dirfrom = X_DEFAULT;
+        char *filename, *dirname, *sysdirname;
+        const char *filesearch, *dirsearch;
+        MessageType filefrom = X_DEFAULT;
+        MessageType dirfrom = X_DEFAULT;
 
-	if (!xf86PrivsElevated()) {
-	    filesearch = ALL_CONFIGPATH;
-	    dirsearch = ALL_CONFIGDIRPATH;
-	} else {
-	    filesearch = RESTRICTED_CONFIGPATH;
-	    dirsearch = RESTRICTED_CONFIGDIRPATH;
-	}
+        if (!xf86PrivsElevated()) {
+            filesearch = ALL_CONFIGPATH;
+            dirsearch = ALL_CONFIGDIRPATH;
+        }
+        else {
+            filesearch = RESTRICTED_CONFIGPATH;
+            dirsearch = RESTRICTED_CONFIGDIRPATH;
+        }
 
-	if (xf86ConfigFile)
-	    filefrom = X_CMDLINE;
-	if (xf86ConfigDir)
-	    dirfrom = X_CMDLINE;
+        if (xf86ConfigFile)
+            filefrom = X_CMDLINE;
+        if (xf86ConfigDir)
+            dirfrom = X_CMDLINE;
 
-	xf86initConfigFiles();
-	sysdirname = xf86openConfigDirFiles(SYS_CONFIGDIRPATH, NULL,
-					    PROJECTROOT);
-	dirname = xf86openConfigDirFiles(dirsearch, xf86ConfigDir, PROJECTROOT);
-	filename = xf86openConfigFile(filesearch, xf86ConfigFile, PROJECTROOT);
-	if (filename) {
-	    xf86MsgVerb(filefrom, 0, "Using config file: \"%s\"\n", filename);
-	    xf86ConfigFile = xnfstrdup(filename);
-	} else {
-	    if (xf86ConfigFile)
-		xf86Msg(X_ERROR, "Unable to locate/open config file: \"%s\"\n",
-			xf86ConfigFile);
-	}
-	if (dirname) {
-	    xf86MsgVerb(dirfrom, 0, "Using config directory: \"%s\"\n",
-			dirname);
-	    xf86ConfigDir = xnfstrdup(dirname);
-	} else {
-	    if (xf86ConfigDir)
-		xf86Msg(X_ERROR,
-			"Unable to locate/open config directory: \"%s\"\n",
-			xf86ConfigDir);
-	}
-	if (sysdirname)
-	    xf86MsgVerb(X_DEFAULT, 0, "Using system config directory \"%s\"\n",
-			sysdirname);
-	if (!filename && !dirname && !sysdirname)
-	    return CONFIG_NOFILE;
+        xf86initConfigFiles();
+        sysdirname = xf86openConfigDirFiles(SYS_CONFIGDIRPATH, NULL,
+                                            PROJECTROOT);
+        dirname = xf86openConfigDirFiles(dirsearch, xf86ConfigDir, PROJECTROOT);
+        filename = xf86openConfigFile(filesearch, xf86ConfigFile, PROJECTROOT);
+        if (filename) {
+            xf86MsgVerb(filefrom, 0, "Using config file: \"%s\"\n", filename);
+            xf86ConfigFile = xnfstrdup(filename);
+        }
+        else {
+            if (xf86ConfigFile)
+                xf86Msg(X_ERROR, "Unable to locate/open config file: \"%s\"\n",
+                        xf86ConfigFile);
+        }
+        if (dirname) {
+            xf86MsgVerb(dirfrom, 0, "Using config directory: \"%s\"\n",
+                        dirname);
+            xf86ConfigDir = xnfstrdup(dirname);
+        }
+        else {
+            if (xf86ConfigDir)
+                xf86Msg(X_ERROR,
+                        "Unable to locate/open config directory: \"%s\"\n",
+                        xf86ConfigDir);
+        }
+        if (sysdirname)
+            xf86MsgVerb(X_DEFAULT, 0, "Using system config directory \"%s\"\n",
+                        sysdirname);
+        if (!filename && !dirname && !sysdirname)
+            return CONFIG_NOFILE;
 
-	free(filename);
-	free(dirname);
-	free(sysdirname);
+        free(filename);
+        free(dirname);
+        free(sysdirname);
     }
 
-    if ((xf86configptr = xf86readConfigFile ()) == NULL) {
-	xf86Msg(X_ERROR, "Problem parsing the config file\n");
-	return CONFIG_PARSE_ERROR;
+    if ((xf86configptr = xf86readConfigFile()) == NULL) {
+        xf86Msg(X_ERROR, "Problem parsing the config file\n");
+        return CONFIG_PARSE_ERROR;
     }
-    xf86closeConfigFile ();
+    xf86closeConfigFile();
 
     /* Initialise a few things. */
 
@@ -2377,59 +2422,65 @@ xf86HandleConfigFile(Bool autoconfig)
     /* First check if a layout section is present, and if it is valid. */
 
     if (xf86configptr->conf_layout_lst == NULL || xf86ScreenName != NULL) {
-	if (xf86ScreenName == NULL) {
-	    xf86Msg(X_DEFAULT,
-		    "No Layout section.  Using the first Screen section.\n");
-	}
-	if (!configImpliedLayout(&xf86ConfigLayout,
-				 xf86configptr->conf_screen_lst,
-				 xf86configptr)) {
+        if (xf86ScreenName == NULL) {
+            xf86Msg(X_DEFAULT,
+                    "No Layout section.  Using the first Screen section.\n");
+        }
+        if (!configImpliedLayout(&xf86ConfigLayout,
+                                 xf86configptr->conf_screen_lst,
+                                 xf86configptr)) {
             xf86Msg(X_ERROR, "Unable to determine the screen layout\n");
-	    return CONFIG_PARSE_ERROR;
-	}
-	implicit_layout = TRUE;
-    } else {
-	if (xf86configptr->conf_flags != NULL) {
-	  char *dfltlayout = NULL;
- 	  pointer optlist = xf86configptr->conf_flags->flg_option_lst;
-	
-	  if (optlist && xf86FindOption(optlist, "defaultserverlayout"))
-	    dfltlayout = xf86SetStrOption(optlist, "defaultserverlayout", NULL);
-	  if (!configLayout(&xf86ConfigLayout, xf86configptr->conf_layout_lst,
-			  dfltlayout)) {
-	    xf86Msg(X_ERROR, "Unable to determine the screen layout\n");
-	    return CONFIG_PARSE_ERROR;
-	  }
-	} else {
-	  if (!configLayout(&xf86ConfigLayout, xf86configptr->conf_layout_lst,
-			  NULL)) {
-	    xf86Msg(X_ERROR, "Unable to determine the screen layout\n");
-	    return CONFIG_PARSE_ERROR;
-	  }
-	}
+            return CONFIG_PARSE_ERROR;
+        }
+        implicit_layout = TRUE;
+    }
+    else {
+        if (xf86configptr->conf_flags != NULL) {
+            char *dfltlayout = NULL;
+            pointer optlist = xf86configptr->conf_flags->flg_option_lst;
+
+            if (optlist && xf86FindOption(optlist, "defaultserverlayout"))
+                dfltlayout =
+                    xf86SetStrOption(optlist, "defaultserverlayout", NULL);
+            if (!configLayout
+                (&xf86ConfigLayout, xf86configptr->conf_layout_lst,
+                 dfltlayout)) {
+                xf86Msg(X_ERROR, "Unable to determine the screen layout\n");
+                return CONFIG_PARSE_ERROR;
+            }
+        }
+        else {
+            if (!configLayout(&xf86ConfigLayout, xf86configptr->conf_layout_lst,
+                              NULL)) {
+                xf86Msg(X_ERROR, "Unable to determine the screen layout\n");
+                return CONFIG_PARSE_ERROR;
+            }
+        }
     }
 
     xf86ProcessOptions(-1, xf86ConfigLayout.options, LayoutOptions);
 #ifdef XSERVER_LIBPCIACCESS
     if ((scanptr = xf86GetOptValString(LayoutOptions, LAYOUT_ISOLATEDEVICE))) {
-       ; /* IsolateDevice specified; overrides SingleCard */
-    } else {
-       xf86GetOptValBool(LayoutOptions, LAYOUT_SINGLECARD, &singlecard);
-       if (singlecard)
-           scanptr = xf86ConfigLayout.screens->screen->device->busID;
+        ;                       /* IsolateDevice specified; overrides SingleCard */
+    }
+    else {
+        xf86GetOptValBool(LayoutOptions, LAYOUT_SINGLECARD, &singlecard);
+        if (singlecard)
+            scanptr = xf86ConfigLayout.screens->screen->device->busID;
     }
     if (scanptr) {
-       if (strncmp(scanptr, "PCI:", 4) != 0) {
-           xf86Msg(X_WARNING, "Bus types other than PCI not yet isolable.\n"
-                              "\tIgnoring IsolateDevice option.\n");
-       } else
-           xf86PciIsolateDevice(scanptr);
+        if (strncmp(scanptr, "PCI:", 4) != 0) {
+            xf86Msg(X_WARNING, "Bus types other than PCI not yet isolable.\n"
+                    "\tIgnoring IsolateDevice option.\n");
+        }
+        else
+            xf86PciIsolateDevice(scanptr);
     }
 #endif
     /* Now process everything else */
-    if (!configServerFlags(xf86configptr->conf_flags,xf86ConfigLayout.options)){
-             ErrorF ("Problem when converting the config data structures\n");
-             return CONFIG_PARSE_ERROR;
+    if (!configServerFlags(xf86configptr->conf_flags, xf86ConfigLayout.options)) {
+        ErrorF("Problem when converting the config data structures\n");
+        return CONFIG_PARSE_ERROR;
     }
 
     configFiles(xf86configptr->conf_files);
@@ -2446,13 +2497,13 @@ xf86HandleConfigFile(Bool autoconfig)
      */
 #ifdef XF86VIDMODE
     if (xf86VidModeDisabled)
-	xf86Info.vidModeEnabled = FALSE;
+        xf86Info.vidModeEnabled = FALSE;
     if (xf86VidModeAllowNonLocal)
-	xf86Info.vidModeAllowNonLocal = TRUE;
+        xf86Info.vidModeAllowNonLocal = TRUE;
 #endif
 
     if (xf86AllowMouseOpenFail)
-	xf86Info.allowMouseOpenFail = TRUE;
+        xf86Info.allowMouseOpenFail = TRUE;
 
     return CONFIG_OK;
 }

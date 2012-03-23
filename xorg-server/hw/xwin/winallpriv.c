@@ -34,7 +34,6 @@
 #endif
 #include "win.h"
 
-
 /* See Porting Layer Definition - p. 58 */
 /*
  * Allocate indexes for the privates that we use.
@@ -44,70 +43,65 @@
  */
 
 Bool
-winAllocatePrivates (ScreenPtr pScreen)
+winAllocatePrivates(ScreenPtr pScreen)
 {
-  winPrivScreenPtr	pScreenPriv;
+    winPrivScreenPtr pScreenPriv;
 
 #if CYGDEBUG
-  winDebug ("winAllocateScreenPrivates - g_ulServerGeneration: %d "
-	  "serverGeneration: %d\n",
-	  g_ulServerGeneration, serverGeneration);
+    winDebug("winAllocateScreenPrivates - g_ulServerGeneration: %d "
+             "serverGeneration: %d\n", g_ulServerGeneration, serverGeneration);
 #endif
 
-  /* We need a new slot for our privates if the screen gen has changed */
-  if (g_ulServerGeneration != serverGeneration)
-    {
-      g_ulServerGeneration = serverGeneration;
+    /* We need a new slot for our privates if the screen gen has changed */
+    if (g_ulServerGeneration != serverGeneration) {
+        g_ulServerGeneration = serverGeneration;
     }
 
-  /* Allocate memory for the screen private structure */
-  pScreenPriv = (winPrivScreenPtr) malloc (sizeof (winPrivScreenRec));
-  if (!pScreenPriv)
-    {
-      ErrorF ("winAllocateScreenPrivates - malloc () failed\n");
-      return FALSE;
+    /* Allocate memory for the screen private structure */
+    pScreenPriv = (winPrivScreenPtr) malloc(sizeof(winPrivScreenRec));
+    if (!pScreenPriv) {
+        ErrorF("winAllocateScreenPrivates - malloc () failed\n");
+        return FALSE;
     }
 
-  /* Initialize the memory of the private structure */
-  ZeroMemory (pScreenPriv, sizeof (winPrivScreenRec));
+    /* Initialize the memory of the private structure */
+    ZeroMemory(pScreenPriv, sizeof(winPrivScreenRec));
 
-  /* Intialize private structure members */
-  pScreenPriv->fActive = TRUE;
+    /* Intialize private structure members */
+    pScreenPriv->fActive = TRUE;
 
-  /* Register our screen private */
-  if (!dixRegisterPrivateKey(g_iScreenPrivateKey, PRIVATE_SCREEN, 0))
-    {
-      ErrorF ("winAllocatePrivates - AllocateScreenPrivate () failed\n");
-      return FALSE;
+    /* Register our screen private */
+    if (!dixRegisterPrivateKey(g_iScreenPrivateKey, PRIVATE_SCREEN, 0)) {
+        ErrorF("winAllocatePrivates - AllocateScreenPrivate () failed\n");
+        return FALSE;
     }
 
-  /* Save the screen private pointer */
-  winSetScreenPriv (pScreen, pScreenPriv);
+    /* Save the screen private pointer */
+    winSetScreenPriv(pScreen, pScreenPriv);
 
-  /* Reserve GC memory for our privates */
-  if (!dixRegisterPrivateKey(g_iGCPrivateKey, PRIVATE_GC, sizeof (winPrivGCRec)))
-    {
-      ErrorF ("winAllocatePrivates - AllocateGCPrivate () failed\n");
-      return FALSE;
+    /* Reserve GC memory for our privates */
+    if (!dixRegisterPrivateKey
+        (g_iGCPrivateKey, PRIVATE_GC, sizeof(winPrivGCRec))) {
+        ErrorF("winAllocatePrivates - AllocateGCPrivate () failed\n");
+        return FALSE;
     }
 
-  /* Reserve Pixmap memory for our privates */
-  if (!dixRegisterPrivateKey(g_iPixmapPrivateKey, PRIVATE_PIXMAP, sizeof (winPrivPixmapRec)))
-    {
-      ErrorF ("winAllocatePrivates - AllocatePixmapPrivates () failed\n");
-      return FALSE;
+    /* Reserve Pixmap memory for our privates */
+    if (!dixRegisterPrivateKey
+        (g_iPixmapPrivateKey, PRIVATE_PIXMAP, sizeof(winPrivPixmapRec))) {
+        ErrorF("winAllocatePrivates - AllocatePixmapPrivates () failed\n");
+        return FALSE;
     }
 
-  /* Reserve Window memory for our privates */
-  if (!dixRegisterPrivateKey(g_iWindowPrivateKey, PRIVATE_WINDOW, sizeof (winPrivWinRec)))
-    {
-      ErrorF ("winAllocatePrivates () - AllocateWindowPrivates () failed\n");
-       return FALSE;
-     }
+    /* Reserve Window memory for our privates */
+    if (!dixRegisterPrivateKey
+        (g_iWindowPrivateKey, PRIVATE_WINDOW, sizeof(winPrivWinRec))) {
+        ErrorF("winAllocatePrivates () - AllocateWindowPrivates () failed\n");
+        return FALSE;
+    }
 
-  return TRUE;
+    return TRUE;
 }
-
 
 /*
  * Colormap privates may be allocated after the default colormap has
@@ -116,71 +110,67 @@ winAllocatePrivates (ScreenPtr pScreen)
  */
 
 Bool
-winInitCmapPrivates (ColormapPtr pcmap, int index)
+winInitCmapPrivates(ColormapPtr pcmap, int index)
 {
 #if CYGDEBUG
-  winDebug ("winInitCmapPrivates\n");
+    winDebug("winInitCmapPrivates\n");
 #endif
-  
-  /*
-   * I see no way that this function can do anything useful
-   * with only a ColormapPtr.  We don't have the index for
-   * our dev privates yet, so we can't really initialize
-   * anything.  Perhaps I am misunderstanding the purpose
-   * of this function.
-   */
-  /*  That's definitely true.
-   *  I therefore changed the API and added the index as argument.
-   */
-  return TRUE;
-}
 
+    /*
+     * I see no way that this function can do anything useful
+     * with only a ColormapPtr.  We don't have the index for
+     * our dev privates yet, so we can't really initialize
+     * anything.  Perhaps I am misunderstanding the purpose
+     * of this function.
+     */
+    /*  That's definitely true.
+     *  I therefore changed the API and added the index as argument.
+     */
+    return TRUE;
+}
 
 /*
  * Allocate memory for our colormap privates
  */
 
 Bool
-winAllocateCmapPrivates (ColormapPtr pCmap)
+winAllocateCmapPrivates(ColormapPtr pCmap)
 {
-  winPrivCmapPtr		pCmapPriv;
-  static unsigned long		s_ulPrivateGeneration = 0;
+    winPrivCmapPtr pCmapPriv;
+    static unsigned long s_ulPrivateGeneration = 0;
 
 #if CYGDEBUG
-  winDebug ("winAllocateCmapPrivates\n");
+    winDebug("winAllocateCmapPrivates\n");
 #endif
 
-  /* Get a new privates index when the server generation changes */
-  if (s_ulPrivateGeneration != serverGeneration)
-    {
-      /* Save the new server generation */
-      s_ulPrivateGeneration = serverGeneration;
+    /* Get a new privates index when the server generation changes */
+    if (s_ulPrivateGeneration != serverGeneration) {
+        /* Save the new server generation */
+        s_ulPrivateGeneration = serverGeneration;
     }
 
-  /* Allocate memory for our private structure */
-  pCmapPriv = (winPrivCmapPtr) malloc (sizeof (winPrivCmapRec));
-  if (!pCmapPriv)
-    {
-      ErrorF ("winAllocateCmapPrivates - malloc () failed\n");
-      return FALSE;
+    /* Allocate memory for our private structure */
+    pCmapPriv = (winPrivCmapPtr) malloc(sizeof(winPrivCmapRec));
+    if (!pCmapPriv) {
+        ErrorF("winAllocateCmapPrivates - malloc () failed\n");
+        return FALSE;
     }
 
-  /* Initialize the memory of the private structure */
-  ZeroMemory (pCmapPriv, sizeof (winPrivCmapRec));
+    /* Initialize the memory of the private structure */
+    ZeroMemory(pCmapPriv, sizeof(winPrivCmapRec));
 
-  /* Register our colourmap private */
-  if (!dixRegisterPrivateKey(g_iCmapPrivateKey, PRIVATE_COLORMAP, 0))
-    {
-      ErrorF ("winAllocateCmapPrivates - AllocateCmapPrivate () failed\n");
-      return FALSE;
+    /* Register our colourmap private */
+    if (!dixRegisterPrivateKey(g_iCmapPrivateKey, PRIVATE_COLORMAP, 0)) {
+        ErrorF("winAllocateCmapPrivates - AllocateCmapPrivate () failed\n");
+        return FALSE;
     }
 
-  /* Save the cmap private pointer */
-  winSetCmapPriv (pCmap, pCmapPriv);
+    /* Save the cmap private pointer */
+    winSetCmapPriv(pCmap, pCmapPriv);
 
 #if CYGDEBUG
-  winDebug ("winAllocateCmapPrivates - Returning\n");
+    winDebug("winAllocateCmapPrivates - Returning\n");
 #endif
 
-  return TRUE;
+    return TRUE;
 }

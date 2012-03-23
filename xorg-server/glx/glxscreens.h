@@ -41,10 +41,10 @@ struct __GLXconfig {
     GLuint doubleBufferMode;
     GLuint stereoMode;
 
-    GLint redBits, greenBits, blueBits, alphaBits;	/* bits per comp */
+    GLint redBits, greenBits, blueBits, alphaBits;      /* bits per comp */
     GLuint redMask, greenMask, blueMask, alphaMask;
-    GLint rgbBits;		/* total bits for rgb */
-    GLint indexBits;		/* total bits for colorindex */
+    GLint rgbBits;              /* total bits for rgb */
+    GLint indexBits;            /* total bits for colorindex */
 
     GLint accumRedBits, accumGreenBits, accumBlueBits, accumAlphaBits;
     GLint depthBits;
@@ -67,7 +67,7 @@ struct __GLXconfig {
 
     /* EXT_visual_info / GLX 1.2 */
     GLint transparentPixel;
-				/*    colors are floats scaled to ints */
+    /*    colors are floats scaled to ints */
     GLint transparentRed, transparentGreen, transparentBlue, transparentAlpha;
     GLint transparentIndex;
 
@@ -85,8 +85,8 @@ struct __GLXconfig {
     GLint maxPbufferWidth;
     GLint maxPbufferHeight;
     GLint maxPbufferPixels;
-    GLint optimalPbufferWidth;   /* Only for SGIX_pbuffer. */
-    GLint optimalPbufferHeight;  /* Only for SGIX_pbuffer. */
+    GLint optimalPbufferWidth;  /* Only for SGIX_pbuffer. */
+    GLint optimalPbufferHeight; /* Only for SGIX_pbuffer. */
 
     /* SGIX_visual_select_group */
     GLint visualSelectGroup;
@@ -113,21 +113,19 @@ GLint glxConvertToXVisualType(int visualType);
 */
 typedef struct __GLXscreen __GLXscreen;
 struct __GLXscreen {
-    void          (*destroy)       (__GLXscreen *screen);
+    void (*destroy) (__GLXscreen * screen);
 
-    __GLXcontext *(*createContext) (__GLXscreen *screen,
-				    __GLXconfig *modes,
-				    __GLXcontext *shareContext);
+    __GLXcontext *(*createContext) (__GLXscreen * screen,
+                                    __GLXconfig * modes,
+                                    __GLXcontext * shareContext);
 
-    __GLXdrawable *(*createDrawable)(ClientPtr client,
-				     __GLXscreen *context,
-				     DrawablePtr pDraw,
-				     XID drawId,
-				     int type,
-				     XID glxDrawId,
-				     __GLXconfig *modes);
-    int            (*swapInterval)  (__GLXdrawable *drawable,
-				     int interval);
+    __GLXdrawable *(*createDrawable) (ClientPtr client,
+                                      __GLXscreen * context,
+                                      DrawablePtr pDraw,
+                                      XID drawId,
+                                      int type,
+                                      XID glxDrawId, __GLXconfig * modes);
+    int (*swapInterval) (__GLXdrawable * drawable, int interval);
 
     ScreenPtr pScreen;
 
@@ -150,16 +148,15 @@ struct __GLXscreen {
      * Since the GLX version advertised by the server is for the whole server,
      * the GLX protocol code uses the minimum version supported on all screens.
      */
-    /*@{*/
+    /*@{ */
     unsigned GLXmajor;
     unsigned GLXminor;
-    /*@}*/
+    /*@} */
 
-    Bool (*CloseScreen)(int index, ScreenPtr pScreen);
+    Bool (*CloseScreen) (int index, ScreenPtr pScreen);
 };
 
+void __glXScreenInit(__GLXscreen * screen, ScreenPtr pScreen);
+void __glXScreenDestroy(__GLXscreen * screen);
 
-void __glXScreenInit(__GLXscreen *screen, ScreenPtr pScreen);
-void __glXScreenDestroy(__GLXscreen *screen);
-
-#endif /* !__GLX_screens_h__ */
+#endif                          /* !__GLX_screens_h__ */

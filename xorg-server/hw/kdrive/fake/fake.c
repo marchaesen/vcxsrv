@@ -28,7 +28,7 @@
 extern int KdTsPhyScreen;
 
 Bool
-fakeInitialize (KdCardInfo *card, FakePriv *priv)
+fakeInitialize(KdCardInfo * card, FakePriv * priv)
 {
     priv->base = 0;
     priv->bytes_per_line = 0;
@@ -36,337 +36,317 @@ fakeInitialize (KdCardInfo *card, FakePriv *priv)
 }
 
 Bool
-fakeCardInit (KdCardInfo *card)
+fakeCardInit(KdCardInfo * card)
 {
-    FakePriv	*priv;
+    FakePriv *priv;
 
-    priv = (FakePriv *) malloc(sizeof (FakePriv));
+    priv = (FakePriv *) malloc(sizeof(FakePriv));
     if (!priv)
-	return FALSE;
-    
-    if (!fakeInitialize (card, priv))
-    {
-	free(priv);
-	return FALSE;
+        return FALSE;
+
+    if (!fakeInitialize(card, priv)) {
+        free(priv);
+        return FALSE;
     }
     card->driver = priv;
-    
+
     return TRUE;
 }
 
 Bool
-fakeScreenInitialize (KdScreenInfo *screen, FakeScrPriv *scrpriv)
+fakeScreenInitialize(KdScreenInfo * screen, FakeScrPriv * scrpriv)
 {
-    if (!screen->width || !screen->height)
-    {
-	screen->width = 1024;
-	screen->height = 768;
-	screen->rate = 72;
+    if (!screen->width || !screen->height) {
+        screen->width = 1024;
+        screen->height = 768;
+        screen->rate = 72;
     }
 
     if (screen->width <= 0)
-	screen->width = 1;
+        screen->width = 1;
     if (screen->height <= 0)
-	screen->height = 1;
-    
-    if (!screen->fb.depth)
-	screen->fb.depth = 16;
+        screen->height = 1;
 
-    if (screen->fb.depth <= 8)
-    {
-	screen->fb.visuals = ((1 << StaticGray) |
-			      (1 << GrayScale) |
-			      (1 << StaticColor) |
-			      (1 << PseudoColor) |
-			      (1 << TrueColor) |
-			      (1 << DirectColor));
+    if (!screen->fb.depth)
+        screen->fb.depth = 16;
+
+    if (screen->fb.depth <= 8) {
+        screen->fb.visuals = ((1 << StaticGray) |
+                              (1 << GrayScale) |
+                              (1 << StaticColor) |
+                              (1 << PseudoColor) |
+                              (1 << TrueColor) | (1 << DirectColor));
     }
-    else 
-    {
-	screen->fb.visuals = (1 << TrueColor);
+    else {
+        screen->fb.visuals = (1 << TrueColor);
 #define Mask(o,l)   (((1 << l) - 1) << o)
-	if (screen->fb.depth <= 15)
-	{
-	    screen->fb.depth = 15;
-	    screen->fb.bitsPerPixel = 16;
-	    screen->fb.redMask = Mask (10, 5);
-	    screen->fb.greenMask = Mask (5, 5);
-	    screen->fb.blueMask = Mask (0, 5);
-	}
-	else if (screen->fb.depth <= 16)
-	{
-	    screen->fb.depth = 16;
-	    screen->fb.bitsPerPixel = 16;
-	    screen->fb.redMask = Mask (11, 5);
-	    screen->fb.greenMask = Mask (5, 6);
-	    screen->fb.blueMask = Mask (0, 5);
-	}
-	else
-	{
-	    screen->fb.depth = 24;
-	    screen->fb.bitsPerPixel = 32;
-	    screen->fb.redMask = Mask (16, 8);
-	    screen->fb.greenMask = Mask (8, 8);
-	    screen->fb.blueMask = Mask (0, 8);
-	}
+        if (screen->fb.depth <= 15) {
+            screen->fb.depth = 15;
+            screen->fb.bitsPerPixel = 16;
+            screen->fb.redMask = Mask (10, 5);
+            screen->fb.greenMask = Mask (5, 5);
+            screen->fb.blueMask = Mask (0, 5);
+        }
+        else if (screen->fb.depth <= 16) {
+            screen->fb.depth = 16;
+            screen->fb.bitsPerPixel = 16;
+            screen->fb.redMask = Mask (11, 5);
+            screen->fb.greenMask = Mask (5, 6);
+            screen->fb.blueMask = Mask (0, 5);
+        }
+        else {
+            screen->fb.depth = 24;
+            screen->fb.bitsPerPixel = 32;
+            screen->fb.redMask = Mask (16, 8);
+            screen->fb.greenMask = Mask (8, 8);
+            screen->fb.blueMask = Mask (0, 8);
+        }
     }
 
     scrpriv->randr = screen->randr;
 
-    return fakeMapFramebuffer (screen);
+    return fakeMapFramebuffer(screen);
 }
 
 Bool
-fakeScreenInit (KdScreenInfo *screen)
+fakeScreenInit(KdScreenInfo * screen)
 {
     FakeScrPriv *scrpriv;
 
-    scrpriv = calloc(1, sizeof (FakeScrPriv));
+    scrpriv = calloc(1, sizeof(FakeScrPriv));
     if (!scrpriv)
-	return FALSE;
+        return FALSE;
     screen->driver = scrpriv;
-    if (!fakeScreenInitialize (screen, scrpriv))
-    {
-	screen->driver = 0;
-	free(scrpriv);
-	return FALSE;
+    if (!fakeScreenInitialize(screen, scrpriv)) {
+        screen->driver = 0;
+        free(scrpriv);
+        return FALSE;
     }
     return TRUE;
 }
-    
+
 void *
-fakeWindowLinear (ScreenPtr	pScreen,
-		   CARD32	row,
-		   CARD32	offset,
-		   int		mode,
-		   CARD32	*size,
-		   void		*closure)
+fakeWindowLinear(ScreenPtr pScreen,
+                 CARD32 row,
+                 CARD32 offset, int mode, CARD32 *size, void *closure)
 {
     KdScreenPriv(pScreen);
-    FakePriv	    *priv = pScreenPriv->card->driver;
+    FakePriv *priv = pScreenPriv->card->driver;
 
     if (!pScreenPriv->enabled)
-	return 0;
+        return 0;
     *size = priv->bytes_per_line;
     return priv->base + row * priv->bytes_per_line;
 }
 
 Bool
-fakeMapFramebuffer (KdScreenInfo *screen)
+fakeMapFramebuffer(KdScreenInfo * screen)
 {
-    FakeScrPriv	*scrpriv = screen->driver;
-    KdPointerMatrix	m;
-    FakePriv		*priv = screen->card->driver;
+    FakeScrPriv *scrpriv = screen->driver;
+    KdPointerMatrix m;
+    FakePriv *priv = screen->card->driver;
 
     if (scrpriv->randr != RR_Rotate_0)
-	scrpriv->shadow = TRUE;
+        scrpriv->shadow = TRUE;
     else
-	scrpriv->shadow = FALSE;
-    
-    KdComputePointerMatrix (&m, scrpriv->randr, screen->width, screen->height);
-    
-    KdSetPointerMatrix (&m);
-    
-    priv->bytes_per_line = ((screen->width * screen->fb.bitsPerPixel + 31) >> 5) << 2;
+        scrpriv->shadow = FALSE;
+
+    KdComputePointerMatrix(&m, scrpriv->randr, screen->width, screen->height);
+
+    KdSetPointerMatrix(&m);
+
+    priv->bytes_per_line =
+        ((screen->width * screen->fb.bitsPerPixel + 31) >> 5) << 2;
     free(priv->base);
-    priv->base = malloc (priv->bytes_per_line * screen->height);
-    
-    if (scrpriv->shadow)
-    {
-	if (!KdShadowFbAlloc (screen, scrpriv->randr & (RR_Rotate_90|RR_Rotate_270)))
-	    return FALSE;
+    priv->base = malloc(priv->bytes_per_line * screen->height);
+
+    if (scrpriv->shadow) {
+        if (!KdShadowFbAlloc
+            (screen, scrpriv->randr & (RR_Rotate_90 | RR_Rotate_270)))
+            return FALSE;
     }
-    else
-    {
+    else {
         screen->fb.byteStride = priv->bytes_per_line;
-        screen->fb.pixelStride = (priv->bytes_per_line * 8/
-				     screen->fb.bitsPerPixel);
+        screen->fb.pixelStride = (priv->bytes_per_line * 8 /
+                                  screen->fb.bitsPerPixel);
         screen->fb.frameBuffer = (CARD8 *) (priv->base);
     }
-    
+
     return TRUE;
 }
 
 void
-fakeSetScreenSizes (ScreenPtr pScreen)
+fakeSetScreenSizes(ScreenPtr pScreen)
 {
     KdScreenPriv(pScreen);
-    KdScreenInfo	*screen = pScreenPriv->screen;
-    FakeScrPriv	*scrpriv = screen->driver;
+    KdScreenInfo *screen = pScreenPriv->screen;
+    FakeScrPriv *scrpriv = screen->driver;
 
-    if (scrpriv->randr & (RR_Rotate_0|RR_Rotate_180))
-    {
-	pScreen->width = screen->width;
-	pScreen->height = screen->height;
-	pScreen->mmWidth = screen->width_mm;
-	pScreen->mmHeight = screen->height_mm;
+    if (scrpriv->randr & (RR_Rotate_0 | RR_Rotate_180)) {
+        pScreen->width = screen->width;
+        pScreen->height = screen->height;
+        pScreen->mmWidth = screen->width_mm;
+        pScreen->mmHeight = screen->height_mm;
     }
-    else
-    {
-	pScreen->width = screen->width;
-	pScreen->height = screen->height;
-	pScreen->mmWidth = screen->height_mm;
-	pScreen->mmHeight = screen->width_mm;
+    else {
+        pScreen->width = screen->width;
+        pScreen->height = screen->height;
+        pScreen->mmWidth = screen->height_mm;
+        pScreen->mmHeight = screen->width_mm;
     }
 }
 
 Bool
-fakeUnmapFramebuffer (KdScreenInfo *screen)
+fakeUnmapFramebuffer(KdScreenInfo * screen)
 {
-    FakePriv		*priv = screen->card->driver;
-    KdShadowFbFree (screen);
+    FakePriv *priv = screen->card->driver;
+
+    KdShadowFbFree(screen);
     free(priv->base);
     priv->base = NULL;
     return TRUE;
 }
 
 Bool
-fakeSetShadow (ScreenPtr pScreen)
+fakeSetShadow(ScreenPtr pScreen)
 {
     KdScreenPriv(pScreen);
-    KdScreenInfo	*screen = pScreenPriv->screen;
-    FakeScrPriv	*scrpriv = screen->driver;
-    ShadowUpdateProc	update;
-    ShadowWindowProc	window;
+    KdScreenInfo *screen = pScreenPriv->screen;
+    FakeScrPriv *scrpriv = screen->driver;
+    ShadowUpdateProc update;
+    ShadowWindowProc window;
 
     window = fakeWindowLinear;
     update = 0;
     if (scrpriv->randr)
-	update = shadowUpdateRotatePacked;
+        update = shadowUpdateRotatePacked;
     else
-	update = shadowUpdatePacked;
-    return KdShadowSet (pScreen, scrpriv->randr, update, window);
+        update = shadowUpdatePacked;
+    return KdShadowSet(pScreen, scrpriv->randr, update, window);
 }
-
 
 #ifdef RANDR
 Bool
-fakeRandRGetInfo (ScreenPtr pScreen, Rotation *rotations)
+fakeRandRGetInfo(ScreenPtr pScreen, Rotation * rotations)
 {
     KdScreenPriv(pScreen);
-    KdScreenInfo	    *screen = pScreenPriv->screen;
-    FakeScrPriv	    *scrpriv = screen->driver;
-    RRScreenSizePtr	    pSize;
-    Rotation		    randr;
-    int			    n;
-    
-    *rotations = RR_Rotate_All|RR_Reflect_All;
-    
+    KdScreenInfo *screen = pScreenPriv->screen;
+    FakeScrPriv *scrpriv = screen->driver;
+    RRScreenSizePtr pSize;
+    Rotation randr;
+    int n;
+
+    *rotations = RR_Rotate_All | RR_Reflect_All;
+
     for (n = 0; n < pScreen->numDepths; n++)
-	if (pScreen->allowedDepths[n].numVids)
-	    break;
+        if (pScreen->allowedDepths[n].numVids)
+            break;
     if (n == pScreen->numDepths)
-	return FALSE;
-    
-    pSize = RRRegisterSize (pScreen,
-			    screen->width,
-			    screen->height,
-			    screen->width_mm,
-			    screen->height_mm);
-    
-    randr = KdSubRotation (scrpriv->randr, screen->randr);
-    
-    RRSetCurrentConfig (pScreen, randr, 0, pSize);
-    
+        return FALSE;
+
+    pSize = RRRegisterSize(pScreen,
+                           screen->width,
+                           screen->height, screen->width_mm, screen->height_mm);
+
+    randr = KdSubRotation(scrpriv->randr, screen->randr);
+
+    RRSetCurrentConfig(pScreen, randr, 0, pSize);
+
     return TRUE;
 }
 
 Bool
-fakeRandRSetConfig (ScreenPtr		pScreen,
-		     Rotation		randr,
-		     int		rate,
-		     RRScreenSizePtr	pSize)
+fakeRandRSetConfig(ScreenPtr pScreen,
+                   Rotation randr, int rate, RRScreenSizePtr pSize)
 {
     KdScreenPriv(pScreen);
-    KdScreenInfo	*screen = pScreenPriv->screen;
-    FakeScrPriv	*scrpriv = screen->driver;
-    Bool		wasEnabled = pScreenPriv->enabled;
-    FakeScrPriv	oldscr;
-    int			oldwidth;
-    int			oldheight;
-    int			oldmmwidth;
-    int			oldmmheight;
-    int			newwidth, newheight;
+    KdScreenInfo *screen = pScreenPriv->screen;
+    FakeScrPriv *scrpriv = screen->driver;
+    Bool wasEnabled = pScreenPriv->enabled;
+    FakeScrPriv oldscr;
+    int oldwidth;
+    int oldheight;
+    int oldmmwidth;
+    int oldmmheight;
+    int newwidth, newheight;
 
-    if (screen->randr & (RR_Rotate_0|RR_Rotate_180))
-    {
-	newwidth = pSize->width;
-	newheight = pSize->height;
+    if (screen->randr & (RR_Rotate_0 | RR_Rotate_180)) {
+        newwidth = pSize->width;
+        newheight = pSize->height;
     }
-    else
-    {
-	newwidth = pSize->height;
-	newheight = pSize->width;
+    else {
+        newwidth = pSize->height;
+        newheight = pSize->width;
     }
 
     if (wasEnabled)
-	KdDisableScreen (pScreen);
+        KdDisableScreen(pScreen);
 
     oldscr = *scrpriv;
-    
+
     oldwidth = screen->width;
     oldheight = screen->height;
     oldmmwidth = pScreen->mmWidth;
     oldmmheight = pScreen->mmHeight;
-    
+
     /*
      * Set new configuration
      */
-    
-    scrpriv->randr = KdAddRotation (screen->randr, randr);
 
-    fakeUnmapFramebuffer (screen);
-    
-    if (!fakeMapFramebuffer (screen))
-	goto bail4;
+    scrpriv->randr = KdAddRotation(screen->randr, randr);
 
-    KdShadowUnset (screen->pScreen);
+    fakeUnmapFramebuffer(screen);
 
-    if (!fakeSetShadow (screen->pScreen))
-	goto bail4;
+    if (!fakeMapFramebuffer(screen))
+        goto bail4;
 
-    fakeSetScreenSizes (screen->pScreen);
+    KdShadowUnset(screen->pScreen);
+
+    if (!fakeSetShadow(screen->pScreen))
+        goto bail4;
+
+    fakeSetScreenSizes(screen->pScreen);
 
     /*
      * Set frame buffer mapping
      */
-    (*pScreen->ModifyPixmapHeader) (fbGetScreenPixmap (pScreen),
-				    pScreen->width,
-				    pScreen->height,
-				    screen->fb.depth,
-				    screen->fb.bitsPerPixel,
-				    screen->fb.byteStride,
-				    screen->fb.frameBuffer);
-    
+    (*pScreen->ModifyPixmapHeader) (fbGetScreenPixmap(pScreen),
+                                    pScreen->width,
+                                    pScreen->height,
+                                    screen->fb.depth,
+                                    screen->fb.bitsPerPixel,
+                                    screen->fb.byteStride,
+                                    screen->fb.frameBuffer);
+
     /* set the subpixel order */
-    
-    KdSetSubpixelOrder (pScreen, scrpriv->randr);
+
+    KdSetSubpixelOrder(pScreen, scrpriv->randr);
     if (wasEnabled)
-	KdEnableScreen (pScreen);
+        KdEnableScreen(pScreen);
 
     return TRUE;
 
-bail4:
-    fakeUnmapFramebuffer (screen);
+ bail4:
+    fakeUnmapFramebuffer(screen);
     *scrpriv = oldscr;
-    (void) fakeMapFramebuffer (screen);
+    (void) fakeMapFramebuffer(screen);
     pScreen->width = oldwidth;
     pScreen->height = oldheight;
     pScreen->mmWidth = oldmmwidth;
     pScreen->mmHeight = oldmmheight;
-    
+
     if (wasEnabled)
-	KdEnableScreen (pScreen);
+        KdEnableScreen(pScreen);
     return FALSE;
 }
 
 Bool
-fakeRandRInit (ScreenPtr pScreen)
+fakeRandRInit(ScreenPtr pScreen)
 {
-    rrScrPrivPtr    pScrPriv;
-    
-    if (!RRScreenInit (pScreen))
-	return FALSE;
+    rrScrPrivPtr pScrPriv;
+
+    if (!RRScreenInit(pScreen))
+        return FALSE;
 
     pScrPriv = rrGetScrPriv(pScreen);
     pScrPriv->rrGetInfo = fakeRandRGetInfo;
@@ -376,13 +356,13 @@ fakeRandRInit (ScreenPtr pScreen)
 #endif
 
 Bool
-fakeCreateColormap (ColormapPtr pmap)
+fakeCreateColormap(ColormapPtr pmap)
 {
-    return fbInitializeColormap (pmap);
+    return fbInitializeColormap(pmap);
 }
 
 Bool
-fakeInitScreen (ScreenPtr pScreen)
+fakeInitScreen(ScreenPtr pScreen)
 {
 #ifdef TOUCHSCREEN
     KdTsPhyScreen = pScreen->myNum;
@@ -393,80 +373,78 @@ fakeInitScreen (ScreenPtr pScreen)
 }
 
 Bool
-fakeFinishInitScreen (ScreenPtr pScreen)
+fakeFinishInitScreen(ScreenPtr pScreen)
 {
-    if (!shadowSetup (pScreen))
-	return FALSE;
+    if (!shadowSetup(pScreen))
+        return FALSE;
 
 #ifdef RANDR
-    if (!fakeRandRInit (pScreen))
-	return FALSE;
+    if (!fakeRandRInit(pScreen))
+        return FALSE;
 #endif
-    
-    return TRUE;
-}
 
-
-Bool
-fakeCreateResources (ScreenPtr pScreen)
-{
-    return fakeSetShadow (pScreen);
-}
-
-void
-fakePreserve (KdCardInfo *card)
-{
-}
-
-Bool
-fakeEnable (ScreenPtr pScreen)
-{
     return TRUE;
 }
 
 Bool
-fakeDPMS (ScreenPtr pScreen, int mode)
+fakeCreateResources(ScreenPtr pScreen)
+{
+    return fakeSetShadow(pScreen);
+}
+
+void
+fakePreserve(KdCardInfo * card)
+{
+}
+
+Bool
+fakeEnable(ScreenPtr pScreen)
+{
+    return TRUE;
+}
+
+Bool
+fakeDPMS(ScreenPtr pScreen, int mode)
 {
     return TRUE;
 }
 
 void
-fakeDisable (ScreenPtr pScreen)
+fakeDisable(ScreenPtr pScreen)
 {
 }
 
 void
-fakeRestore (KdCardInfo *card)
+fakeRestore(KdCardInfo * card)
 {
 }
 
 void
-fakeScreenFini (KdScreenInfo *screen)
+fakeScreenFini(KdScreenInfo * screen)
 {
 }
 
 void
-fakeCardFini (KdCardInfo *card)
+fakeCardFini(KdCardInfo * card)
 {
-    FakePriv	*priv = card->driver;
+    FakePriv *priv = card->driver;
 
-    free (priv->base);
+    free(priv->base);
     free(priv);
 }
 
 void
-fakeGetColors (ScreenPtr pScreen, int n, xColorItem *pdefs)
+fakeGetColors(ScreenPtr pScreen, int n, xColorItem * pdefs)
 {
-    while (n--)
-    {
-	pdefs->red = 0;
-	pdefs->green = 0;
-	pdefs->blue = 0;
-	pdefs++;
+    while (n--) {
+        pdefs->red = 0;
+        pdefs->green = 0;
+        pdefs->blue = 0;
+        pdefs++;
     }
 }
 
 void
-fakePutColors (ScreenPtr pScreen, int n, xColorItem *pdefs)
+fakePutColors(ScreenPtr pScreen, int n, xColorItem * pdefs)
 {
 }

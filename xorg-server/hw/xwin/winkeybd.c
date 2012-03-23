@@ -31,7 +31,6 @@
  *		Harold L Hunt II
  */
 
-
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
@@ -49,12 +48,10 @@ static Bool g_winKeyState[NUM_KEYCODES];
  */
 
 static void
-winKeybdBell (int iPercent, DeviceIntPtr pDeviceInt,
-	      pointer pCtrl, int iClass);
+ winKeybdBell(int iPercent, DeviceIntPtr pDeviceInt, pointer pCtrl, int iClass);
 
 static void
-winKeybdCtrl (DeviceIntPtr pDevice, KeybdCtrl *pCtrl);
-
+ winKeybdCtrl(DeviceIntPtr pDevice, KeybdCtrl * pCtrl);
 
 /* 
  * Translate a Windows WM_[SYS]KEY(UP/DOWN) message
@@ -66,14 +63,14 @@ winKeybdCtrl (DeviceIntPtr pDevice, KeybdCtrl *pCtrl);
  */
 
 void
-winTranslateKey (WPARAM wParam, LPARAM lParam, int *piScanCode)
+winTranslateKey(WPARAM wParam, LPARAM lParam, int *piScanCode)
 {
-  int		iKeyFixup = g_iKeyMap[wParam * WIN_KEYMAP_COLS + 1];
-  int		iKeyFixupEx = g_iKeyMap[wParam * WIN_KEYMAP_COLS + 2];
-  int		iParam = HIWORD (lParam);
-  int		iParamScanCode = LOBYTE (iParam);
+    int iKeyFixup = g_iKeyMap[wParam * WIN_KEYMAP_COLS + 1];
+    int iKeyFixupEx = g_iKeyMap[wParam * WIN_KEYMAP_COLS + 2];
+    int iParam = HIWORD(lParam);
+    int iParamScanCode = LOBYTE(iParam);
 
-  winDebug("winTranslateKey: wParam %08x lParam %08x\n", wParam, lParam);
+    winDebug("winTranslateKey: wParam %08x lParam %08x\n", wParam, lParam);
 
 /* WM_ key messages faked by Vista speech recognition (WSR) don't have a
  * scan code.
@@ -82,63 +79,57 @@ winTranslateKey (WPARAM wParam, LPARAM lParam, int *piScanCode)
  * System.Windows.Forms.SendKeys.SendWait(), which appears always to give a
  * scan code of 1
  */
-  if (iParamScanCode <= 1)
-    {
-      if (VK_PRIOR <= wParam && wParam <= VK_DOWN)
-        /* Trigger special case table to translate to extended
-         * keycode, otherwise if num_lock is on, we can get keypad
-         * numbers instead of navigation keys. */
-        iParam |= KF_EXTENDED;
-      else
-        iParamScanCode = MapVirtualKeyEx(wParam,
-                         /*MAPVK_VK_TO_VSC*/0,
-                         GetKeyboardLayout(0));
+    if (iParamScanCode <= 1) {
+        if (VK_PRIOR <= wParam && wParam <= VK_DOWN)
+            /* Trigger special case table to translate to extended
+             * keycode, otherwise if num_lock is on, we can get keypad
+             * numbers instead of navigation keys. */
+            iParam |= KF_EXTENDED;
+        else
+            iParamScanCode = MapVirtualKeyEx(wParam,
+                                             /*MAPVK_VK_TO_VSC */ 0,
+                                             GetKeyboardLayout(0));
     }
 
-  /* Branch on special extended, special non-extended, or normal key */
-  if ((iParam & KF_EXTENDED) && iKeyFixupEx)
-    *piScanCode = iKeyFixupEx;
-  else if (iKeyFixup)
-    *piScanCode = iKeyFixup;
-  else if (wParam == 0 && iParamScanCode == 0x70)
-    *piScanCode = KEY_HKTG;
-  else
-    switch (iParamScanCode)
-    {
-      case 0x70:
+    /* Branch on special extended, special non-extended, or normal key */
+    if ((iParam & KF_EXTENDED) && iKeyFixupEx)
+        *piScanCode = iKeyFixupEx;
+    else if (iKeyFixup)
+        *piScanCode = iKeyFixup;
+    else if (wParam == 0 && iParamScanCode == 0x70)
         *piScanCode = KEY_HKTG;
-        break;
-      case 0x73:
-        *piScanCode = KEY_BSlash2;
-        break;
-      default: 
-        *piScanCode = iParamScanCode;
-        break;
-    }
+    else
+        switch (iParamScanCode) {
+        case 0x70:
+            *piScanCode = KEY_HKTG;
+            break;
+        case 0x73:
+            *piScanCode = KEY_BSlash2;
+            break;
+        default:
+            *piScanCode = iParamScanCode;
+            break;
+        }
 }
-
 
 /* Ring the keyboard bell (system speaker on PCs) */
 static void
-winKeybdBell (int iPercent, DeviceIntPtr pDeviceInt,
-	      pointer pCtrl, int iClass)
+winKeybdBell(int iPercent, DeviceIntPtr pDeviceInt, pointer pCtrl, int iClass)
 {
-  /*
-   * We can't use Beep () here because it uses the PC speaker
-   * on NT/2000.  MessageBeep (MB_OK) will play the default system
-   * sound on systems with a sound card or it will beep the PC speaker
-   * on systems that do not have a sound card.
-   */
-  MessageBeep (MB_OK);
+    /*
+     * We can't use Beep () here because it uses the PC speaker
+     * on NT/2000.  MessageBeep (MB_OK) will play the default system
+     * sound on systems with a sound card or it will beep the PC speaker
+     * on systems that do not have a sound card.
+     */
+    MessageBeep(MB_OK);
 }
-
 
 /* Change some keyboard configuration parameters */
 static void
-winKeybdCtrl (DeviceIntPtr pDevice, KeybdCtrl *pCtrl)
+winKeybdCtrl(DeviceIntPtr pDevice, KeybdCtrl * pCtrl)
 {
 }
-
 
 /* 
  * See Porting Layer Definition - p. 18
@@ -146,64 +137,59 @@ winKeybdCtrl (DeviceIntPtr pDevice, KeybdCtrl *pCtrl)
  */
 
 int
-winKeybdProc (DeviceIntPtr pDeviceInt, int iState)
+winKeybdProc(DeviceIntPtr pDeviceInt, int iState)
 {
-  DevicePtr		pDevice = (DevicePtr) pDeviceInt;
-  XkbSrvInfoPtr       xkbi;
-  XkbControlsPtr      ctrl;
+    DevicePtr pDevice = (DevicePtr) pDeviceInt;
+    XkbSrvInfoPtr xkbi;
+    XkbControlsPtr ctrl;
 
-  switch (iState)
-    {
+    switch (iState) {
     case DEVICE_INIT:
-      winConfigKeyboard (pDeviceInt);
+        winConfigKeyboard(pDeviceInt);
 
-      /* FIXME: Maybe we should use winGetKbdLeds () here? */
-      defaultKeyboardControl.leds = g_winInfo.keyboard.leds;
+        /* FIXME: Maybe we should use winGetKbdLeds () here? */
+        defaultKeyboardControl.leds = g_winInfo.keyboard.leds;
 
-      winErrorFVerb(2, "Rules = \"%s\" Model = \"%s\" Layout = \"%s\""
-                    " Variant = \"%s\" Options = \"%s\"\n",
-                    g_winInfo.xkb.rules ? g_winInfo.xkb.rules : "none",
-                    g_winInfo.xkb.model ? g_winInfo.xkb.model : "none",
-                    g_winInfo.xkb.layout ? g_winInfo.xkb.layout : "none",
-                    g_winInfo.xkb.variant ? g_winInfo.xkb.variant : "none",
-                    g_winInfo.xkb.options ? g_winInfo.xkb.options : "none");
+        winErrorFVerb(2, "Rules = \"%s\" Model = \"%s\" Layout = \"%s\""
+                      " Variant = \"%s\" Options = \"%s\"\n",
+                      g_winInfo.xkb.rules ? g_winInfo.xkb.rules : "none",
+                      g_winInfo.xkb.model ? g_winInfo.xkb.model : "none",
+                      g_winInfo.xkb.layout ? g_winInfo.xkb.layout : "none",
+                      g_winInfo.xkb.variant ? g_winInfo.xkb.variant : "none",
+                      g_winInfo.xkb.options ? g_winInfo.xkb.options : "none");
 
-      InitKeyboardDeviceStruct (pDeviceInt,
-                                &g_winInfo.xkb,
-                                winKeybdBell,
-                                winKeybdCtrl);
+        InitKeyboardDeviceStruct(pDeviceInt,
+                                 &g_winInfo.xkb, winKeybdBell, winKeybdCtrl);
 
-      xkbi = pDeviceInt->key->xkbInfo;
-      if ((xkbi != NULL) && (xkbi->desc != NULL))
-        {
-          ctrl = xkbi->desc->ctrls;
-          ctrl->repeat_delay = g_winInfo.keyboard.delay;
-          ctrl->repeat_interval = 1000/g_winInfo.keyboard.rate;
+        xkbi = pDeviceInt->key->xkbInfo;
+        if ((xkbi != NULL) && (xkbi->desc != NULL)) {
+            ctrl = xkbi->desc->ctrls;
+            ctrl->repeat_delay = g_winInfo.keyboard.delay;
+            ctrl->repeat_interval = 1000 / g_winInfo.keyboard.rate;
         }
-      else
-        {
-          winErrorFVerb (1, "winKeybdProc - Error initializing keyboard AutoRepeat\n");
+        else {
+            winErrorFVerb(1,
+                          "winKeybdProc - Error initializing keyboard AutoRepeat\n");
         }
 
-      break;
-      
-    case DEVICE_ON: 
-      pDevice->on = TRUE;
+        break;
 
-      // immediately copy the state of this keyboard device to the VCK
-      // (which otherwise happens lazily after the first keypress)
-      CopyKeyClass(pDeviceInt, inputInfo.keyboard);
-      break;
+    case DEVICE_ON:
+        pDevice->on = TRUE;
+
+        // immediately copy the state of this keyboard device to the VCK
+        // (which otherwise happens lazily after the first keypress)
+        CopyKeyClass(pDeviceInt, inputInfo.keyboard);
+        break;
 
     case DEVICE_CLOSE:
-    case DEVICE_OFF: 
-      pDevice->on = FALSE;
-      break;
+    case DEVICE_OFF:
+        pDevice->on = FALSE;
+        break;
     }
 
-  return Success;
+    return Success;
 }
-
 
 /*
  * Detect current mode key states upon server startup.
@@ -213,37 +199,32 @@ winKeybdProc (DeviceIntPtr pDeviceInt, int iState)
  */
 
 void
-winInitializeModeKeyStates (void)
+winInitializeModeKeyStates(void)
 {
-  /* Restore NumLock */
-  if (GetKeyState (VK_NUMLOCK) & 0x0001)
-    {
-      winSendKeyEvent (KEY_NumLock, TRUE);
-      winSendKeyEvent (KEY_NumLock, FALSE);
+    /* Restore NumLock */
+    if (GetKeyState(VK_NUMLOCK) & 0x0001) {
+        winSendKeyEvent(KEY_NumLock, TRUE);
+        winSendKeyEvent(KEY_NumLock, FALSE);
     }
 
-  /* Restore CapsLock */
-  if (GetKeyState (VK_CAPITAL) & 0x0001)
-    {
-      winSendKeyEvent (KEY_CapsLock, TRUE);
-      winSendKeyEvent (KEY_CapsLock, FALSE);
+    /* Restore CapsLock */
+    if (GetKeyState(VK_CAPITAL) & 0x0001) {
+        winSendKeyEvent(KEY_CapsLock, TRUE);
+        winSendKeyEvent(KEY_CapsLock, FALSE);
     }
 
-  /* Restore ScrollLock */
-  if (GetKeyState (VK_SCROLL) & 0x0001)
-    {
-      winSendKeyEvent (KEY_ScrollLock, TRUE);
-      winSendKeyEvent (KEY_ScrollLock, FALSE);
+    /* Restore ScrollLock */
+    if (GetKeyState(VK_SCROLL) & 0x0001) {
+        winSendKeyEvent(KEY_ScrollLock, TRUE);
+        winSendKeyEvent(KEY_ScrollLock, FALSE);
     }
 
-  /* Restore KanaLock */
-  if (GetKeyState (VK_KANA) & 0x0001)
-    {
-      winSendKeyEvent (KEY_HKTG, TRUE);
-      winSendKeyEvent (KEY_HKTG, FALSE);
+    /* Restore KanaLock */
+    if (GetKeyState(VK_KANA) & 0x0001) {
+        winSendKeyEvent(KEY_HKTG, TRUE);
+        winSendKeyEvent(KEY_HKTG, FALSE);
     }
 }
-
 
 /*
  * Upon regaining the keyboard focus we must
@@ -252,69 +233,66 @@ winInitializeModeKeyStates (void)
  */
 
 void
-winRestoreModeKeyStates (void)
+winRestoreModeKeyStates(void)
 {
-  DWORD			dwKeyState;
-  BOOL			processEvents = TRUE;
-  unsigned short	internalKeyStates;
+    DWORD dwKeyState;
+    BOOL processEvents = TRUE;
+    unsigned short internalKeyStates;
 
-  /* X server is being initialized */
-  if (!inputInfo.keyboard)
-    return;
+    /* X server is being initialized */
+    if (!inputInfo.keyboard)
+        return;
 
-  /* Only process events if the rootwindow is mapped. The keyboard events
-   * will cause segfaults otherwise */
-  if (screenInfo.screens[0]->root && screenInfo.screens[0]->root->mapped == FALSE)
-    processEvents = FALSE;    
-  
-  /* Force to process all pending events in the mi event queue */
-  if (processEvents)
-    mieqProcessInputEvents ();
-  
-  /* Read the mode key states of our X server */
-  /* (stored in the virtual core keyboard) */
-  internalKeyStates = XkbStateFieldFromRec(&inputInfo.keyboard->key->xkbInfo->state);
-  winDebug("winRestoreModeKeyStates: state %d\n", internalKeyStates);
+    /* Only process events if the rootwindow is mapped. The keyboard events
+     * will cause segfaults otherwise */
+    if (screenInfo.screens[0]->root &&
+        screenInfo.screens[0]->root->mapped == FALSE)
+        processEvents = FALSE;
 
-  /* 
-   * NOTE: The C XOR operator, ^, will not work here because it is
-   * a bitwise operator, not a logical operator.  C does not
-   * have a logical XOR operator, so we use a macro instead.
-   */
+    /* Force to process all pending events in the mi event queue */
+    if (processEvents)
+        mieqProcessInputEvents();
 
-  /* Has the key state changed? */
-  dwKeyState = GetKeyState (VK_NUMLOCK) & 0x0001;
-  if (WIN_XOR (internalKeyStates & NumLockMask, dwKeyState))
-    {
-      winSendKeyEvent (KEY_NumLock, TRUE);
-      winSendKeyEvent (KEY_NumLock, FALSE);
+    /* Read the mode key states of our X server */
+    /* (stored in the virtual core keyboard) */
+    internalKeyStates =
+        XkbStateFieldFromRec(&inputInfo.keyboard->key->xkbInfo->state);
+    winDebug("winRestoreModeKeyStates: state %d\n", internalKeyStates);
+
+    /* 
+     * NOTE: The C XOR operator, ^, will not work here because it is
+     * a bitwise operator, not a logical operator.  C does not
+     * have a logical XOR operator, so we use a macro instead.
+     */
+
+    /* Has the key state changed? */
+    dwKeyState = GetKeyState(VK_NUMLOCK) & 0x0001;
+    if (WIN_XOR(internalKeyStates & NumLockMask, dwKeyState)) {
+        winSendKeyEvent(KEY_NumLock, TRUE);
+        winSendKeyEvent(KEY_NumLock, FALSE);
     }
 
-  /* Has the key state changed? */
-  dwKeyState = GetKeyState (VK_CAPITAL) & 0x0001;
-  if (WIN_XOR (internalKeyStates & LockMask, dwKeyState))
-    {
-      winSendKeyEvent (KEY_CapsLock, TRUE);
-      winSendKeyEvent (KEY_CapsLock, FALSE);
+    /* Has the key state changed? */
+    dwKeyState = GetKeyState(VK_CAPITAL) & 0x0001;
+    if (WIN_XOR(internalKeyStates & LockMask, dwKeyState)) {
+        winSendKeyEvent(KEY_CapsLock, TRUE);
+        winSendKeyEvent(KEY_CapsLock, FALSE);
     }
 
-  /* Has the key state changed? */
-  dwKeyState = GetKeyState (VK_SCROLL) & 0x0001;
-  if (WIN_XOR (internalKeyStates & ScrollLockMask, dwKeyState))
-    {
-      winSendKeyEvent (KEY_ScrollLock, TRUE);
-      winSendKeyEvent (KEY_ScrollLock, FALSE);
+    /* Has the key state changed? */
+    dwKeyState = GetKeyState(VK_SCROLL) & 0x0001;
+    if (WIN_XOR(internalKeyStates & ScrollLockMask, dwKeyState)) {
+        winSendKeyEvent(KEY_ScrollLock, TRUE);
+        winSendKeyEvent(KEY_ScrollLock, FALSE);
     }
 
-  /* Has the key state changed? */
-  dwKeyState = GetKeyState (VK_KANA) & 0x0001;
-  if (WIN_XOR (internalKeyStates & KanaMask, dwKeyState))
-    {
-      winSendKeyEvent (KEY_HKTG, TRUE);
-      winSendKeyEvent (KEY_HKTG, FALSE);
+    /* Has the key state changed? */
+    dwKeyState = GetKeyState(VK_KANA) & 0x0001;
+    if (WIN_XOR(internalKeyStates & KanaMask, dwKeyState)) {
+        winSendKeyEvent(KEY_HKTG, TRUE);
+        winSendKeyEvent(KEY_HKTG, FALSE);
     }
 }
-
 
 /*
  * Look for the lovely fake Control_L press/release generated by Windows
@@ -322,163 +300,146 @@ winRestoreModeKeyStates (void)
  */
 
 Bool
-winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
+winIsFakeCtrl_L(UINT message, WPARAM wParam, LPARAM lParam)
 {
-  MSG		msgNext;
-  LONG		lTime;
-  Bool		fReturn;
+    MSG msgNext;
+    LONG lTime;
+    Bool fReturn;
 
-  static Bool   lastWasControlL = FALSE;
-  static UINT   lastMessage;
-  static LONG   lastTime;
+    static Bool lastWasControlL = FALSE;
+    static UINT lastMessage;
+    static LONG lastTime;
 
-  /*
-   * Fake Ctrl_L presses will be followed by an Alt_R press
-   * with the same timestamp as the Ctrl_L press.
-   */
-  if ((message == WM_KEYDOWN || message == WM_SYSKEYDOWN)
-      && wParam == VK_CONTROL
-      && (HIWORD (lParam) & KF_EXTENDED) == 0)
-    {
-      /* Got a Ctrl_L press */
+    /*
+     * Fake Ctrl_L presses will be followed by an Alt_R press
+     * with the same timestamp as the Ctrl_L press.
+     */
+    if ((message == WM_KEYDOWN || message == WM_SYSKEYDOWN)
+        && wParam == VK_CONTROL && (HIWORD(lParam) & KF_EXTENDED) == 0) {
+        /* Got a Ctrl_L press */
 
-      /* Get time of current message */
-      lTime = GetMessageTime ();
+        /* Get time of current message */
+        lTime = GetMessageTime();
 
-      /* Look for next press message */
-      fReturn = PeekMessage (&msgNext, NULL,
-			     WM_KEYDOWN, WM_SYSKEYDOWN,
-			     PM_NOREMOVE);
+        /* Look for next press message */
+        fReturn = PeekMessage(&msgNext, NULL,
+                              WM_KEYDOWN, WM_SYSKEYDOWN, PM_NOREMOVE);
 
-      if (fReturn &&  msgNext.message != WM_KEYDOWN && msgNext.message != WM_SYSKEYDOWN)
-          fReturn = 0;
+        if (fReturn && msgNext.message != WM_KEYDOWN &&
+            msgNext.message != WM_SYSKEYDOWN)
+            fReturn = 0;
 
-      if (!fReturn)
-        {
-          lastWasControlL = TRUE;
-          lastMessage = message;
-          lastTime = lTime;
+        if (!fReturn) {
+            lastWasControlL = TRUE;
+            lastMessage = message;
+            lastTime = lTime;
         }
-      else
-        {
-          lastWasControlL = FALSE;
+        else {
+            lastWasControlL = FALSE;
         }
 
-      /* Is next press an Alt_R with the same timestamp? */
-      if (fReturn && msgNext.wParam == VK_MENU
-	  && msgNext.time == lTime
-	  && (HIWORD (msgNext.lParam) & KF_EXTENDED))
-	{
-	  /*
-	   * Next key press is Alt_R with same timestamp as current
-	   * Ctrl_L message.  Therefore, this Ctrl_L press is a fake
-	   * event, so discard it.
-	   */
-	  return TRUE;
-	}
+        /* Is next press an Alt_R with the same timestamp? */
+        if (fReturn && msgNext.wParam == VK_MENU
+            && msgNext.time == lTime
+            && (HIWORD(msgNext.lParam) & KF_EXTENDED)) {
+            /*
+             * Next key press is Alt_R with same timestamp as current
+             * Ctrl_L message.  Therefore, this Ctrl_L press is a fake
+             * event, so discard it.
+             */
+            return TRUE;
+        }
     }
-  /*
-   * Sometimes, the Alt_R press message is not yet posted when the
-   * fake Ctrl_L press message arrives (even though it has the
-   * same timestamp), so check for an Alt_R press message that has
-   * arrived since the last Ctrl_L message.
-   */
-  else if ((message == WM_KEYDOWN || message == WM_SYSKEYDOWN)
-      && wParam == VK_MENU
-      && (HIWORD (lParam) & KF_EXTENDED))
-    {
-      /* Got a Alt_R press */
+    /*
+     * Sometimes, the Alt_R press message is not yet posted when the
+     * fake Ctrl_L press message arrives (even though it has the
+     * same timestamp), so check for an Alt_R press message that has
+     * arrived since the last Ctrl_L message.
+     */
+    else if ((message == WM_KEYDOWN || message == WM_SYSKEYDOWN)
+             && wParam == VK_MENU && (HIWORD(lParam) & KF_EXTENDED)) {
+        /* Got a Alt_R press */
 
-      if (lastWasControlL)
-        {
-          lTime = GetMessageTime ();
+        if (lastWasControlL) {
+            lTime = GetMessageTime();
 
-          if (lastTime == lTime)
-            {
+            if (lastTime == lTime) {
                 /* Undo the fake Ctrl_L press by sending a fake Ctrl_L release */
-                winSendKeyEvent (KEY_LCtrl, FALSE);
+                winSendKeyEvent(KEY_LCtrl, FALSE);
             }
-          lastWasControlL = FALSE;
+            lastWasControlL = FALSE;
         }
     }
-  /*
-   * Fake Ctrl_L releases will be followed by an Alt_R release
-   * with the same timestamp as the Ctrl_L release.
-   */
-  else if ((message == WM_KEYUP || message == WM_SYSKEYUP)
-      && wParam == VK_CONTROL
-      && (HIWORD (lParam) & KF_EXTENDED) == 0)
-    {
-      /* Got a Ctrl_L release */
+    /*
+     * Fake Ctrl_L releases will be followed by an Alt_R release
+     * with the same timestamp as the Ctrl_L release.
+     */
+    else if ((message == WM_KEYUP || message == WM_SYSKEYUP)
+             && wParam == VK_CONTROL && (HIWORD(lParam) & KF_EXTENDED) == 0) {
+        /* Got a Ctrl_L release */
 
-      /* Get time of current message */
-      lTime = GetMessageTime ();
+        /* Get time of current message */
+        lTime = GetMessageTime();
 
-      /* Look for next release message */
-      fReturn = PeekMessage (&msgNext, NULL,
-			     WM_KEYUP, WM_SYSKEYUP,
-			     PM_NOREMOVE);
+        /* Look for next release message */
+        fReturn = PeekMessage(&msgNext, NULL,
+                              WM_KEYUP, WM_SYSKEYUP, PM_NOREMOVE);
 
-      if (fReturn && msgNext.message != WM_KEYUP && msgNext.message != WM_SYSKEYUP)
-          fReturn = 0;
+        if (fReturn && msgNext.message != WM_KEYUP &&
+            msgNext.message != WM_SYSKEYUP)
+            fReturn = 0;
 
-      lastWasControlL = FALSE;
+        lastWasControlL = FALSE;
 
-      /* Is next press an Alt_R with the same timestamp? */
-      if (fReturn
-	  && (msgNext.message == WM_KEYUP
-	      || msgNext.message == WM_SYSKEYUP)
-	  && msgNext.wParam == VK_MENU
-	  && msgNext.time == lTime
-	  && (HIWORD (msgNext.lParam) & KF_EXTENDED))
-	{
-	  /*
-	   * Next key release is Alt_R with same timestamp as current
-	   * Ctrl_L message. Therefore, this Ctrl_L release is a fake
-	   * event, so discard it.
-	   */
-	  return TRUE;
-	}
+        /* Is next press an Alt_R with the same timestamp? */
+        if (fReturn
+            && (msgNext.message == WM_KEYUP || msgNext.message == WM_SYSKEYUP)
+            && msgNext.wParam == VK_MENU
+            && msgNext.time == lTime
+            && (HIWORD(msgNext.lParam) & KF_EXTENDED)) {
+            /*
+             * Next key release is Alt_R with same timestamp as current
+             * Ctrl_L message. Therefore, this Ctrl_L release is a fake
+             * event, so discard it.
+             */
+            return TRUE;
+        }
     }
-  else
-    {
-      /* On any other press or release message, we don't have a
-         potentially fake Ctrl_L to worry about anymore... */
-      lastWasControlL = FALSE;
+    else {
+        /* On any other press or release message, we don't have a
+           potentially fake Ctrl_L to worry about anymore... */
+        lastWasControlL = FALSE;
     }
 
-  /* Not a fake control left press/release */
-  return FALSE;
+    /* Not a fake control left press/release */
+    return FALSE;
 }
-
 
 /*
  * Lift any modifier keys that are pressed
  */
 
 void
-winKeybdReleaseKeys (void)
+winKeybdReleaseKeys(void)
 {
-  int				i;
+    int i;
 
 #ifdef HAS_DEVWINDOWS
-  /* Verify that the mi input system has been initialized */
-  if (g_fdMessageQueue == WIN_FD_INVALID)
-    return;
+    /* Verify that the mi input system has been initialized */
+    if (g_fdMessageQueue == WIN_FD_INVALID)
+        return;
 #endif
 
-  /* Loop through all keys */
-  for (i = 0; i < NUM_KEYCODES; ++i)
-    {
-      /* Pop key if pressed */
-      if (g_winKeyState[i])
-	winSendKeyEvent (i, FALSE);
+    /* Loop through all keys */
+    for (i = 0; i < NUM_KEYCODES; ++i) {
+        /* Pop key if pressed */
+        if (g_winKeyState[i])
+            winSendKeyEvent(i, FALSE);
 
-      /* Reset pressed flag for keys */
-      g_winKeyState[i] = FALSE;
+        /* Reset pressed flag for keys */
+        g_winKeyState[i] = FALSE;
     }
 }
-
 
 /*
  * Take a raw X key code and send an up or down event for it.
@@ -487,55 +448,57 @@ winKeybdReleaseKeys (void)
  */
 
 void
-winSendKeyEvent (DWORD dwKey, Bool fDown)
+winSendKeyEvent(DWORD dwKey, Bool fDown)
 {
-  /*
-   * When alt-tabing between screens we can get phantom key up messages
-   * Here we only pass them through it we think we should!
-   */
-  if (g_winKeyState[dwKey] == FALSE && fDown == FALSE) return;
+    /*
+     * When alt-tabing between screens we can get phantom key up messages
+     * Here we only pass them through it we think we should!
+     */
+    if (g_winKeyState[dwKey] == FALSE && fDown == FALSE)
+        return;
 
-  /* Update the keyState map */
-  g_winKeyState[dwKey] = fDown;
+    /* Update the keyState map */
+    g_winKeyState[dwKey] = fDown;
 
-  QueueKeyboardEvents(g_pwinKeyboard, fDown ? KeyPress : KeyRelease, dwKey + MIN_KEYCODE, NULL);
+    QueueKeyboardEvents(g_pwinKeyboard, fDown ? KeyPress : KeyRelease,
+                        dwKey + MIN_KEYCODE, NULL);
 
-  winDebug("winSendKeyEvent: dwKey: %d, fDown: %d\n",
-           dwKey, fDown);
+    winDebug("winSendKeyEvent: dwKey: %d, fDown: %d\n", dwKey, fDown);
 }
 
-BOOL winCheckKeyPressed(WPARAM wParam, LPARAM lParam)
+BOOL
+winCheckKeyPressed(WPARAM wParam, LPARAM lParam)
 {
-  switch (wParam)
-  {
+    switch (wParam) {
     case VK_CONTROL:
-      if ((lParam & 0x1ff0000) == 0x11d0000 && g_winKeyState[KEY_RCtrl])
-        return TRUE;
-      if ((lParam & 0x1ff0000) == 0x01d0000 && g_winKeyState[KEY_LCtrl])
-        return TRUE;
-      break;
+        if ((lParam & 0x1ff0000) == 0x11d0000 && g_winKeyState[KEY_RCtrl])
+            return TRUE;
+        if ((lParam & 0x1ff0000) == 0x01d0000 && g_winKeyState[KEY_LCtrl])
+            return TRUE;
+        break;
     case VK_SHIFT:
-      if ((lParam & 0x1ff0000) == 0x0360000 && g_winKeyState[KEY_ShiftR])
-        return TRUE;
-      if ((lParam & 0x1ff0000) == 0x02a0000 && g_winKeyState[KEY_ShiftL])
-        return TRUE;
-      break;
+        if ((lParam & 0x1ff0000) == 0x0360000 && g_winKeyState[KEY_ShiftR])
+            return TRUE;
+        if ((lParam & 0x1ff0000) == 0x02a0000 && g_winKeyState[KEY_ShiftL])
+            return TRUE;
+        break;
     default:
-      return TRUE;
-  }
-  return FALSE;
+        return TRUE;
+    }
+    return FALSE;
 }
 
 /* Only on shift release message is sent even if both are pressed.
  * Fix this here 
  */
-void winFixShiftKeys (int iScanCode)
+void
+winFixShiftKeys(int iScanCode)
 {
-  if (GetKeyState (VK_SHIFT) & 0x8000)
-    return;
+    if (GetKeyState(VK_SHIFT) & 0x8000)
+        return;
 
-  if (iScanCode == KEY_ShiftL && g_winKeyState[KEY_ShiftR])
-    winSendKeyEvent (KEY_ShiftR, FALSE);
-  if (iScanCode == KEY_ShiftR && g_winKeyState[KEY_ShiftL])
-    winSendKeyEvent (KEY_ShiftL, FALSE);
+    if (iScanCode == KEY_ShiftL && g_winKeyState[KEY_ShiftR])
+        winSendKeyEvent(KEY_ShiftR, FALSE);
+    if (iScanCode == KEY_ShiftR && g_winKeyState[KEY_ShiftL])
+        winSendKeyEvent(KEY_ShiftL, FALSE);
 }

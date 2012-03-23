@@ -26,9 +26,9 @@
 #endif
 
 #include <stdint.h>
-#include "extinit.h" /* for XInputExtensionInit */
+#include "extinit.h"            /* for XInputExtensionInit */
 #include "exglobals.h"
-#include "xkbsrv.h" /* for XkbInitPrivates */
+#include "xkbsrv.h"             /* for XkbInitPrivates */
 #include "xserver-properties.h"
 #include <X11/extensions/XI2.h>
 
@@ -44,9 +44,11 @@ void *userdata;
 extern int CorePointerProc(DeviceIntPtr pDev, int what);
 extern int CoreKeyboardProc(DeviceIntPtr pDev, int what);
 
-static void fake_init_sprite(DeviceIntPtr dev)
+static void
+fake_init_sprite(DeviceIntPtr dev)
 {
     SpritePtr sprite;
+
     sprite = dev->spriteInfo->sprite;
 
     sprite->spriteTraceSize = 10;
@@ -73,32 +75,32 @@ TestPointerProc(DeviceIntPtr pDev, int what)
 #define NAXES 4
     BYTE map[NBUTTONS + 1];
     int i = 0;
-    Atom btn_labels[NBUTTONS] = {0};
-    Atom axes_labels[NAXES] = {0};
+    Atom btn_labels[NBUTTONS] = { 0 };
+    Atom axes_labels[NAXES] = { 0 };
 
     switch (what) {
     case DEVICE_INIT:
         for (i = 1; i <= NBUTTONS; i++)
             map[i] = i;
 
-	btn_labels[0] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_LEFT);
-	btn_labels[1] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_MIDDLE);
-	btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
-	btn_labels[3] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_UP);
-	btn_labels[4] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_DOWN);
-	btn_labels[5] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_LEFT);
-	btn_labels[6] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_RIGHT);
-	/* don't know about the rest */
+        btn_labels[0] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_LEFT);
+        btn_labels[1] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_MIDDLE);
+        btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
+        btn_labels[3] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_UP);
+        btn_labels[4] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_DOWN);
+        btn_labels[5] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_LEFT);
+        btn_labels[6] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_RIGHT);
+        /* don't know about the rest */
 
-	axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
-	axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
-	axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_VSCROLL);
-	axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_HSCROLL);
+        axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
+        axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
+        axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_VSCROLL);
+        axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_HSCROLL);
 
-        if (!InitPointerDeviceStruct((DevicePtr)pDev, map, NBUTTONS, btn_labels,
-                                (PtrCtrlProcPtr)NoopDDA,
-                                GetMotionHistorySize(), NAXES, axes_labels))
-        {
+        if (!InitPointerDeviceStruct
+            ((DevicePtr) pDev, map, NBUTTONS, btn_labels,
+             (PtrCtrlProcPtr) NoopDDA, GetMotionHistorySize(), NAXES,
+             axes_labels)) {
             ErrorF("Could not initialize device '%s'. Out of memory.\n",
                    pDev->name);
             return BadAlloc;
@@ -110,7 +112,8 @@ TestPointerProc(DeviceIntPtr pDev, int what)
 
         /* protocol-xiquerydevice.c relies on these increment */
         SetScrollValuator(pDev, 2, SCROLL_TYPE_VERTICAL, 2.4, SCROLL_FLAG_NONE);
-        SetScrollValuator(pDev, 3, SCROLL_TYPE_HORIZONTAL, 3.5, SCROLL_FLAG_PREFERRED);
+        SetScrollValuator(pDev, 3, SCROLL_TYPE_HORIZONTAL, 3.5,
+                          SCROLL_FLAG_PREFERRED);
         break;
 
     case DEVICE_CLOSE:
@@ -125,11 +128,13 @@ TestPointerProc(DeviceIntPtr pDev, int what)
 #undef NBUTTONS
 #undef NAXES
 }
+
 /**
  * Create and init 2 master devices (VCP + VCK) and two slave devices, one
  * default mouse, one default keyboard.
  */
-struct devices init_devices(void)
+struct devices
+init_devices(void)
 {
     ClientRec client;
     struct devices devices;
@@ -139,6 +144,7 @@ struct devices init_devices(void)
     AllocDevicePair(&client, "Virtual core", &devices.vcp, &devices.vck,
                     CorePointerProc, CoreKeyboardProc, TRUE);
     inputInfo.pointer = devices.vcp;
+
     inputInfo.keyboard = devices.vck;
     ActivateDevice(devices.vcp, FALSE);
     ActivateDevice(devices.vck, FALSE);
@@ -161,9 +167,9 @@ struct devices init_devices(void)
     return devices;
 }
 
-
 /* Create minimal client, with the given buffer and len as request buffer */
-ClientRec init_client(int len, void *data)
+ClientRec
+init_client(int len, void *data)
 {
     ClientRec client = { 0 };
 
@@ -181,13 +187,13 @@ ClientRec init_client(int len, void *data)
     return client;
 }
 
-void init_window(WindowPtr window, WindowPtr parent, int id)
+void
+init_window(WindowPtr window, WindowPtr parent, int id)
 {
     memset(window, 0, sizeof(*window));
 
     window->drawable.id = id;
-    if (parent)
-    {
+    if (parent) {
         window->drawable.x = 30;
         window->drawable.y = 50;
         window->drawable.width = 100;
@@ -202,9 +208,20 @@ extern DevPrivateKeyRec miPointerScreenKeyRec;
 extern DevPrivateKeyRec miPointerPrivKeyRec;
 
 /* Needed for the screen setup, otherwise we crash during sprite initialization */
-static Bool device_cursor_init(DeviceIntPtr dev, ScreenPtr screen) { return TRUE; }
-static Bool set_cursor_pos(DeviceIntPtr dev, ScreenPtr screen, int x, int y, Bool event) { return TRUE; }
-void init_simple(void)
+static Bool
+device_cursor_init(DeviceIntPtr dev, ScreenPtr screen)
+{
+    return TRUE;
+}
+
+static Bool
+set_cursor_pos(DeviceIntPtr dev, ScreenPtr screen, int x, int y, Bool event)
+{
+    return TRUE;
+}
+
+void
+init_simple(void)
 {
     screenInfo.numScreens = 1;
     screenInfo.screens[0] = &screen;
@@ -219,7 +236,8 @@ void init_simple(void)
     dixResetPrivates();
     InitAtoms();
     XkbInitPrivates();
-    dixRegisterPrivateKey(&XIClientPrivateKeyRec, PRIVATE_CLIENT, sizeof(XIClientRec));
+    dixRegisterPrivateKey(&XIClientPrivateKeyRec, PRIVATE_CLIENT,
+                          sizeof(XIClientRec));
     dixRegisterPrivateKey(&miPointerScreenKeyRec, PRIVATE_SCREEN, 0);
     dixRegisterPrivateKey(&miPointerPrivKeyRec, PRIVATE_DEVICE, 0);
     XInputExtensionInit();
@@ -230,10 +248,10 @@ void init_simple(void)
     devices = init_devices();
 }
 
-void __wrap_WriteToClient(ClientPtr client, int len, void *data)
+void
+__wrap_WriteToClient(ClientPtr client, int len, void *data)
 {
     assert(reply_handler != NULL);
 
-    (*reply_handler)(client, len, data, userdata);
+    (*reply_handler) (client, len, data, userdata);
 }
-

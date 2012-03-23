@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -71,34 +70,37 @@ miPolyText8(DrawablePtr pDraw, GCPtr pGC, int x, int y, int count, char *chars)
 {
     unsigned long n, i;
     int w;
-    CharInfoPtr charinfo[255];	/* encoding only has 1 byte for count */
+    CharInfoPtr charinfo[255];  /* encoding only has 1 byte for count */
 
-    GetGlyphs(pGC->font, (unsigned long)count, (unsigned char *)chars,
-	      Linear8Bit, &n, charinfo);
+    GetGlyphs(pGC->font, (unsigned long) count, (unsigned char *) chars,
+              Linear8Bit, &n, charinfo);
     w = 0;
-    for (i=0; i < n; i++) w += charinfo[i]->metrics.characterWidth;
+    for (i = 0; i < n; i++)
+        w += charinfo[i]->metrics.characterWidth;
     if (n != 0)
-        (*pGC->ops->PolyGlyphBlt)(
-	    pDraw, pGC, x, y, n, charinfo, FONTGLYPHS(pGC->font));
-    return x+w;
+        (*pGC->ops->PolyGlyphBlt) (pDraw, pGC, x, y, n, charinfo,
+                                   FONTGLYPHS(pGC->font));
+    return x + w;
 }
 
 int
-miPolyText16(DrawablePtr pDraw, GCPtr pGC, int x, int y, int count, unsigned short *chars)
+miPolyText16(DrawablePtr pDraw, GCPtr pGC, int x, int y, int count,
+             unsigned short *chars)
 {
     unsigned long n, i;
     int w;
-    CharInfoPtr charinfo[255];	/* encoding only has 1 byte for count */
+    CharInfoPtr charinfo[255];  /* encoding only has 1 byte for count */
 
-    GetGlyphs(pGC->font, (unsigned long)count, (unsigned char *)chars,
-	      (FONTLASTROW(pGC->font) == 0) ? Linear16Bit : TwoD16Bit,
-	      &n, charinfo);
+    GetGlyphs(pGC->font, (unsigned long) count, (unsigned char *) chars,
+              (FONTLASTROW(pGC->font) == 0) ? Linear16Bit : TwoD16Bit,
+              &n, charinfo);
     w = 0;
-    for (i=0; i < n; i++) w += charinfo[i]->metrics.characterWidth;
+    for (i = 0; i < n; i++)
+        w += charinfo[i]->metrics.characterWidth;
     if (n != 0)
-        (*pGC->ops->PolyGlyphBlt)(
-	    pDraw, pGC, x, y, n, charinfo, FONTGLYPHS(pGC->font));
-    return x+w;
+        (*pGC->ops->PolyGlyphBlt) (pDraw, pGC, x, y, n, charinfo,
+                                   FONTGLYPHS(pGC->font));
+    return x + w;
 }
 
 void
@@ -106,25 +108,27 @@ miImageText8(DrawablePtr pDraw, GCPtr pGC, int x, int y, int count, char *chars)
 {
     unsigned long n;
     FontPtr font = pGC->font;
-    CharInfoPtr charinfo[255];	/* encoding only has 1 byte for count */
+    CharInfoPtr charinfo[255];  /* encoding only has 1 byte for count */
 
-    GetGlyphs(font, (unsigned long)count, (unsigned char *)chars,
-	      Linear8Bit, &n, charinfo);
-    if (n !=0 )
-        (*pGC->ops->ImageGlyphBlt)(pDraw, pGC, x, y, n, charinfo, FONTGLYPHS(font));
+    GetGlyphs(font, (unsigned long) count, (unsigned char *) chars,
+              Linear8Bit, &n, charinfo);
+    if (n != 0)
+        (*pGC->ops->ImageGlyphBlt) (pDraw, pGC, x, y, n, charinfo,
+                                    FONTGLYPHS(font));
 }
 
 void
 miImageText16(DrawablePtr pDraw, GCPtr pGC, int x, int y,
-		int count, unsigned short *chars)
+              int count, unsigned short *chars)
 {
     unsigned long n;
     FontPtr font = pGC->font;
-    CharInfoPtr charinfo[255];	/* encoding only has 1 byte for count */
+    CharInfoPtr charinfo[255];  /* encoding only has 1 byte for count */
 
-    GetGlyphs(font, (unsigned long)count, (unsigned char *)chars,
-	      (FONTLASTROW(pGC->font) == 0) ? Linear16Bit : TwoD16Bit,
-	      &n, charinfo);
-    if (n !=0 )
-        (*pGC->ops->ImageGlyphBlt)(pDraw, pGC, x, y, n, charinfo, FONTGLYPHS(font));
+    GetGlyphs(font, (unsigned long) count, (unsigned char *) chars,
+              (FONTLASTROW(pGC->font) == 0) ? Linear16Bit : TwoD16Bit,
+              &n, charinfo);
+    if (n != 0)
+        (*pGC->ops->ImageGlyphBlt) (pDraw, pGC, x, y, n, charinfo,
+                                    FONTGLYPHS(font));
 }

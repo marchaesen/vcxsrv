@@ -35,15 +35,14 @@
  *									structs, typedefs, #defines, enums
  *****************************************************************************/
 
-typedef struct _XISBuffer
-{
-	int fd;
-	int trace;
-	int block_duration;
-	ssize_t current;	/* bytes read */
-	ssize_t end;
-	ssize_t buffer_size;
-	unsigned char *buf;
+typedef struct _XISBuffer {
+    int fd;
+    int trace;
+    int block_duration;
+    ssize_t current;            /* bytes read */
+    ssize_t end;
+    ssize_t buffer_size;
+    unsigned char *buf;
 } XISBuffer;
 
 /******************************************************************************
@@ -52,12 +51,13 @@ typedef struct _XISBuffer
  *											of globals.
  *											put locals in the .c file.
  *****************************************************************************/
-extern _X_EXPORT XISBuffer * XisbNew (int fd, ssize_t size);
-extern _X_EXPORT void XisbFree (XISBuffer *b);
-extern _X_EXPORT int XisbRead (XISBuffer *b);
-extern _X_EXPORT ssize_t XisbWrite (XISBuffer *b, unsigned char *msg, ssize_t len);
-extern _X_EXPORT void XisbTrace (XISBuffer *b, int trace);
-extern _X_EXPORT void XisbBlockDuration (XISBuffer *b, int block_duration);
+extern _X_EXPORT XISBuffer *XisbNew(int fd, ssize_t size);
+extern _X_EXPORT void XisbFree(XISBuffer * b);
+extern _X_EXPORT int XisbRead(XISBuffer * b);
+extern _X_EXPORT ssize_t XisbWrite(XISBuffer * b, unsigned char *msg,
+                                   ssize_t len);
+extern _X_EXPORT void XisbTrace(XISBuffer * b, int trace);
+extern _X_EXPORT void XisbBlockDuration(XISBuffer * b, int block_duration);
 
 /*
  *	DO NOT PUT ANYTHING AFTER THIS ENDIF

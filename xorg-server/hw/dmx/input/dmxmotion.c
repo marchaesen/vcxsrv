@@ -50,7 +50,8 @@
 #define OFFSET(offset,element) ((offset) * (numAxes + 1) + (element))
 
 /** Return size of motion buffer. \see DMX_MOTION_SIZE */
-int dmxPointerGetMotionBufferSize(void)
+int
+dmxPointerGetMotionBufferSize(void)
 {
     return DMX_MOTION_SIZE;
 }
@@ -71,27 +72,30 @@ int dmxPointerGetMotionBufferSize(void)
  * only has to support extension devices using the polymorphic coords.
  * Because compatibility with miPointerGetMotionEvents is not possible,
  * it is not provided. */
-int dmxPointerGetMotionEvents(DeviceIntPtr pDevice,
-                              xTimecoord *coords,
-                              unsigned long start,
-                              unsigned long stop,
-                              ScreenPtr pScreen)
+int
+dmxPointerGetMotionEvents(DeviceIntPtr pDevice,
+                          xTimecoord * coords,
+                          unsigned long start,
+                          unsigned long stop, ScreenPtr pScreen)
 {
     GETDMXLOCALFROMPDEVICE;
-    int           numAxes = pDevice->valuator->numAxes;
-    unsigned long *c      = (unsigned long *)coords;
-    int           count   = 0;
-    int           i, j;
+    int numAxes = pDevice->valuator->numAxes;
+    unsigned long *c = (unsigned long *) coords;
+    int count = 0;
+    int i, j;
 
-    if (!dmxLocal->history) return 0;
+    if (!dmxLocal->history)
+        return 0;
     for (i = dmxLocal->head; i != dmxLocal->tail;) {
-        if (dmxLocal->history[OFFSET(i,0)] >= stop) break;
-        if (dmxLocal->history[OFFSET(i,0)] >= start) {
+        if (dmxLocal->history[OFFSET(i, 0)] >= stop)
+            break;
+        if (dmxLocal->history[OFFSET(i, 0)] >= start) {
             for (j = 0; j < numAxes + 1; j++)
-                c[OFFSET(count,j)] = dmxLocal->history[OFFSET(i,j)];
+                c[OFFSET(count, j)] = dmxLocal->history[OFFSET(i, j)];
             ++count;
         }
-        if (++i >= DMX_MOTION_SIZE) i = 0;
+        if (++i >= DMX_MOTION_SIZE)
+            i = 0;
     }
     return count;
 }
@@ -99,43 +103,47 @@ int dmxPointerGetMotionEvents(DeviceIntPtr pDevice,
 /** This routine adds an event to the motion history.  A similar
  * function is performed by miPointerMove for the mi versions of these
  * routines. */
-void dmxPointerPutMotionEvent(DeviceIntPtr pDevice,
-                              int firstAxis, int axesCount, int *v,
-                              unsigned long time)
+void
+dmxPointerPutMotionEvent(DeviceIntPtr pDevice,
+                         int firstAxis, int axesCount, int *v,
+                         unsigned long time)
 {
     GETDMXLOCALFROMPDEVICE;
-    int           numAxes = pDevice->valuator->numAxes;
-    int           i;
+    int numAxes = pDevice->valuator->numAxes;
+    int i;
 
     if (!dmxLocal->history) {
-        dmxLocal->history   = malloc(sizeof(*dmxLocal->history)
-                                     * (numAxes + 1)
-                                     * DMX_MOTION_SIZE);
-        dmxLocal->head      = 0;
-        dmxLocal->tail      = 0;
+        dmxLocal->history = malloc(sizeof(*dmxLocal->history)
+                                   * (numAxes + 1)
+                                   * DMX_MOTION_SIZE);
+        dmxLocal->head = 0;
+        dmxLocal->tail = 0;
         dmxLocal->valuators = calloc(sizeof(*dmxLocal->valuators), numAxes);
-    } else {
-        if (++dmxLocal->tail >= DMX_MOTION_SIZE) dmxLocal->tail = 0;
+    }
+    else {
+        if (++dmxLocal->tail >= DMX_MOTION_SIZE)
+            dmxLocal->tail = 0;
         if (dmxLocal->head == dmxLocal->tail)
-            if (++dmxLocal->head >= DMX_MOTION_SIZE) dmxLocal->head = 0;
+            if (++dmxLocal->head >= DMX_MOTION_SIZE)
+                dmxLocal->head = 0;
     }
 
-    dmxLocal->history[OFFSET(dmxLocal->tail,0)] = time;
+    dmxLocal->history[OFFSET(dmxLocal->tail, 0)] = time;
 
-                                /* Initialize the data from the known
-                                 * values (if Absolute) or to zero (if
-                                 * Relative) */
+    /* Initialize the data from the known
+     * values (if Absolute) or to zero (if
+     * Relative) */
     for (i = 0; i < numAxes; i++) {
         if (pDevice->valuator->axes[i].mode == Absolute)
-            dmxLocal->history[OFFSET(dmxLocal->tail,i+1)]
+            dmxLocal->history[OFFSET(dmxLocal->tail, i + 1)]
                 = dmxLocal->valuators[i];
         else
-            dmxLocal->history[OFFSET(dmxLocal->tail,i+1)] = 0;
+            dmxLocal->history[OFFSET(dmxLocal->tail, i + 1)] = 0;
     }
-    
+
     for (i = firstAxis; i < axesCount; i++) {
-        dmxLocal->history[OFFSET(dmxLocal->tail,i+i)]
-            = (unsigned long)v[i-firstAxis];
-        dmxLocal->valuators[i] = v[i-firstAxis];
+        dmxLocal->history[OFFSET(dmxLocal->tail, i + i)]
+            = (unsigned long) v[i - firstAxis];
+        dmxLocal->valuators[i] = v[i - firstAxis];
     }
 }

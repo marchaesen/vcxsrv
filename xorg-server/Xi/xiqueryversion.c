@@ -33,7 +33,6 @@
 #include <dix-config.h>
 #endif
 
-
 #include "inputstr.h"
 
 #include <X11/Xmd.h>
@@ -45,7 +44,8 @@
 #include "xiqueryversion.h"
 #include "misc.h"
 
-extern XExtensionVersion XIVersion; /* defined in getvers.c */
+extern XExtensionVersion XIVersion;     /* defined in getvers.c */
+
 /**
  * Return the supported XI version.
  *
@@ -63,21 +63,28 @@ ProcXIQueryVersion(ClientPtr client)
     REQUEST_SIZE_MATCH(xXIQueryVersionReq);
 
     /* This request only exists after XI2 */
-    if (stuff->major_version < 2)
-    {
+    if (stuff->major_version < 2) {
         client->errorValue = stuff->major_version;
         return BadValue;
     }
 
     pXIClient = dixLookupPrivate(&client->devPrivates, XIClientPrivateKey);
 
-    if (version_compare(XIVersion.major_version, XIVersion.minor_version,
-                        stuff->major_version, stuff->minor_version) > 0)
+    if (pXIClient->major_version &&
+           (stuff->major_version != pXIClient->major_version ||
+            stuff->minor_version != pXIClient->minor_version))
     {
+        client->errorValue = stuff->major_version;
+        return BadValue;
+    }
+
+
+    if (version_compare(XIVersion.major_version, XIVersion.minor_version,
+                        stuff->major_version, stuff->minor_version) > 0) {
         major = stuff->major_version;
         minor = stuff->minor_version;
-    } else
-    {
+    }
+    else {
         major = XIVersion.major_version;
         minor = XIVersion.minor_version;
     }
@@ -112,11 +119,11 @@ SProcXIQueryVersion(ClientPtr client)
 }
 
 void
-SRepXIQueryVersion(ClientPtr client, int size, xXIQueryVersionReply *rep)
+SRepXIQueryVersion(ClientPtr client, int size, xXIQueryVersionReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
     swaps(&rep->major_version);
     swaps(&rep->minor_version);
-    WriteToClient(client, size, (char *)rep);
+    WriteToClient(client, size, (char *) rep);
 }

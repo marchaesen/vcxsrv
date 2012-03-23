@@ -36,8 +36,8 @@ from The Open Group.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
-#include "windowstr.h"	/* window structure  */
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include "exevents.h"
@@ -94,79 +94,80 @@ ProcXQueryDeviceState(ClientPtr client)
 
     rc = dixLookupDevice(&dev, stuff->deviceid, client, DixReadAccess);
     if (rc != Success && rc != BadAccess)
-	return rc;
+        return rc;
 
     v = dev->valuator;
     if (v != NULL && v->motionHintWindow != NULL)
-	MaybeStopDeviceHint(dev, client);
+        MaybeStopDeviceHint(dev, client);
 
     k = dev->key;
     if (k != NULL) {
-	total_length += sizeof(xKeyState);
-	num_classes++;
+        total_length += sizeof(xKeyState);
+        num_classes++;
     }
 
     b = dev->button;
     if (b != NULL) {
-	total_length += sizeof(xButtonState);
-	num_classes++;
+        total_length += sizeof(xButtonState);
+        num_classes++;
     }
 
     if (v != NULL) {
-	total_length += (sizeof(xValuatorState) + (v->numAxes * sizeof(int)));
-	num_classes++;
+        total_length += (sizeof(xValuatorState) + (v->numAxes * sizeof(int)));
+        num_classes++;
     }
-    buf = (char *)calloc(total_length, 1);
+    buf = (char *) calloc(total_length, 1);
     if (!buf)
-	return BadAlloc;
+        return BadAlloc;
     savbuf = buf;
 
     if (k != NULL) {
-	tk = (xKeyState *) buf;
-	tk->class = KeyClass;
-	tk->length = sizeof(xKeyState);
-	tk->num_keys = k->xkbInfo->desc->max_key_code -
-                       k->xkbInfo->desc->min_key_code + 1;
-	if (rc != BadAccess)
-	    for (i = 0; i < 32; i++)
-		tk->keys[i] = k->down[i];
-	buf += sizeof(xKeyState);
+        tk = (xKeyState *) buf;
+        tk->class = KeyClass;
+        tk->length = sizeof(xKeyState);
+        tk->num_keys = k->xkbInfo->desc->max_key_code -
+            k->xkbInfo->desc->min_key_code + 1;
+        if (rc != BadAccess)
+            for (i = 0; i < 32; i++)
+                tk->keys[i] = k->down[i];
+        buf += sizeof(xKeyState);
     }
 
     if (b != NULL) {
-	tb = (xButtonState *) buf;
-	tb->class = ButtonClass;
-	tb->length = sizeof(xButtonState);
-	tb->num_buttons = b->numButtons;
-	if (rc != BadAccess)
-	    memcpy(tb->buttons, b->down, sizeof(b->down));
-	buf += sizeof(xButtonState);
+        tb = (xButtonState *) buf;
+        tb->class = ButtonClass;
+        tb->length = sizeof(xButtonState);
+        tb->num_buttons = b->numButtons;
+        if (rc != BadAccess)
+            memcpy(tb->buttons, b->down, sizeof(b->down));
+        buf += sizeof(xButtonState);
     }
 
     if (v != NULL) {
-	tv = (xValuatorState *) buf;
-	tv->class = ValuatorClass;
-	tv->length = sizeof(xValuatorState) + v->numAxes * 4;
-	tv->num_valuators = v->numAxes;
-	tv->mode = valuator_get_mode(dev, 0);
-	tv->mode |= (dev->proximity && !dev->proximity->in_proximity) ? OutOfProximity : 0;
-	buf += sizeof(xValuatorState);
-	for (i = 0, values = v->axisVal; i < v->numAxes; i++) {
-	    if (rc != BadAccess)
-		*((int *)buf) = *values;
-	    values++;
-	    if (client->swapped) {
-		swapl((int *)buf);
-	    }
-	    buf += sizeof(int);
-	}
+        tv = (xValuatorState *) buf;
+        tv->class = ValuatorClass;
+        tv->length = sizeof(xValuatorState) + v->numAxes * 4;
+        tv->num_valuators = v->numAxes;
+        tv->mode = valuator_get_mode(dev, 0);
+        tv->mode |= (dev->proximity &&
+                     !dev->proximity->in_proximity) ? OutOfProximity : 0;
+        buf += sizeof(xValuatorState);
+        for (i = 0, values = v->axisVal; i < v->numAxes; i++) {
+            if (rc != BadAccess)
+                *((int *) buf) = *values;
+            values++;
+            if (client->swapped) {
+                swapl((int *) buf);
+            }
+            buf += sizeof(int);
+        }
     }
 
     rep.num_classes = num_classes;
     rep.length = bytes_to_int32(total_length);
     WriteReplyToClient(client, sizeof(xQueryDeviceStateReply), &rep);
     if (total_length > 0)
-	WriteToClient(client, total_length, savbuf);
+        WriteToClient(client, total_length, savbuf);
     free(savbuf);
     return Success;
 }
@@ -183,5 +184,5 @@ SRepXQueryDeviceState(ClientPtr client, int size, xQueryDeviceStateReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *)rep);
+    WriteToClient(client, size, (char *) rep);
 }

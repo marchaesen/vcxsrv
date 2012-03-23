@@ -36,13 +36,12 @@
 
 #ifndef _USB_OTHER_H_
 #define _USB_OTHER_H_
-extern void    othUSBRead(DevicePtr pDev,
-                          dmxMotionProcPtr motion,
-                          dmxEnqueueProcPtr enqueue,
-                          dmxCheckSpecialProcPtr checkspecial,
-                          DMXBlockType block);
-extern void    othUSBInit(DevicePtr pDev);
-extern void    othUSBGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
-extern int     othUSBOn(DevicePtr pDev);
-extern void    othUSBCtrl(DevicePtr pDev, PtrCtrl *ctrl);
+extern void othUSBRead(DevicePtr pDev,
+                       dmxMotionProcPtr motion,
+                       dmxEnqueueProcPtr enqueue,
+                       dmxCheckSpecialProcPtr checkspecial, DMXBlockType block);
+extern void othUSBInit(DevicePtr pDev);
+extern void othUSBGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
+extern int othUSBOn(DevicePtr pDev);
+extern void othUSBCtrl(DevicePtr pDev, PtrCtrl * ctrl);
 #endif

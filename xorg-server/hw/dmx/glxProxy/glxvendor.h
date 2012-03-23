@@ -31,20 +31,23 @@
 #ifndef __GLXVENDOR_H
 #define __GLXVENDOR_H
 
-extern int __glXVForwardSingleReq( __GLXclientState *cl, GLbyte *pc );
-extern int __glXVForwardPipe0WithReply( __GLXclientState *cl, GLbyte *pc );
-extern int __glXVForwardAllWithReply( __GLXclientState *cl, GLbyte *pc );
+extern int __glXVForwardSingleReq(__GLXclientState * cl, GLbyte * pc);
+extern int __glXVForwardPipe0WithReply(__GLXclientState * cl, GLbyte * pc);
+extern int __glXVForwardAllWithReply(__GLXclientState * cl, GLbyte * pc);
 
-extern int __glXVForwardSingleReqSwap( __GLXclientState *cl, GLbyte *pc );
+extern int __glXVForwardSingleReqSwap(__GLXclientState * cl, GLbyte * pc);
 
-extern int __glXVForwardPipe0WithReplySwap( __GLXclientState *cl, GLbyte *pc );
-extern int __glXVForwardPipe0WithReplySwapsv( __GLXclientState *cl, GLbyte *pc );
-extern int __glXVForwardPipe0WithReplySwapiv( __GLXclientState *cl, GLbyte *pc );
-extern int __glXVForwardPipe0WithReplySwapdv( __GLXclientState *cl, GLbyte *pc );
+extern int __glXVForwardPipe0WithReplySwap(__GLXclientState * cl, GLbyte * pc);
+extern int __glXVForwardPipe0WithReplySwapsv(__GLXclientState * cl,
+                                             GLbyte * pc);
+extern int __glXVForwardPipe0WithReplySwapiv(__GLXclientState * cl,
+                                             GLbyte * pc);
+extern int __glXVForwardPipe0WithReplySwapdv(__GLXclientState * cl,
+                                             GLbyte * pc);
 
-extern int __glXVForwardAllWithReplySwap( __GLXclientState *cl, GLbyte *pc );
-extern int __glXVForwardAllWithReplySwapsv( __GLXclientState *cl, GLbyte *pc );
-extern int __glXVForwardAllWithReplySwapiv( __GLXclientState *cl, GLbyte *pc );
-extern int __glXVForwardAllWithReplySwapdv( __GLXclientState *cl, GLbyte *pc );
+extern int __glXVForwardAllWithReplySwap(__GLXclientState * cl, GLbyte * pc);
+extern int __glXVForwardAllWithReplySwapsv(__GLXclientState * cl, GLbyte * pc);
+extern int __glXVForwardAllWithReplySwapiv(__GLXclientState * cl, GLbyte * pc);
+extern int __glXVForwardAllWithReplySwapdv(__GLXclientState * cl, GLbyte * pc);
 
 #endif

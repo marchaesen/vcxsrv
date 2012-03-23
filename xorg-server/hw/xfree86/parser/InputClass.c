@@ -38,8 +38,7 @@
 extern LexRec val;
 
 static
-xf86ConfigSymTabRec InputClassTab[] =
-{
+xf86ConfigSymTabRec InputClassTab[] = {
     {ENDSECTION, "endsection"},
     {IDENTIFIER, "identifier"},
     {OPTION, "option"},
@@ -86,8 +85,8 @@ xf86parseInputClassSection(void)
 
     parsePrologue(XF86ConfInputClassPtr, XF86ConfInputClassRec)
 
-    /* Initialize MatchGroup lists */
-    xorg_list_init(&ptr->match_product);
+        /* Initialize MatchGroup lists */
+        xorg_list_init(&ptr->match_product);
     xorg_list_init(&ptr->match_vendor);
     xorg_list_init(&ptr->match_device);
     xorg_list_init(&ptr->match_os);
@@ -147,8 +146,7 @@ xf86parseInputClassSection(void)
         case MATCH_OS:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchOS");
-            add_group_entry(&ptr->match_os,
-                            xstrtokenize(val.str, TOKEN_SEP));
+            add_group_entry(&ptr->match_os, xstrtokenize(val.str, TOKEN_SEP));
             free(val.str);
             break;
         case MATCH_PNPID:
@@ -175,8 +173,7 @@ xf86parseInputClassSection(void)
         case MATCH_TAG:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchTag");
-            add_group_entry(&ptr->match_tag,
-                            xstrtokenize(val.str, TOKEN_SEP));
+            add_group_entry(&ptr->match_tag, xstrtokenize(val.str, TOKEN_SEP));
             free(val.str);
             break;
         case MATCH_LAYOUT:
@@ -216,8 +213,7 @@ xf86parseInputClassSection(void)
         case MATCH_IS_TABLET:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchIsTablet");
-            ptr->is_tablet.set = xf86getBoolValue(&ptr->is_tablet.val,
-                                                  val.str);
+            ptr->is_tablet.set = xf86getBoolValue(&ptr->is_tablet.val, val.str);
             free(val.str);
             if (!ptr->is_tablet.set)
                 Error(BOOL_MSG, "MatchIsTablet");
@@ -244,7 +240,7 @@ xf86parseInputClassSection(void)
             Error(UNEXPECTED_EOF_MSG);
             break;
         default:
-            Error(INVALID_KEYWORD_MSG, xf86tokenString ());
+            Error(INVALID_KEYWORD_MSG, xf86tokenString());
             break;
         }
     }
@@ -260,10 +256,10 @@ xf86parseInputClassSection(void)
 }
 
 void
-xf86printInputClassSection (FILE * cf, XF86ConfInputClassPtr ptr)
+xf86printInputClassSection(FILE * cf, XF86ConfInputClassPtr ptr)
 {
     const xf86MatchGroup *group;
-    char * const *cur;
+    char *const *cur;
 
     while (ptr) {
         fprintf(cf, "Section \"InputClass\"\n");
@@ -363,7 +359,7 @@ xf86printInputClassSection (FILE * cf, XF86ConfInputClassPtr ptr)
 }
 
 void
-xf86freeInputClassList (XF86ConfInputClassPtr ptr)
+xf86freeInputClassList(XF86ConfInputClassPtr ptr)
 {
     XF86ConfInputClassPtr prev;
 

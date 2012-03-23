@@ -29,14 +29,12 @@
 #define __EPHYRDRIEXT_H__
 
 typedef struct {
-    WindowPtr local ;
-    int remote ;
+    WindowPtr local;
+    int remote;
 } EphyrWindowPair;
 
-Bool ephyrDRIExtensionInit (ScreenPtr a_screen) ;
+Bool ephyrDRIExtensionInit(ScreenPtr a_screen);
 
-Bool findWindowPairFromRemote (int a_remote,
-			       EphyrWindowPair **a_pair);
+Bool findWindowPairFromRemote(int a_remote, EphyrWindowPair ** a_pair);
 
 #endif /*__EPHYRDRIEXT_H__*/
-

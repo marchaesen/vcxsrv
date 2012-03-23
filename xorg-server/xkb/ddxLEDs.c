@@ -39,33 +39,33 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <X11/extensions/XI.h>
 
 static void
-XkbDDXUpdateIndicators(DeviceIntPtr dev,CARD32 new)
+XkbDDXUpdateIndicators(DeviceIntPtr dev, CARD32 new)
 {
-    dev->kbdfeed->ctrl.leds= new;
-    (*dev->kbdfeed->CtrlProc)(dev,&dev->kbdfeed->ctrl);
+    dev->kbdfeed->ctrl.leds = new;
+    (*dev->kbdfeed->CtrlProc) (dev, &dev->kbdfeed->ctrl);
     return;
 }
 
 void
-XkbDDXUpdateDeviceIndicators(	DeviceIntPtr		dev,
-				XkbSrvLedInfoPtr 	sli,
-				CARD32 			new)
+XkbDDXUpdateDeviceIndicators(DeviceIntPtr dev, XkbSrvLedInfoPtr sli, CARD32 new)
 {
-    if (sli->fb.kf==dev->kbdfeed)
-	XkbDDXUpdateIndicators(dev,new);
-    else if (sli->class==KbdFeedbackClass) {
-	KbdFeedbackPtr	kf;
-	kf= sli->fb.kf;
-	if (kf && kf->CtrlProc) {
-	    (*kf->CtrlProc)(dev,&kf->ctrl);
-	}
+    if (sli->fb.kf == dev->kbdfeed)
+        XkbDDXUpdateIndicators(dev, new);
+    else if (sli->class == KbdFeedbackClass) {
+        KbdFeedbackPtr kf;
+
+        kf = sli->fb.kf;
+        if (kf && kf->CtrlProc) {
+            (*kf->CtrlProc) (dev, &kf->ctrl);
+        }
     }
-    else if (sli->class==LedFeedbackClass) {
-	LedFeedbackPtr	lf;
-	lf= sli->fb.lf;
-	if (lf && lf->CtrlProc) {
-	    (*lf->CtrlProc)(dev,&lf->ctrl);
-	}
+    else if (sli->class == LedFeedbackClass) {
+        LedFeedbackPtr lf;
+
+        lf = sli->fb.lf;
+        if (lf && lf->CtrlProc) {
+            (*lf->CtrlProc) (dev, &lf->ctrl);
+        }
     }
     return;
 }

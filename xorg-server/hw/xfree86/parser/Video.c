@@ -64,233 +64,223 @@
 
 extern LexRec val;
 
-static xf86ConfigSymTabRec VideoPortTab[] =
-{
-	{ENDSUBSECTION, "endsubsection"},
-	{IDENTIFIER, "identifier"},
-	{OPTION, "option"},
-	{-1, ""},
+static xf86ConfigSymTabRec VideoPortTab[] = {
+    {ENDSUBSECTION, "endsubsection"},
+    {IDENTIFIER, "identifier"},
+    {OPTION, "option"},
+    {-1, ""},
 };
 
 #define CLEANUP xf86freeVideoPortList
 
 static void
-xf86freeVideoPortList (XF86ConfVideoPortPtr ptr)
+xf86freeVideoPortList(XF86ConfVideoPortPtr ptr)
 {
-	XF86ConfVideoPortPtr prev;
+    XF86ConfVideoPortPtr prev;
 
-	while (ptr)
-	{
-		TestFree (ptr->vp_identifier);
-		TestFree (ptr->vp_comment);
-		xf86optionListFree (ptr->vp_option_lst);
-		prev = ptr;
-		ptr = ptr->list.next;
-		free (prev);
-	}
+    while (ptr) {
+        TestFree(ptr->vp_identifier);
+        TestFree(ptr->vp_comment);
+        xf86optionListFree(ptr->vp_option_lst);
+        prev = ptr;
+        ptr = ptr->list.next;
+        free(prev);
+    }
 }
 
 static XF86ConfVideoPortPtr
-xf86parseVideoPortSubSection (void)
+xf86parseVideoPortSubSection(void)
 {
-	int has_ident = FALSE;
-	int token;
-	parsePrologue (XF86ConfVideoPortPtr, XF86ConfVideoPortRec)
+    int has_ident = FALSE;
+    int token;
 
-	while ((token = xf86getToken (VideoPortTab)) != ENDSUBSECTION)
-	{
-		switch (token)
-		{
-		case COMMENT:
-			ptr->vp_comment = xf86addComment(ptr->vp_comment, val.str);
-			break;
-		case IDENTIFIER:
-			if (xf86getSubToken (&(ptr->vp_comment)) != STRING)
-				Error (QUOTE_MSG, "Identifier");
-			if (has_ident == TRUE)
-				Error (MULTIPLE_MSG, "Identifier");
-			ptr->vp_identifier = val.str;
-			has_ident = TRUE;
-			break;
-		case OPTION:
-			ptr->vp_option_lst = xf86parseOption(ptr->vp_option_lst);
-			break;
+    parsePrologue(XF86ConfVideoPortPtr, XF86ConfVideoPortRec)
 
-		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG);
-			break;
-		default:
-			Error (INVALID_KEYWORD_MSG, xf86tokenString ());
-			break;
-		}
-	}
+        while ((token = xf86getToken(VideoPortTab)) != ENDSUBSECTION) {
+        switch (token) {
+        case COMMENT:
+            ptr->vp_comment = xf86addComment(ptr->vp_comment, val.str);
+            break;
+        case IDENTIFIER:
+            if (xf86getSubToken(&(ptr->vp_comment)) != STRING)
+                Error(QUOTE_MSG, "Identifier");
+            if (has_ident == TRUE)
+                Error(MULTIPLE_MSG, "Identifier");
+            ptr->vp_identifier = val.str;
+            has_ident = TRUE;
+            break;
+        case OPTION:
+            ptr->vp_option_lst = xf86parseOption(ptr->vp_option_lst);
+            break;
+
+        case EOF_TOKEN:
+            Error(UNEXPECTED_EOF_MSG);
+            break;
+        default:
+            Error(INVALID_KEYWORD_MSG, xf86tokenString());
+            break;
+        }
+    }
 
 #ifdef DEBUG
-	printf ("VideoPort subsection parsed\n");
+    printf("VideoPort subsection parsed\n");
 #endif
 
-	return ptr;
+    return ptr;
 }
 
 #undef CLEANUP
 
-static xf86ConfigSymTabRec VideoAdaptorTab[] =
-{
-	{ENDSECTION, "endsection"},
-	{IDENTIFIER, "identifier"},
-	{VENDOR, "vendorname"},
-	{BOARD, "boardname"},
-	{BUSID, "busid"},
-	{DRIVER, "driver"},
-	{OPTION, "option"},
-	{SUBSECTION, "subsection"},
-	{-1, ""},
+static xf86ConfigSymTabRec VideoAdaptorTab[] = {
+    {ENDSECTION, "endsection"},
+    {IDENTIFIER, "identifier"},
+    {VENDOR, "vendorname"},
+    {BOARD, "boardname"},
+    {BUSID, "busid"},
+    {DRIVER, "driver"},
+    {OPTION, "option"},
+    {SUBSECTION, "subsection"},
+    {-1, ""},
 };
 
 #define CLEANUP xf86freeVideoAdaptorList
 
 XF86ConfVideoAdaptorPtr
-xf86parseVideoAdaptorSection (void)
+xf86parseVideoAdaptorSection(void)
 {
-	int has_ident = FALSE;
-	int token;
+    int has_ident = FALSE;
+    int token;
 
-	parsePrologue (XF86ConfVideoAdaptorPtr, XF86ConfVideoAdaptorRec)
+    parsePrologue(XF86ConfVideoAdaptorPtr, XF86ConfVideoAdaptorRec)
 
-	while ((token = xf86getToken (VideoAdaptorTab)) != ENDSECTION)
-	{
-		switch (token)
-		{
-		case COMMENT:
-			ptr->va_comment = xf86addComment(ptr->va_comment, val.str);
-			break;
-		case IDENTIFIER:
-			if (xf86getSubToken (&(ptr->va_comment)) != STRING)
-				Error (QUOTE_MSG, "Identifier");
-			ptr->va_identifier = val.str;
-			if (has_ident == TRUE)
-				Error (MULTIPLE_MSG, "Identifier");
-			has_ident = TRUE;
-			break;
-		case VENDOR:
-			if (xf86getSubToken (&(ptr->va_comment)) != STRING)
-				Error (QUOTE_MSG, "Vendor");
-			ptr->va_vendor = val.str;
-			break;
-		case BOARD:
-			if (xf86getSubToken (&(ptr->va_comment)) != STRING)
-				Error (QUOTE_MSG, "Board");
-			ptr->va_board = val.str;
-			break;
-		case BUSID:
-			if (xf86getSubToken (&(ptr->va_comment)) != STRING)
-				Error (QUOTE_MSG, "BusID");
-			ptr->va_busid = val.str;
-			break;
-		case DRIVER:
-			if (xf86getSubToken (&(ptr->va_comment)) != STRING)
-				Error (QUOTE_MSG, "Driver");
-			ptr->va_driver = val.str;
-			break;
-		case OPTION:
-			ptr->va_option_lst = xf86parseOption(ptr->va_option_lst);
-			break;
-		case SUBSECTION:
-			if (xf86getSubToken (&(ptr->va_comment)) != STRING)
-				Error (QUOTE_MSG, "SubSection");
-			{
-				HANDLE_LIST (va_port_lst, xf86parseVideoPortSubSection,
-							 XF86ConfVideoPortPtr);
-			}
-			break;
+        while ((token = xf86getToken(VideoAdaptorTab)) != ENDSECTION) {
+        switch (token) {
+        case COMMENT:
+            ptr->va_comment = xf86addComment(ptr->va_comment, val.str);
+            break;
+        case IDENTIFIER:
+            if (xf86getSubToken(&(ptr->va_comment)) != STRING)
+                Error(QUOTE_MSG, "Identifier");
+            ptr->va_identifier = val.str;
+            if (has_ident == TRUE)
+                Error(MULTIPLE_MSG, "Identifier");
+            has_ident = TRUE;
+            break;
+        case VENDOR:
+            if (xf86getSubToken(&(ptr->va_comment)) != STRING)
+                Error(QUOTE_MSG, "Vendor");
+            ptr->va_vendor = val.str;
+            break;
+        case BOARD:
+            if (xf86getSubToken(&(ptr->va_comment)) != STRING)
+                Error(QUOTE_MSG, "Board");
+            ptr->va_board = val.str;
+            break;
+        case BUSID:
+            if (xf86getSubToken(&(ptr->va_comment)) != STRING)
+                Error(QUOTE_MSG, "BusID");
+            ptr->va_busid = val.str;
+            break;
+        case DRIVER:
+            if (xf86getSubToken(&(ptr->va_comment)) != STRING)
+                Error(QUOTE_MSG, "Driver");
+            ptr->va_driver = val.str;
+            break;
+        case OPTION:
+            ptr->va_option_lst = xf86parseOption(ptr->va_option_lst);
+            break;
+        case SUBSECTION:
+            if (xf86getSubToken(&(ptr->va_comment)) != STRING)
+                Error(QUOTE_MSG, "SubSection");
+            {
+                HANDLE_LIST(va_port_lst, xf86parseVideoPortSubSection,
+                            XF86ConfVideoPortPtr);
+            }
+            break;
 
-		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG);
-			break;
-		default:
-			Error (INVALID_KEYWORD_MSG, xf86tokenString ());
-			break;
-		}
-	}
+        case EOF_TOKEN:
+            Error(UNEXPECTED_EOF_MSG);
+            break;
+        default:
+            Error(INVALID_KEYWORD_MSG, xf86tokenString());
+            break;
+        }
+    }
 
-	if (!has_ident)
-		Error (NO_IDENT_MSG);
+    if (!has_ident)
+        Error(NO_IDENT_MSG);
 
 #ifdef DEBUG
-	printf ("VideoAdaptor section parsed\n");
+    printf("VideoAdaptor section parsed\n");
 #endif
 
-	return ptr;
+    return ptr;
 }
 
 void
-xf86printVideoAdaptorSection (FILE * cf, XF86ConfVideoAdaptorPtr ptr)
+xf86printVideoAdaptorSection(FILE * cf, XF86ConfVideoAdaptorPtr ptr)
 {
-	XF86ConfVideoPortPtr pptr;
+    XF86ConfVideoPortPtr pptr;
 
-	while (ptr)
-	{
-		fprintf (cf, "Section \"VideoAdaptor\"\n");
-		if (ptr->va_comment)
-			fprintf (cf, "%s", ptr->va_comment);
-		if (ptr->va_identifier)
-			fprintf (cf, "\tIdentifier  \"%s\"\n", ptr->va_identifier);
-		if (ptr->va_vendor)
-			fprintf (cf, "\tVendorName  \"%s\"\n", ptr->va_vendor);
-		if (ptr->va_board)
-			fprintf (cf, "\tBoardName   \"%s\"\n", ptr->va_board);
-		if (ptr->va_busid)
-			fprintf (cf, "\tBusID       \"%s\"\n", ptr->va_busid);
-		if (ptr->va_driver)
-			fprintf (cf, "\tDriver      \"%s\"\n", ptr->va_driver);
-		xf86printOptionList(cf, ptr->va_option_lst, 1);
-		for (pptr = ptr->va_port_lst; pptr; pptr = pptr->list.next)
-		{
-			fprintf (cf, "\tSubSection \"VideoPort\"\n");
-			if (pptr->vp_comment)
-				fprintf (cf, "%s", pptr->vp_comment);
-			if (pptr->vp_identifier)
-				fprintf (cf, "\t\tIdentifier \"%s\"\n", pptr->vp_identifier);
-			xf86printOptionList(cf, pptr->vp_option_lst, 2);
-			fprintf (cf, "\tEndSubSection\n");
-		}
-		fprintf (cf, "EndSection\n\n");
-		ptr = ptr->list.next;
-	}
+    while (ptr) {
+        fprintf(cf, "Section \"VideoAdaptor\"\n");
+        if (ptr->va_comment)
+            fprintf(cf, "%s", ptr->va_comment);
+        if (ptr->va_identifier)
+            fprintf(cf, "\tIdentifier  \"%s\"\n", ptr->va_identifier);
+        if (ptr->va_vendor)
+            fprintf(cf, "\tVendorName  \"%s\"\n", ptr->va_vendor);
+        if (ptr->va_board)
+            fprintf(cf, "\tBoardName   \"%s\"\n", ptr->va_board);
+        if (ptr->va_busid)
+            fprintf(cf, "\tBusID       \"%s\"\n", ptr->va_busid);
+        if (ptr->va_driver)
+            fprintf(cf, "\tDriver      \"%s\"\n", ptr->va_driver);
+        xf86printOptionList(cf, ptr->va_option_lst, 1);
+        for (pptr = ptr->va_port_lst; pptr; pptr = pptr->list.next) {
+            fprintf(cf, "\tSubSection \"VideoPort\"\n");
+            if (pptr->vp_comment)
+                fprintf(cf, "%s", pptr->vp_comment);
+            if (pptr->vp_identifier)
+                fprintf(cf, "\t\tIdentifier \"%s\"\n", pptr->vp_identifier);
+            xf86printOptionList(cf, pptr->vp_option_lst, 2);
+            fprintf(cf, "\tEndSubSection\n");
+        }
+        fprintf(cf, "EndSection\n\n");
+        ptr = ptr->list.next;
+    }
 
 }
 
 void
-xf86freeVideoAdaptorList (XF86ConfVideoAdaptorPtr ptr)
+xf86freeVideoAdaptorList(XF86ConfVideoAdaptorPtr ptr)
 {
-	XF86ConfVideoAdaptorPtr prev;
+    XF86ConfVideoAdaptorPtr prev;
 
-	while (ptr)
-	{
-		TestFree (ptr->va_identifier);
-		TestFree (ptr->va_vendor);
-		TestFree (ptr->va_board);
-		TestFree (ptr->va_busid);
-		TestFree (ptr->va_driver);
-		TestFree (ptr->va_fwdref);
-		TestFree (ptr->va_comment);
-		xf86freeVideoPortList (ptr->va_port_lst);
-		xf86optionListFree (ptr->va_option_lst);
-		prev = ptr;
-		ptr = ptr->list.next;
-		free (prev);
-	}
+    while (ptr) {
+        TestFree(ptr->va_identifier);
+        TestFree(ptr->va_vendor);
+        TestFree(ptr->va_board);
+        TestFree(ptr->va_busid);
+        TestFree(ptr->va_driver);
+        TestFree(ptr->va_fwdref);
+        TestFree(ptr->va_comment);
+        xf86freeVideoPortList(ptr->va_port_lst);
+        xf86optionListFree(ptr->va_option_lst);
+        prev = ptr;
+        ptr = ptr->list.next;
+        free(prev);
+    }
 }
 
 XF86ConfVideoAdaptorPtr
-xf86findVideoAdaptor (const char *ident, XF86ConfVideoAdaptorPtr p)
+xf86findVideoAdaptor(const char *ident, XF86ConfVideoAdaptorPtr p)
 {
-	while (p)
-	{
-		if (xf86nameCompare (ident, p->va_identifier) == 0)
-			return p;
+    while (p) {
+        if (xf86nameCompare(ident, p->va_identifier) == 0)
+            return p;
 
-		p = p->list.next;
-	}
-	return NULL;
+        p = p->list.next;
+    }
+    return NULL;
 }

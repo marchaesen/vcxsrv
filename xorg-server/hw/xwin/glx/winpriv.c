@@ -12,26 +12,26 @@
 #include "winwindow.h"
 
 void
-winCreateWindowsWindow (WindowPtr pWin);
+ winCreateWindowsWindow(WindowPtr pWin);
+
 /**
  * Return size and handles of a window.
  * If pWin is NULL, then the information for the root window is requested.
  */
-HWND winGetWindowInfo(WindowPtr pWin)
+HWND
+winGetWindowInfo(WindowPtr pWin)
 {
     winTrace("%s: pWin %p XID 0x%x\n", __FUNCTION__, pWin, pWin->drawable.id);
 
     /* a real window was requested */
-    if (pWin != NULL)
-    {
+    if (pWin != NULL) {
         /* Get the window and screen privates */
         ScreenPtr pScreen = pWin->drawable.pScreen;
         winPrivScreenPtr pWinScreen = winGetScreenPriv(pScreen);
         winScreenInfoPtr pScreenInfo = NULL;
         HWND hwnd = NULL;
 
-        if (pWinScreen == NULL)
-        {
+        if (pWinScreen == NULL) {
             ErrorF("winGetWindowInfo: screen has no privates\n");
             return NULL;
         }
@@ -41,48 +41,42 @@ HWND winGetWindowInfo(WindowPtr pWin)
         pScreenInfo = pWinScreen->pScreenInfo;
 #ifdef XWIN_MULTIWINDOW
         /* check for multiwindow mode */
-        if (pScreenInfo->fMultiWindow)
-        {
+        if (pScreenInfo->fMultiWindow) {
             winWindowPriv(pWin);
 
-            if (pWinPriv == NULL)
-            {
+            if (pWinPriv == NULL) {
                 ErrorF("winGetWindowInfo: window has no privates\n");
                 return hwnd;
             }
 
-            if (pWinPriv->hWnd == NULL)
-            {
-              winCreateWindowsWindow(pWin);
-              ErrorF("winGetWindowInfo: forcing window to exist...\n");
+            if (pWinPriv->hWnd == NULL) {
+                winCreateWindowsWindow(pWin);
+                ErrorF("winGetWindowInfo: forcing window to exist...\n");
             }
 
-            if (pWinPriv->hWnd != NULL)
-              {
+            if (pWinPriv->hWnd != NULL) {
                 /* copy window handle */
                 hwnd = pWinPriv->hWnd;
 
                 /* mark GLX active on that hwnd */
                 pWinPriv->fWglUsed = TRUE;
-              }
+            }
 
             return hwnd;
         }
 #endif
 #ifdef XWIN_MULTIWINDOWEXTWM
         /* check for multiwindow external wm mode */
-        if (pScreenInfo->fMWExtWM)
-        {
+        if (pScreenInfo->fMWExtWM) {
             win32RootlessWindowPtr pRLWinPriv
-                = (win32RootlessWindowPtr) RootlessFrameForWindow (pWin, FALSE);
+                = (win32RootlessWindowPtr) RootlessFrameForWindow(pWin, FALSE);
 
             if (pRLWinPriv == NULL) {
                 ErrorF("winGetWindowInfo: window has no privates\n");
                 return hwnd;
             }
 
-            if (pRLWinPriv->hWnd != NULL)
-            {
+            if (pRLWinPriv->hWnd != NULL) {
                 /* copy window handle */
                 hwnd = pRLWinPriv->hWnd;
             }
@@ -90,13 +84,11 @@ HWND winGetWindowInfo(WindowPtr pWin)
         }
 #endif
     }
-    else
-    {
+    else {
         ScreenPtr pScreen = g_ScreenInfo[0].pScreen;
         winPrivScreenPtr pWinScreen = winGetScreenPriv(pScreen);
 
-        if (pWinScreen == NULL)
-        {
+        if (pWinScreen == NULL) {
             ErrorF("winGetWindowInfo: screen has no privates\n");
             return NULL;
         }
@@ -112,18 +104,18 @@ HWND winGetWindowInfo(WindowPtr pWin)
 Bool
 winCheckScreenAiglxIsSupported(ScreenPtr pScreen)
 {
-  winPrivScreenPtr pWinScreen = winGetScreenPriv(pScreen);
-  winScreenInfoPtr pScreenInfo = pWinScreen->pScreenInfo;
+    winPrivScreenPtr pWinScreen = winGetScreenPriv(pScreen);
+    winScreenInfoPtr pScreenInfo = pWinScreen->pScreenInfo;
 
 #ifdef XWIN_MULTIWINDOW
-  if (pScreenInfo->fMultiWindow)
-    return TRUE;
+    if (pScreenInfo->fMultiWindow)
+        return TRUE;
 #endif
 
 #ifdef XWIN_MULTIWINDOWEXTWM
-  if (pScreenInfo->fMWExtWM)
-    return TRUE;
+    if (pScreenInfo->fMWExtWM)
+        return TRUE;
 #endif
 
-  return FALSE;
+    return FALSE;
 }

@@ -10,12 +10,12 @@
  */
 
 #ifndef _EDID_H_
-#define _EDID_H_ 
+#define _EDID_H_
 
 #include <X11/Xmd.h>
 
 #ifndef _X_EXPORT
-# include <X11/Xfuncproto.h>
+#include <X11/Xfuncproto.h>
 #endif
 
 /* read complete EDID record */
@@ -72,7 +72,7 @@
 #define E_T1 0
 #define E_T2 (E_T1 + 1)
 #define E_TMANU (E_T2 + 1)
-#define E_TIMING_LENGTH (E_TMANU + 1) 
+#define E_TIMING_LENGTH (E_TMANU + 1)
 
 /* non predefined standard timings supported by display */
 #define STD_TIMING_SECTION (ESTABLISHED_TIMING_SECTION + E_TIMING_LENGTH)
@@ -90,12 +90,11 @@
 /* number of EDID sections to follow */
 #define NO_EDID (DET_TIMING_SECTION + DET_TIMING_LENGTH)
 /* one byte checksum */
-#define CHECKSUM (NO_EDID + 1)  
+#define CHECKSUM (NO_EDID + 1)
 
 #if (CHECKSUM != (EDID1_LEN - 1))
-# error "EDID1 length != 128!" 
+#error "EDID1 length != 128!"
 #endif
-
 
 #define SECTION(x,y) (Uchar *)(x + y)
 #define GET_ARRAY(y) ((Uchar *)(c + y))
@@ -145,7 +144,6 @@
 #define DISPLAY_TYPE _DISPLAY_TYPE(GET(FEAT_S))
 #define _MSC(x) (x & 0x7)
 #define MSC _MSC(GET(FEAT_S))
-
 
 /* color characteristics */
 #define CC_L(x,y) ((x & (0x03 << y)) >> y)
@@ -197,7 +195,6 @@
 #define STD_TIMING_ID (ID_LOW | ID_HIGH)
 #define _NEXT_STD_TIMING(x)  (x = (x + STD_TIMING_INFO_LEN))
 #define NEXT_STD_TIMING _NEXT_STD_TIMING(c)
-
 
 /* EDID Ver. >= 1.2 */
 /**
@@ -264,7 +261,7 @@
 #define _MAX_H(x) x[8]
 #define MAX_H (_MAX_H(c) + _MAX_H_OFFSET(c))
 #define _MAX_CLOCK(x) x[9]
-#define MAX_CLOCK _MAX_CLOCK(c) 
+#define MAX_CLOCK _MAX_CLOCK(c)
 #define _HAVE_2ND_GTF(x) (x[10] == 0x02)
 #define HAVE_2ND_GTF _HAVE_2ND_GTF(c)
 #define _F_2ND_GTF(x) (x[12] * 2)
@@ -325,7 +322,7 @@
 #define WHITEX2 _WHITEX_ADD(c,12)
 #define WHITEY2 _WHITEY_ADD(c,12)
 #define _WHITE_GAMMA1(x) _GAMMA(x[9])
-#define WHITE_GAMMA1 _WHITE_GAMMA1(c) 
+#define WHITE_GAMMA1 _WHITE_GAMMA1(c)
 #define _WHITE_GAMMA2(x) _GAMMA(x[14])
 #define WHITE_GAMMA2 _WHITE_GAMMA2(c)
 #define ADD_STD_TIMINGS 0xFA
@@ -337,7 +334,7 @@
 #define _NEXT_DT_MD_SECTION(x) (x = (x + DET_TIMING_INFO_LEN))
 #define NEXT_DT_MD_SECTION _NEXT_DT_MD_SECTION(c)
 
-#endif /* _PARSE_EDID_ */
+#endif                          /* _PARSE_EDID_ */
 
 /* input type */
 #define DIGITAL(x) x
@@ -346,10 +343,10 @@
 #define DFP1(x) x
 
 /* input voltage level */
-#define V070 0  /* 0.700V/0.300V */
-#define V071 1  /* 0.714V/0.286V */
-#define V100 2  /* 1.000V/0.400V */
-#define V007 3 /* 0.700V/0.000V */
+#define V070 0                  /* 0.700V/0.300V */
+#define V071 1                  /* 0.714V/0.286V */
+#define V100 2                  /* 1.000V/0.400V */
+#define V007 3                  /* 0.700V/0.000V */
 
 /* Signal level setup */
 #define SIG_SETUP(x) (x)
@@ -382,88 +379,87 @@
 #define CVT_SUPPORTED(x) (x & 0x1)
 
 /* detailed timing misc */
-#define IS_INTERLACED(x)  (x) 
-#define IS_STEREO(x)  (x) 
+#define IS_INTERLACED(x)  (x)
+#define IS_STEREO(x)  (x)
 #define IS_RIGHT_STEREO(x) (x & 0x01)
 #define IS_LEFT_STEREO(x) (x & 0x02)
 #define IS_4WAY_STEREO(x) (x & 0x03)
 #define IS_RIGHT_ON_SYNC(x) IS_RIGHT_STEREO(x)
 #define IS_LEFT_ON_SYNC(x) IS_LEFT_STEREO(x)
 
-
 typedef unsigned int Uint;
 typedef unsigned char Uchar;
 
 struct vendor {
-  char name[4];
-  int prod_id;
-  Uint serial;
-  int week;
-  int year;
+    char name[4];
+    int prod_id;
+    Uint serial;
+    int week;
+    int year;
 };
 
 struct edid_version {
-  int version;
-  int revision;
+    int version;
+    int revision;
 };
 
 struct disp_features {
-  unsigned int input_type:1;
-  unsigned int input_voltage:2;
-  unsigned int input_setup:1;
-  unsigned int input_sync:5;
-  unsigned int input_dfp:1;
-  unsigned int input_bpc:3;
-  unsigned int input_interface:4;
-  /* 15 bit hole */
-  int hsize;
-  int vsize;
-  float gamma;
-  unsigned int dpms:3;
-  unsigned int display_type:2;
-  unsigned int msc:3;
-  float redx;
-  float redy;
-  float greenx;
-  float greeny;
-  float bluex;
-  float bluey;
-  float whitex;
-  float whitey;
+    unsigned int input_type:1;
+    unsigned int input_voltage:2;
+    unsigned int input_setup:1;
+    unsigned int input_sync:5;
+    unsigned int input_dfp:1;
+    unsigned int input_bpc:3;
+    unsigned int input_interface:4;
+    /* 15 bit hole */
+    int hsize;
+    int vsize;
+    float gamma;
+    unsigned int dpms:3;
+    unsigned int display_type:2;
+    unsigned int msc:3;
+    float redx;
+    float redy;
+    float greenx;
+    float greeny;
+    float bluex;
+    float bluey;
+    float whitex;
+    float whitey;
 };
 
 struct established_timings {
-  Uchar t1;
-  Uchar t2;
-  Uchar t_manu;
+    Uchar t1;
+    Uchar t2;
+    Uchar t_manu;
 };
 
 struct std_timings {
-  int hsize;
-  int vsize;
-  int refresh;
-  CARD16 id;
+    int hsize;
+    int vsize;
+    int refresh;
+    CARD16 id;
 };
 
 struct detailed_timings {
-  int clock;
-  int h_active;
-  int h_blanking;
-  int v_active;
-  int v_blanking;
-  int h_sync_off;
-  int h_sync_width;
-  int v_sync_off;
-  int v_sync_width;
-  int h_size;
-  int v_size;
-  int h_border;
-  int v_border;
-  unsigned int interlaced:1;
-  unsigned int stereo:2;
-  unsigned int sync:2;
-  unsigned int misc:2;
-  unsigned int stereo_1:1;
+    int clock;
+    int h_active;
+    int h_blanking;
+    int v_active;
+    int v_blanking;
+    int h_sync_off;
+    int h_sync_width;
+    int v_sync_off;
+    int v_sync_width;
+    int h_size;
+    int v_size;
+    int h_border;
+    int v_border;
+    unsigned int interlaced:1;
+    unsigned int stereo:2;
+    unsigned int sync:2;
+    unsigned int misc:2;
+    unsigned int stereo_1:1;
 };
 
 #define DT 0
@@ -477,35 +473,35 @@ struct detailed_timings {
 #define DS_CVT 0xF8
 #define DS_EST_III 0xF7
 #define DS_DUMMY 0x10
-#define DS_UNKOWN 0x100 /* type is an int */
+#define DS_UNKOWN 0x100         /* type is an int */
 #define DS_VENDOR 0x101
 #define DS_VENDOR_MAX 0x110
 
 struct monitor_ranges {
-  int min_v;
-  int max_v;
-  int min_h;
-  int max_h;
-  int max_clock;    /* in mhz */
-  int gtf_2nd_f;
-  int gtf_2nd_c;
-  int gtf_2nd_m;
-  int gtf_2nd_k;
-  int gtf_2nd_j;
-  int max_clock_khz;
-  int maxwidth;	    /* in pixels */
-  char supported_aspect;
-  char preferred_aspect;
-  char supported_blanking;
-  char supported_scaling;
-  int preferred_refresh; /* in hz */
+    int min_v;
+    int max_v;
+    int min_h;
+    int max_h;
+    int max_clock;              /* in mhz */
+    int gtf_2nd_f;
+    int gtf_2nd_c;
+    int gtf_2nd_m;
+    int gtf_2nd_k;
+    int gtf_2nd_j;
+    int max_clock_khz;
+    int maxwidth;               /* in pixels */
+    char supported_aspect;
+    char preferred_aspect;
+    char supported_blanking;
+    char supported_scaling;
+    int preferred_refresh;      /* in hz */
 };
 
-struct whitePoints{
-  int   index;
-  float white_x;
-  float white_y;
-  float white_gamma;
+struct whitePoints {
+    int index;
+    float white_x;
+    float white_y;
+    float white_gamma;
 };
 
 struct cvt_timings {
@@ -522,19 +518,19 @@ struct cvt_timings {
  * literally like serial and friends.
  */
 struct detailed_monitor_section {
-  int type;
-  union {
-    struct detailed_timings d_timings;	/* 56 */
-    Uchar serial[13];
-    Uchar ascii_data[13];
-    Uchar name[13];
-    struct monitor_ranges ranges;	/* 56 */
-    struct std_timings std_t[5];	/* 80 */
-    struct whitePoints wp[2];		/* 32 */
-    /* color management data */
-    struct cvt_timings cvt[4];		/* 64 */
-    Uchar est_iii[6];			/* 6 */
-  } section;				/* max: 80 */
+    int type;
+    union {
+        struct detailed_timings d_timings;      /* 56 */
+        Uchar serial[13];
+        Uchar ascii_data[13];
+        Uchar name[13];
+        struct monitor_ranges ranges;   /* 56 */
+        struct std_timings std_t[5];    /* 80 */
+        struct whitePoints wp[2];       /* 32 */
+        /* color management data */
+        struct cvt_timings cvt[4];      /* 64 */
+        Uchar est_iii[6];       /* 6 */
+    } section;                  /* max: 80 */
 };
 
 /* flags */
@@ -548,16 +544,16 @@ struct detailed_monitor_section {
  * are meaningful.  For EDID, they all are.
  */
 typedef struct {
-  int scrnIndex;
-  struct vendor vendor;
-  struct edid_version ver;
-  struct disp_features features;
-  struct established_timings timings1;
-  struct std_timings timings2[8];
-  struct detailed_monitor_section det_mon[4];
-  unsigned long flags;
-  int no_sections;
-  Uchar *rawData;
+    int scrnIndex;
+    struct vendor vendor;
+    struct edid_version ver;
+    struct disp_features features;
+    struct established_timings timings1;
+    struct std_timings timings2[8];
+    struct detailed_monitor_section det_mon[4];
+    unsigned long flags;
+    int no_sections;
+    Uchar *rawData;
 } xf86Monitor, *xf86MonPtr;
 
 extern _X_EXPORT xf86MonPtr ConfiguredMonitor;
@@ -590,73 +586,72 @@ extern _X_EXPORT xf86MonPtr ConfiguredMonitor;
 #define HDMI_MAX_TMDS_UNIT   (5000)
 
 struct cea_video_block {
-  Uchar video_code;
+    Uchar video_code;
 };
 
 struct cea_audio_block_descriptor {
-  Uchar audio_code[3];
+    Uchar audio_code[3];
 };
 
 struct cea_audio_block {
-  struct cea_audio_block_descriptor descriptor[10];
+    struct cea_audio_block_descriptor descriptor[10];
 };
 
 struct cea_vendor_block_hdmi {
-  Uchar  portB:4;
-  Uchar  portA:4;
-  Uchar  portD:4;
-  Uchar  portC:4;
-  Uchar  support_flags;
-  Uchar  max_tmds_clock;
-  Uchar  latency_present;
-  Uchar  video_latency;
-  Uchar  audio_latency;
-  Uchar  interlaced_video_latency;
-  Uchar  interlaced_audio_latency;
+    Uchar portB:4;
+    Uchar portA:4;
+    Uchar portD:4;
+    Uchar portC:4;
+    Uchar support_flags;
+    Uchar max_tmds_clock;
+    Uchar latency_present;
+    Uchar video_latency;
+    Uchar audio_latency;
+    Uchar interlaced_video_latency;
+    Uchar interlaced_audio_latency;
 };
 
 struct cea_vendor_block {
-  unsigned char ieee_id[3];
-  union {
-      struct cea_vendor_block_hdmi hdmi;
-      /* any other vendor blocks we know about */
-  };
+    unsigned char ieee_id[3];
+    union {
+        struct cea_vendor_block_hdmi hdmi;
+        /* any other vendor blocks we know about */
+    };
 };
 
-struct cea_speaker_block
-{
-  Uchar FLR:1;
-  Uchar LFE:1;
-  Uchar FC:1;
-  Uchar RLR:1;
-  Uchar RC:1;
-  Uchar FLRC:1;
-  Uchar RLRC:1;
-  Uchar FLRW:1;
-  Uchar FLRH:1;
-  Uchar TC:1;
-  Uchar FCH:1;
-  Uchar Resv:5;
-  Uchar ResvByte;
+struct cea_speaker_block {
+    Uchar FLR:1;
+    Uchar LFE:1;
+    Uchar FC:1;
+    Uchar RLR:1;
+    Uchar RC:1;
+    Uchar FLRC:1;
+    Uchar RLRC:1;
+    Uchar FLRW:1;
+    Uchar FLRH:1;
+    Uchar TC:1;
+    Uchar FCH:1;
+    Uchar Resv:5;
+    Uchar ResvByte;
 };
 
 struct cea_data_block {
-  Uchar len:5;
-  Uchar tag:3;
-  union{
-    struct cea_video_block video;
-    struct cea_audio_block audio;
-    struct cea_vendor_block vendor;
-    struct cea_speaker_block speaker;
-  }u;
+    Uchar len:5;
+    Uchar tag:3;
+    union {
+        struct cea_video_block video;
+        struct cea_audio_block audio;
+        struct cea_vendor_block vendor;
+        struct cea_speaker_block speaker;
+    } u;
 };
 
 struct cea_ext_body {
-  Uchar tag;
-  Uchar rev;
-  Uchar dt_offset;
-  Uchar flags;
-  struct cea_data_block data_collection;
+    Uchar tag;
+    Uchar rev;
+    Uchar dt_offset;
+    Uchar flags;
+    struct cea_data_block data_collection;
 };
 
-#endif /* _EDID_H_ */
+#endif                          /* _EDID_H_ */

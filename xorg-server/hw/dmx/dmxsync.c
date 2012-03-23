@@ -56,22 +56,24 @@
 #include "dmxlog.h"
 #include <sys/time.h>
 
-static int        dmxSyncInterval = 100; /* Default interval in milliseconds */
+static int dmxSyncInterval = 100;       /* Default interval in milliseconds */
 static OsTimerPtr dmxSyncTimer;
-static int        dmxSyncPending;
+static int dmxSyncPending;
 
-static void dmxDoSync(DMXScreenInfo *dmxScreen)
+static void
+dmxDoSync(DMXScreenInfo * dmxScreen)
 {
     dmxScreen->needsSync = FALSE;
 
     if (!dmxScreen->beDisplay)
-	return; /* FIXME: Is this correct behavior for sync stats? */
+        return;                 /* FIXME: Is this correct behavior for sync stats? */
 
     if (!dmxStatInterval) {
         XSync(dmxScreen->beDisplay, False);
-    } else {
+    }
+    else {
         struct timeval start, stop;
-        
+
         gettimeofday(&start, 0);
         XSync(dmxScreen->beDisplay, False);
         gettimeofday(&stop, 0);
@@ -79,28 +81,31 @@ static void dmxDoSync(DMXScreenInfo *dmxScreen)
     }
 }
 
-static CARD32 dmxSyncCallback(OsTimerPtr timer, CARD32 time, pointer arg)
+static CARD32
+dmxSyncCallback(OsTimerPtr timer, CARD32 time, pointer arg)
 {
-    int           i;
+    int i;
 
     if (dmxSyncPending) {
         for (i = 0; i < dmxNumScreens; i++) {
             DMXScreenInfo *dmxScreen = &dmxScreens[i];
-            if (dmxScreen->needsSync) dmxDoSync(dmxScreen);
+
+            if (dmxScreen->needsSync)
+                dmxDoSync(dmxScreen);
         }
     }
     dmxSyncPending = 0;
     return 0;                   /* Do not place on queue again */
 }
 
-static void dmxSyncBlockHandler(pointer blockData, OSTimePtr pTimeout,
-                                pointer pReadMask)
+static void
+dmxSyncBlockHandler(pointer blockData, OSTimePtr pTimeout, pointer pReadMask)
 {
     TimerForce(dmxSyncTimer);
 }
 
-static void dmxSyncWakeupHandler(pointer blockData, int result,
-                                 pointer pReadMask)
+static void
+dmxSyncWakeupHandler(pointer blockData, int result, pointer pReadMask)
 {
 }
 
@@ -112,24 +117,27 @@ static void dmxSyncWakeupHandler(pointer blockData, int result,
  *
  * Note that the parameter to this routine is a string, since it will
  * usually be called from #ddxProcessArgument in \a dmxinit.c */
-void dmxSyncActivate(const char *interval)
+void
+dmxSyncActivate(const char *interval)
 {
     dmxSyncInterval = (interval ? atoi(interval) : 100);
 
-    if (dmxSyncInterval < 0) dmxSyncInterval = 0;
+    if (dmxSyncInterval < 0)
+        dmxSyncInterval = 0;
 }
 
 /** Initialize the XSync() batching optimization, but only if
  * #dmxSyncActivate was last called with a non-negative value. */
-void dmxSyncInit(void)
+void
+dmxSyncInit(void)
 {
     if (dmxSyncInterval) {
         RegisterBlockAndWakeupHandlers(dmxSyncBlockHandler,
-                                       dmxSyncWakeupHandler,
-                                       NULL);
+                                       dmxSyncWakeupHandler, NULL);
         dmxLog(dmxInfo, "XSync batching with %d ms interval\n",
                dmxSyncInterval);
-    } else {
+    }
+    else {
         dmxLog(dmxInfo, "XSync batching disabled\n");
     }
 }
@@ -147,7 +155,8 @@ void dmxSyncInit(void)
  * If \a dmxScreen is \a NULL, then all pending syncs will be flushed
  * immediately.
  */
-void dmxSync(DMXScreenInfo *dmxScreen, Bool now)
+void
+dmxSync(DMXScreenInfo * dmxScreen, Bool now)
 {
     static unsigned long dmxGeneration = 0;
 
@@ -159,35 +168,40 @@ void dmxSync(DMXScreenInfo *dmxScreen, Bool now)
              * 2) freed, if it was on a queue (dmxSyncPending != 0), or
              * 3) allocated, if it wasn't on a queue (dmxSyncPending == 0)
              */
-            if (dmxSyncTimer && !dmxSyncPending) free(dmxSyncTimer);
-            dmxSyncTimer  = NULL;
-            now           = TRUE;
+            if (dmxSyncTimer && !dmxSyncPending)
+                free(dmxSyncTimer);
+            dmxSyncTimer = NULL;
+            now = TRUE;
             dmxGeneration = serverGeneration;
         }
-                                /* Queue sync */
+        /* Queue sync */
         if (dmxScreen) {
             dmxScreen->needsSync = TRUE;
             ++dmxSyncPending;
         }
 
-                                /* Do sync or set time for later */
+        /* Do sync or set time for later */
         if (now || !dmxScreen) {
-            if (!TimerForce(dmxSyncTimer)) dmxSyncCallback(NULL, 0, NULL);
+            if (!TimerForce(dmxSyncTimer))
+                dmxSyncCallback(NULL, 0, NULL);
             /* At this point, dmxSyncPending == 0 because
              * dmxSyncCallback must have been called. */
             if (dmxSyncPending)
                 dmxLog(dmxFatal, "dmxSync(%s,%d): dmxSyncPending = %d\n",
                        dmxScreen ? dmxScreen->name : "", now, dmxSyncPending);
-        } else {
+        }
+        else {
             dmxScreen->needsSync = TRUE;
             if (dmxSyncPending == 1)
                 dmxSyncTimer = TimerSet(dmxSyncTimer, 0, dmxSyncInterval,
                                         dmxSyncCallback, NULL);
         }
-    } else {
-                                /* If dmxSyncInterval is not being used,
-                                 * then all the backends are already
-                                 * up-to-date. */
-        if (dmxScreen) dmxDoSync(dmxScreen);
+    }
+    else {
+        /* If dmxSyncInterval is not being used,
+         * then all the backends are already
+         * up-to-date. */
+        if (dmxScreen)
+            dmxDoSync(dmxScreen);
     }
 }

@@ -26,11 +26,9 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef SWAPREQ_H
 #define SWAPREQ_H 1
 
-extern _X_EXPORT void SwapColorItem(
-    xColorItem	* /* pItem */);
+extern _X_EXPORT void SwapColorItem(xColorItem * /* pItem */ );
 
-extern _X_EXPORT void SwapConnClientPrefix(
-    xConnClientPrefix * /* pCCP */);
+extern _X_EXPORT void SwapConnClientPrefix(xConnClientPrefix * /* pCCP */ );
 
 #undef SWAPREQ_PROC
 
@@ -105,4 +103,4 @@ SWAPREQ_PROC(SProcWarpPointer);
 
 #undef SWAPREQ_PROC
 
-#endif /* SWAPREQ_H */
+#endif                          /* SWAPREQ_H */

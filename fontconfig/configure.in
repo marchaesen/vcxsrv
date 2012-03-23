@@ -64,6 +64,15 @@ AC_LIBTOOL_WIN32_DLL
 AM_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 
+AC_MSG_CHECKING([for RM macro])
+_predefined_rm=`make -p -f /dev/null 2>/dev/null|grep '^RM ='|sed -e 's/^RM = //'`
+if test "x$_predefined_rm" = "x"; then
+	AC_MSG_RESULT([no predefined RM])
+	AC_CHECK_PROG(RM, rm, [rm -f])
+else
+	AC_MSG_RESULT($_predefined_rm)
+fi
+
 dnl ==========================================================================
 
 case "$host" in

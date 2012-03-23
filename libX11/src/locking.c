@@ -486,6 +486,8 @@ static void _XInternalLockDisplay(
 static void _XUserLockDisplay(
     register Display* dpy)
 {
+    _XDisplayLockWait(dpy);
+
     if (++dpy->lock->locking_level == 1) {
 	dpy->lock->lock_wait = _XDisplayLockWait;
 	dpy->lock->locking_thread = xthread_self();

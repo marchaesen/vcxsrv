@@ -40,30 +40,34 @@
 #include "glthread.h"
 #include "dispatch.h"
 
-void __glXDisp_SeparableFilter2D(GLbyte *pc)
+void
+__glXDisp_SeparableFilter2D(GLbyte * pc)
 {
-   __GLXdispatchConvolutionFilterHeader *hdr =
-				(__GLXdispatchConvolutionFilterHeader *) pc;
+    __GLXdispatchConvolutionFilterHeader *hdr =
+        (__GLXdispatchConvolutionFilterHeader *) pc;
     GLint hdrlen, image1len;
 
     hdrlen = __GLX_PAD(__GLX_CONV_FILT_CMD_DISPATCH_HDR_SIZE);
 
-    CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES, hdr->swapBytes) );
-    CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_LSB_FIRST, hdr->lsbFirst) );
-    CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_ROW_LENGTH, hdr->rowLength) );
-    CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SKIP_ROWS, hdr->skipRows) );
-    CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_SKIP_PIXELS, hdr->skipPixels) );
-    CALL_PixelStorei( GET_DISPATCH(), (GL_UNPACK_ALIGNMENT, hdr->alignment) );
+    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES, hdr->swapBytes));
+    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_LSB_FIRST, hdr->lsbFirst));
+    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_ROW_LENGTH, hdr->rowLength));
+    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_SKIP_ROWS, hdr->skipRows));
+    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_SKIP_PIXELS, hdr->skipPixels));
+    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_ALIGNMENT, hdr->alignment));
 
     /* XXX check this usage - internal code called
-    ** a version without the packing parameters
-    */
+     ** a version without the packing parameters
+     */
     image1len = __glXImageSize(hdr->format, hdr->type, 0, hdr->width, 1, 1,
-			       0, hdr->rowLength, 0, hdr->skipRows,
-			       hdr->alignment);
+                               0, hdr->rowLength, 0, hdr->skipRows,
+                               hdr->alignment);
     image1len = __GLX_PAD(image1len);
 
-    CALL_SeparableFilter2D( GET_DISPATCH(), (hdr->target, hdr->internalformat,
-		 hdr->width, hdr->height, hdr->format, hdr->type,
-		 ((GLubyte *)hdr+hdrlen), ((GLubyte *)hdr+hdrlen+image1len)) );
+    CALL_SeparableFilter2D(GET_DISPATCH(), (hdr->target, hdr->internalformat,
+                                            hdr->width, hdr->height,
+                                            hdr->format, hdr->type,
+                                            ((GLubyte *) hdr + hdrlen),
+                                            ((GLubyte *) hdr + hdrlen +
+                                             image1len)));
 }

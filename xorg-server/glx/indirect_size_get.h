@@ -65,10 +65,8 @@ extern _X_INTERNAL PURE FASTCALL GLint __glGetTexGenfv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetTexGeniv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetTexParameterfv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetTexParameteriv_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint
-__glGetTexLevelParameterfv_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint
-__glGetTexLevelParameteriv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetTexLevelParameterfv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetTexLevelParameteriv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint
 __glGetColorTableParameterfv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint
@@ -77,10 +75,8 @@ extern _X_INTERNAL PURE FASTCALL GLint
 __glGetConvolutionParameterfv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint
 __glGetConvolutionParameteriv_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint
-__glGetHistogramParameterfv_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint
-__glGetHistogramParameteriv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetHistogramParameterfv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetHistogramParameteriv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetMinmaxParameterfv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetMinmaxParameteriv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetProgramivARB_size(GLenum);
@@ -100,4 +96,4 @@ __glGetFramebufferAttachmentParameterivEXT_size(GLenum);
 #undef PURE
 #undef FASTCALL
 
-#endif /* !defined( _INDIRECT_SIZE_GET_H_ ) */
+#endif                          /* !defined( _INDIRECT_SIZE_GET_H_ ) */

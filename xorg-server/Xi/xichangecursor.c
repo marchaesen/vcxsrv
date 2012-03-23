@@ -33,11 +33,11 @@
 #include <dix-config.h>
 #endif
 
-#include <X11/X.h>	/* for inputstr.h    */
-#include <X11/Xproto.h>	/* Request macro     */
-#include "inputstr.h"	/* DeviceIntPtr      */
-#include "windowstr.h"	/* window structure  */
-#include "scrnintstr.h"	/* screen structure  */
+#include <X11/X.h>              /* for inputstr.h    */
+#include <X11/Xproto.h>         /* Request macro     */
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
+#include "scrnintstr.h"         /* screen structure  */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XI2proto.h>
 #include "extnsionst.h"
@@ -65,10 +65,11 @@ SProcXIChangeCursor(ClientPtr client)
     return (ProcXIChangeCursor(client));
 }
 
-int ProcXIChangeCursor(ClientPtr client)
+int
+ProcXIChangeCursor(ClientPtr client)
 {
     int rc;
-    WindowPtr pWin    = NULL;
+    WindowPtr pWin = NULL;
     DeviceIntPtr pDev = NULL;
     CursorPtr pCursor = NULL;
 
@@ -82,30 +83,26 @@ int ProcXIChangeCursor(ClientPtr client)
     if (!IsMaster(pDev) || !IsPointerDevice(pDev))
         return BadDevice;
 
-    if (stuff->win != None)
-    {
+    if (stuff->win != None) {
         rc = dixLookupWindow(&pWin, stuff->win, client, DixSetAttrAccess);
         if (rc != Success)
             return rc;
     }
 
-    if (stuff->cursor == None)
-    {
+    if (stuff->cursor == None) {
         if (pWin == pWin->drawable.pScreen->root)
             pCursor = rootCursor;
         else
-            pCursor = (CursorPtr)None;
+            pCursor = (CursorPtr) None;
     }
-    else
-    {
-	rc = dixLookupResourceByType((pointer *)&pCursor, stuff->cursor,
-				     RT_CURSOR, client, DixUseAccess);
-	if (rc != Success)
-	    return rc;
+    else {
+        rc = dixLookupResourceByType((pointer *) &pCursor, stuff->cursor,
+                                     RT_CURSOR, client, DixUseAccess);
+        if (rc != Success)
+            return rc;
     }
 
     ChangeWindowDeviceCursor(pWin, pDev, pCursor);
 
     return Success;
 }
-

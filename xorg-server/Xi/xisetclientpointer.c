@@ -30,16 +30,15 @@
  * default value.
  */
 
-
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
 
-#include <X11/X.h>	/* for inputstr.h    */
-#include <X11/Xproto.h>	/* Request macro     */
-#include "inputstr.h"	/* DeviceIntPtr      */
-#include "windowstr.h"	/* window structure  */
-#include "scrnintstr.h"	/* screen structure  */
+#include <X11/X.h>              /* for inputstr.h    */
+#include <X11/Xproto.h>         /* Request macro     */
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
+#include "scrnintstr.h"         /* screen structure  */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XI2proto.h>
 #include "extnsionst.h"
@@ -69,36 +68,32 @@ ProcXISetClientPointer(ClientPtr client)
     REQUEST(xXISetClientPointerReq);
     REQUEST_SIZE_MATCH(xXISetClientPointerReq);
 
-
     rc = dixLookupDevice(&pDev, stuff->deviceid, client, DixManageAccess);
-    if (rc != Success)
-    {
+    if (rc != Success) {
         client->errorValue = stuff->deviceid;
         return rc;
     }
 
-    if (!IsMaster(pDev))
-    {
+    if (!IsMaster(pDev)) {
         client->errorValue = stuff->deviceid;
         return BadDevice;
     }
 
     pDev = GetMaster(pDev, MASTER_POINTER);
 
-    if (stuff->win != None)
-    {
+    if (stuff->win != None) {
         rc = dixLookupClient(&targetClient, stuff->win, client,
-                DixManageAccess);
+                             DixManageAccess);
 
         if (rc != Success)
             return BadWindow;
 
-    } else
+    }
+    else
         targetClient = client;
 
     rc = SetClientPointer(targetClient, pDev);
-    if (rc != Success)
-    {
+    if (rc != Success) {
         client->errorValue = stuff->deviceid;
         return rc;
     }

@@ -28,25 +28,25 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-
 #include <GL/gl.h>
 
 typedef struct {
-    unsigned int enableDebug : 1;
-    unsigned int enableTrace : 1;
-    unsigned int dumpPFD : 1;
-    unsigned int dumpHWND : 1;
-    unsigned int dumpDC : 1;
-    unsigned int enableGLcallTrace : 1;
-    unsigned int enableWGLcallTrace :1;
+    unsigned int enableDebug:1;
+    unsigned int enableTrace:1;
+    unsigned int dumpPFD:1;
+    unsigned int dumpHWND:1;
+    unsigned int dumpDC:1;
+    unsigned int enableGLcallTrace:1;
+    unsigned int enableWGLcallTrace:1;
 } glxWinDebugSettingsRec;
 
 extern glxWinDebugSettingsRec glxWinDebugSettings;
 
 void glWinCallDelta(void);
 void glxWinPushNativeProvider(void);
-const GLubyte* glGetStringWrapperNonstatic(GLenum name);
-void glAddSwapHintRectWINWrapperNonstatic(GLint x, GLint y, GLsizei width, GLsizei height);
+const GLubyte *glGetStringWrapperNonstatic(GLenum name);
+void glAddSwapHintRectWINWrapperNonstatic(GLint x, GLint y, GLsizei width,
+                                          GLsizei height);
 void glWinSetupDispatchTable(void);
 
 #if 1

@@ -37,13 +37,11 @@
 /* Includes for authorization */
 #include "securitysrv.h"
 
-
 /*
  * Constants
  */
 
 #define AUTH_NAME	"MIT-MAGIC-COOKIE-1"
-
 
 /*
  * Locals
@@ -59,8 +57,8 @@ static char *g_pAuthData = NULL;
 
 #ifndef XCSECURITY
 static
-void
-GenerateRandomData (int len, char *buf)
+    void
+GenerateRandomData(int len, char *buf)
 {
     int fd;
 
@@ -69,48 +67,41 @@ GenerateRandomData (int len, char *buf)
     close(fd);
 }
 
-
-static char cookie[16]; /* 128 bits */
+static char cookie[16];         /* 128 bits */
 
 XID
-static MitGenerateCookie (
-    unsigned	data_length,
-    char	*data,
-    XID		id,
-    unsigned	*data_length_return,
-    char	**data_return)
+    static
+MitGenerateCookie(unsigned data_length,
+                  char *data,
+                  XID id, unsigned *data_length_return, char **data_return)
 {
     int i = 0;
     int status;
 
-    while (data_length--)
-    {
-	cookie[i++] += *data++;
-	if (i >= sizeof (cookie)) i = 0;
+    while (data_length--) {
+        cookie[i++] += *data++;
+        if (i >= sizeof(cookie))
+            i = 0;
     }
-    GenerateRandomData(sizeof (cookie), cookie);
-    status = MitAddCookie(sizeof (cookie), cookie, id);
-    if (!status)
-    {
-	id = -1;
+    GenerateRandomData(sizeof(cookie), cookie);
+    status = MitAddCookie(sizeof(cookie), cookie, id);
+    if (!status) {
+        id = -1;
     }
-    else
-    {
-	*data_return = cookie;
-	*data_length_return = sizeof (cookie);
+    else {
+        *data_return = cookie;
+        *data_length_return = sizeof(cookie);
     }
     return id;
 }
 
 static
-XID
-GenerateAuthorization(
-	unsigned name_length,
-	char	*name,
-	unsigned data_length,
-	char	*data,
-	unsigned *data_length_return,
-	char	**data_return)
+    XID
+GenerateAuthorization(unsigned name_length,
+                      char *name,
+                      unsigned data_length,
+                      char *data,
+                      unsigned *data_length_return, char **data_return)
 {
     return MitGenerateCookie(data_length, data,
                              FakeClientID(0), data_length_return, data_return);
@@ -122,81 +113,70 @@ GenerateAuthorization(
  */
 
 Bool
-winGenerateAuthorization (void)
+winGenerateAuthorization(void)
 {
-  Bool				fFreeAuth = FALSE;
-  SecurityAuthorizationPtr	pAuth = NULL;
+    Bool fFreeAuth = FALSE;
+    SecurityAuthorizationPtr pAuth = NULL;
 
-  /* Call OS layer to generate authorization key */
-  g_authId = GenerateAuthorization (strlen (AUTH_NAME),
-				    AUTH_NAME,
-				    0,
-				    NULL,
-				    &g_uiAuthDataLen,
-				    &g_pAuthData);
-  if ((XID) ~0L == g_authId)
-    {
-      ErrorF ("winGenerateAuthorization - GenerateAuthorization failed\n");
-      goto auth_bailout;
+    /* Call OS layer to generate authorization key */
+    g_authId = GenerateAuthorization(strlen(AUTH_NAME),
+                                     AUTH_NAME,
+                                     0, NULL, &g_uiAuthDataLen, &g_pAuthData);
+    if ((XID) ~0L == g_authId) {
+        ErrorF("winGenerateAuthorization - GenerateAuthorization failed\n");
+        goto auth_bailout;
     }
 
-  else
-    {
-      winDebug("winGenerateAuthorization - GenerateAuthorization success!\n"
-	      "AuthDataLen: %d AuthData: %s\n",
-	      g_uiAuthDataLen, g_pAuthData);
+    else {
+        winDebug("winGenerateAuthorization - GenerateAuthorization success!\n"
+                 "AuthDataLen: %d AuthData: %s\n",
+                 g_uiAuthDataLen, g_pAuthData);
     }
 
 #ifdef XCSECURITY
-  /* Allocate structure for additional auth information */
-  pAuth = (SecurityAuthorizationPtr) 
-    malloc(sizeof (SecurityAuthorizationRec));
-  if (!(pAuth))
-    {
-      ErrorF ("winGenerateAuthorization - Failed allocating "
-	      "SecurityAuthorizationPtr.\n");
-      goto auth_bailout;
+    /* Allocate structure for additional auth information */
+    pAuth = (SecurityAuthorizationPtr)
+        malloc(sizeof(SecurityAuthorizationRec));
+    if (!(pAuth)) {
+        ErrorF("winGenerateAuthorization - Failed allocating "
+               "SecurityAuthorizationPtr.\n");
+        goto auth_bailout;
     }
-  
-  /* Fill in the auth fields */
-  pAuth->id = g_authId;
-  pAuth->timeout = 0; /* live for x seconds after refcnt == 0 */
-  pAuth->group = None;
-  pAuth->trustLevel = XSecurityClientTrusted;
-  pAuth->refcnt = 1; /* this auth must stick around */
-  pAuth->secondsRemaining = 0;
-  pAuth->timer = NULL;
-  pAuth->eventClients = NULL;
-  
-  /* Add the authorization to the server's auth list */
-  if (!AddResource (g_authId,
-		    SecurityAuthorizationResType,
-		    pAuth))
-    {
-      ErrorF ("winGenerateAuthorization - AddResource failed for auth.\n");
-      fFreeAuth = TRUE;
-      goto auth_bailout;
+
+    /* Fill in the auth fields */
+    pAuth->id = g_authId;
+    pAuth->timeout = 0;         /* live for x seconds after refcnt == 0 */
+    pAuth->group = None;
+    pAuth->trustLevel = XSecurityClientTrusted;
+    pAuth->refcnt = 1;          /* this auth must stick around */
+    pAuth->secondsRemaining = 0;
+    pAuth->timer = NULL;
+    pAuth->eventClients = NULL;
+
+    /* Add the authorization to the server's auth list */
+    if (!AddResource(g_authId, SecurityAuthorizationResType, pAuth)) {
+        ErrorF("winGenerateAuthorization - AddResource failed for auth.\n");
+        fFreeAuth = TRUE;
+        goto auth_bailout;
     }
-  
-  /* Don't free the auth data, since it is still used internally */
-  pAuth = NULL;
+
+    /* Don't free the auth data, since it is still used internally */
+    pAuth = NULL;
 #endif
 
-  return TRUE;
+    return TRUE;
 
  auth_bailout:
-  if (fFreeAuth)
-    free(pAuth);
-  
-  return FALSE;
+    if (fFreeAuth)
+        free(pAuth);
+
+    return FALSE;
 }
 
 /* Use our generated cookie for authentication */
 void
 winSetAuthorization(void)
 {
-  XSetAuthorization (AUTH_NAME,
-		     strlen (AUTH_NAME),
-		     g_pAuthData,
-		     g_uiAuthDataLen);
+    XSetAuthorization(AUTH_NAME,
+                      strlen(AUTH_NAME), g_pAuthData, g_uiAuthDataLen);
 }

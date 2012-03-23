@@ -36,14 +36,15 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/dmxext.h>
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    Display              *display = NULL;
-    int                  event_base;
-    int                  error_base;
-    int                  major_version, minor_version, patch_version;
-    int                  id = -1;
-    int                  status;
+    Display *display = NULL;
+    int event_base;
+    int error_base;
+    int major_version, minor_version, patch_version;
+    int id = -1;
+    int status;
 
     if (argc != 5) {
         printf("Usage: %s display c|b name|screen isCore\n", argv[0]);
@@ -72,8 +73,9 @@ int main(int argc, char **argv)
 
     if (argv[2][0] == 'c') {
         status = DMXAddConsoleInput(display, argv[3], atoi(argv[4]), &id);
-    } else {
-        status = DMXAddBackendInput(display, atoi(argv[3]), atoi(argv[4]),&id);
+    }
+    else {
+        status = DMXAddBackendInput(display, atoi(argv[3]), atoi(argv[4]), &id);
     }
 
     printf("status = %d, id = %d\n", status, id);

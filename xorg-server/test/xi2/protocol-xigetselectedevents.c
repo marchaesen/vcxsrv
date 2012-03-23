@@ -42,20 +42,21 @@
 #include <X11/extensions/XI2proto.h>
 #include "inputstr.h"
 #include "windowstr.h"
-#include "extinit.h" /* for XInputExtensionInit */
+#include "extinit.h"            /* for XInputExtensionInit */
 #include "scrnintstr.h"
 #include "xiselectev.h"
 #include "exevents.h"
 
 #include "protocol-common.h"
 
-static void reply_XIGetSelectedEvents(ClientPtr client, int len, char *data, void *userdata);
-static void reply_XIGetSelectedEvents_data(ClientPtr client, int len, char *data, void *userdata);
-
+static void reply_XIGetSelectedEvents(ClientPtr client, int len, char *data,
+                                      void *userdata);
+static void reply_XIGetSelectedEvents_data(ClientPtr client, int len,
+                                           char *data, void *userdata);
 
 struct {
     int num_masks_expected;
-    unsigned char mask[MAXDEVICES][XI2LASTEVENT]; /* intentionally bigger */
+    unsigned char mask[MAXDEVICES][XI2LASTEVENT];       /* intentionally bigger */
     int mask_len;
 } test_data;
 
@@ -64,14 +65,14 @@ struct {
  * fake client window. If the requested ID is neither of those wanted,
  * return whatever the real dixLookupWindow does.
  */
-int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
+int
+__wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
 {
-    if (id == root.drawable.id)
-    {
+    if (id == root.drawable.id) {
         *win = &root;
         return Success;
-    } else if (id == window.drawable.id)
-    {
+    }
+    else if (id == window.drawable.id) {
         *win = &window;
         return Success;
     }
@@ -80,17 +81,18 @@ int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access
 }
 
 /* AddResource is called from XISetSEventMask, we don't need this */
-Bool __wrap_AddResource(XID id, RESTYPE type, pointer value)
+Bool
+__wrap_AddResource(XID id, RESTYPE type, pointer value)
 {
     return TRUE;
 }
 
-static void reply_XIGetSelectedEvents(ClientPtr client, int len, char *data, void *userdata)
+static void
+reply_XIGetSelectedEvents(ClientPtr client, int len, char *data, void *userdata)
 {
-    xXIGetSelectedEventsReply *rep = (xXIGetSelectedEventsReply*)data;
+    xXIGetSelectedEventsReply *rep = (xXIGetSelectedEventsReply *) data;
 
-    if (client->swapped)
-    {
+    if (client->swapped) {
         swapl(&rep->length);
         swaps(&rep->sequenceNumber);
         swaps(&rep->num_masks);
@@ -103,39 +105,41 @@ static void reply_XIGetSelectedEvents(ClientPtr client, int len, char *data, voi
     reply_handler = reply_XIGetSelectedEvents_data;
 }
 
-static void reply_XIGetSelectedEvents_data(ClientPtr client, int len, char *data, void *userdata)
+static void
+reply_XIGetSelectedEvents_data(ClientPtr client, int len, char *data,
+                               void *userdata)
 {
     int i;
     xXIEventMask *mask;
     unsigned char *bitmask;
 
-    mask = (xXIEventMask*)data;
-    for (i = 0; i < test_data.num_masks_expected; i++)
-    {
-        if (client->swapped)
-        {
+    mask = (xXIEventMask *) data;
+    for (i = 0; i < test_data.num_masks_expected; i++) {
+        if (client->swapped) {
             swaps(&mask->deviceid);
             swaps(&mask->mask_len);
         }
 
         assert(mask->deviceid < 6);
-        assert(mask->mask_len <= (((XI2LASTEVENT + 8)/8) + 3)/4) ;
+        assert(mask->mask_len <= (((XI2LASTEVENT + 8) / 8) + 3) / 4);
 
-        bitmask = (unsigned char*)&mask[1];
+        bitmask = (unsigned char *) &mask[1];
         assert(memcmp(bitmask,
-                    test_data.mask[mask->deviceid],
-                    mask->mask_len * 4) == 0);
+                      test_data.mask[mask->deviceid], mask->mask_len * 4) == 0);
 
-        mask = (xXIEventMask*)((char*)mask + mask->mask_len * 4 + sizeof(xXIEventMask));
+        mask =
+            (xXIEventMask *) ((char *) mask + mask->mask_len * 4 +
+                              sizeof(xXIEventMask));
     }
-
 
 }
 
-static void request_XIGetSelectedEvents(xXIGetSelectedEventsReq* req, int error)
+static void
+request_XIGetSelectedEvents(xXIGetSelectedEventsReq * req, int error)
 {
     int rc;
     ClientRec client;
+
     client = init_client(req->length, req);
 
     reply_handler = reply_XIGetSelectedEvents;
@@ -151,7 +155,8 @@ static void request_XIGetSelectedEvents(xXIGetSelectedEventsReq* req, int error)
     assert(rc == error);
 }
 
-static void test_XIGetSelectedEvents(void)
+static void
+test_XIGetSelectedEvents(void)
 {
     int i, j;
     xXIGetSelectedEventsReq request;
@@ -174,42 +179,37 @@ static void test_XIGetSelectedEvents(void)
     request.win = CLIENT_WINDOW_ID;
     request_XIGetSelectedEvents(&request, Success);
 
-    memset(test_data.mask, 0,
-           sizeof(test_data.mask));
+    memset(test_data.mask, 0, sizeof(test_data.mask));
 
     printf("Testing for valid masks\n");
-    memset(&dev, 0, sizeof(dev)); /* dev->id is enough for XISetEventMask */
+    memset(&dev, 0, sizeof(dev));       /* dev->id is enough for XISetEventMask */
     request.win = ROOT_WINDOW_ID;
 
     /* devices 6 - MAXDEVICES don't exist, they mustn't be included in the
      * reply even if a mask is set */
-    for (j = 0; j < MAXDEVICES; j++)
-    {
+    for (j = 0; j < MAXDEVICES; j++) {
         test_data.num_masks_expected = min(j + 1, devices.num_devices + 2);
         dev.id = j;
         mask = test_data.mask[j];
         /* bits one-by-one */
-        for (i = 0; i < XI2LASTEVENT; i++)
-        {
+        for (i = 0; i < XI2LASTEVENT; i++) {
             SetBit(mask, i);
-            XISetEventMask(&dev, &root, &client, (i + 8)/8, mask);
+            XISetEventMask(&dev, &root, &client, (i + 8) / 8, mask);
             request_XIGetSelectedEvents(&request, Success);
             ClearBit(mask, i);
         }
 
         /* all valid mask bits */
-        for (i = 0; i < XI2LASTEVENT; i++)
-        {
+        for (i = 0; i < XI2LASTEVENT; i++) {
             SetBit(mask, i);
-            XISetEventMask(&dev, &root, &client, (i + 8)/8, mask);
+            XISetEventMask(&dev, &root, &client, (i + 8) / 8, mask);
             request_XIGetSelectedEvents(&request, Success);
         }
     }
 
     printf("Testing removing all masks\n");
     /* Unset all masks one-by-one */
-    for (j = MAXDEVICES - 1; j >= 0; j--)
-    {
+    for (j = MAXDEVICES - 1; j >= 0; j--) {
         if (j < devices.num_devices + 2)
             test_data.num_masks_expected--;
 
@@ -223,7 +223,8 @@ static void test_XIGetSelectedEvents(void)
     }
 }
 
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     init_simple();
 
@@ -231,4 +232,3 @@ int main(int argc, char** argv)
 
     return 0;
 }
-

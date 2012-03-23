@@ -36,9 +36,9 @@
 #include <stdlib.h>
 
 void
-winClipboardDOStoUNIX (char *pszSrc, int iLength);
+ winClipboardDOStoUNIX(char *pszSrc, int iLength);
 void
-winClipboardUNIXtoDOS (unsigned char **ppszData, int iLength);
+ winClipboardUNIXtoDOS(unsigned char **ppszData, int iLength);
 
 /*
  * Convert \r\n to \n
@@ -48,108 +48,100 @@ winClipboardUNIXtoDOS (unsigned char **ppszData, int iLength);
  */
 
 void
-winClipboardDOStoUNIX (char *pszSrc, int iLength)
+winClipboardDOStoUNIX(char *pszSrc, int iLength)
 {
-  char			*pszDest = pszSrc;
-  char			*pszEnd = pszSrc + iLength;
+    char *pszDest = pszSrc;
+    char *pszEnd = pszSrc + iLength;
 
-  /* Loop until the last character */
-  while (pszSrc < pszEnd)
-    {
-      /* Copy the current source character to current destination character */
-      *pszDest = *pszSrc;
+    /* Loop until the last character */
+    while (pszSrc < pszEnd) {
+        /* Copy the current source character to current destination character */
+        *pszDest = *pszSrc;
 
-      /* Advance to the next source character */
-      pszSrc++;
+        /* Advance to the next source character */
+        pszSrc++;
 
-      /* Don't advance the destination character if we need to drop an \r */
-      if (*pszDest != '\r' || *pszSrc != '\n')
-	pszDest++;
+        /* Don't advance the destination character if we need to drop an \r */
+        if (*pszDest != '\r' || *pszSrc != '\n')
+            pszDest++;
     }
 
-  /* Move the terminating null */
-  *pszDest = '\0';
+    /* Move the terminating null */
+    *pszDest = '\0';
 }
-
 
 /*
  * Convert \n to \r\n
  */
 
 void
-winClipboardUNIXtoDOS (unsigned char **ppszData, int iLength)
+winClipboardUNIXtoDOS(unsigned char **ppszData, int iLength)
 {
-  int			iNewlineCount = 0;
-  unsigned char		*pszSrc = *ppszData;
-  unsigned char		*pszEnd = pszSrc + iLength;
-  unsigned char		*pszDest = NULL, *pszDestBegin = NULL;
+    int iNewlineCount = 0;
+    unsigned char *pszSrc = *ppszData;
+    unsigned char *pszEnd = pszSrc + iLength;
+    unsigned char *pszDest = NULL, *pszDestBegin = NULL;
 
-  winDebug("UNIXtoDOS () - Original data:'%s'\n", *ppszData);
+    winDebug("UNIXtoDOS () - Original data:'%s'\n", *ppszData);
 
-  /* Count \n characters without leading \r */
-  while (pszSrc < pszEnd)
-    {
-      /* Skip ahead two character if found set of \r\n */
-      if (*pszSrc == '\r' && pszSrc + 1 < pszEnd && *(pszSrc + 1) == '\n')
-	{
-	  pszSrc += 2;
-	  continue;
-	} 
+    /* Count \n characters without leading \r */
+    while (pszSrc < pszEnd) {
+        /* Skip ahead two character if found set of \r\n */
+        if (*pszSrc == '\r' && pszSrc + 1 < pszEnd && *(pszSrc + 1) == '\n') {
+            pszSrc += 2;
+            continue;
+        }
 
-      /* Increment the count if found naked \n */
-      if (*pszSrc == '\n')
-	{
-	  iNewlineCount++;
-	}
+        /* Increment the count if found naked \n */
+        if (*pszSrc == '\n') {
+            iNewlineCount++;
+        }
 
-      pszSrc++;
-    }
-  
-  /* Return if no naked \n's */
-  if (iNewlineCount == 0)
-    return;
-
-  /* Allocate a new string */
-  pszDestBegin = pszDest = malloc (iLength + iNewlineCount + 1);
-
-  /* Set source pointer to beginning of data string */
-  pszSrc = *ppszData;
-
-  /* Loop through all characters in source string */
-  while (pszSrc < pszEnd)
-    {
-      /* Copy line endings that are already valid */
-      if (*pszSrc == '\r' && pszSrc + 1 < pszEnd && *(pszSrc + 1) == '\n')
-	{
-	  *pszDest = *pszSrc;
-	  *(pszDest + 1) = *(pszSrc + 1);
-	  pszDest += 2;
-	  pszSrc += 2;
-	  continue;
-	}
-
-      /* Add \r to naked \n's */
-      if (*pszSrc == '\n')
-	{
-	  *pszDest = '\r';
-	  *(pszDest + 1) = *pszSrc;
-	  pszDest += 2;
-	  pszSrc += 1;
-	  continue;
-	}
-
-      /* Copy normal characters */
-      *pszDest = *pszSrc;
-      pszSrc++;
-      pszDest++;
+        pszSrc++;
     }
 
-  /* Put terminating null at end of new string */
-  *pszDest = '\0';
+    /* Return if no naked \n's */
+    if (iNewlineCount == 0)
+        return;
 
-  /* Swap string pointers */
-  free (*ppszData);
-  *ppszData = pszDestBegin;
+    /* Allocate a new string */
+    pszDestBegin = pszDest = malloc(iLength + iNewlineCount + 1);
 
-  winDebug("UNIXtoDOS () - Final string:'%s'\n", pszDestBegin);
+    /* Set source pointer to beginning of data string */
+    pszSrc = *ppszData;
+
+    /* Loop through all characters in source string */
+    while (pszSrc < pszEnd) {
+        /* Copy line endings that are already valid */
+        if (*pszSrc == '\r' && pszSrc + 1 < pszEnd && *(pszSrc + 1) == '\n') {
+            *pszDest = *pszSrc;
+            *(pszDest + 1) = *(pszSrc + 1);
+            pszDest += 2;
+            pszSrc += 2;
+            continue;
+        }
+
+        /* Add \r to naked \n's */
+        if (*pszSrc == '\n') {
+            *pszDest = '\r';
+            *(pszDest + 1) = *pszSrc;
+            pszDest += 2;
+            pszSrc += 1;
+            continue;
+        }
+
+        /* Copy normal characters */
+        *pszDest = *pszSrc;
+        pszSrc++;
+        pszDest++;
+    }
+
+    /* Put terminating null at end of new string */
+    *pszDest = '\0';
+
+    /* Swap string pointers */
+    free(*ppszData);
+    *ppszData = pszDestBegin;
+
+    winDebug("UNIXtoDOS () - Final string:'%s'\n", pszDestBegin);
 }

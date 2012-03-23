@@ -30,25 +30,25 @@
  */
 
 void
-KdSetColormap (ScreenPtr pScreen)
+KdSetColormap(ScreenPtr pScreen)
 {
     KdScreenPriv(pScreen);
-    ColormapPtr	pCmap = pScreenPriv->pInstalledmap;
-    Pixel	pixels[KD_MAX_PSEUDO_SIZE];
-    xrgb	colors[KD_MAX_PSEUDO_SIZE];
-    xColorItem	defs[KD_MAX_PSEUDO_SIZE];
-    int		i;
+    ColormapPtr pCmap = pScreenPriv->pInstalledmap;
+    Pixel pixels[KD_MAX_PSEUDO_SIZE];
+    xrgb colors[KD_MAX_PSEUDO_SIZE];
+    xColorItem defs[KD_MAX_PSEUDO_SIZE];
+    int i;
 
     if (!pScreenPriv->card->cfuncs->putColors)
-	return;
+        return;
     if (pScreenPriv->screen->fb.depth > KD_MAX_PSEUDO_DEPTH)
-	return;
+        return;
 
     if (!pScreenPriv->enabled)
-	return;
+        return;
 
     if (!pCmap)
-	return;
+        return;
 
     /*
      * Make DIX convert pixels into RGB values -- this handles
@@ -56,26 +56,26 @@ KdSetColormap (ScreenPtr pScreen)
      */
 
     for (i = 0; i < (1 << pScreenPriv->screen->fb.depth); i++)
-	pixels[i] = i;
+        pixels[i] = i;
 
-    QueryColors (pCmap, (1 << pScreenPriv->screen->fb.depth), pixels, colors, serverClient);
+    QueryColors(pCmap, (1 << pScreenPriv->screen->fb.depth), pixels, colors,
+                serverClient);
 
-    for (i = 0; i < (1 << pScreenPriv->screen->fb.depth); i++)
-    {
-	defs[i].pixel = i;
-	defs[i].red = colors[i].red;
-	defs[i].green = colors[i].green;
-	defs[i].blue = colors[i].blue;
-	defs[i].flags = DoRed|DoGreen|DoBlue;
+    for (i = 0; i < (1 << pScreenPriv->screen->fb.depth); i++) {
+        defs[i].pixel = i;
+        defs[i].red = colors[i].red;
+        defs[i].green = colors[i].green;
+        defs[i].blue = colors[i].blue;
+        defs[i].flags = DoRed | DoGreen | DoBlue;
     }
 
     (*pScreenPriv->card->cfuncs->putColors) (pCmap->pScreen,
-					     (1 << pScreenPriv->screen->fb.depth),
-					     defs);
+                                             (1 << pScreenPriv->screen->fb.
+                                              depth), defs);
 
     /* recolor hardware cursor */
     if (pScreenPriv->card->cfuncs->recolorCursor)
-	(*pScreenPriv->card->cfuncs->recolorCursor) (pCmap->pScreen, 0, 0);
+        (*pScreenPriv->card->cfuncs->recolorCursor) (pCmap->pScreen, 0, 0);
 }
 
 /*
@@ -83,38 +83,38 @@ KdSetColormap (ScreenPtr pScreen)
  * the current colormap
  */
 void
-KdEnableColormap (ScreenPtr pScreen)
+KdEnableColormap(ScreenPtr pScreen)
 {
     KdScreenPriv(pScreen);
-    int	    i;
+    int i;
 
     if (!pScreenPriv->card->cfuncs->putColors)
-	return;
+        return;
 
-    if (pScreenPriv->screen->fb.depth <= KD_MAX_PSEUDO_DEPTH)
-    {
-	for (i = 0; i < (1 << pScreenPriv->screen->fb.depth); i++)
-	    pScreenPriv->systemPalette[i].pixel = i;
-	(*pScreenPriv->card->cfuncs->getColors) (pScreen,
-						 (1 << pScreenPriv->screen->fb.depth),
-						 pScreenPriv->systemPalette);
+    if (pScreenPriv->screen->fb.depth <= KD_MAX_PSEUDO_DEPTH) {
+        for (i = 0; i < (1 << pScreenPriv->screen->fb.depth); i++)
+            pScreenPriv->systemPalette[i].pixel = i;
+        (*pScreenPriv->card->cfuncs->getColors) (pScreen,
+                                                 (1 << pScreenPriv->screen->fb.
+                                                  depth),
+                                                 pScreenPriv->systemPalette);
     }
-    KdSetColormap (pScreen);
+    KdSetColormap(pScreen);
 }
 
 void
-KdDisableColormap (ScreenPtr pScreen)
+KdDisableColormap(ScreenPtr pScreen)
 {
     KdScreenPriv(pScreen);
 
     if (!pScreenPriv->card->cfuncs->putColors)
-	return;
+        return;
 
-    if (pScreenPriv->screen->fb.depth <= KD_MAX_PSEUDO_DEPTH)
-    {
-	(*pScreenPriv->card->cfuncs->putColors) (pScreen,
-						 (1 << pScreenPriv->screen->fb.depth),
-						 pScreenPriv->systemPalette);
+    if (pScreenPriv->screen->fb.depth <= KD_MAX_PSEUDO_DEPTH) {
+        (*pScreenPriv->card->cfuncs->putColors) (pScreen,
+                                                 (1 << pScreenPriv->screen->fb.
+                                                  depth),
+                                                 pScreenPriv->systemPalette);
     }
 }
 
@@ -128,22 +128,22 @@ KdDisableColormap (ScreenPtr pScreen)
  * colormap and realize it into the Windows system palette.
  */
 void
-KdInstallColormap (ColormapPtr pCmap)
+KdInstallColormap(ColormapPtr pCmap)
 {
     KdScreenPriv(pCmap->pScreen);
 
     if (pCmap == pScreenPriv->pInstalledmap)
-	return;
+        return;
 
     /* Tell X clients that the installed colormap is going away. */
     if (pScreenPriv->pInstalledmap)
-	WalkTree(pScreenPriv->pInstalledmap->pScreen, TellLostMap,
-		 (pointer) &(pScreenPriv->pInstalledmap->mid));
+        WalkTree(pScreenPriv->pInstalledmap->pScreen, TellLostMap,
+                 (pointer) &(pScreenPriv->pInstalledmap->mid));
 
     /* Take note of the new installed colorscreen-> */
     pScreenPriv->pInstalledmap = pCmap;
 
-    KdSetColormap (pCmap->pScreen);
+    KdSetColormap(pCmap->pScreen);
 
     /* Tell X clients of the new colormap */
     WalkTree(pCmap->pScreen, TellGainedMap, (pointer) &(pCmap->mid));
@@ -157,45 +157,42 @@ KdInstallColormap (ColormapPtr pCmap)
  * The default X colormap itself cannot be uninstalled.
  */
 void
-KdUninstallColormap (ColormapPtr pCmap)
+KdUninstallColormap(ColormapPtr pCmap)
 {
     KdScreenPriv(pCmap->pScreen);
-    Colormap	defMapID;
+    Colormap defMapID;
     ColormapPtr defMap;
 
     /* ignore if not installed */
     if (pCmap != pScreenPriv->pInstalledmap)
-	return;
+        return;
 
     /* ignore attempts to uninstall default colormap */
     defMapID = pCmap->pScreen->defColormap;
     if ((Colormap) pCmap->mid == defMapID)
-	return;
+        return;
 
     /* install default */
-    dixLookupResourceByType((pointer *)&defMap, defMapID, RT_COLORMAP,
-			    serverClient, DixInstallAccess);
+    dixLookupResourceByType((pointer *) &defMap, defMapID, RT_COLORMAP,
+                            serverClient, DixInstallAccess);
     if (defMap)
-	(*pCmap->pScreen->InstallColormap)(defMap);
-    else
-    {
-	/* uninstall and clear colormap pointer */
-	WalkTree(pCmap->pScreen, TellLostMap,
-		 (pointer) &(pCmap->mid));
-	pScreenPriv->pInstalledmap = 0;
+        (*pCmap->pScreen->InstallColormap) (defMap);
+    else {
+        /* uninstall and clear colormap pointer */
+        WalkTree(pCmap->pScreen, TellLostMap, (pointer) &(pCmap->mid));
+        pScreenPriv->pInstalledmap = 0;
     }
 }
 
 int
-KdListInstalledColormaps (ScreenPtr pScreen, Colormap *pCmaps)
+KdListInstalledColormaps(ScreenPtr pScreen, Colormap * pCmaps)
 {
     KdScreenPriv(pScreen);
-    int		n = 0;
+    int n = 0;
 
-    if (pScreenPriv->pInstalledmap)
-    {
-	*pCmaps++ = pScreenPriv->pInstalledmap->mid;
-	n++;
+    if (pScreenPriv->pInstalledmap) {
+        *pCmaps++ = pScreenPriv->pInstalledmap->mid;
+        n++;
     }
     return n;
 }
@@ -208,39 +205,39 @@ KdListInstalledColormaps (ScreenPtr pScreen, Colormap *pCmaps)
  * colormap; it can be either the default colormap or a private colorscreen->
  */
 void
-KdStoreColors (ColormapPtr pCmap, int ndef, xColorItem *pdefs)
+KdStoreColors(ColormapPtr pCmap, int ndef, xColorItem * pdefs)
 {
     KdScreenPriv(pCmap->pScreen);
-    VisualPtr           pVisual;
-    xColorItem          expanddefs[KD_MAX_PSEUDO_SIZE];
+    VisualPtr pVisual;
+    xColorItem expanddefs[KD_MAX_PSEUDO_SIZE];
 
     if (pCmap != pScreenPriv->pInstalledmap)
-	return;
+        return;
 
     if (!pScreenPriv->card->cfuncs->putColors)
-	return;
+        return;
 
     if (pScreenPriv->screen->fb.depth > KD_MAX_PSEUDO_DEPTH)
-	return;
+        return;
 
     if (!pScreenPriv->enabled)
-	return;
+        return;
 
     /* Check for DirectColor or TrueColor being simulated on a PseudoColor device. */
     pVisual = pCmap->pVisual;
-    if ((pVisual->class | DynamicClass) == DirectColor)
-    {
-	/*
-	 * Expand DirectColor or TrueColor color values into a PseudoColor
-	 * format.  Defer to the Color Framebuffer (CFB) code to do that.
-	 */
-	ndef = fbExpandDirectColors(pCmap, ndef, pdefs, expanddefs);
-	pdefs = expanddefs;
+    if ((pVisual->class | DynamicClass) == DirectColor) {
+        /*
+         * Expand DirectColor or TrueColor color values into a PseudoColor
+         * format.  Defer to the Color Framebuffer (CFB) code to do that.
+         */
+        ndef = fbExpandDirectColors(pCmap, ndef, pdefs, expanddefs);
+        pdefs = expanddefs;
     }
 
     (*pScreenPriv->card->cfuncs->putColors) (pCmap->pScreen, ndef, pdefs);
 
     /* recolor hardware cursor */
     if (pScreenPriv->card->cfuncs->recolorCursor)
-	(*pScreenPriv->card->cfuncs->recolorCursor) (pCmap->pScreen, ndef, pdefs);
+        (*pScreenPriv->card->cfuncs->recolorCursor) (pCmap->pScreen, ndef,
+                                                     pdefs);
 }

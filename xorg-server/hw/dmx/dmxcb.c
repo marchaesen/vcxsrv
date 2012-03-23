@@ -43,40 +43,42 @@
 #include "dmxinput.h"
 #include "dmxlog.h"
 
-extern int     connBlockScreenStart;
+extern int connBlockScreenStart;
 
 #ifdef PANORAMIX
 #include "panoramiXsrv.h"
-extern int     PanoramiXPixWidth;
-extern int     PanoramiXPixHeight;
-extern int     PanoramiXNumScreens;
+extern int PanoramiXPixWidth;
+extern int PanoramiXPixHeight;
+extern int PanoramiXNumScreens;
 #endif
 
-       int     dmxGlobalWidth, dmxGlobalHeight;
+int dmxGlobalWidth, dmxGlobalHeight;
 
 /** We may want the wall dimensions to be different from the bounding
  * box dimensions that Xinerama computes, so save those and update them
  * here.
  */
-void dmxSetWidthHeight(int width, int height)
+void
+dmxSetWidthHeight(int width, int height)
 {
-    dmxGlobalWidth  = width;
+    dmxGlobalWidth = width;
     dmxGlobalHeight = height;
 }
 
 /** Computes the global bounding box for DMX.  This may be larger than
  * the one computed by Xinerama because of the DMX configuration
  * file. */
-void dmxComputeWidthHeight(DMXRecomputeFlag flag)
+void
+dmxComputeWidthHeight(DMXRecomputeFlag flag)
 {
-    int           i;
+    int i;
     DMXScreenInfo *dmxScreen;
-    int           w = 0;
-    int           h = 0;
-    
+    int w = 0;
+    int h = 0;
+
     for (i = 0; i < dmxNumScreens; i++) {
-                                /* Don't use root* here because this is
-                                 * the global bounding box. */
+        /* Don't use root* here because this is
+         * the global bounding box. */
         dmxScreen = &dmxScreens[i];
         if (w < dmxScreen->scrnWidth + dmxScreen->rootXOrigin)
             w = dmxScreen->scrnWidth + dmxScreen->rootXOrigin;
@@ -85,7 +87,8 @@ void dmxComputeWidthHeight(DMXRecomputeFlag flag)
     }
     if (!dmxGlobalWidth && !dmxGlobalHeight) {
         dmxLog(dmxInfo, "Using %dx%d as global bounding box\n", w, h);
-    } else {
+    }
+    else {
         switch (flag) {
         case DMX_NO_RECOMPUTE_BOUNDING_BOX:
             dmxLog(dmxInfo,
@@ -101,20 +104,21 @@ void dmxComputeWidthHeight(DMXRecomputeFlag flag)
             break;
         }
     }
-        
-    dmxGlobalWidth  = w;
+
+    dmxGlobalWidth = w;
     dmxGlobalHeight = h;
 }
 
 /** A callback routine that hooks into Xinerama and provides a
  * convenient place to print summary log information during server
  * startup.  This routine does not modify any values. */
-void dmxConnectionBlockCallback(void)
+void
+dmxConnectionBlockCallback(void)
 {
-    xWindowRoot *root   = (xWindowRoot *)(ConnectionInfo+connBlockScreenStart);
-    int         offset  = connBlockScreenStart + sizeof(xWindowRoot);
-    int         i;
-    Bool        *found  = NULL;
+    xWindowRoot *root = (xWindowRoot *) (ConnectionInfo + connBlockScreenStart);
+    int offset = connBlockScreenStart + sizeof(xWindowRoot);
+    int i;
+    Bool *found = NULL;
 
     MAXSCREENSALLOC(found);
     if (!found)
@@ -130,22 +134,24 @@ void dmxConnectionBlockCallback(void)
                    "Changing Xinerama dimensions from %d %d to %d %d\n",
                    PanoramiXPixWidth, PanoramiXPixHeight,
                    dmxGlobalWidth, dmxGlobalHeight);
-            PanoramiXPixWidth  = root->pixWidth  = dmxGlobalWidth;
+            PanoramiXPixWidth = root->pixWidth = dmxGlobalWidth;
             PanoramiXPixHeight = root->pixHeight = dmxGlobalHeight;
-        } else {
-            dmxGlobalWidth  = PanoramiXPixWidth;
+        }
+        else {
+            dmxGlobalWidth = PanoramiXPixWidth;
             dmxGlobalHeight = PanoramiXPixHeight;
         }
         dmxLog(dmxInfo, "%d screens configured with Xinerama (%d %d)\n",
                PanoramiXNumScreens, PanoramiXPixWidth, PanoramiXPixHeight);
-	FOR_NSCREENS(i) found[i] = FALSE;
-    } else {
+        FOR_NSCREENS(i) found[i] = FALSE;
+    }
+    else {
 #endif
-                                /* This never happens because we're
-                                 * either called from a Xinerama
-                                 * callback or during reconfiguration
-                                 * (which only works with Xinerama on).
-                                 * In any case, be reasonable. */
+        /* This never happens because we're
+         * either called from a Xinerama
+         * callback or during reconfiguration
+         * (which only works with Xinerama on).
+         * In any case, be reasonable. */
         dmxLog(dmxInfo, "%d screens configured (%d %d)\n",
                screenInfo.numScreens, root->pixWidth, root->pixHeight);
 #ifdef PANORAMIX
@@ -153,46 +159,48 @@ void dmxConnectionBlockCallback(void)
 #endif
 
     for (i = 0; i < root->nDepths; i++) {
-        xDepth      *depth  = (xDepth *)(ConnectionInfo + offset);
-        int         voffset = offset + sizeof(xDepth);
-        xVisualType *visual = (xVisualType *)(ConnectionInfo + voffset);
-        int         j;
-        
+        xDepth *depth = (xDepth *) (ConnectionInfo + offset);
+        int voffset = offset + sizeof(xDepth);
+        xVisualType *visual = (xVisualType *) (ConnectionInfo + voffset);
+        int j;
+
         dmxLog(dmxInfo, "%d visuals at depth %d:\n",
                depth->nVisuals, depth->depth);
         for (j = 0; j < depth->nVisuals; j++, visual++) {
             XVisualInfo vi;
-            
-            vi.visual        = NULL;
-            vi.visualid      = visual->visualID;
-            vi.screen        = 0;
-            vi.depth         = depth->depth;
-            vi.class         = visual->class;
-            vi.red_mask      = visual->redMask;
-            vi.green_mask    = visual->greenMask;
-            vi.blue_mask     = visual->blueMask;
+
+            vi.visual = NULL;
+            vi.visualid = visual->visualID;
+            vi.screen = 0;
+            vi.depth = depth->depth;
+            vi.class = visual->class;
+            vi.red_mask = visual->redMask;
+            vi.green_mask = visual->greenMask;
+            vi.blue_mask = visual->blueMask;
             vi.colormap_size = visual->colormapEntries;
-            vi.bits_per_rgb  = visual->bitsPerRGB;
+            vi.bits_per_rgb = visual->bitsPerRGB;
             dmxLogVisual(NULL, &vi, 0);
 
 #ifdef PANORAMIX
-	    if (!noPanoramiXExtension) {
-		int  k;
-		FOR_NSCREENS(k) {
-		    DMXScreenInfo *dmxScreen = &dmxScreens[k];
+            if (!noPanoramiXExtension) {
+                int k;
 
-		    if (dmxScreen->beDisplay) {
-			XVisualInfo *pvi =
-			    &dmxScreen->beVisuals[dmxScreen->beDefVisualIndex];
-			if (pvi->depth == depth->depth &&
-			    pvi->class == visual->class)
-			    found[k] = TRUE;
-		    } else {
-			/* Screen #k is detatched, so it always succeeds */
-			found[k] = TRUE;
-		    }
-		}
-	    }
+                FOR_NSCREENS(k) {
+                    DMXScreenInfo *dmxScreen = &dmxScreens[k];
+
+                    if (dmxScreen->beDisplay) {
+                        XVisualInfo *pvi =
+                            &dmxScreen->beVisuals[dmxScreen->beDefVisualIndex];
+                        if (pvi->depth == depth->depth &&
+                            pvi->class == visual->class)
+                            found[k] = TRUE;
+                    }
+                    else {
+                        /* Screen #k is detatched, so it always succeeds */
+                        found[k] = TRUE;
+                    }
+                }
+            }
 #endif
         }
         offset = voffset + depth->nVisuals * sizeof(xVisualType);
@@ -203,18 +211,19 @@ void dmxConnectionBlockCallback(void)
 
 #ifdef PANORAMIX
     if (!noPanoramiXExtension) {
-	Bool fatal = FALSE;
-	FOR_NSCREENS(i) {
-	    fatal |= !found[i];
-	    if (!found[i]) {
-		dmxLog(dmxError,
-		       "The default visual for screen #%d does not match "
-		       "any of the\n", i);
-		dmxLog(dmxError,
-		       "consolidated visuals from Xinerama (listed above)\n");
-	    }
-	}
-	if (fatal)
+        Bool fatal = FALSE;
+
+        FOR_NSCREENS(i) {
+            fatal |= !found[i];
+            if (!found[i]) {
+                dmxLog(dmxError,
+                       "The default visual for screen #%d does not match "
+                       "any of the\n", i);
+                dmxLog(dmxError,
+                       "consolidated visuals from Xinerama (listed above)\n");
+            }
+        }
+        if (fatal)
             dmxLog(dmxFatal,
                    "dmxConnectionBlockCallback: invalid screen(s) found");
     }

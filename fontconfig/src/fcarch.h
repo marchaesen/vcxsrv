@@ -46,9 +46,28 @@
  * be64		1234		8		8
  */
 
-#if defined(WORDS_BIGENDIAN) && WORDS_BIGENDIAN
+#ifdef __APPLE__
+# include <machine/endian.h>
+# undef SIZEOF_VOID_P
+# undef ALIGNOF_DOUBLE
+# ifdef __LP64__
+#  define SIZEOF_VOID_P 8
+#  define ALIGNOF_DOUBLE 8
+# else
+#  define SIZEOF_VOID_P 4
+#  define ALIGNOF_DOUBLE 4
+# endif
+#endif
+
+#if defined(__DARWIN_BYTE_ORDER) && __DARWIN_BYTE_ORDER == __DARWIN_LITTLE_ENDIAN
+# define FC_ARCH_ENDIAN "le"
+#elif defined(__DARWIN_BYTE_ORDER) && __DARWIN_BYTE_ORDER == __DARWIN_BIG_ENDIAN
 # define FC_ARCH_ENDIAN "be"
-#else /* !WORDS_BIGENDIAN */
+#elif defined(__DARWIN_BYTE_ORDER) && __DARWIN_BYTE_ORDER == __DARWIN_PDP_ENDIAN
+# define FC_ARCH_ENDIAN "pe"
+#elif defined(WORDS_BIGENDIAN) && WORDS_BIGENDIAN
+# define FC_ARCH_ENDIAN "be"
+#else
 # define FC_ARCH_ENDIAN "le"
 #endif
 

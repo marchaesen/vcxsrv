@@ -27,23 +27,20 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define XI_STUBS_H 1
 
 extern _X_EXPORT int
-SetDeviceMode (
-	ClientPtr              /* client */,
-	DeviceIntPtr           /* dev */,
-	int                    /* mode */);
+ SetDeviceMode(ClientPtr /* client */ ,
+               DeviceIntPtr /* dev */ ,
+               int /* mode */ );
 
 extern _X_EXPORT int
-SetDeviceValuators (
-	ClientPtr              /* client */,
-	DeviceIntPtr           /* dev */,
-	int *                  /* valuators */,
-	int                    /* first_valuator */,
-	int                    /* num_valuators */);
+ SetDeviceValuators(ClientPtr /* client */ ,
+                    DeviceIntPtr /* dev */ ,
+                    int * /* valuators */ ,
+                    int /* first_valuator */ ,
+                    int /* num_valuators */ );
 
 extern _X_EXPORT int
-ChangeDeviceControl (
-	ClientPtr             /* client */,
-	DeviceIntPtr          /* dev */,
-	xDeviceCtl *          /* control */);
+ ChangeDeviceControl(ClientPtr /* client */ ,
+                     DeviceIntPtr /* dev */ ,
+                     xDeviceCtl * /* control */ );
 
-#endif /* XI_STUBS_H */
+#endif                          /* XI_STUBS_H */

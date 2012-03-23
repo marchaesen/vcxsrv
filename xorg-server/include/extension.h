@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -46,20 +45,20 @@ SOFTWARE.
 ******************************************************************/
 
 #ifndef EXTENSION_H
-#define EXTENSION_H 
+#define EXTENSION_H
 
 _XFUNCPROTOBEGIN
 
-extern _X_EXPORT unsigned short StandardMinorOpcode(ClientPtr /*client*/);
+extern _X_EXPORT unsigned short StandardMinorOpcode(ClientPtr /*client */ );
 
 extern _X_EXPORT Bool EnableDisableExtension(const char *name, Bool enable);
 
-extern _X_EXPORT void EnableDisableExtensionError(const char *name, Bool enable);
+extern _X_EXPORT void EnableDisableExtensionError(const char *name,
+                                                  Bool enable);
 
 extern _X_EXPORT void InitExtensions(int argc, char **argv);
 
 extern _X_EXPORT void CloseDownExtensions(void);
 
 _XFUNCPROTOEND
-
-#endif /* EXTENSION_H */
+#endif                          /* EXTENSION_H */

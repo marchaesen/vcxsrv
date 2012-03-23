@@ -4,7 +4,7 @@
 
    Written by Mark Vojkovich
 
-*/ 
+*/
 
 #ifdef HAVE_XORG_CONFIG_H
 #include <xorg-config.h>
@@ -33,16 +33,14 @@ XAAMoveOutOffscreenPixmaps(ScreenPtr pScreen)
     XAAInfoRecPtr infoRec = GET_XAAINFORECPTR_FROM_SCREEN(pScreen);
     PixmapLinkPtr pLink = infoRec->OffscreenPixmaps;
     XAAPixmapPtr pPriv;
-    
-    while(pLink) {
-	pPriv = XAA_GET_PIXMAP_PRIVATE(pLink->pPix);
-	pLink->area = pPriv->offscreenArea;
-	XAAMoveOutOffscreenPixmap(pLink->pPix);	
-	pLink = pLink->next;
-    }    
+
+    while (pLink) {
+        pPriv = XAA_GET_PIXMAP_PRIVATE(pLink->pPix);
+        pLink->area = pPriv->offscreenArea;
+        XAAMoveOutOffscreenPixmap(pLink->pPix);
+        pLink = pLink->next;
+    }
 }
-
-
 
 void
 XAAMoveInOffscreenPixmaps(ScreenPtr pScreen)
@@ -55,70 +53,72 @@ XAAMoveInOffscreenPixmaps(ScreenPtr pScreen)
     GCPtr pGC;
     FBAreaPtr area;
 
-    pScreenPix = (*pScreen->GetScreenPixmap)(pScreen);
+    pScreenPix = (*pScreen->GetScreenPixmap) (pScreen);
 
-    while(pLink) {
-	pPix = pLink->pPix;
-    	pPriv = XAA_GET_PIXMAP_PRIVATE(pPix);
-	area = pLink->area;
+    while (pLink) {
+        pPix = pLink->pPix;
+        pPriv = XAA_GET_PIXMAP_PRIVATE(pPix);
+        area = pLink->area;
 
-	data = pPix->devPrivate.ptr;
-	tmpPix = GetScratchPixmapHeader(pScreen, 
-		pPix->drawable.width, pPix->drawable.height, 
-		pPix->drawable.depth, pPix->drawable.bitsPerPixel, 
-		pPix->devKind, data);
+        data = pPix->devPrivate.ptr;
+        tmpPix = GetScratchPixmapHeader(pScreen,
+                                        pPix->drawable.width,
+                                        pPix->drawable.height,
+                                        pPix->drawable.depth,
+                                        pPix->drawable.bitsPerPixel,
+                                        pPix->devKind, data);
 
-	pPriv->freeData = FALSE;
+        pPriv->freeData = FALSE;
 
-	pPix->drawable.x = area->box.x1;
-	pPix->drawable.y = area->box.y1;
-	pPix->devKind = pScreenPix->devKind;
-	pPix->devPrivate.ptr = pScreenPix->devPrivate.ptr;
-	pPix->drawable.bitsPerPixel = infoRec->pScrn->bitsPerPixel;
-	pPix->drawable.serialNumber = NEXT_SERIAL_NUMBER;
+        pPix->drawable.x = area->box.x1;
+        pPix->drawable.y = area->box.y1;
+        pPix->devKind = pScreenPix->devKind;
+        pPix->devPrivate.ptr = pScreenPix->devPrivate.ptr;
+        pPix->drawable.bitsPerPixel = infoRec->pScrn->bitsPerPixel;
+        pPix->drawable.serialNumber = NEXT_SERIAL_NUMBER;
 
-	if(!tmpPix) {
-	    pPriv->offscreenArea = area;
-	    free(data);
-	    pLink = pLink->next;
-	    continue;
-	}
-	
-	pGC = GetScratchGC(pPix->drawable.depth, pScreen);
-	ValidateGC((DrawablePtr)pPix, pGC);
+        if (!tmpPix) {
+            pPriv->offscreenArea = area;
+            free(data);
+            pLink = pLink->next;
+            continue;
+        }
 
-	(*pGC->ops->CopyArea)((DrawablePtr)tmpPix, (DrawablePtr)pPix, pGC, 
-		0, 0, pPix->drawable.width, pPix->drawable.height, 0, 0);	
+        pGC = GetScratchGC(pPix->drawable.depth, pScreen);
+        ValidateGC((DrawablePtr) pPix, pGC);
 
-	free(data);
-	tmpPix->devPrivate.ptr = NULL;
+        (*pGC->ops->CopyArea) ((DrawablePtr) tmpPix, (DrawablePtr) pPix, pGC,
+                               0, 0, pPix->drawable.width,
+                               pPix->drawable.height, 0, 0);
 
-	FreeScratchGC(pGC);
-	FreeScratchPixmapHeader(tmpPix);
+        free(data);
+        tmpPix->devPrivate.ptr = NULL;
 
-	pPriv->offscreenArea = area;
-	pLink->area = NULL;
-	pLink = pLink->next;
-    }    
+        FreeScratchGC(pGC);
+        FreeScratchPixmapHeader(tmpPix);
+
+        pPriv->offscreenArea = area;
+        pLink->area = NULL;
+        pLink = pLink->next;
+    }
 }
-
 
 void
 XAARemoveAreaCallback(FBAreaPtr area)
 {
     XAAInfoRecPtr infoRec = GET_XAAINFORECPTR_FROM_SCREEN(area->pScreen);
-    PixmapPtr pPix = (PixmapPtr)area->devPrivate.ptr;
+    PixmapPtr pPix = (PixmapPtr) area->devPrivate.ptr;
     XAAPixmapPtr pPriv = XAA_GET_PIXMAP_PRIVATE(pPix);
 
     XAAMoveOutOffscreenPixmap(pPix);
 
-    pPriv->flags &= ~OFFSCREEN;	
+    pPriv->flags &= ~OFFSCREEN;
 
     DELIST_OFFSCREEN_PIXMAP(pPix);
 }
 
 void
-XAAMoveOutOffscreenPixmap(PixmapPtr pPix) 
+XAAMoveOutOffscreenPixmap(PixmapPtr pPix)
 {
     ScreenPtr pScreen = pPix->drawable.pScreen;
     XAAPixmapPtr pPriv = XAA_GET_PIXMAP_PRIVATE(pPix);
@@ -132,21 +132,22 @@ XAAMoveOutOffscreenPixmap(PixmapPtr pPix)
     bitsPerPixel = pPix->drawable.bitsPerPixel;
 
     devKind = BitmapBytePad(width * bitsPerPixel);
-    if(!(data = malloc(devKind * height)))
-	FatalError("Out of memory\n");
+    if (!(data = malloc(devKind * height)))
+        FatalError("Out of memory\n");
 
-    tmpPix = GetScratchPixmapHeader(pScreen, width, height, 
-		pPix->drawable.depth, bitsPerPixel, devKind, data);
-    if(!tmpPix) {
-	free(data);
-	FatalError("Out of memory\n");
+    tmpPix = GetScratchPixmapHeader(pScreen, width, height,
+                                    pPix->drawable.depth, bitsPerPixel, devKind,
+                                    data);
+    if (!tmpPix) {
+        free(data);
+        FatalError("Out of memory\n");
     }
 
     pGC = GetScratchGC(pPix->drawable.depth, pScreen);
-    ValidateGC((DrawablePtr)tmpPix, pGC);
+    ValidateGC((DrawablePtr) tmpPix, pGC);
 
-    (*pGC->ops->CopyArea)((DrawablePtr)pPix, (DrawablePtr)tmpPix,
-		pGC, 0, 0, width, height, 0, 0);	
+    (*pGC->ops->CopyArea) ((DrawablePtr) pPix, (DrawablePtr) tmpPix,
+                           pGC, 0, 0, width, height, 0, 0);
 
     FreeScratchGC(pGC);
     FreeScratchPixmapHeader(tmpPix);

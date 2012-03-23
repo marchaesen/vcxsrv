@@ -33,14 +33,10 @@
 
 #include "dix.h"
 
-extern int ClientSleepUntil(
-    ClientPtr client,
-    TimeStamp *revive,
-    void (*notifyFunc)(
-	ClientPtr /* client */,
-	pointer   /* closure */
-	),
-    pointer Closure
-);
+extern int ClientSleepUntil(ClientPtr client,
+                            TimeStamp *revive,
+                            void (*notifyFunc) (ClientPtr /* client */ ,
+                                                pointer /* closure */
+                            ), pointer Closure);
 
 #endif

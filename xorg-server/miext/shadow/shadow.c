@@ -37,6 +37,7 @@
 #include    "shadow.h"
 
 static DevPrivateKeyRec shadowScrPrivateKeyRec;
+
 #define shadowScrPrivateKey (&shadowScrPrivateKeyRec)
 
 #define wrap(priv, real, mem) {\
@@ -55,11 +56,11 @@ shadowRedisplay(ScreenPtr pScreen)
     RegionPtr pRegion;
 
     if (!pBuf || !pBuf->pDamage || !pBuf->update)
-	return;
+        return;
     pRegion = DamageRegion(pBuf->pDamage);
     if (RegionNotEmpty(pRegion)) {
-	(*pBuf->update)(pScreen, pBuf);
-	DamageEmpty(pBuf->pDamage);
+        (*pBuf->update) (pScreen, pBuf);
+        DamageEmpty(pBuf->pDamage);
     }
 }
 
@@ -78,14 +79,15 @@ shadowWakeupHandler(pointer data, int i, pointer LastSelectMask)
 
 static void
 shadowGetImage(DrawablePtr pDrawable, int sx, int sy, int w, int h,
-	       unsigned int format, unsigned long planeMask, char *pdstLine)
+               unsigned int format, unsigned long planeMask, char *pdstLine)
 {
     ScreenPtr pScreen = pDrawable->pScreen;
+
     shadowBuf(pScreen);
 
     /* Many apps use GetImage to sync with the visable frame buffer */
     if (pDrawable->type == DRAWABLE_WINDOW)
-	shadowRedisplay(pScreen);
+        shadowRedisplay(pScreen);
     unwrap(pBuf, pScreen, GetImage);
     pScreen->GetImage(pDrawable, sx, sy, w, h, format, planeMask, pdstLine);
     wrap(pBuf, pScreen, GetImage);
@@ -103,10 +105,10 @@ shadowCloseScreen(int i, ScreenPtr pScreen)
     shadowRemove(pScreen, pBuf->pPixmap);
     DamageDestroy(pBuf->pDamage);
 #ifdef BACKWARDS_COMPATIBILITY
-    RegionUninit(&pBuf->damage); /* bc */
+    RegionUninit(&pBuf->damage);        /* bc */
 #endif
     if (pBuf->pPixmap)
-	pScreen->DestroyPixmap(pBuf->pPixmap);
+        pScreen->DestroyPixmap(pBuf->pPixmap);
     free(pBuf);
     return pScreen->CloseScreen(i, pScreen);
 }
@@ -117,7 +119,7 @@ shadowReportFunc(DamagePtr pDamage, RegionPtr pRegion, void *closure)
 {
     ScreenPtr pScreen = closure;
     shadowBufPtr pBuf = (shadowBufPtr)
-	dixLookupPrivate(&pScreen->devPrivates, shadowScrPrivateKey);
+        dixLookupPrivate(&pScreen->devPrivates, shadowScrPrivateKey);
 
     /* Register the damaged region, use DamageReportNone below when we
      * want to break BC below... */
@@ -137,28 +139,26 @@ shadowSetup(ScreenPtr pScreen)
     shadowBufPtr pBuf;
 
     if (!dixRegisterPrivateKey(&shadowScrPrivateKeyRec, PRIVATE_SCREEN, 0))
-	return FALSE;
+        return FALSE;
 
     if (!DamageSetup(pScreen))
-	return FALSE;
+        return FALSE;
 
     pBuf = malloc(sizeof(shadowBufRec));
     if (!pBuf)
-	return FALSE;
+        return FALSE;
 #ifdef BACKWARDS_COMPATIBILITY
-    pBuf->pDamage = DamageCreate((DamageReportFunc)shadowReportFunc, 
-		    		 (DamageDestroyFunc)NULL,
-				 DamageReportRawRegion,
-				 TRUE, pScreen, pScreen);
+    pBuf->pDamage = DamageCreate((DamageReportFunc) shadowReportFunc,
+                                 (DamageDestroyFunc) NULL,
+                                 DamageReportRawRegion, TRUE, pScreen, pScreen);
 #else
-    pBuf->pDamage = DamageCreate((DamageReportFunc)NULL, 
-		    		 (DamageDestroyFunc)NULL,
-				 DamageReportNone,
-				 TRUE, pScreen, pScreen);
+    pBuf->pDamage = DamageCreate((DamageReportFunc) NULL,
+                                 (DamageDestroyFunc) NULL,
+                                 DamageReportNone, TRUE, pScreen, pScreen);
 #endif
     if (!pBuf->pDamage) {
-	free(pBuf);
-	return FALSE;
+        free(pBuf);
+        return FALSE;
     }
 
     wrap(pBuf, pScreen, CloseScreen);
@@ -169,7 +169,7 @@ shadowSetup(ScreenPtr pScreen)
     pBuf->closure = 0;
     pBuf->randr = 0;
 #ifdef BACKWARDS_COMPATIBILITY
-    RegionNull(&pBuf->damage); /* bc */
+    RegionNull(&pBuf->damage);  /* bc */
 #endif
 
     dixSetPrivate(&pScreen->devPrivates, shadowScrPrivateKey, pBuf);
@@ -178,13 +178,13 @@ shadowSetup(ScreenPtr pScreen)
 
 Bool
 shadowAdd(ScreenPtr pScreen, PixmapPtr pPixmap, ShadowUpdateProc update,
-	  ShadowWindowProc window, int randr, void *closure)
+          ShadowWindowProc window, int randr, void *closure)
 {
     shadowBuf(pScreen);
 
     if (!RegisterBlockAndWakeupHandlers(shadowBlockHandler, shadowWakeupHandler,
-					(pointer)pScreen))
-	return FALSE;
+                                        (pointer) pScreen))
+        return FALSE;
 
     /*
      * Map simple rotation values to bitmasks; fortunately,
@@ -192,17 +192,17 @@ shadowAdd(ScreenPtr pScreen, PixmapPtr pPixmap, ShadowUpdateProc update,
      */
     switch (randr) {
     case 0:
-	randr = SHADOW_ROTATE_0;
-	break;
+        randr = SHADOW_ROTATE_0;
+        break;
     case 90:
-	randr = SHADOW_ROTATE_90;
-	break;
+        randr = SHADOW_ROTATE_90;
+        break;
     case 180:
-	randr = SHADOW_ROTATE_180;
-	break;
+        randr = SHADOW_ROTATE_180;
+        break;
     case 270:
-	randr = SHADOW_ROTATE_270;
-	break;
+        randr = SHADOW_ROTATE_270;
+        break;
     }
     pBuf->update = update;
     pBuf->window = window;
@@ -219,31 +219,31 @@ shadowRemove(ScreenPtr pScreen, PixmapPtr pPixmap)
     shadowBuf(pScreen);
 
     if (pBuf->pPixmap) {
-	DamageUnregister(&pBuf->pPixmap->drawable, pBuf->pDamage);
-	pBuf->update = 0;
-	pBuf->window = 0;
-	pBuf->randr = 0;
-	pBuf->closure = 0;
-	pBuf->pPixmap = 0;
+        DamageUnregister(&pBuf->pPixmap->drawable, pBuf->pDamage);
+        pBuf->update = 0;
+        pBuf->window = 0;
+        pBuf->randr = 0;
+        pBuf->closure = 0;
+        pBuf->pPixmap = 0;
     }
 
     RemoveBlockAndWakeupHandlers(shadowBlockHandler, shadowWakeupHandler,
-				 (pointer) pScreen);
+                                 (pointer) pScreen);
 }
 
 Bool
 shadowInit(ScreenPtr pScreen, ShadowUpdateProc update, ShadowWindowProc window)
 {
     PixmapPtr pPixmap;
-    
+
     pPixmap = pScreen->CreatePixmap(pScreen, pScreen->width, pScreen->height,
-				    pScreen->rootDepth, 0);
+                                    pScreen->rootDepth, 0);
     if (!pPixmap)
-	return FALSE;
-    
+        return FALSE;
+
     if (!shadowSetup(pScreen)) {
-	pScreen->DestroyPixmap(pPixmap);
-	return FALSE;
+        pScreen->DestroyPixmap(pPixmap);
+        return FALSE;
     }
 
     shadowAdd(pScreen, pPixmap, update, window, SHADOW_ROTATE_0, 0);

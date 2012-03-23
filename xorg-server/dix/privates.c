@@ -64,10 +64,10 @@ from The Open Group.
 #include "extnsionst.h"
 
 static struct {
-    DevPrivateKey	key;
-    unsigned		offset;
-    int			created;
-    int			allocated;
+    DevPrivateKey key;
+    unsigned offset;
+    int created;
+    int allocated;
 } keys[PRIVATE_LAST];
 
 static const Bool xselinux_private[PRIVATE_LAST] = {
@@ -86,16 +86,16 @@ static const Bool xselinux_private[PRIVATE_LAST] = {
     [PRIVATE_GLYPHSET] = TRUE,
 };
 
-typedef Bool (*FixupFunc)(PrivatePtr *privates, int offset, unsigned bytes);
+typedef Bool (*FixupFunc) (PrivatePtr *privates, int offset, unsigned bytes);
 
 static Bool
 dixReallocPrivates(PrivatePtr *privates, int old_offset, unsigned bytes)
 {
-    void	*new_privates;
+    void *new_privates;
 
     new_privates = realloc(*privates, old_offset + bytes);
     if (!new_privates)
-	return FALSE;
+        return FALSE;
     memset((char *) new_privates + old_offset, '\0', bytes);
     *privates = new_privates;
     return TRUE;
@@ -113,9 +113,12 @@ static Bool
 fixupScreens(FixupFunc fixup, unsigned bytes)
 {
     int s;
+
     for (s = 0; s < screenInfo.numScreens; s++)
-	if (!fixup(&screenInfo.screens[s]->devPrivates, keys[PRIVATE_SCREEN].offset, bytes))
-	    return FALSE;
+        if (!fixup
+            (&screenInfo.screens[s]->devPrivates, keys[PRIVATE_SCREEN].offset,
+             bytes))
+            return FALSE;
     return TRUE;
 }
 
@@ -123,18 +126,22 @@ static Bool
 fixupServerClient(FixupFunc fixup, unsigned bytes)
 {
     if (serverClient)
-	return fixup(&serverClient->devPrivates, keys[PRIVATE_CLIENT].offset, bytes);
+        return fixup(&serverClient->devPrivates, keys[PRIVATE_CLIENT].offset,
+                     bytes);
     return TRUE;
 }
 
 static Bool
 fixupExtensions(FixupFunc fixup, unsigned bytes)
 {
-    unsigned char 	major;
-    ExtensionEntry	*extension;
-    for (major = EXTENSION_BASE; (extension = GetExtensionEntry(major)); major++)
-	if (!fixup(&extension->devPrivates, keys[PRIVATE_EXTENSION].offset, bytes))
-	    return FALSE;
+    unsigned char major;
+    ExtensionEntry *extension;
+
+    for (major = EXTENSION_BASE; (extension = GetExtensionEntry(major));
+         major++)
+        if (!fixup
+            (&extension->devPrivates, keys[PRIVATE_EXTENSION].offset, bytes))
+            return FALSE;
     return TRUE;
 }
 
@@ -142,22 +149,25 @@ static Bool
 fixupDefaultColormaps(FixupFunc fixup, unsigned bytes)
 {
     int s;
+
     for (s = 0; s < screenInfo.numScreens; s++) {
-	ColormapPtr cmap;
-	dixLookupResourceByType((pointer *) &cmap, screenInfo.screens[s]->defColormap,
-	                        RT_COLORMAP, serverClient, DixCreateAccess);
-	if (cmap && !fixup(&cmap->devPrivates, keys[PRIVATE_COLORMAP].offset, bytes))
-	    return FALSE;
+        ColormapPtr cmap;
+
+        dixLookupResourceByType((pointer *) &cmap,
+                                screenInfo.screens[s]->defColormap, RT_COLORMAP,
+                                serverClient, DixCreateAccess);
+        if (cmap &&
+            !fixup(&cmap->devPrivates, keys[PRIVATE_COLORMAP].offset, bytes))
+            return FALSE;
     }
     return TRUE;
 }
 
-static Bool (* const allocated_early[PRIVATE_LAST])(FixupFunc, unsigned) = {
-    [PRIVATE_SCREEN] = fixupScreens,
-    [PRIVATE_CLIENT] = fixupServerClient,
-    [PRIVATE_EXTENSION] = fixupExtensions,
-    [PRIVATE_COLORMAP] = fixupDefaultColormaps,
-};
+static Bool (*const allocated_early[PRIVATE_LAST]) (FixupFunc, unsigned) = {
+[PRIVATE_SCREEN] = fixupScreens,
+        [PRIVATE_CLIENT] = fixupServerClient,
+        [PRIVATE_EXTENSION] = fixupExtensions,
+        [PRIVATE_COLORMAP] = fixupDefaultColormaps,};
 
 /*
  * Register a private key. This takes the type of object the key will
@@ -170,59 +180,60 @@ static Bool (* const allocated_early[PRIVATE_LAST])(FixupFunc, unsigned) = {
 Bool
 dixRegisterPrivateKey(DevPrivateKey key, DevPrivateType type, unsigned size)
 {
-    DevPrivateType	t;
-    int			offset;
-    unsigned		bytes;
+    DevPrivateType t;
+    int offset;
+    unsigned bytes;
 
     if (key->initialized) {
-	assert (size == key->size);
-	return TRUE;
+        assert(size == key->size);
+        return TRUE;
     }
 
     /* Compute required space */
     bytes = size;
     if (size == 0)
-	bytes = sizeof (void *);
+        bytes = sizeof(void *);
 
     /* align to void * size */
-    bytes = (bytes + sizeof (void *) - 1) & ~(sizeof (void *) - 1);
+    bytes = (bytes + sizeof(void *) - 1) & ~(sizeof(void *) - 1);
 
     /* Update offsets for all affected keys */
     if (type == PRIVATE_XSELINUX) {
-	DevPrivateKey	k;
+        DevPrivateKey k;
 
-	/* Resize if we can, or make sure nothing's allocated if we can't
-	 */
-	for (t = PRIVATE_XSELINUX; t < PRIVATE_LAST; t++)
-	    if (xselinux_private[t]) {
-		if (!allocated_early[t])
-		    assert (!keys[t].created);
-		else if (!allocated_early[t](dixReallocPrivates, bytes))
-		    return FALSE;
-	    }
+        /* Resize if we can, or make sure nothing's allocated if we can't
+         */
+        for (t = PRIVATE_XSELINUX; t < PRIVATE_LAST; t++)
+            if (xselinux_private[t]) {
+                if (!allocated_early[t])
+                    assert(!keys[t].created);
+                else if (!allocated_early[t] (dixReallocPrivates, bytes))
+                    return FALSE;
+            }
 
-	/* Move all existing keys up in the privates space to make
-	 * room for this new global key
-	 */
-	for (t = PRIVATE_XSELINUX; t < PRIVATE_LAST; t++) {
-	    if (xselinux_private[t]) {
-		for (k = keys[t].key; k; k = k->next)
-		    k->offset += bytes;
-		keys[t].offset += bytes;
-		if (allocated_early[t])
-		    allocated_early[t](dixMovePrivates, bytes);
-	    }
-	}
+        /* Move all existing keys up in the privates space to make
+         * room for this new global key
+         */
+        for (t = PRIVATE_XSELINUX; t < PRIVATE_LAST; t++) {
+            if (xselinux_private[t]) {
+                for (k = keys[t].key; k; k = k->next)
+                    k->offset += bytes;
+                keys[t].offset += bytes;
+                if (allocated_early[t])
+                    allocated_early[t] (dixMovePrivates, bytes);
+            }
+        }
 
-	offset = 0;
-    } else {
-	/* Resize if we can, or make sure nothing's allocated if we can't */
-	if (!allocated_early[type])
-	    assert(!keys[type].created);
-	else if (!allocated_early[type](dixReallocPrivates, bytes))
-	    return FALSE;
-	offset = keys[type].offset;
-	keys[type].offset += bytes;
+        offset = 0;
+    }
+    else {
+        /* Resize if we can, or make sure nothing's allocated if we can't */
+        if (!allocated_early[type])
+            assert(!keys[type].created);
+        else if (!allocated_early[type] (dixReallocPrivates, bytes))
+            return FALSE;
+        offset = keys[type].offset;
+        keys[type].offset += bytes;
     }
 
     /* Setup this key */
@@ -238,24 +249,25 @@ dixRegisterPrivateKey(DevPrivateKey key, DevPrivateType type, unsigned size)
 }
 
 Bool
-dixRegisterScreenPrivateKey(DevScreenPrivateKey screenKey, ScreenPtr pScreen, DevPrivateType type, unsigned size)
+dixRegisterScreenPrivateKey(DevScreenPrivateKey screenKey, ScreenPtr pScreen,
+                            DevPrivateType type, unsigned size)
 {
-    DevPrivateKey	key;
+    DevPrivateKey key;
 
     if (!dixRegisterPrivateKey(&screenKey->screenKey, PRIVATE_SCREEN, 0))
-	return FALSE;
+        return FALSE;
     key = dixGetPrivate(&pScreen->devPrivates, &screenKey->screenKey);
     if (key != NULL) {
-	assert(key->size == size);
-	assert(key->type == type);
-	return TRUE;
+        assert(key->size == size);
+        assert(key->type == type);
+        return TRUE;
     }
-    key = calloc(sizeof (DevPrivateKeyRec), 1);
+    key = calloc(sizeof(DevPrivateKeyRec), 1);
     if (!key)
-	return FALSE;
+        return FALSE;
     if (!dixRegisterPrivateKey(key, type, size)) {
-	free(key);
-	return FALSE;
+        free(key);
+        return FALSE;
     }
     key->allocated = TRUE;
     dixSetPrivate(&pScreen->devPrivates, &screenKey->screenKey, key);
@@ -276,9 +288,9 @@ _dixInitPrivates(PrivatePtr *privates, void *addr, DevPrivateType type)
 {
     keys[type].created++;
     if (xselinux_private[type])
-	keys[PRIVATE_XSELINUX].created++;
+        keys[PRIVATE_XSELINUX].created++;
     if (keys[type].offset == 0)
-	addr = 0;
+        addr = 0;
     *privates = addr;
     memset(addr, '\0', keys[type].offset);
 }
@@ -291,7 +303,7 @@ _dixFiniPrivates(PrivatePtr privates, DevPrivateType type)
 {
     keys[type].created--;
     if (xselinux_private[type])
-	keys[PRIVATE_XSELINUX].created--;
+        keys[PRIVATE_XSELINUX].created--;
 }
 
 /*
@@ -301,21 +313,22 @@ _dixFiniPrivates(PrivatePtr privates, DevPrivateType type)
  * dixAllocateObjectWithPrivates macro
  */
 void *
-_dixAllocateObjectWithPrivates(unsigned baseSize, unsigned clear, unsigned offset, DevPrivateType type)
+_dixAllocateObjectWithPrivates(unsigned baseSize, unsigned clear,
+                               unsigned offset, DevPrivateType type)
 {
-    unsigned		totalSize;
-    void		*object;
-    PrivatePtr		privates;
-    PrivatePtr		*devPrivates;
+    unsigned totalSize;
+    void *object;
+    PrivatePtr privates;
+    PrivatePtr *devPrivates;
 
-    assert (type > PRIVATE_SCREEN && type < PRIVATE_LAST);
+    assert(type > PRIVATE_SCREEN && type < PRIVATE_LAST);
 
     /* round up so that void * is aligned */
-    baseSize = (baseSize + sizeof (void *) - 1) & ~(sizeof (void *) - 1);
+    baseSize = (baseSize + sizeof(void *) - 1) & ~(sizeof(void *) - 1);
     totalSize = baseSize + keys[type].offset;
     object = malloc(totalSize);
     if (!object)
-	return NULL;
+        return NULL;
 
     memset(object, '\0', clear);
     privates = (PrivatePtr) (((char *) object) + baseSize);
@@ -333,17 +346,18 @@ _dixAllocateObjectWithPrivates(unsigned baseSize, unsigned clear, unsigned offse
 Bool
 dixAllocatePrivates(PrivatePtr *privates, DevPrivateType type)
 {
-    unsigned 	size;
-    PrivatePtr	p;
+    unsigned size;
+    PrivatePtr p;
 
-    assert (type > PRIVATE_XSELINUX && type < PRIVATE_LAST);
+    assert(type > PRIVATE_XSELINUX && type < PRIVATE_LAST);
 
     size = keys[type].offset;
     if (!size) {
-	p = NULL;
-    } else {
-	if (!(p = malloc(size)))
-	    return FALSE;
+        p = NULL;
+    }
+    else {
+        if (!(p = malloc(size)))
+            return FALSE;
     }
 
     _dixInitPrivates(privates, p, type);
@@ -359,7 +373,8 @@ dixAllocatePrivates(PrivatePtr *privates, DevPrivateType type)
  * dixFreeObjectWithPrivates macro
  */
 void
-_dixFreeObjectWithPrivates(void *object, PrivatePtr privates, DevPrivateType type)
+_dixFreeObjectWithPrivates(void *object, PrivatePtr privates,
+                           DevPrivateType type)
 {
     _dixFiniPrivates(privates, type);
     free(object);
@@ -382,20 +397,20 @@ dixFreePrivates(PrivatePtr privates, DevPrivateType type)
 extern _X_EXPORT int
 dixPrivatesSize(DevPrivateType type)
 {
-    assert (type >= PRIVATE_SCREEN && type < PRIVATE_LAST);
+    assert(type >= PRIVATE_SCREEN && type < PRIVATE_LAST);
 
     return keys[type].offset;
 }
 
 /* Table of devPrivates offsets */
 static const int offsets[] = {
-    -1,					/* RT_NONE */
-    offsetof(WindowRec, devPrivates),	/* RT_WINDOW */
-    offsetof(PixmapRec, devPrivates),	/* RT_PIXMAP */
-    offsetof(GC, devPrivates),		/* RT_GC */
-    -1,		    			/* RT_FONT */
-    offsetof(CursorRec, devPrivates),	/* RT_CURSOR */
-    offsetof(ColormapRec, devPrivates),	/* RT_COLORMAP */
+    -1,                         /* RT_NONE */
+    offsetof(WindowRec, devPrivates),   /* RT_WINDOW */
+    offsetof(PixmapRec, devPrivates),   /* RT_PIXMAP */
+    offsetof(GC, devPrivates),  /* RT_GC */
+    -1,                         /* RT_FONT */
+    offsetof(CursorRec, devPrivates),   /* RT_CURSOR */
+    offsetof(ColormapRec, devPrivates), /* RT_COLORMAP */
 };
 
 #define NUM_OFFSETS	(sizeof (offsets) / sizeof (offsets[0]))
@@ -408,14 +423,14 @@ dixLookupPrivateOffset(RESTYPE type)
      * points at pixmaps (thanks, DBE)
      */
     if (type & RC_DRAWABLE) {
-	if (type == RT_WINDOW)
-	    return offsets[RT_WINDOW & TypeMask];
-	else
-	    return offsets[RT_PIXMAP & TypeMask];
+        if (type == RT_WINDOW)
+            return offsets[RT_WINDOW & TypeMask];
+        else
+            return offsets[RT_PIXMAP & TypeMask];
     }
     type = type & TypeMask;
     if (type < NUM_OFFSETS)
-	return offsets[type];
+        return offsets[type];
     return -1;
 }
 
@@ -454,49 +469,49 @@ void
 dixPrivateUsage(void)
 {
     int objects = 0;
-    int	bytes = 0;
+    int bytes = 0;
     int alloc = 0;
     DevPrivateType t;
 
     for (t = PRIVATE_XSELINUX + 1; t < PRIVATE_LAST; t++) {
-	if (keys[t].offset) {
-	    ErrorF("%s: %d objects of %d bytes = %d total bytes %d private allocs\n",
-		   key_names[t], keys[t].created, keys[t].offset, keys[t].created * keys[t].offset,
-		   keys[t].allocated);
-	    bytes += keys[t].created * keys[t].offset;
-	    objects += keys[t].created;
-	    alloc += keys[t].allocated;
-	}
+        if (keys[t].offset) {
+            ErrorF
+                ("%s: %d objects of %d bytes = %d total bytes %d private allocs\n",
+                 key_names[t], keys[t].created, keys[t].offset,
+                 keys[t].created * keys[t].offset, keys[t].allocated);
+            bytes += keys[t].created * keys[t].offset;
+            objects += keys[t].created;
+            alloc += keys[t].allocated;
+        }
     }
-    ErrorF("TOTAL: %d objects, %d bytes, %d allocs\n",
-	   objects, bytes, alloc);
+    ErrorF("TOTAL: %d objects, %d bytes, %d allocs\n", objects, bytes, alloc);
 }
 
 void
 dixResetPrivates(void)
 {
-    DevPrivateType	t;
+    DevPrivateType t;
 
     for (t = PRIVATE_XSELINUX; t < PRIVATE_LAST; t++) {
-	DevPrivateKey	key, next;
+        DevPrivateKey key, next;
 
-	for (key = keys[t].key; key; key = next) {
-	    next = key->next;
-	    key->offset = 0;
-	    key->initialized = FALSE;
-	    key->size = 0;
-	    key->type = 0;
-	    if (key->allocated)
-		free(key);
-	}
-	if (keys[t].created) {
-	    ErrorF("%d %ss still allocated at reset\n",
-		   keys[t].created, key_names[t]);
-	    dixPrivateUsage();
-	}
-	keys[t].key = NULL;
-	keys[t].offset = 0;
-	keys[t].created = 0;
-	keys[t].allocated = 0;
+        for (key = keys[t].key; key; key = next) {
+            next = key->next;
+            key->offset = 0;
+            key->initialized = FALSE;
+            key->size = 0;
+            key->type = 0;
+            if (key->allocated)
+                free(key);
+        }
+        if (keys[t].created) {
+            ErrorF("%d %ss still allocated at reset\n",
+                   keys[t].created, key_names[t]);
+            dixPrivateUsage();
+        }
+        keys[t].key = NULL;
+        keys[t].offset = 0;
+        keys[t].created = 0;
+        keys[t].allocated = 0;
     }
 }

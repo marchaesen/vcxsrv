@@ -26,21 +26,21 @@
 #include "kdrive.h"
 
 Bool
-KdShadowFbAlloc (KdScreenInfo *screen, Bool rotate)
+KdShadowFbAlloc(KdScreenInfo * screen, Bool rotate)
 {
-    int	    paddedWidth;
-    void    *buf;
-    int	    width = rotate ? screen->height : screen->width;
-    int	    height = rotate ? screen->width : screen->height;
-    int	    bpp = screen->fb.bitsPerPixel;
+    int paddedWidth;
+    void *buf;
+    int width = rotate ? screen->height : screen->width;
+    int height = rotate ? screen->width : screen->height;
+    int bpp = screen->fb.bitsPerPixel;
 
     /* use fb computation for width */
-    paddedWidth = ((width * bpp + FB_MASK) >> FB_SHIFT) * sizeof (FbBits);
+    paddedWidth = ((width * bpp + FB_MASK) >> FB_SHIFT) * sizeof(FbBits);
     buf = malloc(paddedWidth * height);
     if (!buf)
-	return FALSE;
+        return FALSE;
     if (screen->fb.shadow)
-	free(screen->fb.frameBuffer);
+        free(screen->fb.frameBuffer);
     screen->fb.shadow = TRUE;
     screen->fb.frameBuffer = buf;
     screen->fb.byteStride = paddedWidth;
@@ -49,33 +49,32 @@ KdShadowFbAlloc (KdScreenInfo *screen, Bool rotate)
 }
 
 void
-KdShadowFbFree (KdScreenInfo *screen)
+KdShadowFbFree(KdScreenInfo * screen)
 {
-    if (screen->fb.shadow)
-    {
-	free(screen->fb.frameBuffer);
-	screen->fb.frameBuffer = 0;
-	screen->fb.shadow = FALSE;
+    if (screen->fb.shadow) {
+        free(screen->fb.frameBuffer);
+        screen->fb.frameBuffer = 0;
+        screen->fb.shadow = FALSE;
     }
 }
 
 Bool
-KdShadowSet (ScreenPtr pScreen, int randr, ShadowUpdateProc update, ShadowWindowProc window)
+KdShadowSet(ScreenPtr pScreen, int randr, ShadowUpdateProc update,
+            ShadowWindowProc window)
 {
     KdScreenPriv(pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
 
-    shadowRemove (pScreen, pScreen->GetScreenPixmap(pScreen));
-    if(screen->fb.shadow)
-    {
-	return shadowAdd (pScreen, pScreen->GetScreenPixmap(pScreen),
-			  update, window, randr, 0);
+    shadowRemove(pScreen, pScreen->GetScreenPixmap(pScreen));
+    if (screen->fb.shadow) {
+        return shadowAdd(pScreen, pScreen->GetScreenPixmap(pScreen),
+                         update, window, randr, 0);
     }
     return TRUE;
 }
 
 void
-KdShadowUnset (ScreenPtr pScreen)
+KdShadowUnset(ScreenPtr pScreen)
 {
     shadowRemove(pScreen, pScreen->GetScreenPixmap(pScreen));
 }

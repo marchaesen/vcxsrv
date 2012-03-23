@@ -34,38 +34,32 @@
 #include "win.h"
 
 /* Prototypes */
-DWORD
-winGetRegistryDWORD (HKEY hkey, char *pszRegistryKey);
+DWORD winGetRegistryDWORD(HKEY hkey, char *pszRegistryKey);
 
 DWORD
-winGetRegistryDWORD (HKEY hkey, char *pszRegistryKey)
+winGetRegistryDWORD(HKEY hkey, char *pszRegistryKey)
 {
-  HKEY		hkResult;
-  DWORD		dwDisposition;
+    HKEY hkResult;
+    DWORD dwDisposition;
 
-  RegCreateKeyEx (hkey,
-		  pszRegistryKey,
-		  0,
-		  '\0',
-		  REG_OPTION_NON_VOLATILE,
-		  KEY_READ,
-		  NULL,
-		  &hkResult,
-		  &dwDisposition);
+    RegCreateKeyEx(hkey,
+                   pszRegistryKey,
+                   0,
+                   '\0',
+                   REG_OPTION_NON_VOLATILE,
+                   KEY_READ, NULL, &hkResult, &dwDisposition);
 
-  if (dwDisposition == REG_CREATED_NEW_KEY)
-    {
-      ErrorF ("winGetRegistryDWORD - Created new key: %s\n", pszRegistryKey);
+    if (dwDisposition == REG_CREATED_NEW_KEY) {
+        ErrorF("winGetRegistryDWORD - Created new key: %s\n", pszRegistryKey);
     }
-  else if (dwDisposition == REG_OPENED_EXISTING_KEY)
-    {
-      ErrorF ("winGetRegistryDWORD - Opened existing key: %s\n",
-	      pszRegistryKey);
+    else if (dwDisposition == REG_OPENED_EXISTING_KEY) {
+        ErrorF("winGetRegistryDWORD - Opened existing key: %s\n",
+               pszRegistryKey);
     }
 
-  /* Free the registry key handle */
-  RegCloseKey (hkResult);
-  hkResult = NULL;
+    /* Free the registry key handle */
+    RegCloseKey(hkResult);
+    hkResult = NULL;
 
-  return 0;
+    return 0;
 }

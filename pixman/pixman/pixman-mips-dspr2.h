@@ -85,4 +85,46 @@ mips_composite_##name (pixman_implementation_t *imp,             \
     }                                                            \
 }
 
+/*******************************************************************/
+
+#define PIXMAN_MIPS_BIND_FAST_PATH_N_MASK_DST(flags, name,          \
+                                              mask_type, mask_cnt,  \
+                                              dst_type, dst_cnt)    \
+void                                                                \
+pixman_composite_##name##_asm_mips (dst_type  *dst,                 \
+                                    uint32_t  src,                  \
+                                    mask_type *mask,                \
+                                    int32_t   w);                   \
+                                                                    \
+static void                                                         \
+mips_composite_##name (pixman_implementation_t *imp,                \
+                       pixman_composite_info_t *info)               \
+{                                                                   \
+    PIXMAN_COMPOSITE_ARGS (info);                                   \
+    dst_type  *dst_line, *dst;                                      \
+    mask_type *mask_line, *mask;                                    \
+    int32_t    dst_stride, mask_stride;                             \
+    uint32_t   src;                                                 \
+                                                                    \
+    src = _pixman_image_get_solid (                                 \
+        imp, src_image, dest_image->bits.format);                   \
+                                                                    \
+    if ((flags & SKIP_ZERO_SRC) && src == 0)                        \
+        return;                                                     \
+                                                                    \
+    PIXMAN_IMAGE_GET_LINE (dest_image, dest_x, dest_y, dst_type,    \
+                           dst_stride, dst_line, dst_cnt);          \
+    PIXMAN_IMAGE_GET_LINE (mask_image, mask_x, mask_y, mask_type,   \
+                           mask_stride, mask_line, mask_cnt);       \
+                                                                    \
+    while (height--)                                                \
+    {                                                               \
+        dst = dst_line;                                             \
+        dst_line += dst_stride;                                     \
+        mask = mask_line;                                           \
+        mask_line += mask_stride;                                   \
+        pixman_composite_##name##_asm_mips (dst, src, mask, width); \
+    }                                                               \
+}
+
 #endif //PIXMAN_MIPS_DSPR2_H

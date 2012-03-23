@@ -17,18 +17,17 @@ static ExtensionModule dbeExt = {
     NULL
 };
 
-static XF86ModuleVersionInfo VersRec =
-{
-	"dbe",
-	MODULEVENDORSTRING,
-	MODINFOSTRING1,
-	MODINFOSTRING2,
-	XORG_VERSION_CURRENT,
-	1, 0, 0,
-	ABI_CLASS_EXTENSION,
-	ABI_EXTENSION_VERSION,
-	MOD_CLASS_EXTENSION,
-	{0,0,0,0}
+static XF86ModuleVersionInfo VersRec = {
+    "dbe",
+    MODULEVENDORSTRING,
+    MODINFOSTRING1,
+    MODINFOSTRING2,
+    XORG_VERSION_CURRENT,
+    1, 0, 0,
+    ABI_CLASS_EXTENSION,
+    ABI_EXTENSION_VERSION,
+    MOD_CLASS_EXTENSION,
+    {0, 0, 0, 0}
 };
 
 /*
@@ -42,5 +41,5 @@ dbeSetup(pointer module, pointer opts, int *errmaj, int *errmin)
     LoadExtension(&dbeExt, FALSE);
 
     /* Need a non-NULL return value to indicate success */
-    return (pointer)1;
+    return (pointer) 1;
 }

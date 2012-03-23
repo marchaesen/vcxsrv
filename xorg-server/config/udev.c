@@ -61,7 +61,7 @@ device_added(struct udev_device *udev_device)
     const char *tags_prop;
     const char *key, *value, *tmp;
     InputOption *input_options;
-    InputAttributes attrs = {};
+    InputAttributes attrs = { };
     DeviceIntPtr dev = NULL;
     struct udev_list_entry *set, *entry;
     struct udev_device *parent;
@@ -88,8 +88,7 @@ device_added(struct udev_device *udev_device)
     if (!udev_device_get_property_value(udev_device, "ID_INPUT")) {
         LogMessageVerb(X_INFO, 10,
                        "config/udev: ignoring device %s without "
-                       "property ID_INPUT set\n",
-                       path);
+                       "property ID_INPUT set\n", path);
         return;
     }
 
@@ -116,7 +115,8 @@ device_added(struct udev_device *udev_device)
         LOG_SYSATTR(ppath, "id", pnp_id);
 
         /* construct USB ID in lowercase hex - "0000:ffff" */
-        if (product && sscanf(product, "%*x/%4x/%4x/%*x", &usb_vendor, &usb_model) == 2) {
+        if (product &&
+            sscanf(product, "%*x/%4x/%4x/%*x", &usb_vendor, &usb_model) == 2) {
             if (asprintf(&attrs.usb_id, "%04x:%04x", usb_vendor, usb_model)
                 == -1)
                 attrs.usb_id = NULL;
@@ -145,7 +145,7 @@ device_added(struct udev_device *udev_device)
 
     if (device_is_duplicate(config_info)) {
         LogMessage(X_WARNING, "config/udev: device %s already added. "
-                              "Ignoring.\n", name);
+                   "Ignoring.\n", name);
         goto unwind;
     }
 
@@ -155,39 +155,50 @@ device_added(struct udev_device *udev_device)
         if (!key)
             continue;
         value = udev_list_entry_get_value(entry);
-        if (!strncasecmp(key, UDEV_XKB_PROP_KEY,
-                                sizeof(UDEV_XKB_PROP_KEY) - 1)) {
+        if (!strncasecmp(key, UDEV_XKB_PROP_KEY, sizeof(UDEV_XKB_PROP_KEY) - 1)) {
             LOG_PROPERTY(path, key, value);
             tmp = key + sizeof(UDEV_XKB_PROP_KEY) - 1;
             if (!strcasecmp(tmp, "rules"))
-                input_options = input_option_new(input_options, "xkb_rules", value);
+                input_options =
+                    input_option_new(input_options, "xkb_rules", value);
             else if (!strcasecmp(tmp, "layout"))
-                input_options = input_option_new(input_options, "xkb_layout", value);
+                input_options =
+                    input_option_new(input_options, "xkb_layout", value);
             else if (!strcasecmp(tmp, "variant"))
-                input_options = input_option_new(input_options, "xkb_variant", value);
+                input_options =
+                    input_option_new(input_options, "xkb_variant", value);
             else if (!strcasecmp(tmp, "model"))
-                input_options = input_option_new(input_options, "xkb_model", value);
+                input_options =
+                    input_option_new(input_options, "xkb_model", value);
             else if (!strcasecmp(tmp, "options"))
-                input_options = input_option_new(input_options, "xkb_options", value);
-        } else if (!strcmp(key, "ID_VENDOR")) {
+                input_options =
+                    input_option_new(input_options, "xkb_options", value);
+        }
+        else if (!strcmp(key, "ID_VENDOR")) {
             LOG_PROPERTY(path, key, value);
             attrs.vendor = strdup(value);
-        } else if (!strcmp(key, "ID_INPUT_KEY")) {
+        }
+        else if (!strcmp(key, "ID_INPUT_KEY")) {
             LOG_PROPERTY(path, key, value);
             attrs.flags |= ATTR_KEYBOARD;
-        } else if (!strcmp(key, "ID_INPUT_MOUSE")) {
+        }
+        else if (!strcmp(key, "ID_INPUT_MOUSE")) {
             LOG_PROPERTY(path, key, value);
             attrs.flags |= ATTR_POINTER;
-        } else if (!strcmp(key, "ID_INPUT_JOYSTICK")) {
+        }
+        else if (!strcmp(key, "ID_INPUT_JOYSTICK")) {
             LOG_PROPERTY(path, key, value);
             attrs.flags |= ATTR_JOYSTICK;
-        } else if (!strcmp(key, "ID_INPUT_TABLET")) {
+        }
+        else if (!strcmp(key, "ID_INPUT_TABLET")) {
             LOG_PROPERTY(path, key, value);
             attrs.flags |= ATTR_TABLET;
-        } else if (!strcmp(key, "ID_INPUT_TOUCHPAD")) {
+        }
+        else if (!strcmp(key, "ID_INPUT_TOUCHPAD")) {
             LOG_PROPERTY(path, key, value);
             attrs.flags |= ATTR_TOUCHPAD;
-        } else if (!strcmp(key, "ID_INPUT_TOUCHSCREEN")) {
+        }
+        else if (!strcmp(key, "ID_INPUT_TOUCHSCREEN")) {
             LOG_PROPERTY(path, key, value);
             attrs.flags |= ATTR_TOUCHSCREEN;
         }
@@ -212,6 +223,7 @@ device_added(struct udev_device *udev_device)
     free(attrs.vendor);
     if (attrs.tags) {
         char **tag = attrs.tags;
+
         while (*tag) {
             free(*tag);
             tag++;
@@ -246,7 +258,7 @@ wakeup_handler(pointer data, int err, pointer read_mask)
     if (err < 0)
         return;
 
-    if (FD_ISSET(udev_fd, (fd_set *)read_mask)) {
+    if (FD_ISSET(udev_fd, (fd_set *) read_mask)) {
         udev_device = udev_monitor_receive_device(udev_monitor);
         if (!udev_device)
             return;
@@ -282,7 +294,8 @@ config_udev_init(void)
     if (!udev_monitor)
         return 0;
 
-    udev_monitor_filter_add_match_subsystem_devtype(udev_monitor, "input", NULL);
+    udev_monitor_filter_add_match_subsystem_devtype(udev_monitor, "input",
+                                                    NULL);
     udev_monitor_filter_add_match_subsystem_devtype(udev_monitor, "tty", NULL); /* For Wacom serial devices */
 
 #ifdef HAVE_UDEV_MONITOR_FILTER_ADD_MATCH_TAG
@@ -311,7 +324,8 @@ config_udev_init(void)
     devices = udev_enumerate_get_list_entry(enumerate);
     udev_list_entry_foreach(device, devices) {
         const char *syspath = udev_list_entry_get_name(device);
-        struct udev_device *udev_device = udev_device_new_from_syspath(udev, syspath);
+        struct udev_device *udev_device =
+            udev_device_new_from_syspath(udev, syspath);
 
         /* Device might be gone by the time we try to open it */
         if (!udev_device)

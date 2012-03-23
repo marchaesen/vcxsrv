@@ -22,7 +22,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 /*
  * Thread support for gl dispatch.
  *
@@ -63,14 +62,13 @@
 #ifndef GLTHREAD_H
 #define GLTHREAD_H
 
-
 #if defined(USE_MGL_NAMESPACE)
 #define _glapi_Dispatch _mglapi_Dispatch
 #endif
 
 #if (defined(PTHREADS) || defined(WIN32_THREADS)) \
     && !defined(THREADS)
-# define THREADS
+#define THREADS
 #endif
 
 #ifdef VMS
@@ -87,11 +85,11 @@
  * proper compiling for MT-safe libc etc.
  */
 #if defined(PTHREADS)
-#include <pthread.h> /* POSIX threads headers */
+#include <pthread.h>            /* POSIX threads headers */
 
 typedef struct {
-   pthread_key_t  key;
-   int initMagic;
+    pthread_key_t key;
+    int initMagic;
 } _glthread_TSD;
 
 typedef pthread_t _glthread_Thread;
@@ -113,10 +111,7 @@ typedef pthread_mutex_t _glthread_Mutex;
 #define _glthread_UNLOCK_MUTEX(name) \
    (void) pthread_mutex_unlock(&(name))
 
-#endif /* PTHREADS */
-
-
-
+#endif                          /* PTHREADS */
 
 /*
  * Solaris threads. Use only up to Solaris 2.4.
@@ -124,9 +119,6 @@ typedef pthread_mutex_t _glthread_Mutex;
  * Be sure to compile with -mt on the Solaris compilers, or
  * use -D_REENTRANT if using gcc.
  */
-
-
-
 
 /*
  * Windows threads. Should work with Windows NT and 95.
@@ -137,8 +129,8 @@ typedef pthread_mutex_t _glthread_Mutex;
 #include <windows.h>
 
 typedef struct {
-   DWORD key;
-   int   initMagic;
+    DWORD key;
+    int initMagic;
 } _glthread_TSD;
 
 typedef HANDLE _glthread_Thread;
@@ -151,7 +143,7 @@ typedef CRITICAL_SECTION _glthread_Mutex;
 #define _glthread_LOCK_MUTEX(name)  EnterCriticalSection(&name)
 #define _glthread_UNLOCK_MUTEX(name)  LeaveCriticalSection(&name)
 
-#endif /* WIN32_THREADS */
+#endif                          /* WIN32_THREADS */
 
 /*
  * BeOS threads. R5.x required.
@@ -162,16 +154,16 @@ typedef CRITICAL_SECTION _glthread_Mutex;
 #include <support/TLS.h>
 
 typedef struct {
-   int32        key;
-   int          initMagic;
+    int32 key;
+    int initMagic;
 } _glthread_TSD;
 
 typedef thread_id _glthread_Thread;
 
 /* Use Benaphore, aka speeder semaphore */
 typedef struct {
-    int32   lock;
-    sem_id  sem;
+    int32 lock;
+    sem_id sem;
 } benaphore;
 typedef benaphore _glthread_Mutex;
 
@@ -182,9 +174,7 @@ typedef benaphore _glthread_Mutex;
 									  	if (atomic_add(&(name.lock), 1) >= 1) acquire_sem(name.sem)
 #define _glthread_UNLOCK_MUTEX(name)  	if (atomic_add(&(name.lock), -1) > 1) release_sem(name.sem)
 
-#endif /* BEOS_THREADS */
-
-
+#endif                          /* BEOS_THREADS */
 
 #ifndef THREADS
 
@@ -208,44 +198,37 @@ typedef int _glthread_Mutex;
 
 #define _glthread_UNLOCK_MUTEX(name)  (void) name
 
-#endif /* THREADS */
-
-
+#endif                          /* THREADS */
 
 /*
  * Platform independent thread specific data API.
  */
 
 extern unsigned long
-_glthread_GetID(void);
-
-
-extern void
-_glthread_InitTSD(_glthread_TSD *);
-
-
-extern void *
-_glthread_GetTSD(_glthread_TSD *);
-
+ _glthread_GetID(void);
 
 extern void
-_glthread_SetTSD(_glthread_TSD *, void *);
+ _glthread_InitTSD(_glthread_TSD *);
+
+extern void *_glthread_GetTSD(_glthread_TSD *);
+
+extern void
+ _glthread_SetTSD(_glthread_TSD *, void *);
 
 #if defined(GLX_USE_TLS)
 
-extern TLS struct _glapi_table * _glapi_tls_Dispatch;
+extern TLS struct _glapi_table *_glapi_tls_Dispatch;
 
 #define GET_DISPATCH() _glapi_tls_Dispatch
 
 #elif !defined(GL_CALL)
-# if defined(THREADS)
-#  define GET_DISPATCH() \
+#if defined(THREADS)
+#define GET_DISPATCH() \
    ((__builtin_expect( _glapi_Dispatch != NULL, 1 )) \
        ? _glapi_Dispatch : _glapi_get_dispatch())
-# else
-#  define GET_DISPATCH() _glapi_Dispatch
-# endif /* defined(THREADS) */
-#endif  /* ndef GL_CALL */
+#else
+#define GET_DISPATCH() _glapi_Dispatch
+#endif                          /* defined(THREADS) */
+#endif                          /* ndef GL_CALL */
 
-
-#endif /* THREADS_H */
+#endif                          /* THREADS_H */

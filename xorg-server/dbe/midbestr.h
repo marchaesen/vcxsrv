@@ -30,14 +30,12 @@
  * 
  *****************************************************************************/
 
-
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
 
 #ifndef MIDBE_STRUCT_H
 #define MIDBE_STRUCT_H
-
 
 /* DEFINES */
 
@@ -50,15 +48,14 @@
 
 /* TYPEDEFS */
 
-typedef struct _MiDbeWindowPrivPrivRec
-{
+typedef struct _MiDbeWindowPrivPrivRec {
     /* Place machine-specific fields in here.
      * Since this is mi code, we do not really have machine-specific fields.
      */
 
     /* Pointer to a drawable that contains the contents of the back buffer.
      */
-    PixmapPtr		pBackBuffer;
+    PixmapPtr pBackBuffer;
 
     /* Pointer to a drawable that contains the contents of the front buffer.
      * This pointer is only used for the XdbeUntouched swap action.  For that
@@ -68,12 +65,11 @@ typedef struct _MiDbeWindowPrivPrivRec
      * and then swap the drawable/resource associations in the resource
      * database.
      */
-    PixmapPtr		pFrontBuffer;
+    PixmapPtr pFrontBuffer;
 
     /* Pointer back to our window private with which we are associated. */
-    DbeWindowPrivPtr	pDbeWindowPriv;
+    DbeWindowPrivPtr pDbeWindowPriv;
 
 } MiDbeWindowPrivPrivRec, *MiDbeWindowPrivPrivPtr;
 
-#endif /* MIDBE_STRUCT_H */
-
+#endif                          /* MIDBE_STRUCT_H */

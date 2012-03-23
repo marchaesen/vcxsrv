@@ -23,7 +23,7 @@
 #include "randrstr.h"
 
 static int
-SProcRRQueryVersion (ClientPtr client)
+SProcRRQueryVersion(ClientPtr client)
 {
     REQUEST(xRRQueryVersionReq);
 
@@ -34,7 +34,7 @@ SProcRRQueryVersion (ClientPtr client)
 }
 
 static int
-SProcRRGetScreenInfo (ClientPtr client)
+SProcRRGetScreenInfo(ClientPtr client)
 {
     REQUEST(xRRGetScreenInfoReq);
 
@@ -44,20 +44,18 @@ SProcRRGetScreenInfo (ClientPtr client)
 }
 
 static int
-SProcRRSetScreenConfig (ClientPtr client)
+SProcRRSetScreenConfig(ClientPtr client)
 {
     REQUEST(xRRSetScreenConfigReq);
 
-    if (RRClientKnowsRates (client))
-    {
-	REQUEST_SIZE_MATCH (xRRSetScreenConfigReq);
-	swaps(&stuff->rate);
+    if (RRClientKnowsRates(client)) {
+        REQUEST_SIZE_MATCH(xRRSetScreenConfigReq);
+        swaps(&stuff->rate);
     }
-    else
-    {
-	REQUEST_SIZE_MATCH (xRR1_0SetScreenConfigReq);
+    else {
+        REQUEST_SIZE_MATCH(xRR1_0SetScreenConfigReq);
     }
-    
+
     swaps(&stuff->length);
     swapl(&stuff->drawable);
     swapl(&stuff->timestamp);
@@ -67,7 +65,7 @@ SProcRRSetScreenConfig (ClientPtr client)
 }
 
 static int
-SProcRRSelectInput (ClientPtr client)
+SProcRRSelectInput(ClientPtr client)
 {
     REQUEST(xRRSelectInputReq);
 
@@ -78,7 +76,7 @@ SProcRRSelectInput (ClientPtr client)
 }
 
 static int
-SProcRRGetScreenSizeRange (ClientPtr client)
+SProcRRGetScreenSizeRange(ClientPtr client)
 {
     REQUEST(xRRGetScreenSizeRangeReq);
 
@@ -89,7 +87,7 @@ SProcRRGetScreenSizeRange (ClientPtr client)
 }
 
 static int
-SProcRRSetScreenSize (ClientPtr client)
+SProcRRSetScreenSize(ClientPtr client)
 {
     REQUEST(xRRSetScreenSizeReq);
 
@@ -104,7 +102,7 @@ SProcRRSetScreenSize (ClientPtr client)
 }
 
 static int
-SProcRRGetScreenResources (ClientPtr client)
+SProcRRGetScreenResources(ClientPtr client)
 {
     REQUEST(xRRGetScreenResourcesReq);
 
@@ -115,7 +113,7 @@ SProcRRGetScreenResources (ClientPtr client)
 }
 
 static int
-SProcRRGetOutputInfo (ClientPtr client)
+SProcRRGetOutputInfo(ClientPtr client)
 {
     REQUEST(xRRGetOutputInfoReq);
 
@@ -127,7 +125,7 @@ SProcRRGetOutputInfo (ClientPtr client)
 }
 
 static int
-SProcRRListOutputProperties (ClientPtr client)
+SProcRRListOutputProperties(ClientPtr client)
 {
     REQUEST(xRRListOutputPropertiesReq);
 
@@ -138,7 +136,7 @@ SProcRRListOutputProperties (ClientPtr client)
 }
 
 static int
-SProcRRQueryOutputProperty (ClientPtr client)
+SProcRRQueryOutputProperty(ClientPtr client)
 {
     REQUEST(xRRQueryOutputPropertyReq);
 
@@ -150,7 +148,7 @@ SProcRRQueryOutputProperty (ClientPtr client)
 }
 
 static int
-SProcRRConfigureOutputProperty (ClientPtr client)
+SProcRRConfigureOutputProperty(ClientPtr client)
 {
     REQUEST(xRRConfigureOutputPropertyReq);
 
@@ -162,37 +160,37 @@ SProcRRConfigureOutputProperty (ClientPtr client)
 }
 
 static int
-SProcRRChangeOutputProperty (ClientPtr client)
+SProcRRChangeOutputProperty(ClientPtr client)
 {
     REQUEST(xRRChangeOutputPropertyReq);
 
-    REQUEST_AT_LEAST_SIZE (xRRChangeOutputPropertyReq);
+    REQUEST_AT_LEAST_SIZE(xRRChangeOutputPropertyReq);
     swaps(&stuff->length);
     swapl(&stuff->output);
     swapl(&stuff->property);
     swapl(&stuff->type);
     swapl(&stuff->nUnits);
-    switch(stuff->format) {
-	case 8:
-	    break;
-	case 16:
-	    SwapRestS(stuff);
-	    break;
-	case 32:
-	    SwapRestL(stuff);
-	    break;
-	default:
-	    client->errorValue = stuff->format;
-	    return BadValue;
+    switch (stuff->format) {
+    case 8:
+        break;
+    case 16:
+        SwapRestS(stuff);
+        break;
+    case 32:
+        SwapRestL(stuff);
+        break;
+    default:
+        client->errorValue = stuff->format;
+        return BadValue;
     }
     return (*ProcRandrVector[stuff->randrReqType]) (client);
 }
 
 static int
-SProcRRDeleteOutputProperty (ClientPtr client)
+SProcRRDeleteOutputProperty(ClientPtr client)
 {
     REQUEST(xRRDeleteOutputPropertyReq);
-    
+
     REQUEST_SIZE_MATCH(xRRDeleteOutputPropertyReq);
     swaps(&stuff->length);
     swapl(&stuff->output);
@@ -201,7 +199,7 @@ SProcRRDeleteOutputProperty (ClientPtr client)
 }
 
 static int
-SProcRRGetOutputProperty (ClientPtr client)
+SProcRRGetOutputProperty(ClientPtr client)
 {
     REQUEST(xRRGetOutputPropertyReq);
 
@@ -216,9 +214,10 @@ SProcRRGetOutputProperty (ClientPtr client)
 }
 
 static int
-SProcRRCreateMode (ClientPtr client)
+SProcRRCreateMode(ClientPtr client)
 {
     xRRModeInfo *modeinfo;
+
     REQUEST(xRRCreateModeReq);
 
     REQUEST_AT_LEAST_SIZE(xRRCreateModeReq);
@@ -242,7 +241,7 @@ SProcRRCreateMode (ClientPtr client)
 }
 
 static int
-SProcRRDestroyMode (ClientPtr client)
+SProcRRDestroyMode(ClientPtr client)
 {
     REQUEST(xRRDestroyModeReq);
 
@@ -253,7 +252,7 @@ SProcRRDestroyMode (ClientPtr client)
 }
 
 static int
-SProcRRAddOutputMode (ClientPtr client)
+SProcRRAddOutputMode(ClientPtr client)
 {
     REQUEST(xRRAddOutputModeReq);
 
@@ -265,7 +264,7 @@ SProcRRAddOutputMode (ClientPtr client)
 }
 
 static int
-SProcRRDeleteOutputMode (ClientPtr client)
+SProcRRDeleteOutputMode(ClientPtr client)
 {
     REQUEST(xRRDeleteOutputModeReq);
 
@@ -277,7 +276,7 @@ SProcRRDeleteOutputMode (ClientPtr client)
 }
 
 static int
-SProcRRGetCrtcInfo (ClientPtr client)
+SProcRRGetCrtcInfo(ClientPtr client)
 {
     REQUEST(xRRGetCrtcInfoReq);
 
@@ -289,7 +288,7 @@ SProcRRGetCrtcInfo (ClientPtr client)
 }
 
 static int
-SProcRRSetCrtcConfig (ClientPtr client)
+SProcRRSetCrtcConfig(ClientPtr client)
 {
     REQUEST(xRRSetCrtcConfigReq);
 
@@ -307,7 +306,7 @@ SProcRRSetCrtcConfig (ClientPtr client)
 }
 
 static int
-SProcRRGetCrtcGammaSize (ClientPtr client)
+SProcRRGetCrtcGammaSize(ClientPtr client)
 {
     REQUEST(xRRGetCrtcGammaSizeReq);
 
@@ -318,7 +317,7 @@ SProcRRGetCrtcGammaSize (ClientPtr client)
 }
 
 static int
-SProcRRGetCrtcGamma (ClientPtr client)
+SProcRRGetCrtcGamma(ClientPtr client)
 {
     REQUEST(xRRGetCrtcGammaReq);
 
@@ -329,7 +328,7 @@ SProcRRGetCrtcGamma (ClientPtr client)
 }
 
 static int
-SProcRRSetCrtcGamma (ClientPtr client)
+SProcRRSetCrtcGamma(ClientPtr client)
 {
     REQUEST(xRRSetCrtcGammaReq);
 
@@ -342,30 +341,32 @@ SProcRRSetCrtcGamma (ClientPtr client)
 }
 
 static int
-SProcRRSetCrtcTransform (ClientPtr client)
+SProcRRSetCrtcTransform(ClientPtr client)
 {
     int nparams;
     char *filter;
     CARD32 *params;
+
     REQUEST(xRRSetCrtcTransformReq);
 
     REQUEST_AT_LEAST_SIZE(xRRSetCrtcTransformReq);
     swaps(&stuff->length);
     swapl(&stuff->crtc);
-    SwapLongs((CARD32 *)&stuff->transform, bytes_to_int32(sizeof(xRenderTransform)));
+    SwapLongs((CARD32 *) &stuff->transform,
+              bytes_to_int32(sizeof(xRenderTransform)));
     swaps(&stuff->nbytesFilter);
-    filter = (char *)(stuff + 1);
+    filter = (char *) (stuff + 1);
     params = (CARD32 *) (filter + pad_to_int32(stuff->nbytesFilter));
     nparams = ((CARD32 *) stuff + client->req_len) - params;
     if (nparams < 0)
-	return BadLength;
+        return BadLength;
 
     SwapLongs(params, nparams);
     return (*ProcRandrVector[stuff->randrReqType]) (client);
 }
 
 static int
-SProcRRGetCrtcTransform (ClientPtr client)
+SProcRRGetCrtcTransform(ClientPtr client)
 {
     REQUEST(xRRGetCrtcTransformReq);
 
@@ -376,10 +377,10 @@ SProcRRGetCrtcTransform (ClientPtr client)
 }
 
 static int
-SProcRRGetPanning (ClientPtr client)
+SProcRRGetPanning(ClientPtr client)
 {
     REQUEST(xRRGetPanningReq);
-    
+
     REQUEST_SIZE_MATCH(xRRGetPanningReq);
     swaps(&stuff->length);
     swapl(&stuff->crtc);
@@ -387,10 +388,10 @@ SProcRRGetPanning (ClientPtr client)
 }
 
 static int
-SProcRRSetPanning (ClientPtr client)
+SProcRRSetPanning(ClientPtr client)
 {
     REQUEST(xRRSetPanningReq);
-    
+
     REQUEST_SIZE_MATCH(xRRSetPanningReq);
     swaps(&stuff->length);
     swapl(&stuff->crtc);
@@ -411,7 +412,7 @@ SProcRRSetPanning (ClientPtr client)
 }
 
 static int
-SProcRRSetOutputPrimary (ClientPtr client)
+SProcRRSetOutputPrimary(ClientPtr client)
 {
     REQUEST(xRRSetOutputPrimaryReq);
 
@@ -419,57 +420,56 @@ SProcRRSetOutputPrimary (ClientPtr client)
     swaps(&stuff->length);
     swapl(&stuff->window);
     swapl(&stuff->output);
-    return ProcRandrVector[stuff->randrReqType](client);
+    return ProcRandrVector[stuff->randrReqType] (client);
 }
 
 static int
-SProcRRGetOutputPrimary (ClientPtr client)
+SProcRRGetOutputPrimary(ClientPtr client)
 {
     REQUEST(xRRGetOutputPrimaryReq);
 
     REQUEST_SIZE_MATCH(xRRGetOutputPrimaryReq);
     swaps(&stuff->length);
     swapl(&stuff->window);
-    return ProcRandrVector[stuff->randrReqType](client);
+    return ProcRandrVector[stuff->randrReqType] (client);
 }
 
-int (*SProcRandrVector[RRNumberRequests])(ClientPtr) = {
-    SProcRRQueryVersion,	/* 0 */
+int (*SProcRandrVector[RRNumberRequests]) (ClientPtr) = {
+    SProcRRQueryVersion,        /* 0 */
 /* we skip 1 to make old clients fail pretty immediately */
-    NULL,			/* 1 SProcRandrOldGetScreenInfo */
+        NULL,                   /* 1 SProcRandrOldGetScreenInfo */
 /* V1.0 apps share the same set screen config request id */
-    SProcRRSetScreenConfig,	/* 2 */
-    NULL,			/* 3 SProcRandrOldScreenChangeSelectInput */
+        SProcRRSetScreenConfig, /* 2 */
+        NULL,                   /* 3 SProcRandrOldScreenChangeSelectInput */
 /* 3 used to be ScreenChangeSelectInput; deprecated */
-    SProcRRSelectInput,		/* 4 */
-    SProcRRGetScreenInfo,    	/* 5 */
+        SProcRRSelectInput,     /* 4 */
+        SProcRRGetScreenInfo,   /* 5 */
 /* V1.2 additions */
-    SProcRRGetScreenSizeRange,	/* 6 */
-    SProcRRSetScreenSize,	/* 7 */
-    SProcRRGetScreenResources,	/* 8 */
-    SProcRRGetOutputInfo,	/* 9 */
-    SProcRRListOutputProperties,/* 10 */
-    SProcRRQueryOutputProperty,	/* 11 */
-    SProcRRConfigureOutputProperty,  /* 12 */
-    SProcRRChangeOutputProperty,/* 13 */
-    SProcRRDeleteOutputProperty,/* 14 */
-    SProcRRGetOutputProperty,	/* 15 */
-    SProcRRCreateMode,		/* 16 */
-    SProcRRDestroyMode,		/* 17 */
-    SProcRRAddOutputMode,	/* 18 */
-    SProcRRDeleteOutputMode,	/* 19 */
-    SProcRRGetCrtcInfo,		/* 20 */
-    SProcRRSetCrtcConfig,	/* 21 */
-    SProcRRGetCrtcGammaSize,	/* 22 */
-    SProcRRGetCrtcGamma,	/* 23 */
-    SProcRRSetCrtcGamma,	/* 24 */
+        SProcRRGetScreenSizeRange,      /* 6 */
+        SProcRRSetScreenSize,   /* 7 */
+        SProcRRGetScreenResources,      /* 8 */
+        SProcRRGetOutputInfo,   /* 9 */
+        SProcRRListOutputProperties,    /* 10 */
+        SProcRRQueryOutputProperty,     /* 11 */
+        SProcRRConfigureOutputProperty, /* 12 */
+        SProcRRChangeOutputProperty,    /* 13 */
+        SProcRRDeleteOutputProperty,    /* 14 */
+        SProcRRGetOutputProperty,       /* 15 */
+        SProcRRCreateMode,      /* 16 */
+        SProcRRDestroyMode,     /* 17 */
+        SProcRRAddOutputMode,   /* 18 */
+        SProcRRDeleteOutputMode,        /* 19 */
+        SProcRRGetCrtcInfo,     /* 20 */
+        SProcRRSetCrtcConfig,   /* 21 */
+        SProcRRGetCrtcGammaSize,        /* 22 */
+        SProcRRGetCrtcGamma,    /* 23 */
+        SProcRRSetCrtcGamma,    /* 24 */
 /* V1.3 additions */
-    SProcRRGetScreenResources,	/* 25 GetScreenResourcesCurrent */
-    SProcRRSetCrtcTransform,	/* 26 */
-    SProcRRGetCrtcTransform,	/* 27 */
-    SProcRRGetPanning,		/* 28 */
-    SProcRRSetPanning,		/* 29 */
-    SProcRRSetOutputPrimary,	/* 30 */
-    SProcRRGetOutputPrimary,	/* 31 */
+        SProcRRGetScreenResources,      /* 25 GetScreenResourcesCurrent */
+        SProcRRSetCrtcTransform,        /* 26 */
+        SProcRRGetCrtcTransform,        /* 27 */
+        SProcRRGetPanning,      /* 28 */
+        SProcRRSetPanning,      /* 29 */
+        SProcRRSetOutputPrimary,        /* 30 */
+        SProcRRGetOutputPrimary,        /* 31 */
 };
-

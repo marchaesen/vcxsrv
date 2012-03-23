@@ -32,7 +32,8 @@
 
 #include <GL/glxint.h>
 
-int AreFBConfigsMatch( __GLXFBConfig *c1, __GLXFBConfig *c2 );
-__GLXFBConfig *FindMatchingFBConfig( __GLXFBConfig *c, __GLXFBConfig *configs, int nconfigs );
+int AreFBConfigsMatch(__GLXFBConfig * c1, __GLXFBConfig * c2);
+__GLXFBConfig *FindMatchingFBConfig(__GLXFBConfig * c, __GLXFBConfig * configs,
+                                    int nconfigs);
 
 #endif

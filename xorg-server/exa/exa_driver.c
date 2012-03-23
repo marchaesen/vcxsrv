@@ -33,7 +33,7 @@
 
 /* This file holds the driver allocated pixmaps specific implementation. */
 
-static _X_INLINE void*
+static _X_INLINE void *
 ExaGetPixmapAddress(PixmapPtr p)
 {
     ExaPixmapPriv(p);
@@ -48,16 +48,17 @@ ExaGetPixmapAddress(PixmapPtr p)
  */
 PixmapPtr
 exaCreatePixmap_driver(ScreenPtr pScreen, int w, int h, int depth,
-		unsigned usage_hint)
+                       unsigned usage_hint)
 {
     PixmapPtr pPixmap;
-    ExaPixmapPrivPtr	pExaPixmap;
+    ExaPixmapPrivPtr pExaPixmap;
     int bpp;
     size_t paddedWidth, datasize;
+
     ExaScreenPriv(pScreen);
 
     if (w > 32767 || h > 32767)
-	return NullPixmap;
+        return NullPixmap;
 
     swap(pExaScr, pScreen, CreatePixmap);
     pPixmap = pScreen->CreatePixmap(pScreen, 0, 0, depth, usage_hint);
@@ -77,28 +78,32 @@ exaCreatePixmap_driver(ScreenPtr pScreen, int w, int h, int depth,
     pPixmap->devPrivate.ptr = NULL;
 
     if (pExaScr->info->CreatePixmap2) {
-	int new_pitch = 0;
-	pExaPixmap->driverPriv = pExaScr->info->CreatePixmap2(pScreen, w, h, depth, usage_hint, bpp, &new_pitch);
-	paddedWidth = pExaPixmap->fb_pitch = new_pitch;
+        int new_pitch = 0;
+
+        pExaPixmap->driverPriv =
+            pExaScr->info->CreatePixmap2(pScreen, w, h, depth, usage_hint, bpp,
+                                         &new_pitch);
+        paddedWidth = pExaPixmap->fb_pitch = new_pitch;
     }
     else {
-	paddedWidth = ((w * bpp + FB_MASK) >> FB_SHIFT) * sizeof(FbBits);
-	if (paddedWidth / 4 > 32767 || h > 32767)
-	    return NullPixmap;
+        paddedWidth = ((w * bpp + FB_MASK) >> FB_SHIFT) * sizeof(FbBits);
+        if (paddedWidth / 4 > 32767 || h > 32767)
+            return NullPixmap;
 
-	exaSetFbPitch(pExaScr, pExaPixmap, w, h, bpp);
+        exaSetFbPitch(pExaScr, pExaPixmap, w, h, bpp);
 
-	if (paddedWidth < pExaPixmap->fb_pitch)
-	    paddedWidth = pExaPixmap->fb_pitch;
-	datasize = h * paddedWidth;
-	pExaPixmap->driverPriv = pExaScr->info->CreatePixmap(pScreen, datasize, 0);
+        if (paddedWidth < pExaPixmap->fb_pitch)
+            paddedWidth = pExaPixmap->fb_pitch;
+        datasize = h * paddedWidth;
+        pExaPixmap->driverPriv =
+            pExaScr->info->CreatePixmap(pScreen, datasize, 0);
     }
 
     if (!pExaPixmap->driverPriv) {
-	swap(pExaScr, pScreen, DestroyPixmap);
-	pScreen->DestroyPixmap (pPixmap);
-	swap(pExaScr, pScreen, DestroyPixmap);
-	return NULL;
+        swap(pExaScr, pScreen, DestroyPixmap);
+        pScreen->DestroyPixmap(pPixmap);
+        swap(pExaScr, pScreen, DestroyPixmap);
+        return NULL;
     }
 
     /* Allow ModifyPixmapHeader to set sys_ptr appropriately. */
@@ -107,26 +112,25 @@ exaCreatePixmap_driver(ScreenPtr pScreen, int w, int h, int depth,
     pExaPixmap->pDamage = NULL;
     pExaPixmap->sys_ptr = NULL;
 
-    (*pScreen->ModifyPixmapHeader)(pPixmap, w, h, 0, 0,
-				    paddedWidth, NULL);
+    (*pScreen->ModifyPixmapHeader) (pPixmap, w, h, 0, 0, paddedWidth, NULL);
 
     pExaPixmap->area = NULL;
 
-    exaSetAccelBlock(pExaScr, pExaPixmap,
-                     w, h, bpp);
+    exaSetAccelBlock(pExaScr, pExaPixmap, w, h, bpp);
 
     pExaPixmap->use_gpu_copy = exaPixmapHasGpuCopy(pPixmap);
 
     /* During a fallback we must prepare access. */
     if (pExaScr->fallback_counter)
-	exaPrepareAccess(&pPixmap->drawable, EXA_PREPARE_AUX_DEST);
+        exaPrepareAccess(&pPixmap->drawable, EXA_PREPARE_AUX_DEST);
 
     return pPixmap;
 }
 
 Bool
-exaModifyPixmapHeader_driver(PixmapPtr pPixmap, int width, int height, int depth,
-		      int bitsPerPixel, int devKind, pointer pPixData)
+exaModifyPixmapHeader_driver(PixmapPtr pPixmap, int width, int height,
+                             int depth, int bitsPerPixel, int devKind,
+                             pointer pPixData)
 {
     ScreenPtr pScreen;
     ExaScreenPrivPtr pExaScr;
@@ -148,36 +152,35 @@ exaModifyPixmapHeader_driver(PixmapPtr pPixmap, int width, int height, int depth
             pExaPixmap->sys_pitch = devKind;
 
         if (width > 0 && height > 0 && bitsPerPixel > 0) {
-            exaSetFbPitch(pExaScr, pExaPixmap,
-                          width, height, bitsPerPixel);
+            exaSetFbPitch(pExaScr, pExaPixmap, width, height, bitsPerPixel);
 
-            exaSetAccelBlock(pExaScr, pExaPixmap,
-                             width, height, bitsPerPixel);
+            exaSetAccelBlock(pExaScr, pExaPixmap, width, height, bitsPerPixel);
         }
     }
 
     if (pExaScr->info->ModifyPixmapHeader) {
-	ret = pExaScr->info->ModifyPixmapHeader(pPixmap, width, height, depth,
-						bitsPerPixel, devKind, pPixData);
-	/* For EXA_HANDLES_PIXMAPS, we set pPixData to NULL.
-	 * If pPixmap->devPrivate.ptr is non-NULL, then we've got a
-	 * !has_gpu_copy pixmap. We need to store the pointer,
-	 * because PrepareAccess won't be called.
-	 */
-	if (!pPixData && pPixmap->devPrivate.ptr && pPixmap->devKind) {
-	    pExaPixmap->sys_ptr = pPixmap->devPrivate.ptr;
-	    pExaPixmap->sys_pitch = pPixmap->devKind;
-	}
-	if (ret == TRUE)
-	    goto out;
+        ret = pExaScr->info->ModifyPixmapHeader(pPixmap, width, height, depth,
+                                                bitsPerPixel, devKind,
+                                                pPixData);
+        /* For EXA_HANDLES_PIXMAPS, we set pPixData to NULL.
+         * If pPixmap->devPrivate.ptr is non-NULL, then we've got a
+         * !has_gpu_copy pixmap. We need to store the pointer,
+         * because PrepareAccess won't be called.
+         */
+        if (!pPixData && pPixmap->devPrivate.ptr && pPixmap->devKind) {
+            pExaPixmap->sys_ptr = pPixmap->devPrivate.ptr;
+            pExaPixmap->sys_pitch = pPixmap->devKind;
+        }
+        if (ret == TRUE)
+            goto out;
     }
 
     swap(pExaScr, pScreen, ModifyPixmapHeader);
     ret = pScreen->ModifyPixmapHeader(pPixmap, width, height, depth,
-					    bitsPerPixel, devKind, pPixData);
+                                      bitsPerPixel, devKind, pPixData);
     swap(pExaScr, pScreen, ModifyPixmapHeader);
 
-out:
+ out:
     /* Always NULL this, we don't want lingering pointers. */
     pPixmap->devPrivate.ptr = NULL;
 
@@ -185,25 +188,25 @@ out:
 }
 
 Bool
-exaDestroyPixmap_driver (PixmapPtr pPixmap)
+exaDestroyPixmap_driver(PixmapPtr pPixmap)
 {
-    ScreenPtr	pScreen = pPixmap->drawable.pScreen;
+    ScreenPtr pScreen = pPixmap->drawable.pScreen;
+
     ExaScreenPriv(pScreen);
     Bool ret;
 
-    if (pPixmap->refcnt == 1)
-    {
-	ExaPixmapPriv (pPixmap);
+    if (pPixmap->refcnt == 1) {
+        ExaPixmapPriv(pPixmap);
 
-	exaDestroyPixmap(pPixmap);
+        exaDestroyPixmap(pPixmap);
 
-	if (pExaPixmap->driverPriv)
-	    pExaScr->info->DestroyPixmap(pScreen, pExaPixmap->driverPriv);
-	pExaPixmap->driverPriv = NULL;
+        if (pExaPixmap->driverPriv)
+            pExaScr->info->DestroyPixmap(pScreen, pExaPixmap->driverPriv);
+        pExaPixmap->driverPriv = NULL;
     }
 
     swap(pExaScr, pScreen, DestroyPixmap);
-    ret = pScreen->DestroyPixmap (pPixmap);
+    ret = pScreen->DestroyPixmap(pPixmap);
     swap(pExaScr, pScreen, DestroyPixmap);
 
     return ret;
@@ -213,6 +216,7 @@ Bool
 exaPixmapHasGpuCopy_driver(PixmapPtr pPixmap)
 {
     ScreenPtr pScreen = pPixmap->drawable.pScreen;
+
     ExaScreenPriv(pScreen);
     pointer saved_ptr;
     Bool ret;

@@ -53,7 +53,8 @@
 /** Returns TRUE if the key is a valid modifier.  For PC-class
  * keyboards, all keys can be used as modifiers, so return TRUE
  * always. */
-Bool LegalModifier(unsigned int key, DeviceIntPtr pDev)
+Bool
+LegalModifier(unsigned int key, DeviceIntPtr pDev)
 {
     return TRUE;
 }
@@ -61,21 +62,23 @@ Bool LegalModifier(unsigned int key, DeviceIntPtr pDev)
 /** Called from dix/main.c on each server generation to initialize
  * inputs.  All the work is done in dmxInputInit.  \see
  * dmxInputInit() */
-void InitInput(int argc, char **argv)
+void
+InitInput(int argc, char **argv)
 {
-    int          i;
+    int i;
     DMXInputInfo *dmxInput;
 
     if (!dmxNumInputs)
         dmxLog(dmxFatal, "InitInput: no inputs specified\n");
-    
+
     for (i = 0, dmxInput = &dmxInputs[0]; i < dmxNumInputs; i++, dmxInput++)
         dmxInputInit(dmxInput);
 
     mieqInit();
 }
 
-void CloseInput(void)
+void
+CloseInput(void)
 {
     mieqFini();
 }
@@ -83,9 +86,10 @@ void CloseInput(void)
 /** Called from dix/dispatch.c in Dispatch() whenever input events
  * require processing.  All the work is done in the lower level
  * routines. */
-void ProcessInputEvents(void)
+void
+ProcessInputEvents(void)
 {
-    int          i;
+    int i;
     DMXInputInfo *dmxInput;
 
     for (i = 0, dmxInput = &dmxInputs[0]; i < dmxNumInputs; i++, dmxInput++)
@@ -97,9 +101,10 @@ void ProcessInputEvents(void)
  * windows on the display might have changed.  This information is used
  * by input drivers (currently only the console driver) that provide
  * information about window layout to the user. */
-void dmxUpdateWindowInfo(DMXUpdateType type, WindowPtr pWindow)
+void
+dmxUpdateWindowInfo(DMXUpdateType type, WindowPtr pWindow)
 {
-    int          i;
+    int i;
     DMXInputInfo *dmxInput;
 
     for (i = 0, dmxInput = &dmxInputs[0]; i < dmxNumInputs; i++, dmxInput++)
@@ -108,8 +113,8 @@ void dmxUpdateWindowInfo(DMXUpdateType type, WindowPtr pWindow)
 }
 
 int
-NewInputDeviceRequest (InputOption *options, InputAttributes *attrs,
-                       DeviceIntPtr *pdev)
+NewInputDeviceRequest(InputOption *options, InputAttributes * attrs,
+                      DeviceIntPtr *pdev)
 {
     return BadRequest;
 }

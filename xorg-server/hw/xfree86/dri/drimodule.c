@@ -44,26 +44,25 @@ static MODULESETUPPROTO(driSetup);
 
 drmServerInfo DRIDRMServerInfo;
 
-static XF86ModuleVersionInfo VersRec =
-{
-        "dri",
-        MODULEVENDORSTRING,
-        MODINFOSTRING1,
-        MODINFOSTRING2,
-        XORG_VERSION_CURRENT,
-        1, 0, 0,
-        ABI_CLASS_EXTENSION,
-        ABI_EXTENSION_VERSION,
-        MOD_CLASS_NONE,
-        {0,0,0,0}
+static XF86ModuleVersionInfo VersRec = {
+    "dri",
+    MODULEVENDORSTRING,
+    MODINFOSTRING1,
+    MODINFOSTRING2,
+    XORG_VERSION_CURRENT,
+    1, 0, 0,
+    ABI_CLASS_EXTENSION,
+    ABI_EXTENSION_VERSION,
+    MOD_CLASS_NONE,
+    {0, 0, 0, 0}
 };
 
 extern void XFree86DRIExtensionInit(INITARGS);
+
 #define _XF86DRI_SERVER_
 #include <X11/dri/xf86driproto.h>
 
-static ExtensionModule XF86DRIExt =
-{
+static ExtensionModule XF86DRIExt = {
     XFree86DRIExtensionInit,
     XF86DRINAME,
     &noXFree86DRIExtension,
@@ -79,15 +78,16 @@ driSetup(pointer module, pointer opts, int *errmaj, int *errmin)
     static Bool setupDone = FALSE;
 
     if (!setupDone) {
-	setupDone = TRUE;
-	LoadExtension(&XF86DRIExt, FALSE);
-    } else {
-	if (errmaj) *errmaj = LDR_ONCEONLY;
+        setupDone = TRUE;
+        LoadExtension(&XF86DRIExt, FALSE);
+    }
+    else {
+        if (errmaj)
+            *errmaj = LDR_ONCEONLY;
     }
 
     drmSetServerInfo(&DRIDRMServerInfo);
 
     /* Need a non-NULL return value to indicate success */
-    return (pointer)1;
+    return (pointer) 1;
 }
-

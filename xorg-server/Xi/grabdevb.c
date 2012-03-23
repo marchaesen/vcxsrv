@@ -54,8 +54,8 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
-#include "windowstr.h"	/* window structure  */
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include "exevents.h"
@@ -81,7 +81,7 @@ SProcXGrabDeviceButton(ClientPtr client)
     swaps(&stuff->modifiers);
     swaps(&stuff->event_count);
     REQUEST_FIXED_SIZE(xGrabDeviceButtonReq,
-                      stuff->event_count * sizeof(CARD32));
+                       stuff->event_count * sizeof(CARD32));
     SwapLongs((CARD32 *) (&stuff[1]), stuff->event_count);
 
     return (ProcXGrabDeviceButton(client));
@@ -108,33 +108,34 @@ ProcXGrabDeviceButton(ClientPtr client)
     REQUEST_AT_LEAST_SIZE(xGrabDeviceButtonReq);
 
     if (stuff->length !=
-	bytes_to_int32(sizeof(xGrabDeviceButtonReq)) + stuff->event_count)
-	return BadLength;
+        bytes_to_int32(sizeof(xGrabDeviceButtonReq)) + stuff->event_count)
+        return BadLength;
 
     ret = dixLookupDevice(&dev, stuff->grabbed_device, client, DixGrabAccess);
     if (ret != Success)
-	return ret;
+        return ret;
 
     if (stuff->modifier_device != UseXKeyboard) {
-	ret = dixLookupDevice(&mdev, stuff->modifier_device, client,
-			      DixUseAccess);
-	if (ret != Success)
-	    return ret;
-	if (mdev->key == NULL)
-	    return BadMatch;
-    } else {
-	mdev = PickKeyboard(client);
-	ret = XaceHook(XACE_DEVICE_ACCESS, client, mdev, DixUseAccess);
-	if (ret != Success)
-	    return ret;
+        ret = dixLookupDevice(&mdev, stuff->modifier_device, client,
+                              DixUseAccess);
+        if (ret != Success)
+            return ret;
+        if (mdev->key == NULL)
+            return BadMatch;
+    }
+    else {
+        mdev = PickKeyboard(client);
+        ret = XaceHook(XACE_DEVICE_ACCESS, client, mdev, DixUseAccess);
+        if (ret != Success)
+            return ret;
     }
 
-    class = (XEventClass *) (&stuff[1]);	/* first word of values */
+    class = (XEventClass *) (&stuff[1]);        /* first word of values */
 
     if ((ret = CreateMaskFromList(client, class,
-				  stuff->event_count, tmp, dev,
-				  X_GrabDeviceButton)) != Success)
-	return ret;
+                                  stuff->event_count, tmp, dev,
+                                  X_GrabDeviceButton)) != Success)
+        return ret;
 
     memset(&param, 0, sizeof(param));
     param.grabtype = XI;
@@ -145,8 +146,7 @@ ProcXGrabDeviceButton(ClientPtr client)
     param.modifiers = stuff->modifiers;
     mask.xi = tmp[stuff->grabbed_device].mask;
 
-    ret = GrabButton(client, dev, mdev, stuff->button, &param,
-                     XI, &mask);
+    ret = GrabButton(client, dev, mdev, stuff->button, &param, XI, &mask);
 
     return ret;
 }

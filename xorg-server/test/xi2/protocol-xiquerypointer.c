@@ -49,20 +49,19 @@ static struct {
     WindowPtr win;
 } test_data;
 
-
 /* dixLookupWindow requires a lot of setup not necessary for this test.
  * Simple wrapper that returns either one of the fake root window or the
  * fake client window. If the requested ID is neither of those wanted,
  * return whatever the real dixLookupWindow does.
  */
-int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
+int
+__wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
 {
-    if (id == root.drawable.id)
-    {
+    if (id == root.drawable.id) {
         *win = &root;
         return Success;
-    } else if (id == window.drawable.id)
-    {
+    }
+    else if (id == window.drawable.id) {
         *win = &window;
         return Success;
     }
@@ -70,17 +69,16 @@ int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access
     return __real_dixLookupWindow(win, id, client, access);
 }
 
-static void reply_XIQueryPointer(ClientPtr client, int len, char *data,
-                                 void *userdata)
+static void
+reply_XIQueryPointer(ClientPtr client, int len, char *data, void *userdata)
 {
-    xXIQueryPointerReply *rep = (xXIQueryPointerReply*)data;
+    xXIQueryPointerReply *rep = (xXIQueryPointerReply *) data;
     SpritePtr sprite;
 
     if (!rep->repType)
         return;
 
-    if (client->swapped)
-    {
+    if (client->swapped) {
         swapl(&rep->length);
         swaps(&rep->sequenceNumber);
         swapl(&rep->root);
@@ -101,13 +99,12 @@ static void reply_XIQueryPointer(ClientPtr client, int len, char *data,
     assert((rep->root_x >> 16) == sprite->hot.x);
     assert((rep->root_y >> 16) == sprite->hot.y);
 
-    if (test_data.win == &root)
-    {
+    if (test_data.win == &root) {
         assert(rep->root_x == rep->win_x);
         assert(rep->root_y == rep->win_y);
         assert(rep->child == window.drawable.id);
-    } else
-    {
+    }
+    else {
         int x, y;
 
         x = sprite->hot.x - window.drawable.x;
@@ -118,18 +115,19 @@ static void reply_XIQueryPointer(ClientPtr client, int len, char *data,
         assert(rep->child == None);
     }
 
-
     assert(rep->same_screen == xTrue);
 
     reply_handler = reply_XIQueryPointer_data;
 }
 
-static void reply_XIQueryPointer_data(ClientPtr client, int len, char *data, void *userdata)
+static void
+reply_XIQueryPointer_data(ClientPtr client, int len, char *data, void *userdata)
 {
     reply_handler = reply_XIQueryPointer;
 }
 
-static void request_XIQueryPointer(ClientPtr client, xXIQueryPointerReq* req, int error)
+static void
+request_XIQueryPointer(ClientPtr client, xXIQueryPointerReq * req, int error)
 {
     int rc;
 
@@ -149,7 +147,8 @@ static void request_XIQueryPointer(ClientPtr client, xXIQueryPointerReq* req, in
         assert(client_request.errorValue == req->deviceid);
 }
 
-static void test_XIQueryPointer(void)
+static void
+test_XIQueryPointer(void)
 {
     int i;
     xXIQueryPointerReq request;
@@ -182,12 +181,11 @@ static void test_XIQueryPointer(void)
     request_XIQueryPointer(&client_request, &request, BadDevice);
 
     test_data.dev = devices.mouse;
-    devices.mouse->master = NULL; /* Float, kind-of */
+    devices.mouse->master = NULL;       /* Float, kind-of */
     request.deviceid = devices.mouse->id;
     request_XIQueryPointer(&client_request, &request, Success);
 
-    for (i = devices.kbd->id + 1; i <= 0xFFFF; i++)
-    {
+    for (i = devices.kbd->id + 1; i <= 0xFFFF; i++) {
         request.deviceid = i;
         request_XIQueryPointer(&client_request, &request, BadDevice);
     }
@@ -204,7 +202,8 @@ static void test_XIQueryPointer(void)
     request_XIQueryPointer(&client_request, &request, Success);
 }
 
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     init_simple();
 

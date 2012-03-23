@@ -29,35 +29,35 @@ from The Open Group.
 /* Author:  Keith Packard, MIT X Consortium */
 
 #include "mispans.h"
-#include "mifpoly.h" /* for ICEIL */
+#include "mifpoly.h"            /* for ICEIL */
 
 /*
  * Polygon edge description for integer wide-line routines
  */
 
 typedef struct _PolyEdge {
-    int	    height;	/* number of scanlines to process */
-    int	    x;		/* starting x coordinate */
-    int	    stepx;	/* fixed integral dx */
-    int	    signdx;	/* variable dx sign */
-    int	    e;		/* initial error term */
-    int	    dy;
-    int	    dx;
+    int height;                 /* number of scanlines to process */
+    int x;                      /* starting x coordinate */
+    int stepx;                  /* fixed integral dx */
+    int signdx;                 /* variable dx sign */
+    int e;                      /* initial error term */
+    int dy;
+    int dx;
 } PolyEdgeRec, *PolyEdgePtr;
 
-#define SQSECANT 108.856472512142 /* 1/sin^2(11/2) - miter limit constant */
+#define SQSECANT 108.856472512142       /* 1/sin^2(11/2) - miter limit constant */
 
 /*
  * types for general polygon routines
  */
 
 typedef struct _PolyVertex {
-    double  x, y;
+    double x, y;
 } PolyVertexRec, *PolyVertexPtr;
 
 typedef struct _PolySlope {
-    int	    dx, dy;
-    double  k;	    /* x0 * dy - y0 * dx */
+    int dx, dy;
+    double k;                   /* x0 * dy - y0 * dx */
 } PolySlopeRec, *PolySlopePtr;
 
 /*
@@ -65,10 +65,10 @@ typedef struct _PolySlope {
  */
 
 typedef struct _LineFace {
-    double  xa, ya;
-    int	    dx, dy;
-    int	    x, y;
-    double  k;
+    double xa, ya;
+    int dx, dy;
+    int x, y;
+    double k;
 } LineFaceRec, *LineFacePtr;
 
 /*
@@ -93,28 +93,27 @@ typedef struct _LineFace {
     } \
 }
 
-extern _X_EXPORT void miRoundJoinClip(
-    LineFacePtr /*pLeft*/,
-    LineFacePtr /*pRight*/,
-    PolyEdgePtr /*edge1*/,
-    PolyEdgePtr /*edge2*/,
-    int * /*y1*/,
-    int * /*y2*/,
-    Bool * /*left1*/,
-    Bool * /*left2*/
-);
+extern _X_EXPORT void miRoundJoinClip(LineFacePtr /*pLeft */ ,
+                                      LineFacePtr /*pRight */ ,
+                                      PolyEdgePtr /*edge1 */ ,
+                                      PolyEdgePtr /*edge2 */ ,
+                                      int * /*y1 */ ,
+                                      int * /*y2 */ ,
+                                      Bool * /*left1 */ ,
+                                      Bool *    /*left2 */
+    );
 
-extern _X_EXPORT int miRoundCapClip(
-    LineFacePtr /*face*/,
-    Bool /*isInt*/,
-    PolyEdgePtr /*edge*/,
-    Bool * /*leftEdge*/
-);
+extern _X_EXPORT int miRoundCapClip(LineFacePtr /*face */ ,
+                                    Bool /*isInt */ ,
+                                    PolyEdgePtr /*edge */ ,
+                                    Bool *      /*leftEdge */
+    );
 
-extern _X_EXPORT int miPolyBuildEdge(double x0, double y0, double k, int dx, int dy,
-				int xi, int yi, int left, PolyEdgePtr edge);
-extern _X_EXPORT int miPolyBuildPoly(PolyVertexPtr vertices, PolySlopePtr slopes,
-				int count, int xi, int yi, PolyEdgePtr left,
-				PolyEdgePtr right, int *pnleft, int *pnright,
-				int *h);
-
+extern _X_EXPORT int miPolyBuildEdge(double x0, double y0, double k, int dx,
+                                     int dy, int xi, int yi, int left,
+                                     PolyEdgePtr edge);
+extern _X_EXPORT int miPolyBuildPoly(PolyVertexPtr vertices,
+                                     PolySlopePtr slopes, int count, int xi,
+                                     int yi, PolyEdgePtr left,
+                                     PolyEdgePtr right, int *pnleft,
+                                     int *pnright, int *h);

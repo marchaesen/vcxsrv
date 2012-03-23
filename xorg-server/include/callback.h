@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -48,8 +47,8 @@ SOFTWARE.
 #ifndef CALLBACK_H
 #define CALLBACK_H
 
-#include <X11/X.h>	/* for GContext, Mask */
-#include <X11/Xdefs.h>	/* for Bool */
+#include <X11/X.h>              /* for GContext, Mask */
+#include <X11/Xdefs.h>          /* for Bool */
 #include <X11/Xproto.h>
 #include <X11/Xfuncproto.h>
 
@@ -58,37 +57,34 @@ SOFTWARE.
  */
 
 #ifndef _XTYPEDEF_CALLBACKLISTPTR
-typedef struct _CallbackList *CallbackListPtr; /* also in misc.h */
+typedef struct _CallbackList *CallbackListPtr;  /* also in misc.h */
+
 #define _XTYPEDEF_CALLBACKLISTPTR
 #endif
 
-typedef void (*CallbackProcPtr) (
-    CallbackListPtr *, pointer, pointer);
+typedef void (*CallbackProcPtr) (CallbackListPtr *, pointer, pointer);
 
-extern _X_EXPORT Bool AddCallback(
-    CallbackListPtr * /*pcbl*/,
-    CallbackProcPtr /*callback*/,
-    pointer /*data*/);
+extern _X_EXPORT Bool AddCallback(CallbackListPtr * /*pcbl */ ,
+                                  CallbackProcPtr /*callback */ ,
+                                  pointer /*data */ );
 
-extern _X_EXPORT Bool DeleteCallback(
-    CallbackListPtr * /*pcbl*/,
-    CallbackProcPtr /*callback*/,
-    pointer /*data*/);
+extern _X_EXPORT Bool DeleteCallback(CallbackListPtr * /*pcbl */ ,
+                                     CallbackProcPtr /*callback */ ,
+                                     pointer /*data */ );
 
-extern _X_EXPORT void _CallCallbacks(
-    CallbackListPtr * /*pcbl*/,
-    pointer /*call_data*/);
+extern _X_EXPORT void _CallCallbacks(CallbackListPtr * /*pcbl */ ,
+                                     pointer /*call_data */ );
 
 static inline void
 CallCallbacks(CallbackListPtr *pcbl, pointer call_data)
 {
-    if (!pcbl || !*pcbl) return;
+    if (!pcbl || !*pcbl)
+        return;
     _CallCallbacks(pcbl, call_data);
 }
 
-extern _X_EXPORT void DeleteCallbackList(
-    CallbackListPtr * /*pcbl*/);
+extern _X_EXPORT void DeleteCallbackList(CallbackListPtr * /*pcbl */ );
 
 extern _X_EXPORT void InitCallbackManager(void);
 
-#endif /* CALLBACK_H */
+#endif                          /* CALLBACK_H */

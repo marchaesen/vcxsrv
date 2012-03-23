@@ -39,7 +39,7 @@
 // From darwin.c
 void DarwinPrintBanner(void);
 int DarwinParseModifierList(const char *constmodifiers, int separatelr);
-void DarwinAdjustScreenOrigins(ScreenInfo *pScreenInfo);
+void DarwinAdjustScreenOrigins(ScreenInfo * pScreenInfo);
 
 #define SCREEN_PRIV(pScreen) ((DarwinFramebufferPtr) \
     dixLookupPrivate(&pScreen->devPrivates, darwinScreenKey))
@@ -48,39 +48,42 @@ void DarwinAdjustScreenOrigins(ScreenInfo *pScreenInfo);
  * Global variables from darwin.c
  */
 extern DevPrivateKeyRec darwinScreenKeyRec;
+
 #define darwinScreenKey (&darwinScreenKeyRec)
-extern int              darwinScreensFound;
-extern io_connect_t     darwinParamConnect;
-extern int              darwinEventReadFD;
-extern int              darwinEventWriteFD;
-extern DeviceIntPtr     darwinPointer;
-extern DeviceIntPtr     darwinTabletCursor;
-extern DeviceIntPtr     darwinTabletStylus;
-extern DeviceIntPtr     darwinTabletEraser;
-extern DeviceIntPtr     darwinKeyboard;
+extern int darwinScreensFound;
+extern io_connect_t darwinParamConnect;
+extern int darwinEventReadFD;
+extern int darwinEventWriteFD;
+extern DeviceIntPtr darwinPointer;
+extern DeviceIntPtr darwinTabletCursor;
+extern DeviceIntPtr darwinTabletStylus;
+extern DeviceIntPtr darwinTabletEraser;
+extern DeviceIntPtr darwinKeyboard;
 
 // User preferences
-extern int              darwinMouseAccelChange;
-extern int              darwinFakeButtons;
-extern int              darwinFakeMouse2Mask;
-extern int              darwinFakeMouse3Mask;
-extern unsigned int     darwinAppKitModMask;
-extern unsigned int     windowItemModMask;
-extern int              darwinSyncKeymap;
-extern int              darwinDesiredDepth;
+extern int darwinMouseAccelChange;
+extern int darwinFakeButtons;
+extern int darwinFakeMouse2Mask;
+extern int darwinFakeMouse3Mask;
+extern unsigned int darwinAppKitModMask;
+extern unsigned int windowItemModMask;
+extern int darwinSyncKeymap;
+extern int darwinDesiredDepth;
 
 // location of X11's (0,0) point in global screen coordinates
-extern int              darwinMainScreenX;
-extern int              darwinMainScreenY;
+extern int darwinMainScreenX;
+extern int darwinMainScreenY;
 
 // bundle-main.c
 extern char *bundle_id_prefix;
 
-_X_ATTRIBUTE_PRINTF(6,7)
-extern void xq_asl_log (int level, const char *subsystem, const char *file, const char *function, int line, const char *fmt, ...);
+_X_ATTRIBUTE_PRINTF(6, 7)
+extern void
+xq_asl_log(int level, const char *subsystem, const char *file,
+           const char *function, int line, const char *fmt, ...);
 
 #define ASL_LOG(level, subsystem, msg, args...) xq_asl_log(level, subsystem, __FILE__, __FUNCTION__, __LINE__, msg, ##args)
 #define DEBUG_LOG(msg, args...) ASL_LOG(ASL_LEVEL_DEBUG, "XQuartz", msg, ##args)
 #define TRACE() DEBUG_LOG("TRACE")
 
-#endif  /* _DARWIN_H */
+#endif                          /* _DARWIN_H */

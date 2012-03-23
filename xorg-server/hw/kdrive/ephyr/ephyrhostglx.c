@@ -56,79 +56,76 @@ enum VisualConfRequestType {
     EPHYR_GET_FB_CONFIG,
     EPHYR_VENDOR_PRIV_GET_FB_CONFIG_SGIX,
     EPHYR_GET_VISUAL_CONFIGS
-
 };
 
 static Bool ephyrHostGLXGetVisualConfigsInternal
-                                        (enum VisualConfRequestType a_type,
-                                         int32_t a_screen,
-                                         int32_t *a_num_visuals,
-                                         int32_t *a_num_props,
-                                         int32_t *a_props_buf_size,
-                                         int32_t **a_props_buf);
+    (enum VisualConfRequestType a_type,
+     int32_t a_screen,
+     int32_t * a_num_visuals,
+     int32_t * a_num_props, int32_t * a_props_buf_size, int32_t ** a_props_buf);
 Bool
-ephyrHostGLXGetMajorOpcode (int *a_opcode)
+ephyrHostGLXGetMajorOpcode(int *a_opcode)
 {
-    Bool is_ok=FALSE ;
-    Display *dpy=hostx_get_display () ;
-    static int opcode ;
-    int first_event_return=0, first_error_return=0;
+    Bool is_ok = FALSE;
+    Display *dpy = hostx_get_display();
+    static int opcode;
+    int first_event_return = 0, first_error_return = 0;
 
-    EPHYR_RETURN_VAL_IF_FAIL (dpy, FALSE) ;
-    EPHYR_LOG ("enter\n") ;
+    EPHYR_RETURN_VAL_IF_FAIL(dpy, FALSE);
+    EPHYR_LOG("enter\n");
     if (!opcode) {
-        if (!XQueryExtension (dpy, GLX_EXTENSION_NAME, &opcode,
-                              &first_event_return, &first_error_return)) {
-            EPHYR_LOG_ERROR ("XQueryExtension() failed\n") ;
-            goto out ;
+        if (!XQueryExtension(dpy, GLX_EXTENSION_NAME, &opcode,
+                             &first_event_return, &first_error_return)) {
+            EPHYR_LOG_ERROR("XQueryExtension() failed\n");
+            goto out;
         }
     }
-    *a_opcode = opcode ;
-    is_ok = TRUE ;
-out:
-    EPHYR_LOG ("release\n") ;
-    return is_ok ;
+    *a_opcode = opcode;
+    is_ok = TRUE;
+ out:
+    EPHYR_LOG("release\n");
+    return is_ok;
 }
 
 Bool
-ephyrHostGLXQueryVersion (int *a_major, int *a_minor)
+ephyrHostGLXQueryVersion(int *a_major, int *a_minor)
 {
-    Bool is_ok = FALSE ;
-    Display *dpy = hostx_get_display () ;
-    int major_opcode=0;
-    xGLXQueryVersionReq *req=NULL;
+    Bool is_ok = FALSE;
+    Display *dpy = hostx_get_display();
+    int major_opcode = 0;
+    xGLXQueryVersionReq *req = NULL;
     xGLXQueryVersionReply reply;
 
-    EPHYR_RETURN_VAL_IF_FAIL (a_major && a_minor, FALSE) ;
-    EPHYR_LOG ("enter\n") ;
+    EPHYR_RETURN_VAL_IF_FAIL(a_major && a_minor, FALSE);
+    EPHYR_LOG("enter\n");
 
-    if (!ephyrHostGLXGetMajorOpcode (&major_opcode)) {
-        EPHYR_LOG_ERROR ("failed to get major opcode\n") ;
-        goto out ;
+    if (!ephyrHostGLXGetMajorOpcode(&major_opcode)) {
+        EPHYR_LOG_ERROR("failed to get major opcode\n");
+        goto out;
     }
-    EPHYR_LOG ("major opcode: %d\n", major_opcode) ;
+    EPHYR_LOG("major opcode: %d\n", major_opcode);
 
     /* Send the glXQueryVersion request */
-    memset (&reply, 0, sizeof (reply)) ;
-    LockDisplay (dpy);
-    GetReq (GLXQueryVersion, req);
+    memset(&reply, 0, sizeof(reply));
+    LockDisplay(dpy);
+    GetReq(GLXQueryVersion, req);
     req->reqType = major_opcode;
     req->glxCode = X_GLXQueryVersion;
     req->majorVersion = 2;
     req->minorVersion = 1;
-    _XReply(dpy, (xReply*) &reply, 0, False);
-    UnlockDisplay (dpy);
-    SyncHandle ();
+    _XReply(dpy, (xReply *) & reply, 0, False);
+    UnlockDisplay(dpy);
+    SyncHandle();
 
-    *a_major = reply.majorVersion ;
-    *a_minor = reply.minorVersion ;
+    *a_major = reply.majorVersion;
+    *a_minor = reply.minorVersion;
 
-    EPHYR_LOG ("major:%d, minor:%d\n", *a_major, *a_minor) ;
+    EPHYR_LOG("major:%d, minor:%d\n", *a_major, *a_minor);
 
-    is_ok = TRUE ;
-out:
-    EPHYR_LOG ("leave\n") ;
-    return is_ok ;
+    is_ok = TRUE;
+ out:
+    EPHYR_LOG("leave\n");
+    return is_ok;
 }
 
 /**
@@ -154,165 +151,161 @@ typedef struct GLXGenericGetString {
 #define X_GLXGenericGetString 0
 
 Bool
-ephyrHostGLXGetStringFromServer (int a_screen_number,
-                                 int a_string_name,
-                                 enum EphyrHostGLXGetStringOps a_op,
-                                 char **a_string)
+ephyrHostGLXGetStringFromServer(int a_screen_number,
+                                int a_string_name,
+                                enum EphyrHostGLXGetStringOps a_op,
+                                char **a_string)
 {
-    Bool is_ok=FALSE ;
-    Display *dpy = hostx_get_display () ;
-    int default_screen = DefaultScreen (dpy);
-    xGLXGenericGetStringReq *req=NULL;
+    Bool is_ok = FALSE;
+    Display *dpy = hostx_get_display();
+    int default_screen = DefaultScreen(dpy);
+    xGLXGenericGetStringReq *req = NULL;
     xGLXSingleReply reply;
-    int length=0, numbytes=0, major_opcode=0, get_string_op=0;
+    int length = 0, numbytes = 0, major_opcode = 0, get_string_op = 0;
 
-    EPHYR_RETURN_VAL_IF_FAIL (dpy && a_string, FALSE) ;
+    EPHYR_RETURN_VAL_IF_FAIL(dpy && a_string, FALSE);
 
-    EPHYR_LOG ("enter\n") ;
+    EPHYR_LOG("enter\n");
     switch (a_op) {
-        case EPHYR_HOST_GLX_QueryServerString:
-            get_string_op = X_GLXQueryServerString;
-            break ;
-        case EPHYR_HOST_GLX_GetString:
-            get_string_op = X_GLsop_GetString;
-            EPHYR_LOG ("Going to glXGetString. strname:%#x, ctxttag:%d\n",
-                       a_string_name, a_screen_number) ;
-            break ;
-        default:
-            EPHYR_LOG_ERROR ("unknown EphyrHostGLXGetStringOp:%d\n", a_op) ;
-            goto out ;
+    case EPHYR_HOST_GLX_QueryServerString:
+        get_string_op = X_GLXQueryServerString;
+        break;
+    case EPHYR_HOST_GLX_GetString:
+        get_string_op = X_GLsop_GetString;
+        EPHYR_LOG("Going to glXGetString. strname:%#x, ctxttag:%d\n",
+                  a_string_name, a_screen_number);
+        break;
+    default:
+        EPHYR_LOG_ERROR("unknown EphyrHostGLXGetStringOp:%d\n", a_op);
+        goto out;
     }
 
-    if (!ephyrHostGLXGetMajorOpcode (&major_opcode)) {
-        EPHYR_LOG_ERROR ("failed to get major opcode\n") ;
-        goto out ;
+    if (!ephyrHostGLXGetMajorOpcode(&major_opcode)) {
+        EPHYR_LOG_ERROR("failed to get major opcode\n");
+        goto out;
     }
-    EPHYR_LOG ("major opcode: %d\n", major_opcode) ;
+    EPHYR_LOG("major opcode: %d\n", major_opcode);
 
-    LockDisplay (dpy);
+    LockDisplay(dpy);
 
     /* All of the GLX protocol requests for getting a string from the server
      * look the same.  The exact meaning of the a_for_whom field is usually
      * either the screen number (for glXQueryServerString) or the context tag
      * (for GLXSingle).
      */
-    GetReq (GLXGenericGetString, req);
+    GetReq(GLXGenericGetString, req);
     req->reqType = major_opcode;
     req->glxCode = get_string_op;
     req->for_whom = default_screen;
     req->name = a_string_name;
 
-    _XReply (dpy, (xReply *)&reply, 0, False);
+    _XReply(dpy, (xReply *) & reply, 0, False);
 
     length = reply.length * 4;
     if (!length) {
         numbytes = 0;
-    } else {
+    }
+    else {
         numbytes = reply.size;
     }
-    EPHYR_LOG ("going to get a string of size:%d\n", numbytes) ;
+    EPHYR_LOG("going to get a string of size:%d\n", numbytes);
 
-    *a_string = (char *) Xmalloc (numbytes +1);
+    *a_string = (char *) Xmalloc(numbytes + 1);
     if (!a_string) {
-        EPHYR_LOG_ERROR ("allocation failed\n") ;
+        EPHYR_LOG_ERROR("allocation failed\n");
         goto out;
     }
 
-    memset (*a_string, 0, numbytes+1) ;
-    if (_XRead (dpy, *a_string, numbytes)) {
-        UnlockDisplay (dpy);
-        SyncHandle ();
-        EPHYR_LOG_ERROR ("read failed\n") ;
-        goto out ;
+    memset(*a_string, 0, numbytes + 1);
+    if (_XRead(dpy, *a_string, numbytes)) {
+        UnlockDisplay(dpy);
+        SyncHandle();
+        EPHYR_LOG_ERROR("read failed\n");
+        goto out;
     }
     length -= numbytes;
-    _XEatData (dpy, length) ;
-    UnlockDisplay (dpy);
-    SyncHandle ();
-    EPHYR_LOG ("strname:%#x, strvalue:'%s', strlen:%d\n",
-               a_string_name, *a_string, numbytes) ;
+    _XEatData(dpy, length);
+    UnlockDisplay(dpy);
+    SyncHandle();
+    EPHYR_LOG("strname:%#x, strvalue:'%s', strlen:%d\n",
+              a_string_name, *a_string, numbytes);
 
-    is_ok = TRUE ;
-out:
-    EPHYR_LOG ("leave\n") ;
-    return is_ok ;
+    is_ok = TRUE;
+ out:
+    EPHYR_LOG("leave\n");
+    return is_ok;
 }
 
 static Bool
-ephyrHostGLXGetVisualConfigsInternal (enum VisualConfRequestType a_type,
-                                      int32_t a_screen,
-                                      int32_t *a_num_visuals,
-                                      int32_t *a_num_props,
-                                      int32_t *a_props_buf_size,
-                                      int32_t **a_props_buf)
+ephyrHostGLXGetVisualConfigsInternal(enum VisualConfRequestType a_type,
+                                     int32_t a_screen,
+                                     int32_t * a_num_visuals,
+                                     int32_t * a_num_props,
+                                     int32_t * a_props_buf_size,
+                                     int32_t ** a_props_buf)
 {
-    Bool is_ok = FALSE ;
-    Display *dpy = hostx_get_display () ;
+    Bool is_ok = FALSE;
+    Display *dpy = hostx_get_display();
     xGLXGetVisualConfigsReq *req;
     xGLXGetFBConfigsReq *fb_req;
     xGLXVendorPrivateWithReplyReq *vpreq;
     xGLXGetFBConfigsSGIXReq *sgi_req;
     xGLXGetVisualConfigsReply reply;
-    char *server_glx_version=NULL,
-         *server_glx_extensions=NULL ;
-    int j=0,
-        screens=0,
-        major_opcode=0,
-        num_props=0,
-        num_visuals=0,
-        props_buf_size=0,
-        props_per_visual_size=0;
-    int32_t *props_buf=NULL;
+    char *server_glx_version = NULL, *server_glx_extensions = NULL;
+    int j = 0,
+        screens = 0,
+        major_opcode = 0,
+        num_props = 0,
+        num_visuals = 0, props_buf_size = 0, props_per_visual_size = 0;
+    int32_t *props_buf = NULL;
 
-    EPHYR_RETURN_VAL_IF_FAIL (dpy, FALSE) ;
+    EPHYR_RETURN_VAL_IF_FAIL(dpy, FALSE);
 
-    screens = ScreenCount (dpy);
-    if (!ephyrHostGLXGetMajorOpcode (&major_opcode)) {
-        EPHYR_LOG_ERROR ("failed to get opcode\n") ;
-        goto out ;
+    screens = ScreenCount(dpy);
+    if (!ephyrHostGLXGetMajorOpcode(&major_opcode)) {
+        EPHYR_LOG_ERROR("failed to get opcode\n");
+        goto out;
     }
 
     LockDisplay(dpy);
     switch (a_type) {
-        case EPHYR_GET_FB_CONFIG:
-        GetReq(GLXGetFBConfigs,fb_req);
+    case EPHYR_GET_FB_CONFIG:
+        GetReq(GLXGetFBConfigs, fb_req);
         fb_req->reqType = major_opcode;
         fb_req->glxCode = X_GLXGetFBConfigs;
-        fb_req->screen = DefaultScreen (dpy);
+        fb_req->screen = DefaultScreen(dpy);
         break;
 
-        case EPHYR_VENDOR_PRIV_GET_FB_CONFIG_SGIX:
+    case EPHYR_VENDOR_PRIV_GET_FB_CONFIG_SGIX:
         GetReqExtra(GLXVendorPrivateWithReply,
                     sz_xGLXGetFBConfigsSGIXReq
-                         -
-                    sz_xGLXVendorPrivateWithReplyReq,
-                    vpreq);
+                    - sz_xGLXVendorPrivateWithReplyReq, vpreq);
         sgi_req = (xGLXGetFBConfigsSGIXReq *) vpreq;
         sgi_req->reqType = major_opcode;
         sgi_req->glxCode = X_GLXVendorPrivateWithReply;
         sgi_req->vendorCode = X_GLXvop_GetFBConfigsSGIX;
-        sgi_req->screen = DefaultScreen (dpy);
+        sgi_req->screen = DefaultScreen(dpy);
         break;
 
-        case EPHYR_GET_VISUAL_CONFIGS:
-        GetReq(GLXGetVisualConfigs,req);
+    case EPHYR_GET_VISUAL_CONFIGS:
+        GetReq(GLXGetVisualConfigs, req);
         req->reqType = major_opcode;
         req->glxCode = X_GLXGetVisualConfigs;
-        req->screen = DefaultScreen (dpy);
+        req->screen = DefaultScreen(dpy);
         break;
     }
 
-    if (!_XReply(dpy, (xReply*) &reply, 0, False)) {
-        EPHYR_LOG_ERROR ("unknown error\n") ;
+    if (!_XReply(dpy, (xReply *) & reply, 0, False)) {
+        EPHYR_LOG_ERROR("unknown error\n");
         UnlockDisplay(dpy);
-        goto out ;
+        goto out;
     }
-   if (!reply.numVisuals) {
-        EPHYR_LOG_ERROR ("screen does not support GL rendering\n") ;
+    if (!reply.numVisuals) {
+        EPHYR_LOG_ERROR("screen does not support GL rendering\n");
         UnlockDisplay(dpy);
-        goto out ;
+        goto out;
     }
-   num_visuals = reply.numVisuals ;
+    num_visuals = reply.numVisuals;
 
     /* FIXME: Is the __GLX_MIN_CONFIG_PROPS test correct for
      * FIXME: FBconfigs? 
@@ -322,9 +315,9 @@ ephyrHostGLXGetVisualConfigsInternal (enum VisualConfRequestType a_type,
     if ((num_props < __GLX_MIN_CONFIG_PROPS) ||
         (num_props > __GLX_MAX_CONFIG_PROPS)) {
         /* Huh?  Not in protocol defined limits.  Punt */
-        EPHYR_LOG_ERROR ("got a bad reply to request\n") ;
+        EPHYR_LOG_ERROR("got a bad reply to request\n");
         UnlockDisplay(dpy);
-        goto out ;
+        goto out;
     }
 
     if (a_type != EPHYR_GET_VISUAL_CONFIGS) {
@@ -332,250 +325,242 @@ ephyrHostGLXGetVisualConfigsInternal (enum VisualConfRequestType a_type,
     }
     props_per_visual_size = num_props * __GLX_SIZE_INT32;
     props_buf_size = props_per_visual_size * reply.numVisuals;
-    props_buf = malloc (props_buf_size) ;
+    props_buf = malloc(props_buf_size);
     for (j = 0; j < reply.numVisuals; j++) {
-        if (_XRead (dpy,
-                    &((char*)props_buf)[j*props_per_visual_size],
-                    props_per_visual_size) != Success) {
-            EPHYR_LOG_ERROR ("read failed\n") ;
+        if (_XRead(dpy,
+                   &((char *) props_buf)[j * props_per_visual_size],
+                   props_per_visual_size) != Success) {
+            EPHYR_LOG_ERROR("read failed\n");
         }
     }
     UnlockDisplay(dpy);
 
-    *a_num_visuals = num_visuals ;
-    *a_num_props = reply.numProps ;
-    *a_props_buf_size = props_buf_size ;
-    *a_props_buf = props_buf ;
-    is_ok = TRUE ;
+    *a_num_visuals = num_visuals;
+    *a_num_props = reply.numProps;
+    *a_props_buf_size = props_buf_size;
+    *a_props_buf = props_buf;
+    is_ok = TRUE;
 
-out:
+ out:
     if (server_glx_version) {
-        XFree (server_glx_version) ;
-        server_glx_version = NULL ;
+        XFree(server_glx_version);
+        server_glx_version = NULL;
     }
     if (server_glx_extensions) {
-        XFree (server_glx_extensions) ;
-        server_glx_extensions = NULL ;
+        XFree(server_glx_extensions);
+        server_glx_extensions = NULL;
     }
-    SyncHandle () ;
+    SyncHandle();
     return is_ok;
 }
 
 Bool
-ephyrHostGLXGetVisualConfigs (int32_t a_screen,
-                              int32_t *a_num_visuals,
-                              int32_t *a_num_props,
-                              int32_t *a_props_buf_size,
-                              int32_t **a_props_buf)
+ephyrHostGLXGetVisualConfigs(int32_t a_screen,
+                             int32_t * a_num_visuals,
+                             int32_t * a_num_props,
+                             int32_t * a_props_buf_size, int32_t ** a_props_buf)
 {
     Bool is_ok = FALSE;
 
-    EPHYR_LOG ("enter\n") ;
-    is_ok = ephyrHostGLXGetVisualConfigsInternal (EPHYR_GET_VISUAL_CONFIGS,
-                                                  a_screen,
-                                                  a_num_visuals,
-                                                  a_num_props,
-                                                  a_props_buf_size,
-                                                  a_props_buf) ;
+    EPHYR_LOG("enter\n");
+    is_ok = ephyrHostGLXGetVisualConfigsInternal(EPHYR_GET_VISUAL_CONFIGS,
+                                                 a_screen,
+                                                 a_num_visuals,
+                                                 a_num_props,
+                                                 a_props_buf_size, a_props_buf);
 
-    EPHYR_LOG ("leave:%d\n", is_ok) ;
+    EPHYR_LOG("leave:%d\n", is_ok);
     return is_ok;
 }
 
 Bool
-ephyrHostGLXVendorPrivGetFBConfigsSGIX (int a_screen,
-                                        int32_t *a_num_visuals,
-                                        int32_t *a_num_props,
-                                        int32_t *a_props_buf_size,
-                                        int32_t **a_props_buf)
+ephyrHostGLXVendorPrivGetFBConfigsSGIX(int a_screen,
+                                       int32_t * a_num_visuals,
+                                       int32_t * a_num_props,
+                                       int32_t * a_props_buf_size,
+                                       int32_t ** a_props_buf)
 {
-    Bool is_ok=FALSE ;
-    EPHYR_LOG ("enter\n") ;
+    Bool is_ok = FALSE;
+
+    EPHYR_LOG("enter\n");
     is_ok = ephyrHostGLXGetVisualConfigsInternal
-                                        (EPHYR_VENDOR_PRIV_GET_FB_CONFIG_SGIX,
-                                         a_screen,
-                                         a_num_visuals,
-                                         a_num_props,
-                                         a_props_buf_size,
-                                         a_props_buf) ;
-    EPHYR_LOG ("leave\n") ;
-    return is_ok ;
+        (EPHYR_VENDOR_PRIV_GET_FB_CONFIG_SGIX,
+         a_screen, a_num_visuals, a_num_props, a_props_buf_size, a_props_buf);
+    EPHYR_LOG("leave\n");
+    return is_ok;
 }
 
 Bool
-ephyrHostGLXSendClientInfo (int32_t a_major, int32_t a_minor,
-                            const char* a_extension_list)
+ephyrHostGLXSendClientInfo(int32_t a_major, int32_t a_minor,
+                           const char *a_extension_list)
 {
-    Bool is_ok = FALSE ;
-    Display *dpy = hostx_get_display () ;
+    Bool is_ok = FALSE;
+    Display *dpy = hostx_get_display();
     xGLXClientInfoReq *req;
     int size;
-    int32_t major_opcode=0 ;
+    int32_t major_opcode = 0;
 
-    EPHYR_RETURN_VAL_IF_FAIL (dpy && a_extension_list, FALSE) ;
+    EPHYR_RETURN_VAL_IF_FAIL(dpy && a_extension_list, FALSE);
 
-    if (!ephyrHostGLXGetMajorOpcode (&major_opcode)) {
-        EPHYR_LOG_ERROR ("failed to get major opcode\n") ;
-        goto out ;
+    if (!ephyrHostGLXGetMajorOpcode(&major_opcode)) {
+        EPHYR_LOG_ERROR("failed to get major opcode\n");
+        goto out;
     }
 
-    LockDisplay (dpy);
+    LockDisplay(dpy);
 
-    GetReq (GLXClientInfo,req);
+    GetReq(GLXClientInfo, req);
     req->reqType = major_opcode;
     req->glxCode = X_GLXClientInfo;
     req->major = a_major;
     req->minor = a_minor;
 
-    size = strlen (a_extension_list) + 1;
+    size = strlen(a_extension_list) + 1;
     req->length += bytes_to_int32(size);
     req->numbytes = size;
-    Data (dpy, a_extension_list, size);
+    Data(dpy, a_extension_list, size);
 
     UnlockDisplay(dpy);
     SyncHandle();
 
-    is_ok=TRUE ;
+    is_ok = TRUE;
 
-out:
-    return is_ok ;
+ out:
+    return is_ok;
 }
 
 Bool
-ephyrHostGLXCreateContext (int a_screen,
-                           int a_visual_id,
-                           int a_context_id,
-                           int a_share_list_ctxt_id,
-                           Bool a_direct)
+ephyrHostGLXCreateContext(int a_screen,
+                          int a_visual_id,
+                          int a_context_id,
+                          int a_share_list_ctxt_id, Bool a_direct)
 {
     Bool is_ok = FALSE;
-    Display *dpy = hostx_get_display ();
-    int major_opcode=0, remote_context_id=0;
+    Display *dpy = hostx_get_display();
+    int major_opcode = 0, remote_context_id = 0;
     xGLXCreateContextReq *req;
 
-    EPHYR_LOG ("enter. screen:%d, visual:%d, contextid:%d, direct:%d\n",
-               a_screen, a_visual_id, a_context_id, a_direct) ;
+    EPHYR_LOG("enter. screen:%d, visual:%d, contextid:%d, direct:%d\n",
+              a_screen, a_visual_id, a_context_id, a_direct);
 
-    if (!hostx_allocate_resource_id_peer (a_context_id, &remote_context_id)) {
-        EPHYR_LOG_ERROR ("failed to peer the context id %d host X",
-                         remote_context_id) ;
-        goto out ;
+    if (!hostx_allocate_resource_id_peer(a_context_id, &remote_context_id)) {
+        EPHYR_LOG_ERROR("failed to peer the context id %d host X",
+                        remote_context_id);
+        goto out;
     }
 
-    if (!ephyrHostGLXGetMajorOpcode (&major_opcode)) {
-        EPHYR_LOG_ERROR ("failed to get major opcode\n") ;
-        goto out ;
+    if (!ephyrHostGLXGetMajorOpcode(&major_opcode)) {
+        EPHYR_LOG_ERROR("failed to get major opcode\n");
+        goto out;
     }
 
-    LockDisplay (dpy) ;
+    LockDisplay(dpy);
 
     /* Send the glXCreateContext request */
-    GetReq(GLXCreateContext,req);
+    GetReq(GLXCreateContext, req);
     req->reqType = major_opcode;
     req->glxCode = X_GLXCreateContext;
     req->context = remote_context_id;
     req->visual = a_visual_id;
-    req->screen = DefaultScreen (dpy);
+    req->screen = DefaultScreen(dpy);
     req->shareList = a_share_list_ctxt_id;
     req->isDirect = a_direct;
 
-    UnlockDisplay (dpy);
-    SyncHandle ();
+    UnlockDisplay(dpy);
+    SyncHandle();
 
-    is_ok = TRUE ;
+    is_ok = TRUE;
 
-out:
-    EPHYR_LOG ("leave\n") ;
-    return is_ok ;
+ out:
+    EPHYR_LOG("leave\n");
+    return is_ok;
 }
 
 Bool
-ephyrHostDestroyContext (int a_ctxt_id)
+ephyrHostDestroyContext(int a_ctxt_id)
 {
-    Bool is_ok=FALSE;
-    Display *dpy=hostx_get_display ();
-    int major_opcode=0, remote_ctxt_id=0 ;
-    xGLXDestroyContextReq *req=NULL;
+    Bool is_ok = FALSE;
+    Display *dpy = hostx_get_display();
+    int major_opcode = 0, remote_ctxt_id = 0;
+    xGLXDestroyContextReq *req = NULL;
 
-    EPHYR_LOG ("enter:%d\n", a_ctxt_id) ;
+    EPHYR_LOG("enter:%d\n", a_ctxt_id);
 
-    if (!ephyrHostGLXGetMajorOpcode (&major_opcode)) {
-        EPHYR_LOG_ERROR ("failed to get major opcode\n") ;
-        goto out ;
+    if (!ephyrHostGLXGetMajorOpcode(&major_opcode)) {
+        EPHYR_LOG_ERROR("failed to get major opcode\n");
+        goto out;
     }
-    if (!hostx_get_resource_id_peer (a_ctxt_id, &remote_ctxt_id)) {
-        EPHYR_LOG_ERROR ("failed to get remote glx ctxt id\n") ;
-        goto out ;
+    if (!hostx_get_resource_id_peer(a_ctxt_id, &remote_ctxt_id)) {
+        EPHYR_LOG_ERROR("failed to get remote glx ctxt id\n");
+        goto out;
     }
-    EPHYR_LOG ("host context id:%d\n", remote_ctxt_id) ;
+    EPHYR_LOG("host context id:%d\n", remote_ctxt_id);
 
-    LockDisplay (dpy);
-    GetReq (GLXDestroyContext,req);
+    LockDisplay(dpy);
+    GetReq(GLXDestroyContext, req);
     req->reqType = major_opcode;
     req->glxCode = X_GLXDestroyContext;
     req->context = remote_ctxt_id;
-    UnlockDisplay (dpy);
-    SyncHandle ();
+    UnlockDisplay(dpy);
+    SyncHandle();
 
-    is_ok = TRUE ;
+    is_ok = TRUE;
 
-out:
-    EPHYR_LOG ("leave\n") ;
-    return is_ok ;
+ out:
+    EPHYR_LOG("leave\n");
+    return is_ok;
 }
 
 Bool
-ephyrHostGLXMakeCurrent (int a_drawable,
-                         int a_glx_ctxt_id,
-                         int a_old_ctxt_tag,
-                         int *a_ctxt_tag)
+ephyrHostGLXMakeCurrent(int a_drawable,
+                        int a_glx_ctxt_id, int a_old_ctxt_tag, int *a_ctxt_tag)
 {
-    Bool is_ok=FALSE ;
-    Display *dpy = hostx_get_display () ;
-    int32_t major_opcode=0 ;
-    int remote_glx_ctxt_id=0 ;
+    Bool is_ok = FALSE;
+    Display *dpy = hostx_get_display();
+    int32_t major_opcode = 0;
+    int remote_glx_ctxt_id = 0;
     xGLXMakeCurrentReq *req;
     xGLXMakeCurrentReply reply;
 
-    EPHYR_RETURN_VAL_IF_FAIL (a_ctxt_tag, FALSE) ;
+    EPHYR_RETURN_VAL_IF_FAIL(a_ctxt_tag, FALSE);
 
-    EPHYR_LOG ("enter. drawable:%d, context:%d, oldtag:%d\n",
-               a_drawable, a_glx_ctxt_id, a_old_ctxt_tag) ;
+    EPHYR_LOG("enter. drawable:%d, context:%d, oldtag:%d\n",
+              a_drawable, a_glx_ctxt_id, a_old_ctxt_tag);
 
-    if (!ephyrHostGLXGetMajorOpcode (&major_opcode)) {
-        EPHYR_LOG_ERROR ("failed to get major opcode\n") ;
-        goto out ;
+    if (!ephyrHostGLXGetMajorOpcode(&major_opcode)) {
+        EPHYR_LOG_ERROR("failed to get major opcode\n");
+        goto out;
     }
-    if (!hostx_get_resource_id_peer (a_glx_ctxt_id, &remote_glx_ctxt_id)) {
-        EPHYR_LOG_ERROR ("failed to get remote glx ctxt id\n") ;
-        goto out ;
+    if (!hostx_get_resource_id_peer(a_glx_ctxt_id, &remote_glx_ctxt_id)) {
+        EPHYR_LOG_ERROR("failed to get remote glx ctxt id\n");
+        goto out;
     }
 
-    LockDisplay (dpy);
+    LockDisplay(dpy);
 
-    GetReq (GLXMakeCurrent,req);
+    GetReq(GLXMakeCurrent, req);
     req->reqType = major_opcode;
     req->glxCode = X_GLXMakeCurrent;
     req->drawable = a_drawable;
     req->context = remote_glx_ctxt_id;
     req->oldContextTag = a_old_ctxt_tag;
 
-    memset (&reply, 0, sizeof (reply)) ;
-    if (!_XReply (dpy, (xReply*)&reply, 0, False)) {
-        EPHYR_LOG_ERROR ("failed to get reply from host\n") ;
-        UnlockDisplay (dpy);
-        SyncHandle ();
-        goto out ;
+    memset(&reply, 0, sizeof(reply));
+    if (!_XReply(dpy, (xReply *) & reply, 0, False)) {
+        EPHYR_LOG_ERROR("failed to get reply from host\n");
+        UnlockDisplay(dpy);
+        SyncHandle();
+        goto out;
     }
-    UnlockDisplay (dpy);
-    SyncHandle ();
-    *a_ctxt_tag = reply.contextTag ;
-    EPHYR_LOG ("context tag:%d\n", *a_ctxt_tag) ;
-    is_ok = TRUE ;
+    UnlockDisplay(dpy);
+    SyncHandle();
+    *a_ctxt_tag = reply.contextTag;
+    EPHYR_LOG("context tag:%d\n", *a_ctxt_tag);
+    is_ok = TRUE;
 
-out:
-    EPHYR_LOG ("leave\n") ;
-    return is_ok ;
+ out:
+    EPHYR_LOG("leave\n");
+    return is_ok;
 }
 
 #define X_GLXSingle 0
@@ -614,86 +599,85 @@ out:
     *p = *(GLfloat *)&reply.pad3;
 
 Bool
-ephyrHostGetIntegerValue (int a_current_context_tag, int a_int, int *a_val)
+ephyrHostGetIntegerValue(int a_current_context_tag, int a_int, int *a_val)
 {
-    Bool is_ok=FALSE;
-    Display *dpy = hostx_get_display () ;
-    int major_opcode=0, size=0;
-    xGLXSingleReq *req=NULL;
+    Bool is_ok = FALSE;
+    Display *dpy = hostx_get_display();
+    int major_opcode = 0, size = 0;
+    xGLXSingleReq *req = NULL;
     xGLXSingleReply reply;
-    unsigned char* pc=NULL ;
+    unsigned char *pc = NULL;
 
-    EPHYR_RETURN_VAL_IF_FAIL (a_val, FALSE) ;
+    EPHYR_RETURN_VAL_IF_FAIL(a_val, FALSE);
 
-    EPHYR_LOG ("enter\n") ;
-    if (!ephyrHostGLXGetMajorOpcode (&major_opcode)) {
-        EPHYR_LOG_ERROR ("failed to get major opcode\n") ;
-        goto out ;
+    EPHYR_LOG("enter\n");
+    if (!ephyrHostGLXGetMajorOpcode(&major_opcode)) {
+        EPHYR_LOG_ERROR("failed to get major opcode\n");
+        goto out;
     }
-    LockDisplay (dpy) ;
-    GetReqExtra (GLXSingle, 4, req) ;
-    req->reqType = major_opcode ;
-    req->glxCode = X_GLsop_GetIntegerv ;
+    LockDisplay(dpy);
+    GetReqExtra(GLXSingle, 4, req);
+    req->reqType = major_opcode;
+    req->glxCode = X_GLsop_GetIntegerv;
     req->contextTag = a_current_context_tag;
-    pc = ((unsigned char *)(req) + sz_xGLXSingleReq) ;
-    EPHYR_GLX_SINGLE_PUT_LONG (0, a_int) ;
-    EPHYR_GLX_SINGLE_READ_XREPLY () ;
-    EPHYR_GLX_SINGLE_GET_SIZE (size) ;
+    pc = ((unsigned char *) (req) + sz_xGLXSingleReq);
+    EPHYR_GLX_SINGLE_PUT_LONG(0, a_int);
+    EPHYR_GLX_SINGLE_READ_XREPLY();
+    EPHYR_GLX_SINGLE_GET_SIZE(size);
     if (!size) {
-        UnlockDisplay (dpy) ;
-        SyncHandle () ;
-        EPHYR_LOG_ERROR ("X_GLsop_GetIngerv failed\n") ;
-        goto out ;
+        UnlockDisplay(dpy);
+        SyncHandle();
+        EPHYR_LOG_ERROR("X_GLsop_GetIngerv failed\n");
+        goto out;
     }
-    EPHYR_GLX_SINGLE_GET_LONG (a_val) ;
-    UnlockDisplay (dpy) ;
-    SyncHandle () ;
-    is_ok = TRUE ;
+    EPHYR_GLX_SINGLE_GET_LONG(a_val);
+    UnlockDisplay(dpy);
+    SyncHandle();
+    is_ok = TRUE;
 
-out:
-    EPHYR_LOG ("leave\n") ;
-    return is_ok ;
+ out:
+    EPHYR_LOG("leave\n");
+    return is_ok;
 }
 
 Bool
-ephyrHostIsContextDirect (int a_ctxt_id,
-                          int *a_is_direct)
+ephyrHostIsContextDirect(int a_ctxt_id, int *a_is_direct)
 {
-    Bool is_ok=FALSE;
-    Display *dpy = hostx_get_display () ;
-    xGLXIsDirectReq *req=NULL;
+    Bool is_ok = FALSE;
+    Display *dpy = hostx_get_display();
+    xGLXIsDirectReq *req = NULL;
     xGLXIsDirectReply reply;
-    int major_opcode=0, remote_glx_ctxt_id=0;
+    int major_opcode = 0, remote_glx_ctxt_id = 0;
 
-    EPHYR_LOG ("enter\n") ;
-    if (!ephyrHostGLXGetMajorOpcode (&major_opcode)) {
-        EPHYR_LOG_ERROR ("failed to get major opcode\n") ;
-        goto out ;
+    EPHYR_LOG("enter\n");
+    if (!ephyrHostGLXGetMajorOpcode(&major_opcode)) {
+        EPHYR_LOG_ERROR("failed to get major opcode\n");
+        goto out;
     }
-    if (!hostx_get_resource_id_peer (a_ctxt_id, &remote_glx_ctxt_id)) {
-        EPHYR_LOG_ERROR ("failed to get remote glx ctxt id\n") ;
-        goto out ;
+    if (!hostx_get_resource_id_peer(a_ctxt_id, &remote_glx_ctxt_id)) {
+        EPHYR_LOG_ERROR("failed to get remote glx ctxt id\n");
+        goto out;
     }
-    memset (&reply, 0, sizeof (reply)) ;
+    memset(&reply, 0, sizeof(reply));
 
     /* Send the glXIsDirect request */
-    LockDisplay (dpy);
-    GetReq (GLXIsDirect,req);
+    LockDisplay(dpy);
+    GetReq(GLXIsDirect, req);
     req->reqType = major_opcode;
     req->glxCode = X_GLXIsDirect;
     req->context = remote_glx_ctxt_id;
-    if (!_XReply (dpy, (xReply*) &reply, 0, False)) {
-        EPHYR_LOG_ERROR ("fail in reading reply from host\n") ;
-        UnlockDisplay (dpy);
-        SyncHandle ();
-        goto out ;
+    if (!_XReply(dpy, (xReply *) & reply, 0, False)) {
+        EPHYR_LOG_ERROR("fail in reading reply from host\n");
+        UnlockDisplay(dpy);
+        SyncHandle();
+        goto out;
     }
-    UnlockDisplay (dpy);
-    SyncHandle ();
-    *a_is_direct = reply.isDirect ;
-    is_ok = TRUE ;
+    UnlockDisplay(dpy);
+    SyncHandle();
+    *a_is_direct = reply.isDirect;
+    is_ok = TRUE;
 
-out:
-    EPHYR_LOG ("leave\n") ;
-    return is_ok ;
+ out:
+    EPHYR_LOG("leave\n");
+    return is_ok;
 }

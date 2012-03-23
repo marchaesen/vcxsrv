@@ -43,544 +43,518 @@
  */
 
 static Bool
-winGetWorkArea (RECT *prcWorkArea, winScreenInfo *pScreenInfo);
+ winGetWorkArea(RECT * prcWorkArea, winScreenInfo * pScreenInfo);
 
 static Bool
-winAdjustForAutoHide (RECT *prcWorkArea);
-
+ winAdjustForAutoHide(RECT * prcWorkArea);
 
 /*
  * Create a full screen window
  */
 
 Bool
-winCreateBoundingWindowFullScreen (ScreenPtr pScreen)
+winCreateBoundingWindowFullScreen(ScreenPtr pScreen)
 {
-  winScreenPriv(pScreen);
-  winScreenInfo		*pScreenInfo = pScreenPriv->pScreenInfo;
-  int			iX = pScreenInfo->dwInitialX;
-  int			iY = pScreenInfo->dwInitialY;
-  int			iWidth = pScreenInfo->dwWidth;
-  int			iHeight = pScreenInfo->dwHeight;
-  HWND			*phwnd = &pScreenPriv->hwndScreen;
-  WNDCLASSEX		wc;
-  char			szTitle[256];
+    winScreenPriv(pScreen);
+    winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
+    int iX = pScreenInfo->dwInitialX;
+    int iY = pScreenInfo->dwInitialY;
+    int iWidth = pScreenInfo->dwWidth;
+    int iHeight = pScreenInfo->dwHeight;
+    HWND *phwnd = &pScreenPriv->hwndScreen;
+    WNDCLASSEX wc;
+    char szTitle[256];
 
 #if CYGDEBUG
-  winDebug ("winCreateBoundingWindowFullScreen\n");
+    winDebug("winCreateBoundingWindowFullScreen\n");
 #endif
 
-  /* Setup our window class */
-  wc.cbSize=sizeof(WNDCLASSEX);
-  wc.style = CS_HREDRAW | CS_VREDRAW;
-  wc.lpfnWndProc = winWindowProc;
-  wc.cbClsExtra = 0;
-  wc.cbWndExtra = 0;
-  wc.hInstance = g_hInstance;
-  wc.hIcon = (HICON)LoadImage (g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
-		GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), 0);
-  wc.hCursor = 0;
-  wc.hbrBackground = 0;
-  wc.lpszMenuName = NULL;
-  wc.lpszClassName = WINDOW_CLASS;
-  wc.hIconSm = (HICON)LoadImage (g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
-		GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTSIZE);
-  RegisterClassEx (&wc);
+    /* Setup our window class */
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.lpfnWndProc = winWindowProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = g_hInstance;
+    wc.hIcon =
+        (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
+                          GetSystemMetrics(SM_CXICON),
+                          GetSystemMetrics(SM_CYICON), 0);
+    wc.hCursor = 0;
+    wc.hbrBackground = 0;
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = WINDOW_CLASS;
+    wc.hIconSm =
+        (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
+                          GetSystemMetrics(SM_CXSMICON),
+                          GetSystemMetrics(SM_CYSMICON), LR_DEFAULTSIZE);
+    RegisterClassEx(&wc);
 
-  /* Set display and screen-specific tooltip text */
-  if (g_pszQueryHost != NULL)
-    snprintf (szTitle,
-	    sizeof (szTitle),
-	    WINDOW_TITLE_XDMCP,
-	    g_pszQueryHost,
-	    display,
-	    (int) pScreenInfo->dwScreen);
-  else    
-    snprintf (szTitle,
-	    sizeof (szTitle),
-	    WINDOW_TITLE,
-	    display, 
-	    (int) pScreenInfo->dwScreen);
+    /* Set display and screen-specific tooltip text */
+    if (g_pszQueryHost != NULL)
+        snprintf(szTitle,
+                 sizeof(szTitle),
+                 WINDOW_TITLE_XDMCP,
+                 g_pszQueryHost, display, (int) pScreenInfo->dwScreen);
+    else
+        snprintf(szTitle,
+                 sizeof(szTitle),
+                 WINDOW_TITLE, display, (int) pScreenInfo->dwScreen);
 
-  /* Create the window */
-  *phwnd = CreateWindowExA (0,			/* Extended styles */
-			    WINDOW_CLASS,	/* Class name */
-			    szTitle,		/* Window name */
-			    WS_POPUP,
-			    iX,			/* Horizontal position */
-			    iY,			/* Vertical position */
-			    iWidth,		/* Right edge */ 
-			    iHeight,		/* Bottom edge */
-			    (HWND) NULL,	/* No parent or owner window */
-			    (HMENU) NULL,	/* No menu */
-			    GetModuleHandle (NULL),/* Instance handle */
-			    pScreenPriv);	/* ScreenPrivates */
+    /* Create the window */
+    *phwnd = CreateWindowExA(0, /* Extended styles */
+                             WINDOW_CLASS,      /* Class name */
+                             szTitle,   /* Window name */
+                             WS_POPUP, iX,      /* Horizontal position */
+                             iY,        /* Vertical position */
+                             iWidth,    /* Right edge */
+                             iHeight,   /* Bottom edge */
+                             (HWND) NULL,       /* No parent or owner window */
+                             (HMENU) NULL,      /* No menu */
+                             GetModuleHandle(NULL),     /* Instance handle */
+                             pScreenPriv);      /* ScreenPrivates */
 
-  /* Branch on the server engine */
-  switch (pScreenInfo->dwEngine)
-    {
+    /* Branch on the server engine */
+    switch (pScreenInfo->dwEngine) {
 #ifdef XWIN_NATIVEGDI
     case WIN_SERVER_SHADOW_GDI:
-      /* Show the window */
-      ShowWindow (*phwnd, SW_SHOWMAXIMIZED);
-      break;
+        /* Show the window */
+        ShowWindow(*phwnd, SW_SHOWMAXIMIZED);
+        break;
 #endif
 
     default:
-      /* Hide the window */
-      ShowWindow (*phwnd, SW_SHOWNORMAL);
-      break;
+        /* Hide the window */
+        ShowWindow(*phwnd, SW_SHOWNORMAL);
+        break;
     }
 
-  /* Send first paint message */
-  UpdateWindow (*phwnd);
+    /* Send first paint message */
+    UpdateWindow(*phwnd);
 
-  /* Attempt to bring our window to the top of the display */
-  BringWindowToTop (*phwnd);
+    /* Attempt to bring our window to the top of the display */
+    BringWindowToTop(*phwnd);
 
-  return TRUE;
+    return TRUE;
 }
-
 
 /*
  * Create our primary Windows display window
  */
 
 Bool
-winCreateBoundingWindowWindowed (ScreenPtr pScreen)
+winCreateBoundingWindowWindowed(ScreenPtr pScreen)
 {
-  winScreenPriv(pScreen);
-  winScreenInfo		*pScreenInfo = pScreenPriv->pScreenInfo;
-  int			iWidth = pScreenInfo->dwUserWidth;
-  int			iHeight = pScreenInfo->dwUserHeight;
-  int                   iPosX;
-  int                   iPosY;
-  HWND			*phwnd = &pScreenPriv->hwndScreen;
-  WNDCLASSEX		wc;
-  RECT			rcClient, rcWorkArea;
-  DWORD			dwWindowStyle;
-  BOOL			fForceShowWindow = FALSE;
-  char			szTitle[256];
-  
-  winDebug ("winCreateBoundingWindowWindowed - User w: %d h: %d\n",
-	  (int) pScreenInfo->dwUserWidth, (int) pScreenInfo->dwUserHeight);
-  winDebug ("winCreateBoundingWindowWindowed - Current w: %d h: %d\n",
-	  (int) pScreenInfo->dwWidth, (int) pScreenInfo->dwHeight);
+    winScreenPriv(pScreen);
+    winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
+    int iWidth = pScreenInfo->dwUserWidth;
+    int iHeight = pScreenInfo->dwUserHeight;
+    int iPosX;
+    int iPosY;
+    HWND *phwnd = &pScreenPriv->hwndScreen;
+    WNDCLASSEX wc;
+    RECT rcClient, rcWorkArea;
+    DWORD dwWindowStyle;
+    BOOL fForceShowWindow = FALSE;
+    char szTitle[256];
 
-  /* Set the common window style flags */
-  dwWindowStyle = WS_OVERLAPPED | WS_SYSMENU | WS_MINIMIZEBOX;
-  
-  /* Decorated or undecorated window */
-  if (pScreenInfo->fDecoration
+    winDebug("winCreateBoundingWindowWindowed - User w: %d h: %d\n",
+             (int) pScreenInfo->dwUserWidth, (int) pScreenInfo->dwUserHeight);
+    winDebug("winCreateBoundingWindowWindowed - Current w: %d h: %d\n",
+             (int) pScreenInfo->dwWidth, (int) pScreenInfo->dwHeight);
+
+    /* Set the common window style flags */
+    dwWindowStyle = WS_OVERLAPPED | WS_SYSMENU | WS_MINIMIZEBOX;
+
+    /* Decorated or undecorated window */
+    if (pScreenInfo->fDecoration
 #ifdef XWIN_MULTIWINDOWEXTWM
-      && !pScreenInfo->fMWExtWM
+        && !pScreenInfo->fMWExtWM
 #endif
-      && !pScreenInfo->fRootless
+        && !pScreenInfo->fRootless
 #ifdef XWIN_MULTIWINDOW
-      && !pScreenInfo->fMultiWindow
+        && !pScreenInfo->fMultiWindow
 #endif
-      )
-    {
+        ) {
         /* Try to handle startup via run.exe. run.exe instructs Windows to 
          * hide all created windows. Detect this case and make sure the 
          * window is shown nevertheless */
-        STARTUPINFO   startupInfo;
+        STARTUPINFO startupInfo;
+
         GetStartupInfo(&startupInfo);
-        if (startupInfo.dwFlags & STARTF_USESHOWWINDOW && 
-                startupInfo.wShowWindow == SW_HIDE)
-        {
-          fForceShowWindow = TRUE;
-        } 
+        if (startupInfo.dwFlags & STARTF_USESHOWWINDOW &&
+            startupInfo.wShowWindow == SW_HIDE) {
+            fForceShowWindow = TRUE;
+        }
         dwWindowStyle |= WS_CAPTION;
         if (pScreenInfo->iResizeMode != notAllowed)
             dwWindowStyle |= WS_THICKFRAME | WS_MAXIMIZEBOX;
     }
-  else
-    dwWindowStyle |= WS_POPUP;
+    else
+        dwWindowStyle |= WS_POPUP;
 
-  /* Setup our window class */
-  wc.cbSize=sizeof(WNDCLASSEX);
-  wc.style = CS_HREDRAW | CS_VREDRAW;
-  wc.lpfnWndProc = winWindowProc;
-  wc.cbClsExtra = 0;
-  wc.cbWndExtra = 0;
-  wc.hInstance = g_hInstance;
-  wc.hIcon = (HICON)LoadImage (g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
-		GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), 0);
-  wc.hCursor = 0;
-  wc.hbrBackground = (HBRUSH) GetStockObject (WHITE_BRUSH);
-  wc.lpszMenuName = NULL;
-  wc.lpszClassName = WINDOW_CLASS;
-  wc.hIconSm = (HICON)LoadImage (g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
-		GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTSIZE);
-  RegisterClassEx (&wc);
+    /* Setup our window class */
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.lpfnWndProc = winWindowProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = g_hInstance;
+    wc.hIcon =
+        (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
+                          GetSystemMetrics(SM_CXICON),
+                          GetSystemMetrics(SM_CYICON), 0);
+    wc.hCursor = 0;
+    wc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = WINDOW_CLASS;
+    wc.hIconSm =
+        (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
+                          GetSystemMetrics(SM_CXSMICON),
+                          GetSystemMetrics(SM_CYSMICON), LR_DEFAULTSIZE);
+    RegisterClassEx(&wc);
 
-  /* Get size of work area */
-  winGetWorkArea (&rcWorkArea, pScreenInfo);
+    /* Get size of work area */
+    winGetWorkArea(&rcWorkArea, pScreenInfo);
 
-  /* Adjust for auto-hide taskbars */
-  winAdjustForAutoHide (&rcWorkArea);
+    /* Adjust for auto-hide taskbars */
+    winAdjustForAutoHide(&rcWorkArea);
 
-  /* Did the user specify a position? */
-  if (pScreenInfo->fUserGavePosition)
-    {
-      iPosX = pScreenInfo->dwInitialX;
-      iPosY = pScreenInfo->dwInitialY;
+    /* Did the user specify a position? */
+    if (pScreenInfo->fUserGavePosition) {
+        iPosX = pScreenInfo->dwInitialX;
+        iPosY = pScreenInfo->dwInitialY;
     }
-  else
-    {
-      iPosX = rcWorkArea.left;
-      iPosY = rcWorkArea.top;
+    else {
+        iPosX = rcWorkArea.left;
+        iPosY = rcWorkArea.top;
     }
 
-  /* Clean up the scrollbars flag, if necessary */
-  if ((!pScreenInfo->fDecoration
+    /* Clean up the scrollbars flag, if necessary */
+    if ((!pScreenInfo->fDecoration
 #ifdef XWIN_MULTIWINDOWEXTWM
-       || pScreenInfo->fMWExtWM
+         || pScreenInfo->fMWExtWM
 #endif
-       || pScreenInfo->fRootless
+         || pScreenInfo->fRootless
 #ifdef XWIN_MULTIWINDOW
-       || pScreenInfo->fMultiWindow
+         || pScreenInfo->fMultiWindow
 #endif
-       )
-      && (pScreenInfo->iResizeMode == resizeWithScrollbars))
-    {
-      /* We cannot have scrollbars if we do not have a window border */
-      pScreenInfo->iResizeMode = notAllowed;
+        )
+        && (pScreenInfo->iResizeMode == resizeWithScrollbars)) {
+        /* We cannot have scrollbars if we do not have a window border */
+        pScreenInfo->iResizeMode = notAllowed;
     }
 
-  /* Did the user specify a height and width? */
-  if (pScreenInfo->fUserGaveHeightAndWidth)
-    {
-      /* User gave a desired height and width, try to accomodate */
+    /* Did the user specify a height and width? */
+    if (pScreenInfo->fUserGaveHeightAndWidth) {
+        /* User gave a desired height and width, try to accomodate */
 #if CYGDEBUG
-      winDebug ("winCreateBoundingWindowWindowed - User gave height "
-	      "and width\n");
+        winDebug("winCreateBoundingWindowWindowed - User gave height "
+                 "and width\n");
 #endif
-      
-      /* Adjust the window width and height for borders and title bar */
-      if (pScreenInfo->fDecoration
+
+        /* Adjust the window width and height for borders and title bar */
+        if (pScreenInfo->fDecoration
 #ifdef XWIN_MULTIWINDOWEXTWM
-	  && !pScreenInfo->fMWExtWM
+            && !pScreenInfo->fMWExtWM
 #endif
-	  && !pScreenInfo->fRootless
+            && !pScreenInfo->fRootless
 #ifdef XWIN_MULTIWINDOW
-	  && !pScreenInfo->fMultiWindow
+            && !pScreenInfo->fMultiWindow
 #endif
-	  )
-	{
+            ) {
 #if CYGDEBUG
-	  winDebug ("winCreateBoundingWindowWindowed - Window has decoration\n");
+            winDebug
+                ("winCreateBoundingWindowWindowed - Window has decoration\n");
 #endif
 
-          /* Are we resizable */
-          if (pScreenInfo->iResizeMode != notAllowed)
-	    {
+            /* Are we resizable */
+            if (pScreenInfo->iResizeMode != notAllowed) {
 #if CYGDEBUG
-	      winDebug ("winCreateBoundingWindowWindowed - Window is resizable\n");
+                winDebug
+                    ("winCreateBoundingWindowWindowed - Window is resizable\n");
 #endif
 
-	      iWidth += 2 * GetSystemMetrics (SM_CXSIZEFRAME);
-	      iHeight += 2 * GetSystemMetrics (SM_CYSIZEFRAME) 
-		+ GetSystemMetrics (SM_CYCAPTION);
-	    }
-	  else
-	    {
+                iWidth += 2 * GetSystemMetrics(SM_CXSIZEFRAME);
+                iHeight += 2 * GetSystemMetrics(SM_CYSIZEFRAME)
+                    + GetSystemMetrics(SM_CYCAPTION);
+            }
+            else {
 #if CYGDEBUG
-	      winDebug ("winCreateBoundingWindowWindowed - Window is not resizable\n");
+                winDebug
+                    ("winCreateBoundingWindowWindowed - Window is not resizable\n");
 #endif
 
-	      iWidth += 2 * GetSystemMetrics (SM_CXFIXEDFRAME);
-	      iHeight += 2 * GetSystemMetrics (SM_CYFIXEDFRAME) 
-		+ GetSystemMetrics (SM_CYCAPTION);
-	    }
-	}
+                iWidth += 2 * GetSystemMetrics(SM_CXFIXEDFRAME);
+                iHeight += 2 * GetSystemMetrics(SM_CYFIXEDFRAME)
+                    + GetSystemMetrics(SM_CYCAPTION);
+            }
+        }
     }
-  else
-    {
-      /* By default, we are creating a window that is as large as possible */
+    else {
+        /* By default, we are creating a window that is as large as possible */
 #if CYGDEBUG
-      winDebug ("winCreateBoundingWindowWindowed - User did not give "
-	      "height and width\n");
+        winDebug("winCreateBoundingWindowWindowed - User did not give "
+                 "height and width\n");
 #endif
-      /* Defaults are wrong if we have multiple monitors */
-      if (pScreenInfo->fMultipleMonitors)
-	{
-	  iWidth = GetSystemMetrics (SM_CXVIRTUALSCREEN);
-	  iHeight = GetSystemMetrics (SM_CYVIRTUALSCREEN);
-	}
+        /* Defaults are wrong if we have multiple monitors */
+        if (pScreenInfo->fMultipleMonitors) {
+            iWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+            iHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+        }
     }
 
-  /* Make sure window is no bigger than work area */
-  if (TRUE 
+    /* Make sure window is no bigger than work area */
+    if (TRUE
 #ifdef XWIN_MULTIWINDOWEXTWM
-       && !pScreenInfo->fMWExtWM
+        && !pScreenInfo->fMWExtWM
 #endif
 #ifdef XWIN_MULTIWINDOW
-       && !pScreenInfo->fMultiWindow
+        && !pScreenInfo->fMultiWindow
 #endif
-     )
-    {
-      /* Trim window width to fit work area */
-      if (iWidth > (rcWorkArea.right - rcWorkArea.left))
-        iWidth = rcWorkArea.right - rcWorkArea.left;
-  
-      /* Trim window height to fit work area */
-      if (iHeight >= (rcWorkArea.bottom - rcWorkArea.top))
-        iHeight = rcWorkArea.bottom - rcWorkArea.top;
-  
+        ) {
+        /* Trim window width to fit work area */
+        if (iWidth > (rcWorkArea.right - rcWorkArea.left))
+            iWidth = rcWorkArea.right - rcWorkArea.left;
+
+        /* Trim window height to fit work area */
+        if (iHeight >= (rcWorkArea.bottom - rcWorkArea.top))
+            iHeight = rcWorkArea.bottom - rcWorkArea.top;
+
 #if CYGDEBUG
-      winDebug ("winCreateBoundingWindowWindowed - Adjusted width: %d "\
-	      "height: %d\n",
-    	  iWidth, iHeight);
+        winDebug("winCreateBoundingWindowWindowed - Adjusted width: %d "
+                 "height: %d\n", iWidth, iHeight);
 #endif
     }
 
-  /* Set display and screen-specific tooltip text */
-  if (g_pszQueryHost != NULL)
-    snprintf (szTitle,
-	    sizeof (szTitle),
-	    WINDOW_TITLE_XDMCP,
-	    g_pszQueryHost,
-	    display,
-	    (int) pScreenInfo->dwScreen);
-  else    
-    snprintf (szTitle,
-	    sizeof (szTitle),
-	    WINDOW_TITLE,
-	    display, 
-	    (int) pScreenInfo->dwScreen);
+    /* Set display and screen-specific tooltip text */
+    if (g_pszQueryHost != NULL)
+        snprintf(szTitle,
+                 sizeof(szTitle),
+                 WINDOW_TITLE_XDMCP,
+                 g_pszQueryHost, display, (int) pScreenInfo->dwScreen);
+    else
+        snprintf(szTitle,
+                 sizeof(szTitle),
+                 WINDOW_TITLE, display, (int) pScreenInfo->dwScreen);
 
-  /* Create the window */
-  *phwnd = CreateWindowExA (0,			/* Extended styles */
-			    WINDOW_CLASS,	/* Class name */
-			    szTitle,		/* Window name */
-			    dwWindowStyle,
-			    iPosX,	        /* Horizontal position */
-			    iPosY,	        /* Vertical position */
-			    iWidth,		/* Right edge */
-			    iHeight,		/* Bottom edge */
-			    (HWND) NULL,	/* No parent or owner window */
-			    (HMENU) NULL,	/* No menu */
-			    GetModuleHandle (NULL),/* Instance handle */
-			    pScreenPriv);	/* ScreenPrivates */
-  if (*phwnd == NULL)
-    {
-      ErrorF ("winCreateBoundingWindowWindowed - CreateWindowEx () failed\n");
-      return FALSE;
+    /* Create the window */
+    *phwnd = CreateWindowExA(0, /* Extended styles */
+                             WINDOW_CLASS,      /* Class name */
+                             szTitle,   /* Window name */
+                             dwWindowStyle, iPosX,      /* Horizontal position */
+                             iPosY,     /* Vertical position */
+                             iWidth,    /* Right edge */
+                             iHeight,   /* Bottom edge */
+                             (HWND) NULL,       /* No parent or owner window */
+                             (HMENU) NULL,      /* No menu */
+                             GetModuleHandle(NULL),     /* Instance handle */
+                             pScreenPriv);      /* ScreenPrivates */
+    if (*phwnd == NULL) {
+        ErrorF("winCreateBoundingWindowWindowed - CreateWindowEx () failed\n");
+        return FALSE;
     }
 
 #if CYGDEBUG
-  winDebug ("winCreateBoundingWindowWindowed - CreateWindowEx () returned\n");
+    winDebug("winCreateBoundingWindowWindowed - CreateWindowEx () returned\n");
 #endif
 
-  if (fForceShowWindow)
-  {
-      ErrorF("winCreateBoundingWindowWindowed - Setting normal windowstyle\n");
-      ShowWindow(*phwnd, SW_SHOW);      
-  }
-
-  /* Get the client area coordinates */
-  if (!GetClientRect (*phwnd, &rcClient))
-    {
-      ErrorF ("winCreateBoundingWindowWindowed - GetClientRect () "
-	      "failed\n");
-      return FALSE;
+    if (fForceShowWindow) {
+        ErrorF
+            ("winCreateBoundingWindowWindowed - Setting normal windowstyle\n");
+        ShowWindow(*phwnd, SW_SHOW);
     }
 
-  winDebug ("winCreateBoundingWindowWindowed - WindowClient "
-	  "w %ld h %ld r %ld l %ld b %ld t %ld\n",
-	  rcClient.right - rcClient.left,
-	  rcClient.bottom - rcClient.top,
-	  rcClient.right, rcClient.left,
-	  rcClient.bottom, rcClient.top);
-  
-  /* We adjust the visual size if the user did not specify it */
-  if (!((pScreenInfo->iResizeMode == resizeWithScrollbars) && pScreenInfo->fUserGaveHeightAndWidth))
-    {
-      /*
-       * User did not give a height and width with scrollbars enabled,
-       * so we will resize the underlying visual to be as large as
-       * the initial view port (page size).  This way scrollbars will
-       * not appear until the user shrinks the window, if they ever do.
-       *
-       * NOTE: We have to store the viewport size here because
-       * the user may have an autohide taskbar, which would
-       * cause the viewport size to be one less in one dimension
-       * than the viewport size that we calculated by subtracting
-       * the size of the borders and caption.
-       */
-      pScreenInfo->dwWidth = rcClient.right - rcClient.left;
-      pScreenInfo->dwHeight = rcClient.bottom - rcClient.top;
+    /* Get the client area coordinates */
+    if (!GetClientRect(*phwnd, &rcClient)) {
+        ErrorF("winCreateBoundingWindowWindowed - GetClientRect () "
+               "failed\n");
+        return FALSE;
+    }
+
+    winDebug("winCreateBoundingWindowWindowed - WindowClient "
+             "w %ld h %ld r %ld l %ld b %ld t %ld\n",
+             rcClient.right - rcClient.left,
+             rcClient.bottom - rcClient.top,
+             rcClient.right, rcClient.left, rcClient.bottom, rcClient.top);
+
+    /* We adjust the visual size if the user did not specify it */
+    if (!
+        ((pScreenInfo->iResizeMode == resizeWithScrollbars) &&
+         pScreenInfo->fUserGaveHeightAndWidth)) {
+        /*
+         * User did not give a height and width with scrollbars enabled,
+         * so we will resize the underlying visual to be as large as
+         * the initial view port (page size).  This way scrollbars will
+         * not appear until the user shrinks the window, if they ever do.
+         *
+         * NOTE: We have to store the viewport size here because
+         * the user may have an autohide taskbar, which would
+         * cause the viewport size to be one less in one dimension
+         * than the viewport size that we calculated by subtracting
+         * the size of the borders and caption.
+         */
+        pScreenInfo->dwWidth = rcClient.right - rcClient.left;
+        pScreenInfo->dwHeight = rcClient.bottom - rcClient.top;
     }
 
 #if 0
-  /*
-   * NOTE: For the uninitiated, the page size is the number of pixels
-   * that we can display in the x or y direction at a time and the
-   * range is the total number of pixels in the x or y direction that we
-   * have available to display.  In other words, the page size is the
-   * size of the window area minus the space the caption, borders, and
-   * scrollbars (if any) occupy, and the range is the size of the
-   * underlying X visual.  Notice that, contrary to what some of the
-   * MSDN Library arcticles lead you to believe, the windows
-   * ``client area'' size does not include the scrollbars.  In other words,
-   * the whole client area size that is reported to you is drawable by
-   * you; you do not have to subtract the size of the scrollbars from
-   * the client area size, and if you did it would result in the size
-   * of the scrollbars being double counted.
-   */
+    /*
+     * NOTE: For the uninitiated, the page size is the number of pixels
+     * that we can display in the x or y direction at a time and the
+     * range is the total number of pixels in the x or y direction that we
+     * have available to display.  In other words, the page size is the
+     * size of the window area minus the space the caption, borders, and
+     * scrollbars (if any) occupy, and the range is the size of the
+     * underlying X visual.  Notice that, contrary to what some of the
+     * MSDN Library arcticles lead you to believe, the windows
+     * ``client area'' size does not include the scrollbars.  In other words,
+     * the whole client area size that is reported to you is drawable by
+     * you; you do not have to subtract the size of the scrollbars from
+     * the client area size, and if you did it would result in the size
+     * of the scrollbars being double counted.
+     */
 
-  /* Setup scrollbar page and range, if scrollbars are enabled */
-  if (pScreenInfo->fScrollbars)
-    {
-      SCROLLINFO		si;
-      
-      /* Initialize the scrollbar info structure */
-      si.cbSize = sizeof (si);
-      si.fMask = SIF_RANGE | SIF_PAGE;
-      si.nMin = 0;
-      
-      /* Setup the width range and page size */
-      si.nMax = pScreenInfo->dwWidth - 1;
-      si.nPage = rcClient.right - rcClient.left;
-      winDebug ("winCreateBoundingWindowWindowed - HORZ nMax: %d nPage :%d\n",
-	      si.nMax, si.nPage);
-      SetScrollInfo (*phwnd, SB_HORZ, &si, TRUE);
-      
-      /* Setup the height range and page size */
-      si.nMax = pScreenInfo->dwHeight - 1;
-      si.nPage = rcClient.bottom - rcClient.top;
-      winDebug ("winCreateBoundingWindowWindowed - VERT nMax: %d nPage :%d\n",
-	      si.nMax, si.nPage);
-      SetScrollInfo (*phwnd, SB_VERT, &si, TRUE);
+    /* Setup scrollbar page and range, if scrollbars are enabled */
+    if (pScreenInfo->fScrollbars) {
+        SCROLLINFO si;
+
+        /* Initialize the scrollbar info structure */
+        si.cbSize = sizeof(si);
+        si.fMask = SIF_RANGE | SIF_PAGE;
+        si.nMin = 0;
+
+        /* Setup the width range and page size */
+        si.nMax = pScreenInfo->dwWidth - 1;
+        si.nPage = rcClient.right - rcClient.left;
+        winDebug("winCreateBoundingWindowWindowed - HORZ nMax: %d nPage :%d\n",
+                 si.nMax, si.nPage);
+        SetScrollInfo(*phwnd, SB_HORZ, &si, TRUE);
+
+        /* Setup the height range and page size */
+        si.nMax = pScreenInfo->dwHeight - 1;
+        si.nPage = rcClient.bottom - rcClient.top;
+        winDebug("winCreateBoundingWindowWindowed - VERT nMax: %d nPage :%d\n",
+                 si.nMax, si.nPage);
+        SetScrollInfo(*phwnd, SB_VERT, &si, TRUE);
     }
 #endif
 
-  /* Show the window */
-  if (FALSE
+    /* Show the window */
+    if (FALSE
 #ifdef XWIN_MULTIWINDOWEXTWM
-      || pScreenInfo->fMWExtWM
+        || pScreenInfo->fMWExtWM
 #endif
 #ifdef XWIN_MULTIWINDOW
-      || pScreenInfo->fMultiWindow
+        || pScreenInfo->fMultiWindow
 #endif
-      )
-    {
+        ) {
 #if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
-      pScreenPriv->fRootWindowShown = FALSE;
+        pScreenPriv->fRootWindowShown = FALSE;
 #endif
-      ShowWindow (*phwnd, SW_HIDE);
+        ShowWindow(*phwnd, SW_HIDE);
     }
-  else
-    ShowWindow (*phwnd, SW_SHOWNORMAL);
-  if (!UpdateWindow (*phwnd))
-    {
-      ErrorF ("winCreateBoundingWindowWindowed - UpdateWindow () failed\n");
-      return FALSE;
+    else
+        ShowWindow(*phwnd, SW_SHOWNORMAL);
+    if (!UpdateWindow(*phwnd)) {
+        ErrorF("winCreateBoundingWindowWindowed - UpdateWindow () failed\n");
+        return FALSE;
     }
-  
-  /* Attempt to bring our window to the top of the display */
-  if (TRUE
+
+    /* Attempt to bring our window to the top of the display */
+    if (TRUE
 #ifdef XWIN_MULTIWINDOWEXTWM
-      && !pScreenInfo->fMWExtWM
+        && !pScreenInfo->fMWExtWM
 #endif
-      && !pScreenInfo->fRootless
+        && !pScreenInfo->fRootless
 #ifdef XWIN_MULTIWINDOW
-      && !pScreenInfo->fMultiWindow
+        && !pScreenInfo->fMultiWindow
 #endif
-      )
-    {
-      if (!BringWindowToTop (*phwnd))
-	{
-	  ErrorF ("winCreateBoundingWindowWindowed - BringWindowToTop () "
-		  "failed\n");
-	  return FALSE;
-	}
+        ) {
+        if (!BringWindowToTop(*phwnd)) {
+            ErrorF("winCreateBoundingWindowWindowed - BringWindowToTop () "
+                   "failed\n");
+            return FALSE;
+        }
     }
 
 #ifdef XWIN_NATIVEGDI
-  /* Paint window background blue */
-  if (pScreenInfo->dwEngine == WIN_SERVER_NATIVE_GDI)
-    winPaintBackground (*phwnd, RGB (0x00, 0x00, 0xFF));
+    /* Paint window background blue */
+    if (pScreenInfo->dwEngine == WIN_SERVER_NATIVE_GDI)
+        winPaintBackground(*phwnd, RGB(0x00, 0x00, 0xFF));
 #endif
 
-  winDebug ("winCreateBoundingWindowWindowed -  Returning\n");
+    winDebug("winCreateBoundingWindowWindowed -  Returning\n");
 
-  return TRUE;
+    return TRUE;
 }
-
 
 /*
  * Find the work area of all attached monitors
  */
 
 static Bool
-winGetWorkArea (RECT *prcWorkArea, winScreenInfo *pScreenInfo)
+winGetWorkArea(RECT * prcWorkArea, winScreenInfo * pScreenInfo)
 {
-  int			iPrimaryWidth, iPrimaryHeight;
-  int			iWidth, iHeight;
-  int			iLeft, iTop;
-  int			iPrimaryNonWorkAreaWidth, iPrimaryNonWorkAreaHeight;
+    int iPrimaryWidth, iPrimaryHeight;
+    int iWidth, iHeight;
+    int iLeft, iTop;
+    int iPrimaryNonWorkAreaWidth, iPrimaryNonWorkAreaHeight;
 
-  /* SPI_GETWORKAREA only gets the work area of the primary screen. */
-  SystemParametersInfo (SPI_GETWORKAREA, 0, prcWorkArea, 0);
+    /* SPI_GETWORKAREA only gets the work area of the primary screen. */
+    SystemParametersInfo(SPI_GETWORKAREA, 0, prcWorkArea, 0);
 
-  /* Bail out here if we aren't using multiple monitors */
-  if (!pScreenInfo->fMultipleMonitors)
+    /* Bail out here if we aren't using multiple monitors */
+    if (!pScreenInfo->fMultipleMonitors)
+        return TRUE;
+
+    winDebug("winGetWorkArea - Original WorkArea: %d %d %d %d\n",
+             (int) prcWorkArea->top, (int) prcWorkArea->left,
+             (int) prcWorkArea->bottom, (int) prcWorkArea->right);
+
+    /* Get size of full virtual screen */
+    iWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    iHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
+    winDebug("winGetWorkArea - Virtual screen is %d x %d\n", iWidth, iHeight);
+
+    /* Get origin of full virtual screen */
+    iLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    iTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
+
+    winDebug("winGetWorkArea - Virtual screen origin is %d, %d\n", iLeft, iTop);
+
+    /* Get size of primary screen */
+    iPrimaryWidth = GetSystemMetrics(SM_CXSCREEN);
+    iPrimaryHeight = GetSystemMetrics(SM_CYSCREEN);
+
+    winDebug("winGetWorkArea - Primary screen is %d x %d\n",
+             iPrimaryWidth, iPrimaryHeight);
+
+    /* Work out how much of the primary screen we aren't using */
+    iPrimaryNonWorkAreaWidth = iPrimaryWidth - (prcWorkArea->right -
+                                                prcWorkArea->left);
+    iPrimaryNonWorkAreaHeight = iPrimaryHeight - (prcWorkArea->bottom
+                                                  - prcWorkArea->top);
+
+    /* Update the rectangle to include all monitors */
+    if (iLeft < 0) {
+        prcWorkArea->left = iLeft;
+    }
+    if (iTop < 0) {
+        prcWorkArea->top = iTop;
+    }
+    prcWorkArea->right = prcWorkArea->left + iWidth - iPrimaryNonWorkAreaWidth;
+    prcWorkArea->bottom = prcWorkArea->top + iHeight -
+        iPrimaryNonWorkAreaHeight;
+
+    winDebug("winGetWorkArea - Adjusted WorkArea for multiple "
+             "monitors: %d %d %d %d\n",
+             (int) prcWorkArea->top, (int) prcWorkArea->left,
+             (int) prcWorkArea->bottom, (int) prcWorkArea->right);
+
     return TRUE;
-  
-  winDebug ("winGetWorkArea - Original WorkArea: %d %d %d %d\n",
-	  (int) prcWorkArea->top, (int) prcWorkArea->left,
-	  (int) prcWorkArea->bottom, (int) prcWorkArea->right);
-
-  /* Get size of full virtual screen */
-  iWidth = GetSystemMetrics (SM_CXVIRTUALSCREEN);
-  iHeight = GetSystemMetrics (SM_CYVIRTUALSCREEN);
-
-  winDebug ("winGetWorkArea - Virtual screen is %d x %d\n", iWidth, iHeight);
-
-  /* Get origin of full virtual screen */
-  iLeft = GetSystemMetrics (SM_XVIRTUALSCREEN);
-  iTop = GetSystemMetrics (SM_YVIRTUALSCREEN);
-
-  winDebug ("winGetWorkArea - Virtual screen origin is %d, %d\n", iLeft, iTop);
-  
-  /* Get size of primary screen */
-  iPrimaryWidth = GetSystemMetrics (SM_CXSCREEN);
-  iPrimaryHeight = GetSystemMetrics (SM_CYSCREEN);
-
-  winDebug ("winGetWorkArea - Primary screen is %d x %d\n",
-	 iPrimaryWidth, iPrimaryHeight);
-  
-  /* Work out how much of the primary screen we aren't using */
-  iPrimaryNonWorkAreaWidth = iPrimaryWidth - (prcWorkArea->right -
-					      prcWorkArea->left);
-  iPrimaryNonWorkAreaHeight = iPrimaryHeight - (prcWorkArea->bottom
-						- prcWorkArea->top);
-  
-  /* Update the rectangle to include all monitors */
-  if (iLeft < 0) 
-    {
-      prcWorkArea->left = iLeft;
-    }
-  if (iTop < 0) 
-    {
-      prcWorkArea->top = iTop;
-    }
-  prcWorkArea->right = prcWorkArea->left + iWidth -
-    iPrimaryNonWorkAreaWidth;
-  prcWorkArea->bottom = prcWorkArea->top + iHeight -
-    iPrimaryNonWorkAreaHeight;
-  
-  winDebug ("winGetWorkArea - Adjusted WorkArea for multiple "
-	  "monitors: %d %d %d %d\n",
-	  (int) prcWorkArea->top, (int) prcWorkArea->left,
-	  (int) prcWorkArea->bottom, (int) prcWorkArea->right);
-  
-  return TRUE;
 }
-
 
 /*
  * Adjust the client area so that any auto-hide toolbars
@@ -588,69 +562,65 @@ winGetWorkArea (RECT *prcWorkArea, winScreenInfo *pScreenInfo)
  */
 
 static Bool
-winAdjustForAutoHide (RECT *prcWorkArea)
+winAdjustForAutoHide(RECT * prcWorkArea)
 {
-  APPBARDATA		abd;
-  HWND			hwndAutoHide;
+    APPBARDATA abd;
+    HWND hwndAutoHide;
 
-  winDebug ("winAdjustForAutoHide - Original WorkArea: %d %d %d %d\n",
-	  (int) prcWorkArea->top, (int) prcWorkArea->left,
-	  (int) prcWorkArea->bottom, (int) prcWorkArea->right);
+    winDebug("winAdjustForAutoHide - Original WorkArea: %d %d %d %d\n",
+             (int) prcWorkArea->top, (int) prcWorkArea->left,
+             (int) prcWorkArea->bottom, (int) prcWorkArea->right);
 
-  /* Find out if the Windows taskbar is set to auto-hide */
-  ZeroMemory (&abd, sizeof (abd));
-  abd.cbSize = sizeof (abd);
-  if (SHAppBarMessage (ABM_GETSTATE, &abd) & ABS_AUTOHIDE)
-    winDebug ("winAdjustForAutoHide - Taskbar is auto hide\n");
+    /* Find out if the Windows taskbar is set to auto-hide */
+    ZeroMemory(&abd, sizeof(abd));
+    abd.cbSize = sizeof(abd);
+    if (SHAppBarMessage(ABM_GETSTATE, &abd) & ABS_AUTOHIDE)
+        winDebug("winAdjustForAutoHide - Taskbar is auto hide\n");
 
-  /* Look for a TOP auto-hide taskbar */
-  abd.uEdge = ABE_TOP;
-  hwndAutoHide = (HWND) SHAppBarMessage (ABM_GETAUTOHIDEBAR, &abd);
-  if (hwndAutoHide != NULL)
-    {
-      winDebug ("winAdjustForAutoHide - Found TOP auto-hide taskbar\n");
-      prcWorkArea->top += 1;
+    /* Look for a TOP auto-hide taskbar */
+    abd.uEdge = ABE_TOP;
+    hwndAutoHide = (HWND) SHAppBarMessage(ABM_GETAUTOHIDEBAR, &abd);
+    if (hwndAutoHide != NULL) {
+        winDebug("winAdjustForAutoHide - Found TOP auto-hide taskbar\n");
+        prcWorkArea->top += 1;
     }
 
-  /* Look for a LEFT auto-hide taskbar */
-  abd.uEdge = ABE_LEFT;
-  hwndAutoHide = (HWND) SHAppBarMessage (ABM_GETAUTOHIDEBAR, &abd);
-  if (hwndAutoHide != NULL)
-    {
-      winDebug ("winAdjustForAutoHide - Found LEFT auto-hide taskbar\n");
-      prcWorkArea->left += 1;
+    /* Look for a LEFT auto-hide taskbar */
+    abd.uEdge = ABE_LEFT;
+    hwndAutoHide = (HWND) SHAppBarMessage(ABM_GETAUTOHIDEBAR, &abd);
+    if (hwndAutoHide != NULL) {
+        winDebug("winAdjustForAutoHide - Found LEFT auto-hide taskbar\n");
+        prcWorkArea->left += 1;
     }
 
-  /* Look for a BOTTOM auto-hide taskbar */
-  abd.uEdge = ABE_BOTTOM;
-  hwndAutoHide = (HWND) SHAppBarMessage (ABM_GETAUTOHIDEBAR, &abd);
-  if (hwndAutoHide != NULL)
-    {
-      winDebug ("winAdjustForAutoHide - Found BOTTOM auto-hide taskbar\n");
-      prcWorkArea->bottom -= 1;
+    /* Look for a BOTTOM auto-hide taskbar */
+    abd.uEdge = ABE_BOTTOM;
+    hwndAutoHide = (HWND) SHAppBarMessage(ABM_GETAUTOHIDEBAR, &abd);
+    if (hwndAutoHide != NULL) {
+        winDebug("winAdjustForAutoHide - Found BOTTOM auto-hide taskbar\n");
+        prcWorkArea->bottom -= 1;
     }
 
-  /* Look for a RIGHT auto-hide taskbar */
-  abd.uEdge = ABE_RIGHT;
-  hwndAutoHide = (HWND) SHAppBarMessage (ABM_GETAUTOHIDEBAR, &abd);
-  if (hwndAutoHide != NULL)
-    {
-      winDebug ("winAdjustForAutoHide - Found RIGHT auto-hide taskbar\n");
-      prcWorkArea->right -= 1;
+    /* Look for a RIGHT auto-hide taskbar */
+    abd.uEdge = ABE_RIGHT;
+    hwndAutoHide = (HWND) SHAppBarMessage(ABM_GETAUTOHIDEBAR, &abd);
+    if (hwndAutoHide != NULL) {
+        winDebug("winAdjustForAutoHide - Found RIGHT auto-hide taskbar\n");
+        prcWorkArea->right -= 1;
     }
 
-  winDebug ("winAdjustForAutoHide - Adjusted WorkArea: %d %d %d %d\n",
-	  (int) prcWorkArea->top, (int) prcWorkArea->left,
-	  (int) prcWorkArea->bottom, (int) prcWorkArea->right);
-  
+    winDebug("winAdjustForAutoHide - Adjusted WorkArea: %d %d %d %d\n",
+             (int) prcWorkArea->top, (int) prcWorkArea->left,
+             (int) prcWorkArea->bottom, (int) prcWorkArea->right);
+
 #if 0
-  /* Obtain the task bar window dimensions */
-  abd.hWnd = hwndAutoHide;
-  hwndAutoHide = (HWND) SHAppBarMessage (ABM_GETTASKBARPOS, &abd);
-  winDebug ("hwndAutoHide %08x abd.hWnd %08x %d %d %d %d\n",
-	  hwndAutoHide, abd.hWnd,
-	  abd.rc.top, abd.rc.left, abd.rc.bottom, abd.rc.right);
+    /* Obtain the task bar window dimensions */
+    abd.hWnd = hwndAutoHide;
+    hwndAutoHide = (HWND) SHAppBarMessage(ABM_GETTASKBARPOS, &abd);
+    winDebug("hwndAutoHide %08x abd.hWnd %08x %d %d %d %d\n",
+             hwndAutoHide, abd.hWnd,
+             abd.rc.top, abd.rc.left, abd.rc.bottom, abd.rc.right);
 #endif
 
-  return TRUE;
+    return TRUE;
 }

@@ -10,13 +10,13 @@ typedef struct _xf86CursorInfoRec {
     int Flags;
     int MaxWidth;
     int MaxHeight;
-    void (*SetCursorColors)(ScrnInfoPtr pScrn, int bg, int fg);
-    void (*SetCursorPosition)(ScrnInfoPtr pScrn, int x, int y);
-    void (*LoadCursorImage)(ScrnInfoPtr pScrn, unsigned char *bits);
-    void (*HideCursor)(ScrnInfoPtr pScrn);
-    void (*ShowCursor)(ScrnInfoPtr pScrn);
-    unsigned char* (*RealizeCursor)(struct _xf86CursorInfoRec *, CursorPtr);
-    Bool (*UseHWCursor)(ScreenPtr, CursorPtr);
+    void (*SetCursorColors) (ScrnInfoPtr pScrn, int bg, int fg);
+    void (*SetCursorPosition) (ScrnInfoPtr pScrn, int x, int y);
+    void (*LoadCursorImage) (ScrnInfoPtr pScrn, unsigned char *bits);
+    void (*HideCursor) (ScrnInfoPtr pScrn);
+    void (*ShowCursor) (ScrnInfoPtr pScrn);
+    unsigned char *(*RealizeCursor) (struct _xf86CursorInfoRec *, CursorPtr);
+    Bool (*UseHWCursor) (ScreenPtr, CursorPtr);
 
 #ifdef ARGB_CURSOR
     Bool (*UseHWCursorARGB) (ScreenPtr, CursorPtr);
@@ -25,10 +25,11 @@ typedef struct _xf86CursorInfoRec {
 
 } xf86CursorInfoRec, *xf86CursorInfoPtr;
 
-extern _X_EXPORT Bool xf86InitCursor(ScreenPtr pScreen, xf86CursorInfoPtr infoPtr);
+extern _X_EXPORT Bool xf86InitCursor(ScreenPtr pScreen,
+                                     xf86CursorInfoPtr infoPtr);
 extern _X_EXPORT xf86CursorInfoPtr xf86CreateCursorInfoRec(void);
 extern _X_EXPORT void xf86DestroyCursorInfoRec(xf86CursorInfoPtr);
-extern _X_EXPORT void xf86ForceHWCursor (ScreenPtr pScreen, Bool on);
+extern _X_EXPORT void xf86ForceHWCursor(ScreenPtr pScreen, Bool on);
 
 #define HARDWARE_CURSOR_INVERT_MASK 			0x00000001
 #define HARDWARE_CURSOR_AND_SOURCE_WITH_MASK		0x00000002
@@ -48,4 +49,4 @@ extern _X_EXPORT void xf86ForceHWCursor (ScreenPtr pScreen, Bool on);
 #define HARDWARE_CURSOR_ARGB				0x00004000
 #endif
 
-#endif /* _XF86CURSOR_H */
+#endif                          /* _XF86CURSOR_H */

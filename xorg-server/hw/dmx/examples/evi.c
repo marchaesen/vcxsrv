@@ -36,20 +36,22 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/XEVI.h>
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    Display              *display = NULL;
-    int                  major_version, minor_version;
-    ExtendedVisualInfo   *evi;
-    int                  count;
-    int                  i;
+    Display *display = NULL;
+    int major_version, minor_version;
+    ExtendedVisualInfo *evi;
+    int count;
+    int i;
 
     if (argc == 2) {
         if (!(display = XOpenDisplay(argv[1]))) {
             printf("Cannot open display %s\n", argv[1]);
             return -1;
         }
-    } else {
+    }
+    else {
         printf("Usage: %s display\n", argv[0]);
         return -1;
     }
@@ -71,14 +73,13 @@ int main(int argc, char **argv)
         printf("%02d vid=0x%02lx screen=%d level=%d type=%u value=%u"
                " min=%u max=%u conflicts=%u\n",
                i,
-               (long unsigned)evi[i].core_visual_id,
+               (long unsigned) evi[i].core_visual_id,
                evi[i].screen,
                evi[i].level,
                evi[i].transparency_type,
                evi[i].transparency_value,
                evi[i].min_hw_colormaps,
-               evi[i].max_hw_colormaps,
-               evi[i].num_colormap_conflicts);
+               evi[i].max_hw_colormaps, evi[i].num_colormap_conflicts);
     }
 
     XCloseDisplay(display);

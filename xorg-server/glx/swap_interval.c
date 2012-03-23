@@ -39,53 +39,55 @@
 #include "dispatch.h"
 #include "glxbyteorder.h"
 
-static int DoSwapInterval(__GLXclientState *cl, GLbyte *pc, int do_swap);
+static int DoSwapInterval(__GLXclientState * cl, GLbyte * pc, int do_swap);
 
-int DoSwapInterval(__GLXclientState *cl, GLbyte *pc, int do_swap)
+int
+DoSwapInterval(__GLXclientState * cl, GLbyte * pc, int do_swap)
 {
-    xGLXVendorPrivateReq * const req = (xGLXVendorPrivateReq *) pc;
+    xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     ClientPtr client = cl->client;
     const GLXContextTag tag = req->contextTag;
     __GLXcontext *cx;
     GLint interval;
 
-
     cx = __glXLookupContextByTag(cl, tag);
 
     if ((cx == NULL) || (cx->pGlxScreen == NULL)) {
-	client->errorValue = tag;
-	return __glXError(GLXBadContext);
+        client->errorValue = tag;
+        return __glXError(GLXBadContext);
     }
-    
+
     if (cx->pGlxScreen->swapInterval == NULL) {
-	LogMessage(X_ERROR, "AIGLX: cx->pGlxScreen->swapInterval == NULL\n");
-	client->errorValue = tag;
-	return __glXError(GLXUnsupportedPrivateRequest);
+        LogMessage(X_ERROR, "AIGLX: cx->pGlxScreen->swapInterval == NULL\n");
+        client->errorValue = tag;
+        return __glXError(GLXUnsupportedPrivateRequest);
     }
 
     if (cx->drawPriv == NULL) {
-	client->errorValue = tag;
-	return BadValue;
+        client->errorValue = tag;
+        return BadValue;
     }
-    
+
     pc += __GLX_VENDPRIV_HDR_SIZE;
     interval = (do_swap)
-      ? bswap_32(*(int *)(pc + 0))
-      :          *(int *)(pc + 0);
+        ? bswap_32(*(int *) (pc + 0))
+        : *(int *) (pc + 0);
 
     if (interval <= 0)
-	return BadValue;
+        return BadValue;
 
-    (void) (*cx->pGlxScreen->swapInterval)(cx->drawPriv, interval);
+    (void) (*cx->pGlxScreen->swapInterval) (cx->drawPriv, interval);
     return Success;
 }
 
-int __glXDisp_SwapIntervalSGI(__GLXclientState *cl, GLbyte *pc)
+int
+__glXDisp_SwapIntervalSGI(__GLXclientState * cl, GLbyte * pc)
 {
     return DoSwapInterval(cl, pc, 0);
 }
 
-int __glXDispSwap_SwapIntervalSGI(__GLXclientState *cl, GLbyte *pc)
+int
+__glXDispSwap_SwapIntervalSGI(__GLXclientState * cl, GLbyte * pc)
 {
     return DoSwapInterval(cl, pc, 1);
 }

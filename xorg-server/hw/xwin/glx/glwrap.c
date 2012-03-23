@@ -51,54 +51,48 @@ static unsigned int glWinDirectProcCalls = 0;
 void
 glWinCallDelta(void)
 {
-  static unsigned int glWinIndirectProcCallsLast = 0;
-  static unsigned int glWinDirectProcCallsLast = 0;
-  if ((glWinIndirectProcCalls != glWinIndirectProcCallsLast) ||
-      (glWinDirectProcCalls != glWinDirectProcCallsLast))
-    {
-      if (glxWinDebugSettings.enableTrace)
-        {
-          ErrorF("after %d direct and %d indirect GL calls\n",
-                 glWinDirectProcCalls - glWinDirectProcCallsLast,
-                 glWinIndirectProcCalls - glWinIndirectProcCallsLast);
+    static unsigned int glWinIndirectProcCallsLast = 0;
+    static unsigned int glWinDirectProcCallsLast = 0;
+
+    if ((glWinIndirectProcCalls != glWinIndirectProcCallsLast) ||
+        (glWinDirectProcCalls != glWinDirectProcCallsLast)) {
+        if (glxWinDebugSettings.enableTrace) {
+            ErrorF("after %d direct and %d indirect GL calls\n",
+                   glWinDirectProcCalls - glWinDirectProcCallsLast,
+                   glWinIndirectProcCalls - glWinIndirectProcCallsLast);
         }
-      glWinDirectProcCallsLast = glWinDirectProcCalls;
-      glWinIndirectProcCallsLast = glWinIndirectProcCalls;
+        glWinDirectProcCallsLast = glWinDirectProcCalls;
+        glWinIndirectProcCallsLast = glWinIndirectProcCalls;
     }
 }
 
 static PROC
-glWinResolveHelper(PROC *cache, char *symbol)
+glWinResolveHelper(PROC * cache, char *symbol)
 {
-  PROC proc = NULL;
+    PROC proc = NULL;
 
-  /* If not yet cached, call wglGetProcAddress */
-  if ((*cache) == NULL)
-    {
-      proc = wglGetProcAddress(symbol);
-      if (proc == NULL)
-        {
-          ErrorF("glwrap: Can't resolve \"%s\"\n", symbol);
-          (*cache) = (PROC)-1;
+    /* If not yet cached, call wglGetProcAddress */
+    if ((*cache) == NULL) {
+        proc = wglGetProcAddress(symbol);
+        if (proc == NULL) {
+            ErrorF("glwrap: Can't resolve \"%s\"\n", symbol);
+            (*cache) = (PROC) - 1;
         }
-      else
-        {
-          ErrorF("glwrap: Resolved \"%s\"\n", symbol);
-          (*cache) = proc;
+        else {
+            ErrorF("glwrap: Resolved \"%s\"\n", symbol);
+            (*cache) = proc;
         }
     }
-  /* Cached wglGetProcAddress failure */
-  else if ((*cache) == (PROC)-1)
-    {
-      proc = 0;
+    /* Cached wglGetProcAddress failure */
+    else if ((*cache) == (PROC) - 1) {
+        proc = 0;
     }
-  /* Cached wglGetProcAddress result */
-  else
-    {
-      proc = (*cache);
+    /* Cached wglGetProcAddress result */
+    else {
+        proc = (*cache);
     }
 
-  return proc;
+    return proc;
 }
 
 #define RESOLVE_RET(proctype, symbol, retval) \
@@ -129,20 +123,24 @@ glWinResolveHelper(PROC *cache, char *symbol)
   Special non-static wrapper for glGetString for debug output
 */
 
-const GLubyte* glGetStringWrapperNonstatic(GLenum name)
+const GLubyte *
+glGetStringWrapperNonstatic(GLenum name)
 {
-  return glGetString(name);
+    return glGetString(name);
 }
 
 /*
   Special non-static wrapper for glAddSwapHintRectWIN for copySubBuffers
 */
 
-typedef void (__stdcall *PFNGLADDSWAPHINTRECTWIN)(GLint x, GLint y, GLsizei width, GLsizei height);
+typedef void (__stdcall * PFNGLADDSWAPHINTRECTWIN) (GLint x, GLint y,
+                                                    GLsizei width,
+                                                    GLsizei height);
 
-void glAddSwapHintRectWINWrapperNonstatic(GLint x, GLint y, GLsizei width, GLsizei height)
+void
+glAddSwapHintRectWINWrapperNonstatic(GLint x, GLint y, GLsizei width,
+                                     GLsizei height)
 {
-  RESOLVE(PFNGLADDSWAPHINTRECTWIN, "glAddSwapHintRectWIN");
-  proc(x, y, width, height);
+    RESOLVE(PFNGLADDSWAPHINTRECTWIN, "glAddSwapHintRectWIN");
+    proc(x, y, width, height);
 }
-

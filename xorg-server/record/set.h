@@ -57,7 +57,7 @@ typedef struct {
     CARD16 last;
 } RecordSetInterval;
 
-typedef struct _RecordSetRec *RecordSetPtr; /* primary set type */
+typedef struct _RecordSetRec *RecordSetPtr;     /* primary set type */
 
 typedef void *RecordSetIteratePtr;
 
@@ -65,18 +65,11 @@ typedef void *RecordSetIteratePtr;
    set users should never declare a variable of this type.
 */
 typedef struct {
-    void (*DestroySet)(
-    RecordSetPtr pSet
-);
-    unsigned long (*IsMemberOfSet)(
-    RecordSetPtr pSet,
-    int possible_member
-);
-    RecordSetIteratePtr (*IterateSet)(
-    RecordSetPtr pSet,
-    RecordSetIteratePtr pIter,
-    RecordSetInterval *interval
-);
+    void (*DestroySet) (RecordSetPtr pSet);
+    unsigned long (*IsMemberOfSet) (RecordSetPtr pSet, int possible_member);
+     RecordSetIteratePtr(*IterateSet) (RecordSetPtr pSet,
+                                       RecordSetIteratePtr pIter,
+                                       RecordSetInterval * interval);
 } RecordSetOperations;
 
 /* "base class" for sets.
@@ -86,12 +79,8 @@ typedef struct _RecordSetRec {
     RecordSetOperations *ops;
 } RecordSetRec;
 
-RecordSetPtr RecordCreateSet(
-    RecordSetInterval *intervals,
-    int nintervals,
-    void *pMem,
-    int memsize
-);
+RecordSetPtr RecordCreateSet(RecordSetInterval * intervals,
+                             int nintervals, void *pMem, int memsize);
 /*
     RecordCreateSet creates and returns a new set having members specified
     by intervals and nintervals.  nintervals is the number of RecordSetInterval
@@ -104,11 +93,10 @@ RecordSetPtr RecordCreateSet(
     to resource constraints.
 */
 
-int RecordSetMemoryRequirements(
-    RecordSetInterval * /*pIntervals*/,
-    int /*nintervals*/,
-    int * /*alignment*/
-);
+int RecordSetMemoryRequirements(RecordSetInterval * /*pIntervals */ ,
+                                int /*nintervals */ ,
+                                int *   /*alignment */
+    );
 
 #define RecordDestroySet(_pSet) \
 	/* void */ (*_pSet->ops->DestroySet)(/* RecordSetPtr */ _pSet)
@@ -119,7 +107,7 @@ int RecordSetMemoryRequirements(
 
 #define RecordIsMemberOfSet(_pSet, _m) \
   /* unsigned long */ (*_pSet->ops->IsMemberOfSet)(/* RecordSetPtr */ _pSet, \
-						   /* int */ _m) 
+						   /* int */ _m)
 /*
     RecordIsMemberOfSet returns a non-zero value if _m is a member of
     _pSet, else it returns zero.

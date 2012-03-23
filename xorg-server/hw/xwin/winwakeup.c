@@ -38,24 +38,18 @@
 
 /* See Porting Layer Definition - p. 7 */
 void
-winWakeupHandler (int nScreen,
-		  pointer pWakeupData,
-		  unsigned long ulResult,
-		  pointer pReadmask)
+winWakeupHandler(int nScreen,
+                 pointer pWakeupData, unsigned long ulResult, pointer pReadmask)
 {
-  MSG			msg;
+    MSG msg;
 
-  /* Process all messages on our queue */
-  while (PeekMessage (&msg, NULL, 0, 0, PM_REMOVE))
-    {
-      if ((g_hDlgDepthChange == 0
-	   || !IsDialogMessage (g_hDlgDepthChange, &msg))
-	  && (g_hDlgExit == 0
-	      || !IsDialogMessage (g_hDlgExit, &msg))
-	  && (g_hDlgAbout == 0
-	      || !IsDialogMessage (g_hDlgAbout, &msg)))
-	{
-	  DispatchMessage (&msg);
-	}
+    /* Process all messages on our queue */
+    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+        if ((g_hDlgDepthChange == 0
+             || !IsDialogMessage(g_hDlgDepthChange, &msg))
+            && (g_hDlgExit == 0 || !IsDialogMessage(g_hDlgExit, &msg))
+            && (g_hDlgAbout == 0 || !IsDialogMessage(g_hDlgAbout, &msg))) {
+            DispatchMessage(&msg);
+        }
     }
 }

@@ -94,12 +94,15 @@ static int n_redirect_fds = 0;
  *      were processed.  If the pipe is still open, the number of read bytes
  *      is returned.
  */
-static inline int _read_redirect(int fd, int flush) {
+static inline int
+_read_redirect(int fd, int flush)
+{
     int total_read = 0;
     int nbytes;
     asl_redirect *aslr = &redirect_fds[fd];
 
-    while((nbytes = read(fd, aslr->w, BUF_SIZE - (aslr->w - aslr->buf) - 1)) > 0) {
+    while ((nbytes =
+            read(fd, aslr->w, BUF_SIZE - (aslr->w - aslr->buf) - 1)) > 0) {
         char *s, *p;
 
         /* Increment our returned number read */
@@ -109,17 +112,19 @@ static inline int _read_redirect(int fd, int flush) {
         aslr->buf[nbytes] = '\0';
 
         /* One line at a time */
-        for(p=aslr->buf; *p && (p - aslr->buf) < nbytes; p = s + 1) {
+        for (p = aslr->buf; *p && (p - aslr->buf) < nbytes; p = s + 1) {
             // Find null or \n
-            for(s=p; *s && *s != '\n'; s++);
-            if(*s == '\n') {
-                *s='\0';
+            for (s = p; *s && *s != '\n'; s++);
+            if (*s == '\n') {
+                *s = '\0';
                 asl_log(aslr->asl, aslr->msg, aslr->level, "%s", p);
-            } else if(aslr->buf != p) {
+            }
+            else if (aslr->buf != p) {
                 memmove(aslr->buf, p, BUF_SIZE - (p - aslr->buf));
                 aslr->w = aslr->buf + (s - p);
                 break;
-            } else if(nbytes == BUF_SIZE - 1) {
+            }
+            else if (nbytes == BUF_SIZE - 1) {
                 asl_log(aslr->asl, aslr->msg, aslr->level, "%s", p);
                 aslr->w = aslr->buf;
                 break;
@@ -128,29 +133,34 @@ static inline int _read_redirect(int fd, int flush) {
     }
 
     /* Flush if requested or we're at EOF */
-    if(flush || nbytes == 0) {
-        if(aslr->w > aslr->buf) {
+    if (flush || nbytes == 0) {
+        if (aslr->w > aslr->buf) {
             *aslr->w = '\0';
             asl_log(aslr->asl, aslr->msg, aslr->level, "%s", aslr->buf);
         }
     }
 
-    if(nbytes == 0)
+    if (nbytes == 0)
         return EOF;
     return total_read;
 }
 
 #ifdef HAVE_LIBDISPATCH
-static void read_from_source(void *_source) {
-    dispatch_source_t source = (dispatch_source_t)_source;
+static void
+read_from_source(void *_source)
+{
+    dispatch_source_t source = (dispatch_source_t) _source;
     int fd = dispatch_source_get_handle(source);
-    if(_read_redirect(fd, 0) == EOF) {
+
+    if (_read_redirect(fd, 0) == EOF) {
         dispatch_source_cancel(source);
     }
 }
 
-static void cancel_source(void *_source) {
-    dispatch_source_t source = (dispatch_source_t)_source;
+static void
+cancel_source(void *_source)
+{
+    dispatch_source_t source = (dispatch_source_t) _source;
     int fd = dispatch_source_get_handle(source);
     asl_redirect *aslr = &redirect_fds[fd];
 
@@ -164,63 +174,70 @@ static void cancel_source(void *_source) {
     dispatch_group_leave(read_source_group);
 }
 
-#else /* !HAVE_LIBDISPATCH */
-static void *redirect_thread(void *ctx __unused) {
+#else                           /* !HAVE_LIBDISPATCH */
+static void *
+redirect_thread(void *ctx __unused)
+{
     struct kevent ev;
     int n;
 
-    while(1) {
+    while (1) {
         n = kevent(kq, NULL, 0, &ev, 1, NULL);
 
         /* Bail on errors */
-        if(n < 0) {
-            asl_log(NULL, NULL, ASL_LEVEL_ERR, "kevent failure: %s", strerror(errno));
+        if (n < 0) {
+            asl_log(NULL, NULL, ASL_LEVEL_ERR, "kevent failure: %s",
+                    strerror(errno));
             break;
         }
-        
+
         /* This should not happen */
-        if(n == 0)
+        if (n == 0)
             continue;
 
-        switch(ev.filter) {
-            case EVFILT_READ:
-                pthread_mutex_lock(&redirect_fds_lock);
-                {
-                    int fd = ev.ident;
-                    int close_fd = 0;
-                    asl_redirect *aslr = &redirect_fds[fd];
+        switch (ev.filter) {
+        case EVFILT_READ:
+            pthread_mutex_lock(&redirect_fds_lock);
+            {
+                int fd = ev.ident;
+                int close_fd = 0;
+                asl_redirect *aslr = &redirect_fds[fd];
 
-                    if(fd < 0 || fd >= n_redirect_fds || aslr->buf == NULL) {
-                        asl_log(NULL, NULL, ASL_LEVEL_ERR, "Unexpected file descriptor: %d", fd);
-                        goto next;
-                    }
+                if (fd < 0 || fd >= n_redirect_fds || aslr->buf == NULL) {
+                    asl_log(NULL, NULL, ASL_LEVEL_ERR,
+                            "Unexpected file descriptor: %d", fd);
+                    goto next;
+                }
 
-                    if(ev.flags & EV_EOF) {
-                        close_fd = 1;
-                        if(EOF != _read_redirect(fd, 1)) {
-                            asl_log(NULL, NULL, ASL_LEVEL_ERR, "kevent reported EOF on %d, but read doesn't concur.", fd);
-                        }
-                    } else {
-                        close_fd = (EOF == _read_redirect(fd, 0));
-                    }
-                    
-                    if(close_fd) {
-                        EV_SET(&ev, fd, EVFILT_READ, EV_DELETE, 0, 0, 0);
-                        kevent(kq, &ev, 1, NULL, 0, NULL);
-                        close(fd);
-                        free(aslr->buf);
-                        memset(aslr, 0, sizeof(*aslr));
+                if (ev.flags & EV_EOF) {
+                    close_fd = 1;
+                    if (EOF != _read_redirect(fd, 1)) {
+                        asl_log(NULL, NULL, ASL_LEVEL_ERR,
+                                "kevent reported EOF on %d, but read doesn't concur.",
+                                fd);
                     }
                 }
-                next:
-                pthread_mutex_unlock(&redirect_fds_lock);
+                else {
+                    close_fd = (EOF == _read_redirect(fd, 0));
+                }
 
-            case EVFILT_TIMER:
-                if(ev.udata == ASL_REDIRECT_TERMINATE)
-                    return NULL;
+                if (close_fd) {
+                    EV_SET(&ev, fd, EVFILT_READ, EV_DELETE, 0, 0, 0);
+                    kevent(kq, &ev, 1, NULL, 0, NULL);
+                    close(fd);
+                    free(aslr->buf);
+                    memset(aslr, 0, sizeof(*aslr));
+                }
+            }
+ next:
+            pthread_mutex_unlock(&redirect_fds_lock);
 
-            default:
-                ;;
+        case EVFILT_TIMER:
+            if (ev.udata == ASL_REDIRECT_TERMINATE)
+                return NULL;
+
+        default:
+            ;;
         }
     }
 
@@ -228,9 +245,11 @@ static void *redirect_thread(void *ctx __unused) {
 }
 #endif
 
-static void redirect_atexit(void) {
+static void
+redirect_atexit(void)
+{
     /* stdout is linebuffered, so flush the buffer */
-    if(redirect_fds[STDOUT_FILENO].buf)
+    if (redirect_fds[STDOUT_FILENO].buf)
         fflush(stdout);
 
 #ifdef HAVE_LIBDISPATCH
@@ -238,30 +257,35 @@ static void redirect_atexit(void) {
         int i;
 
         /* Cancel all of our dispatch sources, so they flush to ASL */
-        for(i=0; i < n_redirect_fds; i++)
-            if(redirect_fds[i].read_source)
+        for (i = 0; i < n_redirect_fds; i++)
+            if (redirect_fds[i].read_source)
                 dispatch_source_cancel(redirect_fds[i].read_source);
 
         /* Wait at least three seconds for our sources to flush to ASL */
-        dispatch_group_wait(read_source_group, dispatch_time(DISPATCH_TIME_NOW, 3LL * NSEC_PER_SEC));
+        dispatch_group_wait(read_source_group,
+                            dispatch_time(DISPATCH_TIME_NOW,
+                                          3LL * NSEC_PER_SEC));
     }
 #else
     {
         struct kevent ev;
 
         /* Tell our reader thread it is time to pack up and go home */
-        EV_SET(&ev, 0, EVFILT_TIMER, EV_ADD | EV_ONESHOT, 0, 0, ASL_REDIRECT_TERMINATE);
+        EV_SET(&ev, 0, EVFILT_TIMER, EV_ADD | EV_ONESHOT, 0, 0,
+               ASL_REDIRECT_TERMINATE);
         kevent(kq, &ev, 1, NULL, 0, NULL);
-    
+
         pthread_join(redirect_pthread, NULL);
     }
 #endif
 }
 
 #ifdef HAVE_LIBDISPATCH
-static void xq_asl_init(void *ctx __unused)
+static void
+xq_asl_init(void *ctx __unused)
 #else
-static void xq_asl_init(void)
+static void
+xq_asl_init(void)
 #endif
 {
     assert((redirect_fds = calloc(16, sizeof(*redirect_fds))) != NULL);
@@ -281,20 +305,24 @@ static void xq_asl_init(void)
     atexit(redirect_atexit);
 }
 
-int xq_asl_log_fd(aslclient asl, aslmsg msg, int level, int fd) {
+int
+xq_asl_log_fd(aslclient asl, aslmsg msg, int level, int fd)
+{
 #ifdef HAVE_LIBDISPATCH
     int err __block = 0;
     static dispatch_once_t once_control;
+
     dispatch_once_f(&once_control, NULL, xq_asl_init);
 #else
     int err = 0;
     static pthread_once_t once_control = PTHREAD_ONCE_INIT;
+
     assert(pthread_once(&once_control, xq_asl_init) == 0);
 #endif
-    
-    if(fd < 0)
+
+    if (fd < 0)
         return EBADF;
-    
+
 #ifdef HAVE_LIBDISPATCH
 #define BLOCK_DONE return
     dispatch_sync(redirect_serial_q, ^
@@ -304,10 +332,11 @@ int xq_asl_log_fd(aslclient asl, aslmsg msg, int level, int fd) {
 #endif
     {
         /* Reallocate if we need more space */
-        if(fd >= n_redirect_fds) {
+        if (fd >= n_redirect_fds) {
             size_t new_n = 1 << (ffs(fd) + 1);
-            asl_redirect *new_array = realloc(redirect_fds, new_n * sizeof(*redirect_fds));
-            if(!new_array) {
+            asl_redirect *new_array =
+                realloc(redirect_fds, new_n * sizeof(*redirect_fds));
+            if (!new_array) {
                 err = errno;
                 BLOCK_DONE;
             }
@@ -315,33 +344,35 @@ int xq_asl_log_fd(aslclient asl, aslmsg msg, int level, int fd) {
             memset(redirect_fds + n_redirect_fds, 0, new_n - n_redirect_fds);
             n_redirect_fds = new_n;
         }
-        
+
         /* If we're already listening on it, return error. */
-        if(redirect_fds[fd].buf != NULL) {
+        if (redirect_fds[fd].buf != NULL) {
             err = EBADF;
             BLOCK_DONE;
         }
-        
+
         /* Initialize our buffer */
-        redirect_fds[fd].buf = (char *)malloc(BUF_SIZE);
-        if(redirect_fds[fd].buf == NULL) {
+        redirect_fds[fd].buf = (char *) malloc(BUF_SIZE);
+        if (redirect_fds[fd].buf == NULL) {
             err = errno;
             BLOCK_DONE;
         }
         redirect_fds[fd].w = redirect_fds[fd].buf;
-        
+
         /* Store our ASL settings */
         redirect_fds[fd].level = level;
         redirect_fds[fd].asl = asl;
         redirect_fds[fd].msg = msg;
-        
+
         /* Don't block on reads from this fd */
         fcntl(fd, F_SETFL, O_NONBLOCK);
-        
+
         /* Start listening */
 #ifdef HAVE_LIBDISPATCH
         {
-            dispatch_source_t read_source = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, fd, 0, redirect_serial_q);
+            dispatch_source_t read_source =
+                dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, fd, 0,
+                                       redirect_serial_q);
             redirect_fds[fd].read_source = read_source;
             dispatch_set_context(read_source, read_source);
             dispatch_source_set_event_handler_f(read_source, read_from_source);
@@ -352,6 +383,7 @@ int xq_asl_log_fd(aslclient asl, aslmsg msg, int level, int fd) {
 #else
         {
             struct kevent ev;
+
             EV_SET(&ev, fd, EVFILT_READ, EV_ADD, 0, 0, 0);
             kevent(kq, &ev, 1, NULL, 0, NULL);
         }
@@ -360,36 +392,38 @@ int xq_asl_log_fd(aslclient asl, aslmsg msg, int level, int fd) {
 #ifdef HAVE_LIBDISPATCH
     );
 #else
-done:
+ done:
     assert(pthread_mutex_unlock(&redirect_fds_lock) == 0);
 #endif
 #undef BLOCK_DONE
-    
+
     return err;
 }
 
-int xq_asl_capture_fd(aslclient asl, aslmsg msg, int level, int fd) {
+int
+xq_asl_capture_fd(aslclient asl, aslmsg msg, int level, int fd)
+{
     int pipepair[2];
-    
+
     /* Create pipe */
-    if(pipe(pipepair) == -1)
+    if (pipe(pipepair) == -1)
         return errno;
-    
+
     /* Close the read fd but not the write fd on exec */
-    if(fcntl(pipepair[0], F_SETFD, FD_CLOEXEC) == -1)
+    if (fcntl(pipepair[0], F_SETFD, FD_CLOEXEC) == -1)
         return errno;
 
     /* Replace the existing fd */
-    if(dup2(pipepair[1], fd) == -1) {
+    if (dup2(pipepair[1], fd) == -1) {
         close(pipepair[0]);
         close(pipepair[1]);
         return errno;
     }
 
     /* If we capture STDOUT_FILENO, make sure we linebuffer stdout */
-    if(fd == STDOUT_FILENO)
+    if (fd == STDOUT_FILENO)
         setlinebuf(stdout);
-    
+
     /* Close the duplicate fds since they've been reassigned */
     close(pipepair[1]);
 
@@ -398,7 +432,9 @@ int xq_asl_capture_fd(aslclient asl, aslmsg msg, int level, int fd) {
 }
 
 #ifdef DEBUG_CONSOLE_REDIRECT
-int main(int argc __unused, char **argv __unused) {
+int
+main(int argc __unused, char **argv __unused)
+{
     xq_asl_capture_fd(NULL, NULL, ASL_LEVEL_NOTICE, STDOUT_FILENO);
     xq_asl_capture_fd(NULL, NULL, ASL_LEVEL_ERR, STDERR_FILENO);
 

@@ -27,7 +27,7 @@
 #ifndef _DAMAGE_H_
 #define _DAMAGE_H_
 
-typedef struct _damage	*DamagePtr;
+typedef struct _damage *DamagePtr;
 
 typedef enum _damageReportLevel {
     DamageReportRawRegion,
@@ -37,11 +37,15 @@ typedef enum _damageReportLevel {
     DamageReportNone
 } DamageReportLevel;
 
-typedef void (*DamageReportFunc) (DamagePtr pDamage, RegionPtr pRegion, void *closure);
+typedef void (*DamageReportFunc) (DamagePtr pDamage, RegionPtr pRegion,
+                                  void *closure);
 typedef void (*DamageDestroyFunc) (DamagePtr pDamage, void *closure);
+
 /* It's the responsibility of the driver to duplicate both regions. */
 /* At some point DamageRegionRendered() must be called. */
-typedef void (*DamageMarkerFunc) (DrawablePtr pDrawable, DamagePtr pDamage, RegionPtr pOldDamage, RegionPtr pRegion, void *closure);
+typedef void (*DamageMarkerFunc) (DrawablePtr pDrawable, DamagePtr pDamage,
+                                  RegionPtr pOldDamage, RegionPtr pRegion,
+                                  void *closure);
 
 typedef void (*DamageScreenCreateFunc) (DamagePtr);
 typedef void (*DamageScreenRegisterFunc) (DrawablePtr, DamagePtr);
@@ -49,84 +53,81 @@ typedef void (*DamageScreenUnregisterFunc) (DrawablePtr, DamagePtr);
 typedef void (*DamageScreenDestroyFunc) (DamagePtr);
 
 typedef struct _damageScreenFuncs {
-    DamageScreenCreateFunc      Create;
-    DamageScreenRegisterFunc    Register;
-    DamageScreenUnregisterFunc  Unregister;
-    DamageScreenDestroyFunc     Destroy;
+    DamageScreenCreateFunc Create;
+    DamageScreenRegisterFunc Register;
+    DamageScreenUnregisterFunc Unregister;
+    DamageScreenDestroyFunc Destroy;
 } DamageScreenFuncsRec, *DamageScreenFuncsPtr;
 
-extern _X_EXPORT void miDamageCreate (DamagePtr);
-extern _X_EXPORT void miDamageRegister (DrawablePtr, DamagePtr);
-extern _X_EXPORT void miDamageUnregister (DrawablePtr, DamagePtr);
-extern _X_EXPORT void miDamageDestroy (DamagePtr);
+extern _X_EXPORT void miDamageCreate(DamagePtr);
+extern _X_EXPORT void miDamageRegister(DrawablePtr, DamagePtr);
+extern _X_EXPORT void miDamageUnregister(DrawablePtr, DamagePtr);
+extern _X_EXPORT void miDamageDestroy(DamagePtr);
 
 extern _X_EXPORT Bool
-DamageSetup (ScreenPtr pScreen);
-    
+ DamageSetup(ScreenPtr pScreen);
+
 extern _X_EXPORT DamagePtr
-DamageCreate (DamageReportFunc  damageReport,
-	      DamageDestroyFunc	damageDestroy,
-	      DamageReportLevel damageLevel,
-	      Bool		isInternal,
-	      ScreenPtr		pScreen,
-	      void *		closure);
+DamageCreate(DamageReportFunc damageReport,
+             DamageDestroyFunc damageDestroy,
+             DamageReportLevel damageLevel,
+             Bool isInternal, ScreenPtr pScreen, void *closure);
 
 extern _X_EXPORT void
-DamageDrawInternal (ScreenPtr pScreen, Bool enable);
+ DamageDrawInternal(ScreenPtr pScreen, Bool enable);
 
 extern _X_EXPORT void
-DamageRegister (DrawablePtr	pDrawable,
-		DamagePtr	pDamage);
+ DamageRegister(DrawablePtr pDrawable, DamagePtr pDamage);
 
 extern _X_EXPORT void
-DamageUnregister (DrawablePtr	pDrawable,
-		  DamagePtr	pDamage);
+ DamageUnregister(DrawablePtr pDrawable, DamagePtr pDamage);
 
 extern _X_EXPORT void
-DamageDestroy (DamagePtr pDamage);
+ DamageDestroy(DamagePtr pDamage);
 
 extern _X_EXPORT Bool
-DamageSubtract (DamagePtr	    pDamage,
-		const RegionPtr	    pRegion);
+ DamageSubtract(DamagePtr pDamage, const RegionPtr pRegion);
 
 extern _X_EXPORT void
-DamageEmpty (DamagePtr pDamage);
+ DamageEmpty(DamagePtr pDamage);
 
 extern _X_EXPORT RegionPtr
-DamageRegion (DamagePtr		    pDamage);
+ DamageRegion(DamagePtr pDamage);
 
 extern _X_EXPORT RegionPtr
-DamagePendingRegion (DamagePtr	    pDamage);
+ DamagePendingRegion(DamagePtr pDamage);
 
 /* In case of rendering, call this before the submitting the commands. */
 extern _X_EXPORT void
-DamageRegionAppend (DrawablePtr pDrawable, RegionPtr pRegion);
+ DamageRegionAppend(DrawablePtr pDrawable, RegionPtr pRegion);
 
 /* Call this directly after the rendering operation has been submitted. */
 extern _X_EXPORT void
-DamageRegionProcessPending (DrawablePtr pDrawable);
+ DamageRegionProcessPending(DrawablePtr pDrawable);
 
 /* Call this some time after rendering is done, only relevant when a damageMarker is provided. */
 extern _X_EXPORT void
-DamageRegionRendered (DrawablePtr pDrawable, DamagePtr pDamage, RegionPtr pOldDamage, RegionPtr pRegion);
+
+DamageRegionRendered(DrawablePtr pDrawable, DamagePtr pDamage,
+                     RegionPtr pOldDamage, RegionPtr pRegion);
 
 /* Call this when you create a new Damage and you wish to send an initial damage message (to it). */
 extern _X_EXPORT void
-DamageReportDamage (DamagePtr pDamage, RegionPtr pDamageRegion);
+ DamageReportDamage(DamagePtr pDamage, RegionPtr pDamageRegion);
 
 /* Avoid using this call, it only exists for API compatibility. */
 extern _X_EXPORT void
-DamageDamageRegion (DrawablePtr	    pDrawable,
-		    const RegionPtr pRegion);
+ DamageDamageRegion(DrawablePtr pDrawable, const RegionPtr pRegion);
 
 extern _X_EXPORT void
-DamageSetReportAfterOp (DamagePtr pDamage, Bool reportAfter);
+ DamageSetReportAfterOp(DamagePtr pDamage, Bool reportAfter);
 
 extern _X_EXPORT void
-DamageSetPostRenderingFunctions(DamagePtr pDamage, DamageReportFunc damageReportPostRendering,
-				DamageMarkerFunc damageMarker);
 
-extern _X_EXPORT DamageScreenFuncsPtr
-DamageGetScreenFuncs (ScreenPtr);
+DamageSetPostRenderingFunctions(DamagePtr pDamage,
+                                DamageReportFunc damageReportPostRendering,
+                                DamageMarkerFunc damageMarker);
 
-#endif /* _DAMAGE_H_ */
+extern _X_EXPORT DamageScreenFuncsPtr DamageGetScreenFuncs(ScreenPtr);
+
+#endif                          /* _DAMAGE_H_ */

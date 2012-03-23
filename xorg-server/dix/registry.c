@@ -48,43 +48,45 @@ static unsigned nmajor, *nminor, nevent, nerror, nresource;
 /*
  * File parsing routines
  */
-static int double_size(void *p, unsigned n, unsigned size)
+static int
+double_size(void *p, unsigned n, unsigned size)
 {
-    char **ptr = (char **)p;
+    char **ptr = (char **) p;
     unsigned s, f;
 
     if (n) {
-	s = n * size;
-	n *= 2 * size;
-	f = n;
-    } else {
-	s = 0;
-	n = f = BASE_SIZE * size;
+        s = n * size;
+        n *= 2 * size;
+        f = n;
+    }
+    else {
+        s = 0;
+        n = f = BASE_SIZE * size;
     }
 
     *ptr = realloc(*ptr, n);
     if (!*ptr) {
-	dixResetRegistry();
-	return FALSE;
+        dixResetRegistry();
+        return FALSE;
     }
     memset(*ptr + s, 0, f - s);
     return TRUE;
-}       
+}
 
 static void
 RegisterRequestName(unsigned major, unsigned minor, char *name)
 {
     while (major >= nmajor) {
-	if (!double_size(&requests, nmajor, sizeof(char **)))
-	    return;
-	if (!double_size(&nminor, nmajor, sizeof(unsigned)))
-	    return;
-	nmajor = nmajor ? nmajor * 2 : BASE_SIZE;
+        if (!double_size(&requests, nmajor, sizeof(char **)))
+            return;
+        if (!double_size(&nminor, nmajor, sizeof(unsigned)))
+            return;
+        nmajor = nmajor ? nmajor * 2 : BASE_SIZE;
     }
     while (minor >= nminor[major]) {
-	if (!double_size(requests+major, nminor[major], sizeof(char *)))
-	    return;
-	nminor[major] = nminor[major] ? nminor[major] * 2 : BASE_SIZE;
+        if (!double_size(requests + major, nminor[major], sizeof(char *)))
+            return;
+        nminor[major] = nminor[major] ? nminor[major] * 2 : BASE_SIZE;
     }
 
     free(requests[major][minor]);
@@ -92,11 +94,12 @@ RegisterRequestName(unsigned major, unsigned minor, char *name)
 }
 
 static void
-RegisterEventName(unsigned event, char *name) {
+RegisterEventName(unsigned event, char *name)
+{
     while (event >= nevent) {
-	if (!double_size(&events, nevent, sizeof(char *)))
-	    return;
-	nevent = nevent ? nevent * 2 : BASE_SIZE;
+        if (!double_size(&events, nevent, sizeof(char *)))
+            return;
+        nevent = nevent ? nevent * 2 : BASE_SIZE;
     }
 
     free(events[event]);
@@ -104,11 +107,12 @@ RegisterEventName(unsigned event, char *name) {
 }
 
 static void
-RegisterErrorName(unsigned error, char *name) {
+RegisterErrorName(unsigned error, char *name)
+{
     while (error >= nerror) {
-	if (!double_size(&errors, nerror, sizeof(char *)))
-	    return;
-	nerror = nerror ? nerror * 2 : BASE_SIZE;
+        if (!double_size(&errors, nerror, sizeof(char *)))
+            return;
+        nerror = nerror ? nerror * 2 : BASE_SIZE;
     }
 
     free(errors[error]);
@@ -116,80 +120,80 @@ RegisterErrorName(unsigned error, char *name) {
 }
 
 void
-RegisterExtensionNames(ExtensionEntry *extEntry)
+RegisterExtensionNames(ExtensionEntry * extEntry)
 {
     char buf[256], *lineobj, *ptr;
     unsigned offset;
 
     if (fh == NULL)
-	return;
+        return;
 
     rewind(fh);
 
     while (fgets(buf, sizeof(buf), fh)) {
-	lineobj = NULL;
-	ptr = strchr(buf, '\n');
-	if (ptr)
-	    *ptr = 0;
+        lineobj = NULL;
+        ptr = strchr(buf, '\n');
+        if (ptr)
+            *ptr = 0;
 
-	/* Check for comments or empty lines */
-	switch (buf[0]) {
-	case PROT_REQUEST:
-	case PROT_EVENT:
-	case PROT_ERROR:
-	    break;
-	case PROT_COMMENT:
-	case '\0':
-	    continue;
-	default:
-	    goto invalid;
-	}
+        /* Check for comments or empty lines */
+        switch (buf[0]) {
+        case PROT_REQUEST:
+        case PROT_EVENT:
+        case PROT_ERROR:
+            break;
+        case PROT_COMMENT:
+        case '\0':
+            continue;
+        default:
+            goto invalid;
+        }
 
-	/* Check for space character in the fifth position */
-	ptr = strchr(buf, ' ');
-	if (!ptr || ptr != buf + 4)
-	    goto invalid;
+        /* Check for space character in the fifth position */
+        ptr = strchr(buf, ' ');
+        if (!ptr || ptr != buf + 4)
+            goto invalid;
 
-	/* Duplicate the string after the space */
-	lineobj = strdup(ptr + 1);
-	if (!lineobj)
-	    continue;
+        /* Duplicate the string after the space */
+        lineobj = strdup(ptr + 1);
+        if (!lineobj)
+            continue;
 
-	/* Check for a colon somewhere on the line */
-	ptr = strchr(buf, ':');
-	if (!ptr)
-	    goto invalid;
+        /* Check for a colon somewhere on the line */
+        ptr = strchr(buf, ':');
+        if (!ptr)
+            goto invalid;
 
-	/* Compare the part before colon with the target extension name */
-	*ptr = 0;
-	if (strcmp(buf + 5, extEntry->name))
-	    goto skip;
+        /* Compare the part before colon with the target extension name */
+        *ptr = 0;
+        if (strcmp(buf + 5, extEntry->name))
+            goto skip;
 
-	/* Get the opcode for the request, event, or error */
-	offset = strtol(buf + 1, &ptr, 10);
-	if (offset == 0 && ptr == buf + 1)
-	    goto invalid;
+        /* Get the opcode for the request, event, or error */
+        offset = strtol(buf + 1, &ptr, 10);
+        if (offset == 0 && ptr == buf + 1)
+            goto invalid;
 
-	/* Save the strdup result in the registry */
-	switch(buf[0]) {
-	case PROT_REQUEST:
-	    if (extEntry->base)
-		RegisterRequestName(extEntry->base, offset, lineobj);
-	    else
-		RegisterRequestName(offset, 0, lineobj);
-	    continue;
-	case PROT_EVENT:
-	    RegisterEventName(extEntry->eventBase + offset, lineobj);
-	    continue;
-	case PROT_ERROR:
-	    RegisterErrorName(extEntry->errorBase + offset, lineobj);
-	    continue;
-	}
+        /* Save the strdup result in the registry */
+        switch (buf[0]) {
+        case PROT_REQUEST:
+            if (extEntry->base)
+                RegisterRequestName(extEntry->base, offset, lineobj);
+            else
+                RegisterRequestName(offset, 0, lineobj);
+            continue;
+        case PROT_EVENT:
+            RegisterEventName(extEntry->eventBase + offset, lineobj);
+            continue;
+        case PROT_ERROR:
+            RegisterErrorName(extEntry->errorBase + offset, lineobj);
+            continue;
+        }
 
-    invalid:
-	LogMessage(X_WARNING, "Invalid line in " FILENAME ", skipping\n");
-    skip:
-	free(lineobj);
+ invalid:
+        LogMessage(X_WARNING, "Invalid line in " FILENAME ", skipping\n");
+ skip:
+        free(lineobj);
     }
 }
 
@@ -203,9 +207,9 @@ RegisterResourceName(RESTYPE resource, const char *name)
     resource &= TypeMask;
 
     while (resource >= nresource) {
-	if (!double_size(&resources, nresource, sizeof(char *)))
-	    return;
-	nresource = nresource ? nresource * 2 : BASE_SIZE;
+        if (!double_size(&resources, nresource, sizeof(char *)))
+            return;
+        nresource = nresource ? nresource * 2 : BASE_SIZE;
     }
 
     resources[resource] = name;
@@ -219,9 +223,9 @@ const char *
 LookupRequestName(int major, int minor)
 {
     if (major >= nmajor)
-	return XREGISTRY_UNKNOWN;
+        return XREGISTRY_UNKNOWN;
     if (minor >= nminor[major])
-	return XREGISTRY_UNKNOWN;
+        return XREGISTRY_UNKNOWN;
 
     return requests[major][minor] ? requests[major][minor] : XREGISTRY_UNKNOWN;
 }
@@ -230,18 +234,20 @@ const char *
 LookupMajorName(int major)
 {
     if (major < 128) {
-	const char *retval;
+        const char *retval;
 
-	if (major >= nmajor)
-	    return XREGISTRY_UNKNOWN;
-	if (0 >= nminor[major])
-	    return XREGISTRY_UNKNOWN;
+        if (major >= nmajor)
+            return XREGISTRY_UNKNOWN;
+        if (0 >= nminor[major])
+            return XREGISTRY_UNKNOWN;
 
-	retval = requests[major][0];
-	return retval ? retval + sizeof(CORE) : XREGISTRY_UNKNOWN;
-    } else {
-	ExtensionEntry *extEntry = GetExtensionEntry(major);
-	return extEntry ? extEntry->name : XREGISTRY_UNKNOWN;
+        retval = requests[major][0];
+        return retval ? retval + sizeof(CORE) : XREGISTRY_UNKNOWN;
+    }
+    else {
+        ExtensionEntry *extEntry = GetExtensionEntry(major);
+
+        return extEntry ? extEntry->name : XREGISTRY_UNKNOWN;
     }
 }
 
@@ -250,7 +256,7 @@ LookupEventName(int event)
 {
     event &= 127;
     if (event >= nevent)
-	return XREGISTRY_UNKNOWN;
+        return XREGISTRY_UNKNOWN;
 
     return events[event] ? events[event] : XREGISTRY_UNKNOWN;
 }
@@ -259,7 +265,7 @@ const char *
 LookupErrorName(int error)
 {
     if (error >= nerror)
-	return XREGISTRY_UNKNOWN;
+        return XREGISTRY_UNKNOWN;
 
     return errors[error] ? errors[error] : XREGISTRY_UNKNOWN;
 }
@@ -269,7 +275,7 @@ LookupResourceName(RESTYPE resource)
 {
     resource &= TypeMask;
     if (resource >= nresource)
-	return XREGISTRY_UNKNOWN;
+        return XREGISTRY_UNKNOWN;
 
     return resources[resource] ? resources[resource] : XREGISTRY_UNKNOWN;
 }
@@ -284,19 +290,19 @@ dixResetRegistry(void)
 
     /* Free all memory */
     while (nmajor--) {
-	while (nminor[nmajor])
-	    free(requests[nmajor][--nminor[nmajor]]);
-	free(requests[nmajor]);
+        while (nminor[nmajor])
+            free(requests[nmajor][--nminor[nmajor]]);
+        free(requests[nmajor]);
     }
     free(requests);
     free(nminor);
 
     while (nevent--)
-	free(events[nevent]);
+        free(events[nevent]);
     free(events);
 
     while (nerror--)
-	free(errors[nerror]);
+        free(errors[nerror]);
     free(errors);
 
     free(resources);
@@ -311,10 +317,11 @@ dixResetRegistry(void)
 
     /* Open the protocol file */
     if (fh)
-	fclose(fh);
+        fclose(fh);
     fh = fopen(FILENAME, "r");
     if (!fh)
-	LogMessage(X_WARNING, "Failed to open protocol names file " FILENAME "\n");
+        LogMessage(X_WARNING,
+                   "Failed to open protocol names file " FILENAME "\n");
 
     /* Add built-in resources */
     RegisterResourceName(RT_NONE, "NONE");
@@ -334,4 +341,4 @@ dixResetRegistry(void)
     RegisterExtensionNames(&extEntry);
 }
 
-#endif /* XREGISTRY */
+#endif                          /* XREGISTRY */

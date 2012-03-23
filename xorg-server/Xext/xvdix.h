@@ -73,132 +73,131 @@ extern _X_EXPORT RESTYPE XvRTPortNotify;
 #endif
 
 typedef struct {
-  int numerator;
-  int denominator;
+    int numerator;
+    int denominator;
 } XvRationalRec, *XvRationalPtr;
 
 typedef struct {
-  char depth;
-  unsigned long visual;
+    char depth;
+    unsigned long visual;
 } XvFormatRec, *XvFormatPtr;
 
 typedef struct {
-  unsigned long id;
-  ClientPtr client;
+    unsigned long id;
+    ClientPtr client;
 } XvGrabRec, *XvGrabPtr;
 
 typedef struct _XvVideoNotifyRec {
-  struct _XvVideoNotifyRec *next;
-  ClientPtr client;
-  unsigned long id;
-  unsigned long mask;
+    struct _XvVideoNotifyRec *next;
+    ClientPtr client;
+    unsigned long id;
+    unsigned long mask;
 } XvVideoNotifyRec, *XvVideoNotifyPtr;
 
 typedef struct _XvPortNotifyRec {
-  struct _XvPortNotifyRec *next;
-  ClientPtr client;
-  unsigned long id;
+    struct _XvPortNotifyRec *next;
+    ClientPtr client;
+    unsigned long id;
 } XvPortNotifyRec, *XvPortNotifyPtr;
 
 typedef struct {
-  int id;
-  ScreenPtr pScreen;
-  char *name;
-  unsigned short width, height;
-  XvRationalRec rate;
+    int id;
+    ScreenPtr pScreen;
+    char *name;
+    unsigned short width, height;
+    XvRationalRec rate;
 } XvEncodingRec, *XvEncodingPtr;
 
 typedef struct _XvAttributeRec {
-  int flags;
-  int min_value;
-  int max_value;
-  char *name;
+    int flags;
+    int min_value;
+    int max_value;
+    char *name;
 } XvAttributeRec, *XvAttributePtr;
 
 typedef struct {
-  int id;
-  int type;
-  int byte_order;
-  char guid[16];
-  int bits_per_pixel;
-  int format;
-  int num_planes;
+    int id;
+    int type;
+    int byte_order;
+    char guid[16];
+    int bits_per_pixel;
+    int format;
+    int num_planes;
 
-  /* for RGB formats only */
-  int depth;
-  unsigned int red_mask;       
-  unsigned int green_mask;   
-  unsigned int blue_mask;   
+    /* for RGB formats only */
+    int depth;
+    unsigned int red_mask;
+    unsigned int green_mask;
+    unsigned int blue_mask;
 
-  /* for YUV formats only */
-  unsigned int y_sample_bits;
-  unsigned int u_sample_bits;
-  unsigned int v_sample_bits;   
-  unsigned int horz_y_period;
-  unsigned int horz_u_period;
-  unsigned int horz_v_period;
-  unsigned int vert_y_period;
-  unsigned int vert_u_period;
-  unsigned int vert_v_period;
-  char component_order[32];
-  int scanline_order;
-} XvImageRec, *XvImagePtr; 
+    /* for YUV formats only */
+    unsigned int y_sample_bits;
+    unsigned int u_sample_bits;
+    unsigned int v_sample_bits;
+    unsigned int horz_y_period;
+    unsigned int horz_u_period;
+    unsigned int horz_v_period;
+    unsigned int vert_y_period;
+    unsigned int vert_u_period;
+    unsigned int vert_v_period;
+    char component_order[32];
+    int scanline_order;
+} XvImageRec, *XvImagePtr;
 
 typedef struct {
-  unsigned long base_id;
-  unsigned char type; 
-  char *name;
-  int nEncodings;
-  XvEncodingPtr pEncodings;  
-  int nFormats;
-  XvFormatPtr pFormats; 
-  int nAttributes;
-  XvAttributePtr pAttributes;
-  int nImages;
-  XvImagePtr pImages;
-  int nPorts;
-  struct _XvPortRec *pPorts;
-  ScreenPtr pScreen; 
-  int (* ddAllocatePort)(unsigned long, struct _XvPortRec*, 
-				struct _XvPortRec**);
-  int (* ddFreePort)(struct _XvPortRec*);
-  int (* ddPutVideo)(ClientPtr, DrawablePtr,struct _XvPortRec*, GCPtr,
-   				INT16, INT16, CARD16, CARD16, 
-				INT16, INT16, CARD16, CARD16); 
-  int (* ddPutStill)(ClientPtr, DrawablePtr,struct _XvPortRec*, GCPtr,
-   				INT16, INT16, CARD16, CARD16, 
-				INT16, INT16, CARD16, CARD16);
-  int (* ddGetVideo)(ClientPtr, DrawablePtr,struct _XvPortRec*, GCPtr,
-   				INT16, INT16, CARD16, CARD16, 
-				INT16, INT16, CARD16, CARD16);
-  int (* ddGetStill)(ClientPtr, DrawablePtr,struct _XvPortRec*, GCPtr,
-   				INT16, INT16, CARD16, CARD16, 
-				INT16, INT16, CARD16, CARD16);
-  int (* ddStopVideo)(ClientPtr, struct _XvPortRec*, DrawablePtr);
-  int (* ddSetPortAttribute)(ClientPtr, struct _XvPortRec*, Atom, INT32);
-  int (* ddGetPortAttribute)(ClientPtr, struct _XvPortRec*, Atom, INT32*);
-  int (* ddQueryBestSize)(ClientPtr, struct _XvPortRec*, CARD8,
-   				CARD16, CARD16,CARD16, CARD16, 
-				unsigned int*, unsigned int*);
-  int (* ddPutImage)(ClientPtr, DrawablePtr, struct _XvPortRec*, GCPtr,
-   				INT16, INT16, CARD16, CARD16, 
-				INT16, INT16, CARD16, CARD16,
-				XvImagePtr, unsigned char*, Bool,
-				CARD16, CARD16);
-  int (* ddQueryImageAttributes)(ClientPtr, struct _XvPortRec*, XvImagePtr, 
-				CARD16*, CARD16*, int*, int*);
-  DevUnion devPriv;
+    unsigned long base_id;
+    unsigned char type;
+    char *name;
+    int nEncodings;
+    XvEncodingPtr pEncodings;
+    int nFormats;
+    XvFormatPtr pFormats;
+    int nAttributes;
+    XvAttributePtr pAttributes;
+    int nImages;
+    XvImagePtr pImages;
+    int nPorts;
+    struct _XvPortRec *pPorts;
+    ScreenPtr pScreen;
+    int (*ddAllocatePort) (unsigned long, struct _XvPortRec *,
+                           struct _XvPortRec **);
+    int (*ddFreePort) (struct _XvPortRec *);
+    int (*ddPutVideo) (ClientPtr, DrawablePtr, struct _XvPortRec *, GCPtr,
+                       INT16, INT16, CARD16, CARD16,
+                       INT16, INT16, CARD16, CARD16);
+    int (*ddPutStill) (ClientPtr, DrawablePtr, struct _XvPortRec *, GCPtr,
+                       INT16, INT16, CARD16, CARD16,
+                       INT16, INT16, CARD16, CARD16);
+    int (*ddGetVideo) (ClientPtr, DrawablePtr, struct _XvPortRec *, GCPtr,
+                       INT16, INT16, CARD16, CARD16,
+                       INT16, INT16, CARD16, CARD16);
+    int (*ddGetStill) (ClientPtr, DrawablePtr, struct _XvPortRec *, GCPtr,
+                       INT16, INT16, CARD16, CARD16,
+                       INT16, INT16, CARD16, CARD16);
+    int (*ddStopVideo) (ClientPtr, struct _XvPortRec *, DrawablePtr);
+    int (*ddSetPortAttribute) (ClientPtr, struct _XvPortRec *, Atom, INT32);
+    int (*ddGetPortAttribute) (ClientPtr, struct _XvPortRec *, Atom, INT32 *);
+    int (*ddQueryBestSize) (ClientPtr, struct _XvPortRec *, CARD8,
+                            CARD16, CARD16, CARD16, CARD16,
+                            unsigned int *, unsigned int *);
+    int (*ddPutImage) (ClientPtr, DrawablePtr, struct _XvPortRec *, GCPtr,
+                       INT16, INT16, CARD16, CARD16,
+                       INT16, INT16, CARD16, CARD16,
+                       XvImagePtr, unsigned char *, Bool, CARD16, CARD16);
+    int (*ddQueryImageAttributes) (ClientPtr, struct _XvPortRec *, XvImagePtr,
+                                   CARD16 *, CARD16 *, int *, int *);
+    DevUnion devPriv;
 } XvAdaptorRec, *XvAdaptorPtr;
 
 typedef struct _XvPortRec {
-  unsigned long id;
-  XvAdaptorPtr pAdaptor;
-  XvPortNotifyPtr pNotify;
-  DrawablePtr pDraw;
-  ClientPtr client;
-  XvGrabRec grab;
-  TimeStamp time;
-  DevUnion devPriv;
+    unsigned long id;
+    XvAdaptorPtr pAdaptor;
+    XvPortNotifyPtr pNotify;
+    DrawablePtr pDraw;
+    ClientPtr client;
+    XvGrabRec grab;
+    TimeStamp time;
+    DevUnion devPriv;
 } XvPortRec, *XvPortPtr;
 
 #define VALIDATE_XV_PORT(portID, pPort, mode)\
@@ -210,15 +209,15 @@ typedef struct _XvPortRec {
     }
 
 typedef struct {
-  int version, revision;
-  int nAdaptors;
-  XvAdaptorPtr pAdaptors;
-  DestroyWindowProcPtr DestroyWindow;
-  DestroyPixmapProcPtr DestroyPixmap;
-  CloseScreenProcPtr CloseScreen;
-  Bool (* ddCloseScreen)(int, ScreenPtr);
-  int (* ddQueryAdaptors)(ScreenPtr, XvAdaptorPtr*, int*);
-  DevUnion devPriv;
+    int version, revision;
+    int nAdaptors;
+    XvAdaptorPtr pAdaptors;
+    DestroyWindowProcPtr DestroyWindow;
+    DestroyPixmapProcPtr DestroyPixmap;
+    CloseScreenProcPtr CloseScreen;
+    Bool (*ddCloseScreen) (int, ScreenPtr);
+    int (*ddQueryAdaptors) (ScreenPtr, XvAdaptorPtr *, int *);
+    DevUnion devPriv;
 } XvScreenRec, *XvScreenPtr;
 
 #define SCREEN_PROLOGUE(pScreen, field) ((pScreen)->field = ((XvScreenPtr) \
@@ -244,32 +243,31 @@ extern _X_EXPORT int XvdiSendPortNotify(XvPortPtr, Atom, INT32);
 extern _X_EXPORT int XvdiVideoStopped(XvPortPtr, int);
 
 extern _X_EXPORT int XvdiPutVideo(ClientPtr, DrawablePtr, XvPortPtr, GCPtr,
-   				INT16, INT16, CARD16, CARD16, 
-				INT16, INT16, CARD16, CARD16);
+                                  INT16, INT16, CARD16, CARD16,
+                                  INT16, INT16, CARD16, CARD16);
 extern _X_EXPORT int XvdiPutStill(ClientPtr, DrawablePtr, XvPortPtr, GCPtr,
-   				INT16, INT16, CARD16, CARD16, 
-				INT16, INT16, CARD16, CARD16);
+                                  INT16, INT16, CARD16, CARD16,
+                                  INT16, INT16, CARD16, CARD16);
 extern _X_EXPORT int XvdiGetVideo(ClientPtr, DrawablePtr, XvPortPtr, GCPtr,
-   				INT16, INT16, CARD16, CARD16, 
-				INT16, INT16, CARD16, CARD16);
+                                  INT16, INT16, CARD16, CARD16,
+                                  INT16, INT16, CARD16, CARD16);
 extern _X_EXPORT int XvdiGetStill(ClientPtr, DrawablePtr, XvPortPtr, GCPtr,
-   				INT16, INT16, CARD16, CARD16, 
-				INT16, INT16, CARD16, CARD16);
+                                  INT16, INT16, CARD16, CARD16,
+                                  INT16, INT16, CARD16, CARD16);
 extern _X_EXPORT int XvdiPutImage(ClientPtr, DrawablePtr, XvPortPtr, GCPtr,
-   				INT16, INT16, CARD16, CARD16, 
-				INT16, INT16, CARD16, CARD16,
-				XvImagePtr, unsigned char*, Bool,
-				CARD16, CARD16);
+                                  INT16, INT16, CARD16, CARD16,
+                                  INT16, INT16, CARD16, CARD16,
+                                  XvImagePtr, unsigned char *, Bool,
+                                  CARD16, CARD16);
 extern _X_EXPORT int XvdiSelectVideoNotify(ClientPtr, DrawablePtr, BOOL);
 extern _X_EXPORT int XvdiSelectPortNotify(ClientPtr, XvPortPtr, BOOL);
 extern _X_EXPORT int XvdiSetPortAttribute(ClientPtr, XvPortPtr, Atom, INT32);
-extern _X_EXPORT int XvdiGetPortAttribute(ClientPtr, XvPortPtr, Atom, INT32*);
+extern _X_EXPORT int XvdiGetPortAttribute(ClientPtr, XvPortPtr, Atom, INT32 *);
 extern _X_EXPORT int XvdiStopVideo(ClientPtr, XvPortPtr, DrawablePtr);
 extern _X_EXPORT int XvdiPreemptVideo(ClientPtr, XvPortPtr, DrawablePtr);
 extern _X_EXPORT int XvdiMatchPort(XvPortPtr, DrawablePtr);
 extern _X_EXPORT int XvdiGrabPort(ClientPtr, XvPortPtr, Time, int *);
-extern _X_EXPORT int XvdiUngrabPort( ClientPtr, XvPortPtr, Time);
-#endif /* XorgLoader */
+extern _X_EXPORT int XvdiUngrabPort(ClientPtr, XvPortPtr, Time);
+#endif                          /* XorgLoader */
 
-#endif /* XVDIX_H */
-
+#endif                          /* XVDIX_H */

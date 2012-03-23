@@ -41,185 +41,169 @@ in this Software without prior written authorization from The Open Group.
 #include "scrnintstr.h"
 
 typedef struct _Sertafied {
-    struct _Sertafied	*next;
-    TimeStamp		revive;
-    ClientPtr		pClient;
-    XID			id;
-    void		(*notifyFunc)(
-			ClientPtr /* client */,
-			pointer /* closure */
-			);
+    struct _Sertafied *next;
+    TimeStamp revive;
+    ClientPtr pClient;
+    XID id;
+    void (*notifyFunc) (ClientPtr /* client */ ,
+                        pointer /* closure */
+        );
 
-    pointer		closure;
+    pointer closure;
 } SertafiedRec, *SertafiedPtr;
 
 static SertafiedPtr pPending;
-static RESTYPE	    SertafiedResType;
-static Bool	    BlockHandlerRegistered;
-static int	    SertafiedGeneration;
+static RESTYPE SertafiedResType;
+static Bool BlockHandlerRegistered;
+static int SertafiedGeneration;
 
-static void	    ClientAwaken(
-    ClientPtr /* client */,
-    pointer /* closure */
-);
-static int	    SertafiedDelete(
-    pointer /* value */,
-    XID /* id */
-);
-static void	    SertafiedBlockHandler(
-    pointer /* data */,
-    OSTimePtr /* wt */,
-    pointer /* LastSelectMask */
-);
-static void	    SertafiedWakeupHandler(
-    pointer /* data */,
-    int /* i */,
-    pointer /* LastSelectMask */
-);
+static void ClientAwaken(ClientPtr /* client */ ,
+                         pointer        /* closure */
+    );
+static int SertafiedDelete(pointer /* value */ ,
+                           XID  /* id */
+    );
+static void SertafiedBlockHandler(pointer /* data */ ,
+                                  OSTimePtr /* wt */ ,
+                                  pointer       /* LastSelectMask */
+    );
+static void SertafiedWakeupHandler(pointer /* data */ ,
+                                   int /* i */ ,
+                                   pointer      /* LastSelectMask */
+    );
 
 int
-ClientSleepUntil (ClientPtr client,
-                  TimeStamp *revive,
-                  void (*notifyFunc)(ClientPtr, pointer),
-                  pointer closure)
+ClientSleepUntil(ClientPtr client,
+                 TimeStamp *revive,
+                 void (*notifyFunc) (ClientPtr, pointer), pointer closure)
 {
-    SertafiedPtr	pRequest, pReq, pPrev;
+    SertafiedPtr pRequest, pReq, pPrev;
 
-    if (SertafiedGeneration != serverGeneration)
-    {
-	SertafiedResType = CreateNewResourceType (SertafiedDelete,
-						  "ClientSleep");
-	if (!SertafiedResType)
-	    return FALSE;
-	SertafiedGeneration = serverGeneration;
-	BlockHandlerRegistered = FALSE;
+    if (SertafiedGeneration != serverGeneration) {
+        SertafiedResType = CreateNewResourceType(SertafiedDelete,
+                                                 "ClientSleep");
+        if (!SertafiedResType)
+            return FALSE;
+        SertafiedGeneration = serverGeneration;
+        BlockHandlerRegistered = FALSE;
     }
-    pRequest = malloc(sizeof (SertafiedRec));
+    pRequest = malloc(sizeof(SertafiedRec));
     if (!pRequest)
-	return FALSE;
+        return FALSE;
     pRequest->pClient = client;
     pRequest->revive = *revive;
-    pRequest->id = FakeClientID (client->index);
+    pRequest->id = FakeClientID(client->index);
     pRequest->closure = closure;
-    if (!BlockHandlerRegistered)
-    {
-	if (!RegisterBlockAndWakeupHandlers (SertafiedBlockHandler,
-					     SertafiedWakeupHandler,
-					     (pointer) 0))
-	{
-	    free(pRequest);
-	    return FALSE;
-	}
-	BlockHandlerRegistered = TRUE;
+    if (!BlockHandlerRegistered) {
+        if (!RegisterBlockAndWakeupHandlers(SertafiedBlockHandler,
+                                            SertafiedWakeupHandler,
+                                            (pointer) 0)) {
+            free(pRequest);
+            return FALSE;
+        }
+        BlockHandlerRegistered = TRUE;
     }
     pRequest->notifyFunc = 0;
-    if (!AddResource (pRequest->id, SertafiedResType, (pointer) pRequest))
-	return FALSE;
+    if (!AddResource(pRequest->id, SertafiedResType, (pointer) pRequest))
+        return FALSE;
     if (!notifyFunc)
-	notifyFunc = ClientAwaken;
+        notifyFunc = ClientAwaken;
     pRequest->notifyFunc = notifyFunc;
     /* Insert into time-ordered queue, with earliest activation time coming first. */
     pPrev = 0;
-    for (pReq = pPending; pReq; pReq = pReq->next)
-    {
-	if (CompareTimeStamps (pReq->revive, *revive) == LATER)
-	    break;
-	pPrev = pReq;
+    for (pReq = pPending; pReq; pReq = pReq->next) {
+        if (CompareTimeStamps(pReq->revive, *revive) == LATER)
+            break;
+        pPrev = pReq;
     }
     if (pPrev)
-	pPrev->next = pRequest;
+        pPrev->next = pRequest;
     else
-	pPending = pRequest;
+        pPending = pRequest;
     pRequest->next = pReq;
-    IgnoreClient (client);
+    IgnoreClient(client);
     return TRUE;
 }
 
 static void
-ClientAwaken (ClientPtr client, pointer closure)
+ClientAwaken(ClientPtr client, pointer closure)
 {
     if (!client->clientGone)
-	AttendClient (client);
+        AttendClient(client);
 }
 
-
 static int
-SertafiedDelete (pointer value, XID id)
+SertafiedDelete(pointer value, XID id)
 {
-    SertafiedPtr	pRequest = (SertafiedPtr)value;
-    SertafiedPtr	pReq, pPrev;
+    SertafiedPtr pRequest = (SertafiedPtr) value;
+    SertafiedPtr pReq, pPrev;
 
     pPrev = 0;
     for (pReq = pPending; pReq; pPrev = pReq, pReq = pReq->next)
-	if (pReq == pRequest)
-	{
-	    if (pPrev)
-		pPrev->next = pReq->next;
-	    else
-		pPending = pReq->next;
-	    break;
-	}
+        if (pReq == pRequest) {
+            if (pPrev)
+                pPrev->next = pReq->next;
+            else
+                pPending = pReq->next;
+            break;
+        }
     if (pRequest->notifyFunc)
-	(*pRequest->notifyFunc) (pRequest->pClient, pRequest->closure);
+        (*pRequest->notifyFunc) (pRequest->pClient, pRequest->closure);
     free(pRequest);
     return TRUE;
 }
 
 static void
-SertafiedBlockHandler (pointer data, OSTimePtr wt, pointer LastSelectMask)
+SertafiedBlockHandler(pointer data, OSTimePtr wt, pointer LastSelectMask)
 {
-    SertafiedPtr	    pReq, pNext;
-    unsigned long	    delay;
-    TimeStamp		    now;
+    SertafiedPtr pReq, pNext;
+    unsigned long delay;
+    TimeStamp now;
 
     if (!pPending)
-	return;
-    now.milliseconds = GetTimeInMillis ();
+        return;
+    now.milliseconds = GetTimeInMillis();
     now.months = currentTime.months;
     if ((int) (now.milliseconds - currentTime.milliseconds) < 0)
-	now.months++;
-    for (pReq = pPending; pReq; pReq = pNext)
-    {
-	pNext = pReq->next;
-	if (CompareTimeStamps (pReq->revive, now) == LATER)
-	    break;
-	FreeResource (pReq->id, RT_NONE);
+        now.months++;
+    for (pReq = pPending; pReq; pReq = pNext) {
+        pNext = pReq->next;
+        if (CompareTimeStamps(pReq->revive, now) == LATER)
+            break;
+        FreeResource(pReq->id, RT_NONE);
 
- 	/* AttendClient() may have been called via the resource delete
- 	 * function so a client may have input to be processed and so
- 	 *  set delay to 0 to prevent blocking in WaitForSomething().
- 	 */
- 	AdjustWaitForDelay (wt, 0);
+        /* AttendClient() may have been called via the resource delete
+         * function so a client may have input to be processed and so
+         *  set delay to 0 to prevent blocking in WaitForSomething().
+         */
+        AdjustWaitForDelay(wt, 0);
     }
     pReq = pPending;
     if (!pReq)
-	return;
+        return;
     delay = pReq->revive.milliseconds - now.milliseconds;
-    AdjustWaitForDelay (wt, delay);
+    AdjustWaitForDelay(wt, delay);
 }
 
 static void
-SertafiedWakeupHandler (pointer data, int i, pointer LastSelectMask)
+SertafiedWakeupHandler(pointer data, int i, pointer LastSelectMask)
 {
-    SertafiedPtr	pReq, pNext;
-    TimeStamp		now;
+    SertafiedPtr pReq, pNext;
+    TimeStamp now;
 
-    now.milliseconds = GetTimeInMillis ();
+    now.milliseconds = GetTimeInMillis();
     now.months = currentTime.months;
     if ((int) (now.milliseconds - currentTime.milliseconds) < 0)
-	now.months++;
-    for (pReq = pPending; pReq; pReq = pNext)
-    {
-	pNext = pReq->next;
-	if (CompareTimeStamps (pReq->revive, now) == LATER)
-	    break;
-	FreeResource (pReq->id, RT_NONE);
+        now.months++;
+    for (pReq = pPending; pReq; pReq = pNext) {
+        pNext = pReq->next;
+        if (CompareTimeStamps(pReq->revive, now) == LATER)
+            break;
+        FreeResource(pReq->id, RT_NONE);
     }
-    if (!pPending)
-    {
-	RemoveBlockAndWakeupHandlers (SertafiedBlockHandler,
-				      SertafiedWakeupHandler,
-				      (pointer) 0);
-	BlockHandlerRegistered = FALSE;
+    if (!pPending) {
+        RemoveBlockAndWakeupHandlers(SertafiedBlockHandler,
+                                     SertafiedWakeupHandler, (pointer) 0);
+        BlockHandlerRegistered = FALSE;
     }
 }

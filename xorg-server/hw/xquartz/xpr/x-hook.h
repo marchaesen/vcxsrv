@@ -32,11 +32,13 @@
 
 #include "x-list.h"
 
-typedef void x_hook_function (void *arg, void *data);
+typedef void x_hook_function(void *arg, void *data);
 
-X_EXTERN x_list *X_PFX (hook_add) (x_list *lst, x_hook_function *fun, void *data);
-X_EXTERN x_list *X_PFX (hook_remove) (x_list *lst, x_hook_function *fun, void *data);
-X_EXTERN void X_PFX (hook_run) (x_list *lst, void *arg);
-X_EXTERN void X_PFX (hook_free) (x_list *lst);
+X_EXTERN x_list *X_PFX(hook_add) (x_list * lst, x_hook_function * fun,
+                                  void *data);
+X_EXTERN x_list *X_PFX(hook_remove) (x_list * lst, x_hook_function * fun,
+                                     void *data);
+X_EXTERN void X_PFX(hook_run) (x_list * lst, void *arg);
+X_EXTERN void X_PFX(hook_free) (x_list * lst);
 
-#endif /* X_HOOK_H */
+#endif                          /* X_HOOK_H */

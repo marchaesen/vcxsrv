@@ -55,9 +55,9 @@ typedef unsigned int NSUInteger;
 #endif
 #endif
 
-@interface X11Controller : NSObject
+ @interface X11Controller:NSObject
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
-<NSTableViewDataSource>
+    < NSTableViewDataSource >
 #endif
 {
     IBOutlet NSPanel *prefs_panel;
@@ -85,6 +85,7 @@ typedef unsigned int NSUInteger;
     IBOutlet NSPopUpButton *depth;
 
     IBOutlet NSMenuItem *window_separator;
+
     // window_separator is DEPRECATED due to this radar:
     // <rdar://problem/7088335> NSApplication releases the separator in the Windows menu even though it's an IBOutlet
     // It is kept around for localization compatability and is subject to removal "eventually"
@@ -94,6 +95,7 @@ typedef unsigned int NSUInteger;
     IBOutlet NSMenuItem *dock_window_separator;
     IBOutlet NSMenuItem *apps_separator;
     IBOutlet NSMenuItem *toggle_fullscreen_item;
+
 #ifdef XQUARTZ_SPARKLE
     NSMenuItem *check_for_updates_item; // Programatically enabled
 #endif
@@ -105,7 +107,7 @@ typedef unsigned int NSUInteger;
     NSMutableArray *table_apps;
 
     IBOutlet NSMenu *dock_menu;
-    
+
     // This is where in the Windows menu we'll start (this will be the index of the separator)
     NSInteger windows_menu_start;
 
@@ -116,39 +118,40 @@ typedef unsigned int NSUInteger;
     OSX_BOOL can_quit;
 }
 
-- (void) set_window_menu:(NSArray *)list;
-- (void) set_window_menu_check:(NSNumber *)n;
-- (void) set_apps_menu:(NSArray *)list;
+ -(void) set_window_menu:(NSArray *) list;
+ -(void) set_window_menu_check:(NSNumber *) n;
+ -(void) set_apps_menu:(NSArray *) list;
 #ifdef XQUARTZ_SPARKLE
-- (void) setup_sparkle;
-- (void) updater:(SUUpdater *)updater willInstallUpdate:(SUAppcastItem *)update;
+-(void) setup_sparkle;
+ -(void) updater:(SUUpdater *)
+updater willInstallUpdate:(SUAppcastItem *) update;
 #endif
-- (void) set_can_quit:(OSX_BOOL)state;
-- (void) server_ready;
-- (OSX_BOOL) application:(NSApplication *)app openFile:(NSString *)filename;
+ -(void) set_can_quit:(OSX_BOOL) state;
+-(void) server_ready;
+ -(OSX_BOOL) application:(NSApplication *)
+app openFile:(NSString *) filename;
 
-- (IBAction) apps_table_show:(id)sender;
-- (IBAction) apps_table_done:(id)sender;
-- (IBAction) apps_table_new:(id)sender;
-- (IBAction) apps_table_duplicate:(id)sender;
-- (IBAction) apps_table_delete:(id)sender;
-- (IBAction) bring_to_front:(id)sender;
-- (IBAction) close_window:(id)sender;
-- (IBAction) minimize_window:(id)sender;
-- (IBAction) zoom_window:(id)sender;
-- (IBAction) next_window:(id)sender;
-- (IBAction) previous_window:(id)sender;
-- (IBAction) enable_fullscreen_changed:(id)sender;
-- (IBAction) toggle_fullscreen:(id)sender;
-- (IBAction) prefs_changed:(id)sender;
-- (IBAction) prefs_show:(id)sender;
-- (IBAction) quit:(id)sender;
-- (IBAction) x11_help:(id)sender;
+ -(IBAction) apps_table_show:(id) sender;
+ -(IBAction) apps_table_done:(id) sender;
+ -(IBAction) apps_table_new:(id) sender;
+ -(IBAction) apps_table_duplicate:(id) sender;
+ -(IBAction) apps_table_delete:(id) sender;
+ -(IBAction) bring_to_front:(id) sender;
+ -(IBAction) close_window:(id) sender;
+ -(IBAction) minimize_window:(id) sender;
+ -(IBAction) zoom_window:(id) sender;
+ -(IBAction) next_window:(id) sender;
+ -(IBAction) previous_window:(id) sender;
+ -(IBAction) enable_fullscreen_changed:(id) sender;
+ -(IBAction) toggle_fullscreen:(id) sender;
+ -(IBAction) prefs_changed:(id) sender;
+ -(IBAction) prefs_show:(id) sender;
+ -(IBAction) quit:(id) sender;
+ -(IBAction) x11_help:(id) sender;
 
 @end
+#endif                          /* __OBJC__ */
+void
+X11ControllerMain(int argc, char **argv, char **envp);
 
-#endif /* __OBJC__ */
-
-void X11ControllerMain(int argc, char **argv, char **envp);
-
-#endif /* X11CONTROLLER_H */
+#endif                          /* X11CONTROLLER_H */

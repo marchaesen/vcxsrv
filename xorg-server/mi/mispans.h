@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1989 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -49,44 +48,40 @@ SOFTWARE.
 #define MISPANS_H
 
 typedef struct {
-    int         count;		/* number of spans		    */
-    DDXPointPtr points;		/* pointer to list of start points  */
-    int         *widths;	/* pointer to list of widths	    */
+    int count;                  /* number of spans                  */
+    DDXPointPtr points;         /* pointer to list of start points  */
+    int *widths;                /* pointer to list of widths        */
 } Spans;
 
 typedef struct {
-    int		size;		/* Total number of *Spans allocated	*/
-    int		count;		/* Number of *Spans actually in group   */
-    Spans       *group;		/* List of Spans			*/
-    int		ymin, ymax;	/* Min, max y values encountered	*/
+    int size;                   /* Total number of *Spans allocated     */
+    int count;                  /* Number of *Spans actually in group   */
+    Spans *group;               /* List of Spans                        */
+    int ymin, ymax;             /* Min, max y values encountered        */
 } SpanGroup;
 
 /* Initialize SpanGroup.  MUST BE DONE before use. */
-extern _X_EXPORT void miInitSpanGroup(
-    SpanGroup * /*spanGroup*/
-);
+extern _X_EXPORT void miInitSpanGroup(SpanGroup *       /*spanGroup */
+    );
 
 /* Add a Spans to a SpanGroup. The spans MUST BE in y-sorted order */
-extern _X_EXPORT void miAppendSpans(
-    SpanGroup * /*spanGroup*/,
-    SpanGroup * /*otherGroup*/,
-    Spans * /*spans*/
-);
+extern _X_EXPORT void miAppendSpans(SpanGroup * /*spanGroup */ ,
+                                    SpanGroup * /*otherGroup */ ,
+                                    Spans *     /*spans */
+    );
 
 /* Paint a span group, insuring that each pixel is painted at most once */
-extern _X_EXPORT void miFillUniqueSpanGroup(
-    DrawablePtr /*pDraw*/,
-    GCPtr /*pGC*/,
-    SpanGroup * /*spanGroup*/
-);
+extern _X_EXPORT void miFillUniqueSpanGroup(DrawablePtr /*pDraw */ ,
+                                            GCPtr /*pGC */ ,
+                                            SpanGroup * /*spanGroup */
+    );
 
 /* Free up data in a span group.  MUST BE DONE or you'll suffer memory leaks */
-extern _X_EXPORT void miFreeSpanGroup(
-    SpanGroup * /*spanGroup*/
-);
+extern _X_EXPORT void miFreeSpanGroup(SpanGroup *       /*spanGroup */
+    );
 
 /* Rops which must use span groups */
 #define miSpansCarefulRop(rop)	(((rop) & 0xc) == 0x8 || ((rop) & 0x3) == 0x2)
 #define miSpansEasyRop(rop)	(!miSpansCarefulRop(rop))
 
-#endif /* MISPANS_H */
+#endif                          /* MISPANS_H */

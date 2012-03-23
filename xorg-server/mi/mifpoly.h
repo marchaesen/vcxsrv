@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -65,38 +64,39 @@ SOFTWARE.
 #define FirstEnd	1
 #define SecondEnd	2
 
-#define SQSECANT 108.856472512142 /* 1/sin^2(11/2) - for 11o miter cutoff */
-#define D2SECANT 5.21671526231167 /* 1/2*sin(11/2) - max extension per width */
+#define SQSECANT 108.856472512142       /* 1/sin^2(11/2) - for 11o miter cutoff */
+#define D2SECANT 5.21671526231167       /* 1/2*sin(11/2) - max extension per width */
 
-static _X_INLINE int ICEIL(double x)
+static _X_INLINE int
+ICEIL(double x)
 {
     int _cTmp = x;
-    return ((x == _cTmp) || (x < 0.0)) ? _cTmp : _cTmp+1;
+
+    return ((x == _cTmp) || (x < 0.0)) ? _cTmp : _cTmp + 1;
 }
 
 /* Point with sub-pixel positioning.  In this case we use doubles, but
  * see mifpolycon.c for other suggestions 
  */
 typedef struct _SppPoint {
-	double	x, y;
+    double x, y;
 } SppPointRec, *SppPointPtr;
 
 typedef struct _SppArc {
-	double	x, y, width, height;
-	double	angle1, angle2;
+    double x, y, width, height;
+    double angle1, angle2;
 } SppArcRec, *SppArcPtr;
 
 /* mifpolycon.c */
 
-extern _X_EXPORT void miFillSppPoly(
-    DrawablePtr /*dst*/,
-    GCPtr /*pgc*/,
-    int /*count*/,
-    SppPointPtr /*ptsIn*/,
-    int /*xTrans*/,
-    int /*yTrans*/,
-    double /*xFtrans*/,
-    double /*yFtrans*/
-);
+extern _X_EXPORT void miFillSppPoly(DrawablePtr /*dst */ ,
+                                    GCPtr /*pgc */ ,
+                                    int /*count */ ,
+                                    SppPointPtr /*ptsIn */ ,
+                                    int /*xTrans */ ,
+                                    int /*yTrans */ ,
+                                    double /*xFtrans */ ,
+                                    double      /*yFtrans */
+    );
 
-#endif /* __MIFPOLY_H__ */
+#endif                          /* __MIFPOLY_H__ */

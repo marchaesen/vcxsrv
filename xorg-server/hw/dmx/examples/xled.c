@@ -40,23 +40,26 @@
 #include <X11/extensions/XKBstr.h>
 #include <sys/time.h>
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    Display              *display = NULL;
-    int                  mask     = 0;
-    unsigned             i;
-    XKeyboardState       ks;
-    XKeyboardControl     kc;
-    XkbDescPtr           xkb;
-    int                  old[32];
+    Display *display = NULL;
+    int mask = 0;
+    unsigned i;
+    XKeyboardState ks;
+    XKeyboardControl kc;
+    XkbDescPtr xkb;
+    int old[32];
 
     if (argc == 2 || argc == 3) {
         if (!(display = XOpenDisplay(argv[1]))) {
             printf("Cannot open display %s\n", argv[1]);
             return -1;
         }
-        if (argc >= 3) mask = strtol(argv[2], NULL, 0);
-    } else {
+        if (argc >= 3)
+            mask = strtol(argv[2], NULL, 0);
+    }
+    else {
         printf("Usage: %s display [mask]\n", argv[0]);
         return -1;
     }
@@ -81,14 +84,13 @@ int main(int argc, char **argv)
     for (i = 0; i < XkbNumIndicators; i++) {
         if (xkb->indicators->phys_indicators & (1 << i)) {
             printf("led %d = %d\n", i, xkb->indicators->maps[i].flags);
-            old[i]                         = xkb->indicators->maps[i].flags;
+            old[i] = xkb->indicators->maps[i].flags;
             xkb->indicators->maps[i].flags = XkbIM_NoAutomatic;
         }
     }
     printf("XkbSetIndicatorMap = %d\n", XkbSetIndicatorMap(display, ~0, xkb));
     XkbFreeKeyboard(xkb, 0, True);
 
-    
     if (!(xkb = XkbAllocKeyboard())) {
         printf("Cannot allocate\n");
         return -1;
@@ -105,7 +107,7 @@ int main(int argc, char **argv)
     printf("XGetKeyboardControl = %d\n", XGetKeyboardControl(display, &ks));
     printf("old mask = 0x%08lx\n", ks.led_mask);
     for (i = 0; i < 5; i++) {
-        kc.led      = i + 1;
+        kc.led = i + 1;
         kc.led_mode = (mask & (1 << i)) ? LedModeOn : LedModeOff;
         printf("XChangeKeyboardControl = %d\n",
                XChangeKeyboardControl(display, KBLed | KBLedMode, &kc));

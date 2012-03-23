@@ -1,21 +1,36 @@
 
 #include <xf86RamDac.h>
 
-extern _X_EXPORT unsigned long TIramdacCalculateMNPForClock(unsigned long RefClock,
-    unsigned long ReqClock, char IsPixClock, unsigned long MinClock,
-    unsigned long MaxClock, unsigned long *rM, unsigned long *rN,
-    unsigned long *rP);
-extern _X_EXPORT RamDacHelperRecPtr TIramdacProbe(ScrnInfoPtr pScrn, RamDacSupportedInfoRecPtr ramdacs);
-extern _X_EXPORT void TIramdacSave(ScrnInfoPtr pScrn, RamDacRecPtr RamDacRec, RamDacRegRecPtr RamDacRegRec);
-extern _X_EXPORT void TIramdacRestore(ScrnInfoPtr pScrn, RamDacRecPtr RamDacRec, RamDacRegRecPtr RamDacRegRec);
-extern _X_EXPORT void TIramdac3026SetBpp(ScrnInfoPtr pScrn, RamDacRegRecPtr RamDacRegRec);
-extern _X_EXPORT void TIramdac3030SetBpp(ScrnInfoPtr pScrn, RamDacRegRecPtr RamDacRegRec);
+extern _X_EXPORT unsigned long TIramdacCalculateMNPForClock(unsigned long
+                                                            RefClock,
+                                                            unsigned long
+                                                            ReqClock,
+                                                            char IsPixClock,
+                                                            unsigned long
+                                                            MinClock,
+                                                            unsigned long
+                                                            MaxClock,
+                                                            unsigned long *rM,
+                                                            unsigned long *rN,
+                                                            unsigned long *rP);
+extern _X_EXPORT RamDacHelperRecPtr TIramdacProbe(ScrnInfoPtr pScrn,
+                                                  RamDacSupportedInfoRecPtr
+                                                  ramdacs);
+extern _X_EXPORT void TIramdacSave(ScrnInfoPtr pScrn, RamDacRecPtr RamDacRec,
+                                   RamDacRegRecPtr RamDacRegRec);
+extern _X_EXPORT void TIramdacRestore(ScrnInfoPtr pScrn, RamDacRecPtr RamDacRec,
+                                      RamDacRegRecPtr RamDacRegRec);
+extern _X_EXPORT void TIramdac3026SetBpp(ScrnInfoPtr pScrn,
+                                         RamDacRegRecPtr RamDacRegRec);
+extern _X_EXPORT void TIramdac3030SetBpp(ScrnInfoPtr pScrn,
+                                         RamDacRegRecPtr RamDacRegRec);
 extern _X_EXPORT void TIramdacHWCursorInit(xf86CursorInfoPtr infoPtr);
-extern _X_EXPORT void TIramdacLoadPalette( ScrnInfoPtr pScrn, int numColors, int *indices,
-    LOCO *colors, VisualPtr pVisual);
+extern _X_EXPORT void TIramdacLoadPalette(ScrnInfoPtr pScrn, int numColors,
+                                          int *indices, LOCO * colors,
+                                          VisualPtr pVisual);
 
 typedef void TIramdacLoadPaletteProc(ScrnInfoPtr, int, int *, LOCO *,
-    VisualPtr);
+                                     VisualPtr);
 extern _X_EXPORT TIramdacLoadPaletteProc *TIramdacLoadPaletteWeak(void);
 
 #define TI3030_RAMDAC		(VENDOR_TI << 16) | 0x00
@@ -86,6 +101,6 @@ extern _X_EXPORT TIramdacLoadPaletteProc *TIramdacLoadPaletteWeak(void);
 
 #define TIDAC_sw_reset		0xff
 
-/* Constants */  
+/* Constants */
 #define TIDAC_TVP_3026_ID       0x26
 #define TIDAC_TVP_3030_ID       0x30

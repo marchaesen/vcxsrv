@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -45,7 +44,6 @@ SOFTWARE.
 
 ********************************************************/
 
-
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
@@ -55,65 +53,65 @@ SOFTWARE.
 #include <X11/Xprotostr.h>
 #include "misc.h"
 #include "dixstruct.h"
-#include "extnsionst.h"	/* for SendEvent */
+#include "extnsionst.h"         /* for SendEvent */
 #include "swapreq.h"
 
 /* Thanks to Jack Palevich for testing and subsequently rewriting all this */
 
 /* Byte swap a list of longs */
 void
-SwapLongs (CARD32 *list, unsigned long count)
+SwapLongs(CARD32 *list, unsigned long count)
 {
-	while (count >= 8) {
-	    swapl(list + 0);
-	    swapl(list + 1);
-	    swapl(list + 2);
-	    swapl(list + 3);
-	    swapl(list + 4);
-	    swapl(list + 5);
-	    swapl(list + 6);
-	    swapl(list + 7);
-	    list += 8;
-	    count -= 8;
-	}
-	if (count != 0) {
-	    do {
-		swapl(list);
-		list++;
-	    } while (--count != 0);
-	}
+    while (count >= 8) {
+        swapl(list + 0);
+        swapl(list + 1);
+        swapl(list + 2);
+        swapl(list + 3);
+        swapl(list + 4);
+        swapl(list + 5);
+        swapl(list + 6);
+        swapl(list + 7);
+        list += 8;
+        count -= 8;
+    }
+    if (count != 0) {
+        do {
+            swapl(list);
+            list++;
+        } while (--count != 0);
+    }
 }
 
 /* Byte swap a list of shorts */
 void
-SwapShorts (short *list, unsigned long count)
+SwapShorts(short *list, unsigned long count)
 {
-	while (count >= 16) {
-	    swaps(list + 0);
-	    swaps(list + 1);
-	    swaps(list + 2);
-	    swaps(list + 3);
-	    swaps(list + 4);
-	    swaps(list + 5);
-	    swaps(list + 6);
-	    swaps(list + 7);
-	    swaps(list + 8);
-	    swaps(list + 9);
-	    swaps(list + 10);
-	    swaps(list + 11);
-	    swaps(list + 12);
-	    swaps(list + 13);
-	    swaps(list + 14);
-	    swaps(list + 15);
-	    list += 16;
-	    count -= 16;
-	}
-	if (count != 0) {
-	    do {
-		swaps(list);
-		list++;
-	    } while (--count != 0);
-	}
+    while (count >= 16) {
+        swaps(list + 0);
+        swaps(list + 1);
+        swaps(list + 2);
+        swaps(list + 3);
+        swaps(list + 4);
+        swaps(list + 5);
+        swaps(list + 6);
+        swaps(list + 7);
+        swaps(list + 8);
+        swaps(list + 9);
+        swaps(list + 10);
+        swaps(list + 11);
+        swaps(list + 12);
+        swaps(list + 13);
+        swaps(list + 14);
+        swaps(list + 15);
+        list += 16;
+        count -= 16;
+    }
+    if (count != 0) {
+        do {
+            swaps(list);
+            list++;
+        } while (--count != 0);
+    }
 }
 
 /* The following is used for all requests that have
@@ -123,7 +121,7 @@ SProcSimpleReq(ClientPtr client)
 {
     REQUEST(xReq);
     swaps(&stuff->length);
-    return(*ProcVector[stuff->reqType])(client);
+    return (*ProcVector[stuff->reqType]) (client);
 }
 
 /* The following is used for all requests that have
@@ -134,9 +132,9 @@ SProcResourceReq(ClientPtr client)
 {
     REQUEST(xResourceReq);
     swaps(&stuff->length);
-    REQUEST_AT_LEAST_SIZE(xResourceReq); /* not EXACT */
+    REQUEST_AT_LEAST_SIZE(xResourceReq);        /* not EXACT */
     swapl(&stuff->id);
-    return(*ProcVector[stuff->reqType])(client);
+    return (*ProcVector[stuff->reqType]) (client);
 }
 
 int
@@ -156,7 +154,7 @@ SProcCreateWindow(ClientPtr client)
     swapl(&stuff->visual);
     swapl(&stuff->mask);
     SwapRestL(stuff);
-    return((* ProcVector[X_CreateWindow])(client));
+    return ((*ProcVector[X_CreateWindow]) (client));
 }
 
 int
@@ -168,7 +166,7 @@ SProcChangeWindowAttributes(ClientPtr client)
     swapl(&stuff->window);
     swapl(&stuff->valueMask);
     SwapRestL(stuff);
-    return((* ProcVector[X_ChangeWindowAttributes])(client));
+    return ((*ProcVector[X_ChangeWindowAttributes]) (client));
 }
 
 int
@@ -181,7 +179,7 @@ SProcReparentWindow(ClientPtr client)
     swapl(&stuff->parent);
     swaps(&stuff->x);
     swaps(&stuff->y);
-    return((* ProcVector[X_ReparentWindow])(client));
+    return ((*ProcVector[X_ReparentWindow]) (client));
 }
 
 int
@@ -193,10 +191,9 @@ SProcConfigureWindow(ClientPtr client)
     swapl(&stuff->window);
     swaps(&stuff->mask);
     SwapRestL(stuff);
-    return((* ProcVector[X_ConfigureWindow])(client));
+    return ((*ProcVector[X_ConfigureWindow]) (client));
 
 }
-
 
 int
 SProcInternAtom(ClientPtr client)
@@ -205,7 +202,7 @@ SProcInternAtom(ClientPtr client)
     swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xInternAtomReq);
     swaps(&stuff->nbytes);
-    return((* ProcVector[X_InternAtom])(client));
+    return ((*ProcVector[X_InternAtom]) (client));
 }
 
 int
@@ -218,17 +215,17 @@ SProcChangeProperty(ClientPtr client)
     swapl(&stuff->property);
     swapl(&stuff->type);
     swapl(&stuff->nUnits);
-    switch ( stuff->format ) {
-        case 8 :
-	    break;
-        case 16:
-	    SwapRestS(stuff);
-	    break;
-	case 32:
-	    SwapRestL(stuff);
-	    break;
-	}
-    return((* ProcVector[X_ChangeProperty])(client));
+    switch (stuff->format) {
+    case 8:
+        break;
+    case 16:
+        SwapRestS(stuff);
+        break;
+    case 32:
+        SwapRestL(stuff);
+        break;
+    }
+    return ((*ProcVector[X_ChangeProperty]) (client));
 }
 
 int
@@ -239,8 +236,8 @@ SProcDeleteProperty(ClientPtr client)
     REQUEST_SIZE_MATCH(xDeletePropertyReq);
     swapl(&stuff->window);
     swapl(&stuff->property);
-    return((* ProcVector[X_DeleteProperty])(client));
-              
+    return ((*ProcVector[X_DeleteProperty]) (client));
+
 }
 
 int
@@ -254,7 +251,7 @@ SProcGetProperty(ClientPtr client)
     swapl(&stuff->type);
     swapl(&stuff->longOffset);
     swapl(&stuff->longLength);
-    return((* ProcVector[X_GetProperty])(client));
+    return ((*ProcVector[X_GetProperty]) (client));
 }
 
 int
@@ -266,7 +263,7 @@ SProcSetSelectionOwner(ClientPtr client)
     swapl(&stuff->window);
     swapl(&stuff->selection);
     swapl(&stuff->time);
-    return((* ProcVector[X_SetSelectionOwner])(client));
+    return ((*ProcVector[X_SetSelectionOwner]) (client));
 }
 
 int
@@ -280,7 +277,7 @@ SProcConvertSelection(ClientPtr client)
     swapl(&stuff->target);
     swapl(&stuff->property);
     swapl(&stuff->time);
-    return((* ProcVector[X_ConvertSelection])(client));
+    return ((*ProcVector[X_ConvertSelection]) (client));
 }
 
 int
@@ -288,6 +285,7 @@ SProcSendEvent(ClientPtr client)
 {
     xEvent eventT;
     EventSwapPtr proc;
+
     REQUEST(xSendEventReq);
     swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xSendEventReq);
@@ -296,12 +294,12 @@ SProcSendEvent(ClientPtr client)
 
     /* Swap event */
     proc = EventSwapVector[stuff->event.u.u.type & 0177];
-    if (!proc ||  proc == NotImplemented)    /* no swapping proc; invalid event type? */
-       return BadValue;
-    (*proc)(&stuff->event, &eventT);
+    if (!proc || proc == NotImplemented)        /* no swapping proc; invalid event type? */
+        return BadValue;
+    (*proc) (&stuff->event, &eventT);
     stuff->event = eventT;
 
-    return((* ProcVector[X_SendEvent])(client));
+    return ((*ProcVector[X_SendEvent]) (client));
 }
 
 int
@@ -315,7 +313,7 @@ SProcGrabPointer(ClientPtr client)
     swapl(&stuff->confineTo);
     swapl(&stuff->cursor);
     swapl(&stuff->time);
-    return((* ProcVector[X_GrabPointer])(client));
+    return ((*ProcVector[X_GrabPointer]) (client));
 }
 
 int
@@ -329,7 +327,7 @@ SProcGrabButton(ClientPtr client)
     swapl(&stuff->confineTo);
     swapl(&stuff->cursor);
     swaps(&stuff->modifiers);
-    return((* ProcVector[X_GrabButton])(client));
+    return ((*ProcVector[X_GrabButton]) (client));
 }
 
 int
@@ -340,7 +338,7 @@ SProcUngrabButton(ClientPtr client)
     REQUEST_SIZE_MATCH(xUngrabButtonReq);
     swapl(&stuff->grabWindow);
     swaps(&stuff->modifiers);
-    return((* ProcVector[X_UngrabButton])(client));
+    return ((*ProcVector[X_UngrabButton]) (client));
 }
 
 int
@@ -352,7 +350,7 @@ SProcChangeActivePointerGrab(ClientPtr client)
     swapl(&stuff->cursor);
     swapl(&stuff->time);
     swaps(&stuff->eventMask);
-    return((* ProcVector[X_ChangeActivePointerGrab])(client));
+    return ((*ProcVector[X_ChangeActivePointerGrab]) (client));
 }
 
 int
@@ -363,7 +361,7 @@ SProcGrabKeyboard(ClientPtr client)
     REQUEST_SIZE_MATCH(xGrabKeyboardReq);
     swapl(&stuff->grabWindow);
     swapl(&stuff->time);
-    return((* ProcVector[X_GrabKeyboard])(client));
+    return ((*ProcVector[X_GrabKeyboard]) (client));
 }
 
 int
@@ -374,7 +372,7 @@ SProcGrabKey(ClientPtr client)
     REQUEST_SIZE_MATCH(xGrabKeyReq);
     swapl(&stuff->grabWindow);
     swaps(&stuff->modifiers);
-    return((* ProcVector[X_GrabKey])(client));
+    return ((*ProcVector[X_GrabKey]) (client));
 }
 
 int
@@ -385,7 +383,7 @@ SProcUngrabKey(ClientPtr client)
     REQUEST_SIZE_MATCH(xUngrabKeyReq);
     swapl(&stuff->grabWindow);
     swaps(&stuff->modifiers);
-    return((* ProcVector[X_UngrabKey])(client));
+    return ((*ProcVector[X_UngrabKey]) (client));
 }
 
 int
@@ -397,7 +395,7 @@ SProcGetMotionEvents(ClientPtr client)
     swapl(&stuff->window);
     swapl(&stuff->start);
     swapl(&stuff->stop);
-    return((* ProcVector[X_GetMotionEvents])(client));
+    return ((*ProcVector[X_GetMotionEvents]) (client));
 }
 
 int
@@ -410,7 +408,7 @@ SProcTranslateCoords(ClientPtr client)
     swapl(&stuff->dstWid);
     swaps(&stuff->srcX);
     swaps(&stuff->srcY);
-    return((* ProcVector[X_TranslateCoords])(client));
+    return ((*ProcVector[X_TranslateCoords]) (client));
 }
 
 int
@@ -427,7 +425,7 @@ SProcWarpPointer(ClientPtr client)
     swaps(&stuff->srcHeight);
     swaps(&stuff->dstX);
     swaps(&stuff->dstY);
-    return((* ProcVector[X_WarpPointer])(client));
+    return ((*ProcVector[X_WarpPointer]) (client));
 }
 
 int
@@ -438,7 +436,7 @@ SProcSetInputFocus(ClientPtr client)
     REQUEST_SIZE_MATCH(xSetInputFocusReq);
     swapl(&stuff->focus);
     swapl(&stuff->time);
-    return((* ProcVector[X_SetInputFocus])(client));
+    return ((*ProcVector[X_SetInputFocus]) (client));
 }
 
 int
@@ -449,7 +447,7 @@ SProcOpenFont(ClientPtr client)
     REQUEST_AT_LEAST_SIZE(xOpenFontReq);
     swapl(&stuff->fid);
     swaps(&stuff->nbytes);
-    return((* ProcVector[X_OpenFont])(client));
+    return ((*ProcVector[X_OpenFont]) (client));
 }
 
 int
@@ -460,7 +458,7 @@ SProcListFonts(ClientPtr client)
     REQUEST_AT_LEAST_SIZE(xListFontsReq);
     swaps(&stuff->maxNames);
     swaps(&stuff->nbytes);
-    return((* ProcVector[X_ListFonts])(client));
+    return ((*ProcVector[X_ListFonts]) (client));
 }
 
 int
@@ -471,7 +469,7 @@ SProcListFontsWithInfo(ClientPtr client)
     REQUEST_AT_LEAST_SIZE(xListFontsWithInfoReq);
     swaps(&stuff->maxNames);
     swaps(&stuff->nbytes);
-    return((* ProcVector[X_ListFontsWithInfo])(client));
+    return ((*ProcVector[X_ListFontsWithInfo]) (client));
 }
 
 int
@@ -481,7 +479,7 @@ SProcSetFontPath(ClientPtr client)
     swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xSetFontPathReq);
     swaps(&stuff->nFonts);
-    return((* ProcVector[X_SetFontPath])(client));
+    return ((*ProcVector[X_SetFontPath]) (client));
 }
 
 int
@@ -495,7 +493,7 @@ SProcCreatePixmap(ClientPtr client)
     swapl(&stuff->drawable);
     swaps(&stuff->width);
     swaps(&stuff->height);
-    return((* ProcVector[X_CreatePixmap])(client));
+    return ((*ProcVector[X_CreatePixmap]) (client));
 }
 
 int
@@ -508,7 +506,7 @@ SProcCreateGC(ClientPtr client)
     swapl(&stuff->drawable);
     swapl(&stuff->mask);
     SwapRestL(stuff);
-    return((* ProcVector[X_CreateGC])(client));
+    return ((*ProcVector[X_CreateGC]) (client));
 }
 
 int
@@ -520,7 +518,7 @@ SProcChangeGC(ClientPtr client)
     swapl(&stuff->gc);
     swapl(&stuff->mask);
     SwapRestL(stuff);
-    return((* ProcVector[X_ChangeGC])(client));
+    return ((*ProcVector[X_ChangeGC]) (client));
 }
 
 int
@@ -532,7 +530,7 @@ SProcCopyGC(ClientPtr client)
     swapl(&stuff->srcGC);
     swapl(&stuff->dstGC);
     swapl(&stuff->mask);
-    return((* ProcVector[X_CopyGC])(client));
+    return ((*ProcVector[X_CopyGC]) (client));
 }
 
 int
@@ -544,7 +542,7 @@ SProcSetDashes(ClientPtr client)
     swapl(&stuff->gc);
     swaps(&stuff->dashOffset);
     swaps(&stuff->nDashes);
-    return((* ProcVector[X_SetDashes])(client));
+    return ((*ProcVector[X_SetDashes]) (client));
 
 }
 
@@ -558,7 +556,7 @@ SProcSetClipRectangles(ClientPtr client)
     swaps(&stuff->xOrigin);
     swaps(&stuff->yOrigin);
     SwapRestS(stuff);
-    return((* ProcVector[X_SetClipRectangles])(client));
+    return ((*ProcVector[X_SetClipRectangles]) (client));
 }
 
 int
@@ -572,7 +570,7 @@ SProcClearToBackground(ClientPtr client)
     swaps(&stuff->y);
     swaps(&stuff->width);
     swaps(&stuff->height);
-    return((* ProcVector[X_ClearArea])(client));
+    return ((*ProcVector[X_ClearArea]) (client));
 }
 
 int
@@ -590,7 +588,7 @@ SProcCopyArea(ClientPtr client)
     swaps(&stuff->dstY);
     swaps(&stuff->width);
     swaps(&stuff->height);
-    return((* ProcVector[X_CopyArea])(client));
+    return ((*ProcVector[X_CopyArea]) (client));
 }
 
 int
@@ -609,7 +607,7 @@ SProcCopyPlane(ClientPtr client)
     swaps(&stuff->width);
     swaps(&stuff->height);
     swapl(&stuff->bitPlane);
-    return((* ProcVector[X_CopyPlane])(client));
+    return ((*ProcVector[X_CopyPlane]) (client));
 }
 
 /* The following routine is used for all Poly drawing requests
@@ -623,7 +621,7 @@ SProcPoly(ClientPtr client)
     swapl(&stuff->drawable);
     swapl(&stuff->gc);
     SwapRestS(stuff);
-    return((* ProcVector[stuff->reqType])(client));
+    return ((*ProcVector[stuff->reqType]) (client));
 }
 
 /* cannot use SProcPoly for this one, because xFillPolyReq
@@ -638,7 +636,7 @@ SProcFillPoly(ClientPtr client)
     swapl(&stuff->drawable);
     swapl(&stuff->gc);
     SwapRestS(stuff);
-    return((* ProcVector[X_FillPoly])(client));
+    return ((*ProcVector[X_FillPoly]) (client));
 }
 
 int
@@ -654,7 +652,7 @@ SProcPutImage(ClientPtr client)
     swaps(&stuff->dstX);
     swaps(&stuff->dstY);
     /* Image should already be swapped */
-    return((* ProcVector[X_PutImage])(client));
+    return ((*ProcVector[X_PutImage]) (client));
 
 }
 
@@ -670,7 +668,7 @@ SProcGetImage(ClientPtr client)
     swaps(&stuff->width);
     swaps(&stuff->height);
     swapl(&stuff->planeMask);
-    return((* ProcVector[X_GetImage])(client));
+    return ((*ProcVector[X_GetImage]) (client));
 }
 
 /* ProcPolyText used for both PolyText8 and PolyText16 */
@@ -685,7 +683,7 @@ SProcPolyText(ClientPtr client)
     swapl(&stuff->gc);
     swaps(&stuff->x);
     swaps(&stuff->y);
-    return((* ProcVector[stuff->reqType])(client));
+    return ((*ProcVector[stuff->reqType]) (client));
 }
 
 /* ProcImageText used for both ImageText8 and ImageText16 */
@@ -700,7 +698,7 @@ SProcImageText(ClientPtr client)
     swapl(&stuff->gc);
     swaps(&stuff->x);
     swaps(&stuff->y);
-    return((* ProcVector[stuff->reqType])(client));
+    return ((*ProcVector[stuff->reqType]) (client));
 }
 
 int
@@ -712,9 +710,8 @@ SProcCreateColormap(ClientPtr client)
     swapl(&stuff->mid);
     swapl(&stuff->window);
     swapl(&stuff->visual);
-    return((* ProcVector[X_CreateColormap])(client));
+    return ((*ProcVector[X_CreateColormap]) (client));
 }
-
 
 int
 SProcCopyColormapAndFree(ClientPtr client)
@@ -724,7 +721,7 @@ SProcCopyColormapAndFree(ClientPtr client)
     REQUEST_SIZE_MATCH(xCopyColormapAndFreeReq);
     swapl(&stuff->mid);
     swapl(&stuff->srcCmap);
-    return((* ProcVector[X_CopyColormapAndFree])(client));
+    return ((*ProcVector[X_CopyColormapAndFree]) (client));
 
 }
 
@@ -738,7 +735,7 @@ SProcAllocColor(ClientPtr client)
     swaps(&stuff->red);
     swaps(&stuff->green);
     swaps(&stuff->blue);
-    return((* ProcVector[X_AllocColor])(client));
+    return ((*ProcVector[X_AllocColor]) (client));
 }
 
 int
@@ -749,7 +746,7 @@ SProcAllocNamedColor(ClientPtr client)
     REQUEST_AT_LEAST_SIZE(xAllocNamedColorReq);
     swapl(&stuff->cmap);
     swaps(&stuff->nbytes);
-    return((* ProcVector[X_AllocNamedColor])(client));
+    return ((*ProcVector[X_AllocNamedColor]) (client));
 }
 
 int
@@ -761,7 +758,7 @@ SProcAllocColorCells(ClientPtr client)
     swapl(&stuff->cmap);
     swaps(&stuff->colors);
     swaps(&stuff->planes);
-    return((* ProcVector[X_AllocColorCells])(client));
+    return ((*ProcVector[X_AllocColorCells]) (client));
 }
 
 int
@@ -775,7 +772,7 @@ SProcAllocColorPlanes(ClientPtr client)
     swaps(&stuff->red);
     swaps(&stuff->green);
     swaps(&stuff->blue);
-    return((* ProcVector[X_AllocColorPlanes])(client));
+    return ((*ProcVector[X_AllocColorPlanes]) (client));
 }
 
 int
@@ -787,12 +784,12 @@ SProcFreeColors(ClientPtr client)
     swapl(&stuff->cmap);
     swapl(&stuff->planeMask);
     SwapRestL(stuff);
-    return((* ProcVector[X_FreeColors])(client));
+    return ((*ProcVector[X_FreeColors]) (client));
 
 }
 
 void
-SwapColorItem(xColorItem *pItem)
+SwapColorItem(xColorItem * pItem)
 {
     swapl(&pItem->pixel);
     swaps(&pItem->red);
@@ -804,20 +801,20 @@ int
 SProcStoreColors(ClientPtr client)
 {
     long count;
-    xColorItem 	*pItem;
+    xColorItem *pItem;
 
     REQUEST(xStoreColorsReq);
     swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xStoreColorsReq);
     swapl(&stuff->cmap);
     pItem = (xColorItem *) &stuff[1];
-    for(count = LengthRestB(stuff)/sizeof(xColorItem); --count >= 0; )
-	SwapColorItem(pItem++);
-    return((* ProcVector[X_StoreColors])(client));
+    for (count = LengthRestB(stuff) / sizeof(xColorItem); --count >= 0;)
+        SwapColorItem(pItem++);
+    return ((*ProcVector[X_StoreColors]) (client));
 }
 
 int
-SProcStoreNamedColor (ClientPtr client)
+SProcStoreNamedColor(ClientPtr client)
 {
     REQUEST(xStoreNamedColorReq);
     swaps(&stuff->length);
@@ -825,33 +822,33 @@ SProcStoreNamedColor (ClientPtr client)
     swapl(&stuff->cmap);
     swapl(&stuff->pixel);
     swaps(&stuff->nbytes);
-    return((* ProcVector[X_StoreNamedColor])(client));
+    return ((*ProcVector[X_StoreNamedColor]) (client));
 }
 
 int
-SProcQueryColors (ClientPtr client)
+SProcQueryColors(ClientPtr client)
 {
     REQUEST(xQueryColorsReq);
     swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xQueryColorsReq);
     swapl(&stuff->cmap);
     SwapRestL(stuff);
-    return((* ProcVector[X_QueryColors])(client));
-} 
+    return ((*ProcVector[X_QueryColors]) (client));
+}
 
 int
-SProcLookupColor (ClientPtr client)
+SProcLookupColor(ClientPtr client)
 {
     REQUEST(xLookupColorReq);
     swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xLookupColorReq);
     swapl(&stuff->cmap);
     swaps(&stuff->nbytes);
-    return((* ProcVector[X_LookupColor])(client));
+    return ((*ProcVector[X_LookupColor]) (client));
 }
 
 int
-SProcCreateCursor (ClientPtr client)
+SProcCreateCursor(ClientPtr client)
 {
     REQUEST(xCreateCursorReq);
     swaps(&stuff->length);
@@ -867,11 +864,11 @@ SProcCreateCursor (ClientPtr client)
     swaps(&stuff->backBlue);
     swaps(&stuff->x);
     swaps(&stuff->y);
-    return((* ProcVector[X_CreateCursor])(client));
+    return ((*ProcVector[X_CreateCursor]) (client));
 }
 
 int
-SProcCreateGlyphCursor (ClientPtr client)
+SProcCreateGlyphCursor(ClientPtr client)
 {
     REQUEST(xCreateGlyphCursorReq);
     swaps(&stuff->length);
@@ -887,12 +884,11 @@ SProcCreateGlyphCursor (ClientPtr client)
     swaps(&stuff->backRed);
     swaps(&stuff->backGreen);
     swaps(&stuff->backBlue);
-    return((* ProcVector[X_CreateGlyphCursor])(client));
+    return ((*ProcVector[X_CreateGlyphCursor]) (client));
 }
 
-
 int
-SProcRecolorCursor (ClientPtr client)
+SProcRecolorCursor(ClientPtr client)
 {
     REQUEST(xRecolorCursorReq);
     swaps(&stuff->length);
@@ -904,11 +900,11 @@ SProcRecolorCursor (ClientPtr client)
     swaps(&stuff->backRed);
     swaps(&stuff->backGreen);
     swaps(&stuff->backBlue);
-    return((* ProcVector[X_RecolorCursor])(client));
+    return ((*ProcVector[X_RecolorCursor]) (client));
 }
 
 int
-SProcQueryBestSize (ClientPtr client)
+SProcQueryBestSize(ClientPtr client)
 {
     REQUEST(xQueryBestSizeReq);
     swaps(&stuff->length);
@@ -916,44 +912,43 @@ SProcQueryBestSize (ClientPtr client)
     swapl(&stuff->drawable);
     swaps(&stuff->width);
     swaps(&stuff->height);
-    return((* ProcVector[X_QueryBestSize])(client));
+    return ((*ProcVector[X_QueryBestSize]) (client));
 
 }
 
 int
-SProcQueryExtension (ClientPtr client)
+SProcQueryExtension(ClientPtr client)
 {
     REQUEST(xQueryExtensionReq);
     swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xQueryExtensionReq);
     swaps(&stuff->nbytes);
-    return((* ProcVector[X_QueryExtension])(client));
+    return ((*ProcVector[X_QueryExtension]) (client));
 }
 
 int
-SProcChangeKeyboardMapping (ClientPtr client)
+SProcChangeKeyboardMapping(ClientPtr client)
 {
     REQUEST(xChangeKeyboardMappingReq);
     swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xChangeKeyboardMappingReq);
     SwapRestL(stuff);
-    return((* ProcVector[X_ChangeKeyboardMapping])(client));
+    return ((*ProcVector[X_ChangeKeyboardMapping]) (client));
 }
 
-
 int
-SProcChangeKeyboardControl (ClientPtr client)
+SProcChangeKeyboardControl(ClientPtr client)
 {
     REQUEST(xChangeKeyboardControlReq);
     swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xChangeKeyboardControlReq);
     swapl(&stuff->mask);
     SwapRestL(stuff);
-    return((* ProcVector[X_ChangeKeyboardControl])(client));
+    return ((*ProcVector[X_ChangeKeyboardControl]) (client));
 }
 
 int
-SProcChangePointerControl (ClientPtr client)
+SProcChangePointerControl(ClientPtr client)
 {
     REQUEST(xChangePointerControlReq);
     swaps(&stuff->length);
@@ -961,33 +956,33 @@ SProcChangePointerControl (ClientPtr client)
     swaps(&stuff->accelNum);
     swaps(&stuff->accelDenum);
     swaps(&stuff->threshold);
-    return((* ProcVector[X_ChangePointerControl])(client));
+    return ((*ProcVector[X_ChangePointerControl]) (client));
 }
 
-
 int
-SProcSetScreenSaver (ClientPtr client)
+SProcSetScreenSaver(ClientPtr client)
 {
     REQUEST(xSetScreenSaverReq);
     swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xSetScreenSaverReq);
     swaps(&stuff->timeout);
     swaps(&stuff->interval);
-    return((* ProcVector[X_SetScreenSaver])(client));
+    return ((*ProcVector[X_SetScreenSaver]) (client));
 }
 
 int
-SProcChangeHosts (ClientPtr client)
+SProcChangeHosts(ClientPtr client)
 {
     REQUEST(xChangeHostsReq);
     swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xChangeHostsReq);
     swaps(&stuff->hostLength);
-    return((* ProcVector[X_ChangeHosts])(client));
+    return ((*ProcVector[X_ChangeHosts]) (client));
 
 }
 
-int SProcRotateProperties (ClientPtr client)
+int
+SProcRotateProperties(ClientPtr client)
 {
     REQUEST(xRotatePropertiesReq);
     swaps(&stuff->length);
@@ -996,7 +991,7 @@ int SProcRotateProperties (ClientPtr client)
     swaps(&stuff->nAtoms);
     swaps(&stuff->nPositions);
     SwapRestL(stuff);
-    return ((* ProcVector[X_RotateProperties])(client));
+    return ((*ProcVector[X_RotateProperties]) (client));
 }
 
 int
@@ -1004,11 +999,11 @@ SProcNoOperation(ClientPtr client)
 {
     REQUEST(xReq);
     swaps(&stuff->length);
-    return ((* ProcVector[X_NoOperation])(client));
+    return ((*ProcVector[X_NoOperation]) (client));
 }
 
 void
-SwapConnClientPrefix(xConnClientPrefix *pCCP)
+SwapConnClientPrefix(xConnClientPrefix * pCCP)
 {
     swaps(&pCCP->majorVersion);
     swaps(&pCCP->minorVersion);

@@ -34,22 +34,19 @@
 #include "win.h"
 #include "winmsg.h"
 
-
-
-
 /*
  * Verify all screens have been explicitly specified
  */
 static BOOL
 isEveryScreenExplicit(void)
 {
-  int i;
+    int i;
 
-  for (i = 0; i < g_iNumScreens; i++)
-    if (!g_ScreenInfo[i].fExplicitScreen)
-      return FALSE;
+    for (i = 0; i < g_iNumScreens; i++)
+        if (!g_ScreenInfo[i].fExplicitScreen)
+            return FALSE;
 
-  return TRUE;
+    return TRUE;
 }
 
 /*
@@ -57,124 +54,117 @@ isEveryScreenExplicit(void)
  */
 
 Bool
-winValidateArgs (void)
+winValidateArgs(void)
 {
-  int		i;
-  int		iMaxConsecutiveScreen = 0;
-  BOOL		fHasNormalScreen0 = FALSE;
-  BOOL		fImplicitScreenFound = FALSE;
+    int i;
+    int iMaxConsecutiveScreen = 0;
+    BOOL fHasNormalScreen0 = FALSE;
+    BOOL fImplicitScreenFound = FALSE;
 
-  /*
-   * Check for a malformed set of -screen parameters.
-   * Examples of malformed parameters:
-   *	XWin -screen 1
-   *	XWin -screen 0 -screen 2
-   *	XWin -screen 1 -screen 2
-   */
-  if (!isEveryScreenExplicit())
-    {
-      ErrorF ("winValidateArgs - Malformed set of screen parameter(s).  "
-	      "Screens must be specified consecutively starting with "
-	      "screen 0.  That is, you cannot have only a screen 1, nor "
-	      "could you have screen 0 and screen 2.  You instead must "
-	      "have screen 0, or screen 0 and screen 1, respectively.  "
-	      "You can specify as many screens as you want.\n");
-      return FALSE;
+    /*
+     * Check for a malformed set of -screen parameters.
+     * Examples of malformed parameters:
+     *    XWin -screen 1
+     *    XWin -screen 0 -screen 2
+     *    XWin -screen 1 -screen 2
+     */
+    if (!isEveryScreenExplicit()) {
+        ErrorF("winValidateArgs - Malformed set of screen parameter(s).  "
+               "Screens must be specified consecutively starting with "
+               "screen 0.  That is, you cannot have only a screen 1, nor "
+               "could you have screen 0 and screen 2.  You instead must "
+               "have screen 0, or screen 0 and screen 1, respectively.  "
+               "You can specify as many screens as you want.\n");
+        return FALSE;
     }
 
-  /* Loop through all screens */
-  for (i = 0; i < g_iNumScreens; ++i)
-    {
-      /*
-       * Check for any combination of
-       * -multiwindow, -mwextwm, and -rootless.
-       */
-      {
-	int		iCount = 0;
+    /* Loop through all screens */
+    for (i = 0; i < g_iNumScreens; ++i) {
+        /*
+         * Check for any combination of
+         * -multiwindow, -mwextwm, and -rootless.
+         */
+        {
+            int iCount = 0;
 
-	/* Count conflicting options */
+            /* Count conflicting options */
 #ifdef XWIN_MULTIWINDOW
-	if (g_ScreenInfo[i].fMultiWindow)
-	  ++iCount;
+            if (g_ScreenInfo[i].fMultiWindow)
+                ++iCount;
 #endif
 #ifdef XWIN_MULTIWINDOWEXTWM
-	if (g_ScreenInfo[i].fMWExtWM)
-	  ++iCount;
+            if (g_ScreenInfo[i].fMWExtWM)
+                ++iCount;
 #endif
-	if (g_ScreenInfo[i].fRootless)
-	  ++iCount;
+            if (g_ScreenInfo[i].fRootless)
+                ++iCount;
 
-	/* Check if the first screen is without rootless and multiwindow */ 
-	if (iCount == 0 && i == 0)
-	  fHasNormalScreen0 = TRUE;  
+            /* Check if the first screen is without rootless and multiwindow */
+            if (iCount == 0 && i == 0)
+                fHasNormalScreen0 = TRUE;
 
-	/* Fail if two or more conflicting options */
-	if (iCount > 1)
-	  {
-	    ErrorF ("winValidateArgs - Only one of -multiwindow, -mwextwm, "
-		    "and -rootless can be specific at a time.\n");
-	    return FALSE;
-	  }
-      }
+            /* Fail if two or more conflicting options */
+            if (iCount > 1) {
+                ErrorF("winValidateArgs - Only one of -multiwindow, -mwextwm, "
+                       "and -rootless can be specific at a time.\n");
+                return FALSE;
+            }
+        }
 
-      /* Check for -multiwindow or -mwextwm and Xdmcp */
-      /* allow xdmcp if screen 0 is normal. */
-      if (g_fXdmcpEnabled && !fHasNormalScreen0
-	  && (FALSE
+        /* Check for -multiwindow or -mwextwm and Xdmcp */
+        /* allow xdmcp if screen 0 is normal. */
+        if (g_fXdmcpEnabled && !fHasNormalScreen0 && (FALSE
 #ifdef XWIN_MULTIWINDOW
-	      || g_ScreenInfo[i].fMultiWindow
+                                                      || g_ScreenInfo[i].
+                                                      fMultiWindow
 #endif
 #ifdef XWIN_MULTIWINDOWEXTWM
-	      || g_ScreenInfo[i].fMWExtWM
+                                                      || g_ScreenInfo[i].
+                                                      fMWExtWM
 #endif
-	      )
-	  )
-	{
-	  ErrorF ("winValidateArgs - Xdmcp (-query, -broadcast, or -indirect) "
-		  "is invalid with -multiwindow or -mwextwm.\n");
-	  return FALSE;
-	}
+            )
+            ) {
+            ErrorF("winValidateArgs - Xdmcp (-query, -broadcast, or -indirect) "
+                   "is invalid with -multiwindow or -mwextwm.\n");
+            return FALSE;
+        }
 
-      /* Check for -multiwindow, -mwextwm, or -rootless and fullscreen */
-      if (g_ScreenInfo[i].fFullScreen
-	  && (FALSE
+        /* Check for -multiwindow, -mwextwm, or -rootless and fullscreen */
+        if (g_ScreenInfo[i].fFullScreen && (FALSE
 #ifdef XWIN_MULTIWINDOW
-	      || g_ScreenInfo[i].fMultiWindow
+                                            || g_ScreenInfo[i].fMultiWindow
 #endif
 #ifdef XWIN_MULTIWINDOWEXTWM
-	      || g_ScreenInfo[i].fMWExtWM
+                                            || g_ScreenInfo[i].fMWExtWM
 #endif
-	      || g_ScreenInfo[i].fRootless)
-	  )
-	{
-	  ErrorF ("winValidateArgs - -fullscreen is invalid with "
-		  "-multiwindow, -mwextwm, or -rootless.\n");
-	  return FALSE;
-	}
-      
-      /* Check for !fullscreen and any fullscreen-only parameters */
-      if (!g_ScreenInfo[i].fFullScreen
-	  && (g_ScreenInfo[i].dwRefreshRate != WIN_DEFAULT_REFRESH
-	      || g_ScreenInfo[i].dwBPP != WIN_DEFAULT_BPP))
-	{
-	  ErrorF ("winValidateArgs - -refresh and -depth are only valid "
-		  "with -fullscreen.\n");
-	  return FALSE;
-	}
+                                            || g_ScreenInfo[i].fRootless)
+            ) {
+            ErrorF("winValidateArgs - -fullscreen is invalid with "
+                   "-multiwindow, -mwextwm, or -rootless.\n");
+            return FALSE;
+        }
 
-      /* Check for fullscreen and any non-fullscreen parameters */
-      if (g_ScreenInfo[i].fFullScreen
-	  && ((g_ScreenInfo[i].iResizeMode != notAllowed)
-	      || !g_ScreenInfo[i].fDecoration
-	      || g_ScreenInfo[i].fLessPointer))
-	{
-	  ErrorF ("winValidateArgs - -fullscreen is invalid with "
-		  "-scrollbars, -resize, -nodecoration, or -lesspointer.\n");
-	  return FALSE;
-	}
+        /* Check for !fullscreen and any fullscreen-only parameters */
+        if (!g_ScreenInfo[i].fFullScreen
+            && (g_ScreenInfo[i].dwRefreshRate != WIN_DEFAULT_REFRESH
+                || g_ScreenInfo[i].dwBPP != WIN_DEFAULT_BPP)) {
+            ErrorF("winValidateArgs - -refresh and -depth are only valid "
+                   "with -fullscreen.\n");
+            return FALSE;
+        }
+
+        /* Check for fullscreen and any non-fullscreen parameters */
+        if (g_ScreenInfo[i].fFullScreen
+            && ((g_ScreenInfo[i].iResizeMode != notAllowed)
+                || !g_ScreenInfo[i].fDecoration
+                || g_ScreenInfo[i].fLessPointer)) {
+            ErrorF("winValidateArgs - -fullscreen is invalid with "
+                   "-scrollbars, -resize, -nodecoration, or -lesspointer.\n");
+            return FALSE;
+        }
     }
 
-  winDebug ("winValidateArgs - Returning.\n");
+    winDebug("winValidateArgs - Returning.\n");
 
-  return TRUE;
+    return TRUE;
 }

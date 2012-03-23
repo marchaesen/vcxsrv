@@ -49,25 +49,22 @@ from The Open Group.
 #endif
 #ifdef RELOCATE_PROJECTROOT
 #include <shlobj.h>
-typedef WINAPI HRESULT (*SHGETFOLDERPATHPROC)(
-    HWND hwndOwner,
-    int nFolder,
-    HANDLE hToken,
-    DWORD dwFlags,
-    LPTSTR pszPath
-);
+typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
+                                              int nFolder,
+                                              HANDLE hToken,
+                                              DWORD dwFlags, LPTSTR pszPath);
 #endif
 
 /*
  * References to external symbols
  */
 #ifdef XWIN_CLIPBOARD
-extern Bool			g_fUnicodeClipboard;
-extern Bool			g_fClipboardLaunched;
-extern Bool			g_fClipboardStarted;
-extern pthread_t		g_ptClipboardProc;
-extern HWND			g_hwndClipboard;
-extern Bool			g_fClipboard;
+extern Bool g_fUnicodeClipboard;
+extern Bool g_fClipboardLaunched;
+extern Bool g_fClipboardStarted;
+extern pthread_t g_ptClipboardProc;
+extern HWND g_hwndClipboard;
+extern Bool g_fClipboard;
 #endif
 
 /*
@@ -76,29 +73,28 @@ extern Bool			g_fClipboard;
 
 #ifdef XWIN_CLIPBOARD
 static void
-winClipboardShutdown (void);
+ winClipboardShutdown(void);
 #endif
 
 #if defined(DDXOSVERRORF)
 void
-OsVendorVErrorF (const char *pszFormat, va_list va_args);
+ OsVendorVErrorF(const char *pszFormat, va_list va_args);
 #endif
 
 static Bool
-winCheckDisplayNumber (void);
+ winCheckDisplayNumber(void);
 
 void
-winLogCommandLine (int argc, char *argv[]);
+ winLogCommandLine(int argc, char *argv[]);
 
 void
-winLogVersionInfo (void);
+ winLogVersionInfo(void);
 
 Bool
-winValidateArgs (void);
+ winValidateArgs(void);
 
 #ifdef RELOCATE_PROJECTROOT
-const char *
-winGetBaseDir(void);
+const char *winGetBaseDir(void);
 #endif
 
 /*
@@ -115,40 +111,38 @@ winGetBaseDir(void);
  */
 
 static PixmapFormatRec g_PixmapFormats[] = {
-  { 1,    1,      BITMAP_SCANLINE_PAD },
-  { 4,    8,      BITMAP_SCANLINE_PAD },
-  { 8,    8,      BITMAP_SCANLINE_PAD },
-  { 15,   16,     BITMAP_SCANLINE_PAD },
-  { 16,   16,     BITMAP_SCANLINE_PAD },
-  { 24,   32,     BITMAP_SCANLINE_PAD },
-  { 32,   32,     BITMAP_SCANLINE_PAD }
+    {1, 1, BITMAP_SCANLINE_PAD},
+    {4, 8, BITMAP_SCANLINE_PAD},
+    {8, 8, BITMAP_SCANLINE_PAD},
+    {15, 16, BITMAP_SCANLINE_PAD},
+    {16, 16, BITMAP_SCANLINE_PAD},
+    {24, 32, BITMAP_SCANLINE_PAD},
+    {32, 32, BITMAP_SCANLINE_PAD}
 };
 
-const int NUMFORMATS = sizeof (g_PixmapFormats) / sizeof (g_PixmapFormats[0]);
+const int NUMFORMATS = sizeof(g_PixmapFormats) / sizeof(g_PixmapFormats[0]);
 
 #ifdef XWIN_CLIPBOARD
 static void
-winClipboardShutdown (void)
+winClipboardShutdown(void)
 {
-  /* Close down clipboard resources */
-  if (g_fClipboard && g_fClipboardLaunched && g_fClipboardStarted)
-    {
-      /* Synchronously destroy the clipboard window */
-      if (g_hwndClipboard != NULL)
-	{
-	  SendMessage (g_hwndClipboard, WM_DESTROY, 0, 0);
-	  /* NOTE: g_hwndClipboard is set to NULL in winclipboardthread.c */
-	}
-      else
-	return;
-      
-      /* Wait for the clipboard thread to exit */
-      pthread_join (g_ptClipboardProc, NULL);
+    /* Close down clipboard resources */
+    if (g_fClipboard && g_fClipboardLaunched && g_fClipboardStarted) {
+        /* Synchronously destroy the clipboard window */
+        if (g_hwndClipboard != NULL) {
+            SendMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
+            /* NOTE: g_hwndClipboard is set to NULL in winclipboardthread.c */
+        }
+        else
+            return;
 
-      g_fClipboardLaunched = FALSE;
-      g_fClipboardStarted = FALSE;
+        /* Wait for the clipboard thread to exit */
+        pthread_join(g_ptClipboardProc, NULL);
 
-      winDebug ("winClipboardShutdown - Clipboard thread has exited.\n");
+        g_fClipboardLaunched = FALSE;
+        g_fClipboardStarted = FALSE;
+
+        winDebug("winClipboardShutdown - Clipboard thread has exited.\n");
     }
 }
 #endif
@@ -157,10 +151,9 @@ void
 ddxPushProviders(void)
 {
 #ifdef XWIN_GLX_WINDOWS
-  if (g_fNativeGl)
-    {
-      /* install the native GL provider */
-      glxWinPushNativeProvider();
+    if (g_fNativeGl) {
+        /* install the native GL provider */
+        glxWinPushNativeProvider();
     }
 #endif
 }
@@ -172,92 +165,90 @@ ddxPushProviders(void)
  */
 
 void
-ddxBeforeReset (void)
+ddxBeforeReset(void)
 {
-  winDebug ("ddxBeforeReset - Hello\n");
+    winDebug("ddxBeforeReset - Hello\n");
 
 #ifdef XWIN_CLIPBOARD
-  winClipboardShutdown ();
+    winClipboardShutdown();
 #endif
 }
 #endif
 
-
 /* See Porting Layer Definition - p. 57 */
 void
-ddxGiveUp (enum ExitCode error)
+ddxGiveUp(enum ExitCode error)
 {
-  int		i;
+    int i;
 
 #if CYGDEBUG
-  winDebug ("ddxGiveUp\n");
+    winDebug("ddxGiveUp\n");
 #endif
 
-  /* Perform per-screen deinitialization */
-  for (i = 0; i < g_iNumScreens; ++i)
-    {
-      /* Delete the tray icon */
-      if (!g_ScreenInfo[i].fNoTrayIcon && g_ScreenInfo[i].pScreen)
- 	winDeleteNotifyIcon (winGetScreenPriv (g_ScreenInfo[i].pScreen));
+    /* Perform per-screen deinitialization */
+    for (i = 0; i < g_iNumScreens; ++i) {
+        /* Delete the tray icon */
+        if (!g_ScreenInfo[i].fNoTrayIcon && g_ScreenInfo[i].pScreen)
+            winDeleteNotifyIcon(winGetScreenPriv(g_ScreenInfo[i].pScreen));
     }
 
 #ifdef XWIN_MULTIWINDOW
-  /* Notify the worker threads we're exiting */
-  winDeinitMultiWindowWM ();
+    /* Notify the worker threads we're exiting */
+    winDeinitMultiWindowWM();
 #endif
 
 #ifdef HAS_DEVWINDOWS
-  /* Close our handle to our message queue */
-  if (g_fdMessageQueue != WIN_FD_INVALID)
-    {
-      /* Close /dev/windows */
-      close (g_fdMessageQueue);
+    /* Close our handle to our message queue */
+    if (g_fdMessageQueue != WIN_FD_INVALID) {
+        /* Close /dev/windows */
+        close(g_fdMessageQueue);
 
-      /* Set the file handle to invalid */
-      g_fdMessageQueue = WIN_FD_INVALID;
+        /* Set the file handle to invalid */
+        g_fdMessageQueue = WIN_FD_INVALID;
     }
 #endif
 
-  if (!g_fLogInited) {
-    g_pszLogFile = LogInit (g_pszLogFile, NULL);
-    g_fLogInited = TRUE;
-  }  
-  LogClose (error);
+    if (!g_fLogInited) {
+        g_pszLogFile = LogInit(g_pszLogFile, NULL);
+        g_fLogInited = TRUE;
+    }
+    LogClose(error);
 
-  /*
-   * At this point we aren't creating any new screens, so
-   * we are guaranteed to not need the DirectDraw functions.
-   */
-  winReleaseDDProcAddresses();
-  
-  /* Free concatenated command line */
-  free(g_pszCommandLine);
-  g_pszCommandLine = NULL;
+    /*
+     * At this point we aren't creating any new screens, so
+     * we are guaranteed to not need the DirectDraw functions.
+     */
+    winReleaseDDProcAddresses();
 
-  /* Remove our keyboard hook if it is installed */
-  winRemoveKeyboardHookLL ();
+    /* Free concatenated command line */
+    free(g_pszCommandLine);
+    g_pszCommandLine = NULL;
 
-  /* Tell Windows that we want to end the app */
-  PostQuitMessage (0);
+    /* Remove our keyboard hook if it is installed */
+    winRemoveKeyboardHookLL();
+
+    /* Tell Windows that we want to end the app */
+    PostQuitMessage(0);
 }
-
 
 /* See Porting Layer Definition - p. 57 */
 void
-AbortDDX (enum ExitCode error)
+AbortDDX(enum ExitCode error)
 {
 #if CYGDEBUG
-  winDebug ("AbortDDX\n");
+    winDebug("AbortDDX\n");
 #endif
-  ddxGiveUp (error);
+    ddxGiveUp(error);
 }
 
 #ifdef __CYGWIN__
 /* hasmntopt is currently not implemented for cygwin */
-static const char *winCheckMntOpt(const struct mntent *mnt, const char *opt)
+static const char *
+winCheckMntOpt(const struct mntent *mnt, const char *opt)
 {
     const char *s;
     size_t len;
+
     if (mnt == NULL)
         return NULL;
     if (opt == NULL)
@@ -269,99 +260,94 @@ static const char *winCheckMntOpt(const struct mntent *mnt, const char *opt)
     s = strstr(mnt->mnt_opts, opt);
     if (s == NULL)
         return NULL;
-    if ((s == mnt->mnt_opts || *(s-1) == ',') &&  (s[len] == 0 || s[len] == ','))
-        return (char *)opt;
+    if ((s == mnt->mnt_opts || *(s - 1) == ',') &&
+        (s[len] == 0 || s[len] == ','))
+        return (char *) opt;
     return NULL;
 }
 
 static void
 winCheckMount(void)
 {
-  FILE *mnt;
-  struct mntent *ent;
+    FILE *mnt;
+    struct mntent *ent;
 
-  enum { none = 0, sys_root, user_root, sys_tmp, user_tmp } 
-    level = none, curlevel;
-  BOOL binary = TRUE;
+    enum { none = 0, sys_root, user_root, sys_tmp, user_tmp }
+        level = none, curlevel;
+    BOOL binary = TRUE;
 
-  mnt = setmntent("/etc/mtab", "r");
-  if (mnt == NULL)
-  {
-    ErrorF("setmntent failed");
-    return;
-  }
-
-  while ((ent = getmntent(mnt)) != NULL)
-  {
-    BOOL system = (winCheckMntOpt(ent, "user") != NULL);
-    BOOL root = (strcmp(ent->mnt_dir, "/") == 0);
-    BOOL tmp = (strcmp(ent->mnt_dir, "/tmp") == 0);
-    
-    if (system)
-    {
-      if (root)
-        curlevel = sys_root;
-      else if (tmp)
-        curlevel = sys_tmp;
-      else
-        continue;
-    }
-    else
-    {
-      if (root)
-        curlevel = user_root;
-      else if (tmp) 
-        curlevel = user_tmp;
-      else
-        continue;
+    mnt = setmntent("/etc/mtab", "r");
+    if (mnt == NULL) {
+        ErrorF("setmntent failed");
+        return;
     }
 
-    if (curlevel <= level)
-      continue;
-    level = curlevel;
+    while ((ent = getmntent(mnt)) != NULL) {
+        BOOL system = (winCheckMntOpt(ent, "user") != NULL);
+        BOOL root = (strcmp(ent->mnt_dir, "/") == 0);
+        BOOL tmp = (strcmp(ent->mnt_dir, "/tmp") == 0);
 
-    if ((winCheckMntOpt(ent, "binary") == NULL) &&
-        (winCheckMntOpt(ent, "binmode") == NULL))
-      binary = FALSE;
-    else
-      binary = TRUE;
-  }
-    
-  if (endmntent(mnt) != 1)
-  {
-    ErrorF("endmntent failed");
-    return;
-  }
-  
- if (!binary) 
-   winMsg(X_WARNING, "/tmp mounted in textmode\n");
+        if (system) {
+            if (root)
+                curlevel = sys_root;
+            else if (tmp)
+                curlevel = sys_tmp;
+            else
+                continue;
+        }
+        else {
+            if (root)
+                curlevel = user_root;
+            else if (tmp)
+                curlevel = user_tmp;
+            else
+                continue;
+        }
+
+        if (curlevel <= level)
+            continue;
+        level = curlevel;
+
+        if ((winCheckMntOpt(ent, "binary") == NULL) &&
+            (winCheckMntOpt(ent, "binmode") == NULL))
+            binary = FALSE;
+        else
+            binary = TRUE;
+    }
+
+    if (endmntent(mnt) != 1) {
+        ErrorF("endmntent failed");
+        return;
+    }
+
+    if (!binary)
+        winMsg(X_WARNING, "/tmp mounted in textmode\n");
 }
 #else
 static void
-winCheckMount(void) 
+winCheckMount(void)
 {
 }
 #endif
 
 #ifdef RELOCATE_PROJECTROOT
-const char * 
+const char *
 winGetBaseDir(void)
 {
     static BOOL inited = FALSE;
     static char buffer[MAX_PATH];
-    if (!inited)
-    {
+
+    if (!inited) {
         char *fendptr;
         HMODULE module = GetModuleHandle(NULL);
         DWORD size = GetModuleFileName(module, buffer, sizeof(buffer));
+
         if (sizeof(buffer) > 0)
-            buffer[sizeof(buffer)-1] = 0;
-    
+            buffer[sizeof(buffer) - 1] = 0;
+
         fendptr = buffer + size;
-        while (fendptr > buffer)
-        {
-            if (*fendptr == '\\' || *fendptr == '/')
-            {
+        while (fendptr > buffer) {
+            if (*fendptr == '\\' || *fendptr == '/') {
                 *fendptr = 0;
                 break;
             }
@@ -374,10 +360,11 @@ winGetBaseDir(void)
 #endif
 
 static void
-winFixupPaths (void)
+winFixupPaths(void)
 {
     BOOL changed_fontpath = FALSE;
     MessageType font_from = X_DEFAULT;
+
 #ifdef RELOCATE_PROJECTROOT
     const char *basedir = winGetBaseDir();
     size_t basedirlen = strlen(basedir);
@@ -387,10 +374,10 @@ winFixupPaths (void)
     {
         /* Open fontpath configuration file */
         FILE *fontdirs = fopen(ETCX11DIR "/font-dirs", "rt");
-        if (fontdirs != NULL)
-        {
+
+        if (fontdirs != NULL) {
             char buffer[256];
-            int needs_sep = TRUE; 
+            int needs_sep = TRUE;
             int comment_block = FALSE;
 
             /* get default fontpath */
@@ -398,8 +385,7 @@ winFixupPaths (void)
             size_t size = strlen(fontpath);
 
             /* read all lines */
-            while (!feof(fontdirs))
-            {
+            while (!feof(fontdirs)) {
                 size_t blen;
                 char *hashchar;
                 char *str;
@@ -407,29 +393,26 @@ winFixupPaths (void)
 
                 /* read one line */
                 str = fgets(buffer, sizeof(buffer), fontdirs);
-                if (str == NULL) /* stop on error or eof */
+                if (str == NULL)        /* stop on error or eof */
                     break;
 
                 if (strchr(str, '\n') != NULL)
                     has_eol = TRUE;
 
                 /* check if block is continued comment */
-                if (comment_block)
-                {
+                if (comment_block) {
                     /* ignore all input */
-                    *str = 0; 
-                    blen = 0; 
-                    if (has_eol) /* check if line ended in this block */
+                    *str = 0;
+                    blen = 0;
+                    if (has_eol)        /* check if line ended in this block */
                         comment_block = FALSE;
                 }
-                else 
-                {
+                else {
                     /* find comment character. ignore all trailing input */
                     hashchar = strchr(str, '#');
-                    if (hashchar != NULL)
-                    {
+                    if (hashchar != NULL) {
                         *hashchar = 0;
-                        if (!has_eol) /* mark next block as continued comment */
+                        if (!has_eol)   /* mark next block as continued comment */
                             comment_block = TRUE;
                     }
                 }
@@ -438,31 +421,30 @@ winFixupPaths (void)
                 while (*str == ' ' || *str == '\t')
                     str++;
 
-                /* get size, strip whitespaces from end */ 
+                /* get size, strip whitespaces from end */
                 blen = strlen(str);
-                while (blen > 0 && (str[blen-1] == ' ' || 
-                            str[blen-1] == '\t' || str[blen-1] == '\n'))
-                {
+                while (blen > 0 && (str[blen - 1] == ' ' ||
+                                    str[blen - 1] == '\t' ||
+                                    str[blen - 1] == '\n')) {
                     str[--blen] = 0;
                 }
 
-                /* still something left to add? */ 
-                if (blen > 0)
-                {
+                /* still something left to add? */
+                if (blen > 0) {
                     size_t newsize = size + blen;
+
                     /* reserve one character more for ',' */
                     if (needs_sep)
                         newsize++;
 
                     /* allocate memory */
                     if (fontpath == NULL)
-                        fontpath = malloc(newsize+1);
+                        fontpath = malloc(newsize + 1);
                     else
-                        fontpath = realloc(fontpath, newsize+1);
+                        fontpath = realloc(fontpath, newsize + 1);
 
                     /* add separator */
-                    if (needs_sep)
-                    {
+                    if (needs_sep) {
                         fontpath[size] = ',';
                         size++;
                         needs_sep = FALSE;
@@ -480,14 +462,14 @@ winFixupPaths (void)
             }
 
             /* cleanup */
-            fclose(fontdirs);  
+            fclose(fontdirs);
             defaultFontPath = strdup(fontpath);
             free(fontpath);
             changed_fontpath = TRUE;
             font_from = X_CONFIG;
         }
     }
-#endif /* READ_FONTDIRS */
+#endif                          /* READ_FONTDIRS */
 #ifdef RELOCATE_PROJECTROOT
     {
         const char *libx11dir = PROJECTROOT "/lib/X11";
@@ -500,20 +482,19 @@ winFixupPaths (void)
         ptr = strchr(oldptr, ',');
         if (ptr == NULL)
             ptr = endptr;
-        while (ptr != NULL)
-        {
+        while (ptr != NULL) {
             size_t oldfp_len = (ptr - oldptr);
             size_t newsize = oldfp_len;
             char *newpath = malloc(newsize + 1);
+
             strncpy(newpath, oldptr, newsize);
             newpath[newsize] = 0;
 
-
-            if (strncmp(libx11dir, newpath, libx11dir_len) == 0)
-            {
+            if (strncmp(libx11dir, newpath, libx11dir_len) == 0) {
                 char *compose;
+
                 newsize = newsize - libx11dir_len + basedirlen;
-                compose = malloc(newsize + 1);  
+                compose = malloc(newsize + 1);
                 strcpy(compose, basedir);
                 strncat(compose, newpath + libx11dir_len, newsize - basedirlen);
                 compose[newsize] = 0;
@@ -523,7 +504,7 @@ winFixupPaths (void)
 
             oldfp_len = newfp_len;
             if (oldfp_len > 0)
-                newfp_len ++; /* space for separator */
+                newfp_len++;    /* space for separator */
             newfp_len += newsize;
 
             if (newfp == NULL)
@@ -531,8 +512,7 @@ winFixupPaths (void)
             else
                 newfp = realloc(newfp, newfp_len + 1);
 
-            if (oldfp_len > 0)
-            {
+            if (oldfp_len > 0) {
                 strcpy(newfp + oldfp_len, ",");
                 oldfp_len++;
             }
@@ -540,76 +520,73 @@ winFixupPaths (void)
 
             free(newpath);
 
-            if (*ptr == 0)
-            {
+            if (*ptr == 0) {
                 oldptr = ptr;
                 ptr = NULL;
-            } else
-            {
+            }
+            else {
                 oldptr = ptr + 1;
                 ptr = strchr(oldptr, ',');
                 if (ptr == NULL)
                     ptr = endptr;
             }
-        } 
+        }
 
         defaultFontPath = strdup(newfp);
         free(newfp);
         changed_fontpath = TRUE;
     }
-#endif /* RELOCATE_PROJECTROOT */
+#endif                          /* RELOCATE_PROJECTROOT */
     if (changed_fontpath)
-        winMsg (font_from, "FontPath set to \"%s\"\n", defaultFontPath);
+        winMsg(font_from, "FontPath set to \"%s\"\n", defaultFontPath);
 
 #ifdef RELOCATE_PROJECTROOT
-    if (getenv("XKEYSYMDB") == NULL)
-    {
+    if (getenv("XKEYSYMDB") == NULL) {
         char buffer[MAX_PATH];
-        snprintf(buffer, sizeof(buffer), "XKEYSYMDB=%s\\XKeysymDB",
-                basedir);
-        buffer[sizeof(buffer)-1] = 0;
+
+        snprintf(buffer, sizeof(buffer), "XKEYSYMDB=%s\\XKeysymDB", basedir);
+        buffer[sizeof(buffer) - 1] = 0;
         putenv(buffer);
     }
-    if (getenv("XERRORDB") == NULL)
-    {
+    if (getenv("XERRORDB") == NULL) {
         char buffer[MAX_PATH];
-        snprintf(buffer, sizeof(buffer), "XERRORDB=%s\\XErrorDB",
-                basedir);
-        buffer[sizeof(buffer)-1] = 0;
+
+        snprintf(buffer, sizeof(buffer), "XERRORDB=%s\\XErrorDB", basedir);
+        buffer[sizeof(buffer) - 1] = 0;
         putenv(buffer);
     }
-    if (getenv("XLOCALEDIR") == NULL)
-    {
+    if (getenv("XLOCALEDIR") == NULL) {
         char buffer[MAX_PATH];
-        snprintf(buffer, sizeof(buffer), "XLOCALEDIR=%s\\locale",
-                basedir);
-        buffer[sizeof(buffer)-1] = 0;
+
+        snprintf(buffer, sizeof(buffer), "XLOCALEDIR=%s\\locale", basedir);
+        buffer[sizeof(buffer) - 1] = 0;
         putenv(buffer);
     }
-    if (getenv("HOME") == NULL)
-    {
+    if (getenv("HOME") == NULL) {
         char buffer[MAX_PATH + 5];
+
         strncpy(buffer, "HOME=", 5);
 
         /* query appdata directory */
-        if (SHGetFolderPathA(NULL, CSIDL_APPDATA|CSIDL_FLAG_CREATE, NULL, 0, buffer + 5) == 0)
-        {
+        if (SHGetFolderPathA
+            (NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, 0,
+             buffer + 5) == 0) {
             putenv(buffer);
-        } else
-        {
-            winMsg (X_ERROR, "Can not determine HOME directory\n");
+        }
+        else {
+            winMsg(X_ERROR, "Can not determine HOME directory\n");
         }
     }
     if (!g_fLogFileChanged) {
         static char buffer[MAX_PATH];
         DWORD size = GetTempPath(sizeof(buffer), buffer);
-        if (size && size < sizeof(buffer))
-        {
-            snprintf(buffer + size, sizeof(buffer) - size, 
-                    "XWin.%s.log", display); 
-            buffer[sizeof(buffer)-1] = 0;
+
+        if (size && size < sizeof(buffer)) {
+            snprintf(buffer + size, sizeof(buffer) - size,
+                     "XWin.%s.log", display);
+            buffer[sizeof(buffer) - 1] = 0;
             g_pszLogFile = buffer;
-            winMsg (X_DEFAULT, "Logfile set to \"%s\"\n", g_pszLogFile);
+            winMsg(X_DEFAULT, "Logfile set to \"%s\"\n", g_pszLogFile);
         }
     }
     {
@@ -617,294 +594,283 @@ winFixupPaths (void)
 
         snprintf(xkbbasedir, sizeof(xkbbasedir), "%s\\xkb", basedir);
         if (sizeof(xkbbasedir) > 0)
-            xkbbasedir[sizeof(xkbbasedir)-1] = 0;
+            xkbbasedir[sizeof(xkbbasedir) - 1] = 0;
         XkbBaseDirectory = xkbbasedir;
-	XkbBinDirectory = basedir;
+        XkbBinDirectory = basedir;
     }
-#endif /* RELOCATE_PROJECTROOT */
+#endif                          /* RELOCATE_PROJECTROOT */
 }
 
 void
-OsVendorInit (void)
+OsVendorInit(void)
 {
-  /* Re-initialize global variables on server reset */
-  winInitializeGlobals ();
+    /* Re-initialize global variables on server reset */
+    winInitializeGlobals();
 
-  winFixupPaths();
+    winFixupPaths();
 
 #ifdef DDXOSVERRORF
-  if (!OsVendorVErrorFProc)
-    OsVendorVErrorFProc = OsVendorVErrorF;
+    if (!OsVendorVErrorFProc)
+        OsVendorVErrorFProc = OsVendorVErrorF;
 #endif
 
-  if (!g_fLogInited) {
-    /* keep this order. If LogInit fails it calls Abort which then calls
-     * ddxGiveUp where LogInit is called again and creates an infinite 
-     * recursion. If we set g_fLogInited to TRUE before the init we 
-     * avoid the second call 
-     */  
-    g_fLogInited = TRUE;
-    g_pszLogFile = LogInit (g_pszLogFile, NULL);
-  } 
-  LogSetParameter (XLOG_FLUSH, 1);
-  LogSetParameter (XLOG_VERBOSITY, g_iLogVerbose);
-  LogSetParameter (XLOG_FILE_VERBOSITY, g_iLogVerbose);
+    if (!g_fLogInited) {
+        /* keep this order. If LogInit fails it calls Abort which then calls
+         * ddxGiveUp where LogInit is called again and creates an infinite 
+         * recursion. If we set g_fLogInited to TRUE before the init we 
+         * avoid the second call 
+         */
+        g_fLogInited = TRUE;
+        g_pszLogFile = LogInit(g_pszLogFile, NULL);
+    }
+    LogSetParameter(XLOG_FLUSH, 1);
+    LogSetParameter(XLOG_VERBOSITY, g_iLogVerbose);
+    LogSetParameter(XLOG_FILE_VERBOSITY, g_iLogVerbose);
 
-  /* Log the version information */
-  if (serverGeneration == 1)
-    winLogVersionInfo ();
+    /* Log the version information */
+    if (serverGeneration == 1)
+        winLogVersionInfo();
 
-  winCheckMount();  
+    winCheckMount();
 
-  /* Add a default screen if no screens were specified */
-  if (g_iNumScreens == 0)
-    {
-      winDebug ("OsVendorInit - Creating default screen 0\n");
+    /* Add a default screen if no screens were specified */
+    if (g_iNumScreens == 0) {
+        winDebug("OsVendorInit - Creating default screen 0\n");
 
-      /*
-       * We need to initialize the default screen 0 if no -screen
-       * arguments were processed.
-       *
-       * Add a screen 0 using the defaults set by winInitializeDefaultScreens()
-       * and any additional default screen parameters given
-       */
-      winInitializeScreens(1);
+        /*
+         * We need to initialize the default screen 0 if no -screen
+         * arguments were processed.
+         *
+         * Add a screen 0 using the defaults set by winInitializeDefaultScreens()
+         * and any additional default screen parameters given
+         */
+        winInitializeScreens(1);
 
-      /* We have to flag this as an explicit screen, even though it isn't */
-      g_ScreenInfo[0].fExplicitScreen = TRUE;
+        /* We have to flag this as an explicit screen, even though it isn't */
+        g_ScreenInfo[0].fExplicitScreen = TRUE;
     }
 
-  /* Work out what the default emulate3buttons setting should be, and apply
-     it if nothing was explicitly specified */
-  {
-    int mouseButtons = GetSystemMetrics(SM_CMOUSEBUTTONS);
-    int j;
+    /* Work out what the default emulate3buttons setting should be, and apply
+       it if nothing was explicitly specified */
+    {
+        int mouseButtons = GetSystemMetrics(SM_CMOUSEBUTTONS);
+        int j;
 
-    for (j = 0; j < g_iNumScreens; j++)
-      {
-        if (g_ScreenInfo[j].iE3BTimeout == WIN_E3B_DEFAULT)
-          {
-            if (mouseButtons < 3)
-              {
-                static Bool reportOnce = TRUE;
-                g_ScreenInfo[j].iE3BTimeout = WIN_DEFAULT_E3B_TIME;
-                if (reportOnce)
-                  {
-                    reportOnce = FALSE;
-                    winMsg(X_PROBED, "Windows reports only %d mouse buttons, defaulting to -emulate3buttons\n", mouseButtons);
-                  }
-              }
-            else
-              {
-                g_ScreenInfo[j].iE3BTimeout = WIN_E3B_OFF;
-              }
-          }
-      }
-  }
+        for (j = 0; j < g_iNumScreens; j++) {
+            if (g_ScreenInfo[j].iE3BTimeout == WIN_E3B_DEFAULT) {
+                if (mouseButtons < 3) {
+                    static Bool reportOnce = TRUE;
+
+                    g_ScreenInfo[j].iE3BTimeout = WIN_DEFAULT_E3B_TIME;
+                    if (reportOnce) {
+                        reportOnce = FALSE;
+                        winMsg(X_PROBED,
+                               "Windows reports only %d mouse buttons, defaulting to -emulate3buttons\n",
+                               mouseButtons);
+                    }
+                }
+                else {
+                    g_ScreenInfo[j].iE3BTimeout = WIN_E3B_OFF;
+                }
+            }
+        }
+    }
 }
 
 static void
-winUseMsg (void)
+winUseMsg(void)
 {
-  ErrorF("\n");
-  ErrorF("\n");
-  ErrorF(EXECUTABLE_NAME " Device Dependent Usage:\n");
-  ErrorF("\n");
+    ErrorF("\n");
+    ErrorF("\n");
+    ErrorF(EXECUTABLE_NAME " Device Dependent Usage:\n");
+    ErrorF("\n");
 
 #ifdef XWIN_CLIPBOARD
-  ErrorF ("-[no]clipboard\n"
-	  "\tEnable [disable] the clipboard integration. Default is enabled.\n");
+    ErrorF("-[no]clipboard\n"
+           "\tEnable [disable] the clipboard integration. Default is enabled.\n");
 #endif
 
-  ErrorF ("-clipupdates num_boxes\n"
-	  "\tUse a clipping region to constrain shadow update blits to\n"
-	  "\tthe updated region when num_boxes, or more, are in the\n"
-	  "\tupdated region.\n");
+    ErrorF("-clipupdates num_boxes\n"
+           "\tUse a clipping region to constrain shadow update blits to\n"
+           "\tthe updated region when num_boxes, or more, are in the\n"
+           "\tupdated region.\n");
 
 #ifdef XWIN_XF86CONFIG
-  ErrorF ("-config\n"
-          "\tSpecify a configuration file.\n");
+    ErrorF("-config\n" "\tSpecify a configuration file.\n");
 
-  ErrorF ("-configdir\n"
-          "\tSpecify a configuration directory.\n");
+    ErrorF("-configdir\n" "\tSpecify a configuration directory.\n");
 #endif
 
-  ErrorF ("-depth bits_per_pixel\n"
-	  "\tSpecify an optional bitdepth to use in fullscreen mode\n"
-	  "\twith a DirectDraw engine.\n");
+    ErrorF("-depth bits_per_pixel\n"
+           "\tSpecify an optional bitdepth to use in fullscreen mode\n"
+           "\twith a DirectDraw engine.\n");
 
-  ErrorF ("-[no]emulate3buttons [timeout]\n"
-	  "\tEmulate 3 button mouse with an optional timeout in\n"
-	  "\tmilliseconds.\n");
+    ErrorF("-[no]emulate3buttons [timeout]\n"
+           "\tEmulate 3 button mouse with an optional timeout in\n"
+           "\tmilliseconds.\n");
 
 #ifdef XWIN_EMULATEPSEUDO
-  ErrorF ("-emulatepseudo\n"
-	  "\tCreate a depth 8 PseudoColor visual when running in\n"
-	  "\tdepths 15, 16, 24, or 32, collectively known as TrueColor\n"
-	  "\tdepths.  The PseudoColor visual does not have correct colors,\n"
-	  "\tand it may crash, but it at least allows you to run your\n"
-	  "\tapplication in TrueColor modes.\n");
+    ErrorF("-emulatepseudo\n"
+           "\tCreate a depth 8 PseudoColor visual when running in\n"
+           "\tdepths 15, 16, 24, or 32, collectively known as TrueColor\n"
+           "\tdepths.  The PseudoColor visual does not have correct colors,\n"
+           "\tand it may crash, but it at least allows you to run your\n"
+           "\tapplication in TrueColor modes.\n");
 #endif
 
-  ErrorF ("-engine engine_type_id\n"
-	  "\tOverride the server's automatically selected engine type:\n"
-	  "\t\t1 - Shadow GDI\n"
-	  "\t\t2 - Shadow DirectDraw\n"
-	  "\t\t4 - Shadow DirectDraw4 Non-Locking\n"
+    ErrorF("-engine engine_type_id\n"
+           "\tOverride the server's automatically selected engine type:\n"
+           "\t\t1 - Shadow GDI\n"
+           "\t\t2 - Shadow DirectDraw\n"
+           "\t\t4 - Shadow DirectDraw4 Non-Locking\n"
 #ifdef XWIN_PRIMARYFB
-	  "\t\t8 - Primary DirectDraw - obsolete\n"
+           "\t\t8 - Primary DirectDraw - obsolete\n"
 #endif
 #ifdef XWIN_NATIVEGDI
-	  "\t\t16 - Native GDI - experimental\n"
+           "\t\t16 - Native GDI - experimental\n"
 #endif
-	  );
+        );
 
-  ErrorF ("-fullscreen\n"
-	  "\tRun the server in fullscreen mode.\n");
+    ErrorF("-fullscreen\n" "\tRun the server in fullscreen mode.\n");
 
-  ErrorF ("-ignoreinput\n"
-	  "\tIgnore keyboard and mouse input.\n");
+    ErrorF("-ignoreinput\n" "\tIgnore keyboard and mouse input.\n");
 
 #ifdef XWIN_MULTIWINDOWEXTWM
-  ErrorF ("-internalwm\n"
-	  "\tRun the internal window manager.\n");
+    ErrorF("-internalwm\n" "\tRun the internal window manager.\n");
 #endif
 
 #ifdef XWIN_XF86CONFIG
-  ErrorF ("-keyboard\n"
-	  "\tSpecify a keyboard device from the configuration file.\n");
+    ErrorF("-keyboard\n"
+           "\tSpecify a keyboard device from the configuration file.\n");
 #endif
 
-  ErrorF ("-[no]keyhook\n"
-	  "\tGrab special Windows keypresses like Alt-Tab or the Menu "
-          "key.\n");
+    ErrorF("-[no]keyhook\n"
+           "\tGrab special Windows keypresses like Alt-Tab or the Menu "
+           "key.\n");
 
-  ErrorF ("-lesspointer\n"
-	  "\tHide the windows mouse pointer when it is over any\n"
-          "\t" EXECUTABLE_NAME " window.  This prevents ghost cursors appearing when\n"
-	  "\tthe Windows cursor is drawn on top of the X cursor\n");
+    ErrorF("-lesspointer\n"
+           "\tHide the windows mouse pointer when it is over any\n"
+           "\t" EXECUTABLE_NAME
+           " window.  This prevents ghost cursors appearing when\n"
+           "\tthe Windows cursor is drawn on top of the X cursor\n");
 
-  ErrorF ("-logfile filename\n"
-	  "\tWrite log messages to <filename>.\n");
+    ErrorF("-logfile filename\n" "\tWrite log messages to <filename>.\n");
 
-  ErrorF ("-logverbose verbosity\n"
-	  "\tSet the verbosity of log messages. [NOTE: Only a few messages\n"
-	  "\trespect the settings yet]\n"
-	  "\t\t0 - only print fatal error.\n"
-	  "\t\t1 - print additional configuration information.\n"
-	  "\t\t2 - print additional runtime information [default].\n"
-	  "\t\t3 - print debugging and tracing information.\n");
+    ErrorF("-logverbose verbosity\n"
+           "\tSet the verbosity of log messages. [NOTE: Only a few messages\n"
+           "\trespect the settings yet]\n"
+           "\t\t0 - only print fatal error.\n"
+           "\t\t1 - print additional configuration information.\n"
+           "\t\t2 - print additional runtime information [default].\n"
+           "\t\t3 - print debugging and tracing information.\n");
 
-  ErrorF ("-[no]multimonitors or -[no]multiplemonitors\n"
-	  "\tUse the entire virtual screen if multiple\n"
-	  "\tmonitors are present.\n");
+    ErrorF("-[no]multimonitors or -[no]multiplemonitors\n"
+           "\tUse the entire virtual screen if multiple\n"
+           "\tmonitors are present.\n");
 
 #ifdef XWIN_MULTIWINDOW
-  ErrorF ("-multiwindow\n"
-	  "\tRun the server in multi-window mode.\n");
+    ErrorF("-multiwindow\n" "\tRun the server in multi-window mode.\n");
 #endif
 
 #ifdef XWIN_MULTIWINDOWEXTWM
-  ErrorF ("-mwextwm\n"
-	  "\tRun the server in multi-window external window manager mode.\n");
+    ErrorF("-mwextwm\n"
+           "\tRun the server in multi-window external window manager mode.\n");
 #endif
 
-  ErrorF ("-nodecoration\n"
-          "\tDo not draw a window border, title bar, etc.  Windowed\n"
-	  "\tmode only.\n");
+    ErrorF("-nodecoration\n"
+           "\tDo not draw a window border, title bar, etc.  Windowed\n"
+           "\tmode only.\n");
 
 #ifdef XWIN_CLIPBOARD
-  ErrorF ("-nounicodeclipboard\n"
-	  "\tDo not use Unicode clipboard even if on a NT-based platform.\n");
+    ErrorF("-nounicodeclipboard\n"
+           "\tDo not use Unicode clipboard even if on a NT-based platform.\n");
 #endif
 
-  ErrorF ("-refresh rate_in_Hz\n"
-	  "\tSpecify an optional refresh rate to use in fullscreen mode\n"
-	  "\twith a DirectDraw engine.\n");
+    ErrorF("-refresh rate_in_Hz\n"
+           "\tSpecify an optional refresh rate to use in fullscreen mode\n"
+           "\twith a DirectDraw engine.\n");
 
-  ErrorF ("-resize=none|scrollbars|randr"
-	  "\tIn windowed mode, [don't] allow resizing of the window. 'scrollbars'\n"
-	  "\tmode gives the window scrollbars as needed, 'randr' mode uses the RANR\n"
-	  "\textension to resize the X screen.\n");
+    ErrorF("-resize=none|scrollbars|randr"
+           "\tIn windowed mode, [don't] allow resizing of the window. 'scrollbars'\n"
+           "\tmode gives the window scrollbars as needed, 'randr' mode uses the RANR\n"
+           "\textension to resize the X screen.\n");
 
-  ErrorF ("-rootless\n"
-	  "\tRun the server in rootless mode.\n");
+    ErrorF("-rootless\n" "\tRun the server in rootless mode.\n");
 
-  ErrorF ("-screen scr_num [width height [x y] | [[WxH[+X+Y]][@m]] ]\n"
-	  "\tEnable screen scr_num and optionally specify a width and\n"
-	  "\theight and initial position for that screen. Additionally\n"
-	  "\ta monitor number can be specified to start the server on,\n"
-	  "\tat which point, all coordinates become relative to that\n"
-	  "\tmonitor. Examples:\n"
-	  "\t -screen 0 800x600+100+100@2 ; 2nd monitor offset 100,100 size 800x600\n"
-	  "\t -screen 0 1024x768@3        ; 3rd monitor size 1024x768\n"
-	  "\t -screen 0 @1 ; on 1st monitor using its full resolution (the default)\n");
+    ErrorF("-screen scr_num [width height [x y] | [[WxH[+X+Y]][@m]] ]\n"
+           "\tEnable screen scr_num and optionally specify a width and\n"
+           "\theight and initial position for that screen. Additionally\n"
+           "\ta monitor number can be specified to start the server on,\n"
+           "\tat which point, all coordinates become relative to that\n"
+           "\tmonitor. Examples:\n"
+           "\t -screen 0 800x600+100+100@2 ; 2nd monitor offset 100,100 size 800x600\n"
+           "\t -screen 0 1024x768@3        ; 3rd monitor size 1024x768\n"
+           "\t -screen 0 @1 ; on 1st monitor using its full resolution (the default)\n");
 
-  ErrorF ("-silent-dup-error\n"
-	  "\tIf another instance of " EXECUTABLE_NAME " with the same display number is running\n"
-	  "\texit silently and don't display any error message.\n");
+    ErrorF("-silent-dup-error\n"
+           "\tIf another instance of " EXECUTABLE_NAME
+           " with the same display number is running\n"
+           "\texit silently and don't display any error message.\n");
 
-  ErrorF ("-swcursor\n"
-	  "\tDisable the usage of the Windows cursor and use the X11 software\n"
-	  "\tcursor instead.\n");
+    ErrorF("-swcursor\n"
+           "\tDisable the usage of the Windows cursor and use the X11 software\n"
+           "\tcursor instead.\n");
 
-  ErrorF ("-[no]trayicon\n"
-          "\tDo not create a tray icon.  Default is to create one\n"
-	  "\ticon per screen.  You can globally disable tray icons with\n"
-	  "\t-notrayicon, then enable it for specific screens with\n"
-	  "\t-trayicon for those screens.\n");
+    ErrorF("-[no]trayicon\n"
+           "\tDo not create a tray icon.  Default is to create one\n"
+           "\ticon per screen.  You can globally disable tray icons with\n"
+           "\t-notrayicon, then enable it for specific screens with\n"
+           "\t-trayicon for those screens.\n");
 
-  ErrorF ("-[no]unixkill\n"
-          "\tCtrl+Alt+Backspace exits the X Server.\n");
+    ErrorF("-[no]unixkill\n" "\tCtrl+Alt+Backspace exits the X Server.\n");
 
 #ifdef XWIN_GLX_WINDOWS
-  ErrorF ("-[no]wgl\n"
-	  "\tEnable the GLX extension to use the native Windows WGL interface for accelerated OpenGL\n");
+    ErrorF("-[no]wgl\n"
+           "\tEnable the GLX extension to use the native Windows WGL interface for accelerated OpenGL\n");
 #endif
 
-  ErrorF ("-[no]winkill\n"
-          "\tAlt+F4 exits the X Server.\n");
+    ErrorF("-[no]winkill\n" "\tAlt+F4 exits the X Server.\n");
 
-  ErrorF ("-xkblayout XKBLayout\n"
-	  "\tEquivalent to XKBLayout in XF86Config files.\n"
-	  "\tFor example: -xkblayout de\n");
+    ErrorF("-xkblayout XKBLayout\n"
+           "\tEquivalent to XKBLayout in XF86Config files.\n"
+           "\tFor example: -xkblayout de\n");
 
-  ErrorF ("-xkbmodel XKBModel\n"
-	  "\tEquivalent to XKBModel in XF86Config files.\n");
+    ErrorF("-xkbmodel XKBModel\n"
+           "\tEquivalent to XKBModel in XF86Config files.\n");
 
-  ErrorF ("-xkboptions XKBOptions\n"
-	  "\tEquivalent to XKBOptions in XF86Config files.\n");
+    ErrorF("-xkboptions XKBOptions\n"
+           "\tEquivalent to XKBOptions in XF86Config files.\n");
 
-  ErrorF ("-xkbrules XKBRules\n"
-	  "\tEquivalent to XKBRules in XF86Config files.\n");
+    ErrorF("-xkbrules XKBRules\n"
+           "\tEquivalent to XKBRules in XF86Config files.\n");
 
-  ErrorF ("-xkbvariant XKBVariant\n"
-	  "\tEquivalent to XKBVariant in XF86Config files.\n"
-	  "\tFor example: -xkbvariant nodeadkeys\n");
+    ErrorF("-xkbvariant XKBVariant\n"
+           "\tEquivalent to XKBVariant in XF86Config files.\n"
+           "\tFor example: -xkbvariant nodeadkeys\n");
 }
 
 /* See Porting Layer Definition - p. 57 */
 void
 ddxUseMsg(void)
 {
-  /* Set a flag so that FatalError won't give duplicate warning message */
-  g_fSilentFatalError = TRUE;
-  
-  winUseMsg();  
+    /* Set a flag so that FatalError won't give duplicate warning message */
+    g_fSilentFatalError = TRUE;
 
-  /* Log file will not be opened for UseMsg unless we open it now */
-  if (!g_fLogInited) {
-    g_pszLogFile = LogInit (g_pszLogFile, NULL);
-    g_fLogInited = TRUE;
-  }  
-  LogClose (EXIT_NO_ERROR);
+    winUseMsg();
 
-  /* Notify user where UseMsg text can be found.*/
-  if (!g_fNoHelpMessageBox)
-    winMessageBoxF ("The " PROJECT_NAME " help text has been printed to "
-		  "%s.\n"
-		  "Please open %s to read the help text.\n",
-		  MB_ICONINFORMATION, g_pszLogFile, g_pszLogFile);
+    /* Log file will not be opened for UseMsg unless we open it now */
+    if (!g_fLogInited) {
+        g_pszLogFile = LogInit(g_pszLogFile, NULL);
+        g_fLogInited = TRUE;
+    }
+    LogClose(EXIT_NO_ERROR);
+
+    /* Notify user where UseMsg text can be found. */
+    if (!g_fNoHelpMessageBox)
+        winMessageBoxF("The " PROJECT_NAME " help text has been printed to "
+                       "%s.\n"
+                       "Please open %s to read the help text.\n",
+                       MB_ICONINFORMATION, g_pszLogFile, g_pszLogFile);
 }
 
 /* See Porting Layer Definition - p. 20 */
@@ -915,101 +881,94 @@ ddxUseMsg(void)
  */
 
 void
-InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
+InitOutput(ScreenInfo * screenInfo, int argc, char *argv[])
 {
-  int		i;
+    int i;
 
-  /* Log the command line */
-  winLogCommandLine (argc, argv);
+    /* Log the command line */
+    winLogCommandLine(argc, argv);
 
 #if CYGDEBUG
-  winDebug ("InitOutput\n");
+    winDebug("InitOutput\n");
 #endif
 
-  /* Validate command-line arguments */
-  if (serverGeneration == 1 && !winValidateArgs ())
-    {
-      FatalError ("InitOutput - Invalid command-line arguments found.  "
-		  "Exiting.\n");
+    /* Validate command-line arguments */
+    if (serverGeneration == 1 && !winValidateArgs()) {
+        FatalError("InitOutput - Invalid command-line arguments found.  "
+                   "Exiting.\n");
     }
 
-  /* Check for duplicate invocation on same display number.*/
-  if (serverGeneration == 1 && !winCheckDisplayNumber ())
-    {
-      if (g_fSilentDupError)
-        g_fSilentFatalError = TRUE;  
-      FatalError ("InitOutput - Duplicate invocation on display "
-		  "number: %s.  Exiting.\n", display);
+    /* Check for duplicate invocation on same display number. */
+    if (serverGeneration == 1 && !winCheckDisplayNumber()) {
+        if (g_fSilentDupError)
+            g_fSilentFatalError = TRUE;
+        FatalError("InitOutput - Duplicate invocation on display "
+                   "number: %s.  Exiting.\n", display);
     }
 
 #ifdef XWIN_XF86CONFIG
-  /* Try to read the xorg.conf-style configuration file */
-  if (!winReadConfigfile ())
-    winErrorFVerb (1, "InitOutput - Error reading config file\n");
+    /* Try to read the xorg.conf-style configuration file */
+    if (!winReadConfigfile())
+        winErrorFVerb(1, "InitOutput - Error reading config file\n");
 #else
-  winMsg(X_INFO, "xorg.conf is not supported\n");
-  winMsg(X_INFO, "See http://x.cygwin.com/docs/faq/cygwin-x-faq.html "
-         "for more information\n");
-  winConfigFiles ();
+    winMsg(X_INFO, "xorg.conf is not supported\n");
+    winMsg(X_INFO, "See http://x.cygwin.com/docs/faq/cygwin-x-faq.html "
+           "for more information\n");
+    winConfigFiles();
 #endif
 
-  /* Load preferences from XWinrc file */
-  LoadPreferences();
+    /* Load preferences from XWinrc file */
+    LoadPreferences();
 
-  /* Setup global screen info parameters */
-  screenInfo->imageByteOrder = IMAGE_BYTE_ORDER;
-  screenInfo->bitmapScanlinePad = BITMAP_SCANLINE_PAD;
-  screenInfo->bitmapScanlineUnit = BITMAP_SCANLINE_UNIT;
-  screenInfo->bitmapBitOrder = BITMAP_BIT_ORDER;
-  screenInfo->numPixmapFormats = NUMFORMATS;
-  
-  /* Describe how we want common pixmap formats padded */
-  for (i = 0; i < NUMFORMATS; i++)
-    {
-      screenInfo->formats[i] = g_PixmapFormats[i];
+    /* Setup global screen info parameters */
+    screenInfo->imageByteOrder = IMAGE_BYTE_ORDER;
+    screenInfo->bitmapScanlinePad = BITMAP_SCANLINE_PAD;
+    screenInfo->bitmapScanlineUnit = BITMAP_SCANLINE_UNIT;
+    screenInfo->bitmapBitOrder = BITMAP_BIT_ORDER;
+    screenInfo->numPixmapFormats = NUMFORMATS;
+
+    /* Describe how we want common pixmap formats padded */
+    for (i = 0; i < NUMFORMATS; i++) {
+        screenInfo->formats[i] = g_PixmapFormats[i];
     }
 
-  /* Load pointers to DirectDraw functions */
-  winGetDDProcAddresses ();
-  
-  /* Detect supported engines */
-  winDetectSupportedEngines ();
+    /* Load pointers to DirectDraw functions */
+    winGetDDProcAddresses();
 
-  /* Store the instance handle */
-  g_hInstance = GetModuleHandle (NULL);
+    /* Detect supported engines */
+    winDetectSupportedEngines();
 
-  /* Initialize each screen */
-  for (i = 0; i < g_iNumScreens; ++i)
-    {
-      /* Initialize the screen */
-      if (-1 == AddScreen (winScreenInit, argc, argv))
-	{
-	  FatalError ("InitOutput - Couldn't add screen %d", i);
-	}
+    /* Store the instance handle */
+    g_hInstance = GetModuleHandle(NULL);
+
+    /* Initialize each screen */
+    for (i = 0; i < g_iNumScreens; ++i) {
+        /* Initialize the screen */
+        if (-1 == AddScreen(winScreenInit, argc, argv)) {
+            FatalError("InitOutput - Couldn't add screen %d", i);
+        }
     }
 
 #if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
 
-  /* Generate a cookie used by internal clients for authorization */
-  if (g_fXdmcpEnabled || g_fAuthEnabled)
-    winGenerateAuthorization ();
+    /* Generate a cookie used by internal clients for authorization */
+    if (g_fXdmcpEnabled || g_fAuthEnabled)
+        winGenerateAuthorization();
 
-  /* Perform some one time initialization */
-  if (1 == serverGeneration)
-    {
-      /*
-       * setlocale applies to all threads in the current process.
-       * Apply locale specified in LANG environment variable.
-       */
-      setlocale (LC_ALL, "");
+    /* Perform some one time initialization */
+    if (1 == serverGeneration) {
+        /*
+         * setlocale applies to all threads in the current process.
+         * Apply locale specified in LANG environment variable.
+         */
+        setlocale(LC_ALL, "");
     }
 #endif
 
 #if CYGDEBUG || YES
-  winDebug ("InitOutput - Returning.\n");
+    winDebug("InitOutput - Returning.\n");
 #endif
 }
-
 
 /*
  * winCheckDisplayNumber - Check if another instance of Cygwin/X is
@@ -1020,67 +979,60 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
  */
 
 static Bool
-winCheckDisplayNumber (void)
+winCheckDisplayNumber(void)
 {
-  int			nDisp;
-  HANDLE		mutex;
-  char			name[MAX_PATH];
-  char *		pszPrefix = '\0';
-  OSVERSIONINFO		osvi = {0};
+    int nDisp;
+    HANDLE mutex;
+    char name[MAX_PATH];
+    char *pszPrefix = '\0';
+    OSVERSIONINFO osvi = { 0 };
 
-  /* Check display range */
-  nDisp = atoi (display);
-  if (nDisp < 0 || nDisp > 65535)
-    {
-      ErrorF ("winCheckDisplayNumber - Bad display number: %d\n", nDisp);
-      return FALSE;
+    /* Check display range */
+    nDisp = atoi(display);
+    if (nDisp < 0 || nDisp > 65535) {
+        ErrorF("winCheckDisplayNumber - Bad display number: %d\n", nDisp);
+        return FALSE;
     }
 
-  /* Set first character of mutex name to null */
-  name[0] = '\0';
+    /* Set first character of mutex name to null */
+    name[0] = '\0';
 
-  /* Get operating system version information */
-  osvi.dwOSVersionInfoSize = sizeof (osvi);
-  GetVersionEx (&osvi);
+    /* Get operating system version information */
+    osvi.dwOSVersionInfoSize = sizeof(osvi);
+    GetVersionEx(&osvi);
 
-  /* Want a mutex shared among all terminals on NT > 4.0 */
-  if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT
-      && osvi.dwMajorVersion >= 5)
-    {
-      pszPrefix = "Global\\";
+    /* Want a mutex shared among all terminals on NT > 4.0 */
+    if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT && osvi.dwMajorVersion >= 5) {
+        pszPrefix = "Global\\";
     }
 
-  /* Setup Cygwin/X specific part of name */
-  snprintf (name, sizeof(name), "%sCYGWINX_DISPLAY:%d", pszPrefix, nDisp);
+    /* Setup Cygwin/X specific part of name */
+    snprintf(name, sizeof(name), "%sCYGWINX_DISPLAY:%d", pszPrefix, nDisp);
 
-  /* Windows automatically releases the mutex when this process exits */
-  mutex = CreateMutex (NULL, FALSE, name);
-  if (!mutex)
-    {
-      LPVOID lpMsgBuf;
+    /* Windows automatically releases the mutex when this process exits */
+    mutex = CreateMutex(NULL, FALSE, name);
+    if (!mutex) {
+        LPVOID lpMsgBuf;
 
-      /* Display a fancy error message */
-      FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-		     FORMAT_MESSAGE_FROM_SYSTEM | 
-		     FORMAT_MESSAGE_IGNORE_INSERTS,
-		     NULL,
-		     GetLastError (),
-		     MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		     (LPTSTR) &lpMsgBuf,
-		     0, NULL);
-      ErrorF ("winCheckDisplayNumber - CreateMutex failed: %s\n",
-	      (LPSTR)lpMsgBuf);
-      LocalFree (lpMsgBuf);
+        /* Display a fancy error message */
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                      FORMAT_MESSAGE_FROM_SYSTEM |
+                      FORMAT_MESSAGE_IGNORE_INSERTS,
+                      NULL,
+                      GetLastError(),
+                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                      (LPTSTR) & lpMsgBuf, 0, NULL);
+        ErrorF("winCheckDisplayNumber - CreateMutex failed: %s\n",
+               (LPSTR) lpMsgBuf);
+        LocalFree(lpMsgBuf);
 
-      return FALSE;
+        return FALSE;
     }
-  if (GetLastError () == ERROR_ALREADY_EXISTS)
-    {
-      ErrorF ("winCheckDisplayNumber - "
-	      PROJECT_NAME " is already running on display %d\n",
-	      nDisp);
-      return FALSE;
+    if (GetLastError() == ERROR_ALREADY_EXISTS) {
+        ErrorF("winCheckDisplayNumber - "
+               PROJECT_NAME " is already running on display %d\n", nDisp);
+        return FALSE;
     }
 
-  return TRUE;
+    return TRUE;
 }

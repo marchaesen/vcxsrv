@@ -68,92 +68,97 @@
 /*****************************************************************************/
 
 /** Read the USB device using #usbRead. */
-void othUSBRead(DevicePtr pDev,
-                MOTIONPROC motion,
-                ENQUEUEPROC enqueue,
-                CHECKPROC checkspecial,
-                BLOCK block)
+void
+othUSBRead(DevicePtr pDev,
+           MOTIONPROC motion,
+           ENQUEUEPROC enqueue, CHECKPROC checkspecial, BLOCK block)
 {
     usbRead(pDev, motion, enqueue, 0xffff, block);
 }
 
 /** Initialize \a pDev using #usbInit. */
-void othUSBInit(DevicePtr pDev)
+void
+othUSBInit(DevicePtr pDev)
 {
     usbInit(pDev, usbOther);
 }
 
 /** Turn \a pDev on (i.e., take input from \a pDev). */
-int othUSBOn(DevicePtr pDev)
+int
+othUSBOn(DevicePtr pDev)
 {
     GETPRIV;
 
-    if (priv->fd < 0) othUSBInit(pDev);
+    if (priv->fd < 0)
+        othUSBInit(pDev);
     return priv->fd;
 }
 
 /** Fill the \a info structure with information needed to initialize \a
- * pDev. */ 
-void othUSBGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info)
+ * pDev. */
+void
+othUSBGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info)
 {
     GETPRIV;
-    int           i, j;
+    int i, j;
     static KeySym keyboard_mapping = NoSymbol;
-    int           absolute[5];
-    
+    int absolute[5];
+
 #define test_bit(bit) (priv->mask[(bit)/8] & (1 << ((bit)%8)))
 
-                                /* Some USB mice devices return key
-                                 * events from their pair'd
-                                 * keyboard...  */
-    info->keyClass           = 1;
+    /* Some USB mice devices return key
+     * events from their pair'd
+     * keyboard...  */
+    info->keyClass = 1;
     info->keySyms.minKeyCode = 8;
     info->keySyms.maxKeyCode = 8;
-    info->keySyms.mapWidth   = 1;
-    info->keySyms.map        = &keyboard_mapping;
+    info->keySyms.mapWidth = 1;
+    info->keySyms.map = &keyboard_mapping;
 
     for (i = 0; i < EV_MAX; i++) {
         if (test_bit(i)) {
             switch (i) {
             case EV_KEY:
-                                /* See above */
+                /* See above */
                 break;
             case EV_REL:
-                info->valuatorClass      = 1;
+                info->valuatorClass = 1;
                 if (info->numRelAxes + info->numAbsAxes > DMX_MAX_AXES - 1) {
-                    info->numRelAxes     = DMX_MAX_AXES - info->numAbsAxes - 1;
+                    info->numRelAxes = DMX_MAX_AXES - info->numAbsAxes - 1;
                     dmxLog(dmxWarning, "Can only use %d relative axes\n",
                            info->numRelAxes);
-                } else
-                    info->numRelAxes     = priv->numRel;
-                info->minval[0]          = 0;
-                info->maxval[0]          = 0;
-                info->res[0]             = 1;
-                info->minres[0]          = 0;
-                info->maxres[0]          = 1;
+                }
+                else
+                    info->numRelAxes = priv->numRel;
+                info->minval[0] = 0;
+                info->maxval[0] = 0;
+                info->res[0] = 1;
+                info->minres[0] = 0;
+                info->maxres[0] = 1;
                 break;
             case EV_ABS:
-                info->valuatorClass      = 1;
+                info->valuatorClass = 1;
                 if (info->numRelAxes + info->numAbsAxes > DMX_MAX_AXES - 1) {
-                    info->numAbsAxes     = DMX_MAX_AXES - info->numRelAxes - 1;
+                    info->numAbsAxes = DMX_MAX_AXES - info->numRelAxes - 1;
                     dmxLog(dmxWarning, "Can only use %d absolute axes\n",
                            info->numAbsAxes);
-                } else
-                    info->numAbsAxes     = priv->numAbs;
+                }
+                else
+                    info->numAbsAxes = priv->numAbs;
                 for (j = 0; j < info->numAbsAxes; j++) {
                     ioctl(priv->fd, EVIOCGABS(j), absolute);
-                    info->minval[1+j]    = absolute[1];
-                    info->maxval[1+j]    = absolute[2];
-                    info->res[1+j]       = absolute[3];
-                    info->minres[1+j]    = absolute[3];
-                    info->maxres[1+j]    = absolute[3];
+                    info->minval[1 + j] = absolute[1];
+                    info->maxval[1 + j] = absolute[2];
+                    info->res[1 + j] = absolute[3];
+                    info->minres[1 + j] = absolute[3];
+                    info->maxres[1 + j] = absolute[3];
                 }
                 break;
             case EV_LED:
-                info->ledFeedbackClass   = 0; /* Not supported at this time */
+                info->ledFeedbackClass = 0;     /* Not supported at this time */
                 break;
             case EV_SND:
-                info->belFeedbackClass   = 0; /* Not supported at this time */
+                info->belFeedbackClass = 0;     /* Not supported at this time */
                 break;
             }
         }

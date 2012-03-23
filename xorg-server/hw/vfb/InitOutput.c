@@ -53,7 +53,7 @@ from The Open Group.
 #ifndef MAP_FILE
 #define MAP_FILE 0
 #endif
-#endif /* HAVE_MMAP */
+#endif                          /* HAVE_MMAP */
 #include <sys/stat.h>
 #include <errno.h>
 #ifndef WIN32
@@ -63,7 +63,7 @@ from The Open Group.
 #ifdef HAS_SHM
 #include <sys/ipc.h>
 #include <sys/shm.h>
-#endif /* HAS_SHM */
+#endif                          /* HAS_SHM */
 #include "dix.h"
 #include "miline.h"
 
@@ -75,8 +75,7 @@ from The Open Group.
 #define VFB_DEFAULT_LINEBIAS      0
 #define XWD_WINDOW_NAME_LEN      60
 
-typedef struct
-{
+typedef struct {
     int width;
     int paddedBytesWidth;
     int paddedWidth;
@@ -105,15 +104,18 @@ typedef struct
 
 static int vfbNumScreens;
 static vfbScreenInfo *vfbScreens;
+
 static vfbScreenInfo defaultScreenInfo = {
-    .width  = VFB_DEFAULT_WIDTH,
+    .width = VFB_DEFAULT_WIDTH,
     .height = VFB_DEFAULT_HEIGHT,
-    .depth  = VFB_DEFAULT_DEPTH,
+    .depth = VFB_DEFAULT_DEPTH,
     .blackPixel = VFB_DEFAULT_BLACKPIXEL,
     .whitePixel = VFB_DEFAULT_WHITEPIXEL,
     .lineBias = VFB_DEFAULT_LINEBIAS,
 };
+
 static Bool vfbPixmapDepths[33];
+
 #ifdef HAVE_MMAP
 static char *pfbdir = NULL;
 #endif
@@ -130,23 +132,27 @@ static Bool Render = TRUE;
     if (needswap) { CARD32 _s = _src; cpswapl(_s, _dst); } \
     else _dst = _src;
 
-
 static void
 vfbInitializePixmapDepths(void)
 {
     int i;
-    vfbPixmapDepths[1] = TRUE; /* always need bitmaps */
+
+    vfbPixmapDepths[1] = TRUE;  /* always need bitmaps */
     for (i = 2; i <= 32; i++)
-	vfbPixmapDepths[i] = FALSE;
+        vfbPixmapDepths[i] = FALSE;
 }
 
 static int
 vfbBitsPerPixel(int depth)
 {
-    if (depth == 1) return 1;
-    else if (depth <= 8) return 8;
-    else if (depth <= 16) return 16;
-    else return 32;
+    if (depth == 1)
+        return 1;
+    else if (depth <= 8)
+        return 8;
+    else if (depth <= 16)
+        return 16;
+    else
+        return 32;
 }
 
 void
@@ -156,47 +162,41 @@ ddxGiveUp(enum ExitCode error)
 
     /* clean up the framebuffers */
 
-    switch (fbmemtype)
-    {
+    switch (fbmemtype) {
 #ifdef HAVE_MMAP
-    case MMAPPED_FILE_FB: 
-	for (i = 0; i < vfbNumScreens; i++)
-	{
-	    if (-1 == unlink(vfbScreens[i].mmap_file))
-	    {
-		perror("unlink");
-		ErrorF("unlink %s failed, %s",
-		       vfbScreens[i].mmap_file, strerror(errno));
-	    }
-	}
-	break;
-#else /* HAVE_MMAP */
+    case MMAPPED_FILE_FB:
+        for (i = 0; i < vfbNumScreens; i++) {
+            if (-1 == unlink(vfbScreens[i].mmap_file)) {
+                perror("unlink");
+                ErrorF("unlink %s failed, %s",
+                       vfbScreens[i].mmap_file, strerror(errno));
+            }
+        }
+        break;
+#else                           /* HAVE_MMAP */
     case MMAPPED_FILE_FB:
         break;
-#endif /* HAVE_MMAP */
-	
+#endif                          /* HAVE_MMAP */
+
 #ifdef HAS_SHM
     case SHARED_MEMORY_FB:
-	for (i = 0; i < vfbNumScreens; i++)
-	{
-	    if (-1 == shmdt((char *)vfbScreens[i].pXWDHeader))
-	    {
-		perror("shmdt");
-		ErrorF("shmdt failed, %s", strerror(errno));
-	    }
-	}
-	break;
-#else /* HAS_SHM */
+        for (i = 0; i < vfbNumScreens; i++) {
+            if (-1 == shmdt((char *) vfbScreens[i].pXWDHeader)) {
+                perror("shmdt");
+                ErrorF("shmdt failed, %s", strerror(errno));
+            }
+        }
+        break;
+#else                           /* HAS_SHM */
     case SHARED_MEMORY_FB:
         break;
-#endif /* HAS_SHM */
-	
+#endif                          /* HAS_SHM */
+
     case NORMAL_MEMORY_FB:
-	for (i = 0; i < vfbNumScreens; i++)
-	{
-	    free(vfbScreens[i].pXWDHeader);
-	}
-	break;
+        for (i = 0; i < vfbNumScreens; i++) {
+            free(vfbScreens[i].pXWDHeader);
+        }
+        break;
     }
 }
 
@@ -224,7 +224,8 @@ OsVendorFatalError(void)
 }
 
 #if defined(DDXBEFORERESET)
-void ddxBeforeReset(void)
+void
+ddxBeforeReset(void)
 {
     return;
 }
@@ -236,13 +237,14 @@ ddxUseMsg(void)
     ErrorF("-screen scrn WxHxD     set screen's width, height, depth\n");
     ErrorF("-pixdepths list-of-int support given pixmap depths\n");
     ErrorF("+/-render		   turn on/off RENDER extension support"
-	   "(default on)\n");
+           "(default on)\n");
     ErrorF("-linebias n            adjust thin line pixelization\n");
     ErrorF("-blackpixel n          pixel value for black\n");
     ErrorF("-whitepixel n          pixel value for white\n");
 
 #ifdef HAVE_MMAP
-    ErrorF("-fbdir directory       put framebuffers in mmap'ed files in directory\n");
+    ErrorF
+        ("-fbdir directory       put framebuffers in mmap'ed files in directory\n");
 #endif
 
 #ifdef HAS_SHM
@@ -257,16 +259,15 @@ ddxProcessArgument(int argc, char *argv[], int i)
     static int lastScreen = -1;
     vfbScreenInfo *currentScreen;
 
-    if (firstTime)
-    {
-	vfbInitializePixmapDepths();
+    if (firstTime) {
+        vfbInitializePixmapDepths();
         firstTime = FALSE;
     }
 
     if (lastScreen == -1)
-	currentScreen = &defaultScreenInfo;
+        currentScreen = &defaultScreenInfo;
     else
-	currentScreen = &vfbScreens[lastScreen];
+        currentScreen = &vfbScreens[lastScreen];
 
 #define CHECK_FOR_REQUIRED_ARGUMENTS(num) \
     if (((i + num) >= argc) || (!argv[i + num])) {                      \
@@ -274,117 +275,105 @@ ddxProcessArgument(int argc, char *argv[], int i)
       UseMsg();                                                         \
       FatalError("Required argument to %s not specified\n", argv[i]);   \
     }
-    
-    if (strcmp (argv[i], "-screen") == 0)	/* -screen n WxHxD */
-    {
-	int screenNum;
-	CHECK_FOR_REQUIRED_ARGUMENTS(2);
-	screenNum = atoi(argv[i+1]);
-	/* The protocol only has a CARD8 for number of screens in the
-	   connection setup block, so don't allow more than that. */
-	if ((screenNum < 0) || (screenNum >= 255))
-	{
-	    ErrorF("Invalid screen number %d\n", screenNum);
-	    UseMsg();
-	    FatalError("Invalid screen number %d passed to -screen\n",
-		       screenNum);
-	}
 
-	if (vfbNumScreens <= screenNum)
-	{
-	    vfbScreens = realloc(vfbScreens, sizeof(*vfbScreens) * (screenNum + 1));
-	    if (!vfbScreens)
-		FatalError("Not enough memory for screen %d\n", screenNum);
-	    for (; vfbNumScreens <= screenNum; ++vfbNumScreens)
-		vfbScreens[vfbNumScreens] = defaultScreenInfo;
-	}
+    if (strcmp(argv[i], "-screen") == 0) {      /* -screen n WxHxD */
+        int screenNum;
 
-	if (3 != sscanf(argv[i+2], "%dx%dx%d",
-			&vfbScreens[screenNum].width,
-			&vfbScreens[screenNum].height,
-			&vfbScreens[screenNum].depth))
-	{
-	    ErrorF("Invalid screen configuration %s\n", argv[i+2]);
-	    UseMsg();
-	    FatalError("Invalid screen configuration %s for -screen %d\n",
-		   argv[i+2], screenNum);
-	}
+        CHECK_FOR_REQUIRED_ARGUMENTS(2);
+        screenNum = atoi(argv[i + 1]);
+        /* The protocol only has a CARD8 for number of screens in the
+           connection setup block, so don't allow more than that. */
+        if ((screenNum < 0) || (screenNum >= 255)) {
+            ErrorF("Invalid screen number %d\n", screenNum);
+            UseMsg();
+            FatalError("Invalid screen number %d passed to -screen\n",
+                       screenNum);
+        }
 
-	lastScreen = screenNum;
-	return 3;
+        if (vfbNumScreens <= screenNum) {
+            vfbScreens =
+                realloc(vfbScreens, sizeof(*vfbScreens) * (screenNum + 1));
+            if (!vfbScreens)
+                FatalError("Not enough memory for screen %d\n", screenNum);
+            for (; vfbNumScreens <= screenNum; ++vfbNumScreens)
+                vfbScreens[vfbNumScreens] = defaultScreenInfo;
+        }
+
+        if (3 != sscanf(argv[i + 2], "%dx%dx%d",
+                        &vfbScreens[screenNum].width,
+                        &vfbScreens[screenNum].height,
+                        &vfbScreens[screenNum].depth)) {
+            ErrorF("Invalid screen configuration %s\n", argv[i + 2]);
+            UseMsg();
+            FatalError("Invalid screen configuration %s for -screen %d\n",
+                       argv[i + 2], screenNum);
+        }
+
+        lastScreen = screenNum;
+        return 3;
     }
 
-    if (strcmp (argv[i], "-pixdepths") == 0)	/* -pixdepths list-of-depth */
-    {
-	int depth, ret = 1;
+    if (strcmp(argv[i], "-pixdepths") == 0) {   /* -pixdepths list-of-depth */
+        int depth, ret = 1;
 
-	CHECK_FOR_REQUIRED_ARGUMENTS(1);
-	while ((++i < argc) && (depth = atoi(argv[i])) != 0)
-	{
-	    if (depth < 0 || depth > 32)
-	    {
-		ErrorF("Invalid pixmap depth %d\n", depth);
-		UseMsg();
-		FatalError("Invalid pixmap depth %d passed to -pixdepths\n",
-			   depth);
-	    }
-	    vfbPixmapDepths[depth] = TRUE;
-	    ret++;
-	}
-	return ret;
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
+        while ((++i < argc) && (depth = atoi(argv[i])) != 0) {
+            if (depth < 0 || depth > 32) {
+                ErrorF("Invalid pixmap depth %d\n", depth);
+                UseMsg();
+                FatalError("Invalid pixmap depth %d passed to -pixdepths\n",
+                           depth);
+            }
+            vfbPixmapDepths[depth] = TRUE;
+            ret++;
+        }
+        return ret;
     }
 
-    if (strcmp (argv[i], "+render") == 0)	/* +render */
-    {
-	Render = TRUE;
-	return 1;
+    if (strcmp(argv[i], "+render") == 0) {      /* +render */
+        Render = TRUE;
+        return 1;
     }
 
-    if (strcmp (argv[i], "-render") == 0)	/* -render */
-    {
-	Render = FALSE;
+    if (strcmp(argv[i], "-render") == 0) {      /* -render */
+        Render = FALSE;
 #ifdef COMPOSITE
-	noCompositeExtension = TRUE;
+        noCompositeExtension = TRUE;
 #endif
-	return 1;
+        return 1;
     }
 
-    if (strcmp (argv[i], "-blackpixel") == 0)	/* -blackpixel n */
-    {
-	CHECK_FOR_REQUIRED_ARGUMENTS(1);
-	currentScreen->blackPixel = atoi(argv[++i]);
-	return 2;
+    if (strcmp(argv[i], "-blackpixel") == 0) {  /* -blackpixel n */
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
+        currentScreen->blackPixel = atoi(argv[++i]);
+        return 2;
     }
 
-    if (strcmp (argv[i], "-whitepixel") == 0)	/* -whitepixel n */
-    {
-	CHECK_FOR_REQUIRED_ARGUMENTS(1);
-	currentScreen->whitePixel = atoi(argv[++i]);
-	return 2;
+    if (strcmp(argv[i], "-whitepixel") == 0) {  /* -whitepixel n */
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
+        currentScreen->whitePixel = atoi(argv[++i]);
+        return 2;
     }
 
-    if (strcmp (argv[i], "-linebias") == 0)	/* -linebias n */
-    {
-	CHECK_FOR_REQUIRED_ARGUMENTS(1);
-	currentScreen->lineBias = atoi(argv[++i]);
-	return 2;
+    if (strcmp(argv[i], "-linebias") == 0) {    /* -linebias n */
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
+        currentScreen->lineBias = atoi(argv[++i]);
+        return 2;
     }
 
 #ifdef HAVE_MMAP
-    if (strcmp (argv[i], "-fbdir") == 0)	/* -fbdir directory */
-    {
-	CHECK_FOR_REQUIRED_ARGUMENTS(1);
-	pfbdir = argv[++i];
-	fbmemtype = MMAPPED_FILE_FB;
-	return 2;
+    if (strcmp(argv[i], "-fbdir") == 0) {       /* -fbdir directory */
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
+        pfbdir = argv[++i];
+        fbmemtype = MMAPPED_FILE_FB;
+        return 2;
     }
-#endif /* HAVE_MMAP */
+#endif                          /* HAVE_MMAP */
 
 #ifdef HAS_SHM
-    if (strcmp (argv[i], "-shmem") == 0)	/* -shmem */
-    {
-	fbmemtype = SHARED_MEMORY_FB;
-	return 1;
+    if (strcmp(argv[i], "-shmem") == 0) {       /* -shmem */
+        fbmemtype = SHARED_MEMORY_FB;
+        return 1;
     }
 #endif
 
@@ -392,13 +381,14 @@ ddxProcessArgument(int argc, char *argv[], int i)
 }
 
 static DevPrivateKeyRec cmapScrPrivateKeyRec;
+
 #define cmapScrPrivateKey (&cmapScrPrivateKeyRec)
 
 #define GetInstalledColormap(s) ((ColormapPtr) dixLookupPrivate(&(s)->devPrivates, cmapScrPrivateKey))
 #define SetInstalledColormap(s,c) (dixSetPrivate(&(s)->devPrivates, cmapScrPrivateKey, c))
 
 static int
-vfbListInstalledColormaps(ScreenPtr pScreen, Colormap *pmaps)
+vfbListInstalledColormaps(ScreenPtr pScreen, Colormap * pmaps)
 {
     /* By the time we are processing requests, we can guarantee that there
      * is always a colormap installed */
@@ -406,61 +396,60 @@ vfbListInstalledColormaps(ScreenPtr pScreen, Colormap *pmaps)
     return 1;
 }
 
-
 static void
 vfbInstallColormap(ColormapPtr pmap)
 {
     ColormapPtr oldpmap = GetInstalledColormap(pmap->pScreen);
 
-    if (pmap != oldpmap)
-    {
-	int entries;
-	XWDFileHeader *pXWDHeader;
-	XWDColor *pXWDCmap;
-	VisualPtr pVisual;
-	Pixel *     ppix;
-	xrgb *      prgb;
-	xColorItem *defs;
-	int i;
+    if (pmap != oldpmap) {
+        int entries;
+        XWDFileHeader *pXWDHeader;
+        XWDColor *pXWDCmap;
+        VisualPtr pVisual;
+        Pixel *ppix;
+        xrgb *prgb;
+        xColorItem *defs;
+        int i;
 
-	if(oldpmap != (ColormapPtr)None)
-	    WalkTree(pmap->pScreen, TellLostMap, (char *)&oldpmap->mid);
-	/* Install pmap */
-	SetInstalledColormap(pmap->pScreen, pmap);
-	WalkTree(pmap->pScreen, TellGainedMap, (char *)&pmap->mid);
+        if (oldpmap != (ColormapPtr) None)
+            WalkTree(pmap->pScreen, TellLostMap, (char *) &oldpmap->mid);
+        /* Install pmap */
+        SetInstalledColormap(pmap->pScreen, pmap);
+        WalkTree(pmap->pScreen, TellGainedMap, (char *) &pmap->mid);
 
-	entries = pmap->pVisual->ColormapEntries;
-	pXWDHeader = vfbScreens[pmap->pScreen->myNum].pXWDHeader;
-	pXWDCmap = vfbScreens[pmap->pScreen->myNum].pXWDCmap;
-	pVisual = pmap->pVisual;
+        entries = pmap->pVisual->ColormapEntries;
+        pXWDHeader = vfbScreens[pmap->pScreen->myNum].pXWDHeader;
+        pXWDCmap = vfbScreens[pmap->pScreen->myNum].pXWDCmap;
+        pVisual = pmap->pVisual;
 
-	swapcopy32(pXWDHeader->visual_class, pVisual->class);
-	swapcopy32(pXWDHeader->red_mask, pVisual->redMask);
-	swapcopy32(pXWDHeader->green_mask, pVisual->greenMask);
-	swapcopy32(pXWDHeader->blue_mask, pVisual->blueMask);
-	swapcopy32(pXWDHeader->bits_per_rgb, pVisual->bitsPerRGBValue);
-	swapcopy32(pXWDHeader->colormap_entries, pVisual->ColormapEntries);
+        swapcopy32(pXWDHeader->visual_class, pVisual->class);
+        swapcopy32(pXWDHeader->red_mask, pVisual->redMask);
+        swapcopy32(pXWDHeader->green_mask, pVisual->greenMask);
+        swapcopy32(pXWDHeader->blue_mask, pVisual->blueMask);
+        swapcopy32(pXWDHeader->bits_per_rgb, pVisual->bitsPerRGBValue);
+        swapcopy32(pXWDHeader->colormap_entries, pVisual->ColormapEntries);
 
-	ppix = (Pixel *)malloc(entries * sizeof(Pixel));
-	prgb = (xrgb *)malloc(entries * sizeof(xrgb));
-	defs = (xColorItem *)malloc(entries * sizeof(xColorItem));
+        ppix = (Pixel *) malloc(entries * sizeof(Pixel));
+        prgb = (xrgb *) malloc(entries * sizeof(xrgb));
+        defs = (xColorItem *) malloc(entries * sizeof(xColorItem));
 
-	for (i = 0; i < entries; i++)  ppix[i] = i;
-	/* XXX truecolor */
-	QueryColors(pmap, entries, ppix, prgb, serverClient);
+        for (i = 0; i < entries; i++)
+            ppix[i] = i;
+        /* XXX truecolor */
+        QueryColors(pmap, entries, ppix, prgb, serverClient);
 
-	for (i = 0; i < entries; i++) { /* convert xrgbs to xColorItems */
-	    defs[i].pixel = ppix[i] & 0xff; /* change pixel to index */
-	    defs[i].red = prgb[i].red;
-	    defs[i].green = prgb[i].green;
-	    defs[i].blue = prgb[i].blue;
-	    defs[i].flags =  DoRed|DoGreen|DoBlue;
-	}
-	(*pmap->pScreen->StoreColors)(pmap, entries, defs);
+        for (i = 0; i < entries; i++) { /* convert xrgbs to xColorItems */
+            defs[i].pixel = ppix[i] & 0xff;     /* change pixel to index */
+            defs[i].red = prgb[i].red;
+            defs[i].green = prgb[i].green;
+            defs[i].blue = prgb[i].blue;
+            defs[i].flags = DoRed | DoGreen | DoBlue;
+        }
+        (*pmap->pScreen->StoreColors) (pmap, entries, defs);
 
-	free(ppix);
-	free(prgb);
-	free(defs);
+        free(ppix);
+        free(prgb);
+        free(defs);
     }
 }
 
@@ -469,51 +458,43 @@ vfbUninstallColormap(ColormapPtr pmap)
 {
     ColormapPtr curpmap = GetInstalledColormap(pmap->pScreen);
 
-    if(pmap == curpmap)
-    {
-	if (pmap->mid != pmap->pScreen->defColormap)
-	{
-	    dixLookupResourceByType((pointer *)&curpmap,
-				    pmap->pScreen->defColormap,
-				    RT_COLORMAP, serverClient,
-				    DixInstallAccess);
-	    (*pmap->pScreen->InstallColormap)(curpmap);
-	}
+    if (pmap == curpmap) {
+        if (pmap->mid != pmap->pScreen->defColormap) {
+            dixLookupResourceByType((pointer *) &curpmap,
+                                    pmap->pScreen->defColormap,
+                                    RT_COLORMAP, serverClient,
+                                    DixInstallAccess);
+            (*pmap->pScreen->InstallColormap) (curpmap);
+        }
     }
 }
 
 static void
-vfbStoreColors(ColormapPtr pmap, int ndef, xColorItem *pdefs)
+vfbStoreColors(ColormapPtr pmap, int ndef, xColorItem * pdefs)
 {
     XWDColor *pXWDCmap;
     int i;
 
-    if (pmap != GetInstalledColormap(pmap->pScreen))
-    {
-	return;
+    if (pmap != GetInstalledColormap(pmap->pScreen)) {
+        return;
     }
 
     pXWDCmap = vfbScreens[pmap->pScreen->myNum].pXWDCmap;
 
-    if ((pmap->pVisual->class | DynamicClass) == DirectColor)
-    {
-	return;
+    if ((pmap->pVisual->class | DynamicClass) == DirectColor) {
+        return;
     }
 
-    for (i = 0; i < ndef; i++)
-    {
-	if (pdefs[i].flags & DoRed)
-	{
-	    swapcopy16(pXWDCmap[pdefs[i].pixel].red, pdefs[i].red);
-	}
-	if (pdefs[i].flags & DoGreen)
-	{
-	    swapcopy16(pXWDCmap[pdefs[i].pixel].green, pdefs[i].green);
-	}
-	if (pdefs[i].flags & DoBlue)
-	{
-	    swapcopy16(pXWDCmap[pdefs[i].pixel].blue, pdefs[i].blue);
-	}
+    for (i = 0; i < ndef; i++) {
+        if (pdefs[i].flags & DoRed) {
+            swapcopy16(pXWDCmap[pdefs[i].pixel].red, pdefs[i].red);
+        }
+        if (pdefs[i].flags & DoGreen) {
+            swapcopy16(pXWDCmap[pdefs[i].pixel].green, pdefs[i].green);
+        }
+        if (pdefs[i].flags & DoBlue) {
+            swapcopy16(pXWDCmap[pdefs[i].pixel].blue, pdefs[i].blue);
+        }
     }
 }
 
@@ -531,29 +512,26 @@ vfbBlockHandler(pointer blockData, OSTimePtr pTimeout, pointer pReadmask)
 {
     int i;
 
-    for (i = 0; i < vfbNumScreens; i++)
-    {
+    for (i = 0; i < vfbNumScreens; i++) {
 #ifdef MS_ASYNC
-	if (-1 == msync((caddr_t)vfbScreens[i].pXWDHeader,
-			(size_t)vfbScreens[i].sizeInBytes, MS_ASYNC))
+        if (-1 == msync((caddr_t) vfbScreens[i].pXWDHeader,
+                        (size_t) vfbScreens[i].sizeInBytes, MS_ASYNC))
 #else
-	/* silly NetBSD and who else? */
-	if (-1 == msync((caddr_t)vfbScreens[i].pXWDHeader,
-			(size_t)vfbScreens[i].sizeInBytes))
+        /* silly NetBSD and who else? */
+        if (-1 == msync((caddr_t) vfbScreens[i].pXWDHeader,
+                        (size_t) vfbScreens[i].sizeInBytes))
 #endif
-	{
-	    perror("msync");
-	    ErrorF("msync failed, %s", strerror(errno));
-	}
+        {
+            perror("msync");
+            ErrorF("msync failed, %s", strerror(errno));
+        }
     }
 }
-
 
 static void
 vfbWakeupHandler(pointer blockData, int result, pointer pReadmask)
 {
 }
-
 
 static void
 vfbAllocateMmappedFramebuffer(vfbScreenInfoPtr pvfb)
@@ -563,53 +541,47 @@ vfbAllocateMmappedFramebuffer(vfbScreenInfoPtr pvfb)
     int currentFileSize, writeThisTime;
 
     snprintf(pvfb->mmap_file, sizeof(pvfb->mmap_file), "%s/Xvfb_screen%d",
-	     pfbdir, (int) (pvfb - vfbScreens));
-    if (-1 == (pvfb->mmap_fd = open(pvfb->mmap_file, O_CREAT|O_RDWR, 0666)))
-    {
-	perror("open");
-	ErrorF("open %s failed, %s", pvfb->mmap_file, strerror(errno));
-	return;
+             pfbdir, (int) (pvfb - vfbScreens));
+    if (-1 == (pvfb->mmap_fd = open(pvfb->mmap_file, O_CREAT | O_RDWR, 0666))) {
+        perror("open");
+        ErrorF("open %s failed, %s", pvfb->mmap_file, strerror(errno));
+        return;
     }
 
     /* Extend the file to be the proper size */
 
     memset(dummyBuffer, 0, DUMMY_BUFFER_SIZE);
     for (currentFileSize = 0;
-	 currentFileSize < pvfb->sizeInBytes;
-	 currentFileSize += writeThisTime)
-    {
-	writeThisTime = min(DUMMY_BUFFER_SIZE,
-			    pvfb->sizeInBytes - currentFileSize);
-	if (-1 == write(pvfb->mmap_fd, dummyBuffer, writeThisTime))
-	{
-	    perror("write");
-	    ErrorF("write %s failed, %s", pvfb->mmap_file, strerror(errno));
-	    return;
-	}
+         currentFileSize < pvfb->sizeInBytes;
+         currentFileSize += writeThisTime) {
+        writeThisTime = min(DUMMY_BUFFER_SIZE,
+                            pvfb->sizeInBytes - currentFileSize);
+        if (-1 == write(pvfb->mmap_fd, dummyBuffer, writeThisTime)) {
+            perror("write");
+            ErrorF("write %s failed, %s", pvfb->mmap_file, strerror(errno));
+            return;
+        }
     }
 
     /* try to mmap the file */
 
-    pvfb->pXWDHeader = (XWDFileHeader *)mmap((caddr_t)NULL, pvfb->sizeInBytes,
-				    PROT_READ|PROT_WRITE,
-				    MAP_FILE|MAP_SHARED,
-				    pvfb->mmap_fd, 0);
-    if (-1 == (long)pvfb->pXWDHeader)
-    {
-	perror("mmap");
-	ErrorF("mmap %s failed, %s", pvfb->mmap_file, strerror(errno));
-	pvfb->pXWDHeader = NULL;
-	return;
+    pvfb->pXWDHeader = (XWDFileHeader *) mmap((caddr_t) NULL, pvfb->sizeInBytes,
+                                              PROT_READ | PROT_WRITE,
+                                              MAP_FILE | MAP_SHARED,
+                                              pvfb->mmap_fd, 0);
+    if (-1 == (long) pvfb->pXWDHeader) {
+        perror("mmap");
+        ErrorF("mmap %s failed, %s", pvfb->mmap_file, strerror(errno));
+        pvfb->pXWDHeader = NULL;
+        return;
     }
 
     if (!RegisterBlockAndWakeupHandlers(vfbBlockHandler, vfbWakeupHandler,
-					NULL))
-    {
-	pvfb->pXWDHeader = NULL;
+                                        NULL)) {
+        pvfb->pXWDHeader = NULL;
     }
 }
-#endif /* HAVE_MMAP */
-
+#endif                          /* HAVE_MMAP */
 
 #ifdef HAS_SHM
 static void
@@ -617,33 +589,33 @@ vfbAllocateSharedMemoryFramebuffer(vfbScreenInfoPtr pvfb)
 {
     /* create the shared memory segment */
 
-    pvfb->shmid = shmget(IPC_PRIVATE, pvfb->sizeInBytes, IPC_CREAT|0777);
-    if (pvfb->shmid < 0)
-    {
-	perror("shmget");
-	ErrorF("shmget %d bytes failed, %s", pvfb->sizeInBytes, strerror(errno));
-	return;
+    pvfb->shmid = shmget(IPC_PRIVATE, pvfb->sizeInBytes, IPC_CREAT | 0777);
+    if (pvfb->shmid < 0) {
+        perror("shmget");
+        ErrorF("shmget %d bytes failed, %s", pvfb->sizeInBytes,
+               strerror(errno));
+        return;
     }
 
     /* try to attach it */
 
-    pvfb->pXWDHeader = (XWDFileHeader *)shmat(pvfb->shmid, 0, 0);
-    if (-1 == (long)pvfb->pXWDHeader)
-    {
-	perror("shmat");
-	ErrorF("shmat failed, %s", strerror(errno));
-	pvfb->pXWDHeader = NULL; 
-	return;
+    pvfb->pXWDHeader = (XWDFileHeader *) shmat(pvfb->shmid, 0, 0);
+    if (-1 == (long) pvfb->pXWDHeader) {
+        perror("shmat");
+        ErrorF("shmat failed, %s", strerror(errno));
+        pvfb->pXWDHeader = NULL;
+        return;
     }
 
     ErrorF("screen %d shmid %d\n", (int) (pvfb - vfbScreens), pvfb->shmid);
 }
-#endif /* HAS_SHM */
+#endif                          /* HAS_SHM */
 
 static char *
 vfbAllocateFramebufferMemory(vfbScreenInfoPtr pvfb)
 {
-    if (pvfb->pfbMemory) return pvfb->pfbMemory; /* already done */
+    if (pvfb->pfbMemory)
+        return pvfb->pfbMemory; /* already done */
 
     pvfb->sizeInBytes = pvfb->paddedBytesWidth * pvfb->height;
 
@@ -653,54 +625,58 @@ vfbAllocateFramebufferMemory(vfbScreenInfoPtr pvfb)
      * below comes from the MAX_PSEUDO_DEPTH define in cfbcmap.c.
      */
 
-    if (pvfb->depth <= 10)
-    { /* single index colormaps */
-	pvfb->ncolors = 1 << pvfb->depth;
+    if (pvfb->depth <= 10) {    /* single index colormaps */
+        pvfb->ncolors = 1 << pvfb->depth;
     }
-    else
-    { /* decomposed colormaps */
-	int nplanes_per_color_component = pvfb->depth / 3;
-	if (pvfb->depth % 3) nplanes_per_color_component++;
-	pvfb->ncolors = 1 << nplanes_per_color_component;
+    else {                      /* decomposed colormaps */
+        int nplanes_per_color_component = pvfb->depth / 3;
+
+        if (pvfb->depth % 3)
+            nplanes_per_color_component++;
+        pvfb->ncolors = 1 << nplanes_per_color_component;
     }
 
     /* add extra bytes for XWDFileHeader, window name, and colormap */
 
     pvfb->sizeInBytes += SIZEOF(XWDheader) + XWD_WINDOW_NAME_LEN +
-		    pvfb->ncolors * SIZEOF(XWDColor);
+        pvfb->ncolors * SIZEOF(XWDColor);
 
-    pvfb->pXWDHeader = NULL; 
-    switch (fbmemtype)
-    {
+    pvfb->pXWDHeader = NULL;
+    switch (fbmemtype) {
 #ifdef HAVE_MMAP
-    case MMAPPED_FILE_FB:  vfbAllocateMmappedFramebuffer(pvfb); break;
+    case MMAPPED_FILE_FB:
+        vfbAllocateMmappedFramebuffer(pvfb);
+        break;
 #else
-    case MMAPPED_FILE_FB: break;
+    case MMAPPED_FILE_FB:
+        break;
 #endif
 
 #ifdef HAS_SHM
-    case SHARED_MEMORY_FB: vfbAllocateSharedMemoryFramebuffer(pvfb); break;
+    case SHARED_MEMORY_FB:
+        vfbAllocateSharedMemoryFramebuffer(pvfb);
+        break;
 #else
-    case SHARED_MEMORY_FB: break;
+    case SHARED_MEMORY_FB:
+        break;
 #endif
 
     case NORMAL_MEMORY_FB:
-	pvfb->pXWDHeader = (XWDFileHeader *)malloc(pvfb->sizeInBytes);
-	break;
+        pvfb->pXWDHeader = (XWDFileHeader *) malloc(pvfb->sizeInBytes);
+        break;
     }
 
-    if (pvfb->pXWDHeader)
-    {
-	pvfb->pXWDCmap = (XWDColor *)((char *)pvfb->pXWDHeader
-				+ SIZEOF(XWDheader) + XWD_WINDOW_NAME_LEN);
-	pvfb->pfbMemory = (char *)(pvfb->pXWDCmap + pvfb->ncolors);
+    if (pvfb->pXWDHeader) {
+        pvfb->pXWDCmap = (XWDColor *) ((char *) pvfb->pXWDHeader
+                                       + SIZEOF(XWDheader) +
+                                       XWD_WINDOW_NAME_LEN);
+        pvfb->pfbMemory = (char *) (pvfb->pXWDCmap + pvfb->ncolors);
 
-	return pvfb->pfbMemory;
+        return pvfb->pfbMemory;
     }
     else
-	return NULL;
+        return NULL;
 }
-
 
 static void
 vfbWriteXWDFileHeader(ScreenPtr pScreen)
@@ -713,7 +689,8 @@ vfbWriteXWDFileHeader(ScreenPtr pScreen)
 
     needswap = *(char *) &swaptest;
 
-    pXWDHeader->header_size = (char *)pvfb->pXWDCmap - (char *)pvfb->pXWDHeader;
+    pXWDHeader->header_size =
+        (char *) pvfb->pXWDCmap - (char *) pvfb->pXWDHeader;
     pXWDHeader->file_version = XWD_FILE_VERSION;
 
     pXWDHeader->pixmap_format = ZPixmap;
@@ -743,45 +720,40 @@ vfbWriteXWDFileHeader(ScreenPtr pScreen)
     /* write xwd "window" name: Xvfb hostname:server.screen */
 
     if (-1 == gethostname(hostname, sizeof(hostname)))
-	hostname[0] = 0;
+        hostname[0] = 0;
     else
-	hostname[XWD_WINDOW_NAME_LEN-1] = 0;
-    sprintf((char *)(pXWDHeader+1), "Xvfb %s:%s.%d", hostname, display,
-	    pScreen->myNum);
+        hostname[XWD_WINDOW_NAME_LEN - 1] = 0;
+    sprintf((char *) (pXWDHeader + 1), "Xvfb %s:%s.%d", hostname, display,
+            pScreen->myNum);
 
     /* write colormap pixel slot values */
 
-    for (i = 0; i < pvfb->ncolors; i++)
-    {
-	pvfb->pXWDCmap[i].pixel = i;
+    for (i = 0; i < pvfb->ncolors; i++) {
+        pvfb->pXWDCmap[i].pixel = i;
     }
 
     /* byte swap to most significant byte first */
 
-    if (needswap)
-    {
-	SwapLongs((CARD32 *)pXWDHeader, SIZEOF(XWDheader)/4);
-	for (i = 0; i < pvfb->ncolors; i++)
-	{
-	    swapl(&pvfb->pXWDCmap[i].pixel);
-	}
+    if (needswap) {
+        SwapLongs((CARD32 *) pXWDHeader, SIZEOF(XWDheader) / 4);
+        for (i = 0; i < pvfb->ncolors; i++) {
+            swapl(&pvfb->pXWDCmap[i].pixel);
+        }
     }
 }
 
-
 static Bool
-vfbCursorOffScreen (ScreenPtr *ppScreen, int *x, int *y)
+vfbCursorOffScreen(ScreenPtr *ppScreen, int *x, int *y)
 {
     return FALSE;
 }
 
 static void
-vfbCrossScreen (ScreenPtr pScreen, Bool entering)
+vfbCrossScreen(ScreenPtr pScreen, Bool entering)
 {
 }
 
-static miPointerScreenFuncRec vfbPointerCursorFuncs =
-{
+static miPointerScreenFuncRec vfbPointerCursorFuncs = {
     vfbCursorOffScreen,
     vfbCrossScreen,
     miPointerWarpCursor
@@ -792,7 +764,7 @@ vfbCloseScreen(int index, ScreenPtr pScreen)
 {
     vfbScreenInfoPtr pvfb = &vfbScreens[index];
     int i;
- 
+
     pScreen->CloseScreen = pvfb->closeScreen;
 
     /*
@@ -800,7 +772,7 @@ vfbCloseScreen(int index, ScreenPtr pScreen)
      * clear installed colormaps so that server reset works correctly.
      */
     for (i = 0; i < screenInfo.numScreens; i++)
-	SetInstalledColormap(screenInfo.screens[i], NULL);
+        SetInstalledColormap(screenInfo.screens[i], NULL);
 
     return pScreen->CloseScreen(index, pScreen);
 }
@@ -812,72 +784,74 @@ vfbScreenInit(int index, ScreenPtr pScreen, int argc, char **argv)
     int dpix = monitorResolution, dpiy = monitorResolution;
     int ret;
     char *pbits;
-    
+
     if (!dixRegisterPrivateKey(&cmapScrPrivateKeyRec, PRIVATE_SCREEN, 0))
-	return FALSE;
+        return FALSE;
 
     if (dpix == 0)
-      dpix = 100;
+        dpix = 100;
 
     if (dpiy == 0)
-      dpiy = 100;
+        dpiy = 100;
 
     pvfb->paddedBytesWidth = PixmapBytePad(pvfb->width, pvfb->depth);
     pvfb->bitsPerPixel = vfbBitsPerPixel(pvfb->depth);
-    if (pvfb->bitsPerPixel >= 8 )
-	pvfb->paddedWidth = pvfb->paddedBytesWidth / (pvfb->bitsPerPixel / 8);
+    if (pvfb->bitsPerPixel >= 8)
+        pvfb->paddedWidth = pvfb->paddedBytesWidth / (pvfb->bitsPerPixel / 8);
     else
-	pvfb->paddedWidth = pvfb->paddedBytesWidth * 8;
+        pvfb->paddedWidth = pvfb->paddedBytesWidth * 8;
     pbits = vfbAllocateFramebufferMemory(pvfb);
-    if (!pbits) return FALSE;
+    if (!pbits)
+        return FALSE;
 
     switch (pvfb->depth) {
     case 8:
-	miSetVisualTypesAndMasks (8,
-				  ((1 << StaticGray) |
-				   (1 << GrayScale) |
-				   (1 << StaticColor) |
-				   (1 << PseudoColor) |
-				   (1 << TrueColor) |
-				   (1 << DirectColor)),
-				  8, PseudoColor, 0, 0, 0);
-	break;
+        miSetVisualTypesAndMasks(8,
+                                 ((1 << StaticGray) |
+                                  (1 << GrayScale) |
+                                  (1 << StaticColor) |
+                                  (1 << PseudoColor) |
+                                  (1 << TrueColor) |
+                                  (1 << DirectColor)), 8, PseudoColor, 0, 0, 0);
+        break;
     case 15:
-	miSetVisualTypesAndMasks (15,
-				  ((1 << TrueColor) |
-				   (1 << DirectColor)),
-				  8, TrueColor, 0x7c00, 0x03e0, 0x001f);
-	break;
+        miSetVisualTypesAndMasks(15,
+                                 ((1 << TrueColor) |
+                                  (1 << DirectColor)),
+                                 8, TrueColor, 0x7c00, 0x03e0, 0x001f);
+        break;
     case 16:
-	miSetVisualTypesAndMasks (16,
-				  ((1 << TrueColor) |
-				   (1 << DirectColor)),
-				  8, TrueColor, 0xf800, 0x07e0, 0x001f);
-	break;
+        miSetVisualTypesAndMasks(16,
+                                 ((1 << TrueColor) |
+                                  (1 << DirectColor)),
+                                 8, TrueColor, 0xf800, 0x07e0, 0x001f);
+        break;
     case 24:
-	miSetVisualTypesAndMasks (24,
-				  ((1 << TrueColor) |
-				   (1 << DirectColor)),
-				  8, TrueColor, 0xff0000, 0x00ff00, 0x0000ff);
-	break;
+        miSetVisualTypesAndMasks(24,
+                                 ((1 << TrueColor) |
+                                  (1 << DirectColor)),
+                                 8, TrueColor, 0xff0000, 0x00ff00, 0x0000ff);
+        break;
     case 30:
-	miSetVisualTypesAndMasks (30,
-				  ((1 << TrueColor) |
-				   (1 << DirectColor)),
-				  10, TrueColor, 0x3ff00000, 0x000ffc00, 0x000003ff);
-	break;
+        miSetVisualTypesAndMasks(30,
+                                 ((1 << TrueColor) |
+                                  (1 << DirectColor)),
+                                 10, TrueColor, 0x3ff00000, 0x000ffc00,
+                                 0x000003ff);
+        break;
     default:
-	return FALSE;
+        return FALSE;
     }
 
-    miSetPixmapDepths ();
+    miSetPixmapDepths();
 
     ret = fbScreenInit(pScreen, pbits, pvfb->width, pvfb->height,
-		       dpix, dpiy, pvfb->paddedWidth,pvfb->bitsPerPixel);
-    if (ret && Render) 
-	fbPictureInit (pScreen, 0, 0);
+                       dpix, dpiy, pvfb->paddedWidth, pvfb->bitsPerPixel);
+    if (ret && Render)
+        fbPictureInit(pScreen, 0, 0);
 
-    if (!ret) return FALSE;
+    if (!ret)
+        return FALSE;
 
     pScreen->InstallColormap = vfbInstallColormap;
     pScreen->UninstallColormap = vfbUninstallColormap;
@@ -902,11 +876,10 @@ vfbScreenInit(int index, ScreenPtr pScreen, int argc, char **argv)
 
     return ret;
 
-} /* end vfbScreenInit */
-
+}                               /* end vfbScreenInit */
 
 void
-InitOutput(ScreenInfo *screenInfo, int argc, char **argv)
+InitOutput(ScreenInfo * screenInfo, int argc, char **argv)
 {
     int i;
     int NumFormats = 0;
@@ -914,39 +887,36 @@ InitOutput(ScreenInfo *screenInfo, int argc, char **argv)
     /* initialize pixmap formats */
 
     /* must have a pixmap depth to match every screen depth */
-    for (i = 0; i < vfbNumScreens; i++)
-    {
-	vfbPixmapDepths[vfbScreens[i].depth] = TRUE;
+    for (i = 0; i < vfbNumScreens; i++) {
+        vfbPixmapDepths[vfbScreens[i].depth] = TRUE;
     }
 
     /* RENDER needs a good set of pixmaps. */
     if (Render) {
-	vfbPixmapDepths[1] = TRUE;
-	vfbPixmapDepths[4] = TRUE;
-	vfbPixmapDepths[8] = TRUE;
+        vfbPixmapDepths[1] = TRUE;
+        vfbPixmapDepths[4] = TRUE;
+        vfbPixmapDepths[8] = TRUE;
 #if 0
-	vfbPixmapDepths[12] = TRUE;
+        vfbPixmapDepths[12] = TRUE;
 #endif
 /*	vfbPixmapDepths[15] = TRUE; */
-	vfbPixmapDepths[16] = TRUE;
-	vfbPixmapDepths[24] = TRUE;
+        vfbPixmapDepths[16] = TRUE;
+        vfbPixmapDepths[24] = TRUE;
 #if 0
-	vfbPixmapDepths[30] = TRUE;
+        vfbPixmapDepths[30] = TRUE;
 #endif
-	vfbPixmapDepths[32] = TRUE;
+        vfbPixmapDepths[32] = TRUE;
     }
 
-    for (i = 1; i <= 32; i++)
-    {
-	if (vfbPixmapDepths[i])
-	{
-	    if (NumFormats >= MAXFORMATS)
-		FatalError ("MAXFORMATS is too small for this server\n");
-	    screenInfo->formats[NumFormats].depth = i;
-	    screenInfo->formats[NumFormats].bitsPerPixel = vfbBitsPerPixel(i);
-	    screenInfo->formats[NumFormats].scanlinePad = BITMAP_SCANLINE_PAD;
-	    NumFormats++;
-	}
+    for (i = 1; i <= 32; i++) {
+        if (vfbPixmapDepths[i]) {
+            if (NumFormats >= MAXFORMATS)
+                FatalError("MAXFORMATS is too small for this server\n");
+            screenInfo->formats[NumFormats].depth = i;
+            screenInfo->formats[NumFormats].bitsPerPixel = vfbBitsPerPixel(i);
+            screenInfo->formats[NumFormats].scanlinePad = BITMAP_SCANLINE_PAD;
+            NumFormats++;
+        }
     }
 
     screenInfo->imageByteOrder = IMAGE_BYTE_ORDER;
@@ -957,17 +927,14 @@ InitOutput(ScreenInfo *screenInfo, int argc, char **argv)
 
     /* initialize screens */
 
-    if (vfbNumScreens < 1)
-    {
-	vfbScreens = &defaultScreenInfo;
-	vfbNumScreens = 1;
+    if (vfbNumScreens < 1) {
+        vfbScreens = &defaultScreenInfo;
+        vfbNumScreens = 1;
     }
-    for (i = 0; i < vfbNumScreens; i++)
-    {
-	if (-1 == AddScreen(vfbScreenInit, argc, argv))
-	{
-	    FatalError("Couldn't add screen %d", i);
-	}
+    for (i = 0; i < vfbNumScreens; i++) {
+        if (-1 == AddScreen(vfbScreenInit, argc, argv)) {
+            FatalError("Couldn't add screen %d", i);
+        }
     }
 
-} /* end InitOutput */
+}                               /* end InitOutput */

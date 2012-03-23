@@ -36,13 +36,14 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/dmxext.h>
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    Display              *display = NULL;
-    int                  event_base;
-    int                  error_base;
-    int                  major_version, minor_version, patch_version;
-    int                  status;
+    Display *display = NULL;
+    int event_base;
+    int error_base;
+    int major_version, minor_version, patch_version;
+    int status;
 
     if (argc != 3) {
         printf("Usage: %s display id\n", argv[0]);

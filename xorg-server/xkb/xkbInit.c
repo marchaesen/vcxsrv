@@ -75,12 +75,11 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #endif
 
 #define	MAX_TOC	16
-typedef struct	_SrvXkmInfo {
-	DeviceIntPtr	dev;
-	FILE *		file;
-	XkbDescPtr	xkb;
+typedef struct _SrvXkmInfo {
+    DeviceIntPtr dev;
+    FILE *file;
+    XkbDescPtr xkb;
 } SrvXkmInfo;
-
 
 /***====================================================================***/
 
@@ -88,25 +87,25 @@ typedef struct	_SrvXkmInfo {
 #define	XKB_DFLT_RULES_PROP	TRUE
 #endif
 
-const char *		XkbBaseDirectory=	XKB_BASE_DIRECTORY;
-const char *		XkbBinDirectory=	XKB_BIN_DIRECTORY;
-static int	 	XkbWantAccessX=		0;	
+const char *XkbBaseDirectory = XKB_BASE_DIRECTORY;
+const char *XkbBinDirectory = XKB_BIN_DIRECTORY;
+static int XkbWantAccessX = 0;
 
-static char *		XkbRulesDflt=		NULL;
-static char *		XkbModelDflt=		NULL;
-static char *		XkbLayoutDflt=		NULL;
-static char *		XkbVariantDflt=		NULL;
-static char *		XkbOptionsDflt=		NULL;
+static char *XkbRulesDflt = NULL;
+static char *XkbModelDflt = NULL;
+static char *XkbLayoutDflt = NULL;
+static char *XkbVariantDflt = NULL;
+static char *XkbOptionsDflt = NULL;
 
-static char *           XkbRulesUsed=   NULL;
-static char *		XkbModelUsed=	NULL;
-static char *		XkbLayoutUsed=	NULL;
-static char *		XkbVariantUsed=	NULL;
-static char *		XkbOptionsUsed=	NULL;
+static char *XkbRulesUsed = NULL;
+static char *XkbModelUsed = NULL;
+static char *XkbLayoutUsed = NULL;
+static char *XkbVariantUsed = NULL;
+static char *XkbOptionsUsed = NULL;
 
-static XkbDescPtr	xkb_cached_map = NULL;
+static XkbDescPtr xkb_cached_map = NULL;
 
-static Bool		XkbWantRulesProp=	XKB_DFLT_RULES_PROP;
+static Bool XkbWantRulesProp = XKB_DFLT_RULES_PROP;
 
 /***====================================================================***/
 
@@ -115,17 +114,17 @@ static Bool		XkbWantRulesProp=	XKB_DFLT_RULES_PROP;
  * Caller must free the data in rmlvo.
  */
 void
-XkbGetRulesDflts(XkbRMLVOSet *rmlvo)
+XkbGetRulesDflts(XkbRMLVOSet * rmlvo)
 {
-    rmlvo->rules  = strdup(XkbRulesDflt   ? XkbRulesDflt   : XKB_DFLT_RULES);
-    rmlvo->model  = strdup(XkbModelDflt   ? XkbModelDflt   : XKB_DFLT_MODEL);
-    rmlvo->layout = strdup(XkbLayoutDflt  ? XkbLayoutDflt  : XKB_DFLT_LAYOUT);
-    rmlvo->variant= strdup(XkbVariantDflt ? XkbVariantDflt : XKB_DFLT_VARIANT);
-    rmlvo->options= strdup(XkbOptionsDflt ? XkbOptionsDflt : XKB_DFLT_OPTIONS);
+    rmlvo->rules = strdup(XkbRulesDflt ? XkbRulesDflt : XKB_DFLT_RULES);
+    rmlvo->model = strdup(XkbModelDflt ? XkbModelDflt : XKB_DFLT_MODEL);
+    rmlvo->layout = strdup(XkbLayoutDflt ? XkbLayoutDflt : XKB_DFLT_LAYOUT);
+    rmlvo->variant = strdup(XkbVariantDflt ? XkbVariantDflt : XKB_DFLT_VARIANT);
+    rmlvo->options = strdup(XkbOptionsDflt ? XkbOptionsDflt : XKB_DFLT_OPTIONS);
 }
 
 void
-XkbFreeRMLVOSet(XkbRMLVOSet *rmlvo, Bool freeRMLVO)
+XkbFreeRMLVOSet(XkbRMLVOSet * rmlvo, Bool freeRMLVO)
 {
     if (!rmlvo)
         return;
@@ -145,107 +144,108 @@ XkbFreeRMLVOSet(XkbRMLVOSet *rmlvo, Bool freeRMLVO)
 static Bool
 XkbWriteRulesProp(ClientPtr client, pointer closure)
 {
-int 			len,out;
-Atom			name;
-char *			pval;
+    int len, out;
+    Atom name;
+    char *pval;
 
-    len= (XkbRulesUsed?strlen(XkbRulesUsed):0);
-    len+= (XkbModelUsed?strlen(XkbModelUsed):0);
-    len+= (XkbLayoutUsed?strlen(XkbLayoutUsed):0);
-    len+= (XkbVariantUsed?strlen(XkbVariantUsed):0);
-    len+= (XkbOptionsUsed?strlen(XkbOptionsUsed):0);
-    if (len<1)
-	return TRUE;
+    len = (XkbRulesUsed ? strlen(XkbRulesUsed) : 0);
+    len += (XkbModelUsed ? strlen(XkbModelUsed) : 0);
+    len += (XkbLayoutUsed ? strlen(XkbLayoutUsed) : 0);
+    len += (XkbVariantUsed ? strlen(XkbVariantUsed) : 0);
+    len += (XkbOptionsUsed ? strlen(XkbOptionsUsed) : 0);
+    if (len < 1)
+        return TRUE;
 
-    len+= 5; /* trailing NULs */
+    len += 5;                   /* trailing NULs */
 
-    name= MakeAtom(_XKB_RF_NAMES_PROP_ATOM,strlen(_XKB_RF_NAMES_PROP_ATOM),1);
-    if (name==None) {
-	ErrorF("[xkb] Atom error: %s not created\n",_XKB_RF_NAMES_PROP_ATOM);
-	return TRUE;
+    name =
+        MakeAtom(_XKB_RF_NAMES_PROP_ATOM, strlen(_XKB_RF_NAMES_PROP_ATOM), 1);
+    if (name == None) {
+        ErrorF("[xkb] Atom error: %s not created\n", _XKB_RF_NAMES_PROP_ATOM);
+        return TRUE;
     }
-    pval= (char*) malloc(len);
+    pval = (char *) malloc(len);
     if (!pval) {
-	ErrorF("[xkb] Allocation error: %s proprerty not created\n",
-						_XKB_RF_NAMES_PROP_ATOM);
-	return TRUE;
+        ErrorF("[xkb] Allocation error: %s proprerty not created\n",
+               _XKB_RF_NAMES_PROP_ATOM);
+        return TRUE;
     }
-    out= 0;
+    out = 0;
     if (XkbRulesUsed) {
-	strcpy(&pval[out],XkbRulesUsed);
-	out+= strlen(XkbRulesUsed);
+        strcpy(&pval[out], XkbRulesUsed);
+        out += strlen(XkbRulesUsed);
     }
-    pval[out++]= '\0';
+    pval[out++] = '\0';
     if (XkbModelUsed) {
-	strcpy(&pval[out],XkbModelUsed);
-	out+= strlen(XkbModelUsed);
-    } 
-    pval[out++]= '\0';
+        strcpy(&pval[out], XkbModelUsed);
+        out += strlen(XkbModelUsed);
+    }
+    pval[out++] = '\0';
     if (XkbLayoutUsed) {
-	strcpy(&pval[out],XkbLayoutUsed);
-	out+= strlen(XkbLayoutUsed);
+        strcpy(&pval[out], XkbLayoutUsed);
+        out += strlen(XkbLayoutUsed);
     }
-    pval[out++]= '\0';
+    pval[out++] = '\0';
     if (XkbVariantUsed) {
-	strcpy(&pval[out],XkbVariantUsed);
-	out+= strlen(XkbVariantUsed);
+        strcpy(&pval[out], XkbVariantUsed);
+        out += strlen(XkbVariantUsed);
     }
-    pval[out++]= '\0';
+    pval[out++] = '\0';
     if (XkbOptionsUsed) {
-	strcpy(&pval[out],XkbOptionsUsed);
-	out+= strlen(XkbOptionsUsed);
+        strcpy(&pval[out], XkbOptionsUsed);
+        out += strlen(XkbOptionsUsed);
     }
-    pval[out++]= '\0';
-    if (out!=len) {
-	ErrorF("[xkb] Internal Error! bad size (%d!=%d) for _XKB_RULES_NAMES\n",
-								out,len);
+    pval[out++] = '\0';
+    if (out != len) {
+        ErrorF("[xkb] Internal Error! bad size (%d!=%d) for _XKB_RULES_NAMES\n",
+               out, len);
     }
-    dixChangeWindowProperty(serverClient, screenInfo.screens[0]->root, name, XA_STRING, 8,
-			    PropModeReplace, len, pval, TRUE);
+    dixChangeWindowProperty(serverClient, screenInfo.screens[0]->root, name,
+                            XA_STRING, 8, PropModeReplace, len, pval, TRUE);
     free(pval);
     return TRUE;
 }
 
 static void
-XkbSetRulesUsed(XkbRMLVOSet *rmlvo)
+XkbSetRulesUsed(XkbRMLVOSet * rmlvo)
 {
     free(XkbRulesUsed);
-    XkbRulesUsed= (rmlvo->rules?Xstrdup(rmlvo->rules):NULL);
+    XkbRulesUsed = (rmlvo->rules ? Xstrdup(rmlvo->rules) : NULL);
     free(XkbModelUsed);
-    XkbModelUsed= (rmlvo->model?Xstrdup(rmlvo->model):NULL);
+    XkbModelUsed = (rmlvo->model ? Xstrdup(rmlvo->model) : NULL);
     free(XkbLayoutUsed);
-    XkbLayoutUsed= (rmlvo->layout?Xstrdup(rmlvo->layout):NULL);
+    XkbLayoutUsed = (rmlvo->layout ? Xstrdup(rmlvo->layout) : NULL);
     free(XkbVariantUsed);
-    XkbVariantUsed= (rmlvo->variant?Xstrdup(rmlvo->variant):NULL);
+    XkbVariantUsed = (rmlvo->variant ? Xstrdup(rmlvo->variant) : NULL);
     free(XkbOptionsUsed);
-    XkbOptionsUsed= (rmlvo->options?Xstrdup(rmlvo->options):NULL);
+    XkbOptionsUsed = (rmlvo->options ? Xstrdup(rmlvo->options) : NULL);
     if (XkbWantRulesProp)
-	QueueWorkProc(XkbWriteRulesProp,NULL,NULL);
+        QueueWorkProc(XkbWriteRulesProp, NULL, NULL);
     return;
 }
 
 void
-XkbSetRulesDflts(XkbRMLVOSet *rmlvo)
+XkbSetRulesDflts(XkbRMLVOSet * rmlvo)
 {
     if (rmlvo->rules) {
         free(XkbRulesDflt);
-        XkbRulesDflt= Xstrdup(rmlvo->rules);
+        XkbRulesDflt = Xstrdup(rmlvo->rules);
     }
     if (rmlvo->model) {
-	free(XkbModelDflt);
-	XkbModelDflt= Xstrdup(rmlvo->model);
+        free(XkbModelDflt);
+        XkbModelDflt = Xstrdup(rmlvo->model);
     }
     if (rmlvo->layout) {
-	free(XkbLayoutDflt);
-	XkbLayoutDflt= Xstrdup(rmlvo->layout);
+        free(XkbLayoutDflt);
+        XkbLayoutDflt = Xstrdup(rmlvo->layout);
     }
     if (rmlvo->variant) {
-	free(XkbVariantDflt);
-	XkbVariantDflt= Xstrdup(rmlvo->variant);
+        free(XkbVariantDflt);
+        XkbVariantDflt = Xstrdup(rmlvo->variant);
     }
     if (rmlvo->options) {
-	free(XkbOptionsDflt);
-	XkbOptionsDflt= Xstrdup(rmlvo->options);
+        free(XkbOptionsDflt);
+        XkbOptionsDflt = Xstrdup(rmlvo->options);
     }
     return;
 }
@@ -271,7 +271,7 @@ XkbDeleteRulesDflts(void)
 #define DIFFERS(a, b) (strcmp((a) ? (a) : "", (b) ? (b) : "") != 0)
 
 static Bool
-XkbCompareUsedRMLVO(XkbRMLVOSet *rmlvo)
+XkbCompareUsedRMLVO(XkbRMLVOSet * rmlvo)
 {
     if (DIFFERS(rmlvo->rules, XkbRulesUsed) ||
         DIFFERS(rmlvo->model, XkbModelUsed) ||
@@ -295,13 +295,12 @@ XkbInitKeyTypes(XkbDescPtr xkb)
         return TRUE;
 
     initTypeNames(NULL);
-    if (XkbAllocClientMap(xkb,XkbKeyTypesMask,num_dflt_types)!=Success)
-	return FALSE;
-    if (XkbCopyKeyTypes(dflt_types,xkb->map->types,num_dflt_types)!=
-    								 Success) {
-	return FALSE;
+    if (XkbAllocClientMap(xkb, XkbKeyTypesMask, num_dflt_types) != Success)
+        return FALSE;
+    if (XkbCopyKeyTypes(dflt_types, xkb->map->types, num_dflt_types) != Success) {
+        return FALSE;
     }
-    xkb->map->size_types= xkb->map->num_types= num_dflt_types;
+    xkb->map->size_types = xkb->map->num_types = num_dflt_types;
     return TRUE;
 }
 
@@ -313,31 +312,32 @@ XkbInitRadioGroups(XkbSrvInfoPtr xkbi)
     return;
 }
 
-
 static Status
 XkbInitCompatStructs(XkbDescPtr xkb)
 {
-register int 	i;
-XkbCompatMapPtr	compat;
+    register int i;
+    XkbCompatMapPtr compat;
 
     if (xkb->defined & XkmCompatMapMask)
         return TRUE;
 
-    if (XkbAllocCompatMap(xkb,XkbAllCompatMask,num_dfltSI)!=Success)
-	return BadAlloc;
+    if (XkbAllocCompatMap(xkb, XkbAllCompatMask, num_dfltSI) != Success)
+        return BadAlloc;
     compat = xkb->compat;
     if (compat->sym_interpret) {
-	compat->num_si = num_dfltSI;
-	memcpy((char *)compat->sym_interpret,(char *)dfltSI,sizeof(dfltSI));
+        compat->num_si = num_dfltSI;
+        memcpy((char *) compat->sym_interpret, (char *) dfltSI, sizeof(dfltSI));
     }
-    for (i=0;i<XkbNumKbdGroups;i++) {
-	compat->groups[i]= compatMap.groups[i];
-	if (compat->groups[i].vmods!=0) {
-	    unsigned mask;
-	    mask= XkbMaskForVMask(xkb,compat->groups[i].vmods);
-	    compat->groups[i].mask= compat->groups[i].real_mods|mask;
-	}
-	else compat->groups[i].mask= compat->groups[i].real_mods;
+    for (i = 0; i < XkbNumKbdGroups; i++) {
+        compat->groups[i] = compatMap.groups[i];
+        if (compat->groups[i].vmods != 0) {
+            unsigned mask;
+
+            mask = XkbMaskForVMask(xkb, compat->groups[i].vmods);
+            compat->groups[i].mask = compat->groups[i].real_mods | mask;
+        }
+        else
+            compat->groups[i].mask = compat->groups[i].real_mods;
     }
     return Success;
 }
@@ -355,49 +355,56 @@ XkbInitSemantics(XkbDescPtr xkb)
 static Status
 XkbInitNames(XkbSrvInfoPtr xkbi)
 {
-XkbDescPtr	xkb;
-XkbNamesPtr	names;
-Status		rtrn;
-Atom		unknown;
+    XkbDescPtr xkb;
+    XkbNamesPtr names;
+    Status rtrn;
+    Atom unknown;
 
-    xkb= xkbi->desc;
-    if ((rtrn=XkbAllocNames(xkb,XkbAllNamesMask,0,0))!=Success)
-	return rtrn;
-    unknown= CREATE_ATOM("unknown");
+    xkb = xkbi->desc;
+    if ((rtrn = XkbAllocNames(xkb, XkbAllNamesMask, 0, 0)) != Success)
+        return rtrn;
+    unknown = CREATE_ATOM("unknown");
     names = xkb->names;
-    if (names->keycodes==None)		names->keycodes= unknown;
-    if (names->geometry==None)		names->geometry= unknown;
-    if (names->phys_symbols==None)	names->phys_symbols= unknown;
-    if (names->symbols==None)		names->symbols= unknown;
-    if (names->types==None)		names->types= unknown;
-    if (names->compat==None)		names->compat= unknown;
+    if (names->keycodes == None)
+        names->keycodes = unknown;
+    if (names->geometry == None)
+        names->geometry = unknown;
+    if (names->phys_symbols == None)
+        names->phys_symbols = unknown;
+    if (names->symbols == None)
+        names->symbols = unknown;
+    if (names->types == None)
+        names->types = unknown;
+    if (names->compat == None)
+        names->compat = unknown;
     if (!(xkb->defined & XkmVirtualModsMask)) {
-        if (names->vmods[vmod_NumLock]==None)
-            names->vmods[vmod_NumLock]= CREATE_ATOM("NumLock");
-        if (names->vmods[vmod_Alt]==None)
-            names->vmods[vmod_Alt]= CREATE_ATOM("Alt");
-        if (names->vmods[vmod_AltGr]==None)
-            names->vmods[vmod_AltGr]= CREATE_ATOM("ModeSwitch");
+        if (names->vmods[vmod_NumLock] == None)
+            names->vmods[vmod_NumLock] = CREATE_ATOM("NumLock");
+        if (names->vmods[vmod_Alt] == None)
+            names->vmods[vmod_Alt] = CREATE_ATOM("Alt");
+        if (names->vmods[vmod_AltGr] == None)
+            names->vmods[vmod_AltGr] = CREATE_ATOM("ModeSwitch");
     }
 
     if (!(xkb->defined & XkmIndicatorsMask) ||
         !(xkb->defined & XkmGeometryMask)) {
-        initIndicatorNames(NULL,xkb);
-        if (names->indicators[LED_CAPS-1]==None)
-            names->indicators[LED_CAPS-1] = CREATE_ATOM("Caps Lock");
-        if (names->indicators[LED_NUM-1]==None)
-            names->indicators[LED_NUM-1] = CREATE_ATOM("Num Lock");
-        if (names->indicators[LED_SCROLL-1]==None)
-            names->indicators[LED_SCROLL-1] = CREATE_ATOM("Scroll Lock");
+        initIndicatorNames(NULL, xkb);
+        if (names->indicators[LED_CAPS - 1] == None)
+            names->indicators[LED_CAPS - 1] = CREATE_ATOM("Caps Lock");
+        if (names->indicators[LED_NUM - 1] == None)
+            names->indicators[LED_NUM - 1] = CREATE_ATOM("Num Lock");
+        if (names->indicators[LED_SCROLL - 1] == None)
+            names->indicators[LED_SCROLL - 1] = CREATE_ATOM("Scroll Lock");
 #ifdef LED_COMPOSE
-        if (names->indicators[LED_COMPOSE-1]==None)
-            names->indicators[LED_COMPOSE-1] = CREATE_ATOM("Compose");
+        if (names->indicators[LED_COMPOSE - 1] == None)
+            names->indicators[LED_COMPOSE - 1] = CREATE_ATOM("Compose");
 #endif
     }
 
-    if (xkb->geom!=NULL)
-	 names->geometry= xkb->geom->name;
-    else names->geometry= unknown;
+    if (xkb->geom != NULL)
+        names->geometry = xkb->geom->name;
+    else
+        names->geometry = unknown;
 
     return Success;
 }
@@ -405,75 +412,74 @@ Atom		unknown;
 static Status
 XkbInitIndicatorMap(XkbSrvInfoPtr xkbi)
 {
-XkbDescPtr		xkb;
-XkbIndicatorPtr		map;
-XkbSrvLedInfoPtr	sli;
+    XkbDescPtr xkb;
+    XkbIndicatorPtr map;
+    XkbSrvLedInfoPtr sli;
 
-    xkb= xkbi->desc;
-    if (XkbAllocIndicatorMaps(xkb)!=Success)
-	return BadAlloc;
+    xkb = xkbi->desc;
+    if (XkbAllocIndicatorMaps(xkb) != Success)
+        return BadAlloc;
 
     if (!(xkb->defined & XkmIndicatorsMask)) {
-        map= xkb->indicators;
+        map = xkb->indicators;
         map->phys_indicators = PHYS_LEDS;
-        map->maps[LED_CAPS-1].flags= XkbIM_NoExplicit;
-        map->maps[LED_CAPS-1].which_mods= XkbIM_UseLocked;
-        map->maps[LED_CAPS-1].mods.mask= LockMask;
-        map->maps[LED_CAPS-1].mods.real_mods= LockMask;
+        map->maps[LED_CAPS - 1].flags = XkbIM_NoExplicit;
+        map->maps[LED_CAPS - 1].which_mods = XkbIM_UseLocked;
+        map->maps[LED_CAPS - 1].mods.mask = LockMask;
+        map->maps[LED_CAPS - 1].mods.real_mods = LockMask;
 
-        map->maps[LED_NUM-1].flags= XkbIM_NoExplicit;
-        map->maps[LED_NUM-1].which_mods= XkbIM_UseLocked;
-        map->maps[LED_NUM-1].mods.mask= 0;
-        map->maps[LED_NUM-1].mods.real_mods= 0;
-        map->maps[LED_NUM-1].mods.vmods= vmod_NumLockMask;
+        map->maps[LED_NUM - 1].flags = XkbIM_NoExplicit;
+        map->maps[LED_NUM - 1].which_mods = XkbIM_UseLocked;
+        map->maps[LED_NUM - 1].mods.mask = 0;
+        map->maps[LED_NUM - 1].mods.real_mods = 0;
+        map->maps[LED_NUM - 1].mods.vmods = vmod_NumLockMask;
 
-        map->maps[LED_SCROLL-1].flags= XkbIM_NoExplicit;
-        map->maps[LED_SCROLL-1].which_mods= XkbIM_UseLocked;
-        map->maps[LED_SCROLL-1].mods.mask= Mod3Mask;
-        map->maps[LED_SCROLL-1].mods.real_mods= Mod3Mask;
+        map->maps[LED_SCROLL - 1].flags = XkbIM_NoExplicit;
+        map->maps[LED_SCROLL - 1].which_mods = XkbIM_UseLocked;
+        map->maps[LED_SCROLL - 1].mods.mask = Mod3Mask;
+        map->maps[LED_SCROLL - 1].mods.real_mods = Mod3Mask;
     }
 
-    sli= XkbFindSrvLedInfo(xkbi->device,XkbDfltXIClass,XkbDfltXIId,0);
+    sli = XkbFindSrvLedInfo(xkbi->device, XkbDfltXIClass, XkbDfltXIId, 0);
     if (sli)
-	XkbCheckIndicatorMaps(xkbi->device,sli,XkbAllIndicatorsMask);
+        XkbCheckIndicatorMaps(xkbi->device, sli, XkbAllIndicatorsMask);
 
     return Success;
 }
 
 static Status
-XkbInitControls(DeviceIntPtr pXDev,XkbSrvInfoPtr xkbi)
+XkbInitControls(DeviceIntPtr pXDev, XkbSrvInfoPtr xkbi)
 {
-XkbDescPtr	xkb;
-XkbControlsPtr	ctrls;
+    XkbDescPtr xkb;
+    XkbControlsPtr ctrls;
 
-    xkb= xkbi->desc;
+    xkb = xkbi->desc;
     /* 12/31/94 (ef) -- XXX! Should check if controls loaded from file */
-    if (XkbAllocControls(xkb,XkbAllControlsMask)!=Success)
-	FatalError("Couldn't allocate keyboard controls\n");
-    ctrls= xkb->ctrls;
+    if (XkbAllocControls(xkb, XkbAllControlsMask) != Success)
+        FatalError("Couldn't allocate keyboard controls\n");
+    ctrls = xkb->ctrls;
     if (!(xkb->defined & XkmSymbolsMask))
         ctrls->num_groups = 1;
-    ctrls->groups_wrap = XkbSetGroupInfo(1,XkbWrapIntoRange,0);
+    ctrls->groups_wrap = XkbSetGroupInfo(1, XkbWrapIntoRange, 0);
     ctrls->internal.mask = 0;
     ctrls->internal.real_mods = 0;
     ctrls->internal.vmods = 0;
     ctrls->ignore_lock.mask = 0;
     ctrls->ignore_lock.real_mods = 0;
     ctrls->ignore_lock.vmods = 0;
-    ctrls->enabled_ctrls = XkbAccessXTimeoutMask|XkbRepeatKeysMask|
-				XkbMouseKeysAccelMask|XkbAudibleBellMask|
-				XkbIgnoreGroupLockMask;
+    ctrls->enabled_ctrls = XkbAccessXTimeoutMask | XkbRepeatKeysMask |
+        XkbMouseKeysAccelMask | XkbAudibleBellMask | XkbIgnoreGroupLockMask;
     if (XkbWantAccessX)
-	ctrls->enabled_ctrls|= XkbAccessXKeysMask;
+        ctrls->enabled_ctrls |= XkbAccessXKeysMask;
     AccessXInit(pXDev);
     return Success;
 }
 
 _X_EXPORT Bool
-InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet *rmlvo,
+InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
                          BellProcPtr bell_func, KbdCtrlProcPtr ctrl_func)
 {
-    int	i;
+    int i;
     unsigned int check;
     XkbSrvInfoPtr xkbi;
     XkbDescPtr xkb;
@@ -483,14 +489,12 @@ InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet *rmlvo,
     XkbRMLVOSet rmlvo_dflts = { NULL };
 
     if (dev->key || dev->kbdfeed)
-	return FALSE;
+        return FALSE;
 
-    if (!rmlvo)
-    {
+    if (!rmlvo) {
         rmlvo = &rmlvo_dflts;
         XkbGetRulesDflts(rmlvo);
     }
-
 
     memset(&changes, 0, sizeof(changes));
     XkbSetCauseUnknown(&cause);
@@ -585,11 +589,11 @@ InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet *rmlvo,
 
     sli = XkbFindSrvLedInfo(dev, XkbDfltXIClass, XkbDfltXIId, 0);
     if (sli)
-	XkbCheckIndicatorMaps(dev, sli, XkbAllIndicatorsMask);
+        XkbCheckIndicatorMaps(dev, sli, XkbAllIndicatorsMask);
     else
         DebugF("XKB: No indicator feedback in XkbFinishInit!\n");
 
-    dev->kbdfeed->CtrlProc(dev,&dev->kbdfeed->ctrl);
+    dev->kbdfeed->CtrlProc(dev, &dev->kbdfeed->ctrl);
 
     XkbSetRulesDflts(rmlvo);
     XkbSetRulesUsed(rmlvo);
@@ -597,63 +601,62 @@ InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet *rmlvo,
 
     return TRUE;
 
-unwind_desc:
+ unwind_desc:
     XkbFreeKeyboard(xkb, 0, TRUE);
-unwind_info:
+ unwind_info:
     free(xkbi);
     dev->key->xkbInfo = NULL;
-unwind_kbdfeed:
+ unwind_kbdfeed:
     free(dev->kbdfeed);
     dev->kbdfeed = NULL;
-unwind_key:
+ unwind_key:
     free(dev->key);
     dev->key = NULL;
     return FALSE;
 }
 
-
 /***====================================================================***/
 
-	/*
-	 * Be very careful about what does and doesn't get freed by this 
-	 * function.  To reduce fragmentation, XkbInitDevice allocates a 
-	 * single huge block per device and divides it up into most of the 
-	 * fixed-size structures for the device.   Don't free anything that
-	 * is part of this larger block.
-	 */
+        /*
+         * Be very careful about what does and doesn't get freed by this 
+         * function.  To reduce fragmentation, XkbInitDevice allocates a 
+         * single huge block per device and divides it up into most of the 
+         * fixed-size structures for the device.   Don't free anything that
+         * is part of this larger block.
+         */
 void
 XkbFreeInfo(XkbSrvInfoPtr xkbi)
 {
     free(xkbi->radioGroups);
     xkbi->radioGroups = NULL;
     if (xkbi->mouseKeyTimer) {
-	TimerFree(xkbi->mouseKeyTimer);
-	xkbi->mouseKeyTimer= NULL;
+        TimerFree(xkbi->mouseKeyTimer);
+        xkbi->mouseKeyTimer = NULL;
     }
     if (xkbi->slowKeysTimer) {
-	TimerFree(xkbi->slowKeysTimer);
-	xkbi->slowKeysTimer= NULL;
+        TimerFree(xkbi->slowKeysTimer);
+        xkbi->slowKeysTimer = NULL;
     }
     if (xkbi->bounceKeysTimer) {
-	TimerFree(xkbi->bounceKeysTimer);
-	xkbi->bounceKeysTimer= NULL;
+        TimerFree(xkbi->bounceKeysTimer);
+        xkbi->bounceKeysTimer = NULL;
     }
     if (xkbi->repeatKeyTimer) {
-	TimerFree(xkbi->repeatKeyTimer);
-	xkbi->repeatKeyTimer= NULL;
+        TimerFree(xkbi->repeatKeyTimer);
+        xkbi->repeatKeyTimer = NULL;
     }
     if (xkbi->krgTimer) {
-	TimerFree(xkbi->krgTimer);
-	xkbi->krgTimer= NULL;
+        TimerFree(xkbi->krgTimer);
+        xkbi->krgTimer = NULL;
     }
-    xkbi->beepType= _BEEP_NONE;
+    xkbi->beepType = _BEEP_NONE;
     if (xkbi->beepTimer) {
-	TimerFree(xkbi->beepTimer);
-	xkbi->beepTimer= NULL;
+        TimerFree(xkbi->beepTimer);
+        xkbi->beepTimer = NULL;
     }
     if (xkbi->desc) {
-	XkbFreeKeyboard(xkbi->desc,XkbAllComponentsMask,TRUE);
-	xkbi->desc= NULL;
+        XkbFreeKeyboard(xkbi->desc, XkbAllComponentsMask, TRUE);
+        xkbi->desc = NULL;
     }
     free(xkbi);
     return;
@@ -661,88 +664,92 @@ XkbFreeInfo(XkbSrvInfoPtr xkbi)
 
 /***====================================================================***/
 
-extern int	XkbDfltRepeatDelay;
-extern int	XkbDfltRepeatInterval;
+extern int XkbDfltRepeatDelay;
+extern int XkbDfltRepeatInterval;
 
-extern unsigned short	XkbDfltAccessXTimeout;
-extern unsigned int	XkbDfltAccessXTimeoutMask;
-extern unsigned int	XkbDfltAccessXFeedback;
-extern unsigned char	XkbDfltAccessXOptions;
+extern unsigned short XkbDfltAccessXTimeout;
+extern unsigned int XkbDfltAccessXTimeoutMask;
+extern unsigned int XkbDfltAccessXFeedback;
+extern unsigned char XkbDfltAccessXOptions;
 
 int
-XkbProcessArguments(int argc,char *argv[],int i)
+XkbProcessArguments(int argc, char *argv[], int i)
 {
     if (strncmp(argv[i], "-xkbdir", 7) == 0) {
-	if(++i < argc) {
+        if (++i < argc) {
 #if !defined(WIN32) && !defined(__CYGWIN__)
-	    if (getuid() != geteuid()) {
-		LogMessage(X_WARNING, "-xkbdir is not available for setuid X servers\n");
-		return -1;
-	    } else
+            if (getuid() != geteuid()) {
+                LogMessage(X_WARNING,
+                           "-xkbdir is not available for setuid X servers\n");
+                return -1;
+            }
+            else
 #endif
-	    {
-		if (strlen(argv[i]) < PATH_MAX) {
-		    XkbBaseDirectory= argv[i];
-		    return 2;
-	        } else {
-		    LogMessage(X_ERROR, "-xkbdir pathname too long\n");
-		    return -1;
-		}
-	    }
-	}
-	else {
-	    return -1;
-	}
+            {
+                if (strlen(argv[i]) < PATH_MAX) {
+                    XkbBaseDirectory = argv[i];
+                    return 2;
+                }
+                else {
+                    LogMessage(X_ERROR, "-xkbdir pathname too long\n");
+                    return -1;
+                }
+            }
+        }
+        else {
+            return -1;
+        }
     }
-    else if ((strncmp(argv[i],"-accessx",8)==0)||
-                 (strncmp(argv[i],"+accessx",8)==0)) {
-	int j=1;	    
-	if (argv[i][0]=='-')        
-	    XkbWantAccessX= 0;
-	else {
-	    XkbWantAccessX= 1;
-	    
-	    if ( ((i+1)<argc) && (isdigit(argv[i+1][0])) ) {
-		XkbDfltAccessXTimeout = atoi(argv[++i]);
-		j++;
+    else if ((strncmp(argv[i], "-accessx", 8) == 0) ||
+             (strncmp(argv[i], "+accessx", 8) == 0)) {
+        int j = 1;
 
-		if ( ((i+1)<argc) && (isdigit(argv[i+1][0])) ) {
-		    /*
-		     * presumption that the reasonably useful range of
-		     * values fits in 0..MAXINT since SunOS 4 doesn't
-		     * have strtoul.
-		     */
-		    XkbDfltAccessXTimeoutMask=(unsigned int)
-					      strtol(argv[++i],NULL,16); 
-		    j++;
-		}
-		if ( ((i+1)<argc) && (isdigit(argv[i+1][0])) ) {
-		    if (argv[++i][0] == '1' ) 
-			XkbDfltAccessXFeedback=XkbAccessXFeedbackMask;
-		    else
-			XkbDfltAccessXFeedback=0;
-		    j++;
-		}
-		if ( ((i+1)<argc) && (isdigit(argv[i+1][0])) ) {
-		    XkbDfltAccessXOptions=(unsigned char)
-					   strtol(argv[++i],NULL,16);
-		    j++;
-		}
-	    }
-	}
-	return j;
+        if (argv[i][0] == '-')
+            XkbWantAccessX = 0;
+        else {
+            XkbWantAccessX = 1;
+
+            if (((i + 1) < argc) && (isdigit(argv[i + 1][0]))) {
+                XkbDfltAccessXTimeout = atoi(argv[++i]);
+                j++;
+
+                if (((i + 1) < argc) && (isdigit(argv[i + 1][0]))) {
+                    /*
+                     * presumption that the reasonably useful range of
+                     * values fits in 0..MAXINT since SunOS 4 doesn't
+                     * have strtoul.
+                     */
+                    XkbDfltAccessXTimeoutMask = (unsigned int)
+                        strtol(argv[++i], NULL, 16);
+                    j++;
+                }
+                if (((i + 1) < argc) && (isdigit(argv[i + 1][0]))) {
+                    if (argv[++i][0] == '1')
+                        XkbDfltAccessXFeedback = XkbAccessXFeedbackMask;
+                    else
+                        XkbDfltAccessXFeedback = 0;
+                    j++;
+                }
+                if (((i + 1) < argc) && (isdigit(argv[i + 1][0]))) {
+                    XkbDfltAccessXOptions = (unsigned char)
+                        strtol(argv[++i], NULL, 16);
+                    j++;
+                }
+            }
+        }
+        return j;
     }
-    if ((strcmp(argv[i], "-ardelay") == 0) ||
-        (strcmp (argv[i], "-ar1") == 0)) {	/* -ardelay int */
-	if (++i >= argc) UseMsg ();
-	XkbDfltRepeatDelay = (long)atoi(argv[i]);
-	return 2;
+    if ((strcmp(argv[i], "-ardelay") == 0) || (strcmp(argv[i], "-ar1") == 0)) { /* -ardelay int */
+        if (++i >= argc)
+            UseMsg();
+        XkbDfltRepeatDelay = (long) atoi(argv[i]);
+        return 2;
     }
-    if ((strcmp(argv[i], "-arinterval") == 0) ||
-        (strcmp (argv[i], "-ar2") == 0)) {	/* -arinterval int */
-	if (++i >= argc) UseMsg ();
-	XkbDfltRepeatInterval = (long)atoi(argv[i]);
-	return 2;
+    if ((strcmp(argv[i], "-arinterval") == 0) || (strcmp(argv[i], "-ar2") == 0)) {      /* -arinterval int */
+        if (++i >= argc)
+            UseMsg();
+        XkbDfltRepeatInterval = (long) atoi(argv[i]);
+        return 2;
     }
     return 0;
 }
@@ -750,7 +757,8 @@ XkbProcessArguments(int argc,char *argv[],int i)
 void
 XkbUseMsg(void)
 {
-    ErrorF("[+-]accessx [ timeout [ timeout_mask [ feedback [ options_mask] ] ] ]\n");
+    ErrorF
+        ("[+-]accessx [ timeout [ timeout_mask [ feedback [ options_mask] ] ] ]\n");
     ErrorF("                       enable/disable accessx key sequences\n");
     ErrorF("-ardelay               set XKB autorepeat delay\n");
     ErrorF("-arinterval            set XKB autorepeat interval\n");

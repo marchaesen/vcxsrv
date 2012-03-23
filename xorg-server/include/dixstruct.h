@@ -41,33 +41,32 @@ SOFTWARE.
 extern _X_EXPORT CallbackListPtr ClientStateCallback;
 
 typedef struct {
-    ClientPtr 		client;
-    xConnSetupPrefix 	*prefix; 
-    xConnSetup  	*setup;
+    ClientPtr client;
+    xConnSetupPrefix *prefix;
+    xConnSetup *setup;
 } NewClientInfoRec;
 
-typedef void (*ReplySwapPtr) (
-		ClientPtr	/* pClient */,
-		int		/* size */,
-		void *		/* pbuf */);
+typedef void (*ReplySwapPtr) (ClientPtr /* pClient */ ,
+                              int /* size */ ,
+                              void * /* pbuf */ );
 
-extern _X_EXPORT void ReplyNotSwappd (
-		ClientPtr	/* pClient */,
-		int		/* size */,
-		void *		/* pbuf */) _X_NORETURN;
+extern _X_EXPORT void
+ReplyNotSwappd(ClientPtr /* pClient */ ,
+               int /* size */ ,
+               void * /* pbuf */ ) _X_NORETURN;
 
-typedef enum {ClientStateInitial,
-	      /* 1 is unused now, was ClientStateAuthenticating */
-	      ClientStateRunning = 2,
-	      ClientStateRetained,
-	      ClientStateGone
+typedef enum { ClientStateInitial,
+    /* 1 is unused now, was ClientStateAuthenticating */
+    ClientStateRunning = 2,
+    ClientStateRetained,
+    ClientStateGone
 } ClientState;
 
 #ifdef XFIXES
 typedef struct _saveSet {
-    struct _Window  *windowPtr;
-    Bool	    toRoot;
-    Bool	    map;
+    struct _Window *windowPtr;
+    Bool toRoot;
+    Bool map;
 } SaveSetElt;
 #define SaveSetWindow(ss)   ((ss).windowPtr)
 #define SaveSetToRoot(ss)   ((ss).toRoot)
@@ -77,6 +76,7 @@ typedef struct _saveSet {
 #define SaveSetAssignMap(ss,m)      ((ss).map = (m))
 #else
 typedef struct _Window *SaveSetElt;
+
 #define SaveSetWindow(ss)   (ss)
 #define SaveSetToRoot(ss)   FALSE
 #define SaveSetShouldMap(ss)	    TRUE
@@ -86,44 +86,43 @@ typedef struct _Window *SaveSetElt;
 #endif
 
 typedef struct _Client {
-    int         index;
-    Mask        clientAsMask;
-    pointer     requestBuffer;
-    pointer     osPrivate;	/* for OS layer, including scheduler */
-    Bool        swapped;
+    int index;
+    Mask clientAsMask;
+    pointer requestBuffer;
+    pointer osPrivate;          /* for OS layer, including scheduler */
+    Bool swapped;
     ReplySwapPtr pSwapReplyFunc;
-    XID         errorValue;
-    int         sequence;
-    int         closeDownMode;
-    int         clientGone;
-    int         noClientException;	/* this client died or needs to be
-					 * killed */
-    int         ignoreCount;		/* count for Attend/IgnoreClient */
-    SaveSetElt	*saveSet;
-    int         numSaved;
-    int         (**requestVector) (
-		ClientPtr /* pClient */);
-    CARD32	req_len;		/* length of current request */
-    Bool	big_requests;		/* supports large requests */
-    int		priority;
+    XID errorValue;
+    int sequence;
+    int closeDownMode;
+    int clientGone;
+    int noClientException;      /* this client died or needs to be
+                                 * killed */
+    int ignoreCount;            /* count for Attend/IgnoreClient */
+    SaveSetElt *saveSet;
+    int numSaved;
+    int (**requestVector) (ClientPtr /* pClient */ );
+    CARD32 req_len;             /* length of current request */
+    Bool big_requests;          /* supports large requests */
+    int priority;
     ClientState clientState;
-    PrivateRec	*devPrivates;
-    unsigned short	xkbClientFlags;
-    unsigned short	mapNotifyMask;
-    unsigned short	newKeyboardNotifyMask;
-    unsigned short	vMajor,vMinor;
-    KeyCode		minKC,maxKC;
+    PrivateRec *devPrivates;
+    unsigned short xkbClientFlags;
+    unsigned short mapNotifyMask;
+    unsigned short newKeyboardNotifyMask;
+    unsigned short vMajor, vMinor;
+    KeyCode minKC, maxKC;
 
     unsigned long replyBytesRemaining;
-    int	    smart_priority;
-    long    smart_start_tick;
-    long    smart_stop_tick;
-    long    smart_check_tick;
-    
+    int smart_priority;
+    long smart_start_tick;
+    long smart_stop_tick;
+    long smart_check_tick;
+
     DeviceIntPtr clientPtr;
-    ClientIdPtr  clientIds;
+    ClientIdPtr clientIds;
     unsigned short majorOp, minorOp;
-}           ClientRec;
+} ClientRec;
 
 /*
  * Scheduling interface
@@ -133,60 +132,64 @@ extern _X_EXPORT long SmartScheduleInterval;
 extern _X_EXPORT long SmartScheduleSlice;
 extern _X_EXPORT long SmartScheduleMaxSlice;
 extern _X_EXPORT Bool SmartScheduleDisable;
-extern _X_EXPORT void SmartScheduleStartTimer(void);
-extern _X_EXPORT void SmartScheduleStopTimer(void);
+extern _X_EXPORT void
+SmartScheduleStartTimer(void);
+extern _X_EXPORT void
+SmartScheduleStopTimer(void);
+
 #define SMART_MAX_PRIORITY  (20)
 #define SMART_MIN_PRIORITY  (-20)
 
-extern _X_EXPORT void SmartScheduleInit(void);
-
+extern _X_EXPORT void
+SmartScheduleInit(void);
 
 /* This prototype is used pervasively in Xext, dix */
 #define DISPATCH_PROC(func) int func(ClientPtr /* client */)
 
 typedef struct _WorkQueue {
     struct _WorkQueue *next;
-    Bool        (*function) (
-		ClientPtr	/* pClient */,
-		pointer		/* closure */
-);
-    ClientPtr   client;
-    pointer     closure;
-}           WorkQueueRec;
+    Bool (*function) (ClientPtr /* pClient */ ,
+                      pointer   /* closure */
+        );
+    ClientPtr client;
+    pointer closure;
+} WorkQueueRec;
 
 extern _X_EXPORT TimeStamp currentTime;
-extern _X_EXPORT TimeStamp lastDeviceEventTime;
+extern _X_EXPORT TimeStamp lastDeviceEventTime[MAXDEVICES];
 
-extern _X_EXPORT int CompareTimeStamps(
-    TimeStamp /*a*/,
-    TimeStamp /*b*/);
+extern _X_EXPORT int
+CompareTimeStamps(TimeStamp /*a */ ,
+                  TimeStamp /*b */ );
 
-extern _X_EXPORT TimeStamp ClientTimeToServerTime(CARD32 /*c*/);
+extern _X_EXPORT TimeStamp
+ClientTimeToServerTime(CARD32 /*c */ );
 
 typedef struct _CallbackRec {
-  CallbackProcPtr proc;
-  pointer data;
-  Bool deleted;
-  struct _CallbackRec *next;
+    CallbackProcPtr proc;
+    pointer data;
+    Bool deleted;
+    struct _CallbackRec *next;
 } CallbackRec, *CallbackPtr;
 
 typedef struct _CallbackList {
-  int inCallback;
-  Bool deleted;
-  int numDeleted;
-  CallbackPtr list;
+    int inCallback;
+    Bool deleted;
+    int numDeleted;
+    CallbackPtr list;
 } CallbackListRec;
 
 /* proc vectors */
 
-extern _X_EXPORT int (* InitialVector[3]) (ClientPtr /*client*/);
+extern _X_EXPORT int (*InitialVector[3]) (ClientPtr /*client */ );
 
-extern _X_EXPORT int (* ProcVector[256]) (ClientPtr /*client*/);
+extern _X_EXPORT int (*ProcVector[256]) (ClientPtr /*client */ );
 
-extern _X_EXPORT int (* SwappedProcVector[256]) (ClientPtr /*client*/);
+extern _X_EXPORT int (*SwappedProcVector[256]) (ClientPtr /*client */ );
 
 extern _X_EXPORT ReplySwapPtr ReplySwapVector[256];
 
-extern _X_EXPORT int ProcBadRequest(ClientPtr /*client*/);
+extern _X_EXPORT int
+ProcBadRequest(ClientPtr /*client */ );
 
-#endif				/* DIXSTRUCT_H */
+#endif                          /* DIXSTRUCT_H */

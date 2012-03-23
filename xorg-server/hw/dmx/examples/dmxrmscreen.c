@@ -37,13 +37,14 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/dmxext.h>
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    Display              *display = NULL;
-    int                  event_base;
-    int                  error_base;
-    int                  major_version, minor_version, patch_version;
-    int                  screenNum;
+    Display *display = NULL;
+    int event_base;
+    int error_base;
+    int major_version, minor_version, patch_version;
+    int screenNum;
 
     if (argc != 3) {
         printf("Usage: %s display screenNum\n", argv[0]);
@@ -74,7 +75,7 @@ int main(int argc, char **argv)
 
     if (!DMXRemoveScreen(display, screenNum))
         printf("Failed to remove screen #%d\n", screenNum);
-    
+
     XCloseDisplay(display);
     return 0;
 }

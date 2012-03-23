@@ -40,21 +40,21 @@ config_init(void)
         ErrorF("[config] failed to initialise udev\n");
 #elif defined(CONFIG_NEED_DBUS)
     if (config_dbus_core_init()) {
-# ifdef CONFIG_DBUS_API
-       if (!config_dbus_init())
-	    ErrorF("[config] failed to initialise D-Bus API\n");
-# endif
-# ifdef CONFIG_HAL
+#ifdef CONFIG_DBUS_API
+        if (!config_dbus_init())
+            ErrorF("[config] failed to initialise D-Bus API\n");
+#endif
+#ifdef CONFIG_HAL
         if (!config_hal_init())
             ErrorF("[config] failed to initialise HAL\n");
-# endif
+#endif
     }
     else {
-	ErrorF("[config] failed to initialise D-Bus core\n");
+        ErrorF("[config] failed to initialise D-Bus core\n");
     }
 #elif defined(CONFIG_WSCONS)
     if (!config_wscons_init())
-	ErrorF("[config] failed to initialise wscons\n");
+        ErrorF("[config] failed to initialise wscons\n");
 #endif
 }
 
@@ -64,12 +64,12 @@ config_fini(void)
 #if defined(CONFIG_UDEV)
     config_udev_fini();
 #elif defined(CONFIG_NEED_DBUS)
-# ifdef CONFIG_HAL
+#ifdef CONFIG_HAL
     config_hal_fini();
-# endif
-# ifdef CONFIG_DBUS_API
+#endif
+#ifdef CONFIG_DBUS_API
     config_dbus_fini();
-# endif
+#endif
     config_dbus_core_fini();
 #elif defined(CONFIG_WSCONS)
     config_wscons_fini();
@@ -112,18 +112,15 @@ device_is_duplicate(const char *config_info)
 {
     DeviceIntPtr dev;
 
-    for (dev = inputInfo.devices; dev; dev = dev->next)
-    {
+    for (dev = inputInfo.devices; dev; dev = dev->next) {
         if (dev->config_info && (strcmp(dev->config_info, config_info) == 0))
             return TRUE;
     }
 
-    for (dev = inputInfo.off_devices; dev; dev = dev->next)
-    {
+    for (dev = inputInfo.off_devices; dev; dev = dev->next) {
         if (dev->config_info && (strcmp(dev->config_info, config_info) == 0))
             return TRUE;
     }
 
     return FALSE;
 }
-

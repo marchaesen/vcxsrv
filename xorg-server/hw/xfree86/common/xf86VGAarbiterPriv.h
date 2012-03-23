@@ -43,8 +43,7 @@
 #include "xf86str.h"
 #include "mipointer.h"
 #include "mipointrst.h"
-# include "picturestr.h"
-
+#include "picturestr.h"
 
 #define WRAP_SCREEN(x,y) {pScreenPriv->x = pScreen->x; pScreen->x = y;}
 
@@ -94,82 +93,89 @@
     (x)->ops = pGCPriv->wrapOps; (x)->funcs = pGCPriv->wrapFuncs;
 
 static inline void
-VGAGet(ScreenPtr pScreen) {
+VGAGet(ScreenPtr pScreen)
+{
     pci_device_vgaarb_set_target(xf86Screens[pScreen->myNum]->vgaDev);
     pci_device_vgaarb_lock();
 }
 
 static inline void
-VGAPut(void) {
+VGAPut(void)
+{
     pci_device_vgaarb_unlock();
 }
 
 typedef struct _VGAarbiterScreen {
-    CreateGCProcPtr             CreateGC;
-    CloseScreenProcPtr          CloseScreen;
-    ScreenBlockHandlerProcPtr   BlockHandler;
-    ScreenWakeupHandlerProcPtr  WakeupHandler;
-    GetImageProcPtr             GetImage;
-    GetSpansProcPtr             GetSpans;
-    SourceValidateProcPtr       SourceValidate;
-    CopyWindowProcPtr           CopyWindow;
-    ClearToBackgroundProcPtr    ClearToBackground;
-    CreatePixmapProcPtr         CreatePixmap;
-    SaveScreenProcPtr           SaveScreen;
+    CreateGCProcPtr CreateGC;
+    CloseScreenProcPtr CloseScreen;
+    ScreenBlockHandlerProcPtr BlockHandler;
+    ScreenWakeupHandlerProcPtr WakeupHandler;
+    GetImageProcPtr GetImage;
+    GetSpansProcPtr GetSpans;
+    SourceValidateProcPtr SourceValidate;
+    CopyWindowProcPtr CopyWindow;
+    ClearToBackgroundProcPtr ClearToBackground;
+    CreatePixmapProcPtr CreatePixmap;
+    SaveScreenProcPtr SaveScreen;
     /* Colormap */
-    StoreColorsProcPtr          StoreColors;
+    StoreColorsProcPtr StoreColors;
     /* Cursor */
-    DisplayCursorProcPtr        DisplayCursor;
-    RealizeCursorProcPtr        RealizeCursor;
-    UnrealizeCursorProcPtr      UnrealizeCursor;
-    RecolorCursorProcPtr        RecolorCursor;
-    SetCursorPositionProcPtr    SetCursorPosition;
-    void                        (*AdjustFrame)(int,int,int,int);
-    Bool                        (*SwitchMode)(int, DisplayModePtr,int);
-    Bool                        (*EnterVT)(int, int);
-    void                        (*LeaveVT)(int, int);
-    void                        (*FreeScreen)(int, int);
-    miPointerSpriteFuncPtr      miSprite;
-    CompositeProcPtr            Composite;
-    GlyphsProcPtr               Glyphs;
-    CompositeRectsProcPtr       CompositeRects;
+    DisplayCursorProcPtr DisplayCursor;
+    RealizeCursorProcPtr RealizeCursor;
+    UnrealizeCursorProcPtr UnrealizeCursor;
+    RecolorCursorProcPtr RecolorCursor;
+    SetCursorPositionProcPtr SetCursorPosition;
+    void (*AdjustFrame) (int, int, int, int);
+    Bool (*SwitchMode) (int, DisplayModePtr, int);
+    Bool (*EnterVT) (int, int);
+    void (*LeaveVT) (int, int);
+    void (*FreeScreen) (int, int);
+    miPointerSpriteFuncPtr miSprite;
+    CompositeProcPtr Composite;
+    GlyphsProcPtr Glyphs;
+    CompositeRectsProcPtr CompositeRects;
 } VGAarbiterScreenRec, *VGAarbiterScreenPtr;
 
 typedef struct _VGAarbiterGC {
-    GCOps                       *wrapOps;
-    GCFuncs                     *wrapFuncs;
+    GCOps *wrapOps;
+    GCFuncs *wrapFuncs;
 } VGAarbiterGCRec, *VGAarbiterGCPtr;
 
 /* Screen funcs */
-static void VGAarbiterBlockHandler(int i, pointer blockData, pointer pTimeout, pointer pReadmask);
-static void VGAarbiterWakeupHandler(int i, pointer blockData, unsigned long result, pointer pReadmask);
-static Bool VGAarbiterCloseScreen (int i, ScreenPtr pScreen);
-static void VGAarbiterGetImage (DrawablePtr pDrawable, int sx, int sy, int w,
-    int h, unsigned int format, unsigned long planemask, char *pdstLine);
-static void VGAarbiterGetSpans (DrawablePtr pDrawable, int wMax, DDXPointPtr
-    ppt, int *pwidth, int nspans, char  *pdstStart);
-static void VGAarbiterSourceValidate (DrawablePtr pDrawable, int x, int y,
-    int width, int height, unsigned int subWindowMode);
+static void VGAarbiterBlockHandler(int i, pointer blockData, pointer pTimeout,
+                                   pointer pReadmask);
+static void VGAarbiterWakeupHandler(int i, pointer blockData,
+                                    unsigned long result, pointer pReadmask);
+static Bool VGAarbiterCloseScreen(int i, ScreenPtr pScreen);
+static void VGAarbiterGetImage(DrawablePtr pDrawable, int sx, int sy, int w,
+                               int h, unsigned int format,
+                               unsigned long planemask, char *pdstLine);
+static void VGAarbiterGetSpans(DrawablePtr pDrawable, int wMax, DDXPointPtr ppt,
+                               int *pwidth, int nspans, char *pdstStart);
+static void VGAarbiterSourceValidate(DrawablePtr pDrawable, int x, int y,
+                                     int width, int height,
+                                     unsigned int subWindowMode);
 static void VGAarbiterCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg,
-    RegionPtr prgnSrc);
-static void VGAarbiterClearToBackground (WindowPtr pWin, int x, int y, int w,
-    int h, Bool generateExposures);
+                                 RegionPtr prgnSrc);
+static void VGAarbiterClearToBackground(WindowPtr pWin, int x, int y, int w,
+                                        int h, Bool generateExposures);
 static PixmapPtr VGAarbiterCreatePixmap(ScreenPtr pScreen, int w, int h,
-    int depth, unsigned int usage_hint);
-static Bool  VGAarbiterCreateGC(GCPtr pGC);
+                                        int depth, unsigned int usage_hint);
+static Bool VGAarbiterCreateGC(GCPtr pGC);
 static Bool VGAarbiterSaveScreen(ScreenPtr pScreen, Bool unblank);
-static void VGAarbiterStoreColors (ColormapPtr pmap, int ndef, xColorItem
-    *pdefs);
-static void VGAarbiterRecolorCursor (DeviceIntPtr pDev, ScreenPtr pScreen,
-    CursorPtr pCurs, Bool displayed);
-static Bool VGAarbiterRealizeCursor (DeviceIntPtr pDev, ScreenPtr pScreen,
-    CursorPtr pCursor);
-static Bool VGAarbiterUnrealizeCursor (DeviceIntPtr pDev, ScreenPtr pScreen,
-    CursorPtr pCursor);
-static Bool VGAarbiterDisplayCursor (DeviceIntPtr pDev, ScreenPtr pScreen,
-    CursorPtr pCursor);
-static Bool VGAarbiterSetCursorPosition (DeviceIntPtr pDev, ScreenPtr
-    pScreen, int x, int y, Bool generateEvent);
+static void VGAarbiterStoreColors(ColormapPtr pmap, int ndef, xColorItem
+                                  * pdefs);
+static void VGAarbiterRecolorCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
+                                    CursorPtr pCurs, Bool displayed);
+static Bool VGAarbiterRealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
+                                    CursorPtr pCursor);
+static Bool VGAarbiterUnrealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
+                                      CursorPtr pCursor);
+static Bool VGAarbiterDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
+                                    CursorPtr pCursor);
+static Bool VGAarbiterSetCursorPosition(DeviceIntPtr pDev, ScreenPtr
+                                        pScreen, int x, int y,
+                                        Bool generateEvent);
 static void VGAarbiterAdjustFrame(int index, int x, int y, int flags);
 static Bool VGAarbiterSwitchMode(int index, DisplayModePtr mode, int flags);
 static Bool VGAarbiterEnterVT(int index, int flags);
@@ -178,76 +184,85 @@ static void VGAarbiterFreeScreen(int index, int flags);
 
 /* GC funcs */
 static void VGAarbiterValidateGC(GCPtr pGC, unsigned long changes,
-    DrawablePtr pDraw);
+                                 DrawablePtr pDraw);
 static void VGAarbiterChangeGC(GCPtr pGC, unsigned long mask);
 static void VGAarbiterCopyGC(GCPtr pGCSrc, unsigned long mask, GCPtr pGCDst);
 static void VGAarbiterDestroyGC(GCPtr pGC);
 static void VGAarbiterChangeClip(GCPtr pGC, int type, pointer pvalue,
-    int nrects);
+                                 int nrects);
 static void VGAarbiterDestroyClip(GCPtr pGC);
 static void VGAarbiterCopyClip(GCPtr pgcDst, GCPtr pgcSrc);
 
 /* GC ops */
-static void VGAarbiterFillSpans( DrawablePtr pDraw, GC *pGC, int nInit,
-    DDXPointPtr pptInit, int *pwidthInit, int fSorted);
+static void VGAarbiterFillSpans(DrawablePtr pDraw, GC * pGC, int nInit,
+                                DDXPointPtr pptInit, int *pwidthInit,
+                                int fSorted);
 static void VGAarbiterSetSpans(DrawablePtr pDraw, GCPtr pGC, char *pcharsrc,
-    register DDXPointPtr ppt, int *pwidth, int nspans, int fSorted);
-static void VGAarbiterPutImage(DrawablePtr pDraw, GCPtr pGC, int depth,
-    int x, int y, int w, int h, int leftPad, int format, char *pImage);
+                               register DDXPointPtr ppt, int *pwidth,
+                               int nspans, int fSorted);
+static void VGAarbiterPutImage(DrawablePtr pDraw, GCPtr pGC, int depth, int x,
+                               int y, int w, int h, int leftPad, int format,
+                               char *pImage);
 static RegionPtr VGAarbiterCopyArea(DrawablePtr pSrc, DrawablePtr pDst,
-    GC *pGC, int srcx, int srcy, int width, int height, int dstx, int dsty);
+                                    GC * pGC, int srcx, int srcy, int width,
+                                    int height, int dstx, int dsty);
 static RegionPtr VGAarbiterCopyPlane(DrawablePtr pSrc, DrawablePtr pDst,
-    GCPtr pGC, int srcx, int srcy, int width, int height, int dstx, int dsty,
-    unsigned long bitPlane);
-static void VGAarbiterPolyPoint(DrawablePtr pDraw, GCPtr pGC, int mode,
-    int npt, xPoint *pptInit);
-static void VGAarbiterPolylines(DrawablePtr pDraw, GCPtr pGC, int mode,
-    int npt, DDXPointPtr pptInit);
+                                     GCPtr pGC, int srcx, int srcy, int width,
+                                     int height, int dstx, int dsty,
+                                     unsigned long bitPlane);
+static void VGAarbiterPolyPoint(DrawablePtr pDraw, GCPtr pGC, int mode, int npt,
+                                xPoint * pptInit);
+static void VGAarbiterPolylines(DrawablePtr pDraw, GCPtr pGC, int mode, int npt,
+                                DDXPointPtr pptInit);
 static void VGAarbiterPolySegment(DrawablePtr pDraw, GCPtr pGC, int nseg,
-    xSegment *pSeg);
+                                  xSegment * pSeg);
 static void VGAarbiterPolyRectangle(DrawablePtr pDraw, GCPtr pGC,
-    int nRectsInit, xRectangle *pRectsInit);
+                                    int nRectsInit, xRectangle *pRectsInit);
 static void VGAarbiterPolyArc(DrawablePtr pDraw, GCPtr pGC, int narcs,
-    xArc *parcs);
+                              xArc * parcs);
 static void VGAarbiterFillPolygon(DrawablePtr pDraw, GCPtr pGC, int shape,
-    int mode, int count, DDXPointPtr ptsIn);
-static void VGAarbiterPolyFillRect( DrawablePtr pDraw, GCPtr pGC,
-    int nrectFill, xRectangle *prectInit);
+                                  int mode, int count, DDXPointPtr ptsIn);
+static void VGAarbiterPolyFillRect(DrawablePtr pDraw, GCPtr pGC, int nrectFill,
+                                   xRectangle *prectInit);
 static void VGAarbiterPolyFillArc(DrawablePtr pDraw, GCPtr pGC, int narcs,
-    xArc *parcs);
+                                  xArc * parcs);
 static int VGAarbiterPolyText8(DrawablePtr pDraw, GCPtr pGC, int x, int y,
-    int count, char *chars);
+                               int count, char *chars);
 static int VGAarbiterPolyText16(DrawablePtr pDraw, GCPtr pGC, int x, int y,
-    int count, unsigned short *chars);
+                                int count, unsigned short *chars);
 static void VGAarbiterImageText8(DrawablePtr pDraw, GCPtr pGC, int x, int y,
-    int count, char *chars);
+                                 int count, char *chars);
 static void VGAarbiterImageText16(DrawablePtr pDraw, GCPtr pGC, int x, int y,
-    int count, unsigned short *chars);
+                                  int count, unsigned short *chars);
 static void VGAarbiterImageGlyphBlt(DrawablePtr pDraw, GCPtr pGC, int xInit,
-    int yInit, unsigned int nglyph, CharInfoPtr *ppci, pointer pglyphBase);
+                                    int yInit, unsigned int nglyph,
+                                    CharInfoPtr * ppci, pointer pglyphBase);
 static void VGAarbiterPolyGlyphBlt(DrawablePtr pDraw, GCPtr pGC, int xInit,
-    int yInit, unsigned int nglyph, CharInfoPtr *ppci, pointer pglyphBase);
+                                   int yInit, unsigned int nglyph,
+                                   CharInfoPtr * ppci, pointer pglyphBase);
 static void VGAarbiterPushPixels(GCPtr pGC, PixmapPtr pBitMap, DrawablePtr
-    pDraw, int dx, int dy, int xOrg, int yOrg);
+                                 pDraw, int dx, int dy, int xOrg, int yOrg);
 
 /* miSpriteFuncs */
 static Bool VGAarbiterSpriteRealizeCursor(DeviceIntPtr pDev, ScreenPtr
-    pScreen, CursorPtr pCur);
+                                          pScreen, CursorPtr pCur);
 static Bool VGAarbiterSpriteUnrealizeCursor(DeviceIntPtr pDev, ScreenPtr
-    pScreen, CursorPtr pCur);
+                                            pScreen, CursorPtr pCur);
 static void VGAarbiterSpriteSetCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
-    CursorPtr pCur, int x, int y);
+                                      CursorPtr pCur, int x, int y);
 static void VGAarbiterSpriteMoveCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
-    int x, int y);
-static Bool VGAarbiterDeviceCursorInitialize(DeviceIntPtr pDev, ScreenPtr pScreen);
+                                       int x, int y);
+static Bool VGAarbiterDeviceCursorInitialize(DeviceIntPtr pDev,
+                                             ScreenPtr pScreen);
 static void VGAarbiterDeviceCursorCleanup(DeviceIntPtr pDev, ScreenPtr pScreen);
 
-
 static void VGAarbiterComposite(CARD8 op, PicturePtr pSrc, PicturePtr pMask,
-    PicturePtr pDst, INT16 xSrc, INT16 ySrc, INT16 xMask, INT16 yMask,
-    INT16 xDst, INT16 yDst, CARD16 width, CARD16 height);
+                                PicturePtr pDst, INT16 xSrc, INT16 ySrc,
+                                INT16 xMask, INT16 yMask, INT16 xDst,
+                                INT16 yDst, CARD16 width, CARD16 height);
 static void VGAarbiterGlyphs(CARD8 op, PicturePtr pSrc, PicturePtr pDst,
-    PictFormatPtr maskFormat, INT16 xSrc, INT16 ySrc, int nlist, GlyphListPtr
-    list, GlyphPtr *glyphs);
-static void VGAarbiterCompositeRects(CARD8 op, PicturePtr pDst, xRenderColor
-    *color, int nRect, xRectangle *rects);
+                             PictFormatPtr maskFormat, INT16 xSrc, INT16 ySrc,
+                             int nlist, GlyphListPtr list, GlyphPtr * glyphs);
+static void VGAarbiterCompositeRects(CARD8 op, PicturePtr pDst,
+                                     xRenderColor * color, int nRect,
+                                     xRectangle *rects);

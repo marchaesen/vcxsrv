@@ -50,45 +50,42 @@
     dpy->bufptr += SIZEOF(xReq);\
     dpy->request++
 
-
 Bool
-ephyrHostProxyDoForward (pointer a_request_buffer,
-                         struct XReply *a_reply,
-                         Bool a_do_swap)
+ephyrHostProxyDoForward(pointer a_request_buffer,
+                        struct XReply *a_reply, Bool a_do_swap)
 {
-    Bool is_ok = FALSE ;
-    int n=0 ;
-    Display *dpy=hostx_get_display () ;
-    xReq *in_req = (xReq*) a_request_buffer ;
-    xReq *forward_req=NULL ;
-    struct XReply reply ;
+    Bool is_ok = FALSE;
+    int n = 0;
+    Display *dpy = hostx_get_display();
+    xReq *in_req = (xReq *) a_request_buffer;
+    xReq *forward_req = NULL;
+    struct XReply reply;
 
-    EPHYR_RETURN_VAL_IF_FAIL (in_req && dpy, FALSE) ;
+    EPHYR_RETURN_VAL_IF_FAIL(in_req && dpy, FALSE);
 
-    EPHYR_LOG ("enter\n") ;
+    EPHYR_LOG("enter\n");
 
     if (a_do_swap) {
-        swaps(&in_req->length) ;
+        swaps(&in_req->length);
     }
-    EPHYR_LOG ("Req {type:%d, data:%d, length:%d}\n",
-               in_req->reqType, in_req->data, in_req->length) ;
-    GetXReq (forward_req) ;
-    memmove (forward_req, in_req, 4) ;
+    EPHYR_LOG("Req {type:%d, data:%d, length:%d}\n",
+              in_req->reqType, in_req->data, in_req->length);
+    GetXReq(forward_req);
+    memmove(forward_req, in_req, 4);
 
-    if (!_XReply (dpy, (xReply*) &reply, 0, FALSE)) {
-        EPHYR_LOG_ERROR ("failed to get reply\n") ;
+    if (!_XReply(dpy, (xReply *) & reply, 0, FALSE)) {
+        EPHYR_LOG_ERROR("failed to get reply\n");
         goto out;
     }
-    EPHYR_LOG ("XReply{type:%d, foo:%d, seqnum:%d, length:%d}\n",
-               reply.type, reply.foo, reply.sequence_number, reply.length) ;
+    EPHYR_LOG("XReply{type:%d, foo:%d, seqnum:%d, length:%d}\n",
+              reply.type, reply.foo, reply.sequence_number, reply.length);
 
     if (a_reply) {
-        memmove (a_reply, &reply, sizeof (reply)) ;
+        memmove(a_reply, &reply, sizeof(reply));
     }
-    is_ok = TRUE ;
+    is_ok = TRUE;
 
-out:
-    EPHYR_LOG ("leave\n") ;
-    return is_ok ;
+ out:
+    EPHYR_LOG("leave\n");
+    return is_ok;
 }
-

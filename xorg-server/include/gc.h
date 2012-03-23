@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -46,13 +45,13 @@ SOFTWARE.
 ******************************************************************/
 
 #ifndef GC_H
-#define GC_H 
+#define GC_H
 
-#include <X11/X.h>	/* for GContext, Mask */
-#include <X11/Xdefs.h>	/* for Bool */
+#include <X11/X.h>              /* for GContext, Mask */
+#include <X11/Xdefs.h>          /* for Bool */
 #include <X11/Xproto.h>
-#include "screenint.h"	/* for ScreenPtr */
-#include "pixmap.h"	/* for DrawablePtr */
+#include "screenint.h"          /* for ScreenPtr */
+#include "pixmap.h"             /* for DrawablePtr */
 
 /* clientClipType field in GC */
 #define CT_NONE			0
@@ -81,83 +80,68 @@ SOFTWARE.
 	    (globalSerialNumber  = 1): globalSerialNumber)
 
 typedef struct _GCInterest *GCInterestPtr;
-typedef struct _GC    *GCPtr;
+typedef struct _GC *GCPtr;
 typedef struct _GCOps *GCOpsPtr;
 
-extern _X_EXPORT void ValidateGC(
-    DrawablePtr /*pDraw*/,
-    GCPtr /*pGC*/);
+extern _X_EXPORT void ValidateGC(DrawablePtr /*pDraw */ ,
+                                 GCPtr /*pGC */ );
 
 typedef union {
     CARD32 val;
     pointer ptr;
 } ChangeGCVal, *ChangeGCValPtr;
 
-extern int ChangeGCXIDs(
-    ClientPtr /*client*/,
-    GCPtr /*pGC*/,
-    BITS32 /*mask*/,
-    CARD32 * /*pval*/);
+extern int ChangeGCXIDs(ClientPtr /*client */ ,
+                        GCPtr /*pGC */ ,
+                        BITS32 /*mask */ ,
+                        CARD32 * /*pval */ );
 
-extern _X_EXPORT int ChangeGC(
-    ClientPtr /*client*/,
-    GCPtr /*pGC*/,
-    BITS32 /*mask*/,
-    ChangeGCValPtr /*pCGCV*/);
+extern _X_EXPORT int ChangeGC(ClientPtr /*client */ ,
+                              GCPtr /*pGC */ ,
+                              BITS32 /*mask */ ,
+                              ChangeGCValPtr /*pCGCV */ );
 
-extern _X_EXPORT GCPtr CreateGC(
-    DrawablePtr /*pDrawable*/,
-    BITS32 /*mask*/,
-    XID* /*pval*/,
-    int* /*pStatus*/,
-    XID /*gcid*/,
-    ClientPtr /*client*/);
+extern _X_EXPORT GCPtr CreateGC(DrawablePtr /*pDrawable */ ,
+                                BITS32 /*mask */ ,
+                                XID * /*pval */ ,
+                                int * /*pStatus */ ,
+                                XID /*gcid */ ,
+                                ClientPtr /*client */ );
 
-extern _X_EXPORT int CopyGC(
-    GCPtr/*pgcSrc*/,
-    GCPtr/*pgcDst*/,
-    BITS32 /*mask*/);
+extern _X_EXPORT int CopyGC(GCPtr /*pgcSrc */ ,
+                            GCPtr /*pgcDst */ ,
+                            BITS32 /*mask */ );
 
-extern _X_EXPORT int FreeGC(
-    pointer /*pGC*/,
-    XID /*gid*/);
+extern _X_EXPORT int FreeGC(pointer /*pGC */ ,
+                            XID /*gid */ );
 
-extern _X_EXPORT void FreeGCperDepth(
-    int /*screenNum*/);
+extern _X_EXPORT void FreeGCperDepth(int /*screenNum */ );
 
-extern _X_EXPORT Bool CreateGCperDepth(
-    int /*screenNum*/);
+extern _X_EXPORT Bool CreateGCperDepth(int /*screenNum */ );
 
-extern _X_EXPORT Bool CreateDefaultStipple(
-    int /*screenNum*/);
+extern _X_EXPORT Bool CreateDefaultStipple(int /*screenNum */ );
 
-extern _X_EXPORT void FreeDefaultStipple(
-    int /*screenNum*/);
+extern _X_EXPORT void FreeDefaultStipple(int /*screenNum */ );
 
-extern _X_EXPORT int SetDashes(
-    GCPtr /*pGC*/,
-    unsigned /*offset*/,
-    unsigned /*ndash*/,
-    unsigned char* /*pdash*/);
+extern _X_EXPORT int SetDashes(GCPtr /*pGC */ ,
+                               unsigned /*offset */ ,
+                               unsigned /*ndash */ ,
+                               unsigned char * /*pdash */ );
 
-extern _X_EXPORT int VerifyRectOrder(
-    int /*nrects*/,
-    xRectangle* /*prects*/,
-    int /*ordering*/);
+extern _X_EXPORT int VerifyRectOrder(int /*nrects */ ,
+                                     xRectangle * /*prects */ ,
+                                     int /*ordering */ );
 
-extern _X_EXPORT int SetClipRects(
-    GCPtr /*pGC*/,
-    int /*xOrigin*/,
-    int /*yOrigin*/,
-    int /*nrects*/,
-    xRectangle* /*prects*/,
-    int /*ordering*/);
+extern _X_EXPORT int SetClipRects(GCPtr /*pGC */ ,
+                                  int /*xOrigin */ ,
+                                  int /*yOrigin */ ,
+                                  int /*nrects */ ,
+                                  xRectangle * /*prects */ ,
+                                  int /*ordering */ );
 
-extern _X_EXPORT GCPtr GetScratchGC(
-    unsigned /*depth*/,
-    ScreenPtr /*pScreen*/);
+extern _X_EXPORT GCPtr GetScratchGC(unsigned /*depth */ ,
+                                    ScreenPtr /*pScreen */ );
 
-extern _X_EXPORT void FreeScratchGC(
-    GCPtr /*pGC*/);
+extern _X_EXPORT void FreeScratchGC(GCPtr /*pGC */ );
 
-#endif /* GC_H */
+#endif                          /* GC_H */

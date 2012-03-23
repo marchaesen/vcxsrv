@@ -52,100 +52,126 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-static FILE *str   = NULL;
-static int  indent = 0;
-static int  pos    = 0;
+static FILE *str = NULL;
+static int indent = 0;
+static int pos = 0;
 
 /** Stack of indentation information used for pretty-printing
  * configuration information. */
 static struct stack {
-    int          base;
-    int          comment;
-    int          step;
+    int base;
+    int comment;
+    int step;
     struct stack *next;
-} *stack, initialStack = { 0, 0, 4, NULL };
+} *stack, initialStack = {
+0, 0, 4, NULL};
 
-static void dmxConfigIndent(void)
+static void
+dmxConfigIndent(void)
 {
     int i;
-    if (indent < 0)  indent = 0;
-    if (indent > 40) indent = 40;
-    for (i = 0; i < indent; i++) fprintf(str, " ");
+
+    if (indent < 0)
+        indent = 0;
+    if (indent > 40)
+        indent = 40;
+    for (i = 0; i < indent; i++)
+        fprintf(str, " ");
 }
 
-static void dmxConfigNewline(void)
+static void
+dmxConfigNewline(void)
 {
-    if (pos) fprintf(str, "\n");
+    if (pos)
+        fprintf(str, "\n");
     pos = 0;
 }
 
-static void dmxConfigPushState(int base, int comment, int step)
+static void
+dmxConfigPushState(int base, int comment, int step)
 {
     struct stack *new = dmxConfigAlloc(sizeof(*new));
-    new->base    = base;
+
+    new->base = base;
     new->comment = comment;
-    new->step    = step;
-    new->next    = stack;
-    stack        = new;
-    indent       = base;
+    new->step = step;
+    new->next = stack;
+    stack = new;
+    indent = base;
     dmxConfigNewline();
 }
 
-static void dmxConfigPushComment(void)
+static void
+dmxConfigPushComment(void)
 {
-    if (stack) indent = stack->comment;
+    if (stack)
+        indent = stack->comment;
 }
 
-static void dmxConfigPushStep(void)
+static void
+dmxConfigPushStep(void)
 {
-    if (stack) indent = stack->step;
+    if (stack)
+        indent = stack->step;
 }
 
-static void dmxConfigPopState(void)
+static void
+dmxConfigPopState(void)
 {
     struct stack *old = stack;
 
-    if (!stack) return;
+    if (!stack)
+        return;
     indent = old->base;
-    stack  = old->next;
-    if (!stack) dmxConfigLog("Stack underflow\n");
+    stack = old->next;
+    if (!stack)
+        dmxConfigLog("Stack underflow\n");
     dmxConfigFree(old);
     dmxConfigNewline();
 }
 
-static void dmxConfigOutput(int addSpace, int doNewline, const char *comment,
-                            const char *format, ...)
+static void
+dmxConfigOutput(int addSpace, int doNewline, const char *comment,
+                const char *format, ...)
 {
     va_list args;
 
-    if (!pos) dmxConfigIndent();
-    else if (addSpace) fprintf(str, " ");
+    if (!pos)
+        dmxConfigIndent();
+    else if (addSpace)
+        fprintf(str, " ");
 
     if (format) {
         va_start(args, format);
-                                /* RATS: This hasn't been audited -- it
-                                 * could probably result in a buffer
-                                 * overflow. */
-        pos += vfprintf(str, format, args); /* assumes no newlines! */
+        /* RATS: This hasn't been audited -- it
+         * could probably result in a buffer
+         * overflow. */
+        pos += vfprintf(str, format, args);     /* assumes no newlines! */
         va_end(args);
     }
 
     if (comment) {
-        if (pos) fprintf(str, " ");
+        if (pos)
+            fprintf(str, " ");
         pos += fprintf(str, "#%s", comment);
         dmxConfigNewline();
         dmxConfigPushComment();
-    } else if (doNewline) dmxConfigNewline();
+    }
+    else if (doNewline)
+        dmxConfigNewline();
 }
 
-static void dmxConfigPrintComment(DMXConfigCommentPtr p)
+static void
+dmxConfigPrintComment(DMXConfigCommentPtr p)
 {
     dmxConfigOutput(1, 1, p->comment, NULL);
 }
 
-static void dmxConfigPrintTokenFlag(DMXConfigTokenPtr p, int flag)
+static void
+dmxConfigPrintTokenFlag(DMXConfigTokenPtr p, int flag)
 {
-    if (!p) return;
+    if (!p)
+        return;
     switch (p->token) {
     case T_VIRTUAL:
         dmxConfigPushState(0, 4, 4);
@@ -169,14 +195,16 @@ static void dmxConfigPrintTokenFlag(DMXConfigTokenPtr p, int flag)
         break;
     case ';':
         dmxConfigOutput(0, 1, p->comment, ";");
-        if (flag) dmxConfigPopState();
+        if (flag)
+            dmxConfigPopState();
         break;
     case '{':
         dmxConfigOutput(1, 1, p->comment, "{");
         dmxConfigPushStep();
         break;
     case '}':
-        if (flag) dmxConfigPopState();
+        if (flag)
+            dmxConfigPopState();
         dmxConfigOutput(0, 1, p->comment, "}");
         break;
     case '/':
@@ -187,49 +215,66 @@ static void dmxConfigPrintTokenFlag(DMXConfigTokenPtr p, int flag)
     }
 }
 
-static void dmxConfigPrintToken(DMXConfigTokenPtr p)
+static void
+dmxConfigPrintToken(DMXConfigTokenPtr p)
 {
     dmxConfigPrintTokenFlag(p, 1);
 }
 
-static void dmxConfigPrintTokenNopop(DMXConfigTokenPtr p)
+static void
+dmxConfigPrintTokenNopop(DMXConfigTokenPtr p)
 {
     dmxConfigPrintTokenFlag(p, 0);
 }
 
-static int dmxConfigPrintQuotedString(const char *s)
+static int
+dmxConfigPrintQuotedString(const char *s)
 {
     const char *pt;
 
-    if (!s || !s[0]) return 1;  /* Quote empty string */
-    for (pt = s; *pt; ++pt) if (isspace(*pt)) return 1;
+    if (!s || !s[0])
+        return 1;               /* Quote empty string */
+    for (pt = s; *pt; ++pt)
+        if (isspace(*pt))
+            return 1;
     return 0;
 }
 
-static void dmxConfigPrintString(DMXConfigStringPtr p, int quote)
+static void
+dmxConfigPrintString(DMXConfigStringPtr p, int quote)
 {
     DMXConfigStringPtr pt;
-    
-    if (!p) return;
+
+    if (!p)
+        return;
     for (pt = p; pt; pt = pt->next) {
         if (quote && dmxConfigPrintQuotedString(pt->string)) {
             dmxConfigOutput(1, 0, pt->comment, "\"%s\"",
                             pt->string ? pt->string : "");
-            } else
+        }
+        else
             dmxConfigOutput(1, 0, pt->comment, "%s",
                             pt->string ? pt->string : "");
     }
 }
 
-static int dmxConfigPrintPair(DMXConfigPairPtr p, int addSpace)
+static int
+dmxConfigPrintPair(DMXConfigPairPtr p, int addSpace)
 {
     const char *format = NULL;
-    
-    if (!p) return 0;
+
+    if (!p)
+        return 0;
     switch (p->token) {
-    case T_ORIGIN:    format = "@%dx%d";   break;
-    case T_DIMENSION: format = "%dx%d";    break;
-    case T_OFFSET:    format = "%c%d%c%d"; break;
+    case T_ORIGIN:
+        format = "@%dx%d";
+        break;
+    case T_DIMENSION:
+        format = "%dx%d";
+        break;
+    case T_OFFSET:
+        format = "%c%d%c%d";
+        break;
     }
     if (p->token == T_OFFSET) {
         if (!p->comment && !p->x && !p->y && p->xsign >= 0 && p->ysign >= 0)
@@ -237,69 +282,79 @@ static int dmxConfigPrintPair(DMXConfigPairPtr p, int addSpace)
         dmxConfigOutput(addSpace, 0, p->comment, format,
                         p->xsign < 0 ? '-' : '+', p->x,
                         p->ysign < 0 ? '-' : '+', p->y);
-    } else {
-        if (!p->comment && !p->x && !p->y) return 0;
+    }
+    else {
+        if (!p->comment && !p->x && !p->y)
+            return 0;
         dmxConfigOutput(addSpace, 0, p->comment, format, p->x, p->y);
     }
     return 1;
 }
 
-static void dmxConfigPrintDisplay(DMXConfigDisplayPtr p)
+static void
+dmxConfigPrintDisplay(DMXConfigDisplayPtr p)
 {
-    DMXConfigToken  dummyStart   = { T_DISPLAY, 0, NULL };
-    DMXConfigToken  dummyEnd     = { ';', 0, NULL };
-    DMXConfigToken  dummySep     = { '/', 0, NULL };
-    DMXConfigString dummyName    = { T_STRING, 0, NULL, NULL, NULL };
-    DMXConfigPair   dummySDim    = { T_DIMENSION, 0, NULL, 0, 0, 0, 0 };
-    DMXConfigPair   dummySOffset = { T_OFFSET, 0, NULL, 0, 0, 0, 0 };
-    DMXConfigPair   dummyRDim    = { T_DIMENSION, 0, NULL, 0, 0, 0, 0 };
-    DMXConfigPair   dummyROffset = { T_OFFSET, 0, NULL, 0, 0, 0, 0 };
-    DMXConfigPair   dummyOrigin  = { T_ORIGIN, 0, NULL, 0, 0, 0, 0 };
-    int             output;
+    DMXConfigToken dummyStart = { T_DISPLAY, 0, NULL };
+    DMXConfigToken dummyEnd = { ';', 0, NULL };
+    DMXConfigToken dummySep = { '/', 0, NULL };
+    DMXConfigString dummyName = { T_STRING, 0, NULL, NULL, NULL };
+    DMXConfigPair dummySDim = { T_DIMENSION, 0, NULL, 0, 0, 0, 0 };
+    DMXConfigPair dummySOffset = { T_OFFSET, 0, NULL, 0, 0, 0, 0 };
+    DMXConfigPair dummyRDim = { T_DIMENSION, 0, NULL, 0, 0, 0, 0 };
+    DMXConfigPair dummyROffset = { T_OFFSET, 0, NULL, 0, 0, 0, 0 };
+    DMXConfigPair dummyOrigin = { T_ORIGIN, 0, NULL, 0, 0, 0, 0 };
+    int output;
 
-    if (p->dname) p->dname->string = p->name;
-    else          dummyName.string = p->name;
-    
+    if (p->dname)
+        p->dname->string = p->name;
+    else
+        dummyName.string = p->name;
+
     if (p->dim && p->dim->scrn && p->dim->scrn->dim) {
-        p->dim->scrn->dim->x    = p->scrnWidth;
-        p->dim->scrn->dim->y    = p->scrnHeight;
-    } else {
-        dummySDim.x             = p->scrnWidth;
-        dummySDim.y             = p->scrnHeight;
+        p->dim->scrn->dim->x = p->scrnWidth;
+        p->dim->scrn->dim->y = p->scrnHeight;
+    }
+    else {
+        dummySDim.x = p->scrnWidth;
+        dummySDim.y = p->scrnHeight;
     }
 
     if (p->dim && p->dim->scrn && p->dim->scrn->offset) {
         p->dim->scrn->offset->x = p->scrnX;
         p->dim->scrn->offset->y = p->scrnY;
-    } else {
-        dummySOffset.x          = p->scrnX;
-        dummySOffset.y          = p->scrnY;
     }
-    
+    else {
+        dummySOffset.x = p->scrnX;
+        dummySOffset.y = p->scrnY;
+    }
+
     if (p->dim && p->dim->root && p->dim->root->dim) {
-        p->dim->root->dim->x    = p->rootWidth;
-        p->dim->root->dim->y    = p->rootHeight;
-    } else {
-        dummyRDim.x             = p->rootWidth;
-        dummyRDim.y             = p->rootHeight;
+        p->dim->root->dim->x = p->rootWidth;
+        p->dim->root->dim->y = p->rootHeight;
+    }
+    else {
+        dummyRDim.x = p->rootWidth;
+        dummyRDim.y = p->rootHeight;
     }
 
     if (p->dim && p->dim->root && p->dim->root->offset) {
         p->dim->root->offset->x = p->rootX;
         p->dim->root->offset->y = p->rootY;
-    } else {
-        dummyROffset.x          = p->rootX;
-        dummyROffset.y          = p->rootY;
+    }
+    else {
+        dummyROffset.x = p->rootX;
+        dummyROffset.y = p->rootY;
     }
 
     if (p->origin) {
-        p->origin->x     = p->rootXOrigin, p->origin->y     = p->rootYOrigin;
-        p->origin->xsign = p->rootXSign,   p->origin->ysign = p->rootYSign;
-    } else {
-        dummyOrigin.x     = p->rootXOrigin, dummyOrigin.y     = p->rootYOrigin;
-        dummyOrigin.xsign = p->rootXSign,   dummyOrigin.ysign = p->rootYSign;
+        p->origin->x = p->rootXOrigin, p->origin->y = p->rootYOrigin;
+        p->origin->xsign = p->rootXSign, p->origin->ysign = p->rootYSign;
     }
-    
+    else {
+        dummyOrigin.x = p->rootXOrigin, dummyOrigin.y = p->rootYOrigin;
+        dummyOrigin.xsign = p->rootXSign, dummyOrigin.ysign = p->rootYSign;
+    }
+
     dmxConfigPrintToken(p->start ? p->start : &dummyStart);
     dmxConfigPrintString(p->dname ? p->dname : &dummyName, 1);
 
@@ -313,9 +368,7 @@ static void dmxConfigPrintDisplay(DMXConfigDisplayPtr p)
         dmxConfigPrintPair(&dummySOffset, !output);
 
     if (p->scrnWidth != p->rootWidth
-        || p->scrnHeight != p->rootHeight
-        || p->rootX
-        || p->rootY) {
+        || p->scrnHeight != p->rootHeight || p->rootX || p->rootY) {
         dmxConfigPrintToken(&dummySep);
         if (p->dim && p->dim->root && p->dim->root->dim)
             output = dmxConfigPrintPair(p->dim->root->dim, 1);
@@ -331,7 +384,8 @@ static void dmxConfigPrintDisplay(DMXConfigDisplayPtr p)
     dmxConfigPrintToken(p->end ? p->end : &dummyEnd);
 }
 
-static void dmxConfigPrintWall(DMXConfigWallPtr p)
+static void
+dmxConfigPrintWall(DMXConfigWallPtr p)
 {
     dmxConfigPrintToken(p->start);
     dmxConfigPrintPair(p->wallDim, 1);
@@ -340,11 +394,12 @@ static void dmxConfigPrintWall(DMXConfigWallPtr p)
     dmxConfigPrintToken(p->end);
 }
 
-static void dmxConfigPrintOption(DMXConfigOptionPtr p)
+static void
+dmxConfigPrintOption(DMXConfigOptionPtr p)
 {
-    DMXConfigToken  dummyStart  = { T_OPTION, 0, NULL };
+    DMXConfigToken dummyStart = { T_OPTION, 0, NULL };
     DMXConfigString dummyOption = { T_STRING, 0, NULL, NULL, NULL };
-    DMXConfigToken  dummyEnd    = { ';', 0, NULL };
+    DMXConfigToken dummyEnd = { ';', 0, NULL };
 
     dummyOption.string = p->string;
 
@@ -353,41 +408,59 @@ static void dmxConfigPrintOption(DMXConfigOptionPtr p)
     dmxConfigPrintToken(p->end ? p->end : &dummyEnd);
 }
 
-static void dmxConfigPrintParam(DMXConfigParamPtr p)
+static void
+dmxConfigPrintParam(DMXConfigParamPtr p)
 {
-    if (!p) return;
+    if (!p)
+        return;
     if (p->start) {
         if (p->open && p->close) {
             dmxConfigPrintToken(p->start);
             dmxConfigPrintToken(p->open);
             dmxConfigPrintParam(p->next);
             dmxConfigPrintToken(p->close);
-        } else if (p->end && p->param) {
+        }
+        else if (p->end && p->param) {
             dmxConfigPrintToken(p->start);
             dmxConfigPrintString(p->param, 1);
             dmxConfigPrintToken(p->end);
-        } else
+        }
+        else
             dmxConfigLog("dmxConfigPrintParam: cannot handle format (a)\n");
-    } else if (p->end && p->param) {
+    }
+    else if (p->end && p->param) {
         dmxConfigPrintString(p->param, 1);
         dmxConfigPrintTokenNopop(p->end);
         dmxConfigPrintParam(p->next);
-    } else
+    }
+    else
         dmxConfigLog("dmxConfigPrintParam: cannot handle format (b)\n");
 }
 
-static void dmxConfigPrintSub(DMXConfigSubPtr p)
+static void
+dmxConfigPrintSub(DMXConfigSubPtr p)
 {
     DMXConfigSubPtr pt;
 
-    if (!p) return;
+    if (!p)
+        return;
     for (pt = p; pt; pt = pt->next) {
         switch (pt->type) {
-        case dmxConfigComment: dmxConfigPrintComment(pt->comment); break;
-        case dmxConfigDisplay: dmxConfigPrintDisplay(pt->display); break;
-        case dmxConfigWall:    dmxConfigPrintWall(pt->wall);       break;
-        case dmxConfigOption:  dmxConfigPrintOption(pt->option);   break;
-        case dmxConfigParam:   dmxConfigPrintParam(pt->param);     break;
+        case dmxConfigComment:
+            dmxConfigPrintComment(pt->comment);
+            break;
+        case dmxConfigDisplay:
+            dmxConfigPrintDisplay(pt->display);
+            break;
+        case dmxConfigWall:
+            dmxConfigPrintWall(pt->wall);
+            break;
+        case dmxConfigOption:
+            dmxConfigPrintOption(pt->option);
+            break;
+        case dmxConfigParam:
+            dmxConfigPrintParam(pt->param);
+            break;
         default:
             dmxConfigLog("dmxConfigPrintSub:"
                          " cannot handle type %d in subentry\n", pt->type);
@@ -395,20 +468,24 @@ static void dmxConfigPrintSub(DMXConfigSubPtr p)
     }
 }
 
-static void dmxConfigPrintVirtual(DMXConfigVirtualPtr p)
+static void
+dmxConfigPrintVirtual(DMXConfigVirtualPtr p)
 {
-    DMXConfigToken  dummyStart = { T_VIRTUAL, 0, NULL };
-    DMXConfigToken  dummyOpen  = { '{', 0, NULL };
-    DMXConfigToken  dummyClose = { '}', 0, NULL };
-    DMXConfigString dummyName  = { T_STRING, 0, NULL, NULL, NULL };
-    DMXConfigPair   dummyDim   = { T_DIMENSION, 0, NULL, 0, 0 };
+    DMXConfigToken dummyStart = { T_VIRTUAL, 0, NULL };
+    DMXConfigToken dummyOpen = { '{', 0, NULL };
+    DMXConfigToken dummyClose = { '}', 0, NULL };
+    DMXConfigString dummyName = { T_STRING, 0, NULL, NULL, NULL };
+    DMXConfigPair dummyDim = { T_DIMENSION, 0, NULL, 0, 0 };
 
-    if (p->vname) p->vname->string = p->name;
-    else          dummyName.string = p->name;
+    if (p->vname)
+        p->vname->string = p->name;
+    else
+        dummyName.string = p->name;
 
-    if (p->dim) p->dim->x  = p->width, p->dim->y  = p->height;
-    else        dummyDim.x = p->width, dummyDim.y = p->height;
-    
+    if (p->dim)
+        p->dim->x = p->width, p->dim->y = p->height;
+    else
+        dummyDim.x = p->width, dummyDim.y = p->height;
 
     dmxConfigPrintToken(p->start ? p->start : &dummyStart);
     dmxConfigPrintString(p->vname ? p->vname : &dummyName, 1);
@@ -420,36 +497,48 @@ static void dmxConfigPrintVirtual(DMXConfigVirtualPtr p)
 
 /** The configuration information in \a entry will be pretty-printed to
  * the \a stream.  If \a stream is NULL, then stdout will be used. */
-void dmxConfigPrint(FILE *stream, DMXConfigEntryPtr entry)
+void
+dmxConfigPrint(FILE * stream, DMXConfigEntryPtr entry)
 {
     DMXConfigEntryPtr pt;
 
-    if (!stream) str = stdout;
-    else         str = stream;
-    
+    if (!stream)
+        str = stdout;
+    else
+        str = stream;
+
     stack = &initialStack;
-    
+
     for (pt = entry; pt; pt = pt->next) {
         switch (pt->type) {
-        case dmxConfigComment: dmxConfigPrintComment(pt->comment); break;
-        case dmxConfigVirtual: dmxConfigPrintVirtual(pt->virtual); break;
+        case dmxConfigComment:
+            dmxConfigPrintComment(pt->comment);
+            break;
+        case dmxConfigVirtual:
+            dmxConfigPrintVirtual(pt->virtual);
+            break;
         default:
             dmxConfigLog("dmxConfigPrint: cannot handle type %d in entry\n",
                          pt->type);
         }
     }
-    if (pos) dmxConfigNewline();
+    if (pos)
+        dmxConfigNewline();
 }
 
 /** The configuration information in \a p will be pretty-printed to the
  * \a stream.  If \a stream is NULL, then stdout will be used. */
-void dmxConfigVirtualPrint(FILE *stream, DMXConfigVirtualPtr p)
+void
+dmxConfigVirtualPrint(FILE * stream, DMXConfigVirtualPtr p)
 {
-    if (!stream) str = stdout;
-    else         str = stream;
+    if (!stream)
+        str = stdout;
+    else
+        str = stream;
 
     stack = &initialStack;
-    
+
     dmxConfigPrintVirtual(p);
-    if (pos) dmxConfigNewline();
+    if (pos)
+        dmxConfigNewline();
 }

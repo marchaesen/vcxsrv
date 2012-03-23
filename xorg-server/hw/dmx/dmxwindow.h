@@ -41,31 +41,29 @@
 
 /** Window private area. */
 typedef struct _dmxWinPriv {
-    Window         window;
-    Bool           offscreen;
-    Bool           mapped;
-    Bool           restacked;
-    unsigned long  attribMask;
-    Colormap       cmap;
-    Visual        *visual;
-    Bool           isShaped;
-    Bool           hasPict;
+    Window window;
+    Bool offscreen;
+    Bool mapped;
+    Bool restacked;
+    unsigned long attribMask;
+    Colormap cmap;
+    Visual *visual;
+    Bool isShaped;
+    Bool hasPict;
 #ifdef GLXEXT
-    void          *swapGroup;
-    int            barrier;
-    void         (*windowDestroyed)(WindowPtr);
-    void         (*windowUnmapped)(WindowPtr);
+    void *swapGroup;
+    int barrier;
+    void (*windowDestroyed) (WindowPtr);
+    void (*windowUnmapped) (WindowPtr);
 #endif
 } dmxWinPrivRec, *dmxWinPrivPtr;
-
 
 extern Bool dmxInitWindow(ScreenPtr pScreen);
 
 extern Window dmxCreateRootWindow(WindowPtr pWindow);
 
 extern void dmxGetDefaultWindowAttributes(WindowPtr pWindow,
-					  Colormap *cmap,
-					  Visual **visual);
+                                          Colormap * cmap, Visual ** visual);
 extern void dmxCreateAndRealizeWindow(WindowPtr pWindow, Bool doSync);
 
 extern Bool dmxCreateWindow(WindowPtr pWindow);
@@ -76,20 +74,19 @@ extern Bool dmxRealizeWindow(WindowPtr pWindow);
 extern Bool dmxUnrealizeWindow(WindowPtr pWindow);
 extern void dmxRestackWindow(WindowPtr pWindow, WindowPtr pOldNextSib);
 extern void dmxWindowExposures(WindowPtr pWindow, RegionPtr prgn,
-			       RegionPtr other_exposed);
+                               RegionPtr other_exposed);
 extern void dmxCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg,
-			  RegionPtr prgnSrc);
+                          RegionPtr prgnSrc);
 
 extern void dmxResizeWindow(WindowPtr pWindow, int x, int y,
-			    unsigned int w, unsigned int h, WindowPtr pSib);
+                            unsigned int w, unsigned int h, WindowPtr pSib);
 extern void dmxReparentWindow(WindowPtr pWindow, WindowPtr pPriorParent);
 
 extern void dmxChangeBorderWidth(WindowPtr pWindow, unsigned int width);
 
 extern void dmxResizeScreenWindow(ScreenPtr pScreen,
-				  int x, int y, int w, int h);
-extern void dmxResizeRootWindow(WindowPtr pRoot,
-				int x, int y, int w, int h);
+                                  int x, int y, int w, int h);
+extern void dmxResizeRootWindow(WindowPtr pRoot, int x, int y, int w, int h);
 
 extern Bool dmxBEDestroyWindow(WindowPtr pWindow);
 
@@ -122,9 +119,9 @@ do {									\
 #define DMX_WINDOW_Y1(_pWin)						\
     ((_pWin)->drawable.y - wBorderWidth(_pWin))
 #define DMX_WINDOW_X2(_pWin)						\
-    ((_pWin)->drawable.x + wBorderWidth(_pWin) + (_pWin)->drawable.width) 
+    ((_pWin)->drawable.x + wBorderWidth(_pWin) + (_pWin)->drawable.width)
 #define DMX_WINDOW_Y2(_pWin)						\
-    ((_pWin)->drawable.y + wBorderWidth(_pWin) + (_pWin)->drawable.height) 
+    ((_pWin)->drawable.y + wBorderWidth(_pWin) + (_pWin)->drawable.height)
 
 #define DMX_WINDOW_OFFSCREEN(_pWin)					\
     (DMX_WINDOW_X1(_pWin) >= (_pWin)->drawable.pScreen->width  ||	\
@@ -132,4 +129,4 @@ do {									\
      DMX_WINDOW_X2(_pWin) <= 0                                 ||	\
      DMX_WINDOW_Y2(_pWin) <= 0)
 
-#endif /* DMXWINDOW_H */
+#endif                          /* DMXWINDOW_H */

@@ -36,31 +36,23 @@
 #include <X11/extensions/Xvproto.h>
 
 void
-winInitVideo (ScreenPtr pScreen);
+ winInitVideo(ScreenPtr pScreen);
 
 /*
  * winInitVideo - Initialize support for the X Video (Xv) Extension.
  */
 
 void
-winInitVideo (ScreenPtr pScreen)
+winInitVideo(ScreenPtr pScreen)
 {
-  winScreenPriv(pScreen);
-  winScreenInfo		*pScreenInfo = pScreenPriv->pScreenInfo; 
+    winScreenPriv(pScreen);
+    winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
 
-  if (pScreenInfo->dwBPP > 8) 
-    {
-      
+    if (pScreenInfo->dwBPP > 8) {
+
     }
-  
 
 }
-
-
-
-
-
-
 
 #if 0
 #include "../xfree86/common/xf86.h"
@@ -69,80 +61,71 @@ winInitVideo (ScreenPtr pScreen)
 #include <X11/extensions/Xv.h>
 #endif
 
-
-
 #if 0
 /* client libraries expect an encoding */
-static XF86VideoEncodingRec DummyEncoding[1] =
-{
- {
-   0,
-   "XV_IMAGE",
-   IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT,
-   {1, 1}
- }
+static XF86VideoEncodingRec DummyEncoding[1] = {
+    {
+     0,
+     "XV_IMAGE",
+     IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT,
+     {1, 1}
+     }
 };
 
 #define NUM_FORMATS 3
 
-static XF86VideoFormatRec Formats[NUM_FORMATS] = 
-{
-  {15, TrueColor}, {16, TrueColor}, {24, TrueColor}
+static XF86VideoFormatRec Formats[NUM_FORMATS] = {
+    {15, TrueColor}, {16, TrueColor}, {24, TrueColor}
 };
 
 #define NUM_ATTRIBUTES 3
 
-static XF86AttributeRec Attributes[NUM_ATTRIBUTES] =
-{
-   {XvSettable | XvGettable, 0, (1 << 24) - 1, "XV_COLORKEY"},
-   {XvSettable | XvGettable, -128, 127, "XV_BRIGHTNESS"},
-   {XvSettable | XvGettable, 0, 255, "XV_CONTRAST"}
+static XF86AttributeRec Attributes[NUM_ATTRIBUTES] = {
+    {XvSettable | XvGettable, 0, (1 << 24) - 1, "XV_COLORKEY"},
+    {XvSettable | XvGettable, -128, 127, "XV_BRIGHTNESS"},
+    {XvSettable | XvGettable, 0, 255, "XV_CONTRAST"}
 };
 
 #define NUM_IMAGES 4
 
-static XF86ImageRec Images[NUM_IMAGES] =
-{
-	XVIMAGE_YUY2,
-	XVIMAGE_YV12,
-	XVIMAGE_I420,
-	XVIMAGE_UYVY
+static XF86ImageRec Images[NUM_IMAGES] = {
+    XVIMAGE_YUY2,
+    XVIMAGE_YV12,
+    XVIMAGE_I420,
+    XVIMAGE_UYVY
 };
-
-
 
 /*
  * winInitVideo - Initialize support for the X Video (Xv) Extension.
  */
 
 void
-winInitVideo (ScreenPtr pScreen)
+winInitVideo(ScreenPtr pScreen)
 {
-  winScreenPriv(pScreen);
-  winScreenInfo		*pScreenInfo = pScreenPriv->pScreenInfo; 
-  XF86VideoAdaptorPtr	newAdaptor = NULL;
+    winScreenPriv(pScreen);
+    winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
+    XF86VideoAdaptorPtr newAdaptor = NULL;
 
-  if (pScreenInfo->dwBPP > 8) 
-    {
-      newAdaptor = I810SetupImageVideo (pScreen);
-      I810InitOffscreenImages (pScreen);
+    if (pScreenInfo->dwBPP > 8) {
+        newAdaptor = I810SetupImageVideo(pScreen);
+        I810InitOffscreenImages(pScreen);
     }
-  
-    xf86XVScreenInit (pScreen, adaptors, 1);
+
+    xf86XVScreenInit(pScreen, adaptors, 1);
 }
 
-
-static XF86VideoAdaptorPtr 
-winSetupImageVideo (ScreenPtr pScreen)
+static XF86VideoAdaptorPtr
+winSetupImageVideo(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+
 #if 0
     I810Ptr pI810 = I810PTR(pScrn);
 #endif
     XF86VideoAdaptorPtr adapt;
 
     if (!(adapt = calloc(1, sizeof(XF86VideoAdaptorRec))))
-      return NULL;
+        return NULL;
 
     adapt->type = XvWindowMask | XvInputMask | XvImageMask;
     adapt->flags = VIDEO_OVERLAID_IMAGES | VIDEO_CLIP_TO_VIEWPORT;
@@ -195,8 +178,8 @@ winSetupImageVideo (ScreenPtr pScreen)
 
 #if 0
     xvBrightness = MAKE_ATOM("XV_BRIGHTNESS");
-    xvContrast   = MAKE_ATOM("XV_CONTRAST");
-    xvColorKey   = MAKE_ATOM("XV_COLORKEY");
+    xvContrast = MAKE_ATOM("XV_CONTRAST");
+    xvColorKey = MAKE_ATOM("XV_COLORKEY");
 #endif
 
 #if 0

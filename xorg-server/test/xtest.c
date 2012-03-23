@@ -40,9 +40,14 @@
 extern DeviceIntPtr xtestpointer, xtestkeyboard;
 
 /* Needed for the screen setup, otherwise we crash during sprite initialization */
-static Bool device_cursor_init(DeviceIntPtr dev, ScreenPtr screen) { return TRUE; }
+static Bool
+device_cursor_init(DeviceIntPtr dev, ScreenPtr screen)
+{
+    return TRUE;
+}
 
-static void xtest_init_devices(void)
+static void
+xtest_init_devices(void)
 {
     ScreenRec screen;
 
@@ -68,8 +73,10 @@ static void xtest_init_devices(void)
     assert(IsXTestDevice(xtestpointer, NULL));
     assert(IsXTestDevice(xtestkeyboard, NULL));
     assert(IsXTestDevice(xtestpointer, inputInfo.pointer));
+
     assert(IsXTestDevice(xtestkeyboard, inputInfo.keyboard));
     assert(GetXTestDevice(inputInfo.pointer) == xtestpointer);
+
     assert(GetXTestDevice(inputInfo.keyboard) == xtestkeyboard);
 }
 
@@ -77,7 +84,8 @@ static void xtest_init_devices(void)
  * Each xtest devices has a property attached marking it. This property
  * cannot be changed.
  */
-static void xtest_properties(void)
+static void
+xtest_properties(void)
 {
     int rc;
     char value = 1;
@@ -93,21 +101,20 @@ static void xtest_properties(void)
     assert(prop != NULL);
 
     rc = XIChangeDeviceProperty(xtestpointer, xtest_prop,
-                                XA_INTEGER, 8, PropModeReplace, 1, &value, FALSE);
+                                XA_INTEGER, 8, PropModeReplace, 1, &value,
+                                FALSE);
     assert(rc == BadAccess);
     rc = XIChangeDeviceProperty(xtestkeyboard, xtest_prop,
-                                XA_INTEGER, 8, PropModeReplace, 1, &value, FALSE);
+                                XA_INTEGER, 8, PropModeReplace, 1, &value,
+                                FALSE);
     assert(rc == BadAccess);
 }
 
-
-
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     xtest_init_devices();
     xtest_properties();
 
     return 0;
 }
-
-

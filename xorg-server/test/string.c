@@ -37,20 +37,20 @@
 #include <string.h>
 #undef strndup
 #define strndup my_strndup
-char *
-strndup(const char *str, size_t n);
+char *strndup(const char *str, size_t n);
 
 #include "../os/strndup.c"
 
-static void strndup_checks(void)
+static void
+strndup_checks(void)
 {
-    const char *sample="0123456789abcdef";
+    const char *sample = "0123456789abcdef";
     char *allofit;
 
     char *firsthalf = strndup(sample, 8);
     char *secondhalf = strndup(sample + 8, 8);
 
-    assert(strcmp(firsthalf,  "01234567") == 0);
+    assert(strcmp(firsthalf, "01234567") == 0);
     assert(strcmp(secondhalf, "89abcdef") == 0);
 
     free(firsthalf);
@@ -61,7 +61,8 @@ static void strndup_checks(void)
     free(allofit);
 }
 
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     strndup_checks();
 

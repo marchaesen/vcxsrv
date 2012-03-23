@@ -34,145 +34,136 @@
 #endif
 #include "win.h"
 
-
 /* See Porting Layer Definition - p. 55 */
 void
-winSetSpansNativeGDI (DrawablePtr	pDrawable,
-		      GCPtr		pGC,
-		      char		*pSrcs,
-		      DDXPointPtr	pPoints,
-		      int		*piWidths,
-		      int		iSpans,
-		      int		fSorted)
+winSetSpansNativeGDI(DrawablePtr pDrawable,
+                     GCPtr pGC,
+                     char *pSrcs,
+                     DDXPointPtr pPoints,
+                     int *piWidths, int iSpans, int fSorted)
 {
-  winGCPriv(pGC);
-  PixmapPtr		pPixmap = NULL;
-  winPrivPixmapPtr	pPixmapPriv = NULL;
-  HBITMAP		hbmpOrig = NULL;
-  BITMAPINFO		bmi;
-  HRGN			hrgn = NULL, combined = NULL;
-  int			nbox;
-  BoxPtr	 	pbox;
+    winGCPriv(pGC);
+    PixmapPtr pPixmap = NULL;
+    winPrivPixmapPtr pPixmapPriv = NULL;
+    HBITMAP hbmpOrig = NULL;
+    BITMAPINFO bmi;
+    HRGN hrgn = NULL, combined = NULL;
+    int nbox;
+    BoxPtr pbox;
 
-  nbox = RegionNumRects (pGC->pCompositeClip);
-  pbox = RegionRects (pGC->pCompositeClip);
+    nbox = RegionNumRects(pGC->pCompositeClip);
+    pbox = RegionRects(pGC->pCompositeClip);
 
-  if (!nbox) return;
+    if (!nbox)
+        return;
 
-  combined = CreateRectRgn (pbox->x1, pbox->y1, pbox->x2, pbox->y2);
-  nbox--; pbox++;
-  while (nbox--)
-    {
-      hrgn = CreateRectRgn (pbox->x1, pbox->y1, pbox->x2, pbox->y2);
-      CombineRgn (combined, combined, hrgn, RGN_OR);
-      DeleteObject (hrgn);
-      hrgn = NULL;
-      pbox++;
+    combined = CreateRectRgn(pbox->x1, pbox->y1, pbox->x2, pbox->y2);
+    nbox--;
+    pbox++;
+    while (nbox--) {
+        hrgn = CreateRectRgn(pbox->x1, pbox->y1, pbox->x2, pbox->y2);
+        CombineRgn(combined, combined, hrgn, RGN_OR);
+        DeleteObject(hrgn);
+        hrgn = NULL;
+        pbox++;
     }
 
-  /* Branch on the drawable type */
-  switch (pDrawable->type)
-    {
+    /* Branch on the drawable type */
+    switch (pDrawable->type) {
     case DRAWABLE_PIXMAP:
 
-      SelectClipRgn (pGCPriv->hdcMem, combined);
-      DeleteObject (combined);
-      combined = NULL;
+        SelectClipRgn(pGCPriv->hdcMem, combined);
+        DeleteObject(combined);
+        combined = NULL;
 
-      pPixmap = (PixmapPtr) pDrawable;
-      pPixmapPriv = winGetPixmapPriv (pPixmap);
-      
-      /* Select the drawable pixmap into a DC */
-      hbmpOrig = SelectObject (pGCPriv->hdcMem, pPixmapPriv->hBitmap);
-      if (hbmpOrig == NULL)
-	FatalError ("winSetSpans - DRAWABLE_PIXMAP - SelectObject () "
-		    "failed on pPixmapPriv->hBitmap\n");
+        pPixmap = (PixmapPtr) pDrawable;
+        pPixmapPriv = winGetPixmapPriv(pPixmap);
 
-      while (iSpans--)
-        {
-	  ZeroMemory (&bmi, sizeof (BITMAPINFO));
-	  bmi.bmiHeader.biSize = sizeof (BITMAPINFOHEADER);
-	  bmi.bmiHeader.biWidth = *piWidths;
-	  bmi.bmiHeader.biHeight = 1;
-	  bmi.bmiHeader.biPlanes = 1;
-	  bmi.bmiHeader.biBitCount = pDrawable->depth;
-	  bmi.bmiHeader.biCompression = BI_RGB;
+        /* Select the drawable pixmap into a DC */
+        hbmpOrig = SelectObject(pGCPriv->hdcMem, pPixmapPriv->hBitmap);
+        if (hbmpOrig == NULL)
+            FatalError("winSetSpans - DRAWABLE_PIXMAP - SelectObject () "
+                       "failed on pPixmapPriv->hBitmap\n");
 
-  	  /* Setup color table for mono DIBs */
-  	  if (pDrawable->depth == 1)
-    	    {
-      	      bmi.bmiColors[1].rgbBlue = 255;
-      	      bmi.bmiColors[1].rgbGreen = 255;
-      	      bmi.bmiColors[1].rgbRed = 255;
-    	    }
+        while (iSpans--) {
+            ZeroMemory(&bmi, sizeof(BITMAPINFO));
+            bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            bmi.bmiHeader.biWidth = *piWidths;
+            bmi.bmiHeader.biHeight = 1;
+            bmi.bmiHeader.biPlanes = 1;
+            bmi.bmiHeader.biBitCount = pDrawable->depth;
+            bmi.bmiHeader.biCompression = BI_RGB;
 
-	  StretchDIBits (pGCPriv->hdcMem, 
-			 pPoints->x, pPoints->y,
-			 *piWidths, 1,
-			 0, 0,
-			 *piWidths, 1,
-			 pSrcs,
-			 (BITMAPINFO *) &bmi,
-			 DIB_RGB_COLORS,
-			 g_copyROP[pGC->alu]);
+            /* Setup color table for mono DIBs */
+            if (pDrawable->depth == 1) {
+                bmi.bmiColors[1].rgbBlue = 255;
+                bmi.bmiColors[1].rgbGreen = 255;
+                bmi.bmiColors[1].rgbRed = 255;
+            }
 
-	  pSrcs += PixmapBytePad (*piWidths, pDrawable->depth);
-	  pPoints++;
-	  piWidths++;
+            StretchDIBits(pGCPriv->hdcMem,
+                          pPoints->x, pPoints->y,
+                          *piWidths, 1,
+                          0, 0,
+                          *piWidths, 1,
+                          pSrcs,
+                          (BITMAPINFO *) & bmi,
+                          DIB_RGB_COLORS, g_copyROP[pGC->alu]);
+
+            pSrcs += PixmapBytePad(*piWidths, pDrawable->depth);
+            pPoints++;
+            piWidths++;
         }
-      
-      /* Reset the clip region */
-      SelectClipRgn (pGCPriv->hdcMem, NULL);
 
-      /* Push the drawable pixmap out of the GC HDC */
-      SelectObject (pGCPriv->hdcMem, hbmpOrig);
-      break;
+        /* Reset the clip region */
+        SelectClipRgn(pGCPriv->hdcMem, NULL);
+
+        /* Push the drawable pixmap out of the GC HDC */
+        SelectObject(pGCPriv->hdcMem, hbmpOrig);
+        break;
 
     case DRAWABLE_WINDOW:
 
-      SelectClipRgn (pGCPriv->hdc, combined);
-      DeleteObject (combined);
-      combined = NULL;
+        SelectClipRgn(pGCPriv->hdc, combined);
+        DeleteObject(combined);
+        combined = NULL;
 
-      while (iSpans--)
-        {
-	  ZeroMemory (&bmi, sizeof (BITMAPINFO));
-	  bmi.bmiHeader.biSize = sizeof (BITMAPINFOHEADER);
-	  bmi.bmiHeader.biWidth = *piWidths;
-	  bmi.bmiHeader.biHeight = 1;
-	  bmi.bmiHeader.biPlanes = 1;
-	  bmi.bmiHeader.biBitCount = pDrawable->depth;
-	  bmi.bmiHeader.biCompression = BI_RGB;
+        while (iSpans--) {
+            ZeroMemory(&bmi, sizeof(BITMAPINFO));
+            bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            bmi.bmiHeader.biWidth = *piWidths;
+            bmi.bmiHeader.biHeight = 1;
+            bmi.bmiHeader.biPlanes = 1;
+            bmi.bmiHeader.biBitCount = pDrawable->depth;
+            bmi.bmiHeader.biCompression = BI_RGB;
 
-  	  /* Setup color table for mono DIBs */
-  	  if (pDrawable->depth == 1)
-    	    {
-      	      bmi.bmiColors[1].rgbBlue = 255;
-      	      bmi.bmiColors[1].rgbGreen = 255;
-      	      bmi.bmiColors[1].rgbRed = 255;
-    	    }
+            /* Setup color table for mono DIBs */
+            if (pDrawable->depth == 1) {
+                bmi.bmiColors[1].rgbBlue = 255;
+                bmi.bmiColors[1].rgbGreen = 255;
+                bmi.bmiColors[1].rgbRed = 255;
+            }
 
-	  StretchDIBits (pGCPriv->hdc, 
-			 pPoints->x, pPoints->y,
-			 *piWidths, 1,
-			 0, 0,
-			 *piWidths, 1,
-			 pSrcs,
-			 (BITMAPINFO *) &bmi,
-			 DIB_RGB_COLORS,
-			 g_copyROP[pGC->alu]);
+            StretchDIBits(pGCPriv->hdc,
+                          pPoints->x, pPoints->y,
+                          *piWidths, 1,
+                          0, 0,
+                          *piWidths, 1,
+                          pSrcs,
+                          (BITMAPINFO *) & bmi,
+                          DIB_RGB_COLORS, g_copyROP[pGC->alu]);
 
-	  pSrcs += PixmapBytePad (*piWidths, pDrawable->depth);
-	  pPoints++;
-	  piWidths++;
+            pSrcs += PixmapBytePad(*piWidths, pDrawable->depth);
+            pPoints++;
+            piWidths++;
         }
 
-      /* Reset the clip region */
-      SelectClipRgn (pGCPriv->hdc, NULL);
-      break;
+        /* Reset the clip region */
+        SelectClipRgn(pGCPriv->hdc, NULL);
+        break;
 
     default:
-      FatalError ("\nwinSetSpansNativeGDI - Unknown drawable type\n\n");
-      break;
+        FatalError("\nwinSetSpansNativeGDI - Unknown drawable type\n\n");
+        break;
     }
 }

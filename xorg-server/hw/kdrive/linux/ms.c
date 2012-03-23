@@ -34,67 +34,63 @@ THE SOFTWARE.
 #include "kdrive.h"
 
 static int
-MsReadBytes (int fd, char *buf, int len, int min)
+MsReadBytes(int fd, char *buf, int len, int min)
 {
-    int		    n, tot;
-    fd_set	    set;
-    struct timeval  tv;
+    int n, tot;
+    fd_set set;
+    struct timeval tv;
 
     tot = 0;
-    while (len)
-    {
-	n = read (fd, buf, len);
-	if (n > 0)
-	{
-	    tot += n;
-	    buf += n;
-	    len -= n;
-	}
-	if (tot % min == 0)
-	    break;
-	FD_ZERO (&set);
-	FD_SET (fd, &set);
-	tv.tv_sec = 0;
-	tv.tv_usec = 100 * 1000;
-	n = select (fd + 1, &set, 0, 0, &tv);
-	if (n <= 0)
-	    break;
+    while (len) {
+        n = read(fd, buf, len);
+        if (n > 0) {
+            tot += n;
+            buf += n;
+            len -= n;
+        }
+        if (tot % min == 0)
+            break;
+        FD_ZERO(&set);
+        FD_SET(fd, &set);
+        tv.tv_sec = 0;
+        tv.tv_usec = 100 * 1000;
+        n = select(fd + 1, &set, 0, 0, &tv);
+        if (n <= 0)
+            break;
     }
     return tot;
 }
 
 static void
-MsRead (int port, void *closure)
+MsRead(int port, void *closure)
 {
-    unsigned char   buf[3 * 200];
-    unsigned char   *b;
-    int		    n;
-    int		    dx, dy;
-    unsigned long   flags;
+    unsigned char buf[3 * 200];
+    unsigned char *b;
+    int n;
+    int dx, dy;
+    unsigned long flags;
 
-    while ((n = MsReadBytes (port, (char *) buf, sizeof (buf), 3)) > 0)
-    {
-	b = buf;
-	while (n >= 3)
-	{
-	    flags = KD_MOUSE_DELTA;
+    while ((n = MsReadBytes(port, (char *) buf, sizeof(buf), 3)) > 0) {
+        b = buf;
+        while (n >= 3) {
+            flags = KD_MOUSE_DELTA;
 
-	    if (b[0] & 0x20)
-		flags |= KD_BUTTON_1;
-	    if (b[0] & 0x10)
-		flags |= KD_BUTTON_3;
+            if (b[0] & 0x20)
+                flags |= KD_BUTTON_1;
+            if (b[0] & 0x10)
+                flags |= KD_BUTTON_3;
 
-	    dx = (char)(((b[0] & 0x03) << 6) | (b[1] & 0x3F));
-	    dy = (char)(((b[0] & 0x0C) << 4) | (b[2] & 0x3F));
+            dx = (char) (((b[0] & 0x03) << 6) | (b[1] & 0x3F));
+            dy = (char) (((b[0] & 0x0C) << 4) | (b[2] & 0x3F));
             n -= 3;
             b += 3;
-	    KdEnqueuePointerEvent (closure, flags, dx, dy, 0);
-	}
+            KdEnqueuePointerEvent(closure, flags, dx, dy, 0);
+        }
     }
 }
 
 static Status
-MsInit (KdPointerInfo *pi)
+MsInit(KdPointerInfo * pi)
 {
     if (!pi)
         return BadImplementation;
@@ -108,51 +104,51 @@ MsInit (KdPointerInfo *pi)
 }
 
 static Status
-MsEnable (KdPointerInfo *pi)
+MsEnable(KdPointerInfo * pi)
 {
     int port;
     struct termios t;
     int ret;
 
-    port = open (pi->path, O_RDWR | O_NONBLOCK);
-    if(port < 0) {
-        ErrorF("Couldn't open %s (%d)\n", pi->path, (int)errno);
+    port = open(pi->path, O_RDWR | O_NONBLOCK);
+    if (port < 0) {
+        ErrorF("Couldn't open %s (%d)\n", pi->path, (int) errno);
         return 0;
-    } else if (port == 0) {
-        ErrorF("Opening %s returned 0!  Please complain to Keith.\n",
-               pi->path);
-	goto bail;
+    }
+    else if (port == 0) {
+        ErrorF("Opening %s returned 0!  Please complain to Keith.\n", pi->path);
+        goto bail;
     }
 
-    if(!isatty(port)) {
+    if (!isatty(port)) {
         ErrorF("%s is not a tty\n", pi->path);
         goto bail;
     }
 
     ret = tcgetattr(port, &t);
-    if(ret < 0) {
+    if (ret < 0) {
         ErrorF("Couldn't tcgetattr(%s): %d\n", pi->path, errno);
         goto bail;
     }
-    t.c_iflag &= ~ (IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR |
+    t.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR |
                    IGNCR | ICRNL | IXON | IXOFF);
-    t.c_oflag &= ~ OPOST;
-    t.c_lflag &= ~ (ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-    t.c_cflag &= ~ (CSIZE | PARENB);
+    t.c_oflag &= ~OPOST;
+    t.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+    t.c_cflag &= ~(CSIZE | PARENB);
     t.c_cflag |= CS8 | CLOCAL | CSTOPB;
 
-    cfsetispeed (&t, B1200);
-    cfsetospeed (&t, B1200);
+    cfsetispeed(&t, B1200);
+    cfsetospeed(&t, B1200);
     t.c_cc[VMIN] = 1;
     t.c_cc[VTIME] = 0;
     ret = tcsetattr(port, TCSANOW, &t);
-    if(ret < 0) {
+    if (ret < 0) {
         ErrorF("Couldn't tcsetattr(%s): %d\n", pi->path, errno);
         goto bail;
     }
-    if (KdRegisterFd (port, MsRead, pi))
-	return TRUE;
-    pi->driverPrivate = (void *)(intptr_t)port;
+    if (KdRegisterFd(port, MsRead, pi))
+        return TRUE;
+    pi->driverPrivate = (void *) (intptr_t) port;
 
     return Success;
 
@@ -162,13 +158,13 @@ MsEnable (KdPointerInfo *pi)
 }
 
 static void
-MsDisable (KdPointerInfo *pi)
+MsDisable(KdPointerInfo * pi)
 {
-    KdUnregisterFd (pi, (int)(intptr_t)pi->driverPrivate, TRUE);
+    KdUnregisterFd(pi, (int) (intptr_t) pi->driverPrivate, TRUE);
 }
 
 static void
-MsFini (KdPointerInfo *pi)
+MsFini(KdPointerInfo * pi)
 {
 }
 

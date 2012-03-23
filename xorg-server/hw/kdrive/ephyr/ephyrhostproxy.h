@@ -30,22 +30,22 @@
 #define __EPHYRHOSTPROXY_H__
 
 struct XReply {
-    int8_t type ;/*X_Reply*/
+    int8_t type;                /*X_Reply */
     int8_t foo;
-    int16_t sequence_number ;
-    int32_t length ;
-    /*following is some data up to 32 bytes lenght*/
-    int32_t pad0 ;
-    int32_t pad1 ;
-    int32_t pad2 ;
-    int32_t pad3 ;
-    int32_t pad4 ;
-    int32_t pad5 ;
+    int16_t sequence_number;
+    int32_t length;
+    /*following is some data up to 32 bytes lenght */
+    int32_t pad0;
+    int32_t pad1;
+    int32_t pad2;
+    int32_t pad3;
+    int32_t pad4;
+    int32_t pad5;
 };
 
 Bool
-ephyrHostProxyDoForward (pointer a_request_buffer,
-                         struct XReply *a_reply,
-                         Bool a_do_swap) ;
+
+ephyrHostProxyDoForward(pointer a_request_buffer,
+                        struct XReply *a_reply, Bool a_do_swap);
 
 #endif /*__EPHYRHOSTPROXY_H__*/

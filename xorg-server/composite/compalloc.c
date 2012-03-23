@@ -48,23 +48,20 @@
 #include "compint.h"
 
 static void
-compScreenUpdate (ScreenPtr pScreen)
+compScreenUpdate(ScreenPtr pScreen)
 {
-    compCheckTree (pScreen);
-    compPaintChildrenToWindow (pScreen->root);
+    compCheckTree(pScreen);
+    compPaintChildrenToWindow(pScreen->root);
 }
 
 static void
-compBlockHandler (int	    i,
-		  pointer   blockData,
-		  pointer   pTimeout,
-		  pointer   pReadmask)
+compBlockHandler(int i, pointer blockData, pointer pTimeout, pointer pReadmask)
 {
-    ScreenPtr	    pScreen = screenInfo.screens[i];
-    CompScreenPtr   cs = GetCompScreen (pScreen);
+    ScreenPtr pScreen = screenInfo.screens[i];
+    CompScreenPtr cs = GetCompScreen(pScreen);
 
     pScreen->BlockHandler = cs->BlockHandler;
-    compScreenUpdate (pScreen);
+    compScreenUpdate(pScreen);
     (*pScreen->BlockHandler) (i, blockData, pTimeout, pReadmask);
 
     /* Next damage will restore the block handler */
@@ -72,12 +69,12 @@ compBlockHandler (int	    i,
 }
 
 static void
-compReportDamage (DamagePtr pDamage, RegionPtr pRegion, void *closure)
+compReportDamage(DamagePtr pDamage, RegionPtr pRegion, void *closure)
 {
-    WindowPtr	    pWin = (WindowPtr) closure;
-    ScreenPtr	    pScreen = pWin->drawable.pScreen;
-    CompScreenPtr   cs = GetCompScreen (pScreen);
-    CompWindowPtr   cw = GetCompWindow (pWin);
+    WindowPtr pWin = (WindowPtr) closure;
+    ScreenPtr pScreen = pWin->drawable.pScreen;
+    CompScreenPtr cs = GetCompScreen(pScreen);
+    CompWindowPtr cw = GetCompWindow(pWin);
 
     if (!cs->BlockHandler) {
         cs->BlockHandler = pScreen->BlockHandler;
@@ -88,34 +85,33 @@ compReportDamage (DamagePtr pDamage, RegionPtr pRegion, void *closure)
     /* Mark the ancestors */
     pWin = pWin->parent;
     while (pWin) {
-	if (pWin->damagedDescendants)
-	    break;
-	pWin->damagedDescendants = TRUE;
-	pWin = pWin->parent;
+        if (pWin->damagedDescendants)
+            break;
+        pWin->damagedDescendants = TRUE;
+        pWin = pWin->parent;
     }
 }
 
 static void
-compDestroyDamage (DamagePtr pDamage, void *closure)
+compDestroyDamage(DamagePtr pDamage, void *closure)
 {
-    WindowPtr	    pWin = (WindowPtr) closure;
-    CompWindowPtr   cw = GetCompWindow (pWin);
+    WindowPtr pWin = (WindowPtr) closure;
+    CompWindowPtr cw = GetCompWindow(pWin);
 
     cw->damage = 0;
 }
 
 static Bool
-compMarkWindows(WindowPtr pWin,
-		WindowPtr *ppLayerWin)
+compMarkWindows(WindowPtr pWin, WindowPtr *ppLayerWin)
 {
     ScreenPtr pScreen = pWin->drawable.pScreen;
     WindowPtr pLayerWin = pWin;
 
     if (!pWin->viewable)
-	return FALSE;
+        return FALSE;
 
-    (*pScreen->MarkOverlappedWindows)(pWin, pWin, &pLayerWin);
-    (*pScreen->MarkWindow)(pLayerWin->parent);
+    (*pScreen->MarkOverlappedWindows) (pWin, pWin, &pLayerWin);
+    (*pScreen->MarkWindow) (pLayerWin->parent);
 
     *ppLayerWin = pLayerWin;
 
@@ -127,143 +123,134 @@ compHandleMarkedWindows(WindowPtr pWin, WindowPtr pLayerWin)
 {
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    (*pScreen->ValidateTree)(pLayerWin->parent, pLayerWin, VTOther);
-    (*pScreen->HandleExposures)(pLayerWin->parent);
+    (*pScreen->ValidateTree) (pLayerWin->parent, pLayerWin, VTOther);
+    (*pScreen->HandleExposures) (pLayerWin->parent);
     if (pScreen->PostValidateTree)
-	(*pScreen->PostValidateTree)(pLayerWin->parent, pLayerWin, VTOther);
+        (*pScreen->PostValidateTree) (pLayerWin->parent, pLayerWin, VTOther);
 }
 
 /*
  * Redirect one window for one client
  */
 int
-compRedirectWindow (ClientPtr pClient, WindowPtr pWin, int update)
+compRedirectWindow(ClientPtr pClient, WindowPtr pWin, int update)
 {
-    CompWindowPtr	cw = GetCompWindow (pWin);
-    CompClientWindowPtr	ccw;
-    CompScreenPtr       cs = GetCompScreen(pWin->drawable.pScreen);
-    WindowPtr		pLayerWin;
-    Bool		anyMarked = FALSE;
-    
+    CompWindowPtr cw = GetCompWindow(pWin);
+    CompClientWindowPtr ccw;
+    CompScreenPtr cs = GetCompScreen(pWin->drawable.pScreen);
+    WindowPtr pLayerWin;
+    Bool anyMarked = FALSE;
+
     if (pWin == cs->pOverlayWin) {
-	return Success;
+        return Success;
     }
 
     if (!pWin->parent)
-	return BadMatch;
+        return BadMatch;
 
     /*
      * Only one Manual update is allowed
      */
     if (cw && update == CompositeRedirectManual)
-	for (ccw = cw->clients; ccw; ccw = ccw->next)
-	    if (ccw->update == CompositeRedirectManual)
-		return BadAccess;
-    
+        for (ccw = cw->clients; ccw; ccw = ccw->next)
+            if (ccw->update == CompositeRedirectManual)
+                return BadAccess;
+
     /*
      * Allocate per-client per-window structure 
      * The client *could* allocate multiple, but while supported,
      * it is not expected to be common
      */
-    ccw = malloc(sizeof (CompClientWindowRec));
+    ccw = malloc(sizeof(CompClientWindowRec));
     if (!ccw)
-	return BadAlloc;
-    ccw->id = FakeClientID (pClient->index);
+        return BadAlloc;
+    ccw->id = FakeClientID(pClient->index);
     ccw->update = update;
     /*
      * Now make sure there's a per-window structure to hang this from
      */
-    if (!cw)
-    {
-	cw = malloc(sizeof (CompWindowRec));
-	if (!cw)
-	{
-	    free(ccw);
-	    return BadAlloc;
-	}
-	cw->damage = DamageCreate (compReportDamage,
-				   compDestroyDamage,
-				   DamageReportNonEmpty,
-				   FALSE,
-				   pWin->drawable.pScreen,
-				   pWin);
-	if (!cw->damage)
-	{
-	    free(ccw);
-	    free(cw);
-	    return BadAlloc;
-	}
+    if (!cw) {
+        cw = malloc(sizeof(CompWindowRec));
+        if (!cw) {
+            free(ccw);
+            return BadAlloc;
+        }
+        cw->damage = DamageCreate(compReportDamage,
+                                  compDestroyDamage,
+                                  DamageReportNonEmpty,
+                                  FALSE, pWin->drawable.pScreen, pWin);
+        if (!cw->damage) {
+            free(ccw);
+            free(cw);
+            return BadAlloc;
+        }
 
-	anyMarked = compMarkWindows (pWin, &pLayerWin);
+        anyMarked = compMarkWindows(pWin, &pLayerWin);
 
-	RegionNull(&cw->borderClip);
-	cw->update = CompositeRedirectAutomatic;
-	cw->clients = 0;
-	cw->oldx = COMP_ORIGIN_INVALID;
-	cw->oldy = COMP_ORIGIN_INVALID;
-	cw->damageRegistered = FALSE;
-	cw->damaged = FALSE;
-	cw->pOldPixmap = NullPixmap;
-	dixSetPrivate(&pWin->devPrivates, CompWindowPrivateKey, cw);
+        RegionNull(&cw->borderClip);
+        cw->update = CompositeRedirectAutomatic;
+        cw->clients = 0;
+        cw->oldx = COMP_ORIGIN_INVALID;
+        cw->oldy = COMP_ORIGIN_INVALID;
+        cw->damageRegistered = FALSE;
+        cw->damaged = FALSE;
+        cw->pOldPixmap = NullPixmap;
+        dixSetPrivate(&pWin->devPrivates, CompWindowPrivateKey, cw);
     }
     ccw->next = cw->clients;
     cw->clients = ccw;
-    if (!AddResource (ccw->id, CompositeClientWindowType, pWin))
-	return BadAlloc;
-    if (ccw->update == CompositeRedirectManual)
-    {
-	if (!anyMarked)
-	    anyMarked = compMarkWindows (pWin, &pLayerWin);
+    if (!AddResource(ccw->id, CompositeClientWindowType, pWin))
+        return BadAlloc;
+    if (ccw->update == CompositeRedirectManual) {
+        if (!anyMarked)
+            anyMarked = compMarkWindows(pWin, &pLayerWin);
 
-	if (cw->damageRegistered)
-	{
-	    DamageUnregister (&pWin->drawable, cw->damage);
-	    cw->damageRegistered = FALSE;
-	}
-	cw->update = CompositeRedirectManual;
+        if (cw->damageRegistered) {
+            DamageUnregister(&pWin->drawable, cw->damage);
+            cw->damageRegistered = FALSE;
+        }
+        cw->update = CompositeRedirectManual;
     }
     else if (cw->update == CompositeRedirectAutomatic && !cw->damageRegistered) {
-	if (!anyMarked)
-	    anyMarked = compMarkWindows (pWin, &pLayerWin);
+        if (!anyMarked)
+            anyMarked = compMarkWindows(pWin, &pLayerWin);
     }
 
-    if (!compCheckRedirect (pWin))
-    {
-	FreeResource (ccw->id, RT_NONE);
-	return BadAlloc;
+    if (!compCheckRedirect(pWin)) {
+        FreeResource(ccw->id, RT_NONE);
+        return BadAlloc;
     }
 
     if (anyMarked)
-	compHandleMarkedWindows (pWin, pLayerWin);
-    
+        compHandleMarkedWindows(pWin, pLayerWin);
+
     return Success;
 }
 
 void
-compRestoreWindow (WindowPtr pWin, PixmapPtr pPixmap)
+compRestoreWindow(WindowPtr pWin, PixmapPtr pPixmap)
 {
     ScreenPtr pScreen = pWin->drawable.pScreen;
     WindowPtr pParent = pWin->parent;
 
     if (pParent->drawable.depth == pWin->drawable.depth) {
-	GCPtr pGC = GetScratchGC (pWin->drawable.depth, pScreen);
-	int bw = (int) pWin->borderWidth;
-	int x = bw;
-	int y = bw;
-	int w = pWin->drawable.width;
-	int h = pWin->drawable.height;
+        GCPtr pGC = GetScratchGC(pWin->drawable.depth, pScreen);
+        int bw = (int) pWin->borderWidth;
+        int x = bw;
+        int y = bw;
+        int w = pWin->drawable.width;
+        int h = pWin->drawable.height;
 
-	if (pGC) {
-	    ChangeGCVal val;
-	    val.val = IncludeInferiors;
-	    ChangeGC (NullClient, pGC, GCSubwindowMode, &val);
-	    ValidateGC(&pWin->drawable, pGC);
-	    (*pGC->ops->CopyArea) (&pPixmap->drawable,
-				   &pWin->drawable,
-				   pGC,
-				   x, y, w, h, 0, 0);
-	    FreeScratchGC (pGC);
-	}
+        if (pGC) {
+            ChangeGCVal val;
+
+            val.val = IncludeInferiors;
+            ChangeGC(NullClient, pGC, GCSubwindowMode, &val);
+            ValidateGC(&pWin->drawable, pGC);
+            (*pGC->ops->CopyArea) (&pPixmap->drawable,
+                                   &pWin->drawable, pGC, x, y, w, h, 0, 0);
+            FreeScratchGC(pGC);
+        }
     }
 }
 
@@ -272,62 +259,58 @@ compRestoreWindow (WindowPtr pWin, PixmapPtr pPixmap)
  * redirect and the per-window pointer as appropriate
  */
 void
-compFreeClientWindow (WindowPtr pWin, XID id)
+compFreeClientWindow(WindowPtr pWin, XID id)
 {
-    ScreenPtr		pScreen = pWin->drawable.pScreen;
-    CompWindowPtr	cw = GetCompWindow (pWin);
-    CompClientWindowPtr	ccw, *prev;
-    Bool		anyMarked = FALSE;
-    WindowPtr		pLayerWin;
-    PixmapPtr           pPixmap = NULL;
+    ScreenPtr pScreen = pWin->drawable.pScreen;
+    CompWindowPtr cw = GetCompWindow(pWin);
+    CompClientWindowPtr ccw, *prev;
+    Bool anyMarked = FALSE;
+    WindowPtr pLayerWin;
+    PixmapPtr pPixmap = NULL;
 
     if (!cw)
-	return;
-    for (prev = &cw->clients; (ccw = *prev); prev = &ccw->next)
-    {
-	if (ccw->id == id)
-	{
-	    *prev = ccw->next;
-	    if (ccw->update == CompositeRedirectManual)
-		cw->update = CompositeRedirectAutomatic;
-	    free(ccw);
-	    break;
-	}
+        return;
+    for (prev = &cw->clients; (ccw = *prev); prev = &ccw->next) {
+        if (ccw->id == id) {
+            *prev = ccw->next;
+            if (ccw->update == CompositeRedirectManual)
+                cw->update = CompositeRedirectAutomatic;
+            free(ccw);
+            break;
+        }
     }
-    if (!cw->clients)
-    {
-	anyMarked = compMarkWindows (pWin, &pLayerWin);
-    
-	if (pWin->redirectDraw != RedirectDrawNone) {
-	    pPixmap = (*pScreen->GetWindowPixmap) (pWin);
-	    compSetParentPixmap (pWin);
-	}
+    if (!cw->clients) {
+        anyMarked = compMarkWindows(pWin, &pLayerWin);
 
-	if (cw->damage)
-	    DamageDestroy (cw->damage);
-	
-	RegionUninit(&cw->borderClip);
-    
-	dixSetPrivate(&pWin->devPrivates, CompWindowPrivateKey, NULL);
-	free(cw);
+        if (pWin->redirectDraw != RedirectDrawNone) {
+            pPixmap = (*pScreen->GetWindowPixmap) (pWin);
+            compSetParentPixmap(pWin);
+        }
+
+        if (cw->damage)
+            DamageDestroy(cw->damage);
+
+        RegionUninit(&cw->borderClip);
+
+        dixSetPrivate(&pWin->devPrivates, CompWindowPrivateKey, NULL);
+        free(cw);
     }
     else if (cw->update == CompositeRedirectAutomatic &&
-	     !cw->damageRegistered && pWin->redirectDraw != RedirectDrawNone)
-    {
-	anyMarked = compMarkWindows (pWin, &pLayerWin);
+             !cw->damageRegistered && pWin->redirectDraw != RedirectDrawNone) {
+        anyMarked = compMarkWindows(pWin, &pLayerWin);
 
-	DamageRegister (&pWin->drawable, cw->damage);
-	cw->damageRegistered = TRUE;
-	pWin->redirectDraw = RedirectDrawAutomatic;
-	DamageDamageRegion(&pWin->drawable, &pWin->borderSize);
+        DamageRegister(&pWin->drawable, cw->damage);
+        cw->damageRegistered = TRUE;
+        pWin->redirectDraw = RedirectDrawAutomatic;
+        DamageDamageRegion(&pWin->drawable, &pWin->borderSize);
     }
 
     if (anyMarked)
-	compHandleMarkedWindows (pWin, pLayerWin);
+        compHandleMarkedWindows(pWin, pLayerWin);
 
     if (pPixmap) {
-	compRestoreWindow (pWin, pPixmap);
-	(*pScreen->DestroyPixmap) (pPixmap);
+        compRestoreWindow(pWin, pPixmap);
+        (*pScreen->DestroyPixmap) (pPixmap);
     }
 }
 
@@ -336,101 +319,95 @@ compFreeClientWindow (WindowPtr pWin, XID id)
  */
 
 int
-compUnredirectWindow (ClientPtr pClient, WindowPtr pWin, int update)
+compUnredirectWindow(ClientPtr pClient, WindowPtr pWin, int update)
 {
-    CompWindowPtr	cw = GetCompWindow (pWin);
-    CompClientWindowPtr	ccw;
+    CompWindowPtr cw = GetCompWindow(pWin);
+    CompClientWindowPtr ccw;
 
     if (!cw)
-	return BadValue;
+        return BadValue;
 
     for (ccw = cw->clients; ccw; ccw = ccw->next)
-	if (ccw->update == update && CLIENT_ID(ccw->id) == pClient->index)
-	{
-	    FreeResource (ccw->id, RT_NONE);
-	    return Success;
-	}
+        if (ccw->update == update && CLIENT_ID(ccw->id) == pClient->index) {
+            FreeResource(ccw->id, RT_NONE);
+            return Success;
+        }
     return BadValue;
 }
-	
+
 /*
  * Redirect all subwindows for one client
  */
 
 int
-compRedirectSubwindows (ClientPtr pClient, WindowPtr pWin, int update)
+compRedirectSubwindows(ClientPtr pClient, WindowPtr pWin, int update)
 {
-    CompSubwindowsPtr	csw = GetCompSubwindows (pWin);
-    CompClientWindowPtr	ccw;
-    WindowPtr		pChild;
+    CompSubwindowsPtr csw = GetCompSubwindows(pWin);
+    CompClientWindowPtr ccw;
+    WindowPtr pChild;
 
     /*
      * Only one Manual update is allowed
      */
     if (csw && update == CompositeRedirectManual)
-	for (ccw = csw->clients; ccw; ccw = ccw->next)
-	    if (ccw->update == CompositeRedirectManual)
-		return BadAccess;
+        for (ccw = csw->clients; ccw; ccw = ccw->next)
+            if (ccw->update == CompositeRedirectManual)
+                return BadAccess;
     /*
      * Allocate per-client per-window structure 
      * The client *could* allocate multiple, but while supported,
      * it is not expected to be common
      */
-    ccw = malloc(sizeof (CompClientWindowRec));
+    ccw = malloc(sizeof(CompClientWindowRec));
     if (!ccw)
-	return BadAlloc;
-    ccw->id = FakeClientID (pClient->index);
+        return BadAlloc;
+    ccw->id = FakeClientID(pClient->index);
     ccw->update = update;
     /*
      * Now make sure there's a per-window structure to hang this from
      */
-    if (!csw)
-    {
-	csw = malloc(sizeof (CompSubwindowsRec));
-	if (!csw)
-	{
-	    free(ccw);
-	    return BadAlloc;
-	}
-	csw->update = CompositeRedirectAutomatic;
-	csw->clients = 0;
-	dixSetPrivate(&pWin->devPrivates, CompSubwindowsPrivateKey, csw);
+    if (!csw) {
+        csw = malloc(sizeof(CompSubwindowsRec));
+        if (!csw) {
+            free(ccw);
+            return BadAlloc;
+        }
+        csw->update = CompositeRedirectAutomatic;
+        csw->clients = 0;
+        dixSetPrivate(&pWin->devPrivates, CompSubwindowsPrivateKey, csw);
     }
     /*
      * Redirect all existing windows
      */
-    for (pChild = pWin->lastChild; pChild; pChild = pChild->prevSib)
-    {
-	int ret = compRedirectWindow (pClient, pChild, update);
-	if (ret != Success)
-	{
-	    for (pChild = pChild->nextSib; pChild; pChild = pChild->nextSib)
-		(void) compUnredirectWindow (pClient, pChild, update);
-	    if (!csw->clients)
-	    {
-		free(csw);
-		dixSetPrivate(&pWin->devPrivates, CompSubwindowsPrivateKey, 0);
-	    }
-	    free(ccw);
-	    return ret;
-	}
+    for (pChild = pWin->lastChild; pChild; pChild = pChild->prevSib) {
+        int ret = compRedirectWindow(pClient, pChild, update);
+
+        if (ret != Success) {
+            for (pChild = pChild->nextSib; pChild; pChild = pChild->nextSib)
+                (void) compUnredirectWindow(pClient, pChild, update);
+            if (!csw->clients) {
+                free(csw);
+                dixSetPrivate(&pWin->devPrivates, CompSubwindowsPrivateKey, 0);
+            }
+            free(ccw);
+            return ret;
+        }
     }
     /*
      * Hook into subwindows list
      */
     ccw->next = csw->clients;
     csw->clients = ccw;
-    if (!AddResource (ccw->id, CompositeClientSubwindowsType, pWin))
-	return BadAlloc;
-    if (ccw->update == CompositeRedirectManual)
-    {
-	csw->update = CompositeRedirectManual;
-	/* 
-	 * tell damage extension that damage events for this client are
-	 * critical output
-	 */
-	DamageExtSetCritical (pClient, TRUE);
-	pWin->inhibitBGPaint = TRUE;
+    if (!AddResource(ccw->id, CompositeClientSubwindowsType, pWin))
+        return BadAlloc;
+    if (ccw->update == CompositeRedirectManual) {
+        csw->update = CompositeRedirectManual;
+        /* 
+         * tell damage extension that damage events for this client are
+         * critical output
+         */
+        DamageExtSetCritical(pClient, TRUE);
+        pWin->inhibitBGPaint = TRUE;
     }
     return Success;
 }
@@ -440,52 +417,49 @@ compRedirectSubwindows (ClientPtr pClient, WindowPtr pWin, int update)
  * which frees one redirect per subwindow
  */
 void
-compFreeClientSubwindows (WindowPtr pWin, XID id)
+compFreeClientSubwindows(WindowPtr pWin, XID id)
 {
-    CompSubwindowsPtr	csw = GetCompSubwindows (pWin);
-    CompClientWindowPtr	ccw, *prev;
-    WindowPtr		pChild;
+    CompSubwindowsPtr csw = GetCompSubwindows(pWin);
+    CompClientWindowPtr ccw, *prev;
+    WindowPtr pChild;
 
     if (!csw)
-	return;
-    for (prev = &csw->clients; (ccw = *prev); prev = &ccw->next)
-    {
-	if (ccw->id == id)
-	{
-	    ClientPtr	pClient = clients[CLIENT_ID(id)];
-	    
-	    *prev = ccw->next;
-	    if (ccw->update == CompositeRedirectManual)
-	    {
-		/* 
-		 * tell damage extension that damage events for this client are
-		 * critical output
-		 */
-		DamageExtSetCritical (pClient, FALSE);
-		csw->update = CompositeRedirectAutomatic;
-		pWin->inhibitBGPaint = FALSE;
-		if (pWin->mapped)
-		    (*pWin->drawable.pScreen->ClearToBackground)(pWin, 0, 0, 0, 0, TRUE);
-	    }
+        return;
+    for (prev = &csw->clients; (ccw = *prev); prev = &ccw->next) {
+        if (ccw->id == id) {
+            ClientPtr pClient = clients[CLIENT_ID(id)];
 
-	    /*
-	     * Unredirect all existing subwindows
-	     */
-	    for (pChild = pWin->lastChild; pChild; pChild = pChild->prevSib)
-		(void) compUnredirectWindow (pClient, pChild, ccw->update);
+            *prev = ccw->next;
+            if (ccw->update == CompositeRedirectManual) {
+                /* 
+                 * tell damage extension that damage events for this client are
+                 * critical output
+                 */
+                DamageExtSetCritical(pClient, FALSE);
+                csw->update = CompositeRedirectAutomatic;
+                pWin->inhibitBGPaint = FALSE;
+                if (pWin->mapped)
+                    (*pWin->drawable.pScreen->ClearToBackground) (pWin, 0, 0, 0,
+                                                                  0, TRUE);
+            }
 
-	    free(ccw);
-	    break;
-	}
+            /*
+             * Unredirect all existing subwindows
+             */
+            for (pChild = pWin->lastChild; pChild; pChild = pChild->prevSib)
+                (void) compUnredirectWindow(pClient, pChild, ccw->update);
+
+            free(ccw);
+            break;
+        }
     }
 
     /*
      * Check if all of the per-client records are gone
      */
-    if (!csw->clients)
-    {
-	dixSetPrivate(&pWin->devPrivates, CompSubwindowsPrivateKey, NULL);
-	free(csw);
+    if (!csw->clients) {
+        dixSetPrivate(&pWin->devPrivates, CompSubwindowsPrivateKey, NULL);
+        free(csw);
     }
 }
 
@@ -494,19 +468,18 @@ compFreeClientSubwindows (WindowPtr pWin, XID id)
  */
 
 int
-compUnredirectSubwindows (ClientPtr pClient, WindowPtr pWin, int update)
+compUnredirectSubwindows(ClientPtr pClient, WindowPtr pWin, int update)
 {
-    CompSubwindowsPtr	csw = GetCompSubwindows (pWin);
-    CompClientWindowPtr	ccw;
-    
+    CompSubwindowsPtr csw = GetCompSubwindows(pWin);
+    CompClientWindowPtr ccw;
+
     if (!csw)
-	return BadValue;
+        return BadValue;
     for (ccw = csw->clients; ccw; ccw = ccw->next)
-	if (ccw->update == update && CLIENT_ID(ccw->id) == pClient->index)
-	{
-	    FreeResource (ccw->id, RT_NONE);
-	    return Success;
-	}
+        if (ccw->update == update && CLIENT_ID(ccw->id) == pClient->index) {
+            FreeResource(ccw->id, RT_NONE);
+            return Success;
+        }
     return BadValue;
 }
 
@@ -515,19 +488,19 @@ compUnredirectSubwindows (ClientPtr pClient, WindowPtr pWin, int update)
  */
 
 int
-compRedirectOneSubwindow (WindowPtr pParent, WindowPtr pWin)
+compRedirectOneSubwindow(WindowPtr pParent, WindowPtr pWin)
 {
-    CompSubwindowsPtr	csw = GetCompSubwindows (pParent);
-    CompClientWindowPtr	ccw;
+    CompSubwindowsPtr csw = GetCompSubwindows(pParent);
+    CompClientWindowPtr ccw;
 
     if (!csw)
-	return Success;
-    for (ccw = csw->clients; ccw; ccw = ccw->next)
-    {
-	int ret = compRedirectWindow (clients[CLIENT_ID(ccw->id)],
-				      pWin, ccw->update);
-	if (ret != Success)
-	    return ret;
+        return Success;
+    for (ccw = csw->clients; ccw; ccw = ccw->next) {
+        int ret = compRedirectWindow(clients[CLIENT_ID(ccw->id)],
+                                     pWin, ccw->update);
+
+        if (ret != Success)
+            return ret;
     }
     return Success;
 }
@@ -537,122 +510,116 @@ compRedirectOneSubwindow (WindowPtr pParent, WindowPtr pWin)
  */
 
 int
-compUnredirectOneSubwindow (WindowPtr pParent, WindowPtr pWin)
+compUnredirectOneSubwindow(WindowPtr pParent, WindowPtr pWin)
 {
-    CompSubwindowsPtr	csw = GetCompSubwindows (pParent);
-    CompClientWindowPtr	ccw;
+    CompSubwindowsPtr csw = GetCompSubwindows(pParent);
+    CompClientWindowPtr ccw;
 
     if (!csw)
-	return Success;
-    for (ccw = csw->clients; ccw; ccw = ccw->next)
-    {
-	int ret = compUnredirectWindow (clients[CLIENT_ID(ccw->id)],
-					pWin, ccw->update);
-	if (ret != Success)
-	    return ret;
+        return Success;
+    for (ccw = csw->clients; ccw; ccw = ccw->next) {
+        int ret = compUnredirectWindow(clients[CLIENT_ID(ccw->id)],
+                                       pWin, ccw->update);
+
+        if (ret != Success)
+            return ret;
     }
     return Success;
 }
 
 static PixmapPtr
-compNewPixmap (WindowPtr pWin, int x, int y, int w, int h)
+compNewPixmap(WindowPtr pWin, int x, int y, int w, int h)
 {
-    ScreenPtr	    pScreen = pWin->drawable.pScreen;
-    WindowPtr	    pParent = pWin->parent;
-    PixmapPtr	    pPixmap;
+    ScreenPtr pScreen = pWin->drawable.pScreen;
+    WindowPtr pParent = pWin->parent;
+    PixmapPtr pPixmap;
 
     pPixmap = (*pScreen->CreatePixmap) (pScreen, w, h, pWin->drawable.depth,
-					CREATE_PIXMAP_USAGE_BACKING_PIXMAP);
+                                        CREATE_PIXMAP_USAGE_BACKING_PIXMAP);
 
     if (!pPixmap)
-	return 0;
-    
+        return 0;
+
     pPixmap->screen_x = x;
     pPixmap->screen_y = y;
 
-    if (pParent->drawable.depth == pWin->drawable.depth)
-    {
-	GCPtr	pGC = GetScratchGC (pWin->drawable.depth, pScreen);
-	
-	if (pGC)
-	{
-	    ChangeGCVal val;
-	    val.val = IncludeInferiors;
-	    ChangeGC (NullClient, pGC, GCSubwindowMode, &val);
-	    ValidateGC(&pPixmap->drawable, pGC);
-	    (*pGC->ops->CopyArea) (&pParent->drawable,
-				   &pPixmap->drawable,
-				   pGC,
-				   x - pParent->drawable.x,
-				   y - pParent->drawable.y,
-				   w, h, 0, 0);
-	    FreeScratchGC (pGC);
-	}
+    if (pParent->drawable.depth == pWin->drawable.depth) {
+        GCPtr pGC = GetScratchGC(pWin->drawable.depth, pScreen);
+
+        if (pGC) {
+            ChangeGCVal val;
+
+            val.val = IncludeInferiors;
+            ChangeGC(NullClient, pGC, GCSubwindowMode, &val);
+            ValidateGC(&pPixmap->drawable, pGC);
+            (*pGC->ops->CopyArea) (&pParent->drawable,
+                                   &pPixmap->drawable,
+                                   pGC,
+                                   x - pParent->drawable.x,
+                                   y - pParent->drawable.y, w, h, 0, 0);
+            FreeScratchGC(pGC);
+        }
     }
-    else
-    {
-	PictFormatPtr	pSrcFormat = compWindowFormat (pParent);
-	PictFormatPtr	pDstFormat = compWindowFormat (pWin);
-	XID		inferiors = IncludeInferiors;
-	int		error;
+    else {
+        PictFormatPtr pSrcFormat = compWindowFormat(pParent);
+        PictFormatPtr pDstFormat = compWindowFormat(pWin);
+        XID inferiors = IncludeInferiors;
+        int error;
 
-	PicturePtr	pSrcPicture = CreatePicture (None,
-						     &pParent->drawable,
-						     pSrcFormat,
-						     CPSubwindowMode,
-						     &inferiors,
-						     serverClient, &error);
-						    
-	PicturePtr	pDstPicture = CreatePicture (None,
-						     &pPixmap->drawable,
-						     pDstFormat,
-						     0, 0,
-						     serverClient, &error);
+        PicturePtr pSrcPicture = CreatePicture(None,
+                                               &pParent->drawable,
+                                               pSrcFormat,
+                                               CPSubwindowMode,
+                                               &inferiors,
+                                               serverClient, &error);
 
-	if (pSrcPicture && pDstPicture)
-	{
-	    CompositePicture (PictOpSrc,
-			      pSrcPicture,
-			      NULL,
-			      pDstPicture,
-			      x - pParent->drawable.x,
-			      y - pParent->drawable.y,
-			      0, 0, 0, 0, w, h);
-	}
-	if (pSrcPicture)
-	    FreePicture (pSrcPicture, 0);
-	if (pDstPicture)
-	    FreePicture (pDstPicture, 0);
+        PicturePtr pDstPicture = CreatePicture(None,
+                                               &pPixmap->drawable,
+                                               pDstFormat,
+                                               0, 0,
+                                               serverClient, &error);
+
+        if (pSrcPicture && pDstPicture) {
+            CompositePicture(PictOpSrc,
+                             pSrcPicture,
+                             NULL,
+                             pDstPicture,
+                             x - pParent->drawable.x,
+                             y - pParent->drawable.y, 0, 0, 0, 0, w, h);
+        }
+        if (pSrcPicture)
+            FreePicture(pSrcPicture, 0);
+        if (pDstPicture)
+            FreePicture(pDstPicture, 0);
     }
     return pPixmap;
 }
 
 Bool
-compAllocPixmap (WindowPtr pWin)
+compAllocPixmap(WindowPtr pWin)
 {
-    int		    bw = (int) pWin->borderWidth;
-    int		    x = pWin->drawable.x - bw;
-    int		    y = pWin->drawable.y - bw;
-    int		    w = pWin->drawable.width + (bw << 1);
-    int		    h = pWin->drawable.height + (bw << 1);
-    PixmapPtr	    pPixmap = compNewPixmap (pWin, x, y, w, h);
-    CompWindowPtr   cw = GetCompWindow (pWin);
+    int bw = (int) pWin->borderWidth;
+    int x = pWin->drawable.x - bw;
+    int y = pWin->drawable.y - bw;
+    int w = pWin->drawable.width + (bw << 1);
+    int h = pWin->drawable.height + (bw << 1);
+    PixmapPtr pPixmap = compNewPixmap(pWin, x, y, w, h);
+    CompWindowPtr cw = GetCompWindow(pWin);
 
     if (!pPixmap)
-	return FALSE;
+        return FALSE;
     if (cw->update == CompositeRedirectAutomatic)
-	pWin->redirectDraw = RedirectDrawAutomatic;
+        pWin->redirectDraw = RedirectDrawAutomatic;
     else
-	pWin->redirectDraw = RedirectDrawManual;
+        pWin->redirectDraw = RedirectDrawManual;
 
-    compSetPixmap (pWin, pPixmap);
+    compSetPixmap(pWin, pPixmap);
     cw->oldx = COMP_ORIGIN_INVALID;
     cw->oldy = COMP_ORIGIN_INVALID;
     cw->damageRegistered = FALSE;
-    if (cw->update == CompositeRedirectAutomatic)
-    {
-	DamageRegister (&pWin->drawable, cw->damage);
-	cw->damageRegistered = TRUE;
+    if (cw->update == CompositeRedirectAutomatic) {
+        DamageRegister(&pWin->drawable, cw->damage);
+        cw->damageRegistered = TRUE;
     }
 
     /* Make sure our borderClip is up to date */
@@ -665,17 +632,16 @@ compAllocPixmap (WindowPtr pWin)
 }
 
 void
-compSetParentPixmap (WindowPtr pWin)
+compSetParentPixmap(WindowPtr pWin)
 {
-    ScreenPtr	    pScreen = pWin->drawable.pScreen;
-    PixmapPtr	    pParentPixmap;
-    CompWindowPtr   cw = GetCompWindow (pWin);
+    ScreenPtr pScreen = pWin->drawable.pScreen;
+    PixmapPtr pParentPixmap;
+    CompWindowPtr cw = GetCompWindow(pWin);
 
-    if (cw->damageRegistered)
-    {
-	DamageUnregister (&pWin->drawable, cw->damage);
-	cw->damageRegistered = FALSE;
-	DamageEmpty (cw->damage);
+    if (cw->damageRegistered) {
+        DamageUnregister(&pWin->drawable, cw->damage);
+        cw->damageRegistered = FALSE;
+        DamageEmpty(cw->damage);
     }
     /*
      * Move the parent-constrained border clip region back into
@@ -686,7 +652,7 @@ compSetParentPixmap (WindowPtr pWin)
     RegionCopy(&pWin->borderClip, &cw->borderClip);
     pParentPixmap = (*pScreen->GetWindowPixmap) (pWin->parent);
     pWin->redirectDraw = RedirectDrawNone;
-    compSetPixmap (pWin, pParentPixmap);
+    compSetPixmap(pWin, pParentPixmap);
 }
 
 /*
@@ -695,35 +661,33 @@ compSetParentPixmap (WindowPtr pWin)
  * old pixmap in cw->pOldPixmap so bits can be recovered
  */
 Bool
-compReallocPixmap (WindowPtr pWin, int draw_x, int draw_y,
-		   unsigned int w, unsigned int h, int bw)
+compReallocPixmap(WindowPtr pWin, int draw_x, int draw_y,
+                  unsigned int w, unsigned int h, int bw)
 {
-    ScreenPtr	    pScreen = pWin->drawable.pScreen;
-    PixmapPtr	    pOld = (*pScreen->GetWindowPixmap) (pWin);
-    PixmapPtr	    pNew;
-    CompWindowPtr   cw = GetCompWindow (pWin);
-    int		    pix_x, pix_y;
-    int		    pix_w, pix_h;
+    ScreenPtr pScreen = pWin->drawable.pScreen;
+    PixmapPtr pOld = (*pScreen->GetWindowPixmap) (pWin);
+    PixmapPtr pNew;
+    CompWindowPtr cw = GetCompWindow(pWin);
+    int pix_x, pix_y;
+    int pix_w, pix_h;
 
-    assert (cw && pWin->redirectDraw != RedirectDrawNone);
+    assert(cw && pWin->redirectDraw != RedirectDrawNone);
     cw->oldx = pOld->screen_x;
     cw->oldy = pOld->screen_y;
     pix_x = draw_x - bw;
     pix_y = draw_y - bw;
     pix_w = w + (bw << 1);
     pix_h = h + (bw << 1);
-    if (pix_w != pOld->drawable.width || pix_h != pOld->drawable.height)
-    {
-	pNew = compNewPixmap (pWin, pix_x, pix_y, pix_w, pix_h);
-	if (!pNew)
-	    return FALSE;
-	cw->pOldPixmap = pOld;
-	compSetPixmap (pWin, pNew);
+    if (pix_w != pOld->drawable.width || pix_h != pOld->drawable.height) {
+        pNew = compNewPixmap(pWin, pix_x, pix_y, pix_w, pix_h);
+        if (!pNew)
+            return FALSE;
+        cw->pOldPixmap = pOld;
+        compSetPixmap(pWin, pNew);
     }
-    else
-    {
-	pNew = pOld;
-	cw->pOldPixmap = 0;
+    else {
+        pNew = pOld;
+        cw->pOldPixmap = 0;
     }
     pNew->screen_x = pix_x;
     pNew->screen_y = pix_y;

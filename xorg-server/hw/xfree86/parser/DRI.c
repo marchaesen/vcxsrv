@@ -37,87 +37,86 @@
 
 extern LexRec val;
 
-static xf86ConfigSymTabRec DRITab[] =
-{
+static xf86ConfigSymTabRec DRITab[] = {
     {ENDSECTION, "endsection"},
-    {GROUP,      "group"},
-    {MODE,       "mode"},
-    {-1,         ""},
+    {GROUP, "group"},
+    {MODE, "mode"},
+    {-1, ""},
 };
 
 #define CLEANUP xf86freeDRI
 
 XF86ConfDRIPtr
-xf86parseDRISection (void)
+xf86parseDRISection(void)
 {
     int token;
-    parsePrologue (XF86ConfDRIPtr, XF86ConfDRIRec);
+
+    parsePrologue(XF86ConfDRIPtr, XF86ConfDRIRec);
 
     /* Zero is a valid value for this. */
     ptr->dri_group = -1;
-    while ((token = xf86getToken (DRITab)) != ENDSECTION) {
-	switch (token)
-	    {
-	    case GROUP:
-		if ((token = xf86getSubToken (&(ptr->dri_comment))) == STRING)
-		    ptr->dri_group_name = val.str;
-		else if (token == NUMBER)
-		    ptr->dri_group = val.num;
-		else
-		    Error (GROUP_MSG);
-		break;
-	    case MODE:
-		if (xf86getSubToken (&(ptr->dri_comment)) != NUMBER)
-		    Error (NUMBER_MSG, "Mode");
-                if (val.numType != PARSE_OCTAL)
-                    Error (MUST_BE_OCTAL_MSG, val.num);
-		ptr->dri_mode = val.num;
-		break;
-	    case EOF_TOKEN:
-		Error (UNEXPECTED_EOF_MSG);
-		break;
-	    case COMMENT:
-		ptr->dri_comment = xf86addComment(ptr->dri_comment, val.str);
-		break;
-	    default:
-		Error (INVALID_KEYWORD_MSG, xf86tokenString ());
-		break;
-	    }
+    while ((token = xf86getToken(DRITab)) != ENDSECTION) {
+        switch (token) {
+        case GROUP:
+            if ((token = xf86getSubToken(&(ptr->dri_comment))) == STRING)
+                ptr->dri_group_name = val.str;
+            else if (token == NUMBER)
+                ptr->dri_group = val.num;
+            else
+                Error(GROUP_MSG);
+            break;
+        case MODE:
+            if (xf86getSubToken(&(ptr->dri_comment)) != NUMBER)
+                Error(NUMBER_MSG, "Mode");
+            if (val.numType != PARSE_OCTAL)
+                Error(MUST_BE_OCTAL_MSG, val.num);
+            ptr->dri_mode = val.num;
+            break;
+        case EOF_TOKEN:
+            Error(UNEXPECTED_EOF_MSG);
+            break;
+        case COMMENT:
+            ptr->dri_comment = xf86addComment(ptr->dri_comment, val.str);
+            break;
+        default:
+            Error(INVALID_KEYWORD_MSG, xf86tokenString());
+            break;
+        }
     }
-    
+
 #ifdef DEBUG
     ErrorF("DRI section parsed\n");
 #endif
-    
+
     return ptr;
 }
 
 #undef CLEANUP
 
 void
-xf86printDRISection (FILE * cf, XF86ConfDRIPtr ptr)
+xf86printDRISection(FILE * cf, XF86ConfDRIPtr ptr)
 {
     if (ptr == NULL)
-	return;
-    
-    fprintf (cf, "Section \"DRI\"\n");
+        return;
+
+    fprintf(cf, "Section \"DRI\"\n");
     if (ptr->dri_comment)
-	fprintf (cf, "%s", ptr->dri_comment);
+        fprintf(cf, "%s", ptr->dri_comment);
     if (ptr->dri_group_name)
-	fprintf (cf, "\tGroup        \"%s\"\n", ptr->dri_group_name);
+        fprintf(cf, "\tGroup        \"%s\"\n", ptr->dri_group_name);
     else if (ptr->dri_group >= 0)
-	fprintf (cf, "\tGroup        %d\n", ptr->dri_group);
+        fprintf(cf, "\tGroup        %d\n", ptr->dri_group);
     if (ptr->dri_mode)
-	fprintf (cf, "\tMode         0%o\n", ptr->dri_mode);
-    fprintf (cf, "EndSection\n\n");
+        fprintf(cf, "\tMode         0%o\n", ptr->dri_mode);
+    fprintf(cf, "EndSection\n\n");
 }
 
 void
-xf86freeDRI (XF86ConfDRIPtr ptr)
+xf86freeDRI(XF86ConfDRIPtr ptr)
 {
     if (ptr == NULL)
-	return;
-    
-    TestFree (ptr->dri_comment);
-    free (ptr);
+        return;
+
+    TestFree(ptr->dri_comment);
+    free(ptr);
 }

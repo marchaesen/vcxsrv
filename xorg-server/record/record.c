@@ -45,7 +45,6 @@ and Jim Haggerty of Metheus.
 #include "eventconvert.h"
 #include "scrnintstr.h"
 
-
 #include <stdio.h>
 #include <assert.h>
 
@@ -58,7 +57,7 @@ and Jim Haggerty of Metheus.
 
 #include "protocol-versions.h"
 
-static RESTYPE RTContext;   /* internal resource type for Record contexts */
+static RESTYPE RTContext;       /* internal resource type for Record contexts */
 
 /* How many bytes of protocol data to buffer in a context. Don't set to less
  * than 32.
@@ -68,16 +67,16 @@ static RESTYPE RTContext;   /* internal resource type for Record contexts */
 /* Record Context structure */
 
 typedef struct {
-    XID		id;		   /* resource id of context */
-    ClientPtr	pRecordingClient;  /* client that has context enabled */
-    struct _RecordClientsAndProtocolRec *pListOfRCAP; /* all registered info */
-    ClientPtr	pBufClient;	   /* client whose protocol is in replyBuffer*/
-    unsigned int continuedReply:1; /* recording a reply that is split up? */
-    char	elemHeaders;	   /* element header flags (time/seq no.) */
-    char	bufCategory;	   /* category of protocol in replyBuffer */
-    int		numBufBytes;	   /* number of bytes in replyBuffer */
-    char	replyBuffer[REPLY_BUF_SIZE]; /* buffered recorded protocol */
-    int		inFlush;           /*  are we inside RecordFlushReplyBuffer */
+    XID id;                     /* resource id of context */
+    ClientPtr pRecordingClient; /* client that has context enabled */
+    struct _RecordClientsAndProtocolRec *pListOfRCAP;   /* all registered info */
+    ClientPtr pBufClient;       /* client whose protocol is in replyBuffer */
+    unsigned int continuedReply:1;      /* recording a reply that is split up? */
+    char elemHeaders;           /* element header flags (time/seq no.) */
+    char bufCategory;           /* category of protocol in replyBuffer */
+    int numBufBytes;            /* number of bytes in replyBuffer */
+    char replyBuffer[REPLY_BUF_SIZE];   /* buffered recorded protocol */
+    int inFlush;                /*  are we inside RecordFlushReplyBuffer */
 } RecordContextRec, *RecordContextPtr;
 
 /*  RecordMinorOpRec - to hold minor opcode selections for extension requests
@@ -85,14 +84,13 @@ typedef struct {
  */
 
 typedef union {
-    int count; /* first element of array: how many "major" structs to follow */
-    struct {   /* rest of array elements are this */
-	short first;		/* first major opcode */
-	short last;		/* last major opcode */
-	RecordSetPtr pMinOpSet; /*  minor opcode set for above major range */
+    int count;                  /* first element of array: how many "major" structs to follow */
+    struct {                    /* rest of array elements are this */
+        short first;            /* first major opcode */
+        short last;             /* last major opcode */
+        RecordSetPtr pMinOpSet; /*  minor opcode set for above major range */
     } major;
 } RecordMinorOpRec, *RecordMinorOpPtr;
-
 
 /*  RecordClientsAndProtocolRec, nicknamed RCAP - holds all the client and 
  *  protocol selections passed in a single CreateContext or RegisterClients.
@@ -102,21 +100,21 @@ typedef union {
  */
 
 typedef struct _RecordClientsAndProtocolRec {
-    RecordContextPtr pContext;		 /* context that owns this RCAP */
-    struct _RecordClientsAndProtocolRec *pNextRCAP; /* next RCAP on context */
-    RecordSetPtr     pRequestMajorOpSet; /* requests to record */
-    RecordMinorOpPtr pRequestMinOpInfo;  /* extension requests to record */
-    RecordSetPtr     pReplyMajorOpSet;   /* replies to record */
-    RecordMinorOpPtr pReplyMinOpInfo;    /* extension replies to record */
-    RecordSetPtr     pDeviceEventSet;    /* device events to record */
-    RecordSetPtr     pDeliveredEventSet; /* delivered events to record */
-    RecordSetPtr     pErrorSet;          /* errors to record */
-    XID *	     pClientIDs;	 /* array of clients to record */
-    short 	     numClients;	 /* number of clients in pClientIDs */
-    short	     sizeClients;	 /* size of pClientIDs array */
-    unsigned int     clientStarted:1;	 /* record new client connections? */
-    unsigned int     clientDied:1;	 /* record client disconnections? */
-    unsigned int     clientIDsSeparatelyAllocated:1; /* pClientIDs malloced? */
+    RecordContextPtr pContext;  /* context that owns this RCAP */
+    struct _RecordClientsAndProtocolRec *pNextRCAP;     /* next RCAP on context */
+    RecordSetPtr pRequestMajorOpSet;    /* requests to record */
+    RecordMinorOpPtr pRequestMinOpInfo; /* extension requests to record */
+    RecordSetPtr pReplyMajorOpSet;      /* replies to record */
+    RecordMinorOpPtr pReplyMinOpInfo;   /* extension replies to record */
+    RecordSetPtr pDeviceEventSet;       /* device events to record */
+    RecordSetPtr pDeliveredEventSet;    /* delivered events to record */
+    RecordSetPtr pErrorSet;     /* errors to record */
+    XID *pClientIDs;            /* array of clients to record */
+    short numClients;           /* number of clients in pClientIDs */
+    short sizeClients;          /* size of pClientIDs array */
+    unsigned int clientStarted:1;       /* record new client connections? */
+    unsigned int clientDied:1;  /* record client disconnections? */
+    unsigned int clientIDsSeparatelyAllocated:1;        /* pClientIDs malloced? */
 } RecordClientsAndProtocolRec, *RecordClientsAndProtocolPtr;
 
 /* how much bigger to make pRCAP->pClientIDs when reallocing */
@@ -137,10 +135,9 @@ static int numEnabledRCAPs;
 	return rc; \
 }
 
-static int RecordDeleteContext(
-    pointer /*value*/,
-    XID /*id*/
-);
+static int RecordDeleteContext(pointer /*value */ ,
+                               XID      /*id */
+    );
 
 void RecordExtensionInit(void);
 
@@ -151,24 +148,24 @@ void RecordExtensionInit(void);
 /*  To make declarations less obfuscated, have a typedef for a pointer to a
  *  Proc function.
  */
-typedef int (*ProcFunctionPtr)(
-    ClientPtr /*pClient*/
-);
+typedef int (*ProcFunctionPtr) (ClientPtr       /*pClient */
+    );
 
 /* Record client private.  Generally a client only has one of these if
  * any of its requests are being recorded.
  */
 typedef struct {
 /* ptr to client's proc vector before Record stuck its nose in */
-    ProcFunctionPtr *originalVector;   
-					
+    ProcFunctionPtr *originalVector;
+
 /* proc vector with pointers for recorded requests redirected to the
  * function RecordARequest
  */
-    ProcFunctionPtr recordVector[256]; 
+    ProcFunctionPtr recordVector[256];
 } RecordClientPrivateRec, *RecordClientPrivatePtr;
 
 static DevPrivateKeyRec RecordClientPrivateKeyRec;
+
 #define RecordClientPrivateKey (&RecordClientPrivateKeyRec)
 
 /*  RecordClientPrivatePtr RecordClientPrivate(ClientPtr)
@@ -176,7 +173,6 @@ static DevPrivateKeyRec RecordClientPrivateKeyRec;
  */
 #define RecordClientPrivate(_pClient) (RecordClientPrivatePtr) \
     dixLookupPrivate(&(_pClient)->devPrivates, RecordClientPrivateKey)
-
 
 /***************************************************************************/
 
@@ -184,7 +180,7 @@ static DevPrivateKeyRec RecordClientPrivateKeyRec;
 
 static RecordContextPtr *ppAllContexts;
 
-static int numContexts;/* number of contexts in ppAllContexts */
+static int numContexts;         /* number of contexts in ppAllContexts */
 
 /* number of currently enabled contexts.  All enabled contexts are bunched
  * up at the front of the ppAllContexts array, from ppAllContexts[0] to
@@ -210,14 +206,12 @@ RecordFindContextOnAllContexts(RecordContextPtr pContext)
     int i;
 
     assert(numContexts >= numEnabledContexts);
-    for (i = 0; i < numContexts; i++)
-    {
-	if (ppAllContexts[i] == pContext)
-	    return i;
+    for (i = 0; i < numContexts; i++) {
+        if (ppAllContexts[i] == pContext)
+            return i;
     }
     return -1;
-} /* RecordFindContextOnAllContexts */
-
+}                               /* RecordFindContextOnAllContexts */
 
 /***************************************************************************/
 
@@ -238,28 +232,23 @@ RecordFindContextOnAllContexts(RecordContextPtr pContext)
  *	data1/len1).
  */
 static void
-RecordFlushReplyBuffer(
-    RecordContextPtr pContext,
-    pointer data1,
-    int len1,
-    pointer data2,
-    int len2
-)
+RecordFlushReplyBuffer(RecordContextPtr pContext,
+                       pointer data1, int len1, pointer data2, int len2)
 {
-    if (!pContext->pRecordingClient || pContext->pRecordingClient->clientGone || pContext->inFlush)
-	return;
+    if (!pContext->pRecordingClient || pContext->pRecordingClient->clientGone ||
+        pContext->inFlush)
+        return;
     ++pContext->inFlush;
     if (pContext->numBufBytes)
-	WriteToClient(pContext->pRecordingClient, pContext->numBufBytes,
-		      (char *)pContext->replyBuffer);
+        WriteToClient(pContext->pRecordingClient, pContext->numBufBytes,
+                      (char *) pContext->replyBuffer);
     pContext->numBufBytes = 0;
     if (len1)
-	WriteToClient(pContext->pRecordingClient, len1, (char *)data1);
+        WriteToClient(pContext->pRecordingClient, len1, (char *) data1);
     if (len2)
-	WriteToClient(pContext->pRecordingClient, len2, (char *)data2);
+        WriteToClient(pContext->pRecordingClient, len2, (char *) data2);
     --pContext->inFlush;
-} /* RecordFlushReplyBuffer */
-
+}                               /* RecordFlushReplyBuffer */
 
 /* RecordAProtocolElement
  *
@@ -291,7 +280,8 @@ RecordFlushReplyBuffer(
  */
 static void
 RecordAProtocolElement(RecordContextPtr pContext, ClientPtr pClient,
-		       int category, pointer data, int datalen, int padlen, int futurelen)
+                       int category, pointer data, int datalen, int padlen,
+                       int futurelen)
 {
     CARD32 elemHeaderData[2];
     int numElemHeaders = 0;
@@ -300,121 +290,112 @@ RecordAProtocolElement(RecordContextPtr pContext, ClientPtr pClient,
     Bool gotServerTime = FALSE;
     int replylen;
 
-    if (futurelen >= 0)
-    { /* start of new protocol element */
-	xRecordEnableContextReply *pRep = (xRecordEnableContextReply *)
-							pContext->replyBuffer;
-	if (pContext->pBufClient != pClient ||
-	    pContext->bufCategory != category)
-	{
-	    RecordFlushReplyBuffer(pContext, NULL, 0, NULL, 0);
-	    pContext->pBufClient = pClient;
-	    pContext->bufCategory = category;
-	}
+    if (futurelen >= 0) {       /* start of new protocol element */
+        xRecordEnableContextReply *pRep = (xRecordEnableContextReply *)
+            pContext->replyBuffer;
 
-	if (!pContext->numBufBytes)
-	{
-	    serverTime = GetTimeInMillis();
-	    gotServerTime = TRUE;
-	    pRep->type          = X_Reply;
-	    pRep->category      = category;
-	    pRep->sequenceNumber = pContext->pRecordingClient->sequence;
-	    pRep->length        = 0;
-	    pRep->elementHeader = pContext->elemHeaders;
-	    pRep->serverTime    = serverTime;
-	    if (pClient)
-	    {
-		pRep->clientSwapped =
-				(pClient->swapped != recordingClientSwapped);
-		pRep->idBase = pClient->clientAsMask;
-		pRep->recordedSequenceNumber = pClient->sequence;
-	    }
-	    else /* it's a device event, StartOfData, or EndOfData */
-	    {
-		pRep->clientSwapped = (category != XRecordFromServer) && 
-						recordingClientSwapped;
-		pRep->idBase = 0;
-		pRep->recordedSequenceNumber = 0;
-	    }
+        if (pContext->pBufClient != pClient ||
+            pContext->bufCategory != category) {
+            RecordFlushReplyBuffer(pContext, NULL, 0, NULL, 0);
+            pContext->pBufClient = pClient;
+            pContext->bufCategory = category;
+        }
 
-	    if (recordingClientSwapped)
-	    {
-		swaps(&pRep->sequenceNumber);
-		swapl(&pRep->length);
-		swapl(&pRep->idBase);
-		swapl(&pRep->serverTime);
-		swapl(&pRep->recordedSequenceNumber);
-	    }
-	    pContext->numBufBytes = SIZEOF(xRecordEnableContextReply);
-	}
+        if (!pContext->numBufBytes) {
+            serverTime = GetTimeInMillis();
+            gotServerTime = TRUE;
+            pRep->type = X_Reply;
+            pRep->category = category;
+            pRep->sequenceNumber = pContext->pRecordingClient->sequence;
+            pRep->length = 0;
+            pRep->elementHeader = pContext->elemHeaders;
+            pRep->serverTime = serverTime;
+            if (pClient) {
+                pRep->clientSwapped =
+                    (pClient->swapped != recordingClientSwapped);
+                pRep->idBase = pClient->clientAsMask;
+                pRep->recordedSequenceNumber = pClient->sequence;
+            }
+            else {              /* it's a device event, StartOfData, or EndOfData */
 
-	/* generate element headers if needed */
+                pRep->clientSwapped = (category != XRecordFromServer) &&
+                    recordingClientSwapped;
+                pRep->idBase = 0;
+                pRep->recordedSequenceNumber = 0;
+            }
 
-	if ( ( (pContext->elemHeaders & XRecordFromClientTime)
-	      && category == XRecordFromClient)
-	    ||
-	    ( (pContext->elemHeaders & XRecordFromServerTime)
-	     && category == XRecordFromServer))
-	{
-	    if (gotServerTime)
-		elemHeaderData[numElemHeaders] = serverTime;
-	    else
-		elemHeaderData[numElemHeaders] = GetTimeInMillis();
-	    if (recordingClientSwapped)
-		swapl(&elemHeaderData[numElemHeaders]);
-	    numElemHeaders++;
-	}
+            if (recordingClientSwapped) {
+                swaps(&pRep->sequenceNumber);
+                swapl(&pRep->length);
+                swapl(&pRep->idBase);
+                swapl(&pRep->serverTime);
+                swapl(&pRep->recordedSequenceNumber);
+            }
+            pContext->numBufBytes = SIZEOF(xRecordEnableContextReply);
+        }
 
-	if ( (pContext->elemHeaders & XRecordFromClientSequence)
-	    &&
-	    (category == XRecordFromClient || category == XRecordClientDied))
-	{
-	    elemHeaderData[numElemHeaders] = pClient->sequence;
-	    if (recordingClientSwapped)
-		swapl(&elemHeaderData[numElemHeaders]);
-	    numElemHeaders++;
-	}
+        /* generate element headers if needed */
 
-	/* adjust reply length */
+        if (((pContext->elemHeaders & XRecordFromClientTime)
+             && category == XRecordFromClient)
+            || ((pContext->elemHeaders & XRecordFromServerTime)
+                && category == XRecordFromServer)) {
+            if (gotServerTime)
+                elemHeaderData[numElemHeaders] = serverTime;
+            else
+                elemHeaderData[numElemHeaders] = GetTimeInMillis();
+            if (recordingClientSwapped)
+                swapl(&elemHeaderData[numElemHeaders]);
+            numElemHeaders++;
+        }
 
-	replylen = pRep->length;
-	if (recordingClientSwapped) swapl(&replylen);
-	replylen += numElemHeaders + bytes_to_int32(datalen) +
+        if ((pContext->elemHeaders & XRecordFromClientSequence)
+            && (category == XRecordFromClient || category == XRecordClientDied)) {
+            elemHeaderData[numElemHeaders] = pClient->sequence;
+            if (recordingClientSwapped)
+                swapl(&elemHeaderData[numElemHeaders]);
+            numElemHeaders++;
+        }
+
+        /* adjust reply length */
+
+        replylen = pRep->length;
+        if (recordingClientSwapped)
+            swapl(&replylen);
+        replylen += numElemHeaders + bytes_to_int32(datalen) +
             bytes_to_int32(futurelen);
-	if (recordingClientSwapped) swapl(&replylen);
-	pRep->length = replylen;
-    } /* end if not continued reply */
+        if (recordingClientSwapped)
+            swapl(&replylen);
+        pRep->length = replylen;
+    }                           /* end if not continued reply */
 
     numElemHeaders *= 4;
 
     /* if space available >= space needed, buffer the data */
 
-    if (REPLY_BUF_SIZE - pContext->numBufBytes >= datalen + numElemHeaders)
-    {
-	if (numElemHeaders)
-	{
-	    memcpy(pContext->replyBuffer + pContext->numBufBytes,
-		   elemHeaderData, numElemHeaders);
-	    pContext->numBufBytes += numElemHeaders;
-	}
-	if (datalen)
-	{
-	    static char padBuffer[3]; /* as in FlushClient */
-	    memcpy(pContext->replyBuffer + pContext->numBufBytes,
-		   data, datalen - padlen);
-	    pContext->numBufBytes += datalen - padlen;
-	    memcpy(pContext->replyBuffer + pContext->numBufBytes,
-		   padBuffer, padlen);
-	    pContext->numBufBytes += padlen;
-	}
-    }
-    else
-    {
-	RecordFlushReplyBuffer(pContext, (pointer)elemHeaderData,
-			       numElemHeaders, (pointer)data, datalen - padlen);
-    }
-} /* RecordAProtocolElement */
+    if (REPLY_BUF_SIZE - pContext->numBufBytes >= datalen + numElemHeaders) {
+        if (numElemHeaders) {
+            memcpy(pContext->replyBuffer + pContext->numBufBytes,
+                   elemHeaderData, numElemHeaders);
+            pContext->numBufBytes += numElemHeaders;
+        }
+        if (datalen) {
+            static char padBuffer[3];   /* as in FlushClient */
 
+            memcpy(pContext->replyBuffer + pContext->numBufBytes,
+                   data, datalen - padlen);
+            pContext->numBufBytes += datalen - padlen;
+            memcpy(pContext->replyBuffer + pContext->numBufBytes,
+                   padBuffer, padlen);
+            pContext->numBufBytes += padlen;
+        }
+    }
+    else {
+        RecordFlushReplyBuffer(pContext, (pointer) elemHeaderData,
+                               numElemHeaders, (pointer) data,
+                               datalen - padlen);
+    }
+}                               /* RecordAProtocolElement */
 
 /* RecordFindClientOnContext
  *
@@ -434,30 +415,24 @@ RecordAProtocolElement(RecordContextPtr pContext, ClientPtr pClient,
  * Side Effects: none.
  */
 static RecordClientsAndProtocolPtr
-RecordFindClientOnContext(
-    RecordContextPtr pContext,
-    XID clientspec,
-    int *pposition
-)
+RecordFindClientOnContext(RecordContextPtr pContext,
+                          XID clientspec, int *pposition)
 {
     RecordClientsAndProtocolPtr pRCAP;
 
-    for (pRCAP = pContext->pListOfRCAP; pRCAP; pRCAP = pRCAP->pNextRCAP)
-    {
-	int i;
-	for (i = 0; i < pRCAP->numClients; i++)
-	{
-	    if (pRCAP->pClientIDs[i] == clientspec)
-	    {
-		if (pposition)
-		    *pposition = i;
-		return pRCAP;
-	    }
-	}
+    for (pRCAP = pContext->pListOfRCAP; pRCAP; pRCAP = pRCAP->pNextRCAP) {
+        int i;
+
+        for (i = 0; i < pRCAP->numClients; i++) {
+            if (pRCAP->pClientIDs[i] == clientspec) {
+                if (pposition)
+                    *pposition = i;
+                return pRCAP;
+            }
+        }
     }
     return NULL;
-} /* RecordFindClientOnContext */
-
+}                               /* RecordFindClientOnContext */
 
 /* RecordABigRequest
  *
@@ -475,7 +450,7 @@ RecordFindClientOnContext(
  * Note: this function exists mainly to make RecordARequest smaller.
  */
 static void
-RecordABigRequest(RecordContextPtr pContext, ClientPtr client, xReq *stuff)
+RecordABigRequest(RecordContextPtr pContext, ClientPtr client, xReq * stuff)
 {
     CARD32 bigLength;
     int bytesLeft;
@@ -489,21 +464,22 @@ RecordABigRequest(RecordContextPtr pContext, ClientPtr client, xReq *stuff)
     /* record the request header */
     bytesLeft = client->req_len << 2;
     RecordAProtocolElement(pContext, client, XRecordFromClient,
-			   (pointer)stuff, SIZEOF(xReq), 0, bytesLeft);
+                           (pointer) stuff, SIZEOF(xReq), 0, bytesLeft);
 
     /* reinsert the extended length field that was squished out */
     bigLength = client->req_len + bytes_to_int32(sizeof(bigLength));
     if (client->swapped)
-	swapl(&bigLength);
+        swapl(&bigLength);
     RecordAProtocolElement(pContext, client, XRecordFromClient,
-               (pointer)&bigLength, sizeof(bigLength), 0, /* continuation */ -1);
+                           (pointer) &bigLength, sizeof(bigLength), 0,
+                           /* continuation */ -1);
     bytesLeft -= sizeof(bigLength);
 
     /* record the rest of the request after the length */
     RecordAProtocolElement(pContext, client, XRecordFromClient,
-               (pointer)(stuff + 1), bytesLeft, 0, /* continuation */ -1);
-} /* RecordABigRequest */
-
+                           (pointer) (stuff + 1), bytesLeft, 0,
+                           /* continuation */ -1);
+}                               /* RecordABigRequest */
 
 /* RecordARequest
  *
@@ -529,60 +505,57 @@ RecordARequest(ClientPtr client)
     RecordClientsAndProtocolPtr pRCAP;
     int i;
     RecordClientPrivatePtr pClientPriv;
+
     REQUEST(xReq);
     int majorop;
 
     majorop = stuff->reqType;
-    for (i = 0; i < numEnabledContexts; i++)
-    {
-	pContext = ppAllContexts[i];
-	pRCAP = RecordFindClientOnContext(pContext, client->clientAsMask,
-					  NULL);
-	if (pRCAP && pRCAP->pRequestMajorOpSet &&
-	    RecordIsMemberOfSet(pRCAP->pRequestMajorOpSet, majorop))
-	{
-	    if (majorop <= 127)
-	    { /* core request */
+    for (i = 0; i < numEnabledContexts; i++) {
+        pContext = ppAllContexts[i];
+        pRCAP = RecordFindClientOnContext(pContext, client->clientAsMask, NULL);
+        if (pRCAP && pRCAP->pRequestMajorOpSet &&
+            RecordIsMemberOfSet(pRCAP->pRequestMajorOpSet, majorop)) {
+            if (majorop <= 127) {       /* core request */
 
-		if (stuff->length == 0)
-		    RecordABigRequest(pContext, client, stuff);
-		else
-		    RecordAProtocolElement(pContext, client, XRecordFromClient,
-				(pointer)stuff, client->req_len << 2, 0, 0);
-	    }
-	    else /* extension, check minor opcode */
-	    {
-		int minorop = client->minorOp;
-		int numMinOpInfo;
-		RecordMinorOpPtr pMinorOpInfo = pRCAP->pRequestMinOpInfo;
+                if (stuff->length == 0)
+                    RecordABigRequest(pContext, client, stuff);
+                else
+                    RecordAProtocolElement(pContext, client, XRecordFromClient,
+                                           (pointer) stuff,
+                                           client->req_len << 2, 0, 0);
+            }
+            else {              /* extension, check minor opcode */
 
-		assert (pMinorOpInfo);
-		numMinOpInfo = pMinorOpInfo->count;
-		pMinorOpInfo++;
-		assert (numMinOpInfo);
-		for ( ; numMinOpInfo; numMinOpInfo--, pMinorOpInfo++)
-		{
-		    if (majorop >= pMinorOpInfo->major.first &&
-			majorop <= pMinorOpInfo->major.last &&
-			RecordIsMemberOfSet(pMinorOpInfo->major.pMinOpSet,
-					    minorop))
-		    {
-			if (stuff->length == 0)
-			    RecordABigRequest(pContext, client, stuff);
-			else
-			    RecordAProtocolElement(pContext, client, 
-					XRecordFromClient, (pointer)stuff,
-					client->req_len << 2, 0, 0);
-			break;
-		    }			    
-		} /* end for each minor op info */
-	    } /* end extension request */
-	} /* end this RCAP wants this major opcode */
-    } /* end for each context */
+                int minorop = client->minorOp;
+                int numMinOpInfo;
+                RecordMinorOpPtr pMinorOpInfo = pRCAP->pRequestMinOpInfo;
+
+                assert(pMinorOpInfo);
+                numMinOpInfo = pMinorOpInfo->count;
+                pMinorOpInfo++;
+                assert(numMinOpInfo);
+                for (; numMinOpInfo; numMinOpInfo--, pMinorOpInfo++) {
+                    if (majorop >= pMinorOpInfo->major.first &&
+                        majorop <= pMinorOpInfo->major.last &&
+                        RecordIsMemberOfSet(pMinorOpInfo->major.pMinOpSet,
+                                            minorop)) {
+                        if (stuff->length == 0)
+                            RecordABigRequest(pContext, client, stuff);
+                        else
+                            RecordAProtocolElement(pContext, client,
+                                                   XRecordFromClient,
+                                                   (pointer) stuff,
+                                                   client->req_len << 2, 0, 0);
+                        break;
+                    }
+                }               /* end for each minor op info */
+            }                   /* end extension request */
+        }                       /* end this RCAP wants this major opcode */
+    }                           /* end for each context */
     pClientPriv = RecordClientPrivate(client);
     assert(pClientPriv);
-    return (* pClientPriv->originalVector[majorop])(client);
-} /* RecordARequest */
+    return (*pClientPriv->originalVector[majorop]) (client);
+}                               /* RecordARequest */
 
 /* RecordAReply
  *
@@ -609,65 +582,63 @@ RecordAReply(CallbackListPtr *pcbl, pointer nulldata, pointer calldata)
     RecordContextPtr pContext;
     RecordClientsAndProtocolPtr pRCAP;
     int eci;
-    ReplyInfoRec *pri = (ReplyInfoRec *)calldata;
+    ReplyInfoRec *pri = (ReplyInfoRec *) calldata;
     ClientPtr client = pri->client;
 
-    for (eci = 0; eci < numEnabledContexts; eci++)
-    {
-	pContext = ppAllContexts[eci];
-	pRCAP = RecordFindClientOnContext(pContext, client->clientAsMask,
-					  NULL);
-	if (pRCAP)
-	{
-	    int majorop = client->majorOp;
-	    if (pContext->continuedReply)
-	    {
-		RecordAProtocolElement(pContext, client, XRecordFromServer,
-		   (pointer)pri->replyData, pri->dataLenBytes,
-			    pri->padBytes, /* continuation */ -1);
-		if (!pri->bytesRemaining)
-		    pContext->continuedReply = 0;
-	    }
-	    else if (pri->startOfReply && pRCAP->pReplyMajorOpSet &&
-		     RecordIsMemberOfSet(pRCAP->pReplyMajorOpSet, majorop))
-	    {
-		if (majorop <= 127)
-		{ /* core reply */
-		    RecordAProtocolElement(pContext, client, XRecordFromServer,
-		       (pointer)pri->replyData, pri->dataLenBytes, 0, pri->bytesRemaining);
-		    if (pri->bytesRemaining)
-			pContext->continuedReply = 1;
-		}
-		else /* extension, check minor opcode */
-		{
-		    int minorop = client->minorOp;
-		    int numMinOpInfo;
-		    RecordMinorOpPtr pMinorOpInfo = pRCAP->pReplyMinOpInfo;
-		    		    assert (pMinorOpInfo);
-		    numMinOpInfo = pMinorOpInfo->count;
-		    pMinorOpInfo++;
-		    assert (numMinOpInfo);
-		    for ( ; numMinOpInfo; numMinOpInfo--, pMinorOpInfo++)
-		    {
-			if (majorop >= pMinorOpInfo->major.first &&
-			    majorop <= pMinorOpInfo->major.last &&
-			    RecordIsMemberOfSet(pMinorOpInfo->major.pMinOpSet,
-						minorop))
-			{
-			    RecordAProtocolElement(pContext, client, 
-				XRecordFromServer, (pointer)pri->replyData,
-				pri->dataLenBytes, 0, pri->bytesRemaining);
-			    if (pri->bytesRemaining)
-				pContext->continuedReply = 1;
-			    break;
-			}			    
-		    } /* end for each minor op info */
-		} /* end extension reply */
-	    } /* end continued reply vs. start of reply */
-	} /* end client is registered on this context */
-    } /* end for each context */
-} /* RecordAReply */
+    for (eci = 0; eci < numEnabledContexts; eci++) {
+        pContext = ppAllContexts[eci];
+        pRCAP = RecordFindClientOnContext(pContext, client->clientAsMask, NULL);
+        if (pRCAP) {
+            int majorop = client->majorOp;
 
+            if (pContext->continuedReply) {
+                RecordAProtocolElement(pContext, client, XRecordFromServer,
+                                       (pointer) pri->replyData,
+                                       pri->dataLenBytes, pri->padBytes,
+                                       /* continuation */ -1);
+                if (!pri->bytesRemaining)
+                    pContext->continuedReply = 0;
+            }
+            else if (pri->startOfReply && pRCAP->pReplyMajorOpSet &&
+                     RecordIsMemberOfSet(pRCAP->pReplyMajorOpSet, majorop)) {
+                if (majorop <= 127) {   /* core reply */
+                    RecordAProtocolElement(pContext, client, XRecordFromServer,
+                                           (pointer) pri->replyData,
+                                           pri->dataLenBytes, 0,
+                                           pri->bytesRemaining);
+                    if (pri->bytesRemaining)
+                        pContext->continuedReply = 1;
+                }
+                else {          /* extension, check minor opcode */
+
+                    int minorop = client->minorOp;
+                    int numMinOpInfo;
+                    RecordMinorOpPtr pMinorOpInfo = pRCAP->pReplyMinOpInfo;
+
+                    assert(pMinorOpInfo);
+                    numMinOpInfo = pMinorOpInfo->count;
+                    pMinorOpInfo++;
+                    assert(numMinOpInfo);
+                    for (; numMinOpInfo; numMinOpInfo--, pMinorOpInfo++) {
+                        if (majorop >= pMinorOpInfo->major.first &&
+                            majorop <= pMinorOpInfo->major.last &&
+                            RecordIsMemberOfSet(pMinorOpInfo->major.pMinOpSet,
+                                                minorop)) {
+                            RecordAProtocolElement(pContext, client,
+                                                   XRecordFromServer,
+                                                   (pointer) pri->replyData,
+                                                   pri->dataLenBytes, 0,
+                                                   pri->bytesRemaining);
+                            if (pri->bytesRemaining)
+                                pContext->continuedReply = 1;
+                            break;
+                        }
+                    }           /* end for each minor op info */
+                }               /* end extension reply */
+            }                   /* end continued reply vs. start of reply */
+        }                       /* end client is registered on this context */
+    }                           /* end for each context */
+}                               /* RecordAReply */
 
 /* RecordADeliveredEventOrError
  *
@@ -685,109 +656,101 @@ RecordAReply(CallbackListPtr *pcbl, pointer nulldata, pointer calldata)
  *	it for this client.
  */
 static void
-RecordADeliveredEventOrError(CallbackListPtr *pcbl, pointer nulldata, pointer calldata)
+RecordADeliveredEventOrError(CallbackListPtr *pcbl, pointer nulldata,
+                             pointer calldata)
 {
-    EventInfoRec *pei = (EventInfoRec *)calldata;
+    EventInfoRec *pei = (EventInfoRec *) calldata;
     RecordContextPtr pContext;
     RecordClientsAndProtocolPtr pRCAP;
-    int eci; /* enabled context index */
+    int eci;                    /* enabled context index */
     ClientPtr pClient = pei->client;
 
-    for (eci = 0; eci < numEnabledContexts; eci++)
-    {
-	pContext = ppAllContexts[eci];
-	pRCAP = RecordFindClientOnContext(pContext, pClient->clientAsMask,
-					  NULL);
-	if (pRCAP && (pRCAP->pDeliveredEventSet || pRCAP->pErrorSet))
-	{
-	    int ev; /* event index */
-	    xEvent *pev = pei->events;
-	    for (ev = 0; ev < pei->count; ev++, pev++)
-	    {
-		int recordit = 0;
-		if (pRCAP->pErrorSet)
-		{
-		    recordit = RecordIsMemberOfSet(pRCAP->pErrorSet,
-						((xError *)(pev))->errorCode);
-		}
-		else if (pRCAP->pDeliveredEventSet)
-		{
-		    recordit = RecordIsMemberOfSet(pRCAP->pDeliveredEventSet,
-						   pev->u.u.type & 0177);
-		}
-		if (recordit)
-		{
-		    xEvent swappedEvent;
-		    xEvent *pEvToRecord = pev;
+    for (eci = 0; eci < numEnabledContexts; eci++) {
+        pContext = ppAllContexts[eci];
+        pRCAP = RecordFindClientOnContext(pContext, pClient->clientAsMask,
+                                          NULL);
+        if (pRCAP && (pRCAP->pDeliveredEventSet || pRCAP->pErrorSet)) {
+            int ev;             /* event index */
+            xEvent *pev = pei->events;
 
-		    if (pClient->swapped)
-		    {
-			(*EventSwapVector[pev->u.u.type & 0177])
-			    (pev, &swappedEvent);
-			pEvToRecord = &swappedEvent;
-			
-		    }
-		    RecordAProtocolElement(pContext, pClient,
-			XRecordFromServer, pEvToRecord, SIZEOF(xEvent), 0, 0);
-		}
-	    } /* end for each event */
-	} /* end this client is on this context */
-    } /* end for each enabled context */
-} /* RecordADeliveredEventOrError */
+            for (ev = 0; ev < pei->count; ev++, pev++) {
+                int recordit = 0;
 
+                if (pRCAP->pErrorSet) {
+                    recordit = RecordIsMemberOfSet(pRCAP->pErrorSet,
+                                                   ((xError *) (pev))->
+                                                   errorCode);
+                }
+                else if (pRCAP->pDeliveredEventSet) {
+                    recordit = RecordIsMemberOfSet(pRCAP->pDeliveredEventSet,
+                                                   pev->u.u.type & 0177);
+                }
+                if (recordit) {
+                    xEvent swappedEvent;
+                    xEvent *pEvToRecord = pev;
+
+                    if (pClient->swapped) {
+                        (*EventSwapVector[pev->u.u.type & 0177])
+                            (pev, &swappedEvent);
+                        pEvToRecord = &swappedEvent;
+
+                    }
+                    RecordAProtocolElement(pContext, pClient,
+                                           XRecordFromServer, pEvToRecord,
+                                           SIZEOF(xEvent), 0, 0);
+                }
+            }                   /* end for each event */
+        }                       /* end this client is on this context */
+    }                           /* end for each enabled context */
+}                               /* RecordADeliveredEventOrError */
 
 static void
 RecordSendProtocolEvents(RecordClientsAndProtocolPtr pRCAP,
-			RecordContextPtr pContext,
-			xEvent* pev, int count)
+                         RecordContextPtr pContext, xEvent *pev, int count)
 {
-    int ev; /* event index */
+    int ev;                     /* event index */
 
-    for (ev = 0; ev < count; ev++, pev++)
-    {
-	if (RecordIsMemberOfSet(pRCAP->pDeviceEventSet,
-		    pev->u.u.type & 0177))
-	{
-	    xEvent swappedEvent;
-	    xEvent *pEvToRecord = pev;
+    for (ev = 0; ev < count; ev++, pev++) {
+        if (RecordIsMemberOfSet(pRCAP->pDeviceEventSet, pev->u.u.type & 0177)) {
+            xEvent swappedEvent;
+            xEvent *pEvToRecord = pev;
+
 #ifdef PANORAMIX
-	    xEvent shiftedEvent;
+            xEvent shiftedEvent;
 
-	    if (!noPanoramiXExtension &&
-		    (pev->u.u.type == MotionNotify ||
-		     pev->u.u.type == ButtonPress ||
-		     pev->u.u.type == ButtonRelease ||
-		     pev->u.u.type == KeyPress ||
-		     pev->u.u.type == KeyRelease)) {
-		int scr = XineramaGetCursorScreen(inputInfo.pointer);
-		memcpy(&shiftedEvent, pev, sizeof(xEvent));
-		shiftedEvent.u.keyButtonPointer.rootX +=
-		    screenInfo.screens[scr]->x -
-		    screenInfo.screens[0]->x;
-		shiftedEvent.u.keyButtonPointer.rootY +=
-		    screenInfo.screens[scr]->y -
-		    screenInfo.screens[0]->y;
-		pEvToRecord = &shiftedEvent;
-	    }
-#endif /* PANORAMIX */
+            if (!noPanoramiXExtension &&
+                (pev->u.u.type == MotionNotify ||
+                 pev->u.u.type == ButtonPress ||
+                 pev->u.u.type == ButtonRelease ||
+                 pev->u.u.type == KeyPress || pev->u.u.type == KeyRelease)) {
+                int scr = XineramaGetCursorScreen(inputInfo.pointer);
 
-	    if (pContext->pRecordingClient->swapped)
-	    {
-		(*EventSwapVector[pEvToRecord->u.u.type & 0177])
-		    (pEvToRecord, &swappedEvent);
-		pEvToRecord = &swappedEvent;
-	    }
+                memcpy(&shiftedEvent, pev, sizeof(xEvent));
+                shiftedEvent.u.keyButtonPointer.rootX +=
+                    screenInfo.screens[scr]->x - screenInfo.screens[0]->x;
+                shiftedEvent.u.keyButtonPointer.rootY +=
+                    screenInfo.screens[scr]->y - screenInfo.screens[0]->y;
+                pEvToRecord = &shiftedEvent;
+            }
+#endif                          /* PANORAMIX */
 
-	    RecordAProtocolElement(pContext, NULL,
-		    XRecordFromServer,  pEvToRecord, SIZEOF(xEvent), 0, 0);
-	    /* make sure device events get flushed in the absence
-	     * of other client activity
-	     */
-	    SetCriticalOutputPending();
-	}
-    } /* end for each event */
+            if (pContext->pRecordingClient->swapped) {
+                (*EventSwapVector[pEvToRecord->u.u.type & 0177])
+                    (pEvToRecord, &swappedEvent);
+                pEvToRecord = &swappedEvent;
+            }
 
-} /* RecordADeviceEvent */
+            RecordAProtocolElement(pContext, NULL,
+                                   XRecordFromServer, pEvToRecord,
+                                   SIZEOF(xEvent), 0, 0);
+            /* make sure device events get flushed in the absence
+             * of other client activity
+             */
+            SetCriticalOutputPending();
+        }
+    }                           /* end for each event */
+
+}                               /* RecordADeviceEvent */
 
 /* RecordADeviceEvent
  *
@@ -806,39 +769,35 @@ RecordSendProtocolEvents(RecordClientsAndProtocolPtr pRCAP,
 static void
 RecordADeviceEvent(CallbackListPtr *pcbl, pointer nulldata, pointer calldata)
 {
-    DeviceEventInfoRec *pei = (DeviceEventInfoRec *)calldata;
+    DeviceEventInfoRec *pei = (DeviceEventInfoRec *) calldata;
     RecordContextPtr pContext;
     RecordClientsAndProtocolPtr pRCAP;
-    int eci; /* enabled context index */
+    int eci;                    /* enabled context index */
 
-    for (eci = 0; eci < numEnabledContexts; eci++)
-    {
-	pContext = ppAllContexts[eci];
-	for (pRCAP = pContext->pListOfRCAP; pRCAP; pRCAP = pRCAP->pNextRCAP)
-	{
-	    if (pRCAP->pDeviceEventSet)
-	    {
-		int count;
-		xEvent *xi_events = NULL;
+    for (eci = 0; eci < numEnabledContexts; eci++) {
+        pContext = ppAllContexts[eci];
+        for (pRCAP = pContext->pListOfRCAP; pRCAP; pRCAP = pRCAP->pNextRCAP) {
+            if (pRCAP->pDeviceEventSet) {
+                int count;
+                xEvent *xi_events = NULL;
 
-		/* TODO check return values */
-		if (IsMaster(pei->device))
-		{
-		    xEvent *core_events;
-		    EventToCore(pei->event, &core_events, &count);
-		    RecordSendProtocolEvents(pRCAP, pContext, core_events,
+                /* TODO check return values */
+                if (IsMaster(pei->device)) {
+                    xEvent *core_events;
+
+                    EventToCore(pei->event, &core_events, &count);
+                    RecordSendProtocolEvents(pRCAP, pContext, core_events,
                                              count);
-		    free(core_events);
-		}
+                    free(core_events);
+                }
 
-		EventToXI(pei->event, &xi_events, &count);
-		RecordSendProtocolEvents(pRCAP, pContext, xi_events, count);
-		free(xi_events);
-	    } /* end this RCAP selects device events */
-	} /* end for each RCAP on this context */
-    } /* end for each enabled context */
+                EventToXI(pei->event, &xi_events, &count);
+                RecordSendProtocolEvents(pRCAP, pContext, xi_events, count);
+                free(xi_events);
+            }                   /* end this RCAP selects device events */
+        }                       /* end for each RCAP on this context */
+    }                           /* end for each enabled context */
 }
-
 
 /* RecordFlushAllContexts
  *
@@ -853,29 +812,24 @@ RecordADeviceEvent(CallbackListPtr *pcbl, pointer nulldata, pointer calldata)
  *	the recording clients.
  */
 static void
-RecordFlushAllContexts(
-    CallbackListPtr *pcbl,
-    pointer nulldata,
-    pointer calldata
-)
+RecordFlushAllContexts(CallbackListPtr *pcbl,
+                       pointer nulldata, pointer calldata)
 {
-    int eci; /* enabled context index */
+    int eci;                    /* enabled context index */
     RecordContextPtr pContext;
 
-    for (eci = 0; eci < numEnabledContexts; eci++)
-    {
-	pContext = ppAllContexts[eci];
+    for (eci = 0; eci < numEnabledContexts; eci++) {
+        pContext = ppAllContexts[eci];
 
-	/* In most cases we leave it to RecordFlushReplyBuffer to make
-	 * this check, but this function could be called very often, so we
-	 * check before calling hoping to save the function call cost
-	 * most of the time.
-	 */
-	if (pContext->numBufBytes)
-	    RecordFlushReplyBuffer(ppAllContexts[eci], NULL, 0, NULL, 0);
+        /* In most cases we leave it to RecordFlushReplyBuffer to make
+         * this check, but this function could be called very often, so we
+         * check before calling hoping to save the function call cost
+         * most of the time.
+         */
+        if (pContext->numBufBytes)
+            RecordFlushReplyBuffer(ppAllContexts[eci], NULL, 0, NULL, 0);
     }
-} /* RecordFlushAllContexts */
-
+}                               /* RecordFlushAllContexts */
 
 /* RecordInstallHooks
  *
@@ -902,70 +856,65 @@ RecordInstallHooks(RecordClientsAndProtocolPtr pRCAP, XID oneclient)
     XID client;
 
     if (oneclient)
-	client = oneclient;
+        client = oneclient;
     else
-	client = pRCAP->numClients ? pRCAP->pClientIDs[i++] : 0;
+        client = pRCAP->numClients ? pRCAP->pClientIDs[i++] : 0;
 
-    while (client)
-    {
-	if (client != XRecordFutureClients)
-	{
-	    if (pRCAP->pRequestMajorOpSet)
-	    {
-		RecordSetIteratePtr pIter = NULL;
-		RecordSetInterval interval;
-		ClientPtr pClient = clients[CLIENT_ID(client)];
+    while (client) {
+        if (client != XRecordFutureClients) {
+            if (pRCAP->pRequestMajorOpSet) {
+                RecordSetIteratePtr pIter = NULL;
+                RecordSetInterval interval;
+                ClientPtr pClient = clients[CLIENT_ID(client)];
 
-		if (pClient && !RecordClientPrivate(pClient))
-		{
-		    RecordClientPrivatePtr pClientPriv;
-		    /* no Record proc vector; allocate one */
-		    pClientPriv = (RecordClientPrivatePtr)
-				malloc(sizeof(RecordClientPrivateRec));
-		    if (!pClientPriv)
-			return BadAlloc;
-		    /* copy old proc vector to new */
-		    memcpy(pClientPriv->recordVector, pClient->requestVector, 
-			   sizeof (pClientPriv->recordVector));
-		    pClientPriv->originalVector = pClient->requestVector;
-		    dixSetPrivate(&pClient->devPrivates,
-				  RecordClientPrivateKey, pClientPriv);
-		    pClient->requestVector = pClientPriv->recordVector;
-		}
-		while ((pIter = RecordIterateSet(pRCAP->pRequestMajorOpSet,
-						pIter, &interval)))
-		{
-		    unsigned int j;
-		    for (j = interval.first; j <= interval.last; j++)
-			pClient->requestVector[j] = RecordARequest;
-		}
-	    }
-	}
-	if (oneclient)
-	    client = 0;
-	else
-	    client = (i < pRCAP->numClients) ? pRCAP->pClientIDs[i++] : 0;
+                if (pClient && !RecordClientPrivate(pClient)) {
+                    RecordClientPrivatePtr pClientPriv;
+
+                    /* no Record proc vector; allocate one */
+                    pClientPriv = (RecordClientPrivatePtr)
+                        malloc(sizeof(RecordClientPrivateRec));
+                    if (!pClientPriv)
+                        return BadAlloc;
+                    /* copy old proc vector to new */
+                    memcpy(pClientPriv->recordVector, pClient->requestVector,
+                           sizeof(pClientPriv->recordVector));
+                    pClientPriv->originalVector = pClient->requestVector;
+                    dixSetPrivate(&pClient->devPrivates,
+                                  RecordClientPrivateKey, pClientPriv);
+                    pClient->requestVector = pClientPriv->recordVector;
+                }
+                while ((pIter = RecordIterateSet(pRCAP->pRequestMajorOpSet,
+                                                 pIter, &interval))) {
+                    unsigned int j;
+
+                    for (j = interval.first; j <= interval.last; j++)
+                        pClient->requestVector[j] = RecordARequest;
+                }
+            }
+        }
+        if (oneclient)
+            client = 0;
+        else
+            client = (i < pRCAP->numClients) ? pRCAP->pClientIDs[i++] : 0;
     }
 
     assert(numEnabledRCAPs >= 0);
-    if (!oneclient && ++numEnabledRCAPs == 1)
-    { /* we're enabling the first context */
-	if (!AddCallback(&EventCallback, RecordADeliveredEventOrError, NULL))
-	    return BadAlloc;
-	if (!AddCallback(&DeviceEventCallback, RecordADeviceEvent, NULL))
-	    return BadAlloc;
-	if (!AddCallback(&ReplyCallback, RecordAReply, NULL))
-	    return BadAlloc;
-	if (!AddCallback(&FlushCallback, RecordFlushAllContexts, NULL))
-	    return BadAlloc;
-	/* Alternate context flushing scheme: delete the line above
-	 * and call RegisterBlockAndWakeupHandlers here passing
-	 * RecordFlushAllContexts.  Is this any better?
-	 */
+    if (!oneclient && ++numEnabledRCAPs == 1) { /* we're enabling the first context */
+        if (!AddCallback(&EventCallback, RecordADeliveredEventOrError, NULL))
+            return BadAlloc;
+        if (!AddCallback(&DeviceEventCallback, RecordADeviceEvent, NULL))
+            return BadAlloc;
+        if (!AddCallback(&ReplyCallback, RecordAReply, NULL))
+            return BadAlloc;
+        if (!AddCallback(&FlushCallback, RecordFlushAllContexts, NULL))
+            return BadAlloc;
+        /* Alternate context flushing scheme: delete the line above
+         * and call RegisterBlockAndWakeupHandlers here passing
+         * RecordFlushAllContexts.  Is this any better?
+         */
     }
     return Success;
-} /* RecordInstallHooks */
-
+}                               /* RecordInstallHooks */
 
 /* RecordUninstallHooks
  *
@@ -992,82 +941,75 @@ RecordUninstallHooks(RecordClientsAndProtocolPtr pRCAP, XID oneclient)
     XID client;
 
     if (oneclient)
-	client = oneclient;
+        client = oneclient;
     else
-	client = pRCAP->numClients ? pRCAP->pClientIDs[i++] : 0;
+        client = pRCAP->numClients ? pRCAP->pClientIDs[i++] : 0;
 
-    while (client)
-    {
-	if (client != XRecordFutureClients)
-	{
-	    if (pRCAP->pRequestMajorOpSet)
-	    {
-		ClientPtr pClient = clients[CLIENT_ID(client)];
-		int c;
-		Bool otherRCAPwantsProcVector = FALSE;
-		RecordClientPrivatePtr pClientPriv = NULL;
+    while (client) {
+        if (client != XRecordFutureClients) {
+            if (pRCAP->pRequestMajorOpSet) {
+                ClientPtr pClient = clients[CLIENT_ID(client)];
+                int c;
+                Bool otherRCAPwantsProcVector = FALSE;
+                RecordClientPrivatePtr pClientPriv = NULL;
 
-		assert (pClient);
-		pClientPriv = RecordClientPrivate(pClient);
-		assert (pClientPriv);
-		memcpy(pClientPriv->recordVector, pClientPriv->originalVector,
-		       sizeof (pClientPriv->recordVector));
+                assert(pClient);
+                pClientPriv = RecordClientPrivate(pClient);
+                assert(pClientPriv);
+                memcpy(pClientPriv->recordVector, pClientPriv->originalVector,
+                       sizeof(pClientPriv->recordVector));
 
-		for (c = 0; c < numEnabledContexts; c++)
-		{
-		    RecordClientsAndProtocolPtr pOtherRCAP;
-		    RecordContextPtr pContext = ppAllContexts[c];
+                for (c = 0; c < numEnabledContexts; c++) {
+                    RecordClientsAndProtocolPtr pOtherRCAP;
+                    RecordContextPtr pContext = ppAllContexts[c];
 
-		    if (pContext == pRCAP->pContext) continue;
-		    pOtherRCAP = RecordFindClientOnContext(pContext, client,
-							   NULL);
-		    if (pOtherRCAP && pOtherRCAP->pRequestMajorOpSet)
-		    {
-			RecordSetIteratePtr pIter = NULL;
-			RecordSetInterval interval;
+                    if (pContext == pRCAP->pContext)
+                        continue;
+                    pOtherRCAP = RecordFindClientOnContext(pContext, client,
+                                                           NULL);
+                    if (pOtherRCAP && pOtherRCAP->pRequestMajorOpSet) {
+                        RecordSetIteratePtr pIter = NULL;
+                        RecordSetInterval interval;
 
-			otherRCAPwantsProcVector = TRUE;
-			while ((pIter = RecordIterateSet(
-						pOtherRCAP->pRequestMajorOpSet,
-						pIter, &interval)))
-			{
-			    unsigned int j;
-			    for (j = interval.first; j <= interval.last; j++)
-				pClient->requestVector[j] = RecordARequest;
-			}
-		    }
-		}
-		if (!otherRCAPwantsProcVector)
-		{ /* nobody needs it, so free it */
-		    pClient->requestVector = pClientPriv->originalVector;
-		    dixSetPrivate(&pClient->devPrivates,
-				  RecordClientPrivateKey, NULL);
-		    free(pClientPriv);
-		}
-	    } /* end if this RCAP specifies any requests */
-	} /* end if not future clients */
-	if (oneclient)
-	    client = 0;
-	else
-	    client = (i < pRCAP->numClients) ? pRCAP->pClientIDs[i++] : 0;
+                        otherRCAPwantsProcVector = TRUE;
+                        while ((pIter =
+                                RecordIterateSet(pOtherRCAP->pRequestMajorOpSet,
+                                                 pIter, &interval))) {
+                            unsigned int j;
+
+                            for (j = interval.first; j <= interval.last; j++)
+                                pClient->requestVector[j] = RecordARequest;
+                        }
+                    }
+                }
+                if (!otherRCAPwantsProcVector) {        /* nobody needs it, so free it */
+                    pClient->requestVector = pClientPriv->originalVector;
+                    dixSetPrivate(&pClient->devPrivates,
+                                  RecordClientPrivateKey, NULL);
+                    free(pClientPriv);
+                }
+            }                   /* end if this RCAP specifies any requests */
+        }                       /* end if not future clients */
+        if (oneclient)
+            client = 0;
+        else
+            client = (i < pRCAP->numClients) ? pRCAP->pClientIDs[i++] : 0;
     }
 
     assert(numEnabledRCAPs >= 1);
-    if (!oneclient && --numEnabledRCAPs == 0)
-    { /* we're disabling the last context */
-	DeleteCallback(&EventCallback, RecordADeliveredEventOrError, NULL);
-	DeleteCallback(&DeviceEventCallback, RecordADeviceEvent, NULL);
-	DeleteCallback(&ReplyCallback, RecordAReply, NULL);
-	DeleteCallback(&FlushCallback, RecordFlushAllContexts, NULL);
-	/* Alternate context flushing scheme: delete the line above
-	 * and call RemoveBlockAndWakeupHandlers here passing
-	 * RecordFlushAllContexts.  Is this any better?
-	 */
-	/* Having deleted the callback, call it one last time. -gildea */
-	RecordFlushAllContexts(&FlushCallback, NULL, NULL);
+    if (!oneclient && --numEnabledRCAPs == 0) { /* we're disabling the last context */
+        DeleteCallback(&EventCallback, RecordADeliveredEventOrError, NULL);
+        DeleteCallback(&DeviceEventCallback, RecordADeviceEvent, NULL);
+        DeleteCallback(&ReplyCallback, RecordAReply, NULL);
+        DeleteCallback(&FlushCallback, RecordFlushAllContexts, NULL);
+        /* Alternate context flushing scheme: delete the line above
+         * and call RemoveBlockAndWakeupHandlers here passing
+         * RecordFlushAllContexts.  Is this any better?
+         */
+        /* Having deleted the callback, call it one last time. -gildea */
+        RecordFlushAllContexts(&FlushCallback, NULL, NULL);
     }
-} /* RecordUninstallHooks */
-
+}                               /* RecordUninstallHooks */
 
 /* RecordDeleteClientFromRCAP
  *
@@ -1089,32 +1031,29 @@ static void
 RecordDeleteClientFromRCAP(RecordClientsAndProtocolPtr pRCAP, int position)
 {
     if (pRCAP->pContext->pRecordingClient)
-	RecordUninstallHooks(pRCAP, pRCAP->pClientIDs[position]);
+        RecordUninstallHooks(pRCAP, pRCAP->pClientIDs[position]);
     if (position != pRCAP->numClients - 1)
-	pRCAP->pClientIDs[position] = pRCAP->pClientIDs[pRCAP->numClients - 1];
-    if (--pRCAP->numClients == 0)
-    {	/* no more clients; remove RCAP from context's list */
-	RecordContextPtr pContext = pRCAP->pContext;
-	if (pContext->pRecordingClient)
-	    RecordUninstallHooks(pRCAP, 0);
-	if (pContext->pListOfRCAP == pRCAP)
-	    pContext->pListOfRCAP = pRCAP->pNextRCAP;
-	else
-	{
-	    RecordClientsAndProtocolPtr prevRCAP;
-	    for (prevRCAP = pContext->pListOfRCAP;
-		 prevRCAP->pNextRCAP != pRCAP;
-		 prevRCAP = prevRCAP->pNextRCAP)
-		;
-	    prevRCAP->pNextRCAP = pRCAP->pNextRCAP;
-	}
-	/* free the RCAP */
-	if (pRCAP->clientIDsSeparatelyAllocated)
-	    free(pRCAP->pClientIDs);
-	free(pRCAP);
-    }
-} /* RecordDeleteClientFromRCAP */
+        pRCAP->pClientIDs[position] = pRCAP->pClientIDs[pRCAP->numClients - 1];
+    if (--pRCAP->numClients == 0) {     /* no more clients; remove RCAP from context's list */
+        RecordContextPtr pContext = pRCAP->pContext;
 
+        if (pContext->pRecordingClient)
+            RecordUninstallHooks(pRCAP, 0);
+        if (pContext->pListOfRCAP == pRCAP)
+            pContext->pListOfRCAP = pRCAP->pNextRCAP;
+        else {
+            RecordClientsAndProtocolPtr prevRCAP;
+
+            for (prevRCAP = pContext->pListOfRCAP;
+                 prevRCAP->pNextRCAP != pRCAP; prevRCAP = prevRCAP->pNextRCAP);
+            prevRCAP->pNextRCAP = pRCAP->pNextRCAP;
+        }
+        /* free the RCAP */
+        if (pRCAP->clientIDsSeparatelyAllocated)
+            free(pRCAP->pClientIDs);
+        free(pRCAP);
+    }
+}                               /* RecordDeleteClientFromRCAP */
 
 /* RecordAddClientToRCAP
  *
@@ -1135,35 +1074,33 @@ RecordDeleteClientFromRCAP(RecordClientsAndProtocolPtr pRCAP, int position)
 static void
 RecordAddClientToRCAP(RecordClientsAndProtocolPtr pRCAP, XID clientspec)
 {
-    if (pRCAP->numClients == pRCAP->sizeClients)
-    {
-	if (pRCAP->clientIDsSeparatelyAllocated)
-	{
-	    XID *pNewIDs = (XID *)realloc(pRCAP->pClientIDs,
-			(pRCAP->sizeClients + CLIENT_ARRAY_GROWTH_INCREMENT) *
-								sizeof(XID));
-	    if (!pNewIDs)
-		return;
-	    pRCAP->pClientIDs = pNewIDs;
-	    pRCAP->sizeClients += CLIENT_ARRAY_GROWTH_INCREMENT;
-	}
-	else
-	{
-	    XID *pNewIDs = (XID *)malloc((pRCAP->sizeClients +
-				CLIENT_ARRAY_GROWTH_INCREMENT) * sizeof(XID));
-	    if (!pNewIDs)
-		return;
-	    memcpy(pNewIDs, pRCAP->pClientIDs, pRCAP->numClients *sizeof(XID));
-	    pRCAP->pClientIDs = pNewIDs;
-	    pRCAP->sizeClients += CLIENT_ARRAY_GROWTH_INCREMENT;
-	    pRCAP->clientIDsSeparatelyAllocated = 1;
-	}
+    if (pRCAP->numClients == pRCAP->sizeClients) {
+        if (pRCAP->clientIDsSeparatelyAllocated) {
+            XID *pNewIDs = (XID *) realloc(pRCAP->pClientIDs,
+                                           (pRCAP->sizeClients +
+                                            CLIENT_ARRAY_GROWTH_INCREMENT) *
+                                           sizeof(XID));
+            if (!pNewIDs)
+                return;
+            pRCAP->pClientIDs = pNewIDs;
+            pRCAP->sizeClients += CLIENT_ARRAY_GROWTH_INCREMENT;
+        }
+        else {
+            XID *pNewIDs = (XID *) malloc((pRCAP->sizeClients +
+                                           CLIENT_ARRAY_GROWTH_INCREMENT) *
+                                          sizeof(XID));
+            if (!pNewIDs)
+                return;
+            memcpy(pNewIDs, pRCAP->pClientIDs, pRCAP->numClients * sizeof(XID));
+            pRCAP->pClientIDs = pNewIDs;
+            pRCAP->sizeClients += CLIENT_ARRAY_GROWTH_INCREMENT;
+            pRCAP->clientIDsSeparatelyAllocated = 1;
+        }
     }
     pRCAP->pClientIDs[pRCAP->numClients++] = clientspec;
     if (pRCAP->pContext->pRecordingClient)
-	RecordInstallHooks(pRCAP, clientspec);
-} /* RecordDeleteClientFromRCAP */
-
+        RecordInstallHooks(pRCAP, clientspec);
+}                               /* RecordDeleteClientFromRCAP */
 
 /* RecordDeleteClientFromContext
  *
@@ -1185,9 +1122,8 @@ RecordDeleteClientFromContext(RecordContextPtr pContext, XID clientspec)
     int position;
 
     if ((pRCAP = RecordFindClientOnContext(pContext, clientspec, &position)))
-	RecordDeleteClientFromRCAP(pRCAP, position);
-} /* RecordDeleteClientFromContext */
-
+        RecordDeleteClientFromRCAP(pRCAP, position);
+}                               /* RecordDeleteClientFromContext */
 
 /* RecordSanityCheckClientSpecifiers
  *
@@ -1202,38 +1138,36 @@ RecordDeleteClientFromContext(RecordContextPtr pContext, XID clientspec)
  * Side Effects: none.
  */
 static int
-RecordSanityCheckClientSpecifiers(ClientPtr client, XID *clientspecs, int nspecs, XID errorspec)
+RecordSanityCheckClientSpecifiers(ClientPtr client, XID *clientspecs,
+                                  int nspecs, XID errorspec)
 {
     int i;
     int clientIndex;
     int rc;
     pointer value;
 
-    for (i = 0; i < nspecs; i++)
-    {
-	if (clientspecs[i] == XRecordCurrentClients ||
-	    clientspecs[i] == XRecordFutureClients ||
-	    clientspecs[i] == XRecordAllClients)
-	    continue;
-	if (errorspec && (CLIENT_BITS(clientspecs[i]) == errorspec) )
-	    return BadMatch;
-	clientIndex = CLIENT_ID(clientspecs[i]);
-	if (clientIndex && clients[clientIndex] &&
-	    clients[clientIndex]->clientState == ClientStateRunning)
-	{
-	    if (clientspecs[i] == clients[clientIndex]->clientAsMask)
-		continue;
+    for (i = 0; i < nspecs; i++) {
+        if (clientspecs[i] == XRecordCurrentClients ||
+            clientspecs[i] == XRecordFutureClients ||
+            clientspecs[i] == XRecordAllClients)
+            continue;
+        if (errorspec && (CLIENT_BITS(clientspecs[i]) == errorspec))
+            return BadMatch;
+        clientIndex = CLIENT_ID(clientspecs[i]);
+        if (clientIndex && clients[clientIndex] &&
+            clients[clientIndex]->clientState == ClientStateRunning) {
+            if (clientspecs[i] == clients[clientIndex]->clientAsMask)
+                continue;
             rc = dixLookupResourceByClass(&value, clientspecs[i], RC_ANY,
                                           client, DixGetAttrAccess);
             if (rc != Success)
                 return rc;
-	}
-	else
-	    return BadMatch;
+        }
+        else
+            return BadMatch;
     }
     return Success;
-} /* RecordSanityCheckClientSpecifiers */
-
+}                               /* RecordSanityCheckClientSpecifiers */
 
 /* RecordCanonicalizeClientSpecifiers
  *
@@ -1265,7 +1199,8 @@ RecordSanityCheckClientSpecifiers(ClientPtr client, XID *clientspecs, int nspecs
  *	pClientspecs may be modified in place.
  */
 static XID *
-RecordCanonicalizeClientSpecifiers(XID *pClientspecs, int *pNumClientspecs, XID excludespec)
+RecordCanonicalizeClientSpecifiers(XID *pClientspecs, int *pNumClientspecs,
+                                   XID excludespec)
 {
     int i;
     int numClients = *pNumClientspecs;
@@ -1274,54 +1209,50 @@ RecordCanonicalizeClientSpecifiers(XID *pClientspecs, int *pNumClientspecs, XID 
      *  client id bits.  This makes searching for a particular client simpler
      *  (and faster.)
      */
-    for (i = 0; i < numClients; i++)
-    {
-	XID cs = pClientspecs[i];
-	if (cs > XRecordAllClients)
-	    pClientspecs[i] = CLIENT_BITS(cs);
+    for (i = 0; i < numClients; i++) {
+        XID cs = pClientspecs[i];
+
+        if (cs > XRecordAllClients)
+            pClientspecs[i] = CLIENT_BITS(cs);
     }
 
-    for (i = 0; i < numClients; i++)
-    {
-	if (pClientspecs[i] == XRecordAllClients ||
-	    pClientspecs[i] == XRecordCurrentClients)
-	{ /* expand All/Current */
-	    int j, nc;
-	    XID *pCanon = (XID *)malloc(sizeof(XID) * (currentMaxClients + 1));
-	    if (!pCanon) return NULL;
-	    for (nc = 0, j = 1; j < currentMaxClients; j++)
-	    {
-		ClientPtr client = clients[j];
-		if (client != NullClient &&
-		    client->clientState == ClientStateRunning &&
-		    client->clientAsMask != excludespec)
-		{
-		    pCanon[nc++] = client->clientAsMask;
-		}
-	    }
-	    if (pClientspecs[i] == XRecordAllClients)
-		pCanon[nc++] = XRecordFutureClients;
-	    *pNumClientspecs = nc;
-	    return pCanon;
-	}
-	else /* not All or Current */
-	{
-	    int j;
-	    for (j = i + 1; j < numClients; )
-	    {
-		if (pClientspecs[i] == pClientspecs[j])
-		{
-		    pClientspecs[j] = pClientspecs[--numClients];
-		}
-		else
-		    j++;
-	    }
-	}
-    } /* end for each clientspec */
+    for (i = 0; i < numClients; i++) {
+        if (pClientspecs[i] == XRecordAllClients || pClientspecs[i] == XRecordCurrentClients) { /* expand All/Current */
+            int j, nc;
+            XID *pCanon = (XID *) malloc(sizeof(XID) * (currentMaxClients + 1));
+
+            if (!pCanon)
+                return NULL;
+            for (nc = 0, j = 1; j < currentMaxClients; j++) {
+                ClientPtr client = clients[j];
+
+                if (client != NullClient &&
+                    client->clientState == ClientStateRunning &&
+                    client->clientAsMask != excludespec) {
+                    pCanon[nc++] = client->clientAsMask;
+                }
+            }
+            if (pClientspecs[i] == XRecordAllClients)
+                pCanon[nc++] = XRecordFutureClients;
+            *pNumClientspecs = nc;
+            return pCanon;
+        }
+        else {                  /* not All or Current */
+
+            int j;
+
+            for (j = i + 1; j < numClients;) {
+                if (pClientspecs[i] == pClientspecs[j]) {
+                    pClientspecs[j] = pClientspecs[--numClients];
+                }
+                else
+                    j++;
+            }
+        }
+    }                           /* end for each clientspec */
     *pNumClientspecs = numClients;
     return pClientspecs;
-} /* RecordCanonicalizeClientSpecifiers */
-
+}                               /* RecordCanonicalizeClientSpecifiers */
 
 /****************************************************************************/
 
@@ -1344,8 +1275,7 @@ static int
 RecordPadAlign(int size, int align)
 {
     return (align - (size & (align - 1))) & (align - 1);
-} /* RecordPadAlign */
-
+}                               /* RecordPadAlign */
 
 /* RecordSanityCheckRegisterClients
  *
@@ -1362,7 +1292,8 @@ RecordPadAlign(int size, int align)
  * Side Effects: none.
  */
 static int
-RecordSanityCheckRegisterClients(RecordContextPtr pContext, ClientPtr client, xRecordRegisterClientsReq *stuff)
+RecordSanityCheckRegisterClients(RecordContextPtr pContext, ClientPtr client,
+                                 xRecordRegisterClientsReq * stuff)
 {
     int err;
     xRecordRange *pRange;
@@ -1370,119 +1301,107 @@ RecordSanityCheckRegisterClients(RecordContextPtr pContext, ClientPtr client, xR
     XID recordingClient;
 
     if (((client->req_len << 2) - SIZEOF(xRecordRegisterClientsReq)) !=
-	4 * stuff->nClients + SIZEOF(xRecordRange) * stuff->nRanges)
-	return BadLength;
+        4 * stuff->nClients + SIZEOF(xRecordRange) * stuff->nRanges)
+        return BadLength;
 
     if (stuff->elementHeader &
-     ~(XRecordFromClientSequence|XRecordFromClientTime|XRecordFromServerTime))
-    {
-	client->errorValue = stuff->elementHeader;
-	return BadValue;
+        ~(XRecordFromClientSequence | XRecordFromClientTime |
+          XRecordFromServerTime)) {
+        client->errorValue = stuff->elementHeader;
+        return BadValue;
     }
 
     recordingClient = pContext->pRecordingClient ?
-		      pContext->pRecordingClient->clientAsMask : 0;
-    err = RecordSanityCheckClientSpecifiers(client, (XID *)&stuff[1],
-					    stuff->nClients, recordingClient);
-    if (err != Success) return err;
+        pContext->pRecordingClient->clientAsMask : 0;
+    err = RecordSanityCheckClientSpecifiers(client, (XID *) &stuff[1],
+                                            stuff->nClients, recordingClient);
+    if (err != Success)
+        return err;
 
-    pRange = (xRecordRange *)(((XID *)&stuff[1]) + stuff->nClients);
-    for (i = 0; i < stuff->nRanges; i++, pRange++)
-    {
-	if (pRange->coreRequestsFirst > pRange->coreRequestsLast)
-	{
-	    client->errorValue = pRange->coreRequestsFirst;
-	    return BadValue;
-	}
-	if (pRange->coreRepliesFirst > pRange->coreRepliesLast)
-	{
-	    client->errorValue = pRange->coreRepliesFirst;
-	    return BadValue;
-	}
-	if ((pRange->extRequestsMajorFirst || pRange->extRequestsMajorLast) &&
-	    (pRange->extRequestsMajorFirst < 128 ||
-	     pRange->extRequestsMajorLast < 128 ||
-	     pRange->extRequestsMajorFirst > pRange->extRequestsMajorLast))
-	{
-	    client->errorValue = pRange->extRequestsMajorFirst;
-	    return BadValue;
-	}
-	if (pRange->extRequestsMinorFirst > pRange->extRequestsMinorLast)
-	{
-	    client->errorValue = pRange->extRequestsMinorFirst;
-	    return BadValue;
-	}
-	if ((pRange->extRepliesMajorFirst || pRange->extRepliesMajorLast) &&
-	    (pRange->extRepliesMajorFirst < 128 ||
-	     pRange->extRepliesMajorLast < 128 ||
-	     pRange->extRepliesMajorFirst > pRange->extRepliesMajorLast))
-	{
-	    client->errorValue = pRange->extRepliesMajorFirst;
-	    return BadValue;
-	}
-	if (pRange->extRepliesMinorFirst > pRange->extRepliesMinorLast)
-	{
-	    client->errorValue = pRange->extRepliesMinorFirst;
-	    return BadValue;
-	}
-	if ((pRange->deliveredEventsFirst || pRange->deliveredEventsLast) &&
-	    (pRange->deliveredEventsFirst < 2 ||
-	     pRange->deliveredEventsLast < 2 ||
-	     pRange->deliveredEventsFirst > pRange->deliveredEventsLast))
-	{
-	    client->errorValue = pRange->deliveredEventsFirst;
-	    return BadValue;
-	}
-	if ((pRange->deviceEventsFirst || pRange->deviceEventsLast) &&
-	    (pRange->deviceEventsFirst < 2 ||
-	     pRange->deviceEventsLast < 2 ||
-	     pRange->deviceEventsFirst > pRange->deviceEventsLast))
-	{
-	    client->errorValue = pRange->deviceEventsFirst;
-	    return BadValue;
-	}
-	if (pRange->errorsFirst > pRange->errorsLast)
-	{
-	    client->errorValue = pRange->errorsFirst;
-	    return BadValue;
-	}
-	if (pRange->clientStarted != xFalse && pRange->clientStarted != xTrue)
-	{
-	    client->errorValue = pRange->clientStarted;
-	    return BadValue;
-	}
-	if (pRange->clientDied != xFalse && pRange->clientDied != xTrue)
-	{
-	    client->errorValue = pRange->clientDied;
-	    return BadValue;
-	}
-    } /* end for each range */
+    pRange = (xRecordRange *) (((XID *) &stuff[1]) + stuff->nClients);
+    for (i = 0; i < stuff->nRanges; i++, pRange++) {
+        if (pRange->coreRequestsFirst > pRange->coreRequestsLast) {
+            client->errorValue = pRange->coreRequestsFirst;
+            return BadValue;
+        }
+        if (pRange->coreRepliesFirst > pRange->coreRepliesLast) {
+            client->errorValue = pRange->coreRepliesFirst;
+            return BadValue;
+        }
+        if ((pRange->extRequestsMajorFirst || pRange->extRequestsMajorLast) &&
+            (pRange->extRequestsMajorFirst < 128 ||
+             pRange->extRequestsMajorLast < 128 ||
+             pRange->extRequestsMajorFirst > pRange->extRequestsMajorLast)) {
+            client->errorValue = pRange->extRequestsMajorFirst;
+            return BadValue;
+        }
+        if (pRange->extRequestsMinorFirst > pRange->extRequestsMinorLast) {
+            client->errorValue = pRange->extRequestsMinorFirst;
+            return BadValue;
+        }
+        if ((pRange->extRepliesMajorFirst || pRange->extRepliesMajorLast) &&
+            (pRange->extRepliesMajorFirst < 128 ||
+             pRange->extRepliesMajorLast < 128 ||
+             pRange->extRepliesMajorFirst > pRange->extRepliesMajorLast)) {
+            client->errorValue = pRange->extRepliesMajorFirst;
+            return BadValue;
+        }
+        if (pRange->extRepliesMinorFirst > pRange->extRepliesMinorLast) {
+            client->errorValue = pRange->extRepliesMinorFirst;
+            return BadValue;
+        }
+        if ((pRange->deliveredEventsFirst || pRange->deliveredEventsLast) &&
+            (pRange->deliveredEventsFirst < 2 ||
+             pRange->deliveredEventsLast < 2 ||
+             pRange->deliveredEventsFirst > pRange->deliveredEventsLast)) {
+            client->errorValue = pRange->deliveredEventsFirst;
+            return BadValue;
+        }
+        if ((pRange->deviceEventsFirst || pRange->deviceEventsLast) &&
+            (pRange->deviceEventsFirst < 2 ||
+             pRange->deviceEventsLast < 2 ||
+             pRange->deviceEventsFirst > pRange->deviceEventsLast)) {
+            client->errorValue = pRange->deviceEventsFirst;
+            return BadValue;
+        }
+        if (pRange->errorsFirst > pRange->errorsLast) {
+            client->errorValue = pRange->errorsFirst;
+            return BadValue;
+        }
+        if (pRange->clientStarted != xFalse && pRange->clientStarted != xTrue) {
+            client->errorValue = pRange->clientStarted;
+            return BadValue;
+        }
+        if (pRange->clientDied != xFalse && pRange->clientDied != xTrue) {
+            client->errorValue = pRange->clientDied;
+            return BadValue;
+        }
+    }                           /* end for each range */
     return Success;
-} /* end RecordSanityCheckRegisterClients */
+}                               /* end RecordSanityCheckRegisterClients */
 
 /* This is a tactical structure used to gather information about all the sets
  * (RecordSetPtr) that need to be created for an RCAP in the process of 
  * digesting a list of RECORDRANGEs (converting it to the internal
  * representation).
  */
-typedef struct
-{
-    int nintervals;	/* number of intervals in following array */
-    RecordSetInterval *intervals;  /* array of intervals for this set */
-    int size;		/* size of intevals array; >= nintervals */
-    int align;		/* alignment restriction for set */
-    int offset;		/* where to store set pointer rel. to start of RCAP */
-    short first, last;	/* if for extension, major opcode interval */
+typedef struct {
+    int nintervals;             /* number of intervals in following array */
+    RecordSetInterval *intervals;       /* array of intervals for this set */
+    int size;                   /* size of intevals array; >= nintervals */
+    int align;                  /* alignment restriction for set */
+    int offset;                 /* where to store set pointer rel. to start of RCAP */
+    short first, last;          /* if for extension, major opcode interval */
 } SetInfoRec, *SetInfoPtr;
 
 /* These constant are used to index into an array of SetInfoRec. */
-enum {REQ,	/* set info for requests */
-      REP,	/* set info for replies */
-      ERR,	/* set info for errors */
-      DEV,	/* set info for device events */
-      DLEV,	/* set info for delivered events */
-      PREDEFSETS};  /* number of predefined array entries */
-
+enum { REQ,                     /* set info for requests */
+    REP,                        /* set info for replies */
+    ERR,                        /* set info for errors */
+    DEV,                        /* set info for device events */
+    DLEV,                       /* set info for delivered events */
+    PREDEFSETS
+};                              /* number of predefined array entries */
 
 /* RecordAllocIntervals
  *
@@ -1501,14 +1420,13 @@ RecordAllocIntervals(SetInfoPtr psi, int nIntervals)
 {
     assert(!psi->intervals);
     psi->intervals = (RecordSetInterval *)
-			malloc(nIntervals * sizeof(RecordSetInterval));
+        malloc(nIntervals * sizeof(RecordSetInterval));
     if (!psi->intervals)
-	return BadAlloc;
+        return BadAlloc;
     memset(psi->intervals, 0, nIntervals * sizeof(RecordSetInterval));
     psi->size = nIntervals;
     return Success;
-} /* end RecordAllocIntervals */
-
+}                               /* end RecordAllocIntervals */
 
 /* RecordConvertRangesToIntervals
  *
@@ -1534,66 +1452,57 @@ RecordAllocIntervals(SetInfoPtr psi, int nIntervals)
  *	increased accordingly.
  */
 static int
-RecordConvertRangesToIntervals(
-    SetInfoPtr psi,
-    xRecordRange *pRanges,
-    int nRanges,
-    int byteoffset,
-    SetInfoPtr pExtSetInfo,
-    int *pnExtSetInfo
-)
+RecordConvertRangesToIntervals(SetInfoPtr psi,
+                               xRecordRange * pRanges,
+                               int nRanges,
+                               int byteoffset,
+                               SetInfoPtr pExtSetInfo, int *pnExtSetInfo)
 {
     int i;
     CARD8 *pCARD8;
     int first, last;
     int err;
 
-    for (i = 0; i < nRanges; i++, pRanges++)
-    {
-	pCARD8 = ((CARD8 *)pRanges) + byteoffset;
-	first = pCARD8[0];
-	last  = pCARD8[1];
-	if (first || last)
-	{
-	    if (!psi->intervals)
-	    {
-		err = RecordAllocIntervals(psi, 2 * (nRanges - i));
-		if (err != Success)
-		    return err;
-	    }
-	    psi->intervals[psi->nintervals].first = first;
-	    psi->intervals[psi->nintervals].last  = last;
-	    psi->nintervals++;
-	    assert(psi->nintervals <= psi->size);
-	    if (pExtSetInfo)
-	    {
-		SetInfoPtr pesi = pExtSetInfo;
-		CARD16 *pCARD16 = (CARD16 *)(pCARD8 + 2);
-		int j;
+    for (i = 0; i < nRanges; i++, pRanges++) {
+        pCARD8 = ((CARD8 *) pRanges) + byteoffset;
+        first = pCARD8[0];
+        last = pCARD8[1];
+        if (first || last) {
+            if (!psi->intervals) {
+                err = RecordAllocIntervals(psi, 2 * (nRanges - i));
+                if (err != Success)
+                    return err;
+            }
+            psi->intervals[psi->nintervals].first = first;
+            psi->intervals[psi->nintervals].last = last;
+            psi->nintervals++;
+            assert(psi->nintervals <= psi->size);
+            if (pExtSetInfo) {
+                SetInfoPtr pesi = pExtSetInfo;
+                CARD16 *pCARD16 = (CARD16 *) (pCARD8 + 2);
+                int j;
 
-		for (j = 0; j < *pnExtSetInfo; j++, pesi++)
-		{
-		    if ( (first == pesi->first) && (last == pesi->last) )
-			break;
-		}
-		if (j == *pnExtSetInfo)
-		{
-		    err = RecordAllocIntervals(pesi, 2 * (nRanges - i));
-		    if (err != Success)
-			return err;
-		    pesi->first = first;
-		    pesi->last  = last;
-		    (*pnExtSetInfo)++;
-		}
-		pesi->intervals[pesi->nintervals].first = pCARD16[0];
-		pesi->intervals[pesi->nintervals].last  = pCARD16[1];
-		pesi->nintervals++;
-		assert(pesi->nintervals <= pesi->size);
-	    }
-	}
+                for (j = 0; j < *pnExtSetInfo; j++, pesi++) {
+                    if ((first == pesi->first) && (last == pesi->last))
+                        break;
+                }
+                if (j == *pnExtSetInfo) {
+                    err = RecordAllocIntervals(pesi, 2 * (nRanges - i));
+                    if (err != Success)
+                        return err;
+                    pesi->first = first;
+                    pesi->last = last;
+                    (*pnExtSetInfo)++;
+                }
+                pesi->intervals[pesi->nintervals].first = pCARD16[0];
+                pesi->intervals[pesi->nintervals].last = pCARD16[1];
+                pesi->nintervals++;
+                assert(pesi->nintervals <= pesi->size);
+            }
+        }
     }
     return Success;
-}  /* end RecordConvertRangesToIntervals */
+}                               /* end RecordConvertRangesToIntervals */
 
 #define offset_of(_structure, _field) \
     ((char *)(& (_structure . _field)) - (char *)(&_structure))
@@ -1619,7 +1528,8 @@ RecordConvertRangesToIntervals(
  *	to record the new clients and protocol.
  */
 static int
-RecordRegisterClients(RecordContextPtr pContext, ClientPtr client, xRecordRegisterClientsReq *stuff)
+RecordRegisterClients(RecordContextPtr pContext, ClientPtr client,
+                      xRecordRegisterClientsReq * stuff)
 {
     int err;
     int i;
@@ -1645,84 +1555,98 @@ RecordRegisterClients(RecordContextPtr pContext, ClientPtr client, xRecordRegist
 
     err = RecordSanityCheckRegisterClients(pContext, client, stuff);
     if (err != Success)
-	return err;
+        return err;
 
     /* if element headers changed, flush buffer */
-	
-    if (pContext->elemHeaders != stuff->elementHeader)
-    {
-	RecordFlushReplyBuffer(pContext, NULL, 0, NULL, 0);
-	pContext->elemHeaders = stuff->elementHeader;
+
+    if (pContext->elemHeaders != stuff->elementHeader) {
+        RecordFlushReplyBuffer(pContext, NULL, 0, NULL, 0);
+        pContext->elemHeaders = stuff->elementHeader;
     }
 
     nClients = stuff->nClients;
     if (!nClients)
-	/* if empty clients list, we're done. */
-	return Success;
+        /* if empty clients list, we're done. */
+        return Success;
 
     recordingClient = pContext->pRecordingClient ?
-		      pContext->pRecordingClient->clientAsMask : 0;
-    pCanonClients = RecordCanonicalizeClientSpecifiers((XID *)&stuff[1],
-						 &nClients, recordingClient);
+        pContext->pRecordingClient->clientAsMask : 0;
+    pCanonClients = RecordCanonicalizeClientSpecifiers((XID *) &stuff[1],
+                                                       &nClients,
+                                                       recordingClient);
     if (!pCanonClients)
-	return BadAlloc;
+        return BadAlloc;
 
     /* We may have to create as many as one set for each "predefined"
      * protocol types, plus one per range for extension reuests, plus one per
      * range for extension replies.
      */
     maxSets = PREDEFSETS + 2 * stuff->nRanges;
-    si = (SetInfoPtr)malloc(sizeof(SetInfoRec) * maxSets);
-    if (!si)
-    {
-	err = BadAlloc;
-	goto bailout;
+    si = (SetInfoPtr) malloc(sizeof(SetInfoRec) * maxSets);
+    if (!si) {
+        err = BadAlloc;
+        goto bailout;
     }
     memset(si, 0, sizeof(SetInfoRec) * maxSets);
 
     /* theoretically you must do this because NULL may not be all-bits-zero */
     for (i = 0; i < maxSets; i++)
-	si[i].intervals = NULL;
+        si[i].intervals = NULL;
 
     pExtReqSets = si + PREDEFSETS;
     pExtRepSets = pExtReqSets + stuff->nRanges;
 
-    pRanges = (xRecordRange *)(((XID *)&stuff[1]) + stuff->nClients);
+    pRanges = (xRecordRange *) (((XID *) &stuff[1]) + stuff->nClients);
 
     err = RecordConvertRangesToIntervals(&si[REQ], pRanges, stuff->nRanges,
-			offset_of(rr, coreRequestsFirst), NULL, NULL);
-    if (err != Success) goto bailout;
+                                         offset_of(rr, coreRequestsFirst), NULL,
+                                         NULL);
+    if (err != Success)
+        goto bailout;
 
     err = RecordConvertRangesToIntervals(&si[REQ], pRanges, stuff->nRanges,
-	   offset_of(rr, extRequestsMajorFirst), pExtReqSets, &nExtReqSets);
-    if (err != Success) goto bailout;
+                                         offset_of(rr, extRequestsMajorFirst),
+                                         pExtReqSets, &nExtReqSets);
+    if (err != Success)
+        goto bailout;
 
     err = RecordConvertRangesToIntervals(&si[REP], pRanges, stuff->nRanges,
-			offset_of(rr, coreRepliesFirst), NULL, NULL);
-    if (err != Success) goto bailout;
+                                         offset_of(rr, coreRepliesFirst), NULL,
+                                         NULL);
+    if (err != Success)
+        goto bailout;
 
     err = RecordConvertRangesToIntervals(&si[REP], pRanges, stuff->nRanges,
-	   offset_of(rr, extRepliesMajorFirst), pExtRepSets, &nExtRepSets);
-    if (err != Success) goto bailout;
+                                         offset_of(rr, extRepliesMajorFirst),
+                                         pExtRepSets, &nExtRepSets);
+    if (err != Success)
+        goto bailout;
 
     err = RecordConvertRangesToIntervals(&si[ERR], pRanges, stuff->nRanges,
-			offset_of(rr, errorsFirst), NULL, NULL);
-    if (err != Success) goto bailout;
+                                         offset_of(rr, errorsFirst), NULL,
+                                         NULL);
+    if (err != Success)
+        goto bailout;
 
     err = RecordConvertRangesToIntervals(&si[DLEV], pRanges, stuff->nRanges,
-			offset_of(rr, deliveredEventsFirst), NULL, NULL);
-    if (err != Success) goto bailout;
+                                         offset_of(rr, deliveredEventsFirst),
+                                         NULL, NULL);
+    if (err != Success)
+        goto bailout;
 
     err = RecordConvertRangesToIntervals(&si[DEV], pRanges, stuff->nRanges,
-			offset_of(rr, deviceEventsFirst), NULL, NULL);
-    if (err != Success) goto bailout;
+                                         offset_of(rr, deviceEventsFirst), NULL,
+                                         NULL);
+    if (err != Success)
+        goto bailout;
 
     /* collect client-started and client-died */
 
-    for (i = 0; i < stuff->nRanges; i++)
-    {
-	if (pRanges[i].clientStarted) clientStarted = TRUE;
-	if (pRanges[i].clientDied)    clientDied    = TRUE;
+    for (i = 0; i < stuff->nRanges; i++) {
+        if (pRanges[i].clientStarted)
+            clientStarted = TRUE;
+        if (pRanges[i].clientDied)
+            clientDied = TRUE;
     }
 
     /*  We now have all the information collected to create all the sets,
@@ -1737,154 +1661,152 @@ RecordRegisterClients(RecordContextPtr pContext, ClientPtr client, xRecordRegist
     clientListOffset = totRCAPsize + pad;
     totRCAPsize += pad + sizeClients * sizeof(XID);
 
-    if (nExtReqSets)
-    {
-	pad = RecordPadAlign(totRCAPsize, sizeof(RecordSetPtr));
-	extReqSetsOffset = totRCAPsize + pad;
-	totRCAPsize += pad + (nExtReqSets + 1) * sizeof(RecordMinorOpRec);
+    if (nExtReqSets) {
+        pad = RecordPadAlign(totRCAPsize, sizeof(RecordSetPtr));
+        extReqSetsOffset = totRCAPsize + pad;
+        totRCAPsize += pad + (nExtReqSets + 1) * sizeof(RecordMinorOpRec);
     }
-    if (nExtRepSets)
-    {
-	pad = RecordPadAlign(totRCAPsize, sizeof(RecordSetPtr));
-	extRepSetsOffset = totRCAPsize + pad;
-	totRCAPsize += pad + (nExtRepSets + 1) * sizeof(RecordMinorOpRec);
+    if (nExtRepSets) {
+        pad = RecordPadAlign(totRCAPsize, sizeof(RecordSetPtr));
+        extRepSetsOffset = totRCAPsize + pad;
+        totRCAPsize += pad + (nExtRepSets + 1) * sizeof(RecordMinorOpRec);
     }
 
-    for (i = 0; i < maxSets; i++)
-    {
-	if (si[i].nintervals)
-	{
-	    si[i].size = RecordSetMemoryRequirements(
-				si[i].intervals, si[i].nintervals, &si[i].align);
-	    pad = RecordPadAlign(totRCAPsize, si[i].align);
-	    si[i].offset = pad + totRCAPsize;
-	    totRCAPsize += pad + si[i].size;
-	}
+    for (i = 0; i < maxSets; i++) {
+        if (si[i].nintervals) {
+            si[i].size =
+                RecordSetMemoryRequirements(si[i].intervals, si[i].nintervals,
+                                            &si[i].align);
+            pad = RecordPadAlign(totRCAPsize, si[i].align);
+            si[i].offset = pad + totRCAPsize;
+            totRCAPsize += pad + si[i].size;
+        }
     }
 
     /* allocate memory for the whole RCAP */
 
-    pRCAP = (RecordClientsAndProtocolPtr)malloc(totRCAPsize);
-    if (!pRCAP) 
-    {
-	err = BadAlloc;
-	goto bailout;
+    pRCAP = (RecordClientsAndProtocolPtr) malloc(totRCAPsize);
+    if (!pRCAP) {
+        err = BadAlloc;
+        goto bailout;
     }
 
     /* fill in the RCAP */
 
     pRCAP->pContext = pContext;
-    pRCAP->pClientIDs = (XID *)((char *)pRCAP + clientListOffset);
-    pRCAP->numClients  = nClients;
+    pRCAP->pClientIDs = (XID *) ((char *) pRCAP + clientListOffset);
+    pRCAP->numClients = nClients;
     pRCAP->sizeClients = sizeClients;
     pRCAP->clientIDsSeparatelyAllocated = 0;
-    for (i = 0; i < nClients; i++)
-    {
-	RecordDeleteClientFromContext(pContext, pCanonClients[i]);
-	pRCAP->pClientIDs[i] = pCanonClients[i];
+    for (i = 0; i < nClients; i++) {
+        RecordDeleteClientFromContext(pContext, pCanonClients[i]);
+        pRCAP->pClientIDs[i] = pCanonClients[i];
     }
 
     /* create all the sets */
 
-    if (si[REQ].intervals)
-    {
-	pRCAP->pRequestMajorOpSet =
-	    RecordCreateSet(si[REQ].intervals, si[REQ].nintervals,
-		(RecordSetPtr)((char *)pRCAP + si[REQ].offset), si[REQ].size);
+    if (si[REQ].intervals) {
+        pRCAP->pRequestMajorOpSet =
+            RecordCreateSet(si[REQ].intervals, si[REQ].nintervals,
+                            (RecordSetPtr) ((char *) pRCAP + si[REQ].offset),
+                            si[REQ].size);
     }
-    else pRCAP->pRequestMajorOpSet = NULL;
+    else
+        pRCAP->pRequestMajorOpSet = NULL;
 
-    if (si[REP].intervals)
-    {
-	pRCAP->pReplyMajorOpSet =
-	    RecordCreateSet(si[REP].intervals, si[REP].nintervals,
-		(RecordSetPtr)((char *)pRCAP + si[REP].offset), si[REP].size);
+    if (si[REP].intervals) {
+        pRCAP->pReplyMajorOpSet =
+            RecordCreateSet(si[REP].intervals, si[REP].nintervals,
+                            (RecordSetPtr) ((char *) pRCAP + si[REP].offset),
+                            si[REP].size);
     }
-    else pRCAP->pReplyMajorOpSet = NULL;
+    else
+        pRCAP->pReplyMajorOpSet = NULL;
 
-    if (si[ERR].intervals)
-    {
-	pRCAP->pErrorSet =
-	    RecordCreateSet(si[ERR].intervals, si[ERR].nintervals,
-		(RecordSetPtr)((char *)pRCAP + si[ERR].offset), si[ERR].size);
+    if (si[ERR].intervals) {
+        pRCAP->pErrorSet =
+            RecordCreateSet(si[ERR].intervals, si[ERR].nintervals,
+                            (RecordSetPtr) ((char *) pRCAP + si[ERR].offset),
+                            si[ERR].size);
     }
-    else pRCAP->pErrorSet = NULL;
+    else
+        pRCAP->pErrorSet = NULL;
 
-    if (si[DEV].intervals)
-    {
-	pRCAP->pDeviceEventSet =
-	    RecordCreateSet(si[DEV].intervals, si[DEV].nintervals,
-		(RecordSetPtr)((char *)pRCAP + si[DEV].offset), si[DEV].size);
+    if (si[DEV].intervals) {
+        pRCAP->pDeviceEventSet =
+            RecordCreateSet(si[DEV].intervals, si[DEV].nintervals,
+                            (RecordSetPtr) ((char *) pRCAP + si[DEV].offset),
+                            si[DEV].size);
     }
-    else pRCAP->pDeviceEventSet = NULL;
+    else
+        pRCAP->pDeviceEventSet = NULL;
 
-    if (si[DLEV].intervals)
-    {
-	pRCAP->pDeliveredEventSet =
-	    RecordCreateSet(si[DLEV].intervals, si[DLEV].nintervals,
-	      (RecordSetPtr)((char *)pRCAP + si[DLEV].offset), si[DLEV].size);
+    if (si[DLEV].intervals) {
+        pRCAP->pDeliveredEventSet =
+            RecordCreateSet(si[DLEV].intervals, si[DLEV].nintervals,
+                            (RecordSetPtr) ((char *) pRCAP + si[DLEV].offset),
+                            si[DLEV].size);
     }
-    else pRCAP->pDeliveredEventSet = NULL;
+    else
+        pRCAP->pDeliveredEventSet = NULL;
 
-    if (nExtReqSets)
-    {
-	pRCAP->pRequestMinOpInfo = (RecordMinorOpPtr)
-					((char *)pRCAP + extReqSetsOffset);
-	pRCAP->pRequestMinOpInfo[0].count = nExtReqSets;
-	for (i = 0; i < nExtReqSets; i++, pExtReqSets++)
-	{
-	    pRCAP->pRequestMinOpInfo[i+1].major.first = pExtReqSets->first;
-	    pRCAP->pRequestMinOpInfo[i+1].major.last  = pExtReqSets->last;
-	    pRCAP->pRequestMinOpInfo[i+1].major.pMinOpSet =
-		RecordCreateSet(pExtReqSets->intervals,
-				pExtReqSets->nintervals, 
-		  (RecordSetPtr)((char *)pRCAP + pExtReqSets->offset),
-				pExtReqSets->size);
-	}
+    if (nExtReqSets) {
+        pRCAP->pRequestMinOpInfo = (RecordMinorOpPtr)
+            ((char *) pRCAP + extReqSetsOffset);
+        pRCAP->pRequestMinOpInfo[0].count = nExtReqSets;
+        for (i = 0; i < nExtReqSets; i++, pExtReqSets++) {
+            pRCAP->pRequestMinOpInfo[i + 1].major.first = pExtReqSets->first;
+            pRCAP->pRequestMinOpInfo[i + 1].major.last = pExtReqSets->last;
+            pRCAP->pRequestMinOpInfo[i + 1].major.pMinOpSet =
+                RecordCreateSet(pExtReqSets->intervals,
+                                pExtReqSets->nintervals,
+                                (RecordSetPtr) ((char *) pRCAP +
+                                                pExtReqSets->offset),
+                                pExtReqSets->size);
+        }
     }
-    else pRCAP->pRequestMinOpInfo = NULL;
+    else
+        pRCAP->pRequestMinOpInfo = NULL;
 
-    if (nExtRepSets)
-    {
-	pRCAP->pReplyMinOpInfo = (RecordMinorOpPtr)
-					((char *)pRCAP + extRepSetsOffset);
-	pRCAP->pReplyMinOpInfo[0].count = nExtRepSets;
-	for (i = 0; i < nExtRepSets; i++, pExtRepSets++)
-	{
-	    pRCAP->pReplyMinOpInfo[i+1].major.first = pExtRepSets->first;
-	    pRCAP->pReplyMinOpInfo[i+1].major.last  = pExtRepSets->last;
-	    pRCAP->pReplyMinOpInfo[i+1].major.pMinOpSet =
-		RecordCreateSet(pExtRepSets->intervals,
-				pExtRepSets->nintervals, 
-		  (RecordSetPtr)((char *)pRCAP + pExtRepSets->offset),
-				pExtRepSets->size);
-	}
+    if (nExtRepSets) {
+        pRCAP->pReplyMinOpInfo = (RecordMinorOpPtr)
+            ((char *) pRCAP + extRepSetsOffset);
+        pRCAP->pReplyMinOpInfo[0].count = nExtRepSets;
+        for (i = 0; i < nExtRepSets; i++, pExtRepSets++) {
+            pRCAP->pReplyMinOpInfo[i + 1].major.first = pExtRepSets->first;
+            pRCAP->pReplyMinOpInfo[i + 1].major.last = pExtRepSets->last;
+            pRCAP->pReplyMinOpInfo[i + 1].major.pMinOpSet =
+                RecordCreateSet(pExtRepSets->intervals,
+                                pExtRepSets->nintervals,
+                                (RecordSetPtr) ((char *) pRCAP +
+                                                pExtRepSets->offset),
+                                pExtRepSets->size);
+        }
     }
-    else pRCAP->pReplyMinOpInfo = NULL;
+    else
+        pRCAP->pReplyMinOpInfo = NULL;
 
     pRCAP->clientStarted = clientStarted;
-    pRCAP->clientDied    = clientDied;
+    pRCAP->clientDied = clientDied;
 
     /* link the RCAP onto the context */
 
     pRCAP->pNextRCAP = pContext->pListOfRCAP;
     pContext->pListOfRCAP = pRCAP;
 
-    if (pContext->pRecordingClient) /* context enabled */
-	RecordInstallHooks(pRCAP, 0);
+    if (pContext->pRecordingClient)     /* context enabled */
+        RecordInstallHooks(pRCAP, 0);
 
-bailout:
-    if (si)
-    {
-	for (i = 0; i < maxSets; i++)
-	    free(si[i].intervals);
-	free(si);
+ bailout:
+    if (si) {
+        for (i = 0; i < maxSets; i++)
+            free(si[i].intervals);
+        free(si);
     }
-    if (pCanonClients && pCanonClients != (XID *)&stuff[1])
-	free(pCanonClients);
+    if (pCanonClients && pCanonClients != (XID *) &stuff[1])
+        free(pCanonClients);
     return err;
-} /* RecordRegisterClients */
-
+}                               /* RecordRegisterClients */
 
 /* Proc functions all take a client argument, execute the request in
  * client->requestBuffer, and return a protocol error status.
@@ -1894,25 +1816,23 @@ static int
 ProcRecordQueryVersion(ClientPtr client)
 {
     /* REQUEST(xRecordQueryVersionReq); */
-    xRecordQueryVersionReply 	rep;
+    xRecordQueryVersionReply rep;
 
     REQUEST_SIZE_MATCH(xRecordQueryVersionReq);
-    rep.type        	= X_Reply;
-    rep.sequenceNumber 	= client->sequence;
-    rep.length         	= 0;
-    rep.majorVersion  	= SERVER_RECORD_MAJOR_VERSION;
-    rep.minorVersion  	= SERVER_RECORD_MINOR_VERSION;
-    if(client->swapped)
-    {
-	swaps(&rep.sequenceNumber);
-	swaps(&rep.majorVersion);
-	swaps(&rep.minorVersion);
+    rep.type = X_Reply;
+    rep.sequenceNumber = client->sequence;
+    rep.length = 0;
+    rep.majorVersion = SERVER_RECORD_MAJOR_VERSION;
+    rep.minorVersion = SERVER_RECORD_MINOR_VERSION;
+    if (client->swapped) {
+        swaps(&rep.sequenceNumber);
+        swaps(&rep.majorVersion);
+        swaps(&rep.minorVersion);
     }
-    (void)WriteToClient(client, sizeof(xRecordQueryVersionReply),
-			(char *)&rep);
+    (void) WriteToClient(client, sizeof(xRecordQueryVersionReply),
+                         (char *) &rep);
     return Success;
-} /* ProcRecordQueryVersion */
-
+}                               /* ProcRecordQueryVersion */
 
 static int
 ProcRecordCreateContext(ClientPtr client)
@@ -1925,16 +1845,16 @@ ProcRecordCreateContext(ClientPtr client)
     REQUEST_AT_LEAST_SIZE(xRecordCreateContextReq);
     LEGAL_NEW_RESOURCE(stuff->context, client);
 
-    pContext = (RecordContextPtr)malloc(sizeof(RecordContextRec));
+    pContext = (RecordContextPtr) malloc(sizeof(RecordContextRec));
     if (!pContext)
-	goto bailout;
+        goto bailout;
 
     /* make sure there is room in ppAllContexts to store the new context */
 
     ppNewAllContexts = (RecordContextPtr *)
-	realloc(ppAllContexts, sizeof(RecordContextPtr) * (numContexts + 1));
+        realloc(ppAllContexts, sizeof(RecordContextPtr) * (numContexts + 1));
     if (!ppNewAllContexts)
-	goto bailout;
+        goto bailout;
     ppAllContexts = ppNewAllContexts;
 
     pContext->id = stuff->context;
@@ -1948,44 +1868,42 @@ ProcRecordCreateContext(ClientPtr client)
     pContext->inFlush = 0;
 
     err = RecordRegisterClients(pContext, client,
-				(xRecordRegisterClientsReq *)stuff);
+                                (xRecordRegisterClientsReq *) stuff);
     if (err != Success)
-	goto bailout;
+        goto bailout;
 
-    if (AddResource(pContext->id, RTContext, pContext))
-    {
-	ppAllContexts[numContexts++] = pContext;
-	return Success;
+    if (AddResource(pContext->id, RTContext, pContext)) {
+        ppAllContexts[numContexts++] = pContext;
+        return Success;
     }
-    else
-    {
-	RecordDeleteContext((pointer)pContext, pContext->id);
-	return BadAlloc;
+    else {
+        RecordDeleteContext((pointer) pContext, pContext->id);
+        return BadAlloc;
     }
-bailout:
+ bailout:
     free(pContext);
     return err;
-} /* ProcRecordCreateContext */
-
+}                               /* ProcRecordCreateContext */
 
 static int
 ProcRecordRegisterClients(ClientPtr client)
 {
     RecordContextPtr pContext;
+
     REQUEST(xRecordRegisterClientsReq);
 
     REQUEST_AT_LEAST_SIZE(xRecordRegisterClientsReq);
     VERIFY_CONTEXT(pContext, stuff->context, client);
 
     return RecordRegisterClients(pContext, client, stuff);
-} /* ProcRecordRegisterClients */
-
+}                               /* ProcRecordRegisterClients */
 
 static int
 ProcRecordUnregisterClients(ClientPtr client)
 {
     RecordContextPtr pContext;
     int err;
+
     REQUEST(xRecordUnregisterClientsReq);
     XID *pCanonClients;
     int nClients;
@@ -1993,29 +1911,27 @@ ProcRecordUnregisterClients(ClientPtr client)
 
     REQUEST_AT_LEAST_SIZE(xRecordUnregisterClientsReq);
     if ((client->req_len << 2) - SIZEOF(xRecordUnregisterClientsReq) !=
-	4 * stuff->nClients)
-	return BadLength;
+        4 * stuff->nClients)
+        return BadLength;
     VERIFY_CONTEXT(pContext, stuff->context, client);
-    err = RecordSanityCheckClientSpecifiers(client, (XID *)&stuff[1],
-					    stuff->nClients, 0);
+    err = RecordSanityCheckClientSpecifiers(client, (XID *) &stuff[1],
+                                            stuff->nClients, 0);
     if (err != Success)
-	return err;
+        return err;
 
     nClients = stuff->nClients;
-    pCanonClients = RecordCanonicalizeClientSpecifiers((XID *)&stuff[1],
-						 &nClients, 0);
+    pCanonClients = RecordCanonicalizeClientSpecifiers((XID *) &stuff[1],
+                                                       &nClients, 0);
     if (!pCanonClients)
-	return BadAlloc;
+        return BadAlloc;
 
-    for (i = 0; i < nClients; i++)
-    {
-	RecordDeleteClientFromContext(pContext, pCanonClients[i]);
+    for (i = 0; i < nClients; i++) {
+        RecordDeleteClientFromContext(pContext, pCanonClients[i]);
     }
-    if (pCanonClients != (XID *)&stuff[1])
-	free(pCanonClients);
+    if (pCanonClients != (XID *) &stuff[1])
+        free(pCanonClients);
     return Success;
-} /* ProcRecordUnregisterClients */
-
+}                               /* ProcRecordUnregisterClients */
 
 /****************************************************************************/
 
@@ -2026,11 +1942,10 @@ ProcRecordUnregisterClients(ClientPtr client)
  */
 
 typedef struct {
-    xRecordRange *pRanges;  /* array of xRecordRanges for one RCAP */
-    int size;		/* number of elements in pRanges, >= nRanges */
-    int nRanges;	/* number of occupied element of pRanges */
+    xRecordRange *pRanges;      /* array of xRecordRanges for one RCAP */
+    int size;                   /* number of elements in pRanges, >= nRanges */
+    int nRanges;                /* number of occupied element of pRanges */
 } GetContextRangeInfoRec, *GetContextRangeInfoPtr;
-
 
 /* RecordAllocRanges
  *
@@ -2050,22 +1965,22 @@ RecordAllocRanges(GetContextRangeInfoPtr pri, int nRanges)
 {
     int newsize;
     xRecordRange *pNewRange;
+
 #define SZINCR 8
 
     newsize = max(pri->size + SZINCR, nRanges);
-    pNewRange = (xRecordRange *)realloc(pri->pRanges,
-			 newsize * sizeof(xRecordRange));
+    pNewRange = (xRecordRange *) realloc(pri->pRanges,
+                                         newsize * sizeof(xRecordRange));
     if (!pNewRange)
-	return BadAlloc;
+        return BadAlloc;
 
     pri->pRanges = pNewRange;
     pri->size = newsize;
     memset(&pri->pRanges[pri->size - SZINCR], 0, SZINCR * sizeof(xRecordRange));
     if (pri->nRanges < nRanges)
-	pri->nRanges = nRanges;
+        pri->nRanges = nRanges;
     return Success;
-} /* RecordAllocRanges */
-
+}                               /* RecordAllocRanges */
 
 /* RecordConvertSetToRanges
  *
@@ -2090,14 +2005,10 @@ RecordAllocRanges(GetContextRangeInfoPtr pri, int nRanges)
  *	more than the index of the last xRecordRange that was touched.
  */
 static int
-RecordConvertSetToRanges(
-    RecordSetPtr pSet,
-    GetContextRangeInfoPtr pri,
-    int byteoffset,
-    Bool card8,
-    unsigned int imax,
-    int *pStartIndex
-)
+RecordConvertSetToRanges(RecordSetPtr pSet,
+                         GetContextRangeInfoPtr pri,
+                         int byteoffset,
+                         Bool card8, unsigned int imax, int *pStartIndex)
 {
     int nRanges;
     RecordSetIteratePtr pIter = NULL;
@@ -2107,41 +2018,38 @@ RecordConvertSetToRanges(
     int err;
 
     if (!pSet)
-	return Success;
+        return Success;
 
     nRanges = pStartIndex ? *pStartIndex : 0;
-    while ((pIter = RecordIterateSet(pSet, pIter, &interval)))
-    {
-	if (interval.first > imax) break;
-	if (interval.last  > imax) interval.last = imax;
-	nRanges++;
-	if (nRanges > pri->size)
-	{
-	    err = RecordAllocRanges(pri, nRanges);
-	    if (err != Success)
-		return err;
-	}
-	else
-	    pri->nRanges = max(pri->nRanges, nRanges);
-	if (card8)
-	{
-	    pCARD8 = ((CARD8 *)&pri->pRanges[nRanges-1]) + byteoffset;
-	    *pCARD8++ = interval.first;
-	    *pCARD8   = interval.last;
-	}
-	else
-	{
-	    pCARD16 = (CARD16 *)
-			(((char *)&pri->pRanges[nRanges-1]) + byteoffset);
-	    *pCARD16++ = interval.first;
-	    *pCARD16   = interval.last;
-	}
+    while ((pIter = RecordIterateSet(pSet, pIter, &interval))) {
+        if (interval.first > imax)
+            break;
+        if (interval.last > imax)
+            interval.last = imax;
+        nRanges++;
+        if (nRanges > pri->size) {
+            err = RecordAllocRanges(pri, nRanges);
+            if (err != Success)
+                return err;
+        }
+        else
+            pri->nRanges = max(pri->nRanges, nRanges);
+        if (card8) {
+            pCARD8 = ((CARD8 *) &pri->pRanges[nRanges - 1]) + byteoffset;
+            *pCARD8++ = interval.first;
+            *pCARD8 = interval.last;
+        }
+        else {
+            pCARD16 = (CARD16 *)
+                (((char *) &pri->pRanges[nRanges - 1]) + byteoffset);
+            *pCARD16++ = interval.first;
+            *pCARD16 = interval.last;
+        }
     }
     if (pStartIndex)
-	*pStartIndex = nRanges;
+        *pStartIndex = nRanges;
     return Success;
-} /* RecordConvertSetToRanges */
-
+}                               /* RecordConvertSetToRanges */
 
 /* RecordConvertMinorOpInfoToRanges
  *
@@ -2159,11 +2067,8 @@ RecordConvertSetToRanges(
  *	byteoffset is filled in with the information from pMinOpInfo.
  */
 static int
-RecordConvertMinorOpInfoToRanges(
-    RecordMinorOpPtr pMinOpInfo,
-    GetContextRangeInfoPtr pri,
-    int byteoffset
-)
+RecordConvertMinorOpInfoToRanges(RecordMinorOpPtr pMinOpInfo,
+                                 GetContextRangeInfoPtr pri, int byteoffset)
 {
     int nsets;
     int start;
@@ -2171,28 +2076,28 @@ RecordConvertMinorOpInfoToRanges(
     int err;
 
     if (!pMinOpInfo)
-	return Success;
+        return Success;
 
     nsets = pMinOpInfo->count;
     pMinOpInfo++;
     start = 0;
-    for (i = 0; i < nsets; i++)
-    {
-	int j, s;
-	s = start;
-	err = RecordConvertSetToRanges(pMinOpInfo[i].major.pMinOpSet, pri,
-				byteoffset + 2, FALSE, 65535, &start);
-	if (err != Success) return err;
-	for (j = s; j < start; j++)
-	{
-	    CARD8 *pCARD8 = ((CARD8 *)&pri->pRanges[j]) + byteoffset;
-	    *pCARD8++ = pMinOpInfo[i].major.first;
-	    *pCARD8   = pMinOpInfo[i].major.last;
-	}
+    for (i = 0; i < nsets; i++) {
+        int j, s;
+
+        s = start;
+        err = RecordConvertSetToRanges(pMinOpInfo[i].major.pMinOpSet, pri,
+                                       byteoffset + 2, FALSE, 65535, &start);
+        if (err != Success)
+            return err;
+        for (j = s; j < start; j++) {
+            CARD8 *pCARD8 = ((CARD8 *) &pri->pRanges[j]) + byteoffset;
+
+            *pCARD8++ = pMinOpInfo[i].major.first;
+            *pCARD8 = pMinOpInfo[i].major.last;
+        }
     }
     return Success;
-} /* RecordConvertMinorOpInfoToRanges */
-
+}                               /* RecordConvertMinorOpInfoToRanges */
 
 /* RecordSwapRanges
  *
@@ -2206,23 +2111,23 @@ RecordConvertMinorOpInfoToRanges(
  *	The 16 bit fields of each xRecordRange are byte swapped.
  */
 static void
-RecordSwapRanges(xRecordRange *pRanges, int nRanges)
+RecordSwapRanges(xRecordRange * pRanges, int nRanges)
 {
     int i;
-    for (i = 0; i < nRanges; i++, pRanges++)
-    {
-	swaps(&pRanges->extRequestsMinorFirst);
-	swaps(&pRanges->extRequestsMinorLast);
-	swaps(&pRanges->extRepliesMinorFirst);
-	swaps(&pRanges->extRepliesMinorLast);
-    }
-} /* RecordSwapRanges */
 
+    for (i = 0; i < nRanges; i++, pRanges++) {
+        swaps(&pRanges->extRequestsMinorFirst);
+        swaps(&pRanges->extRequestsMinorLast);
+        swaps(&pRanges->extRepliesMinorFirst);
+        swaps(&pRanges->extRepliesMinorLast);
+    }
+}                               /* RecordSwapRanges */
 
 static int
 ProcRecordGetContext(ClientPtr client)
 {
     RecordContextPtr pContext;
+
     REQUEST(xRecordGetContextReq);
     xRecordGetContextReply rep;
     RecordClientsAndProtocolPtr pRCAP;
@@ -2238,19 +2143,19 @@ ProcRecordGetContext(ClientPtr client)
     /* how many RCAPs are there on this context? */
 
     for (pRCAP = pContext->pListOfRCAP; pRCAP; pRCAP = pRCAP->pNextRCAP)
-	nRCAPs++;
+        nRCAPs++;
 
     /* allocate and initialize space for record range info */
 
-    pRangeInfo = (GetContextRangeInfoPtr)malloc(
-				nRCAPs * sizeof(GetContextRangeInfoRec));
+    pRangeInfo =
+        (GetContextRangeInfoPtr) malloc(nRCAPs *
+                                        sizeof(GetContextRangeInfoRec));
     if (!pRangeInfo && nRCAPs > 0)
-	return BadAlloc;
-    for (i = 0; i < nRCAPs; i++)
-    {
-	pRangeInfo[i].pRanges = NULL;
-	pRangeInfo[i].size = 0;
-	pRangeInfo[i].nRanges = 0;
+        return BadAlloc;
+    for (i = 0; i < nRCAPs; i++) {
+        pRangeInfo[i].pRanges = NULL;
+        pRangeInfo[i].size = 0;
+        pRangeInfo[i].nRanges = 0;
     }
 
     /* convert the RCAP (internal) representation of the recorded protocol
@@ -2259,46 +2164,57 @@ ProcRecordGetContext(ClientPtr client)
      */
 
     for (pRCAP = pContext->pListOfRCAP, pri = pRangeInfo;
-	 pRCAP;
-	 pRCAP = pRCAP->pNextRCAP, pri++)
-    {
-	xRecordRange rr;
+         pRCAP; pRCAP = pRCAP->pNextRCAP, pri++) {
+        xRecordRange rr;
 
-	err = RecordConvertSetToRanges(pRCAP->pRequestMajorOpSet, pri,
-			offset_of(rr, coreRequestsFirst), TRUE, 127, NULL);
-	if (err != Success) goto bailout;
+        err = RecordConvertSetToRanges(pRCAP->pRequestMajorOpSet, pri,
+                                       offset_of(rr, coreRequestsFirst), TRUE,
+                                       127, NULL);
+        if (err != Success)
+            goto bailout;
 
-	err = RecordConvertSetToRanges(pRCAP->pReplyMajorOpSet, pri,
-			offset_of(rr, coreRepliesFirst), TRUE, 127, NULL);
-	if (err != Success) goto bailout;
+        err = RecordConvertSetToRanges(pRCAP->pReplyMajorOpSet, pri,
+                                       offset_of(rr, coreRepliesFirst), TRUE,
+                                       127, NULL);
+        if (err != Success)
+            goto bailout;
 
-	err = RecordConvertSetToRanges(pRCAP->pDeliveredEventSet, pri,
-			offset_of(rr, deliveredEventsFirst), TRUE, 255, NULL);
-	if (err != Success) goto bailout;
+        err = RecordConvertSetToRanges(pRCAP->pDeliveredEventSet, pri,
+                                       offset_of(rr, deliveredEventsFirst),
+                                       TRUE, 255, NULL);
+        if (err != Success)
+            goto bailout;
 
-	err = RecordConvertSetToRanges(pRCAP->pDeviceEventSet, pri,
-			offset_of(rr, deviceEventsFirst), TRUE, 255, NULL);
-	if (err != Success) goto bailout;
+        err = RecordConvertSetToRanges(pRCAP->pDeviceEventSet, pri,
+                                       offset_of(rr, deviceEventsFirst), TRUE,
+                                       255, NULL);
+        if (err != Success)
+            goto bailout;
 
-	err = RecordConvertSetToRanges(pRCAP->pErrorSet, pri,
-			      offset_of(rr, errorsFirst), TRUE, 255, NULL);
-	if (err != Success) goto bailout;
+        err = RecordConvertSetToRanges(pRCAP->pErrorSet, pri,
+                                       offset_of(rr, errorsFirst), TRUE, 255,
+                                       NULL);
+        if (err != Success)
+            goto bailout;
 
-	err = RecordConvertMinorOpInfoToRanges(pRCAP->pRequestMinOpInfo,
-				pri, offset_of(rr, extRequestsMajorFirst));
-	if (err != Success) goto bailout;
+        err = RecordConvertMinorOpInfoToRanges(pRCAP->pRequestMinOpInfo,
+                                               pri, offset_of(rr,
+                                                              extRequestsMajorFirst));
+        if (err != Success)
+            goto bailout;
 
-	err = RecordConvertMinorOpInfoToRanges(pRCAP->pReplyMinOpInfo,
-				pri, offset_of(rr, extRepliesMajorFirst));
-	if (err != Success) goto bailout;
+        err = RecordConvertMinorOpInfoToRanges(pRCAP->pReplyMinOpInfo,
+                                               pri, offset_of(rr,
+                                                              extRepliesMajorFirst));
+        if (err != Success)
+            goto bailout;
 
-	if (pRCAP->clientStarted || pRCAP->clientDied)
-	{
-	    if (pri->nRanges == 0)
-		RecordAllocRanges(pri, 1);
-	    pri->pRanges[0].clientStarted = pRCAP->clientStarted;
-	    pri->pRanges[0].clientDied    = pRCAP->clientDied;
-	}
+        if (pRCAP->clientStarted || pRCAP->clientDied) {
+            if (pri->nRanges == 0)
+                RecordAllocRanges(pri, 1);
+            pri->pRanges[0].clientStarted = pRCAP->clientStarted;
+            pri->pRanges[0].clientDied = pRCAP->clientDied;
+        }
     }
 
     /* calculate number of clients and reply length */
@@ -2306,68 +2222,61 @@ ProcRecordGetContext(ClientPtr client)
     rep.nClients = 0;
     rep.length = 0;
     for (pRCAP = pContext->pListOfRCAP, pri = pRangeInfo;
-	 pRCAP;
-	 pRCAP = pRCAP->pNextRCAP, pri++)
-    {
-	rep.nClients += pRCAP->numClients;
-	rep.length += pRCAP->numClients *
-		( bytes_to_int32(sizeof(xRecordClientInfo)) +
-		  pri->nRanges * bytes_to_int32(sizeof(xRecordRange)));
+         pRCAP; pRCAP = pRCAP->pNextRCAP, pri++) {
+        rep.nClients += pRCAP->numClients;
+        rep.length += pRCAP->numClients *
+            (bytes_to_int32(sizeof(xRecordClientInfo)) +
+             pri->nRanges * bytes_to_int32(sizeof(xRecordRange)));
     }
 
     /* write the reply header */
 
     rep.type = X_Reply;
-    rep.sequenceNumber 	= client->sequence;
+    rep.sequenceNumber = client->sequence;
     rep.enabled = pContext->pRecordingClient != NULL;
     rep.elementHeader = pContext->elemHeaders;
-    if(client->swapped)
-    {
-	swaps(&rep.sequenceNumber);
-	swapl(&rep.length);
-	swapl(&rep.nClients);
+    if (client->swapped) {
+        swaps(&rep.sequenceNumber);
+        swapl(&rep.length);
+        swapl(&rep.nClients);
     }
-    (void)WriteToClient(client, sizeof(xRecordGetContextReply),
-			(char *)&rep);
+    (void) WriteToClient(client, sizeof(xRecordGetContextReply), (char *) &rep);
 
     /* write all the CLIENT_INFOs */
 
     for (pRCAP = pContext->pListOfRCAP, pri = pRangeInfo;
-	 pRCAP;
-	 pRCAP = pRCAP->pNextRCAP, pri++)
-    {
-	xRecordClientInfo rci;
-	rci.nRanges = pri->nRanges;
-	if (client->swapped)
-	{
-	    swapl(&rci.nRanges);
-	    RecordSwapRanges(pri->pRanges, pri->nRanges);
-	}
-	for (i = 0; i < pRCAP->numClients; i++)
-	{
-	    rci.clientResource = pRCAP->pClientIDs[i];
-	    if (client->swapped) swapl(&rci.clientResource);
-	    WriteToClient(client, sizeof(xRecordClientInfo), (char *)&rci);
-	    WriteToClient(client, sizeof(xRecordRange) * pri->nRanges,
-			  (char *)pri->pRanges);
-	}
+         pRCAP; pRCAP = pRCAP->pNextRCAP, pri++) {
+        xRecordClientInfo rci;
+
+        rci.nRanges = pri->nRanges;
+        if (client->swapped) {
+            swapl(&rci.nRanges);
+            RecordSwapRanges(pri->pRanges, pri->nRanges);
+        }
+        for (i = 0; i < pRCAP->numClients; i++) {
+            rci.clientResource = pRCAP->pClientIDs[i];
+            if (client->swapped)
+                swapl(&rci.clientResource);
+            WriteToClient(client, sizeof(xRecordClientInfo), (char *) &rci);
+            WriteToClient(client, sizeof(xRecordRange) * pri->nRanges,
+                          (char *) pri->pRanges);
+        }
     }
     err = Success;
 
-bailout:
-    for (i = 0; i < nRCAPs; i++)
-    {
-	free(pRangeInfo[i].pRanges);
+ bailout:
+    for (i = 0; i < nRCAPs; i++) {
+        free(pRangeInfo[i].pRanges);
     }
     free(pRangeInfo);
     return err;
-} /* ProcRecordGetContext */
-
+}                               /* ProcRecordGetContext */
 
 static int
 ProcRecordEnableContext(ClientPtr client)
 {
     RecordContextPtr pContext;
+
     REQUEST(xRecordEnableContextReq);
     int i;
     RecordClientsAndProtocolPtr pRCAP;
@@ -2375,24 +2284,23 @@ ProcRecordEnableContext(ClientPtr client)
     REQUEST_SIZE_MATCH(xRecordGetContextReq);
     VERIFY_CONTEXT(pContext, stuff->context, client);
     if (pContext->pRecordingClient)
-	return BadMatch; /* already enabled */
+        return BadMatch;        /* already enabled */
 
     /* install record hooks for each RCAP */
 
-    for (pRCAP = pContext->pListOfRCAP; pRCAP; pRCAP = pRCAP->pNextRCAP)
-    {
-	int err = RecordInstallHooks(pRCAP, 0);
-	if (err != Success)
-	{ /* undo the previous installs */
-	    RecordClientsAndProtocolPtr pUninstallRCAP;
-	    for (pUninstallRCAP = pContext->pListOfRCAP;
-		 pUninstallRCAP != pRCAP;
-		 pUninstallRCAP = pUninstallRCAP->pNextRCAP)
-	    {
-		RecordUninstallHooks(pUninstallRCAP, 0);
-	    }
-	    return err;
-	}
+    for (pRCAP = pContext->pListOfRCAP; pRCAP; pRCAP = pRCAP->pNextRCAP) {
+        int err = RecordInstallHooks(pRCAP, 0);
+
+        if (err != Success) {   /* undo the previous installs */
+            RecordClientsAndProtocolPtr pUninstallRCAP;
+
+            for (pUninstallRCAP = pContext->pListOfRCAP;
+                 pUninstallRCAP != pRCAP;
+                 pUninstallRCAP = pUninstallRCAP->pNextRCAP) {
+                RecordUninstallHooks(pUninstallRCAP, 0);
+            }
+            return err;
+        }
     }
 
     /* Disallow further request processing on this connection until
@@ -2403,17 +2311,16 @@ ProcRecordEnableContext(ClientPtr client)
 
     /* Don't allow the data connection to record itself; unregister it. */
     RecordDeleteClientFromContext(pContext,
-				  pContext->pRecordingClient->clientAsMask);
+                                  pContext->pRecordingClient->clientAsMask);
 
     /* move the newly enabled context to the front part of ppAllContexts,
      * where all the enabled contexts are
      */
     i = RecordFindContextOnAllContexts(pContext);
     assert(i >= numEnabledContexts);
-    if (i != numEnabledContexts)
-    {
-	ppAllContexts[i] = ppAllContexts[numEnabledContexts];
-	ppAllContexts[numEnabledContexts] = pContext;
+    if (i != numEnabledContexts) {
+        ppAllContexts[i] = ppAllContexts[numEnabledContexts];
+        ppAllContexts[numEnabledContexts] = pContext;
     }
 
     ++numEnabledContexts;
@@ -2423,8 +2330,7 @@ ProcRecordEnableContext(ClientPtr client)
     RecordAProtocolElement(pContext, NULL, XRecordStartOfData, NULL, 0, 0, 0);
     RecordFlushReplyBuffer(pContext, NULL, 0, NULL, 0);
     return Success;
-} /* ProcRecordEnableContext */
-
+}                               /* ProcRecordEnableContext */
 
 /* RecordDisableContext
  *
@@ -2448,18 +2354,17 @@ RecordDisableContext(RecordContextPtr pContext)
     RecordClientsAndProtocolPtr pRCAP;
     int i;
 
-    if (!pContext->pRecordingClient) return;
-    if (!pContext->pRecordingClient->clientGone)
-    {
-	RecordAProtocolElement(pContext, NULL, XRecordEndOfData, NULL, 0, 0, 0);
-	RecordFlushReplyBuffer(pContext, NULL, 0, NULL, 0);
-	/* Re-enable request processing on this connection. */
-	AttendClient(pContext->pRecordingClient);
+    if (!pContext->pRecordingClient)
+        return;
+    if (!pContext->pRecordingClient->clientGone) {
+        RecordAProtocolElement(pContext, NULL, XRecordEndOfData, NULL, 0, 0, 0);
+        RecordFlushReplyBuffer(pContext, NULL, 0, NULL, 0);
+        /* Re-enable request processing on this connection. */
+        AttendClient(pContext->pRecordingClient);
     }
 
-    for (pRCAP = pContext->pListOfRCAP; pRCAP; pRCAP = pRCAP->pNextRCAP)
-    {
-	RecordUninstallHooks(pRCAP, 0);
+    for (pRCAP = pContext->pListOfRCAP; pRCAP; pRCAP = pRCAP->pNextRCAP) {
+        RecordUninstallHooks(pRCAP, 0);
     }
 
     pContext->pRecordingClient = NULL;
@@ -2468,29 +2373,27 @@ RecordDisableContext(RecordContextPtr pContext)
      * where all the disabled contexts are
      */
     i = RecordFindContextOnAllContexts(pContext);
-    assert( (i != -1) && (i < numEnabledContexts) );
-    if (i != (numEnabledContexts - 1) )
-    {
-	ppAllContexts[i] = ppAllContexts[numEnabledContexts-1];
-	ppAllContexts[numEnabledContexts-1] = pContext;
+    assert((i != -1) && (i < numEnabledContexts));
+    if (i != (numEnabledContexts - 1)) {
+        ppAllContexts[i] = ppAllContexts[numEnabledContexts - 1];
+        ppAllContexts[numEnabledContexts - 1] = pContext;
     }
     --numEnabledContexts;
     assert(numEnabledContexts >= 0);
-} /* RecordDisableContext */
-
+}                               /* RecordDisableContext */
 
 static int
 ProcRecordDisableContext(ClientPtr client)
 {
     RecordContextPtr pContext;
+
     REQUEST(xRecordDisableContextReq);
 
     REQUEST_SIZE_MATCH(xRecordDisableContextReq);
     VERIFY_CONTEXT(pContext, stuff->context, client);
     RecordDisableContext(pContext);
     return Success;
-} /* ProcRecordDisableContext */
-
+}                               /* ProcRecordDisableContext */
 
 /* RecordDeleteContext
  *
@@ -2508,7 +2411,7 @@ static int
 RecordDeleteContext(pointer value, XID id)
 {
     int i;
-    RecordContextPtr pContext = (RecordContextPtr)value;
+    RecordContextPtr pContext = (RecordContextPtr) value;
     RecordClientsAndProtocolPtr pRCAP;
 
     RecordDisableContext(pContext);
@@ -2517,74 +2420,68 @@ RecordDeleteContext(pointer value, XID id)
      *  As a result, the RCAPs will be freed.
      */
 
-    while ((pRCAP = pContext->pListOfRCAP))
-    {
-	int numClients = pRCAP->numClients;
-	/* when the last client is deleted, the RCAP will go away. */
-	while(numClients--)
-	{
-	    RecordDeleteClientFromRCAP(pRCAP, numClients);
-	}
+    while ((pRCAP = pContext->pListOfRCAP)) {
+        int numClients = pRCAP->numClients;
+
+        /* when the last client is deleted, the RCAP will go away. */
+        while (numClients--) {
+            RecordDeleteClientFromRCAP(pRCAP, numClients);
+        }
     }
 
     /* remove context from AllContexts list */
 
-    if (-1 != (i = RecordFindContextOnAllContexts(pContext)))
-    {
-	ppAllContexts[i] = ppAllContexts[numContexts - 1];
-	if (--numContexts == 0)
-	{
-	    free(ppAllContexts);
-	    ppAllContexts = NULL;
-	}
+    if (-1 != (i = RecordFindContextOnAllContexts(pContext))) {
+        ppAllContexts[i] = ppAllContexts[numContexts - 1];
+        if (--numContexts == 0) {
+            free(ppAllContexts);
+            ppAllContexts = NULL;
+        }
     }
     free(pContext);
 
     return Success;
-} /* RecordDeleteContext */
-
+}                               /* RecordDeleteContext */
 
 static int
 ProcRecordFreeContext(ClientPtr client)
 {
     RecordContextPtr pContext;
+
     REQUEST(xRecordFreeContextReq);
 
     REQUEST_SIZE_MATCH(xRecordFreeContextReq);
     VERIFY_CONTEXT(pContext, stuff->context, client);
     FreeResource(stuff->context, RT_NONE);
     return Success;
-} /* ProcRecordFreeContext */
-
+}                               /* ProcRecordFreeContext */
 
 static int
 ProcRecordDispatch(ClientPtr client)
 {
     REQUEST(xReq);
 
-    switch (stuff->data)
-    {
-	case X_RecordQueryVersion:
-	    return ProcRecordQueryVersion(client);
-	case X_RecordCreateContext:
-	    return ProcRecordCreateContext(client);
-	case X_RecordRegisterClients:
-	    return ProcRecordRegisterClients(client);
-	case X_RecordUnregisterClients:
-	    return ProcRecordUnregisterClients(client);
-	case X_RecordGetContext:
-	    return ProcRecordGetContext(client);
-	case X_RecordEnableContext:
-	    return ProcRecordEnableContext(client);
-	case X_RecordDisableContext:
-	    return ProcRecordDisableContext(client);
-	case X_RecordFreeContext:
-	    return ProcRecordFreeContext(client);
-       default:
-	    return BadRequest;
+    switch (stuff->data) {
+    case X_RecordQueryVersion:
+        return ProcRecordQueryVersion(client);
+    case X_RecordCreateContext:
+        return ProcRecordCreateContext(client);
+    case X_RecordRegisterClients:
+        return ProcRecordRegisterClients(client);
+    case X_RecordUnregisterClients:
+        return ProcRecordUnregisterClients(client);
+    case X_RecordGetContext:
+        return ProcRecordGetContext(client);
+    case X_RecordEnableContext:
+        return ProcRecordEnableContext(client);
+    case X_RecordDisableContext:
+        return ProcRecordDisableContext(client);
+    case X_RecordFreeContext:
+        return ProcRecordFreeContext(client);
+    default:
+        return BadRequest;
     }
-} /* ProcRecordDispatch */
-
+}                               /* ProcRecordDispatch */
 
 static int
 SProcRecordQueryVersion(ClientPtr client)
@@ -2596,11 +2493,10 @@ SProcRecordQueryVersion(ClientPtr client)
     swaps(&stuff->majorVersion);
     swaps(&stuff->minorVersion);
     return ProcRecordQueryVersion(client);
-} /* SProcRecordQueryVersion */
-
+}                               /* SProcRecordQueryVersion */
 
 static int
-SwapCreateRegister(xRecordRegisterClientsReq *stuff)
+SwapCreateRegister(xRecordRegisterClientsReq * stuff)
 {
     int i;
     XID *pClientID;
@@ -2608,48 +2504,46 @@ SwapCreateRegister(xRecordRegisterClientsReq *stuff)
     swapl(&stuff->context);
     swapl(&stuff->nClients);
     swapl(&stuff->nRanges);
-    pClientID = (XID *)&stuff[1];
-    if (stuff->nClients > stuff->length - bytes_to_int32(sz_xRecordRegisterClientsReq))
-	return BadLength;
-    for (i = 0; i < stuff->nClients; i++, pClientID++)
-    {
-	swapl(pClientID);
+    pClientID = (XID *) &stuff[1];
+    if (stuff->nClients >
+        stuff->length - bytes_to_int32(sz_xRecordRegisterClientsReq))
+        return BadLength;
+    for (i = 0; i < stuff->nClients; i++, pClientID++) {
+        swapl(pClientID);
     }
-    if (stuff->nRanges > stuff->length - bytes_to_int32(sz_xRecordRegisterClientsReq)
-	- stuff->nClients)
-	return BadLength;
-    RecordSwapRanges((xRecordRange *)pClientID, stuff->nRanges);
+    if (stuff->nRanges >
+        stuff->length - bytes_to_int32(sz_xRecordRegisterClientsReq)
+        - stuff->nClients)
+        return BadLength;
+    RecordSwapRanges((xRecordRange *) pClientID, stuff->nRanges);
     return Success;
-} /* SwapCreateRegister */
-
+}                               /* SwapCreateRegister */
 
 static int
 SProcRecordCreateContext(ClientPtr client)
 {
     REQUEST(xRecordCreateContextReq);
-    int			status;
+    int status;
 
     swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xRecordCreateContextReq);
-    if ((status = SwapCreateRegister((pointer)stuff)) != Success)
-	return status;
+    if ((status = SwapCreateRegister((pointer) stuff)) != Success)
+        return status;
     return ProcRecordCreateContext(client);
-} /* SProcRecordCreateContext */
-
+}                               /* SProcRecordCreateContext */
 
 static int
 SProcRecordRegisterClients(ClientPtr client)
 {
     REQUEST(xRecordRegisterClientsReq);
-    int			status;
+    int status;
 
     swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xRecordRegisterClientsReq);
-    if ((status = SwapCreateRegister((pointer)stuff)) != Success)
-	return status;
+    if ((status = SwapCreateRegister((pointer) stuff)) != Success)
+        return status;
     return ProcRecordRegisterClients(client);
-} /* SProcRecordRegisterClients */
-
+}                               /* SProcRecordRegisterClients */
 
 static int
 SProcRecordUnregisterClients(ClientPtr client)
@@ -2662,8 +2556,7 @@ SProcRecordUnregisterClients(ClientPtr client)
     swapl(&stuff->nClients);
     SwapRestL(stuff);
     return ProcRecordUnregisterClients(client);
-} /* SProcRecordUnregisterClients */
-
+}                               /* SProcRecordUnregisterClients */
 
 static int
 SProcRecordGetContext(ClientPtr client)
@@ -2674,7 +2567,7 @@ SProcRecordGetContext(ClientPtr client)
     REQUEST_SIZE_MATCH(xRecordGetContextReq);
     swapl(&stuff->context);
     return ProcRecordGetContext(client);
-} /* SProcRecordGetContext */
+}                               /* SProcRecordGetContext */
 
 static int
 SProcRecordEnableContext(ClientPtr client)
@@ -2685,8 +2578,7 @@ SProcRecordEnableContext(ClientPtr client)
     REQUEST_SIZE_MATCH(xRecordEnableContextReq);
     swapl(&stuff->context);
     return ProcRecordEnableContext(client);
-} /* SProcRecordEnableContext */
-
+}                               /* SProcRecordEnableContext */
 
 static int
 SProcRecordDisableContext(ClientPtr client)
@@ -2697,8 +2589,7 @@ SProcRecordDisableContext(ClientPtr client)
     REQUEST_SIZE_MATCH(xRecordDisableContextReq);
     swapl(&stuff->context);
     return ProcRecordDisableContext(client);
-} /* SProcRecordDisableContext */
-
+}                               /* SProcRecordDisableContext */
 
 static int
 SProcRecordFreeContext(ClientPtr client)
@@ -2709,36 +2600,34 @@ SProcRecordFreeContext(ClientPtr client)
     REQUEST_SIZE_MATCH(xRecordFreeContextReq);
     swapl(&stuff->context);
     return ProcRecordFreeContext(client);
-} /* SProcRecordFreeContext */
-
+}                               /* SProcRecordFreeContext */
 
 static int
 SProcRecordDispatch(ClientPtr client)
 {
     REQUEST(xReq);
 
-    switch (stuff->data)
-    {
-	case X_RecordQueryVersion:
-	    return SProcRecordQueryVersion(client);
-	case X_RecordCreateContext:
-	    return SProcRecordCreateContext(client);
-	case X_RecordRegisterClients:
-	    return SProcRecordRegisterClients(client);
-	case X_RecordUnregisterClients:
-	    return SProcRecordUnregisterClients(client);
-	case X_RecordGetContext:
-	    return SProcRecordGetContext(client);
-	case X_RecordEnableContext:
-	    return SProcRecordEnableContext(client);
-	case X_RecordDisableContext:
-	    return SProcRecordDisableContext(client);
-	case X_RecordFreeContext:
-	    return SProcRecordFreeContext(client);
-       default:
-	    return BadRequest;
+    switch (stuff->data) {
+    case X_RecordQueryVersion:
+        return SProcRecordQueryVersion(client);
+    case X_RecordCreateContext:
+        return SProcRecordCreateContext(client);
+    case X_RecordRegisterClients:
+        return SProcRecordRegisterClients(client);
+    case X_RecordUnregisterClients:
+        return SProcRecordUnregisterClients(client);
+    case X_RecordGetContext:
+        return SProcRecordGetContext(client);
+    case X_RecordEnableContext:
+        return SProcRecordEnableContext(client);
+    case X_RecordDisableContext:
+        return SProcRecordDisableContext(client);
+    case X_RecordFreeContext:
+        return SProcRecordFreeContext(client);
+    default:
+        return BadRequest;
     }
-} /* SProcRecordDispatch */
+}                               /* SProcRecordDispatch */
 
 /* RecordConnectionSetupInfo
  *
@@ -2753,34 +2642,35 @@ SProcRecordDispatch(ClientPtr client)
  *	The connection setup info is sent to the recording client.
  */
 static void
-RecordConnectionSetupInfo(RecordContextPtr pContext, NewClientInfoRec *pci)
+RecordConnectionSetupInfo(RecordContextPtr pContext, NewClientInfoRec * pci)
 {
     int prefixsize = SIZEOF(xConnSetupPrefix);
     int restsize = pci->prefix->length * 4;
 
-    if (pci->client->swapped)
-    {
-	char *pConnSetup = (char *)malloc(prefixsize + restsize);
-	if (!pConnSetup)
-	    return;
-	SwapConnSetupPrefix(pci->prefix, (xConnSetupPrefix*)pConnSetup);
-	SwapConnSetupInfo((char*)pci->setup, (char*)(pConnSetup + prefixsize));
-	RecordAProtocolElement(pContext, pci->client, XRecordClientStarted,
-			       (pointer)pConnSetup, prefixsize + restsize, 0, 0);
-	free(pConnSetup);
-    }
-    else
-    {
-	/* don't alloc and copy as in the swapped case; just send the
-	 * data in two pieces
-	 */
-	RecordAProtocolElement(pContext, pci->client, XRecordClientStarted,
-			(pointer)pci->prefix, prefixsize, 0, restsize);
-	RecordAProtocolElement(pContext, pci->client, XRecordClientStarted,
-			(pointer)pci->setup, restsize, 0, /* continuation */ -1);
-    }
-} /* RecordConnectionSetupInfo */
+    if (pci->client->swapped) {
+        char *pConnSetup = (char *) malloc(prefixsize + restsize);
 
+        if (!pConnSetup)
+            return;
+        SwapConnSetupPrefix(pci->prefix, (xConnSetupPrefix *) pConnSetup);
+        SwapConnSetupInfo((char *) pci->setup,
+                          (char *) (pConnSetup + prefixsize));
+        RecordAProtocolElement(pContext, pci->client, XRecordClientStarted,
+                               (pointer) pConnSetup, prefixsize + restsize, 0,
+                               0);
+        free(pConnSetup);
+    }
+    else {
+        /* don't alloc and copy as in the swapped case; just send the
+         * data in two pieces
+         */
+        RecordAProtocolElement(pContext, pci->client, XRecordClientStarted,
+                               (pointer) pci->prefix, prefixsize, 0, restsize);
+        RecordAProtocolElement(pContext, pci->client, XRecordClientStarted,
+                               (pointer) pci->setup, restsize, 0,
+                               /* continuation */ -1);
+    }
+}                               /* RecordConnectionSetupInfo */
 
 /* RecordDeleteContext
  *
@@ -2806,67 +2696,65 @@ RecordConnectionSetupInfo(RecordContextPtr pContext, NewClientInfoRec *pci)
  */
 
 static void
-RecordAClientStateChange(CallbackListPtr *pcbl, pointer nulldata, pointer calldata)
+RecordAClientStateChange(CallbackListPtr *pcbl, pointer nulldata,
+                         pointer calldata)
 {
-    NewClientInfoRec *pci = (NewClientInfoRec *)calldata;
+    NewClientInfoRec *pci = (NewClientInfoRec *) calldata;
     int i;
     ClientPtr pClient = pci->client;
     RecordContextPtr *ppAllContextsCopy = NULL;
     int numContextsCopy = 0;
 
-    switch (pClient->clientState)
-    {
-    case ClientStateRunning: /* new client */
-	for (i = 0; i < numContexts; i++)
-	{
-	    RecordClientsAndProtocolPtr pRCAP;
-	    RecordContextPtr pContext = ppAllContexts[i];
+    switch (pClient->clientState) {
+    case ClientStateRunning:   /* new client */
+        for (i = 0; i < numContexts; i++) {
+            RecordClientsAndProtocolPtr pRCAP;
+            RecordContextPtr pContext = ppAllContexts[i];
 
-	    if ((pRCAP = RecordFindClientOnContext(pContext,
-					    XRecordFutureClients, NULL)))
-	    {
-		RecordAddClientToRCAP(pRCAP, pClient->clientAsMask);
-		if (pContext->pRecordingClient && pRCAP->clientStarted)
-		    RecordConnectionSetupInfo(pContext, pci);
-	    }
-	}
-    break;
+            if ((pRCAP = RecordFindClientOnContext(pContext,
+                                                   XRecordFutureClients, NULL)))
+            {
+                RecordAddClientToRCAP(pRCAP, pClient->clientAsMask);
+                if (pContext->pRecordingClient && pRCAP->clientStarted)
+                    RecordConnectionSetupInfo(pContext, pci);
+            }
+        }
+        break;
 
     case ClientStateGone:
-    case ClientStateRetained: /* client disconnected */
+    case ClientStateRetained:  /* client disconnected */
 
         /* RecordDisableContext modifies contents of ppAllContexts. */
-	numContextsCopy = numContexts;
-	ppAllContextsCopy = malloc(numContextsCopy * sizeof(RecordContextPtr));
-	assert(ppAllContextsCopy);
-	memcpy(ppAllContextsCopy, ppAllContexts, numContextsCopy * sizeof(RecordContextPtr));
+        numContextsCopy = numContexts;
+        ppAllContextsCopy = malloc(numContextsCopy * sizeof(RecordContextPtr));
+        assert(ppAllContextsCopy);
+        memcpy(ppAllContextsCopy, ppAllContexts,
+               numContextsCopy * sizeof(RecordContextPtr));
 
-	for (i = 0; i < numContextsCopy; i++)
-	{
-	    RecordClientsAndProtocolPtr pRCAP;
-	    RecordContextPtr pContext = ppAllContextsCopy[i];
-	    int pos;
+        for (i = 0; i < numContextsCopy; i++) {
+            RecordClientsAndProtocolPtr pRCAP;
+            RecordContextPtr pContext = ppAllContextsCopy[i];
+            int pos;
 
-	    if (pContext->pRecordingClient == pClient)
-		RecordDisableContext(pContext);
-	    if ((pRCAP = RecordFindClientOnContext(pContext,
-				    pClient->clientAsMask, &pos)))
-	    {
-		if (pContext->pRecordingClient && pRCAP->clientDied)
-		    RecordAProtocolElement(pContext, pClient,
-					   XRecordClientDied, NULL, 0, 0, 0);
-		RecordDeleteClientFromRCAP(pRCAP, pos);
-	    }
-	}
+            if (pContext->pRecordingClient == pClient)
+                RecordDisableContext(pContext);
+            if ((pRCAP = RecordFindClientOnContext(pContext,
+                                                   pClient->clientAsMask,
+                                                   &pos))) {
+                if (pContext->pRecordingClient && pRCAP->clientDied)
+                    RecordAProtocolElement(pContext, pClient,
+                                           XRecordClientDied, NULL, 0, 0, 0);
+                RecordDeleteClientFromRCAP(pRCAP, pos);
+            }
+        }
 
-	free(ppAllContextsCopy);
-    break;
+        free(ppAllContextsCopy);
+        break;
 
     default:
-    break;
-    } /* end switch on client state */
-} /* RecordAClientStateChange */
-
+        break;
+    }                           /* end switch on client state */
+}                               /* RecordAClientStateChange */
 
 /* RecordCloseDown
  *
@@ -2880,11 +2768,10 @@ RecordAClientStateChange(CallbackListPtr *pcbl, pointer nulldata, pointer callda
  *	
  */
 static void
-RecordCloseDown(ExtensionEntry *extEntry)
+RecordCloseDown(ExtensionEntry * extEntry)
 {
     DeleteCallback(&ClientStateCallback, RecordAClientStateChange, NULL);
-} /* RecordCloseDown */
-
+}                               /* RecordCloseDown */
 
 /* RecordExtensionInit
  *
@@ -2895,14 +2782,14 @@ RecordCloseDown(ExtensionEntry *extEntry)
  * Side Effects:
  *	Enables the RECORD extension if possible.
  */
-void 
+void
 RecordExtensionInit(void)
 {
     ExtensionEntry *extentry;
 
     RTContext = CreateNewResourceType(RecordDeleteContext, "RecordContext");
     if (!RTContext)
-	return;
+        return;
 
     if (!dixRegisterPrivateKey(RecordClientPrivateKey, PRIVATE_CLIENT, 0))
         return;
@@ -2911,17 +2798,16 @@ RecordExtensionInit(void)
     numContexts = numEnabledContexts = numEnabledRCAPs = 0;
 
     if (!AddCallback(&ClientStateCallback, RecordAClientStateChange, NULL))
-	return;
+        return;
 
     extentry = AddExtension(RECORD_NAME, RecordNumEvents, RecordNumErrors,
-			    ProcRecordDispatch, SProcRecordDispatch,
-			    RecordCloseDown, StandardMinorOpcode);
-    if (!extentry)
-    {
-	DeleteCallback(&ClientStateCallback, RecordAClientStateChange, NULL);
-	return;
+                            ProcRecordDispatch, SProcRecordDispatch,
+                            RecordCloseDown, StandardMinorOpcode);
+    if (!extentry) {
+        DeleteCallback(&ClientStateCallback, RecordAClientStateChange, NULL);
+        return;
     }
-    SetResourceTypeErrorValue(RTContext, extentry->errorBase + XRecordBadContext);
+    SetResourceTypeErrorValue(RTContext,
+                              extentry->errorBase + XRecordBadContext);
 
-} /* RecordExtensionInit */
-
+}                               /* RecordExtensionInit */

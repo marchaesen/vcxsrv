@@ -101,47 +101,50 @@
 
 /* Private area for PS/2 devices. */
 typedef struct _myPrivate {
-    DeviceIntPtr   pMouse;
-    int            fd;
+    DeviceIntPtr pMouse;
+    int fd;
     enum {
         button1 = 0x0001,
         button2 = 0x0002,
         button3 = 0x0004,
         button4 = 0x0008,
         button5 = 0x0010
-    }              buttons;
+    } buttons;
 } myPrivate;
 
-static int ps2LinuxReadBytes(int fd, unsigned char *buf, int len, int min)
+static int
+ps2LinuxReadBytes(int fd, unsigned char *buf, int len, int min)
 {
-    int		    n, tot;
-    fd_set	    set;
-    struct timeval  tv;
-    
+    int n, tot;
+    fd_set set;
+    struct timeval tv;
+
     tot = 0;
     while (len) {
         n = read(fd, buf, len);
         if (n > 0) {
             tot += n;
-	    buf += n;
-	    len -= n;
-	}
-	if (tot % min == 0) break;
-	FD_ZERO(&set);
-	FD_SET(fd, &set);
-	tv.tv_sec = 0;
-	tv.tv_usec = 100 * 1000;
-	n = select(fd + 1, &set, 0, 0, &tv);
-	if (n <= 0) break;
+            buf += n;
+            len -= n;
+        }
+        if (tot % min == 0)
+            break;
+        FD_ZERO(&set);
+        FD_SET(fd, &set);
+        tv.tv_sec = 0;
+        tv.tv_usec = 100 * 1000;
+        n = select(fd + 1, &set, 0, 0, &tv);
+        if (n <= 0)
+            break;
     }
     return tot;
 }
 
-static void ps2LinuxButton(DevicePtr pDev, ENQUEUEPROC enqueue,
-                           int buttons, BLOCK block)
+static void
+ps2LinuxButton(DevicePtr pDev, ENQUEUEPROC enqueue, int buttons, BLOCK block)
 {
     GETPRIV;
-    
+
 #define PRESS(b)                                         \
     do {                                                 \
         enqueue(pDev, ButtonPress, 0, 0, NULL, block);   \
@@ -151,21 +154,31 @@ static void ps2LinuxButton(DevicePtr pDev, ENQUEUEPROC enqueue,
     do {                                                 \
         enqueue(pDev, ButtonRelease, 0, 0, NULL, block); \
     } while (0)
-          
-    if ((buttons & button1) && !(priv->buttons & button1)) PRESS(1);
-    if (!(buttons & button1) && (priv->buttons & button1)) RELEASE(1);
 
-    if ((buttons & button2) && !(priv->buttons & button2)) PRESS(2);
-    if (!(buttons & button2) && (priv->buttons & button2)) RELEASE(2);
+    if ((buttons & button1) && !(priv->buttons & button1))
+        PRESS(1);
+    if (!(buttons & button1) && (priv->buttons & button1))
+        RELEASE(1);
 
-    if ((buttons & button3) && !(priv->buttons & button3)) PRESS(3);
-    if (!(buttons & button3) && (priv->buttons & button3)) RELEASE(3);
+    if ((buttons & button2) && !(priv->buttons & button2))
+        PRESS(2);
+    if (!(buttons & button2) && (priv->buttons & button2))
+        RELEASE(2);
 
-    if ((buttons & button4) && !(priv->buttons & button4)) PRESS(4);
-    if (!(buttons & button4) && (priv->buttons & button4)) RELEASE(4);
-    
-    if ((buttons & button5) && !(priv->buttons & button5)) PRESS(5);
-    if (!(buttons & button5) && (priv->buttons & button5)) RELEASE(5);
+    if ((buttons & button3) && !(priv->buttons & button3))
+        PRESS(3);
+    if (!(buttons & button3) && (priv->buttons & button3))
+        RELEASE(3);
+
+    if ((buttons & button4) && !(priv->buttons & button4))
+        PRESS(4);
+    if (!(buttons & button4) && (priv->buttons & button4))
+        RELEASE(4);
+
+    if ((buttons & button5) && !(priv->buttons & button5))
+        PRESS(5);
+    if (!(buttons & button5) && (priv->buttons & button5))
+        RELEASE(5);
 
     priv->buttons = buttons;
 }
@@ -176,20 +189,21 @@ static void ps2LinuxButton(DevicePtr pDev, ENQUEUEPROC enqueue,
  * with the \a enqueue function.  The \a block type is passed to the
  * functions so that they may block SIGIO handling as appropriate to the
  * caller of this function. */
-void ps2LinuxRead(DevicePtr pDev, MOTIONPROC motion,
-                  ENQUEUEPROC enqueue, CHECKPROC checkspecial, BLOCK block)
+void
+ps2LinuxRead(DevicePtr pDev, MOTIONPROC motion,
+             ENQUEUEPROC enqueue, CHECKPROC checkspecial, BLOCK block)
 {
     GETPRIV;
-    unsigned char   buf[3 * 200]; /* RATS: Use ok */
-    unsigned char   *b;
-    int		    n;
-    int		    dx, dy, v[2];
+    unsigned char buf[3 * 200]; /* RATS: Use ok */
+    unsigned char *b;
+    int n;
+    int dx, dy, v[2];
 
     while ((n = ps2LinuxReadBytes(priv->fd, buf, sizeof(buf), 3)) > 0) {
-	b = buf;
-	while (n >= 3) {
-            dx   =  b[1] - ((b[0] & 0x10) ? 256 : 0);
-            dy   = -b[2] + ((b[0] & 0x20) ? 256 : 0);
+        b = buf;
+        while (n >= 3) {
+            dx = b[1] - ((b[0] & 0x10) ? 256 : 0);
+            dy = -b[2] + ((b[0] & 0x20) ? 256 : 0);
             v[0] = -dx;
             v[1] = -dy;
 
@@ -200,38 +214,43 @@ void ps2LinuxRead(DevicePtr pDev, MOTIONPROC motion,
                            block);
             n -= 3;
             b += 3;
-	}
+        }
     }
 }
 
 /** Initialize \a pDev. */
-void ps2LinuxInit(DevicePtr pDev)
+void
+ps2LinuxInit(DevicePtr pDev)
 {
     GETPRIV;
     const char *names[] = { "/dev/mouse", "/dev/psaux", NULL };
-    int        i;
+    int i;
 
-    if (priv->fd >=0) return;
+    if (priv->fd >= 0)
+        return;
 
     for (i = 0; names[i]; i++) {
-        if ((priv->fd = open(names[i], O_RDWR | O_NONBLOCK, 0)) >= 0) break;
+        if ((priv->fd = open(names[i], O_RDWR | O_NONBLOCK, 0)) >= 0)
+            break;
     }
     if (priv->fd < 0)
-        FATAL1("ps2LinuxInit: Cannot open mouse port (%s)\n",
-               strerror(errno));
+        FATAL1("ps2LinuxInit: Cannot open mouse port (%s)\n", strerror(errno));
 }
 
 /** Turn \a pDev on (i.e., take input from \a pDev). */
-int ps2LinuxOn(DevicePtr pDev)
+int
+ps2LinuxOn(DevicePtr pDev)
 {
     GETPRIV;
 
-    if (priv->fd < 0) ps2LinuxInit(pDev);
+    if (priv->fd < 0)
+        ps2LinuxInit(pDev);
     return priv->fd;
 }
 
 /** Turn \a pDev off (i.e., stop taking input from \a pDev). */
-void ps2LinuxOff(DevicePtr pDev)
+void
+ps2LinuxOff(DevicePtr pDev)
 {
     GETPRIV;
 
@@ -239,51 +258,61 @@ void ps2LinuxOff(DevicePtr pDev)
     priv->fd = -1;
 }
 
-static void ps2LinuxGetMap(DevicePtr pDev, unsigned char *map, int *nButtons)
+static void
+ps2LinuxGetMap(DevicePtr pDev, unsigned char *map, int *nButtons)
 {
     int i;
-    
-    if (nButtons) *nButtons = 3;
-    if (map) for (i = 0; i <= *nButtons; i++) map[i] = i;
+
+    if (nButtons)
+        *nButtons = 3;
+    if (map)
+        for (i = 0; i <= *nButtons; i++)
+            map[i] = i;
 }
 
 /** Currently unused hook called prior to an VT switch. */
-void ps2LinuxVTPreSwitch(pointer p)
+void
+ps2LinuxVTPreSwitch(pointer p)
 {
 }
 
 /** Currently unused hook called after returning from a VT switch. */
-void ps2LinuxVTPostSwitch(pointer p)
+void
+ps2LinuxVTPostSwitch(pointer p)
 {
 }
 
 /** Create a private structure for use within this file. */
-pointer ps2LinuxCreatePrivate(DeviceIntPtr pMouse)
+pointer
+ps2LinuxCreatePrivate(DeviceIntPtr pMouse)
 {
     myPrivate *priv = calloc(1, sizeof(*priv));
-    priv->fd     = -1;
+
+    priv->fd = -1;
     priv->pMouse = pMouse;
     return priv;
 }
 
 /** Destroy a private structure. */
-void ps2LinuxDestroyPrivate(pointer priv)
+void
+ps2LinuxDestroyPrivate(pointer priv)
 {
     free(priv);
 }
 
 /** Fill the \a info structure with information needed to initialize \a
- * pDev. */ 
-void ps2LinuxGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info)
+ * pDev. */
+void
+ps2LinuxGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info)
 {
-    info->buttonClass      = 1;
+    info->buttonClass = 1;
     ps2LinuxGetMap(pDev, info->map, &info->numButtons);
-    info->valuatorClass    = 1;
-    info->numRelAxes       = 2;
-    info->minval[0]        = 0;
-    info->maxval[0]        = 0;
-    info->res[0]           = 1;
-    info->minres[0]        = 0;
-    info->maxres[0]        = 1;
+    info->valuatorClass = 1;
+    info->numRelAxes = 2;
+    info->minval[0] = 0;
+    info->maxval[0] = 0;
+    info->res[0] = 1;
+    info->minres[0] = 0;
+    info->maxres[0] = 1;
     info->ptrFeedbackClass = 1;
 }

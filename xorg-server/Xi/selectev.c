@@ -50,13 +50,12 @@ SOFTWARE.
  *
  */
 
-
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
-#include "windowstr.h"	/* window structure  */
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XI2.h>
 #include <X11/extensions/XIproto.h>
@@ -70,7 +69,7 @@ extern Mask ExtExclusiveMasks[];
 
 static int
 HandleDevicePresenceMask(ClientPtr client, WindowPtr win,
-                         XEventClass *cls, CARD16 *count)
+                         XEventClass * cls, CARD16 *count)
 {
     int i, j;
     Mask mask;
@@ -106,7 +105,7 @@ HandleDevicePresenceMask(ClientPtr client, WindowPtr win,
 
     /* We always only use mksidx = AllDevices for events not bound to
      * devices */
-    if (AddExtensionClient (win, client, mask, XIAllDevices) != Success)
+    if (AddExtensionClient(win, client, mask, XIAllDevices) != Success)
         return BadAlloc;
 
     RecalculateDeviceDeliverableEvents(win);
@@ -128,8 +127,7 @@ SProcXSelectExtensionEvent(ClientPtr client)
     REQUEST_AT_LEAST_SIZE(xSelectExtensionEventReq);
     swapl(&stuff->window);
     swaps(&stuff->count);
-    REQUEST_FIXED_SIZE(xSelectExtensionEventReq,
-                      stuff->count * sizeof(CARD32));
+    REQUEST_FIXED_SIZE(xSelectExtensionEventReq, stuff->count * sizeof(CARD32));
     SwapLongs((CARD32 *) (&stuff[1]), stuff->count);
 
     return (ProcXSelectExtensionEvent(client));
@@ -152,33 +150,34 @@ ProcXSelectExtensionEvent(ClientPtr client)
     REQUEST(xSelectExtensionEventReq);
     REQUEST_AT_LEAST_SIZE(xSelectExtensionEventReq);
 
-    if (stuff->length != bytes_to_int32(sizeof(xSelectExtensionEventReq)) + stuff->count)
-	return BadLength;
+    if (stuff->length !=
+        bytes_to_int32(sizeof(xSelectExtensionEventReq)) + stuff->count)
+        return BadLength;
 
     ret = dixLookupWindow(&pWin, stuff->window, client, DixReceiveAccess);
     if (ret != Success)
-	return ret;
+        return ret;
 
-    if (HandleDevicePresenceMask(client, pWin, (XEventClass *) & stuff[1],
-                                &stuff->count) != Success)
-	return BadAlloc;
+    if (HandleDevicePresenceMask(client, pWin, (XEventClass *) &stuff[1],
+                                 &stuff->count) != Success)
+        return BadAlloc;
 
-    if ((ret = CreateMaskFromList(client, (XEventClass *) & stuff[1],
-				  stuff->count, tmp, NULL,
-				  X_SelectExtensionEvent)) != Success)
-	return ret;
+    if ((ret = CreateMaskFromList(client, (XEventClass *) &stuff[1],
+                                  stuff->count, tmp, NULL,
+                                  X_SelectExtensionEvent)) != Success)
+        return ret;
 
     for (i = 0; i < EMASKSIZE; i++)
-	if (tmp[i].dev != NULL) {
+        if (tmp[i].dev != NULL) {
             if (tmp[i].mask & ~XIAllMasks) {
                 client->errorValue = tmp[i].mask;
                 return BadValue;
             }
-	    if ((ret =
-		 SelectForWindow((DeviceIntPtr) tmp[i].dev, pWin, client,
-				 tmp[i].mask, ExtExclusiveMasks[i]))!= Success)
-		return ret;
-	}
+            if ((ret =
+                 SelectForWindow((DeviceIntPtr) tmp[i].dev, pWin, client,
+                                 tmp[i].mask, ExtExclusiveMasks[i])) != Success)
+                return ret;
+        }
 
     return Success;
 }

@@ -62,29 +62,33 @@ typedef struct _VbeModeInfoData {
 				 (f & V_MODETYPE_BAD)) && \
 				VBE_MODE_GRAPHICS(m) && \
 				(VBE_MODE_VGA(m) || VBE_MODE_LINEAR(m))
-				
+
 #define V_MODETYPE_VBE		0x01
 #define V_MODETYPE_VGA		0x02
 #define V_MODETYPE_BAD		0x04
 
-extern _X_EXPORT int VBEFindSupportedDepths(vbeInfoPtr pVbe, VbeInfoBlock *vbe,
-				  int *flags24, int modeTypes);
-extern _X_EXPORT DisplayModePtr VBEGetModePool(ScrnInfoPtr pScrn, vbeInfoPtr pVbe,
-					VbeInfoBlock *vbe, int modeTypes);
+extern _X_EXPORT int VBEFindSupportedDepths(vbeInfoPtr pVbe, VbeInfoBlock * vbe,
+                                            int *flags24, int modeTypes);
+extern _X_EXPORT DisplayModePtr VBEGetModePool(ScrnInfoPtr pScrn,
+                                               vbeInfoPtr pVbe,
+                                               VbeInfoBlock * vbe,
+                                               int modeTypes);
 extern _X_EXPORT void VBESetModeNames(DisplayModePtr pMode);
 extern _X_EXPORT void VBESetModeParameters(ScrnInfoPtr pScrn, vbeInfoPtr pVbe);
-
 
 /*
  * Note: These are alternatives to the standard helpers.  They should
  * usually just wrap the standard helpers.
  */
-extern _X_EXPORT int VBEValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
-			    char **modeNames, ClockRangePtr clockRanges,
-			    int *linePitches, int minPitch, int maxPitch,
-			    int pitchInc, int minHeight, int maxHeight,
-			    int virtualX, int virtualY, int apertureSize,
-			    LookupModeFlags strategy);
+extern _X_EXPORT int VBEValidateModes(ScrnInfoPtr scrp,
+                                      DisplayModePtr availModes,
+                                      char **modeNames,
+                                      ClockRangePtr clockRanges,
+                                      int *linePitches, int minPitch,
+                                      int maxPitch, int pitchInc, int minHeight,
+                                      int maxHeight, int virtualX, int virtualY,
+                                      int apertureSize,
+                                      LookupModeFlags strategy);
 extern _X_EXPORT void VBEPrintModes(ScrnInfoPtr scrp);
 
-#endif /* VBE_MODES_H */
+#endif                          /* VBE_MODES_H */

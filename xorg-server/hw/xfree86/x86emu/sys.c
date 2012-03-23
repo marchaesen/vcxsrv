@@ -47,101 +47,131 @@
 #include "x86emu/prim_ops.h"
 #ifndef NO_SYS_HEADERS
 #include <string.h>
-#endif                                                                                           
+#endif
 
-#  ifdef __GNUC__
+#ifdef __GNUC__
 
 /* Define some packed structures to use with unaligned accesses */
 
-struct __una_u64 { u64 x __attribute__((packed)); };
-struct __una_u32 { u32 x __attribute__((packed)); };
-struct __una_u16 { u16 x __attribute__((packed)); };
+struct __una_u64 {
+    u64 x __attribute__ ((packed));
+};
+struct __una_u32 {
+    u32 x __attribute__ ((packed));
+};
+struct __una_u16 {
+    u16 x __attribute__ ((packed));
+};
 
 /* Elemental unaligned loads */
 
-static __inline__ u64 ldq_u(u64 *p)
+static __inline__ u64
+ldq_u(u64 * p)
 {
-	const struct __una_u64 *ptr = (const struct __una_u64 *) p;
-	return ptr->x;
+    const struct __una_u64 *ptr = (const struct __una_u64 *) p;
+
+    return ptr->x;
 }
 
-static __inline__ u32 ldl_u(u32 *p)
+static __inline__ u32
+ldl_u(u32 * p)
 {
-	const struct __una_u32 *ptr = (const struct __una_u32 *) p;
-	return ptr->x;
+    const struct __una_u32 *ptr = (const struct __una_u32 *) p;
+
+    return ptr->x;
 }
 
-static __inline__ u16 ldw_u(u16 *p)
+static __inline__ u16
+ldw_u(u16 * p)
 {
-	const struct __una_u16 *ptr = (const struct __una_u16 *) p;
-	return ptr->x;
+    const struct __una_u16 *ptr = (const struct __una_u16 *) p;
+
+    return ptr->x;
 }
 
 /* Elemental unaligned stores */
 
-static __inline__ void stq_u(u64 val, u64 *p)
+static __inline__ void
+stq_u(u64 val, u64 * p)
 {
-	struct __una_u64 *ptr = (struct __una_u64 *) p;
-	ptr->x = val;
+    struct __una_u64 *ptr = (struct __una_u64 *) p;
+
+    ptr->x = val;
 }
 
-static __inline__ void stl_u(u32 val, u32 *p)
+static __inline__ void
+stl_u(u32 val, u32 * p)
 {
-	struct __una_u32 *ptr = (struct __una_u32 *) p;
-	ptr->x = val;
+    struct __una_u32 *ptr = (struct __una_u32 *) p;
+
+    ptr->x = val;
 }
 
-static __inline__ void stw_u(u16 val, u16 *p)
+static __inline__ void
+stw_u(u16 val, u16 * p)
 {
-	struct __una_u16 *ptr = (struct __una_u16 *) p;
-	ptr->x = val;
-}
-#  else /* !__GNUC__ */
+    struct __una_u16 *ptr = (struct __una_u16 *) p;
 
-static __inline__ u64 ldq_u(u64 *p)
-{
-	u64 ret;
-	memmove(&ret, p, sizeof(*p));
-	return ret;
+    ptr->x = val;
 }
+#else                           /* !__GNUC__ */
 
-static __inline__ u32 ldl_u(u32 *p)
+static __inline__ u64
+ldq_u(u64 * p)
 {
-	u32 ret;
-	memmove(&ret, p, sizeof(*p));
-	return ret;
+    u64 ret;
+
+    memmove(&ret, p, sizeof(*p));
+    return ret;
 }
 
-static __inline__ u16 ldw_u(u16 *p)
+static __inline__ u32
+ldl_u(u32 * p)
 {
-	u16 ret;
-	memmove(&ret, p, sizeof(*p));
-	return ret;
+    u32 ret;
+
+    memmove(&ret, p, sizeof(*p));
+    return ret;
 }
 
-static __inline__ void stq_u(u64 val, u64 *p)
+static __inline__ u16
+ldw_u(u16 * p)
 {
-	u64 tmp = val;
-	memmove(p, &tmp, sizeof(*p));
+    u16 ret;
+
+    memmove(&ret, p, sizeof(*p));
+    return ret;
 }
 
-static __inline__ void stl_u(u32 val, u32 *p)
+static __inline__ void
+stq_u(u64 val, u64 * p)
 {
-	u32 tmp = val;
-	memmove(p, &tmp, sizeof(*p));
+    u64 tmp = val;
+
+    memmove(p, &tmp, sizeof(*p));
 }
 
-static __inline__ void stw_u(u16 val, u16 *p)
+static __inline__ void
+stl_u(u32 val, u32 * p)
 {
-	u16 tmp = val;
-	memmove(p, &tmp, sizeof(*p));
+    u32 tmp = val;
+
+    memmove(p, &tmp, sizeof(*p));
 }
 
-#  endif /* __GNUC__ */
+static __inline__ void
+stw_u(u16 val, u16 * p)
+{
+    u16 tmp = val;
+
+    memmove(p, &tmp, sizeof(*p));
+}
+
+#endif                          /* __GNUC__ */
 /*------------------------- Global Variables ------------------------------*/
 
-X86EMU_sysEnv		_X86EMU_env;		/* Global emulator machine state */
-X86EMU_intrFuncs	_X86EMU_intrTab[256];
+X86EMU_sysEnv _X86EMU_env;      /* Global emulator machine state */
+X86EMU_intrFuncs _X86EMU_intrTab[256];
 
 /*----------------------------- Implementation ----------------------------*/
 
@@ -155,19 +185,20 @@ Byte value read from emulator memory.
 REMARKS:
 Reads a byte value from the emulator memory. 
 ****************************************************************************/
-u8 X86API rdb(
-    u32 addr)
+u8 X86API
+rdb(u32 addr)
 {
-	u8 val;
+    u8 val;
 
-	if (addr > M.mem_size - 1) {
-		DB(printk("mem_read: address %#lx out of range!\n", addr);)
-		HALT_SYS();
-		}
-	val = *(u8*)(M.mem_base + addr);
-DB(	if (DEBUG_MEM_TRACE())
-		printk("%#08x 1 -> %#x\n", addr, val);)
-	return val;
+    if (addr > M.mem_size - 1) {
+        DB(printk("mem_read: address %#lx out of range!\n", addr);
+            )
+            HALT_SYS();
+    }
+    val = *(u8 *) (M.mem_base + addr);
+    DB(if (DEBUG_MEM_TRACE())
+       printk("%#08x 1 -> %#x\n", addr, val);)
+        return val;
 }
 
 /****************************************************************************
@@ -180,26 +211,27 @@ Word value read from emulator memory.
 REMARKS:
 Reads a word value from the emulator memory.
 ****************************************************************************/
-u16 X86API rdw(
-	u32 addr)
+u16 X86API
+rdw(u32 addr)
 {
-	u16 val = 0;
+    u16 val = 0;
 
-	if (addr > M.mem_size - 2) {
-		DB(printk("mem_read: address %#lx out of range!\n", addr);)
-		HALT_SYS();
-		}
+    if (addr > M.mem_size - 2) {
+        DB(printk("mem_read: address %#lx out of range!\n", addr);
+            )
+            HALT_SYS();
+    }
 #ifdef __BIG_ENDIAN__
-	if (addr & 0x1) {
-		val = (*(u8*)(M.mem_base + addr) |
-			  (*(u8*)(M.mem_base + addr + 1) << 8));
-		}
-	else
+    if (addr & 0x1) {
+        val = (*(u8 *) (M.mem_base + addr) |
+               (*(u8 *) (M.mem_base + addr + 1) << 8));
+    }
+    else
 #endif
-		val = ldw_u((u16*)(M.mem_base + addr));
-		DB(	if (DEBUG_MEM_TRACE())
-		printk("%#08x 2 -> %#x\n", addr, val);)
-    return val;
+        val = ldw_u((u16 *) (M.mem_base + addr));
+    DB(if (DEBUG_MEM_TRACE())
+       printk("%#08x 2 -> %#x\n", addr, val);)
+        return val;
 }
 
 /****************************************************************************
@@ -211,28 +243,29 @@ Long value read from emulator memory.
 REMARKS:
 Reads a long value from the emulator memory. 
 ****************************************************************************/
-u32 X86API rdl(
-	u32 addr)
+u32 X86API
+rdl(u32 addr)
 {
-	u32 val = 0;
+    u32 val = 0;
 
-	if (addr > M.mem_size - 4) {
-		DB(printk("mem_read: address %#lx out of range!\n", addr);)
-		HALT_SYS();
-		}
+    if (addr > M.mem_size - 4) {
+        DB(printk("mem_read: address %#lx out of range!\n", addr);
+            )
+            HALT_SYS();
+    }
 #ifdef __BIG_ENDIAN__
-	if (addr & 0x3) {
-		val = (*(u8*)(M.mem_base + addr + 0) |
-			  (*(u8*)(M.mem_base + addr + 1) << 8) |
-			  (*(u8*)(M.mem_base + addr + 2) << 16) |
-			  (*(u8*)(M.mem_base + addr + 3) << 24));
-		}
-	else
+    if (addr & 0x3) {
+        val = (*(u8 *) (M.mem_base + addr + 0) |
+               (*(u8 *) (M.mem_base + addr + 1) << 8) |
+               (*(u8 *) (M.mem_base + addr + 2) << 16) |
+               (*(u8 *) (M.mem_base + addr + 3) << 24));
+    }
+    else
 #endif
-		val = ldl_u((u32*)(M.mem_base + addr));
-DB(	if (DEBUG_MEM_TRACE())
-		printk("%#08x 4 -> %#x\n", addr, val);)
-	return val;
+        val = ldl_u((u32 *) (M.mem_base + addr));
+    DB(if (DEBUG_MEM_TRACE())
+       printk("%#08x 4 -> %#x\n", addr, val);)
+        return val;
 }
 
 /****************************************************************************
@@ -243,17 +276,17 @@ val		- Value to store
 REMARKS:
 Writes a byte value to emulator memory.
 ****************************************************************************/
-void X86API wrb(
-	u32 addr,
-	u8 val)
+void X86API
+wrb(u32 addr, u8 val)
 {
-DB(	if (DEBUG_MEM_TRACE())
-		printk("%#08x 1 <- %#x\n", addr, val);)
-    if (addr > M.mem_size - 1) {
-		DB(printk("mem_write: address %#lx out of range!\n", addr);)
-		HALT_SYS();
-		}
-	*(u8*)(M.mem_base + addr) = val;
+    DB(if (DEBUG_MEM_TRACE())
+       printk("%#08x 1 <- %#x\n", addr, val);)
+        if (addr > M.mem_size - 1) {
+            DB(printk("mem_write: address %#lx out of range!\n", addr);
+                )
+                HALT_SYS();
+        }
+    *(u8 *) (M.mem_base + addr) = val;
 }
 
 /****************************************************************************
@@ -264,24 +297,24 @@ val		- Value to store
 REMARKS:
 Writes a word value to emulator memory.
 ****************************************************************************/
-void X86API wrw(
-	u32 addr,
-	u16 val)
+void X86API
+wrw(u32 addr, u16 val)
 {
-DB(	if (DEBUG_MEM_TRACE())
-		printk("%#08x 2 <- %#x\n", addr, val);)
-	if (addr > M.mem_size - 2) {
-		DB(printk("mem_write: address %#lx out of range!\n", addr);)
-		HALT_SYS();
-		}
+    DB(if (DEBUG_MEM_TRACE())
+       printk("%#08x 2 <- %#x\n", addr, val);)
+        if (addr > M.mem_size - 2) {
+            DB(printk("mem_write: address %#lx out of range!\n", addr);
+                )
+                HALT_SYS();
+        }
 #ifdef __BIG_ENDIAN__
-	if (addr & 0x1) {
-		*(u8*)(M.mem_base + addr + 0) = (val >> 0) & 0xff;
-		*(u8*)(M.mem_base + addr + 1) = (val >> 8) & 0xff;
-		}
-	else
+    if (addr & 0x1) {
+        *(u8 *) (M.mem_base + addr + 0) = (val >> 0) & 0xff;
+        *(u8 *) (M.mem_base + addr + 1) = (val >> 8) & 0xff;
+    }
+    else
 #endif
-	 stw_u(val,(u16*)(M.mem_base + addr));
+        stw_u(val, (u16 *) (M.mem_base + addr));
 }
 
 /****************************************************************************
@@ -292,26 +325,26 @@ val		- Value to store
 REMARKS:
 Writes a long value to emulator memory. 
 ****************************************************************************/
-void X86API wrl(
-	u32 addr,
-	u32 val)
+void X86API
+wrl(u32 addr, u32 val)
 {
-DB(	if (DEBUG_MEM_TRACE())
-		printk("%#08x 4 <- %#x\n", addr, val);)
-	if (addr > M.mem_size - 4) {
-		DB(printk("mem_write: address %#lx out of range!\n", addr);)
-		HALT_SYS();
-		}
+    DB(if (DEBUG_MEM_TRACE())
+       printk("%#08x 4 <- %#x\n", addr, val);)
+        if (addr > M.mem_size - 4) {
+            DB(printk("mem_write: address %#lx out of range!\n", addr);
+                )
+                HALT_SYS();
+        }
 #ifdef __BIG_ENDIAN__
-	if (addr & 0x1) {
-		*(u8*)(M.mem_base + addr + 0) = (val >>  0) & 0xff;
-		*(u8*)(M.mem_base + addr + 1) = (val >>  8) & 0xff;
-		*(u8*)(M.mem_base + addr + 2) = (val >> 16) & 0xff;
-		*(u8*)(M.mem_base + addr + 3) = (val >> 24) & 0xff;
-		}
-	else
+    if (addr & 0x1) {
+        *(u8 *) (M.mem_base + addr + 0) = (val >> 0) & 0xff;
+        *(u8 *) (M.mem_base + addr + 1) = (val >> 8) & 0xff;
+        *(u8 *) (M.mem_base + addr + 2) = (val >> 16) & 0xff;
+        *(u8 *) (M.mem_base + addr + 3) = (val >> 24) & 0xff;
+    }
+    else
 #endif
-	 stl_u(val,(u32*)(M.mem_base + addr));
+        stl_u(val, (u32 *) (M.mem_base + addr));
 }
 
 /****************************************************************************
@@ -322,12 +355,12 @@ RETURN:
 REMARKS:
 Default PIO byte read function. Doesn't perform real inb.
 ****************************************************************************/
-static u8 X86API p_inb(
-	X86EMU_pioAddr addr)
+static u8 X86API
+p_inb(X86EMU_pioAddr addr)
 {
-DB(	if (DEBUG_IO_TRACE())
-		printk("inb %#04x \n", addr);)
-	return 0;
+    DB(if (DEBUG_IO_TRACE())
+       printk("inb %#04x \n", addr);)
+        return 0;
 }
 
 /****************************************************************************
@@ -338,12 +371,12 @@ RETURN:
 REMARKS:
 Default PIO word read function. Doesn't perform real inw.
 ****************************************************************************/
-static u16 X86API p_inw(
-	X86EMU_pioAddr addr)
+static u16 X86API
+p_inw(X86EMU_pioAddr addr)
 {
-DB(	if (DEBUG_IO_TRACE())
-		printk("inw %#04x \n", addr);)
-	return 0;
+    DB(if (DEBUG_IO_TRACE())
+       printk("inw %#04x \n", addr);)
+        return 0;
 }
 
 /****************************************************************************
@@ -354,12 +387,12 @@ RETURN:
 REMARKS:
 Default PIO long read function. Doesn't perform real inl.
 ****************************************************************************/
-static u32 X86API p_inl(
-	X86EMU_pioAddr addr)
+static u32 X86API
+p_inl(X86EMU_pioAddr addr)
 {
-DB(	if (DEBUG_IO_TRACE())
-		printk("inl %#04x \n", addr);)
-	return 0;
+    DB(if (DEBUG_IO_TRACE())
+       printk("inl %#04x \n", addr);)
+        return 0;
 }
 
 /****************************************************************************
@@ -369,13 +402,12 @@ val     - Value to store
 REMARKS:
 Default PIO byte write function. Doesn't perform real outb.
 ****************************************************************************/
-static void X86API p_outb(
-	X86EMU_pioAddr addr,
-	u8 val)
+static void X86API
+p_outb(X86EMU_pioAddr addr, u8 val)
 {
-DB(	if (DEBUG_IO_TRACE())
-		printk("outb %#02x -> %#04x \n", val, addr);)
-    return;
+    DB(if (DEBUG_IO_TRACE())
+       printk("outb %#02x -> %#04x \n", val, addr);)
+        return;
 }
 
 /****************************************************************************
@@ -385,13 +417,12 @@ val     - Value to store
 REMARKS:
 Default PIO word write function. Doesn't perform real outw.
 ****************************************************************************/
-static void X86API p_outw(
-	X86EMU_pioAddr addr,
-	u16 val)
+static void X86API
+p_outw(X86EMU_pioAddr addr, u16 val)
 {
-DB(	if (DEBUG_IO_TRACE())
-		printk("outw %#04x -> %#04x \n", val, addr);)
-	return;
+    DB(if (DEBUG_IO_TRACE())
+       printk("outw %#04x -> %#04x \n", val, addr);)
+        return;
 }
 
 /****************************************************************************
@@ -401,29 +432,29 @@ val     - Value to store
 REMARKS:
 Default PIO ;ong write function. Doesn't perform real outl.
 ****************************************************************************/
-static void X86API p_outl(
-	X86EMU_pioAddr addr,
-	u32 val)
+static void X86API
+p_outl(X86EMU_pioAddr addr, u32 val)
 {
-DB(	if (DEBUG_IO_TRACE())
-		printk("outl %#08x -> %#04x \n", val, addr);)
-    return;
+    DB(if (DEBUG_IO_TRACE())
+       printk("outl %#08x -> %#04x \n", val, addr);)
+        return;
 }
 
 /*------------------------- Global Variables ------------------------------*/
 
-u8  	(X86APIP sys_rdb)(u32 addr) 			            = rdb;
-u16 	(X86APIP sys_rdw)(u32 addr) 			            = rdw;
-u32 	(X86APIP sys_rdl)(u32 addr) 			            = rdl;
-void 	(X86APIP sys_wrb)(u32 addr,u8 val) 		            = wrb;
-void 	(X86APIP sys_wrw)(u32 addr,u16 val) 	            = wrw;
-void 	(X86APIP sys_wrl)(u32 addr,u32 val) 	            = wrl;
-u8  	(X86APIP sys_inb)(X86EMU_pioAddr addr)	            = p_inb;
-u16 	(X86APIP sys_inw)(X86EMU_pioAddr addr)	            = p_inw;
-u32 	(X86APIP sys_inl)(X86EMU_pioAddr addr)              = p_inl;
-void 	(X86APIP sys_outb)(X86EMU_pioAddr addr, u8 val) 	= p_outb;
-void 	(X86APIP sys_outw)(X86EMU_pioAddr addr, u16 val)	= p_outw;
-void 	(X86APIP sys_outl)(X86EMU_pioAddr addr, u32 val)	= p_outl;
+u8(X86APIP sys_rdb) (u32 addr) = rdb;
+u16(X86APIP sys_rdw) (u32 addr) = rdw;
+u32(X86APIP sys_rdl) (u32 addr) = rdl;
+void (X86APIP sys_wrb) (u32 addr, u8 val) = wrb;
+void (X86APIP sys_wrw) (u32 addr, u16 val) = wrw;
+void (X86APIP sys_wrl) (u32 addr, u32 val) = wrl;
+
+u8(X86APIP sys_inb) (X86EMU_pioAddr addr) = p_inb;
+u16(X86APIP sys_inw) (X86EMU_pioAddr addr) = p_inw;
+u32(X86APIP sys_inl) (X86EMU_pioAddr addr) = p_inl;
+void (X86APIP sys_outb) (X86EMU_pioAddr addr, u8 val) = p_outb;
+void (X86APIP sys_outw) (X86EMU_pioAddr addr, u16 val) = p_outw;
+void (X86APIP sys_outl) (X86EMU_pioAddr addr, u32 val) = p_outl;
 
 /*----------------------------- Setup -------------------------------------*/
 
@@ -436,8 +467,8 @@ This function is used to set the pointers to functions which access
 memory space, allowing the user application to override these functions
 and hook them out as necessary for their application.
 ****************************************************************************/
-void X86EMU_setupMemFuncs(
-	X86EMU_memFuncs *funcs)
+void
+X86EMU_setupMemFuncs(X86EMU_memFuncs * funcs)
 {
     sys_rdb = funcs->rdb;
     sys_rdw = funcs->rdw;
@@ -456,8 +487,8 @@ This function is used to set the pointers to functions which access
 I/O space, allowing the user application to override these functions
 and hook them out as necessary for their application.
 ****************************************************************************/
-void X86EMU_setupPioFuncs(
-	X86EMU_pioFuncs *funcs)
+void
+X86EMU_setupPioFuncs(X86EMU_pioFuncs * funcs)
 {
     sys_inb = funcs->inb;
     sys_inw = funcs->inw;
@@ -480,17 +511,17 @@ in the emulator via the interrupt vector table. This allows the application
 to get control when the code being emulated executes specific software
 interrupts.
 ****************************************************************************/
-void X86EMU_setupIntrFuncs(
-	X86EMU_intrFuncs funcs[])
+void
+X86EMU_setupIntrFuncs(X86EMU_intrFuncs funcs[])
 {
     int i;
-    
-	for (i=0; i < 256; i++)
-		_X86EMU_intrTab[i] = NULL;
-	if (funcs) {
-		for (i = 0; i < 256; i++)
-			_X86EMU_intrTab[i] = funcs[i];
-		}
+
+    for (i = 0; i < 256; i++)
+        _X86EMU_intrTab[i] = NULL;
+    if (funcs) {
+        for (i = 0; i < 256; i++)
+            _X86EMU_intrTab[i] = funcs[i];
+    }
 }
 
 /****************************************************************************
@@ -505,15 +536,15 @@ so that the code in the emulator will continue processing the software
 interrupt as per normal. This essentially allows system code to actively
 hook and handle certain software interrupts as necessary.
 ****************************************************************************/
-void X86EMU_prepareForInt(
-	int num)
+void
+X86EMU_prepareForInt(int num)
 {
-    push_word((u16)M.x86.R_FLG);
+    push_word((u16) M.x86.R_FLG);
     CLEAR_FLAG(F_IF);
     CLEAR_FLAG(F_TF);
     push_word(M.x86.R_CS);
     M.x86.R_CS = mem_access_word(num * 4 + 2);
     push_word(M.x86.R_IP);
     M.x86.R_IP = mem_access_word(num * 4);
-	M.x86.intr = 0;
+    M.x86.intr = 0;
 }

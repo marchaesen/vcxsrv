@@ -72,14 +72,12 @@ extern _X_INTERNAL PURE FASTCALL GLint __glMap2d_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glMap2f_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glColorTableParameterfv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glColorTableParameteriv_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint
-__glConvolutionParameterfv_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint
-__glConvolutionParameteriv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glConvolutionParameterfv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glConvolutionParameteriv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glPointParameterfvEXT_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glPointParameterivNV_size(GLenum);
 
 #undef PURE
 #undef FASTCALL
 
-#endif /* !defined( _INDIRECT_SIZE_H_ ) */
+#endif                          /* !defined( _INDIRECT_SIZE_H_ ) */

@@ -37,9 +37,8 @@ from the author.
 /** Struct to keep information about registered extensions */
 typedef struct _GEExtension {
     /** Event swapping routine */
-    void (*evswap)(xGenericEvent* from, xGenericEvent* to);
+    void (*evswap) (xGenericEvent *from, xGenericEvent *to);
 } GEExtension, *GEExtensionPtr;
-
 
 /* All registered extensions and their handling functions. */
 extern _X_EXPORT GEExtension GEExtensions[MAXEXTENSIONS];
@@ -70,14 +69,15 @@ extern _X_EXPORT GEExtension GEExtensions[MAXEXTENSIONS];
          GEEXT(ev) == (ext) && \
          GEV(ev)->evtype == (ev_type))
 
-
 /* Interface for other extensions */
-extern _X_EXPORT void GERegisterExtension(
-        int extension,
-        void (*ev_dispatch)(xGenericEvent* from, xGenericEvent* to));
+extern _X_EXPORT void GERegisterExtension(int extension,
+                                          void (*ev_dispatch) (xGenericEvent
+                                                               *from,
+                                                               xGenericEvent
+                                                               *to));
 
-extern _X_EXPORT void GEInitEvent(xGenericEvent* ev, int extension);
+extern _X_EXPORT void GEInitEvent(xGenericEvent *ev, int extension);
 
 extern _X_EXPORT void GEExtensionInit(void);
 
-#endif /* _GEEXT_H_ */
+#endif                          /* _GEEXT_H_ */

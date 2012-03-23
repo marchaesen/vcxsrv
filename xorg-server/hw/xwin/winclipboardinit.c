@@ -34,112 +34,101 @@
 #include "dixstruct.h"
 #include "winclipboard.h"
 
-
 /*
  * Local typedefs
  */
 
 typedef int (*winDispatchProcPtr) (ClientPtr);
 
-int winProcSetSelectionOwner(ClientPtr /* client */);
-
+int winProcSetSelectionOwner(ClientPtr /* client */ );
 
 /*
  * References to external symbols
  */
 
-extern pthread_t		g_ptClipboardProc;
-extern winDispatchProcPtr	winProcSetSelectionOwnerOrig;
-extern Bool			g_fClipboard;
-extern HWND			g_hwndClipboard;
-
+extern pthread_t g_ptClipboardProc;
+extern winDispatchProcPtr winProcSetSelectionOwnerOrig;
+extern Bool g_fClipboard;
+extern HWND g_hwndClipboard;
 
 /*
  * Intialize the Clipboard module
  */
 
 Bool
-winInitClipboard (void)
+winInitClipboard(void)
 {
-  ErrorF ("winInitClipboard ()\n");
+    ErrorF("winInitClipboard ()\n");
 
-  /* Wrap some internal server functions */
-  if (ProcVector[X_SetSelectionOwner] != winProcSetSelectionOwner)
-    {
-      winProcSetSelectionOwnerOrig = ProcVector[X_SetSelectionOwner];
-      ProcVector[X_SetSelectionOwner] = winProcSetSelectionOwner;
-    }
-  
-  /* Spawn a thread for the Clipboard module */
-  if (pthread_create (&g_ptClipboardProc,
-		      NULL,
-		      winClipboardProc,
-		      NULL))
-    {
-      /* Bail if thread creation failed */
-      ErrorF ("winInitClipboard - pthread_create failed.\n");
-      return FALSE;
+    /* Wrap some internal server functions */
+    if (ProcVector[X_SetSelectionOwner] != winProcSetSelectionOwner) {
+        winProcSetSelectionOwnerOrig = ProcVector[X_SetSelectionOwner];
+        ProcVector[X_SetSelectionOwner] = winProcSetSelectionOwner;
     }
 
-  return TRUE;
+    /* Spawn a thread for the Clipboard module */
+    if (pthread_create(&g_ptClipboardProc, NULL, winClipboardProc, NULL)) {
+        /* Bail if thread creation failed */
+        ErrorF("winInitClipboard - pthread_create failed.\n");
+        return FALSE;
+    }
+
+    return TRUE;
 }
-
 
 /*
  * Create the Windows window that we use to recieve Windows messages
  */
 
 HWND
-winClipboardCreateMessagingWindow (void)
+winClipboardCreateMessagingWindow(void)
 {
-  WNDCLASSEX			wc;
-  HWND				hwnd;
+    WNDCLASSEX wc;
+    HWND hwnd;
 
-  /* Setup our window class */
-  wc.cbSize=sizeof(WNDCLASSEX);
-  wc.style = CS_HREDRAW | CS_VREDRAW;
-  wc.lpfnWndProc = winClipboardWindowProc;
-  wc.cbClsExtra = 0;
-  wc.cbWndExtra = 0;
-  wc.hInstance = GetModuleHandle (NULL);
-  wc.hIcon = 0;
-  wc.hCursor = 0;
-  wc.hbrBackground = (HBRUSH) GetStockObject (WHITE_BRUSH);
-  wc.lpszMenuName = NULL;
-  wc.lpszClassName = WIN_CLIPBOARD_WINDOW_CLASS;
-  wc.hIconSm = 0;
-  RegisterClassEx (&wc);
+    /* Setup our window class */
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.lpfnWndProc = winClipboardWindowProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.hIcon = 0;
+    wc.hCursor = 0;
+    wc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = WIN_CLIPBOARD_WINDOW_CLASS;
+    wc.hIconSm = 0;
+    RegisterClassEx(&wc);
 
-  /* Create the window */
-  hwnd = CreateWindowExA (0,			/* Extended styles */
-			  WIN_CLIPBOARD_WINDOW_CLASS,/* Class name */
-			  WIN_CLIPBOARD_WINDOW_TITLE,/* Window name */
-			  WS_OVERLAPPED,	/* Not visible anyway */
-			  CW_USEDEFAULT,	/* Horizontal position */
-			  CW_USEDEFAULT,	/* Vertical position */
-			  CW_USEDEFAULT,	/* Right edge */
-			  CW_USEDEFAULT,	/* Bottom edge */
-			  (HWND) NULL,		/* No parent or owner window */
-			  (HMENU) NULL,		/* No menu */
-			  GetModuleHandle (NULL),/* Instance handle */
-			  NULL);		/* Creation data */
-  assert (hwnd != NULL);
+    /* Create the window */
+    hwnd = CreateWindowExA(0,   /* Extended styles */
+                           WIN_CLIPBOARD_WINDOW_CLASS,  /* Class name */
+                           WIN_CLIPBOARD_WINDOW_TITLE,  /* Window name */
+                           WS_OVERLAPPED,       /* Not visible anyway */
+                           CW_USEDEFAULT,       /* Horizontal position */
+                           CW_USEDEFAULT,       /* Vertical position */
+                           CW_USEDEFAULT,       /* Right edge */
+                           CW_USEDEFAULT,       /* Bottom edge */
+                           (HWND) NULL, /* No parent or owner window */
+                           (HMENU) NULL,        /* No menu */
+                           GetModuleHandle(NULL),       /* Instance handle */
+                           NULL);       /* Creation data */
+    assert(hwnd != NULL);
 
-  /* I'm not sure, but we may need to call this to start message processing */
-  ShowWindow (hwnd, SW_HIDE);
+    /* I'm not sure, but we may need to call this to start message processing */
+    ShowWindow(hwnd, SW_HIDE);
 
-  /* Similarly, we may need a call to this even though we don't paint */
-  UpdateWindow (hwnd);
+    /* Similarly, we may need a call to this even though we don't paint */
+    UpdateWindow(hwnd);
 
-  return hwnd;
+    return hwnd;
 }
 
 void
-winFixClipboardChain (void)
+winFixClipboardChain(void)
 {
-   if (g_fClipboard
-       && g_hwndClipboard)
-     {
-       PostMessage (g_hwndClipboard, WM_WM_REINIT, 0, 0);
-     }
+    if (g_fClipboard && g_hwndClipboard) {
+        PostMessage(g_hwndClipboard, WM_WM_REINIT, 0, 0);
+    }
 }

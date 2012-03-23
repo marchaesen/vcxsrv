@@ -51,86 +51,99 @@
 
 /** Stores the parsed argument list. */
 struct _dmxArg {
-    int        argc;   /**< Number of arguments in argv */
-    int        argm;   /**< Maximum number of arguments store-able in argv */
+    int argc;          /**< Number of arguments in argv */
+    int argm;          /**< Maximum number of arguments store-able in argv */
     const char **argv; /**< Arguments */
 };
 
 /** Create an (externally opaque) \a dmxArg object. */
-dmxArg dmxArgCreate(void)
+dmxArg
+dmxArgCreate(void)
 {
-    dmxArg a   = malloc(sizeof(*a));
-    a->argc    = 0;
-    a->argm    = 2;
-    a->argv    = malloc(a->argm * sizeof(*a->argv));
+    dmxArg a = malloc(sizeof(*a));
+
+    a->argc = 0;
+    a->argm = 2;
+    a->argv = malloc(a->argm * sizeof(*a->argv));
     a->argv[0] = NULL;
     return a;
 }
 
 /** Free the specified \a dmxArg object. */
-void dmxArgFree(dmxArg a)
+void
+dmxArgFree(dmxArg a)
 {
     int i;
 
-    for (i = 0; i < a->argc; i++) free((char *)a->argv[i]);
+    for (i = 0; i < a->argc; i++)
+        free((char *) a->argv[i]);
     free(a->argv);
     free(a);
 }
 
 /** Add the \a string as the next argument in the \a dmxArg object. */
-void dmxArgAdd(dmxArg a, const char *string)
+void
+dmxArgAdd(dmxArg a, const char *string)
 {
     if (a->argm <= a->argc + 2)
         a->argv = realloc(a->argv, sizeof(*a->argv) * (a->argm *= 2));
     a->argv[a->argc++] = strdup(string);
-    a->argv[a->argc]   = NULL;
+    a->argv[a->argc] = NULL;
 }
 
 /** Return the argument number \a item in the \a dmxArg object.
  * Arguments are 0 based.  NULL will be returned for values less than 0
  * or equal to or greater than the number of arguments in the object. */
-const char *dmxArgV(dmxArg a, int item)
+const char *
+dmxArgV(dmxArg a, int item)
 {
-    if (item < 0 || item >= a->argc) return NULL;
+    if (item < 0 || item >= a->argc)
+        return NULL;
     return a->argv[item];
 }
 
 /** Return the number of arguments in the \a dmxArg object. */
-int dmxArgC(dmxArg a)
+int
+dmxArgC(dmxArg a)
 {
     return a->argc;
 }
 
 /** Parse a string into arguments delimited by commas.  Return a new \a
  * dmxArg object containing the arguments. */
-dmxArg dmxArgParse(const char *string)
+dmxArg
+dmxArgParse(const char *string)
 {
-    char   *tmp;
-    char   *start, *pt;
+    char *tmp;
+    char *start, *pt;
     dmxArg a = dmxArgCreate();
-    int    done;
-    int    len;
+    int done;
+    int len;
 
-    if (!string) return a;
+    if (!string)
+        return a;
 
     len = strlen(string) + 2;
     tmp = malloc(len);
     strncpy(tmp, string, len);
 
     for (start = pt = tmp, done = 0; !done && *pt; start = ++pt) {
-        for (;*pt && *pt != ','; pt++);
-        if (!*pt) done = 1;
+        for (; *pt && *pt != ','; pt++);
+        if (!*pt)
+            done = 1;
         *pt = '\0';
         dmxArgAdd(a, start);
     }
-    if (!done) dmxArgAdd(a, ""); /* Final comma */
-    
+    if (!done)
+        dmxArgAdd(a, "");       /* Final comma */
+
     free(tmp);
     return a;
 }
 
 #if DMX_ARG_TEST
-static void dmxArgPrint(dmxArg a)
+static void
+dmxArgPrint(dmxArg a)
 {
     int i;
 
@@ -139,7 +152,8 @@ static void dmxArgPrint(dmxArg a)
         printf("   argv[%d] = \"%s\"\n", i, dmxArgV(a, i));
 }
 
-static void dmxArgTest(const char *string)
+static void
+dmxArgTest(const char *string)
 {
     dmxArg a;
 
@@ -155,7 +169,8 @@ static void dmxArgTest(const char *string)
     dmxArgFree(a);
 }
 
-int main(void)
+int
+main(void)
 {
     dmxArgTest(NULL);
     dmxArgTest("");

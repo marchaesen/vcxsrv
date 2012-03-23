@@ -9,7 +9,7 @@
  * the number of dirty rectangles, and a pointer to the first dirty rectangle
  * in the array.
  */
-typedef void (*RefreshAreaFuncPtr)(ScrnInfoPtr, int, BoxPtr);
+typedef void (*RefreshAreaFuncPtr) (ScrnInfoPtr, int, BoxPtr);
 
 /*
  * ShadowFBInit initializes the shadowfb subsystem.  refreshArea is a pointer
@@ -20,10 +20,7 @@ typedef void (*RefreshAreaFuncPtr)(ScrnInfoPtr, int, BoxPtr);
  * Returns FALSE in the event of an error.
  */
 extern _X_EXPORT Bool
-ShadowFBInit (
-    ScreenPtr		pScreen,
-    RefreshAreaFuncPtr  refreshArea
-);
+ ShadowFBInit(ScreenPtr pScreen, RefreshAreaFuncPtr refreshArea);
 
 /*
  * ShadowFBInit2 is a more featureful refinement of the original shadowfb.
@@ -34,10 +31,9 @@ ShadowFBInit (
  * Returns FALSE in the event of an error
  */
 extern _X_EXPORT Bool
-ShadowFBInit2 (
-    ScreenPtr		pScreen,
-    RefreshAreaFuncPtr  preRefreshArea,
-    RefreshAreaFuncPtr  postRefreshArea
-);
 
-#endif /* _SHADOWFB_H */
+ShadowFBInit2(ScreenPtr pScreen,
+              RefreshAreaFuncPtr preRefreshArea,
+              RefreshAreaFuncPtr postRefreshArea);
+
+#endif                          /* _SHADOWFB_H */

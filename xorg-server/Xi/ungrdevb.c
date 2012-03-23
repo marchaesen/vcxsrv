@@ -54,8 +54,8 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
-#include "windowstr.h"	/* window structure  */
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include "exglobals.h"
@@ -104,27 +104,28 @@ ProcXUngrabDeviceButton(ClientPtr client)
 
     rc = dixLookupDevice(&dev, stuff->grabbed_device, client, DixGrabAccess);
     if (rc != Success)
-	return rc;
+        return rc;
     if (dev->button == NULL)
-	return BadMatch;
+        return BadMatch;
 
     if (stuff->modifier_device != UseXKeyboard) {
-	rc = dixLookupDevice(&mdev, stuff->modifier_device, client,
-			     DixReadAccess);
-	if (rc != Success)
-	    return BadDevice;
-	if (mdev->key == NULL)
-	    return BadMatch;
-    } else
-	mdev = PickKeyboard(client);
+        rc = dixLookupDevice(&mdev, stuff->modifier_device, client,
+                             DixReadAccess);
+        if (rc != Success)
+            return BadDevice;
+        if (mdev->key == NULL)
+            return BadMatch;
+    }
+    else
+        mdev = PickKeyboard(client);
 
     rc = dixLookupWindow(&pWin, stuff->grabWindow, client, DixSetAttrAccess);
     if (rc != Success)
-	return rc;
+        return rc;
 
     if ((stuff->modifiers != AnyModifier) &&
-	(stuff->modifiers & ~AllModifiersMask))
-	return BadValue;
+        (stuff->modifiers & ~AllModifiersMask))
+        return BadValue;
 
     temporaryGrab = AllocGrab();
     if (!temporaryGrab)

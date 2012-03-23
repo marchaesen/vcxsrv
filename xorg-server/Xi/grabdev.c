@@ -54,12 +54,12 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
-#include "windowstr.h"	/* window structure  */
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include "exglobals.h"
-#include "dixevents.h"	/* GrabDevice */
+#include "dixevents.h"          /* GrabDevice */
 
 #include "grabdev.h"
 
@@ -82,9 +82,10 @@ SProcXGrabDevice(ClientPtr client)
     swapl(&stuff->time);
     swaps(&stuff->event_count);
 
-    if (stuff->length != bytes_to_int32(sizeof(xGrabDeviceReq)) + stuff->event_count)
-       return BadLength;
-    
+    if (stuff->length !=
+        bytes_to_int32(sizeof(xGrabDeviceReq)) + stuff->event_count)
+        return BadLength;
+
     SwapLongs((CARD32 *) (&stuff[1]), stuff->event_count);
 
     return (ProcXGrabDevice(client));
@@ -108,8 +109,9 @@ ProcXGrabDevice(ClientPtr client)
     REQUEST(xGrabDeviceReq);
     REQUEST_AT_LEAST_SIZE(xGrabDeviceReq);
 
-    if (stuff->length != bytes_to_int32(sizeof(xGrabDeviceReq)) + stuff->event_count)
-	return BadLength;
+    if (stuff->length !=
+        bytes_to_int32(sizeof(xGrabDeviceReq)) + stuff->event_count)
+        return BadLength;
 
     rep.repType = X_Reply;
     rep.RepType = X_GrabDevice;
@@ -118,23 +120,22 @@ ProcXGrabDevice(ClientPtr client)
 
     rc = dixLookupDevice(&dev, stuff->deviceid, client, DixGrabAccess);
     if (rc != Success)
-	return rc;
+        return rc;
 
-    if ((rc = CreateMaskFromList(client, (XEventClass *) & stuff[1],
-				 stuff->event_count, tmp, dev,
-				 X_GrabDevice)) != Success)
-	return rc;
+    if ((rc = CreateMaskFromList(client, (XEventClass *) &stuff[1],
+                                 stuff->event_count, tmp, dev,
+                                 X_GrabDevice)) != Success)
+        return rc;
 
     mask.xi = tmp[stuff->deviceid].mask;
 
     rc = GrabDevice(client, dev, stuff->other_devices_mode,
                     stuff->this_device_mode, stuff->grabWindow,
-		    stuff->ownerEvents, stuff->time,
-		    &mask, XI, None, None,
-		    &rep.status);
+                    stuff->ownerEvents, stuff->time,
+                    &mask, XI, None, None, &rep.status);
 
     if (rc != Success)
-	return rc;
+        return rc;
 
     WriteReplyToClient(client, sizeof(xGrabDeviceReply), &rep);
     return Success;
@@ -166,34 +167,34 @@ ProcXGrabDevice(ClientPtr client)
 
 int
 CreateMaskFromList(ClientPtr client, XEventClass * list, int count,
-		   struct tmask *mask, DeviceIntPtr dev, int req)
+                   struct tmask *mask, DeviceIntPtr dev, int req)
 {
     int rc, i, j;
     int device;
     DeviceIntPtr tdev;
 
     for (i = 0; i < EMASKSIZE; i++) {
-	mask[i].mask = 0;
-	mask[i].dev = NULL;
+        mask[i].mask = 0;
+        mask[i].dev = NULL;
     }
 
     for (i = 0; i < count; i++, list++) {
-	device = *list >> 8;
-	if (device > 255)
-	    return BadClass;
+        device = *list >> 8;
+        if (device > 255)
+            return BadClass;
 
-	rc = dixLookupDevice(&tdev, device, client, DixUseAccess);
-	if (rc != BadDevice && rc != Success)
-	    return rc;
-	if (rc == BadDevice || (dev != NULL && tdev != dev))
-	    return BadClass;
+        rc = dixLookupDevice(&tdev, device, client, DixUseAccess);
+        if (rc != BadDevice && rc != Success)
+            return rc;
+        if (rc == BadDevice || (dev != NULL && tdev != dev))
+            return BadClass;
 
-	for (j = 0; j < ExtEventIndex; j++)
-	    if (EventInfo[j].type == (*list & 0xff)) {
-		mask[device].mask |= EventInfo[j].mask;
-		mask[device].dev = (Pointer) tdev;
-		break;
-	    }
+        for (j = 0; j < ExtEventIndex; j++)
+            if (EventInfo[j].type == (*list & 0xff)) {
+                mask[device].mask |= EventInfo[j].mask;
+                mask[device].dev = (Pointer) tdev;
+                break;
+            }
     }
     return Success;
 }
@@ -210,5 +211,5 @@ SRepXGrabDevice(ClientPtr client, int size, xGrabDeviceReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *)rep);
+    WriteToClient(client, size, (char *) rep);
 }

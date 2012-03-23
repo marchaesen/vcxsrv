@@ -40,7 +40,7 @@
 #include <X11/extensions/XI2proto.h>
 #include "inputstr.h"
 #include "windowstr.h"
-#include "extinit.h" /* for XInputExtensionInit */
+#include "extinit.h"            /* for XInputExtensionInit */
 #include "scrnintstr.h"
 #include "xisetclientpointer.h"
 #include "exevents.h"
@@ -50,13 +50,14 @@
 static ClientRec client_window;
 static ClientRec client_request;
 
-int __wrap_dixLookupClient(ClientPtr *pClient, XID rid, ClientPtr client, Mask access)
+int
+__wrap_dixLookupClient(ClientPtr *pClient, XID rid, ClientPtr client,
+                       Mask access)
 {
     if (rid == ROOT_WINDOW_ID)
         return BadWindow;
 
-    if (rid == CLIENT_WINDOW_ID)
-    {
+    if (rid == CLIENT_WINDOW_ID) {
         *pClient = &client_window;
         return Success;
     }
@@ -64,9 +65,11 @@ int __wrap_dixLookupClient(ClientPtr *pClient, XID rid, ClientPtr client, Mask a
     return __real_dixLookupClient(pClient, rid, client, access);
 }
 
-static void request_XISetClientPointer(xXISetClientPointerReq* req, int error)
+static void
+request_XISetClientPointer(xXISetClientPointerReq * req, int error)
 {
     int rc;
+
     client_request = init_client(req->length, req);
 
     rc = ProcXISetClientPointer(&client_request);
@@ -87,7 +90,8 @@ static void request_XISetClientPointer(xXISetClientPointerReq* req, int error)
 
 }
 
-static void test_XISetClientPointer(void)
+static void
+test_XISetClientPointer(void)
 {
     int i;
     xXISetClientPointerReq request;
@@ -113,8 +117,7 @@ static void test_XISetClientPointer(void)
     assert(client_window.clientPtr->id == 2);
 
     printf("Testing BadDevice error for all other devices.\n");
-    for (i = 4; i <= 0xFFFF; i++)
-    {
+    for (i = 4; i <= 0xFFFF; i++) {
         request.deviceid = i;
         request_XISetClientPointer(&request, BadDevice);
     }
@@ -132,8 +135,8 @@ static void test_XISetClientPointer(void)
 
 }
 
-
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     init_simple();
     client_window = init_client(0, NULL);

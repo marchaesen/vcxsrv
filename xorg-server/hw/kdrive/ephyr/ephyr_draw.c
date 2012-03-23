@@ -64,7 +64,7 @@ ephyrPreparePipelinedAccess(PixmapPtr pPix, int index)
     fakexa->saved_ptrs[index] = pPix->devPrivate.ptr;
 
     if (pPix->devPrivate.ptr != NULL)
-	return;
+        return;
 
     pPix->devPrivate.ptr = fakexa->exa->memoryBase + exaGetPixmapOffset(pPix);
 }
@@ -93,6 +93,7 @@ static Bool
 ephyrPrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 {
     ScreenPtr pScreen = pPix->drawable.pScreen;
+
     KdScreenPriv(pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
     EphyrScrPriv *scrpriv = screen->driver;
@@ -107,7 +108,8 @@ ephyrPrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     tmpval[0].val = alu;
     tmpval[1].val = pm;
     tmpval[2].val = fg;
-    ChangeGC(NullClient, fakexa->pGC, GCFunction | GCPlaneMask | GCForeground, tmpval);
+    ChangeGC(NullClient, fakexa->pGC, GCFunction | GCPlaneMask | GCForeground,
+             tmpval);
 
     ValidateGC(&pPix->drawable, fakexa->pGC);
 
@@ -123,6 +125,7 @@ static void
 ephyrSolid(PixmapPtr pPix, int x1, int y1, int x2, int y2)
 {
     ScreenPtr pScreen = pPix->drawable.pScreen;
+
     KdScreenPriv(pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
     EphyrScrPriv *scrpriv = screen->driver;
@@ -138,6 +141,7 @@ static void
 ephyrDoneSolid(PixmapPtr pPix)
 {
     ScreenPtr pScreen = pPix->drawable.pScreen;
+
     KdScreenPriv(pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
     EphyrScrPriv *scrpriv = screen->driver;
@@ -154,9 +158,10 @@ ephyrDoneSolid(PixmapPtr pPix)
  */
 static Bool
 ephyrPrepareCopy(PixmapPtr pSrc, PixmapPtr pDst, int dx, int dy, int alu,
-		 Pixel pm)
+                 Pixel pm)
 {
     ScreenPtr pScreen = pDst->drawable.pScreen;
+
     KdScreenPriv(pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
     EphyrScrPriv *scrpriv = screen->driver;
@@ -172,7 +177,7 @@ ephyrPrepareCopy(PixmapPtr pSrc, PixmapPtr pDst, int dx, int dy, int alu,
 
     tmpval[0].val = alu;
     tmpval[1].val = pm;
-    ChangeGC (NullClient, fakexa->pGC, GCFunction | GCPlaneMask, tmpval);
+    ChangeGC(NullClient, fakexa->pGC, GCFunction | GCPlaneMask, tmpval);
 
     ValidateGC(&pDst->drawable, fakexa->pGC);
 
@@ -188,13 +193,14 @@ static void
 ephyrCopy(PixmapPtr pDst, int srcX, int srcY, int dstX, int dstY, int w, int h)
 {
     ScreenPtr pScreen = pDst->drawable.pScreen;
+
     KdScreenPriv(pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
     EphyrScrPriv *scrpriv = screen->driver;
     EphyrFakexaPriv *fakexa = scrpriv->fakexa;
 
     fbCopyArea(&fakexa->pSrc->drawable, &fakexa->pDst->drawable, fakexa->pGC,
-	       srcX, srcY, w, h, dstX, dstY);
+               srcX, srcY, w, h, dstX, dstY);
 }
 
 /**
@@ -204,12 +210,13 @@ static void
 ephyrDoneCopy(PixmapPtr pDst)
 {
     ScreenPtr pScreen = pDst->drawable.pScreen;
+
     KdScreenPriv(pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
     EphyrScrPriv *scrpriv = screen->driver;
     EphyrFakexaPriv *fakexa = scrpriv->fakexa;
 
-    FreeScratchGC (fakexa->pGC);
+    FreeScratchGC(fakexa->pGC);
 
     ephyrFinishPipelinedAccess(fakexa->pSrc, EXA_PREPARE_SRC);
     ephyrFinishPipelinedAccess(fakexa->pDst, EXA_PREPARE_DEST);
@@ -222,13 +229,13 @@ ephyrDoneCopy(PixmapPtr pDst)
  */
 static Bool
 ephyrCheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskPicture,
-		    PicturePtr pDstPicture)
+                    PicturePtr pDstPicture)
 {
     /* Exercise the component alpha helper, so fail on this case like a normal
      * driver
      */
     if (pMaskPicture && pMaskPicture->componentAlpha && op == PictOpOver)
-	return FALSE;
+        return FALSE;
 
     return TRUE;
 }
@@ -238,8 +245,8 @@ ephyrCheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskPicture,
  */
 static Bool
 ephyrPrepareComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskPicture,
-		      PicturePtr pDstPicture, PixmapPtr pSrc, PixmapPtr pMask,
-		      PixmapPtr pDst)
+                      PicturePtr pDstPicture, PixmapPtr pSrc, PixmapPtr pMask,
+                      PixmapPtr pDst)
 {
     KdScreenPriv(pDst->drawable.pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
@@ -249,7 +256,7 @@ ephyrPrepareComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskPicture,
     ephyrPreparePipelinedAccess(pDst, EXA_PREPARE_DEST);
     ephyrPreparePipelinedAccess(pSrc, EXA_PREPARE_SRC);
     if (pMask != NULL)
-	ephyrPreparePipelinedAccess(pMask, EXA_PREPARE_MASK);
+        ephyrPreparePipelinedAccess(pMask, EXA_PREPARE_MASK);
 
     fakexa->op = op;
     fakexa->pSrcPicture = pSrcPicture;
@@ -269,7 +276,7 @@ ephyrPrepareComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskPicture,
  */
 static void
 ephyrComposite(PixmapPtr pDst, int srcX, int srcY, int maskX, int maskY,
-	       int dstX, int dstY, int w, int h)
+               int dstX, int dstY, int w, int h)
 {
     KdScreenPriv(pDst->drawable.pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
@@ -277,8 +284,8 @@ ephyrComposite(PixmapPtr pDst, int srcX, int srcY, int maskX, int maskY,
     EphyrFakexaPriv *fakexa = scrpriv->fakexa;
 
     fbComposite(fakexa->op, fakexa->pSrcPicture, fakexa->pMaskPicture,
-		fakexa->pDstPicture, srcX, srcY, maskX, maskY, dstX, dstY,
-		w, h);
+                fakexa->pDstPicture, srcX, srcY, maskX, maskY, dstX, dstY,
+                w, h);
 }
 
 static void
@@ -290,7 +297,7 @@ ephyrDoneComposite(PixmapPtr pDst)
     EphyrFakexaPriv *fakexa = scrpriv->fakexa;
 
     if (fakexa->pMask != NULL)
-	ephyrFinishPipelinedAccess(fakexa->pMask, EXA_PREPARE_MASK);
+        ephyrFinishPipelinedAccess(fakexa->pMask, EXA_PREPARE_MASK);
     ephyrFinishPipelinedAccess(fakexa->pSrc, EXA_PREPARE_SRC);
     ephyrFinishPipelinedAccess(fakexa->pDst, EXA_PREPARE_DEST);
 }
@@ -300,7 +307,7 @@ ephyrDoneComposite(PixmapPtr pDst)
  */
 static Bool
 ephyrDownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h, char *dst,
-			int dst_pitch)
+                        int dst_pitch)
 {
     KdScreenPriv(pSrc->drawable.pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
@@ -310,7 +317,7 @@ ephyrDownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h, char *dst,
     int src_pitch, cpp;
 
     if (pSrc->drawable.bitsPerPixel < 8)
-	return FALSE;
+        return FALSE;
 
     ephyrPreparePipelinedAccess(pSrc, EXA_PREPARE_SRC);
 
@@ -320,9 +327,9 @@ ephyrDownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h, char *dst,
     src += y * src_pitch + x * cpp;
 
     for (; h > 0; h--) {
-	memcpy(dst, src, w * cpp);
-	dst += dst_pitch;
-	src += src_pitch;
+        memcpy(dst, src, w * cpp);
+        dst += dst_pitch;
+        src += src_pitch;
     }
 
     exaMarkSync(pSrc->drawable.pScreen);
@@ -337,7 +344,7 @@ ephyrDownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h, char *dst,
  */
 static Bool
 ephyrUploadToScreen(PixmapPtr pDst, int x, int y, int w, int h, char *src,
-		    int src_pitch)
+                    int src_pitch)
 {
     KdScreenPriv(pDst->drawable.pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
@@ -347,7 +354,7 @@ ephyrUploadToScreen(PixmapPtr pDst, int x, int y, int w, int h, char *src,
     int dst_pitch, cpp;
 
     if (pDst->drawable.bitsPerPixel < 8)
-	return FALSE;
+        return FALSE;
 
     ephyrPreparePipelinedAccess(pDst, EXA_PREPARE_DEST);
 
@@ -357,9 +364,9 @@ ephyrUploadToScreen(PixmapPtr pDst, int x, int y, int w, int h, char *src,
     dst += y * dst_pitch + x * cpp;
 
     for (; h > 0; h--) {
-	memcpy(dst, src, w * cpp);
-	dst += dst_pitch;
-	src += src_pitch;
+        memcpy(dst, src, w * cpp);
+        dst += dst_pitch;
+        src += src_pitch;
     }
 
     exaMarkSync(pDst->drawable.pScreen);
@@ -433,12 +440,12 @@ ephyrDrawInit(ScreenPtr pScreen)
 
     fakexa = calloc(1, sizeof(*fakexa));
     if (fakexa == NULL)
-	return FALSE;
+        return FALSE;
 
     fakexa->exa = exaDriverAlloc();
     if (fakexa->exa == NULL) {
-	free(fakexa);
-	return FALSE;
+        free(fakexa);
+        return FALSE;
     }
 
     fakexa->exa->memoryBase = (CARD8 *) (priv->base);
@@ -482,12 +489,13 @@ ephyrDrawInit(ScreenPtr pScreen)
 
     success = exaDriverInit(pScreen, fakexa->exa);
     if (success) {
-	ErrorF("Initialized fake EXA acceleration\n");
-	scrpriv->fakexa = fakexa;
-    } else {
-	ErrorF("Failed to initialize EXA\n");
-	free(fakexa->exa);
-	free(fakexa);
+        ErrorF("Initialized fake EXA acceleration\n");
+        scrpriv->fakexa = fakexa;
+    }
+    else {
+        ErrorF("Failed to initialize EXA\n");
+        free(fakexa->exa);
+        free(fakexa);
     }
 
     return success;

@@ -35,6 +35,7 @@ void
 exaCreateDriverPixmap_mixed(PixmapPtr pPixmap)
 {
     ScreenPtr pScreen = pPixmap->drawable.pScreen;
+
     ExaScreenPriv(pScreen);
     ExaPixmapPriv(pPixmap);
     int w = pPixmap->drawable.width, h = pPixmap->drawable.height;
@@ -44,30 +45,34 @@ exaCreateDriverPixmap_mixed(PixmapPtr pPixmap)
 
     /* Already done. */
     if (pExaPixmap->driverPriv)
-	return;
+        return;
 
     if (exaPixmapIsPinned(pPixmap))
-	return;
+        return;
 
     /* Can't accel 1/4 bpp. */
     if (pExaPixmap->accel_blocked || bpp < 8)
-	return;
+        return;
 
     if (pExaScr->info->CreatePixmap2) {
-	int new_pitch = 0;
-        pExaPixmap->driverPriv = pExaScr->info->CreatePixmap2(pScreen, w, h, depth, usage_hint, bpp, &new_pitch);
-	paddedWidth = pExaPixmap->fb_pitch = new_pitch;
-    } else {
-	if (paddedWidth < pExaPixmap->fb_pitch)
-	    paddedWidth = pExaPixmap->fb_pitch;
-	pExaPixmap->driverPriv = pExaScr->info->CreatePixmap(pScreen, paddedWidth*h, 0);
+        int new_pitch = 0;
+
+        pExaPixmap->driverPriv =
+            pExaScr->info->CreatePixmap2(pScreen, w, h, depth, usage_hint, bpp,
+                                         &new_pitch);
+        paddedWidth = pExaPixmap->fb_pitch = new_pitch;
+    }
+    else {
+        if (paddedWidth < pExaPixmap->fb_pitch)
+            paddedWidth = pExaPixmap->fb_pitch;
+        pExaPixmap->driverPriv =
+            pExaScr->info->CreatePixmap(pScreen, paddedWidth * h, 0);
     }
 
     if (!pExaPixmap->driverPriv)
-	return;
+        return;
 
-    (*pScreen->ModifyPixmapHeader)(pPixmap, w, h, 0, 0,
-				paddedWidth, NULL);
+    (*pScreen->ModifyPixmapHeader) (pPixmap, w, h, 0, 0, paddedWidth, NULL);
 }
 
 void
@@ -79,45 +84,45 @@ exaDoMigration_mixed(ExaMigrationPtr pixmaps, int npixmaps, Bool can_accel)
      * accelerate.
      */
     for (i = 0; i < npixmaps; i++) {
-	if (exaPixmapIsPinned (pixmaps[i].pPix) &&
-	    !exaPixmapHasGpuCopy (pixmaps[i].pPix))
-	{
-	    can_accel = FALSE;
-	    break;
-	}
+        if (exaPixmapIsPinned(pixmaps[i].pPix) &&
+            !exaPixmapHasGpuCopy(pixmaps[i].pPix)) {
+            can_accel = FALSE;
+            break;
+        }
     }
 
     /* We can do nothing. */
     if (!can_accel)
-	return;
+        return;
 
     for (i = 0; i < npixmaps; i++) {
-	PixmapPtr pPixmap = pixmaps[i].pPix;
-	ExaPixmapPriv(pPixmap);
+        PixmapPtr pPixmap = pixmaps[i].pPix;
 
-	if (!pExaPixmap->driverPriv)
-	    exaCreateDriverPixmap_mixed(pPixmap);
+        ExaPixmapPriv(pPixmap);
 
-	if (pExaPixmap->pDamage && exaPixmapHasGpuCopy(pPixmap)) {
-	    ExaScreenPriv(pPixmap->drawable.pScreen);
+        if (!pExaPixmap->driverPriv)
+            exaCreateDriverPixmap_mixed(pPixmap);
 
-	    /* This pitch is needed for proper acceleration. For some reason
-	     * there are pixmaps without pDamage and a bad fb_pitch value.
-	     * So setting devKind when only exaPixmapHasGpuCopy() is true
-	     * causes corruption. Pixmaps without pDamage are not migrated
-	     * and should have a valid devKind at all times, so that's why this
-	     * isn't causing problems. Pixmaps have their gpu pitch set the
-	     * first time in the MPH call from exaCreateDriverPixmap_mixed().
-	     */
-	    pPixmap->devKind = pExaPixmap->fb_pitch;
-	    exaCopyDirtyToFb(pixmaps + i);
+        if (pExaPixmap->pDamage && exaPixmapHasGpuCopy(pPixmap)) {
+            ExaScreenPriv(pPixmap->drawable.pScreen);
 
-	    if (pExaScr->deferred_mixed_pixmap == pPixmap &&
-		!pixmaps[i].as_dst && !pixmaps[i].pReg)
-		pExaScr->deferred_mixed_pixmap = NULL;
-	}
+            /* This pitch is needed for proper acceleration. For some reason
+             * there are pixmaps without pDamage and a bad fb_pitch value.
+             * So setting devKind when only exaPixmapHasGpuCopy() is true
+             * causes corruption. Pixmaps without pDamage are not migrated
+             * and should have a valid devKind at all times, so that's why this
+             * isn't causing problems. Pixmaps have their gpu pitch set the
+             * first time in the MPH call from exaCreateDriverPixmap_mixed().
+             */
+            pPixmap->devKind = pExaPixmap->fb_pitch;
+            exaCopyDirtyToFb(pixmaps + i);
 
-	pExaPixmap->use_gpu_copy = exaPixmapHasGpuCopy(pPixmap);
+            if (pExaScr->deferred_mixed_pixmap == pPixmap &&
+                !pixmaps[i].as_dst && !pixmaps[i].pReg)
+                pExaScr->deferred_mixed_pixmap = NULL;
+        }
+
+        pExaPixmap->use_gpu_copy = exaPixmapHasGpuCopy(pPixmap);
     }
 }
 
@@ -138,6 +143,7 @@ void
 exaDamageReport_mixed(DamagePtr pDamage, RegionPtr pRegion, void *closure)
 {
     PixmapPtr pPixmap = closure;
+
     ExaPixmapPriv(pPixmap);
 
     /* Move back results of software rendering on system memory copy of mixed driver
@@ -147,12 +153,12 @@ exaDamageReport_mixed(DamagePtr pDamage, RegionPtr pRegion, void *closure)
      * overhead on multiple subsequent software fallbacks.
      */
     if (!pExaPixmap->use_gpu_copy && exaPixmapHasGpuCopy(pPixmap)) {
-	ExaScreenPriv(pPixmap->drawable.pScreen);
+        ExaScreenPriv(pPixmap->drawable.pScreen);
 
-	if (pExaScr->deferred_mixed_pixmap &&
-	    pExaScr->deferred_mixed_pixmap != pPixmap)
-	    exaMoveInPixmap_mixed(pExaScr->deferred_mixed_pixmap);
-	pExaScr->deferred_mixed_pixmap = pPixmap;
+        if (pExaScr->deferred_mixed_pixmap &&
+            pExaScr->deferred_mixed_pixmap != pPixmap)
+            exaMoveInPixmap_mixed(pExaScr->deferred_mixed_pixmap);
+        pExaScr->deferred_mixed_pixmap = pPixmap;
     }
 }
 
@@ -171,91 +177,92 @@ exaPrepareAccessReg_mixed(PixmapPtr pPixmap, int index, RegionPtr pReg)
     success = ExaDoPrepareAccess(pPixmap, index);
 
     if (success && has_gpu_copy && pExaPixmap->pDamage) {
-	/* You cannot do accelerated operations while a buffer is mapped. */
-	exaFinishAccess(&pPixmap->drawable, index);
-	/* Update the gpu view of both deferred destination pixmaps and of
-	 * source pixmaps that were migrated with a bounding region.
-	 */
-	exaMoveInPixmap_mixed(pPixmap);
-	success = ExaDoPrepareAccess(pPixmap, index);
+        /* You cannot do accelerated operations while a buffer is mapped. */
+        exaFinishAccess(&pPixmap->drawable, index);
+        /* Update the gpu view of both deferred destination pixmaps and of
+         * source pixmaps that were migrated with a bounding region.
+         */
+        exaMoveInPixmap_mixed(pPixmap);
+        success = ExaDoPrepareAccess(pPixmap, index);
 
-	if (success) {
-	    /* We have a gpu pixmap that can be accessed, we don't need the cpu
-	     * copy anymore. Drivers that prefer DFS, should fail prepare
-	     * access.
-	     */
-	    DamageUnregister(&pPixmap->drawable, pExaPixmap->pDamage);
-	    DamageDestroy(pExaPixmap->pDamage);
-	    pExaPixmap->pDamage = NULL;
+        if (success) {
+            /* We have a gpu pixmap that can be accessed, we don't need the cpu
+             * copy anymore. Drivers that prefer DFS, should fail prepare
+             * access.
+             */
+            DamageUnregister(&pPixmap->drawable, pExaPixmap->pDamage);
+            DamageDestroy(pExaPixmap->pDamage);
+            pExaPixmap->pDamage = NULL;
 
-	    free(pExaPixmap->sys_ptr);
-	    pExaPixmap->sys_ptr = NULL;
+            free(pExaPixmap->sys_ptr);
+            pExaPixmap->sys_ptr = NULL;
 
-	    return;
-	}
+            return;
+        }
     }
 
     if (!success) {
-	ExaMigrationRec pixmaps[1];
+        ExaMigrationRec pixmaps[1];
 
-	/* Do we need to allocate our system buffer? */
-	if (!pExaPixmap->sys_ptr) {
-	    pExaPixmap->sys_ptr = malloc(pExaPixmap->sys_pitch *
-					 pPixmap->drawable.height);
-	    if (!pExaPixmap->sys_ptr)
-		FatalError("EXA: malloc failed for size %d bytes\n",
-			   pExaPixmap->sys_pitch * pPixmap->drawable.height);
-	}
+        /* Do we need to allocate our system buffer? */
+        if (!pExaPixmap->sys_ptr) {
+            pExaPixmap->sys_ptr = malloc(pExaPixmap->sys_pitch *
+                                         pPixmap->drawable.height);
+            if (!pExaPixmap->sys_ptr)
+                FatalError("EXA: malloc failed for size %d bytes\n",
+                           pExaPixmap->sys_pitch * pPixmap->drawable.height);
+        }
 
-	if (index == EXA_PREPARE_DEST || index == EXA_PREPARE_AUX_DEST) {
-	    pixmaps[0].as_dst = TRUE;
-	    pixmaps[0].as_src = FALSE;
-	} else {
-	    pixmaps[0].as_dst = FALSE;
-	    pixmaps[0].as_src = TRUE;
-	}
-	pixmaps[0].pPix = pPixmap;
-	pixmaps[0].pReg = pReg;
+        if (index == EXA_PREPARE_DEST || index == EXA_PREPARE_AUX_DEST) {
+            pixmaps[0].as_dst = TRUE;
+            pixmaps[0].as_src = FALSE;
+        }
+        else {
+            pixmaps[0].as_dst = FALSE;
+            pixmaps[0].as_src = TRUE;
+        }
+        pixmaps[0].pPix = pPixmap;
+        pixmaps[0].pReg = pReg;
 
-	if (!pExaPixmap->pDamage &&
-		(has_gpu_copy || !exaPixmapIsPinned(pPixmap))) {
-	    Bool as_dst = pixmaps[0].as_dst;
+        if (!pExaPixmap->pDamage &&
+            (has_gpu_copy || !exaPixmapIsPinned(pPixmap))) {
+            Bool as_dst = pixmaps[0].as_dst;
 
-	    /* Set up damage tracking */
-	    pExaPixmap->pDamage = DamageCreate(exaDamageReport_mixed, NULL,
-					       DamageReportNonEmpty, TRUE,
-					       pPixmap->drawable.pScreen,
-					       pPixmap);
+            /* Set up damage tracking */
+            pExaPixmap->pDamage = DamageCreate(exaDamageReport_mixed, NULL,
+                                               DamageReportNonEmpty, TRUE,
+                                               pPixmap->drawable.pScreen,
+                                               pPixmap);
 
-	    DamageRegister(&pPixmap->drawable, pExaPixmap->pDamage);
-	    /* This ensures that pending damage reflects the current operation. */
-	    /* This is used by exa to optimize migration. */
-	    DamageSetReportAfterOp(pExaPixmap->pDamage, TRUE);
+            DamageRegister(&pPixmap->drawable, pExaPixmap->pDamage);
+            /* This ensures that pending damage reflects the current operation. */
+            /* This is used by exa to optimize migration. */
+            DamageSetReportAfterOp(pExaPixmap->pDamage, TRUE);
 
-	    if (has_gpu_copy) {
-		exaPixmapDirty(pPixmap, 0, 0, pPixmap->drawable.width,
-			       pPixmap->drawable.height);
+            if (has_gpu_copy) {
+                exaPixmapDirty(pPixmap, 0, 0, pPixmap->drawable.width,
+                               pPixmap->drawable.height);
 
-		/* We don't know which region of the destination will be damaged,
-		 * have to assume all of it
-		 */
-		if (as_dst) {
-		    pixmaps[0].as_dst = FALSE;
-		    pixmaps[0].as_src = TRUE;
-		    pixmaps[0].pReg = NULL;
-		}
-		exaCopyDirtyToSys(pixmaps);
-	    }
+                /* We don't know which region of the destination will be damaged,
+                 * have to assume all of it
+                 */
+                if (as_dst) {
+                    pixmaps[0].as_dst = FALSE;
+                    pixmaps[0].as_src = TRUE;
+                    pixmaps[0].pReg = NULL;
+                }
+                exaCopyDirtyToSys(pixmaps);
+            }
 
-	    if (as_dst)
-		exaPixmapDirty(pPixmap, 0, 0, pPixmap->drawable.width,
-			       pPixmap->drawable.height);
-	} else if (has_gpu_copy)
-	    exaCopyDirtyToSys(pixmaps);
+            if (as_dst)
+                exaPixmapDirty(pPixmap, 0, 0, pPixmap->drawable.width,
+                               pPixmap->drawable.height);
+        }
+        else if (has_gpu_copy)
+            exaCopyDirtyToSys(pixmaps);
 
-	pPixmap->devPrivate.ptr = pExaPixmap->sys_ptr;
-	pPixmap->devKind = pExaPixmap->sys_pitch;
-	pExaPixmap->use_gpu_copy = FALSE;
+        pPixmap->devPrivate.ptr = pExaPixmap->sys_ptr;
+        pPixmap->devKind = pExaPixmap->sys_pitch;
+        pExaPixmap->use_gpu_copy = FALSE;
     }
 }
-

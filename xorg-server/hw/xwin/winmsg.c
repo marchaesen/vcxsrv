@@ -38,82 +38,84 @@
 #endif
 #include <stdarg.h>
 
-void winVMsg (int, MessageType, int verb, const char *, va_list);
+void winVMsg(int, MessageType, int verb, const char *, va_list);
 
 void
-winVMsg (int scrnIndex, MessageType type, int verb, const char *format,
-	 va_list ap)
+winVMsg(int scrnIndex, MessageType type, int verb, const char *format,
+        va_list ap)
 {
-  LogVMessageVerb(type, verb, format, ap);
-}
-
-
-void
-winDrvMsg (int scrnIndex, MessageType type, const char *format, ...)
-{
-  va_list ap;
-  va_start (ap, format);
-  LogVMessageVerb(type, 0, format, ap);
-  va_end (ap);
-}
-
-
-void
-winMsg (MessageType type, const char *format, ...)
-{
-  va_list ap;
-  va_start (ap, format);
-  LogVMessageVerb(type, 1, format, ap);
-  va_end (ap);
-}
-
-
-void
-winDrvMsgVerb (int scrnIndex, MessageType type, int verb, const char *format,
-	       ...)
-{
-  va_list ap;
-  va_start (ap, format);
-  LogVMessageVerb(type, verb, format, ap);
-  va_end (ap);
-}
-
-
-void
-winMsgVerb (MessageType type, int verb, const char *format, ...)
-{
-  va_list ap;
-  va_start (ap, format);
-  LogVMessageVerb(type, verb, format, ap);
-  va_end (ap);
-}
-
-
-void
-winErrorFVerb (int verb, const char *format, ...)
-{
-  va_list ap;
-  va_start (ap, format);
-  LogVMessageVerb(X_NONE, verb, format, ap);
-  va_end (ap);
+    LogVMessageVerb(type, verb, format, ap);
 }
 
 void
-winDebug (const char *format, ...)
+winDrvMsg(int scrnIndex, MessageType type, const char *format, ...)
 {
-  va_list ap;
-  va_start (ap, format);
-  LogVMessageVerb(X_NONE, 3, format, ap);
-  va_end (ap);
+    va_list ap;
+
+    va_start(ap, format);
+    LogVMessageVerb(type, 0, format, ap);
+    va_end(ap);
 }
 
 void
-winTrace (const char *format, ...)
+winMsg(MessageType type, const char *format, ...)
 {
-  va_list ap;
-  va_start (ap, format);
-  LogVMessageVerb(X_NONE, 10, format, ap);
-  va_end (ap);
+    va_list ap;
+
+    va_start(ap, format);
+    LogVMessageVerb(type, 1, format, ap);
+    va_end(ap);
+}
+
+void
+winDrvMsgVerb(int scrnIndex, MessageType type, int verb, const char *format,
+              ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    LogVMessageVerb(type, verb, format, ap);
+    va_end(ap);
+}
+
+void
+winMsgVerb(MessageType type, int verb, const char *format, ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    LogVMessageVerb(type, verb, format, ap);
+    va_end(ap);
+}
+
+void
+winErrorFVerb(int verb, const char *format, ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    LogVMessageVerb(X_NONE, verb, format, ap);
+    va_end(ap);
+}
+
+void
+winDebug(const char *format, ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    LogVMessageVerb(X_NONE, 3, format, ap);
+    va_end(ap);
+}
+
+void
+winTrace(const char *format, ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    LogVMessageVerb(X_NONE, 10, format, ap);
+    va_end(ap);
 }
 
 void
@@ -126,54 +128,55 @@ void
 winW32ErrorEx(int verb, const char *msg, DWORD errorcode)
 {
     LPVOID buffer;
-    if (!FormatMessage( 
-                FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-                FORMAT_MESSAGE_FROM_SYSTEM | 
-                FORMAT_MESSAGE_IGNORE_INSERTS,
-                NULL,
-                errorcode,
-                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                (LPTSTR) &buffer,
-                0,
-                NULL ))
-    {
-        winErrorFVerb(verb, "Unknown error in FormatMessage!\n"); 
+
+    if (!FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                       FORMAT_MESSAGE_FROM_SYSTEM |
+                       FORMAT_MESSAGE_IGNORE_INSERTS,
+                       NULL,
+                       errorcode,
+                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                       (LPTSTR) & buffer, 0, NULL)) {
+        winErrorFVerb(verb, "Unknown error in FormatMessage!\n");
     }
-    else
-    {
-        winErrorFVerb(verb, "%s %s", msg, (char *)buffer); 
+    else {
+        winErrorFVerb(verb, "%s %s", msg, (char *) buffer);
         LocalFree(buffer);
     }
 }
 
 #if CYGDEBUG
-void winDebugWin32Message(const char* function, HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+void
+winDebugWin32Message(const char *function, HWND hwnd, UINT message,
+                     WPARAM wParam, LPARAM lParam)
 {
-  static int force = 0;
+    static int force = 0;
 
-  if (message >= WM_USER)
-    {
-      if (force || getenv("WIN_DEBUG_MESSAGES") || getenv("WIN_DEBUG_WM_USER"))
-      {
-        winDebug("%s - Message WM_USER + %d\n", function, message - WM_USER);
-        winDebug("\thwnd 0x%x wParam 0x%x lParam 0x%x\n", hwnd, wParam, lParam);
-      }
+    if (message >= WM_USER) {
+        if (force || getenv("WIN_DEBUG_MESSAGES") ||
+            getenv("WIN_DEBUG_WM_USER")) {
+            winDebug("%s - Message WM_USER + %d\n", function,
+                     message - WM_USER);
+            winDebug("\thwnd 0x%x wParam 0x%x lParam 0x%x\n", hwnd, wParam,
+                     lParam);
+        }
     }
-  else if (message < MESSAGE_NAMES_LEN && MESSAGE_NAMES[message])
-    {
-      const char *msgname = MESSAGE_NAMES[message];
-      char buffer[64];
-      snprintf(buffer, sizeof(buffer), "WIN_DEBUG_%s", msgname);
-      buffer[63] = 0;
-      if (force || getenv("WIN_DEBUG_MESSAGES") || getenv(buffer))
-      {
-        winDebug("%s - Message %s\n", function, MESSAGE_NAMES[message]);
-        winDebug("\thwnd 0x%x wParam 0x%x lParam 0x%x\n", hwnd, wParam, lParam);
-      }
+    else if (message < MESSAGE_NAMES_LEN && MESSAGE_NAMES[message]) {
+        const char *msgname = MESSAGE_NAMES[message];
+        char buffer[64];
+
+        snprintf(buffer, sizeof(buffer), "WIN_DEBUG_%s", msgname);
+        buffer[63] = 0;
+        if (force || getenv("WIN_DEBUG_MESSAGES") || getenv(buffer)) {
+            winDebug("%s - Message %s\n", function, MESSAGE_NAMES[message]);
+            winDebug("\thwnd 0x%x wParam 0x%x lParam 0x%x\n", hwnd, wParam,
+                     lParam);
+        }
     }
 }
 #else
-void winDebugWin32Message(const char* function, HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+void
+winDebugWin32Message(const char *function, HWND hwnd, UINT message,
+                     WPARAM wParam, LPARAM lParam)
 {
 }
 #endif

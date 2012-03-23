@@ -40,95 +40,85 @@ static MODULESETUPPROTO(extmodSetup);
 static ExtensionModule extensionModules[] = {
 #ifdef XSELINUX
     {
-	SELinuxExtensionInit,
-	SELINUX_EXTENSION_NAME,
-	&noSELinuxExtension,
-	NULL,
-	NULL
-    },
+     SELinuxExtensionInit,
+     SELINUX_EXTENSION_NAME,
+     &noSELinuxExtension,
+     NULL,
+     NULL},
 #endif
 #ifdef SCREENSAVER
     {
-	ScreenSaverExtensionInit,
-	ScreenSaverName,
-	&noScreenSaverExtension,
-	NULL,
-	NULL
-    },
+     ScreenSaverExtensionInit,
+     ScreenSaverName,
+     &noScreenSaverExtension,
+     NULL,
+     NULL},
 #endif
 #ifdef XF86VIDMODE
     {
-	XFree86VidModeExtensionInit,
-	XF86VIDMODENAME,
-	&noXFree86VidModeExtension,
-	NULL,
-	NULL
-    },
+     XFree86VidModeExtensionInit,
+     XF86VIDMODENAME,
+     &noXFree86VidModeExtension,
+     NULL,
+     NULL},
 #endif
 #ifdef XFreeXDGA
     {
-	XFree86DGAExtensionInit,
-	XF86DGANAME,
-	&noXFree86DGAExtension,
-	XFree86DGARegister,
-	NULL
-    },
+     XFree86DGAExtensionInit,
+     XF86DGANAME,
+     &noXFree86DGAExtension,
+     XFree86DGARegister,
+     NULL},
 #endif
 #ifdef DPMSExtension
     {
-	DPMSExtensionInit,
-	DPMSExtensionName,
-	&noDPMSExtension,
-	NULL,
-	NULL
-    },
+     DPMSExtensionInit,
+     DPMSExtensionName,
+     &noDPMSExtension,
+     NULL,
+     NULL},
 #endif
 #ifdef XV
     {
-	XvExtensionInit,
-	XvName,
-	&noXvExtension,
-	XvRegister,
-	NULL
-    },
+     XvExtensionInit,
+     XvName,
+     &noXvExtension,
+     XvRegister,
+     NULL},
     {
-        XvMCExtensionInit,
-        XvMCName,
-        &noXvExtension,
-        NULL,
-        NULL
-    },
+     XvMCExtensionInit,
+     XvMCName,
+     &noXvExtension,
+     NULL,
+     NULL},
 #endif
 #ifdef RES
     {
-        ResExtensionInit,
-        XRES_NAME, 
-        &noResExtension,
-        NULL,
-        NULL
-    },
+     ResExtensionInit,
+     XRES_NAME,
+     &noResExtension,
+     NULL,
+     NULL},
 #endif
-    {				/* DON'T delete this entry ! */
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL
-    }
+    {                           /* DON'T delete this entry ! */
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL}
 };
 
-static XF86ModuleVersionInfo VersRec =
-{
-	"extmod",
-	MODULEVENDORSTRING,
-	MODINFOSTRING1,
-	MODINFOSTRING2,
-	XORG_VERSION_CURRENT,
-	1, 0, 0,
-	ABI_CLASS_EXTENSION,
-	ABI_EXTENSION_VERSION,
-	MOD_CLASS_EXTENSION,
-	{0,0,0,0}
+static XF86ModuleVersionInfo VersRec = {
+    "extmod",
+    MODULEVENDORSTRING,
+    MODINFOSTRING1,
+    MODINFOSTRING2,
+    XORG_VERSION_CURRENT,
+    1, 0, 0,
+    ABI_CLASS_EXTENSION,
+    ABI_EXTENSION_VERSION,
+    MOD_CLASS_EXTENSION,
+    {0, 0, 0, 0}
 };
 
 /*
@@ -144,41 +134,44 @@ extmodSetup(pointer module, pointer opts, int *errmaj, int *errmin)
     /* XXX the option stuff here is largely a sample/test case */
 
     for (i = 0; extensionModules[i].name != NULL; i++) {
-	if (opts) {
-	    char *s;
-	    if (asprintf(&s, "omit%s", extensionModules[i].name) != -1) {
-		pointer o;
-		o = xf86FindOption(opts, s);
-		free(s);
-		if (o) {
-		    xf86MarkOptionUsed(o);
-		    continue;
-		}
-	    }
-	}
+        if (opts) {
+            char *s;
+
+            if (asprintf(&s, "omit%s", extensionModules[i].name) != -1) {
+                pointer o;
+
+                o = xf86FindOption(opts, s);
+                free(s);
+                if (o) {
+                    xf86MarkOptionUsed(o);
+                    continue;
+                }
+            }
+        }
 
 #ifdef XSELINUX
-	if (! strcmp(SELINUX_EXTENSION_NAME, extensionModules[i].name)) {
-	    pointer o;
-	    selinuxEnforcingState = SELINUX_MODE_DEFAULT;
+        if (!strcmp(SELINUX_EXTENSION_NAME, extensionModules[i].name)) {
+            pointer o;
 
-	    if ((o = xf86FindOption(opts, "SELinux mode disabled"))) {
-		xf86MarkOptionUsed(o);
-		selinuxEnforcingState = SELINUX_MODE_DISABLED;
-	    }
-	    if ((o = xf86FindOption(opts, "SELinux mode permissive"))) {
-		xf86MarkOptionUsed(o);
-		selinuxEnforcingState = SELINUX_MODE_PERMISSIVE;
-	    }
-	    if ((o = xf86FindOption(opts, "SELinux mode enforcing"))) {
-		xf86MarkOptionUsed(o);
-		selinuxEnforcingState = SELINUX_MODE_ENFORCING;
-	    }
-	}
+            selinuxEnforcingState = SELINUX_MODE_DEFAULT;
+
+            if ((o = xf86FindOption(opts, "SELinux mode disabled"))) {
+                xf86MarkOptionUsed(o);
+                selinuxEnforcingState = SELINUX_MODE_DISABLED;
+            }
+            if ((o = xf86FindOption(opts, "SELinux mode permissive"))) {
+                xf86MarkOptionUsed(o);
+                selinuxEnforcingState = SELINUX_MODE_PERMISSIVE;
+            }
+            if ((o = xf86FindOption(opts, "SELinux mode enforcing"))) {
+                xf86MarkOptionUsed(o);
+                selinuxEnforcingState = SELINUX_MODE_ENFORCING;
+            }
+        }
 #endif
 
-	LoadExtension(&extensionModules[i], FALSE);
+        LoadExtension(&extensionModules[i], FALSE);
     }
     /* Need a non-NULL return */
-    return (pointer)1;
+    return (pointer) 1;
 }

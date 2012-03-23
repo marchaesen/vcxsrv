@@ -37,12 +37,13 @@
 #include "xf86.h"
 
 typedef struct _ExaXorgScreenPrivRec {
-    CloseScreenProcPtr 		 SavedCloseScreen;
+    CloseScreenProcPtr SavedCloseScreen;
     EnableDisableFBAccessProcPtr SavedEnableDisableFBAccess;
-    OptionInfoPtr		 options;
+    OptionInfoPtr options;
 } ExaXorgScreenPrivRec, *ExaXorgScreenPrivPtr;
 
 static DevPrivateKeyRec exaXorgScreenPrivateKeyRec;
+
 #define exaXorgScreenPrivateKey (&exaXorgScreenPrivateKeyRec)
 
 typedef enum {
@@ -54,26 +55,26 @@ typedef enum {
 } EXAOpts;
 
 static const OptionInfoRec EXAOptions[] = {
-    { EXAOPT_MIGRATION_HEURISTIC,	"MigrationHeuristic",
-				OPTV_ANYSTR,	{0}, FALSE },
-    { EXAOPT_NO_COMPOSITE,		"EXANoComposite",
-				OPTV_BOOLEAN,	{0}, FALSE },
-    { EXAOPT_NO_UTS,			"EXANoUploadToScreen",
-				OPTV_BOOLEAN,	{0}, FALSE },
-    { EXAOPT_NO_DFS,			"EXANoDownloadFromScreen",
-				OPTV_BOOLEAN,	{0}, FALSE },
-    { EXAOPT_OPTIMIZE_MIGRATION,	"EXAOptimizeMigration",
-				OPTV_BOOLEAN,	{0}, FALSE },
-    { -1,				NULL,
-				OPTV_NONE,	{0}, FALSE }
+    {EXAOPT_MIGRATION_HEURISTIC, "MigrationHeuristic",
+     OPTV_ANYSTR, {0}, FALSE},
+    {EXAOPT_NO_COMPOSITE, "EXANoComposite",
+     OPTV_BOOLEAN, {0}, FALSE},
+    {EXAOPT_NO_UTS, "EXANoUploadToScreen",
+     OPTV_BOOLEAN, {0}, FALSE},
+    {EXAOPT_NO_DFS, "EXANoDownloadFromScreen",
+     OPTV_BOOLEAN, {0}, FALSE},
+    {EXAOPT_OPTIMIZE_MIGRATION, "EXAOptimizeMigration",
+     OPTV_BOOLEAN, {0}, FALSE},
+    {-1, NULL,
+     OPTV_NONE, {0}, FALSE}
 };
 
 static Bool
-exaXorgCloseScreen (int i, ScreenPtr pScreen)
+exaXorgCloseScreen(int i, ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = XF86SCRNINFO(pScreen);
     ExaXorgScreenPrivPtr pScreenPriv = (ExaXorgScreenPrivPtr)
-	dixLookupPrivate(&pScreen->devPrivates, exaXorgScreenPrivateKey);
+        dixLookupPrivate(&pScreen->devPrivates, exaXorgScreenPrivateKey);
 
     pScreen->CloseScreen = pScreenPriv->SavedCloseScreen;
 
@@ -82,24 +83,24 @@ exaXorgCloseScreen (int i, ScreenPtr pScreen)
     free(pScreenPriv->options);
     free(pScreenPriv);
 
-    return pScreen->CloseScreen (i, pScreen);
+    return pScreen->CloseScreen(i, pScreen);
 }
 
 static void
-exaXorgEnableDisableFBAccess (int index, Bool enable)
+exaXorgEnableDisableFBAccess(int index, Bool enable)
 {
     ScreenPtr pScreen = screenInfo.screens[index];
     ExaXorgScreenPrivPtr pScreenPriv = (ExaXorgScreenPrivPtr)
-	dixLookupPrivate(&pScreen->devPrivates, exaXorgScreenPrivateKey);
+        dixLookupPrivate(&pScreen->devPrivates, exaXorgScreenPrivateKey);
 
     if (!enable)
-	exaEnableDisableFBAccess (index, enable);
+        exaEnableDisableFBAccess(index, enable);
 
     if (pScreenPriv->SavedEnableDisableFBAccess)
-       pScreenPriv->SavedEnableDisableFBAccess (index, enable);
+        pScreenPriv->SavedEnableDisableFBAccess(index, enable);
 
     if (enable)
-	exaEnableDisableFBAccess (index, enable);
+        exaEnableDisableFBAccess(index, enable);
 }
 
 /**
@@ -115,87 +116,83 @@ exaDDXDriverInit(ScreenPtr pScreen)
     ExaXorgScreenPrivPtr pScreenPriv;
 
     if (!dixRegisterPrivateKey(&exaXorgScreenPrivateKeyRec, PRIVATE_SCREEN, 0))
-	return;
+        return;
 
     pScreenPriv = calloc(1, sizeof(ExaXorgScreenPrivRec));
     if (pScreenPriv == NULL)
-	return;
+        return;
 
-    pScreenPriv->options = xnfalloc (sizeof(EXAOptions));
+    pScreenPriv->options = xnfalloc(sizeof(EXAOptions));
     memcpy(pScreenPriv->options, EXAOptions, sizeof(EXAOptions));
-    xf86ProcessOptions (pScrn->scrnIndex, pScrn->options, pScreenPriv->options);
+    xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, pScreenPriv->options);
 
     if (pExaScr->info->flags & EXA_OFFSCREEN_PIXMAPS) {
-	if (!(pExaScr->info->flags & EXA_HANDLES_PIXMAPS) &&
-	    pExaScr->info->offScreenBase < pExaScr->info->memorySize) {
-	    char *heuristicName;
+        if (!(pExaScr->info->flags & EXA_HANDLES_PIXMAPS) &&
+            pExaScr->info->offScreenBase < pExaScr->info->memorySize) {
+            char *heuristicName;
 
-	    heuristicName = xf86GetOptValString (pScreenPriv->options,
-						 EXAOPT_MIGRATION_HEURISTIC);
-	    if (heuristicName != NULL) {
-		if (strcmp(heuristicName, "greedy") == 0)
-		    pExaScr->migration = ExaMigrationGreedy;
-		else if (strcmp(heuristicName, "always") == 0)
-		    pExaScr->migration = ExaMigrationAlways;
-		else if (strcmp(heuristicName, "smart") == 0)
-		    pExaScr->migration = ExaMigrationSmart;
-		else {
-		    xf86DrvMsg (pScreen->myNum, X_WARNING, 
-				"EXA: unknown migration heuristic %s\n",
-				heuristicName);
-		}
-	    }
-	}
+            heuristicName = xf86GetOptValString(pScreenPriv->options,
+                                                EXAOPT_MIGRATION_HEURISTIC);
+            if (heuristicName != NULL) {
+                if (strcmp(heuristicName, "greedy") == 0)
+                    pExaScr->migration = ExaMigrationGreedy;
+                else if (strcmp(heuristicName, "always") == 0)
+                    pExaScr->migration = ExaMigrationAlways;
+                else if (strcmp(heuristicName, "smart") == 0)
+                    pExaScr->migration = ExaMigrationSmart;
+                else {
+                    xf86DrvMsg(pScreen->myNum, X_WARNING,
+                               "EXA: unknown migration heuristic %s\n",
+                               heuristicName);
+                }
+            }
+        }
 
-	pExaScr->optimize_migration =
-	    xf86ReturnOptValBool(pScreenPriv->options,
-				 EXAOPT_OPTIMIZE_MIGRATION,
-				 TRUE);
+        pExaScr->optimize_migration =
+            xf86ReturnOptValBool(pScreenPriv->options,
+                                 EXAOPT_OPTIMIZE_MIGRATION, TRUE);
     }
 
-    if (xf86ReturnOptValBool(pScreenPriv->options,
-                             EXAOPT_NO_COMPOSITE, FALSE)) {
-	xf86DrvMsg(pScreen->myNum, X_CONFIG,
-		   "EXA: Disabling Composite operation "
-		   "(RENDER acceleration)\n");
-	pExaScr->info->CheckComposite = NULL;
-	pExaScr->info->PrepareComposite = NULL;
+    if (xf86ReturnOptValBool(pScreenPriv->options, EXAOPT_NO_COMPOSITE, FALSE)) {
+        xf86DrvMsg(pScreen->myNum, X_CONFIG,
+                   "EXA: Disabling Composite operation "
+                   "(RENDER acceleration)\n");
+        pExaScr->info->CheckComposite = NULL;
+        pExaScr->info->PrepareComposite = NULL;
     }
 
     if (xf86ReturnOptValBool(pScreenPriv->options, EXAOPT_NO_UTS, FALSE)) {
-	xf86DrvMsg(pScreen->myNum, X_CONFIG,
-		   "EXA: Disabling UploadToScreen\n");
-	pExaScr->info->UploadToScreen = NULL;
+        xf86DrvMsg(pScreen->myNum, X_CONFIG, "EXA: Disabling UploadToScreen\n");
+        pExaScr->info->UploadToScreen = NULL;
     }
 
     if (xf86ReturnOptValBool(pScreenPriv->options, EXAOPT_NO_DFS, FALSE)) {
-	xf86DrvMsg(pScreen->myNum, X_CONFIG,
-		   "EXA: Disabling DownloadFromScreen\n");
-	pExaScr->info->DownloadFromScreen = NULL;
+        xf86DrvMsg(pScreen->myNum, X_CONFIG,
+                   "EXA: Disabling DownloadFromScreen\n");
+        pExaScr->info->DownloadFromScreen = NULL;
     }
 
     dixSetPrivate(&pScreen->devPrivates, exaXorgScreenPrivateKey, pScreenPriv);
 
     pScreenPriv->SavedEnableDisableFBAccess = pScrn->EnableDisableFBAccess;
     pScrn->EnableDisableFBAccess = exaXorgEnableDisableFBAccess;
-    
+
     pScreenPriv->SavedCloseScreen = pScreen->CloseScreen;
     pScreen->CloseScreen = exaXorgCloseScreen;
-    
+
 }
 
-static XF86ModuleVersionInfo exaVersRec =
-{
-	"exa",
-	MODULEVENDORSTRING,
-	MODINFOSTRING1,
-	MODINFOSTRING2,
-	XORG_VERSION_CURRENT,
-	EXA_VERSION_MAJOR, EXA_VERSION_MINOR, EXA_VERSION_RELEASE,
-	ABI_CLASS_VIDEODRV,		/* requires the video driver ABI */
-	ABI_VIDEODRV_VERSION,
-	MOD_CLASS_NONE,
-	{0,0,0,0}
+static XF86ModuleVersionInfo exaVersRec = {
+    "exa",
+    MODULEVENDORSTRING,
+    MODINFOSTRING1,
+    MODINFOSTRING2,
+    XORG_VERSION_CURRENT,
+    EXA_VERSION_MAJOR, EXA_VERSION_MINOR, EXA_VERSION_RELEASE,
+    ABI_CLASS_VIDEODRV,         /* requires the video driver ABI */
+    ABI_VIDEODRV_VERSION,
+    MOD_CLASS_NONE,
+    {0, 0, 0, 0}
 };
 
 _X_EXPORT XF86ModuleData exaModuleData = { &exaVersRec, NULL, NULL };

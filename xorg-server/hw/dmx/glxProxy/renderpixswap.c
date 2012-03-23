@@ -32,352 +32,375 @@
 #include "unpack.h"
 #include "g_disptab.h"
 
-void __glXDispSwap_PolygonStipple(GLbyte *pc)
+void
+__glXDispSwap_PolygonStipple(GLbyte * pc)
 {
     __GLXpixelHeader *hdr = (__GLXpixelHeader *) pc;
+
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
     hdr->swapBytes = !hdr->swapBytes;
 }
 
-void __glXDispSwap_Bitmap(GLbyte *pc)
+void
+__glXDispSwap_Bitmap(GLbyte * pc)
 {
     __GLXdispatchBitmapHeader *hdr = (__GLXdispatchBitmapHeader *) pc;
+
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->width);
-    __GLX_SWAP_INT((GLbyte *)&hdr->height);
-    __GLX_SWAP_FLOAT((GLbyte *)&hdr->xorig);
-    __GLX_SWAP_FLOAT((GLbyte *)&hdr->yorig);
-    __GLX_SWAP_FLOAT((GLbyte *)&hdr->xmove);
-    __GLX_SWAP_FLOAT((GLbyte *)&hdr->ymove);
+    __GLX_SWAP_INT((GLbyte *) & hdr->width);
+    __GLX_SWAP_INT((GLbyte *) & hdr->height);
+    __GLX_SWAP_FLOAT((GLbyte *) & hdr->xorig);
+    __GLX_SWAP_FLOAT((GLbyte *) & hdr->yorig);
+    __GLX_SWAP_FLOAT((GLbyte *) & hdr->xmove);
+    __GLX_SWAP_FLOAT((GLbyte *) & hdr->ymove);
 
     hdr->swapBytes = !hdr->swapBytes;
 
 }
 
-void __glXDispSwap_TexImage1D(GLbyte *pc)
+void
+__glXDispSwap_TexImage1D(GLbyte * pc)
 {
     __GLXdispatchTexImageHeader *hdr = (__GLXdispatchTexImageHeader *) pc;
+
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->target);
-    __GLX_SWAP_INT((GLbyte *)&hdr->level);
-    __GLX_SWAP_INT((GLbyte *)&hdr->components);
-    __GLX_SWAP_INT((GLbyte *)&hdr->width);
-    __GLX_SWAP_INT((GLbyte *)&hdr->height);
-    __GLX_SWAP_INT((GLbyte *)&hdr->border);
-    __GLX_SWAP_INT((GLbyte *)&hdr->format);
-    __GLX_SWAP_INT((GLbyte *)&hdr->type);
+    __GLX_SWAP_INT((GLbyte *) & hdr->target);
+    __GLX_SWAP_INT((GLbyte *) & hdr->level);
+    __GLX_SWAP_INT((GLbyte *) & hdr->components);
+    __GLX_SWAP_INT((GLbyte *) & hdr->width);
+    __GLX_SWAP_INT((GLbyte *) & hdr->height);
+    __GLX_SWAP_INT((GLbyte *) & hdr->border);
+    __GLX_SWAP_INT((GLbyte *) & hdr->format);
+    __GLX_SWAP_INT((GLbyte *) & hdr->type);
 
     /*
-    ** Just invert swapBytes flag; the GL will figure out if it needs to swap
-    ** the pixel data.
-    */
+     ** Just invert swapBytes flag; the GL will figure out if it needs to swap
+     ** the pixel data.
+     */
     hdr->swapBytes = !hdr->swapBytes;
 }
 
-void __glXDispSwap_TexImage2D(GLbyte *pc)
+void
+__glXDispSwap_TexImage2D(GLbyte * pc)
 {
     __GLXdispatchTexImageHeader *hdr = (__GLXdispatchTexImageHeader *) pc;
+
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->target);
-    __GLX_SWAP_INT((GLbyte *)&hdr->level);
-    __GLX_SWAP_INT((GLbyte *)&hdr->components);
-    __GLX_SWAP_INT((GLbyte *)&hdr->width);
-    __GLX_SWAP_INT((GLbyte *)&hdr->height);
-    __GLX_SWAP_INT((GLbyte *)&hdr->border);
-    __GLX_SWAP_INT((GLbyte *)&hdr->format);
-    __GLX_SWAP_INT((GLbyte *)&hdr->type);
+    __GLX_SWAP_INT((GLbyte *) & hdr->target);
+    __GLX_SWAP_INT((GLbyte *) & hdr->level);
+    __GLX_SWAP_INT((GLbyte *) & hdr->components);
+    __GLX_SWAP_INT((GLbyte *) & hdr->width);
+    __GLX_SWAP_INT((GLbyte *) & hdr->height);
+    __GLX_SWAP_INT((GLbyte *) & hdr->border);
+    __GLX_SWAP_INT((GLbyte *) & hdr->format);
+    __GLX_SWAP_INT((GLbyte *) & hdr->type);
 
     /*
-    ** Just invert swapBytes flag; the GL will figure out if it needs to swap
-    ** the pixel data.
-    */
+     ** Just invert swapBytes flag; the GL will figure out if it needs to swap
+     ** the pixel data.
+     */
     hdr->swapBytes = !hdr->swapBytes;
 }
 
-void __glXDispSwap_TexImage3D(GLbyte *pc)
+void
+__glXDispSwap_TexImage3D(GLbyte * pc)
 {
     __GLXdispatchTexImage3DHeader *hdr = (__GLXdispatchTexImage3DHeader *) pc;
+
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->imageHeight);
-    __GLX_SWAP_INT((GLbyte *)&hdr->imageDepth);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipImages);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipVolumes);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->imageHeight);
+    __GLX_SWAP_INT((GLbyte *) & hdr->imageDepth);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipImages);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipVolumes);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->target);
-    __GLX_SWAP_INT((GLbyte *)&hdr->level);
-    __GLX_SWAP_INT((GLbyte *)&hdr->internalformat);
-    __GLX_SWAP_INT((GLbyte *)&hdr->width);
-    __GLX_SWAP_INT((GLbyte *)&hdr->height);
-    __GLX_SWAP_INT((GLbyte *)&hdr->depth);
-    __GLX_SWAP_INT((GLbyte *)&hdr->size4d);
-    __GLX_SWAP_INT((GLbyte *)&hdr->border);
-    __GLX_SWAP_INT((GLbyte *)&hdr->format);
-    __GLX_SWAP_INT((GLbyte *)&hdr->type);
+    __GLX_SWAP_INT((GLbyte *) & hdr->target);
+    __GLX_SWAP_INT((GLbyte *) & hdr->level);
+    __GLX_SWAP_INT((GLbyte *) & hdr->internalformat);
+    __GLX_SWAP_INT((GLbyte *) & hdr->width);
+    __GLX_SWAP_INT((GLbyte *) & hdr->height);
+    __GLX_SWAP_INT((GLbyte *) & hdr->depth);
+    __GLX_SWAP_INT((GLbyte *) & hdr->size4d);
+    __GLX_SWAP_INT((GLbyte *) & hdr->border);
+    __GLX_SWAP_INT((GLbyte *) & hdr->format);
+    __GLX_SWAP_INT((GLbyte *) & hdr->type);
 
     /*
-    ** Just invert swapBytes flag; the GL will figure out if it needs to swap
-    ** the pixel data.
-    */
+     ** Just invert swapBytes flag; the GL will figure out if it needs to swap
+     ** the pixel data.
+     */
     hdr->swapBytes = !hdr->swapBytes;
 }
 
-void __glXDispSwap_DrawPixels(GLbyte *pc)
+void
+__glXDispSwap_DrawPixels(GLbyte * pc)
 {
     __GLXdispatchDrawPixelsHeader *hdr = (__GLXdispatchDrawPixelsHeader *) pc;
+
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->width);
-    __GLX_SWAP_INT((GLbyte *)&hdr->height);
-    __GLX_SWAP_INT((GLbyte *)&hdr->format);
-    __GLX_SWAP_INT((GLbyte *)&hdr->type);
+    __GLX_SWAP_INT((GLbyte *) & hdr->width);
+    __GLX_SWAP_INT((GLbyte *) & hdr->height);
+    __GLX_SWAP_INT((GLbyte *) & hdr->format);
+    __GLX_SWAP_INT((GLbyte *) & hdr->type);
 
     /*
-    ** Just invert swapBytes flag; the GL will figure out if it needs to swap
-    ** the pixel data.
-    */
+     ** Just invert swapBytes flag; the GL will figure out if it needs to swap
+     ** the pixel data.
+     */
     hdr->swapBytes = !hdr->swapBytes;
 }
 
-void __glXDispSwap_TexSubImage1D(GLbyte *pc)
+void
+__glXDispSwap_TexSubImage1D(GLbyte * pc)
 {
     __GLXdispatchTexSubImageHeader *hdr = (__GLXdispatchTexSubImageHeader *) pc;
+
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->target);
-    __GLX_SWAP_INT((GLbyte *)&hdr->level);
-    __GLX_SWAP_INT((GLbyte *)&hdr->xoffset);
-    __GLX_SWAP_INT((GLbyte *)&hdr->width);
-    __GLX_SWAP_INT((GLbyte *)&hdr->format);
-    __GLX_SWAP_INT((GLbyte *)&hdr->type);
+    __GLX_SWAP_INT((GLbyte *) & hdr->target);
+    __GLX_SWAP_INT((GLbyte *) & hdr->level);
+    __GLX_SWAP_INT((GLbyte *) & hdr->xoffset);
+    __GLX_SWAP_INT((GLbyte *) & hdr->width);
+    __GLX_SWAP_INT((GLbyte *) & hdr->format);
+    __GLX_SWAP_INT((GLbyte *) & hdr->type);
 
     /*
-    ** Just invert swapBytes flag; the GL will figure out if it needs to swap
-    ** the pixel data.
-    */
+     ** Just invert swapBytes flag; the GL will figure out if it needs to swap
+     ** the pixel data.
+     */
     hdr->swapBytes = !hdr->swapBytes;
 }
 
-void __glXDispSwap_TexSubImage2D(GLbyte *pc)
+void
+__glXDispSwap_TexSubImage2D(GLbyte * pc)
 {
     __GLXdispatchTexSubImageHeader *hdr = (__GLXdispatchTexSubImageHeader *) pc;
+
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->target);
-    __GLX_SWAP_INT((GLbyte *)&hdr->level);
-    __GLX_SWAP_INT((GLbyte *)&hdr->xoffset);
-    __GLX_SWAP_INT((GLbyte *)&hdr->yoffset);
-    __GLX_SWAP_INT((GLbyte *)&hdr->width);
-    __GLX_SWAP_INT((GLbyte *)&hdr->height);
-    __GLX_SWAP_INT((GLbyte *)&hdr->format);
-    __GLX_SWAP_INT((GLbyte *)&hdr->type);
+    __GLX_SWAP_INT((GLbyte *) & hdr->target);
+    __GLX_SWAP_INT((GLbyte *) & hdr->level);
+    __GLX_SWAP_INT((GLbyte *) & hdr->xoffset);
+    __GLX_SWAP_INT((GLbyte *) & hdr->yoffset);
+    __GLX_SWAP_INT((GLbyte *) & hdr->width);
+    __GLX_SWAP_INT((GLbyte *) & hdr->height);
+    __GLX_SWAP_INT((GLbyte *) & hdr->format);
+    __GLX_SWAP_INT((GLbyte *) & hdr->type);
 
     /*
-    ** Just invert swapBytes flag; the GL will figure out if it needs to swap
-    ** the pixel data.
-    */
+     ** Just invert swapBytes flag; the GL will figure out if it needs to swap
+     ** the pixel data.
+     */
     hdr->swapBytes = !hdr->swapBytes;
 }
 
-void __glXDispSwap_TexSubImage3D(GLbyte *pc)
+void
+__glXDispSwap_TexSubImage3D(GLbyte * pc)
 {
     __GLXdispatchTexSubImage3DHeader *hdr =
-				(__GLXdispatchTexSubImage3DHeader *) pc;
+        (__GLXdispatchTexSubImage3DHeader *) pc;
 
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->imageHeight);
-    __GLX_SWAP_INT((GLbyte *)&hdr->imageDepth);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipImages);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipVolumes);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->imageHeight);
+    __GLX_SWAP_INT((GLbyte *) & hdr->imageDepth);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipImages);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipVolumes);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->target);
-    __GLX_SWAP_INT((GLbyte *)&hdr->level);
-    __GLX_SWAP_INT((GLbyte *)&hdr->xoffset);
-    __GLX_SWAP_INT((GLbyte *)&hdr->yoffset);
-    __GLX_SWAP_INT((GLbyte *)&hdr->zoffset);
-    __GLX_SWAP_INT((GLbyte *)&hdr->width);
-    __GLX_SWAP_INT((GLbyte *)&hdr->height);
-    __GLX_SWAP_INT((GLbyte *)&hdr->depth);
-    __GLX_SWAP_INT((GLbyte *)&hdr->size4d);
-    __GLX_SWAP_INT((GLbyte *)&hdr->format);
-    __GLX_SWAP_INT((GLbyte *)&hdr->type);
+    __GLX_SWAP_INT((GLbyte *) & hdr->target);
+    __GLX_SWAP_INT((GLbyte *) & hdr->level);
+    __GLX_SWAP_INT((GLbyte *) & hdr->xoffset);
+    __GLX_SWAP_INT((GLbyte *) & hdr->yoffset);
+    __GLX_SWAP_INT((GLbyte *) & hdr->zoffset);
+    __GLX_SWAP_INT((GLbyte *) & hdr->width);
+    __GLX_SWAP_INT((GLbyte *) & hdr->height);
+    __GLX_SWAP_INT((GLbyte *) & hdr->depth);
+    __GLX_SWAP_INT((GLbyte *) & hdr->size4d);
+    __GLX_SWAP_INT((GLbyte *) & hdr->format);
+    __GLX_SWAP_INT((GLbyte *) & hdr->type);
 
     /*
-    ** Just invert swapBytes flag; the GL will figure out if it needs to swap
-    ** the pixel data.
-    */
+     ** Just invert swapBytes flag; the GL will figure out if it needs to swap
+     ** the pixel data.
+     */
     hdr->swapBytes = !hdr->swapBytes;
 }
 
-void __glXDispSwap_ColorTable(GLbyte *pc)
+void
+__glXDispSwap_ColorTable(GLbyte * pc)
 {
-    __GLXdispatchColorTableHeader *hdr =
-				(__GLXdispatchColorTableHeader *) pc;
+    __GLXdispatchColorTableHeader *hdr = (__GLXdispatchColorTableHeader *) pc;
+
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->target);
-    __GLX_SWAP_INT((GLbyte *)&hdr->internalformat);
-    __GLX_SWAP_INT((GLbyte *)&hdr->width);
-    __GLX_SWAP_INT((GLbyte *)&hdr->format);
-    __GLX_SWAP_INT((GLbyte *)&hdr->type);
+    __GLX_SWAP_INT((GLbyte *) & hdr->target);
+    __GLX_SWAP_INT((GLbyte *) & hdr->internalformat);
+    __GLX_SWAP_INT((GLbyte *) & hdr->width);
+    __GLX_SWAP_INT((GLbyte *) & hdr->format);
+    __GLX_SWAP_INT((GLbyte *) & hdr->type);
 
     /*
-    ** Just invert swapBytes flag; the GL will figure out if it needs to swap
-    ** the pixel data.
-    */
+     ** Just invert swapBytes flag; the GL will figure out if it needs to swap
+     ** the pixel data.
+     */
     hdr->swapBytes = !hdr->swapBytes;
 }
 
-void __glXDispSwap_ColorSubTable(GLbyte *pc)
+void
+__glXDispSwap_ColorSubTable(GLbyte * pc)
 {
     __GLXdispatchColorSubTableHeader *hdr =
-				(__GLXdispatchColorSubTableHeader *) pc;
+        (__GLXdispatchColorSubTableHeader *) pc;
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->target);
-    __GLX_SWAP_INT((GLbyte *)&hdr->start);
-    __GLX_SWAP_INT((GLbyte *)&hdr->count);
-    __GLX_SWAP_INT((GLbyte *)&hdr->format);
-    __GLX_SWAP_INT((GLbyte *)&hdr->type);
+    __GLX_SWAP_INT((GLbyte *) & hdr->target);
+    __GLX_SWAP_INT((GLbyte *) & hdr->start);
+    __GLX_SWAP_INT((GLbyte *) & hdr->count);
+    __GLX_SWAP_INT((GLbyte *) & hdr->format);
+    __GLX_SWAP_INT((GLbyte *) & hdr->type);
 
     /*
-    ** Just invert swapBytes flag; the GL will figure out if it needs to swap
-    ** the pixel data.
-    */
+     ** Just invert swapBytes flag; the GL will figure out if it needs to swap
+     ** the pixel data.
+     */
     hdr->swapBytes = !hdr->swapBytes;
 }
 
-void __glXDispSwap_ConvolutionFilter1D(GLbyte *pc)
+void
+__glXDispSwap_ConvolutionFilter1D(GLbyte * pc)
 {
     __GLXdispatchConvolutionFilterHeader *hdr =
-				(__GLXdispatchConvolutionFilterHeader *) pc;
+        (__GLXdispatchConvolutionFilterHeader *) pc;
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->target);
-    __GLX_SWAP_INT((GLbyte *)&hdr->internalformat);
-    __GLX_SWAP_INT((GLbyte *)&hdr->width);
-    __GLX_SWAP_INT((GLbyte *)&hdr->format);
-    __GLX_SWAP_INT((GLbyte *)&hdr->type);
+    __GLX_SWAP_INT((GLbyte *) & hdr->target);
+    __GLX_SWAP_INT((GLbyte *) & hdr->internalformat);
+    __GLX_SWAP_INT((GLbyte *) & hdr->width);
+    __GLX_SWAP_INT((GLbyte *) & hdr->format);
+    __GLX_SWAP_INT((GLbyte *) & hdr->type);
 
     /*
-    ** Just invert swapBytes flag; the GL will figure out if it needs to swap
-    ** the pixel data.
-    */
+     ** Just invert swapBytes flag; the GL will figure out if it needs to swap
+     ** the pixel data.
+     */
     hdr->swapBytes = !hdr->swapBytes;
 }
 
-void __glXDispSwap_ConvolutionFilter2D(GLbyte *pc)
+void
+__glXDispSwap_ConvolutionFilter2D(GLbyte * pc)
 {
     __GLXdispatchConvolutionFilterHeader *hdr =
-				(__GLXdispatchConvolutionFilterHeader *) pc;
+        (__GLXdispatchConvolutionFilterHeader *) pc;
     __GLX_DECLARE_SWAP_VARIABLES;
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->target);
-    __GLX_SWAP_INT((GLbyte *)&hdr->internalformat);
-    __GLX_SWAP_INT((GLbyte *)&hdr->width);
-    __GLX_SWAP_INT((GLbyte *)&hdr->height);
-    __GLX_SWAP_INT((GLbyte *)&hdr->format);
-    __GLX_SWAP_INT((GLbyte *)&hdr->type);
+    __GLX_SWAP_INT((GLbyte *) & hdr->target);
+    __GLX_SWAP_INT((GLbyte *) & hdr->internalformat);
+    __GLX_SWAP_INT((GLbyte *) & hdr->width);
+    __GLX_SWAP_INT((GLbyte *) & hdr->height);
+    __GLX_SWAP_INT((GLbyte *) & hdr->format);
+    __GLX_SWAP_INT((GLbyte *) & hdr->type);
 
     /*
-    ** Just invert swapBytes flag; the GL will figure out if it needs to swap
-    ** the pixel data.
-    */
+     ** Just invert swapBytes flag; the GL will figure out if it needs to swap
+     ** the pixel data.
+     */
     hdr->swapBytes = !hdr->swapBytes;
 }
 
-void __glXDispSwap_SeparableFilter2D(GLbyte *pc)
+void
+__glXDispSwap_SeparableFilter2D(GLbyte * pc)
 {
     __GLXdispatchConvolutionFilterHeader *hdr =
-				(__GLXdispatchConvolutionFilterHeader *) pc;
+        (__GLXdispatchConvolutionFilterHeader *) pc;
     GLint hdrlen;
+
     __GLX_DECLARE_SWAP_VARIABLES;
 
     hdrlen = __GLX_PAD(__GLX_CONV_FILT_CMD_HDR_SIZE);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->rowLength);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipRows);
-    __GLX_SWAP_INT((GLbyte *)&hdr->skipPixels);
-    __GLX_SWAP_INT((GLbyte *)&hdr->alignment);
+    __GLX_SWAP_INT((GLbyte *) & hdr->rowLength);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipRows);
+    __GLX_SWAP_INT((GLbyte *) & hdr->skipPixels);
+    __GLX_SWAP_INT((GLbyte *) & hdr->alignment);
 
-    __GLX_SWAP_INT((GLbyte *)&hdr->target);
-    __GLX_SWAP_INT((GLbyte *)&hdr->internalformat);
-    __GLX_SWAP_INT((GLbyte *)&hdr->width);
-    __GLX_SWAP_INT((GLbyte *)&hdr->height);
-    __GLX_SWAP_INT((GLbyte *)&hdr->format);
-    __GLX_SWAP_INT((GLbyte *)&hdr->type);
+    __GLX_SWAP_INT((GLbyte *) & hdr->target);
+    __GLX_SWAP_INT((GLbyte *) & hdr->internalformat);
+    __GLX_SWAP_INT((GLbyte *) & hdr->width);
+    __GLX_SWAP_INT((GLbyte *) & hdr->height);
+    __GLX_SWAP_INT((GLbyte *) & hdr->format);
+    __GLX_SWAP_INT((GLbyte *) & hdr->type);
 
     /*
-    ** Just invert swapBytes flag; the GL will figure out if it needs to swap
-    ** the pixel data.
-    */
+     ** Just invert swapBytes flag; the GL will figure out if it needs to swap
+     ** the pixel data.
+     */
     hdr->swapBytes = !hdr->swapBytes;
 }

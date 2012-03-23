@@ -30,59 +30,46 @@
 
 /* fbpict.c */
 extern _X_EXPORT void
-fbComposite (CARD8      op,
-	     PicturePtr pSrc,
-	     PicturePtr pMask,
-	     PicturePtr pDst,
-	     INT16      xSrc,
-	     INT16      ySrc,
-	     INT16      xMask,
-	     INT16      yMask,
-	     INT16      xDst,
-	     INT16      yDst,
-	     CARD16     width,
-	     CARD16     height);
+
+fbComposite(CARD8 op,
+            PicturePtr pSrc,
+            PicturePtr pMask,
+            PicturePtr pDst,
+            INT16 xSrc,
+            INT16 ySrc,
+            INT16 xMask,
+            INT16 yMask, INT16 xDst, INT16 yDst, CARD16 width, CARD16 height);
 
 /* fbtrap.c */
 
 extern _X_EXPORT void
-fbAddTraps (PicturePtr	pPicture,
-	    INT16	xOff,
-	    INT16	yOff,
-	    int		ntrap,
-	    xTrap	*traps);
+
+fbAddTraps(PicturePtr pPicture,
+           INT16 xOff, INT16 yOff, int ntrap, xTrap * traps);
 
 extern _X_EXPORT void
-fbRasterizeTrapezoid (PicturePtr    alpha,
-		      xTrapezoid    *trap,
-		      int	    x_off,
-		      int	    y_off);
+
+fbRasterizeTrapezoid(PicturePtr alpha, xTrapezoid * trap, int x_off, int y_off);
 
 extern _X_EXPORT void
-fbAddTriangles (PicturePtr  pPicture,
-		INT16	    xOff,
-		INT16	    yOff,
-		int	    ntri,
-		xTriangle   *tris);
+
+fbAddTriangles(PicturePtr pPicture,
+               INT16 xOff, INT16 yOff, int ntri, xTriangle * tris);
 
 extern _X_EXPORT void
-fbTrapezoids (CARD8	    op,
-	      PicturePtr    pSrc,
-	      PicturePtr    pDst,
-	      PictFormatPtr maskFormat,
-	      INT16	    xSrc,
-	      INT16	    ySrc,
-	      int	    ntrap,
-	      xTrapezoid    *traps);
+
+fbTrapezoids(CARD8 op,
+             PicturePtr pSrc,
+             PicturePtr pDst,
+             PictFormatPtr maskFormat,
+             INT16 xSrc, INT16 ySrc, int ntrap, xTrapezoid * traps);
 
 extern _X_EXPORT void
-fbTriangles (CARD8	    op,
-	     PicturePtr     pSrc,
-	     PicturePtr     pDst,
-	     PictFormatPtr  maskFormat,
-	     INT16	    xSrc,
-	     INT16	    ySrc,
-	     int	    ntris,
-	     xTriangle     *tris);
 
-#endif /* _FBPICT_H_ */
+fbTriangles(CARD8 op,
+            PicturePtr pSrc,
+            PicturePtr pDst,
+            PictFormatPtr maskFormat,
+            INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris);
+
+#endif                          /* _FBPICT_H_ */

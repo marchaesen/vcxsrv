@@ -46,7 +46,7 @@
 #include <resource.h>
 #include <scrnintstr.h>
 
-#define GL_GLEXT_PROTOTYPES /* we want prototypes */
+#define GL_GLEXT_PROTOTYPES     /* we want prototypes */
 #include <GL/gl.h>
 #include <GL/glxproto.h>
 
@@ -79,16 +79,16 @@ extern __GLXclientState *glxGetClient(ClientPtr pClient);
 
 void GlxExtensionInit(void);
 
-void GlxSetVisualConfigs(int nconfigs, 
-                         void *configs, void **privates);
+void GlxSetVisualConfigs(int nconfigs, void *configs, void **privates);
 
-void __glXScreenInitVisuals(__GLXscreen *screen);
+void __glXScreenInitVisuals(__GLXscreen * screen);
 
 /*
 ** The last context used (from the server's persective) is cached.
 */
 extern __GLXcontext *__glXLastContext;
-extern __GLXcontext *__glXForceCurrent(__GLXclientState*, GLXContextTag, int*);
+extern __GLXcontext *__glXForceCurrent(__GLXclientState *, GLXContextTag,
+                                       int *);
 
 int __glXError(int error);
 
@@ -96,12 +96,12 @@ int __glXError(int error);
 
 typedef struct __GLXprovider __GLXprovider;
 struct __GLXprovider {
-    __GLXscreen *(*screenProbe)(ScreenPtr pScreen);
-    const char    *name;
+    __GLXscreen *(*screenProbe) (ScreenPtr pScreen);
+    const char *name;
     __GLXprovider *next;
 };
 
-void GlxPushProvider(__GLXprovider *provider);
+void GlxPushProvider(__GLXprovider * provider);
 
 enum {
     GLX_MINIMAL_VISUALS,
@@ -109,8 +109,8 @@ enum {
     GLX_ALL_VISUALS
 };
 
-void __glXsetEnterLeaveServerFuncs(void (*enter)(GLboolean),
-				   void (*leave)(GLboolean));
+void __glXsetEnterLeaveServerFuncs(void (*enter) (GLboolean),
+                                   void (*leave) (GLboolean));
 void __glXenterServer(GLboolean rendering);
 void __glXleaveServer(GLboolean rendering);
 
@@ -122,23 +122,23 @@ void glxResumeClients(void);
 */
 struct __GLXclientStateRec {
     /*
-    ** Whether this structure is currently being used to support a client.
-    */
+     ** Whether this structure is currently being used to support a client.
+     */
     Bool inUse;
 
     /*
-    ** Buffer for returned data.
-    */
+     ** Buffer for returned data.
+     */
     GLbyte *returnBuf;
     GLint returnBufSize;
 
     /*
-    ** Keep track of large rendering commands, which span multiple requests.
-    */
-    GLint largeCmdBytesSoFar;		/* bytes received so far	*/
-    GLint largeCmdBytesTotal;		/* total bytes expected		*/
-    GLint largeCmdRequestsSoFar;	/* requests received so far	*/
-    GLint largeCmdRequestsTotal;	/* total requests expected	*/
+     ** Keep track of large rendering commands, which span multiple requests.
+     */
+    GLint largeCmdBytesSoFar;   /* bytes received so far        */
+    GLint largeCmdBytesTotal;   /* total bytes expected         */
+    GLint largeCmdRequestsSoFar;        /* requests received so far     */
+    GLint largeCmdRequestsTotal;        /* total requests expected      */
     GLbyte *largeCmdBuf;
     GLint largeCmdBufSize;
 
@@ -155,19 +155,19 @@ struct __GLXclientStateRec {
 /*
 ** Dispatch tables.
 */
-typedef void (*__GLXdispatchRenderProcPtr)(GLbyte *);
-typedef int (*__GLXdispatchSingleProcPtr)(__GLXclientState *, GLbyte *);
-typedef int (*__GLXdispatchVendorPrivProcPtr)(__GLXclientState *, GLbyte *);
+typedef void (*__GLXdispatchRenderProcPtr) (GLbyte *);
+typedef int (*__GLXdispatchSingleProcPtr) (__GLXclientState *, GLbyte *);
+typedef int (*__GLXdispatchVendorPrivProcPtr) (__GLXclientState *, GLbyte *);
 
 /*
  * Dispatch for GLX commands.
  */
-typedef int (*__GLXprocPtr)(__GLXclientState *, char *pc);
+typedef int (*__GLXprocPtr) (__GLXclientState *, char *pc);
 
 /*
  * Tables for computing the size of each rendering command.
  */
-typedef int (*gl_proto_size_func)(const GLbyte *, Bool);
+typedef int (*gl_proto_size_func) (const GLbyte *, Bool);
 
 typedef struct {
     int bytes;
@@ -197,21 +197,22 @@ extern char *__glXcombine_strings(const char *, const char *);
 */
 
 extern void __glXSwapMakeCurrentReply(ClientPtr client,
-				      xGLXMakeCurrentReply *reply);
-extern void __glXSwapIsDirectReply(ClientPtr client,
-				   xGLXIsDirectReply *reply);
+                                      xGLXMakeCurrentReply * reply);
+extern void __glXSwapIsDirectReply(ClientPtr client, xGLXIsDirectReply * reply);
 extern void __glXSwapQueryVersionReply(ClientPtr client,
-				       xGLXQueryVersionReply *reply);
+                                       xGLXQueryVersionReply * reply);
 extern void __glXSwapQueryContextInfoEXTReply(ClientPtr client,
-					      xGLXQueryContextInfoEXTReply *reply,
-					      int *buf);
+                                              xGLXQueryContextInfoEXTReply *
+                                              reply, int *buf);
 extern void __glXSwapGetDrawableAttributesReply(ClientPtr client,
-						xGLXGetDrawableAttributesReply *reply, CARD32 *buf);
+                                                xGLXGetDrawableAttributesReply *
+                                                reply, CARD32 *buf);
 extern void glxSwapQueryExtensionsStringReply(ClientPtr client,
-				xGLXQueryExtensionsStringReply *reply, char *buf);
+                                              xGLXQueryExtensionsStringReply *
+                                              reply, char *buf);
 extern void glxSwapQueryServerStringReply(ClientPtr client,
-				xGLXQueryServerStringReply *reply, char *buf);
-
+                                          xGLXQueryServerStringReply * reply,
+                                          char *buf);
 
 /*
  * Routines for computing the size of variably-sized rendering commands.
@@ -219,13 +220,13 @@ extern void glxSwapQueryServerStringReply(ClientPtr client,
 
 extern int __glXTypeSize(GLenum enm);
 extern int __glXImageSize(GLenum format, GLenum type,
-    GLenum target, GLsizei w, GLsizei h, GLsizei d,
-    GLint imageHeight, GLint rowLength, GLint skipImages, GLint skipRows,
-    GLint alignment);
+                          GLenum target, GLsizei w, GLsizei h, GLsizei d,
+                          GLint imageHeight, GLint rowLength, GLint skipImages,
+                          GLint skipRows, GLint alignment);
 
 extern unsigned glxMajorVersion;
 extern unsigned glxMinorVersion;
 
 extern int __glXEventBase;
 
-#endif /* !__GLX_server_h__ */
+#endif                          /* !__GLX_server_h__ */

@@ -24,7 +24,6 @@ in this Software without prior written authorization from The Open Group.
 
 ********************************************************/
 
-
 typedef struct {
     int x;
     int y;
@@ -119,8 +118,7 @@ typedef struct {
 
 /* mizerarc.c */
 
-extern _X_EXPORT Bool miZeroArcSetup(
-    xArc * /*arc*/,
-    miZeroArcRec * /*info*/,
-    Bool /*ok360*/
-);
+extern _X_EXPORT Bool miZeroArcSetup(xArc * /*arc */ ,
+                                     miZeroArcRec * /*info */ ,
+                                     Bool       /*ok360 */
+    );

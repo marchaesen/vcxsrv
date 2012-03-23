@@ -47,191 +47,181 @@
 #include "rrtransform.h"
 #include <X11/extensions/randr.h>
 #include <X11/extensions/randrproto.h>
-#include <X11/extensions/render.h> 	/* we share subpixel order information */
+#include <X11/extensions/render.h>      /* we share subpixel order information */
 #include "picturestr.h"
 #include <X11/Xfuncproto.h>
 
 /* required for ABI compatibility for now */
 #define RANDR_10_INTERFACE 1
 #define RANDR_12_INTERFACE 1
-#define RANDR_13_INTERFACE 1 /* requires RANDR_12_INTERFACE */
+#define RANDR_13_INTERFACE 1    /* requires RANDR_12_INTERFACE */
 #define RANDR_GET_CRTC_INTERFACE 1
 
 #define RANDR_INTERFACE_VERSION 0x0103
 
-typedef XID	RRMode;
-typedef XID	RROutput;
-typedef XID	RRCrtc;
+typedef XID RRMode;
+typedef XID RROutput;
+typedef XID RRCrtc;
 
-extern _X_EXPORT int	RREventBase, RRErrorBase;
+extern _X_EXPORT int RREventBase, RRErrorBase;
 
-extern _X_EXPORT int (*ProcRandrVector[RRNumberRequests])(ClientPtr);
-extern _X_EXPORT int (*SProcRandrVector[RRNumberRequests])(ClientPtr);
-    
+extern _X_EXPORT int (*ProcRandrVector[RRNumberRequests]) (ClientPtr);
+extern _X_EXPORT int (*SProcRandrVector[RRNumberRequests]) (ClientPtr);
+
 /*
  * Modeline for a monitor. Name follows directly after this struct
  */
 
 #define RRModeName(pMode) ((char *) (pMode + 1))
-typedef struct _rrMode		RRModeRec, *RRModePtr;
-typedef struct _rrPropertyValue	RRPropertyValueRec, *RRPropertyValuePtr;
-typedef struct _rrProperty	RRPropertyRec, *RRPropertyPtr;
-typedef struct _rrCrtc		RRCrtcRec, *RRCrtcPtr;
-typedef struct _rrOutput	RROutputRec, *RROutputPtr;
+typedef struct _rrMode RRModeRec, *RRModePtr;
+typedef struct _rrPropertyValue RRPropertyValueRec, *RRPropertyValuePtr;
+typedef struct _rrProperty RRPropertyRec, *RRPropertyPtr;
+typedef struct _rrCrtc RRCrtcRec, *RRCrtcPtr;
+typedef struct _rrOutput RROutputRec, *RROutputPtr;
 
 struct _rrMode {
-    int		    refcnt;
-    xRRModeInfo	    mode;
-    char	    *name;
-    ScreenPtr	    userScreen;
+    int refcnt;
+    xRRModeInfo mode;
+    char *name;
+    ScreenPtr userScreen;
 };
 
 struct _rrPropertyValue {
-    Atom	    type;       /* ignored by server */
-    short	    format;     /* format of data for swapping - 8,16,32 */
-    long	    size;	/* size of data in (format/8) bytes */
-    pointer         data;	/* private to client */
+    Atom type;                  /* ignored by server */
+    short format;               /* format of data for swapping - 8,16,32 */
+    long size;                  /* size of data in (format/8) bytes */
+    pointer data;               /* private to client */
 };
 
 struct _rrProperty {
-    RRPropertyPtr   next;
-    ATOM 	    propertyName;
-    Bool	    is_pending;
-    Bool	    range;
-    Bool	    immutable;
-    int		    num_valid;
-    INT32	    *valid_values;
-    RRPropertyValueRec	current, pending;
+    RRPropertyPtr next;
+    ATOM propertyName;
+    Bool is_pending;
+    Bool range;
+    Bool immutable;
+    int num_valid;
+    INT32 *valid_values;
+    RRPropertyValueRec current, pending;
 };
 
 struct _rrCrtc {
-    RRCrtc	    id;
-    ScreenPtr	    pScreen;
-    RRModePtr	    mode;
-    int		    x, y;
-    Rotation	    rotation;
-    Rotation	    rotations;
-    Bool	    changed;
-    int		    numOutputs;
-    RROutputPtr	    *outputs;
-    int		    gammaSize;
-    CARD16	    *gammaRed;
-    CARD16	    *gammaBlue;
-    CARD16	    *gammaGreen;
-    void	    *devPrivate;
-    Bool	    transforms;
-    RRTransformRec  client_pending_transform;
-    RRTransformRec  client_current_transform;
-    PictTransform   transform;
+    RRCrtc id;
+    ScreenPtr pScreen;
+    RRModePtr mode;
+    int x, y;
+    Rotation rotation;
+    Rotation rotations;
+    Bool changed;
+    int numOutputs;
+    RROutputPtr *outputs;
+    int gammaSize;
+    CARD16 *gammaRed;
+    CARD16 *gammaBlue;
+    CARD16 *gammaGreen;
+    void *devPrivate;
+    Bool transforms;
+    RRTransformRec client_pending_transform;
+    RRTransformRec client_current_transform;
+    PictTransform transform;
     struct pict_f_transform f_transform;
     struct pict_f_transform f_inverse;
 };
 
 struct _rrOutput {
-    RROutput	    id;
-    ScreenPtr	    pScreen;
-    char	    *name;
-    int		    nameLength;
-    CARD8	    connection;
-    CARD8	    subpixelOrder;
-    int		    mmWidth;
-    int		    mmHeight;
-    RRCrtcPtr	    crtc;
-    int		    numCrtcs;
-    RRCrtcPtr	    *crtcs;
-    int		    numClones;
-    RROutputPtr	    *clones;
-    int		    numModes;
-    int		    numPreferred;
-    RRModePtr	    *modes;
-    int		    numUserModes;
-    RRModePtr	    *userModes;
-    Bool	    changed;
-    RRPropertyPtr   properties;
-    Bool	    pendingProperties;
-    void	    *devPrivate;
+    RROutput id;
+    ScreenPtr pScreen;
+    char *name;
+    int nameLength;
+    CARD8 connection;
+    CARD8 subpixelOrder;
+    int mmWidth;
+    int mmHeight;
+    RRCrtcPtr crtc;
+    int numCrtcs;
+    RRCrtcPtr *crtcs;
+    int numClones;
+    RROutputPtr *clones;
+    int numModes;
+    int numPreferred;
+    RRModePtr *modes;
+    int numUserModes;
+    RRModePtr *userModes;
+    Bool changed;
+    RRPropertyPtr properties;
+    Bool pendingProperties;
+    void *devPrivate;
 };
 
 #if RANDR_12_INTERFACE
-typedef Bool (*RRScreenSetSizeProcPtr) (ScreenPtr	pScreen,
-					CARD16		width,
-					CARD16		height,
-					CARD32		mmWidth,
-					CARD32		mmHeight);
-					
-typedef Bool (*RRCrtcSetProcPtr) (ScreenPtr		pScreen,
-				  RRCrtcPtr		crtc,
-				  RRModePtr		mode,
-				  int			x,
-				  int			y,
-				  Rotation		rotation,
-				  int			numOutputs,
-				  RROutputPtr		*outputs);
+typedef Bool (*RRScreenSetSizeProcPtr) (ScreenPtr pScreen,
+                                        CARD16 width,
+                                        CARD16 height,
+                                        CARD32 mmWidth, CARD32 mmHeight);
 
-typedef Bool (*RRCrtcSetGammaProcPtr) (ScreenPtr	pScreen,
-				       RRCrtcPtr	crtc);
+typedef Bool (*RRCrtcSetProcPtr) (ScreenPtr pScreen,
+                                  RRCrtcPtr crtc,
+                                  RRModePtr mode,
+                                  int x,
+                                  int y,
+                                  Rotation rotation,
+                                  int numOutputs, RROutputPtr * outputs);
 
-typedef Bool (*RRCrtcGetGammaProcPtr) (ScreenPtr	pScreen,
-				       RRCrtcPtr	crtc);
+typedef Bool (*RRCrtcSetGammaProcPtr) (ScreenPtr pScreen, RRCrtcPtr crtc);
 
-typedef Bool (*RROutputSetPropertyProcPtr) (ScreenPtr		pScreen,
-					    RROutputPtr		output,
-					    Atom		property,
-					    RRPropertyValuePtr	value);
+typedef Bool (*RRCrtcGetGammaProcPtr) (ScreenPtr pScreen, RRCrtcPtr crtc);
 
-typedef Bool (*RROutputValidateModeProcPtr) (ScreenPtr		pScreen,
-					     RROutputPtr	output,
-					     RRModePtr		mode);
+typedef Bool (*RROutputSetPropertyProcPtr) (ScreenPtr pScreen,
+                                            RROutputPtr output,
+                                            Atom property,
+                                            RRPropertyValuePtr value);
 
-typedef void (*RRModeDestroyProcPtr) (ScreenPtr	    pScreen,
-				      RRModePtr	    mode);
+typedef Bool (*RROutputValidateModeProcPtr) (ScreenPtr pScreen,
+                                             RROutputPtr output,
+                                             RRModePtr mode);
+
+typedef void (*RRModeDestroyProcPtr) (ScreenPtr pScreen, RRModePtr mode);
 
 #endif
 
 #if RANDR_13_INTERFACE
-typedef Bool (*RROutputGetPropertyProcPtr) (ScreenPtr		pScreen,
-					    RROutputPtr		output,
-					    Atom		property);
-typedef Bool (*RRGetPanningProcPtr)    (ScreenPtr		pScrn,
-					RRCrtcPtr		crtc,
-					BoxPtr		totalArea,
-					BoxPtr		trackingArea,
-					INT16		*border);
-typedef Bool (*RRSetPanningProcPtr)    (ScreenPtr		pScrn,
-					RRCrtcPtr		crtc,
-					BoxPtr		totalArea,
-					BoxPtr		trackingArea,
-					INT16		*border);
+typedef Bool (*RROutputGetPropertyProcPtr) (ScreenPtr pScreen,
+                                            RROutputPtr output, Atom property);
+typedef Bool (*RRGetPanningProcPtr) (ScreenPtr pScrn,
+                                     RRCrtcPtr crtc,
+                                     BoxPtr totalArea,
+                                     BoxPtr trackingArea, INT16 *border);
+typedef Bool (*RRSetPanningProcPtr) (ScreenPtr pScrn,
+                                     RRCrtcPtr crtc,
+                                     BoxPtr totalArea,
+                                     BoxPtr trackingArea, INT16 *border);
 
-#endif /* RANDR_13_INTERFACE */
+#endif                          /* RANDR_13_INTERFACE */
 
-typedef Bool (*RRGetInfoProcPtr) (ScreenPtr pScreen, Rotation *rotations);
-typedef Bool (*RRCloseScreenProcPtr) ( int i, ScreenPtr pscreen);
+typedef Bool (*RRGetInfoProcPtr) (ScreenPtr pScreen, Rotation * rotations);
+typedef Bool (*RRCloseScreenProcPtr) (int i, ScreenPtr pscreen);
 
 /* These are for 1.0 compatibility */
- 
+
 typedef struct _rrRefresh {
-    CARD16	    rate;
-    RRModePtr	    mode;
+    CARD16 rate;
+    RRModePtr mode;
 } RRScreenRate, *RRScreenRatePtr;
 
 typedef struct _rrScreenSize {
-    int		    id;
-    short	    width, height;
-    short	    mmWidth, mmHeight;
-    int		    nRates;
+    int id;
+    short width, height;
+    short mmWidth, mmHeight;
+    int nRates;
     RRScreenRatePtr pRates;
 } RRScreenSize, *RRScreenSizePtr;
 
 #ifdef RANDR_10_INTERFACE
 
-typedef Bool (*RRSetConfigProcPtr) (ScreenPtr		pScreen,
-				    Rotation		rotation,
-				    int			rate,
-				    RRScreenSizePtr	pSize);
+typedef Bool (*RRSetConfigProcPtr) (ScreenPtr pScreen,
+                                    Rotation rotation,
+                                    int rate, RRScreenSizePtr pSize);
 
 #endif
-	
 
 typedef struct _rrScrPriv {
     /*
@@ -239,68 +229,69 @@ typedef struct _rrScrPriv {
      * as they initialize
      */
 #if RANDR_10_INTERFACE
-    RRSetConfigProcPtr	    rrSetConfig;
+    RRSetConfigProcPtr rrSetConfig;
 #endif
-    RRGetInfoProcPtr	    rrGetInfo;
+    RRGetInfoProcPtr rrGetInfo;
 #if RANDR_12_INTERFACE
-    RRScreenSetSizeProcPtr  rrScreenSetSize;
-    RRCrtcSetProcPtr	    rrCrtcSet;
-    RRCrtcSetGammaProcPtr   rrCrtcSetGamma;
-    RRCrtcGetGammaProcPtr   rrCrtcGetGamma;
-    RROutputSetPropertyProcPtr	rrOutputSetProperty;
-    RROutputValidateModeProcPtr	rrOutputValidateMode;
-    RRModeDestroyProcPtr	rrModeDestroy;
+    RRScreenSetSizeProcPtr rrScreenSetSize;
+    RRCrtcSetProcPtr rrCrtcSet;
+    RRCrtcSetGammaProcPtr rrCrtcSetGamma;
+    RRCrtcGetGammaProcPtr rrCrtcGetGamma;
+    RROutputSetPropertyProcPtr rrOutputSetProperty;
+    RROutputValidateModeProcPtr rrOutputValidateMode;
+    RRModeDestroyProcPtr rrModeDestroy;
 #endif
 #if RANDR_13_INTERFACE
-    RROutputGetPropertyProcPtr	rrOutputGetProperty;
-    RRGetPanningProcPtr	rrGetPanning;
-    RRSetPanningProcPtr	rrSetPanning;
+    RROutputGetPropertyProcPtr rrOutputGetProperty;
+    RRGetPanningProcPtr rrGetPanning;
+    RRSetPanningProcPtr rrSetPanning;
 #endif
-    
+
     /*
      * Private part of the structure; not considered part of the ABI
      */
-    TimeStamp		    lastSetTime;	/* last changed by client */
-    TimeStamp		    lastConfigTime;	/* possible configs changed */
-    RRCloseScreenProcPtr    CloseScreen;
+    TimeStamp lastSetTime;      /* last changed by client */
+    TimeStamp lastConfigTime;   /* possible configs changed */
+    RRCloseScreenProcPtr CloseScreen;
 
-    Bool		    changed;		/* some config changed */
-    Bool		    configChanged;	/* configuration changed */
-    Bool		    layoutChanged;	/* screen layout changed */
+    Bool changed;               /* some config changed */
+    Bool configChanged;         /* configuration changed */
+    Bool layoutChanged;         /* screen layout changed */
 
-    CARD16		    minWidth, minHeight;
-    CARD16		    maxWidth, maxHeight;
-    CARD16		    width, height;	/* last known screen size */
-    CARD16		    mmWidth, mmHeight;	/* last known screen size */
+    CARD16 minWidth, minHeight;
+    CARD16 maxWidth, maxHeight;
+    CARD16 width, height;       /* last known screen size */
+    CARD16 mmWidth, mmHeight;   /* last known screen size */
 
-    int			    numOutputs;
-    RROutputPtr		    *outputs;
-    RROutputPtr		    primaryOutput;
+    int numOutputs;
+    RROutputPtr *outputs;
+    RROutputPtr primaryOutput;
 
-    int			    numCrtcs;
-    RRCrtcPtr		    *crtcs;
+    int numCrtcs;
+    RRCrtcPtr *crtcs;
 
     /* Last known pointer position */
-    RRCrtcPtr		    pointerCrtc;
+    RRCrtcPtr pointerCrtc;
 
 #ifdef RANDR_10_INTERFACE
     /*
      * Configuration information
      */
-    Rotation		    rotations;
-    CARD16		    reqWidth, reqHeight;
-    
-    int			    nSizes;
-    RRScreenSizePtr	    pSizes;
-    
-    Rotation		    rotation;
-    int			    rate;
-    int			    size;
+    Rotation rotations;
+    CARD16 reqWidth, reqHeight;
+
+    int nSizes;
+    RRScreenSizePtr pSizes;
+
+    Rotation rotation;
+    int rate;
+    int size;
 #endif
-    Bool                   discontiguous;
+    Bool discontiguous;
 } rrScrPrivRec, *rrScrPrivPtr;
 
 extern _X_EXPORT DevPrivateKeyRec rrPrivKeyRec;
+
 #define rrPrivKey (&rrPrivKeyRec)
 
 #define rrGetScrPriv(pScr)  ((rrScrPrivPtr)dixLookupPrivate(&(pScr)->devPrivates, rrPrivKey))
@@ -318,26 +309,27 @@ extern _X_EXPORT DevPrivateKeyRec rrPrivKeyRec;
 typedef struct _RREvent *RREventPtr;
 
 typedef struct _RREvent {
-    RREventPtr  next;
-    ClientPtr	client;
-    WindowPtr	window;
-    XID		clientResource;
-    int		mask;
+    RREventPtr next;
+    ClientPtr client;
+    WindowPtr window;
+    XID clientResource;
+    int mask;
 } RREventRec;
 
 typedef struct _RRTimes {
-    TimeStamp	setTime;
-    TimeStamp	configTime;
+    TimeStamp setTime;
+    TimeStamp configTime;
 } RRTimesRec, *RRTimesPtr;
 
 typedef struct _RRClient {
-    int		major_version;
-    int		minor_version;
+    int major_version;
+    int minor_version;
 /*  RRTimesRec	times[0]; */
 } RRClientRec, *RRClientPtr;
 
-extern _X_EXPORT RESTYPE RRClientType, RREventType; /* resource types for event masks */
+extern _X_EXPORT RESTYPE RRClientType, RREventType;     /* resource types for event masks */
 extern _X_EXPORT DevPrivateKeyRec RRClientPrivateKeyRec;
+
 #define RRClientPrivateKey (&RRClientPrivateKeyRec)
 extern _X_EXPORT RESTYPE RRCrtcType, RRModeType, RROutputType;
 
@@ -376,18 +368,17 @@ extern _X_EXPORT RESTYPE RRCrtcType, RRModeType, RROutputType;
 
 /* Initialize the extension */
 extern _X_EXPORT void
-RRExtensionInit (void);
+ RRExtensionInit(void);
 
 #ifdef RANDR_12_INTERFACE
 /*
  * Set the range of sizes for the screen
  */
 extern _X_EXPORT void
-RRScreenSetSizeRange (ScreenPtr	pScreen,
-		      CARD16	minWidth,
-		      CARD16	minHeight,
-		      CARD16	maxWidth,
-		      CARD16	maxHeight);
+
+RRScreenSetSizeRange(ScreenPtr pScreen,
+                     CARD16 minWidth,
+                     CARD16 minHeight, CARD16 maxWidth, CARD16 maxHeight);
 #endif
 
 /* rrscreen.c */
@@ -397,75 +388,72 @@ RRScreenSetSizeRange (ScreenPtr	pScreen,
  * the size of the screen
  */
 extern _X_EXPORT void
-RRScreenSizeNotify (ScreenPtr	pScreen);
+ RRScreenSizeNotify(ScreenPtr pScreen);
 
 /*
  * Request that the screen be resized
  */
 extern _X_EXPORT Bool
-RRScreenSizeSet (ScreenPtr  pScreen,
-		 CARD16	    width,
-		 CARD16	    height,
-		 CARD32	    mmWidth,
-		 CARD32	    mmHeight);
+
+RRScreenSizeSet(ScreenPtr pScreen,
+                CARD16 width, CARD16 height, CARD32 mmWidth, CARD32 mmHeight);
 
 /*
  * Send ConfigureNotify event to root window when 'something' happens
  */
 extern _X_EXPORT void
-RRSendConfigNotify (ScreenPtr pScreen);
-    
+ RRSendConfigNotify(ScreenPtr pScreen);
+
 /*
  * screen dispatch
  */
 extern _X_EXPORT int
-ProcRRGetScreenSizeRange (ClientPtr client);
+ ProcRRGetScreenSizeRange(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRSetScreenSize (ClientPtr client);
+ ProcRRSetScreenSize(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRGetScreenResources (ClientPtr client);
+ ProcRRGetScreenResources(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRGetScreenResourcesCurrent (ClientPtr client);
+ ProcRRGetScreenResourcesCurrent(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRSetScreenConfig (ClientPtr client);
+ ProcRRSetScreenConfig(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRGetScreenInfo (ClientPtr client);
+ ProcRRGetScreenInfo(ClientPtr client);
 
 /*
  * Deliver a ScreenNotify event
  */
 extern _X_EXPORT void
-RRDeliverScreenEvent (ClientPtr client, WindowPtr pWin, ScreenPtr pScreen);
-    
+ RRDeliverScreenEvent(ClientPtr client, WindowPtr pWin, ScreenPtr pScreen);
+
 /* randr.c */
 /*
  * Send all pending events
  */
 extern _X_EXPORT void
-RRTellChanged (ScreenPtr pScreen);
+ RRTellChanged(ScreenPtr pScreen);
 
 /*
  * Poll the driver for changed information
  */
 extern _X_EXPORT Bool
-RRGetInfo (ScreenPtr pScreen, Bool force_query);
+ RRGetInfo(ScreenPtr pScreen, Bool force_query);
 
-extern _X_EXPORT Bool RRInit (void);
+extern _X_EXPORT Bool RRInit(void);
 
 extern _X_EXPORT Bool RRScreenInit(ScreenPtr pScreen);
 
-extern _X_EXPORT RROutputPtr
-RRFirstOutput (ScreenPtr pScreen);
+extern _X_EXPORT RROutputPtr RRFirstOutput(ScreenPtr pScreen);
 
 extern _X_EXPORT CARD16
-RRVerticalRefresh (xRRModeInfo *mode);
+ RRVerticalRefresh(xRRModeInfo * mode);
 
-#ifdef RANDR_10_INTERFACE					
+#ifdef RANDR_10_INTERFACE
 /*
  * This is the old interface, deprecated but left
  * around for compatibility
@@ -476,31 +464,24 @@ RRVerticalRefresh (xRRModeInfo *mode);
  */
 
 extern _X_EXPORT RRScreenSizePtr
-RRRegisterSize (ScreenPtr		pScreen,
-		short			width, 
-		short			height,
-		short			mmWidth,
-		short			mmHeight);
+RRRegisterSize(ScreenPtr pScreen,
+               short width, short height, short mmWidth, short mmHeight);
 
 extern _X_EXPORT Bool
-RRRegisterRate (ScreenPtr		pScreen,
-		     RRScreenSizePtr	pSize,
-		     int		rate);
+ RRRegisterRate(ScreenPtr pScreen, RRScreenSizePtr pSize, int rate);
 
 /*
  * Finally, set the current configuration of the screen
  */
 
 extern _X_EXPORT void
-RRSetCurrentConfig (ScreenPtr		pScreen,
-		    Rotation		rotation,
-		    int			rate,
-		    RRScreenSizePtr	pSize);
 
-extern _X_EXPORT Rotation
-RRGetRotation (ScreenPtr pScreen);
+RRSetCurrentConfig(ScreenPtr pScreen,
+                   Rotation rotation, int rate, RRScreenSizePtr pSize);
 
-#endif					
+extern _X_EXPORT Rotation RRGetRotation(ScreenPtr pScreen);
+
+#endif
 
 /* rrcrtc.c */
 
@@ -509,72 +490,65 @@ RRGetRotation (ScreenPtr pScreen);
  * some position or size element changed
  */
 extern _X_EXPORT void
-RRCrtcChanged (RRCrtcPtr crtc, Bool layoutChanged);
+ RRCrtcChanged(RRCrtcPtr crtc, Bool layoutChanged);
 
 /*
  * Create a CRTC
  */
-extern _X_EXPORT RRCrtcPtr
-RRCrtcCreate (ScreenPtr pScreen, void	*devPrivate);
+extern _X_EXPORT RRCrtcPtr RRCrtcCreate(ScreenPtr pScreen, void *devPrivate);
 
 /*
  * Set the allowed rotations on a CRTC
  */
 extern _X_EXPORT void
-RRCrtcSetRotations (RRCrtcPtr crtc, Rotation rotations);
+ RRCrtcSetRotations(RRCrtcPtr crtc, Rotation rotations);
 
 /*
  * Set whether transforms are allowed on a CRTC
  */
 extern _X_EXPORT void
-RRCrtcSetTransformSupport (RRCrtcPtr crtc, Bool transforms);
+ RRCrtcSetTransformSupport(RRCrtcPtr crtc, Bool transforms);
 
 /*
  * Notify the extension that the Crtc has been reconfigured,
  * the driver calls this whenever it has updated the mode
  */
 extern _X_EXPORT Bool
-RRCrtcNotify (RRCrtcPtr	    crtc,
-	      RRModePtr	    mode,
-	      int	    x,
-	      int	    y,
-	      Rotation	    rotation,
-	      RRTransformPtr transform,
-	      int	    numOutputs,
-	      RROutputPtr   *outputs);
+
+RRCrtcNotify(RRCrtcPtr crtc,
+             RRModePtr mode,
+             int x,
+             int y,
+             Rotation rotation,
+             RRTransformPtr transform, int numOutputs, RROutputPtr * outputs);
 
 extern _X_EXPORT void
-RRDeliverCrtcEvent (ClientPtr client, WindowPtr pWin, RRCrtcPtr crtc);
-    
+ RRDeliverCrtcEvent(ClientPtr client, WindowPtr pWin, RRCrtcPtr crtc);
+
 /*
  * Request that the Crtc be reconfigured
  */
 extern _X_EXPORT Bool
-RRCrtcSet (RRCrtcPtr    crtc,
-	   RRModePtr	mode,
-	   int		x,
-	   int		y,
-	   Rotation	rotation,
-	   int		numOutput,
-	   RROutputPtr  *outputs);
+
+RRCrtcSet(RRCrtcPtr crtc,
+          RRModePtr mode,
+          int x,
+          int y, Rotation rotation, int numOutput, RROutputPtr * outputs);
 
 /*
  * Request that the Crtc gamma be changed
  */
 
 extern _X_EXPORT Bool
-RRCrtcGammaSet (RRCrtcPtr   crtc,
-		CARD16	    *red,
-		CARD16	    *green,
-		CARD16	    *blue);
+ RRCrtcGammaSet(RRCrtcPtr crtc, CARD16 *red, CARD16 *green, CARD16 *blue);
 
 /*
  * Request current gamma back from the DDX (if possible).
  * This includes gamma size.
  */
- 
+
 extern _X_EXPORT Bool
-RRCrtcGammaGet(RRCrtcPtr crtc);
+ RRCrtcGammaGet(RRCrtcPtr crtc);
 
 /*
  * Notify the extension that the Crtc gamma has been changed
@@ -583,15 +557,14 @@ RRCrtcGammaGet(RRCrtcPtr crtc);
  */
 
 extern _X_EXPORT Bool
-RRCrtcGammaNotify (RRCrtcPtr	crtc);
+ RRCrtcGammaNotify(RRCrtcPtr crtc);
 
 /*
  * Set the size of the gamma table at server startup time
  */
 
 extern _X_EXPORT Bool
-RRCrtcGammaSetSize (RRCrtcPtr	crtc,
-		    int		size);
+ RRCrtcGammaSetSize(RRCrtcPtr crtc, int size);
 
 /*
  * Return the area of the frame buffer scanned out by the crtc,
@@ -599,7 +572,7 @@ RRCrtcGammaSetSize (RRCrtcPtr	crtc,
  */
 
 extern _X_EXPORT void
-RRCrtcGetScanoutSize(RRCrtcPtr crtc, int *width, int *height);
+ RRCrtcGetScanoutSize(RRCrtcPtr crtc, int *width, int *height);
 
 /*
  * Compute the complete transformation matrix including
@@ -609,145 +582,138 @@ RRCrtcGetScanoutSize(RRCrtcPtr crtc, int *width, int *height);
  * Return TRUE if the resulting transform is not a simple translation.
  */
 extern _X_EXPORT Bool
-RRTransformCompute (int			    x,
-		    int			    y,
-		    int			    width,
-		    int			    height,
-		    Rotation		    rotation,
-		    RRTransformPtr	    rr_transform,
 
-		    PictTransformPtr	    transform,
-		    struct pict_f_transform *f_transform,
-		    struct pict_f_transform *f_inverse);
+RRTransformCompute(int x,
+                   int y,
+                   int width,
+                   int height,
+                   Rotation rotation,
+                   RRTransformPtr rr_transform,
+                   PictTransformPtr transform,
+                   struct pict_f_transform *f_transform,
+                   struct pict_f_transform *f_inverse);
 
 /*
  * Return crtc transform
  */
-extern _X_EXPORT RRTransformPtr
-RRCrtcGetTransform (RRCrtcPtr crtc);
+extern _X_EXPORT RRTransformPtr RRCrtcGetTransform(RRCrtcPtr crtc);
 
 /*
  * Check whether the pending and current transforms are the same
  */
 extern _X_EXPORT Bool
-RRCrtcPendingTransform (RRCrtcPtr crtc);
+ RRCrtcPendingTransform(RRCrtcPtr crtc);
 
 /*
  * Destroy a Crtc at shutdown
  */
 extern _X_EXPORT void
-RRCrtcDestroy (RRCrtcPtr crtc);
-
+ RRCrtcDestroy(RRCrtcPtr crtc);
 
 /*
  * Set the pending CRTC transformation
  */
 
 extern _X_EXPORT int
-RRCrtcTransformSet (RRCrtcPtr		crtc,
-		    PictTransformPtr	transform,
-		    struct pict_f_transform *f_transform,
-		    struct pict_f_transform *f_inverse,
-		    char		*filter,
-		    int			filter_len,
-		    xFixed		*params,
-		    int			nparams);
+
+RRCrtcTransformSet(RRCrtcPtr crtc,
+                   PictTransformPtr transform,
+                   struct pict_f_transform *f_transform,
+                   struct pict_f_transform *f_inverse,
+                   char *filter, int filter_len, xFixed * params, int nparams);
 
 /*
  * Initialize crtc type
  */
 extern _X_EXPORT Bool
-RRCrtcInit (void);
+ RRCrtcInit(void);
 
 /*
  * Initialize crtc type error value
  */
 extern _X_EXPORT void
-RRCrtcInitErrorValue (void);
+ RRCrtcInitErrorValue(void);
 
 /*
  * Crtc dispatch
  */
 
 extern _X_EXPORT int
-ProcRRGetCrtcInfo (ClientPtr client);
+ ProcRRGetCrtcInfo(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRSetCrtcConfig (ClientPtr client);
+ ProcRRSetCrtcConfig(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRGetCrtcGammaSize (ClientPtr client);
+ ProcRRGetCrtcGammaSize(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRGetCrtcGamma (ClientPtr client);
+ ProcRRGetCrtcGamma(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRSetCrtcGamma (ClientPtr client);
+ ProcRRSetCrtcGamma(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRSetCrtcTransform (ClientPtr client);
+ ProcRRSetCrtcTransform(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRGetCrtcTransform (ClientPtr client);
+ ProcRRGetCrtcTransform(ClientPtr client);
 
 int
-ProcRRGetPanning (ClientPtr client);
+ ProcRRGetPanning(ClientPtr client);
 
 int
-ProcRRSetPanning (ClientPtr client);
+ ProcRRSetPanning(ClientPtr client);
 
 void
-RRConstrainCursorHarder (DeviceIntPtr, ScreenPtr, int, int *, int *);
+ RRConstrainCursorHarder(DeviceIntPtr, ScreenPtr, int, int *, int *);
 
 /* rrdispatch.c */
 extern _X_EXPORT Bool
-RRClientKnowsRates (ClientPtr	pClient);
+ RRClientKnowsRates(ClientPtr pClient);
 
 /* rrmode.c */
 /*
  * Find, and if necessary, create a mode
  */
 
-extern _X_EXPORT RRModePtr
-RRModeGet (xRRModeInfo	*modeInfo,
-	   const char	*name);
+extern _X_EXPORT RRModePtr RRModeGet(xRRModeInfo * modeInfo, const char *name);
 
 /*
  * Destroy a mode.
  */
 
 extern _X_EXPORT void
-RRModeDestroy (RRModePtr mode);
+ RRModeDestroy(RRModePtr mode);
 
 /*
  * Return a list of modes that are valid for some output in pScreen
  */
-extern _X_EXPORT RRModePtr *
-RRModesForScreen (ScreenPtr pScreen, int *num_ret);
-    
+extern _X_EXPORT RRModePtr *RRModesForScreen(ScreenPtr pScreen, int *num_ret);
+
 /*
  * Initialize mode type
  */
 extern _X_EXPORT Bool
-RRModeInit (void);
+ RRModeInit(void);
 
 /*
  * Initialize mode type error value
  */
 extern _X_EXPORT void
-RRModeInitErrorValue (void);
-    
-extern _X_EXPORT int
-ProcRRCreateMode (ClientPtr client);
+ RRModeInitErrorValue(void);
 
 extern _X_EXPORT int
-ProcRRDestroyMode (ClientPtr client);
+ ProcRRCreateMode(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRAddOutputMode (ClientPtr client);
+ ProcRRDestroyMode(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRDeleteOutputMode (ClientPtr client);
+ ProcRRAddOutputMode(ClientPtr client);
+
+extern _X_EXPORT int
+ ProcRRDeleteOutputMode(ClientPtr client);
 
 /* rroutput.c */
 
@@ -758,143 +724,132 @@ ProcRRDeleteOutputMode (ClientPtr client);
  * (which crtc is in use)
  */
 extern _X_EXPORT void
-RROutputChanged (RROutputPtr output, Bool configChanged);
+ RROutputChanged(RROutputPtr output, Bool configChanged);
 
 /*
  * Create an output
  */
 
 extern _X_EXPORT RROutputPtr
-RROutputCreate (ScreenPtr   pScreen,
-		const char  *name,
-		int	    nameLength,
-		void	    *devPrivate);
+RROutputCreate(ScreenPtr pScreen,
+               const char *name, int nameLength, void *devPrivate);
 
 /*
  * Notify extension that output parameters have been changed
  */
 extern _X_EXPORT Bool
-RROutputSetClones (RROutputPtr  output,
-		   RROutputPtr  *clones,
-		   int		numClones);
+ RROutputSetClones(RROutputPtr output, RROutputPtr * clones, int numClones);
 
 extern _X_EXPORT Bool
-RROutputSetModes (RROutputPtr	output,
-		  RRModePtr	*modes,
-		  int		numModes,
-		  int		numPreferred);
+
+RROutputSetModes(RROutputPtr output,
+                 RRModePtr * modes, int numModes, int numPreferred);
 
 extern _X_EXPORT int
-RROutputAddUserMode (RROutputPtr    output,
-		     RRModePtr	    mode);
+ RROutputAddUserMode(RROutputPtr output, RRModePtr mode);
 
 extern _X_EXPORT int
-RROutputDeleteUserMode (RROutputPtr output,
-			RRModePtr   mode);
+ RROutputDeleteUserMode(RROutputPtr output, RRModePtr mode);
 
 extern _X_EXPORT Bool
-RROutputSetCrtcs (RROutputPtr	output,
-		  RRCrtcPtr	*crtcs,
-		  int		numCrtcs);
+ RROutputSetCrtcs(RROutputPtr output, RRCrtcPtr * crtcs, int numCrtcs);
 
 extern _X_EXPORT Bool
-RROutputSetConnection (RROutputPtr  output,
-		       CARD8	    connection);
+ RROutputSetConnection(RROutputPtr output, CARD8 connection);
 
 extern _X_EXPORT Bool
-RROutputSetSubpixelOrder (RROutputPtr output,
-			  int	      subpixelOrder);
+ RROutputSetSubpixelOrder(RROutputPtr output, int subpixelOrder);
 
 extern _X_EXPORT Bool
-RROutputSetPhysicalSize (RROutputPtr	output,
-			 int		mmWidth,
-			 int		mmHeight);
+ RROutputSetPhysicalSize(RROutputPtr output, int mmWidth, int mmHeight);
 
 extern _X_EXPORT void
-RRDeliverOutputEvent(ClientPtr client, WindowPtr pWin, RROutputPtr output);
+ RRDeliverOutputEvent(ClientPtr client, WindowPtr pWin, RROutputPtr output);
 
 extern _X_EXPORT void
-RROutputDestroy (RROutputPtr	output);
+ RROutputDestroy(RROutputPtr output);
 
 extern _X_EXPORT int
-ProcRRGetOutputInfo (ClientPtr client);
+ ProcRRGetOutputInfo(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRSetOutputPrimary (ClientPtr client);
+ ProcRRSetOutputPrimary(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRGetOutputPrimary (ClientPtr client);
+ ProcRRGetOutputPrimary(ClientPtr client);
 
 /*
  * Initialize output type
  */
 extern _X_EXPORT Bool
-RROutputInit (void);
+ RROutputInit(void);
 
 /*
  * Initialize output type error value
  */
 extern _X_EXPORT void
-RROutputInitErrorValue (void);
-    
+ RROutputInitErrorValue(void);
+
 /* rrpointer.c */
 extern _X_EXPORT void
-RRPointerMoved (ScreenPtr pScreen, int x, int y);
+ RRPointerMoved(ScreenPtr pScreen, int x, int y);
 
 extern _X_EXPORT void
-RRPointerScreenConfigured (ScreenPtr pScreen);
+ RRPointerScreenConfigured(ScreenPtr pScreen);
 
 /* rrproperty.c */
 
 extern _X_EXPORT void
-RRDeleteAllOutputProperties (RROutputPtr output);
+ RRDeleteAllOutputProperties(RROutputPtr output);
 
 extern _X_EXPORT RRPropertyValuePtr
-RRGetOutputProperty (RROutputPtr output, Atom property, Bool pending);
+RRGetOutputProperty(RROutputPtr output, Atom property, Bool pending);
 
 extern _X_EXPORT RRPropertyPtr
-RRQueryOutputProperty (RROutputPtr output, Atom property);
-		       
+RRQueryOutputProperty(RROutputPtr output, Atom property);
+
 extern _X_EXPORT void
-RRDeleteOutputProperty (RROutputPtr output, Atom property);
+ RRDeleteOutputProperty(RROutputPtr output, Atom property);
 
 extern _X_EXPORT Bool
-RRPostPendingProperties (RROutputPtr output);
-    
-extern _X_EXPORT int
-RRChangeOutputProperty (RROutputPtr output, Atom property, Atom type,
-			int format, int mode, unsigned long len,
-			pointer value, Bool sendevent, Bool pending);
+ RRPostPendingProperties(RROutputPtr output);
 
 extern _X_EXPORT int
-RRConfigureOutputProperty (RROutputPtr output, Atom property,
-			   Bool pending, Bool range, Bool immutable,
-			   int num_values, INT32 *values);
-extern _X_EXPORT int
-ProcRRChangeOutputProperty (ClientPtr client);
+
+RRChangeOutputProperty(RROutputPtr output, Atom property, Atom type,
+                       int format, int mode, unsigned long len,
+                       pointer value, Bool sendevent, Bool pending);
 
 extern _X_EXPORT int
-ProcRRGetOutputProperty (ClientPtr client);
+
+RRConfigureOutputProperty(RROutputPtr output, Atom property,
+                          Bool pending, Bool range, Bool immutable,
+                          int num_values, INT32 *values);
+extern _X_EXPORT int
+ ProcRRChangeOutputProperty(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRListOutputProperties (ClientPtr client);
+ ProcRRGetOutputProperty(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRQueryOutputProperty (ClientPtr client);
+ ProcRRListOutputProperties(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRConfigureOutputProperty (ClientPtr client);
+ ProcRRQueryOutputProperty(ClientPtr client);
 
 extern _X_EXPORT int
-ProcRRDeleteOutputProperty (ClientPtr client);
+ ProcRRConfigureOutputProperty(ClientPtr client);
+
+extern _X_EXPORT int
+ ProcRRDeleteOutputProperty(ClientPtr client);
 
 /* rrxinerama.c */
 #ifdef XINERAMA
 extern _X_EXPORT void
-RRXineramaExtensionInit(void);
+ RRXineramaExtensionInit(void);
 #endif
 
-#endif /* _RANDRSTR_H_ */
+#endif                          /* _RANDRSTR_H_ */
 
 /*
  

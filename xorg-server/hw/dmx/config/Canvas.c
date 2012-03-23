@@ -60,100 +60,106 @@
 #include <X11/StringDefs.h>
 #include "CanvasP.h"
 
-static void CanvasInitialize(Widget request, Widget w,
-                             ArgList args, Cardinal *num_args)
+static void
+CanvasInitialize(Widget request, Widget w, ArgList args, Cardinal * num_args)
 {
 }
 
-static void CanvasExpose(Widget w, XEvent *event, Region region)
+static void
+CanvasExpose(Widget w, XEvent * event, Region region)
 {
     CanvasExposeDataRec data;
 
-    data.w      = w;
-    data.event  = event;
+    data.w = w;
+    data.event = event;
     data.region = region;
-    
-    if (!XtIsRealized(w)) return;
-    XtCallCallbacks(w, XtNcanvasExposeCallback, (XtPointer)&data);
+
+    if (!XtIsRealized(w))
+        return;
+    XtCallCallbacks(w, XtNcanvasExposeCallback, (XtPointer) & data);
 }
 
-static void CanvasResize(Widget w)
+static void
+CanvasResize(Widget w)
 {
-    if (!XtIsRealized(w)) return;
-    XtCallCallbacks(w, XtNcanvasResizeCallback, (XtPointer)w);
+    if (!XtIsRealized(w))
+        return;
+    XtCallCallbacks(w, XtNcanvasResizeCallback, (XtPointer) w);
 }
 
-static void CanvasAction(Widget w, XEvent *event,
-                         String *params, Cardinal *num_params)
+static void
+CanvasAction(Widget w, XEvent * event, String * params, Cardinal * num_params)
 {
-    XtCallCallbacks(w, XtNcallback, (XtPointer)event);
+    XtCallCallbacks(w, XtNcallback, (XtPointer) event);
 }
 
 #define offset(field) XtOffsetOf(CanvasRec, canvas.field)
 static XtResource resources[] = {
-    { XtNcallback, XtCCallback, XtRCallback,
-      sizeof(XtCallbackList), offset(input_callback), XtRCallback, NULL },
-    { XtNcanvasExposeCallback, XtCcanvasExposeCallback, XtRCallback,
-      sizeof(XtCallbackList), offset(expose_callback), XtRCallback, NULL },
-    { XtNcanvasResizeCallback, XtCcanvasResizeCallback, XtRCallback,
-      sizeof(XtCallbackList), offset(resize_callback), XtRCallback, NULL },
+    {XtNcallback, XtCCallback, XtRCallback,
+     sizeof(XtCallbackList), offset(input_callback), XtRCallback, NULL}
+    ,
+    {XtNcanvasExposeCallback, XtCcanvasExposeCallback, XtRCallback,
+     sizeof(XtCallbackList), offset(expose_callback), XtRCallback, NULL}
+    ,
+    {XtNcanvasResizeCallback, XtCcanvasResizeCallback, XtRCallback,
+     sizeof(XtCallbackList), offset(resize_callback), XtRCallback, NULL}
+    ,
 };
+
 #undef offset
 
-static XtActionsRec actions[] =
-{
-    {"canvas",	CanvasAction},
+static XtActionsRec actions[] = {
+    {"canvas", CanvasAction},
 };
 
-static char translations[] =
-"<Key>:    canvas()\n\
+static char translations[] = "<Key>:    canvas()\n\
 <Motion>:  canvas()\n\
 <BtnDown>: canvas()\n\
 <BtnUp>: canvas()\n\
-"
-;
+";
 
 #define Superclass	(&widgetClassRec)
 CanvasClassRec canvasClassRec = {
     /* core */
     {
-        (WidgetClass)Superclass,        /* superclass */
-        "Canvas",			/* class_name */
-        sizeof(CanvasRec),		/* widget_size */
-        NULL,				/* class_initialize */
-        NULL,				/* class_part_initialize */
-        False,				/* class_inited */
-        CanvasInitialize,		/* initialize */
-        NULL,				/* initialize_hook */
-        XtInheritRealize,		/* realize */
-        actions,			/* actions */
-        XtNumber(actions),		/* num_actions */
-        resources,			/* resources */
-        XtNumber(resources),		/* num_resources */
-        NULLQUARK,			/* xrm_class */
-        True,				/* compress_motion */
-        True,				/* compress_exposure */
-        True,				/* compress_enterleave */
-        False,				/* visible_interest */
-        NULL,				/* destroy */
-        CanvasResize,			/* resize */
-        CanvasExpose,                   /* expose */
-        NULL,				/* set_values */
-        NULL,				/* set_values_hook */
-        XtInheritSetValuesAlmost,	/* set_values_almost */
-        NULL,				/* get_values_hook */
-        NULL,				/* accept_focus */
-        XtVersion,			/* version */
-        NULL,				/* callback_private */
-        translations,			/* tm_table */
-        XtInheritQueryGeometry,		/* query_geometry */
-        XtInheritDisplayAccelerator,	/* display_accelerator */
-        NULL,				/* extension */
-    },
+     (WidgetClass) Superclass,  /* superclass */
+     "Canvas",                  /* class_name */
+     sizeof(CanvasRec),         /* widget_size */
+     NULL,                      /* class_initialize */
+     NULL,                      /* class_part_initialize */
+     False,                     /* class_inited */
+     CanvasInitialize,          /* initialize */
+     NULL,                      /* initialize_hook */
+     XtInheritRealize,          /* realize */
+     actions,                   /* actions */
+     XtNumber(actions),         /* num_actions */
+     resources,                 /* resources */
+     XtNumber(resources),       /* num_resources */
+     NULLQUARK,                 /* xrm_class */
+     True,                      /* compress_motion */
+     True,                      /* compress_exposure */
+     True,                      /* compress_enterleave */
+     False,                     /* visible_interest */
+     NULL,                      /* destroy */
+     CanvasResize,              /* resize */
+     CanvasExpose,              /* expose */
+     NULL,                      /* set_values */
+     NULL,                      /* set_values_hook */
+     XtInheritSetValuesAlmost,  /* set_values_almost */
+     NULL,                      /* get_values_hook */
+     NULL,                      /* accept_focus */
+     XtVersion,                 /* version */
+     NULL,                      /* callback_private */
+     translations,              /* tm_table */
+     XtInheritQueryGeometry,    /* query_geometry */
+     XtInheritDisplayAccelerator,       /* display_accelerator */
+     NULL,                      /* extension */
+     }
+    ,
     /* canvas */
     {
-        NULL,				/* extension */
-    }
+     NULL,                      /* extension */
+     }
 };
 
-WidgetClass canvasWidgetClass = (WidgetClass)&canvasClassRec;
+WidgetClass canvasWidgetClass = (WidgetClass) & canvasClassRec;

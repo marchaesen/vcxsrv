@@ -33,154 +33,141 @@
 #endif
 #include "win.h"
 
-
 static HHOOK g_hhookKeyboardLL = NULL;
-
 
 /*
  * Function prototypes
  */
 
 static LRESULT CALLBACK
-winKeyboardMessageHookLL (int iCode, WPARAM wParam, LPARAM lParam);
-
+winKeyboardMessageHookLL(int iCode, WPARAM wParam, LPARAM lParam);
 
 #ifndef LLKHF_EXTENDED
-# define LLKHF_EXTENDED  0x00000001
+#define LLKHF_EXTENDED  0x00000001
 #endif
 #ifndef LLKHF_UP
-# define LLKHF_UP  0x00000080
+#define LLKHF_UP  0x00000080
 #endif
-
 
 /*
  * KeyboardMessageHook
  */
 
 static LRESULT CALLBACK
-winKeyboardMessageHookLL (int iCode, WPARAM wParam, LPARAM lParam)
+winKeyboardMessageHookLL(int iCode, WPARAM wParam, LPARAM lParam)
 {
-  BOOL			fPassKeystroke = FALSE;
-  BOOL			fPassAltTab = TRUE;
-  PKBDLLHOOKSTRUCT	p = (PKBDLLHOOKSTRUCT) lParam;
-  HWND			hwnd = GetActiveWindow(); 
+    BOOL fPassKeystroke = FALSE;
+    BOOL fPassAltTab = TRUE;
+    PKBDLLHOOKSTRUCT p = (PKBDLLHOOKSTRUCT) lParam;
+    HWND hwnd = GetActiveWindow();
+
 #ifdef XWIN_MULTIWINDOW
-  WindowPtr		pWin = NULL;
-  winPrivWinPtr	        pWinPriv = NULL;
-  winPrivScreenPtr	pScreenPriv = NULL;
-  winScreenInfo		*pScreenInfo = NULL;
+    WindowPtr pWin = NULL;
+    winPrivWinPtr pWinPriv = NULL;
+    winPrivScreenPtr pScreenPriv = NULL;
+    winScreenInfo *pScreenInfo = NULL;
 
-  /* Check if the Windows window property for our X window pointer is valid */
-  if ((pWin = GetProp (hwnd, WIN_WINDOW_PROP)) != NULL)
-    {
-      /* Get a pointer to our window privates */
-      pWinPriv		= winGetWindowPriv(pWin);
+    /* Check if the Windows window property for our X window pointer is valid */
+    if ((pWin = GetProp(hwnd, WIN_WINDOW_PROP)) != NULL) {
+        /* Get a pointer to our window privates */
+        pWinPriv = winGetWindowPriv(pWin);
 
-      /* Get pointers to our screen privates and screen info */
-      pScreenPriv	= pWinPriv->pScreenPriv;
-      pScreenInfo	= pScreenPriv->pScreenInfo;
+        /* Get pointers to our screen privates and screen info */
+        pScreenPriv = pWinPriv->pScreenPriv;
+        pScreenInfo = pScreenPriv->pScreenInfo;
 
-      if (pScreenInfo->fMultiWindow)
-          fPassAltTab = FALSE;
+        if (pScreenInfo->fMultiWindow)
+            fPassAltTab = FALSE;
     }
 #endif
 
-  /* Pass keystrokes on to our main message loop */
-  if (iCode == HC_ACTION)
-    {
-      winDebug("winKeyboardMessageHook: vkCode: %08x scanCode: %08x\n", p->vkCode, p->scanCode);
+    /* Pass keystrokes on to our main message loop */
+    if (iCode == HC_ACTION) {
+        winDebug("winKeyboardMessageHook: vkCode: %08x scanCode: %08x\n",
+                 p->vkCode, p->scanCode);
 
-      switch (wParam)
-	{
-	case WM_KEYDOWN:  case WM_SYSKEYDOWN:
-	case WM_KEYUP:    case WM_SYSKEYUP: 
-	  fPassKeystroke = 
-	    (fPassAltTab && 
-                (p->vkCode == VK_TAB) && ((p->flags & LLKHF_ALTDOWN) != 0))
-	    || (p->vkCode == VK_LWIN) || (p->vkCode == VK_RWIN)
-	    ;
-	  break;
-	}
+        switch (wParam) {
+        case WM_KEYDOWN:
+        case WM_SYSKEYDOWN:
+        case WM_KEYUP:
+        case WM_SYSKEYUP:
+            fPassKeystroke =
+                (fPassAltTab &&
+                 (p->vkCode == VK_TAB) && ((p->flags & LLKHF_ALTDOWN) != 0))
+                || (p->vkCode == VK_LWIN) || (p->vkCode == VK_RWIN);
+            break;
+        }
     }
 
-  /*
-   * Pass message on to our main message loop.
-   * We process this immediately with SendMessage so that the keystroke
-   * appears in, hopefully, the correct order.
-   */
-  if (fPassKeystroke)
-    {
-      LPARAM		lParamKey = 0x0;
+    /*
+     * Pass message on to our main message loop.
+     * We process this immediately with SendMessage so that the keystroke
+     * appears in, hopefully, the correct order.
+     */
+    if (fPassKeystroke) {
+        LPARAM lParamKey = 0x0;
 
-      /* Construct the lParam from KBDLLHOOKSTRUCT */
-      lParamKey = lParamKey | (0x0000FFFF & 0x00000001); /* Repeat count */
-      lParamKey = lParamKey | (0x00FF0000 & (p->scanCode << 16));
-      lParamKey = lParamKey
-	| (0x01000000 & ((p->flags & LLKHF_EXTENDED) << 23));
-      lParamKey = lParamKey
-	| (0x20000000
-	   & ((p->flags & LLKHF_ALTDOWN) << 24));
-      lParamKey = lParamKey | (0x80000000 & ((p->flags & LLKHF_UP) << 24));
+        /* Construct the lParam from KBDLLHOOKSTRUCT */
+        lParamKey = lParamKey | (0x0000FFFF & 0x00000001);      /* Repeat count */
+        lParamKey = lParamKey | (0x00FF0000 & (p->scanCode << 16));
+        lParamKey = lParamKey
+            | (0x01000000 & ((p->flags & LLKHF_EXTENDED) << 23));
+        lParamKey = lParamKey
+            | (0x20000000 & ((p->flags & LLKHF_ALTDOWN) << 24));
+        lParamKey = lParamKey | (0x80000000 & ((p->flags & LLKHF_UP) << 24));
 
-      /* Send message to our main window that has the keyboard focus */
-      PostMessage (hwnd,
-		   (UINT) wParam,
-		   (WPARAM) p->vkCode,
-		   lParamKey);
+        /* Send message to our main window that has the keyboard focus */
+        PostMessage(hwnd, (UINT) wParam, (WPARAM) p->vkCode, lParamKey);
 
-      return 1;
+        return 1;
     }
 
-  /* Call next hook */
-  return CallNextHookEx (NULL, iCode, wParam, lParam);
+    /* Call next hook */
+    return CallNextHookEx(NULL, iCode, wParam, lParam);
 }
-
 
 /*
  * Attempt to install the keyboard hook, return FALSE if it was not installed
  */
 
 Bool
-winInstallKeyboardHookLL (void)
+winInstallKeyboardHookLL(void)
 {
-  OSVERSIONINFO		osvi = {0};
-  
-  /* Get operating system version information */
-  osvi.dwOSVersionInfoSize = sizeof (osvi);
-  GetVersionEx (&osvi);
+    OSVERSIONINFO osvi = { 0 };
 
-  /* Branch on platform ID */
-  switch (osvi.dwPlatformId)
-    {
+    /* Get operating system version information */
+    osvi.dwOSVersionInfoSize = sizeof(osvi);
+    GetVersionEx(&osvi);
+
+    /* Branch on platform ID */
+    switch (osvi.dwPlatformId) {
     case VER_PLATFORM_WIN32_NT:
-      /* Low-level is supported on NT 4.0 SP3+ only */
-      /* TODO: Return FALSE on NT 4.0 with no SP, SP1, or SP2 */
-      break;
+        /* Low-level is supported on NT 4.0 SP3+ only */
+        /* TODO: Return FALSE on NT 4.0 with no SP, SP1, or SP2 */
+        break;
 
     case VER_PLATFORM_WIN32_WINDOWS:
-      /* Low-level hook is not supported on non-NT */
-      return FALSE;
+        /* Low-level hook is not supported on non-NT */
+        return FALSE;
     }
 
-  /* Install the hook only once */
-  if (!g_hhookKeyboardLL)
-    g_hhookKeyboardLL = SetWindowsHookEx (WH_KEYBOARD_LL,
-					  winKeyboardMessageHookLL,
-					  g_hInstance,
-					  0);
+    /* Install the hook only once */
+    if (!g_hhookKeyboardLL)
+        g_hhookKeyboardLL = SetWindowsHookEx(WH_KEYBOARD_LL,
+                                             winKeyboardMessageHookLL,
+                                             g_hInstance, 0);
 
-  return TRUE;
+    return TRUE;
 }
-
 
 /*
  * Remove the keyboard hook if it is installed
  */
 
 void
-winRemoveKeyboardHookLL (void)
+winRemoveKeyboardHookLL(void)
 {
-  if (g_hhookKeyboardLL)
-    UnhookWindowsHookEx (g_hhookKeyboardLL);
-  g_hhookKeyboardLL = NULL;
+    if (g_hhookKeyboardLL)
+        UnhookWindowsHookEx(g_hhookKeyboardLL);
+    g_hhookKeyboardLL = NULL;
 }

@@ -40,8 +40,8 @@
 #include "picturestr.h"
 
 void
-PictTransform_from_xRenderTransform (PictTransformPtr pict,
-				     xRenderTransform *render)
+PictTransform_from_xRenderTransform(PictTransformPtr pict,
+                                    xRenderTransform * render)
 {
     pict->matrix[0][0] = render->matrix11;
     pict->matrix[0][1] = render->matrix12;
@@ -57,8 +57,8 @@ PictTransform_from_xRenderTransform (PictTransformPtr pict,
 }
 
 void
-xRenderTransform_from_PictTransform (xRenderTransform *render,
-				     PictTransformPtr pict)
+xRenderTransform_from_PictTransform(xRenderTransform * render,
+                                    PictTransformPtr pict)
 {
     render->matrix11 = pict->matrix[0][0];
     render->matrix12 = pict->matrix[0][1];
@@ -74,15 +74,13 @@ xRenderTransform_from_PictTransform (xRenderTransform *render,
 }
 
 Bool
-PictureTransformPoint (PictTransformPtr transform,
-		       PictVectorPtr	vector)
+PictureTransformPoint(PictTransformPtr transform, PictVectorPtr vector)
 {
-	return pixman_transform_point(transform, vector);
+    return pixman_transform_point(transform, vector);
 }
 
 Bool
-PictureTransformPoint3d (PictTransformPtr transform,
-                         PictVectorPtr	vector)
+PictureTransformPoint3d(PictTransformPtr transform, PictVectorPtr vector)
 {
-	return pixman_transform_point_3d(transform, vector);
+    return pixman_transform_point_3d(transform, vector);
 }

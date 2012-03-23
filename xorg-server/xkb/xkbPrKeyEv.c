@@ -46,20 +46,21 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 void
 XkbProcessKeyboardEvent(DeviceEvent *event, DeviceIntPtr keybd)
 {
-KeyClassPtr	keyc = keybd->key;
-XkbSrvInfoPtr	xkbi;
-int		key;
-XkbBehavior	behavior;
-unsigned        ndx;
+    KeyClassPtr keyc = keybd->key;
+    XkbSrvInfoPtr xkbi;
+    int key;
+    XkbBehavior behavior;
+    unsigned ndx;
 
     xkbi = keyc->xkbInfo;
     key = event->detail.key;
     if (xkbDebugFlags & 0x8)
-	DebugF("[xkb] XkbPKE: Key %d %s\n",key,(event->type == ET_KeyPress?"down":"up"));
+        DebugF("[xkb] XkbPKE: Key %d %s\n", key,
+               (event->type == ET_KeyPress ? "down" : "up"));
 
-    if (xkbi->repeatKey == key && event->type== ET_KeyRelease &&
+    if (xkbi->repeatKey == key && event->type == ET_KeyRelease &&
         !(xkbi->desc->ctrls->enabled_ctrls & XkbRepeatKeysMask))
-	AccessXCancelRepeatKey(xkbi, key);
+        AccessXCancelRepeatKey(xkbi, key);
 
     behavior = xkbi->desc->server->behaviors[key];
     /* The "permanent" flag indicates a hard-wired behavior that occurs */
@@ -68,73 +69,79 @@ unsigned        ndx;
     /* key is hardwired */
 
     if (!(behavior.type & XkbKB_Permanent)) {
-	switch (behavior.type) {
-	    case XkbKB_Default:
-                /* Neither of these should happen in practice, but ignore them
-                   anyway. */
-		if (event->type == ET_KeyPress && !event->key_repeat &&
-                    key_is_down(keybd, key, KEY_PROCESSED))
+        switch (behavior.type) {
+        case XkbKB_Default:
+            /* Neither of these should happen in practice, but ignore them
+               anyway. */
+            if (event->type == ET_KeyPress && !event->key_repeat &&
+                key_is_down(keybd, key, KEY_PROCESSED))
+                return;
+            else if (event->type == ET_KeyRelease &&
+                     !key_is_down(keybd, key, KEY_PROCESSED))
+                return;
+            break;
+        case XkbKB_Lock:
+            if (event->type == ET_KeyRelease)
+                return;
+            else if (key_is_down(keybd, key, KEY_PROCESSED))
+                event->type = ET_KeyRelease;
+            break;
+        case XkbKB_RadioGroup:
+            ndx = (behavior.data & (~XkbKB_RGAllowNone));
+            if (ndx < xkbi->nRadioGroups) {
+                XkbRadioGroupPtr rg;
+
+                if (event->type == ET_KeyRelease)
                     return;
-		else if (event->type == ET_KeyRelease &&
-                         !key_is_down(keybd, key, KEY_PROCESSED))
+
+                rg = &xkbi->radioGroups[ndx];
+                if (rg->currentDown == event->detail.key) {
+                    if (behavior.data & XkbKB_RGAllowNone) {
+                        event->type = ET_KeyRelease;
+                        XkbHandleActions(keybd, keybd, event);
+                        rg->currentDown = 0;
+                    }
                     return;
-		break;
-	    case XkbKB_Lock:
-		if (event->type == ET_KeyRelease)
-		    return;
-		else if (key_is_down(keybd, key, KEY_PROCESSED))
+                }
+                if (rg->currentDown != 0) {
+                    int key = event->detail.key;
+
                     event->type = ET_KeyRelease;
-		break;
-	    case XkbKB_RadioGroup:
-		ndx= (behavior.data&(~XkbKB_RGAllowNone));
-		if ( ndx<xkbi->nRadioGroups ) {
-		    XkbRadioGroupPtr	rg;
+                    event->detail.key = rg->currentDown;
+                    XkbHandleActions(keybd, keybd, event);
+                    event->type = ET_KeyPress;
+                    event->detail.key = key;
+                }
+                rg->currentDown = key;
+            }
+            else
+                ErrorF("[xkb] InternalError! Illegal radio group %d\n", ndx);
+            break;
+        case XkbKB_Overlay1:
+        case XkbKB_Overlay2:
+        {
+            unsigned which;
 
-		    if (event->type == ET_KeyRelease)
-		        return;
-
-		    rg = &xkbi->radioGroups[ndx];
-		    if ( rg->currentDown == event->detail.key) {
-		        if (behavior.data&XkbKB_RGAllowNone) {
-		            event->type = ET_KeyRelease;
-			    XkbHandleActions(keybd, keybd, event);
-			    rg->currentDown= 0;
-		        }
-		        return;
-		    }
-		    if ( rg->currentDown!=0 ) {
-			int key = event->detail.key;
-			event->type = ET_KeyRelease;
-			event->detail.key = rg->currentDown;
-			XkbHandleActions(keybd, keybd, event);
-			event->type = ET_KeyPress;
-			event->detail.key = key;
-		    }
-		    rg->currentDown= key;
-		}
-		else ErrorF("[xkb] InternalError! Illegal radio group %d\n",ndx);
-		break;
-	    case XkbKB_Overlay1: case XkbKB_Overlay2:
-		{
-		    unsigned	which;
-		    if (behavior.type==XkbKB_Overlay1)	which= XkbOverlay1Mask;
-		    else				which= XkbOverlay2Mask;
-		    if ( (xkbi->desc->ctrls->enabled_ctrls&which)==0 )
-			break;
-		    if ((behavior.data>=xkbi->desc->min_key_code)&&
-			(behavior.data<=xkbi->desc->max_key_code)) {
-                        event->detail.key = behavior.data;
-			/* 9/11/94 (ef) -- XXX! need to match release with */
-			/*                 press even if the state of the  */
-			/*                 corresponding overlay control   */
-			/*                 changes while the key is down   */
-		    }
-		}
-		break;
-	    default:
-		ErrorF("[xkb] unknown key behavior 0x%04x\n",behavior.type);
-		break;
-	}
+            if (behavior.type == XkbKB_Overlay1)
+                which = XkbOverlay1Mask;
+            else
+                which = XkbOverlay2Mask;
+            if ((xkbi->desc->ctrls->enabled_ctrls & which) == 0)
+                break;
+            if ((behavior.data >= xkbi->desc->min_key_code) &&
+                (behavior.data <= xkbi->desc->max_key_code)) {
+                event->detail.key = behavior.data;
+                /* 9/11/94 (ef) -- XXX! need to match release with */
+                /*                 press even if the state of the  */
+                /*                 corresponding overlay control   */
+                /*                 changes while the key is down   */
+            }
+        }
+            break;
+        default:
+            ErrorF("[xkb] unknown key behavior 0x%04x\n", behavior.type);
+            break;
+        }
     }
     XkbHandleActions(keybd, keybd, event);
     return;

@@ -51,18 +51,19 @@ NewExtensionModule(void)
 
     /* Sanity check */
     if (!ExtensionModuleList)
-	numExtensionModules = 0;
+        numExtensionModules = 0;
 
     n = numExtensionModules + 1;
     ExtensionModuleList = realloc(ExtensionModuleList,
-				   (n + 1) * sizeof(ExtensionModule));
+                                  (n + 1) * sizeof(ExtensionModule));
     if (ExtensionModuleList == NULL) {
-	ExtensionModuleList = save;
-	return NULL;
-    } else {
-	numExtensionModules++;
-	ExtensionModuleList[numExtensionModules].name = NULL;
-	return ExtensionModuleList + (numExtensionModules - 1);
+        ExtensionModuleList = save;
+        return NULL;
+    }
+    else {
+        numExtensionModules++;
+        ExtensionModuleList[numExtensionModules].name = NULL;
+        return ExtensionModuleList + (numExtensionModules - 1);
     }
 }
 
@@ -72,16 +73,15 @@ LoadExtension(ExtensionModule * e, Bool builtin)
     ExtensionModule *newext;
 
     if (e == NULL || e->name == NULL)
-	return;
+        return;
 
     if (!(newext = NewExtensionModule()))
-	return;
+        return;
 
     if (builtin)
-	xf86MsgVerb(X_INFO, 2, "Initializing built-in extension %s\n",
-		    e->name);
+        xf86MsgVerb(X_INFO, 2, "Initializing built-in extension %s\n", e->name);
     else
-	xf86MsgVerb(X_INFO, 2, "Loading extension %s\n", e->name);
+        xf86MsgVerb(X_INFO, 2, "Loading extension %s\n", e->name);
 
     newext->name = e->name;
     newext->initFunc = e->initFunc;
@@ -90,7 +90,7 @@ LoadExtension(ExtensionModule * e, Bool builtin)
     newext->initDependencies = e->initDependencies;
 
     if (e->setupFunc != NULL)
-	e->setupFunc();
+        e->setupFunc();
 }
 
 /*
@@ -134,20 +134,20 @@ LoadExtension(ExtensionModule * e, Bool builtin)
  * SUCH DAMAGE.
  */
 
-#define	NF_MARK		0x1	/* marker for cycle detection */
-#define	NF_ACYCLIC	0x2	/* this node is cycle free */
-#define	NF_NODEST	0x4	/* Unreachable */
+#define	NF_MARK		0x1     /* marker for cycle detection */
+#define	NF_ACYCLIC	0x2     /* this node is cycle free */
+#define	NF_NODEST	0x4     /* Unreachable */
 
 typedef struct node_str NODE;
 struct node_str {
-    NODE **n_prevp;		/* pointer to previous node's n_next */
-    NODE *n_next;		/* next node in graph */
-    NODE **n_arcs;		/* array of arcs to other nodes */
-    int n_narcs;		/* number of arcs in n_arcs[] */
-    int n_arcsize;		/* size of n_arcs[] array */
-    int n_refcnt;		/* # of arcs pointing to this node */
-    int n_flags;		/* NF_* */
-    const char *n_name;		/* name of this node */
+    NODE **n_prevp;             /* pointer to previous node's n_next */
+    NODE *n_next;               /* next node in graph */
+    NODE **n_arcs;              /* array of arcs to other nodes */
+    int n_narcs;                /* number of arcs in n_arcs[] */
+    int n_arcsize;              /* size of n_arcs[] array */
+    int n_refcnt;               /* # of arcs pointing to this node */
+    int n_flags;                /* NF_* */
+    const char *n_name;         /* name of this node */
 };
 
 static NODE *graph = NULL, **cycle_buf = NULL, **longest_cycle = NULL;
@@ -160,10 +160,9 @@ get_node(const char *name)
 {
     NODE *n;
 
-    for (n = graph; n && n->n_name && strcmp(n->n_name, name);
-	 n = n->n_next) ;
+    for (n = graph; n && n->n_name && strcmp(n->n_name, name); n = n->n_next);
     if (n)
-	return n;
+        return n;
 
     n = xnfalloc(sizeof(NODE));
 
@@ -176,7 +175,7 @@ get_node(const char *name)
 
     /* Add to linked list. */
     if ((n->n_next = graph) != NULL)
-	graph->n_prevp = &n->n_next;
+        graph->n_prevp = &n->n_next;
     n->n_prevp = &graph;
     graph = n;
 
@@ -197,7 +196,7 @@ add_arc(const char *s1, const char *s2)
     n1 = get_node(s1);
 
     if (!strcmp(s1, s2))
-	return;
+        return;
 
     n2 = get_node(s2);
 
@@ -205,17 +204,17 @@ add_arc(const char *s1, const char *s2)
      * Check if this arc is already here.
      */
     for (i = 0; i < n1->n_narcs; i++)
-	if (n1->n_arcs[i] == n2)
-	    return;
+        if (n1->n_arcs[i] == n2)
+            return;
     /*
      * Add it.
      */
     if (n1->n_narcs == n1->n_arcsize) {
-	if (!n1->n_arcsize)
-	    n1->n_arcsize = 10;
-	bsize = n1->n_arcsize * sizeof(*n1->n_arcs) * 2;
-	n1->n_arcs = xnfrealloc(n1->n_arcs, bsize);
-	n1->n_arcsize = bsize / sizeof(*n1->n_arcs);
+        if (!n1->n_arcsize)
+            n1->n_arcsize = 10;
+        bsize = n1->n_arcsize * sizeof(*n1->n_arcs) * 2;
+        n1->n_arcs = xnfrealloc(n1->n_arcs, bsize);
+        n1->n_arcsize = bsize / sizeof(*n1->n_arcs);
     }
     n1->n_arcs[n1->n_narcs++] = n2;
     ++n2->n_refcnt;
@@ -230,7 +229,7 @@ clear_cycle(void)
     NODE *n;
 
     for (n = graph; n != NULL; n = n->n_next)
-	n->n_flags &= ~NF_NODEST;
+        n->n_flags &= ~NF_NODEST;
 }
 
 /* print node and remove from graph (does not actually free node) */
@@ -247,18 +246,18 @@ remove_node(NODE * n)
     newnode = xnfalloc(sizeof(NODE));
     memcpy(newnode, n, sizeof(NODE));
     if (last)
-	last->n_next = newnode;
+        last->n_next = newnode;
     else
-	sorted = newnode;
+        sorted = newnode;
     last = newnode;
     newnode->n_next = NULL;
 
     for (np = n->n_arcs, i = n->n_narcs; --i >= 0; np++)
-	--(*np)->n_refcnt;
+        --(*np)->n_refcnt;
     n->n_narcs = 0;
     *n->n_prevp = n->n_next;
     if (n->n_next)
-	n->n_next->n_prevp = n->n_prevp;
+        n->n_next->n_prevp = n->n_prevp;
 }
 
 static void
@@ -267,9 +266,9 @@ free_nodes(NODE * nodelist)
     NODE *n, *nextnode;
 
     for (n = nodelist; n;) {
-	nextnode = n->n_next;
-	free(n);
-	n = nextnode;
+        nextnode = n->n_next;
+        free(n);
+        n = nextnode;
     }
 }
 
@@ -285,36 +284,36 @@ find_cycle(NODE * from, NODE * to, int longest_len, int depth)
      * to be acyclic
      */
     if (from->n_flags & (NF_NODEST | NF_MARK | NF_ACYCLIC))
-	return 0;
+        return 0;
     from->n_flags |= NF_MARK;
 
     for (np = from->n_arcs, i = from->n_narcs; --i >= 0; np++) {
-	cycle_buf[depth] = *np;
-	if (*np == to) {
-	    if (depth + 1 > longest_len) {
-		longest_len = depth + 1;
-		memcpy((char *)longest_cycle,
-		       (char *)cycle_buf, longest_len * sizeof(NODE *));
-	    }
-	} else {
-	    if ((*np)->n_flags & (NF_MARK | NF_ACYCLIC | NF_NODEST))
-		continue;
-	    len = find_cycle(*np, to, longest_len, depth + 1);
+        cycle_buf[depth] = *np;
+        if (*np == to) {
+            if (depth + 1 > longest_len) {
+                longest_len = depth + 1;
+                memcpy((char *) longest_cycle,
+                       (char *) cycle_buf, longest_len * sizeof(NODE *));
+            }
+        }
+        else {
+            if ((*np)->n_flags & (NF_MARK | NF_ACYCLIC | NF_NODEST))
+                continue;
+            len = find_cycle(*np, to, longest_len, depth + 1);
 
 #ifdef DEBUG
-	    ErrorF("%*s %s->%s %d\n", depth, "",
-		   from->n_name, to->n_name, len);
+            ErrorF("%*s %s->%s %d\n", depth, "", from->n_name, to->n_name, len);
 #endif
 
-	    if (len == 0)
-		(*np)->n_flags |= NF_NODEST;
+            if (len == 0)
+                (*np)->n_flags |= NF_NODEST;
 
-	    if (len > longest_len)
-		longest_len = len;
+            if (len > longest_len)
+                longest_len = len;
 
-	    if (len > 0 && !longest)
-		break;
-	}
+            if (len > 0 && !longest)
+                break;
+        }
     }
     from->n_flags &= ~NF_MARK;
     return longest_len;
@@ -328,60 +327,61 @@ tsort(void)
     int cnt, i;
 
     while (graph != NULL) {
-	/*
-	 * Keep getting rid of simple cases until there are none left,
-	 * if there are any nodes still in the graph, then there is
-	 * a cycle in it.
-	 */
-	do {
-	    for (cnt = 0, n = graph; n != NULL; n = next) {
-		next = n->n_next;
-		if (n->n_refcnt == 0) {
-		    remove_node(n);
-		    ++cnt;
-		}
-	    }
-	} while (graph != NULL && cnt);
+        /*
+         * Keep getting rid of simple cases until there are none left,
+         * if there are any nodes still in the graph, then there is
+         * a cycle in it.
+         */
+        do {
+            for (cnt = 0, n = graph; n != NULL; n = next) {
+                next = n->n_next;
+                if (n->n_refcnt == 0) {
+                    remove_node(n);
+                    ++cnt;
+                }
+            }
+        } while (graph != NULL && cnt);
 
-	if (graph == NULL)
-	    break;
+        if (graph == NULL)
+            break;
 
-	if (!cycle_buf) {
-	    /*
-	     * Allocate space for two cycle logs - one to be used
-	     * as scratch space, the other to save the longest
-	     * cycle.
-	     */
-	    for (cnt = 0, n = graph; n != NULL; n = n->n_next)
-		++cnt;
-	    cycle_buf = xnfalloc(sizeof(NODE *) * cnt);
-	    longest_cycle = xnfalloc(sizeof(NODE *) * cnt);
-	    if (cycle_buf == NULL || longest_cycle == NULL)
-		return;
-	}
-	for (n = graph; n != NULL; n = n->n_next)
-	    if (!(n->n_flags & NF_ACYCLIC)) {
-		if ((cnt = find_cycle(n, n, 0, 0))) {
-		    ErrorF("tsort: cycle in data");
-		    for (i = 0; i < cnt; i++)
-			ErrorF("%s", longest_cycle[i]->n_name);
-		    remove_node(n);
-		    clear_cycle();
-		    break;
-		} else {
-		    /* to avoid further checks */
-		    n->n_flags |= NF_ACYCLIC;
-		    clear_cycle();
-		}
-	    }
+        if (!cycle_buf) {
+            /*
+             * Allocate space for two cycle logs - one to be used
+             * as scratch space, the other to save the longest
+             * cycle.
+             */
+            for (cnt = 0, n = graph; n != NULL; n = n->n_next)
+                ++cnt;
+            cycle_buf = xnfalloc(sizeof(NODE *) * cnt);
+            longest_cycle = xnfalloc(sizeof(NODE *) * cnt);
+            if (cycle_buf == NULL || longest_cycle == NULL)
+                return;
+        }
+        for (n = graph; n != NULL; n = n->n_next)
+            if (!(n->n_flags & NF_ACYCLIC)) {
+                if ((cnt = find_cycle(n, n, 0, 0))) {
+                    ErrorF("tsort: cycle in data");
+                    for (i = 0; i < cnt; i++)
+                        ErrorF("%s", longest_cycle[i]->n_name);
+                    remove_node(n);
+                    clear_cycle();
+                    break;
+                }
+                else {
+                    /* to avoid further checks */
+                    n->n_flags |= NF_ACYCLIC;
+                    clear_cycle();
+                }
+            }
 
-	if (n == NULL)
-	    ErrorF("tsort: internal error -- could not find cycle");
+        if (n == NULL)
+            ErrorF("tsort: internal error -- could not find cycle");
     }
     free(cycle_buf);
     free(longest_cycle);
     if (graph)
-	free_nodes(graph);
+        free_nodes(graph);
 }
 
 void
@@ -403,38 +403,38 @@ LoaderSortExtensions(void)
      * because tsort() will reverse those that have no depedencies.
      */
     for (i = numExtensionModules - 1; i >= 0; i--) {
-	ext = &ExtensionModuleList[i];
-	add_arc(ext->name, ext->name);
+        ext = &ExtensionModuleList[i];
+        add_arc(ext->name, ext->name);
 #ifdef DEBUG
-	ErrorF("Extension %s:\n", ext->name);
+        ErrorF("Extension %s:\n", ext->name);
 #endif
-	if (ext->initDependencies)
-	    for (j = 0; ext->initDependencies[j]; j++) {
-		add_arc(ext->initDependencies[j], ext->name);
+        if (ext->initDependencies)
+            for (j = 0; ext->initDependencies[j]; j++) {
+                add_arc(ext->initDependencies[j], ext->name);
 #ifdef DEBUG
-		ErrorF("\t%s\n", ext->initDependencies[j]);
+                ErrorF("\t%s\n", ext->initDependencies[j]);
 #endif
-	    }
+            }
     }
     tsort();
     newList = xnfalloc((numExtensionModules + 1) * sizeof(ExtensionModule));
     i = 0;
     for (node = sorted; node; node = node->n_next) {
-	for (j = 0; j < numExtensionModules; j++)
-	    if (!strcmp(node->n_name, ExtensionModuleList[j].name))
-		break;
-	if (j != numExtensionModules)
-	    newList[i++] = ExtensionModuleList[j];
+        for (j = 0; j < numExtensionModules; j++)
+            if (!strcmp(node->n_name, ExtensionModuleList[j].name))
+                break;
+        if (j != numExtensionModules)
+            newList[i++] = ExtensionModuleList[j];
     }
     if (sorted)
-	free_nodes(sorted);
+        free_nodes(sorted);
     if (graph)
-	free_nodes(graph);
+        free_nodes(graph);
     newList[i].name = NULL;
     free(ExtensionModuleList);
     ExtensionModuleList = newList;
 #ifdef DEBUG
     for (i = 0; ExtensionModuleList[i].name; i++)
-	ErrorF("Extension %s\n", ExtensionModuleList[i].name);
+        ErrorF("Extension %s\n", ExtensionModuleList[i].name);
 #endif
 }

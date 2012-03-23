@@ -34,35 +34,34 @@
 #include "mipict.h"
 
 void
-miPointFixedBounds (int npoint, xPointFixed *points, BoxPtr bounds)
+miPointFixedBounds(int npoint, xPointFixed * points, BoxPtr bounds)
 {
-    bounds->x1 = xFixedToInt (points->x);
-    bounds->x2 = xFixedToInt (xFixedCeil (points->x));
-    bounds->y1 = xFixedToInt (points->y);
-    bounds->y2 = xFixedToInt (xFixedCeil (points->y));
+    bounds->x1 = xFixedToInt(points->x);
+    bounds->x2 = xFixedToInt(xFixedCeil(points->x));
+    bounds->y1 = xFixedToInt(points->y);
+    bounds->y2 = xFixedToInt(xFixedCeil(points->y));
     points++;
     npoint--;
-    while (npoint-- > 0)
-    {
-	INT16	x1 = xFixedToInt (points->x);
-	INT16	x2 = xFixedToInt (xFixedCeil (points->x));
-	INT16	y1 = xFixedToInt (points->y);
-	INT16	y2 = xFixedToInt (xFixedCeil (points->y));
+    while (npoint-- > 0) {
+        INT16 x1 = xFixedToInt(points->x);
+        INT16 x2 = xFixedToInt(xFixedCeil(points->x));
+        INT16 y1 = xFixedToInt(points->y);
+        INT16 y2 = xFixedToInt(xFixedCeil(points->y));
 
-	if (x1 < bounds->x1)
-	    bounds->x1 = x1;
-	else if (x2 > bounds->x2)
-	    bounds->x2 = x2;
-	if (y1 < bounds->y1)
-	    bounds->y1 = y1;
-	else if (y2 > bounds->y2)
-	    bounds->y2 = y2;
-	points++;
+        if (x1 < bounds->x1)
+            bounds->x1 = x1;
+        else if (x2 > bounds->x2)
+            bounds->x2 = x2;
+        if (y1 < bounds->y1)
+            bounds->y1 = y1;
+        else if (y2 > bounds->y2)
+            bounds->y2 = y2;
+        points++;
     }
 }
 
 void
-miTriangleBounds (int ntri, xTriangle *tris, BoxPtr bounds)
+miTriangleBounds(int ntri, xTriangle * tris, BoxPtr bounds)
 {
-    miPointFixedBounds (ntri * 3, (xPointFixed *) tris, bounds);
+    miPointFixedBounds(ntri * 3, (xPointFixed *) tris, bounds);
 }

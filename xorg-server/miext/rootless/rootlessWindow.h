@@ -46,15 +46,18 @@ Bool RootlessPositionWindow(WindowPtr pWin, int x, int y);
 Bool RootlessRealizeWindow(WindowPtr pWin);
 Bool RootlessUnrealizeWindow(WindowPtr pWin);
 void RootlessRestackWindow(WindowPtr pWin, WindowPtr pOldNextSib);
-void RootlessCopyWindow(WindowPtr pWin,DDXPointRec ptOldOrg,RegionPtr prgnSrc);
-void RootlessMoveWindow(WindowPtr pWin,int x,int y,WindowPtr pSib,VTKind kind);
-void RootlessResizeWindow(WindowPtr pWin, int x, int y,
-			  unsigned int w, unsigned int h, WindowPtr pSib);
+void RootlessCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg,
+                        RegionPtr prgnSrc);
+void RootlessMoveWindow(WindowPtr pWin, int x, int y, WindowPtr pSib,
+                        VTKind kind);
+void RootlessResizeWindow(WindowPtr pWin, int x, int y, unsigned int w,
+                          unsigned int h, WindowPtr pSib);
 void RootlessReparentWindow(WindowPtr pWin, WindowPtr pPriorParent);
 void RootlessChangeBorderWidth(WindowPtr pWin, unsigned int width);
+
 #ifdef __APPLE__
-void RootlessNativeWindowMoved (WindowPtr pWin);
-void RootlessNativeWindowStateChanged (WindowPtr pWin, unsigned int state); 
+void RootlessNativeWindowMoved(WindowPtr pWin);
+void RootlessNativeWindowStateChanged(WindowPtr pWin, unsigned int state);
 #endif
 
 #endif

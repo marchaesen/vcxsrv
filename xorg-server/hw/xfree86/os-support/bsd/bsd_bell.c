@@ -41,42 +41,40 @@ void
 xf86OSRingBell(int loudness, int pitch, int duration)
 {
 #ifdef WSCONS_SUPPORT
-        struct wskbd_bell_data wsb;
+    struct wskbd_bell_data wsb;
 #endif
 
-        if (loudness && pitch)
-        {
+    if (loudness && pitch) {
 #ifdef PCCONS_SUPPORT
-                int data[2];
+        int data[2];
 #endif
 
-                switch (xf86Info.consType) {
+        switch (xf86Info.consType) {
 
 #ifdef PCCONS_SUPPORT
-                case PCCONS:
-                        data[0] = pitch;
-                        data[1] = (duration * loudness) / 50;
-                        ioctl(xf86Info.consoleFd, CONSOLE_X_BELL, data);
-                        break;
+        case PCCONS:
+            data[0] = pitch;
+            data[1] = (duration * loudness) / 50;
+            ioctl(xf86Info.consoleFd, CONSOLE_X_BELL, data);
+            break;
 #endif
 #if defined (SYSCONS_SUPPORT) || defined (PCVT_SUPPORT)
-                case SYSCONS:
-                case PCVT:
-                        ioctl(xf86Info.consoleFd, KDMKTONE,
-                              ((1193190 / pitch) & 0xffff) |
-                              (((unsigned long)duration*loudness/50)<<16));
-                        break;
+        case SYSCONS:
+        case PCVT:
+            ioctl(xf86Info.consoleFd, KDMKTONE,
+                  ((1193190 / pitch) & 0xffff) |
+                  (((unsigned long) duration * loudness / 50) << 16));
+            break;
 #endif
 #if defined (WSCONS_SUPPORT)
-                case WSCONS:
-                        wsb.which = WSKBD_BELL_DOALL;
-                        wsb.pitch = pitch;
-                        wsb.period = duration;
-                        wsb.volume = loudness;
-                        ioctl(xf86Info.consoleFd, WSKBDIO_COMPLEXBELL,
-                                      &wsb);
-                        break;
+        case WSCONS:
+            wsb.which = WSKBD_BELL_DOALL;
+            wsb.pitch = pitch;
+            wsb.period = duration;
+            wsb.volume = loudness;
+            ioctl(xf86Info.consoleFd, WSKBDIO_COMPLEXBELL, &wsb);
+            break;
 #endif
-                }
         }
+    }
 }

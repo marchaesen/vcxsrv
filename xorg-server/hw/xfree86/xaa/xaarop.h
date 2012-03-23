@@ -8,7 +8,6 @@
 	MS triadic raster op.  The function will return which components 
 	(S-P) need to be enabled.  
 
-
    int XAAHelpPatternROP(ScrnInfoPtr pScrn, int *fg, int *bg, int pm, int *rop)
 
 	For use with 8x8 opaque pattern fills.  You give it the foreground, 	
@@ -16,7 +15,6 @@
 	foreground and background with new ones and the rop with the 
 	appropriate MS triadic raster op.  The function will return which 
 	components (S-P) need to be enabled.  
-
 
 	   ROP_PAT - Means to enable 8x8 mono patterns (all bits 
 		     set for solid patterns).  Set the foreground and
@@ -294,8 +292,10 @@
 #define NO_SRC_ROP(rop) \
    ((rop == GXnoop) || (rop == GXset) || (rop == GXclear) || (rop == GXinvert))
 
-extern _X_EXPORT int XAAHelpSolidROP(ScrnInfoPtr pScrn, int *fg, int pm, int *rop);
-extern _X_EXPORT int XAAHelpPatternROP(ScrnInfoPtr pScrn, int *fg, int *bg, int pm, int *rop);
+extern _X_EXPORT int XAAHelpSolidROP(ScrnInfoPtr pScrn, int *fg, int pm,
+                                     int *rop);
+extern _X_EXPORT int XAAHelpPatternROP(ScrnInfoPtr pScrn, int *fg, int *bg,
+                                       int pm, int *rop);
 
 /* XXX These four should be static, but it breaks the 6.7.0 ABI. */
 extern _X_EXPORT int XAACopyROP[16];
@@ -308,4 +308,4 @@ extern _X_EXPORT int XAAGetCopyROP_PM(int i);
 extern _X_EXPORT int XAAGetPatternROP(int i);
 extern _X_EXPORT int XAAGetPatternROP_PM(int i);
 
-#endif /* _XAAROP_H */
+#endif                          /* _XAAROP_H */

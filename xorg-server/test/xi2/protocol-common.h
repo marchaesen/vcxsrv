@@ -53,7 +53,6 @@ extern int BadDevice;
         (req)->length = (sz_x##type##Req >> 2); \
     }
 
-
 /* Various defines used in the tests. Some tests may use different values
  * than these defaults */
 /* default client index */
@@ -72,9 +71,7 @@ extern int BadDevice;
 #define SPRITE_X                100
 #define SPRITE_Y                200
 
-
 /* Various structs used throughout the tests */
-
 
 /* The default devices struct, contains one pointer + keyboard and the
  * matching master devices. Initialize with init_devices() if needed. */
@@ -97,20 +94,23 @@ extern struct devices devices;
  * test-specific userdata, passed into the reply handler.
  */
 extern void *userdata;
+
 /**
  * The reply handler called from WriteToClient. Set this handler if you need
  * to check the reply values.
  */
-void (*reply_handler)(ClientPtr client, int len, char *data, void *userdata);
+void (*reply_handler) (ClientPtr client, int len, char *data, void *userdata);
 
 /**
  * The default screen used for the windows. Initialized by init_simple().
  */
 extern ScreenRec screen;
+
 /**
  * Semi-initialized root window. initialized by init().
  */
 extern WindowRec root;
+
 /**
  * Semi-initialized top-level window. initialized by init().
  */
@@ -122,16 +122,19 @@ extern WindowRec window;
  * Usually not needed if you call ::init_simple.
  */
 struct devices init_devices(void);
+
 /**
  * Init a mostly zeroed out client with default values for index and mask.
  */
 ClientRec init_client(int request_len, void *request_data);
+
 /**
  * Init a mostly zeroed out window with the given window ID.
  * Usually not needed if you call ::init_simple which sets up root and
  * window.
  */
 void init_window(WindowPtr window, WindowPtr parent, int id);
+
 /**
  * Create a very simple setup that provides the minimum values for most
  * tests, including a screen, the root and client window and the default
@@ -141,13 +144,14 @@ void init_simple(void);
 
 /* Declarations for various overrides in the test files. */
 void __wrap_WriteToClient(ClientPtr client, int len, void *data);
-int __wrap_XISetEventMask(DeviceIntPtr dev, WindowPtr win, int len, unsigned char* mask);
-int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access);
-int __real_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access);
+int __wrap_XISetEventMask(DeviceIntPtr dev, WindowPtr win, int len,
+                          unsigned char *mask);
+int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client,
+                           Mask access);
+int __real_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client,
+                           Mask access);
 Bool __wrap_AddResource(XID id, RESTYPE type, pointer value);
 int __wrap_dixLookupClient(ClientPtr *c, XID id, ClientPtr client, Mask access);
 int __real_dixLookupClient(ClientPtr *c, XID id, ClientPtr client, Mask access);
 
-
-#endif /* PROTOCOL_COMMON_H */
-
+#endif                          /* PROTOCOL_COMMON_H */

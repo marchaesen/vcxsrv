@@ -24,30 +24,30 @@
 #include "protocol-versions.h"
 
 static int
-ProcXResQueryVersion (ClientPtr client)
+ProcXResQueryVersion(ClientPtr client)
 {
     REQUEST(xXResQueryVersionReq);
     xXResQueryVersionReply rep;
 
-    REQUEST_SIZE_MATCH (xXResQueryVersionReq);
+    REQUEST_SIZE_MATCH(xXResQueryVersionReq);
 
     rep.type = X_Reply;
     rep.length = 0;
     rep.sequenceNumber = client->sequence;
     rep.server_major = SERVER_XRES_MAJOR_VERSION;
     rep.server_minor = SERVER_XRES_MINOR_VERSION;
-    if (client->swapped) { 
+    if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swaps(&rep.server_major);
         swaps(&rep.server_minor);
     }
-    WriteToClient(client, sizeof (xXResQueryVersionReply), (char *)&rep);
+    WriteToClient(client, sizeof(xXResQueryVersionReply), (char *) &rep);
     return Success;
 }
 
 static int
-ProcXResQueryClients (ClientPtr client)
+ProcXResQueryClients(ClientPtr client)
 {
     /* REQUEST(xXResQueryClientsReq); */
     xXResQueryClientsReply rep;
@@ -59,11 +59,11 @@ ProcXResQueryClients (ClientPtr client)
     current_clients = malloc(currentMaxClients * sizeof(int));
 
     num_clients = 0;
-    for(i = 0; i < currentMaxClients; i++) {
-       if(clients[i]) {
-           current_clients[num_clients] = i;
-           num_clients++;   
-       }
+    for (i = 0; i < currentMaxClients; i++) {
+        if (clients[i]) {
+            current_clients[num_clients] = i;
+            num_clients++;
+        }
     }
 
     rep.type = X_Reply;
@@ -74,21 +74,21 @@ ProcXResQueryClients (ClientPtr client)
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.num_clients);
-    }   
-    WriteToClient (client, sizeof (xXResQueryClientsReply), (char *) &rep);
+    }
+    WriteToClient(client, sizeof(xXResQueryClientsReply), (char *) &rep);
 
-    if(num_clients) {
+    if (num_clients) {
         xXResClient scratch;
 
-        for(i = 0; i < num_clients; i++) {
+        for (i = 0; i < num_clients; i++) {
             scratch.resource_base = clients[current_clients[i]]->clientAsMask;
             scratch.resource_mask = RESOURCE_ID_MASK;
-        
-            if(client->swapped) {
+
+            if (client->swapped) {
                 swapl(&scratch.resource_base);
                 swapl(&scratch.resource_mask);
             }
-            WriteToClient (client, sz_xXResClient, (char *) &scratch);
+            WriteToClient(client, sz_xXResClient, (char *) &scratch);
         }
     }
 
@@ -97,17 +97,16 @@ ProcXResQueryClients (ClientPtr client)
     return Success;
 }
 
-
 static void
-ResFindAllRes (pointer value, XID id, RESTYPE type, pointer cdata)
+ResFindAllRes(pointer value, XID id, RESTYPE type, pointer cdata)
 {
-    int *counts = (int *)cdata;
+    int *counts = (int *) cdata;
 
     counts[(type & TypeMask) - 1]++;
 }
 
 static int
-ProcXResQueryClientResources (ClientPtr client)
+ProcXResQueryClientResources(ClientPtr client)
 {
     REQUEST(xXResQueryClientResourcesReq);
     xXResQueryClientResourcesReply rep;
@@ -118,7 +117,7 @@ ProcXResQueryClientResources (ClientPtr client)
 
     clientID = CLIENT_ID(stuff->xid);
 
-    if((clientID >= currentMaxClients) || !clients[clientID]) {
+    if ((clientID >= currentMaxClients) || !clients[clientID]) {
         client->errorValue = stuff->xid;
         return BadValue;
     }
@@ -129,8 +128,9 @@ ProcXResQueryClientResources (ClientPtr client)
 
     num_types = 0;
 
-    for(i = 0; i <= lastResourceType; i++) {
-       if(counts[i]) num_types++;
+    for (i = 0; i <= lastResourceType; i++) {
+        if (counts[i])
+            num_types++;
     }
 
     rep.type = X_Reply;
@@ -141,93 +141,96 @@ ProcXResQueryClientResources (ClientPtr client)
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.num_types);
-    }   
+    }
 
-    WriteToClient (client,sizeof(xXResQueryClientResourcesReply),(char*)&rep);
+    WriteToClient(client, sizeof(xXResQueryClientResourcesReply),
+                  (char *) &rep);
 
-    if(num_types) {
+    if (num_types) {
         xXResType scratch;
-	const char *name;
+        const char *name;
 
-        for(i = 0; i < lastResourceType; i++) {
-            if(!counts[i]) continue;
+        for (i = 0; i < lastResourceType; i++) {
+            if (!counts[i])
+                continue;
 
-	    name = LookupResourceName(i + 1);
+            name = LookupResourceName(i + 1);
             if (strcmp(name, XREGISTRY_UNKNOWN))
-		scratch.resource_type = MakeAtom(name, strlen(name), TRUE);
-	    else {
+                scratch.resource_type = MakeAtom(name, strlen(name), TRUE);
+            else {
                 char buf[40];
+
                 snprintf(buf, sizeof(buf), "Unregistered resource %i", i + 1);
-		scratch.resource_type = MakeAtom(buf, strlen(buf), TRUE);
+                scratch.resource_type = MakeAtom(buf, strlen(buf), TRUE);
             }
 
             scratch.count = counts[i];
 
-            if(client->swapped) {
+            if (client->swapped) {
                 swapl(&scratch.resource_type);
                 swapl(&scratch.count);
             }
-            WriteToClient (client, sz_xXResType, (char *) &scratch);
+            WriteToClient(client, sz_xXResType, (char *) &scratch);
         }
     }
 
     free(counts);
-    
+
     return Success;
 }
 
 static unsigned long
-ResGetApproxPixmapBytes (PixmapPtr pix)
+ResGetApproxPixmapBytes(PixmapPtr pix)
 {
-   unsigned long nPixels;
-   int           bytesPerPixel; 
+    unsigned long nPixels;
+    int bytesPerPixel;
 
-   bytesPerPixel = pix->drawable.bitsPerPixel>>3;
-   nPixels       = pix->drawable.width * pix->drawable.height;
+    bytesPerPixel = pix->drawable.bitsPerPixel >> 3;
+    nPixels = pix->drawable.width * pix->drawable.height;
 
-   /* Divide by refcnt as pixmap could be shared between clients,  
-    * so total pixmap mem is shared between these. 
-   */
-   return ( nPixels * bytesPerPixel ) / pix->refcnt;
-}
-
-static void 
-ResFindPixmaps (pointer value, XID id, pointer cdata)
-{
-   unsigned long *bytes = (unsigned long *)cdata;
-   PixmapPtr pix = (PixmapPtr)value;
-
-   *bytes += ResGetApproxPixmapBytes(pix);
+    /* Divide by refcnt as pixmap could be shared between clients,  
+     * so total pixmap mem is shared between these. 
+     */
+    return (nPixels * bytesPerPixel) / pix->refcnt;
 }
 
 static void
-ResFindWindowPixmaps (pointer value, XID id, pointer cdata)
+ResFindPixmaps(pointer value, XID id, pointer cdata)
 {
-   unsigned long *bytes = (unsigned long *)cdata;
-   WindowPtr pWin = (WindowPtr)value;
+    unsigned long *bytes = (unsigned long *) cdata;
+    PixmapPtr pix = (PixmapPtr) value;
 
-   if (pWin->backgroundState == BackgroundPixmap)
-     *bytes += ResGetApproxPixmapBytes(pWin->background.pixmap);
-
-   if (pWin->border.pixmap != NULL && !pWin->borderIsPixel)
-     *bytes += ResGetApproxPixmapBytes(pWin->border.pixmap);
+    *bytes += ResGetApproxPixmapBytes(pix);
 }
 
 static void
-ResFindGCPixmaps (pointer value, XID id, pointer cdata)
+ResFindWindowPixmaps(pointer value, XID id, pointer cdata)
 {
-   unsigned long *bytes = (unsigned long *)cdata;
-   GCPtr pGC = (GCPtr)value;
+    unsigned long *bytes = (unsigned long *) cdata;
+    WindowPtr pWin = (WindowPtr) value;
 
-   if (pGC->stipple != NULL)
-     *bytes += ResGetApproxPixmapBytes(pGC->stipple);
+    if (pWin->backgroundState == BackgroundPixmap)
+        *bytes += ResGetApproxPixmapBytes(pWin->background.pixmap);
 
-   if (pGC->tile.pixmap != NULL && !pGC->tileIsPixel)
-     *bytes += ResGetApproxPixmapBytes(pGC->tile.pixmap);
+    if (pWin->border.pixmap != NULL && !pWin->borderIsPixel)
+        *bytes += ResGetApproxPixmapBytes(pWin->border.pixmap);
+}
+
+static void
+ResFindGCPixmaps(pointer value, XID id, pointer cdata)
+{
+    unsigned long *bytes = (unsigned long *) cdata;
+    GCPtr pGC = (GCPtr) value;
+
+    if (pGC->stipple != NULL)
+        *bytes += ResGetApproxPixmapBytes(pGC->stipple);
+
+    if (pGC->tile.pixmap != NULL && !pGC->tileIsPixel)
+        *bytes += ResGetApproxPixmapBytes(pGC->tile.pixmap);
 }
 
 static int
-ProcXResQueryClientPixmapBytes (ClientPtr client)
+ProcXResQueryClientPixmapBytes(ClientPtr client)
 {
     REQUEST(xXResQueryClientPixmapBytesReq);
     xXResQueryClientPixmapBytesReply rep;
@@ -238,29 +241,27 @@ ProcXResQueryClientPixmapBytes (ClientPtr client)
 
     clientID = CLIENT_ID(stuff->xid);
 
-    if((clientID >= currentMaxClients) || !clients[clientID]) {
+    if ((clientID >= currentMaxClients) || !clients[clientID]) {
         client->errorValue = stuff->xid;
         return BadValue;
     }
 
     bytes = 0;
 
-    FindClientResourcesByType(clients[clientID], RT_PIXMAP, ResFindPixmaps, 
-                              (pointer)(&bytes));
+    FindClientResourcesByType(clients[clientID], RT_PIXMAP, ResFindPixmaps,
+                              (pointer) (&bytes));
 
     /* 
      * Make sure win background pixmaps also held to account. 
      */
-    FindClientResourcesByType(clients[clientID], RT_WINDOW, 
-			      ResFindWindowPixmaps, 
-                              (pointer)(&bytes));
+    FindClientResourcesByType(clients[clientID], RT_WINDOW,
+                              ResFindWindowPixmaps, (pointer) (&bytes));
 
     /* 
      * GC Tile & Stipple pixmaps too.
-    */
-    FindClientResourcesByType(clients[clientID], RT_GC, 
-			      ResFindGCPixmaps, 
-                              (pointer)(&bytes));
+     */
+    FindClientResourcesByType(clients[clientID], RT_GC,
+                              ResFindGCPixmaps, (pointer) (&bytes));
 
 #ifdef COMPOSITE
     /* FIXME: include composite pixmaps too */
@@ -281,13 +282,14 @@ ProcXResQueryClientPixmapBytes (ClientPtr client)
         swapl(&rep.bytes);
         swapl(&rep.bytes_overflow);
     }
-    WriteToClient (client,sizeof(xXResQueryClientPixmapBytesReply),(char*)&rep);
+    WriteToClient(client, sizeof(xXResQueryClientPixmapBytesReply),
+                  (char *) &rep);
 
     return Success;
 }
 
 static int
-ProcResDispatch (ClientPtr client)
+ProcResDispatch(ClientPtr client)
 {
     REQUEST(xReq);
     switch (stuff->data) {
@@ -299,40 +301,41 @@ ProcResDispatch (ClientPtr client)
         return ProcXResQueryClientResources(client);
     case X_XResQueryClientPixmapBytes:
         return ProcXResQueryClientPixmapBytes(client);
-    default: break;
+    default:
+        break;
     }
 
     return BadRequest;
 }
 
 static int
-SProcXResQueryVersion (ClientPtr client)
+SProcXResQueryVersion(ClientPtr client)
 {
     REQUEST(xXResQueryVersionReq);
-    REQUEST_SIZE_MATCH (xXResQueryVersionReq);
+    REQUEST_SIZE_MATCH(xXResQueryVersionReq);
     return ProcXResQueryVersion(client);
 }
 
 static int
-SProcXResQueryClientResources (ClientPtr client)
+SProcXResQueryClientResources(ClientPtr client)
 {
     REQUEST(xXResQueryClientResourcesReq);
-    REQUEST_SIZE_MATCH (xXResQueryClientResourcesReq);
+    REQUEST_SIZE_MATCH(xXResQueryClientResourcesReq);
     swapl(&stuff->xid);
     return ProcXResQueryClientResources(client);
 }
 
 static int
-SProcXResQueryClientPixmapBytes (ClientPtr client)
+SProcXResQueryClientPixmapBytes(ClientPtr client)
 {
     REQUEST(xXResQueryClientPixmapBytesReq);
-    REQUEST_SIZE_MATCH (xXResQueryClientPixmapBytesReq);
+    REQUEST_SIZE_MATCH(xXResQueryClientPixmapBytesReq);
     swapl(&stuff->xid);
     return ProcXResQueryClientPixmapBytes(client);
 }
 
 static int
-SProcResDispatch (ClientPtr client)
+SProcResDispatch(ClientPtr client)
 {
     REQUEST(xReq);
     swaps(&stuff->length);
@@ -340,13 +343,14 @@ SProcResDispatch (ClientPtr client)
     switch (stuff->data) {
     case X_XResQueryVersion:
         return SProcXResQueryVersion(client);
-    case X_XResQueryClients:  /* nothing to swap */
+    case X_XResQueryClients:   /* nothing to swap */
         return ProcXResQueryClients(client);
     case X_XResQueryClientResources:
         return SProcXResQueryClientResources(client);
     case X_XResQueryClientPixmapBytes:
         return SProcXResQueryClientPixmapBytes(client);
-    default: break;
+    default:
+        break;
     }
 
     return BadRequest;
@@ -356,6 +360,6 @@ void
 ResExtensionInit(INITARGS)
 {
     (void) AddExtension(XRES_NAME, 0, 0,
-                            ProcResDispatch, SProcResDispatch,
-                            NULL, StandardMinorOpcode);
+                        ProcResDispatch, SProcResDispatch,
+                        NULL, StandardMinorOpcode);
 }

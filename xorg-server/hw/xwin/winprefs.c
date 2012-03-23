@@ -52,112 +52,92 @@
 extern const char *winGetBaseDir(void);
 
 /* From winprefslex.l, the real parser */
-extern int parse_file (FILE *fp);
-
+extern int parse_file(FILE * fp);
 
 /* Currently in use command ID, incremented each new menu item created */
 static int g_cmdid = STARTMENUID;
-
 
 /* Defined in DIX */
 extern char *display;
 
 /* Local function to handle comma-ified icon names */
-static HICON
-LoadImageComma (char *fname, int sx, int sy, int flags);
-
+static HICON LoadImageComma(char *fname, int sx, int sy, int flags);
 
 /*
  * Creates or appends a menu from a MENUPARSED structure
  */
 static HMENU
-MakeMenu (char *name,
-	  HMENU editMenu,
-	  int editItem)
+MakeMenu(char *name, HMENU editMenu, int editItem)
 {
-  int i;
-  int item;
-  MENUPARSED *m;
-  HMENU hmenu, hsub;
+    int i;
+    int item;
+    MENUPARSED *m;
+    HMENU hmenu, hsub;
 
-  for (i=0; i<pref.menuItems; i++)
-    {
-      if (!strcmp(name, pref.menu[i].menuName))
-	break;
-    }
-  
-  /* Didn't find a match, bummer */
-  if (i==pref.menuItems)
-    {
-      ErrorF("MakeMenu: Can't find menu %s\n", name);
-      return NULL;
-    }
-  
-  m = &(pref.menu[i]);
-
-  if (editMenu)
-    {
-      hmenu = editMenu;
-      item = editItem;
-    }
-  else
-    {
-      hmenu = CreatePopupMenu();
-      if (!hmenu)
-	{
-	  ErrorF("MakeMenu: Unable to CreatePopupMenu() %s\n", name);
-	  return NULL;
-	}
-      item = 0;
+    for (i = 0; i < pref.menuItems; i++) {
+        if (!strcmp(name, pref.menu[i].menuName))
+            break;
     }
 
-  /* Add the menu items */
-  for (i=0; i<m->menuItems; i++)
-    {
-      /* Only assign IDs one time... */
-      if ( m->menuItem[i].commandID == 0 )
-	m->menuItem[i].commandID = g_cmdid++;
-
-      switch (m->menuItem[i].cmd)
-	{
-	case CMD_EXEC:
-	case CMD_ALWAYSONTOP:
-	case CMD_RELOAD:
-	  InsertMenu (hmenu,
-		      item,
-		      MF_BYPOSITION|MF_ENABLED|MF_STRING,
-		      m->menuItem[i].commandID,
-		      m->menuItem[i].text);
-	  break;
-	  
-	case CMD_SEPARATOR:
-	  InsertMenu (hmenu,
-		      item,
-		      MF_BYPOSITION|MF_SEPARATOR,
-		      0,
-		      NULL);
-	  break;
-	  
-	case CMD_MENU:
-	  /* Recursive! */
-	  hsub = MakeMenu (m->menuItem[i].param, 0, 0);
-	  if (hsub)
-	    InsertMenu (hmenu,
-			item,
-			MF_BYPOSITION|MF_POPUP|MF_ENABLED|MF_STRING,
-			(UINT_PTR)hsub,
-			m->menuItem[i].text);
-	  break;
-	}
-
-      /* If item==-1 (means to add at end of menu) don't increment) */
-      if (item>=0)
-	item++;
+    /* Didn't find a match, bummer */
+    if (i == pref.menuItems) {
+        ErrorF("MakeMenu: Can't find menu %s\n", name);
+        return NULL;
     }
 
-  return hmenu;
+    m = &(pref.menu[i]);
+
+    if (editMenu) {
+        hmenu = editMenu;
+        item = editItem;
+    }
+    else {
+        hmenu = CreatePopupMenu();
+        if (!hmenu) {
+            ErrorF("MakeMenu: Unable to CreatePopupMenu() %s\n", name);
+            return NULL;
+        }
+        item = 0;
+    }
+
+    /* Add the menu items */
+    for (i = 0; i < m->menuItems; i++) {
+        /* Only assign IDs one time... */
+        if (m->menuItem[i].commandID == 0)
+            m->menuItem[i].commandID = g_cmdid++;
+
+        switch (m->menuItem[i].cmd) {
+        case CMD_EXEC:
+        case CMD_ALWAYSONTOP:
+        case CMD_RELOAD:
+            InsertMenu(hmenu,
+                       item,
+                       MF_BYPOSITION | MF_ENABLED | MF_STRING,
+                       m->menuItem[i].commandID, m->menuItem[i].text);
+            break;
+
+        case CMD_SEPARATOR:
+            InsertMenu(hmenu, item, MF_BYPOSITION | MF_SEPARATOR, 0, NULL);
+            break;
+
+        case CMD_MENU:
+            /* Recursive! */
+            hsub = MakeMenu(m->menuItem[i].param, 0, 0);
+            if (hsub)
+                InsertMenu(hmenu,
+                           item,
+                           MF_BYPOSITION | MF_POPUP | MF_ENABLED | MF_STRING,
+                           (UINT_PTR) hsub, m->menuItem[i].text);
+            break;
+        }
+
+        /* If item==-1 (means to add at end of menu) don't increment) */
+        if (item >= 0)
+            item++;
+    }
+
+    return hmenu;
 }
-
 
 #ifdef XWIN_MULTIWINDOW
 /*
@@ -165,51 +145,48 @@ MakeMenu (char *name,
  * Removes or creates custom window settings depending on LPARAM
  */
 static wBOOL CALLBACK
-ReloadEnumWindowsProc (HWND hwnd, LPARAM lParam)
+ReloadEnumWindowsProc(HWND hwnd, LPARAM lParam)
 {
-  HICON   hicon;
-  Window  wid;
+    HICON hicon;
+    Window wid;
 
-  if (!hwnd) {
-    ErrorF("ReloadEnumWindowsProc: hwnd==NULL!\n");
-    return FALSE;
-  }
-
-  /* It's our baby, either clean or dirty it */
-  if (lParam==FALSE) 
-    {
-      /* Reset the window's icon to undefined. */
-      hicon = (HICON)SendMessage(hwnd, WM_SETICON, ICON_BIG, 0);
-
-      /* If the old icon is generated on-the-fly, get rid of it, will regen */
-      winDestroyIcon (hicon);
-
-      /* Same for the small icon */
-      hicon = (HICON)SendMessage(hwnd, WM_SETICON, ICON_SMALL, 0);
-      winDestroyIcon (hicon);
-
-      /* Remove any menu additions; bRevert=TRUE destroys any modified menus */
-      GetSystemMenu (hwnd, TRUE);
-      
-      /* This window is now clean of our taint (but with undefined icons) */
-    }
-  else
-    {
-      /* winUpdateIcon() will set the icon default, dynamic, or from xwinrc */
-      wid = (Window)GetProp (hwnd, WIN_WID_PROP);
-      if (wid)
-	winUpdateIcon (wid);
-
-      /* Update the system menu for this window */
-      SetupSysMenu ((unsigned long)hwnd);
-
-      /* That was easy... */
+    if (!hwnd) {
+        ErrorF("ReloadEnumWindowsProc: hwnd==NULL!\n");
+        return FALSE;
     }
 
-  return TRUE;
+    /* It's our baby, either clean or dirty it */
+    if (lParam == FALSE) {
+        /* Reset the window's icon to undefined. */
+        hicon = (HICON) SendMessage(hwnd, WM_SETICON, ICON_BIG, 0);
+
+        /* If the old icon is generated on-the-fly, get rid of it, will regen */
+        winDestroyIcon(hicon);
+
+        /* Same for the small icon */
+        hicon = (HICON) SendMessage(hwnd, WM_SETICON, ICON_SMALL, 0);
+        winDestroyIcon(hicon);
+
+        /* Remove any menu additions; bRevert=TRUE destroys any modified menus */
+        GetSystemMenu(hwnd, TRUE);
+
+        /* This window is now clean of our taint (but with undefined icons) */
+    }
+    else {
+        /* winUpdateIcon() will set the icon default, dynamic, or from xwinrc */
+        wid = (Window) GetProp(hwnd, WIN_WID_PROP);
+        if (wid)
+            winUpdateIcon(wid);
+
+        /* Update the system menu for this window */
+        SetupSysMenu((unsigned long) hwnd);
+
+        /* That was easy... */
+    }
+
+    return TRUE;
 }
 #endif
-
 
 /*
  * Removes any custom icons in classes, custom menus, etc.
@@ -218,299 +195,279 @@ ReloadEnumWindowsProc (HWND hwnd, LPARAM lParam)
  * Set custom icons and menus again.
  */
 static void
-ReloadPrefs (void)
+ReloadPrefs(void)
 {
-  int i;
+    int i;
 
 #ifdef XWIN_MULTIWINDOW
-  /* First, iterate over all windows, deleting their icons and custom menus.
-   * This is really only needed because winDestroyIcon() will try to
-   * destroy the old global icons, which will have changed.
-   * It is probably better to set a windows USER_DATA to flag locally defined
-   * icons, and use that to accurately know when to destroy old icons.
-   */
-  EnumThreadWindows (g_dwCurrentThreadID, ReloadEnumWindowsProc, FALSE);
+    /* First, iterate over all windows, deleting their icons and custom menus.
+     * This is really only needed because winDestroyIcon() will try to
+     * destroy the old global icons, which will have changed.
+     * It is probably better to set a windows USER_DATA to flag locally defined
+     * icons, and use that to accurately know when to destroy old icons.
+     */
+    EnumThreadWindows(g_dwCurrentThreadID, ReloadEnumWindowsProc, FALSE);
 #endif
-  
-  /* Now, free/clear all info from our prefs structure */
-  for (i=0; i<pref.menuItems; i++)
-    free (pref.menu[i].menuItem);
-  free (pref.menu);
-  pref.menu = NULL;
-  pref.menuItems = 0;
 
-  pref.rootMenuName[0] = 0;
+    /* Now, free/clear all info from our prefs structure */
+    for (i = 0; i < pref.menuItems; i++)
+        free(pref.menu[i].menuItem);
+    free(pref.menu);
+    pref.menu = NULL;
+    pref.menuItems = 0;
 
-  free (pref.sysMenu);
-  pref.sysMenuItems = 0;
+    pref.rootMenuName[0] = 0;
 
-  pref.defaultSysMenuName[0] = 0;
-  pref.defaultSysMenuPos = 0;
+    free(pref.sysMenu);
+    pref.sysMenuItems = 0;
 
-  pref.iconDirectory[0] = 0;
-  pref.defaultIconName[0] = 0;
-  pref.trayIconName[0] = 0;
+    pref.defaultSysMenuName[0] = 0;
+    pref.defaultSysMenuPos = 0;
 
-  for (i=0; i<pref.iconItems; i++)
-    if (pref.icon[i].hicon)
-      DestroyIcon ((HICON)pref.icon[i].hicon);
-  free (pref.icon);
-  pref.icon = NULL;
-  pref.iconItems = 0;
-  
-  /* Free global default X icon */
-  if (g_hIconX) 
-    DestroyIcon (g_hIconX);
-  if (g_hSmallIconX)
-    DestroyIcon (g_hSmallIconX);  
+    pref.iconDirectory[0] = 0;
+    pref.defaultIconName[0] = 0;
+    pref.trayIconName[0] = 0;
 
-  /* Reset the custom command IDs */
-  g_cmdid = STARTMENUID;
+    for (i = 0; i < pref.iconItems; i++)
+        if (pref.icon[i].hicon)
+            DestroyIcon((HICON) pref.icon[i].hicon);
+    free(pref.icon);
+    pref.icon = NULL;
+    pref.iconItems = 0;
 
-  /* Load the updated resource file */
-  LoadPreferences();
+    /* Free global default X icon */
+    if (g_hIconX)
+        DestroyIcon(g_hIconX);
+    if (g_hSmallIconX)
+        DestroyIcon(g_hSmallIconX);
 
-  g_hIconX = NULL;
-  g_hSmallIconX = NULL;
+    /* Reset the custom command IDs */
+    g_cmdid = STARTMENUID;
+
+    /* Load the updated resource file */
+    LoadPreferences();
+
+    g_hIconX = NULL;
+    g_hSmallIconX = NULL;
 
 #ifdef XWIN_MULTIWINDOW
-  winInitGlobalIcons();
-#endif
-  
-#ifdef XWIN_MULTIWINDOW
-  /* Rebuild the icons and menus */
-  EnumThreadWindows (g_dwCurrentThreadID, ReloadEnumWindowsProc, TRUE);
+    winInitGlobalIcons();
 #endif
 
-  /* Whew, done */
+#ifdef XWIN_MULTIWINDOW
+    /* Rebuild the icons and menus */
+    EnumThreadWindows(g_dwCurrentThreadID, ReloadEnumWindowsProc, TRUE);
+#endif
+
+    /* Whew, done */
 }
 
 /*
  * Check/uncheck the ALWAYSONTOP items in this menu
  */
 void
-HandleCustomWM_INITMENU(unsigned long hwndIn,
-			unsigned long hmenuIn)
+HandleCustomWM_INITMENU(unsigned long hwndIn, unsigned long hmenuIn)
 {
-  HWND    hwnd;
-  HMENU   hmenu;
-  DWORD   dwExStyle;
-  int     i, j;
+    HWND hwnd;
+    HMENU hmenu;
+    DWORD dwExStyle;
+    int i, j;
 
-  hwnd = (HWND)hwndIn;
-  hmenu = (HMENU)hmenuIn;
-  if (!hwnd || !hmenu) 
-    return;
-  
-  if (GetWindowLongPtr(hwnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
-    dwExStyle = MF_BYCOMMAND | MF_CHECKED;
-  else
-    dwExStyle = MF_BYCOMMAND | MF_UNCHECKED;
+    hwnd = (HWND) hwndIn;
+    hmenu = (HMENU) hmenuIn;
+    if (!hwnd || !hmenu)
+        return;
 
-  for (i=0; i<pref.menuItems; i++)
-    for (j=0; j<pref.menu[i].menuItems; j++)
-      if (pref.menu[i].menuItem[j].cmd==CMD_ALWAYSONTOP)
-	CheckMenuItem (hmenu, pref.menu[i].menuItem[j].commandID, dwExStyle );
-  
+    if (GetWindowLongPtr(hwnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
+        dwExStyle = MF_BYCOMMAND | MF_CHECKED;
+    else
+        dwExStyle = MF_BYCOMMAND | MF_UNCHECKED;
+
+    for (i = 0; i < pref.menuItems; i++)
+        for (j = 0; j < pref.menu[i].menuItems; j++)
+            if (pref.menu[i].menuItem[j].cmd == CMD_ALWAYSONTOP)
+                CheckMenuItem(hmenu, pref.menu[i].menuItem[j].commandID,
+                              dwExStyle);
+
 }
-    
+
 /*
  * Searches for the custom WM_COMMAND command ID and performs action.
  * Return TRUE if command is proccessed, FALSE otherwise.
  */
 Bool
-HandleCustomWM_COMMAND (unsigned long hwndIn,
-			int           command)
+HandleCustomWM_COMMAND(unsigned long hwndIn, int command)
 {
-  HWND hwnd;
-  int i, j;
-  MENUPARSED *m;
-  DWORD			dwExStyle;
+    HWND hwnd;
+    int i, j;
+    MENUPARSED *m;
+    DWORD dwExStyle;
 
-  hwnd = (HWND)hwndIn;
+    hwnd = (HWND) hwndIn;
 
-  if (!command)
-    return FALSE;
+    if (!command)
+        return FALSE;
 
-  for (i=0; i<pref.menuItems; i++)
-    {
-      m = &(pref.menu[i]);
-      for (j=0; j<m->menuItems; j++)
-	{
-	  if (command==m->menuItem[j].commandID)
-	    {
-	      /* Match! */
-	      switch(m->menuItem[j].cmd)
-		{
+    for (i = 0; i < pref.menuItems; i++) {
+        m = &(pref.menu[i]);
+        for (j = 0; j < m->menuItems; j++) {
+            if (command == m->menuItem[j].commandID) {
+                /* Match! */
+                switch (m->menuItem[j].cmd) {
 #ifdef __CYGWIN__
-		case CMD_EXEC:
-		  if (fork()==0)
-		    {
-		      struct rlimit rl;
-		      unsigned long i;
+                case CMD_EXEC:
+                    if (fork() == 0) {
+                        struct rlimit rl;
+                        unsigned long i;
 
-		      /* Close any open descriptors except for STD* */
-		      getrlimit (RLIMIT_NOFILE, &rl);
-		      for (i = STDERR_FILENO+1; i < rl.rlim_cur; i++)
-			close(i);
+                        /* Close any open descriptors except for STD* */
+                        getrlimit(RLIMIT_NOFILE, &rl);
+                        for (i = STDERR_FILENO + 1; i < rl.rlim_cur; i++)
+                            close(i);
 
-		      /* Disassociate any TTYs */
-		      setsid();
+                        /* Disassociate any TTYs */
+                        setsid();
 
-		      execl ("/bin/sh",
-			     "/bin/sh",
-			     "-c",
-			     m->menuItem[j].param,
-			     NULL);
-		      exit (0);
-		    }
-		  else
-		    return TRUE;
-		  break;
+                        execl("/bin/sh",
+                              "/bin/sh", "-c", m->menuItem[j].param, NULL);
+                        exit(0);
+                    }
+                    else
+                        return TRUE;
+                    break;
 #else
-		case CMD_EXEC:
-                  {
-		    /* Start process without console window */
-		    STARTUPINFO start;
-		    PROCESS_INFORMATION child;
+                case CMD_EXEC:
+                {
+                    /* Start process without console window */
+                    STARTUPINFO start;
+                    PROCESS_INFORMATION child;
 
-		    memset (&start, 0, sizeof (start));
-		    start.cb = sizeof (start);
-		    start.dwFlags = STARTF_USESHOWWINDOW;
-		    start.wShowWindow = SW_HIDE;
+                    memset(&start, 0, sizeof(start));
+                    start.cb = sizeof(start);
+                    start.dwFlags = STARTF_USESHOWWINDOW;
+                    start.wShowWindow = SW_HIDE;
 
-		    memset (&child, 0, sizeof (child));
+                    memset(&child, 0, sizeof(child));
 
-		    if (CreateProcess (NULL, m->menuItem[j].param, NULL, NULL, FALSE, 0,
-				       NULL, NULL, &start, &child))
-		    {
-			CloseHandle (child.hThread);
-			CloseHandle (child.hProcess);
-		    }
-		    else
-			MessageBox(NULL, m->menuItem[j].param, "Mingrc Exec Command Error!", MB_OK | MB_ICONEXCLAMATION);
-                  }
-		  return TRUE;
+                    if (CreateProcess
+                        (NULL, m->menuItem[j].param, NULL, NULL, FALSE, 0, NULL,
+                         NULL, &start, &child)) {
+                        CloseHandle(child.hThread);
+                        CloseHandle(child.hProcess);
+                    }
+                    else
+                        MessageBox(NULL, m->menuItem[j].param,
+                                   "Mingrc Exec Command Error!",
+                                   MB_OK | MB_ICONEXCLAMATION);
+                }
+                    return TRUE;
 #endif
-		case CMD_ALWAYSONTOP:
-		  if (!hwnd)
-		    return FALSE;
+                case CMD_ALWAYSONTOP:
+                    if (!hwnd)
+                        return FALSE;
 
-		  /* Get extended window style */
-		  dwExStyle = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-		  
-		  /* Handle topmost windows */
-		  if (dwExStyle & WS_EX_TOPMOST)
-		    SetWindowPos (hwnd,
-				  HWND_NOTOPMOST,
-				  0, 0,
-				  0, 0,
-				  SWP_NOSIZE | SWP_NOMOVE);
-		  else
-		    SetWindowPos (hwnd,
-				  HWND_TOPMOST,
-				  0, 0,
-				  0, 0,
-				  SWP_NOSIZE | SWP_NOMOVE);
+                    /* Get extended window style */
+                    dwExStyle = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+
+                    /* Handle topmost windows */
+                    if (dwExStyle & WS_EX_TOPMOST)
+                        SetWindowPos(hwnd,
+                                     HWND_NOTOPMOST,
+                                     0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+                    else
+                        SetWindowPos(hwnd,
+                                     HWND_TOPMOST,
+                                     0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 #if XWIN_MULTIWINDOW
-		  /* Reflect the changed Z order */
-		  winReorderWindowsMultiWindow ();
+                    /* Reflect the changed Z order */
+                    winReorderWindowsMultiWindow();
 #endif
-		  return TRUE;
-		  
-		case CMD_RELOAD:
-		  ReloadPrefs();
-		  return TRUE;
+                    return TRUE;
 
-		default:
-		  return FALSE;
-	      }
-	    } /* match */
-	} /* for j */
-    } /* for i */
+                case CMD_RELOAD:
+                    ReloadPrefs();
+                    return TRUE;
 
-  return FALSE;
+                default:
+                    return FALSE;
+                }
+            }                   /* match */
+        }                       /* for j */
+    }                           /* for i */
+
+    return FALSE;
 }
-
 
 #ifdef XWIN_MULTIWINDOW
 /*
  * Add the default or a custom menu depending on the class match
  */
 void
-SetupSysMenu (unsigned long hwndIn)
+SetupSysMenu(unsigned long hwndIn)
 {
-  HWND    hwnd;
-  HMENU	  sys;
-  int     i;
-  WindowPtr pWin;
-  char *res_name, *res_class;
+    HWND hwnd;
+    HMENU sys;
+    int i;
+    WindowPtr pWin;
+    char *res_name, *res_class;
 
-  hwnd = (HWND)hwndIn;
-  if (!hwnd)
-    return;
+    hwnd = (HWND) hwndIn;
+    if (!hwnd)
+        return;
 
-  pWin = GetProp (hwnd, WIN_WINDOW_PROP);
-  
-  sys = GetSystemMenu (hwnd, FALSE);
-  if (!sys)
-    return;
+    pWin = GetProp(hwnd, WIN_WINDOW_PROP);
 
-  if (pWin)
-    {
-      /* First see if there's a class match... */
-      if (winMultiWindowGetClassHint (pWin, &res_name, &res_class))
-	{
-	  for (i=0; i<pref.sysMenuItems; i++)
-	    {
-	      if (!strcmp(pref.sysMenu[i].match, res_name) ||
-		  !strcmp(pref.sysMenu[i].match, res_class) ) 
-		{
-		  free(res_name);
-		  free(res_class);
-  
-		  MakeMenu (pref.sysMenu[i].menuName, sys,
-			    pref.sysMenu[i].menuPos==AT_START?0:-1);
-		  return;
-		}
-	    }
-	  
-	  /* No match, just free alloc'd strings */
-	  free(res_name);
-	  free(res_class);
-	} /* Found wm_class */
-    } /* if pwin */
+    sys = GetSystemMenu(hwnd, FALSE);
+    if (!sys)
+        return;
 
-  /* Fallback to system default */
-  if (pref.defaultSysMenuName[0])
-    {
-      if (pref.defaultSysMenuPos==AT_START)
-	MakeMenu (pref.defaultSysMenuName, sys, 0);
-      else
-	MakeMenu (pref.defaultSysMenuName, sys, -1);
+    if (pWin) {
+        /* First see if there's a class match... */
+        if (winMultiWindowGetClassHint(pWin, &res_name, &res_class)) {
+            for (i = 0; i < pref.sysMenuItems; i++) {
+                if (!strcmp(pref.sysMenu[i].match, res_name) ||
+                    !strcmp(pref.sysMenu[i].match, res_class)) {
+                    free(res_name);
+                    free(res_class);
+
+                    MakeMenu(pref.sysMenu[i].menuName, sys,
+                             pref.sysMenu[i].menuPos == AT_START ? 0 : -1);
+                    return;
+                }
+            }
+
+            /* No match, just free alloc'd strings */
+            free(res_name);
+            free(res_class);
+        }                       /* Found wm_class */
+    }                           /* if pwin */
+
+    /* Fallback to system default */
+    if (pref.defaultSysMenuName[0]) {
+        if (pref.defaultSysMenuPos == AT_START)
+            MakeMenu(pref.defaultSysMenuName, sys, 0);
+        else
+            MakeMenu(pref.defaultSysMenuName, sys, -1);
     }
 }
 #endif
-
 
 /*
  * Possibly add a menu to the toolbar icon
  */
 void
-SetupRootMenu (unsigned long hmenuRoot)
+SetupRootMenu(unsigned long hmenuRoot)
 {
-  HMENU root;
+    HMENU root;
 
-  root = (HMENU)hmenuRoot;
-  if (!root)
-    return;
+    root = (HMENU) hmenuRoot;
+    if (!root)
+        return;
 
-  if (pref.rootMenuName[0])
-    {
-      MakeMenu(pref.rootMenuName, root, 0);
+    if (pref.rootMenuName[0]) {
+        MakeMenu(pref.rootMenuName, root, 0);
     }
 }
-
 
 /*
  * Check for and return an overridden default ICON specified in the prefs
@@ -518,21 +475,19 @@ SetupRootMenu (unsigned long hmenuRoot)
 HICON
 winOverrideDefaultIcon(int size)
 {
-  HICON hicon;
-  
-  if (pref.defaultIconName[0])
-    {
-      hicon = LoadImageComma (pref.defaultIconName, size, size, 0);
-      if (hicon==NULL)
-        ErrorF ("winOverrideDefaultIcon: LoadImageComma(%s) failed\n",
-		pref.defaultIconName);
+    HICON hicon;
 
-      return hicon;
+    if (pref.defaultIconName[0]) {
+        hicon = LoadImageComma(pref.defaultIconName, size, size, 0);
+        if (hicon == NULL)
+            ErrorF("winOverrideDefaultIcon: LoadImageComma(%s) failed\n",
+                   pref.defaultIconName);
+
+        return hicon;
     }
 
-  return 0;
+    return 0;
 }
-
 
 /*
  * Return the HICON to use in the taskbar notification area
@@ -540,30 +495,26 @@ winOverrideDefaultIcon(int size)
 HICON
 winTaskbarIcon(void)
 {
-  HICON hicon;
+    HICON hicon;
 
-  hicon = 0;
-  /* First try and load an overridden, if success then return it */
-  if (pref.trayIconName[0])
-    {
-      hicon = LoadImageComma (pref.trayIconName,
-			      GetSystemMetrics (SM_CXSMICON),
-			      GetSystemMetrics (SM_CYSMICON),
-			      0 );
+    hicon = 0;
+    /* First try and load an overridden, if success then return it */
+    if (pref.trayIconName[0]) {
+        hicon = LoadImageComma(pref.trayIconName,
+                               GetSystemMetrics(SM_CXSMICON),
+                               GetSystemMetrics(SM_CYSMICON), 0);
     }
 
-  /* Otherwise return the default */
-  if (!hicon)
-    hicon =  (HICON) LoadImage (g_hInstance,
-				MAKEINTRESOURCE(IDI_XWIN),
-				IMAGE_ICON,
-				GetSystemMetrics (SM_CXSMICON),
-				GetSystemMetrics (SM_CYSMICON),
-				0);
+    /* Otherwise return the default */
+    if (!hicon)
+        hicon = (HICON) LoadImage(g_hInstance,
+                                  MAKEINTRESOURCE(IDI_XWIN),
+                                  IMAGE_ICON,
+                                  GetSystemMetrics(SM_CXSMICON),
+                                  GetSystemMetrics(SM_CYSMICON), 0);
 
-  return hicon;
+    return hicon;
 }
-
 
 /*
  * Parse a filename to extract an icon:
@@ -572,64 +523,53 @@ winTaskbarIcon(void)
  *  else try to load it as an .ico file and if that fails return NULL
  */
 static HICON
-LoadImageComma (char *fname, int sx, int sy, int flags)
+LoadImageComma(char *fname, int sx, int sy, int flags)
 {
-  HICON  hicon;
-  int    index;
-  char   file[PATH_MAX+NAME_MAX+2];
+    HICON hicon;
+    int index;
+    char file[PATH_MAX + NAME_MAX + 2];
 
-  /* Some input error checking */
-  if (!fname || !fname[0])
-    return NULL;
+    /* Some input error checking */
+    if (!fname || !fname[0])
+        return NULL;
 
-  index = 0;
-  hicon = NULL;
+    index = 0;
+    hicon = NULL;
 
-  if (fname[0]==',')
-    {
-      /* It's the XWIN.EXE resource they want */
-      index = atoi (fname+1);
-      hicon = LoadImage (g_hInstance,
-                        MAKEINTRESOURCE(index),
-                        IMAGE_ICON,
-                        sx,
-                        sy,
-                        flags);
+    if (fname[0] == ',') {
+        /* It's the XWIN.EXE resource they want */
+        index = atoi(fname + 1);
+        hicon = LoadImage(g_hInstance,
+                          MAKEINTRESOURCE(index), IMAGE_ICON, sx, sy, flags);
     }
-  else
-    {
-      file[0] = 0;
-      /* Prepend path if not given a "X:\" filename */
-      if ( !(fname[0] && fname[1]==':' && fname[2]=='\\') )
-        {
-         strcpy (file, pref.iconDirectory);
-         if (pref.iconDirectory[0])
-           if (fname[strlen(fname)-1]!='\\')
-             strcat (file, "\\");
+    else {
+        file[0] = 0;
+        /* Prepend path if not given a "X:\" filename */
+        if (!(fname[0] && fname[1] == ':' && fname[2] == '\\')) {
+            strcpy(file, pref.iconDirectory);
+            if (pref.iconDirectory[0])
+                if (fname[strlen(fname) - 1] != '\\')
+                    strcat(file, "\\");
         }
-      strcat (file, fname);
+        strcat(file, fname);
 
-      if (strrchr (file, ','))
-       {
-         /* Specified as <fname>,<index> */
+        if (strrchr(file, ',')) {
+            /* Specified as <fname>,<index> */
 
-         *(strrchr (file, ',')) = 0; /* End string at comma */
-         index = atoi (strrchr (fname, ',') + 1);
-         hicon = ExtractIcon (g_hInstance, file, index);
-       }
-      else
-       {
-         /* Just an .ico file... */
+            *(strrchr(file, ',')) = 0;  /* End string at comma */
+            index = atoi(strrchr(fname, ',') + 1);
+            hicon = ExtractIcon(g_hInstance, file, index);
+        }
+        else {
+            /* Just an .ico file... */
 
-         hicon = (HICON)LoadImage (NULL,
-                                   file,
-                                   IMAGE_ICON,
-                                   sx,
-                                   sy,
-                                   LR_LOADFROMFILE|flags);
-       }
+            hicon = (HICON) LoadImage(NULL,
+                                      file,
+                                      IMAGE_ICON,
+                                      sx, sy, LR_LOADFROMFILE | flags);
+        }
     }
-  return hicon;
+    return hicon;
 }
 
 /*
@@ -637,53 +577,51 @@ LoadImageComma (char *fname, int sx, int sy, int flags)
  * ICONS{} section in the prefs file, and load the icon from a file
  */
 HICON
-winOverrideIcon (unsigned long longWin)
+winOverrideIcon(unsigned long longWin)
 {
-  WindowPtr pWin = (WindowPtr) longWin;
-  char *res_name, *res_class;
-  int i;
-  HICON hicon;
-  char *wmName;
+    WindowPtr pWin = (WindowPtr) longWin;
+    char *res_name, *res_class;
+    int i;
+    HICON hicon;
+    char *wmName;
 
-  if (pWin==NULL)
+    if (pWin == NULL)
+        return 0;
+
+    /* If we can't find the class, we can't override from default! */
+    if (!winMultiWindowGetClassHint(pWin, &res_name, &res_class))
+        return 0;
+
+    winMultiWindowGetWMName(pWin, &wmName);
+
+    for (i = 0; i < pref.iconItems; i++) {
+        if (!strcmp(pref.icon[i].match, res_name) ||
+            !strcmp(pref.icon[i].match, res_class) ||
+            (wmName && strstr(wmName, pref.icon[i].match))) {
+            free(res_name);
+            free(res_class);
+            free(wmName);
+
+            if (pref.icon[i].hicon)
+                return pref.icon[i].hicon;
+
+            hicon = LoadImageComma(pref.icon[i].iconFile, 0, 0, LR_DEFAULTSIZE);
+            if (hicon == NULL)
+                ErrorF("winOverrideIcon: LoadImageComma(%s) failed\n",
+                       pref.icon[i].iconFile);
+
+            pref.icon[i].hicon = hicon;
+            return hicon;
+        }
+    }
+
+    /* Didn't find the icon, fail gracefully */
+    free(res_name);
+    free(res_class);
+    free(wmName);
+
     return 0;
-
-  /* If we can't find the class, we can't override from default! */
-  if (!winMultiWindowGetClassHint (pWin, &res_name, &res_class))
-    return 0;
-
-  winMultiWindowGetWMName (pWin, &wmName);
-  
-  for (i=0; i<pref.iconItems; i++) {
-    if (!strcmp(pref.icon[i].match, res_name) ||
-	!strcmp(pref.icon[i].match, res_class) ||
-	(wmName && strstr(wmName, pref.icon[i].match))) 
-      {
-	free (res_name);
-	free (res_class);
-	free(wmName);
-
-	if (pref.icon[i].hicon)
-	  return pref.icon[i].hicon;
-
-       hicon = LoadImageComma (pref.icon[i].iconFile, 0, 0, LR_DEFAULTSIZE);
-       if (hicon==NULL)
-         ErrorF ("winOverrideIcon: LoadImageComma(%s) failed\n",
-                  pref.icon[i].iconFile);
-
-	pref.icon[i].hicon = hicon;
-	return hicon;
-      }
-  }
-  
-  /* Didn't find the icon, fail gracefully */
-  free (res_name);
-  free (res_class);
-  free(wmName);
-
-  return 0;
 }
-
 
 /*
  * Should we free this icon or leave it in memory (is it part of our
@@ -692,183 +630,164 @@ winOverrideIcon (unsigned long longWin)
 int
 winIconIsOverride(unsigned hiconIn)
 {
-  HICON hicon;
-  int i;
+    HICON hicon;
+    int i;
 
-  hicon = (HICON)hiconIn;
+    hicon = (HICON) hiconIn;
 
-  if (!hicon)
+    if (!hicon)
+        return 0;
+
+    for (i = 0; i < pref.iconItems; i++)
+        if ((HICON) pref.icon[i].hicon == hicon)
+            return 1;
+
     return 0;
-  
-  for (i=0; i<pref.iconItems; i++)
-    if ((HICON)pref.icon[i].hicon == hicon)
-      return 1;
-  
-  return 0;
 }
-
-
 
 /*
  * Open and parse the XWinrc config file @path.
  * If @path is NULL, use the built-in default.
  */
 static int
-winPrefsLoadPreferences (char *path)
+winPrefsLoadPreferences(char *path)
 {
-  FILE *prefFile = NULL;
+    FILE *prefFile = NULL;
 
-  if (path)
-    prefFile = fopen (path, "r");
-  else
-    {
-      char defaultPrefs[] =
-        "MENU rmenu {\n"
-        "  \"How to customize this menu\" EXEC \"xterm +tb -e man XWinrc\"\n"
-        "  \"Launch xterm\" EXEC xterm\n"
-        "  \"Load .XWinrc\" RELOAD\n"
-        "  SEPARATOR\n"
-        "}\n"
-        "\n"
-        "ROOTMENU rmenu\n";
+    if (path)
+        prefFile = fopen(path, "r");
+    else {
+        char defaultPrefs[] =
+            "MENU rmenu {\n"
+            "  \"How to customize this menu\" EXEC \"xterm +tb -e man XWinrc\"\n"
+            "  \"Launch xterm\" EXEC xterm\n"
+            "  \"Load .XWinrc\" RELOAD\n"
+            "  SEPARATOR\n" "}\n" "\n" "ROOTMENU rmenu\n";
 
-      path = "built-in default";
-      prefFile = fmemopen(defaultPrefs, strlen(defaultPrefs), "r");
+        path = "built-in default";
+        prefFile = fmemopen(defaultPrefs, strlen(defaultPrefs), "r");
     }
 
-  if (!prefFile)
-    {
-      ErrorF ("LoadPreferences: %s not found\n", path);
-      return FALSE;
+    if (!prefFile) {
+        ErrorF("LoadPreferences: %s not found\n", path);
+        return FALSE;
     }
 
-  ErrorF ("LoadPreferences: Loading %s\n", path);
+    ErrorF("LoadPreferences: Loading %s\n", path);
 
-  if((parse_file (prefFile)) != 0)
-    {
-      ErrorF ("LoadPreferences: %s is badly formed!\n", path);
-      fclose (prefFile);
-      return FALSE;
+    if ((parse_file(prefFile)) != 0) {
+        ErrorF("LoadPreferences: %s is badly formed!\n", path);
+        fclose(prefFile);
+        return FALSE;
     }
 
-  fclose (prefFile);
-  return TRUE;
+    fclose(prefFile);
+    return TRUE;
 }
-
-
 
 /*
  * Try and open ~/.XWinrc and system.XWinrc
  * Load it into prefs structure for use by other functions
  */
 void
-LoadPreferences (void)
+LoadPreferences(void)
 {
-  char *home;
-  char fname[PATH_MAX+NAME_MAX+2];
-  char szDisplay[512];
-  char *szEnvDisplay;
-  int i, j;
-  char param[PARAM_MAX+1];
-  char *srcParam, *dstParam;
-  int parsed = FALSE;
+    char *home;
+    char fname[PATH_MAX + NAME_MAX + 2];
+    char szDisplay[512];
+    char *szEnvDisplay;
+    int i, j;
+    char param[PARAM_MAX + 1];
+    char *srcParam, *dstParam;
+    int parsed = FALSE;
 
-  /* First, clear all preference settings */
-  memset (&pref, 0, sizeof(pref));
+    /* First, clear all preference settings */
+    memset(&pref, 0, sizeof(pref));
 
-  /* Now try and find a ~/.xwinrc file */
-  home = getenv ("HOME");
-  if (home)
-    {
-      strcpy (fname, home);
-      if (fname[strlen(fname)-1]!='/')
-	strcat (fname, "/");
-      strcat (fname, ".XWinrc");
-      parsed = winPrefsLoadPreferences(fname);
+    /* Now try and find a ~/.xwinrc file */
+    home = getenv("HOME");
+    if (home) {
+        strcpy(fname, home);
+        if (fname[strlen(fname) - 1] != '/')
+            strcat(fname, "/");
+        strcat(fname, ".XWinrc");
+        parsed = winPrefsLoadPreferences(fname);
     }
 
-  /* No home file found, check system default */
-  if (!parsed)
-    {
-      char buffer[MAX_PATH];
+    /* No home file found, check system default */
+    if (!parsed) {
+        char buffer[MAX_PATH];
+
 #ifdef RELOCATE_PROJECTROOT
-      snprintf(buffer, sizeof(buffer), "%s\\system.XWinrc", winGetBaseDir());
+        snprintf(buffer, sizeof(buffer), "%s\\system.XWinrc", winGetBaseDir());
 #else
-      strncpy(buffer, SYSCONFDIR"/X11/system.XWinrc", sizeof(buffer));
+        strncpy(buffer, SYSCONFDIR "/X11/system.XWinrc", sizeof(buffer));
 #endif
-      buffer[sizeof(buffer)-1] = 0;
-      parsed = winPrefsLoadPreferences(buffer);
+        buffer[sizeof(buffer) - 1] = 0;
+        parsed = winPrefsLoadPreferences(buffer);
     }
 
-  /* Neither user nor system configuration found, or were badly formed */
-  if (!parsed)
-    {
-      ErrorF ("LoadPreferences: See \"man XWinrc\" to customize the XWin menu.\n");
-      parsed = winPrefsLoadPreferences(NULL);
+    /* Neither user nor system configuration found, or were badly formed */
+    if (!parsed) {
+        ErrorF
+            ("LoadPreferences: See \"man XWinrc\" to customize the XWin menu.\n");
+        parsed = winPrefsLoadPreferences(NULL);
     }
 
-  /* Setup a DISPLAY environment variable, need to allocate on heap */
-  /* because putenv doesn't copy the argument... */
-  snprintf (szDisplay, 512, "DISPLAY=127.0.0.1:%s.0", display);
-  szEnvDisplay = (char *)(malloc (strlen(szDisplay)+1));
-  if (szEnvDisplay)
-    {
-      strcpy (szEnvDisplay, szDisplay);
-      putenv (szEnvDisplay);
+    /* Setup a DISPLAY environment variable, need to allocate on heap */
+    /* because putenv doesn't copy the argument... */
+    snprintf(szDisplay, 512, "DISPLAY=127.0.0.1:%s.0", display);
+    szEnvDisplay = (char *) (malloc(strlen(szDisplay) + 1));
+    if (szEnvDisplay) {
+        strcpy(szEnvDisplay, szDisplay);
+        putenv(szEnvDisplay);
     }
 
-  /* Replace any "%display%" in menu commands with display string */
-  snprintf (szDisplay, 512, "127.0.0.1:%s.0", display);
-  for (i=0; i<pref.menuItems; i++)
-    {
-      for (j=0; j<pref.menu[i].menuItems; j++)
-	{
-	  if (pref.menu[i].menuItem[j].cmd==CMD_EXEC)
-	    {
-	      srcParam = pref.menu[i].menuItem[j].param;
-	      dstParam = param;
-	      while (*srcParam) {
-		if (!strncmp(srcParam, "%display%", 9))
-		  {
-		    memcpy (dstParam, szDisplay, strlen(szDisplay));
-		    dstParam += strlen(szDisplay);
-		    srcParam += 9;
-		  }
-		else
-		  {
-		    *dstParam = *srcParam;
-		    dstParam++;
-		    srcParam++;
-		  }
-	      }
-	      *dstParam = 0;
-	      strcpy (pref.menu[i].menuItem[j].param, param);
-	    } /* cmd==cmd_exec */
-	} /* for all menuitems */
-    } /* for all menus */
+    /* Replace any "%display%" in menu commands with display string */
+    snprintf(szDisplay, 512, "127.0.0.1:%s.0", display);
+    for (i = 0; i < pref.menuItems; i++) {
+        for (j = 0; j < pref.menu[i].menuItems; j++) {
+            if (pref.menu[i].menuItem[j].cmd == CMD_EXEC) {
+                srcParam = pref.menu[i].menuItem[j].param;
+                dstParam = param;
+                while (*srcParam) {
+                    if (!strncmp(srcParam, "%display%", 9)) {
+                        memcpy(dstParam, szDisplay, strlen(szDisplay));
+                        dstParam += strlen(szDisplay);
+                        srcParam += 9;
+                    }
+                    else {
+                        *dstParam = *srcParam;
+                        dstParam++;
+                        srcParam++;
+                    }
+                }
+                *dstParam = 0;
+                strcpy(pref.menu[i].menuItem[j].param, param);
+            }                   /* cmd==cmd_exec */
+        }                       /* for all menuitems */
+    }                           /* for all menus */
 
 }
-
 
 /*
  * Check for a match of the window class to one specified in the
  * STYLES{} section in the prefs file, and return the style type
  */
 unsigned long
-winOverrideStyle (char *res_name, char *res_class, char *wmName)
+winOverrideStyle(char *res_name, char *res_class, char *wmName)
 {
-  int i;
+    int i;
 
-  for (i=0; i<pref.styleItems; i++) {
-    if ((res_name && !strcmp(pref.style[i].match, res_name)) ||
-	(res_class && !strcmp(pref.style[i].match, res_class)) ||
-	(wmName && strstr(wmName, pref.style[i].match)))
-      {
-	if (pref.style[i].type)
-	  return pref.style[i].type;
-      }
-  }
+    for (i = 0; i < pref.styleItems; i++) {
+        if ((res_name && !strcmp(pref.style[i].match, res_name)) ||
+            (res_class && !strcmp(pref.style[i].match, res_class)) ||
+            (wmName && strstr(wmName, pref.style[i].match))) {
+            if (pref.style[i].type)
+                return pref.style[i].type;
+        }
+    }
 
-  /* Didn't find the style, fail gracefully */
-  return STYLE_NONE;
+    /* Didn't find the style, fail gracefully */
+    return STYLE_NONE;
 }

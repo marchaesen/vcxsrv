@@ -35,23 +35,19 @@
 
 /* See Porting Layer Definition - p. 50 */
 void
-winPolyLineNativeGDI (DrawablePtr	pDrawable,
-		      GCPtr		pGC,
-		      int		mode,
-		      int		npt,
-		      DDXPointPtr	ppt)
+winPolyLineNativeGDI(DrawablePtr pDrawable,
+                     GCPtr pGC, int mode, int npt, DDXPointPtr ppt)
 {
-  switch (pGC->lineStyle)
-    {
+    switch (pGC->lineStyle) {
     case LineSolid:
-      if (pGC->lineWidth == 0)
-	return miZeroLine (pDrawable, pGC, mode, npt, ppt);
-      else
-	miWideLine (pDrawable, pGC, mode, npt, ppt);
-      break;
+        if (pGC->lineWidth == 0)
+            return miZeroLine(pDrawable, pGC, mode, npt, ppt);
+        else
+            miWideLine(pDrawable, pGC, mode, npt, ppt);
+        break;
     case LineOnOffDash:
     case LineDoubleDash:
-      miWideDash (pDrawable, pGC, mode, npt, ppt);
-      break;
+        miWideDash(pDrawable, pGC, mode, npt, ppt);
+        break;
     }
 }

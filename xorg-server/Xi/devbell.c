@@ -54,7 +54,7 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
+#include "inputstr.h"           /* DeviceIntPtr      */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include "exglobals.h"
@@ -99,47 +99,49 @@ ProcXDeviceBell(ClientPtr client)
 
     rc = dixLookupDevice(&dev, stuff->deviceid, client, DixBellAccess);
     if (rc != Success) {
-	client->errorValue = stuff->deviceid;
-	return rc;
+        client->errorValue = stuff->deviceid;
+        return rc;
     }
 
     if (stuff->percent < -100 || stuff->percent > 100) {
-	client->errorValue = stuff->percent;
-	return BadValue;
+        client->errorValue = stuff->percent;
+        return BadValue;
     }
     if (stuff->feedbackclass == KbdFeedbackClass) {
-	for (k = dev->kbdfeed; k; k = k->next)
-	    if (k->ctrl.id == stuff->feedbackid)
-		break;
-	if (!k) {
-	    client->errorValue = stuff->feedbackid;
-	    return BadValue;
-	}
-	base = k->ctrl.bell;
-	proc = k->BellProc;
-	ctrl = (pointer) & (k->ctrl);
-	class = KbdFeedbackClass;
-    } else if (stuff->feedbackclass == BellFeedbackClass) {
-	for (b = dev->bell; b; b = b->next)
-	    if (b->ctrl.id == stuff->feedbackid)
-		break;
-	if (!b) {
-	    client->errorValue = stuff->feedbackid;
-	    return BadValue;
-	}
-	base = b->ctrl.percent;
-	proc = b->BellProc;
-	ctrl = (pointer) & (b->ctrl);
-	class = BellFeedbackClass;
-    } else {
-	client->errorValue = stuff->feedbackclass;
-	return BadValue;
+        for (k = dev->kbdfeed; k; k = k->next)
+            if (k->ctrl.id == stuff->feedbackid)
+                break;
+        if (!k) {
+            client->errorValue = stuff->feedbackid;
+            return BadValue;
+        }
+        base = k->ctrl.bell;
+        proc = k->BellProc;
+        ctrl = (pointer) &(k->ctrl);
+        class = KbdFeedbackClass;
+    }
+    else if (stuff->feedbackclass == BellFeedbackClass) {
+        for (b = dev->bell; b; b = b->next)
+            if (b->ctrl.id == stuff->feedbackid)
+                break;
+        if (!b) {
+            client->errorValue = stuff->feedbackid;
+            return BadValue;
+        }
+        base = b->ctrl.percent;
+        proc = b->BellProc;
+        ctrl = (pointer) &(b->ctrl);
+        class = BellFeedbackClass;
+    }
+    else {
+        client->errorValue = stuff->feedbackclass;
+        return BadValue;
     }
     newpercent = (base * stuff->percent) / 100;
     if (stuff->percent < 0)
-	newpercent = base + newpercent;
+        newpercent = base + newpercent;
     else
-	newpercent = base - newpercent + stuff->percent;
+        newpercent = base - newpercent + stuff->percent;
     (*proc) (newpercent, dev, ctrl, class);
 
     return Success;

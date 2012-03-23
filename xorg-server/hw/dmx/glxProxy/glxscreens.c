@@ -49,285 +49,296 @@ __GLXscreenInfo *__glXActiveScreens;
 GLint __glXNumActiveScreens;
 
 __GLXFBConfig **__glXFBConfigs;
-int            __glXNumFBConfigs;
+int __glXNumFBConfigs;
 
 static char GLXServerVendorName[] = "SGI DMX/glxProxy";
 static char GLXServerVersion[64];
 static char GLXServerExtensions[] =
-            "GLX_EXT_visual_info "
-            "GLX_EXT_visual_rating "
-            "GLX_EXT_import_context "
-	    "GLX_SGIX_fbconfig "
-	    "GLX_SGI_make_current_read "
-	    "GLX_SGI_swap_control "
-            ;
+    "GLX_EXT_visual_info "
+    "GLX_EXT_visual_rating "
+    "GLX_EXT_import_context "
+    "GLX_SGIX_fbconfig " "GLX_SGI_make_current_read " "GLX_SGI_swap_control ";
 
 static char ExtensionsString[1024];
 
-static void CalcServerVersionAndExtensions( void )
+static void
+CalcServerVersionAndExtensions(void)
 {
-   int s;
-   xGLXQueryVersionReq *req;
-   xGLXQueryVersionReply reply;
-   char **be_extensions;
-   char *ext;
-   char *denied_extensions;
+    int s;
+    xGLXQueryVersionReq *req;
+    xGLXQueryVersionReply reply;
+    char **be_extensions;
+    char *ext;
+    char *denied_extensions;
 
-   /*
-    * set the server glx version to be the minimum version
-    * supported by all back-end servers
-    */
-   __glXVersionMajor = 0;
-   __glXVersionMinor = 0;
-   for (s=0; s<__glXNumActiveScreens; s++) {
-      DMXScreenInfo *dmxScreen = &dmxScreens[s];
-      Display *dpy = dmxScreen->beDisplay;
+    /*
+     * set the server glx version to be the minimum version
+     * supported by all back-end servers
+     */
+    __glXVersionMajor = 0;
+    __glXVersionMinor = 0;
+    for (s = 0; s < __glXNumActiveScreens; s++) {
+        DMXScreenInfo *dmxScreen = &dmxScreens[s];
+        Display *dpy = dmxScreen->beDisplay;
 
-      /* Send the glXQueryVersion request */
-      LockDisplay(dpy);
-      GetReq(GLXQueryVersion,req);
-      req->reqType = dmxScreen->glxMajorOpcode;
-      req->glxCode = X_GLXQueryVersion;
-      req->majorVersion = GLX_SERVER_MAJOR_VERSION;
-      req->minorVersion = GLX_SERVER_MINOR_VERSION;
-      _XReply(dpy, (xReply*) &reply, 0, False);
-      UnlockDisplay(dpy);
-      SyncHandle();
+        /* Send the glXQueryVersion request */
+        LockDisplay(dpy);
+        GetReq(GLXQueryVersion, req);
+        req->reqType = dmxScreen->glxMajorOpcode;
+        req->glxCode = X_GLXQueryVersion;
+        req->majorVersion = GLX_SERVER_MAJOR_VERSION;
+        req->minorVersion = GLX_SERVER_MINOR_VERSION;
+        _XReply(dpy, (xReply *) & reply, 0, False);
+        UnlockDisplay(dpy);
+        SyncHandle();
 
-      if (s == 0) {
-	 __glXVersionMajor = reply.majorVersion;
-	 __glXVersionMinor = reply.minorVersion;
-      }
-      else {
-	 if (reply.majorVersion < __glXVersionMajor) {
-	    __glXVersionMajor = reply.majorVersion;
-	    __glXVersionMinor = reply.minorVersion;
-	 }
-	 else if ( (reply.majorVersion == __glXVersionMajor) &&
-	           (reply.minorVersion < __glXVersionMinor)  ) {
-	    __glXVersionMinor = reply.minorVersion;
-	 }
-      }
+        if (s == 0) {
+            __glXVersionMajor = reply.majorVersion;
+            __glXVersionMinor = reply.minorVersion;
+        }
+        else {
+            if (reply.majorVersion < __glXVersionMajor) {
+                __glXVersionMajor = reply.majorVersion;
+                __glXVersionMinor = reply.minorVersion;
+            }
+            else if ((reply.majorVersion == __glXVersionMajor) &&
+                     (reply.minorVersion < __glXVersionMinor)) {
+                __glXVersionMinor = reply.minorVersion;
+            }
+        }
 
-   }
+    }
 
-   if (GLX_SERVER_MAJOR_VERSION < __glXVersionMajor) {
-      __glXVersionMajor = GLX_SERVER_MAJOR_VERSION;
-      __glXVersionMinor = GLX_SERVER_MINOR_VERSION;
-   }
-   else if ( (GLX_SERVER_MAJOR_VERSION == __glXVersionMajor) &&
-	     (GLX_SERVER_MINOR_VERSION < __glXVersionMinor)  ) {
-      __glXVersionMinor = GLX_SERVER_MINOR_VERSION;
-   }
+    if (GLX_SERVER_MAJOR_VERSION < __glXVersionMajor) {
+        __glXVersionMajor = GLX_SERVER_MAJOR_VERSION;
+        __glXVersionMinor = GLX_SERVER_MINOR_VERSION;
+    }
+    else if ((GLX_SERVER_MAJOR_VERSION == __glXVersionMajor) &&
+             (GLX_SERVER_MINOR_VERSION < __glXVersionMinor)) {
+        __glXVersionMinor = GLX_SERVER_MINOR_VERSION;
+    }
 
-   snprintf(GLXServerVersion, sizeof(GLXServerVersion),
+    snprintf(GLXServerVersion, sizeof(GLXServerVersion),
              "%d.%d DMX %d back-end server(s)",
-              __glXVersionMajor, __glXVersionMinor, __glXNumActiveScreens );
-   /*
-    * set the ExtensionsString to the minimum extensions string
-    */
-   ExtensionsString[0] = '\0';
+             __glXVersionMajor, __glXVersionMinor, __glXNumActiveScreens);
+    /*
+     * set the ExtensionsString to the minimum extensions string
+     */
+    ExtensionsString[0] = '\0';
 
-   /*
-    * read extensions strings of all back-end servers
-    */
-   be_extensions = (char **)malloc( __glXNumActiveScreens * sizeof(char *) );
-   if (!be_extensions)
-      return;
+    /*
+     * read extensions strings of all back-end servers
+     */
+    be_extensions = (char **) malloc(__glXNumActiveScreens * sizeof(char *));
+    if (!be_extensions)
+        return;
 
-   for (s=0; s<__glXNumActiveScreens; s++) {
-      DMXScreenInfo *dmxScreen = &dmxScreens[s];
-      Display *dpy = dmxScreen->beDisplay;
-      xGLXQueryServerStringReq *req;
-      xGLXQueryServerStringReply reply;
-      int length, numbytes, slop;
+    for (s = 0; s < __glXNumActiveScreens; s++) {
+        DMXScreenInfo *dmxScreen = &dmxScreens[s];
+        Display *dpy = dmxScreen->beDisplay;
+        xGLXQueryServerStringReq *req;
+        xGLXQueryServerStringReply reply;
+        int length, numbytes, slop;
 
-      /* Send the glXQueryServerString request */
-      LockDisplay(dpy);
-      GetReq(GLXQueryServerString,req);
-      req->reqType = dmxScreen->glxMajorOpcode;
-      req->glxCode = X_GLXQueryServerString;
-      req->screen = DefaultScreen(dpy);
-      req->name = GLX_EXTENSIONS;
-      _XReply(dpy, (xReply*) &reply, 0, False);
+        /* Send the glXQueryServerString request */
+        LockDisplay(dpy);
+        GetReq(GLXQueryServerString, req);
+        req->reqType = dmxScreen->glxMajorOpcode;
+        req->glxCode = X_GLXQueryServerString;
+        req->screen = DefaultScreen(dpy);
+        req->name = GLX_EXTENSIONS;
+        _XReply(dpy, (xReply *) & reply, 0, False);
 
-      length = (int)reply.length;
-      numbytes = (int)reply.n;
-      slop = numbytes * __GLX_SIZE_INT8 & 3;
-      be_extensions[s] = (char *)malloc(numbytes);
-      if (!be_extensions[s]) {
-	 /* Throw data on the floor */
-	 _XEatData(dpy, length);
-      } else {
-	 _XRead(dpy, (char *)be_extensions[s], numbytes);
-	 if (slop) _XEatData(dpy,4-slop);
-      }
-      UnlockDisplay(dpy);
-      SyncHandle();
-   }
+        length = (int) reply.length;
+        numbytes = (int) reply.n;
+        slop = numbytes * __GLX_SIZE_INT8 & 3;
+        be_extensions[s] = (char *) malloc(numbytes);
+        if (!be_extensions[s]) {
+            /* Throw data on the floor */
+            _XEatData(dpy, length);
+        }
+        else {
+            _XRead(dpy, (char *) be_extensions[s], numbytes);
+            if (slop)
+                _XEatData(dpy, 4 - slop);
+        }
+        UnlockDisplay(dpy);
+        SyncHandle();
+    }
 
-   /*
-    * extensions string will include only extensions that our
-    * server supports as well as all back-end servers supports.
-    * extensions that are in the DMX_DENY_EXTENSIONS string will
-    * not be supported.
-    */
-   denied_extensions = getenv("DMX_DENY_GLX_EXTENSIONS");
-   ext = strtok(GLXServerExtensions, " ");
-   while( ext ) {
-      int supported = 1;
+    /*
+     * extensions string will include only extensions that our
+     * server supports as well as all back-end servers supports.
+     * extensions that are in the DMX_DENY_EXTENSIONS string will
+     * not be supported.
+     */
+    denied_extensions = getenv("DMX_DENY_GLX_EXTENSIONS");
+    ext = strtok(GLXServerExtensions, " ");
+    while (ext) {
+        int supported = 1;
 
-      if (denied_extensions && strstr(denied_extensions, ext)) {
-	 supported = 0;
-      }
-      else {
-	 for (s=0; s<__glXNumActiveScreens && supported; s++) {
-	    if ( !strstr(be_extensions[s], ext) ) {
-	       supported = 0;
-	    }
-	 }
-      }
+        if (denied_extensions && strstr(denied_extensions, ext)) {
+            supported = 0;
+        }
+        else {
+            for (s = 0; s < __glXNumActiveScreens && supported; s++) {
+                if (!strstr(be_extensions[s], ext)) {
+                    supported = 0;
+                }
+            }
+        }
 
-      if (supported) {
-	 strcat(ExtensionsString, ext);
-	 strcat(ExtensionsString, " ");
-      }
+        if (supported) {
+            strcat(ExtensionsString, ext);
+            strcat(ExtensionsString, " ");
+        }
 
-      ext = strtok(NULL, " ");
-   }
+        ext = strtok(NULL, " ");
+    }
 
-   /*
-    * release temporary storage
-    */
-   for (s=0; s<__glXNumActiveScreens; s++) {
-      free(be_extensions[s]);
-   }
-   free( be_extensions );
+    /*
+     * release temporary storage
+     */
+    for (s = 0; s < __glXNumActiveScreens; s++) {
+        free(be_extensions[s]);
+    }
+    free(be_extensions);
 
-   if (dmxGLXSwapGroupSupport) {
-       if (!denied_extensions ||
-	   !strstr(denied_extensions, "GLX_SGIX_swap_group")) {
-	   strcat(ExtensionsString, "GLX_SGIX_swap_group");
-	   if (!denied_extensions ||
-	       !strstr(denied_extensions, "GLX_SGIX_swap_barrier")) {
-	       strcat(ExtensionsString, " GLX_SGIX_swap_barrier");
-	   }
-       }
-   }
+    if (dmxGLXSwapGroupSupport) {
+        if (!denied_extensions ||
+            !strstr(denied_extensions, "GLX_SGIX_swap_group")) {
+            strcat(ExtensionsString, "GLX_SGIX_swap_group");
+            if (!denied_extensions ||
+                !strstr(denied_extensions, "GLX_SGIX_swap_barrier")) {
+                strcat(ExtensionsString, " GLX_SGIX_swap_barrier");
+            }
+        }
+    }
 
 }
 
-void __glXScreenInit(GLint numscreens)
+void
+__glXScreenInit(GLint numscreens)
 {
-   int s;
-   int c;
-   DMXScreenInfo *dmxScreen0 = &dmxScreens[0];
+    int s;
+    int c;
+    DMXScreenInfo *dmxScreen0 = &dmxScreens[0];
+
     __glXNumActiveScreens = numscreens;
 
+    CalcServerVersionAndExtensions();
 
-   CalcServerVersionAndExtensions();
+    __glXFBConfigs = NULL;
+    __glXNumFBConfigs = 0;
 
-
-   __glXFBConfigs = NULL;
-   __glXNumFBConfigs = 0;
-
-   if ( (__glXVersionMajor == 1 && __glXVersionMinor >= 3) ||
+    if ((__glXVersionMajor == 1 && __glXVersionMinor >= 3) ||
         (__glXVersionMajor > 1) ||
-	( strstr(ExtensionsString, "GLX_SGIX_fbconfig") )      ) {
+        (strstr(ExtensionsString, "GLX_SGIX_fbconfig"))) {
 
-      /*
-      // Initialize FBConfig info.
-      // find the set of FBConfigs that are present on all back-end
-      // servers - only those configs will be supported
-       */
-      __glXFBConfigs = (__GLXFBConfig **)malloc( dmxScreen0->numFBConfigs *
-	                      (numscreens+1) * sizeof(__GLXFBConfig *) );
-      __glXNumFBConfigs = 0;
-   
-      for (c=0; c<dmxScreen0->numFBConfigs; c++) { 
-	 __GLXFBConfig *cfg = NULL;
+        /*
+           // Initialize FBConfig info.
+           // find the set of FBConfigs that are present on all back-end
+           // servers - only those configs will be supported
+         */
+        __glXFBConfigs = (__GLXFBConfig **) malloc(dmxScreen0->numFBConfigs *
+                                                   (numscreens +
+                                                    1) *
+                                                   sizeof(__GLXFBConfig *));
+        __glXNumFBConfigs = 0;
 
-	 if (numscreens > 1) {
-	    for (s=1; s<numscreens; s++) {
-	       DMXScreenInfo *dmxScreen = &dmxScreens[s];
-	  
-	       cfg = FindMatchingFBConfig( &dmxScreen0->fbconfigs[c],
-		                           dmxScreen->fbconfigs, 
-		                           dmxScreen->numFBConfigs );
-	       __glXFBConfigs[ __glXNumFBConfigs * (numscreens+1) + s + 1 ] = cfg;
-	       if (!cfg) {
-		  dmxLog(dmxInfo,"screen0 FBConfig 0x%x is missing on screen#%d\n", dmxScreen0->fbconfigs[c].id, s);
-		  break;
-	       }
-	       else {
-		  dmxLog(dmxInfo,"screen0 FBConfig 0x%x matched to  0x%x on screen#%d\n", dmxScreen0->fbconfigs[c].id, cfg->id, s);
-	       }
-	    }
-         }
-	 else {
-	    cfg = &dmxScreen0->fbconfigs[c];
-	 }
+        for (c = 0; c < dmxScreen0->numFBConfigs; c++) {
+            __GLXFBConfig *cfg = NULL;
 
-	 if (cfg) {
+            if (numscreens > 1) {
+                for (s = 1; s < numscreens; s++) {
+                    DMXScreenInfo *dmxScreen = &dmxScreens[s];
 
-	    /* filter out overlay visuals */
-	    if (cfg->level == 0) {
-	       __GLXFBConfig *proxy_cfg;
+                    cfg = FindMatchingFBConfig(&dmxScreen0->fbconfigs[c],
+                                               dmxScreen->fbconfigs,
+                                               dmxScreen->numFBConfigs);
+                    __glXFBConfigs[__glXNumFBConfigs * (numscreens + 1) + s +
+                                   1] = cfg;
+                    if (!cfg) {
+                        dmxLog(dmxInfo,
+                               "screen0 FBConfig 0x%x is missing on screen#%d\n",
+                               dmxScreen0->fbconfigs[c].id, s);
+                        break;
+                    }
+                    else {
+                        dmxLog(dmxInfo,
+                               "screen0 FBConfig 0x%x matched to  0x%x on screen#%d\n",
+                               dmxScreen0->fbconfigs[c].id, cfg->id, s);
+                    }
+                }
+            }
+            else {
+                cfg = &dmxScreen0->fbconfigs[c];
+            }
 
-	       __glXFBConfigs[ __glXNumFBConfigs * (numscreens+1) + 1 ] = 
-	               &dmxScreen0->fbconfigs[c];
+            if (cfg) {
 
-	       proxy_cfg = malloc( sizeof(__GLXFBConfig) );
-	       memcpy( proxy_cfg, cfg, sizeof(__GLXFBConfig) );
-	       proxy_cfg->id =  FakeClientID(0);
-	       /* visual will be associated later in __glXGetFBConfigs */
-	       proxy_cfg->associatedVisualId =  (unsigned int)-1;
+                /* filter out overlay visuals */
+                if (cfg->level == 0) {
+                    __GLXFBConfig *proxy_cfg;
 
-	       __glXFBConfigs[ __glXNumFBConfigs * (numscreens+1) + 0 ] = proxy_cfg;
+                    __glXFBConfigs[__glXNumFBConfigs * (numscreens + 1) + 1] =
+                        &dmxScreen0->fbconfigs[c];
 
-	       __glXNumFBConfigs++;
-	    }
+                    proxy_cfg = malloc(sizeof(__GLXFBConfig));
+                    memcpy(proxy_cfg, cfg, sizeof(__GLXFBConfig));
+                    proxy_cfg->id = FakeClientID(0);
+                    /* visual will be associated later in __glXGetFBConfigs */
+                    proxy_cfg->associatedVisualId = (unsigned int) -1;
 
-	 }
+                    __glXFBConfigs[__glXNumFBConfigs * (numscreens + 1) + 0] =
+                        proxy_cfg;
 
-      }
+                    __glXNumFBConfigs++;
+                }
+
+            }
+
+        }
 
     }
 
 }
 
-void __glXScreenReset(void)
+void
+__glXScreenReset(void)
 {
-  __glXNumActiveScreens = 0;
+    __glXNumActiveScreens = 0;
 }
 
-char *__glXGetServerString( unsigned int name ) 
+char *
+__glXGetServerString(unsigned int name)
 {
-   char *ret = NULL;
+    char *ret = NULL;
 
-   switch( name) {
+    switch (name) {
 
-      case GLX_VENDOR:
-	 ret = GLXServerVendorName;
-	 break;
+    case GLX_VENDOR:
+        ret = GLXServerVendorName;
+        break;
 
-      case GLX_VERSION:
-	 ret = GLXServerVersion;
-	 break;
+    case GLX_VERSION:
+        ret = GLXServerVersion;
+        break;
 
-      case GLX_EXTENSIONS:
-	 ret = ExtensionsString;
-	 break;
+    case GLX_EXTENSIONS:
+        ret = ExtensionsString;
+        break;
 
-      default:
-	 break;
-   }
+    default:
+        break;
+    }
 
-   return ret;
+    return ret;
 
 }
 
-int glxIsExtensionSupported( char *ext )
+int
+glxIsExtensionSupported(char *ext)
 {
-   return( strstr(ExtensionsString, ext) != NULL );
+    return (strstr(ExtensionsString, ext) != NULL);
 }

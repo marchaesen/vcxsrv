@@ -37,10 +37,11 @@
 #include "dmxprint.h"
 #include "dmxcompat.h"
 
-extern int                 yyparse(void);
-extern FILE                *yyin;
+extern int yyparse(void);
+extern FILE *yyin;
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
     yydebug = 0;
     yyparse();

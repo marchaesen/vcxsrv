@@ -30,7 +30,8 @@
 #include "assert.h"
 #include "scrnintstr.h"
 
-static void touch_grow_queue(void)
+static void
+touch_grow_queue(void)
 {
     DeviceIntRec dev;
     ValuatorClassRec val;
@@ -60,12 +61,13 @@ static void touch_grow_queue(void)
     assert(TouchBeginDDXTouch(&dev, 1234) == NULL);
     ProcessWorkQueue();
 
-    new_size = size + size/2 + 1;
+    new_size = size + size / 2 + 1;
     assert(dev.last.num_touches == new_size);
 
     /* make sure we haven't touched those */
     for (i = 0; i < size; i++) {
         DDXTouchPointInfoPtr t = &dev.last.touches[i];
+
         assert(t->active == TRUE);
         assert(t->ddx_id == i);
         assert(t->client_id == i * 2);
@@ -74,13 +76,15 @@ static void touch_grow_queue(void)
     /* make sure those are zero-initialized */
     for (i = size; i < new_size; i++) {
         DDXTouchPointInfoPtr t = &dev.last.touches[i];
+
         assert(t->active == FALSE);
         assert(t->client_id == 0);
         assert(t->ddx_id == 0);
     }
 }
 
-static void touch_find_ddxid(void)
+static void
+touch_find_ddxid(void)
 {
     DeviceIntRec dev;
     DDXTouchPointInfoPtr ti;
@@ -99,11 +103,9 @@ static void touch_find_ddxid(void)
     inputInfo.devices = &dev;
     assert(dev.last.touches);
 
-
     dev.last.touches[0].active = TRUE;
     dev.last.touches[0].ddx_id = 10;
     dev.last.touches[0].client_id = 20;
-
 
     /* existing */
     ti = TouchFindByDDXID(&dev, 10, FALSE);
@@ -118,7 +120,7 @@ static void touch_find_ddxid(void)
     ti = TouchFindByDDXID(&dev, 10, FALSE);
     assert(ti == NULL);
 
-    /* create on number 2*/
+    /* create on number 2 */
     dev.last.touches[0].active = TRUE;
 
     ti = TouchFindByDDXID(&dev, 20, TRUE);
@@ -148,7 +150,8 @@ static void touch_find_ddxid(void)
     assert(ti == &dev.last.touches[size]);
 }
 
-static void touch_begin_ddxtouch(void)
+static void
+touch_begin_ddxtouch(void)
 {
     DeviceIntRec dev;
     DDXTouchPointInfoPtr ti;
@@ -191,7 +194,8 @@ static void touch_begin_ddxtouch(void)
     last_client_id = ti->client_id;
 }
 
-static void touch_begin_touch(void)
+static void
+touch_begin_touch(void)
 {
     DeviceIntRec dev;
     TouchClassRec touch;
@@ -231,10 +235,11 @@ static void touch_begin_touch(void)
     assert(touch.num_touches == 1);
 }
 
-static void touch_init(void)
+static void
+touch_init(void)
 {
     DeviceIntRec dev;
-    Atom labels[2] = {0};
+    Atom labels[2] = { 0 };
     int rc;
     SpriteInfoRec sprite;
     ScreenRec screen;
@@ -256,9 +261,8 @@ static void touch_init(void)
     assert(dev.touch);
 }
 
-
-
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     touch_grow_queue();
     touch_find_ddxid();

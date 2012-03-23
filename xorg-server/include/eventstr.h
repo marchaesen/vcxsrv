@@ -72,7 +72,7 @@ enum EventType {
     ET_RawTouchUpdate,
     ET_RawTouchEnd,
     ET_XQuartz,
-    ET_Internal = 0xFF /* First byte */
+    ET_Internal = 0xFF          /* First byte */
 };
 
 /**
@@ -82,8 +82,7 @@ enum EventType {
  * Note: We only use the device id because the DeviceIntPtr may become invalid while
  * the event is in the EQ.
  */
-struct _DeviceEvent
-{
+struct _DeviceEvent {
     unsigned char header; /**< Always ET_Internal */
     enum EventType type;  /**< One of EventType */
     int length;           /**< Length in bytes */
@@ -100,11 +99,11 @@ struct _DeviceEvent
     float root_x_frac;    /**< Pos relative to root window in frac part */
     int16_t root_y;       /**< Pos relative to root window in integral part */
     float root_y_frac;    /**< Pos relative to root window in frac part */
-    uint8_t    buttons[(MAX_BUTTONS + 7)/8]; /**< Button mask */
+    uint8_t buttons[(MAX_BUTTONS + 7) / 8];  /**< Button mask */
     struct {
-        uint8_t  mask[(MAX_VALUATORS + 7)/8]; /**< Valuator mask */
-        uint8_t  mode[(MAX_VALUATORS + 7)/8]; /**< Valuator mode (Abs or Rel)*/
-        double   data[MAX_VALUATORS];         /**< Valuator data */
+        uint8_t mask[(MAX_VALUATORS + 7) / 8];/**< Valuator mask */
+        uint8_t mode[(MAX_VALUATORS + 7) / 8];/**< Valuator mode (Abs or Rel)*/
+        double data[MAX_VALUATORS];           /**< Valuator data */
     } valuators;
     struct {
         uint32_t base;    /**< XKB base modifiers */
@@ -118,7 +117,7 @@ struct _DeviceEvent
         uint8_t locked;  /**< XKB locked group */
         uint8_t effective;/**< XKB effective group */
     } group;
-    Window      root; /**< Root window of the event */
+    Window root;      /**< Root window of the event */
     int corestate;    /**< Core key/button state BEFORE the event */
     int key_repeat;   /**< Internally-generated key repeat event */
     uint32_t flags;   /**< Flags to be copied into the generated event */
@@ -129,8 +128,7 @@ struct _DeviceEvent
  * has accepted or rejected a touch, or a grab/event selection in the delivery
  * chain has been removed.
  */
-struct _TouchOwnershipEvent
-{
+struct _TouchOwnershipEvent {
     unsigned char header; /**< Always ET_Internal */
     enum EventType type;  /**< One of EventType */
     int length;           /**< Length in bytes */
@@ -155,8 +153,7 @@ struct _TouchOwnershipEvent
 /**
  * Sent whenever a device's capabilities have changed.
  */
-struct _DeviceChangedEvent
-{
+struct _DeviceChangedEvent {
     unsigned char header; /**< Always ET_Internal */
     enum EventType type;  /**< ET_DeviceChanged */
     int length;           /**< Length in bytes */
@@ -193,8 +190,7 @@ struct _DeviceChangedEvent
 /**
  * DGAEvent, used by DGA to intercept and emulate input events.
  */
-struct _DGAEvent
-{
+struct _DGAEvent {
     unsigned char header; /**<  Always ET_Internal */
     enum EventType type;  /**<  ET_DGAEvent */
     int length;           /**<  Length in bytes */
@@ -212,8 +208,7 @@ struct _DGAEvent
 /**
  * Raw event, contains the data as posted by the device.
  */
-struct _RawDeviceEvent
-{
+struct _RawDeviceEvent {
     unsigned char header; /**<  Always ET_Internal */
     enum EventType type;  /**<  ET_Raw */
     int length;           /**<  Length in bytes */
@@ -225,9 +220,9 @@ struct _RawDeviceEvent
         uint32_t key;     /**< Key code */
     } detail;
     struct {
-        uint8_t  mask[(MAX_VALUATORS + 7)/8]; /**< Valuator mask */
-        double   data[MAX_VALUATORS];         /**< Valuator data */
-        double   data_raw[MAX_VALUATORS];     /**< Valuator data as posted */
+        uint8_t mask[(MAX_VALUATORS + 7) / 8];/**< Valuator mask */
+        double data[MAX_VALUATORS];           /**< Valuator data */
+        double data_raw[MAX_VALUATORS];       /**< Valuator data as posted */
     } valuators;
     uint32_t flags;       /**< Flags to be copied into the generated event */
 };
@@ -249,21 +244,21 @@ struct _XQuartzEvent {
  * processing.
  */
 union _InternalEvent {
-        struct {
-            unsigned char header; /**< Always ET_Internal */
-            enum EventType type;  /**< One of ET_* */
-            int length;           /**< Length in bytes */
-            Time time;            /**< Time in ms. */
-        } any;
-        DeviceEvent device_event;
-        DeviceChangedEvent changed_event;
-        TouchOwnershipEvent touch_ownership_event;
+    struct {
+        unsigned char header;     /**< Always ET_Internal */
+        enum EventType type;      /**< One of ET_* */
+        int length;               /**< Length in bytes */
+        Time time;                /**< Time in ms. */
+    } any;
+    DeviceEvent device_event;
+    DeviceChangedEvent changed_event;
+    TouchOwnershipEvent touch_ownership_event;
 #if XFreeXDGA
-        DGAEvent dga_event;
+    DGAEvent dga_event;
 #endif
-        RawDeviceEvent raw_event;
+    RawDeviceEvent raw_event;
 #ifdef XQUARTZ
-        XQuartzEvent xquartz_event;
+    XQuartzEvent xquartz_event;
 #endif
 };
 

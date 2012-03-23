@@ -33,17 +33,15 @@
 #include "dixstruct.h"
 #include "inputstr.h"
 
-
 /*
  * Local function prototypes
  */
 
 #ifdef XWIN_CLIPBOARD
-int winProcEstablishConnection(ClientPtr /* client */);
-int winProcQueryTree(ClientPtr /* client */);
-int winProcSetSelectionOwner(ClientPtr /* client */);
+int winProcEstablishConnection(ClientPtr /* client */ );
+int winProcQueryTree(ClientPtr /* client */ );
+int winProcSetSelectionOwner(ClientPtr /* client */ );
 #endif
-
 
 /*
  * Local global declarations
@@ -62,11 +60,10 @@ DeviceIntPtr g_pwinKeyboard;
  */
 
 Bool
-LegalModifier (unsigned int uiKey, DeviceIntPtr pDevice)
+LegalModifier(unsigned int uiKey, DeviceIntPtr pDevice)
 {
-  return TRUE;
+    return TRUE;
 }
-
 
 /* Called from dix/dispatch.c */
 /*
@@ -74,81 +71,76 @@ LegalModifier (unsigned int uiKey, DeviceIntPtr pDevice)
  * Tell mi to dequeue the events that we have sent it.
  */
 void
-ProcessInputEvents (void)
+ProcessInputEvents(void)
 {
 #if 0
-  ErrorF ("ProcessInputEvents\n");
+    ErrorF("ProcessInputEvents\n");
 #endif
 
-  mieqProcessInputEvents ();
+    mieqProcessInputEvents();
 
 #if 0
-  ErrorF ("ProcessInputEvents - returning\n");
+    ErrorF("ProcessInputEvents - returning\n");
 #endif
 }
 
-
-void DDXRingBell(int volume, int pitch, int duration)
+void
+DDXRingBell(int volume, int pitch, int duration)
 {
-  /* winKeybdBell is used instead */
-  return;
+    /* winKeybdBell is used instead */
+    return;
 }
-
 
 /* See Porting Layer Definition - p. 17 */
 void
-InitInput (int argc, char *argv[])
+InitInput(int argc, char *argv[])
 {
 #if CYGDEBUG
-  winDebug ("InitInput\n");
+    winDebug("InitInput\n");
 #endif
 
 #ifdef XWIN_CLIPBOARD
-  /*
-   * Wrap some functions at every generation of the server.
-   */
-  if (InitialVector[2] != winProcEstablishConnection)
-    {
-      winProcEstablishConnectionOrig = InitialVector[2];
-      InitialVector[2] = winProcEstablishConnection;
+    /*
+     * Wrap some functions at every generation of the server.
+     */
+    if (InitialVector[2] != winProcEstablishConnection) {
+        winProcEstablishConnectionOrig = InitialVector[2];
+        InitialVector[2] = winProcEstablishConnection;
     }
 #endif
 
-  g_pwinPointer = AddInputDevice (serverClient, winMouseProc, TRUE);
-  g_pwinKeyboard = AddInputDevice (serverClient, winKeybdProc, TRUE);
-  g_pwinPointer->name = strdup("Windows mouse");
-  g_pwinKeyboard->name = strdup("Windows keyboard");
+    g_pwinPointer = AddInputDevice(serverClient, winMouseProc, TRUE);
+    g_pwinKeyboard = AddInputDevice(serverClient, winKeybdProc, TRUE);
+    g_pwinPointer->name = strdup("Windows mouse");
+    g_pwinKeyboard->name = strdup("Windows keyboard");
 
-  mieqInit ();
+    mieqInit();
 
-  /* Initialize the mode key states */
-  winInitializeModeKeyStates ();
+    /* Initialize the mode key states */
+    winInitializeModeKeyStates();
 
 #ifdef HAS_DEVWINDOWS
-  /* Only open the windows message queue device once */
-  if (g_fdMessageQueue == WIN_FD_INVALID)
-    {
-      /* Open a file descriptor for the Windows message queue */
-      g_fdMessageQueue = open (WIN_MSG_QUEUE_FNAME, O_RDONLY);
-      
-      if (g_fdMessageQueue == -1)
-	{
-	  FatalError ("InitInput - Failed opening %s\n",
-		      WIN_MSG_QUEUE_FNAME);
-	}
+    /* Only open the windows message queue device once */
+    if (g_fdMessageQueue == WIN_FD_INVALID) {
+        /* Open a file descriptor for the Windows message queue */
+        g_fdMessageQueue = open(WIN_MSG_QUEUE_FNAME, O_RDONLY);
 
-      /* Add the message queue as a device to wait for in WaitForSomething */
-      AddEnabledDevice (g_fdMessageQueue);
+        if (g_fdMessageQueue == -1) {
+            FatalError("InitInput - Failed opening %s\n", WIN_MSG_QUEUE_FNAME);
+        }
+
+        /* Add the message queue as a device to wait for in WaitForSomething */
+        AddEnabledDevice(g_fdMessageQueue);
     }
 #endif
 
 #if CYGDEBUG
-  winDebug ("InitInput - returning\n");
+    winDebug("InitInput - returning\n");
 #endif
 }
 
 void
-CloseInput (void)
+CloseInput(void)
 {
-  mieqFini ();
+    mieqFini();
 }

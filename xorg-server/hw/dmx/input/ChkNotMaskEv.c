@@ -67,40 +67,40 @@ extern long const _Xevent_to_mask[];
  * If not, flush buffer and see if any more events are readable. If one
  * matches, return.  If all else fails, tell the user no events found.
  */
-Bool XCheckNotMaskEvent (Display *dpy, long mask, XEvent *event)
+Bool
+XCheckNotMaskEvent(Display * dpy, long mask, XEvent * event)
 {
-	register _XQEvent *prev, *qelt;
-	unsigned long qe_serial = 0;
-	int n;			/* time through count */
+    register _XQEvent *prev, *qelt;
+    unsigned long qe_serial = 0;
+    int n;                      /* time through count */
 
-        LockDisplay(dpy);
-	prev = NULL;
-	for (n = 3; --n >= 0;) {
-	    for (qelt = prev ? prev->next : dpy->head;
-		 qelt;
-		 prev = qelt, qelt = qelt->next) {
-		if (qelt->event.type >= LASTEvent
-                    || !(_Xevent_to_mask[qelt->event.type] & mask)) {
-		    *event = qelt->event;
-		    _XDeq(dpy, prev, qelt);
-		    UnlockDisplay(dpy);
-		    return True;
-		}
-	    }
-	    if (prev)
-		qe_serial = prev->qserial_num;
-	    switch (n) {
-	      case 2:
-		_XEventsQueued(dpy, QueuedAfterReading);
-		break;
-	      case 1:
-		_XFlush(dpy);
-		break;
-	    }
-	    if (prev && prev->qserial_num != qe_serial)
-		/* another thread has snatched this event */
-		prev = NULL;
-	}
-	UnlockDisplay(dpy);
-	return False;
+    LockDisplay(dpy);
+    prev = NULL;
+    for (n = 3; --n >= 0;) {
+        for (qelt = prev ? prev->next : dpy->head;
+             qelt; prev = qelt, qelt = qelt->next) {
+            if (qelt->event.type >= LASTEvent
+                || !(_Xevent_to_mask[qelt->event.type] & mask)) {
+                *event = qelt->event;
+                _XDeq(dpy, prev, qelt);
+                UnlockDisplay(dpy);
+                return True;
+            }
+        }
+        if (prev)
+            qe_serial = prev->qserial_num;
+        switch (n) {
+        case 2:
+            _XEventsQueued(dpy, QueuedAfterReading);
+            break;
+        case 1:
+            _XFlush(dpy);
+            break;
+        }
+        if (prev && prev->qserial_num != qe_serial)
+            /* another thread has snatched this event */
+            prev = NULL;
+    }
+    UnlockDisplay(dpy);
+    return False;
 }

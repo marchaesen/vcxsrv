@@ -45,9 +45,9 @@
 #include "glthread.h"
 #include "dispatch.h"
 
-static int DoGetProgramString(struct __GLXclientStateRec *cl, GLbyte *pc,
-    unsigned get_programiv_offset, unsigned get_program_string_offset,
-    Bool do_swap);
+static int DoGetProgramString(struct __GLXclientStateRec *cl, GLbyte * pc,
+                              unsigned get_programiv_offset,
+                              unsigned get_program_string_offset, Bool do_swap);
 
 /**
  * Handle both types of glGetProgramString calls.
@@ -58,91 +58,92 @@ static int DoGetProgramString(struct __GLXclientStateRec *cl, GLbyte *pc,
  * caller.  These can be the offsets of either the ARB versions or the NV
  * versions.
  */
-int DoGetProgramString(struct __GLXclientStateRec *cl, GLbyte *pc,
-		       unsigned get_programiv_offset,
-		       unsigned get_program_string_offset,
-		       Bool do_swap)
+int
+DoGetProgramString(struct __GLXclientStateRec *cl, GLbyte * pc,
+                   unsigned get_programiv_offset,
+                   unsigned get_program_string_offset, Bool do_swap)
 {
-    xGLXVendorPrivateWithReplyReq * const req = 
-      (xGLXVendorPrivateWithReplyReq *) pc;
+    xGLXVendorPrivateWithReplyReq *const req =
+        (xGLXVendorPrivateWithReplyReq *) pc;
     int error;
-    __GLXcontext * const cx = __glXForceCurrent(cl, req->contextTag, & error);
+    __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
     ClientPtr client = cl->client;
-
 
     pc += __GLX_VENDPRIV_HDR_SIZE;
     if (cx != NULL) {
-	GLenum target;
-	GLenum pname;
-	GLint compsize = 0;
-	char *answer = NULL, answerBuffer[200];
+        GLenum target;
+        GLenum pname;
+        GLint compsize = 0;
+        char *answer = NULL, answerBuffer[200];
 
-	if (do_swap) {
-	    target = (GLenum) bswap_32(*(int *)(pc + 0));
-	    pname =  (GLenum) bswap_32(*(int *)(pc + 4));
-	}
-	else {
-	    target = *(GLenum *)(pc + 0);
-	    pname =  *(GLuint *)(pc + 4);
-	}
+        if (do_swap) {
+            target = (GLenum) bswap_32(*(int *) (pc + 0));
+            pname = (GLenum) bswap_32(*(int *) (pc + 4));
+        }
+        else {
+            target = *(GLenum *) (pc + 0);
+            pname = *(GLuint *) (pc + 4);
+        }
 
-	/* The value of the GL_PROGRAM_LENGTH_ARB and GL_PROGRAM_LENGTH_NV
-	 * enumerants is the same.
-	 */
-	CALL_by_offset(GET_DISPATCH(),
-		       (void (GLAPIENTRYP)(GLuint, GLenum, GLint *)), 
-		       get_programiv_offset,
-		       (target, GL_PROGRAM_LENGTH_ARB, &compsize));
+        /* The value of the GL_PROGRAM_LENGTH_ARB and GL_PROGRAM_LENGTH_NV
+         * enumerants is the same.
+         */
+        CALL_by_offset(GET_DISPATCH(),
+                       (void (GLAPIENTRYP) (GLuint, GLenum, GLint *)),
+                       get_programiv_offset,
+                       (target, GL_PROGRAM_LENGTH_ARB, &compsize));
 
-	if (compsize != 0) {
-	    __GLX_GET_ANSWER_BUFFER(answer,cl,compsize,1);
-	    __glXClearErrorOccured();
+        if (compsize != 0) {
+            __GLX_GET_ANSWER_BUFFER(answer, cl, compsize, 1);
+            __glXClearErrorOccured();
 
-	    CALL_by_offset(GET_DISPATCH(), 
-			   (void (GLAPIENTRYP)(GLuint, GLenum, GLubyte *)),
-			   get_program_string_offset,
-			   (target, pname, (GLubyte *)answer));
-	}
+            CALL_by_offset(GET_DISPATCH(),
+                           (void (GLAPIENTRYP) (GLuint, GLenum, GLubyte *)),
+                           get_program_string_offset,
+                           (target, pname, (GLubyte *) answer));
+        }
 
-	if (__glXErrorOccured()) {
-	    __GLX_BEGIN_REPLY(0);
-	    __GLX_SEND_HEADER();
-	} else {
-	    __GLX_BEGIN_REPLY(compsize);
-	    ((xGLXGetTexImageReply *)&__glXReply)->width = compsize;
-	    __GLX_SEND_HEADER();
-	    __GLX_SEND_VOID_ARRAY(compsize);
-	}
+        if (__glXErrorOccured()) {
+            __GLX_BEGIN_REPLY(0);
+            __GLX_SEND_HEADER();
+        }
+        else {
+            __GLX_BEGIN_REPLY(compsize);
+            ((xGLXGetTexImageReply *) & __glXReply)->width = compsize;
+            __GLX_SEND_HEADER();
+            __GLX_SEND_VOID_ARRAY(compsize);
+        }
 
-	error = Success;
+        error = Success;
     }
 
     return error;
 }
 
-int __glXDisp_GetProgramStringARB(struct __GLXclientStateRec *cl, GLbyte *pc)
+int
+__glXDisp_GetProgramStringARB(struct __GLXclientStateRec *cl, GLbyte * pc)
 {
     return DoGetProgramString(cl, pc, _gloffset_GetProgramivARB,
-			      _gloffset_GetProgramStringARB, False);
+                              _gloffset_GetProgramStringARB, False);
 }
 
-
-int __glXDispSwap_GetProgramStringARB(struct __GLXclientStateRec *cl, GLbyte *pc)
+int
+__glXDispSwap_GetProgramStringARB(struct __GLXclientStateRec *cl, GLbyte * pc)
 {
     return DoGetProgramString(cl, pc, _gloffset_GetProgramivARB,
-			      _gloffset_GetProgramStringARB, True);
+                              _gloffset_GetProgramStringARB, True);
 }
 
-
-int __glXDisp_GetProgramStringNV(struct __GLXclientStateRec *cl, GLbyte *pc)
+int
+__glXDisp_GetProgramStringNV(struct __GLXclientStateRec *cl, GLbyte * pc)
 {
     return DoGetProgramString(cl, pc, _gloffset_GetProgramivNV,
-			      _gloffset_GetProgramStringNV, False);
+                              _gloffset_GetProgramStringNV, False);
 }
 
-
-int __glXDispSwap_GetProgramStringNV(struct __GLXclientStateRec *cl, GLbyte *pc)
+int
+__glXDispSwap_GetProgramStringNV(struct __GLXclientStateRec *cl, GLbyte * pc)
 {
     return DoGetProgramString(cl, pc, _gloffset_GetProgramivNV,
-			      _gloffset_GetProgramStringNV, True);
+                              _gloffset_GetProgramStringNV, True);
 }

@@ -66,61 +66,68 @@
 /*****************************************************************************/
 
 /** Read the USB device using #usbRead. */
-void mouUSBRead(DevicePtr pDev,
-                MOTIONPROC motion,
-                ENQUEUEPROC enqueue,
-                CHECKPROC checkspecial,
-                BLOCK block)
+void
+mouUSBRead(DevicePtr pDev,
+           MOTIONPROC motion,
+           ENQUEUEPROC enqueue, CHECKPROC checkspecial, BLOCK block)
 {
     usbRead(pDev, motion, enqueue, BTN_MISC, block);
 }
 
 /** Initialize \a pDev using #usbInit. */
-void mouUSBInit(DevicePtr pDev)
+void
+mouUSBInit(DevicePtr pDev)
 {
     usbInit(pDev, usbMouse);
 }
 
 /** Turn \a pDev on (i.e., take input from \a pDev). */
-int mouUSBOn(DevicePtr pDev)
+int
+mouUSBOn(DevicePtr pDev)
 {
     GETPRIV;
 
-    if (priv->fd < 0) mouUSBInit(pDev);
+    if (priv->fd < 0)
+        mouUSBInit(pDev);
     return priv->fd;
 }
 
-static void mouUSBGetMap(DevicePtr pDev, unsigned char *map, int *nButtons)
+static void
+mouUSBGetMap(DevicePtr pDev, unsigned char *map, int *nButtons)
 {
     int i;
-    
-    if (nButtons) *nButtons = 5;
-    if (map) for (i = 0; i <= *nButtons; i++) map[i] = i;
+
+    if (nButtons)
+        *nButtons = 5;
+    if (map)
+        for (i = 0; i <= *nButtons; i++)
+            map[i] = i;
 }
 
 /** Fill the \a info structure with information needed to initialize \a
- * pDev. */ 
-void mouUSBGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info)
+ * pDev. */
+void
+mouUSBGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info)
 {
     static KeySym keyboard_mapping = NoSymbol;
 
-    info->buttonClass        = 1;
+    info->buttonClass = 1;
     mouUSBGetMap(pDev, info->map, &info->numButtons);
-    info->valuatorClass      = 1;
-    info->numRelAxes         = 2;
-    info->minval[0]          = 0;
-    info->maxval[0]          = 0;
-    info->res[0]             = 1;
-    info->minres[0]          = 0;
-    info->maxres[0]          = 1;
-    info->ptrFeedbackClass   = 1;
+    info->valuatorClass = 1;
+    info->numRelAxes = 2;
+    info->minval[0] = 0;
+    info->maxval[0] = 0;
+    info->res[0] = 1;
+    info->minres[0] = 0;
+    info->maxres[0] = 1;
+    info->ptrFeedbackClass = 1;
 
-                                /* Some USB mice devices return key
-                                 * events from their pair'd
-                                 * keyboard...  */
-    info->keyClass           = 1;
+    /* Some USB mice devices return key
+     * events from their pair'd
+     * keyboard...  */
+    info->keyClass = 1;
     info->keySyms.minKeyCode = 8;
     info->keySyms.maxKeyCode = 8;
-    info->keySyms.mapWidth   = 1;
-    info->keySyms.map        = &keyboard_mapping;
+    info->keySyms.mapWidth = 1;
+    info->keySyms.map = &keyboard_mapping;
 }

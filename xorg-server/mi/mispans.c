@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1989 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -45,7 +44,6 @@ SOFTWARE.
 
 ******************************************************************/
 
-
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
@@ -64,168 +62,173 @@ Written by Joel McCormack, Summer 1989.
 
 */
 
-
-void miInitSpanGroup(SpanGroup *spanGroup)
+void
+miInitSpanGroup(SpanGroup * spanGroup)
 {
     spanGroup->size = 0;
     spanGroup->count = 0;
     spanGroup->group = NULL;
     spanGroup->ymin = MAXSHORT;
     spanGroup->ymax = MINSHORT;
-} /* InitSpanGroup */
+}                               /* InitSpanGroup */
 
 #define YMIN(spans) (spans->points[0].y)
 #define YMAX(spans)  (spans->points[spans->count-1].y)
 
-static void miSubtractSpans (SpanGroup *spanGroup, Spans *sub)
+static void
+miSubtractSpans(SpanGroup * spanGroup, Spans * sub)
 {
-    int		i, subCount, spansCount;
-    int		ymin, ymax, xmin, xmax;
-    Spans	*spans;
-    DDXPointPtr	subPt, spansPt;
-    int		*subWid, *spansWid;
-    int		extra;
+    int i, subCount, spansCount;
+    int ymin, ymax, xmin, xmax;
+    Spans *spans;
+    DDXPointPtr subPt, spansPt;
+    int *subWid, *spansWid;
+    int extra;
 
     ymin = YMIN(sub);
     ymax = YMAX(sub);
     spans = spanGroup->group;
     for (i = spanGroup->count; i; i--, spans++) {
-	if (YMIN(spans) <= ymax && ymin <= YMAX(spans)) {
-	    subCount = sub->count;
-	    subPt = sub->points;
-	    subWid = sub->widths;
-	    spansCount = spans->count;
-	    spansPt = spans->points;
-	    spansWid = spans->widths;
-	    extra = 0;
-	    for (;;)
- 	    {
-		while (spansCount && spansPt->y < subPt->y)
-		{
-		    spansPt++;  spansWid++; spansCount--;
-		}
-		if (!spansCount)
-		    break;
-		while (subCount && subPt->y < spansPt->y)
-		{
-		    subPt++;	subWid++;   subCount--;
-		}
-		if (!subCount)
-		    break;
-		if (subPt->y == spansPt->y)
-		{
-		    xmin = subPt->x;
-		    xmax = xmin + *subWid;
-		    if (xmin >= spansPt->x + *spansWid || spansPt->x >= xmax)
-		    {
-			;
-		    }
-		    else if (xmin <= spansPt->x)
-		    {
-			if (xmax >= spansPt->x + *spansWid) 
-			{
-			    memmove (spansPt, spansPt + 1, sizeof *spansPt * (spansCount - 1));
-			    memmove (spansWid, spansWid + 1, sizeof *spansWid * (spansCount - 1));
-			    spansPt--;
-			    spansWid--;
-			    spans->count--;
-			    extra++;
-			}
-			else 
-			{
-			    *spansWid = *spansWid - (xmax - spansPt->x);
-			    spansPt->x = xmax;
-			}
-		    }
-		    else
-		    {
-			if (xmax >= spansPt->x + *spansWid)
-			{
-			    *spansWid = xmin - spansPt->x;
-			}
-			else
-			{
-			    if (!extra) {
-				DDXPointPtr newPt;
-				int	    *newwid;
+        if (YMIN(spans) <= ymax && ymin <= YMAX(spans)) {
+            subCount = sub->count;
+            subPt = sub->points;
+            subWid = sub->widths;
+            spansCount = spans->count;
+            spansPt = spans->points;
+            spansWid = spans->widths;
+            extra = 0;
+            for (;;) {
+                while (spansCount && spansPt->y < subPt->y) {
+                    spansPt++;
+                    spansWid++;
+                    spansCount--;
+                }
+                if (!spansCount)
+                    break;
+                while (subCount && subPt->y < spansPt->y) {
+                    subPt++;
+                    subWid++;
+                    subCount--;
+                }
+                if (!subCount)
+                    break;
+                if (subPt->y == spansPt->y) {
+                    xmin = subPt->x;
+                    xmax = xmin + *subWid;
+                    if (xmin >= spansPt->x + *spansWid || spansPt->x >= xmax) {
+                        ;
+                    }
+                    else if (xmin <= spansPt->x) {
+                        if (xmax >= spansPt->x + *spansWid) {
+                            memmove(spansPt, spansPt + 1,
+                                    sizeof *spansPt * (spansCount - 1));
+                            memmove(spansWid, spansWid + 1,
+                                    sizeof *spansWid * (spansCount - 1));
+                            spansPt--;
+                            spansWid--;
+                            spans->count--;
+                            extra++;
+                        }
+                        else {
+                            *spansWid = *spansWid - (xmax - spansPt->x);
+                            spansPt->x = xmax;
+                        }
+                    }
+                    else {
+                        if (xmax >= spansPt->x + *spansWid) {
+                            *spansWid = xmin - spansPt->x;
+                        }
+                        else {
+                            if (!extra) {
+                                DDXPointPtr newPt;
+                                int *newwid;
 
 #define EXTRA 8
-				newPt = (DDXPointPtr) realloc(spans->points, (spans->count + EXTRA) * sizeof (DDXPointRec));
-				if (!newPt)
-				    break;
-				spansPt = newPt + (spansPt - spans->points);
-				spans->points = newPt;
-				newwid = (int *) realloc(spans->widths, (spans->count + EXTRA) * sizeof (int));
-				if (!newwid)
-				    break;
-				spansWid = newwid + (spansWid - spans->widths);
-				spans->widths = newwid;
-				extra = EXTRA;
-			    }
-			    memmove (spansPt + 1, spansPt, sizeof *spansPt * (spansCount));
-			    memmove (spansWid + 1, spansWid, sizeof *spansWid * (spansCount));
-			    spans->count++;
-			    extra--;
-			    *spansWid = xmin - spansPt->x;
-			    spansWid++;
-			    spansPt++;
-			    *spansWid = *spansWid - (xmax - spansPt->x);
-			    spansPt->x = xmax;
-			}
-		    }
-		}
-		spansPt++;  spansWid++; spansCount--;
-	    }
-	}
+                                newPt =
+                                    (DDXPointPtr) realloc(spans->points,
+                                                          (spans->count +
+                                                           EXTRA) *
+                                                          sizeof(DDXPointRec));
+                                if (!newPt)
+                                    break;
+                                spansPt = newPt + (spansPt - spans->points);
+                                spans->points = newPt;
+                                newwid =
+                                    (int *) realloc(spans->widths,
+                                                    (spans->count +
+                                                     EXTRA) * sizeof(int));
+                                if (!newwid)
+                                    break;
+                                spansWid = newwid + (spansWid - spans->widths);
+                                spans->widths = newwid;
+                                extra = EXTRA;
+                            }
+                            memmove(spansPt + 1, spansPt,
+                                    sizeof *spansPt * (spansCount));
+                            memmove(spansWid + 1, spansWid,
+                                    sizeof *spansWid * (spansCount));
+                            spans->count++;
+                            extra--;
+                            *spansWid = xmin - spansPt->x;
+                            spansWid++;
+                            spansPt++;
+                            *spansWid = *spansWid - (xmax - spansPt->x);
+                            spansPt->x = xmax;
+                        }
+                    }
+                }
+                spansPt++;
+                spansWid++;
+                spansCount--;
+            }
+        }
     }
 }
 
-void miAppendSpans(SpanGroup *spanGroup, SpanGroup *otherGroup, Spans *spans)
+void
+miAppendSpans(SpanGroup * spanGroup, SpanGroup * otherGroup, Spans * spans)
 {
     int ymin, ymax;
     int spansCount;
 
     spansCount = spans->count;
     if (spansCount > 0) {
-	if (spanGroup->size == spanGroup->count) {
-	    spanGroup->size = (spanGroup->size + 8) * 2;
-	    spanGroup->group = (Spans *)
-		realloc(spanGroup->group, sizeof(Spans) * spanGroup->size);
-	 }
+        if (spanGroup->size == spanGroup->count) {
+            spanGroup->size = (spanGroup->size + 8) * 2;
+            spanGroup->group = (Spans *)
+                realloc(spanGroup->group, sizeof(Spans) * spanGroup->size);
+        }
 
-	spanGroup->group[spanGroup->count] = *spans;
-	(spanGroup->count)++;
-	ymin = spans->points[0].y;
-	if (ymin < spanGroup->ymin) spanGroup->ymin = ymin;
-	ymax = spans->points[spansCount - 1].y;
-	if (ymax > spanGroup->ymax) spanGroup->ymax = ymax;
-	if (otherGroup &&
-	    otherGroup->ymin < ymax &&
-	    ymin < otherGroup->ymax)
-	{
-	    miSubtractSpans (otherGroup, spans);
-	}
+        spanGroup->group[spanGroup->count] = *spans;
+        (spanGroup->count)++;
+        ymin = spans->points[0].y;
+        if (ymin < spanGroup->ymin)
+            spanGroup->ymin = ymin;
+        ymax = spans->points[spansCount - 1].y;
+        if (ymax > spanGroup->ymax)
+            spanGroup->ymax = ymax;
+        if (otherGroup && otherGroup->ymin < ymax && ymin < otherGroup->ymax) {
+            miSubtractSpans(otherGroup, spans);
+        }
     }
-    else
-    {
-	free(spans->points);
-	free(spans->widths);
+    else {
+        free(spans->points);
+        free(spans->widths);
     }
-} /* AppendSpans */
+}                               /* AppendSpans */
 
-void miFreeSpanGroup(SpanGroup *spanGroup)
+void
+miFreeSpanGroup(SpanGroup * spanGroup)
 {
     free(spanGroup->group);
 }
 
-static void QuickSortSpansX(
-    DDXPointRec points[],
-    int		widths[],
-    int		numSpans )
+static void
+QuickSortSpansX(DDXPointRec points[], int widths[], int numSpans)
 {
-    int	    		x;
-    int	    		i, j, m;
-    DDXPointPtr 	r;
+    int x;
+    int i, j, m;
+    DDXPointPtr r;
 
 /* Always called with numSpans > 1 */
 /* Sorts only by x, as all y should be the same */
@@ -240,85 +243,86 @@ static void QuickSortSpansX(
 }
 
     do {
-	if (numSpans < 9) {
-	    /* Do insertion sort */
-	    int xprev;
+        if (numSpans < 9) {
+            /* Do insertion sort */
+            int xprev;
 
-	    xprev = points[0].x;
-	    i = 1;
-	    do { /* while i != numSpans */
-		x = points[i].x;
-		if (xprev > x) {
-		    /* points[i] is out of order.  Move into proper location. */
-		    DDXPointRec tpt;
-		    int	    tw, k;
+            xprev = points[0].x;
+            i = 1;
+            do {                /* while i != numSpans */
+                x = points[i].x;
+                if (xprev > x) {
+                    /* points[i] is out of order.  Move into proper location. */
+                    DDXPointRec tpt;
+                    int tw, k;
 
-		    for (j = 0; x >= points[j].x; j++) {}
-		    tpt = points[i];
-		    tw  = widths[i];
-		    for (k = i; k != j; k--) {
-			points[k] = points[k-1];
-			widths[k] = widths[k-1];
-		    }
-		    points[j] = tpt;
-		    widths[j] = tw;
-		    x = points[i].x;
-		} /* if out of order */
-		xprev = x;
-		i++;
-	    } while (i != numSpans);
-	    return;
-	}
+                    for (j = 0; x >= points[j].x; j++) {
+                    }
+                    tpt = points[i];
+                    tw = widths[i];
+                    for (k = i; k != j; k--) {
+                        points[k] = points[k - 1];
+                        widths[k] = widths[k - 1];
+                    }
+                    points[j] = tpt;
+                    widths[j] = tw;
+                    x = points[i].x;
+                }               /* if out of order */
+                xprev = x;
+                i++;
+            } while (i != numSpans);
+            return;
+        }
 
-	/* Choose partition element, stick in location 0 */
-	m = numSpans / 2;
-	if (points[m].x > points[0].x)		ExchangeSpans(m, 0);
-	if (points[m].x > points[numSpans-1].x) ExchangeSpans(m, numSpans-1);
-	if (points[m].x > points[0].x)		ExchangeSpans(m, 0);
-	x = points[0].x;
+        /* Choose partition element, stick in location 0 */
+        m = numSpans / 2;
+        if (points[m].x > points[0].x)
+            ExchangeSpans(m, 0);
+        if (points[m].x > points[numSpans - 1].x)
+            ExchangeSpans(m, numSpans - 1);
+        if (points[m].x > points[0].x)
+            ExchangeSpans(m, 0);
+        x = points[0].x;
 
         /* Partition array */
         i = 0;
         j = numSpans;
         do {
-	    r = &(points[i]);
-	    do {
-		r++;
-		i++;
+            r = &(points[i]);
+            do {
+                r++;
+                i++;
             } while (i != numSpans && r->x < x);
-	    r = &(points[j]);
-	    do {
-		r--;
-		j--;
+            r = &(points[j]);
+            do {
+                r--;
+                j--;
             } while (x < r->x);
-            if (i < j) ExchangeSpans(i, j);
+            if (i < j)
+                ExchangeSpans(i, j);
         } while (i < j);
 
         /* Move partition element back to middle */
         ExchangeSpans(0, j);
 
-	/* Recurse */
-        if (numSpans-j-1 > 1)
-	    QuickSortSpansX(&points[j+1], &widths[j+1], numSpans-j-1);
+        /* Recurse */
+        if (numSpans - j - 1 > 1)
+            QuickSortSpansX(&points[j + 1], &widths[j + 1], numSpans - j - 1);
         numSpans = j;
     } while (numSpans > 1);
-} /* QuickSortSpans */
+}                               /* QuickSortSpans */
 
-
-static int UniquifySpansX(
-    Spans	    	*spans,
-    DDXPointRec    	*newPoints,
-    int	    		*newWidths )
+static int
+UniquifySpansX(Spans * spans, DDXPointRec * newPoints, int *newWidths)
 {
-    int 		newx1, newx2, oldpt, i, y;
-    DDXPointRec		*oldPoints;
-    int	    		*oldWidths;
-    int			*startNewWidths;
+    int newx1, newx2, oldpt, i, y;
+    DDXPointRec *oldPoints;
+    int *oldWidths;
+    int *startNewWidths;
 
 /* Always called with numSpans > 1 */
 /* Uniquify the spans, and stash them into newPoints and newWidths.  Return the
    number of unique spans. */
-
 
     startNewWidths = newWidths;
 
@@ -329,25 +333,27 @@ static int UniquifySpansX(
     newx1 = oldPoints->x;
     newx2 = newx1 + *oldWidths;
 
-    for (i = spans->count-1; i != 0; i--) {
-	oldPoints++;
-	oldWidths++;
-	oldpt = oldPoints->x;
-	if (oldpt > newx2) {
-	    /* Write current span, start a new one */
-	    newPoints->x = newx1;
-	    newPoints->y = y;
-	    *newWidths = newx2 - newx1;
-	    newPoints++;
-	    newWidths++;
-	    newx1 = oldpt;
-	    newx2 = oldpt + *oldWidths;
-	} else {
-	    /* extend current span, if old extends beyond new */
-	    oldpt = oldpt + *oldWidths;
-	    if (oldpt > newx2) newx2 = oldpt;
-	}
-    } /* for */
+    for (i = spans->count - 1; i != 0; i--) {
+        oldPoints++;
+        oldWidths++;
+        oldpt = oldPoints->x;
+        if (oldpt > newx2) {
+            /* Write current span, start a new one */
+            newPoints->x = newx1;
+            newPoints->y = y;
+            *newWidths = newx2 - newx1;
+            newPoints++;
+            newWidths++;
+            newx1 = oldpt;
+            newx2 = oldpt + *oldWidths;
+        }
+        else {
+            /* extend current span, if old extends beyond new */
+            oldpt = oldpt + *oldWidths;
+            if (oldpt > newx2)
+                newx2 = oldpt;
+        }
+    }                           /* for */
 
     /* Write final span */
     newPoints->x = newx1;
@@ -355,170 +361,167 @@ static int UniquifySpansX(
     newPoints->y = y;
 
     return (newWidths - startNewWidths) + 1;
-} /* UniquifySpansX */
+}                               /* UniquifySpansX */
 
 static void
-miDisposeSpanGroup (SpanGroup *spanGroup)
+miDisposeSpanGroup(SpanGroup * spanGroup)
 {
-    int	    i;
-    Spans   *spans;
+    int i;
+    Spans *spans;
 
-    for (i = 0; i < spanGroup->count; i++)
-    {
-	spans = spanGroup->group + i;
-	free(spans->points);
-	free(spans->widths);
+    for (i = 0; i < spanGroup->count; i++) {
+        spans = spanGroup->group + i;
+        free(spans->points);
+        free(spans->widths);
     }
 }
 
-void miFillUniqueSpanGroup(DrawablePtr pDraw, GCPtr pGC, SpanGroup *spanGroup)
+void
+miFillUniqueSpanGroup(DrawablePtr pDraw, GCPtr pGC, SpanGroup * spanGroup)
 {
-    int    		i;
-    Spans  		*spans;
-    Spans  		*yspans;
-    int    		*ysizes;
-    int    		ymin, ylength;
+    int i;
+    Spans *spans;
+    Spans *yspans;
+    int *ysizes;
+    int ymin, ylength;
 
     /* Outgoing spans for one big call to FillSpans */
-    DDXPointPtr    	points;
-    int	    		*widths;
-    int	    		count;
+    DDXPointPtr points;
+    int *widths;
+    int count;
 
-    if (spanGroup->count == 0) return;
+    if (spanGroup->count == 0)
+        return;
 
     if (spanGroup->count == 1) {
-	/* Already should be sorted, unique */
-	spans = spanGroup->group;
-	(*pGC->ops->FillSpans)
-	    (pDraw, pGC, spans->count, spans->points, spans->widths, TRUE);
-	free(spans->points);
-	free(spans->widths);
+        /* Already should be sorted, unique */
+        spans = spanGroup->group;
+        (*pGC->ops->FillSpans)
+            (pDraw, pGC, spans->count, spans->points, spans->widths, TRUE);
+        free(spans->points);
+        free(spans->widths);
     }
-    else
-    {
-	/* Yuck.  Gross.  Radix sort into y buckets, then sort x and uniquify */
-	/* This seems to be the fastest thing to do.  I've tried sorting on
-	   both x and y at the same time rather than creating into all those
-	   y buckets, but it was somewhat slower. */
+    else {
+        /* Yuck.  Gross.  Radix sort into y buckets, then sort x and uniquify */
+        /* This seems to be the fastest thing to do.  I've tried sorting on
+           both x and y at the same time rather than creating into all those
+           y buckets, but it was somewhat slower. */
 
-	ymin    = spanGroup->ymin;
-	ylength = spanGroup->ymax - ymin + 1;
+        ymin = spanGroup->ymin;
+        ylength = spanGroup->ymax - ymin + 1;
 
-	/* Allocate Spans for y buckets */
-	yspans = malloc(ylength * sizeof(Spans));
-	ysizes = malloc(ylength * sizeof (int));
+        /* Allocate Spans for y buckets */
+        yspans = malloc(ylength * sizeof(Spans));
+        ysizes = malloc(ylength * sizeof(int));
 
-	if (!yspans || !ysizes)
-	{
-	    free(yspans);
-	    free(ysizes);
-	    miDisposeSpanGroup (spanGroup);
-	    return;
-	}
-	
-	for (i = 0; i != ylength; i++) {
-	    ysizes[i]        = 0;
-	    yspans[i].count  = 0;
-	    yspans[i].points = NULL;
-	    yspans[i].widths = NULL;
-	}
+        if (!yspans || !ysizes) {
+            free(yspans);
+            free(ysizes);
+            miDisposeSpanGroup(spanGroup);
+            return;
+        }
 
-	/* Go through every single span and put it into the correct bucket */
-	count = 0;
-	for (i = 0, spans = spanGroup->group;
-		i != spanGroup->count;
-		i++, spans++) {
-	    int		index;
-	    int		j;
+        for (i = 0; i != ylength; i++) {
+            ysizes[i] = 0;
+            yspans[i].count = 0;
+            yspans[i].points = NULL;
+            yspans[i].widths = NULL;
+        }
 
-	    for (j = 0, points = spans->points, widths = spans->widths;
-		    j != spans->count;
-		    j++, points++, widths++) {
-		index = points->y - ymin;
-		if (index >= 0 && index < ylength) {
-		    Spans *newspans = &(yspans[index]);
-		    if (newspans->count == ysizes[index]) {
-			DDXPointPtr newpoints;
-			int	    *newwidths;
-			ysizes[index] = (ysizes[index] + 8) * 2;
-			newpoints = (DDXPointPtr) realloc(
-			    newspans->points,
-			    ysizes[index] * sizeof(DDXPointRec));
-			newwidths = (int *) realloc(
-			    newspans->widths,
-			    ysizes[index] * sizeof(int));
-			if (!newpoints || !newwidths)
-			{
-			    int	i;
+        /* Go through every single span and put it into the correct bucket */
+        count = 0;
+        for (i = 0, spans = spanGroup->group;
+             i != spanGroup->count; i++, spans++) {
+            int index;
+            int j;
 
-			    for (i = 0; i < ylength; i++)
-			    {
-				free(yspans[i].points);
-				free(yspans[i].widths);
-			    }
-			    free(yspans);
-			    free(ysizes);
-			    free(newpoints);
-			    free(newwidths);
-			    miDisposeSpanGroup (spanGroup);
-			    return;
-			}
-			newspans->points = newpoints;
-			newspans->widths = newwidths;
-		    }
-		    newspans->points[newspans->count] = *points;
-		    newspans->widths[newspans->count] = *widths;
-		    (newspans->count)++;
-		} /* if y value of span in range */
-	    } /* for j through spans */
-	    count += spans->count;
-	    free(spans->points);
-	    spans->points = NULL;
-	    free(spans->widths);
-	    spans->widths = NULL;
-	} /* for i thorough Spans */
+            for (j = 0, points = spans->points, widths = spans->widths;
+                 j != spans->count; j++, points++, widths++) {
+                index = points->y - ymin;
+                if (index >= 0 && index < ylength) {
+                    Spans *newspans = &(yspans[index]);
 
-	/* Now sort by x and uniquify each bucket into the final array */
-	points = malloc(count * sizeof(DDXPointRec));
-	widths = malloc(count * sizeof(int));
-	if (!points || !widths)
-	{
-	    int	i;
+                    if (newspans->count == ysizes[index]) {
+                        DDXPointPtr newpoints;
+                        int *newwidths;
 
-	    for (i = 0; i < ylength; i++)
-	    {
-		free(yspans[i].points);
-		free(yspans[i].widths);
-	    }
-	    free(yspans);
-	    free(ysizes);
-	    free(points);
-	    free(widths);
-	    return;
-	}
-	count = 0;
-	for (i = 0; i != ylength; i++) {
-	    int ycount = yspans[i].count;
-	    if (ycount > 0) {
-		if (ycount > 1) {
-		    QuickSortSpansX(yspans[i].points, yspans[i].widths, ycount);
-		    count += UniquifySpansX
-			(&(yspans[i]), &(points[count]), &(widths[count]));
-		} else {
-		    points[count] = yspans[i].points[0];
-		    widths[count] = yspans[i].widths[0];
-		    count++;
-		}
-		free(yspans[i].points);
-		free(yspans[i].widths);
-	    }
-	}
+                        ysizes[index] = (ysizes[index] + 8) * 2;
+                        newpoints = (DDXPointPtr) realloc(newspans->points,
+                                                          ysizes[index] *
+                                                          sizeof(DDXPointRec));
+                        newwidths =
+                            (int *) realloc(newspans->widths,
+                                            ysizes[index] * sizeof(int));
+                        if (!newpoints || !newwidths) {
+                            int i;
 
-	(*pGC->ops->FillSpans) (pDraw, pGC, count, points, widths, TRUE);
-	free(points);
-	free(widths);
-	free(yspans);
-	free(ysizes);		/* use (DE)xalloc for these? */
+                            for (i = 0; i < ylength; i++) {
+                                free(yspans[i].points);
+                                free(yspans[i].widths);
+                            }
+                            free(yspans);
+                            free(ysizes);
+                            free(newpoints);
+                            free(newwidths);
+                            miDisposeSpanGroup(spanGroup);
+                            return;
+                        }
+                        newspans->points = newpoints;
+                        newspans->widths = newwidths;
+                    }
+                    newspans->points[newspans->count] = *points;
+                    newspans->widths[newspans->count] = *widths;
+                    (newspans->count)++;
+                }               /* if y value of span in range */
+            }                   /* for j through spans */
+            count += spans->count;
+            free(spans->points);
+            spans->points = NULL;
+            free(spans->widths);
+            spans->widths = NULL;
+        }                       /* for i thorough Spans */
+
+        /* Now sort by x and uniquify each bucket into the final array */
+        points = malloc(count * sizeof(DDXPointRec));
+        widths = malloc(count * sizeof(int));
+        if (!points || !widths) {
+            int i;
+
+            for (i = 0; i < ylength; i++) {
+                free(yspans[i].points);
+                free(yspans[i].widths);
+            }
+            free(yspans);
+            free(ysizes);
+            free(points);
+            free(widths);
+            return;
+        }
+        count = 0;
+        for (i = 0; i != ylength; i++) {
+            int ycount = yspans[i].count;
+
+            if (ycount > 0) {
+                if (ycount > 1) {
+                    QuickSortSpansX(yspans[i].points, yspans[i].widths, ycount);
+                    count += UniquifySpansX
+                        (&(yspans[i]), &(points[count]), &(widths[count]));
+                }
+                else {
+                    points[count] = yspans[i].points[0];
+                    widths[count] = yspans[i].widths[0];
+                    count++;
+                }
+                free(yspans[i].points);
+                free(yspans[i].widths);
+            }
+        }
+
+        (*pGC->ops->FillSpans) (pDraw, pGC, count, points, widths, TRUE);
+        free(points);
+        free(widths);
+        free(yspans);
+        free(ysizes);           /* use (DE)xalloc for these? */
     }
 
     spanGroup->count = 0;

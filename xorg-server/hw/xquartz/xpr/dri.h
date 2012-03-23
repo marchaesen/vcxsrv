@@ -43,8 +43,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "appledri.h"
 #include <Xplugin.h>
 
-typedef void (*ClipNotifyPtr)( WindowPtr, int, int );
-
+typedef void (*ClipNotifyPtr) (WindowPtr, int, int);
 
 /*
  * These functions can be wrapped by the DRI.  Each of these have
@@ -52,11 +51,11 @@ typedef void (*ClipNotifyPtr)( WindowPtr, int, int );
  * overridden by the driver in its [driver]DRIScreenInit function.
  */
 typedef struct {
-    WindowExposuresProcPtr       WindowExposures;
-    CopyWindowProcPtr            CopyWindow;
-    ValidateTreeProcPtr          ValidateTree;
-    PostValidateTreeProcPtr      PostValidateTree;
-    ClipNotifyProcPtr            ClipNotify;
+    WindowExposuresProcPtr WindowExposures;
+    CopyWindowProcPtr CopyWindow;
+    ValidateTreeProcPtr ValidateTree;
+    PostValidateTreeProcPtr PostValidateTree;
+    ClipNotifyProcPtr ClipNotify;
 } DRIWrappedFuncsRec, *DRIWrappedFuncsPtr;
 
 typedef struct {
@@ -74,8 +73,7 @@ extern Bool DRIExtensionInit(void);
 
 extern void DRIReset(void);
 
-extern Bool DRIQueryDirectRenderingCapable(ScreenPtr pScreen,
-                                           Bool *isCapable);
+extern Bool DRIQueryDirectRenderingCapable(ScreenPtr pScreen, Bool *isCapable);
 
 extern Bool DRIAuthConnection(ScreenPtr pScreen, unsigned int magic);
 
@@ -83,55 +81,43 @@ extern Bool DRICreateSurface(ScreenPtr pScreen,
                              Drawable id,
                              DrawablePtr pDrawable,
                              xp_client_id client_id,
-                             xp_surface_id *surface_id,
+                             xp_surface_id * surface_id,
                              unsigned int key[2],
                              void (*notify) (void *arg, void *data),
                              void *notify_data);
 
 extern Bool DRIDestroySurface(ScreenPtr pScreen,
-                             Drawable id,
-                             DrawablePtr pDrawable,
-                             void (*notify) (void *arg, void *data),
-                             void *notify_data);
+                              Drawable id,
+                              DrawablePtr pDrawable,
+                              void (*notify) (void *arg, void *data),
+                              void *notify_data);
 
-extern Bool DRIDrawablePrivDelete(pointer pResource,
-                                  XID id);
+extern Bool DRIDrawablePrivDelete(pointer pResource, XID id);
 
 extern DRIWrappedFuncsRec *DRIGetWrappedFuncs(ScreenPtr pScreen);
 
 extern void DRICopyWindow(WindowPtr pWin,
-                          DDXPointRec ptOldOrg,
-                          RegionPtr prgnSrc);
+                          DDXPointRec ptOldOrg, RegionPtr prgnSrc);
 
-extern int DRIValidateTree(WindowPtr pParent,
-                           WindowPtr pChild,
-                           VTKind    kind);
+extern int DRIValidateTree(WindowPtr pParent, WindowPtr pChild, VTKind kind);
 
 extern void DRIPostValidateTree(WindowPtr pParent,
-                                WindowPtr pChild,
-                                VTKind    kind);
+                                WindowPtr pChild, VTKind kind);
 
-extern void DRIClipNotify(WindowPtr pWin,
-                          int dx,
-                          int dy);
+extern void DRIClipNotify(WindowPtr pWin, int dx, int dy);
 
-extern void DRIWindowExposures(WindowPtr pWin,
-                              RegionPtr prgn,
-                              RegionPtr bsreg);
+extern void DRIWindowExposures(WindowPtr pWin, RegionPtr prgn, RegionPtr bsreg);
 
-extern void DRISurfaceNotify (xp_surface_id id, int kind);
+extern void DRISurfaceNotify(xp_surface_id id, int kind);
 
 extern void DRIQueryVersion(int *majorVersion,
-                            int *minorVersion,
-                            int *patchVersion);
+                            int *minorVersion, int *patchVersion);
 
 extern Bool DRICreatePixmap(ScreenPtr pScreen, Drawable id,
-			    DrawablePtr pDrawable, char *path,
-			    size_t pathmax);
+                            DrawablePtr pDrawable, char *path, size_t pathmax);
 
 extern Bool DRIGetPixmapData(DrawablePtr pDrawable, int *width, int *height,
-			     int *pitch, int *bpp, void **ptr);
-
+                             int *pitch, int *bpp, void **ptr);
 
 extern void DRIDestroyPixmap(DrawablePtr pDrawable);
 

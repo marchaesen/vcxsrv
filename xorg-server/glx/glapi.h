@@ -22,7 +22,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 /**
  * \mainpage Mesa GL API Module
  *
@@ -40,7 +39,6 @@
  * with the X/DRI libGL also.
  */
 
-
 #ifndef _GLAPI_H
 #define _GLAPI_H
 
@@ -50,13 +48,11 @@
 #include "GL/glext.h"
 #include "glthread.h"
 
-
 struct _glapi_table;
 
-typedef void (*_glapi_proc)(void); /* generic function pointer */
+typedef void (*_glapi_proc) (void);     /* generic function pointer */
 
-typedef void (*_glapi_warning_func)(void *ctx, const char *str, ...);
-
+typedef void (*_glapi_warning_func) (void *ctx, const char *str, ...);
 
 #if defined(USE_MGL_NAMESPACE)
 #define _glapi_set_dispatch _mglapi_set_dispatch
@@ -67,12 +63,10 @@ typedef void (*_glapi_warning_func)(void *ctx, const char *str, ...);
 #define _glapi_Dispatch _mglapi_Dispatch
 #endif
 
-
 /*
  * Number of extension functions which we can dynamically add at runtime.
  */
 #define MAX_EXTENSION_FUNCS 300
-
 
 /**
  ** Define the GET_CURRENT_CONTEXT() macro.
@@ -83,63 +77,59 @@ typedef void (*_glapi_warning_func)(void *ctx, const char *str, ...);
 const extern void *_glapi_Context;
 const extern struct _glapi_table *_glapi_Dispatch;
 
-extern TLS void * _glapi_tls_Context;
+extern TLS void *_glapi_tls_Context;
 
-# define GET_CURRENT_CONTEXT(C)  GLcontext *C = (GLcontext *) _glapi_tls_Context
+#define GET_CURRENT_CONTEXT(C)  GLcontext *C = (GLcontext *) _glapi_tls_Context
 
 #else
 
 extern void *_glapi_Context;
 extern struct _glapi_table *_glapi_Dispatch;
 
-# ifdef THREADS
-#  define GET_CURRENT_CONTEXT(C)  GLcontext *C = (GLcontext *) (_glapi_Context ? _glapi_Context : _glapi_get_context())
-# else
-#  define GET_CURRENT_CONTEXT(C)  GLcontext *C = (GLcontext *) _glapi_Context
-# endif
+#ifdef THREADS
+#define GET_CURRENT_CONTEXT(C)  GLcontext *C = (GLcontext *) (_glapi_Context ? _glapi_Context : _glapi_get_context())
+#else
+#define GET_CURRENT_CONTEXT(C)  GLcontext *C = (GLcontext *) _glapi_Context
+#endif
 
-#endif /* defined (GLX_USE_TLS) */
-
+#endif                          /* defined (GLX_USE_TLS) */
 
 /**
  ** GL API public functions
  **/
 
 extern void
-_glapi_check_multithread(void);
+ _glapi_check_multithread(void);
 
 extern void
-_glapi_set_context(void *context);
+ _glapi_set_context(void *context);
 
-extern void *
-_glapi_get_context(void);
+extern void *_glapi_get_context(void);
 
 extern void
-_glapi_set_dispatch(struct _glapi_table *dispatch);
+ _glapi_set_dispatch(struct _glapi_table *dispatch);
 
-extern struct _glapi_table *
-_glapi_get_dispatch(void);
+extern struct _glapi_table *_glapi_get_dispatch(void);
 
 extern int
-_glapi_begin_dispatch_override(struct _glapi_table *override);
+ _glapi_begin_dispatch_override(struct _glapi_table *override);
 
 extern void
-_glapi_end_dispatch_override(int layer);
+ _glapi_end_dispatch_override(int layer);
 
-struct _glapi_table *
-_glapi_get_override_dispatch(int layer);
+struct _glapi_table *_glapi_get_override_dispatch(int layer);
 
-extern GLuint
-_glapi_get_dispatch_table_size(void);
+extern GLuint _glapi_get_dispatch_table_size(void);
 
 extern int
-_glapi_add_dispatch( const char * const * function_names,
-		     const char * parameter_signature );
 
-extern _glapi_proc
-_glapi_get_proc_address(const char *funcName);
+_glapi_add_dispatch(const char *const *function_names,
+                    const char *parameter_signature);
 
-extern struct _glapi_table *
-_glapi_create_table_from_handle(void *handle, const char *symbol_prefix);
+extern _glapi_proc _glapi_get_proc_address(const char *funcName);
+
+extern struct _glapi_table *_glapi_create_table_from_handle(void *handle,
+                                                            const char
+                                                            *symbol_prefix);
 
 #endif

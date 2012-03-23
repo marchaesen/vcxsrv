@@ -24,7 +24,7 @@
 #include "protocol-versions.h"
 
 Bool
-RRClientKnowsRates (ClientPtr	pClient)
+RRClientKnowsRates(ClientPtr pClient)
 {
     rrClientPriv(pClient);
 
@@ -33,9 +33,9 @@ RRClientKnowsRates (ClientPtr	pClient)
 }
 
 static int
-ProcRRQueryVersion (ClientPtr client)
+ProcRRQueryVersion(ClientPtr client)
 {
-    xRRQueryVersionReply rep = {0};
+    xRRQueryVersionReply rep = { 0 };
     REQUEST(xRRQueryVersionReq);
     rrClientPriv(client);
 
@@ -47,209 +47,198 @@ ProcRRQueryVersion (ClientPtr client)
     rep.sequenceNumber = client->sequence;
 
     if (version_compare(stuff->majorVersion, stuff->minorVersion,
-                        SERVER_RANDR_MAJOR_VERSION, SERVER_RANDR_MINOR_VERSION) < 0)
-    {
-	rep.majorVersion = stuff->majorVersion;
-	rep.minorVersion = stuff->minorVersion;
-    } else
-    {
+                        SERVER_RANDR_MAJOR_VERSION,
+                        SERVER_RANDR_MINOR_VERSION) < 0) {
+        rep.majorVersion = stuff->majorVersion;
+        rep.minorVersion = stuff->minorVersion;
+    }
+    else {
         rep.majorVersion = SERVER_RANDR_MAJOR_VERSION;
         rep.minorVersion = SERVER_RANDR_MINOR_VERSION;
     }
 
     if (client->swapped) {
-	swaps(&rep.sequenceNumber);
-	swapl(&rep.length);
-	swapl(&rep.majorVersion);
-	swapl(&rep.minorVersion);
+        swaps(&rep.sequenceNumber);
+        swapl(&rep.length);
+        swapl(&rep.majorVersion);
+        swapl(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xRRQueryVersionReply), (char *)&rep);
+    WriteToClient(client, sizeof(xRRQueryVersionReply), (char *) &rep);
     return Success;
 }
 
 static int
-ProcRRSelectInput (ClientPtr client)
+ProcRRSelectInput(ClientPtr client)
 {
     REQUEST(xRRSelectInputReq);
     rrClientPriv(client);
-    RRTimesPtr	pTimes;
-    WindowPtr	pWin;
-    RREventPtr	pRREvent, *pHead;
-    XID		clientResource;
-    int		rc;
+    RRTimesPtr pTimes;
+    WindowPtr pWin;
+    RREventPtr pRREvent, *pHead;
+    XID clientResource;
+    int rc;
 
     REQUEST_SIZE_MATCH(xRRSelectInputReq);
     rc = dixLookupWindow(&pWin, stuff->window, client, DixReceiveAccess);
     if (rc != Success)
-	return rc;
-    rc = dixLookupResourceByType((pointer *)&pHead, pWin->drawable.id,
-				 RREventType, client, DixWriteAccess);
+        return rc;
+    rc = dixLookupResourceByType((pointer *) &pHead, pWin->drawable.id,
+                                 RREventType, client, DixWriteAccess);
     if (rc != Success && rc != BadValue)
-	return rc;
+        return rc;
 
-    if (stuff->enable & (RRScreenChangeNotifyMask|
-			 RRCrtcChangeNotifyMask|
-			 RROutputChangeNotifyMask|
-			 RROutputPropertyNotifyMask)) 
-    {
-	ScreenPtr	pScreen = pWin->drawable.pScreen;
-	rrScrPriv	(pScreen);
+    if (stuff->enable & (RRScreenChangeNotifyMask |
+                         RRCrtcChangeNotifyMask |
+                         RROutputChangeNotifyMask |
+                         RROutputPropertyNotifyMask)) {
+        ScreenPtr pScreen = pWin->drawable.pScreen;
 
-	pRREvent = NULL;
-	if (pHead) 
-	{
-	    /* check for existing entry. */
-	    for (pRREvent = *pHead; pRREvent; pRREvent = pRREvent->next)
-		if (pRREvent->client == client)
-		    break;
-	}
+        rrScrPriv(pScreen);
 
-	if (!pRREvent)
-	{
-	    /* build the entry */
-	    pRREvent = (RREventPtr) malloc(sizeof (RREventRec));
-	    if (!pRREvent)
-		return BadAlloc;
-	    pRREvent->next = 0;
-	    pRREvent->client = client;
-	    pRREvent->window = pWin;
-	    pRREvent->mask = stuff->enable;
-	    /*
-	     * add a resource that will be deleted when
-	     * the client goes away
-	     */
-	    clientResource = FakeClientID (client->index);
-	    pRREvent->clientResource = clientResource;
-	    if (!AddResource (clientResource, RRClientType, (pointer)pRREvent))
-		return BadAlloc;
-	    /*
-	     * create a resource to contain a pointer to the list
-	     * of clients selecting input.  This must be indirect as
-	     * the list may be arbitrarily rearranged which cannot be
-	     * done through the resource database.
-	     */
-	    if (!pHead)
-	    {
-		pHead = (RREventPtr *) malloc(sizeof (RREventPtr));
-		if (!pHead ||
-		    !AddResource (pWin->drawable.id, RREventType, (pointer)pHead))
-		{
-		    FreeResource (clientResource, RT_NONE);
-		    return BadAlloc;
-		}
-		*pHead = 0;
-	    }
-	    pRREvent->next = *pHead;
-	    *pHead = pRREvent;
-	}
-	/*
-	 * Now see if the client needs an event
-	 */
-	if (pScrPriv)
-	{
-	    pTimes = &((RRTimesPtr) (pRRClient + 1))[pScreen->myNum];
-	    if (CompareTimeStamps (pTimes->setTime, 
-				   pScrPriv->lastSetTime) != 0 ||
-		CompareTimeStamps (pTimes->configTime, 
-				   pScrPriv->lastConfigTime) != 0)
-	    {
-		if (pRREvent->mask & RRScreenChangeNotifyMask)
-		{
-		    RRDeliverScreenEvent (client, pWin, pScreen);
-		}
+        pRREvent = NULL;
+        if (pHead) {
+            /* check for existing entry. */
+            for (pRREvent = *pHead; pRREvent; pRREvent = pRREvent->next)
+                if (pRREvent->client == client)
+                    break;
+        }
 
-		if (pRREvent->mask & RRCrtcChangeNotifyMask)
-		{
-		    int i;
+        if (!pRREvent) {
+            /* build the entry */
+            pRREvent = (RREventPtr) malloc(sizeof(RREventRec));
+            if (!pRREvent)
+                return BadAlloc;
+            pRREvent->next = 0;
+            pRREvent->client = client;
+            pRREvent->window = pWin;
+            pRREvent->mask = stuff->enable;
+            /*
+             * add a resource that will be deleted when
+             * the client goes away
+             */
+            clientResource = FakeClientID(client->index);
+            pRREvent->clientResource = clientResource;
+            if (!AddResource(clientResource, RRClientType, (pointer) pRREvent))
+                return BadAlloc;
+            /*
+             * create a resource to contain a pointer to the list
+             * of clients selecting input.  This must be indirect as
+             * the list may be arbitrarily rearranged which cannot be
+             * done through the resource database.
+             */
+            if (!pHead) {
+                pHead = (RREventPtr *) malloc(sizeof(RREventPtr));
+                if (!pHead ||
+                    !AddResource(pWin->drawable.id, RREventType,
+                                 (pointer) pHead)) {
+                    FreeResource(clientResource, RT_NONE);
+                    return BadAlloc;
+                }
+                *pHead = 0;
+            }
+            pRREvent->next = *pHead;
+            *pHead = pRREvent;
+        }
+        /*
+         * Now see if the client needs an event
+         */
+        if (pScrPriv) {
+            pTimes = &((RRTimesPtr) (pRRClient + 1))[pScreen->myNum];
+            if (CompareTimeStamps(pTimes->setTime,
+                                  pScrPriv->lastSetTime) != 0 ||
+                CompareTimeStamps(pTimes->configTime,
+                                  pScrPriv->lastConfigTime) != 0) {
+                if (pRREvent->mask & RRScreenChangeNotifyMask) {
+                    RRDeliverScreenEvent(client, pWin, pScreen);
+                }
 
-		    for (i = 0; i < pScrPriv->numCrtcs; i++)
-		    {
-			RRDeliverCrtcEvent (client, pWin, pScrPriv->crtcs[i]);
-		    }
-		}
+                if (pRREvent->mask & RRCrtcChangeNotifyMask) {
+                    int i;
 
-		if (pRREvent->mask & RROutputChangeNotifyMask)
-		{
-		    int i;
+                    for (i = 0; i < pScrPriv->numCrtcs; i++) {
+                        RRDeliverCrtcEvent(client, pWin, pScrPriv->crtcs[i]);
+                    }
+                }
 
-		    for (i = 0; i < pScrPriv->numOutputs; i++)
-		    {
-			RRDeliverOutputEvent (client, pWin, pScrPriv->outputs[i]);
-		    }
-		}
+                if (pRREvent->mask & RROutputChangeNotifyMask) {
+                    int i;
 
-		/* We don't check for RROutputPropertyNotifyMask, as randrproto.txt doesn't
-		 * say if there ought to be notifications of changes to output properties
-		 * if those changes occurred before the time RRSelectInput is called.
-		 */
-	    }
-	}
+                    for (i = 0; i < pScrPriv->numOutputs; i++) {
+                        RRDeliverOutputEvent(client, pWin,
+                                             pScrPriv->outputs[i]);
+                    }
+                }
+
+                /* We don't check for RROutputPropertyNotifyMask, as randrproto.txt doesn't
+                 * say if there ought to be notifications of changes to output properties
+                 * if those changes occurred before the time RRSelectInput is called.
+                 */
+            }
+        }
     }
-    else if (stuff->enable == 0) 
-    {
-	/* delete the interest */
-	if (pHead) {
-	    RREventPtr pNewRREvent = 0;
-	    for (pRREvent = *pHead; pRREvent; pRREvent = pRREvent->next) {
-		if (pRREvent->client == client)
-		    break;
-		pNewRREvent = pRREvent;
-	    }
-	    if (pRREvent) {
-		FreeResource (pRREvent->clientResource, RRClientType);
-		if (pNewRREvent)
-		    pNewRREvent->next = pRREvent->next;
-		else
-		    *pHead = pRREvent->next;
-		free(pRREvent);
-	    }
-	}
+    else if (stuff->enable == 0) {
+        /* delete the interest */
+        if (pHead) {
+            RREventPtr pNewRREvent = 0;
+
+            for (pRREvent = *pHead; pRREvent; pRREvent = pRREvent->next) {
+                if (pRREvent->client == client)
+                    break;
+                pNewRREvent = pRREvent;
+            }
+            if (pRREvent) {
+                FreeResource(pRREvent->clientResource, RRClientType);
+                if (pNewRREvent)
+                    pNewRREvent->next = pRREvent->next;
+                else
+                    *pHead = pRREvent->next;
+                free(pRREvent);
+            }
+        }
     }
-    else 
-    {
-	client->errorValue = stuff->enable;
-	return BadValue;
+    else {
+        client->errorValue = stuff->enable;
+        return BadValue;
     }
     return Success;
 }
 
-int (*ProcRandrVector[RRNumberRequests])(ClientPtr) = {
-    ProcRRQueryVersion,	/* 0 */
+int (*ProcRandrVector[RRNumberRequests]) (ClientPtr) = {
+    ProcRRQueryVersion,         /* 0 */
 /* we skip 1 to make old clients fail pretty immediately */
-    NULL,			/* 1 ProcRandrOldGetScreenInfo */
+        NULL,                   /* 1 ProcRandrOldGetScreenInfo */
 /* V1.0 apps share the same set screen config request id */
-    ProcRRSetScreenConfig,	/* 2 */
-    NULL,			/* 3 ProcRandrOldScreenChangeSelectInput */
+        ProcRRSetScreenConfig,  /* 2 */
+        NULL,                   /* 3 ProcRandrOldScreenChangeSelectInput */
 /* 3 used to be ScreenChangeSelectInput; deprecated */
-    ProcRRSelectInput,		/* 4 */
-    ProcRRGetScreenInfo,    	/* 5 */
+        ProcRRSelectInput,      /* 4 */
+        ProcRRGetScreenInfo,    /* 5 */
 /* V1.2 additions */
-    ProcRRGetScreenSizeRange,	/* 6 */
-    ProcRRSetScreenSize,	/* 7 */
-    ProcRRGetScreenResources,	/* 8 */
-    ProcRRGetOutputInfo,	/* 9 */
-    ProcRRListOutputProperties,	/* 10 */
-    ProcRRQueryOutputProperty,	/* 11 */
-    ProcRRConfigureOutputProperty,  /* 12 */
-    ProcRRChangeOutputProperty,	/* 13 */
-    ProcRRDeleteOutputProperty,	/* 14 */
-    ProcRRGetOutputProperty,	/* 15 */
-    ProcRRCreateMode,		/* 16 */
-    ProcRRDestroyMode,		/* 17 */
-    ProcRRAddOutputMode,	/* 18 */
-    ProcRRDeleteOutputMode,	/* 19 */
-    ProcRRGetCrtcInfo,		/* 20 */
-    ProcRRSetCrtcConfig,	/* 21 */
-    ProcRRGetCrtcGammaSize,	/* 22 */
-    ProcRRGetCrtcGamma,		/* 23 */
-    ProcRRSetCrtcGamma,		/* 24 */
+        ProcRRGetScreenSizeRange,       /* 6 */
+        ProcRRSetScreenSize,    /* 7 */
+        ProcRRGetScreenResources,       /* 8 */
+        ProcRRGetOutputInfo,    /* 9 */
+        ProcRRListOutputProperties,     /* 10 */
+        ProcRRQueryOutputProperty,      /* 11 */
+        ProcRRConfigureOutputProperty,  /* 12 */
+        ProcRRChangeOutputProperty,     /* 13 */
+        ProcRRDeleteOutputProperty,     /* 14 */
+        ProcRRGetOutputProperty,        /* 15 */
+        ProcRRCreateMode,       /* 16 */
+        ProcRRDestroyMode,      /* 17 */
+        ProcRRAddOutputMode,    /* 18 */
+        ProcRRDeleteOutputMode, /* 19 */
+        ProcRRGetCrtcInfo,      /* 20 */
+        ProcRRSetCrtcConfig,    /* 21 */
+        ProcRRGetCrtcGammaSize, /* 22 */
+        ProcRRGetCrtcGamma,     /* 23 */
+        ProcRRSetCrtcGamma,     /* 24 */
 /* V1.3 additions */
-    ProcRRGetScreenResourcesCurrent, /* 25 */
-    ProcRRSetCrtcTransform,	/* 26 */
-    ProcRRGetCrtcTransform,	/* 27 */
-    ProcRRGetPanning,		/* 28 */
-    ProcRRSetPanning,		/* 29 */
-    ProcRRSetOutputPrimary,	/* 30 */
-    ProcRRGetOutputPrimary,	/* 31 */
+        ProcRRGetScreenResourcesCurrent,        /* 25 */
+        ProcRRSetCrtcTransform, /* 26 */
+        ProcRRGetCrtcTransform, /* 27 */
+        ProcRRGetPanning,       /* 28 */
+        ProcRRSetPanning,       /* 29 */
+        ProcRRSetOutputPrimary, /* 30 */
+        ProcRRGetOutputPrimary, /* 31 */
 };
-

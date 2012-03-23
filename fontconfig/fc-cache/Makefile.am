@@ -33,7 +33,7 @@ install-data-local:
 	-$(mkinstalldirs) "$(DESTDIR)$(fc_cachedir)"
 
 uninstall-local:
-	-rm -rf "$(DESTDIR)$(fc_cachedir)"
+	-$(RM) -rf "$(DESTDIR)$(fc_cachedir)"
 endif
 
 INCLUDES=-I${top_srcdir} -I${top_srcdir}/src $(WARN_CFLAGS)
@@ -53,14 +53,14 @@ fc_cache_LDADD = ${top_builddir}/src/libfontconfig.la
 if USEDOCBOOK
 
 ${man_MANS}: ${SGML}	
-	-@rm $@
-	$(AM_V_GEN) $(DOC2MAN) ${SGML}
-	@rm -f manpage.*
+	$(AM_V_GEN) $(RM) $@; \
+	$(DOC2MAN) ${SGML}; \
+	$(RM) manpage.*
 
 all-local: $(man_MANS)
 
 clean-local:
-	-rm $(man_MANS)
+	$(RM) $(man_MANS)
 
 else
 all-local:

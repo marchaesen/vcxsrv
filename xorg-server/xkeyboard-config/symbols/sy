@@ -67,7 +67,7 @@ xkb_symbols "syc" {
     // Begin Modifier Mappings
     
     modifier_map Shift  { Shift_L, Shift_R };
-    modifier_map Lock   { Caps_Lock, ISO_Lock };
+    modifier_map Lock   { Caps_Lock };
     modifier_map Control{ Control_L, Control_R };
     modifier_map Mod1	{ Alt_L, Alt_R };
     modifier_map Mod2   { Mode_switch };
@@ -136,7 +136,7 @@ xkb_symbols "syc_phonetic" {
     // Begin Modifier Mappings
     
     modifier_map Shift  { Shift_L, Shift_R };
-    modifier_map Lock   { Caps_Lock, ISO_Lock };
+    modifier_map Lock   { Caps_Lock };
     modifier_map Control{ Control_L, Control_R };
     modifier_map Mod1	{ Alt_L, Alt_R };
     modifier_map Mod2   { Mode_switch };

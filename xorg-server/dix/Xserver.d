@@ -48,6 +48,8 @@ provider Xserver {
 	probe resource__free(uint32_t, uint32_t, void *, string);
 	/* client id, event type, event* */
 	probe send__event(int, uint8_t, void *);
+	/* deviceid, type, button/keycode/touchid, flags, nvalues, mask, values */
+	probe input__event(int, int, uint32_t, uint32_t, int8_t, uint8_t*, double*);
 };
 
 #pragma D attributes Unstable/Unstable/Common provider Xserver provider

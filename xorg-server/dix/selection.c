@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987, 1989 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -69,19 +68,20 @@ Selection *CurrentSelections;
 CallbackListPtr SelectionCallback;
 
 int
-dixLookupSelection(Selection **result, Atom selectionName,
-		   ClientPtr client, Mask access_mode)
+dixLookupSelection(Selection ** result, Atom selectionName,
+                   ClientPtr client, Mask access_mode)
 {
     Selection *pSel;
     int rc = BadMatch;
+
     client->errorValue = selectionName;
 
     for (pSel = CurrentSelections; pSel; pSel = pSel->next)
-	if (pSel->selection == selectionName)
-	    break;
+        if (pSel->selection == selectionName)
+            break;
 
     if (pSel)
-	rc = XaceHookSelectionAccess(client, &pSel, access_mode);
+        rc = XaceHookSelectionAccess(client, &pSel, access_mode);
     *result = pSel;
     return rc;
 }
@@ -93,17 +93,17 @@ InitSelections(void)
 
     pSel = CurrentSelections;
     while (pSel) {
-	pNextSel = pSel->next;
-	dixFreeObjectWithPrivates(pSel, PRIVATE_SELECTION);
-	pSel = pNextSel;
+        pNextSel = pSel->next;
+        dixFreeObjectWithPrivates(pSel, PRIVATE_SELECTION);
+        pSel = pNextSel;
     }
 
     CurrentSelections = NULL;
 }
 
 static _X_INLINE void
-CallSelectionCallback(Selection *pSel, ClientPtr client,
-		      SelectionCallbackKind kind)
+CallSelectionCallback(Selection * pSel, ClientPtr client,
+                      SelectionCallbackKind kind)
 {
     SelectionInfoRec info = { pSel, client, kind };
     CallCallbacks(&SelectionCallback, &info);
@@ -116,12 +116,12 @@ DeleteWindowFromAnySelections(WindowPtr pWin)
 
     for (pSel = CurrentSelections; pSel; pSel = pSel->next)
         if (pSel->pWin == pWin) {
-	    CallSelectionCallback(pSel, NULL, SelectionWindowDestroy);
+            CallSelectionCallback(pSel, NULL, SelectionWindowDestroy);
 
-            pSel->pWin = (WindowPtr)NULL;
+            pSel->pWin = (WindowPtr) NULL;
             pSel->window = None;
-	    pSel->client = NullClient;
-	}
+            pSel->client = NullClient;
+        }
 }
 
 void
@@ -131,12 +131,12 @@ DeleteClientFromAnySelections(ClientPtr client)
 
     for (pSel = CurrentSelections; pSel; pSel = pSel->next)
         if (pSel->client == client) {
-	    CallSelectionCallback(pSel, NULL, SelectionClientClose);
+            CallSelectionCallback(pSel, NULL, SelectionClientClose);
 
-            pSel->pWin = (WindowPtr)NULL;
+            pSel->pWin = (WindowPtr) NULL;
             pSel->window = None;
-	    pSel->client = NullClient;
-	}
+            pSel->client = NullClient;
+        }
 }
 
 int
@@ -154,17 +154,17 @@ ProcSetSelectionOwner(ClientPtr client)
     time = ClientTimeToServerTime(stuff->time);
 
     /* If the client's time stamp is in the future relative to the server's
-	time stamp, do not set the selection, just return success. */
+       time stamp, do not set the selection, just return success. */
     if (CompareTimeStamps(time, currentTime) == LATER)
-    	return Success;
+        return Success;
 
     if (stuff->window != None) {
-	rc = dixLookupWindow(&pWin, stuff->window, client, DixSetAttrAccess);
+        rc = dixLookupWindow(&pWin, stuff->window, client, DixSetAttrAccess);
         if (rc != Success)
             return rc;
     }
     if (!ValidAtom(stuff->selection)) {
-	client->errorValue = stuff->selection;
+        client->errorValue = stuff->selection;
         return BadAtom;
     }
 
@@ -174,47 +174,45 @@ ProcSetSelectionOwner(ClientPtr client)
     rc = dixLookupSelection(&pSel, stuff->selection, client, DixSetAttrAccess);
 
     if (rc == Success) {
-	xEvent event;
+        xEvent event;
 
-	/* If the timestamp in client's request is in the past relative
-	   to the time stamp indicating the last time the owner of the
-	   selection was set, do not set the selection, just return 
-	   success. */
-	if (CompareTimeStamps(time, pSel->lastTimeChanged) == EARLIER)
-	    return Success;
-	if (pSel->client && (!pWin || (pSel->client != client)))
-	{
-	    event.u.u.type = SelectionClear;
-	    event.u.selectionClear.time = time.milliseconds;
-	    event.u.selectionClear.window = pSel->window;
-	    event.u.selectionClear.atom = pSel->selection;
-	    WriteEventsToClient(pSel->client, 1, &event);
-	}
+        /* If the timestamp in client's request is in the past relative
+           to the time stamp indicating the last time the owner of the
+           selection was set, do not set the selection, just return 
+           success. */
+        if (CompareTimeStamps(time, pSel->lastTimeChanged) == EARLIER)
+            return Success;
+        if (pSel->client && (!pWin || (pSel->client != client))) {
+            event.u.u.type = SelectionClear;
+            event.u.selectionClear.time = time.milliseconds;
+            event.u.selectionClear.window = pSel->window;
+            event.u.selectionClear.atom = pSel->selection;
+            WriteEventsToClient(pSel->client, 1, &event);
+        }
     }
-    else if (rc == BadMatch)
-    {
-	/*
-	 * It doesn't exist, so add it...
-	 */
-	pSel = dixAllocateObjectWithPrivates(Selection, PRIVATE_SELECTION);
-	if (!pSel)
-	    return BadAlloc;
+    else if (rc == BadMatch) {
+        /*
+         * It doesn't exist, so add it...
+         */
+        pSel = dixAllocateObjectWithPrivates(Selection, PRIVATE_SELECTION);
+        if (!pSel)
+            return BadAlloc;
 
-	pSel->selection = stuff->selection;
+        pSel->selection = stuff->selection;
 
-	/* security creation/labeling check */
-	rc = XaceHookSelectionAccess(client, &pSel,
-				     DixCreateAccess|DixSetAttrAccess);
-	if (rc != Success) {
-	    free(pSel);
-	    return rc;
-	}
+        /* security creation/labeling check */
+        rc = XaceHookSelectionAccess(client, &pSel,
+                                     DixCreateAccess | DixSetAttrAccess);
+        if (rc != Success) {
+            free(pSel);
+            return rc;
+        }
 
-	pSel->next = CurrentSelections;
-	CurrentSelections = pSel;
+        pSel->next = CurrentSelections;
+        CurrentSelections = pSel;
     }
     else
-	return rc;
+        return rc;
 
     pSel->lastTimeChanged = time;
     pSel->window = stuff->window;
@@ -236,7 +234,7 @@ ProcGetSelectionOwner(ClientPtr client)
     REQUEST_SIZE_MATCH(xResourceReq);
 
     if (!ValidAtom(stuff->id)) {
-	client->errorValue = stuff->id;
+        client->errorValue = stuff->id;
         return BadAtom;
     }
 
@@ -247,11 +245,11 @@ ProcGetSelectionOwner(ClientPtr client)
 
     rc = dixLookupSelection(&pSel, stuff->id, client, DixGetAttrAccess);
     if (rc == Success)
-	reply.owner = pSel->window;
+        reply.owner = pSel->window;
     else if (rc == BadMatch)
-	reply.owner = None;
+        reply.owner = None;
     else
-	return rc;
+        return rc;
 
     WriteReplyToClient(client, sizeof(xGetSelectionOwnerReply), &reply);
     return Success;
@@ -276,7 +274,7 @@ ProcConvertSelection(ClientPtr client)
     paramsOkay = ValidAtom(stuff->selection) && ValidAtom(stuff->target);
     paramsOkay &= (stuff->property == None) || ValidAtom(stuff->property);
     if (!paramsOkay) {
-	client->errorValue = stuff->property;
+        client->errorValue = stuff->property;
         return BadAtom;
     }
 
@@ -284,20 +282,20 @@ ProcConvertSelection(ClientPtr client)
 
     memset(&event, 0, sizeof(xEvent));
     if (rc != Success && rc != BadMatch)
-	return rc;
+        return rc;
     else if (rc == Success && pSel->window != None) {
-	event.u.u.type = SelectionRequest;
-	event.u.selectionRequest.owner = pSel->window;
-	event.u.selectionRequest.time = stuff->time;
-	event.u.selectionRequest.requestor = stuff->requestor;
-	event.u.selectionRequest.selection = stuff->selection;
-	event.u.selectionRequest.target = stuff->target;
-	event.u.selectionRequest.property = stuff->property;
-	if (pSel->client && pSel->client != serverClient && !pSel->client->clientGone)
-	{
-	    WriteEventsToClient(pSel->client, 1, &event);
-	    return Success;
-	}
+        event.u.u.type = SelectionRequest;
+        event.u.selectionRequest.owner = pSel->window;
+        event.u.selectionRequest.time = stuff->time;
+        event.u.selectionRequest.requestor = stuff->requestor;
+        event.u.selectionRequest.selection = stuff->selection;
+        event.u.selectionRequest.target = stuff->target;
+        event.u.selectionRequest.property = stuff->property;
+        if (pSel->client && pSel->client != serverClient &&
+            !pSel->client->clientGone) {
+            WriteEventsToClient(pSel->client, 1, &event);
+            return Success;
+        }
     }
 
     event.u.u.type = SelectionNotify;

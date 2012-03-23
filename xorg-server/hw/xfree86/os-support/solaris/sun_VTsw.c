@@ -43,24 +43,23 @@ static int xf86VTPruneDoor = 0;
 void
 xf86VTRelease(int sig)
 {
-	if (xf86Info.vtPendingNum == -1)
-	{
-		xf86VTPruneDoor = 1;
-		xf86Info.vtRequestsPending = TRUE;
-		return;
-	}
+    if (xf86Info.vtPendingNum == -1) {
+        xf86VTPruneDoor = 1;
+        xf86Info.vtRequestsPending = TRUE;
+        return;
+    }
 
-	ioctl(xf86Info.consoleFd, VT_RELDISP, 1);
-	xf86Info.vtPendingNum = -1;
+    ioctl(xf86Info.consoleFd, VT_RELDISP, 1);
+    xf86Info.vtPendingNum = -1;
 
-	return;
+    return;
 }
 
 void
 xf86VTAcquire(int sig)
 {
-	xf86Info.vtRequestsPending = TRUE;
-	return;
+    xf86Info.vtRequestsPending = TRUE;
+    return;
 }
 
 Bool
@@ -72,66 +71,64 @@ xf86VTSwitchPending(void)
 Bool
 xf86VTSwitchAway(void)
 {
-	int door_fd;
-	vt_cmd_arg_t vt_door_arg;
-	door_arg_t door_arg;
+    int door_fd;
+    vt_cmd_arg_t vt_door_arg;
+    door_arg_t door_arg;
 
-	xf86Info.vtRequestsPending = FALSE;
+    xf86Info.vtRequestsPending = FALSE;
 
-	if (xf86VTPruneDoor) {
-		xf86VTPruneDoor = 0;
-		ioctl(xf86Info.consoleFd, VT_RELDISP, 1);
-		return TRUE;
-	}
+    if (xf86VTPruneDoor) {
+        xf86VTPruneDoor = 0;
+        ioctl(xf86Info.consoleFd, VT_RELDISP, 1);
+        return TRUE;
+    }
 
-	vt_door_arg.vt_ev = VT_EV_HOTKEYS;
-	vt_door_arg.vt_num = xf86Info.vtPendingNum;
-	door_arg.data_ptr = (char *)&vt_door_arg;
-	door_arg.data_size = sizeof (vt_cmd_arg_t);
-	door_arg.rbuf = NULL;
-	door_arg.rsize = 0;
-	door_arg.desc_ptr = NULL;
-	door_arg.desc_num = 0;
+    vt_door_arg.vt_ev = VT_EV_HOTKEYS;
+    vt_door_arg.vt_num = xf86Info.vtPendingNum;
+    door_arg.data_ptr = (char *) &vt_door_arg;
+    door_arg.data_size = sizeof(vt_cmd_arg_t);
+    door_arg.rbuf = NULL;
+    door_arg.rsize = 0;
+    door_arg.desc_ptr = NULL;
+    door_arg.desc_num = 0;
 
-	if ((door_fd = open(VT_DAEMON_DOOR_FILE, O_RDONLY)) < 0)
-		return FALSE;
+    if ((door_fd = open(VT_DAEMON_DOOR_FILE, O_RDONLY)) < 0)
+        return FALSE;
 
-	if (door_call(door_fd, &door_arg) != 0) {
-		close(door_fd);
-		return FALSE;
-	}
+    if (door_call(door_fd, &door_arg) != 0) {
+        close(door_fd);
+        return FALSE;
+    }
 
-	close(door_fd);
-	return TRUE;
+    close(door_fd);
+    return TRUE;
 }
 
 Bool
 xf86VTSwitchTo(void)
 {
-	xf86Info.vtRequestsPending = FALSE;
-	if (ioctl(xf86Info.consoleFd, VT_RELDISP, VT_ACKACQ) < 0)
-	{
-		return FALSE;
-	}
-	else
-	{
-		return TRUE;
-	}
+    xf86Info.vtRequestsPending = FALSE;
+    if (ioctl(xf86Info.consoleFd, VT_RELDISP, VT_ACKACQ) < 0) {
+        return FALSE;
+    }
+    else {
+        return TRUE;
+    }
 }
 
 Bool
 xf86VTActivate(int vtno)
 {
-	struct vt_stat state;
+    struct vt_stat state;
 
-	if (ioctl(xf86Info.consoleFd, VT_GETSTATE, &state) < 0)
-		return FALSE;
+    if (ioctl(xf86Info.consoleFd, VT_GETSTATE, &state) < 0)
+        return FALSE;
 
-	if ((state.v_state & (1 << vtno)) == 0)
-		return FALSE;
+    if ((state.v_state & (1 << vtno)) == 0)
+        return FALSE;
 
-	xf86Info.vtRequestsPending = TRUE;
-	xf86Info.vtPendingNum = vtno;
+    xf86Info.vtRequestsPending = TRUE;
+    xf86Info.vtPendingNum = vtno;
 
-	return TRUE;
+    return TRUE;
 }

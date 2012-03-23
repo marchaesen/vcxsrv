@@ -41,78 +41,76 @@
 #include    "fb.h"
 
 void
-shadowUpdatePacked (ScreenPtr	    pScreen,
-		    shadowBufPtr    pBuf)
+shadowUpdatePacked(ScreenPtr pScreen, shadowBufPtr pBuf)
 {
-    RegionPtr	damage = shadowDamage (pBuf);
-    PixmapPtr	pShadow = pBuf->pPixmap;
-    int		nbox = RegionNumRects (damage);
-    BoxPtr	pbox = RegionRects (damage);
-    FbBits	*shaBase, *shaLine, *sha;
-    FbStride	shaStride;
-    int		scrBase, scrLine, scr;
-    int		shaBpp;
-    _X_UNUSED int	shaXoff, shaYoff;
-    int		x, y, w, h, width;
-    int         i;
-    FbBits	*winBase = NULL, *win;
-    CARD32      winSize;
+    RegionPtr damage = shadowDamage(pBuf);
+    PixmapPtr pShadow = pBuf->pPixmap;
+    int nbox = RegionNumRects(damage);
+    BoxPtr pbox = RegionRects(damage);
+    FbBits *shaBase, *shaLine, *sha;
+    FbStride shaStride;
+    int scrBase, scrLine, scr;
+    int shaBpp;
+    _X_UNUSED int shaXoff, shaYoff;
+    int x, y, w, h, width;
+    int i;
+    FbBits *winBase = NULL, *win;
+    CARD32 winSize;
 
-    fbGetDrawable (&pShadow->drawable, shaBase, shaStride, shaBpp, shaXoff, shaYoff);
-    while (nbox--)
-    {
-	x = pbox->x1 * shaBpp;
-	y = pbox->y1;
-	w = (pbox->x2 - pbox->x1) * shaBpp;
-	h = pbox->y2 - pbox->y1;
+    fbGetDrawable(&pShadow->drawable, shaBase, shaStride, shaBpp, shaXoff,
+                  shaYoff);
+    while (nbox--) {
+        x = pbox->x1 * shaBpp;
+        y = pbox->y1;
+        w = (pbox->x2 - pbox->x1) * shaBpp;
+        h = pbox->y2 - pbox->y1;
 
-	scrLine = (x >> FB_SHIFT);
-	shaLine = shaBase + y * shaStride + (x >> FB_SHIFT);
-				   
-	x &= FB_MASK;
-	w = (w + x + FB_MASK) >> FB_SHIFT;
-	
-	while (h--)
-	{
-	    winSize = 0;
-	    scrBase = 0;
-	    width = w;
-	    scr = scrLine;
-	    sha = shaLine;
-	    while (width) {
-		/* how much remains in this window */
-		i = scrBase + winSize - scr;
-		if (i <= 0 || scr < scrBase)
-		{
-		    winBase = (FbBits *) (*pBuf->window) (pScreen,
-							  y,
-							  scr * sizeof (FbBits),
-							  SHADOW_WINDOW_WRITE,
-							  &winSize,
-							  pBuf->closure);
-		    if(!winBase)
-			return;
-		    scrBase = scr;
-		    winSize /= sizeof (FbBits);
-		    i = winSize;
-		}
-		win = winBase + (scr - scrBase);
-		if (i > width)
-		    i = width;
-		width -= i;
-		scr += i;
+        scrLine = (x >> FB_SHIFT);
+        shaLine = shaBase + y * shaStride + (x >> FB_SHIFT);
+
+        x &= FB_MASK;
+        w = (w + x + FB_MASK) >> FB_SHIFT;
+
+        while (h--) {
+            winSize = 0;
+            scrBase = 0;
+            width = w;
+            scr = scrLine;
+            sha = shaLine;
+            while (width) {
+                /* how much remains in this window */
+                i = scrBase + winSize - scr;
+                if (i <= 0 || scr < scrBase) {
+                    winBase = (FbBits *) (*pBuf->window) (pScreen,
+                                                          y,
+                                                          scr * sizeof(FbBits),
+                                                          SHADOW_WINDOW_WRITE,
+                                                          &winSize,
+                                                          pBuf->closure);
+                    if (!winBase)
+                        return;
+                    scrBase = scr;
+                    winSize /= sizeof(FbBits);
+                    i = winSize;
+                }
+                win = winBase + (scr - scrBase);
+                if (i > width)
+                    i = width;
+                width -= i;
+                scr += i;
 #define PickBit(a,i)	(((a) >> (i)) & 1)
-		memcpy(win, sha, i * sizeof(FbBits));
-		sha += i;
-	    }
-	    shaLine += shaStride;
-	    y++;
-	}
-	pbox++;
+                memcpy(win, sha, i * sizeof(FbBits));
+                sha += i;
+            }
+            shaLine += shaStride;
+            y++;
+        }
+        pbox++;
     }
 }
 
 shadowUpdateProc
-shadowUpdatePackedWeak(void) {
+shadowUpdatePackedWeak(void)
+{
     return shadowUpdatePacked;
 }

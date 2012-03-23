@@ -94,72 +94,76 @@
 #endif
 
 void
-FUNC (ScreenPtr	    pScreen,
-      shadowBufPtr  pBuf)
+FUNC(ScreenPtr pScreen, shadowBufPtr pBuf)
 {
-    RegionPtr	damage = shadowDamage (pBuf);
-    PixmapPtr	pShadow = pBuf->pPixmap;
-    int		nbox = RegionNumRects (damage);
-    BoxPtr	pbox = RegionRects (damage);
-    FbBits	*shaBits;
-    Data	*shaBase, *shaLine, *sha;
-    FbStride	shaStride;
-    int		scrBase, scrLine, scr;
-    int		shaBpp;
-    _X_UNUSED int	shaXoff, shaYoff;
-    int		x, y, w, h, width;
-    int         i;
-    Data	*winBase = NULL, *win;
-    CARD32	winSize;
+    RegionPtr damage = shadowDamage(pBuf);
+    PixmapPtr pShadow = pBuf->pPixmap;
+    int nbox = RegionNumRects(damage);
+    BoxPtr pbox = RegionRects(damage);
+    FbBits *shaBits;
+    Data *shaBase, *shaLine, *sha;
+    FbStride shaStride;
+    int scrBase, scrLine, scr;
+    int shaBpp;
+    _X_UNUSED int shaXoff, shaYoff;
+    int x, y, w, h, width;
+    int i;
+    Data *winBase = NULL, *win;
+    CARD32 winSize;
 
-    fbGetDrawable (&pShadow->drawable, shaBits, shaStride, shaBpp, shaXoff, shaYoff);
+    fbGetDrawable(&pShadow->drawable, shaBits, shaStride, shaBpp, shaXoff,
+                  shaYoff);
     shaBase = (Data *) shaBits;
-    shaStride = shaStride * sizeof (FbBits) / sizeof (Data);
+    shaStride = shaStride * sizeof(FbBits) / sizeof(Data);
 #if (DANDEBUG > 1)
-    ErrorF ("-> Entering Shadow Update:\r\n   |- Origins: pShadow=%x, pScreen=%x, damage=%x\r\n   |- Metrics: shaStride=%d, shaBase=%x, shaBpp=%d\r\n   |                                                     \n", pShadow, pScreen, damage, shaStride, shaBase, shaBpp);
+    ErrorF
+        ("-> Entering Shadow Update:\r\n   |- Origins: pShadow=%x, pScreen=%x, damage=%x\r\n   |- Metrics: shaStride=%d, shaBase=%x, shaBpp=%d\r\n   |                                                     \n",
+         pShadow, pScreen, damage, shaStride, shaBase, shaBpp);
 #endif
-    while (nbox--)
-    {
+    while (nbox--) {
         x = pbox->x1;
         y = pbox->y1;
         w = (pbox->x2 - pbox->x1);
         h = pbox->y2 - pbox->y1;
-        
+
 #if (DANDEBUG > 2)
-        ErrorF ("   |-> Redrawing box - Metrics: X=%d, Y=%d, Width=%d, Height=%d\n", x, y, w, h);
+        ErrorF
+            ("   |-> Redrawing box - Metrics: X=%d, Y=%d, Width=%d, Height=%d\n",
+             x, y, w, h);
 #endif
-        scrLine = SCRLEFT(x,y,w,h);
-        shaLine = shaBase + FIRSTSHA(x,y,w,h);
-        
-        while (STEPDOWN(x,y,w,h))
-        {
+        scrLine = SCRLEFT(x, y, w, h);
+        shaLine = shaBase + FIRSTSHA(x, y, w, h);
+
+        while (STEPDOWN(x, y, w, h)) {
             winSize = 0;
             scrBase = 0;
-            width = SCRWIDTH(x,y,w,h);
+            width = SCRWIDTH(x, y, w, h);
             scr = scrLine;
             sha = shaLine;
 #if (DANDEBUG > 3)
-            ErrorF ("   |   |-> StepDown - Metrics: width=%d, scr=%x, sha=%x\n", width, scr, sha);
+            ErrorF("   |   |-> StepDown - Metrics: width=%d, scr=%x, sha=%x\n",
+                   width, scr, sha);
 #endif
-            while (width)
-            {
+            while (width) {
                 /*  how much remains in this window */
                 i = scrBase + winSize - scr;
-                if (i <= 0 || scr < scrBase)
-                {
+                if (i <= 0 || scr < scrBase) {
                     winBase = (Data *) (*pBuf->window) (pScreen,
-							SCRY(x,y,w,h),
-							scr * sizeof (Data),
-							SHADOW_WINDOW_WRITE,
-							&winSize,
-							pBuf->closure);
-                    if(!winBase)
+                                                        SCRY(x, y, w, h),
+                                                        scr * sizeof(Data),
+                                                        SHADOW_WINDOW_WRITE,
+                                                        &winSize,
+                                                        pBuf->closure);
+                    if (!winBase)
                         return;
                     scrBase = scr;
-                    winSize /= sizeof (Data);
+                    winSize /= sizeof(Data);
                     i = winSize;
 #if(DANDEBUG > 4)
-                    ErrorF ("   |   |   |-> Starting New Line - Metrics: winBase=%x, scrBase=%x, winSize=%d\r\n   |   |   |   Xstride=%d, Ystride=%d, w=%d h=%d\n", winBase, scrBase, winSize, SHASTEPX(shaStride), SHASTEPY(shaStride), w, h);
+                    ErrorF
+                        ("   |   |   |-> Starting New Line - Metrics: winBase=%x, scrBase=%x, winSize=%d\r\n   |   |   |   Xstride=%d, Ystride=%d, w=%d h=%d\n",
+                         winBase, scrBase, winSize, SHASTEPX(shaStride),
+                         SHASTEPY(shaStride), w, h);
 #endif
                 }
                 win = winBase + (scr - scrBase);
@@ -168,20 +172,23 @@ FUNC (ScreenPtr	    pScreen,
                 width -= i;
                 scr += i;
 #if(DANDEBUG > 5)
-		ErrorF ("   |   |   |-> Writing Line - Metrics: win=%x, sha=%x\n", win, sha);
+                ErrorF
+                    ("   |   |   |-> Writing Line - Metrics: win=%x, sha=%x\n",
+                     win, sha);
 #endif
-                while (i--)
-                {
+                while (i--) {
 #if(DANDEBUG > 6)
-		    ErrorF ("   |   |   |-> Writing Pixel - Metrics: win=%x, sha=%d, remaining=%d\n", win, sha, i);
+                    ErrorF
+                        ("   |   |   |-> Writing Pixel - Metrics: win=%x, sha=%d, remaining=%d\n",
+                         win, sha, i);
 #endif
                     *win++ = *sha;
                     sha += SHASTEPX(shaStride);
-                } /*  i */
-            } /*  width */
+                }               /*  i */
+            }                   /*  width */
             shaLine += SHASTEPY(shaStride);
-            NEXTY(x,y,w,h);
-        } /*  STEPDOWN */
+            NEXTY(x, y, w, h);
+        }                       /*  STEPDOWN */
         pbox++;
-    } /*  nbox */
+    }                           /*  nbox */
 }

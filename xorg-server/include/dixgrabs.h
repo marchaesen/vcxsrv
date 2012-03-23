@@ -35,35 +35,30 @@ extern GrabPtr AllocGrab(void);
 extern void FreeGrab(GrabPtr grab);
 extern Bool CopyGrab(GrabPtr dst, const GrabPtr src);
 
-extern GrabPtr CreateGrab(
-	int /* client */,
-	DeviceIntPtr /* device */,
-	DeviceIntPtr /* modDevice */,
-	WindowPtr /* window */,
-        enum InputLevel /* grabtype */,
-        GrabMask * /* mask */,
-        struct _GrabParameters * /* param */,
-	int /* type */,
-	KeyCode /* keybut */,
-        WindowPtr /* confineTo */,
-        CursorPtr /* cursor */);
+extern GrabPtr CreateGrab(int /* client */ ,
+                          DeviceIntPtr /* device */ ,
+                          DeviceIntPtr /* modDevice */ ,
+                          WindowPtr /* window */ ,
+                          enum InputLevel /* grabtype */ ,
+                          GrabMask * /* mask */ ,
+                          struct _GrabParameters * /* param */ ,
+                          int /* type */ ,
+                          KeyCode /* keybut */ ,
+                          WindowPtr /* confineTo */ ,
+                          CursorPtr /* cursor */ );
 
-extern _X_EXPORT int DeletePassiveGrab(
-	pointer /* value */,
-	XID /* id */);
+extern _X_EXPORT int DeletePassiveGrab(pointer /* value */ ,
+                                       XID /* id */ );
 
-extern _X_EXPORT Bool GrabMatchesSecond(
-	GrabPtr /* pFirstGrab */,
-	GrabPtr /* pSecondGrab */,
-	Bool /*ignoreDevice*/);
+extern _X_EXPORT Bool GrabMatchesSecond(GrabPtr /* pFirstGrab */ ,
+                                        GrabPtr /* pSecondGrab */ ,
+                                        Bool /*ignoreDevice */ );
 
-extern _X_EXPORT int AddPassiveGrabToList(
-	ClientPtr /* client */,
-	GrabPtr /* pGrab */);
+extern _X_EXPORT int AddPassiveGrabToList(ClientPtr /* client */ ,
+                                          GrabPtr /* pGrab */ );
 
-extern _X_EXPORT Bool DeletePassiveGrabFromList(
-	GrabPtr /* pMinuendGrab */);
+extern _X_EXPORT Bool DeletePassiveGrabFromList(GrabPtr /* pMinuendGrab */ );
 
 extern Bool GrabIsPointerGrab(GrabPtr grab);
 extern Bool GrabIsKeyboardGrab(GrabPtr grab);
-#endif /* DIXGRABS_H */
+#endif                          /* DIXGRABS_H */

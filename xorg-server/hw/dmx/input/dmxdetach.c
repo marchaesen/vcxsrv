@@ -42,12 +42,14 @@
 #include "dmxextension.h"       /* For dmxInputCount */
 
 /** Search for input associated with \a dmxScreen, and detach. */
-void dmxInputDetach(DMXScreenInfo *dmxScreen, Bool reserveId)
+void
+dmxInputDetach(DMXScreenInfo * dmxScreen, Bool reserveId)
 {
     int i;
 
     for (i = 0; i < dmxNumInputs; i++) {
         DMXInputInfo *dmxInput = &dmxInputs[i];
+
         if (dmxInput->scrnIdx == dmxScreen->index) {
             dmxLogInput(dmxInput, "Detaching (%sreserved)\n",
                         reserveId ? "" : "not ");

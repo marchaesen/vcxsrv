@@ -40,19 +40,17 @@
 
 /* EXTERNS */
 
-extern Bool miDbeInit(
-    ScreenPtr           pScreen,
-    DbeScreenPrivPtr    pDbeScreenPriv
-);
+extern Bool miDbeInit(ScreenPtr pScreen, DbeScreenPrivPtr pDbeScreenPriv);
 
 extern DevPrivateKeyRec dbeScreenPrivKeyRec;
+
 #define dbeScreenPrivKey (&dbeScreenPrivKeyRec)
 
 extern DevPrivateKeyRec dbeWindowPrivKeyRec;
+
 #define dbeWindowPrivKey (&dbeWindowPrivKeyRec)
 
-extern RESTYPE	dbeDrawableResType;
-extern RESTYPE	dbeWindowPrivResType;
+extern RESTYPE dbeDrawableResType;
+extern RESTYPE dbeWindowPrivResType;
 
-#endif /* MIDBE_H */
-
+#endif                          /* MIDBE_H */

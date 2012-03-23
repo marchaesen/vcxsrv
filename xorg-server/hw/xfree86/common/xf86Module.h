@@ -47,10 +47,10 @@
 #endif
 
 typedef enum {
-    LD_RESOLV_IFDONE		= 0,	/* only check if no more
-					   delays pending */
-    LD_RESOLV_NOW		= 1,	/* finish one delay step */
-    LD_RESOLV_FORCE		= 2	/* force checking... */
+    LD_RESOLV_IFDONE = 0,       /* only check if no more
+                                   delays pending */
+    LD_RESOLV_NOW = 1,          /* finish one delay step */
+    LD_RESOLV_FORCE = 2         /* force checking... */
 } LoaderResolveOptions;
 
 #define DEFAULT_LIST ((char *)-1)
@@ -97,21 +97,21 @@ typedef enum {
 /* Error return codes for errmaj.  New codes must only be added at the end. */
 typedef enum {
     LDR_NOERROR = 0,
-    LDR_NOMEM,		/* memory allocation failed */
-    LDR_NOENT,		/* Module file does not exist */
-    LDR_NOSUBENT,	/* pre-requsite file to be sub-loaded does not exist */
-    LDR_NOSPACE,	/* internal module array full */
-    LDR_NOMODOPEN,	/* module file could not be opened (check errmin) */
-    LDR_UNKTYPE,	/* file is not a recognized module type */
-    LDR_NOLOAD,		/* type specific loader failed */
-    LDR_ONCEONLY,	/* Module should only be loaded once (not an error) */
-    LDR_NOPORTOPEN,	/* could not open port (check errmin) */
-    LDR_NOHARDWARE,	/* could not query/initialize the hardware device */
-    LDR_MISMATCH,	/* the module didn't match the spec'd requirments */
-    LDR_BADUSAGE,	/* LoadModule is called with bad arguments */
-    LDR_INVALID,	/* The module doesn't have a valid ModuleData object */
-    LDR_BADOS,		/* The module doesn't support the OS */
-    LDR_MODSPECIFIC	/* A module-specific error in the SetupProc */
+    LDR_NOMEM,                  /* memory allocation failed */
+    LDR_NOENT,                  /* Module file does not exist */
+    LDR_NOSUBENT,               /* pre-requsite file to be sub-loaded does not exist */
+    LDR_NOSPACE,                /* internal module array full */
+    LDR_NOMODOPEN,              /* module file could not be opened (check errmin) */
+    LDR_UNKTYPE,                /* file is not a recognized module type */
+    LDR_NOLOAD,                 /* type specific loader failed */
+    LDR_ONCEONLY,               /* Module should only be loaded once (not an error) */
+    LDR_NOPORTOPEN,             /* could not open port (check errmin) */
+    LDR_NOHARDWARE,             /* could not query/initialize the hardware device */
+    LDR_MISMATCH,               /* the module didn't match the spec'd requirments */
+    LDR_BADUSAGE,               /* LoadModule is called with bad arguments */
+    LDR_INVALID,                /* The module doesn't have a valid ModuleData object */
+    LDR_BADOS,                  /* The module doesn't support the OS */
+    LDR_MODSPECIFIC             /* A module-specific error in the SetupProc */
 } LoaderErrorCode;
 
 /*
@@ -129,19 +129,19 @@ typedef enum {
 
 /* This structure is expected to be returned by the initfunc */
 typedef struct {
-    const char * modname;	/* name of module, e.g. "foo" */
-    const char * vendor;	/* vendor specific string */
-    CARD32	 _modinfo1_;	/* constant MODINFOSTRING1/2 to find */
-    CARD32	 _modinfo2_;	/* infoarea with a binary editor or sign tool */
-    CARD32	 xf86version;	/* contains XF86_VERSION_CURRENT */
-    CARD8	 majorversion;	/* module-specific major version */
-    CARD8	 minorversion;	/* module-specific minor version */
-    CARD16	 patchlevel;	/* module-specific patch level */
-    const char * abiclass;	/* ABI class that the module uses */
-    CARD32	 abiversion;	/* ABI version */
-    const char * moduleclass;	/* module class description */
-    CARD32	 checksum[4];	/* contains a digital signature of the */
-				/* version info structure */
+    const char *modname;        /* name of module, e.g. "foo" */
+    const char *vendor;         /* vendor specific string */
+    CARD32 _modinfo1_;          /* constant MODINFOSTRING1/2 to find */
+    CARD32 _modinfo2_;          /* infoarea with a binary editor or sign tool */
+    CARD32 xf86version;         /* contains XF86_VERSION_CURRENT */
+    CARD8 majorversion;         /* module-specific major version */
+    CARD8 minorversion;         /* module-specific minor version */
+    CARD16 patchlevel;          /* module-specific patch level */
+    const char *abiclass;       /* ABI class that the module uses */
+    CARD32 abiversion;          /* ABI version */
+    const char *moduleclass;    /* module class description */
+    CARD32 checksum[4];         /* contains a digital signature of the */
+    /* version info structure */
 } XF86ModuleVersionInfo;
 
 /*
@@ -149,12 +149,12 @@ typedef struct {
  * specify version and/or ABI requirements.
  */
 typedef struct {
-    CARD8	 majorversion;	/* module-specific major version */
-    CARD8	 minorversion;	/* moudle-specific minor version */
-    CARD16	 patchlevel;	/* module-specific patch level */
-    const char * abiclass;	/* ABI class that the module uses */
-    CARD32	 abiversion;	/* ABI version */
-    const char * moduleclass;	/* module class */
+    CARD8 majorversion;         /* module-specific major version */
+    CARD8 minorversion;         /* moudle-specific minor version */
+    CARD16 patchlevel;          /* module-specific patch level */
+    const char *abiclass;       /* ABI class that the module uses */
+    CARD32 abiversion;          /* ABI version */
+    const char *moduleclass;    /* module class */
 } XF86ModReqInfo;
 
 /* values to indicate unspecified fields in XF86ModReqInfo. */
@@ -171,42 +171,44 @@ typedef struct {
 
 #define INITARGS void
 
-typedef void (*InitExtension)(INITARGS);
+typedef void (*InitExtension) (INITARGS);
 
 typedef struct {
-    InitExtension	initFunc;
-    const char *	name;
-    Bool		*disablePtr;
-    InitExtension	setupFunc;	
-    const char **	initDependencies;
+    InitExtension initFunc;
+    const char *name;
+    Bool *disablePtr;
+    InitExtension setupFunc;
+    const char **initDependencies;
 } ExtensionModule;
 
 extern _X_EXPORT ExtensionModule *ExtensionModuleList;
 
 /* Prototypes for Loader functions that are exported to modules */
 extern _X_EXPORT pointer LoadSubModule(pointer, const char *, const char **,
-		      const char **, pointer, const XF86ModReqInfo *,
-		      int *, int *);
+                                       const char **, pointer,
+                                       const XF86ModReqInfo *, int *, int *);
 extern _X_EXPORT void UnloadSubModule(pointer);
-extern _X_EXPORT void UnloadModule (pointer);
+extern _X_EXPORT void UnloadModule(pointer);
 extern _X_EXPORT pointer LoaderSymbol(const char *);
 extern _X_EXPORT char **LoaderListDirs(const char **, const char **);
 extern _X_EXPORT void LoaderFreeDirList(char **);
 extern _X_EXPORT void LoaderErrorMsg(const char *, const char *, int, int);
 extern _X_EXPORT void LoadExtension(ExtensionModule *, Bool);
-extern _X_EXPORT void LoaderGetOS(const char **name, int *major, int *minor, int *teeny);
+extern _X_EXPORT void LoaderGetOS(const char **name, int *major, int *minor,
+                                  int *teeny);
 extern _X_EXPORT Bool LoaderShouldIgnoreABI(void);
 extern _X_EXPORT int LoaderGetABIVersion(const char *abiclass);
 
-typedef pointer (*ModuleSetupProc)(pointer, pointer, int *, int *);
-typedef void (*ModuleTearDownProc)(pointer);
+typedef pointer (*ModuleSetupProc) (pointer, pointer, int *, int *);
+typedef void (*ModuleTearDownProc) (pointer);
+
 #define MODULESETUPPROTO(func) pointer func(pointer, pointer, int*, int*)
 #define MODULETEARDOWNPROTO(func) void func(pointer)
 
 typedef struct {
-    XF86ModuleVersionInfo *	vers;
-    ModuleSetupProc		setup;
-    ModuleTearDownProc		teardown;
+    XF86ModuleVersionInfo *vers;
+    ModuleSetupProc setup;
+    ModuleTearDownProc teardown;
 } XF86ModuleData;
 
-#endif /* _XF86STR_H */
+#endif                          /* _XF86STR_H */

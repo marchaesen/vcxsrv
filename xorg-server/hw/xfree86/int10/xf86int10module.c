@@ -13,7 +13,7 @@
 #include "xf86int10.h"
 
 #ifndef MOD_NAME
-# define MOD_NAME int10
+#define MOD_NAME int10
 #endif
 
 #define stringify(x) #x
@@ -22,22 +22,11 @@
 #define combine(a,b) concat(a,b)
 #define NAME(x) combine(MOD_NAME,x)
 
-static XF86ModuleVersionInfo NAME(VersRec) =
-{
-    STRING(NAME( )),
-    MODULEVENDORSTRING,
-    MODINFOSTRING1,
-    MODINFOSTRING2,
-    XORG_VERSION_CURRENT,
-    1, 0, 0,
-    ABI_CLASS_VIDEODRV,		/* needs the video driver ABI */
-    ABI_VIDEODRV_VERSION,
-    MOD_CLASS_NONE,
-    {0,0,0,0}
+static XF86ModuleVersionInfo NAME(VersRec) = {
+    STRING(NAME()), MODULEVENDORSTRING, MODINFOSTRING1, MODINFOSTRING2, XORG_VERSION_CURRENT, 1, 0, 0, ABI_CLASS_VIDEODRV,      /* needs the video driver ABI */
+        ABI_VIDEODRV_VERSION, MOD_CLASS_NONE, {
+    0, 0, 0, 0}
 };
 
 _X_EXPORT XF86ModuleData NAME(ModuleData) = {
-    &NAME(VersRec),
-    NULL,
-    NULL
-};
+&NAME(VersRec), NULL, NULL};

@@ -31,12 +31,16 @@
 #ifndef _GLX_VISUALS_H
 #define _GLX_VISUALS_H
 
-int glxVisualsMatch( __GLXvisualConfig *v1, __GLXvisualConfig *v2 );
+int glxVisualsMatch(__GLXvisualConfig * v1, __GLXvisualConfig * v2);
 
-VisualID glxMatchGLXVisualInConfigList( __GLXvisualConfig *pGlxVisual, __GLXvisualConfig *configs, int nconfigs );
+VisualID glxMatchGLXVisualInConfigList(__GLXvisualConfig * pGlxVisual,
+                                       __GLXvisualConfig * configs,
+                                       int nconfigs);
 
-VisualID glxMatchVisualInConfigList( ScreenPtr pScreen, VisualPtr pVisual, __GLXvisualConfig *configs, int nconfigs );
+VisualID glxMatchVisualInConfigList(ScreenPtr pScreen, VisualPtr pVisual,
+                                    __GLXvisualConfig * configs, int nconfigs);
 
-VisualPtr glxMatchVisual( ScreenPtr pScreen, VisualPtr pVisual, ScreenPtr pMatchScreen );
+VisualPtr glxMatchVisual(ScreenPtr pScreen, VisualPtr pVisual,
+                         ScreenPtr pMatchScreen);
 
 #endif

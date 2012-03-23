@@ -34,7 +34,7 @@ install-libtool-import-lib:
 	$(INSTALL) fontconfig.def $(DESTDIR)$(libdir)/fontconfig.def
 
 uninstall-libtool-import-lib:
-	-rm $(DESTDIR)$(libdir)/libfontconfig.dll.a $(DESTDIR)$(libdir)/fontconfig.def
+	$(RM) $(DESTDIR)$(libdir)/libfontconfig.dll.a $(DESTDIR)$(libdir)/fontconfig.def
 
 else
 
@@ -58,7 +58,7 @@ install-ms-import-lib:
 	$(INSTALL) fontconfig.lib $(DESTDIR)$(libdir)
 
 uninstall-ms-import-lib:
-	-rm $(DESTDIR)$(libdir)/fontconfig.lib
+	$(RM) $(DESTDIR)$(libdir)/fontconfig.lib
 
 else
 
@@ -147,12 +147,12 @@ PUBLIC_FT_FILES = \
 fcaliastail.h: fcalias.h
 
 fcalias.h: $(top_srcdir)/src/makealias $(PUBLIC_FILES)
-	sh $(top_srcdir)/src/makealias "$(top_srcdir)/src" fcalias.h fcaliastail.h $(PUBLIC_FILES)
+	$(AM_V_GEN) sh $(top_srcdir)/src/makealias "$(top_srcdir)/src" fcalias.h fcaliastail.h $(PUBLIC_FILES)
 
 fcftaliastail.h: fcftalias.h
 
 fcftalias.h: $(top_srcdir)/src/makealias $(PUBLIC_FT_FILES)
-	sh $(top_srcdir)/src/makealias "$(top_srcdir)/src" fcftalias.h fcftaliastail.h $(PUBLIC_FT_FILES)
+	$(AM_V_GEN) sh $(top_srcdir)/src/makealias "$(top_srcdir)/src" fcftalias.h fcftaliastail.h $(PUBLIC_FT_FILES)
 
 CLEANFILES = $(ALIAS_FILES)
 
@@ -164,4 +164,4 @@ fontconfig.def: $(PUBLIC_FILES) $(PUBLIC_FT_FILES)
 	sort; \
 	echo LIBRARY libfontconfig-@LIBT_CURRENT_MINUS_AGE@.dll; \
 	echo VERSION @LIBT_CURRENT@.@LIBT_REVISION@) >$@
-	@ ! grep -q FcERROR $@ || (rm $@; false)
+	@ ! grep -q FcERROR $@ || ($(RM) $@; false)

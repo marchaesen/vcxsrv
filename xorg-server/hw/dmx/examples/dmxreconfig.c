@@ -36,47 +36,47 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/dmxext.h>
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    Display              *display = NULL;
-    int                  event_base;
-    int                  error_base;
-    int                  major_version, minor_version, patch_version;
-    int                  screen;
-    DMXScreenAttributes  attr;
-    unsigned int         mask = 0;
-    int                  status;
-    int                  errorScreen;
+    Display *display = NULL;
+    int event_base;
+    int error_base;
+    int major_version, minor_version, patch_version;
+    int screen;
+    DMXScreenAttributes attr;
+    unsigned int mask = 0;
+    int status;
+    int errorScreen;
 
     if (argc != 13) {
-	fprintf(stderr, "Usage: %s display screen scrnx scrny scrnw scrnh rootx rooty rootw rooth originx originy\n", argv[0]);
-	return -1;
+        fprintf(stderr,
+                "Usage: %s display screen scrnx scrny scrnw scrnh rootx rooty rootw rooth originx originy\n",
+                argv[0]);
+        return -1;
     }
 
     if (!(display = XOpenDisplay(argv[1]))) {
-	fprintf(stderr, "Cannot open display %s\n", argv[1]);
-	return -1;
+        fprintf(stderr, "Cannot open display %s\n", argv[1]);
+        return -1;
     }
 
-    screen  = strtol(argv[2],  NULL, 0);
+    screen = strtol(argv[2], NULL, 0);
 
     mask |= (DMXScreenWindowXoffset |
-	     DMXScreenWindowYoffset |
-	     DMXScreenWindowWidth   |
-	     DMXScreenWindowHeight);
-    attr.screenWindowXoffset = strtol(argv[3],  NULL, 0);
-    attr.screenWindowYoffset = strtol(argv[4],  NULL, 0);
-    attr.screenWindowWidth   = strtol(argv[5],  NULL, 0);
-    attr.screenWindowHeight  = strtol(argv[6],  NULL, 0);
+             DMXScreenWindowYoffset |
+             DMXScreenWindowWidth | DMXScreenWindowHeight);
+    attr.screenWindowXoffset = strtol(argv[3], NULL, 0);
+    attr.screenWindowYoffset = strtol(argv[4], NULL, 0);
+    attr.screenWindowWidth = strtol(argv[5], NULL, 0);
+    attr.screenWindowHeight = strtol(argv[6], NULL, 0);
 
     mask |= (DMXRootWindowXoffset |
-	     DMXRootWindowYoffset |
-	     DMXRootWindowWidth   |
-	     DMXRootWindowHeight);
-    attr.rootWindowXoffset = strtol(argv[7],  NULL, 0);
-    attr.rootWindowYoffset = strtol(argv[8],  NULL, 0);
-    attr.rootWindowWidth   = strtol(argv[9],  NULL, 0);
-    attr.rootWindowHeight  = strtol(argv[10], NULL, 0);
+             DMXRootWindowYoffset | DMXRootWindowWidth | DMXRootWindowHeight);
+    attr.rootWindowXoffset = strtol(argv[7], NULL, 0);
+    attr.rootWindowYoffset = strtol(argv[8], NULL, 0);
+    attr.rootWindowWidth = strtol(argv[9], NULL, 0);
+    attr.rootWindowHeight = strtol(argv[10], NULL, 0);
 
     mask |= DMXRootWindowXorigin | DMXRootWindowYorigin;
     attr.rootWindowXorigin = strtol(argv[11], NULL, 0);
@@ -99,62 +99,61 @@ int main(int argc, char **argv)
 
     if (major_version == 1 && minor_version < 3) {
         fprintf(stderr,
-		"ReconfigureScreen not supported in this extension version\n");
+                "ReconfigureScreen not supported in this extension version\n");
         return -1;
     }
 
     if (major_version < 2) {
         fprintf(stderr,
-		"ChangeScreensAttributes not supported in this extension "
-		"version\n");
+                "ChangeScreensAttributes not supported in this extension "
+                "version\n");
         return -1;
     }
 
     if (!(status = DMXChangeScreensAttributes(display, 1, &screen, 1, &mask,
                                               &attr, &errorScreen))) {
         printf("Reconfigured screen #%d to "
-	       "%dx%d%s%d%s%d %dx%d%s%d%s%d %s%d%s%d\n",
-	       screen,
-	       attr.screenWindowWidth,
-	       attr.screenWindowHeight,
-	       (attr.screenWindowXoffset < 0 ? "" : "+"),
-	       attr.screenWindowXoffset,
-	       (attr.screenWindowYoffset < 0 ? "" : "+"),
-	       attr.screenWindowYoffset,
-	       attr.rootWindowWidth,
-	       attr.rootWindowHeight,
-	       (attr.rootWindowXoffset < 0 ? "" : "+"),
-	       attr.rootWindowXoffset,
-	       (attr.rootWindowYoffset < 0 ? "" : "+"),
-	       attr.rootWindowYoffset,
-	       (attr.rootWindowXorigin < 0 ? "" : "+"),
-	       attr.rootWindowXorigin,
-	       (attr.rootWindowYorigin < 0 ? "" : "+"),
-	       attr.rootWindowYorigin);
-    } else {
+               "%dx%d%s%d%s%d %dx%d%s%d%s%d %s%d%s%d\n",
+               screen,
+               attr.screenWindowWidth,
+               attr.screenWindowHeight,
+               (attr.screenWindowXoffset < 0 ? "" : "+"),
+               attr.screenWindowXoffset,
+               (attr.screenWindowYoffset < 0 ? "" : "+"),
+               attr.screenWindowYoffset,
+               attr.rootWindowWidth,
+               attr.rootWindowHeight,
+               (attr.rootWindowXoffset < 0 ? "" : "+"),
+               attr.rootWindowXoffset,
+               (attr.rootWindowYoffset < 0 ? "" : "+"),
+               attr.rootWindowYoffset,
+               (attr.rootWindowXorigin < 0 ? "" : "+"),
+               attr.rootWindowXorigin,
+               (attr.rootWindowYorigin < 0 ? "" : "+"), attr.rootWindowYorigin);
+    }
+    else {
         fprintf(stderr,
                 "Could not set screen #%d to "
-		"%dx%d%s%d%s%d %dx%d%s%d%s%d %s%d%s%d\n"
+                "%dx%d%s%d%s%d %dx%d%s%d%s%d %s%d%s%d\n"
                 "[status = %d, errorScreen=%d]\n",
                 screen,
-		attr.screenWindowWidth,
-		attr.screenWindowHeight,
-		(attr.screenWindowXoffset < 0 ? "" : "+"),
-		attr.screenWindowXoffset,
-		(attr.screenWindowYoffset < 0 ? "" : "+"),
-		attr.screenWindowYoffset,
-		attr.rootWindowWidth,
-		attr.rootWindowHeight,
-		(attr.rootWindowXoffset < 0 ? "" : "+"),
-		attr.rootWindowXoffset,
-		(attr.rootWindowYoffset < 0 ? "" : "+"),
-		attr.rootWindowYoffset,
-		(attr.rootWindowXorigin < 0 ? "" : "+"),
-		attr.rootWindowXorigin,
-		(attr.rootWindowYorigin < 0 ? "" : "+"),
-		attr.rootWindowYorigin,
-		status, errorScreen);
-	return -1;
+                attr.screenWindowWidth,
+                attr.screenWindowHeight,
+                (attr.screenWindowXoffset < 0 ? "" : "+"),
+                attr.screenWindowXoffset,
+                (attr.screenWindowYoffset < 0 ? "" : "+"),
+                attr.screenWindowYoffset,
+                attr.rootWindowWidth,
+                attr.rootWindowHeight,
+                (attr.rootWindowXoffset < 0 ? "" : "+"),
+                attr.rootWindowXoffset,
+                (attr.rootWindowYoffset < 0 ? "" : "+"),
+                attr.rootWindowYoffset,
+                (attr.rootWindowXorigin < 0 ? "" : "+"),
+                attr.rootWindowXorigin,
+                (attr.rootWindowYorigin < 0 ? "" : "+"),
+                attr.rootWindowYorigin, status, errorScreen);
+        return -1;
     }
 
     XCloseDisplay(display);

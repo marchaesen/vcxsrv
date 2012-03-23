@@ -19,10 +19,11 @@
  * Return:
  *    0 for failure, 1 for success
  */
-int xf86LoadKernelModule(const char *modName)
+int
+xf86LoadKernelModule(const char *modName)
 {
     if (kldload(modName) != -1)
-	return 1;
+        return 1;
     else
-	return 0;
+        return 0;
 }

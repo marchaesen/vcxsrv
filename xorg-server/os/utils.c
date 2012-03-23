@@ -24,7 +24,6 @@ not be used in advertising or otherwise to promote the sale, use or
 other dealings in this Software without prior written authorization
 from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts,
 Copyright 1994 Quarterdeck Office Systems.
 
@@ -99,19 +98,19 @@ __stdcall unsigned long GetTickCount(void);
 #ifndef WIN32
 #include <sys/wait.h>
 #endif
-#if !defined(SYSV) && !defined(WIN32) 
+#if !defined(SYSV) && !defined(WIN32)
 #include <sys/resource.h>
 #endif
 #include <sys/stat.h>
-#include <ctype.h>    /* for isspace */
+#include <ctype.h>              /* for isspace */
 #include <stdarg.h>
 
-#include <stdlib.h>	/* for malloc() */
+#include <stdlib.h>             /* for malloc() */
 
 #if defined(TCPCONN) || defined(STREAMSCONN)
-# ifndef WIN32
-#  include <netdb.h>
-# endif
+#ifndef WIN32
+#include <netdb.h>
+#endif
 #endif
 
 #include "opaque.h"
@@ -123,6 +122,7 @@ __stdcall unsigned long GetTickCount(void);
 #include "picture.h"
 
 Bool noTestExtensions;
+
 #ifdef COMPOSITE
 Bool noCompositeExtension = FALSE;
 #endif
@@ -150,6 +150,7 @@ Bool noMITShmExtension = FALSE;
 Bool noRRExtension = FALSE;
 #endif
 Bool noRenderExtension = FALSE;
+
 #ifdef XCSECURITY
 Bool noSecurityExtension = FALSE;
 #endif
@@ -214,11 +215,11 @@ OsSignal(int sig, OsSigHandlerPtr handler)
 
     sigemptyset(&act.sa_mask);
     if (handler != SIG_IGN)
-	sigaddset(&act.sa_mask, sig);
+        sigaddset(&act.sa_mask, sig);
     act.sa_flags = 0;
     act.sa_handler = handler;
     if (sigaction(sig, &act, &oact))
-      perror("sigaction");
+        perror("sigaction");
     return oact.sa_handler;
 }
 
@@ -246,121 +247,123 @@ static Bool nolock = FALSE;
 void
 LockServer(void)
 {
-  char tmp[PATH_MAX], pid_str[12];
-  int lfd, i, haslock, l_pid, t;
-  const char *tmppath = LOCK_DIR;
-  int len;
-  char port[20];
+    char tmp[PATH_MAX], pid_str[12];
+    int lfd, i, haslock, l_pid, t;
+    const char *tmppath = LOCK_DIR;
+    int len;
+    char port[20];
 
-  if (nolock) return;
-  /*
-   * Path names
-   */
-  snprintf(port, sizeof(port), "%d", atoi(display));
-  len = strlen(LOCK_PREFIX) > strlen(LOCK_TMP_PREFIX) ? strlen(LOCK_PREFIX) :
-						strlen(LOCK_TMP_PREFIX);
-  len += strlen(tmppath) + strlen(port) + strlen(LOCK_SUFFIX) + 1;
-  if (len > sizeof(LockFile))
-    FatalError("Display name `%s' is too long\n", port);
-  (void)sprintf(tmp, "%s" LOCK_TMP_PREFIX "%s" LOCK_SUFFIX, tmppath, port);
-  (void)sprintf(LockFile, "%s" LOCK_PREFIX "%s" LOCK_SUFFIX, tmppath, port);
+    if (nolock)
+        return;
+    /*
+     * Path names
+     */
+    snprintf(port, sizeof(port), "%d", atoi(display));
+    len = strlen(LOCK_PREFIX) > strlen(LOCK_TMP_PREFIX) ? strlen(LOCK_PREFIX) :
+        strlen(LOCK_TMP_PREFIX);
+    len += strlen(tmppath) + strlen(port) + strlen(LOCK_SUFFIX) + 1;
+    if (len > sizeof(LockFile))
+        FatalError("Display name `%s' is too long\n", port);
+    (void) sprintf(tmp, "%s" LOCK_TMP_PREFIX "%s" LOCK_SUFFIX, tmppath, port);
+    (void) sprintf(LockFile, "%s" LOCK_PREFIX "%s" LOCK_SUFFIX, tmppath, port);
 
-  /*
-   * Create a temporary file containing our PID.  Attempt three times
-   * to create the file.
-   */
-  StillLocking = TRUE;
-  i = 0;
-  do {
-    i++;
-    lfd = open(tmp, O_CREAT | O_EXCL | O_WRONLY, 0644);
-    if (lfd < 0)
-       sleep(2);
-    else
-       break;
-  } while (i < 3);
-  if (lfd < 0) {
-    unlink(tmp);
+    /*
+     * Create a temporary file containing our PID.  Attempt three times
+     * to create the file.
+     */
+    StillLocking = TRUE;
     i = 0;
     do {
-      i++;
-      lfd = open(tmp, O_CREAT | O_EXCL | O_WRONLY, 0644);
-      if (lfd < 0)
-         sleep(2);
-      else
-         break;
+        i++;
+        lfd = open(tmp, O_CREAT | O_EXCL | O_WRONLY, 0644);
+        if (lfd < 0)
+            sleep(2);
+        else
+            break;
     } while (i < 3);
-  }
-  if (lfd < 0)
-    FatalError("Could not create lock file in %s\n", tmp);
-  snprintf(pid_str, sizeof(pid_str), "%10ld\n", (long)getpid());
-  (void) write(lfd, pid_str, 11);
-  (void) fchmod(lfd, 0444);
-  (void) close(lfd);
-
-  /*
-   * OK.  Now the tmp file exists.  Try three times to move it in place
-   * for the lock.
-   */
-  i = 0;
-  haslock = 0;
-  while ((!haslock) && (i++ < 3)) {
-    haslock = (link(tmp,LockFile) == 0);
-    if (haslock) {
-      /*
-       * We're done.
-       */
-      break;
-    }
-    else {
-      /*
-       * Read the pid from the existing file
-       */
-      lfd = open(LockFile, O_RDONLY|O_NOFOLLOW);
-      if (lfd < 0) {
+    if (lfd < 0) {
         unlink(tmp);
-        FatalError("Can't read lock file %s\n", LockFile);
-      }
-      pid_str[0] = '\0';
-      if (read(lfd, pid_str, 11) != 11) {
-        /*
-         * Bogus lock file.
-         */
-        unlink(LockFile);
-        close(lfd);
-        continue;
-      }
-      pid_str[11] = '\0';
-      sscanf(pid_str, "%d", &l_pid);
-      close(lfd);
-
-      /*
-       * Now try to kill the PID to see if it exists.
-       */
-      errno = 0;
-      t = kill(l_pid, 0);
-      if ((t< 0) && (errno == ESRCH)) {
-        /*
-         * Stale lock file.
-         */
-        unlink(LockFile);
-        continue;
-      }
-      else if (((t < 0) && (errno == EPERM)) || (t == 0)) {
-        /*
-         * Process is still active.
-         */
-        unlink(tmp);
-	FatalError("Server is already active for display %s\n%s %s\n%s\n",
-		   port, "\tIf this server is no longer running, remove",
-		   LockFile, "\tand start again.");
-      }
+        i = 0;
+        do {
+            i++;
+            lfd = open(tmp, O_CREAT | O_EXCL | O_WRONLY, 0644);
+            if (lfd < 0)
+                sleep(2);
+            else
+                break;
+        } while (i < 3);
     }
-  }
-  unlink(tmp);
-  if (!haslock)
-    FatalError("Could not create server lock file: %s\n", LockFile);
-  StillLocking = FALSE;
+    if (lfd < 0)
+        FatalError("Could not create lock file in %s\n", tmp);
+    snprintf(pid_str, sizeof(pid_str), "%10ld\n", (long) getpid());
+    (void) write(lfd, pid_str, 11);
+    (void) fchmod(lfd, 0444);
+    (void) close(lfd);
+
+    /*
+     * OK.  Now the tmp file exists.  Try three times to move it in place
+     * for the lock.
+     */
+    i = 0;
+    haslock = 0;
+    while ((!haslock) && (i++ < 3)) {
+        haslock = (link(tmp, LockFile) == 0);
+        if (haslock) {
+            /*
+             * We're done.
+             */
+            break;
+        }
+        else {
+            /*
+             * Read the pid from the existing file
+             */
+            lfd = open(LockFile, O_RDONLY | O_NOFOLLOW);
+            if (lfd < 0) {
+                unlink(tmp);
+                FatalError("Can't read lock file %s\n", LockFile);
+            }
+            pid_str[0] = '\0';
+            if (read(lfd, pid_str, 11) != 11) {
+                /*
+                 * Bogus lock file.
+                 */
+                unlink(LockFile);
+                close(lfd);
+                continue;
+            }
+            pid_str[11] = '\0';
+            sscanf(pid_str, "%d", &l_pid);
+            close(lfd);
+
+            /*
+             * Now try to kill the PID to see if it exists.
+             */
+            errno = 0;
+            t = kill(l_pid, 0);
+            if ((t < 0) && (errno == ESRCH)) {
+                /*
+                 * Stale lock file.
+                 */
+                unlink(LockFile);
+                continue;
+            }
+            else if (((t < 0) && (errno == EPERM)) || (t == 0)) {
+                /*
+                 * Process is still active.
+                 */
+                unlink(tmp);
+                FatalError
+                    ("Server is already active for display %s\n%s %s\n%s\n",
+                     port, "\tIf this server is no longer running, remove",
+                     LockFile, "\tand start again.");
+            }
+        }
+    }
+    unlink(tmp);
+    if (!haslock)
+        FatalError("Could not create server lock file: %s\n", LockFile);
+    StillLocking = FALSE;
 }
 
 /*
@@ -370,18 +373,19 @@ LockServer(void)
 void
 UnlockServer(void)
 {
-  if (nolock) return;
+    if (nolock)
+        return;
 
-  if (!StillLocking){
+    if (!StillLocking) {
 
-  (void) unlink(LockFile);
-  }
+        (void) unlink(LockFile);
+    }
 }
 
 /* Force connections to close on SIGHUP from init */
 
 void
-AutoResetServer (int sig)
+AutoResetServer(int sig)
 {
     int olderrno = errno;
 
@@ -404,9 +408,9 @@ GiveUp(int sig)
 
 #if (defined WIN32 && defined __MINGW32__) || defined(__CYGWIN__)
 CARD32
-GetTimeInMillis (void)
+GetTimeInMillis(void)
 {
-  return GetTickCount ();
+    return GetTickCount();
 }
 #else
 CARD32
@@ -417,6 +421,7 @@ GetTimeInMillis(void)
 #ifdef MONOTONIC_CLOCK
     struct timespec tp;
     static clockid_t clockid;
+
     if (!clockid) {
 #ifdef CLOCK_MONOTONIC_COARSE
         if (clock_getres(CLOCK_MONOTONIC_COARSE, &tp) == 0 &&
@@ -435,41 +440,39 @@ GetTimeInMillis(void)
 #endif
 
     X_GETTIMEOFDAY(&tv);
-    return(tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+    return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 }
 #endif
 
 void
-AdjustWaitForDelay (pointer waitTime, unsigned long newdelay)
+AdjustWaitForDelay(pointer waitTime, unsigned long newdelay)
 {
-    static struct timeval   delay_val;
-    struct timeval	    **wt = (struct timeval **) waitTime;
-    unsigned long	    olddelay;
+    static struct timeval delay_val;
+    struct timeval **wt = (struct timeval **) waitTime;
+    unsigned long olddelay;
 
-    if (*wt == NULL)
-    {
-	delay_val.tv_sec = newdelay / 1000;
-	delay_val.tv_usec = 1000 * (newdelay % 1000);
-	*wt = &delay_val;
+    if (*wt == NULL) {
+        delay_val.tv_sec = newdelay / 1000;
+        delay_val.tv_usec = 1000 * (newdelay % 1000);
+        *wt = &delay_val;
     }
-    else
-    {
-	olddelay = (*wt)->tv_sec * 1000 + (*wt)->tv_usec / 1000;
-	if (newdelay < olddelay)
-	{
-	    (*wt)->tv_sec = newdelay / 1000;
-	    (*wt)->tv_usec = 1000 * (newdelay % 1000);
-	}
+    else {
+        olddelay = (*wt)->tv_sec * 1000 + (*wt)->tv_usec / 1000;
+        if (newdelay < olddelay) {
+            (*wt)->tv_sec = newdelay / 1000;
+            (*wt)->tv_usec = 1000 * (newdelay % 1000);
+        }
     }
 }
 
-void UseMsg(void)
+void
+UseMsg(void)
 {
     ErrorF("use: X [:<display>] [option]\n");
     ErrorF("-a #                   default pointer acceleration (factor)\n");
     ErrorF("-ac                    disable access control restrictions\n");
-    ErrorF("-audit int             set audit trail level\n");	
-    ErrorF("-auth file             select authorization file\n");	
+    ErrorF("-audit int             set audit trail level\n");
+    ErrorF("-auth file             select authorization file\n");
     ErrorF("-br                    create root window with black background\n");
     ErrorF("+bs                    enable any backing store support\n");
     ErrorF("-bs                    disable any backing store support\n");
@@ -482,7 +485,8 @@ void UseMsg(void)
 #ifdef DPMSExtension
     ErrorF("-dpms                  disables VESA DPMS monitor control\n");
 #endif
-    ErrorF("-deferglyphs [none|all|16] defer loading of [no|all|16-bit] glyphs\n");
+    ErrorF
+        ("-deferglyphs [none|all|16] defer loading of [no|all|16-bit] glyphs\n");
     ErrorF("-f #                   bell base (0-100)\n");
     ErrorF("-fc string             cursor font\n");
     ErrorF("-fn string             default font name\n");
@@ -526,7 +530,8 @@ void UseMsg(void)
     ErrorF("+xinerama              Enable XINERAMA extension\n");
     ErrorF("-xinerama              Disable XINERAMA extension\n");
 #endif
-    ErrorF("-dumbSched             Disable smart scheduling, enable old behavior\n");
+    ErrorF
+        ("-dumbSched             Disable smart scheduling, enable old behavior\n");
     ErrorF("-schedInterval int     Set scheduler interval in msec\n");
     ErrorF("-sigstop               Enable SIGSTOP based startup\n");
     ErrorF("+extension name        Enable extension\n");
@@ -545,14 +550,19 @@ void UseMsg(void)
  *  not contain a "/" and not start with a "-".
  *                                            --kvajk
  */
-static int 
+static int
 VerifyDisplayName(const char *d)
 {
-    if ( d == (char *)0 ) return 0;  /*  null  */
-    if ( *d == '\0' ) return 0;  /*  empty  */
-    if ( *d == '-' ) return 0;  /*  could be confused for an option  */
-    if ( *d == '.' ) return 0;  /*  must not equal "." or ".."  */
-    if ( strchr(d, '/') != (char *)0 ) return 0;  /*  very important!!!  */
+    if (d == (char *) 0)
+        return 0;               /*  null  */
+    if (*d == '\0')
+        return 0;               /*  empty  */
+    if (*d == '-')
+        return 0;               /*  could be confused for an option  */
+    if (*d == '.')
+        return 0;               /*  must not equal "." or ".."  */
+    if (strchr(d, '/') != (char *) 0)
+        return 0;               /*  very important!!!  */
     return 1;
 }
 
@@ -574,390 +584,339 @@ ProcessCommandLine(int argc, char *argv[])
     PartialNetwork = TRUE;
 #endif
 
-    for ( i = 1; i < argc; i++ )
-    {
-	/* call ddx first, so it can peek/override if it wants */
-        if((skip = ddxProcessArgument(argc, argv, i)))
-	{
-	    i += (skip - 1);
-	}
-	else if(argv[i][0] ==  ':')  
-	{
-	    /* initialize display */
-	    display = argv[i];
-	    display++;
-            if( ! VerifyDisplayName( display ) ) {
+    for (i = 1; i < argc; i++) {
+        /* call ddx first, so it can peek/override if it wants */
+        if ((skip = ddxProcessArgument(argc, argv, i))) {
+            i += (skip - 1);
+        }
+        else if (argv[i][0] == ':') {
+            /* initialize display */
+            display = argv[i];
+            display++;
+            if (!VerifyDisplayName(display)) {
                 ErrorF("Bad display name: %s\n", display);
                 UseMsg();
-		FatalError("Bad display name, exiting: %s\n", display);
+                FatalError("Bad display name, exiting: %s\n", display);
             }
-	}
-	else if ( strcmp( argv[i], "-a") == 0)
-	{
-	    if(++i < argc)
-	        defaultPointerControl.num = atoi(argv[i]);
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-ac") == 0)
-	{
-	    defeatAccessControl = TRUE;
-	}
-	else if ( strcmp( argv[i], "-audit") == 0)
-	{
-	    if(++i < argc)
-	        auditTrailLevel = atoi(argv[i]);
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-auth") == 0)
-	{
-	    if(++i < argc)
-	        InitAuthorization (argv[i]);
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-br") == 0) ; /* default */
-	else if ( strcmp( argv[i], "+bs") == 0)
-	    enableBackingStore = TRUE;
-	else if ( strcmp( argv[i], "-bs") == 0)
-	    disableBackingStore = TRUE;
-	else if ( strcmp( argv[i], "c") == 0)
-	{
-	    if(++i < argc)
-	        defaultKeyboardControl.click = atoi(argv[i]);
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-c") == 0)
-	{
-	    defaultKeyboardControl.click = 0;
-	}
-	else if ( strcmp( argv[i], "-cc") == 0)
-	{
-	    if(++i < argc)
-	        defaultColorVisualClass = atoi(argv[i]);
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-core") == 0)
-	{
+        }
+        else if (strcmp(argv[i], "-a") == 0) {
+            if (++i < argc)
+                defaultPointerControl.num = atoi(argv[i]);
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-ac") == 0) {
+            defeatAccessControl = TRUE;
+        }
+        else if (strcmp(argv[i], "-audit") == 0) {
+            if (++i < argc)
+                auditTrailLevel = atoi(argv[i]);
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-auth") == 0) {
+            if (++i < argc)
+                InitAuthorization(argv[i]);
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-br") == 0);  /* default */
+        else if (strcmp(argv[i], "+bs") == 0)
+            enableBackingStore = TRUE;
+        else if (strcmp(argv[i], "-bs") == 0)
+            disableBackingStore = TRUE;
+        else if (strcmp(argv[i], "c") == 0) {
+            if (++i < argc)
+                defaultKeyboardControl.click = atoi(argv[i]);
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-c") == 0) {
+            defaultKeyboardControl.click = 0;
+        }
+        else if (strcmp(argv[i], "-cc") == 0) {
+            if (++i < argc)
+                defaultColorVisualClass = atoi(argv[i]);
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-core") == 0) {
 #if !defined(WIN32) || !defined(__MINGW32__)
-	    struct rlimit   core_limit;
-	    getrlimit (RLIMIT_CORE, &core_limit);
-	    core_limit.rlim_cur = core_limit.rlim_max;
-	    setrlimit (RLIMIT_CORE, &core_limit);
+            struct rlimit core_limit;
+
+            getrlimit(RLIMIT_CORE, &core_limit);
+            core_limit.rlim_cur = core_limit.rlim_max;
+            setrlimit(RLIMIT_CORE, &core_limit);
 #endif
-	    CoreDump = TRUE;
-	}
-        else if ( strcmp( argv[i], "-nocursor") == 0)
-        {
+            CoreDump = TRUE;
+        }
+        else if (strcmp(argv[i], "-nocursor") == 0) {
             EnableCursor = FALSE;
         }
-        else if ( strcmp( argv[i], "-dpi") == 0)
-	{
-	    if(++i < argc)
-	        monitorResolution = atoi(argv[i]);
-	    else
-		UseMsg();
-	}
+        else if (strcmp(argv[i], "-dpi") == 0) {
+            if (++i < argc)
+                monitorResolution = atoi(argv[i]);
+            else
+                UseMsg();
+        }
 #ifdef DPMSExtension
-	else if ( strcmp( argv[i], "dpms") == 0)
-	    /* ignored for compatibility */ ;
-	else if ( strcmp( argv[i], "-dpms") == 0)
-	    DPMSDisabledSwitch = TRUE;
+        else if (strcmp(argv[i], "dpms") == 0)
+            /* ignored for compatibility */ ;
+        else if (strcmp(argv[i], "-dpms") == 0)
+            DPMSDisabledSwitch = TRUE;
 #endif
-	else if ( strcmp( argv[i], "-deferglyphs") == 0)
-	{
-	    if(++i >= argc || !ParseGlyphCachingMode(argv[i]))
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-f") == 0)
-	{
-	    if(++i < argc)
-	        defaultKeyboardControl.bell = atoi(argv[i]);
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-fc") == 0)
-	{
-	    if(++i < argc)
-	        defaultCursorFont = argv[i];
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-fn") == 0)
-	{
-	    if(++i < argc)
-	        defaultTextFont = argv[i];
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-fp") == 0)
-	{
-	    if(++i < argc)
-	    {
-	        defaultFontPath = argv[i];
-	    }
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-help") == 0)
-	{
-	    UseMsg();
-	    exit(0);
-	}
-        else if ( (skip=XkbProcessArguments(argc,argv,i))!=0 ) {
-	    if (skip>0)
-		 i+= skip-1;
-	    else UseMsg();
-	}
+        else if (strcmp(argv[i], "-deferglyphs") == 0) {
+            if (++i >= argc || !ParseGlyphCachingMode(argv[i]))
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-f") == 0) {
+            if (++i < argc)
+                defaultKeyboardControl.bell = atoi(argv[i]);
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-fc") == 0) {
+            if (++i < argc)
+                defaultCursorFont = argv[i];
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-fn") == 0) {
+            if (++i < argc)
+                defaultTextFont = argv[i];
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-fp") == 0) {
+            if (++i < argc) {
+                defaultFontPath = argv[i];
+            }
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-help") == 0) {
+            UseMsg();
+            exit(0);
+        }
+        else if ((skip = XkbProcessArguments(argc, argv, i)) != 0) {
+            if (skip > 0)
+                i += skip - 1;
+            else
+                UseMsg();
+        }
 #ifdef RLIMIT_DATA
-	else if ( strcmp( argv[i], "-ld") == 0)
-	{
-	    if(++i < argc)
-	    {
-	        limitDataSpace = atoi(argv[i]);
-		if (limitDataSpace > 0)
-		    limitDataSpace *= 1024;
-	    }
-	    else
-		UseMsg();
-	}
+        else if (strcmp(argv[i], "-ld") == 0) {
+            if (++i < argc) {
+                limitDataSpace = atoi(argv[i]);
+                if (limitDataSpace > 0)
+                    limitDataSpace *= 1024;
+            }
+            else
+                UseMsg();
+        }
 #endif
 #ifdef RLIMIT_NOFILE
-	else if ( strcmp( argv[i], "-lf") == 0)
-	{
-	    if(++i < argc)
-	        limitNoFile = atoi(argv[i]);
-	    else
-		UseMsg();
-	}
+        else if (strcmp(argv[i], "-lf") == 0) {
+            if (++i < argc)
+                limitNoFile = atoi(argv[i]);
+            else
+                UseMsg();
+        }
 #endif
 #ifdef RLIMIT_STACK
-	else if ( strcmp( argv[i], "-ls") == 0)
-	{
-	    if(++i < argc)
-	    {
-	        limitStackSpace = atoi(argv[i]);
-		if (limitStackSpace > 0)
-		    limitStackSpace *= 1024;
-	    }
-	    else
-		UseMsg();
-	}
+        else if (strcmp(argv[i], "-ls") == 0) {
+            if (++i < argc) {
+                limitStackSpace = atoi(argv[i]);
+                if (limitStackSpace > 0)
+                    limitStackSpace *= 1024;
+            }
+            else
+                UseMsg();
+        }
 #endif
-	else if ( strcmp ( argv[i], "-nolock") == 0)
-	{
+        else if (strcmp(argv[i], "-nolock") == 0) {
 #if !defined(WIN32) && !defined(__CYGWIN__)
-	  if (getuid() != 0)
-	    ErrorF("Warning: the -nolock option can only be used by root\n");
-	  else
+            if (getuid() != 0)
+                ErrorF
+                    ("Warning: the -nolock option can only be used by root\n");
+            else
 #endif
-	    nolock = TRUE;
-	}
-	else if ( strcmp( argv[i], "-nolisten") == 0)
-	{
-            if(++i < argc) {
-		if (_XSERVTransNoListen(argv[i])) 
-		    FatalError ("Failed to disable listen for %s transport",
-				argv[i]);
-	   } else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-noreset") == 0)
-	{
-	    dispatchExceptionAtReset = 0;
-	}
-	else if ( strcmp( argv[i], "-reset") == 0)
-	{
-	    dispatchExceptionAtReset = DE_RESET;
-	}
-	else if ( strcmp( argv[i], "-p") == 0)
-	{
-	    if(++i < argc)
-	        defaultScreenSaverInterval = ((CARD32)atoi(argv[i])) *
-					     MILLI_PER_MIN;
-	    else
-		UseMsg();
-	}
-	else if (strcmp(argv[i], "-pogo") == 0)
-	{
-	    dispatchException = DE_TERMINATE;
-	}
-	else if ( strcmp( argv[i], "-pn") == 0)
-	    PartialNetwork = TRUE;
-	else if ( strcmp( argv[i], "-nopn") == 0)
-	    PartialNetwork = FALSE;
-	else if ( strcmp( argv[i], "r") == 0)
-	    defaultKeyboardControl.autoRepeat = TRUE;
-	else if ( strcmp( argv[i], "-r") == 0)
-	    defaultKeyboardControl.autoRepeat = FALSE;
-	else if ( strcmp( argv[i], "-retro") == 0)
-	    party_like_its_1989 = TRUE;
-	else if ( strcmp( argv[i], "-s") == 0)
-	{
-	    if(++i < argc)
-	        defaultScreenSaverTime = ((CARD32)atoi(argv[i])) *
-					 MILLI_PER_MIN;
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-seat") == 0)
-	{
-	    if(++i < argc)
-		SeatId = argv[i];
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-t") == 0)
-	{
-	    if(++i < argc)
-	        defaultPointerControl.threshold = atoi(argv[i]);
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-terminate") == 0)
-	{
-	    dispatchExceptionAtReset = DE_TERMINATE;
-	}
-	else if ( strcmp( argv[i], "-to") == 0)
-	{
-	    if(++i < argc)
-		TimeOutValue = ((CARD32)atoi(argv[i])) * MILLI_PER_SECOND;
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-tst") == 0)
-	{
-	    noTestExtensions = TRUE;
-	}
-	else if ( strcmp( argv[i], "v") == 0)
-	    defaultScreenSaverBlanking = PreferBlanking;
-	else if ( strcmp( argv[i], "-v") == 0)
-	    defaultScreenSaverBlanking = DontPreferBlanking;
-	else if ( strcmp( argv[i], "-wm") == 0)
-	    defaultBackingStore = WhenMapped;
-        else if ( strcmp( argv[i], "-wr") == 0)
+                nolock = TRUE;
+        }
+        else if (strcmp(argv[i], "-nolisten") == 0) {
+            if (++i < argc) {
+                if (_XSERVTransNoListen(argv[i]))
+                    FatalError("Failed to disable listen for %s transport",
+                               argv[i]);
+            }
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-noreset") == 0) {
+            dispatchExceptionAtReset = 0;
+        }
+        else if (strcmp(argv[i], "-reset") == 0) {
+            dispatchExceptionAtReset = DE_RESET;
+        }
+        else if (strcmp(argv[i], "-p") == 0) {
+            if (++i < argc)
+                defaultScreenSaverInterval = ((CARD32) atoi(argv[i])) *
+                    MILLI_PER_MIN;
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-pogo") == 0) {
+            dispatchException = DE_TERMINATE;
+        }
+        else if (strcmp(argv[i], "-pn") == 0)
+            PartialNetwork = TRUE;
+        else if (strcmp(argv[i], "-nopn") == 0)
+            PartialNetwork = FALSE;
+        else if (strcmp(argv[i], "r") == 0)
+            defaultKeyboardControl.autoRepeat = TRUE;
+        else if (strcmp(argv[i], "-r") == 0)
+            defaultKeyboardControl.autoRepeat = FALSE;
+        else if (strcmp(argv[i], "-retro") == 0)
+            party_like_its_1989 = TRUE;
+        else if (strcmp(argv[i], "-s") == 0) {
+            if (++i < argc)
+                defaultScreenSaverTime = ((CARD32) atoi(argv[i])) *
+                    MILLI_PER_MIN;
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-seat") == 0) {
+            if (++i < argc)
+                SeatId = argv[i];
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-t") == 0) {
+            if (++i < argc)
+                defaultPointerControl.threshold = atoi(argv[i]);
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-terminate") == 0) {
+            dispatchExceptionAtReset = DE_TERMINATE;
+        }
+        else if (strcmp(argv[i], "-to") == 0) {
+            if (++i < argc)
+                TimeOutValue = ((CARD32) atoi(argv[i])) * MILLI_PER_SECOND;
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-tst") == 0) {
+            noTestExtensions = TRUE;
+        }
+        else if (strcmp(argv[i], "v") == 0)
+            defaultScreenSaverBlanking = PreferBlanking;
+        else if (strcmp(argv[i], "-v") == 0)
+            defaultScreenSaverBlanking = DontPreferBlanking;
+        else if (strcmp(argv[i], "-wm") == 0)
+            defaultBackingStore = WhenMapped;
+        else if (strcmp(argv[i], "-wr") == 0)
             whiteRoot = TRUE;
-        else if ( strcmp( argv[i], "-background") == 0) {
-            if(++i < argc) {
-                if (!strcmp ( argv[i], "none"))
+        else if (strcmp(argv[i], "-background") == 0) {
+            if (++i < argc) {
+                if (!strcmp(argv[i], "none"))
                     bgNoneRoot = TRUE;
                 else
                     UseMsg();
             }
         }
-        else if ( strcmp( argv[i], "-maxbigreqsize") == 0) {
-             if(++i < argc) {
-                 long reqSizeArg = atol(argv[i]);
+        else if (strcmp(argv[i], "-maxbigreqsize") == 0) {
+            if (++i < argc) {
+                long reqSizeArg = atol(argv[i]);
 
-                 /* Request size > 128MB does not make much sense... */
-                 if( reqSizeArg > 0L && reqSizeArg < 128L ) {
-                     maxBigRequestSize = (reqSizeArg * 1048576L) - 1L;
-                 }
-                 else
-                 {
-                     UseMsg();
-                 }
-             }
-             else
-             {
-                 UseMsg();
-             }
-         }
+                /* Request size > 128MB does not make much sense... */
+                if (reqSizeArg > 0L && reqSizeArg < 128L) {
+                    maxBigRequestSize = (reqSizeArg * 1048576L) - 1L;
+                }
+                else {
+                    UseMsg();
+                }
+            }
+            else {
+                UseMsg();
+            }
+        }
 #ifdef PANORAMIX
-	else if ( strcmp( argv[i], "+xinerama") == 0){
-	    noPanoramiXExtension = FALSE;
-	}
-	else if ( strcmp( argv[i], "-xinerama") == 0){
-	    noPanoramiXExtension = TRUE;
-	}
-	else if ( strcmp( argv[i], "-disablexineramaextension") == 0){
-	    PanoramiXExtensionDisabledHack = TRUE;
-	}
+        else if (strcmp(argv[i], "+xinerama") == 0) {
+            noPanoramiXExtension = FALSE;
+        }
+        else if (strcmp(argv[i], "-xinerama") == 0) {
+            noPanoramiXExtension = TRUE;
+        }
+        else if (strcmp(argv[i], "-disablexineramaextension") == 0) {
+            PanoramiXExtensionDisabledHack = TRUE;
+        }
 #endif
-	else if ( strcmp( argv[i], "-I") == 0)
-	{
-	    /* ignore all remaining arguments */
-	    break;
-	}
-	else if (strncmp (argv[i], "tty", 3) == 0)
-	{
+        else if (strcmp(argv[i], "-I") == 0) {
+            /* ignore all remaining arguments */
+            break;
+        }
+        else if (strncmp(argv[i], "tty", 3) == 0) {
             /* init supplies us with this useless information */
-	}
+        }
 #ifdef XDMCP
-	else if ((skip = XdmcpOptions(argc, argv, i)) != i)
-	{
-	    i = skip - 1;
-	}
+        else if ((skip = XdmcpOptions(argc, argv, i)) != i) {
+            i = skip - 1;
+        }
 #endif
-	else if ( strcmp( argv[i], "-dumbSched") == 0)
-	{
-	    SmartScheduleDisable = TRUE;
-	}
-	else if ( strcmp( argv[i], "-schedInterval") == 0)
-	{
-	    if (++i < argc)
-	    {
-		SmartScheduleInterval = atoi(argv[i]);
-		SmartScheduleSlice = SmartScheduleInterval;
-	    }
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-schedMax") == 0)
-	{
-	    if (++i < argc)
-	    {
-		SmartScheduleMaxSlice = atoi(argv[i]);
-	    }
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-render" ) == 0)
-	{
-	    if (++i < argc)
-	    {
-		int policy = PictureParseCmapPolicy (argv[i]);
+        else if (strcmp(argv[i], "-dumbSched") == 0) {
+            SmartScheduleDisable = TRUE;
+        }
+        else if (strcmp(argv[i], "-schedInterval") == 0) {
+            if (++i < argc) {
+                SmartScheduleInterval = atoi(argv[i]);
+                SmartScheduleSlice = SmartScheduleInterval;
+            }
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-schedMax") == 0) {
+            if (++i < argc) {
+                SmartScheduleMaxSlice = atoi(argv[i]);
+            }
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-render") == 0) {
+            if (++i < argc) {
+                int policy = PictureParseCmapPolicy(argv[i]);
 
-		if (policy != PictureCmapPolicyInvalid)
-		    PictureCmapPolicy = policy;
-		else
-		    UseMsg ();
-	    }
-	    else
-		UseMsg ();
-	}
-	else if ( strcmp( argv[i], "-sigstop") == 0)
-	{
-	    RunFromSigStopParent = TRUE;
-	}
-	else if ( strcmp( argv[i], "+extension") == 0)
-	{
-	    if (++i < argc)
-	    {
-		if (!EnableDisableExtension(argv[i], TRUE))
-		    EnableDisableExtensionError(argv[i], TRUE);
-	    }
-	    else
-		UseMsg();
-	}
-	else if ( strcmp( argv[i], "-extension") == 0)
-	{
-	    if (++i < argc)
-	    {
-		if (!EnableDisableExtension(argv[i], FALSE))
-		    EnableDisableExtensionError(argv[i], FALSE);
-	    }
-	    else
-		UseMsg();
-	}
- 	else
- 	{
-	    ErrorF("Unrecognized option: %s\n", argv[i]);
-	    UseMsg();
-	    FatalError("Unrecognized option: %s\n", argv[i]);
+                if (policy != PictureCmapPolicyInvalid)
+                    PictureCmapPolicy = policy;
+                else
+                    UseMsg();
+            }
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-sigstop") == 0) {
+            RunFromSigStopParent = TRUE;
+        }
+        else if (strcmp(argv[i], "+extension") == 0) {
+            if (++i < argc) {
+                if (!EnableDisableExtension(argv[i], TRUE))
+                    EnableDisableExtensionError(argv[i], TRUE);
+            }
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-extension") == 0) {
+            if (++i < argc) {
+                if (!EnableDisableExtension(argv[i], FALSE))
+                    EnableDisableExtensionError(argv[i], FALSE);
+            }
+            else
+                UseMsg();
+        }
+        else {
+            ErrorF("Unrecognized option: %s\n", argv[i]);
+            UseMsg();
+            FatalError("Unrecognized option: %s\n", argv[i]);
         }
     }
 }
@@ -972,61 +931,63 @@ set_font_authorizations(char **authorizations, int *authlen, pointer client)
     static char *result = NULL;
     static char *p = NULL;
 
-    if (p == NULL)
-    {
-	char hname[1024], *hnameptr;
-	unsigned int len;
+    if (p == NULL) {
+        char hname[1024], *hnameptr;
+        unsigned int len;
+
 #if defined(IPv6) && defined(AF_INET6)
-	struct addrinfo hints, *ai = NULL;
+        struct addrinfo hints, *ai = NULL;
 #else
-	struct hostent *host;
+        struct hostent *host;
+
 #ifdef XTHREADS_NEEDS_BYNAMEPARAMS
-	_Xgethostbynameparams hparams;
+        _Xgethostbynameparams hparams;
 #endif
 #endif
 
-	gethostname(hname, 1024);
+        gethostname(hname, 1024);
 #if defined(IPv6) && defined(AF_INET6)
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags = AI_CANONNAME;
-	if (getaddrinfo(hname, NULL, &hints, &ai) == 0) {
-	    hnameptr = ai->ai_canonname;
-	} else {
-	    hnameptr = hname;
-	}
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_flags = AI_CANONNAME;
+        if (getaddrinfo(hname, NULL, &hints, &ai) == 0) {
+            hnameptr = ai->ai_canonname;
+        }
+        else {
+            hnameptr = hname;
+        }
 #else
-	host = _XGethostbyname(hname, hparams);
-	if (host == NULL)
-	    hnameptr = hname;
-	else
-	    hnameptr = host->h_name;
+        host = _XGethostbyname(hname, hparams);
+        if (host == NULL)
+            hnameptr = hname;
+        else
+            hnameptr = host->h_name;
 #endif
 
-	len = strlen(hnameptr) + 1;
-	result = malloc(len + sizeof(AUTHORIZATION_NAME) + 4);
+        len = strlen(hnameptr) + 1;
+        result = malloc(len + sizeof(AUTHORIZATION_NAME) + 4);
 
-	p = result;
+        p = result;
         *p++ = sizeof(AUTHORIZATION_NAME) >> 8;
         *p++ = sizeof(AUTHORIZATION_NAME) & 0xff;
         *p++ = (len) >> 8;
         *p++ = (len & 0xff);
 
-	memmove(p, AUTHORIZATION_NAME, sizeof(AUTHORIZATION_NAME));
-	p += sizeof(AUTHORIZATION_NAME);
-	memmove(p, hnameptr, len);
-	p += len;
+        memmove(p, AUTHORIZATION_NAME, sizeof(AUTHORIZATION_NAME));
+        p += sizeof(AUTHORIZATION_NAME);
+        memmove(p, hnameptr, len);
+        p += len;
 #if defined(IPv6) && defined(AF_INET6)
-	if (ai) {
-	    freeaddrinfo(ai);
-	}
+        if (ai) {
+            freeaddrinfo(ai);
+        }
 #endif
     }
     *authlen = p - result;
     *authorizations = result;
     return 1;
-#else /* TCPCONN */
+#else                           /* TCPCONN */
     return 0;
-#endif /* TCPCONN */
+#endif                          /* TCPCONN */
 }
 
 void *
@@ -1039,9 +1000,9 @@ Xalloc(unsigned long amount)
      *
      * -- Mikhail Gusarov
      */
-    if ((long)amount <= 0)
-	ErrorF("Warning: Xalloc: "
-	       "requesting unpleasantly large amount of memory: %lu bytes.\n",
+    if ((long) amount <= 0)
+        ErrorF("Warning: Xalloc: "
+               "requesting unpleasantly large amount of memory: %lu bytes.\n",
                amount);
 
     return malloc(amount);
@@ -1051,6 +1012,7 @@ void *
 XNFalloc(unsigned long amount)
 {
     void *ptr = malloc(amount);
+
     if (!ptr)
         FatalError("Out of memory");
     return ptr;
@@ -1066,6 +1028,7 @@ void *
 XNFcalloc(unsigned long amount)
 {
     void *ret = calloc(1, amount);
+
     if (!ret)
         FatalError("XNFcalloc: Out of memory");
     return ret;
@@ -1081,9 +1044,9 @@ Xrealloc(void *ptr, unsigned long amount)
      *
      * -- Mikhail Gusarov
      */
-    if ((long)amount <= 0)
-	ErrorF("Warning: Xrealloc: "
-	       "requesting unpleasantly large amount of memory: %lu bytes.\n",
+    if ((long) amount <= 0)
+        ErrorF("Warning: Xrealloc: "
+               "requesting unpleasantly large amount of memory: %lu bytes.\n",
                amount);
 
     return realloc(ptr, amount);
@@ -1093,8 +1056,9 @@ void *
 XNFrealloc(void *ptr, unsigned long amount)
 {
     void *ret = realloc(ptr, amount);
+
     if (!ret)
-	FatalError("XNFrealloc: Out of memory");
+        FatalError("XNFrealloc: Out of memory");
     return ret;
 }
 
@@ -1104,12 +1068,11 @@ Xfree(void *ptr)
     free(ptr);
 }
 
-
 char *
 Xstrdup(const char *s)
 {
     if (s == NULL)
-	return NULL;
+        return NULL;
     return strdup(s);
 }
 
@@ -1119,107 +1082,104 @@ XNFstrdup(const char *s)
     char *ret;
 
     if (s == NULL)
-	return NULL;
+        return NULL;
 
     ret = strdup(s);
     if (!ret)
-	FatalError("XNFstrdup: Out of memory");
+        FatalError("XNFstrdup: Out of memory");
     return ret;
 }
 
 void
-SmartScheduleStopTimer (void)
+SmartScheduleStopTimer(void)
 {
-    struct itimerval	timer;
-    
+    struct itimerval timer;
+
     if (SmartScheduleDisable)
-	return;
+        return;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
     timer.it_value.tv_sec = 0;
     timer.it_value.tv_usec = 0;
-    (void) setitimer (ITIMER_REAL, &timer, 0);
+    (void) setitimer(ITIMER_REAL, &timer, 0);
 }
 
 void
-SmartScheduleStartTimer (void)
+SmartScheduleStartTimer(void)
 {
-    struct itimerval	timer;
-    
+    struct itimerval timer;
+
     if (SmartScheduleDisable)
-	return;
+        return;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = SmartScheduleInterval * 1000;
     timer.it_value.tv_sec = 0;
     timer.it_value.tv_usec = SmartScheduleInterval * 1000;
-    setitimer (ITIMER_REAL, &timer, 0);
+    setitimer(ITIMER_REAL, &timer, 0);
 }
 
 static void
-SmartScheduleTimer (int sig)
+SmartScheduleTimer(int sig)
 {
     SmartScheduleTime += SmartScheduleInterval;
 }
 
 void
-SmartScheduleInit (void)
+SmartScheduleInit(void)
 {
-    struct sigaction	act;
+    struct sigaction act;
 
     if (SmartScheduleDisable)
-	return;
+        return;
 
     memset((char *) &act, 0, sizeof(struct sigaction));
 
     /* Set up the timer signal function */
     act.sa_handler = SmartScheduleTimer;
-    sigemptyset (&act.sa_mask);
-    sigaddset (&act.sa_mask, SIGALRM);
-    if (sigaction (SIGALRM, &act, 0) < 0)
-    {
-	perror ("sigaction for smart scheduler");
-	SmartScheduleDisable = TRUE;
+    sigemptyset(&act.sa_mask);
+    sigaddset(&act.sa_mask, SIGALRM);
+    if (sigaction(SIGALRM, &act, 0) < 0) {
+        perror("sigaction for smart scheduler");
+        SmartScheduleDisable = TRUE;
     }
 }
 
 #ifdef SIG_BLOCK
-static sigset_t	PreviousSignalMask;
-static int	BlockedSignalCount;
+static sigset_t PreviousSignalMask;
+static int BlockedSignalCount;
 #endif
 
 void
-OsBlockSignals (void)
+OsBlockSignals(void)
 {
 #ifdef SIG_BLOCK
-    if (BlockedSignalCount++ == 0)
-    {
-	sigset_t    set;
-	
-	sigemptyset (&set);
-	sigaddset (&set, SIGALRM);
-	sigaddset (&set, SIGVTALRM);
+    if (BlockedSignalCount++ == 0) {
+        sigset_t set;
+
+        sigemptyset(&set);
+        sigaddset(&set, SIGALRM);
+        sigaddset(&set, SIGVTALRM);
 #ifdef SIGWINCH
-	sigaddset (&set, SIGWINCH);
+        sigaddset(&set, SIGWINCH);
 #endif
 #ifdef SIGIO
-	sigaddset (&set, SIGIO);
+        sigaddset(&set, SIGIO);
 #endif
-	sigaddset (&set, SIGTSTP);
-	sigaddset (&set, SIGTTIN);
-	sigaddset (&set, SIGTTOU);
-	sigaddset (&set, SIGCHLD);
-	sigprocmask (SIG_BLOCK, &set, &PreviousSignalMask);
+        sigaddset(&set, SIGTSTP);
+        sigaddset(&set, SIGTTIN);
+        sigaddset(&set, SIGTTOU);
+        sigaddset(&set, SIGCHLD);
+        sigprocmask(SIG_BLOCK, &set, &PreviousSignalMask);
     }
 #endif
 }
 
 void
-OsReleaseSignals (void)
+OsReleaseSignals(void)
 {
 #ifdef SIG_BLOCK
-    if (--BlockedSignalCount == 0)
-    {
-	sigprocmask (SIG_SETMASK, &PreviousSignalMask, 0);
+    if (--BlockedSignalCount == 0) {
+        sigprocmask(SIG_SETMASK, &PreviousSignalMask, 0);
     }
 #endif
 }
@@ -1230,7 +1190,7 @@ OsReleaseSignals (void)
  */
 
 void
-OsAbort (void)
+OsAbort(void)
 {
 #ifndef __APPLE__
     OsBlockSignals();
@@ -1253,39 +1213,39 @@ int
 System(const char *command)
 {
     int pid, p;
-    void (*csig)(int);
+    void (*csig) (int);
     int status;
 
     if (!command)
-	return 1;
+        return 1;
 
     csig = signal(SIGCHLD, SIG_DFL);
     if (csig == SIG_ERR) {
-      perror("signal");
-      return -1;
+        perror("signal");
+        return -1;
     }
     DebugF("System: `%s'\n", command);
 
     switch (pid = fork()) {
-    case -1:	/* error */
-	p = -1;
-    case 0:	/* child */
-	if (setgid(getgid()) == -1)
-	    _exit(127);
-	if (setuid(getuid()) == -1)
-	    _exit(127);
-	execl("/bin/sh", "sh", "-c", command, (char *)NULL);
-	_exit(127);
-    default:	/* parent */
-	do {
-	    p = waitpid(pid, &status, 0);
-	} while (p == -1 && errno == EINTR);
-	
+    case -1:                   /* error */
+        p = -1;
+    case 0:                    /* child */
+        if (setgid(getgid()) == -1)
+            _exit(127);
+        if (setuid(getuid()) == -1)
+            _exit(127);
+        execl("/bin/sh", "sh", "-c", command, (char *) NULL);
+        _exit(127);
+    default:                   /* parent */
+        do {
+            p = waitpid(pid, &status, 0);
+        } while (p == -1 && errno == EINTR);
+
     }
 
     if (signal(SIGCHLD, csig) == SIG_ERR) {
-      perror("signal");
-      return -1;
+        perror("signal");
+        return -1;
     }
 
     return p == -1 ? -1 : status;
@@ -1297,7 +1257,7 @@ static struct pid {
     int pid;
 } *pidlist;
 
-OsSigHandlerPtr old_alarm = NULL; /* XXX horrible awful hack */
+OsSigHandlerPtr old_alarm = NULL;       /* XXX horrible awful hack */
 
 pointer
 Popen(const char *command, const char *type)
@@ -1307,71 +1267,73 @@ Popen(const char *command, const char *type)
     int pdes[2], pid;
 
     if (command == NULL || type == NULL)
-	return NULL;
+        return NULL;
 
     if ((*type != 'r' && *type != 'w') || type[1])
-	return NULL;
+        return NULL;
 
     if ((cur = malloc(sizeof(struct pid))) == NULL)
-	return NULL;
+        return NULL;
 
     if (pipe(pdes) < 0) {
-	free(cur);
-	return NULL;
+        free(cur);
+        return NULL;
     }
 
     /* Ignore the smart scheduler while this is going on */
     old_alarm = OsSignal(SIGALRM, SIG_IGN);
     if (old_alarm == SIG_ERR) {
-      close(pdes[0]);
-      close(pdes[1]);
-      free(cur);
-      perror("signal");
-      return NULL;
+        close(pdes[0]);
+        close(pdes[1]);
+        free(cur);
+        perror("signal");
+        return NULL;
     }
 
     switch (pid = fork()) {
-    case -1: 	/* error */
-	close(pdes[0]);
-	close(pdes[1]);
-	free(cur);
-	if (OsSignal(SIGALRM, old_alarm) == SIG_ERR)
-	  perror("signal");
-	return NULL;
-    case 0:	/* child */
-	if (setgid(getgid()) == -1)
-	    _exit(127);
-	if (setuid(getuid()) == -1)
-	    _exit(127);
-	if (*type == 'r') {
-	    if (pdes[1] != 1) {
-		/* stdout */
-		dup2(pdes[1], 1);
-		close(pdes[1]);
-	    }
-	    close(pdes[0]);
-	} else {
-	    if (pdes[0] != 0) {
-		/* stdin */
-		dup2(pdes[0], 0);
-		close(pdes[0]);
-	    }
-	    close(pdes[1]);
-	}
-	execl("/bin/sh", "sh", "-c", command, (char *)NULL);
-	_exit(127);
+    case -1:                   /* error */
+        close(pdes[0]);
+        close(pdes[1]);
+        free(cur);
+        if (OsSignal(SIGALRM, old_alarm) == SIG_ERR)
+            perror("signal");
+        return NULL;
+    case 0:                    /* child */
+        if (setgid(getgid()) == -1)
+            _exit(127);
+        if (setuid(getuid()) == -1)
+            _exit(127);
+        if (*type == 'r') {
+            if (pdes[1] != 1) {
+                /* stdout */
+                dup2(pdes[1], 1);
+                close(pdes[1]);
+            }
+            close(pdes[0]);
+        }
+        else {
+            if (pdes[0] != 0) {
+                /* stdin */
+                dup2(pdes[0], 0);
+                close(pdes[0]);
+            }
+            close(pdes[1]);
+        }
+        execl("/bin/sh", "sh", "-c", command, (char *) NULL);
+        _exit(127);
     }
 
     /* Avoid EINTR during stdio calls */
-    OsBlockSignals ();
-    
+    OsBlockSignals();
+
     /* parent */
     if (*type == 'r') {
-	iop = fdopen(pdes[0], type);
-	close(pdes[1]);
-    } else {
-	iop = fdopen(pdes[1], type);
-	close(pdes[0]);
+        iop = fdopen(pdes[0], type);
+        close(pdes[1]);
+    }
+    else {
+        iop = fdopen(pdes[1], type);
+        close(pdes[0]);
     }
 
     cur->fp = iop;
@@ -1389,64 +1351,67 @@ pointer
 Fopen(const char *file, const char *type)
 {
     FILE *iop;
+
 #ifndef HAS_SAVED_IDS_AND_SETEUID
     struct pid *cur;
     int pdes[2], pid;
 
     if (file == NULL || type == NULL)
-	return NULL;
+        return NULL;
 
     if ((*type != 'r' && *type != 'w') || type[1])
-	return NULL;
+        return NULL;
 
     if ((cur = malloc(sizeof(struct pid))) == NULL)
-	return NULL;
+        return NULL;
 
     if (pipe(pdes) < 0) {
-	free(cur);
-	return NULL;
+        free(cur);
+        return NULL;
     }
 
     switch (pid = fork()) {
-    case -1: 	/* error */
-	close(pdes[0]);
-	close(pdes[1]);
-	free(cur);
-	return NULL;
-    case 0:	/* child */
-	if (setgid(getgid()) == -1)
-	    _exit(127);
-	if (setuid(getuid()) == -1)
-	    _exit(127);
-	if (*type == 'r') {
-	    if (pdes[1] != 1) {
-		/* stdout */
-		dup2(pdes[1], 1);
-		close(pdes[1]);
-	    }
-	    close(pdes[0]);
-	} else {
-	    if (pdes[0] != 0) {
-		/* stdin */
-		dup2(pdes[0], 0);
-		close(pdes[0]);
-	    }
-	    close(pdes[1]);
-	}
-	execl("/bin/cat", "cat", file, (char *)NULL);
-	_exit(127);
+    case -1:                   /* error */
+        close(pdes[0]);
+        close(pdes[1]);
+        free(cur);
+        return NULL;
+    case 0:                    /* child */
+        if (setgid(getgid()) == -1)
+            _exit(127);
+        if (setuid(getuid()) == -1)
+            _exit(127);
+        if (*type == 'r') {
+            if (pdes[1] != 1) {
+                /* stdout */
+                dup2(pdes[1], 1);
+                close(pdes[1]);
+            }
+            close(pdes[0]);
+        }
+        else {
+            if (pdes[0] != 0) {
+                /* stdin */
+                dup2(pdes[0], 0);
+                close(pdes[0]);
+            }
+            close(pdes[1]);
+        }
+        execl("/bin/cat", "cat", file, (char *) NULL);
+        _exit(127);
     }
 
     /* Avoid EINTR during stdio calls */
-    OsBlockSignals ();
-    
+    OsBlockSignals();
+
     /* parent */
     if (*type == 'r') {
-	iop = fdopen(pdes[0], type);
-	close(pdes[1]);
-    } else {
-	iop = fdopen(pdes[1], type);
-	close(pdes[0]);
+        iop = fdopen(pdes[0], type);
+        close(pdes[1]);
+    }
+    else {
+        iop = fdopen(pdes[1], type);
+        close(pdes[0]);
     }
 
     cur->fp = iop;
@@ -1462,18 +1427,18 @@ Fopen(const char *file, const char *type)
 
     ruid = getuid();
     euid = geteuid();
-    
+
     if (seteuid(ruid) == -1) {
-	    return NULL;
+        return NULL;
     }
     iop = fopen(file, type);
 
     if (seteuid(euid) == -1) {
-	    fclose(iop);
-	    return NULL;
+        fclose(iop);
+        return NULL;
     }
     return iop;
-#endif /* HAS_SAVED_IDS_AND_SETEUID */
+#endif                          /* HAS_SAVED_IDS_AND_SETEUID */
 }
 
 int
@@ -1487,27 +1452,27 @@ Pclose(pointer iop)
     fclose(iop);
 
     for (last = NULL, cur = pidlist; cur; last = cur, cur = cur->next)
-	if (cur->fp == iop)
-	    break;
+        if (cur->fp == iop)
+            break;
     if (cur == NULL)
-	return -1;
+        return -1;
 
     do {
-	pid = waitpid(cur->pid, &pstat, 0);
+        pid = waitpid(cur->pid, &pstat, 0);
     } while (pid == -1 && errno == EINTR);
 
     if (last == NULL)
-	pidlist = cur->next;
+        pidlist = cur->next;
     else
-	last->next = cur->next;
+        last->next = cur->next;
     free(cur);
 
     /* allow EINTR again */
-    OsReleaseSignals ();
-    
+    OsReleaseSignals();
+
     if (old_alarm && OsSignal(SIGALRM, old_alarm) == SIG_ERR) {
-      perror("signal");
-      return -1;
+        perror("signal");
+        return -1;
     }
 
     return pid == -1 ? -1 : pstat;
@@ -1523,8 +1488,7 @@ Fclose(pointer iop)
 #endif
 }
 
-#endif /* !WIN32 */
-
+#endif                          /* !WIN32 */
 
 /*
  * CheckUserParameters: check for long command line arguments and long
@@ -1553,7 +1517,6 @@ Fclose(pointer iop)
 #define NO_OUTPUT_PIPES 0
 #endif
 
-
 /* Check args and env only if running setuid (euid == 0 && euid != uid) ? */
 #ifndef CHECK_EUID
 #ifndef WIN32
@@ -1573,7 +1536,7 @@ Fclose(pointer iop)
 
 #define MAX_ARG_LENGTH          128
 #define MAX_ENV_LENGTH          256
-#define MAX_ENV_PATH_LENGTH     2048	/* Limit for *PATH and TERMCAP */
+#define MAX_ENV_PATH_LENGTH     2048    /* Limit for *PATH and TERMCAP */
 
 #if USE_ISPRINT
 #include <ctype.h>
@@ -1611,115 +1574,116 @@ CheckUserParameters(int argc, char **argv, char **envp)
     if (geteuid() == 0 && getuid() != geteuid())
 #endif
     {
-	/* Check each argv[] */
-	for (i = 1; i < argc; i++) {
-	    if (strcmp(argv[i], "-fp") == 0)
-	    {
-		i++; /* continue with next argument. skip the length check */
-		if (i >= argc)
-		    break;
-	    } else
-	    {
-		if (strlen(argv[i]) > MAX_ARG_LENGTH) {
-		    bad = ArgTooLong;
-		    break;
-		}
-	    }
-	    a = argv[i];
-	    while (*a) {
-		if (checkPrintable(*a) == 0) {
-		    bad = UnprintableArg;
-		    break;
-		}
-		a++;
-	    }
-	    if (bad)
-		break;
-	}
-	if (!bad) {
-	    /* Check each envp[] */
-	    for (i = 0; envp[i]; i++) {
+        /* Check each argv[] */
+        for (i = 1; i < argc; i++) {
+            if (strcmp(argv[i], "-fp") == 0) {
+                i++;            /* continue with next argument. skip the length check */
+                if (i >= argc)
+                    break;
+            }
+            else {
+                if (strlen(argv[i]) > MAX_ARG_LENGTH) {
+                    bad = ArgTooLong;
+                    break;
+                }
+            }
+            a = argv[i];
+            while (*a) {
+                if (checkPrintable(*a) == 0) {
+                    bad = UnprintableArg;
+                    break;
+                }
+                a++;
+            }
+            if (bad)
+                break;
+        }
+        if (!bad) {
+            /* Check each envp[] */
+            for (i = 0; envp[i]; i++) {
 
-		/* Check for bad environment variables and values */
+                /* Check for bad environment variables and values */
 #if REMOVE_ENV_LD
-		while (envp[i] && (strncmp(envp[i], "LD", 2) == 0)) {
-		    for (j = i; envp[j]; j++) {
-			envp[j] = envp[j+1];
-		    }
-		}
-#endif   
-		if (envp[i] && (strlen(envp[i]) > MAX_ENV_LENGTH)) {
-#if REMOVE_LONG_ENV
-		    for (j = i; envp[j]; j++) {
-			envp[j] = envp[j+1];
-		    }
-		    i--;
-#else
-		    char *eq;
-		    int len;
-
-		    eq = strchr(envp[i], '=');
-		    if (!eq)
-			continue;
-		    len = eq - envp[i];
-		    e = strndup(envp[i], len);
-		    if (!e) {
-			bad = InternalError;
-			break;
-		    }
-		    if (len >= 4 &&
-			(strcmp(e + len - 4, "PATH") == 0 ||
-			 strcmp(e, "TERMCAP") == 0)) {
-			if (strlen(envp[i]) > MAX_ENV_PATH_LENGTH) {
-			    bad = EnvTooLong;
-			    break;
-			} else {
-			    free(e);
-			}
-		    } else {
-			bad = EnvTooLong;
-			break;
-		    }
+                while (envp[i] && (strncmp(envp[i], "LD", 2) == 0)) {
+                    for (j = i; envp[j]; j++) {
+                        envp[j] = envp[j + 1];
+                    }
+                }
 #endif
-		}
-	    }
-	}
-#if NO_OUTPUT_PIPES
-	if (!bad) {
-	    struct stat buf;
+                if (envp[i] && (strlen(envp[i]) > MAX_ENV_LENGTH)) {
+#if REMOVE_LONG_ENV
+                    for (j = i; envp[j]; j++) {
+                        envp[j] = envp[j + 1];
+                    }
+                    i--;
+#else
+                    char *eq;
+                    int len;
 
-	    if (fstat(fileno(stdout), &buf) == 0 && S_ISFIFO(buf.st_mode))
-		bad = OutputIsPipe;
-	    if (fstat(fileno(stderr), &buf) == 0 && S_ISFIFO(buf.st_mode))
-		bad = OutputIsPipe;
-	}
+                    eq = strchr(envp[i], '=');
+                    if (!eq)
+                        continue;
+                    len = eq - envp[i];
+                    e = strndup(envp[i], len);
+                    if (!e) {
+                        bad = InternalError;
+                        break;
+                    }
+                    if (len >= 4 &&
+                        (strcmp(e + len - 4, "PATH") == 0 ||
+                         strcmp(e, "TERMCAP") == 0)) {
+                        if (strlen(envp[i]) > MAX_ENV_PATH_LENGTH) {
+                            bad = EnvTooLong;
+                            break;
+                        }
+                        else {
+                            free(e);
+                        }
+                    }
+                    else {
+                        bad = EnvTooLong;
+                        break;
+                    }
+#endif
+                }
+            }
+        }
+#if NO_OUTPUT_PIPES
+        if (!bad) {
+            struct stat buf;
+
+            if (fstat(fileno(stdout), &buf) == 0 && S_ISFIFO(buf.st_mode))
+                bad = OutputIsPipe;
+            if (fstat(fileno(stderr), &buf) == 0 && S_ISFIFO(buf.st_mode))
+                bad = OutputIsPipe;
+        }
 #endif
     }
     switch (bad) {
     case NotBad:
-	return;
+        return;
     case UnsafeArg:
-	ErrorF("Command line argument number %d is unsafe\n", i);
-	break;
+        ErrorF("Command line argument number %d is unsafe\n", i);
+        break;
     case ArgTooLong:
-	ErrorF("Command line argument number %d is too long\n", i);
-	break;
+        ErrorF("Command line argument number %d is too long\n", i);
+        break;
     case UnprintableArg:
-	ErrorF("Command line argument number %d contains unprintable"
-		" characters\n", i);
-	break;
+        ErrorF("Command line argument number %d contains unprintable"
+               " characters\n", i);
+        break;
     case EnvTooLong:
-	ErrorF("Environment variable `%s' is too long\n", e);
-	break;
+        ErrorF("Environment variable `%s' is too long\n", e);
+        break;
     case OutputIsPipe:
-	ErrorF("Stdout and/or stderr is a pipe\n");
-	break;
+        ErrorF("Stdout and/or stderr is a pipe\n");
+        break;
     case InternalError:
-	ErrorF("Internal Error\n");
-	break;
+        ErrorF("Internal Error\n");
+        break;
     default:
-	ErrorF("Unknown error\n");
-	break;
+        ErrorF("Unknown error\n");
+        break;
     }
     FatalError("X server aborted because of unsafe environment\n");
 }
@@ -1734,15 +1698,15 @@ CheckUserParameters(int argc, char **argv, char **envp)
 #include <security/pam_appl.h>
 #include <security/pam_misc.h>
 #include <pwd.h>
-#endif /* USE_PAM */
+#endif                          /* USE_PAM */
 
 void
 CheckUserAuthorization(void)
 {
 #ifdef USE_PAM
     static struct pam_conv conv = {
-	misc_conv,
-	NULL
+        misc_conv,
+        NULL
     };
 
     pam_handle_t *pamh = NULL;
@@ -1750,31 +1714,31 @@ CheckUserAuthorization(void)
     int retval;
 
     if (getuid() != geteuid()) {
-	pw = getpwuid(getuid());
-	if (pw == NULL)
-	    FatalError("getpwuid() failed for uid %d\n", getuid());
+        pw = getpwuid(getuid());
+        if (pw == NULL)
+            FatalError("getpwuid() failed for uid %d\n", getuid());
 
-	retval = pam_start("xserver", pw->pw_name, &conv, &pamh);
-	if (retval != PAM_SUCCESS)
-	    FatalError("pam_start() failed.\n"
-			"\tMissing or mangled PAM config file or module?\n");
+        retval = pam_start("xserver", pw->pw_name, &conv, &pamh);
+        if (retval != PAM_SUCCESS)
+            FatalError("pam_start() failed.\n"
+                       "\tMissing or mangled PAM config file or module?\n");
 
-	retval = pam_authenticate(pamh, 0);
-	if (retval != PAM_SUCCESS) {
-	    pam_end(pamh, retval);
-	    FatalError("PAM authentication failed, cannot start X server.\n"
-			"\tPerhaps you do not have console ownership?\n");
-	}
+        retval = pam_authenticate(pamh, 0);
+        if (retval != PAM_SUCCESS) {
+            pam_end(pamh, retval);
+            FatalError("PAM authentication failed, cannot start X server.\n"
+                       "\tPerhaps you do not have console ownership?\n");
+        }
 
-	retval = pam_acct_mgmt(pamh, 0);
-	if (retval != PAM_SUCCESS) {
-	    pam_end(pamh, retval);
-	    FatalError("PAM authentication failed, cannot start X server.\n"
-			"\tPerhaps you do not have console ownership?\n");
-	}
+        retval = pam_acct_mgmt(pamh, 0);
+        if (retval != PAM_SUCCESS) {
+            pam_end(pamh, retval);
+            FatalError("PAM authentication failed, cannot start X server.\n"
+                       "\tPerhaps you do not have console ownership?\n");
+        }
 
-	/* this is not a session, so do not do session management */
-	pam_end(pamh, PAM_SUCCESS);
+        /* this is not a session, so do not do session management */
+        pam_end(pamh, PAM_SUCCESS);
     }
 #endif
 }
@@ -1783,7 +1747,7 @@ CheckUserAuthorization(void)
  * Tokenize a string into a NULL terminated array of strings. Always returns
  * an allocated array unless an error occurs.
  */
-char**
+char **
 xstrtokenize(const char *str, const char *separators)
 {
     char **list, **nlist;
@@ -1811,7 +1775,7 @@ xstrtokenize(const char *str, const char *separators)
     free(tmp);
     return list;
 
-error:
+ error:
     free(tmp);
     for (n = 0; n < num; n++)
         free(list[n]);

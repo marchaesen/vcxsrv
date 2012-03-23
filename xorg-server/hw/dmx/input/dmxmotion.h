@@ -37,12 +37,11 @@
 #ifndef _DMXMOTION_H_
 #define _DMXMOTION_H_
 
-extern int  dmxPointerGetMotionBufferSize(void);
-extern int  dmxPointerGetMotionEvents(DeviceIntPtr pDevice,
-                                      xTimecoord *coords,
-                                      unsigned long start,
-                                      unsigned long stop,
-                                      ScreenPtr pScreen);
+extern int dmxPointerGetMotionBufferSize(void);
+extern int dmxPointerGetMotionEvents(DeviceIntPtr pDevice,
+                                     xTimecoord * coords,
+                                     unsigned long start,
+                                     unsigned long stop, ScreenPtr pScreen);
 extern void dmxPointerPutMotionEvent(DeviceIntPtr pDevice,
                                      int firstAxis, int axesCount, int *v,
                                      unsigned long time);

@@ -41,63 +41,58 @@
  */
 
 void
-winQueryBestSizeNativeGDI (int class, unsigned short *pWidth,
-			   unsigned short *pHeight, ScreenPtr pScreen)
+winQueryBestSizeNativeGDI(int class, unsigned short *pWidth,
+                          unsigned short *pHeight, ScreenPtr pScreen)
 {
-  ErrorF ("winQueryBestSizeNativeGDI\n");
+    ErrorF("winQueryBestSizeNativeGDI\n");
 }
 #endif
-
 
 /*
  * Count the number of one bits in a color mask.
  */
 
 CARD8
-winCountBits (DWORD dw)
+winCountBits(DWORD dw)
 {
-  DWORD		dwBits = 0;
+    DWORD dwBits = 0;
 
-  while (dw)
-    {
-      dwBits += (dw & 1);
-      dw >>= 1;
+    while (dw) {
+        dwBits += (dw & 1);
+        dw >>= 1;
     }
 
-  return dwBits;
+    return dwBits;
 }
-
 
 /*
  * Modify the screen pixmap to point to the new framebuffer address
  */
 
 Bool
-winUpdateFBPointer (ScreenPtr pScreen, void *pbits)
+winUpdateFBPointer(ScreenPtr pScreen, void *pbits)
 {
-  winScreenPriv(pScreen);
-  winScreenInfo		*pScreenInfo = pScreenPriv->pScreenInfo;
+    winScreenPriv(pScreen);
+    winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
 
-  /* Location of shadow framebuffer has changed */
-  pScreenInfo->pfb = pbits;
+    /* Location of shadow framebuffer has changed */
+    pScreenInfo->pfb = pbits;
 
-  /* Update the screen pixmap */
-  if (!(*pScreen->ModifyPixmapHeader) (pScreen->devPrivate,
-				       pScreen->width,
-				       pScreen->height,
-				       pScreen->rootDepth,
-				       BitsPerPixel (pScreen->rootDepth),
-				       PixmapBytePad (pScreenInfo->dwStride,
-						      pScreenInfo->dwBPP),
-				       pScreenInfo->pfb))
-    {
-      FatalError ("winUpdateFramebufferPointer - Failed modifying "\
-		  "screen pixmap\n");
+    /* Update the screen pixmap */
+    if (!(*pScreen->ModifyPixmapHeader) (pScreen->devPrivate,
+                                         pScreen->width,
+                                         pScreen->height,
+                                         pScreen->rootDepth,
+                                         BitsPerPixel(pScreen->rootDepth),
+                                         PixmapBytePad(pScreenInfo->dwStride,
+                                                       pScreenInfo->dwBPP),
+                                         pScreenInfo->pfb)) {
+        FatalError("winUpdateFramebufferPointer - Failed modifying "
+                   "screen pixmap\n");
     }
 
-  return TRUE;
+    return TRUE;
 }
-
 
 #ifdef XWIN_NATIVEGDI
 /*
@@ -105,48 +100,44 @@ winUpdateFBPointer (ScreenPtr pScreen, void *pbits)
  */
 
 BOOL
-winPaintBackground (HWND hwnd, COLORREF colorref)
+winPaintBackground(HWND hwnd, COLORREF colorref)
 {
-  HDC			hdc;
-  HBRUSH		hbrush;
-  RECT			rect;
+    HDC hdc;
+    HBRUSH hbrush;
+    RECT rect;
 
-  /* Create an hdc */
-  hdc = GetDC (hwnd);
-  if (hdc == NULL)
-    {
-      printf ("gdiWindowProc - GetDC failed\n");
-      exit (1);
+    /* Create an hdc */
+    hdc = GetDC(hwnd);
+    if (hdc == NULL) {
+        printf("gdiWindowProc - GetDC failed\n");
+        exit(1);
     }
 
-  /* Create and select blue brush */
-  hbrush = CreateSolidBrush (colorref);
-  if (hbrush == NULL)
-    {
-      printf ("gdiWindowProc - CreateSolidBrush failed\n");
-      exit (1);
+    /* Create and select blue brush */
+    hbrush = CreateSolidBrush(colorref);
+    if (hbrush == NULL) {
+        printf("gdiWindowProc - CreateSolidBrush failed\n");
+        exit(1);
     }
 
-  /* Get window extents */
-  if (GetClientRect (hwnd, &rect) == FALSE)
-    {
-      printf ("gdiWindowProc - GetClientRect failed\n");
-      exit (1);
+    /* Get window extents */
+    if (GetClientRect(hwnd, &rect) == FALSE) {
+        printf("gdiWindowProc - GetClientRect failed\n");
+        exit(1);
     }
 
-  /* Fill window with blue brush */
-  if (FillRect (hdc, &rect, hbrush) == 0)
-    {
-      printf ("gdiWindowProc - FillRect failed\n");
-      exit (1);
+    /* Fill window with blue brush */
+    if (FillRect(hdc, &rect, hbrush) == 0) {
+        printf("gdiWindowProc - FillRect failed\n");
+        exit(1);
     }
 
-  /* Delete blue brush */
-  DeleteObject (hbrush);
+    /* Delete blue brush */
+    DeleteObject(hbrush);
 
-  /* Release the hdc */
-  ReleaseDC (hwnd, hdc);
+    /* Release the hdc */
+    ReleaseDC(hwnd, hdc);
 
-  return TRUE;
+    return TRUE;
 }
 #endif

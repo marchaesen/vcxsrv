@@ -32,8 +32,9 @@
 
 int SProcXIPassiveUngrabDevice(ClientPtr client);
 int ProcXIPassiveUngrabDevice(ClientPtr client);
-void SRepXIPassiveGrabDevice(ClientPtr client, int size, xXIPassiveGrabDeviceReply * rep);
+void SRepXIPassiveGrabDevice(ClientPtr client, int size,
+                             xXIPassiveGrabDeviceReply * rep);
 int ProcXIPassiveGrabDevice(ClientPtr client);
 int SProcXIPassiveGrabDevice(ClientPtr client);
 
-#endif /* XIPASSIVEGRAB_H */
+#endif                          /* XIPASSIVEGRAB_H */

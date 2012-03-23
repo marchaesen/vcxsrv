@@ -51,7 +51,7 @@
 #include "rootlessCommon.h"
 
 #ifdef DAMAGE
-# include "damage.h"
+#include "damage.h"
 #endif
 
 /* 10.4's deferred update makes X slower.. have to live with the tearing
@@ -65,61 +65,67 @@ static const char *xprOpenGLBundle = "glxCGL.bundle";
  * eventHandler
  *  Callback handler for Xplugin events.
  */
-static void eventHandler(unsigned int type, const void *arg,
-                         unsigned int arg_size, void *data) {
-    
+static void
+eventHandler(unsigned int type, const void *arg,
+             unsigned int arg_size, void *data)
+{
+
     switch (type) {
-        case XP_EVENT_DISPLAY_CHANGED:
-            DEBUG_LOG("XP_EVENT_DISPLAY_CHANGED\n");
-            DarwinSendDDXEvent(kXquartzDisplayChanged, 0);
-            break;
-            
-        case XP_EVENT_WINDOW_STATE_CHANGED:
-            if (arg_size >= sizeof(xp_window_state_event)) {
-                const xp_window_state_event *ws_arg = arg;
-                
-                DEBUG_LOG("XP_EVENT_WINDOW_STATE_CHANGED: id=%d, state=%d\n", ws_arg->id, ws_arg->state);
-                DarwinSendDDXEvent(kXquartzWindowState, 2,
-                                          ws_arg->id, ws_arg->state);
-            } else {
-                DEBUG_LOG("XP_EVENT_WINDOW_STATE_CHANGED: ignored\n");
-            }
-            break;
-            
-        case XP_EVENT_WINDOW_MOVED:
-            DEBUG_LOG("XP_EVENT_WINDOW_MOVED\n");
-            if (arg_size == sizeof(xp_window_id))  {
-                xp_window_id id = * (xp_window_id *) arg;
-                DarwinSendDDXEvent(kXquartzWindowMoved, 1, id);
-            }
-            break;
-            
-        case XP_EVENT_SURFACE_DESTROYED:
-            DEBUG_LOG("XP_EVENT_SURFACE_DESTROYED\n");
-        case XP_EVENT_SURFACE_CHANGED:
-            DEBUG_LOG("XP_EVENT_SURFACE_CHANGED\n");
-            if (arg_size == sizeof(xp_surface_id)) {
-                int kind;
-                
-                if (type == XP_EVENT_SURFACE_DESTROYED)
-                    kind = AppleDRISurfaceNotifyDestroyed;
-                else
-                    kind = AppleDRISurfaceNotifyChanged;
-                
-                DRISurfaceNotify(*(xp_surface_id *) arg, kind);
-            }
-            break;
+    case XP_EVENT_DISPLAY_CHANGED:
+        DEBUG_LOG("XP_EVENT_DISPLAY_CHANGED\n");
+        DarwinSendDDXEvent(kXquartzDisplayChanged, 0);
+        break;
+
+    case XP_EVENT_WINDOW_STATE_CHANGED:
+        if (arg_size >= sizeof(xp_window_state_event)) {
+            const xp_window_state_event *ws_arg = arg;
+
+            DEBUG_LOG("XP_EVENT_WINDOW_STATE_CHANGED: id=%d, state=%d\n",
+                      ws_arg->id, ws_arg->state);
+            DarwinSendDDXEvent(kXquartzWindowState, 2, ws_arg->id,
+                               ws_arg->state);
+        }
+        else {
+            DEBUG_LOG("XP_EVENT_WINDOW_STATE_CHANGED: ignored\n");
+        }
+        break;
+
+    case XP_EVENT_WINDOW_MOVED:
+        DEBUG_LOG("XP_EVENT_WINDOW_MOVED\n");
+        if (arg_size == sizeof(xp_window_id)) {
+            xp_window_id id = *(xp_window_id *) arg;
+
+            DarwinSendDDXEvent(kXquartzWindowMoved, 1, id);
+        }
+        break;
+
+    case XP_EVENT_SURFACE_DESTROYED:
+        DEBUG_LOG("XP_EVENT_SURFACE_DESTROYED\n");
+    case XP_EVENT_SURFACE_CHANGED:
+        DEBUG_LOG("XP_EVENT_SURFACE_CHANGED\n");
+        if (arg_size == sizeof(xp_surface_id)) {
+            int kind;
+
+            if (type == XP_EVENT_SURFACE_DESTROYED)
+                kind = AppleDRISurfaceNotifyDestroyed;
+            else
+                kind = AppleDRISurfaceNotifyChanged;
+
+            DRISurfaceNotify(*(xp_surface_id *) arg, kind);
+        }
+        break;
 #ifdef XP_EVENT_SPACE_CHANGED
-        case  XP_EVENT_SPACE_CHANGED:
-            DEBUG_LOG("XP_EVENT_SPACE_CHANGED\n");
-            if(arg_size == sizeof(uint32_t)) {
-                uint32_t space_id = *(uint32_t *)arg;
-                DarwinSendDDXEvent(kXquartzSpaceChanged, 1, space_id);
-            }
-            break;
+    case XP_EVENT_SPACE_CHANGED:
+        DEBUG_LOG("XP_EVENT_SPACE_CHANGED\n");
+        if (arg_size == sizeof(uint32_t)) {
+            uint32_t space_id = *(uint32_t *) arg;
+
+            DarwinSendDDXEvent(kXquartzSpaceChanged, 1, space_id);
+        }
+        break;
 #endif
-        default:
-            ErrorF("Unknown XP_EVENT type (%d) in xprScreen:eventHandler\n", type);
+    default:
+        ErrorF("Unknown XP_EVENT type (%d) in xprScreen:eventHandler\n", type);
     }
 }
 
@@ -132,7 +138,7 @@ displayAtIndex(int index)
 {
     CGError err;
     CGDisplayCount cnt;
-    CGDirectDisplayID dpy[index+1];
+    CGDirectDisplayID dpy[index + 1];
 
     err = CGGetActiveDisplayList(index + 1, dpy, &cnt);
     if (err == kCGErrorSuccess && cnt == index + 1)
@@ -153,19 +159,18 @@ displayScreenBounds(CGDirectDisplayID id)
     frame = CGDisplayBounds(id);
 
     DEBUG_LOG("    %dx%d @ (%d,%d).\n",
-              (int)frame.size.width, (int)frame.size.height,
-              (int)frame.origin.x, (int)frame.origin.y);
-    
+              (int) frame.size.width, (int) frame.size.height,
+              (int) frame.origin.x, (int) frame.origin.y);
+
     /* Remove menubar to help standard X11 window managers. */
-    if (XQuartzIsRootless && 
-        frame.origin.x == 0 && frame.origin.y == 0) {
+    if (XQuartzIsRootless && frame.origin.x == 0 && frame.origin.y == 0) {
         frame.origin.y += aquaMenuBarHeight;
         frame.size.height -= aquaMenuBarHeight;
     }
 
     DEBUG_LOG("    %dx%d @ (%d,%d).\n",
-              (int)frame.size.width, (int)frame.size.height,
-              (int)frame.origin.x, (int)frame.origin.y);
+              (int) frame.size.width, (int) frame.size.height,
+              (int) frame.origin.x, (int) frame.origin.y);
 
     return frame;
 }
@@ -176,7 +181,8 @@ displayScreenBounds(CGDirectDisplayID id)
  *  with PseudoramiX.
  */
 static void
-xprAddPseudoramiXScreens(int *x, int *y, int *width, int *height, ScreenPtr pScreen)
+xprAddPseudoramiXScreens(int *x, int *y, int *width, int *height,
+                         ScreenPtr pScreen)
 {
     CGDisplayCount i, displayCount;
     CGDirectDisplayID *displayList = NULL;
@@ -184,10 +190,11 @@ xprAddPseudoramiXScreens(int *x, int *y, int *width, int *height, ScreenPtr pScr
 
     // Find all the CoreGraphics displays
     CGGetActiveDisplayList(0, NULL, &displayCount);
-    DEBUG_LOG("displayCount: %d\n", (int)displayCount);
+    DEBUG_LOG("displayCount: %d\n", (int) displayCount);
 
-    if(!displayCount) {
-        ErrorF("CoreGraphics has reported no connected displays.  Creating a stub 800x600 display.\n");
+    if (!displayCount) {
+        ErrorF
+            ("CoreGraphics has reported no connected displays.  Creating a stub 800x600 display.\n");
         *x = *y = 0;
         *width = 800;
         *height = 600;
@@ -204,7 +211,7 @@ xprAddPseudoramiXScreens(int *x, int *y, int *width, int *height, ScreenPtr pScr
         displayCount = 1;
 
     displayList = malloc(displayCount * sizeof(CGDirectDisplayID));
-    if(!displayList)
+    if (!displayList)
         FatalError("Unable to allocate memory for list of displays.\n");
     CGGetActiveDisplayList(displayCount, displayList, &displayCount);
     QuartzCopyDisplayIDs(pScreen, displayCount, displayList);
@@ -212,6 +219,7 @@ xprAddPseudoramiXScreens(int *x, int *y, int *width, int *height, ScreenPtr pScr
     /* Get the union of all screens */
     for (i = 0; i < displayCount; i++) {
         CGDirectDisplayID dpy = displayList[i];
+
         frame = displayScreenBounds(dpy);
         unionRect = CGRectUnion(unionRect, frame);
     }
@@ -226,8 +234,7 @@ xprAddPseudoramiXScreens(int *x, int *y, int *width, int *height, ScreenPtr pScr
               *x, *y, *width, *height);
 
     /* Tell PseudoramiX about the real screens. */
-    for (i = 0; i < displayCount; i++)
-    {
+    for (i = 0; i < displayCount; i++) {
         CGDirectDisplayID dpy = displayList[i];
 
         frame = displayScreenBounds(dpy);
@@ -235,7 +242,7 @@ xprAddPseudoramiXScreens(int *x, int *y, int *width, int *height, ScreenPtr pScr
         frame.origin.y -= unionRect.origin.y;
 
         DEBUG_LOG("    placed at X11 coordinate (%d,%d).\n",
-                  (int)frame.origin.x, (int)frame.origin.y);
+                  (int) frame.origin.x, (int) frame.origin.y);
 
         PseudoramiXAddScreen(frame.origin.x, frame.origin.y,
                              frame.size.width, frame.size.height);
@@ -263,20 +270,18 @@ xprDisplayInit(void)
     if (noPseudoramiXExtension)
         darwinScreensFound = displayCount;
     else
-        darwinScreensFound =  1;
+        darwinScreensFound = 1;
 
     if (xp_init(XP_BACKGROUND_EVENTS | XP_NO_DEFERRED_UPDATES) != Success)
         FatalError("Could not initialize the Xplugin library.");
 
     xp_select_events(XP_EVENT_DISPLAY_CHANGED
-                     | XP_EVENT_WINDOW_STATE_CHANGED
-                     | XP_EVENT_WINDOW_MOVED
+                     | XP_EVENT_WINDOW_STATE_CHANGED | XP_EVENT_WINDOW_MOVED
 #ifdef XP_EVENT_SPACE_CHANGED
                      | XP_EVENT_SPACE_CHANGED
 #endif
                      | XP_EVENT_SURFACE_CHANGED
-                     | XP_EVENT_SURFACE_DESTROYED,
-                     eventHandler, NULL);
+                     | XP_EVENT_SURFACE_DESTROYED, eventHandler, NULL);
 
     AppleDRIExtensionInit();
     xprAppleWMInit();
@@ -297,81 +302,92 @@ xprAddScreen(int index, ScreenPtr pScreen)
     int depth = darwinDesiredDepth;
 
     DEBUG_LOG("index=%d depth=%d\n", index, depth);
-    
-    if(depth == -1) {
+
+    if (depth == -1) {
 #if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
-        depth = CGDisplaySamplesPerPixel(kCGDirectMainDisplay) * CGDisplayBitsPerSample(kCGDirectMainDisplay);
+        depth =
+            CGDisplaySamplesPerPixel(kCGDirectMainDisplay) *
+            CGDisplayBitsPerSample(kCGDirectMainDisplay);
 #else
         CGDisplayModeRef modeRef;
         CFStringRef encStrRef;
-        
+
         modeRef = CGDisplayCopyDisplayMode(kCGDirectMainDisplay);
-        if(!modeRef)
+        if (!modeRef)
             goto have_depth;
 
         encStrRef = CGDisplayModeCopyPixelEncoding(modeRef);
         CFRelease(modeRef);
-        if(!encStrRef)
+        if (!encStrRef)
             goto have_depth;
-        
-        if(CFStringCompare(encStrRef, CFSTR(IO32BitDirectPixels), kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+
+        if (CFStringCompare
+            (encStrRef, CFSTR(IO32BitDirectPixels),
+             kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
             depth = 24;
-        } else if(CFStringCompare(encStrRef, CFSTR(IO16BitDirectPixels), kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+        }
+        else if (CFStringCompare
+                 (encStrRef, CFSTR(IO16BitDirectPixels),
+                  kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
             depth = 15;
-        } else if(CFStringCompare(encStrRef, CFSTR(IO8BitIndexedPixels), kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+        }
+        else if (CFStringCompare
+                 (encStrRef, CFSTR(IO8BitIndexedPixels),
+                  kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
             depth = 8;
         }
 
         CFRelease(encStrRef);
 #endif
     }
-    
+
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
-have_depth:
+ have_depth:
 #endif
-    switch(depth) {
-        case 8: // pseudo-working
-            dfb->visuals = PseudoColorMask;
-            dfb->preferredCVC = PseudoColor;
-            dfb->depth = 8;
-            dfb->bitsPerRGB = 8;
-            dfb->bitsPerPixel = 8;
-            dfb->redMask = 0;
-            dfb->greenMask = 0;
-            dfb->blueMask = 0;
-            break;
-        case 15:
-            dfb->visuals = TrueColorMask; //LARGE_VISUALS;
-            dfb->preferredCVC = TrueColor;
-            dfb->depth = 15;
-            dfb->bitsPerRGB = 5;
-            dfb->bitsPerPixel = 16;
-            dfb->redMask   = RM_ARGB(0,5,5,5);
-            dfb->greenMask = GM_ARGB(0,5,5,5);
-            dfb->blueMask  = BM_ARGB(0,5,5,5);
-            break;
+    switch (depth) {
+    case 8:                    // pseudo-working
+        dfb->visuals = PseudoColorMask;
+        dfb->preferredCVC = PseudoColor;
+        dfb->depth = 8;
+        dfb->bitsPerRGB = 8;
+        dfb->bitsPerPixel = 8;
+        dfb->redMask = 0;
+        dfb->greenMask = 0;
+        dfb->blueMask = 0;
+        break;
+    case 15:
+        dfb->visuals = TrueColorMask;   //LARGE_VISUALS;
+        dfb->preferredCVC = TrueColor;
+        dfb->depth = 15;
+        dfb->bitsPerRGB = 5;
+        dfb->bitsPerPixel = 16;
+        dfb->redMask = RM_ARGB(0, 5, 5, 5);
+        dfb->greenMask = GM_ARGB(0, 5, 5, 5);
+        dfb->blueMask = BM_ARGB(0, 5, 5, 5);
+        break;
 //        case 24:
-        default:
-            if(depth != 24)
-                ErrorF("Unsupported color depth requested.  Defaulting to 24bit. (depth=%d darwinDesiredDepth=%d)\n", depth, darwinDesiredDepth);
-            dfb->visuals = TrueColorMask; //LARGE_VISUALS;
-            dfb->preferredCVC = TrueColor;
-            dfb->depth = 24;
-            dfb->bitsPerRGB = 8;
-            dfb->bitsPerPixel = 32;
-            dfb->redMask   = RM_ARGB(0,8,8,8);
-            dfb->greenMask = GM_ARGB(0,8,8,8);
-            dfb->blueMask  = BM_ARGB(0,8,8,8);
-            break;
+    default:
+        if (depth != 24)
+            ErrorF
+                ("Unsupported color depth requested.  Defaulting to 24bit. (depth=%d darwinDesiredDepth=%d)\n",
+                 depth, darwinDesiredDepth);
+        dfb->visuals = TrueColorMask;   //LARGE_VISUALS;
+        dfb->preferredCVC = TrueColor;
+        dfb->depth = 24;
+        dfb->bitsPerRGB = 8;
+        dfb->bitsPerPixel = 32;
+        dfb->redMask = RM_ARGB(0, 8, 8, 8);
+        dfb->greenMask = GM_ARGB(0, 8, 8, 8);
+        dfb->blueMask = BM_ARGB(0, 8, 8, 8);
+        break;
     }
 
-    if (noPseudoramiXExtension)
-    {
+    if (noPseudoramiXExtension) {
         CGDirectDisplayID dpy;
         CGRect frame;
 
         ErrorF("Warning: noPseudoramiXExtension!\n");
-        
+
         dpy = displayAtIndex(index);
         QuartzCopyDisplayIDs(pScreen, 1, &dpy);
 
@@ -379,12 +395,12 @@ have_depth:
 
         dfb->x = frame.origin.x;
         dfb->y = frame.origin.y;
-        dfb->width =  frame.size.width;
+        dfb->width = frame.size.width;
         dfb->height = frame.size.height;
     }
-    else
-    {
-        xprAddPseudoramiXScreens(&dfb->x, &dfb->y, &dfb->width, &dfb->height, pScreen);
+    else {
+        xprAddPseudoramiXScreens(&dfb->x, &dfb->y, &dfb->width, &dfb->height,
+                                 pScreen);
     }
 
     /* Passing zero width (pitch) makes miCreateScreenResources set the
