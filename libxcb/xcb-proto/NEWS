@@ -1,3 +1,9 @@
+Release 1.7.1 (2012-03-23)
+==========================
+* Add ge and xf86vidmode protocol descriptions
+* Remove now unnecessary files as everything is implemented in xcbgen
+* Rename the ExprType "parent" attribute to "parents"
+
 Release 1.7 (2012-01-11)
 ========================
 * Add missing padding bytes to ChangeKeyboardMapping request

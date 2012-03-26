@@ -244,6 +244,16 @@
             <languageList><iso639Id>crd</iso639Id></languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>cz_sk_de</name>
+            <description>Czech Slovak and German (US)</description>
+            <languageList><iso639Id>eng</iso639Id>
+                          <iso639Id>cze</iso639Id>
+                          <iso639Id>slo</iso639Id>
+                          <iso639Id>ger</iso639Id> </languageList>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
