@@ -1191,6 +1191,53 @@ xkb_symbols "htcdream" {
 
 // EXTRAS:
 
+// Czech, Slovak and German charecters added as third level symbols to US keyboard layout.
+partial alphanumeric_keys
+xkb_symbols "cz_sk_de" {
+    include "us"
+    name[Group1]="Czech Slovak and German (US)";
+
+    key <TLDE>  { [grave,   asciitilde, uring,      Uring       ] };
+    key <AE01>	{ [    1,	exclam,	uacute,	    Uacute	] };
+    key <AE02>	{ [    2,           at, ecaron,	    Ecaron	] };
+    key <AE03>	{ [    3,   numbersign, scaron,	    Scaron	] };
+    key <AE04>	{ [    4,       dollar,	ccaron,	    Ccaron	] };
+    key <AE05>	{ [    5,      percent, rcaron,	    Rcaron	] };
+    key <AE06>	{ [    6,  asciicircum, zcaron,	    Zcaron	] };
+    key <AE07>	{ [    7,    ampersand,	yacute,	    Yacute	] };
+    key <AE08>	{ [    8,     asterisk, aacute,	    Aacute	] };
+    key <AE09>	{ [    9,    parenleft,	iacute,	    Iacute	] };
+    key <AE10>	{ [    0,   parenright, eacute,	    Eacute	] };
+    key <AE11>	{ [minus,   underscore, ssharp,     0x1001E9E	] };
+    key <AE12>	{ [equal,	  plus, dead_acute, dead_caron  ] };
+    
+    key <AD03>	{ [         e,          E,     EuroSign,     Eacute ]	};
+
+    key <AD11>	{ [bracketleft, braceleft,   udiaeresis,   Udiaeresis ]	};
+    key <AC10>	{ [ semicolon,      colon,   odiaeresis,   Odiaeresis ]	};
+    key <AC11>	{ [apostrophe,      quotedbl,adiaeresis,   Adiaeresis ]	};
+
+    key <AC01>	{ [         a,          A,     aacute,	     Aacute   ]	};
+    key <AD08>	{ [         i,          I,     iacute,	     Iacute   ]	};
+    key <AD09>	{ [         o,          O,     oacute,       Oacute   ]	};
+    key <AD06>	{ [         y,          Y,     yacute,       Yacute   ]	};
+    key <AD07>	{ [         u,          U,     uring,	     Uring    ]	};
+
+    key <AC02>	{ [         s,          S,     scaron,       Scaron   ]	};
+    key <AB01>	{ [         z,          Z,     zcaron,	     Zcaron   ]	};
+    key <AB03>	{ [         c,          C,     ccaron,       Ccaron   ]	};
+    key <AD04>	{ [         r,          R,     rcaron,	     Rcaron   ]	};
+    key <AD05>	{ [         t,          T,     tcaron,	     Tcaron   ]	};
+    key <AC03>	{ [         d,          D,     dcaron,	     Dcaron   ]	};
+    key <AB06>	{ [         n,          N,     ncaron,	     Ncaron   ]	};
+    key <AC09>  { [         l,          L,     lcaron,       Lcaron   ] };
+    key <AD10>  { [         p,          P,ocircumflex,  Ocircumflex   ] };
+
+    key <SPCE>  { [     space,       space, nobreakspace, nobreakspace] };
+
+    include "level3(ralt_switch)"
+};
+
 // XCompose is out! Unicode combining is in!  For those of us who live
 // on the edge: A keymap using Unicode combining characters instead of
 // deadkeys.  This variation does not deviate from the lame MS-style

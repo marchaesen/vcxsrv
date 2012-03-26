@@ -221,11 +221,11 @@ class ExprType(Type):
     Public fields added:
     expr is an Expression object containing the value of the field.
     '''
-    def __init__(self, elt, member, *parent):
+    def __init__(self, elt, member, *parents):
         Type.__init__(self, member.name)
         self.is_expr = True
         self.member = member
-        self.parent = parent
+        self.parents = parents
 
         self.expr = Expression(list(elt)[0], self)
 
