@@ -38,9 +38,9 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "extnsionst.h"
 #include "xkb.h"
 
-	/*
-	 * REQUEST SWAPPING
-	 */
+        /*
+         * REQUEST SWAPPING
+         */
 static int
 SProcXkbUseExtension(ClientPtr client)
 {
@@ -66,66 +66,67 @@ SProcXkbSelectEvents(ClientPtr client)
     swaps(&stuff->selectAll);
     swaps(&stuff->affectMap);
     swaps(&stuff->map);
-    if ((stuff->affectWhich&(~XkbMapNotifyMask))!=0)  {
-	union {
-	    BOOL	*b;
-	    CARD8	*c8;
-	    CARD16	*c16;
-	    CARD32	*c32;
-	} from;
-	register unsigned bit,ndx,maskLeft,dataLeft,size;
+    if ((stuff->affectWhich & (~XkbMapNotifyMask)) != 0) {
+        union {
+            BOOL *b;
+            CARD8 *c8;
+            CARD16 *c16;
+            CARD32 *c32;
+        } from;
+        register unsigned bit, ndx, maskLeft, dataLeft, size;
 
-	from.c8= (CARD8 *)&stuff[1];
-	dataLeft= (stuff->length*4)-SIZEOF(xkbSelectEventsReq);
-	maskLeft= (stuff->affectWhich&(~XkbMapNotifyMask));
-	for (ndx=0,bit=1; (maskLeft!=0); ndx++, bit<<=1) {
-	    if (((bit&maskLeft)==0)||(ndx==XkbMapNotify))
-		continue;
-	    maskLeft&= ~bit;
-	    if ((stuff->selectAll&bit)||(stuff->clear&bit))
-		continue;
-	    switch (ndx) {
-		case XkbNewKeyboardNotify:
-		case XkbStateNotify:
-		case XkbNamesNotify:
-		case XkbAccessXNotify:
-		case XkbExtensionDeviceNotify:
-		    size= 2;
-		    break;
-		case XkbControlsNotify:
-		case XkbIndicatorStateNotify:
-		case XkbIndicatorMapNotify:
-		    size= 4;
-		    break;
-		case XkbBellNotify:
-		case XkbActionMessage:
-		case XkbCompatMapNotify:
-		    size= 1;
-		    break;
-		default:
-		    client->errorValue = _XkbErrCode2(0x1,bit);
-		    return BadValue;
-	    }
-	    if (dataLeft<(size*2))
-		return BadLength;
-	    if (size==2) {
-		swaps(&from.c16[0]);
-		swaps(&from.c16[1]);
-	    }
-	    else if (size==4) {
-		swapl(&from.c32[0]);
-		swapl(&from.c32[1]);
-	    }
-	    else {
-		size= 2;
-	    }
-	    from.c8+= (size*2);
-	    dataLeft-= (size*2);
-	}
-	if (dataLeft>2) {
-	    ErrorF("[xkb] Extra data (%d bytes) after SelectEvents\n",dataLeft);
-	    return BadLength;
-	}
+        from.c8 = (CARD8 *) &stuff[1];
+        dataLeft = (stuff->length * 4) - SIZEOF(xkbSelectEventsReq);
+        maskLeft = (stuff->affectWhich & (~XkbMapNotifyMask));
+        for (ndx = 0, bit = 1; (maskLeft != 0); ndx++, bit <<= 1) {
+            if (((bit & maskLeft) == 0) || (ndx == XkbMapNotify))
+                continue;
+            maskLeft &= ~bit;
+            if ((stuff->selectAll & bit) || (stuff->clear & bit))
+                continue;
+            switch (ndx) {
+            case XkbNewKeyboardNotify:
+            case XkbStateNotify:
+            case XkbNamesNotify:
+            case XkbAccessXNotify:
+            case XkbExtensionDeviceNotify:
+                size = 2;
+                break;
+            case XkbControlsNotify:
+            case XkbIndicatorStateNotify:
+            case XkbIndicatorMapNotify:
+                size = 4;
+                break;
+            case XkbBellNotify:
+            case XkbActionMessage:
+            case XkbCompatMapNotify:
+                size = 1;
+                break;
+            default:
+                client->errorValue = _XkbErrCode2(0x1, bit);
+                return BadValue;
+            }
+            if (dataLeft < (size * 2))
+                return BadLength;
+            if (size == 2) {
+                swaps(&from.c16[0]);
+                swaps(&from.c16[1]);
+            }
+            else if (size == 4) {
+                swapl(&from.c32[0]);
+                swapl(&from.c32[1]);
+            }
+            else {
+                size = 2;
+            }
+            from.c8 += (size * 2);
+            dataLeft -= (size * 2);
+        }
+        if (dataLeft > 2) {
+            ErrorF("[xkb] Extra data (%d bytes) after SelectEvents\n",
+                   dataLeft);
+            return BadLength;
+        }
     }
     return ProcXkbSelectEvents(client);
 }
@@ -244,7 +245,6 @@ SProcXkbSetMap(ClientPtr client)
     return ProcXkbSetMap(client);
 }
 
-
 static int
 SProcXkbGetCompatMap(ClientPtr client)
 {
@@ -335,7 +335,6 @@ SProcXkbSetNamedIndicator(ClientPtr client)
     swapl(&stuff->ctrls);
     return ProcXkbSetNamedIndicator(client);
 }
-
 
 static int
 SProcXkbGetNames(ClientPtr client)
@@ -478,64 +477,63 @@ SProcXkbSetDebuggingFlags(ClientPtr client)
 }
 
 int
-SProcXkbDispatch (ClientPtr client)
+SProcXkbDispatch(ClientPtr client)
 {
     REQUEST(xReq);
-    switch (stuff->data)
-    {
+    switch (stuff->data) {
     case X_kbUseExtension:
-	return SProcXkbUseExtension(client);
+        return SProcXkbUseExtension(client);
     case X_kbSelectEvents:
-	return SProcXkbSelectEvents(client);
+        return SProcXkbSelectEvents(client);
     case X_kbBell:
-	return SProcXkbBell(client);
+        return SProcXkbBell(client);
     case X_kbGetState:
-	return SProcXkbGetState(client);
+        return SProcXkbGetState(client);
     case X_kbLatchLockState:
-	return SProcXkbLatchLockState(client);
+        return SProcXkbLatchLockState(client);
     case X_kbGetControls:
-	return SProcXkbGetControls(client);
+        return SProcXkbGetControls(client);
     case X_kbSetControls:
-	return SProcXkbSetControls(client);
+        return SProcXkbSetControls(client);
     case X_kbGetMap:
-	return SProcXkbGetMap(client);
+        return SProcXkbGetMap(client);
     case X_kbSetMap:
-	return SProcXkbSetMap(client);
+        return SProcXkbSetMap(client);
     case X_kbGetCompatMap:
-	return SProcXkbGetCompatMap(client);
+        return SProcXkbGetCompatMap(client);
     case X_kbSetCompatMap:
-	return SProcXkbSetCompatMap(client);
+        return SProcXkbSetCompatMap(client);
     case X_kbGetIndicatorState:
-	return SProcXkbGetIndicatorState(client);
+        return SProcXkbGetIndicatorState(client);
     case X_kbGetIndicatorMap:
-	return SProcXkbGetIndicatorMap(client);
+        return SProcXkbGetIndicatorMap(client);
     case X_kbSetIndicatorMap:
-	return SProcXkbSetIndicatorMap(client);
+        return SProcXkbSetIndicatorMap(client);
     case X_kbGetNamedIndicator:
-	return SProcXkbGetNamedIndicator(client);
+        return SProcXkbGetNamedIndicator(client);
     case X_kbSetNamedIndicator:
-	return SProcXkbSetNamedIndicator(client);
+        return SProcXkbSetNamedIndicator(client);
     case X_kbGetNames:
-	return SProcXkbGetNames(client);
+        return SProcXkbGetNames(client);
     case X_kbSetNames:
-	return SProcXkbSetNames(client);
+        return SProcXkbSetNames(client);
     case X_kbGetGeometry:
-	return SProcXkbGetGeometry(client);
+        return SProcXkbGetGeometry(client);
     case X_kbSetGeometry:
-	return SProcXkbSetGeometry(client);
+        return SProcXkbSetGeometry(client);
     case X_kbPerClientFlags:
-	return SProcXkbPerClientFlags(client);
+        return SProcXkbPerClientFlags(client);
     case X_kbListComponents:
-	return SProcXkbListComponents(client);
+        return SProcXkbListComponents(client);
     case X_kbGetKbdByName:
-	return SProcXkbGetKbdByName(client);
+        return SProcXkbGetKbdByName(client);
     case X_kbGetDeviceInfo:
-	return SProcXkbGetDeviceInfo(client);
+        return SProcXkbGetDeviceInfo(client);
     case X_kbSetDeviceInfo:
-	return SProcXkbSetDeviceInfo(client);
+        return SProcXkbSetDeviceInfo(client);
     case X_kbSetDebuggingFlags:
-	return SProcXkbSetDebuggingFlags(client);
+        return SProcXkbSetDebuggingFlags(client);
     default:
-	return BadRequest;
+        return BadRequest;
     }
 }

@@ -33,25 +33,23 @@
 #endif
 #include "winclipboard.h"
 
-
 /*
  * Determine whether we suport Unicode or not.
  * NOTE: Currently, just check if we are on an NT-based platform or not.
  */
 
 Bool
-winClipboardDetectUnicodeSupport (void)
+winClipboardDetectUnicodeSupport(void)
 {
-  Bool			fReturn = FALSE;
-  OSVERSIONINFOEX	osvi = {0};
+    Bool fReturn = FALSE;
+    OSVERSIONINFOEX osvi = { 0 };
 
-  /* Get operating system version information */
-  osvi.dwOSVersionInfoSize = sizeof (osvi);
-  GetVersionEx ((LPOSVERSIONINFO)&osvi);
+    /* Get operating system version information */
+    osvi.dwOSVersionInfoSize = sizeof(osvi);
+    GetVersionEx ((LPOSVERSIONINFO)&osvi);
 
-  /* Branch on platform ID */
-  switch (osvi.dwPlatformId)
-    {
+    /* Branch on platform ID */
+    switch (osvi.dwPlatformId) {
     case VER_PLATFORM_WIN32_NT:
       if (osvi.dwMajorVersion >= 6)
       {
@@ -71,17 +69,17 @@ winClipboardDetectUnicodeSupport (void)
 	else if (osvi.dwMinorVersion == 1)
 	{
 	  winDebug ("OS: Windows XP\n");
-	  fReturn = TRUE;
+        fReturn = TRUE;
 	}
 	else if (osvi.dwMinorVersion == 0) winDebug ("OS: Windows 2000\n");
       }
       else if (osvi.dwMajorVersion <= 4) winDebug ("OS: Windows NT\n");
-      break;
+        break;
 
     case VER_PLATFORM_WIN32_WINDOWS:
       winDebug ("OS: Windows 95/98/Me\n");
-      break;
+        break;
     }
 
-  return fReturn;
+    return fReturn;
 }

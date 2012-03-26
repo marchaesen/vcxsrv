@@ -6,7 +6,6 @@
  * mi versions of these routines exist.
  */
 
-
 /*
 
 Copyright 1989, 1998  The Open Group
@@ -32,10 +31,9 @@ used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 */
 
-extern Bool miSpriteInitialize(
-    ScreenPtr /*pScreen*/,
-    miPointerScreenFuncPtr /*screenFuncs*/
-);
+extern Bool miSpriteInitialize(ScreenPtr /*pScreen */ ,
+                               miPointerScreenFuncPtr   /*screenFuncs */
+    );
 
 extern Bool miDCRealizeCursor(ScreenPtr pScreen, CursorPtr pCursor);
 extern Bool miDCUnrealizeCursor(ScreenPtr pScreen, CursorPtr pCursor);

@@ -78,80 +78,84 @@ static char xf86dri_extension_name[] = XF86DRINAME;
  *                                                                           *
  *****************************************************************************/
 
-static int close_display(Display *dpy, XExtCodes *extCodes);
+static int close_display(Display * dpy, XExtCodes * extCodes);
+
 static /* const */ XExtensionHooks xf86dri_extension_hooks = {
-    NULL,				/* create_gc */
-    NULL,				/* copy_gc */
-    NULL,				/* flush_gc */
-    NULL,				/* free_gc */
-    NULL,				/* create_font */
-    NULL,				/* free_font */
-    close_display,			/* close_display */
-    NULL,				/* wire_to_event */
-    NULL,				/* event_to_wire */
-    NULL,				/* error */
-    NULL,				/* error_string */
+    NULL,                       /* create_gc */
+    NULL,                       /* copy_gc */
+    NULL,                       /* flush_gc */
+    NULL,                       /* free_gc */
+    NULL,                       /* create_font */
+    NULL,                       /* free_font */
+    close_display,              /* close_display */
+    NULL,                       /* wire_to_event */
+    NULL,                       /* event_to_wire */
+    NULL,                       /* error */
+    NULL,                       /* error_string */
 };
 
-static XEXT_GENERATE_FIND_DISPLAY (find_display, xf86dri_info, 
-				   xf86dri_extension_name, 
-				   &xf86dri_extension_hooks, 
-				   0, NULL)
+static
+XEXT_GENERATE_FIND_DISPLAY(find_display, xf86dri_info,
+                           xf86dri_extension_name,
+                           &xf86dri_extension_hooks, 0, NULL)
 
-static XEXT_GENERATE_CLOSE_DISPLAY (close_display, xf86dri_info)
-
+static
+XEXT_GENERATE_CLOSE_DISPLAY(close_display, xf86dri_info)
 
 /*****************************************************************************
  *                                                                           *
  *		    public XFree86-DRI Extension routines                    *
  *                                                                           *
  *****************************************************************************/
-
 #if 0
 #include <stdio.h>
 #define TRACE(msg)  fprintf(stderr,"XF86DRI%s\n", msg);
 #else
 #define TRACE(msg)
 #endif
+Bool
+XF86DRIOpenFullScreen(Display * dpy, int screen, Drawable drawable);
+Bool
+XF86DRICloseFullScreen(Display * dpy, int screen, Drawable drawable);
 
-Bool XF86DRIOpenFullScreen(Display *dpy, int screen, Drawable drawable);
-Bool XF86DRICloseFullScreen(Display *dpy, int screen, Drawable drawable);
-
-Bool XF86DRIQueryExtension (Display *dpy, int *event_basep, int *error_basep)
+Bool
+XF86DRIQueryExtension(Display * dpy, int *event_basep, int *error_basep)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
 
     TRACE("QueryExtension...");
     if (XextHasExtension(info)) {
-	*event_basep = info->codes->first_event;
-	*error_basep = info->codes->first_error;
+        *event_basep = info->codes->first_event;
+        *error_basep = info->codes->first_error;
         TRACE("QueryExtension... return True");
-	return True;
-    } else {
+        return True;
+    }
+    else {
         TRACE("QueryExtension... return False");
-	return False;
+        return False;
     }
 }
 
-Bool XF86DRIQueryVersion(Display *dpy, int *majorVersion, int *minorVersion,
-                         int *patchVersion)
+Bool
+XF86DRIQueryVersion(Display * dpy, int *majorVersion, int *minorVersion,
+                    int *patchVersion)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
     xXF86DRIQueryVersionReply rep;
     xXF86DRIQueryVersionReq *req;
 
     TRACE("QueryVersion...");
-    XF86DRICheckExtension (dpy, info, False);
+    XF86DRICheckExtension(dpy, info, False);
 
     LockDisplay(dpy);
     GetReq(XF86DRIQueryVersion, req);
     req->reqType = info->codes->major_opcode;
     req->driReqType = X_XF86DRIQueryVersion;
-    if (!_XReply(dpy, (xReply *)&rep, 0, xFalse)) {
-	UnlockDisplay(dpy);
-	SyncHandle();
+    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+        UnlockDisplay(dpy);
+        SyncHandle();
         TRACE("QueryVersion... return False");
-	return False;
+        return False;
     }
     *majorVersion = rep.majorVersion;
     *minorVersion = rep.minorVersion;
@@ -163,21 +167,21 @@ Bool XF86DRIQueryVersion(Display *dpy, int *majorVersion, int *minorVersion,
 }
 
 Bool
-XF86DRIQueryDirectRenderingCapable (Display *dpy, int screen, Bool *isCapable)
+XF86DRIQueryDirectRenderingCapable(Display * dpy, int screen, Bool *isCapable)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
     xXF86DRIQueryDirectRenderingCapableReply rep;
     xXF86DRIQueryDirectRenderingCapableReq *req;
 
     TRACE("QueryDirectRenderingCapable...");
-    XF86DRICheckExtension (dpy, info, False);
+    XF86DRICheckExtension(dpy, info, False);
 
     LockDisplay(dpy);
     GetReq(XF86DRIQueryDirectRenderingCapable, req);
     req->reqType = info->codes->major_opcode;
     req->driReqType = X_XF86DRIQueryDirectRenderingCapable;
     req->screen = screen;
-    if (!_XReply(dpy, (xReply *)&rep, 0, xFalse)) {
+    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
         UnlockDisplay(dpy);
         SyncHandle();
         TRACE("QueryDirectRenderingCapable... return False");
@@ -191,23 +195,22 @@ XF86DRIQueryDirectRenderingCapable (Display *dpy, int screen, Bool *isCapable)
 }
 
 Bool
-XF86DRIOpenConnection (Display *dpy, int screen,
-                       drm_handle_t *hSAREA,
-                       char **busIdString)
+XF86DRIOpenConnection(Display * dpy, int screen,
+                      drm_handle_t * hSAREA, char **busIdString)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
     xXF86DRIOpenConnectionReply rep;
     xXF86DRIOpenConnectionReq *req;
 
     TRACE("OpenConnection...");
-    XF86DRICheckExtension (dpy, info, False);
+    XF86DRICheckExtension(dpy, info, False);
 
     LockDisplay(dpy);
     GetReq(XF86DRIOpenConnection, req);
     req->reqType = info->codes->major_opcode;
     req->driReqType = X_XF86DRIOpenConnection;
     req->screen = screen;
-    if (!_XReply(dpy, (xReply *)&rep, 0, xFalse)) {
+    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
         UnlockDisplay(dpy);
         SyncHandle();
         TRACE("OpenConnection... return False");
@@ -216,20 +219,22 @@ XF86DRIOpenConnection (Display *dpy, int screen,
 
     *hSAREA = rep.hSAREALow;
     if (sizeof(drm_handle_t) == 8) {
-        int shift = 32; /* var to prevent warning on next line */
+        int shift = 32;         /* var to prevent warning on next line */
+
         *hSAREA |= ((drm_handle_t) rep.hSAREAHigh) << shift;
     }
 
     if (rep.length) {
-        if (!(*busIdString = (char *)calloc(rep.busIdStringLength + 1, 1))) {
-            _XEatData(dpy, ((rep.busIdStringLength+3) & ~3));
+        if (!(*busIdString = (char *) calloc(rep.busIdStringLength + 1, 1))) {
+            _XEatData(dpy, ((rep.busIdStringLength + 3) & ~3));
             UnlockDisplay(dpy);
             SyncHandle();
             TRACE("OpenConnection... return False");
             return False;
         }
         _XReadPad(dpy, *busIdString, rep.busIdStringLength);
-    } else {
+    }
+    else {
         *busIdString = NULL;
     }
     UnlockDisplay(dpy);
@@ -238,14 +243,15 @@ XF86DRIOpenConnection (Display *dpy, int screen,
     return True;
 }
 
-Bool XF86DRIAuthConnection(Display *dpy, int screen, drm_magic_t magic)
+Bool
+XF86DRIAuthConnection(Display * dpy, int screen, drm_magic_t magic)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
     xXF86DRIAuthConnectionReq *req;
     xXF86DRIAuthConnectionReply rep;
 
     TRACE("AuthConnection...");
-    XF86DRICheckExtension (dpy, info, False);
+    XF86DRICheckExtension(dpy, info, False);
 
     LockDisplay(dpy);
     GetReq(XF86DRIAuthConnection, req);
@@ -254,11 +260,11 @@ Bool XF86DRIAuthConnection(Display *dpy, int screen, drm_magic_t magic)
     req->screen = screen;
     req->magic = magic;
     rep.authenticated = 0;
-    if (!_XReply(dpy, (xReply *)&rep, 0, xFalse) || !rep.authenticated) {
-	UnlockDisplay(dpy);
-	SyncHandle();
+    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse) || !rep.authenticated) {
+        UnlockDisplay(dpy);
+        SyncHandle();
         TRACE("AuthConnection... return False");
-	return False;
+        return False;
     }
     UnlockDisplay(dpy);
     SyncHandle();
@@ -266,14 +272,15 @@ Bool XF86DRIAuthConnection(Display *dpy, int screen, drm_magic_t magic)
     return True;
 }
 
-Bool XF86DRICloseConnection(Display *dpy, int screen)
+Bool
+XF86DRICloseConnection(Display * dpy, int screen)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
     xXF86DRICloseConnectionReq *req;
 
     TRACE("CloseConnection...");
 
-    XF86DRICheckExtension (dpy, info, False);
+    XF86DRICheckExtension(dpy, info, False);
 
     LockDisplay(dpy);
     GetReq(XF86DRICloseConnection, req);
@@ -286,29 +293,29 @@ Bool XF86DRICloseConnection(Display *dpy, int screen)
     return True;
 }
 
-Bool XF86DRIGetClientDriverName(Display *dpy, int screen,
-                                int *ddxDriverMajorVersion,
-	                        int *ddxDriverMinorVersion,
-                                int *ddxDriverPatchVersion,
-                                char **clientDriverName)
+Bool
+XF86DRIGetClientDriverName(Display * dpy, int screen,
+                           int *ddxDriverMajorVersion,
+                           int *ddxDriverMinorVersion,
+                           int *ddxDriverPatchVersion, char **clientDriverName)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
     xXF86DRIGetClientDriverNameReply rep;
     xXF86DRIGetClientDriverNameReq *req;
 
     TRACE("GetClientDriverName...");
-    XF86DRICheckExtension (dpy, info, False);
+    XF86DRICheckExtension(dpy, info, False);
 
     LockDisplay(dpy);
     GetReq(XF86DRIGetClientDriverName, req);
     req->reqType = info->codes->major_opcode;
     req->driReqType = X_XF86DRIGetClientDriverName;
     req->screen = screen;
-    if (!_XReply(dpy, (xReply *)&rep, 0, xFalse)) {
-	UnlockDisplay(dpy);
-	SyncHandle();
+    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+        UnlockDisplay(dpy);
+        SyncHandle();
         TRACE("GetClientDriverName... return False");
-	return False;
+        return False;
     }
 
     *ddxDriverMajorVersion = rep.ddxDriverMajorVersion;
@@ -316,15 +323,18 @@ Bool XF86DRIGetClientDriverName(Display *dpy, int screen,
     *ddxDriverPatchVersion = rep.ddxDriverPatchVersion;
 
     if (rep.length) {
-        if (!(*clientDriverName = (char *)calloc(rep.clientDriverNameLength + 1, 1))) {
-            _XEatData(dpy, ((rep.clientDriverNameLength+3) & ~3));
+        if (!
+            (*clientDriverName =
+             (char *) calloc(rep.clientDriverNameLength + 1, 1))) {
+            _XEatData(dpy, ((rep.clientDriverNameLength + 3) & ~3));
             UnlockDisplay(dpy);
             SyncHandle();
             TRACE("GetClientDriverName... return False");
             return False;
         }
-	_XReadPad(dpy, *clientDriverName, rep.clientDriverNameLength);
-    } else {
+        _XReadPad(dpy, *clientDriverName, rep.clientDriverNameLength);
+    }
+    else {
         *clientDriverName = NULL;
     }
     UnlockDisplay(dpy);
@@ -333,15 +343,16 @@ Bool XF86DRIGetClientDriverName(Display *dpy, int screen,
     return True;
 }
 
-Bool XF86DRICreateContextWithConfig(Display *dpy, int screen, int configID,
-                                    XID *context, drm_context_t *hHWContext)
+Bool
+XF86DRICreateContextWithConfig(Display * dpy, int screen, int configID,
+                               XID *context, drm_context_t * hHWContext)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
     xXF86DRICreateContextReply rep;
     xXF86DRICreateContextReq *req;
 
     TRACE("CreateContext...");
-    XF86DRICheckExtension (dpy, info, False);
+    XF86DRICheckExtension(dpy, info, False);
 
     LockDisplay(dpy);
     GetReq(XF86DRICreateContext, req);
@@ -351,11 +362,11 @@ Bool XF86DRICreateContextWithConfig(Display *dpy, int screen, int configID,
     req->screen = screen;
     *context = XAllocID(dpy);
     req->context = *context;
-    if (!_XReply(dpy, (xReply *)&rep, 0, xFalse)) {
-	UnlockDisplay(dpy);
-	SyncHandle();
+    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+        UnlockDisplay(dpy);
+        SyncHandle();
         TRACE("CreateContext... return False");
-	return False;
+        return False;
     }
     *hHWContext = rep.hHWContext;
     UnlockDisplay(dpy);
@@ -364,20 +375,22 @@ Bool XF86DRICreateContextWithConfig(Display *dpy, int screen, int configID,
     return True;
 }
 
-Bool XF86DRICreateContext(Display *dpy, int screen, Visual *visual,
-                          XID *context, drm_context_t *hHWContext)
+Bool
+XF86DRICreateContext(Display * dpy, int screen, Visual * visual,
+                     XID *context, drm_context_t * hHWContext)
 {
-    return XF86DRICreateContextWithConfig( dpy, screen, visual->visualid,
-					   context, hHWContext );
+    return XF86DRICreateContextWithConfig(dpy, screen, visual->visualid,
+                                          context, hHWContext);
 }
 
-GLboolean XF86DRIDestroyContext( Display *dpy, int screen, XID context)
+GLboolean
+XF86DRIDestroyContext(Display * dpy, int screen, XID context)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
     xXF86DRIDestroyContextReq *req;
 
     TRACE("DestroyContext...");
-    XF86DRICheckExtension (dpy, info, False);
+    XF86DRICheckExtension(dpy, info, False);
 
     LockDisplay(dpy);
     GetReq(XF86DRIDestroyContext, req);
@@ -392,15 +405,15 @@ GLboolean XF86DRIDestroyContext( Display *dpy, int screen, XID context)
 }
 
 GLboolean
-XF86DRICreateDrawable (Display *dpy, int screen,
-                       XID drawable, drm_drawable_t * hHWDrawable)
+XF86DRICreateDrawable(Display * dpy, int screen,
+                      XID drawable, drm_drawable_t * hHWDrawable)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
     xXF86DRICreateDrawableReply rep;
     xXF86DRICreateDrawableReq *req;
 
     TRACE("CreateDrawable...");
-    XF86DRICheckExtension (dpy, info, False);
+    XF86DRICheckExtension(dpy, info, False);
 
     LockDisplay(dpy);
     GetReq(XF86DRICreateDrawable, req);
@@ -408,11 +421,11 @@ XF86DRICreateDrawable (Display *dpy, int screen,
     req->driReqType = X_XF86DRICreateDrawable;
     req->screen = screen;
     req->drawable = drawable;
-    if (!_XReply(dpy, (xReply *)&rep, 0, xFalse)) {
-	UnlockDisplay(dpy);
-	SyncHandle();
+    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+        UnlockDisplay(dpy);
+        SyncHandle();
         TRACE("CreateDrawable... return False");
-	return False;
+        return False;
     }
     *hHWDrawable = rep.hHWDrawable;
     UnlockDisplay(dpy);
@@ -421,20 +434,21 @@ XF86DRICreateDrawable (Display *dpy, int screen,
     return True;
 }
 
-static int noopErrorHandler(Display *dpy, XErrorEvent *xerr)
+static int
+noopErrorHandler(Display * dpy, XErrorEvent * xerr)
 {
     return 0;
 }
 
-GLboolean XF86DRIDestroyDrawable( Display *dpy, int screen,
-    XID drawable )
+GLboolean
+XF86DRIDestroyDrawable(Display * dpy, int screen, XID drawable)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
     xXF86DRIDestroyDrawableReq *req;
-    int (*oldXErrorHandler)(Display *, XErrorEvent *);
+    int (*oldXErrorHandler) (Display *, XErrorEvent *);
 
     TRACE("DestroyDrawable...");
-    XF86DRICheckExtension (dpy, info, False);
+    XF86DRICheckExtension(dpy, info, False);
 
     /* This is called from the DRI driver, which used call it like this
      *
@@ -466,20 +480,21 @@ GLboolean XF86DRIDestroyDrawable( Display *dpy, int screen,
     return True;
 }
 
-Bool XF86DRIGetDrawableInfo(Display* dpy, int screen, Drawable drawable,
-    unsigned int* index, unsigned int* stamp,
-    int* X, int* Y, int* W, int* H,
-    int* numClipRects, drm_clip_rect_t ** pClipRects,
-    int* backX, int* backY,
-    int* numBackClipRects, drm_clip_rect_t ** pBackClipRects )
+Bool
+XF86DRIGetDrawableInfo(Display * dpy, int screen, Drawable drawable,
+                       unsigned int *index, unsigned int *stamp,
+                       int *X, int *Y, int *W, int *H,
+                       int *numClipRects, drm_clip_rect_t ** pClipRects,
+                       int *backX, int *backY,
+                       int *numBackClipRects, drm_clip_rect_t ** pBackClipRects)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
     xXF86DRIGetDrawableInfoReply rep;
-    xXF86DRIGetDrawableInfoReq *req=NULL;
+    xXF86DRIGetDrawableInfoReq *req = NULL;
     int total_rects;
 
     TRACE("GetDrawableInfo...");
-    XF86DRICheckExtension (dpy, info, False);
+    XF86DRICheckExtension(dpy, info, False);
 
     LockDisplay(dpy);
     GetReq(XF86DRIGetDrawableInfo, req);
@@ -488,19 +503,18 @@ Bool XF86DRIGetDrawableInfo(Display* dpy, int screen, Drawable drawable,
     req->screen = screen;
     req->drawable = drawable;
 
-    if (!_XReply(dpy, (xReply *)&rep, 1, xFalse)) 
-    {
-	UnlockDisplay(dpy);
-	SyncHandle();
+    if (!_XReply(dpy, (xReply *) & rep, 1, xFalse)) {
+        UnlockDisplay(dpy);
+        SyncHandle();
         TRACE("GetDrawableInfo... return False");
-	return False;
+        return False;
     }
     *index = rep.drawableTableIndex;
     *stamp = rep.drawableTableStamp;
-    *X = (int)rep.drawableX;
-    *Y = (int)rep.drawableY;
-    *W = (int)rep.drawableWidth;
-    *H = (int)rep.drawableHeight;
+    *X = (int) rep.drawableX;
+    *Y = (int) rep.drawableY;
+    *W = (int) rep.drawableWidth;
+    *H = (int) rep.drawableHeight;
     *numClipRects = rep.numClipRects;
     total_rects = *numClipRects;
 
@@ -514,34 +528,37 @@ Bool XF86DRIGetDrawableInfo(Display* dpy, int screen, Drawable drawable,
      * backwards compatibility (Because of the >> 2 shift) but the fix
      * enables multi-threaded apps to work.
      */
-    if (rep.length !=  ((((SIZEOF(xXF86DRIGetDrawableInfoReply) - 
-		       SIZEOF(xGenericReply) + 
-		       total_rects * sizeof(drm_clip_rect_t)) + 3) & ~3) >> 2)) {
+    if (rep.length != ((((SIZEOF(xXF86DRIGetDrawableInfoReply) -
+                          SIZEOF(xGenericReply) +
+                          total_rects * sizeof(drm_clip_rect_t)) +
+                         3) & ~3) >> 2)) {
         _XEatData(dpy, rep.length);
-	UnlockDisplay(dpy);
-	SyncHandle();
+        UnlockDisplay(dpy);
+        SyncHandle();
         TRACE("GetDrawableInfo... return False");
         return False;
     }
 #endif
 
     if (*numClipRects) {
-       int len = sizeof(drm_clip_rect_t) * (*numClipRects);
+        int len = sizeof(drm_clip_rect_t) * (*numClipRects);
 
-       *pClipRects = (drm_clip_rect_t *)calloc(len, 1);
-       if (*pClipRects)
-	  _XRead(dpy, (char*)*pClipRects, len);
-    } else {
+        *pClipRects = (drm_clip_rect_t *) calloc(len, 1);
+        if (*pClipRects)
+            _XRead(dpy, (char *) *pClipRects, len);
+    }
+    else {
         *pClipRects = NULL;
     }
 
     if (*numBackClipRects) {
-       int len = sizeof(drm_clip_rect_t) * (*numBackClipRects);
+        int len = sizeof(drm_clip_rect_t) * (*numBackClipRects);
 
-       *pBackClipRects = (drm_clip_rect_t *)calloc(len, 1);
-       if (*pBackClipRects) 
-	  _XRead(dpy, (char*)*pBackClipRects, len);
-    } else {
+        *pBackClipRects = (drm_clip_rect_t *) calloc(len, 1);
+        if (*pBackClipRects)
+            _XRead(dpy, (char *) *pBackClipRects, len);
+    }
+    else {
         *pBackClipRects = NULL;
     }
 
@@ -552,33 +569,34 @@ Bool XF86DRIGetDrawableInfo(Display* dpy, int screen, Drawable drawable,
 }
 
 Bool
-XF86DRIGetDeviceInfo (Display *dpy, int screen, drm_handle_t *hFrameBuffer,
-                      int *fbOrigin, int *fbSize, int *fbStride,
-                      int *devPrivateSize, void **pDevPrivate)
+XF86DRIGetDeviceInfo(Display * dpy, int screen, drm_handle_t * hFrameBuffer,
+                     int *fbOrigin, int *fbSize, int *fbStride,
+                     int *devPrivateSize, void **pDevPrivate)
 {
-    XExtDisplayInfo *info = find_display (dpy);
+    XExtDisplayInfo *info = find_display(dpy);
     xXF86DRIGetDeviceInfoReply rep;
     xXF86DRIGetDeviceInfoReq *req;
 
     TRACE("GetDeviceInfo...");
-    XF86DRICheckExtension (dpy, info, False);
+    XF86DRICheckExtension(dpy, info, False);
 
     LockDisplay(dpy);
     GetReq(XF86DRIGetDeviceInfo, req);
     req->reqType = info->codes->major_opcode;
     req->driReqType = X_XF86DRIGetDeviceInfo;
     req->screen = screen;
-    if (!_XReply(dpy, (xReply *)&rep, 0, xFalse)) {
-	UnlockDisplay(dpy);
-	SyncHandle();
+    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+        UnlockDisplay(dpy);
+        SyncHandle();
         TRACE("GetDeviceInfo... return False");
-	return False;
+        return False;
     }
 
     *hFrameBuffer = rep.hFrameBufferLow;
     if (sizeof(drm_handle_t) == 8) {
-       int shift = 32; /* var to prevent warning on next line */
-       *hFrameBuffer |= ((drm_handle_t) rep.hFrameBufferHigh) << shift;
+        int shift = 32;         /* var to prevent warning on next line */
+
+        *hFrameBuffer |= ((drm_handle_t) rep.hFrameBufferHigh) << shift;
     }
 
     *fbOrigin = rep.framebufferOrigin;
@@ -587,15 +605,16 @@ XF86DRIGetDeviceInfo (Display *dpy, int screen, drm_handle_t *hFrameBuffer,
     *devPrivateSize = rep.devPrivateSize;
 
     if (rep.length) {
-        if (!(*pDevPrivate = (void *)calloc(rep.devPrivateSize, 1))) {
-            _XEatData(dpy, ((rep.devPrivateSize+3) & ~3));
+        if (!(*pDevPrivate = (void *) calloc(rep.devPrivateSize, 1))) {
+            _XEatData(dpy, ((rep.devPrivateSize + 3) & ~3));
             UnlockDisplay(dpy);
             SyncHandle();
             TRACE("GetDeviceInfo... return False");
             return False;
         }
-	_XRead(dpy, (char*)*pDevPrivate, rep.devPrivateSize);
-    } else {
+        _XRead(dpy, (char *) *pDevPrivate, rep.devPrivateSize);
+    }
+    else {
         *pDevPrivate = NULL;
     }
 
@@ -606,7 +625,7 @@ XF86DRIGetDeviceInfo (Display *dpy, int screen, drm_handle_t *hFrameBuffer,
 }
 
 Bool
-XF86DRIOpenFullScreen(Display *dpy, int screen, Drawable drawable)
+XF86DRIOpenFullScreen(Display * dpy, int screen, Drawable drawable)
 {
     /* This function and the underlying X protocol are deprecated.
      */
@@ -617,7 +636,7 @@ XF86DRIOpenFullScreen(Display *dpy, int screen, Drawable drawable)
 }
 
 Bool
-XF86DRICloseFullScreen(Display *dpy, int screen, Drawable drawable)
+XF86DRICloseFullScreen(Display * dpy, int screen, Drawable drawable)
 {
     /* This function and the underlying X protocol are deprecated.
      */

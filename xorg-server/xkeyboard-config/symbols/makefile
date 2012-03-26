@@ -15,8 +15,8 @@ at az \
 ba bd be \
 bg br brai \
 bt bw by \
-ca cd \
-ch cn cz \
+ca cd ch \
+cm cn cz \
 de dk \
 ee es et epo \
 fi fo fr \

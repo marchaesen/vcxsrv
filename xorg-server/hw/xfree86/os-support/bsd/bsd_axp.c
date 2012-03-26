@@ -24,49 +24,48 @@ axpDevice bsdGetAXP(void);
  */
 
 typedef struct {
-	char *name;
-	int type;
-} _AXP; 
+    char *name;
+    int type;
+} _AXP;
 
 static _AXP axpList[] = {
-	{"apecs",APECS},
-	{"pyxis",PYXIS},
-	{"cia",CIA},
-	{"irongate",IRONGATE},
-	{"lca",LCA},
-	{"t2",T2},
-	{"tsunami",TSUNAMI},
-	{NULL,SYS_NONE}
+    {"apecs", APECS},
+    {"pyxis", PYXIS},
+    {"cia", CIA},
+    {"irongate", IRONGATE},
+    {"lca", LCA},
+    {"t2", T2},
+    {"tsunami", TSUNAMI},
+    {NULL, SYS_NONE}
 };
 
 axpDevice
 bsdGetAXP(void)
 {
-	int i;
-	char sysname[64];
-	size_t len = sizeof(sysname);
-	
+    int i;
+    char sysname[64];
+    size_t len = sizeof(sysname);
+
 #ifdef __OpenBSD__
-	int mib[3];
-	int error;
+    int mib[3];
+    int error;
 
-	mib[0] = CTL_MACHDEP;
-	mib[1] = CPU_CHIPSET;
-	mib[2] = CPU_CHIPSET_TYPE;
+    mib[0] = CTL_MACHDEP;
+    mib[1] = CPU_CHIPSET;
+    mib[2] = CPU_CHIPSET_TYPE;
 
-	if ((error = sysctl(mib, 3, &sysname, &len, NULL, 0)) < 0)
-#else	
-	if ((sysctlbyname("hw.chipset.type", &sysname, &len,
-                                  0, 0)) < 0)
+    if ((error = sysctl(mib, 3, &sysname, &len, NULL, 0)) < 0)
+#else
+    if ((sysctlbyname("hw.chipset.type", &sysname, &len, 0, 0)) < 0)
 #endif
-            FatalError("bsdGetAXP: can't find machine type\n");
+        FatalError("bsdGetAXP: can't find machine type\n");
 #ifdef DEBUG
-	xf86Msg(X_INFO,"AXP is a: %s\n",sysname);
+    xf86Msg(X_INFO, "AXP is a: %s\n", sysname);
 #endif
-	for (i=0;;i++) {
-		if (axpList[i].name == NULL)
-			return SYS_NONE;
-		if (!strcmp(sysname, axpList[i].name))
-			return axpList[i].type;
-	}
-}	
+    for (i = 0;; i++) {
+        if (axpList[i].name == NULL)
+            return SYS_NONE;
+        if (!strcmp(sysname, axpList[i].name))
+            return axpList[i].type;
+    }
+}

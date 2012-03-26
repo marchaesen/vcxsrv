@@ -47,61 +47,67 @@
 #include "privates.h"
 
 /** Initialize a private area in \a pScreen for pixmap information. */
-Bool dmxInitPixmap(ScreenPtr pScreen)
+Bool
+dmxInitPixmap(ScreenPtr pScreen)
 {
-    if (!dixRegisterPrivateKey(&dmxPixPrivateKeyRec, PRIVATE_PIXMAP, sizeof(dmxPixPrivRec)))
-	return FALSE;
+    if (!dixRegisterPrivateKey
+        (&dmxPixPrivateKeyRec, PRIVATE_PIXMAP, sizeof(dmxPixPrivRec)))
+        return FALSE;
 
     return TRUE;
 }
 
 /** Create a pixmap on the back-end server. */
-void dmxBECreatePixmap(PixmapPtr pPixmap)
+void
+dmxBECreatePixmap(PixmapPtr pPixmap)
 {
-    ScreenPtr      pScreen   = pPixmap->drawable.pScreen;
+    ScreenPtr pScreen = pPixmap->drawable.pScreen;
     DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
-    dmxPixPrivPtr  pPixPriv  = DMX_GET_PIXMAP_PRIV(pPixmap);
+    dmxPixPrivPtr pPixPriv = DMX_GET_PIXMAP_PRIV(pPixmap);
 
     /* Make sure we haven't already created this pixmap.  This can
      * happen when the pixmap is used elsewhere (e.g., as a background
      * or border for a window) and the refcnt > 1.
      */
     if (pPixPriv->pixmap)
-	return;
+        return;
 
     if (pPixmap->drawable.width && pPixmap->drawable.height) {
-	pPixPriv->pixmap = XCreatePixmap(dmxScreen->beDisplay,
-					 dmxScreen->scrnWin,
-					 pPixmap->drawable.width,
-					 pPixmap->drawable.height,
-					 pPixmap->drawable.depth);
-	dmxSync(dmxScreen, FALSE);
+        pPixPriv->pixmap = XCreatePixmap(dmxScreen->beDisplay,
+                                         dmxScreen->scrnWin,
+                                         pPixmap->drawable.width,
+                                         pPixmap->drawable.height,
+                                         pPixmap->drawable.depth);
+        dmxSync(dmxScreen, FALSE);
     }
 }
 
 /** Create a pixmap for \a pScreen with the specified \a width, \a
  *  height, and \a depth. */
-PixmapPtr dmxCreatePixmap(ScreenPtr pScreen, int width, int height, int depth,
-			  unsigned usage_hint)
+PixmapPtr
+dmxCreatePixmap(ScreenPtr pScreen, int width, int height, int depth,
+                unsigned usage_hint)
 {
     DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
-    PixmapPtr      pPixmap;
-    int            bpp;
-    dmxPixPrivPtr  pPixPriv;
+    PixmapPtr pPixmap;
+    int bpp;
+    dmxPixPrivPtr pPixPriv;
 
 #if 0
     DMX_UNWRAP(CreatePixmap, dmxScreen, pScreen);
     if (pScreen->CreatePixmap)
-	ret = pScreen->CreatePixmap(pPixmap);
+        ret = pScreen->CreatePixmap(pPixmap);
 #endif
 
     /* Create pixmap on back-end server */
-    if (depth == 24) bpp = 32;
-    else             bpp = depth;
+    if (depth == 24)
+        bpp = 32;
+    else
+        bpp = depth;
 
     pPixmap = AllocatePixmap(pScreen, 0);
     if (!pPixmap)
-	return NullPixmap;
+        return NullPixmap;
 
     pPixmap->drawable.type = DRAWABLE_PIXMAP;
     pPixmap->drawable.class = 0;
@@ -119,12 +125,12 @@ PixmapPtr dmxCreatePixmap(ScreenPtr pScreen, int width, int height, int depth,
     pPixmap->usage_hint = usage_hint;
 
     pPixPriv = DMX_GET_PIXMAP_PRIV(pPixmap);
-    pPixPriv->pixmap = (Pixmap)0;
+    pPixPriv->pixmap = (Pixmap) 0;
     pPixPriv->detachedImage = NULL;
 
     /* Create the pixmap on the back-end server */
     if (dmxScreen->beDisplay) {
-	dmxBECreatePixmap(pPixmap);
+        dmxBECreatePixmap(pPixmap);
     }
 
 #if 0
@@ -135,50 +141,53 @@ PixmapPtr dmxCreatePixmap(ScreenPtr pScreen, int width, int height, int depth,
 }
 
 /** Destroy the pixmap on the back-end server. */
-Bool dmxBEFreePixmap(PixmapPtr pPixmap)
+Bool
+dmxBEFreePixmap(PixmapPtr pPixmap)
 {
-    ScreenPtr      pScreen = pPixmap->drawable.pScreen;
+    ScreenPtr pScreen = pPixmap->drawable.pScreen;
     DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
-    dmxPixPrivPtr  pPixPriv = DMX_GET_PIXMAP_PRIV(pPixmap);
+    dmxPixPrivPtr pPixPriv = DMX_GET_PIXMAP_PRIV(pPixmap);
 
     if (pPixPriv->pixmap) {
-	XFreePixmap(dmxScreen->beDisplay, pPixPriv->pixmap);
-	pPixPriv->pixmap = (Pixmap)0;
-	return TRUE;
+        XFreePixmap(dmxScreen->beDisplay, pPixPriv->pixmap);
+        pPixPriv->pixmap = (Pixmap) 0;
+        return TRUE;
     }
 
     return FALSE;
 }
 
 /** Destroy the pixmap pointed to by \a pPixmap. */
-Bool dmxDestroyPixmap(PixmapPtr pPixmap)
+Bool
+dmxDestroyPixmap(PixmapPtr pPixmap)
 {
-    ScreenPtr      pScreen = pPixmap->drawable.pScreen;
+    ScreenPtr pScreen = pPixmap->drawable.pScreen;
     DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
-    Bool           ret = TRUE;
+    Bool ret = TRUE;
 
 #if 0
     DMX_UNWRAP(DestroyPixmap, dmxScreen, pScreen);
 #endif
 
     if (--pPixmap->refcnt)
-	return TRUE;
+        return TRUE;
 
     /* Destroy pixmap on back-end server */
     if (dmxScreen->beDisplay) {
-	if (dmxBEFreePixmap(pPixmap)) {
-	    /* Also make sure that we destroy any detached image */
-	    dmxPixPrivPtr  pPixPriv = DMX_GET_PIXMAP_PRIV(pPixmap);
-	    if (pPixPriv->detachedImage)
-		XDestroyImage(pPixPriv->detachedImage);
-	    dmxSync(dmxScreen, FALSE);
-	}
+        if (dmxBEFreePixmap(pPixmap)) {
+            /* Also make sure that we destroy any detached image */
+            dmxPixPrivPtr pPixPriv = DMX_GET_PIXMAP_PRIV(pPixmap);
+
+            if (pPixPriv->detachedImage)
+                XDestroyImage(pPixPriv->detachedImage);
+            dmxSync(dmxScreen, FALSE);
+        }
     }
     FreePixmap(pPixmap);
 
 #if 0
     if (pScreen->DestroyPixmap)
-	ret = pScreen->DestroyPixmap(pPixmap);
+        ret = pScreen->DestroyPixmap(pPixmap);
     DMX_WRAP(DestroyPixmap, dmxDestroyPixmap, dmxScreen, pScreen);
 #endif
 
@@ -187,60 +196,62 @@ Bool dmxDestroyPixmap(PixmapPtr pPixmap)
 
 /** Create and return a region based on the pixmap pointed to by \a
  *  pPixmap. */
-RegionPtr dmxBitmapToRegion(PixmapPtr pPixmap)
+RegionPtr
+dmxBitmapToRegion(PixmapPtr pPixmap)
 {
     DMXScreenInfo *dmxScreen = &dmxScreens[pPixmap->drawable.pScreen->myNum];
-    dmxPixPrivPtr  pPixPriv = DMX_GET_PIXMAP_PRIV(pPixmap);
-    XImage        *ximage;
-    RegionPtr      pReg, pTmpReg;
-    int            x, y;
-    unsigned long  previousPixel, currentPixel;
-    BoxRec         Box;
-    Bool           overlap;
-  
+    dmxPixPrivPtr pPixPriv = DMX_GET_PIXMAP_PRIV(pPixmap);
+    XImage *ximage;
+    RegionPtr pReg, pTmpReg;
+    int x, y;
+    unsigned long previousPixel, currentPixel;
+    BoxRec Box;
+    Bool overlap;
+
     if (!dmxScreen->beDisplay) {
-	pReg = RegionCreate(NullBox, 1);
-	return pReg;
+        pReg = RegionCreate(NullBox, 1);
+        return pReg;
     }
 
     ximage = XGetImage(dmxScreen->beDisplay, pPixPriv->pixmap, 0, 0,
-		       pPixmap->drawable.width, pPixmap->drawable.height,
-		       1, XYPixmap);
+                       pPixmap->drawable.width, pPixmap->drawable.height,
+                       1, XYPixmap);
 
     pReg = RegionCreate(NullBox, 1);
     pTmpReg = RegionCreate(NullBox, 1);
-    if(!pReg || !pTmpReg) {
-	XDestroyImage(ximage);
-	return NullRegion;
+    if (!pReg || !pTmpReg) {
+        XDestroyImage(ximage);
+        return NullRegion;
     }
 
     for (y = 0; y < pPixmap->drawable.height; y++) {
-	Box.y1 = y;
-	Box.y2 = y + 1;
-	previousPixel = 0L;
-	for (x = 0; x < pPixmap->drawable.width; x++) {
-	    currentPixel = XGetPixel(ximage, x, y);
-	    if (previousPixel != currentPixel) {
-		if (previousPixel == 0L) { 
-		    /* left edge */
-		    Box.x1 = x;
-		} else if (currentPixel == 0L) {
-		    /* right edge */
-		    Box.x2 = x;
-		    RegionReset(pTmpReg, &Box);
-		    RegionAppend(pReg, pTmpReg);
-		}
-		previousPixel = currentPixel;
-	    }
-	}
-	if (previousPixel != 0L) {
-	    /* right edge because of the end of pixmap */
-	    Box.x2 = pPixmap->drawable.width;
-	    RegionReset(pTmpReg, &Box);
-	    RegionAppend(pReg, pTmpReg);
-	}
+        Box.y1 = y;
+        Box.y2 = y + 1;
+        previousPixel = 0L;
+        for (x = 0; x < pPixmap->drawable.width; x++) {
+            currentPixel = XGetPixel(ximage, x, y);
+            if (previousPixel != currentPixel) {
+                if (previousPixel == 0L) {
+                    /* left edge */
+                    Box.x1 = x;
+                }
+                else if (currentPixel == 0L) {
+                    /* right edge */
+                    Box.x2 = x;
+                    RegionReset(pTmpReg, &Box);
+                    RegionAppend(pReg, pTmpReg);
+                }
+                previousPixel = currentPixel;
+            }
+        }
+        if (previousPixel != 0L) {
+            /* right edge because of the end of pixmap */
+            Box.x2 = pPixmap->drawable.width;
+            RegionReset(pTmpReg, &Box);
+            RegionAppend(pReg, pTmpReg);
+        }
     }
-  
+
     RegionDestroy(pTmpReg);
     XDestroyImage(ximage);
 

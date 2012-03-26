@@ -12,7 +12,6 @@ is" without express or implied warranty.
 
 */
 
-
 #ifdef HAVE_XNEST_CONFIG_H
 #include <xnest-config.h>
 #endif
@@ -47,8 +46,8 @@ int *xnestDepths;
 int xnestNumDepths;
 XPixmapFormatValues *xnestPixmapFormats;
 int xnestNumPixmapFormats;
-Pixel xnestBlackPixel;             
-Pixel xnestWhitePixel;             
+Pixel xnestBlackPixel;
+Pixel xnestWhitePixel;
 Drawable xnestDefaultDrawables[MAXDEPTH + 1];
 Pixmap xnestIconBitmap;
 Pixmap xnestScreenSaverPixmap;
@@ -61,7 +60,8 @@ unsigned long xnestEventMask;
 #endif
 
 static int _X_NORETURN
-x_io_error_handler (Display *dpy) {
+x_io_error_handler(Display * dpy)
+{
     ErrorF("Lost connection to X server: %s\n", strerror(errno));
     CloseWellKnownConnections();
     OsCleanup(1);
@@ -71,141 +71,143 @@ x_io_error_handler (Display *dpy) {
 void
 xnestOpenDisplay(int argc, char *argv[])
 {
-  XVisualInfo vi;
-  long mask;
-  int i, j;
+    XVisualInfo vi;
+    long mask;
+    int i, j;
 
-  if (!xnestDoFullGeneration) return;
+    if (!xnestDoFullGeneration)
+        return;
 
-  XSetIOErrorHandler(x_io_error_handler);
+    XSetIOErrorHandler(x_io_error_handler);
 
-  xnestCloseDisplay();
+    xnestCloseDisplay();
 
-  xnestDisplay = XOpenDisplay(xnestDisplayName);
-  if (xnestDisplay == NULL)
-    FatalError("Unable to open display \"%s\".\n", 
-	       XDisplayName(xnestDisplayName));
+    xnestDisplay = XOpenDisplay(xnestDisplayName);
+    if (xnestDisplay == NULL)
+        FatalError("Unable to open display \"%s\".\n",
+                   XDisplayName(xnestDisplayName));
 
-  if (xnestSynchronize)
-    XSynchronize(xnestDisplay, True);
+    if (xnestSynchronize)
+        XSynchronize(xnestDisplay, True);
 
-  mask = VisualScreenMask;
-  vi.screen = DefaultScreen(xnestDisplay);
-  xnestVisuals = XGetVisualInfo(xnestDisplay, mask, &vi, &xnestNumVisuals);
-  if (xnestNumVisuals == 0 || xnestVisuals == NULL)
-    FatalError("Unable to find any visuals.\n");
+    mask = VisualScreenMask;
+    vi.screen = DefaultScreen(xnestDisplay);
+    xnestVisuals = XGetVisualInfo(xnestDisplay, mask, &vi, &xnestNumVisuals);
+    if (xnestNumVisuals == 0 || xnestVisuals == NULL)
+        FatalError("Unable to find any visuals.\n");
 
-  if (xnestUserDefaultClass || xnestUserDefaultDepth) {
-    xnestDefaultVisualIndex = UNDEFINED;
-    for (i = 0; i < xnestNumVisuals; i++)
-      if ((!xnestUserDefaultClass ||
-	   xnestVisuals[i].class == xnestDefaultClass)
-	  &&
-	  (!xnestUserDefaultDepth ||
-	   xnestVisuals[i].depth == xnestDefaultDepth)) {
-	xnestDefaultVisualIndex = i;
-	break;
-      }
-    if (xnestDefaultVisualIndex == UNDEFINED) 
-      FatalError("Unable to find desired default visual.\n");
-  }
-  else {
-    vi.visualid = XVisualIDFromVisual(DefaultVisual(xnestDisplay, 
-				      DefaultScreen(xnestDisplay))); 
-    xnestDefaultVisualIndex = 0;
-    for (i = 0; i < xnestNumVisuals; i++)
-      if (vi.visualid == xnestVisuals[i].visualid)
-	xnestDefaultVisualIndex = i;
-  }
-  
-  xnestNumDefaultColormaps = xnestNumVisuals;
-  xnestDefaultColormaps = (Colormap *)malloc(xnestNumDefaultColormaps *
-					     sizeof(Colormap));
-  for (i = 0; i < xnestNumDefaultColormaps; i++)
-    xnestDefaultColormaps[i] = XCreateColormap(xnestDisplay,
-					       DefaultRootWindow(xnestDisplay),
-					       xnestVisuals[i].visual,
-					       AllocNone);
-  
-  xnestDepths = XListDepths(xnestDisplay, DefaultScreen(xnestDisplay),
-			    &xnestNumDepths);
+    if (xnestUserDefaultClass || xnestUserDefaultDepth) {
+        xnestDefaultVisualIndex = UNDEFINED;
+        for (i = 0; i < xnestNumVisuals; i++)
+            if ((!xnestUserDefaultClass ||
+                 xnestVisuals[i].class == xnestDefaultClass)
+                &&
+                (!xnestUserDefaultDepth ||
+                 xnestVisuals[i].depth == xnestDefaultDepth)) {
+                xnestDefaultVisualIndex = i;
+                break;
+            }
+        if (xnestDefaultVisualIndex == UNDEFINED)
+            FatalError("Unable to find desired default visual.\n");
+    }
+    else {
+        vi.visualid = XVisualIDFromVisual(DefaultVisual(xnestDisplay,
+                                                        DefaultScreen
+                                                        (xnestDisplay)));
+        xnestDefaultVisualIndex = 0;
+        for (i = 0; i < xnestNumVisuals; i++)
+            if (vi.visualid == xnestVisuals[i].visualid)
+                xnestDefaultVisualIndex = i;
+    }
 
-  xnestPixmapFormats = XListPixmapFormats(xnestDisplay, 
-					  &xnestNumPixmapFormats);
-  
-  xnestBlackPixel = BlackPixel(xnestDisplay, DefaultScreen(xnestDisplay));
-  xnestWhitePixel = WhitePixel(xnestDisplay, DefaultScreen(xnestDisplay));
+    xnestNumDefaultColormaps = xnestNumVisuals;
+    xnestDefaultColormaps = (Colormap *) malloc(xnestNumDefaultColormaps *
+                                                sizeof(Colormap));
+    for (i = 0; i < xnestNumDefaultColormaps; i++)
+        xnestDefaultColormaps[i] = XCreateColormap(xnestDisplay,
+                                                   DefaultRootWindow
+                                                   (xnestDisplay),
+                                                   xnestVisuals[i].visual,
+                                                   AllocNone);
 
-  if (xnestParentWindow != (Window) 0)
-    xnestEventMask = StructureNotifyMask;
-  else
-    xnestEventMask = 0L;
-  
-  for (i = 0; i <= MAXDEPTH; i++)
-    xnestDefaultDrawables[i] = None;
-  
-  for (i = 0; i < xnestNumPixmapFormats; i++)
-    for (j = 0; j < xnestNumDepths; j++)
-      if (xnestPixmapFormats[i].depth == 1 ||
-	  xnestPixmapFormats[i].depth == xnestDepths[j]) {
-	xnestDefaultDrawables[xnestPixmapFormats[i].depth] =
-	  XCreatePixmap(xnestDisplay, DefaultRootWindow(xnestDisplay), 
-			1, 1, xnestPixmapFormats[i].depth);
-      }
-  
-  xnestBitmapGC = XCreateGC(xnestDisplay, xnestDefaultDrawables[1], 0L, NULL);
-  
-  if (!(xnestUserGeometry & XValue))
-    xnestX = 0;
-  
-  if (!(xnestUserGeometry & YValue))
-    xnestY = 0;
-  
-  if (xnestParentWindow == 0) {
-    if (!(xnestUserGeometry & WidthValue))
-      xnestWidth = 3 * DisplayWidth(xnestDisplay, 
-				    DefaultScreen(xnestDisplay)) / 4;
-  
-    if (!(xnestUserGeometry & HeightValue))
-      xnestHeight = 3 * DisplayHeight(xnestDisplay, 
-				      DefaultScreen(xnestDisplay)) / 4;
-  }
+    xnestDepths = XListDepths(xnestDisplay, DefaultScreen(xnestDisplay),
+                              &xnestNumDepths);
 
-  if (!xnestUserBorderWidth)
-    xnestBorderWidth = 1;
+    xnestPixmapFormats = XListPixmapFormats(xnestDisplay,
+                                            &xnestNumPixmapFormats);
 
-  xnestIconBitmap = 
-    XCreateBitmapFromData(xnestDisplay,
-			  DefaultRootWindow(xnestDisplay),
-			  (char *)icon_bits,
-			  icon_width,
-			  icon_height);
-  
-  xnestScreenSaverPixmap = 
-    XCreatePixmapFromBitmapData(xnestDisplay,
-				DefaultRootWindow(xnestDisplay),
-				(char *)screensaver_bits,
-				screensaver_width,
-				screensaver_height,
-				xnestWhitePixel,
-				xnestBlackPixel,
-				DefaultDepth(xnestDisplay,
-					     DefaultScreen(xnestDisplay)));
+    xnestBlackPixel = BlackPixel(xnestDisplay, DefaultScreen(xnestDisplay));
+    xnestWhitePixel = WhitePixel(xnestDisplay, DefaultScreen(xnestDisplay));
+
+    if (xnestParentWindow != (Window) 0)
+        xnestEventMask = StructureNotifyMask;
+    else
+        xnestEventMask = 0L;
+
+    for (i = 0; i <= MAXDEPTH; i++)
+        xnestDefaultDrawables[i] = None;
+
+    for (i = 0; i < xnestNumPixmapFormats; i++)
+        for (j = 0; j < xnestNumDepths; j++)
+            if (xnestPixmapFormats[i].depth == 1 ||
+                xnestPixmapFormats[i].depth == xnestDepths[j]) {
+                xnestDefaultDrawables[xnestPixmapFormats[i].depth] =
+                    XCreatePixmap(xnestDisplay, DefaultRootWindow(xnestDisplay),
+                                  1, 1, xnestPixmapFormats[i].depth);
+            }
+
+    xnestBitmapGC = XCreateGC(xnestDisplay, xnestDefaultDrawables[1], 0L, NULL);
+
+    if (!(xnestUserGeometry & XValue))
+        xnestX = 0;
+
+    if (!(xnestUserGeometry & YValue))
+        xnestY = 0;
+
+    if (xnestParentWindow == 0) {
+        if (!(xnestUserGeometry & WidthValue))
+            xnestWidth = 3 * DisplayWidth(xnestDisplay,
+                                          DefaultScreen(xnestDisplay)) / 4;
+
+        if (!(xnestUserGeometry & HeightValue))
+            xnestHeight = 3 * DisplayHeight(xnestDisplay,
+                                            DefaultScreen(xnestDisplay)) / 4;
+    }
+
+    if (!xnestUserBorderWidth)
+        xnestBorderWidth = 1;
+
+    xnestIconBitmap =
+        XCreateBitmapFromData(xnestDisplay,
+                              DefaultRootWindow(xnestDisplay),
+                              (char *) icon_bits, icon_width, icon_height);
+
+    xnestScreenSaverPixmap =
+        XCreatePixmapFromBitmapData(xnestDisplay,
+                                    DefaultRootWindow(xnestDisplay),
+                                    (char *) screensaver_bits,
+                                    screensaver_width,
+                                    screensaver_height,
+                                    xnestWhitePixel,
+                                    xnestBlackPixel,
+                                    DefaultDepth(xnestDisplay,
+                                                 DefaultScreen(xnestDisplay)));
 }
 
 void
 xnestCloseDisplay(void)
 {
-  if (!xnestDoFullGeneration || !xnestDisplay) return;
+    if (!xnestDoFullGeneration || !xnestDisplay)
+        return;
 
-  /*
-    If xnestDoFullGeneration all x resources will be destroyed upon closing
-    the display connection.  There is no need to generate extra protocol.
-    */
+    /*
+       If xnestDoFullGeneration all x resources will be destroyed upon closing
+       the display connection.  There is no need to generate extra protocol.
+     */
 
-  free(xnestDefaultColormaps);
-  XFree(xnestVisuals);
-  XFree(xnestDepths);
-  XFree(xnestPixmapFormats);
-  XCloseDisplay(xnestDisplay);
+    free(xnestDefaultColormaps);
+    XFree(xnestVisuals);
+    XFree(xnestDepths);
+    XFree(xnestPixmapFormats);
+    XCloseDisplay(xnestDisplay);
 }

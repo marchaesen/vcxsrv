@@ -37,10 +37,29 @@ _mesa_get_samplerobj(struct gl_context *ctx, GLuint unit)
       return &ctx->Texture.Unit[unit]._Current->Sampler;
 }
 
+
+/** Does the given filter state do mipmap filtering? */
+static inline GLboolean
+_mesa_is_mipmap_filter(const struct gl_sampler_object *samp)
+{
+   return samp->MinFilter != GL_NEAREST && samp->MinFilter != GL_LINEAR;
+}
+
+
 extern void
+_mesa_reference_sampler_object_(struct gl_context *ctx,
+                                struct gl_sampler_object **ptr,
+                                struct gl_sampler_object *samp);
+
+static inline void
 _mesa_reference_sampler_object(struct gl_context *ctx,
                                struct gl_sampler_object **ptr,
-                               struct gl_sampler_object *samp);
+                               struct gl_sampler_object *samp)
+{
+   if (*ptr != samp)
+      _mesa_reference_sampler_object_(ctx, ptr, samp);
+}
+
 
 extern void
 _mesa_init_sampler_object(struct gl_sampler_object *sampObj, GLuint name);

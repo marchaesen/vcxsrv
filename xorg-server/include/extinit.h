@@ -33,15 +33,13 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "extnsionst.h"
 
 extern void
-XInputExtensionInit(
-	void
-	);
+ XInputExtensionInit(void
+    );
 
 extern _X_EXPORT void
-AssignTypeAndName (
-	DeviceIntPtr           /* dev */,
-	Atom                   /* type */,
-	const char *           /* name */
-	);
+ AssignTypeAndName(DeviceIntPtr /* dev */ ,
+                   Atom /* type */ ,
+                   const char * /* name */
+    );
 
-#endif /* EXTINIT_H */
+#endif                          /* EXTINIT_H */

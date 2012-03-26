@@ -125,8 +125,7 @@ xorg_list_init(struct xorg_list *list)
 
 static inline void
 __xorg_list_add(struct xorg_list *entry,
-	    struct xorg_list *prev,
-	    struct xorg_list *next)
+                struct xorg_list *prev, struct xorg_list *next)
 {
     next->prev = entry;
     entry->next = next;
@@ -175,7 +174,6 @@ xorg_list_append(struct xorg_list *entry, struct xorg_list *head)
 {
     __xorg_list_add(entry, head->prev, head);
 }
-
 
 static inline void
 __xorg_list_del(struct xorg_list *prev, struct xorg_list *next)
@@ -311,8 +309,6 @@ xorg_list_is_empty(struct xorg_list *head)
 	 &pos->member != (head);					\
 	 pos = tmp, tmp = __container_of(pos->member.next, tmp, member))
 
-
-
 /* NULL-Terminated List Interface
  *
  * The interface below does _not_ use the struct xorg_list as described above.
@@ -390,7 +386,6 @@ xorg_list_is_empty(struct xorg_list *head)
 	for (_entry = _list, _tmp = (_entry) ? (_entry)->_member : NULL;\
 		_entry;							\
 		_entry = _tmp, _tmp = (_tmp) ? (_tmp)->_member: NULL)
-
 
 /**
  * Append the element to the end of the list. This macro may be used to
@@ -477,10 +472,8 @@ xorg_list_is_empty(struct xorg_list *head)
  * list functions. Unfortunately, the xf86OptionRec uses it and we can't
  * easily get rid of it. Do not use for new code.
  */
-typedef struct generic_list_rec
-{
-	void *next;
-}
-GenericListRec, *GenericListPtr, *glp;
+typedef struct generic_list_rec {
+    void *next;
+} GenericListRec, *GenericListPtr, *glp;
 
 #endif

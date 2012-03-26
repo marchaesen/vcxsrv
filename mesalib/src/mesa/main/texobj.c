@@ -262,7 +262,8 @@ _mesa_copy_texture_object( struct gl_texture_object *dest,
    dest->_MaxLevel = src->_MaxLevel;
    dest->_MaxLambda = src->_MaxLambda;
    dest->GenerateMipmap = src->GenerateMipmap;
-   dest->_Complete = src->_Complete;
+   dest->_BaseComplete = src->_BaseComplete;
+   dest->_MipmapComplete = src->_MipmapComplete;
    COPY_4V(dest->Swizzle, src->Swizzle);
    dest->_Swizzle = src->_Swizzle;
 
@@ -386,14 +387,26 @@ _mesa_reference_texobj_(struct gl_texture_object **ptr,
 }
 
 
+enum base_mipmap { BASE, MIPMAP };
+
 
 /**
- * Mark a texture object as incomplete.
+ * Mark a texture object as incomplete.  There are actually three kinds of
+ * (in)completeness:
+ * 1. "base incomplete": the base level of the texture is invalid so no
+ *    texturing is possible.
+ * 2. "mipmap incomplete": a non-base level of the texture is invalid so
+ *    mipmap filtering isn't possible, but non-mipmap filtering is.
+ * 3. "texture incompleteness": some combination of texture state and
+ *    sampler state renders the texture incomplete.
+ *
  * \param t  texture object
+ * \param bm  either BASE or MIPMAP to indicate what's incomplete
  * \param fmt...  string describing why it's incomplete (for debugging).
  */
 static void
-incomplete(struct gl_texture_object *t, const char *fmt, ...)
+incomplete(struct gl_texture_object *t, enum base_mipmap bm,
+           const char *fmt, ...)
 {
 #if 0
    va_list args;
@@ -405,7 +418,9 @@ incomplete(struct gl_texture_object *t, const char *fmt, ...)
 
    printf("Texture Obj %d incomplete because: %s\n", t->Name, s);
 #endif
-   t->_Complete = GL_FALSE;
+   if (bm == BASE)
+      t->_BaseComplete = GL_FALSE;
+   t->_MipmapComplete = GL_FALSE;
 }
 
 
@@ -426,79 +441,94 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
                                 struct gl_texture_object *t )
 {
    const GLint baseLevel = t->BaseLevel;
+   const struct gl_texture_image *baseImage;
    GLint maxLog2 = 0, maxLevels = 0;
 
-   t->_Complete = GL_TRUE;  /* be optimistic */
+   /* We'll set these to FALSE if tests fail below */
+   t->_BaseComplete = GL_TRUE;
+   t->_MipmapComplete = GL_TRUE;
 
    /* Detect cases where the application set the base level to an invalid
     * value.
     */
    if ((baseLevel < 0) || (baseLevel >= MAX_TEXTURE_LEVELS)) {
-      incomplete(t, "base level = %d is invalid", baseLevel);
+      incomplete(t, BASE, "base level = %d is invalid", baseLevel);
       return;
    }
 
+   if (t->MaxLevel < baseLevel) {
+      incomplete(t, BASE, "MAX_LEVEL (%d) < BASE_LEVEL (%d)",
+		 t->MaxLevel, baseLevel);
+      return;
+   }
+
+   baseImage = t->Image[0][baseLevel];
+
    /* Always need the base level image */
-   if (!t->Image[0][baseLevel]) {
-      incomplete(t, "Image[baseLevel=%d] == NULL", baseLevel);
+   if (!baseImage) {
+      incomplete(t, BASE, "Image[baseLevel=%d] == NULL", baseLevel);
       return;
    }
 
    /* Check width/height/depth for zero */
-   if (t->Image[0][baseLevel]->Width == 0 ||
-       t->Image[0][baseLevel]->Height == 0 ||
-       t->Image[0][baseLevel]->Depth == 0) {
-      incomplete(t, "texture width = 0");
+   if (baseImage->Width == 0 ||
+       baseImage->Height == 0 ||
+       baseImage->Depth == 0) {
+      incomplete(t, BASE, "texture width or height or depth = 0");
       return;
    }
 
-   /* Compute _MaxLevel */
-   if ((t->Target == GL_TEXTURE_1D) ||
-       (t->Target == GL_TEXTURE_1D_ARRAY_EXT)) {
-      maxLog2 = t->Image[0][baseLevel]->WidthLog2;
-      maxLevels = ctx->Const.MaxTextureLevels;
+   /* Check if the texture values are integer */
+   {
+      GLenum datatype = _mesa_get_format_datatype(baseImage->TexFormat);
+      t->_IsIntegerFormat = datatype == GL_INT || datatype == GL_UNSIGNED_INT;
    }
-   else if ((t->Target == GL_TEXTURE_2D) ||
-            (t->Target == GL_TEXTURE_2D_ARRAY_EXT)) {
-      maxLog2 = MAX2(t->Image[0][baseLevel]->WidthLog2,
-                     t->Image[0][baseLevel]->HeightLog2);
+
+   /* Compute _MaxLevel (the maximum mipmap level we'll sample from given the
+    * mipmap image sizes and GL_TEXTURE_MAX_LEVEL state).
+    */
+   switch (t->Target) {
+   case GL_TEXTURE_1D:
+   case GL_TEXTURE_1D_ARRAY_EXT:
+      maxLog2 = baseImage->WidthLog2;
       maxLevels = ctx->Const.MaxTextureLevels;
-   }
-   else if (t->Target == GL_TEXTURE_3D) {
-      GLint max = MAX2(t->Image[0][baseLevel]->WidthLog2,
-                       t->Image[0][baseLevel]->HeightLog2);
-      maxLog2 = MAX2(max, (GLint)(t->Image[0][baseLevel]->DepthLog2));
+      break;
+   case GL_TEXTURE_2D:
+   case GL_TEXTURE_2D_ARRAY_EXT:
+      maxLog2 = MAX2(baseImage->WidthLog2,
+                     baseImage->HeightLog2);
+      maxLevels = ctx->Const.MaxTextureLevels;
+      break;
+   case GL_TEXTURE_3D:
+      maxLog2 = MAX3(baseImage->WidthLog2,
+                     baseImage->HeightLog2,
+                     baseImage->DepthLog2);
       maxLevels = ctx->Const.Max3DTextureLevels;
-   }
-   else if (t->Target == GL_TEXTURE_CUBE_MAP_ARB) {
-      maxLog2 = MAX2(t->Image[0][baseLevel]->WidthLog2,
-                     t->Image[0][baseLevel]->HeightLog2);
+      break;
+   case GL_TEXTURE_CUBE_MAP_ARB:
+      maxLog2 = MAX2(baseImage->WidthLog2,
+                     baseImage->HeightLog2);
       maxLevels = ctx->Const.MaxCubeTextureLevels;
-   }
-   else if (t->Target == GL_TEXTURE_RECTANGLE_NV ||
-            t->Target == GL_TEXTURE_EXTERNAL_OES) {
+      break;
+   case GL_TEXTURE_RECTANGLE_NV:
+   case GL_TEXTURE_BUFFER:
+   case GL_TEXTURE_EXTERNAL_OES:
       maxLog2 = 0;  /* not applicable */
       maxLevels = 1;  /* no mipmapping */
-   }
-   else {
+      break;
+   default:
       _mesa_problem(ctx, "Bad t->Target in _mesa_test_texobj_completeness");
       return;
    }
 
    ASSERT(maxLevels > 0);
 
-   if (t->MaxLevel < t->BaseLevel) {
-      incomplete(t, "MAX_LEVEL (%d) < BASE_LEVEL (%d)",
-		 t->MaxLevel, t->BaseLevel);
-      return;
-   }
-
-   t->_MaxLevel = baseLevel + maxLog2;
+   t->_MaxLevel = baseLevel + maxLog2;  /* 'p' in the GL spec */
    t->_MaxLevel = MIN2(t->_MaxLevel, t->MaxLevel);
-   t->_MaxLevel = MIN2(t->_MaxLevel, maxLevels - 1);
+   t->_MaxLevel = MIN2(t->_MaxLevel, maxLevels - 1); /* 'q' in the GL spec */
 
    /* Compute _MaxLambda = q - b (see the 1.2 spec) used during mipmapping */
-   t->_MaxLambda = (GLfloat) (t->_MaxLevel - t->BaseLevel);
+   t->_MaxLambda = (GLfloat) (t->_MaxLevel - baseLevel);
 
    if (t->Immutable) {
       /* This texture object was created with glTexStorage1/2/3D() so we
@@ -510,193 +540,103 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
    }
 
    if (t->Target == GL_TEXTURE_CUBE_MAP_ARB) {
-      /* make sure that all six cube map level 0 images are the same size */
-      const GLuint w = t->Image[0][baseLevel]->Width2;
-      const GLuint h = t->Image[0][baseLevel]->Height2;
+      /* Make sure that all six cube map level 0 images are the same size.
+       * Note:  we know that the image's width==height (we enforce that
+       * at glTexImage time) so we only need to test the width here.
+       */
       GLuint face;
+      assert(baseImage->Width2 == baseImage->Height);
       for (face = 1; face < 6; face++) {
+         assert(t->Image[face][baseLevel]->Width2 ==
+                t->Image[face][baseLevel]->Height2);
          if (t->Image[face][baseLevel] == NULL ||
-             t->Image[face][baseLevel]->Width2 != w ||
-             t->Image[face][baseLevel]->Height2 != h) {
-            incomplete(t, "Cube face missing or mismatched size");
+             t->Image[face][baseLevel]->Width2 != baseImage->Width2) {
+            incomplete(t, BASE, "Cube face missing or mismatched size");
             return;
          }
       }
    }
 
-   /* extra checking for mipmaps */
-   if (t->Sampler.MinFilter != GL_NEAREST && t->Sampler.MinFilter != GL_LINEAR) {
-      /*
-       * Mipmapping: determine if we have a complete set of mipmaps
-       */
+   /*
+    * Do mipmap consistency checking.
+    * Note: we don't care about the current texture sampler state here.
+    * To determine texture completeness we'll either look at _BaseComplete
+    * or _MipmapComplete depending on the current minification filter mode.
+    */
+   {
       GLint i;
-      GLint minLevel = baseLevel;
-      GLint maxLevel = t->_MaxLevel;
+      const GLint minLevel = baseLevel;
+      const GLint maxLevel = t->_MaxLevel;
+      GLuint width, height, depth, face, numFaces = 1;
 
       if (minLevel > maxLevel) {
-         incomplete(t, "minLevel > maxLevel");
+         incomplete(t, BASE, "minLevel > maxLevel");
          return;
       }
 
-      /* Test dimension-independent attributes */
-      for (i = minLevel; i <= maxLevel; i++) {
-         if (t->Image[0][i]) {
-            if (t->Image[0][i]->TexFormat != t->Image[0][baseLevel]->TexFormat) {
-               incomplete(t, "Format[i] != Format[baseLevel]");
-               return;
-            }
-            if (t->Image[0][i]->Border != t->Image[0][baseLevel]->Border) {
-               incomplete(t, "Border[i] != Border[baseLevel]");
-               return;
-            }
-         }
-      }
+      /* Get the base image's dimensions */
+      width = baseImage->Width2;
+      height = baseImage->Height2;
+      depth = baseImage->Depth2;
 
-      /* Test things which depend on number of texture image dimensions */
-      if ((t->Target == GL_TEXTURE_1D) ||
-          (t->Target == GL_TEXTURE_1D_ARRAY_EXT)) {
-         /* Test 1-D mipmaps */
-         GLuint width = t->Image[0][baseLevel]->Width2;
-         for (i = baseLevel + 1; i < maxLevels; i++) {
-            if (width > 1) {
-               width /= 2;
-            }
-            if (i >= minLevel && i <= maxLevel) {
-               const struct gl_texture_image *img = t->Image[0][i];
-               if (!img) {
-                  incomplete(t, "1D Image[%d] is missing", i);
-                  return;
-               }
-               if (img->Width2 != width ) {
-                  incomplete(t, "1D Image[%d] bad width %u", i, img->Width2);
-                  return;
-               }
-            }
-            if (width == 1) {
-               return;  /* found smallest needed mipmap, all done! */
-            }
+      /* Note: this loop will be a no-op for RECT, BUFFER, EXTERNAL textures */
+      for (i = baseLevel + 1; i < maxLevels; i++) {
+         /* Compute the expected size of image at level[i] */
+         if (width > 1) {
+            width /= 2;
          }
-      }
-      else if ((t->Target == GL_TEXTURE_2D) ||
-               (t->Target == GL_TEXTURE_2D_ARRAY_EXT)) {
-         /* Test 2-D mipmaps */
-         GLuint width = t->Image[0][baseLevel]->Width2;
-         GLuint height = t->Image[0][baseLevel]->Height2;
-         for (i = baseLevel + 1; i < maxLevels; i++) {
-            if (width > 1) {
-               width /= 2;
-            }
-            if (height > 1) {
-               height /= 2;
-            }
+         if (height > 1 && t->Target != GL_TEXTURE_1D_ARRAY) {
+            height /= 2;
+         }
+         if (depth > 1 && t->Target != GL_TEXTURE_2D_ARRAY) {
+            depth /= 2;
+         }
+
+         /* loop over cube faces (or single face otherwise) */
+         for (face = 0; face < numFaces; face++) {
             if (i >= minLevel && i <= maxLevel) {
-               const struct gl_texture_image *img = t->Image[0][i];
+               const struct gl_texture_image *img = t->Image[face][i];
+
                if (!img) {
-                  incomplete(t, "2D Image[%d of %d] is missing", i, maxLevel);
+                  incomplete(t, MIPMAP, "TexImage[%d] is missing", i);
+                  return;
+               }
+               if (img->TexFormat != baseImage->TexFormat) {
+                  incomplete(t, MIPMAP, "Format[i] != Format[baseLevel]");
+                  return;
+               }
+               if (img->Border != baseImage->Border) {
+                  incomplete(t, MIPMAP, "Border[i] != Border[baseLevel]");
                   return;
                }
                if (img->Width2 != width) {
-                  incomplete(t, "2D Image[%d] bad width %u", i, img->Width2);
+                  incomplete(t, MIPMAP, "TexImage[%d] bad width %u", i, img->Width2);
                   return;
                }
                if (img->Height2 != height) {
-                  incomplete(t, "2D Image[i] bad height %u", i, img->Height2);
-                  return;
-               }
-               if (width==1 && height==1) {
-                  return;  /* found smallest needed mipmap, all done! */
-               }
-            }
-         }
-      }
-      else if (t->Target == GL_TEXTURE_3D) {
-         /* Test 3-D mipmaps */
-         GLuint width = t->Image[0][baseLevel]->Width2;
-         GLuint height = t->Image[0][baseLevel]->Height2;
-         GLuint depth = t->Image[0][baseLevel]->Depth2;
-         for (i = baseLevel + 1; i < maxLevels; i++) {
-            if (width > 1) {
-               width /= 2;
-            }
-            if (height > 1) {
-               height /= 2;
-            }
-            if (depth > 1) {
-               depth /= 2;
-            }
-            if (i >= minLevel && i <= maxLevel) {
-               const struct gl_texture_image *img = t->Image[0][i];
-               if (!img) {
-                  incomplete(t, "3D Image[%d] is missing", i);
-                  return;
-               }
-               if (img->_BaseFormat == GL_DEPTH_COMPONENT) {
-                  incomplete(t, "GL_DEPTH_COMPONENT only works with 1/2D tex");
-                  return;
-               }
-               if (img->Width2 != width) {
-                  incomplete(t, "3D Image[%d] bad width %u", i, img->Width2);
-                  return;
-               }
-               if (img->Height2 != height) {
-                  incomplete(t, "3D Image[%d] bad height %u", i, img->Height2);
+                  incomplete(t, MIPMAP, "TexImage[%d] bad height %u", i, img->Height2);
                   return;
                }
                if (img->Depth2 != depth) {
-                  incomplete(t, "3D Image[%d] bad depth %u", i, img->Depth2);
+                  incomplete(t, MIPMAP, "TexImage[%d] bad depth %u", i, img->Depth2);
                   return;
                }
-            }
-            if (width == 1 && height == 1 && depth == 1) {
-               return;  /* found smallest needed mipmap, all done! */
-            }
-         }
-      }
-      else if (t->Target == GL_TEXTURE_CUBE_MAP_ARB) {
-         /* make sure 6 cube faces are consistant */
-         GLuint width = t->Image[0][baseLevel]->Width2;
-         GLuint height = t->Image[0][baseLevel]->Height2;
-         for (i = baseLevel + 1; i < maxLevels; i++) {
-            if (width > 1) {
-               width /= 2;
-            }
-            if (height > 1) {
-               height /= 2;
-            }
-            if (i >= minLevel && i <= maxLevel) {
-	       GLuint face;
-	       for (face = 0; face < 6; face++) {
-		  /* check that we have images defined */
-		  if (!t->Image[face][i]) {
-		     incomplete(t, "CubeMap Image[n][i] == NULL");
+
+               /* Extra checks for cube textures */
+               if (face > 0) {
+                  /* check that cube faces are the same size */
+                  if (img->Width2 != t->Image[0][i]->Width2 || 
+                      img->Height2 != t->Image[0][i]->Height2) {
+		     incomplete(t, MIPMAP, "CubeMap Image[n][i] bad size");
 		     return;
 		  }
-		  /* Don't support GL_DEPTH_COMPONENT for cube maps */
-                  if (ctx->VersionMajor < 3 && !ctx->Extensions.EXT_gpu_shader4) {
-                     if (t->Image[face][i]->_BaseFormat == GL_DEPTH_COMPONENT) {
-                        incomplete(t, "GL_DEPTH_COMPONENT only works with 1/2D tex");
-                        return;
-                     }
-		  }
-		  /* check that all six images have same size */
-                  if (t->Image[face][i]->Width2 != width || 
-                      t->Image[face][i]->Height2 != height) {
-		     incomplete(t, "CubeMap Image[n][i] bad size");
-		     return;
-		  }
-	       }
-	    }
-	    if (width == 1 && height == 1) {
-	       return;  /* found smallest needed mipmap, all done! */
+               }
             }
          }
-      }
-      else if (t->Target == GL_TEXTURE_RECTANGLE_NV) {
-         /* XXX special checking? */
-      }
-      else {
-         /* Target = ??? */
-         _mesa_problem(ctx, "Bug in gl_test_texture_object_completeness\n");
+         
+         if (width == 1 && height == 1 && depth == 1) {
+            return;  /* found smallest needed mipmap, all done! */
+         }
       }
    }
 }
@@ -752,7 +692,8 @@ void
 _mesa_dirty_texobj(struct gl_context *ctx, struct gl_texture_object *texObj,
                    GLboolean invalidate_state)
 {
-   texObj->_Complete = GL_FALSE;
+   texObj->_BaseComplete = GL_FALSE;
+   texObj->_MipmapComplete = GL_FALSE;
    if (invalidate_state)
       ctx->NewState |= _NEW_TEXTURE;
 }
@@ -875,7 +816,8 @@ _mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex)
       }
 
       _mesa_test_texobj_completeness(ctx, texObj);
-      assert(texObj->_Complete);
+      assert(texObj->_BaseComplete);
+      assert(texObj->_MipmapComplete);
 
       ctx->Shared->FallbackTex[tex] = texObj;
    }

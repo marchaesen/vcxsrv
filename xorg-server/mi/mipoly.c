@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -65,60 +64,50 @@ SOFTWARE.
 #include "mi.h"
 #include "regionstr.h"
 
-
 void
-miFillPolygon( DrawablePtr dst, GCPtr pgc,
-		int shape, int mode,
-		int count, DDXPointPtr pPts)
+miFillPolygon(DrawablePtr dst, GCPtr pgc,
+              int shape, int mode, int count, DDXPointPtr pPts)
 {
-    int			i;
-    int			xorg, yorg;
-    DDXPointPtr 	ppt;
+    int i;
+    int xorg, yorg;
+    DDXPointPtr ppt;
 
     if (count == 0)
-	return;
+        return;
 
     ppt = pPts;
-    if (pgc->miTranslate)
-    {
-	xorg = dst->x;
-	yorg = dst->y;
+    if (pgc->miTranslate) {
+        xorg = dst->x;
+        yorg = dst->y;
 
-        if (mode == CoordModeOrigin) 
-        {
-	        for (i = 0; i<count; i++) 
-                {    
-	            ppt->x += xorg;
-	            ppt++->y += yorg;
-	        }
+        if (mode == CoordModeOrigin) {
+            for (i = 0; i < count; i++) {
+                ppt->x += xorg;
+                ppt++->y += yorg;
+            }
         }
-        else 
-        {
-	    ppt->x += xorg;
-	    ppt++->y += yorg;
-	    for (i = 1; i<count; i++) 
-            {
-	        ppt->x += (ppt-1)->x;
-	        ppt->y += (ppt-1)->y;
-	        ppt++;
-	    }
+        else {
+            ppt->x += xorg;
+            ppt++->y += yorg;
+            for (i = 1; i < count; i++) {
+                ppt->x += (ppt - 1)->x;
+                ppt->y += (ppt - 1)->y;
+                ppt++;
+            }
         }
     }
-    else
-    {
-	if (mode == CoordModePrevious)
-        {
-	    ppt++;
-	    for (i = 1; i<count; i++) 
-            {
-	        ppt->x += (ppt-1)->x;
-	        ppt->y += (ppt-1)->y;
-	        ppt++;
-	    }
+    else {
+        if (mode == CoordModePrevious) {
+            ppt++;
+            for (i = 1; i < count; i++) {
+                ppt->x += (ppt - 1)->x;
+                ppt->y += (ppt - 1)->y;
+                ppt++;
+            }
         }
     }
     if (shape == Convex)
-	miFillConvexPoly(dst, pgc, count, pPts);
+        miFillConvexPoly(dst, pgc, count, pPts);
     else
-	miFillGeneralPoly(dst, pgc, count, pPts);
+        miFillGeneralPoly(dst, pgc, count, pPts);
 }

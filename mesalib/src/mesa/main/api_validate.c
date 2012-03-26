@@ -29,6 +29,7 @@
 #include "imports.h"
 #include "mfeatures.h"
 #include "mtypes.h"
+#include "enums.h"
 #include "vbo/vbo.h"
 
 
@@ -204,18 +205,60 @@ check_index_bounds(struct gl_context *ctx, GLsizei count, GLenum type,
  * are supported.
  */
 GLboolean
-_mesa_valid_prim_mode(const struct gl_context *ctx, GLenum mode)
+_mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name)
 {
    if (ctx->Extensions.ARB_geometry_shader4 &&
        mode > GL_TRIANGLE_STRIP_ADJACENCY_ARB) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(mode=%x)", name, mode);
       return GL_FALSE;
    }
    else if (mode > GL_POLYGON) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(mode=%x)", name, mode);
       return GL_FALSE;
    }
-   else {
-      return GL_TRUE;
+
+   /* From the GL_EXT_transform_feedback spec:
+    *
+    *     "The error INVALID_OPERATION is generated if Begin, or any command
+    *      that performs an explicit Begin, is called when:
+    *
+    *      * a geometry shader is not active and <mode> does not match the
+    *        allowed begin modes for the current transform feedback state as
+    *        given by table X.1.
+    *
+    *      * a geometry shader is active and the output primitive type of the
+    *        geometry shader does not match the allowed begin modes for the
+    *        current transform feedback state as given by table X.1.
+    *
+    */
+   if (ctx->TransformFeedback.CurrentObject->Active &&
+       !ctx->TransformFeedback.CurrentObject->Paused) {
+      GLboolean pass = GL_TRUE;
+
+      switch (mode) {
+      case GL_POINTS:
+         pass = ctx->TransformFeedback.Mode == GL_POINTS;
+	 break;
+      case GL_LINES:
+      case GL_LINE_STRIP:
+      case GL_LINE_LOOP:
+         pass = ctx->TransformFeedback.Mode == GL_LINES;
+	 break;
+      default:
+         pass = ctx->TransformFeedback.Mode == GL_TRIANGLES;
+	 break;
+      }
+      if (!pass) {
+	 _mesa_error(ctx, GL_INVALID_OPERATION,
+		     "%s(mode=%s vs transform feedback %s)",
+		     name,
+		     _mesa_lookup_prim_by_nr(mode),
+		     _mesa_lookup_prim_by_nr(ctx->TransformFeedback.Mode));
+	 return GL_FALSE;
+      }
    }
+
+   return GL_TRUE;
 }
 
 
@@ -237,8 +280,7 @@ _mesa_validate_DrawElements(struct gl_context *ctx,
       return GL_FALSE;
    }
 
-   if (!_mesa_valid_prim_mode(ctx, mode)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glDrawElements(mode)" );
+   if (!_mesa_valid_prim_mode(ctx, mode, "glDrawElements")) {
       return GL_FALSE;
    }
 
@@ -294,8 +336,7 @@ _mesa_validate_DrawRangeElements(struct gl_context *ctx, GLenum mode,
       return GL_FALSE;
    }
 
-   if (!_mesa_valid_prim_mode(ctx, mode)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glDrawRangeElements(mode)" );
+   if (!_mesa_valid_prim_mode(ctx, mode, "glDrawRangeElements")) {
       return GL_FALSE;
    }
 
@@ -353,8 +394,7 @@ _mesa_validate_DrawArrays(struct gl_context *ctx,
       return GL_FALSE;
    }
 
-   if (!_mesa_valid_prim_mode(ctx, mode)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glDrawArrays(mode)" );
+   if (!_mesa_valid_prim_mode(ctx, mode, "glDrawArrays")) {
       return GL_FALSE;
    }
 
@@ -389,9 +429,7 @@ _mesa_validate_DrawArraysInstanced(struct gl_context *ctx, GLenum mode, GLint fi
       return GL_FALSE;
    }
 
-   if (!_mesa_valid_prim_mode(ctx, mode)) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "glDrawArraysInstanced(mode=0x%x)", mode);
+   if (!_mesa_valid_prim_mode(ctx, mode, "glDrawArraysInstanced")) {
       return GL_FALSE;
    }
 
@@ -429,9 +467,7 @@ _mesa_validate_DrawElementsInstanced(struct gl_context *ctx,
       return GL_FALSE;
    }
 
-   if (!_mesa_valid_prim_mode(ctx, mode)) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "glDrawElementsInstanced(mode = 0x%x)", mode);
+   if (!_mesa_valid_prim_mode(ctx, mode, "glDrawElementsInstanced")) {
       return GL_FALSE;
    }
 
@@ -485,8 +521,7 @@ _mesa_validate_DrawTransformFeedback(struct gl_context *ctx,
 {
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, GL_FALSE);
 
-   if (!_mesa_valid_prim_mode(ctx, mode)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glDrawTransformFeedback(mode)");
+   if (!_mesa_valid_prim_mode(ctx, mode, "glDrawTransformFeedback")) {
       return GL_FALSE;
    }
 

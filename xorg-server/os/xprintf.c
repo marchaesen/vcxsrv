@@ -68,20 +68,20 @@
 #include <string.h>
 
 #ifdef asprintf
-# undef asprintf
+#undef asprintf
 #endif
 #ifdef vasprintf
-# undef vasprintf
+#undef vasprintf
 #endif
 
 #ifndef va_copy
-# ifdef __va_copy
-#  define va_copy __va_copy
-# else
-#  ifndef _MSC_VER
-#  error "no working va_copy was found"
-#  endif
-# endif
+#ifdef __va_copy
+#define va_copy __va_copy
+#else
+#ifndef _MSC_VER
+#error "no working va_copy was found"
+#endif
+#endif
 #endif
 
 /**
@@ -95,7 +95,7 @@
  * @return        size of allocated buffer, or -1 on error.
  */
 int
-Xvasprintf(char **ret, const char * _X_RESTRICT_KYWD format, va_list va)
+Xvasprintf(char **ret, const char *_X_RESTRICT_KYWD format, va_list va)
 {
 #ifdef HAVE_VASPRINTF
     return vasprintf(ret, format, va);
@@ -123,7 +123,7 @@ Xvasprintf(char **ret, const char * _X_RESTRICT_KYWD format, va_list va)
 }
 
 #ifndef HAVE_VASPRINTF
-# define vasprintf Xvasprintf
+#define vasprintf Xvasprintf
 #endif
 
 /**
@@ -137,10 +137,11 @@ Xvasprintf(char **ret, const char * _X_RESTRICT_KYWD format, va_list va)
  * @return        size of allocated buffer, or -1 on error.
  */
 int
-Xasprintf(char ** ret, const char * _X_RESTRICT_KYWD format, ...)
+Xasprintf(char **ret, const char *_X_RESTRICT_KYWD format, ...)
 {
     int size;
     va_list va;
+
     va_start(va, format);
     size = vasprintf(ret, format, va);
     va_end(va);
@@ -159,11 +160,12 @@ Xasprintf(char ** ret, const char * _X_RESTRICT_KYWD format, ...)
  * @return        size of allocated buffer
  */
 int
-XNFvasprintf(char **ret, const char * _X_RESTRICT_KYWD format, va_list va)
+XNFvasprintf(char **ret, const char *_X_RESTRICT_KYWD format, va_list va)
 {
     int size = vasprintf(ret, format, va);
+
     if ((size == -1) || (*ret == NULL)) {
-	FatalError("XNFvasprintf failed: %s", strerror(errno));
+        FatalError("XNFvasprintf failed: %s", strerror(errno));
     }
     return size;
 }
@@ -180,10 +182,11 @@ XNFvasprintf(char **ret, const char * _X_RESTRICT_KYWD format, va_list va)
  * @return        size of allocated buffer
  */
 int
-XNFasprintf(char ** ret, const char * _X_RESTRICT_KYWD format, ...)
+XNFasprintf(char **ret, const char *_X_RESTRICT_KYWD format, ...)
 {
     int size;
     va_list va;
+
     va_start(va, format);
     size = XNFvasprintf(ret, format, va);
     va_end(va);
@@ -197,18 +200,20 @@ Xvprintf(const char *format, va_list va)
     char *ret;
 
     if (vasprintf(&ret, format, va) == -1)
-	ret = NULL;
+        ret = NULL;
 
     return ret;
 }
 
-char *Xprintf(const char *format, ...)
+char *
+Xprintf(const char *format, ...)
 {
     char *ret;
     va_list va;
+
     va_start(va, format);
     if (vasprintf(&ret, format, va) == -1)
-	ret = NULL;
+        ret = NULL;
     va_end(va);
     return ret;
 }
@@ -223,10 +228,12 @@ XNFvprintf(const char *format, va_list va)
     return ret;
 }
 
-char *XNFprintf(const char *format, ...)
+char *
+XNFprintf(const char *format, ...)
 {
     char *ret;
     va_list va;
+
     va_start(va, format);
     XNFvasprintf(&ret, format, va);
     va_end(va);

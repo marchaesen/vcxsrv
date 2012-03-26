@@ -31,36 +31,34 @@
 #include "kdrive.h"
 
 static int
-Ps2ReadBytes (int fd, char *buf, int len, int min)
+Ps2ReadBytes(int fd, char *buf, int len, int min)
 {
-    int		    n, tot;
-    fd_set	    set;
-    struct timeval  tv;
+    int n, tot;
+    fd_set set;
+    struct timeval tv;
 
     tot = 0;
-    while (len)
-    {
-	n = read (fd, buf, len);
-	if (n > 0)
-	{
-	    tot += n;
-	    buf += n;
-	    len -= n;
-	}
-	if (tot % min == 0)
-	    break;
-	FD_ZERO (&set);
-	FD_SET (fd, &set);
-	tv.tv_sec = 0;
-	tv.tv_usec = 100 * 1000;
-	n = select (fd + 1, &set, 0, 0, &tv);
-	if (n <= 0)
-	    break;
+    while (len) {
+        n = read(fd, buf, len);
+        if (n > 0) {
+            tot += n;
+            buf += n;
+            len -= n;
+        }
+        if (tot % min == 0)
+            break;
+        FD_ZERO(&set);
+        FD_SET(fd, &set);
+        tv.tv_sec = 0;
+        tv.tv_usec = 100 * 1000;
+        n = select(fd + 1, &set, 0, 0, &tv);
+        if (n <= 0)
+            break;
     }
     return tot;
 }
 
-char	*Ps2Names[] = {
+char *Ps2Names[] = {
     "/dev/psaux",
 /*    "/dev/mouse", */
     "/dev/input/mice",
@@ -69,67 +67,64 @@ char	*Ps2Names[] = {
 #define NUM_PS2_NAMES	(sizeof (Ps2Names) / sizeof (Ps2Names[0]))
 
 static void
-Ps2Read (int ps2Port, void *closure)
+Ps2Read(int ps2Port, void *closure)
 {
-    unsigned char   buf[3 * 200];
-    unsigned char   *b;
-    int		    n;
-    int		    dx, dy;
-    unsigned long   flags;
-    unsigned long   left_button = KD_BUTTON_1;
-    unsigned long   right_button = KD_BUTTON_3;
+    unsigned char buf[3 * 200];
+    unsigned char *b;
+    int n;
+    int dx, dy;
+    unsigned long flags;
+    unsigned long left_button = KD_BUTTON_1;
+    unsigned long right_button = KD_BUTTON_3;
 
 #undef SWAP_USB
 #ifdef SWAP_USB
-    if (id == 2)
-    {
-	left_button = KD_BUTTON_3;
-	right_button = KD_BUTTON_1;
+    if (id == 2) {
+        left_button = KD_BUTTON_3;
+        right_button = KD_BUTTON_1;
     }
 #endif
-    while ((n = Ps2ReadBytes (ps2Port, (char *) buf, sizeof (buf), 3)) > 0)
-    {
-	b = buf;
-	while (n >= 3)
-	{
-	    flags = KD_MOUSE_DELTA;
-	    if (b[0] & 4)
-		flags |= KD_BUTTON_2;
-	    if (b[0] & 2)
-		flags |= right_button;
-	    if (b[0] & 1)
-		flags |= left_button;
+    while ((n = Ps2ReadBytes(ps2Port, (char *) buf, sizeof(buf), 3)) > 0) {
+        b = buf;
+        while (n >= 3) {
+            flags = KD_MOUSE_DELTA;
+            if (b[0] & 4)
+                flags |= KD_BUTTON_2;
+            if (b[0] & 2)
+                flags |= right_button;
+            if (b[0] & 1)
+                flags |= left_button;
 
-	    dx = b[1];
-	    if (b[0] & 0x10)
-		dx -= 256;
-	    dy = b[2];
-	    if (b[0] & 0x20)
-		dy -= 256;
-	    dy = -dy;
-	    n -= 3;
-	    b += 3;
-	    KdEnqueuePointerEvent (closure, flags, dx, dy, 0);
-	}
+            dx = b[1];
+            if (b[0] & 0x10)
+                dx -= 256;
+            dy = b[2];
+            if (b[0] & 0x20)
+                dy -= 256;
+            dy = -dy;
+            n -= 3;
+            b += 3;
+            KdEnqueuePointerEvent(closure, flags, dx, dy, 0);
+        }
     }
 }
 
 static Status
-Ps2Init (KdPointerInfo *pi)
+Ps2Init(KdPointerInfo * pi)
 {
-    int	ps2Port, i;
+    int ps2Port, i;
 
     if (!pi->path) {
         for (i = 0; i < NUM_PS2_NAMES; i++) {
-            ps2Port = open (Ps2Names[i], 0);
+            ps2Port = open(Ps2Names[i], 0);
             if (ps2Port >= 0) {
-                pi->path = strdup (Ps2Names[i]);
+                pi->path = strdup(Ps2Names[i]);
                 break;
             }
-	}
+        }
     }
     else {
-        ps2Port = open (pi->path, 0);
+        ps2Port = open(pi->path, 0);
     }
 
     if (ps2Port < 0)
@@ -137,42 +132,41 @@ Ps2Init (KdPointerInfo *pi)
 
     close(ps2Port);
     if (!pi->name)
-        pi->name = strdup ("PS/2 Mouse");
+        pi->name = strdup("PS/2 Mouse");
 
     return Success;
 }
 
 static Status
-Ps2Enable (KdPointerInfo *pi)
+Ps2Enable(KdPointerInfo * pi)
 {
     int fd;
 
     if (!pi)
         return BadImplementation;
 
-    fd = open (pi->path, 0);
+    fd = open(pi->path, 0);
     if (fd < 0)
         return BadMatch;
 
-    if (!KdRegisterFd (fd, Ps2Read, pi)) {
+    if (!KdRegisterFd(fd, Ps2Read, pi)) {
         close(fd);
         return BadAlloc;
     }
 
-    pi->driverPrivate = (void *)(intptr_t)fd;
+    pi->driverPrivate = (void *) (intptr_t) fd;
 
     return Success;
 }
 
-
 static void
-Ps2Disable (KdPointerInfo *pi)
+Ps2Disable(KdPointerInfo * pi)
 {
-    KdUnregisterFd (pi, (int)(intptr_t)pi->driverPrivate, TRUE);
+    KdUnregisterFd(pi, (int) (intptr_t) pi->driverPrivate, TRUE);
 }
 
 static void
-Ps2Fini (KdPointerInfo *pi)
+Ps2Fini(KdPointerInfo * pi)
 {
 }
 

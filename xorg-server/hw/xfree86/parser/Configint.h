@@ -52,7 +52,6 @@
  * authorization from the copyright holder(s) and author(s).
  */
 
-
 /* 
  * These definitions are used through out the configuration file parser, but
  * they should not be visible outside of the parser.
@@ -73,14 +72,12 @@
 
 typedef enum { PARSE_DECIMAL, PARSE_OCTAL, PARSE_HEX } ParserNumType;
 
-typedef struct
-{
-	int num;		/* returned number */
-	char *str;		/* private copy of the return-string */
-	double realnum;		/* returned number as a real */
-        ParserNumType numType;  /* used to enforce correct number formatting */
-}
-LexRec, *LexPtr;
+typedef struct {
+    int num;                    /* returned number */
+    char *str;                  /* private copy of the return-string */
+    double realnum;             /* returned number as a real */
+    ParserNumType numType;      /* used to enforce correct number formatting */
+} LexRec, *LexPtr;
 
 #ifndef TRUE
 #define TRUE 1
@@ -210,4 +207,4 @@ else\
 #define OBSOLETE_MSG \
 "Ignoring obsolete keyword \"%s\"."
 
-#endif /* _Configint_h_ */
+#endif                          /* _Configint_h_ */

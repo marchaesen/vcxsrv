@@ -36,13 +36,12 @@
 
 #ifndef _USB_KEYBOARD_H_
 #define _USB_KEYBOARD_H_
-extern void    kbdUSBInit(DevicePtr pDev);
-extern void    kbdUSBGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
-extern int     kbdUSBOn(DevicePtr pDev);
-extern void    kbdUSBRead(DevicePtr pDev,
-                          dmxMotionProcPtr motion,
-                          dmxEnqueueProcPtr enqueue,
-                          dmxCheckSpecialProcPtr checkspecial,
-                          DMXBlockType block);
-extern void    kbdUSBCtrl(DevicePtr pDev, KeybdCtrl *ctrl);
+extern void kbdUSBInit(DevicePtr pDev);
+extern void kbdUSBGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
+extern int kbdUSBOn(DevicePtr pDev);
+extern void kbdUSBRead(DevicePtr pDev,
+                       dmxMotionProcPtr motion,
+                       dmxEnqueueProcPtr enqueue,
+                       dmxCheckSpecialProcPtr checkspecial, DMXBlockType block);
+extern void kbdUSBCtrl(DevicePtr pDev, KeybdCtrl * ctrl);
 #endif

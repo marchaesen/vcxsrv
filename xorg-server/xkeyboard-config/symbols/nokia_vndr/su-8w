@@ -430,7 +430,7 @@ xkb_symbols "base" {
 
     // begin modifier mappings
     modifier_map Shift  { Shift_L, Shift_R };
-    modifier_map Lock   { Caps_Lock, ISO_Lock };
+    modifier_map Lock   { Caps_Lock };
     modifier_map Control{ Control_L, Control_R };
     modifier_map Mod2   { Num_Lock };
 

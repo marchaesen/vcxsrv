@@ -31,7 +31,8 @@
 
 ScreenInfo screenInfo;
 
-static void dix_version_compare(void)
+static void
+dix_version_compare(void)
 {
     int rc;
 
@@ -57,7 +58,8 @@ static void dix_version_compare(void)
     assert(rc < 0);
 }
 
-static void dix_update_desktop_dimensions(void)
+static void
+dix_update_desktop_dimensions(void)
 {
     int i;
     int x, y, w, h;
@@ -129,7 +131,6 @@ static void dix_update_desktop_dimensions(void)
     set_screen(3, 0, 3 * h, w, h);
     assert_dimensions(x, y, w, 4 * h);
 
-
     /* x overlap */
     screenInfo.numScreens = 2;
     set_screen(0, 0, 0, w2, h2);
@@ -154,7 +155,8 @@ static void dix_update_desktop_dimensions(void)
     assert_dimensions(-w2, -h2, w2, h2);
 }
 
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     dix_version_compare();
     dix_update_desktop_dimensions();

@@ -28,24 +28,22 @@
 #endif
 #include "ephyr.h"
 
-extern void processScreenArg (char *screen_size, char *parent_id) ;
+extern void processScreenArg(char *screen_size, char *parent_id);
 
 static int
-EphyrInit (void)
+EphyrInit(void)
 {
-  /*
-   * make sure at least one screen
-   * has been added to the system.
-   */
-  if (!KdCardInfoLast ())
-    {
-        processScreenArg ("640x480", NULL) ;
+    /*
+     * make sure at least one screen
+     * has been added to the system.
+     */
+    if (!KdCardInfoLast()) {
+        processScreenArg("640x480", NULL);
     }
-  return hostx_init();
+    return hostx_init();
 }
 
-KdOsFuncs   EphyrOsFuncs = {
+KdOsFuncs EphyrOsFuncs = {
     .Init = EphyrInit,
     .pollEvents = ephyrPoll,
 };
-

@@ -26,7 +26,7 @@
  */
 
 #if !defined( _INDIRECT_REQSIZE_H_ )
-#define _INDIRECT_REQSIZE_H_
+#  define _INDIRECT_REQSIZE_H_
 
 #include <X11/Xfuncproto.h>
 

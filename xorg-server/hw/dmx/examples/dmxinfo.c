@@ -36,45 +36,52 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/dmxext.h>
 
-static void indent(int level)
+static void
+indent(int level)
 {
     int i;
-    for (i = 0; i < level; i++) printf("    ");
+
+    for (i = 0; i < level; i++)
+        printf("    ");
 }
 
-static void print_window_id(const char *displayName, Display *display,
-                            Window window, int level, int child)
+static void
+print_window_id(const char *displayName, Display * display,
+                Window window, int level, int child)
 {
-    char                 *name;
-    
-    if (!XFetchName(display, window, &name)) name = NULL;
+    char *name;
+
+    if (!XFetchName(display, window, &name))
+        name = NULL;
     indent(level);
-    if (child) printf("(%d) ", child);
+    if (child)
+        printf("(%d) ", child);
     printf("%s window 0x%08lx: %s%s\n",
            displayName,
-           (long unsigned)window,
-           name ? name : "",
-           (window == DefaultRootWindow(display))
+           (long unsigned) window,
+           name ? name : "", (window == DefaultRootWindow(display))
            ? " (DMX root window)" : "");
-    if (name) XFree(name);
+    if (name)
+        XFree(name);
 }
 
-static void print_info(Display *display, Window window, int level, int child)
+static void
+print_info(Display * display, Window window, int level, int child)
 {
     DMXWindowAttributes winfo[128];
-    int                 count;
-    int                 i;
-    
+    int count;
+    int i;
+
     if (!DMXGetWindowAttributes(display, window, &count, 128, winfo)) {
         printf("Could not get window information for 0x%08lx\n",
-               (long unsigned)window);
+               (long unsigned) window);
         exit(-2);
     }
     printf("\n");
     print_window_id("DMX", display, window, level, child);
     for (i = 0; i < count; i++) {
-        DMXScreenAttributes  sinfo;
-        Display              *backend;
+        DMXScreenAttributes sinfo;
+        Display *backend;
 
         /* This could also be cached -- the information doesn't change. */
         if (!DMXGetScreenAttributes(display, winfo[i].screen, &sinfo)) {
@@ -86,78 +93,86 @@ static void print_info(Display *display, Window window, int level, int child)
             exit(-2);
         }
         XCloseDisplay(backend);
-        
-        indent(level+1);
+
+        indent(level + 1);
         printf("%s window 0x%08lx: %dx%d%+d%+d",
                sinfo.displayName,
-               (long unsigned)winfo[i].window,
+               (long unsigned) winfo[i].window,
                winfo[i].pos.width, winfo[i].pos.height,
                winfo[i].pos.x, winfo[i].pos.y);
         if (!winfo[i].vis.width
-            && !winfo[i].vis.height
-            && !winfo[i].vis.x
-            && !winfo[i].vis.y) printf(" not visible\n");
+            && !winfo[i].vis.height && !winfo[i].vis.x && !winfo[i].vis.y)
+            printf(" not visible\n");
         else if (winfo[i].vis.width == winfo[i].pos.width
                  && winfo[i].vis.height == winfo[i].pos.height) {
-            printf( " %+d%+d\n", winfo[i].vis.x, winfo[i].vis.y);
-        } else {
-            printf( " %dx%d%+d%+d\n",
-                    winfo[i].vis.width, winfo[i].vis.height,
-                    winfo[i].vis.x, winfo[i].vis.y);
+            printf(" %+d%+d\n", winfo[i].vis.x, winfo[i].vis.y);
+        }
+        else {
+            printf(" %dx%d%+d%+d\n",
+                   winfo[i].vis.width, winfo[i].vis.height,
+                   winfo[i].vis.x, winfo[i].vis.y);
         }
     }
 }
 
-static void print_tree(Display *display, Window window, int level, int child)
+static void
+print_tree(Display * display, Window window, int level, int child)
 {
-    Window       root, parent;
-    Window       *list;
+    Window root, parent;
+    Window *list;
     unsigned int count;
     unsigned int i;
 
     print_info(display, window, level, child);
-    
+
     if (!XQueryTree(display, window, &root, &parent, &list, &count)) {
         printf("Cannot query window tree for 0x%08lx\n",
-               (long unsigned)window);
+               (long unsigned) window);
         exit(-3);
     }
 
     if (count) {
-        indent(level+1);
+        indent(level + 1);
         printf("%d child%s:\n", count, count > 1 ? "ren" : "");
         for (i = 0; i < count; i++) {
-            print_tree(display, list[i], level+1, i+1);
+            print_tree(display, list[i], level + 1, i + 1);
         }
     }
 }
 
-static const char *core(DMXInputAttributes *iinfo)
+static const char *
+core(DMXInputAttributes * iinfo)
 {
-    if (iinfo->isCore)         return "core";
-    else if (iinfo->sendsCore) return "extension (sends core)";
-    else                       return "extension";
+    if (iinfo->isCore)
+        return "core";
+    else if (iinfo->sendsCore)
+        return "extension (sends core)";
+    else
+        return "extension";
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    Display              *display = NULL;
-    Window               window   = 0;
-    int                  event_base;
-    int                  error_base;
-    int                  major_version, minor_version, patch_version;
-    DMXScreenAttributes  sinfo;
-    DMXInputAttributes   iinfo;
-    int                  count;
-    int                  i;
+    Display *display = NULL;
+    Window window = 0;
+    int event_base;
+    int error_base;
+    int major_version, minor_version, patch_version;
+    DMXScreenAttributes sinfo;
+    DMXInputAttributes iinfo;
+    int count;
+    int i;
 
     if (argc == 2 || argc == 3) {
         if (!(display = XOpenDisplay(argv[1]))) {
             printf("Cannot open display %s\n", argv[1]);
             return -1;
         }
-        if (argc == 3) window = strtol(argv[2], NULL, 0);
-    } else {
+        if (argc == 3)
+            window = strtol(argv[2], NULL, 0);
+    }
+    else {
         printf("Usage: %s display [windowid]\n", argv[0]);
         return -1;
     }
@@ -231,9 +246,11 @@ int main(int argc, char **argv)
         }
     }
 
-    if (window) print_info(display, window, 0, 0);
-    else        print_tree(display, DefaultRootWindow(display), 0, 0);
-    
+    if (window)
+        print_info(display, window, 0, 0);
+    else
+        print_tree(display, DefaultRootWindow(display), 0, 0);
+
     XCloseDisplay(display);
     return 0;
 }

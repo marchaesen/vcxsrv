@@ -44,39 +44,38 @@
 #include <mach.h>
 
 int
-xf86ProcessArgument( int argc,char **argv, int i )
+xf86ProcessArgument(int argc, char **argv, int i)
 {
     return 0;
 }
+
 void
 xf86UseMsg()
 {
     return;
 }
 
-
 void
 xf86OpenConsole()
 {
-    if( serverGeneration == 1 )
-    {
-	kern_return_t err;
-	mach_port_t device;
-	int fd;
-	err = get_privileged_ports( NULL, &device );
-	if( err )
-	{
-	    errno = err;
-	    FatalError( "xf86KbdInit can't get_privileged_ports. (%s)\n" , strerror(errno) );
-	}
-	mach_port_deallocate (mach_task_self (), device);
-	
-	if( ( fd = open( "/dev/kbd" , O_RDONLY|O_NONBLOCK ) ) < 0 )
-	{
-	    fprintf( stderr , "Cannot open keyboard (%s)\n",strerror(errno) );
-	    exit(1);
-	}
-	xf86Info.consoleFd = fd;
+    if (serverGeneration == 1) {
+        kern_return_t err;
+        mach_port_t device;
+        int fd;
+
+        err = get_privileged_ports(NULL, &device);
+        if (err) {
+            errno = err;
+            FatalError("xf86KbdInit can't get_privileged_ports. (%s)\n",
+                       strerror(errno));
+        }
+        mach_port_deallocate(mach_task_self(), device);
+
+        if ((fd = open("/dev/kbd", O_RDONLY | O_NONBLOCK)) < 0) {
+            fprintf(stderr, "Cannot open keyboard (%s)\n", strerror(errno));
+            exit(1);
+        }
+        xf86Info.consoleFd = fd;
     }
     return;
 }
@@ -84,6 +83,6 @@ xf86OpenConsole()
 void
 xf86CloseConsole()
 {
-    close( xf86Info.consoleFd );
+    close(xf86Info.consoleFd);
     return;
 }

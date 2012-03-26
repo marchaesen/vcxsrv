@@ -41,80 +41,71 @@
 #define CELL_FUN(c)   ((x_hook_function *) ((c)->next))
 #define CELL_DATA(c)  ((c)->data)
 
-X_EXTERN x_list *
-X_PFX (hook_add) (x_list *lst, x_hook_function *fun, void *data)
-{
-    return X_PFX (list_prepend) (lst, CELL_NEW (fun, data));
+X_EXTERN x_list *X_PFX(hook_add) (x_list * lst, x_hook_function * fun,
+                                  void *data) {
+    return X_PFX(list_prepend) (lst, CELL_NEW(fun, data));
 }
 
-X_EXTERN x_list *
-X_PFX (hook_remove) (x_list *lst, x_hook_function *fun, void *data)
-{
+X_EXTERN x_list *X_PFX(hook_remove) (x_list * lst, x_hook_function * fun,
+                                     void *data) {
     x_list *node, *cell;
     x_list *to_delete = NULL;
 
-    for (node = lst; node != NULL; node = node->next)
-    {
-	cell = node->data;
-	if (CELL_FUN (cell) == fun && CELL_DATA (cell) == data)
-	    to_delete = X_PFX (list_prepend) (to_delete, cell);
+    for (node = lst; node != NULL; node = node->next) {
+        cell = node->data;
+        if (CELL_FUN(cell) == fun && CELL_DATA(cell) == data)
+            to_delete = X_PFX(list_prepend) (to_delete, cell);
     }
 
-    for (node = to_delete; node != NULL; node = node->next)
-    {
-	cell = node->data;
-	lst = X_PFX (list_remove) (lst, cell);
-	CELL_FREE (cell);
+    for (node = to_delete; node != NULL; node = node->next) {
+        cell = node->data;
+        lst = X_PFX(list_remove) (lst, cell);
+        CELL_FREE(cell);
     }
 
-    X_PFX (list_free) (to_delete);
+    X_PFX(list_free) (to_delete);
     return lst;
 }
 
 X_EXTERN void
-X_PFX (hook_run) (x_list *lst, void *arg)
-{
+ X_PFX(hook_run) (x_list * lst, void *arg) {
     x_list *node, *cell;
     x_hook_function **fun;
     void **data;
     int length, i;
 
-    if(!lst)
+    if (!lst)
         return;
 
-    length = X_PFX (list_length) (lst);
-    fun = malloc(sizeof (x_hook_function *) * length);
-    data = malloc(sizeof (void *) * length);
+    length = X_PFX(list_length) (lst);
+    fun = malloc(sizeof(x_hook_function *) * length);
+    data = malloc(sizeof(void *) * length);
 
-    if(!fun || !data) {
+    if (!fun || !data) {
         FatalError("Failed to allocate memory in %s\n", __func__);
     }
-    
-    for (i = 0, node = lst; node != NULL; node = node->next, i++)
-    {
-	cell = node->data;
-	fun[i] = CELL_FUN (cell);
-	data[i] = CELL_DATA (cell);
+
+    for (i = 0, node = lst; node != NULL; node = node->next, i++) {
+        cell = node->data;
+        fun[i] = CELL_FUN(cell);
+        data[i] = CELL_DATA(cell);
     }
 
-    for (i = 0; i < length; i++)
-    {
-	(*fun[i]) (arg, data[i]);
+    for (i = 0; i < length; i++) {
+        (*fun[i]) (arg, data[i]);
     }
-    
+
     free(fun);
     free(data);
 }
 
 X_EXTERN void
-X_PFX (hook_free) (x_list *lst)
-{
+ X_PFX(hook_free) (x_list * lst) {
     x_list *node;
 
-    for (node = lst; node != NULL; node = node->next)
-    {
-	CELL_FREE (node->data);
+    for (node = lst; node != NULL; node = node->next) {
+        CELL_FREE(node->data);
     }
 
-    X_PFX (list_free) (lst);
+    X_PFX(list_free) (lst);
 }

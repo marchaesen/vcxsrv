@@ -55,11 +55,11 @@
  *
  * Result: RMLVO defaults are the same as obtained.
  */
-static void xkb_get_rules_test(void)
+static void
+xkb_get_rules_test(void)
 {
-    XkbRMLVOSet rmlvo = { NULL};
+    XkbRMLVOSet rmlvo = { NULL };
     XkbGetRulesDflts(&rmlvo);
-
 
     assert(rmlvo.rules);
     assert(rmlvo.model);
@@ -79,7 +79,8 @@ static void xkb_get_rules_test(void)
  * Compare obtained ruleset with the built-in defaults.
  * Result: RMLVO defaults are the same as obtained.
  */
-static void xkb_set_rules_test(void)
+static void
+xkb_set_rules_test(void)
 {
     XkbRMLVOSet rmlvo = {
         .rules = "test-rules",
@@ -107,7 +108,6 @@ static void xkb_set_rules_test(void)
     assert(strcmp(rmlvo.options, rmlvo_new.options) == 0);
 }
 
-
 /**
  * Get the default RMLVO set.
  * Set the default RMLVO set.
@@ -116,7 +116,8 @@ static void xkb_set_rules_test(void)
  *
  * Result: RMLVO set obtained is the same as previously set.
  */
-static void xkb_set_get_rules_test(void)
+static void
+xkb_set_get_rules_test(void)
 {
 /* This test failed before XkbGetRulesDftlts changed to strdup.
    We test this twice because the first time using XkbGetRulesDflts we obtain
@@ -158,8 +159,8 @@ static void xkb_set_get_rules_test(void)
     assert(strcmp(rmlvo.options, rmlvo_backup.options) == 0);
 }
 
-
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     xkb_set_get_rules_test();
     xkb_get_rules_test();

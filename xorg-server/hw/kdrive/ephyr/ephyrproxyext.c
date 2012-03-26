@@ -46,74 +46,70 @@
 #include "ephyrhostproxy.h"
 #include "hostx.h"
 
-static Bool ephyrProxyGetHostExtensionInfo (const char *a_ext_name,
-                                            int *a_major_opcode,
-                                            int *a_first_event,
-                                            int *a_first_error) ;
+static Bool ephyrProxyGetHostExtensionInfo(const char *a_ext_name,
+                                           int *a_major_opcode,
+                                           int *a_first_event,
+                                           int *a_first_error);
 
-static int ephyrProxyProcDispatch (ClientPtr client) ;
+static int ephyrProxyProcDispatch(ClientPtr client);
 
 static Bool
-ephyrProxyGetHostExtensionInfo (const char *a_ext_name,
-                                int *a_major_opcode,
-                                int *a_first_event,
-                                int *a_first_error)
+ephyrProxyGetHostExtensionInfo(const char *a_ext_name,
+                               int *a_major_opcode,
+                               int *a_first_event, int *a_first_error)
 {
-    return hostx_get_extension_info (a_ext_name, a_major_opcode,
-                                     a_first_event, a_first_error) ;
+    return hostx_get_extension_info(a_ext_name, a_major_opcode,
+                                    a_first_event, a_first_error);
 }
 
 static int
-ephyrProxyProcDispatch (ClientPtr a_client)
+ephyrProxyProcDispatch(ClientPtr a_client)
 {
-    int res=BadImplementation ;
-    struct XReply reply ;
+    int res = BadImplementation;
+    struct XReply reply;
 
-    if (!ephyrHostProxyDoForward (a_client->requestBuffer, &reply, FALSE)) {
-        EPHYR_LOG_ERROR ("forwarding failed\n") ;
-        goto out ;
+    if (!ephyrHostProxyDoForward(a_client->requestBuffer, &reply, FALSE)) {
+        EPHYR_LOG_ERROR("forwarding failed\n");
+        goto out;
     }
     reply.sequence_number = a_client->sequence;
-    res = Success ;
+    res = Success;
 
-    WriteToClient(a_client, 32, (char *)&reply);
+    WriteToClient(a_client, 32, (char *) &reply);
 
-out:
-    return res ;
+ out:
+    return res;
 }
 
 static void
-ephyrProxyProcReset (ExtensionEntry *a_entry)
+ephyrProxyProcReset(ExtensionEntry * a_entry)
 {
 }
 
 Bool
-ephyrProxyExtensionInit (const char *a_extension_name)
+ephyrProxyExtensionInit(const char *a_extension_name)
 {
-    Bool is_ok = FALSE ;
-    int major_opcode=0, first_event=0, first_error=0;
-    ExtensionEntry *ext=NULL ;
+    Bool is_ok = FALSE;
+    int major_opcode = 0, first_event = 0, first_error = 0;
+    ExtensionEntry *ext = NULL;
 
-    if (!ephyrProxyGetHostExtensionInfo (a_extension_name,
-                                         &major_opcode,
-                                         &first_event,
-                                         &first_error)) {
-        EPHYR_LOG ("failed to query extension %s from host\n", a_extension_name) ;
+    if (!ephyrProxyGetHostExtensionInfo(a_extension_name,
+                                        &major_opcode,
+                                        &first_event, &first_error)) {
+        EPHYR_LOG("failed to query extension %s from host\n", a_extension_name);
         goto out;
     }
-    ext = AddExtension ((char*)a_extension_name, 0, 0,
-                        ephyrProxyProcDispatch,
-                        ephyrProxyProcDispatch,
-                        ephyrProxyProcReset,
-                        StandardMinorOpcode) ;
+    ext = AddExtension((char *) a_extension_name, 0, 0,
+                       ephyrProxyProcDispatch,
+                       ephyrProxyProcDispatch,
+                       ephyrProxyProcReset, StandardMinorOpcode);
     if (!ext) {
-        EPHYR_LOG_ERROR ("failed to add the extension\n") ;
-        goto out ;
+        EPHYR_LOG_ERROR("failed to add the extension\n");
+        goto out;
     }
-    is_ok = TRUE ;
+    is_ok = TRUE;
 
-out:
-    EPHYR_LOG ("leave\n") ;
-    return is_ok ;
+ out:
+    EPHYR_LOG("leave\n");
+    return is_ok;
 }
-

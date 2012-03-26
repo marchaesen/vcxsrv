@@ -56,7 +56,8 @@ ProcessInputEvents(void)
     mieqProcessInputEvents();
 }
 
-void DDXRingBell(int volume, int pitch, int duration)
+void
+DDXRingBell(int volume, int pitch, int duration)
 {
 }
 
@@ -66,21 +67,20 @@ void DDXRingBell(int volume, int pitch, int duration)
 static int
 vfbKeybdProc(DeviceIntPtr pDevice, int onoff)
 {
-    DevicePtr pDev = (DevicePtr)pDevice;
+    DevicePtr pDev = (DevicePtr) pDevice;
 
-    switch (onoff)
-    {
+    switch (onoff) {
     case DEVICE_INIT:
-	InitKeyboardDeviceStruct(pDevice, NULL, NULL, NULL);
+        InitKeyboardDeviceStruct(pDevice, NULL, NULL, NULL);
         break;
     case DEVICE_ON:
-	pDev->on = TRUE;
-	break;
+        pDev->on = TRUE;
+        break;
     case DEVICE_OFF:
-	pDev->on = FALSE;
-	break;
+        pDev->on = FALSE;
+        break;
     case DEVICE_CLOSE:
-	break;
+        break;
     }
     return Success;
 }
@@ -92,38 +92,38 @@ vfbMouseProc(DeviceIntPtr pDevice, int onoff)
 #define NAXES 2
 
     BYTE map[NBUTTONS + 1];
-    DevicePtr pDev = (DevicePtr)pDevice;
-    Atom btn_labels[NBUTTONS] = {0};
-    Atom axes_labels[NAXES] = {0};
+    DevicePtr pDev = (DevicePtr) pDevice;
+    Atom btn_labels[NBUTTONS] = { 0 };
+    Atom axes_labels[NAXES] = { 0 };
 
-    switch (onoff)
-    {
+    switch (onoff) {
     case DEVICE_INIT:
-	    map[1] = 1;
-	    map[2] = 2;
-	    map[3] = 3;
+        map[1] = 1;
+        map[2] = 2;
+        map[3] = 3;
 
-            btn_labels[0] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_LEFT);
-            btn_labels[1] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_MIDDLE);
-            btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
+        btn_labels[0] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_LEFT);
+        btn_labels[1] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_MIDDLE);
+        btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
 
-            axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
-            axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
+        axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
+        axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
 
-	    InitPointerDeviceStruct(pDev, map, NBUTTONS, btn_labels,
-		(PtrCtrlProcPtr)NoopDDA, GetMotionHistorySize(), NAXES, axes_labels);
-	    break;
+        InitPointerDeviceStruct(pDev, map, NBUTTONS, btn_labels,
+                                (PtrCtrlProcPtr) NoopDDA,
+                                GetMotionHistorySize(), NAXES, axes_labels);
+        break;
 
     case DEVICE_ON:
-	pDev->on = TRUE;
+        pDev->on = TRUE;
         break;
 
     case DEVICE_OFF:
-	pDev->on = FALSE;
-	break;
+        pDev->on = FALSE;
+        break;
 
     case DEVICE_CLOSE:
-	break;
+        break;
     }
     return Success;
 
@@ -136,17 +136,18 @@ InitInput(int argc, char *argv[])
 {
     DeviceIntPtr p, k;
     Atom xiclass;
+
     p = AddInputDevice(serverClient, vfbMouseProc, TRUE);
     k = AddInputDevice(serverClient, vfbKeybdProc, TRUE);
     xiclass = MakeAtom(XI_MOUSE, sizeof(XI_MOUSE) - 1, TRUE);
     AssignTypeAndName(p, xiclass, "Xvfb mouse");
     xiclass = MakeAtom(XI_KEYBOARD, sizeof(XI_KEYBOARD) - 1, TRUE);
     AssignTypeAndName(k, xiclass, "Xvfb keyboard");
-    (void)mieqInit();
+    (void) mieqInit();
 }
 
 void
-CloseInput (void)
+CloseInput(void)
 {
     mieqFini();
 }

@@ -64,7 +64,6 @@
  *
  */
 
-
 #ifndef _XF86_OSPROC_H
 #define _XF86_OSPROC_H
 
@@ -72,7 +71,7 @@
  * The actual prototypes have been pulled into this seperate file so
  * that they can can be used without pulling in all of the OS specific
  * stuff like sys/stat.h, etc. This casues problem for loadable modules.
- */ 
+ */
 
 /*
  * Flags for xf86MapVidMem().  Multiple flags can be or'd together.  The
@@ -80,31 +79,31 @@
  * enable write combining for memory marked only for framebuffer use.
  */
 
-#define VIDMEM_FRAMEBUFFER	0x01	/* memory for framebuffer use */
-#define VIDMEM_MMIO		0x02	/* memory for I/O use */
-#define VIDMEM_MMIO_32BIT	0x04	/* memory accesses >= 32bit */
-#define VIDMEM_READSIDEEFFECT	0x08	/* reads can have side-effects */
-#define VIDMEM_SPARSE		0x10	/* sparse mapping required
-					 * assumed when VIDMEM_MMIO is
-					 * set. May be used with
-					 * VIDMEM_FRAMEBUFFER) */
-#define VIDMEM_READONLY		0x20	/* read-only mapping
-					 * used when reading BIOS images
-					 * through xf86MapVidMem() */
+#define VIDMEM_FRAMEBUFFER	0x01    /* memory for framebuffer use */
+#define VIDMEM_MMIO		0x02    /* memory for I/O use */
+#define VIDMEM_MMIO_32BIT	0x04    /* memory accesses >= 32bit */
+#define VIDMEM_READSIDEEFFECT	0x08    /* reads can have side-effects */
+#define VIDMEM_SPARSE		0x10    /* sparse mapping required
+                                         * assumed when VIDMEM_MMIO is
+                                         * set. May be used with
+                                         * VIDMEM_FRAMEBUFFER) */
+#define VIDMEM_READONLY		0x20    /* read-only mapping
+                                         * used when reading BIOS images
+                                         * through xf86MapVidMem() */
 
 /*
  * OS-independent modem state flags for xf86SetSerialModemState() and
  * xf86GetSerialModemState().
  */
-#define XF86_M_LE		0x001	/* line enable */
-#define XF86_M_DTR		0x002	/* data terminal ready */
-#define XF86_M_RTS		0x004	/* request to send */
-#define XF86_M_ST		0x008	/* secondary transmit */
-#define XF86_M_SR		0x010	/* secondary receive */
-#define XF86_M_CTS		0x020	/* clear to send */
-#define XF86_M_CAR		0x040	/* carrier detect */
-#define XF86_M_RNG		0x080	/* ring */
-#define XF86_M_DSR		0x100	/* data set ready */
+#define XF86_M_LE		0x001   /* line enable */
+#define XF86_M_DTR		0x002   /* data terminal ready */
+#define XF86_M_RTS		0x004   /* request to send */
+#define XF86_M_ST		0x008   /* secondary transmit */
+#define XF86_M_SR		0x010   /* secondary receive */
+#define XF86_M_CTS		0x020   /* clear to send */
+#define XF86_M_CAR		0x040   /* carrier detect */
+#define XF86_M_RNG		0x080   /* ring */
+#define XF86_M_DSR		0x100   /* data set ready */
 
 #ifndef NO_OSLIB_PROTOTYPES
 /*
@@ -133,12 +132,17 @@ _XFUNCPROTOBEGIN
 /* public functions */
 extern _X_EXPORT Bool xf86LinearVidMem(void);
 extern _X_EXPORT _X_DEPRECATED Bool xf86CheckMTRR(int);
-extern _X_EXPORT _X_DEPRECATED pointer xf86MapVidMem(int, int, unsigned long, unsigned long);
-extern _X_EXPORT _X_DEPRECATED void xf86UnMapVidMem(int, pointer, unsigned long);
-extern _X_EXPORT _X_DEPRECATED void xf86MapReadSideEffects(int, int, pointer, unsigned long);
-extern _X_EXPORT int xf86ReadBIOS(unsigned long, unsigned long, unsigned char *, int);
+extern _X_EXPORT _X_DEPRECATED pointer xf86MapVidMem(int, int, unsigned long,
+                                                     unsigned long);
+extern _X_EXPORT _X_DEPRECATED void xf86UnMapVidMem(int, pointer,
+                                                    unsigned long);
+extern _X_EXPORT _X_DEPRECATED void xf86MapReadSideEffects(int, int, pointer,
+                                                           unsigned long);
+extern _X_EXPORT int xf86ReadBIOS(unsigned long, unsigned long, unsigned char *,
+                                  int);
 extern _X_EXPORT Bool xf86EnableIO(void);
 extern _X_EXPORT void xf86DisableIO(void);
+
 #ifdef __NetBSD__
 extern _X_EXPORT void xf86SetTVOut(int);
 extern _X_EXPORT void xf86SetRGBOut(void);
@@ -164,23 +168,24 @@ extern _X_EXPORT int xf86LoadKernelModule(const char *pathname);
 /* AGP GART interface */
 
 typedef struct _AgpInfo {
-	CARD32		bridgeId;
-	CARD32		agpMode;
-	unsigned long	base;
-	unsigned long	size;
-	unsigned long	totalPages;
-	unsigned long	systemPages;
-	unsigned long	usedPages;
+    CARD32 bridgeId;
+    CARD32 agpMode;
+    unsigned long base;
+    unsigned long size;
+    unsigned long totalPages;
+    unsigned long systemPages;
+    unsigned long usedPages;
 } AgpInfo, *AgpInfoPtr;
 
 extern _X_EXPORT Bool xf86AgpGARTSupported(void);
 extern _X_EXPORT AgpInfoPtr xf86GetAGPInfo(int screenNum);
 extern _X_EXPORT Bool xf86AcquireGART(int screenNum);
 extern _X_EXPORT Bool xf86ReleaseGART(int screenNum);
-extern _X_EXPORT int xf86AllocateGARTMemory(int screenNum, unsigned long size, int type,
-				  unsigned long *physical);
+extern _X_EXPORT int xf86AllocateGARTMemory(int screenNum, unsigned long size,
+                                            int type, unsigned long *physical);
 extern _X_EXPORT Bool xf86DeallocateGARTMemory(int screenNum, int key);
-extern _X_EXPORT Bool xf86BindGARTMemory(int screenNum, int key, unsigned long offset);
+extern _X_EXPORT Bool xf86BindGARTMemory(int screenNum, int key,
+                                         unsigned long offset);
 extern _X_EXPORT Bool xf86UnbindGARTMemory(int screenNum, int key);
 extern _X_EXPORT Bool xf86EnableAGP(int screenNum, CARD32 mode);
 extern _X_EXPORT Bool xf86GARTCloseScreen(int screenNum);
@@ -189,15 +194,16 @@ extern _X_EXPORT Bool xf86GARTCloseScreen(int screenNum);
    module.  These routines are small, and the code if very POSIX-signal (or
    OS-signal) specific, so it seemed better to provide more complex
    wrappers than to wrap each individual function called. */
-extern _X_EXPORT int xf86InstallSIGIOHandler(int fd, void (*f)(int, void *), void *);
+extern _X_EXPORT int xf86InstallSIGIOHandler(int fd, void (*f) (int, void *),
+                                             void *);
 extern _X_EXPORT int xf86RemoveSIGIOHandler(int fd);
-extern _X_EXPORT int xf86BlockSIGIO (void);
-extern _X_EXPORT void xf86UnblockSIGIO (int);
-extern _X_EXPORT void xf86AssertBlockedSIGIO (char *);
-extern _X_EXPORT Bool xf86SIGIOSupported (void);
+extern _X_EXPORT int xf86BlockSIGIO(void);
+extern _X_EXPORT void xf86UnblockSIGIO(int);
+extern _X_EXPORT void xf86AssertBlockedSIGIO(char *);
+extern _X_EXPORT Bool xf86SIGIOSupported(void);
 
 #ifdef XF86_OS_PRIVS
-typedef void (*PMClose)(void);
+typedef void (*PMClose) (void);
 extern _X_EXPORT void xf86OpenConsole(void);
 extern _X_EXPORT void xf86CloseConsole(void);
 extern _X_HIDDEN Bool xf86VTActivate(int vtno);
@@ -209,13 +215,12 @@ extern _X_EXPORT int xf86ProcessArgument(int, char **, int);
 extern _X_EXPORT void xf86UseMsg(void);
 extern _X_EXPORT PMClose xf86OSPMOpen(void);
 
-extern _X_EXPORT _X_DEPRECATED void xf86MakeNewMapping(int, int, unsigned long, unsigned long, pointer);
+extern _X_EXPORT _X_DEPRECATED void xf86MakeNewMapping(int, int, unsigned long,
+                                                       unsigned long, pointer);
 extern _X_EXPORT void xf86InitVidMem(void);
 
-#endif /* XF86_OS_PRIVS */
-
+#endif                          /* XF86_OS_PRIVS */
 
 _XFUNCPROTOEND
-#endif /* NO_OSLIB_PROTOTYPES */
-
-#endif /* _XF86_OSPROC_H */
+#endif                          /* NO_OSLIB_PROTOTYPES */
+#endif                          /* _XF86_OSPROC_H */

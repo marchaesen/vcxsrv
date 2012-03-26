@@ -41,7 +41,7 @@
 #include <X11/Xproto.h>
 #include <X11/extensions/XI2proto.h>
 #include "inputstr.h"
-#include "extinit.h" /* for XInputExtensionInit */
+#include "extinit.h"            /* for XInputExtensionInit */
 #include "scrnintstr.h"
 #include "xiqueryversion.h"
 
@@ -56,14 +56,14 @@ struct test_data {
     int minor_server;
 };
 
-static void reply_XIQueryVersion(ClientPtr client, int len, char* data, void *userdata)
+static void
+reply_XIQueryVersion(ClientPtr client, int len, char *data, void *userdata)
 {
-    xXIQueryVersionReply *rep = (xXIQueryVersionReply*)data;
-    struct test_data *versions = (struct test_data*)userdata;
+    xXIQueryVersionReply *rep = (xXIQueryVersionReply *) data;
+    struct test_data *versions = (struct test_data *) userdata;
     unsigned int sver, cver, ver;
 
-    if (client->swapped)
-    {
+    if (client->swapped) {
         swapl(&rep->length);
         swaps(&rep->sequenceNumber);
         swaps(&rep->major_version);
@@ -88,7 +88,8 @@ static void reply_XIQueryVersion(ClientPtr client, int len, char* data, void *us
  *
  * Test is run normal, then for a swapped client.
  */
-static void request_XIQueryVersion(int smaj, int smin, int cmaj, int cmin, int error)
+static void
+request_XIQueryVersion(int smaj, int smin, int cmaj, int cmin, int error)
 {
     int rc;
     struct test_data versions;
@@ -97,7 +98,7 @@ static void request_XIQueryVersion(int smaj, int smin, int cmaj, int cmin, int e
 
     request_init(&request, XIQueryVersion);
     client = init_client(request.length, &request);
-    userdata = (void*)&versions;
+    userdata = (void *) &versions;
 
     /* Change the server to support smaj.smin */
     XIVersion.major_version = smaj;
@@ -126,7 +127,8 @@ static void request_XIQueryVersion(int smaj, int smin, int cmaj, int cmin, int e
 
 /* Client version less than 2.0 must return BadValue, all other combinations
  * Success */
-static void test_XIQueryVersion(void)
+static void
+test_XIQueryVersion(void)
 {
     reply_handler = reply_XIQueryVersion;
 
@@ -159,9 +161,9 @@ static void test_XIQueryVersion(void)
     for (smaj = 2; smaj <= 0xFFFF; smaj++)
         for (smin = 0; smin <= 0xFFFF; smin++)
             for (cmin = 0; cmin <= 0xFFFF; cmin++)
-                for (cmaj = 0; cmaj <= 0xFFFF; cmaj++)
-                {
+                for (cmaj = 0; cmaj <= 0xFFFF; cmaj++) {
                     int error = (cmaj < 2) ? BadValue : Success;
+
                     request_XIQueryVersion(smaj, smin, cmaj, cmin, error);
                 }
 
@@ -170,7 +172,8 @@ static void test_XIQueryVersion(void)
     reply_handler = NULL;
 }
 
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     init_simple();
 

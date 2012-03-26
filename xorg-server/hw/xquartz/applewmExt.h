@@ -40,20 +40,21 @@ typedef int xp_frame_class;
 typedef int xp_frame_rect;
 #endif
 
-typedef int (*DisableUpdateProc)(void);
-typedef int (*EnableUpdateProc)(void);
-typedef int (*SetWindowLevelProc)(WindowPtr pWin, int level);
-typedef int (*FrameGetRectProc)(xp_frame_rect type, xp_frame_class class, const BoxRec *outer,
-                                const BoxRec *inner, BoxRec *ret);
-typedef int (*FrameHitTestProc)(xp_frame_class class, int x, int y,
-                                const BoxRec *outer,
-                                const BoxRec *inner, int *ret);
-typedef int (*FrameDrawProc)(WindowPtr pWin, xp_frame_class class, xp_frame_attr attr,
-                             const BoxRec *outer, const BoxRec *inner,
-                             unsigned int title_len,
-                             const unsigned char *title_bytes);
-typedef int (*SendPSNProc)(uint32_t hi, uint32_t lo);
-typedef int (*AttachTransientProc)(WindowPtr pWinChild, WindowPtr pWinParent);
+typedef int (*DisableUpdateProc) (void);
+typedef int (*EnableUpdateProc) (void);
+typedef int (*SetWindowLevelProc) (WindowPtr pWin, int level);
+typedef int (*FrameGetRectProc) (xp_frame_rect type, xp_frame_class class,
+                                 const BoxRec * outer, const BoxRec * inner,
+                                 BoxRec * ret);
+typedef int (*FrameHitTestProc) (xp_frame_class class, int x, int y,
+                                 const BoxRec * outer, const BoxRec * inner,
+                                 int *ret);
+typedef int (*FrameDrawProc) (WindowPtr pWin, xp_frame_class class,
+                              xp_frame_attr attr, const BoxRec * outer,
+                              const BoxRec * inner, unsigned int title_len,
+                              const unsigned char *title_bytes);
+typedef int (*SendPSNProc) (uint32_t hi, uint32_t lo);
+typedef int (*AttachTransientProc) (WindowPtr pWinChild, WindowPtr pWinParent);
 
 /*
  * AppleWM implementation function list
@@ -69,27 +70,19 @@ typedef struct _AppleWMProcs {
     AttachTransientProc AttachTransient;
 } AppleWMProcsRec, *AppleWMProcsPtr;
 
-void AppleWMExtensionInit(
-    AppleWMProcsPtr procsPtr
-);
+void AppleWMExtensionInit(AppleWMProcsPtr procsPtr);
 
-void AppleWMSetScreenOrigin(
-    WindowPtr pWin
-);
+void AppleWMSetScreenOrigin(WindowPtr pWin);
 
-Bool AppleWMDoReorderWindow(
-    WindowPtr pWin
-);
+Bool AppleWMDoReorderWindow(WindowPtr pWin);
 
-void AppleWMSendEvent(
-    int             /* type */,
-    unsigned int    /* mask */,
-    int             /* which */,
-    int             /* arg */
-);
+void AppleWMSendEvent(int /* type */ ,
+                      unsigned int /* mask */ ,
+                      int /* which */ ,
+                      int       /* arg */
+    );
 
-unsigned int AppleWMSelectedEvents(
-    void
-);
+unsigned int AppleWMSelectedEvents(void
+    );
 
-#endif /* _APPLEWMEXT_H_ */
+#endif                          /* _APPLEWMEXT_H_ */

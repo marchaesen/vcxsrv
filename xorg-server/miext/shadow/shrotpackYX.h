@@ -54,107 +54,102 @@
 #endif
 
 void
-FUNC (ScreenPtr	    pScreen,
-      shadowBufPtr  pBuf);
+ FUNC(ScreenPtr pScreen, shadowBufPtr pBuf);
 
 void
-FUNC (ScreenPtr	    pScreen,
-      shadowBufPtr  pBuf)
+FUNC(ScreenPtr pScreen, shadowBufPtr pBuf)
 {
-    RegionPtr	damage = shadowDamage(pBuf);
-    PixmapPtr	pShadow = pBuf->pPixmap;
-    int		nbox = RegionNumRects (damage);
-    BoxPtr	pbox = RegionRects (damage);
-    FbBits	*shaBits;
-    Data	*shaBase, *shaLine, *sha;
-    FbStride	shaStride, winStride;
-    int		shaBpp;
-    _X_UNUSED int	shaXoff, shaYoff;
-    int		x, y, w, h;
-    Data	*winBase, *win, *winLine;
-    CARD32	winSize;
+    RegionPtr damage = shadowDamage(pBuf);
+    PixmapPtr pShadow = pBuf->pPixmap;
+    int nbox = RegionNumRects(damage);
+    BoxPtr pbox = RegionRects(damage);
+    FbBits *shaBits;
+    Data *shaBase, *shaLine, *sha;
+    FbStride shaStride, winStride;
+    int shaBpp;
+    _X_UNUSED int shaXoff, shaYoff;
+    int x, y, w, h;
+    Data *winBase, *win, *winLine;
+    CARD32 winSize;
 
-    fbGetDrawable (&pShadow->drawable, shaBits, shaStride, shaBpp, shaXoff, shaYoff);
+    fbGetDrawable(&pShadow->drawable, shaBits, shaStride, shaBpp, shaXoff,
+                  shaYoff);
     shaBase = (Data *) shaBits;
-    shaStride = shaStride * sizeof (FbBits) / sizeof (Data);
+    shaStride = shaStride * sizeof(FbBits) / sizeof(Data);
 
     winBase = (Data *) (*pBuf->window) (pScreen, 0, 0,
-					SHADOW_WINDOW_WRITE,
-					&winSize, pBuf->closure);
+                                        SHADOW_WINDOW_WRITE,
+                                        &winSize, pBuf->closure);
     winStride = (Data *) (*pBuf->window) (pScreen, 1, 0,
-					  SHADOW_WINDOW_WRITE,
-					  &winSize, pBuf->closure) - winBase;
+                                          SHADOW_WINDOW_WRITE,
+                                          &winSize, pBuf->closure) - winBase;
 
-    while (nbox--)
-    {
+    while (nbox--) {
         x = pbox->x1;
         y = pbox->y1;
         w = (pbox->x2 - pbox->x1);
         h = pbox->y2 - pbox->y1;
 
-	shaLine = shaBase + (y * shaStride) + x;
+        shaLine = shaBase + (y * shaStride) + x;
 #ifdef PREFETCH
-	__builtin_prefetch (shaLine);
+        __builtin_prefetch(shaLine);
 #endif
-	winLine = winBase + WINSTART(x, y);
+        winLine = winBase + WINSTART(x, y);
 
-        while (h--)
-        {
-	    sha = shaLine;
-	    win = winLine;
+        while (h--) {
+            sha = shaLine;
+            win = winLine;
 
-            while (sha < (shaLine + w - 16))
-            {
+            while (sha < (shaLine + w - 16)) {
 #ifdef PREFETCH
-		__builtin_prefetch (sha + shaStride);
+                __builtin_prefetch(sha + shaStride);
 #endif
-		*win = *sha++;
-		win += WINSTEPX(winStride);
-		*win = *sha++;
-		win += WINSTEPX(winStride);
-		*win = *sha++;
-		win += WINSTEPX(winStride);
-		*win = *sha++;
-		win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
 
-		*win = *sha++;
-		win += WINSTEPX(winStride);
-		*win = *sha++;
-		win += WINSTEPX(winStride);
-		*win = *sha++;
-		win += WINSTEPX(winStride);
-		*win = *sha++;
-		win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
 
-		*win = *sha++;
-		win += WINSTEPX(winStride);
-		*win = *sha++;
-		win += WINSTEPX(winStride);
-		*win = *sha++;
-		win += WINSTEPX(winStride);
-		*win = *sha++;
-		win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
 
-		*win = *sha++;
-		win += WINSTEPX(winStride);
-		*win = *sha++;
-		win += WINSTEPX(winStride);
-		*win = *sha++;
-		win += WINSTEPX(winStride);
-		*win = *sha++;
-		win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
+                *win = *sha++;
+                win += WINSTEPX(winStride);
             }
 
-            while (sha < (shaLine + w))
-            {
-		*win = *sha++;
-		win += WINSTEPX(winStride);
+            while (sha < (shaLine + w)) {
+                *win = *sha++;
+                win += WINSTEPX(winStride);
             }
 
-	    y++;
-	    shaLine += shaStride;
-	    winLine += WINSTEPY();
+            y++;
+            shaLine += shaStride;
+            winLine += WINSTEPY();
         }
         pbox++;
-    } /*  nbox */
+    }                           /*  nbox */
 }

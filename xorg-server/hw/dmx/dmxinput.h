@@ -43,7 +43,7 @@
  * hw/dmx/input -- the interface defined here should be the only
  * interface exported to the hw/dmx layer.  \see input/dmxinputinit.c.
  */
- 
+
 #ifndef DMXINPUT_H
 #define DMXINPUT_H
 
@@ -62,9 +62,9 @@ typedef enum {
     DMX_UPDATE_REPARENT         /**< Window reparented      */
 } DMXUpdateType;
 
-typedef void (*ProcessInputEventsProc)(struct _DMXInputInfo *);
-typedef void (*UpdateWindowInfoProc)(struct _DMXInputInfo *,
-                                     DMXUpdateType, WindowPtr);
+typedef void (*ProcessInputEventsProc) (struct _DMXInputInfo *);
+typedef void (*UpdateWindowInfoProc) (struct _DMXInputInfo *,
+                                      DMXUpdateType, WindowPtr);
 
 /** An opaque structure that is only exposed in the dmx/input layer. */
 typedef struct _DMXLocalInputInfo *DMXLocalInputInfoPtr;
@@ -82,79 +82,79 @@ typedef enum {
  * access to the global pointers.  However, the elements are only
  * available to input-related routines. */
 struct _DMXInputInfo {
-    const char              *name; /**< Name of input display or device
+    const char *name;              /**< Name of input display or device
                                     * (from command line or config
                                     * file)  */
-    Bool                    freename; /**< If true, free name on destroy */
-    Bool                    detached; /**< If true, input screen is detached */
-    int                     inputIdx; /**< Index into #dmxInputs global */
-    int                     scrnIdx;  /**< Index into #dmxScreens global */
-    Bool                    core;  /**< If True, initialize these
+    Bool freename;                    /**< If true, free name on destroy */
+    Bool detached;                    /**< If true, input screen is detached */
+    int inputIdx;                     /**< Index into #dmxInputs global */
+    int scrnIdx;                      /**< Index into #dmxScreens global */
+    Bool core;                     /**< If True, initialize these
                                     * devices as devices that send core
                                     * events */
-    Bool                    console; /**< True if console and backend
+    Bool console;                    /**< True if console and backend
                                       * input share the same backend
                                       * display  */
 
-    Bool                    windows; /**< True if window outlines are
+    Bool windows;                    /**< True if window outlines are
                                       * draw in console */
 
-    ProcessInputEventsProc  processInputEvents;
-    UpdateWindowInfoProc    updateWindowInfo;
+    ProcessInputEventsProc processInputEvents;
+    UpdateWindowInfoProc updateWindowInfo;
 
-                                /* Local input information */
-    dmxSigioState           sigioState;    /**< Current stat */
-    int                     sigioFdCount;  /**< Number of fds in use */
-    int                     sigioFd[DMX_MAX_SIGIO_FDS];    /**< List of fds */
-    Bool                    sigioAdded[DMX_MAX_SIGIO_FDS]; /**< Active fds */
+    /* Local input information */
+    dmxSigioState sigioState;              /**< Current stat */
+    int sigioFdCount;                      /**< Number of fds in use */
+    int sigioFd[DMX_MAX_SIGIO_FDS];                        /**< List of fds */
+    Bool sigioAdded[DMX_MAX_SIGIO_FDS];                    /**< Active fds */
 
-    
     /** True if a VT switch is pending, but has not yet happened. */
-    int                     vt_switch_pending;
+    int vt_switch_pending;
 
     /** True if a VT switch has happened. */
-    int                     vt_switched;
+    int vt_switched;
 
     /** Number of devices handled in this _DMXInputInfo structure. */
-    int                     numDevs;
+    int numDevs;
 
     /** List of actual input devices.  Each _DMXInputInfo structure can
      * refer to more than one device.  For example, the keyboard and the
      * pointer of a backend display; or all of the XInput extension
      * devices on a backend display. */
-    DMXLocalInputInfoPtr    *devs;
+    DMXLocalInputInfoPtr *devs;
 
-    char                    *keycodes; /**< XKB keycodes from command line */
-    char                    *symbols;  /**< XKB symbols from command line */
-    char                    *geometry; /**< XKB geometry from command line */
+    char *keycodes;                    /**< XKB keycodes from command line */
+    char *symbols;                     /**< XKB symbols from command line */
+    char *geometry;                    /**< XKB geometry from command line */
 };
 
-extern int                  dmxNumInputs; /**< Number of #dmxInputs */
-extern DMXInputInfo         *dmxInputs;   /**< List of inputs */
+extern int dmxNumInputs;                  /**< Number of #dmxInputs */
+extern DMXInputInfo *dmxInputs;           /**< List of inputs */
 
-extern void dmxInputInit(DMXInputInfo *dmxInput);
-extern void dmxInputReInit(DMXInputInfo *dmxInput);
-extern void dmxInputLateReInit(DMXInputInfo *dmxInput);
-extern void dmxInputFree(DMXInputInfo *dmxInput);
+extern void dmxInputInit(DMXInputInfo * dmxInput);
+extern void dmxInputReInit(DMXInputInfo * dmxInput);
+extern void dmxInputLateReInit(DMXInputInfo * dmxInput);
+extern void dmxInputFree(DMXInputInfo * dmxInput);
 extern void dmxInputLogDevices(void);
 extern void dmxUpdateWindowInfo(DMXUpdateType type, WindowPtr pWindow);
 
 /* These functions are defined in input/dmxeq.c */
-extern void dmxeqSwitchScreen(DeviceIntPtr pDev, ScreenPtr pScreen, Bool fromDIX);
+extern void dmxeqSwitchScreen(DeviceIntPtr pDev, ScreenPtr pScreen,
+                              Bool fromDIX);
 
 /* This type is used in input/dmxevents.c.  Also, these functions are
  * defined in input/dmxevents.c */
 typedef enum {
     DMX_NO_BLOCK = 0,
-    DMX_BLOCK    = 1
+    DMX_BLOCK = 1
 } DMXBlockType;
 
-extern void          dmxGetGlobalPosition(int *x, int *y);
+extern void dmxGetGlobalPosition(int *x, int *y);
 extern DMXScreenInfo *dmxFindFirstScreen(int x, int y);
-extern void          dmxCoreMotion(DevicePtr pDev, int x, int y, int delta,
-                                   DMXBlockType block);
+extern void dmxCoreMotion(DevicePtr pDev, int x, int y, int delta,
+                          DMXBlockType block);
 
 /* Support for dynamic addition of inputs.  This functions is defined in
  * config/dmxconfig.c */
 extern DMXInputInfo *dmxConfigAddInput(const char *name, int core);
-#endif /* DMXINPUT_H */
+#endif                          /* DMXINPUT_H */

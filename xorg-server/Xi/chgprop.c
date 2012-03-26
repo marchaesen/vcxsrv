@@ -54,7 +54,7 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
+#include "inputstr.h"           /* DeviceIntPtr      */
 #include "windowstr.h"
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
@@ -80,7 +80,7 @@ SProcXChangeDeviceDontPropagateList(ClientPtr client)
     swapl(&stuff->window);
     swaps(&stuff->count);
     REQUEST_FIXED_SIZE(xChangeDeviceDontPropagateListReq,
-                      stuff->count * sizeof(CARD32));
+                       stuff->count * sizeof(CARD32));
     SwapLongs((CARD32 *) (&stuff[1]), stuff->count);
     return (ProcXChangeDeviceDontPropagateList(client));
 }
@@ -102,39 +102,40 @@ ProcXChangeDeviceDontPropagateList(ClientPtr client)
     REQUEST(xChangeDeviceDontPropagateListReq);
     REQUEST_AT_LEAST_SIZE(xChangeDeviceDontPropagateListReq);
 
-    if (stuff->length != bytes_to_int32(sizeof(xChangeDeviceDontPropagateListReq)) +
-	stuff->count)
-	return BadLength;
+    if (stuff->length !=
+        bytes_to_int32(sizeof(xChangeDeviceDontPropagateListReq)) +
+        stuff->count)
+        return BadLength;
 
     rc = dixLookupWindow(&pWin, stuff->window, client, DixSetAttrAccess);
     if (rc != Success)
-	return rc;
+        return rc;
 
     if (stuff->mode != AddToList && stuff->mode != DeleteFromList) {
-	client->errorValue = stuff->window;
-	return BadMode;
+        client->errorValue = stuff->window;
+        return BadMode;
     }
 
-    if ((rc = CreateMaskFromList(client, (XEventClass *) & stuff[1],
-				 stuff->count, tmp, NULL,
-				 X_ChangeDeviceDontPropagateList)) != Success)
-	return rc;
+    if ((rc = CreateMaskFromList(client, (XEventClass *) &stuff[1],
+                                 stuff->count, tmp, NULL,
+                                 X_ChangeDeviceDontPropagateList)) != Success)
+        return rc;
 
     others = wOtherInputMasks(pWin);
     if (!others && stuff->mode == DeleteFromList)
-	return Success;
+        return Success;
     for (i = 0; i < EMASKSIZE; i++) {
-	if (tmp[i].mask == 0)
-	    continue;
+        if (tmp[i].mask == 0)
+            continue;
 
-	if (stuff->mode == DeleteFromList)
-	    tmp[i].mask = (others->dontPropagateMask[i] & ~tmp[i].mask);
-	else if (others)
-	    tmp[i].mask |= others->dontPropagateMask[i];
+        if (stuff->mode == DeleteFromList)
+            tmp[i].mask = (others->dontPropagateMask[i] & ~tmp[i].mask);
+        else if (others)
+            tmp[i].mask |= others->dontPropagateMask[i];
 
-	if (DeviceEventSuppressForWindow(pWin, client, tmp[i].mask, i) !=
-	    Success)
-	    return BadClass;
+        if (DeviceEventSuppressForWindow(pWin, client, tmp[i].mask, i) !=
+            Success)
+            return BadClass;
     }
 
     return Success;

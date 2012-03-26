@@ -27,12 +27,14 @@
 #include "glxserver.h"
 #include "indirect_dispatch.h"
 
-int __glXDisp_CreateContextAttribsARB(__GLXclientState *cl, GLbyte *pc)
+int
+__glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
 {
     return BadRequest;
 }
 
-int __glXDispSwap_CreateContextAttribsARB(__GLXclientState *cl, GLbyte *pc)
+int
+__glXDispSwap_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
 {
     return BadRequest;
 }

@@ -31,7 +31,6 @@ from The Open Group.
  * Author:  Mayank Choudhary, Sun Microsystems
  */
 
-
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
@@ -54,29 +53,29 @@ extern bool_t xdr_opaque_auth(XDR *, struct opaque_auth *);
 
 static enum auth_stat why;
 
-static char * 
+static char *
 authdes_ezdecode(const char *inmsg, int len)
 {
-    struct rpc_msg  msg;
-    char            cred_area[MAX_AUTH_BYTES];
-    char            verf_area[MAX_AUTH_BYTES];
-    char            *temp_inmsg;
-    struct svc_req  r;
-    bool_t          res0, res1;
-    XDR             xdr;
-    SVCXPRT         xprt;
+    struct rpc_msg msg;
+    char cred_area[MAX_AUTH_BYTES];
+    char verf_area[MAX_AUTH_BYTES];
+    char *temp_inmsg;
+    struct svc_req r;
+    bool_t res0, res1;
+    XDR xdr;
+    SVCXPRT xprt;
 
     temp_inmsg = malloc(len);
     memmove(temp_inmsg, inmsg, len);
 
-    memset((char *)&msg, 0, sizeof(msg));
-    memset((char *)&r, 0, sizeof(r));
+    memset((char *) &msg, 0, sizeof(msg));
+    memset((char *) &r, 0, sizeof(r));
     memset(cred_area, 0, sizeof(cred_area));
     memset(verf_area, 0, sizeof(verf_area));
 
     msg.rm_call.cb_cred.oa_base = cred_area;
     msg.rm_call.cb_verf.oa_base = verf_area;
-    why = AUTH_FAILED; 
+    why = AUTH_FAILED;
     xdrmem_create(&xdr, temp_inmsg, len, XDR_DECODE);
 
     if ((r.rq_clntcred = malloc(MAX_AUTH_BYTES)) == NULL)
@@ -84,14 +83,14 @@ authdes_ezdecode(const char *inmsg, int len)
     r.rq_xprt = &xprt;
 
     /* decode into msg */
-    res0 = xdr_opaque_auth(&xdr, &(msg.rm_call.cb_cred)); 
+    res0 = xdr_opaque_auth(&xdr, &(msg.rm_call.cb_cred));
     res1 = xdr_opaque_auth(&xdr, &(msg.rm_call.cb_verf));
-    if ( ! (res0 && res1) )
-         goto bad2;
+    if (!(res0 && res1))
+        goto bad2;
 
     /* do the authentication */
 
-    r.rq_cred = msg.rm_call.cb_cred;        /* read by opaque stuff */
+    r.rq_cred = msg.rm_call.cb_cred;    /* read by opaque stuff */
     if (r.rq_cred.oa_flavor != AUTH_DES) {
         why = AUTH_TOOWEAK;
         goto bad2;
@@ -101,94 +100,92 @@ authdes_ezdecode(const char *inmsg, int len)
 #else
     if ((why = _authenticate(&r, &msg)) != AUTH_OK) {
 #endif
-            goto bad2;
+        goto bad2;
     }
-    return (((struct authdes_cred *) r.rq_clntcred)->adc_fullname.name); 
+    return (((struct authdes_cred *) r.rq_clntcred)->adc_fullname.name);
 
-bad2:
+ bad2:
     free(r.rq_clntcred);
-bad1:
-    return ((char *)0); /* ((struct authdes_cred *) NULL); */
+ bad1:
+    return ((char *) 0);        /* ((struct authdes_cred *) NULL); */
 }
 
-static XID  rpc_id = (XID) ~0L;
+static XID rpc_id = (XID) ~0L;
 
 static Bool
-CheckNetName (
-    unsigned char    *addr,
-    short	    len,
-    pointer	    closure
-)
+CheckNetName(unsigned char *addr, short len, pointer closure)
 {
-    return (len == strlen ((char *) closure) &&
-	    strncmp ((char *) addr, (char *) closure, len) == 0);
+    return (len == strlen((char *) closure) &&
+            strncmp((char *) addr, (char *) closure, len) == 0);
 }
 
-static char rpc_error[MAXNETNAMELEN+50];
+static char rpc_error[MAXNETNAMELEN + 50];
 
 _X_HIDDEN XID
-SecureRPCCheck (unsigned short data_length, const char *data,
-    ClientPtr client, const char **reason)
+SecureRPCCheck(unsigned short data_length, const char *data,
+               ClientPtr client, const char **reason)
 {
     char *fullname;
-    
+
     if (rpc_id == (XID) ~0L) {
-	*reason = "Secure RPC authorization not initialized";
-    } else {
-	fullname = authdes_ezdecode(data, data_length);
-	if (fullname == (char *)0) {
-	    snprintf(rpc_error, sizeof(rpc_error),
-		     "Unable to authenticate secure RPC client (why=%d)", why);
-	    *reason = rpc_error;
-	} else {
-	    if (ForEachHostInFamily (FamilyNetname, CheckNetName, fullname))
-		return rpc_id;
-	    snprintf(rpc_error, sizeof(rpc_error),
-		     "Principal \"%s\" is not authorized to connect", fullname);
-	    *reason = rpc_error;
-	}
+        *reason = "Secure RPC authorization not initialized";
+    }
+    else {
+        fullname = authdes_ezdecode(data, data_length);
+        if (fullname == (char *) 0) {
+            snprintf(rpc_error, sizeof(rpc_error),
+                     "Unable to authenticate secure RPC client (why=%d)", why);
+            *reason = rpc_error;
+        }
+        else {
+            if (ForEachHostInFamily(FamilyNetname, CheckNetName, fullname))
+                return rpc_id;
+            snprintf(rpc_error, sizeof(rpc_error),
+                     "Principal \"%s\" is not authorized to connect", fullname);
+            *reason = rpc_error;
+        }
     }
     return (XID) ~0L;
 }
-    
+
 _X_HIDDEN void
-SecureRPCInit (void)
+SecureRPCInit(void)
 {
     if (rpc_id == ~0L)
-	AddAuthorization (9, "SUN-DES-1", 0, (char *) 0);
+        AddAuthorization(9, "SUN-DES-1", 0, (char *) 0);
 }
 
 _X_HIDDEN int
-SecureRPCAdd (unsigned short data_length, const char *data, XID id)
+SecureRPCAdd(unsigned short data_length, const char *data, XID id)
 {
     if (data_length)
-	AddHost ((pointer) 0, FamilyNetname, data_length, data);
+        AddHost((pointer) 0, FamilyNetname, data_length, data);
     rpc_id = id;
     return 1;
 }
 
 _X_HIDDEN int
-SecureRPCReset (void)
+SecureRPCReset(void)
 {
     rpc_id = (XID) ~0L;
     return 1;
 }
 
 _X_HIDDEN XID
-SecureRPCToID (unsigned short data_length, char *data)
+SecureRPCToID(unsigned short data_length, char *data)
 {
     return rpc_id;
 }
 
 _X_HIDDEN int
-SecureRPCFromID (XID id, unsigned short *data_lenp, char **datap)
+SecureRPCFromID(XID id, unsigned short *data_lenp, char **datap)
 {
     return 0;
 }
 
 _X_HIDDEN int
-SecureRPCRemove (unsigned short data_length, const char *data)
+SecureRPCRemove(unsigned short data_length, const char *data)
 {
     return 0;
 }
-#endif /* SECURE_RPC */
+#endif                          /* SECURE_RPC */

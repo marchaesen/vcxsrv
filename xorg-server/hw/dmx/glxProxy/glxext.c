@@ -50,7 +50,10 @@
 */
 typedef int __GLXprovider;
 __GLXprovider __glXDRISWRastProvider;
-void GlxPushProvider(__GLXprovider *provider) { }
+void
+GlxPushProvider(__GLXprovider * provider)
+{
+}
 
 /*
 ** Forward declarations.
@@ -61,7 +64,8 @@ static int __glXDispatch(ClientPtr);
 /*
 ** Called when the extension is reset.
 */
-static void ResetExtension(ExtensionEntry* extEntry)
+static void
+ResetExtension(ExtensionEntry * extEntry)
 {
     __glXFlushContextCache();
     __glXScreenReset();
@@ -71,7 +75,8 @@ static void ResetExtension(ExtensionEntry* extEntry)
 /*
 ** Initialize the per-client context storage.
 */
-static void ResetClientState(int clientIndex)
+static void
+ResetClientState(int clientIndex)
 {
     __GLXclientState *cl = __glXClients[clientIndex];
     Display **keep_be_displays;
@@ -82,9 +87,9 @@ static void ResetClientState(int clientIndex)
     free(cl->currentDrawables);
     free(cl->largeCmdBuf);
 
-    for (i=0; i< screenInfo.numScreens; i++) {
-       if (cl->be_displays[i])
-	  XCloseDisplay( cl->be_displays[i] );
+    for (i = 0; i < screenInfo.numScreens; i++) {
+        if (cl->be_displays[i])
+            XCloseDisplay(cl->be_displays[i]);
     }
 
     keep_be_displays = cl->be_displays;
@@ -92,9 +97,9 @@ static void ResetClientState(int clientIndex)
     cl->be_displays = keep_be_displays;
 
     /*
-    ** By default, assume that the client supports
-    ** GLX major version 1 minor version 0 protocol.
-    */
+     ** By default, assume that the client supports
+     ** GLX major version 1 minor version 0 protocol.
+     */
     cl->GLClientmajorVersion = 1;
     cl->GLClientminorVersion = 0;
     free(cl->GLClientextensions);
@@ -102,18 +107,18 @@ static void ResetClientState(int clientIndex)
     memset(cl->be_displays, 0, screenInfo.numScreens * sizeof(Display *));
 }
 
-
 /*
 ** This procedure is called when the client who created the context goes
 ** away OR when glXDestroyContext is called.  In either case, all we do is
 ** flag that the ID is no longer valid, and (maybe) free the context.
 ** use.
 */
-static int ContextGone(__GLXcontext* cx, XID id)
+static int
+ContextGone(__GLXcontext * cx, XID id)
 {
     cx->idExists = GL_FALSE;
     if (!cx->isCurrent) {
-	__glXFreeContext(cx);
+        __glXFreeContext(cx);
     }
 
     return True;
@@ -122,31 +127,32 @@ static int ContextGone(__GLXcontext* cx, XID id)
 /*
 ** Free a client's state.
 */
-static int ClientGone(int clientIndex, XID id)
+static int
+ClientGone(int clientIndex, XID id)
 {
     __GLXcontext *cx;
     __GLXclientState *cl = __glXClients[clientIndex];
     int i;
 
     if (cl) {
-	/*
-	** Free all the contexts that are current for this client.
-	*/
-	for (i=0; i < cl->numCurrentContexts; i++) {
-	    cx = cl->currentContexts[i];
-	    if (cx) {
-		cx->isCurrent = GL_FALSE;
-		if (!cx->idExists) {
-		    __glXFreeContext(cx);
-		}
-	    }
-	}
-	/*
-	** Re-initialize the client state structure.  Don't free it because
-	** we'll probably get another client with this index and use the struct
-	** again.  There is a maximum of MAXCLIENTS of these structures.
-	*/
-	ResetClientState(clientIndex);
+        /*
+         ** Free all the contexts that are current for this client.
+         */
+        for (i = 0; i < cl->numCurrentContexts; i++) {
+            cx = cl->currentContexts[i];
+            if (cx) {
+                cx->isCurrent = GL_FALSE;
+                if (!cx->idExists) {
+                    __glXFreeContext(cx);
+                }
+            }
+        }
+        /*
+         ** Re-initialize the client state structure.  Don't free it because
+         ** we'll probably get another client with this index and use the struct
+         ** again.  There is a maximum of MAXCLIENTS of these structures.
+         */
+        ResetClientState(clientIndex);
     }
 
     return True;
@@ -155,57 +161,61 @@ static int ClientGone(int clientIndex, XID id)
 /*
 ** Free a GLX Pixmap.
 */
-void __glXFreeGLXPixmap( __GLXpixmap *pGlxPixmap )
+void
+__glXFreeGLXPixmap(__GLXpixmap * pGlxPixmap)
 {
-   if (!pGlxPixmap->idExists &&
-       !pGlxPixmap->refcnt) {
+    if (!pGlxPixmap->idExists && !pGlxPixmap->refcnt) {
 
-       PixmapPtr pPixmap = (PixmapPtr) pGlxPixmap->pDraw;
+        PixmapPtr pPixmap = (PixmapPtr) pGlxPixmap->pDraw;
 
-	/*
-	** The DestroyPixmap routine should decrement the refcount and free
-	** only if it's zero.
-	*/
-	(*pGlxPixmap->pScreen->DestroyPixmap)(pPixmap);
-	free(pGlxPixmap->be_xids);
-	free(pGlxPixmap);
+        /*
+         ** The DestroyPixmap routine should decrement the refcount and free
+         ** only if it's zero.
+         */
+        (*pGlxPixmap->pScreen->DestroyPixmap) (pPixmap);
+        free(pGlxPixmap->be_xids);
+        free(pGlxPixmap);
     }
 
 }
 
-static int PixmapGone(__GLXpixmap *pGlxPixmap, XID id)
+static int
+PixmapGone(__GLXpixmap * pGlxPixmap, XID id)
 {
 
     pGlxPixmap->idExists = False;
-    __glXFreeGLXPixmap( pGlxPixmap );
+    __glXFreeGLXPixmap(pGlxPixmap);
 
     return True;
 }
 
-void __glXFreeGLXWindow(__glXWindow *pGlxWindow)
+void
+__glXFreeGLXWindow(__glXWindow * pGlxWindow)
 {
     if (!pGlxWindow->idExists && !pGlxWindow->refcnt) {
-	WindowPtr pWindow = (WindowPtr) pGlxWindow->pDraw;
-	WindowPtr ret;
+        WindowPtr pWindow = (WindowPtr) pGlxWindow->pDraw;
+        WindowPtr ret;
 
-	dixLookupResourceByType((pointer) &ret,
-				pWindow->drawable.id, RT_WINDOW,
-				NullClient, DixUnknownAccess);
+        dixLookupResourceByType((pointer) &ret,
+                                pWindow->drawable.id, RT_WINDOW,
+                                NullClient, DixUnknownAccess);
         if (ret == pWindow) {
-            (*pGlxWindow->pScreen->DestroyWindow)(pWindow);
+            (*pGlxWindow->pScreen->DestroyWindow) (pWindow);
         }
 
-	free(pGlxWindow);
+        free(pGlxWindow);
     }
 }
 
-static void WindowGone(__glXWindow *pGlxWindow, XID id)
+static void
+WindowGone(__glXWindow * pGlxWindow, XID id)
 {
     pGlxWindow->idExists = False;
     __glXFreeGLXWindow(pGlxWindow);
 }
 
-void __glXFreeGLXPbuffer(__glXPbuffer *pGlxPbuffer)
+void
+__glXFreeGLXPbuffer(__glXPbuffer * pGlxPbuffer)
 {
     if (!pGlxPbuffer->idExists && !pGlxPbuffer->refcnt) {
         free(pGlxPbuffer->be_xids);
@@ -213,7 +223,8 @@ void __glXFreeGLXPbuffer(__glXPbuffer *pGlxPbuffer)
     }
 }
 
-static void PbufferGone(__glXPbuffer *pGlxPbuffer, XID id)
+static void
+PbufferGone(__glXPbuffer * pGlxPbuffer, XID id)
 {
     pGlxPbuffer->idExists = False;
     __glXFreeGLXPbuffer(pGlxPbuffer);
@@ -222,55 +233,57 @@ static void PbufferGone(__glXPbuffer *pGlxPbuffer, XID id)
 /*
 ** Free a context.
 */
-GLboolean __glXFreeContext(__GLXcontext *cx)
+GLboolean
+__glXFreeContext(__GLXcontext * cx)
 {
-    if (cx->idExists || cx->isCurrent) return GL_FALSE;
-    
+    if (cx->idExists || cx->isCurrent)
+        return GL_FALSE;
+
     free(cx->feedbackBuf);
     free(cx->selectBuf);
     free(cx->real_ids);
     free(cx->real_vids);
 
     if (cx->pGlxPixmap) {
-       /*
-	** The previous drawable was a glx pixmap, release it.
-	*/
-       cx->pGlxPixmap->refcnt--;
-       __glXFreeGLXPixmap( cx->pGlxPixmap );
-       cx->pGlxPixmap = 0;
+        /*
+         ** The previous drawable was a glx pixmap, release it.
+         */
+        cx->pGlxPixmap->refcnt--;
+        __glXFreeGLXPixmap(cx->pGlxPixmap);
+        cx->pGlxPixmap = 0;
     }
 
     if (cx->pGlxReadPixmap) {
-       /*
-	** The previous drawable was a glx pixmap, release it.
-	*/
-       cx->pGlxReadPixmap->refcnt--;
-       __glXFreeGLXPixmap( cx->pGlxReadPixmap );
-       cx->pGlxReadPixmap = 0;
+        /*
+         ** The previous drawable was a glx pixmap, release it.
+         */
+        cx->pGlxReadPixmap->refcnt--;
+        __glXFreeGLXPixmap(cx->pGlxReadPixmap);
+        cx->pGlxReadPixmap = 0;
     }
 
     if (cx->pGlxWindow) {
-       /*
-	** The previous drawable was a glx window, release it.
-	*/
-       cx->pGlxWindow->refcnt--;
-       __glXFreeGLXWindow( cx->pGlxWindow );
-       cx->pGlxWindow = 0;   
+        /*
+         ** The previous drawable was a glx window, release it.
+         */
+        cx->pGlxWindow->refcnt--;
+        __glXFreeGLXWindow(cx->pGlxWindow);
+        cx->pGlxWindow = 0;
     }
 
     if (cx->pGlxReadWindow) {
-       /*
-	** The previous drawable was a glx window, release it.
-	*/
-       cx->pGlxReadWindow->refcnt--;
-       __glXFreeGLXWindow( cx->pGlxReadWindow );
-       cx->pGlxReadWindow = 0;   
+        /*
+         ** The previous drawable was a glx window, release it.
+         */
+        cx->pGlxReadWindow->refcnt--;
+        __glXFreeGLXWindow(cx->pGlxReadWindow);
+        cx->pGlxReadWindow = 0;
     }
 
     free(cx);
 
     if (cx == __glXLastContext) {
-	__glXFlushContextCache();
+        __glXFlushContextCache();
     }
 
     return GL_TRUE;
@@ -279,56 +292,57 @@ GLboolean __glXFreeContext(__GLXcontext *cx)
 /*
 ** Initialize the GLX extension.
 */
-void GlxExtensionInit(void)
+void
+GlxExtensionInit(void)
 {
     ExtensionEntry *extEntry;
     int i;
     int glxSupported = 1;
 
     /*
-    // do not initialize GLX extension if GLX is not supported
-    // by ALL back-end servers.
-    */
-    for (i=0; i<screenInfo.numScreens; i++) {
-       glxSupported &= (dmxScreens[i].glxMajorOpcode > 0);
+       // do not initialize GLX extension if GLX is not supported
+       // by ALL back-end servers.
+     */
+    for (i = 0; i < screenInfo.numScreens; i++) {
+        glxSupported &= (dmxScreens[i].glxMajorOpcode > 0);
     }
 
     if (!glxSupported || !dmxGLXProxy) {
-       return;
+        return;
     }
-    
-    __glXContextRes = CreateNewResourceType((DeleteType)ContextGone,
-					    "GLXContext");
-    __glXClientRes = CreateNewResourceType((DeleteType)ClientGone,
-					   "GLXClient");
-    __glXPixmapRes = CreateNewResourceType((DeleteType)PixmapGone,
-					   "GLXPixmap");
-    __glXWindowRes = CreateNewResourceType((DeleteType)WindowGone,
-					   "GLXWindow");
-    __glXPbufferRes = CreateNewResourceType((DeleteType)PbufferGone,
-					    "GLXPbuffer");
+
+    __glXContextRes = CreateNewResourceType((DeleteType) ContextGone,
+                                            "GLXContext");
+    __glXClientRes = CreateNewResourceType((DeleteType) ClientGone,
+                                           "GLXClient");
+    __glXPixmapRes = CreateNewResourceType((DeleteType) PixmapGone,
+                                           "GLXPixmap");
+    __glXWindowRes = CreateNewResourceType((DeleteType) WindowGone,
+                                           "GLXWindow");
+    __glXPbufferRes = CreateNewResourceType((DeleteType) PbufferGone,
+                                            "GLXPbuffer");
 
     if (!__glXContextRes || !__glXClientRes || !__glXPixmapRes ||
-	!__glXWindowRes || !__glXPbufferRes)
-	return;
+        !__glXWindowRes || !__glXPbufferRes)
+        return;
 
     /*
-    ** Add extension to server extensions.
-    */
+     ** Add extension to server extensions.
+     */
     extEntry = AddExtension(GLX_EXTENSION_NAME, __GLX_NUMBER_EVENTS,
-			    __GLX_NUMBER_ERRORS, __glXDispatch,
-			    __glXSwapDispatch, ResetExtension,
-			    StandardMinorOpcode);
+                            __GLX_NUMBER_ERRORS, __glXDispatch,
+                            __glXSwapDispatch, ResetExtension,
+                            StandardMinorOpcode);
     if (!extEntry) {
-	FatalError("__glXExtensionInit: AddExtensions failed\n");
-	return;
+        FatalError("__glXExtensionInit: AddExtensions failed\n");
+        return;
     }
     /*
-    if (!AddExtensionAlias(GLX_EXTENSION_ALIAS, extEntry)) {
-	ErrorF("__glXExtensionInit: AddExtensionAlias failed\n");
-	return;
-    }
-    */
+       if (!AddExtensionAlias(GLX_EXTENSION_ALIAS, extEntry)) {
+       ErrorF("__glXExtensionInit: AddExtensionAlias failed\n");
+       return;
+       }
+     */
 
     __glXerrorBase = extEntry->errorBase;
     __glXBadContext = extEntry->errorBase + GLXBadContext;
@@ -340,38 +354,40 @@ void GlxExtensionInit(void)
     __glXBadRenderRequest = extEntry->errorBase + GLXBadRenderRequest;
     __glXBadLargeRequest = extEntry->errorBase + GLXBadLargeRequest;
     __glXUnsupportedPrivateRequest = extEntry->errorBase +
-      			GLXUnsupportedPrivateRequest;
+        GLXUnsupportedPrivateRequest;
     __glXBadFBConfig = extEntry->errorBase + GLXBadFBConfig;
     __glXBadPbuffer = extEntry->errorBase + GLXBadPbuffer;
 
     /*
-    ** Initialize table of client state.  There is never a client 0.
-    */
-    for (i=1; i <= MAXCLIENTS; i++) {
-	__glXClients[i] = 0;
+     ** Initialize table of client state.  There is never a client 0.
+     */
+    for (i = 1; i <= MAXCLIENTS; i++) {
+        __glXClients[i] = 0;
     }
 
     /*
-    ** Initialize screen specific data.
-    */
+     ** Initialize screen specific data.
+     */
     __glXScreenInit(screenInfo.numScreens);
 
     /*
-    ** Initialize swap barrier support.
-    */
+     ** Initialize swap barrier support.
+     */
     SwapBarrierInit();
 }
 
 /************************************************************************/
 
-Bool __glXCoreType(void)
+Bool
+__glXCoreType(void)
 {
     return 0;
 }
 
 /************************************************************************/
 
-void __glXFlushContextCache(void)
+void
+__glXFlushContextCache(void)
 {
     __glXLastContext = 0;
 }
@@ -381,116 +397,121 @@ void __glXFlushContextCache(void)
 /*
 ** Top level dispatcher; all commands are executed from here down.
 */
-static int __glXDispatch(ClientPtr client)
+static int
+__glXDispatch(ClientPtr client)
 {
     REQUEST(xGLXSingleReq);
     CARD8 opcode;
-    int (*proc)(__GLXclientState *cl, GLbyte *pc);
+    int (*proc) (__GLXclientState * cl, GLbyte * pc);
     __GLXclientState *cl;
 
     opcode = stuff->glxCode;
     cl = __glXClients[client->index];
     if (!cl) {
-	cl = calloc(1, sizeof(__GLXclientState));
-	 __glXClients[client->index] = cl;
-	if (!cl) {
-	    return BadAlloc;
-	}
+        cl = calloc(1, sizeof(__GLXclientState));
+        __glXClients[client->index] = cl;
+        if (!cl) {
+            return BadAlloc;
+        }
 
-	cl->be_displays = calloc(screenInfo.numScreens, sizeof(Display *));
-	if (!cl->be_displays) {
-	    free( cl );
-	    return BadAlloc;
-	}
+        cl->be_displays = calloc(screenInfo.numScreens, sizeof(Display *));
+        if (!cl->be_displays) {
+            free(cl);
+            return BadAlloc;
+        }
     }
-    
+
     if (!cl->inUse) {
-	/*
-	** This is first request from this client.  Associate a resource
-	** with the client so we will be notified when the client dies.
-	*/
-	XID xid = FakeClientID(client->index);
-	if (!AddResource( xid, __glXClientRes, (pointer)(long)client->index)) {
-	    return BadAlloc;
-	}
-	ResetClientState(client->index);
-	cl->largeCmdRequestsTotal = 0;
-	cl->inUse = GL_TRUE;
-	cl->client = client;
+        /*
+         ** This is first request from this client.  Associate a resource
+         ** with the client so we will be notified when the client dies.
+         */
+        XID xid = FakeClientID(client->index);
+
+        if (!AddResource(xid, __glXClientRes, (pointer) (long) client->index)) {
+            return BadAlloc;
+        }
+        ResetClientState(client->index);
+        cl->largeCmdRequestsTotal = 0;
+        cl->inUse = GL_TRUE;
+        cl->client = client;
     }
 
     /*
-    ** Check for valid opcode.
-    */
+     ** Check for valid opcode.
+     */
     if (opcode >= __GLX_SINGLE_TABLE_SIZE) {
-	return BadRequest;
+        return BadRequest;
     }
 
     /*
-    ** Use the opcode to index into the procedure table.
-    */
+     ** Use the opcode to index into the procedure table.
+     */
     proc = __glXSingleTable[opcode];
-    return (*proc)(cl, (GLbyte *) stuff);
+    return (*proc) (cl, (GLbyte *) stuff);
 }
 
-static int __glXSwapDispatch(ClientPtr client)
+static int
+__glXSwapDispatch(ClientPtr client)
 {
     REQUEST(xGLXSingleReq);
     CARD8 opcode;
-    int (*proc)(__GLXclientState *cl, GLbyte *pc);
+    int (*proc) (__GLXclientState * cl, GLbyte * pc);
     __GLXclientState *cl;
 
     opcode = stuff->glxCode;
     cl = __glXClients[client->index];
     if (!cl) {
-	cl = calloc(1, sizeof(__GLXclientState));
-	 __glXClients[client->index] = cl;
-	if (!cl) {
-	    return BadAlloc;
-	}
+        cl = calloc(1, sizeof(__GLXclientState));
+        __glXClients[client->index] = cl;
+        if (!cl) {
+            return BadAlloc;
+        }
 
-	cl->be_displays = calloc(screenInfo.numScreens, sizeof(Display *));
-	if (!cl->be_displays) {
-	    free( cl );
-	    return BadAlloc;
-	}
+        cl->be_displays = calloc(screenInfo.numScreens, sizeof(Display *));
+        if (!cl->be_displays) {
+            free(cl);
+            return BadAlloc;
+        }
     }
-    
+
     if (!cl->inUse) {
-	/*
-	** This is first request from this client.  Associate a resource
-	** with the client so we will be notified when the client dies.
-	*/
-	XID xid = FakeClientID(client->index);
-	if (!AddResource( xid, __glXClientRes, (pointer)(long)client->index)) {
-	    return BadAlloc;
-	}
-	ResetClientState(client->index);
-	cl->inUse = GL_TRUE;
-	cl->client = client;
+        /*
+         ** This is first request from this client.  Associate a resource
+         ** with the client so we will be notified when the client dies.
+         */
+        XID xid = FakeClientID(client->index);
+
+        if (!AddResource(xid, __glXClientRes, (pointer) (long) client->index)) {
+            return BadAlloc;
+        }
+        ResetClientState(client->index);
+        cl->inUse = GL_TRUE;
+        cl->client = client;
     }
 
     /*
-    ** Check for valid opcode.
-    */
+     ** Check for valid opcode.
+     */
     if (opcode >= __GLX_SINGLE_TABLE_SIZE) {
-	return BadRequest;
+        return BadRequest;
     }
 
     /*
-    ** Use the opcode to index into the procedure table.
-    */
+     ** Use the opcode to index into the procedure table.
+     */
     proc = __glXSwapSingleTable[opcode];
-    return (*proc)(cl, (GLbyte *) stuff);
+    return (*proc) (cl, (GLbyte *) stuff);
 }
 
-int __glXNoSuchSingleOpcode(__GLXclientState *cl, GLbyte *pc)
+int
+__glXNoSuchSingleOpcode(__GLXclientState * cl, GLbyte * pc)
 {
     return BadRequest;
 }
 
-void __glXNoSuchRenderOpcode(GLbyte *pc)
+void
+__glXNoSuchRenderOpcode(GLbyte * pc)
 {
     return;
 }
-

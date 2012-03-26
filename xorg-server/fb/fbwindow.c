@@ -32,9 +32,10 @@ Bool
 fbCreateWindow(WindowPtr pWin)
 {
     dixSetPrivate(&pWin->devPrivates, fbGetWinPrivateKey(),
-		  fbGetScreenPixmap(pWin->drawable.pScreen));
+                  fbGetScreenPixmap(pWin->drawable.pScreen));
     if (pWin->drawable.bitsPerPixel == 32)
-	pWin->drawable.bitsPerPixel = fbGetScreenPrivate(pWin->drawable.pScreen)->win32bpp;
+        pWin->drawable.bitsPerPixel =
+            fbGetScreenPrivate(pWin->drawable.pScreen)->win32bpp;
     return TRUE;
 }
 
@@ -63,87 +64,71 @@ fbUnmapWindow(WindowPtr pWindow)
 }
 
 void
-fbCopyWindowProc (DrawablePtr	pSrcDrawable,
-		  DrawablePtr	pDstDrawable,
-		  GCPtr		pGC,
-		  BoxPtr	pbox,
-		  int		nbox,
-		  int		dx,
-		  int		dy,
-		  Bool		reverse,
-		  Bool		upsidedown,
-		  Pixel		bitplane,
-		  void		*closure)
+fbCopyWindowProc(DrawablePtr pSrcDrawable,
+                 DrawablePtr pDstDrawable,
+                 GCPtr pGC,
+                 BoxPtr pbox,
+                 int nbox,
+                 int dx,
+                 int dy,
+                 Bool reverse, Bool upsidedown, Pixel bitplane, void *closure)
 {
-    FbBits	*src;
-    FbStride	srcStride;
-    int		srcBpp;
-    int		srcXoff, srcYoff;
-    FbBits	*dst;
-    FbStride	dstStride;
-    int		dstBpp;
-    int		dstXoff, dstYoff;
-    
-    fbGetDrawable (pSrcDrawable, src, srcStride, srcBpp, srcXoff, srcYoff);
-    fbGetDrawable (pDstDrawable, dst, dstStride, dstBpp, dstXoff, dstYoff);
-    
-    while (nbox--)
-    {
-	fbBlt (src + (pbox->y1 + dy + srcYoff) * srcStride,
-	       srcStride,
-	       (pbox->x1 + dx + srcXoff) * srcBpp,
-    
-	       dst + (pbox->y1 + dstYoff) * dstStride,
-	       dstStride,
-	       (pbox->x1 + dstXoff) * dstBpp,
-    
-	       (pbox->x2 - pbox->x1) * dstBpp,
-	       (pbox->y2 - pbox->y1),
-    
-	       GXcopy,
-	       FB_ALLONES,
-	       dstBpp,
-    
-	       reverse,
-	       upsidedown);
-	pbox++;
+    FbBits *src;
+    FbStride srcStride;
+    int srcBpp;
+    int srcXoff, srcYoff;
+    FbBits *dst;
+    FbStride dstStride;
+    int dstBpp;
+    int dstXoff, dstYoff;
+
+    fbGetDrawable(pSrcDrawable, src, srcStride, srcBpp, srcXoff, srcYoff);
+    fbGetDrawable(pDstDrawable, dst, dstStride, dstBpp, dstXoff, dstYoff);
+
+    while (nbox--) {
+        fbBlt(src + (pbox->y1 + dy + srcYoff) * srcStride,
+              srcStride,
+              (pbox->x1 + dx + srcXoff) * srcBpp,
+              dst + (pbox->y1 + dstYoff) * dstStride,
+              dstStride,
+              (pbox->x1 + dstXoff) * dstBpp,
+              (pbox->x2 - pbox->x1) * dstBpp,
+              (pbox->y2 - pbox->y1),
+              GXcopy, FB_ALLONES, dstBpp, reverse, upsidedown);
+        pbox++;
     }
 
-    fbFinishAccess (pDstDrawable);
-    fbFinishAccess (pSrcDrawable);
+    fbFinishAccess(pDstDrawable);
+    fbFinishAccess(pSrcDrawable);
 }
 
 void
-fbCopyWindow(WindowPtr	    pWin, 
-	     DDXPointRec    ptOldOrg, 
-	     RegionPtr	    prgnSrc)
+fbCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 {
-    RegionRec	rgnDst;
-    int		dx, dy;
+    RegionRec rgnDst;
+    int dx, dy;
 
-    PixmapPtr	pPixmap = fbGetWindowPixmap (pWin);
-    DrawablePtr	pDrawable = &pPixmap->drawable;
+    PixmapPtr pPixmap = fbGetWindowPixmap(pWin);
+    DrawablePtr pDrawable = &pPixmap->drawable;
 
     dx = ptOldOrg.x - pWin->drawable.x;
     dy = ptOldOrg.y - pWin->drawable.y;
     RegionTranslate(prgnSrc, -dx, -dy);
 
     RegionNull(&rgnDst);
-    
+
     RegionIntersect(&rgnDst, &pWin->borderClip, prgnSrc);
 
 #ifdef COMPOSITE
     if (pPixmap->screen_x || pPixmap->screen_y)
-	RegionTranslate(&rgnDst,
-			  -pPixmap->screen_x, -pPixmap->screen_y);
+        RegionTranslate(&rgnDst, -pPixmap->screen_x, -pPixmap->screen_y);
 #endif
 
-    miCopyRegion (pDrawable, pDrawable,
-		  0,
-		  &rgnDst, dx, dy, fbCopyWindowProc, 0, 0);
-    
+    miCopyRegion(pDrawable, pDrawable,
+                 0, &rgnDst, dx, dy, fbCopyWindowProc, 0, 0);
+
     RegionUninit(&rgnDst);
-    fbValidateDrawable (&pWin->drawable);
+    fbValidateDrawable(&pWin->drawable);
 }
 
 static void
@@ -151,79 +136,70 @@ fbFixupWindowPixmap(DrawablePtr pDrawable, PixmapPtr *ppPixmap)
 {
     PixmapPtr pPixmap = *ppPixmap;
 
-    if (pPixmap->drawable.bitsPerPixel != pDrawable->bitsPerPixel)
-    {
-	pPixmap = fb24_32ReformatTile (pPixmap, pDrawable->bitsPerPixel);
-	if (!pPixmap)
-	    return;
-	(*pDrawable->pScreen->DestroyPixmap) (*ppPixmap);
-	*ppPixmap = pPixmap;
+    if (pPixmap->drawable.bitsPerPixel != pDrawable->bitsPerPixel) {
+        pPixmap = fb24_32ReformatTile(pPixmap, pDrawable->bitsPerPixel);
+        if (!pPixmap)
+            return;
+        (*pDrawable->pScreen->DestroyPixmap) (*ppPixmap);
+        *ppPixmap = pPixmap;
     }
-    if (FbEvenTile (pPixmap->drawable.width *
-		    pPixmap->drawable.bitsPerPixel))
-	fbPadPixmap (pPixmap);
+    if (FbEvenTile(pPixmap->drawable.width * pPixmap->drawable.bitsPerPixel))
+        fbPadPixmap(pPixmap);
 }
 
 Bool
 fbChangeWindowAttributes(WindowPtr pWin, unsigned long mask)
 {
-    if (mask & CWBackPixmap)
-    {
-	if (pWin->backgroundState == BackgroundPixmap)
-	    fbFixupWindowPixmap(&pWin->drawable, &pWin->background.pixmap);
+    if (mask & CWBackPixmap) {
+        if (pWin->backgroundState == BackgroundPixmap)
+            fbFixupWindowPixmap(&pWin->drawable, &pWin->background.pixmap);
     }
-    if (mask & CWBorderPixmap)
-    {
-	if (pWin->borderIsPixel == FALSE)
-	    fbFixupWindowPixmap(&pWin->drawable, &pWin->border.pixmap);
+    if (mask & CWBorderPixmap) {
+        if (pWin->borderIsPixel == FALSE)
+            fbFixupWindowPixmap(&pWin->drawable, &pWin->border.pixmap);
     }
     return TRUE;
 }
 
 void
-fbFillRegionSolid (DrawablePtr	pDrawable,
-		   RegionPtr	pRegion,
-		   FbBits	and,
-		   FbBits	xor)
+fbFillRegionSolid(DrawablePtr pDrawable,
+                  RegionPtr pRegion, FbBits and, FbBits xor)
 {
-    FbBits	*dst;
-    FbStride	dstStride;
-    int		dstBpp;
-    int		dstXoff, dstYoff;
-    int		n = RegionNumRects(pRegion);
-    BoxPtr	pbox = RegionRects(pRegion);
+    FbBits *dst;
+    FbStride dstStride;
+    int dstBpp;
+    int dstXoff, dstYoff;
+    int n = RegionNumRects(pRegion);
+    BoxPtr pbox = RegionRects(pRegion);
 
 #ifndef FB_ACCESS_WRAPPER
     int try_mmx = 0;
+
     if (!and)
         try_mmx = 1;
 #endif
 
-    fbGetDrawable (pDrawable, dst, dstStride, dstBpp, dstXoff, dstYoff);
-    
-    while (n--)
-    {
+    fbGetDrawable(pDrawable, dst, dstStride, dstBpp, dstXoff, dstYoff);
+
+    while (n--) {
 #ifndef FB_ACCESS_WRAPPER
-	if (!try_mmx || !pixman_fill ((uint32_t *)dst, dstStride, dstBpp,
-				      pbox->x1 + dstXoff, pbox->y1 + dstYoff,
-				      (pbox->x2 - pbox->x1),
-				      (pbox->y2 - pbox->y1),
-				      xor))
-	{
+        if (!try_mmx || !pixman_fill((uint32_t *) dst, dstStride, dstBpp,
+                                     pbox->x1 + dstXoff, pbox->y1 + dstYoff,
+                                     (pbox->x2 - pbox->x1),
+                                     (pbox->y2 - pbox->y1), xor)) {
 #endif
-	    fbSolid (dst + (pbox->y1 + dstYoff) * dstStride,
-		     dstStride,
-		     (pbox->x1 + dstXoff) * dstBpp,
-		     dstBpp,
-		     (pbox->x2 - pbox->x1) * dstBpp,
-		     pbox->y2 - pbox->y1,
-		     and, xor);
+            fbSolid(dst + (pbox->y1 + dstYoff) * dstStride,
+                    dstStride,
+                    (pbox->x1 + dstXoff) * dstBpp,
+                    dstBpp,
+                    (pbox->x2 - pbox->x1) * dstBpp,
+                    pbox->y2 - pbox->y1, and, xor);
 #ifndef FB_ACCESS_WRAPPER
-	}
+        }
 #endif
-	fbValidateDrawable (pDrawable);
-	pbox++;
+        fbValidateDrawable(pDrawable);
+        pbox++;
     }
-    
-    fbFinishAccess (pDrawable);
+
+    fbFinishAccess(pDrawable);
 }

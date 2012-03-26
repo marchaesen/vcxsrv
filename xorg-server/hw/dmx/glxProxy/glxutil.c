@@ -31,4 +31,7 @@
 #include "glxserver.h"
 #include "glxutil.h"
 
-void __glXNop(void) {}
+void
+__glXNop(void)
+{
+}

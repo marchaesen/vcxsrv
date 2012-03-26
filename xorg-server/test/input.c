@@ -49,7 +49,8 @@
  *
  * Result: All axes set to default values (usually 0).
  */
-static void dix_init_valuators(void)
+static void
+dix_init_valuators(void)
 {
     DeviceIntRec dev;
     ValuatorClassPtr val;
@@ -58,9 +59,8 @@ static void dix_init_valuators(void)
     int i;
     Atom atoms[MAX_VALUATORS] = { 0 };
 
-
     memset(&dev, 0, sizeof(DeviceIntRec));
-    dev.type = MASTER_POINTER; /* claim it's a master to stop ptracccel */
+    dev.type = MASTER_POINTER;  /* claim it's a master to stop ptracccel */
 
     assert(InitValuatorClassDeviceStruct(NULL, 0, atoms, 0, 0) == FALSE);
     assert(InitValuatorClassDeviceStruct(&dev, num_axes, atoms, 0, Absolute));
@@ -71,8 +71,7 @@ static void dix_init_valuators(void)
     assert(val->numMotionEvents == 0);
     assert(val->axisVal);
 
-    for (i = 0; i < num_axes; i++)
-    {
+    for (i = 0; i < num_axes; i++) {
         assert(val->axisVal[i] == 0);
         assert(val->axes->min_value == NO_AXIS_LIMITS);
         assert(val->axes->max_value == NO_AXIS_LIMITS);
@@ -82,39 +81,51 @@ static void dix_init_valuators(void)
     assert(dev.last.numValuators == num_axes);
 
     /* invalid increment */
-    assert(SetScrollValuator(&dev, 0, SCROLL_TYPE_VERTICAL, 0.0, SCROLL_FLAG_NONE) == FALSE);
+    assert(SetScrollValuator
+           (&dev, 0, SCROLL_TYPE_VERTICAL, 0.0, SCROLL_FLAG_NONE) == FALSE);
     /* invalid type */
-    assert(SetScrollValuator(&dev, 0, SCROLL_TYPE_VERTICAL - 1, 1.0, SCROLL_FLAG_NONE) == FALSE);
-    assert(SetScrollValuator(&dev, 0, SCROLL_TYPE_HORIZONTAL + 1, 1.0, SCROLL_FLAG_NONE) == FALSE);
+    assert(SetScrollValuator
+           (&dev, 0, SCROLL_TYPE_VERTICAL - 1, 1.0, SCROLL_FLAG_NONE) == FALSE);
+    assert(SetScrollValuator
+           (&dev, 0, SCROLL_TYPE_HORIZONTAL + 1, 1.0,
+            SCROLL_FLAG_NONE) == FALSE);
     /* invalid axisnum */
-    assert(SetScrollValuator(&dev, 2, SCROLL_TYPE_HORIZONTAL, 1.0, SCROLL_FLAG_NONE) == FALSE);
+    assert(SetScrollValuator
+           (&dev, 2, SCROLL_TYPE_HORIZONTAL, 1.0, SCROLL_FLAG_NONE) == FALSE);
 
     /* valid */
-    assert(SetScrollValuator(&dev, 0, SCROLL_TYPE_VERTICAL, 3.0, SCROLL_FLAG_NONE) == TRUE);
+    assert(SetScrollValuator
+           (&dev, 0, SCROLL_TYPE_VERTICAL, 3.0, SCROLL_FLAG_NONE) == TRUE);
     axis = &dev.valuator->axes[0];
     assert(axis->scroll.increment == 3.0);
     assert(axis->scroll.type == SCROLL_TYPE_VERTICAL);
     assert(axis->scroll.flags == 0);
 
     /* valid */
-    assert(SetScrollValuator(&dev, 1, SCROLL_TYPE_HORIZONTAL, 2.0, SCROLL_FLAG_NONE) == TRUE);
+    assert(SetScrollValuator
+           (&dev, 1, SCROLL_TYPE_HORIZONTAL, 2.0, SCROLL_FLAG_NONE) == TRUE);
     axis = &dev.valuator->axes[1];
     assert(axis->scroll.increment == 2.0);
     assert(axis->scroll.type == SCROLL_TYPE_HORIZONTAL);
     assert(axis->scroll.flags == 0);
 
     /* can add another non-preffered axis */
-    assert(SetScrollValuator(&dev, 1, SCROLL_TYPE_VERTICAL, 5.0, SCROLL_FLAG_NONE) == TRUE);
-    assert(SetScrollValuator(&dev, 0, SCROLL_TYPE_HORIZONTAL, 5.0, SCROLL_FLAG_NONE) == TRUE);
+    assert(SetScrollValuator
+           (&dev, 1, SCROLL_TYPE_VERTICAL, 5.0, SCROLL_FLAG_NONE) == TRUE);
+    assert(SetScrollValuator
+           (&dev, 0, SCROLL_TYPE_HORIZONTAL, 5.0, SCROLL_FLAG_NONE) == TRUE);
 
     /* can overwrite with Preferred */
-    assert(SetScrollValuator(&dev, 1, SCROLL_TYPE_VERTICAL, 5.5, SCROLL_FLAG_PREFERRED) == TRUE);
+    assert(SetScrollValuator
+           (&dev, 1, SCROLL_TYPE_VERTICAL, 5.5, SCROLL_FLAG_PREFERRED) == TRUE);
     axis = &dev.valuator->axes[1];
     assert(axis->scroll.increment == 5.5);
     assert(axis->scroll.type == SCROLL_TYPE_VERTICAL);
     assert(axis->scroll.flags == SCROLL_FLAG_PREFERRED);
 
-    assert(SetScrollValuator(&dev, 0, SCROLL_TYPE_HORIZONTAL, 8.8, SCROLL_FLAG_PREFERRED) == TRUE);
+    assert(SetScrollValuator
+           (&dev, 0, SCROLL_TYPE_HORIZONTAL, 8.8,
+            SCROLL_FLAG_PREFERRED) == TRUE);
     axis = &dev.valuator->axes[0];
     assert(axis->scroll.increment == 8.8);
     assert(axis->scroll.type == SCROLL_TYPE_HORIZONTAL);
@@ -122,17 +133,19 @@ static void dix_init_valuators(void)
 
     /* can overwrite as none */
     assert(SetScrollValuator(&dev, 0, SCROLL_TYPE_NONE, 5.0,
-                SCROLL_FLAG_NONE) == TRUE);
+                             SCROLL_FLAG_NONE) == TRUE);
     axis = &dev.valuator->axes[0];
     assert(axis->scroll.type == SCROLL_TYPE_NONE);
 
     /* can overwrite axis with new settings */
-    assert(SetScrollValuator(&dev, 0, SCROLL_TYPE_VERTICAL, 5.0, SCROLL_FLAG_NONE) == TRUE);
+    assert(SetScrollValuator
+           (&dev, 0, SCROLL_TYPE_VERTICAL, 5.0, SCROLL_FLAG_NONE) == TRUE);
     axis = &dev.valuator->axes[0];
     assert(axis->scroll.type == SCROLL_TYPE_VERTICAL);
     assert(axis->scroll.increment == 5.0);
     assert(axis->scroll.flags == SCROLL_FLAG_NONE);
-    assert(SetScrollValuator(&dev, 0, SCROLL_TYPE_VERTICAL, 3.0, SCROLL_FLAG_NONE) == TRUE);
+    assert(SetScrollValuator
+           (&dev, 0, SCROLL_TYPE_VERTICAL, 3.0, SCROLL_FLAG_NONE) == TRUE);
     assert(axis->scroll.type == SCROLL_TYPE_VERTICAL);
     assert(axis->scroll.increment == 3.0);
     assert(axis->scroll.flags == SCROLL_FLAG_NONE);
@@ -140,7 +153,8 @@ static void dix_init_valuators(void)
 
 /* just check the known success cases, and that error cases set the client's
  * error value correctly. */
-static void dix_check_grab_values(void)
+static void
+dix_check_grab_values(void)
 {
     ClientRec client;
     GrabParameters param;
@@ -195,7 +209,6 @@ static void dix_check_grab_values(void)
     assert(client.errorValue == param.modifiers);
     assert(client.errorValue == (1 << 13));
 
-
     param.modifiers = AnyModifier;
     param.ownerEvents = TRUE;
     rc = CheckGrabValues(&client, &param);
@@ -208,12 +221,12 @@ static void dix_check_grab_values(void)
     assert(client.errorValue == 3);
 }
 
-
 /**
  * Convert various internal events to the matching core event and verify the
  * parameters.
  */
-static void dix_event_to_core(int type)
+static void
+dix_event_to_core(int type)
 {
     DeviceEvent ev;
     xEvent *core;
@@ -249,41 +262,41 @@ static void dix_event_to_core(int type)
     state = 0;
     detail = 0;
 
-    ev.header   = 0xFF;
-    ev.length   = sizeof(DeviceEvent);
-    ev.time     = time;
-    ev.root_y   = x;
-    ev.root_x   = y;
+    ev.header = 0xFF;
+    ev.length = sizeof(DeviceEvent);
+    ev.time = time;
+    ev.root_y = x;
+    ev.root_x = y;
     SetBit(ev.valuators.mask, 0);
     SetBit(ev.valuators.mask, 1);
-    ev.root     = ROOT_WINDOW_ID;
+    ev.root = ROOT_WINDOW_ID;
     ev.corestate = state;
     ev.detail.key = detail;
 
     ev.type = type;
     ev.detail.key = 0;
-    rc = EventToCore((InternalEvent*)&ev, &core, &count);
+    rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
 
     x = 1;
     y = 2;
     ev.root_x = x;
     ev.root_y = y;
-    rc = EventToCore((InternalEvent*)&ev, &core, &count);
+    rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
 
     x = 0x7FFF;
     y = 0x7FFF;
     ev.root_x = x;
     ev.root_y = y;
-    rc = EventToCore((InternalEvent*)&ev, &core, &count);
+    rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
 
-    x = 0x8000; /* too high */
-    y = 0x8000; /* too high */
+    x = 0x8000;                 /* too high */
+    y = 0x8000;                 /* too high */
     ev.root_x = x;
     ev.root_y = y;
-    rc = EventToCore((InternalEvent*)&ev, &core, &count);
+    rc = EventToCore((InternalEvent *) &ev, &core, &count);
     assert(rc == Success);
     assert(core);
     assert(count == 1);
@@ -296,34 +309,34 @@ static void dix_event_to_core(int type)
     ev.root_y = y;
     time = 0;
     ev.time = time;
-    rc = EventToCore((InternalEvent*)&ev, &core, &count);
+    rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
 
     detail = 1;
     ev.detail.key = detail;
-    rc = EventToCore((InternalEvent*)&ev, &core, &count);
+    rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
 
-    detail = 0xFF; /* highest value */
+    detail = 0xFF;              /* highest value */
     ev.detail.key = detail;
-    rc = EventToCore((InternalEvent*)&ev, &core, &count);
+    rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
 
-    detail = 0xFFF; /* too big */
+    detail = 0xFFF;             /* too big */
     ev.detail.key = detail;
-    rc = EventToCore((InternalEvent*)&ev, &core, &count);
+    rc = EventToCore((InternalEvent *) &ev, &core, &count);
     assert(rc == BadMatch);
 
-    detail = 0xFF; /* too big */
+    detail = 0xFF;              /* too big */
     ev.detail.key = detail;
-    state = 0xFFFF; /* highest value */
+    state = 0xFFFF;             /* highest value */
     ev.corestate = state;
-    rc = EventToCore((InternalEvent*)&ev, &core, &count);
+    rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
 
-    state = 0x10000; /* too big */
+    state = 0x10000;            /* too big */
     ev.corestate = state;
-    rc = EventToCore((InternalEvent*)&ev, &core, &count);
+    rc = EventToCore((InternalEvent *) &ev, &core, &count);
     assert(rc == Success);
     assert(core);
     assert(count == 1);
@@ -333,22 +346,24 @@ static void dix_event_to_core(int type)
 #undef test_event
 }
 
-static void dix_event_to_core_fail(int evtype, int expected_rc)
+static void
+dix_event_to_core_fail(int evtype, int expected_rc)
 {
     DeviceEvent ev;
     xEvent *core;
     int rc;
     int count;
 
-    ev.header   = 0xFF;
-    ev.length   = sizeof(DeviceEvent);
+    ev.header = 0xFF;
+    ev.length = sizeof(DeviceEvent);
 
-    ev.type     = evtype;
-    rc = EventToCore((InternalEvent*)&ev, &core, &count);
+    ev.type = evtype;
+    rc = EventToCore((InternalEvent *) &ev, &core, &count);
     assert(rc == expected_rc);
 }
 
-static void dix_event_to_core_conversion(void)
+static void
+dix_event_to_core_conversion(void)
 {
     dix_event_to_core_fail(0, BadImplementation);
     dix_event_to_core_fail(1, BadImplementation);
@@ -370,11 +385,12 @@ _dix_test_xi_convert(DeviceEvent *ev, int expected_rc, int expected_count)
     int count = 0;
     int rc;
 
-    rc = EventToXI((InternalEvent*)ev, &xi, &count);
+    rc = EventToXI((InternalEvent *) ev, &xi, &count);
     assert(rc == expected_rc);
     assert(count >= expected_count);
-    if (count > 0){
-        deviceKeyButtonPointer *kbp = (deviceKeyButtonPointer*)xi;
+    if (count > 0) {
+        deviceKeyButtonPointer *kbp = (deviceKeyButtonPointer *) xi;
+
         assert(kbp->type == IEventBase + ev->type);
         assert(kbp->detail == ev->detail.key);
         assert(kbp->time == ev->time);
@@ -390,11 +406,11 @@ _dix_test_xi_convert(DeviceEvent *ev, int expected_rc, int expected_count)
         assert(kbp->same_screen == FALSE);
 
         while (--count > 0) {
-            deviceValuator *v = (deviceValuator*)&xi[count];
+            deviceValuator *v = (deviceValuator *) & xi[count];
+
             assert(v->type == DeviceValuator);
             assert(v->num_valuators <= 6);
         }
-
 
         free(xi);
     }
@@ -406,9 +422,10 @@ _dix_test_xi_convert(DeviceEvent *ev, int expected_rc, int expected_count)
  * - right number of events generated
  * - extra events are valuators
  */
-static void dix_event_to_xi1_conversion(void)
+static void
+dix_event_to_xi1_conversion(void)
 {
-    DeviceEvent ev = {0};
+    DeviceEvent ev = { 0 };
     int time;
     int x, y;
     int state;
@@ -417,16 +434,16 @@ static void dix_event_to_xi1_conversion(void)
     int deviceid;
 
     IEventBase = 80;
-    DeviceValuator      = IEventBase - 1;
-    DeviceKeyPress      = IEventBase + ET_KeyPress;
-    DeviceKeyRelease    = IEventBase + ET_KeyRelease;
-    DeviceButtonPress   = IEventBase + ET_ButtonPress;
+    DeviceValuator = IEventBase - 1;
+    DeviceKeyPress = IEventBase + ET_KeyPress;
+    DeviceKeyRelease = IEventBase + ET_KeyRelease;
+    DeviceButtonPress = IEventBase + ET_ButtonPress;
     DeviceButtonRelease = IEventBase + ET_ButtonRelease;
-    DeviceMotionNotify  = IEventBase + ET_Motion;
-    DeviceFocusIn       = IEventBase + ET_FocusIn;
-    DeviceFocusOut      = IEventBase + ET_FocusOut;
-    ProximityIn         = IEventBase + ET_ProximityIn;
-    ProximityOut        = IEventBase + ET_ProximityOut;
+    DeviceMotionNotify = IEventBase + ET_Motion;
+    DeviceFocusIn = IEventBase + ET_FocusIn;
+    DeviceFocusOut = IEventBase + ET_FocusOut;
+    ProximityIn = IEventBase + ET_ProximityIn;
+    ProximityOut = IEventBase + ET_ProximityOut;
 
     /* EventToXI callocs */
     x = 0;
@@ -436,39 +453,53 @@ static void dix_event_to_xi1_conversion(void)
     detail = 0;
     deviceid = 4;
 
-    ev.header   = 0xFF;
+    ev.header = 0xFF;
 
-    ev.header           = 0xFF;
-    ev.length           = sizeof(DeviceEvent);
-    ev.time             = time;
-    ev.root_y           = x;
-    ev.root_x           = y;
+    ev.header = 0xFF;
+    ev.length = sizeof(DeviceEvent);
+    ev.time = time;
+    ev.root_y = x;
+    ev.root_x = y;
     SetBit(ev.valuators.mask, 0);
     SetBit(ev.valuators.mask, 1);
-    ev.root             = ROOT_WINDOW_ID;
-    ev.corestate        = state;
-    ev.detail.key       = detail;
-    ev.deviceid         = deviceid;
+    ev.root = ROOT_WINDOW_ID;
+    ev.corestate = state;
+    ev.detail.key = detail;
+    ev.deviceid = deviceid;
 
     /* test all types for bad match */
-    ev.type = ET_KeyPress;         _dix_test_xi_convert(&ev, Success, 1);
-    ev.type = ET_KeyRelease;       _dix_test_xi_convert(&ev, Success, 1);
-    ev.type = ET_ButtonPress;      _dix_test_xi_convert(&ev, Success, 1);
-    ev.type = ET_ButtonRelease;    _dix_test_xi_convert(&ev, Success, 1);
-    ev.type = ET_Motion;           _dix_test_xi_convert(&ev, Success, 1);
-    ev.type = ET_ProximityIn;      _dix_test_xi_convert(&ev, Success, 1);
-    ev.type = ET_ProximityOut;     _dix_test_xi_convert(&ev, Success, 1);
+    ev.type = ET_KeyPress;
+    _dix_test_xi_convert(&ev, Success, 1);
+    ev.type = ET_KeyRelease;
+    _dix_test_xi_convert(&ev, Success, 1);
+    ev.type = ET_ButtonPress;
+    _dix_test_xi_convert(&ev, Success, 1);
+    ev.type = ET_ButtonRelease;
+    _dix_test_xi_convert(&ev, Success, 1);
+    ev.type = ET_Motion;
+    _dix_test_xi_convert(&ev, Success, 1);
+    ev.type = ET_ProximityIn;
+    _dix_test_xi_convert(&ev, Success, 1);
+    ev.type = ET_ProximityOut;
+    _dix_test_xi_convert(&ev, Success, 1);
 
     /* No axes */
     ClearBit(ev.valuators.mask, 0);
     ClearBit(ev.valuators.mask, 1);
-    ev.type = ET_KeyPress;         _dix_test_xi_convert(&ev, Success, 1);
-    ev.type = ET_KeyRelease;       _dix_test_xi_convert(&ev, Success, 1);
-    ev.type = ET_ButtonPress;      _dix_test_xi_convert(&ev, Success, 1);
-    ev.type = ET_ButtonRelease;    _dix_test_xi_convert(&ev, Success, 1);
-    ev.type = ET_Motion;           _dix_test_xi_convert(&ev, BadMatch, 0);
-    ev.type = ET_ProximityIn;      _dix_test_xi_convert(&ev, BadMatch, 0);
-    ev.type = ET_ProximityOut;     _dix_test_xi_convert(&ev, BadMatch, 0);
+    ev.type = ET_KeyPress;
+    _dix_test_xi_convert(&ev, Success, 1);
+    ev.type = ET_KeyRelease;
+    _dix_test_xi_convert(&ev, Success, 1);
+    ev.type = ET_ButtonPress;
+    _dix_test_xi_convert(&ev, Success, 1);
+    ev.type = ET_ButtonRelease;
+    _dix_test_xi_convert(&ev, Success, 1);
+    ev.type = ET_Motion;
+    _dix_test_xi_convert(&ev, BadMatch, 0);
+    ev.type = ET_ProximityIn;
+    _dix_test_xi_convert(&ev, BadMatch, 0);
+    ev.type = ET_ProximityOut;
+    _dix_test_xi_convert(&ev, BadMatch, 0);
 
     /* more than 6 axes → 2 valuator events */
     SetBit(ev.valuators.mask, 0);
@@ -478,14 +509,20 @@ static void dix_event_to_xi1_conversion(void)
     SetBit(ev.valuators.mask, 4);
     SetBit(ev.valuators.mask, 5);
     SetBit(ev.valuators.mask, 6);
-    ev.type = ET_KeyPress;         _dix_test_xi_convert(&ev, Success, 2);
-    ev.type = ET_KeyRelease;       _dix_test_xi_convert(&ev, Success, 2);
-    ev.type = ET_ButtonPress;      _dix_test_xi_convert(&ev, Success, 2);
-    ev.type = ET_ButtonRelease;    _dix_test_xi_convert(&ev, Success, 2);
-    ev.type = ET_Motion;           _dix_test_xi_convert(&ev, Success, 2);
-    ev.type = ET_ProximityIn;      _dix_test_xi_convert(&ev, Success, 2);
-    ev.type = ET_ProximityOut;     _dix_test_xi_convert(&ev, Success, 2);
-
+    ev.type = ET_KeyPress;
+    _dix_test_xi_convert(&ev, Success, 2);
+    ev.type = ET_KeyRelease;
+    _dix_test_xi_convert(&ev, Success, 2);
+    ev.type = ET_ButtonPress;
+    _dix_test_xi_convert(&ev, Success, 2);
+    ev.type = ET_ButtonRelease;
+    _dix_test_xi_convert(&ev, Success, 2);
+    ev.type = ET_Motion;
+    _dix_test_xi_convert(&ev, Success, 2);
+    ev.type = ET_ProximityIn;
+    _dix_test_xi_convert(&ev, Success, 2);
+    ev.type = ET_ProximityOut;
+    _dix_test_xi_convert(&ev, Success, 2);
 
     /* keycode too high */
     ev.type = ET_KeyPress;
@@ -499,8 +536,8 @@ static void dix_event_to_xi1_conversion(void)
     _dix_test_xi_convert(&ev, Success, 0);
 }
 
-
-static void xi2_struct_sizes(void)
+static void
+xi2_struct_sizes(void)
 {
 #define compare(req) \
     assert(sizeof(req) == sz_##req);
@@ -529,8 +566,8 @@ static void xi2_struct_sizes(void)
 #undef compare
 }
 
-
-static void dix_grab_matching(void)
+static void
+dix_grab_matching(void)
 {
     DeviceIntRec xi_all_devices, xi_all_master_devices, dev1, dev2;
     GrabRec a, b;
@@ -891,36 +928,44 @@ static void dix_grab_matching(void)
     assert(rc == TRUE);
 }
 
-static void test_bits_to_byte(int i)
+static void
+test_bits_to_byte(int i)
 {
-        int expected_bytes;
-        expected_bytes = (i + 7)/8;
+    int expected_bytes;
 
-        assert(bits_to_bytes(i) >= i/8);
-        assert((bits_to_bytes(i) * 8) - i <= 7);
-        assert(expected_bytes == bits_to_bytes(i));
+    expected_bytes = (i + 7) / 8;
+
+    assert(bits_to_bytes(i) >= i / 8);
+    assert((bits_to_bytes(i) * 8) - i <= 7);
+    assert(expected_bytes == bits_to_bytes(i));
 }
 
-static void test_bytes_to_int32(int i)
+static void
+test_bytes_to_int32(int i)
 {
-        int expected_4byte;
-        expected_4byte = (i + 3)/4;
+    int expected_4byte;
 
-        assert(bytes_to_int32(i) <= i);
-        assert((bytes_to_int32(i) * 4) - i <= 3);
-        assert(expected_4byte == bytes_to_int32(i));
+    expected_4byte = (i + 3) / 4;
+
+    assert(bytes_to_int32(i) <= i);
+    assert((bytes_to_int32(i) * 4) - i <= 3);
+    assert(expected_4byte == bytes_to_int32(i));
 }
 
-static void test_pad_to_int32(int i)
+static void
+test_pad_to_int32(int i)
 {
-        int expected_bytes;
-        expected_bytes = ((i + 3)/4) * 4;
+    int expected_bytes;
 
-        assert(pad_to_int32(i) >= i);
-        assert(pad_to_int32(i) - i <= 3);
-        assert(expected_bytes == pad_to_int32(i));
+    expected_bytes = ((i + 3) / 4) * 4;
+
+    assert(pad_to_int32(i) >= i);
+    assert(pad_to_int32(i) - i <= 3);
+    assert(expected_bytes == pad_to_int32(i));
 }
-static void include_byte_padding_macros(void)
+
+static void
+include_byte_padding_macros(void)
 {
     printf("Testing bits_to_bytes()\n");
 
@@ -969,7 +1014,8 @@ static void include_byte_padding_macros(void)
     test_pad_to_int32(INT_MAX - 3);
 }
 
-static void xi_unregister_handlers(void)
+static void
+xi_unregister_handlers(void)
 {
     DeviceIntRec dev;
     int handler;
@@ -985,7 +1031,7 @@ static void xi_unregister_handlers(void)
 
     printf("Unlinking from front.\n");
 
-    XIUnregisterPropertyHandler(&dev, 4); /* NOOP */
+    XIUnregisterPropertyHandler(&dev, 4);       /* NOOP */
     assert(dev.properties.handlers->id == 3);
     XIUnregisterPropertyHandler(&dev, 3);
     assert(dev.properties.handlers->id == 2);
@@ -1000,7 +1046,7 @@ static void xi_unregister_handlers(void)
     assert(handler == 5);
     handler = XIRegisterPropertyHandler(&dev, NULL, NULL, NULL);
     assert(handler == 6);
-    XIUnregisterPropertyHandler(&dev, 3); /* NOOP */
+    XIUnregisterPropertyHandler(&dev, 3);       /* NOOP */
     assert(dev.properties.handlers->next->next->next == NULL);
     XIUnregisterPropertyHandler(&dev, 4);
     assert(dev.properties.handlers->next->next == NULL);
@@ -1018,12 +1064,12 @@ static void xi_unregister_handlers(void)
 
     XIDeleteAllDeviceProperties(&dev);
     assert(dev.properties.handlers == NULL);
-    XIUnregisterPropertyHandler(&dev, 7); /* NOOP */
+    XIUnregisterPropertyHandler(&dev, 7);       /* NOOP */
 
 }
 
-static void cmp_attr_fields(InputAttributes *attr1,
-                            InputAttributes *attr2)
+static void
+cmp_attr_fields(InputAttributes * attr1, InputAttributes * attr2)
 {
     char **tags1, **tags2;
 
@@ -1031,47 +1077,46 @@ static void cmp_attr_fields(InputAttributes *attr1,
     assert(attr1 != attr2);
     assert(attr1->flags == attr2->flags);
 
-    if (attr1->product != NULL)
-    {
+    if (attr1->product != NULL) {
         assert(attr1->product != attr2->product);
         assert(strcmp(attr1->product, attr2->product) == 0);
-    } else
+    }
+    else
         assert(attr2->product == NULL);
 
-    if (attr1->vendor != NULL)
-    {
+    if (attr1->vendor != NULL) {
         assert(attr1->vendor != attr2->vendor);
         assert(strcmp(attr1->vendor, attr2->vendor) == 0);
-    } else
+    }
+    else
         assert(attr2->vendor == NULL);
 
-    if (attr1->device != NULL)
-    {
+    if (attr1->device != NULL) {
         assert(attr1->device != attr2->device);
         assert(strcmp(attr1->device, attr2->device) == 0);
-    } else
+    }
+    else
         assert(attr2->device == NULL);
 
-    if (attr1->pnp_id != NULL)
-    {
+    if (attr1->pnp_id != NULL) {
         assert(attr1->pnp_id != attr2->pnp_id);
         assert(strcmp(attr1->pnp_id, attr2->pnp_id) == 0);
-    } else
+    }
+    else
         assert(attr2->pnp_id == NULL);
 
-    if (attr1->usb_id != NULL)
-    {
+    if (attr1->usb_id != NULL) {
         assert(attr1->usb_id != attr2->usb_id);
         assert(strcmp(attr1->usb_id, attr2->usb_id) == 0);
-    } else
+    }
+    else
         assert(attr2->usb_id == NULL);
 
     tags1 = attr1->tags;
     tags2 = attr2->tags;
 
     /* if we don't have any tags, skip the tag checking bits */
-    if (!tags1)
-    {
+    if (!tags1) {
         assert(!tags2);
         return;
     }
@@ -1081,8 +1126,7 @@ static void cmp_attr_fields(InputAttributes *attr1,
     assert(*tags2);
 
     /* check for identical content, but duplicated */
-    while (*tags1)
-    {
+    while (*tags1) {
         assert(*tags1 != *tags2);
         assert(strcmp(*tags1, *tags2) == 0);
         tags1++;
@@ -1094,8 +1138,7 @@ static void cmp_attr_fields(InputAttributes *attr1,
 
     /* check for not sharing memory */
     tags1 = attr1->tags;
-    while (*tags1)
-    {
+    while (*tags1) {
         tags2 = attr2->tags;
         while (*tags2)
             assert(*tags1 != *tags2++);
@@ -1104,11 +1147,12 @@ static void cmp_attr_fields(InputAttributes *attr1,
     }
 }
 
-static void dix_input_attributes(void)
+static void
+dix_input_attributes(void)
 {
-    InputAttributes orig = {0};
+    InputAttributes orig = { 0 };
     InputAttributes *new;
-    char *tags[4] = {"tag1", "tag2", "tag2", NULL};
+    char *tags[4] = { "tag1", "tag2", "tag2", NULL };
 
     new = DuplicateInputAttributes(NULL);
     assert(!new);
@@ -1152,7 +1196,8 @@ static void dix_input_attributes(void)
     FreeInputAttributes(new);
 }
 
-static void dix_input_valuator_masks(void)
+static void
+dix_input_valuator_masks(void)
 {
     ValuatorMask *mask = NULL, *copy;
     int nvaluators = MAX_VALUATORS;
@@ -1161,8 +1206,7 @@ static void dix_input_valuator_masks(void)
     int i;
     int first_val, num_vals;
 
-    for (i = 0; i < nvaluators; i++)
-    {
+    for (i = 0; i < nvaluators; i++) {
         valuators[i] = i + 0.5;
         val_ranged[i] = i;
     }
@@ -1172,8 +1216,7 @@ static void dix_input_valuator_masks(void)
     assert(valuator_mask_size(mask) == 0);
     assert(valuator_mask_num_valuators(mask) == 0);
 
-    for (i = 0; i < nvaluators; i++)
-    {
+    for (i = 0; i < nvaluators; i++) {
         assert(!valuator_mask_isset(mask, i));
         valuator_mask_set_double(mask, i, valuators[i]);
         assert(valuator_mask_isset(mask, i));
@@ -1183,8 +1226,7 @@ static void dix_input_valuator_masks(void)
         assert(valuator_mask_num_valuators(mask) == i + 1);
     }
 
-    for (i = 0; i < nvaluators; i++)
-    {
+    for (i = 0; i < nvaluators; i++) {
         assert(valuator_mask_isset(mask, i));
         valuator_mask_unset(mask, i);
         /* we're removing valuators from the front, so size should stay the
@@ -1207,19 +1249,18 @@ static void dix_input_valuator_masks(void)
     valuator_mask_set_range(mask, first_val, num_vals, val_ranged);
     assert(valuator_mask_size(mask) == first_val + num_vals);
     assert(valuator_mask_num_valuators(mask) == num_vals);
-    for (i = 0; i < nvaluators; i++)
-    {
+    for (i = 0; i < nvaluators; i++) {
         double val;
-        if (i < first_val || i >= first_val + num_vals)
-        {
+
+        if (i < first_val || i >= first_val + num_vals) {
             assert(!valuator_mask_isset(mask, i));
             assert(!valuator_mask_fetch_double(mask, i, &val));
-        } else
-        {
+        }
+        else {
             assert(valuator_mask_isset(mask, i));
             assert(valuator_mask_get(mask, i) == val_ranged[i - first_val]);
             assert(valuator_mask_get_double(mask, i) ==
-                    val_ranged[i - first_val]);
+                   val_ranged[i - first_val]);
             assert(valuator_mask_fetch_double(mask, i, &val));
             assert(val_ranged[i - first_val] == val);
         }
@@ -1229,11 +1270,12 @@ static void dix_input_valuator_masks(void)
     valuator_mask_copy(copy, mask);
     assert(mask != copy);
     assert(valuator_mask_size(mask) == valuator_mask_size(copy));
-    assert(valuator_mask_num_valuators(mask) == valuator_mask_num_valuators(copy));
+    assert(valuator_mask_num_valuators(mask) ==
+           valuator_mask_num_valuators(copy));
 
-    for (i = 0; i < nvaluators; i++)
-    {
+    for (i = 0; i < nvaluators; i++) {
         double a, b;
+
         assert(valuator_mask_isset(mask, i) == valuator_mask_isset(copy, i));
 
         if (!valuator_mask_isset(mask, i))
@@ -1241,7 +1283,7 @@ static void dix_input_valuator_masks(void)
 
         assert(valuator_mask_get(mask, i) == valuator_mask_get(copy, i));
         assert(valuator_mask_get_double(mask, i) ==
-                valuator_mask_get_double(copy, i));
+               valuator_mask_get_double(copy, i));
         assert(valuator_mask_fetch_double(mask, i, &a));
         assert(valuator_mask_fetch_double(copy, i, &b));
         assert(a == b);
@@ -1251,7 +1293,8 @@ static void dix_input_valuator_masks(void)
     assert(mask == NULL);
 }
 
-static void dix_valuator_mode(void)
+static void
+dix_valuator_mode(void)
 {
     DeviceIntRec dev;
     const int num_axes = MAX_VALUATORS;
@@ -1259,13 +1302,12 @@ static void dix_valuator_mode(void)
     Atom atoms[MAX_VALUATORS] = { 0 };
 
     memset(&dev, 0, sizeof(DeviceIntRec));
-    dev.type = MASTER_POINTER; /* claim it's a master to stop ptracccel */
+    dev.type = MASTER_POINTER;  /* claim it's a master to stop ptracccel */
 
     assert(InitValuatorClassDeviceStruct(NULL, 0, atoms, 0, 0) == FALSE);
     assert(InitValuatorClassDeviceStruct(&dev, num_axes, atoms, 0, Absolute));
 
-    for (i = 0; i < num_axes; i++)
-    {
+    for (i = 0; i < num_axes; i++) {
         assert(valuator_get_mode(&dev, i) == Absolute);
         valuator_set_mode(&dev, i, Relative);
         assert(dev.valuator->axes[i].mode == Relative);
@@ -1281,17 +1323,17 @@ static void dix_valuator_mode(void)
         assert(valuator_get_mode(&dev, i) == Relative);
 }
 
-static void include_bit_test_macros(void)
+static void
+include_bit_test_macros(void)
 {
     uint8_t mask[9] = { 0 };
     int i;
 
-    for (i = 0; i < sizeof(mask)/sizeof(mask[0]); i++)
-    {
+    for (i = 0; i < sizeof(mask) / sizeof(mask[0]); i++) {
         assert(BitIsOn(mask, i) == 0);
         SetBit(mask, i);
         assert(BitIsOn(mask, i) == 1);
-        assert(!!(mask[i/8] & (1 << (i % 8))));
+        assert(! !(mask[i / 8] & (1 << (i % 8))));
         assert(CountBits(mask, sizeof(mask)) == 1);
         ClearBit(mask, i);
         assert(BitIsOn(mask, i) == 0);
@@ -1301,29 +1343,30 @@ static void include_bit_test_macros(void)
 /**
  * Ensure that val->axisVal and val->axes are aligned on doubles.
  */
-static void dix_valuator_alloc(void)
+static void
+dix_valuator_alloc(void)
 {
     ValuatorClassPtr v = NULL;
     int num_axes = 0;
 
-    while (num_axes < 5)
-    {
+    while (num_axes < 5) {
         v = AllocValuatorClass(v, num_axes);
 
         assert(v);
         assert(v->numAxes == num_axes);
 #if !defined(__i386__) && !defined(__sh__)
         /* must be double-aligned on 64 bit */
-        assert(((void*)v->axisVal - (void*)v) % sizeof(double) == 0);
-        assert(((void*)v->axes - (void*)v) % sizeof(double) == 0);
+        assert(((void *) v->axisVal - (void *) v) % sizeof(double) == 0);
+        assert(((void *) v->axes - (void *) v) % sizeof(double) == 0);
 #endif
-        num_axes ++;
+        num_axes++;
     }
 
     free(v);
 }
 
-static void dix_get_master(void)
+static void
+dix_get_master(void)
 {
     DeviceIntRec vcp, vck;
     DeviceIntRec ptr, kbd;
@@ -1396,8 +1439,8 @@ static void dix_get_master(void)
     assert(GetMaster(&floating, POINTER_OR_FLOAT) == &floating);
 }
 
-
-static void input_option_test(void)
+static void
+input_option_test(void)
 {
     InputOption *list = NULL;
     InputOption *opt;
@@ -1559,6 +1602,7 @@ static void
 dix_double_fp_conversion(void)
 {
     uint32_t i;
+
     printf("Testing double to FP1616/FP3232 conversions\n");
 
     _test_double_fp16_values(0);
@@ -1622,25 +1666,28 @@ dix_double_fp_conversion(void)
 static uint32_t mieq_test_event_last_processed;
 
 static void
-mieq_test_event_handler(int screenNum, InternalEvent *ie, DeviceIntPtr dev) {
-    RawDeviceEvent *e = (RawDeviceEvent *)ie;
+mieq_test_event_handler(int screenNum, InternalEvent *ie, DeviceIntPtr dev)
+{
+    RawDeviceEvent *e = (RawDeviceEvent *) ie;
 
     assert(e->type == ET_RawMotion);
     assert(e->flags > mieq_test_event_last_processed);
     mieq_test_event_last_processed = e->flags;
 }
 
-static void _mieq_test_generate_events(uint32_t start, uint32_t count) {
+static void
+_mieq_test_generate_events(uint32_t start, uint32_t count)
+{
     count += start;
     while (start < count) {
-        RawDeviceEvent e = {0};
+        RawDeviceEvent e = { 0 };
         e.header = ET_Internal;
         e.type = ET_RawMotion;
         e.length = sizeof(e);
         e.time = GetTimeInMillis();
         e.flags = start;
 
-        mieqEnqueue(NULL, (InternalEvent*)&e);
+        mieqEnqueue(NULL, (InternalEvent *) &e);
 
         start++;
     }
@@ -1649,7 +1696,8 @@ static void _mieq_test_generate_events(uint32_t start, uint32_t count) {
 #define mieq_test_generate_events(c) { _mieq_test_generate_events(next, c); next += c; }
 
 static void
-mieq_test(void) {
+mieq_test(void)
+{
     uint32_t next = 1;
 
     mieq_test_event_last_processed = 0;
@@ -1696,7 +1744,8 @@ process_input_proc(InternalEvent *ev, DeviceIntPtr device)
 }
 
 static void
-dix_enqueue_events(void) {
+dix_enqueue_events(void)
+{
 #define NEVENTS 5
     DeviceIntRec dev;
     InternalEvent ev[NEVENTS];
@@ -1723,8 +1772,7 @@ dix_enqueue_events(void) {
     /* to reset process_input_proc */
     ev[0].any.header = 0xac;
 
-    for (i = 0; i < NEVENTS; i++)
-    {
+    for (i = 0; i < NEVENTS; i++) {
         ev[i].any.length = sizeof(*ev);
         ev[i].any.type = i;
         EnqueueEvent(&ev[i], &dev);
@@ -1740,7 +1788,6 @@ dix_enqueue_events(void) {
     PlayReleasedEvents();
     assert(!xorg_list_is_empty(&syncEvents.pending));
 
-
     dev.deviceGrab.sync.frozen = 0;
     PlayReleasedEvents();
     assert(xorg_list_is_empty(&syncEvents.pending));
@@ -1748,8 +1795,8 @@ dix_enqueue_events(void) {
     inputInfo.devices = NULL;
 }
 
-
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     dix_enqueue_events();
     dix_double_fp_conversion();

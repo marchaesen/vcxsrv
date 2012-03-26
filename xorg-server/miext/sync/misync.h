@@ -32,46 +32,48 @@ typedef struct _SyncFence SyncFence;
 typedef struct _SyncTrigger SyncTrigger;
 
 typedef void (*SyncScreenCreateFenceFunc) (ScreenPtr pScreen,
-					   SyncFence* pFence,
-					   Bool initially_triggered);
+                                           SyncFence * pFence,
+                                           Bool initially_triggered);
 typedef void (*SyncScreenDestroyFenceFunc) (ScreenPtr pScreen,
-					    SyncFence* pFence);
+                                            SyncFence * pFence);
 
 typedef struct _syncScreenFuncs {
-    SyncScreenCreateFenceFunc	CreateFence;
-    SyncScreenDestroyFenceFunc	DestroyFence;
+    SyncScreenCreateFenceFunc CreateFence;
+    SyncScreenDestroyFenceFunc DestroyFence;
 } SyncScreenFuncsRec, *SyncScreenFuncsPtr;
 
 extern _X_EXPORT void
-miSyncScreenCreateFence(ScreenPtr pScreen, SyncFence* pFence,
-			Bool initially_triggered);
-extern _X_EXPORT void
-miSyncScreenDestroyFence(ScreenPtr pScreen, SyncFence* pFence);
 
-typedef void (*SyncFenceSetTriggeredFunc) (SyncFence* pFence);
-typedef void (*SyncFenceResetFunc) (SyncFence* pFence);
-typedef Bool (*SyncFenceCheckTriggeredFunc) (SyncFence* pFence);
-typedef void (*SyncFenceAddTriggerFunc) (SyncTrigger* pTrigger);
-typedef void (*SyncFenceDeleteTriggerFunc) (SyncTrigger* pTrigger);
+miSyncScreenCreateFence(ScreenPtr pScreen, SyncFence * pFence,
+                        Bool initially_triggered);
+extern _X_EXPORT void
+ miSyncScreenDestroyFence(ScreenPtr pScreen, SyncFence * pFence);
+
+typedef void (*SyncFenceSetTriggeredFunc) (SyncFence * pFence);
+typedef void (*SyncFenceResetFunc) (SyncFence * pFence);
+typedef Bool (*SyncFenceCheckTriggeredFunc) (SyncFence * pFence);
+typedef void (*SyncFenceAddTriggerFunc) (SyncTrigger * pTrigger);
+typedef void (*SyncFenceDeleteTriggerFunc) (SyncTrigger * pTrigger);
 
 typedef struct _syncFenceFuncs {
-    SyncFenceSetTriggeredFunc	SetTriggered;
-    SyncFenceResetFunc		Reset;
-    SyncFenceCheckTriggeredFunc	CheckTriggered;
-    SyncFenceAddTriggerFunc	AddTrigger;
-    SyncFenceDeleteTriggerFunc	DeleteTrigger;
+    SyncFenceSetTriggeredFunc SetTriggered;
+    SyncFenceResetFunc Reset;
+    SyncFenceCheckTriggeredFunc CheckTriggered;
+    SyncFenceAddTriggerFunc AddTrigger;
+    SyncFenceDeleteTriggerFunc DeleteTrigger;
 } SyncFenceFuncsRec, *SyncFenceFuncsPtr;
 
 extern _X_EXPORT void
-miSyncInitFence(ScreenPtr pScreen, SyncFence* pFence, Bool initially_triggered);
-extern _X_EXPORT void
-miSyncDestroyFence(SyncFence* pFence);
-extern _X_EXPORT void
-miSyncTriggerFence(SyncFence* pFence);
 
-extern _X_EXPORT SyncScreenFuncsPtr
-miSyncGetScreenFuncs(ScreenPtr pScreen);
+miSyncInitFence(ScreenPtr pScreen, SyncFence * pFence,
+                Bool initially_triggered);
+extern _X_EXPORT void
+ miSyncDestroyFence(SyncFence * pFence);
+extern _X_EXPORT void
+ miSyncTriggerFence(SyncFence * pFence);
+
+extern _X_EXPORT SyncScreenFuncsPtr miSyncGetScreenFuncs(ScreenPtr pScreen);
 extern _X_EXPORT Bool
-miSyncSetup(ScreenPtr pScreen);
+ miSyncSetup(ScreenPtr pScreen);
 
-#endif /* _MISYNC_H_ */
+#endif                          /* _MISYNC_H_ */

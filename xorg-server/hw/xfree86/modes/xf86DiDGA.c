@@ -39,69 +39,67 @@
 #include "windowstr.h"
 
 static Bool
-xf86_dga_get_modes (ScreenPtr pScreen)
+xf86_dga_get_modes(ScreenPtr pScreen)
 {
-    ScrnInfoPtr		scrn = xf86Screens[pScreen->myNum];
-    xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
-    DGAModePtr		modes, mode;
-    DisplayModePtr	display_mode;
-    int			bpp = scrn->bitsPerPixel >> 3;
-    int			num;
+    ScrnInfoPtr scrn = xf86Screens[pScreen->myNum];
+    xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
+    DGAModePtr modes, mode;
+    DisplayModePtr display_mode;
+    int bpp = scrn->bitsPerPixel >> 3;
+    int num;
 
     num = 0;
     display_mode = scrn->modes;
-    while (display_mode) 
-    {
-	num++;
-	display_mode = display_mode->next;
-	if (display_mode == scrn->modes)
-	    break;
+    while (display_mode) {
+        num++;
+        display_mode = display_mode->next;
+        if (display_mode == scrn->modes)
+            break;
     }
-    
+
     if (!num)
-	return FALSE;
-    
+        return FALSE;
+
     modes = malloc(num * sizeof(DGAModeRec));
     if (!modes)
-	return FALSE;
-    
+        return FALSE;
+
     num = 0;
     display_mode = scrn->modes;
-    while (display_mode) 
-    {
-	mode = modes + num++;
+    while (display_mode) {
+        mode = modes + num++;
 
-	mode->mode = display_mode;
-	mode->flags = DGA_CONCURRENT_ACCESS;
-	if (display_mode->Flags & V_DBLSCAN)
-	    mode->flags |= DGA_DOUBLESCAN;
-	if (display_mode->Flags & V_INTERLACE)
-	    mode->flags |= DGA_INTERLACED;
-	mode->byteOrder = scrn->imageByteOrder;
-	mode->depth = scrn->depth;
-	mode->bitsPerPixel = scrn->bitsPerPixel;
-	mode->red_mask = scrn->mask.red;
-	mode->green_mask = scrn->mask.green;
-	mode->blue_mask = scrn->mask.blue;
-	mode->visualClass = (bpp == 1) ? PseudoColor : TrueColor;
-	mode->viewportWidth = display_mode->HDisplay;
-	mode->viewportHeight = display_mode->VDisplay;
-	mode->xViewportStep = (bpp == 3) ? 2 : 1;
-	mode->yViewportStep = 1;
-	mode->viewportFlags = DGA_FLIP_RETRACE;
-	mode->offset = 0;
-	mode->address = 0;
-	mode->imageWidth = mode->viewportWidth;
-	mode->imageHeight = mode->viewportHeight;
-	mode->bytesPerScanline = (mode->imageWidth * scrn->bitsPerPixel) >> 3;
-	mode->pixmapWidth = mode->imageWidth;
-	mode->pixmapHeight = mode->imageHeight;
-	mode->maxViewportX = 0;
-	mode->maxViewportY = 0;
+        mode->mode = display_mode;
+        mode->flags = DGA_CONCURRENT_ACCESS;
+        if (display_mode->Flags & V_DBLSCAN)
+            mode->flags |= DGA_DOUBLESCAN;
+        if (display_mode->Flags & V_INTERLACE)
+            mode->flags |= DGA_INTERLACED;
+        mode->byteOrder = scrn->imageByteOrder;
+        mode->depth = scrn->depth;
+        mode->bitsPerPixel = scrn->bitsPerPixel;
+        mode->red_mask = scrn->mask.red;
+        mode->green_mask = scrn->mask.green;
+        mode->blue_mask = scrn->mask.blue;
+        mode->visualClass = (bpp == 1) ? PseudoColor : TrueColor;
+        mode->viewportWidth = display_mode->HDisplay;
+        mode->viewportHeight = display_mode->VDisplay;
+        mode->xViewportStep = (bpp == 3) ? 2 : 1;
+        mode->yViewportStep = 1;
+        mode->viewportFlags = DGA_FLIP_RETRACE;
+        mode->offset = 0;
+        mode->address = 0;
+        mode->imageWidth = mode->viewportWidth;
+        mode->imageHeight = mode->viewportHeight;
+        mode->bytesPerScanline = (mode->imageWidth * scrn->bitsPerPixel) >> 3;
+        mode->pixmapWidth = mode->imageWidth;
+        mode->pixmapHeight = mode->imageHeight;
+        mode->maxViewportX = 0;
+        mode->maxViewportY = 0;
 
-	display_mode = display_mode->next;
-	if (display_mode == scrn->modes)
-	    break;
+        display_mode = display_mode->next;
+        if (display_mode == scrn->modes)
+            break;
     }
     free(xf86_config->dga_modes);
     xf86_config->dga_nmode = num;
@@ -112,24 +110,20 @@ xf86_dga_get_modes (ScreenPtr pScreen)
 static Bool
 xf86_dga_set_mode(ScrnInfoPtr scrn, DGAModePtr display_mode)
 {
-    ScreenPtr		pScreen = scrn->pScreen;
-    xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
+    ScreenPtr pScreen = scrn->pScreen;
+    xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
 
-    if (!display_mode) 
-    {
-	if (xf86_config->dga_save_mode)
-	{
-	    xf86SwitchMode(pScreen, xf86_config->dga_save_mode);
-	    xf86_config->dga_save_mode = NULL;
-	}
+    if (!display_mode) {
+        if (xf86_config->dga_save_mode) {
+            xf86SwitchMode(pScreen, xf86_config->dga_save_mode);
+            xf86_config->dga_save_mode = NULL;
+        }
     }
-    else
-    {
-	if (!xf86_config->dga_save_mode)
-	{
-	    xf86_config->dga_save_mode = scrn->currentMode;
-	    xf86SwitchMode(pScreen, display_mode->mode);
-	}
+    else {
+        if (!xf86_config->dga_save_mode) {
+            xf86_config->dga_save_mode = scrn->currentMode;
+            xf86SwitchMode(pScreen, display_mode->mode);
+        }
     }
     return TRUE;
 }
@@ -143,13 +137,14 @@ xf86_dga_get_viewport(ScrnInfoPtr scrn)
 static void
 xf86_dga_set_viewport(ScrnInfoPtr scrn, int x, int y, int flags)
 {
-   scrn->AdjustFrame(scrn->pScreen->myNum, x, y, flags);
+    scrn->AdjustFrame(scrn->pScreen->myNum, x, y, flags);
 }
 
 static Bool
 xf86_dga_open_framebuffer(ScrnInfoPtr scrn,
-			  char **name,
-			  unsigned char **mem, int *size, int *offset, int *flags)
+                          char **name,
+                          unsigned char **mem, int *size, int *offset,
+                          int *flags)
 {
     return FALSE;
 }
@@ -160,58 +155,60 @@ xf86_dga_close_framebuffer(ScrnInfoPtr scrn)
 }
 
 static DGAFunctionRec xf86_dga_funcs = {
-   xf86_dga_open_framebuffer,
-   xf86_dga_close_framebuffer,
-   xf86_dga_set_mode,
-   xf86_dga_set_viewport,
-   xf86_dga_get_viewport,
-   NULL,
-   NULL,
-   NULL,
-   NULL
+    xf86_dga_open_framebuffer,
+    xf86_dga_close_framebuffer,
+    xf86_dga_set_mode,
+    xf86_dga_set_viewport,
+    xf86_dga_get_viewport,
+    NULL,
+    NULL,
+    NULL,
+    NULL
 };
 
 Bool
-xf86DiDGAReInit (ScreenPtr pScreen)
+xf86DiDGAReInit(ScreenPtr pScreen)
 {
     return TRUE;
 }
 
 Bool
-_xf86_di_dga_reinit_internal (ScreenPtr pScreen)
+_xf86_di_dga_reinit_internal(ScreenPtr pScreen)
 {
-    ScrnInfoPtr		scrn = xf86Screens[pScreen->myNum];
-    xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
-    
+    ScrnInfoPtr scrn = xf86Screens[pScreen->myNum];
+    xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
+
     if (!DGAAvailable(pScreen->myNum))
-	return TRUE;
+        return TRUE;
 
-    if (!xf86_dga_get_modes (pScreen))
-	return FALSE;
-    
-    return DGAReInitModes (pScreen, xf86_config->dga_modes, xf86_config->dga_nmode);
+    if (!xf86_dga_get_modes(pScreen))
+        return FALSE;
+
+    return DGAReInitModes(pScreen, xf86_config->dga_modes,
+                          xf86_config->dga_nmode);
 }
 
 Bool
-xf86DiDGAInit (ScreenPtr pScreen, unsigned long dga_address)
+xf86DiDGAInit(ScreenPtr pScreen, unsigned long dga_address)
 {
     return TRUE;
 }
 
 Bool
-_xf86_di_dga_init_internal (ScreenPtr pScreen)
+_xf86_di_dga_init_internal(ScreenPtr pScreen)
 {
-    ScrnInfoPtr		scrn = xf86Screens[pScreen->myNum];
-    xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
+    ScrnInfoPtr scrn = xf86Screens[pScreen->myNum];
+    xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
 
     xf86_config->dga_flags = 0;
     xf86_config->dga_address = 0;
     xf86_config->dga_width = 0;
     xf86_config->dga_height = 0;
     xf86_config->dga_stride = 0;
-    
-    if (!xf86_dga_get_modes (pScreen))
-	return FALSE;
-    
-    return DGAInit(pScreen, &xf86_dga_funcs, xf86_config->dga_modes, xf86_config->dga_nmode);
+
+    if (!xf86_dga_get_modes(pScreen))
+        return FALSE;
+
+    return DGAInit(pScreen, &xf86_dga_funcs, xf86_config->dga_modes,
+                   xf86_config->dga_nmode);
 }

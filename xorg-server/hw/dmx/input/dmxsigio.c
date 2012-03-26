@@ -47,36 +47,37 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-static int  dmxFdCount      = 0;
+static int dmxFdCount = 0;
 static Bool dmxInputEnabled = TRUE;
 
 /* Define equivalents for non-POSIX systems (e.g., SGI IRIX, Solaris) */
 #ifndef O_ASYNC
-# ifdef FASYNC
-# define O_ASYNC FASYNC
-# else
-# define O_ASYNC 0
-# endif
+#ifdef FASYNC
+#define O_ASYNC FASYNC
+#else
+#define O_ASYNC 0
+#endif
 #endif
 #ifndef O_NONBLOCK
 #define O_NONBLOCK FNONBLK
 #endif
 
-static void dmxSigioHandler(int sig)
+static void
+dmxSigioHandler(int sig)
 {
-    int          i, j;
+    int i, j;
     DMXInputInfo *dmxInput;
 
     for (i = 0, dmxInput = &dmxInputs[0]; i < dmxNumInputs; i++, dmxInput++) {
         if (dmxInput->sigioState == DMX_ACTIVESIGIO) {
             for (j = 0; j < dmxInput->numDevs; j++) {
                 DMXLocalInputInfoPtr dmxLocal = dmxInput->devs[j];
+
                 if (dmxLocal->collect_events) {
                     dmxLocal->collect_events(&dmxLocal->pDevice->public,
                                              dmxMotion,
                                              dmxEnqueue,
-                                             dmxCheckSpecialKeys,
-                                             DMX_NO_BLOCK);
+                                             dmxCheckSpecialKeys, DMX_NO_BLOCK);
                 }
             }
         }
@@ -84,7 +85,8 @@ static void dmxSigioHandler(int sig)
 }
 
 /** Block SIGIO handling. */
-void dmxSigioBlock(void)
+void
+dmxSigioBlock(void)
 {
     sigset_t s;
 
@@ -94,7 +96,8 @@ void dmxSigioBlock(void)
 }
 
 /** Unblock SIGIO handling. */
-void dmxSigioUnblock(void)
+void
+dmxSigioUnblock(void)
 {
     sigset_t s;
 
@@ -103,10 +106,11 @@ void dmxSigioUnblock(void)
     sigprocmask(SIG_UNBLOCK, &s, 0);
 }
 
-static void dmxSigioHook(void)
+static void
+dmxSigioHook(void)
 {
     struct sigaction a;
-    sigset_t         s;
+    sigset_t s;
 
     memset(&a, 0, sizeof(a));
     a.sa_handler = dmxSigioHandler;
@@ -115,81 +119,95 @@ static void dmxSigioHook(void)
     sigaddset(&a.sa_mask, SIGALRM);
     sigaddset(&a.sa_mask, SIGVTALRM);
     sigaction(SIGIO, &a, 0);
-    
+
     sigemptyset(&s);
     sigprocmask(SIG_SETMASK, &s, 0);
 }
 
-static void dmxSigioUnhook(void)
+static void
+dmxSigioUnhook(void)
 {
     struct sigaction a;
 
-    memset (&a, 0, sizeof(a));
+    memset(&a, 0, sizeof(a));
     a.sa_handler = SIG_IGN;
     sigemptyset(&a.sa_mask);
     sigaction(SIGIO, &a, 0);
 }
 
-static void dmxSigioAdd(DMXInputInfo *dmxInput)
+static void
+dmxSigioAdd(DMXInputInfo * dmxInput)
 {
     int flags;
     int i;
 
     switch (dmxInput->sigioState) {
-    case DMX_NOSIGIO:     return;
-    case DMX_USESIGIO:    dmxInput->sigioState = DMX_ACTIVESIGIO; break;
-    case DMX_ACTIVESIGIO: return;
+    case DMX_NOSIGIO:
+        return;
+    case DMX_USESIGIO:
+        dmxInput->sigioState = DMX_ACTIVESIGIO;
+        break;
+    case DMX_ACTIVESIGIO:
+        return;
     }
 
     for (i = 0; i < dmxInput->sigioFdCount; i++) {
         if (!dmxInput->sigioAdded[i]) {
             int fd = dmxInput->sigioFd[i];
-        
+
             fcntl(fd, F_SETOWN, getpid());
             flags = fcntl(fd, F_GETFL);
-            flags |= O_ASYNC|O_NONBLOCK;
+            flags |= O_ASYNC | O_NONBLOCK;
             fcntl(fd, F_SETFL, flags);
-    
+
             AddEnabledDevice(fd);
             dmxInput->sigioAdded[i] = TRUE;
 
-            if (++dmxFdCount == 1) dmxSigioHook();
+            if (++dmxFdCount == 1)
+                dmxSigioHook();
         }
     }
 }
 
-static void dmxSigioRemove(DMXInputInfo *dmxInput)
+static void
+dmxSigioRemove(DMXInputInfo * dmxInput)
 {
     int flags;
     int i;
-    
+
     switch (dmxInput->sigioState) {
-    case DMX_NOSIGIO:     return;
-    case DMX_USESIGIO:    return;
-    case DMX_ACTIVESIGIO: dmxInput->sigioState = DMX_USESIGIO; break;
+    case DMX_NOSIGIO:
+        return;
+    case DMX_USESIGIO:
+        return;
+    case DMX_ACTIVESIGIO:
+        dmxInput->sigioState = DMX_USESIGIO;
+        break;
     }
 
     for (i = 0; i < dmxInput->sigioFdCount; i++) {
         if (dmxInput->sigioAdded[i]) {
             int fd = dmxInput->sigioFd[i];
-        
+
             dmxInput->sigioAdded[i] = FALSE;
             RemoveEnabledDevice(fd);
-        
+
             flags = fcntl(fd, F_GETFL);
-            flags &= ~(O_ASYNC|O_NONBLOCK);
+            flags &= ~(O_ASYNC | O_NONBLOCK);
             fcntl(fd, F_SETFL, flags);
 
-            if (!--dmxFdCount) dmxSigioUnhook();
+            if (!--dmxFdCount)
+                dmxSigioUnhook();
         }
     }
 }
 
 /** Enable SIGIO handling.  This instantiates the handler with the OS. */
-void dmxSigioEnableInput(void)
+void
+dmxSigioEnableInput(void)
 {
-    int              i;
-    DMXInputInfo     *dmxInput;
+    int i;
+    DMXInputInfo *dmxInput;
 
     dmxInputEnabled = TRUE;
     for (i = 0, dmxInput = &dmxInputs[0]; i < dmxNumInputs; i++, dmxInput++)
@@ -197,10 +215,11 @@ void dmxSigioEnableInput(void)
 }
 
 /** Disable SIGIO handling.  This removes the hanlder from the OS. */
-void dmxSigioDisableInput(void)
+void
+dmxSigioDisableInput(void)
 {
-    int              i;
-    DMXInputInfo     *dmxInput;
+    int i;
+    DMXInputInfo *dmxInput;
 
     dmxInputEnabled = FALSE;
     for (i = 0, dmxInput = &dmxInputs[0]; i < dmxNumInputs; i++, dmxInput++)
@@ -211,23 +230,27 @@ void dmxSigioDisableInput(void)
  * using the file descriptor \a fd for SIGIO signals.  Calls
  * AddEnabledDevice ifi SIGIO handling has been enabled with
  * #dmxSigioEnableInput(). */
-void dmxSigioRegister(DMXInputInfo *dmxInput, int fd)
+void
+dmxSigioRegister(DMXInputInfo * dmxInput, int fd)
 {
     dmxInput->sigioState = DMX_USESIGIO;
     if (dmxInput->sigioFdCount >= DMX_MAX_SIGIO_FDS)
         dmxLog(dmxFatal, "Too many SIGIO file descriptors (%d >= %d)\n",
                dmxInput->sigioFdCount, DMX_MAX_SIGIO_FDS);
-    
+
     dmxInput->sigioFd[dmxInput->sigioFdCount++] = fd;
-    if (dmxInputEnabled) dmxSigioAdd(dmxInput);
+    if (dmxInputEnabled)
+        dmxSigioAdd(dmxInput);
 }
 
 /** Remove the notes that \a dmxInput is using any file descriptors for
  * SIGIO signals.  Calls RemoveEnabledDevice. */
-void dmxSigioUnregister(DMXInputInfo *dmxInput)
+void
+dmxSigioUnregister(DMXInputInfo * dmxInput)
 {
-    if (dmxInput->sigioState == DMX_NOSIGIO) return;
+    if (dmxInput->sigioState == DMX_NOSIGIO)
+        return;
     dmxSigioRemove(dmxInput);
-    dmxInput->sigioState   = DMX_NOSIGIO;
+    dmxInput->sigioState = DMX_NOSIGIO;
     dmxInput->sigioFdCount = 0;
 }

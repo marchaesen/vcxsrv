@@ -41,12 +41,12 @@
 #include "xf86_OSlib.h"
 #include "xf86pciBus.h"
 #ifdef __sparc__
-# include "xf86sbusBus.h"
+#include "xf86sbusBus.h"
 #endif
 
 #ifdef sun
-# include <sys/visual_io.h>
-# include <ctype.h>
+#include <sys/visual_io.h>
+#include <ctype.h>
 #endif
 
 /* Sections for the default built-in configuration. */
@@ -103,13 +103,13 @@ AppendToList(const char *s, const char ***list, int *lines)
 
     str = xnfstrdup(s);
     for (p = strtok(str, "\n"); p; p = strtok(NULL, "\n")) {
-	(*lines)++;
-	*list = xnfrealloc(*list, (*lines + 1) * sizeof(**list));
-	newstr = xnfalloc(strlen(p) + 2);
-	strcpy(newstr, p);
-	strcat(newstr, "\n");
-	(*list)[*lines - 1] = newstr;
-	(*list)[*lines] = NULL;
+        (*lines)++;
+        *list = xnfrealloc(*list, (*lines + 1) * sizeof(**list));
+        newstr = xnfalloc(strlen(p) + 2);
+        strcpy(newstr, p);
+        strcat(newstr, "\n");
+        (*list)[*lines - 1] = newstr;
+        (*list)[*lines] = NULL;
     }
     free(str);
 }
@@ -120,7 +120,7 @@ FreeList(const char ***list, int *lines)
     int i;
 
     for (i = 0; i < *lines; i++) {
-	free((char *)((*list)[i]));
+        free((char *) ((*list)[i]));
     }
     free(*list);
     *list = NULL;
@@ -151,30 +151,30 @@ xf86AutoConfig(void)
     listPossibleVideoDrivers(deviceList, 20);
 
     for (p = deviceList; *p; p++) {
-	snprintf(buf, sizeof(buf), BUILTIN_DEVICE_SECTION, *p, 0, *p);
-	AppendToConfig(buf);
-	snprintf(buf, sizeof(buf), BUILTIN_SCREEN_SECTION, *p, 0, *p, 0);
-	AppendToConfig(buf);
+        snprintf(buf, sizeof(buf), BUILTIN_DEVICE_SECTION, *p, 0, *p);
+        AppendToConfig(buf);
+        snprintf(buf, sizeof(buf), BUILTIN_SCREEN_SECTION, *p, 0, *p, 0);
+        AppendToConfig(buf);
     }
 
     AppendToConfig(BUILTIN_LAYOUT_SECTION_PRE);
     for (p = deviceList; *p; p++) {
-	snprintf(buf, sizeof(buf), BUILTIN_LAYOUT_SCREEN_LINE, *p, 0);
-	AppendToConfig(buf);
+        snprintf(buf, sizeof(buf), BUILTIN_LAYOUT_SCREEN_LINE, *p, 0);
+        AppendToConfig(buf);
     }
     AppendToConfig(BUILTIN_LAYOUT_SECTION_POST);
 
     for (p = deviceList; *p; p++) {
-	free(*p);
+        free(*p);
     }
 
     xf86MsgVerb(X_DEFAULT, 0,
-		"Using default built-in configuration (%d lines)\n",
-		builtinLines);
+                "Using default built-in configuration (%d lines)\n",
+                builtinLines);
 
     xf86MsgVerb(X_DEFAULT, 3, "--- Start of built-in configuration ---\n");
     for (cp = builtinConfig; *cp; cp++)
-	xf86ErrorFVerb(3, "\t%s", *cp);
+        xf86ErrorFVerb(3, "\t%s", *cp);
     xf86MsgVerb(X_DEFAULT, 3, "--- End of built-in configuration ---\n");
 
     xf86initConfigFiles();
@@ -183,7 +183,7 @@ xf86AutoConfig(void)
     FreeConfig();
 
     if (ret != CONFIG_OK)
-	xf86Msg(X_ERROR, "Error parsing the built-in default configuration.\n");
+        xf86Msg(X_ERROR, "Error parsing the built-in default configuration.\n");
 
     return ret == CONFIG_OK;
 }
@@ -192,8 +192,8 @@ static void
 listPossibleVideoDrivers(char *matches[], int nmatches)
 {
     int i;
-    
-    for (i = 0 ; i < nmatches ; i++) {
+
+    for (i = 0; i < nmatches; i++) {
         matches[i] = NULL;
     }
     i = 0;
@@ -202,57 +202,60 @@ listPossibleVideoDrivers(char *matches[], int nmatches)
     /* Check for driver type based on /dev/fb type and if valid, use
        it instead of PCI bus probe results */
     if (xf86Info.consoleFd >= 0) {
-	struct vis_identifier   visid;
-	const char *cp;
-	extern char xf86SolarisFbDev[PATH_MAX];
-	int iret;
+        struct vis_identifier visid;
+        const char *cp;
+        extern char xf86SolarisFbDev[PATH_MAX];
+        int iret;
 
-	SYSCALL(iret = ioctl(xf86Info.consoleFd, VIS_GETIDENTIFIER, &visid));
-	if (iret < 0) {
-	    int fbfd;
+        SYSCALL(iret = ioctl(xf86Info.consoleFd, VIS_GETIDENTIFIER, &visid));
+        if (iret < 0) {
+            int fbfd;
 
-	    fbfd = open(xf86SolarisFbDev, O_RDONLY);
-	    if (fbfd >= 0) {
-		SYSCALL(iret = ioctl(fbfd, VIS_GETIDENTIFIER, &visid));
-		close(fbfd);
-	    }
-	}
+            fbfd = open(xf86SolarisFbDev, O_RDONLY);
+            if (fbfd >= 0) {
+                SYSCALL(iret = ioctl(fbfd, VIS_GETIDENTIFIER, &visid));
+                close(fbfd);
+            }
+        }
 
-	if (iret < 0) {
-	    xf86Msg(X_WARNING,
-		    "could not get frame buffer identifier from %s\n",
-		    xf86SolarisFbDev);
-	} else {
-	    xf86Msg(X_PROBED, "console driver: %s\n", visid.name);
+        if (iret < 0) {
+            xf86Msg(X_WARNING,
+                    "could not get frame buffer identifier from %s\n",
+                    xf86SolarisFbDev);
+        }
+        else {
+            xf86Msg(X_PROBED, "console driver: %s\n", visid.name);
 
-	    /* Special case from before the general case was set */
-	    if (strcmp(visid.name, "NVDAnvda") == 0) {
-		matches[i++] = xnfstrdup("nvidia");
-	    }
+            /* Special case from before the general case was set */
+            if (strcmp(visid.name, "NVDAnvda") == 0) {
+                matches[i++] = xnfstrdup("nvidia");
+            }
 
-	    /* General case - split into vendor name (initial all-caps
-	       prefix) & driver name (rest of the string). */
-	    if (strcmp(visid.name, "SUNWtext") != 0) {
-		for (cp = visid.name; (*cp != '\0') && isupper(*cp); cp++) {
-		    /* find end of all uppercase vendor section */
-		}
-		if ((cp != visid.name) && (*cp != '\0')) {
-		    char *driverName = xnfstrdup(cp);
-		    char *vendorName = xnfstrdup(visid.name);
-		    vendorName[cp - visid.name] = '\0';
+            /* General case - split into vendor name (initial all-caps
+               prefix) & driver name (rest of the string). */
+            if (strcmp(visid.name, "SUNWtext") != 0) {
+                for (cp = visid.name; (*cp != '\0') && isupper(*cp); cp++) {
+                    /* find end of all uppercase vendor section */
+                }
+                if ((cp != visid.name) && (*cp != '\0')) {
+                    char *driverName = xnfstrdup(cp);
+                    char *vendorName = xnfstrdup(visid.name);
 
-		    matches[i++] = vendorName;
-		    matches[i++] = driverName;
-		}
-	    }
-	}
+                    vendorName[cp - visid.name] = '\0';
+
+                    matches[i++] = vendorName;
+                    matches[i++] = driverName;
+                }
+            }
+        }
     }
 #endif
 #ifdef __sparc__
     {
-	char *sbusDriver = sparcDriverName();
-	if (sbusDriver)
-	    matches[i++] = xnfstrdup(sbusDriver);
+        char *sbusDriver = sparcDriverName();
+
+        if (sbusDriver)
+            matches[i++] = xnfstrdup(sbusDriver);
     }
 #endif
 #ifdef XSERVER_LIBPCIACCESS
@@ -261,9 +264,9 @@ listPossibleVideoDrivers(char *matches[], int nmatches)
     /* Fallback to platform default hardware */
     if (i < (nmatches - 1)) {
 #if defined(__i386__) || defined(__amd64__) || defined(__hurd__)
-	matches[i++] = xnfstrdup("vesa");
+        matches[i++] = xnfstrdup("vesa");
 #elif defined(__sparc__) && !defined(sun)
-	matches[i++] = xnfstrdup("sunffb");
+        matches[i++] = xnfstrdup("sunffb");
 #endif
     }
 
@@ -271,12 +274,12 @@ listPossibleVideoDrivers(char *matches[], int nmatches)
     /* Fallback to platform default frame buffer driver */
     if (i < (nmatches - 1)) {
 #if !defined(__linux__) && defined(__sparc__)
-	matches[i++] = xnfstrdup("wsfb");
+        matches[i++] = xnfstrdup("wsfb");
 #else
-	matches[i++] = xnfstrdup("fbdev");
+        matches[i++] = xnfstrdup("fbdev");
 #endif
     }
-#endif /* !sun */
+#endif                          /* !sun */
 }
 
 /* copy a screen section and enter the desired driver
@@ -320,7 +323,7 @@ GDevPtr
 autoConfigDevice(GDevPtr preconf_device)
 {
     GDevPtr ptr = NULL;
-    char *matches[20]; /* If we have more than 20 drivers we're in trouble */
+    char *matches[20];          /* If we have more than 20 drivers we're in trouble */
     int num_matches = 0, num_screens = 0, i;
     screenLayoutPtr slp;
 
@@ -331,7 +334,8 @@ autoConfigDevice(GDevPtr preconf_device)
     /* If there's a configured section with no driver chosen, use it */
     if (preconf_device) {
         ptr = preconf_device;
-    } else {
+    }
+    else {
         ptr = calloc(1, sizeof(GDevRec));
         if (!ptr) {
             return NULL;
@@ -361,7 +365,7 @@ autoConfigDevice(GDevPtr preconf_device)
              * plus one for the terminating NULL */
             for (; slp[num_screens].screen; num_screens++);
             xf86ConfigLayout.screens = xnfcalloc(num_screens + num_matches,
-                                                sizeof(screenLayoutRec));
+                                                 sizeof(screenLayoutRec));
             xf86ConfigLayout.screens[0] = slp[0];
 
             /* do the first match and set that for the original first screen */
@@ -384,14 +388,16 @@ autoConfigDevice(GDevPtr preconf_device)
              *
              * TODO Handle rest of multiple screen sections */
             for (i = 1; i < num_screens; i++) {
-                xf86ConfigLayout.screens[i+num_matches] = slp[i];
+                xf86ConfigLayout.screens[i + num_matches] = slp[i];
             }
-            xf86ConfigLayout.screens[num_screens+num_matches-1].screen = NULL;
+            xf86ConfigLayout.screens[num_screens + num_matches - 1].screen =
+                NULL;
             free(slp);
-        } else {
+        }
+        else {
             /* layout does not have any screens, not much to do */
             ptr->driver = matches[0];
-            for (i = 1; matches[i] ; i++) {
+            for (i = 1; matches[i]; i++) {
                 if (matches[i] != matches[0]) {
                     free(matches[i]);
                 }

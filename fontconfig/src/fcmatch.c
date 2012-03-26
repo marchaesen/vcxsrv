@@ -501,11 +501,11 @@ FcFontSetMatchInternal (FcConfig    *config,
 	printf ("\n");
 	FcPatternPrint (best);
     }
-    if (!best)
-    {
-	*result = FcResultNoMatch;
-	return 0;
-    }
+    /* assuming that 'result' is initialized with FcResultNoMatch
+     * outside this function */
+    if (best)
+	*result = FcResultMatch;
+
     return best;
 }
 
@@ -521,6 +521,8 @@ FcFontSetMatch (FcConfig    *config,
     assert (sets != NULL);
     assert (p != NULL);
     assert (result != NULL);
+
+    *result = FcResultNoMatch;
 
     if (!config)
     {
@@ -546,6 +548,8 @@ FcFontMatch (FcConfig	*config,
 
     assert (p != NULL);
     assert (result != NULL);
+
+    *result = FcResultNoMatch;
 
     if (!config)
     {
@@ -826,6 +830,9 @@ FcFontSetSort (FcConfig	    *config,
 	printf ("First font ");
 	FcPatternPrint (ret->fonts[0]);
     }
+    if (ret->nfont > 0)
+	*result = FcResultMatch;
+
     return ret;
 
 bail2:
@@ -848,6 +855,8 @@ FcFontSort (FcConfig	*config,
 
     assert (p != NULL);
     assert (result != NULL);
+
+    *result = FcResultNoMatch;
 
     if (!config)
     {

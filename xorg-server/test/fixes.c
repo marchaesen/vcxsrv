@@ -42,13 +42,12 @@ _fixes_test_direction(struct PointerBarrier *barrier, int d[4], int permitted)
     blocking = barrier_is_blocking_direction(barrier, dir);
     assert(blocking);
 
-    for (j = 0; j <= BarrierNegativeY; j++)
-    {
-        for (i = 0; i <= BarrierNegativeY; i++)
-        {
+    for (j = 0; j <= BarrierNegativeY; j++) {
+        for (i = 0; i <= BarrierNegativeY; i++) {
             barrier->directions |= 1 << i;
             blocking = barrier_is_blocking_direction(barrier, dir);
-            assert((barrier->directions & permitted) == permitted ? !blocking : blocking);
+            assert((barrier->directions & permitted) ==
+                   permitted ? !blocking : blocking);
         }
     }
 
@@ -63,14 +62,14 @@ fixes_pointer_barrier_direction_test(void)
     int y = 100;
 
     int directions[8][4] = {
-        { x, y, x, y + 100},            /* S  */
-        { x + 50, y, x - 50, y + 100},  /* SW */
-        { x + 100, y, x, y},            /* W  */
-        { x + 100, y + 50, x, y - 50},  /* NW */
-        { x, y + 100, x, y},            /* N  */
-        { x - 50, y + 100, x + 50, y},  /* NE */
-        { x, y, x + 100, y},            /* E  */
-        { x, y - 50, x + 100, y + 50},  /* SE */
+        {x, y, x, y + 100},     /* S  */
+        {x + 50, y, x - 50, y + 100},   /* SW */
+        {x + 100, y, x, y},     /* W  */
+        {x + 100, y + 50, x, y - 50},   /* NW */
+        {x, y + 100, x, y},     /* N  */
+        {x - 50, y + 100, x + 50, y},   /* NE */
+        {x, y, x + 100, y},     /* E  */
+        {x, y - 50, x + 100, y + 50},   /* SE */
     };
 
     barrier.x1 = x;
@@ -78,19 +77,20 @@ fixes_pointer_barrier_direction_test(void)
     barrier.y1 = y - 50;
     barrier.y2 = y + 49;
 
-
     _fixes_test_direction(&barrier, directions[0], BarrierPositiveY);
-    _fixes_test_direction(&barrier, directions[1], BarrierPositiveY | BarrierNegativeX);
+    _fixes_test_direction(&barrier, directions[1],
+                          BarrierPositiveY | BarrierNegativeX);
     _fixes_test_direction(&barrier, directions[2], BarrierNegativeX);
-    _fixes_test_direction(&barrier, directions[3], BarrierNegativeY | BarrierNegativeX);
+    _fixes_test_direction(&barrier, directions[3],
+                          BarrierNegativeY | BarrierNegativeX);
     _fixes_test_direction(&barrier, directions[4], BarrierNegativeY);
-    _fixes_test_direction(&barrier, directions[5], BarrierPositiveX | BarrierNegativeY);
+    _fixes_test_direction(&barrier, directions[5],
+                          BarrierPositiveX | BarrierNegativeY);
     _fixes_test_direction(&barrier, directions[6], BarrierPositiveX);
-    _fixes_test_direction(&barrier, directions[7], BarrierPositiveY | BarrierPositiveX);
-
+    _fixes_test_direction(&barrier, directions[7],
+                          BarrierPositiveY | BarrierPositiveX);
 
 }
-
 
 static void
 fixes_pointer_barriers_test(void)
@@ -123,7 +123,7 @@ fixes_pointer_barriers_test(void)
 
     /* across, but outside of y range */
     x1 = x + 1;
-    x2 = x -1;
+    x2 = x - 1;
     y1 = y + 100;
     y2 = y + 100;
     assert(!barrier_is_blocking(&barrier, x1, y1, x2, y2, &distance));
@@ -184,7 +184,6 @@ fixes_pointer_barriers_test(void)
     y2 = y + 100;
     assert(!barrier_is_blocking(&barrier, x1, y1, x2, y2, &distance));
 
-
     /* horizontal barrier */
     barrier.x1 = x - 50;
     barrier.x2 = x + 50;
@@ -207,7 +206,7 @@ fixes_pointer_barriers_test(void)
     x1 = x + 100;
     x2 = x + 100;
     y1 = y + 1;
-    y2 = y -1;
+    y2 = y - 1;
     assert(!barrier_is_blocking(&barrier, x1, y1, x2, y2, &distance));
 
     /* across, diagonally */
@@ -268,14 +267,15 @@ fixes_pointer_barriers_test(void)
 
 }
 
-static void fixes_pointer_barrier_clamp_test(void)
+static void
+fixes_pointer_barrier_clamp_test(void)
 {
     struct PointerBarrier barrier;
 
     int x = 100;
     int y = 100;
 
-    int cx, cy; /* clamped */
+    int cx, cy;                 /* clamped */
 
     /* vert barrier */
     barrier.x1 = x;
@@ -316,7 +316,8 @@ static void fixes_pointer_barrier_clamp_test(void)
     assert(cy == barrier.y1);
 }
 
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
 
     fixes_pointer_barriers_test();

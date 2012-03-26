@@ -33,10 +33,10 @@
 #include <dix-config.h>
 #endif
 
-#include <X11/X.h>	/* for inputstr.h    */
-#include <X11/Xproto.h>	/* Request macro     */
-#include "inputstr.h"	/* DeviceIntPtr      */
-#include "windowstr.h"	/* window structure  */
+#include <X11/X.h>              /* for inputstr.h    */
+#include <X11/Xproto.h>         /* Request macro     */
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XI2proto.h>
 #include "extnsionst.h"
@@ -78,30 +78,25 @@ ProcXIQueryPointer(ClientPtr client)
     SpritePtr pSprite;
     XkbStatePtr state;
     char *buttons = NULL;
-    int buttons_size = 0; /* size of buttons array */
+    int buttons_size = 0;       /* size of buttons array */
 
     REQUEST(xXIQueryPointerReq);
     REQUEST_SIZE_MATCH(xXIQueryPointerReq);
 
     rc = dixLookupDevice(&pDev, stuff->deviceid, client, DixReadAccess);
-    if (rc != Success)
-    {
+    if (rc != Success) {
         client->errorValue = stuff->deviceid;
         return rc;
     }
 
-    if (pDev->valuator == NULL || IsKeyboardDevice(pDev) ||
-        (!IsMaster(pDev) && !IsFloating(pDev))) /* no attached devices */
-    {
+    if (pDev->valuator == NULL || IsKeyboardDevice(pDev) || (!IsMaster(pDev) && !IsFloating(pDev))) {   /* no attached devices */
         client->errorValue = stuff->deviceid;
         return BadDevice;
     }
 
     rc = dixLookupWindow(&pWin, stuff->win, client, DixGetAttrAccess);
-    if (rc != Success)
-    {
-        SendErrorToClient(client, IReqCode, X_XIQueryPointer,
-                stuff->win, rc);
+    if (rc != Success) {
+        SendErrorToClient(client, IReqCode, X_XIQueryPointer, stuff->win, rc);
         return Success;
     }
 
@@ -125,8 +120,7 @@ ProcXIQueryPointer(ClientPtr client)
     rep.root_y = FP1616(pSprite->hot.y, 0);
     rep.child = None;
 
-    if (kbd)
-    {
+    if (kbd) {
         state = &kbd->key->xkbInfo->state;
         rep.mods.base_mods = state->base_mods;
         rep.mods.latched_mods = state->latched_mods;
@@ -137,10 +131,11 @@ ProcXIQueryPointer(ClientPtr client)
         rep.group.locked_group = state->locked_group;
     }
 
-    if (pDev->button)
-    {
+    if (pDev->button) {
         int i, down;
-        rep.buttons_len = bytes_to_int32(bits_to_bytes(pDev->button->numButtons));
+
+        rep.buttons_len =
+            bytes_to_int32(bits_to_bytes(pDev->button->numButtons));
         rep.length += rep.buttons_len;
         buttons_size = rep.buttons_len * 4;
         buttons = calloc(1, buttons_size);
@@ -149,41 +144,37 @@ ProcXIQueryPointer(ClientPtr client)
 
         down = pDev->button->buttonsDown;
 
-        for (i = 0; i < pDev->button->numButtons && down; i++)
-        {
-            if (BitIsOn(pDev->button->down, i))
-            {
+        for (i = 0; i < pDev->button->numButtons && down; i++) {
+            if (BitIsOn(pDev->button->down, i)) {
                 SetBit(buttons, i);
                 down--;
             }
         }
-    } else
+    }
+    else
         rep.buttons_len = 0;
 
-    if (pSprite->hot.pScreen == pWin->drawable.pScreen)
-    {
+    if (pSprite->hot.pScreen == pWin->drawable.pScreen) {
         rep.same_screen = xTrue;
         rep.win_x = FP1616(pSprite->hot.x - pWin->drawable.x, 0);
         rep.win_y = FP1616(pSprite->hot.y - pWin->drawable.y, 0);
         for (t = pSprite->win; t; t = t->parent)
-            if (t->parent == pWin)
-            {
+            if (t->parent == pWin) {
                 rep.child = t->drawable.id;
                 break;
             }
-    } else
-    {
+    }
+    else {
         rep.same_screen = xFalse;
         rep.win_x = 0;
         rep.win_y = 0;
     }
 
 #ifdef PANORAMIX
-    if(!noPanoramiXExtension) {
+    if (!noPanoramiXExtension) {
         rep.root_x += FP1616(screenInfo.screens[0]->x, 0);
         rep.root_y += FP1616(screenInfo.screens[0]->y, 0);
-        if (stuff->win == rep.root)
-        {
+        if (stuff->win == rep.root) {
             rep.win_x += FP1616(screenInfo.screens[0]->x, 0);
             rep.win_y += FP1616(screenInfo.screens[0]->y, 0);
         }
@@ -207,8 +198,7 @@ ProcXIQueryPointer(ClientPtr client)
  */
 
 void
-SRepXIQueryPointer(ClientPtr client, int size,
-                   xXIQueryPointerReply * rep)
+SRepXIQueryPointer(ClientPtr client, int size, xXIQueryPointerReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
@@ -220,6 +210,5 @@ SRepXIQueryPointer(ClientPtr client, int size,
     swapl(&rep->win_y);
     swaps(&rep->buttons_len);
 
-    WriteToClient(client, size, (char *)rep);
+    WriteToClient(client, size, (char *) rep);
 }
-

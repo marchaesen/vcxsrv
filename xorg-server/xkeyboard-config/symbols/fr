@@ -527,7 +527,7 @@ xkb_symbols "bepo" {
     key <AB05> { [               k,            K,     asciitilde                 ] }; // k K ~
     key <AB06> { [      apostrophe,     question,   questiondown,      dead_hook ] }; // ' ? ¿ ̉
     key <AB07> { [               q,            Q, dead_abovering,  dead_belowdot ] }; // q Q ˚ ̣
-    key <AB08> { [               g,            G,             mu                 ] }; // g G µ
+    key <AB08> { [               g,            G,     dead_greek                 ] }; // g G µ
     key <AB09> { [               h,            H,         dagger,   doubledagger ] }; // h H † ‡
     key <AB10> { [               f,            F,    dead_ogonek,    ordfeminine ] }; // f F ̨ ª
 

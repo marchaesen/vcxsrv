@@ -49,31 +49,29 @@
 #if defined(__PIC__) && defined(__i386__)
 
 #define X86EMU_HAS_HW_CPUID 1
-static inline void hw_cpuid (u32 *a, u32 *b, u32 *c, u32 *d)
+static inline void
+hw_cpuid(u32 * a, u32 * b, u32 * c, u32 * d)
 {
-    __asm__ __volatile__ ("pushl %%ebx      \n\t"
-                          "cpuid            \n\t"
-                          "movl %%ebx, %1   \n\t"
-                          "popl %%ebx       \n\t"
-                          : "=a" (*a), "=r" (*b),
-                            "=c" (*c), "=d" (*d)
-                          : "a" (*a), "c" (*c)
-                          : "cc");
+    __asm__ __volatile__("pushl %%ebx      \n\t"
+                         "cpuid            \n\t"
+                         "movl %%ebx, %1   \n\t"
+                         "popl %%ebx       \n\t":"=a"(*a), "=r"(*b),
+                         "=c"(*c), "=d"(*d)
+                         :"a"(*a), "c"(*c)
+                         :"cc");
 }
 
-#else /* ! (__PIC__ && __i386__) */
+#else                           /* ! (__PIC__ && __i386__) */
 
 #define x86EMU_HAS_HW_CPUID 1
-static inline void hw_cpuid (u32 *a, u32 *b, u32 *c, u32 *d)
+static inline void
+hw_cpuid(u32 * a, u32 * b, u32 * c, u32 * d)
 {
-    __asm__ __volatile__ ("cpuid"
-                          : "=a" (*a), "=b" (*b),
-                            "=c" (*c), "=d" (*d)
-                          : "a" (*a), "c" (*c)
-                          : "cc");
+    __asm__ __volatile__("cpuid":"=a"(*a), "=b"(*b), "=c"(*c), "=d"(*d)
+                         :"a"(*a), "c"(*c)
+                         :"cc");
 }
 
-#endif /* __PIC__ && __i386__ */
+#endif                          /* __PIC__ && __i386__ */
 
-
-#endif /* __X86EMU_PRIM_X86_GCC_H */
+#endif                          /* __X86EMU_PRIM_X86_GCC_H */

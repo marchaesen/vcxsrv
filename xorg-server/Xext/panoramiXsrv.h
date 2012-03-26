@@ -15,8 +15,9 @@ extern _X_EXPORT int PanoramiXPixHeight;
 extern _X_EXPORT VisualID PanoramiXTranslateVisualID(int screen, VisualID orig);
 extern _X_EXPORT void PanoramiXConsolidate(void);
 extern _X_EXPORT Bool PanoramiXCreateConnectionBlock(void);
-extern _X_EXPORT PanoramiXRes * PanoramiXFindIDByScrnum(RESTYPE, XID, int);
-extern _X_EXPORT Bool XineramaRegisterConnectionBlockCallback(void (*func)(void));
+extern _X_EXPORT PanoramiXRes *PanoramiXFindIDByScrnum(RESTYPE, XID, int);
+extern _X_EXPORT Bool
+XineramaRegisterConnectionBlockCallback(void (*func) (void));
 extern _X_EXPORT int XineramaDeleteResource(pointer, XID);
 
 extern _X_EXPORT void XineramaReinitData(void);
@@ -35,24 +36,20 @@ extern _X_EXPORT RESTYPE XRT_PICTURE;
  * layers agree that the visuals are equal.  The first visual is always from
  * screen 0.
  */
-typedef Bool (*XineramaVisualsEqualProcPtr)(VisualPtr, ScreenPtr, VisualPtr);
+typedef Bool (*XineramaVisualsEqualProcPtr) (VisualPtr, ScreenPtr, VisualPtr);
 extern _X_EXPORT XineramaVisualsEqualProcPtr XineramaVisualsEqualPtr;
 
-extern _X_EXPORT void XineramaGetImageData(
-    DrawablePtr *pDrawables,
-    int left,
-    int top,
-    int width, 
-    int height,
-    unsigned int format,
-    unsigned long planemask,
-    char *data,
-    int pitch,
-    Bool isRoot
-);
+extern _X_EXPORT void XineramaGetImageData(DrawablePtr *pDrawables,
+                                           int left,
+                                           int top,
+                                           int width,
+                                           int height,
+                                           unsigned int format,
+                                           unsigned long planemask,
+                                           char *data, int pitch, Bool isRoot);
 
-static inline void panoramix_setup_ids(PanoramiXRes *resource, 
-                                       ClientPtr client, XID base_id)
+static inline void
+panoramix_setup_ids(PanoramiXRes * resource, ClientPtr client, XID base_id)
 {
     int j;
 
@@ -62,4 +59,4 @@ static inline void panoramix_setup_ids(PanoramiXRes *resource,
     }
 }
 
-#endif /* _PANORAMIXSRV_H_ */
+#endif                          /* _PANORAMIXSRV_H_ */

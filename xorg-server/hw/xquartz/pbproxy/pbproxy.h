@@ -65,11 +65,11 @@ extern BOOL xpbproxy_is_standalone;
 #endif
 
 /* from main.m */
-extern void xpbproxy_set_is_active (BOOL state);
-extern BOOL xpbproxy_get_is_active (void);
-extern id xpbproxy_selection_object (void);
-extern Time xpbproxy_current_timestamp (void);
-extern int xpbproxy_run (void);
+extern void xpbproxy_set_is_active(BOOL state);
+extern BOOL xpbproxy_get_is_active(void);
+extern id xpbproxy_selection_object(void);
+extern Time xpbproxy_current_timestamp(void);
+extern int xpbproxy_run(void);
 
 extern Display *xpbproxy_dpy;
 extern int xpbproxy_apple_wm_event_base, xpbproxy_apple_wm_error_base;
@@ -77,17 +77,21 @@ extern int xpbproxy_xfixes_event_base, xpbproxy_xfixes_error_base;
 extern BOOL xpbproxy_have_xfixes;
 
 /* from x-input.m */
-extern BOOL xpbproxy_input_register (void);
+extern BOOL xpbproxy_input_register(void);
 
 /* os/log.c or app-main.m */
-extern void ErrorF(const char *f, ...) _X_ATTRIBUTE_PRINTF(1,2);
+extern void
+ErrorF(const char *f, ...)
+_X_ATTRIBUTE_PRINTF(1, 2);
 
 /* from darwin.h */
-_X_ATTRIBUTE_PRINTF(6,7)
-extern void xq_asl_log (int level, const char *subsystem, const char *file, const char *function, int line, const char *fmt, ...);
+_X_ATTRIBUTE_PRINTF(6, 7)
+extern void
+xq_asl_log(int level, const char *subsystem, const char *file,
+           const char *function, int line, const char *fmt, ...);
 
 #define ASL_LOG(level, subsystem, msg, args...) xq_asl_log(level, subsystem, __FILE__, __FUNCTION__, __LINE__, msg, ##args)
 #define DebugF(msg, args...) ASL_LOG(ASL_LEVEL_DEBUG, "xpbproxy", msg, ##args)
 #define TRACE() DebugF("TRACE")
 
-#endif /* PBPROXY_H */
+#endif                          /* PBPROXY_H */

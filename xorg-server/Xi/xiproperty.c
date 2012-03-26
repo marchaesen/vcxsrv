@@ -45,195 +45,185 @@
 /**
  * Properties used or alloced from inside the server.
  */
-static struct dev_properties
-{
+static struct dev_properties {
     Atom type;
     const char *name;
 } dev_properties[] = {
-    {0, XI_PROP_ENABLED},
-    {0, XI_PROP_XTEST_DEVICE},
-
-    {0, XATOM_FLOAT},
-
-    {0, ACCEL_PROP_PROFILE_NUMBER},
-    {0, ACCEL_PROP_CONSTANT_DECELERATION},
-    {0, ACCEL_PROP_ADAPTIVE_DECELERATION},
-    {0, ACCEL_PROP_VELOCITY_SCALING},
-
-    {0, AXIS_LABEL_PROP},
-    {0, AXIS_LABEL_PROP_REL_X},
-    {0, AXIS_LABEL_PROP_REL_Y},
-    {0, AXIS_LABEL_PROP_REL_Z},
-    {0, AXIS_LABEL_PROP_REL_RX},
-    {0, AXIS_LABEL_PROP_REL_RY},
-    {0, AXIS_LABEL_PROP_REL_RZ},
-    {0, AXIS_LABEL_PROP_REL_HWHEEL},
-    {0, AXIS_LABEL_PROP_REL_DIAL},
-    {0, AXIS_LABEL_PROP_REL_WHEEL},
-    {0, AXIS_LABEL_PROP_REL_MISC},
-    {0, AXIS_LABEL_PROP_REL_VSCROLL},
-    {0, AXIS_LABEL_PROP_REL_HSCROLL},
-    {0, AXIS_LABEL_PROP_ABS_X},
-    {0, AXIS_LABEL_PROP_ABS_Y},
-    {0, AXIS_LABEL_PROP_ABS_Z},
-    {0, AXIS_LABEL_PROP_ABS_RX},
-    {0, AXIS_LABEL_PROP_ABS_RY},
-    {0, AXIS_LABEL_PROP_ABS_RZ},
-    {0, AXIS_LABEL_PROP_ABS_THROTTLE},
-    {0, AXIS_LABEL_PROP_ABS_RUDDER},
-    {0, AXIS_LABEL_PROP_ABS_WHEEL},
-    {0, AXIS_LABEL_PROP_ABS_GAS},
-    {0, AXIS_LABEL_PROP_ABS_BRAKE},
-    {0, AXIS_LABEL_PROP_ABS_HAT0X},
-    {0, AXIS_LABEL_PROP_ABS_HAT0Y},
-    {0, AXIS_LABEL_PROP_ABS_HAT1X},
-    {0, AXIS_LABEL_PROP_ABS_HAT1Y},
-    {0, AXIS_LABEL_PROP_ABS_HAT2X},
-    {0, AXIS_LABEL_PROP_ABS_HAT2Y},
-    {0, AXIS_LABEL_PROP_ABS_HAT3X},
-    {0, AXIS_LABEL_PROP_ABS_HAT3Y},
-    {0, AXIS_LABEL_PROP_ABS_PRESSURE},
-    {0, AXIS_LABEL_PROP_ABS_DISTANCE},
-    {0, AXIS_LABEL_PROP_ABS_TILT_X},
-    {0, AXIS_LABEL_PROP_ABS_TILT_Y},
-    {0, AXIS_LABEL_PROP_ABS_TOOL_WIDTH},
-    {0, AXIS_LABEL_PROP_ABS_VOLUME},
-    {0, AXIS_LABEL_PROP_ABS_MT_TOUCH_MAJOR},
-    {0, AXIS_LABEL_PROP_ABS_MT_TOUCH_MINOR},
-    {0, AXIS_LABEL_PROP_ABS_MT_WIDTH_MAJOR},
-    {0, AXIS_LABEL_PROP_ABS_MT_WIDTH_MINOR},
-    {0, AXIS_LABEL_PROP_ABS_MT_ORIENTATION},
-    {0, AXIS_LABEL_PROP_ABS_MT_POSITION_X},
-    {0, AXIS_LABEL_PROP_ABS_MT_POSITION_Y},
-    {0, AXIS_LABEL_PROP_ABS_MT_TOOL_TYPE},
-    {0, AXIS_LABEL_PROP_ABS_MT_BLOB_ID},
-    {0, AXIS_LABEL_PROP_ABS_MT_TRACKING_ID},
-    {0, AXIS_LABEL_PROP_ABS_MT_PRESSURE},
-    {0, AXIS_LABEL_PROP_ABS_MISC},
-
-    {0, BTN_LABEL_PROP},
-    {0, BTN_LABEL_PROP_BTN_UNKNOWN},
-    {0, BTN_LABEL_PROP_BTN_WHEEL_UP},
-    {0, BTN_LABEL_PROP_BTN_WHEEL_DOWN},
-    {0, BTN_LABEL_PROP_BTN_HWHEEL_LEFT},
-    {0, BTN_LABEL_PROP_BTN_HWHEEL_RIGHT},
-    {0, BTN_LABEL_PROP_BTN_0},
-    {0, BTN_LABEL_PROP_BTN_1},
-    {0, BTN_LABEL_PROP_BTN_2},
-    {0, BTN_LABEL_PROP_BTN_3},
-    {0, BTN_LABEL_PROP_BTN_4},
-    {0, BTN_LABEL_PROP_BTN_5},
-    {0, BTN_LABEL_PROP_BTN_6},
-    {0, BTN_LABEL_PROP_BTN_7},
-    {0, BTN_LABEL_PROP_BTN_8},
-    {0, BTN_LABEL_PROP_BTN_9},
-
-    {0, BTN_LABEL_PROP_BTN_LEFT},
-    {0, BTN_LABEL_PROP_BTN_RIGHT},
-    {0, BTN_LABEL_PROP_BTN_MIDDLE},
-    {0, BTN_LABEL_PROP_BTN_SIDE},
-    {0, BTN_LABEL_PROP_BTN_EXTRA},
-    {0, BTN_LABEL_PROP_BTN_FORWARD},
-    {0, BTN_LABEL_PROP_BTN_BACK},
-    {0, BTN_LABEL_PROP_BTN_TASK},
-
-    {0, BTN_LABEL_PROP_BTN_TRIGGER},
-    {0, BTN_LABEL_PROP_BTN_THUMB},
-    {0, BTN_LABEL_PROP_BTN_THUMB2},
-    {0, BTN_LABEL_PROP_BTN_TOP},
-    {0, BTN_LABEL_PROP_BTN_TOP2},
-    {0, BTN_LABEL_PROP_BTN_PINKIE},
-    {0, BTN_LABEL_PROP_BTN_BASE},
-    {0, BTN_LABEL_PROP_BTN_BASE2},
-    {0, BTN_LABEL_PROP_BTN_BASE3},
-    {0, BTN_LABEL_PROP_BTN_BASE4},
-    {0, BTN_LABEL_PROP_BTN_BASE5},
-    {0, BTN_LABEL_PROP_BTN_BASE6},
-    {0, BTN_LABEL_PROP_BTN_DEAD},
-
-    {0, BTN_LABEL_PROP_BTN_A},
-    {0, BTN_LABEL_PROP_BTN_B},
-    {0, BTN_LABEL_PROP_BTN_C},
-    {0, BTN_LABEL_PROP_BTN_X},
-    {0, BTN_LABEL_PROP_BTN_Y},
-    {0, BTN_LABEL_PROP_BTN_Z},
-    {0, BTN_LABEL_PROP_BTN_TL},
-    {0, BTN_LABEL_PROP_BTN_TR},
-    {0, BTN_LABEL_PROP_BTN_TL2},
-    {0, BTN_LABEL_PROP_BTN_TR2},
-    {0, BTN_LABEL_PROP_BTN_SELECT},
-    {0, BTN_LABEL_PROP_BTN_START},
-    {0, BTN_LABEL_PROP_BTN_MODE},
-    {0, BTN_LABEL_PROP_BTN_THUMBL},
-    {0, BTN_LABEL_PROP_BTN_THUMBR},
-
-    {0, BTN_LABEL_PROP_BTN_TOOL_PEN},
-    {0, BTN_LABEL_PROP_BTN_TOOL_RUBBER},
-    {0, BTN_LABEL_PROP_BTN_TOOL_BRUSH},
-    {0, BTN_LABEL_PROP_BTN_TOOL_PENCIL},
-    {0, BTN_LABEL_PROP_BTN_TOOL_AIRBRUSH},
-    {0, BTN_LABEL_PROP_BTN_TOOL_FINGER},
-    {0, BTN_LABEL_PROP_BTN_TOOL_MOUSE},
-    {0, BTN_LABEL_PROP_BTN_TOOL_LENS},
-    {0, BTN_LABEL_PROP_BTN_TOUCH},
-    {0, BTN_LABEL_PROP_BTN_STYLUS},
-    {0, BTN_LABEL_PROP_BTN_STYLUS2},
-    {0, BTN_LABEL_PROP_BTN_TOOL_DOUBLETAP},
-    {0, BTN_LABEL_PROP_BTN_TOOL_TRIPLETAP},
-
-    {0, BTN_LABEL_PROP_BTN_GEAR_DOWN},
-    {0, BTN_LABEL_PROP_BTN_GEAR_UP},
-
-    {0, XI_PROP_TRANSFORM}
+    {
+    0, XI_PROP_ENABLED}, {
+    0, XI_PROP_XTEST_DEVICE}, {
+    0, XATOM_FLOAT}, {
+    0, ACCEL_PROP_PROFILE_NUMBER}, {
+    0, ACCEL_PROP_CONSTANT_DECELERATION}, {
+    0, ACCEL_PROP_ADAPTIVE_DECELERATION}, {
+    0, ACCEL_PROP_VELOCITY_SCALING}, {
+    0, AXIS_LABEL_PROP}, {
+    0, AXIS_LABEL_PROP_REL_X}, {
+    0, AXIS_LABEL_PROP_REL_Y}, {
+    0, AXIS_LABEL_PROP_REL_Z}, {
+    0, AXIS_LABEL_PROP_REL_RX}, {
+    0, AXIS_LABEL_PROP_REL_RY}, {
+    0, AXIS_LABEL_PROP_REL_RZ}, {
+    0, AXIS_LABEL_PROP_REL_HWHEEL}, {
+    0, AXIS_LABEL_PROP_REL_DIAL}, {
+    0, AXIS_LABEL_PROP_REL_WHEEL}, {
+    0, AXIS_LABEL_PROP_REL_MISC}, {
+    0, AXIS_LABEL_PROP_REL_VSCROLL}, {
+    0, AXIS_LABEL_PROP_REL_HSCROLL}, {
+    0, AXIS_LABEL_PROP_ABS_X}, {
+    0, AXIS_LABEL_PROP_ABS_Y}, {
+    0, AXIS_LABEL_PROP_ABS_Z}, {
+    0, AXIS_LABEL_PROP_ABS_RX}, {
+    0, AXIS_LABEL_PROP_ABS_RY}, {
+    0, AXIS_LABEL_PROP_ABS_RZ}, {
+    0, AXIS_LABEL_PROP_ABS_THROTTLE}, {
+    0, AXIS_LABEL_PROP_ABS_RUDDER}, {
+    0, AXIS_LABEL_PROP_ABS_WHEEL}, {
+    0, AXIS_LABEL_PROP_ABS_GAS}, {
+    0, AXIS_LABEL_PROP_ABS_BRAKE}, {
+    0, AXIS_LABEL_PROP_ABS_HAT0X}, {
+    0, AXIS_LABEL_PROP_ABS_HAT0Y}, {
+    0, AXIS_LABEL_PROP_ABS_HAT1X}, {
+    0, AXIS_LABEL_PROP_ABS_HAT1Y}, {
+    0, AXIS_LABEL_PROP_ABS_HAT2X}, {
+    0, AXIS_LABEL_PROP_ABS_HAT2Y}, {
+    0, AXIS_LABEL_PROP_ABS_HAT3X}, {
+    0, AXIS_LABEL_PROP_ABS_HAT3Y}, {
+    0, AXIS_LABEL_PROP_ABS_PRESSURE}, {
+    0, AXIS_LABEL_PROP_ABS_DISTANCE}, {
+    0, AXIS_LABEL_PROP_ABS_TILT_X}, {
+    0, AXIS_LABEL_PROP_ABS_TILT_Y}, {
+    0, AXIS_LABEL_PROP_ABS_TOOL_WIDTH}, {
+    0, AXIS_LABEL_PROP_ABS_VOLUME}, {
+    0, AXIS_LABEL_PROP_ABS_MT_TOUCH_MAJOR}, {
+    0, AXIS_LABEL_PROP_ABS_MT_TOUCH_MINOR}, {
+    0, AXIS_LABEL_PROP_ABS_MT_WIDTH_MAJOR}, {
+    0, AXIS_LABEL_PROP_ABS_MT_WIDTH_MINOR}, {
+    0, AXIS_LABEL_PROP_ABS_MT_ORIENTATION}, {
+    0, AXIS_LABEL_PROP_ABS_MT_POSITION_X}, {
+    0, AXIS_LABEL_PROP_ABS_MT_POSITION_Y}, {
+    0, AXIS_LABEL_PROP_ABS_MT_TOOL_TYPE}, {
+    0, AXIS_LABEL_PROP_ABS_MT_BLOB_ID}, {
+    0, AXIS_LABEL_PROP_ABS_MT_TRACKING_ID}, {
+    0, AXIS_LABEL_PROP_ABS_MT_PRESSURE}, {
+    0, AXIS_LABEL_PROP_ABS_MISC}, {
+    0, BTN_LABEL_PROP}, {
+    0, BTN_LABEL_PROP_BTN_UNKNOWN}, {
+    0, BTN_LABEL_PROP_BTN_WHEEL_UP}, {
+    0, BTN_LABEL_PROP_BTN_WHEEL_DOWN}, {
+    0, BTN_LABEL_PROP_BTN_HWHEEL_LEFT}, {
+    0, BTN_LABEL_PROP_BTN_HWHEEL_RIGHT}, {
+    0, BTN_LABEL_PROP_BTN_0}, {
+    0, BTN_LABEL_PROP_BTN_1}, {
+    0, BTN_LABEL_PROP_BTN_2}, {
+    0, BTN_LABEL_PROP_BTN_3}, {
+    0, BTN_LABEL_PROP_BTN_4}, {
+    0, BTN_LABEL_PROP_BTN_5}, {
+    0, BTN_LABEL_PROP_BTN_6}, {
+    0, BTN_LABEL_PROP_BTN_7}, {
+    0, BTN_LABEL_PROP_BTN_8}, {
+    0, BTN_LABEL_PROP_BTN_9}, {
+    0, BTN_LABEL_PROP_BTN_LEFT}, {
+    0, BTN_LABEL_PROP_BTN_RIGHT}, {
+    0, BTN_LABEL_PROP_BTN_MIDDLE}, {
+    0, BTN_LABEL_PROP_BTN_SIDE}, {
+    0, BTN_LABEL_PROP_BTN_EXTRA}, {
+    0, BTN_LABEL_PROP_BTN_FORWARD}, {
+    0, BTN_LABEL_PROP_BTN_BACK}, {
+    0, BTN_LABEL_PROP_BTN_TASK}, {
+    0, BTN_LABEL_PROP_BTN_TRIGGER}, {
+    0, BTN_LABEL_PROP_BTN_THUMB}, {
+    0, BTN_LABEL_PROP_BTN_THUMB2}, {
+    0, BTN_LABEL_PROP_BTN_TOP}, {
+    0, BTN_LABEL_PROP_BTN_TOP2}, {
+    0, BTN_LABEL_PROP_BTN_PINKIE}, {
+    0, BTN_LABEL_PROP_BTN_BASE}, {
+    0, BTN_LABEL_PROP_BTN_BASE2}, {
+    0, BTN_LABEL_PROP_BTN_BASE3}, {
+    0, BTN_LABEL_PROP_BTN_BASE4}, {
+    0, BTN_LABEL_PROP_BTN_BASE5}, {
+    0, BTN_LABEL_PROP_BTN_BASE6}, {
+    0, BTN_LABEL_PROP_BTN_DEAD}, {
+    0, BTN_LABEL_PROP_BTN_A}, {
+    0, BTN_LABEL_PROP_BTN_B}, {
+    0, BTN_LABEL_PROP_BTN_C}, {
+    0, BTN_LABEL_PROP_BTN_X}, {
+    0, BTN_LABEL_PROP_BTN_Y}, {
+    0, BTN_LABEL_PROP_BTN_Z}, {
+    0, BTN_LABEL_PROP_BTN_TL}, {
+    0, BTN_LABEL_PROP_BTN_TR}, {
+    0, BTN_LABEL_PROP_BTN_TL2}, {
+    0, BTN_LABEL_PROP_BTN_TR2}, {
+    0, BTN_LABEL_PROP_BTN_SELECT}, {
+    0, BTN_LABEL_PROP_BTN_START}, {
+    0, BTN_LABEL_PROP_BTN_MODE}, {
+    0, BTN_LABEL_PROP_BTN_THUMBL}, {
+    0, BTN_LABEL_PROP_BTN_THUMBR}, {
+    0, BTN_LABEL_PROP_BTN_TOOL_PEN}, {
+    0, BTN_LABEL_PROP_BTN_TOOL_RUBBER}, {
+    0, BTN_LABEL_PROP_BTN_TOOL_BRUSH}, {
+    0, BTN_LABEL_PROP_BTN_TOOL_PENCIL}, {
+    0, BTN_LABEL_PROP_BTN_TOOL_AIRBRUSH}, {
+    0, BTN_LABEL_PROP_BTN_TOOL_FINGER}, {
+    0, BTN_LABEL_PROP_BTN_TOOL_MOUSE}, {
+    0, BTN_LABEL_PROP_BTN_TOOL_LENS}, {
+    0, BTN_LABEL_PROP_BTN_TOUCH}, {
+    0, BTN_LABEL_PROP_BTN_STYLUS}, {
+    0, BTN_LABEL_PROP_BTN_STYLUS2}, {
+    0, BTN_LABEL_PROP_BTN_TOOL_DOUBLETAP}, {
+    0, BTN_LABEL_PROP_BTN_TOOL_TRIPLETAP}, {
+    0, BTN_LABEL_PROP_BTN_GEAR_DOWN}, {
+    0, BTN_LABEL_PROP_BTN_GEAR_UP}, {
+    0, XI_PROP_TRANSFORM}
 };
 
 static long XIPropHandlerID = 1;
 
-static void send_property_event(DeviceIntPtr dev, Atom property, int what)
+static void
+send_property_event(DeviceIntPtr dev, Atom property, int what)
 {
-        devicePropertyNotify    event;
-        xXIPropertyEvent        xi2;
-        int state;
+    devicePropertyNotify event;
+    xXIPropertyEvent xi2;
+    int state;
 
-        if (what == XIPropertyDeleted)
-            state = PropertyDelete;
-        else
-            state = PropertyNewValue;
+    if (what == XIPropertyDeleted)
+        state = PropertyDelete;
+    else
+        state = PropertyNewValue;
 
-        event.type      = DevicePropertyNotify;
-        event.deviceid  = dev->id;
-        event.state     = state;
-        event.atom      = property;
-        event.time      = currentTime.milliseconds;
-        SendEventToAllWindows(dev, DevicePropertyNotifyMask,
-                              (xEvent*)&event, 1);
+    event.type = DevicePropertyNotify;
+    event.deviceid = dev->id;
+    event.state = state;
+    event.atom = property;
+    event.time = currentTime.milliseconds;
+    SendEventToAllWindows(dev, DevicePropertyNotifyMask, (xEvent *) &event, 1);
 
-        xi2.type        = GenericEvent;
-        xi2.extension   = IReqCode;
-        xi2.length      = 0;
-        xi2.evtype      = XI_PropertyEvent;
-        xi2.deviceid    = dev->id;
-        xi2.time        = currentTime.milliseconds;
-        xi2.property    = property;
-        xi2.what        = what;
-        SendEventToAllWindows(dev, GetEventFilter(dev, (xEvent*)&xi2),
-                              (xEvent*)&xi2, 1);
+    xi2.type = GenericEvent;
+    xi2.extension = IReqCode;
+    xi2.length = 0;
+    xi2.evtype = XI_PropertyEvent;
+    xi2.deviceid = dev->id;
+    xi2.time = currentTime.milliseconds;
+    xi2.property = property;
+    xi2.what = what;
+    SendEventToAllWindows(dev, GetEventFilter(dev, (xEvent *) &xi2),
+                          (xEvent *) &xi2, 1);
 }
 
-static int list_atoms(DeviceIntPtr dev, int *natoms, Atom **atoms_return)
+static int
+list_atoms(DeviceIntPtr dev, int *natoms, Atom **atoms_return)
 {
     XIPropertyPtr prop;
-    Atom *atoms         = NULL;
-    int nprops          = 0;
+    Atom *atoms = NULL;
+    int nprops = 0;
 
     for (prop = dev->properties.properties; prop; prop = prop->next)
         nprops++;
-    if (nprops)
-    {
+    if (nprops) {
         Atom *a;
 
         atoms = malloc(nprops * sizeof(Atom));
-        if(!atoms)
+        if (!atoms)
             return BadAlloc;
         a = atoms;
         for (prop = dev->properties.properties; prop; prop = prop->next, a++)
@@ -256,19 +246,16 @@ get_property(ClientPtr client, DeviceIntPtr dev, Atom property, Atom type,
     XIPropertyPtr prop;
     XIPropertyValuePtr prop_value;
 
-    if (!ValidAtom(property))
-    {
+    if (!ValidAtom(property)) {
         client->errorValue = property;
         return BadAtom;
     }
-    if ((delete != xTrue) && (delete != xFalse))
-    {
+    if ((delete != xTrue) && (delete != xFalse)) {
         client->errorValue = delete;
         return BadValue;
     }
 
-    if ((type != AnyPropertyType) && !ValidAtom(type))
-    {
+    if ((type != AnyPropertyType) && !ValidAtom(type)) {
         client->errorValue = type;
         return BadAtom;
     }
@@ -277,8 +264,7 @@ get_property(ClientPtr client, DeviceIntPtr dev, Atom property, Atom type,
         if (prop->propertyName == property)
             break;
 
-    if (!prop)
-    {
+    if (!prop) {
         *bytes_after = 0;
         *type_return = None;
         *format = 0;
@@ -288,17 +274,15 @@ get_property(ClientPtr client, DeviceIntPtr dev, Atom property, Atom type,
     }
 
     rc = XIGetDeviceProperty(dev, property, &prop_value);
-    if (rc != Success)
-    {
+    if (rc != Success) {
         client->errorValue = property;
         return rc;
     }
 
     /* If the request type and actual type don't match. Return the
-    property information, but not the data. */
+       property information, but not the data. */
 
-    if (((type != prop_value->type) && (type != AnyPropertyType)))
-    {
+    if (((type != prop_value->type) && (type != AnyPropertyType))) {
         *bytes_after = prop_value->size;
         *format = prop_value->format;
         *length_return = 0;
@@ -308,14 +292,13 @@ get_property(ClientPtr client, DeviceIntPtr dev, Atom property, Atom type,
     }
 
     /* Return type, format, value to client */
-    n = (prop_value->format/8) * prop_value->size; /* size (bytes) of prop */
+    n = (prop_value->format / 8) * prop_value->size;    /* size (bytes) of prop */
     ind = offset << 2;
 
-   /* If offset is invalid such that it causes "len" to
-            be negative, it's a value error. */
+    /* If offset is invalid such that it causes "len" to
+       be negative, it's a value error. */
 
-    if (n < ind)
-    {
+    if (n < ind) {
         client->errorValue = offset;
         return BadValue;
     }
@@ -331,7 +314,7 @@ get_property(ClientPtr client, DeviceIntPtr dev, Atom property, Atom type,
         *nitems = 0;
     *type_return = prop_value->type;
 
-    *data = (char*)prop_value->data + ind;
+    *data = (char *) prop_value->data + ind;
 
     return Success;
 }
@@ -341,24 +324,20 @@ check_change_property(ClientPtr client, Atom property, Atom type, int format,
                       int mode, int nitems)
 {
     if ((mode != PropModeReplace) && (mode != PropModeAppend) &&
-        (mode != PropModePrepend))
-    {
+        (mode != PropModePrepend)) {
         client->errorValue = mode;
         return BadValue;
     }
-    if ((format != 8) && (format != 16) && (format != 32))
-    {
+    if ((format != 8) && (format != 16) && (format != 32)) {
         client->errorValue = format;
         return BadValue;
     }
 
-    if (!ValidAtom(property))
-    {
+    if (!ValidAtom(property)) {
         client->errorValue = property;
         return BadAtom;
     }
-    if (!ValidAtom(type))
-    {
+    if (!ValidAtom(type)) {
         client->errorValue = type;
         return BadAtom;
     }
@@ -372,7 +351,8 @@ change_property(ClientPtr client, DeviceIntPtr dev, Atom property, Atom type,
 {
     int rc = Success;
 
-    rc = XIChangeDeviceProperty(dev, property, type, format, mode, len, data, TRUE);
+    rc = XIChangeDeviceProperty(dev, property, type, format, mode, len, data,
+                                TRUE);
     if (rc != Success)
         client->errorValue = property;
 
@@ -393,14 +373,13 @@ XIGetKnownProperty(const char *name)
     if (!name)
         return None;
 
-    for (i = 0; i < (sizeof(dev_properties)/sizeof(struct dev_properties)); i++)
-    {
-        if (strcmp(name, dev_properties[i].name) == 0){
-            if (dev_properties[i].type == None){
-		dev_properties[i].type =
-			    MakeAtom(dev_properties[i].name,
-			             strlen(dev_properties[i].name),
-			             TRUE);
+    for (i = 0; i < (sizeof(dev_properties) / sizeof(struct dev_properties));
+         i++) {
+        if (strcmp(name, dev_properties[i].name) == 0) {
+            if (dev_properties[i].type == None) {
+                dev_properties[i].type =
+                    MakeAtom(dev_properties[i].name,
+                             strlen(dev_properties[i].name), TRUE);
             }
 
             return dev_properties[i].type;
@@ -415,7 +394,8 @@ XIResetProperties(void)
 {
     int i;
 
-    for (i = 0; i < (sizeof(dev_properties)/sizeof(struct dev_properties)); i++)
+    for (i = 0; i < (sizeof(dev_properties) / sizeof(struct dev_properties));
+         i++)
         dev_properties[i].type = None;
 }
 
@@ -450,35 +430,38 @@ XIPropToInt(XIPropertyValuePtr val, int *nelem_return, int **buf_return)
     if (!*buf_return && *nelem_return)
         return BadLength;
 
-    switch(val->format)
-    {
-        case 8:
-        case 16:
-        case 32:
-            break;
-        default:
-            return BadValue;
+    switch (val->format) {
+    case 8:
+    case 16:
+    case 32:
+        break;
+    default:
+        return BadValue;
     }
 
     buf = *buf_return;
 
-    if (!buf && !(*nelem_return))
-    {
+    if (!buf && !(*nelem_return)) {
         buf = calloc(val->size, sizeof(int));
         if (!buf)
             return BadAlloc;
         *buf_return = buf;
         *nelem_return = val->size;
-    } else if (val->size < *nelem_return)
+    }
+    else if (val->size < *nelem_return)
         *nelem_return = val->size;
 
-    for (i = 0; i < val->size && i < *nelem_return; i++)
-    {
-        switch(val->format)
-        {
-            case 8:  buf[i] = ((CARD8*)val->data)[i]; break;
-            case 16: buf[i] = ((CARD16*)val->data)[i]; break;
-            case 32: buf[i] = ((CARD32*)val->data)[i]; break;
+    for (i = 0; i < val->size && i < *nelem_return; i++) {
+        switch (val->format) {
+        case 8:
+            buf[i] = ((CARD8 *) val->data)[i];
+            break;
+        case 16:
+            buf[i] = ((CARD16 *) val->data)[i];
+            break;
+        case 32:
+            buf[i] = ((CARD32 *) val->data)[i];
+            break;
         }
     }
 
@@ -522,18 +505,18 @@ XIPropToFloat(XIPropertyValuePtr val, int *nelem_return, float **buf_return)
 
     buf = *buf_return;
 
-    if (!buf && !(*nelem_return))
-    {
+    if (!buf && !(*nelem_return)) {
         buf = calloc(val->size, sizeof(float));
         if (!buf)
             return BadAlloc;
         *buf_return = buf;
         *nelem_return = val->size;
-    } else if (val->size < *nelem_return)
+    }
+    else if (val->size < *nelem_return)
         *nelem_return = val->size;
 
     for (i = 0; i < val->size && i < *nelem_return; i++)
-           buf[i] = ((float*)val->data)[i];
+        buf[i] = ((float *) val->data)[i];
 
     return Success;
 }
@@ -544,7 +527,7 @@ XIPropToFloat(XIPropertyValuePtr val, int *nelem_return, float **buf_return)
  * @return The handler's identifier or 0 if an error occured.
  */
 long
-XIRegisterPropertyHandler(DeviceIntPtr         dev,
+XIRegisterPropertyHandler(DeviceIntPtr dev,
                           int (*SetProperty) (DeviceIntPtr dev,
                                               Atom property,
                                               XIPropertyValuePtr prop,
@@ -576,8 +559,7 @@ XIUnregisterPropertyHandler(DeviceIntPtr dev, long id)
     XIPropertyHandlerPtr curr, prev = NULL;
 
     curr = dev->properties.handlers;
-    while(curr && curr->id != id)
-    {
+    while (curr && curr->id != id) {
         prev = curr;
         curr = curr->next;
     }
@@ -585,7 +567,7 @@ XIUnregisterPropertyHandler(DeviceIntPtr dev, long id)
     if (!curr)
         return;
 
-    if (!prev) /* first one */
+    if (!prev)                  /* first one */
         dev->properties.handlers = curr->next;
     else
         prev->next = curr->next;
@@ -594,21 +576,21 @@ XIUnregisterPropertyHandler(DeviceIntPtr dev, long id)
 }
 
 static XIPropertyPtr
-XICreateDeviceProperty (Atom property)
+XICreateDeviceProperty(Atom property)
 {
-    XIPropertyPtr   prop;
+    XIPropertyPtr prop;
 
-    prop = (XIPropertyPtr)malloc(sizeof(XIPropertyRec));
+    prop = (XIPropertyPtr) malloc(sizeof(XIPropertyRec));
     if (!prop)
         return NULL;
 
-    prop->next          = NULL;
-    prop->propertyName  = property;
-    prop->value.type   = None;
+    prop->next = NULL;
+    prop->propertyName = property;
+    prop->value.type = None;
     prop->value.format = 0;
-    prop->value.size   = 0;
-    prop->value.data   = NULL;
-    prop->deletable    = TRUE;
+    prop->value.size = 0;
+    prop->value.data = NULL;
+    prop->deletable = TRUE;
 
     return prop;
 }
@@ -616,7 +598,7 @@ XICreateDeviceProperty (Atom property)
 static XIPropertyPtr
 XIFetchDeviceProperty(DeviceIntPtr dev, Atom property)
 {
-    XIPropertyPtr   prop;
+    XIPropertyPtr prop;
 
     for (prop = dev->properties.properties; prop; prop = prop->next)
         if (prop->propertyName == property)
@@ -625,7 +607,7 @@ XIFetchDeviceProperty(DeviceIntPtr dev, Atom property)
 }
 
 static void
-XIDestroyDeviceProperty (XIPropertyPtr prop)
+XIDestroyDeviceProperty(XIPropertyPtr prop)
 {
     free(prop->value.data);
     free(prop);
@@ -636,13 +618,12 @@ XIDestroyDeviceProperty (XIPropertyPtr prop)
  * DO NOT CALL FROM THE DRIVER.
  */
 void
-XIDeleteAllDeviceProperties (DeviceIntPtr device)
+XIDeleteAllDeviceProperties(DeviceIntPtr device)
 {
-    XIPropertyPtr               prop, next;
-    XIPropertyHandlerPtr        curr_handler, next_handler;
+    XIPropertyPtr prop, next;
+    XIPropertyHandlerPtr curr_handler, next_handler;
 
-    for (prop = device->properties.properties; prop; prop = next)
-    {
+    for (prop = device->properties.properties; prop; prop = next) {
         next = prop->next;
         send_property_event(device, prop->propertyName, XIPropertyDeleted);
         XIDestroyDeviceProperty(prop);
@@ -652,8 +633,7 @@ XIDeleteAllDeviceProperties (DeviceIntPtr device)
 
     /* Now free all handlers */
     curr_handler = device->properties.handlers;
-    while(curr_handler)
-    {
+    while (curr_handler) {
         next_handler = curr_handler->next;
         free(curr_handler);
         curr_handler = next_handler;
@@ -662,14 +642,14 @@ XIDeleteAllDeviceProperties (DeviceIntPtr device)
     device->properties.handlers = NULL;
 }
 
-
 int
-XIDeleteDeviceProperty (DeviceIntPtr device, Atom property, Bool fromClient)
+XIDeleteDeviceProperty(DeviceIntPtr device, Atom property, Bool fromClient)
 {
-    XIPropertyPtr               prop, *prev;
-    int                         rc = Success;
+    XIPropertyPtr prop, *prev;
+    int rc = Success;
 
-    for (prev = &device->properties.properties; (prop = *prev); prev = &(prop->next))
+    for (prev = &device->properties.properties; (prop = *prev);
+         prev = &(prop->next))
         if (prop->propertyName == property)
             break;
 
@@ -680,11 +660,10 @@ XIDeleteDeviceProperty (DeviceIntPtr device, Atom property, Bool fromClient)
         return BadAccess;
 
     /* Ask handlers if we may delete the property */
-    if (device->properties.handlers)
-    {
+    if (device->properties.handlers) {
         XIPropertyHandlerPtr handler = device->properties.handlers;
-        while(handler)
-        {
+
+        while (handler) {
             if (handler->DeleteProperty)
                 rc = handler->DeleteProperty(device, prop->propertyName);
             if (rc != Success)
@@ -693,37 +672,35 @@ XIDeleteDeviceProperty (DeviceIntPtr device, Atom property, Bool fromClient)
         }
     }
 
-    if (prop)
-    {
+    if (prop) {
         *prev = prop->next;
         send_property_event(device, prop->propertyName, XIPropertyDeleted);
-        XIDestroyDeviceProperty (prop);
+        XIDestroyDeviceProperty(prop);
     }
 
     return Success;
 }
 
 int
-XIChangeDeviceProperty (DeviceIntPtr dev, Atom property, Atom type,
-                        int format, int mode, unsigned long len,
-                        const void *value, Bool sendevent)
+XIChangeDeviceProperty(DeviceIntPtr dev, Atom property, Atom type,
+                       int format, int mode, unsigned long len,
+                       const void *value, Bool sendevent)
 {
-    XIPropertyPtr               prop;
-    int                         size_in_bytes;
-    int                         total_size;
-    unsigned long               total_len;
-    XIPropertyValuePtr          prop_value;
-    XIPropertyValueRec          new_value;
-    Bool                        add = FALSE;
-    int                         rc;
+    XIPropertyPtr prop;
+    int size_in_bytes;
+    int total_size;
+    unsigned long total_len;
+    XIPropertyValuePtr prop_value;
+    XIPropertyValueRec new_value;
+    Bool add = FALSE;
+    int rc;
 
     size_in_bytes = format >> 3;
 
     /* first see if property already exists */
-    prop = XIFetchDeviceProperty (dev, property);
-    if (!prop)   /* just add to list */
-    {
-        prop = XICreateDeviceProperty (property);
+    prop = XIFetchDeviceProperty(dev, property);
+    if (!prop) {                /* just add to list */
+        prop = XICreateDeviceProperty(property);
         if (!prop)
             return BadAlloc;
         add = TRUE;
@@ -732,9 +709,9 @@ XIChangeDeviceProperty (DeviceIntPtr dev, Atom property, Atom type,
     prop_value = &prop->value;
 
     /* To append or prepend to a property the request format and type
-     must match those of the already defined property.  The
-     existing format and type are irrelevant when using the mode
-     "PropModeReplace" since they will be written over. */
+       must match those of the already defined property.  The
+       existing format and type are irrelevant when using the mode
+       "PropModeReplace" since they will be written over. */
 
     if ((format != prop_value->format) && (mode != PropModeReplace))
         return BadMatch;
@@ -746,16 +723,14 @@ XIChangeDeviceProperty (DeviceIntPtr dev, Atom property, Atom type,
     else
         total_len = prop_value->size + len;
 
-    if (mode == PropModeReplace || len > 0)
-    {
-        pointer            new_data = NULL, old_data = NULL;
+    if (mode == PropModeReplace || len > 0) {
+        pointer new_data = NULL, old_data = NULL;
 
         total_size = total_len * size_in_bytes;
-        new_value.data = (pointer)malloc(total_size);
-        if (!new_value.data && total_size)
-        {
+        new_value.data = (pointer) malloc(total_size);
+        if (!new_value.data && total_size) {
             if (add)
-                XIDestroyDeviceProperty (prop);
+                XIDestroyDeviceProperty(prop);
             return BadAlloc;
         }
         new_value.size = len;
@@ -779,29 +754,25 @@ XIChangeDeviceProperty (DeviceIntPtr dev, Atom property, Atom type,
             break;
         }
         if (new_data)
-            memcpy ((char *) new_data, (char *) value, len * size_in_bytes);
+            memcpy((char *) new_data, (char *) value, len * size_in_bytes);
         if (old_data)
-            memcpy ((char *) old_data, (char *) prop_value->data,
-                    prop_value->size * size_in_bytes);
+            memcpy((char *) old_data, (char *) prop_value->data,
+                   prop_value->size * size_in_bytes);
 
-        if (dev->properties.handlers)
-        {
+        if (dev->properties.handlers) {
             XIPropertyHandlerPtr handler;
             BOOL checkonly = TRUE;
+
             /* run through all handlers with checkonly TRUE, then again with
              * checkonly FALSE. Handlers MUST return error codes on the
              * checkonly run, errors on the second run are ignored */
-            do
-            {
+            do {
                 handler = dev->properties.handlers;
-                while(handler)
-                {
-                    if (handler->SetProperty)
-                    {
+                while (handler) {
+                    if (handler->SetProperty) {
                         rc = handler->SetProperty(dev, prop->propertyName,
-                                &new_value, checkonly);
-                        if (checkonly && rc != Success)
-                        {
+                                                  &new_value, checkonly);
+                        if (checkonly && rc != Success) {
                             free(new_value.data);
                             return rc;
                         }
@@ -813,47 +784,42 @@ XIChangeDeviceProperty (DeviceIntPtr dev, Atom property, Atom type,
         }
         free(prop_value->data);
         *prop_value = new_value;
-    } else if (len == 0)
-    {
+    }
+    else if (len == 0) {
         /* do nothing */
     }
 
-    if (add)
-    {
+    if (add) {
         prop->next = dev->properties.properties;
         dev->properties.properties = prop;
     }
 
     if (sendevent)
         send_property_event(dev, prop->propertyName,
-                            (add) ?  XIPropertyCreated : XIPropertyModified);
+                            (add) ? XIPropertyCreated : XIPropertyModified);
 
     return Success;
 }
 
 int
-XIGetDeviceProperty (DeviceIntPtr dev, Atom property, XIPropertyValuePtr *value)
+XIGetDeviceProperty(DeviceIntPtr dev, Atom property, XIPropertyValuePtr *value)
 {
-    XIPropertyPtr   prop = XIFetchDeviceProperty (dev, property);
+    XIPropertyPtr prop = XIFetchDeviceProperty(dev, property);
     int rc;
 
-    if (!prop)
-    {
+    if (!prop) {
         *value = NULL;
         return BadAtom;
     }
 
     /* If we can, try to update the property value first */
-    if (dev->properties.handlers)
-    {
+    if (dev->properties.handlers) {
         XIPropertyHandlerPtr handler = dev->properties.handlers;
-        while(handler)
-        {
-            if (handler->GetProperty)
-            {
+
+        while (handler) {
+            if (handler->GetProperty) {
                 rc = handler->GetProperty(dev, prop->propertyName);
-                if (rc != Success)
-                {
+                if (rc != Success) {
                     *value = NULL;
                     return rc;
                 }
@@ -879,18 +845,18 @@ XISetDevicePropertyDeletable(DeviceIntPtr dev, Atom property, Bool deletable)
 }
 
 int
-ProcXListDeviceProperties (ClientPtr client)
+ProcXListDeviceProperties(ClientPtr client)
 {
-    Atom                        *atoms;
-    xListDevicePropertiesReply  rep;
-    int                         natoms;
-    DeviceIntPtr                dev;
-    int                         rc = Success;
+    Atom *atoms;
+    xListDevicePropertiesReply rep;
+    int natoms;
+    DeviceIntPtr dev;
+    int rc = Success;
 
     REQUEST(xListDevicePropertiesReq);
     REQUEST_SIZE_MATCH(xListDevicePropertiesReq);
 
-    rc = dixLookupDevice (&dev, stuff->deviceid, client, DixListPropAccess);
+    rc = dixLookupDevice(&dev, stuff->deviceid, client, DixListPropAccess);
     if (rc != Success)
         return rc;
 
@@ -905,9 +871,8 @@ ProcXListDeviceProperties (ClientPtr client)
     rep.nAtoms = natoms;
 
     WriteReplyToClient(client, sizeof(xListDevicePropertiesReply), &rep);
-    if (natoms)
-    {
-        client->pSwapReplyFunc = (ReplySwapPtr)Swap32Write;
+    if (natoms) {
+        client->pSwapReplyFunc = (ReplySwapPtr) Swap32Write;
         WriteSwappedDataToClient(client, natoms * sizeof(Atom), atoms);
         free(atoms);
     }
@@ -915,18 +880,18 @@ ProcXListDeviceProperties (ClientPtr client)
 }
 
 int
-ProcXChangeDeviceProperty (ClientPtr client)
+ProcXChangeDeviceProperty(ClientPtr client)
 {
     REQUEST(xChangeDevicePropertyReq);
-    DeviceIntPtr        dev;
-    unsigned long       len;
-    int                 totalSize;
-    int                 rc;
+    DeviceIntPtr dev;
+    unsigned long len;
+    int totalSize;
+    int rc;
 
     REQUEST_AT_LEAST_SIZE(xChangeDevicePropertyReq);
     UpdateCurrentTime();
 
-    rc = dixLookupDevice (&dev, stuff->deviceid, client, DixSetPropAccess);
+    rc = dixLookupDevice(&dev, stuff->deviceid, client, DixSetPropAccess);
     if (rc != Success)
         return rc;
 
@@ -937,29 +902,28 @@ ProcXChangeDeviceProperty (ClientPtr client)
     if (len > (bytes_to_int32(0xffffffff - sizeof(xChangeDevicePropertyReq))))
         return BadLength;
 
-    totalSize = len * (stuff->format/8);
+    totalSize = len * (stuff->format / 8);
     REQUEST_FIXED_SIZE(xChangeDevicePropertyReq, totalSize);
 
     rc = change_property(client, dev, stuff->property, stuff->type,
-                         stuff->format, stuff->mode, len, (void*)&stuff[1]);
+                         stuff->format, stuff->mode, len, (void *) &stuff[1]);
     return rc;
 }
 
 int
-ProcXDeleteDeviceProperty (ClientPtr client)
+ProcXDeleteDeviceProperty(ClientPtr client)
 {
     REQUEST(xDeleteDevicePropertyReq);
-    DeviceIntPtr        dev;
-    int                 rc;
+    DeviceIntPtr dev;
+    int rc;
 
     REQUEST_SIZE_MATCH(xDeleteDevicePropertyReq);
     UpdateCurrentTime();
-    rc =  dixLookupDevice (&dev, stuff->deviceid, client, DixSetPropAccess);
+    rc = dixLookupDevice(&dev, stuff->deviceid, client, DixSetPropAccess);
     if (rc != Success)
         return rc;
 
-    if (!ValidAtom(stuff->property))
-    {
+    if (!ValidAtom(stuff->property)) {
         client->errorValue = stuff->property;
         return BadAtom;
     }
@@ -969,28 +933,27 @@ ProcXDeleteDeviceProperty (ClientPtr client)
 }
 
 int
-ProcXGetDeviceProperty (ClientPtr client)
+ProcXGetDeviceProperty(ClientPtr client)
 {
     REQUEST(xGetDevicePropertyReq);
-    DeviceIntPtr                dev;
-    int                         length;
-    int                         rc, format, nitems, bytes_after;
-    char                        *data;
-    Atom                        type;
-    xGetDevicePropertyReply     reply;
+    DeviceIntPtr dev;
+    int length;
+    int rc, format, nitems, bytes_after;
+    char *data;
+    Atom type;
+    xGetDevicePropertyReply reply;
 
     REQUEST_SIZE_MATCH(xGetDevicePropertyReq);
     if (stuff->delete)
         UpdateCurrentTime();
-    rc = dixLookupDevice (&dev, stuff->deviceid, client,
-                           stuff->delete ? DixSetPropAccess :
-                           DixGetPropAccess);
+    rc = dixLookupDevice(&dev, stuff->deviceid, client,
+                         stuff->delete ? DixSetPropAccess : DixGetPropAccess);
     if (rc != Success)
         return rc;
 
     rc = get_property(client, dev, stuff->property, stuff->type,
-            stuff->delete, stuff->longOffset, stuff->longLength,
-            &bytes_after, &type, &format, &nitems, &length, &data);
+                      stuff->delete, stuff->longOffset, stuff->longLength,
+                      &bytes_after, &type, &format, &nitems, &length, &data);
 
     if (rc != Success)
         return rc;
@@ -1010,24 +973,28 @@ ProcXGetDeviceProperty (ClientPtr client)
 
     WriteReplyToClient(client, sizeof(xGenericReply), &reply);
 
-    if (length)
-    {
+    if (length) {
         switch (reply.format) {
-            case 32: client->pSwapReplyFunc = (ReplySwapPtr)CopySwap32Write; break;
-            case 16: client->pSwapReplyFunc = (ReplySwapPtr)CopySwap16Write; break;
-            default: client->pSwapReplyFunc = (ReplySwapPtr)WriteToClient; break;
+        case 32:
+            client->pSwapReplyFunc = (ReplySwapPtr) CopySwap32Write;
+            break;
+        case 16:
+            client->pSwapReplyFunc = (ReplySwapPtr) CopySwap16Write;
+            break;
+        default:
+            client->pSwapReplyFunc = (ReplySwapPtr) WriteToClient;
+            break;
         }
         WriteSwappedDataToClient(client, length, data);
     }
 
     /* delete the Property */
-    if (stuff->delete && (reply.bytesAfter == 0))
-    {
+    if (stuff->delete && (reply.bytesAfter == 0)) {
         XIPropertyPtr prop, *prev;
-        for (prev = &dev->properties.properties; (prop = *prev); prev = &prop->next)
-        {
-            if (prop->propertyName == stuff->property)
-            {
+
+        for (prev = &dev->properties.properties; (prop = *prev);
+             prev = &prop->next) {
+            if (prop->propertyName == stuff->property) {
                 *prev = prop->next;
                 XIDestroyDeviceProperty(prop);
                 break;
@@ -1037,9 +1004,8 @@ ProcXGetDeviceProperty (ClientPtr client)
     return Success;
 }
 
-
 int
-SProcXListDeviceProperties (ClientPtr client)
+SProcXListDeviceProperties(ClientPtr client)
 {
     REQUEST(xListDevicePropertiesReq);
 
@@ -1050,7 +1016,7 @@ SProcXListDeviceProperties (ClientPtr client)
 }
 
 int
-SProcXChangeDeviceProperty (ClientPtr client)
+SProcXChangeDeviceProperty(ClientPtr client)
 {
     REQUEST(xChangeDevicePropertyReq);
 
@@ -1063,7 +1029,7 @@ SProcXChangeDeviceProperty (ClientPtr client)
 }
 
 int
-SProcXDeleteDeviceProperty (ClientPtr client)
+SProcXDeleteDeviceProperty(ClientPtr client)
 {
     REQUEST(xDeleteDevicePropertyReq);
 
@@ -1074,7 +1040,7 @@ SProcXDeleteDeviceProperty (ClientPtr client)
 }
 
 int
-SProcXGetDeviceProperty (ClientPtr client)
+SProcXGetDeviceProperty(ClientPtr client)
 {
     REQUEST(xGetDevicePropertyReq);
 
@@ -1087,23 +1053,22 @@ SProcXGetDeviceProperty (ClientPtr client)
     return (ProcXGetDeviceProperty(client));
 }
 
-
 /* Reply swapping */
 
 void
 SRepXListDeviceProperties(ClientPtr client, int size,
-                          xListDevicePropertiesReply *rep)
+                          xListDevicePropertiesReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
     swaps(&rep->nAtoms);
     /* properties will be swapped later, see ProcXListDeviceProperties */
-    WriteToClient(client, size, (char*)rep);
+    WriteToClient(client, size, (char *) rep);
 }
 
 void
 SRepXGetDeviceProperty(ClientPtr client, int size,
-                       xGetDevicePropertyReply *rep)
+                       xGetDevicePropertyReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
@@ -1111,23 +1076,23 @@ SRepXGetDeviceProperty(ClientPtr client, int size,
     swapl(&rep->bytesAfter);
     swapl(&rep->nItems);
     /* data will be swapped, see ProcXGetDeviceProperty */
-    WriteToClient(client, size, (char*)rep);
+    WriteToClient(client, size, (char *) rep);
 }
 
 /* XI2 Request/reply handling */
 int
 ProcXIListProperties(ClientPtr client)
 {
-    Atom                        *atoms;
-    xXIListPropertiesReply      rep;
-    int                         natoms;
-    DeviceIntPtr                dev;
-    int                         rc = Success;
+    Atom *atoms;
+    xXIListPropertiesReply rep;
+    int natoms;
+    DeviceIntPtr dev;
+    int rc = Success;
 
     REQUEST(xXIListPropertiesReq);
     REQUEST_SIZE_MATCH(xXIListPropertiesReq);
 
-    rc = dixLookupDevice (&dev, stuff->deviceid, client, DixListPropAccess);
+    rc = dixLookupDevice(&dev, stuff->deviceid, client, DixListPropAccess);
     if (rc != Success)
         return rc;
 
@@ -1142,9 +1107,8 @@ ProcXIListProperties(ClientPtr client)
     rep.num_properties = natoms;
 
     WriteReplyToClient(client, sizeof(xXIListPropertiesReply), &rep);
-    if (natoms)
-    {
-        client->pSwapReplyFunc = (ReplySwapPtr)Swap32Write;
+    if (natoms) {
+        client->pSwapReplyFunc = (ReplySwapPtr) Swap32Write;
         WriteSwappedDataToClient(client, natoms * sizeof(Atom), atoms);
         free(atoms);
     }
@@ -1154,16 +1118,16 @@ ProcXIListProperties(ClientPtr client)
 int
 ProcXIChangeProperty(ClientPtr client)
 {
-    int                 rc;
-    DeviceIntPtr        dev;
-    int                 totalSize;
-    unsigned long       len;
+    int rc;
+    DeviceIntPtr dev;
+    int totalSize;
+    unsigned long len;
 
     REQUEST(xXIChangePropertyReq);
     REQUEST_AT_LEAST_SIZE(xXIChangePropertyReq);
     UpdateCurrentTime();
 
-    rc = dixLookupDevice (&dev, stuff->deviceid, client, DixSetPropAccess);
+    rc = dixLookupDevice(&dev, stuff->deviceid, client, DixSetPropAccess);
     if (rc != Success)
         return rc;
 
@@ -1173,29 +1137,29 @@ ProcXIChangeProperty(ClientPtr client)
     if (len > bytes_to_int32(0xffffffff - sizeof(xXIChangePropertyReq)))
         return BadLength;
 
-    totalSize = len * (stuff->format/8);
+    totalSize = len * (stuff->format / 8);
     REQUEST_FIXED_SIZE(xXIChangePropertyReq, totalSize);
 
     rc = change_property(client, dev, stuff->property, stuff->type,
-                         stuff->format, stuff->mode, len, (void*)&stuff[1]);
+                         stuff->format, stuff->mode, len, (void *) &stuff[1]);
     return rc;
 }
 
 int
 ProcXIDeleteProperty(ClientPtr client)
 {
-    DeviceIntPtr        dev;
-    int                 rc;
+    DeviceIntPtr dev;
+    int rc;
+
     REQUEST(xXIDeletePropertyReq);
 
     REQUEST_SIZE_MATCH(xXIDeletePropertyReq);
     UpdateCurrentTime();
-    rc =  dixLookupDevice (&dev, stuff->deviceid, client, DixSetPropAccess);
+    rc = dixLookupDevice(&dev, stuff->deviceid, client, DixSetPropAccess);
     if (rc != Success)
         return rc;
 
-    if (!ValidAtom(stuff->property))
-    {
+    if (!ValidAtom(stuff->property)) {
         client->errorValue = stuff->property;
         return BadAtom;
     }
@@ -1204,30 +1168,28 @@ ProcXIDeleteProperty(ClientPtr client)
     return rc;
 }
 
-
 int
 ProcXIGetProperty(ClientPtr client)
 {
     REQUEST(xXIGetPropertyReq);
-    DeviceIntPtr                dev;
-    xXIGetPropertyReply         reply;
-    int                         length;
-    int                         rc, format, nitems, bytes_after;
-    char                        *data;
-    Atom                        type;
+    DeviceIntPtr dev;
+    xXIGetPropertyReply reply;
+    int length;
+    int rc, format, nitems, bytes_after;
+    char *data;
+    Atom type;
 
     REQUEST_SIZE_MATCH(xXIGetPropertyReq);
     if (stuff->delete)
         UpdateCurrentTime();
-    rc = dixLookupDevice (&dev, stuff->deviceid, client,
-                           stuff->delete ? DixSetPropAccess :
-                           DixGetPropAccess);
+    rc = dixLookupDevice(&dev, stuff->deviceid, client,
+                         stuff->delete ? DixSetPropAccess : DixGetPropAccess);
     if (rc != Success)
         return rc;
 
     rc = get_property(client, dev, stuff->property, stuff->type,
-            stuff->delete, stuff->offset, stuff->len,
-            &bytes_after, &type, &format, &nitems, &length, &data);
+                      stuff->delete, stuff->offset, stuff->len,
+                      &bytes_after, &type, &format, &nitems, &length, &data);
 
     if (rc != Success)
         return rc;
@@ -1246,24 +1208,28 @@ ProcXIGetProperty(ClientPtr client)
 
     WriteReplyToClient(client, sizeof(xXIGetPropertyReply), &reply);
 
-    if (length)
-    {
+    if (length) {
         switch (reply.format) {
-            case 32: client->pSwapReplyFunc = (ReplySwapPtr)CopySwap32Write; break;
-            case 16: client->pSwapReplyFunc = (ReplySwapPtr)CopySwap16Write; break;
-            default: client->pSwapReplyFunc = (ReplySwapPtr)WriteToClient; break;
+        case 32:
+            client->pSwapReplyFunc = (ReplySwapPtr) CopySwap32Write;
+            break;
+        case 16:
+            client->pSwapReplyFunc = (ReplySwapPtr) CopySwap16Write;
+            break;
+        default:
+            client->pSwapReplyFunc = (ReplySwapPtr) WriteToClient;
+            break;
         }
         WriteSwappedDataToClient(client, length, data);
     }
 
     /* delete the Property */
-    if (stuff->delete && (reply.bytes_after == 0))
-    {
+    if (stuff->delete && (reply.bytes_after == 0)) {
         XIPropertyPtr prop, *prev;
-        for (prev = &dev->properties.properties; (prop = *prev); prev = &prop->next)
-        {
-            if (prop->propertyName == stuff->property)
-            {
+
+        for (prev = &dev->properties.properties; (prop = *prev);
+             prev = &prop->next) {
+            if (prop->propertyName == stuff->property) {
                 *prev = prop->next;
                 XIDestroyDeviceProperty(prop);
                 break;
@@ -1327,21 +1293,18 @@ SProcXIGetProperty(ClientPtr client)
     return (ProcXIGetProperty(client));
 }
 
-
 void
-SRepXIListProperties(ClientPtr client, int size,
-                     xXIListPropertiesReply *rep)
+SRepXIListProperties(ClientPtr client, int size, xXIListPropertiesReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
     swaps(&rep->num_properties);
     /* properties will be swapped later, see ProcXIListProperties */
-    WriteToClient(client, size, (char*)rep);
+    WriteToClient(client, size, (char *) rep);
 }
 
 void
-SRepXIGetProperty(ClientPtr client, int size,
-                  xXIGetPropertyReply *rep)
+SRepXIGetProperty(ClientPtr client, int size, xXIGetPropertyReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
@@ -1349,5 +1312,5 @@ SRepXIGetProperty(ClientPtr client, int size,
     swapl(&rep->bytes_after);
     swapl(&rep->num_items);
     /* data will be swapped, see ProcXIGetProperty */
-    WriteToClient(client, size, (char*)rep);
+    WriteToClient(client, size, (char *) rep);
 }

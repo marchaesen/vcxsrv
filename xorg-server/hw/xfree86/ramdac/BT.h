@@ -1,10 +1,15 @@
 
 #include "xf86RamDac.h"
 
-extern _X_EXPORT RamDacHelperRecPtr BTramdacProbe(ScrnInfoPtr pScrn, RamDacSupportedInfoRecPtr ramdacs);
-extern _X_EXPORT void BTramdacSave(ScrnInfoPtr pScrn, RamDacRecPtr RamDacRec, RamDacRegRecPtr RamDacRegRec);
-extern _X_EXPORT void BTramdacRestore(ScrnInfoPtr pScrn, RamDacRecPtr RamDacRec, RamDacRegRecPtr RamDacRegRec);
-extern _X_EXPORT void BTramdacSetBpp(ScrnInfoPtr pScrn, RamDacRegRecPtr RamDacRegRec);
+extern _X_EXPORT RamDacHelperRecPtr BTramdacProbe(ScrnInfoPtr pScrn,
+                                                  RamDacSupportedInfoRecPtr
+                                                  ramdacs);
+extern _X_EXPORT void BTramdacSave(ScrnInfoPtr pScrn, RamDacRecPtr RamDacRec,
+                                   RamDacRegRecPtr RamDacRegRec);
+extern _X_EXPORT void BTramdacRestore(ScrnInfoPtr pScrn, RamDacRecPtr RamDacRec,
+                                      RamDacRegRecPtr RamDacRegRec);
+extern _X_EXPORT void BTramdacSetBpp(ScrnInfoPtr pScrn,
+                                     RamDacRegRecPtr RamDacRegRec);
 
 #define ATT20C504_RAMDAC 	(VENDOR_BT << 16) | 0x00
 #define ATT20C505_RAMDAC 	(VENDOR_BT << 16) | 0x01
@@ -15,7 +20,7 @@ extern _X_EXPORT void BTramdacSetBpp(ScrnInfoPtr pScrn, RamDacRegRecPtr RamDacRe
  */
 
 #define BT_WRITE_ADDR		0x00
-#define BT_RAMDAC_DATA		0x01	
+#define BT_RAMDAC_DATA		0x01
 #define BT_PIXEL_MASK		0x02
 #define BT_READ_ADDR		0x03
 #define BT_CURS_WR_ADDR		0x04

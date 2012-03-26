@@ -52,7 +52,6 @@
  * authorization from the copyright holder(s) and author(s).
  */
 
-
 /* View/edit this file with tab stops set to 4 */
 
 #ifdef HAVE_XORG_CONFIG_H
@@ -65,215 +64,207 @@
 
 extern LexRec val;
 
-static xf86ConfigSymTabRec SubModuleTab[] =
-{
-	{ENDSUBSECTION, "endsubsection"},
-	{OPTION, "option"},
-	{-1, ""},
+static xf86ConfigSymTabRec SubModuleTab[] = {
+    {ENDSUBSECTION, "endsubsection"},
+    {OPTION, "option"},
+    {-1, ""},
 };
 
-static xf86ConfigSymTabRec ModuleTab[] =
-{
-	{ENDSECTION, "endsection"},
-	{LOAD, "load"},
-    {DISABLE, "disable"}, 
-	{LOAD_DRIVER, "loaddriver"},
-	{SUBSECTION, "subsection"},
-	{-1, ""},
+static xf86ConfigSymTabRec ModuleTab[] = {
+    {ENDSECTION, "endsection"},
+    {LOAD, "load"},
+    {DISABLE, "disable"},
+    {LOAD_DRIVER, "loaddriver"},
+    {SUBSECTION, "subsection"},
+    {-1, ""},
 };
 
 #define CLEANUP xf86freeModules
 
 static XF86LoadPtr
-xf86parseModuleSubSection (XF86LoadPtr head, char *name)
+xf86parseModuleSubSection(XF86LoadPtr head, char *name)
 {
-	int token;
-	parsePrologue (XF86LoadPtr, XF86LoadRec)
+    int token;
 
-	ptr->load_name = name;
-	ptr->load_type = XF86_LOAD_MODULE;
-        ptr->ignore    = 0;
-	ptr->load_opt  = NULL;
-	ptr->list.next = NULL;
+    parsePrologue(XF86LoadPtr, XF86LoadRec)
 
-	while ((token = xf86getToken (SubModuleTab)) != ENDSUBSECTION)
-	{
-		switch (token)
-		{
-		case COMMENT:
-			ptr->load_comment = xf86addComment(ptr->load_comment, val.str);
-			break;
-		case OPTION:
-			ptr->load_opt = xf86parseOption(ptr->load_opt);
-			break;
-		case EOF_TOKEN:
-			xf86parseError (UNEXPECTED_EOF_MSG);
-			free(ptr);
-			return NULL;
-		default:
-			xf86parseError (INVALID_KEYWORD_MSG, xf86tokenString ());
-			free(ptr);
-			return NULL;
-			break;
-		}
+        ptr->load_name = name;
+    ptr->load_type = XF86_LOAD_MODULE;
+    ptr->ignore = 0;
+    ptr->load_opt = NULL;
+    ptr->list.next = NULL;
 
-	}
+    while ((token = xf86getToken(SubModuleTab)) != ENDSUBSECTION) {
+        switch (token) {
+        case COMMENT:
+            ptr->load_comment = xf86addComment(ptr->load_comment, val.str);
+            break;
+        case OPTION:
+            ptr->load_opt = xf86parseOption(ptr->load_opt);
+            break;
+        case EOF_TOKEN:
+            xf86parseError(UNEXPECTED_EOF_MSG);
+            free(ptr);
+            return NULL;
+        default:
+            xf86parseError(INVALID_KEYWORD_MSG, xf86tokenString());
+            free(ptr);
+            return NULL;
+            break;
+        }
 
-	return ((XF86LoadPtr) xf86addListItem ((glp) head, (glp) ptr));
+    }
+
+    return ((XF86LoadPtr) xf86addListItem((glp) head, (glp) ptr));
 }
 
 XF86ConfModulePtr
-xf86parseModuleSection (void)
+xf86parseModuleSection(void)
 {
-	int token;
-	parsePrologue (XF86ConfModulePtr, XF86ConfModuleRec)
+    int token;
 
-	while ((token = xf86getToken (ModuleTab)) != ENDSECTION)
-	{
-		switch (token)
-		{
-		case COMMENT:
-			ptr->mod_comment = xf86addComment(ptr->mod_comment, val.str);
-			break;
-		case LOAD:
-			if (xf86getSubToken (&(ptr->mod_comment)) != STRING)
-				Error (QUOTE_MSG, "Load");
-			ptr->mod_load_lst =
-				xf86addNewLoadDirective (ptr->mod_load_lst, val.str,
-									 XF86_LOAD_MODULE, NULL);
-			break;
-		case DISABLE:
-			if (xf86getSubToken (&(ptr->mod_comment)) != STRING)
-				Error (QUOTE_MSG, "Disable");
-			ptr->mod_disable_lst =
-				xf86addNewLoadDirective (ptr->mod_disable_lst, val.str,
-									 XF86_DISABLE_MODULE, NULL);
-			break;
-		case LOAD_DRIVER:
-			if (xf86getSubToken (&(ptr->mod_comment)) != STRING)
-				Error (QUOTE_MSG, "LoadDriver");
-			ptr->mod_load_lst =
-				xf86addNewLoadDirective (ptr->mod_load_lst, val.str,
-									 XF86_LOAD_DRIVER, NULL);
-			break;
-		case SUBSECTION:
-			if (xf86getSubToken (&(ptr->mod_comment)) != STRING)
-						Error (QUOTE_MSG, "SubSection");
-			ptr->mod_load_lst =
-				xf86parseModuleSubSection (ptr->mod_load_lst, val.str);
-			break;
-		case EOF_TOKEN:
-			Error (UNEXPECTED_EOF_MSG);
-			break;
-		default:
-			Error (INVALID_KEYWORD_MSG, xf86tokenString ());
-			break;
-		}
-	}
+    parsePrologue(XF86ConfModulePtr, XF86ConfModuleRec)
+
+        while ((token = xf86getToken(ModuleTab)) != ENDSECTION) {
+        switch (token) {
+        case COMMENT:
+            ptr->mod_comment = xf86addComment(ptr->mod_comment, val.str);
+            break;
+        case LOAD:
+            if (xf86getSubToken(&(ptr->mod_comment)) != STRING)
+                Error(QUOTE_MSG, "Load");
+            ptr->mod_load_lst =
+                xf86addNewLoadDirective(ptr->mod_load_lst, val.str,
+                                        XF86_LOAD_MODULE, NULL);
+            break;
+        case DISABLE:
+            if (xf86getSubToken(&(ptr->mod_comment)) != STRING)
+                Error(QUOTE_MSG, "Disable");
+            ptr->mod_disable_lst =
+                xf86addNewLoadDirective(ptr->mod_disable_lst, val.str,
+                                        XF86_DISABLE_MODULE, NULL);
+            break;
+        case LOAD_DRIVER:
+            if (xf86getSubToken(&(ptr->mod_comment)) != STRING)
+                Error(QUOTE_MSG, "LoadDriver");
+            ptr->mod_load_lst =
+                xf86addNewLoadDirective(ptr->mod_load_lst, val.str,
+                                        XF86_LOAD_DRIVER, NULL);
+            break;
+        case SUBSECTION:
+            if (xf86getSubToken(&(ptr->mod_comment)) != STRING)
+                Error(QUOTE_MSG, "SubSection");
+            ptr->mod_load_lst =
+                xf86parseModuleSubSection(ptr->mod_load_lst, val.str);
+            break;
+        case EOF_TOKEN:
+            Error(UNEXPECTED_EOF_MSG);
+            break;
+        default:
+            Error(INVALID_KEYWORD_MSG, xf86tokenString());
+            break;
+        }
+    }
 
 #ifdef DEBUG
-	printf ("Module section parsed\n");
+    printf("Module section parsed\n");
 #endif
 
-	return ptr;
+    return ptr;
 }
 
 #undef CLEANUP
 
 void
-xf86printModuleSection (FILE * cf, XF86ConfModulePtr ptr)
+xf86printModuleSection(FILE * cf, XF86ConfModulePtr ptr)
 {
-	XF86LoadPtr lptr;
+    XF86LoadPtr lptr;
 
-	if (ptr == NULL)
-		return;
+    if (ptr == NULL)
+        return;
 
-	if (ptr->mod_comment)
-		fprintf(cf, "%s", ptr->mod_comment);
-	for (lptr = ptr->mod_load_lst; lptr; lptr = lptr->list.next)
-	{
-		switch (lptr->load_type)
-		{
-		case XF86_LOAD_MODULE:
-			if( lptr->load_opt == NULL ) {
-				fprintf (cf, "\tLoad  \"%s\"", lptr->load_name);
-				if (lptr->load_comment)
-					fprintf(cf, "%s", lptr->load_comment);
-				else
-					fputc('\n', cf);
-			}
-			else
-			{
-				fprintf (cf, "\tSubSection \"%s\"\n", lptr->load_name);
-				if (lptr->load_comment)
-					fprintf(cf, "%s", lptr->load_comment);
-				xf86printOptionList(cf, lptr->load_opt, 2);
-				fprintf (cf, "\tEndSubSection\n");
-			}
-			break;
-		case XF86_LOAD_DRIVER:
-			fprintf (cf, "\tLoadDriver  \"%s\"", lptr->load_name);
-				if (lptr->load_comment)
-					fprintf(cf, "%s", lptr->load_comment);
-				else
-					fputc('\n', cf);
-			break;
+    if (ptr->mod_comment)
+        fprintf(cf, "%s", ptr->mod_comment);
+    for (lptr = ptr->mod_load_lst; lptr; lptr = lptr->list.next) {
+        switch (lptr->load_type) {
+        case XF86_LOAD_MODULE:
+            if (lptr->load_opt == NULL) {
+                fprintf(cf, "\tLoad  \"%s\"", lptr->load_name);
+                if (lptr->load_comment)
+                    fprintf(cf, "%s", lptr->load_comment);
+                else
+                    fputc('\n', cf);
+            }
+            else {
+                fprintf(cf, "\tSubSection \"%s\"\n", lptr->load_name);
+                if (lptr->load_comment)
+                    fprintf(cf, "%s", lptr->load_comment);
+                xf86printOptionList(cf, lptr->load_opt, 2);
+                fprintf(cf, "\tEndSubSection\n");
+            }
+            break;
+        case XF86_LOAD_DRIVER:
+            fprintf(cf, "\tLoadDriver  \"%s\"", lptr->load_name);
+            if (lptr->load_comment)
+                fprintf(cf, "%s", lptr->load_comment);
+            else
+                fputc('\n', cf);
+            break;
 #if 0
-		default:
-			fprintf (cf, "#\tUnknown type  \"%s\"\n", lptr->load_name);
-			break;
+        default:
+            fprintf(cf, "#\tUnknown type  \"%s\"\n", lptr->load_name);
+            break;
 #endif
-		}
-	}
+        }
+    }
 }
 
 XF86LoadPtr
-xf86addNewLoadDirective (XF86LoadPtr head, char *name, int type, XF86OptionPtr opts)
+xf86addNewLoadDirective(XF86LoadPtr head, char *name, int type,
+                        XF86OptionPtr opts)
 {
-	XF86LoadPtr new;
-	int token;
+    XF86LoadPtr new;
+    int token;
 
-	new = calloc (1, sizeof (XF86LoadRec));
-	new->load_name = name;
-	new->load_type = type;
-	new->load_opt  = opts;
-        new->ignore    = 0;
-	new->list.next = NULL;
+    new = calloc(1, sizeof(XF86LoadRec));
+    new->load_name = name;
+    new->load_type = type;
+    new->load_opt = opts;
+    new->ignore = 0;
+    new->list.next = NULL;
 
-	if ((token = xf86getToken(NULL)) == COMMENT)
-		new->load_comment = xf86addComment(new->load_comment, val.str);
-	else
-		xf86unGetToken(token);
+    if ((token = xf86getToken(NULL)) == COMMENT)
+        new->load_comment = xf86addComment(new->load_comment, val.str);
+    else
+        xf86unGetToken(token);
 
-	return ((XF86LoadPtr) xf86addListItem ((glp) head, (glp) new));
+    return ((XF86LoadPtr) xf86addListItem((glp) head, (glp) new));
 }
 
 void
-xf86freeModules (XF86ConfModulePtr ptr)
+xf86freeModules(XF86ConfModulePtr ptr)
 {
-	XF86LoadPtr lptr;
-	XF86LoadPtr prev;
+    XF86LoadPtr lptr;
+    XF86LoadPtr prev;
 
-	if (ptr == NULL)
-		return;
-	lptr = ptr->mod_load_lst;
-	while (lptr)
-	{
-		TestFree (lptr->load_name);
-		TestFree (lptr->load_comment);
-		prev = lptr;
-		lptr = lptr->list.next;
-		free (prev);
-	}
-	lptr = ptr->mod_disable_lst;
-	while (lptr)
-	{
-		TestFree (lptr->load_name);
-		TestFree (lptr->load_comment);
-		prev = lptr;
-		lptr = lptr->list.next;
-		free (prev);
-	}
-	TestFree (ptr->mod_comment);
-	free (ptr);
+    if (ptr == NULL)
+        return;
+    lptr = ptr->mod_load_lst;
+    while (lptr) {
+        TestFree(lptr->load_name);
+        TestFree(lptr->load_comment);
+        prev = lptr;
+        lptr = lptr->list.next;
+        free(prev);
+    }
+    lptr = ptr->mod_disable_lst;
+    while (lptr) {
+        TestFree(lptr->load_name);
+        TestFree(lptr->load_comment);
+        prev = lptr;
+        lptr = lptr->list.next;
+        free(prev);
+    }
+    TestFree(ptr->mod_comment);
+    free(ptr);
 }

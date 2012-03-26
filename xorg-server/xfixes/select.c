@@ -27,8 +27,8 @@
 #include "xfixesint.h"
 #include "xace.h"
 
-static RESTYPE		SelectionClientType, SelectionWindowType;
-static Bool		SelectionCallbackRegistered = FALSE;
+static RESTYPE SelectionClientType, SelectionWindowType;
+static Bool SelectionCallbackRegistered = FALSE;
 
 /*
  * There is a global list of windows selecting for selection events
@@ -40,83 +40,76 @@ static Bool		SelectionCallbackRegistered = FALSE;
 typedef struct _SelectionEvent *SelectionEventPtr;
 
 typedef struct _SelectionEvent {
-    SelectionEventPtr	next;
-    Atom		selection;
-    CARD32		eventMask;
-    ClientPtr		pClient;
-    WindowPtr		pWindow;
-    XID			clientResource;
+    SelectionEventPtr next;
+    Atom selection;
+    CARD32 eventMask;
+    ClientPtr pClient;
+    WindowPtr pWindow;
+    XID clientResource;
 } SelectionEventRec;
 
-static SelectionEventPtr	selectionEvents;
+static SelectionEventPtr selectionEvents;
 
 static void
-XFixesSelectionCallback (CallbackListPtr *callbacks, pointer data, pointer args)
+XFixesSelectionCallback(CallbackListPtr *callbacks, pointer data, pointer args)
 {
-    SelectionEventPtr	e;
-    SelectionInfoRec	*info = (SelectionInfoRec *) args;
-    Selection		*selection = info->selection;
-    int			subtype;
-    CARD32		eventMask;
-    
+    SelectionEventPtr e;
+    SelectionInfoRec *info = (SelectionInfoRec *) args;
+    Selection *selection = info->selection;
+    int subtype;
+    CARD32 eventMask;
+
     switch (info->kind) {
     case SelectionSetOwner:
-	subtype = XFixesSetSelectionOwnerNotify;
-	eventMask = XFixesSetSelectionOwnerNotifyMask;
-	break;
+        subtype = XFixesSetSelectionOwnerNotify;
+        eventMask = XFixesSetSelectionOwnerNotifyMask;
+        break;
     case SelectionWindowDestroy:
-	subtype = XFixesSelectionWindowDestroyNotify;
-	eventMask = XFixesSelectionWindowDestroyNotifyMask;
-	break;
+        subtype = XFixesSelectionWindowDestroyNotify;
+        eventMask = XFixesSelectionWindowDestroyNotifyMask;
+        break;
     case SelectionClientClose:
-	subtype = XFixesSelectionClientCloseNotify;
-	eventMask = XFixesSelectionClientCloseNotifyMask;
-	break;
+        subtype = XFixesSelectionClientCloseNotify;
+        eventMask = XFixesSelectionClientCloseNotifyMask;
+        break;
     default:
-	return;
+        return;
     }
-    for (e = selectionEvents; e; e = e->next)
-    {
-	if (e->selection == selection->selection && 
-	    (e->eventMask & eventMask))
-	{
-	    xXFixesSelectionNotifyEvent	ev;
+    for (e = selectionEvents; e; e = e->next) {
+        if (e->selection == selection->selection && (e->eventMask & eventMask)) {
+            xXFixesSelectionNotifyEvent ev;
 
-	    memset(&ev, 0, sizeof(xXFixesSelectionNotifyEvent));
-	    ev.type = XFixesEventBase + XFixesSelectionNotify;
-	    ev.subtype = subtype;
-	    ev.window = e->pWindow->drawable.id;
-	    if (subtype == XFixesSetSelectionOwnerNotify)
-		ev.owner = selection->window;
-	    else
-		ev.owner = 0;
-	    ev.selection = e->selection;
-	    ev.timestamp = currentTime.milliseconds;
-	    ev.selectionTimestamp = selection->lastTimeChanged.milliseconds;
-	    WriteEventsToClient (e->pClient, 1, (xEvent *) &ev);
-	}
+            memset(&ev, 0, sizeof(xXFixesSelectionNotifyEvent));
+            ev.type = XFixesEventBase + XFixesSelectionNotify;
+            ev.subtype = subtype;
+            ev.window = e->pWindow->drawable.id;
+            if (subtype == XFixesSetSelectionOwnerNotify)
+                ev.owner = selection->window;
+            else
+                ev.owner = 0;
+            ev.selection = e->selection;
+            ev.timestamp = currentTime.milliseconds;
+            ev.selectionTimestamp = selection->lastTimeChanged.milliseconds;
+            WriteEventsToClient(e->pClient, 1, (xEvent *) &ev);
+        }
     }
 }
 
 static Bool
-CheckSelectionCallback (void)
+CheckSelectionCallback(void)
 {
-    if (selectionEvents)
-    {
-	if (!SelectionCallbackRegistered)
-	{
-	    if (!AddCallback (&SelectionCallback, XFixesSelectionCallback, NULL))
-		return FALSE;
-	    SelectionCallbackRegistered = TRUE;
-	}
+    if (selectionEvents) {
+        if (!SelectionCallbackRegistered) {
+            if (!AddCallback(&SelectionCallback, XFixesSelectionCallback, NULL))
+                return FALSE;
+            SelectionCallbackRegistered = TRUE;
+        }
     }
-    else
-    {
-	if (SelectionCallbackRegistered)
-	{
-	    DeleteCallback (&SelectionCallback, XFixesSelectionCallback, NULL);
-	    SelectionCallbackRegistered = FALSE;
-	}
+    else {
+        if (SelectionCallbackRegistered) {
+            DeleteCallback(&SelectionCallback, XFixesSelectionCallback, NULL);
+            SelectionCallbackRegistered = FALSE;
+        }
     }
     return TRUE;
 }
@@ -126,99 +119,88 @@ CheckSelectionCallback (void)
 			    XFixesSelectionClientCloseNotifyMask)
 
 static int
-XFixesSelectSelectionInput (ClientPtr	pClient,
-			    Atom	selection,
-			    WindowPtr	pWindow,
-			    CARD32	eventMask)
+XFixesSelectSelectionInput(ClientPtr pClient,
+                           Atom selection, WindowPtr pWindow, CARD32 eventMask)
 {
     pointer val;
     int rc;
-    SelectionEventPtr	*prev, e;
+    SelectionEventPtr *prev, e;
 
     rc = XaceHook(XACE_SELECTION_ACCESS, pClient, selection, DixGetAttrAccess);
     if (rc != Success)
-	return rc;
+        return rc;
 
-    for (prev = &selectionEvents; (e = *prev); prev = &e->next)
-    {
-	if (e->selection == selection &&
-	    e->pClient == pClient &&
-	    e->pWindow == pWindow)
-	{
-	    break;
-	}
+    for (prev = &selectionEvents; (e = *prev); prev = &e->next) {
+        if (e->selection == selection &&
+            e->pClient == pClient && e->pWindow == pWindow) {
+            break;
+        }
     }
-    if (!eventMask)
-    {
-	if (e)
-	{
-	    FreeResource (e->clientResource, 0);
-	}
-	return Success;
+    if (!eventMask) {
+        if (e) {
+            FreeResource(e->clientResource, 0);
+        }
+        return Success;
     }
-    if (!e)
-    {
-	e = (SelectionEventPtr) malloc(sizeof (SelectionEventRec));
-	if (!e)
-	    return BadAlloc;
+    if (!e) {
+        e = (SelectionEventPtr) malloc(sizeof(SelectionEventRec));
+        if (!e)
+            return BadAlloc;
 
-	e->next = 0;
-	e->selection = selection;
-	e->pClient = pClient;
-	e->pWindow = pWindow;
-	e->clientResource = FakeClientID(pClient->index);
+        e->next = 0;
+        e->selection = selection;
+        e->pClient = pClient;
+        e->pWindow = pWindow;
+        e->clientResource = FakeClientID(pClient->index);
 
-	/*
-	 * Add a resource hanging from the window to
-	 * catch window destroy
-	 */
-	rc = dixLookupResourceByType (&val, pWindow->drawable.id,
-				      SelectionWindowType, serverClient,
-				      DixGetAttrAccess);
-	if (rc != Success)
-	    if (!AddResource (pWindow->drawable.id, SelectionWindowType,
-			      (pointer) pWindow))
-	    {
-		free(e);
-		return BadAlloc;
-	    }
+        /*
+         * Add a resource hanging from the window to
+         * catch window destroy
+         */
+        rc = dixLookupResourceByType(&val, pWindow->drawable.id,
+                                     SelectionWindowType, serverClient,
+                                     DixGetAttrAccess);
+        if (rc != Success)
+            if (!AddResource(pWindow->drawable.id, SelectionWindowType,
+                             (pointer) pWindow)) {
+                free(e);
+                return BadAlloc;
+            }
 
-	if (!AddResource (e->clientResource, SelectionClientType, (pointer) e))
-	    return BadAlloc;
+        if (!AddResource(e->clientResource, SelectionClientType, (pointer) e))
+            return BadAlloc;
 
-	*prev = e;
-	if (!CheckSelectionCallback ())
-	{
-	    FreeResource (e->clientResource, 0);
-	    return BadAlloc;
-	}
+        *prev = e;
+        if (!CheckSelectionCallback()) {
+            FreeResource(e->clientResource, 0);
+            return BadAlloc;
+        }
     }
     e->eventMask = eventMask;
     return Success;
 }
 
 int
-ProcXFixesSelectSelectionInput (ClientPtr client)
+ProcXFixesSelectSelectionInput(ClientPtr client)
 {
-    REQUEST (xXFixesSelectSelectionInputReq);
-    WindowPtr	pWin;
-    int		rc;
+    REQUEST(xXFixesSelectSelectionInputReq);
+    WindowPtr pWin;
+    int rc;
 
-    REQUEST_SIZE_MATCH (xXFixesSelectSelectionInputReq);
+    REQUEST_SIZE_MATCH(xXFixesSelectSelectionInputReq);
     rc = dixLookupWindow(&pWin, stuff->window, client, DixGetAttrAccess);
     if (rc != Success)
         return rc;
-    if (stuff->eventMask & ~SelectionAllEvents)
-    {
-	client->errorValue = stuff->eventMask;
-	return BadValue;
+    if (stuff->eventMask & ~SelectionAllEvents) {
+        client->errorValue = stuff->eventMask;
+        return BadValue;
     }
-    return XFixesSelectSelectionInput (client, stuff->selection,
-				       pWin, stuff->eventMask);
+    return XFixesSelectSelectionInput(client, stuff->selection,
+                                      pWin, stuff->eventMask);
 }
 
 int
-SProcXFixesSelectSelectionInput (ClientPtr client)
+SProcXFixesSelectSelectionInput(ClientPtr client)
 {
     REQUEST(xXFixesSelectSelectionInputReq);
 
@@ -226,64 +208,60 @@ SProcXFixesSelectSelectionInput (ClientPtr client)
     swapl(&stuff->window);
     swapl(&stuff->selection);
     swapl(&stuff->eventMask);
-    return (*ProcXFixesVector[stuff->xfixesReqType])(client);
+    return (*ProcXFixesVector[stuff->xfixesReqType]) (client);
 }
-    
+
 void
-SXFixesSelectionNotifyEvent (xXFixesSelectionNotifyEvent *from,
-			     xXFixesSelectionNotifyEvent *to)
+SXFixesSelectionNotifyEvent(xXFixesSelectionNotifyEvent * from,
+                            xXFixesSelectionNotifyEvent * to)
 {
     to->type = from->type;
-    cpswaps (from->sequenceNumber, to->sequenceNumber);
-    cpswapl (from->window, to->window);
-    cpswapl (from->owner, to->owner);
-    cpswapl (from->selection, to->selection);
-    cpswapl (from->timestamp, to->timestamp);
-    cpswapl (from->selectionTimestamp, to->selectionTimestamp);
+    cpswaps(from->sequenceNumber, to->sequenceNumber);
+    cpswapl(from->window, to->window);
+    cpswapl(from->owner, to->owner);
+    cpswapl(from->selection, to->selection);
+    cpswapl(from->timestamp, to->timestamp);
+    cpswapl(from->selectionTimestamp, to->selectionTimestamp);
 }
 
 static int
-SelectionFreeClient (pointer data, XID id)
+SelectionFreeClient(pointer data, XID id)
 {
-    SelectionEventPtr	old = (SelectionEventPtr) data;
-    SelectionEventPtr	*prev, e;
-    
-    for (prev = &selectionEvents; (e = *prev); prev = &e->next)
-    {
-	if (e == old)
-	{
-	    *prev = e->next;
-	    free(e);
-	    CheckSelectionCallback ();
-	    break;
-	}
+    SelectionEventPtr old = (SelectionEventPtr) data;
+    SelectionEventPtr *prev, e;
+
+    for (prev = &selectionEvents; (e = *prev); prev = &e->next) {
+        if (e == old) {
+            *prev = e->next;
+            free(e);
+            CheckSelectionCallback();
+            break;
+        }
     }
     return 1;
 }
 
 static int
-SelectionFreeWindow (pointer data, XID id)
+SelectionFreeWindow(pointer data, XID id)
 {
-    WindowPtr		pWindow = (WindowPtr) data;
-    SelectionEventPtr	e, next;
+    WindowPtr pWindow = (WindowPtr) data;
+    SelectionEventPtr e, next;
 
-    for (e = selectionEvents; e; e = next)
-    {
-	next = e->next;
-	if (e->pWindow == pWindow)
-	{
-	    FreeResource (e->clientResource, 0);
-	}
+    for (e = selectionEvents; e; e = next) {
+        next = e->next;
+        if (e->pWindow == pWindow) {
+            FreeResource(e->clientResource, 0);
+        }
     }
     return 1;
 }
 
 Bool
-XFixesSelectionInit (void)
+XFixesSelectionInit(void)
 {
     SelectionClientType = CreateNewResourceType(SelectionFreeClient,
-						"XFixesSelectionClient");
+                                                "XFixesSelectionClient");
     SelectionWindowType = CreateNewResourceType(SelectionFreeWindow,
-						"XFixesSelectionWindow");
+                                                "XFixesSelectionWindow");
     return SelectionClientType && SelectionWindowType;
 }

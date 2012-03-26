@@ -30,7 +30,6 @@ from The Open Group.
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
-
 #include "win.h"
 #define COMPILE_MULTIMON_STUBS
 #include <multimon.h>
@@ -41,25 +40,27 @@ from The Open Group.
  */
 
 static
-wBOOL CALLBACK getMonitorInfo(HMONITOR hMonitor, HDC hdc, LPRECT rect, LPARAM _data)
+    wBOOL CALLBACK
+getMonitorInfo(HMONITOR hMonitor, HDC hdc, LPRECT rect, LPARAM _data)
 {
-  struct GetMonitorInfoData* data = (struct GetMonitorInfoData*)_data;
-  // only get data for monitor number specified in <data>
-  data->monitorNum++;
-  if (data->monitorNum == data->requestedMonitor)
-  {
-	data->bMonitorSpecifiedExists = TRUE;
-	data->monitorOffsetX = rect->left;
-	data->monitorOffsetY = rect->top;
-	data->monitorHeight  = rect->bottom - rect->top;
-	data->monitorWidth   = rect->right  - rect->left;
+    struct GetMonitorInfoData *data = (struct GetMonitorInfoData *) _data;
+
+    // only get data for monitor number specified in <data>
+    data->monitorNum++;
+    if (data->monitorNum == data->requestedMonitor) {
+        data->bMonitorSpecifiedExists = TRUE;
+        data->monitorOffsetX = rect->left;
+        data->monitorOffsetY = rect->top;
+        data->monitorHeight = rect->bottom - rect->top;
+        data->monitorWidth = rect->right - rect->left;
         data->monitorHandle  = hMonitor;
-    return FALSE;
-  }
-  return TRUE;
+        return FALSE;
+    }
+    return TRUE;
 }
 
-Bool QueryMonitor(int index, struct GetMonitorInfoData *data)
+Bool
+QueryMonitor(int index, struct GetMonitorInfoData *data)
 {
     /* prepare data */
     if (data == NULL)

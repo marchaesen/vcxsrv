@@ -59,15 +59,16 @@
  * remoteEvent is the type returned from the remote server.  The \a
  * serverEvent is from the XI_* list of events in
  * include/extensions/XIproto.h. */
-void dmxMapInsert(DMXLocalInputInfoPtr dmxLocal,
-                  int remoteEvent, int serverEvent)
+void
+dmxMapInsert(DMXLocalInputInfoPtr dmxLocal, int remoteEvent, int serverEvent)
 {
     int hash = remoteEvent & DMX_MAP_MASK;
     int i;
 
-                                /* Return if this has already been mapped */
+    /* Return if this has already been mapped */
     if (dmxLocal->map[hash].remote == remoteEvent
-        && dmxLocal->map[hash].server == serverEvent) return;
+        && dmxLocal->map[hash].server == serverEvent)
+        return;
 
     if (dmxLocal->map[hash].remote) {
         dmxLocal->mapOptimize = 0;
@@ -81,18 +82,21 @@ void dmxMapInsert(DMXLocalInputInfoPtr dmxLocal,
         dmxLog(dmxWarning,
                "Out of map entries, cannot map remove event type %d\n",
                remoteEvent);
-    } else {
+    }
+    else {
         dmxLocal->map[hash].remote = remoteEvent;
         dmxLocal->map[hash].server = serverEvent;
     }
 }
 
 /** Remove all mappings there were inserted with #dmxMapInsert. */
-void dmxMapClear(DMXLocalInputInfoPtr dmxLocal)
+void
+dmxMapClear(DMXLocalInputInfoPtr dmxLocal)
 {
     int i;
 
-    for (i = 0; i < DMX_MAP_ENTRIES; i++) dmxLocal->map[i].remote = 0;
+    for (i = 0; i < DMX_MAP_ENTRIES; i++)
+        dmxLocal->map[i].remote = 0;
     dmxLocal->mapOptimize = 1;
 }
 
@@ -100,16 +104,18 @@ void dmxMapClear(DMXLocalInputInfoPtr dmxLocal)
  * returned from the remote server.  The return value is that which was
  * passed into #dmxMapInsert (i.e., a value from the XI_* list in
  * include/extensions/XIproto.h).  If a mapping is not available, -1 is
- * returned. */ 
-int dmxMapLookup(DMXLocalInputInfoPtr dmxLocal, int remoteEvent)
+ * returned. */
+int
+dmxMapLookup(DMXLocalInputInfoPtr dmxLocal, int remoteEvent)
 {
-    int hash        = remoteEvent & DMX_MAP_MASK;
+    int hash = remoteEvent & DMX_MAP_MASK;
     int serverEvent = -1;
     int i;
 
     if (dmxLocal->mapOptimize && dmxLocal->map[hash].remote == remoteEvent) {
         serverEvent = dmxLocal->map[hash].server;
-    } else {
+    }
+    else {
         for (i = 0; i < DMX_MAP_ENTRIES; i++)
             if (dmxLocal->map[i].remote == remoteEvent) {
                 serverEvent = dmxLocal->map[hash].server;

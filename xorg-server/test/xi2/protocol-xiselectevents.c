@@ -53,15 +53,17 @@
 #include <X11/extensions/XI2proto.h>
 #include "inputstr.h"
 #include "windowstr.h"
-#include "extinit.h" /* for XInputExtensionInit */
+#include "extinit.h"            /* for XInputExtensionInit */
 #include "scrnintstr.h"
 #include "xiselectev.h"
 
 #include "protocol-common.h"
 
-static unsigned char *data[4096 * 20]; /* the request data buffer */
+static unsigned char *data[4096 * 20];  /* the request data buffer */
 
-int __wrap_XISetEventMask(DeviceIntPtr dev, WindowPtr win, int len, unsigned char* mask)
+int
+__wrap_XISetEventMask(DeviceIntPtr dev, WindowPtr win, int len,
+                      unsigned char *mask)
 {
     return Success;
 }
@@ -71,14 +73,14 @@ int __wrap_XISetEventMask(DeviceIntPtr dev, WindowPtr win, int len, unsigned cha
  * fake client window. If the requested ID is neither of those wanted,
  * return whatever the real dixLookupWindow does.
  */
-int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
+int
+__wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
 {
-    if (id == root.drawable.id)
-    {
+    if (id == root.drawable.id) {
         *win = &root;
         return Success;
-    } else if (id == window.drawable.id)
-    {
+    }
+    else if (id == window.drawable.id) {
         *win = &window;
         return Success;
     }
@@ -86,20 +88,19 @@ int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access
     return __real_dixLookupWindow(win, id, client, access);
 }
 
-
-static void request_XISelectEvent(xXISelectEventsReq *req, int error)
+static void
+request_XISelectEvent(xXISelectEventsReq * req, int error)
 {
     int i;
     int rc;
     ClientRec client;
     xXIEventMask *mask, *next;
 
-    req->length = (sz_xXISelectEventsReq/4);
-    mask = (xXIEventMask*)&req[1];
-    for (i = 0; i < req->num_masks; i++)
-    {
-        req->length += sizeof(xXIEventMask)/4 + mask->mask_len;
-        mask = (xXIEventMask*)((char*)&mask[1] + mask->mask_len * 4);
+    req->length = (sz_xXISelectEventsReq / 4);
+    mask = (xXIEventMask *) & req[1];
+    for (i = 0; i < req->num_masks; i++) {
+        req->length += sizeof(xXIEventMask) / 4 + mask->mask_len;
+        mask = (xXIEventMask *) ((char *) &mask[1] + mask->mask_len * 4);
     }
 
     client = init_client(req->length, req);
@@ -109,10 +110,9 @@ static void request_XISelectEvent(xXISelectEventsReq *req, int error)
 
     client.swapped = TRUE;
 
-    mask = (xXIEventMask*)&req[1];
-    for (i = 0; i < req->num_masks; i++)
-    {
-        next = (xXIEventMask*)((char*)&mask[1] + mask->mask_len * 4);
+    mask = (xXIEventMask *) & req[1];
+    for (i = 0; i < req->num_masks; i++) {
+        next = (xXIEventMask *) ((char *) &mask[1] + mask->mask_len * 4);
         swaps(&mask->deviceid);
         swaps(&mask->mask_len);
         mask = next;
@@ -125,41 +125,41 @@ static void request_XISelectEvent(xXISelectEventsReq *req, int error)
     assert(rc == error);
 }
 
-static void _set_bit(unsigned char *bits, int bit)
+static void
+_set_bit(unsigned char *bits, int bit)
 {
     SetBit(bits, bit);
-    if (bit >= XI_TouchBegin && bit <= XI_TouchOwnership)
-    {
+    if (bit >= XI_TouchBegin && bit <= XI_TouchOwnership) {
         SetBit(bits, XI_TouchBegin);
         SetBit(bits, XI_TouchUpdate);
         SetBit(bits, XI_TouchEnd);
     }
 }
 
-static void _clear_bit(unsigned char *bits, int bit)
+static void
+_clear_bit(unsigned char *bits, int bit)
 {
     ClearBit(bits, bit);
-    if (bit >= XI_TouchBegin && bit <= XI_TouchOwnership)
-    {
+    if (bit >= XI_TouchBegin && bit <= XI_TouchOwnership) {
         ClearBit(bits, XI_TouchBegin);
         ClearBit(bits, XI_TouchUpdate);
         ClearBit(bits, XI_TouchEnd);
     }
 }
 
-static void request_XISelectEvents_masks(xXISelectEventsReq *req)
+static void
+request_XISelectEvents_masks(xXISelectEventsReq * req)
 {
     int i, j;
     xXIEventMask *mask;
-    int nmasks = (XI2LASTEVENT + 7)/8;
+    int nmasks = (XI2LASTEVENT + 7) / 8;
     unsigned char *bits;
 
-    mask = (xXIEventMask*)&req[1];
+    mask = (xXIEventMask *) & req[1];
     req->win = ROOT_WINDOW_ID;
 
     /* if a clients submits more than 100 masks, consider it insane and untested */
-    for (i = 1; i <= 1000; i++)
-    {
+    for (i = 1; i <= 1000; i++) {
         req->num_masks = i;
         mask->deviceid = XIAllDevices;
 
@@ -174,11 +174,10 @@ static void request_XISelectEvents_masks(xXISelectEventsReq *req)
          * Test setting each valid mask bit, while leaving unneeded bits 0.
          * -> Success
          */
-        bits = (unsigned char*)&mask[1];
-        mask->mask_len = (nmasks + 3)/4 * 10;
+        bits = (unsigned char *) &mask[1];
+        mask->mask_len = (nmasks + 3) / 4 * 10;
         memset(bits, 0, mask->mask_len * 4);
-        for (j = 0; j <= XI2LASTEVENT; j++)
-        {
+        for (j = 0; j <= XI2LASTEVENT; j++) {
             _set_bit(bits, j);
             request_XISelectEvent(req, Success);
             _clear_bit(bits, j);
@@ -189,12 +188,11 @@ static void request_XISelectEvents_masks(xXISelectEventsReq *req)
          * Test setting all valid mask bits, while leaving unneeded bits 0.
          * -> Success
          */
-        bits = (unsigned char*)&mask[1];
-        mask->mask_len = (nmasks + 3)/4 * 10;
+        bits = (unsigned char *) &mask[1];
+        mask->mask_len = (nmasks + 3) / 4 * 10;
         memset(bits, 0, mask->mask_len * 4);
 
-        for (j = 0; j <= XI2LASTEVENT; j++)
-        {
+        for (j = 0; j <= XI2LASTEVENT; j++) {
             _set_bit(bits, j);
             request_XISelectEvent(req, Success);
         }
@@ -203,12 +201,11 @@ static void request_XISelectEvents_masks(xXISelectEventsReq *req)
          * mask is larger than needed for XI2LASTEVENT. If any unneeded bit
          * is set -> BadValue
          */
-        bits = (unsigned char*)&mask[1];
-        mask->mask_len = (nmasks + 3)/4 * 10;
+        bits = (unsigned char *) &mask[1];
+        mask->mask_len = (nmasks + 3) / 4 * 10;
         memset(bits, 0, mask->mask_len * 4);
 
-        for (j = XI2LASTEVENT + 1; j < mask->mask_len * 4; j++)
-        {
+        for (j = XI2LASTEVENT + 1; j < mask->mask_len * 4; j++) {
             _set_bit(bits, j);
             request_XISelectEvent(req, BadValue);
             _clear_bit(bits, j);
@@ -217,11 +214,10 @@ static void request_XISelectEvents_masks(xXISelectEventsReq *req)
         /* Test 4:
          * Mask len is a sensible length, only valid bits are set -> Success
          */
-        bits = (unsigned char*)&mask[1];
-        mask->mask_len = (nmasks + 3)/4;
+        bits = (unsigned char *) &mask[1];
+        mask->mask_len = (nmasks + 3) / 4;
         memset(bits, 0, mask->mask_len * 4);
-        for (j = 0; j <= XI2LASTEVENT; j++)
-        {
+        for (j = 0; j <= XI2LASTEVENT; j++) {
             _set_bit(bits, j);
             request_XISelectEvent(req, Success);
         }
@@ -230,14 +226,13 @@ static void request_XISelectEvents_masks(xXISelectEventsReq *req)
          * HierarchyChanged bit is BadValue for devices other than
          * XIAllDevices
          */
-        bits = (unsigned char*)&mask[1];
-        mask->mask_len = (nmasks + 3)/4;
+        bits = (unsigned char *) &mask[1];
+        mask->mask_len = (nmasks + 3) / 4;
         memset(bits, 0, mask->mask_len * 4);
         SetBit(bits, XI_HierarchyChanged);
         mask->deviceid = XIAllDevices;
         request_XISelectEvent(req, Success);
-        for (j = 1; j < devices.num_devices; j++)
-        {
+        for (j = 1; j < devices.num_devices; j++) {
             mask->deviceid = j;
             request_XISelectEvent(req, BadValue);
         }
@@ -245,28 +240,31 @@ static void request_XISelectEvents_masks(xXISelectEventsReq *req)
         /* Test 6:
          * All bits set minus hierarchy changed bit -> Success
          */
-        bits = (unsigned char*)&mask[1];
-        mask->mask_len = (nmasks + 3)/4;
+        bits = (unsigned char *) &mask[1];
+        mask->mask_len = (nmasks + 3) / 4;
         memset(bits, 0, mask->mask_len * 4);
         for (j = 0; j <= XI2LASTEVENT; j++)
             _set_bit(bits, j);
         _clear_bit(bits, XI_HierarchyChanged);
-        for (j = 1; j < 6; j++)
-        {
+        for (j = 1; j < 6; j++) {
             mask->deviceid = j;
             request_XISelectEvent(req, Success);
         }
 
-        mask = (xXIEventMask*)((char*)mask + sizeof(xXIEventMask) + mask->mask_len * 4);
+        mask =
+            (xXIEventMask *) ((char *) mask + sizeof(xXIEventMask) +
+                              mask->mask_len * 4);
     }
 }
 
-static void test_XISelectEvents(void)
+static void
+test_XISelectEvents(void)
 {
     int i;
     xXIEventMask *mask;
     xXISelectEventsReq *req;
-    req = (xXISelectEventsReq*)data;
+
+    req = (xXISelectEventsReq *) data;
 
     request_init(req, XISelectEvents);
 
@@ -313,16 +311,15 @@ static void test_XISelectEvents(void)
     req->num_masks = 1;
 
     printf("Triggering bogus mask length error\n");
-    mask = (xXIEventMask*)&req[1];
+    mask = (xXIEventMask *) & req[1];
     mask->deviceid = 0;
     mask->mask_len = 0xFFFF;
     request_XISelectEvent(req, BadLength);
 
     /* testing various device ids */
     printf("Testing existing device ids.\n");
-    for (i = 0; i < 6; i++)
-    {
-        mask = (xXIEventMask*)&req[1];
+    for (i = 0; i < 6; i++) {
+        mask = (xXIEventMask *) & req[1];
         mask->deviceid = i;
         mask->mask_len = 1;
         req->win = ROOT_WINDOW_ID;
@@ -331,11 +328,10 @@ static void test_XISelectEvents(void)
     }
 
     printf("Testing non-existing device ids.\n");
-    for (i = 6; i <= 0xFFFF; i++)
-    {
+    for (i = 6; i <= 0xFFFF; i++) {
         req->win = ROOT_WINDOW_ID;
         req->num_masks = 1;
-        mask = (xXIEventMask*)&req[1];
+        mask = (xXIEventMask *) & req[1];
         mask->deviceid = i;
         mask->mask_len = 1;
         request_XISelectEvent(req, BadDevice);
@@ -344,7 +340,8 @@ static void test_XISelectEvents(void)
     request_XISelectEvents_masks(req);
 }
 
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     init_simple();
 
@@ -352,4 +349,3 @@ int main(int argc, char** argv)
 
     return 0;
 }
-

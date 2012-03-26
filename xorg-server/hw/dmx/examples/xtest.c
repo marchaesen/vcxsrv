@@ -36,19 +36,21 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/XTest.h>
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    Display              *display = NULL;
-    int                  event_base;
-    int                  error_base;
-    int                  major_version, minor_version;
+    Display *display = NULL;
+    int event_base;
+    int error_base;
+    int major_version, minor_version;
 
     if (argc == 2) {
         if (!(display = XOpenDisplay(argv[1]))) {
             printf("Cannot open display %s\n", argv[1]);
             return -1;
         }
-    } else {
+    }
+    else {
         printf("Usage: %s display\n", argv[0]);
         return -1;
     }

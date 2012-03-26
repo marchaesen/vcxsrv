@@ -47,40 +47,42 @@
 /** Return information about the dummy keyboard device specified in \a pDev
  * into the structure pointed to by \a info.  The keyboard is set up to
  * have 1 valid key code that is \a NoSymbol */
-void dmxDummyKbdGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info)
+void
+dmxDummyKbdGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info)
 {
     static KeySym keyboard_mapping = NoSymbol;
 
-    info->keyboard           = 1;
-    info->keyClass           = 1;
+    info->keyboard = 1;
+    info->keyClass = 1;
     info->keySyms.minKeyCode = 8;
     info->keySyms.maxKeyCode = 8;
-    info->keySyms.mapWidth   = 1;
-    info->keySyms.map        = &keyboard_mapping;
-    info->freemap            = 0;
-    info->focusClass         = 1;
-    info->kbdFeedbackClass   = 1;
-    info->force              = 1;
+    info->keySyms.mapWidth = 1;
+    info->keySyms.map = &keyboard_mapping;
+    info->freemap = 0;
+    info->focusClass = 1;
+    info->kbdFeedbackClass = 1;
+    info->force = 1;
 }
 
 /** Return information about the dummy mouse device specified in \a pDev
  * into the structure pointed to by \a info.  They mouse has 3 buttons
  * and two axes. */
-void dmxDummyMouGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info)
+void
+dmxDummyMouGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info)
 {
-    info->buttonClass      = 1;
-    info->numButtons       = 3;
-    info->map[0]           = 1;
-    info->map[1]           = 2;
-    info->map[2]           = 3;
-    info->valuatorClass    = 1;
-    info->numRelAxes       = 2;
-    info->minval[0]        = 0;
-    info->minval[1]        = 0;
-    info->maxval[0]        = 0;
-    info->maxval[1]        = 0;
-    info->res[0]           = 1;
-    info->minres[0]        = 0;
-    info->maxres[0]        = 1;
+    info->buttonClass = 1;
+    info->numButtons = 3;
+    info->map[0] = 1;
+    info->map[1] = 2;
+    info->map[2] = 3;
+    info->valuatorClass = 1;
+    info->numRelAxes = 2;
+    info->minval[0] = 0;
+    info->minval[1] = 0;
+    info->maxval[0] = 0;
+    info->maxval[1] = 0;
+    info->res[0] = 1;
+    info->minres[0] = 0;
+    info->maxres[0] = 1;
     info->ptrFeedbackClass = 1;
 }

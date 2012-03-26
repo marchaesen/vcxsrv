@@ -97,10 +97,10 @@
 #   define PIXMAN_GET_THREAD_LOCAL(name)				\
     (&name)
 
-#elif defined(TOOLCHAIN_SUPPORTS__THREAD)
+#elif defined(TLS)
 
 #   define PIXMAN_DEFINE_THREAD_LOCAL(type, name)			\
-    static __thread type name
+    static TLS type name
 #   define PIXMAN_GET_THREAD_LOCAL(name)				\
     (&name)
 

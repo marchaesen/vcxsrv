@@ -31,10 +31,10 @@
 #import "x-selection.h"
 
 #include <pthread.h>
-#include <unistd.h> /*for getpid*/
+#include <unistd.h>             /*for getpid */
 #include <Cocoa/Cocoa.h>
 
-static const char *app_prefs_domain = 	BUNDLE_ID_PREFIX".xpbproxy";
+static const char *app_prefs_domain = BUNDLE_ID_PREFIX ".xpbproxy";
 CFStringRef app_prefs_domain_cfstr;
 
 /* Stubs */
@@ -43,18 +43,20 @@ BOOL serverRunning = YES;
 pthread_mutex_t serverRunningMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t serverRunningCond = PTHREAD_COND_INITIALIZER;
 
-static void signal_handler (int sig) {
-    switch(sig) {
-        case SIGHUP:
-            xpbproxy_prefs_reload = YES;
-            break;
-        default:
-            _exit(EXIT_SUCCESS);
+static void
+signal_handler(int sig)
+{
+    switch (sig) {
+    case SIGHUP:
+        xpbproxy_prefs_reload = YES;
+        break;
+    default:
+        _exit(EXIT_SUCCESS);
     }
 }
 
 void
-ErrorF(const char * f, ...)
+ErrorF(const char *f, ...)
 {
     va_list args;
 
@@ -64,7 +66,10 @@ ErrorF(const char * f, ...)
 }
 
 /* TODO: Have this actually log to ASL */
-void xq_asl_log (int level, const char *subsystem, const char *file, const char *function, int line, const char *fmt, ...) {
+void
+xq_asl_log(int level, const char *subsystem, const char *file,
+           const char *function, int line, const char *fmt, ...)
+{
 #ifdef DEBUG
     va_list args;
 
@@ -74,7 +79,9 @@ void xq_asl_log (int level, const char *subsystem, const char *file, const char 
 #endif
 }
 
-int main (int argc, const char *argv[]) {
+int
+main(int argc, const char *argv[])
+{
     const char *s;
     int i;
 
@@ -84,31 +91,36 @@ int main (int argc, const char *argv[]) {
 
     xpbproxy_is_standalone = YES;
 
-    if((s = getenv("X11_PREFS_DOMAIN")))
+    if ((s = getenv("X11_PREFS_DOMAIN")))
         app_prefs_domain = s;
 
     for (i = 1; i < argc; i++) {
-        if(strcmp (argv[i], "--prefs-domain") == 0 && i+1 < argc) {
+        if (strcmp(argv[i], "--prefs-domain") == 0 && i + 1 < argc) {
             app_prefs_domain = argv[++i];
-        } else if (strcmp (argv[i], "--help") == 0) {
+        }
+        else if (strcmp(argv[i], "--help") == 0) {
             ErrorF("usage: xpbproxy OPTIONS\n"
                    "Pasteboard proxying for X11.\n\n"
                    "--prefs-domain <domain>   Change the domain used for reading preferences\n"
-                   "                          (default: %s)\n", app_prefs_domain);
+                   "                          (default: %s)\n",
+                   app_prefs_domain);
             return 0;
-        } else {
+        }
+        else {
             ErrorF("usage: xpbproxy OPTIONS...\n"
-                    "Try 'xpbproxy --help' for more information.\n");
+                   "Try 'xpbproxy --help' for more information.\n");
             return 1;
         }
     }
-    
-    app_prefs_domain_cfstr = CFStringCreateWithCString(NULL, app_prefs_domain, kCFStringEncodingUTF8);
-    
-    signal (SIGINT, signal_handler);
-    signal (SIGTERM, signal_handler);
-    signal (SIGHUP, signal_handler);
-    signal (SIGPIPE, SIG_IGN);
+
+    app_prefs_domain_cfstr =
+        CFStringCreateWithCString(NULL, app_prefs_domain,
+                                  kCFStringEncodingUTF8);
+
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+    signal(SIGHUP, signal_handler);
+    signal(SIGPIPE, SIG_IGN);
 
     return xpbproxy_run();
 }

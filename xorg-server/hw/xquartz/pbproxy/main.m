@@ -51,27 +51,31 @@ extern BOOL serverRunning;
 extern pthread_mutex_t serverRunningMutex;
 extern pthread_cond_t serverRunningCond;
 
-static inline void wait_for_server_init(void) {
+static inline void
+wait_for_server_init(void)
+{
     /* If the server hasn't finished initializing, wait for it... */
-    if(!serverRunning) {
+    if (!serverRunning) {
         pthread_mutex_lock(&serverRunningMutex);
-        while(!serverRunning)
+        while (!serverRunning)
             pthread_cond_wait(&serverRunningCond, &serverRunningMutex);
         pthread_mutex_unlock(&serverRunningMutex);
     }
 }
 
-static int x_io_error_handler (Display *dpy) {
+static int
+x_io_error_handler(Display * dpy)
+{
     /* We lost our connection to the server. */
-    
-    TRACE ();
+
+    TRACE();
 
     /* trigger the thread to restart?
      *   NO - this would be to a "deeper" problem, and restarts would just
      *        make things worse...
      */
 #ifdef STANDALONE_XPBPROXY
-    if(xpbproxy_is_standalone)
+    if (xpbproxy_is_standalone)
         exit(EXIT_FAILURE);
 #endif
 
@@ -80,70 +84,81 @@ static int x_io_error_handler (Display *dpy) {
     return 0;
 }
 
-static int x_error_handler (Display *dpy, XErrorEvent *errevent) {
+static int
+x_error_handler(Display * dpy, XErrorEvent * errevent)
+{
     return 0;
 }
 
-int xpbproxy_run (void) {
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+int
+xpbproxy_run(void)
+{
+    NSAutoreleasePool *pool =[[NSAutoreleasePool alloc] init];
     size_t i;
-    
+
     wait_for_server_init();
-    
-    for(i=0, xpbproxy_dpy=NULL; !xpbproxy_dpy && i<5; i++) {
+
+    for (i = 0, xpbproxy_dpy = NULL; !xpbproxy_dpy && i < 5; i++) {
         xpbproxy_dpy = XOpenDisplay(NULL);
-        
-        if(!xpbproxy_dpy && display) {
+
+        if (!xpbproxy_dpy && display) {
             char _display[32];
+
             snprintf(_display, sizeof(_display), ":%s", display);
             setenv("DISPLAY", _display, TRUE);
-            
-            xpbproxy_dpy=XOpenDisplay(_display);
+
+            xpbproxy_dpy = XOpenDisplay(_display);
         }
-        if(!xpbproxy_dpy)
+        if (!xpbproxy_dpy)
             sleep(1);
     }
-    
+
     if (xpbproxy_dpy == NULL) {
         ErrorF("xpbproxy: can't open default display\n");
         [pool release];
         return EXIT_FAILURE;
     }
-    
-    XSetIOErrorHandler (x_io_error_handler);
-    XSetErrorHandler (x_error_handler);
-    
-    if (!XAppleWMQueryExtension (xpbproxy_dpy, &xpbproxy_apple_wm_event_base,
-                                 &xpbproxy_apple_wm_error_base)) {
+
+    XSetIOErrorHandler(x_io_error_handler);
+    XSetErrorHandler(x_error_handler);
+
+    if (!XAppleWMQueryExtension(xpbproxy_dpy, &xpbproxy_apple_wm_event_base,
+                                &xpbproxy_apple_wm_error_base)) {
         ErrorF("xpbproxy: can't open AppleWM server extension\n");
         [pool release];
         return EXIT_FAILURE;
     }
 
-    xpbproxy_have_xfixes = XFixesQueryExtension(xpbproxy_dpy, &xpbproxy_xfixes_event_base, &xpbproxy_xfixes_error_base);
+    xpbproxy_have_xfixes =
+        XFixesQueryExtension(xpbproxy_dpy, &xpbproxy_xfixes_event_base,
+                             &xpbproxy_xfixes_error_base);
 
-    XAppleWMSelectInput (xpbproxy_dpy, AppleWMActivationNotifyMask |
-                         AppleWMPasteboardNotifyMask);
-    
-    _selection_object = [[x_selection alloc] init];
-    
-    if(!xpbproxy_input_register()) {
+    XAppleWMSelectInput(xpbproxy_dpy, AppleWMActivationNotifyMask |
+                        AppleWMPasteboardNotifyMask);
+
+    _selection_object =[[x_selection alloc] init];
+
+    if (!xpbproxy_input_register()) {
         [pool release];
         return EXIT_FAILURE;
     }
-    
+
     [pool release];
-    
+
     CFRunLoopRun();
 
     return EXIT_SUCCESS;
 }
 
-id xpbproxy_selection_object (void) {
+id
+xpbproxy_selection_object(void)
+{
     return _selection_object;
 }
 
-Time xpbproxy_current_timestamp (void) {
+Time
+xpbproxy_current_timestamp(void)
+{
     /* FIXME: may want to fetch a timestamp from the server.. */
     return CurrentTime;
 }

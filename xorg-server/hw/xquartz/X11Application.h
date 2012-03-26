@@ -34,49 +34,79 @@
 
 #import "X11Controller.h"
 
-@interface X11Application : NSApplication {
+ @ interface X11Application:NSApplication {
     X11Controller *_controller;
 
-    unsigned int _x_active :1;
+    unsigned int _x_active:1;
 }
 
-- (void) set_controller:controller;
-- (void) set_window_menu:(NSArray *)list;
+ -(void) set_controller:controller;
+ -(void) set_window_menu:(NSArray *) list;
 
-- (CFPropertyListRef) prefs_get_copy:(NSString *)key CF_RETURNS_RETAINED;
-- (int) prefs_get_integer:(NSString *)key default:(int)def;
-- (const char *) prefs_get_string:(NSString *)key default:(const char *)def;
-- (float) prefs_get_float:(NSString *)key default:(float)def;
-- (int) prefs_get_boolean:(NSString *)key default:(int)def;
-- (NSURL *) prefs_copy_url:(NSString *)key default:(NSURL *)def NS_RETURNS_RETAINED;
-- (NSArray *) prefs_get_array:(NSString *)key;
-- (void) prefs_set_integer:(NSString *)key value:(int)value;
-- (void) prefs_set_float:(NSString *)key value:(float)value;
-- (void) prefs_set_boolean:(NSString *)key value:(int)value;
-- (void) prefs_set_array:(NSString *)key value:(NSArray *)value;
-- (void) prefs_set_string:(NSString *)key value:(NSString *)value;
-- (void) prefs_synchronize;
+ -(CFPropertyListRef) prefs_get_copy:(NSString *)
+key CF_RETURNS_RETAINED;
 
-- (X11Controller *) controller;
-- (OSX_BOOL) x_active;
-@end
+ -(int) prefs_get_integer:(NSString *)
+key default:(int) def;
 
-extern X11Application *X11App;
+ -(const char *) prefs_get_string:(NSString *)
+key default:(const char *) def;
 
-#endif /* __OBJC__ */
+ -(float) prefs_get_float:(NSString *)
+key default:(float) def;
 
-void X11ApplicationSetWindowMenu (int nitems, const char **items,
-					 const char *shortcuts);
-void X11ApplicationSetWindowMenuCheck (int idx);
-void X11ApplicationSetFrontProcess (void);
-void X11ApplicationSetCanQuit (int state);
-void X11ApplicationServerReady (void);
-void X11ApplicationShowHideMenubar (int state);
-void X11ApplicationLaunchClient (const char *cmd);
+ -(int) prefs_get_boolean:(NSString *)
+key default:(int) def;
 
-Bool X11ApplicationCanEnterRandR (void);
+ -(NSURL *) prefs_copy_url:(NSString *)
+key default:(NSURL *)
+def NS_RETURNS_RETAINED;
 
-void X11ApplicationMain(int argc, char **argv, char **envp);
+ -(NSArray *) prefs_get_array:(NSString *) key;
+ -(void) prefs_set_integer:(NSString *)
+key value:(int) value;
+
+ -(void) prefs_set_float:(NSString *)
+key value:(float) value;
+
+ -(void) prefs_set_boolean:(NSString *)
+key value:(int) value;
+
+ -(void) prefs_set_array:(NSString *)
+key value:(NSArray *) value;
+
+ -(void) prefs_set_string:(NSString *)
+key value:(NSString *) value;
+
+-(void) prefs_synchronize;
+
+-(X11Controller *) controller;
+-(OSX_BOOL) x_active;
+@end extern X11Application *X11App;
+
+#endif                          /* __OBJC__ */
+
+void
+X11ApplicationSetWindowMenu(int nitems, const char **items,
+                            const char *shortcuts);
+void
+X11ApplicationSetWindowMenuCheck(int idx);
+void
+X11ApplicationSetFrontProcess(void);
+void
+X11ApplicationSetCanQuit(int state);
+void
+X11ApplicationServerReady(void);
+void
+X11ApplicationShowHideMenubar(int state);
+void
+X11ApplicationLaunchClient(const char *cmd);
+
+Bool
+X11ApplicationCanEnterRandR(void);
+
+void
+X11ApplicationMain(int argc, char **argv, char **envp);
 
 #define PREFS_APPSMENU              "apps_menu"
 #define PREFS_FAKEBUTTONS           "enable_fake_buttons"
@@ -113,4 +143,4 @@ extern Bool XQuartzScrollInDeviceDirection;
 #define PREFS_SYNC_CLIPBOARD_TO_PB   "sync_clipboard_to_pasteboard"
 #define PREFS_SYNC_PRIMARY_ON_SELECT "sync_primary_on_select"
 
-#endif /* X11APPLICATION_H */
+#endif                          /* X11APPLICATION_H */

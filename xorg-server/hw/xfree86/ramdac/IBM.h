@@ -1,19 +1,54 @@
 
 #include <xf86RamDac.h>
 
-extern _X_EXPORT RamDacHelperRecPtr IBMramdacProbe(ScrnInfoPtr pScrn, RamDacSupportedInfoRecPtr ramdacs);
-extern _X_EXPORT void IBMramdacSave(ScrnInfoPtr pScrn, RamDacRecPtr RamDacRec, RamDacRegRecPtr RamDacRegRec);
-extern _X_EXPORT void IBMramdacRestore(ScrnInfoPtr pScrn, RamDacRecPtr RamDacRec, RamDacRegRecPtr RamDacRegRec);
-extern _X_EXPORT void IBMramdac526SetBpp(ScrnInfoPtr pScrn, RamDacRegRecPtr RamDacRegRec);
-extern _X_EXPORT void IBMramdac640SetBpp(ScrnInfoPtr pScrn, RamDacRegRecPtr RamDacRegRec);
-extern _X_EXPORT unsigned long IBMramdac526CalculateMNPCForClock(unsigned long RefClock,
-    unsigned long ReqClock, char IsPixClock, unsigned long MinClock,
-    unsigned long MaxClock, unsigned long *rM, unsigned long *rN,
-    unsigned long *rP, unsigned long *rC);
-extern _X_EXPORT unsigned long IBMramdac640CalculateMNPCForClock(unsigned long RefClock,
-    unsigned long ReqClock, char IsPixClock, unsigned long MinClock,
-    unsigned long MaxClock, unsigned long *rM, unsigned long *rN,
-    unsigned long *rP, unsigned long *rC);
+extern _X_EXPORT RamDacHelperRecPtr IBMramdacProbe(ScrnInfoPtr pScrn,
+                                                   RamDacSupportedInfoRecPtr
+                                                   ramdacs);
+extern _X_EXPORT void IBMramdacSave(ScrnInfoPtr pScrn, RamDacRecPtr RamDacRec,
+                                    RamDacRegRecPtr RamDacRegRec);
+extern _X_EXPORT void IBMramdacRestore(ScrnInfoPtr pScrn,
+                                       RamDacRecPtr RamDacRec,
+                                       RamDacRegRecPtr RamDacRegRec);
+extern _X_EXPORT void IBMramdac526SetBpp(ScrnInfoPtr pScrn,
+                                         RamDacRegRecPtr RamDacRegRec);
+extern _X_EXPORT void IBMramdac640SetBpp(ScrnInfoPtr pScrn,
+                                         RamDacRegRecPtr RamDacRegRec);
+extern _X_EXPORT unsigned long IBMramdac526CalculateMNPCForClock(unsigned long
+                                                                 RefClock,
+                                                                 unsigned long
+                                                                 ReqClock,
+                                                                 char
+                                                                 IsPixClock,
+                                                                 unsigned long
+                                                                 MinClock,
+                                                                 unsigned long
+                                                                 MaxClock,
+                                                                 unsigned long
+                                                                 *rM,
+                                                                 unsigned long
+                                                                 *rN,
+                                                                 unsigned long
+                                                                 *rP,
+                                                                 unsigned long
+                                                                 *rC);
+extern _X_EXPORT unsigned long IBMramdac640CalculateMNPCForClock(unsigned long
+                                                                 RefClock,
+                                                                 unsigned long
+                                                                 ReqClock,
+                                                                 char
+                                                                 IsPixClock,
+                                                                 unsigned long
+                                                                 MinClock,
+                                                                 unsigned long
+                                                                 MaxClock,
+                                                                 unsigned long
+                                                                 *rM,
+                                                                 unsigned long
+                                                                 *rN,
+                                                                 unsigned long
+                                                                 *rP,
+                                                                 unsigned long
+                                                                 *rC);
 extern _X_EXPORT void IBMramdac526HWCursorInit(xf86CursorInfoPtr infoPtr);
 extern _X_EXPORT void IBMramdac640HWCursorInit(xf86CursorInfoPtr infoPtr);
 
@@ -46,7 +81,7 @@ extern _X_EXPORT IBMramdac526SetBppProc *IBMramdac526SetBppWeak(void);
 #define IBMRGB_pwr_mgmt		0x05
 #define IBMRGB_dac_op		0x06
 #define IBMRGB_pal_ctrl		0x07
-#define IBMRGB_sysclk		0x08  /* not RGB525 */
+#define IBMRGB_sysclk		0x08    /* not RGB525 */
 #define IBMRGB_pix_fmt		0x0a
 #define IBMRGB_8bpp		0x0b
 #define IBMRGB_16bpp		0x0c
@@ -55,8 +90,8 @@ extern _X_EXPORT IBMramdac526SetBppProc *IBMramdac526SetBppWeak(void);
 #define IBMRGB_pll_ctrl1	0x10
 #define IBMRGB_pll_ctrl2	0x11
 #define IBMRGB_pll_ref_div_fix	0x14
-#define IBMRGB_sysclk_ref_div	0x15  /* not RGB525 */
-#define IBMRGB_sysclk_vco_div	0x16  /* not RGB525 */
+#define IBMRGB_sysclk_ref_div	0x15    /* not RGB525 */
+#define IBMRGB_sysclk_vco_div	0x16    /* not RGB525 */
 /* #define IBMRGB_f0		0x20 */
 
 #define IBMRGB_sysclk_n		0x15
@@ -105,7 +140,7 @@ extern _X_EXPORT IBMramdac526SetBppProc *IBMramdac526SetBppWeak(void);
 #define IBMRGB_misc1		0x70
 #define IBMRGB_misc2		0x71
 #define IBMRGB_misc3		0x72
-#define IBMRGB_misc4		0x73  /* not RGB525 */
+#define IBMRGB_misc4		0x73    /* not RGB525 */
 #define IBMRGB_key_control	0x78
 #define IBMRGB_dac_sense	0x82
 #define IBMRGB_misr_r		0x84
@@ -119,9 +154,7 @@ extern _X_EXPORT IBMramdac526SetBppProc *IBMramdac526SetBppWeak(void);
 #define IBMRGB_vram_mask_3	0x93
 #define IBMRGB_curs_array	0x100
 
-
-
-/* Constants rgb525.h */  
+/* Constants rgb525.h */
 
 /* RGB525_REVISION_LEVEL */
 #define RGB525_PRODUCT_REV_LEVEL        0xf0

@@ -33,34 +33,52 @@
 #include "input.h"
 #include "mi.h"
 
-void DDXRingBell(int volume, int pitch, int duration) {
+void
+DDXRingBell(int volume, int pitch, int duration)
+{
 }
 
-void ProcessInputEvents(void) {
+void
+ProcessInputEvents(void)
+{
     mieqProcessInputEvents();
 }
 
-void OsVendorInit(void) {
+void
+OsVendorInit(void)
+{
 }
 
-void OsVendorFatalError(void) {
+void
+OsVendorFatalError(void)
+{
 }
 
-void AbortDDX(enum ExitCode error) {
+void
+AbortDDX(enum ExitCode error)
+{
     OsAbort();
 }
 
-void ddxUseMsg(void) {
+void
+ddxUseMsg(void)
+{
 }
 
-int ddxProcessArgument(int argc, char *argv[], int i) {
+int
+ddxProcessArgument(int argc, char *argv[], int i)
+{
     return 0;
 }
 
-void ddxGiveUp( enum ExitCode error ) {
+void
+ddxGiveUp(enum ExitCode error)
+{
 }
 
-Bool LegalModifier(unsigned int key, DeviceIntPtr pDev) {
+Bool
+LegalModifier(unsigned int key, DeviceIntPtr pDev)
+{
     return TRUE;
 }
 
@@ -76,16 +94,20 @@ int darwinMainScreenY = 0;
 
 BOOL no_configure_window = FALSE;
 
-void darwinEvents_lock(void) {
+void
+darwinEvents_lock(void)
+{
 }
 
-void darwinEvents_unlock(void) {
+void
+darwinEvents_unlock(void)
+{
 }
 #endif
 
 #ifdef DDXBEFORERESET
 void
-ddxBeforeReset(void) {
+ddxBeforeReset(void)
+{
 }
 #endif
-

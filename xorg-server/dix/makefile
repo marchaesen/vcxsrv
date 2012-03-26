@@ -2,7 +2,7 @@ ifeq ($(DEBUG),1)
 DEFINES += FONTDEBUG XSERVER_DTRACE
 endif
 
-INCLUDES += ..\composite
+INCLUDES += ..\composite ..\miext\sync
 
 LIBRARY=libdix
 

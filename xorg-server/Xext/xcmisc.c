@@ -54,11 +54,11 @@ ProcXCMiscGetVersion(ClientPtr client)
     rep.majorVersion = XCMiscMajorVersion;
     rep.minorVersion = XCMiscMinorVersion;
     if (client->swapped) {
-	swaps(&rep.sequenceNumber);
-	swaps(&rep.majorVersion);
-	swaps(&rep.minorVersion);
+        swaps(&rep.sequenceNumber);
+        swaps(&rep.majorVersion);
+        swaps(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xXCMiscGetVersionReply), (char *)&rep);
+    WriteToClient(client, sizeof(xXCMiscGetVersionReply), (char *) &rep);
     return Success;
 }
 
@@ -76,11 +76,11 @@ ProcXCMiscGetXIDRange(ClientPtr client)
     rep.start_id = min_id;
     rep.count = max_id - min_id + 1;
     if (client->swapped) {
-	swaps(&rep.sequenceNumber);
-	swapl(&rep.start_id);
-	swapl(&rep.count);
+        swaps(&rep.sequenceNumber);
+        swapl(&rep.start_id);
+        swapl(&rep.count);
     }
-    WriteToClient(client, sizeof(xXCMiscGetXIDRangeReply), (char *)&rep);
+    WriteToClient(client, sizeof(xXCMiscGetXIDRangeReply), (char *) &rep);
     return Success;
 }
 
@@ -95,12 +95,11 @@ ProcXCMiscGetXIDList(ClientPtr client)
     REQUEST_SIZE_MATCH(xXCMiscGetXIDListReq);
 
     if (stuff->count > UINT32_MAX / sizeof(XID))
-	    return BadAlloc;
+        return BadAlloc;
 
-    pids = (XID *)malloc(stuff->count * sizeof(XID));
-    if (!pids)
-    {
-	return BadAlloc;
+    pids = (XID *) malloc(stuff->count * sizeof(XID));
+    if (!pids) {
+        return BadAlloc;
     }
     count = GetXIDList(client, stuff->count, pids);
     rep.type = X_Reply;
@@ -108,34 +107,32 @@ ProcXCMiscGetXIDList(ClientPtr client)
     rep.length = count;
     rep.count = count;
     if (client->swapped) {
-	swaps(&rep.sequenceNumber);
-	swapl(&rep.length);
-	swapl(&rep.count);
+        swaps(&rep.sequenceNumber);
+        swapl(&rep.length);
+        swapl(&rep.count);
     }
-    WriteToClient(client, sizeof(xXCMiscGetXIDListReply), (char *)&rep);
-    if (count)
-    {
-    	client->pSwapReplyFunc = (ReplySwapPtr) Swap32Write;
-	WriteSwappedDataToClient(client, count * sizeof(XID), pids);
+    WriteToClient(client, sizeof(xXCMiscGetXIDListReply), (char *) &rep);
+    if (count) {
+        client->pSwapReplyFunc = (ReplySwapPtr) Swap32Write;
+        WriteSwappedDataToClient(client, count * sizeof(XID), pids);
     }
     free(pids);
     return Success;
 }
 
 static int
-ProcXCMiscDispatch (ClientPtr client)
+ProcXCMiscDispatch(ClientPtr client)
 {
     REQUEST(xReq);
-    switch (stuff->data)
-    {
+    switch (stuff->data) {
     case X_XCMiscGetVersion:
-	return ProcXCMiscGetVersion(client);
+        return ProcXCMiscGetVersion(client);
     case X_XCMiscGetXIDRange:
-	return ProcXCMiscGetXIDRange(client);
+        return ProcXCMiscGetXIDRange(client);
     case X_XCMiscGetXIDList:
-	return ProcXCMiscGetXIDList(client);
+        return ProcXCMiscGetXIDList(client);
     default:
-	return BadRequest;
+        return BadRequest;
     }
 }
 
@@ -171,19 +168,18 @@ SProcXCMiscGetXIDList(ClientPtr client)
 }
 
 static int
-SProcXCMiscDispatch (ClientPtr client)
+SProcXCMiscDispatch(ClientPtr client)
 {
     REQUEST(xReq);
-    switch (stuff->data)
-    {
+    switch (stuff->data) {
     case X_XCMiscGetVersion:
-	return SProcXCMiscGetVersion(client);
+        return SProcXCMiscGetVersion(client);
     case X_XCMiscGetXIDRange:
-	return SProcXCMiscGetXIDRange(client);
+        return SProcXCMiscGetXIDRange(client);
     case X_XCMiscGetXIDList:
-	return SProcXCMiscGetXIDList(client);
+        return SProcXCMiscGetXIDList(client);
     default:
-	return BadRequest;
+        return BadRequest;
     }
 }
 
@@ -191,6 +187,6 @@ void
 XCMiscExtensionInit(INITARGS)
 {
     AddExtension(XCMiscExtensionName, 0, 0,
-		 ProcXCMiscDispatch, SProcXCMiscDispatch,
-		 NULL, StandardMinorOpcode);
+                 ProcXCMiscDispatch, SProcXCMiscDispatch,
+                 NULL, StandardMinorOpcode);
 }

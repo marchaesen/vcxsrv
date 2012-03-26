@@ -45,146 +45,131 @@
 #ifndef NAME_MAX
 #define NAME_MAX PATH_MAX
 #endif
-#define MENU_MAX 128   /* Maximum string length of a menu name or item */
+#define MENU_MAX 128            /* Maximum string length of a menu name or item */
 #define PARAM_MAX (4*PATH_MAX)  /* Maximum length of a parameter to a MENU */
 
-
 /* Supported commands in a MENU {} statement */
-typedef enum MENUCOMMANDTYPE
-{
-  CMD_EXEC,         /* /bin/sh -c the parameter            */
-  CMD_MENU,         /* Display a popup menu named param    */
-  CMD_SEPARATOR,    /* Menu separator                      */
-  CMD_ALWAYSONTOP,  /* Toggle always-on-top mode           */
-  CMD_RELOAD        /* Reparse the .XWINRC file            */
+typedef enum MENUCOMMANDTYPE {
+    CMD_EXEC,                   /* /bin/sh -c the parameter            */
+    CMD_MENU,                   /* Display a popup menu named param    */
+    CMD_SEPARATOR,              /* Menu separator                      */
+    CMD_ALWAYSONTOP,            /* Toggle always-on-top mode           */
+    CMD_RELOAD                  /* Reparse the .XWINRC file            */
 } MENUCOMMANDTYPE;
 
-#define STYLE_NONE     (0L)    /* Dummy the first entry                      */
-#define STYLE_NOTITLE  (1L)    /* Force window style no titlebar             */
-#define STYLE_OUTLINE  (1L<<1) /* Force window style just thin-line border   */
-#define STYLE_NOFRAME  (1L<<2) /* Force window style no frame                */
-#define STYLE_TOPMOST  (1L<<3) /* Open a window always-on-top                */
-#define STYLE_MAXIMIZE (1L<<4) /* Open a window maximized                    */
-#define STYLE_MINIMIZE (1L<<5) /* Open a window minimized                    */
-#define STYLE_BOTTOM   (1L<<6) /* Open a window at the bottom of the Z order */
+#define STYLE_NONE     (0L)     /* Dummy the first entry                      */
+#define STYLE_NOTITLE  (1L)     /* Force window style no titlebar             */
+#define STYLE_OUTLINE  (1L<<1)  /* Force window style just thin-line border   */
+#define STYLE_NOFRAME  (1L<<2)  /* Force window style no frame                */
+#define STYLE_TOPMOST  (1L<<3)  /* Open a window always-on-top                */
+#define STYLE_MAXIMIZE (1L<<4)  /* Open a window maximized                    */
+#define STYLE_MINIMIZE (1L<<5)  /* Open a window minimized                    */
+#define STYLE_BOTTOM   (1L<<6)  /* Open a window at the bottom of the Z order */
 
 /* Where to place a system menu */
-typedef enum MENUPOSITION
-{
-  AT_START,   /* Place menu at the top of the system menu   */
-  AT_END      /* Put it at the bottom of the menu (default) */
+typedef enum MENUPOSITION {
+    AT_START,                   /* Place menu at the top of the system menu   */
+    AT_END                      /* Put it at the bottom of the menu (default) */
 } MENUPOSITION;
 
 /* Menu item definitions */
-typedef struct MENUITEM
-{
-  char text[MENU_MAX+1];   /* To be displayed in menu */
-  MENUCOMMANDTYPE cmd;     /* What should it do? */
-  char param[PARAM_MAX+1]; /* Any parameters? */
-  unsigned long commandID; /* Windows WM_COMMAND ID assigned at runtime */
+typedef struct MENUITEM {
+    char text[MENU_MAX + 1];    /* To be displayed in menu */
+    MENUCOMMANDTYPE cmd;        /* What should it do? */
+    char param[PARAM_MAX + 1];  /* Any parameters? */
+    unsigned long commandID;    /* Windows WM_COMMAND ID assigned at runtime */
 } MENUITEM;
 
 /* A completely read in menu... */
-typedef struct MENUPARSED
-{
-  char menuName[MENU_MAX+1]; /* What's it called in the text? */
-  MENUITEM *menuItem;        /* Array of items */
-  int menuItems;             /* How big's the array? */
+typedef struct MENUPARSED {
+    char menuName[MENU_MAX + 1];        /* What's it called in the text? */
+    MENUITEM *menuItem;         /* Array of items */
+    int menuItems;              /* How big's the array? */
 } MENUPARSED;
 
 /* To map between a window and a system menu to add for it */
-typedef struct SYSMENUITEM
-{
-  char match[MENU_MAX+1];    /* String to look for to apply this sysmenu */
-  char menuName[MENU_MAX+1]; /* Which menu to show? Used to set *menu */
-  MENUPOSITION menuPos;      /* Where to place it (ignored in root) */
+typedef struct SYSMENUITEM {
+    char match[MENU_MAX + 1];   /* String to look for to apply this sysmenu */
+    char menuName[MENU_MAX + 1];        /* Which menu to show? Used to set *menu */
+    MENUPOSITION menuPos;       /* Where to place it (ignored in root) */
 } SYSMENUITEM;
 
 /* To redefine icons for certain window types */
-typedef struct ICONITEM
-{
-  char match[MENU_MAX+1];             /* What string to search for? */
-  char iconFile[PATH_MAX+NAME_MAX+2]; /* Icon location, WIN32 path */
-  HICON hicon;                /* LoadImage() result */
+typedef struct ICONITEM {
+    char match[MENU_MAX + 1];   /* What string to search for? */
+    char iconFile[PATH_MAX + NAME_MAX + 2];     /* Icon location, WIN32 path */
+    HICON hicon;                /* LoadImage() result */
 } ICONITEM;
 
 /* To redefine styles for certain window types */
-typedef struct STYLEITEM
-{
-  char match[MENU_MAX+1];    /* What string to search for? */
-  unsigned long type;                 /* What should it do? */
+typedef struct STYLEITEM {
+    char match[MENU_MAX + 1];   /* What string to search for? */
+    unsigned long type;         /* What should it do? */
 } STYLEITEM;
 
-typedef struct WINPREFS
-{
-  /* Menu information */
-  MENUPARSED *menu; /* Array of created menus */
-  int menuItems;      /* How big? */
+typedef struct WINPREFS {
+    /* Menu information */
+    MENUPARSED *menu;           /* Array of created menus */
+    int menuItems;              /* How big? */
 
-  /* Taskbar menu settings */
-  char rootMenuName[MENU_MAX+1];  /* Menu for taskbar icon */
+    /* Taskbar menu settings */
+    char rootMenuName[MENU_MAX + 1];    /* Menu for taskbar icon */
 
-  /* System menu addition menus */
-  SYSMENUITEM *sysMenu;
-  int sysMenuItems;
+    /* System menu addition menus */
+    SYSMENUITEM *sysMenu;
+    int sysMenuItems;
 
-  /* Which menu to add to unmatched windows? */
-  char defaultSysMenuName[MENU_MAX+1];
-  MENUPOSITION defaultSysMenuPos;   /* Where to place it */
+    /* Which menu to add to unmatched windows? */
+    char defaultSysMenuName[MENU_MAX + 1];
+    MENUPOSITION defaultSysMenuPos;     /* Where to place it */
 
-  /* Icon information */
-  char iconDirectory[PATH_MAX+1]; /* Where do the .icos lie? (Win32 path) */
-  char defaultIconName[NAME_MAX+1];   /* Replacement for x.ico */
-  char trayIconName[NAME_MAX+1]; /* Replacement for tray icon */
+    /* Icon information */
+    char iconDirectory[PATH_MAX + 1];   /* Where do the .icos lie? (Win32 path) */
+    char defaultIconName[NAME_MAX + 1]; /* Replacement for x.ico */
+    char trayIconName[NAME_MAX + 1];    /* Replacement for tray icon */
 
-  ICONITEM *icon;
-  int iconItems;
+    ICONITEM *icon;
+    int iconItems;
 
-  STYLEITEM *style;
-  int styleItems;
+    STYLEITEM *style;
+    int styleItems;
 
-  /* Force exit flag */
-  Bool fForceExit;
+    /* Force exit flag */
+    Bool fForceExit;
 
-  /* Silent exit flag */
-  Bool fSilentExit;
+    /* Silent exit flag */
+    Bool fSilentExit;
 
 } WINPREFS;
 
 /* The global pref settings structure loaded by the winprefyacc.y parser */
 extern WINPREFS pref;
 
-
 /* Functions */
 void
-LoadPreferences(void);
+ LoadPreferences(void);
 
 void
-SetupRootMenu (unsigned long hmenuRoot);
+ SetupRootMenu(unsigned long hmenuRoot);
 
 void
-SetupSysMenu (unsigned long hwndIn);
+ SetupSysMenu(unsigned long hwndIn);
 
 void
-HandleCustomWM_INITMENU(unsigned long hwndIn,
-			unsigned long hmenuIn);
+ HandleCustomWM_INITMENU(unsigned long hwndIn, unsigned long hmenuIn);
 
 Bool
-HandleCustomWM_COMMAND (unsigned long hwndIn,
-			int           command);
+ HandleCustomWM_COMMAND(unsigned long hwndIn, int command);
 
 int
-winIconIsOverride (unsigned hiconIn);
+ winIconIsOverride(unsigned hiconIn);
 
-HICON
-winOverrideIcon (unsigned long longpWin);
+HICON winOverrideIcon(unsigned long longpWin);
 
 unsigned long
-winOverrideStyle (char *res_name, char *res_class, char *wmName);
+ winOverrideStyle(char *res_name, char *res_class, char *wmName);
 
-HICON
-winTaskbarIcon(void);
+HICON winTaskbarIcon(void);
 
-HICON
-winOverrideDefaultIcon(int size);
+HICON winOverrideDefaultIcon(int size);
 #endif

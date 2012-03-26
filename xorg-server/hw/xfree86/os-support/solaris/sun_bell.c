@@ -45,19 +45,19 @@
 void
 xf86OSRingBell(int loudness, int pitch, int duration)
 {
-    static short    samples[BELL_SAMPLES];
-    static short    silence[BELL_SAMPLES]; /* "The Sound of Silence" */
-    static int      lastFreq;
-    int             cnt; 
-    int             i;
-    int             written;
-    int             repeats;
-    int             freq;
-    audio_info_t    audioInfo;
-    struct iovec    iov[IOV_MAX];
-    int             iovcnt;
-    double          ampl, cyclen, phase;
-    int             audioFD;
+    static short samples[BELL_SAMPLES];
+    static short silence[BELL_SAMPLES]; /* "The Sound of Silence" */
+    static int lastFreq;
+    int cnt;
+    int i;
+    int written;
+    int repeats;
+    int freq;
+    audio_info_t audioInfo;
+    struct iovec iov[IOV_MAX];
+    int iovcnt;
+    double ampl, cyclen, phase;
+    int audioFD;
 
     if ((loudness <= 0) || (pitch <= 0) || (duration <= 0)) {
         return;
@@ -84,7 +84,7 @@ xf86OSRingBell(int loudness, int pitch, int duration)
 
     if (freq != lastFreq) {
         lastFreq = freq;
-        ampl =  16384.0;
+        ampl = 16384.0;
 
         cyclen = (double) freq / (double) BELL_RATE;
         phase = 0.0;
@@ -115,7 +115,7 @@ xf86OSRingBell(int loudness, int pitch, int duration)
     audioInfo.play.precision = 16;
     audioInfo.play.gain = min(AUDIO_MAX_GAIN, AUDIO_MAX_GAIN * loudness / 100);
 
-    if (ioctl(audioFD, AUDIO_SETINFO, &audioInfo) < 0){
+    if (ioctl(audioFD, AUDIO_SETINFO, &audioInfo) < 0) {
         xf86Msg(X_ERROR,
                 "Bell: AUDIO_SETINFO failed on audio device \"%s\": %s\n",
                 AUDIO_DEVICE, strerror(errno));
@@ -132,14 +132,15 @@ xf86OSRingBell(int loudness, int pitch, int duration)
              */
             iov[iovcnt].iov_base = (char *) silence;
             iov[iovcnt++].iov_len = sizeof(silence);
-        } else {
+        }
+        else {
             iov[iovcnt].iov_base = (char *) samples;
             iov[iovcnt++].iov_len = sizeof(samples);
         }
         if ((iovcnt >= IOV_MAX) || (cnt == repeats)) {
             written = writev(audioFD, iov, iovcnt);
 
-            if ((written < ((int)(sizeof(samples) * iovcnt)))) {
+            if ((written < ((int) (sizeof(samples) * iovcnt)))) {
                 /* audio buffer was full! */
 
                 int naptime;
@@ -147,13 +148,14 @@ xf86OSRingBell(int loudness, int pitch, int duration)
                 if (written == -1) {
                     if (errno != EAGAIN) {
                         xf86Msg(X_ERROR,
-                               "Bell: writev failed on audio device \"%s\": %s\n",
+                                "Bell: writev failed on audio device \"%s\": %s\n",
                                 AUDIO_DEVICE, strerror(errno));
                         close(audioFD);
                         return;
                     }
                     i = iovcnt;
-                } else {
+                }
+                else {
                     i = ((sizeof(samples) * iovcnt) - written)
                         / sizeof(samples);
                 }
@@ -169,7 +171,8 @@ xf86OSRingBell(int loudness, int pitch, int duration)
                     iov[iovcnt].iov_base = ((char *) samples) + i;
                     iov[iovcnt++].iov_len = sizeof(samples) - i;
                 }
-            } else {
+            }
+            else {
                 iovcnt = 0;
             }
         }

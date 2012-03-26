@@ -33,91 +33,80 @@ extern _X_EXPORT DevPrivateKey fbOverlayGetScreenPrivateKey(void);
 #define FB_OVERLAY_MAX	2
 #endif
 
-typedef	void	(*fbOverlayPaintKeyProc) (DrawablePtr, RegionPtr, CARD32, int);
+typedef void (*fbOverlayPaintKeyProc) (DrawablePtr, RegionPtr, CARD32, int);
 
 typedef struct _fbOverlayLayer {
     union {
-	struct {
-	    pointer	pbits;
-	    int		width;
-	    int		depth;
-	} init;
-	struct {
-	    PixmapPtr	pixmap;
-	    RegionRec	region;
-	} run;
+        struct {
+            pointer pbits;
+            int width;
+            int depth;
+        } init;
+        struct {
+            PixmapPtr pixmap;
+            RegionRec region;
+        } run;
     } u;
-    CARD32	key;	    /* special pixel value */
+    CARD32 key;                 /* special pixel value */
 } FbOverlayLayer;
 
 typedef struct _fbOverlayScrPriv {
-    int			    nlayers;
-    fbOverlayPaintKeyProc   PaintKey;
-    miCopyProc		    CopyWindow;
-    FbOverlayLayer	    layer[FB_OVERLAY_MAX];
+    int nlayers;
+    fbOverlayPaintKeyProc PaintKey;
+    miCopyProc CopyWindow;
+    FbOverlayLayer layer[FB_OVERLAY_MAX];
 } FbOverlayScrPrivRec, *FbOverlayScrPrivPtr;
 
 #define fbOverlayGetScrPriv(s) \
     dixLookupPrivate(&(s)->devPrivates, fbOverlayGetScreenPrivateKey())
 extern _X_EXPORT Bool
-fbOverlayCreateWindow(WindowPtr pWin);
+ fbOverlayCreateWindow(WindowPtr pWin);
 
 extern _X_EXPORT Bool
-fbOverlayCloseScreen (int iScreen, ScreenPtr pScreen);
+ fbOverlayCloseScreen(int iScreen, ScreenPtr pScreen);
 
 extern _X_EXPORT int
-fbOverlayWindowLayer(WindowPtr pWin);
+ fbOverlayWindowLayer(WindowPtr pWin);
 
 extern _X_EXPORT Bool
-fbOverlayCreateScreenResources(ScreenPtr pScreen);
+ fbOverlayCreateScreenResources(ScreenPtr pScreen);
 
 extern _X_EXPORT void
-fbOverlayPaintKey (DrawablePtr	pDrawable,
-		   RegionPtr	pRegion,
-		   CARD32	pixel,
-		   int		layer);
-extern _X_EXPORT void
-fbOverlayUpdateLayerRegion (ScreenPtr	pScreen,
-			    int		layer,
-			    RegionPtr	prgn);
 
-    
+fbOverlayPaintKey(DrawablePtr pDrawable,
+                  RegionPtr pRegion, CARD32 pixel, int layer);
 extern _X_EXPORT void
-fbOverlayCopyWindow(WindowPtr	pWin,
-		    DDXPointRec	ptOldOrg,
-		    RegionPtr	prgnSrc);
-    
+ fbOverlayUpdateLayerRegion(ScreenPtr pScreen, int layer, RegionPtr prgn);
+
 extern _X_EXPORT void
-fbOverlayWindowExposures (WindowPtr	pWin,
-			  RegionPtr	prgn,
-			  RegionPtr	other_exposed);
+ fbOverlayCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc);
+
+extern _X_EXPORT void
+
+fbOverlayWindowExposures(WindowPtr pWin,
+                         RegionPtr prgn, RegionPtr other_exposed);
 
 extern _X_EXPORT Bool
-fbOverlaySetupScreen(ScreenPtr	pScreen,
-		     pointer	pbits1,
-		     pointer	pbits2,
-		     int	xsize,
-		     int	ysize,
-		     int	dpix,
-		     int	dpiy,
-		     int	width1,
-		     int	width2,
-		     int	bpp1,
-		     int	bpp2);
+
+fbOverlaySetupScreen(ScreenPtr pScreen,
+                     pointer pbits1,
+                     pointer pbits2,
+                     int xsize,
+                     int ysize,
+                     int dpix,
+                     int dpiy, int width1, int width2, int bpp1, int bpp2);
 
 extern _X_EXPORT Bool
-fbOverlayFinishScreenInit(ScreenPtr	pScreen,
-			  pointer	pbits1,
-			  pointer	pbits2,
-			  int		xsize,
-			  int		ysize,
-			  int		dpix,
-			  int		dpiy,
-			  int		width1,
-			  int		width2,
-			  int		bpp1,
-			  int		bpp2,
-			  int		depth1,
-			  int		depth2);
 
-#endif /* _FBOVERLAY_H_ */
+fbOverlayFinishScreenInit(ScreenPtr pScreen,
+                          pointer pbits1,
+                          pointer pbits2,
+                          int xsize,
+                          int ysize,
+                          int dpix,
+                          int dpiy,
+                          int width1,
+                          int width2,
+                          int bpp1, int bpp2, int depth1, int depth2);
+
+#endif                          /* _FBOVERLAY_H_ */

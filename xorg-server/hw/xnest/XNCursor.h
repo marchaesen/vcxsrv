@@ -22,11 +22,12 @@ typedef struct {
 } xnestCursorFuncRec, *xnestCursorFuncPtr;
 
 extern DevPrivateKeyRec xnestCursorScreenKeyRec;
+
 #define xnestCursorScreenKey (&xnestCursorScreenKeyRec)
 extern xnestCursorFuncRec xnestCursorFuncs;
 
 typedef struct {
-  Cursor cursor;
+    Cursor cursor;
 } xnestPrivCursor;
 
 #define xnestGetCursorPriv(pCursor, pScreen) ((xnestPrivCursor *) \
@@ -39,21 +40,13 @@ typedef struct {
   (xnestGetCursorPriv(pCursor, pScreen)->cursor)
 
 Bool xnestRealizeCursor(DeviceIntPtr pDev,
-                        ScreenPtr pScreen,
-                        CursorPtr pCursor);
+                        ScreenPtr pScreen, CursorPtr pCursor);
 Bool xnestUnrealizeCursor(DeviceIntPtr pDev,
-                          ScreenPtr pScreen,
-                          CursorPtr pCursor);
-void xnestRecolorCursor(ScreenPtr pScreen,
-                        CursorPtr pCursor,
-                        Bool displayed);
-void xnestSetCursor (DeviceIntPtr pDev,
-                     ScreenPtr pScreen,
-                     CursorPtr pCursor,
-                     int x, int y);
-void xnestMoveCursor (DeviceIntPtr pDev,
-                      ScreenPtr pScreen,
-                      int x, int y);
+                          ScreenPtr pScreen, CursorPtr pCursor);
+void xnestRecolorCursor(ScreenPtr pScreen, CursorPtr pCursor, Bool displayed);
+void xnestSetCursor(DeviceIntPtr pDev,
+                    ScreenPtr pScreen, CursorPtr pCursor, int x, int y);
+void xnestMoveCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y);
 Bool xnestDeviceCursorInitialize(DeviceIntPtr pDev, ScreenPtr pScreen);
 void xnestDeviceCursorCleanup(DeviceIntPtr pDev, ScreenPtr pScreen);
-#endif /* XNESTCURSOR_H */
+#endif                          /* XNESTCURSOR_H */

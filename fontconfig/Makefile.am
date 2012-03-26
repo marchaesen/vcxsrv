@@ -71,7 +71,7 @@ $(srcdir)/ChangeLog:
 	if test -d "$(srcdir)/.git"; then \
 	  (GIT_DIR=$(top_srcdir)/.git ./missing --run git log --stat) | fmt --split-only > $@.tmp \
 	  && mv -f $@.tmp $@ \
-	  || (rm -f $@.tmp; \
+	  || ($(RM) $@.tmp; \
 	      echo Failed to generate ChangeLog, your ChangeLog may be outdated >&2; \
 	      (test -f $@ || echo git-log is required to generate this file >> $@)); \
 	else \
@@ -120,12 +120,12 @@ uninstall-local:
 	if [ -f $(srcdir)/fonts.conf ]; then \
 	  if cmp -s $(srcdir)/fonts.conf $(DESTDIR)$(configdir)/fonts.conf; then \
 	     echo " uninstall standard $(DESTDIR)$(configdir)/fonts.conf"; \
-	     rm -f $(DESTDIR)$(configdir)/fonts.conf; \
+	     $(RM) $(DESTDIR)$(configdir)/fonts.conf; \
 	  fi; \
 	else if [ -f fonts.conf ]; then \
 	  if cmp -s fonts.conf $(DESTDIR)$(configdir)/fonts.conf; then \
 	     echo " uninstall standard $(DESTDIR)$(configdir)/fonts.conf"; \
-	     rm -f $(DESTDIR)$(configdir)/fonts.conf; \
+	     $(RM) $(DESTDIR)$(configdir)/fonts.conf; \
 	  fi; \
 	fi; fi
 
@@ -136,7 +136,7 @@ debuild-unsigned: debuild-dirs
 	(cd $(distdir)/debian && debuild -us -uc)
 
 debuild-dirs: distdir
-	rm -f $(PACKAGE)_$(VERSION).orig.tar.gz
-	rm -rf $(distdir).orig
+	$(RM) $(PACKAGE)_$(VERSION).orig.tar.gz
+	$(RM) -r $(distdir).orig
 	cp -a $(distdir) $(distdir).orig
-	rm -rf $(distdir).orig/debian
+	$(RM) -r $(distdir).orig/debian

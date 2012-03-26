@@ -73,7 +73,7 @@ xkb_symbols "basic" {
     // Begin modifier mappings 
 
     modifier_map Shift  { Shift_L };
-    modifier_map Lock   { Caps_Lock, ISO_Lock };
+    modifier_map Lock   { Caps_Lock };
     modifier_map Control{ Control_L };
     modifier_map Mod3   { Mode_switch };
 };

@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -72,28 +71,25 @@ static int getPolyYBounds(DDXPointPtr pts, int n, int *by, int *ty);
  *     this code.
  */
 Bool
-miFillConvexPoly(
-    DrawablePtr dst,
-    GCPtr	pgc,
-    int		count,                /* number of points        */
-    DDXPointPtr ptsIn                 /* the points              */
+miFillConvexPoly(DrawablePtr dst, GCPtr pgc, int count, /* number of points        */
+                 DDXPointPtr ptsIn      /* the points              */
     )
 {
-    int xl = 0, xr = 0; /* x vals of left and right edges */
-    int dl = 0, dr = 0; /* decision variables             */
-    int ml = 0, m1l = 0;/* left edge slope and slope+1    */
-    int mr = 0, m1r = 0;         /* right edge slope and slope+1   */
-    int incr1l = 0, incr2l = 0;  /* left edge error increments     */
-    int incr1r = 0, incr2r = 0;  /* right edge error increments    */
-    int dy;                      /* delta y                        */
-    int y;                       /* current scanline               */
-    int left, right;             /* indices to first endpoints     */
-    int i;                       /* loop counter                   */
-    int nextleft, nextright;     /* indices to second endpoints    */
-    DDXPointPtr ptsOut, FirstPoint; /* output buffer               */
-    int *width, *FirstWidth;     /* output buffer                  */
-    int imin;                    /* index of smallest vertex (in y) */
-    int ymin;                    /* y-extents of polygon            */
+    int xl = 0, xr = 0;         /* x vals of left and right edges */
+    int dl = 0, dr = 0;         /* decision variables             */
+    int ml = 0, m1l = 0;        /* left edge slope and slope+1    */
+    int mr = 0, m1r = 0;        /* right edge slope and slope+1   */
+    int incr1l = 0, incr2l = 0; /* left edge error increments     */
+    int incr1r = 0, incr2r = 0; /* right edge error increments    */
+    int dy;                     /* delta y                        */
+    int y;                      /* current scanline               */
+    int left, right;            /* indices to first endpoints     */
+    int i;                      /* loop counter                   */
+    int nextleft, nextright;    /* indices to second endpoints    */
+    DDXPointPtr ptsOut, FirstPoint;     /* output buffer               */
+    int *width, *FirstWidth;    /* output buffer                  */
+    int imin;                   /* index of smallest vertex (in y) */
+    int ymin;                   /* y-extents of polygon            */
     int ymax;
 
     /*
@@ -104,14 +100,13 @@ miFillConvexPoly(
 
     dy = ymax - ymin + 1;
     if ((count < 3) || (dy < 0))
-	return TRUE;
-    ptsOut = FirstPoint = malloc(sizeof(DDXPointRec)*dy);
+        return TRUE;
+    ptsOut = FirstPoint = malloc(sizeof(DDXPointRec) * dy);
     width = FirstWidth = malloc(sizeof(int) * dy);
-    if(!FirstPoint || !FirstWidth)
-    {
-	free(FirstWidth);
-	free(FirstPoint);
-	return FALSE;
+    if (!FirstPoint || !FirstWidth) {
+        free(FirstWidth);
+        free(FirstPoint);
+        return FALSE;
     }
 
     nextleft = nextright = imin;
@@ -139,8 +134,8 @@ miFillConvexPoly(
              *  now compute all of the random information
              *  needed to run the iterative algorithm.
              */
-            BRESINITPGON(ptsIn[nextleft].y-ptsIn[left].y,
-                         ptsIn[left].x,ptsIn[nextleft].x,
+            BRESINITPGON(ptsIn[nextleft].y - ptsIn[left].y,
+                         ptsIn[left].x, ptsIn[nextleft].x,
                          xl, dl, ml, m1l, incr1l, incr2l);
         }
 
@@ -156,14 +151,14 @@ miFillConvexPoly(
              */
             nextright--;
             if (nextright < 0)
-                nextright = count-1;
+                nextright = count - 1;
 
             /*
              *  now compute all of the random information
              *  needed to run the iterative algorithm.
              */
-            BRESINITPGON(ptsIn[nextright].y-ptsIn[right].y,
-                         ptsIn[right].x,ptsIn[nextright].x,
+            BRESINITPGON(ptsIn[nextright].y - ptsIn[right].y,
+                         ptsIn[right].x, ptsIn[nextright].x,
                          xr, dr, mr, m1r, incr1r, incr2r);
         }
 
@@ -172,27 +167,23 @@ miFillConvexPoly(
          *  a right edge as well as a left edge.
          */
         i = min(ptsIn[nextleft].y, ptsIn[nextright].y) - y;
-	/* in case we're called with non-convex polygon */
-	if(i < 0)
-        {
-	    free(FirstWidth);
-	    free(FirstPoint);
-	    return TRUE;
-	}
-        while (i-- > 0) 
-        {
+        /* in case we're called with non-convex polygon */
+        if (i < 0) {
+            free(FirstWidth);
+            free(FirstPoint);
+            return TRUE;
+        }
+        while (i-- > 0) {
             ptsOut->y = y;
 
             /*
              *  reverse the edges if necessary
              */
-            if (xl < xr) 
-            {
+            if (xl < xr) {
                 *(width++) = xr - xl;
                 (ptsOut++)->x = xl;
             }
-            else 
-            {
+            else {
                 *(width++) = xl - xr;
                 (ptsOut++)->x = xr;
             }
@@ -202,19 +193,17 @@ miFillConvexPoly(
             BRESINCRPGON(dl, xl, ml, m1l, incr1l, incr2l);
             BRESINCRPGON(dr, xr, mr, m1r, incr1r, incr2r);
         }
-    }  while (y != ymax);
+    } while (y != ymax);
 
     /*
      * Finally, fill the <remaining> spans
      */
-    (*pgc->ops->FillSpans)(dst, pgc, 
-		      ptsOut-FirstPoint,FirstPoint,FirstWidth,
-		      1);
+    (*pgc->ops->FillSpans) (dst, pgc,
+                            ptsOut - FirstPoint, FirstPoint, FirstWidth, 1);
     free(FirstWidth);
     free(FirstPoint);
     return TRUE;
 }
-
 
 /*
  *     Find the index of the point with the smallest y.
@@ -230,12 +219,11 @@ getPolyYBounds(DDXPointPtr pts, int n, int *by, int *ty)
     ymin = ymax = (pts++)->y;
 
     while (--n > 0) {
-        if (pts->y < ymin)
-	{
+        if (pts->y < ymin) {
             ptMin = pts;
             ymin = pts->y;
         }
-	if(pts->y > ymax)
+        if (pts->y > ymax)
             ymax = pts->y;
 
         pts++;
@@ -243,5 +231,5 @@ getPolyYBounds(DDXPointPtr pts, int n, int *by, int *ty)
 
     *by = ymin;
     *ty = ymax;
-    return ptMin-ptsStart;
+    return ptMin - ptsStart;
 }

@@ -21,7 +21,7 @@
  * 
  * Written by Harm Hanemaayer (H.Hanemaayer@inter.nl.net).
  */
- 
+
 /*
  * Filled solid arcs, based on cfbfillarc.c.
  *
@@ -58,7 +58,7 @@
  */
 
 static void
-XAAFillEllipseSolid(DrawablePtr pDraw, GCPtr pGC, xArc *arc)
+XAAFillEllipseSolid(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
 {
     XAAInfoRecPtr infoRec = GET_XAAINFORECPTR_FROM_GC(pGC);
     register int x, y, e;
@@ -66,31 +66,29 @@ XAAFillEllipseSolid(DrawablePtr pDraw, GCPtr pGC, xArc *arc)
     int slw;
     miFillArcRec info;
 
-    (*infoRec->SetupForSolidFill)(infoRec->pScrn, pGC->fgPixel, pGC->alu,
-		pGC->planemask);
+    (*infoRec->SetupForSolidFill) (infoRec->pScrn, pGC->fgPixel, pGC->alu,
+                                   pGC->planemask);
 
     miFillArcSetup(arc, &info);
     MIFILLARCSETUP();
-    if (pGC->miTranslate)
-    {
-	xorg += pDraw->x;
-	yorg += pDraw->y;
+    if (pGC->miTranslate) {
+        xorg += pDraw->x;
+        yorg += pDraw->y;
     }
-    while (y > 0)
-    {
-	MIFILLARCSTEP(slw);
-	if (slw > 0) {
-	    (*infoRec->SubsequentSolidFillRect)(infoRec->pScrn, xorg - x,
-		    yorg - y, slw, 1);
+    while (y > 0) {
+        MIFILLARCSTEP(slw);
+        if (slw > 0) {
+            (*infoRec->SubsequentSolidFillRect) (infoRec->pScrn, xorg - x,
+                                                 yorg - y, slw, 1);
             if (miFillArcLower(slw))
-		(*infoRec->SubsequentSolidFillRect)(infoRec->pScrn,
-			xorg - x, yorg + y + dy, slw, 1);
-	}
+                (*infoRec->SubsequentSolidFillRect) (infoRec->pScrn,
+                                                     xorg - x, yorg + y + dy,
+                                                     slw, 1);
+        }
     }
 
     SET_SYNC_FLAG(infoRec);
 }
-
 
 #define ADDSPAN(l,r) \
     if (r >= l) \
@@ -111,8 +109,8 @@ XAAFillEllipseSolid(DrawablePtr pDraw, GCPtr pGC, xArc *arc)
     }
 
 static void
-XAAFillArcSliceSolid(DrawablePtr pDraw, GCPtr pGC, xArc *arc)
-{ 
+XAAFillArcSliceSolid(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
+{
     XAAInfoRecPtr infoRec = GET_XAAINFORECPTR_FROM_GC(pGC);
     int yk, xk, ym, xm, dx, dy, xorg, yorg, slw;
     register int x, y, e;
@@ -120,48 +118,43 @@ XAAFillArcSliceSolid(DrawablePtr pDraw, GCPtr pGC, xArc *arc)
     miArcSliceRec slice;
     int ya, xl, xr, xc;
 
-    (*infoRec->SetupForSolidFill)(infoRec->pScrn, pGC->fgPixel, pGC->alu,
-        pGC->planemask);
+    (*infoRec->SetupForSolidFill) (infoRec->pScrn, pGC->fgPixel, pGC->alu,
+                                   pGC->planemask);
 
     miFillArcSetup(arc, &info);
     miFillArcSliceSetup(arc, &slice, pGC);
     MIFILLARCSETUP();
     slw = arc->height;
     if (slice.flip_top || slice.flip_bot)
-	slw += (arc->height >> 1) + 1;
-    if (pGC->miTranslate)
-    {
-	xorg += pDraw->x;
-	yorg += pDraw->y;
-	slice.edge1.x += pDraw->x;
-	slice.edge2.x += pDraw->x;
+        slw += (arc->height >> 1) + 1;
+    if (pGC->miTranslate) {
+        xorg += pDraw->x;
+        yorg += pDraw->y;
+        slice.edge1.x += pDraw->x;
+        slice.edge2.x += pDraw->x;
     }
-    while (y > 0)
-    {
-	MIFILLARCSTEP(slw);
-	MIARCSLICESTEP(slice.edge1);
-	MIARCSLICESTEP(slice.edge2);
-	if (miFillSliceUpper(slice))
-	{
-	    ya = yorg - y;
-	    MIARCSLICEUPPER(xl, xr, slice, slw);
-	    
-	    ADDSLICESPANS(slice.flip_top);
-	}
-	if (miFillSliceLower(slice))
-	{
-	    ya = yorg + y + dy;
-	    MIARCSLICELOWER(xl, xr, slice, slw);
-	    ADDSLICESPANS(slice.flip_bot);
-	}
+    while (y > 0) {
+        MIFILLARCSTEP(slw);
+        MIARCSLICESTEP(slice.edge1);
+        MIARCSLICESTEP(slice.edge2);
+        if (miFillSliceUpper(slice)) {
+            ya = yorg - y;
+            MIARCSLICEUPPER(xl, xr, slice, slw);
+
+            ADDSLICESPANS(slice.flip_top);
+        }
+        if (miFillSliceLower(slice)) {
+            ya = yorg + y + dy;
+            MIARCSLICELOWER(xl, xr, slice, slw);
+            ADDSLICESPANS(slice.flip_bot);
+        }
     }
 
     SET_SYNC_FLAG(infoRec);
 }
 
-
 void
-XAAPolyFillArcSolid(DrawablePtr pDraw, GCPtr pGC, int narcs, xArc *parcs)
+XAAPolyFillArcSolid(DrawablePtr pDraw, GCPtr pGC, int narcs, xArc * parcs)
 {
     register xArc *arc;
     register int i;
@@ -171,43 +164,39 @@ XAAPolyFillArcSolid(DrawablePtr pDraw, GCPtr pGC, int narcs, xArc *parcs)
 
     cclip = pGC->pCompositeClip;
 
-    if(!RegionNumRects(cclip))
-	return;
+    if (!RegionNumRects(cclip))
+        return;
 
-    for (arc = parcs, i = narcs; --i >= 0; arc++)
-    {
-	if (miFillArcEmpty(arc))
-	    continue;
-	if (miCanFillArc(arc))
-	{
-	    box.x1 = arc->x + pDraw->x;
-	    box.y1 = arc->y + pDraw->y;
- 	    /*
- 	     * Because box.x2 and box.y2 get truncated to 16 bits, and the
- 	     * RECT_IN_REGION test treats the resulting number as a signed
- 	     * integer, the RECT_IN_REGION test alone can go the wrong way.
- 	     * This can result in a server crash because the rendering
- 	     * routines in this file deal directly with cpu addresses
- 	     * of pixels to be stored, and do not clip or otherwise check
- 	     * that all such addresses are within their respective pixmaps.
- 	     * So we only allow the RECT_IN_REGION test to be used for
- 	     * values that can be expressed correctly in a signed short.
- 	     */
- 	    x2 = box.x1 + (int)arc->width + 1;
- 	    box.x2 = x2;
- 	    y2 = box.y1 + (int)arc->height + 1;
- 	    box.y2 = y2;
- 	    if ( (x2 <= SHRT_MAX) && (y2 <= SHRT_MAX) &&
-		    (RegionContainsRect(cclip, &box) == rgnIN) )
-	    {
-		if ((arc->angle2 >= FULLCIRCLE) ||
-		    (arc->angle2 <= -FULLCIRCLE))
-		    XAAFillEllipseSolid(pDraw, pGC, arc);
-		else
-		    XAAFillArcSliceSolid(pDraw, pGC, arc);
-		continue;
-	    }
-	}
-	miPolyFillArc(pDraw, pGC, 1, arc);
+    for (arc = parcs, i = narcs; --i >= 0; arc++) {
+        if (miFillArcEmpty(arc))
+            continue;
+        if (miCanFillArc(arc)) {
+            box.x1 = arc->x + pDraw->x;
+            box.y1 = arc->y + pDraw->y;
+            /*
+             * Because box.x2 and box.y2 get truncated to 16 bits, and the
+             * RECT_IN_REGION test treats the resulting number as a signed
+             * integer, the RECT_IN_REGION test alone can go the wrong way.
+             * This can result in a server crash because the rendering
+             * routines in this file deal directly with cpu addresses
+             * of pixels to be stored, and do not clip or otherwise check
+             * that all such addresses are within their respective pixmaps.
+             * So we only allow the RECT_IN_REGION test to be used for
+             * values that can be expressed correctly in a signed short.
+             */
+            x2 = box.x1 + (int) arc->width + 1;
+            box.x2 = x2;
+            y2 = box.y1 + (int) arc->height + 1;
+            box.y2 = y2;
+            if ((x2 <= SHRT_MAX) && (y2 <= SHRT_MAX) &&
+                (RegionContainsRect(cclip, &box) == rgnIN)) {
+                if ((arc->angle2 >= FULLCIRCLE) || (arc->angle2 <= -FULLCIRCLE))
+                    XAAFillEllipseSolid(pDraw, pGC, arc);
+                else
+                    XAAFillArcSliceSolid(pDraw, pGC, arc);
+                continue;
+            }
+        }
+        miPolyFillArc(pDraw, pGC, 1, arc);
     }
 }

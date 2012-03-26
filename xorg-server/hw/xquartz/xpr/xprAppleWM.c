@@ -43,9 +43,8 @@
 #include "quartz.h"
 #include "x-hash.h"
 
-static int xprSetWindowLevel(
-    WindowPtr pWin,
-    int level)
+static int
+xprSetWindowLevel(WindowPtr pWin, int level)
 {
     xp_window_id wid;
     xp_window_changes wc;
@@ -56,25 +55,25 @@ static int xprSetWindowLevel(
     if (level < 0 || level >= AppleWMNumWindowLevels) {
         return BadValue;
     }
-    
-    wid = x_cvt_vptr_to_uint(RootlessFrameForWindow (pWin, TRUE));
+
+    wid = x_cvt_vptr_to_uint(RootlessFrameForWindow(pWin, TRUE));
     if (wid == 0)
         return BadWindow;
 
-    RootlessStopDrawing (pWin, FALSE);
+    RootlessStopDrawing(pWin, FALSE);
     winRec = WINREC(pWin);
- 
-    if(!winRec)
+
+    if (!winRec)
         return BadWindow;
-    
-    if(XQuartzIsRootless)
+
+    if (XQuartzIsRootless)
         wc.window_level = normal_window_levels[level];
-    else if(XQuartzShieldingWindowLevel)
+    else if (XQuartzShieldingWindowLevel)
         wc.window_level = XQuartzShieldingWindowLevel + 1;
     else
         wc.window_level = rooted_window_levels[level];
-    
-    if (xp_configure_window (wid, XP_WINDOW_LEVEL, &wc) != Success) {
+
+    if (xp_configure_window(wid, XP_WINDOW_LEVEL, &wc) != Success) {
         return BadValue;
     }
 
@@ -84,52 +83,54 @@ static int xprSetWindowLevel(
 }
 
 #if defined(XPLUGIN_VERSION) && XPLUGIN_VERSION >= 3
-static int xprAttachTransient(WindowPtr pWinChild, WindowPtr pWinParent) {
-    xp_window_id child_wid, parent_wid; 
+static int
+xprAttachTransient(WindowPtr pWinChild, WindowPtr pWinParent)
+{
+    xp_window_id child_wid, parent_wid;
     xp_window_changes wc;
 
     child_wid = x_cvt_vptr_to_uint(RootlessFrameForWindow(pWinChild, TRUE));
     if (child_wid == 0)
         return BadWindow;
 
-    if(pWinParent) {
-        parent_wid = x_cvt_vptr_to_uint(RootlessFrameForWindow(pWinParent, TRUE));
+    if (pWinParent) {
+        parent_wid =
+            x_cvt_vptr_to_uint(RootlessFrameForWindow(pWinParent, TRUE));
         if (parent_wid == 0)
             return BadWindow;
-    } else {
+    }
+    else {
         parent_wid = 0;
     }
-     
+
     wc.transient_for = parent_wid;
 
-    RootlessStopDrawing (pWinChild, FALSE);
+    RootlessStopDrawing(pWinChild, FALSE);
 
     if (xp_configure_window(child_wid, XP_ATTACH_TRANSIENT, &wc) != Success) {
         return BadValue;
     }
 
-    return Success;    
+    return Success;
 }
 #endif
 
-static int xprFrameDraw(
-    WindowPtr pWin,
-    xp_frame_class class,
-    xp_frame_attr attr,
-    const BoxRec *outer,
-    const BoxRec *inner,
-    unsigned int title_len,
-    const unsigned char *title_bytes)
+static int
+xprFrameDraw(WindowPtr pWin,
+             xp_frame_class class,
+             xp_frame_attr attr,
+             const BoxRec * outer,
+             const BoxRec * inner,
+             unsigned int title_len, const unsigned char *title_bytes)
 {
     xp_window_id wid;
 
-    wid = x_cvt_vptr_to_uint(RootlessFrameForWindow (pWin, FALSE));
+    wid = x_cvt_vptr_to_uint(RootlessFrameForWindow(pWin, FALSE));
     if (wid == 0)
         return BadWindow;
 
-    if (xp_frame_draw (wid, class, attr, outer, inner,
-                       title_len, title_bytes) != Success)
-    {
+    if (xp_frame_draw(wid, class, attr, outer, inner,
+                      title_len, title_bytes) != Success) {
         return BadValue;
     }
 
@@ -155,8 +156,8 @@ static AppleWMProcsRec xprAppleWMProcs = {
 #endif
 };
 
-
-void xprAppleWMInit(void)
+void
+xprAppleWMInit(void)
 {
     AppleWMExtensionInit(&xprAppleWMProcs);
 }

@@ -39,21 +39,19 @@ typedef struct {
     int x_visual_class;
 } dmxGlxVisualPrivate;
 
-__GLXvisualConfig *GetGLXVisualConfigs(Display *dpy,
-				       int screen,
-				       int *nconfigs);
+__GLXvisualConfig *GetGLXVisualConfigs(Display * dpy,
+                                       int screen, int *nconfigs);
 
-__GLXFBConfig *GetGLXFBConfigs(Display *dpy,
-			       int glxMajorOpcode,
-			       int *nconfigs);
+__GLXFBConfig *GetGLXFBConfigs(Display * dpy,
+                               int glxMajorOpcode, int *nconfigs);
 
-__GLXvisualConfig *GetGLXVisualConfigsFromFBConfigs(__GLXFBConfig *fbconfigs, 
-						    int nfbconfigs, 
-						    XVisualInfo *visuals,
-						    int nvisuals,
-						    __GLXvisualConfig
-						    *glxConfigs,
-						    int nGlxConfigs,
-						    int *nconfigs);
+__GLXvisualConfig *GetGLXVisualConfigsFromFBConfigs(__GLXFBConfig * fbconfigs,
+                                                    int nfbconfigs,
+                                                    XVisualInfo * visuals,
+                                                    int nvisuals,
+                                                    __GLXvisualConfig
+                                                    * glxConfigs,
+                                                    int nGlxConfigs,
+                                                    int *nconfigs);
 
 #endif

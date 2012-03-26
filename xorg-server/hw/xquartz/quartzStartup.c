@@ -56,59 +56,68 @@ struct arg {
     char **envp;
 };
 
-_X_NORETURN
-static void server_thread (void *arg) {
-    struct arg args = *((struct arg *)arg);
+_X_NORETURN static void
+server_thread(void *arg)
+{
+    struct arg args = *((struct arg *) arg);
+
     free(arg);
-    exit (dix_main(args.argc, args.argv, args.envp));
+    exit(dix_main(args.argc, args.argv, args.envp));
 }
 
-static pthread_t create_thread (void *func, void *arg) {
+static pthread_t
+create_thread(void *func, void *arg)
+{
     pthread_attr_t attr;
     pthread_t tid;
-	
-    pthread_attr_init (&attr);
-    pthread_attr_setscope (&attr, PTHREAD_SCOPE_SYSTEM);
-    pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_DETACHED);
-    pthread_create (&tid, &attr, func, arg);
-    pthread_attr_destroy (&attr);
-	
+
+    pthread_attr_init(&attr);
+    pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_create(&tid, &attr, func, arg);
+    pthread_attr_destroy(&attr);
+
     return tid;
 }
 
-void QuartzInitServer(int argc, char **argv, char **envp) {
-    struct arg *args = (struct arg*)malloc(sizeof(struct arg));
-    if(!args)
+void
+QuartzInitServer(int argc, char **argv, char **envp)
+{
+    struct arg *args = (struct arg *) malloc(sizeof(struct arg));
+
+    if (!args)
         FatalError("Could not allocate memory.\n");
-    
+
     args->argc = argc;
     args->argv = argv;
     args->envp = envp;
-    
+
     if (!create_thread(server_thread, args)) {
         FatalError("can't create secondary thread\n");
     }
 }
 
-int server_main(int argc, char **argv, char **envp) {
-    int         i;
-    int         fd[2];
+int
+server_main(int argc, char **argv, char **envp)
+{
+    int i;
+    int fd[2];
 
     /* Unset CFProcessPath, so our children don't inherit this kludge we need
      * to load our nib.  If an xterm gets this set, then it fails to
      * 'open hi.txt' properly.
      */
     unsetenv("CFProcessPath");
-    
+
     // Make a pipe to pass events
-    assert( pipe(fd) == 0 );
+    assert(pipe(fd) == 0);
     darwinEventReadFD = fd[0];
     darwinEventWriteFD = fd[1];
     fcntl(darwinEventReadFD, F_SETFL, O_NONBLOCK);
 
     for (i = 1; i < argc; i++) {
         // Display version info without starting Mac OS X UI if requested
-        if (!strcmp( argv[i], "-showconfig" ) || !strcmp( argv[i], "-version" )) {
+        if (!strcmp(argv[i], "-showconfig") || !strcmp(argv[i], "-version")) {
             DarwinPrintBanner();
             exit(0);
         }

@@ -41,8 +41,8 @@ $(TARG): $(STMPL) fc-glyphname.c $(SGLYPHNAME)
 	@echo Warning: cannot rebuild $(TARG) when cross-compiling
 else
 $(TARG): $(STMPL) fc-glyphname$(EXEEXT) $(SGLYPHNAME)
-	-@rm $(TARG)
-	$(AM_V_GEN) $(builddir)/fc-glyphname$(EXEEXT) $(SGLYPHNAME) < $(STMPL) > $(TARG).tmp && \
+	$(AM_V_GEN) $(RM) $(TARG); \
+	./fc-glyphname$(EXEEXT) $(SGLYPHNAME) < $(STMPL) > $(TARG).tmp && \
 	mv $(TARG).tmp $(TARG)
 endif
 

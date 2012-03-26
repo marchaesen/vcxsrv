@@ -39,18 +39,18 @@ extern Bool		g_fSilentDupError;
 #ifdef DDXOSVERRORF
 /* Prototype */
 void
-OsVendorVErrorF (const char *pszFormat, va_list va_args);
+ OsVendorVErrorF(const char *pszFormat, va_list va_args);
 
 void
-OsVendorVErrorF (const char *pszFormat, va_list va_args)
+OsVendorVErrorF(const char *pszFormat, va_list va_args)
 {
 #if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
-  /* make sure the clipboard and multiwindow threads do not interfere the
-   * main thread */
-  static pthread_mutex_t	s_pmPrinting = PTHREAD_MUTEX_INITIALIZER;
+    /* make sure the clipboard and multiwindow threads do not interfere the
+     * main thread */
+    static pthread_mutex_t s_pmPrinting = PTHREAD_MUTEX_INITIALIZER;
 
-  /* Lock the printing mutex */
-  pthread_mutex_lock (&s_pmPrinting);
+    /* Lock the printing mutex */
+    pthread_mutex_lock(&s_pmPrinting);
 #endif
 
   /*
@@ -71,16 +71,15 @@ OsVendorVErrorF (const char *pszFormat, va_list va_args)
 	}
     }
 
-  /* Print the error message to a log file, could be stderr */
-  LogVWrite (0, pszFormat, va_args);
+    /* Print the error message to a log file, could be stderr */
+    LogVWrite(0, pszFormat, va_args);
 
 #if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
-  /* Unlock the printing mutex */
-  pthread_mutex_unlock (&s_pmPrinting);
+    /* Unlock the printing mutex */
+    pthread_mutex_unlock(&s_pmPrinting);
 #endif
 }
 #endif
-
 
 /*
  * os/util.c/FatalError () calls our vendor ErrorF, so the message
@@ -91,17 +90,17 @@ OsVendorVErrorF (const char *pszFormat, va_list va_args)
  */
 char g_FatalErrorMessage[1024];
 void
-OsVendorFatalError (void)
+OsVendorFatalError(void)
 {
-  /* Don't give duplicate warning if UseMsg was called */
-  if (g_fSilentFatalError)
-    return;
+    /* Don't give duplicate warning if UseMsg was called */
+    if (g_fSilentFatalError)
+        return;
 
-  if (!g_fLogInited) {
-    g_fLogInited = TRUE;
-    g_pszLogFile = LogInit (g_pszLogFile, NULL);
-  }
-  LogClose (EXIT_ERR_ABORT);
+    if (!g_fLogInited) {
+        g_fLogInited = TRUE;
+        g_pszLogFile = LogInit(g_pszLogFile, NULL);
+    }
+    LogClose(EXIT_ERR_ABORT);
 
   winMessageBoxF (
           "A fatal error has occurred and " PROJECT_NAME " will now exit.\n" \
@@ -110,27 +109,26 @@ OsVendorFatalError (void)
 		  MB_ICONERROR, g_FatalErrorMessage, (g_pszLogFile?g_pszLogFile:"the logfile"));
 }
 
-
 /*
  * winMessageBoxF - Print a formatted error message in a useful
  * message box.
  */
 
 void
-winMessageBoxF (const char *pszError, UINT uType, ...)
+winMessageBoxF(const char *pszError, UINT uType, ...)
 {
-  char *	pszErrorF = NULL;
-  char *	pszMsgBox = NULL;
-  va_list	args;
-  int		size;
+    char *pszErrorF = NULL;
+    char *pszMsgBox = NULL;
+    va_list args;
+    int size;
 
-  va_start(args, uType);
-  size = vasprintf (&pszErrorF, pszError, args);
-  va_end(args);
-  if (size == -1) {
-    pszErrorF = NULL;
-    goto winMessageBoxF_Cleanup;
-  }
+    va_start(args, uType);
+    size = vasprintf(&pszErrorF, pszError, args);
+    va_end(args);
+    if (size == -1) {
+        pszErrorF = NULL;
+        goto winMessageBoxF_Cleanup;
+    }
 
 #define MESSAGEBOXF \
 	"%s\n" \
@@ -141,27 +139,22 @@ winMessageBoxF (const char *pszError, UINT uType, ...)
 	"XWin was started with the following command-line:\n\n" \
 	"%s\n"
 
-  size = asprintf (&pszMsgBox, MESSAGEBOXF,
-		   pszErrorF, XVENDORNAME,
-		   XORG_VERSION_MAJOR, XORG_VERSION_MINOR, XORG_VERSION_PATCH,
+    size = asprintf(&pszMsgBox, MESSAGEBOXF,
+                    pszErrorF, XVENDORNAME,
+                    XORG_VERSION_MAJOR, XORG_VERSION_MINOR, XORG_VERSION_PATCH,
 		    XORG_VERSION_SNAP,
-		   BUILDERADDR,
-		   BUILDERSTRING,
-		   g_pszCommandLine);
+                    BUILDERADDR, BUILDERSTRING, g_pszCommandLine);
 
-  if (size == -1) {
-    pszMsgBox = NULL;
-    goto winMessageBoxF_Cleanup;
-  }
+    if (size == -1) {
+        pszMsgBox = NULL;
+        goto winMessageBoxF_Cleanup;
+    }
 
-  /* Display the message box string */
-  MessageBox (NULL,
-	      pszMsgBox,
-	      PROJECT_NAME,
-	      MB_OK | uType);
+    /* Display the message box string */
+    MessageBox(NULL, pszMsgBox, PROJECT_NAME, MB_OK | uType);
 
  winMessageBoxF_Cleanup:
-  free(pszErrorF);
-  free(pszMsgBox);
+    free(pszErrorF);
+    free(pszMsgBox);
 #undef MESSAGEBOXF
 }

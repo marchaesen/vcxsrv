@@ -6,67 +6,80 @@
 #include "xsha1.h"
 
 #if defined(HAVE_SHA1_IN_LIBMD)  /* Use libmd for SHA1 */ \
-	|| defined(HAVE_SHA1_IN_LIBC) /* Use libc for SHA1 */
+	|| defined(HAVE_SHA1_IN_LIBC)   /* Use libc for SHA1 */
 
-# include <sha1.h>
+#include <sha1.h>
 
-void *x_sha1_init(void)
+void *
+x_sha1_init(void)
 {
     SHA1_CTX *ctx = malloc(sizeof(*ctx));
+
     if (!ctx)
         return NULL;
     SHA1Init(ctx);
     return ctx;
 }
 
-int x_sha1_update(void *ctx, void *data, int size)
+int
+x_sha1_update(void *ctx, void *data, int size)
 {
     SHA1_CTX *sha1_ctx = ctx;
+
     SHA1Update(sha1_ctx, data, size);
     return 1;
 }
 
-int x_sha1_final(void *ctx, unsigned char result[20])
+int
+x_sha1_final(void *ctx, unsigned char result[20])
 {
     SHA1_CTX *sha1_ctx = ctx;
+
     SHA1Final(result, sha1_ctx);
     free(sha1_ctx);
     return 1;
 }
 
-#elif defined(HAVE_SHA1_IN_COMMONCRYPTO) /* Use CommonCrypto for SHA1 */
+#elif defined(HAVE_SHA1_IN_COMMONCRYPTO)        /* Use CommonCrypto for SHA1 */
 
 #include <CommonCrypto/CommonDigest.h>
 
-void *x_sha1_init(void)
+void *
+x_sha1_init(void)
 {
     CC_SHA1_CTX *ctx = malloc(sizeof(*ctx));
+
     if (!ctx)
         return NULL;
     CC_SHA1_Init(ctx);
     return ctx;
 }
 
-int x_sha1_update(void *ctx, void *data, int size)
+int
+x_sha1_update(void *ctx, void *data, int size)
 {
     CC_SHA1_CTX *sha1_ctx = ctx;
+
     CC_SHA1_Update(sha1_ctx, data, size);
     return 1;
 }
 
-int x_sha1_final(void *ctx, unsigned char result[20])
+int
+x_sha1_final(void *ctx, unsigned char result[20])
 {
     CC_SHA1_CTX *sha1_ctx = ctx;
+
     CC_SHA1_Final(result, sha1_ctx);
     free(sha1_ctx);
     return 1;
 }
 
-#elif defined(HAVE_SHA1_IN_LIBGCRYPT) /* Use libgcrypt for SHA1 */
+#elif defined(HAVE_SHA1_IN_LIBGCRYPT)   /* Use libgcrypt for SHA1 */
 
-# include <gcrypt.h>
+#include <gcrypt.h>
 
-void *x_sha1_init(void)
+void *
+x_sha1_init(void)
 {
     static int init;
     gcry_md_hd_t h;
@@ -86,56 +99,66 @@ void *x_sha1_init(void)
     return h;
 }
 
-int x_sha1_update(void *ctx, void *data, int size)
+int
+x_sha1_update(void *ctx, void *data, int size)
 {
     gcry_md_hd_t h = ctx;
+
     gcry_md_write(h, data, size);
     return 1;
 }
 
-int x_sha1_final(void *ctx, unsigned char result[20])
+int
+x_sha1_final(void *ctx, unsigned char result[20])
 {
     gcry_md_hd_t h = ctx;
+
     memcpy(result, gcry_md_read(h, GCRY_MD_SHA1), 20);
     gcry_md_close(h);
     return 1;
 }
 
-#elif defined(HAVE_SHA1_IN_LIBSHA1) /* Use libsha1 */
+#elif defined(HAVE_SHA1_IN_LIBSHA1)     /* Use libsha1 */
 
-# include <libsha1.h>
+#include <libsha1.h>
 
-void *x_sha1_init(void)
+void *
+x_sha1_init(void)
 {
     sha1_ctx *ctx = malloc(sizeof(*ctx));
-    if(!ctx)
+
+    if (!ctx)
         return NULL;
     sha1_begin(ctx);
     return ctx;
 }
 
-int x_sha1_update(void *ctx, void *data, int size)
+int
+x_sha1_update(void *ctx, void *data, int size)
 {
     sha1_hash(data, size, ctx);
     return 1;
 }
 
-int x_sha1_final(void *ctx, unsigned char result[20])
+int
+x_sha1_final(void *ctx, unsigned char result[20])
 {
     sha1_end(result, ctx);
     free(ctx);
     return 1;
 }
 
-#else /* Use OpenSSL's libcrypto */
+#else                           /* Use OpenSSL's libcrypto */
 
-# include <stddef.h>  /* buggy openssl/sha.h wants size_t */
-# include <openssl/sha.h>
+#include <stddef.h>             /* buggy openssl/sha.h wants size_t */
+#include <openssl/sha.h>
 
-void *x_sha1_init(void)
+void *
+x_sha1_init(void)
 {
     int ret;
     SHA_CTX *ctx = malloc(sizeof(*ctx));
+
     if (!ctx)
         return NULL;
     ret = SHA1_Init(ctx);
@@ -146,20 +169,24 @@ void *x_sha1_init(void)
     return ctx;
 }
 
-int x_sha1_update(void *ctx, void *data, int size)
+int
+x_sha1_update(void *ctx, void *data, int size)
 {
     int ret;
     SHA_CTX *sha_ctx = ctx;
+
     ret = SHA1_Update(sha_ctx, data, size);
     if (!ret)
         free(sha_ctx);
     return ret;
 }
 
-int x_sha1_final(void *ctx, unsigned char result[20])
+int
+x_sha1_final(void *ctx, unsigned char result[20])
 {
     int ret;
     SHA_CTX *sha_ctx = ctx;
+
     ret = SHA1_Final(result, sha_ctx);
     free(sha_ctx);
     return ret;

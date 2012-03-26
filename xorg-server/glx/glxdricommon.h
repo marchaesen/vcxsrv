@@ -26,21 +26,21 @@
 #ifndef _GLX_dri_common_h
 #define _GLX_dri_common_h
 
-typedef struct __GLXDRIconfig	__GLXDRIconfig;
+typedef struct __GLXDRIconfig __GLXDRIconfig;
 struct __GLXDRIconfig {
     __GLXconfig config;
     const __DRIconfig *driConfig;
 };
 
-__GLXconfig *
-glxConvertConfigs(const __DRIcoreExtension *core,
-		  const __DRIconfig **configs, unsigned int drawableType);
+__GLXconfig *glxConvertConfigs(const __DRIcoreExtension * core,
+                               const __DRIconfig ** configs,
+                               unsigned int drawableType);
 
 extern const __DRIsystemTimeExtension systemTimeExtension;
 
-void *
-glxProbeDriver(const char *name,
-	       void **coreExt, const char *coreName, int coreVersion,
-	       void **renderExt, const char *renderName, int renderVersion);
+void *glxProbeDriver(const char *name,
+                     void **coreExt, const char *coreName, int coreVersion,
+                     void **renderExt, const char *renderName,
+                     int renderVersion);
 
 #endif

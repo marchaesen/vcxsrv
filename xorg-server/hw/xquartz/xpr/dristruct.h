@@ -46,15 +46,14 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define DRI_DRAWABLE_PRIV_FROM_PIXMAP(pPix) ((DRIDrawablePrivPtr) \
     dixLookupPrivate(&(pPix)->devPrivates, DRIPixmapPrivKey))
 
-typedef struct _DRIDrawablePrivRec
-{
-    xp_surface_id   sid;
-    int             drawableIndex;
-    DrawablePtr     pDraw;
-    ScreenPtr       pScreen;
-    int             refCount;
-    unsigned int    key[2];
-    x_list          *notifiers;     /* list of (FUN . DATA) */
+typedef struct _DRIDrawablePrivRec {
+    xp_surface_id sid;
+    int drawableIndex;
+    DrawablePtr pDraw;
+    ScreenPtr pScreen;
+    int refCount;
+    unsigned int key[2];
+    x_list *notifiers;          /* list of (FUN . DATA) */
 } DRIDrawablePrivRec, *DRIDrawablePrivPtr;
 
 #define DRI_SCREEN_PRIV(pScreen) ((DRIScreenPrivPtr) \
@@ -64,13 +63,11 @@ typedef struct _DRIDrawablePrivRec
     dixLookupPrivate(&screenInfo.screens[screenIndex]->devPrivates, \
 		     DRIScreenPrivKey))
 
-
-typedef struct _DRIScreenPrivRec
-{
-    Bool                directRenderingSupport;
-    int                 nrWindows;
-    DRIWrappedFuncsRec  wrap;
-    DrawablePtr         DRIDrawables[DRI_MAX_DRAWABLES];
+typedef struct _DRIScreenPrivRec {
+    Bool directRenderingSupport;
+    int nrWindows;
+    DRIWrappedFuncsRec wrap;
+    DrawablePtr DRIDrawables[DRI_MAX_DRAWABLES];
 } DRIScreenPrivRec, *DRIScreenPrivPtr;
 
-#endif /* DRI_STRUCT_H */
+#endif                          /* DRI_STRUCT_H */

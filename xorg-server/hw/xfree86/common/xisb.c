@@ -30,7 +30,6 @@
 	a serial device.
 */
 
-
 /*****************************************************************************
  *	Standard Headers
  ****************************************************************************/
@@ -63,96 +62,91 @@
  ****************************************************************************/
 
 XISBuffer *
-XisbNew (int fd, ssize_t size)
+XisbNew(int fd, ssize_t size)
 {
-	XISBuffer *b;
+    XISBuffer *b;
 
-	b = malloc(sizeof (XISBuffer));
-	if (!b)
-		return NULL;
-	b->buf = malloc((sizeof (unsigned char) * size));
-	if (!b->buf)
-	{
-		free(b);
-		return NULL;
-	}
+    b = malloc(sizeof(XISBuffer));
+    if (!b)
+        return NULL;
+    b->buf = malloc((sizeof(unsigned char) * size));
+    if (!b->buf) {
+        free(b);
+        return NULL;
+    }
 
-	b->fd = fd;
-	b->trace = 0;
-	b->block_duration = 0;
-	b->current = 1;	/* force it to be past the end to trigger initial read */
-	b->end = 0;
-	b->buffer_size = size;
-	return b;
+    b->fd = fd;
+    b->trace = 0;
+    b->block_duration = 0;
+    b->current = 1;             /* force it to be past the end to trigger initial read */
+    b->end = 0;
+    b->buffer_size = size;
+    return b;
 }
 
 void
-XisbFree (XISBuffer *b)
+XisbFree(XISBuffer * b)
 {
-	free(b->buf);
-	free(b);
+    free(b->buf);
+    free(b);
 }
 
 int
-XisbRead (XISBuffer *b)
+XisbRead(XISBuffer * b)
 {
-	int ret;
+    int ret;
 
-	if (b->current >= b->end)
-	{
-		if (b->block_duration >= 0)
-		{
-			if (xf86WaitForInput (b->fd, b->block_duration) < 1)
-				return -1;
-		}
-		else
-		{
-			/*
-			 * automatically clear it so if XisbRead is called in a loop
-			 * the next call will make sure there is data with select and
-			 * thus prevent a blocking read
-			 */
-			b->block_duration = 0;
-		}
-		
-		ret = xf86ReadSerial (b->fd, b->buf, b->buffer_size);
-		switch (ret)
-		{
-			case 0:
-				return -1; /* timeout */
-			case -1:
-				return -2; /* error */
-			default:
-				b->end = ret;
-				b->current = 0;
-				break;
-		}
-	}
-	if (b->trace)
-		ErrorF ("read 0x%02x (%c)\n", b->buf[b->current], 
-			isprint(b->buf[b->current])?b->buf[b->current]:'.');
+    if (b->current >= b->end) {
+        if (b->block_duration >= 0) {
+            if (xf86WaitForInput(b->fd, b->block_duration) < 1)
+                return -1;
+        }
+        else {
+            /*
+             * automatically clear it so if XisbRead is called in a loop
+             * the next call will make sure there is data with select and
+             * thus prevent a blocking read
+             */
+            b->block_duration = 0;
+        }
 
-	return b->buf[b->current++];
+        ret = xf86ReadSerial(b->fd, b->buf, b->buffer_size);
+        switch (ret) {
+        case 0:
+            return -1;          /* timeout */
+        case -1:
+            return -2;          /* error */
+        default:
+            b->end = ret;
+            b->current = 0;
+            break;
+        }
+    }
+    if (b->trace)
+        ErrorF("read 0x%02x (%c)\n", b->buf[b->current],
+               isprint(b->buf[b->current]) ? b->buf[b->current] : '.');
+
+    return b->buf[b->current++];
 }
 
 /* the only purpose of this function is to provide output tracing */
 ssize_t
-XisbWrite (XISBuffer *b, unsigned char *msg, ssize_t len)
+XisbWrite(XISBuffer * b, unsigned char *msg, ssize_t len)
 {
-    if (b->trace)
-    {
+    if (b->trace) {
         int i = 0;
+
         for (i = 0; i < len; i++)
-            ErrorF ("\t\twrote 0x%02x (%c)\n", msg[i], msg[i]);
+            ErrorF("\t\twrote 0x%02x (%c)\n", msg[i], msg[i]);
     }
-    return (xf86WriteSerial (b->fd, msg, len));
+    return (xf86WriteSerial(b->fd, msg, len));
 }
 
 /* turn tracing of this buffer on (1) or off (0) */
 void
-XisbTrace (XISBuffer *b, int trace)
+XisbTrace(XISBuffer * b, int trace)
 {
-	b->trace = trace;
+    b->trace = trace;
 }
 
 /*
@@ -168,7 +162,7 @@ XisbTrace (XISBuffer *b, int trace)
  */
 
 void
-XisbBlockDuration (XISBuffer *b, int block_duration)
+XisbBlockDuration(XISBuffer * b, int block_duration)
 {
-	b->block_duration = block_duration;
+    b->block_duration = block_duration;
 }

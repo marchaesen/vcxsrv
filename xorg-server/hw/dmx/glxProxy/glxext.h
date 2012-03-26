@@ -36,43 +36,36 @@
  */
 typedef struct {
     int type;
-    void (*resetExtension)(void);
-    Bool (*initVisuals)(
-        VisualPtr *       visualp,
-        DepthPtr *        depthp,
-        int *             nvisualp,
-        int *             ndepthp,
-        int *             rootDepthp,
-        VisualID *        defaultVisp,
-        unsigned long     sizes,
-        int               bitsPerRGB
-        );
-    void (*setVisualConfigs)(
-        int                nconfigs,
-        __GLXvisualConfig *configs,
-        void              **privates
-        );
+    void (*resetExtension) (void);
+    Bool (*initVisuals) (VisualPtr * visualp,
+                         DepthPtr * depthp,
+                         int *nvisualp,
+                         int *ndepthp,
+                         int *rootDepthp,
+                         VisualID * defaultVisp,
+                         unsigned long sizes, int bitsPerRGB);
+    void (*setVisualConfigs) (int nconfigs,
+                              __GLXvisualConfig * configs, void **privates);
 } __GLXextensionInfo;
 
-extern GLboolean __glXFreeContext(__GLXcontext *glxc);
+extern GLboolean __glXFreeContext(__GLXcontext * glxc);
 extern void __glXFlushContextCache(void);
 
-extern void __glXFreeGLXWindow(__glXWindow *pGlxWindow);
-extern void __glXFreeGLXPixmap( __GLXpixmap *pGlxPixmap );
+extern void __glXFreeGLXWindow(__glXWindow * pGlxWindow);
+extern void __glXFreeGLXPixmap(__GLXpixmap * pGlxPixmap);
 
-extern void __glXNoSuchRenderOpcode(GLbyte*);
-extern int __glXNoSuchSingleOpcode(__GLXclientState*, GLbyte*);
+extern void __glXNoSuchRenderOpcode(GLbyte *);
+extern int __glXNoSuchSingleOpcode(__GLXclientState *, GLbyte *);
 extern void __glXErrorCallBack(GLenum code);
 extern void __glXClearErrorOccured(void);
 extern GLboolean __glXErrorOccured(void);
-extern void __glXResetLargeCommandStatus(__GLXclientState*);
+extern void __glXResetLargeCommandStatus(__GLXclientState *);
 
-extern int __glXQueryContextInfoEXT(__GLXclientState *cl, GLbyte *pc);
-extern int __glXSwapQueryContextInfoEXT(__GLXclientState *cl, char *pc);
+extern int __glXQueryContextInfoEXT(__GLXclientState * cl, GLbyte * pc);
+extern int __glXSwapQueryContextInfoEXT(__GLXclientState * cl, char *pc);
 
 extern void GlxExtensionInit(void);
 
 extern Bool __glXCoreType(void);
 
-#endif /* _glxext_h_ */
-
+#endif                          /* _glxext_h_ */

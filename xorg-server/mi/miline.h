@@ -77,10 +77,9 @@ in this Software without prior written authorization from The Open Group.
  * Jack E. Bresenham, IEEE CG&A, May 1987.
  */
 
-extern _X_EXPORT void miSetZeroLineBias(
-    ScreenPtr /* pScreen */,
-    unsigned int /* bias */
-);
+extern _X_EXPORT void miSetZeroLineBias(ScreenPtr /* pScreen */ ,
+                                        unsigned int    /* bias */
+    );
 
 /*
  * Private definitions needed for drawing thin (zero width) lines
@@ -108,7 +107,7 @@ extern _X_EXPORT void miSetZeroLineBias(
      if (y < ymin) outcode |= OUT_ABOVE;\
      if (y > ymax) outcode |= OUT_BELOW;\
 }
-  
+
 #define SWAPINT(i, j) \
 {  int _t = i;  i = j;  j = _t; }
 
@@ -149,25 +148,25 @@ extern _X_EXPORT void miSetZeroLineBias(
 #define IsYDecreasingOctant(_octant)	((_octant) & YDECREASING)
 
 extern _X_EXPORT DevPrivateKeyRec miZeroLineScreenKeyRec;
+
 #define miZeroLineScreenKey (&miZeroLineScreenKeyRec)
 
-extern _X_EXPORT int miZeroClipLine(
-    int /*xmin*/,
-    int /*ymin*/,
-    int /*xmax*/,
-    int /*ymax*/,
-    int * /*new_x1*/,
-    int * /*new_y1*/,
-    int * /*new_x2*/,
-    int * /*new_y2*/,
-    unsigned int /*adx*/,
-    unsigned int /*ady*/,
-    int * /*pt1_clipped*/,
-    int * /*pt2_clipped*/,
-    int /*octant*/,
-    unsigned int /*bias*/,
-    int /*oc1*/,
-    int /*oc2*/
-);
+extern _X_EXPORT int miZeroClipLine(int /*xmin */ ,
+                                    int /*ymin */ ,
+                                    int /*xmax */ ,
+                                    int /*ymax */ ,
+                                    int * /*new_x1 */ ,
+                                    int * /*new_y1 */ ,
+                                    int * /*new_x2 */ ,
+                                    int * /*new_y2 */ ,
+                                    unsigned int /*adx */ ,
+                                    unsigned int /*ady */ ,
+                                    int * /*pt1_clipped */ ,
+                                    int * /*pt2_clipped */ ,
+                                    int /*octant */ ,
+                                    unsigned int /*bias */ ,
+                                    int /*oc1 */ ,
+                                    int /*oc2 */
+    );
 
-#endif /* MILINE_H */
+#endif                          /* MILINE_H */

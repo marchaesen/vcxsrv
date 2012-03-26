@@ -43,8 +43,10 @@ static struct selabel_handle *label_hnd;
 
 /* Array of object classes indexed by resource type */
 SELinuxArrayRec arr_types;
+
 /* Array of event SIDs indexed by event type */
 SELinuxArrayRec arr_events;
+
 /* Array of property and selection SID structures */
 SELinuxArrayRec arr_atoms;
 
@@ -52,21 +54,21 @@ SELinuxArrayRec arr_atoms;
  * Dynamic array helpers
  */
 static void *
-SELinuxArrayGet(SELinuxArrayRec *rec, unsigned key)
+SELinuxArrayGet(SELinuxArrayRec * rec, unsigned key)
 {
     return (rec->size > key) ? rec->array[key] : 0;
 }
 
 static int
-SELinuxArraySet(SELinuxArrayRec *rec, unsigned key, void *val)
+SELinuxArraySet(SELinuxArrayRec * rec, unsigned key, void *val)
 {
     if (key >= rec->size) {
-	/* Need to increase size of array */
-	rec->array = realloc(rec->array, (key + 1) * sizeof(val));
-	if (!rec->array)
-	    return FALSE;
-	memset(rec->array + rec->size, 0, (key - rec->size + 1) * sizeof(val));
-	rec->size = key + 1;
+        /* Need to increase size of array */
+        rec->array = realloc(rec->array, (key + 1) * sizeof(val));
+        if (!rec->array)
+            return FALSE;
+        memset(rec->array + rec->size, 0, (key - rec->size + 1) * sizeof(val));
+        rec->size = key + 1;
     }
 
     rec->array[key] = val;
@@ -74,12 +76,13 @@ SELinuxArraySet(SELinuxArrayRec *rec, unsigned key, void *val)
 }
 
 static void
-SELinuxArrayFree(SELinuxArrayRec *rec, int free_elements)
+SELinuxArrayFree(SELinuxArrayRec * rec, int free_elements)
 {
     if (free_elements) {
-	unsigned i = rec->size;
-	while (i)
-	    free(rec->array[--i]);
+        unsigned i = rec->size;
+
+        while (i)
+            free(rec->array[--i]);
     }
 
     free(rec->array);
@@ -91,7 +94,7 @@ SELinuxArrayFree(SELinuxArrayRec *rec, int free_elements)
  * Looks up a name in the selection or property mappings
  */
 static int
-SELinuxAtomToSIDLookup(Atom atom, SELinuxObjectRec *obj, int map, int polymap)
+SELinuxAtomToSIDLookup(Atom atom, SELinuxObjectRec * obj, int map, int polymap)
 {
     const char *name = NameForAtom(atom);
     security_context_t ctx;
@@ -101,19 +104,21 @@ SELinuxAtomToSIDLookup(Atom atom, SELinuxObjectRec *obj, int map, int polymap)
 
     /* Look in the mappings of names to contexts */
     if (selabel_lookup_raw(label_hnd, &ctx, name, map) == 0) {
-	obj->poly = 0;
-    } else if (errno != ENOENT) {
-	ErrorF("SELinux: a property label lookup failed!\n");
-	return BadValue;
-    } else if (selabel_lookup_raw(label_hnd, &ctx, name, polymap) < 0) {
-	ErrorF("SELinux: a property label lookup failed!\n");
-	return BadValue;
+        obj->poly = 0;
+    }
+    else if (errno != ENOENT) {
+        ErrorF("SELinux: a property label lookup failed!\n");
+        return BadValue;
+    }
+    else if (selabel_lookup_raw(label_hnd, &ctx, name, polymap) < 0) {
+        ErrorF("SELinux: a property label lookup failed!\n");
+        return BadValue;
     }
 
     /* Get a SID for context */
     if (avc_context_to_sid_raw(ctx, &obj->sid) < 0) {
-	ErrorF("SELinux: a context_to_SID_raw call failed!\n");
-	rc = BadAlloc;
+        ErrorF("SELinux: a context_to_SID_raw call failed!\n");
+        rc = BadAlloc;
     }
 
     freecon(ctx);
@@ -124,7 +129,7 @@ SELinuxAtomToSIDLookup(Atom atom, SELinuxObjectRec *obj, int map, int polymap)
  * Looks up the SID corresponding to the given property or selection atom
  */
 int
-SELinuxAtomToSID(Atom atom, int prop, SELinuxObjectRec **obj_rtn)
+SELinuxAtomToSID(Atom atom, int prop, SELinuxObjectRec ** obj_rtn)
 {
     SELinuxAtomRec *rec;
     SELinuxObjectRec *obj;
@@ -132,30 +137,31 @@ SELinuxAtomToSID(Atom atom, int prop, SELinuxObjectRec **obj_rtn)
 
     rec = SELinuxArrayGet(&arr_atoms, atom);
     if (!rec) {
-	rec = calloc(1, sizeof(SELinuxAtomRec));
-	if (!rec || !SELinuxArraySet(&arr_atoms, atom, rec))
-	    return BadAlloc;
+        rec = calloc(1, sizeof(SELinuxAtomRec));
+        if (!rec || !SELinuxArraySet(&arr_atoms, atom, rec))
+            return BadAlloc;
     }
 
     if (prop) {
-	obj = &rec->prp;
-	map = SELABEL_X_PROP;
-	polymap = SELABEL_X_POLYPROP;
-    } else {
-	obj = &rec->sel;
-	map = SELABEL_X_SELN;
-	polymap = SELABEL_X_POLYSELN;
+        obj = &rec->prp;
+        map = SELABEL_X_PROP;
+        polymap = SELABEL_X_POLYPROP;
+    }
+    else {
+        obj = &rec->sel;
+        map = SELABEL_X_SELN;
+        polymap = SELABEL_X_POLYSELN;
     }
 
     if (!obj->sid) {
-	rc = SELinuxAtomToSIDLookup(atom, obj, map, polymap);
-	if (rc != Success)
-	    goto out;
+        rc = SELinuxAtomToSIDLookup(atom, obj, map, polymap);
+        if (rc != Success)
+            goto out;
     }
 
     *obj_rtn = obj;
     rc = Success;
-out:
+ out:
     return rc;
 }
 
@@ -163,8 +169,8 @@ out:
  * Looks up a SID for a selection/subject pair
  */
 int
-SELinuxSelectionToSID(Atom selection, SELinuxSubjectRec *subj,
-		      security_id_t *sid_rtn, int *poly_rtn)
+SELinuxSelectionToSID(Atom selection, SELinuxSubjectRec * subj,
+                      security_id_t * sid_rtn, int *poly_rtn)
 {
     int rc;
     SELinuxObjectRec *obj;
@@ -173,26 +179,26 @@ SELinuxSelectionToSID(Atom selection, SELinuxSubjectRec *subj,
     /* Get the default context and polyinstantiation bit */
     rc = SELinuxAtomToSID(selection, 0, &obj);
     if (rc != Success)
-	return rc;
+        return rc;
 
     /* Check for an override context next */
     if (subj->sel_use_sid) {
-	tsid = subj->sel_use_sid;
-	goto out;
+        tsid = subj->sel_use_sid;
+        goto out;
     }
 
     tsid = obj->sid;
 
     /* Polyinstantiate if necessary to obtain the final SID */
     if (obj->poly && avc_compute_member(subj->sid, obj->sid,
-					SECCLASS_X_SELECTION, &tsid) < 0) {
-	ErrorF("SELinux: a compute_member call failed!\n");
-	return BadValue;
+                                        SECCLASS_X_SELECTION, &tsid) < 0) {
+        ErrorF("SELinux: a compute_member call failed!\n");
+        return BadValue;
     }
-out:
+ out:
     *sid_rtn = tsid;
     if (poly_rtn)
-	*poly_rtn = obj->poly;
+        *poly_rtn = obj->poly;
     return Success;
 }
 
@@ -200,8 +206,8 @@ out:
  * Looks up a SID for a property/subject pair
  */
 int
-SELinuxPropertyToSID(Atom property, SELinuxSubjectRec *subj,
-		     security_id_t *sid_rtn, int *poly_rtn)
+SELinuxPropertyToSID(Atom property, SELinuxSubjectRec * subj,
+                     security_id_t * sid_rtn, int *poly_rtn)
 {
     int rc;
     SELinuxObjectRec *obj;
@@ -210,34 +216,33 @@ SELinuxPropertyToSID(Atom property, SELinuxSubjectRec *subj,
     /* Get the default context and polyinstantiation bit */
     rc = SELinuxAtomToSID(property, 1, &obj);
     if (rc != Success)
-	return rc;
+        return rc;
 
     /* Check for an override context next */
     if (subj->prp_use_sid) {
-	tsid = subj->prp_use_sid;
-	goto out;
+        tsid = subj->prp_use_sid;
+        goto out;
     }
 
     /* Perform a transition */
-    if (avc_compute_create(subj->sid, obj->sid,
-			   SECCLASS_X_PROPERTY, &tsid) < 0) {
-	ErrorF("SELinux: a compute_create call failed!\n");
-	return BadValue;
+    if (avc_compute_create(subj->sid, obj->sid, SECCLASS_X_PROPERTY, &tsid) < 0) {
+        ErrorF("SELinux: a compute_create call failed!\n");
+        return BadValue;
     }
 
     /* Polyinstantiate if necessary to obtain the final SID */
     if (obj->poly) {
-	tsid2 = tsid;
-	if (avc_compute_member(subj->sid, tsid2,
-			       SECCLASS_X_PROPERTY, &tsid) < 0) {
-	    ErrorF("SELinux: a compute_member call failed!\n");
-	    return BadValue;
-	}
+        tsid2 = tsid;
+        if (avc_compute_member(subj->sid, tsid2,
+                               SECCLASS_X_PROPERTY, &tsid) < 0) {
+            ErrorF("SELinux: a compute_member call failed!\n");
+            return BadValue;
+        }
     }
-out:
+ out:
     *sid_rtn = tsid;
     if (poly_rtn)
-	*poly_rtn = obj->poly;
+        *poly_rtn = obj->poly;
     return Success;
 }
 
@@ -246,57 +251,58 @@ out:
  */
 int
 SELinuxEventToSID(unsigned type, security_id_t sid_of_window,
-		  SELinuxObjectRec *sid_return)
+                  SELinuxObjectRec * sid_return)
 {
     const char *name = LookupEventName(type);
     security_id_t sid;
     security_context_t ctx;
+
     type &= 127;
 
     sid = SELinuxArrayGet(&arr_events, type);
     if (!sid) {
-	/* Look in the mappings of event names to contexts */
-	if (selabel_lookup_raw(label_hnd, &ctx, name, SELABEL_X_EVENT) < 0) {
-	    ErrorF("SELinux: an event label lookup failed!\n");
-	    return BadValue;
-	}
-	/* Get a SID for context */
-	if (avc_context_to_sid_raw(ctx, &sid) < 0) {
-	    ErrorF("SELinux: a context_to_SID_raw call failed!\n");
-	    freecon(ctx);
-	    return BadAlloc;
-	}
-	freecon(ctx);
-	/* Cache the SID value */
-	if (!SELinuxArraySet(&arr_events, type, sid))
-	    return BadAlloc;
+        /* Look in the mappings of event names to contexts */
+        if (selabel_lookup_raw(label_hnd, &ctx, name, SELABEL_X_EVENT) < 0) {
+            ErrorF("SELinux: an event label lookup failed!\n");
+            return BadValue;
+        }
+        /* Get a SID for context */
+        if (avc_context_to_sid_raw(ctx, &sid) < 0) {
+            ErrorF("SELinux: a context_to_SID_raw call failed!\n");
+            freecon(ctx);
+            return BadAlloc;
+        }
+        freecon(ctx);
+        /* Cache the SID value */
+        if (!SELinuxArraySet(&arr_events, type, sid))
+            return BadAlloc;
     }
 
     /* Perform a transition to obtain the final SID */
     if (avc_compute_create(sid_of_window, sid, SECCLASS_X_EVENT,
-			   &sid_return->sid) < 0) {
-	ErrorF("SELinux: a compute_create call failed!\n");
-	return BadValue;
+                           &sid_return->sid) < 0) {
+        ErrorF("SELinux: a compute_create call failed!\n");
+        return BadValue;
     }
 
     return Success;
 }
 
 int
-SELinuxExtensionToSID(const char *name, security_id_t *sid_rtn)
+SELinuxExtensionToSID(const char *name, security_id_t * sid_rtn)
 {
     security_context_t ctx;
 
     /* Look in the mappings of extension names to contexts */
     if (selabel_lookup_raw(label_hnd, &ctx, name, SELABEL_X_EXT) < 0) {
-	ErrorF("SELinux: a property label lookup failed!\n");
-	return BadValue;
+        ErrorF("SELinux: a property label lookup failed!\n");
+        return BadValue;
     }
     /* Get a SID for context */
     if (avc_context_to_sid_raw(ctx, sid_rtn) < 0) {
-	ErrorF("SELinux: a context_to_SID_raw call failed!\n");
-	freecon(ctx);
-	return BadAlloc;
+        ErrorF("SELinux: a context_to_SID_raw call failed!\n");
+        freecon(ctx);
+        return BadAlloc;
     }
     freecon(ctx);
     return Success;
@@ -312,32 +318,33 @@ SELinuxTypeToClass(RESTYPE type)
 
     tmp = SELinuxArrayGet(&arr_types, type & TypeMask);
     if (!tmp) {
-	unsigned long class = SECCLASS_X_RESOURCE;
+        unsigned long class = SECCLASS_X_RESOURCE;
 
-	if (type & RC_DRAWABLE)
-	    class = SECCLASS_X_DRAWABLE;
-	else if (type == RT_GC)
-	    class = SECCLASS_X_GC;
-	else if (type == RT_FONT)
-	    class = SECCLASS_X_FONT;
-	else if (type == RT_CURSOR)
-	    class = SECCLASS_X_CURSOR;
-	else if (type == RT_COLORMAP)
-	    class = SECCLASS_X_COLORMAP;
-	else {
-	    /* Need to do a string lookup */
-	    const char *str = LookupResourceName(type);
-	    if (!strcmp(str, "PICTURE"))
-		class = SECCLASS_X_DRAWABLE;
-	    else if (!strcmp(str, "GLYPHSET"))
-		class = SECCLASS_X_FONT;
-	}
+        if (type & RC_DRAWABLE)
+            class = SECCLASS_X_DRAWABLE;
+        else if (type == RT_GC)
+            class = SECCLASS_X_GC;
+        else if (type == RT_FONT)
+            class = SECCLASS_X_FONT;
+        else if (type == RT_CURSOR)
+            class = SECCLASS_X_CURSOR;
+        else if (type == RT_COLORMAP)
+            class = SECCLASS_X_COLORMAP;
+        else {
+            /* Need to do a string lookup */
+            const char *str = LookupResourceName(type);
 
-	tmp = (void *)class;
-	SELinuxArraySet(&arr_types, type & TypeMask, tmp);
+            if (!strcmp(str, "PICTURE"))
+                class = SECCLASS_X_DRAWABLE;
+            else if (!strcmp(str, "GLYPHSET"))
+                class = SECCLASS_X_FONT;
+        }
+
+        tmp = (void *) class;
+        SELinuxArraySet(&arr_types, type & TypeMask, tmp);
     }
 
-    return (security_class_t)(unsigned long)tmp;
+    return (security_class_t) (unsigned long) tmp;
 }
 
 security_context_t
@@ -346,7 +353,7 @@ SELinuxDefaultClientLabel(void)
     security_context_t ctx;
 
     if (selabel_lookup_raw(label_hnd, &ctx, "remote", SELABEL_X_CLIENT) < 0)
-	FatalError("SELinux: failed to look up remote-client context\n");
+        FatalError("SELinux: failed to look up remote-client context\n");
 
     return ctx;
 }
@@ -354,11 +361,11 @@ SELinuxDefaultClientLabel(void)
 void
 SELinuxLabelInit(void)
 {
-    struct selinux_opt selabel_option = { SELABEL_OPT_VALIDATE, (char *)1 };
+    struct selinux_opt selabel_option = { SELABEL_OPT_VALIDATE, (char *) 1 };
 
     label_hnd = selabel_open(SELABEL_CTX_X, &selabel_option, 1);
     if (!label_hnd)
-	FatalError("SELinux: Failed to open x_contexts mapping in policy\n");
+        FatalError("SELinux: Failed to open x_contexts mapping in policy\n");
 }
 
 void

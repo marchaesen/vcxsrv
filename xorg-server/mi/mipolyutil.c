@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -52,7 +51,7 @@ SOFTWARE.
 #include "gc.h"
 #include "miscanfill.h"
 #include "mipoly.h"
-#include "misc.h"	/* MAXINT */
+#include "misc.h"               /* MAXINT */
 
 /*
  *     fillUtils.c
@@ -74,8 +73,8 @@ SOFTWARE.
  *
  */
 static Bool
-miInsertEdgeInET(EdgeTable *ET, EdgeTableEntry *ETE,  int scanline,
-		 ScanLineListBlock **SLLBlock, int *iSLLBlock)
+miInsertEdgeInET(EdgeTable * ET, EdgeTableEntry * ETE, int scanline,
+                 ScanLineListBlock ** SLLBlock, int *iSLLBlock)
 {
     EdgeTableEntry *start, *prev;
     ScanLineList *pSLL, *pPrevSLL;
@@ -86,8 +85,7 @@ miInsertEdgeInET(EdgeTable *ET, EdgeTableEntry *ETE,  int scanline,
      */
     pPrevSLL = &ET->scanlines;
     pSLL = pPrevSLL->next;
-    while (pSLL && (pSLL->scanline < scanline)) 
-    {
+    while (pSLL && (pSLL->scanline < scanline)) {
         pPrevSLL = pSLL;
         pSLL = pSLL->next;
     }
@@ -95,13 +93,11 @@ miInsertEdgeInET(EdgeTable *ET, EdgeTableEntry *ETE,  int scanline,
     /*
      * reassign pSLL (pointer to ScanLineList) if necessary
      */
-    if ((!pSLL) || (pSLL->scanline > scanline)) 
-    {
-        if (*iSLLBlock > SLLSPERBLOCK-1) 
-        {
+    if ((!pSLL) || (pSLL->scanline > scanline)) {
+        if (*iSLLBlock > SLLSPERBLOCK - 1) {
             tmpSLLBlock = malloc(sizeof(ScanLineListBlock));
-	    if (!tmpSLLBlock)
-		return FALSE;
+            if (!tmpSLLBlock)
+                return FALSE;
             (*SLLBlock)->next = tmpSLLBlock;
             tmpSLLBlock->next = NULL;
             *SLLBlock = tmpSLLBlock;
@@ -120,8 +116,7 @@ miInsertEdgeInET(EdgeTable *ET, EdgeTableEntry *ETE,  int scanline,
      */
     prev = NULL;
     start = pSLL->edgelist;
-    while (start && (start->bres.minor < ETE->bres.minor)) 
-    {
+    while (start && (start->bres.minor < ETE->bres.minor)) {
         prev = start;
         start = start->next;
     }
@@ -160,8 +155,9 @@ miInsertEdgeInET(EdgeTable *ET, EdgeTableEntry *ETE,  int scanline,
  */
 
 Bool
-miCreateETandAET(int count, DDXPointPtr pts, EdgeTable *ET, EdgeTableEntry *AET,
-                 EdgeTableEntry *pETEs, ScanLineListBlock *pSLLBlock)
+miCreateETandAET(int count, DDXPointPtr pts, EdgeTable * ET,
+                 EdgeTableEntry * AET, EdgeTableEntry * pETEs,
+                 ScanLineListBlock * pSLLBlock)
 {
     DDXPointPtr top, bottom;
     DDXPointPtr PrevPt, CurrPt;
@@ -169,7 +165,8 @@ miCreateETandAET(int count, DDXPointPtr pts, EdgeTable *ET, EdgeTableEntry *AET,
 
     int dy;
 
-    if (count < 2)  return TRUE;
+    if (count < 2)
+        return TRUE;
 
     /*
      *  initialize the Active Edge Table
@@ -187,27 +184,24 @@ miCreateETandAET(int count, DDXPointPtr pts, EdgeTable *ET, EdgeTableEntry *AET,
     ET->ymin = MAXINT;
     pSLLBlock->next = NULL;
 
-    PrevPt = &pts[count-1];
+    PrevPt = &pts[count - 1];
 
     /*
      *  for each vertex in the array of points.
      *  In this loop we are dealing with two vertices at
      *  a time -- these make up one edge of the polygon.
      */
-    while (count--) 
-    {
+    while (count--) {
         CurrPt = pts++;
 
         /*
          *  find out which point is above and which is below.
          */
-        if (PrevPt->y > CurrPt->y) 
-        {
+        if (PrevPt->y > CurrPt->y) {
             bottom = PrevPt, top = CurrPt;
             pETEs->ClockWise = 0;
         }
-        else 
-        {
+        else {
             bottom = CurrPt, top = PrevPt;
             pETEs->ClockWise = 1;
         }
@@ -215,9 +209,8 @@ miCreateETandAET(int count, DDXPointPtr pts, EdgeTable *ET, EdgeTableEntry *AET,
         /*
          * don't add horizontal edges to the Edge table.
          */
-        if (bottom->y != top->y) 
-        {
-            pETEs->ymax = bottom->y-1;  /* -1 so we don't get last scanline */
+        if (bottom->y != top->y) {
+            pETEs->ymax = bottom->y - 1;        /* -1 so we don't get last scanline */
 
             /*
              *  initialize integer edge algorithm
@@ -225,11 +218,10 @@ miCreateETandAET(int count, DDXPointPtr pts, EdgeTable *ET, EdgeTableEntry *AET,
             dy = bottom->y - top->y;
             BRESINITPGONSTRUCT(dy, top->x, bottom->x, pETEs->bres);
 
-            if (!miInsertEdgeInET(ET, pETEs, top->y, &pSLLBlock, &iSLLBlock))
-	    {
-		miFreeStorage(pSLLBlock->next);
-		return FALSE;
-	    }
+            if (!miInsertEdgeInET(ET, pETEs, top->y, &pSLLBlock, &iSLLBlock)) {
+                miFreeStorage(pSLLBlock->next);
+                return FALSE;
+            }
 
             ET->ymax = max(ET->ymax, PrevPt->y);
             ET->ymin = min(ET->ymin, PrevPt->y);
@@ -251,17 +243,15 @@ miCreateETandAET(int count, DDXPointPtr pts, EdgeTable *ET, EdgeTableEntry *AET,
  */
 
 void
-miloadAET(EdgeTableEntry *AET, EdgeTableEntry *ETEs)
+miloadAET(EdgeTableEntry * AET, EdgeTableEntry * ETEs)
 {
     EdgeTableEntry *pPrevAET;
     EdgeTableEntry *tmp;
 
     pPrevAET = AET;
     AET = AET->next;
-    while (ETEs) 
-    {
-        while (AET && (AET->bres.minor < ETEs->bres.minor)) 
-        {
+    while (ETEs) {
+        while (AET && (AET->bres.minor < ETEs->bres.minor)) {
             pPrevAET = AET;
             AET = AET->next;
         }
@@ -298,7 +288,7 @@ miloadAET(EdgeTableEntry *AET, EdgeTableEntry *ETEs)
  *
  */
 void
-micomputeWAET(EdgeTableEntry *AET)
+micomputeWAET(EdgeTableEntry * AET)
 {
     EdgeTableEntry *pWETE;
     int inside = 1;
@@ -307,16 +297,13 @@ micomputeWAET(EdgeTableEntry *AET)
     AET->nextWETE = NULL;
     pWETE = AET;
     AET = AET->next;
-    while (AET) 
-    {
+    while (AET) {
         if (AET->ClockWise)
             isInside++;
         else
             isInside--;
 
-        if ((!inside && !isInside) ||
-            ( inside &&  isInside)) 
-        {
+        if ((!inside && !isInside) || (inside && isInside)) {
             pWETE->nextWETE = AET;
             pWETE = AET;
             inside = !inside;
@@ -336,7 +323,7 @@ micomputeWAET(EdgeTableEntry *AET)
  */
 
 int
-miInsertionSort(EdgeTableEntry *AET)
+miInsertionSort(EdgeTableEntry * AET)
 {
     EdgeTableEntry *pETEchase;
     EdgeTableEntry *pETEinsert;
@@ -344,16 +331,14 @@ miInsertionSort(EdgeTableEntry *AET)
     int changed = 0;
 
     AET = AET->next;
-    while (AET) 
-    {
+    while (AET) {
         pETEinsert = AET;
         pETEchase = AET;
         while (pETEchase->back->bres.minor > AET->bres.minor)
             pETEchase = pETEchase->back;
 
         AET = AET->next;
-        if (pETEchase != pETEinsert) 
-        {
+        if (pETEchase != pETEinsert) {
             pETEchaseBackTMP = pETEchase->back;
             pETEinsert->back->next = AET;
             if (AET)
@@ -372,12 +357,11 @@ miInsertionSort(EdgeTableEntry *AET)
  *     Clean up our act.
  */
 void
-miFreeStorage(ScanLineListBlock *pSLLBlock)
+miFreeStorage(ScanLineListBlock * pSLLBlock)
 {
-    ScanLineListBlock   *tmpSLLBlock;
+    ScanLineListBlock *tmpSLLBlock;
 
-    while (pSLLBlock) 
-    {
+    while (pSLLBlock) {
         tmpSLLBlock = pSLLBlock->next;
         free(pSLLBlock);
         pSLLBlock = tmpSLLBlock;

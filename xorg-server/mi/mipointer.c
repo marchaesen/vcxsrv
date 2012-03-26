@@ -50,20 +50,20 @@ in this Software without prior written authorization from The Open Group.
 #include <dix-config.h>
 #endif
 
-# include   <X11/X.h>
-# include   <X11/Xmd.h>
-# include   <X11/Xproto.h>
-# include   "misc.h"
-# include   "windowstr.h"
-# include   "pixmapstr.h"
-# include   "mi.h"
-# include   "scrnintstr.h"
-# include   "mipointrst.h"
-# include   "cursorstr.h"
-# include   "dixstruct.h"
-# include   "inputstr.h"
-# include   "inpututils.h"
-# include   "eventstr.h"
+#include   <X11/X.h>
+#include   <X11/Xmd.h>
+#include   <X11/Xproto.h>
+#include   "misc.h"
+#include   "windowstr.h"
+#include   "pixmapstr.h"
+#include   "mi.h"
+#include   "scrnintstr.h"
+#include   "mipointrst.h"
+#include   "cursorstr.h"
+#include   "dixstruct.h"
+#include   "inputstr.h"
+#include   "inpututils.h"
+#include   "eventstr.h"
 
 DevPrivateKeyRec miPointerScreenKeyRec;
 
@@ -78,56 +78,53 @@ DevPrivateKeyRec miPointerPrivKeyRec;
         (miPointerPtr)dixLookupPrivate(&(dev)->devPrivates, miPointerPrivKey): \
         (miPointerPtr)dixLookupPrivate(&(GetMaster(dev, MASTER_POINTER))->devPrivates, miPointerPrivKey))
 
-static Bool miPointerRealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen, 
+static Bool miPointerRealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
                                    CursorPtr pCursor);
-static Bool miPointerUnrealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen, 
+static Bool miPointerUnrealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
                                      CursorPtr pCursor);
-static Bool miPointerDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen, 
+static Bool miPointerDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
                                    CursorPtr pCursor);
 static void miPointerConstrainCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
-                                     BoxPtr pBox); 
+                                     BoxPtr pBox);
 static void miPointerCursorLimits(DeviceIntPtr pDev, ScreenPtr pScreen,
-                                  CursorPtr pCursor, BoxPtr pHotBox, 
+                                  CursorPtr pCursor, BoxPtr pHotBox,
                                   BoxPtr pTopLeftBox);
-static Bool miPointerSetCursorPosition(DeviceIntPtr pDev, ScreenPtr pScreen, 
-                                       int x, int y,
-				       Bool generateEvent);
+static Bool miPointerSetCursorPosition(DeviceIntPtr pDev, ScreenPtr pScreen,
+                                       int x, int y, Bool generateEvent);
 static Bool miPointerCloseScreen(int index, ScreenPtr pScreen);
-static void miPointerMove(DeviceIntPtr pDev, ScreenPtr pScreen, 
-                          int x, int y);
+static void miPointerMove(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y);
 static Bool miPointerDeviceInitialize(DeviceIntPtr pDev, ScreenPtr pScreen);
-static void miPointerDeviceCleanup(DeviceIntPtr pDev,
-                                   ScreenPtr pScreen);
-static void miPointerMoveNoEvent (DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y);
+static void miPointerDeviceCleanup(DeviceIntPtr pDev, ScreenPtr pScreen);
+static void miPointerMoveNoEvent(DeviceIntPtr pDev, ScreenPtr pScreen, int x,
+                                 int y);
 
-static InternalEvent* events; /* for WarpPointer MotionNotifies */
+static InternalEvent *events;   /* for WarpPointer MotionNotifies */
 
 Bool
-miPointerInitialize (ScreenPtr                  pScreen,
-                     miPointerSpriteFuncPtr     spriteFuncs,
-                     miPointerScreenFuncPtr     screenFuncs,
-                     Bool                       waitForUpdate)
+miPointerInitialize(ScreenPtr pScreen,
+                    miPointerSpriteFuncPtr spriteFuncs,
+                    miPointerScreenFuncPtr screenFuncs, Bool waitForUpdate)
 {
-    miPointerScreenPtr	pScreenPriv;
+    miPointerScreenPtr pScreenPriv;
 
     if (!dixRegisterPrivateKey(&miPointerScreenKeyRec, PRIVATE_SCREEN, 0))
-	return FALSE;
+        return FALSE;
 
     if (!dixRegisterPrivateKey(&miPointerPrivKeyRec, PRIVATE_DEVICE, 0))
-	return FALSE;
+        return FALSE;
 
-    pScreenPriv = malloc(sizeof (miPointerScreenRec));
+    pScreenPriv = malloc(sizeof(miPointerScreenRec));
     if (!pScreenPriv)
-	return FALSE;
+        return FALSE;
     pScreenPriv->spriteFuncs = spriteFuncs;
     pScreenPriv->screenFuncs = screenFuncs;
     /*
      * check for uninitialized methods
      */
     if (!screenFuncs->EnqueueEvent)
-	screenFuncs->EnqueueEvent = mieqEnqueue;
+        screenFuncs->EnqueueEvent = mieqEnqueue;
     if (!screenFuncs->NewEventScreen)
-	screenFuncs->NewEventScreen = mieqSwitchScreen;
+        screenFuncs->NewEventScreen = mieqSwitchScreen;
     pScreenPriv->waitForUpdate = waitForUpdate;
     pScreenPriv->showTransparent = FALSE;
     pScreenPriv->CloseScreen = pScreen->CloseScreen;
@@ -157,7 +154,7 @@ miPointerInitialize (ScreenPtr                  pScreen,
  * @param pScreen The actual screen pointer
  */
 static Bool
-miPointerCloseScreen (int index, ScreenPtr pScreen)
+miPointerCloseScreen(int index, ScreenPtr pScreen)
 {
     SetupScreen(pScreen);
 
@@ -173,29 +170,29 @@ miPointerCloseScreen (int index, ScreenPtr pScreen)
  */
 
 static Bool
-miPointerRealizeCursor (DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
+miPointerRealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
 {
     SetupScreen(pScreen);
     return (*pScreenPriv->spriteFuncs->RealizeCursor) (pDev, pScreen, pCursor);
 }
 
 static Bool
-miPointerUnrealizeCursor (DeviceIntPtr  pDev,
-                          ScreenPtr     pScreen,
-                          CursorPtr     pCursor)
+miPointerUnrealizeCursor(DeviceIntPtr pDev,
+                         ScreenPtr pScreen, CursorPtr pCursor)
 {
     SetupScreen(pScreen);
-    return (*pScreenPriv->spriteFuncs->UnrealizeCursor) (pDev, pScreen, pCursor);
+    return (*pScreenPriv->spriteFuncs->UnrealizeCursor) (pDev, pScreen,
+                                                         pCursor);
 }
 
 static Bool
-miPointerDisplayCursor (DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
+miPointerDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
 {
     miPointerPtr pPointer;
 
     /* return for keyboards */
     if (!IsPointerDevice(pDev))
-            return FALSE;
+        return FALSE;
 
     pPointer = MIPOINTER(pDev);
 
@@ -215,7 +212,7 @@ miPointerDisplayCursor (DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
  * @param pScreen Used for copying screen confinement
  */
 static void
-miPointerConstrainCursor (DeviceIntPtr pDev, ScreenPtr pScreen, BoxPtr pBox)
+miPointerConstrainCursor(DeviceIntPtr pDev, ScreenPtr pScreen, BoxPtr pBox)
 {
     miPointerPtr pPointer;
 
@@ -268,18 +265,18 @@ static Bool
 miPointerSetCursorPosition(DeviceIntPtr pDev, ScreenPtr pScreen,
                            int x, int y, Bool generateEvent)
 {
-    SetupScreen (pScreen);
+    SetupScreen(pScreen);
     miPointerPtr pPointer = MIPOINTER(pDev);
 
     pPointer->generateEvent = generateEvent;
 
     if (pScreen->ConstrainCursorHarder)
-	pScreen->ConstrainCursorHarder(pDev, pScreen, Absolute, &x, &y);
+        pScreen->ConstrainCursorHarder(pDev, pScreen, Absolute, &x, &y);
 
     /* device dependent - must pend signal and call miPointerWarpCursor */
     (*pScreenPriv->screenFuncs->WarpCursor) (pDev, pScreen, x, y);
     if (!generateEvent)
-	miPointerUpdateSprite(pDev);
+        miPointerUpdateSprite(pDev);
     return TRUE;
 }
 
@@ -295,7 +292,8 @@ static Bool
 miPointerDeviceInitialize(DeviceIntPtr pDev, ScreenPtr pScreen)
 {
     miPointerPtr pPointer;
-    SetupScreen (pScreen);
+
+    SetupScreen(pScreen);
 
     pPointer = malloc(sizeof(miPointerRec));
     if (!pPointer)
@@ -314,8 +312,7 @@ miPointerDeviceInitialize(DeviceIntPtr pDev, ScreenPtr pScreen)
     pPointer->y = 0;
     pPointer->generateEvent = FALSE;
 
-    if (!((*pScreenPriv->spriteFuncs->DeviceCursorInitialize)(pDev, pScreen)))
-    {
+    if (!((*pScreenPriv->spriteFuncs->DeviceCursorInitialize) (pDev, pScreen))) {
         free(pPointer);
         return FALSE;
     }
@@ -339,11 +336,10 @@ miPointerDeviceCleanup(DeviceIntPtr pDev, ScreenPtr pScreen)
     if (!IsMaster(pDev) && !IsFloating(pDev))
         return;
 
-    (*pScreenPriv->spriteFuncs->DeviceCursorCleanup)(pDev, pScreen);
+    (*pScreenPriv->spriteFuncs->DeviceCursorCleanup) (pDev, pScreen);
     free(dixLookupPrivate(&pDev->devPrivates, miPointerPrivKey));
     dixSetPrivate(&pDev->devPrivates, miPointerPrivKey, NULL);
 }
-
 
 /**
  * Warp the pointer to the given position on the given screen. May generate
@@ -358,22 +354,21 @@ miPointerDeviceCleanup(DeviceIntPtr pDev, ScreenPtr pScreen)
  */
 
 void
-miPointerWarpCursor (DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
+miPointerWarpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 {
     miPointerPtr pPointer;
     BOOL changedScreen = FALSE;
 
-    SetupScreen (pScreen);
+    SetupScreen(pScreen);
     pPointer = MIPOINTER(pDev);
 
-    if (pPointer->pScreen != pScreen)
-    {
-	(*pScreenPriv->screenFuncs->NewEventScreen) (pDev, pScreen, TRUE);
+    if (pPointer->pScreen != pScreen) {
+        (*pScreenPriv->screenFuncs->NewEventScreen) (pDev, pScreen, TRUE);
         changedScreen = TRUE;
     }
 
     if (pPointer->generateEvent)
-	miPointerMove (pDev, pScreen, x, y);
+        miPointerMove(pDev, pScreen, x, y);
     else
         miPointerMoveNoEvent(pDev, pScreen, x, y);
 
@@ -382,10 +377,10 @@ miPointerWarpCursor (DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
      * (FDO bug #18668) */
     if (changedScreen
 #ifdef PANORAMIX
-            && noPanoramiXExtension
+        && noPanoramiXExtension
 #endif
-       )
-        UpdateSpriteForScreen (pDev, pScreen) ;
+        )
+        UpdateSpriteForScreen(pDev, pScreen);
 }
 
 /**
@@ -394,13 +389,13 @@ miPointerWarpCursor (DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
  * @param pDev The device to sync
  */
 void
-miPointerUpdateSprite (DeviceIntPtr pDev)
+miPointerUpdateSprite(DeviceIntPtr pDev)
 {
-    ScreenPtr		pScreen;
-    miPointerScreenPtr	pScreenPriv;
-    CursorPtr		pCursor;
-    int			x, y, devx, devy;
-    miPointerPtr        pPointer;
+    ScreenPtr pScreen;
+    miPointerScreenPtr pScreenPriv;
+    CursorPtr pCursor;
+    int x, y, devx, devy;
+    miPointerPtr pPointer;
 
     if (!pDev || !pDev->coreEvents)
         return;
@@ -412,60 +407,57 @@ miPointerUpdateSprite (DeviceIntPtr pDev)
 
     pScreen = pPointer->pScreen;
     if (!pScreen)
-	return;
+        return;
 
     x = pPointer->x;
     y = pPointer->y;
     devx = pPointer->devx;
     devy = pPointer->devy;
 
-    pScreenPriv = GetScreenPrivate (pScreen);
+    pScreenPriv = GetScreenPrivate(pScreen);
     /*
      * if the cursor has switched screens, disable the sprite
      * on the old screen
      */
-    if (pScreen != pPointer->pSpriteScreen)
-    {
-	if (pPointer->pSpriteScreen)
-	{
-	    miPointerScreenPtr  pOldPriv;
-    	
-	    pOldPriv = GetScreenPrivate (pPointer->pSpriteScreen);
-	    if (pPointer->pCursor)
-	    {
-	    	(*pOldPriv->spriteFuncs->SetCursor)
-			    	(pDev, pPointer->pSpriteScreen, NullCursor, 0, 0);
-	    }
-	    (*pOldPriv->screenFuncs->CrossScreen) (pPointer->pSpriteScreen, FALSE);
-	}
-	(*pScreenPriv->screenFuncs->CrossScreen) (pScreen, TRUE);
-	(*pScreenPriv->spriteFuncs->SetCursor)
-				(pDev, pScreen, pPointer->pCursor, x, y);
-	pPointer->devx = x;
-	pPointer->devy = y;
-	pPointer->pSpriteCursor = pPointer->pCursor;
-	pPointer->pSpriteScreen = pScreen;
+    if (pScreen != pPointer->pSpriteScreen) {
+        if (pPointer->pSpriteScreen) {
+            miPointerScreenPtr pOldPriv;
+
+            pOldPriv = GetScreenPrivate(pPointer->pSpriteScreen);
+            if (pPointer->pCursor) {
+                (*pOldPriv->spriteFuncs->SetCursor)
+                    (pDev, pPointer->pSpriteScreen, NullCursor, 0, 0);
+            }
+            (*pOldPriv->screenFuncs->CrossScreen) (pPointer->pSpriteScreen,
+                                                   FALSE);
+        }
+        (*pScreenPriv->screenFuncs->CrossScreen) (pScreen, TRUE);
+        (*pScreenPriv->spriteFuncs->SetCursor)
+            (pDev, pScreen, pPointer->pCursor, x, y);
+        pPointer->devx = x;
+        pPointer->devy = y;
+        pPointer->pSpriteCursor = pPointer->pCursor;
+        pPointer->pSpriteScreen = pScreen;
     }
     /*
      * if the cursor has changed, display the new one
      */
-    else if (pPointer->pCursor != pPointer->pSpriteCursor)
-    {
-	pCursor = pPointer->pCursor;
-	if (!pCursor || (pCursor->bits->emptyMask && !pScreenPriv->showTransparent))
-	    pCursor = NullCursor;
-	(*pScreenPriv->spriteFuncs->SetCursor) (pDev, pScreen, pCursor, x, y);
+    else if (pPointer->pCursor != pPointer->pSpriteCursor) {
+        pCursor = pPointer->pCursor;
+        if (!pCursor ||
+            (pCursor->bits->emptyMask && !pScreenPriv->showTransparent))
+            pCursor = NullCursor;
+        (*pScreenPriv->spriteFuncs->SetCursor) (pDev, pScreen, pCursor, x, y);
 
-	pPointer->devx = x;
-	pPointer->devy = y;
-	pPointer->pSpriteCursor = pPointer->pCursor;
+        pPointer->devx = x;
+        pPointer->devy = y;
+        pPointer->pSpriteCursor = pPointer->pCursor;
     }
-    else if (x != devx || y != devy)
-    {
-	pPointer->devx = x;
-	pPointer->devy = y;
-	if(pPointer->pCursor && !pPointer->pCursor->bits->emptyMask)
-	    (*pScreenPriv->spriteFuncs->MoveCursor) (pDev, pScreen, x, y);
+    else if (x != devx || y != devy) {
+        pPointer->devx = x;
+        pPointer->devy = y;
+        if (pPointer->pCursor && !pPointer->pCursor->bits->emptyMask)
+            (*pScreenPriv->spriteFuncs->MoveCursor) (pDev, pScreen, x, y);
     }
 }
 
@@ -480,26 +472,26 @@ miPointerUpdateSprite (DeviceIntPtr pDev)
 void
 miPointerSetScreen(DeviceIntPtr pDev, int screen_no, int x, int y)
 {
-	miPointerScreenPtr pScreenPriv;
-	ScreenPtr pScreen;
-        miPointerPtr pPointer;
+    miPointerScreenPtr pScreenPriv;
+    ScreenPtr pScreen;
+    miPointerPtr pPointer;
 
-        pPointer = MIPOINTER(pDev);
+    pPointer = MIPOINTER(pDev);
 
-	pScreen = screenInfo.screens[screen_no];
-	pScreenPriv = GetScreenPrivate (pScreen);
-	(*pScreenPriv->screenFuncs->NewEventScreen) (pDev, pScreen, FALSE);
-	NewCurrentScreen (pDev, pScreen, x, y);
+    pScreen = screenInfo.screens[screen_no];
+    pScreenPriv = GetScreenPrivate(pScreen);
+    (*pScreenPriv->screenFuncs->NewEventScreen) (pDev, pScreen, FALSE);
+    NewCurrentScreen(pDev, pScreen, x, y);
 
-        pPointer->limits.x2 = pScreen->width;
-        pPointer->limits.y2 = pScreen->height;
+    pPointer->limits.x2 = pScreen->width;
+    pPointer->limits.y2 = pScreen->height;
 }
 
 /**
  * @return The current screen of the VCP
  */
 ScreenPtr
-miPointerCurrentScreen (void)
+miPointerCurrentScreen(void)
 {
     return miPointerGetScreen(inputInfo.pointer);
 }
@@ -511,6 +503,7 @@ ScreenPtr
 miPointerGetScreen(DeviceIntPtr pDev)
 {
     miPointerPtr pPointer = MIPOINTER(pDev);
+
     return (pPointer) ? pPointer->pScreen : NULL;
 }
 
@@ -529,13 +522,12 @@ miPointerSetWaitForUpdate(ScreenPtr pScreen, Bool wait)
     return prevWait;
 }
 
-
 /* Move the pointer on the current screen,  and update the sprite. */
 static void
-miPointerMoveNoEvent (DeviceIntPtr pDev, ScreenPtr pScreen,
-                int x, int y)
+miPointerMoveNoEvent(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 {
     miPointerPtr pPointer;
+
     SetupScreen(pScreen);
 
     pPointer = MIPOINTER(pDev);
@@ -545,12 +537,11 @@ miPointerMoveNoEvent (DeviceIntPtr pDev, ScreenPtr pScreen,
      * SIGIO. This again leads to allocs during SIGIO which leads to SIGABRT.
      */
     if (GetMaster(pDev, MASTER_POINTER) == inputInfo.pointer
-        && !pScreenPriv->waitForUpdate && pScreen == pPointer->pSpriteScreen)
-    {
-	pPointer->devx = x;
-	pPointer->devy = y;
-	if(pPointer->pCursor && !pPointer->pCursor->bits->emptyMask)
-	    (*pScreenPriv->spriteFuncs->MoveCursor) (pDev, pScreen, x, y);
+        &&!pScreenPriv->waitForUpdate && pScreen == pPointer->pSpriteScreen) {
+        pPointer->devx = x;
+        pPointer->devy = y;
+        if (pPointer->pCursor && !pPointer->pCursor->bits->emptyMask)
+            (*pScreenPriv->spriteFuncs->MoveCursor) (pDev, pScreen, x, y);
     }
 
     pPointer->x = x;
@@ -573,15 +564,16 @@ miPointerMoveNoEvent (DeviceIntPtr pDev, ScreenPtr pScreen,
  * @param[in,out] screeny The y coordinate in desktop coordinates
  */
 ScreenPtr
-miPointerSetPosition(DeviceIntPtr pDev, int mode, double *screenx, double *screeny)
+miPointerSetPosition(DeviceIntPtr pDev, int mode, double *screenx,
+                     double *screeny)
 {
-    miPointerScreenPtr	pScreenPriv;
-    ScreenPtr		pScreen;
-    ScreenPtr		newScreen;
-    int			x, y;
-    Bool		switch_screen = FALSE;
+    miPointerScreenPtr pScreenPriv;
+    ScreenPtr pScreen;
+    ScreenPtr newScreen;
+    int x, y;
+    Bool switch_screen = FALSE;
 
-    miPointerPtr        pPointer; 
+    miPointerPtr pPointer;
 
     if (!pDev || !pDev->coreEvents)
         return NULL;
@@ -589,7 +581,7 @@ miPointerSetPosition(DeviceIntPtr pDev, int mode, double *screenx, double *scree
     pPointer = MIPOINTER(pDev);
     pScreen = pPointer->pScreen;
     if (!pScreen)
-	return NULL;    /* called before ready */
+        return NULL;            /* called before ready */
 
     x = trunc(*screenx);
     y = trunc(*screeny);
@@ -601,39 +593,35 @@ miPointerSetPosition(DeviceIntPtr pDev, int mode, double *screenx, double *scree
     x -= pScreen->x;
     y -= pScreen->y;
 
-    if (switch_screen)
-    {
-	pScreenPriv = GetScreenPrivate (pScreen);
-	if (!pPointer->confined)
-	{
-	    newScreen = pScreen;
-	    (*pScreenPriv->screenFuncs->CursorOffScreen) (&newScreen, &x, &y);
-	    if (newScreen != pScreen)
-	    {
-		pScreen = newScreen;
-		(*pScreenPriv->screenFuncs->NewEventScreen) (pDev, pScreen,
-							     FALSE);
-		/* Smash the confine to the new screen */
+    if (switch_screen) {
+        pScreenPriv = GetScreenPrivate(pScreen);
+        if (!pPointer->confined) {
+            newScreen = pScreen;
+            (*pScreenPriv->screenFuncs->CursorOffScreen) (&newScreen, &x, &y);
+            if (newScreen != pScreen) {
+                pScreen = newScreen;
+                (*pScreenPriv->screenFuncs->NewEventScreen) (pDev, pScreen,
+                                                             FALSE);
+                /* Smash the confine to the new screen */
                 pPointer->limits.x2 = pScreen->width;
                 pPointer->limits.y2 = pScreen->height;
-	    }
-	}
+            }
+        }
     }
     /* Constrain the sprite to the current limits. */
     if (x < pPointer->limits.x1)
-	x = pPointer->limits.x1;
+        x = pPointer->limits.x1;
     if (x >= pPointer->limits.x2)
-	x = pPointer->limits.x2 - 1;
+        x = pPointer->limits.x2 - 1;
     if (y < pPointer->limits.y1)
-	y = pPointer->limits.y1;
+        y = pPointer->limits.y1;
     if (y >= pPointer->limits.y2)
-	y = pPointer->limits.y2 - 1;
+        y = pPointer->limits.y2 - 1;
 
     if (pScreen->ConstrainCursorHarder)
-       pScreen->ConstrainCursorHarder(pDev, pScreen, mode, &x, &y);
+        pScreen->ConstrainCursorHarder(pDev, pScreen, mode, &x, &y);
 
-    if (pPointer->x != x || pPointer->y != y ||
-            pPointer->pScreen != pScreen)
+    if (pPointer->x != x || pPointer->y != y || pPointer->pScreen != pScreen)
         miPointerMoveNoEvent(pDev, pScreen, x, y);
 
     /* Convert to desktop coordinates again */
@@ -681,7 +669,7 @@ void darwinEvents_unlock(void);
  * @param y The y coordinate in per-screen coordinates
  */
 void
-miPointerMove (DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
+miPointerMove(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 {
     int i, nevents;
     int valuators[2];
@@ -693,12 +681,10 @@ miPointerMove (DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
     valuators[0] = x;
     valuators[1] = y;
 
-    if (!events)
-    {
+    if (!events) {
         events = InitEventList(GetMaximumEventsNum());
 
-        if (!events)
-        {
+        if (!events) {
             FatalError("Could not allocate event store.\n");
             return;
         }
@@ -706,7 +692,8 @@ miPointerMove (DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 
     valuator_mask_set_range(&mask, 0, 2, valuators);
     nevents = GetPointerEvents(events, pDev, MotionNotify, 0,
-                               POINTER_SCREEN | POINTER_ABSOLUTE | POINTER_NORAW, &mask);
+                               POINTER_SCREEN | POINTER_ABSOLUTE |
+                               POINTER_NORAW, &mask);
 
     OsBlockSignals();
 #ifdef XQUARTZ

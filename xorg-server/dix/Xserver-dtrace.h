@@ -1,29 +1,23 @@
-/* Copyright 2006 Sun Microsystems, Inc.  All rights reserved.
+/* Copyright (c) 2006, Oracle and/or its affiliates. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, and/or sell copies of the Software, and to permit persons
- * to whom the Software is furnished to do so, provided that the above
- * copyright notice(s) and this permission notice appear in all copies of
- * the Software and that both the above copyright notice(s) and this
- * permission notice appear in supporting documentation.
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
- * OF THIRD PARTY RIGHTS. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
- * HOLDERS INCLUDED IN THIS NOTICE BE LIABLE FOR ANY CLAIM, OR ANY SPECIAL
- * INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING
- * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
- * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
- * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
  *
- * Except as contained in this notice, the name of a copyright holder
- * shall not be used in advertising or otherwise to promote the sale, use
- * or other dealings in this Software without prior written authorization
- * of the copyright holder.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */ 
 
 /*
@@ -58,6 +52,8 @@ extern "C" {
 	winDebug4("XSERVER_RESOURCE_FREE: 0x%x 0x%x ->%p %s\n",arg0, arg1, arg2, arg3)
 #define	XSERVER_SEND_EVENT(arg0, arg1, arg2) \
 	winDebug4("XSERVER_SEND_EVENT: 0x%x 0x%x ->%p\n",arg0, arg1, arg2)
+#define	XSERVER_INPUT_EVENT(arg0, arg1, arg2, arg3, arg4, arg5, arg6) \
+	winDebug4("XSERVER_SEND_EVENT: %x %x %x %x %x %x %x\n", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 
 #define	XSERVER_CLIENT_AUTH_ENABLED() (1)
 #define	XSERVER_CLIENT_CONNECT_ENABLED() (1)
@@ -67,6 +63,7 @@ extern "C" {
 #define	XSERVER_RESOURCE_ALLOC_ENABLED() (1)
 #define	XSERVER_RESOURCE_FREE_ENABLED() (1)
 #define	XSERVER_SEND_EVENT_ENABLED() (1)
+#define	XSERVER_INPUT_EVENT_ENABLED() (1)
 
 #ifdef	__cplusplus
 }

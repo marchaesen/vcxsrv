@@ -44,27 +44,26 @@
  * This file provides support for the shadow frame buffer. */
 
 /** Update the screen from the shadow frame buffer. */
-void dmxShadowUpdateProc(ScreenPtr pScreen, shadowBufPtr pBuf)
+void
+dmxShadowUpdateProc(ScreenPtr pScreen, shadowBufPtr pBuf)
 {
-    RegionPtr      damage = &pBuf->damage;
-    int            nbox = RegionNumRects(damage);
-    BoxPtr         pbox = RegionRects(damage);
+    RegionPtr damage = &pBuf->damage;
+    int nbox = RegionNumRects(damage);
+    BoxPtr pbox = RegionRects(damage);
     DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
 
     if (!dmxScreen->beDisplay)
-	return;
+        return;
 
     while (nbox--) {
-	XPutImage(dmxScreen->beDisplay,
-		  dmxScreen->scrnWin,
-		  dmxScreen->shadowGC,
-		  dmxScreen->shadowFBImage,
-		  pbox->x1, pbox->y1,
-		  pbox->x1, pbox->y1,
-		  pbox->x2 - pbox->x1,
-		  pbox->y2 - pbox->y1);
+        XPutImage(dmxScreen->beDisplay,
+                  dmxScreen->scrnWin,
+                  dmxScreen->shadowGC,
+                  dmxScreen->shadowFBImage,
+                  pbox->x1, pbox->y1,
+                  pbox->x1, pbox->y1, pbox->x2 - pbox->x1, pbox->y2 - pbox->y1);
 
-	pbox++;
+        pbox++;
     }
 
     dmxSync(dmxScreen, FALSE);

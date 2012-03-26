@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -53,38 +52,35 @@ SOFTWARE.
 #include "mifpoly.h"
 
 void
-miStepDash (
-    int dist,			/* distance to step */
-    int *pDashIndex,		/* current dash */
-    unsigned char *pDash,	/* dash list */
-    int numInDashList,		/* total length of dash list */
-    int *pDashOffset		/* offset into current dash */
+miStepDash(int dist,            /* distance to step */
+           int *pDashIndex,     /* current dash */
+           unsigned char *pDash,        /* dash list */
+           int numInDashList,   /* total length of dash list */
+           int *pDashOffset     /* offset into current dash */
     )
 {
-    int	dashIndex, dashOffset;
+    int dashIndex, dashOffset;
     int totallen;
-    int	i;
-    
+    int i;
+
     dashIndex = *pDashIndex;
     dashOffset = *pDashOffset;
-    if (dist < pDash[dashIndex] - dashOffset)
-    {
-	*pDashOffset = dashOffset + dist;
-	return;
+    if (dist < pDash[dashIndex] - dashOffset) {
+        *pDashOffset = dashOffset + dist;
+        return;
     }
     dist -= pDash[dashIndex] - dashOffset;
     if (++dashIndex == numInDashList)
-	dashIndex = 0;
+        dashIndex = 0;
     totallen = 0;
     for (i = 0; i < numInDashList; i++)
-	totallen += pDash[i];
+        totallen += pDash[i];
     if (totallen <= dist)
-	dist = dist % totallen;
-    while (dist >= pDash[dashIndex])
-    {
-	dist -= pDash[dashIndex];
-	if (++dashIndex == numInDashList)
-	    dashIndex = 0;
+        dist = dist % totallen;
+    while (dist >= pDash[dashIndex]) {
+        dist -= pDash[dashIndex];
+        if (++dashIndex == numInDashList)
+            dashIndex = 0;
     }
     *pDashIndex = dashIndex;
     *pDashOffset = dist;

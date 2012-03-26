@@ -41,26 +41,29 @@
 #include "protocol-common.h"
 
 static ClientRec client_request;
+
 #define N_MODS 7
-static uint32_t modifiers[N_MODS] = {1, 2, 3, 4, 5, 6, 7};
+static uint32_t modifiers[N_MODS] = { 1, 2, 3, 4, 5, 6, 7 };
 
 struct test_data {
     int num_modifiers;
 } testdata;
 
-int __wrap_GrabButton(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr modifier_device,
-                      int button, GrabParameters *param, enum InputLevel grabtype,
+int __wrap_GrabButton(ClientPtr client, DeviceIntPtr dev,
+                      DeviceIntPtr modifier_device, int button,
+                      GrabParameters *param, enum InputLevel grabtype,
                       GrabMask *mask);
-static void reply_XIPassiveGrabDevice_data(ClientPtr client, int len, char *data, void *userdata);
+static void reply_XIPassiveGrabDevice_data(ClientPtr client, int len,
+                                           char *data, void *userdata);
 
-int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
+int
+__wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
 {
-    if (id == root.drawable.id)
-    {
+    if (id == root.drawable.id) {
         *win = &root;
         return Success;
-    } else if (id == window.drawable.id)
-    {
+    }
+    else if (id == window.drawable.id) {
         *win = &window;
         return Success;
     }
@@ -68,9 +71,11 @@ int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access
     return __real_dixLookupWindow(win, id, client, access);
 }
 
-int __wrap_GrabButton(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr modifier_device,
-                      int button, GrabParameters *param, enum InputLevel grabtype,
-                      GrabMask *mask)
+int
+__wrap_GrabButton(ClientPtr client, DeviceIntPtr dev,
+                  DeviceIntPtr modifier_device, int button,
+                  GrabParameters *param, enum InputLevel grabtype,
+                  GrabMask *mask)
 {
     /* Fail every odd modifier */
     if (param->modifiers % 2)
@@ -79,12 +84,12 @@ int __wrap_GrabButton(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr modifier_
     return Success;
 }
 
-static void reply_XIPassiveGrabDevice(ClientPtr client, int len, char *data, void *userdata)
+static void
+reply_XIPassiveGrabDevice(ClientPtr client, int len, char *data, void *userdata)
 {
-    xXIPassiveGrabDeviceReply *rep = (xXIPassiveGrabDeviceReply*)data;
+    xXIPassiveGrabDeviceReply *rep = (xXIPassiveGrabDeviceReply *) data;
 
-    if (client->swapped)
-    {
+    if (client->swapped) {
         swaps(&rep->sequenceNumber);
         swapl(&rep->length);
         swaps(&rep->num_modifiers);
@@ -100,14 +105,15 @@ static void reply_XIPassiveGrabDevice(ClientPtr client, int len, char *data, voi
         reply_handler = reply_XIPassiveGrabDevice_data;
 }
 
-static void reply_XIPassiveGrabDevice_data(ClientPtr client, int len, char *data, void *userdata)
+static void
+reply_XIPassiveGrabDevice_data(ClientPtr client, int len, char *data,
+                               void *userdata)
 {
     int i;
 
-    xXIGrabModifierInfo *mods = (xXIGrabModifierInfo*)data;
+    xXIGrabModifierInfo *mods = (xXIGrabModifierInfo *) data;
 
-    for (i = 0; i < testdata.num_modifiers; i++, mods++)
-    {
+    for (i = 0; i < testdata.num_modifiers; i++, mods++) {
         if (client->swapped)
             swapl(&mods->modifiers);
 
@@ -115,7 +121,7 @@ static void reply_XIPassiveGrabDevice_data(ClientPtr client, int len, char *data
          * above */
         assert(mods->modifiers > 0);
         assert(mods->modifiers <= 7);
-        assert(mods->modifiers % 2 == 1); /* because we fail odd ones */
+        assert(mods->modifiers % 2 == 1);       /* because we fail odd ones */
         assert(mods->status != Success);
         assert(mods->pad0 == 0);
         assert(mods->pad1 == 0);
@@ -124,7 +130,9 @@ static void reply_XIPassiveGrabDevice_data(ClientPtr client, int len, char *data
     reply_handler = reply_XIPassiveGrabDevice;
 }
 
-static void request_XIPassiveGrabDevice(ClientPtr client, xXIPassiveGrabDeviceReq* req, int error, int errval)
+static void
+request_XIPassiveGrabDevice(ClientPtr client, xXIPassiveGrabDeviceReq * req,
+                            int error, int errval)
 {
     int rc;
     int modifiers;
@@ -146,9 +154,9 @@ static void request_XIPassiveGrabDevice(ClientPtr client, xXIPassiveGrabDeviceRe
     swaps(&req->num_modifiers);
     swaps(&req->mask_len);
 
-    while(modifiers--)
-    {
-        CARD32 *mod = ((CARD32*)(req + 1)) + modifiers;
+    while (modifiers--) {
+        CARD32 *mod = ((CARD32 *) (req + 1)) + modifiers;
+
         swapl(mod);
     }
 
@@ -159,11 +167,12 @@ static void request_XIPassiveGrabDevice(ClientPtr client, xXIPassiveGrabDeviceRe
         assert(client_request.errorValue == errval);
 }
 
-static unsigned char *data[4096]; /* the request buffer */
-static void test_XIPassiveGrabDevice(void)
+static unsigned char *data[4096];       /* the request buffer */
+static void
+test_XIPassiveGrabDevice(void)
 {
     int i;
-    xXIPassiveGrabDeviceReq *request = (xXIPassiveGrabDeviceReq*)data;
+    xXIPassiveGrabDeviceReq *request = (xXIPassiveGrabDeviceReq *) data;
     unsigned char *mask;
 
     request_init(request, XIPassiveGrabDevice);
@@ -175,34 +184,38 @@ static void test_XIPassiveGrabDevice(void)
 
     printf("Testing invalid device\n");
     request->deviceid = 12;
-    request_XIPassiveGrabDevice(&client_request, request, BadDevice, request->deviceid);
+    request_XIPassiveGrabDevice(&client_request, request, BadDevice,
+                                request->deviceid);
 
     request->deviceid = XIAllMasterDevices;
 
     printf("Testing invalid grab types\n");
-    for (i = XIGrabtypeTouchBegin + 1; i < 0xFF; i++)
-    {
+    for (i = XIGrabtypeTouchBegin + 1; i < 0xFF; i++) {
         request->grab_type = i;
-        request_XIPassiveGrabDevice(&client_request, request, BadValue, request->grab_type);
+        request_XIPassiveGrabDevice(&client_request, request, BadValue,
+                                    request->grab_type);
     }
 
     printf("Testing invalid grab type + detail combinations\n");
     request->grab_type = XIGrabtypeEnter;
     request->detail = 1;
-    request_XIPassiveGrabDevice(&client_request, request, BadValue, request->detail);
+    request_XIPassiveGrabDevice(&client_request, request, BadValue,
+                                request->detail);
 
     request->grab_type = XIGrabtypeFocusIn;
-    request_XIPassiveGrabDevice(&client_request, request, BadValue, request->detail);
+    request_XIPassiveGrabDevice(&client_request, request, BadValue,
+                                request->detail);
 
     request->detail = 0;
 
     printf("Testing invalid masks\n");
-    mask = (unsigned char*)&request[1];
+    mask = (unsigned char *) &request[1];
 
     request->mask_len = bytes_to_int32(XI2LASTEVENT + 1);
     request->length += request->mask_len;
     SetBit(mask, XI2LASTEVENT + 1);
-    request_XIPassiveGrabDevice(&client_request, request, BadValue, XI2LASTEVENT + 1);
+    request_XIPassiveGrabDevice(&client_request, request, BadValue,
+                                XI2LASTEVENT + 1);
 
     ClearBit(mask, XI2LASTEVENT + 1);
 
@@ -217,11 +230,13 @@ static void test_XIPassiveGrabDevice(void)
     /* some modifiers */
     request->num_modifiers = N_MODS;
     request->length += N_MODS;
-    memcpy((uint32_t*)(request + 1) + request->mask_len, modifiers, sizeof(modifiers));
+    memcpy((uint32_t *) (request + 1) + request->mask_len, modifiers,
+           sizeof(modifiers));
     request_XIPassiveGrabDevice(&client_request, request, Success, 0);
 }
 
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     init_simple();
 

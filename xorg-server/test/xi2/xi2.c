@@ -30,10 +30,10 @@
 #include "inputstr.h"
 #include "assert.h"
 
-static void xi2mask_test(void)
+static void
+xi2mask_test(void)
 {
-    XI2Mask *xi2mask = NULL,
-            *mergemask = NULL;
+    XI2Mask *xi2mask = NULL, *mergemask = NULL;
     unsigned char *mask;
     DeviceIntRec dev;
     int i;
@@ -51,12 +51,14 @@ static void xi2mask_test(void)
     /* ensure zeros */
     for (i = 0; i < xi2mask_num_masks(xi2mask); i++) {
         const unsigned char *m = xi2mask_get_one_mask(xi2mask, i);
+
         assert(memcmp(mask, m, xi2mask_mask_size(xi2mask)) == 0);
     }
 
     /* set various bits */
     for (i = 0; i < xi2mask_num_masks(xi2mask); i++) {
         const unsigned char *m;
+
         xi2mask_set(xi2mask, i, i);
 
         dev.id = i;
@@ -71,6 +73,7 @@ static void xi2mask_test(void)
     /* ensure zeros one-by-one */
     for (i = 0; i < xi2mask_num_masks(xi2mask); i++) {
         const unsigned char *m = xi2mask_get_one_mask(xi2mask, i);
+
         assert(memcmp(mask, m, xi2mask_mask_size(xi2mask)) != 0);
         xi2mask_zero(xi2mask, i);
         assert(memcmp(mask, m, xi2mask_mask_size(xi2mask)) == 0);
@@ -83,11 +86,13 @@ static void xi2mask_test(void)
 
     for (i = 0; i < xi2mask_num_masks(xi2mask); i++) {
         const unsigned char *m = xi2mask_get_one_mask(xi2mask, i);
+
         assert(memcmp(mask, m, xi2mask_mask_size(xi2mask)) == 0);
     }
 
     for (i = 0; i < xi2mask_num_masks(xi2mask); i++) {
         const unsigned char *m;
+
         SetBit(mask, i);
         xi2mask_set_one_mask(xi2mask, i, mask, xi2mask_mask_size(xi2mask));
         m = xi2mask_get_one_mask(xi2mask, i);
@@ -105,6 +110,7 @@ static void xi2mask_test(void)
     xi2mask_merge(xi2mask, mergemask);
     for (i = 0; i < xi2mask_num_masks(mergemask); i++) {
         const unsigned char *m = xi2mask_get_one_mask(xi2mask, i);
+
         SetBit(mask, i);
         SetBit(mask, i * 2);
         assert(memcmp(mask, m, xi2mask_mask_size(xi2mask)) == 0);
@@ -120,8 +126,8 @@ static void xi2mask_test(void)
     free(mask);
 }
 
-
-int main(int argc, char** argv)
+int
+main(int argc, char **argv)
 {
     xi2mask_test();
 

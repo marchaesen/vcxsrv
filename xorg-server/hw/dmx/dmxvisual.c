@@ -48,24 +48,25 @@
 #include <GL/glxint.h>
 
 extern VisualID glxMatchVisualInConfigList(ScreenPtr pScreen,
-					   VisualPtr pVisual,
-					   __GLXvisualConfig *configs,
-					   int nconfigs);
+                                           VisualPtr pVisual,
+                                           __GLXvisualConfig * configs,
+                                           int nconfigs);
 
-static Visual *dmxLookupGLXVisual(ScreenPtr pScreen, VisualPtr pVisual)
+static Visual *
+dmxLookupGLXVisual(ScreenPtr pScreen, VisualPtr pVisual)
 {
     DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
-    int            j;
-    VisualID       vid;
+    int j;
+    VisualID vid;
 
     vid = glxMatchVisualInConfigList(pScreen, pVisual,
-				     dmxScreen->glxVisuals,
-				     dmxScreen->numGlxVisuals);
+                                     dmxScreen->glxVisuals,
+                                     dmxScreen->numGlxVisuals);
     if (vid) {
-	/* Find the X visual of the matching GLX visual */
-	for (j = 0; j < dmxScreen->beNumVisuals; j++)
-	    if (vid == dmxScreen->beVisuals[j].visualid)
-		return dmxScreen->beVisuals[j].visual;
+        /* Find the X visual of the matching GLX visual */
+        for (j = 0; j < dmxScreen->beNumVisuals; j++)
+            if (vid == dmxScreen->beVisuals[j].visualid)
+                return dmxScreen->beVisuals[j].visual;
     }
 
     /* No matching visual found */
@@ -74,66 +75,71 @@ static Visual *dmxLookupGLXVisual(ScreenPtr pScreen, VisualPtr pVisual)
 #endif
 
 /** Return the visual that matched \a pVisual. */
-Visual *dmxLookupVisual(ScreenPtr pScreen, VisualPtr pVisual)
+Visual *
+dmxLookupVisual(ScreenPtr pScreen, VisualPtr pVisual)
 {
     DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
-    int            i;
+    int i;
+
 #ifdef GLXEXT
-    Visual        *retval;
+    Visual *retval;
 #endif
 
     if (!dmxScreen->beDisplay)
-	return NULL;
+        return NULL;
 
 #ifdef GLXEXT
     if ((retval = dmxLookupGLXVisual(pScreen, pVisual)))
-	return retval;
+        return retval;
 #endif
 
     for (i = 0; i < dmxScreen->beNumVisuals; i++) {
-	if (pVisual->class == dmxScreen->beVisuals[i].class &&
-	    pVisual->bitsPerRGBValue == dmxScreen->beVisuals[i].bits_per_rgb &&
-	    pVisual->ColormapEntries == dmxScreen->beVisuals[i].colormap_size &&
-	    pVisual->nplanes == dmxScreen->beVisuals[i].depth &&
-	    pVisual->redMask == dmxScreen->beVisuals[i].red_mask &&
-	    pVisual->greenMask == dmxScreen->beVisuals[i].green_mask &&
-	    pVisual->blueMask == dmxScreen->beVisuals[i].blue_mask) {
-	    return dmxScreen->beVisuals[i].visual;
-	}
+        if (pVisual->class == dmxScreen->beVisuals[i].class &&
+            pVisual->bitsPerRGBValue == dmxScreen->beVisuals[i].bits_per_rgb &&
+            pVisual->ColormapEntries == dmxScreen->beVisuals[i].colormap_size &&
+            pVisual->nplanes == dmxScreen->beVisuals[i].depth &&
+            pVisual->redMask == dmxScreen->beVisuals[i].red_mask &&
+            pVisual->greenMask == dmxScreen->beVisuals[i].green_mask &&
+            pVisual->blueMask == dmxScreen->beVisuals[i].blue_mask) {
+            return dmxScreen->beVisuals[i].visual;
+        }
     }
 
     return NULL;
 }
 
 /** Return the visual that matched the \a vid. */
-Visual *dmxLookupVisualFromID(ScreenPtr pScreen, VisualID vid)
+Visual *
+dmxLookupVisualFromID(ScreenPtr pScreen, VisualID vid)
 {
     Visual *visual;
-    int     i;
+    int i;
 
     if (!dmxScreens[pScreen->myNum].beDisplay)
-	return NULL;
+        return NULL;
 
     for (i = 0; i < pScreen->numVisuals; i++) {
-	if (pScreen->visuals[i].vid == vid) {
-	    visual = dmxLookupVisual(pScreen, &pScreen->visuals[i]);
-	    if (visual) return visual;
-	}
+        if (pScreen->visuals[i].vid == vid) {
+            visual = dmxLookupVisual(pScreen, &pScreen->visuals[i]);
+            if (visual)
+                return visual;
+        }
     }
 
     return NULL;
 }
 
 /** Return the colormap for the \a visual. */
-Colormap dmxColormapFromDefaultVisual(ScreenPtr pScreen, Visual *visual)
+Colormap
+dmxColormapFromDefaultVisual(ScreenPtr pScreen, Visual * visual)
 {
     DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
-    int            i;
+    int i;
 
     if (dmxScreen->beDisplay) {
-	for (i = 0; i < dmxScreen->beNumDefColormaps; i++)
-	    if (visual == dmxScreen->beVisuals[i].visual)
-		return dmxScreen->beDefColormaps[i];
+        for (i = 0; i < dmxScreen->beNumDefColormaps; i++)
+            if (visual == dmxScreen->beVisuals[i].visual)
+                return dmxScreen->beDefColormaps[i];
     }
 
     return None;

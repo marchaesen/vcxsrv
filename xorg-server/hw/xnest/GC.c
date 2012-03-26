@@ -29,7 +29,7 @@ is" without express or implied warranty.
 #include "Xnest.h"
 
 #include "Display.h"
-#include "XNGC.h" 
+#include "XNGC.h"
 #include "GCOps.h"
 #include "Drawable.h"
 #include "XNFont.h"
@@ -38,51 +38,51 @@ is" without express or implied warranty.
 DevPrivateKeyRec xnestGCPrivateKeyRec;
 
 static GCFuncs xnestFuncs = {
-  xnestValidateGC,
-  xnestChangeGC,
-  xnestCopyGC,
-  xnestDestroyGC,
-  xnestChangeClip,
-  xnestDestroyClip,
-  xnestCopyClip,
+    xnestValidateGC,
+    xnestChangeGC,
+    xnestCopyGC,
+    xnestDestroyGC,
+    xnestChangeClip,
+    xnestDestroyClip,
+    xnestCopyClip,
 };
 
 static GCOps xnestOps = {
-  xnestFillSpans,
-  xnestSetSpans,
-  xnestPutImage,
-  xnestCopyArea, 
-  xnestCopyPlane,
-  xnestPolyPoint,
-  xnestPolylines,
-  xnestPolySegment,
-  xnestPolyRectangle,
-  xnestPolyArc,
-  xnestFillPolygon,
-  xnestPolyFillRect,
-  xnestPolyFillArc,
-  xnestPolyText8, 
-  xnestPolyText16,
-  xnestImageText8,
-  xnestImageText16,
-  xnestImageGlyphBlt,
-  xnestPolyGlyphBlt,
-  xnestPushPixels
+    xnestFillSpans,
+    xnestSetSpans,
+    xnestPutImage,
+    xnestCopyArea,
+    xnestCopyPlane,
+    xnestPolyPoint,
+    xnestPolylines,
+    xnestPolySegment,
+    xnestPolyRectangle,
+    xnestPolyArc,
+    xnestFillPolygon,
+    xnestPolyFillRect,
+    xnestPolyFillArc,
+    xnestPolyText8,
+    xnestPolyText16,
+    xnestImageText8,
+    xnestImageText16,
+    xnestImageGlyphBlt,
+    xnestPolyGlyphBlt,
+    xnestPushPixels
 };
 
 Bool
 xnestCreateGC(GCPtr pGC)
 {
-  pGC->funcs = &xnestFuncs;
-  pGC->ops = &xnestOps;
-  
-  pGC->miTranslate = 1;
-   
-  xnestGCPriv(pGC)->gc = XCreateGC(xnestDisplay, 
-				   xnestDefaultDrawables[pGC->depth], 
-				   0L, NULL);
+    pGC->funcs = &xnestFuncs;
+    pGC->ops = &xnestOps;
 
-  return True;
+    pGC->miTranslate = 1;
+
+    xnestGCPriv(pGC)->gc = XCreateGC(xnestDisplay,
+                                     xnestDefaultDrawables[pGC->depth],
+                                     0L, NULL);
+
+    return True;
 }
 
 void
@@ -93,238 +93,236 @@ xnestValidateGC(GCPtr pGC, unsigned long changes, DrawablePtr pDrawable)
 void
 xnestChangeGC(GCPtr pGC, unsigned long mask)
 {
-  XGCValues values;
-  
-  if (mask & GCFunction)
-    values.function = pGC->alu;
-  
-  if (mask & GCPlaneMask)
-    values.plane_mask = pGC->planemask;
-  
-  if (mask & GCForeground)
-    values.foreground = xnestPixel(pGC->fgPixel);
-  
-  if (mask & GCBackground)
-    values.background = xnestPixel(pGC->bgPixel);
+    XGCValues values;
 
-  if (mask & GCLineWidth)
-    values.line_width = pGC->lineWidth;
-    
-  if (mask & GCLineStyle)
-    values.line_style = pGC->lineStyle;
+    if (mask & GCFunction)
+        values.function = pGC->alu;
 
-  if (mask & GCCapStyle)
-    values.cap_style = pGC->capStyle;
+    if (mask & GCPlaneMask)
+        values.plane_mask = pGC->planemask;
 
-  if (mask & GCJoinStyle)
-    values.join_style = pGC->joinStyle;
+    if (mask & GCForeground)
+        values.foreground = xnestPixel(pGC->fgPixel);
 
-  if (mask & GCFillStyle)
-    values.fill_style = pGC->fillStyle;
+    if (mask & GCBackground)
+        values.background = xnestPixel(pGC->bgPixel);
 
-  if (mask & GCFillRule)
-    values.fill_rule = pGC->fillRule;
-  
-  if (mask & GCTile) {
-    if (pGC->tileIsPixel)
-      mask &= ~GCTile;
-    else
-      values.tile = xnestPixmap(pGC->tile.pixmap);
-  }
+    if (mask & GCLineWidth)
+        values.line_width = pGC->lineWidth;
 
-  if (mask & GCStipple)
-    values.stipple = xnestPixmap(pGC->stipple);
+    if (mask & GCLineStyle)
+        values.line_style = pGC->lineStyle;
 
-  if (mask & GCTileStipXOrigin)
-    values.ts_x_origin = pGC->patOrg.x;
+    if (mask & GCCapStyle)
+        values.cap_style = pGC->capStyle;
 
-  if (mask & GCTileStipYOrigin)
-    values.ts_y_origin = pGC->patOrg.y;
+    if (mask & GCJoinStyle)
+        values.join_style = pGC->joinStyle;
 
-  if (mask & GCFont)
-    values.font = xnestFont(pGC->font);
+    if (mask & GCFillStyle)
+        values.fill_style = pGC->fillStyle;
 
-  if (mask & GCSubwindowMode)
-    values.subwindow_mode = pGC->subWindowMode;
+    if (mask & GCFillRule)
+        values.fill_rule = pGC->fillRule;
 
-  if (mask & GCGraphicsExposures)
-    values.graphics_exposures = pGC->graphicsExposures;
+    if (mask & GCTile) {
+        if (pGC->tileIsPixel)
+            mask &= ~GCTile;
+        else
+            values.tile = xnestPixmap(pGC->tile.pixmap);
+    }
 
-  if (mask & GCClipXOrigin)
-    values.clip_x_origin = pGC->clipOrg.x;
+    if (mask & GCStipple)
+        values.stipple = xnestPixmap(pGC->stipple);
 
-  if (mask & GCClipYOrigin)
-    values.clip_y_origin = pGC->clipOrg.y;
+    if (mask & GCTileStipXOrigin)
+        values.ts_x_origin = pGC->patOrg.x;
 
-  if (mask & GCClipMask) /* this is handled in change clip */
-    mask &= ~GCClipMask;
+    if (mask & GCTileStipYOrigin)
+        values.ts_y_origin = pGC->patOrg.y;
 
-  if (mask & GCDashOffset)
-    values.dash_offset = pGC->dashOffset;
+    if (mask & GCFont)
+        values.font = xnestFont(pGC->font);
 
-  if (mask & GCDashList) {
-    mask &= ~GCDashList;
-    XSetDashes(xnestDisplay, xnestGC(pGC), 
-	       pGC->dashOffset, (char *)pGC->dash, pGC->numInDashList);
-  }
+    if (mask & GCSubwindowMode)
+        values.subwindow_mode = pGC->subWindowMode;
 
-  if (mask & GCArcMode)
-    values.arc_mode = pGC->arcMode;
+    if (mask & GCGraphicsExposures)
+        values.graphics_exposures = pGC->graphicsExposures;
 
-  if (mask)
-    XChangeGC(xnestDisplay, xnestGC(pGC), mask, &values);
+    if (mask & GCClipXOrigin)
+        values.clip_x_origin = pGC->clipOrg.x;
+
+    if (mask & GCClipYOrigin)
+        values.clip_y_origin = pGC->clipOrg.y;
+
+    if (mask & GCClipMask)      /* this is handled in change clip */
+        mask &= ~GCClipMask;
+
+    if (mask & GCDashOffset)
+        values.dash_offset = pGC->dashOffset;
+
+    if (mask & GCDashList) {
+        mask &= ~GCDashList;
+        XSetDashes(xnestDisplay, xnestGC(pGC),
+                   pGC->dashOffset, (char *) pGC->dash, pGC->numInDashList);
+    }
+
+    if (mask & GCArcMode)
+        values.arc_mode = pGC->arcMode;
+
+    if (mask)
+        XChangeGC(xnestDisplay, xnestGC(pGC), mask, &values);
 }
 
 void
 xnestCopyGC(GCPtr pGCSrc, unsigned long mask, GCPtr pGCDst)
 {
-  XCopyGC(xnestDisplay, xnestGC(pGCSrc), mask, xnestGC(pGCDst));
+    XCopyGC(xnestDisplay, xnestGC(pGCSrc), mask, xnestGC(pGCDst));
 }
 
 void
 xnestDestroyGC(GCPtr pGC)
 {
-  XFreeGC(xnestDisplay, xnestGC(pGC));
+    XFreeGC(xnestDisplay, xnestGC(pGC));
 }
 
 void
 xnestChangeClip(GCPtr pGC, int type, pointer pValue, int nRects)
 {
-  int i, size;
-  BoxPtr pBox;
-  XRectangle *pRects;
+    int i, size;
+    BoxPtr pBox;
+    XRectangle *pRects;
 
-  xnestDestroyClipHelper(pGC);
+    xnestDestroyClipHelper(pGC);
 
-  switch(type) 
-    {
+    switch (type) {
     case CT_NONE:
-      XSetClipMask(xnestDisplay, xnestGC(pGC), None);
-      break;
-      
+        XSetClipMask(xnestDisplay, xnestGC(pGC), None);
+        break;
+
     case CT_REGION:
-      nRects = RegionNumRects((RegionPtr)pValue);
-      size = nRects * sizeof(*pRects);
-      pRects = (XRectangle *) malloc(size);
-      pBox = RegionRects((RegionPtr)pValue);
-      for (i = nRects; i-- > 0; ) {
-	pRects[i].x = pBox[i].x1;
-	pRects[i].y = pBox[i].y1;
-	pRects[i].width = pBox[i].x2 - pBox[i].x1;
-	pRects[i].height = pBox[i].y2 - pBox[i].y1;
-      }
-      XSetClipRectangles(xnestDisplay, xnestGC(pGC), 0, 0,
-			 pRects, nRects, Unsorted);
-      free((char *) pRects);
-      break;
+        nRects = RegionNumRects((RegionPtr) pValue);
+        size = nRects * sizeof(*pRects);
+        pRects = (XRectangle *) malloc(size);
+        pBox = RegionRects((RegionPtr) pValue);
+        for (i = nRects; i-- > 0;) {
+            pRects[i].x = pBox[i].x1;
+            pRects[i].y = pBox[i].y1;
+            pRects[i].width = pBox[i].x2 - pBox[i].x1;
+            pRects[i].height = pBox[i].y2 - pBox[i].y1;
+        }
+        XSetClipRectangles(xnestDisplay, xnestGC(pGC), 0, 0,
+                           pRects, nRects, Unsorted);
+        free((char *) pRects);
+        break;
 
     case CT_PIXMAP:
-      XSetClipMask(xnestDisplay, xnestGC(pGC), 
-		   xnestPixmap((PixmapPtr)pValue));
-      /*
-       * Need to change into region, so subsequent uses are with
-       * current pixmap contents.
-       */
-      pGC->clientClip = (pointer) (*pGC->pScreen->BitmapToRegion)((PixmapPtr)pValue);
-      (*pGC->pScreen->DestroyPixmap)((PixmapPtr)pValue);
-      pValue = pGC->clientClip;
-      type = CT_REGION;
-      break;
+        XSetClipMask(xnestDisplay, xnestGC(pGC),
+                     xnestPixmap((PixmapPtr) pValue));
+        /*
+         * Need to change into region, so subsequent uses are with
+         * current pixmap contents.
+         */
+        pGC->clientClip =
+            (pointer) (*pGC->pScreen->BitmapToRegion) ((PixmapPtr) pValue);
+        (*pGC->pScreen->DestroyPixmap) ((PixmapPtr) pValue);
+        pValue = pGC->clientClip;
+        type = CT_REGION;
+        break;
 
     case CT_UNSORTED:
-      XSetClipRectangles(xnestDisplay, xnestGC(pGC), 
-			 pGC->clipOrg.x, pGC->clipOrg.y,
-			 (XRectangle *)pValue, nRects, Unsorted);
-      break;
+        XSetClipRectangles(xnestDisplay, xnestGC(pGC),
+                           pGC->clipOrg.x, pGC->clipOrg.y,
+                           (XRectangle *) pValue, nRects, Unsorted);
+        break;
 
     case CT_YSORTED:
-      XSetClipRectangles(xnestDisplay, xnestGC(pGC), 
-			 pGC->clipOrg.x, pGC->clipOrg.y,
-			 (XRectangle *)pValue, nRects, YSorted);
-      break;
+        XSetClipRectangles(xnestDisplay, xnestGC(pGC),
+                           pGC->clipOrg.x, pGC->clipOrg.y,
+                           (XRectangle *) pValue, nRects, YSorted);
+        break;
 
     case CT_YXSORTED:
-      XSetClipRectangles(xnestDisplay, xnestGC(pGC), 
-			 pGC->clipOrg.x, pGC->clipOrg.y,
-			 (XRectangle *)pValue, nRects, YXSorted);
-      break;
+        XSetClipRectangles(xnestDisplay, xnestGC(pGC),
+                           pGC->clipOrg.x, pGC->clipOrg.y,
+                           (XRectangle *) pValue, nRects, YXSorted);
+        break;
 
     case CT_YXBANDED:
-      XSetClipRectangles(xnestDisplay, xnestGC(pGC), 
-			 pGC->clipOrg.x, pGC->clipOrg.y,
-			 (XRectangle *)pValue, nRects, YXBanded);
-      break;
+        XSetClipRectangles(xnestDisplay, xnestGC(pGC),
+                           pGC->clipOrg.x, pGC->clipOrg.y,
+                           (XRectangle *) pValue, nRects, YXBanded);
+        break;
     }
 
-  switch(type) 
-    {
+    switch (type) {
     default:
-      break;
+        break;
 
     case CT_UNSORTED:
     case CT_YSORTED:
     case CT_YXSORTED:
     case CT_YXBANDED:
-      
-      /*
-       * other parts of server can only deal with CT_NONE,
-       * CT_PIXMAP and CT_REGION client clips.
-       */
-      pGC->clientClip = (pointer) RegionFromRects(nRects,
-						  (xRectangle *)pValue, type);
-      free(pValue);
-      pValue = pGC->clientClip;
-      type = CT_REGION;
 
-      break;
+        /*
+         * other parts of server can only deal with CT_NONE,
+         * CT_PIXMAP and CT_REGION client clips.
+         */
+        pGC->clientClip = (pointer) RegionFromRects(nRects,
+                                                    (xRectangle *) pValue,
+                                                    type);
+        free(pValue);
+        pValue = pGC->clientClip;
+        type = CT_REGION;
+
+        break;
     }
 
-  pGC->clientClipType = type;
-  pGC->clientClip = pValue;
+    pGC->clientClipType = type;
+    pGC->clientClip = pValue;
 }
 
 void
 xnestDestroyClip(GCPtr pGC)
 {
-  xnestDestroyClipHelper(pGC);
+    xnestDestroyClipHelper(pGC);
 
-  XSetClipMask(xnestDisplay, xnestGC(pGC), None);
- 
-  pGC->clientClipType = CT_NONE;
-  pGC->clientClip = NULL;
+    XSetClipMask(xnestDisplay, xnestGC(pGC), None);
+
+    pGC->clientClipType = CT_NONE;
+    pGC->clientClip = NULL;
 }
 
 void
 xnestDestroyClipHelper(GCPtr pGC)
 {
-  switch (pGC->clientClipType)
-    {
+    switch (pGC->clientClipType) {
     default:
     case CT_NONE:
-      break;
-      
+        break;
+
     case CT_REGION:
-      RegionDestroy(pGC->clientClip);
-      break;
+        RegionDestroy(pGC->clientClip);
+        break;
     }
 }
 
 void
 xnestCopyClip(GCPtr pGCDst, GCPtr pGCSrc)
 {
-  RegionPtr pRgn;
+    RegionPtr pRgn;
 
-  switch (pGCSrc->clientClipType)
-    {
+    switch (pGCSrc->clientClipType) {
     default:
     case CT_NONE:
-      xnestDestroyClip(pGCDst);
-      break;
+        xnestDestroyClip(pGCDst);
+        break;
 
     case CT_REGION:
-      pRgn = RegionCreate(NULL, 1);
-      RegionCopy(pRgn, pGCSrc->clientClip);
-      xnestChangeClip(pGCDst, CT_REGION, pRgn, 0);
-      break;
+        pRgn = RegionCreate(NULL, 1);
+        RegionCopy(pRgn, pGCSrc->clientClip);
+        xnestChangeClip(pGCDst, CT_REGION, pRgn, 0);
+        break;
     }
 }

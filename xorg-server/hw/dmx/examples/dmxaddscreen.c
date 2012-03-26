@@ -37,18 +37,21 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/dmxext.h>
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    Display             *display = NULL;
-    int                  event_base;
-    int                  error_base;
-    int                  major_version, minor_version, patch_version;
-    int                  screenNum;
-    DMXScreenAttributes  attr;
-    unsigned int         mask = 0;
+    Display *display = NULL;
+    int event_base;
+    int error_base;
+    int major_version, minor_version, patch_version;
+    int screenNum;
+    DMXScreenAttributes attr;
+    unsigned int mask = 0;
 
     if (argc != 4 && argc != 14) {
-        printf("Usage: %s display screenNum displayName [scrnx scrny scrnw scrnh rootx rooty rootw rooth originx originy]\n", argv[0]);
+        printf
+            ("Usage: %s display screenNum displayName [scrnx scrny scrnw scrnh rootx rooty rootw rooth originx originy]\n",
+             argv[0]);
         return -1;
     }
 
@@ -59,27 +62,25 @@ int main(int argc, char **argv)
 
     screenNum = strtol(argv[2], NULL, 0);
     if (argc == 14) {
-	mask |= (DMXScreenWindowXoffset |
-		 DMXScreenWindowYoffset |
-		 DMXScreenWindowWidth   |
-		 DMXScreenWindowHeight);
-	attr.screenWindowXoffset = strtol(argv[4],  NULL, 0);
-	attr.screenWindowYoffset = strtol(argv[5],  NULL, 0);
-	attr.screenWindowWidth   = strtol(argv[6],  NULL, 0);
-	attr.screenWindowHeight  = strtol(argv[7],  NULL, 0);
+        mask |= (DMXScreenWindowXoffset |
+                 DMXScreenWindowYoffset |
+                 DMXScreenWindowWidth | DMXScreenWindowHeight);
+        attr.screenWindowXoffset = strtol(argv[4], NULL, 0);
+        attr.screenWindowYoffset = strtol(argv[5], NULL, 0);
+        attr.screenWindowWidth = strtol(argv[6], NULL, 0);
+        attr.screenWindowHeight = strtol(argv[7], NULL, 0);
 
-	mask |= (DMXRootWindowXoffset |
-		 DMXRootWindowYoffset |
-		 DMXRootWindowWidth   |
-		 DMXRootWindowHeight);
-	attr.rootWindowXoffset = strtol(argv[8],  NULL, 0);
-	attr.rootWindowYoffset = strtol(argv[9],  NULL, 0);
-	attr.rootWindowWidth   = strtol(argv[10],  NULL, 0);
-	attr.rootWindowHeight  = strtol(argv[11], NULL, 0);
+        mask |= (DMXRootWindowXoffset |
+                 DMXRootWindowYoffset |
+                 DMXRootWindowWidth | DMXRootWindowHeight);
+        attr.rootWindowXoffset = strtol(argv[8], NULL, 0);
+        attr.rootWindowYoffset = strtol(argv[9], NULL, 0);
+        attr.rootWindowWidth = strtol(argv[10], NULL, 0);
+        attr.rootWindowHeight = strtol(argv[11], NULL, 0);
 
-	mask |= DMXRootWindowXorigin | DMXRootWindowYorigin;
-	attr.rootWindowXorigin = strtol(argv[12], NULL, 0);
-	attr.rootWindowYorigin = strtol(argv[13], NULL, 0);
+        mask |= DMXRootWindowXorigin | DMXRootWindowYorigin;
+        attr.rootWindowXorigin = strtol(argv[12], NULL, 0);
+        attr.rootWindowYorigin = strtol(argv[13], NULL, 0);
     }
 
     if (!DMXQueryExtension(display, &event_base, &error_base)) {
@@ -98,8 +99,8 @@ int main(int argc, char **argv)
            major_version, minor_version, patch_version);
 
     if (!DMXAddScreen(display, argv[3], mask, &attr, &screenNum))
-	printf("Failed to add %s as screen #%d\n", argv[2], screenNum);
-    
+        printf("Failed to add %s as screen #%d\n", argv[2], screenNum);
+
     XCloseDisplay(display);
     return 0;
 }

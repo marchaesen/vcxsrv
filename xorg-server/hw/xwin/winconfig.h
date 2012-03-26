@@ -35,289 +35,229 @@
 #include "../xfree86/parser/xf86Parser.h"
 #endif
 
-
 /* These are taken from hw/xfree86/common/xf86str.h */
 
-typedef struct
-{
-  CARD32 red, green, blue;
-}
-rgb;
+typedef struct {
+    CARD32 red, green, blue;
+} rgb;
 
+typedef struct {
+    float red, green, blue;
+} Gamma;
 
-typedef struct
-{
-  float red, green, blue;
-}
-Gamma;
+typedef struct {
+    char *identifier;
+    char *vendor;
+    char *board;
+    char *chipset;
+    char *ramdac;
+    char *driver;
+    struct _confscreenrec *myScreenSection;
+    Bool claimed;
+    Bool active;
+    Bool inUse;
+    int videoRam;
+    int textClockFreq;
+    pointer options;
+    int screen;                 /* For multi-CRTC cards */
+} GDevRec, *GDevPtr;
 
+typedef struct {
+    char *identifier;
+    char *driver;
+    pointer commonOptions;
+    pointer extraOptions;
+} IDevRec, *IDevPtr;
 
-typedef struct
-{
-  char *identifier;
-  char *vendor;
-  char *board;
-  char *chipset;
-  char *ramdac;
-  char *driver;
-  struct _confscreenrec *myScreenSection;
-  Bool claimed;
-  Bool active;
-  Bool inUse;
-  int videoRam;
-  int textClockFreq;
-  pointer options;
-  int screen;			/* For multi-CRTC cards */
-}
-GDevRec, *GDevPtr;
+typedef struct {
+    int frameX0;
+    int frameY0;
+    int virtualX;
+    int virtualY;
+    int depth;
+    int fbbpp;
+    rgb weight;
+    rgb blackColour;
+    rgb whiteColour;
+    int defaultVisual;
+    char **modes;
+    pointer options;
+} DispRec, *DispPtr;
 
+typedef struct _confxvportrec {
+    char *identifier;
+    pointer options;
+} confXvPortRec, *confXvPortPtr;
 
-typedef struct
-{
-  char *identifier;
-  char *driver;
-  pointer commonOptions;
-  pointer extraOptions;
-}
-IDevRec, *IDevPtr;
+typedef struct _confxvadaptrec {
+    char *identifier;
+    int numports;
+    confXvPortPtr ports;
+    pointer options;
+} confXvAdaptorRec, *confXvAdaptorPtr;
 
+typedef struct _confscreenrec {
+    char *id;
+    int screennum;
+    int defaultdepth;
+    int defaultbpp;
+    int defaultfbbpp;
+    GDevPtr device;
+    int numdisplays;
+    DispPtr displays;
+    int numxvadaptors;
+    confXvAdaptorPtr xvadaptors;
+    pointer options;
+} confScreenRec, *confScreenPtr;
 
-typedef struct
-{
-  int frameX0;
-  int frameY0;
-  int virtualX;
-  int virtualY;
-  int depth;
-  int fbbpp;
-  rgb weight;
-  rgb blackColour;
-  rgb whiteColour;
-  int defaultVisual;
-  char **modes;
-  pointer options;
-}
-DispRec, *DispPtr;
+typedef enum {
+    PosObsolete = -1,
+    PosAbsolute = 0,
+    PosRightOf,
+    PosLeftOf,
+    PosAbove,
+    PosBelow,
+    PosRelative
+} PositionType;
 
+typedef struct _screenlayoutrec {
+    confScreenPtr screen;
+    char *topname;
+    confScreenPtr top;
+    char *bottomname;
+    confScreenPtr bottom;
+    char *leftname;
+    confScreenPtr left;
+    char *rightname;
+    confScreenPtr right;
+    PositionType where;
+    int x;
+    int y;
+    char *refname;
+    confScreenPtr refscreen;
+} screenLayoutRec, *screenLayoutPtr;
 
-typedef struct _confxvportrec
-{
-  char *identifier;
-  pointer options;
-}
-confXvPortRec, *confXvPortPtr;
-
-
-typedef struct _confxvadaptrec
-{
-  char *identifier;
-  int numports;
-  confXvPortPtr ports;
-  pointer options;
-}
-confXvAdaptorRec, *confXvAdaptorPtr;
-
-
-typedef struct _confscreenrec
-{
-  char *id;
-  int screennum;
-  int defaultdepth;
-  int defaultbpp;
-  int defaultfbbpp;
-  GDevPtr device;
-  int numdisplays;
-  DispPtr displays;
-  int numxvadaptors;
-  confXvAdaptorPtr xvadaptors;
-  pointer options;
-}
-confScreenRec, *confScreenPtr;
-
-
-typedef enum
-{
-  PosObsolete = -1,
-  PosAbsolute = 0,
-  PosRightOf,
-  PosLeftOf,
-  PosAbove,
-  PosBelow,
-  PosRelative
-}
-PositionType;
-
-
-typedef struct _screenlayoutrec
-{
-  confScreenPtr screen;
-  char *topname;
-  confScreenPtr top;
-  char *bottomname;
-  confScreenPtr bottom;
-  char *leftname;
-  confScreenPtr left;
-  char *rightname;
-  confScreenPtr right;
-  PositionType where;
-  int x;
-  int y;
-  char *refname;
-  confScreenPtr refscreen;
-}
-screenLayoutRec, *screenLayoutPtr;
-
-
-typedef struct _serverlayoutrec
-{
-  char *id;
-  screenLayoutPtr screens;
-  GDevPtr inactives;
-  IDevPtr inputs;
-  pointer options;
-}
-serverLayoutRec, *serverLayoutPtr;
-
+typedef struct _serverlayoutrec {
+    char *id;
+    screenLayoutPtr screens;
+    GDevPtr inactives;
+    IDevPtr inputs;
+    pointer options;
+} serverLayoutRec, *serverLayoutPtr;
 
 /*
  * winconfig.c
  */
 
-typedef struct
-{
-  /* Files */
+typedef struct {
+    /* Files */
 #ifdef XWIN_XF86CONFIG
-  char *configFile;
-  char *configDir;
+    char *configFile;
+    char *configDir;
 #endif
-  char *fontPath;
-  /* input devices - keyboard */
+    char *fontPath;
+    /* input devices - keyboard */
 #ifdef XWIN_XF86CONFIG
-  char *keyboard;
+    char *keyboard;
 #endif
-  char *xkbRules; 
-  char *xkbModel;
-  char *xkbLayout;
-  char *xkbVariant;
-  char *xkbOptions;
-  /* layout */
-  char *screenname;
-  /* mouse settings */
-  char *mouse;
-  Bool emulate3buttons;
-  long emulate3timeout;
-}
-WinCmdlineRec, *WinCmdlinePtr;
-
+    char *xkbRules;
+    char *xkbModel;
+    char *xkbLayout;
+    char *xkbVariant;
+    char *xkbOptions;
+    /* layout */
+    char *screenname;
+    /* mouse settings */
+    char *mouse;
+    Bool emulate3buttons;
+    long emulate3timeout;
+} WinCmdlineRec, *WinCmdlinePtr;
 
 extern WinCmdlineRec g_cmdline;
+
 #ifdef XWIN_XF86CONFIG
 extern XF86ConfigPtr g_xf86configptr;
 #endif
 extern serverLayoutRec g_winConfigLayout;
 
+/*
+ * Function prototypes
+ */
+
+Bool winReadConfigfile(void);
+Bool winConfigFiles(void);
+Bool winConfigOptions(void);
+Bool winConfigScreens(void);
+Bool winConfigKeyboard(DeviceIntPtr pDevice);
+Bool winConfigMouse(DeviceIntPtr pDevice);
+
+typedef struct {
+    double freq;
+    int units;
+} OptFrequency;
+
+typedef union {
+    unsigned long num;
+    char *str;
+    double realnum;
+    Bool bool;
+    OptFrequency freq;
+} ValueUnion;
+
+typedef enum {
+    OPTV_NONE = 0,
+    OPTV_INTEGER,
+    OPTV_STRING,                /* a non-empty string */
+    OPTV_ANYSTR,                /* Any string, including an empty one */
+    OPTV_REAL,
+    OPTV_BOOLEAN,
+    OPTV_PERCENT,
+    OPTV_FREQ
+} OptionValueType;
+
+typedef enum {
+    OPTUNITS_HZ = 1,
+    OPTUNITS_KHZ,
+    OPTUNITS_MHZ
+} OptFreqUnits;
+
+typedef struct {
+    int token;
+    const char *name;
+    OptionValueType type;
+    ValueUnion value;
+    Bool found;
+} OptionInfoRec, *OptionInfoPtr;
 
 /*
  * Function prototypes
  */
 
-Bool winReadConfigfile (void);
-Bool winConfigFiles (void);
-Bool winConfigOptions (void);
-Bool winConfigScreens (void);
-Bool winConfigKeyboard (DeviceIntPtr pDevice);
-Bool winConfigMouse (DeviceIntPtr pDevice);
+char *winSetStrOption(pointer optlist, const char *name, char *deflt);
+int winSetBoolOption(pointer optlist, const char *name, int deflt);
+int winSetIntOption(pointer optlist, const char *name, int deflt);
+double winSetRealOption(pointer optlist, const char *name, double deflt);
+double winSetPercentOption(pointer optlist, const char *name, double deflt);
 
-
-typedef struct
-{
-  double freq;
-  int units;
-}
-OptFrequency;
-
-
-typedef union
-{
-  unsigned long num;
-  char *str;
-  double realnum;
-  Bool bool;
-  OptFrequency freq;
-}
-ValueUnion;
-
-
-typedef enum
-{
-  OPTV_NONE = 0,
-  OPTV_INTEGER,
-  OPTV_STRING,			/* a non-empty string */
-  OPTV_ANYSTR,			/* Any string, including an empty one */
-  OPTV_REAL,
-  OPTV_BOOLEAN,
-  OPTV_PERCENT,
-  OPTV_FREQ
-}
-OptionValueType;
-
-
-typedef enum
-{
-  OPTUNITS_HZ = 1,
-  OPTUNITS_KHZ,
-  OPTUNITS_MHZ
-}
-OptFreqUnits;
-
-
-typedef struct
-{
-  int token;
-  const char *name;
-  OptionValueType type;
-  ValueUnion value;
-  Bool found;
-}
-OptionInfoRec, *OptionInfoPtr;
-
-
-/*
- * Function prototypes
- */
-
-char *winSetStrOption (pointer optlist, const char *name, char *deflt);
-int winSetBoolOption (pointer optlist, const char *name, int deflt);
-int winSetIntOption (pointer optlist, const char *name, int deflt);
-double winSetRealOption (pointer optlist, const char *name, double deflt);
-double winSetPercentOption (pointer optlist, const char *name, double deflt);
 #ifdef XWIN_XF86CONFIG
-XF86OptionPtr winFindOption (XF86OptionPtr list, const char *name);
-char *winFindOptionValue (XF86OptionPtr list, const char *name);
+XF86OptionPtr winFindOption(XF86OptionPtr list, const char *name);
+char *winFindOptionValue(XF86OptionPtr list, const char *name);
 #endif
-int winNameCompare (const char *s1, const char *s2);
-char *winNormalizeName (const char *s);
+int winNameCompare(const char *s1, const char *s2);
+char *winNormalizeName(const char *s);
 
-
-typedef struct
-{
-  struct
-  {
-    long leds;
-    long delay;
-    long rate;
-  }
-  keyboard;
-  XkbRMLVOSet xkb;
-  struct
-  {
-    Bool emulate3Buttons;
-    long emulate3Timeout;
-  }
-  pointer;
-}
-winInfoRec, *winInfoPtr;
-
+typedef struct {
+    struct {
+        long leds;
+        long delay;
+        long rate;
+    } keyboard;
+    XkbRMLVOSet xkb;
+    struct {
+        Bool emulate3Buttons;
+        long emulate3Timeout;
+    } pointer;
+} winInfoRec, *winInfoPtr;
 
 extern winInfoRec g_winInfo;
 

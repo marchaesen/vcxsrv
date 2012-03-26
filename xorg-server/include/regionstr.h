@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -69,61 +68,79 @@ typedef struct pixman_region16_data RegDataRec, *RegDataPtr;
 extern _X_EXPORT BoxRec RegionEmptyBox;
 extern _X_EXPORT RegDataRec RegionEmptyData;
 extern _X_EXPORT RegDataRec RegionBrokenData;
-static inline Bool RegionNil(RegionPtr reg) {
+static inline Bool
+RegionNil(RegionPtr reg)
+{
     return ((reg)->data && !(reg)->data->numRects);
 }
 
 /* not a region */
 
-static inline Bool RegionNar(RegionPtr reg) {
+static inline Bool
+RegionNar(RegionPtr reg)
+{
     return ((reg)->data == &RegionBrokenData);
 }
 
-static inline int RegionNumRects(RegionPtr reg) {
+static inline int
+RegionNumRects(RegionPtr reg)
+{
     return ((reg)->data ? (reg)->data->numRects : 1);
 }
 
-static inline int RegionSize(RegionPtr reg) {
+static inline int
+RegionSize(RegionPtr reg)
+{
     return ((reg)->data ? (reg)->data->size : 0);
 }
 
-static inline BoxPtr RegionRects(RegionPtr reg) {
-    return ((reg)->data ? (BoxPtr)((reg)->data + 1) : &(reg)->extents);
+static inline BoxPtr
+RegionRects(RegionPtr reg)
+{
+    return ((reg)->data ? (BoxPtr) ((reg)->data + 1) : &(reg)->extents);
 }
 
-static inline BoxPtr RegionBoxptr(RegionPtr reg) {
-    return ((BoxPtr)((reg)->data + 1));
+static inline BoxPtr
+RegionBoxptr(RegionPtr reg)
+{
+    return ((BoxPtr) ((reg)->data + 1));
 }
 
-static inline BoxPtr RegionBox(RegionPtr reg, int i) {
+static inline BoxPtr
+RegionBox(RegionPtr reg, int i)
+{
     return (&RegionBoxptr(reg)[i]);
 }
 
-static inline BoxPtr RegionTop(RegionPtr reg) {
+static inline BoxPtr
+RegionTop(RegionPtr reg)
+{
     return RegionBox(reg, (reg)->data->numRects);
 }
 
-static inline BoxPtr RegionEnd(RegionPtr reg) {
+static inline BoxPtr
+RegionEnd(RegionPtr reg)
+{
     return RegionBox(reg, (reg)->data->numRects - 1);
 }
 
-static inline size_t RegionSizeof(int n) {
+static inline size_t
+RegionSizeof(int n)
+{
     return (sizeof(RegDataRec) + ((n) * sizeof(BoxRec)));
 }
 
-static inline void RegionInit(RegionPtr _pReg, BoxPtr _rect, int _size)
+static inline void
+RegionInit(RegionPtr _pReg, BoxPtr _rect, int _size)
 {
-    if ((_rect) != NULL)
-    {
+    if ((_rect) != NULL) {
         (_pReg)->extents = *(_rect);
-        (_pReg)->data = (RegDataPtr)NULL;
+        (_pReg)->data = (RegDataPtr) NULL;
     }
-    else
-    {
+    else {
         (_pReg)->extents = RegionEmptyBox;
         if (((_size) > 1) && ((_pReg)->data =
-			      (RegDataPtr)malloc(RegionSizeof(_size))))
-        {
+                              (RegDataPtr) malloc(RegionSizeof(_size)))) {
             (_pReg)->data->size = (_size);
             (_pReg)->data->numRects = 0;
         }
@@ -132,35 +149,43 @@ static inline void RegionInit(RegionPtr _pReg, BoxPtr _rect, int _size)
     }
 }
 
-static inline Bool RegionInitBoxes(RegionPtr pReg, BoxPtr boxes, int nBoxes)
+static inline Bool
+RegionInitBoxes(RegionPtr pReg, BoxPtr boxes, int nBoxes)
 {
-    return pixman_region_init_rects (pReg, boxes, nBoxes);
+    return pixman_region_init_rects(pReg, boxes, nBoxes);
 }
 
-static inline void RegionUninit(RegionPtr _pReg)
+static inline void
+RegionUninit(RegionPtr _pReg)
 {
     if ((_pReg)->data && (_pReg)->data->size) {
-	free((_pReg)->data);
-	(_pReg)->data = NULL;
+        free((_pReg)->data);
+        (_pReg)->data = NULL;
     }
 }
 
-static inline void RegionReset(RegionPtr _pReg, BoxPtr _pBox)
+static inline void
+RegionReset(RegionPtr _pReg, BoxPtr _pBox)
 {
     (_pReg)->extents = *(_pBox);
     RegionUninit(_pReg);
-    (_pReg)->data = (RegDataPtr)NULL;
+    (_pReg)->data = (RegDataPtr) NULL;
 }
 
-static inline Bool RegionNotEmpty(RegionPtr _pReg) {
+static inline Bool
+RegionNotEmpty(RegionPtr _pReg)
+{
     return !RegionNil(_pReg);
 }
 
-static inline Bool RegionBroken(RegionPtr _pReg) {
+static inline Bool
+RegionBroken(RegionPtr _pReg)
+{
     return RegionNar(_pReg);
 }
 
-static inline void RegionEmpty(RegionPtr _pReg)
+static inline void
+RegionEmpty(RegionPtr _pReg)
 {
     RegionUninit(_pReg);
     (_pReg)->extents.x2 = (_pReg)->extents.x1;
@@ -168,12 +193,14 @@ static inline void RegionEmpty(RegionPtr _pReg)
     (_pReg)->data = &RegionEmptyData;
 }
 
-static inline BoxPtr RegionExtents(RegionPtr _pReg)
+static inline BoxPtr
+RegionExtents(RegionPtr _pReg)
 {
     return (&(_pReg)->extents);
 }
 
-static inline void RegionNull(RegionPtr _pReg)
+static inline void
+RegionNull(RegionPtr _pReg)
 {
     (_pReg)->extents = RegionEmptyBox;
     (_pReg)->data = &RegionEmptyData;
@@ -181,51 +208,42 @@ static inline void RegionNull(RegionPtr _pReg)
 
 extern _X_EXPORT void InitRegions(void);
 
-extern _X_EXPORT RegionPtr RegionCreate(
-    BoxPtr /*rect*/,
-    int /*size*/);
+extern _X_EXPORT RegionPtr RegionCreate(BoxPtr /*rect */ ,
+                                        int /*size */ );
 
-extern _X_EXPORT void RegionDestroy(
-    RegionPtr /*pReg*/);
+extern _X_EXPORT void RegionDestroy(RegionPtr /*pReg */ );
 
 static inline Bool
 RegionCopy(RegionPtr dst, RegionPtr src)
 {
-    return pixman_region_copy (dst, src);
+    return pixman_region_copy(dst, src);
 }
 
 static inline Bool
-RegionIntersect(
-    RegionPtr	newReg,     /* destination Region */
-    RegionPtr	reg1,
-    RegionPtr	reg2        /* source regions     */
+RegionIntersect(RegionPtr newReg,       /* destination Region */
+                RegionPtr reg1, RegionPtr reg2  /* source regions     */
     )
 {
-    return pixman_region_intersect (newReg, reg1, reg2);
+    return pixman_region_intersect(newReg, reg1, reg2);
 }
 
 static inline Bool
-RegionUnion(
-    RegionPtr	newReg,          /* destination Region */
-    RegionPtr	reg1,
-    RegionPtr	reg2             /* source regions     */
+RegionUnion(RegionPtr newReg,   /* destination Region */
+            RegionPtr reg1, RegionPtr reg2      /* source regions     */
     )
 {
-    return pixman_region_union (newReg, reg1, reg2);
+    return pixman_region_union(newReg, reg1, reg2);
 }
 
-extern _X_EXPORT Bool RegionAppend(
-    RegionPtr /*dstrgn*/,
-    RegionPtr /*rgn*/);
+extern _X_EXPORT Bool RegionAppend(RegionPtr /*dstrgn */ ,
+                                   RegionPtr /*rgn */ );
 
-extern _X_EXPORT Bool RegionValidate(
-    RegionPtr /*badreg*/,
-    Bool * /*pOverlap*/);
+extern _X_EXPORT Bool RegionValidate(RegionPtr /*badreg */ ,
+                                     Bool * /*pOverlap */ );
 
-extern _X_EXPORT RegionPtr RegionFromRects(
-    int /*nrects*/,
-    xRectanglePtr /*prect*/,
-    int /*ctype*/);
+extern _X_EXPORT RegionPtr RegionFromRects(int /*nrects */ ,
+                                           xRectanglePtr /*prect */ ,
+                                           int /*ctype */ );
 
 /*-
  *-----------------------------------------------------------------------
@@ -244,7 +262,7 @@ extern _X_EXPORT RegionPtr RegionFromRects(
 static inline Bool
 RegionSubtract(RegionPtr regD, RegionPtr regM, RegionPtr regS)
 {
-    return pixman_region_subtract (regD, regM, regS);
+    return pixman_region_subtract(regD, regM, regS);
 }
 
 /*-
@@ -264,19 +282,18 @@ RegionSubtract(RegionPtr regD, RegionPtr regM, RegionPtr regS)
  */
 
 static inline Bool
-RegionInverse(
-    RegionPtr	  newReg,       /* Destination region */
-    RegionPtr	  reg1,         /* Region to invert */
-    BoxPtr	  invRect	/* Bounding box for inversion */
+RegionInverse(RegionPtr newReg, /* Destination region */
+              RegionPtr reg1,   /* Region to invert */
+              BoxPtr invRect    /* Bounding box for inversion */
     )
 {
-    return pixman_region_inverse (newReg, reg1, invRect);
+    return pixman_region_inverse(newReg, reg1, invRect);
 }
 
 static inline int
 RegionContainsRect(RegionPtr region, BoxPtr prect)
 {
-    return pixman_region_contains_rectangle (region, prect);
+    return pixman_region_contains_rectangle(region, prect);
 }
 
 /* TranslateRegion(pReg, x, y)
@@ -286,42 +303,34 @@ RegionContainsRect(RegionPtr region, BoxPtr prect)
 static inline void
 RegionTranslate(RegionPtr pReg, int x, int y)
 {
-    pixman_region_translate (pReg, x, y);
+    pixman_region_translate(pReg, x, y);
 }
 
-extern _X_EXPORT Bool RegionBreak(
-    RegionPtr /*pReg*/);
+extern _X_EXPORT Bool RegionBreak(RegionPtr /*pReg */ );
 
 static inline Bool
-RegionContainsPoint(
-    RegionPtr pReg,
-    int x,
-    int y,
-    BoxPtr box      /* "return" value */
+RegionContainsPoint(RegionPtr pReg, int x, int y, BoxPtr box    /* "return" value */
     )
 {
-    return pixman_region_contains_point (pReg, x, y, box);
+    return pixman_region_contains_point(pReg, x, y, box);
 }
 
 static inline Bool
 RegionEqual(RegionPtr reg1, RegionPtr reg2)
 {
-    return pixman_region_equal (reg1, reg2);
+    return pixman_region_equal(reg1, reg2);
 }
 
-extern _X_EXPORT Bool RegionRectAlloc(
-    RegionPtr /*pRgn*/,
-    int /*n*/
-);
+extern _X_EXPORT Bool RegionRectAlloc(RegionPtr /*pRgn */ ,
+                                      int       /*n */
+    );
 
 #ifdef DEBUG
-extern _X_EXPORT Bool RegionIsValid(
-    RegionPtr /*prgn*/
-);
+extern _X_EXPORT Bool RegionIsValid(RegionPtr   /*prgn */
+    );
 #endif
 
-extern _X_EXPORT void RegionPrint(
-    RegionPtr /*pReg*/);
+extern _X_EXPORT void RegionPrint(RegionPtr /*pReg */ );
 
 #define INCLUDE_LEGACY_REGION_DEFINES
 #ifdef INCLUDE_LEGACY_REGION_DEFINES
@@ -361,5 +370,5 @@ extern _X_EXPORT void RegionPrint(
 #define REGION_EXTENTS(pScreen, r)		RegionExtents(r)
 #define REGION_NULL(pScreen, r)			RegionNull(r)
 
-#endif /* INCLUDE_LEGACY_REGION_DEFINES */
-#endif /* REGIONSTRUCT_H */
+#endif                          /* INCLUDE_LEGACY_REGION_DEFINES */
+#endif                          /* REGIONSTRUCT_H */

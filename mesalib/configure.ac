@@ -37,7 +37,7 @@ USER_CXXFLAGS="$CXXFLAGS"
 dnl Versions for external dependencies
 LIBDRM_REQUIRED=2.4.24
 LIBDRM_RADEON_REQUIRED=2.4.31
-LIBDRM_INTEL_REQUIRED=2.4.30
+LIBDRM_INTEL_REQUIRED=2.4.32
 LIBDRM_NOUVEAU_REQUIRED=0.6
 DRI2PROTO_REQUIRED=2.6
 GLPROTO_REQUIRED=1.4.14
@@ -702,6 +702,7 @@ if test "x$enable_shared_glapi" = xyes; then
     # libGL will use libglapi for function lookups (IN_DRI_DRIVER means to use
     # the remap table)
     DEFINES="$DEFINES -DIN_DRI_DRIVER"
+    SRC_DIRS="$SRC_DIRS mapi/shared-glapi"
 fi
 AC_SUBST([SHARED_GLAPI])
 AM_CONDITIONAL(HAVE_SHARED_GLAPI, test $SHARED_GLAPI = 1)
@@ -1935,6 +1936,29 @@ if test "x$NEED_G3DVL_DRI" = xyes; then
     GALLIUM_WINSYS_DIRS="$GALLIUM_WINSYS_DIRS g3dvl/dri"
 fi
 
+dnl Tell Automake which drivers to build
+for driver in $GALLIUM_DRIVERS_DIRS; do
+    case "x$driver" in
+        xgalahad)
+            HAVE_GALAHAD_GALLIUM=yes;
+	    ;;
+	xidentity)
+	    HAVE_IDENTITY_GALLIUM=yes;
+	    ;;
+	xnoop)
+	    HAVE_NOOP_GALLIUM=yes;
+	    ;;
+        *)
+            GALLIUM_MAKE_DIRS="$GALLIUM_MAKE_DIRS $driver"
+	    ;;
+    esac
+done
+
+AM_CONDITIONAL(HAVE_GALAHAD_GALLIUM, test x$HAVE_GALAHAD_GALLIUM = xyes)
+AM_CONDITIONAL(HAVE_IDENTITY_GALLIUM, test x$HAVE_IDENTITY_GALLIUM = xyes)
+AM_CONDITIONAL(HAVE_NOOP_GALLIUM, test x$HAVE_NOOP_GALLIUM = xyes)
+AC_SUBST([GALLIUM_MAKE_DIRS])
+
 dnl prepend CORE_DIRS to SRC_DIRS
 SRC_DIRS="$CORE_DIRS $SRC_DIRS"
 
@@ -1948,6 +1972,7 @@ CXXFLAGS="$CXXFLAGS $USER_CXXFLAGS"
 
 dnl Substitute the config
 AC_CONFIG_FILES([configs/autoconf
+		src/gallium/drivers/Makefile
 		src/gallium/drivers/r300/Makefile
 		src/gbm/Makefile
 		src/gbm/main/gbm.pc
@@ -1961,6 +1986,7 @@ AC_CONFIG_FILES([configs/autoconf
 		src/egl/wayland/wayland-egl/wayland-egl.pc
 		src/egl/wayland/wayland-drm/Makefile
 		src/glx/Makefile
+		src/mapi/shared-glapi/Makefile
 		src/mesa/drivers/dri/dri.pc
 		src/mesa/drivers/dri/Makefile
 		src/mesa/drivers/dri/common/Makefile
@@ -1985,6 +2011,7 @@ dnl Sort the dirs alphabetically
 GALLIUM_TARGET_DIRS=`echo $GALLIUM_TARGET_DIRS|tr " " "\n"|sort -u|tr "\n" " "`
 GALLIUM_WINSYS_DIRS=`echo $GALLIUM_WINSYS_DIRS|tr " " "\n"|sort -u|tr "\n" " "`
 GALLIUM_DRIVERS_DIRS=`echo $GALLIUM_DRIVERS_DIRS|tr " " "\n"|sort -u|tr "\n" " "`
+GALLIUM_MAKE_DIRS=`echo $GALLIUM_MAKE_DIRS|tr " " "\n"|sort -u|tr "\n" " "`
 GALLIUM_STATE_TRACKERS_DIRS=`echo $GALLIUM_STATE_TRACKERS_DIRS|tr " " "\n"|sort -u|tr "\n" " "`
 
 AC_OUTPUT

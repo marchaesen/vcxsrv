@@ -52,7 +52,9 @@ DEALINGS IN THE SOFTWARE.
       facility in <productname>Solaris</productname> 10,
       <productname>MacOS X</productname> 10.5, and later releases.  This
       provider instruments various points in the X server, to allow
-      tracing what client applications are up to.
+      tracing what client applications are up to. DTrace probes may be used
+      with <ulink url="http://sourceware.org/systemtap/">SystemTap</ulink>
+      on GNU/Linux systems.
     </para>
 
     <para>
@@ -81,7 +83,7 @@ DEALINGS IN THE SOFTWARE.
 
     <table id="Probes_and_their_arguments">
       <title>Probes and their arguments</title>
-      <tgroup cols='7'>
+      <tgroup cols='9'>
 	<colspec colname="probe" colwidth="2*"/>
 	<colspec colname="desc" colwidth="3*"/>
 	<colspec colname="arg0" colwidth="1*"/>
@@ -89,6 +91,8 @@ DEALINGS IN THE SOFTWARE.
 	<colspec colname="arg2" colwidth="1*"/>
 	<colspec colname="arg3" colwidth="1*"/>
 	<colspec colname="arg4" colwidth="1*"/>
+	<colspec colname="arg5" colwidth="1*"/>
+	<colspec colname="arg6" colwidth="1*"/>
 	<spanspec spanname="all" namest="probe" nameend="arg4"/>
 	<thead>
 	  <row>
@@ -99,6 +103,8 @@ DEALINGS IN THE SOFTWARE.
 	    <entry>arg2</entry>
 	    <entry>arg3</entry>
 	    <entry>arg4</entry>
+	    <entry>arg5</entry>
+	    <entry>arg6</entry>
 	  </row>
 	</thead>
 	<tbody>
@@ -113,6 +119,8 @@ DEALINGS IN THE SOFTWARE.
 	    <entry><parameter>requestLength</parameter></entry>
 	    <entry><parameter>clientId</parameter></entry>
 	    <entry><parameter>requestBuffer</parameter></entry>
+	    <entry nameend="arg5" class="unused"/>
+	    <entry nameend="arg6" class="unused"/>
 	  </row>
 	  <row>
 	    <entry>request-done</entry>
@@ -122,6 +130,8 @@ DEALINGS IN THE SOFTWARE.
 	    <entry><parameter>sequenceNumber</parameter></entry>
 	    <entry><parameter>clientId</parameter></entry>
 	    <entry><parameter>resultCode</parameter></entry>
+	    <entry nameend="arg5" class="unused"/>
+	    <entry nameend="arg6" class="unused"/>
 	  </row>
 	  <row>
 	    <entry spanname="all" class="grouphead">Event Probes</entry>
@@ -132,7 +142,10 @@ DEALINGS IN THE SOFTWARE.
 	    <entry><parameter>clientId</parameter></entry>
 	    <entry><parameter>eventCode</parameter></entry>
 	    <entry><parameter>eventBuffer</parameter></entry>
+	    <entry nameend="arg3" class="unused"/>
 	    <entry nameend="arg4" class="unused"/>
+	    <entry nameend="arg5" class="unused"/>
+	    <entry nameend="arg6" class="unused"/>
 	  </row>
 	  <row>
 	    <entry spanname="all" class="grouphead">Client Connection Probes</entry>
@@ -142,7 +155,11 @@ DEALINGS IN THE SOFTWARE.
 	    <entry>Called when a new connection is opened from a client</entry>
 	    <entry><parameter>clientId</parameter></entry>
 	    <entry><parameter>clientFD</parameter></entry>
+	    <entry nameend="arg2" class="unused"/>
+	    <entry nameend="arg3" class="unused"/>
 	    <entry nameend="arg4" class="unused"/>
+	    <entry nameend="arg5" class="unused"/>
+	    <entry nameend="arg6" class="unused"/>
 	  </row>
 	  <row>
 	    <entry>client-auth</entry>
@@ -152,12 +169,19 @@ DEALINGS IN THE SOFTWARE.
 	    <entry><parameter>clientPid</parameter></entry>
 	    <entry><parameter>clientZoneId</parameter></entry>
 	    <entry nameend="arg4" class="unused"/>
+	    <entry nameend="arg5" class="unused"/>
+	    <entry nameend="arg6" class="unused"/>
 	  </row>
 	  <row>
 	    <entry>client-disconnect</entry>
 	    <entry>Called when a client connection is closed</entry>
 	    <entry><parameter>clientId</parameter></entry>
+	    <entry nameend="arg1" class="unused"/>
+	    <entry nameend="arg2" class="unused"/>
+	    <entry nameend="arg3" class="unused"/>
 	    <entry nameend="arg4" class="unused"/>
+	    <entry nameend="arg5" class="unused"/>
+	    <entry nameend="arg6" class="unused"/>
 	  </row>
 	  <row>
 	    <entry spanname="all" class="grouphead">Resource Allocation Probes</entry>
@@ -170,6 +194,8 @@ DEALINGS IN THE SOFTWARE.
 	    <entry><parameter>resourceValue</parameter></entry>
 	    <entry><parameter>resourceTypeName</parameter></entry>
 	    <entry nameend="arg4" class="unused"/>
+	    <entry nameend="arg5" class="unused"/>
+	    <entry nameend="arg6" class="unused"/>
 	  </row>
 	  <row>
 	    <entry>resource-free</entry>
@@ -179,6 +205,24 @@ DEALINGS IN THE SOFTWARE.
 	    <entry><parameter>resourceValue</parameter></entry>
 	    <entry><parameter>resourceTypeName</parameter></entry>
 	    <entry nameend="arg4" class="unused"/>
+	    <entry nameend="arg5" class="unused"/>
+	    <entry nameend="arg6" class="unused"/>
+	  </row>
+	  <row>
+	    <entry spanname="all" class="grouphead">Input API probes</entry>
+	  </row>
+	  <row>
+	    <entry>input-event</entry>
+	    <entry>Called when an input event was submitted for processing</entry>
+	    <entry><parameter>deviceid</parameter></entry>
+	    <entry><parameter>eventtype</parameter></entry>
+	    <entry><parameter>button</parameter> or
+		   <parameter>keycode</parameter> or
+		   <parameter>touchid</parameter></entry>
+	    <entry><parameter>flags</parameter></entry>
+	    <entry><parameter>nvalues</parameter></entry>
+	    <entry><parameter>mask</parameter></entry>
+	    <entry><parameter>values</parameter></entry>
 	  </row>
 	</tbody>
       </tgroup>
@@ -303,6 +347,44 @@ DEALINGS IN THE SOFTWARE.
 	    <entry><parameter>sequenceNumber</parameter></entry>
 	    <entry><type>uint32_t</type></entry>
 	    <entry>Number of X request in in this connection</entry>
+	  </row>
+	  <row>
+	    <entry><parameter>deviceid</parameter></entry>
+	    <entry><type>int</type></entry>
+	    <entry>The device's numerical ID</entry>
+	  </row>
+	  <row>
+	    <entry><parameter>eventtype</parameter></entry>
+	    <entry><type>int</type></entry>
+	    <entry>Protocol event type</entry>
+	  </row>
+	  <row>
+	    <entry><parameter>button, keycode, touchid</parameter></entry>
+	    <entry><type>uint32_t</type></entry>
+	    <entry>The button number, keycode or touch ID</entry>
+	  </row>
+	  <row>
+	    <entry><parameter>flags</parameter></entry>
+	    <entry><type>uint32_t</type></entry>
+	    <entry>Miscellaneous event-specific server flags</entry>
+	  </row>
+	  <row>
+	    <entry><parameter>nvalues</parameter></entry>
+	    <entry><type>int8_t</type></entry>
+	    <entry>Number of bits in <parameter>mask</parameter> and number of elements
+		    in <parameter>values</parameter></entry>
+	  </row>
+	  <row>
+	    <entry><parameter>mask</parameter></entry>
+	    <entry><type>uint8_t*</type></entry>
+	    <entry>Binary mask indicating which indices in <parameter>values</parameter> contain
+		  valid data</entry>
+	  </row>
+	  <row>
+	    <entry><parameter>values</parameter></entry>
+	    <entry><type>double*</type></entry>
+	    <entry>Valuator values. Values for indices for which the
+		  <parameter>mask</parameter> is not set are undefined</entry>
 	  </row>
 	</tbody>
       </tgroup>
@@ -572,6 +654,73 @@ Xserver$1:::client-disconnect
 
     </example>
 
+    <example id="Input_API_monitoring_with_systemtap">
+      <title>Input API monitoring with SystemTap</title>
+
+      <para>
+	This script can be used to monitor events submitted by drivers to
+	the server for enqueuing. Due to the integration of the input API
+	probes, some server-enqueued events will show up too.
+	<programlisting>
+  # Compile+run with
+  #       stap -g xorg.stp /usr/bin/Xorg
+  #
+
+
+  function print_valuators:string(nvaluators:long, mask_in:long, valuators_in:long) %{
+	  int i;
+	  unsigned char *mask = (unsigned char*)THIS->mask_in;
+	  double *valuators = (double*)THIS->valuators_in;
+	  char str[128] = {0};
+	  char *s = str;
+
+  #define BitIsSet(ptr, bit) (((unsigned char*)(ptr))[(bit)>>3] &amp; (1 &lt;&lt; ((bit) &amp; 7)))
+
+	  s += sprintf(s, "nval: %d ::", (int)THIS->nvaluators);
+	  for (i = 0; i &lt; THIS->nvaluators; i++)
+	  {
+		  s += sprintf(s, "	%d: ", i);
+		  if (BitIsSet(mask, i))
+		      s += sprintf(s, "%d", (int)valuators[i]);
+	  }
+
+	  sprintf(THIS->__retvalue, "%s", str);
+  %}
+
+  probe process(@1).mark("input__event")
+  {
+      deviceid = $arg1
+      type = $arg2
+      detail = $arg3
+      flags = $arg4
+      nvaluators = $arg5
+
+      str = print_valuators(nvaluators, $arg6, $arg7)
+      printf("Event: device %d type %d detail %d flags %#x %s\n",
+	      deviceid, type, detail, flags, str);
+  }
+	</programlisting>
+
+	Sample output from a run of this script:
+	<screen><computeroutput>
+Event: device 13 type 4 detail 1 flags 0x0 nval: 0 ::
+Event: device 13 type 6 detail 0 flags 0xa nval: 1 ::	0: 1
+Event: device 13 type 6 detail 0 flags 0xa nval: 2 ::	0: 2	1: -1
+Event: device 13 type 6 detail 0 flags 0xa nval: 2 ::	0: 2	1: -1
+Event: device 13 type 6 detail 0 flags 0xa nval: 2 ::	0: 4	1: -3
+Event: device 13 type 6 detail 0 flags 0xa nval: 2 ::	0: 3	1: -3
+Event: device 13 type 6 detail 0 flags 0xa nval: 2 ::	0: 3	1: -2
+Event: device 13 type 6 detail 0 flags 0xa nval: 2 ::	0: 2	1: -2
+Event: device 13 type 6 detail 0 flags 0xa nval: 2 ::	0: 2	1: -2
+Event: device 13 type 6 detail 0 flags 0xa nval: 2 ::	0: 2	1: -2
+Event: device 13 type 6 detail 0 flags 0xa nval: 2 ::	0: 	1: -1
+Event: device 13 type 6 detail 0 flags 0xa nval: 2 ::	0: 	1: -1
+Event: device 13 type 5 detail 1 flags 0x0 nval: 0 ::
+	</computeroutput></screen>
+
+      </para>
+
+    </example>
 
   </sect1>
 

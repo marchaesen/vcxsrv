@@ -31,50 +31,47 @@
 #include "dix.h"
 #include <X11/extensions/syncconst.h>
 
-#define CARD64 XSyncValue /* XXX temporary! need real 64 bit values for Alpha */
+#define CARD64 XSyncValue       /* XXX temporary! need real 64 bit values for Alpha */
 
 /* Sync object types */
 #define SYNC_COUNTER		0
 #define SYNC_FENCE		1
 
 typedef struct _SyncObject {
-    ClientPtr		client;	/* Owning client. 0 for system counters */
-    struct _SyncTriggerList *pTriglist;	/* list of triggers */
-    XID			id;		/* resource ID */
-    unsigned char	type;		/* SYNC_* */
-    Bool		beingDestroyed;	/* in process of going away */
+    ClientPtr client;           /* Owning client. 0 for system counters */
+    struct _SyncTriggerList *pTriglist; /* list of triggers */
+    XID id;                     /* resource ID */
+    unsigned char type;         /* SYNC_* */
+    Bool beingDestroyed;        /* in process of going away */
 } SyncObject;
 
 typedef struct _SyncCounter {
-    SyncObject		sync;		/* Common sync object data */
-    CARD64		value;		/* counter value */
-    struct _SysCounterInfo *pSysCounterInfo; /* NULL if not a system counter */
+    SyncObject sync;            /* Common sync object data */
+    CARD64 value;               /* counter value */
+    struct _SysCounterInfo *pSysCounterInfo;    /* NULL if not a system counter */
 } SyncCounter;
 
 struct _SyncFence {
-    SyncObject		sync;		/* Common sync object data */
-    ScreenPtr		pScreen;	/* Screen of this fence object */
-    SyncFenceFuncsRec	funcs;		/* Funcs for performing ops on fence */
-    Bool		triggered;	/* fence state */
-    PrivateRec		*devPrivates;	/* driver-specific per-fence data */
+    SyncObject sync;            /* Common sync object data */
+    ScreenPtr pScreen;          /* Screen of this fence object */
+    SyncFenceFuncsRec funcs;    /* Funcs for performing ops on fence */
+    Bool triggered;             /* fence state */
+    PrivateRec *devPrivates;    /* driver-specific per-fence data */
 };
 
 struct _SyncTrigger {
     SyncObject *pSync;
-    CARD64	wait_value;	/* wait value */
-    unsigned int value_type;	/* Absolute or Relative */
-    unsigned int test_type;	/* transition or Comparision type */
-    CARD64	test_value;	/* trigger event threshold value */
-    Bool	(*CheckTrigger)(
-				struct _SyncTrigger * /*pTrigger*/,
-				CARD64 /*newval*/
-				);
-    void	(*TriggerFired)(
-				struct _SyncTrigger * /*pTrigger*/
-				);
-    void	(*CounterDestroyed)(
-				struct _SyncTrigger * /*pTrigger*/
-				    );
+    CARD64 wait_value;          /* wait value */
+    unsigned int value_type;    /* Absolute or Relative */
+    unsigned int test_type;     /* transition or Comparision type */
+    CARD64 test_value;          /* trigger event threshold value */
+    Bool (*CheckTrigger) (struct _SyncTrigger * /*pTrigger */ ,
+                          CARD64        /*newval */
+        );
+    void (*TriggerFired) (struct _SyncTrigger * /*pTrigger */
+        );
+    void (*CounterDestroyed) (struct _SyncTrigger *     /*pTrigger */
+        );
 };
 
 typedef struct _SyncTriggerList {
@@ -82,5 +79,4 @@ typedef struct _SyncTriggerList {
     struct _SyncTriggerList *next;
 } SyncTriggerList;
 
-#endif /* _MISYNCSTR_H_ */
-
+#endif                          /* _MISYNCSTR_H_ */

@@ -23,15 +23,15 @@ extern PMClose lnxACPIOpen(void);
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
- 
+
 #define APM_PROC   "/proc/apm"
 #define APM_DEVICE "/dev/apm_bios"
 
 #ifndef APM_STANDBY_FAILED
-# define APM_STANDBY_FAILED 0xf000
+#define APM_STANDBY_FAILED 0xf000
 #endif
 #ifndef APM_SUSPEND_FAILED
-# define APM_SUSPEND_FAILED 0xf001
+#define APM_SUSPEND_FAILED 0xf001
 #endif
 
 static PMClose lnxAPMOpen(void);
@@ -42,23 +42,26 @@ static struct {
     apm_event_t apmLinux;
     pmEvent xf86;
 } LinuxToXF86[] = {
-    { APM_SYS_STANDBY, XF86_APM_SYS_STANDBY },
-    { APM_SYS_SUSPEND, XF86_APM_SYS_SUSPEND },
-    { APM_NORMAL_RESUME, XF86_APM_NORMAL_RESUME },
-    { APM_CRITICAL_RESUME, XF86_APM_CRITICAL_RESUME },
-    { APM_LOW_BATTERY, XF86_APM_LOW_BATTERY },
-    { APM_POWER_STATUS_CHANGE, XF86_APM_POWER_STATUS_CHANGE },
-    { APM_UPDATE_TIME, XF86_APM_UPDATE_TIME },
-    { APM_CRITICAL_SUSPEND, XF86_APM_CRITICAL_SUSPEND },
-    { APM_USER_STANDBY, XF86_APM_USER_STANDBY },
-    { APM_USER_SUSPEND, XF86_APM_USER_SUSPEND },
-    { APM_STANDBY_RESUME, XF86_APM_STANDBY_RESUME },
+    {
+    APM_SYS_STANDBY, XF86_APM_SYS_STANDBY}, {
+    APM_SYS_SUSPEND, XF86_APM_SYS_SUSPEND}, {
+    APM_NORMAL_RESUME, XF86_APM_NORMAL_RESUME}, {
+    APM_CRITICAL_RESUME, XF86_APM_CRITICAL_RESUME}, {
+    APM_LOW_BATTERY, XF86_APM_LOW_BATTERY}, {
+    APM_POWER_STATUS_CHANGE, XF86_APM_POWER_STATUS_CHANGE}, {
+    APM_UPDATE_TIME, XF86_APM_UPDATE_TIME}, {
+    APM_CRITICAL_SUSPEND, XF86_APM_CRITICAL_SUSPEND}, {
+    APM_USER_STANDBY, XF86_APM_USER_STANDBY}, {
+    APM_USER_SUSPEND, XF86_APM_USER_SUSPEND}, {
+    APM_STANDBY_RESUME, XF86_APM_STANDBY_RESUME},
 #if defined(APM_CAPABILITY_CHANGED)
-    { APM_CAPABILITY_CHANGED, XF86_CAPABILITY_CHANGED },
+    {
+    APM_CAPABILITY_CHANGED, XF86_CAPABILITY_CHANGED},
 #endif
 #if 0
-    { APM_STANDBY_FAILED, XF86_APM_STANDBY_FAILED },
-    { APM_SUSPEND_FAILED, XF86_APM_SUSPEND_FAILED }
+    {
+    APM_STANDBY_FAILED, XF86_APM_STANDBY_FAILED}, {
+    APM_SUSPEND_FAILED, XF86_APM_SUSPEND_FAILED}
 #endif
 };
 
@@ -73,24 +76,24 @@ static struct {
  * event is reasonable.
  */
 static int
-lnxPMGetEventFromOs(int fd, pmEvent *events, int num)
+lnxPMGetEventFromOs(int fd, pmEvent * events, int num)
 {
-    int i,j,n;
+    int i, j, n;
     apm_event_t linuxEvents[8];
 
-    if ((n = read( fd, linuxEvents, num * sizeof(apm_event_t) )) == -1)
-	return 0;
+    if ((n = read(fd, linuxEvents, num * sizeof(apm_event_t))) == -1)
+        return 0;
     n /= sizeof(apm_event_t);
     if (n > num)
-	n = num;
+        n = num;
     for (i = 0; i < n; i++) {
-	for (j = 0; j < numApmEvents; j++)
-	    if (LinuxToXF86[j].apmLinux == linuxEvents[i]) {
-		events[i] = LinuxToXF86[j].xf86;
-		break;
-	    }
-	if (j == numApmEvents)
-	    events[i] = XF86_APM_UNKNOWN;
+        for (j = 0; j < numApmEvents; j++)
+            if (LinuxToXF86[j].apmLinux == linuxEvents[i]) {
+                events[i] = LinuxToXF86[j].xf86;
+                break;
+            }
+        if (j == numApmEvents)
+            events[i] = XF86_APM_UNKNOWN;
     }
     return n;
 }
@@ -101,55 +104,55 @@ lnxPMConfirmEventToOs(int fd, pmEvent event)
     switch (event) {
     case XF86_APM_SYS_STANDBY:
     case XF86_APM_USER_STANDBY:
-        if (ioctl( fd, APM_IOC_STANDBY, NULL ))
-	    return PM_FAILED;
-	return PM_CONTINUE;
+        if (ioctl(fd, APM_IOC_STANDBY, NULL))
+            return PM_FAILED;
+        return PM_CONTINUE;
     case XF86_APM_SYS_SUSPEND:
     case XF86_APM_CRITICAL_SUSPEND:
     case XF86_APM_USER_SUSPEND:
-	if (ioctl( fd, APM_IOC_SUSPEND, NULL )) {
-	    /* I believe this is wrong (EE)
-	       EBUSY is sent when a device refuses to be suspended.
-	       In this case we still need to undo everything we have
-	       done to suspend ourselves or we will stay in suspended
-	       state forever. */
-	    if (errno == EBUSY)
-		return PM_CONTINUE;
-	    else
-		return PM_FAILED;
-	}
-	return PM_CONTINUE;
+        if (ioctl(fd, APM_IOC_SUSPEND, NULL)) {
+            /* I believe this is wrong (EE)
+               EBUSY is sent when a device refuses to be suspended.
+               In this case we still need to undo everything we have
+               done to suspend ourselves or we will stay in suspended
+               state forever. */
+            if (errno == EBUSY)
+                return PM_CONTINUE;
+            else
+                return PM_FAILED;
+        }
+        return PM_CONTINUE;
     case XF86_APM_STANDBY_RESUME:
     case XF86_APM_NORMAL_RESUME:
     case XF86_APM_CRITICAL_RESUME:
     case XF86_APM_STANDBY_FAILED:
     case XF86_APM_SUSPEND_FAILED:
-	return PM_CONTINUE;
+        return PM_CONTINUE;
     default:
-	return PM_NONE;
+        return PM_NONE;
     }
 }
 
-#endif // HAVE_APM
+#endif                          // HAVE_APM
 
 PMClose
 xf86OSPMOpen(void)
 {
-	PMClose ret = NULL;
+    PMClose ret = NULL;
 
 #ifdef HAVE_ACPI
-	/* Favour ACPI over APM, but only when enabled */
+    /* Favour ACPI over APM, but only when enabled */
 
-	if (!xf86acpiDisableFlag)
-		ret = lnxACPIOpen();
+    if (!xf86acpiDisableFlag)
+        ret = lnxACPIOpen();
 
-	if (!ret)
+    if (!ret)
 #endif
 #ifdef HAVE_APM
-		ret = lnxAPMOpen();
+        ret = lnxAPMOpen();
 #endif
 
-	return ret;
+    return ret;
 }
 
 #ifdef HAVE_APM
@@ -157,27 +160,27 @@ xf86OSPMOpen(void)
 static PMClose
 lnxAPMOpen(void)
 {
-    int fd, pfd;    
+    int fd, pfd;
 
     DebugF("APM: OSPMOpen called\n");
     if (APMihPtr || !xf86Info.pmFlag)
-	return NULL;
-   
+        return NULL;
+
     DebugF("APM: Opening device\n");
-    if ((fd = open( APM_DEVICE, O_RDWR )) > -1) {
-	if (access( APM_PROC, R_OK ) ||
-	    ((pfd = open( APM_PROC, O_RDONLY)) == -1)) {
-	    xf86MsgVerb(X_WARNING,3,"Cannot open APM (%s) (%s)\n",
-			APM_PROC, strerror(errno));
-	    close(fd);
-	    return NULL;
-	} else
-	    close(pfd);
-	xf86PMGetEventFromOs = lnxPMGetEventFromOs;
-	xf86PMConfirmEventToOs = lnxPMConfirmEventToOs;
-	APMihPtr = xf86AddGeneralHandler(fd, xf86HandlePMEvents, NULL);
-	xf86MsgVerb(X_INFO,3,"Open APM successful\n");
-	return lnxCloseAPM;
+    if ((fd = open(APM_DEVICE, O_RDWR)) > -1) {
+        if (access(APM_PROC, R_OK) || ((pfd = open(APM_PROC, O_RDONLY)) == -1)) {
+            xf86MsgVerb(X_WARNING, 3, "Cannot open APM (%s) (%s)\n",
+                        APM_PROC, strerror(errno));
+            close(fd);
+            return NULL;
+        }
+        else
+            close(pfd);
+        xf86PMGetEventFromOs = lnxPMGetEventFromOs;
+        xf86PMConfirmEventToOs = lnxPMConfirmEventToOs;
+        APMihPtr = xf86AddGeneralHandler(fd, xf86HandlePMEvents, NULL);
+        xf86MsgVerb(X_INFO, 3, "Open APM successful\n");
+        return lnxCloseAPM;
     }
     return NULL;
 }
@@ -189,10 +192,10 @@ lnxCloseAPM(void)
 
     DebugF("APM: Closing device\n");
     if (APMihPtr) {
-	fd = xf86RemoveGeneralHandler(APMihPtr);
-	close(fd);
-	APMihPtr = NULL;
+        fd = xf86RemoveGeneralHandler(APMihPtr);
+        close(fd);
+        APMihPtr = NULL;
     }
 }
 
-#endif // HAVE_APM
+#endif                          // HAVE_APM

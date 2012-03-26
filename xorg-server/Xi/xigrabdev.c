@@ -33,12 +33,12 @@
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
-#include "windowstr.h"	/* window structure  */
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
 #include <X11/extensions/XI2.h>
 #include <X11/extensions/XI2proto.h>
 
-#include "exglobals.h" /* BadDevice */
+#include "exglobals.h"          /* BadDevice */
 #include "exevents.h"
 #include "xigrabdev.h"
 #include "inpututils.h"
@@ -73,12 +73,12 @@ ProcXIGrabDevice(ClientPtr client)
 
     ret = dixLookupDevice(&dev, stuff->deviceid, client, DixGrabAccess);
     if (ret != Success)
-	return ret;
+        return ret;
 
     if (!IsMaster(dev))
         stuff->paired_device_mode = GrabModeAsync;
 
-    if (XICheckInvalidMaskBits(client, (unsigned char*)&stuff[1],
+    if (XICheckInvalidMaskBits(client, (unsigned char *) &stuff[1],
                                stuff->mask_len * 4) != Success)
         return BadValue;
 
@@ -88,17 +88,15 @@ ProcXIGrabDevice(ClientPtr client)
 
     mask_len = min(xi2mask_mask_size(mask.xi2mask), stuff->mask_len * 4);
     /* FIXME: I think the old code was broken here */
-    xi2mask_set_one_mask(mask.xi2mask, dev->id, (unsigned char*)&stuff[1], mask_len);
+    xi2mask_set_one_mask(mask.xi2mask, dev->id, (unsigned char *) &stuff[1],
+                         mask_len);
 
     ret = GrabDevice(client, dev, stuff->grab_mode,
                      stuff->paired_device_mode,
                      stuff->grab_window,
                      stuff->owner_events,
                      stuff->time,
-                     &mask,
-                     XI2,
-                     stuff->cursor,
-                     None /* confineTo */,
+                     &mask, XI2, stuff->cursor, None /* confineTo */ ,
                      &status);
 
     xi2mask_free(&mask.xi2mask);
@@ -111,7 +109,6 @@ ProcXIGrabDevice(ClientPtr client)
     rep.length = 0;
     rep.sequenceNumber = client->sequence;
     rep.status = status;
-
 
     WriteReplyToClient(client, sizeof(rep), &rep);
     return ret;
@@ -141,22 +138,23 @@ ProcXIUngrabDevice(ClientPtr client)
 
     ret = dixLookupDevice(&dev, stuff->deviceid, client, DixGetAttrAccess);
     if (ret != Success)
-	return ret;
+        return ret;
 
     grab = dev->deviceGrab.grab;
 
     time = ClientTimeToServerTime(stuff->time);
     if ((CompareTimeStamps(time, currentTime) != LATER) &&
-	(CompareTimeStamps(time, dev->deviceGrab.grabTime) != EARLIER) &&
-	(grab) && SameClient(grab, client) && grab->grabtype == XI2)
-	(*dev->deviceGrab.DeactivateGrab) (dev);
+        (CompareTimeStamps(time, dev->deviceGrab.grabTime) != EARLIER) &&
+        (grab) && SameClient(grab, client) && grab->grabtype == XI2)
+        (*dev->deviceGrab.DeactivateGrab) (dev);
 
     return Success;
 }
 
-void SRepXIGrabDevice(ClientPtr client, int size, xXIGrabDeviceReply * rep)
+void
+SRepXIGrabDevice(ClientPtr client, int size, xXIGrabDeviceReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *)rep);
+    WriteToClient(client, size, (char *) rep);
 }

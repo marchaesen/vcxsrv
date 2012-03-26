@@ -65,76 +65,75 @@ extern GCFuncs cwGCFuncs;
  */
 
 static void cwFillSpans(DrawablePtr pDst, GCPtr pGC, int nInit,
-			DDXPointPtr pptInit, int *pwidthInit, int fSorted);
+                        DDXPointPtr pptInit, int *pwidthInit, int fSorted);
 static void cwSetSpans(DrawablePtr pDst, GCPtr pGC, char *psrc,
-		       DDXPointPtr ppt, int *pwidth, int nspans, int fSorted);
+                       DDXPointPtr ppt, int *pwidth, int nspans, int fSorted);
 static void cwPutImage(DrawablePtr pDst, GCPtr pGC, int depth,
-		       int x, int y, int w, int h, int leftPad, int format,
-		       char *pBits);
+                       int x, int y, int w, int h, int leftPad, int format,
+                       char *pBits);
 static RegionPtr cwCopyArea(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
-			    int srcx, int srcy, int w, int h,
-			    int dstx, int dsty);
+                            int srcx, int srcy, int w, int h,
+                            int dstx, int dsty);
 static RegionPtr cwCopyPlane(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
-			     int srcx, int srcy, int w, int h,
-			     int dstx, int dsty, unsigned long plane);
+                             int srcx, int srcy, int w, int h,
+                             int dstx, int dsty, unsigned long plane);
 static void cwPolyPoint(DrawablePtr pDst, GCPtr pGC, int mode, int npt,
-			xPoint *pptInit);
+                        xPoint * pptInit);
 static void cwPolylines(DrawablePtr pDst, GCPtr pGC, int mode, int npt,
-			DDXPointPtr pptInit);
+                        DDXPointPtr pptInit);
 static void cwPolySegment(DrawablePtr pDst, GCPtr pGC, int nseg,
-			  xSegment *pSegs);
+                          xSegment * pSegs);
 static void cwPolyRectangle(DrawablePtr pDst, GCPtr pGC,
-			    int nrects, xRectangle *pRects);
-static void cwPolyArc(DrawablePtr pDst, GCPtr pGC, int narcs, xArc *parcs);
+                            int nrects, xRectangle *pRects);
+static void cwPolyArc(DrawablePtr pDst, GCPtr pGC, int narcs, xArc * parcs);
 static void cwFillPolygon(DrawablePtr pDst, GCPtr pGC, int shape, int mode,
-			  int count, DDXPointPtr pPts);
+                          int count, DDXPointPtr pPts);
 static void cwPolyFillRect(DrawablePtr pDst, GCPtr pGC,
-			   int nrectFill, xRectangle *prectInit);
-static void cwPolyFillArc(DrawablePtr pDst, GCPtr pGC,
-			  int narcs, xArc *parcs);
+                           int nrectFill, xRectangle *prectInit);
+static void cwPolyFillArc(DrawablePtr pDst, GCPtr pGC, int narcs, xArc * parcs);
 static int cwPolyText8(DrawablePtr pDrawable, GCPtr pGC, int x, int y,
-		       int count, char *chars);
+                       int count, char *chars);
 static int cwPolyText16(DrawablePtr pDst, GCPtr pGC, int x, int y,
-			int count, unsigned short *chars);
+                        int count, unsigned short *chars);
 static void cwImageText8(DrawablePtr pDst, GCPtr pGC, int x, int y,
-			 int count, char *chars);
+                         int count, char *chars);
 static void cwImageText16(DrawablePtr pDst, GCPtr pGC, int x, int y,
-			  int count, unsigned short *chars);
+                          int count, unsigned short *chars);
 static void cwImageGlyphBlt(DrawablePtr pDst, GCPtr pGC, int x, int y,
-			    unsigned int nglyph, CharInfoPtr *ppci,
-			    pointer pglyphBase);
+                            unsigned int nglyph, CharInfoPtr * ppci,
+                            pointer pglyphBase);
 static void cwPolyGlyphBlt(DrawablePtr pDst, GCPtr pGC, int x, int y,
-			   unsigned int nglyph, CharInfoPtr *ppci,
-			   pointer pglyphBase);
+                           unsigned int nglyph, CharInfoPtr * ppci,
+                           pointer pglyphBase);
 static void cwPushPixels(GCPtr pGC, PixmapPtr pBitMap, DrawablePtr pDst,
-			 int w, int h, int x, int y);
+                         int w, int h, int x, int y);
 
 GCOps cwGCOps = {
-	cwFillSpans,
-	cwSetSpans,
-	cwPutImage,
-	cwCopyArea,
-	cwCopyPlane,
-	cwPolyPoint,
-	cwPolylines,
-	cwPolySegment,
-	cwPolyRectangle,
-	cwPolyArc,
-	cwFillPolygon,
-	cwPolyFillRect,
-	cwPolyFillArc,
-	cwPolyText8,
-	cwPolyText16,
-	cwImageText8,
-	cwImageText16,
-	cwImageGlyphBlt,
-	cwPolyGlyphBlt,
-	cwPushPixels
+    cwFillSpans,
+    cwSetSpans,
+    cwPutImage,
+    cwCopyArea,
+    cwCopyPlane,
+    cwPolyPoint,
+    cwPolylines,
+    cwPolySegment,
+    cwPolyRectangle,
+    cwPolyArc,
+    cwFillPolygon,
+    cwPolyFillRect,
+    cwPolyFillArc,
+    cwPolyText8,
+    cwPolyText16,
+    cwImageText8,
+    cwImageText16,
+    cwImageGlyphBlt,
+    cwPolyGlyphBlt,
+    cwPushPixels
 };
 
 static void
 cwFillSpans(DrawablePtr pDst, GCPtr pGC, int nspans, DDXPointPtr ppt,
-	    int *pwidth, int fSorted)
+            int *pwidth, int fSorted)
 {
     SETUP_BACKING_DST(pDst, pGC);
 
@@ -142,15 +141,15 @@ cwFillSpans(DrawablePtr pDst, GCPtr pGC, int nspans, DDXPointPtr ppt,
 
     CW_OFFSET_XYPOINTS(ppt, nspans);
 
-    (*pBackingGC->ops->FillSpans)(pBackingDst, pBackingGC, nspans, ppt,
-				  pwidth, fSorted);
+    (*pBackingGC->ops->FillSpans) (pBackingDst, pBackingGC, nspans, ppt,
+                                   pwidth, fSorted);
 
     EPILOGUE(pGC);
 }
 
 static void
 cwSetSpans(DrawablePtr pDst, GCPtr pGC, char *psrc, DDXPointPtr ppt,
-	   int *pwidth, int nspans, int fSorted)
+           int *pwidth, int nspans, int fSorted)
 {
     SETUP_BACKING_DST(pDst, pGC);
 
@@ -158,15 +157,15 @@ cwSetSpans(DrawablePtr pDst, GCPtr pGC, char *psrc, DDXPointPtr ppt,
 
     CW_OFFSET_XYPOINTS(ppt, nspans);
 
-    (*pBackingGC->ops->SetSpans)(pBackingDst, pBackingGC, psrc, ppt, pwidth,
-				 nspans, fSorted);
+    (*pBackingGC->ops->SetSpans) (pBackingDst, pBackingGC, psrc, ppt, pwidth,
+                                  nspans, fSorted);
 
     EPILOGUE(pGC);
 }
 
 static void
 cwPutImage(DrawablePtr pDst, GCPtr pGC, int depth, int x, int y, int w, int h,
-	   int leftPad, int format, char *pBits)
+           int leftPad, int format, char *pBits)
 {
     SETUP_BACKING_DST(pDst, pGC);
 
@@ -174,18 +173,19 @@ cwPutImage(DrawablePtr pDst, GCPtr pGC, int depth, int x, int y, int w, int h,
 
     CW_OFFSET_XY_DST(x, y);
 
-    (*pBackingGC->ops->PutImage)(pBackingDst, pBackingGC, depth, x, y, w, h,
-				 leftPad, format, pBits);
+    (*pBackingGC->ops->PutImage) (pBackingDst, pBackingGC, depth, x, y, w, h,
+                                  leftPad, format, pBits);
 
     EPILOGUE(pGC);
 }
 
 static RegionPtr
 cwCopyArea(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC, int srcx, int srcy,
-	   int w, int h, int dstx, int dsty)
+           int w, int h, int dstx, int dsty)
 {
-    int		odstx, odsty;
-    int		osrcx, osrcy;
+    int odstx, odsty;
+    int osrcx, osrcy;
+
     SETUP_BACKING_DST(pDst, pGC);
     SETUP_BACKING_SRC(pSrc, pGC);
 
@@ -198,23 +198,22 @@ cwCopyArea(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC, int srcx, int srcy,
     CW_OFFSET_XY_DST(dstx, dsty);
     CW_OFFSET_XY_SRC(srcx, srcy);
 
-    (*pBackingGC->ops->CopyArea)(pBackingSrc, pBackingDst,
-				 pBackingGC, srcx, srcy, w, h,
-				 dstx, dsty);
-    
+    (*pBackingGC->ops->CopyArea) (pBackingSrc, pBackingDst,
+                                  pBackingGC, srcx, srcy, w, h, dstx, dsty);
+
     EPILOGUE(pGC);
 
     return miHandleExposures(pSrc, pDst, pGC,
-			     osrcx, osrcy, w, h,
-			     odstx, odsty, 0);
+                             osrcx, osrcy, w, h, odstx, odsty, 0);
 }
 
 static RegionPtr
 cwCopyPlane(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC, int srcx, int srcy,
-	    int w, int h, int dstx, int dsty, unsigned long plane)
+            int w, int h, int dstx, int dsty, unsigned long plane)
 {
-    int		odstx, odsty;
-    int		osrcx, osrcy;
+    int odstx, odsty;
+    int osrcx, osrcy;
+
     SETUP_BACKING_DST(pDst, pGC);
     SETUP_BACKING_SRC(pSrc, pGC);
 
@@ -227,30 +226,29 @@ cwCopyPlane(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC, int srcx, int srcy,
     CW_OFFSET_XY_DST(dstx, dsty);
     CW_OFFSET_XY_SRC(srcx, srcy);
 
-    (*pBackingGC->ops->CopyPlane)(pBackingSrc, pBackingDst,
-				  pBackingGC, srcx, srcy, w, h,
-				  dstx, dsty, plane);
+    (*pBackingGC->ops->CopyPlane) (pBackingSrc, pBackingDst,
+                                   pBackingGC, srcx, srcy, w, h,
+                                   dstx, dsty, plane);
 
     EPILOGUE(pGC);
 
     return miHandleExposures(pSrc, pDst, pGC,
-			     osrcx, osrcy, w, h,
-			     odstx, odsty, plane);
+                             osrcx, osrcy, w, h, odstx, odsty, plane);
 }
 
 static void
-cwPolyPoint(DrawablePtr pDst, GCPtr pGC, int mode, int npt, xPoint *ppt)
+cwPolyPoint(DrawablePtr pDst, GCPtr pGC, int mode, int npt, xPoint * ppt)
 {
     SETUP_BACKING_DST(pDst, pGC);
 
     PROLOGUE(pGC);
 
     if (mode == CoordModeOrigin)
-	CW_OFFSET_XYPOINTS(ppt, npt);
+        CW_OFFSET_XYPOINTS(ppt, npt);
     else
-	CW_OFFSET_XYPOINTS(ppt, 1);
+        CW_OFFSET_XYPOINTS(ppt, 1);
 
-    (*pBackingGC->ops->PolyPoint)(pBackingDst, pBackingGC, mode, npt, ppt);
+    (*pBackingGC->ops->PolyPoint) (pBackingDst, pBackingGC, mode, npt, ppt);
 
     EPILOGUE(pGC);
 }
@@ -263,17 +261,17 @@ cwPolylines(DrawablePtr pDst, GCPtr pGC, int mode, int npt, DDXPointPtr ppt)
     PROLOGUE(pGC);
 
     if (mode == CoordModeOrigin)
-	CW_OFFSET_XYPOINTS(ppt, npt);
+        CW_OFFSET_XYPOINTS(ppt, npt);
     else
-	CW_OFFSET_XYPOINTS(ppt, 1);
+        CW_OFFSET_XYPOINTS(ppt, 1);
 
-    (*pBackingGC->ops->Polylines)(pBackingDst, pBackingGC, mode, npt, ppt);
+    (*pBackingGC->ops->Polylines) (pBackingDst, pBackingGC, mode, npt, ppt);
 
     EPILOGUE(pGC);
 }
 
 static void
-cwPolySegment(DrawablePtr pDst, GCPtr pGC, int nseg, xSegment *pSegs)
+cwPolySegment(DrawablePtr pDst, GCPtr pGC, int nseg, xSegment * pSegs)
 {
     SETUP_BACKING_DST(pDst, pGC);
 
@@ -281,7 +279,7 @@ cwPolySegment(DrawablePtr pDst, GCPtr pGC, int nseg, xSegment *pSegs)
 
     CW_OFFSET_XYPOINTS(pSegs, nseg * 2);
 
-    (*pBackingGC->ops->PolySegment)(pBackingDst, pBackingGC, nseg, pSegs);
+    (*pBackingGC->ops->PolySegment) (pBackingDst, pBackingGC, nseg, pSegs);
 
     EPILOGUE(pGC);
 }
@@ -295,13 +293,13 @@ cwPolyRectangle(DrawablePtr pDst, GCPtr pGC, int nrects, xRectangle *pRects)
 
     CW_OFFSET_RECTS(pRects, nrects);
 
-    (*pBackingGC->ops->PolyRectangle)(pBackingDst, pBackingGC, nrects, pRects);
+    (*pBackingGC->ops->PolyRectangle) (pBackingDst, pBackingGC, nrects, pRects);
 
     EPILOGUE(pGC);
 }
 
 static void
-cwPolyArc(DrawablePtr pDst, GCPtr pGC, int narcs, xArc *pArcs)
+cwPolyArc(DrawablePtr pDst, GCPtr pGC, int narcs, xArc * pArcs)
 {
     SETUP_BACKING_DST(pDst, pGC);
 
@@ -309,26 +307,26 @@ cwPolyArc(DrawablePtr pDst, GCPtr pGC, int narcs, xArc *pArcs)
 
     CW_OFFSET_RECTS(pArcs, narcs);
 
-    (*pBackingGC->ops->PolyArc)(pBackingDst, pBackingGC, narcs, pArcs);
+    (*pBackingGC->ops->PolyArc) (pBackingDst, pBackingGC, narcs, pArcs);
 
     EPILOGUE(pGC);
 }
 
 static void
 cwFillPolygon(DrawablePtr pDst, GCPtr pGC, int shape, int mode, int npt,
-	      DDXPointPtr ppt)
+              DDXPointPtr ppt)
 {
     SETUP_BACKING_DST(pDst, pGC);
 
     PROLOGUE(pGC);
 
     if (mode == CoordModeOrigin)
-	CW_OFFSET_XYPOINTS(ppt, npt);
+        CW_OFFSET_XYPOINTS(ppt, npt);
     else
-	CW_OFFSET_XYPOINTS(ppt, 1);
+        CW_OFFSET_XYPOINTS(ppt, 1);
 
-    (*pBackingGC->ops->FillPolygon)(pBackingDst, pBackingGC, shape, mode, npt,
-				    ppt);
+    (*pBackingGC->ops->FillPolygon) (pBackingDst, pBackingGC, shape, mode, npt,
+                                     ppt);
 
     EPILOGUE(pGC);
 }
@@ -342,13 +340,13 @@ cwPolyFillRect(DrawablePtr pDst, GCPtr pGC, int nrects, xRectangle *pRects)
 
     CW_OFFSET_RECTS(pRects, nrects);
 
-    (*pBackingGC->ops->PolyFillRect)(pBackingDst, pBackingGC, nrects, pRects);
+    (*pBackingGC->ops->PolyFillRect) (pBackingDst, pBackingGC, nrects, pRects);
 
     EPILOGUE(pGC);
 }
 
 static void
-cwPolyFillArc(DrawablePtr pDst, GCPtr pGC, int narcs, xArc *parcs)
+cwPolyFillArc(DrawablePtr pDst, GCPtr pGC, int narcs, xArc * parcs)
 {
     SETUP_BACKING_DST(pDst, pGC);
 
@@ -356,7 +354,7 @@ cwPolyFillArc(DrawablePtr pDst, GCPtr pGC, int narcs, xArc *parcs)
 
     CW_OFFSET_RECTS(parcs, narcs);
 
-    (*pBackingGC->ops->PolyFillArc)(pBackingDst, pBackingGC, narcs, parcs);
+    (*pBackingGC->ops->PolyFillArc) (pBackingDst, pBackingGC, narcs, parcs);
 
     EPILOGUE(pGC);
 }
@@ -365,14 +363,15 @@ static int
 cwPolyText8(DrawablePtr pDst, GCPtr pGC, int x, int y, int count, char *chars)
 {
     int result;
+
     SETUP_BACKING_DST(pDst, pGC);
 
     PROLOGUE(pGC);
 
     CW_OFFSET_XY_DST(x, y);
 
-    result = (*pBackingGC->ops->PolyText8)(pBackingDst, pBackingGC, x, y,
-					   count, chars);
+    result = (*pBackingGC->ops->PolyText8) (pBackingDst, pBackingGC, x, y,
+                                            count, chars);
 
     EPILOGUE(pGC);
 
@@ -381,17 +380,18 @@ cwPolyText8(DrawablePtr pDst, GCPtr pGC, int x, int y, int count, char *chars)
 
 static int
 cwPolyText16(DrawablePtr pDst, GCPtr pGC, int x, int y, int count,
-	     unsigned short *chars)
+             unsigned short *chars)
 {
     int result;
+
     SETUP_BACKING_DST(pDst, pGC);
 
     PROLOGUE(pGC);
 
     CW_OFFSET_XY_DST(x, y);
 
-    result = (*pBackingGC->ops->PolyText16)(pBackingDst, pBackingGC, x, y,
-					    count, chars);
+    result = (*pBackingGC->ops->PolyText16) (pBackingDst, pBackingGC, x, y,
+                                             count, chars);
 
     EPILOGUE(pGC);
     return result;
@@ -406,15 +406,15 @@ cwImageText8(DrawablePtr pDst, GCPtr pGC, int x, int y, int count, char *chars)
 
     CW_OFFSET_XY_DST(x, y);
 
-    (*pBackingGC->ops->ImageText8)(pBackingDst, pBackingGC, x, y, count,
-				   chars);
+    (*pBackingGC->ops->ImageText8) (pBackingDst, pBackingGC, x, y, count,
+                                    chars);
 
     EPILOGUE(pGC);
 }
 
 static void
 cwImageText16(DrawablePtr pDst, GCPtr pGC, int x, int y, int count,
-	     unsigned short *chars)
+              unsigned short *chars)
 {
     SETUP_BACKING_DST(pDst, pGC);
 
@@ -422,15 +422,15 @@ cwImageText16(DrawablePtr pDst, GCPtr pGC, int x, int y, int count,
 
     CW_OFFSET_XY_DST(x, y);
 
-    (*pBackingGC->ops->ImageText16)(pBackingDst, pBackingGC, x, y, count,
-				    chars);
+    (*pBackingGC->ops->ImageText16) (pBackingDst, pBackingGC, x, y, count,
+                                     chars);
 
     EPILOGUE(pGC);
 }
 
 static void
 cwImageGlyphBlt(DrawablePtr pDst, GCPtr pGC, int x, int y, unsigned int nglyph,
-		CharInfoPtr *ppci, pointer pglyphBase)
+                CharInfoPtr * ppci, pointer pglyphBase)
 {
     SETUP_BACKING_DST(pDst, pGC);
 
@@ -438,15 +438,15 @@ cwImageGlyphBlt(DrawablePtr pDst, GCPtr pGC, int x, int y, unsigned int nglyph,
 
     CW_OFFSET_XY_DST(x, y);
 
-    (*pBackingGC->ops->ImageGlyphBlt)(pBackingDst, pBackingGC, x, y, nglyph,
-				      ppci, pglyphBase);
+    (*pBackingGC->ops->ImageGlyphBlt) (pBackingDst, pBackingGC, x, y, nglyph,
+                                       ppci, pglyphBase);
 
     EPILOGUE(pGC);
 }
 
 static void
 cwPolyGlyphBlt(DrawablePtr pDst, GCPtr pGC, int x, int y, unsigned int nglyph,
-	       CharInfoPtr *ppci, pointer pglyphBase)
+               CharInfoPtr * ppci, pointer pglyphBase)
 {
     SETUP_BACKING_DST(pDst, pGC);
 
@@ -454,15 +454,15 @@ cwPolyGlyphBlt(DrawablePtr pDst, GCPtr pGC, int x, int y, unsigned int nglyph,
 
     CW_OFFSET_XY_DST(x, y);
 
-    (*pBackingGC->ops->PolyGlyphBlt)(pBackingDst, pBackingGC, x, y, nglyph,
-				      ppci, pglyphBase);
+    (*pBackingGC->ops->PolyGlyphBlt) (pBackingDst, pBackingGC, x, y, nglyph,
+                                      ppci, pglyphBase);
 
     EPILOGUE(pGC);
 }
 
 static void
 cwPushPixels(GCPtr pGC, PixmapPtr pBitMap, DrawablePtr pDst, int w, int h,
-	     int x, int y)
+             int x, int y)
 {
     SETUP_BACKING_DST(pDst, pGC);
 
@@ -470,9 +470,8 @@ cwPushPixels(GCPtr pGC, PixmapPtr pBitMap, DrawablePtr pDst, int w, int h,
 
     CW_OFFSET_XY_DST(x, y);
 
-    (*pBackingGC->ops->PushPixels)(pBackingGC, pBitMap, pBackingDst, w, h,
-				   x, y);
+    (*pBackingGC->ops->PushPixels) (pBackingGC, pBitMap, pBackingDst, w, h,
+                                    x, y);
 
     EPILOGUE(pGC);
 }
-

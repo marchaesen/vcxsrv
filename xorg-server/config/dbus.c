@@ -33,7 +33,7 @@
 #include <X11/X.h>
 
 #include "config-backends.h"
-#include "opaque.h" /* for 'display': there should be a better way. */
+#include "opaque.h"             /* for 'display': there should be a better way. */
 #include "input.h"
 #include "inputstr.h"
 
@@ -65,7 +65,7 @@ reset_info(struct connection_info *info)
 }
 
 static int
-add_device(DBusMessage *message, DBusMessage *reply, DBusError *error)
+add_device(DBusMessage * message, DBusMessage * reply, DBusError * error)
 {
     DBusMessageIter iter, reply_iter, subiter;
     InputOption *input_options = NULL;
@@ -89,6 +89,7 @@ add_device(DBusMessage *message, DBusMessage *reply, DBusError *error)
     /* signature should be [ss][ss]... */
     while (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_ARRAY) {
         char *key, *value;
+
         dbus_message_iter_recurse(&iter, &subiter);
 
         if (dbus_message_iter_get_arg_type(&subiter) != DBUS_TYPE_STRING)
@@ -145,7 +146,7 @@ add_device(DBusMessage *message, DBusMessage *reply, DBusError *error)
         }
     }
 
-unwind:
+ unwind:
     if (ret != Success) {
         if (dev)
             RemoveDevice(dev, TRUE);
@@ -160,7 +161,7 @@ unwind:
 }
 
 static int
-remove_device(DBusMessage *message, DBusMessage *reply, DBusError *error)
+remove_device(DBusMessage * message, DBusMessage * reply, DBusError * error)
 {
     int deviceid, ret, err;
     DeviceIntPtr dev;
@@ -196,7 +197,7 @@ remove_device(DBusMessage *message, DBusMessage *reply, DBusError *error)
 
     ret = Success;
 
-unwind:
+ unwind:
     err = (ret == Success) ? ret : -ret;
     dbus_message_iter_append_basic(&reply_iter, DBUS_TYPE_INT32, &err);
 
@@ -204,7 +205,7 @@ unwind:
 }
 
 static int
-list_devices(DBusMessage *message, DBusMessage *reply, DBusError *error)
+list_devices(DBusMessage * message, DBusMessage * reply, DBusError * error)
 {
     DeviceIntPtr dev;
     DBusMessageIter iter, subiter;
@@ -237,7 +238,7 @@ list_devices(DBusMessage *message, DBusMessage *reply, DBusError *error)
 }
 
 static int
-get_version(DBusMessage *message, DBusMessage *reply, DBusError *error)
+get_version(DBusMessage * message, DBusMessage * reply, DBusError * error)
 {
     DBusMessageIter iter;
     unsigned int version = API_VERSION;
@@ -252,7 +253,7 @@ get_version(DBusMessage *message, DBusMessage *reply, DBusError *error)
 }
 
 static DBusHandlerResult
-message_handler(DBusConnection *connection, DBusMessage *message, void *data)
+message_handler(DBusConnection * connection, DBusMessage * message, void *data)
 {
     DBusError error;
     DBusMessage *reply;
@@ -301,19 +302,19 @@ message_handler(DBusConnection *connection, DBusMessage *message, void *data)
 
     ret = DBUS_HANDLER_RESULT_HANDLED;
 
-err_reply:
+ err_reply:
     dbus_message_unref(reply);
-err_start:
+ err_start:
     dbus_error_free(&error);
 
     return ret;
 }
 
 static void
-connect_hook(DBusConnection *connection, void *data)
+connect_hook(DBusConnection * connection, void *data)
 {
     DBusError error;
-    DBusObjectPathVTable vtable = { .message_function = message_handler, };
+    DBusObjectPathVTable vtable = {.message_function = message_handler, };
     struct connection_info *info = data;
 
     info->connection = connection;
@@ -336,8 +337,7 @@ connect_hook(DBusConnection *connection, void *data)
     }
 
     if (!dbus_connection_register_object_path(info->connection,
-                                              info->busobject, &vtable,
-                                              info)) {
+                                              info->busobject, &vtable, info)) {
         ErrorF("[config/dbus] couldn't register object path\n");
         goto err_match;
     }
@@ -348,11 +348,11 @@ connect_hook(DBusConnection *connection, void *data)
 
     return;
 
-err_match:
+ err_match:
     dbus_bus_remove_match(info->connection, MATCH_RULE, &error);
-err_name:
+ err_name:
     dbus_bus_release_name(info->connection, info->busname, &error);
-err_start:
+ err_start:
     dbus_error_free(&error);
 
     reset_info(info);
@@ -372,8 +372,7 @@ pre_disconnect_hook(void)
     dbus_error_init(&error);
     dbus_connection_unregister_object_path(connection_data->connection,
                                            connection_data->busobject);
-    dbus_bus_remove_match(connection_data->connection, MATCH_RULE,
-                          &error);
+    dbus_bus_remove_match(connection_data->connection, MATCH_RULE, &error);
     dbus_bus_release_name(connection_data->connection,
                           connection_data->busname, &error);
     dbus_error_free(&error);
@@ -381,6 +380,7 @@ pre_disconnect_hook(void)
 #endif
 
 static struct connection_info connection_data;
+
 static struct config_dbus_core_hook core_hook = {
     .connect = connect_hook,
     .disconnect = disconnect_hook,

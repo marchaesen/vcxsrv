@@ -33,16 +33,14 @@
 #include "dixstruct.h"
 #include "inputstr.h"
 #include <unistd.h>
-
 /*
  * Local function prototypes
  */
 
 #ifdef XWIN_CLIPBOARD
-int winProcEstablishConnection(ClientPtr /* client */);
-int winProcSetSelectionOwner(ClientPtr /* client */);
+int winProcEstablishConnection(ClientPtr /* client */ );
+int winProcSetSelectionOwner(ClientPtr /* client */ );
 #endif
-
 
 /*
  * Local global declarations
@@ -61,11 +59,10 @@ DeviceIntPtr g_pwinKeyboard;
  */
 
 Bool
-LegalModifier (unsigned int uiKey, DeviceIntPtr pDevice)
+LegalModifier(unsigned int uiKey, DeviceIntPtr pDevice)
 {
-  return TRUE;
+    return TRUE;
 }
-
 
 /* Called from dix/dispatch.c */
 /*
@@ -73,77 +70,72 @@ LegalModifier (unsigned int uiKey, DeviceIntPtr pDevice)
  * Tell mi to dequeue the events that we have sent it.
  */
 void
-ProcessInputEvents (void)
+ProcessInputEvents(void)
 {
-  mieqProcessInputEvents ();
+    mieqProcessInputEvents();
 }
 
-
-void DDXRingBell(int volume, int pitch, int duration)
+void
+DDXRingBell(int volume, int pitch, int duration)
 {
-  /* winKeybdBell is used instead */
-  return;
+    /* winKeybdBell is used instead */
+    return;
 }
-
 
 /* See Porting Layer Definition - p. 17 */
 void
-InitInput (int argc, char *argv[])
+InitInput(int argc, char *argv[])
 {
   int rc;
-  winDebug ("InitInput\n");
+    winDebug("InitInput\n");
 
 #ifdef XWIN_CLIPBOARD
-  /*
-   * Wrap some functions at every generation of the server.
-   */
-  if (InitialVector[2] != winProcEstablishConnection)
-    {
-      winProcEstablishConnectionOrig = InitialVector[2];
-      InitialVector[2] = winProcEstablishConnection;
+    /*
+     * Wrap some functions at every generation of the server.
+     */
+    if (InitialVector[2] != winProcEstablishConnection) {
+        winProcEstablishConnectionOrig = InitialVector[2];
+        InitialVector[2] = winProcEstablishConnection;
     }
 #endif
 
-  rc = AllocDevicePair(serverClient, "Windows",
-                       &g_pwinPointer,
-                       &g_pwinKeyboard,
-                       winMouseProc,
-                       winKeybdProc,
-                       FALSE);
+    rc = AllocDevicePair(serverClient, "Windows",
+                         &g_pwinPointer,
+                         &g_pwinKeyboard,
+                         winMouseProc,
+                         winKeybdProc,
+                         FALSE);
 
-  if (rc != Success)
-      FatalError("Failed to init vcxsrv default devices.\n");
+    if (rc != Success)
+        FatalError("Failed to init vcxsrv default devices.\n");
 
-  mieqInit ();
+    mieqInit();
 
-  /* Do not nitialize the mode key states here yet since the keyboard device is not started yet
-  winInitializeModeKeyStates (); */
+    /* Do not nitialize the mode key states here yet since the keyboard device is not started yet
+    winInitializeModeKeyStates (); */
 
 #ifdef HAS_DEVWINDOWS
-  /* Only open the windows message queue device once */
-  if (g_fdMessageQueue == WIN_FD_INVALID)
-    {
-      /* Open a file descriptor for the Windows message queue */
-      g_fdMessageQueue = open (WIN_MSG_QUEUE_FNAME, O_RDONLY);
-      
-      if (g_fdMessageQueue == -1)
-	{
-	  FatalError ("InitInput - Failed opening %s\n",
-		      WIN_MSG_QUEUE_FNAME);
-	}
+    /* Only open the windows message queue device once */
+    if (g_fdMessageQueue == WIN_FD_INVALID) {
+        /* Open a file descriptor for the Windows message queue */
+        g_fdMessageQueue = open(WIN_MSG_QUEUE_FNAME, O_RDONLY);
 
-      /* Add the message queue as a device to wait for in WaitForSomething */
-      AddEnabledDevice (g_fdMessageQueue);
+        if (g_fdMessageQueue == -1) {
+            FatalError("InitInput - Failed opening %s\n", WIN_MSG_QUEUE_FNAME);
+        }
+
+        /* Add the message queue as a device to wait for in WaitForSomething */
+        AddEnabledDevice(g_fdMessageQueue);
     }
 #endif
 
-  winDebug ("InitInput - returning\n");
+    winDebug("InitInput - returning\n");
 }
 
 void
-CloseInput (void)
+CloseInput(void)
 {
-  mieqFini ();
-  g_pwinPointer=NULL;
-  g_pwinKeyboard=NULL;
+    mieqFini();
+    g_pwinPointer=NULL;
+    g_pwinKeyboard=NULL;
 }

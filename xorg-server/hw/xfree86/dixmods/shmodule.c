@@ -37,18 +37,17 @@
 #include    "gcstruct.h"
 #include "shadow.h"
 
-static XF86ModuleVersionInfo VersRec =
-{
-	"shadow",
-	MODULEVENDORSTRING,
-	MODINFOSTRING1,
-	MODINFOSTRING2,
-	XORG_VERSION_CURRENT,
-	1, 1, 0,
-	ABI_CLASS_ANSIC,		/* Only need the ansic layer */
-	ABI_ANSIC_VERSION,
-	MOD_CLASS_NONE,
-	{0,0,0,0}       /* signature, to be patched into the file by a tool */
+static XF86ModuleVersionInfo VersRec = {
+    "shadow",
+    MODULEVENDORSTRING,
+    MODINFOSTRING1,
+    MODINFOSTRING2,
+    XORG_VERSION_CURRENT,
+    1, 1, 0,
+    ABI_CLASS_ANSIC,            /* Only need the ansic layer */
+    ABI_ANSIC_VERSION,
+    MOD_CLASS_NONE,
+    {0, 0, 0, 0}                /* signature, to be patched into the file by a tool */
 };
 
 _X_EXPORT XF86ModuleData shadowModuleData = { &VersRec, NULL, NULL };

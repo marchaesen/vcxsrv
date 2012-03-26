@@ -36,18 +36,20 @@
 #include "dmxprint.h"
 #include "dmxcompat.h"
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
     DMXConfigEntryPtr entry;
-    FILE              *str;
+    FILE *str;
 
-    if (argc != 2 && argc !=3) {
+    if (argc != 2 && argc != 3) {
         fprintf(stderr, "Usage: vdltodmx inFile [outFile]\n");
         return 1;
     }
     if (argc == 2) {
         str = stdout;
-    } else if (!(str = fopen(argv[2], "w"))) {
+    }
+    else if (!(str = fopen(argv[2], "w"))) {
         fprintf(stderr, "Cannot open %s for write\n", argv[2]);
         return 2;
     }

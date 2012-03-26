@@ -90,86 +90,81 @@
 #endif
 
 void
-shadowUpdatePlanar4x8 (ScreenPtr	pScreen,
-		       shadowBufPtr	pBuf)
+shadowUpdatePlanar4x8(ScreenPtr pScreen, shadowBufPtr pBuf)
 {
-    RegionPtr	damage = shadowDamage (pBuf);
-    PixmapPtr	pShadow = pBuf->pPixmap;
-    int		nbox = RegionNumRects (damage);
-    BoxPtr	pbox = RegionRects (damage);
-    CARD32	*shaBase, *shaLine, *sha;
-    CARD8	s1, s2, s3, s4;
-    FbStride	shaStride;
-    int		scrBase, scrLine, scr;
-    int		shaBpp;
-    _X_UNUSED int	shaXoff, shaYoff;
-    int		x, y, w, h, width;
-    int         i;
-    CARD32	*winBase = NULL, *win;
-    CARD32	winSize;
-    int		plane;
+    RegionPtr damage = shadowDamage(pBuf);
+    PixmapPtr pShadow = pBuf->pPixmap;
+    int nbox = RegionNumRects(damage);
+    BoxPtr pbox = RegionRects(damage);
+    CARD32 *shaBase, *shaLine, *sha;
+    CARD8 s1, s2, s3, s4;
+    FbStride shaStride;
+    int scrBase, scrLine, scr;
+    int shaBpp;
+    _X_UNUSED int shaXoff, shaYoff;
+    int x, y, w, h, width;
+    int i;
+    CARD32 *winBase = NULL, *win;
+    CARD32 winSize;
+    int plane;
 
-    fbGetStipDrawable (&pShadow->drawable, shaBase, shaStride, shaBpp, shaXoff, shaYoff);
-    while (nbox--)
-    {
-	x = pbox->x1 * shaBpp;
-	y = pbox->y1;
-	w = (pbox->x2 - pbox->x1) * shaBpp;
-	h = pbox->y2 - pbox->y1;
+    fbGetStipDrawable(&pShadow->drawable, shaBase, shaStride, shaBpp, shaXoff,
+                      shaYoff);
+    while (nbox--) {
+        x = pbox->x1 * shaBpp;
+        y = pbox->y1;
+        w = (pbox->x2 - pbox->x1) * shaBpp;
+        h = pbox->y2 - pbox->y1;
 
-	w = (w + (x & PL_MASK) + PL_MASK) >> PL_SHIFT;
-	x &= ~PL_MASK;
-	
-	scrLine = (x >> PL_SHIFT);
-	shaLine = shaBase + y * shaStride + (x >> FB_SHIFT);
-	
-	while (h--)
-	{
-	    for (plane = 0; plane < 4; plane++)
-	    {
-		width = w;
-		scr = scrLine;
-		sha = shaLine;
-		winSize = 0;
-		scrBase = 0;
-		while (width) {
-		    /* how much remains in this window */
-		    i = scrBase + winSize - scr;
-		    if (i <= 0 || scr < scrBase)
-		    {
-			winBase = (CARD32 *) (*pBuf->window) (pScreen,
-							      y,
-							      (scr << 4) | (plane),
-							      SHADOW_WINDOW_WRITE,
-							      &winSize,
-							      pBuf->closure);
-			if(!winBase)
-			    return;
-			winSize >>= 2;
-			scrBase = scr;
-			i = winSize;
-		    }
-		    win = winBase + (scr - scrBase);
-		    if (i > width)
-		    i = width;
-		    width -= i;
-		    scr += i;
-		   
-		    while (i--)
-		    {
-			GetBits(plane,0,s1);
-			GetBits(plane,2,s2);
-			GetBits(plane,4,s3);
-			GetBits(plane,6,s4);
-			*win++ = s1 | (s2 << 8) | (s3 << 16) | (s4 << 24);
-			sha += 8;
-		    }
-		}
-	    }
-	    shaLine += shaStride;
-	    y++;
-	}
-	pbox++;
+        w = (w + (x & PL_MASK) + PL_MASK) >> PL_SHIFT;
+        x &= ~PL_MASK;
+
+        scrLine = (x >> PL_SHIFT);
+        shaLine = shaBase + y * shaStride + (x >> FB_SHIFT);
+
+        while (h--) {
+            for (plane = 0; plane < 4; plane++) {
+                width = w;
+                scr = scrLine;
+                sha = shaLine;
+                winSize = 0;
+                scrBase = 0;
+                while (width) {
+                    /* how much remains in this window */
+                    i = scrBase + winSize - scr;
+                    if (i <= 0 || scr < scrBase) {
+                        winBase = (CARD32 *) (*pBuf->window) (pScreen,
+                                                              y,
+                                                              (scr << 4) |
+                                                              (plane),
+                                                              SHADOW_WINDOW_WRITE,
+                                                              &winSize,
+                                                              pBuf->closure);
+                        if (!winBase)
+                            return;
+                        winSize >>= 2;
+                        scrBase = scr;
+                        i = winSize;
+                    }
+                    win = winBase + (scr - scrBase);
+                    if (i > width)
+                        i = width;
+                    width -= i;
+                    scr += i;
+
+                    while (i--) {
+                        GetBits(plane, 0, s1);
+                        GetBits(plane, 2, s2);
+                        GetBits(plane, 4, s3);
+                        GetBits(plane, 6, s4);
+                        *win++ = s1 | (s2 << 8) | (s3 << 16) | (s4 << 24);
+                        sha += 8;
+                    }
+                }
+            }
+            shaLine += shaStride;
+            y++;
+        }
+        pbox++;
     }
 }
-		    

@@ -44,14 +44,14 @@ fc_query_LDADD = ${top_builddir}/src/libfontconfig.la
 if USEDOCBOOK
 
 ${man_MANS}: ${SGML}
-	-@rm $@
-	$(AM_V_GEN) $(DOC2MAN) ${SGML}
-	@rm manpage.*
+	$(AM_V_GEN) $(RM) $@; \
+	$(DOC2MAN) ${SGML}; \
+	$(RM) manpage.*
 
 all-local: $(man_MANS)
 
 clean-local:
-	-rm $(man_MANS)
+	$(RM) $(man_MANS)
 
 else
 all-local:

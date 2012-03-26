@@ -66,25 +66,24 @@
 }
 
 static cwPicturePtr
-cwCreatePicturePrivate (PicturePtr pPicture)
+cwCreatePicturePrivate(PicturePtr pPicture)
 {
-    WindowPtr	    pWindow = (WindowPtr) pPicture->pDrawable;
-    PixmapPtr	    pPixmap = getCwPixmap (pWindow);
-    int		    error;
-    cwPicturePtr    pPicturePrivate;
+    WindowPtr pWindow = (WindowPtr) pPicture->pDrawable;
+    PixmapPtr pPixmap = getCwPixmap(pWindow);
+    int error;
+    cwPicturePtr pPicturePrivate;
 
-    pPicturePrivate = malloc(sizeof (cwPictureRec));
+    pPicturePrivate = malloc(sizeof(cwPictureRec));
     if (!pPicturePrivate)
-	return NULL;
-    
-    pPicturePrivate->pBackingPicture = CreatePicture (0, &pPixmap->drawable, 
-						      pPicture->pFormat,
-						      0, 0, serverClient,
-						      &error);
-    if (!pPicturePrivate->pBackingPicture)
-    {
-	free(pPicturePrivate);
-	return NULL;
+        return NULL;
+
+    pPicturePrivate->pBackingPicture = CreatePicture(0, &pPixmap->drawable,
+                                                     pPicture->pFormat,
+                                                     0, 0, serverClient,
+                                                     &error);
+    if (!pPicturePrivate->pBackingPicture) {
+        free(pPicturePrivate);
+        return NULL;
     }
 
     /*
@@ -92,289 +91,269 @@ cwCreatePicturePrivate (PicturePtr pPicture)
      */
     pPicturePrivate->serialNumber = pPixmap->drawable.serialNumber;
     pPicturePrivate->stateChanges = (1 << (CPLastBit + 1)) - 1;
-    
+
     setCwPicture(pPicture, pPicturePrivate);
 
     return pPicturePrivate;
 }
 
 static void
-cwDestroyPicturePrivate (PicturePtr pPicture)
+cwDestroyPicturePrivate(PicturePtr pPicture)
 {
     cwPicturePrivate;
 
-    if (pPicturePrivate)
-    {
-	if (pPicturePrivate->pBackingPicture)
-	    FreePicture (pPicturePrivate->pBackingPicture, 0);
-	free(pPicturePrivate);
-	setCwPicture(pPicture, NULL);
+    if (pPicturePrivate) {
+        if (pPicturePrivate->pBackingPicture)
+            FreePicture(pPicturePrivate->pBackingPicture, 0);
+        free(pPicturePrivate);
+        setCwPicture(pPicture, NULL);
     }
 }
 
 static PicturePtr
-cwGetBackingPicture (PicturePtr pPicture, int *x_off, int *y_off)
+cwGetBackingPicture(PicturePtr pPicture, int *x_off, int *y_off)
 {
     cwPicturePrivate;
 
-    if (pPicturePrivate)
-    {
-	DrawablePtr pDrawable = pPicture->pDrawable;
-	WindowPtr   pWindow = (WindowPtr) pDrawable;
-	PixmapPtr   pPixmap = getCwPixmap (pWindow);
+    if (pPicturePrivate) {
+        DrawablePtr pDrawable = pPicture->pDrawable;
+        WindowPtr pWindow = (WindowPtr) pDrawable;
+        PixmapPtr pPixmap = getCwPixmap(pWindow);
 
-	*x_off = pDrawable->x - pPixmap->screen_x;
-	*y_off = pDrawable->y - pPixmap->screen_y;
+        *x_off = pDrawable->x - pPixmap->screen_x;
+        *y_off = pDrawable->y - pPixmap->screen_y;
 
-	return pPicturePrivate->pBackingPicture;
+        return pPicturePrivate->pBackingPicture;
     }
-    else
-    {
-	*x_off = *y_off = 0;
-	return pPicture;
+    else {
+        *x_off = *y_off = 0;
+        return pPicture;
     }
 }
-    
+
 static void
-cwDestroyPicture (PicturePtr pPicture)
+cwDestroyPicture(PicturePtr pPicture)
 {
-    ScreenPtr		pScreen = pPicture->pDrawable->pScreen;
+    ScreenPtr pScreen = pPicture->pDrawable->pScreen;
+
     cwPsDecl(pScreen);
-    
+
     cwPsUnwrap(DestroyPicture);
-    cwDestroyPicturePrivate (pPicture);
+    cwDestroyPicturePrivate(pPicture);
     (*ps->DestroyPicture) (pPicture);
     cwPsWrap(DestroyPicture, cwDestroyPicture);
 }
 
 static void
-cwChangePicture (PicturePtr pPicture, Mask mask)
+cwChangePicture(PicturePtr pPicture, Mask mask)
 {
-    ScreenPtr		pScreen = pPicture->pDrawable->pScreen;
+    ScreenPtr pScreen = pPicture->pDrawable->pScreen;
+
     cwPsDecl(pScreen);
-    cwPicturePtr	pPicturePrivate = getCwPicture(pPicture);
-    
+    cwPicturePtr pPicturePrivate = getCwPicture(pPicture);
+
     cwPsUnwrap(ChangePicture);
     (*ps->ChangePicture) (pPicture, mask);
     if (pPicturePrivate)
-	pPicturePrivate->stateChanges |= mask;
+        pPicturePrivate->stateChanges |= mask;
     cwPsWrap(ChangePicture, cwChangePicture);
 }
 
-
 static void
-cwValidatePicture (PicturePtr pPicture,
-		   Mask       mask)
+cwValidatePicture(PicturePtr pPicture, Mask mask)
 {
-    DrawablePtr		pDrawable = pPicture->pDrawable;
-    ScreenPtr		pScreen = pDrawable->pScreen;
+    DrawablePtr pDrawable = pPicture->pDrawable;
+    ScreenPtr pScreen = pDrawable->pScreen;
+
     cwPsDecl(pScreen);
     cwPicturePrivate;
-    
+
     cwPsUnwrap(ValidatePicture);
 
     /*
      * Must call ValidatePicture to ensure pPicture->pCompositeClip is valid
      */
     (*ps->ValidatePicture) (pPicture, mask);
-    
-    if (!cwDrawableIsRedirWindow (pDrawable))
-    {
-	if (pPicturePrivate)
-	    cwDestroyPicturePrivate (pPicture);
+
+    if (!cwDrawableIsRedirWindow(pDrawable)) {
+        if (pPicturePrivate)
+            cwDestroyPicturePrivate(pPicture);
     }
-    else
-    {
-	PicturePtr  pBackingPicture;
-	DrawablePtr pBackingDrawable;
-	int	    x_off, y_off;
-	
-	pBackingDrawable = cwGetBackingDrawable(pDrawable, &x_off, &y_off);
+    else {
+        PicturePtr pBackingPicture;
+        DrawablePtr pBackingDrawable;
+        int x_off, y_off;
 
-	if (pPicturePrivate && 
-	    pPicturePrivate->pBackingPicture->pDrawable != pBackingDrawable)
-	{
-	    cwDestroyPicturePrivate (pPicture);
-	    pPicturePrivate = 0;
-	}
+        pBackingDrawable = cwGetBackingDrawable(pDrawable, &x_off, &y_off);
 
-	if (!pPicturePrivate)
-	{
-	    pPicturePrivate = cwCreatePicturePrivate (pPicture);
-	    if (!pPicturePrivate)
-	    {
-		cwPsWrap(ValidatePicture, cwValidatePicture);
-		return;
-	    }
-	}
+        if (pPicturePrivate &&
+            pPicturePrivate->pBackingPicture->pDrawable != pBackingDrawable) {
+            cwDestroyPicturePrivate(pPicture);
+            pPicturePrivate = 0;
+        }
 
-	pBackingPicture = pPicturePrivate->pBackingPicture;
+        if (!pPicturePrivate) {
+            pPicturePrivate = cwCreatePicturePrivate(pPicture);
+            if (!pPicturePrivate) {
+                cwPsWrap(ValidatePicture, cwValidatePicture);
+                return;
+            }
+        }
 
-	/*
-	 * Always copy transform and filters because there's no
-	 * indication of when they've changed
-	 */
-	SetPictureTransform(pBackingPicture, pPicture->transform);
-	
-	if (pBackingPicture->filter != pPicture->filter ||
-	    pPicture->filter_nparams > 0)
-	{
-	    char    *filter = PictureGetFilterName (pPicture->filter);
-	    
-	    SetPictureFilter(pBackingPicture,
-			     filter, strlen (filter),
-			     pPicture->filter_params,
-			     pPicture->filter_nparams);
-	}
+        pBackingPicture = pPicturePrivate->pBackingPicture;
 
-	pPicturePrivate->stateChanges |= mask;
+        /*
+         * Always copy transform and filters because there's no
+         * indication of when they've changed
+         */
+        SetPictureTransform(pBackingPicture, pPicture->transform);
 
-	if (pPicturePrivate->serialNumber != pDrawable->serialNumber ||
-	    (pPicturePrivate->stateChanges & (CPClipXOrigin|CPClipYOrigin|CPClipMask)))
-	{
-	    SetPictureClipRegion (pBackingPicture, 
-				  x_off - pDrawable->x,
-				  y_off - pDrawable->y,
-				  pPicture->pCompositeClip);
-    
-	    pPicturePrivate->serialNumber = pDrawable->serialNumber;
-	    pPicturePrivate->stateChanges &= ~(CPClipXOrigin | CPClipYOrigin | CPClipMask);
-	}
+        if (pBackingPicture->filter != pPicture->filter ||
+            pPicture->filter_nparams > 0) {
+            char *filter = PictureGetFilterName(pPicture->filter);
 
-	CopyPicture(pPicture, pPicturePrivate->stateChanges, pBackingPicture);
+            SetPictureFilter(pBackingPicture,
+                             filter, strlen(filter),
+                             pPicture->filter_params, pPicture->filter_nparams);
+        }
 
-	ValidatePicture (pBackingPicture);
+        pPicturePrivate->stateChanges |= mask;
+
+        if (pPicturePrivate->serialNumber != pDrawable->serialNumber ||
+            (pPicturePrivate->
+             stateChanges & (CPClipXOrigin | CPClipYOrigin | CPClipMask))) {
+            SetPictureClipRegion(pBackingPicture, x_off - pDrawable->x,
+                                 y_off - pDrawable->y,
+                                 pPicture->pCompositeClip);
+
+            pPicturePrivate->serialNumber = pDrawable->serialNumber;
+            pPicturePrivate->stateChanges &=
+                ~(CPClipXOrigin | CPClipYOrigin | CPClipMask);
+        }
+
+        CopyPicture(pPicture, pPicturePrivate->stateChanges, pBackingPicture);
+
+        ValidatePicture(pBackingPicture);
     }
     cwPsWrap(ValidatePicture, cwValidatePicture);
 }
 
 static void
-cwComposite (CARD8	op,
-	     PicturePtr pSrcPicture,
-	     PicturePtr pMskPicture,
-	     PicturePtr pDstPicture,
-	     INT16	xSrc,
-	     INT16	ySrc,
-	     INT16	xMsk,
-	     INT16	yMsk,
-	     INT16	xDst,
-	     INT16	yDst,
-	     CARD16	width,
-	     CARD16	height)
+cwComposite(CARD8 op,
+            PicturePtr pSrcPicture,
+            PicturePtr pMskPicture,
+            PicturePtr pDstPicture,
+            INT16 xSrc,
+            INT16 ySrc,
+            INT16 xMsk,
+            INT16 yMsk, INT16 xDst, INT16 yDst, CARD16 width, CARD16 height)
 {
-    ScreenPtr	pScreen = pDstPicture->pDrawable->pScreen;
+    ScreenPtr pScreen = pDstPicture->pDrawable->pScreen;
+
     cwPsDecl(pScreen);
     cwSrcPictureDecl;
     cwMskPictureDecl;
     cwDstPictureDecl;
-    
+
     cwPsUnwrap(Composite);
-    (*ps->Composite) (op, pBackingSrcPicture, pBackingMskPicture, pBackingDstPicture,
-		      xSrc + src_picture_x_off, ySrc + src_picture_y_off,
-		      xMsk + msk_picture_x_off, yMsk + msk_picture_y_off,
-		      xDst + dst_picture_x_off, yDst + dst_picture_y_off,
-		      width, height);
+    (*ps->Composite) (op, pBackingSrcPicture, pBackingMskPicture,
+                      pBackingDstPicture, xSrc + src_picture_x_off,
+                      ySrc + src_picture_y_off, xMsk + msk_picture_x_off,
+                      yMsk + msk_picture_y_off, xDst + dst_picture_x_off,
+                      yDst + dst_picture_y_off, width, height);
     cwPsWrap(Composite, cwComposite);
 }
 
 static void
-cwCompositeRects (CARD8		op,
-		  PicturePtr	pDstPicture,
-		  xRenderColor  *color,
-		  int		nRect,
-		  xRectangle	*rects)
+cwCompositeRects(CARD8 op,
+                 PicturePtr pDstPicture,
+                 xRenderColor * color, int nRect, xRectangle *rects)
 {
-    ScreenPtr	pScreen = pDstPicture->pDrawable->pScreen;
+    ScreenPtr pScreen = pDstPicture->pDrawable->pScreen;
+
     cwPsDecl(pScreen);
     cwDstPictureDecl;
     int i;
-    
+
     cwPsUnwrap(CompositeRects);
-    for (i = 0; i < nRect; i++)
-    {
-	rects[i].x += dst_picture_x_off;
-	rects[i].y += dst_picture_y_off;
+    for (i = 0; i < nRect; i++) {
+        rects[i].x += dst_picture_x_off;
+        rects[i].y += dst_picture_y_off;
     }
     (*ps->CompositeRects) (op, pBackingDstPicture, color, nRect, rects);
     cwPsWrap(CompositeRects, cwCompositeRects);
 }
 
 static void
-cwTrapezoids (CARD8	    op,
-	      PicturePtr    pSrcPicture,
-	      PicturePtr    pDstPicture,
-	      PictFormatPtr maskFormat,
-	      INT16	    xSrc,
-	      INT16	    ySrc,
-	      int	    ntrap,
-	      xTrapezoid    *traps)
+cwTrapezoids(CARD8 op,
+             PicturePtr pSrcPicture,
+             PicturePtr pDstPicture,
+             PictFormatPtr maskFormat,
+             INT16 xSrc, INT16 ySrc, int ntrap, xTrapezoid * traps)
 {
-    ScreenPtr	pScreen = pDstPicture->pDrawable->pScreen;
+    ScreenPtr pScreen = pDstPicture->pDrawable->pScreen;
+
     cwPsDecl(pScreen);
     cwSrcPictureDecl;
     cwDstPictureDecl;
     int i;
-    
+
     cwPsUnwrap(Trapezoids);
     if (dst_picture_x_off || dst_picture_y_off) {
-	for (i = 0; i < ntrap; i++)
-	{
-	    traps[i].top += dst_picture_y_off << 16;
-	    traps[i].bottom += dst_picture_y_off << 16;
-	    traps[i].left.p1.x += dst_picture_x_off << 16;
-	    traps[i].left.p1.y += dst_picture_y_off << 16;
-	    traps[i].left.p2.x += dst_picture_x_off << 16;
-	    traps[i].left.p2.y += dst_picture_y_off << 16;
-	    traps[i].right.p1.x += dst_picture_x_off << 16;
-	    traps[i].right.p1.y += dst_picture_y_off << 16;
-	    traps[i].right.p2.x += dst_picture_x_off << 16;
-	    traps[i].right.p2.y += dst_picture_y_off << 16;
-	}
+        for (i = 0; i < ntrap; i++) {
+            traps[i].top += dst_picture_y_off << 16;
+            traps[i].bottom += dst_picture_y_off << 16;
+            traps[i].left.p1.x += dst_picture_x_off << 16;
+            traps[i].left.p1.y += dst_picture_y_off << 16;
+            traps[i].left.p2.x += dst_picture_x_off << 16;
+            traps[i].left.p2.y += dst_picture_y_off << 16;
+            traps[i].right.p1.x += dst_picture_x_off << 16;
+            traps[i].right.p1.y += dst_picture_y_off << 16;
+            traps[i].right.p2.x += dst_picture_x_off << 16;
+            traps[i].right.p2.y += dst_picture_y_off << 16;
+        }
     }
     (*ps->Trapezoids) (op, pBackingSrcPicture, pBackingDstPicture, maskFormat,
-		       xSrc + src_picture_x_off, ySrc + src_picture_y_off,
-		       ntrap, traps);
+                       xSrc + src_picture_x_off, ySrc + src_picture_y_off,
+                       ntrap, traps);
     cwPsWrap(Trapezoids, cwTrapezoids);
 }
 
 static void
-cwTriangles (CARD8	    op,
-	     PicturePtr	    pSrcPicture,
-	     PicturePtr	    pDstPicture,
-	     PictFormatPtr  maskFormat,
-	     INT16	    xSrc,
-	     INT16	    ySrc,
-	     int	    ntri,
-	     xTriangle	   *tris)
+cwTriangles(CARD8 op,
+            PicturePtr pSrcPicture,
+            PicturePtr pDstPicture,
+            PictFormatPtr maskFormat,
+            INT16 xSrc, INT16 ySrc, int ntri, xTriangle * tris)
 {
-    ScreenPtr	pScreen = pDstPicture->pDrawable->pScreen;
+    ScreenPtr pScreen = pDstPicture->pDrawable->pScreen;
+
     cwPsDecl(pScreen);
     cwSrcPictureDecl;
     cwDstPictureDecl;
     int i;
-    
+
     cwPsUnwrap(Triangles);
     if (dst_picture_x_off || dst_picture_y_off) {
-	for (i = 0; i < ntri; i++)
-	{
-	    tris[i].p1.x += dst_picture_x_off << 16;
-	    tris[i].p1.y += dst_picture_y_off << 16;
-	    tris[i].p2.x += dst_picture_x_off << 16;
-	    tris[i].p2.y += dst_picture_y_off << 16;
-	    tris[i].p3.x += dst_picture_x_off << 16;
-	    tris[i].p3.y += dst_picture_y_off << 16;
-	}
+        for (i = 0; i < ntri; i++) {
+            tris[i].p1.x += dst_picture_x_off << 16;
+            tris[i].p1.y += dst_picture_y_off << 16;
+            tris[i].p2.x += dst_picture_x_off << 16;
+            tris[i].p2.y += dst_picture_y_off << 16;
+            tris[i].p3.x += dst_picture_x_off << 16;
+            tris[i].p3.y += dst_picture_y_off << 16;
+        }
     }
     (*ps->Triangles) (op, pBackingSrcPicture, pBackingDstPicture, maskFormat,
-		      xSrc + src_picture_x_off, ySrc + src_picture_y_off,
-		      ntri, tris);
+                      xSrc + src_picture_x_off, ySrc + src_picture_y_off,
+                      ntri, tris);
     cwPsWrap(Triangles, cwTriangles);
 }
 
 void
-cwInitializeRender (ScreenPtr pScreen)
+cwInitializeRender(ScreenPtr pScreen)
 {
-    cwPsDecl (pScreen);
+    cwPsDecl(pScreen);
 
     cwPsWrap(DestroyPicture, cwDestroyPicture);
     cwPsWrap(ChangePicture, cwChangePicture);
@@ -390,9 +369,9 @@ cwInitializeRender (ScreenPtr pScreen)
 }
 
 void
-cwFiniRender (ScreenPtr pScreen)
+cwFiniRender(ScreenPtr pScreen)
 {
-    cwPsDecl (pScreen);
+    cwPsDecl(pScreen);
 
     cwPsUnwrap(DestroyPicture);
     cwPsUnwrap(ChangePicture);
@@ -402,4 +381,3 @@ cwFiniRender (ScreenPtr pScreen)
     cwPsUnwrap(Trapezoids);
     cwPsUnwrap(Triangles);
 }
-

@@ -78,7 +78,7 @@ SOFTWARE.
 int
 SetDeviceMode(ClientPtr client, DeviceIntPtr dev, int mode)
 {
-  DEBUG_LOG("SetDeviceMode(%p, %p, %d)\n", client, dev, mode);
+    DEBUG_LOG("SetDeviceMode(%p, %p, %d)\n", client, dev, mode);
     return BadMatch;
 }
 
@@ -96,11 +96,11 @@ SetDeviceMode(ClientPtr client, DeviceIntPtr dev, int mode)
 
 int
 SetDeviceValuators(ClientPtr client, DeviceIntPtr dev,
-		   int *valuators, int first_valuator, int num_valuators)
+                   int *valuators, int first_valuator, int num_valuators)
 {
-  DEBUG_LOG("SetDeviceValuators(%p, %p, %p, %d, %d)\n", client,
-	    dev, valuators, first_valuator, num_valuators);
-  return BadMatch;
+    DEBUG_LOG("SetDeviceValuators(%p, %p, %p, %d, %d)\n", client,
+              dev, valuators, first_valuator, num_valuators);
+    return BadMatch;
 }
 
 /****************************************************************************
@@ -112,14 +112,12 @@ SetDeviceValuators(ClientPtr client, DeviceIntPtr dev,
  */
 
 int
-ChangeDeviceControl(ClientPtr client, DeviceIntPtr dev,
-		    xDeviceCtl * control)
+ChangeDeviceControl(ClientPtr client, DeviceIntPtr dev, xDeviceCtl * control)
 {
 
-  DEBUG_LOG("ChangeDeviceControl(%p, %p, %p)\n", client, dev, control);
-  return BadMatch;
+    DEBUG_LOG("ChangeDeviceControl(%p, %p, %p)\n", client, dev, control);
+    return BadMatch;
 }
-
 
 /****************************************************************************
  *
@@ -129,11 +127,11 @@ ChangeDeviceControl(ClientPtr client, DeviceIntPtr dev,
  *
  */
 int
-NewInputDeviceRequest(InputOption *options, InputAttributes *attrs,
+NewInputDeviceRequest(InputOption *options, InputAttributes * attrs,
                       DeviceIntPtr *pdev)
 {
-  DEBUG_LOG("NewInputDeviceRequest(%p, %p)\n", options, pdev);
-  return BadValue;
+    DEBUG_LOG("NewInputDeviceRequest(%p, %p)\n", options, pdev);
+    return BadValue;
 }
 
 /****************************************************************************
@@ -146,6 +144,5 @@ NewInputDeviceRequest(InputOption *options, InputAttributes *attrs,
 void
 DeleteInputDeviceRequest(DeviceIntPtr dev)
 {
-  DEBUG_LOG("DeleteInputDeviceRequest(%p)\n", dev);
+    DEBUG_LOG("DeleteInputDeviceRequest(%p)\n", dev);
 }
-

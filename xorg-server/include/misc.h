@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -97,7 +96,7 @@ static double __inline trunc(double d)
 #define MAXCLIENTS	256
 #define MAXEXTENSIONS   128
 #define MAXFORMATS	8
-#define MAXDEVICES	40 /* input devices */
+#define MAXDEVICES	40      /* input devices */
 
 /* 128 event opcodes for core + extension events, excluding GE */
 #define MAXEVENTS       128
@@ -112,14 +111,15 @@ typedef uint32_t ATOM;
 #endif
 
 #ifndef _XTYPEDEF_CALLBACKLISTPTR
-typedef struct _CallbackList *CallbackListPtr; /* also in dix.h */
+typedef struct _CallbackList *CallbackListPtr;  /* also in dix.h */
+
 #define _XTYPEDEF_CALLBACKLISTPTR
 #endif
 
 typedef struct _xReq *xReqPtr;
 
-#include "os.h" 	/* for ALLOCATE_LOCAL and DEALLOCATE_LOCAL */
-#include <X11/Xfuncs.h> /* for bcopy, bzero, and bcmp */
+#include "os.h"                 /* for ALLOCATE_LOCAL and DEALLOCATE_LOCAL */
+#include <X11/Xfuncs.h>         /* for bcopy, bzero, and bcmp */
 
 #define NullBox ((BoxPtr)0)
 #define MILLI_PER_MIN (1000 * 60)
@@ -132,20 +132,19 @@ typedef struct _xReq *xReqPtr;
 #define USE_BACKGROUND_PIXEL 3
 #define USE_BORDER_PIXEL 3
 
-
 /* byte swap a 32-bit literal */
-static inline uint32_t lswapl(uint32_t x)
+static inline uint32_t
+lswapl(uint32_t x)
 {
-	return  ((x & 0xff) << 24) |
-		((x & 0xff00) << 8) |
-		((x & 0xff0000) >> 8) |
-		((x >> 24) & 0xff);
+    return ((x & 0xff) << 24) |
+        ((x & 0xff00) << 8) | ((x & 0xff0000) >> 8) | ((x >> 24) & 0xff);
 }
 
 /* byte swap a 16-bit literal */
-static inline uint16_t lswaps(uint16_t x)
+static inline uint16_t
+lswaps(uint16_t x)
 {
-	return ((x & 0xff) << 8) | ((x >> 8) & 0xff);
+    return ((x & 0xff) << 8) | ((x >> 8) & 0xff);
 }
 
 #undef min
@@ -190,7 +189,7 @@ static inline uint16_t lswaps(uint16_t x)
 
 #include <assert.h>
 #include <ctype.h>
-#include <stdio.h>     /* for fopen, etc... */
+#include <stdio.h>              /* for fopen, etc... */
 
 #endif
 
@@ -211,9 +210,11 @@ static inline uint16_t lswaps(uint16_t x)
  * @return The number of bytes needed to hold bits.
  */
 static __inline int
-bits_to_bytes(const int bits) {
+bits_to_bytes(const int bits)
+{
     return ((bits + 7) >> 3);
 }
+
 /**
  * Calculate the number of 4-byte units needed to hold the given number of
  * bytes.
@@ -221,7 +222,8 @@ bits_to_bytes(const int bits) {
  * @return The number of 4-byte units needed to hold bytes.
  */
 static __inline int
-bytes_to_int32(const int bytes) {
+bytes_to_int32(const int bytes)
+{
     return (((bytes) + 3) >> 2);
 }
 
@@ -231,12 +233,12 @@ bytes_to_int32(const int bytes) {
  * @return The closest multiple of 4 that is equal or higher than bytes.
  */
 static __inline int
-pad_to_int32(const int bytes) {
+pad_to_int32(const int bytes)
+{
     return (((bytes) + 3) & ~3);
 }
 
-extern char**
-xstrtokenize(const char *str, const char* separators);
+extern char **xstrtokenize(const char *str, const char *separators);
 
 /**
  * Compare the two version numbers comprising of major.minor.
@@ -274,29 +276,34 @@ version_compare(uint16_t a_major, uint16_t a_minor,
     SwapLongs((CARD32 *)(stuff + 1), LengthRestL(stuff))
 
 #if defined(__GNUC__) && ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3))
-void __attribute__((error("wrong sized variable passed to swap"))) wrong_size(void);
+void __attribute__ ((error("wrong sized variable passed to swap")))
+wrong_size(void);
 #else
-static inline void wrong_size(void)
+static inline void
+wrong_size(void)
 {
 }
 #endif
 
 #if !(defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590)))
-static inline int __builtin_constant_p(int x)
+static inline int
+__builtin_constant_p(int x)
 {
-	return 0;
+    return 0;
 }
 #endif
 
 /* byte swap a 32-bit value */
-static inline void swap_uint32(uint32_t *x)
+static inline void
+swap_uint32(uint32_t * x)
 {
-	char n = ((char *) x)[0];
-	((char *) x)[0] = ((char *) x)[3];
-	((char *) x)[3] = n;
-	n = ((char *) x)[1];
-	((char *) x)[1] = ((char *) x)[2];
-	((char *) x)[2] = n;
+    char n = ((char *) x)[0];
+
+    ((char *) x)[0] = ((char *) x)[3];
+    ((char *) x)[3] = n;
+    n = ((char *) x)[1];
+    ((char *) x)[1] = ((char *) x)[2];
+    ((char *) x)[2] = n;
 }
 
 #define swapl(x) do { \
@@ -309,11 +316,13 @@ static inline void swap_uint32(uint32_t *x)
 	} while (0)
 
 /* byte swap a 16-bit value */
-static inline void swap_uint16(uint16_t *x)
+static inline void
+swap_uint16(uint16_t * x)
 {
-	char  n = ((char *) x)[0];
-	((char *) x)[0] = ((char *) x)[1];
-	((char *) x)[1] = n;
+    char n = ((char *) x)[0];
+
+    ((char *) x)[0] = ((char *) x)[1];
+    ((char *) x)[1] = n;
 }
 
 #define swaps(x) do { \
@@ -339,18 +348,13 @@ static inline void swap_uint16(uint16_t *x)
 		(dst) = lswaps((src)); \
 	} while (0)
 
-extern _X_EXPORT void SwapLongs(
-    CARD32 *list,
-    unsigned long count);
+extern _X_EXPORT void SwapLongs(CARD32 *list, unsigned long count);
 
-extern _X_EXPORT void SwapShorts(
-    short *list,
-    unsigned long count);
+extern _X_EXPORT void SwapShorts(short *list, unsigned long count);
 
 extern _X_EXPORT void MakePredeclaredAtoms(void);
 
-extern _X_EXPORT int Ones(
-    unsigned long /*mask*/);
+extern _X_EXPORT int Ones(unsigned long /*mask */ );
 
 typedef struct _xPoint *DDXPointPtr;
 typedef struct pixman_box16 *BoxPtr;
@@ -364,7 +368,8 @@ typedef struct _GrabRec *GrabPtr;
  */
 
 #ifndef _XTYPEDEF_CHARINFOPTR
-typedef struct _CharInfo *CharInfoPtr; /* also in fonts/include/font.h */
+typedef struct _CharInfo *CharInfoPtr;  /* also in fonts/include/font.h */
+
 #define _XTYPEDEF_CHARINFOPTR
 #endif
 
@@ -386,4 +391,4 @@ extern _X_EXPORT unsigned long serverGeneration;
 
 #define BUG_WARN(cond)  __BUG_WARN_MSG(cond, 0, NULL)
 
-#endif /* MISC_H */
+#endif                          /* MISC_H */

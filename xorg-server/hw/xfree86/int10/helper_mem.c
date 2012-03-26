@@ -28,29 +28,30 @@ typedef enum {
 } INT10Opts;
 
 static const OptionInfoRec INT10Options[] = {
-    {OPT_NOINT10,       "NoINT10",      OPTV_BOOLEAN,   {0},    FALSE },
-    {OPT_INIT_PRIMARY,  "InitPrimary",  OPTV_BOOLEAN,   {0},    FALSE },   
-    { -1,		NULL,		OPTV_NONE,	{0},	FALSE },
+    {OPT_NOINT10, "NoINT10", OPTV_BOOLEAN, {0}, FALSE},
+    {OPT_INIT_PRIMARY, "InitPrimary", OPTV_BOOLEAN, {0}, FALSE},
+    {-1, NULL, OPTV_NONE, {0}, FALSE},
 };
 
 #ifdef DEBUG
 void
 dprint(unsigned long start, unsigned long size)
 {
-    int i,j;
-    char *c = (char *)start;
+    int i, j;
+    char *c = (char *) start;
 
     for (j = 0; j < (size >> 4); j++) {
-	char *d = c;
-	ErrorF("\n0x%lx:  ",(unsigned long)c);
-	for (i = 0; i<16; i++)
-	    ErrorF("%2.2x ",(unsigned char) (*(c++)));
-	c = d;
-	for (i = 0; i<16; i++) {
-	    ErrorF("%c",((((CARD8)(*c)) > 32) && (((CARD8)(*c)) < 128)) ?
-		   (unsigned char) (*(c)): '.');
-	    c++;
-	}
+        char *d = c;
+
+        ErrorF("\n0x%lx:  ", (unsigned long) c);
+        for (i = 0; i < 16; i++)
+            ErrorF("%2.2x ", (unsigned char) (*(c++)));
+        c = d;
+        for (i = 0; i < 16; i++) {
+            ErrorF("%c", ((((CARD8) (*c)) > 32) && (((CARD8) (*c)) < 128)) ?
+                   (unsigned char) (*(c)) : '.');
+            c++;
+        }
     }
     ErrorF("\n");
 }
@@ -69,13 +70,13 @@ setup_int_vect(xf86Int10InfoPtr pInt)
 
     /* let the int vects point to the SYS_BIOS seg */
     for (i = 0; i < 0x80; i++) {
-	MEM_WW(pInt, i << 2, 0);
-	MEM_WW(pInt, (i << 2) + 2, SYS_BIOS >> 4);
+        MEM_WW(pInt, i << 2, 0);
+        MEM_WW(pInt, (i << 2) + 2, SYS_BIOS >> 4);
     }
 
     reset_int_vect(pInt);
     /* font tables default location (int 1F) */
-    MEM_WW(pInt,0x1f<<2,0xfa6e);
+    MEM_WW(pInt, 0x1f << 2, 0xfa6e);
 
     /* int 11 default location (Get Equipment Configuration) */
     MEM_WW(pInt, 0x11 << 2, 0xf84d);
@@ -122,7 +123,7 @@ setup_system_bios(void *base_addr)
     /* set up eisa ident string */
     strcpy(base + 0x0FFD9, "PCI_ISA");
     /* write system model id for IBM-AT */
-    *((unsigned char *)(base + 0x0FFFE)) = 0xfc;
+    *((unsigned char *) (base + 0x0FFFE)) = 0xfc;
 
     return 1;
 }
@@ -137,42 +138,42 @@ reset_int_vect(xf86Int10InfoPtr pInt)
      * only be used during EGA/VGA BIOS initialisation.
      */
     static const CARD8 VideoParms[] = {
-	/* Timing for modes 0x00 & 0x01 */
-	0x38, 0x28, 0x2d, 0x0a, 0x1f, 0x06, 0x19, 0x1c,
-	0x02, 0x07, 0x06, 0x07, 0x00, 0x00, 0x00, 0x00,
-	/* Timing for modes 0x02 & 0x03 */
-	0x71, 0x50, 0x5a, 0x0a, 0x1f, 0x06, 0x19, 0x1c,
-	0x02, 0x07, 0x06, 0x07, 0x00, 0x00, 0x00, 0x00,
-	/* Timing for modes 0x04, 0x05 & 0x06 */
-	0x38, 0x28, 0x2d, 0x0a, 0x7f, 0x06, 0x64, 0x70,
-	0x02, 0x01, 0x06, 0x07, 0x00, 0x00, 0x00, 0x00,
-	/* Timing for mode 0x07 */
-	0x61, 0x50, 0x52, 0x0f, 0x19, 0x06, 0x19, 0x19,
-	0x02, 0x0d, 0x0b, 0x0c, 0x00, 0x00, 0x00, 0x00,
-	/* Display page lengths in little endian order */
-	0x00, 0x08, /* Modes 0x00 and 0x01 */
-	0x00, 0x10, /* Modes 0x02 and 0x03 */
-	0x00, 0x40, /* Modes 0x04 and 0x05 */
-	0x00, 0x40, /* Modes 0x06 and 0x07 */
-	/* Number of columns for each mode */
-	40, 40, 80, 80, 40, 40, 80, 80,
-	/* CGA Mode register value for each mode */
-	0x2c, 0x28, 0x2d, 0x29, 0x2a, 0x2e, 0x1e, 0x29,
-	/* Padding */
-	0x00, 0x00, 0x00, 0x00
-	};
+        /* Timing for modes 0x00 & 0x01 */
+        0x38, 0x28, 0x2d, 0x0a, 0x1f, 0x06, 0x19, 0x1c,
+        0x02, 0x07, 0x06, 0x07, 0x00, 0x00, 0x00, 0x00,
+        /* Timing for modes 0x02 & 0x03 */
+        0x71, 0x50, 0x5a, 0x0a, 0x1f, 0x06, 0x19, 0x1c,
+        0x02, 0x07, 0x06, 0x07, 0x00, 0x00, 0x00, 0x00,
+        /* Timing for modes 0x04, 0x05 & 0x06 */
+        0x38, 0x28, 0x2d, 0x0a, 0x7f, 0x06, 0x64, 0x70,
+        0x02, 0x01, 0x06, 0x07, 0x00, 0x00, 0x00, 0x00,
+        /* Timing for mode 0x07 */
+        0x61, 0x50, 0x52, 0x0f, 0x19, 0x06, 0x19, 0x19,
+        0x02, 0x0d, 0x0b, 0x0c, 0x00, 0x00, 0x00, 0x00,
+        /* Display page lengths in little endian order */
+        0x00, 0x08,             /* Modes 0x00 and 0x01 */
+        0x00, 0x10,             /* Modes 0x02 and 0x03 */
+        0x00, 0x40,             /* Modes 0x04 and 0x05 */
+        0x00, 0x40,             /* Modes 0x06 and 0x07 */
+        /* Number of columns for each mode */
+        40, 40, 80, 80, 40, 40, 80, 80,
+        /* CGA Mode register value for each mode */
+        0x2c, 0x28, 0x2d, 0x29, 0x2a, 0x2e, 0x1e, 0x29,
+        /* Padding */
+        0x00, 0x00, 0x00, 0x00
+    };
     int i;
 
     for (i = 0; i < sizeof(VideoParms); i++)
-	MEM_WB(pInt, i + (0x1000 - sizeof(VideoParms)), VideoParms[i]);
-    MEM_WW(pInt,  0x1d << 2, 0x1000 - sizeof(VideoParms));
+        MEM_WB(pInt, i + (0x1000 - sizeof(VideoParms)), VideoParms[i]);
+    MEM_WW(pInt, 0x1d << 2, 0x1000 - sizeof(VideoParms));
     MEM_WW(pInt, (0x1d << 2) + 2, 0);
 
-    MEM_WW(pInt,  0x10 << 2, 0xf065);
+    MEM_WW(pInt, 0x10 << 2, 0xf065);
     MEM_WW(pInt, (0x10 << 2) + 2, SYS_BIOS >> 4);
-    MEM_WW(pInt,  0x42 << 2, 0xf065);
+    MEM_WW(pInt, 0x42 << 2, 0xf065);
     MEM_WW(pInt, (0x42 << 2) + 2, SYS_BIOS >> 4);
-    MEM_WW(pInt,  0x6D << 2, 0xf065);
+    MEM_WW(pInt, 0x6D << 2, 0xf065);
     MEM_WW(pInt, (0x6D << 2) + 2, SYS_BIOS >> 4);
 }
 
@@ -196,24 +197,22 @@ xf86HandleInt10Options(ScrnInfoPtr pScrn, int entityIndex)
 {
     EntityInfoPtr pEnt = xf86GetEntityInfo(entityIndex);
     OptionInfoPtr options = NULL;
-    
+
     if (pEnt->device) {
-	pointer configOptions = NULL;
+        pointer configOptions = NULL;
 
-	/* Check if xf86CollectOptions() has already been called */
-	if (((pEnt->index < 0) ||
-	    !pScrn ||
-	    !(configOptions = pScrn->options)) &&
-	    pEnt->device)
-	    configOptions = pEnt->device->options;
+        /* Check if xf86CollectOptions() has already been called */
+        if (((pEnt->index < 0) ||
+             !pScrn || !(configOptions = pScrn->options)) && pEnt->device)
+            configOptions = pEnt->device->options;
 
-	if (configOptions) {
-	    if (!(options = (OptionInfoPtr) malloc(sizeof(INT10Options))))
-		return NULL;
-	     
-	    (void)memcpy(options, INT10Options, sizeof(INT10Options));
-	    xf86ProcessOptions(pScrn->scrnIndex, configOptions, options);
-	}
+        if (configOptions) {
+            if (!(options = (OptionInfoPtr) malloc(sizeof(INT10Options))))
+                return NULL;
+
+            (void) memcpy(options, INT10Options, sizeof(INT10Options));
+            xf86ProcessOptions(pScrn->scrnIndex, configOptions, options);
+        }
     }
     free(pEnt);
 
@@ -221,47 +220,48 @@ xf86HandleInt10Options(ScrnInfoPtr pScrn, int entityIndex)
 }
 
 Bool
-int10skip(const void* options)
+int10skip(const void *options)
 {
     Bool noint10 = FALSE;
 
-    if (!options) return FALSE;
-    
+    if (!options)
+        return FALSE;
+
     xf86GetOptValBool(options, OPT_NOINT10, &noint10);
     return noint10;
 }
 
 Bool
-int10_check_bios(int scrnIndex, int codeSeg, const unsigned char* vbiosMem)
+int10_check_bios(int scrnIndex, int codeSeg, const unsigned char *vbiosMem)
 {
     int size;
 
-    if ((codeSeg & 0x1f) ||	/* Not 512-byte aligned otherwise */
-	((codeSeg << 4) < V_BIOS) ||
-	((codeSeg << 4) >= SYS_SIZE))
-	return FALSE;
+    if ((codeSeg & 0x1f) ||     /* Not 512-byte aligned otherwise */
+        ((codeSeg << 4) < V_BIOS) || ((codeSeg << 4) >= SYS_SIZE))
+        return FALSE;
 
-    if ((*vbiosMem != 0x55) || (*(vbiosMem+1) != 0xAA) || !*(vbiosMem+2))
-	return FALSE;
+    if ((*vbiosMem != 0x55) || (*(vbiosMem + 1) != 0xAA) || !*(vbiosMem + 2))
+        return FALSE;
 
     size = *(vbiosMem + 2) * 512;
 
     if ((size + (codeSeg << 4)) > SYS_SIZE)
-	return FALSE;
+        return FALSE;
 
     if (bios_checksum(vbiosMem, size))
-	xf86DrvMsg(scrnIndex, X_INFO, "Bad V_BIOS checksum\n");
+        xf86DrvMsg(scrnIndex, X_INFO, "Bad V_BIOS checksum\n");
 
     return TRUE;
 }
 
 Bool
-initPrimary(const void* options)
+initPrimary(const void *options)
 {
     Bool initPrimary = FALSE;
 
-    if (!options) return FALSE;
-    
+    if (!options)
+        return FALSE;
+
     xf86GetOptValBool(options, OPT_INIT_PRIMARY, &initPrimary);
     return initPrimary;
 }
@@ -272,12 +272,12 @@ xf86int10GetBiosLocationType(const xf86Int10InfoPtr pInt)
     BusType location_type;
 
     EntityInfoPtr pEnt = xf86GetEntityInfo(pInt->entityIndex);
+
     location_type = pEnt->location.type;
     free(pEnt);
 
     return location_type;
 }
-
 
 #define CHECK_V_SEGMENT_RANGE(x)   \
     if (((x) << 4) < V_BIOS) { \
@@ -300,24 +300,24 @@ xf86int10GetBiosSegment(xf86Int10InfoPtr pInt, void *base)
     segments[3] = ~0;
 
     for (i = 0; segments[i] != ~0; i++) {
-	unsigned char * vbiosMem;
+        unsigned char *vbiosMem;
 
-	cs = segments[i];
+        cs = segments[i];
 
-	CHECK_V_SEGMENT_RANGE(cs);
-	vbiosMem = (unsigned char *)base + (cs << 4);
-	if (int10_check_bios(pInt->scrnIndex, cs, vbiosMem)) {
-	    break;
-	}
+        CHECK_V_SEGMENT_RANGE(cs);
+        vbiosMem = (unsigned char *) base + (cs << 4);
+        if (int10_check_bios(pInt->scrnIndex, cs, vbiosMem)) {
+            break;
+        }
     }
 
     if (segments[i] == ~0) {
-	xf86DrvMsg(pInt->scrnIndex, X_ERROR, "No V_BIOS found\n");
-	return FALSE;
+        xf86DrvMsg(pInt->scrnIndex, X_ERROR, "No V_BIOS found\n");
+        return FALSE;
     }
 
     xf86DrvMsg(pInt->scrnIndex, X_INFO, "Primary V_BIOS segment is: 0x%lx\n",
-	    (unsigned long)cs);
+               (unsigned long) cs);
 
     pInt->BIOSseg = cs;
     return TRUE;

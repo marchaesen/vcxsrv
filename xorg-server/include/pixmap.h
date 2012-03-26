@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -71,12 +70,12 @@ SOFTWARE.
 
 #define NullPixmap ((PixmapPtr)0)
 
-typedef struct _Drawable *DrawablePtr;	
+typedef struct _Drawable *DrawablePtr;
 typedef struct _Pixmap *PixmapPtr;
 
 typedef union _PixUnion {
-    PixmapPtr		pixmap;
-    unsigned long	pixel;
+    PixmapPtr pixmap;
+    unsigned long pixel;
 } PixUnion;
 
 #define SamePixUnion(a,b,isPixel)\
@@ -91,29 +90,23 @@ typedef union _PixUnion {
 #define WindowDrawable(type) \
 	((type == DRAWABLE_WINDOW) || (type == UNDRAWABLE_WINDOW))
 
-extern _X_EXPORT PixmapPtr GetScratchPixmapHeader(
-    ScreenPtr /*pScreen*/,
-    int /*width*/,
-    int /*height*/,
-    int /*depth*/,
-    int /*bitsPerPixel*/,
-    int /*devKind*/,
-    pointer /*pPixData*/);
+extern _X_EXPORT PixmapPtr GetScratchPixmapHeader(ScreenPtr /*pScreen */ ,
+                                                  int /*width */ ,
+                                                  int /*height */ ,
+                                                  int /*depth */ ,
+                                                  int /*bitsPerPixel */ ,
+                                                  int /*devKind */ ,
+                                                  pointer /*pPixData */ );
 
-extern _X_EXPORT void FreeScratchPixmapHeader(
-    PixmapPtr /*pPixmap*/);
+extern _X_EXPORT void FreeScratchPixmapHeader(PixmapPtr /*pPixmap */ );
 
-extern _X_EXPORT Bool CreateScratchPixmapsForScreen(
-    int /*scrnum*/);
+extern _X_EXPORT Bool CreateScratchPixmapsForScreen(int /*scrnum */ );
 
-extern _X_EXPORT void FreeScratchPixmapsForScreen(
-    int /*scrnum*/);
+extern _X_EXPORT void FreeScratchPixmapsForScreen(int /*scrnum */ );
 
-extern _X_EXPORT PixmapPtr AllocatePixmap(
-    ScreenPtr /*pScreen*/,
-    int /*pixDataSize*/);
+extern _X_EXPORT PixmapPtr AllocatePixmap(ScreenPtr /*pScreen */ ,
+                                          int /*pixDataSize */ );
 
-extern _X_EXPORT void FreePixmap(
-    PixmapPtr /*pPixmap*/);
+extern _X_EXPORT void FreePixmap(PixmapPtr /*pPixmap */ );
 
-#endif /* PIXMAP_H */
+#endif                          /* PIXMAP_H */

@@ -34,9 +34,8 @@
 extern void __glXNop(void);
 
 /* context helper routines */
-extern __GLXcontext *__glXLookupContextByTag(__GLXclientState*, GLXContextTag);
-extern DrawablePtr __glXLookupDrawableByTag(__GLXclientState *cl, GLXContextTag tag);
+extern __GLXcontext *__glXLookupContextByTag(__GLXclientState *, GLXContextTag);
+extern DrawablePtr __glXLookupDrawableByTag(__GLXclientState * cl,
+                                            GLXContextTag tag);
 
-
-#endif /* _glxcmds_h_ */
-
+#endif                          /* _glxcmds_h_ */

@@ -294,12 +294,18 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #if defined(__GNUC__) && (__GNUC__ < 3 || (__GNUC__ == 3 && __GNUC_MINOR__ < 4))
 #error "Need GCC >= 3.4 for MMX intrinsics"
 #endif
-#if defined(__clang__)
-#error "clang chokes on the inline assembly in pixman-mmx.c"
-#endif
 #include <mmintrin.h>
 int main () {
     __m64 v = _mm_cvtsi32_si64 (1);
+    __m64 w;
+    signed char x = 0;
+
+    /* Some versions of clang will choke on K */
+    asm ("pshufw %2, %1, %0\n\t"
+        : "=y" (w)
+        : "y" (v), "K" (x)
+    );
+
     return _mm_cvtsi64_si32 (v);
 }]])], have_mmx_intrinsics=yes)
 CFLAGS=$xserver_save_CFLAGS
@@ -603,7 +609,7 @@ AC_MSG_CHECKING(whether to use MIPS DSPr2 assembler)
 xserver_save_CFLAGS=$CFLAGS
 CFLAGS="-mdspr2 $CFLAGS"
 
-AC_COMPILE_IFELSE([[
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #if !(defined(__mips__) &&  __mips_isa_rev >= 2)
 #error MIPS DSPr2 is currently only available on MIPS32r2 platforms.
 #endif
@@ -617,7 +623,7 @@ main ()
         : [a] "r" (a), [b] "r" (b)
     );
     return c;
-}]], have_mips_dspr2=yes)
+}]])], have_mips_dspr2=yes)
 CFLAGS=$xserver_save_CFLAGS
 
 AC_ARG_ENABLE(mips-dspr2,
@@ -782,25 +788,27 @@ fi
 dnl =====================================
 dnl Thread local storage
 
-support_for__thread=no
-
-AC_MSG_CHECKING(for __thread)
-AC_LINK_IFELSE([AC_LANG_SOURCE([[
+AC_MSG_CHECKING(for thread local storage (TLS) support)
+AC_CACHE_VAL(ac_cv_tls, [
+    ac_cv_tls=none
+    keywords="__thread __declspec(thread)"
+    for kw in $keywords ; do
+        AC_TRY_COMPILE([
 #if defined(__MINGW32__) && !(__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5))
 #error This MinGW version has broken __thread support
 #endif
 #ifdef __OpenBSD__
 #error OpenBSD has broken __thread support
 #endif
-static __thread int x ;
-int main () { x = 123; return x; }
-]])], support_for__thread=yes)
 
-if test $support_for__thread = yes; then 
-   AC_DEFINE([TOOLCHAIN_SUPPORTS__THREAD],[],[Whether the tool chain supports __thread])
+int $kw test;], [], ac_cv_tls=$kw)
+    done
+])
+AC_MSG_RESULT($ac_cv_tls)
+
+if test "$ac_cv_tls" != "none"; then
+    AC_DEFINE_UNQUOTED([TLS], $ac_cv_tls, [The compiler supported TLS storage class])
 fi
-
-AC_MSG_RESULT($support_for__thread)
 
 dnl
 dnl posix tls
@@ -852,7 +860,7 @@ AC_DEFUN([PIXMAN_CHECK_PTHREAD],[dnl
     fi
 ])
 
-if test $support_for__thread = no; then
+if test $ac_cv_tls = none ; then
     support_for_pthread_setspecific=no
 
     AC_MSG_CHECKING(for pthread_setspecific)

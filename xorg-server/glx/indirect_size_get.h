@@ -118,4 +118,4 @@ extern _X_INTERNAL PURE FASTCALL GLint __glGetFramebufferAttachmentParameterivEX
 #  undef PURE
 #  undef FASTCALL
 
-#endif /* !defined( _INDIRECT_SIZE_GET_H_ ) */
+#endif                          /* !defined( _INDIRECT_SIZE_GET_H_ ) */

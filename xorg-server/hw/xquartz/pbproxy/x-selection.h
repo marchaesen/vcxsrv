@@ -41,9 +41,9 @@
 
 /* This stores image data or text. */
 struct propdata {
-	unsigned char *data;
-	size_t length;
-	int format;
+    unsigned char *data;
+    size_t length;
+    int format;
 };
 
 struct atom_list {
@@ -52,16 +52,13 @@ struct atom_list {
         compound_text, atom_pair;
 };
 
-
-@interface x_selection : NSObject
-{
-@private
-
-    /* The unmapped window we use for fetching selections. */
+ @interface x_selection:NSObject {
+    @private
+        /* The unmapped window we use for fetching selections. */
     Window _selection_window;
 
     Atom request_atom;
-    
+
     struct {
         struct propdata propdata;
         Window requestor;
@@ -74,37 +71,40 @@ struct atom_list {
      * pending_copy is > 0 we do it again.
      */
     int pending_copy;
+
     /* 
      * This is used for the same purpose as pending_copy, but for the 
      * CLIPBOARD.  It also prevents a race with INCR transfers.
      */
-    int pending_clipboard; 
-    
+    int pending_clipboard;
+
     struct atom_list atoms[1];
 }
 
-- (void) x_active:(Time)timestamp;
-- (void) x_inactive:(Time)timestamp;
+ -(void) x_active:(Time) timestamp;
+ -(void) x_inactive:(Time) timestamp;
 
-- (void) x_copy:(Time)timestamp;
+ -(void) x_copy:(Time) timestamp;
 
-- (void) clear_event:(XSelectionClearEvent *)e;
-- (void) request_event:(XSelectionRequestEvent *)e;
-- (void) notify_event:(XSelectionEvent *)e;
-- (void) property_event:(XPropertyEvent *)e;
-- (void) xfixes_selection_notify:(XFixesSelectionNotifyEvent *)e;
-- (void) handle_selection:(Atom)selection type:(Atom)type propdata:(struct propdata *)pdata;
-- (void) claim_clipboard;
-- (BOOL) set_clipboard_manager_status:(BOOL)value;
-- (void) own_clipboard;
-- (void) copy_completed:(Atom)selection;
+ -(void) clear_event:(XSelectionClearEvent *) e;
+ -(void) request_event:(XSelectionRequestEvent *) e;
+ -(void) notify_event:(XSelectionEvent *) e;
+ -(void) property_event:(XPropertyEvent *) e;
+ -(void) xfixes_selection_notify:(XFixesSelectionNotifyEvent *) e;
+ -(void) handle_selection:(Atom)
+selection type:(Atom)
+type propdata:(struct propdata *) pdata;
 
-- (void) reload_preferences;
-- (BOOL) is_active;
-- (void) send_none:(XSelectionRequestEvent *)e;
+-(void) claim_clipboard;
+ -(BOOL) set_clipboard_manager_status:(BOOL) value;
+-(void) own_clipboard;
+ -(void) copy_completed:(Atom) selection;
+
+-(void) reload_preferences;
+-(BOOL) is_active;
+ -(void) send_none:(XSelectionRequestEvent *) e;
 @end
-
 /* main.m */
 extern x_selection *_selection_object;
 
-#endif /* X_SELECTION_H */
+#endif                          /* X_SELECTION_H */

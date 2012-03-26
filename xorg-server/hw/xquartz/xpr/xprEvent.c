@@ -55,24 +55,25 @@
 #include "rootlessWindow.h"
 #include "xprEvent.h"
 
-Bool QuartzModeEventHandler(int screenNum, XQuartzEvent *e, DeviceIntPtr dev) {
-    switch(e->subtype) {
-        case kXquartzWindowState:
-            DEBUG_LOG("kXquartzWindowState\n");
-            RootlessNativeWindowStateChanged(xprGetXWindow(e->data[0]),
-                                             e->data[1]);
-            return TRUE;
-            
-        case kXquartzWindowMoved:
-            DEBUG_LOG("kXquartzWindowMoved\n");
-            RootlessNativeWindowMoved(xprGetXWindow(e->data[0]));
-            return TRUE;
-            
-        case kXquartzBringAllToFront:
-            DEBUG_LOG("kXquartzBringAllToFront\n");
-            RootlessOrderAllWindows(e->data[0]);
-            return TRUE;
-        default:
-            return FALSE;
+Bool
+QuartzModeEventHandler(int screenNum, XQuartzEvent * e, DeviceIntPtr dev)
+{
+    switch (e->subtype) {
+    case kXquartzWindowState:
+        DEBUG_LOG("kXquartzWindowState\n");
+        RootlessNativeWindowStateChanged(xprGetXWindow(e->data[0]), e->data[1]);
+        return TRUE;
+
+    case kXquartzWindowMoved:
+        DEBUG_LOG("kXquartzWindowMoved\n");
+        RootlessNativeWindowMoved(xprGetXWindow(e->data[0]));
+        return TRUE;
+
+    case kXquartzBringAllToFront:
+        DEBUG_LOG("kXquartzBringAllToFront\n");
+        RootlessOrderAllWindows(e->data[0]);
+        return TRUE;
+    default:
+        return FALSE;
     }
 }

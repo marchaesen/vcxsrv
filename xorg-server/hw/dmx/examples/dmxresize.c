@@ -36,15 +36,16 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/dmxext.h>
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    Display              *display = NULL;
-    int                  event_base;
-    int                  error_base;
-    int                  major_version, minor_version, patch_version;
-    int                  width, height, shiftX, shiftY, status;
+    Display *display = NULL;
+    int event_base;
+    int error_base;
+    int major_version, minor_version, patch_version;
+    int width, height, shiftX, shiftY, status;
     DMXDesktopAttributes attr;
-    unsigned int         mask;
+    unsigned int mask;
 
     if (argc != 6) {
         printf("Usage: %s display width height shiftX shiftY\n", argv[0]);
@@ -56,7 +57,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    width  = strtol(argv[2], NULL, 0);
+    width = strtol(argv[2], NULL, 0);
     height = strtol(argv[3], NULL, 0);
     shiftX = strtol(argv[4], NULL, 0);
     shiftY = strtol(argv[5], NULL, 0);
@@ -76,11 +77,9 @@ int main(int argc, char **argv)
     printf("Extension version: %d.%d patch %d\n",
            major_version, minor_version, patch_version);
 
-    mask        = (DMXDesktopWidth  |
-		   DMXDesktopHeight |
-		   DMXDesktopShiftX |
-		   DMXDesktopShiftY);
-    attr.width  = width;
+    mask = (DMXDesktopWidth |
+            DMXDesktopHeight | DMXDesktopShiftX | DMXDesktopShiftY);
+    attr.width = width;
     attr.height = height;
     attr.shiftX = shiftX;
     attr.shiftY = shiftY;
@@ -98,7 +97,7 @@ int main(int argc, char **argv)
         printf("status = %d (UNKNOWN ERROR *****)\n", status);
         break;
     }
-    
+
     XCloseDisplay(display);
     return 0;
 }

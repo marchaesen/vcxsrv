@@ -79,9 +79,8 @@
 #define APM_IOC_STANDBY 0xa0f
 #endif
 
-typedef struct apm_event_info 
-{
-	int	type;
+typedef struct apm_event_info {
+    int type;
 } apm_event_info;
 
 /*
@@ -97,20 +96,22 @@ static void sunCloseAPM(void);
 static struct {
     u_int apmBsd;
     pmEvent xf86;
-} sunToXF86Array [] = {
-    { APM_STANDBY_REQ, XF86_APM_SYS_STANDBY },
-    { APM_SUSPEND_REQ, XF86_APM_SYS_SUSPEND },
-    { APM_NORMAL_RESUME, XF86_APM_NORMAL_RESUME },
-    { APM_CRIT_RESUME, XF86_APM_CRITICAL_RESUME },
-    { APM_BATTERY_LOW, XF86_APM_LOW_BATTERY },
-    { APM_POWER_CHANGE, XF86_APM_POWER_STATUS_CHANGE },
-    { APM_UPDATE_TIME, XF86_APM_UPDATE_TIME },
-    { APM_CRIT_SUSPEND_REQ, XF86_APM_CRITICAL_SUSPEND },
-    { APM_USER_STANDBY_REQ, XF86_APM_USER_STANDBY },
-    { APM_USER_SUSPEND_REQ, XF86_APM_USER_SUSPEND },
-    { APM_SYS_STANDBY_RESUME, XF86_APM_STANDBY_RESUME },
+} sunToXF86Array[] = {
+    {
+    APM_STANDBY_REQ, XF86_APM_SYS_STANDBY}, {
+    APM_SUSPEND_REQ, XF86_APM_SYS_SUSPEND}, {
+    APM_NORMAL_RESUME, XF86_APM_NORMAL_RESUME}, {
+    APM_CRIT_RESUME, XF86_APM_CRITICAL_RESUME}, {
+    APM_BATTERY_LOW, XF86_APM_LOW_BATTERY}, {
+    APM_POWER_CHANGE, XF86_APM_POWER_STATUS_CHANGE}, {
+    APM_UPDATE_TIME, XF86_APM_UPDATE_TIME}, {
+    APM_CRIT_SUSPEND_REQ, XF86_APM_CRITICAL_SUSPEND}, {
+    APM_USER_STANDBY_REQ, XF86_APM_USER_STANDBY}, {
+    APM_USER_SUSPEND_REQ, XF86_APM_USER_SUSPEND}, {
+    APM_SYS_STANDBY_RESUME, XF86_APM_STANDBY_RESUME},
 #ifdef APM_CAPABILITY_CHANGE
-    { APM_CAPABILITY_CHANGE, XF86_APM_CAPABILITY_CHANGED },
+    {
+    APM_CAPABILITY_CHANGE, XF86_APM_CAPABILITY_CHANGED},
 #endif
 };
 
@@ -122,9 +123,9 @@ sunToXF86(int type)
     int i;
 
     for (i = 0; i < numApmEvents; i++) {
-	if (type == sunToXF86Array[i].apmBsd) {
-	    return sunToXF86Array[i].xf86;
-	}
+        if (type == sunToXF86Array[i].apmBsd) {
+            return sunToXF86Array[i].xf86;
+        }
     }
     return XF86_APM_UNKNOWN;
 }
@@ -132,22 +133,22 @@ sunToXF86(int type)
 /*
  * APM events can be requested direclty from /dev/apm 
  */
-static int 
-sunPMGetEventFromOS(int fd, pmEvent *events, int num)
+static int
+sunPMGetEventFromOS(int fd, pmEvent * events, int num)
 {
     struct apm_event_info sunEvent;
     int i;
 
     for (i = 0; i < num; i++) {
-	
-	if (ioctl(fd, APM_IOC_NEXTEVENT, &sunEvent) < 0) {
-	    if (errno != EAGAIN) {
-		xf86Msg(X_WARNING, "sunPMGetEventFromOS: APM_IOC_NEXTEVENT"
-			" %s\n", strerror(errno));
-	    }
-	    break;
-	}
-	events[i] = sunToXF86(sunEvent.type);
+
+        if (ioctl(fd, APM_IOC_NEXTEVENT, &sunEvent) < 0) {
+            if (errno != EAGAIN) {
+                xf86Msg(X_WARNING, "sunPMGetEventFromOS: APM_IOC_NEXTEVENT"
+                        " %s\n", strerror(errno));
+            }
+            break;
+        }
+        events[i] = sunToXF86(sunEvent.type);
     }
     xf86Msg(X_WARNING, "Got some events\n");
     return i;
@@ -158,38 +159,38 @@ sunPMConfirmEventToOs(int fd, pmEvent event)
 {
     switch (event) {
 /* XXX: NOT CURRENTLY RETURNED FROM OS */
-      case XF86_APM_SYS_STANDBY:
-      case XF86_APM_USER_STANDBY:
-        if (ioctl( fd, APM_IOC_STANDBY, NULL ) == 0)
-            return PM_WAIT;  /* should we stop the Xserver in standby, too? */
+    case XF86_APM_SYS_STANDBY:
+    case XF86_APM_USER_STANDBY:
+        if (ioctl(fd, APM_IOC_STANDBY, NULL) == 0)
+            return PM_WAIT;     /* should we stop the Xserver in standby, too? */
         else
             return PM_NONE;
-      case XF86_APM_SYS_SUSPEND:
-      case XF86_APM_CRITICAL_SUSPEND:
-      case XF86_APM_USER_SUSPEND:
-	    xf86Msg(X_WARNING, "Got SUSPENDED\n");
-        if (ioctl( fd, APM_IOC_SUSPEND, NULL ) == 0)
+    case XF86_APM_SYS_SUSPEND:
+    case XF86_APM_CRITICAL_SUSPEND:
+    case XF86_APM_USER_SUSPEND:
+        xf86Msg(X_WARNING, "Got SUSPENDED\n");
+        if (ioctl(fd, APM_IOC_SUSPEND, NULL) == 0)
             return PM_CONTINUE;
         else {
-	    xf86Msg(X_WARNING, "sunPMConfirmEventToOs: APM_IOC_SUSPEND"
-		" %s\n", strerror(errno));
+            xf86Msg(X_WARNING, "sunPMConfirmEventToOs: APM_IOC_SUSPEND"
+                    " %s\n", strerror(errno));
             return PM_FAILED;
-	}
-      case XF86_APM_STANDBY_RESUME:
-      case XF86_APM_NORMAL_RESUME:
-      case XF86_APM_CRITICAL_RESUME:
-      case XF86_APM_STANDBY_FAILED:
-      case XF86_APM_SUSPEND_FAILED:
-	    xf86Msg(X_WARNING, "Got RESUME\n");
-        if (ioctl( fd, APM_IOC_RESUME, NULL ) == 0)
+        }
+    case XF86_APM_STANDBY_RESUME:
+    case XF86_APM_NORMAL_RESUME:
+    case XF86_APM_CRITICAL_RESUME:
+    case XF86_APM_STANDBY_FAILED:
+    case XF86_APM_SUSPEND_FAILED:
+        xf86Msg(X_WARNING, "Got RESUME\n");
+        if (ioctl(fd, APM_IOC_RESUME, NULL) == 0)
             return PM_CONTINUE;
         else {
-	    xf86Msg(X_WARNING, "sunPMConfirmEventToOs: APM_IOC_RESUME"
-		" %s\n", strerror(errno));
+            xf86Msg(X_WARNING, "sunPMConfirmEventToOs: APM_IOC_RESUME"
+                    " %s\n", strerror(errno));
             return PM_FAILED;
-	}
-      default:
-	return PM_NONE;
+        }
+    default:
+        return PM_NONE;
     }
 }
 
@@ -199,13 +200,13 @@ xf86OSPMOpen(void)
     int fd;
 
     if (APMihPtr || !xf86Info.pmFlag) {
-	return NULL;
+        return NULL;
     }
 
     if ((fd = open(APM_DEVICE, O_RDWR)) == -1) {
-    	if ((fd = open(APM_DEVICE1, O_RDWR)) == -1) {
-		return NULL;
-	}
+        if ((fd = open(APM_DEVICE1, O_RDWR)) == -1) {
+            return NULL;
+        }
     }
     xf86PMGetEventFromOs = sunPMGetEventFromOS;
     xf86PMConfirmEventToOs = sunPMConfirmEventToOs;
@@ -219,8 +220,8 @@ sunCloseAPM(void)
     int fd;
 
     if (APMihPtr) {
-	fd = xf86RemoveGeneralHandler(APMihPtr);
-	close(fd);
-	APMihPtr = NULL;
+        fd = xf86RemoveGeneralHandler(APMihPtr);
+        close(fd);
+        APMihPtr = NULL;
     }
 }

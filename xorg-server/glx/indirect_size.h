@@ -54,4 +54,4 @@
 #  undef PURE
 #  undef FASTCALL
 
-#endif /* !defined( _INDIRECT_SIZE_H_ ) */
+#endif                          /* !defined( _INDIRECT_SIZE_H_ ) */

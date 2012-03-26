@@ -39,22 +39,29 @@
 #include <stdarg.h>
 
 #ifdef WINDBG
+
+
+
+
+
 void
-winDebug (const char *format, ...)
+winDebug(const char *format, ...)
 {
-  va_list ap;
-  va_start (ap, format);
-  LogVMessageVerb(X_NONE, 3, format, ap);
-  va_end (ap);
+    va_list ap;
+
+    va_start(ap, format);
+    LogVMessageVerb(X_NONE, 3, format, ap);
+    va_end(ap);
 }
 
 void
 winDebug4 (const char *format, ...)
 {
-  va_list ap;
-  va_start (ap, format);
+    va_list ap;
+
+    va_start(ap, format);
   LogVMessageVerb(X_NONE, 4, format, ap);
-  va_end (ap);
+    va_end(ap);
 }
 #endif
 
@@ -68,51 +75,50 @@ void
 winW32ErrorEx(const char *msg, DWORD errorcode)
 {
     LPVOID buffer;
-    if (!FormatMessage( 
-                FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-                FORMAT_MESSAGE_FROM_SYSTEM | 
-                FORMAT_MESSAGE_IGNORE_INSERTS,
-                NULL,
-                errorcode,
-                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                (LPTSTR) &buffer,
-                0,
-                NULL ))
-    {
+
+    if (!FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                       FORMAT_MESSAGE_FROM_SYSTEM |
+                       FORMAT_MESSAGE_IGNORE_INSERTS,
+                       NULL,
+                       errorcode,
+                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                       (LPTSTR) & buffer, 0, NULL)) {
         ErrorF(msg); 
         ErrorF("Unknown error in FormatMessage!\n"); 
     }
-    else
-    {
+    else {
         ErrorF("%s %s", msg, (char *)buffer); 
         LocalFree(buffer);
     }
 }
 
 #ifdef WINDBG
-void winDebugWin32Message(const char* function, HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+void
+winDebugWin32Message(const char *function, HWND hwnd, UINT message,
+                     WPARAM wParam, LPARAM lParam)
 {
-  static int force = 0;
+    static int force = 0;
 
-  if (message >= WM_USER)
-    {
-      if (force || getenv("WIN_DEBUG_MESSAGES") || getenv("WIN_DEBUG_WM_USER"))
-      {
-        winDebug("%s - Message WM_USER + %d\n", function, message - WM_USER);
-        winDebug("\thwnd 0x%x wParam 0x%x lParam 0x%x\n", hwnd, wParam, lParam);
-      }
+    if (message >= WM_USER) {
+        if (force || getenv("WIN_DEBUG_MESSAGES") ||
+            getenv("WIN_DEBUG_WM_USER")) {
+            winDebug("%s - Message WM_USER + %d\n", function,
+                     message - WM_USER);
+            winDebug("\thwnd 0x%x wParam 0x%x lParam 0x%x\n", hwnd, wParam,
+                     lParam);
+        }
     }
-  else if (message < MESSAGE_NAMES_LEN && MESSAGE_NAMES[message])
-    {
-      const char *msgname = MESSAGE_NAMES[message];
-      char buffer[64];
-      snprintf(buffer, sizeof(buffer), "WIN_DEBUG_%s", msgname);
-      buffer[63] = 0;
-      if (force || getenv("WIN_DEBUG_MESSAGES") || getenv(buffer))
-      {
-        winDebug("%s - Message %s\n", function, MESSAGE_NAMES[message]);
-        winDebug("\thwnd 0x%x wParam 0x%x lParam 0x%x\n", hwnd, wParam, lParam);
-      }
+    else if (message < MESSAGE_NAMES_LEN && MESSAGE_NAMES[message]) {
+        const char *msgname = MESSAGE_NAMES[message];
+        char buffer[64];
+
+        snprintf(buffer, sizeof(buffer), "WIN_DEBUG_%s", msgname);
+        buffer[63] = 0;
+        if (force || getenv("WIN_DEBUG_MESSAGES") || getenv(buffer)) {
+            winDebug("%s - Message %s\n", function, MESSAGE_NAMES[message]);
+            winDebug("\thwnd 0x%x wParam 0x%x lParam 0x%x\n", hwnd, wParam,
+                     lParam);
+        }
     }
 }
 #endif

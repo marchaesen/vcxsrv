@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -67,76 +66,66 @@ SOFTWARE.
  * clipping to the destination
  */
 void
-miPolyFillRect(
-    DrawablePtr	pDrawable,
-    GCPtr	pGC,
-    int		nrectFill,	/* number of rectangles to fill */
-    xRectangle	*prectInit	/* Pointer to first rectangle to fill */
+miPolyFillRect(DrawablePtr pDrawable, GCPtr pGC, int nrectFill, /* number of rectangles to fill */
+               xRectangle *prectInit    /* Pointer to first rectangle to fill */
     )
 {
     int i;
-    int	height;
-    int	width;
-    xRectangle *prect; 
-    int	xorg;
-    int	yorg;
-    int	maxheight;
-    DDXPointPtr	pptFirst;
+    int height;
+    int width;
+    xRectangle *prect;
+    int xorg;
+    int yorg;
+    int maxheight;
+    DDXPointPtr pptFirst;
     DDXPointPtr ppt;
-    int	*pwFirst;
+    int *pwFirst;
     int *pw;
 
-    if (pGC->miTranslate)
-    {
-	xorg = pDrawable->x;
-	yorg = pDrawable->y;
+    if (pGC->miTranslate) {
+        xorg = pDrawable->x;
+        yorg = pDrawable->y;
         prect = prectInit;
         maxheight = 0;
-        for (i = 0; i<nrectFill; i++, prect++)
-        {
-	    prect->x += xorg;
-	    prect->y += yorg;
-	    maxheight = max(maxheight, prect->height);
+        for (i = 0; i < nrectFill; i++, prect++) {
+            prect->x += xorg;
+            prect->y += yorg;
+            maxheight = max(maxheight, prect->height);
         }
     }
-    else
-    {
+    else {
         prect = prectInit;
         maxheight = 0;
-        for (i = 0; i<nrectFill; i++, prect++)
-	    maxheight = max(maxheight, prect->height);
+        for (i = 0; i < nrectFill; i++, prect++)
+            maxheight = max(maxheight, prect->height);
     }
 
     pptFirst = malloc(maxheight * sizeof(DDXPointRec));
     pwFirst = malloc(maxheight * sizeof(int));
-    if(!pptFirst || !pwFirst)
-    {
-	free(pwFirst);
-	free(pptFirst);
-	return;
+    if (!pptFirst || !pwFirst) {
+        free(pwFirst);
+        free(pptFirst);
+        return;
     }
 
     prect = prectInit;
-    while(nrectFill--)
-    {
-	ppt = pptFirst;
-	pw = pwFirst;
-	height = prect->height;
-	width = prect->width;
-	xorg = prect->x;
-	yorg = prect->y;
-	while(height--)
-	{
-	    *pw++ = width;
-	    ppt->x = xorg;
-	    ppt->y = yorg;
-	    ppt++;
-	    yorg++;
-	}
-	(* pGC->ops->FillSpans)(pDrawable, pGC, 
-			   prect->height, pptFirst, pwFirst,
-			   1);
-	prect++;
+    while (nrectFill--) {
+        ppt = pptFirst;
+        pw = pwFirst;
+        height = prect->height;
+        width = prect->width;
+        xorg = prect->x;
+        yorg = prect->y;
+        while (height--) {
+            *pw++ = width;
+            ppt->x = xorg;
+            ppt->y = yorg;
+            ppt++;
+            yorg++;
+        }
+        (*pGC->ops->FillSpans) (pDrawable, pGC,
+                                prect->height, pptFirst, pwFirst, 1);
+        prect++;
     }
     free(pwFirst);
     free(pptFirst);

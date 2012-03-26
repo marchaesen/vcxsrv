@@ -35,7 +35,7 @@
 #include "os.h"
 
 /* How often to attempt reconnecting when we get booted off the bus. */
-#define RECONNECT_DELAY (10 * 1000) /* in ms */
+#define RECONNECT_DELAY (10 * 1000)     /* in ms */
 
 struct dbus_core_info {
     int fd;
@@ -57,7 +57,8 @@ wakeup_handler(pointer data, int err, pointer read_mask)
             dbus_connection_read_write_dispatch(info->connection, 0);
         } while (info->connection &&
                  dbus_connection_get_is_connected(info->connection) &&
-                 dbus_connection_get_dispatch_status(info->connection) == DBUS_DISPATCH_DATA_REMAINS);
+                 dbus_connection_get_dispatch_status(info->connection) ==
+                 DBUS_DISPATCH_DATA_REMAINS);
     }
 }
 
@@ -105,13 +106,12 @@ teardown(void)
  * careful to ignore anything we don't want to deal with here.
  */
 static DBusHandlerResult
-message_filter(DBusConnection *connection, DBusMessage *message, void *data)
+message_filter(DBusConnection * connection, DBusMessage * message, void *data)
 {
     /* If we get disconnected, then take everything down, and attempt to
      * reconnect immediately (assuming it's just a restart).  The
      * connection isn't valid at this point, so throw it out immediately. */
-    if (dbus_message_is_signal(message, DBUS_INTERFACE_LOCAL,
-                                    "Disconnected")) {
+    if (dbus_message_is_signal(message, DBUS_INTERFACE_LOCAL, "Disconnected")) {
         DebugF("[config/dbus-core] disconnected from bus\n");
         bus_info.connection = NULL;
         teardown();
@@ -173,12 +173,12 @@ connect_to_bus(void)
 
     return 1;
 
-err_fd:
+ err_fd:
     bus_info.fd = -1;
-err_unref:
+ err_unref:
     dbus_connection_unref(bus_info.connection);
     bus_info.connection = NULL;
-err_begin:
+ err_begin:
     dbus_error_free(&error);
 
     return 0;
@@ -202,8 +202,7 @@ config_dbus_core_add_hook(struct config_dbus_core_hook *hook)
 {
     struct config_dbus_core_hook **prev;
 
-    for (prev = &bus_info.hooks; *prev; prev = &(*prev)->next)
-        ;
+    for (prev = &bus_info.hooks; *prev; prev = &(*prev)->next);
 
     hook->next = NULL;
     *prev = hook;

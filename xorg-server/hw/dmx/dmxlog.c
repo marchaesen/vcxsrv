@@ -49,16 +49,20 @@ static dmxLogLevel dmxCurrentLogLevel = dmxDebug;
 
 /** Set the default level for logging to #dmxLogLevel.  Returns the
  * previous log level. */
-dmxLogLevel dmxSetLogLevel(dmxLogLevel newLevel)
+dmxLogLevel
+dmxSetLogLevel(dmxLogLevel newLevel)
 {
     dmxLogLevel oldLevel = dmxCurrentLogLevel;
-    if (newLevel > dmxFatal) newLevel = dmxFatal;
+
+    if (newLevel > dmxFatal)
+        newLevel = dmxFatal;
     dmxCurrentLogLevel = newLevel;
     return oldLevel;
 }
 
 /** Returns the log level set by #dmxLogLevel. */
-dmxLogLevel dmxGetLogLevel(void)
+dmxLogLevel
+dmxGetLogLevel(void)
 {
     return dmxCurrentLogLevel;
 }
@@ -68,37 +72,41 @@ dmxLogLevel dmxGetLogLevel(void)
  * program, then the ultimate output routines have to be defined.  */
 
 /** Provide an ErrorF function when used stand-alone. */
-void ErrorF(const char *format, ...)
+void
+ErrorF(const char *format, ...)
 {
     va_list args;
 
     va_start(args, format);
-    vfprintf(stderr, format, args); /* RATS: We assume the format string
-                                     * is trusted, since it is always
-                                     * from a log message in our code. */
+    vfprintf(stderr, format, args);     /* RATS: We assume the format string
+                                         * is trusted, since it is always
+                                         * from a log message in our code. */
     va_end(args);
 }
 
 /** Provide an VFatalError function when used stand-alone. */
-static void VFatalError(const char *format, va_list args)
+static void
+VFatalError(const char *format, va_list args)
 {
-    vfprintf(stderr, format, args); /* RATS: We assume the format string
-                                     * is trusted, since it is always
-                                     * from a log message in our code. */
+    vfprintf(stderr, format, args);     /* RATS: We assume the format string
+                                         * is trusted, since it is always
+                                         * from a log message in our code. */
     exit(1);
 }
 
 /** Provide an VErrorF function when used stand-alone. */
-void VErrorF(const char *format, va_list args)
+void
+VErrorF(const char *format, va_list args)
 {
-    vfprintf(stderr, format, args); /* RATS: We assume the format string
-                                     * is trusted, since it is always
-                                     * from a log message in our code. */
+    vfprintf(stderr, format, args);     /* RATS: We assume the format string
+                                         * is trusted, since it is always
+                                         * from a log message in our code. */
 }
 #else
 /** This function was removed between XFree86 4.3.0 and XFree86 4.4.0. */
 extern void AbortServer(void);
-static void VFatalError(const char *format, va_list args)
+static void
+VFatalError(const char *format, va_list args)
 {
     VErrorF(format, args);
     ErrorF("\n");
@@ -106,60 +114,75 @@ static void VFatalError(const char *format, va_list args)
     OsVendorFatalError();
 #endif
     AbortServer();
-    /*NOTREACHED*/
-}
+ /*NOTREACHED*/}
 #endif
 
 /* Prints a consistent header for each line. */
-static void dmxHeader(dmxLogLevel logLevel, DMXInputInfo *dmxInput,
-                      DMXScreenInfo *dmxScreen)
+static void
+dmxHeader(dmxLogLevel logLevel, DMXInputInfo * dmxInput,
+          DMXScreenInfo * dmxScreen)
 {
     const char *type = "??";
 
     switch (logLevel) {
-    case dmxDebug:   type = ".."; break;
-    case dmxInfo:    type = "II"; break;
-    case dmxWarning: type = "**"; break;
-    case dmxError:   type = "!!"; break;
-    case dmxFatal:   type = "Fatal Error"; break;
+    case dmxDebug:
+        type = "..";
+        break;
+    case dmxInfo:
+        type = "II";
+        break;
+    case dmxWarning:
+        type = "**";
+        break;
+    case dmxError:
+        type = "!!";
+        break;
+    case dmxFatal:
+        type = "Fatal Error";
+        break;
     }
 
     if (dmxInput && dmxScreen) {
         ErrorF("(%s) dmx[i%d/%s;o%d/%s]: ", type,
                dmxInput->inputIdx, dmxInput->name,
                dmxScreen->index, dmxScreen->name);
-    } else if (dmxScreen) {
-        ErrorF("(%s) dmx[o%d/%s]: ", type,
-               dmxScreen->index, dmxScreen->name);
-    } else if (dmxInput) {
+    }
+    else if (dmxScreen) {
+        ErrorF("(%s) dmx[o%d/%s]: ", type, dmxScreen->index, dmxScreen->name);
+    }
+    else if (dmxInput) {
         const char *pt = strchr(dmxInput->name, ',');
-        int        len = (pt
-                          ? (size_t)(pt-dmxInput->name)
-                          : strlen(dmxInput->name));
+        int len = (pt ? (size_t) (pt - dmxInput->name)
+                   : strlen(dmxInput->name));
 
         ErrorF("(%s) dmx[i%d/%*.*s]: ", type,
                dmxInput->inputIdx, len, len, dmxInput->name);
-    } else {
+    }
+    else {
         ErrorF("(%s) dmx: ", type);
     }
 }
 
 /* Prints the error message with the appropriate low-level X output
  * routine. */
-static void dmxMessage(dmxLogLevel logLevel, const char *format, va_list args)
+static void
+dmxMessage(dmxLogLevel logLevel, const char *format, va_list args)
 {
     if (logLevel == dmxFatal || logLevel >= dmxCurrentLogLevel) {
-        if (logLevel == dmxFatal) VFatalError(format, args);
-        else VErrorF(format, args);
+        if (logLevel == dmxFatal)
+            VFatalError(format, args);
+        else
+            VErrorF(format, args);
     }
 }
 
 /** Log the specified message at the specified \a logLevel.  \a format
  * can be a printf-like format expression. */
-void dmxLog(dmxLogLevel logLevel, const char *format, ...)
+void
+dmxLog(dmxLogLevel logLevel, const char *format, ...)
 {
     va_list args;
-    
+
     dmxHeader(logLevel, NULL, NULL);
     va_start(args, format);
     dmxMessage(logLevel, format, args);
@@ -167,7 +190,8 @@ void dmxLog(dmxLogLevel logLevel, const char *format, ...)
 }
 
 /** Continue a log message without printing the message prefix. */
-void dmxLogCont(dmxLogLevel logLevel, const char *format, ...)
+void
+dmxLogCont(dmxLogLevel logLevel, const char *format, ...)
 {
     va_list args;
 
@@ -180,7 +204,8 @@ void dmxLogCont(dmxLogLevel logLevel, const char *format, ...)
 /** Log an informational message (at level #dmxInfo) related to ouput.
  * The message prefix will contain backend information from \a
  * dmxScreen. */
-void dmxLogOutput(DMXScreenInfo *dmxScreen, const char *format, ...)
+void
+dmxLogOutput(DMXScreenInfo * dmxScreen, const char *format, ...)
 {
     va_list args;
 
@@ -192,7 +217,8 @@ void dmxLogOutput(DMXScreenInfo *dmxScreen, const char *format, ...)
 
 /** Continue a message related to output without printing the message
  * prefix. */
-void dmxLogOutputCont(DMXScreenInfo *dmxScreen, const char *format, ...)
+void
+dmxLogOutputCont(DMXScreenInfo * dmxScreen, const char *format, ...)
 {
     va_list args;
 
@@ -204,7 +230,8 @@ void dmxLogOutputCont(DMXScreenInfo *dmxScreen, const char *format, ...)
 /** Log a warning message (at level #dmxWarning) related to output.
  * The message prefix will contain backend information from \a
  * dmxScreen. */
-void dmxLogOutputWarning(DMXScreenInfo *dmxScreen, const char *format, ...)
+void
+dmxLogOutputWarning(DMXScreenInfo * dmxScreen, const char *format, ...)
 {
     va_list args;
 
@@ -216,7 +243,8 @@ void dmxLogOutputWarning(DMXScreenInfo *dmxScreen, const char *format, ...)
 
 /** Log an informational message (at level #dmxInfo) related to input.
  * The message prefix will contain information from \a dmxInput. */
-void dmxLogInput(DMXInputInfo *dmxInput, const char *format, ...)
+void
+dmxLogInput(DMXInputInfo * dmxInput, const char *format, ...)
 {
     va_list args;
 
@@ -228,7 +256,8 @@ void dmxLogInput(DMXInputInfo *dmxInput, const char *format, ...)
 
 /** Continue a message related to input without printing the message
  * prefix. */
-void dmxLogInputCont(DMXInputInfo *dmxInput, const char *format, ...)
+void
+dmxLogInputCont(DMXInputInfo * dmxInput, const char *format, ...)
 {
     va_list args;
 
@@ -239,25 +268,40 @@ void dmxLogInputCont(DMXInputInfo *dmxInput, const char *format, ...)
 
 /** Print \a argc messages, each describing an element in \a argv.  This
  * is maingly for debugging purposes. */
-void dmxLogArgs(dmxLogLevel logLevel, int argc, char **argv)
+void
+dmxLogArgs(dmxLogLevel logLevel, int argc, char **argv)
 {
     int i;
+
     for (i = 0; i < argc; i++)
         dmxLog(logLevel, "   Arg[%d] = \"%s\"\n", i, argv[i]);
 }
 
 /** Print messages at level #dmxInfo describing the visuals in \a vi. */
-void dmxLogVisual(DMXScreenInfo *dmxScreen, XVisualInfo *vi, int defaultVisual)
+void
+dmxLogVisual(DMXScreenInfo * dmxScreen, XVisualInfo * vi, int defaultVisual)
 {
-    const char  *class = "Unknown";
+    const char *class = "Unknown";
 
     switch (vi->class) {
-    case StaticGray:  class = "StaticGray "; break;
-    case GrayScale:   class = "GrayScale  "; break;
-    case StaticColor: class = "StaticColor"; break;
-    case PseudoColor: class = "PseudoColor"; break;
-    case TrueColor:   class = "TrueColor  "; break;
-    case DirectColor: class = "DirectColor"; break;
+    case StaticGray:
+        class = "StaticGray ";
+        break;
+    case GrayScale:
+        class = "GrayScale  ";
+        break;
+    case StaticColor:
+        class = "StaticColor";
+        break;
+    case PseudoColor:
+        class = "PseudoColor";
+        break;
+    case TrueColor:
+        class = "TrueColor  ";
+        break;
+    case DirectColor:
+        class = "DirectColor";
+        break;
     }
 
     if (dmxScreen) {
@@ -267,7 +311,8 @@ void dmxLogVisual(DMXScreenInfo *dmxScreen, XVisualInfo *vi, int defaultVisual)
                      vi->colormap_size,
                      vi->red_mask, vi->green_mask, vi->blue_mask,
                      defaultVisual ? " *" : "");
-    } else {
+    }
+    else {
         dmxLog(dmxInfo,
                "  0x%02x %s %2db %db/rgb %3d 0x%04x 0x%04x 0x%04x%s\n",
                vi->visualid, class, vi->depth, vi->bits_per_rgb,
@@ -279,68 +324,119 @@ void dmxLogVisual(DMXScreenInfo *dmxScreen, XVisualInfo *vi, int defaultVisual)
 
 /** Translate a (normalized) XInput event \a type into a human-readable
  * string. */
-const char *dmxXInputEventName(int type)
+const char *
+dmxXInputEventName(int type)
 {
     switch (type) {
-    case XI_DeviceValuator:          return "XI_DeviceValuator";
-    case XI_DeviceKeyPress:          return "XI_DeviceKeyPress";
-    case XI_DeviceKeyRelease:        return "XI_DeviceKeyRelease";
-    case XI_DeviceButtonPress:       return "XI_DeviceButtonPress";
-    case XI_DeviceButtonRelease:     return "XI_DeviceButtonRelease";
-    case XI_DeviceMotionNotify:      return "XI_DeviceMotionNotify";
-    case XI_DeviceFocusIn:           return "XI_DeviceFocusIn";
-    case XI_DeviceFocusOut:          return "XI_DeviceFocusOut";
-    case XI_ProximityIn:             return "XI_ProximityIn";
-    case XI_ProximityOut:            return "XI_ProximityOut";
-    case XI_DeviceStateNotify:       return "XI_DeviceStateNotify";
-    case XI_DeviceMappingNotify:     return "XI_DeviceMappingNotify";
-    case XI_ChangeDeviceNotify:      return "XI_ChangeDeviceNotify";
-    case XI_DeviceKeystateNotify:    return "XI_DeviceKeystateNotify";
-    case XI_DeviceButtonstateNotify: return "XI_DeviceButtonstateNotify";
-    default:                         return "unknown";
+    case XI_DeviceValuator:
+        return "XI_DeviceValuator";
+    case XI_DeviceKeyPress:
+        return "XI_DeviceKeyPress";
+    case XI_DeviceKeyRelease:
+        return "XI_DeviceKeyRelease";
+    case XI_DeviceButtonPress:
+        return "XI_DeviceButtonPress";
+    case XI_DeviceButtonRelease:
+        return "XI_DeviceButtonRelease";
+    case XI_DeviceMotionNotify:
+        return "XI_DeviceMotionNotify";
+    case XI_DeviceFocusIn:
+        return "XI_DeviceFocusIn";
+    case XI_DeviceFocusOut:
+        return "XI_DeviceFocusOut";
+    case XI_ProximityIn:
+        return "XI_ProximityIn";
+    case XI_ProximityOut:
+        return "XI_ProximityOut";
+    case XI_DeviceStateNotify:
+        return "XI_DeviceStateNotify";
+    case XI_DeviceMappingNotify:
+        return "XI_DeviceMappingNotify";
+    case XI_ChangeDeviceNotify:
+        return "XI_ChangeDeviceNotify";
+    case XI_DeviceKeystateNotify:
+        return "XI_DeviceKeystateNotify";
+    case XI_DeviceButtonstateNotify:
+        return "XI_DeviceButtonstateNotify";
+    default:
+        return "unknown";
     }
 }
 
 #endif
 
 /** Translate an event \a type into a human-readable string. */
-const char *dmxEventName(int type)
+const char *
+dmxEventName(int type)
 {
     switch (type) {
-    case KeyPress:         return "KeyPress"; 
-    case KeyRelease:       return "KeyRelease";
-    case ButtonPress:      return "ButtonPress";
-    case ButtonRelease:    return "ButtonRelease";
-    case MotionNotify:     return "MotionNotify";
-    case EnterNotify:      return "EnterNotify";
-    case LeaveNotify:      return "LeaveNotify";
-    case FocusIn:          return "FocusIn";
-    case FocusOut:         return "FocusOut";
-    case KeymapNotify:     return "KeymapNotify";
-    case Expose:           return "Expose";
-    case GraphicsExpose:   return "GraphicsExpose";
-    case NoExpose:         return "NoExpose";
-    case VisibilityNotify: return "VisibilityNotify";
-    case CreateNotify:     return "CreateNotify";
-    case DestroyNotify:    return "DestroyNotify";
-    case UnmapNotify:      return "UnmapNotify";
-    case MapNotify:        return "MapNotify";
-    case MapRequest:       return "MapRequest";
-    case ReparentNotify:   return "ReparentNotify";
-    case ConfigureNotify:  return "ConfigureNotify";
-    case ConfigureRequest: return "ConfigureRequest";
-    case GravityNotify:    return "GravityNotify";
-    case ResizeRequest:    return "ResizeRequest";
-    case CirculateNotify:  return "CirculateNotify";
-    case CirculateRequest: return "CirculateRequest";
-    case PropertyNotify:   return "PropertyNotify";
-    case SelectionClear:   return "SelectionClear";
-    case SelectionRequest: return "SelectionRequest";
-    case SelectionNotify:  return "SelectionNotify";
-    case ColormapNotify:   return "ColormapNotify";
-    case ClientMessage:    return "ClientMessage";
-    case MappingNotify:    return "MappingNotify";
-    default:               return "<unknown>";
+    case KeyPress:
+        return "KeyPress";
+    case KeyRelease:
+        return "KeyRelease";
+    case ButtonPress:
+        return "ButtonPress";
+    case ButtonRelease:
+        return "ButtonRelease";
+    case MotionNotify:
+        return "MotionNotify";
+    case EnterNotify:
+        return "EnterNotify";
+    case LeaveNotify:
+        return "LeaveNotify";
+    case FocusIn:
+        return "FocusIn";
+    case FocusOut:
+        return "FocusOut";
+    case KeymapNotify:
+        return "KeymapNotify";
+    case Expose:
+        return "Expose";
+    case GraphicsExpose:
+        return "GraphicsExpose";
+    case NoExpose:
+        return "NoExpose";
+    case VisibilityNotify:
+        return "VisibilityNotify";
+    case CreateNotify:
+        return "CreateNotify";
+    case DestroyNotify:
+        return "DestroyNotify";
+    case UnmapNotify:
+        return "UnmapNotify";
+    case MapNotify:
+        return "MapNotify";
+    case MapRequest:
+        return "MapRequest";
+    case ReparentNotify:
+        return "ReparentNotify";
+    case ConfigureNotify:
+        return "ConfigureNotify";
+    case ConfigureRequest:
+        return "ConfigureRequest";
+    case GravityNotify:
+        return "GravityNotify";
+    case ResizeRequest:
+        return "ResizeRequest";
+    case CirculateNotify:
+        return "CirculateNotify";
+    case CirculateRequest:
+        return "CirculateRequest";
+    case PropertyNotify:
+        return "PropertyNotify";
+    case SelectionClear:
+        return "SelectionClear";
+    case SelectionRequest:
+        return "SelectionRequest";
+    case SelectionNotify:
+        return "SelectionNotify";
+    case ColormapNotify:
+        return "ColormapNotify";
+    case ClientMessage:
+        return "ClientMessage";
+    case MappingNotify:
+        return "MappingNotify";
+    default:
+        return "<unknown>";
     }
 }
-

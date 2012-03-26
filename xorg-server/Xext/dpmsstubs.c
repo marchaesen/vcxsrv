@@ -34,12 +34,14 @@ Equipment Corporation.
 
 #define FALSE 0
 
-Bool DPMSSupported(void)
+Bool
+DPMSSupported(void)
 {
     return FALSE;
 }
 
-int DPMSSet(ClientPtr client, int level)
+int
+DPMSSet(ClientPtr client, int level)
 {
     return Success;
 }

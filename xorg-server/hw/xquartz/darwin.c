@@ -38,10 +38,10 @@
 #include "servermd.h"
 #include "inputstr.h"
 #include "scrnintstr.h"
-#include "mibstore.h"		// mi backing store implementation
-#include "mipointer.h"		// mi software cursor
-#include "micmap.h"		// mi colormap code
-#include "fb.h"			// fb framebuffer code
+#include "mibstore.h"           // mi backing store implementation
+#include "mipointer.h"          // mi software cursor
+#include "micmap.h"             // mi colormap code
+#include "fb.h"                 // fb framebuffer code
 #include "site.h"
 #include "globals.h"
 #include "dix.h"
@@ -79,21 +79,24 @@
 
 aslclient aslc;
 
-void xq_asl_log (int level, const char *subsystem, const char *file, const char *function, int line, const char *fmt, ...) {
+void
+xq_asl_log(int level, const char *subsystem, const char *file,
+           const char *function, int line, const char *fmt, ...)
+{
     va_list args;
     aslmsg msg = asl_new(ASL_TYPE_MSG);
 
-    if(msg) {
+    if (msg) {
         char *_line;
 
         asl_set(msg, "File", file);
         asl_set(msg, "Function", function);
         asprintf(&_line, "%d", line);
-        if(_line) {
+        if (_line) {
             asl_set(msg, "Line", _line);
             free(_line);
         }
-        if(subsystem)
+        if (subsystem)
             asl_set(msg, "Subsystem", subsystem);
     }
 
@@ -101,82 +104,86 @@ void xq_asl_log (int level, const char *subsystem, const char *file, const char 
     asl_vlog(aslc, msg, level, fmt, args);
     va_end(args);
 
-    if(msg)
+    if (msg)
         asl_free(msg);
 }
 
 /*
  * X server shared global variables
  */
-int                     darwinScreensFound = 0;
-DevPrivateKeyRec        darwinScreenKeyRec;
-io_connect_t            darwinParamConnect = 0;
-int                     darwinEventReadFD = -1;
-int                     darwinEventWriteFD = -1;
+int darwinScreensFound = 0;
+DevPrivateKeyRec darwinScreenKeyRec;
+io_connect_t darwinParamConnect = 0;
+int darwinEventReadFD = -1;
+int darwinEventWriteFD = -1;
+
 // int                     darwinMouseAccelChange = 1;
-int                     darwinFakeButtons = 0;
+int darwinFakeButtons = 0;
 
 // location of X11's (0,0) point in global screen coordinates
-int                     darwinMainScreenX = 0;
-int                     darwinMainScreenY = 0;
+int darwinMainScreenX = 0;
+int darwinMainScreenY = 0;
 
 // parameters read from the command line or user preferences
-int                     darwinDesiredDepth = -1;
-int                     darwinSyncKeymap = FALSE;
+int darwinDesiredDepth = -1;
+int darwinSyncKeymap = FALSE;
 
 // modifier masks for faking mouse buttons - ANY of these bits trigger it  (not all)
 #ifdef NX_DEVICELCMDKEYMASK
-int                     darwinFakeMouse2Mask = NX_DEVICELALTKEYMASK | NX_DEVICERALTKEYMASK;
-int                     darwinFakeMouse3Mask = NX_DEVICELCMDKEYMASK | NX_DEVICERCMDKEYMASK;
+int darwinFakeMouse2Mask = NX_DEVICELALTKEYMASK | NX_DEVICERALTKEYMASK;
+int darwinFakeMouse3Mask = NX_DEVICELCMDKEYMASK | NX_DEVICERCMDKEYMASK;
 #else
-int                     darwinFakeMouse2Mask = NX_ALTERNATEMASK;
-int                     darwinFakeMouse3Mask = NX_COMMANDMASK;
+int darwinFakeMouse2Mask = NX_ALTERNATEMASK;
+int darwinFakeMouse3Mask = NX_COMMANDMASK;
 #endif
 
 // Modifier mask for overriding event delivery to appkit (might be useful to set this to rcommand for input menu
-unsigned int            darwinAppKitModMask = 0; // Any of these bits
+unsigned int darwinAppKitModMask = 0;   // Any of these bits
 
 // Modifier mask for items in the Window menu (0 and -1 cause shortcuts to be disabled)
-unsigned int            windowItemModMask = NX_COMMANDMASK;
+unsigned int windowItemModMask = NX_COMMANDMASK;
 
 // devices
-DeviceIntPtr            darwinKeyboard = NULL;
-DeviceIntPtr            darwinPointer = NULL;
-DeviceIntPtr            darwinTabletStylus = NULL;
-DeviceIntPtr            darwinTabletCursor = NULL;
-DeviceIntPtr            darwinTabletEraser = NULL;
+DeviceIntPtr darwinKeyboard = NULL;
+DeviceIntPtr darwinPointer = NULL;
+DeviceIntPtr darwinTabletStylus = NULL;
+DeviceIntPtr darwinTabletCursor = NULL;
+DeviceIntPtr darwinTabletEraser = NULL;
 
 // Common pixmap formats
 static PixmapFormatRec formats[] = {
-        { 1,    1,      BITMAP_SCANLINE_PAD },
-        { 4,    8,      BITMAP_SCANLINE_PAD },
-        { 8,    8,      BITMAP_SCANLINE_PAD },
-        { 15,   16,     BITMAP_SCANLINE_PAD },
-        { 16,   16,     BITMAP_SCANLINE_PAD },
-        { 24,   32,     BITMAP_SCANLINE_PAD },
-        { 32,   32,     BITMAP_SCANLINE_PAD }
+    {1, 1, BITMAP_SCANLINE_PAD},
+    {4, 8, BITMAP_SCANLINE_PAD},
+    {8, 8, BITMAP_SCANLINE_PAD},
+    {15, 16, BITMAP_SCANLINE_PAD},
+    {16, 16, BITMAP_SCANLINE_PAD},
+    {24, 32, BITMAP_SCANLINE_PAD},
+    {32, 32, BITMAP_SCANLINE_PAD}
 };
-const int NUMFORMATS = sizeof(formats)/sizeof(formats[0]);
+
+const int NUMFORMATS = sizeof(formats) / sizeof(formats[0]);
 
 void
 DarwinPrintBanner(void)
-{ 
-  ErrorF("Xquartz starting:\n");
-  ErrorF("X.Org X Server %s\n", XSERVER_VERSION);
-  ErrorF("Build Date: %s\n", BUILD_DATE );
+{
+    ErrorF("Xquartz starting:\n");
+    ErrorF("X.Org X Server %s\n", XSERVER_VERSION);
+    ErrorF("Build Date: %s\n", BUILD_DATE);
 }
-
 
 /*
  * DarwinSaveScreen
  *  X screensaver support. Not implemented.
  */
-static Bool DarwinSaveScreen(ScreenPtr pScreen, int on)
+static Bool
+DarwinSaveScreen(ScreenPtr pScreen, int on)
 {
     // FIXME
     if (on == SCREEN_SAVER_FORCER) {
-    } else if (on == SCREEN_SAVER_ON) {
-    } else {
+    }
+    else if (on == SCREEN_SAVER_ON) {
+    }
+    else {
     }
     return TRUE;
 }
@@ -186,14 +193,16 @@ static Bool DarwinSaveScreen(ScreenPtr pScreen, int on)
  *  This is a callback from dix during AddScreen() from InitOutput().
  *  Initialize the screen and communicate information about it back to dix.
  */
-static Bool DarwinScreenInit(int index, ScreenPtr pScreen, int argc, char **argv) {
-    int         dpi;
-    static int  foundIndex = 0;
-    Bool        ret;
+static Bool
+DarwinScreenInit(int index, ScreenPtr pScreen, int argc, char **argv)
+{
+    int dpi;
+    static int foundIndex = 0;
+    Bool ret;
     DarwinFramebufferPtr dfb;
 
     if (!dixRegisterPrivateKey(&darwinScreenKeyRec, PRIVATE_SCREEN, 0))
-	return FALSE;
+        return FALSE;
 
     // reset index of found screens for each server generation
     if (index == 0) {
@@ -212,23 +221,27 @@ static Bool DarwinScreenInit(int index, ScreenPtr pScreen, int argc, char **argv
     // setup hardware/mode specific details
     ret = QuartzAddScreen(foundIndex, pScreen);
     foundIndex++;
-    if (! ret)
+    if (!ret)
         return FALSE;
 
     // setup a single visual appropriate for our pixel type
-    if(!miSetVisualTypesAndMasks(dfb->depth, dfb->visuals, dfb->bitsPerRGB,
-                                 dfb->preferredCVC, dfb->redMask,
-                                 dfb->greenMask, dfb->blueMask)) {
+    if (!miSetVisualTypesAndMasks(dfb->depth, dfb->visuals, dfb->bitsPerRGB,
+                                  dfb->preferredCVC, dfb->redMask,
+                                  dfb->greenMask, dfb->blueMask)) {
         return FALSE;
     }
-  
+
 // TODO: Make PseudoColor visuals not suck in TrueColor mode  
 //    if(dfb->depth > 8)
 //        miSetVisualTypesAndMasks(8, PseudoColorMask, 8, PseudoColor, 0, 0, 0);
-    if(dfb->depth > 15)
-        miSetVisualTypesAndMasks(15, TrueColorMask, 5, TrueColor, RM_ARGB(0,5,5,5), GM_ARGB(0,5,5,5), BM_ARGB(0,5,5,5));
-    if(dfb->depth > 24)
-        miSetVisualTypesAndMasks(24, TrueColorMask, 8, TrueColor, RM_ARGB(0,8,8,8), GM_ARGB(0,8,8,8), BM_ARGB(0,8,8,8));
+    if (dfb->depth > 15)
+        miSetVisualTypesAndMasks(15, TrueColorMask, 5, TrueColor,
+                                 RM_ARGB(0, 5, 5, 5), GM_ARGB(0, 5, 5, 5),
+                                 BM_ARGB(0, 5, 5, 5));
+    if (dfb->depth > 24)
+        miSetVisualTypesAndMasks(24, TrueColorMask, 8, TrueColor,
+                                 RM_ARGB(0, 8, 8, 8), GM_ARGB(0, 8, 8, 8),
+                                 BM_ARGB(0, 8, 8, 8));
 
     miSetPixmapDepths();
 
@@ -240,17 +253,16 @@ static Bool DarwinScreenInit(int index, ScreenPtr pScreen, int argc, char **argv
         dpi = 96;
 
     // initialize fb
-    if (! fbScreenInit(pScreen,
-                dfb->framebuffer,                 // pointer to screen bitmap
-                dfb->width, dfb->height,          // screen size in pixels
-                dpi, dpi,                         // dots per inch
-                dfb->pitch/(dfb->bitsPerPixel/8), // pixel width of framebuffer
-                dfb->bitsPerPixel))               // bits per pixel for screen
+    if (!fbScreenInit(pScreen, dfb->framebuffer,        // pointer to screen bitmap
+                      dfb->width, dfb->height,  // screen size in pixels
+                      dpi, dpi, // dots per inch
+                      dfb->pitch / (dfb->bitsPerPixel / 8),     // pixel width of framebuffer
+                      dfb->bitsPerPixel))       // bits per pixel for screen
     {
         return FALSE;
     }
 
-    if (! fbPictureInit(pScreen, 0, 0)) {
+    if (!fbPictureInit(pScreen, 0, 0)) {
         return FALSE;
     }
 
@@ -268,7 +280,7 @@ static Bool DarwinScreenInit(int index, ScreenPtr pScreen, int argc, char **argv
 
     // create and install the default colormap and
     // set pScreen->blackPixel / pScreen->white
-    if (!miCreateDefColormap( pScreen )) {
+    if (!miCreateDefColormap(pScreen)) {
         return FALSE;
     }
 
@@ -276,7 +288,7 @@ static Bool DarwinScreenInit(int index, ScreenPtr pScreen, int argc, char **argv
     pScreen->y = dfb->y;
 
     /*    ErrorF("Screen %d added: %dx%d @ (%d,%d)\n",
-	  index, dfb->width, dfb->height, dfb->x, dfb->y); */
+       index, dfb->width, dfb->height, dfb->x, dfb->y); */
 
     return TRUE;
 }
@@ -292,100 +304,110 @@ static Bool DarwinScreenInit(int index, ScreenPtr pScreen, int argc, char **argv
 /*
  * DarwinMouseProc: Handle the initialization, etc. of a mouse
  */
-static int DarwinMouseProc(DeviceIntPtr pPointer, int what) {
+static int
+DarwinMouseProc(DeviceIntPtr pPointer, int what)
+{
 #define NBUTTONS 7
 #define NAXES 2
-	// 7 buttons: left, right, middle, then four scroll wheel "buttons"
-    CARD8 map[NBUTTONS + 1] = {0, 1, 2, 3, 4, 5, 6, 7};
-    Atom btn_labels[NBUTTONS] = {0};
-    Atom axes_labels[NAXES] = {0};
+    // 7 buttons: left, right, middle, then four scroll wheel "buttons"
+    CARD8 map[NBUTTONS + 1] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+    Atom btn_labels[NBUTTONS] = { 0 };
+    Atom axes_labels[NAXES] = { 0 };
 
     switch (what) {
-        case DEVICE_INIT:
-            pPointer->public.on = FALSE;
+    case DEVICE_INIT:
+        pPointer->public.on = FALSE;
 
-            btn_labels[0] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_LEFT);
-            btn_labels[1] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_MIDDLE);
-            btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
-            btn_labels[3] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_UP);
-            btn_labels[4] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_DOWN);
-            btn_labels[5] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_LEFT);
-            btn_labels[6] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_RIGHT);
+        btn_labels[0] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_LEFT);
+        btn_labels[1] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_MIDDLE);
+        btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
+        btn_labels[3] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_UP);
+        btn_labels[4] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_DOWN);
+        btn_labels[5] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_LEFT);
+        btn_labels[6] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_RIGHT);
 
-            axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
-            axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
+        axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
+        axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
 
-
-            // Set button map.
-            InitPointerDeviceStruct((DevicePtr)pPointer, map, NBUTTONS,
-                                    btn_labels,
-                                    (PtrCtrlProcPtr)NoopDDA,
-                                    GetMotionHistorySize(), NAXES,
-                                    axes_labels);
-            InitValuatorAxisStruct(pPointer, 0, axes_labels[0], NO_AXIS_LIMITS, NO_AXIS_LIMITS, 0, 0, 0, Absolute);
-            InitValuatorAxisStruct(pPointer, 1, axes_labels[1], NO_AXIS_LIMITS, NO_AXIS_LIMITS, 0, 0, 0, Absolute);
-            break;
-        case DEVICE_ON:
-            pPointer->public.on = TRUE;
-            AddEnabledDevice( darwinEventReadFD );
-            return Success;
-        case DEVICE_CLOSE:
-        case DEVICE_OFF:
-            pPointer->public.on = FALSE;
-            RemoveEnabledDevice(darwinEventReadFD);
-            return Success;
+        // Set button map.
+        InitPointerDeviceStruct((DevicePtr) pPointer, map, NBUTTONS,
+                                btn_labels,
+                                (PtrCtrlProcPtr) NoopDDA,
+                                GetMotionHistorySize(), NAXES, axes_labels);
+        InitValuatorAxisStruct(pPointer, 0, axes_labels[0], NO_AXIS_LIMITS,
+                               NO_AXIS_LIMITS, 0, 0, 0, Absolute);
+        InitValuatorAxisStruct(pPointer, 1, axes_labels[1], NO_AXIS_LIMITS,
+                               NO_AXIS_LIMITS, 0, 0, 0, Absolute);
+        break;
+    case DEVICE_ON:
+        pPointer->public.on = TRUE;
+        AddEnabledDevice(darwinEventReadFD);
+        return Success;
+    case DEVICE_CLOSE:
+    case DEVICE_OFF:
+        pPointer->public.on = FALSE;
+        RemoveEnabledDevice(darwinEventReadFD);
+        return Success;
     }
-    
+
     return Success;
 #undef NBUTTONS
 #undef NAXES
 }
 
-static int DarwinTabletProc(DeviceIntPtr pPointer, int what) {
+static int
+DarwinTabletProc(DeviceIntPtr pPointer, int what)
+{
 #define NBUTTONS 3
 #define NAXES 5
-    CARD8 map[NBUTTONS + 1] = {0, 1, 2, 3};
-    Atom btn_labels[NBUTTONS] = {0};
-    Atom axes_labels[NAXES] = {0};
+    CARD8 map[NBUTTONS + 1] = { 0, 1, 2, 3 };
+    Atom btn_labels[NBUTTONS] = { 0 };
+    Atom axes_labels[NAXES] = { 0 };
 
     switch (what) {
-        case DEVICE_INIT:
-            pPointer->public.on = FALSE;
+    case DEVICE_INIT:
+        pPointer->public.on = FALSE;
 
-            btn_labels[0] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_LEFT);
-            btn_labels[1] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_MIDDLE);
-            btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
+        btn_labels[0] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_LEFT);
+        btn_labels[1] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_MIDDLE);
+        btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
 
-            axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_X);
-            axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_Y);
-            axes_labels[2] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_PRESSURE);
-            axes_labels[3] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_TILT_X);
-            axes_labels[4] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_TILT_Y);
+        axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_X);
+        axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_Y);
+        axes_labels[2] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_PRESSURE);
+        axes_labels[3] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_TILT_X);
+        axes_labels[4] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_TILT_Y);
 
-            // Set button map.
-            InitPointerDeviceStruct((DevicePtr)pPointer, map, NBUTTONS,
-                                    btn_labels,
-                                    (PtrCtrlProcPtr)NoopDDA,
-                                    GetMotionHistorySize(), NAXES,
-                                    axes_labels);
-            InitProximityClassDeviceStruct(pPointer);
+        // Set button map.
+        InitPointerDeviceStruct((DevicePtr) pPointer, map, NBUTTONS,
+                                btn_labels,
+                                (PtrCtrlProcPtr) NoopDDA,
+                                GetMotionHistorySize(), NAXES, axes_labels);
+        InitProximityClassDeviceStruct(pPointer);
 
-            InitValuatorAxisStruct(pPointer, 0, axes_labels[0], 0, XQUARTZ_VALUATOR_LIMIT, 1, 0, 1, Absolute);
-            InitValuatorAxisStruct(pPointer, 1, axes_labels[1], 0, XQUARTZ_VALUATOR_LIMIT, 1, 0, 1, Absolute);
-            InitValuatorAxisStruct(pPointer, 2, axes_labels[2], 0, XQUARTZ_VALUATOR_LIMIT, 1, 0, 1, Absolute);
-            InitValuatorAxisStruct(pPointer, 3, axes_labels[3], -XQUARTZ_VALUATOR_LIMIT, XQUARTZ_VALUATOR_LIMIT, 1, 0, 1, Absolute);
-            InitValuatorAxisStruct(pPointer, 4, axes_labels[4], -XQUARTZ_VALUATOR_LIMIT, XQUARTZ_VALUATOR_LIMIT, 1, 0, 1, Absolute);
+        InitValuatorAxisStruct(pPointer, 0, axes_labels[0], 0,
+                               XQUARTZ_VALUATOR_LIMIT, 1, 0, 1, Absolute);
+        InitValuatorAxisStruct(pPointer, 1, axes_labels[1], 0,
+                               XQUARTZ_VALUATOR_LIMIT, 1, 0, 1, Absolute);
+        InitValuatorAxisStruct(pPointer, 2, axes_labels[2], 0,
+                               XQUARTZ_VALUATOR_LIMIT, 1, 0, 1, Absolute);
+        InitValuatorAxisStruct(pPointer, 3, axes_labels[3],
+                               -XQUARTZ_VALUATOR_LIMIT, XQUARTZ_VALUATOR_LIMIT,
+                               1, 0, 1, Absolute);
+        InitValuatorAxisStruct(pPointer, 4, axes_labels[4],
+                               -XQUARTZ_VALUATOR_LIMIT, XQUARTZ_VALUATOR_LIMIT,
+                               1, 0, 1, Absolute);
 //          pPointer->use = IsXExtensionDevice;
-            break;
-        case DEVICE_ON:
-            pPointer->public.on = TRUE;
-            AddEnabledDevice( darwinEventReadFD );
-            return Success;
-        case DEVICE_CLOSE:
-        case DEVICE_OFF:
-            pPointer->public.on = FALSE;
-            RemoveEnabledDevice(darwinEventReadFD);
-            return Success;
+        break;
+    case DEVICE_ON:
+        pPointer->public.on = TRUE;
+        AddEnabledDevice(darwinEventReadFD);
+        return Success;
+    case DEVICE_CLOSE:
+    case DEVICE_OFF:
+        pPointer->public.on = FALSE;
+        RemoveEnabledDevice(darwinEventReadFD);
+        return Success;
     }
     return Success;
 #undef NBUTTONS
@@ -396,22 +418,23 @@ static int DarwinTabletProc(DeviceIntPtr pPointer, int what) {
  * DarwinKeybdProc
  *  Callback from X
  */
-static int DarwinKeybdProc( DeviceIntPtr pDev, int onoff )
+static int
+DarwinKeybdProc(DeviceIntPtr pDev, int onoff)
 {
-    switch ( onoff ) {
-        case DEVICE_INIT:
-            DarwinKeyboardInit( pDev );
-            break;
-        case DEVICE_ON:
-            pDev->public.on = TRUE;
-            AddEnabledDevice( darwinEventReadFD );
-            break;
-        case DEVICE_OFF:
-            pDev->public.on = FALSE;
-            RemoveEnabledDevice( darwinEventReadFD );
-            break;
-        case DEVICE_CLOSE:
-            break;
+    switch (onoff) {
+    case DEVICE_INIT:
+        DarwinKeyboardInit(pDev);
+        break;
+    case DEVICE_ON:
+        pDev->public.on = TRUE;
+        AddEnabledDevice(darwinEventReadFD);
+        break;
+    case DEVICE_OFF:
+        pDev->public.on = FALSE;
+        RemoveEnabledDevice(darwinEventReadFD);
+        break;
+    case DEVICE_CLOSE:
+        break;
     }
 
     return Success;
@@ -429,7 +452,8 @@ static int DarwinKeybdProc( DeviceIntPtr pDev, int onoff )
  * DarwinParseModifierList
  *  Parse a list of modifier names and return a corresponding modifier mask
  */
-int DarwinParseModifierList(const char *constmodifiers, int separatelr)
+int
+DarwinParseModifierList(const char *constmodifiers, int separatelr)
 {
     int result = 0;
 
@@ -440,9 +464,9 @@ int DarwinParseModifierList(const char *constmodifiers, int separatelr)
         char *p = modifiers;
 
         while (p) {
-            modifier = strsep(&p, " ,+&|/"); // allow lots of separators
+            modifier = strsep(&p, " ,+&|/");    // allow lots of separators
             nxkey = DarwinModifierStringToNXMask(modifier, separatelr);
-            if(nxkey)
+            if (nxkey)
                 result |= nxkey;
             else
                 ErrorF("fakebuttons: Unknown modifier \"%s\"\n", modifier);
@@ -464,10 +488,12 @@ int DarwinParseModifierList(const char *constmodifiers, int separatelr)
  * InitInput
  *  Register the keyboard and mouse devices
  */
-void InitInput( int argc, char **argv )
+void
+InitInput(int argc, char **argv)
 {
-    XkbRMLVOSet rmlvo = { .rules = "base", .model = "empty", .layout = "empty",
-                          .variant = NULL, .options = NULL };
+    XkbRMLVOSet rmlvo = {.rules = "base",.model = "empty",.layout = "empty",
+        .variant = NULL,.options = NULL
+    };
     /* We need to really have rules... or something... */
     XkbSetRulesDflts(&rmlvo);
 
@@ -475,18 +501,18 @@ void InitInput( int argc, char **argv )
     darwinKeyboard->name = strdup("keyboard");
 
     /* here's the snippet from the current gdk sources:
-    if (!strcmp (tmp_name, "pointer"))
-        gdkdev->info.source = GDK_SOURCE_MOUSE;
-    else if (!strcmp (tmp_name, "wacom") ||
-             !strcmp (tmp_name, "pen"))
-        gdkdev->info.source = GDK_SOURCE_PEN;
-    else if (!strcmp (tmp_name, "eraser"))
-        gdkdev->info.source = GDK_SOURCE_ERASER;
-    else if (!strcmp (tmp_name, "cursor"))
-        gdkdev->info.source = GDK_SOURCE_CURSOR;
-    else
-        gdkdev->info.source = GDK_SOURCE_PEN;
-    */
+       if (!strcmp (tmp_name, "pointer"))
+       gdkdev->info.source = GDK_SOURCE_MOUSE;
+       else if (!strcmp (tmp_name, "wacom") ||
+       !strcmp (tmp_name, "pen"))
+       gdkdev->info.source = GDK_SOURCE_PEN;
+       else if (!strcmp (tmp_name, "eraser"))
+       gdkdev->info.source = GDK_SOURCE_ERASER;
+       else if (!strcmp (tmp_name, "cursor"))
+       gdkdev->info.source = GDK_SOURCE_CURSOR;
+       else
+       gdkdev->info.source = GDK_SOURCE_PEN;
+     */
 
     darwinPointer = AddInputDevice(serverClient, DarwinMouseProc, TRUE);
     darwinPointer->name = strdup("pointer");
@@ -505,7 +531,8 @@ void InitInput( int argc, char **argv )
     QuartzInitInput(argc, argv);
 }
 
-void CloseInput(void)
+void
+CloseInput(void)
 {
     DarwinEQFini();
 }
@@ -525,18 +552,18 @@ void CloseInput(void)
  *  easier target to hit.
  */
 void
-DarwinAdjustScreenOrigins(ScreenInfo *pScreenInfo)
+DarwinAdjustScreenOrigins(ScreenInfo * pScreenInfo)
 {
     int i, left, top;
 
     left = pScreenInfo->screens[0]->x;
-    top  = pScreenInfo->screens[0]->y;
+    top = pScreenInfo->screens[0]->y;
 
     /* Find leftmost screen. If there's a tie, take the topmost of the two. */
     for (i = 1; i < pScreenInfo->numScreens; i++) {
-        if (pScreenInfo->screens[i]->x < left  ||
-            (pScreenInfo->screens[i]->x == left && pScreenInfo->screens[i]->y < top))
-        {
+        if (pScreenInfo->screens[i]->x < left ||
+            (pScreenInfo->screens[i]->x == left &&
+             pScreenInfo->screens[i]->y < top)) {
             left = pScreenInfo->screens[i]->x;
             top = pScreenInfo->screens[i]->y;
         }
@@ -544,7 +571,7 @@ DarwinAdjustScreenOrigins(ScreenInfo *pScreenInfo)
 
     darwinMainScreenX = left;
     darwinMainScreenY = top;
-    
+
     DEBUG_LOG("top = %d, left=%d\n", top, left);
 
     /* Shift all screens so that there is a screen whose top left
@@ -557,11 +584,11 @@ DarwinAdjustScreenOrigins(ScreenInfo *pScreenInfo)
             pScreenInfo->screens[i]->x -= darwinMainScreenX;
             pScreenInfo->screens[i]->y -= darwinMainScreenY;
             DEBUG_LOG("Screen %d placed at X11 coordinate (%d,%d).\n",
-                      i, pScreenInfo->screens[i]->x, pScreenInfo->screens[i]->y);
+                      i, pScreenInfo->screens[i]->x,
+                      pScreenInfo->screens[i]->y);
         }
     }
 }
-
 
 /*
  * InitOutput
@@ -576,7 +603,8 @@ DarwinAdjustScreenOrigins(ScreenInfo *pScreenInfo)
  *  After other screen setup has been done, a mode specific
  *  SetupScreen function can be called to finalize screen setup.
  */
-void InitOutput( ScreenInfo *pScreenInfo, int argc, char **argv )
+void
+InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 {
     int i;
 
@@ -601,48 +629,53 @@ void InitOutput( ScreenInfo *pScreenInfo, int argc, char **argv )
     DarwinAdjustScreenOrigins(pScreenInfo);
 }
 
-
 /*
  * OsVendorFatalError
  */
-void OsVendorFatalError( void )
+void
+OsVendorFatalError(void)
 {
-    ErrorF( "   OsVendorFatalError\n" );
+    ErrorF("   OsVendorFatalError\n");
 }
-
 
 /*
  * OsVendorInit
  *  Initialization of Darwin OS support.
  */
-void OsVendorInit(void)
+void
+OsVendorInit(void)
 {
     if (serverGeneration == 1) {
         char *lf;
         char *home = getenv("HOME");
+
         assert(home);
-        assert(0 < asprintf(&lf, "%s/Library/Logs/%s.X11.log", home, bundle_id_prefix));
+        assert(0 <
+               asprintf(&lf, "%s/Library/Logs/%s.X11.log", home,
+                        bundle_id_prefix));
         LogInit(lf, ".old");
         free(lf);
 
         DarwinPrintBanner();
 #ifdef ENABLE_DEBUG_LOG
-	{
-	  char *home_dir=NULL, *log_file_path=NULL;
-	  home_dir = getenv("HOME");
-	  if (home_dir) asprintf(&log_file_path, "%s/%s", home_dir, DEBUG_LOG_NAME);
-	  if (log_file_path) {
-	    if (!access(log_file_path, F_OK)) {
-	      debug_log_fp = fopen(log_file_path, "a");
-	      if (debug_log_fp) ErrorF("Debug logging enabled to %s\n", log_file_path);
-	    }
-	    free(log_file_path);
-	  }
-	}
+        {
+            char *home_dir = NULL, *log_file_path = NULL;
+
+            home_dir = getenv("HOME");
+            if (home_dir)
+                asprintf(&log_file_path, "%s/%s", home_dir, DEBUG_LOG_NAME);
+            if (log_file_path) {
+                if (!access(log_file_path, F_OK)) {
+                    debug_log_fp = fopen(log_file_path, "a");
+                    if (debug_log_fp)
+                        ErrorF("Debug logging enabled to %s\n", log_file_path);
+                }
+                free(log_file_path);
+            }
+        }
 #endif
     }
 }
-
 
 /*
  * ddxProcessArgument
@@ -650,7 +683,8 @@ void OsVendorInit(void)
  *  not device dependent, otherwise Count of number of elements of argv
  *  that are part of a device dependent commandline option.
  */
-int ddxProcessArgument( int argc, char *argv[], int i )
+int
+ddxProcessArgument(int argc, char *argv[], int i)
 {
 //    if ( !strcmp( argv[i], "-fullscreen" ) ) {
 //        ErrorF( "Running full screen in parallel with Mac OS X Quartz window server.\n" );
@@ -663,75 +697,74 @@ int ddxProcessArgument( int argc, char *argv[], int i )
 //    }
 
     // This command line arg is passed when launched from the Aqua GUI.
-    if ( !strncmp( argv[i], "-psn_", 5 ) ) {
+    if (!strncmp(argv[i], "-psn_", 5)) {
         return 1;
     }
 
-    if ( !strcmp( argv[i], "-fakebuttons" ) ) {
+    if (!strcmp(argv[i], "-fakebuttons")) {
         darwinFakeButtons = TRUE;
-        ErrorF( "Faking a three button mouse\n" );
+        ErrorF("Faking a three button mouse\n");
         return 1;
     }
 
-    if ( !strcmp( argv[i], "-nofakebuttons" ) ) {
+    if (!strcmp(argv[i], "-nofakebuttons")) {
         darwinFakeButtons = FALSE;
-        ErrorF( "Not faking a three button mouse\n" );
+        ErrorF("Not faking a three button mouse\n");
         return 1;
     }
 
-    if (!strcmp( argv[i], "-fakemouse2" ) ) {
-        if ( i == argc-1 ) {
-            FatalError( "-fakemouse2 must be followed by a modifer list\n" );
+    if (!strcmp(argv[i], "-fakemouse2")) {
+        if (i == argc - 1) {
+            FatalError("-fakemouse2 must be followed by a modifer list\n");
         }
-        if (!strcasecmp(argv[i+1], "none") || !strcmp(argv[i+1], ""))
+        if (!strcasecmp(argv[i + 1], "none") || !strcmp(argv[i + 1], ""))
             darwinFakeMouse2Mask = 0;
         else
-            darwinFakeMouse2Mask = DarwinParseModifierList(argv[i+1], 1);
+            darwinFakeMouse2Mask = DarwinParseModifierList(argv[i + 1], 1);
         ErrorF("Modifier mask to fake mouse button 2 = 0x%x\n",
                darwinFakeMouse2Mask);
         return 2;
     }
 
-    if (!strcmp( argv[i], "-fakemouse3" ) ) {
-        if ( i == argc-1 ) {
-            FatalError( "-fakemouse3 must be followed by a modifer list\n" );
+    if (!strcmp(argv[i], "-fakemouse3")) {
+        if (i == argc - 1) {
+            FatalError("-fakemouse3 must be followed by a modifer list\n");
         }
-        if (!strcasecmp(argv[i+1], "none") || !strcmp(argv[i+1], ""))
+        if (!strcasecmp(argv[i + 1], "none") || !strcmp(argv[i + 1], ""))
             darwinFakeMouse3Mask = 0;
         else
-            darwinFakeMouse3Mask = DarwinParseModifierList(argv[i+1], 1);
+            darwinFakeMouse3Mask = DarwinParseModifierList(argv[i + 1], 1);
         ErrorF("Modifier mask to fake mouse button 3 = 0x%x\n",
                darwinFakeMouse3Mask);
         return 2;
     }
 
-    if ( !strcmp( argv[i], "+synckeymap" ) ) {
+    if (!strcmp(argv[i], "+synckeymap")) {
         darwinSyncKeymap = TRUE;
         return 1;
     }
 
-    if ( !strcmp( argv[i], "-synckeymap" ) ) {
+    if (!strcmp(argv[i], "-synckeymap")) {
         darwinSyncKeymap = FALSE;
         return 1;
     }
 
-    if ( !strcmp( argv[i], "-depth" ) ) {
-        if ( i == argc-1 ) {
-            FatalError( "-depth must be followed by a number\n" );
+    if (!strcmp(argv[i], "-depth")) {
+        if (i == argc - 1) {
+            FatalError("-depth must be followed by a number\n");
         }
-        darwinDesiredDepth = atoi( argv[i+1] );
-        if(darwinDesiredDepth != -1 &&
-           darwinDesiredDepth != 8 &&
-           darwinDesiredDepth != 15 &&
-           darwinDesiredDepth != 24) {
-            FatalError( "Unsupported pixel depth. Use 8, 15, or 24 bits\n" );
+        darwinDesiredDepth = atoi(argv[i + 1]);
+        if (darwinDesiredDepth != -1 &&
+            darwinDesiredDepth != 8 &&
+            darwinDesiredDepth != 15 && darwinDesiredDepth != 24) {
+            FatalError("Unsupported pixel depth. Use 8, 15, or 24 bits\n");
         }
 
-        ErrorF( "Attempting to use pixel depth of %i\n", darwinDesiredDepth );
+        ErrorF("Attempting to use pixel depth of %i\n", darwinDesiredDepth);
         return 2;
     }
 
-    if (!strcmp( argv[i], "-showconfig" ) || !strcmp( argv[i], "-version" )) {
+    if (!strcmp(argv[i], "-showconfig") || !strcmp(argv[i], "-version")) {
         DarwinPrintBanner();
         exit(0);
     }
@@ -739,38 +772,41 @@ int ddxProcessArgument( int argc, char *argv[], int i )
     return 0;
 }
 
-
 /*
  * ddxUseMsg --
  *  Print out correct use of device dependent commandline options.
  *  Maybe the user now knows what really to do ...
  */
-void ddxUseMsg( void )
+void
+ddxUseMsg(void)
 {
     ErrorF("\n");
     ErrorF("\n");
     ErrorF("Device Dependent Usage:\n");
     ErrorF("\n");
     ErrorF("-depth <8,15,24> : use this bit depth.\n");
-    ErrorF("-fakebuttons : fake a three button mouse with Command and Option keys.\n");
+    ErrorF
+        ("-fakebuttons : fake a three button mouse with Command and Option keys.\n");
     ErrorF("-nofakebuttons : don't fake a three button mouse.\n");
-    ErrorF("-fakemouse2 <modifiers> : fake middle mouse button with modifier keys.\n");
-    ErrorF("-fakemouse3 <modifiers> : fake right mouse button with modifier keys.\n");
-    ErrorF("  ex: -fakemouse2 \"option,shift\" = option-shift-click is middle button.\n");
+    ErrorF
+        ("-fakemouse2 <modifiers> : fake middle mouse button with modifier keys.\n");
+    ErrorF
+        ("-fakemouse3 <modifiers> : fake right mouse button with modifier keys.\n");
+    ErrorF
+        ("  ex: -fakemouse2 \"option,shift\" = option-shift-click is middle button.\n");
     ErrorF("-version : show the server version.\n");
     ErrorF("\n");
 }
-
 
 /*
  * ddxGiveUp --
  *      Device dependent cleanup. Called by dix before normal server death.
  */
-void ddxGiveUp( enum ExitCode error )
+void
+ddxGiveUp(enum ExitCode error)
 {
     LogClose(error);
 }
-
 
 /*
  * AbortDDX --
@@ -778,9 +814,9 @@ void ddxGiveUp( enum ExitCode error )
  *      made to restore all original setting of the displays. Also all devices
  *      are closed.
  */
-_X_NORETURN
-void AbortDDX( enum ExitCode error ) {
-    ErrorF( "   AbortDDX\n" );
+_X_NORETURN void
+AbortDDX(enum ExitCode error)
+{
+    ErrorF("   AbortDDX\n");
     OsAbort();
 }
-

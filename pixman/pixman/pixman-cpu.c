@@ -666,6 +666,7 @@ detect_cpu_features (void)
     return features;
 }
 
+#ifdef USE_X86_MMX
 static pixman_bool_t
 pixman_have_mmx (void)
 {
@@ -681,6 +682,7 @@ pixman_have_mmx (void)
 
     return mmx_present;
 }
+#endif
 
 #ifdef USE_SSE2
 static pixman_bool_t

@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -56,70 +55,58 @@ SOFTWARE.
 #include "mi.h"
 
 void
-miPolyPoint(
-    DrawablePtr		pDrawable,
-    GCPtr		pGC,
-    int			mode,		/* Origin or Previous */
-    int			npt,
-    xPoint		*pptInit
-    )
+miPolyPoint(DrawablePtr pDrawable, GCPtr pGC, int mode, /* Origin or Previous */
+            int npt, xPoint * pptInit)
 {
 
-    int 		xorg;
-    int 		yorg;
-    int 		nptTmp;
-    ChangeGCVal		fsOld, fsNew;
-    int			*pwidthInit, *pwidth;
-    int			i;
-    xPoint 		*ppt;
+    int xorg;
+    int yorg;
+    int nptTmp;
+    ChangeGCVal fsOld, fsNew;
+    int *pwidthInit, *pwidth;
+    int i;
+    xPoint *ppt;
 
-    if(!(pwidthInit = malloc(npt * sizeof(int))))
-	return;
+    if (!(pwidthInit = malloc(npt * sizeof(int))))
+        return;
 
     /* make pointlist origin relative */
-    if (mode == CoordModePrevious)
-    {
+    if (mode == CoordModePrevious) {
         ppt = pptInit;
         nptTmp = npt;
-	nptTmp--;
-	while(nptTmp--)
-	{
-	    ppt++;
-	    ppt->x += (ppt-1)->x;
-	    ppt->y += (ppt-1)->y;
-	}
+        nptTmp--;
+        while (nptTmp--) {
+            ppt++;
+            ppt->x += (ppt - 1)->x;
+            ppt->y += (ppt - 1)->y;
+        }
     }
 
-    if(pGC->miTranslate)
-    {
-	ppt = pptInit;
-	nptTmp = npt;
-	xorg = pDrawable->x;
-	yorg = pDrawable->y;
-	while(nptTmp--)
-	{
-	    ppt->x += xorg;
-	    ppt++->y += yorg;
-	}
+    if (pGC->miTranslate) {
+        ppt = pptInit;
+        nptTmp = npt;
+        xorg = pDrawable->x;
+        yorg = pDrawable->y;
+        while (nptTmp--) {
+            ppt->x += xorg;
+            ppt++->y += yorg;
+        }
     }
 
     fsOld.val = pGC->fillStyle;
     fsNew.val = FillSolid;
-    if(pGC->fillStyle != FillSolid)
-    {
-	ChangeGC(NullClient, pGC, GCFillStyle, &fsNew);
-	ValidateGC(pDrawable, pGC);
+    if (pGC->fillStyle != FillSolid) {
+        ChangeGC(NullClient, pGC, GCFillStyle, &fsNew);
+        ValidateGC(pDrawable, pGC);
     }
     pwidth = pwidthInit;
-    for(i = 0; i < npt; i++)
-	*pwidth++ = 1;
-    (*pGC->ops->FillSpans)(pDrawable, pGC, npt, pptInit, pwidthInit, FALSE); 
+    for (i = 0; i < npt; i++)
+        *pwidth++ = 1;
+    (*pGC->ops->FillSpans) (pDrawable, pGC, npt, pptInit, pwidthInit, FALSE);
 
-    if(fsOld.val != FillSolid)
-    {
-	ChangeGC(NullClient, pGC, GCFillStyle, &fsOld);
-	ValidateGC(pDrawable, pGC);
+    if (fsOld.val != FillSolid) {
+        ChangeGC(NullClient, pGC, GCFillStyle, &fsOld);
+        ValidateGC(pDrawable, pGC);
     }
     free(pwidthInit);
 }
-

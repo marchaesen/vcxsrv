@@ -24,7 +24,6 @@ in this Software without prior written authorization from The Open Group.
 
 ********************************************************/
 
-
 #ifndef __MIFILLARC_H__
 #define __MIFILLARC_H__
 
@@ -87,12 +86,12 @@ typedef struct _miFillArcD {
 #define miFillArcLower(slw) (((y + dy) != 0) && ((slw > 1) || (e != xk)))
 
 typedef struct _miSliceEdge {
-    int	    x;
-    int     stepx;
-    int	    deltax;
-    int	    e;
-    int	    dy;
-    int	    dx;
+    int x;
+    int stepx;
+    int deltax;
+    int e;
+    int dy;
+    int dx;
 } miSliceEdgeRec, *miSliceEdgePtr;
 
 typedef struct _miArcSlice {
@@ -176,15 +175,13 @@ typedef struct _miArcSlice {
 #define miFillInArcLower(slw) (((iny + dy) != 0) && \
 			       ((slw > 1) || (ine != inxk)))
 
-extern _X_EXPORT void miFillArcSetup(
-    xArc * /*arc*/,
-    miFillArcRec * /*info*/
-);
+extern _X_EXPORT void miFillArcSetup(xArc * /*arc */ ,
+                                     miFillArcRec *     /*info */
+    );
 
-extern _X_EXPORT void miFillArcSliceSetup(
-    xArc * /*arc*/,
-    miArcSliceRec * /*slice*/,
-    GCPtr /*pGC*/
-);
+extern _X_EXPORT void miFillArcSliceSetup(xArc * /*arc */ ,
+                                          miArcSliceRec * /*slice */ ,
+                                          GCPtr /*pGC */
+    );
 
-#endif /* __MIFILLARC_H__ */
+#endif                          /* __MIFILLARC_H__ */

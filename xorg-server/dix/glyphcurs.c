@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -45,7 +44,6 @@ SOFTWARE.
 
 ************************************************************************/
 
-
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
@@ -61,7 +59,6 @@ SOFTWARE.
 #include "opaque.h"
 #include "servermd.h"
 
-
 /*
     get the bits out of the font in a portable way.  to avoid
 dealing with padding and such-like, we draw the glyph into
@@ -74,7 +71,8 @@ cursor metrics.
 */
 
 int
-ServerBitsFromGlyph(FontPtr pfont, unsigned ch, CursorMetricPtr cm, unsigned char **ppbits)
+ServerBitsFromGlyph(FontPtr pfont, unsigned ch, CursorMetricPtr cm,
+                    unsigned char **ppbits)
 {
     ScreenPtr pScreen;
     GCPtr pGC;
@@ -86,27 +84,26 @@ ServerBitsFromGlyph(FontPtr pfont, unsigned ch, CursorMetricPtr cm, unsigned cha
     unsigned char char2b[2];
 
     /* turn glyph index into a protocol-format char2b */
-    char2b[0] = (unsigned char)(ch >> 8);
-    char2b[1] = (unsigned char)(ch & 0xff);
+    char2b[0] = (unsigned char) (ch >> 8);
+    char2b[1] = (unsigned char) (ch & 0xff);
 
     pScreen = screenInfo.screens[0];
-    nby = BitmapBytePad(cm->width) * (long)cm->height;
+    nby = BitmapBytePad(cm->width) * (long) cm->height;
     pbits = calloc(1, nby);
     if (!pbits)
-	return BadAlloc;
+        return BadAlloc;
 
-    ppix = (PixmapPtr)(*pScreen->CreatePixmap)(pScreen, cm->width,
-					       cm->height, 1,
-					       CREATE_PIXMAP_USAGE_SCRATCH);
+    ppix = (PixmapPtr) (*pScreen->CreatePixmap) (pScreen, cm->width,
+                                                 cm->height, 1,
+                                                 CREATE_PIXMAP_USAGE_SCRATCH);
     pGC = GetScratchGC(1, pScreen);
-    if (!ppix || !pGC)
-    {
-	if (ppix)
-	    (*pScreen->DestroyPixmap)(ppix);
-	if (pGC)
-	    FreeScratchGC(pGC);
-	free(pbits);
-	return BadAlloc;
+    if (!ppix || !pGC) {
+        if (ppix)
+            (*pScreen->DestroyPixmap) (ppix);
+        if (pGC)
+            FreeScratchGC(pGC);
+        free(pbits);
+        return BadAlloc;
     }
 
     rect.x = 0;
@@ -117,75 +114,68 @@ ServerBitsFromGlyph(FontPtr pfont, unsigned ch, CursorMetricPtr cm, unsigned cha
     /* fill the pixmap with 0 */
     gcval[0].val = GXcopy;
     gcval[1].val = 0;
-    gcval[2].ptr = (pointer)pfont;
+    gcval[2].ptr = (pointer) pfont;
     ChangeGC(NullClient, pGC, GCFunction | GCForeground | GCFont, gcval);
-    ValidateGC((DrawablePtr)ppix, pGC);
-    (*pGC->ops->PolyFillRect)((DrawablePtr)ppix, pGC, 1, &rect);
+    ValidateGC((DrawablePtr) ppix, pGC);
+    (*pGC->ops->PolyFillRect) ((DrawablePtr) ppix, pGC, 1, &rect);
 
     /* draw the glyph */
     gcval[0].val = 1;
     ChangeGC(NullClient, pGC, GCForeground, gcval);
-    ValidateGC((DrawablePtr)ppix, pGC);
-    (*pGC->ops->PolyText16)((DrawablePtr)ppix, pGC, cm->xhot, cm->yhot,
-			    1, (unsigned short *)char2b);
-    (*pScreen->GetImage)((DrawablePtr)ppix, 0, 0, cm->width, cm->height,
-			 XYPixmap, 1, pbits);
-    *ppbits = (unsigned char *)pbits;
+    ValidateGC((DrawablePtr) ppix, pGC);
+    (*pGC->ops->PolyText16) ((DrawablePtr) ppix, pGC, cm->xhot, cm->yhot,
+                             1, (unsigned short *) char2b);
+    (*pScreen->GetImage) ((DrawablePtr) ppix, 0, 0, cm->width, cm->height,
+                          XYPixmap, 1, pbits);
+    *ppbits = (unsigned char *) pbits;
     FreeScratchGC(pGC);
-    (*pScreen->DestroyPixmap)(ppix);
+    (*pScreen->DestroyPixmap) (ppix);
     return Success;
 }
-
 
 Bool
 CursorMetricsFromGlyph(FontPtr pfont, unsigned ch, CursorMetricPtr cm)
 {
-    CharInfoPtr 	pci;
-    unsigned long	nglyphs;
-    CARD8		chs[2];
-    FontEncoding	encoding;
+    CharInfoPtr pci;
+    unsigned long nglyphs;
+    CARD8 chs[2];
+    FontEncoding encoding;
 
     chs[0] = ch >> 8;
     chs[1] = ch;
     encoding = (FONTLASTROW(pfont) == 0) ? Linear16Bit : TwoD16Bit;
-    if (encoding == Linear16Bit)
-    {
-	if (ch < pfont->info.firstCol || pfont->info.lastCol < ch)
-	    return FALSE;
+    if (encoding == Linear16Bit) {
+        if (ch < pfont->info.firstCol || pfont->info.lastCol < ch)
+            return FALSE;
     }
-    else
-    {
-	if (chs[0] < pfont->info.firstRow || pfont->info.lastRow < chs[0])
-	    return FALSE;
-	if (chs[1] < pfont->info.firstCol || pfont->info.lastCol < chs[1])
-	    return FALSE;
+    else {
+        if (chs[0] < pfont->info.firstRow || pfont->info.lastRow < chs[0])
+            return FALSE;
+        if (chs[1] < pfont->info.firstCol || pfont->info.lastCol < chs[1])
+            return FALSE;
     }
     (*pfont->get_glyphs) (pfont, 1, chs, encoding, &nglyphs, &pci);
     if (nglyphs == 0)
-	return FALSE;
+        return FALSE;
     cm->width = pci->metrics.rightSideBearing - pci->metrics.leftSideBearing;
     cm->height = pci->metrics.descent + pci->metrics.ascent;
-    if (pci->metrics.leftSideBearing > 0)
-    {
-	cm->width += pci->metrics.leftSideBearing;
-	cm->xhot = 0;
+    if (pci->metrics.leftSideBearing > 0) {
+        cm->width += pci->metrics.leftSideBearing;
+        cm->xhot = 0;
     }
-    else
-    {
-	cm->xhot = -pci->metrics.leftSideBearing;
-	if (pci->metrics.rightSideBearing < 0)
-	    cm->width -= pci->metrics.rightSideBearing;
+    else {
+        cm->xhot = -pci->metrics.leftSideBearing;
+        if (pci->metrics.rightSideBearing < 0)
+            cm->width -= pci->metrics.rightSideBearing;
     }
-    if (pci->metrics.ascent < 0)
-    {
-	cm->height -= pci->metrics.ascent;
-	cm->yhot = 0;
+    if (pci->metrics.ascent < 0) {
+        cm->height -= pci->metrics.ascent;
+        cm->yhot = 0;
     }
-    else
-    {
-	cm->yhot = pci->metrics.ascent;
-	if (pci->metrics.descent < 0)
-	    cm->height -= pci->metrics.descent;
+    else {
+        cm->yhot = pci->metrics.ascent;
+        if (pci->metrics.descent < 0)
+            cm->height -= pci->metrics.descent;
     }
     return TRUE;
 }

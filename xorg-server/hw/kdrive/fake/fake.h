@@ -31,106 +31,101 @@
 #endif
 
 typedef struct _fakePriv {
-    CARD8	*base;
-    int		bytes_per_line;
+    CARD8 *base;
+    int bytes_per_line;
 } FakePriv;
-    
+
 typedef struct _fakeScrPriv {
-    Rotation	randr;
-    Bool	shadow;
+    Rotation randr;
+    Bool shadow;
 } FakeScrPriv;
 
-extern KdCardFuncs  fakeFuncs;
+extern KdCardFuncs fakeFuncs;
 
 Bool
-fakeInitialize (KdCardInfo *card, FakePriv *priv);
+ fakeInitialize(KdCardInfo * card, FakePriv * priv);
 
 Bool
-fakeCardInit (KdCardInfo *card);
+ fakeCardInit(KdCardInfo * card);
 
 Bool
-fakeScreenInit (KdScreenInfo *screen);
+ fakeScreenInit(KdScreenInfo * screen);
 
 Bool
-fakeScreenInitialize (KdScreenInfo *screen, FakeScrPriv *scrpriv);
-    
-Bool
-fakeInitScreen (ScreenPtr pScreen);
+ fakeScreenInitialize(KdScreenInfo * screen, FakeScrPriv * scrpriv);
 
 Bool
-fakeFinishInitScreen (ScreenPtr pScreen);
+ fakeInitScreen(ScreenPtr pScreen);
 
 Bool
-fakeCreateResources (ScreenPtr pScreen);
+ fakeFinishInitScreen(ScreenPtr pScreen);
+
+Bool
+ fakeCreateResources(ScreenPtr pScreen);
 
 void
-fakePreserve (KdCardInfo *card);
+ fakePreserve(KdCardInfo * card);
 
 Bool
-fakeEnable (ScreenPtr pScreen);
+ fakeEnable(ScreenPtr pScreen);
 
 Bool
-fakeDPMS (ScreenPtr pScreen, int mode);
+ fakeDPMS(ScreenPtr pScreen, int mode);
 
 void
-fakeDisable (ScreenPtr pScreen);
+ fakeDisable(ScreenPtr pScreen);
 
 void
-fakeRestore (KdCardInfo *card);
+ fakeRestore(KdCardInfo * card);
 
 void
-fakeScreenFini (KdScreenInfo *screen);
+ fakeScreenFini(KdScreenInfo * screen);
 
 void
-fakeCardFini (KdCardInfo *card);
+ fakeCardFini(KdCardInfo * card);
 
 void
-fakeGetColors (ScreenPtr pScreen, int n, xColorItem *pdefs);
+ fakeGetColors(ScreenPtr pScreen, int n, xColorItem * pdefs);
 
 void
-fakePutColors (ScreenPtr pScreen, int n, xColorItem *pdefs);
+ fakePutColors(ScreenPtr pScreen, int n, xColorItem * pdefs);
 
 Bool
-fakeMapFramebuffer (KdScreenInfo *screen);
+ fakeMapFramebuffer(KdScreenInfo * screen);
 
-void *
-fakeWindowLinear (ScreenPtr	pScreen,
-		   CARD32	row,
-		   CARD32	offset,
-		   int		mode,
-		   CARD32	*size,
-		   void		*closure);
+void *fakeWindowLinear(ScreenPtr pScreen,
+                       CARD32 row,
+                       CARD32 offset, int mode, CARD32 *size, void *closure);
 
 void
-fakeSetScreenSizes (ScreenPtr pScreen);
+ fakeSetScreenSizes(ScreenPtr pScreen);
 
 Bool
-fakeUnmapFramebuffer (KdScreenInfo *screen);
+ fakeUnmapFramebuffer(KdScreenInfo * screen);
 
 Bool
-fakeSetShadow (ScreenPtr pScreen);
+ fakeSetShadow(ScreenPtr pScreen);
 
 Bool
-fakeCreateColormap (ColormapPtr pmap);
-    
+ fakeCreateColormap(ColormapPtr pmap);
+
 #ifdef RANDR
 Bool
-fakeRandRGetInfo (ScreenPtr pScreen, Rotation *rotations);
+ fakeRandRGetInfo(ScreenPtr pScreen, Rotation * rotations);
 
 Bool
-fakeRandRSetConfig (ScreenPtr		pScreen,
-		     Rotation		randr,
-		     int		rate,
-		     RRScreenSizePtr	pSize);
+
+fakeRandRSetConfig(ScreenPtr pScreen,
+                   Rotation randr, int rate, RRScreenSizePtr pSize);
 Bool
-fakeRandRInit (ScreenPtr pScreen);
+ fakeRandRInit(ScreenPtr pScreen);
 
 #endif
 
 extern KdPointerDriver FakePointerDriver;
 
-extern KdKeyboardDriver	FakeKeyboardDriver;
+extern KdKeyboardDriver FakeKeyboardDriver;
 
-extern KdOsFuncs   FakeOsFuncs;
+extern KdOsFuncs FakeOsFuncs;
 
-#endif /* _FBDEV_H_ */
+#endif                          /* _FBDEV_H_ */

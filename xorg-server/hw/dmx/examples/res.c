@@ -36,21 +36,23 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/XRes.h>
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    Display              *display = NULL;
-    int                  major_version, minor_version;
-    int                  event, error;
-    int                  count;
-    int                  i;
-    XResClient           *clients;
+    Display *display = NULL;
+    int major_version, minor_version;
+    int event, error;
+    int count;
+    int i;
+    XResClient *clients;
 
     if (argc == 2) {
         if (!(display = XOpenDisplay(argv[1]))) {
             printf("Cannot open display %s\n", argv[1]);
             return -1;
         }
-    } else {
+    }
+    else {
         printf("Usage: %s display\n", argv[0]);
         return -1;
     }
@@ -65,7 +67,7 @@ int main(int argc, char **argv)
         return -1;
     }
     printf("X-Resource extension present: event=%d error=%d\n", event, error);
-    
+
     if (!XResQueryVersion(display, &major_version, &minor_version)) {
         printf("XResQueryVersion call failed\n");
         return -1;
@@ -77,16 +79,16 @@ int main(int argc, char **argv)
 
     printf("%d clients:\n", count);
     for (i = 0; i < count; i++) {
-        int      c, j;
+        int c, j;
         XResType *types;
-        
-        XResQueryClientResources(display, clients[i].resource_base,
-                                 &c, &types);
+
+        XResQueryClientResources(display, clients[i].resource_base, &c, &types);
         printf(" %3d: base = 0x%lx, mask = 0x%lx, %d resource types:\n",
-               i, (long unsigned)clients[i].resource_base,
-               (long unsigned)clients[i].resource_mask, c);
+               i, (long unsigned) clients[i].resource_base,
+               (long unsigned) clients[i].resource_mask, c);
         for (j = 0; j < c; j++) {
             char *name = XGetAtomName(display, types[j].resource_type);
+
             printf("      %2d: %s %d\n", j, name, types[j].count);
             XFree(name);
         }

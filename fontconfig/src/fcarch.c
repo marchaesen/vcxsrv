@@ -31,11 +31,11 @@
 
 #ifndef FC_ARCHITECTURE
 
-#include "fcarch.h"
-
 /* Make sure the cache structure is consistent with what we expect */
 
 #include "fcint.h"
+
+#include "fcarch.h"
 
 FC_ASSERT_STATIC (1 == sizeof (char));
 FC_ASSERT_STATIC (2 == sizeof (FcChar16));

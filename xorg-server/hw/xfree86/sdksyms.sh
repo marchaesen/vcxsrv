@@ -364,7 +364,7 @@ BEGIN {
 	# skip attribute, if any
 	while ($n ~ /^(__attribute__|__global)/ ||
 	    # skip modifiers, if any
-	    $n ~ /^\*?(unsigned|const|volatile|struct)$/ ||
+	    $n ~ /^\*?(unsigned|const|volatile|struct|_X_EXPORT)$/ ||
 	    # skip pointer
 	    $n ~ /^[a-zA-Z0-9_]*\*$/)
 	    n++;
@@ -395,6 +395,9 @@ BEGIN {
 	if ($n == "" || $n ~ /^\*+$/) {
 	    getline;
 	    n = 1;
+	    # indent may have inserted a blank link
+	    if ($0 == "")
+		getline;
 	}
 
 	# dont modify $0 or $n

@@ -42,77 +42,74 @@
 /** Screen attributes.  Used by #ProcDMXGetScreenAttributes and
  * \a ProcDMXChangeScreensAttributes. */
 typedef struct {
-    const char   *displayName;
-    int          logicalScreen;
+    const char *displayName;
+    int logicalScreen;
 
-    unsigned int screenWindowWidth;    /* displayName's coordinate system */
-    unsigned int screenWindowHeight;   /* displayName's coordinate system */
-    int          screenWindowXoffset;  /* displayName's coordinate system */
-    int          screenWindowYoffset;  /* displayName's coordinate system */
+    unsigned int screenWindowWidth;     /* displayName's coordinate system */
+    unsigned int screenWindowHeight;    /* displayName's coordinate system */
+    int screenWindowXoffset;    /* displayName's coordinate system */
+    int screenWindowYoffset;    /* displayName's coordinate system */
 
-    unsigned int rootWindowWidth;      /* screenWindow's coordinate system */
-    unsigned int rootWindowHeight;     /* screenWindow's coordinate system */
-    int          rootWindowXoffset;    /* screenWindow's coordinate system */
-    int          rootWindowYoffset;    /* screenWindow's coordinate system */
+    unsigned int rootWindowWidth;       /* screenWindow's coordinate system */
+    unsigned int rootWindowHeight;      /* screenWindow's coordinate system */
+    int rootWindowXoffset;      /* screenWindow's coordinate system */
+    int rootWindowYoffset;      /* screenWindow's coordinate system */
 
-    int          rootWindowXorigin;    /* global coordinate system */
-    int          rootWindowYorigin;    /* global coordinate system */
+    int rootWindowXorigin;      /* global coordinate system */
+    int rootWindowYorigin;      /* global coordinate system */
 } DMXScreenAttributesRec, *DMXScreenAttributesPtr;
 
 /** Window attributes.  Used by #ProcDMXGetWindowAttributes. */
 typedef struct {
-    int          screen;
-    Window       window;
-    xRectangle   pos;
-    xRectangle   vis;
+    int screen;
+    Window window;
+    xRectangle pos;
+    xRectangle vis;
 } DMXWindowAttributesRec, *DMXWindowAttributesPtr;
 
 /** Desktop attributes.  Used by #ProcDMXGetDesktopAttributes and
  * #ProcDMXChangeDesktopAttributes. */
 typedef struct {
-    int          width;
-    int          height;
-    int          shiftX;
-    int          shiftY;
+    int width;
+    int height;
+    int shiftX;
+    int shiftY;
 } DMXDesktopAttributesRec, *DMXDesktopAttributesPtr;
 
 /** Input attributes.  Used by #ProcDMXGetInputAttributes. */
 typedef struct {
-    const char   *name;
-    int          inputType;
-    int          physicalScreen;
-    int          physicalId;
-    int          isCore;
-    int          sendsCore;
-    int          detached;
+    const char *name;
+    int inputType;
+    int physicalScreen;
+    int physicalId;
+    int isCore;
+    int sendsCore;
+    int detached;
 } DMXInputAttributesRec, *DMXInputAttributesPtr;
 
-
 extern unsigned long dmxGetNumScreens(void);
-extern void          dmxForceWindowCreation(WindowPtr pWindow);
-extern void          dmxFlushPendingSyncs(void);
-extern Bool          dmxGetScreenAttributes(int physical,
-                                            DMXScreenAttributesPtr attr);
-extern Bool          dmxGetWindowAttributes(WindowPtr pWindow,
-                                            DMXWindowAttributesPtr attr);
-extern void          dmxGetDesktopAttributes(DMXDesktopAttributesPtr attr);
-extern int           dmxGetInputCount(void);
-extern int           dmxGetInputAttributes(int deviceId,
-                                           DMXInputAttributesPtr attr);
-extern int           dmxAddInput(DMXInputAttributesPtr attr, int *deviceId);
-extern int           dmxRemoveInput(int deviceId);
+extern void dmxForceWindowCreation(WindowPtr pWindow);
+extern void dmxFlushPendingSyncs(void);
+extern Bool dmxGetScreenAttributes(int physical, DMXScreenAttributesPtr attr);
+extern Bool dmxGetWindowAttributes(WindowPtr pWindow,
+                                   DMXWindowAttributesPtr attr);
+extern void dmxGetDesktopAttributes(DMXDesktopAttributesPtr attr);
+extern int dmxGetInputCount(void);
+extern int dmxGetInputAttributes(int deviceId, DMXInputAttributesPtr attr);
+extern int dmxAddInput(DMXInputAttributesPtr attr, int *deviceId);
+extern int dmxRemoveInput(int deviceId);
 
-extern int           dmxConfigureScreenWindows(int nscreens,
-					       CARD32 *screens,
-					       DMXScreenAttributesPtr attribs,
-					       int *errorScreen);
+extern int dmxConfigureScreenWindows(int nscreens,
+                                     CARD32 *screens,
+                                     DMXScreenAttributesPtr attribs,
+                                     int *errorScreen);
 
-extern int           dmxConfigureDesktop(DMXDesktopAttributesPtr attribs);
+extern int dmxConfigureDesktop(DMXDesktopAttributesPtr attribs);
 
 /* dmxUpdateScreenResources exposed for dmxCreateWindow in dmxwindow.c */
-extern void          dmxUpdateScreenResources(ScreenPtr pScreen,
-                                              int x, int y, int w, int h);
+extern void dmxUpdateScreenResources(ScreenPtr pScreen,
+                                     int x, int y, int w, int h);
 
-extern int           dmxAttachScreen(int idx, DMXScreenAttributesPtr attr);
-extern int           dmxDetachScreen(int idx);
+extern int dmxAttachScreen(int idx, DMXScreenAttributesPtr attr);
+extern int dmxDetachScreen(int idx);
 #endif

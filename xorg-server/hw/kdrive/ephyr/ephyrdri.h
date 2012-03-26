@@ -31,45 +31,40 @@
 
 #include <xf86drm.h>
 
-Bool ephyrDRIQueryDirectRenderingCapable (int a_screen, Bool *a_is_capable) ;
-Bool ephyrDRIOpenConnection (int screen, drm_handle_t *a_sarea, char **a_bus_id_string) ;
-Bool ephyrDRIAuthConnection (int a_screen, drm_magic_t a_magic) ;
-Bool ephyrDRICloseConnection (int a_screen) ;
-Bool ephyrDRIGetClientDriverName (int a_screen,
-                                  int *a_ddx_driver_major_version,
-                                  int *a_ddx_driver_minor_version,
-                                  int *a_ddx_driver_patch_version,
-                                  char ** a_client_driver_name) ;
-Bool ephyrDRICreateContext (int a_screen,
-                            int a_visual_id,
-                            XID *a_returned_ctx_id,
-                            drm_context_t *a_hw_ctx) ;
-Bool ephyrDRIDestroyContext (int a_screen,
-                             int a_context_id) ;
-Bool ephyrDRICreateDrawable (int a_screen,
-                             int a_drawable,
-                             drm_drawable_t *a_hw_drawable) ;
-Bool ephyrDRIDestroyDrawable (int a_screen, int a_drawable) ;
-Bool ephyrDRIGetDrawableInfo (int a_screen,
-                              int /*Drawable*/a_drawable,
-                              unsigned int *a_index,
-                              unsigned int *a_stamp,
-                              int *a_x,
-                              int *a_y,
-                              int *a_w,
-                              int *a_h,
-                              int *a_num_clip_rects,
-                              drm_clip_rect_t **a_clip_rects,
-                              int *a_back_x,
-                              int *a_back_y,
-                              int *num_back_clip_rects,
-                              drm_clip_rect_t **a_back_clip_rects) ;
-Bool ephyrDRIGetDeviceInfo (int a_screen,
-                            drm_handle_t *a_frame_buffer,
-                            int *a_fb_origin,
-                            int *a_fb_size,
-                            int *a_fb_stride,
-                            int *a_dev_private_size,
-                            void **a_dev_private) ;
+Bool ephyrDRIQueryDirectRenderingCapable(int a_screen, Bool *a_is_capable);
+Bool ephyrDRIOpenConnection(int screen, drm_handle_t * a_sarea,
+                            char **a_bus_id_string);
+Bool ephyrDRIAuthConnection(int a_screen, drm_magic_t a_magic);
+Bool ephyrDRICloseConnection(int a_screen);
+Bool ephyrDRIGetClientDriverName(int a_screen,
+                                 int *a_ddx_driver_major_version,
+                                 int *a_ddx_driver_minor_version,
+                                 int *a_ddx_driver_patch_version,
+                                 char **a_client_driver_name);
+Bool ephyrDRICreateContext(int a_screen,
+                           int a_visual_id,
+                           XID *a_returned_ctx_id, drm_context_t * a_hw_ctx);
+Bool ephyrDRIDestroyContext(int a_screen, int a_context_id);
+Bool ephyrDRICreateDrawable(int a_screen,
+                            int a_drawable, drm_drawable_t * a_hw_drawable);
+Bool ephyrDRIDestroyDrawable(int a_screen, int a_drawable);
+Bool ephyrDRIGetDrawableInfo(int a_screen, int /*Drawable */ a_drawable,
+                             unsigned int *a_index,
+                             unsigned int *a_stamp,
+                             int *a_x,
+                             int *a_y,
+                             int *a_w,
+                             int *a_h,
+                             int *a_num_clip_rects,
+                             drm_clip_rect_t ** a_clip_rects,
+                             int *a_back_x,
+                             int *a_back_y,
+                             int *num_back_clip_rects,
+                             drm_clip_rect_t ** a_back_clip_rects);
+Bool ephyrDRIGetDeviceInfo(int a_screen,
+                           drm_handle_t * a_frame_buffer,
+                           int *a_fb_origin,
+                           int *a_fb_size,
+                           int *a_fb_stride,
+                           int *a_dev_private_size, void **a_dev_private);
 #endif /*__EPHYRDRI_H__*/
-

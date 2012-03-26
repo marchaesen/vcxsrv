@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -45,7 +44,6 @@ SOFTWARE.
 
 ********************************************************/
 
-
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
@@ -62,25 +60,28 @@ SOFTWARE.
 #include "os.h"
 
 ScreenInfo screenInfo;
+
 KeybdCtrl defaultKeyboardControl = {
-	DEFAULT_KEYBOARD_CLICK,
-	DEFAULT_BELL,
-	DEFAULT_BELL_PITCH,
-	DEFAULT_BELL_DURATION,
-	DEFAULT_AUTOREPEAT,
-	DEFAULT_AUTOREPEATS,
-	DEFAULT_LEDS,
-	0};
+    DEFAULT_KEYBOARD_CLICK,
+    DEFAULT_BELL,
+    DEFAULT_BELL_PITCH,
+    DEFAULT_BELL_DURATION,
+    DEFAULT_AUTOREPEAT,
+    DEFAULT_AUTOREPEATS,
+    DEFAULT_LEDS,
+    0
+};
 
 PtrCtrl defaultPointerControl = {
-	DEFAULT_PTR_NUMERATOR,
-	DEFAULT_PTR_DENOMINATOR,
-	DEFAULT_PTR_THRESHOLD,
-	0};
+    DEFAULT_PTR_NUMERATOR,
+    DEFAULT_PTR_DENOMINATOR,
+    DEFAULT_PTR_THRESHOLD,
+    0
+};
 
-ClientPtr  clients[MAXCLIENTS];
-ClientPtr  serverClient;
-int  currentMaxClients;   /* current size of clients array */
+ClientPtr clients[MAXCLIENTS];
+ClientPtr serverClient;
+int currentMaxClients;          /* current size of clients array */
 long maxBigRequestSize = MAX_BIG_REQUEST_SIZE;
 
 unsigned long globalSerialNumber = 0;
@@ -90,7 +91,7 @@ unsigned long serverGeneration = 0;
 CARD32 ScreenSaverTime;
 CARD32 ScreenSaverInterval;
 int ScreenSaverBlanking;
-int  ScreenSaverAllowExposures;
+int ScreenSaverAllowExposures;
 
 #ifdef DPMSExtension
 CARD16 DPMSPowerLevel = 0;
@@ -104,8 +105,9 @@ Bool DPMSEnabled;
 
 CARD32 defaultScreenSaverTime = DEFAULT_SCREEN_SAVER_TIME;
 CARD32 defaultScreenSaverInterval = DEFAULT_SCREEN_SAVER_INTERVAL;
-int  defaultScreenSaverBlanking = DEFAULT_SCREEN_SAVER_BLANKING;
-int  defaultScreenSaverAllowExposures = DEFAULT_SCREEN_SAVER_EXPOSURES;
+int defaultScreenSaverBlanking = DEFAULT_SCREEN_SAVER_BLANKING;
+int defaultScreenSaverAllowExposures = DEFAULT_SCREEN_SAVER_EXPOSURES;
+
 #ifdef SCREENSAVER
 Bool screenSaverSuspended = FALSE;
 #endif
@@ -113,14 +115,14 @@ Bool screenSaverSuspended = FALSE;
 char *defaultFontPath = COMPILEDDEFAULTFONTPATH;
 char *defaultTextFont = COMPILEDDEFAULTFONT;
 char *defaultCursorFont = COMPILEDCURSORFONT;
-FontPtr defaultFont;   /* not declared in dix.h to avoid including font.h in
-			every compilation of dix code */
+FontPtr defaultFont;            /* not declared in dix.h to avoid including font.h in
+                                   every compilation of dix code */
 CursorPtr rootCursor;
 Bool party_like_its_1989 = FALSE;
 Bool whiteRoot = FALSE;
 
 TimeStamp currentTime;
-TimeStamp lastDeviceEventTime;
+TimeStamp lastDeviceEventTime[MAXDEVICES];
 
 int defaultColorVisualClass = -1;
 int monitorResolution = 0;

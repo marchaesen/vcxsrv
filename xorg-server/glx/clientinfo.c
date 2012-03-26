@@ -27,22 +27,26 @@
 #include "glxserver.h"
 #include "indirect_dispatch.h"
 
-int __glXDisp_SetClientInfoARB(__GLXclientState *cl, GLbyte *pc)
+int
+__glXDisp_SetClientInfoARB(__GLXclientState * cl, GLbyte * pc)
 {
     return BadRequest;
 }
 
-int __glXDispSwap_SetClientInfoARB(__GLXclientState *cl, GLbyte *pc)
+int
+__glXDispSwap_SetClientInfoARB(__GLXclientState * cl, GLbyte * pc)
 {
     return BadRequest;
 }
 
-int __glXDisp_SetClientInfo2ARB(__GLXclientState *cl, GLbyte *pc)
+int
+__glXDisp_SetClientInfo2ARB(__GLXclientState * cl, GLbyte * pc)
 {
     return BadRequest;
 }
 
-int __glXDispSwap_SetClientInfo2ARB(__GLXclientState *cl, GLbyte *pc)
+int
+__glXDispSwap_SetClientInfo2ARB(__GLXclientState * cl, GLbyte * pc)
 {
     return BadRequest;
 }

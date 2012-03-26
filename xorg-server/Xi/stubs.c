@@ -98,7 +98,7 @@ SetDeviceMode(ClientPtr client, DeviceIntPtr dev, int mode)
 
 int
 SetDeviceValuators(ClientPtr client, DeviceIntPtr dev,
-		   int *valuators, int first_valuator, int num_valuators)
+                   int *valuators, int first_valuator, int num_valuators)
 {
     return BadMatch;
 }
@@ -112,12 +112,10 @@ SetDeviceValuators(ClientPtr client, DeviceIntPtr dev,
  */
 
 int
-ChangeDeviceControl(ClientPtr client, DeviceIntPtr dev,
-		    xDeviceCtl * control)
+ChangeDeviceControl(ClientPtr client, DeviceIntPtr dev, xDeviceCtl * control)
 {
     return BadMatch;
 }
-
 
 /****************************************************************************
  *
@@ -127,7 +125,7 @@ ChangeDeviceControl(ClientPtr client, DeviceIntPtr dev,
  *
  */
 int
-NewInputDeviceRequest(InputOption *options, InputAttributes *attrs,
+NewInputDeviceRequest(InputOption *options, InputAttributes * attrs,
                       DeviceIntPtr *pdev)
 {
     return BadValue;

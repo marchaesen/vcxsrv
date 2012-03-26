@@ -591,58 +591,62 @@
         printk("passed\n");                                                 \
 }
 
-void printk(const char *fmt, ...)
+void
+printk(const char *fmt, ...)
 {
     va_list argptr;
+
     va_start(argptr, fmt);
     vfprintf(stdout, fmt, argptr);
     fflush(stdout);
     va_end(argptr);
 }
 
-char * print_flags(char *buf,ulong flags)
+char *
+print_flags(char *buf, ulong flags)
 {
     char *separator = "";
 
     buf[0] = 0;
     if (flags & F_CF) {
-        strcat(buf,separator);
-        strcat(buf,"CF");
+        strcat(buf, separator);
+        strcat(buf, "CF");
         separator = ",";
-        }
+    }
     if (flags & F_PF) {
-        strcat(buf,separator);
-        strcat(buf,"PF");
+        strcat(buf, separator);
+        strcat(buf, "PF");
         separator = ",";
-        }
+    }
     if (flags & F_AF) {
-        strcat(buf,separator);
-        strcat(buf,"AF");
+        strcat(buf, separator);
+        strcat(buf, "AF");
         separator = ",";
-        }
+    }
     if (flags & F_ZF) {
-        strcat(buf,separator);
-        strcat(buf,"ZF");
+        strcat(buf, separator);
+        strcat(buf, "ZF");
         separator = ",";
-        }
+    }
     if (flags & F_SF) {
-        strcat(buf,separator);
-        strcat(buf,"SF");
+        strcat(buf, separator);
+        strcat(buf, "SF");
         separator = ",";
-        }
+    }
     if (flags & F_OF) {
-        strcat(buf,separator);
-        strcat(buf,"OF");
+        strcat(buf, separator);
+        strcat(buf, "OF");
         separator = ",";
-        }
+    }
     if (separator[0] == 0)
-        strcpy(buf,"None");
+        strcpy(buf, "None");
     return buf;
 }
 
-int main(int argc)
+int
+main(int argc)
 {
-    ulong   def_flags;
+    ulong def_flags;
     int trace = false;
 
     if (argc > 1)

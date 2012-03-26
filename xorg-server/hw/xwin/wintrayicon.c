@@ -42,92 +42,88 @@ static NOTIFYICONDATA nid;
  */
 
 void
-winInitNotifyIcon (winPrivScreenPtr pScreenPriv, Bool Modify)
+winInitNotifyIcon(winPrivScreenPtr pScreenPriv, Bool Modify)
 {
-  winScreenInfo		*pScreenInfo = pScreenPriv->pScreenInfo;
-  char HostName[256];
-  
-  if (!Modify)
-  {
-    nid.cbSize = sizeof (NOTIFYICONDATA);
-    nid.hWnd = pScreenPriv->hwndScreen;
-    nid.uID = pScreenInfo->dwScreen;
-    nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-    nid.uCallbackMessage = WM_TRAYICON;
-    nid.hIcon = winTaskbarIcon ();
+    winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
+    char HostName[256];
 
-    /* Save handle to the icon so it can be freed later */
-    pScreenPriv->hiconNotifyIcon = nid.hIcon;
-  }
+    if (!Modify)
+    {
+        nid.cbSize = sizeof(NOTIFYICONDATA);
+        nid.hWnd = pScreenPriv->hwndScreen;
+        nid.uID = pScreenInfo->dwScreen;
+        nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+        nid.uCallbackMessage = WM_TRAYICON;
+        nid.hIcon = winTaskbarIcon();
 
-  gethostname(HostName,256);
+        /* Save handle to the icon so it can be freed later */
+        pScreenPriv->hiconNotifyIcon = nid.hIcon;
+    }
 
-  /* Set display and screen-specific tooltip text */
-  if (g_pszQueryHost)
-  {
-    snprintf (nid.szTip,
-	    sizeof (nid.szTip),
-	    "%s - %s:%s.%d - %d clients",
-	    g_pszQueryHost,
-	    HostName,
-	    display, 
-	    (int) pScreenInfo->dwScreen,
-            pScreenPriv->iConnectedClients);
-  }
-  else
-  {
-    snprintf (nid.szTip,
-	    sizeof (nid.szTip),
-	    "%s:%s.%d - %d clients",
-	    HostName,
-	    display, 
-	    (int) pScreenInfo->dwScreen,
-            pScreenPriv->iConnectedClients);
-  }
+    gethostname(HostName,256);
 
-  /* Add the tray icon */
-  if (!Shell_NotifyIcon ((Modify) ? NIM_MODIFY : NIM_ADD, &nid))
-    ErrorF ("winInitNotifyIcon - Shell_NotifyIcon Failed\n");
+    /* Set display and screen-specific tooltip text */
+    if (g_pszQueryHost)
+    {
+        snprintf(nid.szTip,
+                 sizeof(nid.szTip),
+                 "%s - %s:%s.%d - %d clients",
+	               g_pszQueryHost,
+	               HostName,
+                 display, 
+                 (int) pScreenInfo->dwScreen,
+                 pScreenPriv->iConnectedClients);
+    }
+    else
+    {
+        snprintf (nid.szTip,
+                  sizeof (nid.szTip),
+                  "%s:%s.%d - %d clients",
+                  HostName,
+                  display, 
+                  (int) pScreenInfo->dwScreen,
+                  pScreenPriv->iConnectedClients);
+    }
+
+    /* Add the tray icon */
+    if (!Shell_NotifyIcon ((Modify) ? NIM_MODIFY : NIM_ADD, &nid))
+        ErrorF("winInitNotifyIcon - Shell_NotifyIcon Failed\n");
 }
-
 
 /*
  * Delete the tray icon
  */
 
 void
-winDeleteNotifyIcon (winPrivScreenPtr pScreenPriv)
+winDeleteNotifyIcon(winPrivScreenPtr pScreenPriv)
 {
-  winScreenInfo		*pScreenInfo = pScreenPriv->pScreenInfo;
-  
-  if (!pScreenPriv->hiconNotifyIcon)
-    return;
-    
-  /* Delete the tray icon */
-  Shell_NotifyIcon (NIM_DELETE, &nid);
+    winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
 
-  /* Free the icon that was loaded */
-  DestroyIcon (pScreenPriv->hiconNotifyIcon);
+    if (!pScreenPriv->hiconNotifyIcon)
+        return;
 
-  pScreenPriv->hiconNotifyIcon = NULL;
+    /* Delete the tray icon */
+    Shell_NotifyIcon (NIM_DELETE, &nid);
+
+    /* Free the icon that was loaded */
+    DestroyIcon (pScreenPriv->hiconNotifyIcon);
+
+    pScreenPriv->hiconNotifyIcon = NULL;
 }
-
 
 /*
  * Process messages intended for the tray icon
  */
 
 LRESULT
-winHandleIconMessage (HWND hwnd, UINT message,
-		      WPARAM wParam, LPARAM lParam,
-		      winPrivScreenPtr pScreenPriv)
+winHandleIconMessage(HWND hwnd, UINT message,
+                     WPARAM wParam, LPARAM lParam, winPrivScreenPtr pScreenPriv)
 {
 #if defined(XWIN_MULTIWINDOWEXTWM) || defined(XWIN_MULTIWINDOW)
-  winScreenInfo		*pScreenInfo = pScreenPriv->pScreenInfo;
+    winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
 #endif
 
-  switch (lParam)
-    {
+    switch (lParam) {
     case WM_MOUSEMOVE:
     {
       static int PrevNrClients;
@@ -140,91 +136,85 @@ winHandleIconMessage (HWND hwnd, UINT message,
     }
     break;
     case WM_LBUTTONUP:
-      /* Restack and bring all windows to top */
-      SetForegroundWindow (hwnd);
+        /* Restack and bring all windows to top */
+        SetForegroundWindow(hwnd);
 
 #ifdef XWIN_MULTIWINDOWEXTWM
-      if (pScreenInfo->fMWExtWM)
-	winMWExtWMRestackWindows (pScreenInfo->pScreen);
+        if (pScreenInfo->fMWExtWM)
+            winMWExtWMRestackWindows(pScreenInfo->pScreen);
 #endif
-      break;
+        break;
 
     case WM_LBUTTONDBLCLK:
-      /* Display Exit dialog box */
-      winDisplayExitDialog (pScreenPriv);
-      break;
+        /* Display Exit dialog box */
+        winDisplayExitDialog(pScreenPriv);
+        break;
 
     case WM_RBUTTONUP:
-      {
-	POINT		ptCursor;
-	HMENU		hmenuPopup;
-	HMENU		hmenuTray;
+    {
+        POINT ptCursor;
+        HMENU hmenuPopup;
+        HMENU hmenuTray;
 
-	/* Get cursor position */
-	GetCursorPos (&ptCursor);
+        /* Get cursor position */
+        GetCursorPos(&ptCursor);
 
-	/* Load tray icon menu resource */
-	hmenuPopup = LoadMenu (g_hInstance,
-			       MAKEINTRESOURCE(IDM_TRAYICON_MENU));
-	if (!hmenuPopup)
-	  ErrorF ("winHandleIconMessage - LoadMenu failed\n");
+        /* Load tray icon menu resource */
+        hmenuPopup = LoadMenu(g_hInstance, MAKEINTRESOURCE(IDM_TRAYICON_MENU));
+        if (!hmenuPopup)
+            ErrorF("winHandleIconMessage - LoadMenu failed\n");
 
-	/* Get actual tray icon menu */
-	hmenuTray = GetSubMenu (hmenuPopup, 0);
+        /* Get actual tray icon menu */
+        hmenuTray = GetSubMenu(hmenuPopup, 0);
 
 #ifdef XWIN_MULTIWINDOW
-	/* Check for MultiWindow mode */
-	if (pScreenInfo->fMultiWindow)
-	  {
-	    MENUITEMINFO		mii = {0};
-	    
-	    /* Root is shown, remove the check box */
-	    
-	    /* Setup menu item info structure */
-	    mii.cbSize = sizeof (MENUITEMINFO);
-	    mii.fMask = MIIM_STATE;
-	    mii.fState = MFS_CHECKED;
-	    
-	    /* Unheck box if root is shown */
-	    if (pScreenPriv->fRootWindowShown)
-	      mii.fState = MFS_UNCHECKED;
+        /* Check for MultiWindow mode */
+        if (pScreenInfo->fMultiWindow) {
+            MENUITEMINFO mii = { 0 };
 
-	    /* Set menu state */
-	    SetMenuItemInfo (hmenuTray, ID_APP_HIDE_ROOT, FALSE, &mii);
-	  }
-	else
+            /* Root is shown, remove the check box */
+
+            /* Setup menu item info structure */
+            mii.cbSize = sizeof(MENUITEMINFO);
+            mii.fMask = MIIM_STATE;
+            mii.fState = MFS_CHECKED;
+
+            /* Unheck box if root is shown */
+            if (pScreenPriv->fRootWindowShown)
+                mii.fState = MFS_UNCHECKED;
+
+            /* Set menu state */
+            SetMenuItemInfo(hmenuTray, ID_APP_HIDE_ROOT, FALSE, &mii);
+        }
+        else
 #endif
-	  {
-	    /* Remove Hide Root Window button */
-	    RemoveMenu (hmenuTray,
-			ID_APP_HIDE_ROOT,
-			MF_BYCOMMAND);
-	  }
+        {
+            /* Remove Hide Root Window button */
+            RemoveMenu(hmenuTray, ID_APP_HIDE_ROOT, MF_BYCOMMAND);
+        }
 
-	SetupRootMenu ((unsigned long)hmenuTray);
+        SetupRootMenu((unsigned long) hmenuTray);
 
-	/*
-	 * NOTE: This three-step procedure is required for
-	 * proper popup menu operation.  Without the
-	 * call to SetForegroundWindow the
-	 * popup menu will often not disappear when you click
-	 * outside of it.  Without the PostMessage the second
-	 * time you display the popup menu it might immediately
-	 * disappear.
-	 */
-	SetForegroundWindow (hwnd);
-	TrackPopupMenuEx (hmenuTray,
-			  TPM_LEFTALIGN | TPM_BOTTOMALIGN | TPM_RIGHTBUTTON,
-			  ptCursor.x, ptCursor.y,
-			  hwnd,
-			  NULL);
-	PostMessage (hwnd, WM_NULL, 0, 0);
+        /*
+         * NOTE: This three-step procedure is required for
+         * proper popup menu operation.  Without the
+         * call to SetForegroundWindow the
+         * popup menu will often not disappear when you click
+         * outside of it.  Without the PostMessage the second
+         * time you display the popup menu it might immediately
+         * disappear.
+         */
+        SetForegroundWindow(hwnd);
+        TrackPopupMenuEx(hmenuTray,
+                         TPM_LEFTALIGN | TPM_BOTTOMALIGN | TPM_RIGHTBUTTON,
+                         ptCursor.x, ptCursor.y, hwnd, NULL);
+        PostMessage(hwnd, WM_NULL, 0, 0);
 
-	/* Free menu */
-	DestroyMenu (hmenuPopup);
-      }
-      break;
+        /* Free menu */
+        DestroyMenu(hmenuPopup);
+    }
+        break;
     }
 
-  return 0;
+    return 0;
 }

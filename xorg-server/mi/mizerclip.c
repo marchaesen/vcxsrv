@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -362,18 +361,18 @@ the numerator is therefore (2^32 - 1), which does not overflow an unsigned
 /* Bit codes for the terms of the 16 clipping equations defined below. */
 
 #define T_2NDX		(1 << 0)
-#define T_2MDY		(0)				/* implicit term */
+#define T_2MDY		(0)     /* implicit term */
 #define T_DXNOTY	(1 << 1)
-#define T_DYNOTX	(0)				/* implicit term */
+#define T_DYNOTX	(0)     /* implicit term */
 #define T_SUBDXORY	(1 << 2)
-#define T_ADDDX		(T_DXNOTY)			/* composite term */
-#define T_SUBDX		(T_DXNOTY | T_SUBDXORY)		/* composite term */
-#define T_ADDDY		(T_DYNOTX)			/* composite term */
-#define T_SUBDY		(T_DYNOTX | T_SUBDXORY)		/* composite term */
+#define T_ADDDX		(T_DXNOTY)      /* composite term */
+#define T_SUBDX		(T_DXNOTY | T_SUBDXORY) /* composite term */
+#define T_ADDDY		(T_DYNOTX)      /* composite term */
+#define T_SUBDY		(T_DYNOTX | T_SUBDXORY) /* composite term */
 #define T_BIASSUBONE	(1 << 3)
-#define T_SUBBIAS	(0)				/* implicit term */
+#define T_SUBBIAS	(0)     /* implicit term */
 #define T_DIV2DX	(1 << 4)
-#define T_DIV2DY	(0)				/* implicit term */
+#define T_DIV2DY	(0)     /* implicit term */
 #define T_ADDONE	(1 << 5)
 
 /* Bit masks defining the 16 equations used in miZeroClipLine. */
@@ -409,8 +408,7 @@ miZeroClipLine(int xmin, int ymin, int xmax, int ymax,
                int *new_x1, int *new_y1, int *new_x2, int *new_y2,
                unsigned int adx, unsigned int ady,
                int *pt1_clipped, int *pt2_clipped,
-               int octant, unsigned int bias,
-               int oc1, int oc2)
+               int octant, unsigned int bias, int oc1, int oc2)
 {
     int swapped = 0;
     int clipDone = 0;
@@ -433,188 +431,174 @@ miZeroClipLine(int xmin, int ymin, int xmax, int ymax,
     xmajor = IsXMajorOctant(octant);
     bias = ((bias >> octant) & 1);
 
-    while (1)
-    {
-        if ((oc1 & oc2) != 0)			/* trivial reject */
-	{
-	    clipDone = -1;
-	    clip1 = oc1;
-	    clip2 = oc2;
-	    break;
-	}
-        else if ((oc1 | oc2) == 0)		/* trivial accept */
-        {
-	    clipDone = 1;
-	    if (swapped)
-	    {
-	        SWAPINT_PAIR(x1, y1, x2, y2);
-	        SWAPINT(clip1, clip2);
-	    }
-	    break;
+    while (1) {
+        if ((oc1 & oc2) != 0) { /* trivial reject */
+            clipDone = -1;
+            clip1 = oc1;
+            clip2 = oc2;
+            break;
         }
-        else			/* have to clip */
-        {
-	    /* only clip one point at a time */
-	    if (oc1 == 0)
-	    {
-	        SWAPINT_PAIR(x1, y1, x2, y2);
-	        SWAPINT_PAIR(x1_orig, y1_orig, x2_orig, y2_orig);
-	        SWAPINT(oc1, oc2);
-	        SWAPINT(clip1, clip2);
-	        swapped = !swapped;
-	    }
-    
-	    clip1 |= oc1;
-	    if (oc1 & OUT_LEFT)
-	    {
-		negslope = IsYDecreasingOctant(octant);
-		utmp = xmin - x1_orig;
-		if (utmp <= 32767)		/* clip based on near endpt */
-		{
-		    if (xmajor)
-			eqn = (swapped) ? EQN2 : EQN1;
-		    else
-			eqn = (swapped) ? EQN4 : EQN3;
-		    anchorval = y1_orig;
-		}
-		else				/* clip based on far endpt */
-		{
-		    utmp = x2_orig - xmin;
-		    if (xmajor)
-			eqn = (swapped) ? EQN1B : EQN2B;
-		    else
-			eqn = (swapped) ? EQN3B : EQN4B;
-		    anchorval = y2_orig;
-		    negslope = !negslope;
-		}
-		x1 = xmin;
-	    }
-	    else if (oc1 & OUT_ABOVE)
-	    {
-		negslope = IsXDecreasingOctant(octant);
-		utmp = ymin - y1_orig;
-		if (utmp <= 32767)		/* clip based on near endpt */
-		{
-		    if (xmajor)
-			eqn = (swapped) ? EQN6 : EQN5;
-		    else
-			eqn = (swapped) ? EQN8 : EQN7;
-		    anchorval = x1_orig;
-		}
-		else				/* clip based on far endpt */
-		{
-		    utmp = y2_orig - ymin;
-		    if (xmajor)
-			eqn = (swapped) ? EQN5B : EQN6B;
-		    else
-			eqn = (swapped) ? EQN7B : EQN8B;
-		    anchorval = x2_orig;
-		    negslope = !negslope;
-		}
-		y1 = ymin;
-	    }
-	    else if (oc1 & OUT_RIGHT)
-	    {
-		negslope = IsYDecreasingOctant(octant);
-		utmp = x1_orig - xmax;
-		if (utmp <= 32767)		/* clip based on near endpt */
-		{
-		    if (xmajor)
-			eqn = (swapped) ? EQN2 : EQN1;
-		    else
-			eqn = (swapped) ? EQN4 : EQN3;
-		    anchorval = y1_orig;
-		}
-		else				/* clip based on far endpt */
-		{
-		    /*
-		     * Technically since the equations can handle
-		     * utmp == 32768, this overflow code isn't
-		     * needed since X11 protocol can't generate
-		     * a line which goes more than 32768 pixels
-		     * to the right of a clip rectangle.
-		     */
-		    utmp = xmax - x2_orig;
-		    if (xmajor)
-			eqn = (swapped) ? EQN1B : EQN2B;
-		    else
-			eqn = (swapped) ? EQN3B : EQN4B;
-		    anchorval = y2_orig;
-		    negslope = !negslope;
-		}
-		x1 = xmax;
-	    }
-	    else if (oc1 & OUT_BELOW)
-	    {
-		negslope = IsXDecreasingOctant(octant);
-		utmp = y1_orig - ymax;
-		if (utmp <= 32767)		/* clip based on near endpt */
-		{
-		    if (xmajor)
-			eqn = (swapped) ? EQN6 : EQN5;
-		    else
-			eqn = (swapped) ? EQN8 : EQN7;
-		    anchorval = x1_orig;
-		}
-		else				/* clip based on far endpt */
-		{
-		    /*
-		     * Technically since the equations can handle
-		     * utmp == 32768, this overflow code isn't
-		     * needed since X11 protocol can't generate
-		     * a line which goes more than 32768 pixels
-		     * below the bottom of a clip rectangle.
-		     */
-		    utmp = ymax - y2_orig;
-		    if (xmajor)
-			eqn = (swapped) ? EQN5B : EQN6B;
-		    else
-			eqn = (swapped) ? EQN7B : EQN8B;
-		    anchorval = x2_orig;
-		    negslope = !negslope;
-		}
-		y1 = ymax;
-	    }
+        else if ((oc1 | oc2) == 0) {    /* trivial accept */
+            clipDone = 1;
+            if (swapped) {
+                SWAPINT_PAIR(x1, y1, x2, y2);
+                SWAPINT(clip1, clip2);
+            }
+            break;
+        }
+        else {                  /* have to clip */
 
-	    if (swapped)
-		negslope = !negslope;
+            /* only clip one point at a time */
+            if (oc1 == 0) {
+                SWAPINT_PAIR(x1, y1, x2, y2);
+                SWAPINT_PAIR(x1_orig, y1_orig, x2_orig, y2_orig);
+                SWAPINT(oc1, oc2);
+                SWAPINT(clip1, clip2);
+                swapped = !swapped;
+            }
 
-	    utmp <<= 1;			/* utmp = 2N or 2M */
-	    if (eqn & T_2NDX)
-		utmp = (utmp * adx);
-	    else /* (eqn & T_2MDY) */
-		utmp = (utmp * ady);
-	    if (eqn & T_DXNOTY)
-		if (eqn & T_SUBDXORY)
-		    utmp -= adx;
-		else
-		    utmp += adx;
-	    else /* (eqn & T_DYNOTX) */
-		if (eqn & T_SUBDXORY)
-		    utmp -= ady;
-		else
-		    utmp += ady;
-	    if (eqn & T_BIASSUBONE)
-		utmp += bias - 1;
-	    else /* (eqn & T_SUBBIAS) */
-		utmp -= bias;
-	    if (eqn & T_DIV2DX)
-		utmp /= (adx << 1);
-	    else /* (eqn & T_DIV2DY) */
-		utmp /= (ady << 1);
-	    if (eqn & T_ADDONE)
-		utmp++;
+            clip1 |= oc1;
+            if (oc1 & OUT_LEFT) {
+                negslope = IsYDecreasingOctant(octant);
+                utmp = xmin - x1_orig;
+                if (utmp <= 32767) {    /* clip based on near endpt */
+                    if (xmajor)
+                        eqn = (swapped) ? EQN2 : EQN1;
+                    else
+                        eqn = (swapped) ? EQN4 : EQN3;
+                    anchorval = y1_orig;
+                }
+                else {          /* clip based on far endpt */
 
-	    if (negslope)
-		utmp = -utmp;
+                    utmp = x2_orig - xmin;
+                    if (xmajor)
+                        eqn = (swapped) ? EQN1B : EQN2B;
+                    else
+                        eqn = (swapped) ? EQN3B : EQN4B;
+                    anchorval = y2_orig;
+                    negslope = !negslope;
+                }
+                x1 = xmin;
+            }
+            else if (oc1 & OUT_ABOVE) {
+                negslope = IsXDecreasingOctant(octant);
+                utmp = ymin - y1_orig;
+                if (utmp <= 32767) {    /* clip based on near endpt */
+                    if (xmajor)
+                        eqn = (swapped) ? EQN6 : EQN5;
+                    else
+                        eqn = (swapped) ? EQN8 : EQN7;
+                    anchorval = x1_orig;
+                }
+                else {          /* clip based on far endpt */
 
-	    if (eqn & T_2NDX)	/* We are calculating X steps */
-		x1 = anchorval + utmp;
-	    else		/* else, Y steps */
-		y1 = anchorval + utmp;
+                    utmp = y2_orig - ymin;
+                    if (xmajor)
+                        eqn = (swapped) ? EQN5B : EQN6B;
+                    else
+                        eqn = (swapped) ? EQN7B : EQN8B;
+                    anchorval = x2_orig;
+                    negslope = !negslope;
+                }
+                y1 = ymin;
+            }
+            else if (oc1 & OUT_RIGHT) {
+                negslope = IsYDecreasingOctant(octant);
+                utmp = x1_orig - xmax;
+                if (utmp <= 32767) {    /* clip based on near endpt */
+                    if (xmajor)
+                        eqn = (swapped) ? EQN2 : EQN1;
+                    else
+                        eqn = (swapped) ? EQN4 : EQN3;
+                    anchorval = y1_orig;
+                }
+                else {          /* clip based on far endpt */
 
-	    oc1 = 0;
-	    MIOUTCODES(oc1, x1, y1, xmin, ymin, xmax, ymax);
+                    /*
+                     * Technically since the equations can handle
+                     * utmp == 32768, this overflow code isn't
+                     * needed since X11 protocol can't generate
+                     * a line which goes more than 32768 pixels
+                     * to the right of a clip rectangle.
+                     */
+                    utmp = xmax - x2_orig;
+                    if (xmajor)
+                        eqn = (swapped) ? EQN1B : EQN2B;
+                    else
+                        eqn = (swapped) ? EQN3B : EQN4B;
+                    anchorval = y2_orig;
+                    negslope = !negslope;
+                }
+                x1 = xmax;
+            }
+            else if (oc1 & OUT_BELOW) {
+                negslope = IsXDecreasingOctant(octant);
+                utmp = y1_orig - ymax;
+                if (utmp <= 32767) {    /* clip based on near endpt */
+                    if (xmajor)
+                        eqn = (swapped) ? EQN6 : EQN5;
+                    else
+                        eqn = (swapped) ? EQN8 : EQN7;
+                    anchorval = x1_orig;
+                }
+                else {          /* clip based on far endpt */
+
+                    /*
+                     * Technically since the equations can handle
+                     * utmp == 32768, this overflow code isn't
+                     * needed since X11 protocol can't generate
+                     * a line which goes more than 32768 pixels
+                     * below the bottom of a clip rectangle.
+                     */
+                    utmp = ymax - y2_orig;
+                    if (xmajor)
+                        eqn = (swapped) ? EQN5B : EQN6B;
+                    else
+                        eqn = (swapped) ? EQN7B : EQN8B;
+                    anchorval = x2_orig;
+                    negslope = !negslope;
+                }
+                y1 = ymax;
+            }
+
+            if (swapped)
+                negslope = !negslope;
+
+            utmp <<= 1;         /* utmp = 2N or 2M */
+            if (eqn & T_2NDX)
+                utmp = (utmp * adx);
+            else                /* (eqn & T_2MDY) */
+                utmp = (utmp * ady);
+            if (eqn & T_DXNOTY)
+                if (eqn & T_SUBDXORY)
+                    utmp -= adx;
+                else
+                    utmp += adx;
+            else /* (eqn & T_DYNOTX) */ if (eqn & T_SUBDXORY)
+                utmp -= ady;
+            else
+                utmp += ady;
+            if (eqn & T_BIASSUBONE)
+                utmp += bias - 1;
+            else                /* (eqn & T_SUBBIAS) */
+                utmp -= bias;
+            if (eqn & T_DIV2DX)
+                utmp /= (adx << 1);
+            else                /* (eqn & T_DIV2DY) */
+                utmp /= (ady << 1);
+            if (eqn & T_ADDONE)
+                utmp++;
+
+            if (negslope)
+                utmp = -utmp;
+
+            if (eqn & T_2NDX)   /* We are calculating X steps */
+                x1 = anchorval + utmp;
+            else                /* else, Y steps */
+                y1 = anchorval + utmp;
+
+            oc1 = 0;
+            MIOUTCODES(oc1, x1, y1, xmin, ymin, xmax, ymax);
         }
     }
 
@@ -622,7 +606,7 @@ miZeroClipLine(int xmin, int ymin, int xmax, int ymax,
     *new_y1 = y1;
     *new_x2 = x2;
     *new_y2 = y2;
-    
+
     *pt1_clipped = clip1;
     *pt2_clipped = clip2;
 
