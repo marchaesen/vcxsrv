@@ -1,29 +1,29 @@
 /**************************************************************************
 
-Copyright 1998-1999 Precision Insight, Inc., Cedar Park, Texas.
-Copyright 2000 VA Linux Systems, Inc.
-Copyright (c) 2002, 2009 Apple Computer, Inc.
-All Rights Reserved.
+   Copyright 1998-1999 Precision Insight, Inc., Cedar Park, Texas.
+   Copyright 2000 VA Linux Systems, Inc.
+   Copyright (c) 2002-2012 Apple Computer, Inc.
+   All Rights Reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sub license, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sub license, and/or sell copies of the Software, and to
+   permit persons to whom the Software is furnished to do so, subject to
+   the following conditions:
 
-The above copyright notice and this permission notice (including the
-next paragraph) shall be included in all copies or substantial portions
-of the Software.
+   The above copyright notice and this permission notice (including the
+   next paragraph) shall be included in all copies or substantial portions
+   of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
-IN NO EVENT SHALL PRECISION INSIGHT AND/OR ITS SUPPLIERS BE LIABLE FOR
-ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+   IN NO EVENT SHALL PRECISION INSIGHT AND/OR ITS SUPPLIERS BE LIABLE FOR
+   ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 **************************************************************************/
 
@@ -31,7 +31,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * Authors:
  *   Jens Owen <jens@valinux.com>
  *   Rickard E. (Rik) Faith <faith@valinux.com>
- *
+ *   Jeremy Huddleston <jeremyhu@apple.com>
  */
 
 #ifdef HAVE_DIX_CONFIG_H
@@ -75,23 +75,20 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <AvailabilityMacros.h>
 
 static DevPrivateKeyRec DRIScreenPrivKeyRec;
-
-#define DRIScreenPrivKey (&DRIScreenPrivKeyRec)
+#define DRIScreenPrivKey       (&DRIScreenPrivKeyRec)
 static DevPrivateKeyRec DRIWindowPrivKeyRec;
-
-#define DRIWindowPrivKey (&DRIWindowPrivKeyRec)
+#define DRIWindowPrivKey       (&DRIWindowPrivKeyRec)
 static DevPrivateKeyRec DRIPixmapPrivKeyRec;
-
-#define DRIPixmapPrivKey (&DRIPixmapPrivKeyRec)
+#define DRIPixmapPrivKey       (&DRIPixmapPrivKeyRec)
 static DevPrivateKeyRec DRIPixmapBufferPrivKeyRec;
-
 #define DRIPixmapBufferPrivKey (&DRIPixmapBufferPrivKeyRec)
 
 static RESTYPE DRIDrawablePrivResType;
 
 static x_hash_table *surface_hash;      /* maps surface ids -> drawablePrivs */
 
-static Bool DRIFreePixmapImp(DrawablePtr pDrawable);
+static Bool
+DRIFreePixmapImp(DrawablePtr pDrawable);
 
 typedef struct {
     DrawablePtr pDrawable;
@@ -100,8 +97,8 @@ typedef struct {
     int width;
     int height;
     char shmPath[PATH_MAX];
-    int fd;                     /* From shm_open (for now) */
-    size_t length;              /* length of buffer */
+    int fd; /* From shm_open (for now) */
+    size_t length; /* length of buffer */
     void *buffer;
 } DRIPixmapBuffer, *DRIPixmapBufferPtr;
 
@@ -120,7 +117,7 @@ DRIScreenInit(ScreenPtr pScreen)
     if (!dixRegisterPrivateKey(&DRIPixmapBufferPrivKeyRec, PRIVATE_PIXMAP, 0))
         return FALSE;
 
-    pDRIPriv = (DRIScreenPrivPtr) calloc(1, sizeof(DRIScreenPrivRec));
+    pDRIPriv = (DRIScreenPrivPtr)calloc(1, sizeof(DRIScreenPrivRec));
     if (!pDRIPriv) {
         dixSetPrivate(&pScreen->devPrivates, DRIScreenPrivKey, NULL);
         return FALSE;
@@ -197,7 +194,7 @@ DRIReset(void)
 }
 
 Bool
-DRIQueryDirectRenderingCapable(ScreenPtr pScreen, Bool *isCapable)
+DRIQueryDirectRenderingCapable(ScreenPtr pScreen, Bool* isCapable)
 {
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
@@ -217,8 +214,7 @@ DRIAuthConnection(ScreenPtr pScreen, unsigned int magic)
 
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
-    if (drmAuthMagic(pDRIPriv->drmFD, magic))
-        return FALSE;
+    if (drmAuthMagic(pDRIPriv->drmFD, magic)) return FALSE;
 #endif
     return TRUE;
 }
@@ -240,7 +236,7 @@ DRIUpdateSurface(DRIDrawablePrivPtr pDRIDrawablePriv, DrawablePtr pDraw)
 #endif
 
     if (pDraw->type == DRAWABLE_WINDOW) {
-        WindowPtr pWin = (WindowPtr) pDraw;
+        WindowPtr pWin = (WindowPtr)pDraw;
         WindowPtr pTopWin = TopLevelParent(pWin);
 
         wc.x = pWin->drawable.x - (pTopWin->drawable.x - pTopWin->borderWidth);
@@ -271,7 +267,8 @@ DRIUpdateSurface(DRIDrawablePrivPtr pDRIDrawablePriv, DrawablePtr pDraw)
 
 /* Return NULL if an error occurs. */
 static DRIDrawablePrivPtr
-CreateSurfaceForWindow(ScreenPtr pScreen, WindowPtr pWin, xp_window_id * widPtr)
+CreateSurfaceForWindow(ScreenPtr pScreen, WindowPtr pWin,
+                       xp_window_id *widPtr)
 {
     DRIDrawablePrivPtr pDRIDrawablePriv;
     xp_window_id wid = 0;
@@ -289,7 +286,7 @@ CreateSurfaceForWindow(ScreenPtr pScreen, WindowPtr pWin, xp_window_id * widPtr)
             return NULL;
         }
 
-        pDRIDrawablePriv->pDraw = (DrawablePtr) pWin;
+        pDRIDrawablePriv->pDraw = (DrawablePtr)pWin;
         pDRIDrawablePriv->pScreen = pScreen;
         pDRIDrawablePriv->refCount = 0;
         pDRIDrawablePriv->drawableIndex = -1;
@@ -323,7 +320,8 @@ CreateSurfaceForWindow(ScreenPtr pScreen, WindowPtr pWin, xp_window_id * widPtr)
         }
 
         /* save private off of preallocated index */
-        dixSetPrivate(&pWin->devPrivates, DRIWindowPrivKey, pDRIDrawablePriv);
+        dixSetPrivate(&pWin->devPrivates, DRIWindowPrivKey,
+                      pDRIDrawablePriv);
     }
 
     *widPtr = wid;
@@ -347,7 +345,7 @@ CreateSurfaceForPixmap(ScreenPtr pScreen, PixmapPtr pPix)
             return NULL;
         }
 
-        pDRIDrawablePriv->pDraw = (DrawablePtr) pPix;
+        pDRIDrawablePriv->pDraw = (DrawablePtr)pPix;
         pDRIDrawablePriv->pScreen = pScreen;
         pDRIDrawablePriv->refCount = 0;
         pDRIDrawablePriv->drawableIndex = -1;
@@ -362,13 +360,14 @@ CreateSurfaceForPixmap(ScreenPtr pScreen, PixmapPtr pPix)
             return NULL;
         }
 
-        /* 
+        /*
          * The DRIUpdateSurface will be called to resize the surface
          * after this function, if the export is successful.
          */
 
         /* save private off of preallocated index */
-        dixSetPrivate(&pPix->devPrivates, DRIPixmapPrivKey, pDRIDrawablePriv);
+        dixSetPrivate(&pPix->devPrivates, DRIPixmapPrivKey,
+                      pDRIDrawablePriv);
     }
 
     return pDRIDrawablePriv;
@@ -377,8 +376,8 @@ CreateSurfaceForPixmap(ScreenPtr pScreen, PixmapPtr pPix)
 Bool
 DRICreateSurface(ScreenPtr pScreen, Drawable id,
                  DrawablePtr pDrawable, xp_client_id client_id,
-                 xp_surface_id * surface_id, unsigned int ret_key[2],
-                 void (*notify) (void *arg, void *data), void *notify_data)
+                 xp_surface_id *surface_id, unsigned int ret_key[2],
+                 void (*notify)(void *arg, void *data), void *notify_data)
 {
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
     xp_window_id wid = 0;
@@ -386,18 +385,18 @@ DRICreateSurface(ScreenPtr pScreen, Drawable id,
 
     if (pDrawable->type == DRAWABLE_WINDOW) {
         pDRIDrawablePriv = CreateSurfaceForWindow(pScreen,
-                                                  (WindowPtr) pDrawable, &wid);
+                                                  (WindowPtr)pDrawable, &wid);
 
         if (NULL == pDRIDrawablePriv)
-            return FALSE;       /*error */
+            return FALSE;  /*error*/
     }
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= 1030
     else if (pDrawable->type == DRAWABLE_PIXMAP) {
         pDRIDrawablePriv = CreateSurfaceForPixmap(pScreen,
-                                                  (PixmapPtr) pDrawable);
+                                                  (PixmapPtr)pDrawable);
 
         if (NULL == pDRIDrawablePriv)
-            return FALSE;       /*error */
+            return FALSE;  /*error*/
     }
 #endif
     else {
@@ -413,25 +412,26 @@ DRICreateSurface(ScreenPtr pScreen, Drawable id,
         /* try to give the client access to the surface */
         if (client_id != 0) {
             /*
-             * Xplugin accepts a 0 wid if the surface id is offscreen, such 
+             * Xplugin accepts a 0 wid if the surface id is offscreen, such
              * as for a pixmap.
              */
-            err = xp_export_surface(wid, pDRIDrawablePriv->sid, client_id, key);
+            err = xp_export_surface(wid, pDRIDrawablePriv->sid,
+                                    client_id, key);
             if (err != Success) {
                 xp_destroy_surface(pDRIDrawablePriv->sid);
                 free(pDRIDrawablePriv);
 
-                /* 
+                /*
                  * Now set the dix privates to NULL that were previously set.
                  * This prevents reusing an invalid pointer.
                  */
                 if (pDrawable->type == DRAWABLE_WINDOW) {
-                    WindowPtr pWin = (WindowPtr) pDrawable;
+                    WindowPtr pWin = (WindowPtr)pDrawable;
 
                     dixSetPrivate(&pWin->devPrivates, DRIWindowPrivKey, NULL);
                 }
                 else if (pDrawable->type == DRAWABLE_PIXMAP) {
-                    PixmapPtr pPix = (PixmapPtr) pDrawable;
+                    PixmapPtr pPix = (PixmapPtr)pDrawable;
 
                     dixSetPrivate(&pPix->devPrivates, DRIPixmapPrivKey, NULL);
                 }
@@ -449,11 +449,11 @@ DRICreateSurface(ScreenPtr pScreen, Drawable id,
         if (surface_hash == NULL)
             surface_hash = x_hash_table_new(NULL, NULL, NULL, NULL);
         x_hash_table_insert(surface_hash,
-                            x_cvt_uint_to_vptr(pDRIDrawablePriv->sid),
-                            pDRIDrawablePriv);
+                            x_cvt_uint_to_vptr(
+                                pDRIDrawablePriv->sid), pDRIDrawablePriv);
 
         /* track this in case this window is destroyed */
-        AddResource(id, DRIDrawablePrivResType, (pointer) pDrawable);
+        AddResource(id, DRIDrawablePrivResType, (pointer)pDrawable);
 
         /* Initialize shape */
         DRIUpdateSurface(pDRIDrawablePriv, pDrawable);
@@ -478,15 +478,15 @@ DRICreateSurface(ScreenPtr pScreen, Drawable id,
 
 Bool
 DRIDestroySurface(ScreenPtr pScreen, Drawable id, DrawablePtr pDrawable,
-                  void (*notify) (void *, void *), void *notify_data)
+                  void (*notify)(void *, void *), void *notify_data)
 {
     DRIDrawablePrivPtr pDRIDrawablePriv;
 
     if (pDrawable->type == DRAWABLE_WINDOW) {
-        pDRIDrawablePriv = DRI_DRAWABLE_PRIV_FROM_WINDOW((WindowPtr) pDrawable);
+        pDRIDrawablePriv = DRI_DRAWABLE_PRIV_FROM_WINDOW((WindowPtr)pDrawable);
     }
     else if (pDrawable->type == DRAWABLE_PIXMAP) {
-        pDRIDrawablePriv = DRI_DRAWABLE_PRIV_FROM_PIXMAP((PixmapPtr) pDrawable);
+        pDRIDrawablePriv = DRI_DRAWABLE_PRIV_FROM_PIXMAP((PixmapPtr)pDrawable);
     }
     else {
         return FALSE;
@@ -498,13 +498,14 @@ DRIDestroySurface(ScreenPtr pScreen, Drawable id, DrawablePtr pDrawable,
          */
 
         if (notify != NULL) {
-            pDRIDrawablePriv->notifiers =
-                x_hook_remove(pDRIDrawablePriv->notifiers, notify, notify_data);
+            pDRIDrawablePriv->notifiers = x_hook_remove(
+                pDRIDrawablePriv->notifiers,
+                notify, notify_data);
         }
 
         --pDRIDrawablePriv->refCount;
 
-        /* 
+        /*
          * Check if the drawable privates still have a reference to the
          * surface.
          */
@@ -512,7 +513,7 @@ DRIDestroySurface(ScreenPtr pScreen, Drawable id, DrawablePtr pDrawable,
         if (pDRIDrawablePriv->refCount <= 0) {
             /*
              * This calls back to DRIDrawablePrivDelete which
-             * frees the private area and dispatches events, if needed. 
+             * frees the private area and dispatches events, if needed.
              */
             FreeResourceByType(id, DRIDrawablePrivResType, FALSE);
         }
@@ -521,30 +522,30 @@ DRIDestroySurface(ScreenPtr pScreen, Drawable id, DrawablePtr pDrawable,
     return TRUE;
 }
 
-/* 
+/*
  * The assumption is that this is called when the refCount of a surface
- * drops to <= 0, or the window/pixmap is destroyed.  
+ * drops to <= 0, or the window/pixmap is destroyed.
  */
 Bool
 DRIDrawablePrivDelete(pointer pResource, XID id)
 {
-    DrawablePtr pDrawable = (DrawablePtr) pResource;
+    DrawablePtr pDrawable = (DrawablePtr)pResource;
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pDrawable->pScreen);
     DRIDrawablePrivPtr pDRIDrawablePriv = NULL;
     WindowPtr pWin = NULL;
     PixmapPtr pPix = NULL;
 
     if (pDrawable->type == DRAWABLE_WINDOW) {
-        pWin = (WindowPtr) pDrawable;
+        pWin = (WindowPtr)pDrawable;
         pDRIDrawablePriv = DRI_DRAWABLE_PRIV_FROM_WINDOW(pWin);
     }
     else if (pDrawable->type == DRAWABLE_PIXMAP) {
-        pPix = (PixmapPtr) pDrawable;
+        pPix = (PixmapPtr)pDrawable;
         pDRIDrawablePriv = DRI_DRAWABLE_PRIV_FROM_PIXMAP(pPix);
     }
 
     if (pDRIDrawablePriv == NULL) {
-        /* 
+        /*
          * We reuse __func__ and the resource type for the GLXPixmap code.
          * Attempt to free a pixmap buffer associated with the resource
          * if possible.
@@ -558,7 +559,8 @@ DRIDrawablePrivDelete(pointer pResource, XID id)
     }
 
     if (pDRIDrawablePriv->sid != 0) {
-        DRISurfaceNotify(pDRIDrawablePriv->sid, AppleDRISurfaceNotifyDestroyed);
+        DRISurfaceNotify(pDRIDrawablePriv->sid,
+                         AppleDRISurfaceNotifyDestroyed);
     }
 
     if (pDRIDrawablePriv->notifiers != NULL)
@@ -591,7 +593,7 @@ DRIWindowExposures(WindowPtr pWin, RegionPtr prgn, RegionPtr bsreg)
 
     pScreen->WindowExposures = pDRIPriv->wrap.WindowExposures;
 
-    (*pScreen->WindowExposures) (pWin, prgn, bsreg);
+    (*pScreen->WindowExposures)(pWin, prgn, bsreg);
 
     pScreen->WindowExposures = DRIWindowExposures;
 }
@@ -614,7 +616,7 @@ DRICopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
     pScreen->CopyWindow = pDRIPriv->wrap.CopyWindow;
 
     /* call lower layers */
-    (*pScreen->CopyWindow) (pWin, ptOldOrg, prgnSrc);
+    (*pScreen->CopyWindow)(pWin, ptOldOrg, prgnSrc);
 
     /* rewrap */
     pScreen->CopyWindow = DRICopyWindow;
@@ -631,7 +633,7 @@ DRIValidateTree(WindowPtr pParent, WindowPtr pChild, VTKind kind)
     pScreen->ValidateTree = pDRIPriv->wrap.ValidateTree;
 
     /* call lower layers */
-    returnValue = (*pScreen->ValidateTree) (pParent, pChild, kind);
+    returnValue = (*pScreen->ValidateTree)(pParent, pChild, kind);
 
     /* rewrap */
     pScreen->ValidateTree = DRIValidateTree;
@@ -658,7 +660,7 @@ DRIPostValidateTree(WindowPtr pParent, WindowPtr pChild, VTKind kind)
         pScreen->PostValidateTree = pDRIPriv->wrap.PostValidateTree;
 
         /* call lower layers */
-        (*pScreen->PostValidateTree) (pParent, pChild, kind);
+        (*pScreen->PostValidateTree)(pParent, pChild, kind);
 
         /* rewrap */
         pScreen->PostValidateTree = DRIPostValidateTree;
@@ -679,7 +681,7 @@ DRIClipNotify(WindowPtr pWin, int dx, int dy)
     if (pDRIPriv->wrap.ClipNotify) {
         pScreen->ClipNotify = pDRIPriv->wrap.ClipNotify;
 
-        (*pScreen->ClipNotify) (pWin, dx, dy);
+        (*pScreen->ClipNotify)(pWin, dx, dy);
 
         pScreen->ClipNotify = DRIClipNotify;
     }
@@ -696,14 +698,16 @@ DRIGetWrappedFuncs(ScreenPtr pScreen)
 }
 
 void
-DRIQueryVersion(int *majorVersion, int *minorVersion, int *patchVersion)
+DRIQueryVersion(int *majorVersion,
+                int *minorVersion,
+                int *patchVersion)
 {
     *majorVersion = APPLE_DRI_MAJOR_VERSION;
     *minorVersion = APPLE_DRI_MINOR_VERSION;
     *patchVersion = APPLE_DRI_PATCH_VERSION;
 }
 
-/* 
+/*
  * Note: this also cleans up the hash table in addition to notifying clients.
  * The sid/surface-id should not be used after this, because it will be
  * invalid.
@@ -753,7 +757,8 @@ DRISurfaceNotify(xp_surface_id id, int kind)
  */
 Bool
 DRICreatePixmap(ScreenPtr pScreen, Drawable id,
-                DrawablePtr pDrawable, char *path, size_t pathmax)
+                DrawablePtr pDrawable, char *path,
+                size_t pathmax)
 {
     DRIPixmapBufferPtr shared;
     PixmapPtr pPix;
@@ -761,7 +766,7 @@ DRICreatePixmap(ScreenPtr pScreen, Drawable id,
     if (pDrawable->type != DRAWABLE_PIXMAP)
         return FALSE;
 
-    pPix = (PixmapPtr) pDrawable;
+    pPix = (PixmapPtr)pDrawable;
 
     shared = malloc(sizeof(*shared));
     if (NULL == shared) {
@@ -782,7 +787,8 @@ DRICreatePixmap(ScreenPtr pScreen, Drawable id,
     shared->height = pDrawable->height;
 
     if (-1 == snprintf(shared->shmPath, sizeof(shared->shmPath),
-                       "%d_0x%lx", getpid(), (unsigned long) id)) {
+                       "%d_0x%lx", getpid(),
+                       (unsigned long)id)) {
         FatalError("buffer overflow in %s\n", __func__);
     }
 
@@ -821,7 +827,7 @@ DRICreatePixmap(ScreenPtr pScreen, Drawable id,
 
     dixSetPrivate(&pPix->devPrivates, DRIPixmapBufferPrivKey, shared);
 
-    AddResource(id, DRIDrawablePrivResType, (pointer) pDrawable);
+    AddResource(id, DRIDrawablePrivResType, (pointer)pDrawable);
 
     return TRUE;
 }
@@ -836,7 +842,7 @@ DRIGetPixmapData(DrawablePtr pDrawable, int *width, int *height,
     if (pDrawable->type != DRAWABLE_PIXMAP)
         return FALSE;
 
-    pPix = (PixmapPtr) pDrawable;
+    pPix = (PixmapPtr)pDrawable;
 
     shared = dixLookupPrivate(&pPix->devPrivates, DRIPixmapBufferPrivKey);
 
@@ -864,7 +870,7 @@ DRIFreePixmapImp(DrawablePtr pDrawable)
     if (pDrawable->type != DRAWABLE_PIXMAP)
         return FALSE;
 
-    pPix = (PixmapPtr) pDrawable;
+    pPix = (PixmapPtr)pDrawable;
 
     shared = dixLookupPrivate(&pPix->devPrivates, DRIPixmapBufferPrivKey);
 
@@ -876,7 +882,7 @@ DRIFreePixmapImp(DrawablePtr pDrawable)
     shm_unlink(shared->shmPath);
     free(shared);
 
-    dixSetPrivate(&pPix->devPrivates, DRIPixmapBufferPrivKey, (pointer) NULL);
+    dixSetPrivate(&pPix->devPrivates, DRIPixmapBufferPrivKey, (pointer)NULL);
 
     return TRUE;
 }

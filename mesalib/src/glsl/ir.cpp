@@ -1026,9 +1026,11 @@ ir_loop::ir_loop()
 
 ir_dereference_variable::ir_dereference_variable(ir_variable *var)
 {
+   assert(var != NULL);
+
    this->ir_type = ir_type_dereference_variable;
    this->var = var;
-   this->type = (var != NULL) ? var->type : glsl_type::error_type;
+   this->type = var->type;
 }
 
 
@@ -1055,19 +1057,18 @@ ir_dereference_array::ir_dereference_array(ir_variable *var,
 void
 ir_dereference_array::set_array(ir_rvalue *value)
 {
+   assert(value != NULL);
+
    this->array = value;
-   this->type = glsl_type::error_type;
 
-   if (this->array != NULL) {
-      const glsl_type *const vt = this->array->type;
+   const glsl_type *const vt = this->array->type;
 
-      if (vt->is_array()) {
-	 type = vt->element_type();
-      } else if (vt->is_matrix()) {
-	 type = vt->column_type();
-      } else if (vt->is_vector()) {
-	 type = vt->get_base_type();
-      }
+   if (vt->is_array()) {
+      type = vt->element_type();
+   } else if (vt->is_matrix()) {
+      type = vt->column_type();
+   } else if (vt->is_vector()) {
+      type = vt->get_base_type();
    }
 }
 
@@ -1075,11 +1076,12 @@ ir_dereference_array::set_array(ir_rvalue *value)
 ir_dereference_record::ir_dereference_record(ir_rvalue *value,
 					     const char *field)
 {
+   assert(value != NULL);
+
    this->ir_type = ir_type_dereference_record;
    this->record = value;
    this->field = ralloc_strdup(this, field);
-   this->type = (this->record != NULL)
-      ? this->record->type->field_type(field) : glsl_type::error_type;
+   this->type = this->record->type->field_type(field);
 }
 
 
@@ -1091,8 +1093,7 @@ ir_dereference_record::ir_dereference_record(ir_variable *var,
    this->ir_type = ir_type_dereference_record;
    this->record = new(ctx) ir_dereference_variable(var);
    this->field = ralloc_strdup(this, field);
-   this->type = (this->record != NULL)
-      ? this->record->type->field_type(field) : glsl_type::error_type;
+   this->type = this->record->type->field_type(field);
 }
 
 bool

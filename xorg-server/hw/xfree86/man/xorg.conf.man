@@ -1,35 +1,35 @@
 .\" shorthand for double quote that works everywhere.
 .ds q \N'34'
-.TH __xconfigfile__ __filemansuffix__ __vendorversion__
+.TH xorg.conf __filemansuffix__ __vendorversion__
 .SH NAME
-__xconfigfile__, __xconfigdir__ \- configuration files for
-__xservername__ X server
+xorg.conf, __xconfigdir__ \- configuration files for
+Xorg X server
 .SH INTRODUCTION
-.B __xservername__
+.B Xorg
 supports several mechanisms for supplying/obtaining configuration and
 run-time parameters: command line options, environment variables, the
-__xconfigfile__ and __xconfigdir__ configuration files, auto-detection,
+xorg.conf and __xconfigdir__ configuration files, auto-detection,
 and fallback defaults. When the same information is supplied in more
 than one way, the highest precedence mechanism is used. The list of
 mechanisms is ordered from highest precedence to lowest. Note that not
 all parameters can be supplied via all methods. The available command
 line options and environment variables (and some defaults) are
 described in the Xserver(__appmansuffix__) and
-__xservername__(__appmansuffix__) manual pages. Most configuration file
+Xorg(__appmansuffix__) manual pages. Most configuration file
 parameters, with their defaults, are described below. Driver and module
 specific configuration parameters are described in the relevant driver
 or module manual page.
 .SH DESCRIPTION
-.B __xservername__
+.B Xorg
 uses a configuration file called
-.I __xconfigfile__
+.I xorg.conf
 and files ending in the suffix
 .I .conf
 from the directory
 .I __xconfigdir__
 for its initial setup.
 The
-.I __xconfigfile__
+.I xorg.conf
 configuration file is searched for in the following places when the
 server is started as a normal user:
 .PP
@@ -39,12 +39,12 @@ server is started as a normal user:
 .IR __projectroot__/etc/X11/ <cmdline>
 .IB /etc/X11/ $XORGCONFIG
 .IB __projectroot__/etc/X11/ $XORGCONFIG
-.I /etc/X11/__xconfigfile__
-.I /etc/__xconfigfile__
-.IR __projectroot__/etc/X11/__xconfigfile__. <hostname>
-.I __projectroot__/etc/X11/__xconfigfile__
-.IR __projectroot__/lib/X11/__xconfigfile__. <hostname>
-.I __projectroot__/lib/X11/__xconfigfile__
+.I /etc/X11/xorg.conf
+.I /etc/xorg.conf
+.IR __projectroot__/etc/X11/xorg.conf. <hostname>
+.I __projectroot__/etc/X11/xorg.conf
+.IR __projectroot__/lib/X11/xorg.conf. <hostname>
+.I __projectroot__/lib/X11/xorg.conf
 .fi
 .RE
 .PP
@@ -60,7 +60,7 @@ environment variable, and
 is the machine's hostname as reported by
 .BR gethostname (__libmansuffix__).
 .PP
-When the __xservername__ server is started by the \(lqroot\(rq user, the config file
+When the Xorg server is started by the \(lqroot\(rq user, the config file
 search locations are as follows:
 .PP
 .RS 4
@@ -71,12 +71,12 @@ search locations are as follows:
 .B $XORGCONFIG
 .IB /etc/X11/ $XORGCONFIG
 .IB __projectroot__/etc/X11/ $XORGCONFIG
-.I /etc/X11/__xconfigfile__
-.I /etc/__xconfigfile__
-.IR __projectroot__/etc/X11/__xconfigfile__. <hostname>
-.I __projectroot__/etc/X11/__xconfigfile__
-.IR __projectroot__/lib/X11/__xconfigfile__. <hostname>
-.I __projectroot__/lib/X11/__xconfigfile__
+.I /etc/X11/xorg.conf
+.I /etc/xorg.conf
+.IR __projectroot__/etc/X11/xorg.conf. <hostname>
+.I __projectroot__/etc/X11/xorg.conf
+.IR __projectroot__/lib/X11/xorg.conf. <hostname>
+.I __projectroot__/lib/X11/xorg.conf
 .fi
 .RE
 .PP
@@ -113,7 +113,7 @@ is a relative path (with no \(lq..\(rq components) specified with the
 .B \-configdir
 command line option.
 .PP
-When the __xservername__ server is started by the \(lqroot\(rq user, the
+When the Xorg server is started by the \(lqroot\(rq user, the
 config directory search locations are as follows:
 .PP
 .RS 4
@@ -145,7 +145,7 @@ These files are found in the following directories:
 .RE
 .PP
 The
-.I __xconfigfile__
+.I xorg.conf
 and
 .I __xconfigdir__
 files are composed of a number of sections which may be present in any order,
@@ -331,7 +331,7 @@ section is used to specify some path names required by the server.
 Some of these paths can also be set from the command line (see
 .BR Xserver (__appmansuffix__)
 and
-.BR __xservername__ (__appmansuffix__)).
+.BR Xorg (__appmansuffix__)).
 The command line settings override the values specified in the config
 file.
 The
@@ -342,7 +342,7 @@ The entries that can appear in this section are:
 .TP 7
 .BI "FontPath \*q" path \*q
 sets the search path for fonts.
-This path is a comma separated list of font path elements which the __xservername__
+This path is a comma separated list of font path elements which the Xorg
 server searches for font databases.
 Multiple
 .B FontPath
@@ -426,8 +426,8 @@ font path when the server starts up.
 .RE
 .TP 7
 .BI "ModulePath \*q" path \*q
-sets the search path for loadable __xservername__ server modules.
-This path is a comma separated list of directories which the __xservername__ server
+sets the search path for loadable Xorg server modules.
+This path is a comma separated list of directories which the Xorg server
 searches for loadable modules loading in the order specified.
 Multiple
 .B ModulePath
@@ -441,17 +441,17 @@ __modulepath__
 .ig
 .TP 7
 .BI "LogFile \*q" path \*q
-sets the name of the __xservername__ server log file.
+sets the name of the Xorg server log file.
 The default log file name is
 .PP
 .RS 11
-.RI __logdir__/__xservername__. <n> .log
+.RI __logdir__/Xorg. <n> .log
 .RE
 .PP
 .RS 7
 where
 .I <n>
-is the display number for the __xservername__ server.
+is the display number for the Xorg server.
 ..
 .TP 7
 .BI "XkbDir \*q" path \*q
@@ -466,7 +466,7 @@ __xkbdir__
 In addition to options specific to this section (described below), the
 .B ServerFlags
 section is used to specify some global
-__xservername__ server options.
+Xorg server options.
 All of the entries in this section are
 .BR Options ,
 although for compatibility purposes some of the old style entries are
@@ -498,20 +498,20 @@ section to use in the absence of the
 command line option.
 .TP 7
 .BI "Option \*qNoTrapSignals\*q  \*q" boolean \*q
-This prevents the __xservername__ server from trapping a range of unexpected fatal
+This prevents the Xorg server from trapping a range of unexpected fatal
 signals and exiting cleanly.
-Instead, the __xservername__ server will die and drop core where the fault occurred.
-The default behaviour is for the __xservername__ server to exit cleanly, but still drop a
+Instead, the Xorg server will die and drop core where the fault occurred.
+The default behaviour is for the Xorg server to exit cleanly, but still drop a
 core file.
-In general you never want to use this option unless you are debugging an __xservername__
+In general you never want to use this option unless you are debugging an Xorg
 server problem and know how to deal with the consequences.
 .TP 7
 .BI "Option \*qUseSIGIO\*q  \*q" boolean \*q
-This controls whether the __xservername__ server requests that events from
+This controls whether the Xorg server requests that events from
 input devices be reported via a SIGIO signal handler (also known as SIGPOLL
 on some platforms), or only reported via the standard select(3) loop.
 The default behaviour is platform specific.   In general you do not want to
-use this option unless you are debugging the __xservername__ server, or
+use this option unless you are debugging the Xorg server, or
 working around a specific bug until it is fixed, and understand the
 consequences.
 .TP 7
@@ -531,7 +531,7 @@ Default: off.
 This disallows the use of the
 .B Terminate_Server
 XKB action (usually on Ctrl+Alt+Backspace, depending on XKB options).
-This action is normally used to terminate the __xservername__ server.
+This action is normally used to terminate the Xorg server.
 When this option is enabled, the action has no effect.
 Default: off.
 .TP 7
@@ -568,7 +568,7 @@ sets the inactivity timeout for the
 phase of the screensaver.
 .I time
 is in minutes.
-This is equivalent to the __xservername__ server's
+This is equivalent to the Xorg server's
 .B \-s
 flag, and the value can be changed at run\-time with
 .BR xset(__appmansuffix__).
@@ -679,9 +679,9 @@ Unset by default.
 .SH "MODULE SECTION"
 The
 .B Module
-section is used to specify which __xservername__ server modules should be loaded.
-This section is ignored when the __xservername__ server is built in static form.
-The type of modules normally loaded in this section are __xservername__ server
+section is used to specify which Xorg server modules should be loaded.
+This section is ignored when the Xorg server is built in static form.
+The type of modules normally loaded in this section are Xorg server
 extension modules.
 Most other module types are loaded automatically when they are needed via
 other mechanisms.
@@ -1324,14 +1324,14 @@ recommends that you do.
 .BI "ClockChip  \*q" clockchip\-type \*q
 This optional entry is used to specify the clock chip type on graphics
 boards which have a programmable clock generator.
-Only a few __xservername__ drivers support programmable clock chips.
+Only a few Xorg drivers support programmable clock chips.
 For details, see the appropriate driver manual page.
 .TP 7
 .BI "VideoRam  " "mem"
 This optional entry specifies the amount of video ram that is installed
 on the graphics board.
 This is measured in kBytes.
-In most cases this is not required because the __xservername__ server probes
+In most cases this is not required because the Xorg server probes
 the graphics board to determine this quantity.
 The driver-specific documentation should indicate when it might be needed.
 .TP 7
@@ -1481,7 +1481,7 @@ if
 or
 .B Hz
 is added to the end of the line.
-The data given here is used by the __xservername__ server to determine if video
+The data given here is used by the Xorg server to determine if video
 modes are within the specifications of the monitor.
 This information should be available in the monitor's handbook.
 If this entry is omitted, a default range of 28\-33kHz is used.
@@ -1500,7 +1500,7 @@ if
 or
 .B kHz
 is added to the end of the line.
-The data given here is used by the __xservername__ server to determine if video
+The data given here is used by the Xorg server to determine if video
 modes are within the specifications of the monitor.
 This information should be available in the monitor's handbook.
 If this entry is omitted, a default range of 43\-72Hz is used.
@@ -1895,7 +1895,7 @@ Others are driver\-independent, and will eventually be described here.
 .TP 7
 .BI "Option \*qAccel\*q"
 Enables XAA (X Acceleration Architecture), a mechanism that makes video cards'
-2D hardware acceleration available to the  __xservername__ server.
+2D hardware acceleration available to the  Xorg server.
 This option is on by default, but it may be necessary to turn it off if
 there are bugs in the driver.
 There are many options to disable specific accelerated operations, listed
@@ -2070,7 +2070,7 @@ formats.
 This may also be specified from the command line with the
 .B \-weight
 option (see
-.BR __xservername__(__appmansuffix__)).
+.BR Xorg(__appmansuffix__)).
 .TP 7
 .BI "Virtual  " "xdim ydim"
 This optional entry specifies the virtual screen resolution to be used.
@@ -2414,7 +2414,7 @@ The data therein is not used in this release.
 General:
 .BR X (__miscmansuffix__),
 .BR Xserver (__appmansuffix__),
-.BR __xservername__ (__appmansuffix__),
+.BR Xorg (__appmansuffix__),
 .BR cvt (__appmansuffix__),
 .BR gtf (__appmansuffix__).
 .PP

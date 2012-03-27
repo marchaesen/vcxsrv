@@ -57,11 +57,11 @@ typedef struct {
 } QuartzCursorScreenRec, *QuartzCursorScreenPtr;
 
 static DevPrivateKeyRec darwinCursorScreenKeyRec;
-
 #define darwinCursorScreenKey (&darwinCursorScreenKeyRec)
 
 #define CURSOR_PRIV(pScreen) ((QuartzCursorScreenPtr) \
-    dixLookupPrivate(&pScreen->devPrivates, darwinCursorScreenKey))
+                              dixLookupPrivate(&pScreen->devPrivates, \
+                                               darwinCursorScreenKey))
 
 static Bool
 load_cursor(CursorPtr src, int screen)
@@ -89,11 +89,10 @@ load_cursor(CursorPtr src, int screen)
     if (src->bits->argb != NULL) {
 #if BITMAP_BIT_ORDER == MSBFirst
         rowbytes = src->bits->width * sizeof(CARD32);
-        data = (uint32_t *) src->bits->argb;
+        data = (uint32_t *)src->bits->argb;
 #else
-        const uint32_t *be_data = (uint32_t *) src->bits->argb;
+        const uint32_t *be_data = (uint32_t *)src->bits->argb;
         unsigned i;
-
         rowbytes = src->bits->width * sizeof(CARD32);
         data = malloc(rowbytes * src->bits->height);
         free_data = TRUE;
@@ -134,13 +133,15 @@ load_cursor(CursorPtr src, int screen)
             mrow = src->bits->mask;
             drow = data;
 
-            while (ycount-- > 0) {
+            while (ycount-- > 0)
+            {
                 xcount = bits_to_bytes(src->bits->width);
                 sptr = srow;
                 mptr = mrow;
                 dptr = drow;
 
-                while (xcount-- > 0) {
+                while (xcount-- > 0)
+                {
                     uint8_t s, m;
                     int i;
 
@@ -167,7 +168,7 @@ load_cursor(CursorPtr src, int screen)
 
                 srow += BitmapBytePad(src->bits->width);
                 mrow += BitmapBytePad(src->bits->width);
-                drow = (uint32_t *) ((char *) drow + rowbytes);
+                drow = (uint32_t *)((char *)drow + rowbytes);
             }
         }
         else {
@@ -182,12 +183,12 @@ load_cursor(CursorPtr src, int screen)
 }
 
 /*
-===========================================================================
+   ===========================================================================
 
- Pointer sprite functions
+   Pointer sprite functions
 
-===========================================================================
-*/
+   ===========================================================================
+ */
 
 /*
  * QuartzRealizeCursor
@@ -219,7 +220,8 @@ QuartzUnrealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
  *  Set the cursor sprite and position.
  */
 static void
-QuartzSetCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor, int x,
+QuartzSetCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor,
+                int x,
                 int y)
 {
     QuartzCursorScreenPtr ScreenPriv = CURSOR_PRIV(pScreen);
@@ -249,16 +251,15 @@ QuartzSetCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor, int x,
  */
 static void
 QuartzMoveCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
-{
-}
+{}
 
 /*
-===========================================================================
+   ===========================================================================
 
- Pointer screen functions
+   Pointer screen functions
 
-===========================================================================
-*/
+   ===========================================================================
+ */
 
 /*
  * QuartzCursorOffScreen
@@ -309,12 +310,12 @@ static miPointerScreenFuncRec quartzScreenFuncsRec = {
 };
 
 /*
-===========================================================================
+   ===========================================================================
 
- Other screen functions
+   Other screen functions
 
-===========================================================================
-*/
+   ===========================================================================
+ */
 
 /*
  * QuartzCursorQueryBestSize
@@ -332,7 +333,7 @@ QuartzCursorQueryBestSize(int class, unsigned short *width,
         *height = 32;
     }
     else {
-        (*ScreenPriv->QueryBestSize) (class, width, height, pScreen);
+        (*ScreenPriv->QueryBestSize)(class, width, height, pScreen);
     }
 }
 
@@ -383,8 +384,7 @@ QuartzInitCursor(ScreenPtr pScreen)
  */
 void
 QuartzSuspendXCursor(ScreenPtr pScreen)
-{
-}
+{}
 
 /*
  * QuartzResumeXCursor

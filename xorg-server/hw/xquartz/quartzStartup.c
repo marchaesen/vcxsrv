@@ -1,7 +1,7 @@
 /**************************************************************
  *
  * Startup code for the Quartz Darwin X Server
- *
+ * Copyright (c) 2008-2012 Apple Inc. All rights reserved.
  * Copyright (c) 2001-2004 Torrey T. Lyons. All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -48,7 +48,8 @@
 
 #include <pthread.h>
 
-int dix_main(int argc, char **argv, char **envp);
+int
+dix_main(int argc, char **argv, char **envp);
 
 struct arg {
     int argc;
@@ -56,11 +57,11 @@ struct arg {
     char **envp;
 };
 
-_X_NORETURN static void
+_X_NORETURN
+static void
 server_thread(void *arg)
 {
-    struct arg args = *((struct arg *) arg);
-
+    struct arg args = *((struct arg *)arg);
     free(arg);
     exit(dix_main(args.argc, args.argv, args.envp));
 }
@@ -83,8 +84,7 @@ create_thread(void *func, void *arg)
 void
 QuartzInitServer(int argc, char **argv, char **envp)
 {
-    struct arg *args = (struct arg *) malloc(sizeof(struct arg));
-
+    struct arg *args = (struct arg *)malloc(sizeof(struct arg));
     if (!args)
         FatalError("Could not allocate memory.\n");
 
@@ -117,7 +117,8 @@ server_main(int argc, char **argv, char **envp)
 
     for (i = 1; i < argc; i++) {
         // Display version info without starting Mac OS X UI if requested
-        if (!strcmp(argv[i], "-showconfig") || !strcmp(argv[i], "-version")) {
+        if (!strcmp(argv[i],
+                    "-showconfig") || !strcmp(argv[i], "-version")) {
             DarwinPrintBanner();
             exit(0);
         }

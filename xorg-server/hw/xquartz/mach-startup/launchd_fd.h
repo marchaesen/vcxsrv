@@ -1,4 +1,4 @@
-/* Copyright (c) 2008 Apple Inc.
+/* Copyright (c) 2008-2012 Apple Inc.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation files
@@ -31,6 +31,7 @@
 
 #define ERROR_FD -1
 
-int launchd_display_fd(void);
+int
+launchd_display_fd(void);
 
 #endif /* _XQUARTZ_LAUNCHD_FD_H_ */

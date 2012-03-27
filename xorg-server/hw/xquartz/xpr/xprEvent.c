@@ -1,4 +1,4 @@
-/* Copyright (c) 2008 Apple Inc.
+/* Copyright (c) 2008-2012 Apple Inc.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation files
@@ -56,12 +56,13 @@
 #include "xprEvent.h"
 
 Bool
-QuartzModeEventHandler(int screenNum, XQuartzEvent * e, DeviceIntPtr dev)
+QuartzModeEventHandler(int screenNum, XQuartzEvent *e, DeviceIntPtr dev)
 {
     switch (e->subtype) {
     case kXquartzWindowState:
         DEBUG_LOG("kXquartzWindowState\n");
-        RootlessNativeWindowStateChanged(xprGetXWindow(e->data[0]), e->data[1]);
+        RootlessNativeWindowStateChanged(xprGetXWindow(e->data[0]),
+                                         e->data[1]);
         return TRUE;
 
     case kXquartzWindowMoved:
@@ -73,6 +74,7 @@ QuartzModeEventHandler(int screenNum, XQuartzEvent * e, DeviceIntPtr dev)
         DEBUG_LOG("kXquartzBringAllToFront\n");
         RootlessOrderAllWindows(e->data[0]);
         return TRUE;
+
     default:
         return FALSE;
     }

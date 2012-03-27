@@ -1,37 +1,38 @@
 /* app-main.m
-   Copyright (c) 2002, 2008 Apple Computer, Inc. All rights reserved.
-
-   Permission is hereby granted, free of charge, to any person
-   obtaining a copy of this software and associated documentation files
-   (the "Software"), to deal in the Software without restriction,
-   including without limitation the rights to use, copy, modify, merge,
-   publish, distribute, sublicense, and/or sell copies of the Software,
-   and to permit persons to whom the Software is furnished to do so,
-   subject to the following conditions:
-
-   The above copyright notice and this permission notice shall be
-   included in all copies or substantial portions of the Software.
-
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-   NONINFRINGEMENT.  IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT
-   HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-   DEALINGS IN THE SOFTWARE.
-
-   Except as contained in this notice, the name(s) of the above
-   copyright holders shall not be used in advertising or otherwise to
-   promote the sale, use or other dealings in this Software without
-   prior written authorization.
+ *
+ * Copyright (c) 2002-2012 Apple Inc. All rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation files
+ * (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.  IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT
+ * HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * Except as contained in this notice, the name(s) of the above
+ * copyright holders shall not be used in advertising or otherwise to
+ * promote the sale, use or other dealings in this Software without
+ * prior written authorization.
  */
 
 #include "pbproxy.h"
 #import "x-selection.h"
 
 #include <pthread.h>
-#include <unistd.h>             /*for getpid */
+#include <unistd.h> /*for getpid*/
 #include <Cocoa/Cocoa.h>
 
 static const char *app_prefs_domain = BUNDLE_ID_PREFIX ".xpbproxy";
@@ -50,13 +51,14 @@ signal_handler(int sig)
     case SIGHUP:
         xpbproxy_prefs_reload = YES;
         break;
+
     default:
         _exit(EXIT_SUCCESS);
     }
 }
 
 void
-ErrorF(const char *f, ...)
+ErrorF(const char * f, ...)
 {
     va_list args;
 
@@ -68,7 +70,8 @@ ErrorF(const char *f, ...)
 /* TODO: Have this actually log to ASL */
 void
 xq_asl_log(int level, const char *subsystem, const char *file,
-           const char *function, int line, const char *fmt, ...)
+           const char *function, int line, const char *fmt,
+           ...)
 {
 #ifdef DEBUG
     va_list args;
@@ -99,11 +102,12 @@ main(int argc, const char *argv[])
             app_prefs_domain = argv[++i];
         }
         else if (strcmp(argv[i], "--help") == 0) {
-            ErrorF("usage: xpbproxy OPTIONS\n"
-                   "Pasteboard proxying for X11.\n\n"
-                   "--prefs-domain <domain>   Change the domain used for reading preferences\n"
-                   "                          (default: %s)\n",
-                   app_prefs_domain);
+            ErrorF(
+                "usage: xpbproxy OPTIONS\n"
+                "Pasteboard proxying for X11.\n\n"
+                "--prefs-domain <domain>   Change the domain used for reading preferences\n"
+                "                          (default: %s)\n",
+                app_prefs_domain);
             return 0;
         }
         else {
@@ -113,9 +117,8 @@ main(int argc, const char *argv[])
         }
     }
 
-    app_prefs_domain_cfstr =
-        CFStringCreateWithCString(NULL, app_prefs_domain,
-                                  kCFStringEncodingUTF8);
+    app_prefs_domain_cfstr = CFStringCreateWithCString(NULL, app_prefs_domain,
+                                                       kCFStringEncodingUTF8);
 
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);

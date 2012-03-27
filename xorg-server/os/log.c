@@ -593,6 +593,7 @@ void
 FatalError(const char *f, ...)
 {
     va_list args;
+    va_list args2;
     static Bool beenhere = FALSE;
 
     if (beenhere)
@@ -600,22 +601,25 @@ FatalError(const char *f, ...)
     else
         ErrorF("\nFatal server error:\n");
 
-    va_start(args, f);
+    /* Make a copy for OsVendorFatalError */
+    va_copy(args2, args);
+
 #ifdef __APPLE__
     {
-        va_list args2;
+        va_list apple_args;
 
-        va_copy(args2, args);
-        (void) vsnprintf(__crashreporter_info_buff__,
-                         sizeof(__crashreporter_info_buff__), f, args2);
-        va_end(args2);
+        va_copy(apple_args, args);
+        (void)vsnprintf(__crashreporter_info_buff__,
+                        sizeof(__crashreporter_info_buff__), f, apple_args);
+        va_end(apple_args);
     }
 #endif
     VErrorF(f, args);
     va_end(args);
     ErrorF("\n");
     if (!beenhere)
-        OsVendorFatalError();
+        OsVendorFatalError(f, args2);
+    va_end(args2);
     if (!beenhere) {
         beenhere = TRUE;
         AbortServer();

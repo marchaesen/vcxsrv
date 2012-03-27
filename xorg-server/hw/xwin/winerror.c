@@ -70,7 +70,7 @@ OsVendorVErrorF(const char *pszFormat, va_list va_args)
  * Attempt to do last-ditch, safe, important cleanup here.
  */
 void
-OsVendorFatalError(void)
+OsVendorFatalError(const char *f, va_list args)
 {
     /* Don't give duplicate warning if UseMsg was called */
     if (g_fSilentFatalError)

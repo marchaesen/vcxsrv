@@ -73,7 +73,7 @@ __glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber)
     }
 
     /*
-       conf->stereo is 0 or 1, but we need at least 1 iteration of the loop, 
+       conf->stereo is 0 or 1, but we need at least 1 iteration of the loop,
        so we treat a true conf->stereo as 2.
 
        The depth size is 0 or 24.  Thus we do 2 iterations for that.
@@ -86,9 +86,9 @@ __glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber)
 
        conf->total_color_buffers indicates the RGB/RGBA color depths.
 
-       conf->total_accum_buffers iterations for accum (with at least 1 if equal to 0) 
+       conf->total_accum_buffers iterations for accum (with at least 1 if equal to 0)
 
-       conf->total_depth_buffer_depths 
+       conf->total_depth_buffer_depths
 
        conf->multisample_buffers iterations (with at least 1 if equal to 0).  We add 1
        for the 0 multisampling config.
@@ -104,14 +104,15 @@ __glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber)
             continue;
 
         numConfigs += (conf->stereo ? 2 : 1)
-            * (conf->aux_buffers ? 2 : 1)
-            * conf->buffers
-            *
-            ((conf->total_stencil_bit_depths >
-              0) ? conf->total_stencil_bit_depths : 1)
-            * conf->total_color_buffers *
-            ((conf->total_accum_buffers > 0) ? conf->total_accum_buffers : 1)
-            * conf->total_depth_buffer_depths * (conf->multisample_buffers + 1);
+                      * (conf->aux_buffers ? 2 : 1)
+                      * conf->buffers
+                      * ((conf->total_stencil_bit_depths >
+                          0) ? conf->total_stencil_bit_depths : 1)
+                      * conf->total_color_buffers
+                      * ((conf->total_accum_buffers >
+                          0) ? conf->total_accum_buffers : 1)
+                      * conf->total_depth_buffer_depths
+                      * (conf->multisample_buffers + 1);
     }
 
     if (numConfigsPtr)
@@ -125,22 +126,22 @@ __glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber)
         return NULL;
     }
 
-    c = visualConfigs;          /* current buffer */
+    c = visualConfigs; /* current buffer */
     for (conf = caps.configurations; conf; conf = conf->next) {
         for (stereo = 0; stereo < (conf->stereo ? 2 : 1); ++stereo) {
             for (aux = 0; aux < (conf->aux_buffers ? 2 : 1); ++aux) {
                 for (buffers = 0; buffers < conf->buffers; ++buffers) {
                     for (stencil = 0;
-                         stencil <
-                         ((conf->total_stencil_bit_depths >
-                           0) ? conf->total_stencil_bit_depths : 1);
+                         stencil < ((conf->total_stencil_bit_depths > 0) ?
+                                    conf->
+                                    total_stencil_bit_depths : 1);
                          ++stencil) {
                         for (color = 0; color < conf->total_color_buffers;
                              ++color) {
                             for (accum = 0;
-                                 accum <
-                                 ((conf->total_accum_buffers >
-                                   0) ? conf->total_accum_buffers : 1);
+                                 accum < ((conf->total_accum_buffers > 0) ?
+                                          conf->
+                                          total_accum_buffers : 1);
                                  ++accum) {
                                 for (depth = 0;
                                      depth < conf->total_depth_buffer_depths;
@@ -159,7 +160,7 @@ __glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber)
 
                                         c->level = 0;
                                         c->indexBits = 0;
-                                        c->pixmapMode = 0;      // TODO: What should this be?
+                                        c->pixmapMode = 0; // TODO: What should this be?
 
                                         if (conf->accelerated) {
                                             c->visualRating = GLX_NONE;
@@ -178,7 +179,8 @@ __glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber)
 
                                         c->visualSelectGroup = 0;
 
-                                        c->swapMethod = GLX_SWAP_UNDEFINED_OML;
+                                        c->swapMethod =
+                                            GLX_SWAP_UNDEFINED_OML;
 
                                         // Stereo
                                         c->stereoMode = stereo ? TRUE : FALSE;
@@ -192,10 +194,11 @@ __glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber)
                                             buffers ? TRUE : FALSE;
 
                                         // Stencil Buffer
-                                        if (conf->total_stencil_bit_depths > 0) {
+                                        if (conf->total_stencil_bit_depths >
+                                            0) {
                                             c->stencilBits =
-                                                conf->
-                                                stencil_bit_depths[stencil];
+                                                conf->stencil_bit_depths[
+                                                    stencil];
                                         }
                                         else {
                                             c->stencilBits = 0;
@@ -217,22 +220,27 @@ __glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber)
                                         c->blueBits =
                                             conf->color_buffers[color].b;
 
-                                        c->rgbBits =
-                                            c->alphaBits + c->redBits +
-                                            c->greenBits + c->blueBits;
+                                        c->rgbBits = c->alphaBits +
+                                                     c->redBits +
+                                                     c->greenBits +
+                                                     c->blueBits;
 
                                         c->alphaMask =
                                             AM_ARGB(c->alphaBits, c->redBits,
-                                                    c->greenBits, c->blueBits);
+                                                    c->greenBits,
+                                                    c->blueBits);
                                         c->redMask =
                                             RM_ARGB(c->alphaBits, c->redBits,
-                                                    c->greenBits, c->blueBits);
+                                                    c->greenBits,
+                                                    c->blueBits);
                                         c->greenMask =
                                             GM_ARGB(c->alphaBits, c->redBits,
-                                                    c->greenBits, c->blueBits);
+                                                    c->greenBits,
+                                                    c->blueBits);
                                         c->blueMask =
                                             BM_ARGB(c->alphaBits, c->redBits,
-                                                    c->greenBits, c->blueBits);
+                                                    c->greenBits,
+                                                    c->blueBits);
 
                                         // Accumulation Buffers
                                         if (conf->total_accum_buffers > 0) {
@@ -242,12 +250,14 @@ __glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber)
                                                 conf->accum_buffers[accum].g;
                                             c->accumBlueBits =
                                                 conf->accum_buffers[accum].b;
-                                            if (GLCAPS_COLOR_BUF_INVALID_VALUE
+                                            if (
+                                                GLCAPS_COLOR_BUF_INVALID_VALUE
                                                 !=
-                                                conf->accum_buffers[accum].a) {
+                                                conf->accum_buffers[accum].a)
+                                            {
                                                 c->accumAlphaBits =
-                                                    conf->accum_buffers[accum].
-                                                    a;
+                                                    conf->accum_buffers[accum
+                                                    ].a;
                                             }
                                             else {
                                                 c->accumAlphaBits = 0;
@@ -276,33 +286,33 @@ __glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber)
                                             c->sampleBuffers = 0;
                                         }
 
-                                        /* 
-                                         * The Apple libGL supports GLXPixmaps and 
+                                        /*
+                                         * The Apple libGL supports GLXPixmaps and
                                          * GLXPbuffers in direct mode.
                                          */
                                         /* SGIX_fbconfig / GLX 1.3 */
-                                        c->drawableType =
-                                            GLX_WINDOW_BIT | GLX_PIXMAP_BIT |
-                                            GLX_PBUFFER_BIT;
+                                        c->drawableType = GLX_WINDOW_BIT |
+                                                          GLX_PIXMAP_BIT |
+                                                          GLX_PBUFFER_BIT;
                                         c->renderType = GLX_RGBA_BIT;
                                         c->xRenderable = GL_TRUE;
                                         c->fbconfigID = -1;
 
                                         /* SGIX_pbuffer / GLX 1.3 */
 
-                                        /* 
+                                        /*
                                          * The CGL layer provides a way of retrieving
                                          * the maximum pbuffer width/height, but only
                                          * if we create a context and call glGetIntegerv.
-                                         * 
+                                         *
                                          * The following values are from a test program
                                          * that does so.
                                          */
                                         c->maxPbufferWidth = 8192;
                                         c->maxPbufferHeight = 8192;
                                         c->maxPbufferPixels =
-                                            /*Do we need this? */ 0;
-                                        /* 
+                                            /*Do we need this?*/ 0;
+                                        /*
                                          * There is no introspection for this sort of thing
                                          * with CGL.  What should we do realistically?
                                          */
@@ -330,9 +340,9 @@ __glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber)
     (c - 1)->next = NULL;
 
     if (c - visualConfigs != numConfigs) {
-        FatalError
-            ("numConfigs calculation error in setVisualConfigs!  numConfigs is %d  i is %d\n",
-             numConfigs, (int) (c - visualConfigs));
+        FatalError(
+            "numConfigs calculation error in setVisualConfigs!  numConfigs is %d  i is %d\n",
+            numConfigs, (int)(c - visualConfigs));
     }
 
     freeGlCapabilities(&caps);

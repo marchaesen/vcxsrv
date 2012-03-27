@@ -1,7 +1,7 @@
 /*
  * Xplugin rootless implementation functions for AppleWM extension
  *
- * Copyright (c) 2002 Apple Computer, Inc. All rights reserved.
+ * Copyright (c) 2002-2012 Apple Computer, Inc. All rights reserved.
  * Copyright (c) 2003 Torrey T. Lyons. All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -107,7 +107,8 @@ xprAttachTransient(WindowPtr pWinChild, WindowPtr pWinParent)
 
     RootlessStopDrawing(pWinChild, FALSE);
 
-    if (xp_configure_window(child_wid, XP_ATTACH_TRANSIENT, &wc) != Success) {
+    if (xp_configure_window(child_wid, XP_ATTACH_TRANSIENT,
+                            &wc) != Success) {
         return BadValue;
     }
 
@@ -119,9 +120,10 @@ static int
 xprFrameDraw(WindowPtr pWin,
              xp_frame_class class,
              xp_frame_attr attr,
-             const BoxRec * outer,
-             const BoxRec * inner,
-             unsigned int title_len, const unsigned char *title_bytes)
+             const BoxRec *outer,
+             const BoxRec *inner,
+             unsigned int title_len,
+             const unsigned char *title_bytes)
 {
     xp_window_id wid;
 

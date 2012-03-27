@@ -12,8 +12,8 @@ cvt - calculate VESA CVT mode lines
 .I Cvt
 is a utility for calculating VESA Coordinated Video Timing modes.  Given the
 desired horizontal and vertical resolutions, a modeline adhering to the CVT
-standard is printed. This modeline can be included in __xservername__
-.B __xconfigfile__(__filemansuffix__)
+standard is printed. This modeline can be included in Xorg
+.B xorg.conf(__filemansuffix__)
 .
 
 .SH OPTIONS
@@ -31,7 +31,7 @@ Create a mode with reduced blanking.  This allows for higher frequency signals,
 with a lower or equal dotclock. Not for Cathode Ray Tube based displays though.
 
 .SH "SEE ALSO"
-__xconfigfile__(__filemansuffix__), gtf(__appmansuffix__)
+xorg.conf(__filemansuffix__), gtf(__appmansuffix__)
 .SH AUTHOR
 Luc Verhaegen.
 .PP

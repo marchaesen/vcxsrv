@@ -1053,7 +1053,7 @@ AbortDDX(enum ExitCode error)
 }
 
 void
-OsVendorFatalError(void)
+OsVendorFatalError(const char *f, va_list args)
 {
 #ifdef VENDORSUPPORT
     ErrorF("\nPlease refer to your Operating System Vendor support pages\n"

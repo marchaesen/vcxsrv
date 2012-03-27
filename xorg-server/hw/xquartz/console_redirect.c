@@ -1,4 +1,5 @@
-/* Copyright (c) 2011 Apple Inc.
+/*
+ * Copyright (c) 2011-2012 Apple Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation files
@@ -30,7 +31,7 @@
 #include <dix-config.h>
 #else
 #define DEBUG_CONSOLE_REDIRECT 1
-#define HAVE_LIBDISPATCH 1
+#define HAVE_LIBDISPATCH       1
 #endif
 
 #include <assert.h>
@@ -102,7 +103,8 @@ _read_redirect(int fd, int flush)
     asl_redirect *aslr = &redirect_fds[fd];
 
     while ((nbytes =
-            read(fd, aslr->w, BUF_SIZE - (aslr->w - aslr->buf) - 1)) > 0) {
+                read(fd, aslr->w,
+                     BUF_SIZE - (aslr->w - aslr->buf) - 1)) > 0) {
         char *s, *p;
 
         /* Increment our returned number read */
@@ -114,7 +116,7 @@ _read_redirect(int fd, int flush)
         /* One line at a time */
         for (p = aslr->buf; *p && (p - aslr->buf) < nbytes; p = s + 1) {
             // Find null or \n
-            for (s = p; *s && *s != '\n'; s++);
+            for (s = p; *s && *s != '\n'; s++) ;
             if (*s == '\n') {
                 *s = '\0';
                 asl_log(aslr->asl, aslr->msg, aslr->level, "%s", p);
@@ -149,9 +151,8 @@ _read_redirect(int fd, int flush)
 static void
 read_from_source(void *_source)
 {
-    dispatch_source_t source = (dispatch_source_t) _source;
+    dispatch_source_t source = (dispatch_source_t)_source;
     int fd = dispatch_source_get_handle(source);
-
     if (_read_redirect(fd, 0) == EOF) {
         dispatch_source_cancel(source);
     }
@@ -160,7 +161,7 @@ read_from_source(void *_source)
 static void
 cancel_source(void *_source)
 {
-    dispatch_source_t source = (dispatch_source_t) _source;
+    dispatch_source_t source = (dispatch_source_t)_source;
     int fd = dispatch_source_get_handle(source);
     asl_redirect *aslr = &redirect_fds[fd];
 
@@ -174,7 +175,7 @@ cancel_source(void *_source)
     dispatch_group_leave(read_source_group);
 }
 
-#else                           /* !HAVE_LIBDISPATCH */
+#else /* !HAVE_LIBDISPATCH */
 static void *
 redirect_thread(void *ctx __unused)
 {
@@ -205,16 +206,18 @@ redirect_thread(void *ctx __unused)
 
                 if (fd < 0 || fd >= n_redirect_fds || aslr->buf == NULL) {
                     asl_log(NULL, NULL, ASL_LEVEL_ERR,
-                            "Unexpected file descriptor: %d", fd);
+                            "Unexpected file descriptor: %d",
+                            fd);
                     goto next;
                 }
 
                 if (ev.flags & EV_EOF) {
                     close_fd = 1;
                     if (EOF != _read_redirect(fd, 1)) {
-                        asl_log(NULL, NULL, ASL_LEVEL_ERR,
-                                "kevent reported EOF on %d, but read doesn't concur.",
-                                fd);
+                        asl_log(
+                            NULL, NULL, ASL_LEVEL_ERR,
+                            "kevent reported EOF on %d, but read doesn't concur.",
+                            fd);
                     }
                 }
                 else {
@@ -229,7 +232,7 @@ redirect_thread(void *ctx __unused)
                     memset(aslr, 0, sizeof(*aslr));
                 }
             }
- next:
+next:
             pthread_mutex_unlock(&redirect_fds_lock);
 
         case EVFILT_TIMER:
@@ -237,7 +240,8 @@ redirect_thread(void *ctx __unused)
                 return NULL;
 
         default:
-            ;;
+            ;
+            ;
         }
     }
 
@@ -263,8 +267,8 @@ redirect_atexit(void)
 
         /* Wait at least three seconds for our sources to flush to ASL */
         dispatch_group_wait(read_source_group,
-                            dispatch_time(DISPATCH_TIME_NOW,
-                                          3LL * NSEC_PER_SEC));
+                            dispatch_time(DISPATCH_TIME_NOW, 3LL *
+                                          NSEC_PER_SEC));
     }
 #else
     {
@@ -299,7 +303,8 @@ xq_asl_init(void)
     assert(read_source_group != NULL);
 #else
     assert((kq = kqueue()) != -1);
-    assert(pthread_create(&redirect_pthread, NULL, redirect_thread, NULL) == 0);
+    assert(pthread_create(&redirect_pthread, NULL, redirect_thread,
+                          NULL) == 0);
 #endif
 
     atexit(redirect_atexit);
@@ -311,12 +316,10 @@ xq_asl_log_fd(aslclient asl, aslmsg msg, int level, int fd)
 #ifdef HAVE_LIBDISPATCH
     int err __block = 0;
     static dispatch_once_t once_control;
-
     dispatch_once_f(&once_control, NULL, xq_asl_init);
 #else
     int err = 0;
     static pthread_once_t once_control = PTHREAD_ONCE_INIT;
-
     assert(pthread_once(&once_control, xq_asl_init) == 0);
 #endif
 
@@ -330,70 +333,75 @@ xq_asl_log_fd(aslclient asl, aslmsg msg, int level, int fd)
 #define BLOCK_DONE goto done
     assert(pthread_mutex_lock(&redirect_fds_lock) == 0);
 #endif
-    {
-        /* Reallocate if we need more space */
-        if (fd >= n_redirect_fds) {
-            size_t new_n = 1 << (ffs(fd) + 1);
-            asl_redirect *new_array =
-                realloc(redirect_fds, new_n * sizeof(*redirect_fds));
-            if (!new_array) {
-                err = errno;
-                BLOCK_DONE;
-            }
-            redirect_fds = new_array;
-            memset(redirect_fds + n_redirect_fds, 0, new_n - n_redirect_fds);
-            n_redirect_fds = new_n;
-        }
+                  {
+                      /* Reallocate if we need more space */
+                      if (fd >= n_redirect_fds) {
+                          size_t new_n = 1 << (ffs(fd) + 1);
+                          asl_redirect *new_array =
+                              realloc(redirect_fds, new_n *
+                                      sizeof(*redirect_fds));
+                          if (!new_array) {
+                              err = errno;
+                              BLOCK_DONE;
+                          }
+                          redirect_fds = new_array;
+                          memset(redirect_fds + n_redirect_fds, 0, new_n -
+                                 n_redirect_fds);
+                          n_redirect_fds = new_n;
+                      }
 
-        /* If we're already listening on it, return error. */
-        if (redirect_fds[fd].buf != NULL) {
-            err = EBADF;
-            BLOCK_DONE;
-        }
+                      /* If we're already listening on it, return error. */
+                      if (redirect_fds[fd].buf != NULL) {
+                          err = EBADF;
+                          BLOCK_DONE;
+                      }
 
-        /* Initialize our buffer */
-        redirect_fds[fd].buf = (char *) malloc(BUF_SIZE);
-        if (redirect_fds[fd].buf == NULL) {
-            err = errno;
-            BLOCK_DONE;
-        }
-        redirect_fds[fd].w = redirect_fds[fd].buf;
+                      /* Initialize our buffer */
+                      redirect_fds[fd].buf = (char *)malloc(BUF_SIZE);
+                      if (redirect_fds[fd].buf == NULL) {
+                          err = errno;
+                          BLOCK_DONE;
+                      }
+                      redirect_fds[fd].w = redirect_fds[fd].buf;
 
-        /* Store our ASL settings */
-        redirect_fds[fd].level = level;
-        redirect_fds[fd].asl = asl;
-        redirect_fds[fd].msg = msg;
+                      /* Store our ASL settings */
+                      redirect_fds[fd].level = level;
+                      redirect_fds[fd].asl = asl;
+                      redirect_fds[fd].msg = msg;
 
-        /* Don't block on reads from this fd */
-        fcntl(fd, F_SETFL, O_NONBLOCK);
+                      /* Don't block on reads from this fd */
+                      fcntl(fd, F_SETFL,
+                            O_NONBLOCK);
 
-        /* Start listening */
+                      /* Start listening */
 #ifdef HAVE_LIBDISPATCH
-        {
-            dispatch_source_t read_source =
-                dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, fd, 0,
-                                       redirect_serial_q);
-            redirect_fds[fd].read_source = read_source;
-            dispatch_set_context(read_source, read_source);
-            dispatch_source_set_event_handler_f(read_source, read_from_source);
-            dispatch_source_set_cancel_handler_f(read_source, cancel_source);
-            dispatch_group_enter(read_source_group);
-            dispatch_resume(read_source);
-        }
+                      {
+                          dispatch_source_t read_source =
+                              dispatch_source_create(
+                                  DISPATCH_SOURCE_TYPE_READ, fd, 0,
+                                  redirect_serial_q);
+                          redirect_fds[fd].read_source = read_source;
+                          dispatch_set_context(read_source, read_source);
+                          dispatch_source_set_event_handler_f(read_source,
+                                                              read_from_source);
+                          dispatch_source_set_cancel_handler_f(read_source,
+                                                               cancel_source);
+                          dispatch_group_enter(read_source_group);
+                          dispatch_resume(read_source);
+                      }
 #else
-        {
-            struct kevent ev;
-
-            EV_SET(&ev, fd, EVFILT_READ, EV_ADD, 0, 0, 0);
-            kevent(kq, &ev, 1, NULL, 0, NULL);
-        }
+                      {
+                          struct kevent ev;
+                          EV_SET(&ev, fd, EVFILT_READ, EV_ADD, 0, 0, 0);
+                          kevent(kq, &ev, 1, NULL, 0, NULL);
+                      }
 #endif
-    }
+                  }
 #ifdef HAVE_LIBDISPATCH
-    );
+                  );
 #else
- done:
-    assert(pthread_mutex_unlock(&redirect_fds_lock) == 0);
+done:
+                  assert(pthread_mutex_unlock(&redirect_fds_lock) == 0);
 #endif
 #undef BLOCK_DONE
 
@@ -433,7 +441,7 @@ xq_asl_capture_fd(aslclient asl, aslmsg msg, int level, int fd)
 
 #ifdef DEBUG_CONSOLE_REDIRECT
 int
-main(int argc __unused, char **argv __unused)
+main(int argc __unused, char * *argv __unused)
 {
     xq_asl_capture_fd(NULL, NULL, ASL_LEVEL_NOTICE, STDOUT_FILENO);
     xq_asl_capture_fd(NULL, NULL, ASL_LEVEL_ERR, STDERR_FILENO);

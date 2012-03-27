@@ -14,8 +14,8 @@ gtf - calculate VESA GTF mode lines
 is a utility for calculating VESA GTF modes.  Given the desired
 horizontal and vertical resolutions and refresh rate (in Hz), the parameters
 for a matching VESA GTF mode are printed out.  Two output formats are
-supported: mode lines suitable for the __xservername__
-.B __xconfigfile__(__filemansuffix__)
+supported: mode lines suitable for the Xorg
+.B xorg.conf(__filemansuffix__)
 file, and mode parameters suitable for the Linux
 .B fbset(8)
 utility.
@@ -27,14 +27,14 @@ Enable verbose printouts  This shows a trace for each step of the
 computation.
 .TP 8
 .BR \-x | \-\-xorgmode
-Print the mode parameters as __xservername__-style mode lines.  This is the
+Print the mode parameters as Xorg-style mode lines.  This is the
 default format.
 .TP 8
 .BR \-f | \-\-fbset
 Print the mode parameters in a format suitable for
 .BR fbset(8) .
 .SH "SEE ALSO"
-__xconfigfile__(__filemansuffix__), cvt(__appmansuffix__)
+xorg.conf(__filemansuffix__), cvt(__appmansuffix__)
 .SH AUTHOR
 Andy Ritger.
 .PP

@@ -66,6 +66,7 @@ API_XML = \
 	ARB_color_buffer_float.xml \
 	ARB_copy_buffer.xml \
 	ARB_debug_output.xml \
+	ARB_depth_buffer_float.xml \
 	ARB_depth_clamp.xml \
 	ARB_draw_buffers_blend.xml \
 	ARB_draw_elements_base_vertex.xml \
@@ -80,6 +81,9 @@ API_XML = \
 	ARB_seamless_cube_map.xml \
 	ARB_sync.xml \
 	ARB_texture_buffer_object.xml \
+	ARB_texture_compression_rgtc.xml \
+	ARB_texture_float.xml \
+	ARB_texture_rg.xml \
 	ARB_texture_storage.xml \
 	ARB_vertex_array_object.xml \
 	AMD_draw_buffers_blend.xml \

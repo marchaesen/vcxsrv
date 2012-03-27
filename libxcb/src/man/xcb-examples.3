@@ -1,0 +1,59 @@
+.TH xcb-examples 3 2011-12-11 "XCB" "XCB examples"
+.ad l
+.SH NAME
+xcb-examples \- manpage examples
+.SH DESCRIPTION
+Many of the XCB manpages contain example code. These examples intend to explain
+how to use one particular part of XCB. They almost never represent a standalone
+(or even useful) program - X11 programs are relatively involved and
+thus beyond the scope of a manpage example.
+
+.SH ENVIRONMENT
+
+Every example assumes you have an \fIxcb_connection\fP and possibly other
+variables at hand. For illustrating how \fIxcb_get_property\fP works, you need
+the window of which you want to get the property, for example. To make it clear
+that these variables are your responsibility, these examples consist of a
+single function which takes the necessary variables as parameters.
+
+.SH FLUSHING
+
+Flushing means calling \fIxcb_flush\fP to clear the XCB-internal write buffer
+and send all pending requests to the X11 server. You don't explicitly need to
+flush before using a reply function (like \fIxcb_query_pointer_reply\fP), but
+you do need to flush before entering the event loop of your program.
+
+There are only two cases when XCB flushes by itself. The first case is when
+its write buffer becomes full, the second case is when you are asking for
+the reply of a request which wasn't flushed out yet (like
+\fIxcb_query_pointer_reply\fP). This last point also includes
+xcb_request_check(). Please note that waiting for an event does \fBNOT\fP
+flush.
+
+Examples generally include the \fIxcb_flush\fP call where appropriate (for
+example after setting a property). Therefore, including these functions and
+calling them in your application should just work. However, you might get
+better results when flushing outside of the function, depending on the
+architecture of your program.
+
+.SH COMPILATION
+
+If an example does not compile (without warnings) when using \fI-std=c99\fP,
+that is considered a documentation bug. Similarly, not handling errors or
+leaking memory is also considered a documentation bug. Please inform us about
+it on xcb@lists.freedesktop.org.
+
+.SH CODING STYLE
+
+Every example uses 4 spaces for indention.
+
+Comments are in asterisks, like /* this */.
+
+No line is longer than 80 characters (including indention).
+
+.SH SEE ALSO
+.BR xcb_connect (3),
+.BR xcb_get_property (3),
+.BR xcb_flush (3)
+.SH AUTHOR
+Michael Stapelberg <michael+xcb at stapelberg dot de>

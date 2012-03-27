@@ -4,6 +4,8 @@
 
 extern int noPseudoramiXExtension;
 
-void PseudoramiXAddScreen(int x, int y, int w, int h);
+void
+PseudoramiXAddScreen(int x, int y, int w, int h);
 void PseudoramiXExtensionInit(int argc, char *argv[]);
-void PseudoramiXResetScreens(void);
+void
+PseudoramiXResetScreens(void);

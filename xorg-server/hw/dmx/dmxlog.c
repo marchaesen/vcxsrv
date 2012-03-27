@@ -110,9 +110,6 @@ VFatalError(const char *format, va_list args)
 {
     VErrorF(format, args);
     ErrorF("\n");
-#ifdef DDXOSFATALERROR
-    OsVendorFatalError();
-#endif
     AbortServer();
  /*NOTREACHED*/}
 #endif

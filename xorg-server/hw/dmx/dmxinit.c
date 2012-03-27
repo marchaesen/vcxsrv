@@ -905,7 +905,7 @@ OsVendorInit(void)
  * two routines mentioned here, as well as by others) to use the
  * referenced routine instead of \a vfprintf().) */
 void
-OsVendorFatalError(void)
+OsVendorFatalError(const char *f, va_list args)
 {
 }
 

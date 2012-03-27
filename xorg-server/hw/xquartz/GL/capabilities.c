@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Apple Inc.
+ * Copyright (c) 2008-2012 Apple Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,7 @@
 #include <assert.h>
 
 #define Cursor Mac_Cursor
-#define BOOL Mac_BOOL
+#define BOOL   Mac_BOOL
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
@@ -120,7 +120,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
 {
     int offset = 0;
 
-    /*1 */
+    /*1*/
     if (kCGLRGB444Bit & cmodes) {
         c[offset].r = 4;
         c[offset].g = 4;
@@ -128,7 +128,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
         ++offset;
     }
 
-    /*2 */
+    /*2*/
     if (kCGLARGB4444Bit & cmodes) {
         c[offset].a = 4;
         c[offset].r = 4;
@@ -138,7 +138,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
         ++offset;
     }
 
-    /*3 */
+    /*3*/
     if (kCGLRGB444A8Bit & cmodes) {
         c[offset].r = 4;
         c[offset].g = 4;
@@ -147,7 +147,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
         ++offset;
     }
 
-    /*4 */
+    /*4*/
     if (kCGLRGB555Bit & cmodes) {
         c[offset].r = 5;
         c[offset].g = 5;
@@ -155,7 +155,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
         ++offset;
     }
 
-    /*5 */
+    /*5*/
     if (kCGLARGB1555Bit & cmodes) {
         c[offset].a = 1;
         c[offset].r = 5;
@@ -165,7 +165,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
         ++offset;
     }
 
-    /*6 */
+    /*6*/
     if (kCGLRGB555A8Bit & cmodes) {
         c[offset].r = 5;
         c[offset].g = 5;
@@ -174,7 +174,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
         ++offset;
     }
 
-    /*7 */
+    /*7*/
     if (kCGLRGB565Bit & cmodes) {
         c[offset].r = 5;
         c[offset].g = 6;
@@ -182,7 +182,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
         ++offset;
     }
 
-    /*8 */
+    /*8*/
     if (kCGLRGB565A8Bit & cmodes) {
         c[offset].r = 5;
         c[offset].g = 6;
@@ -191,7 +191,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
         ++offset;
     }
 
-    /*9 */
+    /*9*/
     if (kCGLRGB888Bit & cmodes) {
         c[offset].r = 8;
         c[offset].g = 8;
@@ -199,7 +199,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
         ++offset;
     }
 
-    /*10 */
+    /*10*/
     if (kCGLARGB8888Bit & cmodes) {
         c[offset].a = 8;
         c[offset].r = 8;
@@ -209,7 +209,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
         ++offset;
     }
 
-    /*11 */
+    /*11*/
     if (kCGLRGB888A8Bit & cmodes) {
         c[offset].r = 8;
         c[offset].g = 8;
@@ -219,16 +219,16 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
     }
 
     if (forAccum) {
-//#if 0
+        //#if 0
         /* FIXME
-         * Disable this path, because some part of libGL, X, or Xplugin 
+         * Disable this path, because some part of libGL, X, or Xplugin
          * doesn't work with sizes greater than 8.
          * When this is enabled and visuals are chosen using depths
          * such as 16, the result is that the windows don't redraw
          * and are often white, until a resize.
          */
 
-        /*12 */
+        /*12*/
         if (kCGLRGB101010Bit & cmodes) {
             c[offset].r = 10;
             c[offset].g = 10;
@@ -236,7 +236,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
             ++offset;
         }
 
-        /*13 */
+        /*13*/
         if (kCGLARGB2101010Bit & cmodes) {
             c[offset].a = 2;
             c[offset].r = 10;
@@ -246,7 +246,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
             ++offset;
         }
 
-        /*14 */
+        /*14*/
         if (kCGLRGB101010_A8Bit & cmodes) {
             c[offset].r = 10;
             c[offset].g = 10;
@@ -255,7 +255,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
             ++offset;
         }
 
-        /*15 */
+        /*15*/
         if (kCGLRGB121212Bit & cmodes) {
             c[offset].r = 12;
             c[offset].g = 12;
@@ -263,7 +263,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
             ++offset;
         }
 
-        /*16 */
+        /*16*/
         if (kCGLARGB12121212Bit & cmodes) {
             c[offset].a = 12;
             c[offset].r = 12;
@@ -273,7 +273,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
             ++offset;
         }
 
-        /*17 */
+        /*17*/
         if (kCGLRGB161616Bit & cmodes) {
             c[offset].r = 16;
             c[offset].g = 16;
@@ -281,7 +281,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
             ++offset;
         }
 
-        /*18 */
+        /*18*/
         if (kCGLRGBA16161616Bit & cmodes) {
             c[offset].r = 16;
             c[offset].g = 16;
@@ -290,7 +290,7 @@ handleColorAndAccumulation(struct glColorBufCapabilities *c,
             ++offset;
         }
     }
-//#endif
+    //#endif
 
     /* FIXME should we handle the floating point color modes, and if so, how? */
 
@@ -318,46 +318,45 @@ static void
 handleDepthModes(struct glCapabilitiesConfig *c, GLint dmodes)
 {
     int offset = 0;
+#define DEPTH(flag, value) do { \
+        if (dmodes & flag) { \
+            c->depth_buffers[offset++] = value; \
+        } \
+} while (0)
 
-#define DEPTH(flag,value) do { \
-	if(dmodes & flag) { \
-	    c->depth_buffers[offset++] = value; \
-	} \
-    } while(0)
-
-    /*1 */
+    /*1*/
     DEPTH(kCGL0Bit, 0);
-    /*2 */
+    /*2*/
     DEPTH(kCGL1Bit, 1);
-    /*3 */
+    /*3*/
     DEPTH(kCGL2Bit, 2);
-    /*4 */
+    /*4*/
     DEPTH(kCGL3Bit, 3);
-    /*5 */
+    /*5*/
     DEPTH(kCGL4Bit, 4);
-    /*6 */
+    /*6*/
     DEPTH(kCGL5Bit, 5);
-    /*7 */
+    /*7*/
     DEPTH(kCGL6Bit, 6);
-    /*8 */
+    /*8*/
     DEPTH(kCGL8Bit, 8);
-    /*9 */
+    /*9*/
     DEPTH(kCGL10Bit, 10);
-    /*10 */
+    /*10*/
     DEPTH(kCGL12Bit, 12);
-    /*11 */
+    /*11*/
     DEPTH(kCGL16Bit, 16);
-    /*12 */
+    /*12*/
     DEPTH(kCGL24Bit, 24);
-    /*13 */
+    /*13*/
     DEPTH(kCGL32Bit, 32);
-    /*14 */
+    /*14*/
     DEPTH(kCGL48Bit, 48);
-    /*15 */
+    /*15*/
     DEPTH(kCGL64Bit, 64);
-    /*16 */
+    /*16*/
     DEPTH(kCGL96Bit, 96);
-    /*17 */
+    /*17*/
     DEPTH(kCGL128Bit, 128);
 
 #undef DEPTH
@@ -483,8 +482,9 @@ initConfig(struct glCapabilitiesConfig *c)
 
     for (i = 0; i < GLCAPS_COLOR_BUFFERS; ++i) {
         c->color_buffers[i].r = c->color_buffers[i].g =
-            c->color_buffers[i].b = c->color_buffers[i].a =
-            GLCAPS_COLOR_BUF_INVALID_VALUE;
+                                    c->color_buffers[i].b =
+                                        c->color_buffers[i].a =
+                                            GLCAPS_COLOR_BUF_INVALID_VALUE;
         c->color_buffers[i].is_argb = false;
     }
 
@@ -492,8 +492,9 @@ initConfig(struct glCapabilitiesConfig *c)
 
     for (i = 0; i < GLCAPS_COLOR_BUFFERS; ++i) {
         c->accum_buffers[i].r = c->accum_buffers[i].g =
-            c->accum_buffers[i].b = c->accum_buffers[i].a =
-            GLCAPS_COLOR_BUF_INVALID_VALUE;
+                                    c->accum_buffers[i].b =
+                                        c->accum_buffers[i].a =
+                                            GLCAPS_COLOR_BUF_INVALID_VALUE;
         c->accum_buffers[i].is_argb = false;
     }
 
@@ -540,7 +541,8 @@ getGlCapabilities(struct glCapabilities *cap)
         err = handleRendererDescriptions(info, r, &tmpconf);
         if (err) {
             ErrorF("handleRendererDescriptions returned error: %s\n",
-                   CGLErrorString(err));
+                   CGLErrorString(
+                       err));
             ErrorF("trying to continue...\n");
             continue;
         }

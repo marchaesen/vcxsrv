@@ -4,6 +4,7 @@
  * External interface of the Quartz display modes seen by the generic, mode
  * independent parts of the Darwin X server.
  *
+ * Copyright (c) 2002-2012 Apple Inc. All rights reserved.
  * Copyright (c) 2001-2003 Greg Parker and Torrey T. Lyons.
  *                 All Rights Reserved.
  *
@@ -39,7 +40,7 @@
 
 /*------------------------------------------
    Quartz display mode function types
-  ------------------------------------------*/
+   ------------------------------------------*/
 
 /*
  * Display mode initialization
@@ -80,12 +81,12 @@ typedef void * (*FrameForWindowProc)(WindowPtr pWin, Bool create);
 typedef WindowPtr (*TopLevelParentProc)(WindowPtr pWindow);
 typedef Bool (*CreateSurfaceProc)
     (ScreenPtr pScreen, Drawable id, DrawablePtr pDrawable,
-     unsigned int client_id, unsigned int *surface_id,
-     unsigned int key[2], void (*notify) (void *arg, void *data),
-     void *notify_data);
+    unsigned int client_id, unsigned int *surface_id,
+    unsigned int key[2], void (*notify)(void *arg, void *data),
+    void *notify_data);
 typedef Bool (*DestroySurfaceProc)
     (ScreenPtr pScreen, Drawable id, DrawablePtr pDrawable,
-     void (*notify) (void *arg, void *data), void *notify_data);
+    void (*notify)(void *arg, void *data), void *notify_data);
 
 /*
  * Quartz display mode function list
@@ -126,22 +127,37 @@ extern Bool XQuartzOptionSendsAlt;   /* Alt or Mode_switch? */
 
 extern int32_t XQuartzShieldingWindowLevel; /* CGShieldingWindowLevel() or 0 */
 
-Bool QuartzAddScreen(int index, ScreenPtr pScreen);
-Bool QuartzSetupScreen(int index, ScreenPtr pScreen);
-void QuartzInitOutput(int argc,char **argv);
-void QuartzInitInput(int argc, char **argv);
-void QuartzInitServer(int argc, char **argv, char **envp);
-void QuartzGiveUp(void);
-void QuartzProcessEvent(xEvent *xe);
-void QuartzUpdateScreens(void);
+Bool
+QuartzAddScreen(int index, ScreenPtr pScreen);
+Bool
+QuartzSetupScreen(int index, ScreenPtr pScreen);
+void
+QuartzInitOutput(int argc, char **argv);
+void
+QuartzInitInput(int argc, char **argv);
+void
+QuartzInitServer(int argc, char **argv, char **envp);
+void
+QuartzGiveUp(void);
+void
+QuartzProcessEvent(xEvent *xe);
+void
+QuartzUpdateScreens(void);
 
-void QuartzShow(void);
-void QuartzHide(void);
-void QuartzSetRootClip(BOOL enable);
-void QuartzSpaceChanged(uint32_t space_id);
+void
+QuartzShow(void);
+void
+QuartzHide(void);
+void
+QuartzSetRootClip(BOOL enable);
+void
+QuartzSpaceChanged(uint32_t space_id);
 
-void QuartzSetRootless(Bool state);
-void QuartzShowFullscreen(Bool state);
+void
+QuartzSetRootless(Bool state);
+void
+QuartzShowFullscreen(Bool state);
 
-int server_main(int argc, char **argv, char **envp);
+int
+server_main(int argc, char **argv, char **envp);
 #endif

@@ -201,7 +201,9 @@ authorization from the authors.
 
   <!-- Type for a packet structure -->
   <xsd:complexType name="packet-struct">
-    <xsd:group ref="fields" minOccurs="0" maxOccurs="unbounded" />
+    <xsd:sequence>
+      <xsd:group ref="fields" minOccurs="0" maxOccurs="unbounded" />
+    </xsd:sequence>
     <xsd:attribute name="name" type="xsd:string" use="required" />
     <xsd:attribute name="number" type="xsd:integer" use="required" />
   </xsd:complexType>
@@ -224,6 +226,59 @@ authorization from the authors.
   <xsd:simpleType name="dec-or-hex-integer">
     <xsd:union memberTypes="xsd:integer hex-integer" />
   </xsd:simpleType>
+
+  <!-- Type for documentation -->
+  <xsd:group name="doc-fields">
+    <xsd:sequence>
+      <xsd:element name="field">
+        <xsd:complexType>
+          <xsd:simpleContent>
+            <xsd:extension base="xsd:string">
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:extension>
+          </xsd:simpleContent>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:group>
+
+  <xsd:group name="error-fields">
+    <xsd:sequence>
+      <xsd:element name="error">
+        <xsd:complexType>
+          <xsd:simpleContent>
+            <xsd:extension base="xsd:string">
+              <xsd:attribute name="type" type="xsd:string" />
+            </xsd:extension>
+          </xsd:simpleContent>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:group>
+
+  <xsd:group name="see-fields">
+    <xsd:sequence>
+      <xsd:element name="see">
+        <xsd:complexType>
+          <xsd:attribute name="name" type="xsd:string" />
+          <xsd:attribute name="type" type="xsd:string" />
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:group>
+
+  <xsd:element name="doc">
+    <xsd:complexType mixed="true">
+      <xsd:sequence>
+        <xsd:element name="brief" type="xsd:string" minOccurs="0" maxOccurs="1" />
+        <xsd:element name="description" type="xsd:string" minOccurs="0" maxOccurs="1" />
+        <xsd:element name="example" type="xsd:string" minOccurs="0" maxOccurs="1" />
+        <xsd:group ref="doc-fields" minOccurs="0" maxOccurs="unbounded" />
+        <xsd:group ref="error-fields" minOccurs="0" maxOccurs="unbounded" />
+        <xsd:group ref="see-fields" minOccurs="0" maxOccurs="unbounded" />
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
 
   <xsd:group name="macro">
     <xsd:choice>
@@ -248,9 +303,11 @@ authorization from the authors.
                   <xsd:choice minOccurs="0" maxOccurs="1">
                     <xsd:element ref="switch" />
                   </xsd:choice>
+                  <xsd:element ref="doc" minOccurs="0" maxOccurs="1" />
                 </xsd:sequence>
               </xsd:complexType>
             </xsd:element>
+            <xsd:element ref="doc" minOccurs="0" maxOccurs="1" />
           </xsd:sequence>
           <xsd:attribute name="name" type="xsd:string" use="required" />
           <xsd:attribute name="opcode" type="xsd:integer" use="required" />
@@ -262,6 +319,9 @@ authorization from the authors.
         <xsd:complexType>
           <xsd:complexContent>
             <xsd:extension base="packet-struct">
+              <xsd:sequence>
+                <xsd:element ref="doc" minOccurs="0" maxOccurs="1" />
+              </xsd:sequence>
               <xsd:attribute name="no-sequence-number" type="xsd:boolean"
                              use="optional" />
             </xsd:extension>
@@ -296,6 +356,7 @@ authorization from the authors.
                 <xsd:attribute name="name" type="xsd:string" use="required" />
               </xsd:complexType>
             </xsd:element>
+            <xsd:element ref="doc" minOccurs="0" maxOccurs="1" />
           </xsd:sequence>
           <xsd:attribute name="name" type="xsd:string" use="required" />
         </xsd:complexType>

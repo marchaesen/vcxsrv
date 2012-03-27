@@ -1,33 +1,41 @@
 /*
-Darwin event queue and event handling
-
-Copyright 2007-2008 Apple Inc.
-Copyright 2004 Kaleb S. KEITHLEY. All Rights Reserved.
-Copyright (c) 2002-2004 Torrey T. Lyons. All Rights Reserved.
-
-This file is based on mieq.c by Keith Packard,
-which contains the following copyright:
-Copyright 1990, 1998  The Open Group
-
-Permission to use, copy, modify, distribute, and sell this software and its
-documentation for any purpose is hereby granted without fee, provided that
-the above copyright notice appear in all copies and that both that
-copyright notice and this permission notice appear in supporting
-documentation.
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
-AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-Except as contained in this notice, the name of The Open Group shall not be
-used in advertising or otherwise to promote the sale, use or other dealings
-in this Software without prior written authorization from The Open Group.
+ * Darwin event queue and event handling
+ *
+ * Copyright 2007-2008 Apple Inc.
+ * Copyright 2004 Kaleb S. KEITHLEY. All Rights Reserved.
+ * Copyright (c) 2002-2004 Torrey T. Lyons. All Rights Reserved.
+ *
+ * This file is based on mieq.c by Keith Packard,
+ * which contains the following copyright:
+ * Copyright 1990, 1998  The Open Group
+ *
+ *
+ * Copyright (c) 2002-2012 Apple Inc. All rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation files
+ * (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.  IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT
+ * HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * Except as contained in this notice, the name(s) of the above
+ * copyright holders shall not be used in advertising or otherwise to
+ * promote the sale, use or other dealings in this Software without
+ * prior written authorization.
  */
 
 #include "sanitizedCarbon.h"
@@ -75,10 +83,10 @@ in this Software without prior written authorization from The Open Group.
 #include "applewmExt.h"
 
 /* FIXME: Abstract this better */
-extern Bool QuartzModeEventHandler(int screenNum, XQuartzEvent * e,
-                                   DeviceIntPtr dev);
+extern Bool
+QuartzModeEventHandler(int screenNum, XQuartzEvent *e, DeviceIntPtr dev);
 
-int darwin_all_modifier_flags = 0;      // last known modifier state
+int darwin_all_modifier_flags = 0;  // last known modifier state
 int darwin_all_modifier_mask = 0;
 int darwin_x11_modifier_mask = 0;
 
@@ -89,14 +97,14 @@ static pthread_mutex_t fd_add_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t fd_add_ready_cond = PTHREAD_COND_INITIALIZER;
 static pthread_t fd_add_tid = NULL;
 
-static InternalEvent *darwinEvents = NULL;
+static InternalEvent* darwinEvents = NULL;
 
 static pthread_mutex_t mieq_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t mieq_ready_cond = PTHREAD_COND_INITIALIZER;
 
 /*** Pthread Magics ***/
 static pthread_t
-create_thread(void *(*func) (void *), void *arg)
+create_thread(void *(*func)(void *), void *arg)
 {
     pthread_attr_t attr;
     pthread_t tid;
@@ -110,12 +118,12 @@ create_thread(void *(*func) (void *), void *arg)
     return tid;
 }
 
-void darwinEvents_lock(void);
+void
+darwinEvents_lock(void);
 void
 darwinEvents_lock(void)
 {
     int err;
-
     if ((err = pthread_mutex_lock(&mieq_lock))) {
         ErrorF("%s:%s:%d: Failed to lock mieq_lock: %d\n",
                __FILE__, __FUNCTION__, __LINE__, err);
@@ -126,12 +134,12 @@ darwinEvents_lock(void)
     }
 }
 
-void darwinEvents_unlock(void);
+void
+darwinEvents_unlock(void);
 void
 darwinEvents_unlock(void)
 {
     int err;
-
     if ((err = pthread_mutex_unlock(&mieq_lock))) {
         ErrorF("%s:%s:%d: Failed to unlock mieq_lock: %d\n",
                __FILE__, __FUNCTION__, __LINE__, err);
@@ -163,12 +171,13 @@ DarwinPressModifierKey(int pressed, int key)
 
 static int darwin_x11_modifier_mask_list[] = {
 #ifdef NX_DEVICELCMDKEYMASK
-    NX_DEVICELCTLKEYMASK, NX_DEVICERCTLKEYMASK,
+    NX_DEVICELCTLKEYMASK,   NX_DEVICERCTLKEYMASK,
     NX_DEVICELSHIFTKEYMASK, NX_DEVICERSHIFTKEYMASK,
-    NX_DEVICELCMDKEYMASK, NX_DEVICERCMDKEYMASK,
-    NX_DEVICELALTKEYMASK, NX_DEVICERALTKEYMASK,
+    NX_DEVICELCMDKEYMASK,   NX_DEVICERCMDKEYMASK,
+    NX_DEVICELALTKEYMASK,   NX_DEVICERALTKEYMASK,
 #else
-    NX_CONTROLMASK, NX_SHIFTMASK, NX_COMMANDMASK, NX_ALTERNATEMASK,
+    NX_CONTROLMASK,         NX_SHIFTMASK,          NX_COMMANDMASK,
+    NX_ALTERNATEMASK,
 #endif
     NX_ALPHASHIFTMASK,
     0
@@ -177,8 +186,8 @@ static int darwin_x11_modifier_mask_list[] = {
 static int darwin_all_modifier_mask_additions[] = { NX_SECONDARYFNMASK, };
 
 static void
-DarwinUpdateModifiers(int pressed,      // KeyPress or KeyRelease
-                      int flags)        // modifier flags that have changed
+DarwinUpdateModifiers(int pressed,                    // KeyPress or KeyRelease
+                      int flags)                      // modifier flags that have changed
 {
     int *f;
     int key;
@@ -195,7 +204,8 @@ DarwinUpdateModifiers(int pressed,      // KeyPress or KeyRelease
         if (*f & flags && *f != NX_ALPHASHIFTMASK) {
             key = DarwinModifierNXMaskToNXKey(*f);
             if (key == -1)
-                ErrorF("DarwinUpdateModifiers: Unsupported NXMask: 0x%x\n", *f);
+                ErrorF("DarwinUpdateModifiers: Unsupported NXMask: 0x%x\n",
+                       *f);
             else
                 DarwinPressModifierKey(pressed, key);
         }
@@ -214,26 +224,32 @@ DarwinEventHandler(int screenNum, InternalEvent *ie, DeviceIntPtr dev)
     case kXquartzControllerNotify:
         DEBUG_LOG("kXquartzControllerNotify\n");
         AppleWMSendEvent(AppleWMControllerNotify,
-                         AppleWMControllerNotifyMask, e->data[0], e->data[1]);
+                         AppleWMControllerNotifyMask,
+                         e->data[0],
+                         e->data[1]);
         break;
 
     case kXquartzPasteboardNotify:
         DEBUG_LOG("kXquartzPasteboardNotify\n");
         AppleWMSendEvent(AppleWMPasteboardNotify,
-                         AppleWMPasteboardNotifyMask, e->data[0], e->data[1]);
+                         AppleWMPasteboardNotifyMask,
+                         e->data[0],
+                         e->data[1]);
         break;
 
     case kXquartzActivate:
         DEBUG_LOG("kXquartzActivate\n");
         QuartzShow();
         AppleWMSendEvent(AppleWMActivationNotify,
-                         AppleWMActivationNotifyMask, AppleWMIsActive, 0);
+                         AppleWMActivationNotifyMask,
+                         AppleWMIsActive, 0);
         break;
 
     case kXquartzDeactivate:
         DEBUG_LOG("kXquartzDeactivate\n");
         AppleWMSendEvent(AppleWMActivationNotify,
-                         AppleWMActivationNotifyMask, AppleWMIsInactive, 0);
+                         AppleWMActivationNotifyMask,
+                         AppleWMIsInactive, 0);
         QuartzHide();
         break;
 
@@ -247,8 +263,8 @@ DarwinEventHandler(int screenNum, InternalEvent *ie, DeviceIntPtr dev)
     case kXquartzToggleFullscreen:
         DEBUG_LOG("kXquartzToggleFullscreen\n");
         if (XQuartzIsRootless)
-            ErrorF
-                ("Ignoring kXquartzToggleFullscreen because of rootless mode.");
+            ErrorF(
+                "Ignoring kXquartzToggleFullscreen because of rootless mode.");
         else
             QuartzRandRToggleFullscreen();
         break;
@@ -264,7 +280,7 @@ DarwinEventHandler(int screenNum, InternalEvent *ie, DeviceIntPtr dev)
         break;
 
     case kXquartzSetRootClip:
-        QuartzSetRootClip((Bool) e->data[0]);
+        QuartzSetRootClip((Bool)e->data[0]);
         break;
 
     case kXquartzQuit:
@@ -277,8 +293,8 @@ DarwinEventHandler(int screenNum, InternalEvent *ie, DeviceIntPtr dev)
         break;
 
     case kXquartzListenOnOpenFD:
-        ErrorF("Calling ListenOnOpenFD() for new fd: %d\n", (int) e->data[0]);
-        ListenOnOpenFD((int) e->data[0], 1);
+        ErrorF("Calling ListenOnOpenFD() for new fd: %d\n", (int)e->data[0]);
+        ListenOnOpenFD((int)e->data[0], 1);
         break;
 
     case kXquartzReloadKeymap:
@@ -333,8 +349,8 @@ DarwinProcessFDAdditionQueue_thread(void *args)
     sleep_for.tv_sec = 3;
     sleep_for.tv_nsec = 0;
 
-    ErrorF
-        ("X11.app: DarwinProcessFDAdditionQueue_thread: Sleeping to allow xinitrc to catchup.\n");
+    ErrorF(
+        "X11.app: DarwinProcessFDAdditionQueue_thread: Sleeping to allow xinitrc to catchup.\n");
     while (nanosleep(&sleep_for, &sleep_remaining) != 0) {
         sleep_for = sleep_remaining;
     }
@@ -361,8 +377,9 @@ DarwinEQInit(void)
         darwin_x11_modifier_mask |= *p;
     }
 
-    for (p = darwin_all_modifier_mask_additions, darwin_all_modifier_mask =
-         darwin_x11_modifier_mask; *p; p++) {
+    for (p = darwin_all_modifier_mask_additions,
+         darwin_all_modifier_mask = darwin_x11_modifier_mask;
+         *p; p++) {
         darwin_all_modifier_mask |= *p;
     }
 
@@ -374,7 +391,8 @@ DarwinEQInit(void)
      * here, so I don't bother.
      */
     if (!darwinEvents) {
-        darwinEvents = InitEventList(GetMaximumEventsNum());;
+        darwinEvents = InitEventList(GetMaximumEventsNum());
+        ;
 
         if (!darwinEvents)
             FatalError("Couldn't allocate event buffer\n");
@@ -420,7 +438,6 @@ static void
 DarwinPokeEQ(void)
 {
     char nullbyte = 0;
-
     //  <daniels> oh, i ... er ... christ.
     write(darwinEventWriteFD, &nullbyte, sizeof(nullbyte));
 }
@@ -430,10 +447,15 @@ DarwinPokeEQ(void)
  *       display.
  */
 static void
-DarwinPrepareValuators(DeviceIntPtr pDev, int *valuators, ScreenPtr screen,
-                       float pointer_x, float pointer_y,
-                       float pressure, float tilt_x, float tilt_y)
+DarwinPrepareValuators(DeviceIntPtr pDev, ValuatorMask *pmask,
+                       ScreenPtr screen,
+                       double pointer_x, double pointer_y,
+                       double pressure, double tilt_x,
+                       double tilt_y)
 {
+
+    valuator_mask_zero(pmask);
+
     /* Fix offset between darwin and X screens */
     pointer_x -= darwinMainScreenX + screen->x;
     pointer_y -= darwinMainScreenY + screen->y;
@@ -445,38 +467,42 @@ DarwinPrepareValuators(DeviceIntPtr pDev, int *valuators, ScreenPtr screen,
         pointer_y = 0.0;
 
     if (pDev == darwinPointer) {
-        valuators[0] = pointer_x;
-        valuators[1] = pointer_y;
-        valuators[2] = 0;
-        valuators[3] = 0;
-        valuators[4] = 0;
+        valuator_mask_set_double(pmask, 0, pointer_x);
+        valuator_mask_set_double(pmask, 1, pointer_y);
     }
     else {
-        /* Setup our array of values */
-        valuators[0] =
-            XQUARTZ_VALUATOR_LIMIT * (pointer_x /
-                                      (float) screenInfo.screens[0]->width);
-        valuators[1] =
-            XQUARTZ_VALUATOR_LIMIT * (pointer_y /
-                                      (float) screenInfo.screens[0]->height);
-        valuators[2] = XQUARTZ_VALUATOR_LIMIT * pressure;
-        valuators[3] = XQUARTZ_VALUATOR_LIMIT * tilt_x;
-        valuators[4] = XQUARTZ_VALUATOR_LIMIT * tilt_y;
+        valuator_mask_set_double(pmask, 0, XQUARTZ_VALUATOR_LIMIT *
+                                 (pointer_x /
+                                  (double)screenInfo.screens[0]->width));
+        valuator_mask_set_double(pmask, 1, XQUARTZ_VALUATOR_LIMIT *
+                                 (pointer_y /
+                                  (double)screenInfo.screens[0]->height));
+        valuator_mask_set_double(pmask, 2, XQUARTZ_VALUATOR_LIMIT * pressure);
+        valuator_mask_set_double(pmask, 3, XQUARTZ_VALUATOR_LIMIT * tilt_x);
+        valuator_mask_set_double(pmask, 4, XQUARTZ_VALUATOR_LIMIT * tilt_y);
+        DEBUG_LOG("Pointer (%lf, %lf), Valuators: {%lf,%lf,%lf,%lf,%lf}\n",
+                  pointer_x, pointer_y,
+                  valuator_mask_get_double(pmask,
+                                           0),
+                  valuator_mask_get_double(pmask, 1),
+                  valuator_mask_get_double(pmask,
+                                           2),
+                  valuator_mask_get_double(pmask, 3),
+                  valuator_mask_get_double(pmask, 4));
     }
-    //DEBUG_LOG("Pointer (%f, %f), Valuators: {%d,%d,%d,%d,%d}\n", pointer_x, pointer_y,
-    //          valuators[0], valuators[1], valuators[2], valuators[3], valuators[4]);
 }
 
 void
 DarwinInputReleaseButtonsAndKeys(DeviceIntPtr pDev)
 {
-    darwinEvents_lock(); {
+    darwinEvents_lock();
+    {
         int i;
-
         if (pDev->button) {
             for (i = 0; i < pDev->button->numButtons; i++) {
                 if (BitIsOn(pDev->button->down, i)) {
-                    QueuePointerEvents(pDev, ButtonRelease, i, POINTER_ABSOLUTE,
+                    QueuePointerEvents(pDev, ButtonRelease, i,
+                                       POINTER_ABSOLUTE,
                                        NULL);
                 }
             }
@@ -491,31 +517,31 @@ DarwinInputReleaseButtonsAndKeys(DeviceIntPtr pDev)
             }
         }
         DarwinPokeEQ();
-    }
-    darwinEvents_unlock();
+    } darwinEvents_unlock();
 }
 
 void
 DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
-                        float pointer_x, float pointer_y, float pressure,
-                        float tilt_x, float tilt_y)
+                        double pointer_x, double pointer_y,
+                        double pressure, double tilt_x,
+                        double tilt_y)
 {
     static int darwinFakeMouseButtonDown = 0;
     ScreenPtr screen;
-    int valuators[5];
+    ValuatorMask valuators;
 
     //DEBUG_LOG("x=%f, y=%f, p=%f, tx=%f, ty=%f\n", pointer_x, pointer_y, pressure, tilt_x, tilt_y);
 
     if (!darwinEvents) {
-        DEBUG_LOG
-            ("DarwinSendPointerEvents called before darwinEvents was initialized\n");
+        DEBUG_LOG(
+            "DarwinSendPointerEvents called before darwinEvents was initialized\n");
         return;
     }
 
     screen = miPointerGetScreen(pDev);
     if (!screen) {
-        DEBUG_LOG
-            ("DarwinSendPointerEvents called before screen was initialized\n");
+        DEBUG_LOG(
+            "DarwinSendPointerEvents called before screen was initialized\n");
         return;
     }
 
@@ -525,20 +551,21 @@ DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
             /* We're currently "down" with another button, so release it first */
             DarwinSendPointerEvents(pDev, ButtonRelease,
                                     darwinFakeMouseButtonDown, pointer_x,
-                                    pointer_y, pressure, tilt_x, tilt_y);
+                                    pointer_y, pressure, tilt_x,
+                                    tilt_y);
             darwinFakeMouseButtonDown = 0;
         }
         if (darwin_all_modifier_flags & darwinFakeMouse2Mask) {
             ev_button = 2;
             darwinFakeMouseButtonDown = 2;
-            DarwinUpdateModKeys(darwin_all_modifier_flags &
-                                ~darwinFakeMouse2Mask);
+            DarwinUpdateModKeys(
+                darwin_all_modifier_flags & ~darwinFakeMouse2Mask);
         }
         else if (darwin_all_modifier_flags & darwinFakeMouse3Mask) {
             ev_button = 3;
             darwinFakeMouseButtonDown = 3;
-            DarwinUpdateModKeys(darwin_all_modifier_flags &
-                                ~darwinFakeMouse3Mask);
+            DarwinUpdateModKeys(
+                darwin_all_modifier_flags & ~darwinFakeMouse3Mask);
         }
     }
 
@@ -548,25 +575,24 @@ DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
         }
 
         if (darwinFakeMouseButtonDown == 2) {
-            DarwinUpdateModKeys(darwin_all_modifier_flags &
-                                ~darwinFakeMouse2Mask);
+            DarwinUpdateModKeys(
+                darwin_all_modifier_flags & ~darwinFakeMouse2Mask);
         }
         else if (darwinFakeMouseButtonDown == 3) {
-            DarwinUpdateModKeys(darwin_all_modifier_flags &
-                                ~darwinFakeMouse3Mask);
+            DarwinUpdateModKeys(
+                darwin_all_modifier_flags & ~darwinFakeMouse3Mask);
         }
 
         darwinFakeMouseButtonDown = 0;
     }
 
-    DarwinPrepareValuators(pDev, valuators, screen, pointer_x, pointer_y,
-                           pressure, tilt_x, tilt_y);
-    darwinEvents_lock(); {
-        ValuatorMask mask;
-
-        valuator_mask_set_range(&mask, 0, (pDev == darwinPointer) ? 2 : 5,
-                                valuators);
-        QueuePointerEvents(pDev, ev_type, ev_button, POINTER_ABSOLUTE, &mask);
+    DarwinPrepareValuators(pDev, &valuators, screen, pointer_x, pointer_y,
+                           pressure, tilt_x,
+                           tilt_y);
+    darwinEvents_lock();
+    {
+        QueuePointerEvents(pDev, ev_type, ev_button, POINTER_ABSOLUTE,
+                           &valuators);
         DarwinPokeEQ();
     } darwinEvents_unlock();
 }
@@ -576,93 +602,84 @@ DarwinSendKeyboardEvents(int ev_type, int keycode)
 {
 
     if (!darwinEvents) {
-        DEBUG_LOG
-            ("DarwinSendKeyboardEvents called before darwinEvents was initialized\n");
+        DEBUG_LOG(
+            "DarwinSendKeyboardEvents called before darwinEvents was initialized\n");
         return;
     }
 
-    darwinEvents_lock(); {
+    darwinEvents_lock();
+    {
         QueueKeyboardEvents(darwinKeyboard, ev_type, keycode + MIN_KEYCODE,
                             NULL);
         DarwinPokeEQ();
-    }
-    darwinEvents_unlock();
+    } darwinEvents_unlock();
 }
 
 void
-DarwinSendProximityEvents(DeviceIntPtr pDev, int ev_type, float pointer_x,
-                          float pointer_y, float pressure, float tilt_x,
-                          float tilt_y)
+DarwinSendProximityEvents(DeviceIntPtr pDev, int ev_type, double pointer_x,
+                          double pointer_y,
+                          double pressure, double tilt_x,
+                          double tilt_y)
 {
     ScreenPtr screen;
-    int valuators[5];
+    ValuatorMask valuators;
 
     DEBUG_LOG("DarwinSendProximityEvents: %d l:%f,%f p:%f t:%f,%f\n", ev_type,
-              pointer_x, pointer_y, pressure, tilt_x, tilt_y);
+              pointer_x, pointer_y, pressure, tilt_x,
+              tilt_y);
 
     if (!darwinEvents) {
-        DEBUG_LOG
-            ("DarwinSendProximityEvents called before darwinEvents was initialized\n");
+        DEBUG_LOG(
+            "DarwinSendProximityEvents called before darwinEvents was initialized\n");
         return;
     }
 
     screen = miPointerGetScreen(pDev);
     if (!screen) {
-        DEBUG_LOG
-            ("DarwinSendPointerEvents called before screen was initialized\n");
+        DEBUG_LOG(
+            "DarwinSendPointerEvents called before screen was initialized\n");
         return;
     }
 
-    DarwinPrepareValuators(pDev, valuators, screen, pointer_x, pointer_y,
-                           pressure, tilt_x, tilt_y);
-    darwinEvents_lock(); {
-        ValuatorMask mask;
-
-        valuator_mask_set_range(&mask, 0, 5, valuators);
-        QueueProximityEvents(pDev, ev_type, &mask);
+    DarwinPrepareValuators(pDev, &valuators, screen, pointer_x, pointer_y,
+                           pressure, tilt_x,
+                           tilt_y);
+    darwinEvents_lock();
+    {
+        QueueProximityEvents(pDev, ev_type, &valuators);
         DarwinPokeEQ();
     } darwinEvents_unlock();
 }
 
 /* Send the appropriate number of button clicks to emulate scroll wheel */
 void
-DarwinSendScrollEvents(float count_x, float count_y,
-                       float pointer_x, float pointer_y,
-                       float pressure, float tilt_x, float tilt_y)
-{
-    int sign_x, sign_y;
+DarwinSendScrollEvents(double scroll_x, double scroll_y) {
+    ScreenPtr screen;
+    ValuatorMask valuators;
 
     if (!darwinEvents) {
-        DEBUG_LOG
-            ("DarwinSendScrollEvents called before darwinEvents was initialized\n");
+        DEBUG_LOG(
+            "DarwinSendScrollEvents called before darwinEvents was initialized\n");
         return;
     }
 
-    sign_x = count_x > 0.0f ? SCROLLWHEELLEFTFAKE : SCROLLWHEELRIGHTFAKE;
-    sign_y = count_y > 0.0f ? SCROLLWHEELUPFAKE : SCROLLWHEELDOWNFAKE;
-    count_x = fabs(count_x);
-    count_y = fabs(count_y);
-
-    while ((count_x > 0.0f) || (count_y > 0.0f)) {
-        if (count_x > 0.0f) {
-            DarwinSendPointerEvents(darwinPointer, ButtonPress, sign_x,
-                                    pointer_x, pointer_y, pressure, tilt_x,
-                                    tilt_y);
-            DarwinSendPointerEvents(darwinPointer, ButtonRelease, sign_x,
-                                    pointer_x, pointer_y, pressure, tilt_x,
-                                    tilt_y);
-            count_x = count_x - 1.0f;
-        }
-        if (count_y > 0.0f) {
-            DarwinSendPointerEvents(darwinPointer, ButtonPress, sign_y,
-                                    pointer_x, pointer_y, pressure, tilt_x,
-                                    tilt_y);
-            DarwinSendPointerEvents(darwinPointer, ButtonRelease, sign_y,
-                                    pointer_x, pointer_y, pressure, tilt_x,
-                                    tilt_y);
-            count_y = count_y - 1.0f;
-        }
+    screen = miPointerGetScreen(darwinPointer);
+    if (!screen) {
+        DEBUG_LOG(
+            "DarwinSendScrollEvents called before screen was initialized\n");
+        return;
     }
+
+    valuator_mask_zero(&valuators);
+    valuator_mask_set_double(&valuators, 2, scroll_y);
+    valuator_mask_set_double(&valuators, 3, scroll_x);
+
+    darwinEvents_lock();
+    {
+        QueuePointerEvents(darwinPointer, MotionNotify, 0,
+                           POINTER_RELATIVE, &valuators);
+        DarwinPokeEQ();
+    } darwinEvents_unlock();    
 }
 
 /* Send the appropriate KeyPress/KeyRelease events to GetKeyboardEvents to
@@ -670,12 +687,12 @@ DarwinSendScrollEvents(float count_x, float count_y,
 void
 DarwinUpdateModKeys(int flags)
 {
-    DarwinUpdateModifiers(KeyRelease,
-                          darwin_all_modifier_flags & ~flags &
-                          darwin_x11_modifier_mask);
-    DarwinUpdateModifiers(KeyPress,
-                          ~darwin_all_modifier_flags & flags &
-                          darwin_x11_modifier_mask);
+    DarwinUpdateModifiers(
+        KeyRelease, darwin_all_modifier_flags & ~flags &
+        darwin_x11_modifier_mask);
+    DarwinUpdateModifiers(
+        KeyPress, ~darwin_all_modifier_flags & flags &
+        darwin_x11_modifier_mask);
     darwin_all_modifier_flags = flags;
 }
 
@@ -700,12 +717,13 @@ DarwinSendDDXEvent(int type, int argc, ...)
     if (argc > 0 && argc < XQUARTZ_EVENT_MAXARGS) {
         va_start(args, argc);
         for (i = 0; i < argc; i++)
-            e.data[i] = (uint32_t) va_arg(args, uint32_t);
+            e.data[i] = (uint32_t)va_arg(args, uint32_t);
         va_end(args);
     }
 
-    darwinEvents_lock(); {
-        mieqEnqueue(NULL, (InternalEvent *) &e);
+    darwinEvents_lock();
+    {
+        mieqEnqueue(NULL, (InternalEvent *)&e);
         DarwinPokeEQ();
     } darwinEvents_unlock();
 }

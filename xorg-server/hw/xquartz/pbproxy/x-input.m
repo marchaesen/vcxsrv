@@ -1,30 +1,31 @@
 /* x-input.m -- event handling
-   Copyright (c) 2002, 2008 Apple Computer, Inc. All rights reserved.
-
-   Permission is hereby granted, free of charge, to any person
-   obtaining a copy of this software and associated documentation files
-   (the "Software"), to deal in the Software without restriction,
-   including without limitation the rights to use, copy, modify, merge,
-   publish, distribute, sublicense, and/or sell copies of the Software,
-   and to permit persons to whom the Software is furnished to do so,
-   subject to the following conditions:
-
-   The above copyright notice and this permission notice shall be
-   included in all copies or substantial portions of the Software.
-
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-   NONINFRINGEMENT.  IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT
-   HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-   DEALINGS IN THE SOFTWARE.
-
-   Except as contained in this notice, the name(s) of the above
-   copyright holders shall not be used in advertising or otherwise to
-   promote the sale, use or other dealings in this Software without
-   prior written authorization.
+ *
+ * Copyright (c) 2002-2012 Apple Inc. All rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation files
+ * (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.  IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT
+ * HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * Except as contained in this notice, the name(s) of the above
+ * copyright holders shall not be used in advertising or otherwise to
+ * promote the sale, use or other dealings in this Software without
+ * prior written authorization.
  */
 
 #include "pbproxy.h"
@@ -49,16 +50,17 @@ BOOL xpbproxy_prefs_reload = NO;
 static Time last_activation_time;
 
 static void
-x_event_apple_wm_notify(XAppleWMNotifyEvent * e)
+x_event_apple_wm_notify(XAppleWMNotifyEvent *e)
 {
     int type = e->type - xpbproxy_apple_wm_event_base;
     int kind = e->kind;
 
     /* We want to reload prefs even if we're not active */
-    if (type == AppleWMActivationNotify && kind == AppleWMReloadPreferences)
-        [xpbproxy_selection_object()reload_preferences];
+    if (type == AppleWMActivationNotify &&
+        kind == AppleWMReloadPreferences)
+        [xpbproxy_selection_object ()reload_preferences];
 
-    if (![xpbproxy_selection_object()is_active])
+    if (![xpbproxy_selection_object ()is_active])
         return;
 
     switch (type) {
@@ -66,11 +68,11 @@ x_event_apple_wm_notify(XAppleWMNotifyEvent * e)
         switch (kind) {
         case AppleWMIsActive:
             last_activation_time = e->time;
- [xpbproxy_selection_object()x_active:e->time];
+            [xpbproxy_selection_object () x_active:e->time];
             break;
 
         case AppleWMIsInactive:
- [xpbproxy_selection_object()x_inactive:e->time];
+            [xpbproxy_selection_object () x_inactive:e->time];
             break;
         }
         break;
@@ -78,7 +80,7 @@ x_event_apple_wm_notify(XAppleWMNotifyEvent * e)
     case AppleWMPasteboardNotify:
         switch (kind) {
         case AppleWMCopyToPasteboard:
- [xpbproxy_selection_object()x_copy:e->time];
+            [xpbproxy_selection_object () x_copy:e->time];
         }
         break;
     }
@@ -87,7 +89,7 @@ x_event_apple_wm_notify(XAppleWMNotifyEvent * e)
 static void
 xpbproxy_process_xevents(void)
 {
-    NSAutoreleasePool *pool =[[NSAutoreleasePool alloc] init];
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
     if (pool == nil) {
         ErrorF("unable to allocate/init auto release pool!\n");
@@ -101,31 +103,32 @@ xpbproxy_process_xevents(void)
 
         switch (e.type) {
         case SelectionClear:
-            if ([xpbproxy_selection_object()is_active])
- [xpbproxy_selection_object()clear_event:&e.xselectionclear];
+            if ([xpbproxy_selection_object ()is_active])
+                [xpbproxy_selection_object () clear_event:&e.xselectionclear];
             break;
 
         case SelectionRequest:
- [xpbproxy_selection_object()request_event:&e.xselectionrequest];
+            [xpbproxy_selection_object () request_event:&e.xselectionrequest];
             break;
 
         case SelectionNotify:
- [xpbproxy_selection_object()notify_event:&e.xselection];
+            [xpbproxy_selection_object () notify_event:&e.xselection];
             break;
 
         case PropertyNotify:
- [xpbproxy_selection_object()property_event:&e.xproperty];
+            [xpbproxy_selection_object () property_event:&e.xproperty];
             break;
 
         default:
             if (e.type >= xpbproxy_apple_wm_event_base &&
-                e.type < xpbproxy_apple_wm_event_base + AppleWMNumberEvents) {
-                x_event_apple_wm_notify((XAppleWMNotifyEvent *) & e);
+                e.type < xpbproxy_apple_wm_event_base +
+                AppleWMNumberEvents) {
+                x_event_apple_wm_notify((XAppleWMNotifyEvent *)&e);
             }
-            else if (e.type ==
-                     xpbproxy_xfixes_event_base + XFixesSelectionNotify) {
- [xpbproxy_selection_object()xfixes_selection_notify:(XFixesSelectionNotifyEvent *) &
-                 e];
+            else if (e.type == xpbproxy_xfixes_event_base +
+                     XFixesSelectionNotify) {
+                [xpbproxy_selection_object () xfixes_selection_notify:(
+                     XFixesSelectionNotifyEvent *)&e];
             }
             break;
         }
@@ -138,8 +141,8 @@ xpbproxy_process_xevents(void)
 
 static BOOL
 add_input_socket(int sock, CFOptionFlags callback_types,
-                 CFSocketCallBack callback, const CFSocketContext * ctx,
-                 CFRunLoopSourceRef * cf_source)
+                 CFSocketCallBack callback, const CFSocketContext *ctx,
+                 CFRunLoopSourceRef *cf_source)
 {
     CFSocketRef cf_sock;
 
@@ -150,7 +153,8 @@ add_input_socket(int sock, CFOptionFlags callback_types,
         return FALSE;
     }
 
-    *cf_source = CFSocketCreateRunLoopSource(kCFAllocatorDefault, cf_sock, 0);
+    *cf_source = CFSocketCreateRunLoopSource(kCFAllocatorDefault,
+                                             cf_sock, 0);
     CFRelease(cf_sock);
 
     if (*cf_source == NULL)
@@ -168,7 +172,7 @@ x_input_callback(CFSocketRef sock, CFSocketCallBackType type,
 
 #ifdef STANDALONE_XPBPROXY
     if (xpbproxy_prefs_reload) {
-        [xpbproxy_selection_object()reload_preferences];
+        [xpbproxy_selection_object ()reload_preferences];
         xpbproxy_prefs_reload = NO;
     }
 #endif
@@ -179,7 +183,7 @@ x_input_callback(CFSocketRef sock, CFSocketCallBackType type,
 BOOL
 xpbproxy_input_register(void)
 {
-    return add_input_socket(ConnectionNumber(xpbproxy_dpy),
-                            kCFSocketReadCallBack, x_input_callback, NULL,
-                            &xpbproxy_dpy_source);
+    return add_input_socket(ConnectionNumber(
+                                xpbproxy_dpy), kCFSocketReadCallBack,
+                            x_input_callback, NULL, &xpbproxy_dpy_source);
 }
