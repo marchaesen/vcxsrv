@@ -19,3 +19,8 @@ gl_procs.py > glprocs.h
 glX_proto_send.py -m proto > indirect.c
 glX_proto_send.py -m init_h > indirect.h
 glX_proto_send.py -m init_c > indirect_init.c
+
+gl_enums.py -f gl_and_es_API.xml > enums.c
+remap_helper.py > remap_helper.h
+copy ..\..\mapi\mapi_abi.py
+mapi_abi.py --printer glapi --mode lib gl_and_es_API.xml > glapi_mapi_tmp.h

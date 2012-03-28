@@ -1,3 +1,7 @@
+enums.c
+glapi_mapi_tmp.h
+mapi_abi.py
+remap_helper.h
 dispatch.h
 glapitable.h
 glapitemp.h
