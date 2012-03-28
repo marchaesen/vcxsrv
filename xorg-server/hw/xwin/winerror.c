@@ -90,7 +90,7 @@ OsVendorVErrorF(const char *pszFormat, va_list va_args)
  */
 char g_FatalErrorMessage[1024];
 void
-OsVendorFatalError(void)
+OsVendorFatalError(const char *f, va_list args)
 {
     /* Don't give duplicate warning if UseMsg was called */
     if (g_fSilentFatalError)

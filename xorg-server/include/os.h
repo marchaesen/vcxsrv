@@ -323,7 +323,7 @@ extern _X_EXPORT void
 OsCleanup(Bool);
 
 extern _X_EXPORT void
-OsVendorFatalError(void);
+OsVendorFatalError(const char *f, va_list args);
 
 extern _X_EXPORT void
 OsVendorInit(void);

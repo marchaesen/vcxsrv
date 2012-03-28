@@ -1,7 +1,7 @@
 /*
  * Xplugin rootless implementation screen functions
  *
- * Copyright (c) 2002 Apple Computer, Inc. All Rights Reserved.
+ * Copyright (c) 2002-2012 Apple Computer, Inc. All Rights Reserved.
  * Copyright (c) 2004 Torrey T. Lyons. All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -55,7 +55,7 @@
 #endif
 
 /* 10.4's deferred update makes X slower.. have to live with the tearing
-   for now.. */
+ * for now.. */
 #define XP_NO_DEFERRED_UPDATES 8
 
 // Name of GLX bundle for native OpenGL
@@ -81,9 +81,10 @@ eventHandler(unsigned int type, const void *arg,
             const xp_window_state_event *ws_arg = arg;
 
             DEBUG_LOG("XP_EVENT_WINDOW_STATE_CHANGED: id=%d, state=%d\n",
-                      ws_arg->id, ws_arg->state);
-            DarwinSendDDXEvent(kXquartzWindowState, 2, ws_arg->id,
-                               ws_arg->state);
+                      ws_arg->id,
+                      ws_arg->state);
+            DarwinSendDDXEvent(kXquartzWindowState, 2,
+                               ws_arg->id, ws_arg->state);
         }
         else {
             DEBUG_LOG("XP_EVENT_WINDOW_STATE_CHANGED: ignored\n");
@@ -93,14 +94,14 @@ eventHandler(unsigned int type, const void *arg,
     case XP_EVENT_WINDOW_MOVED:
         DEBUG_LOG("XP_EVENT_WINDOW_MOVED\n");
         if (arg_size == sizeof(xp_window_id)) {
-            xp_window_id id = *(xp_window_id *) arg;
-
+            xp_window_id id = *(xp_window_id *)arg;
             DarwinSendDDXEvent(kXquartzWindowMoved, 1, id);
         }
         break;
 
     case XP_EVENT_SURFACE_DESTROYED:
         DEBUG_LOG("XP_EVENT_SURFACE_DESTROYED\n");
+
     case XP_EVENT_SURFACE_CHANGED:
         DEBUG_LOG("XP_EVENT_SURFACE_CHANGED\n");
         if (arg_size == sizeof(xp_surface_id)) {
@@ -111,18 +112,19 @@ eventHandler(unsigned int type, const void *arg,
             else
                 kind = AppleDRISurfaceNotifyChanged;
 
-            DRISurfaceNotify(*(xp_surface_id *) arg, kind);
+            DRISurfaceNotify(*(xp_surface_id *)arg, kind);
         }
         break;
+
 #ifdef XP_EVENT_SPACE_CHANGED
-    case XP_EVENT_SPACE_CHANGED:
+    case  XP_EVENT_SPACE_CHANGED:
         DEBUG_LOG("XP_EVENT_SPACE_CHANGED\n");
         if (arg_size == sizeof(uint32_t)) {
-            uint32_t space_id = *(uint32_t *) arg;
-
+            uint32_t space_id = *(uint32_t *)arg;
             DarwinSendDDXEvent(kXquartzSpaceChanged, 1, space_id);
         }
         break;
+
 #endif
     default:
         ErrorF("Unknown XP_EVENT type (%d) in xprScreen:eventHandler\n", type);
@@ -159,18 +161,19 @@ displayScreenBounds(CGDirectDisplayID id)
     frame = CGDisplayBounds(id);
 
     DEBUG_LOG("    %dx%d @ (%d,%d).\n",
-              (int) frame.size.width, (int) frame.size.height,
-              (int) frame.origin.x, (int) frame.origin.y);
+              (int)frame.size.width, (int)frame.size.height,
+              (int)frame.origin.x, (int)frame.origin.y);
 
     /* Remove menubar to help standard X11 window managers. */
-    if (XQuartzIsRootless && frame.origin.x == 0 && frame.origin.y == 0) {
+    if (XQuartzIsRootless &&
+        frame.origin.x == 0 && frame.origin.y == 0) {
         frame.origin.y += aquaMenuBarHeight;
         frame.size.height -= aquaMenuBarHeight;
     }
 
     DEBUG_LOG("    %dx%d @ (%d,%d).\n",
-              (int) frame.size.width, (int) frame.size.height,
-              (int) frame.origin.x, (int) frame.origin.y);
+              (int)frame.size.width, (int)frame.size.height,
+              (int)frame.origin.x, (int)frame.origin.y);
 
     return frame;
 }
@@ -190,11 +193,11 @@ xprAddPseudoramiXScreens(int *x, int *y, int *width, int *height,
 
     // Find all the CoreGraphics displays
     CGGetActiveDisplayList(0, NULL, &displayCount);
-    DEBUG_LOG("displayCount: %d\n", (int) displayCount);
+    DEBUG_LOG("displayCount: %d\n", (int)displayCount);
 
     if (!displayCount) {
-        ErrorF
-            ("CoreGraphics has reported no connected displays.  Creating a stub 800x600 display.\n");
+        ErrorF(
+            "CoreGraphics has reported no connected displays.  Creating a stub 800x600 display.\n");
         *x = *y = 0;
         *width = 800;
         *height = 600;
@@ -219,7 +222,6 @@ xprAddPseudoramiXScreens(int *x, int *y, int *width, int *height,
     /* Get the union of all screens */
     for (i = 0; i < displayCount; i++) {
         CGDirectDisplayID dpy = displayList[i];
-
         frame = displayScreenBounds(dpy);
         unionRect = CGRectUnion(unionRect, frame);
     }
@@ -242,7 +244,7 @@ xprAddPseudoramiXScreens(int *x, int *y, int *width, int *height,
         frame.origin.y -= unionRect.origin.y;
 
         DEBUG_LOG("    placed at X11 coordinate (%d,%d).\n",
-                  (int) frame.origin.x, (int) frame.origin.y);
+                  (int)frame.origin.x, (int)frame.origin.y);
 
         PseudoramiXAddScreen(frame.origin.x, frame.origin.y,
                              frame.size.width, frame.size.height);
@@ -276,12 +278,14 @@ xprDisplayInit(void)
         FatalError("Could not initialize the Xplugin library.");
 
     xp_select_events(XP_EVENT_DISPLAY_CHANGED
-                     | XP_EVENT_WINDOW_STATE_CHANGED | XP_EVENT_WINDOW_MOVED
+                     | XP_EVENT_WINDOW_STATE_CHANGED
+                     | XP_EVENT_WINDOW_MOVED
 #ifdef XP_EVENT_SPACE_CHANGED
                      | XP_EVENT_SPACE_CHANGED
 #endif
                      | XP_EVENT_SURFACE_CHANGED
-                     | XP_EVENT_SURFACE_DESTROYED, eventHandler, NULL);
+                     | XP_EVENT_SURFACE_DESTROYED,
+                     eventHandler, NULL);
 
     AppleDRIExtensionInit();
     xprAppleWMInit();
@@ -305,9 +309,8 @@ xprAddScreen(int index, ScreenPtr pScreen)
 
     if (depth == -1) {
 #if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
-        depth =
-            CGDisplaySamplesPerPixel(kCGDirectMainDisplay) *
-            CGDisplayBitsPerSample(kCGDirectMainDisplay);
+        depth = CGDisplaySamplesPerPixel(kCGDirectMainDisplay) *
+                CGDisplayBitsPerSample(kCGDirectMainDisplay);
 #else
         CGDisplayModeRef modeRef;
         CFStringRef encStrRef;
@@ -321,19 +324,19 @@ xprAddScreen(int index, ScreenPtr pScreen)
         if (!encStrRef)
             goto have_depth;
 
-        if (CFStringCompare
-            (encStrRef, CFSTR(IO32BitDirectPixels),
-             kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+        if (CFStringCompare(encStrRef, CFSTR(IO32BitDirectPixels),
+                            kCFCompareCaseInsensitive) ==
+            kCFCompareEqualTo) {
             depth = 24;
         }
-        else if (CFStringCompare
-                 (encStrRef, CFSTR(IO16BitDirectPixels),
-                  kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+        else if (CFStringCompare(encStrRef, CFSTR(IO16BitDirectPixels),
+                                 kCFCompareCaseInsensitive) ==
+                 kCFCompareEqualTo) {
             depth = 15;
         }
-        else if (CFStringCompare
-                 (encStrRef, CFSTR(IO8BitIndexedPixels),
-                  kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+        else if (CFStringCompare(encStrRef, CFSTR(IO8BitIndexedPixels),
+                                 kCFCompareCaseInsensitive) ==
+                 kCFCompareEqualTo) {
             depth = 8;
         }
 
@@ -342,10 +345,10 @@ xprAddScreen(int index, ScreenPtr pScreen)
     }
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
- have_depth:
+have_depth:
 #endif
     switch (depth) {
-    case 8:                    // pseudo-working
+    case 8:     // pseudo-working
         dfb->visuals = PseudoColorMask;
         dfb->preferredCVC = PseudoColor;
         dfb->depth = 8;
@@ -355,8 +358,9 @@ xprAddScreen(int index, ScreenPtr pScreen)
         dfb->greenMask = 0;
         dfb->blueMask = 0;
         break;
+
     case 15:
-        dfb->visuals = TrueColorMask;   //LARGE_VISUALS;
+        dfb->visuals = TrueColorMask;     //LARGE_VISUALS;
         dfb->preferredCVC = TrueColor;
         dfb->depth = 15;
         dfb->bitsPerRGB = 5;
@@ -365,13 +369,14 @@ xprAddScreen(int index, ScreenPtr pScreen)
         dfb->greenMask = GM_ARGB(0, 5, 5, 5);
         dfb->blueMask = BM_ARGB(0, 5, 5, 5);
         break;
-//        case 24:
+
+    //        case 24:
     default:
         if (depth != 24)
-            ErrorF
-                ("Unsupported color depth requested.  Defaulting to 24bit. (depth=%d darwinDesiredDepth=%d)\n",
-                 depth, darwinDesiredDepth);
-        dfb->visuals = TrueColorMask;   //LARGE_VISUALS;
+            ErrorF(
+                "Unsupported color depth requested.  Defaulting to 24bit. (depth=%d darwinDesiredDepth=%d)\n",
+                depth, darwinDesiredDepth);
+        dfb->visuals = TrueColorMask;     //LARGE_VISUALS;
         dfb->preferredCVC = TrueColor;
         dfb->depth = 24;
         dfb->bitsPerRGB = 8;

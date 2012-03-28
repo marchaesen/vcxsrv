@@ -1,4 +1,4 @@
-/* Copyright (c) 2011 Apple Inc.
+/* Copyright (c) 2011-2012 Apple Inc.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation files
@@ -34,11 +34,13 @@
 /* The given fd is replaced with a pipe.  Anything written to it will will be
  * logged to ASL.
  */
-int xq_asl_capture_fd(aslclient asl, aslmsg msg, int level, int fd);
+int
+xq_asl_capture_fd(aslclient asl, aslmsg msg, int level, int fd);
 
 /* The given fd is read from and passed along to ASL until all write ends of the
  * pipe are closed. Once the last writer has closed the pipe, we close our end.
  */
-int xq_asl_log_fd(aslclient asl, aslmsg msg, int level, int fd);
+int
+xq_asl_log_fd(aslclient asl, aslmsg msg, int level, int fd);
 
 #endif

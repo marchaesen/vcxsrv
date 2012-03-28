@@ -52,6 +52,9 @@ libxservertest_la_LIBADD += \
             $(top_builddir)/hw/xfree86/i2c/libi2c.la \
             $(top_builddir)/hw/xfree86/dixmods/libxorgxkb.la \
             @XORG_LIBS@
+
+EXTRA_DIST = ddxstubs.c
+
 else
 nodist_libxservertest_la_SOURCES = \
             ddxstubs.c \

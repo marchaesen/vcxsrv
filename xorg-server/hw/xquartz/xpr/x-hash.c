@@ -1,31 +1,32 @@
 /* x-hash.c - basic hash tables
-
-   Copyright (c) 2002 Apple Computer, Inc. All rights reserved.
-
-   Permission is hereby granted, free of charge, to any person
-   obtaining a copy of this software and associated documentation files
-   (the "Software"), to deal in the Software without restriction,
-   including without limitation the rights to use, copy, modify, merge,
-   publish, distribute, sublicense, and/or sell copies of the Software,
-   and to permit persons to whom the Software is furnished to do so,
-   subject to the following conditions:
-
-   The above copyright notice and this permission notice shall be
-   included in all copies or substantial portions of the Software.
-
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-   NONINFRINGEMENT.  IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT
-   HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-   DEALINGS IN THE SOFTWARE.
-
-   Except as contained in this notice, the name(s) of the above
-   copyright holders shall not be used in advertising or otherwise to
-   promote the sale, use or other dealings in this Software without
-   prior written authorization. */
+ *
+ * Copyright (c) 2002-2012 Apple Inc. All rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation files
+ * (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.  IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT
+ * HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * Except as contained in this notice, the name(s) of the above
+ * copyright holders shall not be used in advertising or otherwise to
+ * promote the sale, use or other dealings in this Software without
+ * prior written authorization.
+ */
 
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
@@ -47,59 +48,61 @@ struct x_hash_table_struct {
     x_destroy_fun *destroy_value;
 };
 
-#define ITEM_NEW(k, v) X_PFX (list_prepend) ((x_list *) (k), v)
-#define ITEM_FREE(i) X_PFX (list_free_1) (i)
-#define ITEM_KEY(i) ((void *) (i)->next)
-#define ITEM_VALUE(i) ((i)->data)
+#define ITEM_NEW(k, v) X_PFX(list_prepend) ((x_list *)(k), v)
+#define ITEM_FREE(i)   X_PFX(list_free_1) (i)
+#define ITEM_KEY(i)    ((void *)(i)->next)
+#define ITEM_VALUE(i)  ((i)->data)
 
 #define SPLIT_THRESHOLD_FACTOR 2
 
 /* http://planetmath.org/?op=getobj&from=objects&name=GoodHashTablePrimes */
 static const unsigned int bucket_sizes[] = {
-    29, 53, 97, 193, 389, 769, 1543, 3079, 6151, 12289, 24593, 49157,
-    98317, 196613, 393241, 786433, 1572869, 3145739, 6291469, 12582917,
+    29,       53,        97,        193,        389,        769,       1543,
+    3079,     6151, 12289, 24593, 49157,
+    98317,    196613,   393241,    786433,    1572869,   3145739,   6291469,
+    12582917,
     25165843, 50331653, 100663319, 201326611, 402653189, 805306457,
     1610612741
 };
 
-#define N_BUCKET_SIZES (sizeof (bucket_sizes) / sizeof (bucket_sizes[0]))
+#define N_BUCKET_SIZES (sizeof(bucket_sizes) / sizeof(bucket_sizes[0]))
 
 static inline unsigned int
-hash_table_total_buckets(x_hash_table * h)
+hash_table_total_buckets(x_hash_table *h)
 {
     return bucket_sizes[h->bucket_index];
 }
 
 static inline void
-hash_table_destroy_item(x_hash_table * h, void *k, void *v)
+hash_table_destroy_item(x_hash_table *h, void *k, void *v)
 {
     if (h->destroy_key != 0)
-        (*h->destroy_key) (k);
+        (*h->destroy_key)(k);
 
     if (h->destroy_value != 0)
-        (*h->destroy_value) (v);
+        (*h->destroy_value)(v);
 }
 
 static inline size_t
-hash_table_hash_key(x_hash_table * h, void *k)
+hash_table_hash_key(x_hash_table *h, void *k)
 {
     if (h->hash_key != 0)
-        return (*h->hash_key) (k);
+        return (*h->hash_key)(k);
     else
-        return (size_t) k;
+        return (size_t)k;
 }
 
 static inline int
-hash_table_compare_keys(x_hash_table * h, void *k1, void *k2)
+hash_table_compare_keys(x_hash_table *h, void *k1, void *k2)
 {
     if (h->compare_keys == 0)
         return k1 == k2;
     else
-        return (*h->compare_keys) (k1, k2) == 0;
+        return (*h->compare_keys)(k1, k2) == 0;
 }
 
 static void
-hash_table_split(x_hash_table * h)
+hash_table_split(x_hash_table *h)
 {
     x_list **new, **old;
     x_list *node, *item, *next;
@@ -139,10 +142,11 @@ hash_table_split(x_hash_table * h)
     free(old);
 }
 
-X_EXTERN x_hash_table *X_PFX(hash_table_new) (x_hash_fun * hash,
-                                              x_compare_fun * compare,
-                                              x_destroy_fun * key_destroy,
-                                              x_destroy_fun * value_destroy) {
+X_EXTERN x_hash_table *
+X_PFX(hash_table_new) (x_hash_fun * hash,
+                       x_compare_fun * compare,
+                       x_destroy_fun * key_destroy,
+                       x_destroy_fun * value_destroy) {
     x_hash_table *h;
 
     h = calloc(1, sizeof(x_hash_table));
@@ -166,7 +170,7 @@ X_EXTERN x_hash_table *X_PFX(hash_table_new) (x_hash_fun * hash,
 }
 
 X_EXTERN void
- X_PFX(hash_table_free) (x_hash_table * h) {
+X_PFX(hash_table_free) (x_hash_table * h) {
     int n, i;
     x_list *node, *item;
 
@@ -188,14 +192,14 @@ X_EXTERN void
 }
 
 X_EXTERN unsigned int
- X_PFX(hash_table_size) (x_hash_table * h) {
+X_PFX(hash_table_size) (x_hash_table * h) {
     assert(h != NULL);
 
     return h->total_keys;
 }
 
 static void
-hash_table_modify(x_hash_table * h, void *k, void *v, int replace)
+hash_table_modify(x_hash_table *h, void *k, void *v, int replace)
 {
     size_t hash_value;
     x_list *node, *item;
@@ -210,7 +214,8 @@ hash_table_modify(x_hash_table * h, void *k, void *v, int replace)
 
         if (hash_table_compare_keys(h, ITEM_KEY(item), k)) {
             if (replace) {
-                hash_table_destroy_item(h, ITEM_KEY(item), ITEM_VALUE(item));
+                hash_table_destroy_item(h, ITEM_KEY(item),
+                                        ITEM_VALUE(item));
                 item->next = k;
                 ITEM_VALUE(item) = v;
             }
@@ -236,17 +241,17 @@ hash_table_modify(x_hash_table * h, void *k, void *v, int replace)
 }
 
 X_EXTERN void
- X_PFX(hash_table_insert) (x_hash_table * h, void *k, void *v) {
+X_PFX(hash_table_insert) (x_hash_table * h, void *k, void *v) {
     hash_table_modify(h, k, v, 0);
 }
 
 X_EXTERN void
- X_PFX(hash_table_replace) (x_hash_table * h, void *k, void *v) {
+X_PFX(hash_table_replace) (x_hash_table * h, void *k, void *v) {
     hash_table_modify(h, k, v, 1);
 }
 
 X_EXTERN void
- X_PFX(hash_table_remove) (x_hash_table * h, void *k) {
+X_PFX(hash_table_remove) (x_hash_table * h, void *k) {
     size_t hash_value;
     x_list **ptr, *item;
 
@@ -270,8 +275,8 @@ X_EXTERN void
     }
 }
 
-X_EXTERN void *X_PFX(hash_table_lookup) (x_hash_table * h, void *k,
-                                         void **k_ret) {
+X_EXTERN void *
+X_PFX(hash_table_lookup) (x_hash_table * h, void *k, void **k_ret) {
     size_t hash_value;
     x_list *node, *item;
 
@@ -298,7 +303,6 @@ X_EXTERN void *X_PFX(hash_table_lookup) (x_hash_table * h, void *k,
 }
 
 X_EXTERN void
-
 X_PFX(hash_table_foreach) (x_hash_table * h,
                            x_hash_foreach_fun * fun, void *data) {
     int i, n;
@@ -311,7 +315,7 @@ X_PFX(hash_table_foreach) (x_hash_table * h,
     for (i = 0; i < n; i++) {
         for (node = h->buckets[i]; node != 0; node = node->next) {
             item = node->data;
-            (*fun) (ITEM_KEY(item), ITEM_VALUE(item), data);
+            (*fun)(ITEM_KEY(item), ITEM_VALUE(item), data);
         }
     }
 }

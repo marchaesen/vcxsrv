@@ -284,3 +284,38 @@ Expressions
 
   This element represents the number of bits set in the expression.
 
+Documentation
+-------------
+
+  Documentation for each request, reply or event is stored in the appropriate
+  element using a <doc> element. The <doc> element can contain the following
+  elements:
+
+<brief>brief description</brief>
+
+  A short description of the request, reply or event. For example "makes a
+  window visible" for MapWindow. This will end up in the manpage NAME section
+  and in the doxygen @brief description.
+
+<description><![CDATA[longer description]]></description>
+
+  The full description. Use `` to highlight words, such as "Draws
+  `points_len`-1 lines between each pair of points…"
+
+<example><![CDATA[example code]]</description>
+
+  Example C code illustrating the usage of the particular request, reply or
+  event.
+
+<field name="name">field description</field>
+
+  The full description for the specified field. Depending on the context, this
+  is either a request parameter or a reply/event datastructure field.
+
+<error type="type">error description</field>
+
+  The full description for an error which can occur due to this request.
+
+<see type="request" name="name" />
+
+  A reference to another relevant program, function, request or event.

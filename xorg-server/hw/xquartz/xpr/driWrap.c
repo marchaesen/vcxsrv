@@ -1,27 +1,32 @@
 /*
-Copyright (c) 2009 Apple Computer, Inc.
-All Rights Reserved.
+ * Copyright (c) 2009-2012 Apple Inc. All rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation files
+ * (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.  IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT
+ * HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * Except as contained in this notice, the name(s) of the above
+ * copyright holders shall not be used in advertising or otherwise to
+ * promote the sale, use or other dealings in this Software without
+ * prior written authorization.
+ */
 
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sub license, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice (including the
-next paragraph) shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
-IN NO EVENT SHALL PRECISION INSIGHT AND/OR ITS SUPPLIERS BE LIABLE FOR
-ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
@@ -55,23 +60,21 @@ typedef struct {
 } DRISavedDrawableState;
 
 static DevPrivateKeyRec driGCKeyRec;
-
 #define driGCKey (&driGCKeyRec)
 
 static DevPrivateKeyRec driWrapScreenKeyRec;
-
 #define driWrapScreenKey (&driWrapScreenKeyRec)
 
 static GCOps driGCOps;
 
 #define wrap(priv, real, member, func) { \
-	priv->member = real->member; \
-	real->member = func; \
-    }
+        priv->member = real->member; \
+        real->member = func; \
+}
 
-#define unwrap(priv, real, member) { \
-	real->member = priv->member; \
-    }
+#define unwrap(priv, real, member)     { \
+        real->member = priv->member; \
+}
 
 static DRIGCRec *
 DRIGetGCPriv(GCPtr pGC)
@@ -94,7 +97,8 @@ DRIWrapGC(GCPtr pGC)
 }
 
 static void
-DRISurfaceSetDrawable(DrawablePtr pDraw, DRISavedDrawableState * saved)
+DRISurfaceSetDrawable(DrawablePtr pDraw,
+                      DRISavedDrawableState *saved)
 {
     saved->didSave = FALSE;
 
@@ -102,8 +106,9 @@ DRISurfaceSetDrawable(DrawablePtr pDraw, DRISavedDrawableState * saved)
         int pitch, width, height, bpp;
         void *buffer;
 
-        if (DRIGetPixmapData(pDraw, &width, &height, &pitch, &bpp, &buffer)) {
-            PixmapPtr pPix = (PixmapPtr) pDraw;
+        if (DRIGetPixmapData(pDraw, &width, &height, &pitch, &bpp,
+                             &buffer)) {
+            PixmapPtr pPix = (PixmapPtr)pDraw;
 
             saved->devKind = pPix->devKind;
             saved->devPrivate.ptr = pPix->devPrivate.ptr;
@@ -116,9 +121,10 @@ DRISurfaceSetDrawable(DrawablePtr pDraw, DRISavedDrawableState * saved)
 }
 
 static void
-DRISurfaceRestoreDrawable(DrawablePtr pDraw, DRISavedDrawableState * saved)
+DRISurfaceRestoreDrawable(DrawablePtr pDraw,
+                          DRISavedDrawableState *saved)
 {
-    PixmapPtr pPix = (PixmapPtr) pDraw;
+    PixmapPtr pPix = (PixmapPtr)pDraw;
 
     if (!saved->didSave)
         return;
@@ -129,7 +135,8 @@ DRISurfaceRestoreDrawable(DrawablePtr pDraw, DRISavedDrawableState * saved)
 
 static void
 DRIFillSpans(DrawablePtr dst, GCPtr pGC, int nInit,
-             DDXPointPtr pptInit, int *pwidthInit, int sorted)
+             DDXPointPtr pptInit, int *pwidthInit,
+             int sorted)
 {
     DRISavedDrawableState saved;
 
@@ -146,7 +153,8 @@ DRIFillSpans(DrawablePtr dst, GCPtr pGC, int nInit,
 
 static void
 DRISetSpans(DrawablePtr dst, GCPtr pGC, char *pSrc,
-            DDXPointPtr pptInit, int *pwidthInit, int nspans, int sorted)
+            DDXPointPtr pptInit, int *pwidthInit,
+            int nspans, int sorted)
 {
     DRISavedDrawableState saved;
 
@@ -181,7 +189,8 @@ DRIPutImage(DrawablePtr dst, GCPtr pGC,
 
 static RegionPtr
 DRICopyArea(DrawablePtr pSrc, DrawablePtr dst, GCPtr pGC,
-            int srcx, int srcy, int w, int h, int dstx, int dsty)
+            int srcx, int srcy, int w, int h,
+            int dstx, int dsty)
 {
     RegionPtr pReg;
     DRISavedDrawableState pSrcSaved, dstSaved;
@@ -204,7 +213,8 @@ DRICopyArea(DrawablePtr pSrc, DrawablePtr dst, GCPtr pGC,
 static RegionPtr
 DRICopyPlane(DrawablePtr pSrc, DrawablePtr dst,
              GCPtr pGC, int srcx, int srcy,
-             int w, int h, int dstx, int dsty, unsigned long plane)
+             int w, int h, int dstx, int dsty,
+             unsigned long plane)
 {
     RegionPtr pReg;
     DRISavedDrawableState pSrcSaved, dstSaved;
@@ -226,7 +236,8 @@ DRICopyPlane(DrawablePtr pSrc, DrawablePtr dst,
 }
 
 static void
-DRIPolyPoint(DrawablePtr dst, GCPtr pGC, int mode, int npt, DDXPointPtr pptInit)
+DRIPolyPoint(DrawablePtr dst, GCPtr pGC,
+             int mode, int npt, DDXPointPtr pptInit)
 {
     DRISavedDrawableState saved;
 
@@ -242,7 +253,8 @@ DRIPolyPoint(DrawablePtr dst, GCPtr pGC, int mode, int npt, DDXPointPtr pptInit)
 }
 
 static void
-DRIPolylines(DrawablePtr dst, GCPtr pGC, int mode, int npt, DDXPointPtr pptInit)
+DRIPolylines(DrawablePtr dst, GCPtr pGC,
+             int mode, int npt, DDXPointPtr pptInit)
 {
     DRISavedDrawableState saved;
 
@@ -258,7 +270,8 @@ DRIPolylines(DrawablePtr dst, GCPtr pGC, int mode, int npt, DDXPointPtr pptInit)
 }
 
 static void
-DRIPolySegment(DrawablePtr dst, GCPtr pGC, int nseg, xSegment * pSeg)
+DRIPolySegment(DrawablePtr dst, GCPtr pGC,
+               int nseg, xSegment *pSeg)
 {
     DRISavedDrawableState saved;
 
@@ -274,7 +287,8 @@ DRIPolySegment(DrawablePtr dst, GCPtr pGC, int nseg, xSegment * pSeg)
 }
 
 static void
-DRIPolyRectangle(DrawablePtr dst, GCPtr pGC, int nRects, xRectangle *pRects)
+DRIPolyRectangle(DrawablePtr dst, GCPtr pGC,
+                 int nRects, xRectangle *pRects)
 {
     DRISavedDrawableState saved;
 
@@ -288,9 +302,8 @@ DRIPolyRectangle(DrawablePtr dst, GCPtr pGC, int nRects, xRectangle *pRects)
 
     DRISurfaceRestoreDrawable(dst, &saved);
 }
-
 static void
-DRIPolyArc(DrawablePtr dst, GCPtr pGC, int narcs, xArc * parcs)
+DRIPolyArc(DrawablePtr dst, GCPtr pGC, int narcs, xArc *parcs)
 {
     DRISavedDrawableState saved;
 
@@ -307,7 +320,8 @@ DRIPolyArc(DrawablePtr dst, GCPtr pGC, int narcs, xArc * parcs)
 
 static void
 DRIFillPolygon(DrawablePtr dst, GCPtr pGC,
-               int shape, int mode, int count, DDXPointPtr pptInit)
+               int shape, int mode, int count,
+               DDXPointPtr pptInit)
 {
     DRISavedDrawableState saved;
 
@@ -340,7 +354,8 @@ DRIPolyFillRect(DrawablePtr dst, GCPtr pGC,
 }
 
 static void
-DRIPolyFillArc(DrawablePtr dst, GCPtr pGC, int narcsInit, xArc * parcsInit)
+DRIPolyFillArc(DrawablePtr dst, GCPtr pGC,
+               int narcsInit, xArc *parcsInit)
 {
     DRISavedDrawableState saved;
 
@@ -356,7 +371,8 @@ DRIPolyFillArc(DrawablePtr dst, GCPtr pGC, int narcsInit, xArc * parcsInit)
 }
 
 static int
-DRIPolyText8(DrawablePtr dst, GCPtr pGC, int x, int y, int count, char *chars)
+DRIPolyText8(DrawablePtr dst, GCPtr pGC,
+             int x, int y, int count, char *chars)
 {
     int ret;
     DRISavedDrawableState saved;
@@ -395,7 +411,8 @@ DRIPolyText16(DrawablePtr dst, GCPtr pGC,
 }
 
 static void
-DRIImageText8(DrawablePtr dst, GCPtr pGC, int x, int y, int count, char *chars)
+DRIImageText8(DrawablePtr dst, GCPtr pGC,
+              int x, int y, int count, char *chars)
 {
     DRISavedDrawableState saved;
 
@@ -430,7 +447,7 @@ DRIImageText16(DrawablePtr dst, GCPtr pGC,
 static void
 DRIImageGlyphBlt(DrawablePtr dst, GCPtr pGC,
                  int x, int y, unsigned int nglyphInit,
-                 CharInfoPtr * ppciInit, pointer unused)
+                 CharInfoPtr *ppciInit, pointer unused)
 {
     DRISavedDrawableState saved;
 
@@ -448,7 +465,7 @@ DRIImageGlyphBlt(DrawablePtr dst, GCPtr pGC,
 static void
 DRIPolyGlyphBlt(DrawablePtr dst, GCPtr pGC,
                 int x, int y, unsigned int nglyph,
-                CharInfoPtr * ppci, pointer pglyphBase)
+                CharInfoPtr *ppci, pointer pglyphBase)
 {
     DRISavedDrawableState saved;
 
@@ -539,12 +556,12 @@ DRIWrapInit(ScreenPtr pScreen)
     if (!dixRegisterPrivateKey(&driGCKeyRec, PRIVATE_GC, sizeof(DRIGCRec)))
         return FALSE;
 
-    if (!dixRegisterPrivateKey
-        (&driWrapScreenKeyRec, PRIVATE_SCREEN, sizeof(DRIWrapScreenRec)))
+    if (!dixRegisterPrivateKey(&driWrapScreenKeyRec, PRIVATE_SCREEN,
+                               sizeof(DRIWrapScreenRec)))
         return FALSE;
 
-    pScreenPriv =
-        dixGetPrivateAddr(&pScreen->devPrivates, &driWrapScreenKeyRec);
+    pScreenPriv = dixGetPrivateAddr(&pScreen->devPrivates,
+                                    &driWrapScreenKeyRec);
     pScreenPriv->CreateGC = pScreen->CreateGC;
     pScreen->CreateGC = DRICreateGC;
 

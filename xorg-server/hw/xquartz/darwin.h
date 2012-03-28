@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Apple, Inc.
+ * Copyright (C) 2008-2012 Apple, Inc.
  * Copyright (c) 2001-2004 Torrey T. Lyons. All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -37,18 +37,21 @@
 #include "darwinfb.h"
 
 // From darwin.c
-void DarwinPrintBanner(void);
-int DarwinParseModifierList(const char *constmodifiers, int separatelr);
-void DarwinAdjustScreenOrigins(ScreenInfo * pScreenInfo);
+void
+DarwinPrintBanner(void);
+int
+DarwinParseModifierList(const char *constmodifiers, int separatelr);
+void
+DarwinAdjustScreenOrigins(ScreenInfo *pScreenInfo);
 
 #define SCREEN_PRIV(pScreen) ((DarwinFramebufferPtr) \
-    dixLookupPrivate(&pScreen->devPrivates, darwinScreenKey))
+                              dixLookupPrivate(&pScreen->devPrivates, \
+                                               darwinScreenKey))
 
 /*
  * Global variables from darwin.c
  */
 extern DevPrivateKeyRec darwinScreenKeyRec;
-
 #define darwinScreenKey (&darwinScreenKeyRec)
 extern int darwinScreensFound;
 extern io_connect_t darwinParamConnect;
@@ -80,10 +83,17 @@ extern char *bundle_id_prefix;
 _X_ATTRIBUTE_PRINTF(6, 7)
 extern void
 xq_asl_log(int level, const char *subsystem, const char *file,
-           const char *function, int line, const char *fmt, ...);
+           const char *function, int line, const char *fmt,
+           ...);
 
-#define ASL_LOG(level, subsystem, msg, args...) xq_asl_log(level, subsystem, __FILE__, __FUNCTION__, __LINE__, msg, ##args)
-#define DEBUG_LOG(msg, args...) ASL_LOG(ASL_LEVEL_DEBUG, "XQuartz", msg, ##args)
-#define TRACE() DEBUG_LOG("TRACE")
+#define ASL_LOG(level, subsystem, msg, args ...) xq_asl_log(level, subsystem, \
+                                                            __FILE__, \
+                                                            __FUNCTION__, \
+                                                            __LINE__, msg, \
+                                                            ## args)
+#define DEBUG_LOG(msg, args ...)                 ASL_LOG(ASL_LEVEL_DEBUG, \
+                                                         "XQuartz", msg, \
+                                                         ## args)
+#define TRACE()                                  DEBUG_LOG("TRACE")
 
-#endif                          /* _DARWIN_H */
+#endif  /* _DARWIN_H */

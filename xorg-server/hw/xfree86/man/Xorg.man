@@ -1,16 +1,16 @@
 .\" $XdotOrg: xserver/xorg/hw/xfree86/doc/man/Xorg.man.pre,v 1.3 2005/07/04 18:41:01 ajax Exp $
 .\" shorthand for double quote that works everywhere.
 .ds q \N'34'
-.TH __xservername__ __appmansuffix__ __vendorversion__
+.TH Xorg __appmansuffix__ __vendorversion__
 .SH NAME
-__xservername__ - X11R7 X server
+Xorg - X11R7 X server
 .SH SYNOPSIS
-.B __xservername__
+.B Xorg
 .RI [\fB:\fP display ]
 .RI [ option
 .IR ... ]
 .SH DESCRIPTION
-.B __xservername__
+.B Xorg
 is a full featured X server that was originally designed for UNIX and
 UNIX-like operating systems running on Intel x86 hardware.  It now runs
 on a wider range of hardware and OS platforms.
@@ -24,7 +24,7 @@ by Thomas Roell which was contributed to X11R5 by Snitily Graphics
 Consulting Service.
 .SH PLATFORMS
 .PP
-.B __xservername__
+.B Xorg
 operates under a wide range of operating systems and hardware platforms.
 The Intel x86 (IA32) architecture is the most widely supported hardware
 platform.  Other hardware platforms include Compaq Alpha, Intel IA64, AMD64,
@@ -37,7 +37,7 @@ Xquartz(__appmansuffix__) X server.  Win32/Cygwin is supported with the
 XWin(__appmansuffix__) X server.
 .PP
 .SH "NETWORK CONNECTIONS"
-.B __xservername__
+.B Xorg
 supports connections made using the following reliable
 byte-streams:
 .TP 4
@@ -47,7 +47,7 @@ On some System V platforms, the "local" connection types also include
 STREAMS pipes, named pipes, and some other mechanisms.
 .TP 4
 .I TCP\/IP
-.B __xservername__
+.B Xorg
 listens on port
 .RI 6000+ n ,
 where
@@ -108,10 +108,10 @@ file.  If you use xdm(1), the definitions should be early on in the
 .I __projectroot__/lib/X11/xdm/Xsession
 script.
 .SH OPTIONS
-.B __xservername__
+.B Xorg
 supports several mechanisms for supplying/obtaining configuration and
 run-time parameters: command line options, environment variables, the
-__xconfigfile__(__filemansuffix__) configuration files, auto-detection, and
+xorg.conf(__filemansuffix__) configuration files, auto-detection, and
 fallback defaults.  When the same information is supplied in more than
 one way, the highest precedence mechanism is used.  The list of mechanisms
 is ordered from highest precedence to lowest.  Note that not all parameters
@@ -119,21 +119,21 @@ can be supplied via all methods.  The available command line options
 and environment variables (and some defaults) are described here and in
 the Xserver(__appmansuffix__) manual page.  Most configuration file
 parameters, with their defaults, are described in the
-__xconfigfile__(__filemansuffix__) manual page.  Driver and module specific
+xorg.conf(__filemansuffix__) manual page.  Driver and module specific
 configuration parameters are described in the relevant driver or module
 manual page.
 .PP
 In addition to the normal server options described in the
 Xserver(__appmansuffix__) manual page,
-.B __xservername__
+.B Xorg
 accepts the following command line switches:
 .TP 8
 .BI vt XX
 .I XX
 specifies the Virtual Terminal device number which
-.B __xservername__
+.B Xorg
 will use.  Without this option,
-.B __xservername__
+.B Xorg
 will pick the first available Virtual Terminal that it can locate.  This
 option applies only to platforms that have virtual terminal support, such
 as Linux, BSD, OpenSolaris, SVR3, and SVR4.
@@ -142,14 +142,14 @@ as Linux, BSD, OpenSolaris, SVR3, and SVR4.
 Allow the server to start up even if the mouse device can't be opened
 or initialised.  This is equivalent to the
 .B AllowMouseOpenFail
-__xconfigfile__(__filemansuffix__) file option.
+xorg.conf(__filemansuffix__) file option.
 .TP 8
 .B \-allowNonLocalXvidtune
 Make the VidMode extension available to remote clients.  This allows
 the xvidtune client to connect from another host.  This is equivalent
 to the
 .B AllowNonLocalXvidtune
-__xconfigfile__(__filemansuffix__) file option.  By default non-local
+xorg.conf(__filemansuffix__) file option.  By default non-local
 connections are not allowed.
 .TP 8
 .BI \-bgamma " value"
@@ -187,9 +187,9 @@ config directory search path for all other users.
 .TP 8
 .B \-configure
 When this option is specified, the
-.B __xservername__
+.B Xorg
 server loads all video driver modules, probes for available hardware,
-and writes out an initial __xconfigfile__(__filemansuffix__) file based on
+and writes out an initial xorg.conf(__filemansuffix__) file based on
 what was detected.  This option currently has some problems on some
 platforms, but in most cases it is a good way to bootstrap the
 configuration process.  This option is only available when the server
@@ -209,7 +209,7 @@ Disable the parts of the VidMode extension (used by the xvidtune
 client) that can be used to change the video modes.  This is equivalent
 to the
 .B DisableVidModeExtension
-__xconfigfile__(__filemansuffix__) file option.
+xorg.conf(__filemansuffix__) file option.
 .TP 8
 .B \-fbbpp \fIn\fP
 Sets the number of framebuffer bits per pixel.  You should only set this
@@ -249,7 +249,7 @@ options.
 .TP 8
 .B \-ignoreABI
 The
-.B __xservername__
+.B Xorg
 server checks the ABI revision levels of each module that it loads.  It
 will normally refuse to load modules with ABI revisions that are newer
 than the server's.  This is because such modules might use interfaces
@@ -276,7 +276,7 @@ This option is only useful when debugging the server.  Not all platforms
 support (or can use) this option.
 .TP 8
 .BI \-keyboard " keyboard-name"
-Use the __xconfigfile__(__filemansuffix__) file
+Use the xorg.conf(__filemansuffix__) file
 .B InputDevice
 section called
 .I keyboard-name
@@ -288,7 +288,7 @@ section and this option, the first relevant
 section is used for the core keyboard.
 .TP 8
 .BI \-layout " layout-name"
-Use the __xconfigfile__(__filemansuffix__) file
+Use the xorg.conf(__filemansuffix__) file
 .B Layout
 section called
 .IR layout-name .
@@ -300,20 +300,20 @@ section is used.
 Use the file called
 .I filename
 as the
-.B __xservername__
+.B Xorg
 server log file.  The default log file is
-.BI __logdir__/__xservername__. n .log
+.BI __logdir__/Xorg. n .log
 on most platforms, where
 .I n
 is the display number of the
-.B __xservername__
+.B Xorg
 server.  The default may be in a different directory on some platforms.
 This option is only available when the server is run as root (i.e, with
 real-uid 0).
 .TP 8
 .BR \-logverbose " [\fIn\fP]"
 Sets the verbosity level for information printed to the
-.B __xservername__
+.B Xorg
 server log file.  If the
 .I n
 value isn't supplied, each occurrence of this option increments the log
@@ -327,7 +327,7 @@ Set the module search path to
 .IR searchpath .
 .I searchpath
 is a comma separated list of directories to search for
-.B __xservername__
+.B Xorg
 server modules.  This option is only available when the server is run
 as root (i.e, with real-uid 0).
 .TP 8
@@ -345,16 +345,16 @@ reason to use this option.  Some client applications don't like this
 pixmap format, even though it is a perfectly legal format.  This is
 equivalent to the
 .B Pixmap
-__xconfigfile__(__filemansuffix__) file option.
+xorg.conf(__filemansuffix__) file option.
 .TP 8
 .B \-pixmap32
 Set the internal pixmap format for depth 24 pixmaps to 32 bits per pixel.
 This is usually the default.  This is equivalent to the
 .B Pixmap
-__xconfigfile__(__filemansuffix__) file option.
+xorg.conf(__filemansuffix__) file option.
 .TP 8
 .BI \-pointer " pointer-name"
-Use the __xconfigfile__(__filemansuffix__) file
+Use the xorg.conf(__filemansuffix__) file
 .B InputDevice
 section called
 .I pointer-name
@@ -384,7 +384,7 @@ options.
 Share virtual terminals with another X server, if supported by the OS.
 .TP 8
 .BI \-screen " screen-name"
-Use the __xconfigfile__(__filemansuffix__) file
+Use the xorg.conf(__filemansuffix__) file
 .B Screen
 section called
 .IR screen-name .
@@ -434,7 +434,7 @@ support.
 .SH "KEYBOARD"
 .PP
 The
-.B __xservername__
+.B Xorg
 server is normally configured to recognize various special combinations
 of key presses that instruct the server to perform some action, rather
 than just sending the key press event to a client application. These actions
@@ -448,7 +448,7 @@ keymap.
 Immediately kills the server -- no questions asked. It can be disabled by
 setting the
 .B DontZap
-__xconfigfile__(__filemansuffix__) file option to a TRUE value.
+xorg.conf(__filemansuffix__) file option to a TRUE value.
 .PP
 .RS 8
 It should be noted that zapping is triggered by the
@@ -462,43 +462,43 @@ but can be enabled with the XKB option
 Change video mode to next one specified in the configuration file.
 This can be disabled with the
 .B DontZoom
-__xconfigfile__(__filemansuffix__) file option.
+xorg.conf(__filemansuffix__) file option.
 .TP 8
 .B Ctrl+Alt+Keypad-Minus
 Change video mode to previous one specified in the configuration file.
 This can be disabled with the
 .B DontZoom
-__xconfigfile__(__filemansuffix__) file option.
+xorg.conf(__filemansuffix__) file option.
 .TP 8
 .B Ctrl+Alt+F1...F12
 For systems with virtual terminal support, these keystroke
 combinations are used to switch to virtual terminals 1 through 12,
 respectively.  This can be disabled with the
 .B DontVTSwitch
-__xconfigfile__(__filemansuffix__) file option.
+xorg.conf(__filemansuffix__) file option.
 .SH CONFIGURATION
-.B __xservername__
+.B Xorg
 typically uses a configuration file called
-.B __xconfigfile__
+.B xorg.conf
 and configuration files with the suffix
 .I .conf
 in a directory called
 .B __xconfigdir__
 for its initial setup.
-Refer to the __xconfigfile__(__filemansuffix__) manual page for information
+Refer to the xorg.conf(__filemansuffix__) manual page for information
 about the format of this file.
 .PP
-.B __xservername__
+.B Xorg
 has a mechanism for automatically generating a built-in configuration
 at run-time when no
-.B __xconfigfile__
+.B xorg.conf
 file or
 .B __xconfigdir__
 files are present.  The current version of this automatic configuration
 mechanism works in two ways.
 .PP
 The first is via enhancements that have made many components of the
-.B __xconfigfile__
+.B xorg.conf
 file optional.  This means that information that can be probed or
 reasonably deduced doesn't need to be specified explicitly, greatly
 reducing the amount of built-in configuration information that needs to
@@ -506,33 +506,33 @@ be generated at run-time.
 .PP
 The second is to have "safe" fallbacks for most configuration information.
 This maximises the likelihood that the
-.B __xservername__
+.B Xorg
 server will start up in some usable configuration even when information
 about the specific hardware is not available.
 .PP
-The automatic configuration support for __xservername__ is work in progress.
+The automatic configuration support for Xorg is work in progress.
 It is currently aimed at the most popular hardware and software platforms
-supported by __xservername__.  Enhancements are planned for future releases.
+supported by Xorg.  Enhancements are planned for future releases.
 .SH FILES
 The
-.B __xservername__
+.B Xorg
 server config files can be found in a range of locations.  These are
-documented fully in the __xconfigfile__(__filemansuffix__) manual page.  The
+documented fully in the xorg.conf(__filemansuffix__) manual page.  The
 most commonly used locations are shown here.
 .TP 30
-.B /etc/X11/__xconfigfile__
+.B /etc/X11/xorg.conf
 Server configuration file.
 .TP 30
-.B /etc/X11/__xconfigfile__-4
+.B /etc/X11/xorg.conf-4
 Server configuration file.
 .TP 30
-.B /etc/__xconfigfile__
+.B /etc/xorg.conf
 Server configuration file.
 .TP 30
-.B __projectroot__/etc/__xconfigfile__
+.B __projectroot__/etc/xorg.conf
 Server configuration file.
 .TP 30
-.B __projectroot__/lib/X11/__xconfigfile__
+.B __projectroot__/lib/X11/xorg.conf
 Server configuration file.
 .TP 30
 .B /etc/X11/__xconfigdir__
@@ -550,7 +550,7 @@ Server configuration directory.
 .B __projectroot__/lib/X11/__xconfigdir__
 Server configuration directory.
 .TP 30
-.BI __logdir__/__xservername__. n .log
+.BI __logdir__/Xorg. n .log
 Server log file for display
 .IR n .
 .TP 30
@@ -580,7 +580,7 @@ Initial access control list for display
 .IR n .
 .SH "SEE ALSO"
 X(__miscmansuffix__), Xserver(__appmansuffix__), xdm(__appmansuffix__), xinit(__appmansuffix__),
-__xconfigfile__(__filemansuffix__), xvidtune(__appmansuffix__),
+xorg.conf(__filemansuffix__), xvidtune(__appmansuffix__),
 xkeyboard-config (__miscmansuffix__),
 apm(__drivermansuffix__),
 ati(__drivermansuffix__),
@@ -623,15 +623,15 @@ Web site
 .IR <http://www.x.org> .
 
 .SH AUTHORS
-__xservername__ has many contributors world wide.  The names of most of them
+Xorg has many contributors world wide.  The names of most of them
 can be found in the documentation, ChangeLog files in the source tree,
 and in the actual source code.
 .PP
-__xservername__ was originally based on XFree86 4.4rc2.
+Xorg was originally based on XFree86 4.4rc2.
 That was originally based on \fIX386 1.2\fP by Thomas Roell, which
 was contributed to the then X Consortium's X11R5 distribution by SGCS.
 .PP
-__xservername__ is released by the X.Org Foundation.
+Xorg is released by the X.Org Foundation.
 .PP
 The project that became XFree86 was originally founded in 1992 by
 David Dawes, Glenn Lai, Jim Tsillas and David Wexelblat.
@@ -671,7 +671,7 @@ Orest Zborowski    \fIorestz@eskimo.com\fP
 .fi
 .RE
 .PP
-__xservername__ source is available from the FTP server
+Xorg source is available from the FTP server
 \fI<ftp://ftp.x.org/>\fP, and from the X.Org
 server \fI<http://gitweb.freedesktop.org/>\fP.  Documentation and other
 information can be found from the X.Org web site
@@ -679,10 +679,10 @@ information can be found from the X.Org web site
 
 .SH LEGAL
 .PP
-.B __xservername__
+.B Xorg
 is copyright software, provided under licenses that permit modification
 and redistribution in source and binary form without fee.
-.B __xservername__ is copyright by numerous authors and
+.B Xorg is copyright by numerous authors and
 contributors from around the world.  Licensing information can be found
 at
 .IR <http://www.x.org> .

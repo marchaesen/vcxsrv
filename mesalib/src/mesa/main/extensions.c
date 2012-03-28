@@ -198,6 +198,7 @@ static const struct extension extension_table[] = {
    { "GL_EXT_texture_env_dot3",                    o(EXT_texture_env_dot3),                    GL,             2000 },
    { "GL_EXT_texture_filter_anisotropic",          o(EXT_texture_filter_anisotropic),          GL | ES1 | ES2, 1999 },
    { "GL_EXT_texture_format_BGRA8888",             o(dummy_true),                                   ES1 | ES2, 2005 },
+   { "GL_EXT_read_format_bgra",                    o(dummy_true),                                   ES1 | ES2, 2009 },
    { "GL_EXT_texture_integer",                     o(EXT_texture_integer),                     GL,             2006 },
    { "GL_EXT_texture_lod_bias",                    o(dummy_true),                              GL | ES1,       1999 },
    { "GL_EXT_texture_mirror_clamp",                o(EXT_texture_mirror_clamp),                GL,             2004 },
@@ -212,6 +213,7 @@ static const struct extension extension_table[] = {
    { "GL_EXT_texture_type_2_10_10_10_REV",         o(dummy_true),                                         ES2, 2008 },
    { "GL_EXT_timer_query",                         o(EXT_timer_query),                         GL,             2006 },
    { "GL_EXT_transform_feedback",                  o(EXT_transform_feedback),                  GL,             2011 },
+   { "GL_EXT_unpack_subimage",                     o(dummy_true),                                         ES2, 2011 },
    { "GL_EXT_vertex_array_bgra",                   o(EXT_vertex_array_bgra),                   GL,             2008 },
    { "GL_EXT_vertex_array",                        o(dummy_true),                              GL,             1995 },
 

@@ -1,7 +1,7 @@
 /*
  * Xplugin rootless implementation frame functions
  *
- * Copyright (c) 2002-2011 Apple Computer, Inc. All rights reserved.
+ * Copyright (c) 2002-2012 Apple Computer, Inc. All rights reserved.
  * Copyright (c) 2003 Torrey T. Lyons. All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -49,21 +49,21 @@
 #include <pthread.h>
 #endif
 
-#define DEFINE_ATOM_HELPER(func,atom_name)                      \
-static Atom func (void) {                                       \
-    static int generation;                                      \
-    static Atom atom;                                           \
-    if (generation != serverGeneration) {                       \
-        generation = serverGeneration;                          \
-        atom = MakeAtom (atom_name, strlen (atom_name), TRUE);  \
-    }                                                           \
-    return atom;                                                \
-}
+#define DEFINE_ATOM_HELPER(func, atom_name)                      \
+    static Atom func(void) {                                       \
+        static int generation;                                      \
+        static Atom atom;                                           \
+        if (generation != serverGeneration) {                       \
+            generation = serverGeneration;                          \
+            atom = MakeAtom(atom_name, strlen(atom_name), TRUE);  \
+        }                                                           \
+        return atom;                                                \
+    }
 
 DEFINE_ATOM_HELPER(xa_native_window_id, "_NATIVE_WINDOW_ID")
 
 /* Maps xp_window_id -> RootlessWindowRec */
-static x_hash_table *window_hash;
+static x_hash_table * window_hash;
 
 /* Need to guard window_hash since xprIsX11Window can be called from any thread. */
 #ifdef HAVE_LIBDISPATCH
@@ -74,15 +74,16 @@ static pthread_rwlock_t window_hash_rwlock;
 
 /* Prototypes for static functions */
 static Bool
-xprCreateFrame(RootlessWindowPtr pFrame, ScreenPtr pScreen,
-               int newX, int newY, RegionPtr pShape);
+xprCreateFrame(RootlessWindowPtr pFrame, ScreenPtr pScreen, int newX,
+               int newY,
+               RegionPtr pShape);
 static void
 xprDestroyFrame(RootlessFrameID wid);
 static void
 xprMoveFrame(RootlessFrameID wid, ScreenPtr pScreen, int newX, int newY);
 static void
-xprResizeFrame(RootlessFrameID wid, ScreenPtr pScreen,
-               int newX, int newY, unsigned int newW, unsigned int newH,
+xprResizeFrame(RootlessFrameID wid, ScreenPtr pScreen, int newX, int newY,
+               unsigned int newW, unsigned int newH,
                unsigned int gravity);
 static void
 xprRestackFrame(RootlessFrameID wid, RootlessFrameID nextWid);
@@ -97,8 +98,9 @@ xprStopDrawing(RootlessFrameID wid, Bool flush);
 static void
 xprUpdateRegion(RootlessFrameID wid, RegionPtr pDamage);
 static void
-xprDamageRects(RootlessFrameID wid, int nrects, const BoxRec * rects,
-               int shift_x, int shift_y);
+xprDamageRects(RootlessFrameID wid, int nrects, const BoxRec *rects,
+               int shift_x,
+               int shift_y);
 static void
 xprSwitchWindow(RootlessWindowPtr pFrame, WindowPtr oldWin);
 static Bool
@@ -108,12 +110,13 @@ xprHideWindow(RootlessFrameID wid);
 static void
 xprUpdateColormap(RootlessFrameID wid, ScreenPtr pScreen);
 static void
-xprCopyWindow(RootlessFrameID wid, int dstNrects, const BoxRec * dstRects,
-              int dx, int dy);
+xprCopyWindow(RootlessFrameID wid, int dstNrects, const BoxRec *dstRects,
+              int dx,
+              int dy);
 
 static inline xp_error
 xprConfigureWindow(xp_window_id id, unsigned int mask,
-                   const xp_window_changes * values)
+                   const xp_window_changes *values)
 {
     return xp_configure_window(id, mask, values);
 }
@@ -131,17 +134,18 @@ xprSetNativeProperty(RootlessWindowPtr pFrame)
 
         data = native_id;
         dixChangeWindowProperty(serverClient, pFrame->win,
-                                xa_native_window_id(), XA_INTEGER, 32,
-                                PropModeReplace, 1, &data, TRUE);
+                                xa_native_window_id(),
+                                XA_INTEGER, 32, PropModeReplace, 1, &data,
+                                TRUE);
     }
 }
 
 static xp_error
 xprColormapCallback(void *data, int first_color, int n_colors,
-                    uint32_t * colors)
+                    uint32_t *colors)
 {
-    return (RootlessResolveColormap(data, first_color, n_colors, colors) ?
-            XP_Success : XP_BadMatch);
+    return (RootlessResolveColormap(data, first_color, n_colors,
+                                    colors) ? XP_Success : XP_BadMatch);
 }
 
 /*
@@ -195,7 +199,7 @@ xprCreateFrame(RootlessWindowPtr pFrame, ScreenPtr pScreen,
         wc.window_level = rooted_window_levels[pFrame->level];
     mask |= XP_WINDOW_LEVEL;
 
-    err = xp_create_window(mask, &wc, (xp_window_id *) & pFrame->wid);
+    err = xp_create_window(mask, &wc, (xp_window_id *)&pFrame->wid);
 
     if (err != Success) {
         return FALSE;
@@ -203,8 +207,8 @@ xprCreateFrame(RootlessWindowPtr pFrame, ScreenPtr pScreen,
 
 #ifdef HAVE_LIBDISPATCH
     dispatch_async(window_hash_serial_q, ^ {
-                   x_hash_table_insert(window_hash, pFrame->wid, pFrame);}
-    );
+                       x_hash_table_insert(window_hash, pFrame->wid, pFrame);
+                   });
 #else
     pthread_rwlock_wrlock(&window_hash_rwlock);
     x_hash_table_insert(window_hash, pFrame->wid, pFrame);
@@ -226,7 +230,8 @@ xprDestroyFrame(RootlessFrameID wid)
 
 #ifdef HAVE_LIBDISPATCH
     dispatch_async(window_hash_serial_q, ^ {
-                   x_hash_table_remove(window_hash, wid);});
+                       x_hash_table_remove(window_hash, wid);
+                   });
 #else
     pthread_rwlock_wrlock(&window_hash_rwlock);
     x_hash_table_remove(window_hash, wid);
@@ -236,7 +241,8 @@ xprDestroyFrame(RootlessFrameID wid)
     err = xp_destroy_window(x_cvt_vptr_to_uint(wid));
     if (err != Success)
         FatalError("Could not destroy window %d (%d).",
-                   (int) x_cvt_vptr_to_uint(wid), (int) err);
+                   (int)x_cvt_vptr_to_uint(
+                       wid), (int)err);
 }
 
 /*
@@ -283,11 +289,10 @@ xprRestackFrame(RootlessFrameID wid, RootlessFrameID nextWid)
 {
     xp_window_changes wc;
     unsigned int mask = XP_STACKING;
-
 #ifdef HAVE_LIBDISPATCH
     __block
 #endif
-        RootlessWindowRec * winRec;
+    RootlessWindowRec * winRec;
 
     /* Stack frame below nextWid it if it exists, or raise
        frame above everything otherwise. */
@@ -303,8 +308,8 @@ xprRestackFrame(RootlessFrameID wid, RootlessFrameID nextWid)
 
 #ifdef HAVE_LIBDISPATCH
     dispatch_sync(window_hash_serial_q, ^ {
-                  winRec = x_hash_table_lookup(window_hash, wid, NULL);}
-    );
+                      winRec = x_hash_table_lookup(window_hash, wid, NULL);
+                  });
 #else
     pthread_rwlock_rdlock(&window_hash_rwlock);
     winRec = x_hash_table_lookup(window_hash, wid, NULL);
@@ -371,12 +376,12 @@ xprStartDrawing(RootlessFrameID wid, char **pixelData, int *bytesPerRow)
     unsigned int rowbytes[2];
     xp_error err;
 
-    err =
-        xp_lock_window(x_cvt_vptr_to_uint(wid), NULL, NULL, data, rowbytes,
-                       NULL);
+    err = xp_lock_window(x_cvt_vptr_to_uint(
+                             wid), NULL, NULL, data, rowbytes, NULL);
     if (err != Success)
         FatalError("Could not lock window %d for drawing (%d).",
-                   (int) x_cvt_vptr_to_uint(wid), (int) err);
+                   (int)x_cvt_vptr_to_uint(
+                       wid), (int)err);
 
     *pixelData = data[0];
     *bytesPerRow = rowbytes[0];
@@ -396,7 +401,8 @@ xprStopDrawing(RootlessFrameID wid, Bool flush)
      */
     if (err != Success)
         ErrorF("Could not unlock window %d after drawing (%d).",
-               (int) x_cvt_vptr_to_uint(wid), (int) err);
+               (int)x_cvt_vptr_to_uint(
+                   wid), (int)err);
 }
 
 /*
@@ -412,7 +418,7 @@ xprUpdateRegion(RootlessFrameID wid, RegionPtr pDamage)
  * Mark damaged rectangles as requiring redisplay to screen.
  */
 static void
-xprDamageRects(RootlessFrameID wid, int nrects, const BoxRec * rects,
+xprDamageRects(RootlessFrameID wid, int nrects, const BoxRec *rects,
                int shift_x, int shift_y)
 {
     xp_mark_window(x_cvt_vptr_to_uint(wid), nrects, rects, shift_x, shift_y);
@@ -446,7 +452,7 @@ xprDoReorderWindow(RootlessWindowPtr pFrame)
  *  Used to accelerate scrolling.
  */
 static void
-xprCopyWindow(RootlessFrameID wid, int dstNrects, const BoxRec * dstRects,
+xprCopyWindow(RootlessFrameID wid, int dstNrects, const BoxRec *dstRects,
               int dx, int dy)
 {
     xp_copy_window(x_cvt_vptr_to_uint(wid), x_cvt_vptr_to_uint(wid),
@@ -487,8 +493,8 @@ xprInit(ScreenPtr pScreen)
     assert((window_hash = x_hash_table_new(NULL, NULL, NULL, NULL)));
 #ifdef HAVE_LIBDISPATCH
     assert((window_hash_serial_q =
-            dispatch_queue_create(BUNDLE_ID_PREFIX ".X11.xpr_window_hash",
-                                  NULL)));
+                dispatch_queue_create(BUNDLE_ID_PREFIX ".X11.xpr_window_hash",
+                                      NULL)));
 #else
     assert(0 == pthread_rwlock_init(&window_hash_rwlock, NULL));
 #endif
@@ -505,14 +511,13 @@ xprGetXWindow(xp_window_id wid)
 {
 #ifdef HAVE_LIBDISPATCH
     RootlessWindowRec *winRec __block;
-
     dispatch_sync(window_hash_serial_q, ^ {
-                  winRec =
-                  x_hash_table_lookup(window_hash, x_cvt_uint_to_vptr(wid),
-                                      NULL);});
+                      winRec =
+                          x_hash_table_lookup(window_hash,
+                                              x_cvt_uint_to_vptr(wid), NULL);
+                  });
 #else
     RootlessWindowRec *winRec;
-
     pthread_rwlock_rdlock(&window_hash_rwlock);
     winRec = x_hash_table_lookup(window_hash, x_cvt_uint_to_vptr(wid), NULL);
     pthread_rwlock_unlock(&window_hash_rwlock);
@@ -553,7 +558,6 @@ xprHideWindows(Bool hide)
 
     for (screen = 0; screen < screenInfo.numScreens; screen++) {
         RootlessFrameID prevWid = NULL;
-
         pRoot = screenInfo.screens[screen]->root;
 
         for (pWin = pRoot->firstChild; pWin; pWin = pWin->nextSib) {
@@ -583,13 +587,13 @@ xprHideWindows(Bool hide)
 }
 
 // XXX: identical to x_cvt_vptr_to_uint ?
-#define MAKE_WINDOW_ID(x)		((xp_window_id)((size_t)(x)))
+#define MAKE_WINDOW_ID(x) ((xp_window_id)((size_t)(x)))
 
 Bool no_configure_window;
 
 static inline int
 configure_window(xp_window_id id, unsigned int mask,
-                 const xp_window_changes * values)
+                 const xp_window_changes *values)
 {
     if (!no_configure_window)
         return xp_configure_window(id, mask, values);
@@ -598,12 +602,11 @@ configure_window(xp_window_id id, unsigned int mask,
 }
 
 static
-    void
+void
 xprUpdateColormap(RootlessFrameID wid, ScreenPtr pScreen)
 {
     /* This is how we tell xp that the colormap may have changed. */
     xp_window_changes wc;
-
     wc.colormap = xprColormapCallback;
     wc.colormap_data = pScreen;
 
@@ -611,11 +614,10 @@ xprUpdateColormap(RootlessFrameID wid, ScreenPtr pScreen)
 }
 
 static
-    void
+void
 xprHideWindow(RootlessFrameID wid)
 {
     xp_window_changes wc;
-
     wc.stack_mode = XP_UNMAPPED;
     wc.sibling = 0;
     configure_window(MAKE_WINDOW_ID(wid), XP_STACKING, &wc);

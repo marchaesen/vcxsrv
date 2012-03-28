@@ -1,30 +1,31 @@
 /* main.m
-   Copyright (c) 2002, 2008 Apple Computer, Inc. All rights reserved.
-
-   Permission is hereby granted, free of charge, to any person
-   obtaining a copy of this software and associated documentation files
-   (the "Software"), to deal in the Software without restriction,
-   including without limitation the rights to use, copy, modify, merge,
-   publish, distribute, sublicense, and/or sell copies of the Software,
-   and to permit persons to whom the Software is furnished to do so,
-   subject to the following conditions:
-
-   The above copyright notice and this permission notice shall be
-   included in all copies or substantial portions of the Software.
-
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-   NONINFRINGEMENT.  IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT
-   HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-   DEALINGS IN THE SOFTWARE.
-
-   Except as contained in this notice, the name(s) of the above
-   copyright holders shall not be used in advertising or otherwise to
-   promote the sale, use or other dealings in this Software without
-   prior written authorization.
+ *
+ * Copyright (c) 2002-2012 Apple Inc. All rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation files
+ * (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.  IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT
+ * HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * Except as contained in this notice, the name(s) of the above
+ * copyright holders shall not be used in advertising or otherwise to
+ * promote the sale, use or other dealings in this Software without
+ * prior written authorization.
  */
 
 #include "pbproxy.h"
@@ -64,7 +65,7 @@ wait_for_server_init(void)
 }
 
 static int
-x_io_error_handler(Display * dpy)
+x_io_error_handler(Display *dpy)
 {
     /* We lost our connection to the server. */
 
@@ -85,7 +86,7 @@ x_io_error_handler(Display * dpy)
 }
 
 static int
-x_error_handler(Display * dpy, XErrorEvent * errevent)
+x_error_handler(Display *dpy, XErrorEvent *errevent)
 {
     return 0;
 }
@@ -93,7 +94,7 @@ x_error_handler(Display * dpy, XErrorEvent * errevent)
 int
 xpbproxy_run(void)
 {
-    NSAutoreleasePool *pool =[[NSAutoreleasePool alloc] init];
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     size_t i;
 
     wait_for_server_init();
@@ -103,7 +104,6 @@ xpbproxy_run(void)
 
         if (!xpbproxy_dpy && display) {
             char _display[32];
-
             snprintf(_display, sizeof(_display), ":%s", display);
             setenv("DISPLAY", _display, TRUE);
 
@@ -136,7 +136,7 @@ xpbproxy_run(void)
     XAppleWMSelectInput(xpbproxy_dpy, AppleWMActivationNotifyMask |
                         AppleWMPasteboardNotifyMask);
 
-    _selection_object =[[x_selection alloc] init];
+    _selection_object = [[x_selection alloc] init];
 
     if (!xpbproxy_input_register()) {
         [pool release];

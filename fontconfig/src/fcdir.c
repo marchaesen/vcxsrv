@@ -211,6 +211,9 @@ bail2:
 bail1:
     closedir (d);
 bail:
+    if (file)
+	free (file);
+
     return ret;
 }
 

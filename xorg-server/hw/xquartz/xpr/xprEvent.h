@@ -1,4 +1,4 @@
-/* Copyright (c) 2008 Apple Inc.
+/* Copyright (c) 2008-2012 Apple Inc.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation files
@@ -29,6 +29,7 @@
 #ifndef __XPR_EVENT_H__
 #define __XPR_EVENT_H__
 
-Bool QuartzModeEventHandler(int screenNum, XQuartzEvent *e, DeviceIntPtr dev);
+Bool
+QuartzModeEventHandler(int screenNum, XQuartzEvent *e, DeviceIntPtr dev);
 
 #endif

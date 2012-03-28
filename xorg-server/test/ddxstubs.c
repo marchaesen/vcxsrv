@@ -50,7 +50,7 @@ OsVendorInit(void)
 }
 
 void
-OsVendorFatalError(void)
+OsVendorFatalError(const char *f, va_list args)
 {
 }
 

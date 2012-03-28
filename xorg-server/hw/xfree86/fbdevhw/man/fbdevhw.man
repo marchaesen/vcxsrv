@@ -14,7 +14,7 @@ fbdev(__drivermansuffix__) is a non-accelerated driver which runs on top of the
 fbdevhw module.  fbdevhw can be used by other drivers too, this
 is usually activated with `Option "UseFBDev"' in the device section.
 .SH "SEE ALSO"
-__xservername__(__appmansuffix__), __xconfigfile__(__filemansuffix__),
+Xorg(__appmansuffix__), xorg.conf(__filemansuffix__),
 xorgconfig(__appmansuffix__), Xserver(__appmansuffix__), X(__miscmansuffix__),
 fbdev(__drivermansuffix__)
 .SH AUTHORS

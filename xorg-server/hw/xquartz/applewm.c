@@ -1,29 +1,32 @@
-/**************************************************************************
-
-Copyright (c) 2002-2007 Apple Inc. All Rights Reserved.
-Copyright (c) 2003 Torrey T. Lyons. All Rights Reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sub license, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice (including the
-next paragraph) shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
-IN NO EVENT SHALL PRECISION INSIGHT AND/OR ITS SUPPLIERS BE LIABLE FOR
-ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-**************************************************************************/
+/*
+ * Copyright (c) 2003 Torrey T. Lyons. All Rights Reserved.
+ * Copyright (c) 2002-2012 Apple Inc. All rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation files
+ * (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.  IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT
+ * HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * Except as contained in this notice, the name(s) of the above
+ * copyright holders shall not be used in advertising or otherwise to
+ * promote the sale, use or other dealings in this Software without
+ * prior written authorization.
+ */
 
 #include "sanitizedCarbon.h"
 
@@ -52,19 +55,19 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "X11Application.h"
 #include "protocol-versions.h"
 
-#define DEFINE_ATOM_HELPER(func,atom_name)                      \
-static Atom func (void) {                                       \
-    static int generation;                                      \
-    static Atom atom;                                           \
-    if (generation != serverGeneration) {                       \
-        generation = serverGeneration;                          \
-        atom = MakeAtom (atom_name, strlen (atom_name), TRUE);  \
-    }                                                           \
-    return atom;                                                \
-}
+#define DEFINE_ATOM_HELPER(func, atom_name)                      \
+    static Atom func(void) {                                       \
+        static int generation;                                      \
+        static Atom atom;                                           \
+        if (generation != serverGeneration) {                       \
+            generation = serverGeneration;                          \
+            atom = MakeAtom(atom_name, strlen(atom_name), TRUE);  \
+        }                                                           \
+        return atom;                                                \
+    }
 
 DEFINE_ATOM_HELPER(xa_native_screen_origin, "_NATIVE_SCREEN_ORIGIN")
-    DEFINE_ATOM_HELPER(xa_apple_no_order_in, "_APPLE_NO_ORDER_IN")
+DEFINE_ATOM_HELPER(xa_apple_no_order_in, "_APPLE_NO_ORDER_IN")
 
 static AppleWMProcsPtr appleWMProcs;
 
@@ -73,7 +76,7 @@ static int WMErrorBase;
 static unsigned char WMReqCode = 0;
 static int WMEventBase = 0;
 
-static RESTYPE ClientType, EventType;   /* resource types for event masks */
+static RESTYPE ClientType, EventType; /* resource types for event masks */
 static XID eventResource;
 
 /* Currently selected events */
@@ -84,7 +87,7 @@ WMFreeClient(pointer data, XID id);
 static int
 WMFreeEvents(pointer data, XID id);
 static void
-SNotifyEvent(xAppleWMNotifyEvent * from, xAppleWMNotifyEvent * to);
+SNotifyEvent(xAppleWMNotifyEvent *from, xAppleWMNotifyEvent *to);
 
 typedef struct _WMEvent *WMEventPtr;
 typedef struct _WMEvent {
@@ -98,7 +101,6 @@ static inline BoxRec
 make_box(int x, int y, int w, int h)
 {
     BoxRec r;
-
     r.x1 = x;
     r.y1 = y;
     r.x2 = x + w;
@@ -155,14 +157,14 @@ ProcAppleWMQueryVersion(register ClientPtr client)
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
     }
-    WriteToClient(client, sizeof(xAppleWMQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xAppleWMQueryVersionReply), (char *)&rep);
     return Success;
 }
-
+
 /* events */
 
 static inline void
-updateEventMask(WMEventPtr * pHead)
+updateEventMask(WMEventPtr *pHead)
 {
     WMEventPtr pCur;
 
@@ -171,18 +173,19 @@ updateEventMask(WMEventPtr * pHead)
         eventMask |= pCur->mask;
 }
 
- /*ARGSUSED*/ static int
+/*ARGSUSED*/
+static int
 WMFreeClient(pointer data, XID id)
 {
     WMEventPtr pEvent;
-    WMEventPtr *pHead, pCur, pPrev;
+    WMEventPtr   *pHead, pCur, pPrev;
     int i;
 
-    pEvent = (WMEventPtr) data;
-    i = dixLookupResourceByType((pointer *) &pHead, eventResource, EventType,
-                                serverClient,
-                                DixReadAccess | DixWriteAccess |
-                                DixDestroyAccess);
+    pEvent = (WMEventPtr)data;
+    i = dixLookupResourceByType(
+        (pointer *)&pHead, eventResource, EventType, serverClient,
+        DixReadAccess |
+        DixWriteAccess | DixDestroyAccess);
     if (i == Success && pHead) {
         pPrev = 0;
         for (pCur = *pHead; pCur && pCur != pEvent; pCur = pCur->next)
@@ -195,22 +198,23 @@ WMFreeClient(pointer data, XID id)
         }
         updateEventMask(pHead);
     }
-    free((pointer) pEvent);
+    free((pointer)pEvent);
     return 1;
 }
 
- /*ARGSUSED*/ static int
+/*ARGSUSED*/
+static int
 WMFreeEvents(pointer data, XID id)
 {
-    WMEventPtr *pHead, pCur, pNext;
+    WMEventPtr   *pHead, pCur, pNext;
 
-    pHead = (WMEventPtr *) data;
+    pHead = (WMEventPtr *)data;
     for (pCur = *pHead; pCur; pCur = pNext) {
         pNext = pCur->next;
         FreeResource(pCur->clientResource, ClientType);
-        free((pointer) pCur);
+        free((pointer)pCur);
     }
-    free((pointer) pHead);
+    free((pointer)pHead);
     eventMask = 0;
     return 1;
 }
@@ -224,8 +228,10 @@ ProcAppleWMSelectInput(register ClientPtr client)
     int i;
 
     REQUEST_SIZE_MATCH(xAppleWMSelectInputReq);
-    i = dixLookupResourceByType((pointer *) &pHead, eventResource, EventType,
-                                client, DixWriteAccess);
+    i =
+        dixLookupResourceByType((pointer *)&pHead, eventResource, EventType,
+                                client,
+                                DixWriteAccess);
     if (stuff->mask != 0) {
         if (i == Success && pHead) {
             /* check for existing entry. */
@@ -239,7 +245,7 @@ ProcAppleWMSelectInput(register ClientPtr client)
         }
 
         /* build the entry */
-        pNewEvent = (WMEventPtr) malloc(sizeof(WMEventRec));
+        pNewEvent = (WMEventPtr)malloc(sizeof(WMEventRec));
         if (!pNewEvent)
             return BadAlloc;
         pNewEvent->next = 0;
@@ -251,7 +257,7 @@ ProcAppleWMSelectInput(register ClientPtr client)
          */
         clientResource = FakeClientID(client->index);
         pNewEvent->clientResource = clientResource;
-        if (!AddResource(clientResource, ClientType, (pointer) pNewEvent))
+        if (!AddResource(clientResource, ClientType, (pointer)pNewEvent))
             return BadAlloc;
         /*
          * create a resource to contain a pointer to the list
@@ -260,9 +266,9 @@ ProcAppleWMSelectInput(register ClientPtr client)
          * done through the resource database.
          */
         if (i != Success || !pHead) {
-            pHead = (WMEventPtr *) malloc(sizeof(WMEventPtr));
+            pHead = (WMEventPtr *)malloc(sizeof(WMEventPtr));
             if (!pHead ||
-                !AddResource(eventResource, EventType, (pointer) pHead)) {
+                !AddResource(eventResource, EventType, (pointer)pHead)) {
                 FreeResource(clientResource, RT_NONE);
                 return BadAlloc;
             }
@@ -306,12 +312,14 @@ ProcAppleWMSelectInput(register ClientPtr client)
 void
 AppleWMSendEvent(int type, unsigned int mask, int which, int arg)
 {
-    WMEventPtr *pHead, pEvent;
+    WMEventPtr      *pHead, pEvent;
     xAppleWMNotifyEvent se;
     int i;
 
-    i = dixLookupResourceByType((pointer *) &pHead, eventResource, EventType,
-                                serverClient, DixReadAccess);
+    i =
+        dixLookupResourceByType((pointer *)&pHead, eventResource, EventType,
+                                serverClient,
+                                DixReadAccess);
     if (i != Success || !pHead)
         return;
     for (pEvent = *pHead; pEvent; pEvent = pEvent->next) {
@@ -321,7 +329,7 @@ AppleWMSendEvent(int type, unsigned int mask, int which, int arg)
         se.kind = which;
         se.arg = arg;
         se.time = currentTime.milliseconds;
-        WriteEventsToClient(pEvent->client, 1, (xEvent *) &se);
+        WriteEventsToClient(pEvent->client, 1, (xEvent *)&se);
     }
 }
 
@@ -331,7 +339,7 @@ AppleWMSelectedEvents(void)
 {
     return eventMask;
 }
-
+
 /* general utility functions */
 
 static int
@@ -353,7 +361,7 @@ ProcAppleWMReenableUpdate(register ClientPtr client)
 
     return Success;
 }
-
+
 /* window functions */
 
 static int
@@ -362,7 +370,6 @@ ProcAppleWMSetWindowMenu(register ClientPtr client)
     const char *bytes, **items;
     char *shortcuts;
     int max_len, nitems, i, j;
-
     REQUEST(xAppleWMSetWindowMenuReq);
 
     REQUEST_AT_LEAST_SIZE(xAppleWMSetWindowMenuReq);
@@ -372,13 +379,14 @@ ProcAppleWMSetWindowMenu(register ClientPtr client)
     shortcuts = malloc(sizeof(char) * nitems);
 
     max_len = (stuff->length << 2) - sizeof(xAppleWMSetWindowMenuReq);
-    bytes = (char *) &stuff[1];
+    bytes = (char *)&stuff[1];
 
     for (i = j = 0; i < max_len && j < nitems;) {
         shortcuts[j] = bytes[i++];
         items[j++] = bytes + i;
 
-        while (i < max_len) {
+        while (i < max_len)
+        {
             if (bytes[i++] == 0)
                 break;
         }
@@ -418,7 +426,8 @@ ProcAppleWMSetWindowLevel(register ClientPtr client)
 
     REQUEST_SIZE_MATCH(xAppleWMSetWindowLevelReq);
 
-    if (Success != dixLookupWindow(&pWin, stuff->window, client, DixReadAccess))
+    if (Success != dixLookupWindow(&pWin, stuff->window, client,
+                                   DixReadAccess))
         return BadValue;
 
     if (stuff->level >= AppleWMNumWindowLevels) {
@@ -456,7 +465,6 @@ static int
 ProcAppleWMAttachTransient(register ClientPtr client)
 {
     WindowPtr pWinChild, pWinParent;
-
     REQUEST(xAppleWMAttachTransientReq);
     int err;
 
@@ -496,7 +504,7 @@ ProcAppleWMSetCanQuit(register ClientPtr client)
     X11ApplicationSetCanQuit(stuff->state);
     return Success;
 }
-
+
 /* frame functions */
 
 static int
@@ -504,7 +512,6 @@ ProcAppleWMFrameGetRect(register ClientPtr client)
 {
     xAppleWMFrameGetRectReply rep;
     BoxRec ir, or, rr;
-
     REQUEST(xAppleWMFrameGetRectReq);
 
     REQUEST_SIZE_MATCH(xAppleWMFrameGetRectReq);
@@ -526,7 +533,7 @@ ProcAppleWMFrameGetRect(register ClientPtr client)
     rep.w = rr.x2 - rr.x1;
     rep.h = rr.y2 - rr.y1;
 
-    WriteToClient(client, sizeof(xAppleWMFrameGetRectReply), (char *) &rep);
+    WriteToClient(client, sizeof(xAppleWMFrameGetRectReply), (char *)&rep);
     return Success;
 }
 
@@ -536,7 +543,6 @@ ProcAppleWMFrameHitTest(register ClientPtr client)
     xAppleWMFrameHitTestReply rep;
     BoxRec ir, or;
     int ret;
-
     REQUEST(xAppleWMFrameHitTestReq);
 
     REQUEST_SIZE_MATCH(xAppleWMFrameHitTestReq);
@@ -554,7 +560,7 @@ ProcAppleWMFrameHitTest(register ClientPtr client)
 
     rep.ret = ret;
 
-    WriteToClient(client, sizeof(xAppleWMFrameHitTestReply), (char *) &rep);
+    WriteToClient(client, sizeof(xAppleWMFrameHitTestReply), (char *)&rep);
     return Success;
 }
 
@@ -564,13 +570,13 @@ ProcAppleWMFrameDraw(register ClientPtr client)
     BoxRec ir, or;
     unsigned int title_length, title_max;
     unsigned char *title_bytes;
-
     REQUEST(xAppleWMFrameDrawReq);
     WindowPtr pWin;
 
     REQUEST_AT_LEAST_SIZE(xAppleWMFrameDrawReq);
 
-    if (Success != dixLookupWindow(&pWin, stuff->window, client, DixReadAccess))
+    if (Success != dixLookupWindow(&pWin, stuff->window, client,
+                                   DixReadAccess))
         return BadValue;
 
     ir = make_box(stuff->ix, stuff->iy, stuff->iw, stuff->ih);
@@ -582,7 +588,7 @@ ProcAppleWMFrameDraw(register ClientPtr client)
     if (title_max < title_length)
         return BadValue;
 
-    title_bytes = (unsigned char *) &stuff[1];
+    title_bytes = (unsigned char *)&stuff[1];
 
     errno = appleWMProcs->FrameDraw(pWin, stuff->frame_class,
                                     stuff->frame_attr, &or, &ir,
@@ -593,7 +599,7 @@ ProcAppleWMFrameDraw(register ClientPtr client)
 
     return Success;
 }
-
+
 /* dispatch */
 
 static int
@@ -612,37 +618,50 @@ ProcAppleWMDispatch(register ClientPtr client)
     switch (stuff->data) {
     case X_AppleWMSelectInput:
         return ProcAppleWMSelectInput(client);
+
     case X_AppleWMDisableUpdate:
         return ProcAppleWMDisableUpdate(client);
+
     case X_AppleWMReenableUpdate:
         return ProcAppleWMReenableUpdate(client);
+
     case X_AppleWMSetWindowMenu:
         return ProcAppleWMSetWindowMenu(client);
+
     case X_AppleWMSetWindowMenuCheck:
         return ProcAppleWMSetWindowMenuCheck(client);
+
     case X_AppleWMSetFrontProcess:
         return ProcAppleWMSetFrontProcess(client);
+
     case X_AppleWMSetWindowLevel:
         return ProcAppleWMSetWindowLevel(client);
+
     case X_AppleWMSetCanQuit:
         return ProcAppleWMSetCanQuit(client);
+
     case X_AppleWMFrameGetRect:
         return ProcAppleWMFrameGetRect(client);
+
     case X_AppleWMFrameHitTest:
         return ProcAppleWMFrameHitTest(client);
+
     case X_AppleWMFrameDraw:
         return ProcAppleWMFrameDraw(client);
+
     case X_AppleWMSendPSN:
         return ProcAppleWMSendPSN(client);
+
     case X_AppleWMAttachTransient:
         return ProcAppleWMAttachTransient(client);
+
     default:
         return BadRequest;
     }
 }
 
 static void
-SNotifyEvent(xAppleWMNotifyEvent * from, xAppleWMNotifyEvent * to)
+SNotifyEvent(xAppleWMNotifyEvent *from, xAppleWMNotifyEvent *to)
 {
     to->type = from->type;
     to->kind = from->kind;
@@ -672,6 +691,7 @@ SProcAppleWMDispatch(register ClientPtr client)
     switch (stuff->data) {
     case X_AppleWMQueryVersion:
         return SProcAppleWMQueryVersion(client);
+
     default:
         return BadRequest;
     }
@@ -680,7 +700,7 @@ SProcAppleWMDispatch(register ClientPtr client)
 void
 AppleWMExtensionInit(AppleWMProcsPtr procsPtr)
 {
-    ExtensionEntry *extEntry;
+    ExtensionEntry* extEntry;
 
     ClientType = CreateNewResourceType(WMFreeClient, "WMClient");
     EventType = CreateNewResourceType(WMFreeEvents, "WMEvent");
@@ -692,14 +712,14 @@ AppleWMExtensionInit(AppleWMProcsPtr procsPtr)
                                  AppleWMNumberErrors,
                                  ProcAppleWMDispatch,
                                  SProcAppleWMDispatch,
-                                 NULL, StandardMinorOpcode))) {
+                                 NULL,
+                                 StandardMinorOpcode))) {
         size_t i;
-
-        WMReqCode = (unsigned char) extEntry->base;
+        WMReqCode = (unsigned char)extEntry->base;
         WMErrorBase = extEntry->errorBase;
         WMEventBase = extEntry->eventBase;
         for (i = 0; i < AppleWMNumberEvents; i++)
-            EventSwapVector[WMEventBase + i] = (EventSwapPtr) SNotifyEvent;
+            EventSwapVector[WMEventBase + i] = (EventSwapPtr)SNotifyEvent;
         appleWMProcs = procsPtr;
     }
 }

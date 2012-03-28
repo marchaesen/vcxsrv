@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Apple Inc.
+ * Copyright (c) 2008-2012 Apple Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -55,12 +55,14 @@ struct glCapabilitiesConfig {
     struct glCapabilitiesConfig *next;
 };
 
-struct glCapabilities  {
+struct glCapabilities {
     struct glCapabilitiesConfig *configurations;
     int total_configurations;
 };
 
-bool getGlCapabilities(struct glCapabilities *cap);
-void freeGlCapabilities(struct glCapabilities *cap);
+bool
+getGlCapabilities(struct glCapabilities *cap);
+void
+freeGlCapabilities(struct glCapabilities *cap);
 
 #endif

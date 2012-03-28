@@ -1107,7 +1107,7 @@ KdInitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 
 #ifndef _MSC_VER
 void
-OsVendorFatalError(void)
+OsVendorFatalError(const char *f, va_list args)
 {
 }
 

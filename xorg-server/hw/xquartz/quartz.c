@@ -2,6 +2,7 @@
  *
  * Quartz-specific support for the Darwin X Server
  *
+ * Copyright (c) 2002-2012 Apple Inc. All rights reserved.
  * Copyright (c) 2001-2004 Greg Parker and Torrey T. Lyons.
  *                 All Rights Reserved.
  *
@@ -71,7 +72,7 @@
 DevPrivateKeyRec quartzScreenKeyRec;
 int aquaMenuBarHeight = 0;
 QuartzModeProcsPtr quartzProcs = NULL;
-const char *quartzOpenGLBundle = NULL;
+const char             *quartzOpenGLBundle = NULL;
 
 Bool XQuartzFullscreenDisableHotkeys = TRUE;
 Bool XQuartzOptionSendsAlt = FALSE;
@@ -85,19 +86,20 @@ Bool XQuartzFullscreenMenu = FALSE;
 int32_t XQuartzShieldingWindowLevel = 0;
 
 /*
-===========================================================================
+   ===========================================================================
 
- Screen functions
+   Screen functions
 
-===========================================================================
-*/
+   ===========================================================================
+ */
 
 /*
  * QuartzAddScreen
  *  Do mode dependent initialization of each screen for Quartz.
  */
 Bool
-QuartzAddScreen(int index, ScreenPtr pScreen)
+QuartzAddScreen(int index,
+                ScreenPtr pScreen)
 {
     // allocate space for private per screen Quartz specific storage
     QuartzScreenPtr displayInfo = calloc(sizeof(QuartzScreenRec), 1);
@@ -114,7 +116,8 @@ QuartzAddScreen(int index, ScreenPtr pScreen)
  *  Finalize mode specific setup of each screen.
  */
 Bool
-QuartzSetupScreen(int index, ScreenPtr pScreen)
+QuartzSetupScreen(int index,
+                  ScreenPtr pScreen)
 {
     // do Quartz mode specific setup
     if (!quartzProcs->SetupScreen(index, pScreen))
@@ -139,7 +142,8 @@ QuartzSetupScreen(int index, ScreenPtr pScreen)
  *  Quartz display initialization.
  */
 void
-QuartzInitOutput(int argc, char **argv)
+QuartzInitOutput(int argc,
+                 char **argv)
 {
     /* For XQuartz, we want to just use the default signal handler to work better with CrashTracer */
     signal(SIGSEGV, SIG_DFL);
@@ -162,7 +166,8 @@ QuartzInitOutput(int argc, char **argv)
 #endif
 
     if (!RegisterBlockAndWakeupHandlers(QuartzBlockHandler,
-                                        QuartzWakeupHandler, NULL)) {
+                                        QuartzWakeupHandler,
+                                        NULL)) {
         FatalError("Could not register block and wakeup handlers.");
     }
 
@@ -178,7 +183,8 @@ QuartzInitOutput(int argc, char **argv)
  *  Inform the main thread the X server is ready to handle events.
  */
 void
-QuartzInitInput(int argc, char **argv)
+QuartzInitInput(int argc,
+                char **argv)
 {
     X11ApplicationSetCanQuit(0);
     X11ApplicationServerReady();
@@ -212,8 +218,8 @@ QuartzUpdateScreens(void)
 
     pScreen->x = x;
     pScreen->y = y;
-    pScreen->mmWidth = pScreen->mmWidth * ((double) width / pScreen->width);
-    pScreen->mmHeight = pScreen->mmHeight * ((double) height / pScreen->height);
+    pScreen->mmWidth = pScreen->mmWidth * ((double)width / pScreen->width);
+    pScreen->mmHeight = pScreen->mmHeight * ((double)height / pScreen->height);
     pScreen->width = width;
     pScreen->height = height;
 
@@ -241,10 +247,11 @@ QuartzUpdateScreens(void)
     inputInfo.pointer->spriteInfo->sprite->physLimits = bounds;
     inputInfo.pointer->spriteInfo->sprite->hotLimits = bounds;
 
-    DEBUG_LOG
-        ("Root Window: %dx%d @ (%d, %d) darwinMainScreen (%d, %d) xy (%d, %d) dixScreenOrigins (%d, %d)\n",
-         width, height, x - sx, y - sy, darwinMainScreenX, darwinMainScreenY, x,
-         y, pScreen->x, pScreen->y);
+    DEBUG_LOG(
+        "Root Window: %dx%d @ (%d, %d) darwinMainScreen (%d, %d) xy (%d, %d) dixScreenOrigins (%d, %d)\n",
+        width, height, x - sx, y - sy, darwinMainScreenX, darwinMainScreenY,
+        x, y,
+        pScreen->x, pScreen->y);
 
     /* Send an event for the root reconfigure */
     e.u.u.type = ConfigureNotify;
@@ -278,7 +285,7 @@ QuartzScreenSaver(int state)
 {
     static CFRunLoopTimerRef pokeActivityTimer = NULL;
     static CFRunLoopTimerContext pokeActivityContext =
-        { 0, NULL, NULL, NULL, NULL };
+    { 0, NULL, NULL, NULL, NULL };
     static OSSpinLock pokeActivitySpinLock = OS_SPINLOCK_INIT;
 
     OSSpinLockLock(&pokeActivitySpinLock);
@@ -295,18 +302,20 @@ QuartzScreenSaver(int state)
         if (pokeActivityTimer != NULL)
             goto QuartzScreenSaverEnd;
 
-        pokeActivityTimer =
-            CFRunLoopTimerCreate(NULL, CFAbsoluteTimeGetCurrent(), 30, 0, 0,
-                                 pokeActivityCallback, &pokeActivityContext);
+        pokeActivityTimer = CFRunLoopTimerCreate(NULL,
+                                                 CFAbsoluteTimeGetCurrent(),
+                                                 30, 0, 0,
+                                                 pokeActivityCallback,
+                                                 &pokeActivityContext);
         if (pokeActivityTimer == NULL) {
             ErrorF("Unable to create pokeActivityTimer.\n");
             goto QuartzScreenSaverEnd;
         }
 
-        CFRunLoopAddTimer(CFRunLoopGetMain(), pokeActivityTimer,
-                          kCFRunLoopCommonModes);
+        CFRunLoopAddTimer(
+            CFRunLoopGetMain(), pokeActivityTimer, kCFRunLoopCommonModes);
     }
- QuartzScreenSaverEnd:
+QuartzScreenSaverEnd:
     OSSpinLockUnlock(&pokeActivitySpinLock);
 }
 
@@ -340,7 +349,6 @@ QuartzShowFullscreen(int state)
         RootlessShowAllWindows();
         for (i = 0; i < screenInfo.numScreens; i++) {
             ScreenPtr pScreen = screenInfo.screens[i];
-
             RootlessRepositionWindows(pScreen);
             // JH: I don't think this is necessary, but keeping it here as a reminder
             //RootlessUpdateScreenPixmap(pScreen);
@@ -348,7 +356,7 @@ QuartzShowFullscreen(int state)
     }
 
     /* Somehow the menubar manages to interfere with our event stream
-     * in fullscreen mode, even though it's not visible. 
+     * in fullscreen mode, even though it's not visible.
      */
     X11ApplicationShowHideMenubar(!XQuartzFullscreenVisible);
 
@@ -458,7 +466,7 @@ QuartzSetRootClip(BOOL enable)
     }
 }
 
-/* 
+/*
  * QuartzSpaceChanged
  *  Unmap offscreen windows, map onscreen windows
  */
@@ -466,7 +474,8 @@ void
 QuartzSpaceChanged(uint32_t space_id)
 {
     /* Do something special here, so we don't depend on quartz-wm for spaces to work... */
-    DEBUG_LOG("Space Changed (%u) ... do something interesting...\n", space_id);
+    DEBUG_LOG("Space Changed (%u) ... do something interesting...\n",
+              space_id);
 }
 
 /*
@@ -476,14 +485,13 @@ QuartzSpaceChanged(uint32_t space_id)
  */
 void
 QuartzCopyDisplayIDs(ScreenPtr pScreen,
-                     int displayCount, CGDirectDisplayID * displayIDs)
+                     int displayCount, CGDirectDisplayID *displayIDs)
 {
     QuartzScreenPtr pQuartzScreen = QUARTZ_PRIV(pScreen);
 
     free(pQuartzScreen->displayIDs);
     if (displayCount) {
         size_t size = displayCount * sizeof(CGDirectDisplayID);
-
         pQuartzScreen->displayIDs = malloc(size);
         memcpy(pQuartzScreen->displayIDs, displayIDs, size);
     }
@@ -493,11 +501,12 @@ QuartzCopyDisplayIDs(ScreenPtr pScreen,
     pQuartzScreen->displayCount = displayCount;
 }
 
-void NSBeep(void);
 void
-DDXRingBell(int volume,         // volume is % of max
-            int pitch,          // pitch is Hz
-            int duration)       // duration is milliseconds
+NSBeep(void);
+void
+DDXRingBell(int volume,              // volume is % of max
+            int pitch,               // pitch is Hz
+            int duration)            // duration is milliseconds
 {
     if (volume)
         NSBeep();
