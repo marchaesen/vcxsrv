@@ -54,7 +54,7 @@ typedef struct xcb_big_requests_enable_reply_t {
 } xcb_big_requests_enable_reply_t;
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -75,7 +75,7 @@ xcb_big_requests_enable_cookie_t
 xcb_big_requests_enable (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *

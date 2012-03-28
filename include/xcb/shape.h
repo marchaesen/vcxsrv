@@ -393,7 +393,7 @@ xcb_generic_iterator_t
 xcb_shape_kind_end (xcb_shape_kind_iterator_t i  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -414,7 +414,7 @@ xcb_shape_query_version_cookie_t
 xcb_shape_query_version (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -473,7 +473,7 @@ xcb_shape_rectangles_sizeof (const void  *_buffer  /**< */,
                              uint32_t     rectangles_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -513,7 +513,7 @@ xcb_shape_rectangles_checked (xcb_connection_t      *c  /**< */,
                               const xcb_rectangle_t *rectangles  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -550,7 +550,7 @@ xcb_shape_rectangles (xcb_connection_t      *c  /**< */,
                       const xcb_rectangle_t *rectangles  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -586,7 +586,7 @@ xcb_shape_mask_checked (xcb_connection_t *c  /**< */,
                         xcb_pixmap_t      source_bitmap  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -619,7 +619,7 @@ xcb_shape_mask (xcb_connection_t *c  /**< */,
                 xcb_pixmap_t      source_bitmap  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -657,7 +657,7 @@ xcb_shape_combine_checked (xcb_connection_t *c  /**< */,
                            xcb_window_t      source_window  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -692,7 +692,7 @@ xcb_shape_combine (xcb_connection_t *c  /**< */,
                    xcb_window_t      source_window  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -724,7 +724,7 @@ xcb_shape_offset_checked (xcb_connection_t *c  /**< */,
                           int16_t           y_offset  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -753,7 +753,7 @@ xcb_shape_offset (xcb_connection_t *c  /**< */,
                   int16_t           y_offset  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -776,7 +776,7 @@ xcb_shape_query_extents (xcb_connection_t *c  /**< */,
                          xcb_window_t      destination_window  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -833,7 +833,7 @@ xcb_shape_query_extents_reply (xcb_connection_t                  *c  /**< */,
                                xcb_generic_error_t              **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -861,7 +861,7 @@ xcb_shape_select_input_checked (xcb_connection_t *c  /**< */,
                                 uint8_t           enable  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -886,7 +886,7 @@ xcb_shape_select_input (xcb_connection_t *c  /**< */,
                         uint8_t           enable  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -909,7 +909,7 @@ xcb_shape_input_selected (xcb_connection_t *c  /**< */,
                           xcb_window_t      destination_window  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -969,7 +969,7 @@ int
 xcb_shape_get_rectangles_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -994,7 +994,7 @@ xcb_shape_get_rectangles (xcb_connection_t *c  /**< */,
                           xcb_shape_kind_t  source_kind  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *

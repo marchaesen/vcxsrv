@@ -937,7 +937,11 @@ typedef struct xcb_resize_request_event_t {
 
 typedef enum xcb_place_t {
     XCB_PLACE_ON_TOP = 0,
+/**< The window is now on top of all siblings. */
+
     XCB_PLACE_ON_BOTTOM = 1
+/**< The window is now below all siblings. */
+
 } xcb_place_t;
 
 /** Opcode for xcb_circulate_notify. */
@@ -1113,7 +1117,11 @@ typedef struct xcb_selection_notify_event_t {
 
 typedef enum xcb_colormap_state_t {
     XCB_COLORMAP_STATE_UNINSTALLED = 0,
+/**< The colormap was uninstalled. */
+
     XCB_COLORMAP_STATE_INSTALLED = 1
+/**< The colormap was installed. */
+
 } xcb_colormap_state_t;
 
 typedef enum xcb_colormap_enum_t {
@@ -1307,20 +1315,103 @@ typedef enum xcb_window_class_t {
 
 typedef enum xcb_cw_t {
     XCB_CW_BACK_PIXMAP = 1,
+/**< Overrides the default background-pixmap. The background pixmap and window must
+have the same root and same depth. Any size pixmap can be used, although some
+sizes may be faster than others.
+
+If `XCB_BACK_PIXMAP_NONE` is specified, the window has no defined background.
+The server may fill the contents with the previous screen contents or with
+contents of its own choosing.
+
+If `XCB_BACK_PIXMAP_PARENT_RELATIVE` is specified, the parent's background is
+used, but the window must have the same depth as the parent (or a Match error
+results).   The parent's background is tracked, and the current version is
+used each time the window background is required. */
+
     XCB_CW_BACK_PIXEL = 2,
+/**< Overrides `BackPixmap`. A pixmap of undefined size filled with the specified
+background pixel is used for the background. Range-checking is not performed,
+the background pixel is truncated to the appropriate number of bits. */
+
     XCB_CW_BORDER_PIXMAP = 4,
+/**< Overrides the default border-pixmap. The border pixmap and window must have the
+same root and the same depth. Any size pixmap can be used, although some sizes
+may be faster than others.
+
+The special value `XCB_COPY_FROM_PARENT` means the parent's border pixmap is
+copied (subsequent changes to the parent's border attribute do not affect the
+child), but the window must have the same depth as the parent. */
+
     XCB_CW_BORDER_PIXEL = 8,
+/**< Overrides `BorderPixmap`. A pixmap of undefined size filled with the specified
+border pixel is used for the border. Range checking is not performed on the
+border-pixel value, it is truncated to the appropriate number of bits. */
+
     XCB_CW_BIT_GRAVITY = 16,
+/**< Defines which region of the window should be retained if the window is resized. */
+
     XCB_CW_WIN_GRAVITY = 32,
+/**< Defines how the window should be repositioned if the parent is resized (see
+`ConfigureWindow`). */
+
     XCB_CW_BACKING_STORE = 64,
+/**< A backing-store of `WhenMapped` advises the server that maintaining contents of
+obscured regions when the window is mapped would be beneficial. A backing-store
+of `Always` advises the server that maintaining contents even when the window
+is unmapped would be beneficial. In this case, the server may generate an
+exposure event when the window is created. A value of `NotUseful` advises the
+server that maintaining contents is unnecessary, although a server may still
+choose to maintain contents while the window is mapped. Note that if the server
+maintains contents, then the server should maintain complete contents not just
+the region within the parent boundaries, even if the window is larger than its
+parent. While the server maintains contents, exposure events will not normally
+be generated, but the server may stop maintaining contents at any time. */
+
     XCB_CW_BACKING_PLANES = 128,
+/**< The backing-planes indicates (with bits set to 1) which bit planes of the
+window hold dynamic data that must be preserved in backing-stores and during
+save-unders. */
+
     XCB_CW_BACKING_PIXEL = 256,
+/**< The backing-pixel specifies what value to use in planes not covered by
+backing-planes. The server is free to save only the specified bit planes in the
+backing-store or save-under and regenerate the remaining planes with the
+specified pixel value. Any bits beyond the specified depth of the window in
+these values are simply ignored. */
+
     XCB_CW_OVERRIDE_REDIRECT = 512,
+/**< The override-redirect specifies whether map and configure requests on this
+window should override a SubstructureRedirect on the parent, typically to
+inform a window manager not to tamper with the window. */
+
     XCB_CW_SAVE_UNDER = 1024,
+/**< If 1, the server is advised that when this window is mapped, saving the
+contents of windows it obscures would be beneficial. */
+
     XCB_CW_EVENT_MASK = 2048,
+/**< The event-mask defines which events the client is interested in for this window
+(or for some event types, inferiors of the window). */
+
     XCB_CW_DONT_PROPAGATE = 4096,
+/**< The do-not-propagate-mask defines which events should not be propagated to
+ancestor windows when no client has the event type selected in this window. */
+
     XCB_CW_COLORMAP = 8192,
+/**< The colormap specifies the colormap that best reflects the true colors of the window. Servers
+capable of supporting multiple hardware colormaps may use this information, and window man-
+agers may use it for InstallColormap requests. The colormap must have the same visual type
+and root as the window (or a Match error results). If CopyFromParent is specified, the parent's
+colormap is copied (subsequent changes to the parent's colormap attribute do not affect the child).
+However, the window must have the same visual type as the parent (or a Match error results),
+and the parent must not have a colormap of None (or a Match error results). For an explanation
+of None, see FreeColormap request. The colormap is copied by sharing the colormap object
+between the child and the parent, not by making a complete copy of the colormap contents. */
+
     XCB_CW_CURSOR = 16384
+/**< If a cursor is specified, it will be used whenever the pointer is in the window. If None is speci-
+fied, the parent's cursor will be used when the pointer is in the window, and any change in the
+parent's cursor will cause an immediate change in the displayed cursor. */
+
 } xcb_cw_t;
 
 typedef enum xcb_back_pixmap_t {
@@ -1730,8 +1821,18 @@ typedef struct xcb_get_atom_name_reply_t {
 
 typedef enum xcb_prop_mode_t {
     XCB_PROP_MODE_REPLACE = 0,
+/**< Discard the previous property value and store the new data. */
+
     XCB_PROP_MODE_PREPEND = 1,
+/**< Insert the new data before the beginning of existing data. The `format` must
+match existing property value. If the property is undefined, it is treated as
+defined with the correct type and format with zero-length data. */
+
     XCB_PROP_MODE_APPEND = 2
+/**< Insert the new data after the beginning of existing data. The `format` must
+match existing property value. If the property is undefined, it is treated as
+defined with the correct type and format with zero-length data. */
+
 } xcb_prop_mode_t;
 
 /** Opcode for xcb_change_property. */
@@ -1925,7 +2026,13 @@ typedef struct xcb_send_event_request_t {
 
 typedef enum xcb_grab_mode_t {
     XCB_GRAB_MODE_SYNC = 0,
+/**< The state of the keyboard appears to freeze: No further keyboard events are
+generated by the server until the grabbing client issues a releasing
+`AllowEvents` request or until the keyboard grab is released. */
+
     XCB_GRAB_MODE_ASYNC = 1
+/**< Keyboard event processing continues normally. */
+
 } xcb_grab_mode_t;
 
 typedef enum xcb_grab_status_t {
@@ -1991,11 +2098,23 @@ typedef struct xcb_ungrab_pointer_request_t {
 
 typedef enum xcb_button_index_t {
     XCB_BUTTON_INDEX_ANY = 0,
+/**< Any of the following (or none): */
+
     XCB_BUTTON_INDEX_1 = 1,
+/**< The left mouse button. */
+
     XCB_BUTTON_INDEX_2 = 2,
+/**< The right mouse button. */
+
     XCB_BUTTON_INDEX_3 = 3,
+/**< The middle mouse button. */
+
     XCB_BUTTON_INDEX_4 = 4,
+/**< Scroll wheel. TODO: direction? */
+
     XCB_BUTTON_INDEX_5 = 5
+/**< Scroll wheel. TODO: direction? */
+
 } xcb_button_index_t;
 
 /** Opcode for xcb_grab_button. */
@@ -2136,13 +2255,78 @@ typedef struct xcb_ungrab_key_request_t {
 
 typedef enum xcb_allow_t {
     XCB_ALLOW_ASYNC_POINTER = 0,
+/**< For AsyncPointer, if the pointer is frozen by the client, pointer event
+processing continues normally. If the pointer is frozen twice by the client on
+behalf of two separate grabs, AsyncPointer thaws for both. AsyncPointer has no
+effect if the pointer is not frozen by the client, but the pointer need not be
+grabbed by the client.
+
+TODO: rewrite this in more understandable terms. */
+
     XCB_ALLOW_SYNC_POINTER = 1,
+/**< For SyncPointer, if the pointer is frozen and actively grabbed by the client,
+pointer event processing continues normally until the next ButtonPress or
+ButtonRelease event is reported to the client, at which time the pointer again
+appears to freeze. However, if the reported event causes the pointer grab to be
+released, then the pointer does not freeze. SyncPointer has no effect if the
+pointer is not frozen by the client or if the pointer is not grabbed by the
+client. */
+
     XCB_ALLOW_REPLAY_POINTER = 2,
+/**< For ReplayPointer, if the pointer is actively grabbed by the client and is
+frozen as the result of an event having been sent to the client (either from
+the activation of a GrabButton or from a previous AllowEvents with mode
+SyncPointer but not from a GrabPointer), then the pointer grab is released and
+that event is completely reprocessed, this time ignoring any passive grabs at
+or above (towards the root) the grab-window of the grab just released. The
+request has no effect if the pointer is not grabbed by the client or if the
+pointer is not frozen as the result of an event. */
+
     XCB_ALLOW_ASYNC_KEYBOARD = 3,
+/**< For AsyncKeyboard, if the keyboard is frozen by the client, keyboard event
+processing continues normally. If the keyboard is frozen twice by the client on
+behalf of two separate grabs, AsyncKeyboard thaws for both. AsyncKeyboard has
+no effect if the keyboard is not frozen by the client, but the keyboard need
+not be grabbed by the client. */
+
     XCB_ALLOW_SYNC_KEYBOARD = 4,
+/**< For SyncKeyboard, if the keyboard is frozen and actively grabbed by the client,
+keyboard event processing continues normally until the next KeyPress or
+KeyRelease event is reported to the client, at which time the keyboard again
+appears to freeze. However, if the reported event causes the keyboard grab to
+be released, then the keyboard does not freeze. SyncKeyboard has no effect if
+the keyboard is not frozen by the client or if the keyboard is not grabbed by
+the client. */
+
     XCB_ALLOW_REPLAY_KEYBOARD = 5,
+/**< For ReplayKeyboard, if the keyboard is actively grabbed by the client and is
+frozen as the result of an event having been sent to the client (either from
+the activation of a GrabKey or from a previous AllowEvents with mode
+SyncKeyboard but not from a GrabKeyboard), then the keyboard grab is released
+and that event is completely reprocessed, this time ignoring any passive grabs
+at or above (towards the root) the grab-window of the grab just released. The
+request has no effect if the keyboard is not grabbed by the client or if the
+keyboard is not frozen as the result of an event. */
+
     XCB_ALLOW_ASYNC_BOTH = 6,
+/**< For AsyncBoth, if the pointer and the keyboard are frozen by the client, event
+processing for both devices continues normally. If a device is frozen twice by
+the client on behalf of two separate grabs, AsyncBoth thaws for both. AsyncBoth
+has no effect unless both pointer and keyboard are frozen by the client. */
+
     XCB_ALLOW_SYNC_BOTH = 7
+/**< For SyncBoth, if both pointer and keyboard are frozen by the client, event
+processing (for both devices) continues normally until the next ButtonPress,
+ButtonRelease, KeyPress, or KeyRelease event is reported to the client for a
+grabbed device (button event for the pointer, key event for the keyboard), at
+which time the devices again appear to freeze. However, if the reported event
+causes the grab to be released, then the devices do not freeze (but if the
+other device is still grabbed, then a subsequent event for it will still cause
+both devices to freeze). SyncBoth has no effect unless both pointer and
+keyboard are frozen by the client. If the pointer or keyboard is frozen twice
+by the client on behalf of two separate grabs, SyncBoth thaws for both (but a
+subsequent freeze for SyncBoth will only freeze each device once). */
+
 } xcb_allow_t;
 
 /** Opcode for xcb_allow_events. */
@@ -2330,9 +2514,20 @@ typedef struct xcb_warp_pointer_request_t {
 
 typedef enum xcb_input_focus_t {
     XCB_INPUT_FOCUS_NONE = 0,
+/**< The focus reverts to `XCB_NONE`, so no window will have the input focus. */
+
     XCB_INPUT_FOCUS_POINTER_ROOT = 1,
+/**< The focus reverts to `XCB_POINTER_ROOT` respectively. When the focus reverts,
+FocusIn and FocusOut events are generated, but the last-focus-change time is
+not changed. */
+
     XCB_INPUT_FOCUS_PARENT = 2,
+/**< The focus reverts to the parent (or closest viewable ancestor) and the new
+revert_to value is `XCB_INPUT_FOCUS_NONE`. */
+
     XCB_INPUT_FOCUS_FOLLOW_KEYBOARD = 3
+/**< NOT YET DOCUMENTED. Only relevant for the xinput extension. */
+
 } xcb_input_focus_t;
 
 /** Opcode for xcb_set_input_focus. */
@@ -2733,28 +2928,151 @@ typedef struct xcb_free_pixmap_request_t {
 
 typedef enum xcb_gc_t {
     XCB_GC_FUNCTION = 1,
+/**< TODO: Refer to GX */
+
     XCB_GC_PLANE_MASK = 2,
+/**< In graphics operations, given a source and destination pixel, the result is
+computed bitwise on corresponding bits of the pixels; that is, a Boolean
+operation is performed in each bit plane. The plane-mask restricts the
+operation to a subset of planes, so the result is:
+
+        ((src FUNC dst) AND plane-mask) OR (dst AND (NOT plane-mask)) */
+
     XCB_GC_FOREGROUND = 4,
+/**< Foreground colorpixel. */
+
     XCB_GC_BACKGROUND = 8,
+/**< Background colorpixel. */
+
     XCB_GC_LINE_WIDTH = 16,
+/**< The line-width is measured in pixels and can be greater than or equal to one, a wide line, or the
+special value zero, a thin line. */
+
     XCB_GC_LINE_STYLE = 32,
+/**< The line-style defines which sections of a line are drawn:
+Solid                The full path of the line is drawn.
+DoubleDash           The full path of the line is drawn, but the even dashes are filled differently
+                     than the odd dashes (see fill-style), with Butt cap-style used where even and
+                     odd dashes meet.
+OnOffDash            Only the even dashes are drawn, and cap-style applies to all internal ends of
+                     the individual dashes (except NotLast is treated as Butt). */
+
     XCB_GC_CAP_STYLE = 64,
+/**< The cap-style defines how the endpoints of a path are drawn:
+NotLast    The result is equivalent to Butt, except that for a line-width of zero the final
+           endpoint is not drawn.
+Butt       The result is square at the endpoint (perpendicular to the slope of the line)
+           with no projection beyond.
+Round      The result is a circular arc with its diameter equal to the line-width, centered
+           on the endpoint; it is equivalent to Butt for line-width zero.
+Projecting The result is square at the end, but the path continues beyond the endpoint for
+           a distance equal to half the line-width; it is equivalent to Butt for line-width
+           zero. */
+
     XCB_GC_JOIN_STYLE = 128,
+/**< The join-style defines how corners are drawn for wide lines:
+Miter               The outer edges of the two lines extend to meet at an angle. However, if the
+                    angle is less than 11 degrees, a Bevel join-style is used instead.
+Round               The result is a circular arc with a diameter equal to the line-width, centered
+                    on the joinpoint.
+Bevel               The result is Butt endpoint styles, and then the triangular notch is filled. */
+
     XCB_GC_FILL_STYLE = 256,
+/**< The fill-style defines the contents of the source for line, text, and fill requests. For all text and fill
+requests (for example, PolyText8, PolyText16, PolyFillRectangle, FillPoly, and PolyFillArc)
+as well as for line requests with line-style Solid, (for example, PolyLine, PolySegment,
+PolyRectangle, PolyArc) and for the even dashes for line requests with line-style OnOffDash
+or DoubleDash:
+Solid                     Foreground
+Tiled                     Tile
+OpaqueStippled            A tile with the same width and height as stipple but with background
+                          everywhere stipple has a zero and with foreground everywhere stipple
+                          has a one
+Stippled                  Foreground masked by stipple
+For the odd dashes for line requests with line-style DoubleDash:
+Solid                     Background
+Tiled                     Same as for even dashes
+OpaqueStippled            Same as for even dashes
+Stippled                  Background masked by stipple */
+
     XCB_GC_FILL_RULE = 512,
+/**<  */
+
     XCB_GC_TILE = 1024,
+/**< The tile/stipple represents an infinite two-dimensional plane with the tile/stipple replicated in all
+dimensions. When that plane is superimposed on the drawable for use in a graphics operation,
+the upper-left corner of some instance of the tile/stipple is at the coordinates within the drawable
+specified by the tile/stipple origin. The tile/stipple and clip origins are interpreted relative to the
+origin of whatever destination drawable is specified in a graphics request.
+The tile pixmap must have the same root and depth as the gcontext (or a Match error results).
+The stipple pixmap must have depth one and must have the same root as the gcontext (or a
+Match error results). For fill-style Stippled (but not fill-style
+OpaqueStippled), the stipple pattern is tiled in a single plane and acts as an
+additional clip mask to be ANDed with the clip-mask.
+Any size pixmap can be used for tiling or stippling, although some sizes may be faster to use than
+others. */
+
     XCB_GC_STIPPLE = 2048,
+/**< The tile/stipple represents an infinite two-dimensional plane with the tile/stipple replicated in all
+dimensions. When that plane is superimposed on the drawable for use in a graphics operation,
+the upper-left corner of some instance of the tile/stipple is at the coordinates within the drawable
+specified by the tile/stipple origin. The tile/stipple and clip origins are interpreted relative to the
+origin of whatever destination drawable is specified in a graphics request.
+The tile pixmap must have the same root and depth as the gcontext (or a Match error results).
+The stipple pixmap must have depth one and must have the same root as the gcontext (or a
+Match error results). For fill-style Stippled (but not fill-style
+OpaqueStippled), the stipple pattern is tiled in a single plane and acts as an
+additional clip mask to be ANDed with the clip-mask.
+Any size pixmap can be used for tiling or stippling, although some sizes may be faster to use than
+others. */
+
     XCB_GC_TILE_STIPPLE_ORIGIN_X = 4096,
+/**< TODO */
+
     XCB_GC_TILE_STIPPLE_ORIGIN_Y = 8192,
+/**< TODO */
+
     XCB_GC_FONT = 16384,
+/**< Which font to use for the `ImageText8` and `ImageText16` requests. */
+
     XCB_GC_SUBWINDOW_MODE = 32768,
+/**< For ClipByChildren, both source and destination windows are additionally
+clipped by all viewable InputOutput children. For IncludeInferiors, neither
+source nor destination window is
+clipped by inferiors. This will result in including subwindow contents in the source and drawing
+through subwindow boundaries of the destination. The use of IncludeInferiors with a source or
+destination window of one depth with mapped inferiors of differing depth is not illegal, but the
+semantics is undefined by the core protocol. */
+
     XCB_GC_GRAPHICS_EXPOSURES = 65536,
+/**< Whether ExposureEvents should be generated (1) or not (0).
+
+The default is 1. */
+
     XCB_GC_CLIP_ORIGIN_X = 131072,
+/**< TODO */
+
     XCB_GC_CLIP_ORIGIN_Y = 262144,
+/**< TODO */
+
     XCB_GC_CLIP_MASK = 524288,
+/**< The clip-mask restricts writes to the destination drawable. Only pixels where the clip-mask has
+bits set to 1 are drawn. Pixels are not drawn outside the area covered by the clip-mask or where
+the clip-mask has bits set to 0. The clip-mask affects all graphics requests, but it does not clip
+sources. The clip-mask origin is interpreted relative to the origin of whatever destination drawable is specified in a graphics request. If a pixmap is specified as the clip-mask, it must have
+depth 1 and have the same root as the gcontext (or a Match error results). If clip-mask is None,
+then pixels are always drawn, regardless of the clip origin. The clip-mask can also be set with the
+SetClipRectangles request. */
+
     XCB_GC_DASH_OFFSET = 1048576,
+/**< TODO */
+
     XCB_GC_DASH_LIST = 2097152,
+/**< TODO */
+
     XCB_GC_ARC_MODE = 4194304
+/**< TODO */
+
 } xcb_gc_t;
 
 typedef enum xcb_gx_t {
@@ -2973,7 +3291,11 @@ typedef struct xcb_copy_plane_request_t {
 
 typedef enum xcb_coord_mode_t {
     XCB_COORD_MODE_ORIGIN = 0,
+/**< Treats all coordinates as relative to the origin. */
+
     XCB_COORD_MODE_PREVIOUS = 1
+/**< Treats all coordinates after the first as relative to the previous coordinate. */
+
 } xcb_coord_mode_t;
 
 /** Opcode for xcb_poly_point. */
@@ -5910,11 +6232,46 @@ int
 xcb_create_window_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Creates a window
+ *
  * @param c The connection
+ * @param depth Specifies the new window's depth (TODO: what unit?).
+ * \n
+ * The special value `XCB_COPY_FROM_PARENT` means the depth is taken from the
+ * \a parent window.
+ * @param wid The ID with which you will refer to the new window, created by
+ * `xcb_generate_id`.
+ * @param parent The parent window of the new window.
+ * @param x The X coordinate of the new window.
+ * @param y The Y coordinate of the new window.
+ * @param width The width of the new window.
+ * @param height The height of the new window.
+ * @param border_width TODO:
+ * \n
+ * Must be zero if the `class` is `InputOnly` or a `xcb_match_error_t` occurs.
+ * @param _class A bitmask of #xcb_window_class_t values.
+ * @param _class \n
+ * @param visual Specifies the id for the new window's visual.
+ * \n
+ * The special value `XCB_COPY_FROM_PARENT` means the visual is taken from the
+ * \a parent window.
+ * @param value_mask A bitmask of #xcb_cw_t values.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Creates an unmapped window as child of the specified \a parent window. A
+ * CreateNotify event will be generated. The new window is placed on top in the
+ * stacking order with respect to siblings.
+ * 
+ * The coordinate system has the X axis horizontal and the Y axis vertical with
+ * the origin [0, 0] at the upper-left corner. Coordinates are integral, in terms
+ * of pixels, and coincide with pixel centers. Each window and pixmap has its own
+ * coordinate system. For a window, the origin is inside the border at the inside,
+ * upper-left corner.
+ * 
+ * The created window is not yet displayed (mapped), call `xcb_map_window` to
+ * display it.
+ * 
+ * The created window will initially use the same cursor as its parent.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -5958,11 +6315,46 @@ xcb_create_window_checked (xcb_connection_t *c  /**< */,
                            const uint32_t   *value_list  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Creates a window
+ *
  * @param c The connection
+ * @param depth Specifies the new window's depth (TODO: what unit?).
+ * \n
+ * The special value `XCB_COPY_FROM_PARENT` means the depth is taken from the
+ * \a parent window.
+ * @param wid The ID with which you will refer to the new window, created by
+ * `xcb_generate_id`.
+ * @param parent The parent window of the new window.
+ * @param x The X coordinate of the new window.
+ * @param y The Y coordinate of the new window.
+ * @param width The width of the new window.
+ * @param height The height of the new window.
+ * @param border_width TODO:
+ * \n
+ * Must be zero if the `class` is `InputOnly` or a `xcb_match_error_t` occurs.
+ * @param _class A bitmask of #xcb_window_class_t values.
+ * @param _class \n
+ * @param visual Specifies the id for the new window's visual.
+ * \n
+ * The special value `XCB_COPY_FROM_PARENT` means the visual is taken from the
+ * \a parent window.
+ * @param value_mask A bitmask of #xcb_cw_t values.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Creates an unmapped window as child of the specified \a parent window. A
+ * CreateNotify event will be generated. The new window is placed on top in the
+ * stacking order with respect to siblings.
+ * 
+ * The coordinate system has the X axis horizontal and the Y axis vertical with
+ * the origin [0, 0] at the upper-left corner. Coordinates are integral, in terms
+ * of pixels, and coincide with pixel centers. Each window and pixmap has its own
+ * coordinate system. For a window, the origin is inside the border at the inside,
+ * upper-left corner.
+ * 
+ * The created window is not yet displayed (mapped), call `xcb_map_window` to
+ * display it.
+ * 
+ * The created window will initially use the same cursor as its parent.
  * 
  */
 
@@ -6006,11 +6398,18 @@ int
 xcb_change_window_attributes_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief change window attributes
+ *
  * @param c The connection
+ * @param window The window to change.
+ * @param value_mask A bitmask of #xcb_cw_t values.
+ * @param value_mask \n
+ * @param value_list Values for each of the attributes specified in the bitmask \a value_mask. The
+ * order has to correspond to the order of possible \a value_mask bits. See the
+ * example.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Changes the attributes specified by \a value_mask for the specified \a window.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -6036,11 +6435,18 @@ xcb_change_window_attributes_checked (xcb_connection_t *c  /**< */,
                                       const uint32_t   *value_list  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief change window attributes
+ *
  * @param c The connection
+ * @param window The window to change.
+ * @param value_mask A bitmask of #xcb_cw_t values.
+ * @param value_mask \n
+ * @param value_list Values for each of the attributes specified in the bitmask \a value_mask. The
+ * order has to correspond to the order of possible \a value_mask bits. See the
+ * example.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Changes the attributes specified by \a value_mask for the specified \a window.
  * 
  */
 
@@ -6063,11 +6469,13 @@ xcb_change_window_attributes (xcb_connection_t *c  /**< */,
                               const uint32_t   *value_list  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Gets window attributes
+ *
  * @param c The connection
+ * @param window The window to get the attributes from.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets the current attributes for the specified \a window.
  * 
  */
 
@@ -6086,11 +6494,13 @@ xcb_get_window_attributes (xcb_connection_t *c  /**< */,
                            xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Gets window attributes
+ *
  * @param c The connection
+ * @param window The window to get the attributes from.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets the current attributes for the specified \a window.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -6143,11 +6553,18 @@ xcb_get_window_attributes_reply (xcb_connection_t                    *c  /**< */
                                  xcb_generic_error_t                **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Destroys a window
+ *
  * @param c The connection
+ * @param window The window to destroy.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Destroys the specified window and all of its subwindows. A DestroyNotify event
+ * is generated for each destroyed window (a DestroyNotify event is first generated
+ * for any given window's inferiors). If the window was mapped, it will be
+ * automatically unmapped before destroying.
+ * 
+ * Calling DestroyWindow on the root window will do nothing.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -6169,11 +6586,18 @@ xcb_destroy_window_checked (xcb_connection_t *c  /**< */,
                             xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Destroys a window
+ *
  * @param c The connection
+ * @param window The window to destroy.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Destroys the specified window and all of its subwindows. A DestroyNotify event
+ * is generated for each destroyed window (a DestroyNotify event is first generated
+ * for any given window's inferiors). If the window was mapped, it will be
+ * automatically unmapped before destroying.
+ * 
+ * Calling DestroyWindow on the root window will do nothing.
  * 
  */
 
@@ -6192,7 +6616,7 @@ xcb_destroy_window (xcb_connection_t *c  /**< */,
                     xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -6218,7 +6642,7 @@ xcb_destroy_subwindows_checked (xcb_connection_t *c  /**< */,
                                 xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -6241,11 +6665,18 @@ xcb_destroy_subwindows (xcb_connection_t *c  /**< */,
                         xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Changes a client's save set
+ *
  * @param c The connection
+ * @param mode A bitmask of #xcb_set_mode_t values.
+ * @param mode Insert to add the specified window to the save set or Delete to delete it from the save set.
+ * @param window The window to add or delete to/from your save set.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * TODO: explain what the save set is for.
+ * 
+ * This function either adds or removes the specified window to the client's (your
+ * application's) save set.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -6269,11 +6700,18 @@ xcb_change_save_set_checked (xcb_connection_t *c  /**< */,
                              xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Changes a client's save set
+ *
  * @param c The connection
+ * @param mode A bitmask of #xcb_set_mode_t values.
+ * @param mode Insert to add the specified window to the save set or Delete to delete it from the save set.
+ * @param window The window to add or delete to/from your save set.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * TODO: explain what the save set is for.
+ * 
+ * This function either adds or removes the specified window to the client's (your
+ * application's) save set.
  * 
  */
 
@@ -6294,11 +6732,21 @@ xcb_change_save_set (xcb_connection_t *c  /**< */,
                      xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Reparents a window
+ *
  * @param c The connection
+ * @param window The window to reparent.
+ * @param parent The new parent of the window.
+ * @param x The X position of the window within its new parent.
+ * @param y The Y position of the window within its new parent.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Makes the specified window a child of the specified parent window. If the
+ * window is mapped, it will automatically be unmapped before reparenting and
+ * re-mapped after reparenting. The window is placed in the stacking order on top
+ * with respect to sibling windows.
+ * 
+ * After reparenting, a ReparentNotify event is generated.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -6326,11 +6774,21 @@ xcb_reparent_window_checked (xcb_connection_t *c  /**< */,
                              int16_t           y  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Reparents a window
+ *
  * @param c The connection
+ * @param window The window to reparent.
+ * @param parent The new parent of the window.
+ * @param x The X position of the window within its new parent.
+ * @param y The Y position of the window within its new parent.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Makes the specified window a child of the specified parent window. If the
+ * window is mapped, it will automatically be unmapped before reparenting and
+ * re-mapped after reparenting. The window is placed in the stacking order on top
+ * with respect to sibling windows.
+ * 
+ * After reparenting, a ReparentNotify event is generated.
  * 
  */
 
@@ -6355,11 +6813,31 @@ xcb_reparent_window (xcb_connection_t *c  /**< */,
                      int16_t           y  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Makes a window visible
+ *
  * @param c The connection
+ * @param window The window to make visible.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Maps the specified window. This means making the window visible (as long as its
+ * parent is visible).
+ * 
+ * This MapWindow request will be translated to a MapRequest request if a window
+ * manager is running. The window manager then decides to either map the window or
+ * not. Set the override-redirect window attribute to true if you want to bypass
+ * this mechanism.
+ * 
+ * If the window manager decides to map the window (or if no window manager is
+ * running), a MapNotify event is generated.
+ * 
+ * If the window becomes viewable and no earlier contents for it are remembered,
+ * the X server tiles the window with its background. If the window's background
+ * is undefined, the existing screen contents are not altered, and the X server
+ * generates zero or more Expose events.
+ * 
+ * If the window type is InputOutput, an Expose event will be generated when the
+ * window becomes visible. The normal response to an Expose event should be to
+ * repaint the window.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -6381,11 +6859,31 @@ xcb_map_window_checked (xcb_connection_t *c  /**< */,
                         xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Makes a window visible
+ *
  * @param c The connection
+ * @param window The window to make visible.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Maps the specified window. This means making the window visible (as long as its
+ * parent is visible).
+ * 
+ * This MapWindow request will be translated to a MapRequest request if a window
+ * manager is running. The window manager then decides to either map the window or
+ * not. Set the override-redirect window attribute to true if you want to bypass
+ * this mechanism.
+ * 
+ * If the window manager decides to map the window (or if no window manager is
+ * running), a MapNotify event is generated.
+ * 
+ * If the window becomes viewable and no earlier contents for it are remembered,
+ * the X server tiles the window with its background. If the window's background
+ * is undefined, the existing screen contents are not altered, and the X server
+ * generates zero or more Expose events.
+ * 
+ * If the window type is InputOutput, an Expose event will be generated when the
+ * window becomes visible. The normal response to an Expose event should be to
+ * repaint the window.
  * 
  */
 
@@ -6404,7 +6902,7 @@ xcb_map_window (xcb_connection_t *c  /**< */,
                 xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -6430,7 +6928,7 @@ xcb_map_subwindows_checked (xcb_connection_t *c  /**< */,
                             xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -6453,11 +6951,17 @@ xcb_map_subwindows (xcb_connection_t *c  /**< */,
                     xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Makes a window invisible
+ *
  * @param c The connection
+ * @param window The window to make invisible.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Unmaps the specified window. This means making the window invisible (and all
+ * its child windows).
+ * 
+ * Unmapping a window leads to the `UnmapNotify` event being generated. Also,
+ * `Expose` events are generated for formerly obscured windows.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -6479,11 +6983,17 @@ xcb_unmap_window_checked (xcb_connection_t *c  /**< */,
                           xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Makes a window invisible
+ *
  * @param c The connection
+ * @param window The window to make invisible.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Unmaps the specified window. This means making the window invisible (and all
+ * its child windows).
+ * 
+ * Unmapping a window leads to the `UnmapNotify` event being generated. Also,
+ * `Expose` events are generated for formerly obscured windows.
  * 
  */
 
@@ -6502,7 +7012,7 @@ xcb_unmap_window (xcb_connection_t *c  /**< */,
                   xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -6528,7 +7038,7 @@ xcb_unmap_subwindows_checked (xcb_connection_t *c  /**< */,
                               xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -6554,11 +7064,16 @@ int
 xcb_configure_window_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Configures window attributes
+ *
  * @param c The connection
+ * @param window The window to configure.
+ * @param value_mask Bitmask of attributes to change.
+ * @param value_list New values, corresponding to the attributes in value_mask. The order has to
+ * correspond to the order of possible \a value_mask bits. See the example.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Configures a window's size, position, border width and stacking order.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -6584,11 +7099,16 @@ xcb_configure_window_checked (xcb_connection_t *c  /**< */,
                               const uint32_t   *value_list  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Configures window attributes
+ *
  * @param c The connection
+ * @param window The window to configure.
+ * @param value_mask Bitmask of attributes to change.
+ * @param value_list New values, corresponding to the attributes in value_mask. The order has to
+ * correspond to the order of possible \a value_mask bits. See the example.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Configures a window's size, position, border width and stacking order.
  * 
  */
 
@@ -6611,11 +7131,19 @@ xcb_configure_window (xcb_connection_t *c  /**< */,
                       const uint32_t   *value_list  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Change window stacking order
+ *
  * @param c The connection
+ * @param direction A bitmask of #xcb_circulate_t values.
+ * @param direction \n
+ * @param window The window to raise/lower (depending on \a direction).
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * If \a direction is `XCB_CIRCULATE_RAISE_LOWEST`, the lowest mapped child (if
+ * any) will be raised to the top of the stack.
+ * 
+ * If \a direction is `XCB_CIRCULATE_LOWER_HIGHEST`, the highest mapped child will
+ * be lowered to the bottom of the stack.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -6639,11 +7167,19 @@ xcb_circulate_window_checked (xcb_connection_t *c  /**< */,
                               xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Change window stacking order
+ *
  * @param c The connection
+ * @param direction A bitmask of #xcb_circulate_t values.
+ * @param direction \n
+ * @param window The window to raise/lower (depending on \a direction).
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * If \a direction is `XCB_CIRCULATE_RAISE_LOWEST`, the lowest mapped child (if
+ * any) will be raised to the top of the stack.
+ * 
+ * If \a direction is `XCB_CIRCULATE_LOWER_HIGHEST`, the highest mapped child will
+ * be lowered to the bottom of the stack.
  * 
  */
 
@@ -6664,11 +7200,13 @@ xcb_circulate_window (xcb_connection_t *c  /**< */,
                       xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Get current window geometry
+ *
  * @param c The connection
+ * @param drawable The drawable (`Window` or `Pixmap`) of which the geometry will be received.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets the current geometry of the specified drawable (either `Window` or `Pixmap`).
  * 
  */
 
@@ -6687,11 +7225,13 @@ xcb_get_geometry (xcb_connection_t *c  /**< */,
                   xcb_drawable_t    drawable  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Get current window geometry
+ *
  * @param c The connection
+ * @param drawable The drawable (`Window` or `Pixmap`) of which the geometry will be received.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets the current geometry of the specified drawable (either `Window` or `Pixmap`).
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -6747,11 +7287,14 @@ int
 xcb_query_tree_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief query the window tree
+ *
  * @param c The connection
+ * @param window The \a window to query.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets the root window ID, parent window ID and list of children windows for the
+ * specified \a window. The children are listed in bottom-to-top stacking order.
  * 
  */
 
@@ -6770,11 +7313,14 @@ xcb_query_tree (xcb_connection_t *c  /**< */,
                 xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief query the window tree
+ *
  * @param c The connection
+ * @param window The \a window to query.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets the root window ID, parent window ID and list of children windows for the
+ * specified \a window. The children are listed in bottom-to-top stacking order.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -6869,11 +7415,21 @@ int
 xcb_intern_atom_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Get atom identifier by name
+ *
  * @param c The connection
+ * @param only_if_exists Return a valid atom id only if the atom already exists.
+ * @param name_len The length of the following \a name.
+ * @param name The name of the atom.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Retrieves the identifier (xcb_atom_t TODO) for the atom with the specified
+ * name. Atoms are used in protocols like EWMH, for example to store window titles
+ * (`_NET_WM_NAME` atom) as property of a window.
+ * 
+ * If \a only_if_exists is 0, the atom will be created if it does not already exist.
+ * If \a only_if_exists is 1, `XCB_ATOM_NONE` will be returned if the atom does
+ * not yet exist.
  * 
  */
 
@@ -6896,11 +7452,21 @@ xcb_intern_atom (xcb_connection_t *c  /**< */,
                  const char       *name  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Get atom identifier by name
+ *
  * @param c The connection
+ * @param only_if_exists Return a valid atom id only if the atom already exists.
+ * @param name_len The length of the following \a name.
+ * @param name The name of the atom.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Retrieves the identifier (xcb_atom_t TODO) for the atom with the specified
+ * name. Atoms are used in protocols like EWMH, for example to store window titles
+ * (`_NET_WM_NAME` atom) as property of a window.
+ * 
+ * If \a only_if_exists is 0, the atom will be created if it does not already exist.
+ * If \a only_if_exists is 1, `XCB_ATOM_NONE` will be returned if the atom does
+ * not yet exist.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -6960,7 +7526,7 @@ int
 xcb_get_atom_name_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -6983,7 +7549,7 @@ xcb_get_atom_name (xcb_connection_t *c  /**< */,
                    xcb_atom_t        atom  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -7082,11 +7648,25 @@ int
 xcb_change_property_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Changes a window property
+ *
  * @param c The connection
+ * @param mode A bitmask of #xcb_prop_mode_t values.
+ * @param mode \n
+ * @param window The window whose property you want to change.
+ * @param property The property you want to change (an atom).
+ * @param type The type of the property you want to change (an atom).
+ * @param format Specifies whether the data should be viewed as a list of 8-bit, 16-bit or
+ * 32-bit quantities. Possible values are 8, 16 and 32. This information allows
+ * the X server to correctly perform byte-swap operations as necessary.
+ * @param data_len Specifies the number of elements (see \a format).
+ * @param data The property data.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Sets or updates a property on the specified \a window. Properties are for
+ * example the window title (`WM_NAME`) or its minimum size (`WM_NORMAL_HINTS`).
+ * Protocols such as EWMH also use properties - for example EWMH defines the
+ * window title, encoded as UTF-8 string, in the `_NET_WM_NAME` property.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -7120,11 +7700,25 @@ xcb_change_property_checked (xcb_connection_t *c  /**< */,
                              const void       *data  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Changes a window property
+ *
  * @param c The connection
+ * @param mode A bitmask of #xcb_prop_mode_t values.
+ * @param mode \n
+ * @param window The window whose property you want to change.
+ * @param property The property you want to change (an atom).
+ * @param type The type of the property you want to change (an atom).
+ * @param format Specifies whether the data should be viewed as a list of 8-bit, 16-bit or
+ * 32-bit quantities. Possible values are 8, 16 and 32. This information allows
+ * the X server to correctly perform byte-swap operations as necessary.
+ * @param data_len Specifies the number of elements (see \a format).
+ * @param data The property data.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Sets or updates a property on the specified \a window. Properties are for
+ * example the window title (`WM_NAME`) or its minimum size (`WM_NORMAL_HINTS`).
+ * Protocols such as EWMH also use properties - for example EWMH defines the
+ * window title, encoded as UTF-8 string, in the `_NET_WM_NAME` property.
  * 
  */
 
@@ -7155,7 +7749,7 @@ xcb_change_property (xcb_connection_t *c  /**< */,
                      const void       *data  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -7183,7 +7777,7 @@ xcb_delete_property_checked (xcb_connection_t *c  /**< */,
                              xcb_atom_t        property  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -7211,11 +7805,30 @@ int
 xcb_get_property_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Gets a window property
+ *
  * @param c The connection
+ * @param _delete Whether the property should actually be deleted. For deleting a property, the
+ * specified \a type has to match the actual property type.
+ * @param window The window whose property you want to get.
+ * @param property The property you want to get (an atom).
+ * @param type The type of the property you want to get (an atom).
+ * @param long_offset Specifies the offset (in 32-bit multiples) in the specified property where the
+ * data is to be retrieved.
+ * @param long_length Specifies how many 32-bit multiples of data should be retrieved (e.g. if you
+ * set \a long_length to 4, you will receive 16 bytes of data).
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets the specified \a property from the specified \a window. Properties are for
+ * example the window title (`WM_NAME`) or its minimum size (`WM_NORMAL_HINTS`).
+ * Protocols such as EWMH also use properties - for example EWMH defines the
+ * window title, encoded as UTF-8 string, in the `_NET_WM_NAME` property.
+ * 
+ * TODO: talk about \a type
+ * 
+ * TODO: talk about `delete`
+ * 
+ * TODO: talk about the offset/length thing. what's a valid use case?
  * 
  */
 
@@ -7244,11 +7857,30 @@ xcb_get_property (xcb_connection_t *c  /**< */,
                   uint32_t          long_length  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Gets a window property
+ *
  * @param c The connection
+ * @param _delete Whether the property should actually be deleted. For deleting a property, the
+ * specified \a type has to match the actual property type.
+ * @param window The window whose property you want to get.
+ * @param property The property you want to get (an atom).
+ * @param type The type of the property you want to get (an atom).
+ * @param long_offset Specifies the offset (in 32-bit multiples) in the specified property where the
+ * data is to be retrieved.
+ * @param long_length Specifies how many 32-bit multiples of data should be retrieved (e.g. if you
+ * set \a long_length to 4, you will receive 16 bytes of data).
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets the specified \a property from the specified \a window. Properties are for
+ * example the window title (`WM_NAME`) or its minimum size (`WM_NORMAL_HINTS`).
+ * Protocols such as EWMH also use properties - for example EWMH defines the
+ * window title, encoded as UTF-8 string, in the `_NET_WM_NAME` property.
+ * 
+ * TODO: talk about \a type
+ * 
+ * TODO: talk about `delete`
+ * 
+ * TODO: talk about the offset/length thing. what's a valid use case?
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -7353,7 +7985,7 @@ int
 xcb_list_properties_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -7376,7 +8008,7 @@ xcb_list_properties (xcb_connection_t *c  /**< */,
                      xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -7472,11 +8104,27 @@ xcb_list_properties_reply (xcb_connection_t              *c  /**< */,
                            xcb_generic_error_t          **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Sets the owner of a selection
+ *
  * @param c The connection
+ * @param owner The new owner of the selection.
+ * \n
+ * The special value `XCB_NONE` means that the selection will have no owner.
+ * @param selection The selection.
+ * @param time Timestamp to avoid race conditions when running X over the network.
+ * \n
+ * The selection will not be changed if \a time is earlier than the current
+ * last-change time of the \a selection or is later than the current X server time.
+ * Otherwise, the last-change time is set to the specified time.
+ * \n
+ * The special value `XCB_CURRENT_TIME` will be replaced with the current server
+ * time.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Makes `window` the owner of the selection \a selection and updates the
+ * last-change time of the specified selection.
+ * 
+ * TODO: briefly explain what a selection is.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -7502,11 +8150,27 @@ xcb_set_selection_owner_checked (xcb_connection_t *c  /**< */,
                                  xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Sets the owner of a selection
+ *
  * @param c The connection
+ * @param owner The new owner of the selection.
+ * \n
+ * The special value `XCB_NONE` means that the selection will have no owner.
+ * @param selection The selection.
+ * @param time Timestamp to avoid race conditions when running X over the network.
+ * \n
+ * The selection will not be changed if \a time is earlier than the current
+ * last-change time of the \a selection or is later than the current X server time.
+ * Otherwise, the last-change time is set to the specified time.
+ * \n
+ * The special value `XCB_CURRENT_TIME` will be replaced with the current server
+ * time.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Makes `window` the owner of the selection \a selection and updates the
+ * last-change time of the specified selection.
+ * 
+ * TODO: briefly explain what a selection is.
  * 
  */
 
@@ -7529,11 +8193,15 @@ xcb_set_selection_owner (xcb_connection_t *c  /**< */,
                          xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Gets the owner of a selection
+ *
  * @param c The connection
+ * @param selection The selection.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets the owner of the specified selection.
+ * 
+ * TODO: briefly explain what a selection is.
  * 
  */
 
@@ -7552,11 +8220,15 @@ xcb_get_selection_owner (xcb_connection_t *c  /**< */,
                          xcb_atom_t        selection  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Gets the owner of a selection
+ *
  * @param c The connection
+ * @param selection The selection.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets the owner of the specified selection.
+ * 
+ * TODO: briefly explain what a selection is.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -7609,7 +8281,7 @@ xcb_get_selection_owner_reply (xcb_connection_t                  *c  /**< */,
                                xcb_generic_error_t              **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -7643,7 +8315,7 @@ xcb_convert_selection_checked (xcb_connection_t *c  /**< */,
                                xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -7674,11 +8346,37 @@ xcb_convert_selection (xcb_connection_t *c  /**< */,
                        xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief send an event
+ *
  * @param c The connection
+ * @param propagate If \a propagate is true and no clients have selected any event on \a destination,
+ * the destination is replaced with the closest ancestor of \a destination for
+ * which some client has selected a type in \a event_mask and for which no
+ * intervening window has that type in its do-not-propagate-mask. If no such
+ * window exists or if the window is an ancestor of the focus window and
+ * `InputFocus` was originally specified as the destination, the event is not sent
+ * to any clients. Otherwise, the event is reported to every client selecting on
+ * the final destination any of the types specified in \a event_mask.
+ * @param destination The window to send this event to. Every client which selects any event within
+ * \a event_mask on \a destination will get the event.
+ * \n
+ * The special value `XCB_SEND_EVENT_DEST_POINTER_WINDOW` refers to the window
+ * that contains the mouse pointer.
+ * \n
+ * The special value `XCB_SEND_EVENT_DEST_ITEM_FOCUS` refers to the window which
+ * has the keyboard focus.
+ * @param event_mask Event_mask for determining which clients should receive the specified event.
+ * See \a destination and \a propagate.
+ * @param event The event to send to the specified \a destination.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Identifies the \a destination window, determines which clients should receive
+ * the specified event and ignores any active grabs.
+ * 
+ * The \a event must be one of the core events or an event defined by an extension,
+ * so that the X server can correctly byte-swap the contents as necessary. The
+ * contents of \a event are otherwise unaltered and unchecked except for the
+ * `send_event` field which is forced to 'true'.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -7706,11 +8404,37 @@ xcb_send_event_checked (xcb_connection_t *c  /**< */,
                         const char       *event  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief send an event
+ *
  * @param c The connection
+ * @param propagate If \a propagate is true and no clients have selected any event on \a destination,
+ * the destination is replaced with the closest ancestor of \a destination for
+ * which some client has selected a type in \a event_mask and for which no
+ * intervening window has that type in its do-not-propagate-mask. If no such
+ * window exists or if the window is an ancestor of the focus window and
+ * `InputFocus` was originally specified as the destination, the event is not sent
+ * to any clients. Otherwise, the event is reported to every client selecting on
+ * the final destination any of the types specified in \a event_mask.
+ * @param destination The window to send this event to. Every client which selects any event within
+ * \a event_mask on \a destination will get the event.
+ * \n
+ * The special value `XCB_SEND_EVENT_DEST_POINTER_WINDOW` refers to the window
+ * that contains the mouse pointer.
+ * \n
+ * The special value `XCB_SEND_EVENT_DEST_ITEM_FOCUS` refers to the window which
+ * has the keyboard focus.
+ * @param event_mask Event_mask for determining which clients should receive the specified event.
+ * See \a destination and \a propagate.
+ * @param event The event to send to the specified \a destination.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Identifies the \a destination window, determines which clients should receive
+ * the specified event and ignores any active grabs.
+ * 
+ * The \a event must be one of the core events or an event defined by an extension,
+ * so that the X server can correctly byte-swap the contents as necessary. The
+ * contents of \a event are otherwise unaltered and unchecked except for the
+ * `send_event` field which is forced to 'true'.
  * 
  */
 
@@ -7735,11 +8459,39 @@ xcb_send_event (xcb_connection_t *c  /**< */,
                 const char       *event  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Grab the pointer
+ *
  * @param c The connection
+ * @param owner_events If 1, the \a grab_window will still get the pointer events. If 0, events are not
+ * reported to the \a grab_window.
+ * @param grab_window Specifies the window on which the pointer should be grabbed.
+ * @param event_mask Specifies which pointer events are reported to the client.
+ * \n
+ * TODO: which values?
+ * @param pointer_mode A bitmask of #xcb_grab_mode_t values.
+ * @param pointer_mode \n
+ * @param keyboard_mode A bitmask of #xcb_grab_mode_t values.
+ * @param keyboard_mode \n
+ * @param confine_to Specifies the window to confine the pointer in (the user will not be able to
+ * move the pointer out of that window).
+ * \n
+ * The special value `XCB_NONE` means don't confine the pointer.
+ * @param cursor Specifies the cursor that should be displayed or `XCB_NONE` to not change the
+ * cursor.
+ * @param time The time argument allows you to avoid certain circumstances that come up if
+ * applications take a long time to respond or if there are long network delays.
+ * Consider a situation where you have two applications, both of which normally
+ * grab the pointer when clicked on. If both applications specify the timestamp
+ * from the event, the second application may wake up faster and successfully grab
+ * the pointer before the first application. The first application then will get
+ * an indication that the other application grabbed the pointer before its request
+ * was processed.
+ * \n
+ * The special value `XCB_CURRENT_TIME` will be replaced with the current server
+ * time.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Actively grabs control of the pointer. Further pointer events are reported only to the grabbing client. Overrides any active pointer grab by this client.
  * 
  */
 
@@ -7772,11 +8524,39 @@ xcb_grab_pointer (xcb_connection_t *c  /**< */,
                   xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Grab the pointer
+ *
  * @param c The connection
+ * @param owner_events If 1, the \a grab_window will still get the pointer events. If 0, events are not
+ * reported to the \a grab_window.
+ * @param grab_window Specifies the window on which the pointer should be grabbed.
+ * @param event_mask Specifies which pointer events are reported to the client.
+ * \n
+ * TODO: which values?
+ * @param pointer_mode A bitmask of #xcb_grab_mode_t values.
+ * @param pointer_mode \n
+ * @param keyboard_mode A bitmask of #xcb_grab_mode_t values.
+ * @param keyboard_mode \n
+ * @param confine_to Specifies the window to confine the pointer in (the user will not be able to
+ * move the pointer out of that window).
+ * \n
+ * The special value `XCB_NONE` means don't confine the pointer.
+ * @param cursor Specifies the cursor that should be displayed or `XCB_NONE` to not change the
+ * cursor.
+ * @param time The time argument allows you to avoid certain circumstances that come up if
+ * applications take a long time to respond or if there are long network delays.
+ * Consider a situation where you have two applications, both of which normally
+ * grab the pointer when clicked on. If both applications specify the timestamp
+ * from the event, the second application may wake up faster and successfully grab
+ * the pointer before the first application. The first application then will get
+ * an indication that the other application grabbed the pointer before its request
+ * was processed.
+ * \n
+ * The special value `XCB_CURRENT_TIME` will be replaced with the current server
+ * time.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Actively grabs control of the pointer. Further pointer events are reported only to the grabbing client. Overrides any active pointer grab by this client.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -7843,11 +8623,20 @@ xcb_grab_pointer_reply (xcb_connection_t           *c  /**< */,
                         xcb_generic_error_t       **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief release the pointer
+ *
  * @param c The connection
+ * @param time Timestamp to avoid race conditions when running X over the network.
+ * \n
+ * The pointer will not be released if \a time is earlier than the
+ * last-pointer-grab time or later than the current X server time.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Releases the pointer and any queued events if you actively grabbed the pointer
+ * before using `xcb_grab_pointer`, `xcb_grab_button` or within a normal button
+ * press.
+ * 
+ * EnterNotify and LeaveNotify events are generated.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -7869,11 +8658,20 @@ xcb_ungrab_pointer_checked (xcb_connection_t *c  /**< */,
                             xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief release the pointer
+ *
  * @param c The connection
+ * @param time Timestamp to avoid race conditions when running X over the network.
+ * \n
+ * The pointer will not be released if \a time is earlier than the
+ * last-pointer-grab time or later than the current X server time.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Releases the pointer and any queued events if you actively grabbed the pointer
+ * before using `xcb_grab_pointer`, `xcb_grab_button` or within a normal button
+ * press.
+ * 
+ * EnterNotify and LeaveNotify events are generated.
  * 
  */
 
@@ -7892,11 +8690,68 @@ xcb_ungrab_pointer (xcb_connection_t *c  /**< */,
                     xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Grab pointer button(s)
+ *
  * @param c The connection
+ * @param owner_events If 1, the \a grab_window will still get the pointer events. If 0, events are not
+ * reported to the \a grab_window.
+ * @param grab_window Specifies the window on which the pointer should be grabbed.
+ * @param event_mask Specifies which pointer events are reported to the client.
+ * \n
+ * TODO: which values?
+ * @param pointer_mode A bitmask of #xcb_grab_mode_t values.
+ * @param pointer_mode \n
+ * @param keyboard_mode A bitmask of #xcb_grab_mode_t values.
+ * @param keyboard_mode \n
+ * @param confine_to Specifies the window to confine the pointer in (the user will not be able to
+ * move the pointer out of that window).
+ * \n
+ * The special value `XCB_NONE` means don't confine the pointer.
+ * @param cursor Specifies the cursor that should be displayed or `XCB_NONE` to not change the
+ * cursor.
+ * @param button A bitmask of #xcb_button_index_t values.
+ * @param button \n
+ * @param modifiers The modifiers to grab.
+ * \n
+ * Using the special value `XCB_MOD_MASK_ANY` means grab the pointer with all
+ * possible modifier combinations.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * This request establishes a passive grab. The pointer is actively grabbed as
+ * described in GrabPointer, the last-pointer-grab time is set to the time at
+ * which the button was pressed (as transmitted in the ButtonPress event), and the
+ * ButtonPress event is reported if all of the following conditions are true:
+ * 
+ * The pointer is not grabbed and the specified button is logically pressed when
+ * the specified modifier keys are logically down, and no other buttons or
+ * modifier keys are logically down.
+ * 
+ * The grab-window contains the pointer.
+ * 
+ * The confine-to window (if any) is viewable.
+ * 
+ * A passive grab on the same button/key combination does not exist on any
+ * ancestor of grab-window.
+ * 
+ * The interpretation of the remaining arguments is the same as for GrabPointer.
+ * The active grab is terminated automatically when the logical state of the
+ * pointer has all buttons released, independent of the logical state of modifier
+ * keys. Note that the logical state of a device (as seen by means of the
+ * protocol) may lag the physical state if device event processing is frozen. This
+ * request overrides all previous passive grabs by the same client on the same
+ * button/key combinations on the same window. A modifier of AnyModifier is
+ * equivalent to issuing the request for all possible modifier combinations
+ * (including the combination of no modifiers). It is not required that all
+ * specified modifiers have currently assigned keycodes. A button of AnyButton is
+ * equivalent to issuing the request for all possible buttons. Otherwise, it is
+ * not required that the button specified currently be assigned to a physical
+ * button.
+ * 
+ * An Access error is generated if some other client has already issued a
+ * GrabButton request with the same button/key combination on the same window.
+ * When using AnyModifier or AnyButton, the request fails completely (no grabs are
+ * established), and an Access error is generated if there is a conflicting grab
+ * for any combination. The request has no effect on an active grab.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -7934,11 +8789,68 @@ xcb_grab_button_checked (xcb_connection_t *c  /**< */,
                          uint16_t          modifiers  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Grab pointer button(s)
+ *
  * @param c The connection
+ * @param owner_events If 1, the \a grab_window will still get the pointer events. If 0, events are not
+ * reported to the \a grab_window.
+ * @param grab_window Specifies the window on which the pointer should be grabbed.
+ * @param event_mask Specifies which pointer events are reported to the client.
+ * \n
+ * TODO: which values?
+ * @param pointer_mode A bitmask of #xcb_grab_mode_t values.
+ * @param pointer_mode \n
+ * @param keyboard_mode A bitmask of #xcb_grab_mode_t values.
+ * @param keyboard_mode \n
+ * @param confine_to Specifies the window to confine the pointer in (the user will not be able to
+ * move the pointer out of that window).
+ * \n
+ * The special value `XCB_NONE` means don't confine the pointer.
+ * @param cursor Specifies the cursor that should be displayed or `XCB_NONE` to not change the
+ * cursor.
+ * @param button A bitmask of #xcb_button_index_t values.
+ * @param button \n
+ * @param modifiers The modifiers to grab.
+ * \n
+ * Using the special value `XCB_MOD_MASK_ANY` means grab the pointer with all
+ * possible modifier combinations.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * This request establishes a passive grab. The pointer is actively grabbed as
+ * described in GrabPointer, the last-pointer-grab time is set to the time at
+ * which the button was pressed (as transmitted in the ButtonPress event), and the
+ * ButtonPress event is reported if all of the following conditions are true:
+ * 
+ * The pointer is not grabbed and the specified button is logically pressed when
+ * the specified modifier keys are logically down, and no other buttons or
+ * modifier keys are logically down.
+ * 
+ * The grab-window contains the pointer.
+ * 
+ * The confine-to window (if any) is viewable.
+ * 
+ * A passive grab on the same button/key combination does not exist on any
+ * ancestor of grab-window.
+ * 
+ * The interpretation of the remaining arguments is the same as for GrabPointer.
+ * The active grab is terminated automatically when the logical state of the
+ * pointer has all buttons released, independent of the logical state of modifier
+ * keys. Note that the logical state of a device (as seen by means of the
+ * protocol) may lag the physical state if device event processing is frozen. This
+ * request overrides all previous passive grabs by the same client on the same
+ * button/key combinations on the same window. A modifier of AnyModifier is
+ * equivalent to issuing the request for all possible modifier combinations
+ * (including the combination of no modifiers). It is not required that all
+ * specified modifiers have currently assigned keycodes. A button of AnyButton is
+ * equivalent to issuing the request for all possible buttons. Otherwise, it is
+ * not required that the button specified currently be assigned to a physical
+ * button.
+ * 
+ * An Access error is generated if some other client has already issued a
+ * GrabButton request with the same button/key combination on the same window.
+ * When using AnyModifier or AnyButton, the request fails completely (no grabs are
+ * established), and an Access error is generated if there is a conflicting grab
+ * for any combination. The request has no effect on an active grab.
  * 
  */
 
@@ -7973,7 +8885,7 @@ xcb_grab_button (xcb_connection_t *c  /**< */,
                  uint16_t          modifiers  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8003,7 +8915,7 @@ xcb_ungrab_button_checked (xcb_connection_t *c  /**< */,
                            uint16_t          modifiers  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8030,7 +8942,7 @@ xcb_ungrab_button (xcb_connection_t *c  /**< */,
                    uint16_t          modifiers  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8060,7 +8972,7 @@ xcb_change_active_pointer_grab_checked (xcb_connection_t *c  /**< */,
                                         uint16_t          event_mask  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8087,11 +8999,32 @@ xcb_change_active_pointer_grab (xcb_connection_t *c  /**< */,
                                 uint16_t          event_mask  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Grab the keyboard
+ *
  * @param c The connection
+ * @param owner_events If 1, the \a grab_window will still get the pointer events. If 0, events are not
+ * reported to the \a grab_window.
+ * @param grab_window Specifies the window on which the pointer should be grabbed.
+ * @param time Timestamp to avoid race conditions when running X over the network.
+ * \n
+ * The special value `XCB_CURRENT_TIME` will be replaced with the current server
+ * time.
+ * @param pointer_mode A bitmask of #xcb_grab_mode_t values.
+ * @param pointer_mode \n
+ * @param keyboard_mode A bitmask of #xcb_grab_mode_t values.
+ * @param keyboard_mode \n
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Actively grabs control of the keyboard and generates FocusIn and FocusOut
+ * events. Further key events are reported only to the grabbing client.
+ * 
+ * Any active keyboard grab by this client is overridden. If the keyboard is
+ * actively grabbed by some other client, `AlreadyGrabbed` is returned. If
+ * \a grab_window is not viewable, `GrabNotViewable` is returned. If the keyboard
+ * is frozen by an active grab of another client, `GrabFrozen` is returned. If the
+ * specified \a time is earlier than the last-keyboard-grab time or later than the
+ * current X server time, `GrabInvalidTime` is returned. Otherwise, the
+ * last-keyboard-grab time is set to the specified time.
  * 
  */
 
@@ -8118,11 +9051,32 @@ xcb_grab_keyboard (xcb_connection_t *c  /**< */,
                    uint8_t           keyboard_mode  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Grab the keyboard
+ *
  * @param c The connection
+ * @param owner_events If 1, the \a grab_window will still get the pointer events. If 0, events are not
+ * reported to the \a grab_window.
+ * @param grab_window Specifies the window on which the pointer should be grabbed.
+ * @param time Timestamp to avoid race conditions when running X over the network.
+ * \n
+ * The special value `XCB_CURRENT_TIME` will be replaced with the current server
+ * time.
+ * @param pointer_mode A bitmask of #xcb_grab_mode_t values.
+ * @param pointer_mode \n
+ * @param keyboard_mode A bitmask of #xcb_grab_mode_t values.
+ * @param keyboard_mode \n
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Actively grabs control of the keyboard and generates FocusIn and FocusOut
+ * events. Further key events are reported only to the grabbing client.
+ * 
+ * Any active keyboard grab by this client is overridden. If the keyboard is
+ * actively grabbed by some other client, `AlreadyGrabbed` is returned. If
+ * \a grab_window is not viewable, `GrabNotViewable` is returned. If the keyboard
+ * is frozen by an active grab of another client, `GrabFrozen` is returned. If the
+ * specified \a time is earlier than the last-keyboard-grab time or later than the
+ * current X server time, `GrabInvalidTime` is returned. Otherwise, the
+ * last-keyboard-grab time is set to the specified time.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -8183,7 +9137,7 @@ xcb_grab_keyboard_reply (xcb_connection_t            *c  /**< */,
                          xcb_generic_error_t        **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8209,7 +9163,7 @@ xcb_ungrab_keyboard_checked (xcb_connection_t *c  /**< */,
                              xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8232,11 +9186,55 @@ xcb_ungrab_keyboard (xcb_connection_t *c  /**< */,
                      xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Grab keyboard key(s)
+ *
  * @param c The connection
+ * @param owner_events If 1, the \a grab_window will still get the pointer events. If 0, events are not
+ * reported to the \a grab_window.
+ * @param grab_window Specifies the window on which the pointer should be grabbed.
+ * @param modifiers The modifiers to grab.
+ * \n
+ * Using the special value `XCB_MOD_MASK_ANY` means grab the pointer with all
+ * possible modifier combinations.
+ * @param key The keycode of the key to grab.
+ * \n
+ * The special value `XCB_GRAB_ANY` means grab any key.
+ * @param pointer_mode A bitmask of #xcb_grab_mode_t values.
+ * @param pointer_mode \n
+ * @param keyboard_mode A bitmask of #xcb_grab_mode_t values.
+ * @param keyboard_mode \n
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Establishes a passive grab on the keyboard. In the future, the keyboard is
+ * actively grabbed (as for `GrabKeyboard`), the last-keyboard-grab time is set to
+ * the time at which the key was pressed (as transmitted in the KeyPress event),
+ * and the KeyPress event is reported if all of the following conditions are true:
+ * 
+ * The keyboard is not grabbed and the specified key (which can itself be a
+ * modifier key) is logically pressed when the specified modifier keys are
+ * logically down, and no other modifier keys are logically down.
+ * 
+ * Either the grab_window is an ancestor of (or is) the focus window, or the
+ * grab_window is a descendant of the focus window and contains the pointer.
+ * 
+ * A passive grab on the same key combination does not exist on any ancestor of
+ * grab_window.
+ * 
+ * The interpretation of the remaining arguments is as for XGrabKeyboard.  The active grab is terminated
+ * automatically when the logical state of the keyboard has the specified key released (independent of the
+ * logical state of the modifier keys), at which point a KeyRelease event is reported to the grabbing window.
+ * 
+ * Note that the logical state of a device (as seen by client applications) may lag the physical state if
+ * device event processing is frozen.
+ * 
+ * A modifiers argument of AnyModifier is equivalent to issuing the request for all possible modifier combinations (including the combination of no modifiers).  It is not required that all modifiers specified
+ * have currently assigned KeyCodes.  A keycode argument of AnyKey is equivalent to issuing the request for
+ * all possible KeyCodes.  Otherwise, the specified keycode must be in the range specified by min_keycode
+ * and max_keycode in the connection setup, or a BadValue error results.
+ * 
+ * If some other client has issued a XGrabKey with the same key combination on the same window, a BadAccess
+ * error results.  When using AnyModifier or AnyKey, the request fails completely, and a BadAccess error
+ * results (no grabs are established) if there is a conflicting grab for any combination.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -8268,11 +9266,55 @@ xcb_grab_key_checked (xcb_connection_t *c  /**< */,
                       uint8_t           keyboard_mode  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Grab keyboard key(s)
+ *
  * @param c The connection
+ * @param owner_events If 1, the \a grab_window will still get the pointer events. If 0, events are not
+ * reported to the \a grab_window.
+ * @param grab_window Specifies the window on which the pointer should be grabbed.
+ * @param modifiers The modifiers to grab.
+ * \n
+ * Using the special value `XCB_MOD_MASK_ANY` means grab the pointer with all
+ * possible modifier combinations.
+ * @param key The keycode of the key to grab.
+ * \n
+ * The special value `XCB_GRAB_ANY` means grab any key.
+ * @param pointer_mode A bitmask of #xcb_grab_mode_t values.
+ * @param pointer_mode \n
+ * @param keyboard_mode A bitmask of #xcb_grab_mode_t values.
+ * @param keyboard_mode \n
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Establishes a passive grab on the keyboard. In the future, the keyboard is
+ * actively grabbed (as for `GrabKeyboard`), the last-keyboard-grab time is set to
+ * the time at which the key was pressed (as transmitted in the KeyPress event),
+ * and the KeyPress event is reported if all of the following conditions are true:
+ * 
+ * The keyboard is not grabbed and the specified key (which can itself be a
+ * modifier key) is logically pressed when the specified modifier keys are
+ * logically down, and no other modifier keys are logically down.
+ * 
+ * Either the grab_window is an ancestor of (or is) the focus window, or the
+ * grab_window is a descendant of the focus window and contains the pointer.
+ * 
+ * A passive grab on the same key combination does not exist on any ancestor of
+ * grab_window.
+ * 
+ * The interpretation of the remaining arguments is as for XGrabKeyboard.  The active grab is terminated
+ * automatically when the logical state of the keyboard has the specified key released (independent of the
+ * logical state of the modifier keys), at which point a KeyRelease event is reported to the grabbing window.
+ * 
+ * Note that the logical state of a device (as seen by client applications) may lag the physical state if
+ * device event processing is frozen.
+ * 
+ * A modifiers argument of AnyModifier is equivalent to issuing the request for all possible modifier combinations (including the combination of no modifiers).  It is not required that all modifiers specified
+ * have currently assigned KeyCodes.  A keycode argument of AnyKey is equivalent to issuing the request for
+ * all possible KeyCodes.  Otherwise, the specified keycode must be in the range specified by min_keycode
+ * and max_keycode in the connection setup, or a BadValue error results.
+ * 
+ * If some other client has issued a XGrabKey with the same key combination on the same window, a BadAccess
+ * error results.  When using AnyModifier or AnyKey, the request fails completely, and a BadAccess error
+ * results (no grabs are established) if there is a conflicting grab for any combination.
  * 
  */
 
@@ -8301,11 +9343,21 @@ xcb_grab_key (xcb_connection_t *c  /**< */,
               uint8_t           keyboard_mode  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief release a key combination
+ *
  * @param c The connection
+ * @param key The keycode of the specified key combination.
+ * \n
+ * Using the special value `XCB_GRAB_ANY` means releasing all possible key codes.
+ * @param grab_window The window on which the grabbed key combination will be released.
+ * @param modifiers The modifiers of the specified key combination.
+ * \n
+ * Using the special value `XCB_MOD_MASK_ANY` means releasing the key combination
+ * with every possible modifier combination.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Releases the key combination on \a grab_window if you grabbed it using
+ * `xcb_grab_key` before.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -8331,11 +9383,21 @@ xcb_ungrab_key_checked (xcb_connection_t *c  /**< */,
                         uint16_t          modifiers  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief release a key combination
+ *
  * @param c The connection
+ * @param key The keycode of the specified key combination.
+ * \n
+ * Using the special value `XCB_GRAB_ANY` means releasing all possible key codes.
+ * @param grab_window The window on which the grabbed key combination will be released.
+ * @param modifiers The modifiers of the specified key combination.
+ * \n
+ * Using the special value `XCB_MOD_MASK_ANY` means releasing the key combination
+ * with every possible modifier combination.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Releases the key combination on \a grab_window if you grabbed it using
+ * `xcb_grab_key` before.
  * 
  */
 
@@ -8358,11 +9420,21 @@ xcb_ungrab_key (xcb_connection_t *c  /**< */,
                 uint16_t          modifiers  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief release queued events
+ *
  * @param c The connection
+ * @param mode A bitmask of #xcb_allow_t values.
+ * @param mode \n
+ * @param time Timestamp to avoid race conditions when running X over the network.
+ * \n
+ * The special value `XCB_CURRENT_TIME` will be replaced with the current server
+ * time.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Releases queued events if the client has caused a device (pointer/keyboard) to
+ * freeze due to grabbing it actively. This request has no effect if \a time is
+ * earlier than the last-grab time of the most recent active grab for this client
+ * or if \a time is later than the current X server time.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -8386,11 +9458,21 @@ xcb_allow_events_checked (xcb_connection_t *c  /**< */,
                           xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief release queued events
+ *
  * @param c The connection
+ * @param mode A bitmask of #xcb_allow_t values.
+ * @param mode \n
+ * @param time Timestamp to avoid race conditions when running X over the network.
+ * \n
+ * The special value `XCB_CURRENT_TIME` will be replaced with the current server
+ * time.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Releases queued events if the client has caused a device (pointer/keyboard) to
+ * freeze due to grabbing it actively. This request has no effect if \a time is
+ * earlier than the last-grab time of the most recent active grab for this client
+ * or if \a time is later than the current X server time.
  * 
  */
 
@@ -8411,7 +9493,7 @@ xcb_allow_events (xcb_connection_t *c  /**< */,
                   xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8435,7 +9517,7 @@ xcb_void_cookie_t
 xcb_grab_server_checked (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8456,7 +9538,7 @@ xcb_void_cookie_t
 xcb_grab_server (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8480,7 +9562,7 @@ xcb_void_cookie_t
 xcb_ungrab_server_checked (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8501,11 +9583,15 @@ xcb_void_cookie_t
 xcb_ungrab_server (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief get pointer coordinates
+ *
  * @param c The connection
+ * @param window A window to check if the pointer is on the same screen as \a window (see the
+ * `same_screen` field in the reply).
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets the root window the pointer is logically on and the pointer coordinates
+ * relative to the root window's origin.
  * 
  */
 
@@ -8524,11 +9610,15 @@ xcb_query_pointer (xcb_connection_t *c  /**< */,
                    xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief get pointer coordinates
+ *
  * @param c The connection
+ * @param window A window to check if the pointer is on the same screen as \a window (see the
+ * `same_screen` field in the reply).
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets the root window the pointer is logically on and the pointer coordinates
+ * relative to the root window's origin.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -8627,7 +9717,7 @@ int
 xcb_get_motion_events_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8654,7 +9744,7 @@ xcb_get_motion_events (xcb_connection_t *c  /**< */,
                        xcb_timestamp_t   stop  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8754,7 +9844,7 @@ xcb_get_motion_events_reply (xcb_connection_t                *c  /**< */,
                              xcb_generic_error_t            **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8783,7 +9873,7 @@ xcb_translate_coordinates (xcb_connection_t *c  /**< */,
                            int16_t           src_y  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -8846,11 +9936,30 @@ xcb_translate_coordinates_reply (xcb_connection_t                    *c  /**< */
                                  xcb_generic_error_t                **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief move mouse pointer
+ *
  * @param c The connection
+ * @param src_window If \a src_window is not `XCB_NONE` (TODO), the move will only take place if the
+ * pointer is inside \a src_window and within the rectangle specified by (\a src_x,
+ * \a src_y, \a src_width, \a src_height). The rectangle coordinates are relative to
+ * \a src_window.
+ * @param dst_window If \a dst_window is not `XCB_NONE` (TODO), the pointer will be moved to the
+ * offsets (\a dst_x, \a dst_y) relative to \a dst_window. If \a dst_window is
+ * `XCB_NONE` (TODO), the pointer will be moved by the offsets (\a dst_x, \a dst_y)
+ * relative to the current position of the pointer.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Moves the mouse pointer to the specified position.
+ * 
+ * If \a src_window is not `XCB_NONE` (TODO), the move will only take place if the
+ * pointer is inside \a src_window and within the rectangle specified by (\a src_x,
+ * \a src_y, \a src_width, \a src_height). The rectangle coordinates are relative to
+ * \a src_window.
+ * 
+ * If \a dst_window is not `XCB_NONE` (TODO), the pointer will be moved to the
+ * offsets (\a dst_x, \a dst_y) relative to \a dst_window. If \a dst_window is
+ * `XCB_NONE` (TODO), the pointer will be moved by the offsets (\a dst_x, \a dst_y)
+ * relative to the current position of the pointer.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -8886,11 +9995,30 @@ xcb_warp_pointer_checked (xcb_connection_t *c  /**< */,
                           int16_t           dst_y  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief move mouse pointer
+ *
  * @param c The connection
+ * @param src_window If \a src_window is not `XCB_NONE` (TODO), the move will only take place if the
+ * pointer is inside \a src_window and within the rectangle specified by (\a src_x,
+ * \a src_y, \a src_width, \a src_height). The rectangle coordinates are relative to
+ * \a src_window.
+ * @param dst_window If \a dst_window is not `XCB_NONE` (TODO), the pointer will be moved to the
+ * offsets (\a dst_x, \a dst_y) relative to \a dst_window. If \a dst_window is
+ * `XCB_NONE` (TODO), the pointer will be moved by the offsets (\a dst_x, \a dst_y)
+ * relative to the current position of the pointer.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Moves the mouse pointer to the specified position.
+ * 
+ * If \a src_window is not `XCB_NONE` (TODO), the move will only take place if the
+ * pointer is inside \a src_window and within the rectangle specified by (\a src_x,
+ * \a src_y, \a src_width, \a src_height). The rectangle coordinates are relative to
+ * \a src_window.
+ * 
+ * If \a dst_window is not `XCB_NONE` (TODO), the pointer will be moved to the
+ * offsets (\a dst_x, \a dst_y) relative to \a dst_window. If \a dst_window is
+ * `XCB_NONE` (TODO), the pointer will be moved by the offsets (\a dst_x, \a dst_y)
+ * relative to the current position of the pointer.
  * 
  */
 
@@ -8923,11 +10051,31 @@ xcb_warp_pointer (xcb_connection_t *c  /**< */,
                   int16_t           dst_y  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Sets input focus
+ *
  * @param c The connection
+ * @param revert_to A bitmask of #xcb_input_focus_t values.
+ * @param revert_to Specifies what happens when the \a focus window becomes unviewable (if \a focus
+ * is neither `XCB_NONE` nor `XCB_POINTER_ROOT`).
+ * @param focus The window to focus. All keyboard events will be reported to this window. The
+ * window must be viewable (TODO), or a `xcb_match_error_t` occurs (TODO).
+ * \n
+ * If \a focus is `XCB_NONE` (TODO), all keyboard events are
+ * discarded until a new focus window is set.
+ * \n
+ * If \a focus is `XCB_POINTER_ROOT` (TODO), focus is on the root window of the
+ * screen on which the pointer is on currently.
+ * @param time Timestamp to avoid race conditions when running X over the network.
+ * \n
+ * The special value `XCB_CURRENT_TIME` will be replaced with the current server
+ * time.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Changes the input focus and the last-focus-change time. If the specified \a time
+ * is earlier than the current last-focus-change time, the request is ignored (to
+ * avoid race conditions when running X over the network).
+ * 
+ * A FocusIn and FocusOut event is generated when focus is changed.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -8953,11 +10101,31 @@ xcb_set_input_focus_checked (xcb_connection_t *c  /**< */,
                              xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Sets input focus
+ *
  * @param c The connection
+ * @param revert_to A bitmask of #xcb_input_focus_t values.
+ * @param revert_to Specifies what happens when the \a focus window becomes unviewable (if \a focus
+ * is neither `XCB_NONE` nor `XCB_POINTER_ROOT`).
+ * @param focus The window to focus. All keyboard events will be reported to this window. The
+ * window must be viewable (TODO), or a `xcb_match_error_t` occurs (TODO).
+ * \n
+ * If \a focus is `XCB_NONE` (TODO), all keyboard events are
+ * discarded until a new focus window is set.
+ * \n
+ * If \a focus is `XCB_POINTER_ROOT` (TODO), focus is on the root window of the
+ * screen on which the pointer is on currently.
+ * @param time Timestamp to avoid race conditions when running X over the network.
+ * \n
+ * The special value `XCB_CURRENT_TIME` will be replaced with the current server
+ * time.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Changes the input focus and the last-focus-change time. If the specified \a time
+ * is earlier than the current last-focus-change time, the request is ignored (to
+ * avoid race conditions when running X over the network).
+ * 
+ * A FocusIn and FocusOut event is generated when focus is changed.
  * 
  */
 
@@ -8980,7 +10148,7 @@ xcb_set_input_focus (xcb_connection_t *c  /**< */,
                      xcb_timestamp_t   time  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -9001,7 +10169,7 @@ xcb_get_input_focus_cookie_t
 xcb_get_input_focus (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -9056,7 +10224,7 @@ xcb_get_input_focus_reply (xcb_connection_t              *c  /**< */,
                            xcb_generic_error_t          **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -9077,7 +10245,7 @@ xcb_query_keymap_cookie_t
 xcb_query_keymap (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -9135,11 +10303,18 @@ int
 xcb_open_font_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief opens a font
+ *
  * @param c The connection
+ * @param fid The ID with which you will refer to the font, created by `xcb_generate_id`.
+ * @param name_len Length (in bytes) of \a name.
+ * @param name A pattern describing an X core font.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Opens any X core font matching the given \a name (for example "-misc-fixed-*").
+ * 
+ * Note that X core fonts are deprecated (but still supported) in favor of
+ * client-side rendering using Xft.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -9165,11 +10340,18 @@ xcb_open_font_checked (xcb_connection_t *c  /**< */,
                        const char       *name  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief opens a font
+ *
  * @param c The connection
+ * @param fid The ID with which you will refer to the font, created by `xcb_generate_id`.
+ * @param name_len Length (in bytes) of \a name.
+ * @param name A pattern describing an X core font.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Opens any X core font matching the given \a name (for example "-misc-fixed-*").
+ * 
+ * Note that X core fonts are deprecated (but still supported) in favor of
+ * client-side rendering using Xft.
  * 
  */
 
@@ -9192,7 +10374,7 @@ xcb_open_font (xcb_connection_t *c  /**< */,
                const char       *name  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -9218,7 +10400,7 @@ xcb_close_font_checked (xcb_connection_t *c  /**< */,
                         xcb_font_t        font  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -9330,11 +10512,13 @@ int
 xcb_query_font_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief query font metrics
+ *
  * @param c The connection
+ * @param font The fontable (Font or Graphics Context) to query.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Queries information associated with the font.
  * 
  */
 
@@ -9353,11 +10537,13 @@ xcb_query_font (xcb_connection_t *c  /**< */,
                 xcb_fontable_t    font  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief query font metrics
+ *
  * @param c The connection
+ * @param font The fontable (Font or Graphics Context) to query.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Queries information associated with the font.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -9492,11 +10678,35 @@ xcb_query_text_extents_sizeof (const void  *_buffer  /**< */,
                                uint32_t     string_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief get text extents
+ *
  * @param c The connection
+ * @param font The \a font to calculate text extents in. You can also pass a graphics context.
+ * @param string_len The number of characters in \a string.
+ * @param string The text to get text extents for.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Query text extents from the X11 server. This request returns the bounding box
+ * of the specified 16-bit character string in the specified \a font or the font
+ * contained in the specified graphics context.
+ * 
+ * `font_ascent` is set to the maximum of the ascent metrics of all characters in
+ * the string. `font_descent` is set to the maximum of the descent metrics.
+ * `overall_width` is set to the sum of the character-width metrics of all
+ * characters in the string. For each character in the string, let W be the sum of
+ * the character-width metrics of all characters preceding it in the string. Let L
+ * be the left-side-bearing metric of the character plus W. Let R be the
+ * right-side-bearing metric of the character plus W. The lbearing member is set
+ * to the minimum L of all characters in the string. The rbearing member is set to
+ * the maximum R.
+ * 
+ * For fonts defined with linear indexing rather than 2-byte matrix indexing, each
+ * `xcb_char2b_t` structure is interpreted as a 16-bit number with byte1 as the
+ * most significant byte. If the font has no defined default character, undefined
+ * characters in the string are taken to have all zero metrics.
+ * 
+ * Characters with all zero metrics are ignored. If the font has no defined
+ * default_char, the undefined characters in the string are also ignored.
  * 
  */
 
@@ -9519,11 +10729,35 @@ xcb_query_text_extents (xcb_connection_t   *c  /**< */,
                         const xcb_char2b_t *string  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief get text extents
+ *
  * @param c The connection
+ * @param font The \a font to calculate text extents in. You can also pass a graphics context.
+ * @param string_len The number of characters in \a string.
+ * @param string The text to get text extents for.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Query text extents from the X11 server. This request returns the bounding box
+ * of the specified 16-bit character string in the specified \a font or the font
+ * contained in the specified graphics context.
+ * 
+ * `font_ascent` is set to the maximum of the ascent metrics of all characters in
+ * the string. `font_descent` is set to the maximum of the descent metrics.
+ * `overall_width` is set to the sum of the character-width metrics of all
+ * characters in the string. For each character in the string, let W be the sum of
+ * the character-width metrics of all characters preceding it in the string. Let L
+ * be the left-side-bearing metric of the character plus W. Let R be the
+ * right-side-bearing metric of the character plus W. The lbearing member is set
+ * to the minimum L of all characters in the string. The rbearing member is set to
+ * the maximum R.
+ * 
+ * For fonts defined with linear indexing rather than 2-byte matrix indexing, each
+ * `xcb_char2b_t` structure is interpreted as a 16-bit number with byte1 as the
+ * most significant byte. If the font has no defined default character, undefined
+ * characters in the string are taken to have all zero metrics.
+ * 
+ * Characters with all zero metrics are ignored. If the font has no defined
+ * default_char, the undefined characters in the string are also ignored.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -9668,11 +10902,19 @@ int
 xcb_list_fonts_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief get matching font names
+ *
  * @param c The connection
+ * @param max_names The maximum number of fonts to be returned.
+ * @param pattern_len The length (in bytes) of \a pattern.
+ * @param pattern A font pattern, for example "-misc-fixed-*".
+ * \n
+ * The asterisk (*) is a wildcard for any number of characters. The question mark
+ * (?) is a wildcard for a single character. Use of uppercase or lowercase does
+ * not matter.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets a list of available font names which match the given \a pattern.
  * 
  */
 
@@ -9695,11 +10937,19 @@ xcb_list_fonts (xcb_connection_t *c  /**< */,
                 const char       *pattern  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief get matching font names
+ *
  * @param c The connection
+ * @param max_names The maximum number of fonts to be returned.
+ * @param pattern_len The length (in bytes) of \a pattern.
+ * @param pattern A font pattern, for example "-misc-fixed-*".
+ * \n
+ * The asterisk (*) is a wildcard for any number of characters. The question mark
+ * (?) is a wildcard for a single character. Use of uppercase or lowercase does
+ * not matter.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets a list of available font names which match the given \a pattern.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -9785,11 +11035,19 @@ int
 xcb_list_fonts_with_info_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief get matching font names and information
+ *
  * @param c The connection
+ * @param max_names The maximum number of fonts to be returned.
+ * @param pattern_len The length (in bytes) of \a pattern.
+ * @param pattern A font pattern, for example "-misc-fixed-*".
+ * \n
+ * The asterisk (*) is a wildcard for any number of characters. The question mark
+ * (?) is a wildcard for a single character. Use of uppercase or lowercase does
+ * not matter.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets a list of available font names which match the given \a pattern.
  * 
  */
 
@@ -9812,11 +11070,19 @@ xcb_list_fonts_with_info (xcb_connection_t *c  /**< */,
                           const char       *pattern  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief get matching font names and information
+ *
  * @param c The connection
+ * @param max_names The maximum number of fonts to be returned.
+ * @param pattern_len The length (in bytes) of \a pattern.
+ * @param pattern A font pattern, for example "-misc-fixed-*".
+ * \n
+ * The asterisk (*) is a wildcard for any number of characters. The question mark
+ * (?) is a wildcard for a single character. Use of uppercase or lowercase does
+ * not matter.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Gets a list of available font names which match the given \a pattern.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -9954,7 +11220,7 @@ int
 xcb_set_font_path_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -9982,7 +11248,7 @@ xcb_set_font_path_checked (xcb_connection_t *c  /**< */,
                            const xcb_str_t  *font  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10010,7 +11276,7 @@ int
 xcb_get_font_path_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10031,7 +11297,7 @@ xcb_get_font_path_cookie_t
 xcb_get_font_path (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10112,11 +11378,19 @@ xcb_get_font_path_reply (xcb_connection_t            *c  /**< */,
                          xcb_generic_error_t        **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Creates a pixmap
+ *
  * @param c The connection
+ * @param depth TODO
+ * @param pid The ID with which you will refer to the new pixmap, created by
+ * `xcb_generate_id`.
+ * @param drawable Drawable to get the screen from.
+ * @param width The width of the new pixmap.
+ * @param height The height of the new pixmap.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Creates a pixmap. The pixmap can only be used on the same screen as \a drawable
+ * is on and only with drawables of the same \a depth.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -10146,11 +11420,19 @@ xcb_create_pixmap_checked (xcb_connection_t *c  /**< */,
                            uint16_t          height  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Creates a pixmap
+ *
  * @param c The connection
+ * @param depth TODO
+ * @param pid The ID with which you will refer to the new pixmap, created by
+ * `xcb_generate_id`.
+ * @param drawable Drawable to get the screen from.
+ * @param width The width of the new pixmap.
+ * @param height The height of the new pixmap.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Creates a pixmap. The pixmap can only be used on the same screen as \a drawable
+ * is on and only with drawables of the same \a depth.
  * 
  */
 
@@ -10177,11 +11459,14 @@ xcb_create_pixmap (xcb_connection_t *c  /**< */,
                    uint16_t          height  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Destroys a pixmap
+ *
  * @param c The connection
+ * @param pixmap The pixmap to destroy.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Deletes the association between the pixmap ID and the pixmap. The pixmap
+ * storage will be freed when there are no more references to it.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -10203,11 +11488,14 @@ xcb_free_pixmap_checked (xcb_connection_t *c  /**< */,
                          xcb_pixmap_t      pixmap  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Destroys a pixmap
+ *
  * @param c The connection
+ * @param pixmap The pixmap to destroy.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Deletes the association between the pixmap ID and the pixmap. The pixmap
+ * storage will be freed when there are no more references to it.
  * 
  */
 
@@ -10229,11 +11517,16 @@ int
 xcb_create_gc_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Creates a graphics context
+ *
  * @param c The connection
+ * @param cid The ID with which you will refer to the graphics context, created by
+ * `xcb_generate_id`.
+ * @param drawable Drawable to get the root/depth from.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Creates a graphics context. The graphics context can be used with any drawable
+ * that has the same root and depth as the specified drawable.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -10261,11 +11554,16 @@ xcb_create_gc_checked (xcb_connection_t *c  /**< */,
                        const uint32_t   *value_list  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Creates a graphics context
+ *
  * @param c The connection
+ * @param cid The ID with which you will refer to the graphics context, created by
+ * `xcb_generate_id`.
+ * @param drawable Drawable to get the root/depth from.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Creates a graphics context. The graphics context can be used with any drawable
+ * that has the same root and depth as the specified drawable.
  * 
  */
 
@@ -10293,11 +11591,18 @@ int
 xcb_change_gc_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief change graphics context components
+ *
  * @param c The connection
+ * @param gc The graphics context to change.
+ * @param value_mask A bitmask of #xcb_gc_t values.
+ * @param value_mask \n
+ * @param value_list Values for each of the components specified in the bitmask \a value_mask. The
+ * order has to correspond to the order of possible \a value_mask bits. See the
+ * example.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Changes the components specified by \a value_mask for the specified graphics context.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -10323,11 +11628,18 @@ xcb_change_gc_checked (xcb_connection_t *c  /**< */,
                        const uint32_t   *value_list  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief change graphics context components
+ *
  * @param c The connection
+ * @param gc The graphics context to change.
+ * @param value_mask A bitmask of #xcb_gc_t values.
+ * @param value_mask \n
+ * @param value_list Values for each of the components specified in the bitmask \a value_mask. The
+ * order has to correspond to the order of possible \a value_mask bits. See the
+ * example.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Changes the components specified by \a value_mask for the specified graphics context.
  * 
  */
 
@@ -10350,7 +11662,7 @@ xcb_change_gc (xcb_connection_t *c  /**< */,
                const uint32_t   *value_list  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10380,7 +11692,7 @@ xcb_copy_gc_checked (xcb_connection_t *c  /**< */,
                      uint32_t          value_mask  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10410,7 +11722,7 @@ int
 xcb_set_dashes_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10442,7 +11754,7 @@ xcb_set_dashes_checked (xcb_connection_t *c  /**< */,
                         const uint8_t    *dashes  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10475,7 +11787,7 @@ xcb_set_clip_rectangles_sizeof (const void  *_buffer  /**< */,
                                 uint32_t     rectangles_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10511,7 +11823,7 @@ xcb_set_clip_rectangles_checked (xcb_connection_t      *c  /**< */,
                                  const xcb_rectangle_t *rectangles  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10544,11 +11856,13 @@ xcb_set_clip_rectangles (xcb_connection_t      *c  /**< */,
                          const xcb_rectangle_t *rectangles  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Destroys a graphics context
+ *
  * @param c The connection
+ * @param gc The graphics context to destroy.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Destroys the specified \a gc and all associated storage.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -10570,11 +11884,13 @@ xcb_free_gc_checked (xcb_connection_t *c  /**< */,
                      xcb_gcontext_t    gc  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Destroys a graphics context
+ *
  * @param c The connection
+ * @param gc The graphics context to destroy.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Destroys the specified \a gc and all associated storage.
  * 
  */
 
@@ -10593,7 +11909,7 @@ xcb_free_gc (xcb_connection_t *c  /**< */,
              xcb_gcontext_t    gc  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10629,7 +11945,7 @@ xcb_clear_area_checked (xcb_connection_t *c  /**< */,
                         uint16_t          height  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10662,11 +11978,21 @@ xcb_clear_area (xcb_connection_t *c  /**< */,
                 uint16_t          height  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief copy areas
+ *
  * @param c The connection
+ * @param src_drawable The source drawable (Window or Pixmap).
+ * @param dst_drawable The destination drawable (Window or Pixmap).
+ * @param gc The graphics context to use.
+ * @param src_x The source X coordinate.
+ * @param src_y The source Y coordinate.
+ * @param dst_x The destination X coordinate.
+ * @param dst_y The destination Y coordinate.
+ * @param width The width of the area to copy (in pixels).
+ * @param height The height of the area to copy (in pixels).
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Copies the specified rectangle from \a src_drawable to \a dst_drawable.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -10704,11 +12030,21 @@ xcb_copy_area_checked (xcb_connection_t *c  /**< */,
                        uint16_t          height  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief copy areas
+ *
  * @param c The connection
+ * @param src_drawable The source drawable (Window or Pixmap).
+ * @param dst_drawable The destination drawable (Window or Pixmap).
+ * @param gc The graphics context to use.
+ * @param src_x The source X coordinate.
+ * @param src_y The source Y coordinate.
+ * @param dst_x The destination X coordinate.
+ * @param dst_y The destination Y coordinate.
+ * @param width The width of the area to copy (in pixels).
+ * @param height The height of the area to copy (in pixels).
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Copies the specified rectangle from \a src_drawable to \a dst_drawable.
  * 
  */
 
@@ -10743,7 +12079,7 @@ xcb_copy_area (xcb_connection_t *c  /**< */,
                uint16_t          height  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10787,7 +12123,7 @@ xcb_copy_plane_checked (xcb_connection_t *c  /**< */,
                         uint32_t          bit_plane  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10832,7 +12168,7 @@ xcb_poly_point_sizeof (const void  *_buffer  /**< */,
                        uint32_t     points_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10866,7 +12202,7 @@ xcb_poly_point_checked (xcb_connection_t  *c  /**< */,
                         const xcb_point_t *points  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -10901,11 +12237,25 @@ xcb_poly_line_sizeof (const void  *_buffer  /**< */,
                       uint32_t     points_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief draw lines
+ *
  * @param c The connection
+ * @param coordinate_mode A bitmask of #xcb_coord_mode_t values.
+ * @param coordinate_mode \n
+ * @param drawable The drawable to draw the line(s) on.
+ * @param gc The graphics context to use.
+ * @param points_len The number of `xcb_point_t` structures in \a points.
+ * @param points An array of points.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Draws \a points_len-1 lines between each pair of points (point[i], point[i+1])
+ * in the \a points array. The lines are drawn in the order listed in the array.
+ * They join correctly at all intermediate points, and if the first and last
+ * points coincide, the first and last lines also join correctly. For any given
+ * line, a pixel is not drawn more than once. If thin (zero line-width) lines
+ * intersect, the intersecting pixels are drawn multiple times. If wide lines
+ * intersect, the intersecting pixels are drawn only once, as though the entire
+ * request were a single, filled shape.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -10935,11 +12285,25 @@ xcb_poly_line_checked (xcb_connection_t  *c  /**< */,
                        const xcb_point_t *points  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief draw lines
+ *
  * @param c The connection
+ * @param coordinate_mode A bitmask of #xcb_coord_mode_t values.
+ * @param coordinate_mode \n
+ * @param drawable The drawable to draw the line(s) on.
+ * @param gc The graphics context to use.
+ * @param points_len The number of `xcb_point_t` structures in \a points.
+ * @param points An array of points.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Draws \a points_len-1 lines between each pair of points (point[i], point[i+1])
+ * in the \a points array. The lines are drawn in the order listed in the array.
+ * They join correctly at all intermediate points, and if the first and last
+ * points coincide, the first and last lines also join correctly. For any given
+ * line, a pixel is not drawn more than once. If thin (zero line-width) lines
+ * intersect, the intersecting pixels are drawn multiple times. If wide lines
+ * intersect, the intersecting pixels are drawn only once, as though the entire
+ * request were a single, filled shape.
  * 
  */
 
@@ -11013,11 +12377,26 @@ xcb_poly_segment_sizeof (const void  *_buffer  /**< */,
                          uint32_t     segments_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief draw lines
+ *
  * @param c The connection
+ * @param drawable A drawable (Window or Pixmap) to draw on.
+ * @param gc The graphics context to use.
+ * \n
+ * TODO: document which attributes of a gc are used
+ * @param segments_len The number of `xcb_segment_t` structures in \a segments.
+ * @param segments An array of `xcb_segment_t` structures.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Draws multiple, unconnected lines. For each segment, a line is drawn between
+ * (x1, y1) and (x2, y2). The lines are drawn in the order listed in the array of
+ * `xcb_segment_t` structures and does not perform joining at coincident
+ * endpoints. For any given line, a pixel is not drawn more than once. If lines
+ * intersect, the intersecting pixels are drawn multiple times.
+ * 
+ * TODO: include the xcb_segment_t data structure
+ * 
+ * TODO: an example
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -11045,11 +12424,26 @@ xcb_poly_segment_checked (xcb_connection_t    *c  /**< */,
                           const xcb_segment_t *segments  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief draw lines
+ *
  * @param c The connection
+ * @param drawable A drawable (Window or Pixmap) to draw on.
+ * @param gc The graphics context to use.
+ * \n
+ * TODO: document which attributes of a gc are used
+ * @param segments_len The number of `xcb_segment_t` structures in \a segments.
+ * @param segments An array of `xcb_segment_t` structures.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Draws multiple, unconnected lines. For each segment, a line is drawn between
+ * (x1, y1) and (x2, y2). The lines are drawn in the order listed in the array of
+ * `xcb_segment_t` structures and does not perform joining at coincident
+ * endpoints. For any given line, a pixel is not drawn more than once. If lines
+ * intersect, the intersecting pixels are drawn multiple times.
+ * 
+ * TODO: include the xcb_segment_t data structure
+ * 
+ * TODO: an example
  * 
  */
 
@@ -11078,7 +12472,7 @@ xcb_poly_rectangle_sizeof (const void  *_buffer  /**< */,
                            uint32_t     rectangles_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11110,7 +12504,7 @@ xcb_poly_rectangle_checked (xcb_connection_t      *c  /**< */,
                             const xcb_rectangle_t *rectangles  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11143,7 +12537,7 @@ xcb_poly_arc_sizeof (const void  *_buffer  /**< */,
                      uint32_t     arcs_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11175,7 +12569,7 @@ xcb_poly_arc_checked (xcb_connection_t *c  /**< */,
                       const xcb_arc_t  *arcs  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11208,7 +12602,7 @@ xcb_fill_poly_sizeof (const void  *_buffer  /**< */,
                       uint32_t     points_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11244,7 +12638,7 @@ xcb_fill_poly_checked (xcb_connection_t  *c  /**< */,
                        const xcb_point_t *points  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11281,11 +12675,25 @@ xcb_poly_fill_rectangle_sizeof (const void  *_buffer  /**< */,
                                 uint32_t     rectangles_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Fills rectangles
+ *
  * @param c The connection
+ * @param drawable The drawable (Window or Pixmap) to draw on.
+ * @param gc The graphics context to use.
+ * \n
+ * The following graphics context components are used: function, plane-mask,
+ * fill-style, subwindow-mode, clip-x-origin, clip-y-origin, and clip-mask.
+ * \n
+ * The following graphics context mode-dependent components are used:
+ * foreground, background, tile, stipple, tile-stipple-x-origin, and
+ * tile-stipple-y-origin.
+ * @param rectangles_len The number of `xcb_rectangle_t` structures in \a rectangles.
+ * @param rectangles The rectangles to fill.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Fills the specified rectangle(s) in the order listed in the array. For any
+ * given rectangle, each pixel is not drawn more than once. If rectangles
+ * intersect, the intersecting pixels are drawn multiple times.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -11313,11 +12721,25 @@ xcb_poly_fill_rectangle_checked (xcb_connection_t      *c  /**< */,
                                  const xcb_rectangle_t *rectangles  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Fills rectangles
+ *
  * @param c The connection
+ * @param drawable The drawable (Window or Pixmap) to draw on.
+ * @param gc The graphics context to use.
+ * \n
+ * The following graphics context components are used: function, plane-mask,
+ * fill-style, subwindow-mode, clip-x-origin, clip-y-origin, and clip-mask.
+ * \n
+ * The following graphics context mode-dependent components are used:
+ * foreground, background, tile, stipple, tile-stipple-x-origin, and
+ * tile-stipple-y-origin.
+ * @param rectangles_len The number of `xcb_rectangle_t` structures in \a rectangles.
+ * @param rectangles The rectangles to fill.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Fills the specified rectangle(s) in the order listed in the array. For any
+ * given rectangle, each pixel is not drawn more than once. If rectangles
+ * intersect, the intersecting pixels are drawn multiple times.
  * 
  */
 
@@ -11346,7 +12768,7 @@ xcb_poly_fill_arc_sizeof (const void  *_buffer  /**< */,
                           uint32_t     arcs_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11378,7 +12800,7 @@ xcb_poly_fill_arc_checked (xcb_connection_t *c  /**< */,
                            const xcb_arc_t  *arcs  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11411,7 +12833,7 @@ xcb_put_image_sizeof (const void  *_buffer  /**< */,
                       uint32_t     data_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11457,7 +12879,7 @@ xcb_put_image_checked (xcb_connection_t *c  /**< */,
                        const uint8_t    *data  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11503,7 +12925,7 @@ int
 xcb_get_image_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11538,7 +12960,7 @@ xcb_get_image (xcb_connection_t *c  /**< */,
                uint32_t          plane_mask  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11650,7 +13072,7 @@ xcb_poly_text_8_sizeof (const void  *_buffer  /**< */,
                         uint32_t     items_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11686,7 +13108,7 @@ xcb_poly_text_8_checked (xcb_connection_t *c  /**< */,
                          const uint8_t    *items  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11723,7 +13145,7 @@ xcb_poly_text_16_sizeof (const void  *_buffer  /**< */,
                          uint32_t     items_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11759,7 +13181,7 @@ xcb_poly_text_16_checked (xcb_connection_t *c  /**< */,
                           const uint8_t    *items  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11795,11 +13217,30 @@ int
 xcb_image_text_8_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Draws text
+ *
  * @param c The connection
+ * @param string_len The length of the \a string. Note that this parameter limited by 255 due to
+ * using 8 bits!
+ * @param drawable The drawable (Window or Pixmap) to draw text on.
+ * @param gc The graphics context to use.
+ * \n
+ * The following graphics context components are used: plane-mask, foreground,
+ * background, font, subwindow-mode, clip-x-origin, clip-y-origin, and clip-mask.
+ * @param x The x coordinate of the first character, relative to the origin of \a drawable.
+ * @param y The y coordinate of the first character, relative to the origin of \a drawable.
+ * @param string The string to draw. Only the first 255 characters are relevant due to the data
+ * type of \a string_len.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Fills the destination rectangle with the background pixel from \a gc, then
+ * paints the text with the foreground pixel from \a gc. The upper-left corner of
+ * the filled rectangle is at [x, y - font-ascent]. The width is overall-width,
+ * the height is font-ascent + font-descent. The overall-width, font-ascent and
+ * font-descent are as returned by `xcb_query_text_extents` (TODO).
+ * 
+ * Note that using X core fonts is deprecated (but still supported) in favor of
+ * client-side rendering using Xft.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -11831,11 +13272,30 @@ xcb_image_text_8_checked (xcb_connection_t *c  /**< */,
                           const char       *string  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Draws text
+ *
  * @param c The connection
+ * @param string_len The length of the \a string. Note that this parameter limited by 255 due to
+ * using 8 bits!
+ * @param drawable The drawable (Window or Pixmap) to draw text on.
+ * @param gc The graphics context to use.
+ * \n
+ * The following graphics context components are used: plane-mask, foreground,
+ * background, font, subwindow-mode, clip-x-origin, clip-y-origin, and clip-mask.
+ * @param x The x coordinate of the first character, relative to the origin of \a drawable.
+ * @param y The y coordinate of the first character, relative to the origin of \a drawable.
+ * @param string The string to draw. Only the first 255 characters are relevant due to the data
+ * type of \a string_len.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Fills the destination rectangle with the background pixel from \a gc, then
+ * paints the text with the foreground pixel from \a gc. The upper-left corner of
+ * the filled rectangle is at [x, y - font-ascent]. The width is overall-width,
+ * the height is font-ascent + font-descent. The overall-width, font-ascent and
+ * font-descent are as returned by `xcb_query_text_extents` (TODO).
+ * 
+ * Note that using X core fonts is deprecated (but still supported) in favor of
+ * client-side rendering using Xft.
  * 
  */
 
@@ -11867,11 +13327,31 @@ int
 xcb_image_text_16_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Draws text
+ *
  * @param c The connection
+ * @param string_len The length of the \a string in characters. Note that this parameter limited by
+ * 255 due to using 8 bits!
+ * @param drawable The drawable (Window or Pixmap) to draw text on.
+ * @param gc The graphics context to use.
+ * \n
+ * The following graphics context components are used: plane-mask, foreground,
+ * background, font, subwindow-mode, clip-x-origin, clip-y-origin, and clip-mask.
+ * @param x The x coordinate of the first character, relative to the origin of \a drawable.
+ * @param y The y coordinate of the first character, relative to the origin of \a drawable.
+ * @param string The string to draw. Only the first 255 characters are relevant due to the data
+ * type of \a string_len. Every character uses 2 bytes (hence the 16 in this
+ * request's name).
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Fills the destination rectangle with the background pixel from \a gc, then
+ * paints the text with the foreground pixel from \a gc. The upper-left corner of
+ * the filled rectangle is at [x, y - font-ascent]. The width is overall-width,
+ * the height is font-ascent + font-descent. The overall-width, font-ascent and
+ * font-descent are as returned by `xcb_query_text_extents` (TODO).
+ * 
+ * Note that using X core fonts is deprecated (but still supported) in favor of
+ * client-side rendering using Xft.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -11903,11 +13383,31 @@ xcb_image_text_16_checked (xcb_connection_t   *c  /**< */,
                            const xcb_char2b_t *string  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Draws text
+ *
  * @param c The connection
+ * @param string_len The length of the \a string in characters. Note that this parameter limited by
+ * 255 due to using 8 bits!
+ * @param drawable The drawable (Window or Pixmap) to draw text on.
+ * @param gc The graphics context to use.
+ * \n
+ * The following graphics context components are used: plane-mask, foreground,
+ * background, font, subwindow-mode, clip-x-origin, clip-y-origin, and clip-mask.
+ * @param x The x coordinate of the first character, relative to the origin of \a drawable.
+ * @param y The y coordinate of the first character, relative to the origin of \a drawable.
+ * @param string The string to draw. Only the first 255 characters are relevant due to the data
+ * type of \a string_len. Every character uses 2 bytes (hence the 16 in this
+ * request's name).
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Fills the destination rectangle with the background pixel from \a gc, then
+ * paints the text with the foreground pixel from \a gc. The upper-left corner of
+ * the filled rectangle is at [x, y - font-ascent]. The width is overall-width,
+ * the height is font-ascent + font-descent. The overall-width, font-ascent and
+ * font-descent are as returned by `xcb_query_text_extents` (TODO).
+ * 
+ * Note that using X core fonts is deprecated (but still supported) in favor of
+ * client-side rendering using Xft.
  * 
  */
 
@@ -11936,7 +13436,7 @@ xcb_image_text_16 (xcb_connection_t   *c  /**< */,
                    const xcb_char2b_t *string  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11968,7 +13468,7 @@ xcb_create_colormap_checked (xcb_connection_t *c  /**< */,
                              xcb_visualid_t    visual  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -11997,7 +13497,7 @@ xcb_create_colormap (xcb_connection_t *c  /**< */,
                      xcb_visualid_t    visual  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12023,7 +13523,7 @@ xcb_free_colormap_checked (xcb_connection_t *c  /**< */,
                            xcb_colormap_t    cmap  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12046,7 +13546,7 @@ xcb_free_colormap (xcb_connection_t *c  /**< */,
                    xcb_colormap_t    cmap  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12074,7 +13574,7 @@ xcb_copy_colormap_and_free_checked (xcb_connection_t *c  /**< */,
                                     xcb_colormap_t    src_cmap  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12099,7 +13599,7 @@ xcb_copy_colormap_and_free (xcb_connection_t *c  /**< */,
                             xcb_colormap_t    src_cmap  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12125,7 +13625,7 @@ xcb_install_colormap_checked (xcb_connection_t *c  /**< */,
                               xcb_colormap_t    cmap  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12148,7 +13648,7 @@ xcb_install_colormap (xcb_connection_t *c  /**< */,
                       xcb_colormap_t    cmap  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12174,7 +13674,7 @@ xcb_uninstall_colormap_checked (xcb_connection_t *c  /**< */,
                                 xcb_colormap_t    cmap  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12200,7 +13700,7 @@ int
 xcb_list_installed_colormaps_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12223,7 +13723,7 @@ xcb_list_installed_colormaps (xcb_connection_t *c  /**< */,
                               xcb_window_t      window  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12319,11 +13819,20 @@ xcb_list_installed_colormaps_reply (xcb_connection_t                       *c  /
                                     xcb_generic_error_t                   **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Allocate a color
+ *
  * @param c The connection
+ * @param cmap TODO
+ * @param red The red value of your color.
+ * @param green The green value of your color.
+ * @param blue The blue value of your color.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Allocates a read-only colormap entry corresponding to the closest RGB value
+ * supported by the hardware. If you are using TrueColor, you can take a shortcut
+ * and directly calculate the color pixel value to avoid the round trip. But, for
+ * example, on 16-bit color setups (VNC), you can easily get the closest supported
+ * RGB value to the RGB value you are specifying.
  * 
  */
 
@@ -12348,11 +13857,20 @@ xcb_alloc_color (xcb_connection_t *c  /**< */,
                  uint16_t          blue  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Allocate a color
+ *
  * @param c The connection
+ * @param cmap TODO
+ * @param red The red value of your color.
+ * @param green The green value of your color.
+ * @param blue The blue value of your color.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Allocates a read-only colormap entry corresponding to the closest RGB value
+ * supported by the hardware. If you are using TrueColor, you can take a shortcut
+ * and directly calculate the color pixel value to avoid the round trip. But, for
+ * example, on 16-bit color setups (VNC), you can easily get the closest supported
+ * RGB value to the RGB value you are specifying.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -12414,7 +13932,7 @@ int
 xcb_alloc_named_color_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12441,7 +13959,7 @@ xcb_alloc_named_color (xcb_connection_t *c  /**< */,
                        const char       *name  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12505,7 +14023,7 @@ int
 xcb_alloc_color_cells_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12534,7 +14052,7 @@ xcb_alloc_color_cells (xcb_connection_t *c  /**< */,
                        uint16_t          planes  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12678,7 +14196,7 @@ int
 xcb_alloc_color_planes_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12711,7 +14229,7 @@ xcb_alloc_color_planes (xcb_connection_t *c  /**< */,
                         uint16_t          blues  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12821,7 +14339,7 @@ xcb_free_colors_sizeof (const void  *_buffer  /**< */,
                         uint32_t     pixels_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12853,7 +14371,7 @@ xcb_free_colors_checked (xcb_connection_t *c  /**< */,
                          const uint32_t   *pixels  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12929,7 +14447,7 @@ xcb_store_colors_sizeof (const void  *_buffer  /**< */,
                          uint32_t     items_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12959,7 +14477,7 @@ xcb_store_colors_checked (xcb_connection_t      *c  /**< */,
                           const xcb_coloritem_t *items  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -12989,7 +14507,7 @@ int
 xcb_store_named_color_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13023,7 +14541,7 @@ xcb_store_named_color_checked (xcb_connection_t *c  /**< */,
                                const char       *name  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13101,7 +14619,7 @@ xcb_query_colors_sizeof (const void  *_buffer  /**< */,
                          uint32_t     pixels_len  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13128,7 +14646,7 @@ xcb_query_colors (xcb_connection_t *c  /**< */,
                   const uint32_t   *pixels  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13231,7 +14749,7 @@ int
 xcb_lookup_color_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13258,7 +14776,7 @@ xcb_lookup_color (xcb_connection_t *c  /**< */,
                   const char       *name  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13319,7 +14837,7 @@ xcb_lookup_color_reply (xcb_connection_t           *c  /**< */,
                         xcb_generic_error_t       **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13365,7 +14883,7 @@ xcb_create_cursor_checked (xcb_connection_t *c  /**< */,
                            uint16_t          y  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13408,11 +14926,33 @@ xcb_create_cursor (xcb_connection_t *c  /**< */,
                    uint16_t          y  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief create cursor
+ *
  * @param c The connection
+ * @param cid The ID with which you will refer to the cursor, created by `xcb_generate_id`.
+ * @param source_font In which font to look for the cursor glyph.
+ * @param mask_font In which font to look for the mask glyph.
+ * @param source_char The glyph of \a source_font to use.
+ * @param mask_char The glyph of \a mask_font to use as a mask: Pixels which are set to 1 define
+ * which source pixels are displayed. All pixels which are set to 0 are not
+ * displayed.
+ * @param fore_red The red value of the foreground color.
+ * @param fore_green The green value of the foreground color.
+ * @param fore_blue The blue value of the foreground color.
+ * @param back_red The red value of the background color.
+ * @param back_green The green value of the background color.
+ * @param back_blue The blue value of the background color.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Creates a cursor from a font glyph. X provides a set of standard cursor shapes
+ * in a special font named cursor. Applications are encouraged to use this
+ * interface for their cursors because the font can be customized for the
+ * individual display type.
+ * 
+ * All pixels which are set to 1 in the source will use the foreground color (as
+ * specified by \a fore_red, \a fore_green and \a fore_blue). All pixels set to 0
+ * will use the background color (as specified by \a back_red, \a back_green and
+ * \a back_blue).
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -13454,11 +14994,33 @@ xcb_create_glyph_cursor_checked (xcb_connection_t *c  /**< */,
                                  uint16_t          back_blue  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief create cursor
+ *
  * @param c The connection
+ * @param cid The ID with which you will refer to the cursor, created by `xcb_generate_id`.
+ * @param source_font In which font to look for the cursor glyph.
+ * @param mask_font In which font to look for the mask glyph.
+ * @param source_char The glyph of \a source_font to use.
+ * @param mask_char The glyph of \a mask_font to use as a mask: Pixels which are set to 1 define
+ * which source pixels are displayed. All pixels which are set to 0 are not
+ * displayed.
+ * @param fore_red The red value of the foreground color.
+ * @param fore_green The green value of the foreground color.
+ * @param fore_blue The blue value of the foreground color.
+ * @param back_red The red value of the background color.
+ * @param back_green The green value of the background color.
+ * @param back_blue The blue value of the background color.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Creates a cursor from a font glyph. X provides a set of standard cursor shapes
+ * in a special font named cursor. Applications are encouraged to use this
+ * interface for their cursors because the font can be customized for the
+ * individual display type.
+ * 
+ * All pixels which are set to 1 in the source will use the foreground color (as
+ * specified by \a fore_red, \a fore_green and \a fore_blue). All pixels set to 0
+ * will use the background color (as specified by \a back_red, \a back_green and
+ * \a back_blue).
  * 
  */
 
@@ -13497,11 +15059,14 @@ xcb_create_glyph_cursor (xcb_connection_t *c  /**< */,
                          uint16_t          back_blue  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Deletes a cursor
+ *
  * @param c The connection
+ * @param cursor The cursor to destroy.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Deletes the association between the cursor resource ID and the specified
+ * cursor. The cursor is freed when no other resource references it.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -13523,11 +15088,14 @@ xcb_free_cursor_checked (xcb_connection_t *c  /**< */,
                          xcb_cursor_t      cursor  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief Deletes a cursor
+ *
  * @param c The connection
+ * @param cursor The cursor to destroy.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Deletes the association between the cursor resource ID and the specified
+ * cursor. The cursor is freed when no other resource references it.
  * 
  */
 
@@ -13546,7 +15114,7 @@ xcb_free_cursor (xcb_connection_t *c  /**< */,
                  xcb_cursor_t      cursor  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13584,7 +15152,7 @@ xcb_recolor_cursor_checked (xcb_connection_t *c  /**< */,
                             uint16_t          back_blue  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13619,7 +15187,7 @@ xcb_recolor_cursor (xcb_connection_t *c  /**< */,
                     uint16_t          back_blue  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13648,7 +15216,7 @@ xcb_query_best_size (xcb_connection_t *c  /**< */,
                      uint16_t          height  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13714,11 +15282,23 @@ int
 xcb_query_extension_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief check if extension is present
+ *
  * @param c The connection
+ * @param name_len The length of \a name in bytes.
+ * @param name The name of the extension to query, for example "RANDR". This is case
+ * sensitive!
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Determines if the specified extension is present on this X11 server.
+ * 
+ * Every extension has a unique `major_opcode` to identify requests, the minor
+ * opcodes and request formats are extension-specific. If the extension provides
+ * events and errors, the `first_event` and `first_error` fields in the reply are
+ * set accordingly.
+ * 
+ * There should rarely be a need to use this request directly, XCB provides the
+ * `xcb_get_extension_data` function instead.
  * 
  */
 
@@ -13739,11 +15319,23 @@ xcb_query_extension (xcb_connection_t *c  /**< */,
                      const char       *name  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief check if extension is present
+ *
  * @param c The connection
+ * @param name_len The length of \a name in bytes.
+ * @param name The name of the extension to query, for example "RANDR". This is case
+ * sensitive!
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Determines if the specified extension is present on this X11 server.
+ * 
+ * Every extension has a unique `major_opcode` to identify requests, the minor
+ * opcodes and request formats are extension-specific. If the extension provides
+ * events and errors, the `first_event` and `first_error` fields in the reply are
+ * set accordingly.
+ * 
+ * There should rarely be a need to use this request directly, XCB provides the
+ * `xcb_get_extension_data` function instead.
  * 
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -13801,7 +15393,7 @@ int
 xcb_list_extensions_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13822,7 +15414,7 @@ xcb_list_extensions_cookie_t
 xcb_list_extensions (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13906,7 +15498,7 @@ int
 xcb_change_keyboard_mapping_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13938,7 +15530,7 @@ xcb_change_keyboard_mapping_checked (xcb_connection_t   *c  /**< */,
                                      const xcb_keysym_t *keysyms  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13970,7 +15562,7 @@ int
 xcb_get_keyboard_mapping_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -13995,7 +15587,7 @@ xcb_get_keyboard_mapping (xcb_connection_t *c  /**< */,
                           uint8_t           count  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14096,7 +15688,7 @@ int
 xcb_change_keyboard_control_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14124,7 +15716,7 @@ xcb_change_keyboard_control_checked (xcb_connection_t *c  /**< */,
                                      const uint32_t   *value_list  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14149,7 +15741,7 @@ xcb_change_keyboard_control (xcb_connection_t *c  /**< */,
                              const uint32_t   *value_list  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14170,7 +15762,7 @@ xcb_get_keyboard_control_cookie_t
 xcb_get_keyboard_control (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14225,7 +15817,7 @@ xcb_get_keyboard_control_reply (xcb_connection_t                   *c  /**< */,
                                 xcb_generic_error_t               **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14251,7 +15843,7 @@ xcb_bell_checked (xcb_connection_t *c  /**< */,
                   int8_t            percent  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14274,7 +15866,7 @@ xcb_bell (xcb_connection_t *c  /**< */,
           int8_t            percent  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14308,7 +15900,7 @@ xcb_change_pointer_control_checked (xcb_connection_t *c  /**< */,
                                     uint8_t           do_threshold  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14339,7 +15931,7 @@ xcb_change_pointer_control (xcb_connection_t *c  /**< */,
                             uint8_t           do_threshold  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14360,7 +15952,7 @@ xcb_get_pointer_control_cookie_t
 xcb_get_pointer_control (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14415,7 +16007,7 @@ xcb_get_pointer_control_reply (xcb_connection_t                  *c  /**< */,
                                xcb_generic_error_t              **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14447,7 +16039,7 @@ xcb_set_screen_saver_checked (xcb_connection_t *c  /**< */,
                               uint8_t           allow_exposures  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14476,7 +16068,7 @@ xcb_set_screen_saver (xcb_connection_t *c  /**< */,
                       uint8_t           allow_exposures  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14497,7 +16089,7 @@ xcb_get_screen_saver_cookie_t
 xcb_get_screen_saver (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14555,7 +16147,7 @@ int
 xcb_change_hosts_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14587,7 +16179,7 @@ xcb_change_hosts_checked (xcb_connection_t *c  /**< */,
                           const uint8_t    *address  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14704,7 +16296,7 @@ int
 xcb_list_hosts_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14725,7 +16317,7 @@ xcb_list_hosts_cookie_t
 xcb_list_hosts (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14806,7 +16398,7 @@ xcb_list_hosts_reply (xcb_connection_t         *c  /**< */,
                       xcb_generic_error_t     **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14832,7 +16424,7 @@ xcb_set_access_control_checked (xcb_connection_t *c  /**< */,
                                 uint8_t           mode  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14855,7 +16447,7 @@ xcb_set_access_control (xcb_connection_t *c  /**< */,
                         uint8_t           mode  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14881,7 +16473,7 @@ xcb_set_close_down_mode_checked (xcb_connection_t *c  /**< */,
                                  uint8_t           mode  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14904,11 +16496,17 @@ xcb_set_close_down_mode (xcb_connection_t *c  /**< */,
                          uint8_t           mode  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief kills a client
+ *
  * @param c The connection
+ * @param resource Any resource belonging to the client (for example a Window), used to identify
+ * the client connection.
+ * \n
+ * The special value of `XCB_KILL_ALL_TEMPORARY`, the resources of all clients
+ * that have terminated in `RetainTemporary` (TODO) are destroyed.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Forces a close down of the client that created the specified \a resource.
  * 
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -14930,11 +16528,17 @@ xcb_kill_client_checked (xcb_connection_t *c  /**< */,
                          uint32_t          resource  /**< */);
 
 /**
- * Delivers a request to the X server
+ * @brief kills a client
+ *
  * @param c The connection
+ * @param resource Any resource belonging to the client (for example a Window), used to identify
+ * the client connection.
+ * \n
+ * The special value of `XCB_KILL_ALL_TEMPORARY`, the resources of all clients
+ * that have terminated in `RetainTemporary` (TODO) are destroyed.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Forces a close down of the client that created the specified \a resource.
  * 
  */
 
@@ -14956,7 +16560,7 @@ int
 xcb_rotate_properties_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -14988,7 +16592,7 @@ xcb_rotate_properties_checked (xcb_connection_t *c  /**< */,
                                const xcb_atom_t *atoms  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -15017,7 +16621,7 @@ xcb_rotate_properties (xcb_connection_t *c  /**< */,
                        const xcb_atom_t *atoms  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -15043,7 +16647,7 @@ xcb_force_screen_saver_checked (xcb_connection_t *c  /**< */,
                                 uint8_t           mode  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -15069,7 +16673,7 @@ int
 xcb_set_pointer_mapping_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -15094,7 +16698,7 @@ xcb_set_pointer_mapping (xcb_connection_t *c  /**< */,
                          const uint8_t    *map  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -15156,7 +16760,7 @@ int
 xcb_get_pointer_mapping_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -15177,7 +16781,7 @@ xcb_get_pointer_mapping_cookie_t
 xcb_get_pointer_mapping (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -15274,7 +16878,7 @@ int
 xcb_set_modifier_mapping_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -15299,7 +16903,7 @@ xcb_set_modifier_mapping (xcb_connection_t    *c  /**< */,
                           const xcb_keycode_t *keycodes  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -15361,7 +16965,7 @@ int
 xcb_get_modifier_mapping_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -15382,7 +16986,7 @@ xcb_get_modifier_mapping_cookie_t
 xcb_get_modifier_mapping (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -15476,7 +17080,7 @@ xcb_get_modifier_mapping_reply (xcb_connection_t                   *c  /**< */,
                                 xcb_generic_error_t               **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -15500,7 +17104,7 @@ xcb_void_cookie_t
 xcb_no_operation_checked (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *

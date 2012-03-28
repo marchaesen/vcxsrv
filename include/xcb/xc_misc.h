@@ -120,7 +120,7 @@ typedef struct xcb_xc_misc_get_xid_list_reply_t {
 } xcb_xc_misc_get_xid_list_reply_t;
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -145,7 +145,7 @@ xcb_xc_misc_get_version (xcb_connection_t *c  /**< */,
                          uint16_t          client_minor_version  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -204,7 +204,7 @@ xcb_xc_misc_get_version_reply (xcb_connection_t                  *c  /**< */,
                                xcb_generic_error_t              **e  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -225,7 +225,7 @@ xcb_xc_misc_get_xid_range_cookie_t
 xcb_xc_misc_get_xid_range (xcb_connection_t *c  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -283,7 +283,7 @@ int
 xcb_xc_misc_get_xid_list_sizeof (const void  *_buffer  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
@@ -306,7 +306,7 @@ xcb_xc_misc_get_xid_list (xcb_connection_t *c  /**< */,
                           uint32_t          count  /**< */);
 
 /**
- * Delivers a request to the X server
+ *
  * @param c The connection
  * @return A cookie
  *
