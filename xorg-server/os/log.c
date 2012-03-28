@@ -610,8 +610,12 @@ FatalError(const char *f, ...)
     else
         ErrorF("\nFatal server error:\n");
 
+#ifdef _MSC_VER
+    va_start(args, f);
+#else
     /* Make a copy for OsVendorFatalError */
     va_copy(args2, args);
+#endif
 
 #ifdef __APPLE__
     {
@@ -629,6 +633,9 @@ FatalError(const char *f, ...)
     VErrorF(f, args);
     va_end(args);
     ErrorF("\n");
+#ifdef _MSC_VER
+    va_start(args2, f);
+#endif
     if (!beenhere)
         OsVendorFatalError(f, args2);
     va_end(args2);
