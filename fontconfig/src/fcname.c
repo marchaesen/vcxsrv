@@ -572,9 +572,10 @@ FcNameBool (const FcChar8 *v, FcBool *result)
 }
 
 static FcValue
-FcNameConvert (FcType type, FcChar8 *string, FcMatrix *m)
+FcNameConvert (FcType type, FcChar8 *string)
 {
     FcValue	v;
+    FcMatrix	m;
 
     v.type = type;
     switch (v.type) {
@@ -583,7 +584,7 @@ FcNameConvert (FcType type, FcChar8 *string, FcMatrix *m)
 	    v.u.i = atoi ((char *) string);
 	break;
     case FcTypeString:
-	v.u.s = FcStrStaticName(string);
+	v.u.s = FcSharedStr (string);
 	if (!v.u.s)
 	    v.type = FcTypeVoid;
 	break;
@@ -595,8 +596,8 @@ FcNameConvert (FcType type, FcChar8 *string, FcMatrix *m)
 	v.u.d = strtod ((char *) string, 0);
 	break;
     case FcTypeMatrix:
-	v.u.m = m;
-	sscanf ((char *) string, "%lg %lg %lg %lg", &m->xx, &m->xy, &m->yx, &m->yy);
+	sscanf ((char *) string, "%lg %lg %lg %lg", &m.xx, &m.xy, &m.yx, &m.yy);
+	v.u.m = FcMatrixCopy (&m);
 	break;
     case FcTypeCharSet:
 	v.u.c = FcNameParseCharSet (string);
@@ -648,7 +649,6 @@ FcNameParse (const FcChar8 *name)
     FcChar8		*e;
     FcChar8		delim;
     FcValue		v;
-    FcMatrix		m;
     const FcObjectType	*t;
     const FcConstant	*c;
 
@@ -699,31 +699,13 @@ FcNameParse (const FcChar8 *name)
 		    name = FcNameFindNext (name, ":,", save, &delim);
 		    if (t)
 		    {
-			v = FcNameConvert (t->type, save, &m);
+			v = FcNameConvert (t->type, save);
 			if (!FcPatternAdd (pat, t->object, v, FcTrue))
 			{
-			    switch (v.type) {
-			    case FcTypeCharSet:
-				FcCharSetDestroy ((FcCharSet *) v.u.c);
-				break;
-			    case FcTypeLangSet:
-				FcLangSetDestroy ((FcLangSet *) v.u.l);
-				break;
-			    default:
-				break;
-			    }
+			    FcValueDestroy (v);
 			    goto bail2;
 			}
-			switch (v.type) {
-			case FcTypeCharSet:
-			    FcCharSetDestroy ((FcCharSet *) v.u.c);
-			    break;
-			case FcTypeLangSet:
-			    FcLangSetDestroy ((FcLangSet *) v.u.l);
-			    break;
-			default:
-			    break;
-			}
+			FcValueDestroy (v);
 		    }
 		    if (delim != ',')
 			break;

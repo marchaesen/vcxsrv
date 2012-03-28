@@ -67,13 +67,16 @@ FcObjectSetAdd (FcObjectSet *os, const char *object)
     low = 0;
     mid = 0;
     c = 1;
-    object = (char *)FcStrStaticName ((FcChar8 *)object);
+    object = (char *)FcSharedStr ((FcChar8 *)object);
     while (low <= high)
     {
 	mid = (low + high) >> 1;
 	c = os->objects[mid] - object;
 	if (c == 0)
+	{
+	    FcSharedStrFree ((FcChar8 *)object);
 	    return FcTrue;
+	}
 	if (c < 0)
 	    low = mid + 1;
 	else
@@ -91,8 +94,13 @@ FcObjectSetAdd (FcObjectSet *os, const char *object)
 void
 FcObjectSetDestroy (FcObjectSet *os)
 {
+    int i;
+
     if (os->objects)
     {
+	for (i = 0; i < os->nobject; i++)
+	    FcSharedStrFree ((FcChar8 *)os->objects[i]);
+
 	FcMemFree (FC_MEM_OBJECTPTR, os->sobject * sizeof (const char *));
 	free ((void *) os->objects);
     }

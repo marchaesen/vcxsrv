@@ -139,7 +139,7 @@ FcFini (void)
     if (_fcConfig)
 	FcConfigDestroy (_fcConfig);
 
-    FcPatternFini ();
+    FcObjectFini ();
     FcCacheFini ();
     if (FcDebug() & FC_DBG_MEMORY)
 	FcMemReport ();
@@ -221,7 +221,7 @@ static struct {
     { "vstack" },
     { "attr" },
     { "pstack" },
-    { "staticstr" },
+    { "sharedstr" },
 };
 
 static int  FcAllocCount, FcAllocMem;

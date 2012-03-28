@@ -906,8 +906,8 @@ fast_composite_add_n_8_8 (pixman_implementation_t *imp,
     do { *((p) + ((n) >> 5)) |= CREATE_BITMASK ((n) & 31); } while (0);
 
 static void
-fast_composite_add_1000_1000 (pixman_implementation_t *imp,
-                              pixman_composite_info_t *info)
+fast_composite_add_1_1 (pixman_implementation_t *imp,
+			pixman_composite_info_t *info)
 {
     PIXMAN_COMPOSITE_ARGS (info);
     uint32_t     *dst_line, *dst;
@@ -1839,7 +1839,7 @@ static const pixman_fast_path_t c_fast_paths[] =
     PIXMAN_STD_FAST_PATH (ADD, a8r8g8b8, null, a8r8g8b8, fast_composite_add_8888_8888),
     PIXMAN_STD_FAST_PATH (ADD, a8b8g8r8, null, a8b8g8r8, fast_composite_add_8888_8888),
     PIXMAN_STD_FAST_PATH (ADD, a8, null, a8, fast_composite_add_8_8),
-    PIXMAN_STD_FAST_PATH (ADD, a1, null, a1, fast_composite_add_1000_1000),
+    PIXMAN_STD_FAST_PATH (ADD, a1, null, a1, fast_composite_add_1_1),
     PIXMAN_STD_FAST_PATH_CA (ADD, solid, a8r8g8b8, a8r8g8b8, fast_composite_add_n_8888_8888_ca),
     PIXMAN_STD_FAST_PATH (ADD, solid, a8, a8, fast_composite_add_n_8_8),
     PIXMAN_STD_FAST_PATH (SRC, solid, null, a8r8g8b8, fast_composite_solid_fill),

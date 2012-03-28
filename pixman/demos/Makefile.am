@@ -18,7 +18,9 @@ DEMOS =				\
 	screen-test		\
 	convolution-test	\
 	trap-test		\
-	tri-test
+	tri-test		\
+	quad2quad		\
+	checkerboard
 
 gradient_test_SOURCES = gradient-test.c $(GTK_UTILS)
 alpha_test_SOURCES = alpha-test.c $(GTK_UTILS)
@@ -30,6 +32,7 @@ screen_test_SOURCES = screen-test.c $(GTK_UTILS)
 convolution_test_SOURCES = convolution-test.c $(GTK_UTILS)
 radial_test_SOURCES = radial-test.c ../test/utils.c ../test/utils.h $(GTK_UTILS)
 tri_test_SOURCES = tri-test.c ../test/utils.c ../test/utils.h $(GTK_UTILS)
+checkerboard_SOURCES = checkerboard.c $(GTK_UTILS)
 
 noinst_PROGRAMS = $(DEMOS)
 

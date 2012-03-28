@@ -103,7 +103,7 @@
 #define FC_MEM_VSTACK	    26
 #define FC_MEM_ATTR	    27
 #define FC_MEM_PSTACK	    28
-#define FC_MEM_STATICSTR    29
+#define FC_MEM_SHAREDSTR    29
 
 #define FC_MEM_NUM	    30
 
@@ -948,14 +948,14 @@ FcPatternObjectGetBool (const FcPattern *p, FcObject object, int n, FcBool *b);
 FcPrivate FcResult
 FcPatternObjectGetLangSet (const FcPattern *p, FcObject object, int n, FcLangSet **ls);
 
-FcPrivate void
-FcPatternFini (void);
-
 FcPrivate FcBool
 FcPatternAppend (FcPattern *p, FcPattern *s);
 
 FcPrivate const FcChar8 *
-FcStrStaticName (const FcChar8 *name);
+FcSharedStr (const FcChar8 *name);
+
+FcPrivate FcBool
+FcSharedStrFree (const FcChar8 *name);
 
 FcPrivate FcChar32
 FcStringHash (const FcChar8 *s);
