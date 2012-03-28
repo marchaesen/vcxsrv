@@ -691,7 +691,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_DRAW_BUFFER11_ARB:
 /*      case GL_DRAW_BUFFER11_NV:*/
         case GL_DRAW_BUFFER12_ARB:
-/*      case GL_DRAW_BUFFER12_ATI:*/
+/*      case GL_DRAW_BUFFER12_NV:*/
         case GL_DRAW_BUFFER13_ARB:
 /*      case GL_DRAW_BUFFER13_ATI:*/
         case GL_DRAW_BUFFER14_ARB:

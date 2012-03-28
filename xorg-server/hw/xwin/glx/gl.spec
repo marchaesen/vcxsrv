@@ -7,13 +7,13 @@
 # This document is licensed under the SGI Free Software B License Version
 # 2.0. For details, see http://oss.sgi.com/projects/FreeB/ .
 #
-# $Revision: 15267 $ on $Date: 2011-08-08 00:37:03 -0700 (Mon, 08 Aug 2011) $
+# $Revision: 17214 $ on $Date: 2012-03-26 17:44:23 -0700 (Mon, 26 Mar 2012) $
 
 required-props:
 # Description of a parameter
 param:		retval retained
 # Display list flags
-dlflags:	notlistable handcode
+dlflags:	notlistable handcode prepad
 # GLX implementation flags
 glxflags:	client-intercept client-handcode server-handcode EXT SGI ignore ARB
 # Vector ('v') equivalent form of a command taking 1-4 explicit xyzw/rgba arguments
@@ -21,7 +21,7 @@ vectorequiv:	*
 # Category this function falls in. While there are many categories for
 # early GL 1.0 functions, later functions just have a core version
 # (e.g. VERSION_major_minor) or extension name for the category.
-category:	display-list drawing drawing-control feedback framebuf misc modeling pixel-op pixel-rw state-req xform VERSION_1_0 VERSION_1_0_DEPRECATED VERSION_1_1 VERSION_1_1_DEPRECATED VERSION_1_2 VERSION_1_2_DEPRECATED VERSION_1_3 VERSION_1_3_DEPRECATED VERSION_1_4 VERSION_1_4_DEPRECATED VERSION_1_5 VERSION_2_0 VERSION_2_1 VERSION_3_0 VERSION_3_0_DEPRECATED VERSION_3_1 VERSION_3_2 VERSION_3_3 VERSION_4_0 VERSION_4_1 VERSION_4_1_DEPRECATED ATI_element_array ATI_envmap_bumpmap ATI_fragment_shader ATI_pn_triangles ATI_vertex_array_object ATI_vertex_streams EXT_blend_color EXT_blend_minmax EXT_convolution EXT_copy_texture EXT_histogram EXT_polygon_offset EXT_subtexture EXT_texture3D EXT_texture_object EXT_vertex_array EXT_vertex_shader SGIS_detail_texture SGIS_multisample SGIS_pixel_texture ARB_point_parameters EXT_point_parameters SGIS_point_parameters SGIS_sharpen_texture SGIS_texture4D SGIS_texture_filter4 SGIX_async SGIX_flush_raster SGIX_fragment_lighting SGIX_framezoom SGIX_igloo_interface SGIX_instruments SGIX_list_priority SGIX_pixel_texture SGIX_polynomial_ffd SGIX_reference_plane SGIX_sprite SGIX_tag_sample_buffer SGI_color_table ARB_multitexture ARB_multisample ARB_texture_compression ARB_transpose_matrix ARB_vertex_blend ARB_matrix_palette EXT_compiled_vertex_array EXT_cull_vertex EXT_index_func EXT_index_material EXT_draw_range_elements EXT_vertex_weighting INGR_blend_func_separate NV_evaluators NV_fence NV_occlusion_query NV_point_sprite NV_register_combiners NV_register_combiners2 NV_vertex_array_range NV_vertex_program NV_vertex_program1_1_dcc MESA_resize_buffers MESA_window_pos PGI_misc_hints EXT_fog_coord EXT_blend_func_separate EXT_color_subtable EXT_coordinate_frame EXT_light_texture EXT_multi_draw_arrays EXT_paletted_texture EXT_pixel_transform EXT_secondary_color EXT_texture_perturb_normal HP_image_transform IBM_multimode_draw_arrays IBM_vertex_array_lists INTEL_parallel_arrays SUNX_constant_data SUN_global_alpha SUN_mesh_array SUN_triangle_list SUN_vertex 3DFX_tbuffer EXT_multisample SGIS_fog_function SGIS_texture_color_mask ARB_window_pos EXT_stencil_two_side EXT_depth_bounds_test EXT_blend_equation_separate ARB_vertex_program ARB_fragment_program ARB_vertex_buffer_object ARB_occlusion_query ARB_shader_objects ARB_vertex_shader ARB_fragment_shader S3_s3tc ATI_draw_buffers ATI_texture_env_combine3 ATI_texture_float NV_float_buffer NV_fragment_program NV_half_float NV_pixel_data_range NV_primitive_restart NV_texture_expand_normal NV_texture_expand_normal NV_vertex_program2 APPLE_element_array APPLE_fence APPLE_vertex_array_object APPLE_vertex_array_range ATI_draw_buffers NV_fragment_program NV_half_float NV_pixel_data_range NV_primitive_restart ATI_map_object_buffer ATI_separate_stencil ATI_vertex_attrib_array_object ARB_draw_buffers ARB_texture_rectangle ARB_color_buffer_float EXT_framebuffer_object GREMEDY_string_marker EXT_stencil_clear_tag EXT_framebuffer_blit EXT_framebuffer_multisample MESAX_texture_stack EXT_timer_query EXT_gpu_program_parameters APPLE_flush_buffer_range NV_gpu_program4 NV_geometry_program4 EXT_geometry_shader4 NV_vertex_program4 EXT_gpu_shader4 EXT_draw_instanced EXT_texture_buffer_object NV_depth_buffer_float NV_framebuffer_multisample_coverage NV_parameter_buffer_object EXT_draw_buffers2 NV_transform_feedback EXT_bindable_uniform EXT_texture_integer GREMEDY_frame_terminator NV_conditional_render NV_present_video EXT_transform_feedback ARB_depth_buffer_float ARB_draw_instanced ARB_framebuffer_object ARB_framebuffer_sRGB ARB_geometry_shader4 ARB_half_float_vertex ARB_instanced_arrays ARB_map_buffer_range ARB_texture_buffer_object ARB_texture_compression_rgtc ARB_texture_rg ARB_vertex_array_object EXT_direct_state_access EXT_vertex_array_bgra EXT_texture_swizzle NV_explicit_multisample NV_transform_feedback2 ATI_meminfo AMD_performance_monitor AMD_vertex_shader_tesselator EXT_provoking_vertex ARB_uniform_buffer_object ARB_copy_buffer EXT_texture_snorm AMD_draw_buffers_blend APPLE_texture_range APPLE_float_pixels APPLE_vertex_program_evaluators APPLE_aux_depth_stencil APPLE_object_purgeable APPLE_row_bytes ARB_draw_elements_base_vertex ARB_provoking_vertex ARB_sync ARB_texture_multisample ARB_draw_buffers_blend ARB_sample_shading NV_video_capture NV_copy_image EXT_separate_shader_objects NV_parameter_buffer_object2 NV_shader_buffer_load NV_vertex_buffer_unified_memory NV_texture_barrier ARB_shading_language_include ARB_blend_func_extended ARB_sampler_objects ARB_timer_query ARB_vertex_type_2_10_10_10_rev ARB_draw_indirect ARB_gpu_shader_fp64 ARB_shader_subroutine ARB_tessellation_shader ARB_transform_feedback2 ARB_transform_feedback3 AMD_conservative_depth NV_vdpau_interop ARB_ES2_compatibility ARB_get_program_binary ARB_separate_shader_objects ARB_vertex_attrib_64bit ARB_viewport_array ARB_cl_event ARB_debug_output ARB_robustness EXT_shader_image_load_store EXT_vertex_attrib_64bit NV_gpu_shader5 NV_vertex_attrib_integer_64bit AMD_name_gen_delete AMD_debug_output NV_vdpau_interop NV_gpu_program5 NV_texture_multisample AMD_sample_positions EXT_x11_sync_object AMD_multi_draw_indirect ARB_base_instance ARB_transform_feedback_instanced ARB_internalformat_query ARB_shader_atomic_counters ARB_shader_image_load_store ARB_texture_storage commands
+category:	display-list drawing drawing-control feedback framebuf misc modeling pixel-op pixel-rw state-req xform VERSION_1_0 VERSION_1_0_DEPRECATED VERSION_1_1 VERSION_1_1_DEPRECATED VERSION_1_2 VERSION_1_2_DEPRECATED VERSION_1_3 VERSION_1_3_DEPRECATED VERSION_1_4 VERSION_1_4_DEPRECATED VERSION_1_5 VERSION_2_0 VERSION_2_1 VERSION_3_0 VERSION_3_0_DEPRECATED VERSION_3_1 VERSION_3_2 VERSION_3_3 VERSION_4_0 VERSION_4_1 VERSION_4_1_DEPRECATED ATI_element_array ATI_envmap_bumpmap ATI_fragment_shader ATI_pn_triangles ATI_vertex_array_object ATI_vertex_streams EXT_blend_color EXT_blend_minmax EXT_convolution EXT_copy_texture EXT_histogram EXT_polygon_offset EXT_subtexture EXT_texture3D EXT_texture_object EXT_vertex_array EXT_vertex_shader SGIS_detail_texture SGIS_multisample SGIS_pixel_texture ARB_point_parameters EXT_point_parameters SGIS_point_parameters SGIS_sharpen_texture SGIS_texture4D SGIS_texture_filter4 SGIX_async SGIX_flush_raster SGIX_fragment_lighting SGIX_framezoom SGIX_igloo_interface SGIX_instruments SGIX_list_priority SGIX_pixel_texture SGIX_polynomial_ffd SGIX_reference_plane SGIX_sprite SGIX_tag_sample_buffer SGI_color_table ARB_multitexture ARB_multisample ARB_texture_compression ARB_transpose_matrix ARB_vertex_blend ARB_matrix_palette EXT_compiled_vertex_array EXT_cull_vertex EXT_index_func EXT_index_material EXT_draw_range_elements EXT_vertex_weighting INGR_blend_func_separate NV_evaluators NV_fence NV_occlusion_query NV_point_sprite NV_register_combiners NV_register_combiners2 NV_vertex_array_range NV_vertex_program NV_vertex_program1_1_dcc MESA_resize_buffers MESA_window_pos PGI_misc_hints EXT_fog_coord EXT_blend_func_separate EXT_color_subtable EXT_coordinate_frame EXT_light_texture EXT_multi_draw_arrays EXT_paletted_texture EXT_pixel_transform EXT_secondary_color EXT_texture_perturb_normal HP_image_transform IBM_multimode_draw_arrays IBM_vertex_array_lists INTEL_parallel_arrays SUNX_constant_data SUN_global_alpha SUN_mesh_array SUN_triangle_list SUN_vertex 3DFX_tbuffer EXT_multisample SGIS_fog_function SGIS_texture_color_mask ARB_window_pos EXT_stencil_two_side EXT_depth_bounds_test EXT_blend_equation_separate ARB_vertex_program ARB_fragment_program ARB_vertex_buffer_object ARB_occlusion_query ARB_shader_objects ARB_vertex_shader ARB_fragment_shader S3_s3tc ATI_draw_buffers ATI_texture_env_combine3 ATI_texture_float NV_float_buffer NV_fragment_program NV_half_float NV_pixel_data_range NV_primitive_restart NV_texture_expand_normal NV_texture_expand_normal NV_vertex_program2 APPLE_element_array APPLE_fence APPLE_vertex_array_object APPLE_vertex_array_range ATI_draw_buffers NV_fragment_program NV_half_float NV_pixel_data_range NV_primitive_restart ATI_map_object_buffer ATI_separate_stencil ATI_vertex_attrib_array_object ARB_draw_buffers ARB_texture_rectangle ARB_color_buffer_float EXT_framebuffer_object GREMEDY_string_marker EXT_stencil_clear_tag EXT_framebuffer_blit EXT_framebuffer_multisample MESAX_texture_stack EXT_timer_query EXT_gpu_program_parameters APPLE_flush_buffer_range NV_gpu_program4 NV_geometry_program4 EXT_geometry_shader4 NV_vertex_program4 EXT_gpu_shader4 EXT_draw_instanced EXT_texture_buffer_object NV_depth_buffer_float NV_framebuffer_multisample_coverage NV_parameter_buffer_object EXT_draw_buffers2 NV_transform_feedback EXT_bindable_uniform EXT_texture_integer GREMEDY_frame_terminator NV_conditional_render NV_present_video EXT_transform_feedback ARB_depth_buffer_float ARB_draw_instanced ARB_framebuffer_object ARB_framebuffer_sRGB ARB_geometry_shader4 ARB_half_float_vertex ARB_instanced_arrays ARB_map_buffer_range ARB_texture_buffer_object ARB_texture_compression_rgtc ARB_texture_rg ARB_vertex_array_object EXT_direct_state_access EXT_vertex_array_bgra EXT_texture_swizzle NV_explicit_multisample NV_transform_feedback2 ATI_meminfo AMD_performance_monitor AMD_vertex_shader_tesselator EXT_provoking_vertex ARB_uniform_buffer_object ARB_copy_buffer EXT_texture_snorm AMD_draw_buffers_blend APPLE_texture_range APPLE_float_pixels APPLE_vertex_program_evaluators APPLE_aux_depth_stencil APPLE_object_purgeable APPLE_row_bytes ARB_draw_elements_base_vertex ARB_provoking_vertex ARB_sync ARB_texture_multisample ARB_draw_buffers_blend ARB_sample_shading NV_video_capture NV_copy_image EXT_separate_shader_objects NV_parameter_buffer_object2 NV_shader_buffer_load NV_vertex_buffer_unified_memory NV_texture_barrier ARB_shading_language_include ARB_blend_func_extended ARB_sampler_objects ARB_timer_query ARB_vertex_type_2_10_10_10_rev ARB_draw_indirect ARB_gpu_shader_fp64 ARB_shader_subroutine ARB_tessellation_shader ARB_transform_feedback2 ARB_transform_feedback3 AMD_conservative_depth NV_vdpau_interop ARB_ES2_compatibility ARB_get_program_binary ARB_separate_shader_objects ARB_vertex_attrib_64bit ARB_viewport_array ARB_cl_event ARB_debug_output ARB_robustness EXT_shader_image_load_store EXT_vertex_attrib_64bit NV_gpu_shader5 NV_vertex_attrib_integer_64bit AMD_name_gen_delete AMD_debug_output NV_vdpau_interop NV_gpu_program5 NV_texture_multisample AMD_sample_positions EXT_x11_sync_object AMD_multi_draw_indirect ARB_base_instance ARB_transform_feedback_instanced ARB_internalformat_query ARB_shader_atomic_counters ARB_shader_image_load_store ARB_texture_storage NV_path_rendering AMD_stencil_operation_extended NV_bindless_texture
 
 # Categories for extensions with no functions - need not be included now
 # ARB_texture_env_add ARB_texture_cube_map ARB_texture_border_clamp
@@ -63,7 +63,9 @@ category:	display-list drawing drawing-control feedback framebuf misc modeling p
 # AMD_seamless_cubemap_per_texture AMD_blend_minmax_factor
 # ARB_shading_language_420pack ARB_compressed_texture_pixel_storage
 # ARB_conservative_depth ARB_map_buffer_alignment
-# ARB_shading_language_packing
+# ARB_shading_language_packing AMD_pinned_memory
+# AMD_vertex_shader_viewport_index AMD_vertex_shader_layer
+# NV_shader_atomic_float
 
 # Core version in which a function was introduced, or against
 # which an extension can be implemented
@@ -26120,7 +26122,6 @@ GetTransformFeedbackVaryingNV(program, index, location)
 	alias		GetTransformFeedbackVarying
 
 # These commands require ARB_transform_feedback3
-#@@ void TransformFeedbackStreamAttribsNV(sizei count, const int * attribs, sizei nbuffers, const int *bufstreams, enum bufferMode);
 
 TransformFeedbackStreamAttribsNV(count, attribs, nbuffers, bufstreams, bufferMode)
 	return		void
@@ -29742,11 +29743,6 @@ newcategory: EXT_texture_snorm
 #
 ###############################################################################
 
-# void BlendFuncIndexedAMD(uint buf, enum src, enum dst)
-# void BlendFuncSeparateIndexedAMD(uint buf, enum srcRGB, enum dstRGB, enum srcAlpha, enum dstAlpha)
-# void BlendEquationIndexedAMD(uint buf, enum mode)
-# void BlendEquationSeparateIndexedAMD(uint buf, enum modeRGB, enum modeAlpha)
-
 BlendFuncIndexedAMD(buf, src, dst)
 	return		void
 	param		buf		UInt32 in value
@@ -30830,8 +30826,6 @@ VertexArrayVertexAttribLOffsetEXT(vaobj, buffer, index, size, type, stride, offs
 ###############################################################################
 
 # These commands require ARB_shader_subroutine
-#@@ void ProgramSubroutineParametersuivNV(enum target, sizei count, const uint *params);
-#@@ void GetProgramSubroutineParameteruivNV(enum target, uint index, uint *param);
 
 ProgramSubroutineParametersuivNV(target, count, params)
 	return		void
@@ -32025,4 +32019,756 @@ MultiDrawElementsIndirectAMD(mode, type, indirect, primcount, stride)
 
 # (none)
 newcategory: EXT_framebuffer_multisample_blit_scaled
+
+###############################################################################
+#
+# Extension #410
+# NV_path_rendering commands
+#
+###############################################################################
+
+# PATH NAME MANAGMENT
+
+GenPathsNV(range)
+	return		Path
+	param		range		    SizeI in value
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+DeletePathsNV(path, range)
+	return		void
+	param		path		Path in value
+	param		range		SizeI in value
+	dlflags		notlistable
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+IsPathNV(path)
+	return		Boolean
+	param		path	     Path in value
+	dlflags		notlistable
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+# PATH SPECIFICATION COMMANDS
+
+PathCommandsNV(path, numCommands, commands, numCoords, coordType, coords)
+	return		void
+	param		path		Path in value
+	param		numCommands	SizeI in value
+	param		commands	PathCommand in array [numCommands]
+	param		numCoords	SizeI in value
+	param		coordType	PathCoordType in value
+	param		coords		Void in array [COMPSIZE(numCoords,coordType)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathCoordsNV(path, numCoords, coordType, coords)
+	return		void
+	param		path		Path in value
+	param		numCoords	SizeI in value
+	param		coordType	PathCoordType in value
+	param		coords		Void in array [COMPSIZE(numCoords,coordType)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathSubCommandsNV(path, commandStart, commandsToDelete, numCommands, commands, numCoords, coordType, coords)
+	return		void
+	param		path		Path in value
+	param		commandStart	SizeI in value
+	param		commandsToDelete SizeI in value
+	param		numCommands	SizeI in value
+	param		commands	PathCommand in array [numCommands]
+	param		numCoords	SizeI in value
+	param		coordType	PathCoordType in value
+	param		coords		Void in array [COMPSIZE(numCoords,coordType)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathSubCoordsNV(path, coordStart, numCoords, coordType, coords)
+	return		void
+	param		path		Path in value
+	param		coordStart	SizeI in value
+	param		numCoords	SizeI in value
+	param		coordType	PathCoordType in value
+	param		coords		Void in array [COMPSIZE(numCoords,coordType)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathStringNV(path, format, length, pathString)
+	return		void
+	param		path		Path in value
+	param		format		PathStringFormat in value
+	param		length		SizeI in value
+	param		pathString	Void in array [length]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathGlyphsNV(firstPathName, fontTarget, fontName, fontStyle, numGlyphs, type, charcodes, handleMissingGlyphs, pathParameterTemplate, emScale)
+	return		void
+	param		firstPathName	Path in value
+	param		fontTarget	PathFontTarget in value
+	param		fontName	Void in array [COMPSIZE(fontTarget,fontName)]
+	param		fontStyle	PathFontStyle in value
+	param		numGlyphs	SizeI in value
+	param		type		PathElementType in value
+	param		charcodes	Void in array [COMPSIZE(numGlyphs,type,charcodes)]
+	param		handleMissingGlyphs PathHandleMissingGlyphs in value
+	param		pathParameterTemplate Path in value
+	param		emScale		Float32 in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathGlyphRangeNV(firstPathName, fontTarget, fontName, fontStyle, firstGlyph, numGlyphs, handleMissingGlyphs, pathParameterTemplate, emScale)
+	return		void
+	param		firstPathName	Path in value
+	param		fontTarget	PathFontTarget in value
+	param		fontName	Void in array [COMPSIZE(fontTarget,fontName)]
+	param		fontStyle	PathFontStyle in value
+	param		firstGlyph	UInt32 in value
+	param		numGlyphs	SizeI in value
+	param		handleMissingGlyphs PathHandleMissingGlyphs in value
+	param		pathParameterTemplate Path in value
+	param		emScale		Float32 in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+	dlflags		prepad
+
+WeightPathsNV(resultPath, numPaths, paths, weights)
+	return		void
+	param		resultPath	Path in value
+	param		numPaths	SizeI in value
+	param		paths		Path in array [numPaths]
+	param		weights		Float32 in array [numPaths]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+CopyPathNV(resultPath, srcPath)
+	return		void
+	param		resultPath	Path in value
+	param		srcPath		Path in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+InterpolatePathsNV(resultPath, pathA, pathB, weight)
+	return		void
+	param		resultPath	Path in value
+	param		pathA		Path in value
+	param		pathB		Path in value
+	param		weight		Float32 in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+TransformPathNV(resultPath, srcPath, transformType, transformValues)
+	return		void
+	param		resultPath	Path in value
+	param		srcPath		Path in value
+	param		transformType	PathTransformType in value
+	param		transformValues Float32 in array [COMPSIZE(transformType)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathParameterivNV(path, pname, value)
+	return		void
+	param		path		Path in value
+	param		pname		PathParameter in value
+	param		value		Int32 in array [COMPSIZE(pname)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathParameteriNV(path, pname, value)
+	return		void
+	param		path		Path in value
+	param		pname		PathParameter in value
+	param		value		Int32 in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathParameterfvNV(path, pname, value)
+	return		void
+	param		path		Path in value
+	param		pname		PathParameter in value
+	param		value		Float32 in array [COMPSIZE(pname)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathParameterfNV(path, pname, value)
+	return		void
+	param		path		Path in value
+	param		pname		PathParameter in value
+	param		value		Float32 in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathDashArrayNV(path, dashCount, dashArray)
+	return		void
+	param		path		Path in value
+	param		dashCount	SizeI in value
+	param		dashArray	Float32 in array [dashCount]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+# PATH STENCILING
+
+PathStencilFuncNV(func, ref, mask)
+	return		void
+	param		func		StencilFunction in value
+	param		ref		ClampedStencilValue in value
+	param		mask		MaskedStencilValue in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathStencilDepthOffsetNV(factor, units)
+	return		void
+	param		factor		Float32 in value
+	param		units		Float32 in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+StencilFillPathNV(path, fillMode, mask)
+	return		void
+	param		path		Path in value
+	param		fillMode	PathFillMode in value
+	param		mask		MaskedStencilValue in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+StencilStrokePathNV(path, reference, mask)
+	return		void
+	param		path		Path in value
+	param		reference	StencilValue in value
+	param		mask		MaskedStencilValue in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+StencilFillPathInstancedNV(numPaths, pathNameType, paths, pathBase, fillMode, mask, transformType, transformValues)
+	return		void
+	param		numPaths	SizeI in value
+	param		pathNameType	PathElementType in value
+	param		paths		PathElement in array [COMPSIZE(numPaths,pathNameType,paths)]
+	param		pathBase	Path in value
+	param		fillMode	PathFillMode in value
+	param		mask		MaskedStencilValue in value
+	param		transformType	PathTransformType in value
+	param		transformValues Float32 in array [COMPSIZE(numPaths,transformType)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+StencilStrokePathInstancedNV(numPaths, pathNameType, paths, pathBase, reference, mask, transformType, transformValues)
+	return		void
+	param		numPaths	SizeI in value
+	param		pathNameType	PathElementType in value
+	param		paths		PathElement in array [COMPSIZE(numPaths,pathNameType,paths)]
+	param		pathBase	Path in value
+	param		reference	StencilValue in value
+	param		mask		MaskedStencilValue in value
+	param		transformType	PathTransformType in value
+	param		transformValues Float32 in array [COMPSIZE(numPaths,transformType)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+# PATH COVERING
+
+PathCoverDepthFuncNV(func)
+	return		void
+	param		func		DepthFunction in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathColorGenNV(color, genMode, colorFormat, coeffs)
+	return		void
+	param		color		PathColor in value
+	param		genMode		PathGenMode in value
+	param		colorFormat	PathColorFormat in value
+	param		coeffs		Float32 in array [COMPSIZE(genMode,colorFormat)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathTexGenNV(texCoordSet, genMode, components, coeffs)
+	return		void
+	param		texCoordSet	PathColor in value
+	param		genMode		PathGenMode in value
+	param		components	Int32 in value
+	param		coeffs		Float32 in array [COMPSIZE(genMode,components)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+PathFogGenNV(genMode)
+	return		void
+	param		genMode		PathGenMode in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+CoverFillPathNV(path, coverMode)
+	return		void
+	param		path		Path in value
+	param		coverMode	PathCoverMode in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+CoverStrokePathNV(path, coverMode)
+	return		void
+	param		path		Path in value
+	param		coverMode	PathCoverMode in value
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+CoverFillPathInstancedNV(numPaths, pathNameType, paths, pathBase, coverMode, transformType, transformValues)
+	return		void
+	param		numPaths	SizeI in value
+	param		pathNameType	PathElementType in value
+	param		paths		PathElement in array [COMPSIZE(numPaths,pathNameType,paths)]
+	param		pathBase	Path in value
+	param		coverMode	PathCoverMode in value
+	param		transformType	PathTransformType in value
+	param		transformValues Float32 in array [COMPSIZE(numPaths,transformType)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+CoverStrokePathInstancedNV(numPaths, pathNameType, paths, pathBase, coverMode, transformType, transformValues)
+	return		void
+	param		numPaths	SizeI in value
+	param		pathNameType	PathElementType in value
+	param		paths		PathElement in array [COMPSIZE(numPaths,pathNameType,paths)]
+	param		pathBase	Path in value
+	param		coverMode	PathCoverMode in value
+	param		transformType	PathTransformType in value
+	param		transformValues Float32 in array [COMPSIZE(numPaths,transformType)]
+	category	NV_path_rendering
+	version		1.1
+	extension
+
+# PATH QUERIES
+
+GetPathParameterivNV(path, pname, value)
+	return		void
+	param		path		Path in value
+	param		pname		PathParameter in value
+	param		value		Int32 out array [4]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+GetPathParameterfvNV(path, pname, value)
+	return		void
+	param		path		Path in value
+	param		pname		PathParameter in value
+	param		value		Float32 out array [4]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+GetPathCommandsNV(path, commands)
+	return		void
+	param		path		Path in value
+	param		commands	PathCommand out array [COMPSIZE(path)]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+GetPathCoordsNV(path, coords)
+	return		void
+	param		path		Path in value
+	param		coords		Float32 out array [COMPSIZE(path)]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+GetPathDashArrayNV(path, dashArray)
+	return		void
+	param		path		Path in value
+	param		dashArray	Float32 out array [COMPSIZE(path)]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+GetPathMetricsNV(metricQueryMask, numPaths, pathNameType, paths, pathBase, stride, metrics)
+	return		void
+	param		metricQueryMask PathMetricMask in value
+	param		numPaths	SizeI in value
+	param		pathNameType	PathElementType in value
+	param		paths		PathElement in array [COMPSIZE(numPaths,pathNameType,paths)]
+	param		pathBase	Path in value
+	param		stride		SizeI in value
+	param		metrics		Float32 out array [COMPSIZE(metricQueryMask,numPaths,stride)]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+GetPathMetricRangeNV(metricQueryMask, firstPathName, numPaths, stride, metrics)
+	return		void
+	param		metricQueryMask PathMetricMask in value
+	param		firstPathName	Path in value
+	param		numPaths	SizeI in value
+	param		stride		SizeI in value
+	param		metrics		Float32 out array [COMPSIZE(metricQueryMask,numPaths,stride)]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+GetPathSpacingNV(pathListMode, numPaths, pathNameType, paths, pathBase, advanceScale, kerningScale, transformType, returnedSpacing)
+	return		void
+	param		pathListMode	PathListMode in value
+	param		numPaths	SizeI in value
+	param		pathNameType	PathElementType in value
+	param		paths		PathElement in array [COMPSIZE(numPaths,pathNameType,paths)]
+	param		pathBase	Path in value
+	param		advanceScale	Float32 in value
+	param		kerningScale	Float32 in value
+	param		transformType	PathTransformType in value
+	param		returnedSpacing Float32 out array [COMPSIZE(pathListMode,numPaths)]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+GetPathColorGenivNV(color, pname, value)
+	return		void
+	param		color		PathColor in value
+	param		pname		PathGenMode in value
+	param		value		Int32 out array [COMPSIZE(pname)]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+GetPathColorGenfvNV(color, pname, value)
+	return		void
+	param		color		PathColor in value
+	param		pname		PathGenMode in value
+	param		value		Float32 out array [COMPSIZE(pname)]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+GetPathTexGenivNV(texCoordSet, pname, value)
+	return		void
+	param		texCoordSet	TextureUnit in value
+	param		pname		PathGenMode in value
+	param		value		Int32 out array [COMPSIZE(pname)]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+GetPathTexGenfvNV(texCoordSet, pname, value)
+	return		void
+	param		texCoordSet	TextureUnit in value
+	param		pname		PathGenMode in value
+	param		value		Float32 out array [COMPSIZE(pname)]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+IsPointInFillPathNV(path, mask, x, y)
+	return		Boolean
+	param		path		Path in value
+	param		mask		MaskedStencilValue in value
+	param		x		Float32 in value
+	param		y		Float32 in value
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+IsPointInStrokePathNV(path, x, y)
+	return		Boolean
+	param		path		Path in value
+	param		x		Float32 in value
+	param		y		Float32 in value
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+GetPathLengthNV(path, startSegment, numSegments)
+	return		Float32
+	param		path		Path in value
+	param		startSegment	SizeI in value
+	param		numSegments	SizeI in value
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+PointAlongPathNV(path, startSegment, numSegments, distance, x, y, tangentX, tangentY)
+	return		Boolean
+	param		path		Path in value
+	param		startSegment	SizeI in value
+	param		numSegments	SizeI in value
+	param		distance	Float32 in value
+	param		x		Float32 out array [1]
+	param		y		Float32 out array [1]
+	param		tangentX	Float32 out array [1]
+	param		tangentY	Float32 out array [1]
+	category	NV_path_rendering
+	dlflags		notlistable
+	version		1.1
+	extension
+
+###############################################################################
+#
+# Extension #411
+# AMD_pinned_memory commands
+#
+###############################################################################
+
+# (none)
+newcategory: AMD_pinned_memory
+
+###############################################################################
+#
+# Extension #412 - WGL_NV_DX_interop2
+#
+###############################################################################
+
+###############################################################################
+#
+# Extension #413 - AMD_stencil_operation_extended
+#
+###############################################################################
+
+StencilOpValueAMD(face, value)
+	return		void
+	param		face		StencilFaceDirection in value
+	param		value		UInt32 in value
+	category	AMD_stencil_operation_extended
+	version		1.2
+	extension
+	glxropcode	?
+	glxflags	ignore
+	offset		?
+
+###############################################################################
+#
+# Extension #414 - GLX_EXT_swap_control_tear
+# Extension #415 - WGL_EXT_swap_control_tear
+#
+###############################################################################
+
+###############################################################################
+#
+# Extension #416
+# AMD_vertex_shader_viewport_index commands
+#
+###############################################################################
+
+# (none)
+newcategory: AMD_vertex_shader_viewport_index
+
+###############################################################################
+#
+# Extension #417
+# AMD_vertex_shader_layer commands
+#
+###############################################################################
+
+# (none)
+newcategory: AMD_vertex_shader_layer
+
+###############################################################################
+#
+# Extension #418
+# NV_bindless_texture commands
+#
+###############################################################################
+
+GetTextureHandleNV(texture)
+	return		UInt64
+	param		texture		UInt32 in value
+	category	NV_bindless_texture
+	dlflags		notlistable
+	version		4.0
+	extension
+	glxsingle	?
+	glxflags	ignore
+	offset		?
+
+GetTextureSamplerHandleNV(texture, sampler)
+	return		UInt64
+	param		texture		UInt32 in value
+	param		sampler		UInt32 in value
+	category	NV_bindless_texture
+	dlflags		notlistable
+	version		4.0
+	extension
+	glxsingle	?
+	glxflags	ignore
+	offset		?
+
+MakeTextureHandleResidentNV(handle)
+	return		void
+	param		handle		UInt64 in value
+	category	NV_bindless_texture
+	version		4.0
+	extension
+	glxropcode	?
+	glxflags	ignore
+	offset		?
+
+MakeTextureHandleNonResidentNV(handle)
+	return		void
+	param		handle		UInt64 in value
+	category	NV_bindless_texture
+	version		4.0
+	extension
+	glxropcode	?
+	glxflags	ignore
+	offset		?
+
+GetImageHandleNV(texture, level, layered, layer, format)
+	return		UInt64
+	param		texture		UInt32 in value
+	param		level		Int32 in value
+	param		layered		Boolean in value
+	param		layer		Int32 in value
+	param		format		GLenum in value
+	category	NV_bindless_texture
+	dlflags		notlistable
+	version		4.0
+	extension
+	glxsingle	?
+	glxflags	ignore
+	offset		?
+
+MakeImageHandleResidentNV(handle, access)
+	return		void
+	param		handle		UInt64 in value
+	param		access		GLenum in value
+	category	NV_bindless_texture
+	version		4.0
+	extension
+	glxropcode	?
+	glxflags	ignore
+	offset		?
+
+MakeImageHandleNonResidentNV(handle)
+	return		void
+	param		handle		UInt64 in value
+	category	NV_bindless_texture
+	version		4.0
+	extension
+	glxropcode	?
+	glxflags	ignore
+	offset		?
+
+UniformHandleui64NV(location, value)
+	return		void
+	param		location	Int32 in value
+	param		value		UInt64 in value
+	category	NV_bindless_texture
+	version		4.0
+	extension
+	glxropcode	?
+	glxflags	ignore
+	offset		?
+
+UniformHandleui64vNV(location, count, value)
+	return		void
+	param		location	Int32 in value
+	param		count		SizeI in value
+	param		value		UInt64 in array [count]
+	category	NV_bindless_texture
+	version		4.0
+	extension
+	glxropcode	?
+	glxflags	ignore
+	offset		?
+
+ProgramUniformHandleui64NV(program, location, value)
+	return		void
+	param		program		UInt32 in value
+	param		location	Int32 in value
+	param		value		UInt64 in value
+	category	NV_bindless_texture
+	version		4.0
+	extension
+	glxropcode	?
+	glxflags	ignore
+	offset		?
+
+ProgramUniformHandleui64vNV(program, location, count, values)
+	return		void
+	param		program		UInt32 in value
+	param		location	Int32 in value
+	param		count		SizeI in value
+	param		values		UInt64 in array [count]
+	category	NV_bindless_texture
+	version		4.0
+	extension
+	glxropcode	?
+	glxflags	ignore
+	offset		?
+
+IsTextureHandleResidentNV(handle)
+	return		Boolean
+	param		handle		UInt64 in value
+	category	NV_bindless_texture
+	version		4.0
+	extension
+	glxropcode	?
+	glxflags	ignore
+	offset		?
+
+IsImageHandleResidentNV(handle)
+	return		Boolean
+	param		handle		UInt64 in value
+	category	NV_bindless_texture
+	version		4.0
+	extension
+	glxropcode	?
+	glxflags	ignore
+	offset		?
+
+###############################################################################
+#
+# Extension #419
+# NV_shader_atomic_float commands
+#
+###############################################################################
+
+# (none)
+newcategory: NV_shader_atomic_float
 

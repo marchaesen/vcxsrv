@@ -326,3 +326,21 @@ vdpauSurfaceNV,*,*,		    GLvdpauSurfaceNV,*,*,
 # External API types
 cl_context,*,*,			    struct _cl_context *,*,*
 cl_event,*,*,			    struct _cl_event *,*,*
+Path,*,*,			    GLuint,*,*
+PathColor,*,*,			    GLenum,*,*
+PathColorFormat,*,*,		    GLenum,*,*
+PathCommand,*,*,		    GLubyte,*,*
+PathCoordType,*,*,		    GLenum,*,*
+PathCoverMode,*,*,		    GLenum,*,*
+PathElementType,*,*,		    GLenum,*,*
+PathElement,*,*,		    GLvoid,*,*
+PathFillMode,*,*,		    GLenum,*,*
+PathFontStyle,*,*,		    GLbitfield,*,*
+PathFontTarget,*,*,		    GLenum,*,*
+PathGenMode,*,*,		    GLenum,*,*
+PathListMode,*,*,		    GLenum,*,*
+PathMetricMask,*,*,		    GLbitfield,*,*
+PathParameter,*,*,		    GLenum,*,*
+PathStringFormat,*,*,		    GLenum,*,*
+PathTransformType,*,*,		    GLenum,*,*
+PathHandleMissingGlyphs,*,*,	    GLenum,*,*
