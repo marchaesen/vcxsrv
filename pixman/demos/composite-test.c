@@ -3,9 +3,10 @@
 #include <stdio.h>
 #include "pixman.h"
 #include "gtk-utils.h"
+#include "parrot.c"
 
-#define WIDTH	60
-#define HEIGHT	60
+#define WIDTH	80
+#define HEIGHT	80
 
 typedef struct {
     const char *name;
@@ -87,26 +88,24 @@ int
 main (int argc, char **argv)
 {
 #define d2f pixman_double_to_fixed
-    
+
     GtkWidget *window, *swindow;
     GtkWidget *table;
     uint32_t *dest = malloc (WIDTH * HEIGHT * 4);
     uint32_t *src = malloc (WIDTH * HEIGHT * 4);
-    pixman_image_t *src_img;
+    pixman_image_t *gradient, *parrot;
     pixman_image_t *dest_img;
-    pixman_point_fixed_t p1 = { -10 << 0, 0 };
-    pixman_point_fixed_t p2 = { WIDTH << 16, (HEIGHT - 10) << 16 };
-    uint16_t full = 0xcfff;
-    uint16_t low  = 0x5000;
-    uint16_t alpha = 0xffff;
+    pixman_point_fixed_t p1 = { -10 << 16, 10 << 16 };
+    pixman_point_fixed_t p2 = { (WIDTH + 10) << 16, (HEIGHT - 10) << 16 };
+    uint16_t alpha = 0xdddd;
     pixman_gradient_stop_t stops[6] =
     {
-	{ d2f (0.0), { full, low, low, alpha } },
-	{ d2f (0.25), { full, full, low, alpha } },
-	{ d2f (0.4), { low, full, low, alpha } },
-	{ d2f (0.6), { low, full, full, alpha } },
-	{ d2f (0.8), { low, low, full, alpha } },
-	{ d2f (1.0), { full, low, full, alpha } },
+	{ d2f (0.0), { 0xf2f2, 0x8787, 0x7d7d, alpha } },
+	{ d2f (0.22), { 0xf3f3, 0xeaea, 0x8383, alpha } },
+	{ d2f (0.42), { 0x6b6b, 0xc0c0, 0x7777, alpha } },
+	{ d2f (0.57), { 0x4b4b, 0xc9c9, 0xf5f5, alpha } },
+	{ d2f (0.75), { 0x6a6a, 0x7f7f, 0xbebe, alpha } },
+	{ d2f (1.0), { 0xeded, 0x8282, 0xb0b0, alpha } },
     };
 
     int i;
@@ -116,20 +115,20 @@ main (int argc, char **argv)
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
-    
+
     g_signal_connect (window, "delete-event",
 		      G_CALLBACK (gtk_main_quit),
 		      NULL);
     table = gtk_table_new (G_N_ELEMENTS (operators) / 6, 6, TRUE);
 
-    src_img = pixman_image_create_linear_gradient (&p1, &p2, stops,
-						   G_N_ELEMENTS (stops));
+    gradient = pixman_image_create_linear_gradient (&p1, &p2, stops, G_N_ELEMENTS (stops));
+    parrot = pixman_image_create_bits (PIXMAN_a8r8g8b8, WIDTH, HEIGHT, (uint32_t *)parrot_bits, WIDTH * 4);
 
-    pixman_image_set_repeat (src_img, PIXMAN_REPEAT_PAD);
-    
+    pixman_image_set_repeat (gradient, PIXMAN_REPEAT_PAD);
+
     dest_img = pixman_image_create_bits (PIXMAN_a8r8g8b8,
 					 WIDTH, HEIGHT,
-					 dest,
+					 NULL,
 					 WIDTH * 4);
     pixman_image_set_accessors (dest_img, reader, writer);
 
@@ -139,7 +138,6 @@ main (int argc, char **argv)
 	GdkPixbuf *pixbuf;
 	GtkWidget *vbox;
 	GtkWidget *label;
-	int j, k;
 
 	vbox = gtk_vbox_new (FALSE, 0);
 
@@ -147,12 +145,9 @@ main (int argc, char **argv)
 	gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 6);
 	gtk_widget_show (label);
 
-	for (j = 0; j < HEIGHT; ++j)
-	{
-	    for (k = 0; k < WIDTH; ++k)
-		dest[j * WIDTH + k] = 0x7f6f6f00;
-	}
-	pixman_image_composite (operators[i].op, src_img, NULL, dest_img,
+	pixman_image_composite (PIXMAN_OP_SRC, gradient, NULL, dest_img,
+				0, 0, 0, 0, 0, 0, WIDTH, HEIGHT);
+	pixman_image_composite (operators[i].op, parrot, NULL, dest_img,
 				0, 0, 0, 0, 0, 0, WIDTH, HEIGHT);
 	pixbuf = pixbuf_from_argb32 (pixman_image_get_data (dest_img), TRUE,
 				     WIDTH, HEIGHT, WIDTH * 4);
@@ -167,7 +162,7 @@ main (int argc, char **argv)
 	g_object_unref (pixbuf);
     }
 
-    pixman_image_unref (src_img);
+    pixman_image_unref (gradient);
     free (src);
     pixman_image_unref (dest_img);
     free (dest);
@@ -176,7 +171,7 @@ main (int argc, char **argv)
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (swindow),
 				    GTK_POLICY_AUTOMATIC,
 				    GTK_POLICY_AUTOMATIC);
-    
+
     gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (swindow), table);
     gtk_widget_show (table);
 

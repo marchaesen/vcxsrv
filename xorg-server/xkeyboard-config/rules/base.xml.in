@@ -3464,6 +3464,12 @@
             <_description>Japanese (Macintosh)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>dvorak</name>
+            <_description>Japanese (Dvorak)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>

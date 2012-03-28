@@ -1009,7 +1009,7 @@ FcConfigEvaluate (FcPattern *p, FcExpr *e)
 		case FcOpPlus:
 		    v.type = FcTypeString;
 		    str = FcStrPlus (vl.u.s, vr.u.s);
-		    v.u.s = FcStrStaticName (str);
+		    v.u.s = FcSharedStr (str);
 		    FcStrFree (str);
 			
 		    if (!v.u.s)

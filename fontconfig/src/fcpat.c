@@ -26,9 +26,6 @@
 #include <string.h>
 #include <assert.h>
 
-static FcBool
-FcHashOwnsName(const FcChar8 *name);
-
 FcPattern *
 FcPatternCreate (void)
 {
@@ -50,7 +47,7 @@ FcValueDestroy (FcValue v)
 {
     switch (v.type) {
     case FcTypeString:
-        if (!FcHashOwnsName(v.u.s))
+	if (!FcSharedStrFree (v.u.s))
             FcStrFree ((FcChar8 *) v.u.s);
 	break;
     case FcTypeMatrix:
@@ -98,7 +95,7 @@ FcValueSave (FcValue v)
 {
     switch (v.type) {
     case FcTypeString:
-	v.u.s = FcStrStaticName (v.u.s);
+	v.u.s = FcSharedStr (v.u.s);
 	if (!v.u.s)
 	    v.type = FcTypeVoid;
 	break;
@@ -131,7 +128,7 @@ FcValueListDestroy (FcValueListPtr l)
     {
 	switch (l->value.type) {
 	case FcTypeString:
-            if (!FcHashOwnsName((FcChar8 *)l->value.u.s))
+	    if (!FcSharedStrFree ((FcChar8 *)l->value.u.s))
                 FcStrFree ((FcChar8 *)l->value.u.s);
 	    break;
 	case FcTypeMatrix:
@@ -652,7 +649,7 @@ FcPatternObjectAddString (FcPattern *p, FcObject object, const FcChar8 *s)
     }
 
     v.type = FcTypeString;
-    v.u.s = FcStrStaticName(s);
+    v.u.s = s;
     return FcPatternObjectAdd (p, object, v, FcTrue);
 }
 
@@ -1026,27 +1023,39 @@ bail0:
     return NULL;
 }
 
-#define OBJECT_HASH_SIZE    31
+#define OBJECT_HASH_SIZE    251
 static struct objectBucket {
     struct objectBucket	*next;
     FcChar32		hash;
+    int			ref_count;
 } *FcObjectBuckets[OBJECT_HASH_SIZE];
 
-static FcBool
-FcHashOwnsName (const FcChar8 *name)
+FcBool
+FcSharedStrFree (const FcChar8 *name)
 {
     FcChar32		hash = FcStringHash (name);
     struct objectBucket	**p;
     struct objectBucket	*b;
+    int			size;
 
     for (p = &FcObjectBuckets[hash % OBJECT_HASH_SIZE]; (b = *p); p = &(b->next))
 	if (b->hash == hash && ((char *)name == (char *) (b + 1)))
+	{
+	    b->ref_count--;
+	    if (!b->ref_count)
+	    {
+		*p = b->next;
+		size = sizeof (struct objectBucket) + strlen ((char *)name) + 1;
+		FcMemFree (FC_MEM_SHAREDSTR, size + sizeof (int));
+		free (b);
+	    }
             return FcTrue;
+	}
     return FcFalse;
 }
 
 const FcChar8 *
-FcStrStaticName (const FcChar8 *name)
+FcSharedStr (const FcChar8 *name)
 {
     FcChar32		hash = FcStringHash (name);
     struct objectBucket	**p;
@@ -1055,7 +1064,10 @@ FcStrStaticName (const FcChar8 *name)
 
     for (p = &FcObjectBuckets[hash % OBJECT_HASH_SIZE]; (b = *p); p = &(b->next))
 	if (b->hash == hash && !strcmp ((char *)name, (char *) (b + 1)))
+	{
+	    b->ref_count++;
 	    return (FcChar8 *) (b + 1);
+	}
     size = sizeof (struct objectBucket) + strlen ((char *)name) + 1;
     /*
      * workaround valgrind warning because glibc takes advantage of how it knows memory is
@@ -1063,42 +1075,15 @@ FcStrStaticName (const FcChar8 *name)
      */
     size = (size + 3) & ~3;
     b = malloc (size);
-    FcMemAlloc (FC_MEM_STATICSTR, size);
+    FcMemAlloc (FC_MEM_SHAREDSTR, size);
     if (!b)
         return NULL;
     b->next = 0;
     b->hash = hash;
+    b->ref_count = 1;
     strcpy ((char *) (b + 1), (char *)name);
     *p = b;
     return (FcChar8 *) (b + 1);
-}
-
-static void
-FcStrStaticNameFini (void)
-{
-    int i, size;
-    struct objectBucket *b, *next;
-    char *name;
-
-    for (i = 0; i < OBJECT_HASH_SIZE; i++)
-    {
-	for (b = FcObjectBuckets[i]; b; b = next)
-	{
-	    next = b->next;
-	    name = (char *) (b + 1);
-	    size = sizeof (struct objectBucket) + strlen (name) + 1;
-	    FcMemFree (FC_MEM_STATICSTR, size + sizeof (int));
-	    free (b);
-	}
-	FcObjectBuckets[i] = 0;
-    }
-}
-
-void
-FcPatternFini (void)
-{
-    FcStrStaticNameFini ();
-    FcObjectFini ();
 }
 
 FcBool
