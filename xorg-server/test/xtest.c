@@ -32,6 +32,7 @@
 #include "exevents.h"
 #include "xkbsrv.h"
 #include "xserver-properties.h"
+#include "syncsrv.h"
 
 /**
  */
@@ -47,9 +48,15 @@ device_cursor_init(DeviceIntPtr dev, ScreenPtr screen)
 }
 
 static void
+device_cursor_cleanup(DeviceIntPtr dev, ScreenPtr screen)
+{
+}
+
+static void
 xtest_init_devices(void)
 {
     ScreenRec screen;
+    ClientRec server_client;
 
     /* random stuff that needs initialization */
     memset(&screen, 0, sizeof(screen));
@@ -60,8 +67,14 @@ xtest_init_devices(void)
     screen.width = 640;
     screen.height = 480;
     screen.DeviceCursorInitialize = device_cursor_init;
+    screen.DeviceCursorCleanup = device_cursor_cleanup;
     dixResetPrivates();
+    serverClient = &server_client;
+    InitClient(serverClient, 0, (pointer) NULL);
+    if (!InitClientResources(serverClient)) /* for root resources */
+        FatalError("couldn't init server resources");
     InitAtoms();
+    SyncExtensionInit();
 
     XkbInitPrivates();
 
