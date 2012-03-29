@@ -115,6 +115,7 @@ request_XIQueryVersion(int smaj, int smin, int cmaj, int cmin, int error)
     rc = ProcXIQueryVersion(&client);
     assert(rc == error);
 
+    client = init_client(request.length, &request);
     client.swapped = TRUE;
 
     swaps(&request.length);

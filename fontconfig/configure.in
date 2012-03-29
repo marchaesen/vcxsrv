@@ -496,7 +496,9 @@ AC_C_BIGENDIAN
 AC_CHECK_SIZEOF([void *])
 AC_CHECK_ALIGNOF([double])
 
-
+dnl include the header file for workaround of miscalculating size on autoconf
+dnl particularly for fat binaries
+AH_BOTTOM([#include "config-fixups.h"])
 
 AC_OUTPUT([
 Makefile

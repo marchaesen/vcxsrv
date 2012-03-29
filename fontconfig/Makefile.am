@@ -25,14 +25,15 @@ DOCSRC=@DOCSRC@
 SUBDIRS=fontconfig fc-case fc-lang fc-glyphname src \
 	fc-cache fc-cat fc-list fc-match fc-pattern fc-query fc-scan \
 	conf.d $(DOCSRC) test
-	 
+
 EXTRA_DIST = \
         fontconfig.pc.in \
         fonts.conf.in \
 	fonts.dtd \
         fontconfig.spec.in \
         fontconfig.spec \
-	fontconfig-zip.in
+	fontconfig-zip.in \
+	config-fixups.h
 CLEANFILES = fonts.conf
 DISTCLEANFILES = config.cache doltcompile
 MAINTAINERCLEANFILES = \

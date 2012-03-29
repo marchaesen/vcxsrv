@@ -30,6 +30,7 @@
 #include "exglobals.h"
 #include "xkbsrv.h"             /* for XkbInitPrivates */
 #include "xserver-properties.h"
+#include "syncsrv.h"
 #include <X11/extensions/XI2.h>
 
 #include "protocol-common.h"
@@ -38,6 +39,7 @@ struct devices devices;
 ScreenRec screen;
 WindowRec root;
 WindowRec window;
+static ClientRec server_client;
 
 void *userdata;
 
@@ -214,6 +216,11 @@ device_cursor_init(DeviceIntPtr dev, ScreenPtr screen)
     return TRUE;
 }
 
+static void
+device_cursor_cleanup(DeviceIntPtr dev, ScreenPtr screen)
+{
+}
+
 static Bool
 set_cursor_pos(DeviceIntPtr dev, ScreenPtr screen, int x, int y, Bool event)
 {
@@ -231,6 +238,7 @@ init_simple(void)
     screen.width = 640;
     screen.height = 480;
     screen.DeviceCursorInitialize = device_cursor_init;
+    screen.DeviceCursorCleanup = device_cursor_cleanup;
     screen.SetCursorPosition = set_cursor_pos;
 
     dixResetPrivates();
@@ -244,6 +252,12 @@ init_simple(void)
 
     init_window(&root, NULL, ROOT_WINDOW_ID);
     init_window(&window, &root, CLIENT_WINDOW_ID);
+
+    serverClient = &server_client;
+    InitClient(serverClient, 0, (pointer) NULL);
+    if (!InitClientResources(serverClient)) /* for root resources */
+        FatalError("couldn't init server resources");
+    SyncExtensionInit();
 
     devices = init_devices();
 }
