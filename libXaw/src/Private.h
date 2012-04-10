@@ -28,6 +28,8 @@
 #ifndef _XawPrivate_h
 #define _XawPrivate_h
 
+#include <unistd.h>
+
 #define XawMax(a, b) ((a) > (b) ? (a) : (b))
 #define XawMin(a, b) ((a) < (b) ? (a) : (b))
 #define XawAbs(a)    ((a) < 0 ? -(a) : (a))

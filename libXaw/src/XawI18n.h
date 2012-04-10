@@ -62,6 +62,7 @@ int _Xaw_iswspace
 #endif
 
 #include <stdlib.h>
+#include <unistd.h>
 
 #ifdef USE_XWCHAR_STRING
 int _Xwcslen
