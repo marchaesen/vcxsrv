@@ -1,4 +1,4 @@
-<sect1 id="Text_Widget_">
+<sect1 id='Text_Widget'>
 <title>Text Widget</title>
 
 <literallayout class="monospaced">
@@ -20,7 +20,7 @@ mediator between the source and sink.
 This section lists the resources that are actually part of the
 Text widget, and explains the functionality provided by each.
 </para>
-<sect2 id="Resources_">
+<sect2 id='Text::Resources'>
 <title>Resources</title>
 
 <para>

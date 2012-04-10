@@ -40,7 +40,7 @@ into which the user types input.  The third line can contain buttons
 that let the user confirm or cancel the Dialog input.  Any of these
 areas may be omitted by the application.
 </para>
-<sect2 id="dialog_resources">
+<sect2 id='Dialog::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->
@@ -422,7 +422,7 @@ resizable      If this resource is False then the parent
 <!-- .Rl -->
 </para>
 </sect2>
-<sect2 id="dialog_layout_semantics">
+<sect2 id='Dialog::Layout_Semantics'>
 <title>Layout Semantics</title>
 <!-- .IN "Dialog widget" "layout semantics" -->
 <para>
@@ -431,7 +431,7 @@ tics.  One is used when initially laying out the children.
 The other is used when the Dialog is resized.
 </para>
 <para>
-The first layout method uses the <function>fromVert</function> mand <function>fromHoriz</function> 
+The first layout method uses the <function>fromVert</function> mand <function>fromHoriz</function>
 resources to place the children of the Dialog.  A single
 pass is made through the Dialog widget's children in the
 order that they were created.  Each child is then placed in
@@ -450,17 +450,17 @@ The second layout method is used when the Dialog is resized.
 It does not matter what causes this resize, and it is possi-
 ble for a resize to happen before the widget becomes visible
 (due to constraints imposed by the parent of the Dialog).
-This layout method uses the <function>bottom</function> , 
-<function>top</function> , <function>left</function> , and 
-<function>right</function> 
+This layout method uses the <function>bottom</function> ,
+<function>top</function> , <function>left</function> , and
+<function>right</function>
 resources.  These resources are used to determine what will
 happen to each edge of the child when the Dialog is resized.
-If a value of <function>XawChain</function> 
+If a value of <function>XawChain</function>
 <emphasis remap='I'>&lt;something&gt;</emphasis>
  is specified, the the edge
 of the child will remain a fixed distance from the <emphasis remap='I'>chain</emphasis>
-edge of the Dialog.  For example if <function>XawChainLeft</function> 
-mis specified for the <function>right</function> mresource of a child 
+edge of the Dialog.  For example if <function>XawChainLeft</function>
+mis specified for the <function>right</function> mresource of a child
 then the right edge
 of that child will remain a fixed distance from the left
 edge of the Dialog widget.  If a value of <function>XawRubber</function> mis spec-
@@ -556,7 +556,7 @@ own Dialog policy.
 </para>
 </sect3>
 </sect2>
-<sect2 id="Automatically_Created_Children_">
+<sect2 id='Automatically_Created_Children'>
 <title>Automatically Created Children.</title>
 <!-- .IN "Dialog widget" "automatically created children" -->
 <para>
@@ -573,14 +573,14 @@ available through the Dialog widget itself.
 <!-- .LP -->
 </para>
 </sect2>
-<sect2 id="dialog_convenience_routines">
+<sect2 id='Dialog::Convenience_Routines'>
 <title>Convenience Routines</title>
 <para>
 <!-- .LP -->
 To return the character string in the text field, use
 <!-- .PN XawDialogGetValueString . -->
 <!-- .IN "XawDialogGetValueString" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawDialogGetValueString'>
 <funcprototype>
   <funcdef>String<function> XawDialogGetValueString</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -605,19 +605,19 @@ Specifies the Dialog widget.
 This function returns a copy of the value string of the Dialog
 widget.  This string is allocated by the AsciiText widget and will
 remain valid and unchanged until another call to
-<function>XawDialogGetValueString</function> or an <function>XtGetValues</function> call on the
+<xref linkend='XawDialogGetValueString' xrefstyle='select: title'/> or an <xref linkend='XtGetValues' xrefstyle='select: title'/> call on the
 <function>value</function> widget, when the string will be automatically freed, and
 a new string is returned.  This string may be freed earlier by calling
-the function <function>XawAsciiSourceFreeString</function>.
+the function <xref linkend='XawAsciiSourceFreeString' xrefstyle='select: title'/>.
 <!-- .IN "XawAsciiSourceFreeString" "" -->
 </para>
 <para>
 <!-- .LP -->
 <!-- .sp -->
 To add a new button to the Dialog widget use
-<function>XawDialogAddButton</function>.
+<xref linkend='XawDialogAddButton' xrefstyle='select: title'/>.
 <!-- .IN "XawDialogAddButton" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawDialogAddButton'>
 <funcprototype>
   <funcdef>void<function> XawDialogAddButton</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>

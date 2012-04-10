@@ -1,0 +1,1570 @@
+commit b16cc35e551860a0bff54c47b33317536ddeae52
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Mar 22 19:51:33 2012 -0700
+
+    libXaw 1.0.10
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8a78d3aef0f6f1f51997468daf5f67231f4a3ecd
+Author: Matt Turner <mattst88@gmail.com>
+Date:   Wed Feb 1 13:44:05 2012 -0500
+
+    Include headers instead of using extern definitions
+    
+    Signed-off-by: Matt Turner <mattst88@gmail.com>
+
+commit 49c0a2441946f0d70fbd2612f193c95b84dde102
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Tue Nov 1 20:47:34 2011 -0700
+
+    Build fix for -Werror=pointer-to-int-cast
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit fe00db0ecafd95f6e1353b1d5f11ee6012a9b64c
+Author: Matt Dew <marcoz@osource.org>
+Date:   Wed Oct 5 22:33:05 2011 -0600
+
+    Cleanup IDs and links in doc
+    
+    1 - fix the capitalization of the ID attributes to match either the
+         <title> or <funcdef> string it goes with.
+    2 - fix any <linkend>'s that were affected by 1.
+    3 - any <function> in the docs that has an actual funcdef,
+    will become an olink.
+    
+    Signed-off-by: Matt Dew <marcoz@osource.org>
+
+commit c8e8838702ba8ae0a8100c7f1bd94ce9932339de
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Sep 19 16:25:43 2011 -0400
+
+    specs: refactor multi license legal text
+    
+    Also restore lost information.
+    There was no version number for this spec as in many of the docs.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 37ffe69b10ae29e8f91de6ef647d06804b9d159b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Sep 16 22:13:37 2011 -0700
+
+    Strip trailing whitespace
+    
+    Performed with: find * -type f | xargs perl -i -p -e 's{[ \t]+$}{}'
+    git diff -w & git diff -b show no diffs from this change
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6c628c605e4f58be3a84edc5273a0dd88363a770
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Sep 13 17:12:59 2011 -0400
+
+    specs: fix orphan author affiliation.
+    
+    It belongs to Chris Peterson formerly of MIT
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit e07f1d83079eb90ea91e3ff120ad747b1cc78bfb
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Sep 12 16:54:45 2011 -0400
+
+    docs: use the &fullrelvers; entity to set X11 release information
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 5b1f776e84108bce397cc6721ee176c3bb5592ad
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Sep 11 19:49:53 2011 -0400
+
+    docs: remove <productnumber> which is not used by default
+    
+    This element is not rendered by default on the title. A template
+    customization is required to display it.
+    X Window System does not have a product number.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 038802c68090dd3a75405178516017d80a51ecdf
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Sep 8 20:00:00 2011 -0400
+
+    docbook.am: embed css styles inside the HTML HEAD element
+    
+    Rather than referring to the external xorg.css stylesheet, embed the content
+    of the file in the html output produced. This is accomplished by using
+    version 1.10 of xorg-xhtml.xsl.
+    
+    This makes the whole html docs tree much more relocatable.
+    In addition, it eliminates xorg.css as a runtime file which makes
+    xorg-sgml-doctools a build time only package.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit e24d546c5da599f63cc2ff40626b58c1183ed27a
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Sep 7 10:31:04 2011 -0400
+
+    docbook.am: global maintenance update - entities, images and olinking
+    
+    Adding support in libX11 for html chunking caused a reorg of docbook.am
+    as well as the xorg-sgml-doctools masterdb for olinking.
+    The parameter img.src.path is added for pdf images.
+    A searchpath to the root builddir is added for local entities, if present.
+    
+    The docbook.am makefile hides all the details and is identical for
+    all 22 modules having DocBook documentation. It is included by a thin
+    Makefile.am which requires no docbook knowledge.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit a6c814b6d02e3f28f1d015678bd3d944ff8dfb10
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Sep 1 14:01:02 2011 -0400
+
+    Remove include directive to <X11/Xaw>
+    
+    The -I directive to include/X11/Xaw is removed which will alert
+    developers not to include header files with quotes unless they are in
+    the /src directory.
+    
+    Currently no offending includes were found.
+    
+    Tested-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 86444aeda526e957e1d7adc90625f24e263aa7ea
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sat Jun 18 10:22:19 2011 -0400
+
+    man page: replace hard coded section number with __libmansuffix__
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 66e450fdbb58b77641351e3c11631fdde86bf205
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Jun 12 18:38:44 2011 -0400
+
+    Install xml versions of specs even if HAVE_XMLTO is false
+    
+    DocBook/XML input source is also a usefull output format that can be viewed
+    with an XML viewer or editor and by some O/S help system.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit f3d7c3c5d9f142149d3217682667b32c3d0ded8d
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Jun 5 16:27:36 2011 -0400
+
+    Install target dbs alongside generated documents
+    
+    This matches a change in xorg-sgml-docs whereby the masterdb will look for
+    the target dbs into the same location as the generated documents.
+    
+    The target dbs are now installed alongside the generated documents.
+    Previously they are installed in $prefix/sgml/X11/dbs alongside masterdb which
+    has the potential of installing outside the package prefix and cause
+    distcheck to fail when user does not have write permission in this package.
+    
+    Requires XORG_CHECK_SGML_DOCTOOLS(1.8) which was released 2011-06-11
+
+commit 39ffb88b3a6523e9258bc6e4f3948a09e63b269f
+Author: Matt Dew <marcoz@osource.org>
+Date:   Tue May 31 20:03:23 2011 -0600
+
+    Add id attributes to funcsynopsis to allow other docs to olink to them.
+    
+    Signed-off-by: Matt Dew <marcoz@osource.org>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit f5823ff8ed5bd280e7858116c3cec5d97184b175
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 28 08:48:10 2011 -0700
+
+    Correct path to examples in X11R5 contrib archive
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7d01dd4176b8ae1664218da8e197ef49d1efd05a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri May 27 20:35:28 2011 -0700
+
+    Bug 37536: Documentation refers to invalid contrib/examples/mit/Xaw
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=37536
+    
+    Update text to point to the latest distributed copy I found, in the
+    X11R5 contrib archives.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit cfa8e377352d5b9d5dbddc75de8314a509f51224
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Feb 27 15:06:18 2011 -0500
+
+    Documentation: add Docbook external references support
+    
+    When writing technical documentation, it is often necessary to cross
+    reference to other information. When that other information is not in the
+    current document, additional support is needed, namely <olink>.
+    
+    A new feature with version 1.7 of xorg-sgml-doctools adds references to
+    other documents within or outside this package.
+    
+    This patch adds technical support for this feature but does not change
+    the content of the documentation as seen by the end user.
+    
+    Each book or article must generate a database containing the href
+    of sections that can be referred to from another document. This database
+    is installed in DATAROOTDIR/sgml/X11/dbs. There is a requirement that
+    the value of DATAROOTDIR for xorg-sgml-doctools and for the package
+    documentation is the same. This forms a virtual document tree.
+    
+    This database is consulted by other documents while they are being generated
+    in order to fulfill the missing information for linking.
+    Refer to the xorg-sgml-doctools for further technical information.
+    
+    Co-authored-by: Matt Dew <marcoz@osource.org>
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit a1c8ddc087715876cce1c86f837f7b13b49696aa
+Author: Glenn Burkhardt <gbburkhardt@verizon.net>
+Date:   Fri Dec 3 17:22:42 2010 -0500
+
+    fix potential infinte loop in XawBoxQueryGeometry() (bug 11569)
+    
+    Originally sent to xorg@ back in July 2007.
+    http://lists.x.org/archives/xorg/2007-July/025997.html
+
+commit 38dce0209303b48054c884508633b4ce0d52a819
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Jan 27 22:40:02 2011 -0800
+
+    Convert XmuSnprintf calls to just plain snprintf
+    
+    All supported platforms have native snprintf
+    
+    Remove #include <X11/Xmu/SysUtil.h> since it only defines XmuSnprintf
+    and the unused XmuGethostname
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 83e4910b379cb9b9d69a0438eba3322470afda24
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Jan 27 22:35:46 2011 -0800
+
+    Typo fix: sintax error -> syntax error
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit bd78cc3b4afec713fcef114b5f12186d749fdb17
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Feb 2 11:43:41 2011 -0500
+
+    config: comment, minor upgrade and layout configure.ac
+    
+    Group statements per section as per Autoconf standard layout
+    Autoconf recommends not using dnl instead of # for comments
+    No functional configuration changes
+    
+    This helps automated maintenance and release activities.
+    Details can be found in http://wiki.x.org/wiki/NewModuleGuidelines
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 449ab92d83a972ba28ffda0ae198a6c8e4b00e78
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Fri Jan 28 16:07:07 2011 -0500
+
+    config: replace deprecated AC_HELP_STRING with AS_HELP_STRING
+    
+    This silences an Automake warning.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit b73a5ea91d0b3bb61ee8e7aa26ff178fd5b72209
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Fri Jan 28 14:59:04 2011 -0500
+
+    config: remove unrequired AC_HEADER_STDC
+    
+    Autoconf says:
+    "This macro is obsolescent, as current systems have conforming
+    header files. New programs need not use this macro".
+
+commit 03457873474dfc90e5f2322facbd6032a1312086
+Author: Roberto Branciforti <rbbrnc@gmail.com>
+Date:   Wed Jan 12 22:36:06 2011 +0100
+
+    Removing trailing white spaces
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8ac146ce96cfa133b788b1ffdd13fe0b648ee4fc
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jan 11 17:07:08 2011 -0800
+
+    libXaw 1.0.9
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e7a9b0302f7cb84015e8f612e5b65694d785b2d8
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Nov 21 09:33:46 2010 -0500
+
+    config: prevent config.status from being generated three times
+    
+    AC_OUTPUT with parameters is deprecated, use AC_CONFIG_FILES.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Tested-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 55fc7aa22197350d9cd1039e0398132a63d3589f
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 20 20:10:12 2010 -0800
+
+    Check for getpagesize() with autoconf instead of #ifdef osname
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Julien Cristau <jcristau@debian.org>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+    Tested-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit b2e86875d03e349a4c85135e4cf41b26b99b083e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 20 20:06:04 2010 -0800
+
+    convert header checks/ifdefs to autoconf standard AC_CHECK_HEADERS
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Julien Cristau <jcristau@debian.org>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+    Tested-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 41bf7992c45c6766c5982b3500b03d9c1b1fab87
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 20 19:54:54 2010 -0800
+
+    config: replace deprecated AM_CONFIG_HEADER with AC_CONFIG_HEADERS
+    
+    Regroup AC statements under the Autoconf initialization section.
+    Regroup AM statements under the Automake initialization section.
+    Regroup XORG statements under the Xorg macros section.
+    Add missing AC_CONFIG_SRCDIR
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f85d4342cbfbb58764e24e202f3a7c95eaba3d77
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 20 19:52:41 2010 -0800
+
+    config: Remove unnecessary calls from configure.ac
+    
+    AC_PROG_CC is provided by XORG_DEFAULT_OPTIONS now
+    PKG_CONFIG_MODULES handles AC_SUBST of the CFLAGS & LIBS variables
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 394a0c49c849e497cbcb987154ff796eb34f4820
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Nov 11 23:30:22 2010 -0800
+
+    specs/CH6.xml: Remove stray quote in chapter title
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e9da4e6268b2cfbda793435caedc6403b2a918f0
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Nov 9 13:04:44 2010 -0500
+
+    config: HTML file generation: use the installed copy of xorg.css
+    
+    Currenlty the xorg.css file is copied in each location
+    where a DocBook/XML file resides. This produces about
+    70 copies in the $(docdir) install tree.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit fd5ef2fb841903c0a7d59e56f8fe69d0974f964c
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Tue Nov 2 09:52:34 2010 -0700
+
+    xaw6.pc: Only list xmu in Requires.private, not Requires
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+    
+    Based on earlier similar change to xaw7.pc which was:
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Tested-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 5136e2aabb73fec3c1670616bf0ebf828a1a1ca9
+Author: Cyril Brulebois <kibi@debian.org>
+Date:   Thu Oct 28 00:29:30 2010 +0200
+
+    Fix missing <X11/Intrinsic.h> in XawInit.h
+    
+    Configure scripts/test programs might have troubles detecting libXaw by
+    just including XawInit.h, since it doesn't include <X11/Intrinsic.h>,
+    even though it's needed for the Widget definition.
+    
+    X.Org Bugzilla #3526 <https://bugs.freedesktop.org/show_bug.cgi?id=3526>
+    
+    Signed-off-by: Cyril Brulebois <kibi@debian.org>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7b8196c9f7723b77b5d18fc1cc2070e557a7f767
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Mon Oct 25 12:33:32 2010 -0700
+
+    Move -I CFLAGS to CPPFLAGS
+    
+    Previously, setting CPPFLAGS at configure time could result in using the
+    installed headers rather than the ones included in the package.
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 46ca2da2e8d29d7f1347c9f4e9fb3794dd99cb7a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Oct 25 10:47:03 2010 -0700
+
+    libXaw 1.0.8
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b190356ebf2f0eb390ddf128edf1f0c761c3f14b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Oct 24 22:38:05 2010 -0700
+
+    Add pointer to API spec in $(docdir) to Xaw.man
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 35197044c7632b37322d15454589416fcdb7dc86
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Oct 24 22:28:42 2010 -0700
+
+    specs/Makefile.am: remove whitespace after line continuation chars
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e20dbae7ab37431928e8f0f6d18644d0a7bdcdb7
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Oct 24 22:27:34 2010 -0700
+
+    Sun's copyrights now belong to Oracle
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 47cab7a9160e4326107feac80ef4cc47289404ef
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Oct 17 20:29:02 2010 -0400
+
+    make: use MAN_SUBST now supplied in XORG_MANPAGE_SECTIONS
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 82f22390f2d1d78c9bc4f4900e3d088fd704eeb0
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Oct 17 20:26:32 2010 -0400
+
+    make: use the appropriate platform version of sed
+    
+    As provided by AC_PROG_SED now supplied by XORG_DEFAULT_OPTIONS
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit a2fa2705252db693d2b0f9da8f28fbfe3f88f083
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Oct 17 20:24:43 2010 -0400
+
+    config: use AC_PROG_INSTALL now supplied by XORG_DEFAULT_OPTIONS
+    
+    It depends on util-macros 1.8 or later
+    The existing statement can now be removed from the configuration file.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit b4d3a7153d9f39f9f385a750d39e30385caddd7e
+Author: Jesse Adkins <jesserayadkins@gmail.com>
+Date:   Tue Sep 28 13:30:02 2010 -0700
+
+    Purge cvs tags.
+    
+    Signed-off-by: Jesse Adkins <jesserayadkins@gmail.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f383e5989956dbaefc7bbacfe54bcc34e9144416
+Author: Walter Harms <wharms@bfs.de>
+Date:   Mon Aug 30 11:30:08 2010 -0400
+
+    Fix case statement typo in edit mode code
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit b6750449f32c07fe277146b55a9f988bfaa3e0d2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Aug 6 21:36:50 2010 -0700
+
+    xaw7.pc: Only list xmu in Requires.private, not Requires
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Tested-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit fdeacea047db7c651f1640a6ade13063c29a816b
+Author: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+Date:   Sun Aug 8 22:05:45 2010 -0500
+
+    Remove symlinks created in install-exec-hook during uninstall
+    
+    Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Tested-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit b8e3deb07d09f700026a37e4f887f20fae2bd93e
+Author: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+Date:   Sun Aug 8 05:19:12 2010 -0500
+
+    Install unversioned import library on Cygwin/MinGW
+    
+    Using LN_S is required for portability; on MinGW, this is "cp -p".
+    
+    The install-exec-hook in src/Makefile.am must remain !PLATFORM_WIN32,
+    as Windows cannot resolve DLL runtime dependencies from symlinks.
+    
+    Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit f7e3c7c8859cc25a1701507ed0f656cc38a2a550
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Aug 3 15:23:57 2010 -0400
+
+    config: xorg-macros minimum of 1.10 required for XORG_CHECK_SGML_DOCTOOLS
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 95fe60384d60b31a33bec48a58242b8b5f2aa7a0
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sat Jul 24 11:03:56 2010 -0400
+
+    config: add AM_PROG_CC_C_O for per-target compilation flags
+    
+    Per-target compilation flags (libXaw7_la_CFLAGS) are required
+    when multiple targets which require different compiler flags,
+    are build in the same makefile.
+    
+    Automake issues a command with -c and -o flags which not all compilers
+    support. The object fles are prefixed with libXaw7_la.
+    The macro AM_PROG_CC_C_O must then be used to provide this feature
+    on compilers that do not have it. If not, a warning is issued at make time.
+    
+    This macros checks for compiler support and if missing, uses a "compile"
+    script it generates in the package root directory.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit bd8cb49382a4277d6294a4fceda89b8d0769c5ba
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Fri Jul 9 20:42:16 2010 -0400
+
+    specs: use pattern rules rather than suffix rules
+    
+    This allows target to rebuild when included .xml files are changed.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 3191a58b3cd4c2ac3325bda0aa250f6cb973eac2
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Jul 6 13:33:30 2010 -0400
+
+    specs: libXaw.xml was listed twice in dist_doc_DATA
+    
+    This should fix the dist/install target problem on some tinder boxes
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit e474cc545ed803012785029412e09ae09063ce39
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Jul 6 13:09:24 2010 -0400
+
+    specs: remove file accidently checked-in
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 8d6114c248f7c8039a41dbc863240c63e3eccd54
+Author: Matt Dew <matt@osource.org>
+Date:   Tue Jul 6 09:06:52 2010 -0400
+
+    specs: replace troff source with docbook-xml source
+    
+    Placed specs files in the "specs" directory to be consistent
+    with other libraries specs.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit ad23722c4eec72f24d266291c31dfbed15d41e26
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Mar 29 14:53:48 2010 -0400
+
+    config: remove the pkgconfig pc.in file from EXTRA_DIST
+    
+    Automake always includes it in the tarball.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 0a86ae9ba2143642b29bc1c00a2f3f70eb5a1b52
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Jan 14 20:52:10 2010 -0800
+
+    Update Sun license notices to current X.Org standard form
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit 7052118fed1c3734ac6d681130f62cd2899f9026
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Feb 16 14:54:00 2010 -0500
+
+    spec: change install cmd due to automake 1.11
+    
+    docData_INSTALL is defined in 1.9 and 1.10 but not 1.11
+    
+    Reported-by: Tobias Droste <tdroste@gmx.de>
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit c690f3b7f85724eeb4e84c4f600a2408b00ee8af
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Feb 9 17:46:41 2010 -0500
+
+    doc: use $(mkdir_p) rather than $(MKDIR_P) due to automake 1.9.6
+    
+    $(MKDIR_P) is not defined in automake 1.9.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit e87c5d8f8753a69f0b82c011c2b82bd53907bd4f
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Jan 31 18:30:58 2010 -0500
+
+    doc: use new macros to control doc generation
+    
+    Namely XORG_WITH_GROFF for the groff generation tool
+    XORG_ENABLE_SPECS for the generation of functional specs
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit db4fc91e01d51155322b8057b4dc60d56c3b26f2
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Jan 31 17:43:29 2010 -0500
+
+    doc: clean-up generated html images
+    
+    Generate images in /images as is the convention
+    Provide a base file name for images rather than process ID
+    Remove images directory when running make clean
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit ceaf6f7f0e516b1479744df421de404b1decc556
+Author: Rémi Cardona <remi@gentoo.org>
+Date:   Thu Dec 17 08:28:30 2009 +0100
+
+    require autoconf 2.60 because of $(docdir) use
+    
+    Signed-off-by: Rémi Cardona <remi@gentoo.org>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@sun.com>
+    Reviewed-by: Dan Nicholson <dbn.lists@gmail.com>
+
+commit 4cf1bbc4a0f167eae794283f5d47be28192f6b14
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Fri Nov 27 20:56:03 2009 -0500
+
+    Makefile.am: add ChangeLog and INSTALL on MAINTAINERCLEANFILES
+    
+    Now that the INSTALL file is generated.
+    Allows running make maintainer-clean.
+
+commit 6509e9d695889f55f7749e10006aef7288e30cbd
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Oct 28 15:24:48 2009 -0400
+
+    .gitignore: use common defaults with custom section # 24239
+    
+    Add an ignore file for the new spec subdir
+
+commit ccf1bbf854152ed64e1f184388962361b7d828ae
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Oct 28 15:19:25 2009 -0400
+
+    configure.ac: AM_MAINTAINER_MODE missing #24238
+    
+    This turns off maintainer mode build rules in tarballs.
+    Works in conjunction with autogen.sh --enable-maintainer-mode
+    For all X.Org components.
+
+commit 504ec86f33975a1954136c875d09f7549557b962
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Oct 28 14:09:10 2009 -0400
+
+    INSTALL, NEWS, README or AUTHORS files are missing/incorrect #24206
+    
+    Add missing INSTALL file. Use standard GNU file on building tarball
+    README may have been updated
+    Remove AUTHORS file as it is empty and no content available yet.
+    Remove NEWS file as it is empty and no content available yet.
+
+commit b04ca66401a3ae83370c8b497561b099d45da246
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Oct 26 22:08:42 2009 -0400
+
+    Makefile.am: ChangeLog not required: EXTRA_DIST or *CLEANFILES #24432
+    
+    ChangeLog filename is known to Automake and requires no further
+    coding in the makefile.
+
+commit d56b65e53f5b7c4d1640ea5273827285f95f835c
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Oct 22 16:19:19 2009 -0400
+
+    Makefile.am: do not include autogen.sh in distribution #24183
+    
+    This is a private build script that should not be distributed
+
+commit b7a88244153030fc1e50be39edc81ce02e021f73
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Oct 22 13:10:02 2009 -0400
+
+    .gitignore: use common defaults with custom section # 24239
+    
+    Using common defaults will reduce errors and maintenance.
+    Only the very small or inexistent custom section need periodic maintenance
+    when the structure of the component changes. Do not edit defaults.
+
+commit 8a2925a69e6fc8627e7e92a9427e1885c3033ae7
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Oct 22 12:34:19 2009 -0400
+
+    .gitignore: use common defaults with custom section # 24239
+    
+    Using common defaults will reduce errors and maintenance.
+    Only the very small or inexistent custom section need periodic maintenance
+    when the structure of the component changes. Do not edit defaults.
+
+commit 2f64f87f34f79cbf8ef06d1399f9f4f26cce9e4c
+Author: Julien Cristau <jcristau@debian.org>
+Date:   Wed Nov 25 16:06:06 2009 +0100
+
+    Remove Xaw8 copyright notices / license from COPYING
+    
+    All code carrying this notice has been removed already.
+    
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+
+commit cf01abd815c9dac9583eca383455448b72b435a1
+Author: Julien Cristau <jcristau@debian.org>
+Date:   Wed Nov 25 13:58:43 2009 +0100
+
+    Remove more Xaw8 remnants
+    
+    !defined(OLDXAW) && !defined(XAW7) was only true for Xaw8, as far as I
+    can tell.
+    The Print.h and PrintSP.h headers were already removed from the build
+    system, but remained in git unused.
+    
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+    Signed-off-by: Daniel Stone <daniel@fooishbar.org>
+
+commit f481179c69e991b9aa184399b9f1fffbcc2f999b
+Author: Jeremy Huddleston <jeremyhu@freedesktop.org>
+Date:   Wed Oct 21 12:47:24 2009 -0700
+
+    This is not a GNU project, so declare it foreign.
+    
+    On Wed, 2009-10-21 at 13:36 +1000, Peter Hutterer wrote:
+    > On Tue, Oct 20, 2009 at 08:23:55PM -0700, Jeremy Huddleston wrote:
+    > > I noticed an INSTALL file in xlsclients and libXvMC today, and it
+    > > was quite annoying to work around since 'autoreconf -fvi' replaces
+    > > it and git wants to commit it.  Should these files even be in git?
+    > > Can I nuke them for the betterment of humanity and since they get
+    > > created by autoreconf anyways?
+    >
+    > See https://bugs.freedesktop.org/show_bug.cgi?id=24206
+    
+    As an interim measure, replace AM_INIT_AUTOMAKE([dist-bzip2]) with
+    AM_INIT_AUTOMAKE([foreign dist-bzip2]). This will prevent the generation
+    of the INSTALL file. It is also part of the 24206 solution.
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@freedesktop.org>
+
+commit 51c3533c363f3224cbed37b3d8980bc8c1fa9ce1
+Author: Colin Harrison <colin.harrison@virgin.net>
+Date:   Tue Oct 20 17:34:19 2009 +0100
+
+    Lost parenthesis in a recent libXaw change
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit f373e193a48eaf6d799d0b6ad32fd58d8ae8b3bd
+Author: Eric Sesterhenn <eric.sesterhenn@lsexperts.de>
+Date:   Tue Oct 20 08:20:25 2009 -0700
+
+    Bug 24635: File Descriptor leaks in libxaw-1.0.7
+    
+    http://bugs.freedesktop.org/show_bug.cgi?id=24635
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit 4ec346977273cc217b22a9225cb0d90351e6069c
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Sat Oct 17 14:45:39 2009 -0700
+
+    libXaw 1.0.7
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit d158018aad18552c5788df38de40ef50b7652dde
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Fri Oct 9 16:14:59 2009 -0700
+
+    Move Xaw specification document from xorg-docs module to spec/*
+    
+    Makefile support added to build postscript, text & html output,
+    and install it to ${docdir}, if groff is found and --disable-docs
+    was not specified
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit b5a23647f0bbd68f226e7e03496144f838c09000
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Fri Oct 9 11:02:07 2009 -0700
+
+    Migrate to xorg macros 1.3 & XORG_DEFAULT_OPTIONS
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit b512bfc3fb5c489f4e1ef6529f7632bd70b9f461
+Author: Bernhard R. Link <brlink@debian.org>
+Date:   Fri Aug 18 16:29:10 2006 +0200
+
+    Xaw's tooltips remove timers not belonging to them
+    
+    Xaw's Tips.c registers and releases timers for tooltips to show,
+    but does not remember a timer already triggered. Thus it releases
+    timers no longer belonging to it but to other users of Xt Timeouts
+    within the same program. (This even happens very often, as Xt reuses
+    old TimeEventRecs, so the next one adding a timeout will get exactly
+    this number.)
+    
+    Section 7.1.3 of Intrinsic.txt.gz says:
+    
+    | Note that timeouts are automatically removed once they trig-
+    | ger.
+    
+    src/Repeater.c correctly forgets the timer when it is triggered, but
+    src/StripChart.c does very strange things with Xt Timeouts, which
+    very likely will have similar problems.
+    
+    X.Org bug#9936 <http://bugs.freedesktop.org/show_bug.cgi?id=9936>
+
+commit 2ef9c2d730200246405cfdfc882a66fbd6728a92
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Thu Jul 2 13:37:13 2009 -0400
+
+    libXaw 1.0.6
+
+commit 9d9facf604d2355842a3834664a1ddc233d4d1e1
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Feb 2 20:34:32 2009 -0800
+
+    Add README with pointers to mailing list, bugzilla & git repos
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit 654fd414b7ebe3a0fccd6712bf52666d42d2a711
+Author: Paulo Cesar Pereira de Andrade <pcpa@mandriva.com.br>
+Date:   Fri Jan 9 20:24:10 2009 -0200
+
+    Changed AsciiSrc widget to use only binary selection transfers.
+    
+      Conversion from multi byte to single byte text format, and
+    vice versa, frequently doesn't do what the user want, so,
+    operate only on literal/binary selection transfers.
+
+commit 0b9de9e69e95872dd3eddbe5c1602e42c27c53e1
+Author: Paulo Cesar Pereira de Andrade <pcpa@mandriva.com.br>
+Date:   Fri Jan 9 19:18:36 2009 -0200
+
+    Compile warning fixes.
+    
+      This uses XORG_CHANGELOG macro to properly work with the "git-log"
+    to "git log" change (required to pass "make distcheck"), uses the
+    XORG_CWARNFLAGS macro. Most gcc 4.3 and sparse warnings corrected.
+
+commit 420efdba52593bf13d97c7e001b64caccd04cd5d
+Author: Jeremy Huddleston <jeremyhu@freedesktop.org>
+Date:   Sat Nov 8 16:04:23 2008 -0800
+
+    Fixed compile/install on darwin
+
+commit a48021b05693c74bd03b51b82abec4ce3ba24dc5
+Author: Peter Breitenlohner <peb@mppmu.mpg.de>
+Date:   Sat Nov 8 15:44:22 2008 +0100
+
+    xaw6 doesn't depend on xpm
+
+commit 6dab13545cd26efd46dbb58a18ae651c56c7d76d
+Author: Paulo Cesar Pereira de Andrade <pcpa@mandriva.com.br>
+Date:   Fri Nov 7 15:45:32 2008 -0200
+
+    libXaw version 1.0.5.
+
+commit 90a343b898dabb8cac5ec831b45e20b1abd306ac
+Author: Paulo Cesar Pereira de Andrade <pcpa@mandriva.com.br>
+Date:   Fri Nov 7 15:36:15 2008 -0200
+
+    Correct build on systems that did not yet upgrade to libtool-2.2
+    
+      Also correct lib Changelog generation by running "git log" instead of
+    "git-log", what should work on all versions of git.
+      The libtool correction issue is probably a hack over several other
+    hacks. The proper correction should be to ensure that AC_PROG_SED is run
+    before the AC_CONFIG_COMMANDS([libtool_hack],...), what appears to be the
+    case in latest libtool, but not 1.5.x.
+
+commit 8256de6062eb150c612ef09a1ae855de0a0cba6c
+Author: Lee Leahu <freedesktop-bugs@dyweni.com>
+Date:   Fri Nov 7 11:00:15 2008 -0500
+
+    Fix configure error when using libtool-2.2.*
+    
+    The configure script errors out when preparing to compile libXaw.
+    
+    The error occurs with libtool-2.2.6a and libtool-2.2.4.
+    
+    The error does not occur with libtool-1.5.26.
+    
+    The error is caused because the libtool file is not created by the
+    time sed attempts to fix the SONAME.
+    
+    Libtool-2.2 made an incompatible change to LT_INIT (which replaces
+    AC_PROG_LIBTOOL): it generates the libtool script at the AC_OUTPUT,
+    rather then right after being called.  Sometimes, configure scripts
+    call configure to run tests or read its settings; in those cases,
+    LT_OUTPUT can be appended to force libtool generation earlier.
+    
+    There is one caveat: libtool is still (re)generated during AC_OUTPUT,
+    so in our case, even adding LT_OUTPUT wouldn't help, because the sed
+    changes are overwritten.
+    
+    AFAICS the solution is to use AC_CONFIG_COMMANDS; patch against
+    current git master attached.
+    
+    Report and patch from: http://bugs.freedesktop.org/show_bug.cgi?id=18073
+    
+    Signed-off-by: James Cloos <cloos@jhcloos.com>
+
+commit 012e73faab8dc8617c6da4679715dae14f6cddd4
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Fri Aug 15 18:25:53 2008 +0300
+
+    Remove last remaining vestiges of Xprint support
+    
+    Occasionally I think I'm smart enough to commit without testing, then I
+    break the build.  Bad Daniel.  No biscuit.
+
+commit 3cbe136d633d18b263f596638d55f8f13fabd540
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Fri Aug 15 17:59:59 2008 +0300
+
+    Remove Xaw8 (Xprint)
+    
+    Remove Xaw8, which only provided Xprint support over Xaw7.
+
+commit 89416252097c97833c879dc2be56d2b6cd6a8f88
+Author: Paulo Cesar Pereira de Andrade <pcpa@mandriva.com.br>
+Date:   Wed Jul 23 18:08:09 2008 -0300
+
+    Minor set of trivial corrections.
+    
+      Ansify two non ansified functions definitions.
+      Don't declare a variable that is not used.
+      Actually declare the prototype a function that is defined unconditionally.
+
+commit 43cb3d388eae5a814ac4f36edca5780a6ea4934f
+Author: Paulo Cesar Pereira de Andrade <pcpa@mandriva.com.br>
+Date:   Fri Jul 11 17:21:18 2008 -0300
+
+      Remove almost 10 year old notice about Xaw development from man page.
+    
+      Correct a problem when deleting text portions that may lead to a crash
+    due to accessing released memory; in most cases it would crash in
+    AsciiSink.c:AsciiPreparePaint() when calling XtMalloc() with a negative
+    value.
+      The problem was due to  not properly removing/updating XawTextEntity
+    objects. One case that can cause the problem to happen is with patch files
+    with syntax highlight, and sequentially selecting a deleting them. At one
+    point attempt to remove the "first" XawTextAnchor, and also incorrectly
+    update it's offset value to a negative value. The problem is not easy
+    to reproduce as it requires a file with a special pattern (in this case
+    the syntax highlight used for patch) and it would fail after removing
+    all "entities" of the second "anchor".
+
+commit 0b6058db1ce978f17d6eb99f5b253b813a133294
+Author: Dan Nicholson <dbn.lists@gmail.com>
+Date:   Thu Jul 10 16:21:06 2008 -0700
+
+    Use sed instead of ed for libtool SONAME hacking
+    
+    Since sed is already required by autoconf and libtool, it makes sense to
+    use it instead of pulling in ed, too. The editing script only has to be
+    changed slightly to accommodate this. The resulting libtool has been
+    checked to be the same on Linux (GNU sed) and HP-UX.
+    
+    Building libXaw was the only reason I have ed on my system anymore.
+    Maybe someday this can be fixed properly.
+
+commit b605a26ff481259d4aca466ae68142f53ced43ce
+Author: Dan Nicholson <dbn.lists@gmail.com>
+Date:   Thu Jul 10 15:37:51 2008 -0700
+
+    Be more robust using ed for the libtool hacks
+    
+    Two failures during the libtool SONAME hacking that were being ignored
+    are now fixed:
+     * ed was called without first checking that it exists
+     * ed could fail in editing the libtool script
+
+commit fa7dd561c40ce3dcd8252b5eda09258836659d66
+Author: Colin Harrison <colin.harrison-at-virgin.net>
+Date:   Wed Apr 23 10:18:15 2008 +0100
+
+    Add MINGW32 definition
+
+commit 8c0f99b1d1f0d5d3b734a43eddb10bd8c5397aed
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Sun Mar 9 00:24:33 2008 +0100
+
+    Makefile.am: nuke RCS Id
+
+commit 857781383ef123a31a84a766507a8e11b9e3f778
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Tue Aug 21 13:19:01 2007 -0700
+
+    Version bump: 1.0.4
+
+commit cf90924541fe9af09c582ddd60953c4a08ceb004
+Author: Eric S. Raymond <esr@thyrsus.com>
+Date:   Sun Jan 14 10:34:00 2007 -0800
+
+    Bug #9649: Bad markup on XAw.3x
+    
+    X.Org Bugzilla #9649 <https://bugs.freedesktop.org/show_bug.cgi?id=9649>
+
+commit 0515e29cfc0ed99b06dcf9399a0504bde7c81d93
+Author: Daniel Drake <ddrake@brontes3d.com>
+Date:   Tue May 29 12:21:00 2007 -0800
+
+    Bug #11091: libXaw COPYING file
+    
+    X.Org Bugzilla #11091 <https://bugs.freedesktop.org/show_bug.cgi?id=11091>
+    Attachment #10122 <https://bugs.freedesktop.org/attachment.cgi?id=10122>
+
+commit ee6e61225943ec77c8b97ae8115ce37c42e8c16e
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Wed Apr 11 20:15:00 2007 -0700
+
+    Use iswalnum() if it's present as a function, not just if it's #defined
+    
+    Also fixes X.Org bugzilla #8564
+
+commit eccdec2bf4680b42036f03a7ce0ae9bfe5ef5374
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Wed Jan 3 21:30:22 2007 -0800
+
+    Version bump: 1.0.3
+
+commit a2d3487dd5422ef273acae83cc20078a1a9f37c6
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Wed Jan 3 21:19:37 2007 -0800
+
+    Replace static ChangeLog with dist-hook to generate from git log
+
+commit c653eb5742b0ef50570a8371d7787eeb1e7b5667
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Wed Jan 3 21:12:07 2007 -0800
+
+    Add call to PKG_PROG_PKG_CONFIG so configure doesn't break with --disable-xaw6
+
+commit 32d0891b982b4cea322bdc2d8ecd32e912c70f54
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Wed Jan 3 21:09:36 2007 -0800
+
+    Add *~ to .gitignore to skip over patch/emacs droppings
+
+commit 21a1c92130ef304607b696c8e5db2185a89a4ba7
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Jul 13 14:58:49 2006 -0700
+
+    renamed: .cvsignore -> .gitignore
+
+commit e487a686b1e251936c0926ff124c1b754814c7f5
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Thu Apr 27 00:03:33 2006 +0000
+
+    Bump to 1.0.2
+
+commit 580c3f12423e15192f4eff456ebf2f6246318bd9
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Mon Apr 3 19:23:16 2006 +0000
+
+    Bug #6404: Cygwin build fixes (Yaakov Selkowitz)
+
+commit 735d010ee2c6dc2a6279dc16d1c9a1128c59d91a
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Dec 21 02:30:05 2005 +0000
+
+    Update package version for X11R7 release.
+
+commit 3b81b8af98277206eea791f0f9e7cf5a617a4b20
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Mon Dec 19 16:28:26 2005 +0000
+
+    Stub COPYING files
+
+commit 7f10a61e2cb38bbfee07fed4596ae176be3b7bb4
+Author: Kevin E Martin <kem@kem.org>
+Date:   Thu Dec 15 00:24:28 2005 +0000
+
+    Update package version number for final X11R7 release candidate.
+
+commit 12566cf69c51989ee932e812db0f2186c64b540b
+Author: Kevin E Martin <kem@kem.org>
+Date:   Thu Dec 8 17:55:18 2005 +0000
+
+    Add configure options to allow hard-coded paths to be changed.
+
+commit a108ef7e6a7864179bdf16b3adf08428dd66f4ad
+Author: Kevin E Martin <kem@kem.org>
+Date:   Tue Dec 6 22:48:42 2005 +0000
+
+    Change *man_SOURCES ==> *man_PRE to fix autotools warnings.
+
+commit 570029e344a36d8d0bcab5b2ea5b4f87ea508535
+Author: Kevin E Martin <kem@kem.org>
+Date:   Mon Dec 5 17:48:19 2005 +0000
+
+    Fix libtool hack to work with older libtools.
+
+commit 28645b0df40bcd428d98eb18aeb8d0875f12f4e3
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Dec 3 05:49:42 2005 +0000
+
+    Update package version number for X11R7 RC3 release.
+
+commit 80a520a1a1724e0ba00c94139ca871f1944b4be1
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Mon Nov 28 22:03:05 2005 +0000
+
+    Change *mandir targets to use new *_MAN_DIR variables set by xorg-macros.m4
+        update to fix bug #5167 (Linux prefers *.1x man pages in man1 subdir)
+
+commit 651a3e0a2dcead0aad75734b438bf900de4f7c5c
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sun Nov 27 16:44:43 2005 +0000
+
+    Fix Xaw6 to build without Xpm.
+
+commit 1c36da4ef2e308cb5b7a80b1e914fd637d622fae
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Mon Nov 21 03:24:10 2005 +0000
+
+    libXaw6 shouldn't depend on libXpm, only Xaw7 & Xaw8 should
+
+commit 7cec5bf0ee960356821bea08a30feb92dcbf186e
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Nov 19 07:15:40 2005 +0000
+
+    Update pkgconfig files to separate library build-time dependencies from
+        application build-time dependencies, and update package deps to work
+        with separate build roots.
+
+commit cb243066d12834c2f63a82f9695761a01400e26f
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Nov 9 21:19:12 2005 +0000
+
+    Update package version number for X11R7 RC2 release.
+
+commit db01f1c4c84768e818dbfa28556f246b91c1391d
+Author: Kean Johnson <kean@armory.com>
+Date:   Tue Nov 8 06:33:25 2005 +0000
+
+    See ChangeLog entry 2005-11-07 for details.
+
+commit ca1c1425e53143899f212c6e783eec1eeb59e481
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Fri Oct 28 17:28:50 2005 +0000
+
+    Add libXaw.so.N -> libXawN.so.N links for platforms where ldconfig doesn't
+        add them automatically for you.
+
+commit 6f7e7194574ef1bed6ba7db4304d9e064c4f24c7
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Mon Oct 24 17:33:04 2005 +0000
+
+    Add -DOLDXAW to flags for building libXaw6 to disable features that are
+        only supposed to be in the newer versions.
+
+commit 7801c38f76000d4b93cc2208ad80e04505c6ff85
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Sun Oct 23 00:50:43 2005 +0000
+
+    Add xext check
+
+commit 8c7f3e277321213fc2798a73a88e222f145c3b59
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Oct 19 02:48:09 2005 +0000
+
+    Update package version number for RC1 release.
+
+commit 4836a84ebcc266c35be110c7f708d0b221360e91
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Tue Oct 18 00:00:08 2005 +0000
+
+    Use @LIB_MAN_SUFFIX@ instead of $(LIB_MAN_SUFFIX) in macro substitutions to
+        work better with BSD make
+
+commit 0f4847e12e3a3b7ce3cbfaaf282a92e3f1be2073
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Thu Oct 13 04:26:32 2005 +0000
+
+    Missed changelog
+
+commit ec0fdd5646ab4f4642a73860b24a155560c94616
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Thu Oct 13 04:25:46 2005 +0000
+
+    Add generated man pages to .cvsignores
+
+commit 7b0d5f78d4e853014b6110066208ba237bd8c2a3
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Thu Oct 13 04:07:32 2005 +0000
+
+    Use sed to fill in variables in man page
+
+commit 2692d1b40d46d3d97526664c2bc0130eb1900197
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Oct 5 21:34:53 2005 +0000
+
+    Add old-doc files to EXTRA_DIST
+    Add Template.c to install list
+    Add sharedlib.c to EXTRA_DIST
+    Remove the unneeded Makefile.am's
+
+commit bb18f5fb61626da0a5422a36830e57cd070981c2
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Sat Jul 30 19:53:03 2005 +0000
+
+    Check for headers used by XawI18N.h and define the needed HAS_*_H symbols.
+
+commit 223c18dd13a524d144b856118b6f2ec036ae106d
+Author: Kevin E Martin <kem@kem.org>
+Date:   Fri Jul 29 21:22:50 2005 +0000
+
+    Various changes preparing packages for RC0:
+    - Verify and update package version numbers as needed
+    - Implement versioning scheme
+    - Change bug address to point to bugzilla bug entry form
+    - Disable loadable i18n in libX11 by default (use --enable-loadable-i18n to
+        reenable it)
+    - Fix makedepend to use pkgconfig and pass distcheck
+    - Update build script to build macros first
+    - Update modular Xorg version
+
+commit 3ce58da9ecd5337738b8b35cdeaab64b32b521cd
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Wed Jul 27 23:59:16 2005 +0000
+
+    Set build_v8=yes when using autodetection to decide whether or not to build
+        Xaw8 and libXp is found, so that it actually is built.
+
+commit b4e81526a0013ebdc8aa8c0dfb427db850213a7b
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Fri Jul 22 07:19:44 2005 +0000
+
+    Fix autodetection of Xprint and quote arguments properly.
+
+commit e4ea145e991e947483054d85412002e64aeb08ea
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Sat Jul 16 06:30:43 2005 +0000
+
+    Set version numbers to 6.1.0, 7.0.0 and 8.0.0 with -version-number.
+
+commit cf08b572fb22334e29ec56930f3cecba1dc18629
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Thu Jul 14 05:56:32 2005 +0000
+
+    style fix. don't use +=, just do conditionally defined variables. fixes
+        build on a particularly picky platform.
+
+commit 3608270b1d1685082d9dab401d0e7d1aa9c91ba8
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Sun Jul 10 19:53:50 2005 +0000
+
+    grep -q is sadly not universally supported, use grep > /dev/null instead
+
+commit c22f98ed4fae3ccde3ff9a272b019a67fbc78c55
+Author: Keith Packard <keithp@keithp.com>
+Date:   Sat Jul 9 06:11:58 2005 +0000
+
+    Add .cvsignore files
+    Build all three versions in src. Hack libtool to set SONAME in the libtool
+        output to match old libXaw file names. Still missing is the creation of
+        appropriate symlinks from libXaw.so.6 -> libXaw6.so.6 et al so that
+        libraries not yet installed will work properly.
+
+commit 5fc8851308321a65a6987aedea6618d056ff7879
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Wed Jul 6 19:26:27 2005 +0000
+
+    - Xaw/xaw.m4: Change help string to say "enable xprint" instead of "disable
+        xprint"
+    - symlink.sh: Rename Bitmap-co.ad to Bitmap-color.ad. Add bitmaps for the
+        bitmap application. Add xdbedizzy.sgml.
+    - xc/programs/xdbedizzy/: Conditionalize use of xprint
+    - remove font/arabic-misc/README and font/mutt-misc/README
+
+commit d4f214b6255184a2cbf571c02409a0e3f4405fb0
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Tue Jul 5 22:51:11 2005 +0000
+
+    Add build systems for xlogo, xlsatoms, xlsclients, xmag, xman, xmessage,
+        xmh, xmore. lib/Xaw/xaw.m4: Add an AM_CONDITIONAL and a shell variable
+        xaw_use_xprint symlink.sh: add some extra files for xgc, xinit,
+        xkbcomp, xlogo, xmb, and xmodmap xc/programs/xmore/xmore.c:
+        Conditionalize use of xprint
+
+commit 0e08a2ffb4b063b96d25dd7490caf91cb5bb6126
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Sun Jul 3 07:00:56 2005 +0000
+
+    Add Xtrans definitions (FONT_t, TRANS_CLIENT) to clean up warnings.
+    Add XSERV_t, TRANS_SERVER, TRANS_REOPEN to quash warnings.
+    Add #include <dix-config.h> or <xorg-config.h>, as appropriate, to all
+        source files in the xserver/xorg tree, predicated on defines of
+        HAVE_{DIX,XORG}_CONFIG_H. Change all Xfont includes to
+        <X11/fonts/foo.h>.
+
+commit f8e7a4ec6117006123dfdc7c970f9f1392bf7d84
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Tue Jun 28 13:30:15 2005 +0000
+
+    lib/Xaw/Makefile.am: install the libXaw.so symlink in $(DESTDIR)$(libdir) -
+        pointed out by Stefan Dirsch
+    lib/Xaw/man/Makefile.am: add Xaw.man to EXTRA_DIST to make it distcheck.
+
+commit c35ec1561bfc9bf8d79b68a071619f4904764002
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Mon Jun 27 21:35:04 2005 +0000
+
+    - Fix string test in lib/Xaw/xaw.m4
+    - Xaw/Xaw7/Makefile.am: add -DXAW7
+    - add build system for editres
+
+commit f6c298f70e13ecf37b4824f6ac01007b876dd3cb
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Fri Jun 24 22:54:24 2005 +0000
+
+    Add m4 macro to check for versions of the Xaw library
+
+commit e3e78cd7815716d8af729c19833bec51d7e3f19c
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Fri Jun 24 21:20:32 2005 +0000
+
+    Change the so names to libXaw{6,7,8}.so and install a symlink from
+        libXaw.so to the newest version installed
+
+commit cc658b573a13f36868c5a2263e0b3ff8d0230b86
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Mon May 23 21:47:37 2005 +0000
+
+    Conditionally include config.h in xc/lib/Xaw/*.c
+
+commit 62b680d868fbe4bfdf1af6e6067d0ef27f773559
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Mon May 23 20:01:46 2005 +0000
+
+    Check in build system for Xaw
+
+commit f9faf0399180abbc89e44d5077b9070294c2f507
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Jan 27 10:22:11 2005 +0000
+
+    Muffle gcc4 sentinel (trailing NULL in varargs list) check (Marcus
+        Meissner, Bugzilla #2392).
+
+commit 33f42c97af49095dd9a735c747c79b844e6afc25
+Author: Markus Kuhn <Markus.Kuhn@cl.cam.ac.uk>
+Date:   Sat Dec 4 00:42:47 2004 +0000
+
+    Encoding of numerous files changed to UTF-8
+
+commit 4904540c4399fed01ce0d1977a0b5d3af173b66c
+Author: Egbert Eich <eich@suse.de>
+Date:   Tue Sep 21 17:57:36 2004 +0000
+
+    Merged over libXpm security fix provided by Chris Evans, Matthieu Herrb and
+        Alan Coopersmith from release 6.8.1.
+    Fail during initialization with error if font/fontset is not set for
+        widget. This prevents a sig11 later when the non-existent font/fontset
+        structs are referenced.
+    Check if xf86Info.kbdProc pointer is really set before calling it on abort
+        as this pointer won't be set if the new modular keyboard driver is used
+        (Matthias Hopf).
+    Added new libs to the bindist control files.
+    Removed inclusion of unnecessary kernel header on Linux. This may fail in
+        an -ansi environment.
+
+commit c7f720ae3f0dea94bc6e9eb9bdbbf00e6bb16b24
+Author: Kevin E Martin <kem@kem.org>
+Date:   Thu Sep 2 01:10:29 2004 +0000
+
+    Bump major version number of libXaw (Bug #1273).
+
+commit 93df4ff66635ea936d57723d317d0a0cdaa55e62
+Author: Kristian Høgsberg <krh@redhat.com>
+Date:   Mon Aug 16 16:36:14 2004 +0000
+
+    As discussed and agreed on on the release-wranglers meeting of August 16,
+        I'm committing the patch from bug #1060 to back out unconditional
+        Xprint functionality.
+    Back out Xprint changes.
+    Revert xman to CVS of June 5, revert xlogo to CVS of May 8, revert xedit to
+        CVS of April 25, to back out unconditional Xprint support.
+    Fix up Xprint config logic to be like the rest of the extensions:
+        BuildXprint is a one-stop option for disabling everything Xprint
+        related. XprtServer controls building Xprt, BuildXprintLib controls
+        building Xprint libs and BuildXprintClients controls building clients
+        related to Xprint. BuiltXprint defaults to YES and the other options
+        respects relevant settings, i.e. BuildServer and BuildServersOnly.
+    Build Xaw regardless of BuildXprintLib setting.
+    Only build xphelloworld, xplsprinters and xprehashprinterlist when
+        BuildXprintClients it YES. Disable building xmore, it has always
+        supported XawPrintShell.
+    Make Xprint support depend on BuildXprintLib.
+
+commit c0753d383d2b610863873fda5a1d2c65674e37b0
+Author: Roland Mainz <roland.mainz@nrubsig.org>
+Date:   Thu Jul 29 00:40:34 2004 +0000
+
+    Fix for https://freedesktop.org/bugzilla/show_bug.cgi?id=938 - Update
+        XawPrintShell per feedback and review comments.
+
+commit 021dac1e5b9394a228dfe69f10307a2596c48135
+Author: Alexander Gottwald <alexander.gottwald@s1999.tu-chemnitz.de>
+Date:   Tue Jun 29 15:53:10 2004 +0000
+
+    #Bug 806: undefined reference to xawPrintShellWidgetClass in Xaw6 for
+        cygwin. Wrap references to xawPrintShellWidgetClass with #ifndef
+        OLDXAW.
+
+commit fcb62987b01b7166a4b1aceb677a2a777e6ba482
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu May 6 17:31:17 2004 +0000
+
+    BugZilla #601: Fixing makedepend choking on floating point exception
+        because CHAR_BIT is defined to __CHAR_BIT__ which is a compiler
+        intrinsic define. BugZilla #605: Fixing build on IA64 which is broken
+        due to the inclusion of the kernel header asm/page.h. Kernel headers
+        however don't work with
+    -ansi. The inclusion of asm/page.h can however savely be removed as it
+        there are plenty of other ways to determine the page size.
+
+commit 39c07a5fa73bcbb48d5de8985d5f2540b65e470b
+Author: Egbert Eich <eich@suse.de>
+Date:   Fri Apr 23 18:43:38 2004 +0000
+
+    Merging XORG-CURRENT into trunk
+
+commit 5aa2c5d2169757ae410f1d13c5279fd4030b72f0
+Author: Roland Mainz <roland.mainz@nrubsig.org>
+Date:   Tue Apr 13 23:32:21 2004 +0000
+
+    file PrintShell.c was initially added on branch XPRINT.
+
+commit 31c961a93829b50fa0694a431fd1574cc2c67ea2
+Author: Roland Mainz <roland.mainz@nrubsig.org>
+Date:   Tue Apr 13 23:32:21 2004 +0000
+
+    file PrintSP.h was initially added on branch XPRINT.
+
+commit 04af3b0444e8514173c44fac44864f15119f93b4
+Author: Roland Mainz <roland.mainz@nrubsig.org>
+Date:   Tue Apr 13 23:32:21 2004 +0000
+
+    file Print.h was initially added on branch XPRINT.
+
+commit f601320d34173365050a04d8f1ec661ee1f541dd
+Author: Egbert Eich <eich@suse.de>
+Date:   Sun Mar 14 08:32:04 2004 +0000
+
+    Importing vendor version xf86-4_4_99_1 on Sun Mar 14 00:26:39 PST 2004
+
+commit d01cf1b69fd5444606b9183db6114a2972dcba0c
+Author: Egbert Eich <eich@suse.de>
+Date:   Wed Mar 3 12:11:23 2004 +0000
+
+    Importing vendor version xf86-4_4_0 on Wed Mar 3 04:09:24 PST 2004
+
+commit 0f9ae1ce47cc2271cb61887136c9a6b56b9ec4ba
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Feb 26 13:35:32 2004 +0000
+
+    readding XFree86's cvs IDs
+
+commit 0011f36c334046cce1126d4e3b45fead8fac551c
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Feb 26 09:22:42 2004 +0000
+
+    Importing vendor version xf86-4_3_99_903 on Wed Feb 26 01:21:00 PST 2004
+
+commit c75f90ead1132640b2848babda6625c800528a8c
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Jan 29 08:08:05 2004 +0000
+
+    Importing vendor version xf86-012804-2330 on Thu Jan 29 00:06:33 PST 2004
+
+commit 04a6533a94a1e0800c1806617b6dda48f30f9e6f
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Dec 19 20:54:35 2003 +0000
+
+    XFree86 4.3.99.902 (RC 2)
+
+commit ffc55826a7c787dd65d3dd577fa0ac7a111540e3
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Tue Nov 25 19:28:09 2003 +0000
+
+    XFree86 4.3.99.16 Bring the tree up to date for the Cygwin folks
+
+commit 384ac455a6cd5d23dfa24f9939f3ec04f1e5de46
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Nov 14 16:48:48 2003 +0000
+
+    XFree86 4.3.0.1
+
+commit 81ad93fde745d556aaa3880deabf3674bb3db49e
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Nov 14 16:48:48 2003 +0000
+
+    Initial revision
+
+commit b6e0280a57c4dfa572770241a42fe6a476109516
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Nov 14 15:54:38 2003 +0000
+
+    R6.6 is the Xorg base-line

@@ -459,8 +459,8 @@ MenuButton widget:
 </literallayout>
 </para>
 </sect3>
-<sect3 id="MenuButton_Actions_b">
-<title>MenuButton Actions_b</title>
+<sect3 id='MenuButton_Actions_b'>
+<title>MenuButton Actions</title>
 <para>
 <!-- .LP -->
 The full list of actions supported by MenuButton is:

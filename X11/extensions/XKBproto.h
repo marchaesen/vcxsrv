@@ -1,4 +1,3 @@
-/* $Xorg: XKBproto.h,v 1.3 2000/08/18 04:05:45 coskrey Exp $ */
 /************************************************************
 Copyright (c) 1993 by Silicon Graphics Computer Systems, Inc.
 

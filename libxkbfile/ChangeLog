@@ -1,0 +1,589 @@
+commit 5e3da29093ff5d5b6b8805467a523d5cb7663965
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Mar 7 20:37:20 2012 -0800
+
+    libxkbfile 1.0.8
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7b6123644fe23c2eb9816cf00729253b2dd53b23
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Sep 28 18:17:15 2011 -0700
+
+    Add const attributes to fix gcc -Wwrite-strings warnings
+    
+    Does not fix all of them, as some affect the API and thus need more analysis.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 0c2c504819b8788075115f848343bd45a3bb6605
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Fri Nov 11 10:37:49 2011 -0800
+
+    Include strings.h for strcasecmp
+    
+    Our minimum requirement for X11 is currently Unix98.  Unix98 provides
+    strcasecmp in <strings.h>.  This commit fixes implicit declarations
+    of this function on systems that closely adhere to the standard.
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 9ffdecdfa0a832a129a97735eaf1d22ec6defc13
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Sep 16 22:45:06 2011 -0700
+
+    Strip trailing whitespace
+    
+    Performed with: find * -type f | xargs perl -i -p -e 's{[ \t]+$}{}'
+    git diff -w & git diff -b show no diffs from this change
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit cfc92c9b8e5f511010a2e406b147dec3ce64c6fd
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Feb 2 11:43:46 2011 -0500
+
+    config: comment, minor upgrade, quote and layout configure.ac
+    
+    Group statements per section as per Autoconf standard layout
+    Quote statements where appropriate.
+    Autoconf recommends not using dnl instead of # for comments
+    
+    Use AC_CONFIG_FILES to replace the deprecated AC_OUTPUT with parameters.
+    Add AC_CONFIG_SRCDIR([Makefile.am])
+    Remove redundant AC_SUBST(*_CFLAGS) and/or *_LIBS
+    Update minimum version of util-macros to at least 1.8.
+    No functional configuration changes
+    
+    This helps automated maintenance and release activities.
+    Details can be found in http://wiki.x.org/wiki/NewModuleGuidelines
+
+commit f83b3bda908cd6d0e15287d15739344620f12d27
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Fri Jan 28 19:41:37 2011 -0500
+
+    config: replace deprecated AM_CONFIG_HEADER with AC_CONFIG_HEADERS
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit edc2a2beea14adef6c833bef456474039e2afab2
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Jan 27 18:50:15 2011 -0500
+
+    config: remove AC_PROG_CC as it overrides AC_PROG_C_C99
+    
+    XORG_STRICT_OPTION from XORG_DEFAULT_OPTIONS calls
+    AC_PROG_C_C99. This sets gcc with -std=gnu99.
+    If AC_PROG_CC macro is called afterwards, it resets CC to gcc.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 5eea77b2c35c10baf899d2b03a85a462fdcf8f93
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Oct 29 18:16:00 2010 -0700
+
+    libxkbfile 1.0.7
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ce593fce1f7930135d1c52711ef1945a3e7418b0
+Author: Jesse Adkins <jesserayadkins@gmail.com>
+Date:   Tue Sep 28 13:30:04 2010 -0700
+
+    Purge cvs tags.
+    
+    Signed-off-by: Jesse Adkins <jesserayadkins@gmail.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 57c03e52e6b4e3ed54df5fdd778865467d08e119
+Author: Fernando Carrijo <fcarrijo@yahoo.com.br>
+Date:   Thu Jul 1 06:59:48 2010 -0300
+
+    Purge macro NEED_EVENTS
+    
+    Signed-off-by: Fernando Carrijo <fcarrijo@yahoo.com.br>
+    Acked-by: Tiago Vignatti <tiago.vignatti@nokia.com>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 2db176bf5c644cf974f9137bda19e997500d04b1
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Mar 29 16:50:34 2010 -0400
+
+    config: update AC_PREREQ statement to 2.60
+    
+    Unrelated to the previous patches, the new value simply reflects
+    the reality that the minimum level for autoconf to configure
+    all x.org modules is 2.60 dated June 2006.
+    
+    ftp://ftp.gnu.org/gnu/autoconf/autoconf-2.60.tar.gz
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit bce9d460a8759c866908c945ceb609de6bf03921
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Mar 29 14:53:49 2010 -0400
+
+    config: remove the pkgconfig pc.in file from EXTRA_DIST
+    
+    Automake always includes it in the tarball.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 79cb4add177bee5dd451a8d459cb344451ea04a8
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Fri Nov 27 20:56:05 2009 -0500
+
+    Makefile.am: add ChangeLog and INSTALL on MAINTAINERCLEANFILES
+    
+    Now that the INSTALL file is generated.
+    Allows running make maintainer-clean.
+
+commit 8f2565e71d91a81ab0fe11ac7052c9f4bdfcd8fa
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Oct 28 14:09:11 2009 -0400
+
+    INSTALL, NEWS, README or AUTHORS files are missing/incorrect #24206
+    
+    Add missing INSTALL file. Use standard GNU file on building tarball
+    README may have been updated
+    Remove AUTHORS file as it is empty and no content available yet.
+    Remove NEWS file as it is empty and no content available yet.
+
+commit 6e0c505690db8bedc6cbce726bc02b049e1dafa6
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Oct 27 15:07:25 2009 -0400
+
+    Deploy the new XORG_DEFAULT_OPTIONS #24242
+    
+    This macro aggregate a number of existing macros that sets commmon
+    X.Org components configuration options. It shields the configuration file from
+    future changes.
+
+commit 5b797b80804946573313e1202c0ef89ce8980bf8
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Oct 26 22:08:43 2009 -0400
+
+    Makefile.am: ChangeLog not required: EXTRA_DIST or *CLEANFILES #24432
+    
+    ChangeLog filename is known to Automake and requires no further
+    coding in the makefile.
+
+commit fd0dd9539d3bb2471c26187c96b55a542d754c30
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Oct 22 12:34:20 2009 -0400
+
+    .gitignore: use common defaults with custom section # 24239
+    
+    Using common defaults will reduce errors and maintenance.
+    Only the very small or inexistent custom section need periodic maintenance
+    when the structure of the component changes. Do not edit defaults.
+
+commit 2ce3061947dfaf113d6c324efb2b82be2fae028e
+Author: Jeremy Huddleston <jeremyhu@freedesktop.org>
+Date:   Wed Oct 21 12:47:27 2009 -0700
+
+    This is not a GNU project, so declare it foreign.
+    
+    On Wed, 2009-10-21 at 13:36 +1000, Peter Hutterer wrote:
+    > On Tue, Oct 20, 2009 at 08:23:55PM -0700, Jeremy Huddleston wrote:
+    > > I noticed an INSTALL file in xlsclients and libXvMC today, and it
+    > > was quite annoying to work around since 'autoreconf -fvi' replaces
+    > > it and git wants to commit it.  Should these files even be in git?
+    > > Can I nuke them for the betterment of humanity and since they get
+    > > created by autoreconf anyways?
+    >
+    > See https://bugs.freedesktop.org/show_bug.cgi?id=24206
+    
+    As an interim measure, replace AM_INIT_AUTOMAKE([dist-bzip2]) with
+    AM_INIT_AUTOMAKE([foreign dist-bzip2]). This will prevent the generation
+    of the INSTALL file. It is also part of the 24206 solution.
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@freedesktop.org>
+
+commit fa9520d5a63e181c05dd850223a1916e37e71a13
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Tue Oct 6 17:08:58 2009 -0700
+
+    libxkbfile 1.0.6
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit a3d95aedf3a6d1859387fb08b46cd66cd61cec83
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Tue Oct 6 17:05:00 2009 -0700
+
+    Migrate to xorg macros 1.3 & XORG_DEFAULT_OPTIONS
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit d36a99d961c6649ca1b0319c2aadc6763edb07ad
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Fri May 8 14:15:21 2009 -0400
+
+    Semi-revert 33b839e16fe681ba915658f824ceb1b252084ea4
+    
+    _XkbDupString() checks for NULL, strdup doesn't.  Still, implement in
+    terms of real strdup and skip the calloc.
+
+commit 29f27b16dbe511a27a0e953b32913f9d9bf24f2d
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Thu May 7 16:59:59 2009 -0400
+
+    Use flockfile if available.
+    
+    Not really a huge improvement, but we might as well.
+
+commit 33b839e16fe681ba915658f824ceb1b252084ea4
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Thu May 7 16:31:39 2009 -0400
+
+    s/_XkbDupString/strdup/
+    
+    Super special bonus lols edition: _XkbDupString would allocate the new
+    string with calloc, just to be extra sure.
+
+commit 4f8dd1aa10a36700bf1f2b05931cd29151b9fee4
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Feb 2 20:34:39 2009 -0800
+
+    Add README with pointers to mailing list, bugzilla & git repos
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit d17cd6e80f1ec78b69ba11ee55465420e6d7e9a9
+Author: Paulo Cesar Pereira de Andrade <pcpa@mandriva.com.br>
+Date:   Thu Jan 29 19:52:34 2009 -0200
+
+    Janitor: distcheck, compiler warnings, .gitignore.
+
+commit dd9514fe714d81b881a1bd6bd88d4287adc5fc7e
+Author: Kees Cook <kees.cook@canonical.com>
+Date:   Tue Jan 13 15:40:37 2009 -0800
+
+    Fix static buffer overflow in "xkbcomp -C :0"
+    
+    This patch uses dynamically allocated strings instead of the fixed-length
+    buffers to avoid stack overflows.
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=19490
+    https://bugs.launchpad.net/ubuntu/+source/x11-xkb-utils/+bug/309013
+    
+    Signed-off-by: Kees Cook <kees.cook@canonical.com>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit e695be2ab7eb1361b204f98c3da872eff58ad6b5
+Author: Alexey Ten <alexeyten+github@gmail.com>
+Date:   Thu Jan 15 01:39:01 2009 +0300
+
+    Apply partial matches for option (#19563)
+    
+    Rules which match star (*) and option, like one below, should be applied
+    
+    layout[2] option    = symbols
+    *         misc:typo = +typo(base)
+    
+    X.Org bug 19563 <http://bugs.freedesktop.org/show_bug.cgi?id=19563>
+    
+    Signed-off-by: Sergey V. Udaltsov <svu@gnome.org>
+
+commit 415a513387748e1763a477a486a9789f88784ec5
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Mar 17 19:44:07 2008 -0700
+
+    Version bump: 1.0.5
+
+commit 4505577c4d6b5d32c276366ce6bc3eda1cd59ad7
+Author: James Cloos <cloos@jhcloos.com>
+Date:   Thu Dec 6 16:38:53 2007 -0500
+
+    Replace static ChangeLog with dist-hook to generate from git log
+
+commit 492cd9bfc642443d92f419964334f59b89329a36
+Author: Daniel Drake <ddrake@brontes3d.com>
+Date:   Tue May 29 12:51:00 2007 -0800
+
+    Bug #11094: libxkbfile COPYING file
+    
+    X.Org Bugzilla #11094 <https://bugs.freedesktop.org/show_bug.cgi?id=11094>
+
+commit 360c792528d614a8aa90ad665081d5bd6ae6197c
+Author: Adam Jackson <ajax@benzedrine.nwnk.net>
+Date:   Fri Oct 13 16:19:53 2006 -0400
+
+    Bump to 1.0.4
+
+commit f587c01ee30c2814d199d3782b53834161cfa2b7
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Sep 28 11:12:11 2006 -0700
+
+    Do not have to have "have have" in config.h comment if we don't have strcasecmp
+
+commit 62c3534debc688a39ccf34e60f7bf4d56fef0c11
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Sep 28 11:10:16 2006 -0700
+
+    Add *~ to gitignore to skip over emacs droppings
+
+commit 1ea09901056ecc74e8554a4225366a7ba633e834
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Jul 13 14:59:19 2006 -0700
+
+    renamed: .cvsignore -> .gitignore
+
+commit b221428cfe5ca036398571372b88cf07da7c58d8
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Thu Apr 27 00:16:37 2006 +0000
+
+    Bump to 1.0.3
+
+commit 5e5bd096ba38294f43a071def16f8a397e22eb79
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Wed Apr 12 11:29:43 2006 +0000
+
+    Fix offline operation.
+
+commit 5f400a68ee489a1d9206605870b8d4306236170e
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Mon Apr 10 10:11:35 2006 +0000
+
+    Really fix typos.
+
+commit 3885559f436ed4ee84ebf90bf3d39648e16f5b3b
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Mon Apr 10 08:47:40 2006 +0000
+
+    Fix stupid typos. (Shang-Feng Yang)
+
+commit c3bc59c223ce4de8d6cce98c005a8f44bfa600c6
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Sun Apr 9 13:45:31 2006 +0000
+
+    Coverity #265: Fix potential NULL dereference.
+
+commit 816a8db3264bc0752a8befd865b802ac4a2382ce
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Sun Apr 9 13:16:44 2006 +0000
+
+    Coverity #776, #777: Fix memory leaks.
+
+commit 405ef7f445a41eb9995304b4c68b1c966a16bc20
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Fri Apr 7 16:19:02 2006 +0000
+
+    Coverity #787, 788: Fix memory leaks.
+
+commit d173f9d6561b223de0bf79603d303427da668a98
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Fri Apr 7 16:01:03 2006 +0000
+
+    Coverity #979, #980, #981: Avoid potential NULL dereferences.
+
+commit bf3fad9eff30bba4587548303dd3d96f3da5d494
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Fri Apr 7 15:58:58 2006 +0000
+
+    Coverity #982: Fix potential NULL dereference.
+
+commit 25e8b874b9f58e5e8035957465252539df13a85d
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Fri Apr 7 15:44:40 2006 +0000
+
+    Fix signed vs unsigned char hilarity. (Bill Crawford)
+
+commit 47dfc83937ed98e964716345cb4c8d817ae13e61
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Mon Mar 27 21:11:01 2006 +0000
+
+    Bug #3819: Fix serious botching of _XkbStrCaseCmp commit.
+
+commit e61dfbf6c72369f83a833d3a5a04c306a6b289f8
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Sat Mar 25 23:15:58 2006 +0000
+
+    Bug #3819: Change open-coded _XkbStrCaseCmp to strcmp + tolower.
+
+commit 4b0ad25354d5807fc9e77fda3397ee78332502c1
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Tue Feb 28 22:44:54 2006 +0000
+
+    Bump to 1.0.2.
+
+commit 514262ec90db007dfce2c1523b2bc67988f395f1
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Tue Feb 28 16:55:26 2006 +0000
+
+    Bug #5216: Allow options to appear with other components.
+
+commit 46a7219986b402cb2ad4cfef2aa69d27f5508b6f
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Dec 21 02:30:06 2005 +0000
+
+    Update package version for X11R7 release.
+
+commit 4949a1f5d3de102195033e5f6513a595c06326cd
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Mon Dec 19 16:28:28 2005 +0000
+
+    Stub COPYING files
+
+commit 8e69b154d42e77f91135382047b9df668406a972
+Author: Kevin E Martin <kem@kem.org>
+Date:   Thu Dec 15 00:24:36 2005 +0000
+
+    Update package version number for final X11R7 release candidate.
+
+commit fa100dc7f5ee32ae37afc0323d72ff521bd5371a
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Dec 3 05:49:46 2005 +0000
+
+    Update package version number for X11R7 RC3 release.
+
+commit 26d800bab72f25e0088bf048b220eb96d6d1cf3f
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Nov 19 07:15:48 2005 +0000
+
+    Update pkgconfig files to separate library build-time dependencies from
+        application build-time dependencies, and update package deps to work
+        with separate build roots.
+
+commit b6e194b20a83f9f059037aa17fbb00a6d34e53a6
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Oct 19 02:48:13 2005 +0000
+
+    Update package version number for RC1 release.
+
+commit da83a9c6e3a85adcd30949f3c1ccd0d57a6a2bfa
+Author: Kevin E Martin <kem@kem.org>
+Date:   Mon Oct 3 15:20:29 2005 +0000
+
+    magic lives in src, so add it to EXTRA_DIST there instead
+
+commit 8b1f515abc3e5c54103ea04ce1de856dcf0a2865
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Sat Oct 1 06:22:01 2005 +0000
+
+    Add magic to EXTRA_DIST
+
+commit 2baa710ffb0cb1567df8740e52477228e251a990
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Wed Aug 3 03:28:04 2005 +0000
+
+    Do PKG_CHECK_MODULES on a unique token instead of on "DEP", so builds with
+        a global configure cache don't get confused.
+
+commit cb43c4a949dc657abd9b0f52d4d6307e00a72ddf
+Author: Kevin E Martin <kem@kem.org>
+Date:   Fri Jul 29 21:22:54 2005 +0000
+
+    Various changes preparing packages for RC0:
+    - Verify and update package version numbers as needed
+    - Implement versioning scheme
+    - Change bug address to point to bugzilla bug entry form
+    - Disable loadable i18n in libX11 by default (use --enable-loadable-i18n to
+        reenable it)
+    - Fix makedepend to use pkgconfig and pass distcheck
+    - Update build script to build macros first
+    - Update modular Xorg version
+
+commit 494e792dc3328787fd7a4598454dc19115aac856
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Sat Jul 16 07:52:50 2005 +0000
+
+    Set soversion to 1.0.0 using -version-number.
+
+commit c0b9196c7148715dde385d2f0d41d56d23839825
+Author: Keith Packard <keithp@keithp.com>
+Date:   Sat Jul 9 21:20:35 2005 +0000
+
+    Add .cvsignore files Switch _la_CFLAGS for AM_CFLAGS to clean up directory
+
+commit bf6ca6fc3ef9bd61284dc48059d10a560e5c1f28
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Sun Jul 3 07:37:33 2005 +0000
+
+    Fix more include paths; add dix-config.h to XKB code.
+
+commit 70a39df3be6fcfea3746e0e127f3cde03a538869
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Sun Jul 3 07:01:01 2005 +0000
+
+    Add Xtrans definitions (FONT_t, TRANS_CLIENT) to clean up warnings.
+    Add XSERV_t, TRANS_SERVER, TRANS_REOPEN to quash warnings.
+    Add #include <dix-config.h> or <xorg-config.h>, as appropriate, to all
+        source files in the xserver/xorg tree, predicated on defines of
+        HAVE_{DIX,XORG}_CONFIG_H. Change all Xfont includes to
+        <X11/fonts/foo.h>.
+
+commit abca6e76c667a201bf23b73bd681a8c4da892e62
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Jul 2 06:35:04 2005 +0000
+
+    Add appropriate lib*_CFLAGS to Makefile.am's -- fixes build problems
+
+commit e5ddd6b3020045b7d8426618fd2515bc02ca045d
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Mon Jun 13 22:54:28 2005 +0000
+
+    Makefile.am: Add $(top_srcdir)/include to INCLUDES
+
+commit 019fc282d476d3dd8f79e0472d3868f6a0785a56
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Mon Jun 13 21:51:46 2005 +0000
+
+    Add xkbfile to symlink.sh, conditionally include "config.h" in
+        xc/lib/xkbfile
+
+commit 43a2d4898c64c11101b500ab12466570d747ce5f
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Mon Jun 13 21:49:05 2005 +0000
+
+    - Add xkbfile build system
+
+commit adef71d31514413062d20858b270801627e32cad
+Author: Egbert Eich <eich@suse.de>
+Date:   Fri Apr 23 18:44:26 2004 +0000
+
+    Merging XORG-CURRENT into trunk
+
+commit 33f9904e1895629319e58ac55da537771cf5bfa5
+Author: Egbert Eich <eich@suse.de>
+Date:   Sun Mar 14 08:32:39 2004 +0000
+
+    Importing vendor version xf86-4_4_99_1 on Sun Mar 14 00:26:39 PST 2004
+
+commit 672fe3b619cec43314adff06401e83046f4bc59f
+Author: Egbert Eich <eich@suse.de>
+Date:   Wed Mar 3 12:11:45 2004 +0000
+
+    Importing vendor version xf86-4_4_0 on Wed Mar 3 04:09:24 PST 2004
+
+commit ca6597857e417ee89ca15889e87211421b0df842
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Feb 26 13:35:36 2004 +0000
+
+    readding XFree86's cvs IDs
+
+commit 084119505a1927600985675a54b40316edd50c63
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Feb 26 09:22:54 2004 +0000
+
+    Importing vendor version xf86-4_3_99_903 on Wed Feb 26 01:21:00 PST 2004
+
+commit 91ac80641f0e04536ffe9d4168a19ba3d7ee050d
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Tue Nov 25 19:28:21 2003 +0000
+
+    XFree86 4.3.99.16 Bring the tree up to date for the Cygwin folks
+
+commit cb45b671537b25c832428c0a75cb7d7712dea3e5
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Nov 14 16:48:50 2003 +0000
+
+    XFree86 4.3.0.1
+
+commit 52a8406aaba4ed1f9fa5e78bfa5da7af659bce01
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Nov 14 15:54:40 2003 +0000
+
+    R6.6 is the Xorg base-line

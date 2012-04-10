@@ -28,46 +28,37 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include <X11/IntrinsicP.h>
-#include <X11/Xmu/WidgetNode.h>
 #include <X11/Xaw/AllWidgets.h>
 
-extern WidgetClass applicationShellWidgetClass;
-extern WidgetClass asciiSinkObjectClass;
-extern WidgetClass asciiSrcObjectClass;
-extern WidgetClass asciiTextWidgetClass;
-extern WidgetClass boxWidgetClass;
-extern WidgetClass commandWidgetClass;
-extern WidgetClass dialogWidgetClass;
-extern WidgetClass formWidgetClass;
-extern WidgetClass gripWidgetClass;
-extern WidgetClass labelWidgetClass;
-extern WidgetClass listWidgetClass;
-extern WidgetClass menuButtonWidgetClass;
-extern WidgetClass multiSinkObjectClass;
-extern WidgetClass multiSrcObjectClass;
-extern WidgetClass overrideShellWidgetClass;
-extern WidgetClass panedWidgetClass;
-extern WidgetClass pannerWidgetClass;
-extern WidgetClass portholeWidgetClass;
-extern WidgetClass repeaterWidgetClass;
-extern WidgetClass scrollbarWidgetClass;
-extern WidgetClass shellWidgetClass;
-extern WidgetClass simpleMenuWidgetClass;
-extern WidgetClass simpleWidgetClass;
-extern WidgetClass smeBSBObjectClass;
-extern WidgetClass smeLineObjectClass;
-extern WidgetClass smeObjectClass;
-extern WidgetClass stripChartWidgetClass;
-extern WidgetClass textSinkObjectClass;
-extern WidgetClass textSrcObjectClass;
-extern WidgetClass textWidgetClass;
-extern WidgetClass toggleWidgetClass;
-extern WidgetClass topLevelShellWidgetClass;
-extern WidgetClass transientShellWidgetClass;
-extern WidgetClass treeWidgetClass;
-extern WidgetClass vendorShellWidgetClass;
-extern WidgetClass viewportWidgetClass;
-extern WidgetClass wmShellWidgetClass;
+#include <X11/Composite.h>
+#include <X11/Constraint.h>
+#include <X11/Core.h>
+#include <X11/Object.h>
+#include <X11/RectObj.h>
+#include <X11/Shell.h>
+#include <X11/Vendor.h>
+#include <X11/Xaw/AsciiSink.h>
+#include <X11/Xaw/AsciiText.h>
+#include <X11/Xaw/Box.h>
+#include <X11/Xaw/Dialog.h>
+#include <X11/Xaw/Form.h>
+#include <X11/Xaw/Grip.h>
+#include <X11/Xaw/List.h>
+#include <X11/Xaw/MenuButton.h>
+#include <X11/Xaw/MultiSink.h>
+#include <X11/Xaw/Paned.h>
+#include <X11/Xaw/Panner.h>
+#include <X11/Xaw/Porthole.h>
+#include <X11/Xaw/Repeater.h>
+#include <X11/Xaw/Scrollbar.h>
+#include <X11/Xaw/SimpleMenu.h>
+#include <X11/Xaw/Sme.h>
+#include <X11/Xaw/SmeBSB.h>
+#include <X11/Xaw/SmeLine.h>
+#include <X11/Xaw/StripChart.h>
+#include <X11/Xaw/Toggle.h>
+#include <X11/Xaw/Tree.h>
+#include <X11/Xaw/Viewport.h>
 
 XmuWidgetNode XawWidgetArray[] = {
 { "applicationShell", &applicationShellWidgetClass },

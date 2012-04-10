@@ -1,3 +1,141 @@
+commit 497ea5c9d998385c4b877ff4e7995d85aefd066b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Mar 22 21:57:16 2012 -0700
+
+    xhost 1.0.5
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b38ed3d9e9100347c738b3abd12ec4dab1a5f395
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Mar 2 17:13:27 2012 -0800
+
+    Rework si:type:value code to remove need for shadowed namelen variable
+    
+    Fixes gcc warning:
+    xhost.c:453:6: warning: declaration of ‘namelen’ shadows a previous local
+    xhost.c:339:9: warning: shadowed declaration is here
+    
+    Also removes unnecessary malloc and memcpy by just using the string
+    pointers we already have, since XAddHost & XRemoveHost will copy the
+    specified length of text from the strings to the Xlib request buffer
+    before returning, not relying on nil termination.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ab99e025529b9029759470e9e085bb344f7fe4f5
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Mar 2 17:09:02 2012 -0800
+
+    configure.ac updates to match other X.Org modules
+    
+    layout and comment the top portion of configure.ac
+    add missing AC_CONFIG_SRCDIR
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c77ffc9c88d65b31c1ffadfc7956d954d82d5e85
+Author: Erik Saule <esaule@bmi.osu.edu>
+Date:   Sat Jul 23 18:11:10 2011 -0400
+
+    man: xhost can not take a user name as a parameter.
+    
+    However, server interpreted addresses can be used to achieve the same
+    behavior.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 88e5e5af7a6af15a6d277565e317f8d768067de5
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Sep 24 10:22:07 2011 -0700
+
+    Declare some char * as const to fix gcc -Wwrite-strings warnings
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Julien Cristau <jcristau@debian.org>
+    Reviewed-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit d0d9975f459fd098e5b2cdc75edf4a9ebab6afd6
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Sep 24 10:13:45 2011 -0700
+
+    Only need CFLAGS, not LIBS from xau package
+    
+    xhost needs the Family definitions from <X11/Xauth.h> to build, but
+    doesn't call any libXau functions, so doesn't need to link against it.
+    
+    Fixes Solaris ld -z guidance warning:
+    ld: guidance: removal of unused dependency recommended: libXau.so.6
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jeremy Huddleston <jeremyhu@apple.com>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+    Reviewed-by: Jamey Sharp <jamey@minilop.net>
+
+commit b8747f951cb3652975ce8484aaaddd50247729f7
+Author: Julien Cristau <jcristau@debian.org>
+Date:   Thu Jul 28 20:28:22 2011 +0200
+
+    Move "-help" handling up to before XOpenDisplay
+    
+    We don't need a display to show the usage message.
+    
+    X.Org bug#39633 <https://bugs.freedesktop.org/show_bug.cgi?id=39633>
+    
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+
+commit 24685cf1a3987a72310b0160b102fef615359731
+Author: Kees Cook <kees.cook@canonical.com>
+Date:   Sat Jul 9 13:05:17 2011 -0700
+
+    xhost: check return value of X{Add,Remove}Host
+    
+    In the ServerInterpreted case, XAddHost and XRemoveHost are capable of
+    failing when they lack request buffer memory. Notice this situation,
+    and report correctly.
+    
+    Signed-off-by: Kees Cook <kees.cook@canonical.com>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+
+commit 29215ba31a7e173e55e7db73eb4c0040ae82881c
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 19 10:06:56 2011 -0500
+
+    config: move man pages into their own directory
+    
+    Use services provided by XORG_MANPAGE_SECTIONS.
+    Use standard Makefile for man pages.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit fc5155aa204cb07aaa3214876b20b02ad3ddcca1
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Jan 13 17:15:36 2011 -0500
+
+    man: replace hard coded man page section with substitution strings
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit e5e10f31baab0e98c5d7c2f1507bef2987d04ce8
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Jan 13 11:15:47 2011 -0500
+
+    man: remove trailing spaces and tabs
+    
+    Using s/[ \t]*$//
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit fc7681916477fdbb9ee9bda57b0051207bade715
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 12 16:28:02 2011 -0500
+
+    config: replace deprecated AM_CONFIG_HEADER with AC_CONFIG_HEADERS
+    
+    This silences an Autoconf warning
+
 commit 76c0049c33330e5b454e7f563333a6d847092c65
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Sat Oct 30 09:49:40 2010 -0700

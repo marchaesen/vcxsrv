@@ -6,19 +6,19 @@
  fee is hereby granted, provided that the above copyright
  notice appear in all copies and that both that copyright
  notice and this permission notice appear in supporting
- documentation, and that the name of Silicon Graphics not be 
- used in advertising or publicity pertaining to distribution 
+ documentation, and that the name of Silicon Graphics not be
+ used in advertising or publicity pertaining to distribution
  of the software without specific prior written permission.
- Silicon Graphics makes no representation about the suitability 
+ Silicon Graphics makes no representation about the suitability
  of this software for any purpose. It is provided "as is"
  without any express or implied warranty.
- 
- SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
- SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY 
+
+ SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
  AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
- GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
- DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, 
- DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
+ GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+ DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+ DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
  OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
  THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
@@ -238,8 +238,8 @@ Bool	endOfFile,spacePending,slashPending,inComment;
 #define	PART_MASK	0x000F
 #define	COMPONENT_MASK	0x03F0
 
-static	char *	cname[MAX_WORDS] = {
-	"model", "layout", "variant", "option", 
+static	const char *	cname[MAX_WORDS] = {
+	"model", "layout", "variant", "option",
 	"keycodes", "symbols", "types", "compat", "geometry", "keymap"
 };
 
@@ -554,7 +554,7 @@ MakeMultiDefs(XkbRF_MultiDefsPtr mdefs, XkbRF_VarDefsPtr defs)
    bzero((char *)mdefs,sizeof(XkbRF_MultiDefsRec));
    mdefs->model = defs->model;
    mdefs->options = _XkbDupString(defs->options);
-   if (mdefs->options) squeeze_spaces(mdefs->options); 
+   if (mdefs->options) squeeze_spaces(mdefs->options);
 
    if (defs->layout) {
        if (!strchr(defs->layout, ',')) {
@@ -902,7 +902,7 @@ XkbRF_GetComponents(	XkbRF_RulesPtr		rules,
 
     if (names->keycodes)
 	names->keycodes= XkbRF_SubstituteVars(names->keycodes, &mdefs);
-    if (names->symbols)	
+    if (names->symbols)
 	names->symbols=	XkbRF_SubstituteVars(names->symbols, &mdefs);
     if (names->types)
 	names->types= XkbRF_SubstituteVars(names->types, &mdefs);
@@ -910,7 +910,7 @@ XkbRF_GetComponents(	XkbRF_RulesPtr		rules,
 	names->compat= XkbRF_SubstituteVars(names->compat, &mdefs);
     if (names->geometry)
 	names->geometry= XkbRF_SubstituteVars(names->geometry, &mdefs);
-    if (names->keymap)	
+    if (names->keymap)
 	names->keymap= XkbRF_SubstituteVars(names->keymap, &mdefs);
 
     FreeMultiDefs(&mdefs);
@@ -1072,7 +1072,7 @@ XkbRF_VarDescPtr	nd;
     return nd;
 }
 
-XkbRF_DescribeVarsPtr 
+XkbRF_DescribeVarsPtr
 XkbRF_AddVarToDescribe(XkbRF_RulesPtr rules,char *name)
 {
     if (rules->sz_extra<1) {
@@ -1252,14 +1252,14 @@ XkbRF_RulesPtr	rules;
 }
 
 XkbRF_RulesPtr
-XkbRF_Create(int szRules,int szExtra) 
+XkbRF_Create(int szRules,int szExtra)
 {
 XkbRF_RulesPtr rules;
 
     if ((rules=_XkbTypedCalloc(1,XkbRF_RulesRec))==NULL)
 	return NULL;
     if (szRules>0) {
-	rules->sz_rules= szRules; 
+	rules->sz_rules= szRules;
 	rules->rules= _XkbTypedCalloc(rules->sz_rules,XkbRF_RuleRec);
 	if (!rules->rules) {
 	    _XkbFree(rules);
@@ -1267,7 +1267,7 @@ XkbRF_RulesPtr rules;
 	}
     }
     if (szExtra>0) {
-	rules->sz_extra= szExtra; 
+	rules->sz_extra= szExtra;
 	rules->extra= _XkbTypedCalloc(rules->sz_extra,XkbRF_DescribeVarsRec);
 	if (!rules->extra) {
 	    if (rules->rules)
@@ -1285,7 +1285,7 @@ static void
 XkbRF_ClearVarDescriptions(XkbRF_DescribeVarsPtr var)
 {
 register int i;
-    
+
     for (i=0;i<var->num_desc;i++) {
 	if (var->desc[i].name)
 	    _XkbFree(var->desc[i].name);
@@ -1355,7 +1355,7 @@ XkbRF_GroupPtr	group;
 
 #ifndef XKB_IN_SERVER
 
-Bool 
+Bool
 XkbRF_GetNamesProp(Display *dpy,char **rf_rtrn,XkbRF_VarDefsPtr vd_rtrn)
 {
 Atom		rules_atom,actual_type;
@@ -1367,7 +1367,7 @@ Status		rtrn;
 
     rules_atom= XInternAtom(dpy,_XKB_RF_NAMES_PROP_ATOM,True);
     if (rules_atom==None)	/* property cannot exist */
-	return False; 
+	return False;
     rtrn= XGetWindowProperty(dpy,DefaultRootWindow(dpy),rules_atom,
                                 0L,_XKB_RF_NAMES_PROP_MAXLEN,False,
                                 XA_STRING,&actual_type,
@@ -1417,7 +1417,7 @@ Status		rtrn;
     return True;
 }
 
-Bool 
+Bool
 XkbRF_SetNamesProp(Display *dpy,char *rules_file,XkbRF_VarDefsPtr var_defs)
 {
 int	len,out;

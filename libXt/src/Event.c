@@ -1549,15 +1549,9 @@ void XtMainLoop(void)
 void XtAppMainLoop(
 	XtAppContext app)
 {
-    XEvent event;
-
     LOCK_APP(app);
     do {
-    	XtAppNextEvent(app, &event);
-#ifdef XTHREADS
-	/* assert(app == XtDisplayToApplicationContext(event.xany.display)); */
-#endif
-	XtDispatchEvent(&event);
+	XtAppProcessEvent(app, XtIMAll);
     } while(app->exit_flag == FALSE);
     UNLOCK_APP(app);
 }

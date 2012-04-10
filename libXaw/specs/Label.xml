@@ -32,7 +32,7 @@ left, right, or center justified.  Normally, this widget
 can be neither selected nor directly edited by the user.
 It is intended for use as an output device only.
 </para>
-<sect2 id="label_resources">
+<sect2 id='Label::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->

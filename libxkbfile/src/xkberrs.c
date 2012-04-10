@@ -41,7 +41,7 @@
 #include <X11/XKBlib.h>
 #include <X11/extensions/XKBfile.h>
 
-char *		_XkbErrMessages[] = {
+const char *	_XkbErrMessages[] = {
 	"success",				/* _XkbSuccess		     */
 	"key names not defined",		/* _XkbErrMissingNames	     */
 	"key types not defined",		/* _XkbErrMissingTypes	     */
@@ -72,6 +72,6 @@ char *		_XkbErrMessages[] = {
 };
 
 unsigned	_XkbErrCode;
-char *		_XkbErrLocation= NULL;
+const char *	_XkbErrLocation= NULL;
 unsigned	_XkbErrData;
 

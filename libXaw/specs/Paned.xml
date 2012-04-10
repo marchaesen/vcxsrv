@@ -95,7 +95,7 @@ The default bindings for the Paned widget's grips are:
 </informaltable>
 </para>
 </sect2>
-<sect2 id="paned_resources">
+<sect2 id='Paned::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->
@@ -565,7 +565,7 @@ when the Paned widget is oriented vertically.
 <!-- .Mm -->
 <!-- .Nc -->
 This is not the same as the number of panes, since this also contains a
-grip for some of the panes, use <function>XawPanedGetNumSub</function> to retrieve the
+grip for some of the panes, use <xref linkend='XawPanedGetNumSub' xrefstyle='select: title'/> to retrieve the
 number of panes.
       </para>
     </listitem>
@@ -605,7 +605,7 @@ widget.
 </variablelist>
 </para>
 </sect2>
-<sect2 id="paned_constraint_resources">
+<sect2 id='Paned::Constraint_Resources'>
 <title>Constraint Resources</title>
 <para>
 <!-- .LP -->
@@ -775,7 +775,7 @@ forced to be resized.  See <function>Layout Semantics</function> for details.
 </variablelist>
 </para>
 </sect2>
-<sect2 id="paned_layout_semantics">
+<sect2 id='Paned::Layout_Semantics'>
 <title>Layout Semantics</title>
 <para>
 <!-- .LP -->
@@ -859,7 +859,7 @@ Invoking GripAction with <function>ThisBorderOnly</function> specified just move
 border between the panes.  No other panes are ever resized.
 </para>
 </sect3>
-<sect3 id="Resizing_Panes_after_the_Paned_widget_is_resized_">
+<sect3 id='Resizing_Panes_after_the_Paned_widget_is_resized'>
 <title>Resizing Panes after the Paned widget is resized.</title>
 <para>
 <!-- .LP -->
@@ -889,7 +889,7 @@ panes exactly.  If this is not possible then it will hunt through the
 children, from bottom to top (right to left), for a pane to resize.
 </para>
 </sect3>
-<sect3 id="paned_special_considerations">
+<sect3 id='Paned::Special_Considerations'>
 <title>Special Considerations</title>
 <para>
 <!-- .LP -->
@@ -970,7 +970,7 @@ grip's inactive cursor.  No second argument is needed in this case.
 </variablelist>
 </para>
 </sect2>
-<sect2 id="paned_convenience_routines">
+<sect2 id='Paned::Convenience_Routines'>
 <title>Convenience Routines</title>
 <para>
 <!-- .LP -->
@@ -980,7 +980,7 @@ To enable or disable a child's request for pane resizing,
 use
 <function>XawPanedAllowResize :</function>
 <!-- .IN "XawPanedAllowResize" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawPanedAllowResize'>
 <funcprototype>
   <funcdef>void<function> XawPanedAllowResize</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -1029,7 +1029,7 @@ constraint resource for the child.
 To change the minimum and maximum height settings for a pane, use
 <function>XawPanedSetMinMax :</function>
 <!-- .IN "XawPanedSetMinMax" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawPanedSetMinMax'>
 <funcprototype>
   <funcdef>void<function> XawPanedSetMinMax</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -1082,7 +1082,7 @@ constraint resources for the child.
 To retrieve the minimum and maximum height settings for a pane, use
 <function>XawPanedGetMinMax :</function>
 <!-- .IN "XawPanedGetMinMax" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawPanedGetMinMax'>
 <funcprototype>
   <funcdef>void<function> XawPanedGetMinMax</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -1137,7 +1137,7 @@ To enable or disable automatic recalculation of pane sizes and positions,
 use
 <function>XawPanedSetRefigureMode :</function>
 <!-- .IN "XawPanedSetRefigureMode" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawPanedSetRefigureMode'>
 <funcprototype>
   <funcdef>void<function> XawPanedSetRefigureMode</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -1180,9 +1180,9 @@ relayout until after all changes have been made.
 <!-- .sp -->
 <!-- .IN "Paned widget" "getting the number of children" -->
 To retrieve the number of panes in a paned widget use
-<function>XawPanedGetNumSub</function>:
+<xref linkend='XawPanedGetNumSub' xrefstyle='select: title'/>:
 <!-- .IN "XawPanedGetNumSub" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawPanedGetNumSub'>
 <funcprototype>
   <funcdef>int<function> XawPanedGetNumSub</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>

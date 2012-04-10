@@ -35,7 +35,7 @@ export.
 Since all text sinks will have some resources in common, the TextSink
 defines a few new resources.
 </para>
-<sect2 id="textsink_resources">
+<sect2 id='TextSink::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->
@@ -190,9 +190,9 @@ to be used as a sink by itself.
 <para>
 <!-- .LP -->
 To display a section of the text buffer contained in the text source
-use the function <function>DisplayText</function>:
+use the function <xref linkend='DisplayText' xrefstyle='select: title'/>:
 <!-- .IN "TextSink object" "DisplayText" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='DisplayText'>
 <funcprototype>
   <funcdef>void<function> DisplayText</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -281,9 +281,9 @@ be displayed.
 <para>
 <!-- .LP -->
 The function that controls the display of the text cursor is
-<function>InsertCursor</function>.  This function will be called whenever the text
+<xref linkend='InsertCursor' xrefstyle='select: title'/>.  This function will be called whenever the text
 widget desires to change the state of, or move the insert point.
-<funcsynopsis>
+<funcsynopsis id='InsertCursor'>
 <funcprototype>
   <funcdef>void<function> InsertCursor</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -346,13 +346,15 @@ Specifies the state of the cursor, may be one of <function>XawisOn</function> or
 <para>
 <!-- .LP -->
 To clear a portion of the Text window to its background color, the Text
-widget will call <function>ClearToBackground</function>.  The TextSink object already
-defines this function as calling <function>XClearArea</function> on the region passed.
+widget will call <xref linkend='ClearToBackground' xrefstyle='select: title'/>.  The TextSink object already
+defines this function as calling 
+<olink targetdoc='libX11' targetptr='XClearArea'><function>XClearArea</function></olink>
+on the region passed.
 This behavior will be used if you specify
 <function>XtInheritClearToBackground</function> for this method.
 <!-- .IN "XtInheritClearToBackground" "" -->
 <!-- .IN "TextSink object" "ClearToBackground" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='ClearToBackground'>
 <funcprototype>
   <funcdef>void<function> ClearToBackground</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -424,9 +426,9 @@ Specifies the height, in pixels, of the Region to clear.
 <para>
 <!-- .LP -->
 To find the text character position that will be rendered at a given x
-location the Text widget uses the function <function>FindPosition</function>:
+location the Text widget uses the function <xref linkend='FindPosition' xrefstyle='select: title'/>:
 <!-- .IN "TextSink object" "FindPosition" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='FindPosition'>
 <funcprototype>
   <funcdef>void<function> FindPosition</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -537,10 +539,10 @@ widget will only call it one line at a time.
 <para>
 <!-- .LP -->
 <!-- .sp -->
-Another means of finding a text position is provided by the <function>Resolve</function>
+Another means of finding a text position is provided by the <xref linkend='Resolve' xrefstyle='select: title'/>
 function:
 <!-- .IN "TextSink object" "Resolve" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='Resolve'>
 <funcprototype>
   <funcdef>void<function> Resolve</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -613,7 +615,7 @@ if <emphasis remap='I'>stopAtWordBreak</emphasis> is <function>True</function>.
 <!-- .LP -->
 This function need make no attempt to deal with line feeds.  The text
 widget will only call it one line at a time.  This is a more convenient
-interface to the <function>FindPosition</function> function, and provides a subset of its
+interface to the <xref linkend='FindPosition' xrefstyle='select: title'/> function, and provides a subset of its
 functionality.
 <!-- .IN "FindPosition" "" -->
 </para>
@@ -623,9 +625,9 @@ functionality.
 <para>
 <!-- .LP -->
 To find the distance in pixels between two text positions on the same
-line use the function <function>FindDistance</function>.
+line use the function <xref linkend='FindDistance' xrefstyle='select: title'/>.
 <!-- .IN "TextSink object" "FindDistance" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='FindDistance'>
 <funcprototype>
   <funcdef>void<function> FindDistance</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -727,11 +729,11 @@ widget will only call it one line at a time.
 <para>
 <!-- .LP -->
 To find the maximum number of lines that will fit into the current Text
-widget, use the function <function>MaxLines</function>.  The TextSink already defines
+widget, use the function <xref linkend='MaxLines' xrefstyle='select: title'/>.  The TextSink already defines
 this function to compute the maximum number of lines by using the height
 of <function>font</function>.
 <!-- .IN "TextSink object" "MaxLines" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='MaxLines'>
 <funcprototype>
   <funcdef>int<function> MaxLines</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -770,11 +772,11 @@ Returns the maximum number of lines that will fit in <emphasis remap='I'>height<
 <!-- .LP -->
 <!-- .sp -->
 To find the height required for a given number of text lines, use
-the function <function>MaxHeight</function>.  The TextSink already defines this
+the function <xref linkend='MaxHeight' xrefstyle='select: title'/>.  The TextSink already defines this
 function to compute the maximum height of the window by using the
 height of <function>font</function>.
 <!-- .IN "TextSink object" "MaxHeight" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='MaxHeight'>
 <funcprototype>
   <funcdef>int<function> MaxHeight</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -814,12 +816,12 @@ Returns the height that will be taken up by the number of lines passed.
 <title>Setting the Tab Stops</title>
 <para>
 <!-- .LP -->
-To set the tab stops for a text sink use the <function>SetTabs</function> function.
+To set the tab stops for a text sink use the <xref linkend='SetTabs' xrefstyle='select: title'/> function.
 The TextSink already defines this function to set the tab x location in
 pixels to be the number of characters times the figure width of
 <function>font</function>.
 <!-- .IN "TextSink object" "SetTabs" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='SetTabs'>
 <funcprototype>
   <funcdef>void<function> SetTabs</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -866,14 +868,14 @@ This function is responsible for the converting character positions passed
 to it into whatever internal positions the TextSink uses for tab placement.
 </para>
 </sect3>
-<sect3 id="Getting_the_Insert_Point_s_Size_and_Location">
+<sect3 id='Getting_the_Insert_Points_Size_and_Location'>
 <title>Getting the Insert Point's Size and Location</title>
 <para>
 <!-- .LP -->
 To get the size and location of the insert point use the
-<function>GetCursorBounds</function> function.
+<xref linkend='GetCursorBounds' xrefstyle='select: title'/> function.
 <!-- .IN "TextSink object" "GetCursorBounds" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='GetCursorBounds'>
 <funcprototype>
   <funcdef>void<function> GetCursorBounds</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>

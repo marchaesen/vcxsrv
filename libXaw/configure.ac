@@ -1,8 +1,7 @@
-dnl Process this file with autoconf to create configure.
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXaw], [1.0.9],
+AC_INIT([libXaw], [1.0.10],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXaw])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
@@ -11,20 +10,25 @@ AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_MAINTAINER_MODE
 
-# Require xorg-macros minimum of 1.10 for HAVE_STYLESHEETS in XORG_CHECK_SGML_DOCTOOLS
+# Initialize libtool
+AC_PROG_LIBTOOL
+
+# Require xorg-macros minimum of 1.12 for DocBook external references
 m4_ifndef([XORG_MACROS_VERSION],
-	  [m4_fatal([must install xorg-macros 1.10 or later before running autoconf/autogen])])
-XORG_MACROS_VERSION(1.10)
+          [m4_fatal([must install xorg-macros 1.12 or later before running autoconf/autogen])])
+XORG_MACROS_VERSION(1.12)
 XORG_DEFAULT_OPTIONS
 XORG_ENABLE_SPECS
-XORG_WITH_XMLTO(0.0.20)
+XORG_WITH_XMLTO(0.0.22)
 XORG_WITH_FOP
-XORG_CHECK_SGML_DOCTOOLS(1.5)
+XORG_WITH_XSLTPROC
+XORG_CHECK_SGML_DOCTOOLS(1.8)
 
-# Check for progs
-AC_PROG_LIBTOOL
-AC_PROG_AWK
+# Some compilers do not support per target -c and -o flags
 AM_PROG_CC_C_O
+
+# Checks for programs.
+AC_PROG_AWK
 
 # Need to call this explicitly since the first call to PKG_CHECK_MODULES
 # is in an if statement, and later calls would break if it's skipped.
@@ -65,7 +69,7 @@ AM_CONDITIONAL(PLATFORM_DARWIN, test "x$platform_darwin" = "xyes")
 
 # Whether to build Xaw6
 
-AC_ARG_ENABLE(xaw6, AC_HELP_STRING([--disable-xaw6],
+AC_ARG_ENABLE(xaw6, AS_HELP_STRING([--disable-xaw6],
 				[Disable building of libXaw.so.6]),
 			[build_v6=$enableval], [build_v6=yes])
 
@@ -76,7 +80,7 @@ fi
 
 # Whether to build Xaw7
 
-AC_ARG_ENABLE(xaw7, AC_HELP_STRING([--disable-xaw7],
+AC_ARG_ENABLE(xaw7, AS_HELP_STRING([--disable-xaw7],
 				[Disable building of libXaw.so.7]),
 			[build_v7=$enableval], [build_v7=yes])
 
@@ -89,7 +93,6 @@ AM_CONDITIONAL(BUILD_XAW6, [test x$build_v6 = xyes])
 AM_CONDITIONAL(BUILD_XAW7, [test x$build_v7 = xyes])
 
 # Checks for header files.
-AC_HEADER_STDC
 AC_CHECK_HEADERS([wctype.h wchar.h widec.h])
 
 # Checks for functions

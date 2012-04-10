@@ -1,0 +1,103 @@
+<appendix id='Resource_Configuration_Management'>
+<title>Resource Configuration Management</title>
+<para>
+Setting and changing resources in X applications can be difficult for
+both the application programmer and the end user.  <emphasis role='strong'>Resource
+Configuration Management (RCM)</emphasis> addresses this problem by changing
+the <function>X Intrinsics</function> to immediately modify a resource for a
+specified widget and each child widget in the hierarchy.
+In this context, immediate means: no sourcing of a resource
+file is required; the application does not need to be restarted for the
+new resource values to take effect; and the change
+occurs immediately.
+</para>
+
+<para>
+The main difference between <function>RCM</function> and the <function>Editres</function>
+protocol is that the <function>RCM</function>
+customizing hooks reside in the <function>Intrinsics</function> and thus are linked with
+other toolkits such as Motif and the Athena widgets.  However, the
+<function>EditRes</function> protocol requires the application to link with the
+<function>EditRes</function>
+routines in the Xmu library and Xmu is not used by all applications that
+use Motif.  Also, the <function>EditRes</function> protocol uses ClientMessage,
+whereas the
+<function>RCM</function> <function>Intrinsics</function> hooks use <function>PropertyNotify</function> events.
+</para>
+
+<para>
+X Properties and the <function>PropertyNotify</function> events are used
+to implement <function>RCM</function> and
+allow on-the-fly resource customization.  When the X Toolkit is
+initialized, two atoms are interned with the strings
+<emphasis remap='I'>Custom Init</emphasis> and
+<emphasis remap='I'>Custom Data</emphasis>.  Both
+<function>_XtCreatePopupShell</function>
+and
+<function>_XtAppCreateShell</function>
+register a <function>PropertyNotify</function> event handler to handle these properties.
+</para>
+
+<para>
+A customization tool uses the <emphasis remap='I'>Custom Init</emphasis> property to <emphasis remap='I'>ping</emphasis> an
+application to get the application's toplevel window.  When the
+application's property notify event handler is invoked, the handler
+deletes the property.  No data is transferred in this property.
+</para>
+
+<para>
+A customization tool uses the <emphasis remap='I'>Custom Data</emphasis> property to tell an
+application that it should change a resource's value.  The data in
+the property contains the length of the resource name (the number
+of bytes in the resource name), the resource name and the new
+value for the resource.  This property's type is <function>XA_STRING</function> and
+the format of the string is:
+</para>
+<orderedlist>
+  <listitem>
+    <para>
+The length of the resource name (the number of bytes in
+the resource name)
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+One space character
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The resource name
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+One space character
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The resource value
+    </para>
+  </listitem>
+</orderedlist>
+<para>
+When setting the application's resource, the event handler calls
+functions to walk the application's widget tree, determining which
+widgets are affected by the resource string, and then applying the value
+with
+<xref linkend='XtSetValues' xrefstyle='select: title'/>.
+As the widget tree is recursively descended, at
+each level in the widget tree a resource part is tested for a match.
+When the entire resource string has been matched, the value is applied
+to the widget or widgets.
+</para>
+
+<para>
+Before a value is set on a widget, it is first determined if the last
+part of the resource is a valid resource for that widget.  It must also
+add the resource to the application's resource database and then query
+it using specific resource strings that is builds from the widget
+information.
+</para>
+</appendix>

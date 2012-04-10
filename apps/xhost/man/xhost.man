@@ -1,0 +1,187 @@
+.\" Copyright (c) 2004, Oracle and/or its affiliates. All rights reserved.
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a
+.\" copy of this software and associated documentation files (the "Software"),
+.\" to deal in the Software without restriction, including without limitation
+.\" the rights to use, copy, modify, merge, publish, distribute, sublicense,
+.\" and/or sell copies of the Software, and to permit persons to whom the
+.\" Software is furnished to do so, subject to the following conditions:
+.\"
+.\" The above copyright notice and this permission notice (including the next
+.\" paragraph) shall be included in all copies or substantial portions of the
+.\" Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+.\" THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+.\" LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+.\" FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+.\" DEALINGS IN THE SOFTWARE.
+.\"
+.\" Copyright 1988, 1998  The Open Group
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a
+.\" copy of this software and associated documentation files (the
+.\" "Software"), to deal in the Software without restriction, including
+.\" without limitation the rights to use, copy, modify, merge, publish,
+.\" distribute, and/or sell copies of the Software, and to permit persons
+.\" to whom the Software is furnished to do so, provided that the above
+.\" copyright notice(s) and this permission notice appear in all copies of
+.\" the Software and that both the above copyright notice(s) and this
+.\" permission notice appear in supporting documentation.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+.\" OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+.\" MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+.\" OF THIRD PARTY RIGHTS. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+.\" HOLDERS INCLUDED IN THIS NOTICE BE LIABLE FOR ANY CLAIM, OR ANY SPECIAL
+.\" INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING
+.\" FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+.\" NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
+.\" WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.\" Except as contained in this notice, the name of a copyright holder
+.\" shall not be used in advertising or otherwise to promote the sale, use
+.\" or other dealings in this Software without prior written authorization
+.\" of the copyright holder.
+.\"
+.\" X Window System is a trademark of The Open Group.
+.\"
+.TH XHOST 1 __xorgversion__
+.SH NAME
+xhost \- server access control program for X
+.SH SYNOPSIS
+.B xhost
+[[+\-]name ...]
+.SH DESCRIPTION
+The \fIxhost\fP program
+is used to add and delete host names or user names to the list allowed
+to make connections to the X server.  In the case of hosts, this provides
+a rudimentary form of privacy control and security.  It is only sufficient
+for a workstation (single user) environment, although it does limit the
+worst abuses.  Environments which require more sophisticated measures should
+implement the user-based mechanism or use the hooks in the
+protocol for passing other authentication data to the server.
+.SH OPTIONS
+\fIXhost\fP accepts the following command line options described below.  For
+security, the options that affect access control may only be run from the
+"controlling host".  For workstations, this is the same machine as the
+server.  For X terminals, it is the login host.
+.TP 8
+.B \-help
+Prints a usage message.
+.TP 8
+.BI "[+]" "name"
+The given \fIname\fP (the plus sign is optional)
+is added to the list allowed to connect to the X server.
+The name can be a host name or a complete name (See
+.SM
+.B NAMES
+for more details).
+.TP 8
+.BI \- "name"
+The given \fIname\fP is removed from the list of allowed
+to connect to the server.  The name can be a host name or a complete
+name (See
+.SM
+.B NAMES
+for more details).
+Existing connections are not broken, but new
+connection attempts will be denied.
+Note that the current machine is allowed to be removed; however, further
+connections (including attempts to add it back) will not be permitted.
+Resetting the server (thereby breaking all connections)
+is the only way to allow local connections again.
+.TP 8
+.B \+
+Access is granted to everyone, even if they aren't on the list
+(i.e., access control is turned off).
+.TP 8
+.B \-
+Access is restricted to only those on the list
+(i.e., access control is turned on).
+.TP 8
+.I nothing
+If no command line arguments are given,
+a message indicating whether or not access control is currently enabled
+is printed, followed by the list of those allowed to connect.
+This is the only option that may be used from machines other than
+the controlling host.
+.SH NAMES
+A complete name has the syntax
+``family:name'' where the families are
+as follows:
+.PP
+.nf
+.ta 1i
+inet	Internet host (IPv4)
+inet6	Internet host (IPv6)
+dnet	DECnet host
+nis	Secure RPC network name
+krb	Kerberos V5 principal
+local	contains only one name, the empty string
+si	Server Interpreted
+.fi
+.PP
+The family is case insensitive.
+The format of the name varies with the family.
+.PP
+When Secure RPC is being used, the
+network independent netname (e.g., "nis:unix.\fIuid\fP@\fIdomainname\fP") can
+be specified, or a local user can be specified with just the username
+and a trailing at-sign (e.g., "nis:pat@").
+.PP
+For backward compatibility with pre-R6 \fIxhost\fP,
+names that contain an at-sign (@) are assumed to be in the nis family.
+Otherwise they are assumed to be Internet addresses. If compiled to support
+IPv6, then all IPv4 and IPv6 addresses returned by getaddrinfo(__libmansuffix__) are added to
+the access list in the appropriate inet or inet6 family.
+.PP
+The local family specifies all the local connections at once. However,
+the server interpreted address "si:localuser:\fIusername\fP" can be
+used to specify a single local user. (See the
+\fIXsecurity\fP(__miscmansuffix__) manual page for more details.)
+.PP
+Server interpreted addresses consist of a case-sensitive type tag and a
+string representing a given value, separated by a colon.  For example,
+"si:hostname:almas" is a server interpreted address of type \fIhostname\fP,
+with a value of \fIalmas\fP.   For more information on the available forms
+of server interpreted addresses, see the \fIXsecurity\fP(__miscmansuffix__)
+manual page.
+.PP
+The initial access control list for display number \fBn\fP
+may be set by the file \fI/etc/X\fBn\fI.hosts\fR, where
+\fBn\fP is the display number of the server.  See \fIXserver\fP(__appmansuffix__)
+for details.
+.SH DIAGNOSTICS
+For each name added to the access control list,
+a line of the form "\fIname\fP being added to access control list"
+is printed.
+For each name removed from the access control list,
+a line of the form "\fIname\fP being removed from access control list"
+is printed.
+.SH "SEE ALSO"
+X(__miscmansuffix__), Xsecurity(__miscmansuffix__), Xserver(__appmansuffix__), xdm(__appmansuffix__), xauth(__appmansuffix__), getaddrinfo(__libmansuffix__)
+.SH ENVIRONMENT
+.TP 8
+.B DISPLAY
+to get the default host and display to use.
+.SH BUGS
+.PP
+You can't specify a display on the command line because
+.B \-display
+is a valid command line argument (indicating that you want
+to remove the machine named
+.I ``display''
+from the access list).
+.PP
+The X server stores network addresses, not host names, unless you use
+the server-interpreted hostname type address.  If somehow you change a
+host's network address while the server is still running, and you are
+using a network-address based form of authentication, \fIxhost\fP must
+be used to add the new address and/or remove the old address.
+.SH AUTHORS
+Bob Scheifler, MIT Laboratory for Computer Science,
+.br
+Jim Gettys, MIT Project Athena (DEC).

@@ -39,7 +39,7 @@ window, or when the data does not require scrolling, the Viewport widget
 automatically removes any scrollbars.  The <function>forceBars</function> option causes
 the Viewport widget to display all scrollbars permanently.
 </para>
-<sect2 id="viewport_resources">
+<sect2 id='Viewport::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->
@@ -347,7 +347,7 @@ the Viewport.
 </variablelist>
 </para>
 </sect2>
-<sect2 id="viewport_layout_semantics">
+<sect2 id='Viewport::Layout_Semantics'>
 <title>Layout Semantics</title>
 <para>
 <!-- .LP -->
@@ -374,7 +374,7 @@ appropriate dimension.
 <!-- .LP -->
 The scrollbar children of the Viewport are named <function>horizontal</function> and
 <function>vertical</function>.  By using these names the programmer can specify resources
-for the individual scrollbars.  <function>XtSetValues</function> can be used to modify
+for the individual scrollbars.  <xref linkend='XtSetValues' xrefstyle='select: title'/> can be used to modify
 the resources dynamically once the widget ID has been obtained with
 <function>XtNameToWidget</function>.
 <!-- .IN "XtNameToWidget" "" -->

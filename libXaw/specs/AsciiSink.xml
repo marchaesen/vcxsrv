@@ -38,7 +38,7 @@ handling Tab and Carriage
 Return.\fP    The source object also reports the text window metrics to the
 text widgets.
 </para>
-<sect2 id="asciisink_resources">
+<sect2 id='AsciiSink::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->

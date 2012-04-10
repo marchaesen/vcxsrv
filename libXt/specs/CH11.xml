@@ -1,0 +1,5538 @@
+<chapter id='Utility_Functions'>
+<title>Utility Functions</title>
+<para>
+The Intrinsics provide a number of utility functions that you can use to
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Determine the number of elements in an array.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Translate strings to widget instances.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Manage memory usage.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Share graphics contexts.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Manipulate selections.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Merge exposure events into a region.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Translate widget coordinates.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Locate a widget given a window id.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Handle errors.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Set the WM_COLORMAP_WINDOWS property.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Locate files by name with string substitutions.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Register callback functions for external agents.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Locate all the displays of an application context.
+    </para>
+  </listitem>
+</itemizedlist>
+
+<sect1 id="Determining_the_Number_of_Elements_in_an_Array">
+<title>Determining the Number of Elements in an Array</title>
+<para>
+To determine the number of elements in a fixed-size array, use
+<xref linkend='XtNumber' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtNumber'>
+<funcprototype>
+<funcdef>Cardinal <function>XtNumber</function></funcdef>
+  <paramdef>ArrayType <parameter>array</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>array</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a fixed-size array of arbitrary type.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtNumber' xrefstyle='select: title'/>
+macro returns the number of elements allocated to the array.
+</para>
+</sect1>
+
+<sect1 id="Translating_Strings_to_Widget_Instances">
+<title>Translating Strings to Widget Instances</title>
+<para>
+To translate a widget name to a widget instance, use
+<xref linkend='XtNameToWidget' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtNameToWidget'>
+<funcprototype>
+<funcdef>Widget <function>XtNameToWidget</function></funcdef>
+   <paramdef>Widget <parameter>reference</parameter></paramdef>
+   <paramdef>String <parameter>names</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>reference</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget from which the search is to start.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>names</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the partially qualified name of the desired widget.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtNameToWidget' xrefstyle='select: title'/>
+function searches for a descendant of the <emphasis remap='I'>reference</emphasis>
+widget whose name matches the specified names.  The <emphasis remap='I'>names</emphasis> parameter
+specifies a simple object name or a series of simple object name
+components separated by periods or asterisks.
+<xref linkend='XtNameToWidget' xrefstyle='select: title'/>
+returns the descendant with the shortest name matching the specification
+according to the following rules, where child is either a pop-up child
+or a normal child if the widget's class is a subclass of
+Composite :
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Enumerate the object subtree rooted at the reference widget in
+breadth-first order, qualifying the name of each object with the
+names of all its ancestors up to, but not including, the reference
+widget.  The ordering between children of a common parent is
+not defined.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Return the first object in the enumeration that matches the
+specified name, where each component of <emphasis remap='I'>names</emphasis> matches exactly the
+corresponding component of the qualified object name and asterisk
+matches any series of components, including none.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If no match is found, return NULL.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+Since breadth-first traversal is specified, the descendant with the
+shortest matching name (i.e., the fewest number of components), if any,
+will always be returned.  However, since the order of enumeration of
+children is undefined and since the Intrinsics do not require that all
+children of a widget have unique names,
+<xref linkend='XtNameToWidget' xrefstyle='select: title'/>
+may return any
+child that matches if there are multiple objects in the subtree with
+the same name.  Consecutive separators (periods or asterisks)
+including at least one asterisk are treated as a single asterisk.
+Consecutive periods are treated as a single period.
+</para>
+</sect1>
+
+<sect1 id="Managing_Memory_Usage">
+<title>Managing Memory Usage</title>
+<para>
+The Intrinsics memory management functions provide uniform checking for
+null pointers and error reporting on memory allocation errors.
+These functions are completely compatible with their standard C language
+runtime counterparts
+<function>malloc</function>,
+<function>calloc</function>,
+<function>realloc</function>,
+and
+<function>free</function>
+with the following added functionality:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+<xref linkend='XtMalloc' xrefstyle='select: title'/>,
+<xref linkend='XtCalloc' xrefstyle='select: title'/>,
+and
+<xref linkend='XtRealloc' xrefstyle='select: title'/>
+give an error if there is not enough memory.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtFree' xrefstyle='select: title'/>
+simply returns if passed a NULL pointer.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtRealloc' xrefstyle='select: title'/>
+simply allocates new storage if passed a NULL pointer.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+See the standard C library documentation on
+<function>malloc</function>,
+<function>calloc</function>,
+<function>realloc</function>,
+and
+<function>free</function>
+for more information.
+</para>
+
+<para>
+To allocate storage, use
+<xref linkend='XtMalloc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtMalloc'>
+<funcprototype>
+<funcdef>char * <function>XtMalloc</function></funcdef>
+   <paramdef>Cardinal <parameter>size</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>size</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of bytes desired.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtMalloc' xrefstyle='select: title'/>
+function returns a pointer to a block of storage of at least
+the specified <emphasis remap='I'>size</emphasis> bytes.
+If there is insufficient memory to allocate the new block,
+<xref linkend='XtMalloc' xrefstyle='select: title'/>
+calls
+<xref linkend='XtErrorMsg' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To allocate and initialize an array, use
+<xref linkend='XtCalloc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCalloc'>
+<funcprototype>
+<funcdef>char * <function>XtCalloc</function></funcdef>
+   <paramdef>Cardinal <parameter>num</parameter></paramdef>
+   <paramdef>Cardinal <parameter>size</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of array elements to allocate.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>size</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the size of each array element in bytes.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtCalloc' xrefstyle='select: title'/>
+function allocates space for the specified number of array elements
+of the specified size and initializes the space to zero.
+If there is insufficient memory to allocate the new block,
+<xref linkend='XtCalloc' xrefstyle='select: title'/>
+calls
+<xref linkend='XtErrorMsg' xrefstyle='select: title'/>.
+<xref linkend='XtCalloc' xrefstyle='select: title'/>
+returns the address of the allocated storage.
+</para>
+
+<para>
+To change the size of an allocated block of storage, use
+<xref linkend='XtRealloc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRealloc'>
+<funcprototype>
+<funcdef>char *<function>XtRealloc</function></funcdef>
+   <paramdef>char *<parameter>ptr</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>ptr</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the old storage allocated with
+<xref linkend='XtMalloc' xrefstyle='select: title'/>,
+<xref linkend='XtCalloc' xrefstyle='select: title'/>,
+or
+<xref linkend='XtRealloc' xrefstyle='select: title'/>,
+or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies number of bytes desired in new storage.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtRealloc' xrefstyle='select: title'/>
+function changes the size of a block of storage, possibly moving it.
+Then it copies the old contents (or as much as will fit) into the new block
+and frees the old block.
+If there is insufficient memory to allocate the new block,
+<xref linkend='XtRealloc' xrefstyle='select: title'/>
+calls
+<xref linkend='XtErrorMsg' xrefstyle='select: title'/>.
+If <emphasis remap='I'>ptr</emphasis> is NULL,
+<xref linkend='XtRealloc' xrefstyle='select: title'/>
+simply calls
+<xref linkend='XtMalloc' xrefstyle='select: title'/>.
+<xref linkend='XtRealloc' xrefstyle='select: title'/>
+then returns the address of the new block.
+</para>
+
+<para>
+To free an allocated block of storage, use
+<xref linkend='XtFree' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtFree'>
+<funcprototype>
+<funcdef>void <function>XtFree</function></funcdef>
+   <paramdef>char *<parameter>ptr</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>ptr</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to a block of storage allocated with
+<xref linkend='XtMalloc' xrefstyle='select: title'/>,
+<xref linkend='XtCalloc' xrefstyle='select: title'/>,
+or
+<xref linkend='XtRealloc' xrefstyle='select: title'/>,
+or NULL.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtFree' xrefstyle='select: title'/>
+function returns storage, allowing it to be reused.
+If <emphasis remap='I'>ptr</emphasis> is NULL,
+<xref linkend='XtFree' xrefstyle='select: title'/>
+returns immediately.
+</para>
+
+<para>
+To allocate storage for a new instance of a type, use
+<xref linkend='XtNew' xrefstyle='select: title'/>.
+</para>
+
+
+<funcsynopsis id='XtNew'>
+<funcprototype>
+<funcdef>type <function>XtNew</function></funcdef>
+      <paramdef>type <parameter>t</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a previously declared type.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtNew' xrefstyle='select: title'/>
+returns a pointer to the allocated storage.
+If there is insufficient memory to allocate the new block,
+<xref linkend='XtNew' xrefstyle='select: title'/>
+calls
+<xref linkend='XtErrorMsg' xrefstyle='select: title'/>.
+<xref linkend='XtNew' xrefstyle='select: title'/>
+is a convenience macro that calls
+<xref linkend='XtMalloc' xrefstyle='select: title'/>
+with the following arguments specified:
+</para>
+<literallayout >
+((type *) XtMalloc((unsigned) sizeof(type)))
+</literallayout>
+<para>
+The storage allocated by
+<xref linkend='XtNew' xrefstyle='select: title'/>
+should be freed using
+<xref linkend='XtFree' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To copy an instance of a string, use
+<xref linkend='XtNewString' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtNewString'>
+<funcprototype>
+<funcdef>String <function>XtNewString</function></funcdef>
+   <paramdef>String <parameter>string</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>string</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a previously declared string.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtNewString' xrefstyle='select: title'/>
+returns a pointer to the allocated storage.
+If there is insufficient memory to allocate the new block,
+<xref linkend='XtNewString' xrefstyle='select: title'/>
+calls
+<xref linkend='XtErrorMsg' xrefstyle='select: title'/>.
+<xref linkend='XtNewString' xrefstyle='select: title'/>
+is a convenience macro that calls
+<xref linkend='XtMalloc' xrefstyle='select: title'/>
+with the following arguments specified:
+</para>
+<literallayout >
+(strcpy(XtMalloc((unsigned)strlen(str) + 1), str))
+</literallayout>
+<para>
+The storage allocated by
+<xref linkend='XtNewString' xrefstyle='select: title'/>
+should be freed using
+<xref linkend='XtFree' xrefstyle='select: title'/>.
+</para>
+</sect1>
+
+<sect1 id="Sharing_Graphics_Contexts">
+<title>Sharing Graphics Contexts</title>
+<para>
+The Intrinsics provide a mechanism whereby cooperating objects can share a
+graphics context (GC), thereby reducing both the number of GCs
+created and the total number of server calls in any given application.
+The mechanism is a simple caching scheme
+and allows for clients to declare both modifiable and nonmodifiable
+fields of the shared GCs.
+</para>
+
+<para>
+To obtain a shareable GC with modifiable fields, use
+<xref linkend='XtAllocateGC' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAllocateGC'>
+<funcprototype>
+<funcdef>GC <function>XtAllocateGC</function></funcdef>
+   <paramdef>Widget <parameter>object</parameter></paramdef>
+   <paramdef>Cardinal <parameter>depth</parameter></paramdef>
+   <paramdef>XtGCMask <parameter>value_mask</parameter></paramdef>
+   <paramdef>XGCValues *<parameter>values</parameter></paramdef>
+   <paramdef>XtGCMask <parameter>dynamic_mask</parameter></paramdef>
+   <paramdef>XtGCMask <parameter>unused_mask</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an object, giving the screen for which the
+returned GC is valid.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>depth</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the depth for which the returned GC is valid, or 0.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>value_mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies fields of the GC that are initialized from <emphasis remap='I'>values</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>values</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the values for the initialized fields.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>dynamic_mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies fields of the GC that will be modified by the caller.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>unused_mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies fields of the GC that will not be needed by the caller.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAllocateGC' xrefstyle='select: title'/>
+function returns a shareable GC that may be
+modified by the client.  The <emphasis remap='I'>screen</emphasis> field of the specified
+widget or of the nearest widget ancestor of the specified
+object and the specified <emphasis remap='I'>depth</emphasis> argument supply
+the root and drawable depths for which the GC is to be
+valid.  If <emphasis remap='I'>depth</emphasis> is zero, the depth is taken from the
+<emphasis remap='I'>depth</emphasis> field of the specified widget or of the nearest
+widget ancestor of the specified object.
+</para>
+
+<para>
+The <emphasis remap='I'>value_mask</emphasis> argument specifies fields of the GC
+that are initialized with the respective member of the
+<emphasis remap='I'>values</emphasis> structure.  The <emphasis remap='I'>dynamic_mask</emphasis> argument specifies fields
+that the caller intends to modify during program execution.
+The caller must ensure that the corresponding GC field is set
+prior to each use of the GC.  The <emphasis remap='I'>unused_mask</emphasis> argument
+specifies fields of the GC that are of no interest to the
+caller.  The caller may make no assumptions about the contents
+of any fields specified in <emphasis remap='I'>unused_mask</emphasis>.  The caller may assume
+that at all times all fields not specified in either
+<emphasis remap='I'>dynamic_mask</emphasis> or <emphasis remap='I'>unused_mask</emphasis> have their default value if not
+specified in <emphasis remap='I'>value_mask</emphasis> or the value specified by <emphasis remap='I'>values</emphasis>.
+If a field is specified in both <emphasis remap='I'>value_mask</emphasis> and <emphasis remap='I'>dynamic_mask</emphasis>,
+the effect is as if it were specified only in <emphasis remap='I'>dynamic_mask</emphasis>
+and then immediately set to the value in <emphasis remap='I'>values</emphasis>.  If a field
+is set in <emphasis remap='I'>unused_mask</emphasis> and also in either <emphasis remap='I'>value_mask</emphasis> or
+<emphasis remap='I'>dynamic_mask</emphasis>, the specification in <emphasis remap='I'>unused_mask</emphasis> is ignored.
+</para>
+
+<para>
+<xref linkend='XtAllocateGC' xrefstyle='select: title'/>
+tries to minimize the number of unique GCs
+created by comparing the arguments with those of previous
+calls and returning an existing GC when there are no
+conflicts.
+<xref linkend='XtAllocateGC' xrefstyle='select: title'/>
+may modify and return an existing GC if it was allocated with a
+nonzero <emphasis remap='I'>unused_mask</emphasis>.
+</para>
+
+<para>
+To obtain a shareable GC with no modifiable fields, use
+<xref linkend='XtGetGC' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetGC'>
+<funcprototype>
+<funcdef>GC <function>XtGetGC</function></funcdef>
+   <paramdef>Widget <parameter>object</parameter></paramdef>
+   <paramdef>XtGCMask <parameter>value_mask</parameter></paramdef>
+   <paramdef>XGCValues *<parameter>values</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an object, giving the screen and depth for which the
+returned GC is valid.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>value_mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies which fields of the <emphasis remap='I'>values</emphasis> structure are specified.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>values</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the actual values for this GC.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtGetGC' xrefstyle='select: title'/>
+function returns a shareable, read-only GC.
+The parameters to this function are the same as those for
+<function>XCreateGC</function>
+except that an Object is passed instead of a Display.
+<xref linkend='XtGetGC' xrefstyle='select: title'/>
+is equivalent to
+<xref linkend='XtAllocateGC' xrefstyle='select: title'/>
+with <emphasis remap='I'>depth</emphasis>, <emphasis remap='I'>dynamic_mask</emphasis>, and <emphasis remap='I'>unused_mask</emphasis> all zero.
+</para>
+
+<para>
+<xref linkend='XtGetGC' xrefstyle='select: title'/>
+shares only GCs in which all values in the GC returned by
+<function>XCreateGC</function>
+are the same.
+In particular, it does not use the <emphasis remap='I'>value_mask</emphasis> provided to
+determine which fields of the GC a widget considers relevant.
+The <emphasis remap='I'>value_mask</emphasis> is used only to tell the server which fields should be
+filled in from <emphasis remap='I'>values</emphasis> and which it should fill in with default values.
+</para>
+
+<para>
+To deallocate a shared GC when it is no longer needed, use
+<xref linkend='XtReleaseGC' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtReleaseGC'>
+<funcprototype>
+<funcdef>void <function>XtReleaseGC</function></funcdef>
+   <paramdef>Widget <parameter>object</parameter></paramdef>
+   <paramdef>GC <parameter>gc</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies any object on the Display for which the GC was created.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>gc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the shared GC obtained with either
+<xref linkend='XtAllocateGC' xrefstyle='select: title'/>
+or
+<xref linkend='XtGetGC' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+References to shareable GCs are counted and a free request is generated to the
+server when the last user of a given GC releases it.
+</para>
+</sect1>
+
+<sect1 id="Managing_Selections">
+<title>Managing Selections</title>
+<para>
+Arbitrary widgets in multiple applications can communicate
+with each other by means of the Intrinsics global selection mechanism,
+which conforms to the specifications in the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis>.
+The Intrinsics supply functions for providing and receiving selection data in
+one logical piece (atomic transfers)
+or in smaller logical segments (incremental transfers).
+</para>
+
+<para>
+The incremental interface is provided for a selection owner or
+selection requestor that cannot or prefers not to pass the selection
+value to and from the Intrinsics in a single call.  For instance,
+either an application that is running on a machine with limited memory
+may not be able to store the entire selection value in memory or a
+selection owner may already have the selection value available in
+discrete chunks, and it would be more efficient not to have to
+allocate additional storage to copy the pieces contiguously.  Any
+owner or requestor that prefers to deal with the selection value in
+segments can use the incremental interfaces to do so.
+The transfer between the selection owner or requestor and the Intrinsics is not
+required to match the underlying
+transport protocol between the application and the X server;
+the Intrinsics will break too large a selection
+into smaller pieces for transport if necessary
+and will coalesce a selection transmitted incrementally if the value
+was requested atomically.
+</para>
+
+<sect2 id='Setting_and_Getting_the_Selection_Timeout_Value'>
+<title>Setting and Getting the Selection Timeout Value</title>
+<para>
+To set the Intrinsics selection timeout, use
+<xref linkend='XtAppSetSelectionTimeout' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppSetSelectionTimeout'>
+<funcprototype>
+<funcdef>void <function>XtAppSetSelectionTimeout</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>unsigned long <parameter>timeout</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>timeout</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the selection timeout in milliseconds.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+To get the current selection timeout value, use
+<xref linkend='XtAppGetSelectionTimeout' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppGetSelectionTimeout'>
+<funcprototype>
+<funcdef>unsigned long <function>XtAppGetSelectionTimeout</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAppGetSelectionTimeout' xrefstyle='select: title'/>
+function returns the current selection timeout value in milliseconds.
+The selection timeout is the time within which the two communicating
+applications must respond to one another.
+The initial timeout value is set by the
+selectionTimeout
+application resource as retrieved by
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>.
+If
+selectionTimeout
+is not specified,
+the default is five seconds.
+</para>
+</sect2>
+
+<sect2 id="Using_Atomic_Transfers">
+<title>Using Atomic Transfers</title>
+<para>
+When using atomic transfers, the owner will completely
+process one selection request at a time.
+The owner may consider each request individually,
+since there is no possibility for overlap
+between evaluation of two requests.
+</para>
+
+<sect3 id="Atomic_Transfer_Procedures">
+<title>Atomic Transfer Procedures</title>
+<para>
+The following procedures are used by the selection owner when
+providing selection data in a single unit.
+</para>
+
+<para>
+The procedure pointer specified by the owner to supply the selection
+data to the Intrinsics is of type
+<xref linkend='XtConvertSelectionProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtConvertSelectionProc'>
+<funcprototype>
+<funcdef>typedef Boolean <function>(*XtConvertSelectionProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom *<parameter>selection</parameter></paramdef>
+   <paramdef>Atom *<parameter>target</parameter></paramdef>
+   <paramdef>Atom *<parameter>type_return</parameter></paramdef>
+   <paramdef>XtPointer *<parameter>value_return</parameter></paramdef>
+   <paramdef>unsigned long *<parameter>length_return</parameter></paramdef>
+   <paramdef>int *<parameter>format_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that currently owns this selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the atom naming the selection requested
+(for example,
+<function>XA_PRIMARY</function>
+or
+<function>XA_SECONDARY ).</function>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>target</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the target type of the selection that has been requested,
+which indicates the desired information about the selection
+(for example, File Name, Text, Window).
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to an atom into which the property type of the
+converted value of the selection is to be stored.
+For instance, either File Name or Text might have property type
+<function>XA_STRING</function>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>value_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer into which a pointer to the converted value of the
+selection is to be stored.
+The selection owner is responsible for allocating this storage.
+If the selection owner has provided an
+<xref linkend='XtSelectionDoneProc' xrefstyle='select: title'/>
+for the selection,
+this storage is owned by the selection owner;
+otherwise, it is owned by the Intrinsics selection mechanism,
+which frees it by calling
+<xref linkend='XtFree' xrefstyle='select: title'/>
+when it is done with it.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>length_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer into which the number of elements in <emphasis remap='I'>value_return</emphasis>,
+each of size indicated by <emphasis remap='I'>format_return</emphasis>, is to be stored.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>format_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer into which the size in bits of the data elements
+of the selection value is to be stored.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This procedure is called by the Intrinsics selection mechanism
+to get the value of a selection as a given type
+from the current selection owner.
+It returns
+<function>True</function>
+if the owner successfully converted the selection to the target type or
+<function>False</function>
+otherwise.
+If the procedure returns
+<function>False</function>,
+the values of the return arguments are undefined.
+Each
+<xref linkend='XtConvertSelectionProc' xrefstyle='select: title'/>
+should respond to target value
+<function>TARGETS</function>
+by returning a value containing the list of the targets
+into which it is
+prepared to convert the selection.
+The value returned in
+<emphasis remap='I'>format_return</emphasis> must be one of 8, 16, or 32 to allow the server to
+byte-swap the data if necessary.
+</para>
+
+<para>
+This procedure does not need to worry about responding to the
+MULTIPLE or the TIMESTAMP target values (see
+<xref linkend='Window_Creation_Convenience_Routine' />
+in the <olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual.</olink>).
+A selection request with
+the MULTIPLE target type is transparently transformed into a
+series of calls to this procedure, one for each target type, and a
+selection request with the TIMESTAMP target value is answered
+automatically by the Intrinsics using the time specified in the
+call to
+<xref linkend='XtOwnSelection' xrefstyle='select: title'/>
+or
+<xref linkend='XtOwnSelectionIncremental' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To retrieve the
+<function>SelectionRequest</function>
+event that triggered the
+<xref linkend='XtConvertSelectionProc' xrefstyle='select: title'/>
+procedure, use
+<xref linkend='XtGetSelectionRequest' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetSelectionRequest'>
+<funcprototype>
+<funcdef>XSelectionRequestEvent *<function>XtGetSelectionRequest</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+   <paramdef>XtRequestId <parameter>request_id</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that currently owns this selection.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the selection being processed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>request_id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the requestor id in the case of incremental
+selections, or NULL in the case of atomic transfers.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtGetSelectionRequest' xrefstyle='select: title'/>
+may be called only from within an
+<xref linkend='XtConvertSelectionProc' xrefstyle='select: title'/>
+procedure and returns a pointer to the
+<function>SelectionRequest</function>
+event that caused the conversion procedure to be invoked.
+<emphasis remap='I'>Request_id</emphasis> specifies a unique id for the individual request in the
+case that multiple incremental transfers are outstanding.  For atomic
+transfers, <emphasis remap='I'>request_id</emphasis> must be specified as NULL.  If no
+<function>SelectionRequest</function>
+event is being processed for the specified
+<emphasis remap='I'>widget</emphasis>, <emphasis remap='I'>selection</emphasis>, and <emphasis remap='I'>request_id</emphasis>,
+<xref linkend='XtGetSelectionRequest' xrefstyle='select: title'/>
+returns NULL.
+</para>
+
+<para>
+The procedure pointer specified by the owner when it desires
+notification upon losing ownership is of type
+<xref linkend='XtLoseSelectionProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtLoseSelectionProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtLoseSelectionProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom *<parameter>selection</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that has lost selection ownership.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the atom naming the selection.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This procedure is called by the Intrinsics selection mechanism
+to inform the specified widget that it has lost the given selection.
+Note that this procedure does not ask the widget to relinquish the
+selection ownership; it is merely informative.
+</para>
+
+<para>
+The procedure pointer specified by the owner when it desires
+notification of receipt of the data or when it manages the storage
+containing the data is of type
+<xref linkend='XtSelectionDoneProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSelectionDoneProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtSelectionDoneProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom *<parameter>selection</parameter></paramdef>
+   <paramdef>Atom *<parameter>target</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that owns the converted selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the atom naming the selection that was converted.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>target</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the target type to which the conversion was done.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This procedure is called by the Intrinsics selection mechanism
+to inform the selection owner that a selection requestor has successfully
+retrieved a selection value.
+If the selection owner has registered an
+<xref linkend='XtSelectionDoneProc' xrefstyle='select: title'/>,
+it should expect it to be called once for each conversion that it performs,
+after the converted value has been successfully transferred
+to the requestor.
+If the selection owner has registered an
+<xref linkend='XtSelectionDoneProc' xrefstyle='select: title'/>,
+it also owns the storage containing the converted
+selection value.
+</para>
+</sect3>
+<sect3 id="Getting_the_Selection_Value">
+<title>Getting the Selection Value</title>
+<para>
+The procedure pointer specified by the requestor to receive the
+selection data from the Intrinsics is of type
+<xref linkend='XtSelectionCallbackProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSelectionCallbackProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtSelectionCallbackPro)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>Atom *<parameter>selection</parameter></paramdef>
+   <paramdef>Atom *<parameter>type</parameter></paramdef>
+   <paramdef>XtPointer <parameter>value</parameter></paramdef>
+   <paramdef>unsigned long *<parameter>length</parameter></paramdef>
+   <paramdef>int *<parameter>format</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that requested the selection value.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a value passed in by the widget when it requested the
+selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the selection that was requested.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the representation type of the selection value (for example,
+<function>XA_STRING ).</function>
+Note that it is not the target that was requested (which the client
+must remember for itself), but the type that
+is used to represent the target.
+The special symbolic constant
+<function>XT_CONVERT_FAIL</function>
+is used to indicate that the selection conversion failed because the
+selection owner did not respond within the Intrinsics selection timeout
+interval.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>value</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the selection value.
+The requesting client owns this storage and is responsible for freeing it
+by calling
+<xref linkend='XtFree' xrefstyle='select: title'/>
+when it is done with it.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>length</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of elements in <emphasis remap='I'>value</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>format</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the size in bits of the data in each element of <emphasis remap='I'>value</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This procedure is called by the Intrinsics selection mechanism to deliver the
+requested selection to the requestor.
+</para>
+
+<para>
+If the
+<function>SelectionNotify</function>
+event returns a property of
+<function>None</function>,
+meaning the conversion has been refused because there is no owner for the
+specified selection or the owner cannot convert the selection to the
+requested target for any reason, the procedure is called with a value
+of NULL and a length of zero.
+</para>
+
+<para>
+To obtain the selection value in a single logical unit, use
+<xref linkend='XtGetSelectionValue' xrefstyle='select: title'/>
+or
+<xref linkend='XtGetSelectionValues' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetSelectionValue'>
+<funcprototype>
+<funcdef>void <function>XtGetSelectionValue</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+   <paramdef>Atom <parameter>target</parameter></paramdef>
+   <paramdef>XtSelectionCallbackProc <parameter>callback</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>Time <parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget making the request.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the particular selection desired; for example,
+<function>XA_PRIMARY</function>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>target</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the type of information needed about the selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callback</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called when the selection value
+has been obtained.
+Note that this is how the selection value is communicated back to the client.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies additional data to be passed to the specified procedure
+when it is called.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the timestamp that indicates when the selection request was
+initiated.
+This should be the timestamp of the event that triggered this request;
+the value
+<function>CurrentTime</function>
+is not acceptable.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtGetSelectionValue' xrefstyle='select: title'/>
+function requests the value of the selection converted to
+the target type.
+The specified callback is called at some time after
+<xref linkend='XtGetSelectionValue' xrefstyle='select: title'/>
+is called, when the selection value is received from the X server.
+It may be called before or after
+<xref linkend='XtGetSelectionValue' xrefstyle='select: title'/>
+returns.
+For more information about <emphasis remap='I'>selection</emphasis>,
+<emphasis remap='I'>target</emphasis>, and
+<emphasis remap='I'>time</emphasis>, see
+<olink targetdoc='icccm' targetptr='Use_of_Selection_Atoms'>Section 2.6</olink> in the
+<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual.</olink>.
+</para>
+
+<funcsynopsis id='XtGetSelectionValues'>
+<funcprototype>
+<funcdef>void <function>XtGetSelectionValues</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+   <paramdef>Atom *<parameter>targets</parameter></paramdef>
+   <paramdef>int <parameter>count</parameter></paramdef>
+   <paramdef>XtSelectionCallbackProc <parameter>callback</parameter></paramdef>
+   <paramdef>XtPointer *<parameter>client_data</parameter></paramdef>
+   <paramdef>Time <parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget making the request.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the particular selection desired (that is, primary or secondary).
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>targets</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the types of information needed about the selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>count</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the length of the <emphasis remap='I'>targets</emphasis> and <emphasis remap='I'>client_data</emphasis> lists.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callback</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback procedure
+to be called with each selection value obtained.
+Note that this is how the selection values are communicated back to the
+client.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a list of additional data values, one for each target type,
+that are passed to the callback procedure when it is called for that target.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the timestamp that indicates when the selection request was
+initiated.
+This should be the timestamp of the event that triggered this request;
+the value
+<function>CurrentTime</function>
+is not acceptable.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtGetSelectionValues' xrefstyle='select: title'/>
+function is similar to multiple calls to
+<xref linkend='XtGetSelectionValue' xrefstyle='select: title'/>
+except that it guarantees that no other client can assert ownership
+between requests and therefore that all the conversions will refer to
+the same selection value.  The callback is invoked once for each
+target value with the corresponding client data.
+For more information about <emphasis remap='I'>selection</emphasis>, <emphasis remap='I'>target</emphasis>, and
+<emphasis remap='I'>time</emphasis>, see
+<olink targetdoc='icccm' targetptr='Use_of_Selection_Atoms'>section 2.6</olink>
+in the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis>.
+</para>
+</sect3>
+<sect3 id="Setting_the_Selection_Owner">
+<title>Setting the Selection Owner</title>
+<para>
+To set the selection owner and indicate that the selection value will
+be provided in one piece, use
+<xref linkend='XtOwnSelection' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtOwnSelection'>
+<funcprototype>
+<funcdef>Boolean <function>XtOwnSelection</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+   <paramdef>Time <parameter>time</parameter></paramdef>
+   <paramdef>XtConvertSelectionProc <parameter>convert_proc</parameter></paramdef>
+   <paramdef>XtLoseSelectionProc <parameter>lose_selection</parameter></paramdef>
+   <paramdef>XtSelectionDoneProc <parameter>done_proc</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that wishes to become the owner.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the selection (for example,
+<function>XA_PRIMARY ).</function>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the timestamp that indicates when the ownership request was
+initiated.
+This should be the timestamp of the event that triggered ownership;
+the value
+<function>CurrentTime</function>
+is not acceptable.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>convert_proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called whenever a client requests the
+current value of the selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>lose_selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called whenever the widget has
+lost selection ownership, or NULL if the owner is not interested in being
+called back.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>done_proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure called
+after the requestor has received the selection value, or NULL if the
+owner is not
+interested in being called back.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtOwnSelection' xrefstyle='select: title'/>
+function informs the Intrinsics selection mechanism that a
+widget wishes to own a selection.
+It returns
+<function>True</function>
+if the widget successfully becomes the owner and
+<function>False</function>
+otherwise.
+The widget may fail to become the owner if some other widget
+has asserted ownership at a time later than this widget.
+The widget can lose selection ownership either
+because some other widget asserted later ownership of the selection
+or because the widget voluntarily gave up ownership of the selection.
+The lose_selection procedure is not called
+if the widget fails to obtain selection ownership in the first place.
+</para>
+
+<para>
+If a done_proc is specified, the client owns the storage allocated
+for passing the value to the Intrinsics.  If <emphasis remap='I'>done_proc</emphasis> is NULL,
+the convert_proc must allocate storage using
+<xref linkend='XtMalloc' xrefstyle='select: title'/>,
+<xref linkend='XtRealloc' xrefstyle='select: title'/>,
+or
+<xref linkend='XtCalloc' xrefstyle='select: title'/>,
+and the value specified is freed by the
+Intrinsics when the transfer is complete.
+</para>
+
+<para>
+Usually, a selection owner maintains ownership indefinitely until some
+other widget requests ownership, at which time
+the Intrinsics selection mechanism informs the previous owner that it
+has lost ownership of the selection.
+However, in response to some user actions
+(for example, when a user deletes the information selected),
+the application may wish to explicitly inform the Intrinsics
+by using
+<xref linkend='XtDisownSelection' xrefstyle='select: title'/>
+that it no longer is to be the selection owner.
+</para>
+
+<funcsynopsis id='XtDisownSelection'>
+<funcprototype>
+<funcdef>void <function>XtDisownSelection</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+   <paramdef>Time <parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that wishes to relinquish ownership.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the atom naming the selection being given up.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the timestamp that indicates when the request to
+relinquish selection ownership was initiated.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtDisownSelection' xrefstyle='select: title'/>
+function informs the Intrinsics selection mechanism that
+the specified widget is to lose ownership of the selection.
+If the widget does not currently own the selection, either
+because it lost the selection
+or because it never had the selection to begin with,
+<xref linkend='XtDisownSelection' xrefstyle='select: title'/>
+does nothing.
+</para>
+
+<para>
+After a widget has called
+<xref linkend='XtDisownSelection' xrefstyle='select: title'/>,
+its convert procedure is not called even if a request arrives later
+with a timestamp during the period that this widget owned the selection.
+However, its done procedure is called if a conversion that started
+before the call to
+<xref linkend='XtDisownSelection' xrefstyle='select: title'/>
+finishes after the call to
+<xref linkend='XtDisownSelection' xrefstyle='select: title'/>.
+</para>
+</sect3>
+</sect2>
+
+<sect2 id="Using_Incremental_Transfers">
+<title>Using Incremental Transfers</title>
+<para>
+When using the incremental interface, an owner may have to process
+more than one selection request for the same selection, converted to
+the same target, at the same time.  The incremental functions take a
+<emphasis remap='I'>request_id</emphasis> argument, which is an identifier that is guaranteed to be
+unique among all incremental requests that are active concurrently.
+</para>
+
+<para>
+For example, consider the following:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Upon receiving a request for the selection value, the owner sends
+the first segment.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+While waiting to be called to provide the next segment value but
+before sending it, the owner receives another request from a
+different requestor for the same selection value.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+To distinguish between the requests, the owner uses the request_id
+value.  This allows the owner to distinguish between the first
+requestor, which is asking for the second segment, and the second
+requestor, which is asking for the first segment.
+    </para>
+  </listitem>
+</itemizedlist>
+<sect3 id="Incremental_Transfer_Procedures">
+<title>Incremental Transfer Procedures</title>
+<para>
+The following procedures are used by selection owners who wish to
+provide the selection data in multiple segments.
+</para>
+
+<para>
+The procedure pointer specified by the incremental owner to supply the
+selection data to the Intrinsics is of type
+<xref linkend='XtConvertSelectionIncrProc' xrefstyle='select: title'/>.
+</para>
+<literallayout >
+typedef XtPointer XtRequestId;
+</literallayout>
+
+<funcsynopsis id='XtConvertSelectionIncrProc'>
+<funcprototype>
+<funcdef>typedef Boolean <function>(*XtConvertSelectionIncrProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom *<parameter>selection</parameter></paramdef>
+   <paramdef>Atom *<parameter>target</parameter></paramdef>
+   <paramdef>Atom *<parameter>type_return</parameter></paramdef>
+   <paramdef>XtPointer *<parameter>value_return</parameter></paramdef>
+   <paramdef>unsigned long *<parameter>length_return</parameter></paramdef>
+   <paramdef>int *<parameter>format_return</parameter></paramdef>
+   <paramdef>unsigned long *<parameter>max_length</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtRequestId *<parameter>request_id</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that currently owns this selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the atom that names the selection requested.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>target</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the type of information required about the selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to an atom into which the property
+type of the converted value of the selection is to be
+stored.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>value_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer into which a pointer to the
+converted value of the selection is to be stored.
+The selection owner is responsible for allocating this storage.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>length_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer into which the number of elements
+in <emphasis remap='I'>value_return</emphasis>, each of size indicated by
+<emphasis remap='I'>format_return</emphasis>, is to be stored.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>format_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer into which the size in bits of the
+data elements of the selection value is to be stored so that the
+server may byte-swap the data if necessary.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>max_length</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the maximum number of bytes which may be
+transferred at any one time.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the value passed in by the widget when it
+took ownership of the selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>request_id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an opaque identification for a specific request.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This procedure is called repeatedly by the Intrinsics selection mechanism to get
+the next incremental chunk of data from a selection owner who has
+called
+<xref linkend='XtOwnSelectionIncremental' xrefstyle='select: title'/>.
+It must return
+<function>True</function>
+if the procedure has succeeded in converting the selection data or
+<function>False</function>
+otherwise.
+On the first call with a particular request id, the owner must begin
+a new incremental transfer for the requested selection and target.  On
+subsequent calls with the same request id, the owner may assume that
+the previously supplied value is no longer needed by the Intrinsics;
+that is, a fixed transfer area may be allocated and returned in <emphasis remap='I'>value_return</emphasis>
+for each segment to be transferred.  This procedure should store a
+non-NULL value in <emphasis remap='I'>value_return</emphasis> and zero in <emphasis remap='I'>length_return</emphasis> to indicate that the
+entire selection has been delivered.  After returning this final
+segment, the request id may be reused by the Intrinsics to begin a
+new transfer.
+</para>
+
+<para>
+To retrieve the
+<function>SelectionRequest</function>
+event that triggered the selection conversion procedure, use
+<xref linkend='XtGetSelectionRequest' xrefstyle='select: title'/>,
+described in Section 11.5.2.1.
+</para>
+
+<para>
+The procedure pointer specified by the incremental selection owner
+when it desires notification upon no longer having ownership is of
+type
+<xref linkend='XtLoseSelectionIncrProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtLoseSelectionIncrProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtLoseSelectionIncrProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom *<parameter>selection</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that has lost the selection ownership.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the atom that names the selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the value passed in by the widget when it
+took ownership of the selection.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This procedure, which is optional, is called by the Intrinsics to
+inform the selection owner that it no longer owns the selection.
+</para>
+
+<para>
+The procedure pointer specified by the incremental selection owner
+when it desires notification of receipt of the data or when it manages
+the storage containing the data is of type
+<xref linkend='XtSelectionDoneIncrProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSelectionDoneIncrProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtSelectionDoneIncrProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom *<parameter>selection</parameter></paramdef>
+   <paramdef>Atom *<parameter>target</parameter></paramdef>
+   <paramdef>XtRequestId *<parameter>request_id</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that owns the selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the atom that names the selection being transferred.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>target</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the target type to which the conversion was done.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>request_id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an opaque identification for a specific request.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specified the value passed in by the widget when it
+took ownership of the selection.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This procedure, which is optional, is called by the Intrinsics after
+the requestor has retrieved the final (zero-length) segment of the
+incremental transfer to indicate that the entire transfer is complete.
+If this procedure is not specified, the Intrinsics will free only the
+final value returned by the selection owner using
+<xref linkend='XtFree' xrefstyle='select: title'/>.
+</para>
+
+<para>
+The procedure pointer specified by the incremental selection owner to
+notify it if a transfer should be terminated prematurely is of type
+<xref linkend='XtCancelConvertSelectionProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCancelConvertSelectionProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtCancelConvertSelectionProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom *<parameter>selection</parameter></paramdef>
+   <paramdef>Atom *<parameter>target</parameter></paramdef>
+   <paramdef>XtRequestId *<parameter>request_id</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that owns the selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the atom that names the selection being transferred.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>target</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the target type to which the conversion was done.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>request_id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an opaque identification for a specific request.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the value passed in by the widget when it took ownership of
+the selection.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This procedure is called by the Intrinsics when it has been determined
+by means of a timeout or other mechanism that any remaining segments
+of the selection no longer need to be transferred.  Upon receiving
+this callback, the selection request is considered complete and the
+owner can free the memory and any other resources that have been
+allocated for the transfer.
+</para>
+</sect3>
+<sect3 id="Getting_the_Selection_Value_Incrementally">
+<title>Getting the Selection Value Incrementally</title>
+<para>
+To obtain the value of the selection using incremental transfers, use
+<xref linkend='XtGetSelectionValueIncremental' xrefstyle='select: title'/>
+or
+<xref linkend='XtGetSelectionValuesIncremental' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetSelectionValueIncremental'>
+<funcprototype>
+<funcdef>void <function>XtGetSelectionValueIncremental</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+   <paramdef>Atom <parameter>target</parameter></paramdef>
+   <paramdef>XtSelectionCallbackProc <parameter>selection_callback</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>Time <parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget making the request.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the particular selection desired.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>target</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the type of information needed
+about the selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection_callback</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback procedure to be
+called to receive each data segment.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies client-specific data to be passed to
+the specified callback procedure when it is invoked.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the timestamp that indicates when the
+selection request was initiated.  This should be the
+timestamp of the event that triggered this request;
+the value
+<function>CurrentTime</function>
+is not acceptable.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtGetSelectionValueIncremental' xrefstyle='select: title'/>
+function is similar to
+<xref linkend='XtGetSelectionValue' xrefstyle='select: title'/>
+except that the selection_callback procedure will
+be called repeatedly upon delivery of multiple segments of the
+selection value.  The end of the selection value is indicated when
+<emphasis remap='I'>selection_callback</emphasis> is called with a non-NULL value of length zero,
+which must still be freed by the client.  If the
+transfer of the selection is aborted in the middle of a transfer
+(for example, because of a timeout), the selection_callback procedure is
+called with a type value equal to the symbolic constant
+<function>XT_CONVERT_FAIL</function>
+so that the requestor can dispose
+of the partial selection value it has collected up until that point.
+Upon receiving
+<function>XT_CONVERT_FAIL</function>,
+the requesting client must determine
+for itself whether or not a partially completed data transfer is meaningful.
+For more information about <emphasis remap='I'>selection</emphasis>,
+<emphasis remap='I'>target</emphasis>, and
+<emphasis remap='I'>time</emphasis>, see 
+<olink targetdoc='icccm' targetptr='Use_of_Selection_Atoms' /> in the
+<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual.</olink>
+</para>
+
+<funcsynopsis id='XtGetSelectionValuesIncremental'>
+<funcprototype>
+<funcdef>void <function>XtGetSelectionValuesIncremental</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+   <paramdef>Atom *<parameter>targets</parameter></paramdef>
+   <paramdef>int <parameter>count</parameter></paramdef>
+   <paramdef>XtSelectionCallbackProc <parameter>selection_callback</parameter></paramdef>
+   <paramdef>XtPointer *<parameter>client_data</parameter></paramdef>
+   <paramdef>Time <parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget making the request.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the particular selection desired.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>targets</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the types of information needed about
+the selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>count</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the length of the <emphasis remap='I'>targets</emphasis> and <emphasis remap='I'>client_data</emphasis> lists.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection_callback</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback procedure to be called
+to receive each selection value.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a list of client data (one for each target
+type) values that are passed to the callback procedure when
+it is invoked for the corresponding target.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the timestamp that indicates when the
+selection request was initiated.  This should be the
+timestamp of the event that triggered this request;
+the value
+<function>CurrentTime</function>
+is not acceptable.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtGetSelectionValuesIncremental' xrefstyle='select: title'/>
+function is similar to
+<xref linkend='XtGetSelectionValueIncremental' xrefstyle='select: title'/>
+except that it takes a list of targets and client data.
+<xref linkend='XtGetSelectionValuesIncremental' xrefstyle='select: title'/>
+is equivalent to calling
+<xref linkend='XtGetSelectionValueIncremental' xrefstyle='select: title'/>
+successively for each <emphasis remap='I'>target/client_data</emphasis> pair except that
+<xref linkend='XtGetSelectionValuesIncremental' xrefstyle='select: title'/>
+does guarantee that all the conversions will use the same selection
+value because the ownership of the selection cannot change in the
+middle of the list, as would be possible when calling
+<xref linkend='XtGetSelectionValueIncremental' xrefstyle='select: title'/>
+repeatedly.
+For more information about <emphasis remap='I'>selection</emphasis>, <emphasis remap='I'>target</emphasis>, and
+<emphasis remap='I'>time</emphasis>, see
+<olink targetdoc='icccm' targetptr='Use_of_Selection_Atoms'>Section 2.6</olink> in the
+<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual.</olink>
+</para>
+</sect3>
+<sect3 id="Setting_the_Selection_Owner_for_Incremental_Transfers">
+<title>Setting the Selection Owner for Incremental Transfers</title>
+<para>
+To set the selection owner when using incremental transfers, use
+<xref linkend='XtOwnSelectionIncremental' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtOwnSelectionIncremental'>
+<funcprototype>
+<funcdef>Boolean <function>XtOwnSelectionIncremental</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+   <paramdef>Time <parameter>time</parameter></paramdef>
+   <paramdef>XtConvertSelectionIncrProc <parameter>convert_callback</parameter></paramdef>
+   <paramdef>XtLoseSelectionIncrProc <parameter>lose_callback</parameter></paramdef>
+   <paramdef>XtSelectionDoneIncrProc <parameter>done_callback</parameter></paramdef>
+   <paramdef>XtCancelConvertSelectionProc <parameter>cancel_callback</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that wishes to become the owner.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the atom that names the selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the timestamp that indicates when the
+selection ownership request was initiated.  This should be
+the timestamp of the event that triggered ownership; the value
+<function>CurrentTime</function>
+is not acceptable.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>convert_callback</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called whenever
+the current value of the selection is requested.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>lose_callback</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called whenever
+the widget has lost selection ownership, or NULL if the
+owner is not interested in being notified.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>done_callback</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure called after the
+requestor has received the entire selection, or NULL if
+the owner is not interested in being notified.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>cancel_callback</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback procedure to be called
+when a selection request aborts because a timeout expires,
+or NULL if the owner is not interested in being notified.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument to be passed to each of
+the callback procedures when they are called.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtOwnSelectionIncremental' xrefstyle='select: title'/>
+procedure informs the Intrinsics
+incremental selection mechanism that the specified widget wishes to
+own the selection.  It returns
+<function>True</function>
+if the specified widget successfully becomes the selection owner or
+<function>False</function>
+otherwise.
+For more information about <emphasis remap='I'>selection</emphasis>, <emphasis remap='I'>target</emphasis>, and
+<emphasis remap='I'>time</emphasis>, see
+<olink targetdoc='icccm' targetptr='Use_of_Selection_Atoms'>Section 2.6</olink> in the
+<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual.</olink>
+</para>
+
+<para>
+If a done_callback procedure is specified, the client owns the storage allocated
+for passing the value to the Intrinsics.  If <emphasis remap='I'>done_callback</emphasis> is NULL,
+the convert_callback procedure must allocate storage using
+<xref linkend='XtMalloc' xrefstyle='select: title'/>,
+<xref linkend='XtRealloc' xrefstyle='select: title'/>,
+or
+<xref linkend='XtCalloc' xrefstyle='select: title'/>,
+and the final value specified is freed by the
+Intrinsics when the transfer is complete.  After a selection transfer
+has started, only one of the done_callback or cancel_callback
+procedures is invoked to indicate completion of the transfer.
+</para>
+
+<para>
+The lose_callback procedure does not indicate completion of any in-progress
+transfers; it is invoked at the time a
+<function>SelectionClear</function>
+event is dispatched regardless of any active transfers, which are still
+expected to continue.
+</para>
+
+<para>
+A widget that becomes the selection owner using
+<xref linkend='XtOwnSelectionIncremental' xrefstyle='select: title'/>
+may use
+<xref linkend='XtDisownSelection' xrefstyle='select: title'/>
+to relinquish selection ownership.
+</para>
+</sect3>
+</sect2>
+
+<sect2 id="Setting_and_Retrieving_Selection_Target_Parameters">
+<title>Setting and Retrieving Selection Target Parameters</title>
+<para>
+To specify target parameters for a selection request with a single target,
+use
+<xref linkend='XtSetSelectionParameters' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetSelectionParameters'>
+<funcprototype>
+<funcdef>void <function>XtSetSelectionParameters</function></funcdef>
+   <paramdef>Widget <parameter>requestor</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+   <paramdef>Atom <parameter>type</parameter></paramdef>
+   <paramdef>XtPointer <parameter>value</parameter></paramdef>
+   <paramdef>unsigned long <parameter>length</parameter></paramdef>
+   <paramdef>int <parameter>format</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>requestor</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget making the request.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the atom that names the selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the type of the property in which the parameters are passed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>value</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the parameters.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>length</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of elements containing data in <emphasis remap='I'>value</emphasis>,
+each element of a size indicated by <emphasis remap='I'>format</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>format</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the size in bits of the data in the elements of <emphasis remap='I'>value</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The specified parameters are copied and stored in a new property
+of the specified type and format on the requestor's window.  To initiate
+a selection request with a target and these parameters, a subsequent
+call to
+<xref linkend='XtGetSelectionValue' xrefstyle='select: title'/>
+or to
+<xref linkend='XtGetSelectionValueIncremental' xrefstyle='select: title'/>
+specifying the same requestor widget and selection atom will generate a
+<function>ConvertSelection</function>
+request referring to the property containing the parameters.  If
+<xref linkend='XtSetSelectionParameters' xrefstyle='select: title'/>
+is called more than once with the same widget and selection without
+a call to specify a request, the most recently specified parameters
+are used in the subsequent request.
+</para>
+
+<para>
+The possible values of <emphasis remap='I'>format</emphasis> are 8, 16, or 32.  If the format is 8,
+the elements of <emphasis remap='I'>value</emphasis> are assumed to be sizeof(char);
+if 16, sizeof(short); if 32, sizeof(long).
+</para>
+
+<para>
+To generate a MULTIPLE
+target request with parameters for any of the multiple targets of the
+selection request, precede individual calls to
+<xref linkend='XtGetSelectionValue' xrefstyle='select: title'/>
+and
+<xref linkend='XtGetSelectionValueIncremental' xrefstyle='select: title'/>
+with corresponding individual calls to
+<xref linkend='XtSetSelectionParameters' xrefstyle='select: title'/>,
+and enclose these all within
+<xref linkend='XtCreateSelectionRequest' xrefstyle='select: title'/>
+and
+<function>XtSendSelectionRequest.</function>
+<xref linkend='XtGetSelectionValues' xrefstyle='select: title'/>
+and
+<xref linkend='XtGetSelectionValuesIncremental' xrefstyle='select: title'/>
+cannot be used to make selection requests with parameterized targets.
+</para>
+
+<para>
+To retrieve any target parameters needed to perform a selection conversion,
+the selection owner calls
+<xref linkend='XtGetSelectionParameters' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetSelectionParameters'>
+<funcprototype>
+<funcdef>void <function>XtGetSelectionParameters</function></funcdef>
+   <paramdef>Widget <parameter>owner</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+   <paramdef>XtRequestId <parameter>request_id</parameter></paramdef>
+   <paramdef>Atom *<parameter>type_return</parameter></paramdef>
+   <paramdef>XtPointer *<parameter>value_return</parameter></paramdef>
+   <paramdef>unsigned long *<parameter>length_return</parameter></paramdef>
+   <paramdef>int *<parameter>format_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>owner</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that owns the specified selection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the selection being processed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>request_id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the requestor id in the case of incremental selections,
+or NULL in the case of atomic transfers.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to an atom in which the property type
+of the parameters is stored.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>value_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer into which a pointer to the parameters is to be stored.
+A NULL is stored if no parameters accompany the request.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>length_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer into which the number of data elements
+in <emphasis remap='I'>value_return</emphasis> of size indicated by <emphasis remap='I'>format_return</emphasis> are stored.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>format_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer into which the size in bits of the parameter data
+in the elements of <emphasis remap='I'>value</emphasis> is stored.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtGetSelectionParameters' xrefstyle='select: title'/>
+may be called only from within an
+<xref linkend='XtConvertSelectionProc' xrefstyle='select: title'/>
+or from within the first call to an
+<xref linkend='XtConvertSelectionIncrProc' xrefstyle='select: title'/>
+with a new request_id.
+</para>
+
+<para>
+It is the responsibility of the caller to free the returned parameters using
+<xref linkend='XtFree' xrefstyle='select: title'/>
+when the parameters are no longer needed.
+</para>
+</sect2>
+
+<sect2 id="Generating_MULTIPLE_Requests">
+<title>Generating MULTIPLE Requests</title>
+<para>
+To have the Intrinsics bundle multiple calls to make selection requests into
+a single request using a <emphasis role='strong'>MULTIPLE</emphasis> target, use
+<xref linkend='XtCreateSelectionRequest' xrefstyle='select: title'/>
+and
+<xref linkend='XtSendSelectionRequest' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCreateSelectionRequest'>
+<funcprototype>
+<funcdef>void <function>XtCreateSelectionRequest</function></funcdef>
+   <paramdef>Widget <parameter>requestor</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>requestor</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget making the request.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the particular selection desired.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+When
+<xref linkend='XtCreateSelectionRequest' xrefstyle='select: title'/>
+is called, subsequent calls to
+<xref linkend='XtGetSelectionValue' xrefstyle='select: title'/>,
+<xref linkend='XtGetSelectionValueIncremental' xrefstyle='select: title'/>,
+<xref linkend='XtGetSelectionValues' xrefstyle='select: title'/>,
+and
+<xref linkend='XtGetSelectionValuesIncremental' xrefstyle='select: title'/>,
+with the requestor and selection as specified to
+<xref linkend='XtCreateSelectionRequest' xrefstyle='select: title'/>,
+are bundled into a single selection request with
+multiple targets.  The request is made by calling
+<xref linkend='XtSendSelectionRequest' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSendSelectionRequest'>
+<funcprototype>
+<funcdef>void <function>XtSendSelectionRequest</function></funcdef>
+   <paramdef>Widget <parameter>requestor</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+   <paramdef>Time <parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>requestor</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget making the request.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the particular selection desired.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the timestamp that indicates when the selection request was
+initiated.  The value
+<function>CurrentTime</function>
+is not acceptable.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+When
+<xref linkend='XtSendSelectionRequest' xrefstyle='select: title'/>
+is called with a value of <emphasis remap='I'>requestor</emphasis> and <emphasis remap='I'>selection</emphasis> matching
+a previous call to
+<xref linkend='XtCreateSelectionRequest' xrefstyle='select: title'/>,
+a selection request is sent to the selection owner.
+If a single target request is queued, that request is made.
+If multiple targets are queued, they are bundled into a single request
+with a target of MULTIPLE using the specified timestamp.
+As the values are returned, the callbacks specified in
+<xref linkend='XtGetSelectionValue' xrefstyle='select: title'/>,
+<xref linkend='XtGetSelectionValueIncremental' xrefstyle='select: title'/>,
+<xref linkend='XtGetSelectionValues' xrefstyle='select: title'/>,
+and
+<xref linkend='XtGetSelectionValueIncremental' xrefstyle='select: title'/>
+are invoked.
+</para>
+
+<para>
+Multi-threaded applications should lock the application context before
+calling
+<xref linkend='XtCreateSelectionRequest' xrefstyle='select: title'/>
+and release the lock after calling
+<xref linkend='XtSendSelectionRequest' xrefstyle='select: title'/>
+to ensure that the thread assembling the request is safe from interference
+by another thread assembling a different request naming the same widget
+and selection.
+</para>
+
+<para>
+To relinquish the composition of a MULTIPLE request without sending it, use
+<xref linkend='XtCancelSelectionRequest' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCancelSelectionRequest'>
+<funcprototype>
+<funcdef>void <function>XtCancelSelectionRequest</function></funcdef>
+   <paramdef>Widget <parameter>requestor</parameter></paramdef>
+   <paramdef>Atom <parameter>selection</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>requestor</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget making the request.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>selection</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the particular selection desired.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+When
+<xref linkend='XtCancelSelectionRequest' xrefstyle='select: title'/>
+is called, any requests queued since the last call to
+<xref linkend='XtCreateSelectionRequest' xrefstyle='select: title'/>
+for the same widget and selection are discarded
+and any resources reserved are released.
+A subsequent call to
+<xref linkend='XtSendSelectionRequest' xrefstyle='select: title'/>
+will not result in any request being made.
+Subsequent calls to
+<xref linkend='XtGetSelectionValue' xrefstyle='select: title'/>,
+<xref linkend='XtGetSelectionValues' xrefstyle='select: title'/>,
+<xref linkend='XtGetSelectionValueIncremental' xrefstyle='select: title'/>,
+or
+<xref linkend='XtGetSelectionValuesIncremental' xrefstyle='select: title'/>
+will not be deferred.
+</para>
+</sect2>
+
+<sect2 id="Auxiliary_Selection_Properties">
+<title>Auxiliary Selection Properties</title>
+<para>
+Certain uses of parameterized selections require clients to name
+other window properties within a selection parameter.  To permit
+reuse of temporary property names in these circumstances and
+thereby reduce the number of unique atoms created in the server,
+the Intrinsics provides two interfaces for acquiring temporary property names.
+</para>
+
+<para>
+To acquire a temporary property name atom for use in a selection
+request, the client may call
+<xref linkend='XtReservePropertyAtom' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtReservePropertyAtom'>
+<funcprototype>
+<funcdef>Atom <function>XtReservePropertyAtom</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget making a selection request.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtReservePropertyAtom' xrefstyle='select: title'/>
+returns an atom that may be used as a property name during selection
+requests involving the specified widget.
+As long as the atom remains reserved, it is unique with respect to all
+other reserved atoms for the widget.
+</para>
+
+<para>
+To return a temporary property name atom for reuse and to delete
+the property named by that atom, use
+<xref linkend='XtReleasePropertyAtom' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtReleasePropertyAtom'>
+<funcprototype>
+<funcdef>void <function>XtReleasePropertyAtom</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Atom <parameter>atom</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget used to reserve the property name atom.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>atom</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the property name atom returned by
+<xref linkend='XtReservePropertyAtom' xrefstyle='select: title'/>
+that is to be released for reuse.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtReleasePropertyAtom' xrefstyle='select: title'/>
+marks the specified property name atom as
+no longer in use and ensures that any property having that name
+on the specified widget's window is deleted.  If <emphasis remap='I'>atom</emphasis> does not
+specify a value returned by
+<xref linkend='XtReservePropertyAtom' xrefstyle='select: title'/>
+for the specified widget, the results are undefined.
+</para>
+</sect2>
+
+<sect2 id="Retrieving_the_Most_Recent_Timestamp">
+<title>Retrieving the Most Recent Timestamp</title>
+<para>
+To retrieve the timestamp from the most recent call to
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+that contained a timestamp, use
+<xref linkend='XtLastTimestampProcessed' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtLastTimestampProcessed'>
+<funcprototype>
+<funcdef>Time <function>XtLastTimestampProcessed</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an open display connection.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If no
+<function>KeyPress</function>,
+<function>KeyRelease</function>,
+<function>ButtonPress</function>,
+<function>ButtonRelease</function>,
+<function>MotionNotify</function>,
+<function>EnterNotify</function>,
+<function>LeaveNotify</function>,
+<function>PropertyNotify</function>,
+or
+<function>SelectionClear</function>
+event has yet been passed to
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+for the specified display,
+<xref linkend='XtLastTimestampProcessed' xrefstyle='select: title'/>
+returns zero.
+</para>
+</sect2>
+
+<sect2 id="Retrieving_the_Most_Recent_Event">
+<title>Retrieving the Most Recent Event</title>
+<para>
+To retrieve the event from the most recent call to
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+for a specific display, use
+<xref linkend='XtLastEventProcessed' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtLastEventProcessed'>
+<funcprototype>
+<funcdef>XEvent *<function>XtLastEventProcessed</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display connection from which to retrieve the event.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+Returns the last event passed to
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+for the specified display.  Returns NULL if there is no such event.
+The client must not modify the contents of the returned event.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Merging_Exposure_Events_into_a_Region">
+<title>Merging Exposure Events into a Region</title>
+<para>
+The Intrinsics provide an
+<xref linkend='XtAddExposureToRegion' xrefstyle='select: title'/>
+utility function that merges
+<function>Expose</function>
+and
+<function>GraphicsExpose</function>
+events into a region for clients to process at once
+rather than processing individual rectangles.
+For further information about regions,
+see <olink targetdoc='libX11' targetptr='Manipulating_Regions' />
+in <olink targetdoc='libX11' targetptr='libX11'>
+Xlib — C Language X Interface.</olink>.
+</para>
+
+<para>
+To merge
+<function>Expose</function>
+and
+<function>GraphicsExpose</function>
+events into a region, use
+<xref linkend='XtAddExposureToRegion' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAddExposureToRegion'>
+<funcprototype>
+<funcdef>void <function>XtAddExposureToRegion</function></funcdef>
+   <paramdef>XEvent *<parameter>event</parameter></paramdef>
+   <paramdef>Region <parameter>region</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the
+<function>Expose</function>
+or
+<function>GraphicsExpose</function>
+event.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>region</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the region object (as defined in
+<function>&lt;X11/Xutil.h&gt;</function>).
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAddExposureToRegion' xrefstyle='select: title'/>
+function computes the union of the rectangle defined by the exposure
+event and the specified region.
+Then it stores the results back in <emphasis remap='I'>region</emphasis>.
+If the event argument is not an
+<function>Expose</function>
+or
+<function>GraphicsExpose</function>
+event,
+<xref linkend='XtAddExposureToRegion' xrefstyle='select: title'/>
+returns without an error and without modifying <emphasis remap='I'>region</emphasis>.
+</para>
+
+<para>
+This function is used by the exposure compression mechanism;
+see <xref linkend='Exposure_Compression' />
+</para>
+</sect1>
+
+<sect1 id="Translating_Widget_Coordinates">
+<title>Translating Widget Coordinates</title>
+<para>
+To translate an x-y coordinate pair from widget coordinates to root
+window absolute coordinates, use
+<xref linkend='XtTranslateCoords' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtTranslateCoords'>
+<funcprototype>
+<funcdef>void <function>XtTranslateCoords</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Position <parameter>x</parameter></paramdef>
+   <paramdef>Position *<parameter>rootx_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class RectObj or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>x</emphasis>
+    </term>
+    <listitem>
+      <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>y</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify the widget-relative x and y coordinates.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>rootx_return</emphasis>
+    </term>
+    <listitem>
+      <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>rooty_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Return the root-relative x and y coordinates.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+While
+<xref linkend='XtTranslateCoords' xrefstyle='select: title'/>
+is similar to the Xlib
+<function>XTranslateCoordinates</function>
+function, it does not generate a server request because all the required
+information already is in the widget's data structures.
+</para>
+</sect1>
+
+<sect1 id="Translating_a_Window_to_a_Widget">
+<title>Translating a Window to a Widget</title>
+<para>
+To translate a given window and display pointer into a widget instance, use
+<xref linkend='XtWindowToWidget' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtWindowToWidget'>
+<funcprototype>
+<funcdef>Widget <function>XtWindowToWidget</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>Window <parameter>window</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display on which the window is defined.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>window</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the drawable for which you want the widget.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If there is a realized widget whose window is the specified drawable on
+the specified <emphasis remap='I'>display</emphasis>,
+<xref linkend='XtWindowToWidget' xrefstyle='select: title'/>
+returns that widget.
+If not and if the drawable has been associated with a widget through
+<xref linkend='XtRegisterDrawable' xrefstyle='select: title'/>,
+<xref linkend='XtWindowToWidget' xrefstyle='select: title'/>
+returns the widget associated with the drawable.  In other cases it
+returns NULL.
+</para>
+</sect1>
+
+<sect1 id="Handling_Errors">
+<title>Handling Errors</title>
+<para>
+The Intrinsics allow a client to register procedures that are called
+whenever a fatal or nonfatal error occurs.
+These facilities are intended for both error reporting and logging
+and for error correction or recovery.
+</para>
+
+<para>
+Two levels of interface are provided:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+A high-level interface that takes an error
+name and class and retrieves the error message text from
+an error resource database.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+A low-level interface that takes a simple string to display.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+The high-level functions construct a string to pass to the lower-level
+interface.
+The strings may be specified in application code and are
+overridden by the contents of an external systemwide file,
+the "error database file".  The location and name of this file are
+implementation-dependent.
+</para>
+<note>
+<para>
+The application-context-specific error handling is not
+implemented on many systems, although the interfaces are
+always present.
+Most implementations will have just one set of error handlers
+for all application contexts within a process.
+If they are set for different application contexts,
+the ones registered last will prevail.
+</para>
+</note>
+
+<para>
+To obtain the error database (for example, to merge with
+an application- or widget-specific database), use
+<xref linkend='XtAppGetErrorDatabase' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppGetErrorDatabase'>
+<funcprototype> <funcdef>XrmDatabase *<function>XtAppGetErrorDatabase</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAppGetErrorDatabase' xrefstyle='select: title'/>
+function returns the address of the error database.
+The Intrinsics do a lazy binding of the error database and do not merge in the
+database file until the first call to
+<xref linkend='XtAppGetErrorDatabaseText' xrefstyle='select: title'/>.
+</para>
+
+<para>
+For a complete listing of all errors and warnings
+that can be generated by the Intrinsics, see <xref linkend='Intrinsics_Error_Messages' />
+</para>
+
+<para>
+The high-level error and warning handler procedure pointers are of type
+<xref linkend='XtErrorMsgHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtErrorMsgHandler'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtErrorMsgHandler)</function></funcdef>
+   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>String <parameter>type</parameter></paramdef>
+   <paramdef>String <parameter>class</parameter></paramdef>
+   <paramdef>String <parameter>defaultp</parameter></paramdef>
+   <paramdef>String *<parameter>params</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_params</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name to be concatenated with the specified type to form
+the resource name of the error message.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the type to be concatenated with the name to form the
+resource name of the error message.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource class of the error message.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>defaultp</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the default message to use if no error database entry is found.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to a list of parameters to be substituted in the message.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>params</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The specified name can be a general kind of error,
+like "invalidParameters" or "invalidWindow",
+and the specified type gives extra information
+such as the name of the routine in which the error was detected.
+Standard
+<function>printf</function>
+notation is used to substitute the parameters into the message.
+</para>
+
+<para>
+An error message handler can obtain the error database text for an
+error or a warning by calling
+<xref linkend='XtAppGetErrorDatabaseText' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppGetErrorDatabaseText'>
+<funcprototype>
+<funcdef>void <function>XtAppGetErrorDatabaseText</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>String <parameter>default</parameter></paramdef>
+   <paramdef>String <parameter>buffer_return</parameter></paramdef>
+   <paramdef>int <parameter>nbytes</parameter></paramdef>
+   <paramdef>XrmDatabase <parameter>database</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify the name and type concatenated to form the resource name
+of the error message.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource class of the error message.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>default</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the default message to use if an error database entry is not found.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>buffer_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the buffer into which the error message is to be returned.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>nbytes</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the size of the buffer in bytes.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>database</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the alternative database to be used,
+or NULL if the application context's error database is to be used.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAppGetErrorDatabaseText' xrefstyle='select: title'/>
+returns the appropriate message from the error database
+or returns the specified default message if one is not found in the
+error database.
+To form the full resource name and class when querying the database,
+the <emphasis remap='I'>name</emphasis> and <emphasis remap='I'>type</emphasis> are concatenated with a single "."
+between them and the <emphasis remap='I'>class</emphasis> is concatenated with itself with a
+single "." if it does not already contain a ".".
+</para>
+
+<para>
+To return the application name and class as passed to
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+for a particular Display, use
+<xref linkend='XtGetApplicationNameAndClass' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetApplicationNameAndClass'>
+<funcprototype>
+<funcdef>void <function>XtGetApplicationNameAndClass</function></funcdef>
+    <paramdef>Display* <parameter>display</parameter></paramdef>
+    <paramdef>String* <parameter>name_return</parameter></paramdef>
+    <paramdef>String* <parameter>class_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an open display connection that has been initialized with
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the application name.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>class_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the application class.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtGetApplicationNameAndClass' xrefstyle='select: title'/>
+returns the application name and class passed to
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+for the specified display.  If the display was
+never initialized or has been closed, the result is undefined.  The
+returned strings are owned by the Intrinsics and must not be modified
+or freed by the caller.
+</para>
+
+<para>
+To register a procedure to be called on fatal error conditions, use
+<xref linkend='XtAppSetErrorMsgHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppSetErrorMsgHandler'>
+<funcprototype>
+<funcdef>XtErrorMsgHandler <function>XtAppSetErrorMsgHandler</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>XtErrorMsgHandler <parameter>msg_handler</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>msg_handler</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the new fatal error procedure, which should not return.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtAppSetErrorMsgHandler' xrefstyle='select: title'/>
+returns a pointer to the previously
+installed high-level fatal error handler.
+The default high-level fatal error handler provided by the Intrinsics is named
+<function>_XtDefaultErrorMsg</function>
+and constructs a string from the error resource database and calls
+<xref linkend='XtError' xrefstyle='select: title'/>.
+Fatal error message handlers should not return.
+If one does,
+subsequent Intrinsics behavior is undefined.
+</para>
+
+<para>
+To call the high-level error handler, use
+<xref linkend='XtAppErrorMsg' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppErrorMsg'>
+<funcprototype>
+<funcdef>void <function>XtAppErrorMsg</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>String <parameter>type</parameter></paramdef>
+   <paramdef>String <parameter>class</parameter></paramdef>
+   <paramdef>String <parameter>default</parameter></paramdef>
+   <paramdef>String *<parameter>params</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_params</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the general kind of error.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the detailed name of the error.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource class.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>default</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the default message to use if an error database entry is not found.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to a list of values to be stored in the message.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>params</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The Intrinsics internal errors all have class
+"XtToolkitError".
+</para>
+
+<para>
+To register a procedure to be called on nonfatal error conditions, use
+<xref linkend='XtAppSetWarningMsgHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppSetWarningMsgHandler'>
+<funcprototype>
+<funcdef>XtErrorMsgHandler <function>XtAppSetWarningMsgHandler</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>XtErrorMsgHandler <parameter>msg_handler</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>msg_handler</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the new nonfatal error procedure, which usually returns.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtAppSetWarningMsgHandler' xrefstyle='select: title'/>
+returns a pointer to the previously
+installed high-level warning handler.
+The default high-level warning handler provided by the Intrinsics is named
+<function>_XtDefaultWarningMsg</function>
+and constructs a string
+from the error resource database and calls
+<xref linkend='XtWarning' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To call the installed high-level warning handler, use
+<xref linkend='XtAppWarningMsg' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppWarningMsg'>
+<funcprototype>
+<funcdef>void <function>XtAppWarningMsg</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>String <parameter>type</parameter></paramdef>
+   <paramdef>String <parameter>class</parameter></paramdef>
+   <paramdef>String <parameter>default</parameter></paramdef>
+   <paramdef>String *<parameter>params</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_params</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the general kind of error.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the detailed name of the error.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource class.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>default</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the default message to use if an error database entry is not found.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to a list of values to be stored in the message.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>params</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The Intrinsics internal warnings all have class
+"XtToolkitError".
+</para>
+
+<para>
+The low-level error and warning handler procedure pointers are of type
+<xref linkend='XtErrorHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtErrorHandler'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtErrorHandler)</function></funcdef>
+   <paramdef>String <parameter>message</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>message</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the error message.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The error handler should display the message string in some appropriate fashion.
+</para>
+
+<para>
+To register a procedure to be called on fatal error conditions, use
+<xref linkend='XtAppSetErrorHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppSetErrorHandler'>
+<funcprototype>
+<funcdef>XtErrorHandler <function>XtAppSetErrorHandler</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>XtErrorHandler <parameter>handler</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>handler</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the new fatal error procedure, which should not return.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtAppSetErrorHandler' xrefstyle='select: title'/>
+returns a pointer to the previously installed
+low-level fatal error handler.
+The default low-level error handler provided by the Intrinsics is
+<function>_XtDefaultError</function>.
+On POSIX-based systems,
+it prints the message to standard error and terminates the application.
+Fatal error message handlers should not return.
+If one does,
+subsequent Intrinsics behavior is undefined.
+</para>
+
+<para>
+To call the installed fatal error procedure, use
+<xref linkend='XtAppError' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppError'>
+<funcprototype>
+<funcdef>void <function>XtAppError</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>String <parameter>message</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>message</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the message to be reported.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+Most programs should use
+<xref linkend='XtAppErrorMsg' xrefstyle='select: title'/>,
+not
+<xref linkend='XtAppError' xrefstyle='select: title'/>,
+to provide for customization and internationalization of error messages.
+</para>
+
+<para>
+To register a procedure to be called on nonfatal error conditions, use
+<xref linkend='XtAppSetWarningHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppSetWarningHandler'>
+<funcprototype>
+<funcdef>XtErrorHandler <function>XtAppSetWarningHandler</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>XtErrorHandler <parameter>handler</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>handler</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the new nonfatal error procedure, which usually returns.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtAppSetWarningHandler' xrefstyle='select: title'/>
+returns a pointer to the previously installed
+low-level warning handler.
+The default low-level warning handler provided by the Intrinsics is
+<function>_XtDefaultWarning</function>.
+On POSIX-based systems,
+it prints the message to standard error and returns to the caller.
+</para>
+
+<para>
+To call the installed nonfatal error procedure, use
+<xref linkend='XtAppWarning' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppWarning'>
+<funcprototype>
+<funcdef>void <function>XtAppWarning</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>String <parameter>message</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>message</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the nonfatal error message to be reported.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+Most programs should use
+<xref linkend='XtAppWarningMsg' xrefstyle='select: title'/>,
+not
+<xref linkend='XtAppWarning' xrefstyle='select: title'/>,
+to provide for customization and internationalization of warning messages.
+</para>
+</sect1>
+
+<sect1 id="Setting_WM_COLORMAP_WINDOWS">
+<title>Setting WM_COLORMAP_WINDOWS</title>
+<para>
+A client may set the value of the <emphasis role='strong'>WM_COLORMAP_WINDOWS</emphasis>
+property on a widget's window by calling
+<xref linkend='XtSetWMColormapWindows' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetWMColormapWindows'>
+<funcprototype>
+<funcdef>void <function>XtSetWMColormapWindows</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>Widget* <parameter>list</parameter></paramdef>
+   <paramdef>Cardinal <parameter>count</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget on whose window the <emphasis role='strong'>WM_COLORMAP_WINDOWS</emphasis>
+property is stored.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>list</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a list of widgets whose windows are potentially to be
+listed in the <emphasis role='strong'>WM_COLORMAP_WINDOWS</emphasis> property.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>count</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of widgets in <emphasis remap='I'>list</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtSetWMColormapWindows' xrefstyle='select: title'/>
+returns immediately if <emphasis remap='I'>widget</emphasis> is not realized or if <emphasis remap='I'>count</emphasis> is 0.
+Otherwise,
+<xref linkend='XtSetWMColormapWindows' xrefstyle='select: title'/>
+constructs an ordered list of windows
+by examining each widget in <emphasis remap='I'>list</emphasis> in turn and
+ignoring the widget if it is not realized, or
+adding the widget's window to the window list if the widget is realized
+and if its colormap resource is different from the colormap
+resources of all widgets whose windows are already on the window list.
+</para>
+
+<para>
+Finally,
+<xref linkend='XtSetWMColormapWindows' xrefstyle='select: title'/>
+stores the resulting window list in the <emphasis role='strong'>WM_COLORMAP_WINDOWS</emphasis>
+property on the specified widget's window.
+Refer to Section 4.1.8 in the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis> for details of
+the semantics of the <emphasis role='strong'>WM_COLORMAP_WINDOWS</emphasis> property.
+</para>
+</sect1>
+<!--    FIXME: -->
+<sect1 id="Finding_File_Names">
+<title>Finding File Names</title>
+<para>
+The Intrinsics provide procedures to look for a file by name, allowing
+string substitutions in a list of file specifications.  Two
+routines are provided for this:
+<xref linkend='XtFindFile' xrefstyle='select: title'/>
+and
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>.
+<xref linkend='XtFindFile' xrefstyle='select: title'/>
+uses an arbitrary set of client-specified substitutions, and
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>
+uses a set of standard substitutions corresponding
+to the <emphasis remap='I'>X/Open Portability Guide</emphasis> language localization conventions.
+Most applications should use
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>.
+</para>
+
+<para>
+A string substitution is defined by a list of
+<function>Substitution</function>
+entries.
+</para>
+<literallayout >
+typedef struct {
+	char match;
+	String substitution;
+} SubstitutionRec, *Substitution;
+</literallayout>
+<para>
+File name evaluation is handled in an operating-system-dependent
+fashion by an
+<xref linkend='XtFilePredicate' xrefstyle='select: title'/>
+procedure.
+</para>
+
+<funcsynopsis id='XtFilePredicate'>
+<funcprototype>
+<funcdef>typedef Boolean <function>(*XtFilePredicate)</function></funcdef>
+   <paramdef>String <parameter>filename</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>filename</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a potential filename.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+A file predicate procedure is called with a string that is
+potentially a file name.  It should return
+<function>True</function>
+if this string specifies a file that is appropriate for the intended use and
+<function>False</function>
+otherwise.
+</para>
+
+<para>
+To search for a file using substitutions in a path list, use
+<xref linkend='XtFindFile' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtFindFile'>
+<funcprototype>
+<funcdef>String <function>XtFindFile</function></funcdef>
+   <paramdef>String <parameter>path</parameter></paramdef>
+   <paramdef>Substitution <parameter>substitutions</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_substitutions</parameter></paramdef>
+   <paramdef>XtFilePredicate <parameter>predicate</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>path</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a path of file names, including substitution characters.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>substitutions</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a list of substitutions to make into the path.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_substitutions</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of substitutions passed in.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>predicate</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a procedure called to judge each potential file name, or NULL.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The <emphasis remap='I'>path</emphasis> parameter specifies a string that consists of a series of
+potential file names delimited by colons.  Within each name, the
+percent character specifies a string substitution selected by the
+following character.  The character sequence "%:" specifies an
+embedded colon that is not a delimiter; the sequence is replaced by a
+single colon.  The character sequence "%%" specifies a percent
+character that does not introduce a substitution; the sequence is
+replaced by a single percent character.  If a percent character is
+followed by any other character,
+<xref linkend='XtFindFile' xrefstyle='select: title'/>
+looks through the
+specified <emphasis remap='I'>substitutions</emphasis> for that character in the <emphasis remap='I'>match</emphasis> field
+and, if found,
+replaces the percent and match characters with the string in the
+corresponding <emphasis remap='I'>substitution</emphasis> field.  A <emphasis remap='I'>substitution</emphasis> field entry of NULL
+is equivalent to a pointer to an empty string.  If the operating
+system does not interpret multiple embedded name separators in the
+path (i.e., "/" in POSIX) the same way as a single separator,
+<xref linkend='XtFindFile' xrefstyle='select: title'/>
+will collapse multiple separators into a single one after performing
+all string substitutions.  Except for collapsing embedded separators,
+the contents of the string substitutions are not interpreted by
+<xref linkend='XtFindFile' xrefstyle='select: title'/>
+and may therefore contain any operating-system-dependent
+characters, including additional name separators.  Each resulting
+string is passed to the predicate procedure until a string is found for
+which the procedure returns
+<function>True</function>;
+this string is the return value for
+<xref linkend='XtFindFile' xrefstyle='select: title'/>.
+If no string yields a
+<function>True</function>
+return from the predicate,
+<xref linkend='XtFindFile' xrefstyle='select: title'/>
+returns NULL.
+</para>
+
+<para>
+If the <emphasis remap='I'>predicate</emphasis> parameter is NULL, an internal procedure that checks
+if the file exists, is readable, and is not a directory is used.
+</para>
+
+<para>
+It is the responsibility of the caller to free the returned string using
+<xref linkend='XtFree' xrefstyle='select: title'/>
+when it is no longer needed.
+</para>
+
+<para>
+To search for a file using standard substitutions in a path list, use
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtResolvePathname'>
+<funcprototype>
+<funcdef>String <function>XtResolvePathname</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>String <parameter>type</parameter></paramdef>
+   <paramdef>Substitution <parameter>substitutions</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_substitutions</parameter></paramdef>
+   <paramdef>XtFilePredicate <parameter>predicate</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display to use to find the language for language substitutions.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type</emphasis>
+    </term>
+    <listitem>
+      <para></para>
+      
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>filename</emphasis>
+    </term>
+    <listitem>
+      <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>suffix</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify values to substitute into the path.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>path</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the list of file specifications, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>substitutions</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a list of additional substitutions to make into the path, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_substitutions</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>substitutions</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>predicate</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a procedure called to judge each potential file name, or NULL.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The substitutions specified by
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>
+are determined from the value of the language string retrieved by
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+for the specified display.
+To set the
+language for all applications specify "*xnlLanguage: <emphasis remap='I'>lang</emphasis>" in the
+resource database.
+The format and content of the language string are
+implementation-defined.   One suggested syntax is to compose
+the language string of three parts;  a  "language  part",  a
+"territory  part" and a "codeset part".  The manner in which
+this composition is accomplished is implementation-defined,
+and the Intrinsics make no interpretation of the parts other
+than to use them in substitutions as described below.
+</para>
+
+
+<para>
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>
+calls
+<xref linkend='XtFindFile' xrefstyle='select: title'/>
+with the following substitutions
+in addition to any passed by the caller and returns the value returned by
+<xref linkend='XtFindFile' xrefstyle='select: title'/>:
+</para>
+<!-- PROBLEM BELOW HERE -->
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+%N
+    </term>
+    <listitem>
+      <para>
+The value of the <emphasis remap='I'>filename</emphasis> parameter, or the application's
+class name if <emphasis remap='I'>filename</emphasis> is NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+%T
+    </term>
+    <listitem>
+      <para>
+The value of the <emphasis remap='I'>type</emphasis> parameter.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+%S
+    </term>
+    <listitem>
+      <para>
+The value of the <emphasis remap='I'>suffix</emphasis> parameter.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+%L
+    </term>
+    <listitem>
+      <para>
+The language string associated with the specified display.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+%l
+    </term>
+    <listitem>
+      <para>
+The language part of the display's language string.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+%t
+    </term>
+    <listitem>
+      <para>
+The territory part of the display's language string.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+%c
+    </term>
+    <listitem>
+      <para>
+The codeset part of the display's language string.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+%C
+    </term>
+    <listitem>
+      <para>
+The customization string retrieved from the resource
+database associated with <emphasis remap='I'>display</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+%D
+    </term>
+    <listitem>
+      <para>
+The value of the implementation-specific default path.
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<!-- PROBLEM ABOVE HERE -->
+<para>
+If a path is passed to
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>,
+it is passed along to
+<xref linkend='XtFindFile' xrefstyle='select: title'/>.
+If the <emphasis remap='I'>path</emphasis> argument is NULL, the value of the
+<emphasis role='strong'>XFILESEARCHPATH</emphasis>
+environment variable is passed to
+<xref linkend='XtFindFile' xrefstyle='select: title'/>.
+If <emphasis role='strong'>XFILESEARCHPATH</emphasis>
+is not defined, an implementation-specific default path is used
+that contains at least six entries.  These entries
+must contain the following substitutions:
+</para>
+
+
+<!-- OK PAST HERE -->
+
+<literallayout>
+1.     %C, %N, %S, %T, %L   or   %C, %N, %S, %T, %l, %t, %c
+2.     %C, %N, %S, %T, %l
+3.     %C, %N, %S, %T
+4.     %N, %S, %T, %L       or   %N, %S, %T, %l, %t, %c
+5.     %N, %S, %T, %l
+6.     %N, %S, %T
+</literallayout>
+
+<para>
+The order of these six entries within the path must be as given above.
+The order and use of substitutions within a given entry
+are implementation-dependent.
+If the path begins
+with a colon, it is preceded by %N%S.  If the path includes two
+adjacent colons, <function>%N%S</function> is inserted between them.
+</para>
+
+<para>
+The <emphasis remap='I'>type</emphasis> parameter is intended to be a category of files, usually
+being translated into a directory in the pathname.  Possible values
+might include "app-defaults", "help", and "bitmap".
+</para>
+
+<para>
+The <emphasis remap='I'>suffix</emphasis> parameter is intended to be appended to the file name.
+Possible values might include ".txt", ".dat", and ".bm".
+</para>
+
+<para>
+A suggested value for the default path on POSIX-based systems is
+</para>
+<literallayout>
+   /usr/lib/X11/%L/%T/%N%C%S:/usr/lib/X11/%l/%T/%N%C%S:\
+   /usr/lib/X11/%T/%N%C%S:/usr/lib/X11/%L/%T/%N%S:\
+   /usr/lib/X11/%l/%T/%N%S:/usr/lib/X11/%T/%N%S
+</literallayout>
+
+
+<para>
+Using this example, if the user has specified a language, it is
+used as a subdirectory of /usr/lib/X11 that is searched for other
+files.  If the desired file is not found there, the lookup is
+tried again using just the language part of the specification.  If the
+file is not there, it is looked for in /usr/lib/X11.  The <emphasis remap='I'>type</emphasis>
+parameter is used as a subdirectory of the language directory or of
+/usr/lib/X11, and <emphasis remap='I'>suffix</emphasis> is appended to the file name.
+</para>
+
+<para>
+The %D substitution allows the addition of path
+elements to the implementation-specific default path, typically to
+allow additional directories to be searched without preventing
+resources in the system directories from being found.  For example, a
+user installing resource files under a directory called "ourdir"
+might set
+<emphasis role='strong'>XFILESEARCHPATH</emphasis>
+to
+</para>
+<literallayout>
+   %D:ourdir/%T/%N%C:ourdir/%T/%N
+</literallayout>
+
+<para>
+The customization string is obtained by querying the resource database
+currently associated with the display (the database returned by
+<function>XrmGetDatabase</function>)
+for the resource <emphasis remap='I'>application_name</emphasis>.customization, class
+<emphasis remap='I'>application_class</emphasis>.Customization, where <emphasis remap='I'>application_name</emphasis>
+and <emphasis remap='I'>application_class</emphasis> are the values returned by
+<xref linkend='XtGetApplicationNameAndClass' xrefstyle='select: title'/>.
+If no value is specified in the database, the empty string is used.
+</para>
+
+<para>
+It is the responsibility of the caller to free the returned string using
+<xref linkend='XtFree' xrefstyle='select: title'/>
+when it is no longer needed.
+</para>
+
+
+</sect1>
+<!-- END OF FIXME -->
+<sect1 id="Hooks_for_External_Agents">
+<title>Hooks for External Agents</title>
+<para>
+Applications may register
+functions that are called at a particular control points in the Intrinsics.
+These functions are intended to be used to provide notification
+of an "X Toolkit event", such as widget creation, to an external agent,
+such as an interactive resource editor, drag-and-drop server, or
+an aid for physically challenged users.
+The control points containing such registration hooks are identified
+in a "hook registration" object.
+</para>
+
+<para>
+To retrieve the hook registration widget, use
+<xref linkend='XtHooksOfDisplay' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtHooksOfDisplay'>
+<funcprototype>
+<funcdef>Widget <function>XtHooksOfDisplay</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the desired display.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The class of this object is a private, implementation-dependent
+subclass of
+<function>Object</function>.
+The hook object has no parent.  The resources of this object are
+the callback lists for hooks and the read-only resources for getting
+a list of parentless shells.  All of the callback lists are initially
+empty.  When a display is closed, the hook object associated with it
+is destroyed.
+</para>
+
+<para>
+The following procedures can be called with the hook registration object
+as an argument:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+<xref linkend='XtAddCallback' xrefstyle='select: title'/>,
+<xref linkend='XtAddCallbacks' xrefstyle='select: title'/>,
+<xref linkend='XtRemoveCallback' xrefstyle='select: title'/>,
+<xref linkend='XtRemoveCallbacks' xrefstyle='select: title'/>,
+<xref linkend='XtRemoveAllCallbacks' xrefstyle='select: title'/>,
+<xref linkend='XtCallCallbacks' xrefstyle='select: title'/>,
+<xref linkend='XtHasCallbacks' xrefstyle='select: title'/>,
+<xref linkend='XtCallCallbackList' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtClass' xrefstyle='select: title'/>,
+<function>XtSuperclass</function>,
+<xref linkend='XtIsSubclass' xrefstyle='select: title'/>,
+<xref linkend='XtCheckSubclass' xrefstyle='select: title'/>,
+<function>XtIsObject</function>,
+<function>XtIsRectObj</function>,
+<function>XtIsWidget</function>,
+<function>XtIsComposite</function>,
+<function>XtIsConstraint</function>,
+<function>XtIsShell</function>,
+<function>XtIsOverrideShell</function>,
+<function>XtIsWMShell</function>,
+<function>XtIsVendorShell</function>,
+<function>XtIsTransientShell</function>,
+<function>XtIsToplevelShell</function>,
+<function>XtIsApplicationShell</function>,
+<function>XtIsSessionShell</function>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtWidgetToApplicationContext' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtName' xrefstyle='select: title'/>,
+<function>XtParent</function>,
+<xref linkend='XtDisplayOfObject' xrefstyle='select: title'/>,
+<xref linkend='XtScreenOfObject' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtSetValues' xrefstyle='select: title'/>,
+<xref linkend='XtGetValues' xrefstyle='select: title'/>,
+<xref linkend='XtVaSetValues' xrefstyle='select: title'/>,
+<xref linkend='XtVaGetValues' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+</itemizedlist>
+
+<sect2 id="Hook_Object_Resources">
+<title>Hook Object Resources</title>
+<para>
+The resource names, classes, and representation types that are specified
+in the hook object resource list are:
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Name</entry>
+      <entry>Class</entry>
+      <entry>Representation</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>XtNcreateHook</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNchangeHook</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNconfigureHook</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNgeometryHook</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNdestroyHook</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNshells</entry>
+      <entry>XtCReadOnly</entry>
+      <entry>XtRWidgetList</entry>
+    </row>
+    <row>
+      <entry>XtNnumShells</entry>
+      <entry>XtCReadOnly</entry>
+      <entry>XtRCardinal</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+</para>
+
+<para>
+Descriptions of each of these resources:
+</para>
+
+<para>
+The XtNcreateHook callback list is called from:
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>,
+<xref linkend='XtCreateManagedWidget' xrefstyle='select: title'/>,
+<xref linkend='XtCreatePopupShell' xrefstyle='select: title'/>,
+<xref linkend='XtAppCreateShell' xrefstyle='select: title'/>,
+and their corresponding varargs versions.
+</para>
+
+<para>
+The <emphasis remap='I'>call_data</emphasis> parameter in a createHook callback may be
+cast to type
+<function>XtCreateHookData</function>.
+</para>
+<literallayout >
+typedef struct {
+	String   type;
+	Widget   widget;
+	ArgList  args;
+	Cardinal num_args;
+} XtCreateHookDataRec, *XtCreateHookData;
+</literallayout>
+<para>
+The <emphasis remap='I'>type</emphasis> is set to
+<function>XtHcreate</function>,
+<emphasis remap='I'>widget</emphasis> is the newly created widget, and <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis>
+are the arguments passed to the create function. The callbacks are
+called before returning from the create function.
+</para>
+
+<para>
+The XtNchangeHook callback list is called from:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+<xref linkend='XtSetValues' xrefstyle='select: title'/>,
+<xref linkend='XtVaSetValues' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtManageChild' xrefstyle='select: title'/>,
+<xref linkend='XtManageChildren' xrefstyle='select: title'/>,
+<xref linkend='XtUnmanageChild' xrefstyle='select: title'/>,
+<xref linkend='XtUnmanageChildren' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>,
+<xref linkend='XtUnrealizeWidget' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtAddCallback' xrefstyle='select: title'/>,
+<xref linkend='XtRemoveCallback' xrefstyle='select: title'/>,
+<function>XtAddCallbacks,</function>
+<xref linkend='XtRemoveCallbacks' xrefstyle='select: title'/>,
+<xref linkend='XtRemoveAllCallbacks' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtAugmentTranslations' xrefstyle='select: title'/>,
+<xref linkend='XtOverrideTranslations' xrefstyle='select: title'/>,
+<xref linkend='XtUninstallTranslations' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtSetKeyboardFocus' xrefstyle='select: title'/>,
+<xref linkend='XtSetWMColormapWindows' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtSetMappedWhenManaged' xrefstyle='select: title'/>,
+<xref linkend='XtMapWidget' xrefstyle='select: title'/>,
+<xref linkend='XtUnmapWidget' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtPopup' xrefstyle='select: title'/>,
+<xref linkend='XtPopupSpringLoaded' xrefstyle='select: title'/>,
+<xref linkend='XtPopdown' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+</itemizedlist>
+
+<para>
+The <emphasis remap='I'>call_data</emphasis> parameter in a changeHook callback may
+be cast to type
+<function>XtChangeHookData</function>.
+</para>
+<literallayout >
+typedef struct {
+	String  type;
+	Widget  widget;
+	XtPointer event_data;
+	Cardinal num_event_data;
+} XtChangeHookDataRec, *XtChangeHookData;
+</literallayout>
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+or
+<xref linkend='XtVaSetValues' xrefstyle='select: title'/>,
+<emphasis remap='I'>type</emphasis> is set to
+<function>XtHsetValues</function>,
+<emphasis remap='I'>widget</emphasis> is the new widget passed to the set_values procedure, and
+<emphasis remap='I'>event_data</emphasis> may be cast to type
+<function>XtChangeHookSetValuesData</function>.
+</para>
+<literallayout >
+typedef struct {
+	Widget   old, req;
+	ArgList  args;
+	Cardinal num_args;
+} XtChangeHookSetValuesDataRec, *XtChangeHookSetValuesData;
+</literallayout>
+<para>
+The <emphasis remap='I'>old</emphasis>, <emphasis remap='I'>req</emphasis>, <emphasis remap='I'>args</emphasis>, and <emphasis remap='I'>num_args</emphasis> are the
+parameters passed to the set_values procedure.  The callbacks are called
+after the set_values and constraint set_values procedures have been called.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtManageChild' xrefstyle='select: title'/>
+or
+<xref linkend='XtManageChildren' xrefstyle='select: title'/>,
+<emphasis remap='I'>type</emphasis> is set to
+<function>XtHmanageChildren</function>,
+<emphasis remap='I'>widget</emphasis> is the parent, <emphasis remap='I'>event_data</emphasis> may be cast to type
+WidgetList and is the list of children being managed, and
+<emphasis remap='I'>num_event_data</emphasis> is the length of the widget list.
+The callbacks are called after the children have been managed.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtUnmanageChild' xrefstyle='select: title'/>
+or
+<xref linkend='XtUnmanageChildren' xrefstyle='select: title'/>,
+<emphasis remap='I'>type</emphasis> is set to
+<function>XtHunmanageChildren</function>,
+<emphasis remap='I'>widget</emphasis> is the parent, <emphasis remap='I'>event_data</emphasis> may be cast to type
+WidgetList and is a list of the children being unmanaged, and
+<emphasis remap='I'>num_event_data</emphasis> is the length of the widget list.
+The callbacks are called after the children have been unmanaged.
+</para>
+
+<para>
+The changeHook callbacks are called twice as a result of a call to
+<xref linkend='XtChangeManagedSet' xrefstyle='select: title'/>,
+once after unmanaging and again after managing.
+When the callbacks are called the first time, <emphasis remap='I'>type</emphasis> is set to
+<function>XtHunmanageSet</function>,
+<emphasis remap='I'>widget</emphasis> is the parent, <emphasis remap='I'>event_data</emphasis> may be cast to type
+WidgetList and is a list of the children being unmanaged, and
+<emphasis remap='I'>num_event_data</emphasis> is the length of the widget list.
+When the callbacks are called the second time, the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHmanageSet</function>,
+<emphasis remap='I'>widget</emphasis> is the parent, <emphasis remap='I'>event_data</emphasis> may be cast to type
+WidgetList and is a list of the children being managed, and
+<emphasis remap='I'>num_event_data</emphasis> is the length of the widget list.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHrealizeWidget</function>
+and <emphasis remap='I'>widget</emphasis> is the widget being realized.
+The callbacks are called after the widget has been realized.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtUnrealizeWidget' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHunrealizeWidget</function>,
+and <emphasis remap='I'>widget</emphasis> is the widget being unrealized.
+The callbacks are called after the widget has been unrealized.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtAddCallback' xrefstyle='select: title'/>,
+<emphasis remap='I'>type</emphasis> is set to
+<function>XtHaddCallback</function>,
+<emphasis remap='I'>widget</emphasis> is the widget to which the callback is being added, and
+<emphasis remap='I'>event_data</emphasis> may be cast to type String and is the name of the
+callback being added.
+The callbacks are called after the callback has been added to the widget.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtAddCallbacks' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHaddCallbacks</function>,
+<emphasis remap='I'>widget</emphasis> is the widget to which the callbacks are being added, and
+<emphasis remap='I'>event_data</emphasis> may be cast to type String and is the name of the
+callbacks being added.
+The callbacks are called after the callbacks have been added to the widget.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtRemoveCallback' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHremoveCallback</function>,
+<emphasis remap='I'>widget</emphasis> is the widget from which the callback is being removed, and
+<emphasis remap='I'>event_data</emphasis> may be cast to type String and is the name of
+the callback being removed.  The callbacks are called after the callback
+has been removed from the widget.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtRemoveCallbacks' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHremoveCallbacks</function>,
+<emphasis remap='I'>widget</emphasis> is the widget from which the callbacks are being removed, and
+<emphasis remap='I'>event_data</emphasis> may be cast to type String and is the name of the
+callbacks being removed.  The callbacks are called after the callbacks
+have been removed from the widget.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtRemoveAllCallbacks' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHremoveAllCallbacks</function>
+and <emphasis remap='I'>widget</emphasis> is the widget from which the callbacks are being removed.
+The callbacks are called after the callbacks have been removed from the
+widget.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtAugmentTranslations' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHaugmentTranslations</function>
+and <emphasis remap='I'>widget</emphasis> is the widget whose translations are being modified.
+The callbacks are called after the widget's translations have been
+modified.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtOverrideTranslations' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHoverrideTranslations</function>
+and <emphasis remap='I'>widget</emphasis> is the widget whose translations are being modified.
+The callbacks are called after the widget's translations have been
+modified.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtUninstallTranslations' xrefstyle='select: title'/>,
+The <emphasis remap='I'>type</emphasis> is
+<function>XtHuninstallTranslations</function>
+and <emphasis remap='I'>widget</emphasis> is the widget whose translations are being uninstalled.
+The callbacks are called after the widget's translations have been
+uninstalled.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtSetKeyboardFocus' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHsetKeyboardFocus</function>
+and <emphasis remap='I'>event_data</emphasis> may be cast to type Widget and is the value of
+the descendant argument passed to <xref linkend='XtSetKeyboardFocus' xrefstyle='select: title'/>. The
+callbacks are called before returning from <xref linkend='XtSetKeyboardFocus' xrefstyle='select: title'/>.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtSetWMColormapWindows' xrefstyle='select: title'/>,
+<emphasis remap='I'>type</emphasis> is set to
+<function>XtHsetWMColormapWindows</function>,
+<emphasis remap='I'>event_data</emphasis> may be cast to type WidgetList and is the value of
+the list argument passed to <xref linkend='XtSetWMColormapWindows' xrefstyle='select: title'/>, and
+<emphasis remap='I'>num_event_data</emphasis> is the length of the list. The callbacks are
+called before returning from <xref linkend='XtSetWMColormapWindows' xrefstyle='select: title'/>.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtSetMappedWhenManaged' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHsetMappedWhenManaged</function>
+and <emphasis remap='I'>event_data</emphasis> may be cast to type Boolean and is the value of
+the mapped_when_managed argument passed to <xref linkend='XtSetMappedWhenManaged' xrefstyle='select: title'/>.
+The callbacks are called after setting the widget's mapped_when_managed
+field and before realizing or unrealizing the widget.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtMapWidget' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type </emphasis> is set to
+<function>XtHmapWidget</function>
+and <emphasis remap='I'>widget</emphasis> is the widget being mapped.
+The callbacks are called after mapping the widget.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtUnmapWidget' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type </emphasis> is set to
+<function>XtHunmapWidget</function>
+and <emphasis remap='I'>widget</emphasis> is the widget being unmapped.
+The callbacks are called after unmapping the widget.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtPopup' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHpopup</function>,
+<emphasis remap='I'>widget</emphasis> is the widget being popped up, and <emphasis remap='I'>event_data</emphasis> may
+be cast to type XtGrabKind and is the value of the grab_kind argument
+passed to <xref linkend='XtPopup' xrefstyle='select: title'/>.
+The callbacks are called before returning from <xref linkend='XtPopup' xrefstyle='select: title'/>.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtPopupSpringLoaded' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHpopupSpringLoaded</function>
+and <emphasis remap='I'>widget</emphasis> is the widget being popped up.
+The callbacks are called
+before returning from <xref linkend='XtPopupSpringLoaded' xrefstyle='select: title'/>.
+</para>
+
+<para>
+When the changeHook callbacks are called as a result of a call to
+<xref linkend='XtPopdown' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is set to
+<function>XtHpopdown</function>
+and <emphasis remap='I'>widget</emphasis> is the widget being popped down.
+The callbacks are called
+before returning from <xref linkend='XtPopdown' xrefstyle='select: title'/>.
+</para>
+
+<para>
+A widget set that exports interfaces that change application state
+without employing the Intrinsics library should invoke the change hook
+itself.  This is done by:
+</para>
+
+<literallayout >
+        XtCallCallbacks(XtHooksOfDisplay(dpy), XtNchangeHook, call_data);
+</literallayout>
+<para>
+The XtNconfigureHook callback list is called any time the Intrinsics
+move, resize, or configure a widget and when
+<xref linkend='XtResizeWindow' xrefstyle='select: title'/>
+is called.
+</para>
+
+<para>
+The <emphasis remap='I'>call_data</emphasis> parameter may be cast to type
+<function>XtConfigureHookData.</function>
+</para>
+<literallayout >
+typedef struct {
+	String type;
+	Widget widget;
+	XtGeometryMask changeMask;
+	XWindowChanges changes;
+} XtConfigureHookDataRec, *XtConfigureHookData;
+</literallayout>
+<para>
+When the configureHook callbacks are called, the <emphasis remap='I'>type</emphasis> is
+<function>XtHconfigure</function>,
+<emphasis remap='I'>widget</emphasis> is the widget being configured, and <emphasis remap='I'>changeMask</emphasis> and
+<emphasis remap='I'>changes</emphasis> reflect the changes made to the widget. The callbacks
+are called after changes have been made to the widget.
+</para>
+
+<para>
+The XtNgeometryHook callback list is called from
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+and
+<xref linkend='XtMakeResizeRequest' xrefstyle='select: title'/>
+once before and once after geometry negotiation occurs.
+</para>
+
+<para>
+The <emphasis remap='I'>call_data</emphasis> parameter may be cast to type
+<function>XtGeometryHookData</function>.
+</para>
+
+<literallayout >
+typedef struct {
+	String type;
+	Widget widget;
+	XtWidgetGeometry* request;
+	XtWidgetGeometry* reply;
+	XtGeometryResult result;
+} XtGeometryHookDataRec, *XtGeometryHookData;
+</literallayout>
+<para>
+When the geometryHook callbacks are called prior to geometry negotiation,
+the <emphasis remap='I'>type</emphasis> is
+<function>XtHpreGeometry</function>,
+<emphasis remap='I'>widget</emphasis> is the widget for which the request is being made, and
+<emphasis remap='I'>request</emphasis> is the requested geometry.
+When the geometryHook callbacks
+are called after geometry negotiation, the <emphasis remap='I'>type</emphasis> is
+<function>XtHpostGeometry</function>,
+<emphasis remap='I'>widget</emphasis> is the widget for which the request was made, <emphasis remap='I'>request</emphasis>
+is the requested geometry, <emphasis remap='I'>reply</emphasis> is the resulting geometry granted,
+and <emphasis remap='I'>result</emphasis> is the value returned from the geometry negotiation.
+</para>
+
+<para>
+The XtNdestroyHook callback list is called when a widget is destroyed.
+The <emphasis remap='I'>call_data parameter</emphasis> may be cast to type
+<function>XtDestroyHookData</function>.
+</para>
+<literallayout >
+typedef struct {
+	String type;
+	Widget widget;
+} XtDestroyHookDataRec, *XtDestroyHookData;
+</literallayout>
+<para>
+When the destroyHook callbacks are called as a result of a call to
+<xref linkend='XtDestroyWidget' xrefstyle='select: title'/>,
+the <emphasis remap='I'>type</emphasis> is
+<function>XtHdestroy</function>
+and <emphasis remap='I'>widget</emphasis> is the widget being destroyed. The callbacks are
+called upon completion of phase one destroy for a widget.
+</para>
+
+<para>
+The XtNshells and XtnumShells are read-only resources that report a
+list of all parentless shell widgets associated with a display.
+</para>
+
+<para>
+Clients who use these hooks must exercise caution in calling Intrinsics
+functions in order to avoid recursion.
+</para>
+</sect2>
+
+<sect2 id="Querying_Open_Displays">
+<title>Querying Open Displays</title>
+<para>
+To retrieve a list of the Displays associated with an application context,
+use
+<xref linkend='XtGetDisplays' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetDisplays'>
+<funcprototype>
+<funcdef>void <function>XtGetDisplays</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>Display ***<parameter>dpy_return</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_dpy_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>dpy_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns a list of open Display connections in the specified application
+context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_dpy_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the count of open Display connections in <emphasis remap='I'>dpy_return</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtGetDisplays' xrefstyle='select: title'/> may be used by an external agent to query the
+list of open displays that belong to an application context. To free
+the list of displays, use
+<xref linkend='XtFree' xrefstyle='select: title'/>.
+</para>
+</sect2>
+</sect1>
+
+</chapter>

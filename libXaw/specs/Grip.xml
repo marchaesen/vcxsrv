@@ -26,7 +26,7 @@ events (such as ButtonPress or ButtonRelease) may be handled.  The most
 common use for the Grip widget is as an attachment point for visually
 repositioning an object, such as the pane border in a Paned widget.
 </para>
-<sect2 id="grip_resources">
+<sect2 id='Grip::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->

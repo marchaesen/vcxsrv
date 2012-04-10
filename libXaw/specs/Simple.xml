@@ -26,7 +26,7 @@ of its own.  It main purpose is to be used as a common superclass for
 the other <emphasis remap='I'>simple</emphasis> Athena widgets.  This widget adds six resources
 to the resource list provided by the Core widget and its superclasses.
 </para>
-<sect2 id="simple_resources">
+<sect2 id='Simple::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->

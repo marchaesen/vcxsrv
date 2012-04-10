@@ -228,7 +228,7 @@ XawTextSinkClassPartInitialize(WidgetClass wc)
     Qdefault = XrmPermStringToQuark("default");
 #endif
 
-    /* 
+    /*
      * We don't need to check for null super since we'll get to TextSink
      * eventually.
      */
@@ -416,7 +416,7 @@ static void
 ClearToBackground(Widget w, int x, int y,
 		  unsigned int width, unsigned int height)
 {
-    /* 
+    /*
      * Don't clear in height or width are zero
      * XClearArea() has special semantic for these values
      */
@@ -736,7 +736,7 @@ XawTextSinkFindPosition(Widget w, XawTextPosition fromPos, int fromx, int width,
     TextSinkObjectClass cclass = (TextSinkObjectClass)w->core.widget_class;
 
     (*cclass->text_sink_class.FindPosition)(w, fromPos, fromx, width,
-					    stopAtWordBreak, 
+					    stopAtWordBreak,
 					    resPos, resWidth, resHeight);
 }
 
@@ -759,7 +759,7 @@ XawTextSinkFindPosition(Widget w, XawTextPosition fromPos, int fromx, int width,
 /*ARGSUSED*/
 void
 XawTextSinkFindDistance(Widget w, XawTextPosition fromPos, int fromx,
-			XawTextPosition toPos, int *resWidth, 
+			XawTextPosition toPos, int *resWidth,
 			XawTextPosition *resPos, int *resHeight)
 {
     TextSinkObjectClass cclass = (TextSinkObjectClass)w->core.widget_class;
@@ -1220,16 +1220,16 @@ _XawTextSinkAddProperty(XawTextPropertyList *list, XawTextProperty *property,
     if (property->mask & XAW_TPROP_FOREGROUND) {
 	color.pixel = property->foreground;
 	XQueryColor(DisplayOfScreen(list->screen), list->colormap, &color);
-	XmuSnprintf(foreground, sizeof(foreground), "%04x%04x%04x",
-		    color.red, color.green, color.blue);
+	snprintf(foreground, sizeof(foreground), "%04x%04x%04x",
+		 color.red, color.green, color.blue);
     }
     else
 	strcpy(foreground, asterisk);
     if (property->mask & XAW_TPROP_BACKGROUND) {
 	color.pixel = property->background;
 	XQueryColor(DisplayOfScreen(list->screen), list->colormap, &color);
-	XmuSnprintf(background, sizeof(background), "%04x%04x%04x",
-		    color.red, color.green, color.blue);
+	snprintf(background, sizeof(background), "%04x%04x%04x",
+		 color.red, color.green, color.blue);
     }
     else
 	strcpy(background, asterisk);
@@ -1313,10 +1313,11 @@ _XawTextSinkAddProperty(XawTextPropertyList *list, XawTextProperty *property,
 
     /* XXX should do the best to load a suitable font here */
     if (!(result->mask & XAW_TPROP_FONT)) {
-	XmuSnprintf(identifier, sizeof(identifier),
-		    "-%s-%s-%s-%s-%s-%s-%s-%s-%s-%s-%s-%s-%s-%s",
-		    foundry, family, weight, slant, setwidth, addstyle, pixel_size,
-		    point_size, res_x, res_y, spacing, avgwidth, registry, encoding);
+	snprintf(identifier, sizeof(identifier),
+		 "-%s-%s-%s-%s-%s-%s-%s-%s-%s-%s-%s-%s-%s-%s",
+		 foundry, family, weight, slant, setwidth, addstyle,
+		 pixel_size, point_size, res_x, res_y, spacing, avgwidth,
+		 registry, encoding);
 	if ((result->font = XLoadQueryFont(DisplayOfScreen(list->screen),
 					   identifier)) != NULL) {
 	    result->mask |= XAW_TPROP_FONT;
@@ -1331,14 +1332,14 @@ _XawTextSinkAddProperty(XawTextPropertyList *list, XawTextProperty *property,
     else
 	xlfd = null;
 
-    XmuSnprintf(identifier, sizeof(identifier), "%08lx%08lx%s%s%d%d%d%d%s",
-		property->mask, property->xlfd_mask,
-		foreground, background,
-		(result->mask & XAW_TPROP_UNDERLINE) != 0,
-		(result->mask & XAW_TPROP_OVERSTRIKE) != 0,
-		(result->mask & XAW_TPROP_SUBSCRIPT) != 0,
-		(result->mask & XAW_TPROP_SUPERSCRIPT) != 0,
-		xlfd);
+    snprintf(identifier, sizeof(identifier), "%08lx%08lx%s%s%d%d%d%d%s",
+	     property->mask, property->xlfd_mask,
+	     foreground, background,
+	     (result->mask & XAW_TPROP_UNDERLINE) != 0,
+	     (result->mask & XAW_TPROP_OVERSTRIKE) != 0,
+	     (result->mask & XAW_TPROP_SUBSCRIPT) != 0,
+	     (result->mask & XAW_TPROP_SUPERSCRIPT) != 0,
+	     xlfd);
 
     quark = XrmStringToQuark(identifier);
     if (result->identifier == NULLQUARK)
@@ -1547,8 +1548,8 @@ XawTextSinkConvertPropertyList(String name, String spec, Screen *screen,
 	params = XawParseParamsString(tok);
 	ident = XrmStringToQuark(params->name);
 	if (ident == NULLQUARK) {
-	    XmuSnprintf(buffer, sizeof(buffer),
-			"Bad text property name \"%s\".", params->name);
+	    snprintf(buffer, sizeof(buffer), "Bad text property name \"%s\".",
+		     params->name);
 	    XtAppWarning(XtDisplayToApplicationContext
 			 (DisplayOfScreen(screen)), buffer);
 	    DestroyTextPropertyList(propl);
@@ -1570,8 +1571,8 @@ XawTextSinkConvertPropertyList(String name, String spec, Screen *screen,
 
 	    if ((prop->font = XLoadQueryFont(DisplayOfScreen(screen),
 					     argval->value)) == NULL) {
-		XmuSnprintf(buffer, sizeof(buffer),
-			    "Cannot load font \"%s\".", argval->value);
+		snprintf(buffer, sizeof(buffer), "Cannot load font \"%s\".",
+			 argval->value);
 		XtAppWarning(XtDisplayToApplicationContext
 			     (DisplayOfScreen(screen)), buffer);
 		DestroyTextPropertyList(propl);
@@ -1589,8 +1590,8 @@ XawTextSinkConvertPropertyList(String name, String spec, Screen *screen,
 	    argval->value) {
 	    if (!XAllocNamedColor(DisplayOfScreen(screen), colormap,
 				  argval->value, &color, &exact)) {
-		XmuSnprintf(buffer, sizeof(buffer),
-			    "Cannot allocate color \"%s\".", argval->value);
+		snprintf(buffer, sizeof(buffer),
+			 "Cannot allocate color \"%s\".", argval->value);
 		XtAppWarning(XtDisplayToApplicationContext
 			     (DisplayOfScreen(screen)), buffer);
 		DestroyTextPropertyList(propl);
@@ -1606,8 +1607,8 @@ XawTextSinkConvertPropertyList(String name, String spec, Screen *screen,
 	    argval->value) {
 	    if (!XAllocNamedColor(DisplayOfScreen(screen), colormap,
 				  argval->value, &color, &exact)) {
-		XmuSnprintf(buffer, sizeof(buffer),
-			    "Cannot allocate color \"%s\".", argval->value);
+		snprintf(buffer, sizeof(buffer),
+			 "Cannot allocate color \"%s\".", argval->value);
 		XtAppWarning(XtDisplayToApplicationContext
 			     (DisplayOfScreen(screen)), buffer);
 		DestroyTextPropertyList(propl);

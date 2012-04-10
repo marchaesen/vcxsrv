@@ -1,12 +1,11 @@
+
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXpm],
-        [3.5.9],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
-        [libXpm])
+AC_INIT([libXpm], [3.5.10],
+        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXpm])
 AC_CONFIG_SRCDIR([Makefile.am])
-AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 
 # Initialize Automake
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -26,7 +25,7 @@ AC_CHECK_FUNCS([strlcat])
 
 # Obtain compiler/linker options for dependencies
 PKG_CHECK_MODULES(XPM, xproto x11)
-PKG_CHECK_MODULES(SXPM, xt xext xextproto, build_sxpm=true, build_sxpm=false)
+PKG_CHECK_MODULES(SXPM, x11 xt xext xextproto, build_sxpm=true, build_sxpm=false)
 AM_CONDITIONAL(BUILD_SXPM, test x$build_sxpm = xtrue)
 
 # Internationalization & localization support
@@ -44,7 +43,7 @@ else
 fi
 
 if test "x$USE_GETTEXT" = "xyes" ; then
-	AC_DEFINE([USE_GETTEXT], 1, 
+	AC_DEFINE([USE_GETTEXT], 1,
 		  [Define to 1 if you want to use the gettext() function.])
 fi
 AM_CONDITIONAL(USE_GETTEXT, test "x$USE_GETTEXT" = "xyes")
@@ -62,6 +61,7 @@ fi
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
                  include/Makefile
+                 man/Makefile
                  src/Makefile
                  sxpm/Makefile
                  cxpm/Makefile

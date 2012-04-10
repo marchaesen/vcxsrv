@@ -1,0 +1,2498 @@
+<chapter id='Shell_Widgets'>
+<title>Shell Widgets</title>
+
+<para>
+Shell widgets hold an application's top-level widgets to allow them to
+communicate with the window manager and session manager.
+Shells have been designed to be as nearly invisible as possible.
+Clients have to create them,
+but they should never have to worry about their sizes.
+</para>
+
+<para>
+If a shell widget is resized from the outside (typically by a window manager),
+the shell widget also resizes its managed child widget automatically.
+Similarly, if the shell's child widget needs to change size,
+it can make a geometry request to the shell,
+and the shell negotiates the size change with the outer environment.
+Clients should never attempt to change the size of their shells directly.
+</para>
+
+<para>The five types of public shells are:</para>
+<variablelist>
+  <varlistentry>
+    <term>OverrideShell</term>
+    <listitem>
+      <para>
+      Used for shell windows that completely bypass the window manager
+      (for example, pop-up menu shells).
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>TransientShell</term>
+      <listitem>
+        <para>Used for shell windows that have the
+      <emphasis role='strong'>WM_TRANSIENT_FOR</emphasis>
+      property set. The effect of this property is dependent upon the
+      window manager being used.
+        </para>
+      </listitem>
+  </varlistentry>
+  <varlistentry>
+      <term>TopLevelShell</term>
+      <listitem>
+        <para>Used for normal top-level windows
+      (for example, any additional top-level widgets an application needs).
+        </para>
+      </listitem>
+  </varlistentry>
+  <varlistentry>
+      <term>ApplicationShell</term>
+      <listitem>
+        <para>Formerly used for the single main top-level window that
+      the window manager identifies as an application instance and
+      made obsolete by SessionShell.
+        </para>
+      </listitem>
+  </varlistentry>
+  <varlistentry>
+      <term>SessionShell</term>
+      <listitem>
+        <para>
+      Used for the single main top-level window that
+      the window manager identifies as an application instance and
+      that interacts with the session manager.
+        </para>
+      </listitem>
+  </varlistentry>
+</variablelist>
+
+<sect1 id="Shell_Widget_Definitions">
+<title>Shell Widget Definitions</title>
+<para>
+Widgets negotiate their size and position with their parent widget,
+that is, the widget that directly contains them.
+Widgets at the top of the hierarchy do not have parent widgets.
+Instead, they must deal with the outside world.
+To provide for this,
+each top-level widget is encapsulated in a special widget, called a
+shell widget.
+</para>
+
+<para>
+Shell
+widgets, whose class is a subclass of the
+Composite class,
+encapsulate other widgets and can allow a widget to avoid the
+geometry clipping imposed by the parent-child window relationship.
+They also can provide a layer of communication with the window manager.
+</para>
+
+<para>The eight different types of shells are:</para>
+<variablelist>
+  <varlistentry>
+    <term>Shell</term>
+    <listitem>
+      <para>The base class for shell widgets; provides the
+      fields needed for all types of shells.  Shell
+      is a direct subclass of
+      <emphasis role='strong'>compositeWidgetClass</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>OverrideShell</term>
+    <listitem>
+      <para>A subclass of Shell; used for shell windows that completely
+      bypass the window manager.</para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>WMShell</term>
+    <listitem>
+      <para>A subclass of Shell; contains fields needed by the
+      common window manager protocol.</para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>VendorShell</term>
+    <listitem>
+      <para>A subclass of WMShell; contains fields used by
+      vendor-specific window managers.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>TransientShell</term>
+    <listitem>
+      <para>A subclass of VendorShell; used for shell windows that
+      desire the <emphasis role='strong'>WM_TRANSIENT_FOR</emphasis>
+      property.</para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>TopLevelShell</term>
+    <listitem>
+      <para>A subclass of VendorShell; used for normal top-level windows.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>ApplicationShell</term>
+      <listitem>
+      <para>A subclass of TopLevelShell; may be used for an application's additional
+      root windows.</para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>SessionShell</term>
+    <listitem>
+      <para>A subclass of ApplicationShell; used for an application's
+      main root window.</para>
+    </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+Note that the classes
+Shell,
+WMShell,
+and
+VendorShell
+are internal and should not be instantiated or subclassed.
+Only
+OverrrideShell,
+TransientShell,
+TopLevelShell,
+ApplicationShell,
+and
+SessionShell
+are intended for public use.
+</para>
+
+<sect2 id="ShellClassPart_Definitions">
+<title>ShellClassPart Definitions</title>
+<para>
+Only the Shell
+class has additional class fields, which are all contained in the
+<function>ShellClassExtensionRec</function>.
+None of the other Shell classes have any additional class fields:
+</para>
+
+<literallayout >
+typedef struct {
+        XtPointer extension;
+} ShellClassPart, OverrideShellClassPart,
+WMShellClassPart, VendorShellClassPart, TransientShellClassPart,
+TopLevelShellClassPart, ApplicationShellClassPart, SessionShellClassPart;
+</literallayout>
+
+<para>The full Shell class record definitions are:</para>
+
+<literallayout >
+typedef struct _ShellClassRec {
+	CoreClassPart	core_class;
+	CompositeClassPart	composite_class;
+	ShellClassPart	shell_class;
+} ShellClassRec;
+</literallayout>
+
+<literallayout >
+typedef struct {
+	XtPointer	next_extension;	See <xref linkend='Class_Extension_Records' />
+	XrmQuark	record_type;	See <xref linkend='Class_Extension_Records' />
+	long	version;	See <xref linkend='Class_Extension_Records' />
+	Cardinal	record_size;	See <xref linkend='Class_Extension_Records' />
+	XtGeometryHandler	root_geometry_manager;	See below
+} ShellClassExtensionRec, *ShellClassExtension;
+</literallayout>
+
+<literallayout >
+typedef struct _OverrideShellClassRec {
+	CoreClassPart	core_class;
+	CompositeClassPart	composite_class;
+	ShellClassPart	shell_class;
+	OverrideShellClassPart	override_shell_class;
+} OverrideShellClassRec;
+</literallayout>
+
+<literallayout >
+typedef struct _WMShellClassRec {
+	CoreClassPart	core_class;
+	CompositeClassPart	composite_class;
+	ShellClassPart	shell_class;
+	WMShellClassPart	wm_shell_class;
+} WMShellClassRec;
+</literallayout>
+
+<literallayout >
+typedef struct _VendorShellClassRec {
+	CoreClassPart	core_class;
+	CompositeClassPart	composite_class;
+	ShellClassPart	shell_class;
+	WMShellClassPart	wm_shell_class;
+	VendorShellClassPart	vendor_shell_class;
+} VendorShellClassRec;
+</literallayout>
+
+<literallayout >
+typedef struct _TransientShellClassRec {
+	CoreClassPart	core_class;
+	CompositeClassPart	composite_class;
+	ShellClassPart	shell_class;
+	WMShellClassPart	wm_shell_class;
+	VendorShellClassPart	vendor_shell_class;
+	TransientShellClassPart	transient_shell_class;
+} TransientShellClassRec;
+</literallayout>
+
+<literallayout >
+typedef struct _TopLevelShellClassRec {
+	CoreClassPart	core_class;
+	CompositeClassPart	composite_class;
+	ShellClassPart	shell_class;
+	WMShellClassPart	wm_shell_class;
+	VendorShellClassPart	vendor_shell_class;
+	TopLevelShellClassPart	top_level_shell_class;
+} TopLevelShellClassRec;
+</literallayout>
+
+<literallayout >
+typedef struct _ApplicationShellClassRec {
+	CoreClassPart	core_class;
+	CompositeClassPart	composite_class;
+	ShellClassPart	shell_class;
+	WMShellClassPart	wm_shell_class;
+	VendorShellClassPart	vendor_shell_class;
+	TopLevelShellClassPart	top_level_shell_class;
+	ApplicationShellClassPart	application_shell_class;
+} ApplicationShellClassRec;
+</literallayout>
+
+<literallayout >
+typedef struct _SessionShellClassRec {
+	CoreClassPart	core_class;
+	CompositeClassPart	composite_class;
+	ShellClassPart	shell_class;
+	WMShellClassPart	wm_shell_class;
+	VendorShellClassPart	vendor_shell_class;
+	TopLevelShellClassPart	top_level_shell_class;
+	ApplicationShellClassPart	application_shell_class;
+	SessionShellClassPart	session_shell_class;
+} SessionShellClassRec;
+</literallayout>
+
+<para>
+The single occurrences of the class records and pointers for creating
+instances of shells are:
+</para>
+
+<literallayout >
+extern ShellClassRec shellClassRec;
+extern OverrideShellClassRec overrideShellClassRec;
+extern WMShellClassRec wmShellClassRec;
+extern VendorShellClassRec vendorShellClassRec;
+extern TransientShellClassRec transientShellClassRec;
+extern TopLevelShellClassRec topLevelShellClassRec;
+extern ApplicationShellClassRec applicationShellClassRec;
+extern SessionShellClassRec sessionShellClassRec;
+extern WidgetClass shellWidgetClass;
+extern WidgetClass overrideShellWidgetClass;
+extern WidgetClass wmShellWidgetClass;
+extern WidgetClass vendorShellWidgetClass;
+extern WidgetClass transientShellWidgetClass;
+extern WidgetClass topLevelShellWidgetClass;
+extern WidgetClass applicationShellWidgetClass;
+extern WidgetClass sessionShellWidgetClass;
+</literallayout>
+
+<para>
+The following opaque types and opaque variables are defined
+for generic operations on widgets whose class is a subclass of
+Shell.
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Types</entry>
+      <entry>Variables</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry><emphasis role='strong'>ShellWidget</emphasis></entry>
+      <entry><emphasis role='strong'>shellWidgetClass</emphasis></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>OverrideShellWidget</emphasis></entry>
+      <entry><emphasis role='strong'>overrideShellWidgetClass</emphasis></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>WMShellWidget</emphasis></entry>
+      <entry><emphasis role='strong'>wmShellWidgetClass</emphasis></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>VendorShellWidget</emphasis></entry>
+      <entry><emphasis role='strong'>vendorShellWidgetClass</emphasis></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>TransientShellWidget</emphasis></entry>
+      <entry><emphasis role='strong'>transientShellWidgetClass</emphasis></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>TopLevelShellWidget</emphasis></entry>
+      <entry><emphasis role='strong'>topLevelShellWidgetClass</emphasis></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>ApplicationShellWidget</emphasis></entry>
+      <entry><emphasis role='strong'>applicationShellWidgetClass</emphasis></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>SessionShellWidget</emphasis></entry>
+      <entry><emphasis role='strong'>sessionShellWidgetClass</emphasis></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>ShellWidgetClass</emphasis></entry>
+      <entry></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>OverrideShellWidgetClass</emphasis></entry>
+      <entry></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>WMShellWidgetClass</emphasis></entry>
+      <entry></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>VendorShellWidgetClass</emphasis></entry>
+      <entry></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>TransientShellWidgetClass</emphasis></entry>
+      <entry></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>TopLevelShellWidgetClass</emphasis></entry>
+      <entry></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>ApplicationShellWidgetClass</emphasis></entry>
+      <entry></entry>
+    </row>
+    <row>
+      <entry><emphasis role='strong'>SessionShellWidgetClass</emphasis></entry>
+      <entry></entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The declarations for all Intrinsics-defined shells except
+VendorShell appear in
+<function>Shell.h</function>
+and
+<function>ShellP.h</function>.
+VendorShell has separate public and private .h files which are included by
+<function>Shell.h</function>
+and
+<function>ShellP.h</function>.
+</para>
+
+<para>
+<function>Shell.h</function>
+uses incomplete structure definitions to ensure that the
+compiler catches attempts to access private data in any of the Shell
+instance or class data structures.
+</para>
+
+<para>
+The symbolic constant for the
+<function>ShellClassExtension</function>
+version identifier is
+<function>XtShellExtensionVersion</function>
+(see <xref linkend='Class_Extension_Records' />).
+</para>
+
+<para>
+The root_geometry_manager procedure acts as
+the parent geometry manager for geometry requests made by shell
+widgets.  When a shell widget calls either
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+or
+<xref linkend='XtMakeResizeRequest' xrefstyle='select: title'/>,
+the root_geometry_manager procedure is invoked to
+negotiate the new geometry with the window manager.  If the window
+manager permits the new geometry, the root_geometry_manager
+procedure should
+return
+<function>XtGeometryYes</function>;
+if the window manager denies the geometry
+request or does not change the window geometry within some timeout
+interval (equal to <emphasis remap='I'>wm_timeout</emphasis> in the case of WMShells), the
+root_geometry_manager procedure should return
+<function>XtGeometryNo</function>.
+If the window manager makes some alternative geometry change, the
+root_geometry_manager procedure may return either
+<function>XtGeometryNo</function>
+and handle the new geometry as a resize or
+<function>XtGeometryAlmost</function>
+in anticipation that the shell will accept the compromise.  If the
+compromise is not accepted, the new size must then be handled as a
+resize.  Subclasses of
+Shell
+that wish to provide their own
+root_geometry_manager procedures are strongly encouraged to use enveloping to
+invoke their superclass's root_geometry_manager procedure under most
+situations, as the window manager interaction may be very complex.
+</para>
+
+<para>
+If no
+<function>ShellClassPart</function>
+extension record is declared with <emphasis remap='I'>record_type</emphasis>
+equal to
+<emphasis role='strong'>NULLQUARK</emphasis>,
+then
+<function>XtInheritRootGeometryManager</function>
+is assumed.
+</para>
+</sect2>
+
+<sect2 id="ShellPart_Definition">
+<title>ShellPart Definition</title>
+<para>
+The various shell widgets have the following additional instance
+fields defined in
+their widget records:
+</para>
+
+<literallayout >
+typedef struct {
+	String	geometry;
+	XtCreatePopupChildProc	create_popup_child_proc;
+	XtGrabKind	grab_kind;
+	Boolean	spring_loaded;
+	Boolean	popped_up;
+	Boolean	allow_shell_resize;
+	Boolean	client_specified;
+	Boolean	save_under;
+	Boolean	override_redirect;
+	XtCallbackList	popup_callback;
+	XtCallbackList	popdown_callback;
+	Visual *	visual;
+} ShellPart;
+</literallayout>
+
+<literallayout >
+typedef struct {
+	int	empty;
+} OverrideShellPart;
+</literallayout>
+
+<literallayout >
+typedef struct {
+	String			title;
+	int			wm_timeout;
+	Boolean			wait_for_wm;
+	Boolean			transient;
+	Boolean			urgency;
+	Widget			client_leader;
+	String			window_role;
+	struct _OldXSizeHints {
+		long		flags;
+		int		 x, y;
+		int		width, height;
+		int		min_width, min_height;
+		int		max_width, max_height;
+		int		width_inc, height_inc;
+		struct {
+			int	x;
+			int	y;
+		} min_aspect, max_aspect;
+	} size_hints;
+	XWMHints			wm_hints;
+	int			base_width, base_height, win_gravity;
+	Atom			title_encoding;
+} WMShellPart;
+</literallayout>
+
+<literallayout >
+typedef struct {
+	int	vendor_specific;
+} VendorShellPart;
+</literallayout>
+
+<literallayout >
+typedef struct {
+	Widget	transient_for;
+} TransientShellPart;
+typedef struct {
+	String	icon_name;
+	Boolean	iconic;
+	Atom	icon_name_encoding;
+} TopLevelShellPart;
+</literallayout>
+
+<literallayout >
+typedef struct {
+	char *	class;
+	XrmClass	xrm_class;
+	int	argc;
+	char **	argv;
+} ApplicationShellPart;
+</literallayout>
+
+<literallayout >
+typedef struct {
+	SmcConn	connection;
+	String	session_id;
+	String *	restart_command;
+	String *	clone_command;
+	String *	discard_command;
+	String *	resign_command;
+	String *	shutdown_command;
+	String *	environment;
+	String	current_dir;
+	String	program_path;
+	unsigned char	restart_style;
+	Boolean	join_session;
+	XtCallbackList	save_callbacks;
+	XtCallbackList	interact_callbacks;
+	XtCallbackList	cancel_callbacks;
+	XtCallbackList	save_complete_callbacks;
+	XtCallbackList	die_callbacks;
+	XtCallbackList	error_callbacks;
+} SessionShellPart;
+</literallayout>
+
+<para>
+The full shell widget instance record definitions are:
+</para>
+
+<literallayout >
+typedef struct {
+	CorePart	core;
+	CompositePart	composite;
+	ShellPart	shell;
+} ShellRec, *ShellWidget;
+</literallayout>
+
+<literallayout >
+typedef struct {
+	CorePart	core;
+	CompositePart	composite;
+	ShellPart	shell;
+	OverrideShellPart	override;
+} OverrideShellRec, *OverrideShellWidget;
+</literallayout>
+
+<literallayout >
+typedef struct {
+	CorePart	core;
+	CompositePart	composite;
+	ShellPart	shell;
+	WMShellPart	wm;
+} WMShellRec, *WMShellWidget;
+</literallayout>
+
+<literallayout >
+typedef struct {
+	CorePart	core;
+	CompositePart	composite;
+	ShellPart	shell;
+	WMShellPart	wm;
+	VendorShellPart	vendor;
+} VendorShellRec, *VendorShellWidget;
+</literallayout>
+
+<literallayout >
+typedef struct {
+	CorePart	core;
+	CompositePart	composite;
+	ShellPart	shell;
+	WMShellPart	wm;
+	VendorShellPart	vendor;
+	TransientShellPart	transient;
+} TransientShellRec, *TransientShellWidget;
+</literallayout>
+
+<literallayout >
+typedef struct {
+	CorePart	core;
+	CompositePart	composite;
+	ShellPart	shell;
+	WMShellPart	wm;
+	VendorShellPart	vendor;
+	TopLevelShellPart	topLevel;
+} TopLevelShellRec, *TopLevelShellWidget;
+</literallayout>
+
+<literallayout >
+typedef  struct {
+	CorePart	core;
+	CompositePart	composite;
+	ShellPart	shell;
+	WMShellPart	wm;
+	VendorShellPart	vendor;
+	TopLevelShellPart	topLevel;
+	ApplicationShellPart	application;
+} ApplicationShellRec, *ApplicationShellWidget;
+</literallayout>
+
+<literallayout >
+typedef  struct {
+	CorePart	core;
+	CompositePart	composite;
+	ShellPart	shell;
+	WMShellPart	wm;
+	VendorShellPart	vendor;
+	TopLevelShellPart	topLevel;
+	ApplicationShellPart	application;
+	SessionShellPart	session;
+} SessionShellRec, *SessionShellWidget;
+</literallayout>
+
+</sect2>
+
+<sect2 id="Shell_Resources">
+<title>Shell Resources</title>
+<para>
+The resource names, classes, and representation types specified in
+the
+<function>shellClassRec</function>
+resource list are:
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' rowsep='0' colsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Name</entry>
+      <entry>Class</entry>
+      <entry>Representation</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>XtNallowShellResize</entry>
+      <entry>XtCAllowShellResize</entry>
+      <entry>XtRBoolean</entry>
+    </row>
+    <row>
+      <entry>XtNcreatePopupChildProc</entry>
+      <entry>XtCCreatePopupChildProc</entry>
+      <entry>XtRFunction</entry>
+    </row>
+    <row>
+      <entry>XtNgeometry</entry>
+      <entry>XtCGeometry</entry>
+      <entry>XtRString</entry>
+    </row>
+    <row>
+      <entry>XtNoverrideRedirect</entry>
+      <entry>XtCOverrideRedirect</entry>
+      <entry>XtRBoolean</entry>
+    </row>
+    <row>
+      <entry>XtNpopdownCallback</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNpopupCallback</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNsaveUnder</entry>
+      <entry>XtCSaveUnder</entry>
+      <entry>XtRBoolean</entry>
+    </row>
+    <row>
+      <entry>XtNvisual</entry>
+      <entry>XtCVisual</entry>
+      <entry>XtRVisual</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+OverrideShell
+declares no additional resources beyond those defined by
+Shell.
+</para>
+
+<para>
+The resource names, classes, and representation types specified in
+the
+<function>wmShellClassRec</function>
+resource list are:
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' rowsep='0' colsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Name</entry>
+      <entry>Class</entry>
+      <entry>Representation</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>XtNbaseHeight</entry>
+      <entry>XtCBaseHeight</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNbaseWidth</entry>
+      <entry>XtCBaseWidth</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNclientLeader</entry>
+      <entry>XtCClientLeader</entry>
+      <entry>XtRWidget</entry>
+    </row>
+    <row>
+      <entry>XtNheightInc</entry>
+      <entry>XtCHeightInc</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNiconMask</entry>
+      <entry>XtCIconMask</entry>
+      <entry>XtRBitmap</entry>
+    </row>
+    <row>
+      <entry>XtNiconPixmap</entry>
+      <entry>XtCIconPixmap</entry>
+      <entry>XtRBitmap</entry>
+    </row>
+    <row>
+      <entry>XtNiconWindow</entry>
+      <entry>XtCIconWindow</entry>
+      <entry>XtRWindow</entry>
+    </row>
+    <row>
+      <entry>XtNiconX</entry>
+      <entry>XtCIconX</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNiconY</entry>
+      <entry>XtCIconY</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNinitialState</entry>
+      <entry>XtCInitialState</entry>
+      <entry>XtRInitialState</entry>
+    </row>
+    <row>
+      <entry>XtNinput</entry>
+      <entry>XtCInput</entry>
+      <entry>XtRBool</entry>
+    </row>
+    <row>
+      <entry>XtNmaxAspectX</entry>
+      <entry>XtCMaxAspectX</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNmaxAspectY</entry>
+      <entry>XtCMaxAspectY</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNmaxHeight</entry>
+      <entry>XtCMaxHeight</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNmaxWidth</entry>
+      <entry>XtCMaxWidth</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNminAspectX</entry>
+      <entry>XtCMinAspectX</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNminAspectY</entry>
+      <entry>XtCMinAspectY</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNminHeight</entry>
+      <entry>XtCMinHeight</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNminWidth</entry>
+      <entry>XtCMinWidth</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNtitle</entry>
+      <entry>XtCTitle</entry>
+      <entry>XtRString</entry>
+    </row>
+    <row>
+      <entry>XtNtitleEncoding</entry>
+      <entry>XtCTitleEncoding</entry>
+      <entry>XtRAtom</entry>
+    </row>
+    <row>
+      <entry>XtNtransient</entry>
+      <entry>XtCTransient</entry>
+      <entry>XtRBoolean</entry>
+    </row>
+    <row>
+      <entry>XtNwaitforwm, XtNwaitForWm</entry>
+      <entry>XtCWaitforwm, XtCWaitForWm</entry>
+      <entry>XtRBoolean</entry>
+    </row>
+    <row>
+      <entry>XtNwidthInc</entry>
+      <entry>XtCWidthInc</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNwindowRole</entry>
+      <entry>XtCWindowRole</entry>
+      <entry>XtRString</entry>
+    </row>
+    <row>
+      <entry>XtNwinGravity</entry>
+      <entry>XtCWinGravity</entry>
+      <entry>XtRGravity</entry>
+    </row>
+    <row>
+      <entry>XtNwindowGroup</entry>
+      <entry>XtCWindowGroup</entry>
+      <entry>XtRWindow</entry>
+    </row>
+    <row>
+      <entry>XtNwmTimeout</entry>
+      <entry>XtCWmTimeout</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNurgency</entry>
+      <entry>XtCUrgency</entry>
+      <entry>XtRBoolean</entry>
+    </row>
+    <row>
+      <entry>_</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The class resource list for
+VendorShell
+is implementation-defined.
+</para>
+
+<para>
+The resource names, classes, and representation types that are specified in the
+<function>transient\%ShellClassRec</function>
+resource list are:
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Name</entry>
+      <entry>Class</entry>
+      <entry>Representation</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>XtNtransientFor</entry>
+      <entry>XtCTransientFor</entry>
+      <entry>XtRWidget</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The resource names, classes, and representation types that are specified in the
+<function>topLevelShellClassRec</function>
+resource list are:
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Name</entry>
+      <entry>Class</entry>
+      <entry>Representation</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>XtNiconName</entry>
+      <entry>XtCIconName</entry>
+      <entry>XtRString</entry>
+    </row>
+    <row>
+      <entry>XtNiconNameEncoding</entry>
+      <entry>XtCIconNameEncoding</entry>
+      <entry>XtRAtom</entry>
+    </row>
+    <row>
+      <entry>XtNiconic</entry>
+      <entry>XtCIconic</entry>
+      <entry>XtRBoolean</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The resource names, classes, and representation types that are specified in the
+<function>application\%ShellClassRec</function>
+resource list are:
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Name</entry>
+      <entry>Class</entry>
+      <entry>Representation</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>XtNargc</entry>
+      <entry>XtCArgc</entry>
+      <entry>XtRInt</entry>
+    </row>
+    <row>
+      <entry>XtNargv</entry>
+      <entry>XtCArgv</entry>
+      <entry>XtRStringArray</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The resource names, classes, and representation types that are specified
+in the
+<function>sessionShellClassRec</function>
+resource list are:
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Name</entry>
+      <entry>Class</entry>
+      <entry>Representation</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>XtNcancelCallback</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNcloneCommand</entry>
+      <entry>XtCCloneCommand</entry>
+      <entry>XtRCommandArgArray</entry>
+    </row>
+    <row>
+      <entry>XtNconnection</entry>
+      <entry>XtCConnection</entry>
+      <entry>XtRSmcConn</entry>
+    </row>
+    <row>
+      <entry>XtNcurrentDirectory</entry>
+      <entry>XtCCurrentDirectory</entry>
+      <entry>XtRDirectoryString</entry>
+    </row>
+    <row>
+      <entry>XtNdieCallback</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNdiscardCommand</entry>
+      <entry>XtCDiscardCommand</entry>
+      <entry>XtRCommandArgArray</entry>
+    </row>
+    <row>
+      <entry>XtNenvironment</entry>
+      <entry>XtCEnvironment</entry>
+      <entry>XtREnvironmentArray</entry>
+    </row>
+    <row>
+      <entry>XtNerrorCallback</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNinteractCallback</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNjoinSession</entry>
+      <entry>XtCJoinSession</entry>
+      <entry>XtRBoolean</entry>
+    </row>
+    <row>
+      <entry>XtNprogramPath</entry>
+      <entry>XtCProgramPath</entry>
+      <entry>XtRString</entry>
+    </row>
+    <row>
+      <entry>XtNresignCommand</entry>
+      <entry>XtCResignCommand</entry>
+      <entry>XtRCommandArgArray</entry>
+    </row>
+    <row>
+      <entry>XtNrestartCommand</entry>
+      <entry>XtCRestartCommand</entry>
+      <entry>XtRCommandArgArray</entry>
+    </row>
+    <row>
+      <entry>XtNrestartStyle</entry>
+      <entry>XtCRestartStyle</entry>
+      <entry>XtRRestartStyle</entry>
+    </row>
+    <row>
+      <entry>XtNsaveCallback</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNsaveCompleteCallback</entry>
+      <entry>XtCCallback</entry>
+      <entry>XtRCallback</entry>
+    </row>
+    <row>
+      <entry>XtNsessionID</entry>
+      <entry>XtCSessionID</entry>
+      <entry>XtRString</entry>
+    </row>
+    <row>
+      <entry>XtNshutdownCommand</entry>
+      <entry>XtCShutdownCommand</entry>
+      <entry>XtRCommandArgArray</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+</sect2>
+
+<sect2 id="ShellPart_Default_Values">
+<title>ShellPart Default Values</title>
+<para>
+The default values for fields common to all classes of public shells
+(filled in by the
+Shell
+resource lists and the
+Shell
+initialize procedures) are:
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Field</entry>
+      <entry>Default Value</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>geometry</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>create_popup_child_proc</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>grab_kind</entry>
+      <entry>(none)</entry>
+    </row>
+    <row>
+      <entry>spring_loaded</entry>
+      <entry>(none)</entry>
+    </row>
+    <row>
+      <entry>popped_up</entry>
+      <entry><function>False</function></entry>
+    </row>
+    <row>
+      <entry>allow_shell_resize</entry>
+      <entry><function>False</function></entry>
+    </row>
+    <row>
+      <entry>client_specified</entry>
+      <entry>(internal)</entry>
+    </row>
+    <row>
+      <entry>save_under</entry>
+      <entry><function>True</function>
+      for OverrideShell and TransientShell,
+      <emphasis role='strong'>False</emphasis>
+      otherwise</entry>
+    </row>
+    <row>
+      <entry>override_redirect</entry>
+      <entry><function>True</function>
+      for OverrideShell,
+      <function>False</function>
+      otherwise</entry>
+    </row>
+    <row>
+      <entry>popup_callback</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>popdown_callback</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>visual</entry>
+      <entry><function>CopyFromParent</function></entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The <emphasis remap='I'>geometry</emphasis> field specifies the size and position
+and is usually given only on a command line or in a defaults file.
+If the <emphasis remap='I'>geometry</emphasis> field is non-NULL when
+a widget of class WMShell
+is realized, the geometry specification is parsed using
+<function>XWMGeometry</function>
+with a default geometry
+string constructed from the values of <emphasis remap='I'>x</emphasis>, <emphasis remap='I'>y</emphasis>, <emphasis remap='I'>width</emphasis>,
+<emphasis remap='I'>height</emphasis>, <emphasis remap='I'>width_inc</emphasis>,
+and <emphasis remap='I'>height_inc</emphasis> and the size and position flags in the window manager
+size hints are set.  If the geometry specifies an x or y position,
+then
+<function>USPosition</function>
+is set.  If the geometry specifies a width or height, then
+<function>USSize</function>
+is set.  Any fields in the geometry specification
+override the corresponding values in the
+Core <emphasis remap='I'>x</emphasis>, <emphasis remap='I'>y</emphasis>, <emphasis remap='I'>width</emphasis>, and <emphasis remap='I'>height</emphasis> fields.
+If <emphasis remap='I'>geometry</emphasis> is NULL or contains only a partial specification, then the
+Core <emphasis remap='I'>x</emphasis>, <emphasis remap='I'>y</emphasis>, <emphasis remap='I'>width</emphasis>, and <emphasis remap='I'>height</emphasis> fields are used and
+<function>PPosition</function>
+and
+<function>PSize</function>
+are set as appropriate.
+The geometry string is not copied by any of the Intrinsics
+Shell classes; a client specifying the string in an arglist
+or varargs list must ensure
+that the value remains valid until the shell widget is realized.
+For further information on the geometry string, see
+<olink targetdoc='libX11' targetptr='Parsing_the_Window_Geometry' />
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+</para>
+
+<para>
+The <emphasis remap='I'>create_popup_child_proc</emphasis> procedure is called by the
+<xref linkend='XtPopup' xrefstyle='select: title'/>
+procedure and may remain NULL.
+The <emphasis remap='I'>grab_kind</emphasis>, <emphasis remap='I'>spring_loaded</emphasis>,
+and <emphasis remap='I'>popped_up</emphasis> fields maintain widget
+state information as described under
+<xref linkend='XtPopup' xrefstyle='select: title'/>,
+<xref linkend='XtMenuPopup' xrefstyle='select: title'/>,
+<xref linkend='XtPopdown' xrefstyle='select: title'/>,
+and
+<xref linkend='XtMenuPopdown' xrefstyle='select: title'/>.
+The <emphasis remap='I'>allow_shell_resize</emphasis> field controls whether the widget contained
+by the shell is allowed to try to resize itself.
+If allow_shell_resize is
+<function>False</function>,
+any geometry requests made by the child will always return
+<function>XtGeometryNo</function>
+without interacting with the window manager.
+Setting <emphasis remap='I'>save_under</emphasis>
+<function>True</function>
+instructs the server to attempt
+to save the contents of windows obscured by the shell when it is mapped
+and to restore those contents automatically when the shell is unmapped.
+It is useful for pop-up menus.
+Setting <emphasis remap='I'>override_redirect</emphasis>
+<function>True</function>
+determines
+whether the window manager can intercede when the shell window
+is mapped.
+For further information on override_redirect,
+see <olink targetdoc='libX11' targetptr='Window_Attributes' /> in
+<olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>
+and
+<olink targetdoc='icccm' targetptr='Pop_up_Windows' /> and
+<olink targetdoc='icccm' targetptr='Redirection_of_Operations' /> in the
+<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual</olink>.
+The pop-up and pop-down callbacks are called during
+<xref linkend='XtPopup' xrefstyle='select: title'/>
+and
+<xref linkend='XtPopdown' xrefstyle='select: title'/>.
+The default value of the <emphasis remap='I'>visual</emphasis> resource is the symbolic value
+<function>CopyFromParent</function>.
+The Intrinsics do not need to query the parent's visual type when the
+default value is used; if a client using
+<xref linkend='XtGetValues' xrefstyle='select: title'/>
+to examine the visual type receives the value
+<function>CopyFromParent</function>,
+it must then use
+<function>XGetWindowAttributes</function>
+if it needs the actual visual type.
+</para>
+
+<para>
+The default values for Shell fields in
+WMShell
+and its subclasses are:
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Field</entry>
+      <entry>Default Value</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>title</entry>
+      <entry>Icon name, if specified, otherwise the application's name</entry>
+    </row>
+    <row>
+      <entry>wm_timeout</entry>
+      <entry>Five seconds, in units of milliseconds</entry>
+    </row>
+    <row>
+      <entry>wait_for_wm</entry>
+      <entry><function>True</function></entry>
+    </row>
+    <row>
+      <entry>transient</entry>
+      <entry><function>True</function>
+      for TransientShell,
+      <function>False</function>
+      otherwise</entry>
+    </row>
+    <row>
+      <entry>urgency</entry>
+      <entry><function>False</function></entry>
+    </row>
+    <row>
+      <entry>client_leader</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>window_role</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>min_width</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>min_height</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>max_width</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>max_height</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>width_inc</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>height_inc</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>min_aspect_x</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>min_aspect_y</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>max_aspect_x</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>max_aspect_y</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>input</entry>
+      <entry><function>False</function></entry>
+    </row>
+    <row>
+      <entry>initial_state</entry>
+      <entry>Normal</entry>
+    </row>
+    <row>
+      <entry>icon_pixmap</entry>
+      <entry>None</entry>
+    </row>
+    <row>
+      <entry>icon_window</entry>
+      <entry>None</entry>
+    </row>
+    <row>
+      <entry>icon_x</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>icon_y</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>icon_mask</entry>
+      <entry>None</entry>
+    </row>
+    <row>
+      <entry>window_group</entry>
+      <entry><function>XtUnspecifiedWindow</function></entry>
+    </row>
+    <row>
+      <entry>base_width</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>base_height</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>win_gravity</entry>
+      <entry><function>XtUnspecifiedShellInt</function></entry>
+    </row>
+    <row>
+      <entry>title_encoding</entry>
+      <entry>See text</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The <emphasis remap='I'>title</emphasis> and
+<emphasis remap='I'>title_encoding</emphasis> fields are stored in the
+<emphasis role='strong'>WM_NAME</emphasis>
+property on the shell's window by the WMShell realize procedure.
+If the <emphasis remap='I'>title_encoding</emphasis> field is
+<function>None</function>,
+the <emphasis remap='I'>title</emphasis> string is assumed to be in the encoding of the current
+locale and the encoding of the
+<emphasis role='strong'>WM_NAME</emphasis>
+property is set to
+<function>XStdICCTextStyle</function>.
+If a language procedure has not been set
+the default value of <emphasis remap='I'>title_encoding</emphasis> is
+<emphasis role='strong'>XA_STRING</emphasis>, otherwise the default value is
+<function>None</function>.
+The <emphasis remap='I'>wm_timeout</emphasis> field specifies, in milliseconds,
+the amount of time a shell is to wait for
+confirmation of a geometry request to the window manager.
+If none comes back within that time,
+the shell assumes the window manager is not functioning properly
+and sets <emphasis remap='I'>wait_for_wm</emphasis> to
+<function>False</function>
+(later events may reset this value).
+When <emphasis remap='I'>wait_for_wm</emphasis> is
+<function>False</function>,
+the shell does not wait for a response, but relies on asynchronous
+notification.
+If <emphasis remap='I'>transient</emphasis> is
+<function>True</function>,
+the
+<emphasis role='strong'>WM_TRANSIENT_FOR</emphasis>
+property
+will be stored on the shell window with a value as specified below.
+The interpretation of this property is specific to the window manager
+under which the application is run; see the
+<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual</olink>
+for more details.
+</para>
+
+<para>
+The realize and set_values procedures of WMShell store the
+<emphasis role='strong'>WM_CLIENT_LEADER</emphasis>
+property on the shell window.
+When <emphasis remap='I'>client_leader</emphasis> is not NULL and the client leader widget is
+realized, the property will be created with the value of the window of the
+client leader widget.
+When <emphasis remap='I'>client_leader</emphasis> is NULL and the shell widget has a NULL parent,
+the widget's window is used as the value of the
+property.
+When <emphasis remap='I'>client_leader</emphasis> is NULL and the shell widget has a non-NULL parent,
+a search is made for the closest shell ancestor
+with a non-NULL <emphasis remap='I'>client_leader</emphasis>,
+and if none is found the shell ancestor with a NULL parent is the result.
+If the resulting widget is realized, the property is created
+with the value of the widget's window.
+</para>
+
+<para>
+When the value of <emphasis remap='I'>window_role</emphasis> is not NULL, the
+realize and set_values procedures store the
+<emphasis role='strong'>WM_WINDOW_ROLE</emphasis>
+property on the shell's window with the value of the resource.
+</para>
+
+<para>
+All other resources specify fields in the window manager hints
+and the window manager size hints.
+The realize and set_values procedures of
+WMShell
+set the corresponding flag bits in the
+hints if any of the fields contain nondefault values.  In addition, if
+a flag bit is set that refers to a field with the value
+<function>XtUnspecifiedShellInt</function>,
+the value of the field is modified as follows:
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Field</entry>
+      <entry>Replacement</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>base_width, base_height</entry>
+      <entry>0</entry>
+    </row>
+    <row>
+      <entry>width_inc, height_inc</entry>
+      <entry>1</entry>
+    </row>
+    <row>
+      <entry>max_width, max_height</entry>
+      <entry>32767</entry>
+    </row>
+    <row>
+      <entry>min_width, min_height</entry>
+      <entry>1</entry>
+    </row>
+    <row>
+      <entry>min_aspect_x, min_aspect_y</entry>
+      <entry>-1</entry>
+    </row>
+    <row>
+      <entry>max_aspect_x, max_aspect_y</entry>
+      <entry>-1</entry>
+    </row>
+    <row>
+      <entry>icon_x, icon_y</entry>
+      <entry>-1</entry>
+    </row>
+    <row>
+      <entry>win_gravity</entry>
+      <entry>Value returned by
+      <function>XWMGeometry</function>
+      if called,
+      else <function>NorthWestGravity</function></entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+If the shell widget has a non-NULL parent, then the
+realize and set_values procedures replace the value
+<function>XtUnspecifiedWindow</function>
+in the <emphasis remap='I'>window_group</emphasis> field with the window id of the root widget
+of the widget tree if the
+root widget is realized. The symbolic constant
+<function>XtUnspecifiedWindowGroup</function>
+may be used to indicate that the <emphasis remap='I'>window_group</emphasis> hint flag bit is not
+to be set.  If <emphasis remap='I'>transient</emphasis> is
+<function>True</function>,
+the shell's class is not a subclass of
+TransientShell,
+and <emphasis remap='I'>window_group</emphasis> is not
+<function>XtUnspecifiedWindowGroup</function>,
+the WMShell realize and set_values procedures then store the
+<emphasis role='strong'>WM_TRANSIENT_FOR</emphasis>
+property with the value of <emphasis remap='I'>window_group</emphasis>.
+</para>
+
+<para>
+Transient
+shells have the following additional resource:
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Field</entry>
+      <entry>Replacement</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>transient_for</entry>
+      <entry>NULL</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The realize and set_values procedures of
+TransientShell
+store the
+<emphasis role='strong'>WM_TRANSIENT_FOR</emphasis>
+property on the shell window if <emphasis remap='I'>transient</emphasis> is
+<function>True</function>.
+If <emphasis remap='I'>transient_for</emphasis> is non-NULL and the widget specified by
+<emphasis remap='I'>transient_for</emphasis> is realized, then its window is used as the value of the
+<emphasis role='strong'>WM_TRANSIENT_FOR</emphasis>
+property; otherwise, the value of <emphasis remap='I'>window_group</emphasis> is used.
+</para>
+
+<para>
+<function>TopLevel</function>
+shells have the the following additional resources:
+</para>
+
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Field</entry>
+      <entry>Default Value</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>icon_name</entry>
+      <entry>Shell widget's name</entry>
+    </row>
+    <row>
+      <entry>iconic</entry>
+      <entry><emphasis role='strong'>False</emphasis></entry>
+    </row>
+    <row>
+      <entry>icon_name_encoding</entry>
+      <entry>See text</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The <emphasis remap='I'>icon_name</emphasis>
+and <emphasis remap='I'>icon_name_encoding</emphasis> fields are stored in the
+<emphasis role='strong'>WM_ICON_NAME</emphasis>
+property on the shell's window by the TopLevelShell realize
+procedure.
+If the <emphasis remap='I'>icon_name_encoding</emphasis> field is
+<function>None</function>,
+the <emphasis remap='I'>icon_name</emphasis> string is assumed to be in the encoding of the
+current locale and the encoding of the
+<emphasis role='strong'>WM_ICON_NAME</emphasis>
+property is set to
+<function>XStdICCTextStyle</function>.
+If a language procedure has not been set,
+the default value of <emphasis remap='I'>icon_name_encoding</emphasis> is
+<emphasis role='strong'>XA_STRING</emphasis>, otherwise the default value is
+<function>None</function>.
+The <emphasis remap='I'>iconic</emphasis> field may be used by a client to request
+that the window manager iconify or deiconify the shell; the
+TopLevelShell
+set_values procedure will send the appropriate
+<emphasis role='strong'>WM_CHANGE_STATE</emphasis>
+message (as specified by the <emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis>)
+if this resource is changed from
+<function>False</function>
+to
+<function>True</function>
+and will call
+<xref linkend='XtPopup' xrefstyle='select: title'/>
+specifying <emphasis remap='I'>grab_kind</emphasis> as
+<function>XtGrabNone</function>
+if <emphasis remap='I'>iconic</emphasis> is changed from
+<function>True</function>
+to
+<function>False</function>.
+The XtNiconic resource is also an alternative way to set
+the XtNinitialState resource
+to indicate that a shell should be initially displayed as an icon; the
+TopLevelShell
+initialize procedure will set <emphasis remap='I'>initial_state</emphasis> to
+<function>IconicState</function>
+if <emphasis remap='I'>iconic</emphasis> is
+<function>True</function>.
+</para>
+
+<para>
+Application
+shells have the following additional resources:
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Field</entry>
+      <entry>Default Value</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>argc</entry>
+      <entry>0</entry>
+    </row>
+    <row>
+      <entry>argv</entry>
+      <entry>NULL</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The <emphasis remap='I'>argc</emphasis> and <emphasis remap='I'>argv</emphasis> fields are used to initialize
+the standard property
+<emphasis role='strong'>WM_COMMAND</emphasis>.  See the
+<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual</olink>
+for more information.
+</para>
+
+<para>
+The default values for the SessionShell instance fields,
+which are filled in from the resource lists and by the
+initialize procedure, are
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Field</entry>
+      <entry>Default Value</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>cancel_callbacks</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>clone_command</entry>
+      <entry>See text</entry>
+    </row>
+    <row>
+      <entry>connection</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>current_dir</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>die_callbacks</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>discard_command</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>environment</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>error_callbacks</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>interact_callbacks</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>join_session</entry>
+      <entry><emphasis role='strong'>True</emphasis></entry>
+    </row>
+    <row>
+      <entry>program_path</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>resign_command</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>restart_command</entry>
+      <entry>See text</entry>
+    </row>
+    <row>
+      <entry>restart_style</entry>
+      <entry><emphasis role='strong'>SmRestartIfRunning</emphasis></entry>
+    </row>
+    <row>
+      <entry>save_callbacks</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>save_complete_callbacks</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>session_id</entry>
+      <entry>NULL</entry>
+    </row>
+    <row>
+      <entry>shutdown_command</entry>
+      <entry>NULL</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The <emphasis remap='I'>connection</emphasis> field contains the session connection object or NULL
+if a session connection is not being managed by this widget.
+</para>
+
+<para>
+The <emphasis remap='I'>session_id</emphasis> is an identification assigned to the session
+participant by the session manager.
+The <emphasis remap='I'>session_id</emphasis> will be passed to the session
+manager as the client identifier of the previous session.
+When a connection is established with the session manager,
+the client id assigned by the session manager is stored
+in the <emphasis remap='I'>session_id</emphasis> field.
+When not NULL, the <emphasis remap='I'>session_id</emphasis> of the Session shell widget that
+is at the root of the widget tree of the client leader widget will be
+used to create the
+<emphasis role='strong'>SM_CLIENT_ID</emphasis>
+property on the client leader's window.
+</para>
+
+<para>
+If <emphasis remap='I'>join_session</emphasis> is
+<function>False</function>,
+the widget will not attempt to establish a
+connection to the session manager at shell creation time.
+See <xref linkend='Joining_a_Session' /> and
+<xref linkend='Resigning_from_a_Session' />
+for more information on the functionality of this resource.
+</para>
+
+<para>
+The <emphasis remap='I'>restart_command</emphasis>, <emphasis remap='I'>clone_command</emphasis>, <emphasis remap='I'>discard_command</emphasis>,
+<emphasis remap='I'>resign_command</emphasis>, <emphasis remap='I'>shutdown_command</emphasis>, <emphasis remap='I'>environment</emphasis>,
+<emphasis remap='I'>current_dir</emphasis>, <emphasis remap='I'>program_path</emphasis>, and
+<emphasis remap='I'>restart_style</emphasis> fields contain standard session properties.
+</para>
+
+<para>
+When a session connection is established or newly managed by the shell,
+the shell initialize and set_values methods check the values of the
+<emphasis remap='I'>restart_command</emphasis>,
+<emphasis remap='I'>clone_command</emphasis>,
+and <emphasis remap='I'>program_path</emphasis>
+resources.  At that time, if <emphasis remap='I'>restart_command</emphasis> is NULL, the value
+of the <emphasis remap='I'>argv</emphasis> resource will be copied to <emphasis remap='I'>restart_command</emphasis>.
+Whether or not <emphasis remap='I'>restart_command</emphasis> was NULL,
+if "<emphasis>-xtsessionID</emphasis>" "<emphasis>&lt;session id&gt;</emphasis>" does not
+already appear in the <emphasis remap='I'>restart_command</emphasis>, it will be added by the
+initialize and set_values methods at the beginning of the command arguments;
+if the "<emphasis>-xtsessionID</emphasis>" argument already appears with an incorrect
+<emphasis>session id</emphasis> in the following argument, that argument
+will be replaced with the current <emphasis>session id</emphasis>.
+</para>
+
+<para>
+After this, the shell initialize and set_values procedures check the
+<emphasis remap='I'>clone_command</emphasis>.  If <emphasis remap='I'>clone_command</emphasis> is NULL,
+<emphasis remap='I'>restart_command</emphasis> will be copied to <emphasis remap='I'>clone_command</emphasis>,
+except the "<emphasis>-xtsessionID</emphasis>" and following argument will not be copied.
+</para>
+
+<para>
+Finally, the shell initialize and set_values procedures check the
+<emphasis remap='I'>program_path</emphasis>.  If <emphasis remap='I'>program_path</emphasis> is NULL, the
+first element of <emphasis remap='I'>restart_command</emphasis> is copied to <emphasis remap='I'>program_path</emphasis>.
+</para>
+
+<para>
+The possible values of <emphasis remap='I'>restart_style</emphasis> are
+<function>SmRestartIfRunning</function>,
+<function>SmRestartAnyway</function>,
+<function>SmRestartImmediately</function>,
+and
+<function>SmRestartNever</function>.
+A resource converter is registered for this resource;
+for the strings that it recognizes,
+see <xref linkend='Predefined_Resource_Converters' />.
+</para>
+
+<para>
+The resource type EnvironmentArray is a NULL-terminated array of
+pointers to strings;
+each string has the format "name=value".
+The `=' character may not appear in the name,
+and the string is terminated by a null character.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Session_Participation">
+<title>Session Participation</title>
+<para>
+Applications can participate in a user's session, exchanging messages
+with the session manager as described in the
+<emphasis>X Session Management Protocol</emphasis> and the
+<emphasis remap='I'>X Session Management Library</emphasis>.
+</para>
+
+<para>
+When a widget of
+<function>sessionShellWidgetClass</function>
+or a subclass is created, the widget provides support for the application
+as a session participant and continues to provide support until the
+widget is destroyed.
+</para>
+
+<sect2 id="Joining_a_Session">
+<title>Joining a Session</title>
+<para>
+When a Session shell is created,
+if <emphasis remap='I'>connection</emphasis> is NULL,
+and if <emphasis remap='I'>join_session</emphasis> is
+<function>True</function>,
+and if <emphasis remap='I'>argv</emphasis> or <emphasis remap='I'>restart_command</emphasis> is not NULL,
+and if in POSIX environments the
+<emphasis role='strong'>SESSION_MANAGER</emphasis>
+environment variable is defined,
+the shell will attempt to establish a new connection with the session manager.
+</para>
+
+<para>
+To transfer management of an existing session connection from an
+application to the shell at widget creation time, pass the existing
+session connection ID as the <emphasis remap='I'>connection</emphasis> resource value
+when creating the Session shell,
+and if the other creation-time conditions on session participation are met,
+the widget will maintain the connection with the session manager.
+The application must ensure that only one
+Session shell manages the connection.
+</para>
+
+<para>
+In the Session shell set_values procedure,
+if <emphasis remap='I'>join_session</emphasis> changes from
+<function>False</function>
+to
+<function>True</function>
+and <emphasis remap='I'>connection</emphasis> is NULL and when in POSIX environments the
+<emphasis role='strong'>SESSION_MANAGER</emphasis>
+environment variable is defined,
+the shell will attempt to open a connection to the session manager.
+If <emphasis remap='I'>connection</emphasis> changes from NULL to non-NULL, the
+Session shell
+will take over management of that session connection and will set
+<emphasis remap='I'>join_session</emphasis> to
+<function>True</function>.
+If <emphasis remap='I'>join_session</emphasis> changes from
+<function>False</function>
+to
+<function>True</function>
+and <emphasis remap='I'>connection</emphasis> is not NULL, the
+Session shell will take over management of the session connection.
+</para>
+
+<para>
+When a successful connection has been established, <emphasis remap='I'>connection</emphasis>
+contains the session connection ID for the session participant.
+When the shell begins to manage the connection, it will call
+<xref linkend='XtAppAddInput' xrefstyle='select: title'/>
+to register the handler which watches for protocol messages
+from the session manager.
+When the attempt to connect fails, a warning message is issued
+and <emphasis remap='I'>connection</emphasis> is set to NULL.
+</para>
+
+<para>
+While the connection is being managed, if a
+<function>SaveYourself</function>,
+<function>SaveYourselfPhase2</function>,
+<function>Interact</function>,
+<function>ShutdownCancelled</function>,
+<function>SaveComplete</function>,
+or
+<function>Die</function>
+message is received from the session manager, the Session shell will
+call out to application callback procedures registered
+on the respective callback list of the Session shell and will
+send
+<function>SaveYourselfPhase2Request</function>,
+<function>InteractRequest</function>,
+<function>InteractDone</function>,
+<function>SaveYourselfDone</function>,
+and
+<function>ConnectionClosed</function>
+messages as appropriate.
+Initially, all of the client's session properties are undefined.
+When any of the session property resource values are defined or change,
+the Session shell initialize and set_values procedures
+will update the client's session property value by a
+<function>SetProperties</function>
+or a
+<function>DeleteProperties</function>
+message, as appropriate.
+The session ProcessID and UserID properties are always set by the shell
+when it is possible to determine the value of these properties.
+</para>
+</sect2>
+
+<sect2 id="Saving_Application_State">
+<title>Saving Application State</title>
+<para>
+The session manager instigates an application checkpoint by sending a
+<function>SaveYourself</function>
+request.
+Applications are responsible for saving their state in response to the
+request.
+</para>
+
+<para>
+When the
+<function>SaveYourself</function>
+request arrives, the procedures registered on the
+Session shell's save callback list are called.
+If the application does not register any save callback procedures on
+the save callback list, the shell will report to the session manager
+that the application failed to save its state.
+Each procedure on the save callback list receives a token
+in the <emphasis remap='I'>call_data</emphasis> parameter.
+</para>
+
+<para>
+The checkpoint token in the <emphasis remap='I'>call_data</emphasis> parameter is of type
+<function>XtCheckpointToken</function>.
+</para>
+
+<literallayout >
+typedef struct {
+	int	save_type;
+	int	interact_style;
+	Boolean	shutdown;
+	Boolean	fast;
+	Boolean	cancel_shutdown
+	int	phase;
+	int	interact_dialog_type;	/* return */
+	Boolean	request_cancel;	/* return */
+	Boolean	request_next_phase;	/* return */
+	Boolean	save_success;	/* return */
+} XtCheckpointTokenRec, *XtCheckpointToken;
+</literallayout>
+
+<para>
+The <emphasis remap='I'>save_type</emphasis>, <emphasis remap='I'>interact_style</emphasis>, <emphasis remap='I'>shutdown</emphasis>, and <emphasis remap='I'>fast</emphasis>
+fields of the token contain the parameters of the
+<function>SaveYourself</function>
+message.
+The possible values of <emphasis remap='I'>save_type</emphasis> are
+<function>SmSaveLocal</function>,
+<function>SmSaveGlobal</function>,
+and
+<function>SmSaveBoth</function>;
+these indicate the type of information to be saved.
+The possible values of <emphasis remap='I'>interact_style</emphasis> are
+<function>SmInteractStyleNone</function>,
+<function>SmInteractStyleErrors</function>,
+and
+<function>SmInteractStyleAny</function>;
+these indicate whether user interaction would be permitted
+and, if so, what kind of interaction.
+If <emphasis remap='I'>shutdown</emphasis> is
+<function>True</function>,
+the checkpoint is being performed in preparation for the end of the session.
+If <emphasis remap='I'>fast</emphasis> is
+<function>True</function>,
+the client should perform the checkpoint as quickly as possible.
+If <emphasis remap='I'>cancel_shutdown</emphasis> is
+<function>True</function>,
+a
+<function>ShutdownCancelled</function>
+message has been received for the current save operation. 
+(See <xref linkend='Resigning_from_a_Session' />.)
+The <emphasis remap='I'>phase</emphasis> is used by manager clients, such as a window manager,
+to distinguish between the first and second phase of a save operation.
+The <emphasis remap='I'>phase</emphasis> will be either 1 or 2.
+The remaining fields in the checkpoint token structure are provided for
+the application to communicate with the shell.
+</para>
+
+<para>
+Upon entry to the first application save callback procedure, the return
+fields in the token have the following initial values:
+<emphasis remap='I'>interact_dialog_type</emphasis> is
+<function>SmDialogNormal</function>;
+<emphasis remap='I'>request_cancel</emphasis> is
+<function>False</function>;
+<emphasis remap='I'>request_next_phase</emphasis> is
+<function>False</function>;
+and <emphasis remap='I'>save_success</emphasis> is
+<function>True</function>.
+When a token is returned with any of the four return fields containing
+a noninitial value, and when the field is applicable, subsequent tokens
+passed to the application during the current save operation
+will always contain the noninitial value.
+</para>
+
+<para>
+The purpose of the token's <emphasis remap='I'>save_success</emphasis> field is to
+indicate the outcome of the entire operation to the
+session manager and ultimately, to the user.
+Returning
+<function>False</function>
+indicates some portion of the application state
+could not be successfully saved.  If any token is returned
+to the shell with <emphasis remap='I'>save_success</emphasis>
+<function>False</function>,
+tokens subsequently received
+by the application for the current save operation will show
+<emphasis remap='I'>save_success</emphasis> as
+<function>False</function>.
+When the shell sends the final status of the checkpoint to the
+session manager, it will indicate failure to save application state
+if any token was returned with <emphasis remap='I'>save_success</emphasis>
+<function>False</function>.
+</para>
+
+<para>
+Session participants that manage and save the state of other clients
+should structure their save or interact callbacks to
+set <emphasis remap='I'>request_next_phase</emphasis> to
+<function>True</function>
+when phase is 1, which will cause the shell to send the
+<function>SaveYourselfPhase2Request</function>
+when the first phase is complete.  When the
+<function>SaveYourselfPhase2</function>
+message is received, the shell will invoke the save callbacks a
+second time with <emphasis remap='I'>phase</emphasis> equal to 2.
+Manager clients should save the state of other clients
+when the callbacks are invoked the second time and <emphasis remap='I'>phase</emphasis> equal to 2.
+</para>
+
+<para>
+The application may request additional tokens while a checkpoint is under way,
+and these additional tokens must be returned by an explicit call.
+</para>
+
+<para>
+To request an additional token for a save callback response that has a
+deferred outcome, use
+<xref linkend='XtSessionGetToken' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSessionGetToken'>
+<funcprototype>
+<funcdef>XtCheckpointToken <function>XtSessionGetToken</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the Session shell widget which manages session participation.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<para>
+The
+<xref linkend='XtSessionGetToken' xrefstyle='select: title'/>
+function will return NULL if no checkpoint operation is currently under way.
+</para>
+
+<para>
+To indicate the completion of checkpoint processing including user
+interaction, the application must signal the Session shell
+by returning all tokens.
+(See <xref linkend='Interacting_with_the_User_during_a_Checkpoint' /> and 
+<xref linkend='Completing_a_Save' />).
+To return a token, use
+<xref linkend='XtSessionReturnToken' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSessionReturnToken'>
+<funcprototype>
+<funcdef>void <function>XtSessionReturnToken</function></funcdef>
+   <paramdef>XtCheckpointToken <parameter>token</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>token</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a token that was received as the <emphasis remap='I'>call_data</emphasis> by a procedure
+on the interact callback list or a token that was received by a call to
+<xref linkend='XtSessionGetToken' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<para>
+Tokens passed as <emphasis remap='I'>call_data</emphasis> to save callbacks are implicitly
+returned when the save callback procedure returns.
+A save callback procedure should not call
+<xref linkend='XtSessionReturnToken' xrefstyle='select: title'/>
+on the token passed in its <emphasis remap='I'>call_data</emphasis>.
+</para>
+
+<sect3 id="Requesting_Interaction">
+<title>Requesting Interaction</title>
+<para>
+When the token <emphasis remap='I'>interact_style</emphasis> allows user interaction,
+the application may
+interact with the user during the checkpoint, but must wait for permission
+to interact.
+Applications request permission to interact with the user during the
+checkpointing operation by registering a procedure on the Session
+shell's interact callback list.  When all save callback procedures have
+returned, and each time a token that was granted by a call to
+<xref linkend='XtSessionGetToken' xrefstyle='select: title'/>
+is returned, the Session shell examines the interact callback list.
+If interaction is permitted and the interact callback list is not empty,
+the shell will send an
+<function>InteractRequest</function>
+to the session manager when an interact request is not already outstanding
+for the application.
+</para>
+
+<para>
+The type of interaction dialog that will be requested is specified by
+the <emphasis remap='I'>interact_dialog_type</emphasis> field in the checkpoint token.
+The possible values for <emphasis remap='I'>interact_dialog_type</emphasis> are
+<function>SmDialogError</function>
+and
+<function>SmDialogNormal</function>.
+If a token is returned with <emphasis remap='I'>interact_dialog_type</emphasis> containing
+<function>SmDialogError</function>,
+the interact request and any subsequent interact requests will be for
+an error dialog; otherwise, the request will be for a normal dialog with
+the user.
+</para>
+
+<para>
+When a token is returned with <emphasis remap='I'>save_success</emphasis>
+<function>False</function>
+or <emphasis remap='I'>interact_dialog_type</emphasis>
+<function>SmDialogError</function>,
+tokens subsequently passed to callbacks during the same active
+<function>SaveYourself</function>
+response will reflect these changed values, indicating that
+an error condition has occurred during the checkpoint.
+</para>
+
+<para>
+The <emphasis remap='I'>request_cancel</emphasis> field is a return value for interact callbacks only.
+Upon return from a procedure on the save callback list, the value
+of the token's <emphasis remap='I'>request_cancel</emphasis> field is not examined by the shell.
+This is also true of tokens received through a call to
+<xref linkend='XtSessionGetToken' xrefstyle='select: title'/>.
+</para>
+</sect3>
+
+<sect3 id="Interacting_with_the_User_during_a_Checkpoint">
+<title>Interacting with the User during a Checkpoint</title>
+<para>
+When the session manager grants the application's request for user interaction,
+the Session shell receives an
+<function>Interact</function>
+message.
+The procedures registered on the interact callback list are executed,
+but not as if executing a typical callback list.
+These procedures are individually executed in
+sequence, with a checkpoint token functioning as the sequencing mechanism.
+Each step in the sequence begins by removing a procedure
+from the interact callback list
+and executing it with a token passed in the <emphasis remap='I'>call_data</emphasis>.
+The interact callback will typically pop up a dialog box and return.
+When the user interaction and associated application checkpointing has
+completed, the application must return the token by calling
+<xref linkend='XtSessionReturnToken' xrefstyle='select: title'/>.
+Returning the token completes the current step and triggers the next step
+in the sequence.
+</para>
+
+<para>
+During interaction the client may request cancellation of a shutdown.
+When a token passed as <emphasis remap='I'>call_data</emphasis> to an interact procedure is returned,
+if <emphasis remap='I'>shutdown</emphasis> is
+<function>True</function>
+and <emphasis remap='I'>cancel_shutdown</emphasis> is
+<function>False</function>,
+<emphasis remap='I'>request_cancel</emphasis> indicates whether the
+application requests that the pending shutdown be cancelled.
+If <emphasis remap='I'>request_cancel</emphasis> is
+<function>True</function>,
+the field will also be
+<function>True</function>
+in any tokens subsequently granted during the checkpoint operation.
+When a token is returned requesting cancellation of
+the session shutdown, pending interact procedures will still be
+called by the Session shell.
+When all interact procedures have been removed from the interact callback
+list, executed, and the final interact token returned to the shell, an
+<function>InteractDone</function>
+message is sent to the session manager, indicating whether
+a pending session shutdown is requested to be cancelled.
+</para>
+</sect3>
+
+<sect3 id="Responding_to_a_Shutdown_Cancellation">
+<title>Responding to a Shutdown Cancellation</title>
+<para>
+Callbacks registered on the cancel callback list are invoked when the
+Session shell processes a
+<function>ShutdownCancelled</function>
+message from the session manager.  This may occur during the
+processing of save callbacks, while waiting for interact permission,
+during user interaction, or after the save operation is complete and
+the application is expecting a
+<function>SaveComplete</function>
+or a
+<function>Die</function>
+message.
+The <emphasis remap='I'>call_data</emphasis> for these callbacks is NULL.
+</para>
+
+<para>
+When the shell notices that a pending shutdown has been cancelled,
+the token <emphasis remap='I'>cancel_shutdown</emphasis> field will be
+<function>True</function>
+in tokens subsequently given to the application.
+</para>
+
+<para>
+Receiving notice of a shutdown cancellation does not cancel the
+pending execution of save callbacks or interact callbacks.
+After the cancel callbacks execute, if <emphasis remap='I'>interact_style</emphasis> is not
+<function>SmInteractStyleNone</function>
+and the interact list is not empty,
+the procedures on the interact callback list will be executed
+and passed a token with <emphasis remap='I'>interact_style</emphasis>
+<function>SmInteractStyleNone</function>.
+The application should not interact with the user, and the Session shell
+will not send an
+<function>InteractDone</function>
+message.
+</para>
+</sect3>
+
+<sect3 id="Completing_a_Save">
+<title>Completing a Save</title>
+<para>
+When there is no user interaction, the shell regards the application
+as having finished saving state when all callback procedures
+on the save callback list have returned, and any additional tokens
+passed out by
+<xref linkend='XtSessionGetToken' xrefstyle='select: title'/>
+have been returned by corresponding calls to
+<xref linkend='XtSessionReturnToken' xrefstyle='select: title'/>.
+If the save operation involved user interaction,
+the above completion conditions apply, and in addition, all requests for
+interaction have been granted or cancelled,
+and all tokens passed to interact callbacks have been returned
+through calls to
+<xref linkend='XtSessionReturnToken' xrefstyle='select: title'/>.
+If the save operation involved a manager client that requested the
+second phase, the above conditions apply to both the first and second
+phase of the save operation.
+</para>
+
+<para>
+When the application has finished saving state,
+the Session shell will report the result to the session manager by
+sending the
+<function>SaveYourselfDone</function>
+message.
+If the session is continuing, the shell will receive the
+<function>SaveComplete</function>
+message when all applications have completed saving state.
+This message indicates that applications may again allow changes
+to their state.  The shell will execute the save_complete callbacks.
+The <emphasis remap='I'>call_data</emphasis> for these callbacks is NULL.
+</para>
+</sect3>
+</sect2>
+
+<sect2 id="Responding_to_a_Shutdown">
+<title>Responding to a Shutdown</title>
+<para>
+Callbacks registered on the die callback list are invoked when the
+session manager sends a
+<function>Die</function>
+message.
+The callbacks on this list should do whatever is appropriate to quit
+the application.
+Before executing procedures on the die callback list,
+the Session shell will close the connection to the session manager
+and will remove the handler that watches for protocol messages.
+The <emphasis remap='I'>call_data</emphasis> for these callbacks is NULL.
+</para>
+</sect2>
+
+<sect2 id="Resigning_from_a_Session">
+<title>Resigning from a Session</title>
+<para>
+When the Session shell widget is destroyed, the destroy method will
+close the connection to the session manager by sending a
+<function>ConnectionClosed</function>
+protocol message and will remove the input callback
+that was watching for session protocol messages.
+</para>
+
+<para>
+When
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+is used to set <emphasis remap='I'>join_session</emphasis> to
+<function>False</function>,
+the set_values method of the Session shell will close the
+connection to the session manager if one exists by sending a
+<function>ConnectionClosed</function>
+message, and <emphasis remap='I'>connection</emphasis> will be set to NULL.
+</para>
+
+<para>
+Applications that exit in response to user actions and that do not
+wait for phase 2 destroy to complete on
+the Session shell should set <emphasis remap='I'>join_session</emphasis> to
+<function>False</function>
+before exiting.
+</para>
+
+<para>
+When
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+is used to set <emphasis remap='I'>connection</emphasis> to NULL,
+the Session shell will stop managing the connection, if one exists.
+However, that session connection will not be closed.
+</para>
+
+<para>
+Applications that wish to ensure continuation of a session connection
+beyond the destruction of the shell should first retrieve the
+<emphasis remap='I'>connection</emphasis> resource value,
+then set the <emphasis remap='I'>connection</emphasis> resource to NULL,
+and then they may safely destroy the widget without losing control
+of the session connection.
+</para>
+
+<para>
+The error callback list will be called if an unrecoverable
+communications error occurs while the shell is managing the connection.
+The shell will close the connection, set <emphasis remap='I'>connection</emphasis> to NULL,
+remove the input callback, and
+call the procedures registered on the error callback list.
+The <emphasis remap='I'>call_data</emphasis> for these callbacks is NULL.
+</para>
+</sect2>
+</sect1>
+</chapter>

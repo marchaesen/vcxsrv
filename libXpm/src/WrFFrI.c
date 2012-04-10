@@ -51,7 +51,7 @@
 #endif
 
 /* MS Windows define a function called WriteFile @#%#&!!! */
-LFUNC(xpmWriteFile, int, (FILE *file, XpmImage *image, char *name,
+LFUNC(xpmWriteFile, int, (FILE *file, XpmImage *image, const char *name,
 			  XpmInfo *info));
 
 LFUNC(WriteColors, void, (FILE *file, XpmColor *colors, unsigned int ncolors));
@@ -104,7 +104,8 @@ XpmWriteFileFromXpmImage(
     XpmInfo	*info)
 {
     xpmData mdata;
-    char *name, *dot, *s, new_name[BUFSIZ] = {0};
+    const char *name;
+    char *dot, *s, new_name[BUFSIZ] = {0};
     int ErrorStatus;
 
     /* open file to write */
@@ -143,7 +144,7 @@ XpmWriteFileFromXpmImage(
 		name = new_name;
 	    }
 	    /* change '-' to '_' */
-	    s = name;
+	    s = new_name;
 	    while ((dot = strchr(s, '-'))) {
 		*dot = '_';
 		s = dot;
@@ -165,7 +166,7 @@ static int
 xpmWriteFile(
     FILE	*file,
     XpmImage	*image,
-    char	*name,
+    const char	*name,
     XpmInfo	*info)
 {
     /* calculation variables */
@@ -256,8 +257,8 @@ WritePixels(
     unsigned int x, y, h;
 
     h = height - 1;
-    if (cpp != 0 && width >= (UINT_MAX - 3)/cpp) 
-	return XpmNoMemory;    
+    if (cpp != 0 && width >= (UINT_MAX - 3)/cpp)
+	return XpmNoMemory;
     p = buf = (char *) XpmMalloc(width * cpp + 3);
     if (!buf)
 	return (XpmNoMemory);

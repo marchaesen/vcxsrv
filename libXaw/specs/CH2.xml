@@ -1,5 +1,5 @@
 <chapter><title>Using Widgets</title>
-<sect1 id="using_widgets">
+<sect1 id='Using_Widgets'>
 <title>Using Widgets</title>
 <para>
 Widgets serve as the primary tools for building a user interface or
@@ -35,7 +35,7 @@ description of the programming interface is provided in the document
 If it is desirable that the application take advantage of
 internationalization (i18n), you must establish locale with
 <function>XtSetLanguageProc</function>
-before <function>XtDisplayInitialize</function> or <function>XtAppInitialize</function>
+before <function>XtDisplayInitialize</function> or <xref linkend='XtAppInitialize' xrefstyle='select: title'/>
 is called.  For full details, please refer to the document
 <emphasis remap='I'>X Toolkit Intrinsics - C Language Interface</emphasis>, section 2.2. However, the following simplest-case
 call is sufficient in many or most applications.
@@ -69,7 +69,7 @@ of programs in the default "C" locale.
 <!-- .XE -->
 You must call a toolkit initialization function before invoking any
 other toolkit routines (besides locale setting, above).
-<function>XtAppInitialize</function>
+<xref linkend='XtAppInitialize' xrefstyle='select: title'/>
 opens the X server connection, parses the command line,
 and creates an initial widget that will serve as the root of
 a tree of widgets created by this application.
@@ -77,7 +77,7 @@ a tree of widgets created by this application.
 <!-- .IN "toolkit initialization" "" "@DEF@" -->
 <!-- .IN "XtAppInitialize" "" "@DEF@" -->
 <!-- .IN "fallback resources" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XtAppInitialize'>
 <funcprototype>
   <funcdef>Widget<function> XtAppInitialize</function></funcdef>
   <paramdef>XtAppContext<parameter> app_context_return</parameter></paramdef>
@@ -126,7 +126,7 @@ first letter of the application name. For example, the application named
 Specifies how to parse the command line for any application-specific
 resources.
 The options argument is passed as a parameter to
-<function>XrmParseCommand</function> . 
+<olink targetdoc='libX11' targetptr='XrmParseCommand'><function>XrmParseCommand</function></olink>.
 For further information,
 see <emphasis remap='I'>Xlib - C Language Interface</emphasis>.
       </para>
@@ -220,10 +220,10 @@ Creating a widget is a three-step process.  First, the widget instance
 is allocated, and various instance-specific attributes are set by
 using <function>XtCreateWidget</function>.  Second, the widget's parent is informed
 of the new child by using <function>XtManageChild</function>.  Finally, X windows are
-created for the parent and all its children by using <function>XtRealizeWidget</function>
+created for the parent and all its children by using <xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
 and specifying the top-most widget. The first two steps can be
-combined by using <function>XtCreateManagedWidget</function>.  In addition,
-<function>XtRealizeWidget</function> is automatically called when the child becomes
+combined by using <xref linkend='XtCreateManagedWidget' xrefstyle='select: title'/>.  In addition,
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/> is automatically called when the child becomes
 managed if the parent is already realized.
 </para>
 <para>
@@ -231,7 +231,7 @@ managed if the parent is already realized.
 To allocate, initialize, and manage a widget, use
 <function>XtCreateManagedWidget .</function>
 <!-- .IN "XtCreateManagedWidget" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XtCreateManagedWidget'>
 <funcprototype>
   <funcdef>Widget<function> XtCreateManagedWidget</function></funcdef>
   <paramdef>String<parameter> name</parameter></paramdef>
@@ -659,7 +659,7 @@ directory is
 <!-- .XE -->
 <!-- .IN "realizing widgets" "" "@DEF@" -->
 The
-<function>XtRealizeWidget</function>
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
 function performs two tasks:
 </para>
 <itemizedlist>
@@ -675,7 +675,7 @@ for performance reasons.
 Creates an X window for the widget and, if it is a composite widget,
 realizes each of its managed children.
 <!-- .IN "XtRealizeWidget" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XtRealizeWidget'>
 <funcprototype>
   <funcdef>void<function> XtRealizeWidget</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -708,9 +708,9 @@ see the <emphasis remap='I'>X Toolkit Intrinsics - C Language Interface</emphasi
 Now that the application has created, managed and realized its
 widgets, it is ready to process the events that will be delivered by the
 X Server to this client.  A function call that will process the
-events is <function>XtAppMainLoop</function>.
+events is <xref linkend='XtAppMainLoop' xrefstyle='select: title'/>.
 <!-- .IN "XtAppMainLoop" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XtAppMainLoop'>
 <funcprototype>
   <funcdef>void<function> XtAppMainLoop</function></funcdef>
   <paramdef>XtAppContext<parameter> app_context</parameter></paramdef>
@@ -725,7 +725,7 @@ events is <function>XtAppMainLoop</function>.
     <listitem>
       <para>
 Specifies the application context of this application.  The value is
-normally returned by <function>XtAppInitialize</function>.
+normally returned by <xref linkend='XtAppInitialize' xrefstyle='select: title'/>.
     </para>
   </listitem>
   </varlistentry>
@@ -786,13 +786,13 @@ Set an argument value
 <!-- .LP -->
 By default,
 widget windows are mapped (made viewable) automatically by
-<function>XtRealizeWidget</function>.  This behavior can be disabled by using
-<function>XtSetMappedWhenManaged</function>, making the client responsible for calling
-<function>XtMapWidget</function> to make the widget viewable.
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>.  This behavior can be disabled by using
+<xref linkend='XtSetMappedWhenManaged' xrefstyle='select: title'/>, making the client responsible for calling
+<xref linkend='XtMapWidget' xrefstyle='select: title'/> to make the widget viewable.
 <!-- .IN "XtSetMappedWhenManaged" "" "@DEF@" -->
 <!-- .IN "XtMapWidget" "" "" -->
 <!-- .IN "XtRealizeWidget" "" "" -->
-<funcsynopsis>
+<funcsynopsis id='XtSetMappedWhenManaged'>
 <funcprototype>
   <funcdef>void<function> XtSetMappedWhenManaged</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -821,9 +821,9 @@ Specifies the new value.
 If map_when_managed is <function>True</function>, the widget is mapped automatically
 when it is realized.  If map_when_managed is <function>False</function>, the client
 must call
-<function>XtMapWidget</function>
+<xref linkend='XtMapWidget' xrefstyle='select: title'/>
 or make a second call to
-<function>XtSetMappedWhenManaged</function>
+<xref linkend='XtSetMappedWhenManaged' xrefstyle='select: title'/>
 to cause the child window to be mapped.
     </para>
   </listitem>
@@ -834,10 +834,10 @@ to cause the child window to be mapped.
 <!-- .LP -->
 <!-- .sp -->
 The definition for
-<function>XtMapWidget</function>
+<xref linkend='XtMapWidget' xrefstyle='select: title'/>
 is:
 <!-- .IN "XtMapWidget" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XtMapWidget'>
 <funcprototype>
   <funcdef>void<function> XtMapWidget</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -862,13 +862,13 @@ Specifies the widget.
 When you are creating several children in sequence for a previously
 realized common parent it is generally more efficient to construct a
 list of children as they are created (using <function>XtCreateWidget</function>) and
-then use <function>XtManageChildren</function> to request that their parent managed
+then use <xref linkend='XtManageChildren' xrefstyle='select: title'/> to request that their parent managed
 them all at once.  By managing a list of children at one time, the
 parent can avoid wasteful duplication of geometry processing and the
 associated ``screen flash''.
 <!-- .IN "XtManageChildren" "" "@DEF@" -->
 <!-- .IN "XtCreateWidget" "" "" -->
-<funcsynopsis>
+<funcsynopsis id='XtManageChildren'>
 <funcprototype>
   <funcdef>void<function> XtManageChildren</function></funcdef>
   <paramdef>WidgetList<parameter> children</parameter></paramdef>
@@ -916,9 +916,9 @@ see the <emphasis remap='I'>X Toolkit Intrinsics - C Language Interface</emphasi
 <para>
 <!-- .LP -->
 To destroy a widget instance of any type, use
-<function>XtDestroyWidget</function>
+<xref linkend='XtDestroyWidget' xrefstyle='select: title'/>
 <!-- .IN "XtDestroyWidget" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XtDestroyWidget'>
 <funcprototype>
   <funcdef>void<function> XtDestroyWidget</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -940,7 +940,7 @@ Specifies the widget.
 </para>
 <para>
 <!-- .LP -->
-<function>XtDestroyWidget</function>
+<xref linkend='XtDestroyWidget' xrefstyle='select: title'/>
 destroys the widget and recursively destroys any children that it may have,
 including the windows created by its children.
 After calling
@@ -957,7 +957,7 @@ To retrieve the current value of a resource attribute associated
 with a widget instance, use
 <function>XtGetValues .</function>
 <!-- .IN "XtGetValues" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XtGetValues'>
 <funcprototype>
   <funcdef>void<function> XtGetValues</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -1018,7 +1018,7 @@ To modify the current value of a resource attribute associated with a
 widget instance, use
 <function>XtSetValues .</function>
 <!-- .IN "XtSetValues" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XtSetValues'>
 <funcprototype>
   <funcdef>void<function> XtSetValues</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -1066,7 +1066,7 @@ Specifies the number of arguments in the argument list.
 The arguments and values that are passed will depend on the widget
 being modified.  Some widgets may not allow certain resources to be
 modified after the widget instance has been created or realized.
-No notification is given if any part of a <function>XtSetValues</function> request is
+No notification is given if any part of a <xref linkend='XtSetValues' xrefstyle='select: title'/> request is
 ignored.
 </para>
 <para>
@@ -1076,7 +1076,7 @@ For further information about these functions, see the <emphasis remap='I'>X Too
 <!-- .IN "XtSetValues" "" "" -->
 <!-- .NT -->
 The argument list entry for
-<function>XtGetValues</function>
+<xref linkend='XtGetValues' xrefstyle='select: title'/>
 specifies the address to which the caller wants the value copied.  The
 argument list entry for
 <function>XtSetValues ,</function>
@@ -1100,7 +1100,7 @@ Widgets can communicate changes in their state to their clients
 by means of a callback facility.
 The format for a client's callback handler is:
 <!-- .IN "CallbackProc" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='CallbackProc'>
 <funcprototype>
   <funcdef>void<function> CallbackProc</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -1154,7 +1154,7 @@ it passes the current position of the thumb in <emphasis remap='I'>call_data</em
 <!-- .LP -->
 Callbacks can be registered either by creating an argument containing
 the callback list described below or by using the special convenience
-routines <function>XtAddCallback</function> and <function>XtAddCallbacks</function>.  When the widget
+routines <xref linkend='XtAddCallback' xrefstyle='select: title'/> and <function>XtAddCallbacks</function>.  When the widget
 is created, a pointer to a list of callback procedure and data pairs can
 be passed in the argument list to
 <function>XtCreateWidget .</function>
@@ -1191,10 +1191,10 @@ callback when the callback list is executed.
 <para>
 <!-- .LP -->
 The second method for registering callbacks is to use
-<function>XtAddCallback</function>
+<xref linkend='XtAddCallback' xrefstyle='select: title'/>
 after the widget has been created.
 <!-- .IN "XtAddCallback" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XtAddCallback'>
 <funcprototype>
   <funcdef>void<function> XtAddCallback</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -1249,7 +1249,7 @@ Specifies the data to be passed to the callback when it is invoked.
 </para>
 <para>
 <!-- .LP -->
-<function>XtAddCallback</function>
+<xref linkend='XtAddCallback' xrefstyle='select: title'/>
 adds the specified callback to the list for the named widget.
 </para>
 <para>
@@ -1310,7 +1310,7 @@ and
   <listitem>
     <para>
 Call the
-<function>XtAppInitialize</function>
+<xref linkend='XtAppInitialize' xrefstyle='select: title'/>
 <!-- .IN "XtAppInitialize" -->
 function before invoking any other toolkit or Xlib functions.
 For further information,
@@ -1336,7 +1336,7 @@ For further information, see Section 2.9.2.2.  <!-- xref -->
   <listitem>
     <para>
 When the argument list is set up, create the widget with the
-<function>XtCreateManagedWidget</function> function.  For further information, see
+<xref linkend='XtCreateManagedWidget' xrefstyle='select: title'/> function.  For further information, see
 Section 2.2 and the <emphasis remap='I'>X Toolkit Intrinsics - C Language Interface</emphasis>.
 <!-- .IN "XtCreateManagedWidget" -->
     </para>
@@ -1346,7 +1346,7 @@ Section 2.2 and the <emphasis remap='I'>X Toolkit Intrinsics - C Language Interf
 If the widget has any callback routines, set by the
 <function>XtNcallback</function>
 argument or the
-<function>XtAddCallback</function>
+<xref linkend='XtAddCallback' xrefstyle='select: title'/>
 function, declare these routines within the application.
 <!-- .IN "XtAddCallback" -->
     </para>
@@ -1355,7 +1355,7 @@ function, declare these routines within the application.
     <para>
 After creating the initial widget hierarchy, windows must be created
 for each widget by calling
-<function>XtRealizeWidget</function>
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
 on the top level widget.
 <!-- .IN "XtRealizeWidget" -->
     </para>
@@ -1591,7 +1591,7 @@ This matches any widget in the Foo application that is named <emphasis remap='I'
 <para>
 <!-- .LP -->
 The root of all application widget trees is the widget returned by
-<function>XtAppInitialize</function>.  Even though this is actually an
+<xref linkend='XtAppInitialize' xrefstyle='select: title'/>.  Even though this is actually an
 ApplicationShell widget, the toolkit replaces its widget class with the
 class name of the application.  The name of this widget is either
 the name used to invoke the application (<function>argv[0]</function>) or the name of
@@ -1880,11 +1880,12 @@ can be used, as in the first approach, for easier code maintenance.
 The best way to understand how to use any programming library is by
 trying some simple examples.  A collection of example programs that
 introduces each of the widgets in that Athena widget set, as well as many
-important toolkit programming concepts, is available in the X11R6
+important toolkit programming concepts, is available in the X11R5 contrib
 release as distributed by the X Consortium.  It can be found in the
-distribution directory <function>contrib/examples/mit/Xaw</function>, but see your
-site administrator for the exact location of these files on your system.
-See the README file from that directory for a guide to the examples.
+directory <filename>contrib/examples/Xaw</filename> in the archive
+at <ulink url="http://www.x.org/releases/X11R5/contrib-1.tar.Z" />
+See the <filename>README</filename> file from that directory for a guide
+to the examples.
 </para>
 </sect2>
 </sect1>

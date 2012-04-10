@@ -1,4 +1,4 @@
-<chapter id="athena_widgets_and_the_intrinsics">
+<chapter id='Athena_Widgets_and_The_Intrinsics'>
 <title>Athena Widgets and The Intrinsics</title>
 <para>
 The X Toolkit is made up of two distinct pieces, the Xt Intrinsics and a
@@ -42,7 +42,7 @@ design allows for, but does not necessarily encourage, the free mixing
 of radically differing widget implementations.
 </para>
 
-<sect1 id="Introduction_to_the_tk">
+<sect1 id='Introduction_to_the_X_Toolkit'>
 <title>Introduction to the X Toolkit</title>
 <para>
 <!-- .LP -->
@@ -130,7 +130,7 @@ Format of the Widget Reference Chapters
 </para>
 <para>
 <!-- .LP -->
-In addition to the terms already defined for X programming (see 
+In addition to the terms already defined for X programming (see
 <emphasis remap='I'>Xlib - C Language Interface</emphasis>),
 the following terms are specific to the Intrinsics and Athena widget set
 and used throughout this document.
@@ -646,7 +646,7 @@ resource is changed.
     <listitem>
       <para>
 This resource is only settable at widget creation time, and may not
-be modified with <function>XtSetValues</function>.
+be modified with <xref linkend='XtSetValues' xrefstyle='select: title'/>.
       </para>
     </listitem>
   </varlistentry>
@@ -716,7 +716,7 @@ resource defaults to <function>False</function> in the Intrinsics, but is redefi
 default to <function>True</function> when an application is using the Athena widget
 set.  An application programmer may override this default and set the
 resource back to <function>False</function> if the application does not need the window
-manager to give it the input focus.  See the 
+manager to give it the input focus.  See the
 <emphasis remap='I'>X Toolkit Intrinsics - C Language Interface</emphasis> for details
 on the <emphasis remap='I'>input</emphasis> resource.
 

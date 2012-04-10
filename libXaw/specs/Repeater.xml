@@ -27,7 +27,7 @@ registered callbacks repeatedly, at an increasing rate.  The default translation
 does so for the duration the user holds down pointer button 1 while the pointer
 is on the Repeater.
 </para>
-<sect2 id="repeater_resources">
+<sect2 id='Repeater::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->

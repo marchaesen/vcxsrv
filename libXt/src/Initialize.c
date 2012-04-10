@@ -424,9 +424,9 @@ static void CombineUserDefaults(
     char *slashDotXdefaults = ".Xdefaults";
 #else
 #ifdef __MINGW32__
-    char *slashDotXdefaults = "/Xdefaults";
+    const char *slashDotXdefaults = "/Xdefaults";
 #else
-    char *slashDotXdefaults = "/.Xdefaults";
+    const char *slashDotXdefaults = "/.Xdefaults";
 #endif
 #endif
     char *dpy_defaults = XResourceManagerString(dpy);
@@ -574,9 +574,9 @@ XrmDatabase XtScreenDatabase(
 	    char *slashDotXdefaultsDash = "Xdefaults-";
 #else
 #ifdef __MINGW32__
-	    char *slashDotXdefaultsDash = "/Xdefaults-";
+	    const char *slashDotXdefaultsDash = "/Xdefaults-";
 #else
-	    char *slashDotXdefaultsDash = "/.Xdefaults-";
+	    const char *slashDotXdefaultsDash = "/.Xdefaults-";
 #endif
 #endif
 

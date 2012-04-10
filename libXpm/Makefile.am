@@ -1,7 +1,7 @@
 # Daniel Stone disowns all copyright on this file; no warranty is given as to its
 # suitability or otherwise.
 
-SUBDIRS = doc include src sxpm cxpm
+SUBDIRS = doc include man src sxpm cxpm
 
 ACLOCAL_AMFLAGS = -I m4
 

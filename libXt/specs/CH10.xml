@@ -1,0 +1,2211 @@
+<chapter id='Translation_Management'>
+<title>Translation Management</title>
+<para>
+Except under unusual circumstances,
+widgets do not hardwire the mapping of user events into widget behavior
+by using the event manager.
+Instead, they provide a default mapping of events into behavior
+that you can override.
+</para>
+
+<para>
+The translation manager provides an interface to specify and manage the
+mapping of X event sequences into widget-supplied functionality,
+for example, calling procedure <emphasis remap='I'>Abc</emphasis> when the <emphasis remap='I'>y</emphasis> key
+is pressed.
+</para>
+
+<para>
+The translation manager uses two kinds of tables to perform translations:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+The action tables, which are in the widget class structure,
+specify the mapping of externally available procedure name strings
+to the corresponding procedure implemented by the widget class.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+A translation table, which is in the widget class structure,
+specifies the mapping of event sequences to procedure name strings.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+You can override the translation table in the class structure
+for a specific widget instance by supplying a different translation table
+for the widget instance.  The resources
+XtNtranslations and XtNbaseTranslations are used to modify the class
+default translation table; see <xref linkend='Translation_Table_Management' />.
+</para>
+<sect1 id="Action_Tables">
+<title>Action Tables</title>
+<para>
+All widget class records contain an action table,
+an array of
+<function>XtActionsRec</function>
+entries.
+In addition,
+an application can register its own action tables with the translation manager
+so that the translation tables it provides to widget instances can access
+application functionality directly.
+The translation action procedure pointer is of type
+<xref linkend='XtActionProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtActionProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtActionProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XEvent *<parameter>event</parameter></paramdef>
+   <paramdef>String *<parameter>params</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_params</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that caused the action to be called.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event that caused the action to be called.
+If the action is called after a sequence of events,
+then the last event in the sequence is used.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the list of strings that were specified
+in the translation table as arguments to the action, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>params</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<literallayout >
+typedef struct _XtActionsRec {
+	String string;
+	XtActionProc proc;
+} XtActionsRec, *XtActionList;
+</literallayout>
+<para>
+The <emphasis remap='I'>string</emphasis> field is the name used in translation tables to access
+the procedure.
+The <emphasis remap='I'>proc</emphasis> field is a pointer to a procedure that implements
+the functionality.
+</para>
+
+<para>
+When the action list is specified as the
+<function>CoreClassPart</function>
+<emphasis remap='I'>actions</emphasis> field, the string pointed to by <emphasis remap='I'>string</emphasis> must be
+permanently allocated prior to or during the execution of the class
+initialization procedure and must not be subsequently deallocated.
+</para>
+
+<para>
+Action procedures should not assume that the widget in which they
+are invoked is realized; an accelerator specification can cause
+an action procedure to be called for a widget that does not yet
+have a window.  Widget writers should also note which of a widget's
+callback lists are invoked from action procedures and warn clients
+not to assume the widget is realized in those callbacks.
+</para>
+
+<para>
+For example, a Pushbutton widget has procedures to take the following actions:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Set the button to indicate it is activated.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Unset the button back to its normal mode.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Highlight the button borders.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Unhighlight the button borders.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Notify any callbacks that the button has been activated.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+The action table for the Pushbutton widget class makes these functions
+available to translation tables written for Pushbutton or any subclass.
+The string entry is the name used in translation tables.
+The procedure entry (usually spelled identically to the string)
+is the name of the C procedure that implements that function:
+</para>
+<literallayout >
+XtActionsRec actionTable[] = {
+	{"Set",	Set},
+	{"Unset",	Unset},
+	{"Highlight",	Highlight},
+	{"Unhighlight",	Unhighlight}
+	{"Notify",	Notify},
+};
+</literallayout>
+<para>
+The Intrinsics reserve all action names and parameters starting with
+the characters ``Xt'' for future standard enhancements.  Users,
+applications, and widgets should not declare action names or pass
+parameters starting with these characters except to invoke specified
+built-in Intrinsics functions.
+</para>
+<sect2 id="Action_Table_Registration">
+<title>Action Table Registration</title>
+<para>
+The <emphasis remap='I'>actions</emphasis> and <emphasis remap='I'>num_actions</emphasis> fields of
+<function>CoreClassPart</function>
+specify the actions implemented by a widget class.  These are
+automatically registered with the Intrinsics when the class is initialized
+and must be allocated in writable storage prior to Core class_part
+initialization, and never deallocated.  To save memory and optimize
+access, the Intrinsics may overwrite the storage in order to compile the
+list into an internal representation.
+</para>
+
+<para>
+To declare an action table within an application
+and register it with the translation manager, use
+<xref linkend='XtAppAddActions' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppAddActions'>
+<funcprototype>
+<funcdef>void <function>XtAppAddActions</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>XtActionList <parameter>actions</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_actions</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>actions</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the action table to register.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_actions</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in this action table.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If more than one action is registered with the same name,
+the most recently registered action is used.
+If duplicate actions exist in an action table,
+the first is used.
+The Intrinsics register an action table containing
+<xref linkend='XtMenuPopup' xrefstyle='select: title'/>
+and
+<xref linkend='XtMenuPopdown' xrefstyle='select: title'/>
+as part of
+<xref linkend='XtCreateApplicationContext' xrefstyle='select: title'/>.
+</para>
+</sect2>
+
+<sect2 id="Action_Names_to_Procedure_Translations">
+<title>Action Names to Procedure Translations</title>
+<para>
+The translation manager uses a simple algorithm to resolve the name of
+a procedure specified in a translation table into the
+actual procedure specified
+in an action table.
+When the widget
+is realized, the translation manager
+performs a search for the name in the following tables, in order:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+The widget's class and all superclass action tables, in subclass-to-superclass
+order.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The parent's class and all superclass action tables, in subclass-to-superclass
+order, then on up the ancestor tree.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The action tables registered with
+<xref linkend='XtAppAddActions' xrefstyle='select: title'/>
+and
+<xref linkend='XtAddActions' xrefstyle='select: title'/>
+from the most recently added table to the oldest table.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+As soon as it finds a name,
+the translation manager stops the search.
+If it cannot find a name,
+the translation manager generates a warning message.
+</para>
+</sect2>
+
+<sect2 id="Action_Hook_Registration">
+<title>Action Hook Registration</title>
+<para>
+An application can specify a procedure that will be called just before
+every action routine is dispatched by the translation manager.  To do
+so, the application supplies a procedure pointer of type
+<xref linkend='XtActionHookProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtActionHookProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtActionHookProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>String <parameter>action_name</parameter></paramdef>
+   <paramdef>XEvent* <parameter>event</parameter></paramdef>
+   <paramdef>String* <parameter>params</parameter></paramdef>
+   <paramdef>Cardinal* <parameter>num_params</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget whose action is about to be dispatched.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application-specific closure that was passed to
+<function>XtAppAddActionHook.</function>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>action_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the action to be dispatched.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event argument that will be passed to the action routine.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the action parameters that will be passed to the action routine.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>params</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+Action hooks should not modify any of the data pointed to by the
+arguments other than the <emphasis remap='I'>client_data</emphasis> argument.
+</para>
+
+<para>
+To add an action hook, use
+<xref linkend='XtAppAddActionHook' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppAddActionHook'>
+<funcprototype>
+<funcdef>XtActionHookId <function>XtAppAddActionHook</function></funcdef>
+   <paramdef>XtAppContext <parameter>app</parameter></paramdef>
+   <paramdef>XtActionHookProc <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the action hook procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies application-specific data to be passed to the action hook.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtAppAddActionHook' xrefstyle='select: title'/>
+adds the specified procedure to the front of a list
+maintained in the application context.  In the future, when an action
+routine is about to be invoked for any widget in this application
+context, either through the translation manager or via
+<xref linkend='XtCallActionProc' xrefstyle='select: title'/>,
+the action hook procedures will be called in reverse
+order of registration just prior to invoking the action routine.
+</para>
+
+<para>
+Action hook procedures are removed automatically and the
+<function>XtActionHookId is</function>
+destroyed when the application context in which
+they were added is destroyed.
+</para>
+
+<para>
+To remove an action hook procedure without destroying the application
+context, use
+<xref linkend='XtRemoveActionHook' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRemoveActionHook'>
+<funcprototype>
+<funcdef>void <function>XtRemoveActionHook</function></funcdef>
+   <paramdef>XtActionHookId <parameter>id</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the action hook id returned by
+<xref linkend='XtAppAddActionHook' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtRemoveActionHook' xrefstyle='select: title'/>
+removes the specified action hook procedure from
+the list in which it was registered.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Translation_Tables">
+<title>Translation Tables</title>
+<para>
+All widget instance records contain a translation table,
+which is a resource with a default value specified elsewhere in the
+class record.
+A translation table specifies what action procedures are invoked for
+an event or a sequence of events.
+A translation table
+is a string containing a list of translations from an event sequence
+into one or more action procedure calls.
+The translations are separated from one another by newline characters
+(ASCII LF).
+The complete syntax of translation tables is specified in Appendix B.
+</para>
+
+<para>
+As an example, the default behavior of Pushbutton is
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Highlight on enter window.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Unhighlight on exit window.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Invert on left button down.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Call callbacks and reinvert on left button up.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+The following illustrates Pushbutton's default translation table:
+</para>
+<literallayout >
+static String defaultTranslations =
+	"&lt;EnterWindow&gt;:	Highlight()\\n\\
+	&lt;LeaveWindow&gt;:	Unhighlight()\\n\\
+	&lt;Btn1Down&gt;:	Set()\\n\\
+	&lt;Btn1Up&gt;:	Notify() Unset()";
+</literallayout>
+<para>
+The <emphasis remap='I'>tm_table</emphasis> field of the
+<function>CoreClassPart</function>
+should be filled in at class initialization time with
+the string containing the class's default translations.
+If a class wants to inherit its superclass's translations,
+it can store the special value
+<function>XtInheritTranslations</function>
+into <emphasis remap='I'>tm_table</emphasis>.
+In Core's class part initialization procedure,
+the Intrinsics compile this translation table into an efficient internal form.
+Then, at widget creation time,
+this default translation table is
+combined with the XtNtranslations
+and XtNbaseTranslations resources; see
+<xref linkend='Translation_Table_Management' />.
+</para>
+
+<para>
+The resource conversion mechanism automatically compiles
+string translation tables that are specified in the resource database.
+If a client uses translation tables that are not retrieved via a
+resource conversion,
+it must compile them itself using
+<xref linkend='XtParseTranslationTable' xrefstyle='select: title'/>.
+</para>
+
+<para>
+The Intrinsics use the compiled form of the translation table to register the
+necessary events with the event manager.
+Widgets need do nothing other than specify the action and translation tables
+for events to be processed by the translation manager.
+</para>
+<sect2 id="Event_Sequences">
+<title>Event Sequences</title>
+<para>
+An event sequence is a comma-separated list of X event descriptions
+that describes a specific sequence of X events to map to a set of
+program actions.
+Each X event description consists of three parts:
+The X event type, a prefix consisting of the X modifier bits, and
+an event-specific suffix.
+</para>
+
+<para>
+Various abbreviations are supported to make translation tables easier
+to read.  The events must match incoming events in left-to-right order
+to trigger the action sequence.
+</para>
+</sect2>
+
+<sect2 id="Action_Sequences">
+<title>Action Sequences</title>
+<para>
+Action sequences specify what program or widget actions to take in response to
+incoming X events. An action sequence consists of space-separated
+action procedure call specifications.
+Each action procedure call consists of the name of an action procedure and a
+parenthesized list of zero or more comma-separated
+string parameters to pass to that procedure.
+The actions are invoked in left-to-right order as specified in the
+action sequence.
+</para>
+</sect2>
+
+<sect2 id="Multi_Click_Time">
+<title>Multi-Click Time</title>
+<para>
+Translation table entries may specify actions that are taken when two
+or more identical events occur consecutively within a short time
+interval, called the multi-click time.  The multi-click time value may
+be specified as an application resource with name ``multiClickTime'' and
+class ``MultiClickTime'' and may also be modified dynamically by the
+application.  The multi-click time is unique for each Display value and
+is retrieved from the resource database by
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>.
+If no value is specified, the initial value is 200 milliseconds.
+</para>
+
+<para>
+To set the multi-click time dynamically, use
+<xref linkend='XtSetMultiClickTime' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetMultiClickTime'>
+<funcprototype>
+<funcdef>void <function>XtSetMultiClickTime</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>int <parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display connection.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the multi-click time in milliseconds.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtSetMultiClickTime' xrefstyle='select: title'/>
+sets the time interval used by the translation
+manager to determine when multiple events are interpreted as a
+repeated event.  When a repeat count is specified in a translation
+entry, the interval between the timestamps in each pair of repeated
+events (e.g., between two
+<function>ButtonPress</function>
+events) must be less than the
+multi-click time in order for the translation actions to be taken.
+</para>
+
+<para>
+To read the multi-click time, use
+<xref linkend='XtGetMultiClickTime' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetMultiClickTime'>
+<funcprototype>
+<funcdef>int <function>XtGetMultiClickTime</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display connection.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtGetMultiClickTime' xrefstyle='select: title'/>
+returns the time in milliseconds that the
+translation manager uses to determine if multiple events are to be
+interpreted as a repeated event for purposes of matching a translation
+entry containing a repeat count.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Translation_Table_Management">
+<title>Translation Table Management</title>
+<para>
+Sometimes an application needs to merge
+its own translations with a widget's translations.
+For example, a window manager provides functions to move a window.
+The window manager wishes to bind this operation to a specific
+pointer button in the title bar without the possibility of user
+override and bind it to other buttons that may be overridden by the user.
+</para>
+
+<para>
+To accomplish this,
+the window manager should first create the title bar
+and then should merge the two translation tables into
+the title bar's translations.
+One translation table contains the translations that the window manager
+wants only if the user has not specified a translation for a particular event
+or event sequence (i.e., those that may be overridden).
+The other translation table contains the translations that the
+window manager wants regardless of what the user has specified.
+</para>
+
+<para>
+Three Intrinsics functions support this merging:
+</para>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>XtParseTranslationTable</emphasis>
+    </term>
+    <listitem>
+      <para>Compiles a translation table.</para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>XtAugmentTranslations</emphasis>
+    </term>
+    <listitem>
+      <para>Merges a compiled translation table into a widget's
+      compiled translation table, ignoring any new translations that
+      conflict with existing translations.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>XtOverrideTranslations</emphasis>
+    </term>
+    <listitem>
+      <para>Merges a compiled translation table into a widget's
+      compiled translation table, replacing any existing translations that
+      conflict with new translations.
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+To compile a translation table, use
+<xref linkend='XtParseTranslationTable' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtParseTranslationTable'>
+<funcprototype>
+<funcdef>XtTranslations <function>XtParseTranslationTable</function></funcdef>
+   <paramdef>String <parameter>table</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>table</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the translation table to compile.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtParseTranslationTable' xrefstyle='select: title'/>
+function compiles the translation table, provided in the format given
+in Appendix B, into an opaque internal representation
+of type
+<function>XtTranslations</function>.
+Note that if an empty translation table is required for any purpose,
+one can be obtained by calling
+<xref linkend='XtParseTranslationTable' xrefstyle='select: title'/>
+and passing an empty string.
+</para>
+
+<para>
+To merge additional translations into an existing translation table, use
+<xref linkend='XtAugmentTranslations' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAugmentTranslations'>
+<funcprototype>
+<funcdef>void <function>XtAugmentTranslations</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtTranslations <parameter>translations</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget into which the new translations are to be merged.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>translations</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the compiled translation table to merge in.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAugmentTranslations' xrefstyle='select: title'/>
+function merges the new translations into the existing widget
+translations, ignoring any
+<function>#replace</function>,
+<function>#augment</function>,
+or
+<function>#override</function>
+directive that may have been specified
+in the translation string.  The translation table specified by
+<emphasis remap='I'>translations</emphasis> is not altered by this process.
+<xref linkend='XtAugmentTranslations' xrefstyle='select: title'/>
+logically appends the string representation of the new translations to
+the string representation of the widget's current translations and reparses
+the result with no warning messages about duplicate left-hand sides, then
+stores the result back into the widget instance; i.e.,
+if the new translations contain an event or event sequence that
+already exists in the widget's translations,
+the new translation is ignored.
+</para>
+
+<para>
+To overwrite existing translations with new translations, use
+<xref linkend='XtOverrideTranslations' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtOverrideTranslations'>
+<funcprototype>
+<funcdef>void <function>XtOverrideTranslations</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtTranslations <parameter>translations</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget into which the new translations are to be merged. Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>translations</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the compiled translation table to merge in.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtOverrideTranslations' xrefstyle='select: title'/>
+function merges the new translations into the existing widget
+translations, ignoring any
+<function>#replace</function>,
+<function>#augment</function>,
+or
+<function>#override</function>
+directive that may have been
+specified in the translation string.  The translation table
+specified by <emphasis remap='I'>translations</emphasis> is not altered by this process.
+<xref linkend='XtOverrideTranslations' xrefstyle='select: title'/>
+logically appends the string representation of the widget's current
+translations to the string representation of the new translations and
+reparses the result with no warning messages about duplicate left-hand
+sides, then stores the result back into the widget instance; i.e.,
+if the new translations contain an event or event sequence that
+already exists in the widget's translations,
+the new translation overrides the widget's translation.
+</para>
+
+<para>
+To replace a widget's translations completely, use
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+on the XtNtranslations resource and specify a compiled translation table
+as the value.
+</para>
+
+<para>
+To make it possible for users to easily modify translation tables in their
+resource files,
+the string-to-translation-table resource type converter
+allows the string to specify whether the table should replace,
+augment, or override any
+existing translation table in the widget.
+To specify this,
+a pound sign (#) is given as the first character of the table
+followed by one of the keywords ``replace'', ``augment'', or
+``override'' to indicate
+whether to replace, augment, or override the existing table.
+The replace or merge
+operation is performed during the
+Core
+instance initialization.
+Each merge operation produces a new
+translation resource value; if the original tables were shared by
+other widgets, they are unaffected.  If no directive is
+specified, ``#replace'' is assumed.
+</para>
+
+<para>
+At instance initialization
+the XtNtranslations resource is first fetched.  Then, if it was
+not specified or did not contain ``#replace'', the
+resource database is searched for the resource XtNbaseTranslations.
+If XtNbaseTranslations is found, it is merged into the widget class
+translation table.  Then the widget <emphasis remap='I'>translations</emphasis> field is
+merged into the result or into the class translation table if
+XtNbaseTranslations was not found.  This final table is then
+stored into the widget <emphasis remap='I'>translations</emphasis> field.  If the XtNtranslations
+resource specified ``#replace'', no merge is done.
+If neither XtNbaseTranslations or XtNtranslations are specified,
+the class translation table is copied into the widget instance.
+</para>
+
+<para>
+To completely remove existing translations, use
+<xref linkend='XtUninstallTranslations' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtUninstallTranslations'>
+<funcprototype>
+<funcdef>void <function>XtUninstallTranslations</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget from which the translations are to be removed.   Must be of class Core or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtUninstallTranslations' xrefstyle='select: title'/>
+function causes the entire translation table for the widget to be removed.
+</para>
+</sect1>
+
+<sect1 id="Using_Accelerators">
+<title>Using Accelerators</title>
+<para>
+It is often desirable to be able to bind events in one widget to actions in
+another.
+In particular,
+it is often useful to be able to invoke menu actions from the keyboard.
+The Intrinsics provide a facility, called accelerators, that lets you
+accomplish this.
+An accelerator table is a translation table that is bound with its
+actions in the context of a particular widget, the <emphasis remap='I'>source</emphasis> widget.
+The accelerator table can then be installed on one or more <emphasis remap='I'>destination</emphasis> widgets.
+When an event sequence in the destination widget would cause an
+accelerator action to be taken, and if the source widget is sensitive,
+the actions are executed as though triggered by the same event sequence
+in the accelerator source
+widget.  The event is
+passed to the action procedure without modification.  The action
+procedures used within accelerators must not assume that the source
+widget is realized nor that any fields of the event are in reference
+to the source widget's window if the widget is realized.
+</para>
+
+<para>
+Each widget instance contains that widget's exported accelerator table
+as a resource.
+Each class of widget exports a method that takes a
+displayable string representation of the accelerators
+so that widgets can display their current accelerators.
+The representation is the accelerator table in canonical
+translation table form (see Appendix B).
+The display_accelerator procedure pointer is of type
+<xref linkend='XtStringProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtStringProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtStringProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>String <parameter>string</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the source widget that supplied the accelerators.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>string</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the string representation of the accelerators for this widget.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+Accelerators can be specified in resource files,
+and the string representation is the same as for a translation table.
+However,
+the interpretation of the
+<function>#augment</function>
+and
+<function>#override</function>
+directives applies to
+what will happen when the accelerator is installed;
+that is, whether or not the accelerator translations will override the
+translations in the destination widget.
+The default is
+<function>#augment</function>,
+which means that the accelerator translations have lower priority
+than the destination translations.
+The
+<function>#replace</function>
+directive is ignored for accelerator tables.
+</para>
+
+<para>
+To parse an accelerator table, use
+<xref linkend='XtParseAcceleratorTable' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtParseAcceleratorTable'>
+<funcprototype>
+<funcdef>XtAccelerators <function>XtParseAcceleratorTable</function></funcdef>
+   <paramdef>String <parameter>source</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>source</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the accelerator table to compile.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtParseAcceleratorTable' xrefstyle='select: title'/>
+function compiles the accelerator table into an opaque internal representation.
+The client
+should set the XtNaccelerators resource of
+each widget that is to be activated by these translations
+to the returned value.
+</para>
+
+<para>
+To install accelerators from a widget on another widget, use
+<xref linkend='XtInstallAccelerators' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtInstallAccelerators'>
+<funcprototype>
+<funcdef>void <function>XtInstallAccelerators</function></funcdef>
+   <paramdef>Widget <parameter>destination</parameter></paramdef>
+   <paramdef>Widget <parameter>source</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>destination</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget on which the accelerators are to be installed.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>source</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget from which the accelerators are to come.  Must be of class Core or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtInstallAccelerators' xrefstyle='select: title'/>
+function installs the <emphasis remap='I'>accelerators</emphasis> resource value from
+<emphasis remap='I'>source</emphasis> onto <emphasis remap='I'>destination</emphasis>
+by merging the source accelerators into the destination translations.
+If the source <emphasis remap='I'>display_accelerator</emphasis> field is non-NULL,
+<xref linkend='XtInstallAccelerators' xrefstyle='select: title'/>
+calls it with the source widget and a string representation
+of the accelerator table,
+which indicates that its accelerators have been installed
+and that it should display them appropriately.
+The string representation of the accelerator table is its
+canonical translation table representation.
+</para>
+
+<para>
+As a convenience for installing all accelerators from a widget and all its
+descendants onto one destination, use
+<xref linkend='XtInstallAllAccelerators' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtInstallAllAccelerators'>
+<funcprototype>
+<funcdef>void <function>XtInstallAllAccelerators</function></funcdef>
+   <paramdef>Widget <parameter>destination</parameter></paramdef>
+   <paramdef>Widget <parameter>source</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>destination</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget on which the accelerators are to be installed.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>source</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the root widget of the widget tree
+from which the accelerators are to come.  Must be of class Core or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtInstallAllAccelerators' xrefstyle='select: title'/>
+function recursively descends the widget tree rooted at <emphasis remap='I'>source</emphasis>
+and installs the accelerators resource value
+of each widget encountered onto <emphasis remap='I'>destination</emphasis>.
+A common use is to call
+<xref linkend='XtInstallAllAccelerators' xrefstyle='select: title'/>
+and pass the application main window as the source.
+</para>
+</sect1>
+
+<sect1 id="KeyCode_to_KeySym_Conversions">
+<title>KeyCode-to-KeySym Conversions</title>
+<para>
+The translation manager provides support for automatically translating
+KeyCodes in incoming key events into KeySyms.
+KeyCode-to-KeySym translator procedure pointers are of type
+<xref linkend='XtKeyProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtKeyProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtKeyProc)</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+   <paramdef>Modifiers <parameter>modifiers</parameter></paramdef>
+   <paramdef>Modifiers *<parameter>modifiers_return</parameter></paramdef>
+   <paramdef>KeySym *<parameter>keysym_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display that the KeyCode is from.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keycode</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the KeyCode to translate.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>modifiers</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the modifiers to the KeyCode.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>modifiers_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a location in which to store
+a mask that indicates the subset of all
+modifiers that are examined by the key translator for the specified keycode.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keysym_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a location in which to store the resulting KeySym.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This procedure takes a KeyCode and modifiers and produces a KeySym.
+For any given key translator function and keyboard encoding,
+<emphasis remap='I'>modifiers_return</emphasis> will be a constant per KeyCode that indicates
+the subset of all modifiers that are examined by the key translator
+for that KeyCode.
+</para>
+
+<para>
+The KeyCode-to-KeySym translator procedure
+must be implemented such that multiple calls with the same
+<emphasis remap='I'>display</emphasis>, <emphasis remap='I'>keycode</emphasis>, and <emphasis remap='I'>modifiers</emphasis> return the same
+result until either a new case converter, an
+<xref linkend='XtCaseProc' xrefstyle='select: title'/>,
+is installed or a
+<function>MappingNotify</function>
+event is received.
+</para>
+
+<para>
+The Intrinsics maintain tables internally to map KeyCodes to KeySyms
+for each open display.  Translator procedures and other clients may
+share a single copy of this table to perform the same mapping.
+</para>
+
+<para>
+To return a pointer to the KeySym-to-KeyCode mapping table for a
+particular display, use
+<xref linkend='XtGetKeysymTable' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetKeysymTable'>
+<funcprototype>
+<funcdef>KeySym *<function>XtGetKeysymTable</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>KeyCode *<parameter>min_keycode_return</parameter></paramdef>
+   <paramdef>int *<parameter>keysyms_per_keycode_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display whose table is required.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>min_keycode_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the minimum KeyCode valid for the display.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keysyms_per_keycode_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the number of KeySyms stored for each KeyCode.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtGetKeysymTable' xrefstyle='select: title'/>
+returns a pointer to the Intrinsics' copy of the
+server's KeyCode-to-KeySym table.  This table must not be modified.
+There are <emphasis remap='I'>keysyms_per_keycode_return</emphasis> KeySyms associated with each
+KeyCode, located in the table with indices starting at index
+</para>
+<literallayout>
+    (test_keycode - min_keycode_return) * keysyms_per_keycode_return
+</literallayout>
+<para>
+for KeyCode <emphasis remap='I'>test_keycode</emphasis>.  Any entries that have no KeySyms associated
+with them contain the value
+<function>NoSymbol</function>.
+Clients should not cache the KeySym table but should call
+<xref linkend='XtGetKeysymTable' xrefstyle='select: title'/>
+each time the value is
+needed, as the table may change prior to dispatching each event.
+</para>
+
+<para>
+For more information on this table, see
+<olink targetdoc='libX11' targetptr='Manipulating_the_Keyboard_Encoding'>Section 12.7</olink> in
+<olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface.</olink>.
+</para>
+
+<para>
+To register a key translator, use
+<xref linkend='XtSetKeyTranslator' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetKeyTranslator'>
+<funcprototype>
+<funcdef>void <function>XtSetKeyTranslator</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>XtKeyProc <parameter>proc</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display from which to translate the events.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to perform key translations.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtSetKeyTranslator' xrefstyle='select: title'/>
+function sets the specified procedure as the current key translator.
+The default translator is
+<function>XtTranslateKey</function>,
+an
+<xref linkend='XtKeyProc' xrefstyle='select: title'/>
+that uses the Shift, Lock, numlock, and group modifiers
+with the interpretations defined in <emphasis remap='I'>X Window System Protocol</emphasis>, Section 5.
+It is provided so that new translators can call it to get default
+KeyCode-to-KeySym translations and so that the default translator
+can be reinstalled.
+</para>
+
+<para>
+To invoke the currently registered KeyCode-to-KeySym translator,
+use
+<xref linkend='XtTranslateKeycode' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtTranslateKeycode'>
+<funcprototype>
+<funcdef>void <function>XtTranslateKeycode</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+   <paramdef>Modifiers <parameter>modifiers</parameter></paramdef>
+   <paramdef>Modifiers *<parameter>modifiers_return</parameter></paramdef>
+   <paramdef>KeySym *<parameter>keysym_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display that the KeyCode is from.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keycode</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the KeyCode to translate.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>modifiers</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the modifiers to the KeyCode.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>modifiers_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns a mask that indicates the modifiers actually used
+to generate the KeySym.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keysym_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the resulting KeySym.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtTranslateKeycode' xrefstyle='select: title'/>
+function passes the specified arguments
+directly to the currently registered KeyCode-to-KeySym translator.
+</para>
+
+<para>
+To handle capitalization of nonstandard KeySyms, the Intrinsics allow
+clients to register case conversion routines.
+Case converter procedure pointers are of type
+<xref linkend='XtCaseProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCaseProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtCaseProc)</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>KeySym <parameter>keysym</parameter></paramdef>
+   <paramdef>KeySym *<parameter>lower_return</parameter></paramdef>
+   <paramdef>KeySym *<parameter>upper_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display connection for which the conversion is required.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keysym</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the KeySym to convert.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>lower_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a location into which to store the lowercase equivalent for
+the KeySym.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>upper_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a location into which to store the uppercase equivalent for
+the KeySym.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If there is no case distinction,
+this procedure should store the KeySym into both return values.
+</para>
+
+<para>
+To register a case converter, use
+<xref linkend='XtRegisterCaseConverter' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRegisterCaseConverter'>
+<funcprototype>
+<funcdef>void <function>XtRegisterCaseConverter</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>XtCaseProc <parameter>proc</parameter></paramdef>
+   <paramdef>KeySym <parameter>start</parameter></paramdef>
+   <paramdef>KeySym <parameter>stop</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display from which the key events are to come.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the
+<xref linkend='XtCaseProc' xrefstyle='select: title'/>
+to do the conversions.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>start</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the first KeySym for which this converter is valid.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>stop</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the last KeySym for which this converter is valid.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtRegisterCaseConverter' xrefstyle='select: title'/>
+registers the specified case converter.
+The <emphasis remap='I'>start</emphasis> and <emphasis remap='I'>stop</emphasis> arguments provide the inclusive range of KeySyms
+for which this converter is to be called.
+The new converter overrides any previous converters for KeySyms in that range.
+No interface exists to remove converters;
+you need to register an identity converter.
+When a new converter is registered,
+the Intrinsics  refresh the keyboard state if necessary.
+The default converter understands case conversion for all
+Latin KeySyms defined in <emphasis remap='I'>X Window System Protocol</emphasis>, Appendix A.
+</para>
+
+<para>
+To determine uppercase and lowercase equivalents for a KeySym, use
+<xref linkend='XtConvertCase' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtConvertCase'>
+<funcprototype>
+<funcdef>void <function>XtConvertCase</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>KeySym <parameter>keysym</parameter></paramdef>
+   <paramdef>KeySym *<parameter>lower_return</parameter></paramdef>
+   <paramdef>KeySym *<parameter>upper_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display that the KeySym came from.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keysym</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the KeySym to convert.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>lower_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the lowercase equivalent of the KeySym.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>upper_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the uppercase equivalent of the KeySym.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtConvertCase' xrefstyle='select: title'/>
+function calls the appropriate converter and returns the results.
+A user-supplied
+<xref linkend='XtKeyProc' xrefstyle='select: title'/>
+may need to use this function.
+</para>
+</sect1>
+
+<sect1 id="Obtaining_a_KeySym_in_an_Action_Procedure">
+<title>Obtaining a KeySym in an Action Procedure</title>
+<para>
+When an action procedure is invoked on a
+<function>KeyPress</function>
+or
+<function>KeyRelease</function>
+event, it often has a need to retrieve the KeySym and modifiers
+corresponding to the event that caused it to be invoked.  In order to
+avoid repeating the processing that was just performed by the
+Intrinsics to match the translation entry, the KeySym and modifiers
+are stored for the duration of the action procedure and are made
+available to the client.
+</para>
+
+<para>
+To retrieve the KeySym and modifiers that matched the final event
+specification in the translation table entry, use
+<xref linkend='XtGetActionKeysym' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetActionKeysym'>
+<funcprototype>
+<funcdef>KeySym <function>XtGetActionKeysym</function></funcdef>
+   <paramdef>XEvent *<parameter>event</parameter></paramdef>
+   <paramdef>Modifiers *<parameter>modifiers_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event pointer passed to the action procedure by the Intrinsics.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>modifiers_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the modifiers that caused the match, if non-NULL.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If
+<xref linkend='XtGetActionKeysym' xrefstyle='select: title'/>
+is called after an action procedure has been
+invoked by the Intrinsics and before that action procedure returns, and
+if the event pointer has the same value as the event pointer passed to
+that action routine, and if the event is a
+<function>KeyPress</function>
+or
+<function>KeyRelease</function>
+event, then
+<xref linkend='XtGetActionKeysym' xrefstyle='select: title'/>
+returns the KeySym that matched the final
+event specification in the translation table and, if <emphasis remap='I'>modifiers_return</emphasis>
+is non-NULL, the modifier state actually used to generate this KeySym;
+otherwise, if the event is a
+<function>KeyPress</function>
+or
+<function>KeyRelease</function>
+event, then
+<xref linkend='XtGetActionKeysym' xrefstyle='select: title'/>
+calls
+<xref linkend='XtTranslateKeycode' xrefstyle='select: title'/>
+and returns the results;
+else it returns
+<function>NoSymbol</function>
+and does not examine <emphasis remap='I'>modifiers_return</emphasis>.
+</para>
+
+<para>
+Note that if an action procedure invoked by the Intrinsics
+invokes a subsequent action procedure (and so on) via
+<xref linkend='XtCallActionProc' xrefstyle='select: title'/>,
+the nested action procedure may also call
+<xref linkend='XtGetActionKeysym' xrefstyle='select: title'/>
+to retrieve the Intrinsics' KeySym and modifiers.
+</para>
+</sect1>
+
+<sect1 id="KeySym_to_KeyCode_Conversions">
+<title>KeySym-to-KeyCode Conversions</title>
+<para>
+To return the list of KeyCodes that map to a particular KeySym in
+the keyboard mapping table maintained by the Intrinsics, use
+<xref linkend='XtKeysymToKeycodeList' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtKeysymToKeycodeList'>
+<funcprototype>
+<funcdef>void <function>XtKeysymToKeycodeList</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>KeySym <parameter>keysym</parameter></paramdef>
+   <paramdef>KeyCode **<parameter>keycodes_return</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>keycount_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display whose table is required.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keysym</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the KeySym for which to search.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keycodes_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns a list of KeyCodes that have <emphasis remap='I'>keysym</emphasis>
+associated with them, or NULL if <emphasis remap='I'>keycount_return</emphasis> is 0.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keycount_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the number of KeyCodes in the keycode list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtKeysymToKeycodeList' xrefstyle='select: title'/>
+procedure returns all the KeyCodes that have <emphasis remap='I'>keysym</emphasis>
+in their entry for the keyboard mapping table associated with <emphasis remap='I'>display</emphasis>.
+For each entry in the
+table, the first four KeySyms (groups 1 and 2) are interpreted as
+specified by <emphasis remap='I'>X Window System Protocol</emphasis>, Section 5.  If no KeyCodes map to the
+specified KeySym, <emphasis remap='I'>keycount_return</emphasis> is zero and *<emphasis remap='I'>keycodes_return</emphasis> is NULL.
+</para>
+
+<para>
+The caller should free the storage pointed to by <emphasis remap='I'>keycodes_return</emphasis> using
+<xref linkend='XtFree' xrefstyle='select: title'/>
+when it is no longer useful.  If the caller needs to examine
+the KeyCode-to-KeySym table for a particular KeyCode, it should call
+<xref linkend='XtGetKeysymTable' xrefstyle='select: title'/>.
+</para>
+</sect1>
+
+<sect1 id="Registering_Button_and_Key_Grabs_for_Actions">
+<title>Registering Button and Key Grabs for Actions</title>
+<para>
+To register button and key grabs for a widget's window according to the
+event bindings in the widget's translation table, use
+<xref linkend='XtRegisterGrabAction' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRegisterGrabAction'>
+<funcprototype>
+<funcdef>void <function>XtRegisterGrabAction</function></funcdef>
+   <paramdef>XtActionProc <parameter>action_proc</parameter></paramdef>
+   <paramdef>Boolean <parameter>owner_events</parameter></paramdef>
+   <paramdef>unsigned int <parameter>event_mask</parameter></paramdef>
+   <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>action_proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the action procedure to search for in translation tables.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>owner_events</emphasis>
+    </term>
+    <listitem>
+      <para></para>
+      
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_mask</emphasis>
+    </term>
+    <listitem>
+      <para></para>
+      
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>pointer_mode</emphasis>
+    </term>
+    <listitem>
+      <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keyboard_mode</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify arguments to
+<xref linkend='XtGrabButton' xrefstyle='select: title'/>
+or
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtRegisterGrabAction' xrefstyle='select: title'/>
+adds the specified <emphasis remap='I'>action_proc</emphasis> to a list known to
+the translation manager.  When a widget is realized, or when the
+translations of a realized widget or the accelerators installed on a
+realized widget are modified, its translation table and any installed
+accelerators are scanned for action procedures on this list.
+If any are invoked on
+<function>ButtonPress</function>
+or
+<function>KeyPress</function>
+events as the only or final event
+in a sequence, the Intrinsics will call
+<xref linkend='XtGrabButton' xrefstyle='select: title'/>
+or
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+for the widget with every button or KeyCode which maps to the
+event detail field, passing the specified <emphasis remap='I'>owner_events</emphasis>, <emphasis remap='I'>event_mask</emphasis>,
+<emphasis remap='I'>pointer_mode</emphasis>, and <emphasis remap='I'>keyboard_mode</emphasis>.  For
+<function>ButtonPress</function>
+events, the modifiers
+specified in the grab are determined directly from the translation
+specification and <emphasis remap='I'>confine_to</emphasis> and <emphasis remap='I'>cursor</emphasis> are specified as
+<function>None</function>.
+For
+<function>KeyPress</function>
+events, if the translation table entry specifies colon (:) in
+the modifier list, the modifiers are determined by calling the key
+translator procedure registered for the display and calling
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+for every combination of standard modifiers which map the KeyCode to
+the specified event detail KeySym, and ORing any modifiers specified in
+the translation table entry, and <emphasis remap='I'>event_mask</emphasis> is ignored.  If the
+translation table entry does not specify colon in the modifier list,
+the modifiers specified in the grab are those specified in the
+translation table entry only.  For both
+<function>ButtonPress</function>
+and
+<function>KeyPress</function>
+events, don't-care modifiers are ignored unless the translation entry
+explicitly specifies ``Any'' in the <emphasis remap='I'>modifiers</emphasis> field.
+</para>
+
+<para>
+If the specified <emphasis remap='I'>action_proc</emphasis> is already registered for the calling
+process, the new values will replace the previously specified values
+for any widgets that become realized following the call, but existing
+grabs are not altered on currently realized widgets.
+</para>
+
+<para>
+When translations or installed accelerators are modified for a
+realized widget, any previous key or button grabs registered
+as a result of the old bindings are released if they do not appear in
+the new bindings and are not explicitly grabbed by the client with
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+or
+<xref linkend='XtGrabButton' xrefstyle='select: title'/>.
+</para>
+</sect1>
+
+<sect1 id="Invoking_Actions_Directly">
+<title>Invoking Actions Directly</title>
+<para>
+Normally action procedures are invoked by the Intrinsics when an
+event or event sequence arrives for a widget. To
+invoke an action procedure directly, without generating
+(or synthesizing) events, use
+<xref linkend='XtCallActionProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCallActionProc'>
+<funcprototype>
+<funcdef>void <function>XtCallActionProc</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>String <parameter>action</parameter></paramdef>
+   <paramdef>XEvent *<parameter>event</parameter></paramdef>
+   <paramdef>String *<parameter>params</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_params</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget in which the action is to be invoked.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>action</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the action routine.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the contents of the <emphasis remap='I'>event</emphasis> passed to the action routine.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the contents of the <emphasis remap='I'>params</emphasis> passed to the action routine.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>params</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtCallActionProc' xrefstyle='select: title'/>
+searches for the named action routine in the same
+manner and order as translation tables are bound, as described in
+Section 10.1.2, except that application action tables are searched, if
+necessary, as of the time of the call to
+<xref linkend='XtCallActionProc' xrefstyle='select: title'/>.
+If found,
+the action routine is invoked with the specified widget, event pointer,
+and parameters.  It is the responsibility of the caller to ensure that
+the contents of the <emphasis remap='I'>event</emphasis>, <emphasis remap='I'>params</emphasis>, and <emphasis remap='I'>num_params</emphasis> arguments are
+appropriate for the specified action routine and, if necessary, that
+the specified widget is realized or sensitive.  If the named action
+routine cannot be found,
+<xref linkend='XtCallActionProc' xrefstyle='select: title'/>
+generates a warning message and returns.
+</para>
+</sect1>
+
+<sect1 id="Obtaining_a_Widget_s_Action_List">
+<title>Obtaining a Widget's Action List</title>
+<para>
+Occasionally a subclass will require the pointers to one or more of
+its superclass's action procedures.  This would be needed, for
+example, in order to envelop the superclass's action.  To retrieve
+the list of action procedures registered in the superclass's
+<emphasis remap='I'>actions</emphasis> field, use
+<xref linkend='XtGetActionList' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetActionList'>
+<funcprototype>
+<funcdef>void <function>XtGetActionList</function></funcdef>
+   <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
+   <paramdef>XtActionList *<parameter>actions_return</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_actions_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget class whose actions are to be returned.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>actions_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the action list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_actions_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the number of action procedures declared by the class.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtGetActionList' xrefstyle='select: title'/>
+returns the action table defined by the specified
+widget class.  This table does not include actions defined by the
+superclasses.  If <emphasis remap='I'>widget_class</emphasis> is not initialized, or is not
+<function>coreWidgetClass</function>
+or a subclass thereof, or if the class does not define any actions,
+*<emphasis remap='I'>actions_return</emphasis> will be NULL and *<emphasis remap='I'>num_actions_return</emphasis>
+will be zero.
+If *<emphasis remap='I'>actions_return</emphasis> is non-NULL the client is responsible for freeing
+the table using
+<xref linkend='XtFree' xrefstyle='select: title'/>
+when it is no longer needed.
+</para>
+</sect1>
+</chapter>

@@ -1,7 +1,7 @@
 SUBDIRS = include src man specs
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = 
+pkgconfig_DATA =
 
 if BUILD_XAW6
 

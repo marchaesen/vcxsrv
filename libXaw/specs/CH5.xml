@@ -1,4 +1,4 @@
-<chapter id="text_widgets">
+<chapter id='Text_Widgets'>
 <title>Text Widgets</title>
 
 <para>
@@ -37,8 +37,8 @@ modifications a user is allowed to make:
 <para>
 Read-only mode does not allow the user or the programmer to modify the text
 in the widget.  While the entire string may be reset in
-read-only mode with <function>XtSetValues</function>, it cannot be modified via
-with <function>XawTextReplace</function>.  Append-only and editable modes allow
+read-only mode with <xref linkend='XtSetValues' xrefstyle='select: title'/>, it cannot be modified via
+with <xref linkend='XawTextReplace' xrefstyle='select: title'/>.  Append-only and editable modes allow
 the text at the insertion point to be modified.  The only difference is
 that text may only be added to or removed from the end of a buffer in
 append-only mode.

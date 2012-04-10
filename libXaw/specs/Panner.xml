@@ -41,7 +41,7 @@ through callback procedures.  Notification may be done either
 continuously whenever the slider moves or discretely whenever the
 slider has been given a new location.
 </para>
-<sect2 id="panner_resources">
+<sect2 id='Panner::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->
@@ -688,7 +688,7 @@ The default bindings for Panner are:
 The functions registered on the <function>reportCallback</function> list are invoked by
 the <function>notify</function> action as follows:
 <!-- .IN "ReportProc" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='Panner::ReportProc'>
 <funcprototype>
   <funcdef>void<function> ReportProc</function></funcdef>
   <paramdef>Widget<parameter> panner</parameter></paramdef>

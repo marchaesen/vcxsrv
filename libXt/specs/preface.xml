@@ -1,0 +1,51 @@
+<preface id='About_This_Manual'>
+<title>About This Manual</title>
+
+<para>
+X Toolkit Intrinsics — C Language Interface is intended to be read by both application programmers
+who will use one or more of the many widget sets built with the Intrinsics and by widget
+programmers who will use the Intrinsics to build widgets for one of the widget sets. Not all the
+information in this manual, however, applies to both audiences. That is, because the application
+programmer is likely to use only a number of the Intrinsics functions in writing an application and
+because the widget programmer is likely to use many more, if not all, of the Intrinsics functions
+in building a widget, an attempt has been made to highlight those areas of information that are
+deemed to be of special interest for the application programmer. (It is assumed the widget programmer
+will have to be familiar with all the information.) Therefore, all entries in the table of
+contents that are printed in <emphasis role='strong'>bold</emphasis> indicate the information that
+should be of special interest to an application programmer.
+</para>
+<para>
+It is also assumed that, as application programmers become more familiar with the concepts discussed
+in this manual, they will find it more convenient to implement portions of their applications
+as special-purpose or custom widgets. It is possible, nonetheless, to use widgets without
+knowing how to build them.
+</para>
+
+<bridgehead><emphasis role='strong'>Conventions Used in this Manual</emphasis></bridgehead>
+<para>This document uses the following conventions:</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Global symbols are printed in <function>this special font</function>. These can be either
+function names, symbols defined in include files, data types, or structure names. Arguments to
+functions, procedures, or macros are printed in italics.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Each function is introduced by a general discussion that distinguishes it from other functions.
+The function declaration itself follows, and each argument is specifically explained.
+General discussion of the function, if any is required, follows the arguments.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+To eliminate any ambiguity between those arguments that you pass and those that a function
+returns to you, the explanations for all arguments that you pass start with the word
+specifies or, in the case of multiple arguments, the word specify. The explanations for all
+arguments that are returned to you start with the word <emphasis>returns</emphasis> or, in
+the case of multiple arguments, the word <emphasis>return</emphasis>.
+    </para>
+  </listitem>
+</itemizedlist>
+</preface>

@@ -70,7 +70,7 @@ LFUNC(ParsePixels, int, (xpmData *data, unsigned int width,
 			 unsigned int cpp, XpmColor *colorTable,
 			 xpmHashTable *hashtable, unsigned int **pixels));
 
-char *xpmColorKeys[] = {
+const char *xpmColorKeys[] = {
     "s",				/* key #1: symbol */
     "m",				/* key #2: mono visual */
     "g4",				/* key #3: 4 grays visual */
@@ -205,7 +205,8 @@ xpmParseColors(
     unsigned int lastwaskey;		/* key read */
     char buf[BUFSIZ+1];
     char curbuf[BUFSIZ];		/* current buffer */
-    char **sptr, *s;
+    const char **sptr;
+    char *s;
     XpmColor *color;
     XpmColor *colorTable;
     char **defaults;
@@ -380,7 +381,7 @@ ParsePixels(
     unsigned int a, x, y;
 
     if ((height > 0 && width >= UINT_MAX / height) ||
-	width * height >= UINT_MAX / sizeof(unsigned int)) 
+	width * height >= UINT_MAX / sizeof(unsigned int))
 	return XpmNoMemory;
 #ifndef FOR_MSW
     iptr2 = (unsigned int *) XpmMalloc(sizeof(unsigned int) * width * height);

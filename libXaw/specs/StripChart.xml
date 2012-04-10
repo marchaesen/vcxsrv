@@ -28,7 +28,7 @@ to provide a graph of processor load.  The StripChart
 reads data from an application, and updates the chart
 at the <function>update</function> interval specified.
 </para>
-<sect2 id="stripchart_resources">
+<sect2 id='StripChart::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->

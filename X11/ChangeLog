@@ -1,3 +1,194 @@
+commit 20202784b9700d973d5301f0cb3243eba99fc349
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Mar 15 23:11:19 2012 -0700
+
+    xproto 7.0.23
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ab1fba1a0967ac2289909c3f1a643f876a5dd393
+Author: Marko Myllynen <myllynen@redhat.com>
+Date:   Mon Feb 20 17:01:21 2012 +0200
+
+    x11proto: add permille, ezh, and EZH to keysymdef.h
+    
+    This patch adds the following mnemonic symbols:
+    
+    XK_permille  for   U+2030 PER MILLE SIGN
+    XK_EZH       for   U+01B7 LATIN CAPITAL LETTER EZH
+    XK_ezh       for   U+0292 LATIN SMALL LETTER EZH
+    
+    These are the last mnemonic symbols missing from the Finnish keyboard
+    layout. The characters are part of the Finnish standard, ezh is used
+    in Sami and permille sign is used commonly in Finland, probably in
+    other countries as well.
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=19687
+    
+    Signed-off-by: Marko Myllynen <myllynen@redhat.com>
+    Reviewed-by: Matt Dew <marcoz@osource.org>
+    Signed-off-by: James Cloos <cloos@jhcloos.com>
+
+commit 67dd3bfe1ea20473944aec414d9f4b5eba196d8b
+Author: Frédéric Boiteux <fboiteux@calistel.com>
+Date:   Wed Nov 30 07:46:54 2011 -0500
+
+    Definition of dead greek symbol
+    
+    Define a new dead greek symbol for use in Dvorak-like Bepo keyboard layout.
+    
+    FreeDesktop Bug 21475 <https://bugs.freedesktop.org/show_bug.cgi?id=21475>
+    
+    Signed-off-by: Frédéric Boiteux <fboiteux@calistel.com>
+    Signed-off-by: James Cloos <cloos@jhcloos.com>
+
+commit 4769a96385e0eb47550773abb00631af89977320
+Author: Matt Dew <marcoz@osource.org>
+Date:   Sun Jan 15 17:17:24 2012 -0700
+
+    informaltable cleanup
+    
+    On certain tables, add top and bottom borders to table
+    header and a bottom border to the table. This matches
+    what those tables in the old pdfs looked like.
+    
+    the <?dbfo keep-together='always'> prevents tables from
+    splitting across pages. Useful for tiny tables.
+    
+    Converting the colwidth to a floating point,
+    IE, 1* -> 1.0* cleans up these build errors:
+    WARNING: table-layout="fixed" and column-width unspecified
+    => falling back to proportional-column-width(1)
+    
+    Signed-off-by: Matt Dew <marcoz@osource.org>
+
+commit 7f26709e4bda1154287c27d57cb22465fa815380
+Author: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+Date:   Mon Nov 14 17:22:30 2011 -0600
+
+    Cygwin/X: Include <strings.h> early to avoid compile errors
+    
+    http://lists.x.org/archives/xorg-devel/2011-November/027117.html
+    
+    Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Reviewed-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 3d7be5c61b991a3b33526546acda2ab663cdc1d5
+Author: Matt Dew <marcoz@osource.org>
+Date:   Mon Oct 3 18:26:22 2011 -0600
+
+        1 - fix the capitolization of the ID attriutes to match either the
+            <title> or <funcdef> string it goes with.
+        2 - fix any <linkend>'s that were affected by 1.
+        3 - any <function> in the docs that has an actual funcdef,
+            will become an olink.
+    
+        Signed-off-by: Matt Dew <marcoz@osource.org>
+
+commit f5d77f49dbd99d54324a6f1807b872d800abddf7
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Sep 21 15:52:39 2011 -0400
+
+    x11proto spec: fix copyright markup
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 8cf26b29001b1fe87cce6b56433ffe7874c7e234
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Sep 14 14:49:03 2011 -0400
+
+    spec: remove duplicate Copyright line
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit aefda8ec34ef64aef43015e6e31ea908da38c4c7
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Sep 12 11:06:29 2011 -0400
+
+    docs: use the &fullrelvers; entity to set X11 release information
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit a4fca029b5ace31e56941970151c226e221e1dcf
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Sep 11 19:49:54 2011 -0400
+
+    docs: remove <productnumber> which is not used by default
+    
+    This element is not rendered by default on the title. A template
+    customization is required to display it.
+    X Window System does not have a product number.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit acd12d6096bad0d0e45b34f52ae92cc32f8ba7bf
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Sep 8 20:00:00 2011 -0400
+
+    docbook.am: embed css styles inside the HTML HEAD element
+    
+    Rather than referring to the external xorg.css stylesheet, embed the content
+    of the file in the html output produced. This is accomplished by using
+    version 1.10 of xorg-xhtml.xsl.
+    
+    This makes the whole html docs tree much more relocatable.
+    In addition, it eliminates xorg.css as a runtime file which makes
+    xorg-sgml-doctools a build time only package.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit bd46f6d09c849335574ac84a0aa2de7c28daa552
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Sep 7 10:31:04 2011 -0400
+
+    docbook.am: global maintenance update - entities, images and olinking
+    
+    Adding support in libX11 for html chunking caused a reorg of docbook.am
+    as well as the xorg-sgml-doctools masterdb for olinking.
+    The parameter img.src.path is added for pdf images.
+    A searchpath to the root builddir is added for local entities, if present.
+    
+    The docbook.am makefile hides all the details and is identical for
+    all 22 modules having DocBook documentation. It is included by a thin
+    Makefile.am which requires no docbook knowledge.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit c270f8bed465daff386967c5586eb3c8490b86e0
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Aug 26 13:55:29 2011 -0700
+
+    Fix Xfuncproto.h to work when #included in a C89-mode compilation
+    
+    Variable argument macros are not supported in C89, only C99 or a
+    compiler-specific extension like gcc's.   Even just defining the
+    macro causes builds with C89 compilers to fail, as they can't
+    figure out how to handle #define _X_NONNULL(...), so only define
+    the fallback for C99 compilers.
+    
+    Since this means C89 compilers will see _X_NONNULL unexpanded in
+    sources, add a comment to remind users that this should only be
+    used with #ifdef _X_NONNULL guards in public/exported API headers
+    we install for other software to compile against, so that we don't
+    break their builds.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Julien Cristau <jcristau@debian.org>
+
+commit 06ebd5b88bee8c54222bde3178dc773776036802
+Author: James Cloos <cloos@jhcloos.com>
+Date:   Wed Jun 29 09:24:51 2011 -0400
+
+    Add some keysyms to support Breton’s n-graphs.
+    
+    These keysyms are necessary for XIM to support single-keystroke
+    multiple-character keys on Breton C’HWERTY keyboards.
+    
+    Addresses: https://bugs.freedesktop.org/show_bug.cgi?id=34453
+    
+    Signed-off-by: James Cloos <cloos@jhcloos.com>
+    Reviewed-by: Daniel Stone <daniel@fooishbar.org>
+
 commit 42c16165df536f74d1177eae2b94f96b3ebbdfb2
 Author: Peter Hutterer <peter.hutterer@who-t.net>
 Date:   Thu Jun 23 09:28:57 2011 +1000

@@ -1,0 +1,131 @@
+.\"Copyright (C) 1989-95 GROUPE BULL
+.\"
+.\"Permission is hereby granted, free of charge, to any person obtaining a copy
+.\"of this software and associated documentation files (the "Software"), to
+.\"deal in the Software without restriction, including without limitation the
+.\"rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+.\"sell copies of the Software, and to permit persons to whom the Software is
+.\"furnished to do so, subject to the following conditions:
+.\"
+.\"The above copyright notice and this permission notice shall be included in
+.\"all copies or substantial portions of the Software.
+.\"
+.\"THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\"IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\"FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+.\"GROUPE BULL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+.\"AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+.\"CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+.\"
+.\"Except as contained in this notice, the name of GROUPE BULL shall not be
+.\"used in advertising or otherwise to promote the sale, use or other dealings
+.\"in this Software without prior written authorization from GROUPE BULL.
+.\"
+.nr )S 12
+.TH SXPM __appmansuffix__ __xorgversion__
+.PD
+.ad b
+.SH NAME
+sxpm \- Show an XPM (X PixMap) file and/or convert XPM 1 or 2 files to XPM 3.
+.SH SYNOPSIS
+\fBsxpm\fR
+[\|\fB-d\fR displayname\|]
+[\|\fB-g\fR geometry\|]
+[\|\fB-hints\fR\|]
+[\|\fB-icon\fR filename\|]
+[\|\fB-plaid\| | \|\fRfilename\| | \|-\|]
+[\|\fB-o\fR filename\| | \|\fB-o\fR -\|]
+[\|\fB-pcmap\fR\|]
+[\|\fB-closecolors\fR\|]
+[\|\fB-nod\fR\|]
+[\|\fB-nom\fR\|]
+[\|\fB-mono | -grey4 | -grey | -color\fR\|]
+[\|\fB-sc\fR symbol color\|]
+[\|\fB-sp\fR symbol pixel\|]
+[\|\fB-cp\fR color pixel\|]
+[\|\fB-rgb\fR filename\|]
+[\|\fB-v\fR\|]
+.SH DESCRIPTION
+.PP
+The \fIsxpm\fP program can be used to view any XPM (version 1, 2, or 3) file
+and/or to convert a file from XPM1 or XPM2 to XPM version 3. If \fIsxpm\fP is
+run with any dummy option specified, the usage is displayed. If no geometry is
+specified, the show window will have the size of the read pixmap. Pressing the
+key Q in the window will quit the program.
+.SH OPTIONS
+.TP 8
+.B \-d \fIdisplay\fP
+Specifies the display to connect to.
+.TP 8
+.B \-g \fIgeom\fP
+Window geometry (default is pixmap's size).
+.TP 8
+.B \-hints
+Set ResizeInc for window.
+.TP 8
+.B \-icon \fIfilename\fP
+Set icon to pixmap created from the file \fIfilename\fP.
+.TP 8
+.B \-plaid
+Show the plaid pixmap which is stored as data\fP.
+.TP 8
+.B \fIfilename\fP
+Read from the file \fIfilename\fP and from standard input if \fIfilename\fP is '-'.
+If no input is specified sxpm reads from standard input.
+.TP 8
+.B \-o \fIfilename\fP
+Write to the file \fIfilename\fP (overwrite if it already exists) and to
+standard output if \fIfilename\fP is '-'.
+.TP 8
+.B \-mono
+Use the colors specified for a monochrome visual.
+.TP 8
+.B \-grey4
+Use the colors specified for a 4 color greyscale visual.
+.TP 8
+.B \-grey
+Use the colors specified for a greyscale visual.
+.TP 8
+.B \-color
+Use the colors specified for a color visual.
+.TP 8
+.B \-pcmap
+Use a private colormap.
+.TP 8
+.B \-closecolors
+Try to use "close colors" before reverting to other visuals.
+.TP 8
+.B \-nod
+Do not display the pixmap in a window.  (Useful when using as converter)
+.TP 8
+.B \-nom
+Do not use the clipmask if there is any.
+.TP 8
+.B \-sc \fIsymbol colorname\fP
+Override default color to \fIsymbol\fP to \fIcolorname\fP.
+.TP 8
+.B \-sp \fIsymbol pixelvalue\fP
+Override default color to \fIsymbol\fP to \fIpixelvalue\fP.
+.TP 8
+.B \-cp \fIcolorname pixelvalue\fP
+Override default color to \fIcolorname\fP to \fIpixelvalue\fP.
+.TP 8
+.B \-rgb \fIfilename\fP
+Search color names in the file \fIfilename\fP and write them out instead of
+the rgb values.
+.TP 8
+.B \-v
+Verbose - to print out extensions (stderr).
+
+
+.SH KNOWN BUGS
+Some window managers may not accept a pixmap which is not a bitmap as icon
+because this does not respect ICCCM, many of the well known ones will accept
+it though.
+
+.SH AUTHOR
+Arnaud Le Hors    (lehors@sophia.inria.fr)
+.br
+Bull Research France
+.br
+Copyright (C) 1989-95 by Groupe Bull.
