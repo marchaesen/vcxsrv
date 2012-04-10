@@ -89,6 +89,12 @@ static int pkey_gost_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
 		case EVP_PKEY_CTRL_PKCS7_ENCRYPT:
 		case EVP_PKEY_CTRL_PKCS7_DECRYPT:
 		case EVP_PKEY_CTRL_PKCS7_SIGN:
+		case EVP_PKEY_CTRL_DIGESTINIT:
+#ifndef OPENSSL_NO_CMS		
+		case EVP_PKEY_CTRL_CMS_ENCRYPT:
+		case EVP_PKEY_CTRL_CMS_DECRYPT:
+		case EVP_PKEY_CTRL_CMS_SIGN:
+#endif		
 			return 1;
 
 		case EVP_PKEY_CTRL_GOST_PARAMSET:
@@ -521,6 +527,7 @@ static int pkey_gost_mac_ctrl_str(EVP_PKEY_CTX *ctx,
 				{
 				GOSTerr(GOST_F_PKEY_GOST_MAC_CTRL_STR,
 					GOST_R_INVALID_MAC_KEY_LENGTH);
+				OPENSSL_free(keybuf);
 				return 0;	
 				}
 			ret= pkey_gost_mac_ctrl(ctx, EVP_PKEY_CTRL_SET_MAC_KEY,

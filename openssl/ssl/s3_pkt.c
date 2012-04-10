@@ -115,6 +115,7 @@
 #include "ssl_locl.h"
 #include <openssl/evp.h>
 #include <openssl/buffer.h>
+#include <openssl/rand.h>
 
 static int do_ssl3_write(SSL *s, int type, const unsigned char *buf,
 			 unsigned int len, int create_empty_fragment);
@@ -630,6 +631,7 @@ static int do_ssl3_write(SSL *s, int type, const unsigned char *buf,
 	unsigned char *p,*plen;
 	int i,mac_size,clear=0;
 	int prefix_len=0;
+	int eivlen;
 	long align=0;
 	SSL3_RECORD *wr;
 	SSL3_BUFFER *wb=&(s->s3->wbuf);
@@ -739,9 +741,27 @@ static int do_ssl3_write(SSL *s, int type, const unsigned char *buf,
 	/* field where we are to write out packet length */
 	plen=p; 
 	p+=2;
+	/* Explicit IV length, block ciphers and TLS version 1.1 or later */
+	if (s->enc_write_ctx && s->version >= TLS1_1_VERSION)
+		{
+		int mode = EVP_CIPHER_CTX_mode(s->enc_write_ctx);
+		if (mode == EVP_CIPH_CBC_MODE)
+			{
+			eivlen = EVP_CIPHER_CTX_iv_length(s->enc_write_ctx);
+			if (eivlen <= 1)
+				eivlen = 0;
+			}
+		/* Need explicit part of IV for GCM mode */
+		else if (mode == EVP_CIPH_GCM_MODE)
+			eivlen = EVP_GCM_TLS_EXPLICIT_IV_LEN;
+		else
+			eivlen = 0;
+		}
+	else 
+		eivlen = 0;
 
 	/* lets setup the record stuff. */
-	wr->data=p;
+	wr->data=p + eivlen;
 	wr->length=(int)len;
 	wr->input=(unsigned char *)buf;
 
@@ -769,11 +789,19 @@ static int do_ssl3_write(SSL *s, int type, const unsigned char *buf,
 
 	if (mac_size != 0)
 		{
-		if (s->method->ssl3_enc->mac(s,&(p[wr->length]),1) < 0)
+		if (s->method->ssl3_enc->mac(s,&(p[wr->length + eivlen]),1) < 0)
 			goto err;
 		wr->length+=mac_size;
-		wr->input=p;
-		wr->data=p;
+		}
+
+	wr->input=p;
+	wr->data=p;
+
+	if (eivlen)
+		{
+	/*	if (RAND_pseudo_bytes(p, eivlen) <= 0)
+			goto err; */
+		wr->length += eivlen;
 		}
 
 	/* ssl3_enc can only have an error on read */
@@ -1042,6 +1070,19 @@ start:
 			dest = s->s3->alert_fragment;
 			dest_len = &s->s3->alert_fragment_len;
 			}
+#ifndef OPENSSL_NO_HEARTBEATS
+		else if (rr->type == TLS1_RT_HEARTBEAT)
+			{
+			tls1_process_heartbeat(s);
+
+			/* Exit and notify application to read again */
+			rr->length = 0;
+			s->rwstate=SSL_READING;
+			BIO_clear_retry_flags(SSL_get_rbio(s));
+			BIO_set_retry_read(SSL_get_rbio(s));
+			return(-1);
+			}
+#endif
 
 		if (dest_maxlen > 0)
 			{
@@ -1185,6 +1226,10 @@ start:
 				SSLerr(SSL_F_SSL3_READ_BYTES,SSL_R_NO_RENEGOTIATION);
 				goto f_err;
 				}
+#ifdef SSL_AD_MISSING_SRP_USERNAME
+			if (alert_descr == SSL_AD_MISSING_SRP_USERNAME)
+				return(0);
+#endif
 			}
 		else if (alert_level == 2) /* fatal */
 			{
@@ -1263,6 +1308,7 @@ start:
 #else
 			s->state = s->server ? SSL_ST_ACCEPT : SSL_ST_CONNECT;
 #endif
+			s->renegotiate=1;
 			s->new_session=1;
 			}
 		i=s->handshake_func(s);
@@ -1296,8 +1342,10 @@ start:
 		{
 	default:
 #ifndef OPENSSL_NO_TLS
-		/* TLS just ignores unknown message types */
-		if (s->version == TLS1_VERSION)
+		/* TLS up to v1.1 just ignores unknown message types:
+		 * TLS v1.2 give an unexpected message alert.
+		 */
+		if (s->version >= TLS1_VERSION && s->version <= TLS1_1_VERSION)
 			{
 			rr->length = 0;
 			goto start;
