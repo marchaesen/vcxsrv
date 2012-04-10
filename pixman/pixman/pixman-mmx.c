@@ -327,7 +327,7 @@ in_over (__m64 src, __m64 srca, __m64 mask, __m64 dest)
 
 /* Elemental unaligned loads */
 
-static __inline__ __m64 ldq_u(uint64_t *p)
+static force_inline __m64 ldq_u(uint64_t *p)
 {
 #ifdef USE_X86_MMX
     /* x86's alignment restrictions are very relaxed. */
@@ -346,7 +346,7 @@ static __inline__ __m64 ldq_u(uint64_t *p)
 #endif
 }
 
-static __inline__ uint32_t ldl_u(const uint32_t *p)
+static force_inline uint32_t ldl_u(const uint32_t *p)
 {
 #ifdef USE_X86_MMX
     /* x86's alignment restrictions are very relaxed. */
@@ -3159,6 +3159,7 @@ static const pixman_fast_path_t mmx_fast_paths[] =
     PIXMAN_STD_FAST_PATH    (OVER, solid,    null,     a8r8g8b8, mmx_composite_over_n_8888         ),
     PIXMAN_STD_FAST_PATH    (OVER, solid,    null,     x8r8g8b8, mmx_composite_over_n_8888         ),
     PIXMAN_STD_FAST_PATH    (OVER, solid,    null,     r5g6b5,   mmx_composite_over_n_0565         ),
+    PIXMAN_STD_FAST_PATH    (OVER, solid,    null,     b5g6r5,   mmx_composite_over_n_0565         ),
     PIXMAN_STD_FAST_PATH    (OVER, x8r8g8b8, null,     x8r8g8b8, mmx_composite_copy_area           ),
     PIXMAN_STD_FAST_PATH    (OVER, x8b8g8r8, null,     x8b8g8r8, mmx_composite_copy_area           ),
 

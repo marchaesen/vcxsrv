@@ -101,7 +101,7 @@ public:
 
    virtual ir_visitor_status visit_enter(ir_call *ir)
    {
-      exec_list_iterator sig_iter = ir->get_callee()->parameters.iterator();
+      exec_list_iterator sig_iter = ir->callee->parameters.iterator();
       foreach_iter(exec_list_iterator, iter, *ir) {
 	 ir_rvalue *param_rval = (ir_rvalue *)iter.get();
 	 ir_variable *sig_param = (ir_variable *)sig_iter.get();
@@ -115,6 +115,15 @@ public:
 	    }
 	 }
 	 sig_iter.next();
+      }
+
+      if (ir->return_deref != NULL) {
+	 ir_variable *const var = ir->return_deref->variable_referenced();
+
+	 if (strcmp(name, var->name) == 0) {
+	    found = true;
+	    return visit_stop;
+	 }
       }
 
       return visit_continue_with_parent;
@@ -830,6 +839,7 @@ move_non_declarations(exec_list *instructions, exec_node *last,
 	 continue;
 
       assert(inst->as_assignment()
+             || inst->as_call()
 	     || ((var != NULL) && (var->mode == ir_var_temporary)));
 
       if (make_copies) {

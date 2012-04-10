@@ -75,7 +75,7 @@ INCLUDES = 						\
 	$(EXPAT_CFLAGS)					\
 	$(WARN_CFLAGS)					\
 	-DFC_CACHEDIR='"$(FC_CACHEDIR)"'                \
-	-DFONTCONFIG_PATH='"$(CONFDIR)"'
+	-DFONTCONFIG_PATH='"$(BASECONFIGDIR)"'
 
 EXTRA_DIST = makealias
 

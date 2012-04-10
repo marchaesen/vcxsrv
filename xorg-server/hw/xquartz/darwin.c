@@ -541,15 +541,15 @@ InitInput(int argc, char **argv)
        gdkdev->info.source = GDK_SOURCE_PEN;
      */
 
-    darwinTabletStylus = AddInputDevice(serverClient, DarwinTabletProc, FALSE);
+    darwinTabletStylus = AddInputDevice(serverClient, DarwinTabletProc, TRUE);
     assert(darwinTabletStylus);
     darwinTabletStylus->name = strdup("pen");
 
-    darwinTabletCursor = AddInputDevice(serverClient, DarwinTabletProc, FALSE);
+    darwinTabletCursor = AddInputDevice(serverClient, DarwinTabletProc, TRUE);
     assert(darwinTabletCursor);
     darwinTabletCursor->name = strdup("cursor");
 
-    darwinTabletEraser = AddInputDevice(serverClient, DarwinTabletProc, FALSE);
+    darwinTabletEraser = AddInputDevice(serverClient, DarwinTabletProc, TRUE);
     assert(darwinTabletEraser);
     darwinTabletEraser->name = strdup("eraser");
 

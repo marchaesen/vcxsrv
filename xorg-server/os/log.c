@@ -610,9 +610,9 @@ FatalError(const char *f, ...)
     else
         ErrorF("\nFatal server error:\n");
 
-#ifdef _MSC_VER
     va_start(args, f);
-#else
+
+#ifndef _MSC_VER
     /* Make a copy for OsVendorFatalError */
     va_copy(args2, args);
 #endif

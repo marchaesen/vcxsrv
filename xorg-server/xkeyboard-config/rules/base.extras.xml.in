@@ -358,6 +358,23 @@
         </variant>
       </variantList>
     </layout>
+      <layout>
+      <configItem>
+        <name>il</name>
+        <_shortDescription>he</_shortDescription>
+        <_description>Hebrew (Biblical SIL)</_description>
+        <languageList><iso639Id>heb</iso639Id></languageList>
+      </configItem>
+      <variantList>
+        <variant>
+          <configItem>
+            <name>SIL Phonetic</name>
+            <_description>Biblical SIL phonetic</_description>
+            <languageList><iso639Id>heb</iso639Id></languageList>
+          </configItem>
+        </variant>
+      </variantList>
+    </layout>
   </layoutList>
   <optionList/>
 </xkbConfigRegistry>

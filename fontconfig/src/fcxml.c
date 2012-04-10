@@ -1579,7 +1579,7 @@ FcParseAlias (FcConfigParse *parse)
     FcExpr	*family = 0, *accept = 0, *prefer = 0, *def = 0, *new = 0;
     FcEdit	*edit = 0, *next;
     FcVStack	*vstack;
-    FcTest	*test;
+    FcTest	*test = NULL;
     FcValueBinding  binding;
 
     if (!FcConfigLexBinding (parse, FcConfigGetAttribute (parse, "binding"), &binding))
@@ -1620,6 +1620,11 @@ FcParseAlias (FcConfigParse *parse)
 	    if (def)
 		FcExprDestroy (def);
 	    def = vstack->u.expr;
+	    vstack->tag = FcVStackNone;
+	    break;
+	case FcVStackTest:
+	    vstack->u.test->next = test;
+	    test = vstack->u.test;
 	    vstack->tag = FcVStackNone;
 	    break;
 	default:
@@ -1679,11 +1684,21 @@ FcParseAlias (FcConfigParse *parse)
     }
     if (edit)
     {
-	test = FcTestCreate (parse, FcMatchPattern,
-			     FcQualAny,
-			     (FcChar8 *) FC_FAMILY,
-			     FcOpEqual,
-			     family);
+	FcTest *t = FcTestCreate (parse, FcMatchPattern,
+				  FcQualAny,
+				  (FcChar8 *) FC_FAMILY,
+				  FcOpEqual,
+				  family);
+	if (test)
+	{
+	    FcTest *p = test;
+
+	    while (p->next)
+		p = p->next;
+	    p->next = t;
+	}
+	else
+	    test = t;
 	if (test)
 	    if (!FcConfigAddEdit (parse->config, test, edit, FcMatchPattern))
 		FcTestDestroy (test);

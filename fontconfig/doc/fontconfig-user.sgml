@@ -392,8 +392,8 @@ build the fontconfig database.
   <refsect2><title><literal>&lt;test qual="any" name="property" target="default" compare="eq"&gt;</literal></title><para>
 This element contains a single value which is compared with the target
 ('pattern', 'font', 'scan' or 'default') property "property" (substitute any of the property names seen 
-above). 'compare' can be one of "eq", "not_eq", "less", "less_eq", "more", or
-"more_eq".  'qual' may either be the default, "any", in which case the match
+above). 'compare' can be one of "eq", "not_eq", "less", "less_eq", "more", "more_eq", "contains" or
+"not_contains".  'qual' may either be the default, "any", in which case the match
 succeeds if any value associated with the property matches the test value, or
 "all", in which case all of the values associated with the property must
 match the test value.  When used in a &lt;match target="font"&gt; element,
@@ -510,7 +510,7 @@ elements.  <literal>&lt;or&gt;</literal> and <literal>&lt;and&gt;</literal> are 
       </para>
     </refsect2>
   <refsect2>
-    <title><literal>&lt;eq&gt;</literal>, <literal>&lt;not_eq&gt;</literal>, <literal>&lt;less&gt;</literal>, <literal>&lt;less_eq&gt;</literal>, <literal>&lt;more&gt;</literal>, <literal>&lt;more_eq&gt;</literal></title>
+    <title><literal>&lt;eq&gt;</literal>, <literal>&lt;not_eq&gt;</literal>, <literal>&lt;less&gt;</literal>, <literal>&lt;less_eq&gt;</literal>, <literal>&lt;more&gt;</literal>, <literal>&lt;more_eq&gt;</literal>, <literal>&lt;contains&gt;</literal>, <literal>&lt;not_contains</literal></title>
     <para>
 These elements compare two values, producing a boolean result.
   </para></refsect2>

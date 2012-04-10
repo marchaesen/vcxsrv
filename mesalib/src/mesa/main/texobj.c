@@ -153,6 +153,8 @@ _mesa_initialize_texture_object( struct gl_texture_object *obj,
    obj->Swizzle[3] = GL_ALPHA;
    obj->_Swizzle = SWIZZLE_NOOP;
    obj->Sampler.sRGBDecode = GL_DECODE_EXT;
+   obj->BufferObjectFormat = GL_LUMINANCE8;
+   obj->_BufferObjectFormat = MESA_FORMAT_L8;
 }
 
 
@@ -447,6 +449,14 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
    /* We'll set these to FALSE if tests fail below */
    t->_BaseComplete = GL_TRUE;
    t->_MipmapComplete = GL_TRUE;
+
+   if (t->Target == GL_TEXTURE_BUFFER) {
+      /* Buffer textures are always considered complete.  The obvious case where
+       * they would be incomplete (no BO attached) is actually specced to be
+       * undefined rendering results.
+       */
+      return;
+   }
 
    /* Detect cases where the application set the base level to an invalid
     * value.
@@ -755,6 +765,9 @@ _mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex)
          target = GL_TEXTURE_1D;
          break;
       case TEXTURE_BUFFER_INDEX:
+         dims = 0;
+         target = GL_TEXTURE_BUFFER;
+         break;
       case TEXTURE_EXTERNAL_INDEX:
       default:
          /* no-op */
@@ -793,6 +806,8 @@ _mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex)
                                     GL_RGBA, texFormat);
 
          switch (dims) {
+	 case 0:
+	    break;
          case 1:
             ctx->Driver.TexImage1D(ctx, texImage, GL_RGBA,
                                    width, 0,

@@ -2439,7 +2439,7 @@ void
 glsl_to_tgsi_visitor::visit(ir_call *ir)
 {
    glsl_to_tgsi_instruction *call_inst;
-   ir_function_signature *sig = ir->get_callee();
+   ir_function_signature *sig = ir->callee;
    function_entry *entry = get_function_signature(sig);
    int i;
 
@@ -2815,6 +2815,10 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    indirect_addr_temps = false;
    indirect_addr_consts = false;
    mem_ctx = ralloc_context(NULL);
+   ctx = NULL;
+   prog = NULL;
+   shader_program = NULL;
+   options = NULL;
 }
 
 glsl_to_tgsi_visitor::~glsl_to_tgsi_visitor()

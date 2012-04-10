@@ -541,10 +541,21 @@ ir_validate::visit_enter(ir_assignment *ir)
 ir_visitor_status
 ir_validate::visit_enter(ir_call *ir)
 {
-   ir_function_signature *const callee = ir->get_callee();
+   ir_function_signature *const callee = ir->callee;
 
    if (callee->ir_type != ir_type_function_signature) {
       printf("IR called by ir_call is not ir_function_signature!\n");
+      abort();
+   }
+
+   if (ir->return_deref) {
+      if (ir->return_deref->type != callee->return_type) {
+	 printf("callee type %s does not match return storage type %s\n",
+	        callee->return_type->name, ir->return_deref->type->name);
+	 abort();
+      }
+   } else if (callee->return_type != glsl_type::void_type) {
+      printf("ir_call has non-void callee but no return storage\n");
       abort();
    }
 
@@ -611,7 +622,9 @@ check_node_type(ir_instruction *ir, void *data)
       printf("Instruction node with unset type\n");
       ir->print(); printf("\n");
    }
-   assert(ir->type != glsl_type::error_type);
+   ir_rvalue *value = ir->as_rvalue();
+   if (value != NULL)
+      assert(value->type != glsl_type::error_type);
 }
 
 void

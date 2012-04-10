@@ -54,8 +54,11 @@ MAINTAINERCLEANFILES = \
 pkgconfigdir=$(libdir)/pkgconfig
 pkgconfig_DATA = fontconfig.pc
 
-configdir=$(CONFDIR)
-config_DATA=fonts.dtd
+baseconfigdir = $(BASECONFIGDIR)
+configdir = $(CONFIGDIR)
+
+xmldir = $(XMLDIR)
+xml_DATA = fonts.dtd
 
 if CROSS_COMPILING
   RUN_FC_CACHE_TEST=false
@@ -88,23 +91,24 @@ fonts.conf: fonts.conf.in Makefile
 		-e 's,@FC_CACHEDIR\@,$(FC_CACHEDIR),g' \
 		-e 's,@FC_DEFAULT_FONTS\@,$(FC_DEFAULT_FONTS),g' \
 		-e 's,@FC_FONTPATH\@,$(FC_FONTPATH),g' \
+		-e 's,@CONFIGDIR\@,$(CONFIGDIR),g' \
 		-e 's,@PACKAGE\@,$(PACKAGE),g' \
 		-e 's,@VERSION\@,$(VERSION),g' \
 		$(srcdir)/$@.in > $@.tmp && \
 	mv $@.tmp $@
 
 install-data-local: fonts.conf
-	$(mkinstalldirs) $(DESTDIR)$(configdir) $(DESTDIR)$(fc_cachedir)
-	if [ -f $(DESTDIR)$(configdir)/fonts.conf ]; then \
-	  echo "backing up existing $(DESTDIR)$(configdir)/fonts.conf"; \
-	  mv $(DESTDIR)$(configdir)/fonts.conf $(DESTDIR)$(configdir)/fonts.conf.bak; \
+	$(mkinstalldirs) $(DESTDIR)$(baseconfigdir) $(DESTDIR)$(fc_cachedir)
+	if [ -f $(DESTDIR)$(baseconfigdir)/fonts.conf ]; then \
+	  echo "backing up existing $(DESTDIR)$(baseconfigdir)/fonts.conf"; \
+	  mv $(DESTDIR)$(baseconfigdir)/fonts.conf $(DESTDIR)$(baseconfigdir)/fonts.conf.bak; \
 	fi
 	if [ -f $(srcdir)/fonts.conf ]; then \
-	  echo " $(INSTALL_DATA) $(srcdir)/fonts.conf $(DESTDIR)$(configdir)/fonts.conf"; \
-	  $(INSTALL_DATA) $(srcdir)/fonts.conf $(DESTDIR)$(configdir)/fonts.conf; \
+	  echo " $(INSTALL_DATA) $(srcdir)/fonts.conf $(DESTDIR)$(baseconfigdir)/fonts.conf"; \
+	  $(INSTALL_DATA) $(srcdir)/fonts.conf $(DESTDIR)$(baseconfigdir)/fonts.conf; \
 	else if [ -f fonts.conf ]; then \
-	  echo " $(INSTALL_DATA) fonts.conf $(DESTDIR)$(configdir)/fonts.conf"; \
-	  $(INSTALL_DATA) fonts.conf $(DESTDIR)$(configdir)/fonts.conf; \
+	  echo " $(INSTALL_DATA) fonts.conf $(DESTDIR)$(baseconfigdir)/fonts.conf"; \
+	  $(INSTALL_DATA) fonts.conf $(DESTDIR)$(baseconfigdir)/fonts.conf; \
 	fi; fi
 	@(if $(RUN_FC_CACHE_TEST); then \
 	    echo "fc-cache$(EXEEXT) -s -f -v"; \
@@ -119,14 +123,14 @@ install-data-local: fonts.conf
 
 uninstall-local:
 	if [ -f $(srcdir)/fonts.conf ]; then \
-	  if cmp -s $(srcdir)/fonts.conf $(DESTDIR)$(configdir)/fonts.conf; then \
-	     echo " uninstall standard $(DESTDIR)$(configdir)/fonts.conf"; \
-	     $(RM) $(DESTDIR)$(configdir)/fonts.conf; \
+	  if cmp -s $(srcdir)/fonts.conf $(DESTDIR)$(baseconfigdir)/fonts.conf; then \
+	     echo " uninstall standard $(DESTDIR)$(baseconfigdir)/fonts.conf"; \
+	     $(RM) $(DESTDIR)$(baseconfigdir)/fonts.conf; \
 	  fi; \
 	else if [ -f fonts.conf ]; then \
-	  if cmp -s fonts.conf $(DESTDIR)$(configdir)/fonts.conf; then \
-	     echo " uninstall standard $(DESTDIR)$(configdir)/fonts.conf"; \
-	     $(RM) $(DESTDIR)$(configdir)/fonts.conf; \
+	  if cmp -s fonts.conf $(DESTDIR)$(baseconfigdir)/fonts.conf; then \
+	     echo " uninstall standard $(DESTDIR)$(baseconfigdir)/fonts.conf"; \
+	     $(RM) $(DESTDIR)$(baseconfigdir)/fonts.conf; \
 	  fi; \
 	fi; fi
 

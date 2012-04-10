@@ -1779,6 +1779,13 @@ AC_ARG_ENABLE([gallium-llvm],
         [build gallium LLVM support @<:@default=enabled on x86/x86_64@:>@])],
     [enable_gallium_llvm="$enableval"],
     [enable_gallium_llvm=auto])
+
+AC_ARG_WITH([llvm-shared-libs],
+    [AS_HELP_STRING([--with-llvm-shared-libs],
+        [link with LLVM shared libraries @<:@default=disabled@:>@])],
+    [with_llvm_shared_libs=yes],
+    [with_llvm_shared_libs=no])
+
 if test "x$with_gallium_drivers" = x; then
     enable_gallium_llvm=no
 fi
@@ -1793,8 +1800,12 @@ if test "x$enable_gallium_llvm" = xyes; then
     if test "x$LLVM_CONFIG" != xno; then
 	LLVM_VERSION=`$LLVM_CONFIG --version | sed 's/svn.*//g'`
 	LLVM_CFLAGS=`$LLVM_CONFIG --cppflags|sed -e 's/-DNDEBUG\>//g' -e 's/-pedantic//g'`
-	LLVM_LIBS="`$LLVM_CONFIG --libs engine bitwriter`"
-
+	if test "x$with_llvm_shared_libs" = xyes; then
+	    dnl We can't use $LLVM_VERSION because it has 'svn' stripped out,
+	    LLVM_LIBS="-lLLVM-`$LLVM_CONFIG --version`"
+	else
+	    LLVM_LIBS="`$LLVM_CONFIG --libs engine bitwriter`"
+	fi
 	LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags`
 	DEFINES="$DEFINES -D__STDC_CONSTANT_MACROS"
 	MESA_LLVM=1
@@ -1804,6 +1815,14 @@ if test "x$enable_gallium_llvm" = xyes; then
 else
     MESA_LLVM=0
 fi
+
+dnl Directory for XVMC libs
+AC_ARG_WITH([xvmc-libdir],
+    [AS_HELP_STRING([--with-xvmc-libdir=DIR],
+        [directory for the XVMC libraries @<:@default=${libdir}@:>@])],
+    [XVMC_LIB_INSTALL_DIR="$withval"],
+    [XVMC_LIB_INSTALL_DIR='${libdir}'])
+AC_SUBST([XVMC_LIB_INSTALL_DIR])
 
 dnl Directory for VDPAU libs
 AC_ARG_WITH([vdpau-libdir],
