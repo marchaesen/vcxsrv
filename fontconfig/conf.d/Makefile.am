@@ -24,37 +24,6 @@
 DOC_FILES= \
 	README
 
-CONF_FILES = \
-	10-autohint.conf \
-	10-no-sub-pixel.conf \
-	10-sub-pixel-bgr.conf \
-	10-sub-pixel-rgb.conf \
-	10-sub-pixel-vbgr.conf \
-	10-sub-pixel-vrgb.conf \
-	10-unhinted.conf \
-	11-lcdfilter-default.conf \
-	11-lcdfilter-legacy.conf \
-	11-lcdfilter-light.conf \
-	20-fix-globaladvance.conf \
-	20-unhint-small-vera.conf \
-	25-unhint-nonlatin.conf \
-	30-urw-aliases.conf \
-	30-metric-aliases.conf \
-	40-nonlatin.conf \
-	45-latin.conf \
-	49-sansserif.conf \
-	50-user.conf \
-	51-local.conf \
-	60-latin.conf \
-	65-fonts-persian.conf \
-	65-khmer.conf \
-	65-nonlatin.conf \
-	69-unifont.conf \
-	70-no-bitmaps.conf \
-	70-yes-bitmaps.conf \
-	80-delicious.conf \
-	90-synthetic.conf
-
 CONF_LINKS = \
 	20-fix-globaladvance.conf \
 	20-unhint-small-vera.conf \
@@ -72,28 +41,56 @@ CONF_LINKS = \
 	80-delicious.conf \
 	90-synthetic.conf
 
-EXTRA_DIST = $(CONF_FILES) $(DOC_FILES)
+EXTRA_DIST = $(template_DATA) $(DOC_FILES)
 
-configdir=$(CONFDIR)
-confavaildir=$(configdir)/conf.avail
-confddir=$(configdir)/conf.d
+configdir=$(CONFIGDIR)
+config_DATA = $(DOC_FILES)
 
-confavail_DATA=$(CONF_FILES)
-confd_DATA=$(DOC_FILES)
+templatedir = $(TEMPLATEDIR)
+template_DATA =				\
+	10-autohint.conf		\
+	10-no-sub-pixel.conf		\
+	10-sub-pixel-bgr.conf		\
+	10-sub-pixel-rgb.conf		\
+	10-sub-pixel-vbgr.conf		\
+	10-sub-pixel-vrgb.conf		\
+	10-unhinted.conf		\
+	11-lcdfilter-default.conf	\
+	11-lcdfilter-legacy.conf	\
+	11-lcdfilter-light.conf		\
+	20-fix-globaladvance.conf	\
+	20-unhint-small-vera.conf	\
+	25-unhint-nonlatin.conf		\
+	30-urw-aliases.conf		\
+	30-metric-aliases.conf		\
+	40-nonlatin.conf		\
+	45-latin.conf			\
+	49-sansserif.conf		\
+	50-user.conf			\
+	51-local.conf			\
+	60-latin.conf			\
+	65-fonts-persian.conf		\
+	65-khmer.conf			\
+	65-nonlatin.conf		\
+	69-unifont.conf			\
+	70-no-bitmaps.conf		\
+	70-yes-bitmaps.conf		\
+	80-delicious.conf		\
+	90-synthetic.conf
 
 install-data-local:
-	mkdir -p ${DESTDIR}${confddir}
-	@(echo cd ${DESTDIR}${confddir}; \
-	 cd ${DESTDIR}${confddir}; \
-	 for i in ${CONF_LINKS}; do \
-		$(RM) $$i; \
-		echo $(RM) $$i";" ln -s ../conf.avail/$$i .; \
-		ln -s ../conf.avail/$$i .; \
-	 done)
+	mkdir -p $(DESTDIR)$(configdir)
+	@(echo cd $(DESTDIR)$(configdir);			\
+	  cd $(DESTDIR)$(configdir);				\
+	  for i in $(CONF_LINKS); do				\
+	    echo $(RM) $$i";" ln -s $(templatedir)/$$i .;	\
+	    $(RM) $$i;						\
+	    ln -s $(templatedir)/$$i .;				\
+	  done)
 uninstall-local:
-	@(echo cd ${DESTDIR}${confddir}; \
-	 cd ${DESTDIR}${confddir}; \
-	 for i in ${CONF_LINKS}; do \
-		echo $(RM) $$i; \
-		$(RM) $$i; \
-	 done)
+	@(echo cd $(DESTDIR)$(configdir);			\
+	  cd $(DESTDIR)$(configdir);				\
+	  for i in $(CONF_LINKS); do				\
+	    echo $(RM) $$i;					\
+	    $(RM) $$i;						\
+	  done)

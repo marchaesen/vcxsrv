@@ -83,7 +83,7 @@ prototype_string(const glsl_type *return_type, const char *name,
 
    const char *comma = "";
    foreach_list(node, parameters) {
-      const ir_instruction *const param = (ir_instruction *) node;
+      const ir_variable *const param = (ir_variable *) node;
 
       ralloc_asprintf_append(&str, "%s%s", comma, param->type->name);
       comma = ", ";
@@ -91,6 +91,87 @@ prototype_string(const glsl_type *return_type, const char *name,
 
    ralloc_strcat(&str, ")");
    return str;
+}
+
+/**
+ * Verify that 'out' and 'inout' actual parameters are lvalues.  Also, verify
+ * that 'const_in' formal parameters (an extension in our IR) correspond to
+ * ir_constant actual parameters.
+ */
+static bool
+verify_parameter_modes(_mesa_glsl_parse_state *state,
+		       ir_function_signature *sig,
+		       exec_list &actual_ir_parameters,
+		       exec_list &actual_ast_parameters)
+{
+   exec_node *actual_ir_node  = actual_ir_parameters.head;
+   exec_node *actual_ast_node = actual_ast_parameters.head;
+
+   foreach_list(formal_node, &sig->parameters) {
+      /* The lists must be the same length. */
+      assert(!actual_ir_node->is_tail_sentinel());
+      assert(!actual_ast_node->is_tail_sentinel());
+
+      const ir_variable *const formal = (ir_variable *) formal_node;
+      const ir_rvalue *const actual = (ir_rvalue *) actual_ir_node;
+      const ast_expression *const actual_ast =
+	 exec_node_data(ast_expression, actual_ast_node, link);
+
+      /* FIXME: 'loc' is incorrect (as of 2011-01-21). It is always
+       * FIXME: 0:0(0).
+       */
+      YYLTYPE loc = actual_ast->get_location();
+
+      /* Verify that 'const_in' parameters are ir_constants. */
+      if (formal->mode == ir_var_const_in &&
+	  actual->ir_type != ir_type_constant) {
+	 _mesa_glsl_error(&loc, state,
+			  "parameter `in %s' must be a constant expression",
+			  formal->name);
+	 return false;
+      }
+
+      /* Verify that 'out' and 'inout' actual parameters are lvalues. */
+      if (formal->mode == ir_var_out || formal->mode == ir_var_inout) {
+	 const char *mode = NULL;
+	 switch (formal->mode) {
+	 case ir_var_out:   mode = "out";   break;
+	 case ir_var_inout: mode = "inout"; break;
+	 default:           assert(false);  break;
+	 }
+
+	 /* This AST-based check catches errors like f(i++).  The IR-based
+	  * is_lvalue() is insufficient because the actual parameter at the
+	  * IR-level is just a temporary value, which is an l-value.
+	  */
+	 if (actual_ast->non_lvalue_description != NULL) {
+	    _mesa_glsl_error(&loc, state,
+			     "function parameter '%s %s' references a %s",
+			     mode, formal->name,
+			     actual_ast->non_lvalue_description);
+	    return false;
+	 }
+
+	 if (actual->variable_referenced()
+	     && actual->variable_referenced()->read_only) {
+	    _mesa_glsl_error(&loc, state,
+			     "function parameter '%s %s' references the "
+			     "read-only variable '%s'",
+			     mode, formal->name,
+			     actual->variable_referenced()->name);
+	    return false;
+	 } else if (!actual->is_lvalue()) {
+	    _mesa_glsl_error(&loc, state,
+			     "function parameter '%s %s' is not an lvalue",
+			     mode, formal->name);
+	    return false;
+	 }
+      }
+
+      actual_ir_node  = actual_ir_node->next;
+      actual_ast_node = actual_ast_node->next;
+   }
+   return true;
 }
 
 /**
@@ -108,18 +189,10 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
 
    *call_ir = NULL;
 
-   /* Verify that 'out' and 'inout' actual parameters are lvalues.  This
-    * isn't done in ir_function::matching_signature because that function
-    * cannot generate the necessary diagnostics.
-    *
-    * Also, validate that 'const_in' formal parameters (an extension of our
-    * IR) correspond to ir_constant actual parameters.
-    *
-    * Also, perform implicit conversion of arguments.  Note: to implicitly
-    * convert out parameters, we need to place them in a temporary
-    * variable, and do the conversion after the call takes place.  Since we
-    * haven't emitted the call yet, we'll place the post-call conversions
-    * in a temporary exec_list, and emit them later.
+   /* Perform implicit conversion of arguments.  For out parameters, we need
+    * to place them in a temporary variable and do the conversion after the
+    * call takes place.  Since we haven't emitted the call yet, we'll place
+    * the post-call conversions in a temporary exec_list, and emit them later.
     */
    exec_list_iterator actual_iter = actual_parameters->iterator();
    exec_list_iterator formal_iter = sig->parameters.iterator();
@@ -130,39 +203,6 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
 
       assert(actual != NULL);
       assert(formal != NULL);
-
-      if (formal->mode == ir_var_const_in && !actual->as_constant()) {
-	 _mesa_glsl_error(loc, state,
-			  "parameter `%s' must be a constant expression",
-			  formal->name);
-	 return ir_call::get_error_instruction(ctx);
-      }
-
-      if ((formal->mode == ir_var_out)
-	  || (formal->mode == ir_var_inout)) {
-	 const char *mode = NULL;
-	 switch (formal->mode) {
-	 case ir_var_out:   mode = "out";   break;
-	 case ir_var_inout: mode = "inout"; break;
-	 default:           assert(false);  break;
-	 }
-	 /* FIXME: 'loc' is incorrect (as of 2011-01-21). It is always
-	  * FIXME: 0:0(0).
-	  */
-	 if (actual->variable_referenced()
-	     && actual->variable_referenced()->read_only) {
-	    _mesa_glsl_error(loc, state,
-			     "function parameter '%s %s' references the "
-			     "read-only variable '%s'",
-			     mode, formal->name,
-			     actual->variable_referenced()->name);
-
-	 } else if (!actual->is_lvalue()) {
-	    _mesa_glsl_error(loc, state,
-			     "function parameter '%s %s' is not an lvalue",
-			     mode, formal->name);
-	 }
-      }
 
       if (formal->type->is_numeric() || formal->type->is_boolean()) {
 	 switch (formal->mode) {
@@ -229,29 +269,21 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
       formal_iter.next();
    }
 
-   /* Always insert the call in the instruction stream, and return a deref
-    * of its return val if it returns a value, since we don't know if
-    * the rvalue is going to be assigned to anything or not.
+   /* If the function call is a constant expression, don't generate any
+    * instructions; just generate an ir_constant.
     *
-    * Also insert any out parameter conversions after the call.
+    * Function calls were first allowed to be constant expressions in GLSL 1.20.
     */
-   ir_call *call = new(ctx) ir_call(sig, actual_parameters);
-   ir_dereference_variable *deref;
-   if (!sig->return_type->is_void()) {
-      /* If the function call is a constant expression, don't
-       * generate the instructions to call it; just generate an
-       * ir_constant representing the constant value.
-       *
-       * Function calls can only be constant expressions starting
-       * in GLSL 1.20.
-       */
-      if (state->language_version >= 120) {
-	 ir_constant *const_val = call->constant_expression_value();
-	 if (const_val) {
-	    return const_val;
-	 }
+   if (state->language_version >= 120) {
+      ir_constant *value = sig->constant_expression_value(actual_parameters);
+      if (value != NULL) {
+	 return value;
       }
+   }
 
+   ir_dereference_variable *deref = NULL;
+   if (!sig->return_type->is_void()) {
+      /* Create a new temporary to hold the return value. */
       ir_variable *var;
 
       var = new(ctx) ir_variable(sig->return_type,
@@ -261,24 +293,22 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
       instructions->push_tail(var);
 
       deref = new(ctx) ir_dereference_variable(var);
-      ir_assignment *assign = new(ctx) ir_assignment(deref, call, NULL);
-      instructions->push_tail(assign);
-      *call_ir = call;
-
-      deref = new(ctx) ir_dereference_variable(var);
-   } else {
-      instructions->push_tail(call);
-      *call_ir = call;
-      deref = NULL;
    }
+   ir_call *call = new(ctx) ir_call(sig, deref, actual_parameters);
+   instructions->push_tail(call);
+
+   /* Also emit any necessary out-parameter conversions. */
    instructions->append_list(&post_call_conversions);
-   return deref;
+
+   return deref ? deref->clone(ctx, NULL) : NULL;
 }
 
-static ir_rvalue *
-match_function_by_name(exec_list *instructions, const char *name,
-		       YYLTYPE *loc, exec_list *actual_parameters,
-		       ir_call **call_ir,
+/**
+ * Given a function name and parameter list, find the matching signature.
+ */
+static ir_function_signature *
+match_function_by_name(const char *name,
+		       exec_list *actual_parameters,
 		       struct _mesa_glsl_parse_state *state)
 {
    void *ctx = state;
@@ -350,42 +380,44 @@ done:
 	 }
 	 f->add_signature(sig->clone_prototype(f, NULL));
       }
-
-      /* Finally, generate a call instruction. */
-      return generate_call(instructions, sig, loc, actual_parameters,
-			   call_ir, state);
-   } else {
-      char *str = prototype_string(NULL, name, actual_parameters);
-
-      _mesa_glsl_error(loc, state, "no matching function for call to `%s'",
-		       str);
-      ralloc_free(str);
-
-      const char *prefix = "candidates are: ";
-
-      for (int i = -1; i < (int) state->num_builtins_to_link; i++) {
-	 glsl_symbol_table *syms = i >= 0 ? state->builtins_to_link[i]->symbols
-					  : state->symbols;
-	 f = syms->get_function(name);
-	 if (f == NULL)
-	    continue;
-
-	 foreach_list (node, &f->signatures) {
-	    ir_function_signature *sig = (ir_function_signature *) node;
-
-	    str = prototype_string(sig->return_type, f->name, &sig->parameters);
-	    _mesa_glsl_error(loc, state, "%s%s", prefix, str);
-	    ralloc_free(str);
-
-	    prefix = "                ";
-	 }
-
-      }
-
-      return ir_call::get_error_instruction(ctx);
    }
+   return sig;
 }
 
+/**
+ * Raise a "no matching function" error, listing all possible overloads the
+ * compiler considered so developers can figure out what went wrong.
+ */
+static void
+no_matching_function_error(const char *name,
+			   YYLTYPE *loc,
+			   exec_list *actual_parameters,
+			   _mesa_glsl_parse_state *state)
+{
+   char *str = prototype_string(NULL, name, actual_parameters);
+   _mesa_glsl_error(loc, state, "no matching function for call to `%s'", str);
+   ralloc_free(str);
+
+   const char *prefix = "candidates are: ";
+
+   for (int i = -1; i < (int) state->num_builtins_to_link; i++) {
+      glsl_symbol_table *syms = i >= 0 ? state->builtins_to_link[i]->symbols
+				       : state->symbols;
+      ir_function *f = syms->get_function(name);
+      if (f == NULL)
+	 continue;
+
+      foreach_list (node, &f->signatures) {
+	 ir_function_signature *sig = (ir_function_signature *) node;
+
+	 str = prototype_string(sig->return_type, f->name, &sig->parameters);
+	 _mesa_glsl_error(loc, state, "%s%s", prefix, str);
+	 ralloc_free(str);
+
+	 prefix = "                ";
+      }
+   }
+}
 
 /**
  * Perform automatic type conversion of constructor parameters
@@ -558,7 +590,7 @@ process_array_constructor(exec_list *instructions,
 		       "parameter%s",
 		       (constructor_type->length != 0) ? "at least" : "exactly",
 		       min_param, (min_param <= 1) ? "" : "s");
-      return ir_call::get_error_instruction(ctx);
+      return ir_rvalue::error_value(ctx);
    }
 
    if (constructor_type->length == 0) {
@@ -1195,7 +1227,7 @@ ast_function_expression::hir(exec_list *instructions,
 	 _mesa_glsl_error(& loc, state, "unknown type `%s' (structure name "
 			  "may be shadowed by a variable with the same name)",
 			  type->type_name);
-	 return ir_call::get_error_instruction(ctx);
+	 return ir_rvalue::error_value(ctx);
       }
 
 
@@ -1204,14 +1236,14 @@ ast_function_expression::hir(exec_list *instructions,
       if (constructor_type->is_sampler()) {
 	 _mesa_glsl_error(& loc, state, "cannot construct sampler type `%s'",
 			  constructor_type->name);
-	 return ir_call::get_error_instruction(ctx);
+	 return ir_rvalue::error_value(ctx);
       }
 
       if (constructor_type->is_array()) {
 	 if (state->language_version <= 110) {
 	    _mesa_glsl_error(& loc, state,
 			     "array constructors forbidden in GLSL 1.10");
-	    return ir_call::get_error_instruction(ctx);
+	    return ir_rvalue::error_value(ctx);
 	 }
 
 	 return process_array_constructor(instructions, constructor_type,
@@ -1242,7 +1274,7 @@ ast_function_expression::hir(exec_list *instructions,
 				"insufficient parameters to constructor "
 				"for `%s'",
 				constructor_type->name);
-	       return ir_call::get_error_instruction(ctx);
+	       return ir_rvalue::error_value(ctx);
 	    }
 
 	    if (apply_implicit_conversion(constructor_type->fields.structure[i].type,
@@ -1256,7 +1288,7 @@ ast_function_expression::hir(exec_list *instructions,
 				constructor_type->fields.structure[i].name,
 				ir->type->name,
 				constructor_type->fields.structure[i].type->name);
-	       return ir_call::get_error_instruction(ctx);;
+	       return ir_rvalue::error_value(ctx);;
 	    }
 
 	    node = node->next;
@@ -1265,7 +1297,7 @@ ast_function_expression::hir(exec_list *instructions,
 	 if (!node->is_tail_sentinel()) {
 	    _mesa_glsl_error(&loc, state, "too many parameters in constructor "
 			     "for `%s'", constructor_type->name);
-	    return ir_call::get_error_instruction(ctx);
+	    return ir_rvalue::error_value(ctx);
 	 }
 
 	 ir_rvalue *const constant =
@@ -1279,7 +1311,7 @@ ast_function_expression::hir(exec_list *instructions,
       }
 
       if (!constructor_type->is_numeric() && !constructor_type->is_boolean())
-	 return ir_call::get_error_instruction(ctx);
+	 return ir_rvalue::error_value(ctx);
 
       /* Total number of components of the type being constructed. */
       const unsigned type_components = constructor_type->components();
@@ -1306,14 +1338,14 @@ ast_function_expression::hir(exec_list *instructions,
 	    _mesa_glsl_error(& loc, state, "too many parameters to `%s' "
 			     "constructor",
 			     constructor_type->name);
-	    return ir_call::get_error_instruction(ctx);
+	    return ir_rvalue::error_value(ctx);
 	 }
 
 	 if (!result->type->is_numeric() && !result->type->is_boolean()) {
 	    _mesa_glsl_error(& loc, state, "cannot construct `%s' from a "
 			     "non-numeric data type",
 			     constructor_type->name);
-	    return ir_call::get_error_instruction(ctx);
+	    return ir_rvalue::error_value(ctx);
 	 }
 
 	 /* Count the number of matrix and nonmatrix parameters.  This
@@ -1338,7 +1370,7 @@ ast_function_expression::hir(exec_list *instructions,
 	 _mesa_glsl_error(& loc, state, "cannot construct `%s' from a "
 			  "matrix in GLSL 1.10",
 			  constructor_type->name);
-	 return ir_call::get_error_instruction(ctx);
+	 return ir_rvalue::error_value(ctx);
       }
 
       /* From page 50 (page 56 of the PDF) of the GLSL 1.50 spec:
@@ -1352,7 +1384,7 @@ ast_function_expression::hir(exec_list *instructions,
 	 _mesa_glsl_error(& loc, state, "for matrix `%s' constructor, "
 			  "matrix must be only parameter",
 			  constructor_type->name);
-	 return ir_call::get_error_instruction(ctx);
+	 return ir_rvalue::error_value(ctx);
       }
 
       /* From page 28 (page 34 of the PDF) of the GLSL 1.10 spec:
@@ -1366,7 +1398,7 @@ ast_function_expression::hir(exec_list *instructions,
 	 _mesa_glsl_error(& loc, state, "too few components to construct "
 			  "`%s'",
 			  constructor_type->name);
-	 return ir_call::get_error_instruction(ctx);
+	 return ir_rvalue::error_value(ctx);
       }
 
       /* Later, we cast each parameter to the same base type as the
@@ -1447,60 +1479,31 @@ ast_function_expression::hir(exec_list *instructions,
       }
    } else {
       const ast_expression *id = subexpressions[0];
+      const char *func_name = id->primary_expression.identifier;
       YYLTYPE loc = id->get_location();
       exec_list actual_parameters;
 
       process_parameters(instructions, &actual_parameters, &this->expressions,
 			 state);
 
+      ir_function_signature *sig =
+	 match_function_by_name(func_name, &actual_parameters, state);
+
       ir_call *call = NULL;
-      ir_rvalue *const value =
-	 match_function_by_name(instructions,
-				id->primary_expression.identifier,
-				&loc, &actual_parameters, &call, state);
-
-      if (call != NULL) {
-	 /* If a function was found, make sure that none of the 'out' or 'inout'
-	  * parameters violate the extra l-value rules.
-	  */
-	 ir_function_signature *f = call->get_callee();
-	 assert(f != NULL);
-
-	 exec_node *formal_node = f->parameters.head;
-
-	 foreach_list (actual_node, &this->expressions) {
-	    /* Both parameter lists had better be the same length!
-	     */
-	    assert(!actual_node->is_tail_sentinel());
-
-	    const ir_variable *const formal_parameter =
-	       (ir_variable *) formal_node;
-	    const ast_expression *const actual_parameter =
-	       exec_node_data(ast_expression, actual_node, link);
-
-	    if ((formal_parameter->mode == ir_var_out
-		 || formal_parameter->mode == ir_var_inout)
-		&& actual_parameter->non_lvalue_description != NULL) {
-	       YYLTYPE loc = actual_parameter->get_location();
-
-	       _mesa_glsl_error(&loc, state,
-				"function parameter '%s %s' references a %s",
-				(formal_parameter->mode == ir_var_out)
-				? "out" : "inout",
-				formal_parameter->name,
-				actual_parameter->non_lvalue_description);
-	       return ir_call::get_error_instruction(ctx);
-	    }
-
-	    /* Only advance the formal_node pointer here because the
-	     * foreach_list business already advances actual_node.
-	     */
-	    formal_node = formal_node->next;
-	 }
+      ir_rvalue *value = NULL;
+      if (sig == NULL) {
+	 no_matching_function_error(func_name, &loc, &actual_parameters, state);
+	 value = ir_rvalue::error_value(ctx);
+      } else if (!verify_parameter_modes(state, sig, actual_parameters, this->expressions)) {
+	 /* an error has already been emitted */
+	 value = ir_rvalue::error_value(ctx);
+      } else {
+	 value = generate_call(instructions, sig, &loc, &actual_parameters,
+			       &call, state);
       }
 
       return value;
    }
 
-   return ir_call::get_error_instruction(ctx);
+   return ir_rvalue::error_value(ctx);
 }

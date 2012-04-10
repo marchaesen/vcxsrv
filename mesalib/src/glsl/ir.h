@@ -88,7 +88,6 @@ enum ir_node_type {
 class ir_instruction : public exec_node {
 public:
    enum ir_node_type ir_type;
-   const struct glsl_type *type;
 
    /** ir_print_visitor helper for debugging. */
    void print(void) const;
@@ -127,16 +126,27 @@ protected:
    ir_instruction()
    {
       ir_type = ir_type_unset;
-      type = NULL;
    }
 };
 
 
+/**
+ * The base class for all "values"/expression trees.
+ */
 class ir_rvalue : public ir_instruction {
 public:
-   virtual ir_rvalue *clone(void *mem_ctx, struct hash_table *) const = 0;
+   const struct glsl_type *type;
 
-   virtual ir_constant *constant_expression_value() = 0;
+   virtual ir_rvalue *clone(void *mem_ctx, struct hash_table *) const;
+
+   virtual void accept(ir_visitor *v)
+   {
+      v->visit(this);
+   }
+
+   virtual ir_visitor_status accept(ir_hierarchical_visitor *);
+
+   virtual ir_constant *constant_expression_value();
 
    virtual ir_rvalue * as_rvalue()
    {
@@ -208,6 +218,14 @@ public:
     * \sa ir_constant::has_value, ir_rvalue::is_zero, ir_rvalue::is_one
     */
    virtual bool is_negative_one() const;
+
+
+   /**
+    * Return a generic value of error_type.
+    *
+    * Allocation will be performed with 'mem_ctx' as ralloc owner.
+    */
+   static ir_rvalue *error_value(void *mem_ctx);
 
 protected:
    ir_rvalue();
@@ -301,6 +319,11 @@ public:
     * INTERP_QUALIFIER_NOPERSPECTIVE, or INTERP_QUALIFIER_FLAT.
     */
    glsl_interp_qualifier determine_interpolation_mode(bool flat_shade);
+
+   /**
+    * Declared type of the variable
+    */
+   const struct glsl_type *type;
 
    /**
     * Delcared name of the variable
@@ -458,6 +481,12 @@ public:
    }
 
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
+
+   /**
+    * Attempt to evaluate this function as a constant expression, given
+    * a list of the actual parameters.  Returns NULL for non-built-ins.
+    */
+   ir_constant *constant_expression_value(exec_list *actual_parameters);
 
    /**
     * Get the name of the function for which this is a signature
@@ -999,16 +1028,18 @@ public:
 
 
 /**
- * IR instruction representing a function call
+ * HIR instruction representing a high-level function call, containing a list
+ * of parameters and returning a value in the supplied temporary.
  */
-class ir_call : public ir_rvalue {
+class ir_call : public ir_instruction {
 public:
-   ir_call(ir_function_signature *callee, exec_list *actual_parameters)
-      : callee(callee)
+   ir_call(ir_function_signature *callee,
+	   ir_dereference_variable *return_deref,
+	   exec_list *actual_parameters)
+      : return_deref(return_deref), callee(callee)
    {
       ir_type = ir_type_call;
       assert(callee->return_type != NULL);
-      type = callee->return_type;
       actual_parameters->move_nodes_to(& this->actual_parameters);
       this->use_builtin = callee->is_builtin;
    }
@@ -1030,13 +1061,6 @@ public:
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
 
    /**
-    * Get a generic ir_call object when an error occurs
-    *
-    * Any allocation will be performed with 'ctx' as ralloc owner.
-    */
-   static ir_call *get_error_instruction(void *ctx);
-
-   /**
     * Get an iterator for the set of acutal parameters
     */
    exec_list_iterator iterator()
@@ -1053,38 +1077,27 @@ public:
    }
 
    /**
-    * Get the function signature bound to this function call
-    */
-   ir_function_signature *get_callee()
-   {
-      return callee;
-   }
-
-   /**
-    * Set the function call target
-    */
-   void set_callee(ir_function_signature *sig);
-
-   /**
     * Generates an inline version of the function before @ir,
-    * returning the return value of the function.
+    * storing the return value in return_deref.
     */
-   ir_rvalue *generate_inline(ir_instruction *ir);
+   void generate_inline(ir_instruction *ir);
+
+   /**
+    * Storage for the function's return value.
+    * This must be NULL if the return type is void.
+    */
+   ir_dereference_variable *return_deref;
+
+   /**
+    * The specific function signature being called.
+    */
+   ir_function_signature *callee;
 
    /* List of ir_rvalue of paramaters passed in this call. */
    exec_list actual_parameters;
 
    /** Should this call only bind to a built-in function? */
    bool use_builtin;
-
-private:
-   ir_call()
-      : callee(NULL)
-   {
-      this->ir_type = ir_type_call;
-   }
-
-   ir_function_signature *callee;
 };
 
 

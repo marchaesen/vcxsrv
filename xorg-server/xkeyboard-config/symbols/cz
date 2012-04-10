@@ -90,7 +90,7 @@ xkb_symbols "qwerty" {
 
     key <AB01>	{ [         z,          Z,       degree,         NoSymbol ] };
     key <AC10>	{ [     uring,   quotedbl,    semicolon,            colon ] };
-    key <AC11>	{ [   section,     exclam,   apostrophe,         quotedbl ] };
+    key <AC11>	{ [   section,     exclam,   apostrophe,           ssharp ] };
     key <AD06>	{ [         y,          Y,     NoSymbol,         NoSymbol ] };
     key <AD11>	{ [    uacute,      slash,  bracketleft,        braceleft ] };
     key <AD12>	{ [parenright,  parenleft, bracketright,       braceright ] };

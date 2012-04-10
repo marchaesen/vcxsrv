@@ -601,6 +601,8 @@ FatalError(const char *f, ...)
     else
         ErrorF("\nFatal server error:\n");
 
+    va_start(args, f);
+
     /* Make a copy for OsVendorFatalError */
     va_copy(args2, args);
 

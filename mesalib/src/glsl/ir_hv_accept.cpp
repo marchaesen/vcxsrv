@@ -66,6 +66,13 @@ visit_list_elements(ir_hierarchical_visitor *v, exec_list *l,
 
 
 ir_visitor_status
+ir_rvalue::accept(ir_hierarchical_visitor *v)
+{
+   return v->visit(this);
+}
+
+
+ir_visitor_status
 ir_variable::accept(ir_hierarchical_visitor *v)
 {
    return v->visit(this);
@@ -325,6 +332,14 @@ ir_call::accept(ir_hierarchical_visitor *v)
    ir_visitor_status s = v->visit_enter(this);
    if (s != visit_continue)
       return (s == visit_continue_with_parent) ? visit_continue : s;
+
+   if (this->return_deref != NULL) {
+      v->in_assignee = true;
+      s = this->return_deref->accept(v);
+      v->in_assignee = false;
+      if (s != visit_continue)
+	 return (s == visit_continue_with_parent) ? visit_continue : s;
+   }
 
    s = visit_list_elements(v, &this->actual_parameters, false);
    if (s == visit_stop)

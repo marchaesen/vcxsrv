@@ -98,7 +98,7 @@ xkb_symbols "deva" {
 //Inspired by "devrom" keymap by Steve Smith for the windows tool "keyman"
 //Original Author :	Noah Levitt<nlevitt at columbia.edu>
 //Past Authors  : Pramod.R <pramodr at gmail.com> and Ravikant <ravikant at sarai.net>
-// Current Main.: G Karunakar <karunakar@sarai.net>
+//Current Main. : G Karunakar <karunakar@indlinux.org>
 
 partial alphanumeric_keys
 xkb_symbols "bolnagri" {
@@ -110,7 +110,7 @@ xkb_symbols "bolnagri" {
     key <AE01>  { [   1,	exclam,		U0967,		exclam	   ] };
     key <AE02>  { [   2,	at,		U0968,		at	   ] };
     key <AE03>  { [   3,    	numbersign, 	U0969,		numbersign ] };
-    key <AE04>  { [   4,	dollar,		U096A,		dollar     ] };
+    key <AE04>  { [   4,	U20B9,		U096A,		dollar     ] }; // Rupee symbol on $
     key <AE05>  { [   5,	percent,	U096B,		percent    ] };
     key <AE06>  { [   6,	asciicircum,	U096C,		asciicircum ] };
     key <AE07>  { [   7,	ampersand,	U096D,		ampersand  ] };
@@ -125,7 +125,7 @@ xkb_symbols "bolnagri" {
     key <AD01>   { [   U200C, 	U200D   ] };  // Q: ZWNJ, ZWJ
     key <AD02>   { [   U0935,  	U950	] };  // W: wa, OM
     key <AD03>   { [   U0947,   U0948,	U090F,	U0910   ] };  // E: e, ai matras
-    key <AD04>   { [   U0930,	U0943  	] };  // R: ra, vocalic Ri
+    key <AD04>   { [   U0930,	U0943,	U0931,  U090B  	] };  // R: ra, vocalic Ri
     key <AD05>   { [   U0924,   U0925   ] };  // T: ta, tha
     key <AD06>   { [   U092f,	U091E   ] };  // Y: ya, nya
     key <AD07>   { [   U0941,   U0942,	U0909,	U090A   ] };  // U: u, uu matras
@@ -136,7 +136,7 @@ xkb_symbols "bolnagri" {
     key <AD12>	 { [   bracketright, braceright   ] };
     
     //A Row
-    key <AC01>   { [   U093E,	 U0906,	U0905,	U0906  ] };   // A: aa
+    key <AC01>   { [   U093E,	 U0906,	U0905,	U0906  ] };   // A: aa, full A, AA
     key <AC02>   { [   U0938,    U0937   ] };  // S: sa, ssa
     key <AC03>   { [   U0926,    U0927   ] };  // D: da, dha
     key <AC04>   { [   U091F,    U0920   ] };  // F: TA, THA
@@ -144,18 +144,18 @@ xkb_symbols "bolnagri" {
     key <AC06>   { [   U0939,    U0903   ] };  // H: ha, visarg 
     key <AC07>   { [   U091C,    U091D   ] };  // J: ja, jha
     key <AC08>   { [   U0915,    U0916   ] };  // K: ka, kha
-    key <AC09>   { [   U0932,	 U0962   ] };  // L: la, vocalic L or lru matra`
+    key <AC09>   { [   U0932,	 U0933,	U0962,   U090C   ] };  // L: la, vocalic L or lru matra
     key <AC10>   { [   semicolon, colon  ] }; 
     key <AC11>   { [apostrophe, quotedbl ] };
 
     //Z Row
-    key <AB01>   { [   U0936,	 U0945 	 ] };  // Z: sha, akaar candra
-    key <AB02>   { [   U094D,    U0949	 ] };  // X: halant, aakaar candra
+    key <AB01>   { [   U0936,	 U0945, U0936, U090D 	 ] };  // Z: sha, akaar candra
+    key <AB02>   { [   U094D,    U0949, U094D, U0911	 ] };  // X: halant, aakaar candra, chandra A
     key <AB03>   { [   U091A,    U091B   ] };  // C: ca, cha
     key <AB04>   { [   U0921,    U0922   ] };  // V: da, dha
     key <AB05>   { [   U092C,    U092D   ] };  // B: ba, bha
-    key <AB06>   { [   U0928,    U0923   ] };  // N: na, nha
-    key <AB07>   { [   U092E,    U093D,	U092E,	U093D   ] };  // M: ma, avagraha
+    key <AB06>   { [   U0928,    U0923   ] };  // N: na, nna
+    key <AB07>   { [   U092E,    U0919,	U092E,	U093D   ] };  // M: ma, nga, avagraha
     key <AB08>   { [   comma,    U0970	 ] };// comma: comma, dev abbreviation sign
     key <AB09>   { [   period,   U093C 	 ] };  // period: period, nukta
     key <AB10>	 { [   slash,   question ] };

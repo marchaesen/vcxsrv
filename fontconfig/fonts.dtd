@@ -113,7 +113,7 @@
 <!ATTLIST patelt
 	  name CDATA	#REQUIRED>
 
-<!ELEMENT alias (family*, prefer?, accept?, default?)>
+<!ELEMENT alias (test?, family*, prefer?, accept?, default?)>
 <!ATTLIST alias
 	  binding (weak|strong|same) "weak">
 <!ELEMENT prefer (family)*>

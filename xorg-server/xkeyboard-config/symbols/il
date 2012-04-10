@@ -249,3 +249,69 @@ xkb_symbols "biblical" {
 
 	key <SPCE> { [ space, space, thinspace, nobreakspace ] };
 };
+
+// Biblical hebrew (SIL) US Standard layout version 1.5
+// This map is based closely on v 1.5 of the standard. The only deviation being the replacement of the composite characters sin and shin 
+// by their more recent Unicodev6 counterparts
+// this map contains all the characters found in Biblical annotation, masoretic and Dead Sea Scroll related work.
+// The layout corresponds phonetically to a US standard layout or similar (Qwerty).
+// If you are using an actual Hebrew keyboard, you are probably better off using a Tiro compliant scholarly layout
+// This linux port created and maintained by Dennis Meulensteen, dennis@meulensteen.nl
+partial alphanumeric_keys 
+xkb_symbols "biblicalSIL" {
+	name[Group1]= "Israel - Biblical Hebrew SIL Phonetic";
+	key.type = "FOUR_LEVEL_SEMIALPHABETIC";
+
+	key <TLDE> { [ U20AC,		U20AA,		U0024 ] }; 			//Euro, 		Shekel, 		Dollar		-
+	key <AE01> { [ 1,		U0021,		U05BD,		U0597 ] };		//1,			exclamation	meteg		revia
+	key <AE02> { [ 2,		U0598,		U05A2,		U05AE ] };	//2,			zarqa		atn. hafukh	zinor
+	key <AE03> { [ 3,		U05A8,		U0596,		U0599 ] };		//3,			qadma		tipeha		pashta
+	key <AE04> { [ 4,		U059C,		U05A5,		U05A0 ] };		//4,			geresh		merkha		tel. gedola
+	key <AE05> { [ 5,		U059E,		U05A6,		U05A9 ] };		//5,			gershayim		mer. kefula	tel qetana
+	key <AE06> { [ 6,		VoidSymbol,	U05AD,		U059F ] };		//6,			-			dehi			qar. para
+	key <AE07> { [ 7,		U05AC,		U05A3,		U05A1 ] };		//7,			iluy			munah		pazer
+	key <AE08> { [ 8,		U059D,		U059B,		U0595 ] };		//8,			g. muqdam	tevir			zaq. gadol
+	key <AE09> { [ 9,		U0029,		U05A7,		U0593 ] };		//9,			parenth.R		darqa		shalshelet
+	key <AE10> { [ 0,		U0028,		U05AA,		U05AF ] };		//0,			paren.L		yer. ben yomo	masora c.
+	key <AE11> { [ U05BE,		U2013,		U2014,		U05BF ] };	//Maqaf, 		en dash		em dash		rafe
+	key <AE12> { [ U05BC,		VoidSymbol,	U0591,		U25CC ] };	//Dagesh		-			etnahta		mark base
+
+	key <AD01> { [ hebrew_qoph,	U0597 ] };							//Qof		revia			-			-
+	key <AD02> { [ hebrew_waw] }; 								//waw		-			-			-
+	key <AD03> { [ U05B6,		U05B5,		VoidSymbol,	U05B1 ] };	//segol		tsere			-			hat. segol
+	key <AD04> { [ hebrew_resh ] };								//resh		-			-			-
+	key <AD05> { [ hebrew_taw ] }; 								//taw		-			-			-
+	key <AD06> { [ hebrew_yod,	U059F ] };							//jod		qar. para		-			-
+	key <AD07> { [ U05BB] }; 									//quibuts		-			-			-
+	key <AD08> { [ U05B4 ] };									//hiriq, 		-			-			-
+	key <AD09> { [ U05B9,		U05BA,		U05C7, 		U05B3 ] };	//holam, 		holam(wav)	qam. qatan	hat. Qamats
+	key <AD10> { [ hebrew_pe,	hebrew_finalpe,	VoidSymbol,	U034F ] };	//pe			final pe		-			c. grapheme joiner
+	key <AD11> { [ bracketright,	braceright,	VoidSymbol,	U0594 ] };		//Bracket R	brace R		-			zaq. qatan
+	key <AD12> { [ bracketleft,	braceleft, 	U059A,		U0592 ] };		//Brachket L	brace L		yetiv			segolta
+	key <BKSL> { [ U05C0, 		U05C0, 		U05A4,		U05AB ] };//Paseq		Paseq		mahapakh		ole
+
+	key <AC01> { [ U05B7,		U05B8,		U05C7,		U05B2 ] };  //patah		Qamats		Qam. Qatan	hat. patah
+	key <AC02> { [ hebrew_samech,	U05E9 ] }; 					//Samech, 	shin no dot	-			-
+	key <AC03> { [ hebrew_dalet ] }; 								//dalet		-			-			-
+	key <AC04> { [ UFB2B,		hebrew_sin,	U05C2 ] }; 			//UCSv6 Sin	sin (nodot)	sindot		-
+	key <AC05> { [ hebrew_gimel,	VoidSymbol,	U25E6,		U2022 ] };	//gimel		-			bullet(DSS)	bulletfill (DSS)
+	key <AC06> { [ hebrew_he,	VoidSymbol,	U0336,		U030A ] };//he			-			strikeout(DSS)	Ring Above(DSS)
+	key <AC07> { [ UFB2A,		hebrew_shin,	U05C1] };				//UCSv6 Shin	shin (nodot)	shindot		-
+	key <AC08> { [ hebrew_kaph,	hebrew_finalkaph ] };					//kaph		Final kaph		-
+	key <AC09> { [ hebrew_lamed,	VoidSymbol ] };						//lamed		-			-
+	key <AC10> { [ U05B0,		U05F4,		semicolon,	U05C3 ] };		//sva		gers. p		semicolon		sof pasuq
+	key <AC11> { [ U2019,		U201D, 		U0323,		U05C4 ] };//QuoteRight	double R Quote	punctum		punctum Above
+
+	key <AB01> { [ hebrew_zain ] };								//Zayin		-			-			
+	key <AB02> { [ hebrew_chet ] };								//chet		-			-
+	key <AB03> { [ hebrew_zade, 	U05E5 ] };							// tzade, 		final tzade		-
+	key <AB04> { [ hebrew_tet ] };									//tet			-			-
+	key <AB05> { [ hebrew_bet ] };									//bet			-			-
+	key <AB06> { [ hebrew_nun,	hebrew_finalnun ] }; 					//nun, 		final nun
+	key <AB07> { [ hebrew_mem,	hebrew_finalmem, U200C,		U200D ] };	//mem, 		final mem		0.wid.non.join.	0.wid.joiner
+	key <AB08> { [ U002C,		U05E2, 		U00AB,		U0307 ] }; //comma, 	ayin			guillemetsR	masora dot
+	key <AB09> { [ U0002E,		U05D0, 		U00BB,		U0308 ] }; //period, 		alef			guillemetsL	thousands
+	key <AB10> { [ slash,		question,	U05F3 ] };					//slash		question		geresh P
+
+	key <SPCE> { [ space, 		space,		thinspace,	nobreakspace ] };//space		space			thin space,		nbsp
+};
