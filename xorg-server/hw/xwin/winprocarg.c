@@ -535,6 +535,8 @@ ddxProcessArgument(int argc, char *argv[], int i)
             screenInfoPtr->fMultipleMonitors = FALSE;
 #endif
         screenInfoPtr->fFullScreen = TRUE;
+        // resizing is not allowed in full screen so change the default to not allowed
+        screenInfoPtr->iResizeMode=notAllowed;
 
         /* Indicate that we have processed this argument */
         return 1;
