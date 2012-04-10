@@ -24,6 +24,7 @@ INT32,*,*,	    INT32,*,*
 INT64,*,*,	    INT64,*,*
 LPVOID,*,*,	    LPVOID,*,*
 PGPU_DEVICE,*,*,    PGPU_DEVICE,*,*
+PROC,*,*,	    PROC,*,*
 String,*,*,	    const char *,*,*
 UINT,*,*,	    UINT,*,*
 USHORT,*,*,	    USHORT,*,*

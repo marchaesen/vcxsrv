@@ -34,5 +34,6 @@
 void glWinCallDelta(void);
 void glxWinPushNativeProvider(void);
 const GLubyte* glGetStringWrapperNonstatic(GLenum name);
-void glAddSwapHintRectWINWrapperNonstatic(GLint x, GLint y, GLsizei width, GLsizei height);
+void glAddSwapHintRectWINWrapperNonstatic(GLint x, GLint y, GLsizei width,
+                                          GLsizei height);
 void glWinSetupDispatchTable(void);

@@ -7,7 +7,7 @@
 # This document is licensed under the SGI Free Software B License Version
 # 2.0. For details, see http://oss.sgi.com/projects/FreeB/ .
 #
-# $Revision: 14504 $ on $Date: 2011-04-13 21:31:13 -0700 (Wed, 13 Apr 2011) $
+# $Revision: 17027 $ on $Date: 2012-03-05 11:19:50 -0800 (Mon, 05 Mar 2012) $
 
 required-props:
 param:		retval retained
@@ -1090,7 +1090,7 @@ ReleaseVideoCaptureDeviceNV(hDc, hDevice)
 ###############################################################################
 #
 # Extension #376
-# WGL_NV_copy_image commands
+# NV_copy_image commands
 #
 ###############################################################################
 
@@ -1182,4 +1182,24 @@ DXUnlockObjectsNV(hDevice, count, hObjects)
 	param		count		GLint in value
 	param		hObjects	HANDLE out array [count]
 	category	NV_DX_interop
+
+###############################################################################
+#
+# Extension #412
+# NV_DX_interop2 commands
+#
+###############################################################################
+
+# (none)
+newcategory: NV_DX_interop2
+
+###############################################################################
+#
+# Extension #415
+# EXT_swap_control_tear commands
+#
+###############################################################################
+
+# (none)
+newcategory: EXT_swap_control_tear
 

@@ -43,45 +43,41 @@ BOOL __stdcall wglMakeContextCurrentARBWrapper(HDC hDrawDC, HDC hReadDC, HGLRC h
 HDC __stdcall wglGetCurrentReadDCARBWrapper(VOID);
 
 BOOL __stdcall wglGetPixelFormatAttribivARBWrapper(HDC hdc,
-                                          int iPixelFormat,
-                                          int iLayerPlane,
-                                          UINT nAttributes,
-                                          const int *piAttributes,
-                                          int *piValues);
+                                         int iPixelFormat,
+                                         int iLayerPlane,
+                                         UINT nAttributes,
+                                         const int *piAttributes,
+                                         int *piValues);
 
 BOOL __stdcall wglGetPixelFormatAttribfvARBWrapper(HDC hdc,
-                                          int iPixelFormat,
-                                          int iLayerPlane,
-                                          UINT nAttributes,
-                                          const int *piAttributes,
-                                          FLOAT *pfValues);
+                                         int iPixelFormat,
+                                         int iLayerPlane,
+                                         UINT nAttributes,
+                                         const int *piAttributes,
+                                         FLOAT * pfValues);
 
 BOOL __stdcall wglChoosePixelFormatARBWrapper(HDC hdc,
-                                     const int *piAttribIList,
-                                     const FLOAT *pfAttribFList,
-                                     UINT nMaxFormats,
-                                     int *piFormats,
-                                     UINT *nNumFormats);
+                                    const int *piAttribIList,
+                                    const FLOAT * pfAttribFList,
+                                    UINT nMaxFormats,
+                                    int *piFormats, UINT * nNumFormats);
 
 HPBUFFERARB __stdcall wglCreatePbufferARBWrapper(HDC hDC,
                                        int iPixelFormat,
                                        int iWidth,
-                                       int iHeight,
-                                       const int *piAttribList);
+                                       int iHeight, const int *piAttribList);
 
 HDC __stdcall wglGetPbufferDCARBWrapper(HPBUFFERARB hPbuffer);
 
-int __stdcall wglReleasePbufferDCARBWrapper(HPBUFFERARB hPbuffer,
-                                  HDC hDC);
+int __stdcall wglReleasePbufferDCARBWrapper(HPBUFFERARB hPbuffer, HDC hDC);
 
 BOOL __stdcall wglDestroyPbufferARBWrapper(HPBUFFERARB hPbuffer);
 
 BOOL __stdcall wglQueryPbufferARBWrapper(HPBUFFERARB hPbuffer,
-                                int iAttribute,
-                                int *piValue);
+                               int iAttribute, int *piValue);
 
 BOOL __stdcall wglSwapIntervalEXTWrapper(int interval);
 
 int __stdcall wglGetSwapIntervalEXTWrapper(void);
 
-#endif /* wgl_ext_api_h */
+#endif                          /* wgl_ext_api_h */
