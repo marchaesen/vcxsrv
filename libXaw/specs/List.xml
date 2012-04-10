@@ -30,7 +30,7 @@ columns. When one of the strings is selected, it is highlighted, and the
 List widget's <function>Notify</function> action is invoked, calling all routines on
 its callback list.  Only one string may be selected at a time.
 </para>
-<sect2 id="list_resources">
+<sect2 id='List::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->
@@ -476,7 +476,7 @@ NULL terminated.  If a value is not specified for the <function>list</function>,
 the <function>list</function>, and <function>longest</function> is set to the length of the name of the
 widget.  The <function>list</function> is used in place, and must be available
 to the List widget for the lifetime of this widget, or until it is
-changed with <function>XtSetValues</function> or <function>XawListChange</function>.
+changed with <xref linkend='XtSetValues' xrefstyle='select: title'/> or <xref linkend='XawListChange' xrefstyle='select: title'/>.
 <!-- .In -->
       </para>
     </listitem>
@@ -652,7 +652,7 @@ operating systems, and had to be changed.
 To change the list that is displayed, use
 <function>XawListChange .</function>
 <!-- .IN "XawListChange" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawListChange'>
 <funcprototype>
   <funcdef>void<function> XawListChange</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -724,11 +724,11 @@ regardless of the value specified here.
 </para>
 <para>
 <!-- .LP -->
-<function>XawListChange</function>
+<xref linkend='XawListChange' xrefstyle='select: title'/>
 will <emphasis remap='I'>unset</emphasis> all list elements that are currently <function>set</function> before
 the list is actually changed.  The <emphasis remap='I'>list</emphasis> is used in place, and must
 remain usable for the lifetime of the List widget, or until <emphasis remap='I'>list</emphasis>
-has been changed again with this function or with <function>XtSetValues</function>.
+has been changed again with this function or with <xref linkend='XtSetValues' xrefstyle='select: title'/>.
 </para>
 </sect2>
 <sect2 id="Highlighting_an_Item">
@@ -738,7 +738,7 @@ has been changed again with this function or with <function>XtSetValues</functio
 To highlight an item in the list, use
 <function>XawListHighlight .</function>
 <!-- .IN "XawListHighlight" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawListHighlight'>
 <funcprototype>
   <funcdef>void<function> XawListHighlight</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -774,7 +774,7 @@ highlighted.
 <!-- .LP -->
 Only one item can be highlighted at a time.
 If an item is already highlighted when
-<function>XawListHighlight</function>
+<xref linkend='XawListHighlight' xrefstyle='select: title'/>
 is called,
 the highlighted item is unhighlighted before the new item is highlighted.
 </para>
@@ -786,7 +786,7 @@ the highlighted item is unhighlighted before the new item is highlighted.
 To unhighlight the currently highlighted item in the list, use
 <function>XawListUnhighlight .</function>
 <!-- .IN "XawListUnhighlight" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawListUnhighlight'>
 <funcprototype>
   <funcdef>void<function> XawListUnhighlight</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -814,7 +814,7 @@ Specifies the List widget.
 To retrieve the list element that is currently <emphasis remap='I'>set</emphasis>, use
 <function>XawListShowCurrent .</function>
 <!-- .IN "XawListShowCurrent" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawListShowCurrent'>
 <funcprototype>
   <funcdef>XawListReturnStruct<function> *XawListShowCurrent</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>

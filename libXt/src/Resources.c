@@ -233,7 +233,7 @@ static Cardinal CountTreeDepth(
 {
     Cardinal count;
 
-    for (count = 1; w != NULL; w = (Widget) w->core.parent) 
+    for (count = 1; w != NULL; w = (Widget) w->core.parent)
 	count++;
 
     return count;
@@ -371,7 +371,7 @@ void _XtDependencies(
     new_res = (XrmResourceList *) __XtMalloc(new_num_res*sizeof(XrmResourceList));
     if (super_num_res > 0)
 	XtMemmove(new_res, super_res, super_num_res * sizeof(XrmResourceList));
-    
+
     /* Put pointers to class resource entries into new_res */
     new_next = super_num_res;
     for (i = 0; i < class_num_res; i++) {
@@ -449,7 +449,7 @@ void _XtConstraintResDependencies(
 
 
 
-    
+
 XrmResourceList* _XtCreateIndirectionTable (
     XtResourceList  resources,
     Cardinal	    num_resources)
@@ -559,11 +559,11 @@ static XtCacheRef *GetResources(
 	     i++, typed_arg++) {
 	    register XrmRepresentation argType;
 	    argName = quark_args[i];
-	    argType = (typed_arg->type == NULL) ? NULLQUARK 
+	    argType = (typed_arg->type == NULL) ? NULLQUARK
 		: XrmStringToRepresentation(typed_arg->type);
 	    if (argName == QinitialResourcesPersistent) {
 		persistent_resources = (Boolean)typed_arg->value;
-		found_persistence = True;   
+		found_persistence = True;
 		break;
 	    }
 	    for (j = 0, res = table; j < num_resources; j++, res++) {
@@ -579,7 +579,7 @@ static XtCacheRef *GetResources(
 		    }
 		    found[j] = TRUE;
 		    break;
-		}   
+		}
 	    }
 	}
     }
@@ -596,7 +596,7 @@ static XtCacheRef *GetResources(
 					      sizeof(XrmHashTable) *
 					      (searchListSize *= 2));
     }
-    
+
     if (persistent_resources)
 	cache_base = NULL;
     else
@@ -702,14 +702,14 @@ static XtCacheRef *GetResources(
 		register XtTypedArg* arg = typed_args + typed[j] - 1;
 
 		/*
-                 * This resource value has been specified as a typed arg and 
-		 * has to be converted. Typed arg conversions are done here 
+                 * This resource value has been specified as a typed arg and
+		 * has to be converted. Typed arg conversions are done here
 		 * to correctly interpose them with normal resource conversions.
                  */
 		XrmQuark	    from_type;
 		XrmValue            from_val, to_val;
 		Boolean		    converted;
-                 
+
 		from_type = StringToQuark(arg->type);
     		from_val.size = arg->size;
 		if ((from_type == QString) || ((unsigned) arg->size > sizeof(XtArgVal)))
@@ -847,22 +847,23 @@ static XtCacheRef *GetResources(
 		    }
 		}
 		UNLOCK_PROCESS;
-
-		if (typed[j]) {
-		    /*
-		     * This resource value was specified as a typed arg.
-		     * However, the default value is being used here since
-		     * type type conversion failed, so we compress the list.
-		     */
-		    register XtTypedArg* arg = typed_args + typed[j] - 1;
-		    register int i;
-
-		    for (i = num_typed_args - typed[j]; i > 0; i--, arg++) {
-			*arg = *(arg+1);
-		    }
-		    num_typed_args--;
-		}
 	    } 
+	}
+	for (res = table, j = 0; j < num_resources; j++, res++) {
+	    if (!found[j] && typed[j]) {
+		/*
+		 * This resource value was specified as a typed arg.
+		 * However, the default value is being used here since
+		 * type type conversion failed, so we compress the list.
+		 */
+		register XtTypedArg* arg = typed_args + typed[j] - 1;
+		register int i;
+
+		for (i = num_typed_args - typed[j]; i > 0; i--, arg++) {
+		    *arg = *(arg+1);
+		}
+		num_typed_args--;
+	    }
 	}
 	if (tm_hack)
 	    widget->core.tm.current_state = NULL;
@@ -965,7 +966,7 @@ XtCacheRef *_XtGetResources(
 
     /* Get names, classes for widget and ancestors */
     GetNamesAndClasses(w, names, classes);
-   
+
     /* Compile arg list into quarks */
     CacheArgs(args, num_args, typed_args, *num_typed_args, quark_cache,
 	      XtNumber(quark_cache), &quark_args);
@@ -1002,7 +1003,7 @@ void _XtGetSubresources (
     const char*   name,			/* name of subobject		    */
     const char*   class,		/* class of subobject		    */
     XtResourceList resources,		/* resource list for subobject    */
-    Cardinal	  num_resources,	                                    
+    Cardinal	  num_resources,
     ArgList	  args,			/* arg list to override resources */
     Cardinal	  num_args,
     XtTypedArgList typed_args,
@@ -1043,7 +1044,7 @@ void _XtGetSubresources (
     if (((int) resources->resource_offset) >= 0) {
 	XrmCompileResourceListEphem(resources, num_resources);
     }
-    table = _XtCreateIndirectionTable(resources, num_resources); 
+    table = _XtCreateIndirectionTable(resources, num_resources);
     Resrc = GetResources(w, (char*)base, names, classes, table, num_resources,
 			quark_args, args, num_args,
 			typed_args, &ntyped_args, False);
@@ -1061,7 +1062,7 @@ void XtGetSubresources (
     _Xconst char* name,			/* name of subobject		    */
     _Xconst char* class,		/* class of subobject		    */
     XtResourceList resources,		/* resource list for subobject    */
-    Cardinal	  num_resources,	                                    
+    Cardinal	  num_resources,
     ArgList	  args,			/* arg list to override resources */
     Cardinal	  num_args)
 {
@@ -1118,7 +1119,7 @@ void _XtGetApplicationResources (
     }
 
     /* Compile arg list into quarks */
-    CacheArgs(args, num_args, typed_args, num_typed_args,  quark_cache, 
+    CacheArgs(args, num_args, typed_args, num_typed_args,  quark_cache,
 	XtNumber(quark_cache), &quark_args);
     /* Compile resource list if needed */
     if (((int) resources->resource_offset) >= 0) {

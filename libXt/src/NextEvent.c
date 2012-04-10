@@ -731,7 +731,14 @@ WaitLoop:
 #endif
 	return dpy_no;
     }
-    goto WaitLoop;
+    if (block)
+        goto WaitLoop;
+    else {
+#ifdef USE_POLL
+	XtStackFree ((XtPointer) wf.fdlist, fdlist);
+#endif
+        return -1;
+    }
 }
 
 #define IeCallProc(ptr) \

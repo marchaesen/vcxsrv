@@ -1,10 +1,10 @@
-<chapter id="creating_new_widgets__subclassing_">
+<chapter id='Creating_New_Widgets_Subclassing'>
 <title>Creating New Widgets (Subclassing)</title>
 <para>
 Although the task of creating a new widget may at first appear a little
 daunting, there is a basic simple pattern that all widgets follow.  The
 Athena Widget library contains a special widget called the
-<emphasis remap='I'>Template</emphasis> widget that is intended to assist 
+<emphasis remap='I'>Template</emphasis> widget that is intended to assist
 the novice widget programmer in writing a custom widget.
 </para>
 <para>
@@ -111,10 +111,10 @@ un-necessarily waste many resources.
 <para>
 In this section, an outline will be given of the procedure to follow to
 construct a special-purpose widget to address the items listed above.
-The reader should refer to the appropriate sections of the 
+The reader should refer to the appropriate sections of the
 <emphasis remap='I'>X Toolkit Intrinsics - C Language Interface</emphasis>
 for complete details of the material outlined here.  Section 1.4 of
-the <emphasis remap='I'>Intrinsics</emphasis> should be read in 
+the <emphasis remap='I'>Intrinsics</emphasis> should be read in
 conjunction with this section.
 </para>
 <para>

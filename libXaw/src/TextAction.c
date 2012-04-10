@@ -39,7 +39,6 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xmu/Atoms.h>
 #include <X11/Xmu/Misc.h>
 #include <X11/Xmu/StdSel.h>
-#include <X11/Xmu/SysUtil.h>
 #include <X11/Xaw/MultiSinkP.h>
 #include <X11/Xaw/MultiSrcP.h>
 #include <X11/Xaw/TextP.h>
@@ -1129,7 +1128,7 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
     if (XmuConvertStandardSelection(w, ctx->text.time, selection, target, type,
 				    (XPointer *)value, length, format))
 	return (True);
-  
+
     return (False);
 }
 
@@ -1370,7 +1369,7 @@ DeleteOrKill(TextWidget ctx, XEvent *event, XawTextScanDirection dir,
 	from = to;
 	to = ctx->text.insertPos;
     }
-    else 
+    else
 	from = ctx->text.insertPos;
 
     _DeleteOrKill(ctx, from, to, kill);
@@ -2707,7 +2706,7 @@ SelectAdjust(Widget w, XEvent *event, String *params, Cardinal *num_params)
 #ifndef OLDXAW
     if (ctx->text.selection_state)
 #endif
-	ModifySelection(ctx, event, 
+	ModifySelection(ctx, event,
 			XawsmTextSelect, XawactionAdjust, params, num_params);
 }
 
@@ -3214,8 +3213,8 @@ InsertChar(Widget w, XEvent *event, String *p, Cardinal *n)
 static char *
 IfHexConvertHexElseReturnParam(char *param, int *len_return)
 {
-    char *p;	    	/* steps through param char by char */
-    char c;	    	/* holds the character pointed to by p */
+    char *p;		/* steps through param char by char */
+    char c;		/* holds the character pointed to by p */
     int ind;		/* steps through hexval buffer char by char */
     static char hexval[XawTextActionMaxHexChars];
     Boolean first_digit;
@@ -3347,7 +3346,7 @@ InsertString(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 /* DisplayCaret() - action
- * 
+ *
  * The parameter list should contain one boolean value.  If the
  * argument is true, the cursor will be displayed.  If false, not.
  *
@@ -3399,9 +3398,10 @@ Numeric(Widget w, XEvent *event, String *params, Cardinal *num_params)
 		InsertChar(w, event, params, num_params);
 		return;
 	    }
-	    XmuSnprintf(err_buf, sizeof(err_buf),
-			"numeric: Invalid argument%s'%s'",
-			*num_params ? ", " : "", *num_params ? params[0] : "");
+	    snprintf(err_buf, sizeof(err_buf),
+		     "numeric: Invalid argument%s'%s'",
+		     *num_params ? ", " : "",
+		     *num_params ? params[0] : "");
 	    XtAppWarning(XtWidgetToApplicationContext(w), err_buf);
 	    ctx->text.numeric = False;
 	    ctx->text.mult = 1;
@@ -3487,7 +3487,7 @@ Multiply(Widget w, XEvent *event, String *params, Cardinal *num_params)
 #ifndef OLDXAW
     if (params[0][0] == 's' || params[0][0] == 'S') {
 	ctx->text.numeric = True;
- 	ctx->text.mult = 0;
+	ctx->text.mult = 0;
 	return;
     }
     else
@@ -3495,9 +3495,9 @@ Multiply(Widget w, XEvent *event, String *params, Cardinal *num_params)
 	if ((mult = atoi(params[0])) == 0) {
 	char buf[BUFSIZ];
 
-	XmuSnprintf(buf, sizeof(buf),
-		    "%s %s", "Xaw Text Widget: multiply() argument",
-		    "must be a number greater than zero, or 'Reset'.");
+	snprintf(buf, sizeof(buf),
+		 "Xaw Text Widget: multiply() argument "
+		 "must be a number greater than zero, or 'Reset'.");
 	XtAppError(XtWidgetToApplicationContext(w), buf);
 	XBell(XtDisplay(w), 50);
 	return;
@@ -3582,14 +3582,14 @@ StripOutOldCRs(TextWidget ctx, XawTextPosition from, XawTextPosition to,
 	    /*
 	     * Remove all extra spaces.
 	     */
-	    for (i = 1 ; i < len; i++) 
+	    for (i = 1 ; i < len; i++)
 		if (text.format ==  XawFmtWide) {
 		    if (!iswspace(((wchar_t*)buf)[i]) || ((periodPos + i) >= to))
 			break;
 		}
 		else if (!isspace(buf[i]) || (periodPos + i) >= to)
 		    break;
-      
+
 	    XtFree(buf);
 
 	    to -= (i - text.length - 1);
@@ -3667,7 +3667,7 @@ InsertNewCRs(TextWidget ctx, XawTextPosition from, XawTextPosition to,
 			XawsdRight,1, True);
 
 	startPos = endPos = eol;
-	if (eol == space) 
+	if (eol == space)
 	    return;
 
 	len = (int)(space - eol);

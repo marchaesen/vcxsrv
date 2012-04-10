@@ -32,7 +32,7 @@ entry by entry basis.  The format of the string may either be the encoding
 of the 8 bit <function>font</function> utilized, or in a multi-byte encoding for use with a
 <function>fontSet</function>.
 </para>
-<sect2 id="smebsb_resources">
+<sect2 id='SmeBSB::Resources'>
 <title>Resources</title>
 <!-- .IN "SmeBSB object" "resources" -->
 <para>
@@ -189,7 +189,7 @@ All callback functions on this list are called when the SimpleMenu
 <emphasis remap='I'>notifies</emphasis> this entry that the user has selected it.
       </para>
     </listitem>
-  </varlistentry> 
+  </varlistentry>
   <varlistentry>
     <term>font</term>
     <listitem>

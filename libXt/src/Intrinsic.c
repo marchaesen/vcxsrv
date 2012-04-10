@@ -1321,7 +1321,7 @@ static void FillInLangSubs(
  * The exact value should be documented in the implementation
  * notes for any Xt implementation.
  */
-static char *implementation_default_path(void)
+static const char *implementation_default_path(void)
 {
 #if defined(WIN32)
     static char xfilesearchpath[] = "";
@@ -1368,8 +1368,8 @@ String XtResolvePathname(
     XtFilePredicate predicate)
 {
     XtPerDisplay pd;
-    static char *defaultPath = NULL;
-    char *impl_default = implementation_default_path();
+    static const char *defaultPath = NULL;
+    const char *impl_default = implementation_default_path();
     int idef_len = strlen(impl_default);
     char *massagedPath;
     int bytesAllocd, bytesLeft;

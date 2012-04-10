@@ -1,0 +1,1063 @@
+<chapter id='Pop_Up_Widgets'>
+<title>Pop-Up Widgets</title>
+<para>
+Pop-up widgets are used to create windows outside of the
+window hierarchy defined by the widget tree.
+Each pop-up child has a window that is a descendant of the root window,
+so that the pop-up window is not clipped by the pop-up widget's parent window.
+Therefore, pop-ups are created and attached differently to their widget parent
+than normal widget children.
+</para>
+
+<para>
+A parent of a pop-up widget does not actively manage its pop-up children;
+in fact, it usually does not operate upon them in any way.
+The <emphasis remap='I'>popup_list</emphasis> field in the
+<function>CorePart</function>
+structure contains the list of its pop-up children.
+This pop-up list exists mainly to provide the proper place in the widget
+hierarchy for the pop-up to get resources and to provide a place for
+<xref linkend='XtDestroyWidget' xrefstyle='select: title'/>
+to look for all extant children.
+</para>
+
+<para>
+A
+composite
+widget can have both normal and pop-up children.
+A pop-up can be popped up from almost anywhere, not just by its parent.
+The term <emphasis remap='I'>child</emphasis> always refers to a normal, geometry-managed widget
+on the composite widget's list of children, and the term
+<emphasis remap='I'>pop-up child</emphasis> always refers to a
+widget on the pop-up list.
+</para>
+
+<sect1 id="Pop_Up_Widget_Types">
+<title>Pop-Up Widget Types</title>
+<para>
+There are three kinds of pop-up widgets:
+</para>
+
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Modeless pop-ups
+    </para>
+    <para>
+A modeless pop-up (for example, a dialog box that does not prevent
+continued interaction with the rest of the application)
+can usually be manipulated by the window manager
+and looks like any other application window from the
+user's point of view.
+The application main window itself is a special case of a modeless pop-up.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Modal pop-ups
+    </para>
+    <para>
+A modal pop-up (for example, a dialog box that requires user input to
+continue)
+can sometimes be manipulated by the window manager,
+and except for events that occur in the dialog box,
+it disables user-event distribution to the rest of the application.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Spring-loaded pop-ups
+    </para>
+    <para>
+A spring-loaded pop-up (for example, a menu)
+can seldom be manipulated by the window manager,
+and except for events that occur in the pop-up or its descendants,
+it disables user-event distribution to all other applications.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+Modal pop-ups and spring-loaded pop-ups are very similar and should be coded as
+if they were the same.
+In fact, the same widget (for example, a ButtonBox or Menu widget) can be used both
+as a modal pop-up and as a spring-loaded pop-up within the same application.
+The main difference is that spring-loaded pop-ups are brought up
+with the pointer and, because of the grab that the pointer button causes,
+require different processing by the Intrinsics.
+Furthermore, all user input remap events occurring outside the spring-loaded
+pop-up (e.g., in a descendant) are also delivered to the spring-loaded
+pop-up after they have been dispatched to the appropriate descendant, so
+that, for example, button-up can take down a spring-loaded pop-up no
+matter where the
+button-up occurs.
+</para>
+
+<para>
+Any kind of pop-up, in turn, can pop up other widgets.
+Modal and spring-loaded pop-ups can constrain user events to
+the most recent such pop-up or allow user events to be dispatched
+to any of the modal or spring-loaded pop-ups
+currently mapped.
+</para>
+
+<para>
+Regardless of their type,
+all pop-up widget classes are responsible for communicating with the
+X window manager and therefore are subclasses of
+one of the
+Shell
+widget classes.
+</para>
+</sect1>
+
+<sect1 id="Creating_a_Pop_Up_Shell">
+<title>Creating a Pop-Up Shell</title>
+<para>
+For a widget to be popped up,
+it must be the child of a pop-up shell widget.
+None of the Intrinsics-supplied shells will
+simultaneously manage more than one child.
+Both the shell and child taken together are referred to as the pop-up.
+When you need to use a pop-up,
+you always refer to the pop-up by the pop-up shell,
+not the child.
+</para>
+
+<para>
+To create a pop-up shell, use
+<xref linkend='XtCreatePopupShell' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCreatePopupShell'>
+<funcprototype>
+<funcdef>Widget <function>XtCreatePopupShell</function></funcdef>
+   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
+   <paramdef>Widget <parameter>parent</parameter></paramdef>
+   <paramdef>ArgList <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the instance name for the created shell widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget class pointer for the created shell widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>parent</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the parent widget.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list to override any other resource specifications.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtCreatePopupShell' xrefstyle='select: title'/>
+function ensures that the specified class is a subclass of
+Shell
+and, rather than using insert_child to attach the widget to the parent's
+<emphasis remap='I'>children</emphasis> list,
+attaches the shell to the parent's <emphasis remap='I'>popup_list</emphasis> directly.
+</para>
+
+<para>
+The screen resource for this widget is determined by first scanning
+<emphasis remap='I'>args</emphasis> for the XtNscreen argument.  If no XtNscreen argument is
+found, the resource database associated with the parent's screen
+is queried for the resource <emphasis remap='I'>name</emphasis>.screen, class
+<emphasis remap='I'>Class</emphasis>.Screen where <emphasis remap='I'>Class</emphasis> is the <emphasis remap='I'>class_name</emphasis>
+field from the
+<function>CoreClassPart</function>
+of the specified <emphasis remap='I'>widget_class</emphasis>.
+If this query fails, the parent's screen is used.
+Once the screen is determined,
+the resource database associated with that screen is used to retrieve
+all remaining resources for the widget not specified in
+<emphasis remap='I'>args</emphasis>.
+</para>
+
+<para>
+A spring-loaded pop-up invoked from a translation table via
+<xref linkend='XtMenuPopup' xrefstyle='select: title'/>
+must already exist
+at the time that the translation is invoked,
+so the translation manager can find the shell by name.
+Pop-ups invoked in other ways can be created when
+the pop-up actually is needed.
+This delayed creation of the shell is particularly useful when you pop up
+an unspecified number of pop-ups.
+You can look to see if an appropriate unused shell (that is, not
+currently popped up) exists and create a new shell if needed.
+</para>
+
+<para>
+To create a pop-up shell using varargs lists, use
+<xref linkend='XtVaCreatePopupShell' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtVaCreatePopupShell'>
+<funcprototype>
+<funcdef>Widget <function>XtVaCreatePopupShell</function></funcdef>
+   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
+   <paramdef>Widget <parameter>parent</parameter></paramdef>
+   <paramdef><parameter>...</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the instance name for the created shell widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget class pointer for the created shell widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>parent</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the parent widget.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>...</term>
+    <listitem>
+      <para>
+Specifies the variable argument list to override any other
+resource specifications.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<para>
+<xref linkend='XtVaCreatePopupShell' xrefstyle='select: title'/>
+is identical in function to
+<xref linkend='XtCreatePopupShell' xrefstyle='select: title'/>
+with <emphasis remap='I'>the</emphasis> args and <emphasis remap='I'>num_args</emphasis> parameters replaced by a varargs list as
+described in Section 2.5.1.
+</para>
+</sect1>
+
+<sect1 id="Creating_Pop_Up_Children">
+<title>Creating Pop-Up Children</title>
+<para>
+Once a pop-up shell is created,
+the single child of the pop-up shell can be created
+either statically or dynamically.
+</para>
+
+<para>
+At startup,
+an application can create the child of the pop-up shell,
+which is appropriate for pop-up children composed of a fixed set
+of widgets.
+The application can change the state of the subparts of
+the pop-up child as the application state changes.
+For example, if an application creates a static menu,
+it can call
+<xref linkend='XtSetSensitive' xrefstyle='select: title'/>
+(or, in general,
+<xref linkend='XtSetValues' xrefstyle='select: title'/>)
+on any of the buttons that make up the menu.
+Creating the pop-up child early means that pop-up time is minimized,
+especially if the application calls
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+on the pop-up shell at startup.
+When the menu is needed,
+all the widgets that make up the menu already exist and need only be mapped.
+The menu should pop up as quickly as the X server can respond.
+</para>
+
+<para>
+Alternatively,
+an application can postpone the creation of the child until it is needed,
+which minimizes application startup time and allows the pop-up child to
+reconfigure itself each time it is popped up.
+In this case,
+the pop-up child creation routine might poll the application
+to find out if it should change the sensitivity of any of its subparts.
+</para>
+
+<para>
+Pop-up child creation does not map the pop-up,
+even if you create the child and call
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+on the pop-up shell.
+</para>
+
+<para>
+All shells have pop-up and pop-down callbacks,
+which provide the opportunity either to make last-minute changes to a
+pop-up child before it is popped up or to change it after it is popped down.
+Note that excessive use of pop-up callbacks can make
+popping up occur more slowly.
+</para>
+</sect1>
+
+<sect1 id="Mapping_a_Pop_Up_Widget">
+<title>Mapping a Pop-Up Widget</title>
+<para>
+Pop-ups can be popped up through several mechanisms:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+A call to
+<xref linkend='XtPopup' xrefstyle='select: title'/>
+or
+<xref linkend='XtPopupSpringLoaded' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+One of the supplied callback procedures
+<xref linkend='XtCallbackNone' xrefstyle='select: title'/>,
+<xref linkend='XtCallbackNonexclusive' xrefstyle='select: title'/>,
+or
+<xref linkend='XtCallbackExclusive' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The standard translation action
+<xref linkend='XtMenuPopup' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+</itemizedlist>
+
+<para>
+Some of these routines take an argument of type
+<function>XtGrabKind</function>,
+which is defined as
+</para>
+<literallayout >
+typedef enum {XtGrabNone, XtGrabNonexclusive, XtGrabExclusive} XtGrabKind;
+</literallayout>
+
+<para>
+The create_popup_child_proc procedure pointer
+in the shell widget instance record is of type
+<xref linkend='XtCreatePopupChildProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCreatePopupChildProc'>
+<funcprototype>
+<funcdef>void <function>*XtCreatePopupChildProc</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the shell widget being popped up.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<para>
+To map a pop-up from within an application, use
+<xref linkend='XtPopup' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtPopup'>
+<funcprototype>
+<funcdef>void <function>XtPopup</function></funcdef>
+   <paramdef>Widget <parameter>popup_shell</parameter></paramdef>
+   <paramdef>XtGrabKind <parameter>grab_kind</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>popup_shell</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the shell widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>grab_kind</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the way in which user events should be constrained.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtPopup' xrefstyle='select: title'/>
+function performs the following:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Calls
+<xref linkend='XtCheckSubclass' xrefstyle='select: title'/>
+to ensure <emphasis remap='I'>popup_shell</emphasis>'s class is a subclass of
+<function>shellWidgetClass</function>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Raises the window and returns if the shell's <emphasis remap='I'>popped_up</emphasis> field is already
+<function>True</function>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calls the callback procedures on the shell's <emphasis remap='I'>popup_callback</emphasis> list,
+specifying a pointer to the value of <emphasis remap='I'>grab_kind</emphasis> as the <emphasis remap='I'>call_data</emphasis>
+argument.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Sets the shell <emphasis remap='I'>popped_up</emphasis> field to
+<function>True</function>,
+the shell <emphasis remap='I'>spring_loaded</emphasis> field to
+<function>False</function>,
+and the shell <emphasis remap='I'>grab_kind</emphasis> field from <emphasis remap='I'>grab_kind</emphasis>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the shell's <emphasis remap='I'>create_popup_child_proc</emphasis> field is non-NULL,
+<xref linkend='XtPopup' xrefstyle='select: title'/>
+calls it with <emphasis remap='I'>popup_shell</emphasis> as the parameter.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If <emphasis remap='I'>grab_kind</emphasis> is either
+<function>XtGrabNonexclusive</function>
+or
+<function>XtGrabExclusive</function>,
+it calls
+    </para>
+<literallayout >
+XtAddGrab(<emphasis remap='I'>popup_shell</emphasis>, (<emphasis remap='I'>grab_kind</emphasis> == XtGrabExclusive), False)
+</literallayout>
+  </listitem>
+  <listitem>
+    <para>
+Calls
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+with <emphasis remap='I'>popup_shell</emphasis> specified.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calls
+<function>XMapRaised</function>
+with the window of <emphasis remap='I'>popup_shell</emphasis>.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+To map a spring-loaded pop-up from within an application, use
+<xref linkend='XtPopupSpringLoaded' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtPopupSpringLoaded'>
+<funcprototype>
+<funcdef>void <function>XtPopupSpringLoaded</function></funcdef>
+   <paramdef>Widget <parameter>popup_shell</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>popup_shell</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the shell widget to be popped up.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtPopupSpringLoaded' xrefstyle='select: title'/>
+function performs exactly as
+<xref linkend='XtPopup' xrefstyle='select: title'/>
+except that it sets the shell <emphasis remap='I'>spring_loaded</emphasis> field to
+<function>True</function>
+and always calls
+<xref linkend='XtAddGrab' xrefstyle='select: title'/>
+with <emphasis remap='I'>exclusive</emphasis>
+<function>True</function>
+and <emphasis remap='I'>spring-loaded</emphasis>
+<function>True</function>.
+</para>
+
+<para>
+To map a pop-up from a given widget's callback list,
+you also can register one of the
+<xref linkend='XtCallbackNone' xrefstyle='select: title'/>,
+<xref linkend='XtCallbackNonexclusive' xrefstyle='select: title'/>,
+or
+<xref linkend='XtCallbackExclusive' xrefstyle='select: title'/>
+convenience routines as callbacks, using the pop-up shell widget as the
+client data.
+</para>
+
+<funcsynopsis id='XtCallbackNone'>
+<funcprototype>
+<funcdef>void <function>XtCallbackNone</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtPointer <parameter>call_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the pop-up shell.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>call_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback data argument,
+which is not used by this procedure.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<funcsynopsis id='XtCallbackNonexclusive'>
+<funcprototype>
+<funcdef>void <function>XtCallbackNonexclusive</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtPointer <parameter>call_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the pop-up shell.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>call_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback data argument,
+which is not used by this procedure.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<funcsynopsis id='XtCallbackExclusive'>
+<funcprototype>
+<funcdef>void <function>XtCallbackExclusive</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtPointer <parameter>call_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the pop-up shell.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>call_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback data argument,
+which is not used by this procedure.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtCallbackNone' xrefstyle='select: title'/>,
+<xref linkend='XtCallbackNonexclusive' xrefstyle='select: title'/>,
+and
+<xref linkend='XtCallbackExclusive' xrefstyle='select: title'/>
+functions call
+<xref linkend='XtPopup' xrefstyle='select: title'/>
+with the shell specified by the <emphasis remap='I'>client_data</emphasis> argument
+and <emphasis remap='I'>grab_kind</emphasis> set as the name specifies.
+<xref linkend='XtCallbackNone' xrefstyle='select: title'/>,
+<xref linkend='XtCallbackNonexclusive' xrefstyle='select: title'/>,
+and
+<xref linkend='XtCallbackExclusive' xrefstyle='select: title'/>
+specify
+<function>XtGrabNone</function>,
+<function>XtGrabNonexclusive</function>,
+and
+<function>XtGrabExclusive</function>,
+respectively.
+Each function then sets the widget that executed the callback list
+to be insensitive by calling
+<xref linkend='XtSetSensitive' xrefstyle='select: title'/>.
+Using these functions in callbacks is not required.
+In particular,
+an application must provide customized code for
+callbacks that create pop-up shells dynamically or that must do more than
+desensitizing the button.
+</para>
+
+<para>
+Within a translation table,
+to pop up a menu when a key or pointer button is pressed or when the pointer
+is moved into a widget, use
+<xref linkend='XtMenuPopup' xrefstyle='select: title'/>,
+or its synonym,
+<function>MenuPopup</function>.
+From a translation writer's point of view,
+the definition for this translation action is
+</para>
+
+<funcsynopsis id='XtMenuPopup'>
+<funcprototype>
+<funcdef>void <function>XtMenuPopup</function></funcdef>
+   <paramdef>String <parameter>shell_name</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>shell_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the shell widget to pop up.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtMenuPopup' xrefstyle='select: title'/>
+is known to the translation manager,
+which registers the corresponding built-in action procedure
+<function>XtMenuPopupAction</function>
+using
+<xref linkend='XtRegisterGrabAction' xrefstyle='select: title'/>
+specifying <emphasis remap='I'>owner_events</emphasis>
+<function>True</function>,
+<emphasis remap='I'>event_mask</emphasis>
+<function>ButtonPressMask</function>
+<function>|</function>
+<function>ButtonReleaseMask</function>,
+and <emphasis remap='I'>pointer_mode</emphasis> and <emphasis remap='I'>keyboard_mode</emphasis>
+<function>GrabModeAsync</function>.
+</para>
+
+<para>
+If
+<xref linkend='XtMenuPopup' xrefstyle='select: title'/>
+is invoked on
+<function>ButtonPress</function>,
+it calls
+<xref linkend='XtPopupSpringLoaded' xrefstyle='select: title'/>
+on the specified shell widget.
+If
+<xref linkend='XtMenuPopup' xrefstyle='select: title'/>
+is invoked on
+<function>KeyPress</function>
+or
+<function>EnterWindow</function>,
+it calls
+<xref linkend='XtPopup' xrefstyle='select: title'/>
+on the specified shell widget with <emphasis remap='I'>grab_kind</emphasis> set to
+<function>XtGrabNonexclusive</function>.
+Otherwise, the translation manager generates a
+warning message and ignores the action.
+</para>
+
+<para>
+<xref linkend='XtMenuPopup' xrefstyle='select: title'/>
+tries to find the shell by searching the widget tree starting at
+the widget in which it is invoked.
+If it finds a shell with the specified name in the pop-up children of
+that widget, it pops up the shell with the appropriate parameters.
+Otherwise, it moves up the parent chain to find a pop-up child with the
+specified name.
+If
+<xref linkend='XtMenuPopup' xrefstyle='select: title'/>
+gets to the application top-level shell widget and has not
+found a matching shell, it generates a warning and returns immediately.
+</para>
+</sect1>
+
+<sect1 id="Unmapping_a_Pop_Up_Widget">
+<title>Unmapping a Pop-Up Widget</title>
+<para>
+Pop-ups can be popped down through several mechanisms:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+A call to
+<xref linkend='XtPopdown' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The supplied callback procedure
+<xref linkend='XtCallbackPopdown' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The standard translation action
+<xref linkend='XtMenuPopdown' xrefstyle='select: title'/>
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+To unmap a pop-up from within an application, use
+<xref linkend='XtPopdown' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtPopdown'>
+<funcprototype>
+<funcdef>void <function>XtPopdown</function></funcdef>
+   <paramdef>Widget <parameter>popup_shell</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>popup_shell</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the shell widget to pop down.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtPopdown' xrefstyle='select: title'/>
+function performs the following:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Calls
+<xref linkend='XtCheckSubclass' xrefstyle='select: title'/>
+to ensure <emphasis remap='I'>popup_shell</emphasis>'s class is a subclass of
+<function>shellWidgetClass</function>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Checks that the <emphasis remap='I'>popped_up</emphasis> field of <emphasis remap='I'>popup_shell</emphasis> is
+<function>True</function>;
+otherwise, it returns immediately.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Unmaps <emphasis remap='I'>popup_shell</emphasis>'s window and, if <emphasis remap='I'>override_redirect</emphasis> is
+<function>False</function>,
+sends a synthetic
+<function>UnmapNotify</function>
+event as specified by the <emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If <emphasis remap='I'>popup_shell</emphasis>'s <emphasis remap='I'>grab_kind</emphasis> is either
+<function>XtGrabNonexclusive</function>
+or
+<function>XtGrabExclusive</function>,
+it calls
+<xref linkend='XtRemoveGrab' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Sets <emphasis remap='I'>popup_shell</emphasis>'s <emphasis remap='I'>popped_up</emphasis> field to
+<function>False</function>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calls the callback procedures on the shell's <emphasis remap='I'>popdown_callback</emphasis> list,
+specifying a pointer to the value of the shell's <emphasis remap='I'>grab_kind</emphasis> field
+as the <emphasis remap='I'>call_data</emphasis> argument.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+To pop down a pop-up from a callback list, you may use the callback
+<xref linkend='XtCallbackPopdown' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCallbackPopdown'>
+<funcprototype>
+<funcdef>void <function>XtCallbackPopdown</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtPointer <parameter>call_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the
+<function>XtPopdownID</function>
+structure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>call_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback data argument,
+which is not used by this procedure.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtCallbackPopdown' xrefstyle='select: title'/>
+function casts the <emphasis remap='I'>client_data</emphasis> parameter to a pointer of type
+<function>XtPopdownID</function>.
+</para>
+<literallayout >
+typedef struct {
+	Widget shell_widget;
+	Widget enable_widget;
+} XtPopdownIDRec, *XtPopdownID;
+</literallayout>
+<para>
+The <emphasis remap='I'>shell_widget</emphasis> is the pop-up shell to pop down,
+and the <emphasis remap='I'>enable_widget</emphasis> is usually the widget that was used to pop it up
+in one of the pop-up callback convenience procedures.
+</para>
+
+<para>
+<xref linkend='XtCallbackPopdown' xrefstyle='select: title'/>
+calls
+<xref linkend='XtPopdown' xrefstyle='select: title'/>
+with the specified <emphasis remap='I'>shell_widget</emphasis>
+and then calls
+<xref linkend='XtSetSensitive' xrefstyle='select: title'/>
+to resensitize <emphasis remap='I'>enable_widget</emphasis>.
+</para>
+
+<para>
+Within a translation table,
+to pop down a spring-loaded menu when a key or pointer button is
+released or when the
+pointer is moved into a widget, use
+<xref linkend='XtMenuPopdown' xrefstyle='select: title'/>
+or its synonym,
+<function>MenuPopdown</function>.
+From a translation writer's point of view,
+the definition for this translation action is
+</para>
+
+<funcsynopsis id='XtMenuPopdown'>
+<funcprototype>
+<funcdef>void <function>XtMenuPopdown</function></funcdef>
+   <paramdef>String <parameter>shell_name</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>shell_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the shell widget to pop down.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If a shell name is not given,
+<xref linkend='XtMenuPopdown' xrefstyle='select: title'/>
+calls
+<xref linkend='XtPopdown' xrefstyle='select: title'/>
+with the widget for which the translation is specified.
+If <emphasis remap='I'>shell_name</emphasis> is specified in the translation table,
+<xref linkend='XtMenuPopdown' xrefstyle='select: title'/>
+tries to find the shell by looking up the widget tree starting at the
+widget in which it is invoked.
+If it finds a shell with the specified name in the pop-up children
+of that widget, it pops down the shell;
+otherwise, it moves up the parent chain to find a pop-up child with the
+specified name.
+If
+<xref linkend='XtMenuPopdown' xrefstyle='select: title'/>
+gets to the application top-level shell widget
+and cannot find a matching shell,
+it generates a warning and returns immediately.
+</para>
+</sect1>
+</chapter>

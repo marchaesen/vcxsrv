@@ -257,7 +257,7 @@ void XtStringConversionWarning(
 		    params,&num_params);
 }
 
-static int CompareISOLatin1(char *, char *);
+static int CompareISOLatin1(const char *, const char *);
 
 
 static Boolean IsInteger(
@@ -1379,11 +1379,12 @@ void LowerCase(register char  *source, register *dest)
 }
 #endif
 
-static int CompareISOLatin1 (char *first, char *second)
+static int CompareISOLatin1 (const char *first, const char *second)
 {
-    register unsigned char *ap, *bp;
+    register const unsigned char *ap, *bp;
 
-    for (ap = (unsigned char *) first, bp = (unsigned char *) second;
+    for (ap = (const unsigned char *) first,
+	 bp = (const unsigned char *) second;
 	 *ap && *bp; ap++, bp++) {
 	register unsigned char a, b;
 
@@ -1410,11 +1411,10 @@ static int CompareISOLatin1 (char *first, char *second)
     return (((int) *bp) - ((int) *ap));
 }
 
-static void CopyISOLatin1Lowered(char *dst, char *src)
+static void CopyISOLatin1Lowered(char *dst, const char *src)
 {
-    unsigned char *dest, *source;
-
-    dest = (unsigned char *) dst; source = (unsigned char *) src;
+    unsigned char *dest = (unsigned char *) dst;
+    const unsigned char *source = (const unsigned char *) src;
 
     for ( ; *source; source++, dest++) {
 	if (*source >= XK_A  && *source <= XK_Z)
@@ -1735,7 +1735,7 @@ Boolean XtCvtStringToGravity (
 {
     static struct _namepair {
 	XrmQuark quark;
-	char *name;
+	const char *name;
 	int gravity;
     } names[] = {
 	{ NULLQUARK, "forget",		ForgetGravity },

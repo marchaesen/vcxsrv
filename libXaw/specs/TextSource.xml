@@ -22,7 +22,7 @@ Since all text sources will have some resources in common the
 TextSrc defines a few new resources.
 </para>
 
-<sect2 id="textsource_resources">
+<sect2 id='TextSource::Resources'>
 <title>Resources</title>
 <para>
 When creating an TextSrc object instance, the following resources are
@@ -133,14 +133,14 @@ used as a source by itself and bad things will probably happen.
   </tgroup>
 </informaltable>
 
-<sect3 id="Reading_Text_">
+<sect3 id='Reading_Text'>
 <title>Reading Text.</title>
 <para>
 <!-- .LP -->
-To read the text in a text source use the <function>Read</function> function:
+To read the text in a text source use the <xref linkend='Read' xrefstyle='select: title'/> function:
 <!-- .IN "TextSrc object" "Read" "@DEF@" -->
 </para>
-<funcsynopsis>
+<funcsynopsis id='Read'>
 <funcprototype>
   <funcdef>XawTextPosition<function> Read</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -199,18 +199,18 @@ characters read from the
 text buffer.  The function is not required to read <emphasis remap='I'>length</emphasis>
 characters if that many characters are in the file, it may break at
 any point that is convenient to the internal structure of the
-source.  It may take several calls to <function>Read</function> before the desired
+source.  It may take several calls to <xref linkend='Read' xrefstyle='select: title'/> before the desired
 portion of the text buffer is fully retrieved.
 </para>
 </sect3>
 
-<sect3 id="Replacing_Text_">
+<sect3 id='TextSource::Replacing_Text'>
 <title>Replacing Text.</title>
 <para>
-To replace or edit the text in a text buffer use the <function>Replace</function> function:
+To replace or edit the text in a text buffer use the <xref linkend='Replace' xrefstyle='select: title'/> function:
 </para>
 
-<funcsynopsis>
+<funcsynopsis id='Replace'>
 <funcprototype>
   <funcdef>XawTextPosition<function> Replace</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -293,7 +293,7 @@ than the length of the Source.
 
 <para>
 <!-- .LP -->
-The <function>Replace</function> arguments <function>start</function> and <function>end</function> represent the
+The <xref linkend='Replace' xrefstyle='select: title'/> arguments <function>start</function> and <function>end</function> represent the
 text source character positions for the existing text that is to be
 replaced by the text in the text block.  The characters from
 <emphasis remap='I'>start</emphasis> up to but not including <emphasis remap='I'>end</emphasis> are deleted, and the
@@ -307,10 +307,10 @@ the new text is inserted after <emphasis remap='I'>start</emphasis>.
 <title>Scanning the TextSrc</title>
 <para>
 To search the text source for one of the predefined boundary types use
-the <function>Scan</function> function:
+the <xref linkend='Scan' xrefstyle='select: title'/> function:
 </para>
 
-<funcsynopsis>
+<funcsynopsis id='Scan'>
 <funcprototype>
   <funcdef>XawTextPosition<function> Scan</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -382,7 +382,7 @@ Specifies whether the boundary itself should be included in the scan.
 
 <para>
 <!-- .LP -->
-The <function>Scan</function> function returns the position in the text source of the desired
+The <xref linkend='Scan' xrefstyle='select: title'/> function returns the position in the text source of the desired
 boundary.  It is expected to return a valid address for
 all calls made to it, thus if a particular request is made that would take
 the text widget beyond the end of the source it must return the
@@ -393,10 +393,10 @@ position of that end.
 <sect3 id="Searching_through_a_TextSrc">
 <title>Searching through a TextSrc</title>
 <para>
-To search for a particular string use the <function>Search</function> function.
+To search for a particular string use the <xref linkend='Search' xrefstyle='select: title'/> function.
 </para>
 
-<funcsynopsis>
+<funcsynopsis id='Search'>
 <funcprototype>
   <funcdef>XawTextPosition<function> Search</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -466,7 +466,7 @@ the <function>ConvertSelection</function> function, to attempt the selection
 conversion.
 </para>
 
-<funcsynopsis>
+<funcsynopsis id='ConvertSelections'>
 <funcprototype>
   <funcdef>Boolean<function> ConvertSelections</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -568,10 +568,10 @@ Text widget will attempt to convert the selection itself.
 
 <para>
 If the source needs to know when the text selection is modified it
-should define a <function>SetSelection</function> procedure:
+should define a <xref linkend='SetSelection' xrefstyle='select: title'/> procedure:
 </para>
 
-<funcsynopsis>
+<funcsynopsis id='SetSelection'>
 <funcprototype>
   <funcdef>void<function> SetSelection</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>

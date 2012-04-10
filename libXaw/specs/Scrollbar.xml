@@ -54,7 +54,7 @@ procedure is invoked only when the button is released and the client
 callback procedure is responsible for moving the thumb.
 </para>
 
-<sect2 id="scrollbar_resources">
+<sect2 id='Scrollbar::Resources'>
 <title>Resources</title>
 
 <para>
@@ -663,7 +663,7 @@ The procedural interface for these functions is described here.
 The calling interface to the <function>scrollProc</function> callback procedure is:
 <!-- .IN "ScrollProc" "" "@DEF@" -->
 </para>
-<funcsynopsis>
+<funcsynopsis id='ScrollProc'>
 <funcprototype>
   <funcdef>void<function> ScrollProc</function></funcdef>
   <paramdef>Widget<parameter> scrollbar</parameter></paramdef>
@@ -720,7 +720,7 @@ be greater than the length of the Scrollbar.
 The calling interface to the <function>jumpProc</function> callback procedure is:
 </para>
 <!-- .IN "jumpProc" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='JumpProc'>
 <funcprototype>
   <funcdef>void<function> JumpProc</function></funcdef>
   <paramdef>Widget<parameter> scrollbar</parameter></paramdef>
@@ -792,7 +792,7 @@ To set the position and length of a Scrollbar thumb, use
 <!-- .PN XawScrollbarSetThumb . -->
 <!-- .IN "XawScrollbarSetThumb" "" "@DEF@" -->
 </para>
-<funcsynopsis>
+<funcsynopsis id='XawScrollbarSetThumb'>
 <funcprototype>
   <funcdef>void<function> XawScrollbarSetThumb</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -845,7 +845,7 @@ Values greater than 1.0 are truncated to 1.0.
 </para>
 
 <para>
-If called from <function>jumpProc</function>, <function>XawScrollbarSetThumb</function> has no effect.
+If called from <function>jumpProc</function>, <xref linkend='XawScrollbarSetThumb' xrefstyle='select: title'/> has no effect.
 </para>
 
 </sect2>

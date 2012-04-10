@@ -63,7 +63,7 @@ may assume this to be the case.
 <para>
 <!-- .LP -->
 </para>
-<sect2 id="Cursor_Movement_Actions_fP">
+<sect2 id='Cursor_Movement_Actions'>
 <title>Cursor Movement Actions\fP</title>
 <para>
 <!-- .LP -->
@@ -813,7 +813,7 @@ section called <function>Text Selections for Users</function>.  To modify the se
 a programmer must construct a <function>XawTextSelectType</function> array (called the
 selection array), containing the selections desired, and pass this as
 the new value for the <function>selectionTypes</function> resource.  The selection
-array may also be modified using the <function>XawTextSetSelectionArray</function>
+array may also be modified using the <xref linkend='XawTextSetSelectionArray' xrefstyle='select: title'/>
 <!-- .IN "XawTextSetSelectionArray" "" -->
 function.  All selection arrays must end with the value
 <function>XawselectNull</function>.  The <function>selectionTypes</function> resource has no converter

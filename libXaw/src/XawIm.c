@@ -17,12 +17,12 @@
  * ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
  * WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTUOUS ACTION,
  * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
- * SOFTWARE. 
+ * SOFTWARE.
  *
  *	Author:	Seiji Kuwari	OMRON Corporation
  *				kuwa@omron.co.jp
  *				kuwa%omron.co.jp@uunet.uu.net
- */				
+ */
 
 
 /*
@@ -85,7 +85,7 @@ in this Software without prior written authorization from The Open Group.
  * Forward reference prototypes
  *
  *****************************************************/
- 
+
 /*
  * Prototypes
  */
@@ -184,14 +184,14 @@ static VendorShellWidget SearchVendorShell(Widget w)
     return(NULL);
 }
 
-static XContext extContext = (XContext)NULL;
+static XContext extContext = (XContext)0;
 
 static XawVendorShellExtPart *
 SetExtPart(VendorShellWidget w, XawVendorShellExtWidget vew)
 {
     contextDataRec *contextData;
 
-    if (extContext == (XContext)NULL) extContext = XUniqueContext();
+    if (extContext == (XContext)0) extContext = XUniqueContext();
 
     contextData = XtNew(contextDataRec);
     contextData->parent = (Widget)w;
@@ -296,13 +296,13 @@ ConfigureCB(Widget w, XtPointer closure, XEvent *event, Boolean *unused)
     }
 }
 
-static XContext errContext = (XContext)NULL;
+static XContext errContext = (XContext)0;
 
 static Widget SetErrCnxt(Widget w, XIM xim)
 {
     contextErrDataRec *contextErrData;
 
-    if (errContext == (XContext)NULL) errContext = XUniqueContext();
+    if (errContext == (XContext)0) errContext = XUniqueContext();
 
     contextErrData = XtNew(contextErrDataRec);
     contextErrData->widget = w;
@@ -506,7 +506,7 @@ OpenIM(XawVendorShellExtPart *ve)
     }
     if (XGetIMValues(xim, XNQueryInputStyle, &xim_styles, NULL)
 	|| !xim_styles) {
-	XtAppWarning(XtWidgetToApplicationContext(ve->parent), 
+	XtAppWarning(XtWidgetToApplicationContext(ve->parent),
 	    "input method doesn't support any style");
 	XCloseIM(xim);
 	return;
@@ -800,7 +800,7 @@ CreateIC(Widget w, XawVendorShellExtPart *ve)
 
     if (IsSharedIC(ve)) SetICValuesShared(w, ve, p, FALSE);
     XFlush(XtDisplay(w));
-    
+
     if (p->input_style & (XIMPreeditArea|XIMPreeditPosition|XIMStatusArea)) {
 	if (p->flg & CIFontSet) {
 	    pe_a[pe_cnt] = (XPointer) XNFontSet; pe_cnt++;
@@ -1220,7 +1220,7 @@ SetFocusValues(Widget inwidg, ArgList args, Cardinal num_args, Bool focus)
 		if (focus) SetICFocus(inwidg, ve);
 	    } else {
 		CreateIC(inwidg, ve);
-	    	SetICFocus(inwidg, ve);
+		SetICFocus(inwidg, ve);
 	    }
 	}
     }
@@ -1407,13 +1407,13 @@ Destroy(Widget w, XawVendorShellExtPart *ve)
 	return;
     XtFree( (char*) ve->im.resources );
 
-    if (extContext != (XContext)NULL && 
-	!XFindContext (XtDisplay (w), (Window)w, 
+    if (extContext != (XContext)0 &&
+	!XFindContext (XtDisplay (w), (Window)w,
 		       extContext, (XPointer*)&contextData))
         XtFree( (char*) contextData );
 
-    if (errContext != (XContext)NULL && 
-	!XFindContext (XDisplayOfIM( ve->im.xim ), (Window) ve->im.xim, 
+    if (errContext != (XContext)0 &&
+	!XFindContext (XDisplayOfIM( ve->im.xim ), (Window) ve->im.xim,
 		       errContext, (XPointer*) &contextErrData))
         XtFree( (char*) contextErrData );
 }

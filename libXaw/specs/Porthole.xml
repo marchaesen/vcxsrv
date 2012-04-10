@@ -29,7 +29,7 @@ widgets, only one of which may be managed at any particular time.
 The managed child widget is reparented within the porthole and is moved around
 by the application (typically under the control of a Panner widget).
 </para>
-<sect2 id="porthole_resources">
+<sect2 id='Porthole::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->
@@ -242,7 +242,7 @@ size or position.
 <!-- .Xy -->
 </para>
 </sect2>
-<sect2 id="porthold_layout_semantics">
+<sect2 id='Porthole::Layout_Semantics'>
 <title>Layout Semantics</title>
 <!-- .IN "Porthole widget" "layout semantics" -->
 <para>
@@ -262,7 +262,7 @@ Panner widget.
 The functions registered on the <function>reportCallback</function> list are invoked whenever
 the managed child changes size or position:
 <!-- .IN "ReportProc" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='Porthole::ReportProc'>
 <funcprototype>
   <funcdef>void<function> ReportProc</function></funcdef>
   <paramdef>Widget<parameter> porthole</parameter></paramdef>
@@ -281,7 +281,7 @@ the managed child changes size or position:
 Specifies the Porthole widget.
       </para>
     </listitem>
-  </varlistentry> 
+  </varlistentry>
   <varlistentry>
     <term>client_data</term>
     <listitem>
@@ -290,7 +290,7 @@ Specifies the Porthole widget.
 Specifies the client data.
       </para>
     </listitem>
-  </varlistentry> 
+  </varlistentry>
   <varlistentry>
     <term>report</term>
     <listitem>
@@ -300,7 +300,7 @@ Specifies a pointer to an <function>XawPannerReport</function> structure contain
 the location and size of the slider and the size of the canvas.
       </para>
     </listitem>
-  </varlistentry> 
+  </varlistentry>
 </variablelist>
 </sect2>
 </sect1>

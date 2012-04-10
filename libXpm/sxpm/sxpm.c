@@ -110,7 +110,7 @@ static char *plaid[] = {
 static Colormap colormap;
 
 void Usage(void);
-void ErrorMessage(int ErrorStatus, char *tag);
+void ErrorMessage(int ErrorStatus, const char *tag);
 void Punt(int i);
 void VersionInfo(void);
 void kinput(Widget widget, char *tag, XEvent *xe, Boolean *b);
@@ -483,7 +483,7 @@ main(
 	    unsigned int i, j;
 
 	    for (i = 0; i < view.attributes.nextensions; i++) {
-		/* L10N_Comments : Output when -v & file has extensions 
+		/* L10N_Comments : Output when -v & file has extensions
 		   %s is replaced by extension name */
 		fprintf(stderr, gettext("Xpm extension : %s\n"),
 			view.attributes.extensions[i].name);
@@ -577,7 +577,7 @@ main(
 void
 Usage(void)
 {
-    /* L10N_Comments : Usage message (sxpm -h) in two parts. 
+    /* L10N_Comments : Usage message (sxpm -h) in two parts.
        In the first part %s is replaced by the command name. */
     fprintf(stderr, gettext("\nUsage:  %s [options...]\n"), command[0]);
     fprintf(stderr, gettext("Where options are:\n\
@@ -615,7 +615,7 @@ if no input is specified sxpm reads from standard input.\n\
 void
 ErrorMessage(
     int		 ErrorStatus,
-    char	*tag)
+    const char	*tag)
 {
     char *error = NULL;
     char *warning = NULL;
@@ -624,16 +624,16 @@ ErrorMessage(
     case XpmSuccess:
 	return;
     case XpmColorError:
-/* L10N_Comments : The following set of messages are classified as 
+/* L10N_Comments : The following set of messages are classified as
    either errors or warnings.  Based on the class of message, different
-   wrappers are selected at the end to state the message source & class. 
+   wrappers are selected at the end to state the message source & class.
 
 	   L10N_Comments : WARNING produced when filename can be read, but
 	   contains an invalid color specification (need to create test case)*/
 	warning = gettext("Could not parse or alloc requested color");
 	break;
     case XpmOpenFailed:
-	/* L10N_Comments : ERROR produced when filename does not exist 
+	/* L10N_Comments : ERROR produced when filename does not exist
 	   or insufficient permissions to open (i.e. sxpm /no/such/file ) */
 	error = gettext("Cannot open file");
 	break;
@@ -644,7 +644,7 @@ ErrorMessage(
 	break;
     case XpmNoMemory:
 	/* L10N_Comments : ERROR produced when filename can be read, but
-	   is too big for memory 
+	   is too big for memory
 	   (i.e. limit datasize 32 ; sxpm /usr/dt/backdrops/Crochet.pm ) */
 	error = gettext("Not enough memory");
 	break;

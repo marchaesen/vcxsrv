@@ -38,7 +38,7 @@ Toggle widgets may also be part of a ``radio group.''  A radio group is a
 list of at least two Toggle widgets in which no more than one Toggle may
 be set at
 any time.  A radio group is identified by the widget ID of any one of
-its members.  The convenience routine <function>XawToggleGetCurrent</function> will
+its members.  The convenience routine <xref linkend='XawToggleGetCurrent' xrefstyle='select: title'/> will
 return information about the Toggle widget in the radio group.
 </para>
 
@@ -46,7 +46,7 @@ return information about the Toggle widget in the radio group.
 Toggle widget state is preserved across changes in sensitivity.
 </para>
 
-<sect2 id="toggle_resources">
+<sect2 id='Toggle::Resources'>
 <title>Resources</title>
 <para>
 When creating a Toggle widget instance, the following resources are
@@ -375,11 +375,11 @@ retrieved from the argument list or from the resource database:
     </term>
     <listitem>
       <para>
-Specifies the data that will be returned by <function>XawToggleGetCurrent</function>
+Specifies the data that will be returned by <xref linkend='XawToggleGetCurrent' xrefstyle='select: title'/>
 when this is the currently <emphasis remap='I'>set</emphasis> widget in the radio group.  This
 value is also used to identify the Toggle that will be set by a call to
-<function>XawToggleSetCurrent</function>.  The value NULL will be returned by
-<function>XawToggleGetCurrent</function> if no widget in a radio group is currently
+<xref linkend='XawToggleSetCurrent' xrefstyle='select: title'/>.  The value NULL will be returned by
+<xref linkend='XawToggleGetCurrent' xrefstyle='select: title'/> if no widget in a radio group is currently
 set.  Programmers must not specify NULL (or Zero) as <function>radioData</function>.
       </para>
     </listitem>
@@ -455,8 +455,8 @@ Toggle widget:
 </literallayout>
 </sect2>
 
-<sect2 id="Toggle_Actions_b">
-<title>Toggle Actions_b</title>
+<sect2 id='Toggle_Actions_b'>
+<title>Toggle Actions</title>
 <para>
 The full list of actions supported by Toggle is:
 </para>
@@ -593,22 +593,22 @@ its member widgets to <function>True</function>.
 </para>
 </sect2>
 
-<sect2 id="toggle_convenience_routines">
+<sect2 id='Toggle::Convenience_Routines'>
 <title>Convenience Routines</title>
 <para>
 The following functions allow easy access to the Toggle widget's radio
 group functionality.
 </para>
 
-<sect3 id="Changing_the_Toggle_s_Radio_Group_">
+<sect3 id='Changing_the_Toggles_Radio_Group'>
 <title>Changing the Toggle's Radio Group.</title>
 <para>
 To enable an application to change the Toggle's radio group, add
 the Toggle to a radio group, or remove the Toggle from a radio group, use
-<function>XawToggleChangeRadioGroup</function>.
+<xref linkend='XawToggleChangeRadioGroup' xrefstyle='select: title'/>.
 </para>
 
-<funcsynopsis>
+<funcsynopsis id='XawToggleChangeRadioGroup'>
 <funcprototype>
   <funcdef>void<function> XawToggleChangeRadioGroup</function></funcdef>
   <paramdef>Widgetw,<parameter> radio_group</parameter></paramdef>
@@ -651,10 +651,10 @@ Finding the Currently selected Toggle in a radio group of Toggles
 
 <para>
 To find the currently selected Toggle in a radio group of Toggle widgets
-use <function>XawToggleGetCurrent</function>.
+use <xref linkend='XawToggleGetCurrent' xrefstyle='select: title'/>.
 </para>
 
-<funcsynopsis>
+<funcsynopsis id='XawToggleGetCurrent'>
 <funcprototype>
   <funcdef>XtPointer<function> XawToggleGetCurrent</function></funcdef>
   <paramdef>XtPointer<parameter> XawToggleGetCurrent(radio_group)</parameter></paramdef>
@@ -687,10 +687,10 @@ Changing the Toggle that is set in a radio group.
 
 <para>
 To change the Toggle that is currently set in a radio group use
-<function>XawToggleSetCurrent</function>.
+<xref linkend='XawToggleSetCurrent' xrefstyle='select: title'/>.
 </para>
 
-<funcsynopsis>
+<funcsynopsis id='XawToggleSetCurrent'>
 <funcprototype>
   <funcdef>void<function> XawToggleSetCurrent</function></funcdef>
   <paramdef>voidXawToggleSetCurrent(radio_group,<parameter> radio_data)</parameter></paramdef>
@@ -727,11 +727,11 @@ by the <emphasis remap='I'>radio_group</emphasis> argument.
 
 
 <para>
-<function>XawToggleSetCurrent</function> locates the Toggle widget to be set by
+<xref linkend='XawToggleSetCurrent' xrefstyle='select: title'/> locates the Toggle widget to be set by
 matching <emphasis remap='I'>radio_data</emphasis> against the <function>radioData</function> for each Toggle in
-the radio group.  If none match, <function>XawToggleSetCurrent</function> returns
+the radio group.  If none match, <xref linkend='XawToggleSetCurrent' xrefstyle='select: title'/> returns
 without making any changes.  If more than one Toggle matches,
-<function>XawToggleSetCurrent</function> will choose a Toggle to set arbitrarily.  If
+<xref linkend='XawToggleSetCurrent' xrefstyle='select: title'/> will choose a Toggle to set arbitrarily.  If
 this causes any Toggle widgets to change state, all routines in their
 callback lists will be invoked.  The callback routines for a Toggle that
 is to be unset will be called before the one that is to be set.
@@ -740,10 +740,10 @@ Unsetting all Toggles in a radio group.
 
 <para>
 To unset all Toggle widgets in a radio group use
-<function>XawToggleUnsetCurrent</function>.
+<xref linkend='XawToggleUnsetCurrent' xrefstyle='select: title'/>.
 </para>
 
-<funcsynopsis>
+<funcsynopsis id='XawToggleUnsetCurrent'>
 <funcprototype>
   <funcdef>void<function> XawToggleUnsetCurrent</function></funcdef>
   <paramdef>void<parameter> XawToggleUnsetCurrent(radio_group)</parameter></paramdef>

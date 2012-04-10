@@ -30,7 +30,7 @@ is able to change the color, height, and other attributes of the SmeLine
 objects on an entry by entry basis.  This object is not selectable, and
 will not highlight when the pointer cursor is over it.
 </para>
-<sect2 id="smeline_resources">
+<sect2 id='SmeLine::Resources'>
 <title>Resources</title>
 <!-- .IN "SmeLine object" "resources" -->
 <para>

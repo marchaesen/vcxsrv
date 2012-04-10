@@ -50,7 +50,7 @@ into an internal buffer.  This buffer may then be modified, provided the
 text widget is in the correct edit mode, just as if it were a source of
 type <function>XawAsciiString</function>.  Unlike R3 and earlier versions of the AsciiSrc,
 it is now possible to specify an editable disk source.  The file is not
-updated, however, until a call to <function>XawAsciiSave</function> is made.  When the
+updated, however, until a call to <xref linkend='XawAsciiSave' xrefstyle='select: title'/> is made.  When the
 source is in this mode the <function>useStringInPlace</function> resource is ignored.
 </para>
 <para>
@@ -68,22 +68,22 @@ In the default case for AsciiSrc objects of type <function>XawAsciiString</funct
 the resource <function>useStringInPlace</function> is false,
 and the widget owns the string.  The initial value of the
 string resource, and any update made by the application
-programmer to the string resource with <function>XtSetValues</function>, is copied
+programmer to the string resource with <xref linkend='XtSetValues' xrefstyle='select: title'/>, is copied
 into memory private to the widget, and managed internally by the widget.
 The application writer
 does not need to worry about running out of buffer space
 (subject to the total memory available to the application).
 The performance does not decay linearly as the buffer grows
 large, as is necessarily the case when the text buffer is used
-in place.   The application writer must use <function>XtGetValues</function> to
+in place.   The application writer must use <xref linkend='XtGetValues' xrefstyle='select: title'/> to
 determine the contents of the text buffer, which will return
 a copy of the widget's text buffer as
-it existed at the time of the <function>XtGetValues</function> call.   This copy
+it existed at the time of the <xref linkend='XtGetValues' xrefstyle='select: title'/> call.   This copy
 is not affected by subsequent updates to the text buffer, i.e.,
 it is not updated as the user types input into the text buffer.
 This copy is freed upon the next call to XtGetValues to
 retrieve the string resource; however, to conserve memory,
-there is a convenience routine, <function>XawAsciiSourceFreeString</function>, allowing the
+there is a convenience routine, <xref linkend='XawAsciiSourceFreeString' xrefstyle='select: title'/>, allowing the
 application programmer to direct the widget to free the copy.
 </para>
 <para>
@@ -94,12 +94,12 @@ is the string owner.  The widget will take the value
 of the string resource as its own text buffer, and the <function>length</function>
 resource indicates the buffer size.   In this case
 the buffer contents change as the user types at the widget;
-it is not necessary to call <function>XtGetValues</function> on the string
+it is not necessary to call <xref linkend='XtGetValues' xrefstyle='select: title'/> on the string
 resource to determine the contents of the buffer-it will
 simply return the address of the application's implementation
 of the text buffer.
 </para>
-<sect2 id="asciisource_resources">
+<sect2 id='AsciiSource::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->
@@ -206,7 +206,7 @@ retrieved from the argument list or from the resource database:
 <!-- .Ou Bold -->
 </para>
 </sect2>
-<sect2 id="asciisource_convenience_routines">
+<sect2 id='AsciiSource::Convenience_Routines'>
 <title>Convenience Routines</title>
 <para>
 <!-- .LP -->
@@ -220,11 +220,11 @@ commonly used functionality of the AsciiSrc.
 <!-- .LP -->
 When the AsciiSrc widget is not in <function>useStringInPlace</function> mode
 space must be allocated whenever the file is saved, or the string is
-requested with a call to <function>XtGetValues</function>.  This memory is allocated on the
+requested with a call to <xref linkend='XtGetValues' xrefstyle='select: title'/>.  This memory is allocated on the
 fly, and remains valid until the next time a string needs to be allocated.
 You may save memory by freeing this string as soon as you are done
-with it by calling <function>XawAsciiSourceFreeString</function>.
-<funcsynopsis>
+with it by calling <xref linkend='XawAsciiSourceFreeString' xrefstyle='select: title'/>.
+<funcsynopsis id='XawAsciiSourceFreeString'>
 <funcprototype>
   <funcdef>void<function> XawAsciiSourceFreeString</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -247,8 +247,8 @@ Specifies the AsciiSrc object.
 <para>
 <!-- .LP -->
 This function will free the memory that contains the string pointer returned
-by <function>XtGetValues</function>.  This will normally happen automatically when
-the next call to <function>XtGetValues</function> occurs, or when the widget is destroyed.
+by <xref linkend='XtGetValues' xrefstyle='select: title'/>.  This will normally happen automatically when
+the next call to <xref linkend='XtGetValues' xrefstyle='select: title'/> occurs, or when the widget is destroyed.
 </para>
 </sect3>
 <sect3 id="Saving_Files">
@@ -256,8 +256,8 @@ the next call to <function>XtGetValues</function> occurs, or when the widget is 
 <para>
 <!-- .LP -->
 To save the changes made in the current text source into a file use
-<function>XawAsciiSave</function>.
-<funcsynopsis>
+<xref linkend='XawAsciiSave' xrefstyle='select: title'/>.
+<funcsynopsis id='XawAsciiSave'>
 <funcprototype>
   <funcdef>Boolean<function> XawAsciiSave</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -279,7 +279,7 @@ Specifies the AsciiSrc object.
 </para>
 <para>
 <!-- .LP -->
-<function>XawAsciiSave</function> returns <function>True</function> if the save was successful.
+<xref linkend='XawAsciiSave' xrefstyle='select: title'/> returns <function>True</function> if the save was successful.
 It will update the file named in the <function>string</function> resource.
 If the buffer has not been changed, no action will be taken.  This function
 only works on an AsciiSrc of type <function>XawAsciiFile</function>.
@@ -288,8 +288,8 @@ only works on an AsciiSrc of type <function>XawAsciiFile</function>.
 <!-- .LP -->
 <!-- .sp 1 -->
 To save the contents of the current text buffer into a named file use
-<function>XawAsciiSaveAsFile</function>.
-<funcsynopsis>
+<xref linkend='XawAsciiSaveAsFile' xrefstyle='select: title'/>.
+<funcsynopsis id='XawAsciiSaveAsFile'>
 <funcprototype>
   <funcdef>Boolean<function> XawAsciiSaveAsFile</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -323,7 +323,7 @@ The name of the file to save the current buffer into.
 <para>
 <!-- .LP -->
 This function returns <function>True</function> if the save was successful.
-<function>XawAsciiSaveAsFile</function> will work with a buffer of either type
+<xref linkend='XawAsciiSaveAsFile' xrefstyle='select: title'/> will work with a buffer of either type
 <function>XawAsciiString</function> or type <function>XawAsciiFile</function>.
 </para>
 </sect3>
@@ -332,10 +332,10 @@ This function returns <function>True</function> if the save was successful.
 <para>
 <!-- .LP -->
 To find out if the text buffer in an AsciiSrc object has changed
-since the last time it was saved with <function>XawAsciiSave</function> or queried
+since the last time it was saved with <xref linkend='XawAsciiSave' xrefstyle='select: title'/> or queried
 <!-- .IN "XawAsciiSave" "" -->
-use <function>XawAsciiSourceChanged</function>.
-<funcsynopsis>
+use <xref linkend='XawAsciiSourceChanged' xrefstyle='select: title'/>.
+<funcsynopsis id='XawAsciiSourceChanged'>
 <funcprototype>
   <funcdef>Boolean<function> XawAsciiSourceChanged</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -359,8 +359,8 @@ Specifies the AsciiSrc object.
 <!-- .LP -->
 This function will return <function>True</function> if the source has changed since
 the last time it was saved or queried.  The internal change flag is
-reset whenever the string is queried via <function>XtGetValues</function> or the
-buffer is saved via <function>XawAsciiSave</function>.
+reset whenever the string is queried via <xref linkend='XtGetValues' xrefstyle='select: title'/> or the
+buffer is saved via <xref linkend='XawAsciiSave' xrefstyle='select: title'/>.
 
 </para>
 </sect3>

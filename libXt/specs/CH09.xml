@@ -1,0 +1,4326 @@
+<chapter id='Resource_Management'>
+<title>Resource Management</title>
+<para>
+A resource is a field in the widget record with a corresponding
+resource entry in the <emphasis remap='I'>resources</emphasis> list of the widget or any of its
+superclasses.
+This means that the field is
+settable by
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>
+(by naming the field in the argument list), by an
+entry in a resource file (by using either the name or class), and by
+<xref linkend='XtSetValues' xrefstyle='select: title'/>.
+In addition, it is readable by
+<xref linkend='XtGetValues' xrefstyle='select: title'/>.
+Not all fields in a widget record are resources.
+Some are for bookkeeping use by the
+generic routines (like <emphasis remap='I'>managed</emphasis> and <emphasis remap='I'>being_destroyed</emphasis>).
+Others can be for local bookkeeping,
+and still others are derived from resources
+(many graphics contexts and pixmaps).
+</para>
+
+<para>
+Widgets typically need to obtain a large set of resources at widget
+creation time.
+Some of the resources come from the argument list supplied in the call to
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>,
+some from the resource database,
+and some from the internal defaults specified by the widget.
+Resources are obtained first from the argument list,
+then from the resource database for all resources not specified
+in the argument list,
+and last, from the internal default, if needed.
+</para>
+<sect1 id="Resource_Lists">
+<title>Resource Lists</title>
+<para>
+A resource entry specifies a field in the widget,
+the textual name and class of the field that argument lists
+and external resource files use to refer to the field,
+and a default value that the field should get if no value is specified.
+The declaration for the
+<function>XtResource</function>
+structure is
+</para>
+<literallayout >
+typedef struct {
+        String resource_name;
+        String resource_class;
+        String resource_type;
+        Cardinal resource_size;
+        Cardinal resource_offset;
+        String default_type;
+        XtPointer default_addr;
+} XtResource, *XtResourceList;
+</literallayout>
+<para>
+When the resource list is specified as the
+<function>CoreClassPart</function>,
+<function>ObjectClassPart</function>,
+<function>RectObjClassPart</function>,
+or
+<function>ConstraintClassPart</function>
+<emphasis remap='I'>resources</emphasis> field, the strings pointed to by <emphasis remap='I'>resource_name</emphasis>,
+<emphasis remap='I'>resource_class</emphasis>, <emphasis remap='I'>resource_type</emphasis>, and <emphasis remap='I'>default_type</emphasis> must
+be permanently allocated prior to or during the execution of the class
+initialization procedure and must not be subsequently deallocated.
+</para>
+
+<para>
+The <emphasis remap='I'>resource_name</emphasis> field contains the name used by clients to access the field
+in the widget.
+By convention, it starts with a lowercase letter
+and is spelled exactly like the field name,
+except all underscores (_) are deleted and the next letter is replaced by its
+uppercase counterpart.
+For example, the resource name for background_pixel becomes backgroundPixel.
+Resource names beginning with the two-character
+sequence ``xt'', and resource classes beginning with the two-character
+sequence ``Xt'' are reserved to the Intrinsics for future standard and
+implementation-dependent uses.
+Widget header files typically contain a symbolic name for each resource name.
+All resource names, classes, and types used by the Intrinsics are named in
+<function>&lt;X11/StringDefs.h&gt;</function>.
+The Intrinsics's symbolic resource names begin with
+``XtN''
+and are followed by the string name (for example, XtNbackgroundPixel
+for backgroundPixel).
+</para>
+
+<para>
+The <emphasis remap='I'>resource_class</emphasis> field contains the class string used in resource
+specification files to identify the field.
+A resource class provides two functions:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+It isolates an application from different representations that widgets
+can use for a similar resource.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+It lets you specify values for several actual resources with a single name.
+A resource class should be chosen to span a group of closely related fields.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+For example,
+a widget can have several pixel resources: background, foreground,
+border, block cursor, pointer cursor, and so on.
+Typically, the background defaults to white
+and everything else to black.
+The resource class for each of these resources in the resource list
+should be chosen so that it takes the minimal number of entries
+in the resource database to make the background ivory
+and everything else darkblue.
+</para>
+
+<para>
+In this case, the background pixel should have a resource class of
+``Background''
+and all the other pixel entries a resource class of
+``Foreground''.
+Then, the resource file needs only two lines to
+change all pixels to ivory or darkblue:
+</para>
+<literallayout >
+*Background:	ivory
+*Foreground:	darkblue
+</literallayout>
+<para>
+Similarly, a widget may have several font resources (such as normal and bold),
+but all fonts should have the class Font.
+Thus, changing all fonts simply requires only a single line in the
+default resource file:
+</para>
+<literallayout >
+*Font:	6x13
+</literallayout>
+<para>
+By convention,
+resource classes are always spelled starting with a capital letter
+to distinguish them from resource names.
+Their symbolic names are preceded with
+``XtC''
+(for example, XtCBackground).
+</para>
+
+<para>
+The <emphasis remap='I'>resource_type</emphasis> field gives the physical representation type of the resource
+and also encodes information about the specific usage of the field.
+By convention, it starts with an uppercase letter and is
+spelled identically to the type name of the field.
+The resource type is used when resources are fetched to
+convert from the resource database format (usually
+<function>String</function>)
+or the format of the resource default value
+(almost anything, but often
+<function>String</function>)
+to the desired
+physical representation (see <xref linkend='Resource_Conversions' />).
+The Intrinsics define the following resource types:
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Resource Type</entry>
+      <entry>Structure or Field Type</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry><function>XtRAcceleratorTable</function></entry>
+      <entry>XtAccelerators</entry>
+    </row>
+    <row>
+      <entry><function>XtRAtom</function></entry>
+      <entry>Atom</entry>
+    </row>
+    <row>
+      <entry><function>XtRBitmap</function></entry>
+      <entry>Pixmap, depth=1</entry>
+    </row>
+    <row>
+      <entry><function>XtRBoolean</function></entry>
+      <entry>Boolean</entry>
+    </row>
+    <row>
+      <entry><function>XtRBool</function></entry>
+      <entry>Bool</entry>
+    </row>
+    <row>
+      <entry><function>XtRCallback</function></entry>
+      <entry>XtCallbackList</entry>
+    </row>
+    <row>
+      <entry><function>XtRCardinal</function></entry>
+      <entry>Cardinal</entry>
+    </row>
+    <row>
+      <entry><function>XtRColor</function></entry>
+      <entry>XColor</entry>
+    </row>
+    <row>
+      <entry><function>XtRColormap</function></entry>
+      <entry>Colormap</entry>
+    </row>
+    <row>
+      <entry><function>XtRCommandArgArray</function></entry>
+      <entry>String*</entry>
+    </row>
+    <row>
+      <entry><function>XtRCursor</function></entry>
+      <entry>Cursor</entry>
+    </row>
+    <row>
+      <entry><function>XtRDimension</function></entry>
+      <entry>Dimension</entry>
+    </row>
+    <row>
+      <entry><function>XtRDirectoryString</function></entry>
+      <entry>String</entry>
+    </row>
+    <row>
+      <entry><function>XtRDisplay</function></entry>
+      <entry>Display*</entry>
+    </row>
+    <row>
+      <entry><function>XtREnum</function></entry>
+      <entry>XtEnum</entry>
+    </row>
+    <row>
+      <entry><function>XtREnvironmentArray</function></entry>
+      <entry>String*</entry>
+    </row>
+    <row>
+      <entry><function>XtRFile</function></entry>
+      <entry>FILE*</entry>
+    </row>
+    <row>
+      <entry><function>XtRFloat</function></entry>
+      <entry>float</entry>
+    </row>
+    <row>
+      <entry><function>XtRFont</function></entry>
+      <entry>Font</entry>
+    </row>
+    <row>
+      <entry><function>XtRFontSet</function></entry>
+      <entry>XFontSet</entry>
+    </row>
+    <row>
+      <entry><function>XtRFontStruct</function></entry>
+      <entry>XFontStruct*</entry>
+    </row>
+    <row>
+      <entry><function>XtRFunction</function></entry>
+      <entry>(*)()</entry>
+    </row>
+    <row>
+      <entry><function>XtRGeometry</function></entry>
+      <entry>char*, format as defined by
+      <function>XParseGeometry</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRGravity</function></entry>
+      <entry>int</entry>
+    </row>
+    <row>
+      <entry><function>XtRInitialState</function></entry>
+      <entry>int</entry>
+    </row>
+    <row>
+      <entry><function>XtRInt</function></entry>
+      <entry>int</entry>
+    </row>
+    <row>
+      <entry><function>XtRLongBoolean</function></entry>
+      <entry>long</entry>
+    </row>
+    <row>
+      <entry><function>XtRObject</function></entry>
+      <entry>Object</entry>
+    </row>
+    <row>
+      <entry><function>XtRPixel</function></entry>
+      <entry>Pixel</entry>
+    </row>
+    <row>
+      <entry><function>XtRPixmap</function></entry>
+      <entry>Pixmap</entry>
+    </row>
+    <row>
+      <entry><function>XtRPointer</function></entry>
+      <entry>XtPointer</entry>
+    </row>
+    <row>
+      <entry><function>XtRPosition</function></entry>
+      <entry>Position</entry>
+    </row>
+    <row>
+      <entry><function>XtRRestartStyle</function></entry>
+      <entry>unsigned char</entry>
+    </row>
+    <row>
+      <entry><function>XtRScreen</function></entry>
+      <entry>Screen*</entry>
+    </row>
+    <row>
+      <entry><function>XtRShort</function></entry>
+      <entry>short</entry>
+    </row>
+    <row>
+      <entry><function>XtRSmcConn</function></entry>
+      <entry>XtPointer</entry>
+    </row>
+    <row>
+      <entry><function>XtRString</function></entry>
+      <entry>String</entry>
+    </row>
+    <row>
+      <entry><function>XtRStringArray</function></entry>
+      <entry>String*</entry>
+    </row>
+    <row>
+      <entry><function>XtRStringTable</function></entry>
+      <entry>String*</entry>
+    </row>
+    <row>
+      <entry><function>XtRTranslationTable</function></entry>
+      <entry>XtTranslations</entry>
+    </row>
+    <row>
+      <entry><function>XtRUnsignedChar</function></entry>
+      <entry>unsigned char</entry>
+    </row>
+    <row>
+      <entry><function>XtRVisual</function></entry>
+      <entry>Visual*</entry>
+    </row>
+    <row>
+      <entry><function>XtRWidget</function></entry>
+      <entry>Widget</entry>
+    </row>
+    <row>
+      <entry><function>XtRWidgetClass</function></entry>
+      <entry>WidgetClass</entry>
+    </row>
+    <row>
+      <entry><function>XtRWidgetList</function></entry>
+      <entry>WidgetList</entry>
+    </row>
+    <row>
+      <entry><function>XtRWindow</function></entry>
+      <entry>Window</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+<function>&lt;X11/StringDefs.h&gt;</function>
+also defines the following resource types as a
+convenience for widgets, although they do not have any corresponding
+data type assigned:
+<function>XtREditMode</function>,
+<function>XtRJustify</function>,
+and
+<function>XtROrientation</function>.
+</para>
+
+<para>
+The <emphasis remap='I'>resource_size</emphasis> field is the size of the physical representation in bytes;
+you should specify it as
+<function>sizeof</function>(type) so that the
+compiler fills in the value.
+The <emphasis remap='I'>resource_offset</emphasis> field is the offset in bytes of the field
+within the widget.
+You should use the
+<xref linkend='XtOffsetOf' xrefstyle='select: title'/>
+macro to retrieve this value.
+The <emphasis remap='I'>default_type</emphasis> field is the representation type of the default
+resource value.
+If <emphasis remap='I'>default_type</emphasis> is different from <emphasis remap='I'>resource_type</emphasis> and the default value
+is needed,
+the resource manager invokes a conversion procedure from <emphasis remap='I'>default_type</emphasis>
+to <emphasis remap='I'>resource_type</emphasis>.
+Whenever possible,
+the default type should be identical to the resource type in order
+to minimize widget creation time.
+However, there are sometimes no values of the type that the program
+can easily specify.
+In this case,
+it should be a value for which the converter is guaranteed to work (for example,
+<function>XtDefaultForeground</function>
+for a pixel resource).
+The <emphasis remap='I'>default_addr</emphasis> field specifies the address of the default resource value.
+As a special case, if <emphasis remap='I'>default_type</emphasis> is
+<function>XtRString</function>,
+then the value in the <emphasis remap='I'>default_addr</emphasis> field is the pointer to
+the string rather than a pointer to the pointer.
+The default is used if a resource is not specified in the argument list
+or in the resource database or if the conversion from the representation
+type stored in the resource database fails,
+which can happen for various reasons (for example, a misspelled entry in a
+resource file).
+</para>
+
+<para>
+Two special representation types
+(XtRImmediate
+and
+XtRCallProc)
+are usable only as default resource types.
+XtRImmediate
+indicates that the value in the <emphasis remap='I'>default_addr</emphasis> field is the actual value of
+the resource rather than the address of the value.
+The value must be in the correct representation type for the resource,
+coerced to an
+<function>XtPointer</function>.
+No conversion is possible, since there is no source representation type.
+XtRCallProc
+indicates that the value in the <emphasis remap='I'>default_addr</emphasis> field is a procedure
+pointer.
+This procedure is automatically invoked with the widget,
+<emphasis remap='I'>resource_offset</emphasis>, and a pointer to an
+<function>XrmValue</function>
+in which to store the result.
+XtRCallProc
+procedure pointers are of type
+<xref linkend='XtResourceDefaultProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtResourceDefaultProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtResourceDefaultProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>int <parameter>offset</parameter></paramdef>
+   <paramdef>XrmValue *<parameter>value</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget whose resource value is to be obtained.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>offset</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the offset of the field in the widget record.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>value</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource value descriptor to return.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtResourceDefaultProc' xrefstyle='select: title'/>
+procedure should fill in the <emphasis remap='I'>value-&gt;addr</emphasis> field with a pointer
+to the resource value in its correct representation type.
+</para>
+
+<para>
+To get the resource list structure for a particular class, use
+<xref linkend='XtGetResourceList' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetResourceList'>
+<funcprototype>
+<funcdef>void <function>XtGetResourceList</function></funcdef>
+
+   <paramdef>WidgetClass <parameter>class</parameter></paramdef>
+   <paramdef>XtResourceList *<parameter>resources_return</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_resources_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object class to be queried.  It must be
+<function>objectClass</function>
+or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>resources_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_resources_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the number of entries in the resource list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If
+<xref linkend='XtGetResourceList' xrefstyle='select: title'/>
+is called before the class is initialized,
+it returns the resource list as specified in the class record.
+If it is called after the class has been initialized,
+<xref linkend='XtGetResourceList' xrefstyle='select: title'/>
+returns a merged resource list that includes the resources
+for all superclasses.
+The list returned by
+<xref linkend='XtGetResourceList' xrefstyle='select: title'/>
+should be freed using
+<xref linkend='XtFree' xrefstyle='select: title'/>
+when it is no longer needed.
+</para>
+
+<para>
+To get the constraint resource list structure for a particular widget
+class, use
+<xref linkend='XtGetConstraintResourceList' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetConstraintResourceList'>
+<funcprototype>
+<funcdef>void <function>XtGetConstraintResourceList</function></funcdef>
+   <paramdef>WidgetClass <parameter>class</parameter></paramdef>
+   <paramdef>XtResourceList *<parameter>resources_return</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_resources_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object class to be queried.  It must be
+<function>objectClass</function>
+or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>resources_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the constraint resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_resources_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the number of entries in the constraint resource list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If
+<xref linkend='XtGetConstraintResourceList' xrefstyle='select: title'/>
+is called before the widget class is
+initialized, the resource list as specified in the widget
+class Constraint part is returned.  If
+<xref linkend='XtGetConstraintResourceList' xrefstyle='select: title'/>
+is called after the widget class has been initialized, the merged
+resource list for the class and all Constraint superclasses is
+returned.  If the
+specified class is not a subclass of
+<function>constraintWidgetClass</function>,
+*<emphasis remap='I'>resources_return</emphasis> is set to NULL
+and *<emphasis remap='I'>num_resources_return</emphasis> is set to zero.
+The list returned by
+<xref linkend='XtGetConstraintResourceList' xrefstyle='select: title'/>
+should be freed using
+<xref linkend='XtFree' xrefstyle='select: title'/>
+when it is no longer needed.
+</para>
+
+<para>
+The routines
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+and
+<xref linkend='XtGetValues' xrefstyle='select: title'/>
+also use the resource list to set and get widget state;
+see <xref linkend='Obtaining_Widget_State' /> and
+<xref linkend='Setting_Widget_State' />.
+</para>
+
+<para>
+Here is an abbreviated version of a possible resource list for a Label widget:
+</para>
+<literallayout >
+/* Resources specific to Label */
+static XtResource resources[] = {
+{XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
+   XtOffsetOf(LabelRec, label.foreground), XtRString, XtDefaultForeground},
+{XtNfont, XtCFont, XtRFontStruct, sizeof(XFontStruct*),
+   XtOffsetOf(LabelRec, label.font), XtRString, XtDefaultFont},
+{XtNlabel, XtCLabel, XtRString, sizeof(String),
+   XtOffsetOf(LabelRec, label.label), XtRString, NULL},
+	.
+	.
+	.
+}
+</literallayout>
+<para>
+The complete resource name for a field of a widget instance is the
+concatenation of the application shell name (from
+<function>XtAppCreateShell ),</function>
+the instance names of all the widget's parents up to the
+top of the widget tree,
+the instance name of the widget itself,
+and the resource name of the specified field of the widget.
+Similarly,
+the full resource class of a field of a widget instance is the
+concatenation of the application class (from
+<function>XtAppCreateShell ),</function>
+the widget class names of all the widget's parents up to the
+top of the widget tree,
+the widget class name of the widget itself,
+and the resource class of the specified field of the widget.
+</para>
+</sect1>
+
+<sect1 id="Byte_Offset_Calculations">
+<title>Byte Offset Calculations</title>
+<para>
+To determine the byte offset of a field within a structure type, use
+<xref linkend='XtOffsetOf' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtOffsetOf'>
+<funcprototype>
+<funcdef>Cardinal <function>XtOffsetOf</function></funcdef>
+      <paramdef>Type <parameter>structure_type</parameter></paramdef>
+      <paramdef>Field <parameter>field_name</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>structure_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a type that is declared as a structure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>field_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of a member within the structure.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtOffsetOf' xrefstyle='select: title'/>
+macro expands to a constant expression that gives the
+offset in bytes to the specified structure member from the beginning
+of the structure.  It is normally used to statically initialize
+resource lists and is more portable than
+<xref linkend='XtOffset' xrefstyle='select: title'/>,
+which serves the same function.
+</para>
+
+<para>
+To determine the byte offset of a field within a structure pointer type, use
+<xref linkend='XtOffset' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtOffset'>
+<funcprototype>
+<funcdef>Cardinal <function>XtOffset</function></funcdef>
+      <paramdef>Type <parameter> pointer_type</parameter></paramdef>
+      <paramdef>Field <parameter> field_name</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>pointer_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a type that is declared as a pointer to a structure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>field_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of a member within the structure.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtOffset' xrefstyle='select: title'/>
+macro expands to a constant expression that gives the
+offset in bytes to the specified structure member from the beginning
+of the structure.  It may be used to statically initialize
+resource lists.
+<xref linkend='XtOffset' xrefstyle='select: title'/>
+is less portable than
+<xref linkend='XtOffsetOf' xrefstyle='select: title'/>.
+</para>
+</sect1>
+
+<sect1 id="Superclass_to_Subclass_Chaining_of_Resource_Lists">
+<title>Superclass-to-Subclass Chaining of Resource Lists</title>
+<para>
+The
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>
+function gets resources as a superclass-to-subclass chained operation.
+That is, the resources specified in the
+<function>objectClass</function>
+resource list are fetched,
+then those in
+<function>rectObjClass</function>,
+and so on down to the resources specified
+for this widget's class. Within a class, resources are fetched in the order
+they are declared.
+</para>
+
+<para>
+In general, if a widget resource field is declared in a superclass,
+that field is included in the superclass's resource list and need not be
+included in the subclass's resource list.
+For example, the
+Core
+class contains a resource entry for <emphasis remap='I'>background_pixel</emphasis>.
+Consequently,
+the implementation of Label need not also have a resource entry
+for <emphasis remap='I'>background_pixel</emphasis>.
+However, a subclass,
+by specifying a resource entry for that field in its own resource list,
+can override the resource entry for any field declared in a superclass.
+This is most often done to override the defaults provided in the
+superclass with new ones.
+At class initialization time,
+resource lists for that class are scanned from the superclass down
+to the class to look for resources with the same offset.
+A matching resource in a subclass will be reordered to override
+the superclass entry.
+If reordering is necessary, a copy of the superclass resource list is made to
+avoid affecting other subclasses of the superclass.
+</para>
+
+<para>
+Also at class initialization time, the Intrinsics produce an
+internal representation of the resource list to optimize access time
+when creating widgets.  In order to save memory, the Intrinsics may
+overwrite the storage allocated for the resource list in the class
+record; therefore, widgets must allocate resource lists in writable
+storage and must not access the list contents directly after the
+class_initialize procedure has returned.
+</para>
+</sect1>
+
+<sect1 id="Subresources">
+<title>Subresources</title>
+<para>
+A widget does not do anything to retrieve its own resources;
+instead,
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>
+does this automatically before calling the class initialize procedure.
+</para>
+
+<para>
+Some widgets have subparts that are not widgets but for which the widget
+would like to fetch resources.
+Such widgets call
+<xref linkend='XtGetSubresources' xrefstyle='select: title'/>
+to accomplish this.
+</para>
+
+<funcsynopsis id='XtGetSubresources'>
+<funcprototype>
+<funcdef>void <function>XtGetSubresources</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtPointer <parameter>base</parameter></paramdef>
+   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>String <parameter>class</parameter></paramdef>
+   <paramdef>XtResourceList <parameter>resources</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_resources</parameter></paramdef>
+   <paramdef>ArgList <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object used to qualify the subpart resource name and
+class.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>base</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the base address of the subpart data structure into which the
+resources will be written.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the subpart.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the class of the subpart.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource list for the subpart.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list to override any other resource specifications.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtGetSubresources' xrefstyle='select: title'/>
+function constructs a name and class list from the application name and class,
+the names and classes of all the object's ancestors, and the object itself.
+Then it appends to this list the <emphasis remap='I'>name</emphasis> and <emphasis remap='I'>class</emphasis> pair passed in.
+The resources are fetched from the argument list, the resource database,
+or the default values in the resource list.
+Then they are copied into the subpart record.
+If <emphasis remap='I'>args</emphasis> is NULL,
+<emphasis remap='I'>num_args</emphasis> must be zero.
+However, if <emphasis remap='I'>num_args</emphasis> is zero,
+the argument list is not referenced.
+</para>
+
+<para>
+<xref linkend='XtGetSubresources' xrefstyle='select: title'/>
+may overwrite the specified resource list with an
+equivalent representation in an internal format, which optimizes access
+time if the list is used repeatedly.  The resource list must be
+allocated in writable storage, and the caller must not modify the list
+contents after the call if the same list is to be used again.
+Resources fetched by
+<xref linkend='XtGetSubresources' xrefstyle='select: title'/>
+are reference-counted as
+if they were referenced by the specified object.  Subresources might
+therefore be freed from the conversion cache and destroyed
+when the object is destroyed, but not before then.
+</para>
+
+<para>
+To fetch resources for widget subparts using varargs lists, use
+<xref linkend='XtVaGetSubresources' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtVaGetSubresources'>
+<funcprototype>
+<funcdef>void <function>XtVaGetSubresources</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtPointer <parameter>base</parameter></paramdef>
+   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>String <parameter>class</parameter></paramdef>
+   <paramdef>XtResourceList <parameter>resources</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_resources</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object used to qualify the subpart resource name and
+class.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>base</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the base address of the subpart data structure into which the
+resources will be written.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the subpart.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the class of the subpart.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource list for the subpart.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      ...
+    </term>
+    <listitem>
+      <para>
+Specifies the variable argument list to override any other
+resource specifications.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtVaGetSubresources' xrefstyle='select: title'/>
+is identical in function to
+<xref linkend='XtGetSubresources' xrefstyle='select: title'/>
+with the <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis> parameters replaced by a varargs list, as
+described in Section 2.5.1.
+</para>
+</sect1>
+
+<sect1 id="Obtaining_Application_Resources">
+<title>Obtaining Application Resources</title>
+<para>
+To retrieve resources that are not specific to a widget
+but apply to the overall application, use
+<xref linkend='XtGetApplicationResources' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetApplicationResources'>
+<funcprototype>
+<funcdef>void <function>XtGetApplicationResources</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtPointer <parameter>base</parameter></paramdef>
+   <paramdef>XtResourceList <parameter>resources</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_resources</parameter></paramdef>
+   <paramdef>ArgList <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object that identifies the resource database to search
+(the database is that associated with the display for this object).  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>base</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the base address into which
+the resource values will be written.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list to override any other resource specifications.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtGetApplicationResources' xrefstyle='select: title'/>
+function first uses the passed object,
+which is usually an application shell widget,
+to construct a resource name and class list.
+The full name and class of the specified object (that is, including its
+ancestors, if any) is logically added to the
+front of each resource name and class.
+Then it retrieves the resources from the argument list,
+the resource database, or the resource list default values.
+After adding base to each address,
+<xref linkend='XtGetApplicationResources' xrefstyle='select: title'/>
+copies the resources into the addresses
+obtained by adding <emphasis remap='I'>base</emphasis> to each <emphasis remap='I'>offset</emphasis> in the resource list.
+If <emphasis remap='I'>args</emphasis> is NULL,
+<emphasis remap='I'>num_args</emphasis> must be zero.
+However, if <emphasis remap='I'>num_args</emphasis> is zero,
+the argument list is not referenced.
+The portable way to specify application resources is to declare them
+as members of a structure and pass the address of the structure
+as the <emphasis remap='I'>base</emphasis> argument.
+</para>
+
+<para>
+<xref linkend='XtGetApplicationResources' xrefstyle='select: title'/>
+may overwrite the specified resource list
+with an equivalent representation in an internal format, which
+optimizes access time if the list is used repeatedly.  The resource
+list must be allocated in writable storage, and the caller must not
+modify the list contents after the call if the same list is to be
+used again.  Any per-display resources fetched by
+<xref linkend='XtGetApplicationResources' xrefstyle='select: title'/>
+will not be freed from the resource cache until the display is closed.
+</para>
+
+<para>
+To retrieve resources for the overall application using varargs lists, use
+<xref linkend='XtVaGetApplicationResources' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtVaGetApplicationResources'>
+<funcprototype>
+<funcdef>void <function>XtVaGetApplicationResources</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtPointer <parameter>base</parameter></paramdef>
+   <paramdef>XtResourceList <parameter>resources</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_resources</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object that identifies the resource database to search
+(the database is that associated with the display for this object).  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>base</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the base address into which
+the resource values will be written.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource list for the subpart.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      ...
+    </term>
+    <listitem>
+      <para>
+Specifies the variable argument list to override any other
+resource specifications.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtVaGetApplicationResources' xrefstyle='select: title'/>
+is identical in function to
+<xref linkend='XtGetApplicationResources' xrefstyle='select: title'/>
+with the <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis> parameters
+replaced by a varargs list, as described in Section 2.5.1.
+</para>
+</sect1>
+
+<sect1 id="Resource_Conversions">
+<title>Resource Conversions</title>
+<para>
+The Intrinsics provide a mechanism for registering representation converters that
+are automatically invoked by the resource-fetching routines.
+The Intrinsics additionally provide and register several commonly used converters.
+This resource conversion mechanism serves several purposes:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+It permits user and application resource files to contain textual
+representations of nontextual values.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+It allows textual or other representations of default resource values that
+are dependent on the display, screen, or colormap, and thus must be
+computed at runtime.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+It caches conversion source and result data.
+Conversions that require much computation or space
+(for example, string-to-translation-table)
+or that require round-trips to the server
+(for example, string-to-font or string-to-color) are performed only once.
+    </para>
+  </listitem>
+</itemizedlist>
+<sect2 id="Predefined_Resource_Converters">
+<title>Predefined Resource Converters</title>
+<para>
+The Intrinsics define all the representations used in the
+Object,
+RectObj,
+Core,
+Composite,
+Constraint,
+and
+Shell
+widget classes.
+The Intrinsics register the following resource converters that accept
+input values of representation type
+<function>XtRString</function>.
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='3' align='left' rowsep='0' colsep='0'>
+  <colspec colwidth='0.7*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='0.6*' colname='c3'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Target Representation</entry>
+      <entry>Converter Name</entry>
+      <entry>Additional Args</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry><function>XtRAcceleratorTable</function></entry>
+      <entry><function>XtCvtStringToAcceleratorTable</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRAtom</function></entry>
+      <entry><function>XtCvtStringToAtom</function></entry>
+      <entry>Display*</entry>
+    </row>
+    <row>
+      <entry><function>XtRBoolean</function></entry>
+      <entry><function>XtCvtStringToBoolean</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRBool</function></entry>
+      <entry><function>XtCvtStringToBool</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRCommandArgArray</function></entry>
+      <entry><function>XtCvtStringToCommandArgArray</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRCursor</function></entry>
+      <entry><function>XtCvtStringToCursor</function></entry>
+      <entry>Display*</entry>
+    </row>
+    <row>
+      <entry><function>XtRDimension</function></entry>
+      <entry><function>XtCvtStringToDimension</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRDirectoryString</function></entry>
+      <entry><function>XtCvtStringToDirectoryString</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRDisplay</function></entry>
+      <entry><function>XtCvtStringToDisplay</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRFile</function></entry>
+      <entry><function>XtCvtStringToFile</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRFloat</function></entry>
+      <entry><function>XtCvtStringToFloat</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRFont</function></entry>
+      <entry><function>XtCvtStringToFont</function></entry>
+      <entry>Display*</entry>
+    </row>
+    <row>
+      <entry><function>XtRFontSet</function></entry>
+      <entry><function>XtCvtStringToFontSet</function></entry>
+      <entry>Display*, String <emphasis remap='I'>locale</emphasis></entry>
+    </row>
+    <row>
+      <entry><function>XtRFontStruct</function></entry>
+      <entry><function>XtCvtStringToFontStruct</function></entry>
+      <entry>Display*</entry>
+    </row>
+    <row>
+      <entry><function>XtRGravity</function></entry>
+      <entry><function>XtCvtStringToGravity</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRInitialState</function></entry>
+      <entry><function>XtCvtStringToInitialState</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRInt</function></entry>
+      <entry><function>XtCvtStringToInt</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRPixel</function></entry>
+      <entry><function>XtCvtStringToPixel</function></entry>
+      <entry><function>colorConvertArgs</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRPosition</function></entry>
+      <entry><function>XtCvtStringToPosition</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRRestartStyle</function></entry>
+      <entry><function>XtCvtStringToRestartStyle</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRShort</function></entry>
+      <entry><function>XtCvtStringToShort</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRTranslationTable</function></entry>
+      <entry><function>XtCvtStringToTranslationTable</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRUnsignedChar</function></entry>
+      <entry><function>XtCvtStringToUnsignedChar</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRVisual</function></entry>
+      <entry><function>XtCvtStringToVisual</function></entry>
+      <entry>Screen*, Cardinal <emphasis remap='I'>depth</emphasis></entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The String-to-Pixel conversion has two predefined constants that are
+guaranteed to work and contrast with each other:
+<function>XtDefaultForeground</function>
+and
+<function>XtDefaultBackground</function>.
+They evaluate to the black and white pixel values of the widget's screen,
+respectively.
+If the application resource reverseVideo is
+<function>True</function>,
+they evaluate to the white and black pixel values of the widget's screen,
+respectively.
+Similarly, the String-to-Font and String-to-FontStruct converters recognize
+the constant
+<function>XtDefaultFont</function>
+and evaluate this in the following manner:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Query the resource database for the resource whose full name
+is ``xtDefaultFont'', class ``XtDefaultFont'' (that is, no widget
+name/class prefixes), and use a type
+<function>XtRString</function>
+value returned as the font name or a type
+<function>XtRFont</function>
+or
+<function>XtRFontStruct</function>
+value directly as the resource value.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the resource database does not contain a value for xtDefaultFont,
+class XtDefaultFont, or if the returned font name cannot be
+successfully opened, an implementation-defined font in ISO8859-1
+character set encoding is opened.  (One possible algorithm is to
+perform an
+<function>XListFonts</function>
+using a wildcard font name and use the first
+font in the list.  This wildcard font name should be as broad as
+possible to maximize the probability of locating a useable font;
+for example, "-*-*-*-R-*-*-*-120-*-*-*-*-ISO8859-1".)
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If no suitable ISO8859-1 font can be found, issue a warning message
+and return
+<function>False</function>.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+The String-to-FontSet converter recognizes the constant
+<function>XtDefaultFontSet</function>
+and evaluate this in the following manner:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Query the resource database for the resource whose full name
+is ``xtDefaultFontSet'', class ``XtDefaultFontSet'' (that is, no widget
+name/class prefixes), and use a type
+<function>XtRString</function>
+value returned as the base font name list or a type
+<function>XtRFontSet</function>
+value directly as the resource value.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the resource database does not contain a value for xtDefaultFontSet,
+class XtDefaultFontSet, or if a font set cannot be
+successfully created from this resource,
+an implementation-defined font set is created.
+(One possible algorithm is to
+perform an
+<function>XCreateFontSet</function>
+using a wildcard base font name.
+This wildcard base font name should be as broad as
+possible to maximize the probability of locating a useable font;
+for example, "-*-*-*-R-*-*-*-120-*-*-*-*".)
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If no suitable font set can be created, issue a warning message
+and return
+<function>False</function>.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+If a font set is created but <emphasis remap='I'>missing_charset_list</emphasis> is not
+empty, a warning is issued and the partial font set is returned.
+The Intrinsics register the String-to-FontSet converter with
+a conversion argument list that extracts the current process
+locale at the time the converter is invoked.   This ensures
+that the converter is invoked again if the same conversion
+is required in a different locale.
+</para>
+
+<para>
+The String-to-Gravity conversion accepts string values that are the
+names of window and bit gravities and their numerical equivalents,
+as defined in <emphasis remap='I'>Xlib — C Language X Interface.</emphasis>:
+<function>ForgetGravity</function>,
+<function>UnmapGravity</function>,
+<function>NorthWestGravity</function>,
+<function>NorthGravity</function>,
+<function>NorthEastGravity</function>,
+<function>WestGravity</function>,
+<function>CenterGravity</function>,
+<function>EastGravity</function>,
+<function>SouthWestGravity</function>,
+<function>SouthGravity</function>,
+<function>SouthEastGravity</function>,
+and
+<function>StaticGravity</function>.
+Alphabetic case is not significant in the conversion.
+</para>
+
+<para>
+The String-to-CommandArgArray conversion parses a String into an
+array of strings.
+White space characters separate elements of the command line.
+The converter recognizes the backslash character ``\\'' as an escape
+character to allow the following white space character to be part of the
+array element.
+</para>
+
+<para>
+The String-to-DirectoryString conversion recognizes the
+string ``XtCurrentDirectory'' and returns the result of a call
+to the operating system to get the current directory.
+</para>
+
+<para>
+The String-to-RestartStyle conversion accepts the values
+<function>RestartIfRunning</function>,
+<function>RestartAnyway</function>,
+<function>RestartImmediately</function>,
+and
+<function>RestartNever</function>
+as defined by the <emphasis remap='I'>X Session Management Protocol</emphasis>.
+</para>
+
+<para>
+The String-to-InitialState conversion accepts the values
+<function>NormalState</function>
+or
+<function>IconicState</function>
+as defined by the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis>.
+</para>
+
+<para>
+The String-to-Visual conversion calls
+<function>XMatchVisualInfo</function>
+using the
+<emphasis remap='I'>screen</emphasis> and <emphasis remap='I'>depth</emphasis> fields from the core part and returns the first
+matching Visual on the list.  The widget resource list must be certain
+to specify any resource of type
+<function>XtRVisual</function>
+after the depth resource.
+The allowed string values are the visual class names defined in <emphasis remap='I'>X Window System Protocol</emphasis>,
+Section 8;
+<function>StaticGray</function>,
+<function>StaticColor</function>,
+<function>TrueColor</function>,
+<function>GrayScale</function>,
+<function>PseudoColor</function>,
+and
+<function>DirectColor</function>.
+</para>
+
+<para>
+The Intrinsics register the following resource converter that accepts
+an input value of representation type
+<function>XtRColor</function>.
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='3' align='left' rowsep='0' colsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Target Representation</entry>
+      <entry>Converter Name</entry>
+      <entry>Additional Args</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry><function>XtRPixel</function></entry>
+      <entry><function>XtCvtColorToPixel</function></entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The Intrinsics register the following resource converters that accept
+input values of representation type
+<function>XtRInt</function>.
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='3' align='left' rowsep='0' colsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Target Representation</entry>
+      <entry>Converter Name</entry>
+      <entry>Additional Args</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry><function>XtRBoolean</function></entry>
+      <entry><function>XtCvtIntToBoolean</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRBool</function></entry>
+      <entry><function>XtCvtIntToBool</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRColor</function></entry>
+      <entry><function>XtCvtIntToColor</function></entry>
+      <entry><function>colorConvertArgs</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRDimension</function></entry>
+      <entry><function>XtCvtIntToDimension</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRFloat</function></entry>
+      <entry><function>XtCvtIntToFloat</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRFont</function></entry>
+      <entry><function>XtCvtIntToFont</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRPixel</function></entry>
+      <entry><function>XtCvtIntToPixel</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRPixmap</function></entry>
+      <entry><function>XtCvtIntToPixmap</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRPosition</function></entry>
+      <entry><function>XtCvtIntToPosition</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRShort</function></entry>
+      <entry><function>XtCvtIntToShort</function></entry>
+    </row>
+    <row>
+      <entry><function>XtRUnsignedChar</function></entry>
+      <entry><function>XtCvtIntToUnsignedChar</function></entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The Intrinsics register the following resource converter that accepts
+an input value of representation type
+<function>XtRPixel</function>.
+</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="auto" ?>
+  <tgroup cols='3' align='left' rowsep='0' colsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Target Representation</entry>
+      <entry>Converter Name</entry>
+      <entry>Additional Args</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry><function>XtRColor</function></entry>
+      <entry><function>XtCvtPixelToColor</function></entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+</sect2>
+
+<sect2 id="New_Resource_Converters">
+<title>New Resource Converters</title>
+<para>
+Type converters use pointers to
+<function>XrmValue</function>
+structures (defined in
+<function>&lt;X11/Xresource.h&gt;;</function>
+see <olink targetdoc='libX11' targetptr='Creating_and_Storing_Databases'>Section 15.4</olink> in
+<olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface.</olink>)
+for input and output values.
+</para>
+<literallayout >
+typedef struct {
+       unsigned int size;
+       XPointer addr;
+} XrmValue, *XrmValuePtr;
+</literallayout>
+<para>
+The <emphasis remap='I'>addr</emphasis> field specifies the address of the data, and the <emphasis remap='I'>size</emphasis>
+field gives the total number of significant bytes in the data.
+For values of type
+<function>String</function>,
+<emphasis remap='I'>addr</emphasis> is the address of the first character and <emphasis remap='I'>size</emphasis>
+includes the NULL-terminating byte.
+</para>
+
+<para>
+A resource converter procedure pointer is of type
+<xref linkend='XtTypeConverter' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtTypeConverter'>
+<funcprototype>
+<funcdef>typedef Boolean <function>(*XtTypeConverter)</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>XrmValue *<parameter>args</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_args</parameter></paramdef>
+   <paramdef>XrmValue *<parameter>from</parameter></paramdef>
+   <paramdef>XrmValue *<parameter>to</parameter></paramdef>
+   <paramdef>XtPointer *<parameter>converter_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display connection with which this conversion is associated.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a list of additional
+<function>XrmValue</function>
+arguments to the converter if additional context is needed
+to perform the conversion, or NULL.
+For example, the String-to-Font converter needs the widget's <emphasis remap='I'>display</emphasis>,
+and the String-to-Pixel converter needs the widget's <emphasis remap='I'>screen</emphasis> and <emphasis remap='I'>colormap</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>args</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the value to convert.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a descriptor for a location into which to store the converted value.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>converter_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a location into which the converter may
+store converter-specific data associated
+with this conversion.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The <emphasis remap='I'>display</emphasis> argument is normally used only when generating error
+messages, to identify the application context (with the function
+<function>XtDisplayToApplicationContext ).</function>
+</para>
+
+<para>
+The <emphasis remap='I'>to</emphasis> argument specifies the size and location into which the
+converter should store the converted value.  If the <emphasis remap='I'>addr</emphasis> field is NULL,
+the converter should allocate appropriate storage and store the size
+and location into the <emphasis remap='I'>to</emphasis> descriptor.  If the type converter allocates
+the storage, it remains under the ownership of the converter and must
+not be modified by the caller.  The type converter is permitted to use
+static storage for this purpose, and therefore the caller must
+immediately copy the data upon return from the converter.  If the
+<emphasis remap='I'>addr</emphasis> field is not NULL, the converter must check the <emphasis remap='I'>size</emphasis> field to
+ensure that sufficient space has been allocated before storing the
+converted value.  If insufficient space is specified, the converter
+should update the <emphasis remap='I'>size</emphasis> field with the number of bytes required and
+return
+<function>False</function>
+without modifying the data at the specified location.
+If sufficient space was allocated by the caller, the converter should
+update the <emphasis remap='I'>size</emphasis> field with the number of bytes actually occupied by the
+converted value.  For converted values of type
+<function>XtRString</function>,
+the size should
+include the NULL-terminating byte, if any.
+The converter may store any value in the location specified
+in <emphasis remap='I'>converter_data</emphasis>; this value will be passed to the destructor, if any,
+when the resource is freed by the Intrinsics.
+</para>
+
+<para>
+The converter must return
+<function>True</function>
+if the conversion was successful and
+<function>False</function>
+otherwise.  If the conversion cannot be performed because of an
+improper source value, a warning message should also be issued with
+<xref linkend='XtAppWarningMsg' xrefstyle='select: title'/>.
+</para>
+
+<para>
+Most type converters just take the data described by the specified <emphasis remap='I'>from</emphasis>
+argument and return data by writing into the location specified in
+the <emphasis remap='I'>to</emphasis> argument.
+A few need other information, which is available in <emphasis remap='I'>args</emphasis>.
+A type converter can invoke another type converter,
+which allows differing sources that may convert into a common intermediate
+result to make maximum use of the type converter cache.
+</para>
+
+<para>
+Note that if an address is written into <emphasis remap='I'>to-&gt;addr</emphasis>, it cannot be that
+of a local variable of the converter because the data will not be
+valid after the converter returns.  Static variables may be used,
+as in the following example.
+If the converter modifies the resource database,
+the changes affect any in-progress widget creation,
+<xref linkend='XtGetApplicationResources' xrefstyle='select: title'/>,
+or
+<xref linkend='XtGetSubresources' xrefstyle='select: title'/>
+in an implementation-defined manner; however, insertion of new entries
+or changes to existing entries is allowed and will not directly cause
+an error.
+</para>
+
+<para>
+The following is an example of a converter that takes a
+<function>string</function>
+and converts it to a
+<function>Pixel</function>.
+Note that the <emphasis remap='I'>display</emphasis> parameter is
+used only to generate error messages; the
+<function>Screen</function>
+conversion argument is
+still required to inform the Intrinsics that the converted value is
+a function of the particular display (and colormap).
+</para>
+
+<literallayout >
+#define done(type, value) \\
+	{						\\
+		if (toVal-&gt;addr != NULL) {		\\
+			if (toVal-&gt;size &lt; sizeof(type)) {	\\
+				toVal-&gt;size = sizeof(type);	\\
+				return False;	\\
+			}				\\
+			*(type*)(toVal-&gt;addr) = (value);	\\
+		}					\\
+		else {				\\
+			static type static_val;	\\
+			static_val = (value);	\\
+			toVal-&gt;addr = (XPointer)&amp;static_val;	\\
+		}					\\
+		toVal-&gt;size = sizeof(type);	\\
+		return True;			\\
+	}
+static Boolean CvtStringToPixel(dpy, args, num_args, fromVal, toVal, converter_data)
+	Display	*dpy;
+	XrmValue	*args;
+	Cardinal	*num_args;
+	XrmValue	*fromVal;
+	XrmValue	*toVal;
+	XtPointer	*converter_data;
+{
+	static XColor	screenColor;
+	XColor		exactColor;
+	Screen		*screen;
+	Colormap		colormap;
+	Status			status;
+	if (*num_args != 2)
+		XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+			"wrongParameters", "cvtStringToPixel", "XtToolkitError",
+			"String to pixel conversion needs screen and colormap arguments",
+			(String *)NULL, (Cardinal *)NULL);
+	screen = *((Screen**) args[0].addr);
+	colormap = *((Colormap *) args[1].addr);
+	if (CompareISOLatin1(str, XtDefaultBackground) == 0) {
+		*closure_ret = False;
+		done(Pixel, WhitePixelOfScreen(screen));
+	}
+	if (CompareISOLatin1(str, XtDefaultForeground) == 0) {
+		*closure_ret = False;
+		done(Pixel, BlackPixelOfScreen(screen));
+	}
+	status = XAllocNamedColor(DisplayOfScreen(screen), colormap, (char*)fromVal-&gt;addr,
+				               &amp;screenColor, &amp;exactColor);
+	if (status == 0) {
+		String params[1];
+		Cardinal num_params = 1;
+		params[0] = (String)fromVal-&gt;addr;
+		XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+			"noColormap", "cvtStringToPixel", "XtToolkitError",
+			"Cannot allocate colormap entry for \\"%s\\"", params,\
+ &amp;num_params);
+	        *converter_data = (char *) False;
+                return False;
+	} else {
+                *converter_data = (char *) True;
+		done(Pixel, &amp;screenColor.pixel);
+	}
+}
+</literallayout>
+
+<para>
+All type converters should define some set of conversion values for which they
+are guaranteed to succeed so these can be used in the resource defaults.
+This issue arises only with conversions, such as fonts and colors,
+where there is no string representation that all server implementations
+will necessarily recognize.
+For resources like these,
+the converter should define a symbolic constant
+in the same manner as
+<function>XtDefaultForeground</function>,
+<function>XtDefaultBackground</function>,
+and
+<function>XtDefaultFont</function>.
+</para>
+
+<para>
+To allow the Intrinsics to deallocate resources produced by type
+converters, a resource destructor procedure may also be provided.
+</para>
+
+<para>
+A resource destructor procedure pointer is of type
+<xref linkend='XtDestructor' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtDestructor'>
+<funcprototype>
+  <funcdef>typedef void <function>(*XtDestructor)</function></funcdef>
+   <paramdef>XtAppContext <parameter>app</parameter></paramdef>
+   <paramdef>XrmValue *<parameter>to</parameter></paramdef>
+   <paramdef>XtPointer <parameter>converter_data</parameter></paramdef>
+   <paramdef>XrmValue *<parameter>args</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an application context in which the resource is being freed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a descriptor for the resource produced by the type converter.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>converter_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the converter-specific data returned by the type converter.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the additional converter arguments as passed
+to the type converter when the conversion was performed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>args</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The destructor procedure is responsible for freeing the resource
+specified by the <emphasis remap='I'>to</emphasis> argument, including any auxiliary storage
+associated with that resource, but not the memory directly addressed
+by the size and location in the <emphasis remap='I'>to</emphasis> argument or the memory specified
+by <emphasis remap='I'>args</emphasis>.
+</para>
+</sect2>
+
+<sect2 id="Issuing_Conversion_Warnings">
+<title>Issuing Conversion Warnings</title>
+<para>
+The
+<xref linkend='XtDisplayStringConversionWarning' xrefstyle='select: title'/>
+procedure is a convenience routine for resource type converters
+that convert from string values.
+</para>
+
+<funcsynopsis id='XtDisplayStringConversionWarning'>
+<funcprototype>
+<funcdef>void <function>XtDisplayStringConversionWarning</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>String <parameter>from_value</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display connection with which the conversion is associated.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from_value</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the string that could not be converted.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the target representation type requested.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtDisplayStringConversionWarning' xrefstyle='select: title'/>
+procedure issues a warning message using
+<xref linkend='XtAppWarningMsg' xrefstyle='select: title'/>
+with <emphasis remap='I'>name</emphasis> ``conversionError'',
+<emphasis remap='I'>type</emphasis> ``string'', <emphasis remap='I'>class</emphasis> ``XtToolkitError'', and the default message
+``Cannot convert "<emphasis remap='I'>from_value</emphasis>" to type <emphasis remap='I'>to_type</emphasis>''.
+</para>
+
+<para>
+To issue other types of warning or error messages, the type converter
+should use
+<xref linkend='XtAppWarningMsg' xrefstyle='select: title'/>
+or
+<xref linkend='XtAppErrorMsg' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To retrieve the application context associated with a given
+display connection, use
+<xref linkend='XtDisplayToApplicationContext' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtDisplayToApplicationContext'>
+<funcprototype>
+<funcdef>XtAppContext <function>XtDisplayToApplicationContext</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an open and initialized display connection.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtDisplayToApplicationContext' xrefstyle='select: title'/>
+function returns the application
+context in which the specified <emphasis remap='I'>display</emphasis> was initialized.  If the
+display is not known to the Intrinsics, an error message is issued.
+</para>
+</sect2>
+
+<sect2 id="Registering_a_New_Resource_Converter">
+<title>Registering a New Resource Converter</title>
+<para>
+When registering a resource converter, the client must specify the
+manner in which the conversion cache is to be used when there are multiple
+calls to the converter.  Conversion cache control is specified
+via an <function>XtCacheType</function>
+argument.  </para>
+
+<literallayout >
+typedef int XtCacheType;
+</literallayout>
+
+<para>
+An <function>XtCacheType</function>
+field may contain one of the following values:
+</para>
+
+<para>
+<function>XtCacheNone</function>
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Specifies that the results of a previous conversion
+may not be reused to satisfy any other resource
+requests; the specified converter will be called
+each time the converted value is required.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+<function>XtCacheAll</function>
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Specifies that the results of a previous conversion
+should be reused for any resource request that depends
+upon the same source value and conversion arguments.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+<function>XtCacheByDisplay</function>
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Specifies that the results of a previous conversion
+should be used as for
+<function>XtCacheAll</function>
+but the destructor will be called, if specified, if
+<xref linkend='XtCloseDisplay' xrefstyle='select: title'/>
+is called
+for the display connection associated with the converted value, and
+the value will be removed from the conversion cache.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+The qualifier
+<function>XtCacheRefCount</function>
+may be ORed with any of the above values.  If
+<function>XtCacheRefCount</function>
+is specified, calls to
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>,
+<xref linkend='XtCreateManagedWidget' xrefstyle='select: title'/>,
+<xref linkend='XtGetApplicationResources' xrefstyle='select: title'/>,
+and
+<xref linkend='XtGetSubresources' xrefstyle='select: title'/>
+that use the converted value will be counted.  When a widget using the
+converted value is destroyed, the count is decremented, and, if the
+count reaches zero, the destructor procedure will be called and the
+converted value will be removed from the conversion cache.
+</para>
+
+<para>
+To register a type converter for all application contexts in a
+process, use
+<xref linkend='XtSetTypeConverter' xrefstyle='select: title'/>,
+and to register a type converter in a single application context, use
+<xref linkend='XtAppSetTypeConverter' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetTypeConverter'>
+<funcprototype>
+<funcdef>void <function>XtSetTypeConverter</function></funcdef>
+   <paramdef>String <parameter>from_type</parameter></paramdef>
+   <paramdef>String <parameter>to_type</parameter></paramdef>
+   <paramdef>XtTypeConverter <parameter>converter</parameter></paramdef>
+   <paramdef>XtConvertArgList <parameter>convert_args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+   <paramdef>XtCacheType <parameter>cache_type</parameter></paramdef>
+   <paramdef>XtDestructor <parameter>destructor</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the source type.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the destination type.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>converter</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource type converter procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>convert_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies additional conversion arguments, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>convert_args</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>cache_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies whether or not resources produced by this
+converter are sharable or display-specific and when
+they should be freed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>destructor</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a destroy procedure for resources produced by
+this conversion, or NULL if no additional action is
+required to deallocate resources produced by the converter.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<funcsynopsis id='XtAppSetTypeConverter'>
+<funcprototype>
+<funcdef> <function>XtAppSetTypeConverter</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>String <parameter>from_type</parameter></paramdef>
+   <paramdef>String <parameter>to_type</parameter></paramdef>
+   <paramdef>XtTypeConverter <parameter>converter</parameter></paramdef>
+   <paramdef>XtConvertArgList <parameter>convert_args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+   <paramdef>XtCacheType <parameter>cache_type</parameter></paramdef>
+   <paramdef>XtDestructor <parameter>destructor</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the source type.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the destination type.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>converter</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource type converter procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>convert_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies additional conversion arguments, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>convert_args</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>cache_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies whether or not resources produced by this
+converter are sharable or display-specific and when
+they should be freed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>destructor</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a destroy procedure for resources produced by
+this conversion, or NULL if no additional action is
+required to deallocate resources produced by the converter.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtSetTypeConverter' xrefstyle='select: title'/>
+registers the specified type converter and
+destructor in all application contexts created by the calling process,
+including any future application contexts that may be created.
+<xref linkend='XtAppSetTypeConverter' xrefstyle='select: title'/>
+registers the specified type converter in the
+single application context specified.  If the same <emphasis remap='I'>from_type</emphasis> and
+<emphasis remap='I'>to_type</emphasis> are specified in multiple calls to either function, the most
+recent overrides the previous ones.
+</para>
+
+<para>
+For the few type converters that need additional arguments,
+the Intrinsics conversion mechanism provides a method of specifying
+how these arguments should be computed.
+The enumerated type
+<function>XtAddressMode</function>
+and the structure
+<function>XtConvertArgRec</function>
+specify how each argument is derived.
+These are defined in
+<function>&lt;X11/Intrinsic.h&gt;</function>.
+</para>
+<literallayout >
+typedef enum {
+	/* address mode	parameter representation */
+	   XtAddress,	/* address */
+	   XtBaseOffset,	/* offset */
+	   XtImmediate,	/* constant */
+	   XtResourceString,	/* resource name string */
+	   XtResourceQuark,	/* resource name quark */
+	   XtWidgetBaseOffset,	/* offset */
+	   XtProcedureArg	/* procedure to call */
+} XtAddressMode;
+
+typedef struct {
+	XtAddressMode address_mode;
+	XtPointer address_id;
+	Cardinal size;
+} XtConvertArgRec, *XtConvertArgList;
+</literallayout>
+<para>
+The <emphasis remap='I'>size</emphasis> field specifies the length of the data in bytes.
+The <emphasis remap='I'>address_mode</emphasis> field specifies how the <emphasis remap='I'>address_id</emphasis> field should be
+interpreted.
+<function>XtAddress</function>
+causes <emphasis remap='I'>address_id</emphasis> to be interpreted as the address of the data.
+<function>XtBaseOffset</function>
+causes <emphasis remap='I'>address_id</emphasis> to be interpreted as the offset from the widget base.
+<function>XtImmediate</function>
+causes <emphasis remap='I'>address_id</emphasis> to be interpreted as a constant.
+<function>XtResourceString</function>
+causes <emphasis remap='I'>address_id</emphasis> to be interpreted as the name of a resource
+that is to be converted into an offset from the widget base.
+<function>XtResourceQuark</function>
+causes <emphasis remap='I'>address_id</emphasis> to be interpreted as the result of an
+<function>XrmStringToQuark</function>
+conversion on the name of a resource,
+which is to be converted into an offset from the widget base.
+<function>XtWidgetBaseOffset</function>
+is similar to
+<function>XtBaseOffset</function>
+except that it
+searches for the closest windowed ancestor if the object is not
+of a subclass of
+Core
+(see <xref linkend='Nonwidget_Objects' />).
+<function>XtProcedureArg</function>
+specifies that <emphasis remap='I'>address_id</emphasis> is a pointer to a procedure to
+be invoked to return the conversion argument.  If
+<function>XtProcedureArg</function>
+is specified, <emphasis remap='I'>address_id</emphasis> must contain
+the address of a function of type
+<xref linkend='XtConvertArgProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtConvertArgProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtConvertArgProc)</function></funcdef>
+   <paramdef>XtAppContext <parameter>app</parameter></paramdef>
+   <paramdef>XrmValue *<parameter>to</parameter></paramdef>
+   <paramdef>XtPointer <parameter>converter_data</parameter></paramdef>
+   <paramdef>XrmValue *<parameter>args</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an application context in which the resource is being freed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a descriptor for the resource produced by the type converter.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>converter_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the converter-specific data returned by the type converter.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the additional converter arguments as passed
+to the type converter when the conversion was performed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>args</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The destructor procedure is responsible for freeing the resource
+specified by the <emphasis remap='I'>to</emphasis> argument, including any auxiliary storage
+associated with that resource, but not the memory directly addressed
+by the size and location in the <emphasis remap='I'>to</emphasis> argument or the memory specified
+by <emphasis remap='I'>args</emphasis>.
+</para>
+</sect2>
+
+<sect2 id="Resource_Converter_Invocation">
+<title>Resource Converter Invocation</title>
+<para>
+All resource-fetching routines (for example,
+<xref linkend='XtGetSubresources' xrefstyle='select: title'/>,
+<xref linkend='XtGetApplicationResources' xrefstyle='select: title'/>,
+and so on) call resource converters if the resource database or
+varargs list specifies a value
+that has a different representation from the desired representation or if the
+widget's default resource value representation is different from the desired
+representation.
+</para>
+
+<para>
+To invoke explicit resource conversions, use
+<xref linkend='XtConvertAndStore' xrefstyle='select: title'/>
+or
+<xref linkend='XtCallConverter' xrefstyle='select: title'/>.
+</para>
+<literallayout >
+typedef XtPointer XtCacheRef;
+</literallayout>
+
+<funcsynopsis id='XtCallConverter'>
+<funcprototype>
+<funcdef>Boolean  <function>XtCallConverter</function></funcdef>
+   <paramdef>Display* <parameter>display</parameter></paramdef>
+   <paramdef>XtTypeConverter <parameter>converter</parameter></paramdef>
+   <paramdef>XrmValuePtr <parameter>conversion_args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+   <paramdef>XrmValuePtr <parameter>from</parameter></paramdef>
+   <paramdef>XrmValuePtr <parameter>to_in_out</parameter></paramdef>
+   <paramdef>XtCacheRef *<parameter>cache_ref_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display with which the conversion is to be associated.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>converter</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the conversion procedure to be called.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>conversion_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the additional conversion arguments needed
+to perform the conversion, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>conversion_args</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a descriptor for the source value.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to_in_out</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the converted value.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>cache_ref_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns a conversion cache id.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtCallConverter' xrefstyle='select: title'/>
+function looks up the
+specified type converter in the application context associated with
+the display and, if the converter was not registered or was registered
+with cache type
+<function>XtCacheAll</function>
+or
+<function>XtCacheByDisplay</function>,
+looks in the conversion cache to see if this conversion procedure
+has been called with the specified conversion arguments.  If so, it
+checks the success status of the prior call, and if
+the conversion failed,
+<xref linkend='XtCallConverter' xrefstyle='select: title'/>
+returns
+<function>False</function>
+immediately;
+otherwise it checks the size specified in the <emphasis remap='I'>to</emphasis> argument, and, if it is
+greater than or equal to the size stored in the cache, copies the
+information stored in the cache into the location specified by
+<emphasis remap='I'>to-&gt;addr</emphasis>, stores the cache size into <emphasis remap='I'>to-&gt;size</emphasis>, and returns
+<function>True</function>.
+If the size specified in the <emphasis remap='I'>to</emphasis> argument is smaller than the size stored
+in the cache,
+<xref linkend='XtCallConverter' xrefstyle='select: title'/>
+copies the cache size into <emphasis remap='I'>to-&gt;size</emphasis> and returns
+<function>False</function>.
+If the converter was registered with cache type
+<function>XtCacheNone</function>
+or no value was found in the conversion cache,
+<xref linkend='XtCallConverter' xrefstyle='select: title'/>
+calls the converter, and if it was not registered with cache type
+<function>XtCacheNone</function>,
+enters the result in the cache.
+<xref linkend='XtCallConverter' xrefstyle='select: title'/>
+then returns what the converter returned.
+</para>
+
+<para>
+The <emphasis remap='I'>cache_ref_return</emphasis> field specifies storage allocated by the caller in which
+an opaque value will be stored.  If the type converter has been
+registered with the
+<function>XtCacheRefCount</function>
+modifier and if the value returned
+in <emphasis remap='I'>cache_ref_return</emphasis> is non-NULL, then the caller should store the
+<emphasis remap='I'>cache_ref_return</emphasis> value in order to decrement the reference count when
+the converted value is no longer required.  The <emphasis remap='I'>cache_ref_return</emphasis>
+argument should be
+NULL if the caller is unwilling or unable to store the
+value.
+</para>
+
+<para>
+To explicitly decrement the reference counts for resources obtained
+from
+<xref linkend='XtCallConverter' xrefstyle='select: title'/>,
+use
+<xref linkend='XtAppReleaseCacheRefs' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppReleaseCacheRefs'>
+<funcprototype>
+<funcdef>void <function>XtAppReleaseCacheRefs</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>XtCacheRef *<parameter>refs</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>refs</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the list of cache references to be released.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtAppReleaseCacheRefs' xrefstyle='select: title'/>
+decrements the reference count for the
+conversion entries identified by the <emphasis remap='I'>refs</emphasis> argument.
+This argument is a
+pointer to a NULL-terminated list of
+<function>XtCacheRef</function>
+values.  If any reference
+count reaches zero, the destructor, if any, will be called and
+the resource removed from the conversion cache.
+</para>
+
+<para>
+As a convenience to clients needing to explicitly decrement reference
+counts via a callback function, the Intrinsics define two callback
+procedures,
+<xref linkend='XtCallbackReleaseCacheRef' xrefstyle='select: title'/>
+and
+<xref linkend='XtCallbackReleaseCacheRefList' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCallbackReleaseCacheRef'>
+<funcprototype>
+<funcdef>void <function>XtCallbackReleaseCacheRef</function></funcdef>
+   <paramdef>Widget <parameter>object</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtPointer <parameter>call_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object with which the resource is associated.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the conversion cache entry to be released.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>call_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Is ignored.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This callback procedure may be added to a callback list to release a
+previously returned
+<function>XtCacheRef</function>
+value.  When adding the callback, the
+callback <emphasis remap='I'>client_data</emphasis> argument must be specified as the value of the
+<function>XtCacheRef</function>
+data cast to type
+<function>XtPointer</function>.
+</para>
+
+<funcsynopsis id='XtCallbackReleaseCacheRefList'>
+<funcprototype>
+<funcdef>void <function>XtCallbackReleaseCacheRefList</function></funcdef>
+   <paramdef>Widget <parameter>object</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtPointer <parameter>call_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object with which the resources are associated.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the conversion cache entries to be released.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>call_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Is ignored.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This callback procedure may be added to a callback list to release a
+list of previously returned
+<function>XtCacheRef</function>
+values.  When adding the
+callback, the callback <emphasis remap='I'>client_data</emphasis> argument must be specified as a
+pointer to a NULL-terminated list of
+<function>XtCacheRef</function>
+values.
+</para>
+
+<para>
+To lookup and call a resource converter, copy the resulting value,
+and free a cached resource when a widget is destroyed, use
+<xref linkend='XtConvertAndStore' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtConvertAndStore'>
+<funcprototype>
+<funcdef>Boolean <function>XtConvertAndStore</function></funcdef>
+   <paramdef>Widget <parameter>object</parameter></paramdef>
+   <paramdef>String <parameter>from_type</parameter></paramdef>
+   <paramdef>XrmValuePtr <parameter>from</parameter></paramdef>
+   <paramdef>String <parameter>to_type</parameter></paramdef>
+   <paramdef>XrmValuePtr <parameter>to_in_out</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object to use for additional arguments, if any are needed,
+and the destroy callback list.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the source type.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the value to be converted.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the destination type.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to_in_out</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a descriptor for storage into which the converted value
+will be returned.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtConvertAndStore' xrefstyle='select: title'/>
+function looks up the type converter registered
+to convert <emphasis remap='I'>from_type</emphasis> to <emphasis remap='I'>to_type</emphasis>, computes any additional arguments
+needed, and then calls
+<xref linkend='XtCallConverter' xrefstyle='select: title'/>
+(or
+<xref linkend='XtDirectConvert' xrefstyle='select: title'/>
+if an old-style converter was registered with
+<xref linkend='XtAddConverter' xrefstyle='select: title'/>
+or
+<xref linkend='XtAppAddConverter' xrefstyle='select: title'/>;
+see Appendix C) with the <emphasis remap='I'>from</emphasis> and <emphasis remap='I'>to_in_out</emphasis> arguments.  The
+<emphasis remap='I'>to_in_out</emphasis> argument specifies the size and location into which the
+converted value will be stored and is passed directly to the
+converter.  If the location is specified as NULL, it will be replaced
+with a pointer to private storage and the size will be returned in the
+descriptor.  The caller is expected to copy this private storage
+immediately and must not modify it in any way.  If a non-NULL location
+is specified, the caller must allocate sufficient storage to hold the
+converted value and must also specify the size of that storage in the
+descriptor.
+The <emphasis remap='I'>size</emphasis> field will be modified on return to indicate the actual
+size of the converted data.
+If the conversion succeeds,
+<xref linkend='XtConvertAndStore' xrefstyle='select: title'/>
+returns
+<function>True</function>;
+otherwise, it returns
+<function>False</function>.
+</para>
+
+<para>
+<xref linkend='XtConvertAndStore' xrefstyle='select: title'/>
+adds
+<xref linkend='XtCallbackReleaseCacheRef' xrefstyle='select: title'/>
+to the destroyCallback list of the specified object if the conversion
+returns an
+<function>XtCacheRef</function>
+value.  The resulting resource should not be referenced
+after the object has been destroyed.
+</para>
+
+<para>
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>
+performs processing equivalent to
+<xref linkend='XtConvertAndStore' xrefstyle='select: title'/>
+when initializing the object instance.  Because there is extra memory
+overhead required to implement reference counting, clients may
+distinguish those objects that are never destroyed before the
+application exits from those that may be destroyed and whose
+resources should be deallocated.
+</para>
+
+<para>
+To specify whether reference counting is to be enabled for the
+resources of a particular object when the object is created, the
+client can specify a value for the
+<function>Boolean</function>
+resource
+XtNinitialResourcesPersistent,
+class
+XtCInitialResourcesPersistent.
+</para>
+
+<para>
+When
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>
+is called, if this resource is not specified as
+<function>False</function>
+in either the arglist or the resource database, then the
+resources referenced by this object are not reference-counted, regardless of
+how the type converter may have been registered.  The effective
+default value is
+<function>True</function>;
+thus clients that expect to destroy one or
+more objects and want resources deallocated must explicitly specify
+<function>False</function>
+for
+XtNinitialResourcesPersistent.
+</para>
+
+<para>
+The resources are still freed and destructors called when
+<xref linkend='XtCloseDisplay' xrefstyle='select: title'/>
+is called if the conversion was registered as
+<function>XtCacheByDisplay</function>.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Reading_and_Writing_Widget_State">
+<title>Reading and Writing Widget State</title>
+<para>
+Any resource field in a widget can be read or written by a client.
+On a write operation,
+the widget decides what changes it will actually allow and updates all
+derived fields appropriately.
+</para>
+<sect2 id="Obtaining_Widget_State">
+<title>Obtaining Widget State</title>
+<para>
+To retrieve the current values of resources associated with a
+widget instance, use
+<xref linkend='XtGetValues' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetValues'>
+<funcprototype>
+<funcdef>void <function>XtGetValues</function></funcdef>
+   <paramdef>Widget <parameter>object</parameter></paramdef>
+   <paramdef>ArgList <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object whose resource values are to be returned.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list of name/address pairs that contain the
+resource names and the addresses into which the resource values are to
+be stored.
+The resource names are widget-dependent.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtGetValues' xrefstyle='select: title'/>
+function starts with the resources specified for the Object class
+and proceeds down the subclass chain to the class of the object.
+The <emphasis remap='I'>value</emphasis> field of a passed argument list must contain the
+address into which to copy the contents of the corresponding
+object instance field.  If the field is a pointer type, the lifetime
+of the pointed-to data is defined by the object class.  For the
+Intrinsics-defined resources, the following lifetimes apply:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Not valid following any operation that modifies the resource:
+    </para>
+  </listitem>
+  <listitem>
+    <itemizedlist spacing='compact'>
+      <listitem>
+        <para>
+XtNchildren resource of composite widgets.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+All resources of representation type XtRCallback.
+        </para>
+      </listitem>
+    </itemizedlist>
+  </listitem>
+  <listitem>
+    <para>
+Remain valid at least until the widget is destroyed:
+    </para>
+  </listitem>
+  <listitem>
+    <itemizedlist spacing='compact'>
+      <listitem>
+        <para>
+XtNaccelerators, XtNtranslations.
+        </para>
+      </listitem>
+    </itemizedlist>
+  </listitem>
+  <listitem>
+    <para>
+Remain valid until the Display is closed:
+    </para>
+  </listitem>
+  <listitem>
+    <itemizedlist spacing='compact'>
+      <listitem>
+        <para>
+XtNscreen.
+        </para>
+      </listitem>
+    </itemizedlist>
+  </listitem>
+</itemizedlist>
+<para>
+It is the caller's responsibility
+to allocate and deallocate storage for the copied data
+according to the size of the
+resource representation type used within the object.
+</para>
+
+<para>
+If the class of the object's parent is a subclass of
+<function>constraintWidgetClass</function>,
+<xref linkend='XtGetValues' xrefstyle='select: title'/>
+then fetches the values for any constraint resources requested.
+It starts with the constraint resources specified for
+<function>constraintWidgetClass</function>
+and proceeds down the subclass chain to the parent's constraint resources.
+If the argument list contains a resource name that is not found in any of the
+resource lists searched,
+the value at the corresponding address is not modified.
+If any get_values_hook procedures in the
+object's class or superclass records are non-NULL,
+they are called in superclass-to-subclass order after
+all the resource values have been fetched by
+<xref linkend='XtGetValues' xrefstyle='select: title'/>.
+Finally, if the object's parent is a
+subclass of
+<function>constraintWidgetClass</function>,
+and if any of the parent's class or
+superclass records have declared
+<function>ConstraintClassExtension</function>
+records in
+the Constraint class part <emphasis remap='I'>extension</emphasis> field with a record type of
+<emphasis role='strong'>NULLQUARK</emphasis>,
+and if the <emphasis remap='I'>get_values_hook</emphasis> field in the extension record is non-NULL,
+<xref linkend='XtGetValues' xrefstyle='select: title'/>
+calls the get_values_hook procedures in superclass-to-subclass order.
+This permits a Constraint parent to provide
+nonresource data via
+<xref linkend='XtGetValues' xrefstyle='select: title'/>.
+</para>
+
+<para>
+Get_values_hook procedures may modify the data stored at the
+location addressed by the <emphasis remap='I'>value</emphasis> field, including (but not
+limited to) making a copy of data whose resource representation is a
+pointer.  None of the Intrinsics-defined object classes copy
+data in this manner.  Any operation that modifies the queried
+object resource may invalidate the pointed-to data.
+</para>
+
+<para>
+To retrieve the current values of resources associated with a widget
+instance using varargs lists, use
+<xref linkend='XtVaGetValues' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtVaGetValues'>
+<funcprototype>
+<funcdef>void <function>XtVaGetValues</function></funcdef>
+   <paramdef>Widget <parameter>object</parameter></paramdef>
+   <paramdef><parameter>...</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object whose resource values are to be returned.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      ...
+    </term>
+    <listitem>
+      <para>
+Specifies the variable argument list for the resources to
+be returned.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtVaGetValues' xrefstyle='select: title'/>
+is identical in function to
+<xref linkend='XtGetValues' xrefstyle='select: title'/>
+with the <emphasis remap='I'>args</emphasis>
+and <emphasis remap='I'>num_args</emphasis> parameters replaced by a varargs list, as described in
+Section 2.5.1.  All value entries in the list must specify pointers to
+storage allocated by the caller to which the resource value will be
+copied.  It is the caller's responsibility to ensure that sufficient
+storage is allocated.  If
+<function>XtVaTypedArg</function>
+is specified, the <emphasis remap='I'>type</emphasis> argument
+specifies the representation desired by the caller and <emphasis remap='I'>the</emphasis> size argument
+specifies the number of bytes allocated to store the result of the
+conversion.  If the size is insufficient, a warning message is issued
+and the list entry is skipped.
+</para>
+<sect3 id="Widget_Subpart_Resource_Data_The_get_values_hook_Procedure">
+<title>Widget Subpart Resource Data: The get_values_hook Procedure</title>
+<para>
+Widgets that have subparts can return resource values from them through
+<xref linkend='XtGetValues' xrefstyle='select: title'/>
+by supplying a get_values_hook procedure.
+The get_values_hook procedure pointer is of type
+<xref linkend='XtArgsProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='_XtArgsProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtArgsProc)</function></funcdef>
+
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>ArgList <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget whose subpart resource values are to be retrieved.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list that was passed to
+<xref linkend='XtGetValues' xrefstyle='select: title'/>
+or the transformed varargs list passed to
+<xref linkend='XtVaGetValues' xrefstyle='select: title'/>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The widget with subpart resources should call
+<xref linkend='XtGetSubvalues' xrefstyle='select: title'/>
+in the get_values_hook procedure
+and pass in its subresource list and the <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis> parameters.
+</para>
+</sect3>
+<sect3 id="Widget_Subpart_State">
+<title>Widget Subpart State</title>
+<para>
+To retrieve the current values of subpart resource data associated with a
+widget instance, use
+<xref linkend='XtGetSubvalues' xrefstyle='select: title'/>.
+For a discussion of subpart resources,
+see <xref linkend='Subresources' />.
+</para>
+
+<funcsynopsis id='XtGetSubvalues'>
+<funcprototype>
+<funcdef>void <function>XtGetSubvalues</function></funcdef>
+   <paramdef>XtPointer <parameter>base</parameter></paramdef>
+   <paramdef>XtResourceList <parameter>resources</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_resources</parameter></paramdef>
+   <paramdef>ArgList <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>base</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the base address of the subpart data structure for which the
+resources should be retrieved.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the subpart resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list of name/address pairs that contain the
+resource names and the addresses into which the resource values are to
+be stored.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtGetSubvalues' xrefstyle='select: title'/>
+function obtains resource values from the structure identified by <emphasis remap='I'>base</emphasis>.
+The <emphasis remap='I'>value</emphasis> field in each argument entry must contain the address into
+which to store the corresponding resource value.  It is the caller's
+responsibility to allocate and deallocate this storage according to
+the size of the resource representation type used within the subpart.
+If the argument list contains a resource name that is not found in the
+resource list, the value at the corresponding address is not modified.
+</para>
+
+<para>
+To retrieve the current values of subpart resources associated with
+a widget instance using varargs lists, use
+<xref linkend='XtVaGetSubvalues' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtVaGetSubvalues'>
+<funcprototype>
+<funcdef>void <function>XtVaGetSubvalues</function></funcdef>
+   <paramdef>XtPointer <parameter>base</parameter></paramdef>
+   <paramdef>XtResourceList <parameter>resources</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_resources</parameter></paramdef>
+   <paramdef> <parameter>...</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>base</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the base address of the subpart data structure for which the
+resources should be retrieved.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the subpart resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      ...
+    </term>
+    <listitem>
+      <para>
+Specifies a variable argument list of name/address pairs that
+contain the resource names and the addresses into which the resource
+values are to be stored.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtVaGetSubvalues' xrefstyle='select: title'/>
+is identical in function to
+<xref linkend='XtGetSubvalues' xrefstyle='select: title'/>
+with the
+<emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis> parameters replaced by a varargs list, as described
+in Section 2.5.1.
+<function>XtVaTypedArg</function>
+is not supported for
+<xref linkend='XtVaGetSubvalues' xrefstyle='select: title'/>.
+If
+<function>XtVaTypedArg</function>
+is specified in the list, a warning message is issued
+and the entry is then ignored.
+</para>
+</sect3>
+</sect2>
+
+<sect2 id="Setting_Widget_State">
+<title>Setting Widget State</title>
+<para>
+To modify the current values of resources associated with a widget
+instance, use
+<xref linkend='XtSetValues' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetValues'>
+<funcprototype>
+<funcdef>void <function>XtSetValues</function></funcdef>
+   <paramdef>Widget <parameter>object</parameter></paramdef>
+   <paramdef>ArgList <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object whose resources are to be modified.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list of name/value pairs that contain the
+resources to be modified and their new values.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+function starts with the resources specified for the
+Object
+class fields and proceeds down the subclass chain to the object.
+At each stage, it replaces the <emphasis remap='I'>object</emphasis> resource fields with any values
+specified in the argument list.
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+then calls the set_values procedures for the object in superclass-to-subclass
+order.
+If the object has any non-NULL <emphasis remap='I'>set_values_hook</emphasis> fields,
+these are called immediately after the
+corresponding set_values procedure.
+This procedure permits subclasses to set subpart data via
+<xref linkend='XtSetValues' xrefstyle='select: title'/>.
+</para>
+
+<para>
+If the class of the object's parent is a subclass of
+<function>constraintWidgetClass</function>,
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+also updates the object's constraints.
+It starts with the constraint resources specified for
+<function>constraintWidgetClass</function>
+and proceeds down the subclass chain to the parent's class.
+At each stage, it replaces the constraint resource fields with any
+values specified in the argument list.
+It then calls the constraint set_values procedures from
+<function>constraintWidgetClass</function>
+down to the parent's class.
+The constraint set_values procedures are called with widget arguments,
+as for all set_values procedures, not just the constraint records,
+so that they can make adjustments to the desired values based
+on full information about the widget.  Any arguments specified that
+do not match a resource list entry are silently ignored.
+</para>
+
+<para>
+If the object is of a subclass of
+RectObj,
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+determines if a geometry request is needed by comparing the old object to
+the new object.
+If any geometry changes are required,
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+restores the original geometry and makes the request on behalf of the widget.
+If the geometry manager returns
+<function>XtGeometryYes</function>,
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+calls the object's resize procedure.
+If the geometry manager returns
+<function>XtGeometryDone</function>,
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+continues, as the object's resize procedure should have been called
+by the geometry manager.
+If the geometry manager returns
+<function>XtGeometryNo</function>,
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+ignores the geometry request and continues.
+If the geometry manager returns
+<function>XtGeometryAlmost</function>,
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+calls the set_values_almost procedure,
+which determines what should be done.
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+then repeats this process,
+deciding once more whether the geometry manager should be called.
+</para>
+
+<para>
+Finally, if any of the set_values procedures returned
+<function>True</function>,
+and the widget is realized,
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+causes the widget's expose procedure to be invoked by calling
+<function>XClearArea</function>
+on the widget's window.
+</para>
+
+<para>
+To modify the current values of resources associated with a widget
+instance using varargs lists, use
+<xref linkend='XtVaSetValues' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtVaSetValues'>
+<funcprototype>
+<funcdef>void <function>XtVaSetValues</function></funcdef>
+   <paramdef>Widget <parameter>object</parameter></paramdef>
+   <paramdef> <parameter>...</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object whose resources are to be modified.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      ...
+    </term>
+    <listitem>
+      <para>
+Specifies the variable argument list of name/value pairs that
+contain the resources to be modified and their new values.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtVaSetValues' xrefstyle='select: title'/>
+is identical in function to
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+with the <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis> parameters replaced by a varargs list, as
+described in Section 2.5.1.
+</para>
+<sect3 id="Widget_State_The_set_values_Procedure">
+<title>Widget State: The set_values Procedure</title>
+<para>
+The set_values procedure pointer in a widget class is of type
+<xref linkend='XtSetValuesFunc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetValuesFunc'>
+<funcprototype>
+<funcdef>typedef Boolean <function>(*XtSetValuesFunc)</function></funcdef>
+
+   <paramdef>Widget <parameter>current</parameter></paramdef>
+   <paramdef>Widget <parameter>request</parameter></paramdef>
+   <paramdef>Widget <parameter>new</parameter></paramdef>
+   <paramdef>ArgList <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>current</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a copy of the widget as it was before the
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+call.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>request</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a copy of the widget with all values changed as asked for by the
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+call before any class set_values procedures have been called.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>new</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget with the new values that are actually allowed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list passed to
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+or the transformed argument list passed to
+<xref linkend='XtVaSetValues' xrefstyle='select: title'/>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The set_values procedure should recompute any field
+derived from resources that are changed
+(for example, many GCs depend on foreground and background pixels).
+If no recomputation is necessary, and if none of the resources specific to a
+subclass require the window to be redisplayed when their values are changed,
+you can specify NULL for the <emphasis remap='I'>set_values</emphasis> field in the class record.
+</para>
+
+<para>
+Like the initialize procedure,
+set_values mostly deals only with the fields defined in the subclass,
+but it has to resolve conflicts with its superclass,
+especially conflicts over width and height.
+</para>
+
+<para>
+Sometimes a subclass may want to overwrite values filled in by its
+superclass.
+In particular, size calculations of a superclass are often
+incorrect for a subclass, and, in this case,
+the subclass must modify or recalculate fields declared
+and computed by its superclass.
+</para>
+
+<para>
+As an example,
+a subclass can visually surround its superclass display.
+In this case, the width and height calculated by the superclass set_values
+procedure are too small and need to be incremented by the size of the surround.
+The subclass needs to know if its superclass's size was calculated by the
+superclass or was specified explicitly.
+All widgets must place themselves into whatever size is explicitly given,
+but they should compute a reasonable size if no size is requested.
+How does a subclass know the difference between a specified size
+and a size computed by a superclass?
+</para>
+
+<para>
+The <emphasis remap='I'>request</emphasis> and <emphasis remap='I'>new</emphasis> parameters provide the necessary information.
+The <emphasis remap='I'>request</emphasis> widget is a copy of the widget, updated as originally requested.
+The <emphasis remap='I'>new</emphasis> widget starts with the values in the request,
+but it has additionally been updated by all superclass set_values
+procedures called so far.
+A subclass set_values procedure can compare these two to resolve
+any potential conflicts.
+The set_values procedure need not refer to the <emphasis remap='I'>request</emphasis> widget
+unless it must resolve conflicts between the <emphasis remap='I'>current</emphasis> and <emphasis remap='I'>new</emphasis> widgets.
+Any changes the widget needs to make, including geometry changes,
+should be made in the <emphasis remap='I'>new</emphasis> widget.
+</para>
+
+<para>
+In the above example,
+the subclass with the visual surround can see
+if the <emphasis remap='I'>width</emphasis> and <emphasis remap='I'>height</emphasis> in the <emphasis remap='I'>request</emphasis> widget are zero.
+If so,
+it adds its surround size to the <emphasis remap='I'>width</emphasis> and
+<emphasis remap='I'>height</emphasis> fields in the <emphasis remap='I'>new</emphasis> widget.
+If not, it must make do with the size originally specified.
+In this case, zero is a special value defined by the class to permit
+the application to invoke this behavior.
+</para>
+
+<para>
+The <emphasis remap='I'>new</emphasis> widget is the actual widget instance record.
+Therefore,
+the set_values procedure should do all its work on the <emphasis remap='I'>new</emphasis> widget;
+the <emphasis remap='I'>request</emphasis> widget should never be modified.
+If the set_values procedure needs to call any routines that operate on
+a widget, it should specify <emphasis remap='I'>new</emphasis> as the widget instance.
+</para>
+
+<para>
+Before calling the set_values procedures, the Intrinsics modify the
+resources of the <emphasis remap='I'>request</emphasis> widget according to the contents of the arglist;
+if the widget names all its resources in the class resource list, it is
+never necessary to examine the contents of <emphasis remap='I'>args</emphasis>.
+</para>
+
+<para>
+Finally, the set_values procedure must return a Boolean that indicates whether
+the widget needs to be redisplayed.
+Note that a change in the geometry fields alone does not require
+the set_values procedure to return
+<function>True</function>;
+the X server will eventually generate an
+<function>Expose</function>
+event, if necessary.
+After calling all the set_values procedures,
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+forces a redisplay by calling
+<function>XClearArea</function>
+if any of the set_values procedures returned
+<function>True</function>.
+Therefore, a set_values procedure should not try to do its own redisplaying.
+</para>
+
+<para>
+Set_values procedures should not do any work in response to changes in
+geometry because
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+eventually will perform a geometry request, and that request might be denied.
+If the widget actually changes size in response to a
+call to
+<xref linkend='XtSetValues' xrefstyle='select: title'/>,
+its resize procedure is called.
+Widgets should do any geometry-related work in their resize procedure.
+</para>
+
+<para>
+Note that it is permissible to call
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+before a widget is realized.
+Therefore, the set_values procedure must not assume that the widget is realized.
+</para>
+</sect3>
+<sect3 id="Widget_State_The_set_values_almost_Procedure">
+<title>Widget State: The set_values_almost Procedure</title>
+<para>
+The set_values_almost procedure pointer in the widget class record is of type
+<xref linkend='XtAlmostProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAlmostProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtAlmostProc)</function></funcdef>
+
+   <paramdef>Widget <parameter>old</parameter></paramdef>
+   <paramdef>Widget <parameter>new</parameter></paramdef>
+   <paramdef>XtWidgetGeometry *<parameter>request</parameter></paramdef>
+   <paramdef>XtWidgetGeometry *<parameter>reply</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>old</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a copy of the object as it was before the
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+call.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>new</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object instance record.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>request</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the original geometry request that was sent to the geometry
+manager that caused
+<function>XtGeometryAlmost</function>
+to be returned.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>reply</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the compromise geometry that was returned by the geometry
+manager with
+<function>XtGeometryAlmost</function>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+Most classes inherit the set_values_almost procedure from their superclass by
+specifying
+<function>XtInheritSetValuesAlmost</function>
+in the class initialization.
+The
+set_values_almost procedure in
+<function>rectObjClass</function>
+accepts the compromise suggested.
+</para>
+
+<para>
+The set_values_almost procedure is called when a client tries to set a widget's
+geometry by means of a call to
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+and the geometry manager cannot
+satisfy the request but instead returns
+<function>XtGeometryNo</function>
+or
+<function>XtGeometryAlmost</function>
+and a compromise geometry.
+The <emphasis remap='I'>new</emphasis> object is the actual instance record.  The <emphasis remap='I'>x</emphasis>, <emphasis remap='I'>y</emphasis>,
+<emphasis remap='I'>width</emphasis>, <emphasis remap='I'>height</emphasis>,
+and <emphasis remap='I'>border_width</emphasis> fields contain the original values as they were
+before the
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+call, and all other fields contain the new
+values.  The <emphasis remap='I'>request</emphasis> parameter contains the new geometry request that
+was made to the parent.  The <emphasis remap='I'>reply</emphasis> parameter contains
+<emphasis remap='I'>reply-&gt;request_mode</emphasis> equal to zero if the parent returned
+<function>XtGeometryNo</function>
+and contains the parent's compromise geometry otherwise.  The
+set_values_almost procedure takes the original geometry and the
+compromise geometry and determines if the compromise is
+acceptable or whether
+to try a different compromise.
+It returns its results in the <emphasis remap='I'>request</emphasis> parameter,
+which is then sent back to the geometry manager for another try.
+To accept the compromise, the procedure must copy the contents
+of the <emphasis remap='I'>reply</emphasis> geometry into the <emphasis remap='I'>request</emphasis> geometry; to attempt an
+alternative geometry, the procedure may modify any part of the <emphasis remap='I'>request</emphasis>
+argument; to terminate the geometry negotiation and retain the
+original geometry, the procedure must set <emphasis remap='I'>request-&gt;request_mode</emphasis> to
+zero.  The geometry fields of the <emphasis remap='I'>old</emphasis> and <emphasis remap='I'>new</emphasis> instances must not be modified
+directly.
+</para>
+</sect3>
+<sect3 id="Widget_State_The_ConstraintClassPart_set_values_Procedure">
+<title>Widget State: The ConstraintClassPart set_values Procedure</title>
+<para>
+The constraint set_values procedure pointer is of type
+<xref linkend='XtSetValuesFunc' xrefstyle='select: title'/>.
+The values passed to the parent's constraint set_values procedure
+are the same as those passed to the child's class
+set_values procedure.
+A class can specify NULL for the <emphasis remap='I'>set_values</emphasis> field of the
+<function>ConstraintPart</function>
+if it need not compute anything.
+</para>
+
+<para>
+The constraint set_values procedure should recompute any constraint fields
+derived from constraint resources that are changed.
+Furthermore, it may modify other widget fields as appropriate.
+For example, if a constraint for the maximum height of a widget is changed
+to a value smaller than the widget's current height,
+the constraint set_values procedure may reset the <emphasis remap='I'>height</emphasis> field in the
+widget.
+</para>
+</sect3>
+<sect3 id='Widget_Subpart_State_2'>
+<title>Widget Subpart State</title>
+<para>
+To set the current values of subpart resources associated with a
+widget instance, use
+<xref linkend='XtSetSubvalues' xrefstyle='select: title'/>.
+For a discussion of subpart resources,
+see <xref linkend='Subresources' />.
+</para>
+
+<funcsynopsis id='XtSetSubvalues'>
+<funcprototype>
+<funcdef>void <function>XtSetSubvalues</function></funcdef>
+   <paramdef>XtPointer <parameter>base</parameter></paramdef>
+   <paramdef>XtResourceList <parameter>resources</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_resources</parameter></paramdef>
+   <paramdef>ArgList <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>base</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the base address of the subpart data structure into which the
+resources should be written.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the subpart resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list of name/value pairs that contain the
+resources to be modified and their new values.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtSetSubvalues' xrefstyle='select: title'/>
+function updates the resource fields of the structure identified by
+<emphasis remap='I'>base</emphasis>.  Any specified arguments that do not match an entry in the
+resource list are silently ignored.
+</para>
+
+<para>
+To set the current values of subpart resources associated with
+a widget instance using varargs lists, use
+<xref linkend='XtVaSetSubvalues' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtVaSetSubvalues'>
+<funcprototype>
+<funcdef>void <function>XtVaSetSubvalues</function></funcdef>
+   <paramdef>XtPointer <parameter>base</parameter></paramdef>
+   <paramdef>XtResourceList <parameter>resources</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_resources</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>base</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the base address of the subpart data structure into which the
+resources should be written.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the subpart resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the resource list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      ...
+    </term>
+    <listitem>
+      <para>
+Specifies the variable argument list of name/value pairs that
+contain the resources to be modified and their new values.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtVaSetSubvalues' xrefstyle='select: title'/>
+is identical in function to
+<xref linkend='XtSetSubvalues' xrefstyle='select: title'/>
+with the <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis> parameters replaced by a varargs list, as
+described in Section 2.5.1.
+<function>XtVaTypedArg</function>
+is not supported for
+<xref linkend='XtVaSetSubvalues' xrefstyle='select: title'/>.
+If an entry containing
+<function>XtVaTypedArg</function>
+is specified in the list, a warning message is issued
+and the entry is ignored.
+</para>
+</sect3>
+
+<sect3 id='Widget_Subpart_Resource_Data_The_set_values_hook_Procedure'>
+<title>Widget Subpart Resource Data: The set_values_hook Procedure</title>
+<note><para>
+The set_values_hook procedure is obsolete, as the same information
+is now available to the set_values procedure.  The procedure has been
+retained for those widgets that used it in versions prior to Release 4.
+</para>
+</note>
+<para>
+Widgets that have a subpart can set the subpart resource values through
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+by supplying a set_values_hook procedure.
+The set_values_hook procedure pointer in a widget class is of type
+<xref linkend='XtArgsFunc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtArgsFunc'>
+<funcprototype>
+<funcdef>typedef Boolean <function>(*XtArgsFunc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Arglist <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget whose subpart resource values are to be changed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list that was passed to
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+or the transformed varargs list passed to
+<xref linkend='XtVaSetValues' xrefstyle='select: title'/>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The widget with subpart resources may call
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+from the set_values_hook procedure
+and pass in its subresource list and the
+<emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis> parameters.
+</para>
+</sect3>
+</sect2>
+</sect1>
+</chapter>

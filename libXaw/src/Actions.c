@@ -10,7 +10,7 @@
  *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *  
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
@@ -38,7 +38,6 @@
 #include <X11/CoreP.h>
 #include <X11/Constraint.h>
 #include <X11/Xmu/CharSet.h>
-#include <X11/Xmu/SysUtil.h>
 #include <X11/Xfuncs.h>
 #include "Private.h"
 
@@ -300,8 +299,8 @@ get_token(XawEvalInfo *info)
   {
     char msg[256];
 
-    XmuSnprintf(msg, sizeof(msg),
-		"evaluate(): bad token \"%c\" at \"%s\"", ch, info->cp - 1);
+    snprintf(msg, sizeof(msg), "evaluate(): bad token \"%c\" at \"%s\"",
+	     ch, info->cp - 1);
 
     XtAppWarning(XtWidgetToApplicationContext(info->widget), msg);
   }
@@ -371,8 +370,8 @@ prim(XawEvalInfo *info)
 	  char msg[256];
 
 	  info->token = ERROR;
-	  XmuSnprintf(msg, sizeof(msg),
-		      "evaluate(): expecting ), at \"%s\"", info->lp);
+	  snprintf(msg, sizeof(msg), "evaluate(): expecting ), at \"%s\"",
+		   info->lp);
 	  XtAppWarning(XtWidgetToApplicationContext(info->widget), msg);
 	  return (False);
 	}
@@ -385,8 +384,8 @@ prim(XawEvalInfo *info)
 	char msg[256];
 
 	info->token = ERROR;
-	XmuSnprintf(msg, sizeof(msg),
-		    "evaluate(): sintax error, at \"%s\"", info->lp);
+	snprintf(msg, sizeof(msg), "evaluate(): syntax error, at \"%s\"",
+		 info->lp);
 	XtAppWarning(XtWidgetToApplicationContext(info->widget), msg);
       } return (False);
     }
@@ -435,8 +434,7 @@ XawSetValuesAction(Widget w, XEvent *event,
 	{
 	  char msg[256];
 
-	  XmuSnprintf(msg, sizeof(msg),
-		      "set-values(): bad resource name \"%s\"",
+	  snprintf(msg, sizeof(msg), "set-values(): bad resource name \"%s\"",
 		   params[count]);
 	  XtAppWarning(XtWidgetToApplicationContext(w), msg);
           continue;
@@ -457,9 +455,9 @@ XawSetValuesAction(Widget w, XEvent *event,
 	  {
 	    char msg[256];
 
-	    XmuSnprintf(msg, sizeof(msg),
-			"set-values(): bad resource size for \"%s\"",
-			params[count]);
+	    snprintf(msg, sizeof(msg),
+		     "set-values(): bad resource size for \"%s\"",
+		     params[count]);
 	    XtAppWarning(XtWidgetToApplicationContext(w), msg);
 	  } continue;
 	}
@@ -501,13 +499,13 @@ XawSetValuesAction(Widget w, XEvent *event,
 void
 XawGetValuesAction(Widget w, XEvent *event,
 		   String *params, Cardinal *num_params)
-{     
+{
   XawActionResList *rlist;
   XawActionVarList *vlist;
   String value;
   Cardinal count;
 
-  if (!(*num_params & 1)) 
+  if (!(*num_params & 1))
     {
       XawPrintActionErrorMsg("get-values", w, params, num_params);
       return;
@@ -529,7 +527,7 @@ XawGetValuesAction(Widget w, XEvent *event,
 void
 XawDeclareAction(Widget w, XEvent *event,
 		 String *params, Cardinal *num_params)
-{     
+{
   XawActionVarList *vlist;
   Cardinal count;
 
@@ -585,7 +583,7 @@ XawConvertActionRes(XawActionResList *list, Widget w, String name)
   Arg arg;
   char  c_1;
   short c_2;
-  int   c_4;   
+  int   c_4;
 #ifdef LONG64
   long  c_8;
 #endif
@@ -594,8 +592,8 @@ XawConvertActionRes(XawActionResList *list, Widget w, String name)
     {
       char msg[256];
 
-      XmuSnprintf(msg, sizeof(msg),
-		  "convert(): bad resource name \"%s\"", name);
+      snprintf(msg, sizeof(msg), "convert(): bad resource name \"%s\"",
+	       name);
       XtAppWarning(XtWidgetToApplicationContext(w), msg);
       return (NULL);
     }
@@ -625,8 +623,8 @@ XawConvertActionRes(XawActionResList *list, Widget w, String name)
       {
         char msg[256];
 
-        XmuSnprintf(msg, sizeof(msg),
-		    "convert(): bad resource size for \"%s\"", name);
+        snprintf(msg, sizeof(msg), "convert(): bad resource size for \"%s\"",
+		 name);
 	XtAppWarning(XtWidgetToApplicationContext(w), name);
       } return (NULL);
     }
@@ -651,17 +649,17 @@ XawPrintActionErrorMsg(String action_name, Widget w,
   char msg[1024];
   unsigned int size, idx;
 
-  size = XmuSnprintf(msg, sizeof(msg), "%s(): bad number of parameters.\n\t(",
-		     action_name);
+  size = snprintf(msg, sizeof(msg), "%s(): bad number of parameters.\n\t(",
+		  action_name);
 
   idx = 0;
   while (idx < *num_params - 1 && size < sizeof(msg))
-    size += XmuSnprintf(&msg[size], sizeof(msg) - size, "%s, ",
-			params[idx++]);
+    size += snprintf(&msg[size], sizeof(msg) - size, "%s, ",
+		     params[idx++]);
   if (*num_params)
-    XmuSnprintf(&msg[size], sizeof(msg) - size, "%s)", params[idx]);
+    snprintf(&msg[size], sizeof(msg) - size, "%s)", params[idx]);
   else
-    XmuSnprintf(&msg[size], sizeof(msg) - size, ")");
+    snprintf(&msg[size], sizeof(msg) - size, ")");
   XtAppWarning(XtWidgetToApplicationContext(w), msg);
 }
 
@@ -681,7 +679,7 @@ XawGetActionResList(WidgetClass wc)
 static int
 qcmp_action_resource_list(register _Xconst void *left,
 			  register _Xconst void *right)
-{   
+{
   return ((char *)((*(XawActionResList **)left)->widget_class) -
           (char *)((*(XawActionResList **)right)->widget_class));
 }
@@ -727,7 +725,7 @@ bcmp_action_resource_list(register _Xconst void *wc,
 
 static XawActionResList *
 _XawFindActionResList(WidgetClass wc)
-{  
+{
   XawActionResList **list;
 
   if (!resource_list)
@@ -831,8 +829,8 @@ bcmp_action_resource(register _Xconst void *string,
 {
   return (strcmp((String)string,
 		 XrmQuarkToString((*(XawActionRes **)resource)->qname)));
-}   
-    
+}
+
 static XawActionRes *
 _XawFindActionRes(XawActionResList *list, Widget detail, String name)
 {
@@ -904,8 +902,9 @@ XawDeclareActionVar(XawActionVarList *list, String name, String value)
     {
       char msg[256];
 
-      XmuSnprintf(msg, sizeof(msg), "declare(): variable name must begin with "
-		  "\'%c\', at %s = %s", XAW_PRIV_VAR_PREFIX, name, value);
+      snprintf(msg, sizeof(msg),
+	       "declare(): variable name must begin with \'%c\', at %s = %s",
+	       XAW_PRIV_VAR_PREFIX, name, value);
       XtAppWarning(XtWidgetToApplicationContext(list->widget), msg);
       return;
     }

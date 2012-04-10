@@ -31,7 +31,7 @@
 #include <X11/XKBlib.h>
 #include "XKBbells.h"
 
-static char *_xkbStdBellNames[XkbBI_NumBells] = {
+static const char *_xkbStdBellNames[XkbBI_NumBells] = {
 	"Info",
 	"Warning",
 	"MinorError",

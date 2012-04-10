@@ -27,13 +27,13 @@ Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -204,13 +204,13 @@ DoLayout(BoxWidget bbw, unsigned int width, unsigned int height,
 {
     Boolean vbox = (bbw->box.orientation == XtorientVertical);
     Cardinal  i;
-    Dimension w, h;	/* Width and height needed for box 		*/
-    Dimension lw, lh;	/* Width and height needed for current line 	*/
-    Dimension bw, bh;	/* Width and height needed for current widget 	*/
-    Dimension h_space;  /* Local copy of bbw->box.h_space 		*/
-    Widget widget;	/* Current widget	 			*/
+    Dimension w, h;	/* Width and height needed for box		*/
+    Dimension lw, lh;	/* Width and height needed for current line	*/
+    Dimension bw, bh;	/* Width and height needed for current widget	*/
+    Dimension h_space;  /* Local copy of bbw->box.h_space		*/
+    Widget widget;	/* Current widget				*/
     unsigned int num_mapped_children = 0;
- 
+
     /* Box width and height */
     h_space = bbw->box.h_space;
 
@@ -224,11 +224,11 @@ DoLayout(BoxWidget bbw, unsigned int width, unsigned int height,
     if (w > width)
 	width = w;
     h = bbw->box.v_space;
-   
+
     /* Line width and height */
     lh = 0;
     lw = h_space;
-  
+
     for (i = 0; i < bbw->composite.num_children; i++) {
 	widget = bbw->composite.children[i];
 	if (widget->core.managed) {
@@ -362,7 +362,7 @@ XawBoxQueryGeometry(Widget widget, XtWidgetGeometry *constraint,
 	else
 	    return (XtGeometryAlmost);
     }
-	
+
     /* else gotta do it the long way...
        I have a preference for tall and narrow, so if my width is
        constrained, I'll accept it; otherwise, I'll compute the minimum
@@ -392,9 +392,10 @@ XawBoxQueryGeometry(Widget widget, XtWidgetGeometry *constraint,
 	if (preferred_width <= constraint->width) {
 	    width = preferred_width;
 	    do { /* find some width big enough to stay within this height */
-		width <<= 1;
-		if (width > constraint->width)
+		if (width > (constraint->width >> 1)) /* avoid short int overflow */
 		    width = constraint->width;
+		else
+		    width <<= 1;
 		DoLayout(w, width, 0, &preferred_width, &preferred_height, False);
 	    } while (preferred_height > constraint->height
 		     && width < constraint->width);

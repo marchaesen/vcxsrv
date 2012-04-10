@@ -25,7 +25,7 @@ another composite widget (such as the <function>Porthole</function> or <function
 that can be used to scroll around in the tree.
 </para>
 
-<sect2 id="tree_resources">
+<sect2 id='Tree::Resources'>
 <title>Resources</title>
 <para>
 When creating a Tree widget instance, the following resources are
@@ -286,7 +286,7 @@ constraint resource to their children.
 
 </sect2>
 
-<sect2 id="tree_constraint_resources">
+<sect2 id='Tree::Constraint_Resources'>
 <title>Constraint Resources</title>
 <para>
 Each child of the Tree widget must specify its superior node in the tree.  In
@@ -356,7 +356,7 @@ for the node to have no superior (and to therefore be at the top of the tree).
 </sect2>
 
 
-<sect2 id="tree_layout_semantics">
+<sect2 id='Tree::Layout_Semantics'>
 <title>Layout Semantics</title>
 <para>
 Each time a child is managed or unmanaged, the Tree widget will attempt
@@ -373,17 +373,17 @@ own size to the minimum dimensions required for the layout.
 
 </sect2>
 
-<sect2 id="tree_convenience_routines">
+<sect2 id='Tree::Convenience_Routines'>
 <title>Convenience Routines</title>
 <para>
 The most efficient way to layout a tree is to set
 <function>autoReconfigure</function>
 to False and then use the
-<function> XawTreeForceLayout</function>
+<xref linkend='XawTreeForceLayout' xrefstyle='select: title'/>
 routine to arrange the children.
 </para>
 
-<funcsynopsis>
+<funcsynopsis id='XawTreeForceLayout'>
 <funcprototype>
   <funcdef>void<function> XawTreeForceLayout</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>

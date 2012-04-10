@@ -47,9 +47,9 @@ specifying these resources in a resource file it is necessary to use
 <emphasis remap='I'>*AsciiText.resource_name</emphasis>, since they actually belong to the
 children of the AsciiText widget, and not the AsciiText widget itself.
 However, these resources may be set directly on the AsciiText widget at
-widget creation time, or via <function>XtSetValues</function>.
+widget creation time, or via <xref linkend='XtSetValues' xrefstyle='select: title'/>.
 </para>
-<sect2 id="asciitext_resources">
+<sect2 id='AsciiText::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->

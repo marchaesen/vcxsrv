@@ -109,7 +109,7 @@ deprecated and will eventually be removed from the implementation.
 To select a piece of text, use
 <function>XawTextSetSelection : </function>
 <!-- .IN "XawTextSetSelection" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextSetSelection'>
 <funcprototype>
   <funcdef>void<function> XawTextSetSelection</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -152,7 +152,7 @@ Specifies the character position at which the selection ends.
 </para>
 <para>
 <!-- .LP -->
-See section 5.4 for a description of <function>XawTextPosition</function>.  <!-- xref --> 
+See section 5.4 for a description of <function>XawTextPosition</function>.  <!-- xref -->
 If redisplay is enabled, this function highlights the text and
 makes it the <function>PRIMARY</function> selection.  This function does not have any
 effect on <function>CUT_BUFFER0</function>.
@@ -166,9 +166,9 @@ effect on <function>CUT_BUFFER0</function>.
 <para>
 <!-- .LP -->
 To unhighlight previously highlighted text in a widget, use
-<function>XawTextUnsetSelection</function>:
+<xref linkend='XawTextUnsetSelection' xrefstyle='select: title'/>:
 <!-- .IN "XawTextUnsetSelection" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextUnsetSelection'>
 <funcprototype>
   <funcdef>void<function> XawTextUnsetSelection</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -194,9 +194,9 @@ Specifies the Text widget.
 <para>
 <!-- .LP -->
 To retrieve the text that has been selected by this
-text widget use <function>XawTextGetSelectionPos</function>:
+text widget use <xref linkend='XawTextGetSelectionPos' xrefstyle='select: title'/>:
 <!-- .IN "XawTextGetSelectionPos" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextGetSelectionPos'>
 <funcprototype>
   <funcdef>void<function> XawTextGetSelectionPos</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -239,7 +239,7 @@ Returns the end of the text selection.
 </para>
 <para>
 <!-- .LP -->
-See section 5.4 for a description of <function>XawTextPosition</function>. <!-- xref --> 
+See section 5.4 for a description of <function>XawTextPosition</function>. <!-- xref -->
 If the returned values are equal, no text is currently selected.
 </para>
 </sect2>
@@ -247,9 +247,9 @@ If the returned values are equal, no text is currently selected.
 <title>Replacing Text</title>
 <para>
 <!-- .LP -->
-To modify the text in an editable Text widget use <function>XawTextReplace</function>:
+To modify the text in an editable Text widget use <xref linkend='XawTextReplace' xrefstyle='select: title'/>:
 <!-- .IN "XawTextReplace" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextReplace'>
 <funcprototype>
   <funcdef>int<function> XawTextReplace</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -356,7 +356,7 @@ than the length of the Source.
 </para>
 <para>
 <!-- .LP -->
-The <function>XawTextReplace</function> arguments <function>start</function> and
+The <xref linkend='XawTextReplace' xrefstyle='select: title'/> arguments <function>start</function> and
 <emphasis remap='I'>end</emphasis> represent the text source character positions for the
 existing text that is to be replaced by the text in the text block.
 The characters from <emphasis remap='I'>start</emphasis> up to
@@ -371,9 +371,9 @@ text is inserted after <emphasis remap='I'>start</emphasis>.
 <para>
 <!-- .LP -->
 To search for a string in the Text widget, use
-<function>XawTextSearch</function>:
+<xref linkend='XawTextSearch' xrefstyle='select: title'/>:
 <!-- .IN "XawTextSearch" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextSearch'>
 <funcprototype>
   <funcdef>XawTextPosition<function> XawTextSearch</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -419,7 +419,7 @@ Specifies a text block structure that contains the text to search for.
 <para>
 <!-- .LP -->
 See section 5.4 for a description of <function>XawTextPosition</function> and <function>XawTextBlock</function>. <!-- xref -->
-The <function>XawTextSearch</function> function will begin at the insertion point
+The <xref linkend='XawTextSearch' xrefstyle='select: title'/> function will begin at the insertion point
 and search in the
 direction specified for a string that matches the one passed in
 <emphasis remap='I'>text</emphasis>.  If the string is found the location of the first
@@ -431,9 +431,9 @@ found then the value <function>XawTextSearchError</function> is returned.
 <title>Redisplaying Text</title>
 <para>
 <!-- .LP -->
-To redisplay a range of characters, use <function>XawTextInvalidate</function>:
+To redisplay a range of characters, use <xref linkend='XawTextInvalidate' xrefstyle='select: title'/>:
 <!-- .IN "XawTextInvalidate" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextInvalidate'>
 <funcprototype>
   <funcdef>void<function> XawTextInvalidate</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -477,7 +477,7 @@ Specifies the end of the text to redisplay.
 <para>
 <!-- .LP -->
 See section 5.4 for a description of <function>XawTextPosition</function>. <!-- xref -->
-The <function>XawTextInvalidate</function>
+The <xref linkend='XawTextInvalidate' xrefstyle='select: title'/>
 function causes the specified range of characters to be redisplayed
 immediately if redisplay is enabled or the next time that redisplay is
 enabled.
@@ -485,9 +485,9 @@ enabled.
 <para>
 <!-- .LP -->
 <!-- .sp 1 -->
-To enable redisplay, use <function>XawTextEnableRedisplay</function>:
+To enable redisplay, use <xref linkend='XawTextEnableRedisplay' xrefstyle='select: title'/>:
 <!-- .IN "XawTextEnableRedisplay" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextEnableRedisplay'>
 <funcprototype>
   <funcdef>void<function> XawTextEnableRedisplay</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -509,17 +509,17 @@ Specifies the Text widget.
 </para>
 <para>
 <!-- .LP -->
-The <function>XawTextEnableRedisplay</function> function flushes any changes due to
-batched updates when <function>XawTextDisableRedisplay</function>
+The <xref linkend='XawTextEnableRedisplay' xrefstyle='select: title'/> function flushes any changes due to
+batched updates when <xref linkend='XawTextDisableRedisplay' xrefstyle='select: title'/>
 was called and allows future changes to be reflected immediately.
 </para>
 <para>
 <!-- .LP -->
 <!-- .sp 1 -->
 To disable redisplay while making several changes, use
-<function>XawTextDisableRedisplay</function>.
+<xref linkend='XawTextDisableRedisplay' xrefstyle='select: title'/>.
 <!-- .IN "XawTextDisableRedisplay" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextDisableRedisplay'>
 <funcprototype>
   <funcdef>void<function> XawTextDisableRedisplay</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -541,16 +541,16 @@ Specifies the Text widget.
 </para>
 <para>
 <!-- .LP -->
-The <function>XawTextDisableRedisplay</function> function causes all changes to be
-batched until either <function>XawTextDisplay</function> or <function>XawTextEnableRedisplay</function>
+The <xref linkend='XawTextDisableRedisplay' xrefstyle='select: title'/> function causes all changes to be
+batched until either <xref linkend='XawTextDisplay' xrefstyle='select: title'/> or <xref linkend='XawTextEnableRedisplay' xrefstyle='select: title'/>
 is called.
 </para>
 <para>
 <!-- .LP -->
 <!-- .sp 1 -->
-To display batched updates, use <function>XawTextDisplay</function>:
+To display batched updates, use <xref linkend='XawTextDisplay' xrefstyle='select: title'/>:
 <!-- .IN "XawTextDisplay" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextDisplay'>
 <funcprototype>
   <funcdef>void<function> XawTextDisplay</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -572,7 +572,7 @@ Specifies the Text widget.
 </para>
 <para>
 <!-- .LP -->
-The <function>XawTextDisplay</function> function forces any accumulated updates to be
+The <xref linkend='XawTextDisplay' xrefstyle='select: title'/> function forces any accumulated updates to be
 displayed.
 </para>
 </sect2>
@@ -582,9 +582,9 @@ displayed.
 <!-- .LP -->
 To obtain the character position of the left-most character on the
 first line displayed in the widget (the value of the
-<function>displayPosition</function> resource), use <function>XawTextTopPosition</function>.
+<function>displayPosition</function> resource), use <xref linkend='XawTextTopPosition' xrefstyle='select: title'/>.
 <!-- .IN "XawTextTopPosition" "" @DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextTopPosition'>
 <funcprototype>
   <funcdef>XawTextPosition<function> XawTextTopPosition</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -608,9 +608,9 @@ Specifies the Text widget.
 <!-- .LP -->
 <!-- .sp 1 -->
 To assign a new selection array to a text widget use
-<function>XawTextSetSelectionArray</function>:
+<xref linkend='XawTextSetSelectionArray' xrefstyle='select: title'/>:
 <!-- .IN "XawTextSetSelectionArray" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextSetSelectionArray'>
 <funcprototype>
   <funcdef>void<function> XawTextSetSelectionArray</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -651,9 +651,9 @@ Calling this function is equivalent to setting the value of the
 <!-- .LP -->
 <!-- .sp 1 -->
 To move the insertion point to the specified source position, use
-<function>XawTextSetInsertionPoint</function>:
+<xref linkend='XawTextSetInsertionPoint' xrefstyle='select: title'/>:
 <!-- .IN "XawTextSetInsertionPoint" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextSetInsertionPoint'>
 <funcprototype>
   <funcdef>void<function> XawTextSetInsertionPoint</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -695,9 +695,9 @@ equivalent to setting the <function>insertPosition</function> resource.
 <!-- .LP -->
 <!-- .sp 1 -->
 To obtain the current position of the insertion point, use
-<function>XawTextGetInsertionPoint</function>:
+<xref linkend='XawTextGetInsertionPoint' xrefstyle='select: title'/>:
 <!-- .IN "XawTextGetInsertionPoint" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextGetInsertionPoint'>
 <funcprototype>
   <funcdef>XawTextPosition<function> XawTextGetInsertionPoint</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -727,9 +727,9 @@ The result is equivalent to retrieving the value of the
 <!-- .LP -->
 <!-- .sp 1 -->
 To replace the text source in the specified widget, use
-<function>XawTextSetSource</function>:
+<xref linkend='XawTextSetSource' xrefstyle='select: title'/>:
 <!-- .IN "XawTextSetSource" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextSetSource'>
 <funcprototype>
   <funcdef>void<function> XawTextSetSource</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -781,9 +781,9 @@ A display update will be performed if redisplay is enabled.
 <!-- .LP -->
 <!-- .sp 1 -->
 To obtain the current text source for the specified widget, use
-<function>XawTextGetSource</function>:
+<xref linkend='XawTextGetSource' xrefstyle='select: title'/>:
 <!-- .IN "XawTextGetSource" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextGetSource'>
 <funcprototype>
   <funcdef>Widget<function> XawTextGetSource</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -812,9 +812,9 @@ using.
 <!-- .LP -->
 <!-- .sp -->
 To enable and disable the insertion point, use
-<function>XawTextDisplayCaret</function>:
+<xref linkend='XawTextDisplayCaret' xrefstyle='select: title'/>:
 <!-- .IN "XawTextDisplayCaret" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawTextDisplayCaret'>
 <funcprototype>
   <funcdef>void<function> XawTextDisplayCaret</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -849,7 +849,7 @@ Specifies whether or not the caret should be displayed.
 <!-- .LP -->
 If <function>visible</function> is <function>False</function> the insertion point will be disabled.
 The marker is re-enabled either by setting <function>visible</function> to <function>True</function>, by
-calling <function>XtSetValues</function>, or by executing the <function>display-caret</function>
+calling <xref linkend='XtSetValues' xrefstyle='select: title'/>, or by executing the <function>display-caret</function>
 action routine.
 </para>
 </sect2>

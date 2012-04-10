@@ -143,7 +143,7 @@ extern int getdomainname(char *name, size_t len);
 #endif
 
 static int change_host(Display *dpy, char *name, Bool add);
-static char *get_hostname(XHostAddress *ha);
+static const char *get_hostname(XHostAddress *ha);
 static int local_xerror(Display *dpy, XErrorEvent *rep);
 
 #ifdef RETSIGTYPE /* autoconf AC_TYPE_SIGNAL */
@@ -200,7 +200,7 @@ main(int argc, char *argv[])
 {
     register char *arg;
     int i, nhosts = 0;
-    char *hostname;
+    const char *hostname;
     int nfailed = 0;
     XHostAddress *list;
     Bool enabled = False;
@@ -212,6 +212,11 @@ main(int argc, char *argv[])
 #endif
  
     ProgramName = argv[0];
+
+    if (argc == 2 && !strcmp(argv[1], "-help")) {
+	fprintf(stderr, "usage: %s [[+-]hostname ...]\n", argv[0]);
+	exit(1);
+    }
 
     if ((dpy = XOpenDisplay(NULL)) == NULL) {
 	fprintf(stderr, "%s:  unable to open display \"%s\"\n",
@@ -281,11 +286,6 @@ main(int argc, char *argv[])
 	exit(0);
     }
  
-    if (argc == 2 && !strcmp(argv[1], "-help")) {
-	fprintf(stderr, "usage: %s [[+-]hostname ...]\n", argv[0]);
-	exit(1);
-    }
-
     for (i = 1; i < argc; i++) {
 	arg = argv[i];
 	if (*arg == '-') {
@@ -355,8 +355,8 @@ change_host(Display *dpy, char *name, Bool add)
     struct nodeent *np;
     static struct dn_naddr dnaddr;
 #endif				/* DNETCONN */
-    static char *add_msg = "being added to access control list";
-    static char *remove_msg = "being removed from access control list";
+    static const char *add_msg = "being added to access control list";
+    static const char *remove_msg = "being removed from access control list";
 
     namelen = strlen(name);
     if ((lname = (char *)malloc(namelen+1)) == NULL) {
@@ -450,7 +450,7 @@ change_host(Display *dpy, char *name, Bool add)
 
     if (family == FamilyServerInterpreted) {
 	XServerInterpretedAddress siaddr;
-	int namelen;
+	int rc;
 
 	cp = strchr(name, ':');
 	if (cp == NULL || cp == name) {
@@ -459,24 +459,20 @@ change_host(Display *dpy, char *name, Bool add)
 	      ProgramName, name);
 	    return 0;
 	}
+	siaddr.type = name;
+	siaddr.typelength = cp - name;
+	siaddr.value = ++cp;
+	siaddr.valuelength = strlen(cp);
 	ha.family = FamilyServerInterpreted;
 	ha.address = (char *) &siaddr;
-	namelen = strlen(name);
-	siaddr.type = malloc(namelen);
-	if (siaddr.type == NULL) {
-	    return 0;
-	}
-	memcpy(siaddr.type, name, namelen);
-	siaddr.typelength = cp - name;
-	siaddr.type[siaddr.typelength] = '\0';
-	siaddr.value = siaddr.type + siaddr.typelength + 1;
-	siaddr.valuelength = namelen - (siaddr.typelength + 1);
 	if (add)
-	    XAddHost(dpy, &ha);
+	    rc = XAddHost(dpy, &ha);
 	else
-	    XRemoveHost(dpy, &ha);
-	free(siaddr.type);
-	printf( "%s %s\n", name, add ? add_msg : remove_msg);
+	    rc = XRemoveHost(dpy, &ha);
+	printf( "%s %s%s\n", name, rc == 1 ? "" : "failed when ",
+		add ? add_msg : remove_msg);
+	if (rc != 1)
+	    return 0;
 	return 1;
     }
 
@@ -730,7 +726,7 @@ change_host(Display *dpy, char *name, Bool add)
 jmp_buf env;
 #endif
 
-static char *
+static const char *
 get_hostname(XHostAddress *ha)
 {
 #if (defined(TCPCONN) || defined(STREAMSCONN)) &&	\

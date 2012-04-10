@@ -2,15 +2,15 @@
 README.MSW	hedu@cul-ipn.uni-kiel.de	5/94
 
 		The XPM library for MS-Windows
-		
+
 Motivated by the wxWindows library, which is a (freely available) toolkit
-for developing multi-platform, graphical applications from the same body 
-of C++ code, I wanted to have XPM pixmaps for MS-windows. Instead of rewriting 
+for developing multi-platform, graphical applications from the same body
+of C++ code, I wanted to have XPM pixmaps for MS-windows. Instead of rewriting
 a XPM-parser I managed to port the XPM-library-code to MS-windows.
 Thanks to Anaud Le Hors this became a part of the official XPM-library.
 
-Until now it's only used together with wxWindows. And even there it's more 
-a kind of beta. But it should be possible to run it as a simple libxpm.a 
+Until now it's only used together with wxWindows. And even there it's more
+a kind of beta. But it should be possible to run it as a simple libxpm.a
 without wxWindows.
 
 The key is a transformation of some X types plus some basic X functions.
@@ -36,12 +36,12 @@ typedef struct {
 With these defines and the according functions from simx.c you can call
 XPM-functions the way it's done under X windows. It can look like this:
 
-	ErrorStatus=XpmCreateImageFromData(&dc, data, 
+	ErrorStatus=XpmCreateImageFromData(&dc, data,
 				&ximage,(XImage **)NULL, &xpmAttr);
 	ms_bitmap = ximage->bitmap;
 	// releases the malloc,but do not destroy the bitmap
 	XImageFree(ximage);
-	
+
 Supported functions are the Xpm*Image* but not the Xpm*Pixmap*.
 
 DRAWBACKS:
@@ -62,7 +62,7 @@ into your project except the files related to Pixmap operations: *P*.c.
 (You might uncomment NEED_STRCASECMP in xpm.h if it's in your lib)
 This should compile into libxpm.a. Good luck...
 
-FTP:  
+FTP:
 wxWindows is currently available from the Artificial Intelligence
 Applications Institute (University of Edinburgh) by anonymous FTP.
 	skye.aiai.ed.ac.uk  pub/wxwin/
@@ -71,7 +71,7 @@ or read http://burray.aiai.ed.ac.uk/aiai/aiai.html
 wxxpm, XPM support for wxWindows, the latest version is available at
 	yoda.cul-ipn.uni-kiel.de pub/wxxpm/
 	and maybe in the contrib or tools of wxWindows
-	
+
 Please contact me if you have suggestions, comments or problems!
 
 ================================================================
@@ -87,7 +87,7 @@ Changes:
 
 	* I've used the xpm package under NT 4.0 and MSVC++ 4.2.
 
-	* I've made a big performance improvement in 
+	* I've made a big performance improvement in
 	ParseAndPutPixels(), fixed creation of the mask in
 	SetColor() in create.c.  I looked into XCreateImage()
 	in simx.c, but commented out my improvement for reasons

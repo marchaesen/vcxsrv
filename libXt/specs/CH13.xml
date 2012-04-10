@@ -1,0 +1,770 @@
+<chapter id='Evolution_of_the_Intrinsics'>
+<title>Evolution of the Intrinsics</title>
+
+<para>
+The interfaces described by this specification have undergone several
+sets of revisions in the course of adoption as an X Consortium
+standard specification.  Having now been adopted by the Consortium as
+a standard part of the X Window System, it is expected that this and
+future revisions will retain
+backward compatibility in the sense that fully conforming
+implementations of these specifications may be produced that provide
+source compatibility with widgets and applications written to
+previous Consortium standard revisions.
+</para>
+
+<para>
+The Intrinsics do not place any special requirement on widget
+programmers to retain source or binary compatibility for their widgets
+as they evolve, but several conventions have been established to
+assist those developers who want to provide such compatibility.
+</para>
+
+<para>
+In particular, widget programmers may wish to conform to the convention
+described in <xref linkend='Class_Extension_Records' /> when defining class extension records.
+</para>
+<sect1 id="Determining_Specification_Revision_Level">
+<title>Determining Specification Revision Level</title>
+<para>
+Widget and application developers who wish to maintain a common source
+pool that will build properly with implementations of the Intrinsics
+at different revision levels of these specifications but that take
+advantage of newer features added in later revisions may use the
+symbolic macro
+<function>XtSpecificationRelease</function>.
+</para>
+<literallayout >
+#define XtSpecificationRelease 6
+</literallayout>
+<para>
+As the symbol
+<function>XtSpecificationRelease</function>
+was new to Release 4, widgets and
+applications desiring to build against earlier implementations should
+test for the presence of this symbol and assume only Release 3
+interfaces if the definition is not present.
+</para>
+</sect1>
+
+<sect1 id="Release_to_Release_Compatibility">
+<title>Release 3 to Release 4 Compatibility</title>
+<para>
+At the data structure level, Release 4 retains binary compatibility
+with Release 3 (the first X Consortium standard release) for all data
+structures except
+<function>WMShellPart,</function>
+<function>TopLevelShellPart</function>,
+and
+<function>TransientShellPart</function>.
+Release 4 changed the argument type to most procedures that now take
+arguments of type
+<function>XtPointer</function>
+and structure members that are now of type
+<function>XtPointer</function>
+in order to avoid potential ANSI C conformance problems.  It is
+expected that most implementations will be binary compatible with the
+previous definition.
+</para>
+
+<para>
+Two fields in
+<function>CoreClassPart</function>
+were changed from
+<function>Boolean</function>
+to
+<function>XtEnum</function>
+to allow implementations additional freedom in specifying the
+representations of each.  This change should require no source
+modification.
+</para>
+<sect2 id="Additional_Arguments">
+<title>Additional Arguments</title>
+<para>
+Arguments were added to the procedure definitions for
+<xref linkend='XtInitProc' xrefstyle='select: title'/>,
+<xref linkend='XtSetValuesFunc' xrefstyle='select: title'/>,
+and
+<xref linkend='XtEventHandler' xrefstyle='select: title'/>
+to provide more information and to
+allow event handlers to abort further dispatching of the current event
+(caution is advised!).  The added arguments to
+<xref linkend='XtInitProc' xrefstyle='select: title'/>
+and
+<xref linkend='XtSetValuesFunc' xrefstyle='select: title'/>
+make the initialize_hook and set_values_hook methods
+obsolete, but the hooks have been retained for those widgets that used
+them in Release 3.
+</para>
+</sect2>
+
+<sect2 id="set_values_almost_Procedures">
+<title>set_values_almost Procedures</title>
+<para>
+The use of the arguments by a set_values_almost procedure was poorly
+described in Release 3 and was inconsistent with other conventions.
+</para>
+
+<para>
+The current specification for the manner in which a set_values_almost
+procedure returns information to the Intrinsics is not compatible with
+the Release 3 specification, and all widget implementations should
+verify that any set_values_almost procedures conform to the current
+interface.
+</para>
+
+<para>
+No known implementation of the Intrinsics correctly implemented the
+Release 3 interface, so it is expected that the impact of this
+specification change is small.
+</para>
+</sect2>
+
+<sect2 id="Query_Geometry">
+<title>Query Geometry</title>
+<para>
+A composite widget layout routine that calls
+<xref linkend='XtQueryGeometry' xrefstyle='select: title'/>
+is now expected to store the complete new geometry in the intended structure;
+previously the specification said ``store the changes it intends to
+make''.  Only by storing the complete geometry does the child have
+any way to know what other parts of the geometry may still be
+flexible.  Existing widgets should not be affected by this, except
+to take advantage of the new information.
+</para>
+</sect2>
+
+<sect2 id="unrealizeCallback_Callback_List">
+<title>unrealizeCallback Callback List</title>
+<para>
+In order to provide a mechanism for widgets to be notified when they
+become unrealized through a call to
+<xref linkend='XtUnrealizeWidget' xrefstyle='select: title'/>,
+the callback
+list name ``unrealizeCallback'' has been defined by the Intrinsics.  A
+widget class that requires notification on unrealize may declare a
+callback list resource by this name.  No class is required to declare
+this resource, but any class that did so in a prior revision may find
+it necessary to modify the resource name if it does not wish to use the new
+semantics.
+</para>
+</sect2>
+
+<sect2 id="Subclasses_of_WMShell">
+<title>Subclasses of WMShell</title>
+<para>
+The formal adoption of the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis> as
+an X Consortium standard has meant the addition of four fields to
+<function>WMShellPart</function>
+and one field to
+<function>TopLevelShellPart</function>.
+In deference to some
+widget libraries that had developed their own additional conventions
+to provide binary compatibility, these five new fields were added at
+the end of the respective data structures.
+</para>
+
+<para>
+To provide more convenience for TransientShells, a field was added
+to the previously empty
+<function>TransientShellPart</function>.
+On some architectures the size of the part structure will not
+have changed as a result of this.
+</para>
+
+<para>
+Any widget implementation whose class is a subclass of
+TopLevelShell
+or
+TransientShell
+must at minimum be
+recompiled with the new data structure declarations.  Because
+<function>WMShellPart</function>
+no longer contains a contiguous
+<function>XSizeHints</function>
+data structure,
+a subclass that expected to do a single structure assignment of an
+<function>XSizeHints</function>
+structure to the <emphasis remap='I'>size_hints</emphasis> field of
+<function>WMShellPart</function>
+must be revised, though the old fields remain at the same positions within
+<function>WMShellPart</function>.
+</para>
+</sect2>
+
+<sect2 id="Resource_Type_Converters">
+<title>Resource Type Converters</title>
+<para>
+A new interface declaration for resource type converters was defined
+to provide more information to converters, to support conversion
+cache cleanup with resource reference counting, and to allow
+additional procedures to be declared to free resources.  The old
+interfaces remain (in the compatibility section), and a new set of
+procedures was defined that work only with the new type converter
+interface.
+</para>
+
+<para>
+In the now obsolete old type converter interface, converters are
+reminded that they must return the size of the converted value as well
+as its address.  The example indicated this, but the description of
+<xref linkend='XtConverter' xrefstyle='select: title'/>
+was incomplete.
+</para>
+</sect2>
+
+<sect2 id="KeySym_Case_Conversion_Procedure">
+<title>KeySym Case Conversion Procedure</title>
+<para>
+The specification for the
+<xref linkend='XtCaseProc' xrefstyle='select: title'/>
+function type has been changed
+to match the Release 3 implementation, which included necessary
+additional information required by the function (a pointer to the
+display connection), and corrects the argument type of the source
+KeySym parameter.  No known implementation of the Intrinsics
+implemented the previously documented interface.
+</para>
+</sect2>
+
+<sect2 id="Nonwidget_Objects_2">
+<title>Nonwidget Objects</title>
+<para>
+Formal support for nonwidget objects is new to Release 4.  A
+prototype implementation was latent in at least one Release 3
+implementation of the Intrinsics, but the specification has changed
+somewhat.  The most significant change is the requirement for a
+composite widget to declare the
+<function>CompositeClassExtension</function>
+record with the <emphasis remap='I'>accepts_objects</emphasis> field set to
+<function>True</function>
+in order to permit a client to create a nonwidget child.
+</para>
+
+<para>
+The addition of this extension field ensures that composite widgets
+written under Release 3 will not encounter unexpected errors if an
+application attempts to create a nonwidget child.  In Release 4 there
+is no requirement that all composite widgets implement the extra
+functionality required to manage windowless children, so the
+<emphasis remap='I'>accepts_objects</emphasis> field allows a composite widget to declare that it
+is not prepared to do so.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Release_to_Release_Compatibility_2">
+<title>Release 4 to Release 5 Compatibility</title>
+<para>
+At the data structure level, Release 5 retains complete binary
+compatibility with Release 4.  The specification of the
+<function>ObjectPart</function>,
+<function>RectObjPart</function>,
+<function>CorePart</function>,
+<function>CompositePart</function>,
+<function>ShellPart</function>,
+<function>WMShellPart</function>,
+<function>TopLevelShellPart</function>,
+and
+<function>ApplicationShellPart</function>
+instance records was made less strict to permit implementations to
+add internal fields to these structures.  Any implementation that
+chooses to do so would, of course, force a recompilation.
+The Xlib specification for
+<function>XrmValue</function>
+and
+<function>XrmOptionDescRec</function>
+was updated to use a new type,
+<function>XPointer</function>,
+for the <emphasis remap='I'>addr</emphasis> and <emphasis remap='I'>value</emphasis> fields, respectively, to avoid
+ANSI C conformance problems.  The definition of
+<function>XPointer</function>
+is binary compatible with the previous implementation.
+</para>
+<sect2 id="baseTranslations_Resource">
+<title>baseTranslations Resource</title>
+<para>
+A new pseudo-resource, XtNbaseTranslations, was defined to permit
+application developers to specify translation tables in application
+defaults files while still giving end users the ability to augment
+or override individual event sequences.  This change will affect
+only those applications that wish to take advantage of the new
+functionality or those widgets that may have previously defined
+a resource named ``baseTranslations''.
+</para>
+
+<para>
+Applications wishing to take advantage of the new functionality
+would change their application defaults file, e.g., from
+<literallayout >
+        app.widget.translations: <emphasis remap='I'>value</emphasis>
+to
+        app.widget.baseTranslations: <emphasis remap='I'>value</emphasis>
+</literallayout>
+If it is important to the application to preserve complete
+compatibility of the defaults file between different versions
+of the application running under Release 4 and Release 5,
+the full translations can be replicated in both the ``translations''
+and the ``baseTranslations'' resource.
+</para>
+</sect2>
+
+<sect2 id="Resource_File_Search_Path">
+<title>Resource File Search Path</title>
+<para>
+The current specification allows implementations greater flexibility
+in defining the directory structure used to hold the application class
+and per-user application defaults files.  Previous specifications
+required the substitution strings to appear in the default path in a
+certain order, preventing sites from collecting all the files for
+a specific application together in one directory.  The Release 5
+specification allows the default path to specify the substitution
+strings in any order within a single path entry.  Users will need to
+pay close attention to the documentation for the specific
+implementation to know where to find these files and how to specify
+their own
+<emphasis role='strong'>XFILESEARCHPATH</emphasis>
+and
+<emphasis role='strong'>XUSERFILESEARCHPATH</emphasis>
+values when overriding the system defaults.
+</para>
+</sect2>
+
+<sect2 id="Customization_Resource">
+<title>Customization Resource</title>
+<para>
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>
+supports a new substitution string, %C, for specifying separate
+application class resource files according to arbitrary user-specified
+categories.  The primary motivation for this addition was separate
+monochrome and color application class defaults files.  The
+substitution value is obtained by querying the current resource
+database for the application resource name ``customization'', class
+``Customization''.  Any application that previously used this
+resource name and class will need to be aware of the possibly
+conflicting semantics.
+</para>
+</sect2>
+
+<sect2 id="Per_Screen_Resource_Database">
+<title>Per-Screen Resource Database</title>
+<para>
+To allow a user to specify separate preferences for each screen of a
+display, a per-screen resource specification string has been added and
+multiple resource databases are created; one for each screen.  This
+will affect any application that modified the (formerly unique)
+resource database associated with the display subsequent to the Intrinsics
+database initialization.  Such applications will need to be aware
+of the particular screen on which each shell widget is to be created.
+</para>
+
+<para>
+Although the wording of the specification changed substantially in the
+description of the process by which the resource database(s) is
+initialized, the net effect is the same as in prior releases with the
+exception of the added per-screen resource specification and the new
+customization substitution string in
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>.
+</para>
+</sect2>
+
+<sect2 id="Internationalization_of_Applications">
+<title>Internationalization of Applications</title>
+<para>
+Internationalization as defined by ANSI is a technology that
+allows support of an application in a single locale.  In
+adding support for internationalization to the Intrinsics
+the restrictions of this model have been followed.
+In particular, the new Intrinsics interfaces are designed not to
+preclude an application from using other alternatives.
+For this reason, no Intrinsics routine makes a call to establish the
+locale.   However, a convenience routine to establish the
+locale at initialize time has been provided, in the form
+of a default procedure that must be explicitly installed
+if the application desires ANSI C locale behavior.
+</para>
+
+<para>
+As many objects in X, particularly resource databases, now inherit
+the global locale when they are created, applications wishing to use
+the ANSI C locale model should use the new function
+<function>XtSetLanguageProc</function>
+to do so.
+</para>
+
+<para>
+The internationalization additions also define event filters
+as a part of the Xlib Input Method specifications.  The
+Intrinsics enable the use of event filters through additions to
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>.
+Applications that may not be dispatching all events through
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+should be reviewed in the context of this new input method mechanism.
+</para>
+
+<para>
+In order to permit internationalization of error messages, the name
+and path of the error database file are now allowed to be
+implementation-dependent.
+No adequate standard mechanism has yet been suggested to
+allow the Intrinsics to locate the database from localization information
+supplied by the client.
+</para>
+
+<para>
+The previous specification for the syntax of the language string
+specified by
+<function>xnlLanguage</function>
+has been dropped to avoid potential conflicts with other standards.
+The language string syntax is now implementation-defined.
+The example syntax cited is consistent with the previous
+specification.
+</para>
+</sect2>
+
+<sect2 id="Permanently_Allocated_Strings">
+<title>Permanently Allocated Strings</title>
+<para>
+In order to permit additional memory savings, an Xlib interface was
+added to allow the resource manager to avoid copying certain string
+constants.  The Intrinsics specification was updated to explicitly require
+the Object <emphasis remap='I'>class_name</emphasis>, <emphasis remap='I'>resource_name</emphasis>, <emphasis remap='I'>resource_class</emphasis>,
+<emphasis remap='I'>resource_type</emphasis>, <emphasis remap='I'>default_type</emphasis> in resource tables, Core <emphasis remap='I'>actions</emphasis>
+<emphasis remap='I'>string</emphasis> field, and Constraint <emphasis remap='I'>resource_name</emphasis>, <emphasis remap='I'>resource_class</emphasis>,
+<emphasis remap='I'>resource_type</emphasis>, and <emphasis remap='I'>default_type</emphasis> resource fields to be
+permanently allocated.  This explicit requirement is expected to
+affect only applications that may create and destroy classes
+on the fly.
+</para>
+</sect2>
+
+<sect2 id="Arguments_to_Existing_Functions">
+<title>Arguments to Existing Functions</title>
+<para>
+The <emphasis remap='I'>args</emphasis> argument to
+<xref linkend='XtAppInitialize' xrefstyle='select: title'/>,
+<xref linkend='XtVaAppInitialize' xrefstyle='select: title'/>,
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>,
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>,
+and
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+were changed from
+<function>Cardinal</function>*
+to int* to conform to pre-existing convention and avoid otherwise
+annoying typecasting in ANSI C environments.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Release_to_Release_Compatibility_3">
+<title>Release 5 to Release 6 Compatibility</title>
+<para>
+At the data structure level, Release 6 retains binary compatibility
+with Release 5 for all data structures except
+<function>WMShellPart</function>.
+Three resources were added to the specification.
+The known implementations had unused space in the data structure,
+therefore on some architectures and implementations,
+the size of the part structure will not have changed as a result of this.
+</para>
+<sect2 id="Widget_Internals">
+<title>Widget Internals</title>
+<para>
+Two new widget methods for instance allocation and deallocation were added
+to the Object class.  These new methods
+allow widgets to be treated as C++ objects in the C++ environment
+when an appropriate allocation method is specified or inherited
+by the widget class.
+</para>
+
+<para>
+The textual descriptions of the processes of widget creation and
+widget destruction have been edited to provide clarification to widget
+writers.  Widgets writers may have reason to rely on the specific order of
+the stages of widget creation and destruction; with that motivation,
+the specification now more exactly describes the process.
+</para>
+
+<para>
+As a convenience, an interface to locate a widget class extension
+record on a linked list,
+<xref linkend='XtGetClassExtension' xrefstyle='select: title'/>,
+has been added.
+</para>
+
+<para>
+A new option to allow bundled changes to the managed set of a Composite
+widget is introduced in the Composite class extension record.
+Widgets that define a change_managed procedure that can accommodate
+additions and deletions to the managed set of children in a single
+invocation should set allows_change_managed_set to <function>True</function> in the
+extension record.
+</para>
+
+<para>
+The wording of the process followed by
+<xref linkend='XtUnmanageChildren' xrefstyle='select: title'/>
+has changed slightly to better handle changes to the managed set
+during phase 2 destroy processing.
+</para>
+
+<para>
+A new exposure event compression flag,
+<function>XtExposeNoRegion</function>,
+was added.  Many widgets specify exposure compression, but either
+ignore the actual damage region passed to the core expose procedure or
+use only the cumulative bounding box data available in the event.
+Widgets with expose procedures that do not make use of exact
+exposure region information can indicate that the Intrinsics need not
+compute the region.
+</para>
+</sect2>
+
+<sect2 id="General_Application_Development">
+<title>General Application Development</title>
+<para>
+<xref linkend='XtOpenApplication' xrefstyle='select: title'/>
+is a new convenience procedure to initialize the toolkit, create an
+application context, open an X display connection, and create the
+root of the widget instance tree.  It is identical to the interface
+it replaces,
+<xref linkend='XtAppInitialize' xrefstyle='select: title'/>,
+in all respects except that it takes an additional argument specifying
+the widget class of the root shell to create.
+This interface is now the recommended one so that clients may easily
+become session participants.
+The old convenience procedures appear in the compatibility section.
+</para>
+
+<para>
+The toolkit initialization function
+<xref linkend='XtToolkitInitialize' xrefstyle='select: title'/>
+may be called multiple times without penalty.
+</para>
+
+<para>
+In order to optimize changes in geometry to a set of geometry-managed
+children, a new interface,
+<xref linkend='XtChangeManagedSet' xrefstyle='select: title'/>,
+has been added.
+</para>
+</sect2>
+
+<sect2 id="Communication_with_Window_and_Session_Managers">
+<title>Communication with Window and Session Managers</title>
+<para>
+The revision of the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis> as an X Consortium standard has resulted
+in the addition of three fields to the specification of
+<function>WMShellPart</function>.
+These are <emphasis remap='I'>urgency</emphasis>, <emphasis remap='I'>client_leader</emphasis>, and <emphasis remap='I'>window_role</emphasis>.
+</para>
+
+<para>
+The adoption of the <emphasis remap='I'>X Session Management Protocol</emphasis> as an X Consortium
+standard has resulted in the addition of a new shell widget,
+<function>SessionShell</function>,
+and an accompanying subclass verification interface,
+<function>XtIsSessionShell</function>.
+This widget provides support for communication between an application
+and a session manager, as well as a window manager.
+In order to preserve compatibility with existing subclasses of
+<function>ApplicationShell</function>,
+the
+<function>ApplicationShell</function>
+was subclassed to create the new widget class.
+The session protocol requires a modal response to certain checkpointing
+operations by participating applications.  The
+<function>SessionShell</function>
+structures
+the application's notification of and responses to messages from the session
+manager by use of various callback lists and by use of the new interfaces
+<xref linkend='XtSessionGetToken' xrefstyle='select: title'/>
+and
+<xref linkend='XtSessionReturnToken' xrefstyle='select: title'/>.
+There is also a new command line argument, -xtsessionID, which facilitates
+the session manager in restarting applications based on the Intrinsics.
+</para>
+
+<para>
+The resource name and class strings defined by the Intrinsics shell
+widgets in
+<function>&lt;X11/Shell.h&gt;</function>
+are now listed in Appendix E.  The addition of a new symbol
+for the
+<function>WMShell</function>
+<emphasis remap='I'>wait_for_wm</emphasis> resource was made to bring the external symbol
+and the string it represents into agreement.  The actual resource name
+string in
+<function>WMShell</function>
+has not changed.
+The resource representation type of the XtNwinGravity resource of the
+<function>WMShell</function>
+was changed to XtRGravity in order to register a type
+converter so that window gravity resource values could be specified by name.
+</para>
+</sect2>
+
+<sect2 id="Geometry_Management_2">
+<title>Geometry Management</title>
+<para>
+A clarification to the specification was made to indicate that geometry
+requests may include current values along with the requested changes.
+</para>
+</sect2>
+
+<sect2 id="Event_Management_2">
+<title>Event Management</title>
+<para>
+In Release 6, support is provided for registering selectors
+and event handlers for events generated by X protocol extensions
+and for dispatching those events to the appropriate widget.
+The new event handler registration interfaces are
+<xref linkend='XtInsertEventTypeHandler' xrefstyle='select: title'/>
+and
+<xref linkend='XtRemoveEventTypeHandler' xrefstyle='select: title'/>.
+Since the mechanism to indicate selection of extension events is specific
+to the extension being used, the Intrinsics introduces
+<xref linkend='XtRegisterExtensionSelector' xrefstyle='select: title'/>,
+which allows the application to select for the events of interest.
+In order to change the dispatching algorithm to accommodate extension events
+as well as core X protocol events,
+the Intrinsics event dispatcher may now be replaced or enveloped
+by the application with
+<xref linkend='XtSetEventDispatcher' xrefstyle='select: title'/>.
+The dispatcher may wish to call
+<xref linkend='XtGetKeyboardFocusWidget' xrefstyle='select: title'/>
+to determine the widget with the current Intrinsics keyboard focus.
+A dispatcher, after determining the destination widget, may use
+<xref linkend='XtDispatchEventToWidget' xrefstyle='select: title'/>
+to cause the event to be dispatched to the event handlers registered
+by a specific widget.
+</para>
+
+<para>
+To permit the dispatching of events
+for nonwidget drawables, such as pixmaps that are not associated
+with a widget's window,
+<xref linkend='XtRegisterDrawable' xrefstyle='select: title'/>
+and
+<xref linkend='XtUnregisterDrawable' xrefstyle='select: title'/>
+have been added to the library.  A related update was made to
+the description of
+<xref linkend='XtWindowToWidget' xrefstyle='select: title'/>.
+</para>
+
+<para>
+The library is now thread-safe, allowing one thread at a time to
+enter the library and protecting global data as necessary from concurrent use.
+Threaded toolkit applications are supported by the
+new interfaces
+<xref linkend='XtToolkitThreadInitialize' xrefstyle='select: title'/>,
+<xref linkend='XtAppLock' xrefstyle='select: title'/>,
+<xref linkend='XtAppUnlock' xrefstyle='select: title'/>,
+<xref linkend='XtAppSetExitFlag' xrefstyle='select: title'/>,
+and
+<xref linkend='XtAppGetExitFlag' xrefstyle='select: title'/>.
+Widget writers may also use
+<xref linkend='XtProcessLock' xrefstyle='select: title'/>
+and
+<xref linkend='XtProcessUnlock' xrefstyle='select: title'/>.
+</para>
+
+<para>
+Safe handling of POSIX signals and other asynchronous notifications
+is now provided by use of
+<xref linkend='XtAppAddSignal' xrefstyle='select: title'/>,
+<xref linkend='XtNoticeSignal' xrefstyle='select: title'/>,
+and
+<xref linkend='XtRemoveSignal' xrefstyle='select: title'/>.
+</para>
+
+<para>
+The application can receive notification of an impending block
+in the Intrinsics event manager by registering interest through
+<xref linkend='XtAppAddBlockHook' xrefstyle='select: title'/>
+and
+<xref linkend='XtRemoveBlockHook' xrefstyle='select: title'/>.
+</para>
+
+<para>
+<xref linkend='XtLastEventProcessed' xrefstyle='select: title'/>
+returns the most recent event passed to
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+for a specified display.
+</para>
+</sect2>
+
+<sect2 id="Resource_Management_2">
+<title>Resource Management</title>
+<para>
+Resource converters are registered by the Intrinsics for window gravity
+and for three new resource types associated with session participation:
+RestartStyle, CommandArgArray and DirectoryString.
+</para>
+
+<para>
+The file search path syntax has been extended to make it easier to
+include the default search path, which controls resource
+database construction, by using the new substitution string, %D.
+</para>
+</sect2>
+
+<sect2 id="Translation_Management_2">
+<title>Translation Management</title>
+<para>
+The default key translator now recognizes the NumLock modifier.
+If NumLock is on and the second keysym is a keypad keysym
+(a standard keysym named with a ``KP'' prefix or a
+vendor-specific keysym in the hexadecimal range 0x11000000 to 0x1100FFFF),
+then the default key translator will
+use the first keysym if Shift and/or ShiftLock is on and will
+use the second keysym if neither is on.  Otherwise, it will
+ignore NumLock and apply the normal protocol semantics.
+</para>
+</sect2>
+
+<sect2 id="Selections">
+<title>Selections</title>
+<para>
+The targets of selection requests may be parameterized, as described
+by the revised <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis>.
+When such requests are made,
+<xref linkend='XtSetSelectionParameters' xrefstyle='select: title'/>
+is used by the requestor to specify the target parameters and
+<xref linkend='XtGetSelectionParameters' xrefstyle='select: title'/>
+is used by the selection owner to retrieve the parameters.
+When a parameterized target is specified in the context of a bundled
+request for multiple targets,
+<xref linkend='XtCreateSelectionRequest' xrefstyle='select: title'/>,
+<xref linkend='XtCancelSelectionRequest' xrefstyle='select: title'/>,
+and
+<xref linkend='XtSendSelectionRequest' xrefstyle='select: title'/>
+are used to envelop the assembly of the request.
+When the parameters themselves are the names of properties,
+the Intrinsics provides support for the economical use of property atom names;
+see
+<xref linkend='XtReservePropertyAtom' xrefstyle='select: title'/>
+and
+<xref linkend='XtReleasePropertyAtom' xrefstyle='select: title'/>.
+</para>
+</sect2>
+
+<sect2 id="External_Agent_Hooks">
+<title>External Agent Hooks</title>
+<para>
+External agent hooks were added for the benefit of applications
+that instrument other applications for purposes of accessibility,
+testing, and customization.  The external agent and the application
+communicate by a shared protocol which is transparent to the application.
+The hook callbacks permit the external agent to register interest
+in groups or classes of toolkit activity and to be notified of the
+type and details of the activity as it occurs.  The new interfaces
+related to this effort are
+<xref linkend='XtHooksOfDisplay' xrefstyle='select: title'/>,
+which returns the hook registration widget, and
+<xref linkend='XtGetDisplays' xrefstyle='select: title'/>,
+which returns a list of the X displays associated with an application context.
+</para>
+</sect2>
+</sect1>
+</chapter>

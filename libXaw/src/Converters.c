@@ -10,7 +10,7 @@
  *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *  
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
@@ -32,7 +32,6 @@
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Xmu/CharSet.h>
-#include <X11/Xmu/SysUtil.h>
 #include <X11/Xaw/Simple.h>
 #include <X11/Xaw/XawInit.h>
 #include "Private.h"
@@ -217,7 +216,7 @@ XawTypeToStringWarning(Display *dpy, String type)
   String params[1];
   Cardinal num_params;
 
-  XmuSnprintf(fname, sizeof(fname), "cvt%sToString", type);
+  snprintf(fname, sizeof(fname), "cvt%sToString", type);
 
   params[0] = type;
   num_params = 1;
@@ -235,7 +234,7 @@ TypeToStringNoArgsWarning(Display *dpy, String type)
   String params[1];
   Cardinal num_params;
 
-  XmuSnprintf(fname, sizeof(fname), "cvt%sToString", type);
+  snprintf(fname, sizeof(fname), "cvt%sToString", type);
 
   params[0] = type;
   num_params = 1;
@@ -258,8 +257,8 @@ _XawCvtBooleanToString(Display *dpy, XrmValue *args, Cardinal *num_args,
   if (*num_args != 0)
     TypeToStringNoArgsWarning(dpy, XtRBoolean);
 
-  XmuSnprintf(buffer, sizeof(buffer), "%s",
-	      *(Boolean *)fromVal->addr ? XtEtrue : XtEfalse);
+  snprintf(buffer, sizeof(buffer), "%s",
+	   *(Boolean *)fromVal->addr ? XtEtrue : XtEfalse);
   size = strlen(buffer) + 1;
 
   string_done(buffer);
@@ -277,8 +276,8 @@ _XawCvtBoolToString(Display *dpy, XrmValue *args, Cardinal *num_args,
   if (*num_args != 0)
     TypeToStringNoArgsWarning(dpy, XtRBool);
 
-  XmuSnprintf(buffer, sizeof(buffer), "%s",
-	      *(Bool *)fromVal->addr ? XtEtrue : XtEfalse);
+  snprintf(buffer, sizeof(buffer), "%s",
+	   *(Bool *)fromVal->addr ? XtEtrue : XtEfalse);
   size = strlen(buffer) + 1;
 
   string_done(buffer);
@@ -296,7 +295,7 @@ _XawCvtPositionToString(Display *dpy, XrmValue *args, Cardinal *num_args,
   if (*num_args != 0)
     TypeToStringNoArgsWarning(dpy, XtRPosition);
 
-  XmuSnprintf(buffer, sizeof(buffer), "%d", *(Position *)fromVal->addr);
+  snprintf(buffer, sizeof(buffer), "%d", *(Position *)fromVal->addr);
   size = strlen(buffer) + 1;
 
   string_done(buffer);
@@ -314,7 +313,7 @@ _XawCvtShortToString(Display *dpy, XrmValue *args, Cardinal *num_args,
   if (*num_args != 0)
     TypeToStringNoArgsWarning(dpy, XtRShort);
 
-  XmuSnprintf(buffer, sizeof(buffer), "%d", *(short *)fromVal->addr);
+  snprintf(buffer, sizeof(buffer), "%d", *(short *)fromVal->addr);
   size = strlen(buffer) + 1;
 
   string_done(buffer);
@@ -332,7 +331,7 @@ _XawCvtDimensionToString(Display *dpy, XrmValue *args, Cardinal *num_args,
   if (*num_args != 0)
     TypeToStringNoArgsWarning(dpy, XtRDimension);
 
-  XmuSnprintf(buffer, sizeof(buffer), "%u", *(Dimension *)fromVal->addr);
+  snprintf(buffer, sizeof(buffer), "%u", *(Dimension *)fromVal->addr);
   size = strlen(buffer) + 1;
 
   string_done(buffer);
@@ -350,7 +349,7 @@ _XawCvtCARD32ToString(Display *dpy, XrmValue *args, Cardinal *num_args,
   if (*num_args != 0)
     TypeToStringNoArgsWarning(dpy, "CARD32");
 
-  XmuSnprintf(buffer, sizeof(buffer), "0x%08hx", *(int *)fromVal->addr);
+  snprintf(buffer, sizeof(buffer), "0x%08hx", *(int *)fromVal->addr);
   size = strlen(buffer) + 1;
 
   string_done(buffer);
@@ -368,7 +367,7 @@ _XawCvtIntToString(Display *dpy, XrmValue *args, Cardinal *num_args,
   if (*num_args != 0)
     TypeToStringNoArgsWarning(dpy, XtRInt);
 
-  XmuSnprintf(buffer, sizeof(buffer), "%d", *(int *)fromVal->addr);
+  snprintf(buffer, sizeof(buffer), "%d", *(int *)fromVal->addr);
   size = strlen(buffer) + 1;
 
   string_done(buffer);
@@ -386,7 +385,7 @@ _XawCvtCardinalToString(Display *dpy, XrmValue *args, Cardinal *num_args,
   if (*num_args != 0)
     TypeToStringNoArgsWarning(dpy, XtRCardinal);
 
-  XmuSnprintf(buffer, sizeof(buffer), "%u", *(Cardinal *)fromVal->addr);
+  snprintf(buffer, sizeof(buffer), "%u", *(Cardinal *)fromVal->addr);
   size = strlen(buffer) + 1;
 
   string_done(buffer);
@@ -454,8 +453,8 @@ _XawCvtPixelToString(Display *dpy, XrmValue *args, Cardinal *num_args,
    * without asking Xlib.
    */
   XQueryColor(dpy, colormap, &color);
-  XmuSnprintf(buffer, sizeof(buffer), "rgb:%04hx/%04hx/%04hx",
-	      color.red, color.green, color.blue);
+  snprintf(buffer, sizeof(buffer), "rgb:%04hx/%04hx/%04hx",
+	   color.red, color.green, color.blue);
   size = strlen(buffer) + 1;
 
   string_done(buffer);
@@ -486,7 +485,7 @@ _XawCvtFontStructToString(Display *dpy, XrmValue *args, Cardinal *num_args,
 
       if (tmp)
 	{
-	  XmuSnprintf(buffer, sizeof(buffer), "%s", tmp);
+	  snprintf(buffer, sizeof(buffer), "%s", tmp);
 	  size = strlen(tmp);
 	  XFree(tmp);
 	}
@@ -515,8 +514,8 @@ _XawCvtUnsignedCharToString(Display *dpy, XrmValue *args, Cardinal *num_args,
   if (*num_args != 0)
     TypeToStringNoArgsWarning(dpy, XtRUnsignedChar);
 
-  XmuSnprintf(buffer, sizeof(buffer), "%u",
-	      *(unsigned char *)fromVal->addr);
+  snprintf(buffer, sizeof(buffer), "%u",
+	   *(unsigned char *)fromVal->addr);
   size = strlen(buffer) + 1;
 
   string_done(buffer);

@@ -53,7 +53,7 @@
 					 * minus \ and " for string compat
 					 * and ? to avoid ANSI trigraphs. */
 
-static char *printable =
+static const char *printable =
 " .XoO+@#$%&*=-;:>,<1234567890qwertyuipasdfghjklzxcvbnmMNBVCZ\
 ASDFGHJKLPIUYTREWQ!~^/()_`'][{}|";
 
@@ -111,8 +111,8 @@ LFUNC(MSWGetImagePixels, int, (Display *d, XImage *image, unsigned int width,
 LFUNC(ScanTransparentColor, int, (XpmColor *color, unsigned int cpp,
 				  XpmAttributes *attributes));
 
-LFUNC(ScanOtherColors, int, (Display *display, XpmColor *colors, 
-			     unsigned int ncolors, 
+LFUNC(ScanOtherColors, int, (Display *display, XpmColor *colors,
+			     unsigned int ncolors,
 			     Pixel *pixels, unsigned int mask,
 			     unsigned int cpp, XpmAttributes *attributes));
 
@@ -244,7 +244,7 @@ XpmCreateXpmImageFromImage(
     if (!pmap.pixelindex)
 	RETURN(XpmNoMemory);
 
-    if (pmap.size >= UINT_MAX / sizeof(Pixel)) 
+    if (pmap.size >= UINT_MAX / sizeof(Pixel))
 	RETURN(XpmNoMemory);
 
     pmap.pixels = (Pixel *) XpmMalloc(sizeof(Pixel) * pmap.size);
@@ -273,10 +273,10 @@ XpmCreateXpmImageFromImage(
 
     /*
      * scan the image data
-     * 
+     *
      * In case depth is 1 or bits_per_pixel is 4, 6, 8, 24 or 32 use optimized
      * functions, otherwise use slower but sure general one.
-     * 
+     *
      */
 
     if (image) {
@@ -433,8 +433,8 @@ ScanOtherColors(
 #ifndef FOR_MSW
     xpmRgbName rgbn[MAX_RGBNAMES];
 #else
-    xpmRgbName *rgbn = NULL; 
-#endif    
+    xpmRgbName *rgbn = NULL;
+#endif
     int rgbn_max = 0;
     unsigned int i, j, c, i2;
     XpmColor *color;
@@ -559,10 +559,10 @@ ScanOtherColors(
 #ifndef FOR_MSW
 		sprintf(buf, "#%04X%04X%04X",
 			xcolor->red, xcolor->green, xcolor->blue);
-#else   
+#else
 		sprintf(buf, "#%02x%02x%02x",
 			xcolor->red, xcolor->green, xcolor->blue);
-#endif			
+#endif
 		color->c_color = (char *) xpmstrdup(buf);
 	    }
 	    if (!color->c_color) {
@@ -589,7 +589,7 @@ ScanOtherColors(
  * level.
  */
 
-static unsigned long Const low_bits_table[] = {
+static unsigned long const low_bits_table[] = {
     0x00000000, 0x00000001, 0x00000003, 0x00000007,
     0x0000000f, 0x0000001f, 0x0000003f, 0x0000007f,
     0x000000ff, 0x000001ff, 0x000003ff, 0x000007ff,
@@ -924,15 +924,15 @@ AGetImagePixels (
     unsigned int    x, y;
     unsigned char  *pixels;
     XImage         *tmp_img;
-    
+
     pixels = XpmMalloc ((((width+15)>>4)<<4)*sizeof (*pixels));
     if (pixels == NULL)
 	return XpmNoMemory;
-    
+
     tmp_img = AllocXImage ((((width+15)>>4)<<4), 1, image->rp->BitMap->Depth);
     if (tmp_img == NULL)
 	CLEAN_UP (XpmNoMemory);
-    
+
     iptr = pmap->pixelindex;
     for (y = 0; y < height; ++y)
     {
@@ -943,7 +943,7 @@ AGetImagePixels (
 		CLEAN_UP (XpmNoMemory);
 	}
     }
-    
+
     CLEAN_UP (XpmSuccess);
 }
 

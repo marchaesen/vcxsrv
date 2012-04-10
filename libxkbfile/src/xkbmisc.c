@@ -6,19 +6,19 @@
  fee is hereby granted, provided that the above copyright
  notice appear in all copies and that both that copyright
  notice and this permission notice appear in supporting
- documentation, and that the name of Silicon Graphics not be 
- used in advertising or publicity pertaining to distribution 
+ documentation, and that the name of Silicon Graphics not be
+ used in advertising or publicity pertaining to distribution
  of the software without specific prior written permission.
- Silicon Graphics makes no representation about the suitability 
+ Silicon Graphics makes no representation about the suitability
  of this software for any purpose. It is provided "as is"
  without any express or implied warranty.
- 
- SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
- SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY 
+
+ SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
  AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
- GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
- DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, 
- DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
+ GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+ DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+ DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
  OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
  THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
@@ -218,7 +218,7 @@ int		nG,eG;
 /***===================================================================***/
 
 static Bool
-XkbWriteSectionFromName(FILE *file,char *sectionName,char *name)
+XkbWriteSectionFromName(FILE *file, const char *sectionName, const char *name)
 {
     fprintf(file,"    xkb_%-20s { include \"%s\" };\n",sectionName,name);
     return True;
@@ -323,7 +323,7 @@ XkbFileInfo	finfo;
 	    else {
 		wantDflts|= XkmTypesMask;
 	    }
-	    complete|= XkmTypesMask; 
+	    complete|= XkmTypesMask;
 	}
 	if (wantNames&XkmCompatMapMask) {
 	    if (old_names->compat!=None) {
@@ -331,14 +331,14 @@ XkbFileInfo	finfo;
 		names->compat= tmp;
 	    }
 	    else wantDflts|= XkmCompatMapMask;
-	    complete|= XkmCompatMapMask; 
+	    complete|= XkmCompatMapMask;
 	}
 	if (wantNames&XkmSymbolsMask) {
 	    if (old_names->symbols==None)
 		return False;
 	    tmp= XkbAtomGetString(dpy,old_names->symbols);
 	    names->symbols= tmp;
-	    complete|= XkmSymbolsMask; 
+	    complete|= XkmSymbolsMask;
 	}
 	if (wantNames&XkmKeyNamesMask) {
 	   if (old_names->keycodes!=None) {
@@ -353,7 +353,7 @@ XkbFileInfo	finfo;
 		return False;
 	    tmp= XkbAtomGetString(dpy,old_names->geometry);
 	    names->geometry= tmp;
-	    complete|= XkmGeometryMask; 
+	    complete|= XkmGeometryMask;
 	    wantNames&= ~XkmGeometryMask;
 	}
     }
@@ -519,7 +519,7 @@ unsigned	rtrn;
 		rtrn|= XkbCompatMapMask|XkbIndicatorMapMask;
 	if (orig&XkmSymbolsMask)	rtrn|=XkbClientMapMask|XkbServerMapMask;
 	if (orig&XkmIndicatorsMask)	rtrn|= XkbIndicatorMapMask;
-	if (orig&XkmKeyNamesMask)	
+	if (orig&XkmKeyNamesMask)
 		rtrn|= XkbNamesMask|XkbIndicatorMapMask;
 	if (orig&XkmGeometryMask)	rtrn|= XkbGeometryMask;
     }
@@ -547,7 +547,7 @@ XkbDescPtr	xkb;
     if (!present)
 	return False;
     else switch (present) {
-	case XkmKeyNamesMask:	
+	case XkmKeyNamesMask:
 	    finfo->type= 	XkmKeyNamesIndex;
 	    finfo->defined= 	present;
 	    return True;
@@ -555,18 +555,18 @@ XkbDescPtr	xkb;
 	    finfo->type=	XkmTypesIndex;
 	    finfo->defined= 	present;
 	    return True;
-	case XkmCompatMapMask:	
+	case XkmCompatMapMask:
 	    finfo->type=	XkmCompatMapIndex;
 	    finfo->defined=	present;
 	    return True;
-	case XkmSymbolsMask:	
+	case XkmSymbolsMask:
 	    if (format!=XkbXKMFile) {
 		finfo->type= 	XkmSymbolsIndex;
 		finfo->defined=	present;
 		return True;
 	    }
 	    break;
-	case XkmGeometryMask:	
+	case XkmGeometryMask:
 	    finfo->type=	XkmGeometryIndex;
 	    finfo->defined=	present;
 	    return True;
@@ -662,7 +662,7 @@ _X_HIDDEN int
 _XkbStrCaseCmp(char *str1,char *str2)
 {
     const u_char *us1 = (const u_char *)str1, *us2 = (const u_char *)str2;
-    
+
     while (tolower(*us1) == tolower(*us2)) {
         if (*us1++ == '\0')
             return (0);

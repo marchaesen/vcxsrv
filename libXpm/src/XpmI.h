@@ -98,7 +98,7 @@ extern FILE *popen();
 #ifndef SIZE_MAX
 # ifdef ULONG_MAX
 #  define SIZE_MAX ULONG_MAX
-# else 
+# else
 #  define SIZE_MAX UINT_MAX
 # endif
 #endif
@@ -114,7 +114,8 @@ typedef struct {
     unsigned int line;
     int CommentLength;
     char Comment[XPMMAXCMTLEN];
-    char *Bcmt, *Ecmt, Bos, Eos;
+    const char *Bcmt, *Ecmt;
+    char Bos, Eos;
     int format;			/* 1 if XPM1, 0 otherwise */
 #ifdef CXPMPROG
     int lineNum;
@@ -132,15 +133,15 @@ typedef struct {
 #define SPC ' '
 
 typedef struct {
-    char *type;			/* key word */
-    char *Bcmt;			/* string beginning comments */
-    char *Ecmt;			/* string ending comments */
+    const char *type;		/* key word */
+    const char *Bcmt;		/* string beginning comments */
+    const char *Ecmt;		/* string ending comments */
     char Bos;			/* character beginning strings */
     char Eos;			/* character ending strings */
-    char *Strs;			/* strings separator */
-    char *Dec;			/* data declaration string */
-    char *Boa;			/* string beginning assignment */
-    char *Eoa;			/* string ending assignment */
+    const char *Strs;		/* strings separator */
+    const char *Dec;		/* data declaration string */
+    const char *Boa;		/* string beginning assignment */
+    const char *Eoa;		/* string ending assignment */
 }      xpmDataType;
 
 extern xpmDataType xpmDataTypes[];
@@ -157,7 +158,7 @@ typedef struct {
 /* Maximum number of rgb mnemonics allowed in rgb text file. */
 #define MAX_RGBNAMES 1024
 
-extern char *xpmColorKeys[];
+extern const char *xpmColorKeys[];
 
 #define TRANSPARENT_COLOR "None"	/* this must be a string! */
 
@@ -306,24 +307,20 @@ FUNC(xpm_znormalizeimagebits, void, (register unsigned char *bp,
 #define ZINDEX1(x, y, img) ((y) * img->bytes_per_line) + ((x) >> 3)
 #endif /* not AMIGA */
 
-#ifdef __STDC__
-#define Const const
-#else
-#define Const /**/
-#endif
-
 #ifdef NEED_STRDUP
 FUNC(xpmstrdup, char *, (char *s1));
 #else
 #undef xpmstrdup
 #define xpmstrdup strdup
+#include <string.h>
 #endif
 
-#ifdef NEED_STRCASECMP                   
+#ifdef NEED_STRCASECMP
 FUNC(xpmstrcasecmp, int, (char *s1, char *s2));
 #else
 #undef xpmstrcasecmp
 #define xpmstrcasecmp strcasecmp
+#include <strings.h>
 #endif
 
 FUNC(xpmatoui, unsigned int,

@@ -1,0 +1,613 @@
+<chapter id='Callbacks'>
+<title>Callbacks</title>
+<para>
+Applications and other widgets often need to register a procedure
+with a widget that gets called under certain prespecified conditions.
+For example,
+when a widget is destroyed,
+every procedure on the widget's <emphasis remap='I'>destroy_callbacks</emphasis>
+list is called to notify clients of the widget's impending doom.
+</para>
+
+<para>
+Every widget has an XtNdestroyCallbacks callback list resource.
+Widgets can define additional callback lists as they see fit.
+For example, the Pushbutton widget has a callback
+list to notify clients when the button has been activated.
+</para>
+
+<para>
+Except where otherwise noted, it is the intent that all Intrinsics
+functions may be called at any time, including from within callback
+procedures, action routines, and event handlers.
+</para>
+<sect1 id="Using_Callback_Procedure_and_Callback_List_Definitions">
+<title>Using Callback Procedure and Callback List Definitions</title>
+<para>
+Callback procedure pointers for use in callback lists are of type
+<xref linkend='XtCallbackProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCallbackProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtCallbackProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtPointer <parameter>call_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget owning the list in which the callback is registered.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies additional data supplied by the client when the procedure
+was registered.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>call_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies any callback-specific data the widget wants to pass to the client.
+For example,  when Scrollbar executes its XtNthumbChanged callback list,
+it passes the new position of the thumb.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The <emphasis remap='I'>client_data</emphasis> argument provides a way for the
+client registering the callback procedure also to register client-specific data,
+for example, a pointer to additional information about the widget,
+a reason for invoking the callback, and so on.
+The <emphasis remap='I'>client_data</emphasis> value may be NULL
+if all necessary information is in the widget.
+The <emphasis remap='I'>call_data</emphasis> argument is a convenience to avoid having simple
+cases where the client could otherwise always call
+<xref linkend='XtGetValues' xrefstyle='select: title'/>
+or a widget-specific function to retrieve data from the widget.
+Widgets should generally avoid putting complex state information
+in <emphasis remap='I'>call_data</emphasis>.
+The client can use the more general data retrieval methods, if necessary.
+</para>
+
+<para>
+Whenever a client wants to pass a callback list as an argument in an
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>,
+<xref linkend='XtSetValues' xrefstyle='select: title'/>,
+or
+<xref linkend='XtGetValues' xrefstyle='select: title'/>
+call, it should specify the address
+of a NULL-terminated array of type
+<function>XtCallbackList</function>.
+</para>
+<literallayout >
+typedef struct {
+	XtCallbackProc callback;
+	XtPointer closure;
+} XtCallbackRec, *XtCallbackList;
+</literallayout>
+<para>
+For example, the callback list for procedures A and B with client data
+clientDataA and clientDataB, respectively, is
+</para>
+<literallayout >
+static XtCallbackRec callbacks[] = {
+	{A, (XtPointer) clientDataA},
+	{B, (XtPointer) clientDataB},
+	{(XtCallbackProc) NULL, (XtPointer) NULL}
+};
+</literallayout>
+<para>
+Although callback lists are passed by address in arglists
+and varargs lists,
+the Intrinsics recognize callback lists
+through the widget resource list and will copy the contents
+when necessary.
+Widget initialize and set_values procedures
+should not allocate memory for the callback list contents.
+The Intrinsics automatically do this,
+potentially using a different structure for their
+internal representation.
+</para>
+</sect1>
+
+<sect1 id="Identifying_Callback_Lists">
+<title>Identifying Callback Lists</title>
+<para>
+Whenever a widget contains a callback list for use by clients,
+it also exports in its public .h file the resource name of the callback list.
+Applications and client widgets never access callback list fields directly.
+Instead, they always identify the desired callback list by using the exported
+resource name.
+All the callback manipulation functions described in this chapter
+except
+<xref linkend='XtCallCallbackList' xrefstyle='select: title'/>
+check
+to see that the requested callback list is indeed implemented by the widget.
+</para>
+
+<para>
+For the Intrinsics to find and correctly handle callback lists,
+they must be declared with a resource type of
+<function>XtRCallback</function>.
+The internal representation of a callback list is
+implementation-dependent; widgets may make no assumptions about the
+value stored in this resource if it is non-NULL.  Except to compare
+the value to NULL (which is equivalent to
+<function>XtCallbackStatus</function>
+<function>XtCallbackHasNone ),</function>
+access to callback list resources must be made
+through other Intrinsics procedures.
+</para>
+</sect1>
+
+<sect1 id="Adding_Callback_Procedures">
+<title>Adding Callback Procedures</title>
+<para>
+To add a callback procedure to a widget's callback list, use
+<xref linkend='XtAddCallback' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAddCallback'>
+<funcprototype>
+<funcdef>void <function>XtAddCallback</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>String <parameter>callback_name</parameter></paramdef>
+   <paramdef>XtCallbackProc <parameter>callback</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callback_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback list to which the procedure is to be appended.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callback</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies additional data to be passed to the specified procedure
+when it is invoked,
+or NULL.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+A callback will be invoked as many times as it occurs in the callback list.
+</para>
+
+<para>
+To add a list of callback procedures to a given widget's callback list, use
+<xref linkend='XtAddCallbacks' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAddCallbacks'>
+<funcprototype>
+<funcdef>void <function>XtAddCallbacks</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>String <parameter>callback_name</parameter></paramdef>
+   <paramdef>XtCallbackList <parameter>callbacks</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callback_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback list to which the procedures are to be appended.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callbacks</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the null-terminated list of callback procedures and corresponding
+client data.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+</sect1>
+
+<sect1 id="Removing_Callback_Procedures">
+<title>Removing Callback Procedures</title>
+<para>
+To delete a callback procedure from a widget's callback list, use
+<xref linkend='XtRemoveCallback' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRemoveCallback'>
+<funcprototype>
+<funcdef>void <function>XtRemoveCallback</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>String <parameter>callback_name</parameter></paramdef>
+   <paramdef>XtCallbackProc <parameter>callback</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callback_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback list from which the procedure is to be deleted.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callback</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the client data to match with the registered callback entry.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtRemoveCallback' xrefstyle='select: title'/>
+function removes a callback only if both the procedure and the client
+data match.
+</para>
+
+<para>
+To delete a list of callback procedures from a given widget's callback list, use
+<xref linkend='XtRemoveCallbacks' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRemoveCallbacks'>
+<funcprototype>
+<funcdef>void <function>XtRemoveCallbacks</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>String <parameter>callback_name</parameter></paramdef>
+   <paramdef>XtCallbackList <parameter>callbacks</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callback_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback list from which the procedures are to be deleted.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callbacks</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the null-terminated list of callback procedures and corresponding
+client data.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+To delete all callback procedures from a given widget's callback list
+and free all storage associated with the callback list, use
+<xref linkend='XtRemoveAllCallbacks' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRemoveAllCallbacks'>
+<funcprototype>
+<funcdef>void <function>XtRemoveAllCallbacks</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>String <parameter>callback_name</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callback_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback list to be cleared.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+</sect1>
+
+<sect1 id="Executing_Callback_Procedures">
+<title>Executing Callback Procedures</title>
+<para>
+To execute the procedures in a given widget's callback list,
+specifying the callback list by resource name, use
+<xref linkend='XtCallCallbacks' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCallCallbacks'>
+<funcprototype>
+<funcdef>void <function>XtCallCallbacks</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>String <parameter>callback_name</parameter></paramdef>
+   <paramdef>XtPointer <parameter>call_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callback_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback list to be executed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>call_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a callback-list-specific data value to pass to each of the callback
+procedure in the list, or NULL.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<para>
+<xref linkend='XtCallCallbacks' xrefstyle='select: title'/>
+calls each of the callback procedures in the list
+named by <emphasis remap='I'>callback_name</emphasis> in the specified widget, passing the client
+data registered with the procedure and <emphasis remap='I'>call-data</emphasis>.
+</para>
+
+<para>
+To execute the procedures in a callback list, specifying the callback
+list by address, use
+<xref linkend='XtCallCallbackList' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCallCallbackList'>
+<funcprototype>
+<funcdef>void <function>XtCallCallbackList</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>XtCallbackList <parameter>callbacks</parameter></paramdef>
+   <paramdef>XtPointer <parameter>call_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget instance that contains the callback list.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callbacks</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback list to be executed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>call_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a callback-list-specific data value to pass
+to each of the callback procedures in the list, or NULL.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The <emphasis remap='I'>callbacks</emphasis> parameter must specify the contents of a widget or
+object resource declared with representation type
+<function>XtRCallback</function>.
+If <emphasis remap='I'>callbacks</emphasis> is NULL,
+<xref linkend='XtCallCallbackList' xrefstyle='select: title'/>
+returns immediately; otherwise it calls each of the callback
+procedures in the list, passing the client data and <emphasis remap='I'>call_data</emphasis>.
+</para>
+</sect1>
+
+<sect1 id="Checking_the_Status_of_a_Callback_List">
+<title>Checking the Status of a Callback List</title>
+<para>
+To find out the status of a given widget's callback list, use
+<xref linkend='XtHasCallbacks' xrefstyle='select: title'/>.
+</para>
+
+<para>
+typedef enum {XtCallbackNoList, XtCallbackHasNone, XtCallbackHasSome} XtCallbackStatus;
+</para>
+
+<funcsynopsis id='XtHasCallbacks'>
+<funcprototype>
+<funcdef>XtCallbackStatus <function>XtHasCallbacks</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>String <parameter>callback_name</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>callback_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the callback list to be checked.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtHasCallbacks' xrefstyle='select: title'/>
+function first checks to see if the widget has a callback list identified
+by <emphasis remap='I'>callback_name</emphasis>.
+If the callback list does not exist,
+<xref linkend='XtHasCallbacks' xrefstyle='select: title'/>
+returns
+<function>XtCallbackNoList</function>.
+If the callback list exists but is empty,
+it returns
+<function>XtCallbackHasNone</function>.
+If the callback list exists and has at least one callback registered,
+it returns
+<function>XtCallbackHasSome</function>.
+</para>
+</sect1>
+</chapter>

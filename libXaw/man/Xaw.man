@@ -41,7 +41,7 @@
 .ns
 .TP \\$1
 ..
-.TH Xaw 3 __vendorversion__
+.TH Xaw __libmansuffix__ __vendorversion__
 .SH NAME
  Xaw \- X Athena Widgets
 .SH DESCRIPTION

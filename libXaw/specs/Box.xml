@@ -38,7 +38,7 @@ are often called ButtonBox widgets, but the children are not
 limited to buttons.  The Box's children are arranged on a background that
 has its own specified dimensions and color.
 </para>
-<sect2 id="box_resources">
+<sect2 id='Box::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->

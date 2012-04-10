@@ -1,4 +1,4 @@
-<chapter id="composite_and_constraint_widgets">
+<chapter id='Composite_and_Constraint_Widgets'>
 <title>Composite and Constraint Widgets</title>
 <para>
 These widgets may contain arbitrary widget children.  They implement a
@@ -87,7 +87,7 @@ application programmer.
 <para>
 <!-- .LP -->
 If the application wishes to change the size or location of
-any widget it should make a call to <function>XtSetValues</function>.  This will
+any widget it should make a call to <xref linkend='XtSetValues' xrefstyle='select: title'/>.  This will
 <!-- .IN "XtSetValues" "" -->
 allow the widget to ask its parent for the new size or location.
 As noted above the parent is allowed to refuse this request,

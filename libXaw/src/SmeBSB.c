@@ -28,7 +28,7 @@ in this Software without prior written authorization from The Open Group.
  * Date:    September 26, 1989
  *
  * By:      Chris D. Peterson
- *          MIT X Consortium 
+ *          MIT X Consortium
  *          kit@expo.lcs.mit.edu
  */
 
@@ -40,7 +40,6 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/StringDefs.h>
 #include <X11/Xos.h>
 #include <X11/Xmu/Drawing.h>
-#include <X11/Xmu/SysUtil.h>
 #include <X11/Xaw/Cardinals.h>
 #include <X11/Xaw/SimpleMenu.h>
 #include <X11/Xaw/SmeBSBP.h>
@@ -62,7 +61,7 @@ static void XawSmeBSBRedisplay(Widget, XEvent*, Region);
 static Boolean XawSmeBSBSetValues(Widget, Widget, Widget,
 				  ArgList, Cardinal*);
 
-/* 
+/*
  * Prototypes
  */
 static void CreateGCs(Widget);
@@ -179,7 +178,7 @@ static XtResource resources[] = {
 #endif
 };
 #undef offset
-    
+
 #define superclass (&smeClassRec)
 SmeBSBClassRec smeBSBClassRec = {
   /* rectangle */
@@ -215,7 +214,7 @@ SmeBSBClassRec smeBSBClassRec = {
     NULL,				/* tm_table */
     XawSmeBSBQueryGeometry,		/* query_geometry */
     NULL,				/* display_accelerator */
-    NULL, 				/* extension */
+    NULL,				/* extension */
   },
   /* sme */
   {
@@ -238,7 +237,7 @@ WidgetClass smeBSBObjectClass = (WidgetClass)&smeBSBClassRec;
  * Description:
  *	Initializes the SmeBSBObject.
  */
-static void 
+static void
 XawSmeBSBClassInitialize(void)
 {
     XawInitializeWidgetSet();
@@ -267,7 +266,7 @@ XawSmeBSBInitialize(Widget request, Widget cnew,
 
     if (!entry->sme_bsb.font) XtError("Aborting: no font found\n");
 
-    if (entry->sme_bsb.label == NULL) 
+    if (entry->sme_bsb.label == NULL)
 	entry->sme_bsb.label = XtName(cnew);
     else
 	entry->sme_bsb.label = XtNewString(entry->sme_bsb.label);
@@ -336,7 +335,7 @@ XawSmeBSBRedisplay(Widget w, XEvent *event, Region region)
 
     if (XtIsSensitive(w) && XtIsSensitive(XtParent(w))) {
 	if (w == XawSimpleMenuGetActiveEntry(XtParent(w))) {
-	    XFillRectangle(XtDisplayOfObject(w), XtWindowOfObject(w), 
+	    XFillRectangle(XtDisplayOfObject(w), XtWindowOfObject(w),
 			   entry->sme_bsb.norm_gc, XtX(w), y_loc,
 			   XtWidth(entry), XtHeight(entry));
 	    gc = entry->sme_bsb.rev_gc;
@@ -346,7 +345,7 @@ XawSmeBSBRedisplay(Widget w, XEvent *event, Region region)
     }
     else
 	gc = entry->sme_bsb.norm_gray_gc;
-    
+
     if (entry->sme_bsb.label != NULL) {
 	int x_loc = entry->sme_bsb.left_margin;
 	int len = strlen(entry->sme_bsb.label);
@@ -400,7 +399,7 @@ XawSmeBSBRedisplay(Widget w, XEvent *event, Region region)
 	else {
 	    y_loc += ((XtHeight(entry) -
 		      (font_ascent + font_descent)) >> 1) + font_ascent;
-	
+
 	    XDrawString(XtDisplayOfObject(w), XtWindowOfObject(w), gc,
 			XtX(w) + x_loc, y_loc, label, len);
 	}
@@ -487,7 +486,7 @@ XawSmeBSBSetValues(Widget current, Widget request, Widget cnew,
  *	w	   - menu entry object
  *	itended	   - intended and return geometry info
  *	return_val - ""
- * 
+ *
  * Returns:
  *	Geometry Result
  *
@@ -527,7 +526,7 @@ XawSmeBSBQueryGeometry(Widget w, XtWidgetGeometry *intended,
 
     return (ret_val);
 }
-    
+
 /*
  * Function:
  *	FlipColors
@@ -538,7 +537,7 @@ XawSmeBSBQueryGeometry(Widget w, XtWidgetGeometry *intended,
  * Description:
  *	Invert the colors of the current entry.
  */
-static void 
+static void
 FlipColors(Widget w)
 {
     SmeBSBObject entry = (SmeBSBObject)w;
@@ -547,7 +546,7 @@ FlipColors(Widget w)
 	return;
 
     XFillRectangle(XtDisplayOfObject(w), XtWindowOfObject(w),
-		   entry->sme_bsb.invert_gc, 
+		   entry->sme_bsb.invert_gc,
 		   XtX(w), XtY(entry), XtWidth(entry), XtHeight(entry));
 }
 
@@ -571,7 +570,7 @@ GetDefaultSize(Widget w, Dimension *width, Dimension *height)
     if (entry->sme.international == True) {
 	XFontSetExtents *ext = XExtentsOfFontSet(entry->sme_bsb.fontset);
 
-	if (entry->sme_bsb.label == NULL) 
+	if (entry->sme_bsb.label == NULL)
 	    *width = 0;
 	else
 	    *width = XmbTextEscapement(entry->sme_bsb.fontset,
@@ -583,14 +582,14 @@ GetDefaultSize(Widget w, Dimension *width, Dimension *height)
 				   entry->sme_bsb.vert_space)) / ONE_HUNDRED;
     }
     else {
-	if (entry->sme_bsb.label == NULL) 
+	if (entry->sme_bsb.label == NULL)
 	    *width = 0;
 	else
 	    *width = XTextWidth(entry->sme_bsb.font, entry->sme_bsb.label,
 			    strlen(entry->sme_bsb.label));
 
 	*width += entry->sme_bsb.left_margin + entry->sme_bsb.right_margin;
-    
+
 	*height = entry->sme_bsb.font->max_bounds.ascent +
 		  entry->sme_bsb.font->max_bounds.descent;
 
@@ -615,7 +614,7 @@ DrawBitmaps(Widget w, GC gc)
 {
     int x_loc, y_loc;
     SmeBSBObject entry = (SmeBSBObject)w;
-    
+
     if (entry->sme_bsb.left_bitmap == None &&
 	entry->sme_bsb.right_bitmap == None)
     return;
@@ -631,7 +630,7 @@ DrawBitmaps(Widget w, GC gc)
 			       entry->sme_bsb.left_bitmap_height) >> 1);
 
 	XCopyPlane(XtDisplayOfObject(w), entry->sme_bsb.left_bitmap,
-		   XtWindowOfObject(w), gc, 0, 0, 
+		   XtWindowOfObject(w), gc, 0, 0,
 		   entry->sme_bsb.left_bitmap_width,
 		   entry->sme_bsb.left_bitmap_height, x_loc, y_loc, 1);
     }
@@ -647,7 +646,7 @@ DrawBitmaps(Widget w, GC gc)
 			      entry->sme_bsb.right_bitmap_height) >> 1);
 
 	XCopyPlane(XtDisplayOfObject(w), entry->sme_bsb.right_bitmap,
-		   XtWindowOfObject(w), gc, 0, 0, 
+		   XtWindowOfObject(w), gc, 0, 0,
 		   entry->sme_bsb.right_bitmap_width,
 	 	   entry->sme_bsb.right_bitmap_height, x_loc, y_loc, 1);
     }
@@ -673,11 +672,11 @@ GetBitmapInfo(Widget w, Bool is_left)
     Window root;
     int x, y;
     unsigned int width, height;
-    
+
     if (is_left) {
 	if (entry->sme_bsb.left_bitmap != None &&
 	    XGetGeometry(XtDisplayOfObject(w),
-			 entry->sme_bsb.left_bitmap, &root, 
+			 entry->sme_bsb.left_bitmap, &root,
 			 &x, &y, &width, &height, &bw, &depth))	{
 	    entry->sme_bsb.left_bitmap_width = width;
 	    entry->sme_bsb.left_bitmap_height = height;
@@ -708,7 +707,7 @@ CreateGCs(Widget w)
     SmeBSBObject entry = (SmeBSBObject)w;
     XGCValues values;
     XtGCMask mask, mask_i18n;
-    
+
     values.foreground = XtParent(w)->core.background_pixel;
     values.background = entry->sme_bsb.foreground;
     values.font = entry->sme_bsb.font->fid;
@@ -719,7 +718,7 @@ CreateGCs(Widget w)
 	entry->sme_bsb.rev_gc = XtAllocateGC(w, 0, mask_i18n, &values, GCFont, 0);
     else
 	entry->sme_bsb.rev_gc = XtGetGC(w, mask, &values);
-    
+
     values.foreground = entry->sme_bsb.foreground;
     values.background = XtParent(w)->core.background_pixel;
     if (entry->sme.international == True)
@@ -728,7 +727,7 @@ CreateGCs(Widget w)
 	entry->sme_bsb.norm_gc = XtGetGC(w, mask, &values);
 
     values.fill_style = FillTiled;
-    values.tile   = XmuCreateStippledPixmap(XtScreenOfObject(w), 
+    values.tile   = XmuCreateStippledPixmap(XtScreenOfObject(w),
 					    entry->sme_bsb.foreground,
 					    XtParent(w)->core.background_pixel,
 					    XtParent(w)->core.depth);

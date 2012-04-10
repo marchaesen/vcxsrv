@@ -1,0 +1,1748 @@
+commit 2d689ac861085d1d74bcbd05d1595bac0bf67d20
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Mar 15 22:51:45 2012 -0700
+
+    libXt 1.1.3
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 75bef5b488245467b6638e25cd22006b306e8536
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Mon Mar 12 18:36:52 2012 -0700
+
+    Revert "Treat unexpected returned events from poll as errors"
+    
+    This commit caused regressions:
+    https://bugs.freedesktop.org/show_bug.cgi?id=47203
+    https://bugs.freedesktop.org/show_bug.cgi?id=47216
+    
+    This reverts commit 70bb9e28d37fff4ead4d0a2c672af77059765fa4.
+
+commit 8ab1833a80a18131d897f6d9965545c16acef921
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Mar 7 17:57:26 2012 -0800
+
+    libXt 1.1.2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit aa0f30641769968e0453a7d02f3f8e5955641336
+Author: Matt Dew <marcoz@osource.org>
+Date:   Mon Jan 16 16:24:32 2012 -0700
+
+    informaltable cleanup
+    
+    On certain tables, add top and bottom borders to table header
+    and a bottom border to the table. This matches what those
+    tables in the old pdfs looked like.
+    
+    the <?dbfo keep-together='always'> prevents tables from
+    splitting across pages. Useful for tiny tables.
+    
+    Converting the colwidth to a floating point, IE, 1* -> 1.0*
+    cleans up these build errors:
+    WARNING: table-layout="fixed" and column-width unspecified =>
+    falling back to proportional-column-width(1)
+    
+    Signed-off-by: Matt Dew <marcoz@osource.org>
+
+commit 70bb9e28d37fff4ead4d0a2c672af77059765fa4
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Wed Jan 4 10:33:29 2012 -0800
+
+    Treat unexpected returned events from poll as errors
+    
+    Inspired by libxcb's f0565e8f06aadf760a9065a97b8cf5ab9cbd18de
+    
+    Resolves https://bugs.freedesktop.org/show_bug.cgi?id=20048
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 6dd231d37c036d182e789f0af37ee5417792ad4e
+Author: Stephen Turnbull <stephenjturnbull@gmail.com>
+Date:   Wed Jan 4 10:18:29 2012 -0800
+
+    Don't re-enter the WaitLoop if block is set to false
+    
+    See: https://bugs.freedesktop.org/show_bug.cgi?id=20048
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 0d8ef503e2d51d727a912d6ef3cf017608e45b7f
+Author: Gaetan Nadon <nadon@memsize.(none)>
+Date:   Sat Dec 31 09:03:39 2011 -0500
+
+    Add .gitignore for the newly added DocBook/XML generated files.
+    
+    Signed-off-by: Gaetan Nadon <nadon@memsize.(none)>
+
+commit 9cbf06b9f7b1378ce3424837c979c3241516bf9b
+Author: Gaetan Nadon <nadon@memsize.(none)>
+Date:   Fri Dec 30 17:08:14 2011 -0500
+
+    docbook.am: embed css styles inside the HTML HEAD element
+    
+    Rather than referring to the external xorg.css stylesheet, embed the content
+    of the file in the html output produced. This is accomplished by using
+    version 1.10 of xorg-xhtml.xsl.
+    
+    This makes the whole html docs tree much more relocatable.
+    In addition, it eliminates xorg.css as a runtime file which makes
+    xorg-sgml-doctools a build time only package.
+    
+    Signed-off-by: Gaetan Nadon <nadon@memsize.(none)>
+
+commit 7aa5d801d3b17fc9a1af9d5f6bc0283e3762cca2
+Author: Matt Dew <marcoz@osource.org>
+Date:   Wed Dec 28 21:17:53 2011 -0700
+
+    Remove old files.
+
+commit b8818e1233b75c6bd47a6d2197fabf3a036a2119
+Author: Matt Dew <marcoz@osource.org>
+Date:   Wed Dec 28 20:34:51 2011 -0700
+
+    Initial docbook conversion.
+
+commit fd0da0d44a8501edaac3be7fac9449ad730d8bf4
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Oct 7 19:45:21 2011 -0700
+
+    Add const attributes to TMparse typedefs to fix gcc -Wwrite-strings warnings
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit af9e4b75167c0e31ec02d5ababf204daa12f500d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Oct 7 19:32:08 2011 -0700
+
+    Add const attributes to slashDotXdefaults to fix gcc -Wwrite-strings warnings
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 682ca8daf29285ef5013751784a7ec98962b7cbb
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Oct 7 19:30:11 2011 -0700
+
+    Make implementation_default_path return const char *
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d3c2fbcd83ed9ae9b6cc8d765badca7f8d3261b2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Oct 7 19:23:37 2011 -0700
+
+    Make gravity strings const to fix gcc -Wwrite-strings warnings
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 94ffb37790ce33fdf49d07dd1ade60b6d8376aa7
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Oct 7 19:21:10 2011 -0700
+
+    Convert ISOLatin1 functions to specify args as const char *
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1f48cadaa88423a012613a0b456ec8795c8c0992
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Fri Oct 7 17:08:07 2011 -0700
+
+    Whitespace changes related to cleaning up previous patch
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 9e898aa4fd964e888044e2fa2d64089505331f62
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Fri Oct 7 17:01:34 2011 -0700
+
+    Don't pop elements from our array while we're itterating through it.
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=22543
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit df2008411a5c6a735af2b0fced01df660bb6978a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Sep 26 15:29:45 2011 -0700
+
+    makestrs: Add const attributes to fix gcc -Wwrite-strings warnings
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 9347b890ba24db41c7cb6c6e76564e4896bc8cac
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Tue Sep 20 16:45:02 2011 -0700
+
+    Bug 40577 - Missing bound checking in FreeSelectionProperty()
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=40577
+    
+    FreeSelectionProperty() did not check for the count of items in array
+    and relied on a NULL terminated list, which can cause libXt to crash if
+    FreeSelectionProperty() follows a call to GetSelectionProperty() which
+    reallocates the array.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 5691187ced24b16a951e2b8308bcc2b65dd36eee
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Sep 16 22:54:05 2011 -0700
+
+    Strip trailing whitespace
+    
+    Performed with: find * -type f | xargs perl -i -p -e 's{[ \t]+$}{}'
+    git diff -w & git diff -b show no diffs from this change
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6c0b44caa9b424c7e05327e8ddc9273b87a0f81f
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Sun Oct 2 13:35:26 2011 -0700
+
+    LP64 fix for TypedArgToArg()
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=12662
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit 2c29b8b71575d73db6b9542b24fa3312a2cf2f86
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Wed Apr 27 12:32:39 2011 +0100
+
+    Only link with ws2_32 for mingw target
+    
+    For the Cygwin target, we will be using the socket functions provided
+    by the Cygwin DLL, so linking with ws2_32 is unnecessary, even though
+    it may be present.
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Cyril Brulebois <kibi@debian.org
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 4ee8867047eaff3b121478b7199201d669e2c85d
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue May 24 14:37:03 2011 -0400
+
+    Update README for documentation reference
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Cyril Brulebois <kibi@debian.org>
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 5e299936489bf3476464f00ebf3ffa3fa893cc23
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Mar 18 19:36:05 2011 -0700
+
+    Add test case for XtCvtIntToPixmap fix in commit 16d9941f3aa38
+    
+    Expanded from original Sun test case for Solaris bug 4163152.
+    Verified that with commit 16d9941f3aa38 reverted, this test case
+    fails on amd64, with it present, this test case passes.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6fc14afa3fa98503248138f7f6984ee33a9bd889
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Mar 14 19:07:12 2011 -0700
+
+    Add test case for XtAppMainLoop bug 34715
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 4bf003a824577b5a46a59b3b3e91687b530ee48f
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Mar 10 14:23:44 2011 -0800
+
+    Add test framework similar to xserver and use it to test XtAsprintf
+    
+    Only two simple test cases to start with:
+     - compares the results of snprintf of a short string to a static buffer
+    	with the new buffer returned by XtAsprintf.
+     - compare the results of using XtAsprintf to replicate a portion of a
+    	very long string with the original string.
+    
+    Uses malloc debugging flags for various platforms to try to catch errors
+    with uninitialized memory (such as the recently fixed failure to terminate
+    the string).
+    
+    Requires xorg-macros 1.13 for XORG_ENABLE_UNIT_TESTS and XORG_WITH_GLIB.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 42c611d9f8c80528f6e36ceb0ce245b06e8b1e8e
+Author: Jordan Hayes <jordan@bitway.com>
+Date:   Sun Mar 6 11:35:47 2011 -0800
+
+    Bug 34715: XtAppMainLoop doesn't work without a Display
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=34715
+    
+    XtAppNextEvent() doesn't return until there's an actual XEvent to be
+    handled; it handles Xt-internal events (inputs, timers, signals)
+    itself, but doesn't return (because of course, those aren't XEvents).
+    Which means that the exit flag doesn't get a chance to break the loop
+    until/unless there's an actual XEvent.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c16d3cc264c45601f0e59bdd29e438c7c9679721
+Author: Julien Cristau <jcristau@debian.org>
+Date:   Thu Mar 10 10:19:59 2011 +0100
+
+    Bump to 1.1.1
+    
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+
+commit fe2cf6e2b70e57624aad71f510ff8c6addaae196
+Author: Cyril Brulebois <kibi@debian.org>
+Date:   Tue Mar 8 16:09:49 2011 +0100
+
+    XtAsprintf: Fix memory corruption.
+    
+    Don't write the null terminator to a random place, this can trigger some
+    segfault in XtOpenDisplay() and other annoyances.
+    
+    Debian Bug #617208 <http://bugs.debian.org/617208>
+    
+    Signed-off-by: Cyril Brulebois <kibi@debian.org>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f6c791b5f318d8805db4cb6c74b1bc2e91d6c15c
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sun Mar 6 13:43:46 2011 -0500
+
+    man: replace hard coded section number 3Xt with __libmansuffix__ #35050
+    
+    http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=512130
+    
+    The Xt manpages are installed in section 3 (and not 3Xt as upstream
+    would have it). But, internal cross-references (in particular, in the
+    SEE ALSO part) are left alone, and keep pointing at Foo(3Xt).  The
+    result is that they can't be automatically followed from manpage
+    sanitizers such as dwww or emacs.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 9ccf14fddedc11bd17b3ae30612c6f70f4cd7e14
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Mar 4 16:31:59 2011 -0800
+
+    Don't need to use target-specific CFLAGS for makestrs
+    
+    It's the only thing built in that directory, so we can use AM_CFLAGS
+    and drop the requirement for AM_PROG_CC_C_O in configure.ac
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+    Tested-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 16d9941f3aa38dde115cbff639e131761c1b36d0
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Mar 4 15:43:43 2011 -0800
+
+    Incorrect cast in XtCvtIntToPixmap could cause bus error on 64-bit machines
+    
+    Originally fixed by Leo Binchy for Sun Bug 4163152 to resolve bus error
+    on VSW5 (XTS) testing on 64-bit SPARC test run on Solaris 7.
+    ( Testcase: XtCvtIntToPixmap, Purpose:  1)
+    
+    Since we're converting from Int to Pixmap, need to access the argument
+    passed in as an int, not a Pixmap, which is consistent with the other
+    IntToXXX converters in this file.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Matt Turner <mattst88@gmail.com>
+
+commit 994443524ade46bad03eea0acbd1410d561c591d
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Fri Mar 4 16:30:58 2011 -0800
+
+    configure: Bump version to 1.1.0 for release
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit c0a233895cc8270ec0ff0bd2abb88d3f6dd524c3
+Author: Jeremy Huddleston <jeremyhu@apple.com>
+Date:   Fri Mar 4 12:49:48 2011 -0800
+
+    darwin: Don't use poll() when expected to run on darwin10 and prior
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit abf6062715c7d1390e516261a31abde4ed7ea64e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Feb 2 23:29:46 2011 -0800
+
+    Shell.c: TopLevelSetValues ignores iconic state if shell not yet realized
+    
+    Fix originally created by Leo Binchy for Sun to fix Solaris bug
+    1243761 The XmNiconic resource doesn't work
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b1eaa18835ec7c3a11e580340625b35c18edf7ca
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Feb 2 23:21:02 2011 -0800
+
+    GetResources: protect against underflow when type conversion fails
+    
+    Fix originally created by Leo Binchy for Sun to fix Solaris bug 1211553:
+     XtVaCreateManagedWidget with list of resources XtVaTypedArg cause core dump
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 21c1cc98d8210a3ce2a4bf62ecee9168fdd99dcb
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Feb 2 22:42:13 2011 -0800
+
+    Remove unused #ifdef UNALIGNED version of Xt macros & functions
+    
+    Trying to outsmart the compiler and libc is a losing battle, but
+    since UNALIGNED was never defined, we weren't even trying.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 19538f2b4553221b35831e13ec70ed9db436dd32
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Feb 2 11:43:44 2011 -0500
+
+    config: comment, minor upgrade, quote and layout configure.ac
+    
+    Group statements per section as per Autoconf standard layout
+    Quote statements where appropriate.
+    Autoconf recommends not using dnl instead of # for comments
+    
+    Use AC_CONFIG_FILES to replace the deprecated AC_OUTPUT with parameters.
+    Add AC_CONFIG_SRCDIR([Makefile.am])
+    
+    This helps automated maintenance and release activities.
+    Details can be found in http://wiki.x.org/wiki/NewModuleGuidelines
+
+commit 7fd1e98987967b23f66da4b18ebf9798a68cd370
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Fri Jan 28 16:07:07 2011 -0500
+
+    config: replace deprecated AC_HELP_STRING with AS_HELP_STRING
+    
+    This silences an Automake warning.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 84e512a94295387bd0625ce619fc8bd381395c71
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Dec 22 10:49:42 2010 -0800
+
+    Convert ALLOCATE_LOCAL + sprintf to XtAsprintf
+    
+    Now that we don't need to separately strlen the format string, put it
+    directly into the function call to clear gcc warnings of:
+    Initialize.c:397: warning: format not a string literal, argument types not checked
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c80650fddec8596ef7278e37aa12ce2076c54e93
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Dec 9 23:36:31 2010 -0800
+
+    Convert ResConfig.c to use XtAsprintf() instead of XtMalloc + sprintf
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ac07da253415ccb8b6322feedf7969967357050e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Jan 12 23:09:29 2011 -0800
+
+    Add XtAsprintf() as a new exported API
+    
+    Like asprintf() but using XtMalloc() to tie into the Xt memory allocation
+    and error handling subsystems.
+    
+    Bumps libXt version to 1.0.99.1 so that modules can set their pkg-config
+    dependency to libXt >= 1.0.99.1 to require XtAsprintf().
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 84f73c49db8071c06f27609ce7cc7a32a17351a9
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Dec 9 23:44:42 2010 -0800
+
+    Convert some sprintf calls to snprintf
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Julien Cristau <jcristau@debian.org>
+
+commit 14145f3e87a039640cd8bdb2e2f4f30ca9b2a710
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Dec 5 01:21:06 2010 -0800
+
+    config: AC_PROG_CC is provided by XORG_DEFAULT_OPTIONS now
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a73b8f06b95216083c8335fad45dd0de7f44a529
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Dec 5 01:19:10 2010 -0800
+
+    config: replace deprecated AM_CONFIG_HEADER with AC_CONFIG_HEADERS
+    
+    Regroup AC statements under the Autoconf initialization section.
+    Regroup AM statements under the Automake initialization section.
+    Add missing AC_CONFIG_SRCDIR
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 2bf988d229d2b85208cc42094ce7202204d628af
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Dec 5 00:33:44 2010 -0800
+
+    Remove ancient #if defined(macII) hack for A/UX from makestrs.c
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 96508e1b9da790d4b824a42246d1e86379101733
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Dec 5 00:19:30 2010 -0800
+
+    Remove non-USE_SNPRINTF case from src/Error.c
+    
+    unifdef -DUSE_SNPRINTF src/Error.c
+    Plus manual removal of old #ifdef notyet section that said not enough
+    platforms had snprintf support yet.   Welcome to the new millenium!
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0b780f8cc8bc2606fc3173628c4d3065aae190f8
+Author: walter harms <wharms@bfs.de>
+Date:   Sun Nov 7 18:51:19 2010 +0100
+
+    remove strcmp in src/ResConfig.c
+    
+    Make remainder check like in the rest of code and replace strcmp()
+    
+    Signed-off-by: walter harms <wharms@bfs.de>
+    Reviewed-by: Mikhail Gusarov <dottedmag@dottedmag.net>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 59598f20ba160fd92abcf88a30f0008425e7b1ec
+Author: walter harms <wharms@bfs.de>
+Date:   Tue Oct 26 13:46:32 2010 +0200
+
+    QueryEventMask: fix NULL check
+    
+    _XtGetPerWidgetInput may return NULL
+    avoid possible NULL references
+    
+    Signed-off-by: walter harms <wharms@bfs.de>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8572cba2b9094dcd8ee5b4c5bcf3c38f1f291918
+Author: walter harms <wharms@bfs.de>
+Date:   Sat Oct 30 10:47:23 2010 +0200
+
+    src/Resource.c: Fix possible NULL access
+    
+    Signed-off-by: walter harms <wharms@bfs.de>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6c75b449f6436b787247e164bee03691af2a4f55
+Author: walter harms <wharms@bfs.de>
+Date:   Fri Oct 29 17:24:48 2010 +0200
+
+    XtFree() can handle NULL , remove check
+    
+    Signed-off-by: walter harms <wharms@bfs.de>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0d29ca61b94cd34b04c5eedae443620a616d01c3
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Oct 28 12:03:25 2010 -0700
+
+    libXt 1.0.9
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 87d019acc715c5ab4a5b2431ec882a0f84946c20
+Author: Jesse Adkins <jesserayadkins@gmail.com>
+Date:   Tue Sep 28 13:30:03 2010 -0700
+
+    Purge cvs tags.
+    
+    Signed-off-by: Jesse Adkins <jesserayadkins@gmail.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit aa70c813f6eac2cad2944a98a1a444ea69dc024f
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Oct 5 09:07:30 2010 -0400
+
+    makestrs: Use MAN_SUBST now supplied in XORG_MANPAGE_SECTIONS
+    
+    The value of MAN_SUBST is the same for all X.Org packages.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 9d80fae6bc2cff26f320ff5b7b2ca7333ab3d677
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Oct 5 09:04:19 2010 -0400
+
+    makestrs: Use $(SED) from AC_PROG_SED supplied by XORG_DEFAULT_OPTIONS
+    
+    Use the appropriate platform version of sed
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 71a7e999a4d99aa54ea7268b928d87e27cea6279
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Oct 5 09:02:41 2010 -0400
+
+    makestrs: remove unsed $(appman_DATA)
+    
+    Man page is not installed, this variable is not defined.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 0c968d108d8575db0149922b8375533fc54d0b7a
+Author: walter harms <wharms@bfs.de>
+Date:   Fri Oct 1 15:13:43 2010 +0200
+
+    Honor that GetClassActions() may return NULL.
+    
+    Signed-off-by: Walter <wharms@bfs.de>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6e4dbf06d4d049666cf81207d9f853a0a40c71b7
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Sep 23 18:27:46 2010 -0700
+
+    Sun's copyrights belong to Oracle now
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 94680a56a32ada91f07db34e02a526dca5ecbbf4
+Author: Ryan Hajdaj <rhajdaj@gotnothin.com>
+Date:   Thu Sep 23 18:13:28 2010 -0700
+
+    Bug 1478: Selection.c damages user error handler function
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=1478
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d53a3deb52100596bef9fb7b6c6e7ba15ed18bda
+Author: walter harms <wharms@bfs.de>
+Date:   Wed Sep 22 19:25:20 2010 +0200
+
+    fix dereference in TMprint.c
+    
+    the current codes checks for
+     eventWidget == NULL after accessing
+    eventWidget->core.tm.proc_table
+    
+    now it checks for eventWidget before access eventWidget->core.tm.proc_table.
+    
+    Signed-off-by: walter harms <wharms@bfs.de>
+    Reviewed-by: Jeremy Huddleston <jeremyhu@apple.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 47e73791d4a88e59a797e9dde1ab2d5f58ff774c
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Aug 17 10:17:57 2010 -0400
+
+    man: whitespace management
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 8c307c168c724368be2b9e784365b40d4b001aa3
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Aug 17 09:21:36 2010 -0400
+
+    man: store shadow man pages in git rather than generating them
+    
+    Simplify the build process and the makefile.
+    
+    Local fix in CVS for bug 5628 is not required
+    as the problem has been fixed in
+    util-macros d9062e4077ebfd0985baf8418f3d0f111b9ddbba
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 198ac897c7136425a20011a6c99f80cb925d622b
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Fri Aug 6 12:32:10 2010 -0400
+
+    man: using the C preprocessor is not required for man pages.
+    
+    There were no special symbols needing cpp.
+    Everything can be handled by the default MAN_SUBSTS in util-macros.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 74cb722a974010fa3c82dc57a036f97768b3695b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jun 8 20:26:29 2010 -0700
+
+    Move Xt specs from xorg-docs module
+    
+    For now, just checked in and included in dist tarballs, not processed
+    into a usable format - same as it was in xorg-docs
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 56621d3ec521dd30fabb1a77ad1c396baa740569
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue May 18 18:21:32 2010 -0700
+
+    Move sm from Requires to Requires.private in xt.pc
+    
+    As explained in https://bugs.freedesktop.org/show_bug.cgi?id=26943
+    since libXt callers need the SM headers but don't necessarily need to
+    link directly to libSM, it should be in Requires.private, not Requires.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Adam Jackson <ajax@redhat.com>
+
+commit f3d2ac478918b99c51e0b4bff97935f2255ab537
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 16 16:08:39 2010 -0700
+
+    Bug 26943: wrong dependencies in xt.pc.in
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=26943
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 723d78fe8e159dee1281f3e4f8dc03825aa334b6
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Apr 1 20:30:43 2010 -0400
+
+    config: update and relocate AX_DEFINE_DIR macro
+    
+    Remove deprecated acinclude.m4 macro container file
+    Use separate macro files as per autoconf recommendation
+    Use the latest macro from GNU
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 99a1c1f2cfa595500704d54e223f1c9e0ff9a10e
+Author: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+Date:   Fri Apr 2 01:43:22 2010 -0500
+
+    Use automake silent rules for BUILT_SOURCES generation
+    
+    Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Acked-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit cf3198fdc302bb017e6cc8014abc3bdbfeb9f6b1
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Mar 29 16:50:34 2010 -0400
+
+    config: update AC_PREREQ statement to 2.60
+    
+    Unrelated to the previous patches, the new value simply reflects
+    the reality that the minimum level for autoconf to configure
+    all x.org modules is 2.60 dated June 2006.
+    
+    ftp://ftp.gnu.org/gnu/autoconf/autoconf-2.60.tar.gz
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 5a876831762c5d22101bd2fa71203647858f66b2
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Mar 29 14:53:49 2010 -0400
+
+    config: remove the pkgconfig pc.in file from EXTRA_DIST
+    
+    Automake always includes it in the tarball.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit cba12c108da0c3eb868a5cb08f641b6d036e0d05
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sat Mar 27 16:30:02 2010 -0400
+
+    config: remove execute permission on configureation file
+    
+    Introduced in commit 6baea764567c3327f1d85ba91375adaea6dab46d
+    "Link with winsock for WIN32 platforms"
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit e3bce11a8ea7e0175a6f08367bace9b0eb2b898a
+Author: Rémi Cardona <remi@gentoo.org>
+Date:   Mon Mar 15 22:59:04 2010 +0100
+
+    libXt 1.0.8
+    
+    Signed-off-by: Rémi Cardona <remi@gentoo.org>
+
+commit a1a8df535fa5ab3748404bdeb07e61beb604b14e
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Jan 14 20:07:46 2010 -0800
+
+    Update Sun license notices to current X.Org standard form
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit 6393306d1a2eb8239f108a773f342495e1cfd85c
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Jan 14 15:57:31 2010 -0500
+
+    COPYING: add missing copyright notices
+    
+    Refer to: ActionHook.c
+    Copyright 1987, 1988 by Digital Equipment Corporation
+    Copyright 1993 by Sun Microsystems, Inc. Mountain View, CA.
+    Copyright 1987, 1988, 1998  The Open Group
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit b798093fc6cbcf35c095f3401586d2741adcd2cd
+Author: Jeremy Huddleston <jeremyhu@freedesktop.org>
+Date:   Fri Dec 11 17:04:23 2009 -0800
+
+    darwin: xnu doesn't support poll on ttys on the master side.
+    
+    <rdar://problem/7360546>
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@freedesktop.org>
+
+commit e0ac2ea8b211bdca848679ee59362384f0f97e36
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Dec 7 22:28:53 2009 -0800
+
+    Fix make distcheck (./util/makestrs.1 left after distclean)
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit 345633dc9c79b32a1b391dfb4dfedf87ae9e291b
+Author: Rémi Cardona <remi@gentoo.org>
+Date:   Mon Nov 9 12:26:17 2009 +0100
+
+    Don't install makestrs on the system
+    
+    It has no known outside-libXt users. Let's not install it and its man page.
+    
+    Signed-off-by: Rémi Cardona <remi@gentoo.org>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit ed31677bb9b1dd9498715a922763968917b87e49
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Fri Nov 27 20:56:04 2009 -0500
+
+    Makefile.am: add ChangeLog and INSTALL on MAINTAINERCLEANFILES
+    
+    Now that the INSTALL file is generated.
+    Allows running make maintainer-clean.
+
+commit 2d95ad4beed294a0a30fdb1d8e7798fa62455a41
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Oct 28 14:09:10 2009 -0400
+
+    INSTALL, NEWS, README or AUTHORS files are missing/incorrect #24206
+    
+    Add missing INSTALL file. Use standard GNU file on building tarball
+    README may have been updated
+    Remove AUTHORS file as it is empty and no content available yet.
+    Remove NEWS file as it is empty and no content available yet.
+
+commit 7cc872e9934f62bf56976d5592ce621e30b1f95a
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Oct 27 15:07:26 2009 -0400
+
+    Deploy the new XORG_DEFAULT_OPTIONS #24242
+    
+    This macro aggregate a number of existing macros that sets commmon
+    X.Org components configuration options. It shields the configuration file from
+    future changes.
+
+commit 7ba57d7789362c2c2e646cc3b896802e6cbcb039
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Oct 26 22:08:43 2009 -0400
+
+    Makefile.am: ChangeLog not required: EXTRA_DIST or *CLEANFILES #24432
+    
+    ChangeLog filename is known to Automake and requires no further
+    coding in the makefile.
+
+commit b4309cadb1de581d191fce924dac8fc7e55e5fb8
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Oct 22 12:34:19 2009 -0400
+
+    .gitignore: use common defaults with custom section # 24239
+    
+    Using common defaults will reduce errors and maintenance.
+    Only the very small or inexistent custom section need periodic maintenance
+    when the structure of the component changes. Do not edit defaults.
+
+commit 80ff1f362eefabe4be62784b001500b49943f1a5
+Author: Jeremy Huddleston <jeremyhu@freedesktop.org>
+Date:   Wed Oct 21 12:47:26 2009 -0700
+
+    This is not a GNU project, so declare it foreign.
+    
+    On Wed, 2009-10-21 at 13:36 +1000, Peter Hutterer wrote:
+    > On Tue, Oct 20, 2009 at 08:23:55PM -0700, Jeremy Huddleston wrote:
+    > > I noticed an INSTALL file in xlsclients and libXvMC today, and it
+    > > was quite annoying to work around since 'autoreconf -fvi' replaces
+    > > it and git wants to commit it.  Should these files even be in git?
+    > > Can I nuke them for the betterment of humanity and since they get
+    > > created by autoreconf anyways?
+    >
+    > See https://bugs.freedesktop.org/show_bug.cgi?id=24206
+    
+    As an interim measure, replace AM_INIT_AUTOMAKE([dist-bzip2]) with
+    AM_INIT_AUTOMAKE([foreign dist-bzip2]). This will prevent the generation
+    of the INSTALL file. It is also part of the 24206 solution.
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@freedesktop.org>
+
+commit 5d63df924d7f66d2207c8db67e5d6cce8c7b245b
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Oct 8 21:50:35 2009 -0700
+
+    libXt 1.0.7
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit f82769a1a75e17f66b67a5f71dcf889955569a57
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Oct 8 21:33:27 2009 -0700
+
+    Replace AC_DEFINE_DIR with AX_DEFINE_DIR from Autoconf Archive
+
+commit 0ce97e4422409de070af7fd70da590db12c58579
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Tue Oct 6 16:12:03 2009 -0700
+
+    Migrate to xorg macros 1.3 & XORG_DEFAULT_OPTIONS
+    
+    Includes adding many $(AM_V_GEN) calls for the AM_SILENT_RULES included
+    by XORG_DEFAULT_OPTIONS when automake-1.11 or newer is used
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit 254e2e0a8197e47bcef3e3c0b461ef8156a1af64
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Tue Oct 6 16:29:59 2009 -0700
+
+    Use make rules instead of shell for loops to generate shadow man pages
+    
+    Allows parallel make and simpler build logs/error reporting
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit fedc095da647b6f4fda8ca5edc5644458e2b2fbf
+Author: Julien Cristau <jcristau@debian.org>
+Date:   Tue Aug 25 18:31:49 2009 +0200
+
+    Link against libICE
+    
+    libXt uses IceConnectionNumber() and IceProcessMessages(), so make sure
+    we link against -lICE.
+    
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+
+commit f77482f0618f954de1d080599ada058e9a3c24ff
+Author: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+Date:   Tue Jul 28 11:59:41 2009 +0200
+
+    Fix compilation of host tools in cross-compilation case
+    
+    At 36e9f0d351afbf7fd2595990b2d39e7c551f6420, a fix was added to use
+    the host gcc instead of the target gcc when cross-compiling
+    libXt. This fix works, but is not solve the whole problem: the CFLAGS
+    and LDFLAGS used with the host compilers are the one defined for the
+    target compiler (and the flags for both compilers might be very
+    different).
+    
+    This new fix let libXt obey to CFLAGS_FOR_BUILD and LDFLAGS_FOR_BUILD
+    environment variables, and use them to compile the host tools in
+    util/.
+    
+    Signed-off-by: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+
+commit 369629611609f20c89499c1f6b5562a4f3cca983
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Thu Jul 2 13:28:01 2009 -0400
+
+    libXt 1.0.6
+
+commit 28677468c56888b18c44d71a62903d23e5c294cf
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Tue May 19 23:25:15 2009 +0100
+
+    Cygwin/X: Build fix
+    
+    Commit c59dd27ecb1751f0b097046b2f892028e5a10a3e replaces __CYGWIN__ with WIN32
+    in a preprocessor check, as the code is appropriate for both Cygwin and Mingw.
+    
+    But this isn't quite the right was to do this. Being a Win32 platform is
+    Cygwin's secret shame, and WIN32 isn't actually defined to avoid turning on
+    code specific to native-Win API ports
+    
+    (See http://www.cygwin.com/faq/faq.programming.html#faq.programming.preprocessor)
+    
+    Yes, this probably means WIN32 could bereplaced by __MINGW32__ everywhere in the
+    X sources...
+
+commit 535f8c5324205b92c15e8755008c33a2766832c8
+Author: John McKernan <john.mckernan@sun.com>
+Date:   Fri May 1 13:53:03 2009 -0700
+
+    Sun bug 4010369: Too slow to process Keycode 0 events in Xt Translation Mgr.
+    
+    Evaluation from original bug report against Solaris 2.6 in 1996:
+    
+        According to my investigation with the problem using debuggable
+        libXt and libXm, keycode 0 keypress events, which are given to
+        Xt's Translation Manager when inputting any cyrillic/greek characters,
+        are not cached in Xt's Translation Manager. At the TRANSLATE macro
+        in the Xt's source lib/Xt/TMkey.c, keycode 0 keyevents are always
+        given to XtTranslateKeycode() and it consumes a long time to parse
+        Motif's Translation Manager tables as many times as keycode 0
+        keyevent are given.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit 061d3eebf7a0502afcd9c1831d67c8961feece8d
+Author: John McKernan <john.mckernan@sun.com>
+Date:   Fri May 1 13:41:26 2009 -0700
+
+    Sun bug #1237023:  Dtterm crashes in XtDisplayAccelerators()
+    
+    Don't try to printf if returned string is NULL
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit e500631954c8d390e8705fde7f50d1acc006406e
+Author: Jeremy Huddleston <jeremy@yuffie.local>
+Date:   Thu Mar 12 01:03:39 2009 -0700
+
+    darwin: Don't use poll() on versions of darwin before darwin10
+
+commit 81792a4cb402c4e5275d63465bc5d65599e34a25
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Feb 2 20:34:36 2009 -0800
+
+    Add README with pointers to mailing list, bugzilla & git repos
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit f56a69f2cf7df1e7cdf2494c5408786e53467374
+Author: Paulo Cesar Pereira de Andrade <pcpa@mandriva.com.br>
+Date:   Fri Jan 30 18:22:10 2009 -0200
+
+    Janitor: ansification, make distcheck, compiler warnings, .gitignore.
+    
+      Most "compiler" warnings were actually sparse warnings, due to
+    assigning a integer to a pointer, or an external symbol without
+    a previous declaration.
+
+commit c1f227f94aec6f4555182965fc0d2d8f33fef01f
+Author: Peter Breitenlohner <peb@mppmu.mpg.de>
+Date:   Mon Oct 20 18:50:37 2008 -0700
+
+    X.Org Bug 17942: libXt manpage formatting
+    
+    <http://bugs.freedesktop.org/show_bug.cgi?id=17942>
+
+commit f488a6a218da6b543d1495e607ff1b31b0b48900
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Tue Sep 23 19:14:09 2008 +0300
+
+    configure.ac: Minor thinko
+
+commit 36e9f0d351afbf7fd2595990b2d39e7c551f6420
+Author: John Tapsell <johnflux@gmail.com>
+Date:   Tue Sep 23 19:00:42 2008 +0300
+
+    configure.ac: Use native compiler for build tools
+    
+    makestrs is used during the build, so use the native compiler (either
+    gcc or cc in $PATH, can be overridden as $CC_FOR_BUILD) instead of the
+    (possibly cross-) compiler.
+
+commit ace1676b0630dfe739c3bd712ed2b6e46bdb52f1
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Jun 23 20:04:29 2008 -0700
+
+    Update ac_define_dir.m4 to 2008-04-12 version
+
+commit 556918e21fbb67131d979b04f29a0b59fcd87575
+Author: Alan Hourihane <alanh@tungstengraphics.com>
+Date:   Wed Apr 30 19:15:14 2008 +0100
+
+    Set a blank default search path for WIN32
+
+commit 56444103a3b2159d334aa87d782fbca987118bbc
+Author: Alan Hourihane <alanh@tungstengraphics.com>
+Date:   Tue Apr 29 22:44:54 2008 +0100
+
+    less speed, more haste
+
+commit a393450cbde80b6e7f0e1c4112363eb1313a6cdb
+Author: Alan Hourihane <alanh@tungstengraphics.com>
+Date:   Tue Apr 29 22:16:05 2008 +0100
+
+    fix logic inverted problem
+
+commit cd83cf47412b4a5979e152990c3b0870751aee07
+Author: Colin Harrison <colin.harrison-at-virgin.net>
+Date:   Tue Apr 29 19:45:50 2008 +0100
+
+    Reduce the path searches on mingw
+
+commit bb6d2a09b87560ae396085ef0981b700924333cd
+Author: Colin Harrison <colin.harrison-at-virgin.net>
+Date:   Tue Apr 29 13:45:06 2008 +0100
+
+    Xming specific configuration file settings
+
+commit 6baea764567c3327f1d85ba91375adaea6dab46d
+Author: Alan Hourihane <alanh@tungstengraphics.com>
+Date:   Tue Apr 29 10:22:35 2008 +0100
+
+    Link with winsock for WIN32 platforms
+
+commit c59dd27ecb1751f0b097046b2f892028e5a10a3e
+Author: Colin Harrison <colin.harrison-at-virgin.net>
+Date:   Tue Apr 29 10:19:55 2008 +0100
+
+    Fix some build issues for Win32 platforms
+
+commit 8e95cb765e88d36c35f868f650c86c62c31ad635
+Author: Colin Harrison <colin.harrison-at-virgin.net>
+Date:   Wed Apr 23 13:56:28 2008 +0100
+
+    Add __MINGW32__
+
+commit 4b64b821a48fe493056271216dbe29d43376954b
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Sun Mar 9 08:42:48 2008 +0100
+
+    nuke RCS Ids
+
+commit b648ed992d2c3ea8a7462a595e51a07085bf4688
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Fri Mar 7 15:52:27 2008 -0800
+
+    Solaris builds need to pass -intelabi to makestrs, even on SPARC
+    
+    For some reason, when Solaris moved to X11R6.0, the intelabi version
+    of StringDefs.c/.h was used on SPARC, so now we're stuck with 10+ years
+    of binaries built to use it.
+
+commit c044ea620446db676ee076484fed3268c4d7c695
+Author: James Cloos <cloos@jhcloos.com>
+Date:   Thu Dec 6 15:51:20 2007 -0500
+
+    Add missing PHONY line for automatic ChangeLog generation
+
+commit 6b483e355de6c5ee5dc635ab9b817bf72680b016
+Author: Julien Cristau <jcristau@debian.org>
+Date:   Sat Jun 23 15:20:09 2007 +0100
+
+    Allow C++ apps to build using libXt
+
+commit 845e51c740574db2f72a5e7c5462d8f56a3c4e22
+Author: Andreas Luik <luik@orthogon.com>
+Date:   Sun Apr 8 00:43:56 2007 +0300
+
+    Recalculate fd_set more aggressively (bug #808)
+    
+    select() can modify the fd set, so be a bit pessimistic and recalculate
+    it more often.
+
+commit 007d9e5f8b2edc3ff8ce8b2f96b8f56a417bb78d
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Mon Feb 26 18:27:43 2007 +0100
+
+    Sync XtGetErrorDatabaseText() prototype with reality.
+
+commit 4e7031510d05471e77ff48355b23fc8e4302648c
+Author: Ben Byer <bbyer@bbyer.(none)>
+Date:   Tue Feb 20 01:05:27 2007 -0800
+
+    added -flat_namespace to CFLAGS for Darwin
+
+commit 92452ca7a51fa77ea60eacd320dbd970e32653c9
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Sat Jan 27 22:29:03 2007 -0800
+
+    Version bump: 1.0.5
+
+commit a5c7d56278e569257d3d64ff7681d0a484a1f817
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Sat Jan 27 22:26:55 2007 -0800
+
+    Replace static ChangeLog with dist-hook to generate from git log
+
+commit 67772a3f39c5e8c4019336b0bf4d32e70726b0c0
+Author: Eric S. Raymond <esr@thyrsus.com>
+Date:   Tue Jan 2 17:49:17 2007 -0800
+
+    Bug 9514: Markup error in makestrs.1x man page
+    
+    <https://bugs.freedesktop.org/show_bug.cgi?id=9514>
+
+commit 75f83503ba1db628137ffc9d1d9e4f2a7a2fd97a
+Merge: 2f201b1 153264a
+Author: Jeremy C. Reed <reed@glacier.reedmedia.net>
+Date:   Sat Dec 9 09:31:02 2006 -0600
+
+    Merge branch 'master' of git+ssh://git.freedesktop.org/git/xorg/lib/libXt
+
+commit 2f201b177816be7112884bda180d65f5fff19155
+Author: Jeremy C. Reed <reed@glacier.reedmedia.net>
+Date:   Sat Dec 9 09:28:04 2006 -0600
+
+    Don't use "INSTALL" during the build because INSTALL may be set by
+    build environment with settings for chown and make not work with
+    permissions of the builder.  So use mkdir -p and cp instead.  This
+    is for my bug #6599.
+
+commit 153264a7f290f98e01ed2dbd7265c977ec8ba7e1
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Wed Nov 8 16:16:02 2006 +0200
+
+    bump to 1.0.4
+
+commit 0c1954765c32c1bd298111cc6bed2f090494c0cf
+Author: Eric Anholt <eric@anholt.net>
+Date:   Fri Oct 27 12:35:38 2006 -0700
+
+    Fix .pc file with new autotools by using AC_DEFINE_DIR.
+    
+    With autoconf 2.60, $datadir now expands to use $datarootdir rather than just
+    $prefix, so the .pc referenced the undefined $datarootdir.  AC_DEFINE_DIR
+    expands it all out for us.
+
+commit 3c166cc1efe86ca42180a64e14b6bbbc9744bc82
+Author: Eric Anholt <eric@anholt.net>
+Date:   Fri Oct 27 12:30:09 2006 -0700
+
+    Add more generated files to ignore.
+
+commit 8d18dfa21f8349c998675e1f9971de02ca99a1cd
+Author: Adam Jackson <ajax@benzedrine.nwnk.net>
+Date:   Fri Oct 13 16:32:28 2006 -0400
+
+    Bump to 1.0.3
+
+commit b54d069ea397486c6125943ffdb813482383576a
+Author: Qiu-Yuan (Kathleen) Yang <qiu-yuan.yang@sun.com>
+Date:   Fri Sep 1 18:04:26 2006 -0700
+
+    Sun bug #4962001: Close memory leaks seen in Motif apps
+    
+    The function "GetResources" will return a copy of resources to the caller
+    and the caller has the responsibility to free the returned copy.  However some
+    functions, such as "XtGetSubresources", "_XtGetResources", and
+    "XtGetApplicationResources" invoked "GetResources" without freeing the
+    returned resource copy.
+
+commit 6e48adfab0c020ab5d55b68f9b4cc63ed5d8b14c
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Fri Sep 1 17:59:42 2006 -0700
+
+    Add *~ to .gitignore to skip over emacs droppings
+
+commit 1eeeff85bf9f293de875169f6dc54577de0443f1
+Author: David Nusinow <dnusinow@debian.org>
+Date:   Wed Aug 30 16:33:10 2006 -0400
+
+    Generate the internal manpage section using __libmansuffix__
+
+commit e2f43888fe021aac27770afa6a64fb3cf3fab190
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Jul 13 14:59:08 2006 -0700
+
+    renamed: .cvsignore -> .gitignore
+
+commit 3d3a1bc23f571daa7a876a21169d5a0c996ce7cc
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Fri May 12 16:10:27 2006 +0000
+
+    Bump to 1.0.2
+
+commit fc82234c73362d6f07acf2dcf72bcefd96850105
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Sun Apr 30 14:30:16 2006 +0000
+
+    Fix ERRORDB definition for the case where ${prefix} != /usr
+
+commit bc813392aa8f563e6cd385636b90a7496fcaa14e
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Thu Apr 27 00:23:17 2006 +0000
+
+    Bump to 1.0.1
+
+commit 1c55684a7411c35fce2a958d84be4c13b5349ea0
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Sun Feb 12 18:19:22 2006 +0000
+
+    Bug #5628 <https://bugs.freedesktop.org/show_bug.cgi?id=5628> Shadow pages
+        not created correctly when MANDIR & MANSUFFIX don't match.
+
+commit 6851a1faf46a4d8a85e481162c8ee84f66174f89
+Author: Kevin E Martin <kem@kem.org>
+Date:   Thu Dec 15 00:24:34 2005 +0000
+
+    Update package version number for final X11R7 release candidate.
+
+commit b9464aa563b650faefbb881d5b399659aa8c30bb
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Dec 10 16:29:07 2005 +0000
+
+    Add configure option to install makestrs and its manpage.
+    Add makestrs man page.
+
+commit 6be3ca4fb0d0f9a1361d45dfc094f0a7a85b27b4
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Dec 7 16:17:08 2005 +0000
+
+    Add configure option to set the build's app-default dir, and put the result
+        in the xt.pc file for applications to use.
+
+commit 3186014010acbda9f8e3568a1e8076130212f600
+Author: Kevin E Martin <kem@kem.org>
+Date:   Tue Dec 6 22:48:44 2005 +0000
+
+    Change *man_SOURCES ==> *man_PRE to fix autotools warnings.
+
+commit 5801485b720e1dd3799737d9f127212afd3101c7
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Dec 3 05:49:45 2005 +0000
+
+    Update package version number for X11R7 RC3 release.
+
+commit d480f9dbd3e07b4e139f2a1422f803e6e6264854
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Dec 3 04:41:50 2005 +0000
+
+    Add check and cflags for malloc(0) returning NULL.
+
+commit 2a591fe7b3416d8609bd71cb068f9390105ffecf
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Mon Nov 28 22:03:06 2005 +0000
+
+    Change *mandir targets to use new *_MAN_DIR variables set by xorg-macros.m4
+        update to fix bug #5167 (Linux prefers *.1x man pages in man1 subdir)
+
+commit 7a8979367e4ab1a6412fef9a027b7d38621d87b7
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Wed Nov 23 22:33:07 2005 +0000
+
+    Bug #5003 <https://bugs.freedesktop.org/show_bug.cgi?id=5003> Patch #3763
+        <https://bugs.freedesktop.org/attachment.cgi?id=3763> Xorg code misuses
+        S_IF* macros
+
+commit 2533120c26185990d326fa14c92383f85239f3b7
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Nov 19 07:15:43 2005 +0000
+
+    Update pkgconfig files to separate library build-time dependencies from
+        application build-time dependencies, and update package deps to work
+        with separate build roots.
+
+commit 3f332f9af360cd42f5ff1b6f16ac64f7d146ff34
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Nov 9 21:19:13 2005 +0000
+
+    Update package version number for X11R7 RC2 release.
+
+commit f151f6dfa14c36cfa54ab3e55bb67f24a8a39dc6
+Author: Kean Johnson <kean@armory.com>
+Date:   Tue Nov 8 06:33:25 2005 +0000
+
+    See ChangeLog entry 2005-11-07 for details.
+
+commit 7ed0ec3136190288b0c450cdf2998000c43619df
+Author: Kevin E Martin <kem@kem.org>
+Date:   Tue Nov 1 15:11:51 2005 +0000
+
+    Update pkgcheck dependencies to work with separate build roots.
+
+commit 33b861860b86b53840007010287f5483a503c8e9
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Oct 19 02:48:11 2005 +0000
+
+    Update package version number for RC1 release.
+
+commit d3853ab17d7203e7fbdfcd5cc8ed3505e5aa6233
+Author: Kevin E Martin <kem@kem.org>
+Date:   Tue Oct 18 07:24:03 2005 +0000
+
+    Use $(INSTALL) instead of $(install_sh_DATA) for creating directories.
+
+commit 831a32df90d6b3db66d6c578f6e231d4aab2b760
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Tue Oct 18 03:10:14 2005 +0000
+
+    Split the 'install -d' over multiple lines so certain lame versions of
+        autotools don't flip out.
+
+commit 5e37faddaac8ac50ee4ca719975f9bf526e4c980
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Tue Oct 18 01:50:02 2005 +0000
+
+    Add --with-xfile-search-path=<path> and default setting to match monolith
+        XFileSearchPathDefault in Imake (including extra directories used in
+        Debian section of linux.cf.)
+
+commit 52edad6913e3efd3fcec6c73e13d33bf8c3a5e65
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Tue Oct 18 00:00:09 2005 +0000
+
+    Use @LIB_MAN_SUFFIX@ instead of $(LIB_MAN_SUFFIX) in macro substitutions to
+        work better with BSD make
+
+commit 1fcb9d04dd8b2f78aff2d64e6db7588c973cdb5b
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Mon Oct 17 21:13:22 2005 +0000
+
+    Rename .shadows.DONE to shadows.DONE to avoid some make's thinking it's a
+        suffix rule (reported by Matthieu Herrb)
+
+commit 4423fc41efc97ad1559f281c2ce3c835ccc88c61
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Thu Oct 13 04:27:16 2005 +0000
+
+    Add generated man pages to .cvsignore file
+
+commit 3c676e51ca509fff616495ac7354ac8b4ecde7e4
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Wed Oct 12 00:22:32 2005 +0000
+
+    configure.ac Set up cpp pre-processing of man pages Add shadow man pages
+        for man pages that document multiple functions.
+
+commit 0543cf76a5e11133b5f76fa37b39cbe2985c1c75
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Sat Sep 24 00:23:32 2005 +0000
+
+    Include <X11/XlibConf.h> to get correct XTHREADS settings in non-Imake
+        builds.
+
+commit 88374bab9adfe73dc445d4202a28e4d6021a674f
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Wed Sep 21 02:35:01 2005 +0000
+
+    Add checks for poll & snprintf & define old Imake names if found Enable XKB
+        usage in Xt unless --disable-xkb is specified Set STRINGSABIOPTIONS for
+        building StringDefs files on Solaris, SCO, and SVR4 systems.
+
+commit dbd0485a6e1926e7b94fdffb3e71de27c4a29012
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Mon Aug 1 23:59:39 2005 +0000
+
+    Properly define BUILT_FILES
+
+commit f4043547fbb2feb87f480388a695016b90f53279
+Author: Keith Packard <keithp@keithp.com>
+Date:   Mon Aug 1 23:47:55 2005 +0000
+
+    Move building of StringDefs files to src and fix them so that parallel make
+        works right.
+
+commit 027977140e19c5622331ac90eeb5e9bb9fe72640
+Author: Kevin E Martin <kem@kem.org>
+Date:   Fri Jul 29 21:22:52 2005 +0000
+
+    Various changes preparing packages for RC0:
+    - Verify and update package version numbers as needed
+    - Implement versioning scheme
+    - Change bug address to point to bugzilla bug entry form
+    - Disable loadable i18n in libX11 by default (use --enable-loadable-i18n to
+        reenable it)
+    - Fix makedepend to use pkgconfig and pass distcheck
+    - Update build script to build macros first
+    - Update modular Xorg version
+
+commit 28845cf017b991f7ed2dd23c005ab36ca43b97a5
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Fri Jul 22 20:30:10 2005 +0000
+
+    Bug #3824: <https://bugs.freedesktop.org/show_bug.cgi?id=3824> Correct
+        incomplete license statement from Sun.
+
+commit 052efe144da64f96fb1201a36933894d2d4bfb3c
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Tue Jul 19 02:00:01 2005 +0000
+
+    distcheck fixes -- clean up after makestrs, don't list non-existant files.
+
+commit e1cd82cf0b4d51db42c5d71a63805b6fb9ad45b8
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Sun Jul 17 10:15:26 2005 +0000
+
+    Fix for building outside of srcdir.
+
+commit 40bf5c6a837430bf23f86b97fcde8237099511c0
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Sat Jul 16 07:37:19 2005 +0000
+
+    Set version number to 6.0.0 with -version-number.
+
+commit 265f56bafdca73f28a4937ebff86ac77a25f2d4b
+Author: Keith Packard <keithp@keithp.com>
+Date:   Sat Jul 9 06:49:50 2005 +0000
+
+    Add .cvsignore files
+
+commit 63a4f8f76f5fb9159447878a4a85a14d0fbf4bf6
+Author: Alexander Gottwald <alexander.gottwald@s1999.tu-chemnitz.de>
+Date:   Thu Jun 30 12:23:32 2005 +0000
+
+    Add -no-undefined to linker command to build shared library on cygwin too
+
+commit 64b2b98096c6a5b2ac3af59796e07601eee4e28a
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Mon Jun 20 21:47:20 2005 +0000
+
+    - Make Xt install its internal files in /usr/include/X11, both in the
+        modular and the monolithic tree.
+    - Update XTrap to use #include <X11/internal-xt-headerI.h>
+    - Add XvMC to symlink.sh
+
+commit 6e10d9886cfe518d1407331a7a8e5bac85390249
+Author: Alexander Gottwald <alexander.gottwald@s1999.tu-chemnitz.de>
+Date:   Fri Jun 10 12:19:31 2005 +0000
+
+    ensure $(buildir)/src and $(builddir)/include/X11 exist before installing
+        generated files there
+
+commit 1b5fb35a8db7bcf568a2318118068b6c01169c14
+Author: Alexander Gottwald <alexander.gottwald@s1999.tu-chemnitz.de>
+Date:   Tue May 24 16:06:12 2005 +0000
+
+    separation of source and build directories
+
+commit e6db93aff3a4e92b8d13998866a787bdc08b6f35
+Author: Alexander Gottwald <alexander.gottwald@s1999.tu-chemnitz.de>
+Date:   Tue May 24 15:58:51 2005 +0000
+
+    Make source directory for templates configurable
+
+commit 82f3473668ed08af059e094a696911d2347e5d57
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Sun May 22 19:05:11 2005 +0000
+
+    Convert man pages to long file names in lib/X11, lib/Xt, & lib/Xext
+
+commit 1c6db5c90aa4b4c7c82b0676416c2a9a0baa6c67
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Sun May 22 04:25:43 2005 +0000
+
+    Check for <alloca.h> and define INCLUDE_ALLOCA_H if found, since
+        <Xalloca.h> requires it.
+
+commit 2e00049e9b02e26f858c3e4510641a735c03b086
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Sat May 21 20:47:26 2005 +0000
+
+    Use $(install_sh_DATA) instead of "install" for better portability. Remove
+        duplicate installation lines.
+    Add AM_CFLAGS to pass through XT_CFLAGS & X11_CFLAGS
+
+commit a175c9ea92967441a7ad33d2f6c8bf26cbe954fe
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Thu May 19 00:22:33 2005 +0000
+
+    revert last change, didn't do right thing at all, sorry for the noise
+
+commit 185284247a889358b2ea269424eb665a71079826
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Thu May 19 00:10:08 2005 +0000
+
+    Require automake 1.7 in AM_INIT_AUTOMAKE
+
+commit c7fe09644945e3725c0b67b84cd24d8475cea184
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Wed May 18 19:34:25 2005 +0000
+
+    Also include include/X11
+
+commit 605a76dcc93e277e1b26841a0225b7e0fb851b76
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Wed May 18 15:38:31 2005 +0000
+
+    - conditionally include config.h in xc/lib/Xt sources
+    - add build system for lib/Xt
+
+commit b0a241cf7c7ab3840929da3b1aabdda7bab22517
+Author: Egbert Eich <eich@suse.de>
+Date:   Tue May 17 08:10:10 2005 +0000
+
+    gcc4 allows to check if sentinels are correct (a sentinel is the
+        terminating element in a varargs list). A sentinel needs to be NULL,
+        not 0 - which doesn't make a difference on 32bit but matters on 64bit.
+        Furthermore it can be told that functions have a printf-like format
+        string and argument list so that they can verify that both match. To
+        use these features certain attributes need to be set - which are
+        compiler specific. To do this we define macros which are expanded
+        depending on the compiler version. For now we put those in
+        include/Xfuncproto.h (the XFree86 DDX layer contains a file compiler.h
+        which however is not visible outside the DDX) (Bugzilla #3268).
+
+commit 2b42b9154f9886ab05da1c3d6ce75fd95f59e04e
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Sun May 15 20:52:39 2005 +0000
+
+    Add settings to bring Solaris builds closer to the ones Sun packages in
+        Solaris. Adds "BuildLikeSun" options for areas Sun deviates from the
+        way Xorg is packaged on other platforms. See comment in sun.cf for
+        details. Also, use system-provided Expat on Solaris 10 and other
+        cleanups.
+    Set shared library versions for Solaris builds to match versions used in
+        Solaris. Add missing SharedXfixesReqs and SharedXdamageReqs.
+    Add -solarisabi option to create XtStrings code compatibile with existing
+        Solaris binaries. (Off by default, on if "BuildLikeSun" is set in
+        sun.cf)
+
+commit 149898492fe56f6a096a875375faa7323f7e96f4
+Author: Alexander Gottwald <alexander.gottwald@s1999.tu-chemnitz.de>
+Date:   Wed Apr 20 09:35:50 2005 +0000
+
+    Bugzilla #3072 (https://bugs.freedesktop.org/show_bug.cgi?id=3072)
+        attachment #2469 (https://bugs.freedesktop.org/attachment.cgi?id=2469):
+        fix uninitialized pointer in libXt on Win32. Reported by Dave Williss
+
+commit 85eb751e4e1683af6cee3ee9dce29f74911a639d
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Mon Feb 21 21:08:27 2005 +0000
+
+    Convert lib/Xt to ANSI C (Thomas Dickey). Fixes for a few valgrind warnings
+        (Thomas Dickey).
+
+commit 94150cb72d9d641c64325cd70323d93b9a3701a5
+Author: Alan Coopersmith <Alan.Coopersmith@sun.com>
+Date:   Wed Jan 19 19:27:34 2005 +0000
+
+    doc/man/Xt/Imakefile
+    doc/man/Xt/XtAddCbk.man
+    doc/man/Xt/XtAddIn.man
+    doc/man/Xt/XtAllocGC.man
+    doc/man/Xt/XtAppE.man
+    doc/man/Xt/XtAppEM.man
+    doc/man/Xt/XtAppSTC.man
+    doc/man/Xt/XtClass.man
+    doc/man/Xt/XtConvSt.man
+    doc/man/Xt/XtConvert.man
+    doc/man/Xt/XtCreateSR.man
+    doc/man/Xt/XtDisplayI.man
+    doc/man/Xt/XtErr.man
+    doc/man/Xt/XtErrM.man
+    doc/man/Xt/XtExtEvDis.man
+    doc/man/Xt/XtGEDB.man
+    doc/man/Xt/XtGetANC.man
+    doc/man/Xt/XtGetActK.man
+    doc/man/Xt/XtGetAres.man
+    doc/man/Xt/XtGetSTO.man
+    doc/man/Xt/XtGetSres.man
+    doc/man/Xt/XtInit.man
+    doc/man/Xt/XtInitWC.man
+    doc/man/Xt/XtManChild.man
+    doc/man/Xt/XtOffset.man
+    doc/man/Xt/XtOwnSel.man
+    doc/man/Xt/XtRegDraw.man
+    doc/man/Xt/XtResPA.man
+    doc/man/Xt/XtSession.man
+    doc/man/Xt/XtSetLangP.man
+    doc/man/Xt/XtSetSP.man
+    doc/man/Xt/XtSetVal.man
+    //bugs.freedesktop.org/show_bug.cgi?id=2331> Attachment #1718
+        <https://bugs.freedesktop.org/attachment.cgi?id=1718>
+
+commit cd85103c7298be4a13909c07c95f5d53b069966e
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Sun Jan 2 11:08:49 2005 +0000
+
+    Fix formatting.
+
+commit 054445f4238a98b7ea7910778ed110f5eff9d4f2
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Sun Oct 3 20:08:42 2004 +0000
+
+    Xt Manual pages fixes from Dmitry Bolkhovitanov (Bugzilla #1498, $1499).
+
+commit 045e3de107523f28e765da8239d6afa9f51d6ba2
+Author: Kevin E Martin <kem@kem.org>
+Date:   Wed Aug 11 21:14:17 2004 +0000
+
+    Apply PPC64 build patch (Bug #303, Mike A. Harris, Alan Coopersmith).
+
+commit 7a541dcaa28b6f97a647d0d8e0873f665ea372aa
+Author: Eric Anholt <anholt@freebsd.org>
+Date:   Sat Jul 31 01:21:51 2004 +0000
+
+    Rename some COMPOSITE macros and enums to avoid conflicting with the
+        COMPOSITE extension's new macro. These appear to only be used
+        internally.
+
+commit b83924fa380f9e68c0c8a9dada6094c95fc44441
+Author: Egbert Eich <eich@suse.de>
+Date:   Fri Apr 23 18:43:54 2004 +0000
+
+    Merging XORG-CURRENT into trunk
+
+commit 1b4f95dee32054b4d14ed5f78e47371c544fc5ac
+Author: Egbert Eich <eich@suse.de>
+Date:   Sun Mar 14 08:32:26 2004 +0000
+
+    Importing vendor version xf86-4_4_99_1 on Sun Mar 14 00:26:39 PST 2004
+
+commit 83e661ed1cec6b14c60adbd48ab8588f6b13c391
+Author: Egbert Eich <eich@suse.de>
+Date:   Wed Mar 3 12:11:32 2004 +0000
+
+    Importing vendor version xf86-4_4_0 on Wed Mar 3 04:09:24 PST 2004
+
+commit 77d281253982e2ebe27430f38b993927d879a005
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Feb 26 13:35:34 2004 +0000
+
+    readding XFree86's cvs IDs
+
+commit 0efb2e616125953a3773b9b6c9a530ad30ce9bc8
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Feb 26 09:22:45 2004 +0000
+
+    Importing vendor version xf86-4_3_99_903 on Wed Feb 26 01:21:00 PST 2004
+
+commit 036e955dfcc31d3b6c081f84e4f0b85969ccdd12
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Jan 29 08:08:07 2004 +0000
+
+    Importing vendor version xf86-012804-2330 on Thu Jan 29 00:06:33 PST 2004
+
+commit f81d7ef72c9b4f13e33efa812bed9446657ed003
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Tue Nov 25 19:28:16 2003 +0000
+
+    XFree86 4.3.99.16 Bring the tree up to date for the Cygwin folks
+
+commit bdc0667ef29e24b1a2188b11546d843a7d3e5ef6
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Nov 14 16:48:49 2003 +0000
+
+    XFree86 4.3.0.1
+
+commit 6a13c9e08bb042c81ae904c44a38a50d785c824e
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Nov 14 16:48:49 2003 +0000
+
+    Initial revision
+
+commit 0117b0b441d8835a11a2886f3c8aed937dcffa9d
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Nov 14 15:54:39 2003 +0000
+
+    R6.6 is the Xorg base-line

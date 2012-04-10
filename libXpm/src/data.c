@@ -61,7 +61,8 @@ ParseComment(xpmData *data)
 	register char c;
 	register unsigned int n = 0;
 	unsigned int notend;
-	char *s, *s2;
+	char *s;
+	const char *s2;
 
 	s = data->Comment;
 	*s = data->Bcmt[0];
@@ -119,7 +120,8 @@ ParseComment(xpmData *data)
 	register int c;
 	register unsigned int n = 0, a;
 	unsigned int notend;
-	char *s, *s2;
+	char *s;
+	const char *s2;
 
 	s = data->Comment;
 	*s = data->Bcmt[0];

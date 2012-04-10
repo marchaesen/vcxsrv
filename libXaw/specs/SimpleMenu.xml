@@ -23,7 +23,7 @@ Superclass	OverrideShell
 <!-- .LP -->
 The SimpleMenu widget is a container for the menu entries.  It is a
 direct subclass of shell, and is should be created with
-<function>XtCreatePopupShell</function>, not <function>XtCreateManagedWidget</function>.  This is the
+<function>XtCreatePopupShell</function>, not <xref linkend='XtCreateManagedWidget' xrefstyle='select: title'/>.  This is the
 only part of the menu that
 actually is associated with a window.  The SimpleMenu serves as the glue to bind
 the individual menu entries together into a menu.
@@ -632,7 +632,7 @@ translation table of the widget that will be popping up the menu.  The
 <function>MenuPopup</function> action is described in <emphasis remap='I'>(xT</emphasis>.
 <function>XawPositionSimpleMenu</function> is a global action procedure registered by
 the SimpleMenu widget when the first one is created or the convenience
-routine <function>XawSimpleMenuAddGlobalActions</function> is called.
+routine <xref linkend='XawSimpleMenuAddGlobalActions' xrefstyle='select: title'/> is called.
 </para>
 <para>
 <!-- .LP -->
@@ -689,9 +689,9 @@ The <function>XawPositionSimpleMenu</function> action routine may often be invok
 before any menus have been created.  This can occur when an
 application uses dynamic menu creation.  In these cases an application will
 need to register this global action routine by calling
-<function>XawSimpleMenuAddGlobalActions</function>:
+<xref linkend='XawSimpleMenuAddGlobalActions' xrefstyle='select: title'/>:
 <!-- .IN "XawSimpleMenuAddGlobalActions" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawSimpleMenuAddGlobalActions'>
 <funcprototype>
   <funcdef>void<function> XawSimpleMenuAddGlobalActions</function></funcdef>
   <paramdef>XtAppContext<parameter> app_con</parameter></paramdef>
@@ -723,9 +723,9 @@ is realized.
 <para>
 <!-- .LP -->
 To get the currently highlighted menu entry use
-<function>XawSimpleMenuGetActiveEntry</function>:
+<xref linkend='XawSimpleMenuGetActiveEntry' xrefstyle='select: title'/>:
 <!-- .IN "XawSimpleMenuGetActiveEntry" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawSimpleMenuGetActiveEntry'>
 <funcprototype>
   <funcdef>Widget<function> XawSimpleMenuGetActiveEntry</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
@@ -755,9 +755,9 @@ currently highlighted, or NULL if no entry is highlighted.
 <!-- .sp -->
 To clear the SimpleMenu widget's internal information about the
 currently highlighted menu entry use
-<function>XawSimpleMenuClearActiveEntry</function>:
+<xref linkend='XawSimpleMenuClearActiveEntry' xrefstyle='select: title'/>:
 <!-- .IN "XawSimpleMenuClearActiveEntry" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawSimpleMenuClearActiveEntry'>
 <funcprototype>
   <funcdef>Widget<function> XawSimpleMenuClearActiveEntry</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>

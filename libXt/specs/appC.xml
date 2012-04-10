@@ -1,0 +1,1970 @@
+<appendix id='Compability_Functions'>
+<title>Compatibility Functions
+<footnote>
+<para>
+This appendix is part of the formal Intrinsics Specification.
+</para>
+</footnote>
+</title>
+<para>
+In prototype versions of the X Toolkit
+each widget class
+implemented an Xt&lt;<emphasis remap='I'>Widget</emphasis>&gt;Create (for example,
+<function>XtLabelCreate</function>)
+function, in which most of the code was identical from widget to widget.
+In the Intrinsics, a single generic
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>
+performs most of the common work and then calls the initialize procedure
+implemented for the particular widget class.
+</para>
+
+<para>
+Each Composite class also implemented the procedures
+Xt&lt;<emphasis remap='I'>Widget</emphasis>&gt;Add and an Xt&lt;<emphasis remap='I'>Widget</emphasis>&gt;Delete (for example,
+<function>XtButtonBoxAddButton</function>
+and
+<function>XtButtonBoxDeleteButton</function>).
+In the Intrinsics, the Composite generic procedures
+<xref linkend='XtManageChildren' xrefstyle='select: title'/>
+and
+<xref linkend='XtUnmanageChildren' xrefstyle='select: title'/>
+perform error checking and screening out of certain children.
+Then they call the change_managed procedure
+implemented for the widget's Composite class.
+If the widget's parent has not yet been realized,
+the call to the change_managed procedure is delayed until realization time.
+</para>
+
+<para>
+Old-style calls can be implemented in the X Toolkit by defining
+one-line procedures or macros that invoke a generic routine.  For example,
+you could define the macro
+<function>XtLabelCreate</function>
+as:
+</para>
+
+<literallayout>
+#define XtLabelCreate(name, parent, args, num_args) \
+   ((LabelWidget) XtCreateWidget(name, labelWidgetClass, parent, args, num_args))
+</literallayout>
+
+<para>
+Pop-up shells in some of the prototypes automatically performed an
+<xref linkend='XtManageChild' xrefstyle='select: title'/>
+on their child within their insert_child procedure.
+Creators of pop-up children need to call
+<xref linkend='XtManageChild' xrefstyle='select: title'/>
+themselves.
+</para>
+
+<para>
+<xref linkend='XtAppInitialize' xrefstyle='select: title'/>
+and
+<xref linkend='XtVaAppInitialize' xrefstyle='select: title'/>
+have been replaced by
+<xref linkend='XtOpenApplication' xrefstyle='select: title'/>
+and
+<xref linkend='XtVaOpenApplication' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To initialize the Intrinsics internals, create an application context,
+open and initialize a display, and create the initial application shell
+instance, an application may use
+<xref linkend='XtAppInitialize' xrefstyle='select: title'/>
+or
+<xref linkend='XtVaAppInitialize' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppInitialize'>
+<funcprototype>
+<funcdef>Widget <function>XtAppInitialize</function></funcdef>
+   <paramdef>XtAppContext *<parameter>app_context_return</parameter></paramdef>
+   <paramdef>String <parameter>application_class</parameter></paramdef>
+   <paramdef>XrmOptionDescList <parameter>options</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
+   <paramdef>int *<parameter>argc_in_out</parameter></paramdef>
+   <paramdef>String *<parameter>argv_in_out</parameter></paramdef>
+   <paramdef>String *<parameter>fallback_resources</parameter></paramdef>
+   <paramdef>ArgList <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the application context, if non-NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>application_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the class name of the application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the command line options table.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>options</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argc_in_out</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the number of command line arguments.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argv_in_out</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the command line arguments.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>fallback_resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies resource values to be used if the application class resource
+file cannot be opened or read, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list to override any
+other resource specifications for the created shell widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAppInitialize' xrefstyle='select: title'/>
+function calls
+<xref linkend='XtToolkitInitialize' xrefstyle='select: title'/>
+followed by
+<xref linkend='XtCreateApplicationContext' xrefstyle='select: title'/>,
+then calls
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>
+with <emphasis remap='I'>display_string</emphasis> NULL and
+<emphasis remap='I'>application_name</emphasis> NULL, and finally calls
+<xref linkend='XtAppCreateShell' xrefstyle='select: title'/>
+with <emphasis remap='I'>application_name</emphasis> NULL, <emphasis remap='I'>widget_class</emphasis>
+<function>application\%Shell\%Widget\%Class</function>,
+and the specified <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis>
+and returns the created shell.  The modified <emphasis remap='I'>argc</emphasis> and <emphasis remap='I'>argv</emphasis> returned by
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+are returned in <emphasis remap='I'>argc_in_out</emphasis> and <emphasis remap='I'>argv_in_out</emphasis>.  If
+<emphasis remap='I'>app_context_return</emphasis> is not NULL, the created application context is
+also returned.  If the display specified by the command line cannot be
+opened, an error message is issued and
+<xref linkend='XtAppInitialize' xrefstyle='select: title'/>
+terminates the application.  If <emphasis remap='I'>fallback_resources</emphasis> is non-NULL,
+<xref linkend='XtAppSetFallbackResources' xrefstyle='select: title'/>
+is called with the value prior to calling
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtVaAppInitialize'>
+<funcprototype>
+<funcdef>Widget <function>XtVaAppInitialize</function></funcdef>
+   <paramdef>XtAppContext *<parameter>app_context_return</parameter></paramdef>
+   <paramdef>String <parameter>application_class</parameter></paramdef>
+   <paramdef>XrmOptionDescList <parameter>options</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
+   <paramdef>int *<parameter>argc_in_out</parameter></paramdef>
+   <paramdef>String *<parameter>argv_in_out</parameter></paramdef>
+   <paramdef>String *<parameter>fallback_resources</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the application context, if non-NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>application_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the class name of the application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the command line options table.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>options</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argc_in_out</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the number of command line arguments.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argv_in_out</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the command line arguments array.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>fallback_resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies resource values to be used if the application class
+resource file cannot be opened, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      ...
+    </term>
+    <listitem>
+      <para>
+Specifies the variable argument list to override any other
+resource specifications for the created shell.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtVaAppInitialize' xrefstyle='select: title'/>
+procedure is identical in function to
+<xref linkend='XtAppInitialize' xrefstyle='select: title'/>
+with the <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis> parameters replaced by a varargs list,
+as described
+in Section 2.5.1.
+</para>
+
+<para>
+As a convenience to people converting from earlier versions of the toolkit
+without application contexts, the following routines exist:
+<xref linkend='XtInitialize' xrefstyle='select: title'/>,
+<xref linkend='XtMainLoop' xrefstyle='select: title'/>,
+<xref linkend='XtNextEvent' xrefstyle='select: title'/>,
+<xref linkend='XtProcessEvent' xrefstyle='select: title'/>,
+<xref linkend='XtPeekEvent' xrefstyle='select: title'/>,
+<xref linkend='XtPending' xrefstyle='select: title'/>,
+<xref linkend='XtAddInput' xrefstyle='select: title'/>,
+<xref linkend='XtAddTimeOut' xrefstyle='select: title'/>,
+<xref linkend='XtAddWorkProc' xrefstyle='select: title'/>,
+<xref linkend='XtCreateApplicationShell' xrefstyle='select: title'/>,
+<xref linkend='XtAddActions' xrefstyle='select: title'/>,
+<xref linkend='XtSetSelectionTimeout' xrefstyle='select: title'/>,
+and
+<xref linkend='XtGetSelectionTimeout' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtInitialize'>
+<funcprototype>
+<funcdef>Widget <function>XtInitialize</function></funcdef>
+   <paramdef>String <parameter>shell_name</parameter></paramdef>
+   <paramdef>String <parameter>application_class</parameter></paramdef>
+   <paramdef>XrmOptionDescRec <parameter>options</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
+   <paramdef>int *<parameter>argc</parameter></paramdef>
+   <paramdef>String <parameter>argv</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>shell_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+This parameter is ignored; therefore, you can specify NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>application_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the class name of this application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies how to parse the command line for any application-specific resources.
+The <emphasis remap='I'>options</emphasis> argument is passed as a parameter to
+<function>XrmParseCommand</function>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the options list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the number of command line parameters.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argv</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the command line parameters.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+calls
+<xref linkend='XtToolkitInitialize' xrefstyle='select: title'/>
+to initialize the toolkit internals,
+creates a default application context for use by the other convenience
+routines, calls
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>
+with <emphasis remap='I'>display_string</emphasis> NULL and <emphasis remap='I'>application_name</emphasis> NULL, and
+finally calls
+<xref linkend='XtAppCreateShell' xrefstyle='select: title'/>
+with <emphasis remap='I'>application_name</emphasis> NULL and
+returns the created shell.
+The semantics of calling
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+more than once are undefined.
+This routine has been replaced by
+<xref linkend='XtOpenApplication' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtMainLoop'>
+<funcprototype>
+<funcdef>void <function>XtMainLoop</function></funcdef>
+   <paramdef><parameter>void</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<para>
+<xref linkend='XtMainLoop' xrefstyle='select: title'/>
+first reads the next alternate input, timer, or X event by calling
+<xref linkend='XtNextEvent' xrefstyle='select: title'/>.
+Then it dispatches this to the appropriate registered procedure by calling
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>.
+This routine has been replaced by
+<xref linkend='XtAppMainLoop' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtNextEvent'>
+<funcprototype>
+<funcdef>void <function>XtNextEvent</function></funcdef>
+   <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the event information to the specified event structure.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If no input is on the X input queue for the default application context,
+<xref linkend='XtNextEvent' xrefstyle='select: title'/>
+flushes the X output buffer
+and waits for an event while looking at the alternate input sources
+and timeout values and calling any callback procedures triggered by them.
+This routine has been replaced by
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>.
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+must be called before using this routine.
+</para>
+
+<funcsynopsis id='XtProcessEvent'>
+<funcprototype>
+<funcdef>void <function>XtProcessEvent</function></funcdef>
+   <paramdef>XtInputMask <parameter>mask</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the type of input to process.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtProcessEvent' xrefstyle='select: title'/>
+processes one X event, timeout, or alternate input source
+(depending on the value of <emphasis remap='I'>mask</emphasis>), blocking if necessary.
+It has been replaced by
+<xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>.
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+must be called before using this function.
+</para>
+
+<funcsynopsis id='XtPeekEvent'>
+<funcprototype>
+<funcdef>Boolean <function>XtPeekEvent</function></funcdef>
+   <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the event information to the specified event structure.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If there is an event in the queue for the default application context,
+<xref linkend='XtPeekEvent' xrefstyle='select: title'/>
+fills in the event and returns a nonzero value.
+If no X input is on the queue,
+<xref linkend='XtPeekEvent' xrefstyle='select: title'/>
+flushes the output buffer and blocks until input is available, possibly
+calling some timeout callbacks in the process.
+If the input is an event,
+<xref linkend='XtPeekEvent' xrefstyle='select: title'/>
+fills in the event and returns a nonzero value.
+Otherwise, the input is for an alternate input source, and
+<xref linkend='XtPeekEvent' xrefstyle='select: title'/>
+returns zero.
+This routine has been replaced by
+<xref linkend='XtAppPeekEvent' xrefstyle='select: title'/>.
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+must be called before using this routine.
+</para>
+
+<funcsynopsis id='XtPending'>
+<funcprototype>
+<funcdef>Boolean <function>XtPending</function></funcdef>
+  <paramdef><parameter></parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<para>
+<xref linkend='XtPending' xrefstyle='select: title'/>
+returns a nonzero value if there are
+events pending from the X server or alternate input sources in the default
+application context.
+If there are no events pending,
+it flushes the output buffer and returns a zero value.
+It has been replaced by
+<xref linkend='XtAppPending' xrefstyle='select: title'/>.
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+must be called before using this routine.
+</para>
+
+<funcsynopsis id='XtAddInput'>
+<funcprototype>
+<funcdef>XtInputId <function>XtAddInput</function></funcdef>
+   <paramdef>int <parameter>source</parameter></paramdef>
+   <paramdef>XtPointer <parameter>condition</parameter></paramdef>
+   <paramdef>XtInputCallbackProc <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>source</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the source file descriptor on a POSIX-based system
+or other operating-system-dependent device specification.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>condition</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the mask that indicates either a read, write, or exception condition
+or some operating-system-dependent condition.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure called when input is available.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the parameter to be passed to <emphasis remap='I'>proc</emphasis> when input is available.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAddInput' xrefstyle='select: title'/>
+function registers in the default application context a new
+source of events,
+which is usually file input but can also be file output.
+(The word <emphasis remap='I'>file</emphasis> should be loosely interpreted to mean any sink
+or source of data.)
+<xref linkend='XtAddInput' xrefstyle='select: title'/>
+also specifies the conditions under which the source can generate events.
+When input is pending on this source in the default application context,
+the callback procedure is called.
+This routine has been replaced by
+<xref linkend='XtAppAddInput' xrefstyle='select: title'/>.
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+must be called before using this routine.
+</para>
+
+<funcsynopsis id='XtAddTimeOut'>
+<funcprototype>
+<funcdef>XtIntervalId <function>XtAddTimeOut</function></funcdef>
+      <paramdef>unsigned long <parameter>interval</parameter></paramdef>
+   <paramdef>XtTimerCallbackProc <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>interval</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the time interval in milliseconds.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called when time expires.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the parameter to be passed to <emphasis remap='I'>proc</emphasis> when it is called.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAddTimeOut' xrefstyle='select: title'/>
+function creates a timeout in the default application context
+and returns an identifier for it.
+The timeout value is set to <emphasis remap='I'>interval</emphasis>.
+The callback procedure will be called after
+the time interval elapses, after which the timeout is removed.
+This routine has been replaced by
+<xref linkend='XtAppAddTimeOut' xrefstyle='select: title'/>.
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+must be called before using this routine.
+</para>
+
+<funcsynopsis id='XtAddWorkProc'>
+<funcprototype>
+<funcdef>XtWorkProcId <function>XtAddWorkProc</function></funcdef>
+   <paramdef>XtWorkProc <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Procedure to call to do the work.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Client data to pass to <emphasis remap='I'>proc</emphasis> when it is called.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This routine registers a work procedure in the default application context. It has
+been replaced by
+<xref linkend='XtAppAddWorkProc' xrefstyle='select: title'/>.
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+must be called before using this routine.
+</para>
+
+<funcsynopsis id='XtCreateApplicationShell'>
+<funcprototype>
+<funcdef>Widget <function>XtCreateApplicationShell</function></funcdef>
+   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
+   <paramdef>ArgList <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+This parameter is ignored; therefore, you can specify NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget class pointer for the created application shell widget.
+This will usually be
+<function>topLevelShellWidgetClass</function>
+or a subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list to override  any other resource specifications.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>args</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The procedure
+<xref linkend='XtCreateApplicationShell' xrefstyle='select: title'/>
+calls
+<xref linkend='XtAppCreateShell' xrefstyle='select: title'/>
+with <emphasis remap='I'>application_name</emphasis> NULL, the application class passed to
+<xref linkend='XtInitialize' xrefstyle='select: title'/>,
+and the default application context created by
+<xref linkend='XtInitialize' xrefstyle='select: title'/>.
+This routine has been replaced by
+<xref linkend='XtAppCreateShell' xrefstyle='select: title'/>.
+</para>
+
+<para>
+An old-format resource type converter procedure pointer is of type
+<xref linkend='XtConverter' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtConverter'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtConverter)</function></funcdef>
+
+   <paramdef>XrmValue *<parameter>args</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_args</parameter></paramdef>
+   <paramdef>XrmValue *<parameter>from</parameter></paramdef>
+   <paramdef>XrmValue *<parameter>to</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a list of additional
+<function>XrmValue</function>
+arguments to the converter if additional context is needed
+to perform the conversion, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>args</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the value to convert.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the descriptor to use to return the converted value.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+Type converters should perform the following actions:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Check to see that the number of arguments passed is correct.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Attempt the type conversion.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If successful, return the size and pointer to the data in the <emphasis remap='I'>to</emphasis> argument;
+otherwise, call
+<xref linkend='XtWarningMsg' xrefstyle='select: title'/>
+and return without modifying the <emphasis remap='I'>to</emphasis> argument.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+Most type converters just take the data described by the specified <emphasis remap='I'>from</emphasis>
+argument and return data by writing into the specified <emphasis remap='I'>to</emphasis> argument.
+A few need other information, which is available in the specified
+argument list.
+A type converter can invoke another type converter,
+which allows differing sources that may convert into a common intermediate
+result to make maximum use of the type converter cache.
+</para>
+
+<para>
+Note that the address returned in <emphasis remap='I'>to-&gt;addr</emphasis> cannot be that of a local variable of
+the converter because this is not valid after the converter returns.
+It should be a pointer to a static variable.
+</para>
+
+<para>
+The procedure type
+<xref linkend='XtConverter' xrefstyle='select: title'/>
+has been replaced by
+<xref linkend='XtTypeConverter' xrefstyle='select: title'/>.
+</para>
+
+<para>
+The
+<xref linkend='XtStringConversionWarning' xrefstyle='select: title'/>
+function is a convenience routine for old-format resource converters
+that convert from strings.
+</para>
+
+<funcsynopsis id='XtStringConversionWarning'>
+<funcprototype>
+<funcdef>void <function>XtStringConversionWarning</function></funcdef>
+   <paramdef>String <parameter>src</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>src</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the string that could not be converted.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>dst_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the type to which the string could not be converted.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtStringConversionWarning' xrefstyle='select: title'/>
+function issues a warning message with name "conversionError",
+type "string", class "XtToolkitError, and the default message string
+"Cannot convert "<emphasis remap='I'>src</emphasis>" to type <emphasis remap='I'>dst_type</emphasis>".  This routine
+has been superseded by
+<xref linkend='XtDisplayStringConversionWarning' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To register an old-format converter, use
+<xref linkend='XtAddConverter' xrefstyle='select: title'/>
+or
+<xref linkend='XtAppAddConverter' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAddConverter'>
+<funcprototype>
+<funcdef>void <function>XtAddConverter</function></funcdef>
+   <paramdef>String <parameter>from_type</parameter></paramdef>
+   <paramdef>String <parameter>to_type</parameter></paramdef>
+   <paramdef>XtConverter <parameter>converter</parameter></paramdef>
+   <paramdef>XtConvertArgList <parameter>convert_args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the source type.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the destination type.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>converter</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the type converter procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>convert_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies how to compute the additional arguments to the converter, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>convert_args</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtAddConverter' xrefstyle='select: title'/>
+is equivalent in function to
+<xref linkend='XtSetTypeConverter' xrefstyle='select: title'/>
+with <emphasis remap='I'>cache_type</emphasis> equal to
+<function>XtCacheAll</function>
+for old-format type converters.  It has been superseded by
+<xref linkend='XtSetTypeConverter' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppAddConverter'>
+<funcprototype>
+<funcdef>void <function>XtAppAddConverter</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>String <parameter>from_type</parameter></paramdef>
+   <paramdef>String <parameter>to_type</parameter></paramdef>
+   <paramdef>XtConverter <parameter>converter</parameter></paramdef>
+   <paramdef>XtConvertArgList <parameter>convert_args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the source type.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the destination type.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>converter</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the type converter procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>convert_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies how to compute the additional arguments to the converter, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>convert_args</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtAppAddConverter' xrefstyle='select: title'/>
+is equivalent in function to
+<xref linkend='XtAppSetTypeConverter' xrefstyle='select: title'/>
+with <emphasis remap='I'>cache_type</emphasis> equal to
+<function>XtCacheAll</function>
+for old-format type converters.  It has been superseded by
+<xref linkend='XtAppSetTypeConverter' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To invoke resource conversions, a client may use
+<xref linkend='XtConvert' xrefstyle='select: title'/>
+or, for old-format converters only,
+<xref linkend='XtDirectConvert' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtConvert'>
+<funcprototype>
+<funcdef>void <function>XtConvert</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>String <parameter>from_type</parameter></paramdef>
+   <paramdef>XrmValuePtr <parameter>from</parameter></paramdef>
+   <paramdef>String <parameter>to_type</parameter></paramdef>
+   <paramdef>XrmValuePtr <parameter>to_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget to use for additional arguments, if any are
+needed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the source type.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the value to be converted.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the destination type.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the converted value.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<funcsynopsis id='XtDirectConvert'>
+<funcprototype>
+<funcdef>void <function>XtDirectConvert</function></funcdef>
+   <paramdef>XtConverter <parameter>converter</parameter></paramdef>
+   <paramdef>XrmValuePtr <parameter>args</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+   <paramdef>XrmValuePtr <parameter>from</parameter></paramdef>
+   <paramdef>XrmValuePtr <parameter>to_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>converter</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the conversion procedure to be called.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list that contains the additional arguments
+needed to perform the conversion (often NULL).
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>args</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>from</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the value to be converted.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>to_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the converted value.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtConvert' xrefstyle='select: title'/>
+function looks up the type converter registered to convert <emphasis remap='I'>from_type</emphasis>
+to <emphasis remap='I'>to_type</emphasis>, computes any additional arguments needed, and then calls
+<xref linkend='XtDirectConvert' xrefstyle='select: title'/>
+or
+<xref linkend='XtCallConverter' xrefstyle='select: title'/>.
+The
+<xref linkend='XtDirectConvert' xrefstyle='select: title'/>
+function looks in the converter cache to see if this conversion procedure
+has been called with the specified arguments.
+If so, it returns a descriptor for information stored in the cache;
+otherwise, it calls the converter and enters the result in the cache.
+</para>
+
+<para>
+Before calling the specified converter,
+<xref linkend='XtDirectConvert' xrefstyle='select: title'/>
+sets the return value size to zero and the return value address to NULL.
+To determine if the conversion was successful,
+the client should check <emphasis remap='I'>to_return.addr</emphasis> for non-NULL.
+The data returned by
+<xref linkend='XtConvert' xrefstyle='select: title'/>
+must be copied immediately by the caller,
+as it may point to static data in the type converter.
+</para>
+
+<para>
+<xref linkend='XtConvert' xrefstyle='select: title'/>
+has been replaced by
+<xref linkend='XtConvertAndStore' xrefstyle='select: title'/>,
+and
+<xref linkend='XtDirectConvert' xrefstyle='select: title'/>
+has been superseded by
+<xref linkend='XtCallConverter' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To deallocate a shared GC when it is no longer needed, use
+<xref linkend='XtDestroyGC' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtDestroyGC'>
+<funcprototype>
+<funcdef>void <function>XtDestroyGC</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>GC <parameter>gc</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies any object on the display for which the shared GC was
+created.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>gc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the shared GC to be deallocated.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+References to sharable GCs are counted and a free request is generated to the
+server when the last user of a given GC destroys it.
+Note that some earlier versions of
+<xref linkend='XtDestroyGC' xrefstyle='select: title'/>
+had only a <emphasis remap='I'>gc</emphasis> argument.
+Therefore, this function is not very portable,
+and you are encouraged to use
+<xref linkend='XtReleaseGC' xrefstyle='select: title'/>
+instead.
+</para>
+
+<para>
+To declare an action table in the default application context
+and register it with the translation manager, use
+<xref linkend='XtAddActions' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAddActions'>
+<funcprototype>
+<funcdef>void <function>XtAddActions</function></funcdef>
+   <paramdef>XtActionList <parameter>actions</parameter></paramdef>
+   <paramdef>Cardinal <parameter>num_actions</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>actions</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the action table to register.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_actions</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>actions</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If more than one action is registered with the same name,
+the most recently registered action is used.
+If duplicate actions exist in an action table,
+the first is used.
+The Intrinsics register an action table for
+<xref linkend='XtMenuPopup' xrefstyle='select: title'/>
+and
+<xref linkend='XtMenuPopdown' xrefstyle='select: title'/>
+as part of X Toolkit initialization.
+This routine has been replaced by
+<xref linkend='XtAppAddActions' xrefstyle='select: title'/>.
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+must be called before using this routine.
+</para>
+
+<para>
+To set the Intrinsics selection timeout in the default application context, use
+<xref linkend='XtSetSelectionTimeout' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetSelectionTimeout'>
+<funcprototype>
+<funcdef>void <function>XtSetSelectionTimeout</function></funcdef>
+      <paramdef>unsigned long <parameter>timeout</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>timeout</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the selection timeout in milliseconds.
+This routine has been replaced by
+<xref linkend='XtAppSetSelectionTimeout' xrefstyle='select: title'/>.
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+must be called before using this routine.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<para>
+To get the current selection timeout value in the default application
+context, use
+<xref linkend='XtGetSelectionTimeout' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetSelectionTimeout'>
+<funcprototype>
+<funcdef>unsigned long <function>XtGetSelectionTimeout</function></funcdef>
+      <paramdef><parameter></parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<para>
+The selection timeout is the time within which the two communicating
+applications must respond to one another.
+If one of them does not respond within this interval,
+the Intrinsics abort the selection request.
+</para>
+
+<para>
+This routine has been replaced by
+<xref linkend='XtAppGetSelectionTimeout' xrefstyle='select: title'/>.
+<xref linkend='XtInitialize' xrefstyle='select: title'/>
+must be called before using this routine.
+</para>
+
+<para>
+To obtain the global error database (for example, to merge with
+an application- or widget-specific database), use
+<xref linkend='XtGetErrorDatabase' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetErrorDatabase'>
+<funcprototype>
+<funcdef>XrmDatabase <function>*XtGetErrorDatabase</function></funcdef>
+      <paramdef><parameter></parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+  
+<para>
+The
+<xref linkend='XtGetErrorDatabase' xrefstyle='select: title'/>
+function returns the address of the error database.
+The Intrinsics do a lazy binding of the error database and do not merge in the
+database file until the first call to
+<function>XtGetErrorDatbaseText</function>.
+This routine has been replaced by
+<xref linkend='XtAppGetErrorDatabase' xrefstyle='select: title'/>.
+</para>
+
+<para>
+An error message handler can obtain the error database text for an
+error or a warning by calling
+<xref linkend='XtGetErrorDatabaseText' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetErrorDatabaseText'>
+<funcprototype>
+<funcdef>void <function>XtGetErrorDatabaseText</function></funcdef>
+   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>String <parameter>default</parameter></paramdef>
+   <paramdef>String <parameter>buffer_return</parameter></paramdef>
+   <paramdef>int <parameter>nbytes</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify the name and type that are concatenated to form the resource name
+of the error message.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource class of the error message.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>default</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the default message to use if an error database entry is not found.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>buffer_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the buffer into which the error message is to be returned.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>nbytes</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the size of the buffer in bytes.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtGetErrorDatabaseText' xrefstyle='select: title'/>
+returns the appropriate message from the error database
+associated with the default application context
+or returns the specified default message if one is not found in the
+error database.
+To form the full resource name and class when querying the database,
+the <emphasis remap='I'>name</emphasis> and <emphasis remap='I'>type</emphasis> are concatenated with a single "."
+between them and the <emphasis remap='I'>class</emphasis> is concatenated with itself with a
+single "." if it does not already contain a ".".
+This routine has been superseded by
+<xref linkend='XtAppGetErrorDatabaseText' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To register a procedure to be called on fatal error conditions, use
+<xref linkend='XtSetErrorMsgHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetErrorMsgHandler'>
+<funcprototype>
+<funcdef>void <function>XtSetErrorMsgHandler</function></funcdef>
+   <paramdef>XtErrorMsgHandler <parameter>msg_handler</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>msg_handler</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the new fatal error procedure, which should not return.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The default error handler provided by the Intrinsics constructs a
+string from the error resource database and calls
+<xref linkend='XtError' xrefstyle='select: title'/>.
+Fatal error message handlers should not return.
+If one does,
+subsequent Intrinsics behavior is undefined.
+This routine has been superseded by
+<xref linkend='XtAppSetErrorMsgHandler' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To call the high-level error handler, use
+<xref linkend='XtErrorMsg' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtErrorMsg'>
+<funcprototype>
+<funcdef>void <function>XtErrorMsg</function></funcdef>
+   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>String <parameter>type</parameter></paramdef>
+   <paramdef>String <parameter>class</parameter></paramdef>
+   <paramdef>String <parameter>default</parameter></paramdef>
+   <paramdef>String *<parameter>params</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_params</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the general kind of error.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the detailed name of the error.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource class.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>default</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the default message to use if an error database entry is not found.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to a list of values to be stored in the message.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>params</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This routine has been superseded by
+<xref linkend='XtAppErrorMsg' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To register a procedure to be called on nonfatal error conditions, use
+<xref linkend='XtSetWarningMsgHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetWarningMsgHandler'>
+<funcprototype>
+<funcdef>void <function>XtSetWarningMsgHandler</function></funcdef>
+   <paramdef>XtErrorMsgHandler <parameter>msg_handler</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>msg_handler</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the new nonfatal error procedure, which usually returns.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The default warning handler provided by the Intrinsics constructs a string
+from the error resource database and calls
+<xref linkend='XtWarning' xrefstyle='select: title'/>.
+This routine has been superseded by
+<xref linkend='XtAppSetWarningMsgHandler' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To call the installed high-level warning handler, use
+<xref linkend='XtWarningMsg' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtWarningMsg'>
+<funcprototype>
+<funcdef>void <function>XtWarningMsg</function></funcdef>
+   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>String <parameter>type</parameter></paramdef>
+   <paramdef>String <parameter>class</parameter></paramdef>
+   <paramdef>String <parameter>default</parameter></paramdef>
+   <paramdef>String *<parameter>params</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>num_params</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the general kind of error.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the detailed name of the error.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource class.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>default</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the default message to use if an error database entry is not found.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to a list of values to be stored in the message.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_params</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>params</emphasis>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This routine has been superseded by
+<xref linkend='XtAppWarningMsg' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To register a procedure to be called on fatal error conditions, use
+<xref linkend='XtSetErrorHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetErrorHandler'>
+<funcprototype>
+<funcdef>void <function>XtSetErrorHandler</function></funcdef>
+   <paramdef>XtErrorHandler <parameter>handler</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>handler</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the new fatal error procedure, which should not return.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The default error handler provided by the Intrinsics is
+<function>_XtError</function>.
+On POSIX-based systems,
+it prints the message to standard error and terminates the application.
+Fatal error message handlers should not return.
+If one does,
+subsequent X Toolkit behavior is undefined.
+This routine has been superseded by
+<xref linkend='XtAppSetErrorHandler' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To call the installed fatal error procedure, use
+<xref linkend='XtError' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtError'>
+<funcprototype>
+<funcdef>void <function>XtError</function></funcdef>
+   <paramdef>String <parameter>message</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>message</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the message to be reported.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+Most programs should use
+<xref linkend='XtAppErrorMsg' xrefstyle='select: title'/>,
+not
+<xref linkend='XtError' xrefstyle='select: title'/>,
+to provide for customization and internationalization of error
+messages.  This routine has been superseded by
+<xref linkend='XtAppError' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To register a procedure to be called on nonfatal error conditions, use
+<xref linkend='XtSetWarningHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetWarningHandler'>
+<funcprototype>
+<funcdef>void <function>XtSetWarningHandler</function></funcdef>
+   <paramdef>XtErrorHandler <parameter>handler</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>handler</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the new nonfatal error procedure, which usually returns.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The default warning handler provided by the Intrinsics is
+<function>_XtWarning</function>.
+On POSIX-based systems,
+it prints the message to standard error and returns to the caller.
+This routine has been superseded by
+<xref linkend='XtAppSetWarningHandler' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To call the installed nonfatal error procedure, use
+<xref linkend='XtWarning' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtWarning'>
+<funcprototype>
+<funcdef>void <function>XtWarning</function></funcdef>
+   <paramdef>String <parameter>message</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>message</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the nonfatal error message to be reported.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+Most programs should use
+<xref linkend='XtAppWarningMsg' xrefstyle='select: title'/>,
+not
+<xref linkend='XtWarning' xrefstyle='select: title'/>,
+to provide for customization and internationalization of warning messages.
+This routine has been superseded by
+<xref linkend='XtAppWarning' xrefstyle='select: title'/>.
+</para>
+</appendix>

@@ -1,0 +1,323 @@
+<!-- <acknowledgements> -->
+<dedication>
+<title>Acknowledgments</title>
+
+<para>
+The design of the X11 Intrinsics was done primarily by Joel McCormack
+of Digital WSL. Major contributions to the design and implementation
+also were done by Charles Haynes, Mike Chow, and Paul Asente of Digital
+WSL. Additional contributors to the design and/or implementation were:
+</para>
+
+<!-- <sidebar> -->
+<para>
+<informaltable frame='none'>
+<?dbfo keep-together="always" ?>
+  <tgroup cols='2' rowsep='0' colsep='0'>
+  <colspec colwidth='1.0*' />
+  <colspec colwidth='1.0*' />
+  <tbody>
+  <row><?dbfo row-height="0.2cm"?>
+    <entry>Loretta Guarino-Reid (Digital WSL)</entry>
+    <entry>Rich Hyde (Digital WSL)</entry>
+  </row>
+  <row><?dbfo row-height="0.2cm"?>
+     <entry>Susan Angebranndt (Digital WSL)</entry>
+    <entry>Terry Weissman (Digital WSL)</entry>
+  </row>
+  <row><?dbfo row-height="0.2cm"?>
+     <entry>Mary Larson (Digital UEG)</entry>
+    <entry>Mark Manasse (Digital SRC)</entry>
+  </row>
+  <row><?dbfo row-height="0.5cm"?>
+     <entry>Jim Gettys (Digital SRC)</entry>
+    <entry>Leo Treggiari (Digital SDT)</entry>
+  </row>
+  <row><?dbfo row-height="0.5cm"?>
+     <entry>Ralph Swick (Project Athena and Digital ERP)</entry>
+    <entry>Mark Ackerman (Project Athena)</entry>
+  </row>
+  <row><?dbfo row-height="0.5cm"?>
+     <entry>Ron Newman (Project Athena)</entry>
+    <entry>Bob Scheifler (MIT LCS)</entry>
+  </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+</para>
+<!-- </sidebar> -->
+
+<para>
+The contributors to the X10 toolkit also deserve mention. Although the X11 Intrinsics present an
+entirely different programming style, they borrow heavily from the implicit and
+explicit concepts in the X10 toolkit.
+</para>
+
+<para>
+The design and implementation of the X10 Intrinsics were done by:
+</para>
+
+<!-- <sidebar> -->
+<para>
+<informaltable frame='none'>
+<?dbfo keep-together="always" ?>
+  <tgroup cols='1' rowsep='0' colsep='0'>
+  <colspec colwidth='1.0*' />
+  <tbody>
+  <row>
+    <entry>Terry Weissman (Digital WSL)</entry>
+  </row>
+  <row>
+    <entry>Smokey Wallace (Digital WSL)</entry>
+  </row>
+  <row>
+    <entry>Phil Karlton (Digital WSL)</entry>
+  </row>
+  <row>
+    <entry>Charles Haynes (Digital WSL)</entry>
+  </row>
+  <row>
+    <entry>Frank Hall (HP)</entry>
+  </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+</para>
+<!-- </sidebar> -->
+
+<para>
+The design and implementation of the X10 toolkit’s sample widgets were by
+the above, as well as by:
+</para>
+
+<!-- <sidebar> -->
+<para>
+<informaltable frame='none'>
+<?dbfo keep-together="always" ?>
+  <tgroup cols='1' rowsep='0' colsep='0'>
+  <colspec colwidth='1.0*' />
+  <tbody>
+  <row>
+    <entry>Ram Rao (Digital UEG)</entry>
+  </row>
+  <row>
+    <entry>Mary Larson (Digital UEG)</entry>
+  </row>
+  <row>
+    <entry>Mike Gancarz (Digital UEG)</entry>
+  </row>
+  <row>
+    <entry>Kathleen Langone (Digital UEG)</entry>
+  </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+</para>
+<!-- </sidebar> -->
+
+<para>
+These widgets provided a checklist of requirements that we had to address in the X11 Intrinsics.
+</para>
+<para>
+Thanks go to Al Mento of Digital’s UEG Documentation Group for formatting and generally
+improving this document and to John Ousterhout of Berkeley for extensively reviewing early
+drafts of it.
+</para>
+<para>
+Finally, a special thanks to Mike Chow, whose extensive performance analysis of the X10 toolkit
+provided the justification to redesign it entirely for X11.
+</para>
+
+<literallayout>
+Joel McCormack
+Western Software Laboratory
+Digital Equipment Corporation
+March 1988
+</literallayout>
+
+
+<para>
+The current design of the Intrinsics has benefited greatly from the
+input of several dedicated reviewers in the membership of the X
+Consortium. In addition to those already mentioned, the following
+individuals have dedicated significant time to suggesting improvements
+to the Intrinsics:
+</para>
+
+<!-- <sidebar> -->
+<para>
+<informaltable frame='none'>
+<?dbfo keep-together="always" ?>
+  <tgroup cols='2' rowsep='0' colsep='0'>
+  <colspec colwidth='1.0*' />
+  <colspec colwidth='1.0*' />
+  <tbody>
+  <row>
+    <entry>Steve Pitschke (Stellar)</entry>
+    <entry>C.Doug Blewett (AT&amp;T)</entry>
+  </row>
+  <row>
+    <entry>Bob Miller (HP)</entry>
+    <entry>David Schiferl (Tektronix)</entry>
+  </row>
+  <row>
+    <entry>Fred Taft (HP)</entry>
+    <entry>Michael Squires (Sequent)</entry>
+  </row>
+  <row>
+    <entry>Marcel Meth (AT&amp;T)</entry>
+    <entry>JimFulton (MIT)</entry>
+  </row>
+  <row>
+    <entry>Mike Collins (Digital)</entry>
+    <entry>Kerry Kimbrough (Texas Instruments)</entry>
+  </row>
+  <row>
+    <entry>Scott McGregor (Digital)</entry>
+    <entry>Phil Karlton (Digital)</entry>
+  </row>
+  <row>
+    <entry>Julian Payne (ESS)</entry>
+    <entry>Jacques Davy (Bull)</entry>
+  </row>
+  <row>
+    <entry>Gabriel Beged-Dov (HP)</entry>
+    <entry>GlennWidener (Tektronix)</entry>
+  </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+</para>
+<!-- </sidebar> -->
+
+<para>
+Thanks go to each of them for the countless hours spent reviewing drafts and code.
+</para>
+
+<literallayout>
+Ralph R. Swick
+External Research Group
+Digital Equipment Corporation
+MIT Project Athena
+June 1988
+</literallayout>
+
+
+<para>
+From Release 3 to Release 4, several new members joined the design team. We greatly appreciate
+the thoughtful comments, suggestions, lengthy discussions, and in some cases implementation
+code contributed by each of the following:
+</para>
+
+<!-- <sidebar> -->
+<para>
+<informaltable frame='none'>
+<?dbfo keep-together="always" ?>
+  <tgroup cols='2' rowsep='0' colsep='0'>
+  <colspec colwidth='1.0*' />
+  <colspec colwidth='1.0*' />
+  <tbody>
+  <row>
+    <entry>Don Alecci (AT&amp;T)</entry>
+    <entry>EllisCohen (OSF)</entry>
+  </row>
+  <row>
+    <entry>Donna Converse (MIT)</entry>
+    <entry>Clive Feather (IXI)</entry>
+  </row>
+  <row>
+    <entry>Nayeem Islam (Sun)</entry>
+    <entry>Dana Laursen (HP)</entry>
+  </row>
+  <row>
+    <entry>Keith Packard (MIT)</entry>
+    <entry>Chris Peterson (MIT)</entry>
+  </row>
+  <row>
+    <entry>Richard Probst (Sun)</entry>
+    <entry>Larry Cable (Sun)</entry>
+  </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+</para>
+<!-- </sidebar> -->
+
+<para>
+In Release 5, the effort to define the internationalization additions was headed by Bill McMahon
+of Hewlett Packard and Frank Rojas of IBM. This has been an educational process for many of
+us, and Bill and Frank’s tutelage has carried us through. Vania Joloboff of the OSF also contributed
+to the internationalization additions. The implementation efforts of Bill, Gabe Beged-Dov,
+and especially Donna Converse for this release are also gratefully acknowledged.
+</para>
+
+<literallayout>
+Ralph R. Swick
+December 1989
+and
+July 1991
+</literallayout>
+
+<para>
+The Release 6 Intrinsics is a result of the collaborative efforts of participants in the X Consortium’s
+intrinsics working group. A few individuals contributed substantial design proposals, participated
+in lengthy discussions, reviewed final specifications, and in most cases, were also
+responsible for sections of the implementation. They deserve recognition and thanks for their
+major contributions:
+</para>
+
+<!-- <sidebar> -->
+<para>
+<informaltable frame='none'>
+<?dbfo keep-together="always" ?>
+  <tgroup cols='2' rowsep='0' colsep='0'>
+  <colspec colwidth='1.0*' />
+  <colspec colwidth='1.0*' />
+  <tbody>
+  <row>
+    <entry>Paul Asente (Adobe)</entry>
+    <entry>Larry Cable (SunSoft)</entry>
+  </row>
+  <row>
+    <entry>Ellis Cohen (OSF)</entry>
+    <entry>Daniel Dardailler (OSF)</entry>
+  </row>
+  <row>
+    <entry>Vania Joloboff (OSF)</entry>
+    <entry>KalebKeithley (X Consortium)</entry>
+  </row>
+  <row>
+    <entry>Courtney Loomis (HP)</entry>
+    <entry>Douglas Rand (OSF)</entry>
+  </row>
+  <row>
+    <entry>Bob Scheifler (X Consortium)</entry>
+    <entry>Ajay Vohra (SunSoft)</entry>
+  </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+</para>
+<!-- </sidebar> -->
+
+<para>
+Many others analyzed designs, offered useful comments and suggestions, and participated in a
+significant subset of the process. The following people deserve thanks for their contributions:
+Andy Bovingdon, Sam Chang, Chris Craig, George Erwin-Grotsky, Keith Edwards, Clive
+Feather, Stephen Gildea, Dan Heller, Steve Humphrey, David Kaelbling, Jaime Lau, Rob Lembree,
+Stuart Marks, Beth Mynatt, Tom Paquin, Chris Peterson, Kamesh Ramakrishna, Tom
+Rodriguez, Jim VanGilder, Will Walker, and Mike Wexler.
+</para>
+
+<para>
+I am especially grateful to two of my colleagues: Ralph Swick for expert editorial guidance, and
+Kaleb Keithley for leadership in the implementation and the specification work.
+</para>
+
+<literallayout>
+Donna Converse
+X Consortium
+April 1994
+</literallayout>
+</dedication>
+<!-- </acknowledgements> -->

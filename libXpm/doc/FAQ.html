@@ -291,26 +291,26 @@ href="mailto:dan@bristol.com">dan@bristol.com</a>
 --- xpm-A4.PS   Thu Nov 21 09:27:28 1996
 ***************
 *** 647,668 ****
-        0 ne /edown exch def 
+        0 ne /edown exch def
         /yscale exch def
         /xscale exch def
 -       FMLevel1 {
 -               manualfeed {setmanualfeed} if
--               /FMdicttop countdictstack 1 add def 
--               /FMoptop count def 
--               setpapername 
--               manualfeed {true} {papersize} ifelse 
--               {manualpapersize} {false} ifelse 
--               {desperatepapersize} {false} ifelse 
+-               /FMdicttop countdictstack 1 add def
+-               /FMoptop count def
+-               setpapername
+-               manualfeed {true} {papersize} ifelse
+-               {manualpapersize} {false} ifelse
+-               {desperatepapersize} {false} ifelse
 -               { (Can't select requested paper size for Frame print job!) FMFAILURE } if
 -               count -1 FMoptop {pop pop} for
--               countdictstack -1 FMdicttop {pop end} for 
+-               countdictstack -1 FMdicttop {pop end} for
 -               }
 -               {{1 dict dup /PageSize [paperwidth paperheight]put setpagedevice}stopped
 -               { (Can't select requested paper size for Frame print job!) FMFAILURE } if
 -                {1 dict dup /ManualFeed manualfeed put setpagedevice } stopped pop }
--       ifelse 
-        
+-       ifelse
+
         FMPColor {
                 currentcolorscreen
 --- 647,652 ----

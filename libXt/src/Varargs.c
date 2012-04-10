@@ -234,6 +234,8 @@ TypedArgToArg(
     else {
 	if (to_val.size == sizeof(long))
 	    arg_return->value = (XtArgVal) *(long *)to_val.addr;
+	else if (to_val.size == sizeof(int))
+	    arg_return->value = (XtArgVal) *(int *)to_val.addr;
 	else if (to_val.size == sizeof(short))
 	    arg_return->value = (XtArgVal) *(short *)to_val.addr;
 	else if (to_val.size == sizeof(char))
@@ -500,7 +502,7 @@ _XtVaToTypedArgList(
 	    args[count].size = va_arg(var, int);
 	    ++count;
 	} else if (strcmp(attr, XtVaNestedList) == 0) {
-   	    count += NestedArgtoTypedArg(&args[count], 
+	    count += NestedArgtoTypedArg(&args[count],
 			va_arg(var, XtTypedArgList));
 	} else {
 	    args[count].name = attr;

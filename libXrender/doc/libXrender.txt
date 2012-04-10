@@ -273,7 +273,7 @@ Finds the PictFormat suitable for use with the specified visual.
 	#define PictStandardA1	    4
 	#define PictStandardNUM	    5
 
-As a convenience, this function locates PictFormats that coorespond to
+As a convenience, this function locates PictFormats that correspond to
 commonly used formats.
 
 	ARGB32		depth 32, bits 31-24 A, 23-16 R, 15-8 G, 7-0 B
@@ -282,7 +282,7 @@ commonly used formats.
 	A4		depth 4, bits 3-0 A
 	A1		depth 1, bits 0 A
 
-Any server supporting Render must have a PictFormat cooresponding to each of
+Any server supporting Render must have a PictFormat corresponding to each of
 these standard formats.
 
 3.4 Index type PictFormat color values
@@ -330,7 +330,7 @@ Free this structure with XFree.
 	#define CPPolyMode			    (1 << 10)
 	#define CPDither			    (1 << 11)
 	#define CPComponentAlpha		    (1 << 12)
-	#define CPLastBit			    11
+	#define CPLastBit			    12
 
 Creates a picture for drawable in the specified format.  Any values
 specified in 'attributes' and 'valuemask' are used in place of the default

@@ -3,31 +3,32 @@ libXt - X Toolkit Intrinsics library
 Documentation for this library can be found in the included man pages;
 the libXt spec from the specs directory of the source, also available at:
 
-	http://xorg.freedesktop.org/releases/X11R7.0/doc/PDF/intrinsics.pdf
+	http://www.x.org/releases/X11R7.6/doc/Xt/Xt.html
+	http://www.x.org/releases/X11R7.6/doc/Xt/Xt.pdf
 
 and the O'Reilly X Toolkit books, which they have made freely available online:
 
- - X Series Volume 4: X Toolkit Intrinsics Programming Manual, 
+ - X Series Volume 4: X Toolkit Intrinsics Programming Manual,
 	1st Edition (1990, covers X11R3)
 
 	http://www.archive.org/details/xtoolkitintrsin20400nyemiss
 
- - X Series Volume 4: X Toolkit Intrinsics Programming Manual, 
+ - X Series Volume 4: X Toolkit Intrinsics Programming Manual,
 	2nd Edition (1990, covers X11R4)
 
 	http://www.archive.org/details/xtoolkitintrinsi04nyemiss
 
- - X Series Volume 4: X Toolkit Intrinsics Programming Manual, 
+ - X Series Volume 4: X Toolkit Intrinsics Programming Manual,
 	Motif Edition (1990, covers X11R4/Motif 1.1)
 
 	http://www.archive.org/details/xtoolktintrmotif04nyemiss
 
- - X Series Volume 4: X Toolkit Intrinsics Programming Manual, 
+ - X Series Volume 4: X Toolkit Intrinsics Programming Manual,
 	3rd Edition (1993, covers X11R5)
 
 	http://www.archive.org/details/xtoolkitintrinsic04nyemiss
 
- - X Series Volume 5: X Toolkit Intrinsics Reference Manual 
+ - X Series Volume 5: X Toolkit Intrinsics Reference Manual
 	(1990, covers X11R4)
 
 	http://www.archive.org/details/xtoolkitintrinsi04nyemiss

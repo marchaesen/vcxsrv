@@ -4,7 +4,7 @@
 The public header file contains declarations that will be required by any
 application module that needs to refer to the widget; whether to create
 an instance of the class, to perform an
-<function>XtSetValues</function>
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
 operation, or to call a public routine implemented by the widget class.
 </para>
 <para>

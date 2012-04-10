@@ -1,5 +1,5 @@
 bdftopcf-1.0.3
-bigreqsproto-1.1.1
+bigreqsproto-1.1.2
 compositeproto-0.4.2
 damageproto-1.2.1
 encodings-1.0.4
@@ -43,36 +43,36 @@ font-util-1.3.0
 font-winitzki-cyrillic-1.0.3
 font-xfree86-type1-1.0.4
 fontconfig git version
-fontsproto-2.1.1
+fontsproto-2.1.2
 freetype-2.4.9
 glproto git version
 inputproto-2.2
-kbproto-1.0.5
+kbproto-1.0.6
 libX11 git version
 libXau git version
-libXaw-1.0.9
+libXaw-1.0.10
 libXdmcp git version
 libXext git version
 libXfont-1.4.5
 libXft git version
 libXinerama git version
 libXmu git version
-libXpm-3.5.9
-libXrender-0.9.6
-libXt-1.1.1
+libXpm-3.5.10
+libXrender-0.9.7
+libXt-1.1.3
 libfontenc git version
 libxcb git version
-libxkbfile-1.0.7
+libxkbfile-1.0.8
 mesa git version
 mkfontscale git version
 openssl-1.0.1
 pixman git version
 pthreads-w32 cvs version
 randrproto git version
-recordproto-1.14.1
+recordproto-1.14.2
 renderproto-0.11.1
 resourceproto-1.2.0
-scrnsaverproto-1.2.1
+scrnsaverproto-1.2.2
 terminus-font-4.30
 ttf-bitstream-vera-1.10
 windowswmproto-1.0.4
@@ -80,14 +80,14 @@ xbitmaps-1.1.1
 xcalc-1.0.4.1
 xcb-proto git version
 xclock-1.0.6
-xcmiscproto-1.2.1
+xcmiscproto-1.2.2
 xextproto git version
 xf86bigfontproto-1.2.0
-xhost-1.0.4
+xhost-1.0.5
 xineramaproto-1.2.1
 xkbcomp git version
 xkeyboard-config git version
-xproto-7.0.22
+xproto-7.0.23
 xserver git version
 xtrans git version
 xwininfo git version

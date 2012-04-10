@@ -113,14 +113,14 @@ typedef TMShortCard	Value;
 typedef void (*ModifierProc)(Value, LateBindingsPtr*, Boolean, Value*);
 
 typedef struct _ModifierRec {
-    char*      name;
+    const char *name;
     XrmQuark   signature;
     ModifierProc modifierParseProc;
     Value      value;
 } ModifierRec, *ModifierKeys;
 
 typedef struct _EventKey {
-    char    	*event;
+    const char  *event;
     XrmQuark	signature;
     EventType	eventType;
     ParseProc	parseDetail;
@@ -128,7 +128,7 @@ typedef struct _EventKey {
 }EventKey, *EventKeys;
 
 typedef struct {
-    char	*name;
+    const char	*name;
     XrmQuark	signature;
     Value	value;
 } NameValueRec, *NameValueTable;

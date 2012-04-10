@@ -42,7 +42,7 @@ at the right and bottom edges.  If a width and height is assigned
 to the Form that is too small for the layout, the children will
 be clipped by the right and bottom edges of the Form.
 </para>
-<sect2 id="form_resources">
+<sect2 id='Form::Resources'>
 <title>Resources</title>
 <para>
 <!-- .LP -->
@@ -243,7 +243,7 @@ retrieved from the argument list or from the resource database:
 <!-- .Xy -->
 </para>
 </sect2>
-<sect2 id="form_constraint_resources">
+<sect2 id='Form::Constraint_Resources'>
 <title>Constraint Resources</title>
 <para>
 <!-- .LP -->
@@ -372,7 +372,7 @@ resizable      If this resource is False then the parent
 </literallayout>
 <!-- .Bt -->
 </sect2>
-<sect2 id="form_layout_semantics">
+<sect2 id='Form::Layout_Semantics'>
 <title>Layout Semantics</title>
 <para>
 The Form widget uses two different sets of layout semantics.
@@ -380,16 +380,16 @@ One is used when initially laying out the children.  The
 other is used when the Form is resized.
 </para>
 <para>
-The first layout method uses the <function>fromVert</function> 
-and <function>fromHoriz</function> 
+The first layout method uses the <function>fromVert</function>
+and <function>fromHoriz</function>
 resources to place the children of the Form.  A single pass
 is made through the Form widget's children in the order that
 they were created.  Each child is then placed in the Form
 widget below or to the right of the widget specified by the
-<function>fromVert</function> and <function>fromHoriz</function> 
+<function>fromVert</function> and <function>fromHoriz</function>
 resources.  The distance the new
 child is placed from its left or upper neighbor is deter-
-mined by the <function>horizDistance</function> and 
+mined by the <function>horizDistance</function> and
 <function>vertDistance</function> resources.  This
 implies some things about how the order of creation affects
 the possible placement of the children.  The Form widget
@@ -401,14 +401,14 @@ The second layout method is used when the Form is resized.
 It does not matter what causes this resize, and it is possi-
 ble for a resize to happen before the widget becomes visible
 (due to constraints imposed by the parent of the Form).
-This layout method uses the <function>bottom</function>, 
-<function>top</function>, <function>left</function>, and 
+This layout method uses the <function>bottom</function>,
+<function>top</function>, <function>left</function>, and
 <function>right</function>
 resources.  These resources are used to determine what will
 happen to each edge of the child when the Form is resized.
-If a value of <function>XawChain</function> 
+If a value of <function>XawChain</function>
 &lt;<emphasis remap='I'>something</emphasis>&gt; is specified, the the edge
-of the child will remain a fixed distance from the 
+of the child will remain a fixed distance from the
 <emphasis remap='I'>chain</emphasis>
 edge of the Form.  For example if <function>XawChainLeft</function> is specified
 for the <function>right</function> resource of a child then the right edge of
@@ -468,7 +468,7 @@ children when the Form widget is resized.
   </tgroup>
 </informaltable>
 </para>
-<sect3 id="form_example">
+<sect3 id='Form::Example'>
 <title>Example</title>
 <para>
 <!-- .LP -->
@@ -480,7 +480,7 @@ Form, and never to resize.
 </para>
 </sect3>
 </sect2>
-<sect2 id="form_convenience_routines">
+<sect2 id='Form::Convenience_Routines'>
 <title>Convenience Routines</title>
 <para>
 <!-- .LP -->
@@ -488,7 +488,7 @@ To force or defer a re-layout of the Form, use
 <!-- .PN XawFormDoLayout . -->
 <!-- .IN "Form widget" "re-layout" -->
 <!-- .IN "XawFormDoLayout" "" "@DEF@" -->
-<funcsynopsis>
+<funcsynopsis id='XawFormDoLayout'>
 <funcprototype>
   <funcdef>void<function> XawFormDoLayout</function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>

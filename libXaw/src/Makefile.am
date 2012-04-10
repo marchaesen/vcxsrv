@@ -60,7 +60,6 @@ COMMON_CFLAGS = \
 
 COMMON_CPPFLAGS = \
 	-I${top_srcdir}/include \
-	-I${top_srcdir}/include/X11/Xaw \
 	-DPROJECT_ROOT=\"$(prefix)\"
 
 if BUILD_XAW6

@@ -1,0 +1,4989 @@
+<chapter id='Event_Management'>
+<title>Event Management</title>
+<para>
+While Xlib allows the reading and processing of events anywhere in an application,
+widgets in the X Toolkit neither directly read events
+nor grab the server or pointer.
+Widgets register procedures that are to be called
+when an event or class of events occurs in that widget.
+</para>
+
+<para>
+A typical application consists of startup code followed by an event loop
+that reads events and dispatches them by calling
+the procedures that widgets have registered.
+The default event loop provided by the Intrinsics is
+<xref linkend='XtAppMainLoop' xrefstyle='select: title'/>.
+</para>
+
+<para>
+The event manager is a collection of functions to perform the following tasks:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Add or remove event sources other than X server events (in particular,
+timer interrupts, file input, or POSIX signals).
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Query the status of event sources.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Add or remove procedures to be called when an event occurs for a particular
+widget.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Enable and
+disable the dispatching of user-initiated events (keyboard and pointer events)
+for a particular widget.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Constrain the dispatching of events to a cascade of pop-up widgets.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Register procedures to be called when specific events arrive.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Register procedures to be called when the Intrinsics will block.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Enable safe operation in a multi-threaded environment.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+Most widgets do not need to call any of the event handler functions explicitly.
+The normal interface to X events is through the higher-level
+translation manager,
+which maps sequences of X events, with modifiers, into procedure calls.
+Applications rarely use any of the event manager routines besides
+<xref linkend='XtAppMainLoop' xrefstyle='select: title'/>.
+</para>
+<sect1 id="Adding_and_Deleting_Additional_Event_Sources">
+<title>Adding and Deleting Additional Event Sources</title>
+<para>
+While most applications are driven only by X events,
+some applications need to incorporate other sources of input
+into the Intrinsics event-handling mechanism.
+The event manager provides routines to integrate notification of timer events
+and file data pending into this mechanism.
+</para>
+
+<para>
+The next section describes functions that provide input gathering from files.
+The application registers the files with the Intrinsics read routine.
+When input is pending on one of the files,
+the registered callback procedures are invoked.
+</para>
+<sect2 id="Adding_and_Removing_Input_Sources">
+<title>Adding and Removing Input Sources</title>
+<para>
+To register a new file as an input source for a given application context, use
+<xref linkend='XtAppAddInput' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppAddInput'>
+<funcprototype>
+<funcdef>XtInputId <function>XtAppAddInput</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>int <parameter>source</parameter></paramdef>
+   <paramdef>XtPointer <parameter>condition</parameter></paramdef>
+   <paramdef>XtInputCallbackProc <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context that identifies the application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>source</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the source file descriptor on a POSIX-based system
+or other operating-system-dependent device specification.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>condition</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the mask that indicates a read, write, or exception condition
+or some other operating-system-dependent condition.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called when the condition is found.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an argument passed to the specified procedure
+when it is called.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAppAddInput' xrefstyle='select: title'/>
+function registers with the Intrinsics read routine a new source of events,
+which is usually file input but can also be file output.
+Note that <emphasis remap='I'>file</emphasis> should be loosely interpreted to mean any sink
+or source of data.
+<xref linkend='XtAppAddInput' xrefstyle='select: title'/>
+also specifies the conditions under which the source can generate events.
+When an event is pending on this source,
+the callback procedure is called.
+</para>
+
+<para>
+The legal values for the <emphasis remap='I'>condition</emphasis> argument are operating-system-dependent.
+On a POSIX-based system,
+<emphasis remap='I'>source</emphasis> is a file number and the condition is some union of the following:
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis role='strong'>XtInputReadMask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies that <emphasis remap='I'>proc</emphasis> is to be called when <emphasis remap='I'>source</emphasis> has data to be read.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis role='strong'>XtInputWriteMask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies that <emphasis remap='I'>proc</emphasis> is to be called when <emphasis remap='I'>source</emphasis> is ready
+for writing.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis role='strong'>XtInputExceptMask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies that <emphasis remap='I'>proc</emphasis> is to be called when <emphasis remap='I'>source</emphasis> has
+exception data.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+</para>
+
+<para>
+Callback procedure pointers used to handle file events are of
+type
+<xref linkend='XtInputCallbackProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtInputCallbackProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtInputCallbackProc)</function></funcdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>int *<parameter>source</parameter></paramdef>
+   <paramdef>XtInputId *<parameter>id</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the client data argument that was registered for this procedure in
+<function>XtApp\%AddInput</function>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>source</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the source file descriptor generating the event.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the id returned from the corresponding
+<xref linkend='XtAppAddInput' xrefstyle='select: title'/>
+call.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+See <xref linkend='Using_the_Intrinsics_in_a_Multi_Threaded_Environment' />
+for information regarding the use of
+<xref linkend='XtAppAddInput' xrefstyle='select: title'/>
+in multiple threads.
+</para>
+
+<para>
+To discontinue a source of input, use
+<xref linkend='XtRemoveInput' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRemoveInput'>
+<funcprototype>
+<funcdef>void <function>XtRemoveInput</function></funcdef>
+   <paramdef>XtInputId <parameter>id</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the id returned from the corresponding
+<xref linkend='XtAppAddInput' xrefstyle='select: title'/>
+call.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtRemoveInput' xrefstyle='select: title'/>
+function causes the Intrinsics read routine to stop watching for events
+from the file source specified by <emphasis remap='I'>id</emphasis>.
+</para>
+
+<para>
+See <xref linkend='Using_the_Intrinsics_in_a_Multi_Threaded_Environment' />
+for information regarding the use of
+<xref linkend='XtRemoveInput' xrefstyle='select: title'/>
+in multiple threads.
+</para>
+</sect2>
+
+<sect2 id="Adding_and_Removing_Blocking_Notifications">
+<title>Adding and Removing Blocking Notifications</title>
+<para>
+Occasionally it is desirable for an application to receive notification
+when the Intrinsics event manager detects no pending input from file sources
+and no pending input from X server event sources and is about to block
+in an operating system call.
+</para>
+
+<para>
+To register a hook that is called immediately prior to event blocking, use
+<xref linkend='XtAppAddBlockHook' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppAddBlockHook'>
+<funcprototype>
+<funcdef>XtBlockHookId <function>XtAppAddBlockHook</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>XtBlockHookProc <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context that identifies the application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called before blocking.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an argument passed to the specified procedure when it is called.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAppAddBlockHook' xrefstyle='select: title'/>
+function registers the specified procedure and returns an identifier for it.
+The hook procedure <emphasis remap='I'>proc</emphasis> is called at any time in the future when
+the Intrinsics are about to block pending some input.
+</para>
+
+<para>
+The procedure pointers used to provide notification of event blocking
+are of type
+<xref linkend='XtBlockHookProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtBlockHookProc'>
+<funcprototype>
+<funcdef>void <function>*XtBlockHookProc</function></funcdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the client data argument that was registered for this procedure in
+<function>XtApp\%AddBlockHook</function>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+To discontinue the use of a procedure for blocking notification, use
+<xref linkend='XtRemoveBlockHook' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRemoveBlockHook'>
+<funcprototype>
+<funcdef>void <function>XtRemoveBlockHook</function></funcdef>
+   <paramdef>XtBlockHookId <parameter>id</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the identifier returned from the corresponding call to
+<xref linkend='XtAppAddBlockHook' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtRemoveBlockHook' xrefstyle='select: title'/>
+function removes the specified procedure from the list of procedures
+that are called by the Intrinsics read routine before blocking on event sources.
+</para>
+</sect2>
+
+<sect2 id="Adding_and_Removing_Timeouts">
+<title>Adding and Removing Timeouts</title>
+<para>
+The timeout facility notifies the application or the widget
+through a callback procedure that a specified time interval has elapsed.
+Timeout values are uniquely identified by an interval id.
+</para>
+
+<para>
+To register a timeout callback, use
+<xref linkend='XtAppAddTimeOut' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppAddTimeOut'>
+<funcprototype>
+<funcdef>XtIntervalId <function>XtAppAddTimeOut</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>unsigned long <parameter>interval</parameter></paramdef>
+   <paramdef>XtTimerCallbackProc <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context for which the timer is to be set.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>interval</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the time interval in milliseconds.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called when the time expires.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an argument passed to the specified procedure
+when it is called.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAppAddTimeOut' xrefstyle='select: title'/>
+function creates a timeout and returns an identifier for it.
+The timeout value is set to <emphasis remap='I'>interval</emphasis>.
+The callback procedure <emphasis remap='I'>proc</emphasis> is called when
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>
+or
+<xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>
+is next called after the time interval elapses,
+and then the timeout is removed.
+</para>
+
+<para>
+Callback procedure pointers used with timeouts are of
+type
+<xref linkend='XtTimerCallbackProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtTimerCallbackProc'>
+<funcprototype>
+<funcdef>void <function>*XtTimerCallbackProc</function></funcdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtIntervalId *<parameter>timer</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the client data argument that was registered for this procedure in
+<function>XtApp\%AddTimeOut</function>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>timer</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the id returned from the corresponding
+<xref linkend='XtAppAddTimeOut' xrefstyle='select: title'/>
+call.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+See <xref linkend='Using_the_Intrinsics_in_a_Multi_Threaded_Environment' />
+for information regarding the use of
+<xref linkend='XtAppAddTimeOut' xrefstyle='select: title'/>
+in multiple threads.
+</para>
+
+<para>
+To clear a timeout value, use
+<xref linkend='XtRemoveTimeOut' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRemoveTimeOut'>
+<funcprototype>
+<funcdef>void <function>XtRemoveTimeOut</function></funcdef>
+   <paramdef>XtIntervalId <parameter>timer</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>timer</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the id for the timeout request to be cleared.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtRemoveTimeOut' xrefstyle='select: title'/>
+function removes the pending timeout.
+Note that timeouts are automatically removed once they trigger.
+</para>
+
+<para>
+Please refer to Section 7.12 for information regarding the use of
+<xref linkend='XtRemoveTimeOut' xrefstyle='select: title'/>
+in multiple threads.
+</para>
+</sect2>
+
+<sect2 id="Adding_and_Removing_Signal_Callbacks">
+<title>Adding and Removing Signal Callbacks</title>
+<para>
+The signal facility notifies the application or the widget through a
+callback procedure that a signal or other external asynchronous event
+has occurred.  The registered callback procedures are uniquely identified
+by a signal id.
+</para>
+
+<para>
+Prior to establishing a signal handler, the application or widget should
+call
+<xref linkend='XtAppAddSignal' xrefstyle='select: title'/>
+and store the resulting identifier in a place accessible to the signal
+handler.  When a signal arrives, the signal handler should call
+<xref linkend='XtNoticeSignal' xrefstyle='select: title'/>
+to notify the Intrinsics that a signal has occured.  To register a signal
+callback use
+<xref linkend='XtAppAddSignal' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppAddSignal'>
+<funcprototype>
+<funcdef>XtSignalId <function>XtAppAddSignal</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>XtSignalCallbackProc <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context that identifies the application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called when the signal is noticed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies an argument passed to the specified procedure when it is called.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The callback procedure pointers used to handle signal events are of type
+<xref linkend='XtSignalCallbackProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSignalCallbackProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtSignalCallbackProc)</function></funcdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtSignalId *<parameter>id</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the client data argument that was registered for this procedure in
+<xref linkend='XtAppAddSignal' xrefstyle='select: title'/>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the id returned from the corresponding
+<xref linkend='XtAppAddSignal' xrefstyle='select: title'/>
+call.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+To notify the Intrinsics that a signal has occured, use
+<xref linkend='XtNoticeSignal' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtNoticeSignal'>
+<funcprototype>
+<funcdef>void <function>XtNoticeSignal</function></funcdef>
+   <paramdef>XtSignalId <parameter>id</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the id returned from the corresponding
+<xref linkend='XtAppAddSignal' xrefstyle='select: title'/>
+call.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+On a POSIX-based system,
+<xref linkend='XtNoticeSignal' xrefstyle='select: title'/>
+is the only Intrinsics function that can safely be called from a signal handler.
+If
+<xref linkend='XtNoticeSignal' xrefstyle='select: title'/>
+is invoked multiple times before the Intrinsics are able to invoke the
+registered callback, the callback is only called once.
+Logically, the Intrinsics maintain ``pending'' flag for each registered callback.
+This flag is initially
+<function>False</function>
+and is set to
+<function>True</function>
+by
+<xref linkend='XtNoticeSignal' xrefstyle='select: title'/>.
+When
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>
+or
+<xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>
+(with a mask including
+<function>XtIMSignal</function>)
+is called, all registered callbacks with ``pending''
+<function>True</function>
+are invoked and the flags are reset to
+<function>False</function>.
+</para>
+
+<para>
+If the signal handler wants to track how many times the signal has been
+raised, it can keep its own private counter.  Typically the handler would
+not do any other work; the callback does the actual processing for the
+signal. The Intrinsics never block signals from being raised, so if a given
+signal can be raised multiple times before the Intrinsics can invoke the
+callback for that signal, the callback must be designed to deal with
+this.  In another case, a signal might be raised just after the Intrinsics
+sets the pending flag to
+<function>False</function>
+but before the callback can get control, in which case the pending flag
+will still be
+<function>True</function>
+after the callback returns, and the Intrinsics will invoke the callback
+again, even though all of the signal raises have been handled.  The
+callback must also be prepared to handle this case.
+</para>
+
+<para>
+To remove a registered signal callback, call
+<xref linkend='XtRemoveSignal' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRemoveSignal'>
+<funcprototype>
+<funcdef>void <function>XtRemoveSignal</function></funcdef>
+   <paramdef>XtSignalId <parameter>id</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the id returned by the corresponding call to
+<xref linkend='XtAppAddSignal' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The client should typically disable the source of the signal before calling
+<xref linkend='XtRemoveSignal' xrefstyle='select: title'/>.
+If the signal could have been raised again before the source was disabled
+and the client wants to process it, then after disabling the source but
+before calling
+<xref linkend='XtRemoveSignal' xrefstyle='select: title'/>
+the client can test for signals with
+<xref linkend='XtAppPending' xrefstyle='select: title'/>
+and process them by calling
+<xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>
+with the mask
+<function>XtIMSignal</function>.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Constraining_Events_to_a_Cascade_of_Widgets">
+<title>Constraining Events to a Cascade of Widgets</title>
+<para>
+Modal widgets are widgets that, except for the input directed to them,
+lock out user input to the application.
+</para>
+
+<para>
+When a modal menu or modal dialog box is popped up using
+<xref linkend='XtPopup' xrefstyle='select: title'/>,
+user events (keyboard and pointer events) that occur outside the modal
+widget should be delivered to the modal widget or ignored.
+In no case will user events be delivered to a widget outside
+the modal widget.
+</para>
+
+<para>
+Menus can pop up submenus, and dialog boxes can pop up further dialog
+boxes to create a pop-up cascade.
+In this case,
+user events may be delivered to one of several modal widgets in the cascade.
+</para>
+
+<para>
+Display-related events should be delivered outside the modal cascade so that
+exposure events and the like keep the application's display up-to-date.
+Any event that occurs within the cascade is delivered as usual.
+The user events delivered to the most recent spring-loaded shell
+in the cascade when they occur outside the cascade are called remap events
+and are
+<function>KeyPress</function>,
+<function>KeyRelease</function>,
+<function>ButtonPress</function>,
+and
+<function>ButtonRelease</function>.
+The user events ignored when they occur outside the cascade are
+<function>MotionNotify</function>
+and
+<function>EnterNotify</function>.
+All other events are delivered normally.
+In particular, note that this is one
+way in which widgets can receive
+<function>LeaveNotify</function>
+events without first receiving
+<function>EnterNotify</function>
+events; they should be prepared to deal with
+this, typically by ignoring any unmatched
+<function>LeaveNotify</function>
+events.
+</para>
+
+<para>
+<xref linkend='XtPopup' xrefstyle='select: title'/>
+uses the
+<xref linkend='XtAddGrab' xrefstyle='select: title'/>
+and
+<xref linkend='XtRemoveGrab' xrefstyle='select: title'/>
+functions to constrain user events to a modal cascade
+and subsequently to remove a grab when the modal widget is popped down.
+</para>
+
+<para>
+To constrain or redirect user input to a modal widget, use
+<xref linkend='XtAddGrab' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAddGrab'>
+<funcprototype>
+<funcdef>void <function>XtAddGrab</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Boolean <parameter>exclusive</parameter></paramdef>
+   <paramdef>Boolean <parameter>spring_loaded</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget to add to the modal cascade. Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>exclusive</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies whether user events should be dispatched exclusively to this widget
+or also to previous widgets in the cascade.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>spring_loaded</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies whether this widget was popped up because the user pressed
+a pointer button.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAddGrab' xrefstyle='select: title'/>
+function appends the widget to the modal cascade
+and checks that <emphasis remap='I'>exclusive</emphasis> is
+<function>True</function>
+if <emphasis remap='I'>spring_loaded</emphasis> is
+<function>True</function>.
+If this condition is not met,
+<xref linkend='XtAddGrab' xrefstyle='select: title'/>
+generates a warning message.
+</para>
+
+<para>
+The modal cascade is used by
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+when it tries to dispatch a user event.
+When at least one modal widget is in the widget cascade,
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+first determines if the event should be delivered.
+It starts at the most recent cascade entry and follows the cascade up to and
+including the most recent cascade entry added with the <emphasis remap='I'>exclusive</emphasis> parameter
+<function>True</function>.
+</para>
+
+<para>
+This subset of the modal cascade along with all descendants of these widgets
+comprise the active subset.
+User events that occur outside the widgets in this subset are ignored
+or remapped.
+Modal menus with submenus generally add a submenu widget to the cascade
+with <emphasis remap='I'>exclusive</emphasis>
+<function>False</function>.
+Modal dialog boxes that need to restrict user input to the most deeply nested
+dialog box add a subdialog widget to the cascade with <emphasis remap='I'>exclusive</emphasis>
+<function>True</function>.
+User events that occur within the active subset are delivered to the
+appropriate widget, which is usually a child or further descendant of the modal
+widget.
+</para>
+
+<para>
+Regardless of where in the application they occur,
+remap events are always delivered to the most recent widget in the active
+subset of the cascade registered with <emphasis remap='I'>spring_loaded</emphasis>
+<function>True</function>,
+if any such widget exists.
+If the event
+occurred in the active subset of the cascade but outside the
+spring-loaded widget, it is delivered normally before being
+delivered also to the spring-loaded widget.
+Regardless of where it is dispatched, the Intrinsics do not modify
+the contents of the event.
+</para>
+
+<para>
+To remove the redirection of user input to a modal widget, use
+<xref linkend='XtRemoveGrab' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRemoveGrab'>
+<funcprototype>
+<funcdef>void <function>XtRemoveGrab</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget to remove from the modal cascade.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtRemoveGrab' xrefstyle='select: title'/>
+function removes widgets from the modal cascade starting
+at the most recent widget up to and including the specified widget.
+It issues a warning if the specified widget is not on the modal cascade.
+</para>
+<sect2 id="Requesting_Key_and_Button_Grabs">
+<title>Requesting Key and Button Grabs</title>
+<para>
+The Intrinsics provide a set of key and button grab interfaces that
+are parallel to those provided by Xlib and that allow the Intrinsics
+to modify event dispatching when necessary.  X Toolkit applications and
+widgets that need to passively grab keys or buttons or actively grab
+the keyboard or pointer should use the
+following Intrinsics routines rather than the corresponding Xlib
+routines.
+</para>
+
+<para>
+To passively grab a single key of the keyboard, use
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGrabKey'>
+<funcprototype>
+<funcdef>void <function>XtGrabKey</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+   <paramdef>Modifiers <parameter>modifiers</parameter></paramdef>
+   <paramdef>Boolean <parameter>owner_events</parameter></paramdef>
+   <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget in whose window the key is to be grabbed.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keycode</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>modifiers</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>owner_events</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>pointer_mode</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>keyboard_mode</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify arguments to
+<function>XGrabKey</function>;
+see <olink targetdoc='libX11' targetptr='Keyboard_Grabbing'>Section 12.2</olink>
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+calls
+<function>XGrabKey</function>
+specifying the widget's window as the grab
+window if the widget is realized.  The remaining arguments are exactly
+as for
+<function>XGrabKey</function>.
+If the widget is not realized, or is later unrealized, the call to
+<function>XGrabKey</function>
+is performed (again) when
+the widget is realized and its window becomes mapped.  In the future,
+if
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+is called with a
+<function>KeyPress</function>
+event matching the specified keycode and modifiers (which may be
+<function>AnyKey</function>
+or
+<function>AnyModifier</function>,
+respectively) for the
+widget's window, the Intrinsics will call
+<xref linkend='XtUngrabKeyboard' xrefstyle='select: title'/>
+with the timestamp from the
+<function>KeyPress</function>
+event if either of the following conditions is true:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+There is a modal cascade and the widget is not in
+the active subset of the cascade and the keyboard was not previously
+grabbed, or
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<function>XFilterEvent</function>
+returns
+<function>True</function>.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+To cancel a passive key grab, use
+<xref linkend='XtUngrabKey' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtUngrabKey'>
+<funcprototype>
+<funcdef>void <function>XtUngrabKey</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+   <paramdef>Modifiers <parameter>modifiers</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget in whose window the key was grabbed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>keycode</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>modifiers</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify arguments to
+<function>XUngrabKey</function>;
+see <olink targetdoc='libX11' targetptr='Keyboard_Grabbing'>Section 12.2</olink>
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtUngrabKey' xrefstyle='select: title'/>
+procedure calls
+<function>XUngrabKey</function>
+specifying the widget's
+window as the ungrab window if the widget is realized.  The remaining
+arguments are exactly as for
+<function>XUngrabKey</function>.
+If the widget is not realized,
+<xref linkend='XtUngrabKey' xrefstyle='select: title'/>
+removes a deferred
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+request, if any, for the specified widget, keycode, and modifiers.
+</para>
+
+<para>
+To actively grab the keyboard, use
+<xref linkend='XtGrabKeyboard' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGrabKeyboard'>
+<funcprototype>
+<funcdef>int <function>XtGrabKeyboard</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>Boolean <parameter>owner_events</parameter></paramdef>
+   <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+   <paramdef>Time <parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget for whose window the keyboard is to be grabbed.
+Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>owner_events</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>pointer_mode</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>keyboard_mode</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify arguments to
+<function>XGrabKeyboard</function>;
+see <olink targetdoc='libX11' targetptr='Keyboard_Grabbing'>Section 12.2</olink>
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If the specified widget is realized,
+<xref linkend='XtGrabKeyboard' xrefstyle='select: title'/>
+calls
+<function>XGrabKeyboard</function>
+specifying the widget's window as the grab window.  The remaining
+arguments and return value are exactly as for
+<function>XGrabKeyboard</function>.
+If the widget is not realized,
+<xref linkend='XtGrabKeyboard' xrefstyle='select: title'/>
+immediately returns
+<function>GrabNotViewable</function>.
+No future automatic ungrab is implied by
+<xref linkend='XtGrabKeyboard' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To cancel an active keyboard grab, use
+<xref linkend='XtUngrabKeyboard' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtUngrabKeyboard'>
+<funcprototype>
+<funcdef>void <function>XtUngrabKeyboard</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>Time <parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that has the active keyboard grab.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the additional argument to
+<function>XUngrabKeyboard</function>;
+see <olink targetdoc='libX11' targetptr='Keyboard_Grabbing'>Section 12.2</olink>
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtUngrabKeyboard' xrefstyle='select: title'/>
+calls
+<function>XUngrabKeyboard</function>
+with the specified time.
+</para>
+
+<para>
+To passively grab a single pointer button, use
+<xref linkend='XtGrabButton' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGrabButton'>
+<funcprototype>
+<funcdef>void <function>XtGrabButton</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>int <parameter>button</parameter></paramdef>
+   <paramdef>Modifiers <parameter>modifiers</parameter></paramdef>
+   <paramdef>Boolean <parameter>owner_events</parameter></paramdef>
+   <paramdef>unsigned int <parameter>event_mask</parameter></paramdef>
+   <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+   <paramdef>Window <parameter>confine_to</parameter></paramdef>
+   <paramdef>Cursor <parameter>cursor</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget in whose window the button is to be grabbed.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>button</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>modifiers</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>owner_events</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>event_mask</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>pointer_mode</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>keyboard_mode</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>confine_to</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>cursor</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify arguments to
+<function>XGrabButton</function>;
+see <olink targetdoc='libX11' targetptr='Pointer_Grabbing'>Section 12.1</olink>
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtGrabButton' xrefstyle='select: title'/>
+calls
+<function>XGrabButton</function>
+specifying the widget's window as the
+grab window if the widget is realized.  The remaining arguments are
+exactly as for
+<function>XGrabButton</function>.
+If the widget is not realized, or is later unrealized, the call to
+<function>XGrabButton</function>
+is performed (again)
+when the widget is realized and its window becomes mapped.  In the
+future, if
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+is called with a
+<function>ButtonPress</function>
+event matching the specified button and modifiers (which may be
+<function>AnyButton</function>
+or
+<function>AnyModifier</function>,
+respectively)
+for the widget's window, the Intrinsics will call
+<xref linkend='XtUngrabPointer' xrefstyle='select: title'/>
+with the timestamp from the
+<function>ButtonPress</function>
+event if either of the following conditions is true:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+There is a modal cascade and the
+widget is not in the active subset of the cascade and the pointer was
+not previously grabbed, or
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<function>XFilterEvent</function>
+returns
+<function>True</function>.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+To cancel a passive button grab, use
+<xref linkend='XtUngrabButton' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtUngrabButton'>
+<funcprototype>
+<funcdef>void <function>XtUngrabButton</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>unsigned int <parameter>button</parameter></paramdef>
+   <paramdef>Modifiers <parameter>modifiers</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget in whose window the button was grabbed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>button</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>modifiers</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify arguments to
+<function>XUngrabButton</function>;
+see <olink targetdoc='libX11' targetptr='Pointer_Grabbing'>Section 12.1</olink>
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtUngrabButton' xrefstyle='select: title'/>
+procedure calls
+<function>XUngrabButton</function>
+specifying the
+widget's window as the ungrab window if the widget is realized.  The
+remaining arguments are exactly as for
+<function>XUngrabButton</function>.
+If the widget is not realized,
+<xref linkend='XtUngrabButton' xrefstyle='select: title'/>
+removes a deferred
+<xref linkend='XtGrabButton' xrefstyle='select: title'/>
+request, if any, for the specified widget, button, and modifiers.
+</para>
+
+<para>
+To actively grab the pointer, use
+<xref linkend='XtGrabPointer' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGrabPointer'>
+<funcprototype>
+<funcdef>int <function>XtGrabPointer</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>Boolean <parameter>owner_events</parameter></paramdef>
+   <paramdef>unsigned int <parameter>event_mask</parameter></paramdef>
+   <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+   <paramdef>Window <parameter>confine_to</parameter></paramdef>
+   <paramdef>Cursor <parameter>cursor</parameter></paramdef>
+   <paramdef>Time <parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget for whose window the pointer is to be grabbed.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>owner_events</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>event_mask</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>pointer_mode</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>keyboard_mode</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>confine_to</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>cursor</emphasis>
+    </term>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify arguments to
+<function>XGrabPointer</function>;
+see <olink targetdoc='libX11' targetptr='Pointer_Grabbing'>Section 12.1</olink>
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If the specified widget is realized,
+<xref linkend='XtGrabPointer' xrefstyle='select: title'/>
+calls
+<function>XGrabPointer</function>,
+specifying the widget's window as the grab window.  The remaining
+arguments and return value are exactly as for
+<function>XGrabPointer</function>.
+If the widget is not realized,
+<xref linkend='XtGrabPointer' xrefstyle='select: title'/>
+immediately returns
+<function>GrabNotViewable</function>.
+No future automatic ungrab is implied by
+<xref linkend='XtGrabPointer' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To cancel an active pointer grab, use
+<xref linkend='XtUngrabPointer' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtUngrabPointer'>
+<funcprototype>
+<funcdef>void <function>XtUngrabPointer</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>Time <parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that has the active pointer grab.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the time argument to
+<function>XUngrabPointer</function>;
+see <olink targetdoc='libX11' targetptr='Pointer_Grabbing'>Section 12.1</olink>
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtUngrabPointer' xrefstyle='select: title'/>
+calls
+<function>XUngrabPointer</function>
+with the specified time.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Focusing_Events_on_a_Child">
+<title>Focusing Events on a Child</title>
+<para>
+To redirect keyboard input to a normal descendant of a
+widget without calling
+<function>XSetInputFocus</function>,
+use
+<xref linkend='XtSetKeyboardFocus' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetKeyboardFocus'>
+<funcprototype>
+<funcdef>void <function>XtSetKeyboardFocus</function></funcdef>
+   <paramdef>Widget <parameter>subtree</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>subtree</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the subtree of the hierarchy for which the keyboard focus is
+to be set.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>descendant</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies either the normal (non-pop-up) descendant of <emphasis remap='I'>subtree</emphasis> to which
+keyboard events are logically directed, or
+<function>None</function>.
+It is not an error to specify
+<function>None</function>
+when no input focus was previously set.  Must be of class Object or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtSetKeyboardFocus' xrefstyle='select: title'/>
+causes
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+to remap keyboard events occurring within the specified subtree
+and dispatch them to the specified descendant widget or to an ancestor.
+If the descendant's class is not a subclass of Core, the descendant is
+replaced by its closest windowed ancestor.
+</para>
+
+<para>
+When there is no modal cascade, keyboard events can be dispatched
+to a widget in one of five ways.  Assume the server delivered the
+event to the window for widget E (because of X input focus, key or
+keyboard grabs, or pointer position).
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+If neither E nor any of E's ancestors have redirected the keyboard
+focus, or if the event activated a grab for E as specified by a call
+to
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+with any value of <emphasis remap='I'>owner_events</emphasis>, or
+if the keyboard is actively grabbed by E with <emphasis remap='I'>owner_events</emphasis>
+<function>False</function>
+via
+<xref linkend='XtGrabKeyboard' xrefstyle='select: title'/>
+or
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+on a previous key press, the event is dispatched to E.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Beginning with the ancestor of E closest to the root that has
+redirected the keyboard focus or E if no such ancestor exists, if
+the target of that focus redirection has in turn redirected the
+keyboard focus, recursively follow this focus chain to find a widget
+F that has not redirected focus.
+    </para>
+  </listitem>
+  <listitem>
+    <itemizedlist spacing='compact'>
+      <listitem>
+        <para>
+If E is the final focus target widget F or a descendant of F, the
+event is dispatched to E.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+If E is not F, an ancestor of F, or a descendant of F, and the event
+activated a grab for E as specified by a call to
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+for E,
+<xref linkend='XtUngrabKeyboard' xrefstyle='select: title'/>
+is called.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+If E is an ancestor of F, and the event is a key press, and either
+        </para>
+      </listitem>
+      <listitem>
+        <itemizedlist spacing='compact'>
+          <listitem>
+            <para>
+E has grabbed the key with
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+and <emphasis remap='I'>owner_events</emphasis>
+<function>False</function>,
+or
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+E has grabbed the key with
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+and <emphasis remap='I'>owner_events</emphasis>
+<function>True</function>,
+and the coordinates of the event are outside the rectangle specified
+by E's geometry,
+then the event is dispatched to E.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </listitem>
+      <listitem>
+        <para>
+Otherwise, define A as the closest common ancestor of E and F:
+        </para>
+      </listitem>
+      <listitem>
+        <itemizedlist spacing='compact'>
+          <listitem>
+            <para>
+If there is an active keyboard grab for any widget via either
+<xref linkend='XtGrabKeyboard' xrefstyle='select: title'/>
+or
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+on a previous key press, or
+if no widget between F and A (noninclusive) has grabbed
+the key and modifier combination with
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+and any value of <emphasis remap='I'>owner_events</emphasis>, the event is dispatched to F.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+Else, the event is dispatched to the ancestor of F closest to A
+that has grabbed the key and modifier combination with
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </listitem>
+    </itemizedlist>
+  </listitem>
+</itemizedlist>
+<para>
+When there is a modal cascade, if the final destination widget as
+identified above is in the active subset of the cascade, the event is
+dispatched; otherwise the event is remapped to a spring-loaded shell
+or discarded.
+Regardless of where it is dispatched, the Intrinsics do not modify
+the contents of the event.
+</para>
+
+<para>
+When <emphasis remap='I'>subtree</emphasis> or one of its descendants acquires the X input focus
+or the pointer moves into the subtree such that keyboard events would
+now be delivered to the subtree, a
+<function>FocusIn</function>
+event is generated for the descendant if
+<function>FocusChange</function>
+events have been selected by the descendant.
+Similarly, when <emphasis remap='I'>subtree</emphasis> loses the X input focus
+or the keyboard focus for one of its ancestors, a
+<function>FocusOut</function>
+event is generated for descendant if
+<function>FocusChange</function>
+events have been selected by the descendant.
+</para>
+
+<para>
+A widget tree may also actively manage the X server input focus.  To
+do so, a widget class specifies an accept_focus procedure.
+</para>
+
+<para>
+The accept_focus procedure pointer is of type
+<xref linkend='XtAcceptFocusProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAcceptFocusProc'>
+<funcprototype>
+<funcdef>Boolean <function>*XtAcceptFocusProc</function></funcdef>
+
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Time *<parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the X time of the event causing the accept focus.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+Widgets that need the input focus can call
+<function>XSetInputFocus</function>
+explicitly, pursuant to the restrictions of the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis>.
+To allow outside agents, such as the parent,
+to cause a widget to take the input focus,
+every widget exports an accept_focus procedure.
+The widget returns a value indicating
+whether it actually took the focus or not,
+so that the parent can give the focus to another widget.
+Widgets that need to know when they lose the input focus must use
+the Xlib focus notification mechanism explicitly
+(typically by specifying translations for
+<function>FocusIn</function>
+and
+<function>FocusOut</function>
+events).
+Widgets classes that never want the input focus should set the
+<emphasis remap='I'>accept_focus</emphasis> field to NULL.
+</para>
+
+<para>
+To call a widget's accept_focus procedure, use
+<xref linkend='XtCallAcceptFocus' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCallAcceptFocus'>
+<funcprototype>
+<funcdef>Boolean <function>XtCallAcceptFocus</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Time *<parameter>time</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>time</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the X time of the event that is causing the focus change.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtCallAcceptFocus' xrefstyle='select: title'/>
+function calls the specified widget's accept_focus procedure,
+passing it the specified widget and time, and returns what the accept_focus
+procedure returns.
+If <emphasis remap='I'>accept_focus</emphasis> is NULL,
+<xref linkend='XtCallAcceptFocus' xrefstyle='select: title'/>
+returns
+<function>False</function>.
+</para>
+<sect2 id="Events_for_Drawables_That_Are_Not_a_Widget_s_Window">
+<title>Events for Drawables That Are Not a Widget's Window</title>
+<para>
+Sometimes an application must handle events for drawables that are not
+associated with widgets in its widget tree.  Examples include handling
+<function>GraphicsExpose</function>
+and
+<function>NoExpose</function>
+events on Pixmaps, and handling
+<function>PropertyNotify</function>
+events on the root window.
+</para>
+
+<para>
+To register a drawable with the Intrinsics event dispatching, use
+<xref linkend='XtRegisterDrawable' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRegisterDrawable'>
+<funcprototype>
+<funcdef>void <function>XtRegisterDrawable</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>Drawable <parameter>drawable</parameter></paramdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the drawable's display.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>drawable</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the drawable to register.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget to register the drawable for.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtRegisterDrawable' xrefstyle='select: title'/>
+associates the specified drawable with the specified widget
+so that future calls to
+<xref linkend='XtWindowToWidget' xrefstyle='select: title'/>
+with the drawable will return the widget.
+The default event dispatcher will dispatch future events that
+arrive for the drawable to the widget in the same manner as
+events that contain the widget's window.
+</para>
+
+<para>
+If the drawable is already registered with another widget, or if the
+drawable is the window of a widget in the client's widget tree, the
+results of calling
+<xref linkend='XtRegisterDrawable' xrefstyle='select: title'/>
+are undefined.
+</para>
+
+<para>
+To unregister a drawable with the Intrinsics event dispatching, use
+<xref linkend='XtUnregisterDrawable' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtUnregisterDrawable'>
+<funcprototype>
+<funcdef>void <function>XtUnregisterDrawable</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>Drawable <parameter>drawable</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the drawable's display.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>drawable</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the drawable to unregister.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtUnregisterDrawable' xrefstyle='select: title'/>
+removes an association created with
+<xref linkend='XtRegisterDrawable' xrefstyle='select: title'/>.
+If the drawable is the window of a widget in the client's widget tree
+the results of calling
+<xref linkend='XtUnregisterDrawable' xrefstyle='select: title'/>
+are undefined.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Querying_Event_Sources">
+<title>Querying Event Sources</title>
+<para>
+The event manager provides several functions to examine and read events
+(including file and timer events) that are in the queue.
+The next three functions are Intrinsics equivalents of the
+<function>XPending</function>,
+<function>XPeekEvent</function>,
+and
+<function>XNextEvent</function>
+Xlib calls.
+</para>
+
+<para>
+To determine if there are any events on the input queue for a given application,
+use
+<xref linkend='XtAppPending' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppPending'>
+<funcprototype>
+<funcdef>XtInputMask <function>XtAppPending</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context that identifies the application to check.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAppPending' xrefstyle='select: title'/>
+function returns a nonzero value if there are
+events pending from the X server, timer pending, other input sources
+pending, or signal sources pending.  The
+value returned is a bit mask that is the OR of
+<function>XtIMXEvent</function>,
+<function>XtIMTimer</function>,
+<function>XtIMAlternateInput</function>,
+and
+<function>XtIMSignal</function>
+(see
+<function>XtAppProcessEvent ).</function>
+If there are no events pending,
+<xref linkend='XtAppPending' xrefstyle='select: title'/>
+flushes the output buffers of each Display in the application context
+and returns zero.
+</para>
+
+<para>
+To return the event from the head of a given application's input queue
+without removing input from the queue, use
+<xref linkend='XtAppPeekEvent' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppPeekEvent'>
+<funcprototype>
+<funcdef>Boolean <function>XtAppPeekEvent</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context that identifies the application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the event information to the specified event structure.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If there is an X event in the queue,
+<xref linkend='XtAppPeekEvent' xrefstyle='select: title'/>
+copies it into <emphasis remap='I'>event_return</emphasis> and returns
+<function>True</function>.
+If no X input is on the queue,
+<xref linkend='XtAppPeekEvent' xrefstyle='select: title'/>
+flushes the output buffers of each Display in the application context
+and blocks until some input is available
+(possibly calling some timeout callbacks in the interim).
+If the next available input is an X event,
+<xref linkend='XtAppPeekEvent' xrefstyle='select: title'/>
+fills in <emphasis remap='I'>event_return</emphasis> and returns
+<function>True</function>.
+Otherwise, the input is for an input source
+registered with
+<xref linkend='XtAppAddInput' xrefstyle='select: title'/>,
+and
+<xref linkend='XtAppPeekEvent' xrefstyle='select: title'/>
+returns
+<function>False</function>.
+The sample implementations provides XtAppPeekEvent as described.  Timeout callbacks
+are called while blocking for input.  If some input for an input source is
+available,
+<xref linkend='XtAppPeekEvent' xrefstyle='select: title'/>
+will return
+<function>True</function>
+without returning an event.
+</para>
+
+<para>
+To remove and return the event
+from the head of a given application's X event queue,
+use
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppNextEvent'>
+<funcprototype>
+<funcdef>void <function>XtAppNextEvent</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>XEvent *<parameter>event_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context that identifies the application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the event information to the specified event structure.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If the X event queue is empty,
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>
+flushes the X output buffers of each Display in the application context
+and waits for an X event while looking at the other input sources
+and timeout values and calling any callback procedures triggered by them.
+This wait time can be used for background processing;
+see <xref linkend='Adding_Background_Work_Procedures' />.
+</para>
+</sect1>
+
+<sect1 id="Dispatching_Events">
+<title>Dispatching Events</title>
+<para>
+The Intrinsics provide functions that dispatch events
+to widgets or other application code.
+Every client interested in X events on a widget uses
+<xref linkend='XtAddEventHandler' xrefstyle='select: title'/>
+to register which events it is
+interested in and a procedure (event handler) to be called
+when the event happens in that window.
+The translation manager automatically registers event handlers for widgets
+that use translation tables; see <xref linkend='Translation_Management' />.
+</para>
+
+<para>
+Applications that need direct control of the processing of different types
+of input should use
+<xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppProcessEvent'>
+<funcprototype>
+<funcdef>void <function>XtAppProcessEvent</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>XtInputMask <parameter>mask</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context that identifies the
+application for which to process input.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies what types of events to process.
+The mask is the bitwise inclusive OR of any combination of
+<function>XtIMXEvent</function>,
+<function>XtIMTimer</function>,
+<function>XtIMAlternateInput</function>,
+and
+<function>XtIMSignal</function>.
+As a convenience,
+<function>Intrinsic.h</function>
+defines the symbolic name
+<function>XtIMAll</function>
+to be the bitwise inclusive OR of these four event types.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>
+function processes one timer, input source, signal source, or X event.
+If there is no event or input of the appropriate type to process, then
+<xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>
+blocks until there is.
+If there is more than one type of input available to process,
+it is undefined which will get processed.
+Usually, this procedure is not called by client applications; see
+<xref linkend='XtAppMainLoop' xrefstyle='select: title'/>.
+<xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>
+processes timer events by calling any appropriate timer callbacks,
+input sources by calling any appropriate input callbacks,
+signal source by calling any appropriate signal callbacks,
+and X events by
+calling
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>.
+</para>
+
+<para>
+When an X event is received,
+it is passed to
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>,
+which calls the appropriate event handlers
+and passes them the widget, the event, and client-specific data
+registered with each procedure.
+If no handlers for that event are registered,
+the event is ignored and the dispatcher simply returns.
+</para>
+
+<para>
+To dispatch an event returned by
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>,
+retrieved directly from the Xlib queue, or synthetically constructed,
+to any registered event filters or event handlers, call
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtDispatchEvent'>
+<funcprototype>
+<funcdef>Boolean <function>XtDispatchEvent</function></funcdef>
+   <paramdef>XEvent *<parameter>event</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the event structure to be dispatched
+to the appropriate event handlers.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+function first calls
+<function>XFilterEvent</function>
+with the <emphasis remap='I'>event</emphasis> and the window of the widget to which the
+Intrinsics intend to dispatch the event, or the event window if
+the Intrinsics would not dispatch the event to any handlers.
+If
+<function>XFilterEvent</function>
+returns
+<function>True</function>
+and the event activated a server grab as identified
+by a previous call to
+<xref linkend='XtGrabKey' xrefstyle='select: title'/>
+or
+<xref linkend='XtGrabButton' xrefstyle='select: title'/>,
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+calls
+<xref linkend='XtUngrabKeyboard' xrefstyle='select: title'/>
+or
+<xref linkend='XtUngrabPointer' xrefstyle='select: title'/>
+with the timestamp from the event and immediately returns
+<function>True</function>.
+If
+<function>XFilterEvent</function>
+returns
+<function>True</function>
+and a grab was not activated,
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+just immediately returns
+<function>True</function>.
+Otherwise,
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+sends the event to the event handler functions that
+have been previously registered with the dispatch routine.
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+returns
+<function>True</function>
+if
+<function>XFilterEvent</function>
+returned
+<function>True</function>,
+or if the event was dispatched to some handler, and
+<function>False</function>
+if it found no handler to which to dispatch the event.
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+records the last timestamp in any event that
+contains a timestamp (see
+<function>XtLastTimestampProcessed ),</function>
+regardless of whether it was filtered or dispatched.
+If a modal cascade is active with <emphasis remap='I'>spring_loaded</emphasis>
+<function>True</function>,
+and if the event is a remap event as defined by
+<xref linkend='XtAddGrab' xrefstyle='select: title'/>,
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+may dispatch the event a second time.  If it does so,
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+will call
+<function>XFilterEvent</function>
+again with the window of the spring-loaded widget prior to the second
+dispatch, and if
+<function>XFilterEvent</function>
+returns
+<function>True</function>,
+the second dispatch will not be performed.
+</para>
+</sect1>
+
+<sect1 id="The_Application_Input_Loop">
+<title>The Application Input Loop</title>
+<para>
+To process all input from a given application in a continuous loop,
+use the convenience procedure
+<xref linkend='XtAppMainLoop' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppMainLoop'>
+<funcprototype>
+<funcdef>void <function>XtAppMainLoop</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context that identifies the application.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAppMainLoop' xrefstyle='select: title'/>
+function first reads the next incoming X event by calling
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>
+and then dispatches the event to the appropriate registered procedure
+by calling
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>.
+This constitutes the main loop of X Toolkit applications.
+There is nothing special about
+<xref linkend='XtAppMainLoop' xrefstyle='select: title'/>;
+it simply calls
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>
+and then
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+in a conditional loop.
+At the bottom of the loop, it checks to see if the specified
+application context's destroy flag is set.
+If the flag is set, the loop breaks.
+The whole loop is enclosed between a matching
+<xref linkend='XtAppLock' xrefstyle='select: title'/>
+and
+<xref linkend='XtAppUnlock' xrefstyle='select: title'/>.
+</para>
+
+<para>
+Applications can provide their own version of this loop,
+which tests some global termination flag or tests that the number
+of top-level widgets is larger than zero before circling back to the call to
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>.
+</para>
+</sect1>
+
+<sect1 id="Setting_and_Checking_the_Sensitivity_State_of_a_Widget">
+<title>Setting and Checking the Sensitivity State of a Widget</title>
+<para>
+Many widgets have a mode in which they assume a different appearance
+(for example, are grayed out or stippled), do not respond to user events,
+and become dormant.
+</para>
+
+<para>
+When dormant,
+a widget is considered to be insensitive.
+If a widget is insensitive,
+the event manager does not dispatch any events to the widget
+with an event type of
+<function>KeyPress</function>,
+<function>KeyRelease</function>,
+<function>ButtonPress</function>,
+<function>ButtonRelease</function>,
+<function>MotionNotify</function>,
+<function>EnterNotify</function>,
+<function>LeaveNotify</function>,
+<function>FocusIn</function>,
+or
+<function>FocusOut</function>.
+</para>
+
+<para>
+A widget can be insensitive because its <emphasis remap='I'>sensitive</emphasis> field is
+<function>False</function>
+or because one of its ancestors is insensitive and thus the widget's
+<emphasis remap='I'>ancestor_sensitive</emphasis> field also is
+<function>False</function>.
+A widget can but does not need to distinguish these two cases visually.
+</para>
+
+<note>
+<para>
+Pop-up shells will have
+<emphasis remap='I'>ancestor_sensitive</emphasis>
+<function>False</function>
+if the parent was insensitive when the shell
+was created.  Since
+<xref linkend='XtSetSensitive' xrefstyle='select: title'/>
+on the parent will not
+modify the resource of the pop-up child, clients are advised to include
+a resource specification of the form
+``*TransientShell.ancestorSensitive: True''
+in the application defaults resource file or to
+otherwise ensure that the parent is
+sensitive when creating pop-up shells.
+</para>
+</note>
+
+<para>
+To set the sensitivity state of a widget, use
+<xref linkend='XtSetSensitive' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetSensitive'>
+<funcprototype>
+<funcdef>void <function>XtSetSensitive</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Boolean <parameter>sensitive</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class RectObj or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>sensitive</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies whether the widget should receive
+keyboard, pointer, and focus events.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtSetSensitive' xrefstyle='select: title'/>
+function first calls
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+on the current widget with an argument list specifying the
+XtNsensitive resource and the new value.
+If <emphasis remap='I'>sensitive</emphasis> is
+<function>False</function>
+and the widget's class is a subclass of
+Composite,
+<xref linkend='XtSetSensitive' xrefstyle='select: title'/>
+recursively propagates the new value
+down the child tree by calling
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+on each child to set <emphasis remap='I'>ancestor_sensitive</emphasis> to
+<function>False</function>.
+If <emphasis remap='I'>sensitive</emphasis> is
+<function>True</function>
+and the widget's class is a subclass of
+Composite
+and the widget's <emphasis remap='I'>ancestor_sensitive</emphasis> field is
+<function>True</function>,
+<xref linkend='XtSetSensitive' xrefstyle='select: title'/>
+sets the <emphasis remap='I'>ancestor_sensitive</emphasis> of each child to
+<function>True</function>
+and then recursively calls
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+on each normal descendant that is now sensitive to set
+<emphasis remap='I'>ancestor_sensitive</emphasis> to
+<function>True</function>.
+</para>
+
+<para>
+<xref linkend='XtSetSensitive' xrefstyle='select: title'/>
+calls
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+to change the <emphasis remap='I'>sensitive</emphasis> and <emphasis remap='I'>ancestor_sensitive</emphasis> fields
+of each affected widget.
+Therefore, when one of these changes,
+the widget's set_values procedure should
+take whatever display actions are needed
+(for example, graying out or stippling the widget).
+</para>
+
+<para>
+<xref linkend='XtSetSensitive' xrefstyle='select: title'/>
+maintains the invariant that, if the parent has either <emphasis remap='I'>sensitive</emphasis>
+or <emphasis remap='I'>ancestor_sensitive</emphasis>
+<function>False</function>,
+then all children have <emphasis remap='I'>ancestor_sensitive</emphasis>
+<function>False</function>.
+</para>
+
+<para>
+To check the current sensitivity state of a widget,
+use
+<xref linkend='XtIsSensitive' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtIsSensitive'>
+<funcprototype>
+<funcdef>Boolean <function>XtIsSensitive</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object.  Must be of class Object or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtIsSensitive' xrefstyle='select: title'/>
+function returns
+<function>True</function>
+or
+<function>False</function>
+to indicate whether user input events are being dispatched.
+If object's class is a subclass of RectObj and
+both <emphasis remap='I'>sensitive</emphasis> and <emphasis remap='I'>ancestor_sensitive</emphasis> are
+<function>True</function>,
+<xref linkend='XtIsSensitive' xrefstyle='select: title'/>
+returns
+<function>True</function>;
+otherwise, it returns
+<function>False</function>.
+</para>
+</sect1>
+
+<sect1 id="Adding_Background_Work_Procedures">
+<title>Adding Background Work Procedures</title>
+<para>
+The Intrinsics have some limited support for background processing.
+Because most applications spend most of their time waiting for input,
+you can register an idle-time work procedure
+that is called when the toolkit would otherwise block in
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>
+or
+<xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>.
+Work procedure pointers are of type
+<xref linkend='XtWorkProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtWorkProc'>
+<funcprototype>
+<funcdef>typedef Boolean <function>(*XtWorkProc)</function></funcdef>
+
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the client data specified when the work procedure was registered.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+This procedure should return
+<function>True</function>
+when it is done to indicate that it
+should be removed.
+If the procedure returns
+<function>False</function>,
+it will remain registered and called again when the
+application is next idle.
+Work procedures should be very judicious about how much they do.
+If they run for more than a small part of a second,
+interactive feel is likely to suffer.
+</para>
+
+<para>
+To register a work procedure for a given application, use
+<xref linkend='XtAppAddWorkProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppAddWorkProc'>
+<funcprototype>
+<funcdef>XtWorkProcId <function>XtAppAddWorkProc</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+   <paramdef>XtWorkProc <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context that identifies the application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called when the application is idle.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument passed to the specified procedure
+when it is called.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAppAddWorkProc' xrefstyle='select: title'/>
+function adds the specified work procedure for the application identified
+by <emphasis remap='I'>app_context</emphasis>
+and returns an opaque unique identifier for this work procedure.
+Multiple work procedures can be registered,
+and the most recently added one is always the one that is called.
+However, if a work procedure adds another work procedure,
+the newly added one has lower priority than the current one.
+</para>
+
+<para>
+To remove a work procedure, either return
+<function>True</function>
+from the procedure when it is called or use
+<xref linkend='XtRemoveWorkProc' xrefstyle='select: title'/>
+outside of the procedure.
+</para>
+
+<funcsynopsis id='XtRemoveWorkProc'>
+<funcprototype>
+<funcdef>void <function>XtRemoveWorkProc</function></funcdef>
+   <paramdef>XtWorkProcId <parameter>id</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>id</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies which work procedure to remove.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtRemoveWorkProc' xrefstyle='select: title'/>
+function explicitly removes the specified background work procedure.
+</para>
+</sect1>
+
+<sect1 id="X_Event_Filters">
+<title>X Event Filters</title>
+<para>
+The event manager provides filters that can be applied to
+specific X events.
+The filters, which screen out events that are redundant or are temporarily
+unwanted, handle
+pointer motion compression,
+enter/leave compression, and
+exposure compression.
+</para>
+<sect2 id="Pointer_Motion_Compression">
+<title>Pointer Motion Compression</title>
+<para>
+Widgets can have a hard time keeping up with a rapid stream of
+pointer motion events.  Furthermore,
+they usually do not care about every motion event.  To throw out
+redundant motion events, the widget class field <emphasis remap='I'>compress_motion</emphasis> should be
+<function>True</function>.
+When a request for an event would return a motion event,
+the Intrinsics check if there are any other motion events
+for the same widget immediately
+following the current one and, if so, skip all but the last of them.
+</para>
+</sect2>
+
+<sect2 id="Enter_Leave_Compression">
+<title>Enter/Leave Compression</title>
+<para>
+To throw out pairs of enter and leave events that have no intervening events,
+as can happen when the user moves the pointer across a widget
+without stopping in it,
+the widget class field <emphasis remap='I'>compress_enterleave</emphasis> should be
+<function>True</function>.
+These enter and leave events are not delivered to the client
+if they are found together in the input queue.
+</para>
+</sect2>
+
+<sect2 id="Exposure_Compression">
+<title>Exposure Compression</title>
+<para>
+Many widgets prefer to process a series of exposure events as a
+single expose region rather than as individual rectangles.  Widgets
+with complex displays might use the expose region as a clip list
+in a graphics context, and widgets with simple displays might
+ignore the region entirely and redisplay their whole window or
+might get the bounding box from the region and redisplay only that
+rectangle.
+</para>
+
+<para>
+In either case, these widgets do not care about getting partial exposure events.
+The <emphasis remap='I'>compress_exposure</emphasis> field in the widget class
+structure specifies the type and number of exposure events that are
+dispatched to the widget's expose procedure.  This field must be
+initialized to one of the following values:
+</para>
+
+<literallayout >
+#define XtExposeNoCompress	((XtEnum)False)
+#define XtExposeCompressSeries	((XtEnum)True)
+#define XtExposeCompressMultiple	&lt;implementation-defined&gt;
+#define XtExposeCompressMaximal	&lt;implementation-defined&gt;
+</literallayout>
+
+<para>
+optionally ORed with any combination of the following flags (all with
+implementation-defined values):
+<function>XtExposeGraphicsExpose</function>,
+<function>XtExposeGraphicsExposeMerged</function>,
+<function>XtExposeNoExpose</function>,
+and
+<function>XtExposeNoRegion</function>.
+</para>
+
+<para>
+If the <emphasis remap='I'>compress_exposure</emphasis> field in the widget class structure does not
+specify
+<function>XtExposeNoCompress</function>,
+the event manager calls the widget's expose procedure only
+once for a series of exposure events.
+In this case, all
+<function>Expose</function>
+or
+<function>GraphicsExpose</function>
+events are accumulated into a region.
+When the final event is received,
+the event manager replaces the rectangle in the event with the
+bounding box for the region
+and calls the widget's expose procedure,
+passing the modified exposure event and (unless
+<function>XtExposeNoRegion</function>
+is specified) the region.
+For more information on regions, see
+<olink targetdoc='libX11' targetptr='Manipulating_Regions'>Section 16.5</olink> in
+<olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface.</olink>.)
+</para>
+
+<para>
+The values have the following interpretation:
+</para>
+
+<para>
+<function>XtExposeNoCompress</function>
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+No exposure compression is performed; every selected event is
+individually dispatched to the expose procedure with a <emphasis remap='I'>region</emphasis>
+argument of NULL.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+<function>XtExposeCompressSeries</function>
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Each series of exposure events is coalesced into a single event,
+which is dispatched
+when an exposure event with count equal to zero is reached.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+<function>XtExposeCompressMultiple</function>
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Consecutive series of exposure events are coalesced into a single
+event, which is dispatched
+when an exposure event with count equal to zero is reached and either
+the event queue is empty or the next event is not an exposure event
+for the same widget.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+<function>XtExposeCompressMaximal</function>
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+All expose series currently in the queue for the widget
+are coalesced into a single
+event without regard to intervening nonexposure events.  If a
+partial series is in the end of the queue, the Intrinsics will
+block until the end of the series is received.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+The additional flags have the following meaning:
+</para>
+
+<para>
+<function>XtExposeGraphicsExpose</function>
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Specifies that
+<function>GraphicsExpose</function>
+events are also to be dispatched to
+the expose procedure.
+<function>GraphicsExpose</function>
+events are compressed, if specified, in the same manner as
+<function>Expose</function>
+events.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+<function>XtExposeGraphicsExposeMerged</function>
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Specifies in the case of
+<function>XtExposeCompressMultiple</function>
+and
+<function>XtExposeCompressMaximal</function>
+that series of
+<function>GraphicsExpose</function>
+and
+<function>Expose</function>
+events are to be compressed together, with the final event type
+determining the type of the event passed to the expose procedure.
+If this flag is not set, then only series of the same event type
+as the event at the head of the queue are coalesced.  This flag
+also implies
+<function>XtExposeGraphicsExpose</function>.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+<function>XtExposeNoExpose</function>
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Specifies that
+<function>NoExpose</function>
+events are also to be dispatched to the expose procedure.
+<function>NoExpose</function>
+events are never coalesced with
+other exposure events or with each other.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+<function>XtExposeNoRegion</function>
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Specifies that the final region argument passed to the expose
+procedure is NULL.  The rectangle in the event will still
+contain bounding box information for the entire series of
+compressed exposure events.  This option saves processing time when the
+region is not needed by the widget.
+    </para>
+  </listitem>
+</itemizedlist>
+</sect2>
+</sect1>
+
+<sect1 id="Widget_Exposure_and_Visibility">
+<title>Widget Exposure and Visibility</title>
+<para>
+Every primitive widget and some composite widgets display data on the screen
+by means of direct Xlib calls.
+Widgets cannot simply write to the screen and forget what they have done.
+They must keep enough state to redisplay the window or parts
+of it if a portion is obscured and then reexposed.
+</para>
+
+<sect2 id="Redisplay_of_a_Widget_The_expose_Procedure">
+<title>Redisplay of a Widget: The expose Procedure</title>
+<para>
+The expose procedure pointer in a widget class is of type
+<xref linkend='XtExposeProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtExposeProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtExposeProc)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XEvent *<parameter>event</parameter></paramdef>
+   <paramdef>Region <parameter>region</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget instance requiring redisplay.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the exposure event giving the rectangle requiring redisplay.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>region</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the union of all rectangles in this exposure sequence.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The redisplay of a widget upon exposure is the responsibility of the
+expose procedure in the widget's class record.
+If a widget has no display semantics,
+it can specify NULL for the <emphasis remap='I'>expose</emphasis> field.
+Many composite widgets serve only as containers for their children
+and have no expose procedure.
+</para>
+
+<note>
+<para>
+If the <emphasis remap='I'>expose</emphasis> procedure is NULL,
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+fills in a default bit gravity of
+<function>NorthWestGravity</function>
+before it calls the widget's realize procedure.
+</para>
+</note>
+
+<para>
+If the widget's <emphasis remap='I'>compress_exposure</emphasis> class field specifies
+<function>XtExposeNoCompress</function>
+or
+<function>XtExposeNoRegion</function>,
+or if the event type is
+<function>NoExpose</function>
+(see <xref linkend='Exposure_Compression' />),
+<emphasis remap='I'>region</emphasis> is NULL.  If
+<function>XtExposeNoCompress</function>
+is not specified and the event type is not
+<function>NoExpose</function>,
+the event is the final event in the compressed series
+but <emphasis remap='I'>x</emphasis>, <emphasis remap='I'>y</emphasis>, <emphasis remap='I'>width</emphasis>, and <emphasis remap='I'>height</emphasis> contain
+the bounding box for all the compressed events.
+The region is created and destroyed by the Intrinsics, but
+the widget is permitted to modify the region contents.
+</para>
+
+<para>
+A small simple widget (for example, Label) can ignore the bounding box
+information in the event and redisplay the entire window.
+A more complicated widget (for example, Text) can use the bounding box
+information to minimize the amount of calculation and redisplay it does.
+A very complex widget uses the region as a clip list in a GC and
+ignores the event information.
+The expose procedure is not chained and is therefore
+responsible for exposure of all superclass data
+as well as its own.
+</para>
+
+<para>
+However,
+it often is possible to anticipate the display needs of several levels
+of subclassing.
+For example, rather than implement separate display procedures for
+the widgets Label, Pushbutton, and Toggle,
+you could write a single display routine in Label that uses display state
+fields like
+</para>
+<literallayout >
+Boolean invert;
+Boolean highlight;
+Dimension highlight_width;
+</literallayout>
+<para>
+Label would have <emphasis remap='I'>invert</emphasis> and <emphasis remap='I'>highlight</emphasis> always
+<function>False</function>
+and <emphasis remap='I'>highlight_width</emphasis> zero.
+Pushbutton would dynamically set <emphasis remap='I'>highlight</emphasis> and <emphasis remap='I'>highlight_width</emphasis>,
+but it would leave <emphasis remap='I'>invert</emphasis> always
+<function>False</function>.
+Finally, Toggle would dynamically set all three.
+In this case,
+the expose procedures for Pushbutton and Toggle inherit
+their superclass's expose procedure;
+see <xref linkend='Inheritance_of_Superclass_Operations' />.
+</para>
+</sect2>
+
+<sect2 id="Widget_Visibility">
+<title>Widget Visibility</title>
+<para>
+Some widgets may use substantial computing resources to produce the
+data they will display.
+However, this effort is wasted if the widget is not actually visible
+on the screen, that is, if the widget is obscured by another application
+or is iconified.
+</para>
+
+<para>
+The <emphasis remap='I'>visible</emphasis> field in the
+core
+widget structure provides a hint to the widget that it need not compute
+display data.
+This field is guaranteed to be
+<function>True</function>
+by the time an
+exposure
+event is processed if any part of the widget is visible,
+but is
+<function>False</function>
+if the widget is fully obscured.
+</para>
+
+<para>
+Widgets can use or ignore the <emphasis remap='I'>visible</emphasis> hint.
+If they ignore it,
+they should have <emphasis remap='I'>visible_interest</emphasis> in their widget class record set
+<function>False</function>.
+In such cases,
+the <emphasis remap='I'>visible</emphasis> field is initialized
+<function>True</function>
+and never changes.
+If <emphasis remap='I'>visible_interest</emphasis> is
+<function>True</function>,
+the event manager asks for
+<function>VisibilityNotify</function>
+events for the widget and sets <emphasis remap='I'>visible</emphasis> to
+<function>True</function>
+on
+<function>VisibilityUnobscured</function>
+or
+<function>VisibilityPartiallyObscured</function>
+events and
+<function>False</function>
+on
+<function>VisibilityFullyObscured</function>
+events.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="X_Event_Handlers">
+<title>X Event Handlers</title>
+<para>
+Event handlers are procedures called when specified events
+occur in a widget.
+Most widgets need not use event handlers explicitly.
+Instead, they use the Intrinsics translation manager.
+Event handler procedure pointers are of the type
+<xref linkend='XtEventHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtEventHandler'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtEventHandler)</function></funcdef>
+
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XEvent *<parameter>event</parameter></paramdef>
+   <paramdef>Boolean *<parameter>continue_to_dispatch</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget for which the event arrived.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies any client-specific information registered with the event handler.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the triggering event.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>continue_to_dispatch</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies whether the remaining event
+handlers registered for the current event
+should be called.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+After receiving an event and before calling any event handlers, the
+Boolean pointed to by <emphasis remap='I'>continue_to_dispatch</emphasis> is initialized to
+<function>True</function>.
+When an event handler is called, it may decide that further processing
+of the event is not desirable and may store
+<function>False</function>
+in this Boolean, in
+which case any handlers remaining to be called for the event are
+ignored.
+</para>
+
+<para>
+The circumstances under which the Intrinsics may add event handlers
+to a widget are currently implementation-dependent.  Clients must
+therefore be aware that storing
+<function>False</function>
+into the <emphasis remap='I'>continue_to_dispatch</emphasis> argument can lead to portability problems.
+</para>
+<sect2 id="Event_Handlers_That_Select_Events">
+<title>Event Handlers That Select Events</title>
+<para>
+To register an event handler procedure with the dispatch mechanism, use
+<xref linkend='XtAddEventHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAddEventHandler'>
+<funcprototype>
+<funcdef>void <function>XtAddEventHandler</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>EventMask <parameter>event_mask</parameter></paramdef>
+   <paramdef>Boolean <parameter>nonmaskable</parameter></paramdef>
+   <paramdef>XtEventHandler <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget for which this event handler is being registered.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event mask for which to call this procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>nonmaskable</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies whether this procedure should be
+called on the nonmaskable events
+<function>( GraphicsExpose</function>,
+<function>NoExpose</function>,
+<function>SelectionClear</function>,
+<function>SelectionRequest</function>,
+<function>SelectionNotify</function>,
+<function>ClientMessage</function>,
+and
+<function>MappingNotify ).</function>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies additional data to be passed to the event handler.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAddEventHandler' xrefstyle='select: title'/>
+function registers a procedure with the dispatch mechanism that is
+to be called when an event that matches the mask occurs on the specified
+widget.
+Each widget has a single registered event handler list, which will
+contain any procedure/client_data pair exactly once regardless of
+the manner in which it is registered.
+If the procedure is already registered with the same <emphasis remap='I'>client_data</emphasis>
+value,
+the specified mask augments the existing mask.
+If the widget is realized,
+<xref linkend='XtAddEventHandler' xrefstyle='select: title'/>
+calls
+<function>XSelectInput</function>,
+if necessary.
+The order in which this procedure is called relative to other handlers
+registered for the same event is not defined.
+</para>
+
+<para>
+To remove a previously registered event handler, use
+<xref linkend='XtRemoveEventHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRemoveEventHandler'>
+<funcprototype>
+<funcdef>void <function>XtRemoveEventHandler</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>EventMask <parameter>event_mask</parameter></paramdef>
+   <paramdef>Boolean <parameter>nonmaskable</parameter></paramdef>
+   <paramdef>XtEventHandler <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget for which this procedure is registered.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event mask for which to unregister this procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>nonmaskable</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies whether this procedure should be
+removed on the nonmaskable events
+<function>( GraphicsExpose</function>,
+<function>NoExpose</function>,
+<function>SelectionClear</function>,
+<function>SelectionRequest</function>,
+<function>SelectionNotify</function>,
+<function>ClientMessage</function>,
+and
+<function>MappingNotify ).</function>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be removed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the registered client data.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtRemoveEventHandler' xrefstyle='select: title'/>
+function unregisters an event handler registered with
+<xref linkend='XtAddEventHandler' xrefstyle='select: title'/>
+or
+<xref linkend='XtInsertEventHandler' xrefstyle='select: title'/>
+for the specified events.
+The request is ignored if <emphasis remap='I'>client_data</emphasis> does not match the value given
+when the handler was registered.
+If the widget is realized and no other event handler requires the event,
+<xref linkend='XtRemoveEventHandler' xrefstyle='select: title'/>
+calls
+<function>XSelectInput</function>.
+If the specified procedure has not been registered
+or if it has been registered with a different value of <emphasis remap='I'>client_data</emphasis>,
+<xref linkend='XtRemoveEventHandler' xrefstyle='select: title'/>
+returns without reporting an error.
+</para>
+
+<para>
+To stop a procedure registered with
+<xref linkend='XtAddEventHandler' xrefstyle='select: title'/>
+or
+<xref linkend='XtInsertEventHandler' xrefstyle='select: title'/>
+from receiving all selected events, call
+<xref linkend='XtRemoveEventHandler' xrefstyle='select: title'/>
+with an <emphasis remap='I'>event_mask</emphasis> of
+<function>XtAllEvents</function>
+and <emphasis remap='I'>nonmaskable</emphasis>
+<function>True</function>.
+The procedure will continue to receive any events
+that have been specified in calls to
+<xref linkend='XtAddRawEventHandler' xrefstyle='select: title'/>
+or
+<xref linkend='XtInsertRawEventHandler' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To register an event handler procedure that receives events before or
+after all previously registered event handlers, use
+<xref linkend='XtInsertEventHandler' xrefstyle='select: title'/>.
+</para>
+<literallayout >
+typedef enum {XtListHead, XtListTail} XtListPosition;
+</literallayout>
+
+<funcsynopsis id='XtInsertEventHandler'>
+<funcprototype>
+<funcdef>void <function>XtInsertEventHandler</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>EventMask <parameter>event_mask</parameter></paramdef>
+   <paramdef>Boolean <parameter>nonmaskable</parameter></paramdef>
+   <paramdef>XtEventHandler <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtListPosition <parameter>position</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget for which this event handler is being registered. Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event mask for which to call this procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>nonmaskable</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies whether this procedure should be
+called on the nonmaskable events
+<function>( GraphicsExpose</function>,
+<function>NoExpose</function>,
+<function>SelectionClear</function>,
+<function>SelectionRequest</function>,
+<function>SelectionNotify</function>,
+<function>ClientMessage</function>,
+and
+<function>MappingNotify ).</function>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies additional data to be passed to the client's event handler.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>position</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies when the event handler is to be called
+relative to other previously registered handlers.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtInsertEventHandler' xrefstyle='select: title'/>
+is identical to
+<xref linkend='XtAddEventHandler' xrefstyle='select: title'/>
+with the additional <emphasis remap='I'>position</emphasis> argument.  If <emphasis remap='I'>position</emphasis> is
+<function>XtListHead</function>,
+the event
+handler is registered so that it is called before any event
+handlers that were previously registered for the same widget.  If
+<emphasis remap='I'>position</emphasis> is
+<function>XtListTail</function>,
+the event handler is registered to be called
+after any previously registered event handlers.  If the procedure is
+already registered with the same <emphasis remap='I'>client_data</emphasis> value, the specified mask
+augments the existing mask and the procedure is repositioned in
+the list.
+</para>
+</sect2>
+
+<sect2 id="Event_Handlers_That_Do_Not_Select_Events">
+<title>Event Handlers That Do Not Select Events</title>
+<para>
+On occasion,
+clients need to register an event handler procedure with the
+dispatch mechanism without explicitly
+causing the X server to select for that event.
+To do this, use
+<xref linkend='XtAddRawEventHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAddRawEventHandler'>
+<funcprototype>
+<funcdef>void <function>XtAddRawEventHandler</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>EventMask <parameter>event_mask</parameter></paramdef>
+   <paramdef>Boolean <parameter>nonmaskable</parameter></paramdef>
+   <paramdef>XtEventHandler <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget for which this event handler is being registered. Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event mask for which to call this procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>nonmaskable</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies whether this procedure should be
+called on the nonmaskable events
+<function>( GraphicsExpose</function>,
+<function>NoExpose</function>,
+<function>SelectionClear</function>,
+<function>SelectionRequest</function>,
+<function>SelectionNotify</function>,
+<function>ClientMessage</function>,
+and
+<function>MappingNotify ).</function>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be called.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies additional data to be passed to the client's event handler.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAddRawEventHandler' xrefstyle='select: title'/>
+function is similar to
+<xref linkend='XtAddEventHandler' xrefstyle='select: title'/>
+except that it does not affect the widget's event mask and never causes an
+<function>XSelectInput</function>
+for its events.
+Note that the widget might already have those mask bits set
+because of other nonraw event handlers registered on it.
+If the procedure is already registered with the same <emphasis remap='I'>client_data</emphasis>,
+the specified mask augments the existing mask.
+The order in which this procedure is called relative to other handlers
+registered for the same event is not defined.
+</para>
+
+<para>
+To remove a previously registered raw event handler, use
+<xref linkend='XtRemoveRawEventHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRemoveRawEventHandler'>
+<funcprototype>
+<funcdef>void <function>XtRemoveRawEventHandler</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>EventMask <parameter>event_mask</parameter></paramdef>
+   <paramdef>Boolean <parameter>nonmaskable</parameter></paramdef>
+   <paramdef>XtEventHandler <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget for which this procedure is registered.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event mask for which to unregister this procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>nonmaskable</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies whether this procedure should be
+removed on the nonmaskable events
+<function>( GraphicsExpose</function>,
+<function>NoExpose</function>,
+<function>SelectionClear</function>,
+<function>SelectionRequest</function>,
+<function>SelectionNotify</function>,
+<function>ClientMessage</function>,
+and
+<function>MappingNotify ).</function>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be registered.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the registered client data.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtRemoveRawEventHandler' xrefstyle='select: title'/>
+function unregisters an event handler registered with
+<xref linkend='XtAddRawEventHandler' xrefstyle='select: title'/>
+or
+<xref linkend='XtInsertRawEventHandler' xrefstyle='select: title'/>
+for the specified events without changing
+the window event mask.
+The request is ignored if <emphasis remap='I'>client_data</emphasis> does not match the value given
+when the handler was registered.
+If the specified procedure has not been registered
+or if it has been registered with a different value of <emphasis remap='I'>client_data</emphasis>,
+<xref linkend='XtRemoveRawEventHandler' xrefstyle='select: title'/>
+returns without reporting an error.
+</para>
+
+<para>
+To stop a procedure
+registered with
+<xref linkend='XtAddRawEventHandler' xrefstyle='select: title'/>
+or
+<xref linkend='XtInsertRawEventHandler' xrefstyle='select: title'/>
+from receiving all nonselected events, call
+<xref linkend='XtRemoveRawEventHandler' xrefstyle='select: title'/>
+with an <emphasis remap='I'>event_mask</emphasis> of
+<function>XtAllEvents</function>
+and <emphasis remap='I'>nonmaskable</emphasis>
+<function>True</function>.
+The procedure
+will continue to receive any events that have been specified in calls to
+<xref linkend='XtAddEventHandler' xrefstyle='select: title'/>
+or
+<xref linkend='XtInsertEventHandler' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To register an event handler procedure that receives events before or
+after all previously registered event handlers without selecting for
+the events, use
+<xref linkend='XtInsertRawEventHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtInsertRawEventHandler'>
+<funcprototype>
+<funcdef>void <function>XtInsertRawEventHandler</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>EventMask <parameter>event_mask</parameter></paramdef>
+   <paramdef>Boolean <parameter>nonmaskable</parameter></paramdef>
+   <paramdef>XtEventHandler <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtListPosition <parameter>position</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget for which this event handler is being registered. Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event mask for which to call this procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>nonmaskable</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies whether this procedure should be
+called on the nonmaskable events
+<function>( GraphicsExpose</function>,
+<function>NoExpose</function>,
+<function>SelectionClear</function>,
+<function>SelectionRequest</function>,
+<function>SelectionNotify</function>,
+<function>ClientMessage</function>,
+and
+<function>MappingNotify ).</function>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the procedure to be registered.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies additional data to be passed to the client's event handler.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>position</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies when the event handler is to be called
+relative to other previously registered handlers.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtInsertRawEventHandler' xrefstyle='select: title'/>
+function is similar to
+<xref linkend='XtInsertEventHandler' xrefstyle='select: title'/>
+except that it does not modify the widget's event
+mask and never causes an
+<function>XSelectInput</function>
+for the specified events.  If
+the procedure is already registered with the same <emphasis remap='I'>client_data</emphasis>
+value, the
+specified mask augments the existing mask and the procedure is
+repositioned in the list.
+</para>
+</sect2>
+
+<sect2 id="Current_Event_Mask">
+<title>Current Event Mask</title>
+<para>
+To retrieve the event mask for a given widget, use
+<xref linkend='XtBuildEventMask' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtBuildEventMask'>
+<funcprototype>
+<funcdef>EventMask <function>XtBuildEventMask</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Core or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtBuildEventMask' xrefstyle='select: title'/>
+function returns the event mask representing the logical OR
+of all event masks for event handlers registered on the widget with
+<xref linkend='XtAddEventHandler' xrefstyle='select: title'/>
+and
+<xref linkend='XtInsertEventHandler' xrefstyle='select: title'/>
+and all event translations, including accelerators,
+installed on the widget.
+This is the same event mask stored into the
+<function>XSetWindowAttributes</function>
+structure by
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+and sent to the server when event handlers and translations are installed or
+removed on the realized widget.
+</para>
+</sect2>
+
+<sect2 id="Event_Handlers_for_X_Protocol_Extensions">
+<title>Event Handlers for X11 Protocol Extensions</title>
+<para>
+To register an event handler procedure with the Intrinsics dispatch
+mechanism according to an event type, use
+<xref linkend='XtInsertEventTypeHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtInsertEventTypeHandler'>
+<funcprototype>
+<funcdef>void <function>XtInsertEventTypeHandler</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>int <parameter>event_type</parameter></paramdef>
+   <paramdef>XtPointer <parameter>select_data</parameter></paramdef>
+   <paramdef>XtEventHandler <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+   <paramdef>XtListPosition <parameter>position</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget for which this event handler is being registered.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event type for which to call this event handler.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>select_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies data used to request events of the specified type from the server,
+or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event handler to be called.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies additional data to be passed to the event handler.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>position</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies when the event handler is to be called relative to other
+previously registered handlers.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtInsertEventTypeHandler' xrefstyle='select: title'/>
+registers a procedure with the
+dispatch mechanism that is to be called when an event that matches the
+specified <emphasis remap='I'>event_type</emphasis> is dispatched to the specified <emphasis remap='I'>widget</emphasis>.
+</para>
+
+<para>
+If <emphasis remap='I'>event_type</emphasis> specifies one of the core X protocol events, then
+<emphasis remap='I'>select_data</emphasis> must be a pointer to a value of type
+<function>EventMask</function>,
+indicating
+the event mask to be used to select for the desired event.  This event
+mask is included in the value returned by
+<xref linkend='XtBuildEventMask' xrefstyle='select: title'/>.
+If the widget is realized,
+<xref linkend='XtInsertEventTypeHandler' xrefstyle='select: title'/>
+calls
+<function>XSelectInput</function>
+if necessary.  Specifying NULL for <emphasis remap='I'>select_data</emphasis> is equivalent to
+specifying a pointer to an event mask containing 0.  This is similar
+to the
+<xref linkend='XtInsertRawEventHandler' xrefstyle='select: title'/>
+function.
+</para>
+
+<para>
+If <emphasis remap='I'>event_type</emphasis> specifies an extension event type, then the semantics of
+the data pointed to by <emphasis remap='I'>select_data</emphasis> are defined by the extension
+selector registered for the specified event type.
+</para>
+
+<para>
+In either case the Intrinsics are not required to copy the data
+pointed to by <emphasis remap='I'>select_data</emphasis>, so the caller must ensure that it remains
+valid as long as the event handler remains registered with this value
+of <emphasis remap='I'>select_data</emphasis>.
+</para>
+
+<para>
+The <emphasis remap='I'>position</emphasis> argument allows the client to control the order of
+invocation of event handlers registered for the same event type.  If
+the client does not care about the order, it should normally specify
+<function>XtListTail</function>,
+which registers this event handler after any previously
+registered handlers for this event type.
+</para>
+
+<para>
+Each widget has a single registered event handler list, which will
+contain any procedure/client_data pair exactly once if it is
+registered with
+<xref linkend='XtInsertEventTypeHandler' xrefstyle='select: title'/>,
+regardless of the manner
+in which it is registered and regardless of the value(s)
+of <emphasis remap='I'>select_data</emphasis>.  If the procedure is already registered with the
+same <emphasis remap='I'>client_data</emphasis> value, the specified mask augments the existing
+mask and the procedure is repositioned in the list.
+</para>
+
+<para>
+To remove an event handler registered with
+<xref linkend='XtInsertEventTypeHandler' xrefstyle='select: title'/>,
+use
+<xref linkend='XtRemoveEventTypeHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRemoveEventTypeHandler'>
+<funcprototype>
+<funcdef>void <function>XtRemoveEventTypeHandler</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>int <parameter>event_type</parameter></paramdef>
+   <paramdef>XtPointer <parameter>select_data</parameter></paramdef>
+   <paramdef>XtEventHandler <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget for which the event handler was registered.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event type for which the handler was registered.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>select_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies data used to deselect events of the specified type
+from the server, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event handler to be removed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the additional client data with which the procedure was registered.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtRemoveEventTypeHandler' xrefstyle='select: title'/>
+function unregisters an event handler
+registered with
+<xref linkend='XtInsertEventTypeHandler' xrefstyle='select: title'/>
+for the specified event type.
+The request is ignored if <emphasis remap='I'>client_data</emphasis> does not match the value given
+when the handler was registered.
+</para>
+
+<para>
+If <emphasis remap='I'>event_type</emphasis> specifies one of the core X protocol events,
+<emphasis remap='I'>select_data</emphasis> must be a pointer to a value of type
+<function>EventMask, indicating the event</function>
+mask to be used to deselect for the appropriate event.  If the widget
+is realized,
+<xref linkend='XtRemoveEventTypeHandler' xrefstyle='select: title'/>
+calls
+<function>XSelectInput</function>
+if necessary.
+Specifying NULL for <emphasis remap='I'>select_data</emphasis> is equivalent to specifying a pointer
+to an event mask containing 0.  This is similar to the
+<xref linkend='XtRemoveRawEventHandler' xrefstyle='select: title'/>
+function.
+</para>
+
+<para>
+If <emphasis remap='I'>event_type</emphasis> specifies an extension event type, then the semantics of
+the data pointed to by <emphasis remap='I'>select_data</emphasis> are defined by the extension
+selector registered for the specified event type.
+</para>
+
+<para>
+To register a procedure to select extension events for a widget, use
+<xref linkend='XtRegisterExtensionSelector' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRegisterExtensionSelector'>
+<funcprototype>
+<funcdef>void <function>XtRegisterExtensionSelector</function></funcdef>
+   <paramdef>Display <parameter>*display</parameter></paramdef>
+   <paramdef>int <parameter>min_event_type</parameter></paramdef>
+   <paramdef>int <parameter>max_event_type</parameter></paramdef>
+   <paramdef>XtExtensionSelectProc <parameter>proc</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display for which the extension selector is to be registered.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>min_event_type</emphasis>
+    </term>
+    <listitem>
+      <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>max_event_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the range of event types for the extension.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the extension selector procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies additional data to be passed to the extension selector.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtRegisterExtensionSelector' xrefstyle='select: title'/>
+function registers a procedure to arrange
+for the delivery of extension events to widgets.
+</para>
+
+<para>
+If <emphasis remap='I'>min_event_type</emphasis> and <emphasis remap='I'>max_event_type</emphasis> match the parameters
+to a previous call to
+<xref linkend='XtRegisterExtensionSelector' xrefstyle='select: title'/>
+for the same <emphasis remap='I'>display</emphasis>, then <emphasis remap='I'>proc</emphasis> and <emphasis remap='I'>client_data</emphasis>
+replace the previously
+registered values.  If the range specified by <emphasis remap='I'>min_event_type</emphasis>
+and <emphasis remap='I'>max_event_type</emphasis> overlaps the range of the parameters to a
+previous call for the same display in any other way, an error results.
+</para>
+
+<para>
+When a widget is realized,
+after the <emphasis remap='I'>core.realize</emphasis> method is called,
+the Intrinsics check to see if any event
+handler specifies an event type within the range of a registered
+extension selector.  If so, the Intrinsics call each such selector.
+If an event type handler is added or removed, the Intrinsics check to
+see if the event type falls within the range of a registered extension
+selector, and if it does, calls the selector.  In either case the Intrinsics
+pass a list of all the widget's event types that are within the
+selector's range.  The corresponding select data are also passed.  The
+selector is responsible for enabling the delivery of extension events
+required by the widget.
+</para>
+
+<para>
+An extension selector is of type
+<xref linkend='XtExtensionSelectProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtExtensionSelectProc'>
+<funcprototype>
+<funcdef>typedef void <function>(*XtExtensionSelectProc)</function></funcdef>
+
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>int *<parameter>event_types</parameter></paramdef>
+   <paramdef>XtPointer *<parameter>select_data</parameter></paramdef>
+   <paramdef>int <parameter>count</parameter></paramdef>
+   <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that is being realized or is having
+an event handler added or removed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_types</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a list of event types that the widget has
+registered event handlers for.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>select_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a list of the select_data parameters specified in
+<xref linkend='XtInsertEventTypeHandler' xrefstyle='select: title'/>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>count</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the <emphasis remap='I'>event_types</emphasis> and <emphasis remap='I'>select_data</emphasis>
+lists.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the additional client data with which the procedure was registered.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The <emphasis remap='I'>event_types</emphasis> and <emphasis remap='I'>select_data</emphasis> lists will always have the
+same number of elements, specified by <emphasis remap='I'>count</emphasis>.
+Each event type/select data pair represents one call to
+<xref linkend='XtInsertEventTypeHandler' xrefstyle='select: title'/>.
+</para>
+
+<para>
+To register a procedure to dispatch events of a specific type within
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>,
+use
+<xref linkend='XtSetEventDispatcher' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetEventDispatcher'>
+<funcprototype>
+<funcdef>XtEventDispatchProc <function>XtSetEventDispatcher</function></funcdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
+   <paramdef>int <parameter>event_type</parameter></paramdef>
+   <paramdef>XtEventDispatchProc <parameter>proc</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display for which the event dispatcher is to be registered.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event_type</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event type for which the dispatcher should be invoked.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the event dispatcher procedure.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtSetEventDispatcher' xrefstyle='select: title'/>
+function registers the event dispatcher procedure specified by <emphasis remap='I'>proc</emphasis>
+for events with the type <emphasis remap='I'>event_type</emphasis>.  The previously registered
+dispatcher (or the default dispatcher if there was no previously registered
+dispatcher) is returned.  If <emphasis remap='I'>proc</emphasis> is NULL, the default procedure is
+restored for the specified type.
+</para>
+
+<para>
+In the future, when
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+is called with an event type of <emphasis remap='I'>event_type</emphasis>, the specified <emphasis remap='I'>proc</emphasis>
+(or the default dispatcher) is invoked to determine a widget
+to which to dispatch the event.
+</para>
+
+<para>
+The default dispatcher handles the Intrinsics modal cascade and keyboard
+focus mechanisms, handles the semantics of <emphasis remap='I'>compress_enterleave</emphasis>
+and <emphasis remap='I'>compress_motion</emphasis>, and discards all extension events.
+</para>
+
+<para>
+An event dispatcher procedure pointer is of type
+<xref linkend='XtEventDispatchProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtEventDispatchProc'>
+<funcprototype>
+<funcdef>typedef Boolean <function>(*XtEventDispatchProc)</function></funcdef>
+   <paramdef>XEvent *<parameter>event</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the event to be dispatched.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The event dispatcher procedure should determine whether this event is of
+a type that should be dispatched to a widget.
+</para>
+
+<para>
+If the event should be dispatched to a widget, the event dispatcher
+procedure should determine the appropriate widget to receive the
+event, call
+<function>XFilterEvent</function>
+with the window of this widget, or
+<function>None</function>
+if the event is to be discarded, and if
+<function>XFilterEvent</function>
+returns
+<function>False</function>,
+dispatch the event to the widget using
+<xref linkend='XtDispatchEventToWidget' xrefstyle='select: title'/>.
+The procedure should return
+<function>True</function>
+if either
+<function>XFilterEvent</function>
+or
+<xref linkend='XtDispatchEventToWidget' xrefstyle='select: title'/>
+returned
+<function>True</function>
+and
+<function>False</function>
+otherwise.
+</para>
+
+<para>
+If the event should not be dispatched to a widget, the event
+dispatcher procedure should attempt to dispatch the event elsewhere as
+appropriate and return
+<function>True</function>
+if it successfully dispatched the event and
+<function>False</function>
+otherwise.
+</para>
+
+<para>
+Some dispatchers for extension events may wish to forward events
+according to the Intrinsics' keyboard focus mechanism.  To determine
+which widget is the end result of keyboard event forwarding, use
+<xref linkend='XtGetKeyboardFocusWidget' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGetKeyboardFocusWidget'>
+<funcprototype>
+<funcdef>Widget <function>XtGetKeyboardFocusWidget</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget to get forwarding information for.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtGetKeyboardFocusWidget' xrefstyle='select: title'/>
+function returns the widget that would be the end result of keyboard
+event forwarding for a keyboard event for the specified widget.
+</para>
+
+<para>
+To dispatch an event to a specified widget, use
+<xref linkend='XtDispatchEventToWidget' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtDispatchEventToWidget'>
+<funcprototype>
+<funcdef>Boolean <function>XtDispatchEventToWidget</function></funcdef>
+   <paramdef>Widget <parameter>widget</parameter></paramdef>
+   <paramdef>XEvent *<parameter>event</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget to which to dispatch the event.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>event</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the event to be dispatched.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtDispatchEventToWidget' xrefstyle='select: title'/>
+function scans the list of registered event handlers for the
+specified widget and calls each handler that has been registered
+for the specified event type, subject to the <emphasis remap='I'>continue_to_dispatch</emphasis>
+value returned by each handler.
+The Intrinsics behave as if event handlers were registered at the head
+of the list for
+<function>Expose</function>,
+<function>NoExpose</function>,
+<function>GraphicsExpose</function>,
+and
+<function>VisibilityNotify</function>
+events to invoke the widget's expose procedure according to the exposure
+compression rules and to update the widget's <emphasis remap='I'>visible</emphasis> field
+if <emphasis remap='I'>visible_interest</emphasis> is
+<function>True</function>.
+These internal event handlers never set <emphasis remap='I'>continue_to_dispatch</emphasis> to
+<function>False</function>.
+</para>
+
+<para>
+<xref linkend='XtDispatchEventToWidget' xrefstyle='select: title'/>
+returns
+<function>True</function>
+if any event handler was called and
+<function>False</function>
+otherwise.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Using_the_Intrinsics_in_a_Multi_Threaded_Environment">
+<title>Using the Intrinsics in a Multi-Threaded Environment</title>
+<para>
+The Intrinsics may be used in environments that offer multiple threads
+of execution within the context of a single process.  A multi-threaded
+application using the Intrinsics must explicitly initialize the toolkit
+for mutually exclusive access by calling
+<xref linkend='XtToolkitThreadInitialize' xrefstyle='select: title'/>.
+</para>
+<sect2 id="Initializing_a_Multi_Threaded_Intrinsics_Application">
+<title>Initializing a Multi-Threaded Intrinsics Application</title>
+<para>
+To test and initialize Intrinsics support for mutually exclusive thread
+access, call
+<xref linkend='XtToolkitThreadInitialize' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtToolkitThreadInitialize'>
+<funcprototype>
+<funcdef>Boolean <function>XtToolkitThreadInitialize</function></funcdef>
+   <paramdef><parameter></parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<para>
+<xref linkend='XtToolkitThreadInitialize' xrefstyle='select: title'/>
+returns <function>True</function> if the Intrinsics support mutually exclusive thread
+access, otherwise it returns <function>False</function>. <xref linkend='XtToolkitThreadInitialize' xrefstyle='select: title'/>
+must be called before
+<xref linkend='XtCreateApplicationContext' xrefstyle='select: title'/>,
+<xref linkend='XtAppInitialize' xrefstyle='select: title'/>,
+<xref linkend='XtOpenApplication' xrefstyle='select: title'/>,
+or
+<function>XtSetLanguageProc</function>
+is called. <xref linkend='XtToolkitThreadInitialize' xrefstyle='select: title'/> may be called more than once;
+however, the application writer must ensure that it is not called
+simultaneously by two or more threads.
+</para>
+</sect2>
+
+<sect2 id="Locking_tk_Data_Structures">
+<title>Locking X Toolkit Data Structures</title>
+<para>
+The Intrinsics employs two levels of locking: application context and
+process.  Locking an application context ensures mutually exclusive
+access by a thread to the state associated with the application context,
+including all displays and widgets associated with it.  Locking a
+process ensures mutually exclusive access by a thread to Intrinsics process
+global data.
+</para>
+
+<para>
+A client may acquire a lock multiple times and the effect is cumulative.
+The client must ensure that the lock is released an equal number of times in
+order for the lock to be acquired by another thread.
+</para>
+
+<para>
+Most application writers will have little need to use locking as the
+Intrinsics performs the necessary locking internally.
+Resource converters are an exception.
+They require the application context or process to be locked
+before the application can safely call them directly, for example:
+</para>
+<literallayout >
+	...
+	XtAppLock(app_context);
+	XtCvtStringToPixel(dpy, args, num_args, fromVal, toVal, closure_ret);
+	XtAppUnlock(app_context);
+	...
+</literallayout>
+<para>
+When the application relies upon
+<xref linkend='XtConvertAndStore' xrefstyle='select: title'/>
+or a converter to provide the storage for the results of a
+conversion, the application should acquire the process lock before
+calling out and hold the lock until the results have been copied.
+</para>
+
+<para>
+Application writers who write their own
+utility functions, such as one which retrieves the being_destroyed field from
+a widget instance, must lock the application context before accessing
+widget internal data.  For example:
+</para>
+<literallayout >
+#include &lt;X11/CoreP.h&gt;
+Boolean BeingDestroyed (widget)
+	Widget widget;
+{
+	Boolean ret;
+	XtAppLock(XtWidgetToApplicationContext(widget));
+	ret = widget-&gt;core.being_destroyed;
+	XtAppUnlock(XtWidgetToApplicationContext(widget));
+	return ret;
+}
+</literallayout>
+<para>
+A client that wishes to atomically call two or more Intrinsics functions
+must lock the application context.  For example:
+</para>
+<literallayout >
+	...
+	XtAppLock(XtWidgetToApplicationContext(widget));
+	XtUnmanageChild (widget1);
+	XtManageChild (widget2);
+	XtAppUnlock(XtWidgetToApplicationContext(widget));
+	...
+</literallayout>
+<sect3 id="Locking_the_Application_Context">
+<title>Locking the Application Context</title>
+<para>
+To ensure mutual exclusion of application context, display, or
+widget internal state, use
+<function>XtAppLock.</function>
+</para>
+
+<funcsynopsis id='XtAppLock'>
+<funcprototype>
+<funcdef>void <function>XtAppLock</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context to lock.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtAppLock' xrefstyle='select: title'/> blocks until it is able to acquire the lock.  Locking the
+application context also ensures that only the thread holding the lock
+makes Xlib calls from within Xt.  An application that makes its own
+direct Xlib calls must either lock the application context around every
+call or enable thread locking in Xlib.
+</para>
+
+<para>
+To unlock a locked application context, use
+<function>XtAppUnlock.</function>
+</para>
+
+<funcsynopsis id='XtAppUnlock'>
+<funcprototype>
+<funcdef>void <function>XtAppUnlock</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context that was previously locked.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+</sect3>
+<sect3 id="Locking_the_Process">
+<title>Locking the Process</title>
+<para>
+To ensure mutual exclusion of X Toolkit process global data, a
+widget writer must use
+<function>XtProcessLock.</function>
+</para>
+
+<funcsynopsis id='XtProcessLock'>
+<funcprototype>
+<funcdef>void <function>XtProcessLock</function></funcdef>
+   <paramdef><parameter></parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<para>
+<xref linkend='XtProcessLock' xrefstyle='select: title'/> blocks until it is able to acquire the lock.
+Widget writers may use XtProcessLock to guarantee mutually exclusive
+access to widget static data.
+</para>
+
+<para>
+To unlock a locked process, use
+<xref linkend='XtProcessUnlock' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtProcessUnlock'>
+<funcprototype>
+<funcdef>void <function>XtProcessUnlock</function></funcdef>
+   <paramdef><parameter></parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<para>
+To lock both an application context and the process at the same
+time, call
+<xref linkend='XtAppLock' xrefstyle='select: title'/>
+first and then
+<xref linkend='XtProcessLock' xrefstyle='select: title'/>.
+To release both locks, call
+<xref linkend='XtProcessUnlock' xrefstyle='select: title'/>
+first and then
+<xref linkend='XtAppUnlock' xrefstyle='select: title'/>.
+The order is important to avoid deadlock.
+</para>
+</sect3>
+</sect2>
+
+<sect2 id="Event_Management_in_a_Multi_Threaded_Environment">
+<title>Event Management in a Multi-Threaded Environment</title>
+<para>
+In a nonthreaded environment an application writer could reasonably
+assume that it is safe to exit the application from a quit callback.
+This assumption may no longer hold true in a multi-threaded environment;
+therefore it is desirable to provide a mechanism to terminate an
+event-processing loop without necessarily terminating its thread.
+</para>
+
+<para>
+To indicate that the event loop should terminate after the current
+event dispatch has completed, use
+<xref linkend='XtAppSetExitFlag' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppSetExitFlag'>
+<funcprototype>
+<funcdef>void <function>XtAppSetExitFlag</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtAppMainLoop' xrefstyle='select: title'/>
+tests the value of the flag and will return if the flag is <function>True</function>.
+</para>
+
+<para>
+Application writers who implement their own main loop may test the
+value of the exit flag with
+<xref linkend='XtAppGetExitFlag' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppGetExitFlag'>
+<funcprototype>
+<funcdef>Boolean <function>XtAppGetExitFlag</function></funcdef>
+   <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtAppGetExitFlag' xrefstyle='select: title'/>
+will normally return <function>False</function>, indicating that event processing
+may continue.  When
+<xref linkend='XtAppGetExitFlag' xrefstyle='select: title'/>
+returns <function>True</function>, the loop must terminate and return to the caller,
+which might then destroy the application context.
+</para>
+
+<para>
+Application writers should be aware that, if a thread is blocked in
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>,
+<xref linkend='XtAppPeekEvent' xrefstyle='select: title'/>,
+or
+<xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>
+and another thread in the same application context opens a new display,
+adds an alternate input, or a timeout, any new source(s) will not
+normally be "noticed" by the blocked thread.  Any new sources are
+"noticed" the next time one of these functions is called.
+</para>
+
+<para>
+The Intrinsics manage access to events on a last-in, first-out basis.  If
+multiple threads in the same application context block in
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>,
+<xref linkend='XtAppPeekEvent' xrefstyle='select: title'/>,
+or
+<xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>,
+the last thread to call one of these functions is the first
+thread to return.
+</para>
+</sect2>
+</sect1>
+</chapter>

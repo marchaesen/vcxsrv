@@ -237,6 +237,7 @@ static void FreeSelectionProperty(
     Atom prop)
 {
  SelectionProp p;
+ int propCount;
  PropList sarray;
  if (prop == None) return;
  LOCK_PROCESS;
@@ -247,7 +248,9 @@ static void FreeSelectionProperty(
 		"internal error: no selection property context for display",
 		 (String *)NULL,  (Cardinal *)NULL );
  UNLOCK_PROCESS;
- for (p = sarray->list; p; p++)
+ for (p = sarray->list, propCount=sarray->propCount;
+	propCount;
+	p++, propCount--)
    if (p->prop == prop) {
       p->avail = TRUE;
       return;

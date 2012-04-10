@@ -1,0 +1,112 @@
+<appendix id='Resource_File_Format'>
+<title>Resource File Format</title>
+<para>
+A resource file contains text representing the default resource values for an
+application or set of applications.
+</para>
+
+<para>
+The format of resource files is defined by
+<emphasis remap='I'>Xlib — C Language X Interface.</emphasis> and is reproduced here
+for convenience only.
+</para>
+
+<para>The format of a resource specification is</para>
+<informaltable frame='none'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='2' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='0.3*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <tbody>
+    <row>
+      <entry>ResourceLine</entry>
+      <entry>= Comment | IncludeFile | ResourceSpec | &lt;empty line&gt;</entry>
+    </row>
+    <row>
+      <entry>Comment</entry>
+      <entry>="!" {&lt;any character except null or newline&gt;}</entry>
+    </row>
+    <row>
+      <entry>IncludeFile</entry>
+      <entry>= "#" WhiteSpace "include" WhiteSpace FileName WhiteSpace</entry>
+    </row>
+    <row>
+      <entry>FileName</entry>
+      <entry>= &lt;valid filename for operating system&gt;</entry>
+    </row>
+    <row>
+      <entry>ResourceSpec</entry>
+      <entry>= WhiteSpace ResourceName WhiteSpace ":" WhiteSpace Value</entry>
+    </row>
+    <row>
+      <entry>ResourceName</entry>
+      <entry>= [Binding] {Component Binding} ComponentName</entry>
+    </row>
+    <row>
+      <entry>Binding</entry>
+      <entry>="." | "*"</entry>
+    </row>
+    <row>
+      <entry>WhiteSpace</entry>
+      <entry>= {&lt;space> | &lt;horizontal tab&gt;}</entry>
+    </row>
+    <row>
+      <entry>Component</entry>
+      <entry>= "?" | ComponentName</entry>
+    </row>
+    <row>
+      <entry>ComponentName</entry>
+      <entry>= NameChar {NameChar}</entry>
+    </row>
+    <row>
+      <entry>NameChar</entry>
+      <entry>= "a"-"z" | "A"-"Z" | "0"-"9" | "_" | "-"</entry>
+    </row>
+    <row>
+      <entry>Value</entry>
+      <entry>={&lt;any character except null or unescaped newline&gt;}</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+Elements separated by vertical bar (|) are alternatives.
+Curly braces ({...}) indicate zero or more repetitions
+of the enclosed elements.
+Square brackets ([...]) indicate that the enclosed element is optional.
+Quotes ("...") are used around literal characters.
+</para>
+
+<para>
+If the last character on a line is a backslash (\),
+that line is assumed to continue on the next line.
+</para>
+
+<para>
+To allow a Value to begin with whitespace,
+the two-character sequence "\<emphasis remap='I'>space</emphasis>" (backslash followed by space)
+is recognized and replaced by a space character,
+and the two-character sequence "\<emphasis remap='I'>tab</emphasis>"
+(backslash followed by horizontal tab)
+is recognized and replaced by a horizontal tab character.
+</para>
+<para>
+To allow a Value to contain embedded newline characters,
+the two-character sequence "\n" is recognized and replaced by a
+newline character.
+To allow a Value to be broken across multiple lines in a text file,
+the two-character sequence "\<emphasis remap='I'>newline</emphasis>"
+(backslash followed by newline) is
+recognized and removed from the value.
+</para>
+<para>
+To allow a Value to contain arbitrary character codes,
+the four-character sequence "\<emphasis remap='I'>nnn</emphasis>",
+where each <emphasis remap='I'>n</emphasis> is a digit character in the range of "0"-"7",
+is recognized and replaced with a single byte that contains
+the octal value specified by the sequence.
+Finally, the two-character sequence "\\" is recognized
+and replaced with a single backslash.
+</para>
+</appendix>

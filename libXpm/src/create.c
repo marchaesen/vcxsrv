@@ -219,9 +219,9 @@ typedef struct {
 }      CloseColor;
 
 static int
-closeness_cmp(Const void *a, Const void *b)
+closeness_cmp(const void *a, const void *b)
 {
-    CloseColor *x = (CloseColor *) a, *y = (CloseColor *) b;
+    const CloseColor *x = (const CloseColor *) a, *y = (const CloseColor *) b;
 
     /* cast to int as qsort requires */
     return (int) (x->closeness - y->closeness);
@@ -309,17 +309,17 @@ SetCloseColor(
      * occurred, so we try the next closest color, and so on, until no more
      * colors are within closeness of the target. If we knew that the
      * colormap had changed, we could skip this sequence.
-     * 
+     *
      * If _none_ of the colors within closeness of the target can be allocated,
      * then we can finally be pretty sure that the colormap has actually
      * changed. In this case we try to allocate the original color (again),
      * then try the closecolor stuff (again)...
-     * 
+     *
      * In theory it would be possible for an infinite loop to occur if another
      * process kept changing the colormap every time we sorted it, so we set
      * a maximum on the number of iterations. After this many tries, we use
      * XGrabServer() to ensure that the colormap remains unchanged.
-     * 
+     *
      * This approach gives particularly bad worst case performance - as many as
      * <MaximumIterations> colormap reads and sorts may be needed, and as
      * many as <MaximumIterations> * <ColormapSize> attempted allocations
@@ -816,7 +816,7 @@ XpmCreateImageFromXpmImage(
 
     ErrorStatus = XpmSuccess;
 
-    if (image->ncolors >= UINT_MAX / sizeof(Pixel)) 
+    if (image->ncolors >= UINT_MAX / sizeof(Pixel))
 	return (XpmNoMemory);
 
     /* malloc pixels index tables */
@@ -1028,7 +1028,7 @@ LFUNC(_putbits, void, (register char *src, int dstoffset,
 
 LFUNC(_XReverse_Bytes, int, (register unsigned char *bpt, register unsigned int nb));
 
-static unsigned char Const _reverse_byte[0x100] = {
+static unsigned char const _reverse_byte[0x100] = {
     0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0,
     0x10, 0x90, 0x50, 0xd0, 0x30, 0xb0, 0x70, 0xf0,
     0x08, 0x88, 0x48, 0xc8, 0x28, 0xa8, 0x68, 0xe8,
@@ -1146,9 +1146,9 @@ xpm_znormalizeimagebits(
     }
 }
 
-static unsigned char Const _lomask[0x09] = {
+static unsigned char const _lomask[0x09] = {
 0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff};
-static unsigned char Const _himask[0x09] = {
+static unsigned char const _himask[0x09] = {
 0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80, 0x00};
 
 static void
@@ -1692,7 +1692,7 @@ APutImagePixels (
     unsigned char  *array;
     XImage         *tmp_img;
     BOOL            success = FALSE;
-    
+
     array = XpmMalloc ((((width+15)>>4)<<4)*sizeof (*array));
     if (array != NULL)
     {
@@ -1711,7 +1711,7 @@ APutImagePixels (
 	}
 	XpmFree (array);
     }
-    
+
     if (!success)
     {
 	for (y = 0; y < height; ++y)
@@ -1890,7 +1890,7 @@ PutPixel16MSB(
     unsigned long	 pixel)
 {
     unsigned char *addr;
-    
+
     if(x < 0 || y < 0)
     	return 0;
 
@@ -1908,7 +1908,7 @@ PutPixel16LSB(
     unsigned long	 pixel)
 {
     unsigned char *addr;
-    
+
     if(x < 0 || y < 0)
     	return 0;
 
@@ -2092,7 +2092,7 @@ xpmParseDataAndCreate(
 	xpmGetCmt(data, &colors_cmt);
 
     /* malloc pixels index tables */
-    if (ncolors >= UINT_MAX / sizeof(Pixel)) 
+    if (ncolors >= UINT_MAX / sizeof(Pixel))
 	RETURN(XpmNoMemory);
 
     image_pixels = (Pixel *) XpmMalloc(sizeof(Pixel) * ncolors);

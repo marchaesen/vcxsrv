@@ -1,0 +1,1369 @@
+<chapter id='Geometry_Management'>
+<title>Geometry Management</title>
+
+<para>
+A widget does not directly control its size and location;
+rather, its parent is responsible for controlling them.
+Although the position of children is usually left up to their parent,
+the widgets themselves often have the best idea of their optimal sizes
+and, possibly, preferred locations.
+</para>
+
+<para>
+To resolve physical layout conflicts between sibling widgets and between
+a widget and its parent, the Intrinsics provide the geometry management mechanism.
+Almost all
+composite
+widgets have a geometry manager specified in the <emphasis remap='I'>geometry_manager</emphasis> field
+in the widget class record that is responsible for the size, position, and
+stacking order of the widget's children.
+The only exception is fixed boxes,
+which create their children themselves and can ensure that
+their children will never make a geometry request.
+</para>
+
+<sect1 id="Initiating_Geometry_Changes">
+<title>Initiating Geometry Changes</title>
+
+<para>
+Parents, children, and clients each initiate geometry changes differently.
+Because a parent has absolute control of its children's geometry,
+it changes the geometry directly by calling
+<function>XtMove\%Widget</function>,
+<xref linkend='XtResizeWidget' xrefstyle='select: title'/>,
+or
+<xref linkend='XtConfigureWidget' xrefstyle='select: title'/>.
+A child must ask its parent for a geometry change by calling
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+or
+<xref linkend='XtMakeResizeRequest' xrefstyle='select: title'/>.
+An application or other client code initiates a geometry change by calling
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+on the appropriate geometry fields,
+thereby giving the widget the opportunity to modify or reject the client
+request before it gets propagated to the parent and the opportunity
+to respond appropriately to the parent's reply.
+</para>
+
+<para>
+When a widget that needs to change its size, position, border width,
+or stacking depth asks its parent's geometry manager to make the desired
+changes,
+the geometry manager can allow the request, disallow the request, or
+suggest a compromise.
+</para>
+
+<para>
+When the geometry manager is asked to change the geometry of a child,
+the geometry manager may also rearrange and resize any or all
+of the other children that it controls.
+The geometry manager can move children around freely using
+<xref linkend='XtMoveWidget' xrefstyle='select: title'/>.
+When it resizes a child (that is, changes the width, height, or
+border width) other than the one making the request,
+it should do so by calling
+<xref linkend='XtResizeWidget' xrefstyle='select: title'/>.
+The requesting child may be given special treatment; see
+<xref linkend='Child_Geometry_Management_The_geometry_manager_Procedure' />.
+It can simultaneously move and resize a child with a single call to
+<xref linkend='XtConfigureWidget' xrefstyle='select: title'/>.
+</para>
+
+<para>
+Often, geometry managers find that they can satisfy a request only if
+they can reconfigure a widget that they are not in control of; in particular,
+the
+composite
+widget may want to change its own size.
+In this case,
+the geometry manager makes a request to its parent's geometry manager.
+Geometry requests can cascade this way to arbitrary depth.
+</para>
+
+<para>
+Because such cascaded arbitration of widget geometry can involve extended
+negotiation,
+windows are not actually allocated to widgets at application
+startup until all widgets are satisfied with their geometry;
+see <xref linkend='Creating_Widgets' /> and
+<xref linkend='Realizing_Widgets' />.
+</para>
+
+<note>
+<orderedlist>
+  <listitem>
+    <para>
+The Intrinsics treatment of stacking requests is deficient in several areas.
+Stacking requests for unrealized widgets are granted but will have no effect.
+In addition, there is no way to do an
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+that will generate a stacking geometry request.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+After a successful geometry request (one that returned
+<function>XtGeometryYes</function>),
+a widget does not know whether its resize procedure has been called.
+Widgets should have resize procedures that can be called more than once
+without ill effects.
+    </para>
+  </listitem>
+</orderedlist>
+</note>
+</sect1>
+
+<sect1 id="General_Geometry_Manager_Requests">
+<title>General Geometry Manager Requests</title>
+<para>
+When making a geometry request, the child specifies an
+<function>XtWidgetGeometry</function>
+structure.
+</para>
+
+<literallayout >
+typedef unsigned long XtGeometryMask;
+typedef struct {
+	XtGeometryMask request_mode;
+	Position x, y;
+	Dimension width, height;
+	Dimension border_width;
+	Widget sibling;
+	int stack_mode;
+} XtWidgetGeometry;
+</literallayout>
+
+<para>
+To make a general geometry manager request from a widget, use
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtMakeGeometryRequest'>
+<funcprototype>
+<funcdef>XtGeometryResult <function>XtMakeGeometryRequest</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtWidgetGeometry *<parameter>request</parameter></paramdef>
+   <paramdef>XtWidgetGeometry *<parameter>reply_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget making the request.  Must be of class RectObj or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>request</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the desired widget geometry (size, position, border width,
+and stacking order).
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>reply_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the allowed widget size, or may be NULL
+if the requesting widget is not interested in handling
+<function>XtGeometryAlmost</function>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<para>
+Depending on the condition,
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+performs the following:
+</para>
+
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+If the widget is unmanaged or the widget's parent is not realized,
+it makes the changes and returns
+<function>XtGeometryYes</function>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the parent's class is not a subclass of
+<function>compositeWidgetClass</function>
+or the parent's <emphasis remap='I'>geometry_manager</emphasis> field is NULL,
+it issues an error.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the widget's <emphasis remap='I'>being_destroyed</emphasis> field is
+<function>True</function>,
+it returns
+<function>XtGeometryNo</function>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the widget <emphasis remap='I'>x</emphasis>, <emphasis remap='I'>y</emphasis>, <emphasis remap='I'>width</emphasis>, <emphasis remap='I'>height</emphasis>, and
+<emphasis remap='I'>border_width</emphasis> fields are
+all equal to the requested values,
+it returns
+<function>XtGeometryYes</function>;
+otherwise, it calls the parent's geometry_manager procedure
+with the given parameters.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the parent's geometry manager returns
+<function>XtGeometryYes</function>
+and if
+<function>XtCWQueryOnly</function>
+is not set in <emphasis remap='I'>request-&gt;request_mode</emphasis>
+and if the widget is realized,
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+calls the
+<function>XConfigureWindow</function>
+Xlib function to reconfigure the widget's window (set its size, location,
+and stacking order as appropriate).
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the geometry manager returns
+<function>XtGeometryDone</function>,
+the change has been approved and actually has been done.
+In this case,
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+does no configuring and returns
+<function>XtGeometryYes</function>.
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+never returns
+<function>XtGeometryDone</function>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Otherwise,
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+just returns the resulting value from the parent's geometry manager.
+    </para>
+  </listitem>
+</itemizedlist>
+
+<para>
+Children of primitive widgets are always unmanaged; therefore,
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+always returns
+<function>XtGeometryYes</function>
+when called by a child of a primitive widget.
+</para>
+
+<para>
+The return codes from geometry managers are
+</para>
+
+<literallayout >
+typedef enum {
+	XtGeometryYes,
+	XtGeometryNo,
+	XtGeometryAlmost,
+	XtGeometryDone
+} XtGeometryResult;
+</literallayout>
+
+<para>
+The <emphasis remap='I'>request_mode</emphasis> definitions are from
+<function>&lt;X11/X.h&gt;</function>.
+</para>
+
+<informaltable frame='none'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <tbody>
+    <row>
+      <entry>#define</entry>
+      <entry><function>CWX</function></entry>
+      <entry>(1&lt;&lt;0)</entry>
+    </row>
+    <row>
+      <entry>#define</entry>
+      <entry><function>CWY</function></entry>
+      <entry>(1&lt;&lt;1)</entry>
+    </row>
+    <row>
+      <entry>#define</entry>
+      <entry><function>CWWidth</function></entry>
+      <entry>(1&lt;&lt;2)</entry>
+    </row>
+    <row>
+      <entry>#define</entry>
+      <entry><function>CWHeight</function></entry>
+      <entry>(1&lt;&lt;3)</entry>
+    </row>
+    <row>
+      <entry>#define</entry>
+      <entry><function>CWBorderWidth</function></entry>
+      <entry>(1&lt;&lt;4)</entry>
+    </row>
+    <row>
+      <entry>#define</entry>
+      <entry><function>CWSibling</function></entry>
+      <entry>(1&lt;&lt;5)</entry>
+    </row>
+    <row>
+      <entry>#define</entry>
+      <entry><function>CWStackMode</function></entry>
+      <entry>(1&lt;&lt;6)</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The Intrinsics also support the following value.
+</para>
+
+<informaltable frame='none'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <tbody>
+    <row>
+      <entry>#define</entry>
+      <entry><function>XtCWQueryOnly</function></entry>
+      <entry>(1&lt;&lt;7)</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+<function>XtCWQueryOnly</function>
+indicates that the corresponding geometry request is only a query
+as to what would happen if this geometry request were made
+and that no widgets should actually be changed.
+</para>
+
+<para>
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>,
+like the
+<function>XConfigureWindow</function>
+Xlib function, uses <emphasis remap='I'>request_mode</emphasis> to determine which fields in the
+<function>XtWidgetGeometry</function>
+structure the caller wants to specify.
+</para>
+
+<para>
+The <emphasis remap='I'>stack_mode</emphasis> definitions are from
+<function>&lt;X11/X.h&gt;</function>:
+</para>
+
+<informaltable frame='none'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <tbody>
+    <row>
+      <entry>#define</entry>
+      <entry><function>Above</function></entry>
+      <entry>0</entry>
+    </row>
+    <row>
+      <entry>#define</entry>
+      <entry><function>Below</function></entry>
+      <entry>1</entry>
+    </row>
+    <row>
+      <entry>#define</entry>
+      <entry><function>TopIf</function></entry>
+      <entry>2</entry>
+    </row>
+    <row>
+      <entry>#define</entry>
+      <entry><function>BottomIf</function></entry>
+      <entry>3</entry>
+    </row>
+    <row>
+      <entry>#define</entry>
+      <entry><function>Opposite</function></entry>
+      <entry>4</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+The Intrinsics also support the following value.
+</para>
+
+<informaltable frame='none'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='3' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <tbody>
+    <row>
+      <entry>#define</entry>
+      <entry><function>XtSMDontChange</function></entry>
+      <entry>5</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+For definition and behavior of
+<function>Above</function>,
+<function>Below</function>,
+<function>TopIf</function>,
+<function>BottomIf</function>,
+and
+<function>Opposite</function>,
+<olink targetdoc='libX11' targetptr='Configuring_Windows' >BLAH</olink>
+in <olink targetptr='libX11' targetdoc='libX11'>Xlib — C Language X Interface.</olink>.
+<function>XtSMDontChange</function>
+indicates that the widget wants its current stacking order preserved.
+</para>
+</sect1>
+
+<sect1 id="Resize_Requests">
+<title>Resize Requests</title>
+<para>
+To make a simple resize request from a widget, you can use
+<xref linkend='XtMakeResizeRequest' xrefstyle='select: title'/>
+as an alternative to
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtMakeResizeRequest'>
+<funcprototype>
+<funcdef>typedef XtGeometryResult <function>XtMakeResizeRequest</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Dimension <parameter>width</parameter></paramdef>
+   <paramdef>Dimension *<parameter>width_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget making the request.  Must be of class RectObj or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>width</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify the desired widget width and height.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>height</emphasis>
+    </term>
+    <listitem>
+      <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>width_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Return the allowed widget width and height.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>height_return</emphasis>
+    </term>
+    <listitem>
+     <para></para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+
+<para>
+The
+<xref linkend='XtMakeResizeRequest' xrefstyle='select: title'/>
+function, a simple interface to
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>,
+creates an
+<function>XtWidgetGeometry</function>
+structure and specifies that width and height should change
+by setting <emphasis remap='I'>request_mode</emphasis> to
+<function>CWWidth</function>
+<function>|</function>
+<function>CWHeight</function>.
+The geometry manager is free to modify any of the other window attributes
+(position or stacking order) to satisfy the resize request.
+If the return value is
+<function>XtGeometryAlmost</function>,
+<emphasis remap='I'>width_return</emphasis> and <emphasis remap='I'>height_return</emphasis> contain a compromise width and height.
+If these are acceptable,
+the widget should immediately call
+<xref linkend='XtMakeResizeRequest' xrefstyle='select: title'/>
+again and request that the compromise width and height be applied.
+If the widget is not interested in
+<function>XtGeometryAlmost</function>
+replies,
+it can pass NULL for <emphasis remap='I'>width_return</emphasis> and <emphasis remap='I'>height_return</emphasis>.
+</para>
+</sect1>
+
+<sect1 id="Potential_Geometry_Changes">
+<title>Potential Geometry Changes</title>
+<para>
+Sometimes a geometry manager cannot respond to
+a geometry request from a child without first making a geometry request
+to the widget's own parent (the original requestor's grandparent).
+If the request to the grandparent would allow the parent to satisfy the
+original request,
+the geometry manager can make the intermediate geometry request
+as if it were the originator.
+On the other hand,
+if the geometry manager already has determined that the original request
+cannot be completely satisfied (for example, if it always denies
+position changes),
+it needs to tell the grandparent to respond to the intermediate request
+without actually changing the geometry
+because it does not know if the child will accept the compromise.
+To accomplish this, the geometry manager uses
+<function>XtCWQueryOnly</function>
+in the intermediate request.
+</para>
+
+<para>
+When
+<function>XtCWQueryOnly</function>
+is used, the geometry manager needs to cache
+enough information to exactly reconstruct the intermediate request.
+If the grandparent's response to the intermediate query was
+<function>XtGeometryAlmost</function>,
+the geometry manager needs to cache the entire
+reply geometry in the event the child accepts the parent's compromise.
+</para>
+
+<para>
+If the grandparent's response was
+<function>XtGeometryAlmost</function>,
+it may also be necessary to cache the entire reply geometry from
+the grandparent when
+<function>XtCWQueryOnly</function>
+is not used.
+If the geometry manager is still able to satisfy the original request,
+it may immediately accept the grandparent's compromise
+and then act on the child's request.
+If the grandparent's compromise geometry is insufficient to allow
+the child's request and if the geometry manager is willing to offer
+a different compromise to the child,
+the grandparent's compromise should not be accepted until the child
+has accepted the new compromise.
+</para>
+
+<para>
+Note that a compromise geometry returned with
+<function>XtGeometryAlmost</function>
+is guaranteed only for the next call to the same widget;
+therefore, a cache of size 1 is sufficient.
+</para>
+</sect1>
+
+<sect1 id="Child_Geometry_Management_The_geometry_manager_Procedure">
+<title>Child Geometry Management: The geometry_manager Procedure</title>
+<para>
+The geometry_manager procedure pointer in a composite widget class is of type
+<xref linkend='XtGeometryHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtGeometryHandler'>
+<funcprototype>
+<funcdef>XtGeometryResult <function>*XtGeometryHandler</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtWidgetGeometry *<parameter>request</parameter></paramdef>
+   <paramdef>XtWidgetGeometry *<parameter>geometry_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the widget making the request.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>request</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the new geometry the child desires.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>geometry_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes a geometry structure in which the geometry manager may store a
+compromise.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+A class can inherit its superclass's geometry manager during class
+initialization.
+</para>
+
+<para>
+A bit set to zero in the request's <emphasis remap='I'>request_mode</emphasis>
+field means that the child widget
+does not care about the value of the corresponding field,
+so the geometry manager can change this field as it wishes.
+A bit set to 1 means that the child wants that geometry element set
+to the value in the corresponding field.
+</para>
+
+<para>
+If the geometry manager can satisfy all changes requested
+and if
+<function>XtCWQueryOnly</function>
+is not specified,
+it updates the widget's <emphasis remap='I'>x</emphasis>, <emphasis remap='I'>y</emphasis>, <emphasis remap='I'>width</emphasis>, <emphasis remap='I'>height</emphasis>,
+and <emphasis remap='I'>border_width</emphasis> fields
+appropriately.
+Then, it returns
+<function>XtGeometryYes</function>,
+and the values pointed to by the <emphasis remap='I'>geometry_return</emphasis> argument are undefined.
+The widget's window is moved and resized automatically by
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>.
+</para>
+
+<para>
+Homogeneous composite widgets often find it convenient to treat the widget
+making the request the same as any other widget, including reconfiguring
+it using
+<xref linkend='XtConfigureWidget' xrefstyle='select: title'/>
+or
+<xref linkend='XtResizeWidget' xrefstyle='select: title'/>
+as part of its layout process, unless
+<function>XtCWQueryOnly</function>
+is specified.
+If it does this,
+it should return
+<function>XtGeometryDone</function>
+to inform
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+that it does not need to do the configuration itself.
+</para>
+
+<note>
+<para>
+To remain
+compatible with layout techniques used in older widgets (before
+<function>XtGeometryDone</function>
+was added to the Intrinsics), a geometry manager should avoid using
+<xref linkend='XtResizeWidget' xrefstyle='select: title'/>
+or
+<xref linkend='XtConfigureWidget' xrefstyle='select: title'/>
+on the child making
+the request because the layout process of the child may be in an
+intermediate state in which it is not prepared to handle a call to its
+resize procedure.  A self-contained widget set may choose this
+alternative geometry management scheme, however, provided that it
+clearly warns widget developers of the compatibility consequences.
+</para>
+</note>
+
+<para>
+Although
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+resizes the widget's window
+(if the geometry
+manager returns
+<function>XtGeometryYes ),</function>
+it does not call the widget class's resize procedure.
+The requesting widget must perform whatever
+resizing calculations are needed explicitly.
+</para>
+
+<para>
+If the geometry manager disallows the request,
+the widget cannot change its geometry.
+The values pointed to by <emphasis remap='I'>geometry_return</emphasis> are undefined,
+and the geometry manager returns
+<function>XtGeometryNo</function>.
+</para>
+
+<para>
+Sometimes the geometry manager cannot satisfy the request exactly
+but may be able to satisfy a similar request.
+That is,
+it could satisfy only a subset of the requests (for example,
+size but not position) or a lesser request
+(for example, it cannot make the child as big as the
+request but it can make the child bigger than its current size).
+In such cases,
+the geometry manager fills in the structure pointed to by
+<emphasis remap='I'>geometry_return</emphasis> with the actual changes
+it is willing to make, including an appropriate <emphasis remap='I'>request_mode</emphasis> mask, and returns
+<function>XtGeometryAlmost</function>.
+If a bit in <emphasis remap='I'>geometry_return-&gt;request_mode</emphasis> is zero,
+the geometry manager agrees not to change the corresponding value
+if <emphasis remap='I'>geometry_return</emphasis> is used immediately
+in a new request.
+If a bit is 1,
+the geometry manager does change that element to the corresponding
+value in <emphasis remap='I'>geometry_return</emphasis>.
+More bits may be set in <emphasis remap='I'>geometry_return-&gt;request_mode</emphasis>
+than in the original request if
+the geometry manager intends to change other fields should the
+child accept the compromise.
+</para>
+
+<para>
+When
+<function>XtGeometryAlmost</function>
+is returned,
+the widget must decide if the compromise suggested in <emphasis remap='I'>geometry_return</emphasis>
+is acceptable.
+If it is, the widget must not change its geometry directly;
+rather, it must make another call to
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>.
+</para>
+
+<para>
+If the next geometry request from this child uses the
+<emphasis remap='I'>geometry_return</emphasis> values filled in by the geometry manager with an
+<function>XtGeometryAlmost</function>
+return and if there have been no intervening geometry requests on
+either its parent or any of its other children,
+the geometry manager must grant the request, if possible.
+That is, if the child asks immediately with the returned geometry,
+it should get an answer of
+<function>XtGeometryYes</function>.
+However,
+dynamic behavior in
+the user's window manager may affect the final outcome.
+</para>
+
+<para>
+To return
+<function>XtGeometryYes</function>,
+the geometry manager frequently rearranges the position of other managed
+children by calling
+<xref linkend='XtMoveWidget' xrefstyle='select: title'/>.
+However, a few geometry managers may sometimes change the
+size of other managed children by calling
+<xref linkend='XtResizeWidget' xrefstyle='select: title'/>
+or
+<xref linkend='XtConfigureWidget' xrefstyle='select: title'/>.
+If
+<function>XtCWQueryOnly</function>
+is specified,
+the geometry manager must return data describing
+how it would react to this geometry
+request without actually moving or resizing any widgets.
+</para>
+
+<para>
+Geometry managers must not assume that the <emphasis remap='I'>request</emphasis>
+and <emphasis remap='I'>geometry_return</emphasis> arguments point to independent storage.
+The caller is permitted to use the same field for both,
+and the geometry manager must allocate its own temporary storage,
+if necessary.
+</para>
+</sect1>
+
+<sect1 id="Widget_Placement_and_Sizing">
+<title>Widget Placement and Sizing</title>
+<para>
+To move a sibling widget of the child making the geometry request,
+the parent uses
+<xref linkend='XtMoveWidget' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtMoveWidget'>
+<funcprototype>
+<funcdef>void <function>XtMoveWidget</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Position <parameter>x</parameter></paramdef>
+   <paramdef>Position <parameter>y</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class RectObj or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>x</emphasis>
+    </term>
+    <listitem>
+     <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>y</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify the new widget x and y coordinates.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtMoveWidget' xrefstyle='select: title'/>
+function returns immediately if the specified geometry fields
+are the same as the old values.
+Otherwise,
+<xref linkend='XtMoveWidget' xrefstyle='select: title'/>
+writes the new <emphasis remap='I'>x</emphasis> and <emphasis remap='I'>y</emphasis> values into the object
+and, if the object is a widget and is realized, issues an Xlib
+<function>XMoveWindow</function>
+call on the widget's window.
+</para>
+
+<para>
+To resize a sibling widget of the child making the geometry request,
+the parent uses
+<xref linkend='XtResizeWidget' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtResizeWidget'>
+<funcprototype>
+<funcdef>void <function>XtResizeWidget</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Dimension <parameter>width</parameter></paramdef>
+   <paramdef>Dimension <parameter>height</parameter></paramdef>
+   <paramdef>Dimension <parameter>border_width</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class RectObj or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>width</emphasis>
+    </term>
+    <listitem>
+     <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>height</emphasis>
+    </term>
+    <listitem>
+     <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>border_width</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify the new widget size.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtResizeWidget' xrefstyle='select: title'/>
+function returns immediately if the specified geometry fields
+are the same as the old values.
+Otherwise,
+<xref linkend='XtResizeWidget' xrefstyle='select: title'/>
+writes the new <emphasis remap='I'>width</emphasis>, <emphasis remap='I'>height</emphasis>, and <emphasis remap='I'>border_width</emphasis> values into
+the object and, if the object is a widget and is realized, issues an
+<function>XConfigureWindow</function>
+call on the widget's window.
+</para>
+
+<para>
+If the new width or height is different from the old values,
+<xref linkend='XtResizeWidget' xrefstyle='select: title'/>
+calls the object's resize procedure to notify it of the size change.
+</para>
+
+<para>
+To move and resize the sibling widget of the child making the geometry request,
+the parent uses
+<xref linkend='XtConfigureWidget' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtConfigureWidget'>
+<funcprototype>
+<funcdef>void <function>XtConfigureWidget</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>Position <parameter>x</parameter></paramdef>
+   <paramdef>Position <parameter>y</parameter></paramdef>
+   <paramdef>Dimension <parameter>width</parameter></paramdef>
+   <paramdef>Dimension <parameter>height</parameter></paramdef>
+   <paramdef>Dimension <parameter>border_width</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class RectObj or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>x</emphasis>
+    </term>
+    <listitem>
+     <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>y</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify the new widget x and y coordinates.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>width</emphasis>
+    </term>
+    <listitem>
+     <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>height</emphasis>
+    </term>
+    <listitem>
+     <para></para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>border_width</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specify the new widget size.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtConfigureWidget' xrefstyle='select: title'/>
+function returns immediately if the specified new geometry fields
+are all equal to the current values.
+Otherwise,
+<xref linkend='XtConfigureWidget' xrefstyle='select: title'/>
+writes the new <emphasis remap='I'>x</emphasis>, <emphasis remap='I'>y</emphasis>, <emphasis remap='I'>width</emphasis>, <emphasis remap='I'>height</emphasis>,
+and <emphasis remap='I'>border_width</emphasis> values
+into the object and, if the object is a widget and is realized, makes an Xlib
+<function>XConfigureWindow</function>
+call on the widget's window.
+</para>
+
+<para>
+If the new width or height is different from its old value,
+<xref linkend='XtConfigureWidget' xrefstyle='select: title'/>
+calls the object's resize procedure to notify it of the size change;
+otherwise, it simply returns.
+</para>
+
+<para>
+To resize a child widget that already has the new values of its width,
+height, and border width, the parent uses
+<xref linkend='XtResizeWindow' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtResizeWindow'>
+<funcprototype>
+<funcdef>void <function>XtResizeWindow</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Core or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtResizeWindow' xrefstyle='select: title'/>
+function calls the
+<function>XConfigureWindow</function>
+Xlib function to make the window of the specified widget match its width,
+height, and border width.
+This request is done unconditionally because there is no
+inexpensive way to tell if these
+values match the current values.
+Note that the widget's resize procedure is not called.
+</para>
+
+<para>
+There are very few times to use
+<xref linkend='XtResizeWindow' xrefstyle='select: title'/>;
+instead, the parent should use
+<xref linkend='XtResizeWidget' xrefstyle='select: title'/>.
+</para>
+</sect1>
+
+<sect1 id="Preferred_Geometry">
+<title>Preferred Geometry</title>
+<para>
+Some parents may be willing to adjust their layouts to accommodate the
+preferred geometries of their children.
+They can use
+<xref linkend='XtQueryGeometry' xrefstyle='select: title'/>
+to obtain the preferred geometry
+and, as they see fit, can use or ignore any portion of the response.
+</para>
+
+<para>
+To query a child widget's preferred geometry, use
+<xref linkend='XtQueryGeometry' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtQueryGeometry'>
+<funcprototype>
+<funcdef>XtGeometryResult <function>XtQueryGeometry</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtWidgetGeometry *<parameter>intended</parameter></paramdef>
+   <paramdef>XtWidgetGeometry *<parameter>preferred_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class RectObj or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>intended</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the new geometry the parent plans to give to the child, or
+NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>preferred_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the child widget's preferred geometry.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+To discover a child's preferred geometry,
+the child's parent stores the new
+geometry in the corresponding fields of
+the intended structure, sets the corresponding bits in <emphasis remap='I'>intended.request_mode</emphasis>,
+and calls
+<xref linkend='XtQueryGeometry' xrefstyle='select: title'/>.
+The parent should set only those fields that are important to it so
+that the child can determine whether it may be able to attempt changes to
+other fields.
+</para>
+
+<para>
+<xref linkend='XtQueryGeometry' xrefstyle='select: title'/>
+clears all bits in the <emphasis remap='I'>preferred_return-&gt;request_mode</emphasis>
+field and checks the
+<emphasis remap='I'>query_geometry</emphasis> field of the specified widget's class record.
+If <emphasis remap='I'>query_geometry</emphasis> is not NULL,
+<xref linkend='XtQueryGeometry' xrefstyle='select: title'/>
+calls the query_geometry procedure and passes as arguments the
+specified widget, <emphasis remap='I'>intended</emphasis>, and <emphasis remap='I'>preferred_return</emphasis> structures.
+If the <emphasis remap='I'>intended</emphasis> argument is NULL,
+<xref linkend='XtQueryGeometry' xrefstyle='select: title'/>
+replaces it with a pointer to an
+<function>XtWidgetGeometry</function>
+structure with <emphasis remap='I'>request_mode</emphasis> equal to zero before calling the
+query_geometry procedure.
+</para>
+
+<note>
+<para>
+If
+<xref linkend='XtQueryGeometry' xrefstyle='select: title'/>
+is called from within a geometry_manager
+procedure for the widget that issued
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+or
+<xref linkend='XtMakeResizeRequest' xrefstyle='select: title'/>,
+the results
+are not guaranteed to be consistent with the requested changes.  The
+change request passed to the geometry manager takes precedence over
+the preferred geometry.
+</para>
+</note>
+
+<para>
+The query_geometry procedure pointer is of type
+<xref linkend='XtGeometryHandler' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='_XtGeometryHandler'>
+<funcprototype>
+<funcdef>typedef XtGeometryResult <function>(*XtGeometryHandler)</function></funcdef>
+   <paramdef>Widget <parameter>w</parameter></paramdef>
+   <paramdef>XtWidgetGeometry *<parameter>request</parameter></paramdef>
+   <paramdef>XtWidgetGeometry *<parameter>preferred_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the child widget whose preferred geometry is required.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>request</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the geometry changes that the parent plans to make.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>preferred_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes a structure in which the child returns its preferred geometry.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The query_geometry procedure is expected to examine the bits set in
+<emphasis remap='I'>request-&gt;request_mode</emphasis>, evaluate the preferred geometry of the widget,
+and store the result in <emphasis remap='I'>preferred_return</emphasis>
+(setting the bits in <emphasis remap='I'>preferred_return-&gt;request_mode</emphasis> corresponding
+to those geometry fields that it cares about).
+If the proposed geometry change is acceptable without modification,
+the query_geometry procedure should return
+<function>XtGeometryYes</function>.
+If at least one field in <emphasis remap='I'>preferred_return</emphasis>
+with a bit set in <emphasis remap='I'>preferred_return-&gt;request_mode</emphasis>
+is different
+from the corresponding field in <emphasis remap='I'>request</emphasis>
+or if a bit was set in <emphasis remap='I'>preferred_return-&gt;request_mode</emphasis>
+that was not set in the request,
+the query_geometry procedure should return
+<function>XtGeometryAlmost</function>.
+If the preferred geometry is identical to the current geometry,
+the query_geometry procedure should return
+<function>XtGeometryNo</function>.
+</para>
+
+<note><para>
+The query_geometry procedure may assume
+that no
+<xref linkend='XtMakeResizeRequest' xrefstyle='select: title'/>
+or
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+is in progress
+for the specified widget; that is, it is not required to construct
+a reply consistent with the requested geometry if such a request
+were actually outstanding.
+</para></note>
+
+<para>
+After calling the query_geometry procedure
+or if the <emphasis remap='I'>query_geometry</emphasis> field is NULL,
+<xref linkend='XtQueryGeometry' xrefstyle='select: title'/>
+examines all the unset bits in <emphasis remap='I'>preferred_return-&gt;request_mode</emphasis>
+and sets the corresponding fields in <emphasis remap='I'>preferred_return</emphasis>
+to the current values from the widget instance.
+If
+<function>CWStackMode</function>
+is not set,
+the <emphasis remap='I'>stack_mode</emphasis> field is set to
+<function>XtSMDontChange</function>.
+<xref linkend='XtQueryGeometry' xrefstyle='select: title'/>
+returns the value returned by the query_geometry procedure or
+<function>XtGeometryYes</function>
+if the <emphasis remap='I'>query_geometry</emphasis> field is NULL.
+</para>
+
+<para>
+Therefore, the caller can interpret a return of
+<function>XtGeometryYes</function>
+as not needing to evaluate the contents of the reply and, more important,
+not needing to modify its layout plans.
+A return of
+<function>XtGeometryAlmost</function>
+means either that both the parent and the child expressed interest
+in at least one common field and the child's preference does not match
+the parent's intentions or that the child expressed interest in a field that
+the parent might need to consider.
+A return value of
+<function>XtGeometryNo</function>
+means that both the parent and the child expressed interest in a field and
+that the child suggests that the field's current value in the widget instance
+is its preferred value.
+In addition, whether or not the caller ignores the return value or the
+reply mask, it is guaranteed that the <emphasis remap='I'>preferred_return</emphasis> structure contains complete
+geometry information for the child.
+</para>
+
+<para>
+Parents are expected to call
+<xref linkend='XtQueryGeometry' xrefstyle='select: title'/>
+in their layout routine and wherever else the information is significant
+after change_managed has been called.
+The first time it is invoked,
+the changed_managed procedure may assume that the child's current geometry
+is its preferred geometry.
+Thus, the child is still responsible for storing values
+into its own geometry during its initialize procedure.
+</para>
+</sect1>
+
+<sect1 id="Size_Change_Management_The_resize_Procedure">
+<title>Size Change Management: The resize Procedure</title>
+<para>
+A child can be resized by its parent at any time.
+Widgets usually need to know when they have changed size
+so that they can lay out their displayed data again to match the new size.
+When a parent resizes a child, it calls
+<xref linkend='XtResizeWidget' xrefstyle='select: title'/>,
+which updates the geometry fields in the widget,
+configures the window if the widget is realized,
+and calls the child's resize procedure to notify the child.
+The resize procedure pointer is of type
+<xref linkend='XtWidgetProc' xrefstyle='select: title'/>.
+</para>
+
+<para>
+If a class need not recalculate anything when a widget is resized,
+it can specify NULL for the <emphasis remap='I'>resize</emphasis> field in its class record.
+This is an unusual case and should occur only for widgets
+with very trivial display semantics.
+The resize procedure takes a widget as its only argument.
+The <emphasis remap='I'>x</emphasis>, <emphasis remap='I'>y</emphasis>, <emphasis remap='I'>width</emphasis>, <emphasis remap='I'>height</emphasis>,
+and <emphasis remap='I'>border_width</emphasis> fields of the widget contain the new values.
+The resize procedure should recalculate the layout of internal data
+as needed.
+(For example, a centered Label in a window that changes size
+should recalculate the starting position of the text.)
+The widget must obey resize as a command and must not treat it as a request.
+A widget must not issue an
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+or
+<xref linkend='XtMakeResizeRequest' xrefstyle='select: title'/>
+call from its resize procedure.
+</para>
+</sect1>
+</chapter>

@@ -1,0 +1,4538 @@
+<chapter id='Widget_Instantiation'>
+<title>Widget Instantiation</title>
+<para>
+A hierarchy of widget instances constitutes a widget tree.
+The shell widget returned by
+<xref linkend='XtAppCreateShell' xrefstyle='select: title'/>
+is the root of the widget tree instance.
+The widgets with one or more children are the intermediate nodes of that tree,
+and the widgets with no children of any kind are the leaves of the widget tree.
+With the exception of pop-up children (see <xref linkend='Pop_Up_Widgets' />),
+this widget tree instance defines the associated X Window tree.
+</para>
+
+<para>
+Widgets can be either composite or primitive.
+Both kinds of widgets can contain children,
+but the Intrinsics provide a set of management mechanisms for constructing
+and interfacing between composite widgets, their children, and
+other clients.
+</para>
+
+<para>
+Composite widgets, that is, members of the class
+<function>compositeWidgetClass</function>,
+are containers for an arbitrary,
+but widget implementation-defined, collection of children,
+which may be instantiated by the composite widget itself,
+by other clients, or by a combination of the two.
+Composite widgets also contain methods for managing the geometry (layout)
+of any child widget.
+Under unusual circumstances,
+a composite widget may have zero children,
+but it usually has at least one.
+By contrast,
+primitive widgets that contain children typically instantiate
+specific children of known classes themselves and do not expect external
+clients to do so.
+Primitive widgets also do not have general geometry management methods.
+</para>
+
+<para>
+In addition,
+the Intrinsics recursively perform many operations
+(for example, realization and destruction)
+on composite widgets and all their children.
+Primitive widgets that have children must be prepared
+to perform the recursive operations themselves on behalf of their children.
+</para>
+
+<para>
+A widget tree is manipulated by several Intrinsics functions.
+For example,
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+traverses the tree downward and recursively realizes all
+pop-up widgets and children of composite widgets.
+<xref linkend='XtDestroyWidget' xrefstyle='select: title'/>
+traverses the tree downward and destroys all pop-up widgets
+and children of composite widgets.
+The functions that fetch and modify resources traverse the tree upward
+and determine the inheritance of resources from a widget's ancestors.
+<xref linkend='XtMakeGeometryRequest' xrefstyle='select: title'/>
+traverses the tree up one level and calls the geometry manager
+that is responsible for a widget child's geometry.
+</para>
+
+<para>
+To facilitate upward traversal of the widget tree,
+each widget has a pointer to its parent widget.
+The
+Shell
+widget that
+<xref linkend='XtAppCreateShell' xrefstyle='select: title'/>
+returns has a <emphasis remap='I'>parent</emphasis> pointer of NULL.
+</para>
+
+<para>
+To facilitate downward traversal of the widget tree,
+the <emphasis remap='I'>children</emphasis> field of
+each composite widget is a pointer to an array of child widgets,
+which includes all normal children created,
+not just the subset of children that are managed by the composite widget's
+geometry manager.
+Primitive widgets
+that instantiate children are entirely responsible for all operations
+that require downward traversal below themselves.
+In addition,
+every widget has a pointer to an array of pop-up children.
+</para>
+
+<sect1 id="Initializing_the_tk">
+<title>Initializing the X Toolkit</title>
+<para>
+Before an application can call any Intrinsics function
+other than
+<function>XtSetLanguageProc</function>
+and
+<xref linkend='XtToolkitThreadInitialize' xrefstyle='select: title'/>,
+it must initialize the Intrinsics by using
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+<xref linkend='XtToolkitInitialize' xrefstyle='select: title'/>,
+which initializes the Intrinsics internals
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtCreateApplicationContext' xrefstyle='select: title'/>,
+which initializes the per-application state
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+or
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>,
+which initializes the per-display state
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+<xref linkend='XtAppCreateShell' xrefstyle='select: title'/>,
+which creates the root of a widget tree
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+Or an application can call the convenience procedure
+<xref linkend='XtOpenApplication' xrefstyle='select: title'/>,
+which combines the functions of the preceding procedures.
+An application wishing to use the ANSI C locale mechanism should call
+<function>XtSetLanguageProc</function>
+prior to calling
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>,
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>,
+<xref linkend='XtOpenApplication' xrefstyle='select: title'/>,
+or
+<xref linkend='XtAppInitialize' xrefstyle='select: title'/>.
+</para>
+
+<para>
+Multiple instances of X Toolkit applications may be implemented
+in a single address space.
+Each instance needs to be able to read
+input and dispatch events independently of any other instance.
+Further, an application instance may need multiple display connections
+to have widgets on multiple displays.
+From the application's point of view, multiple display connections
+usually are treated together as a single unit
+for purposes of event dispatching.
+To accommodate both requirements,
+the Intrinsics define application contexts,
+each of which provides the information needed to distinguish one application
+instance from another.
+The major component of an application context is a list of one or more X
+<function>Display</function>
+pointers for that application.
+The Intrinsics handle all display connections within a single application
+context simultaneously, handling input in a round-robin fashion.
+The application context type
+<function>XtAppContext</function>
+is opaque to clients.
+</para>
+
+<para>
+To initialize the Intrinsics internals, use
+<xref linkend='XtToolkitInitialize' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtToolkitInitialize'>
+<funcprototype>
+  <funcdef>void <function>XtToolkitInitialize</function></funcdef>
+  <paramdef> <parameter></parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<para>
+If
+<xref linkend='XtToolkitInitialize' xrefstyle='select: title'/>
+was previously called, it returns immediately.
+When
+<xref linkend='XtToolkitThreadInitialize' xrefstyle='select: title'/>
+is called before
+<xref linkend='XtToolkitInitialize' xrefstyle='select: title'/>,
+the latter is protected against
+simultaneous activation by multiple threads.
+</para>
+
+<para>
+To create an application context, use
+<xref linkend='XtCreateApplicationContext' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCreateApplicationContext'>
+<funcprototype>
+  <funcdef>XtAppContext <function>XtCreateApplicationContext</function></funcdef>
+  <paramdef> <parameter></parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+<para>
+The
+<xref linkend='XtCreateApplicationContext' xrefstyle='select: title'/>
+function returns an application context,
+which is an opaque type.
+Every application must have at least one application context.
+</para>
+
+<para>
+To destroy an application context and close any
+remaining display connections in it, use
+<xref linkend='XtDestroyApplicationContext' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtDestroyApplicationContext'>
+<funcprototype>
+  <funcdef>void <function>XtDestroyApplicationContext</function></funcdef>
+  <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtDestroyApplicationContext' xrefstyle='select: title'/>
+function destroys the specified application context.
+If called from within an event dispatch (for example, in a callback procedure),
+<xref linkend='XtDestroyApplicationContext' xrefstyle='select: title'/>
+does not destroy the application context until the dispatch is complete.
+</para>
+
+<para>
+To get the application context in which a given widget was created, use
+<xref linkend='XtWidgetToApplicationContext' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtWidgetToApplicationContext'>
+<funcprototype>
+  <funcdef>XtAppContext <function>XtWidgetToApplicationContext</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget for which you want the application context.  Must be of class Object or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtWidgetToApplicationContext' xrefstyle='select: title'/>
+function returns the application context for the specified widget.
+</para>
+
+<para>
+To initialize a display and add it to an application context, use
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtDisplayInitialize'>
+<funcprototype>
+  <funcdef>void  <function>XtDisplayInitialize</function></funcdef>
+      <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+      <paramdef>Display * <parameter>display</parameter></paramdef>
+      <paramdef>String <parameter>application_name</parameter></paramdef>
+      <paramdef>String <parameter>application_class</parameter></paramdef>
+      <paramdef>XrmOptionDescRec * <parameter>options</parameter></paramdef>
+      <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
+      <paramdef>int * <parameter>argc</parameter></paramdef>
+      <paramdef>String * <parameter>argv</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a previously opened display connection.  Note that a single
+display connection can be in at most one application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>application_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the application instance.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>application_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the class name of this application,
+which is usually the generic name for all instances of this application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies how to parse the command line for any application-specific resources.
+The <emphasis remap='I'>options</emphasis> argument is passed as a parameter to
+<function>XrmParseCommand</function>.
+For further information,
+see <olink targetdoc='libX11' targetptr='Parsing_Command_Line_Options'>Parsing Command Line Options</olink> in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink> and <xref linkend='Parsing_the_Command_Line' /> of this specification.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the options list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the number of command line parameters.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argv</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the list of command line parameters.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+function retrieves the language string to be
+used for the specified display (see <xref linkend='Finding_File_Names' />),
+calls the language procedure (if set) with that language string,
+builds the resource database for the default screen, calls the Xlib
+<function>XrmParseCommand</function>
+function to parse the command line,
+and performs other per-display initialization.
+After
+<function>XrmParseCommand</function>
+has been called,
+<emphasis remap='I'>argc</emphasis> and <emphasis remap='I'>argv</emphasis> contain only those parameters that
+were not in the standard option table or in the table specified by the
+<emphasis remap='I'>options</emphasis> argument.
+If the modified <emphasis remap='I'>argc</emphasis> is not zero,
+most applications simply print out the modified <emphasis remap='I'>argv</emphasis> along with a message
+listing the allowable options.
+On POSIX-based systems,
+the application name is usually the final component of <emphasis remap='I'>argv</emphasis>[0].
+If the synchronous resource is
+<function>True</function>,
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+calls the Xlib
+<function>XSynchronize</function>
+function to put Xlib into synchronous mode for this display connection
+and any others currently open in the application context.
+See <xref linkend='Loading_the_Resource_Database' />
+and <xref linkend='Parsing_the_Command_Line' />
+for details on the <emphasis remap='I'>application_name</emphasis>,
+<emphasis remap='I'>application_class</emphasis>, <emphasis remap='I'>options</emphasis>, and <emphasis remap='I'>num_options</emphasis> arguments.
+</para>
+
+<para>
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+calls
+<function>XrmSetDatabase</function>
+to associate the resource database of the default screen with the
+display before returning.
+</para>
+
+<para>
+To open a display, initialize it, and then
+add it to an application context, use
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtOpenDisplay'>
+<funcprototype>
+  <funcdef>Display <function>*XtOpenDisplay</function></funcdef>
+       <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+       <paramdef>String <parameter>display_string</parameter></paramdef>
+       <paramdef>String <parameter>application_name</parameter></paramdef>
+       <paramdef>String <parameter>application_class</parameter></paramdef>
+       <paramdef>XrmOptionDescRec * <parameter>options</parameter></paramdef>
+       <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
+       <paramdef>int * <parameter>argc</parameter></paramdef>
+       <paramdef>String * <parameter>argv</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display_string</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display string, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>application_name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the application instance, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>application_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the class name of this application,
+which is usually the generic name for all instances of this application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies how to parse the command line for any application-specific resources.
+The options argument is passed as a parameter to
+<function>XrmParseCommand</function>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the options list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the number of command line parameters.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argv</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the list of command line parameters.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>
+function calls
+<function>XOpenDisplay</function>
+with the specified <emphasis remap='I'>display_string</emphasis>.
+If <emphasis remap='I'>display_string</emphasis> is NULL,
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>
+uses the current value of the \-display option specified in <emphasis remap='I'>argv</emphasis>.
+If no display is specified in <emphasis remap='I'>argv</emphasis>,
+the user's default display is retrieved from the environment.
+On POSIX-based systems,
+this is the value of the
+<emphasis role='strong'>DISPLAY</emphasis>
+environment variable.
+</para>
+
+<para>
+If this succeeds,
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>
+then calls
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+and passes it the opened display and
+the value of the \-name option specified in <emphasis remap='I'>argv</emphasis> as the application name.
+If no \-name option is specified
+and <emphasis remap='I'>application_name</emphasis> is
+non-NULL, <emphasis remap='I'>application_name</emphasis> is passed to
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>.
+If <emphasis remap='I'>application_name</emphasis> is NULL and if the environment variable
+<emphasis role='strong'>RESOURCE_NAME</emphasis>
+is set, the value of
+<emphasis role='strong'>RESOURCE_NAME</emphasis>
+is used.  Otherwise, the application
+name is the name used to invoke the program.  On implementations that
+conform to ANSI C Hosted Environment support, the application name will
+be <emphasis remap='I'>argv</emphasis>[0] less any directory and file type components, that is, the
+final component of <emphasis remap='I'>argv</emphasis>[0], if specified.  If <emphasis remap='I'>argv</emphasis>[0] does not exist or
+is the empty string, the application name is ``main''.
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>
+returns the newly opened display or NULL if it failed.
+</para>
+
+<para>
+See <xref linkend='Using_the_Intrinsics_in_a_Multi_Threaded_Environment' />
+for information regarding the use of
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>
+in multiple threads.
+</para>
+
+<para>
+To close a display and remove it from an application context, use
+<xref linkend='XtCloseDisplay' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCloseDisplay'>
+<funcprototype>
+  <funcdef>void <function>XtCloseDisplay</function></funcdef>
+       <paramdef>Display * <parameter>display</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtCloseDisplay' xrefstyle='select: title'/>
+function calls
+<function>XCloseDisplay</function>
+with the specified <emphasis remap='I'>display</emphasis> as soon as it is safe to do so.
+If called from within an event dispatch (for example, a callback procedure),
+<xref linkend='XtCloseDisplay' xrefstyle='select: title'/>
+does not close the display until the dispatch is complete.
+Note that applications need only call
+<xref linkend='XtCloseDisplay' xrefstyle='select: title'/>
+if they are to continue executing after closing the display;
+otherwise, they should call
+<xref linkend='XtDestroyApplicationContext' xrefstyle='select: title'/>.
+</para>
+
+<para>
+See <xref linkend='Using_the_Intrinsics_in_a_Multi_Threaded_Environment' />
+for information regarding the use of
+<xref linkend='XtCloseDisplay' xrefstyle='select: title'/>
+in multiple threads.
+</para>
+</sect1>
+
+<sect1 id="Establishing_the_Locale">
+<title>Establishing the Locale</title>
+<para>
+Resource databases are specified to be created in the current process
+locale.  During display initialization prior to creating the
+per-screen resource database, the Intrinsics will call out to a specified
+application procedure to set the locale according to options found on
+the command line or in the per-display resource specifications.
+</para>
+
+<para>
+The callout procedure provided by the application is of type
+<function>XtLanguageProc</function>.
+</para>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>typedef String <function>(*XtLanguageProc)</function></funcdef>
+  <paramdef>Display <parameter>display</parameter></paramdef>
+  <paramdef>String <parameter>language</parameter></paramdef>
+  <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the display.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>language</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the initial language value obtained from the command line
+or server per-display resource specifications.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Passes the additional client data specified in the call to
+<function>XtSetLanguageProc</function>.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+<para>
+The language procedure allows an application to set the locale to
+the value of the language resource determined by
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>.
+The function returns a new language string that
+will be subsequently used by
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+to establish the path for loading resource files.  The returned
+string  will be copied by the Intrinsics into new memory.
+</para>
+
+<para>
+Initially, no language procedure is set by the Intrinsics.
+To set the language procedure for use by
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>,
+use
+<function>XtSetLanguageProc</function>.
+</para>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>XtLanguageProc <function>XtSetLanguageProc</function></funcdef>
+  <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
+  <paramdef>XtLanguageProc <parameter>proc</parameter></paramdef>
+  <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context in which the language procedure is
+to be used, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>proc</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the language procedure.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>client_data</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies additional client data to be passed to the language
+procedure when it is called.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<function>XtSetLanguageProc</function>
+sets the language procedure that will be called from
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+for all subsequent Displays initialized in the specified application
+context.   If <emphasis remap='I'>app_context</emphasis> is NULL, the specified language
+procedure is registered in all application contexts created by the
+calling process, including any future application contexts that may
+be created.   If <emphasis remap='I'>proc</emphasis> is NULL, a default language procedure is
+registered.
+<function>XtSetLanguageProc</function>
+returns the previously registered language procedure.
+If a language procedure has not yet been registered, the return value
+is unspecified, but if this return value is used in a subsequent call to
+<function>XtSetLanguageProc</function>,
+it will cause the default language procedure to be registered.
+</para>
+
+<para>
+The default language procedure does the following:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Sets the locale according to the environment.  On ANSI C-based
+systems this is done by calling
+<function>setlocale</function>(
+<function>LC_ALL</function>,
+<emphasis remap='I'>language</emphasis> ).
+If an error is encountered, a warning message is issued with
+<xref linkend='XtWarning' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calls
+<function>XSupportsLocale</function>
+to verify that the current locale is supported.
+If the locale is not supported, a warning message is issued with
+<xref linkend='XtWarning' xrefstyle='select: title'/>
+and the locale is set to ``C''.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calls
+<function>XSetLocaleModifiers</function>
+specifying the empty string.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Returns the value of the current locale.  On ANSI C-based systems this
+is the return value from a final call to
+<function>setlocale</function>(
+<function>LC_ALL</function>,
+NULL ).
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+A client wishing to use this mechanism to establish locale can do so
+by calling
+<function>XtSetLanguageProc</function>
+prior to
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>,
+as in the following example.
+</para>
+<literallayout>
+	Widget top;
+	XtSetLanguageProc(NULL, NULL, NULL);
+	top = XtOpenApplication(...);
+	...
+</literallayout>
+</sect1>
+
+<sect1 id="Loading_the_Resource_Database">
+<title>Loading the Resource Database</title>
+<para>
+The
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+function first determines the language
+string to be used for the specified display.  It then
+creates a resource database for the default screen of the display by
+combining the following sources in order, with the entries in the
+first named source having highest precedence:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Application command line (<emphasis remap='I'>argc</emphasis>, <emphasis remap='I'>argv</emphasis>).
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Per-host user environment resource file on the local host.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Per-screen resource specifications from the server.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Per-display resource specifications from the server or from
+the user preference file on the local host.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Application-specific user resource file on the local host.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Application-specific class resource file on the local host.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+When the resource database for a particular screen on the display
+is needed (either internally, or when
+<xref linkend='XtScreenDatabase' xrefstyle='select: title'/>
+is called),
+it is created in the following manner using the sources listed
+above in the same order:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+A temporary database, the ``server resource database'', is
+created from the string returned by
+<function>XResourceManagerString</function>
+or, if
+<function>XResourceManagerString</function>
+returns NULL, the contents of a resource file in the user's home
+directory.  On POSIX-based systems, the usual name for this user
+preference resource file is $HOME/<function>.Xdefaults</function>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If a language procedure has been set,
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+first searches the command line for the option ``-xnlLanguage'', or
+for a -xrm option that specifies the xnlLanguage/XnlLanguage resource,
+as specified by Section 2.4.
+If such a resource is found, the value is assumed to be
+entirely in XPCS, the X Portable Character Set.  If neither option is
+specified on the command line,
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+queries the server resource database (which is assumed to be entirely
+in XPCS) for the resource
+<emphasis remap='I'>name</emphasis><function>.xnlLanguage</function>, class <emphasis remap='I'>Class</emphasis><function>.XnlLanguage</function>
+where <emphasis remap='I'>name</emphasis>
+and <emphasis remap='I'>Class</emphasis> are the <emphasis remap='I'>application_name</emphasis> and
+<emphasis remap='I'>application_class</emphasis> specified to
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>.
+The language procedure is then invoked with
+the resource value if found, else the empty string.  The
+string returned from the language procedure is saved for all future
+references in the Intrinsics that require the per-display language string.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The screen resource database is initialized by parsing the command
+line in the manner specified by Section 2.4.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If a language procedure has not been set,
+the initial database is then queried for the resource
+<emphasis remap='I'>name</emphasis><function>.xnlLanguage</function>, class <emphasis remap='I'>Class</emphasis><function>.XnlLanguage</function>
+as specified above.
+If this database query fails, the server resource database is
+queried; if this query also fails, the language is determined from
+the environment; on POSIX-based systems, this is done by retrieving the
+value of the
+<emphasis role='strong'>LANG</emphasis>
+environment variable.  If no language string is
+found, the empty string is used.
+This language string is saved for all future references in the Intrinsics
+that require the per-display language string.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+After determining the language string, the user's environment resource
+file is then merged into the initial resource database if the file exists.
+This file is user-, host-, and process-specific and is expected to
+contain user preferences that are to override those specifications in
+the per-display and per-screen resources.
+On POSIX-based systems, the user's environment resource file name is
+specified by the value of the
+<emphasis role='strong'>XENVIRONMENT</emphasis>
+environment variable.
+If this environment variable does not exist, the user's home directory
+is searched for a file named
+<function>.Xdefaults-</function><emphasis>host</emphasis>,
+where <emphasis remap='I'>host</emphasis> is the host name of the machine on which the
+application is running.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The per-screen resource specifications are then merged into the screen
+resource database, if they exist.  These specifications are the string
+returned by
+<function>XScreenResourceString</function>
+for the respective screen and are owned entirely by the user.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Next, the server resource database created earlier is merged into the
+screen resource database.  The server property, and corresponding user
+preference file, are owned and constructed entirely by the user.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The application-specific user resource file from the local host is
+then merged into the screen resource database.
+This file contains user customizations and is stored
+in a directory owned by the user.
+Either the user or the application or both can store resource specifications
+in the file.  Each should be prepared to find and respect entries made
+by the other.
+The file name is found by calling
+<function>XrmSetDatabase</function>
+with the current screen resource database, after preserving the
+original display-associated database, then calling
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>
+with the parameters
+(<emphasis remap='I'>display</emphasis>, NULL, NULL, NULL, <emphasis remap='I'>path</emphasis>, NULL, 0, NULL),
+where <emphasis remap='I'>path</emphasis> is defined in an operating-system-specific way.
+On POSIX-based systems, <emphasis remap='I'>path</emphasis> is defined to be the value
+of the environment variable
+<emphasis role='strong'>XUSERFILESEARCHPATH</emphasis>
+if this is defined.  If
+<emphasis role='strong'>XUSERFILESEARCHPATH</emphasis>
+is not defined, an implementation-dependent default value is used.
+This default value is constrained in the following manner:
+    </para>
+  </listitem>
+  <listitem>
+    <itemizedlist spacing='compact'>
+      <listitem>
+        <para>
+If the environment variable
+<emphasis role='strong'>XAPPLRESDIR</emphasis>
+is not defined, the default
+<emphasis role='strong'>XUSERFILESEARCHPATH</emphasis>
+must contain at least six entries.  These entries must contain
+$HOME as the directory prefix, plus the following substitutions:
+        </para>
+<literallayout>
+      1.	%C, %N, %L	or	%C, %N, %l, %t, %c
+      2.	%C, %N, %l
+      3.	%C, %N
+      4.	%N, %L	or	%N, %l, %t, %c
+      5.	%N, %l
+      6.	%N
+</literallayout>
+        <para>
+The order of these six entries within the path must be as given above.
+The order and use of substitutions within a given entry are
+implementation-dependent.
+        </para>
+      </listitem>
+      <listitem>
+        <para> If
+<emphasis role='strong'>XAPPLRESDIR</emphasis>
+is defined, the default
+<emphasis role='strong'>XUSERFILESEARCHPATH</emphasis>
+must contain at least seven entries.  These entries must contain the
+following directory prefixes and substitutions:
+        </para>
+<literallayout>
+      1.	$XAPPLRESDIR	with	%C, %N, %L	or	%C, %N, %l, %t, %c
+      2.	$XAPPLRESDIR	with	%C, %N, %l
+      3.	$XAPPLRESDIR	with	%C, %N
+      4.	$XAPPLRESDIR	with	%N, %L	or	%N, %l, %t, %c
+      5.	$XAPPLRESDIR	with	%N, %l
+      6.	$XAPPLRESDIR	with	%N
+      7.	$HOME	with	%N
+</literallayout>
+        <para>
+The order of these seven entries within the path must be as given above.
+The order and use of substitutions within a given entry are
+implementation-dependent.
+        </para>
+      </listitem>
+    </itemizedlist>
+  </listitem>
+  <listitem>
+    <para>
+Last, the application-specific class resource file from the local
+host is merged into the screen resource database.
+This file is owned by the application and is usually installed in
+a system directory when the application is installed.
+It may contain sitewide customizations specified by the system manager.
+The name of the application class resource file is found by calling
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>
+with the parameters
+(<emphasis remap='I'>display</emphasis>, ``app-defaults'', NULL, NULL, NULL, NULL, 0, NULL).
+This file is expected to be provided by the developer of the application
+and may be required for the application to function properly.
+A simple application that wants to be assured of having a minimal
+set of resources in the absence of its class resource file can declare
+fallback resource specifications with
+<xref linkend='XtAppSetFallbackResources' xrefstyle='select: title'/>.
+Note that the customization substitution string is retrieved
+dynamically by
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>
+so that the resolved file name of the application class resource file
+can be affected by any of the earlier sources for the screen resource
+database, even though the contents of the class resource file have
+lowest precedence.  After calling
+<xref linkend='XtResolvePathname' xrefstyle='select: title'/>,
+the original display-associated database is restored.
+    </para>
+  </listitem>
+</itemizedlist>
+
+<para>
+To obtain the resource database for a particular screen, use
+<xref linkend='XtScreenDatabase' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtScreenDatabase'>
+<funcprototype>
+  <funcdef>XrmDatabase <function>XtScreenDatabase</function></funcdef>
+      <paramdef>Screen * <parameter>screen</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>screen</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the screen whose resource database is to be returned.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtScreenDatabase' xrefstyle='select: title'/>
+function returns the fully merged resource database as specified above,
+associated with the specified screen.  If the specified <emphasis remap='I'>screen</emphasis>
+does not belong to a
+<function>Display</function>
+initialized by
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>,
+the results are undefined.
+</para>
+
+<para>
+To obtain the default resource database associated with a particular display, use
+<xref linkend='XtDatabase' xrefstyle='select: title'/>.
+</para>
+
+
+<funcsynopsis id='XtDatabase'>
+<funcprototype>
+  <funcdef>XrmDatabase <function>XtDatabase</function></funcdef>
+      <paramdef>Display * <parameter>display</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtDatabase' xrefstyle='select: title'/>
+function is equivalent to
+<function>XrmGetDatabase</function>.
+It returns the database associated with the specified display, or
+NULL if a database has not been set.
+</para>
+
+<para>
+To specify a default set of resource values that will be used to
+initialize the resource database if no application-specific class
+resource file is found (the last of the six sources listed above),
+use
+<xref linkend='XtAppSetFallbackResources' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAppSetFallbackResources'>
+<funcprototype>
+  <funcdef>void <function>XtAppSetFallbackResources</function></funcdef>
+      <paramdef>XtAppContext * <parameter>app_context</parameter></paramdef>
+      <paramdef>String * <parameter>specification_list</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the application context in which
+the fallback specifications will be used.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>specification_list</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a NULL-terminated list of
+resource specifications to preload
+the database, or NULL.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+Each entry in <emphasis remap='I'>specification_list</emphasis> points to a string in the format of
+<function>XrmPutLineResource</function>.
+Following a call to
+<xref linkend='XtAppSetFallbackResources' xrefstyle='select: title'/>,
+when a resource database is being created for a particular screen and
+the Intrinsics are not able
+to find or read an application-specific class resource file according to the
+rules given above and if <emphasis remap='I'>specification_list</emphasis> is not NULL, the
+resource specifications in <emphasis remap='I'>specification_list</emphasis> will be merged
+into the screen resource database in place of the application-specific
+class resource file.
+<xref linkend='XtAppSetFallbackResources' xrefstyle='select: title'/>
+is not
+required to copy <emphasis remap='I'>specification_list</emphasis>; the caller must ensure that the
+contents of the list and of the strings addressed by the list remain
+valid until all displays are initialized or until
+<xref linkend='XtAppSetFallbackResources' xrefstyle='select: title'/>
+is called again.  The value NULL for
+<emphasis remap='I'>specification_list</emphasis> removes any previous fallback resource specification
+for the application context.  The intended use for fallback resources
+is to provide a minimal
+number of resources that will make the application usable (or at
+least terminate with helpful diagnostic messages) when some problem
+exists in finding and loading the application defaults file.
+</para>
+</sect1>
+
+<sect1 id="Parsing_the_Command_Line">
+<title>Parsing the Command Line</title>
+<para>
+The
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>
+function first parses the command line for the following options:
+<variablelist>
+  <varlistentry>
+    <term>-display</term>
+    <listitem>
+      <para>
+Specifies the display name for
+<function>XOpenDisplay</function>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>-name</term>
+    <listitem>
+      <para>
+Sets the resource name prefix,
+which overrides the application name passed to
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>-xnllanguage</term>
+    <listitem>
+      <para>
+Specifies the initial language string for establishing locale
+and for finding application class resource files.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+</para>
+
+<para>
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+has a table of standard command line options that are passed to
+<function>XrmParseCommand</function>
+for adding resources to the resource database,
+and it takes as a parameter additional
+application-specific resource abbreviations.
+The format of this table is described in Section 15.9 in <emphasis remap='I'>Xlib — C Language X Interface</emphasis>.
+</para>
+<literallayout>
+typedef enum {
+        XrmoptionNoArg,	/* Value is specified in OptionDescRec.value */
+        XrmoptionIsArg,	/* Value is the option string itself */
+        XrmoptionStickyArg,	/* Value is characters immediately following option */
+        XrmoptionSepArg,	/* Value is next argument in argv */
+        XrmoptionResArg,	/* Use the next argument as input to XrmPutLineResource*/
+        XrmoptionSkipArg,	/* Ignore this option and the next argument in argv */
+        XrmoptionSkipNArgs,	/* Ignore this option and the next */
+                                /* OptionDescRec.value arguments in argv */
+        XrmoptionSkipLine	/* Ignore this option and the rest of argv */
+} XrmOptionKind;
+typedef struct {
+        char *option;	/* Option name in argv */
+        char *specifier;	/* Resource name (without application name) */
+        XrmOptionKind argKind;	/* Location of the resource value */
+        XPointer value;	/* Value to provide if XrmoptionNoArg */
+} XrmOptionDescRec, *XrmOptionDescList;
+</literallayout>
+<para>The standard table contains the following entries:</para>
+
+<informaltable frame='topbot'>
+  <?dbfo keep-together="always" ?>
+  <tgroup cols='4' align='left' colsep='0' rowsep='0'>
+  <colspec colwidth='1.0*' colname='c1'/>
+  <colspec colwidth='1.0*' colname='c2'/>
+  <colspec colwidth='1.0*' colname='c3'/>
+  <colspec colwidth='1.0*' colname='c4'/>
+  <thead>
+    <row rowsep='1'>
+      <entry>Option String</entry>
+      <entry>Resource Name</entry>
+      <entry>Argument Kind</entry>
+      <entry>Resource Value</entry>
+    </row>
+  </thead>
+  <tbody>
+    <row>
+      <entry>−background</entry>
+      <entry>*background</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−bd</entry>
+      <entry>*borderColor</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−bg</entry>
+      <entry>*background</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−borderwidth</entry>
+      <entry>.borderWidth</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−bordercolor</entry>
+      <entry>*borderColor</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−bw</entry>
+      <entry>.borderWidth</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−display</entry>
+      <entry>.display</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−fg</entry>
+      <entry>*foreground</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−fn</entry>
+      <entry>*font</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−font</entry>
+      <entry>*font</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−foreground</entry>
+      <entry>*foreground</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−geometry</entry>
+      <entry>.geometry</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−iconic</entry>
+      <entry>.iconic</entry>
+      <entry>NoArg</entry>
+      <entry>"true"</entry>
+    </row>
+    <row>
+      <entry>−name</entry>
+      <entry>.name</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−reverse</entry>
+      <entry>.reverseVideo</entry>
+      <entry>NoArg</entry>
+      <entry>"on"</entry>
+    </row>
+    <row>
+      <entry>−rv</entry>
+      <entry>.reverseVideo</entry>
+      <entry>NoArg</entry>
+      <entry>"on"</entry>
+    </row>
+    <row>
+      <entry>+rv</entry>
+      <entry>.reverseVideo</entry>
+      <entry>NoArg</entry>
+      <entry>"off"</entry>
+    </row>
+    <row>
+      <entry>−selectionTimeout</entry>
+      <entry>.selectionTimeout</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−synchronous</entry>
+      <entry>.synchronous</entry>
+      <entry>NoArg</entry>
+      <entry>"on"</entry>
+    </row>
+    <row>
+      <entry>+synchronous</entry>
+      <entry>.synchronous</entry>
+      <entry>NoArg</entry>
+      <entry>"off"</entry>
+    </row>
+    <row>
+      <entry>−title</entry>
+      <entry>.title</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−xnllanguage</entry>
+      <entry>.xnlLanguage</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−xrm</entry>
+      <entry>next argument</entry>
+      <entry>ResArg</entry>
+      <entry>next argument</entry>
+    </row>
+    <row>
+      <entry>−xtsessionID</entry>
+      <entry>.sessionID</entry>
+      <entry>SepArg</entry>
+      <entry>next argument</entry>
+    </row>
+  </tbody>
+  </tgroup>
+</informaltable>
+
+<para>
+Note that any unique abbreviation for an option name in the standard table
+or in the application table is accepted.
+</para>
+
+<para>
+If reverseVideo is
+<function>True</function>,
+the values of
+<function>XtDefaultForeground</function>
+and
+<function>XtDefaultBackground</function>
+are exchanged for all screens on the Display.
+</para>
+
+<para>
+The value of the synchronous resource specifies whether or not
+Xlib is put into synchronous mode.  If a value is found in the resource
+database during display initialization,
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+makes a call to
+<function>XSynchronize</function>
+for all display
+connections currently open in the application context.  Therefore,
+when multiple displays are initialized in the same application
+context, the most recent value specified for the synchronous resource
+is used for all displays in the application context.
+</para>
+
+<para>
+The value of the selectionTimeout resource applies to all displays
+opened in the same application context.  When multiple displays are
+initialized in the same application context, the most recent value
+specified is used for all displays in the application context.
+</para>
+
+<para>
+The -xrm option provides a method of setting any resource in an application.
+The next argument should be a quoted string identical in format to a line in
+the user resource file.
+For example,
+to give a red background to all command buttons in an application named
+<function>xmh</function>,
+you can start it up as
+</para>
+<literallayout>
+xmh -xrm 'xmh*Command.background: red'
+</literallayout>
+<para>
+When it parses the command line,
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+merges the application option table with the standard option table
+before calling the Xlib
+<function>XrmParseCommand</function>
+function.
+An entry in the application table with the same name as an entry
+in the standard table overrides the standard table entry.
+If an option name is a prefix of another option name,
+both names are kept in the merged table.
+The Intrinsics reserve all option names
+beginning with the characters ``-xt'' for future standard uses.
+</para>
+</sect1>
+
+<sect1 id="Creating_Widgets">
+<title>Creating Widgets</title>
+<para>
+The creation of widget instances is a three-phase process:
+</para>
+
+<orderedlist>
+  <listitem>
+    <para>
+The widgets are allocated and initialized with resources
+and are optionally added to the managed subset of their parent.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+All composite widgets are notified of their managed children
+in a bottom-up traversal of the widget tree.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The widgets create X windows, which then are mapped.
+    </para>
+  </listitem>
+</orderedlist>
+<para>
+To start the first phase,
+the application calls
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>
+for all its widgets and adds some (usually, most or all) of its widgets
+to their respective parents' managed set by calling
+<xref linkend='XtManageChild' xrefstyle='select: title'/>.
+To avoid an O(n<superscript>2</superscript>) creation process where each composite widget
+lays itself out each time a widget is created and managed,
+parent widgets are not notified of changes in their managed set
+during this phase.
+</para>
+
+<para>
+After all widgets have been created,
+the application calls
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+with the top-level widget to execute the second and third phases.
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+first recursively traverses the widget tree in a postorder (bottom-up)
+traversal and then notifies each composite widget with one
+or more managed children by means of its change_managed procedure.
+</para>
+
+<para>
+Notifying a parent about its managed set involves geometry layout and
+possibly geometry negotiation.
+A parent deals with constraints on its size imposed from above
+(for example, when a user specifies the application window size)
+and suggestions made from below (for example,
+when a primitive child computes its preferred size).
+One difference between the two can cause geometry changes to ripple
+in both directions through the widget tree.
+The parent may force some of its children to change size and position
+and may issue geometry requests to its own parent in order to better
+accommodate all its children.
+You cannot predict where anything will go on the screen
+until this process finishes.
+</para>
+
+<para>
+Consequently, in the first and second phases,
+no X windows are actually created, because it is likely
+that they will get moved around after creation.
+This avoids unnecessary requests to the X server.
+</para>
+
+<para>
+Finally,
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+starts the third phase by making a preorder (top-down) traversal
+of the widget tree, allocates an X window to each widget by means of
+its realize procedure, and finally maps the widgets that are managed.
+</para>
+
+<sect2 id="Creating_and_Merging_Argument_Lists">
+<title>Creating and Merging Argument Lists</title>
+<para>
+Many Intrinsics functions may be passed pairs of resource names and
+values.
+These are passed as an arglist, a pointer to an array of
+<function>Arg</function>
+structures, which contains
+</para>
+<literallayout>
+typedef struct {
+	String name;
+	XtArgVal value;
+} Arg, *ArgList;
+</literallayout>
+<para>
+where
+<function>XtArgVal</function>
+is as defined in Section 1.5.
+</para>
+
+<para>
+If the size of the resource is less than or equal to the size of an
+<function>XtArgVal</function>,
+the resource value is stored directly in <emphasis remap='I'>value</emphasis>;
+otherwise, a pointer to it is stored in <emphasis remap='I'>value</emphasis>.
+</para>
+
+<para>
+To set values in an
+<function>ArgList</function>,
+use
+<xref linkend='XtSetArg' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtSetArg'>
+<funcprototype>
+  <funcdef>void <function>XtSetArg</function></funcdef>
+  <paramdef>Arg <parameter>arg</parameter></paramdef>
+  <paramdef>String <parameter>name</parameter></paramdef>
+  <paramdef>XtArgVal <parameter>value</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>arg</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the <emphasis remap='I'>name/value</emphasis> pair to set.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the name of the resource.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>value</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the value of the resource if it will fit in an
+<function>XtArgVal</function>,
+else the address.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtSetArg' xrefstyle='select: title'/>
+function is usually used in a highly stylized manner to
+minimize the probability of making a mistake; for example:
+</para>
+<literallayout>
+Arg args[20];
+int n;
+n = 0;
+XtSetArg(args[n], XtNheight, 100);	n++;
+XtSetArg(args[n], XtNwidth, 200);	n++;
+XtSetValues(widget, args, n);
+</literallayout>
+<para>
+Alternatively, an application can statically declare the argument list
+and use
+<xref linkend='XtNumber' xrefstyle='select: title'/>:
+</para>
+<literallayout>
+static Args args[] = {
+	{XtNheight, (XtArgVal) 100},
+	{XtNwidth, (XtArgVal) 200},
+};
+XtSetValues(Widget, args, XtNumber(args));
+</literallayout>
+<para>
+Note that you should not use expressions with side effects such as
+auto-increment or auto-decrement
+within the first argument to
+<xref linkend='XtSetArg' xrefstyle='select: title'/>.
+<xref linkend='XtSetArg' xrefstyle='select: title'/>
+can be implemented as a macro that evaluates the first argument twice.
+</para>
+
+<para>
+To merge two
+arglist arrays, use
+<xref linkend='XtMergeArgLists' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtMergeArgLists'>
+<funcprototype>
+  <funcdef>ArgList <function>XtMergeArgLists</function></funcdef>
+     <paramdef>ArgList <parameter>args1</parameter></paramdef>
+     <paramdef>Cardinal <parameter>num_args1</parameter></paramdef>
+     <paramdef>ArgList <parameter>args2</parameter></paramdef>
+     <paramdef>Cardinal <parameter>num_args2</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args1</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the first argument list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args1</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the first argument list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args2</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the second argument list.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args2</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the second argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtMergeArgLists' xrefstyle='select: title'/>
+function allocates enough storage to hold the combined
+arglist arrays and copies them into it.
+Note that it does not check for duplicate entries.
+The length of the returned list is the sum of the lengths of the
+specified lists.
+When it is no longer needed,
+free the returned storage by using
+<xref linkend='XtFree' xrefstyle='select: title'/>.
+</para>
+
+<para>
+All Intrinsics interfaces that require
+<function>ArgList</function>
+arguments have analogs
+conforming to the ANSI C variable argument list
+(traditionally called ``varargs'')
+calling convention.  The name of the analog is formed by prefixing
+``Va'' to the name of the corresponding
+<function>ArgList</function>
+procedure; e.g.,
+<xref linkend='XtVaCreateWidget' xrefstyle='select: title'/>.
+Each procedure named <function>XtVa</function><emphasis remap='I'>something</emphasis> takes as its
+last arguments, in place of the corresponding
+<function>ArgList</function>/
+<function>Cardinal</function>
+parameters, a variable parameter list of resource name and
+value pairs where each name is of type
+<function>String</function>
+and each value is of type
+<function>XtArgVal</function>.
+The end of the list is identified by a <emphasis remap='I'>name</emphasis> entry
+containing NULL.  Developers writing in the C language wishing to pass
+resource name and value pairs to any of these interfaces may use the
+<function>ArgList</function>
+and varargs forms interchangeably.
+</para>
+
+<para>
+Two special names are defined for use only in varargs lists:
+<function>XtVaTypedArg</function>
+and
+<function>XtVaNestedList</function>.
+</para>
+<literallayout>
+#define XtVaTypedArg "XtVaTypedArg"
+</literallayout>
+<para>
+If the name
+<function>XtVaTypedArg</function>
+is specified in place of a resource
+name, then the following four arguments are interpreted as a
+<emphasis remap='I'>name/type/value/size</emphasis> tuple <emphasis remap='I'>where</emphasis> name is of type
+<function>String</function>,
+<emphasis remap='I'>type</emphasis> is of type
+<function>String</function>,
+<emphasis remap='I'>value</emphasis> is of type
+<function>XtArgVal</function>,
+and <emphasis remap='I'>size</emphasis> is of type int.  When a varargs list containing
+<function>XtVaTypedArg</function>
+is processed, a resource type
+conversion (see <xref linkend='Resource_Conversions' />) is performed if necessary to convert the
+value into the format required by the associated resource.  If <emphasis remap='I'>type</emphasis> is
+XtRString, then <emphasis remap='I'>value</emphasis> contains a pointer to the string and <emphasis remap='I'>size</emphasis>
+contains the number of bytes allocated, including the trailing null
+byte.  If <emphasis remap='I'>type</emphasis> is not XtRString, then <emphasis remap='I'>if</emphasis> size is
+less than or equal to
+<function>sizeof</function>(<function>XtArgVal</function>), the value should be the data cast to the type
+<function>XtArgVal</function>,
+otherwise <emphasis remap='I'>value</emphasis> is a pointer to the data.  If the type
+conversion fails for any reason, a warning message is issued and the
+list entry is skipped.
+</para>
+<literallayout>
+#define XtVaNestedList  "XtVaNestedList"
+</literallayout>
+<para>
+If the name
+<function>XtVaNestedList</function>
+is specified in place of a resource name,
+then the following argument is interpreted as an
+<function>XtVarArgsList</function>
+value, which specifies another
+varargs list that is logically inserted into the original list at the
+point of declaration.  The end of the nested list is identified with a
+name entry containing NULL.  Varargs lists may nest to any depth.
+</para>
+
+<para>
+To dynamically allocate a varargs list for use with
+<function>XtVaNestedList</function>
+in multiple calls, use
+<xref linkend='XtVaCreateArgsList' xrefstyle='select: title'/>.
+</para>
+<literallayout>
+typedef XtPointer XtVarArgsList;
+</literallayout>
+
+<funcsynopsis id='XtVaCreateArgsList'>
+<funcprototype>
+  <funcdef>XtVarArgsList <function>XtVaCreateArgsList</function></funcdef>
+     <paramdef>XtPointer <parameter>unused</parameter></paramdef>
+     <paramdef> <parameter>...</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>unused</emphasis>
+    </term>
+    <listitem>
+      <para>
+This argument is not currently used and must be specified as NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      ...
+    </term>
+    <listitem>
+      <para>
+Specifies a variable parameter list of resource
+name and value pairs.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtVaCreateArgsList' xrefstyle='select: title'/>
+function allocates memory and copies its arguments into a
+single list pointer, which may be used with
+<function>XtVaNestedList</function>.
+The end of
+both lists is identified by a <emphasis remap='I'>name</emphasis> entry containing NULL.  Any entries
+of type
+<function>XtVaTypedArg</function>
+are copied as specified without applying
+conversions.  Data passed by reference (including Strings) are not
+copied, only the pointers themselves; the caller must ensure that the
+data remain valid for the lifetime of the created varargs list.  The
+list should be freed using
+<xref linkend='XtFree' xrefstyle='select: title'/>
+when no longer needed.
+</para>
+
+<para>
+Use of resource files and of the resource database is generally
+encouraged over lengthy arglist or varargs lists whenever possible in
+order to permit modification without recompilation.
+</para>
+</sect2>
+
+<sect2 id="Creating_a_Widget_Instance">
+<title>Creating a Widget Instance</title>
+<para>
+To create an instance of a widget, use
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtCreateWidget'>
+<funcprototype>
+  <funcdef>Widget <function>XtCreateWidget</function></funcdef>
+      <paramdef>String <parameter>name</parameter></paramdef>
+      <paramdef>WidgetClass <parameter>object_class</parameter></paramdef>
+      <paramdef>Widget <parameter>parent</parameter></paramdef>
+      <paramdef>ArgList <parameter>args</parameter></paramdef>
+      <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource instance name for the created widget,
+which is used for retrieving resources
+and, for that reason, should not be the same as any other widget
+that is a child of the same parent.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget class pointer for the created object.  Must be <emphasis role='strong'>objectClass</emphasis> or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>parent</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the parent widget.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list to override any other resource specifications.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>
+function performs all the boilerplate operations of widget
+creation, doing the following in order:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Checks to see if the class_initialize procedure has been called for this class
+and for all superclasses and, if not, calls those necessary in a
+superclass-to-subclass order.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the specified class is not
+<function>coreWidgetClass</function>
+or a subclass thereof,
+and the parent's class is a subclass of
+<function>compositeWidgetClass</function>
+and either no extension record in
+the parent's composite class part extension field exists with the
+<emphasis remap='I'>record_type</emphasis>
+<emphasis role='strong'>NULLQUARK</emphasis>
+or the <emphasis remap='I'>accepts_objects</emphasis> field in the extension
+record is
+<function>False</function>,
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>
+issues a fatal error; see <xref linkend='Addition_of_Children_to_a_Composite_Widget_The_insert_child_Procedure' /> and <xref linkend='Nonwidget_Objects' />.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the specified class contains an extension record in the object class
+part <emphasis remap='I'>extension</emphasis> field with <emphasis remap='I'>record_type</emphasis>
+<emphasis role='strong'>NULLQUARK</emphasis>
+and the <emphasis remap='I'>allocate</emphasis> field is not NULL,
+the procedure is invoked to allocate memory
+for the widget instance.  If the parent is a member of the class
+<function>constraintWidgetClass</function>,
+the procedure also allocates memory for the
+parent's constraints and stores the address of this memory into the
+<emphasis remap='I'>constraints</emphasis> field.  If no allocate procedure is found, the Intrinsics
+allocate memory for the widget and, when applicable, the constraints,
+and initializes the <emphasis remap='I'>constraints</emphasis> field.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Initializes the Core nonresource data fields
+<emphasis remap='I'>self</emphasis>, <emphasis remap='I'>parent</emphasis>, <emphasis remap='I'>widget_class</emphasis>, <emphasis remap='I'>being_destroyed</emphasis>,
+<emphasis remap='I'>name</emphasis>, <emphasis remap='I'>managed</emphasis>, <emphasis remap='I'>window</emphasis>, <emphasis remap='I'>visible</emphasis>,
+<emphasis remap='I'>popup_list</emphasis>, and <emphasis remap='I'>num_popups</emphasis>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Initializes the resource fields (for example, <emphasis remap='I'>background_pixel</emphasis>)
+by using the
+<function>CoreClassPart</function>
+resource lists specified for this class and all superclasses.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the parent is a member of the class
+<function>constraintWidgetClass</function>,
+initializes the resource fields of the constraints record
+by using the
+<function>ConstraintClassPart</function>
+resource lists specified for the parent's class
+and all superclasses up to
+<function>constraintWidgetClass</function>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calls the initialize procedures for the widget starting at the
+Object
+initialize procedure on down to the widget's initialize procedure.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the parent is a member of the class
+<function>constraintWidgetClass</function>,
+calls the
+<function>ConstraintClassPart</function>
+initialize procedures,
+starting at
+<function>constraintWidgetClass</function>
+on down to the parent's
+<function>ConstraintClassPart</function>
+initialize procedure.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the parent is a member of the class
+<function>compositeWidgetClass</function>,
+puts the widget into its parent's children list by calling its parent's
+insert_child procedure.
+For further information,
+see <xref linkend='Addition_of_Children_to_a_Composite_Widget_The_insert_child_Procedure' />.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+To create an instance of a widget using varargs lists, use
+<xref linkend='XtVaCreateWidget' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtVaCreateWidget'>
+<funcprototype>
+  <funcdef>Widget <function>XtVaCreateWidget</function></funcdef>
+      <paramdef>String <parameter>name</parameter></paramdef>
+      <paramdef>WidgetClass <parameter>object_class</parameter></paramdef>
+      <paramdef>Widget <parameter>parent</parameter></paramdef>
+      <paramdef> <parameter>...</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource name for the created widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget class pointer for the created object.  Must be <emphasis role='strong'>objectClass</emphasis> or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>parent</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the parent widget.  Must be of class Object or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      ...
+    </term>
+    <listitem>
+      <para>
+Specifies the variable argument list to override any other
+resource specifications.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtVaCreateWidget' xrefstyle='select: title'/>
+procedure is identical in function to
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>
+with the <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis> parameters replaced by a varargs list,
+as described
+in Section 2.5.1.
+</para>
+</sect2>
+
+<sect2 id="Creating_an_Application_Shell_Instance">
+<title>Creating an Application Shell Instance</title>
+<para>
+An application can have multiple top-level widgets, each of which
+specifies a unique widget tree
+that can potentially be on different screens or displays.
+An application uses
+<xref linkend='XtAppCreateShell' xrefstyle='select: title'/>
+to create independent widget trees.
+</para>
+
+<funcsynopsis id='XtAppCreateShell'>
+<funcprototype>
+  <funcdef>Widget <function>XtAppCreateShell</function></funcdef>
+      <paramdef>String <parameter>name</parameter></paramdef>
+      <paramdef>String <parameter>application_class</parameter></paramdef>
+      <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
+      <paramdef>Display * <parameter>display</parameter></paramdef>
+      <paramdef>ArgList <parameter>args</parameter></paramdef>
+      <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the instance name of the shell widget.
+If <emphasis remap='I'>name</emphasis> is NULL,
+the application name passed to
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+is used.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>application_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource class string to be used in
+place of the widget <emphasis remap='I'>class_name</emphasis> string when
+<emphasis remap='I'>widget_class</emphasis> is
+<function>applicationShellWidgetClass</function>
+or a subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget class for the top-level widget (e.g.,
+<function>applicationShellWidgetClass ).</function>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display for the default screen
+and for the resource database used to retrieve
+the shell widget resources.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list to override any other resource specifications.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtAppCreateShell' xrefstyle='select: title'/>
+function
+creates a new shell widget instance as the root of a widget tree.
+The screen resource for this widget is determined by first scanning
+<emphasis remap='I'>args</emphasis> for the XtNscreen argument.  If no XtNscreen argument is
+found, the resource database associated with the default screen of
+the specified display is queried for the resource <emphasis remap='I'>name</emphasis>.screen,
+class <emphasis remap='I'>Class</emphasis>.Screen where <emphasis remap='I'>Class</emphasis> is the specified
+<emphasis remap='I'>application_class</emphasis> if <emphasis remap='I'>widget_class</emphasis> is
+<function>applicationShellWidgetClass</function>
+or a subclass thereof.  If <emphasis remap='I'>widget_class</emphasis> is not
+<function>application\%Shell\%Widget\%Class</function>
+or a subclass, <emphasis remap='I'>Class</emphasis> is the <emphasis remap='I'>class_name</emphasis>
+field from the
+<function>CoreClassPart</function>
+of the specified <emphasis remap='I'>widget_class</emphasis>.
+If this query fails, the default
+screen of the specified display is used.  Once the screen is determined,
+the resource database associated with that screen is used to retrieve
+all remaining resources for the shell widget not specified in
+<emphasis remap='I'>args</emphasis>.  The widget name and <emphasis remap='I'>Class</emphasis> as determined above are
+used as the leftmost (i.e., root) components in all fully qualified
+resource names for objects within this widget tree.
+</para>
+
+<para>
+If the specified widget class is a subclass of WMShell, the name and
+<emphasis remap='I'>Class</emphasis> as determined above will be stored into the
+<emphasis role='strong'>WM_CLASS</emphasis>
+property on the widget's window when it becomes realized.
+If the specified <emphasis remap='I'>widget_class</emphasis> is
+<function>applicationShellWidgetClass</function>
+or a subclass thereof, the
+<emphasis role='strong'>WM_COMMAND</emphasis>
+property will also be set from the values of the XtNargv and
+XtNargc resources.
+</para>
+
+<para>
+To create multiple top-level shells within a single (logical)
+application,
+you can use one of two methods:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Designate one shell as the real top-level shell and
+create the others as pop-up children of it by using
+<xref linkend='XtCreatePopupShell' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Have all shells as pop-up children of an unrealized top-level shell.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+The first method,
+which is best used when there is a clear choice for what is the main window,
+leads to resource specifications like the following:
+</para>
+<literallayout>
+xmail.geometry:...	(the main window)
+xmail.read.geometry:...	(the read window)
+xmail.compose.geometry:...	(the compose window)
+</literallayout>
+<para>
+The second method,
+which is best if there is no main window,
+leads to resource specifications like the following:
+</para>
+<literallayout>
+xmail.headers.geometry:...	(the headers window)
+xmail.read.geometry:...	(the read window)
+xmail.compose.geometry:...	(the compose window)
+</literallayout>
+<para>
+To create a top-level widget that is the root of a widget tree using
+varargs lists, use
+<xref linkend='XtVaAppCreateShell' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtVaAppCreateShell'>
+<funcprototype>
+  <funcdef>Widget <function>XtVaAppCreateShell</function></funcdef>
+      <paramdef>String <parameter>name</parameter></paramdef>
+      <paramdef>String <parameter>application_class</parameter></paramdef>
+      <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
+      <paramdef>Display * <parameter>display</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>name</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the instance name of the shell widget.
+If <emphasis remap='I'>name</emphasis> is NULL,
+the application name passed to
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+is used.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>application_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the resource class string to be used in
+place of the widget <emphasis remap='I'>class_name</emphasis> string when
+<emphasis remap='I'>widget_class</emphasis> is
+<function>applicationShellWidgetClass</function>
+or a subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget class for the top-level widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>display</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the display for the default screen
+and for the resource database used to retrieve
+the shell widget resources.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      ...
+    </term>
+    <listitem>
+      <para>
+Specifies the variable argument list to override any other
+resource specifications.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtVaAppCreateShell' xrefstyle='select: title'/>
+procedure is identical in function to
+<xref linkend='XtAppCreateShell' xrefstyle='select: title'/>
+with the <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis> parameters replaced by a varargs list, as
+described in Section 2.5.1.
+</para>
+</sect2>
+
+<sect2 id="Convenience_Procedure_to_Initialize_an_Application">
+<title>Convenience Procedure to Initialize an Application</title>
+<para>
+To initialize the Intrinsics internals, create an application context,
+open and initialize a display, and create the initial root shell
+instance, an application may use
+<xref linkend='XtOpenApplication' xrefstyle='select: title'/>
+or
+<xref linkend='XtVaOpenApplication' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtOpenApplication'>
+<funcprototype>
+  <funcdef>Widget <function>XtOpenApplication</function></funcdef>
+      <paramdef>XtAppContext * <parameter>app_context_return</parameter></paramdef>
+      <paramdef>String <parameter>application_class</parameter></paramdef>
+      <paramdef>XrmOptionDescList <parameter>options</parameter></paramdef>
+      <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
+      <paramdef>int * <parameter>argc_in_out</parameter></paramdef>
+      <paramdef>String * <parameter>argv_in_out</parameter></paramdef>
+      <paramdef>String * <parameter>fallback_resources</parameter></paramdef>
+      <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
+      <paramdef>ArgList <parameter>args</parameter></paramdef>
+      <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the application context, if non-NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>application_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the class name of the application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the command line options table.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>options</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argc_in_out</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the number of command line arguments.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argv_in_out</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the command line arguments.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>fallback_resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies resource values to be used if the application class resource
+file cannot be opened or read, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the class of the widget to be created.  Must be shellWidgetClass
+or a subclass.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list to override any
+other resource specifications for the created shell widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtOpenApplication' xrefstyle='select: title'/>
+function calls
+<xref linkend='XtToolkitInitialize' xrefstyle='select: title'/>
+followed by
+<xref linkend='XtCreateApplicationContext' xrefstyle='select: title'/>,
+then calls
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>
+with <emphasis remap='I'>display_string</emphasis> NULL and
+<emphasis remap='I'>application_name</emphasis> NULL, and finally calls
+<xref linkend='XtAppCreateShell' xrefstyle='select: title'/>
+with <emphasis remap='I'>name</emphasis> NULL, the specified <emphasis remap='I'>widget_class</emphasis>,
+an argument list and count,
+and returns the created shell.
+The recommended <emphasis remap='I'>widget_class</emphasis> is
+<function>sessionShellWidgetClass</function>.
+The argument list and count are created by merging
+the specified <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis> with a list
+containing the specified <emphasis remap='I'>argc</emphasis> and <emphasis remap='I'>argv</emphasis>.
+The modified <emphasis remap='I'>argc</emphasis> and <emphasis remap='I'>argv</emphasis> returned by
+<xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
+are returned in <emphasis remap='I'>argc_in_out</emphasis> and <emphasis remap='I'>argv_in_out</emphasis>.  If
+<emphasis remap='I'>app_context_return</emphasis> is not NULL, the created application context is
+also returned.  If the display specified by the command line cannot be
+opened, an error message is issued and
+<xref linkend='XtOpenApplication' xrefstyle='select: title'/>
+terminates the application.  If <emphasis remap='I'>fallback_resources</emphasis> is non-NULL,
+<xref linkend='XtAppSetFallbackResources' xrefstyle='select: title'/>
+is called with the value prior to calling
+<xref linkend='XtOpenDisplay' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtVaOpenApplication'>
+<funcprototype>
+  <funcdef>Widget <function>XtVaOpenApplication</function></funcdef>
+      <paramdef>XtAppContext * <parameter>app_context_return</parameter></paramdef>
+      <paramdef>String <parameter>application_class</parameter></paramdef>
+      <paramdef>XrmOptionDescList <parameter>options</parameter></paramdef>
+      <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
+      <paramdef>int * <parameter>argc_in_out</parameter></paramdef>
+      <paramdef>String * <parameter>argv_in_out</parameter></paramdef>
+      <paramdef>String * <parameter>fallback_resources</parameter></paramdef>
+      <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>app_context_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the application context, if non-NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>application_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the class name of the application.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the command line options table.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_options</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in <emphasis remap='I'>options</emphasis>.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argc_in_out</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a pointer to the number of command line arguments.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>argv_in_out</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the command line arguments array.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>fallback_resources</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies resource values to be used if the application class
+resource file cannot be opened, or NULL.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the class of the widget to be created.  Must be shellWidgetClass
+or a subclass.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      ...
+    </term>
+    <listitem>
+      <para>
+Specifies the variable argument list to override any other
+resource specifications for the created shell.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtVaOpenApplication' xrefstyle='select: title'/>
+procedure is identical in function to
+<xref linkend='XtOpenApplication' xrefstyle='select: title'/>
+with the <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis> parameters replaced by a varargs list,
+as described
+in Section 2.5.1.
+</para>
+</sect2>
+
+<sect2 id="Widget_Instance_Allocation_The_allocate_Procedure">
+<title>Widget Instance Allocation: The allocate Procedure</title>
+<para>
+A widget class may optionally provide an instance allocation procedure
+in the
+<function>ObjectClassExtension</function>
+record.
+</para>
+
+<para>
+When the call to create a widget includes a varargs list containing
+<function>XtVaTypedArg</function>,
+these arguments will be passed to the allocation procedure in an
+<function>XtTypedArgList</function>.
+</para>
+<literallayout>
+typedef struct {
+	String name;
+	String type;
+	XtArgVal value;
+	int size;
+} XtTypedArg, *XtTypedArgList;
+</literallayout>
+<para>
+The allocate procedure pointer in the
+<function>ObjectClassExtension</function>
+record is of type
+<xref linkend='XtAllocateProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtAllocateProc'>
+<funcprototype>
+  <funcdef>typedef void <function>(*AllocateProc)</function></funcdef>
+      <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
+      <paramdef>Cardinal* <parameter>constraint_size</parameter></paramdef>
+      <paramdef>Cardinal* <parameter>more_bytes</parameter></paramdef>
+      <paramdef>ArgList <parameter>args</parameter></paramdef>
+      <paramdef>Cardinal* <parameter>num_args</parameter></paramdef>
+      <paramdef>XtTypedArgList <parameter>typed_args</parameter></paramdef>
+      <paramdef>Cardinal* <parameter>num_typed_args</parameter></paramdef>
+      <paramdef>Widget* <parameter>new_return</parameter></paramdef>
+      <paramdef>XtPointer* <parameter>more_bytes_return</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget class of the instance to allocate.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>constraint_size</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the size of the constraint record to allocate, or 0.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>more_bytes</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of auxiliary bytes of memory to allocate.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list as given in the call to create the widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of arguments.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>typed_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the list of typed arguments given in the call to create the widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_typed_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of typed arguments.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>new_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns a pointer to the newly allocated instance, or NULL in case of error.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>more_bytes_return</emphasis>
+    </term>
+    <listitem>
+      <para>
+Returns the auxiliary memory if it was requested, or NULL
+if requested and an error occurred; otherwise, unchanged.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+At widget allocation time, if an extension record with <emphasis remap='I'>record_type</emphasis>
+equal to
+<emphasis role='strong'>NULLQUARK</emphasis>
+is located through the object class part <emphasis remap='I'>extension</emphasis> field
+and the <emphasis remap='I'>allocate</emphasis> field is not NULL, the
+<xref linkend='XtAllocateProc' xrefstyle='select: title'/>
+will be invoked to allocate memory for the widget.  If no ObjectClassPart
+extension record is declared with <emphasis remap='I'>record_type equal</emphasis> to
+<emphasis role='strong'>NULLQUARK</emphasis>,
+then
+<function>XtInheritAllocate</function>
+and
+<function>XtInheritDeallocate</function>
+are assumed.
+If no
+<xref linkend='XtAllocateProc' xrefstyle='select: title'/>
+is found, the Intrinsics will allocate memory for the widget.
+</para>
+
+<para>
+An
+<xref linkend='XtAllocateProc' xrefstyle='select: title'/>
+must perform the following:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Allocate memory for the widget instance and return it in <emphasis remap='I'>new_return</emphasis>.
+The memory must be at least <emphasis remap='I'>wc-&gt;core_class.widget_size</emphasis> bytes in length,
+double-word aligned.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Initialize the <emphasis remap='I'>core.constraints</emphasis> field in the instance record to NULL
+or to point to a constraint record.  If <emphasis remap='I'>constraint_size</emphasis>
+is not 0, the procedure must allocate memory for the constraint record.
+The memory must be double-word aligned.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If <emphasis remap='I'>more_bytes</emphasis> is not 0, then the address of a block of memory
+at least <emphasis remap='I'>more_bytes</emphasis> in size, double-word aligned, must be
+returned in the <emphasis remap='I'>more_bytes_return</emphasis> parameter,
+or NULL to indicate an error.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+A class allocation procedure that envelops the allocation procedure of a
+superclass must rely on the enveloped procedure to perform the instance
+and constraint allocation.
+Allocation procedures should refrain from initializing fields in the
+widget record except to store pointers to newly allocated additional memory.
+Under no circumstances should an allocation procedure that envelopes
+its superclass allocation procedure modify fields in the
+instance part of any superclass.
+</para>
+</sect2>
+
+<sect2 id="Widget_Instance_Initialization_The_initialize_Procedure">
+<title>Widget Instance Initialization: The initialize Procedure</title>
+<para>
+The initialize procedure pointer in a widget class is of type
+<xref linkend='XtInitProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtInitProc'>
+<funcprototype>
+  <funcdef>typedef void <function>(*XtInitProc)</function></funcdef>
+  <paramdef>Widget <parameter>request</parameter></paramdef>
+  <paramdef>Widget <parameter>new</parameter></paramdef>
+  <paramdef>ArgList <parameter>args</parameter></paramdef>
+  <paramdef>Cardinal * <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>request</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies a copy of the widget with resource values as requested by the
+argument list, the resource database, and the widget defaults.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>new</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget with the new values, both resource and nonresource,
+that are actually allowed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list passed by the client, for
+computing derived resource values.
+If the client created the widget using a varargs form, any resources
+specified via
+<function>XtVaTypedArg</function>
+are converted to the widget representation and the list is transformed
+into the
+<function>ArgList</function>
+format.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+An initialization procedure performs the following:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Allocates space for and copies any resources referenced by address
+that the client is allowed to free or modify
+after the widget has been created.
+For example,
+if a widget has a field that is a
+<function>String</function>,
+it may choose not to
+depend on the characters at that address remaining constant
+but dynamically allocate space for the string and copy it to the new space.
+Widgets that do not copy one or more resources referenced
+by address should clearly so state in their user documentation.
+<note><para>
+It is not necessary to allocate space for or to copy callback lists.
+</para></note>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Computes values for unspecified resource fields.
+For example, if <emphasis remap='I'>width</emphasis> and <emphasis remap='I'>height</emphasis> are zero,
+the widget should compute an appropriate width and height
+based on its other resources.
+<note><para>
+A widget may directly assign only
+its own <emphasis remap='I'>width</emphasis> and <emphasis remap='I'>height</emphasis> within the initialize, initialize_hook,
+set_values, and
+set_values_hook procedures; see <xref linkend='Geometry_Management' />.
+</para></note>
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Computes values for uninitialized nonresource fields that are derived from
+resource fields.
+For example, graphics contexts (GCs) that the widget uses are derived from
+resources like background, foreground, and font.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+An initialization procedure also can check certain fields for
+internal consistency.
+For example, it makes no sense to specify a colormap for a depth
+that does not support that colormap.
+</para>
+
+<para>
+Initialization procedures are called in superclass-to-subclass order
+after all fields specified in the resource lists have been
+initialized.  The initialize procedure does not need to examine
+<emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis>
+if all public resources are declared in the resource list.
+Most of the initialization code for a specific widget class deals with fields
+defined in that class and not with fields defined in its superclasses.
+</para>
+
+<para>
+If a subclass does not need an initialization procedure
+because it does not need to perform any of the above operations,
+it can specify NULL for the <emphasis remap='I'>initialize</emphasis> field in the class record.
+</para>
+
+<para>
+Sometimes a subclass may want to overwrite values filled in by its
+superclass.
+In particular, size calculations of a superclass often are
+incorrect for a subclass, and in this case,
+the subclass must modify or recalculate fields declared
+and computed by its superclass.
+</para>
+
+<para>
+As an example,
+a subclass can visually surround its superclass display.
+In this case, the width and height calculated by the superclass initialize
+procedure are too small and need to be incremented by the size of the surround.
+The subclass needs to know if its superclass's size was calculated by the
+superclass or was specified explicitly.
+All widgets must place themselves into whatever size is explicitly given,
+but they should compute a reasonable size if no size is requested.
+</para>
+
+<para>
+The <emphasis remap='I'>request</emphasis> and <emphasis remap='I'>new</emphasis> arguments provide the necessary information for
+a subclass to determine the difference between an explicitly specified field
+and a field computed by a superclass.
+The <emphasis remap='I'>request</emphasis> widget is a copy of the widget as initialized by the
+arglist and resource database.
+The <emphasis remap='I'>new</emphasis> widget starts with the values in the request,
+but it has been updated by all superclass initialization procedures called
+so far.
+A subclass initialize procedure can compare these two to resolve
+any potential conflicts.
+</para>
+
+<para>
+In the above example,
+the subclass with the visual surround can see
+if the <emphasis remap='I'>width</emphasis> and <emphasis remap='I'>height</emphasis> in the <emphasis remap='I'>request</emphasis> widget are zero.
+If so,
+it adds its surround size to the <emphasis remap='I'>width</emphasis> and <emphasis remap='I'>height</emphasis>
+fields in the <emphasis remap='I'>new</emphasis> widget.
+If not, it must make do with the size originally specified.
+</para>
+
+<para>
+The <emphasis remap='I'>new</emphasis> widget will become the actual widget instance record.
+Therefore,
+the initialization procedure should do all its work on the <emphasis remap='I'>new</emphasis> widget;
+the <emphasis remap='I'>request</emphasis> widget should never be modified.
+If the initialize procedure
+needs to call any routines that operate on a widget,
+it should specify <emphasis remap='I'>new</emphasis> as the widget instance.
+</para>
+</sect2>
+
+<sect2 id="Constraint_Instance_Initialization_The_ConstraintClassPart_initialize_Procedure">
+<title>Constraint Instance Initialization: The ConstraintClassPart initialize Procedure</title>
+<para>
+The constraint initialization procedure pointer, found in the
+<function>ConstraintClassPart</function>
+<emphasis remap='I'>initialize</emphasis> field of the widget class record, is of type
+<xref linkend='XtInitProc' xrefstyle='select: title'/>.
+The values passed to the parent constraint initialization procedures
+are the same as those passed to the child's class widget initialization
+procedures.
+</para>
+
+<para>
+The <emphasis remap='I'>constraints</emphasis> field of the <emphasis remap='I'>request</emphasis> widget points to a copy of the
+constraints record as initialized by the arglist and resource database.
+</para>
+
+<para>
+The constraint initialization procedure should compute any constraint fields
+derived from constraint resources.
+It can make further changes to the <emphasis remap='I'>new</emphasis> widget to make the widget
+and any other constraint fields
+conform to the specified constraints, for example,
+changing the widget's size or position.
+</para>
+
+<para>
+If a constraint class does not need a constraint initialization procedure,
+it can specify NULL for the <emphasis remap='I'>initialize</emphasis> field of the
+<function>ConstraintClassPart</function>
+in the class record.
+</para>
+</sect2>
+
+<sect2 id="Nonwidget_Data_Initialization_The_initialize_hook_Procedure">
+<title>Nonwidget Data Initialization: The initialize_hook Procedure</title>
+<note>
+<para>
+The initialize_hook procedure is obsolete, as the same information
+is now available to the initialize procedure.  The procedure has been
+retained for those widgets that used it in previous releases.
+</para>
+</note>
+
+<para>
+The initialize_hook procedure pointer is of type
+<xref linkend='XtArgsProc' xrefstyle='select: title'/>:
+</para>
+
+<funcsynopsis id='XtArgsProc'>
+<funcprototype>
+  <funcdef>typedef void<function>(*XtArgsProc)</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+  <paramdef>ArgList <parameter>args</parameter></paramdef>
+  <paramdef>Cardinal * <parameter>num_args</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the argument list passed by the client.
+If the client created the widget using a varargs form, any resources
+specified via
+<function>XtVaTypedArg</function>
+are converted to the widget representation and the list is transformed
+into the
+<function>ArgList</function>
+format.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>num_args</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the number of entries in the argument list.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If this procedure is not NULL,
+it is called immediately after the corresponding initialize
+procedure or in its place if the <emphasis remap='I'>initialize</emphasis> field is NULL.
+</para>
+
+<para>
+The initialize_hook procedure allows a widget instance to initialize
+nonresource data using information from the specified argument list
+as if it were a resource.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Realizing_Widgets">
+<title>Realizing Widgets</title>
+<para>
+To realize a widget instance, use
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRealizeWidget'>
+<funcprototype>
+  <funcdef>void <function>XtRealizeWidget</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Core or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If the widget is already realized,
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+simply returns.
+Otherwise it performs the following:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Binds all action names in the widget's
+translation table to procedures (see <xref linkend='Action_Names_to_Procedure_Translations' />).
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Makes a postorder traversal of the widget tree rooted
+at the specified widget and calls each non-NULL change_managed procedure
+of all composite widgets that have one or more managed children.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Constructs an
+<function>XSetWindowAttributes</function>
+structure filled in with information derived from the
+Core
+widget fields and calls the realize procedure for the widget,
+which adds any widget-specific attributes and creates the X window.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the widget is
+not a subclass of
+<function>compositeWidgetClass</function>,
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+returns; otherwise it continues and performs the following:
+    </para>
+  </listitem>
+  <listitem>
+    <itemizedlist spacing='compact'>
+      <listitem>
+        <para>
+Descends recursively to each of the widget's
+managed children and calls the realize procedures.
+Primitive widgets that instantiate children are responsible for realizing
+those children themselves.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+Maps all of the managed children windows that have <emphasis remap='I'>mapped_when_managed</emphasis>
+<function>True</function>.
+If a widget is managed but <emphasis remap='I'>mapped_when_managed</emphasis> is
+<function>False</function>,
+the widget is allocated visual space but is not displayed.
+        </para>
+      </listitem>
+    </itemizedlist>
+  </listitem>
+</itemizedlist>
+<para>
+If the widget is a top-level shell widget (that is, it has no parent), and
+<emphasis remap='I'>mapped_when_managed</emphasis> is
+<function>True</function>,
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+maps the widget window.
+</para>
+
+<para>
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>,
+<xref linkend='XtVaCreateWidget' xrefstyle='select: title'/>,
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>,
+<xref linkend='XtManageChildren' xrefstyle='select: title'/>,
+<function>XtUnmanage\%Children</function>,
+<xref linkend='XtUnrealizeWidget' xrefstyle='select: title'/>,
+<xref linkend='XtSetMappedWhenManaged' xrefstyle='select: title'/>,
+and
+<function>XtDestroy\%Widget</function>
+maintain the following invariants:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+If a composite widget is realized, then all its managed children are realized.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If a composite widget is realized, then all its managed children that have
+<emphasis remap='I'>mapped_when_managed</emphasis>
+<function>True</function>
+are mapped.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+All Intrinsics functions and all widget routines should accept
+either realized or unrealized widgets.
+When calling the realize or change_managed
+procedures for children of a composite
+widget,
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+calls the procedures in reverse order of
+appearance in the
+<function>CompositePart</function>
+<emphasis remap='I'>children</emphasis> list.  By default, this
+ordering of the realize procedures will
+result in the stacking order of any newly created subwindows being
+top-to-bottom in the order of appearance on the list, and the most
+recently created child will be at the bottom.
+</para>
+
+<para>
+To check whether or not a widget has been realized, use
+<xref linkend='XtIsRealized' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtIsRealized'>
+<funcprototype>
+  <funcdef>Boolean <function>XtIsRealized</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Object or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtIsRealized' xrefstyle='select: title'/>
+function returns
+<function>True</function>
+if the widget has been realized,
+that is, if the widget has a nonzero window ID.
+If the specified object is not a widget, the state of the nearest
+widget ancestor is returned.
+</para>
+
+<para>
+Some widget procedures (for example, set_values) might wish to
+operate differently
+after the widget has been realized.
+</para>
+<sect2 id="Widget_Instance_Window_Creation_The_realize_Procedure">
+<title>Widget Instance Window Creation: The realize Procedure</title>
+<para>
+The realize procedure pointer in a widget class is of type
+<xref linkend='XtRealizeProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtRealizeProc'>
+<funcprototype>
+  <funcdef>typedef void <function>(*XtRealizeProc)</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+  <paramdef>XtValueMask <parameter>value_mask</parameter></paramdef>
+  <paramdef>XSetWindowAttributes <parameter>attributes</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>value_mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies which fields in the <emphasis remap='I'>attributes</emphasis> structure are used.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>attributes</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the window attributes to use in the
+<function>XCreateWindow</function>
+call.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The realize procedure must create the widget's window.
+</para>
+
+<para>
+Before calling the class realize procedure, the generic
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+function fills in a mask and a corresponding
+<function>XSetWindowAttributes</function>
+structure.
+It sets the following fields in <emphasis remap='I'>attributes</emphasis> and
+corresponding bits in <emphasis remap='I'>value_mask</emphasis>
+based on information in the widget
+core
+structure:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+The <emphasis remap='I'>background_pixmap</emphasis> (or <emphasis remap='I'>background_pixel</emphasis> if <emphasis remap='I'>background_pixmap</emphasis> is
+<function>XtUnspecifiedPixmap</function>)
+is filled in from the corresponding field.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The <emphasis remap='I'>border_pixmap</emphasis> (or <emphasis remap='I'>border_pixel</emphasis> if <emphasis remap='I'>border_pixmap</emphasis> is
+<function>XtUnspecifiedPixmap</function>)
+is filled in from the corresponding field.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The <emphasis remap='I'>colormap</emphasis> is filled in from the corresponding field.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The <emphasis remap='I'>event_mask</emphasis> is filled in based on the event handlers registered,
+the event translations specified, whether the <emphasis remap='I'>expose</emphasis> field is non-NULL,
+and whether <emphasis remap='I'>visible_interest</emphasis> is
+<function>True</function>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+The <emphasis remap='I'>bit_gravity</emphasis> is set to
+<function>NorthWestGravity</function>
+if the <emphasis remap='I'>expose</emphasis> field is NULL.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+These or any other fields in attributes and the corresponding bits in
+<emphasis remap='I'>value_mask</emphasis> can be set by the realize procedure.
+</para>
+
+<para>
+Note that because realize is not a chained operation,
+the widget class realize procedure must update the
+<function>XSetWindowAttributes</function>
+structure with all the appropriate fields from
+non-Core
+superclasses.
+</para>
+
+<para>
+A widget class can inherit its realize procedure from its superclass
+during class initialization.
+The realize procedure defined for
+<function>coreWidgetClass</function>
+calls
+<xref linkend='XtCreateWindow' xrefstyle='select: title'/>
+with the passed <emphasis remap='I'>value_mask</emphasis> and <emphasis remap='I'>attributes</emphasis>
+and with <emphasis remap='I'>window_class</emphasis> and <emphasis remap='I'>visual</emphasis> set to
+<function>CopyFromParent</function>.
+Both
+<function>compositeWidgetClass</function>
+and
+<function>constraintWidgetClass</function>
+inherit this realize procedure, and most new widget subclasses
+can do the same (see <xref linkend='Inheritance_of_Superclass_Operations' />).
+</para>
+
+<para>
+The most common noninherited realize procedures set <emphasis remap='I'>bit_gravity</emphasis> in the mask
+and attributes to the appropriate value and then create the window.
+For example, depending on its justification, Label might set <emphasis remap='I'>bit_gravity</emphasis> to
+<function>WestGravity</function>,
+<function>CenterGravity</function>,
+or
+<function>EastGravity</function>.
+Consequently, shrinking it would just move the bits appropriately,
+and no
+exposure
+event is needed for repainting.
+</para>
+
+<para>
+If a composite widget's children should be realized in an order other
+than that specified
+(to control the stacking order, for example),
+it should call
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+on its children itself in the appropriate order from within its own
+realize procedure.
+</para>
+
+<para>
+Widgets that have children and whose class is not a subclass of
+<function>compositeWidgetClass</function>
+are responsible for calling
+<xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
+on their children, usually from within the realize procedure.
+</para>
+
+<para>
+Realize procedures cannot manage or unmanage their descendants.
+</para>
+</sect2>
+
+<sect2 id="Window_Creation_Convenience_Routine">
+<title>Window Creation Convenience Routine</title>
+<para>
+Rather than call the Xlib
+<function>XCreateWindow</function>
+function explicitly, a realize procedure should normally call the Intrinsics analog
+<xref linkend='XtCreateWindow' xrefstyle='select: title'/>,
+which simplifies the creation of windows for widgets.
+</para>
+
+<funcsynopsis id='XtCreateWindow'>
+<funcprototype>
+  <funcdef>void <function>XtCreateWindow</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+  <paramdef>unsigned int <parameter>window_class</parameter></paramdef>
+  <paramdef>Visual * <parameter>visual</parameter></paramdef>
+  <paramdef>XtValueMask <parameter>value_mask</parameter></paramdef>
+  <paramdef>XSetWindowAttributes <parameter>attributes</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget that defines the additional window attributed.  Must be of class Core or any subclass thereof.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>window_class</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the Xlib window class (for example,
+<function>InputOutput</function>,
+<function>InputOnly</function>,
+or
+<function>CopyFromParent ).</function>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>visual</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the visual type (usually
+<function>CopyFromParent ).</function>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>value_mask</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies which fields in the <emphasis remap='I'>attributes</emphasis> structure are used.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>attributes</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the window attributes to use in the
+<function>XCreateWindow</function>
+call.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtCreateWindow' xrefstyle='select: title'/>
+function calls the Xlib
+<function>XCreateWindow</function>
+function with values from the widget structure and the passed parameters.
+Then, it assigns the created window to the widget's <emphasis remap='I'>window</emphasis> field.
+</para>
+
+<para>
+<xref linkend='XtCreateWindow' xrefstyle='select: title'/>
+evaluates the following fields of the widget core
+structure: <emphasis remap='I'>depth</emphasis>, <emphasis remap='I'>screen</emphasis>, <emphasis remap='I'>parent-&gt;core.window</emphasis>, <emphasis remap='I'>x</emphasis>,
+<emphasis remap='I'>y</emphasis>, <emphasis remap='I'>width</emphasis>, <emphasis remap='I'>height</emphasis>, and
+<emphasis remap='I'>border_width</emphasis>.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Obtaining_Window_Information_from_a_Widget">
+<title>Obtaining Window Information from a Widget</title>
+<para>
+The
+Core
+widget class definition contains the screen and window ids.
+The <emphasis remap='I'>window</emphasis> field may be NULL for a while
+(see <xref linkend='Creating_Widgets' /> and <xref linkend='Realizing_Widgets' />).
+</para>
+
+<para>
+The display pointer, the parent widget, screen pointer,
+and window of a widget are available to the widget writer by means of macros
+and to the application writer by means of functions.
+</para>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>Display <function>XtDisplay</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Core or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<function>XtDisplay</function>
+returns the display pointer for the specified widget.
+</para>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>Widget <function>XtParent</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Object or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<function>XtParent</function>
+returns the parent object for the specified widget. The returned object
+will be of class Object or a subclass.
+</para>
+
+<funcsynopsis id='XtScreen'>
+<funcprototype>
+  <funcdef>Screen <function>*XtScreen</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Core or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtScreen' xrefstyle='select: title'/>
+returns the screen pointer for the specified widget.
+</para>
+
+<funcsynopsis id='XtWindow'>
+<funcprototype>
+  <funcdef>Window <function>XtWindow</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Core or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtWindow' xrefstyle='select: title'/>
+returns the window of the specified widget.
+</para>
+
+<para>
+The display pointer, screen pointer, and window of a widget or
+of the closest widget ancestor of a nonwidget object are available
+by means of
+<xref linkend='XtDisplayOfObject' xrefstyle='select: title'/>,
+<xref linkend='XtScreenOfObject' xrefstyle='select: title'/>,
+and
+<xref linkend='XtWindowOfObject' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtDisplayOfObject'>
+<funcprototype>
+  <funcdef>Display <function>*XtDisplayOfObject</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object.  Must be of class Object or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtDisplayOfObject' xrefstyle='select: title'/>
+is identical in function to
+<function>XtDisplay</function>
+if the object is a widget; otherwise
+<xref linkend='XtDisplayOfObject' xrefstyle='select: title'/>
+returns the display
+pointer for the nearest ancestor of <emphasis remap='I'>object</emphasis> that is of class
+Widget or a subclass thereof.
+</para>
+
+<funcsynopsis id='XtScreenOfObject'>
+<funcprototype>
+  <funcdef>Screen <function>*XtScreenOfObject</function></funcdef>
+  <paramdef>Widget <parameter>object</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object.  Must be of class Object or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtScreenOfObject' xrefstyle='select: title'/>
+is identical in function to
+<xref linkend='XtScreen' xrefstyle='select: title'/>
+if the object is a widget; otherwise
+<xref linkend='XtScreenOfObject' xrefstyle='select: title'/>
+returns the screen pointer
+for the nearest ancestor of <emphasis remap='I'>object</emphasis> that is of class
+Widget or a subclass thereof.
+</para>
+
+<funcsynopsis id='XtWindowOfObject'>
+<funcprototype>
+  <funcdef>Window <function>XtWindowOfObject</function></funcdef>
+  <paramdef>Widget <parameter>object</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object.  Must be of class Object or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtWindowOfObject' xrefstyle='select: title'/>
+is identical in function to
+<xref linkend='XtWindow' xrefstyle='select: title'/>
+if the object is a widget; otherwise
+<xref linkend='XtWindowOfObject' xrefstyle='select: title'/>
+returns the window for the nearest ancestor of <emphasis remap='I'>object</emphasis> that is of class
+Widget or a subclass thereof.
+</para>
+
+<para>
+To retrieve the instance name of an object, use
+<xref linkend='XtName' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtName'>
+<funcprototype>
+  <funcdef>String <function>XtName</function></funcdef>
+  <paramdef>Widget <parameter>object</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>object</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the object whose name is desired.  Must be of class Object or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<xref linkend='XtName' xrefstyle='select: title'/>
+returns a pointer to the instance name of the specified object.
+The storage is owned by the Intrinsics and must not be modified.  The
+name is not qualified by the names of any of the object's ancestors.
+</para>
+
+<para>
+Several window attributes are locally cached in the widget instance.
+Thus, they can be set by the resource manager and
+<xref linkend='XtSetValues' xrefstyle='select: title'/>
+as well as used by routines that derive structures from these values
+(for example, <emphasis remap='I'>depth</emphasis> for deriving pixmaps,
+<emphasis remap='I'>background_pixel</emphasis> for deriving GCs, and so on) or in the
+<xref linkend='XtCreateWindow' xrefstyle='select: title'/>
+call.
+</para>
+
+<para>
+The <emphasis remap='I'>x</emphasis>, <emphasis remap='I'>y</emphasis>, <emphasis remap='I'>width</emphasis>, <emphasis remap='I'>height</emphasis>, and <emphasis remap='I'>border_width</emphasis>
+window attributes are available to
+geometry managers.
+These fields are maintained synchronously inside the Intrinsics.
+When an
+<function>XConfigureWindow</function>
+is issued by the Intrinsics on the widget's window (on request of its parent),
+these values are updated immediately rather than some time later
+when the server generates a
+<function>ConfigureNotify</function>
+event.
+(In fact, most widgets do not select
+<function>SubstructureNotify</function>
+events.)
+This ensures that all geometry calculations are based on the internally
+consistent toolkit world rather than on either
+an inconsistent world updated by asynchronous
+<function>ConfigureNotify</function>
+events or a consistent, but slow, world in which geometry managers
+ask the server
+for window sizes whenever they need to lay out their managed children
+(see <xref linkend='Geometry_Management' />).
+</para>
+<sect2 id="Unrealizing_Widgets">
+<title>Unrealizing Widgets</title>
+<para>
+To destroy the windows associated with a widget and its
+non-pop-up descendants, use
+<xref linkend='XtUnrealizeWidget' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtUnrealizeWidget'>
+<funcprototype>
+  <funcdef>void <function>XtUnrealizeWidget</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Core or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+If the widget is currently unrealized,
+<xref linkend='XtUnrealizeWidget' xrefstyle='select: title'/>
+simply returns.  Otherwise it performs the following:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Unmanages the widget if the widget is managed.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Makes a postorder (child-to-parent) traversal of the widget tree
+rooted at the specified widget and, for each widget that has
+declared a callback list resource named ``unrealizeCallback'', executes the
+procedures on the
+XtNunrealizeCallback
+list.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Destroys the widget's window and any subwindows by calling
+<function>XDestroyWindow</function>
+with the specified widget's <emphasis remap='I'>window</emphasis> field.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+Any events in the queue or which arrive following a call to
+<xref linkend='XtUnrealizeWidget' xrefstyle='select: title'/>
+will be dispatched as if the window(s) of the
+unrealized widget(s) had never existed.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Destroying_Widgets">
+<title>Destroying Widgets</title>
+<para>
+The Intrinsics provide support
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+To destroy all the pop-up children of the widget being destroyed
+and destroy all children of composite widgets.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+To remove (and unmap) the widget from its parent.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+To call the callback procedures that have been registered to trigger
+when the widget is destroyed.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+To minimize the number of things a widget has to deallocate when destroyed.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+To minimize the number of
+<function>XDestroyWindow</function>
+calls when destroying a widget tree.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+To destroy a widget instance, use
+<xref linkend='XtDestroyWidget' xrefstyle='select: title'/>.
+</para>
+
+
+<funcsynopsis id='XtDestroyWidget'>
+<funcprototype>
+  <funcdef>void <function>XtDestroyWidget</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget.  Must be of class Object or any subclass thereof.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The
+<xref linkend='XtDestroyWidget' xrefstyle='select: title'/>
+function provides the only method of destroying a widget,
+including widgets that need to destroy themselves.
+It can be called at any time,
+including from an application callback routine of the widget being destroyed.
+This requires a two-phase destroy process in order to avoid dangling
+references to destroyed widgets.
+</para>
+
+<para>
+In phase 1,
+<xref linkend='XtDestroyWidget' xrefstyle='select: title'/>
+performs the following:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+If the <emphasis remap='I'>being_destroyed</emphasis> field of the widget is
+<function>True</function>,
+it returns immediately.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Recursively descends the widget tree and
+sets the <emphasis remap='I'>being_destroyed</emphasis> field to
+<function>True</function>
+for the widget and all normal and pop-up children.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Adds the widget to a list of widgets (the destroy list) that should be
+destroyed when it is safe to do so.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+Entries on the destroy list satisfy the invariant that
+if w2 occurs after w1 on the destroy list, then w2 is not a descendent,
+either normal or pop-up, of w1.
+</para>
+
+<para>
+Phase 2 occurs when all procedures that should execute as a result of
+the current event have been called, including all procedures registered with
+the event and translation managers,
+that is, when the current invocation of
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
+is about to return, or immediately if not in
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>.
+</para>
+
+<para>
+In phase 2,
+<xref linkend='XtDestroyWidget' xrefstyle='select: title'/>
+performs the following on each entry in the destroy list in the order
+specified:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+If the widget is not a pop-up child and the widget's parent is a subclass of
+<function>composite\%WidgetClass</function>,
+and if the parent is not being destroyed,
+it calls
+<xref linkend='XtUnmanageChild' xrefstyle='select: title'/>
+on the widget and then calls the widget's parent's delete_child procedure
+(see <xref linkend='Deletion_of_Children_The_delete_child_Procedure' />).
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calls the destroy callback procedures registered on the widget
+and all normal and pop-up descendants in postorder (it calls child
+callbacks before parent callbacks).
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+The
+<xref linkend='XtDestroyWidget' xrefstyle='select: title'/>
+function then makes second traversal of the widget and all normal
+and pop-up descendants to perform the following three items on each
+widget in postorder:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+If the widget is not a pop-up child and the widget's parent is a subclass of
+<function>constraint\%WidgetClass</function>,
+it calls the
+<function>ConstraintClassPart</function>
+destroy procedure for the parent,
+then for the parent's superclass,
+until finally it calls the
+<function>ConstraintClassPart</function>
+destroy procedure for
+<function>constraintWidgetClass</function>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calls the
+<function>CoreClassPart</function>
+destroy procedure declared in the widget class,
+then the destroy procedure declared in its superclass,
+until finally it calls the destroy procedure declared in the Object
+class record.  Callback lists are deallocated.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+If the widget class object class part contains an
+<function>ObjectClassExtension</function>
+record with the record_type
+<emphasis role='strong'>NULLQUARK</emphasis>
+and the <emphasis remap='I'>deallocate</emphasis> field is not NULL,
+calls the deallocate procedure to deallocate the instance and if one
+exists, the constraint record.  Otherwise, the Intrinsics will deallocate
+the widget instance record and if one exists, the constraint record.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calls
+<function>XDestroyWindow</function>
+if the specified widget is realized (that is, has an X window).
+The server recursively destroys all normal descendant windows.
+(Windows of realized pop-up Shell children, and their
+descendants, are destroyed by a shell class destroy procedure.)
+    </para>
+  </listitem>
+</itemizedlist>
+<sect2 id="Adding_and_Removing_Destroy_Callbacks">
+<title>Adding and Removing Destroy Callbacks</title>
+<para>
+When an application needs to perform additional processing during the
+destruction of a widget,
+it should register a destroy callback procedure for the widget.
+The destroy callback procedures use the mechanism described in
+<xref linkend='Callbacks' />.
+The destroy callback list is identified by the resource name
+XtNdestroyCallback.
+</para>
+
+<para>
+For example, the following adds an application-supplied destroy callback
+procedure <emphasis remap='I'>ClientDestroy</emphasis> with client data to a widget by calling
+<xref linkend='XtAddCallback' xrefstyle='select: title'/>.
+</para>
+
+<literallayout>
+XtAddCallback(<emphasis remap='I'>w</emphasis>, XtNdestroyCallback, <emphasis remap='I'>ClientDestroy</emphasis>, <emphasis remap='I'>client_data</emphasis>)
+</literallayout>
+
+<para>
+Similarly, the following removes the application-supplied destroy callback
+procedure <emphasis remap='I'>ClientDestroy</emphasis> by calling
+<xref linkend='XtRemoveCallback' xrefstyle='select: title'/>.
+</para>
+
+<literallayout>
+XtRemoveCallback(<emphasis remap='I'>w</emphasis>, XtNdestroyCallback, <emphasis remap='I'>ClientDestroy</emphasis>, <emphasis remap='I'>client_data</emphasis>)
+</literallayout>
+<para>
+The <emphasis remap='I'>ClientDestroy</emphasis> argument is of type
+<xref linkend='XtCallbackProc' xrefstyle='select: title'/>;
+see <xref linkend='Using_Callback_Procedure_and_Callback_List_Definitions' />.
+</para>
+</sect2>
+
+<sect2 id="Dynamic_Data_Deallocation_The_destroy_Procedure">
+<title>Dynamic Data Deallocation: The destroy Procedure</title>
+<para>
+The destroy procedure pointers in the
+<function>ObjectClassPart</function>,
+<function>RectObjClassPart</function>,
+and
+<function>CoreClassPart</function>
+structures are of type
+<xref linkend='XtWidgetProc' xrefstyle='select: title'/>.
+</para>
+
+<funcsynopsis id='XtWidgetProc'>
+<funcprototype>
+  <funcdef>typedef void <function>XtWidgetProc</function></funcdef>
+  <paramdef>Widget <parameter>w</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>w</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget being destroyed.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+The destroy procedures are called in subclass-to-superclass order.
+Therefore, a widget's destroy procedure should deallocate only storage
+that is specific to the subclass and should ignore the storage
+allocated by any of its superclasses.
+The destroy procedure should deallocate only resources that have been
+explicitly created by the subclass.
+Any resource that was obtained from the resource database
+or passed in an argument list was not created by the widget
+and therefore should not be destroyed by it.
+If a widget does not need to deallocate any storage,
+the destroy procedure entry in its class record can be NULL.
+</para>
+
+<para>
+Deallocating storage includes, but is not limited to,
+the following steps:
+</para>
+<itemizedlist spacing='compact'>
+  <listitem>
+    <para>
+Calling
+<xref linkend='XtFree' xrefstyle='select: title'/>
+on dynamic storage allocated with
+<xref linkend='XtMalloc' xrefstyle='select: title'/>,
+<xref linkend='XtCalloc' xrefstyle='select: title'/>,
+and so on.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calling
+<function>XFreePixmap</function>
+on pixmaps created with direct X calls.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calling
+<xref linkend='XtReleaseGC' xrefstyle='select: title'/>
+on GCs allocated with
+<xref linkend='XtGetGC' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calling
+<function>XFreeGC</function>
+on GCs allocated with direct X calls.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calling
+<xref linkend='XtRemoveEventHandler' xrefstyle='select: title'/>
+on event handlers added to other widgets.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calling
+<xref linkend='XtRemoveTimeOut' xrefstyle='select: title'/>
+on timers created with
+<xref linkend='XtAppAddTimeOut' xrefstyle='select: title'/>.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+Calling
+<xref linkend='XtDestroyWidget' xrefstyle='select: title'/>
+for each child if the widget has children
+and is not a subclass of
+<function>compositeWidgetClass</function>.
+    </para>
+  </listitem>
+</itemizedlist>
+<para>
+During destroy phase 2 for each widget, the Intrinsics remove the widget
+from the modal cascade, unregister all event handlers, remove all key,
+keyboard, button, and pointer grabs and remove all callback procedures
+registered on the widget.  Any outstanding selection transfers will time out.
+</para>
+</sect2>
+
+<sect2 id="Dynamic_Constraint_Data_Deallocation_The_ConstraintClassPart_destroy_Procedure">
+<title>Dynamic Constraint Data Deallocation: The ConstraintClassPart destroy Procedure</title>
+<para>
+The constraint destroy procedure identified in the
+<function>ConstraintClassPart</function>
+<function>constraintWidgetClass</function>.
+This constraint destroy procedure pointer is of type
+<xref linkend='XtWidgetProc' xrefstyle='select: title'/>.
+The constraint destroy procedures are called in subclass-to-superclass order,
+starting at the class of the widget's parent and ending at
+<function>constraint\%WidgetClass</function>.
+Therefore, a parent's constraint destroy procedure should deallocate only
+storage that is specific to the constraint subclass
+and not storage allocated by any of its superclasses.
+</para>
+
+<para>
+If a parent does not need to deallocate any constraint storage,
+the constraint destroy procedure entry
+in its class record can be NULL.
+</para>
+</sect2>
+
+<sect2 id="Widget_Instance_Deallocation_The_deallocate_Procedure">
+<title>Widget Instance Deallocation: The deallocate Procedure</title>
+<para>
+The deallocate procedure pointer in the
+<function>ObjectClassExtension</function>
+record is of type
+<function>XtDeallocateProc</function>.
+</para>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>typedef void <function>(*XtDeallocateProc)</function></funcdef>
+  <paramdef>Widget <parameter>widget</parameter></paramdef>
+  <paramdef>XtPointer <parameter>more_bytes</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+
+<variablelist>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>widget</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the widget being destroyed.
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <emphasis remap='I'>more_bytes</emphasis>
+    </term>
+    <listitem>
+      <para>
+Specifies the auxiliary memory received from the corresponding allocator
+along with the widget, or NULL.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+When a widget is destroyed, if an
+<function>ObjectClassExtension</function>
+record exists in the object class part <emphasis remap='I'>extension</emphasis> field
+with <emphasis remap='I'>record_type</emphasis>
+<emphasis role='strong'>NULLQUARK</emphasis>
+and the <emphasis remap='I'>deallocate</emphasis> field is not NULL, the
+<function>XtDeallocateProc</function>
+will be called.
+If no ObjectClassPart extension record is declared with <emphasis remap='I'>record_type</emphasis>
+equal to
+<emphasis role='strong'>NULLQUARK</emphasis>,
+then
+<function>XtInheritAllocate</function>
+and
+<function>XtInheritDeallocate</function>
+are assumed.
+The responsibilities of the deallocate procedure are to deallocate the
+memory specified by <emphasis remap='I'>more_bytes</emphasis> if it is not NULL,
+to deallocate the constraints record as specified by the
+widget's <emphasis remap='I'>core.constraints</emphasis> field if it is
+not NULL, and to deallocate the widget instance itself.
+</para>
+
+<para>
+If no
+<function>XtDeallocateProc</function>
+is found, it is assumed that the Intrinsics
+originally allocated the memory and is responsible for freeing it.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="Exiting_from_an_Application">
+<title>Exiting from an Application</title>
+<para>
+All X Toolkit applications should terminate
+by calling
+<xref linkend='XtDestroyApplicationContext' xrefstyle='select: title'/>
+and then exiting
+using the
+standard method for their operating system (typically, by calling
+<function>exit</function>
+for POSIX-based systems).
+The quickest way to make the windows disappear while exiting is to call
+<xref linkend='XtUnmapWidget' xrefstyle='select: title'/>
+on each top-level shell widget.
+The Intrinsics have no resources beyond those in the program image,
+and the X server will free its resources when its connection
+to the application is broken.
+</para>
+
+<para>
+Depending upon the widget set in use, it may be necessary to explicitly
+destroy individual widgets or widget trees with
+<xref linkend='XtDestroyWidget' xrefstyle='select: title'/>
+before calling
+<xref linkend='XtDestroyApplicationContext' xrefstyle='select: title'/>
+in order to ensure that any
+required widget cleanup is properly executed.  The application developer
+must refer to the widget documentation to learn if a widget needs to
+perform cleanup beyond that performed automatically by the
+operating system.  If the client is a session participant
+(see <xref linkend='Session_Participation' />), then the client may wish to resign from the session
+before exiting.  See <xref linkend='Resigning_from_a_Session' /> for details.
+</para>
+</sect1>
+</chapter>
