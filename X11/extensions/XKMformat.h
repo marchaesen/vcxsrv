@@ -1,4 +1,3 @@
-/* $Xorg: XKMformat.h,v 1.3 2000/08/17 19:46:43 cpqbld Exp $ */
 /************************************************************
  Copyright (c) 1994 by Silicon Graphics Computer Systems, Inc.
 
@@ -24,7 +23,6 @@
  THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
  ********************************************************/
-/* $XFree86$ */
 
 #ifndef _XKMFORMAT_H_
 #define	_XKMFORMAT_H_ 1

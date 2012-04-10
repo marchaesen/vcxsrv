@@ -1,7 +1,6 @@
 #ifndef _XKBRULES_H_
 #define	_XKBRULES_H_ 1
 
-/* $Xorg: XKBrules.h,v 1.3 2000/08/17 19:46:43 cpqbld Exp $ */
 /************************************************************
  Copyright (c) 1996 by Silicon Graphics Computer Systems, Inc.
 
@@ -27,7 +26,6 @@
  THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
  ********************************************************/
-/* $XFree86: xc/lib/xkbfile/XKBrules.h,v 3.5 2002/11/26 01:43:25 dawes Exp $ */
 
 /***====================================================================***/
 

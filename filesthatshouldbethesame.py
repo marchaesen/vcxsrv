@@ -183,6 +183,13 @@ libXmu\include\X11\Xmu\WidgetNode.h               X11\Xmu\WidgetNode.h
 libXmu\include\X11\Xmu\WinUtil.h                  X11\Xmu\WinUtil.h
 libXmu\include\X11\Xmu\Xct.h                      X11\Xmu\Xct.h
 libXmu\include\X11\Xmu\Xmu.h                      X11\Xmu\Xmu.h
+
+libxkbfile\include\X11\extensions\XKBfile.h       X11\extensions\XKBfile.h
+libxkbfile\include\X11\extensions\XKM.h           X11\extensions\XKM.h
+libxkbfile\include\X11\extensions\XKBbells.h      X11\extensions\XKBbells.h
+libxkbfile\include\X11\extensions\XKBconfig.h     X11\extensions\XKBconfig.h
+libxkbfile\include\X11\extensions\XKBrules.h      X11\extensions\XKBrules.h
+libxkbfile\include\X11\extensions\XKMformat.h     X11\extensions\XKMformat.h
 """
 
 Files=FilesStr.split()
