@@ -7,7 +7,7 @@
 # This document is licensed under the SGI Free Software B License Version
 # 2.0. For details, see http://oss.sgi.com/projects/FreeB/ .
 #
-# $Revision: 17214 $ on $Date: 2012-03-26 17:44:23 -0700 (Mon, 26 Mar 2012) $
+# $Revision: 17237 $ on $Date: 2012-03-28 22:30:00 -0700 (Wed, 28 Mar 2012) $
 
 required-props:
 # Description of a parameter
@@ -403,10 +403,10 @@ Clear(mask)
 
 ClearColor(red, green, blue, alpha)
 	return		void
-	param		red		ClampedColorF in value
-	param		green		ClampedColorF in value
-	param		blue		ClampedColorF in value
-	param		alpha		ClampedColorF in value
+	param		red		ColorF in value
+	param		green		ColorF in value
+	param		blue		ColorF in value
+	param		alpha		ColorF in value
 	category	VERSION_1_0		   # old: framebuf
 	version		1.0
 	glxropcode	130
@@ -422,7 +422,7 @@ ClearStencil(s)
 
 ClearDepth(depth)
 	return		void
-	param		depth		ClampedFloat64 in value
+	param		depth		Float64 in value
 	category	VERSION_1_0		   # old: framebuf
 	version		1.0
 	glxropcode	132
@@ -525,7 +525,7 @@ LogicOp(opcode)
 StencilFunc(func, ref, mask)
 	return		void
 	param		func		StencilFunction in value
-	param		ref		ClampedStencilValue in value
+	param		ref		StencilValue in value
 	param		mask		MaskedStencilValue in value
 	category	VERSION_1_0		   # old: pixel-op
 	version		1.0
@@ -762,8 +762,8 @@ IsEnabled(cap)
 
 DepthRange(near, far)
 	return		void
-	param		near		ClampedFloat64 in value
-	param		far		ClampedFloat64 in value
+	param		near		Float64 in value
+	param		far		Float64 in value
 	category	VERSION_1_0		   # old: xform
 	version		1.0
 	glxropcode	174
@@ -3043,7 +3043,7 @@ EvalPoint2(i, j)
 AlphaFunc(func, ref)
 	return		void
 	param		func		AlphaFunction in value
-	param		ref		ClampedFloat32 in value
+	param		ref		Float32 in value
 	category	VERSION_1_0_DEPRECATED	   # old: pixel-op
 	version		1.0
 	deprecated	3.1
@@ -3857,7 +3857,7 @@ PrioritizeTextures(n, textures, priorities)
 	return		void
 	param		n		SizeI in value
 	param		textures	Texture in array [n]
-	param		priorities	ClampedFloat32 in array [n]
+	param		priorities	Float32 in array [n]
 	category	VERSION_1_1_DEPRECATED
 	version		1.1
 	deprecated	3.1
@@ -3910,10 +3910,10 @@ PushClientAttrib(mask)
 
 BlendColor(red, green, blue, alpha)
 	return		void
-	param		red		ClampedColorF in value
-	param		green		ClampedColorF in value
-	param		blue		ClampedColorF in value
-	param		alpha		ClampedColorF in value
+	param		red		ColorF in value
+	param		green		ColorF in value
+	param		blue		ColorF in value
+	param		alpha		ColorF in value
 	category	VERSION_1_2
 	glxflags	EXT
 	version		1.2
@@ -4471,7 +4471,7 @@ ActiveTexture(texture)
 
 SampleCoverage(value, invert)
 	return		void
-	param		value		ClampedFloat32 in value
+	param		value		Float32 in value
 	param		invert		Boolean in value
 	category	VERSION_1_3
 	glxflags	ARB
@@ -5819,7 +5819,7 @@ StencilFuncSeparate(face, func, ref, mask)
 	return		void
 	param		face		StencilFaceDirection in value
 	param		func		StencilFunction in value
-	param		ref		ClampedStencilValue in value
+	param		ref		StencilValue in value
 	param		mask		MaskedStencilValue in value
 	category	VERSION_2_0
 	version		2.0
@@ -5899,8 +5899,7 @@ DeleteProgram(program)
 	category	VERSION_2_0
 	version		2.0
 	extension
-	glxropcode	?
-	glxflags	ignore
+	glxsingle	202
 	offset		?
 
 DeleteShader(shader)
@@ -5909,8 +5908,7 @@ DeleteShader(shader)
 	category	VERSION_2_0
 	version		2.0
 	extension
-	glxropcode	?
-	glxflags	ignore
+	glxsingle	195
 	offset		?
 
 DetachShader(program, shader)
@@ -6013,8 +6011,7 @@ GetProgramiv(program, pname, params)
 	dlflags		notlistable
 	version		2.0
 	extension
-	glxsingle	?
-	glxflags	ignore
+	glxsingle	199
 	offset		?
 
 GetProgramInfoLog(program, bufSize, length, infoLog)
@@ -6027,8 +6024,7 @@ GetProgramInfoLog(program, bufSize, length, infoLog)
 	dlflags		notlistable
 	version		2.0
 	extension
-	glxsingle	?
-	glxflags	ignore
+	glxsingle	201
 	offset		?
 
 GetShaderiv(shader, pname, params)
@@ -6040,8 +6036,7 @@ GetShaderiv(shader, pname, params)
 	dlflags		notlistable
 	version		2.0
 	extension
-	glxsingle	?
-	glxflags	ignore
+	glxsingle	198
 	offset		?
 
 GetShaderInfoLog(shader, bufSize, length, infoLog)
@@ -6054,8 +6049,7 @@ GetShaderInfoLog(shader, bufSize, length, infoLog)
 	dlflags		notlistable
 	version		2.0
 	extension
-	glxsingle	?
-	glxflags	ignore
+	glxsingle	200
 	offset		?
 
 GetShaderSource(shader, bufSize, length, source)
@@ -6165,7 +6159,7 @@ IsProgram(program)
 	category	VERSION_2_0
 	version		2.0
 	extension	soft WINSOFT NV10
-	glxvendorpriv	1304
+	glxsingle	197
 	offset		592
 
 IsShader(shader)
@@ -6175,7 +6169,7 @@ IsShader(shader)
 	category	VERSION_2_0
 	version		2.0
 	extension	soft WINSOFT NV10
-	glxvendorpriv	?
+	glxsingle	196
 	offset		?
 
 LinkProgram(program)
@@ -6926,7 +6920,7 @@ UniformMatrix2x3fv(location, count, transpose, value)
 	category	VERSION_2_1
 	version		2.1
 	extension
-	glxropcode	?
+	glxropcode	305
 	glxflags	ignore
 	offset		?
 
@@ -6939,8 +6933,7 @@ UniformMatrix3x2fv(location, count, transpose, value)
 	category	VERSION_2_1
 	version		2.1
 	extension
-	glxropcode	?
-	glxflags	ignore
+	glxropcode	306
 	offset		?
 
 UniformMatrix2x4fv(location, count, transpose, value)
@@ -6952,8 +6945,7 @@ UniformMatrix2x4fv(location, count, transpose, value)
 	category	VERSION_2_1
 	version		2.1
 	extension
-	glxropcode	?
-	glxflags	ignore
+	glxropcode	307
 	offset		?
 
 UniformMatrix4x2fv(location, count, transpose, value)
@@ -6965,8 +6957,7 @@ UniformMatrix4x2fv(location, count, transpose, value)
 	category	VERSION_2_1
 	version		2.1
 	extension
-	glxropcode	?
-	glxflags	ignore
+	glxropcode	308
 	offset		?
 
 UniformMatrix3x4fv(location, count, transpose, value)
@@ -6978,8 +6969,7 @@ UniformMatrix3x4fv(location, count, transpose, value)
 	category	VERSION_2_1
 	version		2.1
 	extension
-	glxropcode	?
-	glxflags	ignore
+	glxropcode	309
 	offset		?
 
 UniformMatrix4x3fv(location, count, transpose, value)
@@ -6991,8 +6981,7 @@ UniformMatrix4x3fv(location, count, transpose, value)
 	category	VERSION_2_1
 	version		2.1
 	extension
-	glxropcode	?
-	glxflags	ignore
+	glxropcode	310
 	offset		?
 
 ###############################################################################
@@ -7930,7 +7919,7 @@ passthru: /* ARB_vertex_type_2_10_10_10_rev */
 
 MinSampleShading(value)
 	return		void
-	param		value		ClampedColorF in value
+	param		value		ColorF in value
 	category	VERSION_4_0
 	version		1.2
 	extension
@@ -8469,7 +8458,7 @@ MultTransposeMatrixdARB(m)
 
 SampleCoverageARB(value, invert)
 	return		void
-	param		value		ClampedFloat32 in value
+	param		value		Float32 in value
 	param		invert		Boolean in value
 	category	ARB_multisample
 	glxflags	ARB
@@ -11668,7 +11657,7 @@ BlendFuncSeparateiARB(buf, srcRGB, dstRGB, srcAlpha, dstAlpha)
 
 MinSampleShadingARB(value)
 	return		void
-	param		value		ClampedColorF in value
+	param		value		ColorF in value
 	category	ARB_sample_shading
 	version		1.2
 	extension
@@ -13172,8 +13161,8 @@ GetShaderPrecisionFormat(shadertype, precisiontype, range, precision)
 
 DepthRangef(n, f)
 	return		void
-	param		n		ClampedFloat32 in value
-	param		f		ClampedFloat32 in value
+	param		n		Float32 in value
+	param		f		Float32 in value
 	category	ARB_ES2_compatibility
 	version		4.1
 	extension
@@ -13183,7 +13172,7 @@ DepthRangef(n, f)
 
 ClearDepthf(d)
 	return		void
-	param		d		ClampedFloat32 in value
+	param		d		Float32 in value
 	category	ARB_ES2_compatibility
 	version		4.1
 	extension
@@ -14258,7 +14247,7 @@ DepthRangeArrayv(first, count, v)
 	return		void
 	param		first		UInt32 in value
 	param		count		SizeI in value
-	param		v		ClampedFloat64 in array [COMPSIZE(count)]
+	param		v		Float64 in array [COMPSIZE(count)]
 	category	ARB_viewport_array
 	version		4.1
 	extension
@@ -14269,8 +14258,8 @@ DepthRangeArrayv(first, count, v)
 DepthRangeIndexed(index, n, f)
 	return		void
 	param		index		UInt32 in value
-	param		n		ClampedFloat64 in value
-	param		f		ClampedFloat64 in value
+	param		n		Float64 in value
+	param		f		Float64 in value
 	category	ARB_viewport_array
 	version		4.1
 	extension
@@ -15033,10 +15022,10 @@ newcategory: EXT_abgr
 
 BlendColorEXT(red, green, blue, alpha)
 	return		void
-	param		red		ClampedColorF in value
-	param		green		ClampedColorF in value
-	param		blue		ClampedColorF in value
-	param		alpha		ClampedColorF in value
+	param		red		ColorF in value
+	param		green		ColorF in value
+	param		blue		ColorF in value
+	param		alpha		ColorF in value
 	category	EXT_blend_color
 	version		1.0
 	glxropcode	4096
