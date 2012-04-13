@@ -53,10 +53,6 @@
 #endif /* ENABLE_LIBXML2 */
 
 #ifdef _WIN32
-#define _WIN32_WINNT 0x0500
-#define STRICT
-#include <windows.h>
-#undef STRICT
 #include <mbstring.h>
 #endif
 
@@ -2327,11 +2323,7 @@ FcEndElement(void *userData, const XML_Char *name)
 	{
 	    int rc;
 	    data = buffer;
-#if _WIN32_WINNT >= 0x0500
-	    rc = GetSystemWindowsDirectory (buffer, sizeof (buffer) - 20);
-#else
-	    rc = GetWindowsDirectory (buffer, sizeof (buffer) - 20);
-#endif
+	    rc = pGetSystemWindowsDirectory (buffer, sizeof (buffer) - 20);
 	    if (rc == 0 || rc > sizeof (buffer) - 20)
 	    {
 		FcConfigMessage (parse, FcSevereError, "GetSystemWindowsDirectory failed");
@@ -2380,6 +2372,27 @@ FcEndElement(void *userData, const XML_Char *name)
 	    if (data [strlen (data) - 1] != '\\')
 		strcat (data, "\\");
 	    strcat (data, "fontconfig\\cache");
+	}
+	else if (strcmp (data, "LOCAL_APPDATA_FONTCONFIG_CACHE") == 0)
+	{
+	    char szFPath[MAX_PATH + 1];
+	    size_t len;
+	    FcStrFree (data);
+	    if (!(pSHGetFolderPathA && SUCCEEDED(pSHGetFolderPathA(NULL, /* CSIDL_LOCAL_APPDATA */ 28, NULL, 0, szFPath))))
+	    {
+		FcConfigMessage (parse, FcSevereError, "SHGetFolderPathA failed");
+		break;
+	    }
+	    strncat(szFPath, "\\fontconfig\\cache", MAX_PATH - 1 - strlen(szFPath));
+	    len = strlen(szFPath) + 1;
+	    data = malloc(len);
+	    if (!data)
+	    {
+		FcConfigMessage (parse, FcSevereError, "out of memory");
+		break;
+	    }
+	    FcMemAlloc (FC_MEM_STRING, len);
+	    strncpy(data, szFPath, len);
 	}
 #endif
 	if (!FcStrUsesHome (data) || FcConfigHome ())
@@ -2694,6 +2707,11 @@ bail0:
     return ret || !complain;
 }
 
+#ifdef _WIN32
+pfnGetSystemWindowsDirectory pGetSystemWindowsDirectory = NULL;
+pfnSHGetFolderPathA pSHGetFolderPathA = NULL;
+#endif
+
 FcBool
 FcConfigParseAndLoad (FcConfig	    *config,
 		      const FcChar8 *name,
@@ -2712,6 +2730,22 @@ FcConfigParseAndLoad (FcConfig	    *config,
     char            buf[BUFSIZ];
 #else
     void	    *buf;
+#endif
+
+#ifdef _WIN32
+    if (!pGetSystemWindowsDirectory)
+    {
+        HMODULE hk32 = GetModuleHandleA("kernel32.dll");
+        if (!(pGetSystemWindowsDirectory = (pfnGetSystemWindowsDirectory) GetProcAddress(hk32, "GetSystemWindowsDirectoryA")))
+            pGetSystemWindowsDirectory = (pfnGetSystemWindowsDirectory) GetWindowsDirectory;
+    }
+    if (!pSHGetFolderPathA)
+    {
+        HMODULE hSh = LoadLibraryA("shfolder.dll");
+        /* the check is done later, because there is no provided fallback */
+        if (hSh)
+            pSHGetFolderPathA = (pfnSHGetFolderPathA) GetProcAddress(hSh, "SHGetFolderPathA");
+    }
 #endif
 
     filename = FcConfigFilename (name);

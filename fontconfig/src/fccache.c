@@ -36,9 +36,6 @@
 #if defined(HAVE_MMAP) || defined(__CYGWIN__)
 #  include <unistd.h>
 #  include <sys/mman.h>
-#elif defined(_WIN32)
-#  define _WIN32_WINNT 0x0500
-#  include <windows.h>
 #endif
 
 #ifndef O_BINARY

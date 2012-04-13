@@ -55,9 +55,17 @@
 #endif
 
 #ifdef _WIN32
-#define FC_SEARCH_PATH_SEPARATOR ';'
+#  define _WIN32_WINNT 0x0500
+#  define WIN32_LEAN_AND_MEAN
+#  define STRICT
+#  include <windows.h>
+typedef UINT (WINAPI *pfnGetSystemWindowsDirectory)(LPSTR, UINT);
+typedef HRESULT (WINAPI *pfnSHGetFolderPathA)(HWND, int, HANDLE, DWORD, LPSTR);
+extern pfnGetSystemWindowsDirectory pGetSystemWindowsDirectory;
+extern pfnSHGetFolderPathA pSHGetFolderPathA;
+#  define FC_SEARCH_PATH_SEPARATOR ';'
 #else
-#define FC_SEARCH_PATH_SEPARATOR ':'
+#  define FC_SEARCH_PATH_SEPARATOR ':'
 #endif
 
 #define FC_DBG_MATCH	1
@@ -1008,6 +1016,12 @@ FcStrBufData (FcStrBuf *buf, const FcChar8 *s, int len);
 
 FcPrivate int
 FcStrCmpIgnoreBlanksAndCase (const FcChar8 *s1, const FcChar8 *s2);
+
+FcPrivate FcBool
+FcStrRegexCmp (const FcChar8 *s, const FcChar8 *regex);
+
+FcPrivate FcBool
+FcStrRegexCmpIgnoreCase (const FcChar8 *s, const FcChar8 *regex);
 
 FcPrivate const FcChar8 *
 FcStrContainsIgnoreBlanksAndCase (const FcChar8 *s1, const FcChar8 *s2);
