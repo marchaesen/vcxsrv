@@ -164,6 +164,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_cond_assign.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_swizzle.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_algebraic.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\opt_array_splitting.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_constant_folding.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_constant_propagation.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_constant_variable.cpp" />
