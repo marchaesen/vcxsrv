@@ -174,6 +174,22 @@ FcCompareSize (FcValue *value1, FcValue *value2)
     return v;
 }
 
+static double
+FcCompareFilename (FcValue *v1, FcValue *v2)
+{
+	const FcChar8 *s1 = FcValueString (v1), *s2 = FcValueString (v2);
+	if (FcStrCmp (s1, s2) == 0)
+	    return 0.0;
+	else if (FcStrCmpIgnoreCase (s1, s2) == 0)
+	    return 1.0;
+	else if (FcStrRegexCmp (s2, s1))
+	    return 2.0;
+	else if (FcStrRegexCmpIgnoreCase (s2, s1))
+	    return 3.0;
+	else
+	    return 4.0;
+}
+
 typedef struct _FcMatcher {
     FcObject	    object;
     double	    (*compare) (FcValue *value1, FcValue *value2);
@@ -186,40 +202,42 @@ typedef struct _FcMatcher {
  * later values
  */
 static const FcMatcher _FcMatchers [] = {
-    { FC_FOUNDRY_OBJECT,	FcCompareString,	0, 0 },
-#define MATCH_FOUNDRY	    0
-    { FC_CHARSET_OBJECT,	FcCompareCharSet,	1, 1 },
-#define MATCH_CHARSET	    1
-    { FC_FAMILY_OBJECT,    	FcCompareFamily,	2, 4 },
-#define MATCH_FAMILY	    2
-    { FC_LANG_OBJECT,		FcCompareLang,	3, 3 },
-#define MATCH_LANG	    3
-#define MATCH_LANG_INDEX    3
-    { FC_SPACING_OBJECT,	FcCompareNumber,	5, 5 },
-#define MATCH_SPACING	    4
-    { FC_PIXEL_SIZE_OBJECT,	FcCompareSize,	6, 6 },
-#define MATCH_PIXEL_SIZE    5
-    { FC_STYLE_OBJECT,		FcCompareString,	7, 7 },
-#define MATCH_STYLE	    6
-    { FC_SLANT_OBJECT,		FcCompareNumber,	8, 8 },
-#define MATCH_SLANT	    7
-    { FC_WEIGHT_OBJECT,		FcCompareNumber,	9, 9 },
-#define MATCH_WEIGHT	    8
-    { FC_WIDTH_OBJECT,		FcCompareNumber,	10, 10 },
-#define MATCH_WIDTH	    9
-    { FC_DECORATIVE_OBJECT,	FcCompareBool,		11, 11 },
-#define MATCH_DECORATIVE	10
-    { FC_ANTIALIAS_OBJECT,	FcCompareBool,		12, 12 },
-#define MATCH_ANTIALIAS		    11
-    { FC_RASTERIZER_OBJECT,	FcCompareString,	13, 13 },
-#define MATCH_RASTERIZER	    12
-    { FC_OUTLINE_OBJECT,	FcCompareBool,		14, 14 },
-#define MATCH_OUTLINE		    13
-    { FC_FONTVERSION_OBJECT,	FcCompareNumber,	15, 15 },
-#define MATCH_FONTVERSION	    14
+    { FC_FILE_OBJECT,		FcCompareFilename,	0, 0 },
+#define MATCH_FILE	    0
+    { FC_FOUNDRY_OBJECT,	FcCompareString,	1, 1 },
+#define MATCH_FOUNDRY	    1
+    { FC_CHARSET_OBJECT,	FcCompareCharSet,	2, 2 },
+#define MATCH_CHARSET	    2
+    { FC_FAMILY_OBJECT,    	FcCompareFamily,	3, 5 },
+#define MATCH_FAMILY	    3
+    { FC_LANG_OBJECT,		FcCompareLang,		4, 4 },
+#define MATCH_LANG	    4
+#define MATCH_LANG_INDEX    4
+    { FC_SPACING_OBJECT,	FcCompareNumber,	6, 6 },
+#define MATCH_SPACING	    5
+    { FC_PIXEL_SIZE_OBJECT,	FcCompareSize,		7, 7 },
+#define MATCH_PIXEL_SIZE    6
+    { FC_STYLE_OBJECT,		FcCompareString,	8, 8 },
+#define MATCH_STYLE	    7
+    { FC_SLANT_OBJECT,		FcCompareNumber,	9, 9 },
+#define MATCH_SLANT	    8
+    { FC_WEIGHT_OBJECT,		FcCompareNumber,	10, 10 },
+#define MATCH_WEIGHT	    9
+    { FC_WIDTH_OBJECT,		FcCompareNumber,	11, 11 },
+#define MATCH_WIDTH	    10
+    { FC_DECORATIVE_OBJECT,	FcCompareBool,		12, 12 },
+#define MATCH_DECORATIVE	11
+    { FC_ANTIALIAS_OBJECT,	FcCompareBool,		13, 13 },
+#define MATCH_ANTIALIAS		    12
+    { FC_RASTERIZER_OBJECT,	FcCompareString,	14, 14 },
+#define MATCH_RASTERIZER	    13
+    { FC_OUTLINE_OBJECT,	FcCompareBool,		15, 15 },
+#define MATCH_OUTLINE		    14
+    { FC_FONTVERSION_OBJECT,	FcCompareNumber,	16, 16 },
+#define MATCH_FONTVERSION	    15
 };
 
-#define NUM_MATCH_VALUES    16
+#define NUM_MATCH_VALUES    17
 
 static const FcMatcher*
 FcObjectToMatcher (FcObject object)
@@ -228,6 +246,8 @@ FcObjectToMatcher (FcObject object)
 
     i = -1;
     switch (object) {
+    case FC_FILE_OBJECT:
+	i = MATCH_FILE; break;
     case FC_FOUNDRY_OBJECT:
 	i = MATCH_FOUNDRY; break;
     case FC_FONTVERSION_OBJECT:
