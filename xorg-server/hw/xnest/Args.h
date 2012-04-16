@@ -15,24 +15,24 @@ is" without express or implied warranty.
 #ifndef XNESTARGC_H
 #define XNESTARGS_H
 
-extern char *xnestDisplayName;           
+extern char *xnestDisplayName;
 extern Bool xnestSynchronize;
 extern Bool xnestFullGeneration;
-extern int xnestDefaultClass;                   
+extern int xnestDefaultClass;
 extern Bool xnestUserDefaultClass;
-extern int xnestDefaultDepth;                   
+extern int xnestDefaultDepth;
 extern Bool xnestUserDefaultDepth;
 extern Bool xnestSoftwareScreenSaver;
-extern int xnestX;                       
-extern int xnestY;                       
-extern unsigned int xnestWidth;          
-extern unsigned int xnestHeight;         
+extern int xnestX;
+extern int xnestY;
+extern unsigned int xnestWidth;
+extern unsigned int xnestHeight;
 extern int xnestUserGeometry;
-extern int xnestBorderWidth;    
+extern int xnestBorderWidth;
 extern Bool xnestUserBorderWidth;
-extern char *xnestWindowName;           
+extern char *xnestWindowName;
 extern int xnestNumScreens;
 extern Bool xnestDoDirectColormaps;
 extern Window xnestParentWindow;
 
-#endif /* XNESTARGS_H */
+#endif                          /* XNESTARGS_H */

@@ -31,24 +31,24 @@
 #ifndef __GLXSINGLE_H
 #define __GLXSINGLE_H
 
-extern int __glXForwardSingleReq( __GLXclientState *cl, GLbyte *pc );
-extern int __glXForwardPipe0WithReply( __GLXclientState *cl, GLbyte *pc );
-extern int __glXForwardAllWithReply( __GLXclientState *cl, GLbyte *pc );
+extern int __glXForwardSingleReq(__GLXclientState * cl, GLbyte * pc);
+extern int __glXForwardPipe0WithReply(__GLXclientState * cl, GLbyte * pc);
+extern int __glXForwardAllWithReply(__GLXclientState * cl, GLbyte * pc);
 
-extern int __glXForwardSingleReqSwap( __GLXclientState *cl, GLbyte *pc );
+extern int __glXForwardSingleReqSwap(__GLXclientState * cl, GLbyte * pc);
 
-extern int __glXForwardPipe0WithReplySwap( __GLXclientState *cl, GLbyte *pc );
-extern int __glXForwardPipe0WithReplySwapsv( __GLXclientState *cl, GLbyte *pc );
-extern int __glXForwardPipe0WithReplySwapiv( __GLXclientState *cl, GLbyte *pc );
-extern int __glXForwardPipe0WithReplySwapdv( __GLXclientState *cl, GLbyte *pc );
+extern int __glXForwardPipe0WithReplySwap(__GLXclientState * cl, GLbyte * pc);
+extern int __glXForwardPipe0WithReplySwapsv(__GLXclientState * cl, GLbyte * pc);
+extern int __glXForwardPipe0WithReplySwapiv(__GLXclientState * cl, GLbyte * pc);
+extern int __glXForwardPipe0WithReplySwapdv(__GLXclientState * cl, GLbyte * pc);
 
-extern int __glXForwardAllWithReplySwap( __GLXclientState *cl, GLbyte *pc );
-extern int __glXForwardAllWithReplySwapsv( __GLXclientState *cl, GLbyte *pc );
-extern int __glXForwardAllWithReplySwapiv( __GLXclientState *cl, GLbyte *pc );
-extern int __glXForwardAllWithReplySwapdv( __GLXclientState *cl, GLbyte *pc );
+extern int __glXForwardAllWithReplySwap(__GLXclientState * cl, GLbyte * pc);
+extern int __glXForwardAllWithReplySwapsv(__GLXclientState * cl, GLbyte * pc);
+extern int __glXForwardAllWithReplySwapiv(__GLXclientState * cl, GLbyte * pc);
+extern int __glXForwardAllWithReplySwapdv(__GLXclientState * cl, GLbyte * pc);
 
-extern int __glXDisp_ReadPixels(__GLXclientState *cl, GLbyte *pc);
-extern int __glXDispSwap_GetTexImage(__GLXclientState *cl, GLbyte *pc);
-extern int __glXDispSwap_GetColorTable(__GLXclientState *cl, GLbyte *pc);
+extern int __glXDisp_ReadPixels(__GLXclientState * cl, GLbyte * pc);
+extern int __glXDispSwap_GetTexImage(__GLXclientState * cl, GLbyte * pc);
+extern int __glXDispSwap_GetColorTable(__GLXclientState * cl, GLbyte * pc);
 
 #endif

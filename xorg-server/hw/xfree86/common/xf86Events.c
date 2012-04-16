@@ -449,6 +449,8 @@ xf86VTSwitch(void)
             xf86DisableInputHandler(ih);
         for (pInfo = xf86InputDevs; pInfo; pInfo = pInfo->next) {
             if (pInfo->dev) {
+                if (!pInfo->dev->enabled)
+                    pInfo->flags |= XI86_DEVICE_DISABLED;
                 xf86ReleaseKeys(pInfo->dev);
                 ProcessInputEvents();
                 DisableDevice(pInfo->dev, TRUE);
@@ -482,8 +484,9 @@ xf86VTSwitch(void)
 
             pInfo = xf86InputDevs;
             while (pInfo) {
-                if (pInfo->dev)
+                if (pInfo->dev && (pInfo->flags & XI86_DEVICE_DISABLED) == 0)
                     EnableDevice(pInfo->dev, TRUE);
+                pInfo->flags &= ~XI86_DEVICE_DISABLED;
                 pInfo = pInfo->next;
             }
             for (ih = InputHandlers; ih; ih = ih->next)
@@ -537,8 +540,9 @@ xf86VTSwitch(void)
 
         pInfo = xf86InputDevs;
         while (pInfo) {
-            if (pInfo->dev)
+            if (pInfo->dev && (pInfo->flags & XI86_DEVICE_DISABLED) == 0)
                 EnableDevice(pInfo->dev, TRUE);
+            pInfo->flags &= ~XI86_DEVICE_DISABLED;
             pInfo = pInfo->next;
         }
 

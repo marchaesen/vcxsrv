@@ -45,59 +45,59 @@ void
 xf86VTRequest(int sig)
 {
 #if defined (SYSCONS_SUPPORT) || defined (PCVT_SUPPORT)
-	if (xf86Info.consType == SYSCONS || xf86Info.consType == PCVT) {
-		xf86Info.vtRequestsPending = TRUE;
-	}	
+    if (xf86Info.consType == SYSCONS || xf86Info.consType == PCVT) {
+        xf86Info.vtRequestsPending = TRUE;
+    }
 #endif
-	return;
+    return;
 }
 
 Bool
 xf86VTSwitchPending()
 {
 #if defined (SYSCONS_SUPPORT) || defined (PCVT_SUPPORT)
-	if (xf86Info.consType == SYSCONS || xf86Info.consType == PCVT) {
-		return xf86Info.vtRequestsPending ? TRUE : FALSE;
-	}
+    if (xf86Info.consType == SYSCONS || xf86Info.consType == PCVT) {
+        return xf86Info.vtRequestsPending ? TRUE : FALSE;
+    }
 #endif
-	return FALSE;
+    return FALSE;
 }
 
 Bool
 xf86VTSwitchAway()
 {
 #if defined (SYSCONS_SUPPORT) || defined (PCVT_SUPPORT)
-	if (xf86Info.consType == SYSCONS || xf86Info.consType == PCVT) {
-		xf86Info.vtRequestsPending = FALSE;
-		if (ioctl(xf86Info.consoleFd, VT_RELDISP, 1) < 0)
-			return FALSE;
-		else
-			return TRUE;
-	}
+    if (xf86Info.consType == SYSCONS || xf86Info.consType == PCVT) {
+        xf86Info.vtRequestsPending = FALSE;
+        if (ioctl(xf86Info.consoleFd, VT_RELDISP, 1) < 0)
+            return FALSE;
+        else
+            return TRUE;
+    }
 #endif
-	return FALSE;
+    return FALSE;
 }
 
 Bool
 xf86VTSwitchTo()
 {
 #if defined (SYSCONS_SUPPORT) || defined (PCVT_SUPPORT)
-	if (xf86Info.consType == SYSCONS || xf86Info.consType == PCVT) {
-		xf86Info.vtRequestsPending = FALSE;
-		if (ioctl(xf86Info.consoleFd, VT_RELDISP, VT_ACKACQ) < 0)
-			return FALSE;
-		else
-			return TRUE;
-	}
+    if (xf86Info.consType == SYSCONS || xf86Info.consType == PCVT) {
+        xf86Info.vtRequestsPending = FALSE;
+        if (ioctl(xf86Info.consoleFd, VT_RELDISP, VT_ACKACQ) < 0)
+            return FALSE;
+        else
+            return TRUE;
+    }
 #endif
-	return TRUE;
+    return TRUE;
 }
 
 Bool
 xf86VTActivate(int vtno)
 {
-	if (ioctl(xf86Info.consoleFd, VT_ACTIVATE, vtno) < 0) {
-		return FALSE;
-	}
-	return TRUE;
+    if (ioctl(xf86Info.consoleFd, VT_ACTIVATE, vtno) < 0) {
+        return FALSE;
+    }
+    return TRUE;
 }

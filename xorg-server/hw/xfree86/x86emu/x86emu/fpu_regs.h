@@ -42,23 +42,23 @@
 #ifdef X86_FPU_SUPPORT
 
 #ifdef PACK
-# pragma PACK
+#pragma PACK
 #endif
 
 /* Basic 8087 register can hold any of the following values: */
 
 union x86_fpu_reg_u {
-    s8                  tenbytes[10];
-    double              dval;
-    float               fval;
-    s16                 sval;
-    s32                 lval;
-	};
+    s8 tenbytes[10];
+    double dval;
+    float fval;
+    s16 sval;
+    s32 lval;
+};
 
 struct x86_fpu_reg {
-	union x86_fpu_reg_u reg;
-	char                tag;
-	};
+    union x86_fpu_reg_u reg;
+    char tag;
+};
 
 /*
  * Since we are not going to worry about the problems of aliasing
@@ -83,14 +83,14 @@ struct x86_fpu_reg {
 #define  X86_FPU_STKTOP  0
 
 struct x86_fpu_registers {
-    struct x86_fpu_reg  x86_fpu_stack[8];
-    int                 x86_fpu_flags;
-    int                 x86_fpu_config;         /* rounding modes, etc. */
-    short               x86_fpu_tos, x86_fpu_bos;
-	};
+    struct x86_fpu_reg x86_fpu_stack[8];
+    int x86_fpu_flags;
+    int x86_fpu_config;         /* rounding modes, etc. */
+    short x86_fpu_tos, x86_fpu_bos;
+};
 
 #ifdef END_PACK
-# pragma END_PACK
+#pragma END_PACK
 #endif
 
 /*
@@ -104,16 +104,16 @@ struct x86_fpu_registers {
  * instructions.
  */
 
-#endif /* X86_FPU_SUPPORT */
+#endif                          /* X86_FPU_SUPPORT */
 
 #ifdef DEBUG
-# define DECODE_PRINTINSTR32(t,mod,rh,rl)     	\
+#define DECODE_PRINTINSTR32(t,mod,rh,rl)     	\
 	DECODE_PRINTF(t[(mod<<3)+(rh)]);
-# define DECODE_PRINTINSTR256(t,mod,rh,rl)    	\
+#define DECODE_PRINTINSTR256(t,mod,rh,rl)    	\
 	DECODE_PRINTF(t[(mod<<6)+(rh<<3)+(rl)]);
 #else
-# define DECODE_PRINTINSTR32(t,mod,rh,rl)
-# define DECODE_PRINTINSTR256(t,mod,rh,rl)
+#define DECODE_PRINTINSTR32(t,mod,rh,rl)
+#define DECODE_PRINTINSTR256(t,mod,rh,rl)
 #endif
 
-#endif /* __X86EMU_FPU_REGS_H */
+#endif                          /* __X86EMU_FPU_REGS_H */

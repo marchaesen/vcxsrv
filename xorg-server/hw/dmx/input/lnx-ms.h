@@ -38,18 +38,18 @@
 #define _LNX_MS_H_
 
 extern pointer msLinuxCreatePrivate(DeviceIntPtr pMouse);
-extern void    msLinuxDestroyPrivate(pointer priv);
-extern void    msLinuxRead(DevicePtr pDev,
-                           dmxMotionProcPtr motion,
-                           dmxEnqueueProcPtr enqueue,
-                           dmxCheckSpecialProcPtr checkspecial,
-                           DMXBlockType block);
-extern void    msLinuxInit(DevicePtr pDev);
-extern void    msLinuxGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
-extern int     msLinuxOn(DevicePtr pDev);
-extern void    msLinuxOff(DevicePtr pDev);
-extern void    msLinuxCtrl(DevicePtr pDev, PtrCtrl *ctrl);
-extern void    msLinuxVTPreSwitch(pointer p);
-extern void    msLinuxVTPostSwitch(pointer p);
+extern void msLinuxDestroyPrivate(pointer priv);
+extern void msLinuxRead(DevicePtr pDev,
+                        dmxMotionProcPtr motion,
+                        dmxEnqueueProcPtr enqueue,
+                        dmxCheckSpecialProcPtr checkspecial,
+                        DMXBlockType block);
+extern void msLinuxInit(DevicePtr pDev);
+extern void msLinuxGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
+extern int msLinuxOn(DevicePtr pDev);
+extern void msLinuxOff(DevicePtr pDev);
+extern void msLinuxCtrl(DevicePtr pDev, PtrCtrl * ctrl);
+extern void msLinuxVTPreSwitch(pointer p);
+extern void msLinuxVTPostSwitch(pointer p);
 
 #endif

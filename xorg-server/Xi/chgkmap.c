@@ -54,7 +54,7 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
+#include "inputstr.h"           /* DeviceIntPtr      */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include "exevents.h"
@@ -105,12 +105,12 @@ ProcXChangeDeviceKeyMapping(ClientPtr client)
 
     ret = dixLookupDevice(&dev, stuff->deviceid, client, DixManageAccess);
     if (ret != Success)
-	return ret;
+        return ret;
     len = stuff->length - bytes_to_int32(sizeof(xChangeDeviceKeyMappingReq));
 
     ret = ChangeKeyMapping(client, dev, len, DeviceMappingNotify,
-			   stuff->firstKeyCode, stuff->keyCodes,
-			   stuff->keySymsPerKeyCode, (KeySym *) & stuff[1]);
+                           stuff->firstKeyCode, stuff->keyCodes,
+                           stuff->keySymsPerKeyCode, (KeySym *) &stuff[1]);
 
     return ret;
 }

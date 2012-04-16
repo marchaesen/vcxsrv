@@ -30,15 +30,15 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef SETBMAP_H
 #define SETBMAP_H 1
 
-int SProcXSetDeviceButtonMapping(ClientPtr	/* client */
+int SProcXSetDeviceButtonMapping(ClientPtr      /* client */
     );
 
-int ProcXSetDeviceButtonMapping(ClientPtr	/* client */
+int ProcXSetDeviceButtonMapping(ClientPtr       /* client */
     );
 
 void SRepXSetDeviceButtonMapping(ClientPtr /* client */ ,
-				 int /* size */ ,
-				 xSetDeviceButtonMappingReply *	/* rep */
+                                 int /* size */ ,
+                                 xSetDeviceButtonMappingReply * /* rep */
     );
 
-#endif /* SETBMAP_H */
+#endif                          /* SETBMAP_H */

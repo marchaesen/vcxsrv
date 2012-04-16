@@ -98,20 +98,20 @@
 
 /* Private area for USB devices. */
 typedef struct _myPrivate {
-    DeviceIntPtr   pDevice;                 /**< Device (mouse or other) */
-    int            fd;                      /**< File descriptor */
-    unsigned char  mask[EV_MAX/8 + 1];      /**< Mask */
-    int            numRel, numAbs, numLeds; /**< Counts */
-    int            relmap[DMX_MAX_AXES];    /**< Relative axis map */
-    int            absmap[DMX_MAX_AXES];    /**< Absolute axis map */
+    DeviceIntPtr pDevice;                   /**< Device (mouse or other) */
+    int fd;                                 /**< File descriptor */
+    unsigned char mask[EV_MAX / 8 + 1];     /**< Mask */
+    int numRel, numAbs, numLeds;            /**< Counts */
+    int relmap[DMX_MAX_AXES];               /**< Relative axis map */
+    int absmap[DMX_MAX_AXES];               /**< Absolute axis map */
 
-    CARD32         kbdState[NUM_STATE_ENTRIES]; /**< Keyboard state */
-    DeviceIntPtr   pKeyboard;                   /** Keyboard device */
+    CARD32 kbdState[NUM_STATE_ENTRIES];         /**< Keyboard state */
+    DeviceIntPtr pKeyboard;                     /** Keyboard device */
 
-    int            pitch;       /**< Bell pitch  */
-    unsigned long  duration;    /**< Bell duration */
+    int pitch;                  /**< Bell pitch  */
+    unsigned long duration;     /**< Bell duration */
 
     /* FIXME: dmxInput is never initialized */
-    DMXInputInfo   *dmxInput;   /**< For pretty-printing */
+    DMXInputInfo *dmxInput;     /**< For pretty-printing */
 } myPrivate;
 #endif

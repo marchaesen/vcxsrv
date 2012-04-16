@@ -38,7 +38,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <xkbsrv.h>
 
 int
-XkbDDXSwitchScreen(DeviceIntPtr dev,KeyCode key,XkbAction *act)
+XkbDDXSwitchScreen(DeviceIntPtr dev, KeyCode key, XkbAction *act)
 {
     return 1;
 }

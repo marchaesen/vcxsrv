@@ -38,22 +38,22 @@
 #define _DMXCONSOLE_H_
 
 extern pointer dmxConsoleCreatePrivate(DeviceIntPtr pDevice);
-extern void    dmxConsoleDestroyPrivate(pointer private);
-extern void    dmxConsoleInit(DevicePtr pDev);
-extern void    dmxConsoleReInit(DevicePtr pDev);
-extern void    dmxConsoleMouGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
-extern void    dmxConsoleKbdGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
-extern void    dmxConsoleCollectEvents(DevicePtr pDev,
-                                       dmxMotionProcPtr motion,
-                                       dmxEnqueueProcPtr enqueue,
-                                       dmxCheckSpecialProcPtr checkspecial,
-                                       DMXBlockType block);
-extern int     dmxConsoleFunctions(pointer private, DMXFunctionType function);
-extern void    dmxConsoleUpdatePosition(pointer private, int x, int y);
-extern void    dmxConsoleKbdSetCtrl(pointer private, KeybdCtrl *ctrl);
-extern void    dmxConsoleCapture(DMXInputInfo *dmxInput);
-extern void    dmxConsoleUncapture(DMXInputInfo *dmxInput);
-extern void    dmxConsoleUpdateInfo(pointer private,
-                                    DMXUpdateType, WindowPtr pWindow);
+extern void dmxConsoleDestroyPrivate(pointer private);
+extern void dmxConsoleInit(DevicePtr pDev);
+extern void dmxConsoleReInit(DevicePtr pDev);
+extern void dmxConsoleMouGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
+extern void dmxConsoleKbdGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
+extern void dmxConsoleCollectEvents(DevicePtr pDev,
+                                    dmxMotionProcPtr motion,
+                                    dmxEnqueueProcPtr enqueue,
+                                    dmxCheckSpecialProcPtr checkspecial,
+                                    DMXBlockType block);
+extern int dmxConsoleFunctions(pointer private, DMXFunctionType function);
+extern void dmxConsoleUpdatePosition(pointer private, int x, int y);
+extern void dmxConsoleKbdSetCtrl(pointer private, KeybdCtrl * ctrl);
+extern void dmxConsoleCapture(DMXInputInfo * dmxInput);
+extern void dmxConsoleUncapture(DMXInputInfo * dmxInput);
+extern void dmxConsoleUpdateInfo(pointer private,
+                                 DMXUpdateType, WindowPtr pWindow);
 
 #endif

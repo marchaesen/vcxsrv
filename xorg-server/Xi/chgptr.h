@@ -30,19 +30,19 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef CHGPTR_H
 #define CHGPTR_H 1
 
-int SProcXChangePointerDevice(ClientPtr	/* client */
+int SProcXChangePointerDevice(ClientPtr /* client */
     );
 
-int ProcXChangePointerDevice(ClientPtr	/* client */
+int ProcXChangePointerDevice(ClientPtr  /* client */
     );
 
-void DeleteFocusClassDeviceStruct(DeviceIntPtr	/* dev */
+void DeleteFocusClassDeviceStruct(DeviceIntPtr  /* dev */
     );
 
 void SendEventToAllWindows(DeviceIntPtr /* dev */ ,
-			   Mask /* mask */ ,
-			   xEvent * /* ev */ ,
-			   int	/* count */
+                           Mask /* mask */ ,
+                           xEvent * /* ev */ ,
+                           int  /* count */
     );
 
-#endif /* CHGPTR_H */
+#endif                          /* CHGPTR_H */

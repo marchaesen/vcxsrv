@@ -53,87 +53,87 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define X_SELinuxGetClientContext		22
 
 typedef struct {
-    CARD8   reqType;
-    CARD8   SELinuxReqType;
-    CARD16  length;
-    CARD8   client_major;
-    CARD8   client_minor;
+    CARD8 reqType;
+    CARD8 SELinuxReqType;
+    CARD16 length;
+    CARD8 client_major;
+    CARD8 client_minor;
 } SELinuxQueryVersionReq;
 
 typedef struct {
-    CARD8   type;
-    CARD8   pad1;
-    CARD16  sequenceNumber;
-    CARD32  length;
-    CARD16  server_major;
-    CARD16  server_minor;
-    CARD32  pad2;
-    CARD32  pad3;
-    CARD32  pad4;
-    CARD32  pad5;
-    CARD32  pad6; 
+    CARD8 type;
+    CARD8 pad1;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD16 server_major;
+    CARD16 server_minor;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
 } SELinuxQueryVersionReply;
 
 typedef struct {
-    CARD8   reqType;
-    CARD8   SELinuxReqType;
-    CARD16  length;
-    CARD32  context_len;
+    CARD8 reqType;
+    CARD8 SELinuxReqType;
+    CARD16 length;
+    CARD32 context_len;
 } SELinuxSetCreateContextReq;
 
 typedef struct {
-    CARD8   reqType;
-    CARD8   SELinuxReqType;
-    CARD16  length;
+    CARD8 reqType;
+    CARD8 SELinuxReqType;
+    CARD16 length;
 } SELinuxGetCreateContextReq;
 
 typedef struct {
-    CARD8   reqType;
-    CARD8   SELinuxReqType;
-    CARD16  length;
-    CARD32  id;
-    CARD32  context_len;
+    CARD8 reqType;
+    CARD8 SELinuxReqType;
+    CARD16 length;
+    CARD32 id;
+    CARD32 context_len;
 } SELinuxSetContextReq;
 
 typedef struct {
-    CARD8   reqType;
-    CARD8   SELinuxReqType;
-    CARD16  length;
-    CARD32  id;
+    CARD8 reqType;
+    CARD8 SELinuxReqType;
+    CARD16 length;
+    CARD32 id;
 } SELinuxGetContextReq;
 
 typedef struct {
-    CARD8   reqType;
-    CARD8   SELinuxReqType;
-    CARD16  length;
-    CARD32  window;
-    CARD32  property;
+    CARD8 reqType;
+    CARD8 SELinuxReqType;
+    CARD16 length;
+    CARD32 window;
+    CARD32 property;
 } SELinuxGetPropertyContextReq;
 
 typedef struct {
-    CARD8   type;
-    CARD8   pad1;
-    CARD16  sequenceNumber;
-    CARD32  length;
-    CARD32  context_len;
-    CARD32  pad2;
-    CARD32  pad3;
-    CARD32  pad4;
-    CARD32  pad5;
-    CARD32  pad6;
+    CARD8 type;
+    CARD8 pad1;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD32 context_len;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
 } SELinuxGetContextReply;
 
 typedef struct {
-    CARD8   type;
-    CARD8   pad1;
-    CARD16  sequenceNumber;
-    CARD32  length;
-    CARD32  count;
-    CARD32  pad2;
-    CARD32  pad3;
-    CARD32  pad4;
-    CARD32  pad5;
-    CARD32  pad6;
+    CARD8 type;
+    CARD8 pad1;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD32 count;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
+    CARD32 pad6;
 } SELinuxListItemsReply;
 
-#endif /* _XSELINUX_H */
+#endif                          /* _XSELINUX_H */

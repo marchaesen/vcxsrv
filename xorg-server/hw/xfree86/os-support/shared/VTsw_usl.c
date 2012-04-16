@@ -43,9 +43,9 @@
 void
 xf86VTRequest(int sig)
 {
-	signal(sig, (void(*)(int))xf86VTRequest);
-	xf86Info.vtRequestsPending = TRUE;
-	return;
+    signal(sig, (void (*)(int)) xf86VTRequest);
+    xf86Info.vtRequestsPending = TRUE;
+    return;
 }
 
 Bool
@@ -57,30 +57,30 @@ xf86VTSwitchPending(void)
 Bool
 xf86VTSwitchAway(void)
 {
-	xf86Info.vtRequestsPending = FALSE;
-	if (ioctl(xf86Info.consoleFd, VT_RELDISP, 1) < 0)
-		return FALSE;
-	else
-		return TRUE;
+    xf86Info.vtRequestsPending = FALSE;
+    if (ioctl(xf86Info.consoleFd, VT_RELDISP, 1) < 0)
+        return FALSE;
+    else
+        return TRUE;
 }
 
 Bool
 xf86VTSwitchTo(void)
 {
-	xf86Info.vtRequestsPending = FALSE;
-	if (ioctl(xf86Info.consoleFd, VT_RELDISP, VT_ACKACQ) < 0)
-		return FALSE;
-	else
-		return TRUE;
+    xf86Info.vtRequestsPending = FALSE;
+    if (ioctl(xf86Info.consoleFd, VT_RELDISP, VT_ACKACQ) < 0)
+        return FALSE;
+    else
+        return TRUE;
 }
 
 Bool
 xf86VTActivate(int vtno)
 {
 #ifdef VT_ACTIVATE
-	if (ioctl(xf86Info.consoleFd, VT_ACTIVATE, vtno) < 0) {
-		return FALSE;
-	}
+    if (ioctl(xf86Info.consoleFd, VT_ACTIVATE, vtno) < 0) {
+        return FALSE;
+    }
 #endif
-	return TRUE;
+    return TRUE;
 }

@@ -66,4 +66,4 @@
 #define intToY(i)	(GetHighWord(i))
 #endif
 
-#endif /* _MICOORD_H_ */
+#endif                          /* _MICOORD_H_ */

@@ -37,7 +37,7 @@
 #ifndef _DMXPRINT_H_
 #define _DMXPRINT_H_
 
-void dmxConfigPrint(FILE *str, DMXConfigEntryPtr entry);
-void dmxConfigVirtualPrint(FILE *str, DMXConfigVirtualPtr p);
+void dmxConfigPrint(FILE * str, DMXConfigEntryPtr entry);
+void dmxConfigVirtualPrint(FILE * str, DMXConfigVirtualPtr p);
 
 #endif

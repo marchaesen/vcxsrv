@@ -30,10 +30,10 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef DEVBELL_H
 #define DEVBELL_H 1
 
-int SProcXDeviceBell(ClientPtr	/* client */
+int SProcXDeviceBell(ClientPtr  /* client */
     );
 
-int ProcXDeviceBell(ClientPtr	/* client */
+int ProcXDeviceBell(ClientPtr   /* client */
     );
 
-#endif /* DEVBELL_H */
+#endif                          /* DEVBELL_H */

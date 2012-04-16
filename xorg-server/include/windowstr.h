@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -53,7 +52,7 @@ SOFTWARE.
 #include "regionstr.h"
 #include "cursor.h"
 #include "property.h"
-#include "resource.h"	/* for ROOT_WINDOW_ID_BASE */
+#include "resource.h"           /* for ROOT_WINDOW_ID_BASE */
 #include "dix.h"
 #include "privates.h"
 #include "miscstruct.h"
@@ -73,27 +72,27 @@ SOFTWARE.
 
 /* used as NULL-terminated list */
 typedef struct _DevCursorNode {
-    CursorPtr                   cursor;
-    DeviceIntPtr                dev;
-    struct _DevCursorNode*      next;
+    CursorPtr cursor;
+    DeviceIntPtr dev;
+    struct _DevCursorNode *next;
 } DevCursNodeRec, *DevCursNodePtr, *DevCursorList;
 
 typedef struct _WindowOpt {
-    CursorPtr		cursor;		   /* default: window.cursorNone */
-    VisualID		visual;		   /* default: same as parent */
-    Colormap		colormap;	   /* default: same as parent */
-    Mask		dontPropagateMask; /* default: window.dontPropagate */
-    Mask		otherEventMasks;   /* default: 0 */
-    struct _OtherClients *otherClients;	   /* default: NULL */
-    struct _GrabRec	*passiveGrabs;	   /* default: NULL */
-    PropertyPtr		userProps;	   /* default: NULL */
-    unsigned long	backingBitPlanes;  /* default: ~0L */
-    unsigned long	backingPixel;	   /* default: 0 */
-    RegionPtr		boundingShape;	   /* default: NULL */
-    RegionPtr		clipShape;	   /* default: NULL */
-    RegionPtr		inputShape;	   /* default: NULL */
-    struct _OtherInputMasks *inputMasks;   /* default: NULL */
-    DevCursorList       deviceCursors;     /* default: NULL */
+    CursorPtr cursor;           /* default: window.cursorNone */
+    VisualID visual;            /* default: same as parent */
+    Colormap colormap;          /* default: same as parent */
+    Mask dontPropagateMask;     /* default: window.dontPropagate */
+    Mask otherEventMasks;       /* default: 0 */
+    struct _OtherClients *otherClients; /* default: NULL */
+    struct _GrabRec *passiveGrabs;      /* default: NULL */
+    PropertyPtr userProps;      /* default: NULL */
+    unsigned long backingBitPlanes;     /* default: ~0L */
+    unsigned long backingPixel; /* default: 0 */
+    RegionPtr boundingShape;    /* default: NULL */
+    RegionPtr clipShape;        /* default: NULL */
+    RegionPtr inputShape;       /* default: NULL */
+    struct _OtherInputMasks *inputMasks;        /* default: NULL */
+    DevCursorList deviceCursors;        /* default: NULL */
 } WindowOptRec, *WindowOptPtr;
 
 #define BackgroundPixel	    2L
@@ -127,49 +126,49 @@ typedef struct _WindowOpt {
 #define RedirectDrawManual	2
 
 typedef struct _Window {
-    DrawableRec		drawable;
-    PrivateRec		*devPrivates;
-    WindowPtr		parent;		/* ancestor chain */
-    WindowPtr		nextSib;	/* next lower sibling */
-    WindowPtr		prevSib;	/* next higher sibling */
-    WindowPtr		firstChild;	/* top-most child */
-    WindowPtr		lastChild;	/* bottom-most child */
-    RegionRec		clipList;	/* clipping rectangle for output */
-    RegionRec		borderClip;	/* NotClippedByChildren + border */
-    union _Validate	*valdata;
-    RegionRec		winSize;
-    RegionRec		borderSize;
-    DDXPointRec		origin;		/* position relative to parent */
-    unsigned short	borderWidth;
-    unsigned short	deliverableEvents; /* all masks from all clients */
-    Mask		eventMask;      /* mask from the creating client */
-    PixUnion		background;
-    PixUnion		border;
-    pointer		backStorage;	/* null when BS disabled */
-    WindowOptPtr	optional;
-    unsigned		backgroundState:2; /* None, Relative, Pixel, Pixmap */
-    unsigned		borderIsPixel:1;
-    unsigned		cursorIsNone:1;	/* else real cursor (might inherit) */
-    unsigned		backingStore:2;
-    unsigned		saveUnder:1;
-    unsigned		DIXsaveUnder:1;
-    unsigned		bitGravity:4;
-    unsigned		winGravity:4;
-    unsigned		overrideRedirect:1;
-    unsigned		visibility:2;
-    unsigned		mapped:1;
-    unsigned		realized:1;	/* ancestors are all mapped */
-    unsigned		viewable:1;	/* realized && InputOutput */
-    unsigned		dontPropagate:3;/* index into DontPropagateMasks */
-    unsigned		forcedBS:1;	/* system-supplied backingStore */
-    unsigned		redirectDraw:2;	/* COMPOSITE rendering redirect */
-    unsigned		forcedBG:1;	/* must have an opaque background */
+    DrawableRec drawable;
+    PrivateRec *devPrivates;
+    WindowPtr parent;           /* ancestor chain */
+    WindowPtr nextSib;          /* next lower sibling */
+    WindowPtr prevSib;          /* next higher sibling */
+    WindowPtr firstChild;       /* top-most child */
+    WindowPtr lastChild;        /* bottom-most child */
+    RegionRec clipList;         /* clipping rectangle for output */
+    RegionRec borderClip;       /* NotClippedByChildren + border */
+    union _Validate *valdata;
+    RegionRec winSize;
+    RegionRec borderSize;
+    DDXPointRec origin;         /* position relative to parent */
+    unsigned short borderWidth;
+    unsigned short deliverableEvents;   /* all masks from all clients */
+    Mask eventMask;             /* mask from the creating client */
+    PixUnion background;
+    PixUnion border;
+    pointer backStorage;        /* null when BS disabled */
+    WindowOptPtr optional;
+    unsigned backgroundState:2; /* None, Relative, Pixel, Pixmap */
+    unsigned borderIsPixel:1;
+    unsigned cursorIsNone:1;    /* else real cursor (might inherit) */
+    unsigned backingStore:2;
+    unsigned saveUnder:1;
+    unsigned DIXsaveUnder:1;
+    unsigned bitGravity:4;
+    unsigned winGravity:4;
+    unsigned overrideRedirect:1;
+    unsigned visibility:2;
+    unsigned mapped:1;
+    unsigned realized:1;        /* ancestors are all mapped */
+    unsigned viewable:1;        /* realized && InputOutput */
+    unsigned dontPropagate:3;   /* index into DontPropagateMasks */
+    unsigned forcedBS:1;        /* system-supplied backingStore */
+    unsigned redirectDraw:2;    /* COMPOSITE rendering redirect */
+    unsigned forcedBG:1;        /* must have an opaque background */
 #ifdef ROOTLESS
-    unsigned		rootlessUnhittable:1;	/* doesn't hit-test */
+    unsigned rootlessUnhittable:1;      /* doesn't hit-test */
 #endif
 #ifdef COMPOSITE
-    unsigned		damagedDescendants:1;	/* some descendants are damaged */
-    unsigned		inhibitBGPaint:1;	/* paint the background? */
+    unsigned damagedDescendants:1;      /* some descendants are damaged */
+    unsigned inhibitBGPaint:1;  /* paint the background? */
 #endif
 } WindowRec;
 
@@ -178,7 +177,7 @@ typedef struct _Window {
  * fields (or filling the appropriate default value)
  */
 
-extern _X_EXPORT Mask	DontPropagateMasks[];
+extern _X_EXPORT Mask DontPropagateMasks[];
 
 #define wTrackParent(w,field)	((w)->optional ? \
 				    (w)->optional->field \
@@ -219,4 +218,4 @@ typedef struct _ScreenSaverStuff *ScreenSaverStuffPtr;
 
 extern _X_EXPORT int screenIsSaved;
 
-#endif /* WINDOWSTRUCT_H */
+#endif                          /* WINDOWSTRUCT_H */

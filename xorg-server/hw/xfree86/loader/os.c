@@ -66,7 +66,7 @@ void
 LoaderGetOS(const char **name, int *major, int *minor, int *teeny)
 {
     if (name)
-	*name = OSNAME;
+        *name = OSNAME;
 
     /* reporting runtime versions isn't supported yet */
 }

@@ -29,7 +29,7 @@
 /*
  * This file contains definitions of the private XFree86 data structures/types.
  * None of the data structures here should be used by video drivers.
- */ 
+ */
 
 #ifndef _XF86PRIVSTR_H
 #define _XF86PRIVSTR_H
@@ -55,90 +55,90 @@ typedef enum {
  */
 
 typedef struct {
-    int			consoleFd;
-    int			vtno;
+    int consoleFd;
+    int vtno;
 
     /* event handler part */
-    int			lastEventTime;
-    Bool		vtRequestsPending;
+    int lastEventTime;
+    Bool vtRequestsPending;
 #ifdef sun
-    int			vtPendingNum;
+    int vtPendingNum;
 #endif
-    Bool		dontVTSwitch;
-    Bool		autoVTSwitch;
-    Bool		ShareVTs;
-    Bool		dontZap;
-    Bool		dontZoom;
-    Bool		notrapSignals;	/* don't exit cleanly - die at fault */
-    Bool		caughtSignal;
+    Bool dontVTSwitch;
+    Bool autoVTSwitch;
+    Bool ShareVTs;
+    Bool dontZap;
+    Bool dontZoom;
+    Bool notrapSignals;         /* don't exit cleanly - die at fault */
+    Bool caughtSignal;
 
     /* graphics part */
-    ScreenPtr		currentScreen;
+    ScreenPtr currentScreen;
 #if defined(CSRG_BASED) || defined(__FreeBSD_kernel__)
-    int			consType;	/* Which console driver? */
+    int consType;               /* Which console driver? */
 #endif
 
     /* Other things */
-    Bool		allowMouseOpenFail;
-    Bool		vidModeEnabled;		/* VidMode extension enabled */
-    Bool		vidModeAllowNonLocal;	/* allow non-local VidMode
-						 * connections */
-    Bool		miscModInDevEnabled;	/* Allow input devices to be
-						 * changed */
-    Bool		miscModInDevAllowNonLocal;
-    Bool		useSIGIO;		/* Use SIGIO for handling
-						   input device events */
-    Pix24Flags		pixmap24;
-    MessageType		pix24From;
-    Bool		pmFlag;
-    Log			log;
-    Bool		disableRandR;
-    MessageType		randRFrom;
-    Bool		aiglx;
-    MessageType		aiglxFrom;
-    XF86_GlxVisuals	glxVisuals;
-    MessageType		glxVisualsFrom;
-    
-    Bool		useDefaultFontPath;
-    MessageType		useDefaultFontPathFrom;
-    Bool        ignoreABI;
+    Bool allowMouseOpenFail;
+    Bool vidModeEnabled;        /* VidMode extension enabled */
+    Bool vidModeAllowNonLocal;  /* allow non-local VidMode
+                                 * connections */
+    Bool miscModInDevEnabled;   /* Allow input devices to be
+                                 * changed */
+    Bool miscModInDevAllowNonLocal;
+    Bool useSIGIO;              /* Use SIGIO for handling
+                                   input device events */
+    Pix24Flags pixmap24;
+    MessageType pix24From;
+    Bool pmFlag;
+    Log log;
+    Bool disableRandR;
+    MessageType randRFrom;
+    Bool aiglx;
+    MessageType aiglxFrom;
+    XF86_GlxVisuals glxVisuals;
+    MessageType glxVisualsFrom;
 
-    Bool        forceInputDevices; /* force xorg.conf or built-in input devices */
-    Bool        autoAddDevices; /* Whether to succeed NIDR, or ignore. */
-    Bool        autoEnableDevices; /* Whether to enable, or let the client
-                                    * control. */
+    Bool useDefaultFontPath;
+    MessageType useDefaultFontPathFrom;
+    Bool ignoreABI;
 
-    Bool		dri2;
-    MessageType		dri2From;
+    Bool forceInputDevices;     /* force xorg.conf or built-in input devices */
+    Bool autoAddDevices;        /* Whether to succeed NIDR, or ignore. */
+    Bool autoEnableDevices;     /* Whether to enable, or let the client
+                                 * control. */
+
+    Bool dri2;
+    MessageType dri2From;
 } xf86InfoRec, *xf86InfoPtr;
 
 #ifdef DPMSExtension
 /* Private info for DPMS */
 typedef struct {
-    CloseScreenProcPtr	CloseScreen;
-    Bool		Enabled;
-    int			Flags;
+    CloseScreenProcPtr CloseScreen;
+    Bool Enabled;
+    int Flags;
 } DPMSRec, *DPMSPtr;
 #endif
 
 #ifdef XF86VIDMODE
 /* Private info for Video Mode Extentsion */
 typedef struct {
-    DisplayModePtr	First;
-    DisplayModePtr	Next;
-    int			Flags;
-    CloseScreenProcPtr	CloseScreen;
+    DisplayModePtr First;
+    DisplayModePtr Next;
+    int Flags;
+    CloseScreenProcPtr CloseScreen;
 } VidModeRec, *VidModePtr;
 #endif
 
 /* Information for root window properties. */
 typedef struct _RootWinProp {
-    struct _RootWinProp *	next;
-    char *			name;
-    Atom			type;
-    short			format;
-    long			size;
-    pointer			data;
+    struct _RootWinProp *next;
+    char *name;
+    Atom type;
+    short format;
+    long size;
+    pointer data;
 } RootWinProp, *RootWinPropPtr;
 
 /* ISC's cc can't handle ~ of UL constants, so explicitly type cast them. */
@@ -161,4 +161,4 @@ typedef struct _RootWinProp {
 #define WSCONS		  32
 #endif
 
-#endif /* _XF86PRIVSTR_H */
+#endif                          /* _XF86PRIVSTR_H */

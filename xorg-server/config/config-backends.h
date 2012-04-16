@@ -37,12 +37,12 @@ int config_udev_init(void);
 void config_udev_fini(void);
 #else
 
-# ifdef CONFIG_NEED_DBUS
+#ifdef CONFIG_NEED_DBUS
 #include <dbus/dbus.h>
 
-typedef void (*config_dbus_core_connect_hook)(DBusConnection *connection,
-                                              void *data);
-typedef void (*config_dbus_core_disconnect_hook)(void *data);
+typedef void (*config_dbus_core_connect_hook) (DBusConnection * connection,
+                                               void *data);
+typedef void (*config_dbus_core_disconnect_hook) (void *data);
 
 struct config_dbus_core_hook {
     config_dbus_core_connect_hook connect;
@@ -56,17 +56,17 @@ int config_dbus_core_init(void);
 void config_dbus_core_fini(void);
 int config_dbus_core_add_hook(struct config_dbus_core_hook *hook);
 void config_dbus_core_remove_hook(struct config_dbus_core_hook *hook);
-# endif
+#endif
 
-# ifdef CONFIG_DBUS_API
+#ifdef CONFIG_DBUS_API
 int config_dbus_init(void);
 void config_dbus_fini(void);
-# endif
+#endif
 
-# ifdef CONFIG_HAL
+#ifdef CONFIG_HAL
 int config_hal_init(void);
 void config_hal_fini(void);
-# endif
+#endif
 #endif
 
 #ifdef CONFIG_WSCONS

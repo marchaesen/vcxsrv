@@ -38,10 +38,11 @@ int
 ffs(int i)
 {
     int j;
+
     if (i == 0)
         return 0;
     for (j = 1; (i & 1) == 0; j++)
-	i >>= 1;
+        i >>= 1;
     return j;
 }
 

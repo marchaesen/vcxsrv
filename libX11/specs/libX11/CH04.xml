@@ -1424,7 +1424,7 @@ To obtain the type, format, and value of a property of a given window, use
   <paramdef><parameter> actual_format_return</parameter></paramdef>
   <paramdef><parameter> nitems_return</parameter></paramdef>
   <paramdef><parameter> bytes_after_return</parameter></paramdef>
-  <paramdef>.br<parameter> prop_return</parameter></paramdef>
+  <paramdef><parameter> prop_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

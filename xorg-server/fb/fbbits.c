@@ -139,7 +139,7 @@
 #undef BITSMUL
 #undef BITSUNIT
 #undef BITS
-    
+
 #undef BRESSOLID
 #undef BRESDASH
 #undef DOTS

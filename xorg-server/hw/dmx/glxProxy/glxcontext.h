@@ -37,68 +37,68 @@ typedef struct __GLXcontextRec __GLXcontext;
 
 struct __GLXcontextRec {
     /*
-    ** list of context structs
-    */
+     ** list of context structs
+     */
     struct __GLXcontextRec *last;
     struct __GLXcontextRec *next;
 
     /*
-    ** Pointer to screen info data for this context.  This is set
-    ** when the context is created.
-    */
+     ** Pointer to screen info data for this context.  This is set
+     ** when the context is created.
+     */
     ScreenPtr pScreen;
     __GLXscreenInfo *pGlxScreen;
 
     /*
-    ** This context is created with respect to this visual.
-    */
+     ** This context is created with respect to this visual.
+     */
     VisualRec *pVisual;
     __GLXvisualConfig *pGlxVisual;
     __GLXFBConfig *pFBConfig;
 
     /*
-    ** The XID of this context.
-    */
+     ** The XID of this context.
+     */
     XID id;
     XID *real_ids;
 
     /*
-    ** The XID of the shareList context.
-    */
+     ** The XID of the shareList context.
+     */
     XID share_id;
 
     /*
-    ** Visual id.
-    */
+     ** Visual id.
+     */
     VisualID vid;
     VisualID *real_vids;
 
     /*
-    ** screen number.
-    */
+     ** screen number.
+     */
     GLint screen;
 
     /*
-    ** Whether this context's ID still exists.
-    */
+     ** Whether this context's ID still exists.
+     */
     GLboolean idExists;
-    
-    /*
-    ** Whether this context is current for some client.
-    */
-    GLboolean isCurrent;
-    
-    /*
-    ** Buffers for feedback and selection.
-    */
-    GLfloat *feedbackBuf;
-    GLint feedbackBufSize;	/* number of elements allocated */
-    GLuint *selectBuf;
-    GLint selectBufSize;	/* number of elements allocated */
 
     /*
-    ** Set only if current drawable is a glx pixmap.
-    */
+     ** Whether this context is current for some client.
+     */
+    GLboolean isCurrent;
+
+    /*
+     ** Buffers for feedback and selection.
+     */
+    GLfloat *feedbackBuf;
+    GLint feedbackBufSize;      /* number of elements allocated */
+    GLuint *selectBuf;
+    GLint selectBufSize;        /* number of elements allocated */
+
+    /*
+     ** Set only if current drawable is a glx pixmap.
+     */
     __GLXpixmap *pGlxPixmap;
     __GLXpixmap *pGlxReadPixmap;
     __glXWindow *pGlxWindow;
@@ -108,4 +108,4 @@ struct __GLXcontextRec {
 
 };
 
-#endif /* !__GLX_context_h__ */
+#endif                          /* !__GLX_context_h__ */

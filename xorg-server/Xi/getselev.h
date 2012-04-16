@@ -30,15 +30,15 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef GETSELEV_H
 #define GETSELEV_H 1
 
-int SProcXGetSelectedExtensionEvents(ClientPtr	/* client */
+int SProcXGetSelectedExtensionEvents(ClientPtr  /* client */
     );
 
-int ProcXGetSelectedExtensionEvents(ClientPtr	/* client */
+int ProcXGetSelectedExtensionEvents(ClientPtr   /* client */
     );
 
 void SRepXGetSelectedExtensionEvents(ClientPtr /* client */ ,
-				     int /* size */ ,
-				     xGetSelectedExtensionEventsReply *	/* rep */
+                                     int /* size */ ,
+                                     xGetSelectedExtensionEventsReply * /* rep */
     );
 
-#endif /* GETSELEV_H */
+#endif                          /* GETSELEV_H */

@@ -38,23 +38,23 @@
 Bool
 xf86VTSwitchPending(void)
 {
-	return FALSE;
+    return FALSE;
 }
 
 Bool
 xf86VTSwitchAway(void)
 {
-	return FALSE;
+    return FALSE;
 }
 
 Bool
 xf86VTSwitchTo(void)
 {
-	return TRUE;
+    return TRUE;
 }
 
 Bool
 xf86VTActivate(int vtno)
 {
-	return TRUE;
+    return TRUE;
 }

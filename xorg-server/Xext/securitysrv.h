@@ -32,52 +32,51 @@ from The Open Group.
 
 /* Allow client side portions of <X11/extensions/security.h> to compile */
 #ifndef Status
-# define Status int
-# define NEED_UNDEF_Status
+#define Status int
+#define NEED_UNDEF_Status
 #endif
 #ifndef Display
-# define Display void
-# define NEED_UNDEF_Display
+#define Display void
+#define NEED_UNDEF_Display
 #endif
 
 #include <X11/extensions/secur.h>
 
 #ifdef NEED_UNDEF_Status
-# undef Status
-# undef NEED_UNDEF_Status
+#undef Status
+#undef NEED_UNDEF_Status
 #endif
 #ifdef NEED_UNDEF_Display
-# undef Display
-# undef NEED_UNDEF_Display
+#undef Display
+#undef NEED_UNDEF_Display
 #endif
 
-
-#include "input.h"    /* for DeviceIntPtr */
-#include "property.h" /* for PropertyPtr */
-#include "pixmap.h"   /* for DrawablePtr */
-#include "resource.h" /* for RESTYPE */
+#include "input.h"              /* for DeviceIntPtr */
+#include "property.h"           /* for PropertyPtr */
+#include "pixmap.h"             /* for DrawablePtr */
+#include "resource.h"           /* for RESTYPE */
 
 /* resource type to pass in LookupIDByType for authorizations */
 extern RESTYPE SecurityAuthorizationResType;
 
 /* this is what we store for an authorization */
 typedef struct {
-    XID id;			/* resource ID */
-    CARD32 timeout;	/* how long to live in seconds after refcnt == 0 */
-    unsigned int trustLevel;	/* trusted/untrusted */
-    XID group;			/* see embedding extension */
-    unsigned int refcnt;	/* how many clients connected with this auth */
-    unsigned int secondsRemaining; /* overflow time amount for >49 days */
-    OsTimerPtr timer;		/* timer for this auth */
+    XID id;                     /* resource ID */
+    CARD32 timeout;             /* how long to live in seconds after refcnt == 0 */
+    unsigned int trustLevel;    /* trusted/untrusted */
+    XID group;                  /* see embedding extension */
+    unsigned int refcnt;        /* how many clients connected with this auth */
+    unsigned int secondsRemaining;      /* overflow time amount for >49 days */
+    OsTimerPtr timer;           /* timer for this auth */
     struct _OtherClients *eventClients; /* clients wanting events */
 } SecurityAuthorizationRec, *SecurityAuthorizationPtr;
 
 typedef struct {
-    XID group;	/* the group that was sent in GenerateAuthorization */
-    Bool valid; /* did anyone recognize it? if so, set to TRUE */
+    XID group;                  /* the group that was sent in GenerateAuthorization */
+    Bool valid;                 /* did anyone recognize it? if so, set to TRUE */
 } SecurityValidateGroupInfoRec;
 
 /* Give this value or higher to the -audit option to get security messages */
 #define SECURITY_AUDIT_LEVEL 4
 
-#endif /* _SECURITY_SRV_H */
+#endif                          /* _SECURITY_SRV_H */

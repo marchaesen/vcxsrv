@@ -54,7 +54,7 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
+#include "inputstr.h"           /* DeviceIntPtr      */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include "exglobals.h"
@@ -99,20 +99,20 @@ ProcXGetDeviceKeyMapping(ClientPtr client)
 
     rc = dixLookupDevice(&dev, stuff->deviceid, client, DixGetAttrAccess);
     if (rc != Success)
-	return rc;
+        return rc;
     if (dev->key == NULL)
-	return BadMatch;
+        return BadMatch;
     xkb = dev->key->xkbInfo->desc;
 
     if (stuff->firstKeyCode < xkb->min_key_code ||
-	stuff->firstKeyCode > xkb->max_key_code) {
-	client->errorValue = stuff->firstKeyCode;
-	return BadValue;
+        stuff->firstKeyCode > xkb->max_key_code) {
+        client->errorValue = stuff->firstKeyCode;
+        return BadValue;
     }
 
     if (stuff->firstKeyCode + stuff->count > xkb->max_key_code + 1) {
-	client->errorValue = stuff->count;
-	return BadValue;
+        client->errorValue = stuff->count;
+        return BadValue;
     }
 
     syms = XkbGetCoreMap(dev);
@@ -123,7 +123,7 @@ ProcXGetDeviceKeyMapping(ClientPtr client)
     rep.RepType = X_GetDeviceKeyMapping;
     rep.sequenceNumber = client->sequence;
     rep.keySymsPerKeyCode = syms->mapWidth;
-    rep.length = (syms->mapWidth * stuff->count);	/* KeySyms are 4 bytes */
+    rep.length = (syms->mapWidth * stuff->count);       /* KeySyms are 4 bytes */
     WriteReplyToClient(client, sizeof(xGetDeviceKeyMappingReply), &rep);
 
     client->pSwapReplyFunc = (ReplySwapPtr) CopySwap32Write;
@@ -146,9 +146,9 @@ ProcXGetDeviceKeyMapping(ClientPtr client)
 
 void
 SRepXGetDeviceKeyMapping(ClientPtr client, int size,
-			 xGetDeviceKeyMappingReply * rep)
+                         xGetDeviceKeyMappingReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *)rep);
+    WriteToClient(client, size, (char *) rep);
 }

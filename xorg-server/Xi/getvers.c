@@ -54,7 +54,7 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
+#include "inputstr.h"           /* DeviceIntPtr      */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include "exevents.h"
@@ -95,8 +95,8 @@ ProcXGetExtensionVersion(ClientPtr client)
     REQUEST_AT_LEAST_SIZE(xGetExtensionVersionReq);
 
     if (stuff->length != bytes_to_int32(sizeof(xGetExtensionVersionReq) +
-			  stuff->nbytes))
-	return BadLength;
+                                        stuff->nbytes))
+        return BadLength;
 
     memset(&rep, 0, sizeof(xGetExtensionVersionReply));
     rep.repType = X_Reply;
@@ -121,11 +121,11 @@ ProcXGetExtensionVersion(ClientPtr client)
 
 void
 SRepXGetExtensionVersion(ClientPtr client, int size,
-			 xGetExtensionVersionReply * rep)
+                         xGetExtensionVersionReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
     swaps(&rep->major_version);
     swaps(&rep->minor_version);
-    WriteToClient(client, size, (char *)rep);
+    WriteToClient(client, size, (char *) rep);
 }

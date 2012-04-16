@@ -30,30 +30,31 @@
  * References to external symbols
  */
 
-extern int			g_iNumScreens;
-extern int			g_iLastScreen;
-extern char *			g_pszCommandLine;
-extern Bool			g_fSilentFatalError;
-extern const char *		g_pszLogFile;
+extern int g_iNumScreens;
+extern int g_iLastScreen;
+extern char *g_pszCommandLine;
+extern Bool g_fSilentFatalError;
+extern const char *g_pszLogFile;
+
 #ifdef RELOCATE_PROJECTROOT
-extern Bool			g_fLogFileChanged;
+extern Bool g_fLogFileChanged;
 #endif
-extern int			g_iLogVerbose;
-extern Bool			g_fLogInited;
+extern int g_iLogVerbose;
+extern Bool g_fLogInited;
 
-extern Bool			g_fAuthEnabled;
-extern Bool			g_fXdmcpEnabled;
+extern Bool g_fAuthEnabled;
+extern Bool g_fXdmcpEnabled;
 
-extern Bool			g_fNoHelpMessageBox;
-extern Bool			g_fSilentDupError;
-extern Bool                     g_fNativeGl;
+extern Bool g_fNoHelpMessageBox;
+extern Bool g_fSilentDupError;
+extern Bool g_fNativeGl;
 
-extern HWND			g_hDlgDepthChange;
-extern HWND			g_hDlgExit;
-extern HWND			g_hDlgAbout;
+extern HWND g_hDlgDepthChange;
+extern HWND g_hDlgExit;
+extern HWND g_hDlgAbout;
 
-extern Bool 			g_fSoftwareCursor;
-extern Bool			g_fCursor;
+extern Bool g_fSoftwareCursor;
+extern Bool g_fCursor;
 
 #ifdef XWIN_CLIPBOARD
 
@@ -63,26 +64,26 @@ typedef int (*winDispatchProcPtr) (ClientPtr);
 /*
  * Wrapped DIX functions
  */
-extern winDispatchProcPtr	winProcEstablishConnectionOrig;
-extern winDispatchProcPtr	winProcQueryTreeOrig;
-extern winDispatchProcPtr	winProcSetSelectionOwnerOrig;
+extern winDispatchProcPtr winProcEstablishConnectionOrig;
+extern winDispatchProcPtr winProcQueryTreeOrig;
+extern winDispatchProcPtr winProcSetSelectionOwnerOrig;
 #endif
 
 /* The global X default icons */
 #if defined(XWIN_MULTIWINDOW)
-extern HICON                    g_hIconX;
-extern HICON                    g_hSmallIconX;
+extern HICON g_hIconX;
+extern HICON g_hSmallIconX;
 #endif
 
 #ifdef XWIN_MULTIWINDOW
-extern DWORD			g_dwCurrentThreadID;
+extern DWORD g_dwCurrentThreadID;
 #endif
 
-extern Bool			g_fKeyboardHookLL;
-extern Bool			g_fButton[3];
+extern Bool g_fKeyboardHookLL;
+extern Bool g_fButton[3];
 
 #ifdef XWIN_MULTIWINDOWEXTWM
-extern Bool			g_fNoConfigureWindow;
+extern Bool g_fNoConfigureWindow;
 #endif
 
-#endif /* WINGLOBALS_H */
+#endif                          /* WINGLOBALS_H */

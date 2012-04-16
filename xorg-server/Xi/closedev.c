@@ -54,9 +54,9 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
-#include "windowstr.h"	/* window structure  */
-#include "scrnintstr.h"	/* screen structure  */
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
+#include "scrnintstr.h"         /* screen structure  */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include "XIstubs.h"
@@ -94,15 +94,15 @@ DeleteDeviceEvents(DeviceIntPtr dev, WindowPtr pWin, ClientPtr client)
     GrabPtr grab, next;
 
     if ((pOthers = wOtherInputMasks(pWin)) != 0)
-	for (others = pOthers->inputClients; others; others = others->next)
-	    if (SameClient(others, client))
-		others->mask[dev->id] = NoEventMask;
+        for (others = pOthers->inputClients; others; others = others->next)
+            if (SameClient(others, client))
+                others->mask[dev->id] = NoEventMask;
 
     for (grab = wPassiveGrabs(pWin); grab; grab = next) {
-	next = grab->next;
-	if ((grab->device == dev) &&
-	    (client->clientAsMask == CLIENT_BITS(grab->resource)))
-	    FreeResource(grab->resource, RT_NONE);
+        next = grab->next;
+        if ((grab->device == dev) &&
+            (client->clientAsMask == CLIENT_BITS(grab->resource)))
+            FreeResource(grab->resource, RT_NONE);
     }
 }
 
@@ -119,10 +119,10 @@ DeleteEventsFromChildren(DeviceIntPtr dev, WindowPtr p1, ClientPtr client)
     WindowPtr p2;
 
     while (p1) {
-	p2 = p1->firstChild;
-	DeleteDeviceEvents(dev, p1, client);
-	DeleteEventsFromChildren(dev, p2, client);
-	p1 = p1->nextSib;
+        p2 = p1->firstChild;
+        DeleteDeviceEvents(dev, p1, client);
+        DeleteEventsFromChildren(dev, p2, client);
+        p1 = p1->nextSib;
     }
 }
 
@@ -144,20 +144,20 @@ ProcXCloseDevice(ClientPtr client)
 
     rc = dixLookupDevice(&d, stuff->deviceid, client, DixUseAccess);
     if (rc != Success)
-	return rc;
+        return rc;
 
     if (d->deviceGrab.grab && SameClient(d->deviceGrab.grab, client))
-	(*d->deviceGrab.DeactivateGrab) (d);	/* release active grab */
+        (*d->deviceGrab.DeactivateGrab) (d);    /* release active grab */
 
     /* Remove event selections from all windows for events from this device
      * and selected by this client.
      * Delete passive grabs from all windows for this device.      */
 
     for (i = 0; i < screenInfo.numScreens; i++) {
-	pWin = screenInfo.screens[i]->root;
-	DeleteDeviceEvents(d, pWin, client);
-	p1 = pWin->firstChild;
-	DeleteEventsFromChildren(d, p1, client);
+        pWin = screenInfo.screens[i]->root;
+        DeleteDeviceEvents(d, pWin, client);
+        p1 = pWin->firstChild;
+        DeleteEventsFromChildren(d, p1, client);
     }
 
     return Success;

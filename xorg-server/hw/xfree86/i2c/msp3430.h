@@ -4,29 +4,28 @@
 #include "xf86i2c.h"
 
 typedef struct {
-        I2CDevRec d;
-	
-	int standard;
-	int connector;
-	int mode;
+    I2CDevRec d;
 
-        CARD8 hardware_version, major_revision, product_code, rom_version;
+    int standard;
+    int connector;
+    int mode;
+
+    CARD8 hardware_version, major_revision, product_code, rom_version;
 #ifdef MSP_DEBUG
-	CARD8 registers_present[256];
+    CARD8 registers_present[256];
 #endif
 
-	CARD16 chip_id;
-	CARD8  chip_family;
-	Bool  recheck;		/*reinitialization needed after channel change */
-	CARD8 c_format;		/*current state of audio format */
-	CARD16 c_standard;	/*current state of standard register */
-	CARD8	c_source;	/*current state of source register */
-	CARD8	c_matrix;	/*current state of matrix register */
-	CARD8	c_fmmatrix;	/*current state of fmmatrix register */
-	int		c_mode;	/* current state of mode for autoswitchimg */
-	CARD8	volume;
-	} MSP3430Rec, * MSP3430Ptr;
-
+    CARD16 chip_id;
+    CARD8 chip_family;
+    Bool recheck;               /*reinitialization needed after channel change */
+    CARD8 c_format;             /*current state of audio format */
+    CARD16 c_standard;          /*current state of standard register */
+    CARD8 c_source;             /*current state of source register */
+    CARD8 c_matrix;             /*current state of matrix register */
+    CARD8 c_fmmatrix;           /*current state of fmmatrix register */
+    int c_mode;                 /* current state of mode for autoswitchimg */
+    CARD8 volume;
+} MSP3430Rec, *MSP3430Ptr;
 
 #define MSP3430_ADDR_1      0x80
 #define MSP3430_ADDR_2		0x84
@@ -37,9 +36,9 @@ typedef struct {
 #define MSP3430_PAL_DK1         (0x100 | MSP3430_PAL)
 #define MSP3430_SECAM           3
 
-#define MSP3430_CONNECTOR_1     1   /* tuner on AIW cards */
-#define MSP3430_CONNECTOR_2     2   /* SVideo on AIW cards */
-#define MSP3430_CONNECTOR_3     3   /* composite on AIW cards */
+#define MSP3430_CONNECTOR_1     1       /* tuner on AIW cards */
+#define MSP3430_CONNECTOR_2     2       /* SVideo on AIW cards */
+#define MSP3430_CONNECTOR_3     3       /* composite on AIW cards */
 
 #define MSP3430_ADDR(a)         ((a)->d.SlaveAddr)
 
@@ -50,7 +49,7 @@ typedef struct {
 /*----------------------------------------------------------*/
 
 /* MSP chip families */
-#define MSPFAMILY_UNKNOWN	0	
+#define MSPFAMILY_UNKNOWN	0
 #define MSPFAMILY_34x0D		1
 #define MSPFAMILY_34x5D		2
 #define MSPFAMILY_34x0G		3
@@ -94,14 +93,18 @@ typedef struct {
 
 #define xf86_InitMSP3430	InitMSP3430
 extern _X_EXPORT void InitMSP3430(MSP3430Ptr m);
+
 #define xf86_DetectMSP3430	DetectMSP3430
 extern _X_EXPORT MSP3430Ptr DetectMSP3430(I2CBusPtr b, I2CSlaveAddr addr);
+
 #define xf86_ResetMSP3430	ResetMSP3430
 extern _X_EXPORT void ResetMSP3430(MSP3430Ptr m);
+
 #define xf86_MSP3430SetVolume	MSP3430SetVolume
-extern _X_EXPORT void MSP3430SetVolume (MSP3430Ptr m, CARD8 value);
+extern _X_EXPORT void MSP3430SetVolume(MSP3430Ptr m, CARD8 value);
+
 #define xf86_MSP3430SetSAP	MSP3430SetSAP
-extern _X_EXPORT void MSP3430SetSAP (MSP3430Ptr m, int mode);
+extern _X_EXPORT void MSP3430SetSAP(MSP3430Ptr m, int mode);
 
 #define MSP3430SymbolsList \
 		"InitMSP3430", \

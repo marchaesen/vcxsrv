@@ -1111,6 +1111,48 @@ EmitTouchEnd(DeviceIntPtr dev, TouchPointInfoPtr ti, int flags, XID resource)
 }
 
 /**
+ * Find the oldest touch that still has a pointer emulation client.
+ *
+ * Pointer emulation can only be performed for the oldest touch. Otherwise, the
+ * order of events seen by the client will be wrong. This function helps us find
+ * the next touch to be emulated.
+ *
+ * @param dev The device to find touches for.
+ */
+static TouchPointInfoPtr
+FindOldestPointerEmulatedTouch(DeviceIntPtr dev)
+{
+    TouchPointInfoPtr oldest = NULL;
+    int i;
+
+    for (i = 0; i < dev->touch->num_touches; i++) {
+        TouchPointInfoPtr ti = dev->touch->touches + i;
+        int j;
+
+        if (!ti->active || !ti->emulate_pointer)
+            continue;
+
+        for (j = 0; j < ti->num_listeners; j++) {
+            if (ti->listeners[j].type == LISTENER_POINTER_GRAB ||
+                ti->listeners[j].type == LISTENER_POINTER_REGULAR)
+                break;
+        }
+        if (j == ti->num_listeners)
+            continue;
+
+        if (!oldest) {
+            oldest = ti;
+            continue;
+        }
+
+        if (oldest->client_id - ti->client_id < UINT_MAX / 2)
+            oldest = ti;
+    }
+
+    return oldest;
+}
+
+/**
  * If the current owner has rejected the event, deliver the
  * TouchOwnership/TouchBegin to the next item in the sprite stack.
  */
@@ -1123,8 +1165,16 @@ TouchPuntToNextOwner(DeviceIntPtr dev, TouchPointInfoPtr ti,
         ti->listeners[0].state == LISTENER_EARLY_ACCEPT)
         DeliverTouchEvents(dev, ti, (InternalEvent *) ev,
                            ti->listeners[0].listener);
-    else if (ti->listeners[0].state == LISTENER_AWAITING_BEGIN)
+    else if (ti->listeners[0].state == LISTENER_AWAITING_BEGIN) {
+        /* We can't punt to a pointer listener unless all older pointer
+         * emulated touches have been seen already. */
+        if ((ti->listeners[0].type == LISTENER_POINTER_GRAB ||
+             ti->listeners[0].type == LISTENER_POINTER_REGULAR) &&
+            ti != FindOldestPointerEmulatedTouch(dev))
+            return;
+
         TouchEventHistoryReplay(ti, dev, ti->listeners[0].listener);
+    }
 
     /* If we've just removed the last grab and the touch has physically
      * ended, send a TouchEnd event too and finalise the touch. */
@@ -1136,6 +1186,25 @@ TouchPuntToNextOwner(DeviceIntPtr dev, TouchPointInfoPtr ti,
 
     if (ti->listeners[0].state == LISTENER_EARLY_ACCEPT)
         ActivateEarlyAccept(dev, ti);
+}
+
+/**
+ * Check the oldest touch to see if it needs to be replayed to its pointer
+ * owner.
+ *
+ * Touch event propagation is paused if it hits a pointer listener while an
+ * older touch with a pointer listener is waiting on accept or reject. This
+ * function will restart propagation of a paused touch if needed.
+ *
+ * @param dev The device to check touches for.
+ */
+static void
+CheckOldestTouch(DeviceIntPtr dev)
+{
+    TouchPointInfoPtr oldest = FindOldestPointerEmulatedTouch(dev);
+
+    if (oldest && oldest->listeners[0].state == LISTENER_AWAITING_BEGIN)
+        TouchPuntToNextOwner(dev, oldest, NULL);
 }
 
 /**
@@ -1169,6 +1238,7 @@ TouchRejected(DeviceIntPtr sourcedev, TouchPointInfoPtr ti, XID resource,
      * finish, then we can just kill it now. */
     if (ti->num_listeners == 1 && ti->pending_finish) {
         TouchEndTouch(sourcedev, ti);
+        CheckOldestTouch(sourcedev);
         return;
     }
 
@@ -1184,6 +1254,8 @@ TouchRejected(DeviceIntPtr sourcedev, TouchPointInfoPtr ti, XID resource,
      * the TouchOwnership or TouchBegin event to the new owner. */
     if (ev && ti->num_listeners > 0 && was_owner)
         TouchPuntToNextOwner(sourcedev, ti, ev);
+
+    CheckOldestTouch(sourcedev);
 }
 
 /**
@@ -1389,8 +1461,11 @@ DeliverTouchEmulatedEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
 
             if (ev->any.type == ET_TouchEnd &&
                 !dev->button->buttonsDown &&
-                dev->deviceGrab.fromPassiveGrab && GrabIsPointerGrab(grab))
+                dev->deviceGrab.fromPassiveGrab && GrabIsPointerGrab(grab)) {
                 (*dev->deviceGrab.DeactivateGrab) (dev);
+                CheckOldestTouch(dev);
+                return Success;
+            }
         }
     }
     else {
@@ -1755,6 +1830,13 @@ DeliverTouchEndEvent(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev,
         listener->type == LISTENER_POINTER_GRAB) {
         rc = DeliverTouchEmulatedEvent(dev, ti, ev, listener, client, win,
                                        grab, xi2mask);
+
+        if (ti->num_listeners > 1) {
+            ev->any.type = ET_TouchUpdate;
+            ev->device_event.flags |= TOUCH_PENDING_END;
+            ti->pending_finish = TRUE;
+        }
+
         goto out;
     }
 

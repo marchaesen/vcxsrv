@@ -20,7 +20,6 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
@@ -38,13 +37,13 @@
 #include    "shadow.h"
 
 void *
-shadowAlloc (int width, int height, int bpp)
+shadowAlloc(int width, int height, int bpp)
 {
-    int	    stride;
-    void    *fb;
+    int stride;
+    void *fb;
 
     /* Cant use PixmapBytePad -- the structure is probably not initialized yet */
-    stride = BitmapBytePad (width * bpp);
+    stride = BitmapBytePad(width * bpp);
     fb = malloc(stride * height);
     return fb;
 }

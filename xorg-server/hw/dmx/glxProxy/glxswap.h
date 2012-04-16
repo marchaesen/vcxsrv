@@ -34,13 +34,13 @@
 #ifndef __GLX_swap_h__
 #define __GLX_swap_h__
 
-extern int  JoinSwapGroupSGIX(DrawablePtr pDraw, DrawablePtr pMember);
-extern int  SGSwapBuffers(__GLXclientState *cl, XID drawId, GLXContextTag tag,
-			  DrawablePtr pDraw);
+extern int JoinSwapGroupSGIX(DrawablePtr pDraw, DrawablePtr pMember);
+extern int SGSwapBuffers(__GLXclientState * cl, XID drawId, GLXContextTag tag,
+                         DrawablePtr pDraw);
 
 extern void SwapBarrierInit(void);
 extern void SwapBarrierReset(void);
-extern int  QueryMaxSwapBarriersSGIX(int screen);
-extern int  BindSwapBarrierSGIX(DrawablePtr pDraw, int barrier);
+extern int QueryMaxSwapBarriersSGIX(int screen);
+extern int BindSwapBarrierSGIX(DrawablePtr pDraw, int barrier);
 
-#endif /* !__GLX_swap_h__ */
+#endif                          /* !__GLX_swap_h__ */

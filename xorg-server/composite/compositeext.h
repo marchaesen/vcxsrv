@@ -32,7 +32,7 @@
 #include "scrnintstr.h"
 
 extern _X_EXPORT Bool CompositeRegisterAlternateVisuals(ScreenPtr pScreen,
-                                                        VisualID *vids,
+                                                        VisualID * vids,
                                                         int nVisuals);
 
-#endif /* _COMPOSITEEXT_H_ */
+#endif                          /* _COMPOSITEEXT_H_ */

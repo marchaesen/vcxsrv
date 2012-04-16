@@ -20,4 +20,3 @@ XvRegister(void)
     XvGetRTPortProc = XvGetRTPort;
     XvMCScreenInitProc = XvMCScreenInit;
 }
-

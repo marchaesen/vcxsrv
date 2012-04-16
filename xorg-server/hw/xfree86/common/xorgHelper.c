@@ -15,7 +15,6 @@
 #include "xf86Priv.h"
 #include "xorgVersion.h"
 
-
 CARD32
 xorgGetVersion(void)
 {

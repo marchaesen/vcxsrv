@@ -29,13 +29,13 @@
 #include <xorg-config.h>
 #endif
 
-# include <X11/X.h>
-# include "xf86.h"
-# include "xf86Priv.h"
-# include "xf86_OSlib.h"
+#include <X11/X.h>
+#include "xf86.h"
+#include "xf86Priv.h"
+#include "xf86_OSlib.h"
 
 int
-xf86InstallSIGIOHandler(int fd, void (*f)(int, void *), void *closure)
+xf86InstallSIGIOHandler(int fd, void (*f) (int, void *), void *closure)
 {
     return 0;
 }
@@ -47,25 +47,24 @@ xf86RemoveSIGIOHandler(int fd)
 }
 
 int
-xf86BlockSIGIO (void)
+xf86BlockSIGIO(void)
 {
     return 0;
 }
 
 void
-xf86UnblockSIGIO (int wasset)
+xf86UnblockSIGIO(int wasset)
 {
 }
 
 void
-xf86AssertBlockedSIGIO (char *where)
+xf86AssertBlockedSIGIO(char *where)
 {
 }
 
 /* XXX This is a quick hack for the benefit of xf86SetSilkenMouse() */
 Bool
-xf86SIGIOSupported ()
+xf86SIGIOSupported()
 {
     return FALSE;
 }
-

@@ -30,10 +30,10 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef CHGFCTL_H
 #define CHGFCTL_H 1
 
-int SProcXChangeFeedbackControl(ClientPtr	/* client */
+int SProcXChangeFeedbackControl(ClientPtr       /* client */
     );
 
-int ProcXChangeFeedbackControl(ClientPtr	/* client */
+int ProcXChangeFeedbackControl(ClientPtr        /* client */
     );
 
-#endif /* CHGFCTL_H */
+#endif                          /* CHGFCTL_H */

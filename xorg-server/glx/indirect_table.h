@@ -45,8 +45,8 @@ struct __glXDispatchInfo {
 
     /**
      */
-    const int_fast16_t * dispatch_tree;
-    
+    const int_fast16_t *dispatch_tree;
+
     /**
      * Array of protocol decode and dispatch functions index by the opcode
      * search tree (i.e., \c dispatch_tree).  The first element in each pair
@@ -70,7 +70,7 @@ struct __glXDispatchInfo {
      * If size checking is not to be performed on this type of protocol
      * data, this pointer will be \c NULL.
      */
-    const int_fast16_t (*size_table)[2];
+    const int_fast16_t(*size_table)[2];
 
     /**
      * Array of functions used to calculate the variable-size portion of
@@ -103,4 +103,4 @@ extern const struct __glXDispatchInfo Single_dispatch_info;
 extern const struct __glXDispatchInfo Render_dispatch_info;
 extern const struct __glXDispatchInfo VendorPriv_dispatch_info;
 
-#endif /* INDIRECT_TABLE_H */
+#endif                          /* INDIRECT_TABLE_H */

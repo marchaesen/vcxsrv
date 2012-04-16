@@ -30,7 +30,7 @@
 #ifndef CHDEVCUR_H
 #define CHDEVCUR_H 1
 
-int SProcXIChangeCursor(ClientPtr /* client */);
-int ProcXIChangeCursor(ClientPtr /* client */);
+int SProcXIChangeCursor(ClientPtr /* client */ );
+int ProcXIChangeCursor(ClientPtr /* client */ );
 
-#endif /* CHDEVCUR_H */
+#endif                          /* CHDEVCUR_H */

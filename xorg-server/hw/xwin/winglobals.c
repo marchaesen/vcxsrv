@@ -35,74 +35,72 @@
 #endif
 #include "win.h"
 
-
 /*
  * General global variables
  */
 
-int		g_iNumScreens = 0;
-winScreenInfo * g_ScreenInfo = 0;
+int g_iNumScreens = 0;
+winScreenInfo *g_ScreenInfo = 0;
+
 #ifdef HAS_DEVWINDOWS
-int		g_fdMessageQueue = WIN_FD_INVALID;
+int g_fdMessageQueue = WIN_FD_INVALID;
 #endif
 DevPrivateKeyRec g_iScreenPrivateKeyRec;
 DevPrivateKeyRec g_iCmapPrivateKeyRec;
 DevPrivateKeyRec g_iGCPrivateKeyRec;
 DevPrivateKeyRec g_iPixmapPrivateKeyRec;
 DevPrivateKeyRec g_iWindowPrivateKeyRec;
-unsigned long	g_ulServerGeneration = 0;
-DWORD		g_dwEnginesSupported = 0;
-HINSTANCE	g_hInstance = 0;
-HWND		g_hDlgDepthChange = NULL;
-HWND		g_hDlgExit = NULL;
-HWND		g_hDlgAbout = NULL;
-const char *	g_pszQueryHost = NULL;
-Bool		g_fXdmcpEnabled = FALSE;
-Bool           g_fAuthEnabled = FALSE;
-HICON		g_hIconX = NULL;
-HICON		g_hSmallIconX = NULL;
-#ifndef RELOCATE_PROJECTROOT
-const char *	g_pszLogFile = DEFAULT_LOGDIR "/XWin.%s.log";
-#else
-const char *	g_pszLogFile = "XWin.log";
-Bool		g_fLogFileChanged = FALSE;
-#endif
-int		g_iLogVerbose = 2;
-Bool		g_fLogInited = FALSE;
-char *		g_pszCommandLine = NULL;
-Bool		g_fSilentFatalError = FALSE;
-DWORD		g_dwCurrentThreadID = 0;
-Bool		g_fKeyboardHookLL = FALSE;
-Bool		g_fNoHelpMessageBox = FALSE;
-Bool		g_fSoftwareCursor = FALSE;
-Bool		g_fSilentDupError = FALSE;
-Bool            g_fNativeGl = FALSE;
+unsigned long g_ulServerGeneration = 0;
+DWORD g_dwEnginesSupported = 0;
+HINSTANCE g_hInstance = 0;
+HWND g_hDlgDepthChange = NULL;
+HWND g_hDlgExit = NULL;
+HWND g_hDlgAbout = NULL;
+const char *g_pszQueryHost = NULL;
+Bool g_fXdmcpEnabled = FALSE;
+Bool g_fAuthEnabled = FALSE;
+HICON g_hIconX = NULL;
+HICON g_hSmallIconX = NULL;
 
+#ifndef RELOCATE_PROJECTROOT
+const char *g_pszLogFile = DEFAULT_LOGDIR "/XWin.%s.log";
+#else
+const char *g_pszLogFile = "XWin.log";
+Bool g_fLogFileChanged = FALSE;
+#endif
+int g_iLogVerbose = 2;
+Bool g_fLogInited = FALSE;
+char *g_pszCommandLine = NULL;
+Bool g_fSilentFatalError = FALSE;
+DWORD g_dwCurrentThreadID = 0;
+Bool g_fKeyboardHookLL = FALSE;
+Bool g_fNoHelpMessageBox = FALSE;
+Bool g_fSoftwareCursor = FALSE;
+Bool g_fSilentDupError = FALSE;
+Bool g_fNativeGl = FALSE;
 
 #ifdef XWIN_CLIPBOARD
 /*
  * Wrapped DIX functions
  */
-winDispatchProcPtr	winProcEstablishConnectionOrig = NULL;
-winDispatchProcPtr	winProcQueryTreeOrig = NULL;
-winDispatchProcPtr	winProcSetSelectionOwnerOrig = NULL;
-
+winDispatchProcPtr winProcEstablishConnectionOrig = NULL;
+winDispatchProcPtr winProcQueryTreeOrig = NULL;
+winDispatchProcPtr winProcSetSelectionOwnerOrig = NULL;
 
 /*
  * Clipboard variables
  */
 
-Bool			g_fUnicodeClipboard = TRUE;
-Bool			g_fClipboard = TRUE;
-Bool			g_fClipboardLaunched = FALSE;
-Bool			g_fClipboardStarted = FALSE;
-pthread_t		g_ptClipboardProc;
-HWND			g_hwndClipboard = NULL;
-void			*g_pClipboardDisplay = NULL;
-Window			g_iClipboardWindow = None;
-Atom			g_atomLastOwnedSelection = None;
+Bool g_fUnicodeClipboard = TRUE;
+Bool g_fClipboard = TRUE;
+Bool g_fClipboardLaunched = FALSE;
+Bool g_fClipboardStarted = FALSE;
+pthread_t g_ptClipboardProc;
+HWND g_hwndClipboard = NULL;
+void *g_pClipboardDisplay = NULL;
+Window g_iClipboardWindow = None;
+Atom g_atomLastOwnedSelection = None;
 #endif
-
 
 /*
  * Re-initialize global variables that are invalidated
@@ -110,13 +108,13 @@ Atom			g_atomLastOwnedSelection = None;
  */
 
 void
-winInitializeGlobals (void)
+winInitializeGlobals(void)
 {
-  g_dwCurrentThreadID = GetCurrentThreadId ();
+    g_dwCurrentThreadID = GetCurrentThreadId();
 #ifdef XWIN_CLIPBOARD
-  g_iClipboardWindow = None;
-  g_pClipboardDisplay = NULL;
-  g_atomLastOwnedSelection = None;
-  g_hwndClipboard = NULL;
+    g_iClipboardWindow = None;
+    g_pClipboardDisplay = NULL;
+    g_atomLastOwnedSelection = None;
+    g_hwndClipboard = NULL;
 #endif
 }

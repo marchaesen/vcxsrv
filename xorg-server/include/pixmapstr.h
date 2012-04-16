@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -53,17 +52,17 @@ SOFTWARE.
 #include "privates.h"
 
 typedef struct _Drawable {
-    unsigned char	type;	/* DRAWABLE_<type> */
-    unsigned char	class;	/* specific to type */
-    unsigned char	depth;
-    unsigned char	bitsPerPixel;
-    XID			id;	/* resource id */
-    short		x;	/* window: screen absolute, pixmap: 0 */
-    short		y;	/* window: screen absolute, pixmap: 0 */
-    unsigned short	width;
-    unsigned short	height;
-    ScreenPtr		pScreen;
-    unsigned long	serialNumber;
+    unsigned char type;         /* DRAWABLE_<type> */
+    unsigned char class;        /* specific to type */
+    unsigned char depth;
+    unsigned char bitsPerPixel;
+    XID id;                     /* resource id */
+    short x;                    /* window: screen absolute, pixmap: 0 */
+    short y;                    /* window: screen absolute, pixmap: 0 */
+    unsigned short width;
+    unsigned short height;
+    ScreenPtr pScreen;
+    unsigned long serialNumber;
 } DrawableRec;
 
 /*
@@ -71,16 +70,16 @@ typedef struct _Drawable {
  */
 
 typedef struct _Pixmap {
-    DrawableRec		drawable;
-    PrivateRec		*devPrivates;
-    int			refcnt;
-    int			devKind; /* This is the pitch of the pixmap, typically width*bpp/8. */
-    DevUnion		devPrivate; /* When !NULL, devPrivate.ptr points to the raw pixel data. */
+    DrawableRec drawable;
+    PrivateRec *devPrivates;
+    int refcnt;
+    int devKind;                /* This is the pitch of the pixmap, typically width*bpp/8. */
+    DevUnion devPrivate;        /* When !NULL, devPrivate.ptr points to the raw pixel data. */
 #ifdef COMPOSITE
-    short		screen_x;
-    short		screen_y;
+    short screen_x;
+    short screen_y;
 #endif
-    unsigned		usage_hint; /* see CREATE_PIXMAP_USAGE_* */
+    unsigned usage_hint;        /* see CREATE_PIXMAP_USAGE_* */
 } PixmapRec;
 
-#endif /* PIXMAPSTRUCT_H */
+#endif                          /* PIXMAPSTRUCT_H */

@@ -430,7 +430,7 @@ ListTouchInfo(DeviceIntPtr dev, xXITouchInfo * touch)
 {
     touch->type = XITouchClass;
     touch->length = sizeof(xXITouchInfo) >> 2;
-    touch->sourceid = touch->sourceid;
+    touch->sourceid = dev->touch->sourceid;
     touch->mode = dev->touch->mode;
     touch->num_touches = dev->touch->num_touches;
 

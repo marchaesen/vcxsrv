@@ -39,18 +39,18 @@
 #define _DMXBACKEND_H_
 
 extern pointer dmxBackendCreatePrivate(DeviceIntPtr pDevice);
-extern void    dmxBackendDestroyPrivate(pointer private);
-extern void    dmxBackendInit(DevicePtr pDev);
-extern void    dmxBackendLateReInit(DevicePtr pDev);
-extern void    dmxBackendMouGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
-extern void    dmxBackendKbdGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
-extern void    dmxBackendCollectEvents(DevicePtr pDev,
-                                       dmxMotionProcPtr motion,
-                                       dmxEnqueueProcPtr enqueue,
-                                       dmxCheckSpecialProcPtr checkspecial,
-                                       DMXBlockType block);
-extern void    dmxBackendProcessInput(pointer private);
-extern int     dmxBackendFunctions(pointer private, DMXFunctionType function);
-extern void    dmxBackendUpdatePosition(pointer private, int x, int y);
+extern void dmxBackendDestroyPrivate(pointer private);
+extern void dmxBackendInit(DevicePtr pDev);
+extern void dmxBackendLateReInit(DevicePtr pDev);
+extern void dmxBackendMouGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
+extern void dmxBackendKbdGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
+extern void dmxBackendCollectEvents(DevicePtr pDev,
+                                    dmxMotionProcPtr motion,
+                                    dmxEnqueueProcPtr enqueue,
+                                    dmxCheckSpecialProcPtr checkspecial,
+                                    DMXBlockType block);
+extern void dmxBackendProcessInput(pointer private);
+extern int dmxBackendFunctions(pointer private, DMXFunctionType function);
+extern void dmxBackendUpdatePosition(pointer private, int x, int y);
 
 #endif

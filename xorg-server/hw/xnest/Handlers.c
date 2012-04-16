@@ -34,12 +34,12 @@ is" without express or implied warranty.
 void
 xnestBlockHandler(pointer blockData, OSTimePtr pTimeout, pointer pReadMask)
 {
-  xnestCollectExposures();
-  XFlush(xnestDisplay);
+    xnestCollectExposures();
+    XFlush(xnestDisplay);
 }
 
 void
 xnestWakeupHandler(pointer blockData, int result, pointer pReadMask)
 {
-  xnestCollectEvents();
+    xnestCollectEvents();
 }

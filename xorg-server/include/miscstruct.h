@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -57,10 +56,10 @@ typedef xPoint DDXPointRec;
 typedef struct pixman_box16 BoxRec;
 
 typedef union _DevUnion {
-    pointer		ptr;
-    long		val;
-    unsigned long	uval;
-    pointer		(*fptr)(void);
+    pointer ptr;
+    long val;
+    unsigned long uval;
+    pointer (*fptr) (void);
 } DevUnion;
 
-#endif /* MISCSTRUCT_H */
+#endif                          /* MISCSTRUCT_H */

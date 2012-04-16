@@ -26,7 +26,6 @@ from The Open Group.
 
 */
 
-
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
@@ -52,7 +51,6 @@ from The Open Group.
  *     See the author for a derivation if needed.
  */
 
-
 /*
  *  In scan converting polygons, we want to choose those pixels
  *  which are inside the polygon.  Thus, we add .5 to the starting
@@ -119,7 +117,6 @@ from The Open Group.
         } \
     } \
 }
-
 
 /*
  *     This structure contains all of the information needed
@@ -129,12 +126,11 @@ from The Open Group.
  *     register declarations.
  */
 typedef struct {
-    int minor;         /* minor axis        */
-    int d;           /* decision variable */
-    int m, m1;       /* slope and slope+1 */
-    int incr1, incr2; /* error increments */
+    int minor;                  /* minor axis        */
+    int d;                      /* decision variable */
+    int m, m1;                  /* slope and slope+1 */
+    int incr1, incr2;           /* error increments */
 } BRESINFO;
-
 
 #define BRESINITPGONSTRUCT(dmaj, min1, min2, bres) \
 	BRESINITPGON(dmaj, min1, min2, bres.minor, bres.d, \
@@ -142,6 +138,5 @@ typedef struct {
 
 #define BRESINCRPGONSTRUCT(bres) \
         BRESINCRPGON(bres.d, bres.minor, bres.m, bres.m1, bres.incr1, bres.incr2)
-
 
 #endif

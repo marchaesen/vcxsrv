@@ -29,7 +29,6 @@
 #define __EPHYR_GLXEXT_H__
 
 #include <X11/Xdefs.h>
-Bool ephyrHijackGLXExtension (void) ;
+Bool ephyrHijackGLXExtension(void);
 
 #endif /*__EPHYR_GLXEXT_H__*/
-

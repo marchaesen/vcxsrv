@@ -89,211 +89,224 @@ typedef struct _DMXStatInfo DMXStatInfo;
 
 /** Global structure containing information about each backend screen. */
 typedef struct _DMXScreenInfo {
-    const char   *name;           /**< Name from command line or config file */
-    int           index;          /**< Index into dmxScreens global          */
+    const char *name;             /**< Name from command line or config file */
+    int index;                    /**< Index into dmxScreens global          */
 
     /*---------- Back-end X server information ----------*/
 
-    Display      *beDisplay;      /**< Back-end X server's display */
-    int           beWidth;        /**< Width of BE display */
-    int           beHeight;       /**< Height of BE display */
-    int           beDepth;        /**< Depth of BE display */
-    int           beBPP;          /**< Bits per pixel of BE display */
-    int           beXDPI;         /**< Horizontal dots per inch of BE */
-    int           beYDPI;         /**< Vertical dots per inch of BE */
+    Display *beDisplay;           /**< Back-end X server's display */
+    int beWidth;                  /**< Width of BE display */
+    int beHeight;                 /**< Height of BE display */
+    int beDepth;                  /**< Depth of BE display */
+    int beBPP;                    /**< Bits per pixel of BE display */
+    int beXDPI;                   /**< Horizontal dots per inch of BE */
+    int beYDPI;                   /**< Vertical dots per inch of BE */
 
-    int           beNumDepths;    /**< Number of depths on BE server */
-    int          *beDepths;       /**< Depths from BE server */
+    int beNumDepths;              /**< Number of depths on BE server */
+    int *beDepths;                /**< Depths from BE server */
 
-    int           beNumPixmapFormats; /**< Number of pixmap formats on BE */
+    int beNumPixmapFormats;           /**< Number of pixmap formats on BE */
     XPixmapFormatValues *bePixmapFormats; /**< Pixmap formats on BE */
 
-    int           beNumVisuals;   /**< Number of visuals on BE */
-    XVisualInfo  *beVisuals;      /**< Visuals from BE server */
-    int           beDefVisualIndex; /**< Default visual index of BE */
+    int beNumVisuals;             /**< Number of visuals on BE */
+    XVisualInfo *beVisuals;       /**< Visuals from BE server */
+    int beDefVisualIndex;           /**< Default visual index of BE */
 
-    int           beNumDefColormaps; /**< Number of default colormaps */
-    Colormap     *beDefColormaps; /**< Default colormaps for DMX server */ 
+    int beNumDefColormaps;           /**< Number of default colormaps */
+    Colormap *beDefColormaps;     /**< Default colormaps for DMX server */
 
-    Pixel         beBlackPixel;   /**< Default black pixel for BE */
-    Pixel         beWhitePixel;   /**< Default white pixel for BE */
+    Pixel beBlackPixel;           /**< Default black pixel for BE */
+    Pixel beWhitePixel;           /**< Default white pixel for BE */
 
     /*---------- Screen window information ----------*/
 
-    Window        scrnWin;        /**< "Screen" window on backend display */
-    int           scrnX;          /**< X offset of "screen" WRT BE display */
-    int           scrnY;          /**< Y offset of "screen" WRT BE display */
-    int           scrnWidth;      /**< Width of "screen" */
-    int           scrnHeight;     /**< Height of "screen" */
-    int           scrnXSign;      /**< X offset sign of "screen" */
-    int           scrnYSign;      /**< Y offset sign of "screen" */
+    Window scrnWin;               /**< "Screen" window on backend display */
+    int scrnX;                    /**< X offset of "screen" WRT BE display */
+    int scrnY;                    /**< Y offset of "screen" WRT BE display */
+    int scrnWidth;                /**< Width of "screen" */
+    int scrnHeight;               /**< Height of "screen" */
+    int scrnXSign;                /**< X offset sign of "screen" */
+    int scrnYSign;                /**< Y offset sign of "screen" */
 
                                   /** Default drawables for "screen" */
-    Drawable      scrnDefDrawables[MAXFORMATS];
+    Drawable scrnDefDrawables[MAXFORMATS];
 
     struct _DMXScreenInfo *next;  /**< List of "screens" on same display */
     struct _DMXScreenInfo *over;  /**< List of "screens" that overlap */
 
     /*---------- Root window information ----------*/
 
-    Window        rootWin;        /**< "Root" window on backend display */
-    int           rootX;          /**< X offset of "root" window WRT "screen"*/
-    int           rootY;          /**< Y offset of "root" window WRT "screen"*/
-    int           rootWidth;      /**< Width of "root" window */
-    int           rootHeight;     /**< Height of "root" window */
+    Window rootWin;               /**< "Root" window on backend display */
+    int rootX;                    /**< X offset of "root" window WRT "screen"*/
+    int rootY;                    /**< Y offset of "root" window WRT "screen"*/
+    int rootWidth;                /**< Width of "root" window */
+    int rootHeight;               /**< Height of "root" window */
 
-    int           rootXOrigin;    /**< Global X origin of "root" window */
-    int           rootYOrigin;    /**< Global Y origin of "root" window */
+    int rootXOrigin;              /**< Global X origin of "root" window */
+    int rootYOrigin;              /**< Global Y origin of "root" window */
 
     /*---------- Shadow framebuffer information ----------*/
 
-    void         *shadow;         /**< Shadow framebuffer data (if enabled) */
-    XlibGC        shadowGC;       /**< Default GC used by shadow FB code */
-    XImage       *shadowFBImage;  /**< Screen image used by shadow FB code */
+    void *shadow;                 /**< Shadow framebuffer data (if enabled) */
+    XlibGC shadowGC;              /**< Default GC used by shadow FB code */
+    XImage *shadowFBImage;        /**< Screen image used by shadow FB code */
 
     /*---------- Other related information ----------*/
 
-    int           shared;         /**< Non-zero if another Xdmx is running */
+    int shared;                   /**< Non-zero if another Xdmx is running */
 
-    Bool          WMRunningOnBE;
+    Bool WMRunningOnBE;
 
-    Cursor        noCursor;
-    Cursor        curCursor;
-                                /* Support for cursors on overlapped
-                                 * backend displays. */
-    CursorPtr     cursor;
-    int           cursorVisible;
-    int           cursorNotShared; /* for overlapping screens on a backend */
+    Cursor noCursor;
+    Cursor curCursor;
+    /* Support for cursors on overlapped
+     * backend displays. */
+    CursorPtr cursor;
+    int cursorVisible;
+    int cursorNotShared;        /* for overlapping screens on a backend */
 
-    PositionType  where;            /**< Relative layout information */
-    int           whereX;           /**< Relative layout information */
-    int           whereY;           /**< Relative layout information */
-    int           whereRefScreen;   /**< Relative layout information */
+    PositionType where;             /**< Relative layout information */
+    int whereX;                     /**< Relative layout information */
+    int whereY;                     /**< Relative layout information */
+    int whereRefScreen;             /**< Relative layout information */
 
-    int           savedTimeout;     /**< Original screen saver timeout */
-    int           dpmsCapable;      /**< Non-zero if backend is DPMS capable */
-    int           dpmsEnabled;      /**< Non-zero if DPMS enabled */
-    int           dpmsStandby;      /**< Original DPMS standby value  */
-    int           dpmsSuspend;      /**< Original DPMS suspend value  */
-    int           dpmsOff;          /**< Original DPMS off value  */
+    int savedTimeout;               /**< Original screen saver timeout */
+    int dpmsCapable;                /**< Non-zero if backend is DPMS capable */
+    int dpmsEnabled;                /**< Non-zero if DPMS enabled */
+    int dpmsStandby;                /**< Original DPMS standby value  */
+    int dpmsSuspend;                /**< Original DPMS suspend value  */
+    int dpmsOff;                    /**< Original DPMS off value  */
 
-    DMXStatInfo  *stat;             /**< Statistics about XSync  */
-    Bool          needsSync;        /**< True if an XSync is pending  */
+    DMXStatInfo *stat;              /**< Statistics about XSync  */
+    Bool needsSync;                 /**< True if an XSync is pending  */
 
 #ifdef GLXEXT
                                   /** Visual information for glxProxy */
-    int           numGlxVisuals;
+    int numGlxVisuals;
     __GLXvisualConfig *glxVisuals;
-    int           glxMajorOpcode;
-    int           glxErrorBase;
+    int glxMajorOpcode;
+    int glxErrorBase;
 
                                   /** FB config information for glxProxy */
     __GLXFBConfig *fbconfigs;
-    int           numFBConfigs;
+    int numFBConfigs;
 #endif
 
                                     /** Function pointers to wrapped screen
 				     *  functions */
-    CloseScreenProcPtr             CloseScreen;
-    SaveScreenProcPtr              SaveScreen;
+    CloseScreenProcPtr CloseScreen;
+    SaveScreenProcPtr SaveScreen;
 
-    CreateGCProcPtr                CreateGC;
+    CreateGCProcPtr CreateGC;
 
-    CreateWindowProcPtr            CreateWindow;
-    DestroyWindowProcPtr           DestroyWindow;
-    PositionWindowProcPtr          PositionWindow;
-    ChangeWindowAttributesProcPtr  ChangeWindowAttributes;
-    RealizeWindowProcPtr           RealizeWindow;
-    UnrealizeWindowProcPtr         UnrealizeWindow;
-    RestackWindowProcPtr           RestackWindow;
-    WindowExposuresProcPtr         WindowExposures;
-    CopyWindowProcPtr              CopyWindow;
+    CreateWindowProcPtr CreateWindow;
+    DestroyWindowProcPtr DestroyWindow;
+    PositionWindowProcPtr PositionWindow;
+    ChangeWindowAttributesProcPtr ChangeWindowAttributes;
+    RealizeWindowProcPtr RealizeWindow;
+    UnrealizeWindowProcPtr UnrealizeWindow;
+    RestackWindowProcPtr RestackWindow;
+    WindowExposuresProcPtr WindowExposures;
+    CopyWindowProcPtr CopyWindow;
 
-    ResizeWindowProcPtr            ResizeWindow;
-    ReparentWindowProcPtr          ReparentWindow;
+    ResizeWindowProcPtr ResizeWindow;
+    ReparentWindowProcPtr ReparentWindow;
 
-    ChangeBorderWidthProcPtr       ChangeBorderWidth;
+    ChangeBorderWidthProcPtr ChangeBorderWidth;
 
-    GetImageProcPtr                GetImage;
-    GetSpansProcPtr                GetSpans;
+    GetImageProcPtr GetImage;
+    GetSpansProcPtr GetSpans;
 
-    CreatePixmapProcPtr            CreatePixmap;
-    DestroyPixmapProcPtr           DestroyPixmap;
-    BitmapToRegionProcPtr          BitmapToRegion;
+    CreatePixmapProcPtr CreatePixmap;
+    DestroyPixmapProcPtr DestroyPixmap;
+    BitmapToRegionProcPtr BitmapToRegion;
 
-    RealizeFontProcPtr             RealizeFont;
-    UnrealizeFontProcPtr           UnrealizeFont;
+    RealizeFontProcPtr RealizeFont;
+    UnrealizeFontProcPtr UnrealizeFont;
 
-    CreateColormapProcPtr          CreateColormap;
-    DestroyColormapProcPtr         DestroyColormap;
-    InstallColormapProcPtr         InstallColormap;
-    StoreColorsProcPtr             StoreColors;
+    CreateColormapProcPtr CreateColormap;
+    DestroyColormapProcPtr DestroyColormap;
+    InstallColormapProcPtr InstallColormap;
+    StoreColorsProcPtr StoreColors;
 
-    SetShapeProcPtr                SetShape;
+    SetShapeProcPtr SetShape;
 
-    CreatePictureProcPtr           CreatePicture;
-    DestroyPictureProcPtr          DestroyPicture;
-    ChangePictureClipProcPtr       ChangePictureClip;
-    DestroyPictureClipProcPtr      DestroyPictureClip;
-    
-    ChangePictureProcPtr           ChangePicture;
-    ValidatePictureProcPtr         ValidatePicture;
+    CreatePictureProcPtr CreatePicture;
+    DestroyPictureProcPtr DestroyPicture;
+    ChangePictureClipProcPtr ChangePictureClip;
+    DestroyPictureClipProcPtr DestroyPictureClip;
 
-    CompositeProcPtr               Composite;
-    GlyphsProcPtr                  Glyphs;
-    CompositeRectsProcPtr          CompositeRects;
+    ChangePictureProcPtr ChangePicture;
+    ValidatePictureProcPtr ValidatePicture;
 
-    InitIndexedProcPtr             InitIndexed;
-    CloseIndexedProcPtr            CloseIndexed;
-    UpdateIndexedProcPtr           UpdateIndexed;
+    CompositeProcPtr Composite;
+    GlyphsProcPtr Glyphs;
+    CompositeRectsProcPtr CompositeRects;
 
-    TrapezoidsProcPtr              Trapezoids;
-    TrianglesProcPtr               Triangles;
+    InitIndexedProcPtr InitIndexed;
+    CloseIndexedProcPtr CloseIndexed;
+    UpdateIndexedProcPtr UpdateIndexed;
+
+    TrapezoidsProcPtr Trapezoids;
+    TrianglesProcPtr Triangles;
 } DMXScreenInfo;
 
 /* Global variables available to all Xserver/hw/dmx routines. */
-extern int              dmxNumScreens;          /**< Number of dmxScreens */
-extern DMXScreenInfo   *dmxScreens;             /**< List of outputs */
-extern int              dmxShadowFB;            /**< Non-zero if using
+extern int dmxNumScreens;                       /**< Number of dmxScreens */
+extern DMXScreenInfo *dmxScreens;               /**< List of outputs */
+extern int dmxShadowFB;                         /**< Non-zero if using
+
                                                  * shadow frame-buffer
                                                  * (deprecated) */
-extern XErrorEvent      dmxLastErrorEvent;      /**< Last error that
+extern XErrorEvent dmxLastErrorEvent;           /**< Last error that
+
                                                  * occurred */
-extern Bool             dmxErrorOccurred;       /**< True if an error
+extern Bool dmxErrorOccurred;                   /**< True if an error
+
                                                  * occurred */
-extern Bool             dmxOffScreenOpt;        /**< True if using off
+extern Bool dmxOffScreenOpt;                    /**< True if using off
+
                                                  * screen
                                                  * optimizations */
-extern Bool             dmxSubdividePrimitives; /**< True if using the
+extern Bool dmxSubdividePrimitives;             /**< True if using the
+
                                                  * primitive subdivision
                                                  * optimization */
-extern Bool             dmxLazyWindowCreation;  /**< True if using the
+extern Bool dmxLazyWindowCreation;              /**< True if using the
+
                                                  * lazy window creation
                                                  * optimization */
-extern Bool             dmxUseXKB;              /**< True if the XKB
+extern Bool dmxUseXKB;                          /**< True if the XKB
+
                                                  * extension should be
                                                  * used with the backend
                                                  * servers */
-extern int              dmxDepth;               /**< Requested depth if
+extern int dmxDepth;                            /**< Requested depth if
+
                                                  * non-zero */
 #ifdef GLXEXT
-extern Bool             dmxGLXProxy;            /**< True if glxProxy
+extern Bool dmxGLXProxy;                        /**< True if glxProxy
+
 						 * support is enabled */
-extern Bool             dmxGLXSwapGroupSupport; /**< True if glxProxy
+extern Bool dmxGLXSwapGroupSupport;             /**< True if glxProxy
+
 						 * support for swap
 						 * groups and barriers
 						 * is enabled */
-extern Bool             dmxGLXSyncSwap;         /**< True if glxProxy
+extern Bool dmxGLXSyncSwap;                     /**< True if glxProxy
+
 						 * should force an XSync
 						 * request after each
 						 * swap buffers call */
-extern Bool             dmxGLXFinishSwap;       /**< True if glxProxy
+extern Bool dmxGLXFinishSwap;                   /**< True if glxProxy
+
 						 * should force a
 						 * glFinish request
 						 * after each swap
 						 * buffers call */
 #endif
-extern char            *dmxFontPath;            /**< NULL if no font
+extern char *dmxFontPath;                       /**< NULL if no font
+
 						 * path is set on the
 						 * command line;
 						 * otherwise, a string
@@ -302,11 +315,13 @@ extern char            *dmxFontPath;            /**< NULL if no font
 						 * command line
 						 * specified font
 						 * paths */
-extern Bool             dmxIgnoreBadFontPaths;  /**< True if bad font
+extern Bool dmxIgnoreBadFontPaths;              /**< True if bad font
+
 						 * paths should be
 						 * ignored during server
 						 * init */
-extern Bool             dmxAddRemoveScreens;    /**< True if add and
+extern Bool dmxAddRemoveScreens;                /**< True if add and
+
 						 * remove screens support
 						 * is enabled */
 
@@ -346,7 +361,7 @@ do {									\
             if (!o) return retval;                                      \
         }                                                               \
     } while (0)
-        
+
 #define MAXSCREENSFREE(o)                                               \
     do {                                                                \
         free(o);                                                \
@@ -363,26 +378,33 @@ do {									\
 #endif
 
 extern DevPrivateKeyRec dmxGCPrivateKeyRec;
+
 #define dmxGCPrivateKey (&dmxGCPrivateKeyRec) /**< Private index for GCs       */
 
 extern DevPrivateKeyRec dmxWinPrivateKeyRec;
+
 #define dmxWinPrivateKey (&dmxWinPrivateKeyRec) /**< Private index for Windows   */
 
 extern DevPrivateKeyRec dmxPixPrivateKeyRec;
+
 #define dmxPixPrivateKey (&dmxPixPrivateKeyRec) /**< Private index for Pixmaps   */
 
 extern int dmxFontPrivateIndex;        /**< Private index for Fonts     */
 
 extern DevPrivateKeyRec dmxScreenPrivateKeyRec;
+
 #define dmxScreenPrivateKey (&dmxScreenPrivateKeyRec) /**< Private index for Screens   */
 
 extern DevPrivateKeyRec dmxColormapPrivateKeyRec;
+
 #define dmxColormapPrivateKey (&dmxColormapPrivateKeyRec) /**< Private index for Colormaps */
 
 extern DevPrivateKeyRec dmxPictPrivateKeyRec;
+
 #define dmxPictPrivateKey (&dmxPictPrivateKeyRec) /**< Private index for Picts     */
 
 extern DevPrivateKeyRec dmxGlyphSetPrivateKeyRec;
+
 #define dmxGlyphSetPrivateKey (&dmxGlyphSetPrivateKeyRec) /**< Private index for GlyphSets */
 
-#endif /* DMX_H */
+#endif                          /* DMX_H */

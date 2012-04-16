@@ -41,7 +41,7 @@
 
 /** Font private area. */
 typedef struct _dmxFontPriv {
-    int          refcnt;
+    int refcnt;
     XFontStruct **font;
 } dmxFontPrivRec, *dmxFontPrivPtr;
 
@@ -56,4 +56,4 @@ extern Bool dmxBEFreeFont(ScreenPtr pScreen, FontPtr pFont);
 
 extern int dmxFontPrivateIndex;
 
-#endif /* DMXFONT_H */
+#endif                          /* DMXFONT_H */

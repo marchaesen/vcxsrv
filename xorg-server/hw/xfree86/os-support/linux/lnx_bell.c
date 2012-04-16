@@ -42,5 +42,5 @@ xf86OSRingBell(int loudness, int pitch, int duration)
 
     ioctl(xf86Info.consoleFd, KDMKTONE,
           ((1193190 / pitch) & 0xffff) |
-          (((unsigned long)duration * loudness / 50) << 16));
+          (((unsigned long) duration * loudness / 50) << 16));
 }

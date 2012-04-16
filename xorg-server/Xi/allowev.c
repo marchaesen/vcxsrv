@@ -54,7 +54,7 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
+#include "inputstr.h"           /* DeviceIntPtr      */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 
@@ -97,31 +97,31 @@ ProcXAllowDeviceEvents(ClientPtr client)
 
     rc = dixLookupDevice(&thisdev, stuff->deviceid, client, DixGetAttrAccess);
     if (rc != Success)
-	return rc;
+        return rc;
     time = ClientTimeToServerTime(stuff->time);
 
     switch (stuff->mode) {
     case ReplayThisDevice:
-	AllowSome(client, time, thisdev, NOT_GRABBED);
-	break;
+        AllowSome(client, time, thisdev, NOT_GRABBED);
+        break;
     case SyncThisDevice:
-	AllowSome(client, time, thisdev, FREEZE_NEXT_EVENT);
-	break;
+        AllowSome(client, time, thisdev, FREEZE_NEXT_EVENT);
+        break;
     case AsyncThisDevice:
-	AllowSome(client, time, thisdev, THAWED);
-	break;
+        AllowSome(client, time, thisdev, THAWED);
+        break;
     case AsyncOtherDevices:
-	AllowSome(client, time, thisdev, THAW_OTHERS);
-	break;
+        AllowSome(client, time, thisdev, THAW_OTHERS);
+        break;
     case SyncAll:
-	AllowSome(client, time, thisdev, FREEZE_BOTH_NEXT_EVENT);
-	break;
+        AllowSome(client, time, thisdev, FREEZE_BOTH_NEXT_EVENT);
+        break;
     case AsyncAll:
-	AllowSome(client, time, thisdev, THAWED_BOTH);
-	break;
+        AllowSome(client, time, thisdev, THAWED_BOTH);
+        break;
     default:
-	client->errorValue = stuff->mode;
-	return BadValue;
+        client->errorValue = stuff->mode;
+        return BadValue;
     }
     return Success;
 }

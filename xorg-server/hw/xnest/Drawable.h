@@ -23,4 +23,4 @@ is" without express or implied warranty.
    xnestWindow((WindowPtr)pDrawable) : \
    xnestPixmap((PixmapPtr)pDrawable))
 
-#endif /* XNESTDRAWABLE_H */
+#endif                          /* XNESTDRAWABLE_H */

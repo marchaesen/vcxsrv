@@ -29,9 +29,9 @@
 
 #include <pixman.h>
 
-typedef struct _DirectFormat	*DirectFormatPtr;
-typedef struct _PictFormat	*PictFormatPtr;
-typedef struct _Picture		*PicturePtr;
+typedef struct _DirectFormat *DirectFormatPtr;
+typedef struct _PictFormat *PictFormatPtr;
+typedef struct _Picture *PicturePtr;
 
 /*
  * While the protocol is generous in format support, the
@@ -68,64 +68,64 @@ typedef struct _Picture		*PicturePtr;
 
 /* 32bpp formats */
 typedef enum _PictFormatShort {
-    PICT_a2r10g10b10 =	PIXMAN_a2r10g10b10,
-    PICT_x2r10g10b10 =	PIXMAN_x2r10g10b10,
-    PICT_a2b10g10r10 =	PIXMAN_a2b10g10r10,
-    PICT_x2b10g10r10 =	PIXMAN_x2b10g10r10,
+    PICT_a2r10g10b10 = PIXMAN_a2r10g10b10,
+    PICT_x2r10g10b10 = PIXMAN_x2r10g10b10,
+    PICT_a2b10g10r10 = PIXMAN_a2b10g10r10,
+    PICT_x2b10g10r10 = PIXMAN_x2b10g10r10,
 
-    PICT_a8r8g8b8 =	PIXMAN_a8r8g8b8,
-    PICT_x8r8g8b8 =	PIXMAN_x8r8g8b8,
-    PICT_a8b8g8r8 =	PIXMAN_a8b8g8r8,
-    PICT_x8b8g8r8 =	PIXMAN_x8b8g8r8,
-    PICT_b8g8r8a8 =	PIXMAN_b8g8r8a8,
-    PICT_b8g8r8x8 =	PIXMAN_b8g8r8x8,
+    PICT_a8r8g8b8 = PIXMAN_a8r8g8b8,
+    PICT_x8r8g8b8 = PIXMAN_x8r8g8b8,
+    PICT_a8b8g8r8 = PIXMAN_a8b8g8r8,
+    PICT_x8b8g8r8 = PIXMAN_x8b8g8r8,
+    PICT_b8g8r8a8 = PIXMAN_b8g8r8a8,
+    PICT_b8g8r8x8 = PIXMAN_b8g8r8x8,
 
 /* 24bpp formats */
-    PICT_r8g8b8 =	PIXMAN_r8g8b8,
-    PICT_b8g8r8 =	PIXMAN_b8g8r8,
+    PICT_r8g8b8 = PIXMAN_r8g8b8,
+    PICT_b8g8r8 = PIXMAN_b8g8r8,
 
 /* 16bpp formats */
-    PICT_r5g6b5 =	PIXMAN_r5g6b5,
-    PICT_b5g6r5 =	PIXMAN_b5g6r5,
+    PICT_r5g6b5 = PIXMAN_r5g6b5,
+    PICT_b5g6r5 = PIXMAN_b5g6r5,
 
-    PICT_a1r5g5b5 =	PIXMAN_a1r5g5b5,
-    PICT_x1r5g5b5 =	PIXMAN_x1r5g5b5,
-    PICT_a1b5g5r5 =	PIXMAN_a1b5g5r5,
-    PICT_x1b5g5r5 =	PIXMAN_x1b5g5r5,
-    PICT_a4r4g4b4 =	PIXMAN_a4r4g4b4,
-    PICT_x4r4g4b4 =	PIXMAN_x4r4g4b4,
-    PICT_a4b4g4r4 =	PIXMAN_a4b4g4r4,
-    PICT_x4b4g4r4 =	PIXMAN_x4b4g4r4,
+    PICT_a1r5g5b5 = PIXMAN_a1r5g5b5,
+    PICT_x1r5g5b5 = PIXMAN_x1r5g5b5,
+    PICT_a1b5g5r5 = PIXMAN_a1b5g5r5,
+    PICT_x1b5g5r5 = PIXMAN_x1b5g5r5,
+    PICT_a4r4g4b4 = PIXMAN_a4r4g4b4,
+    PICT_x4r4g4b4 = PIXMAN_x4r4g4b4,
+    PICT_a4b4g4r4 = PIXMAN_a4b4g4r4,
+    PICT_x4b4g4r4 = PIXMAN_x4b4g4r4,
 
 /* 8bpp formats */
-    PICT_a8 =		PIXMAN_a8,
-    PICT_r3g3b2 =	PIXMAN_r3g3b2,
-    PICT_b2g3r3 =	PIXMAN_b2g3r3,
-    PICT_a2r2g2b2 =	PIXMAN_a2r2g2b2,
-    PICT_a2b2g2r2 =	PIXMAN_a2b2g2r2,
+    PICT_a8 = PIXMAN_a8,
+    PICT_r3g3b2 = PIXMAN_r3g3b2,
+    PICT_b2g3r3 = PIXMAN_b2g3r3,
+    PICT_a2r2g2b2 = PIXMAN_a2r2g2b2,
+    PICT_a2b2g2r2 = PIXMAN_a2b2g2r2,
 
-    PICT_c8 =		PIXMAN_c8,
-    PICT_g8 =		PIXMAN_g8,
+    PICT_c8 = PIXMAN_c8,
+    PICT_g8 = PIXMAN_g8,
 
-    PICT_x4a4 =		PIXMAN_x4a4,
-				    
-    PICT_x4c4 =		PIXMAN_x4c4,
-    PICT_x4g4 =		PIXMAN_x4g4,
+    PICT_x4a4 = PIXMAN_x4a4,
+
+    PICT_x4c4 = PIXMAN_x4c4,
+    PICT_x4g4 = PIXMAN_x4g4,
 
 /* 4bpp formats */
-    PICT_a4 =		PIXMAN_a4,
-    PICT_r1g2b1 =	PIXMAN_r1g2b1,
-    PICT_b1g2r1 =	PIXMAN_b1g2r1,
-    PICT_a1r1g1b1 =	PIXMAN_a1r1g1b1,
-    PICT_a1b1g1r1 =	PIXMAN_a1b1g1r1,
-				    
-    PICT_c4 =		PIXMAN_c4,
-    PICT_g4 =		PIXMAN_g4,
+    PICT_a4 = PIXMAN_a4,
+    PICT_r1g2b1 = PIXMAN_r1g2b1,
+    PICT_b1g2r1 = PIXMAN_b1g2r1,
+    PICT_a1r1g1b1 = PIXMAN_a1r1g1b1,
+    PICT_a1b1g1r1 = PIXMAN_a1b1g1r1,
+
+    PICT_c4 = PIXMAN_c4,
+    PICT_g4 = PIXMAN_g4,
 
 /* 1bpp formats */
-    PICT_a1 =		PIXMAN_a1,
+    PICT_a1 = PIXMAN_a1,
 
-    PICT_g1 =		PIXMAN_g1
+    PICT_g1 = PIXMAN_g1
 } PictFormatShort;
 
 /*
@@ -160,7 +160,7 @@ typedef enum _PictFormatShort {
  * 4x4x4 cube allocates another two and nine more are allocated to fill
  * in the 13 levels.  When the 4x4x4 cube is not allocated, a total of
  * 11 cells are allocated.
- */   
+ */
 
 #define PictureCmapPolicyInvalid    -1
 #define PictureCmapPolicyDefault    0
@@ -171,28 +171,29 @@ typedef enum _PictFormatShort {
 
 extern _X_EXPORT int PictureCmapPolicy;
 
-extern _X_EXPORT int PictureParseCmapPolicy (const char *name);
+extern _X_EXPORT int PictureParseCmapPolicy(const char *name);
 
 extern _X_EXPORT int RenderErrBase;
 
 /* Fixed point updates from Carl Worth, USC, Information Sciences Institute */
 
-typedef pixman_fixed_32_32_t	xFixed_32_32;
+typedef pixman_fixed_32_32_t xFixed_32_32;
 
-typedef pixman_fixed_48_16_t	xFixed_48_16;
+typedef pixman_fixed_48_16_t xFixed_48_16;
 
 #define MAX_FIXED_48_16		pixman_max_fixed_48_16
 #define MIN_FIXED_48_16		pixman_min_fixed_48_16
 
-typedef pixman_fixed_1_31_t	xFixed_1_31;
-typedef pixman_fixed_1_16_t	xFixed_1_16;
-typedef pixman_fixed_16_16_t	xFixed_16_16;
+typedef pixman_fixed_1_31_t xFixed_1_31;
+typedef pixman_fixed_1_16_t xFixed_1_16;
+typedef pixman_fixed_16_16_t xFixed_16_16;
 
 /*
  * An unadorned "xFixed" is the same as xFixed_16_16, 
  * (since it's quite common in the code) 
  */
-typedef	pixman_fixed_t	xFixed;
+typedef pixman_fixed_t xFixed;
+
 #define XFIXED_BITS	16
 
 #define xFixedToInt(f)	pixman_fixed_to_int(f)
@@ -228,4 +229,4 @@ typedef	pixman_fixed_t	xFixed;
 				  (((s) >>  8) & 0xff) * 301 + \
 				  (((s)      ) & 0xff) * 58) >> 2)
 
-#endif /* _PICTURE_H_ */
+#endif                          /* _PICTURE_H_ */

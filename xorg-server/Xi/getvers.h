@@ -30,15 +30,15 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef GETVERS_H
 #define GETVERS_H 1
 
-int SProcXGetExtensionVersion(ClientPtr	/* client */
+int SProcXGetExtensionVersion(ClientPtr /* client */
     );
 
-int ProcXGetExtensionVersion(ClientPtr	/* client */
+int ProcXGetExtensionVersion(ClientPtr  /* client */
     );
 
 void SRepXGetExtensionVersion(ClientPtr /* client */ ,
-			      int /* size */ ,
-			      xGetExtensionVersionReply *	/* rep */
+                              int /* size */ ,
+                              xGetExtensionVersionReply *       /* rep */
     );
 
-#endif /* GETVERS_H */
+#endif                          /* GETVERS_H */

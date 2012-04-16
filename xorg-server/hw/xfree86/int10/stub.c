@@ -38,7 +38,7 @@ xf86FreeInt10(xf86Int10InfoPtr pInt)
 }
 
 void *
-xf86Int10AllocPages(xf86Int10InfoPtr pInt,int num, int *off)
+xf86Int10AllocPages(xf86Int10InfoPtr pInt, int num, int *off)
 {
     *off = 0;
     return NULL;

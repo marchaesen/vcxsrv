@@ -44,34 +44,34 @@ enum {
 };
 
 struct __GLXdrawable {
-    void (*destroy)(__GLXdrawable *private);
-    GLboolean (*swapBuffers)(ClientPtr client, __GLXdrawable *);
-    void      (*copySubBuffer)(__GLXdrawable *drawable,
-			       int x, int y, int w, int h);
-    void      (*waitX)(__GLXdrawable *);
-    void      (*waitGL)(__GLXdrawable *);
+    void (*destroy) (__GLXdrawable * private);
+     GLboolean(*swapBuffers) (ClientPtr client, __GLXdrawable *);
+    void (*copySubBuffer) (__GLXdrawable * drawable,
+                           int x, int y, int w, int h);
+    void (*waitX) (__GLXdrawable *);
+    void (*waitGL) (__GLXdrawable *);
 
     DrawablePtr pDraw;
     XID drawId;
 
     /*
-    ** Either GLX_DRAWABLE_PIXMAP, GLX_DRAWABLE_WINDOW or
-    ** GLX_DRAWABLE_PBUFFER.
-    */
+     ** Either GLX_DRAWABLE_PIXMAP, GLX_DRAWABLE_WINDOW or
+     ** GLX_DRAWABLE_PBUFFER.
+     */
     int type;
 
     /*
-    ** Configuration of the visual to which this drawable was created.
-    */
+     ** Configuration of the visual to which this drawable was created.
+     */
     __GLXconfig *config;
 
     GLenum target;
     GLenum format;
 
     /*
-    ** Event mask
-    */
+     ** Event mask
+     */
     unsigned long eventMask;
 };
 
-#endif /* !__GLX_drawable_h__ */
+#endif                          /* !__GLX_drawable_h__ */

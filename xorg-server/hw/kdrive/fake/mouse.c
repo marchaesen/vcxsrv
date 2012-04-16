@@ -33,29 +33,28 @@
 #include "kdrive.h"
 
 static Status
-MouseInit (KdPointerInfo *pi)
+MouseInit(KdPointerInfo * pi)
 {
     return Success;
 }
 
 static Status
-MouseEnable (KdPointerInfo *pi)
+MouseEnable(KdPointerInfo * pi)
 {
     return Success;
 }
 
 static void
-MouseDisable (KdPointerInfo *pi)
+MouseDisable(KdPointerInfo * pi)
 {
     return;
 }
 
 static void
-MouseFini (KdPointerInfo *pi)
+MouseFini(KdPointerInfo * pi)
 {
     return;
 }
-
 
 KdPointerDriver FakePointerDriver = {
     "fake",

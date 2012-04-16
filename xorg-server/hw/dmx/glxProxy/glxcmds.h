@@ -28,10 +28,10 @@
 #ifndef __GLX_cmds_h__
 #define __GLX_cmds_h__
 
-extern int __glXBindSwapBarrierSGIX(__GLXclientState *cl, GLbyte *pc);
-extern int __glXCreateContextWithConfigSGIX(__GLXclientState *cl, GLbyte *pc);
-extern int __glXJoinSwapGroupSGIX(__GLXclientState *cl, GLbyte *pc);
-extern int __glXMakeCurrentReadSGI(__GLXclientState *cl, GLbyte *pc);
-extern int __glXQueryMaxSwapBarriersSGIX(__GLXclientState *cl, GLbyte *pc);
+extern int __glXBindSwapBarrierSGIX(__GLXclientState * cl, GLbyte * pc);
+extern int __glXCreateContextWithConfigSGIX(__GLXclientState * cl, GLbyte * pc);
+extern int __glXJoinSwapGroupSGIX(__GLXclientState * cl, GLbyte * pc);
+extern int __glXMakeCurrentReadSGI(__GLXclientState * cl, GLbyte * pc);
+extern int __glXQueryMaxSwapBarriersSGIX(__GLXclientState * cl, GLbyte * pc);
 
-#endif /* !__GLX_cmds_h__ */
+#endif                          /* !__GLX_cmds_h__ */

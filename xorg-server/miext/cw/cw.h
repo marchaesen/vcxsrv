@@ -34,17 +34,18 @@
  */
 
 typedef struct {
-    GCPtr	    pBackingGC;	    /* Copy of the GC but with graphicsExposures
-				     * set FALSE and the clientClip set to
-				     * clip output to the valid regions of the
-				     * backing pixmap. */
-    unsigned long   serialNumber;   /* clientClip computed time */
-    unsigned long   stateChanges;   /* changes in parent gc since last copy */
-    GCOps	    *wrapOps;	    /* wrapped ops */
-    GCFuncs	    *wrapFuncs;	    /* wrapped funcs */
+    GCPtr pBackingGC;           /* Copy of the GC but with graphicsExposures
+                                 * set FALSE and the clientClip set to
+                                 * clip output to the valid regions of the
+                                 * backing pixmap. */
+    unsigned long serialNumber; /* clientClip computed time */
+    unsigned long stateChanges; /* changes in parent gc since last copy */
+    GCOps *wrapOps;             /* wrapped ops */
+    GCFuncs *wrapFuncs;         /* wrapped funcs */
 } cwGCRec, *cwGCPtr;
 
 extern _X_EXPORT DevPrivateKeyRec cwGCKeyRec;
+
 #define cwGCKey (&cwGCKeyRec)
 
 #define getCwGC(pGC) ((cwGCPtr)dixLookupPrivate(&(pGC)->devPrivates, cwGCKey))
@@ -56,12 +57,13 @@ extern _X_EXPORT DevPrivateKeyRec cwGCKeyRec;
  */
 
 typedef struct {
-    PicturePtr	    pBackingPicture;
-    unsigned long   serialNumber;
-    unsigned long   stateChanges;
+    PicturePtr pBackingPicture;
+    unsigned long serialNumber;
+    unsigned long stateChanges;
 } cwPictureRec, *cwPicturePtr;
 
 extern _X_EXPORT DevPrivateKeyRec cwPictureKeyRec;
+
 #define cwPictureKey (&cwPictureKeyRec)
 
 #define getCwPicture(pPicture) (pPicture->pDrawable ? \
@@ -69,6 +71,7 @@ extern _X_EXPORT DevPrivateKeyRec cwPictureKeyRec;
 #define setCwPicture(pPicture,p) dixSetPrivate(&(pPicture)->devPrivates, cwPictureKey, p)
 
 extern _X_EXPORT DevPrivateKeyRec cwWindowKeyRec;
+
 #define cwWindowKey (&cwWindowKeyRec)
 
 #define cwWindowPrivate(pWin) dixLookupPrivate(&(pWin)->devPrivates, cwWindowKey)
@@ -84,33 +87,34 @@ typedef struct {
     /*
      * screen func wrappers
      */
-    CloseScreenProcPtr		CloseScreen;
-    GetImageProcPtr		GetImage;
-    GetSpansProcPtr		GetSpans;
-    CreateGCProcPtr		CreateGC;
+    CloseScreenProcPtr CloseScreen;
+    GetImageProcPtr GetImage;
+    GetSpansProcPtr GetSpans;
+    CreateGCProcPtr CreateGC;
 
-    CopyWindowProcPtr		CopyWindow;
+    CopyWindowProcPtr CopyWindow;
 
-    GetWindowPixmapProcPtr	GetWindowPixmap;
-    SetWindowPixmapProcPtr	SetWindowPixmap;
-    
-    DestroyPictureProcPtr	DestroyPicture;
-    ChangePictureClipProcPtr	ChangePictureClip;
-    DestroyPictureClipProcPtr	DestroyPictureClip;
-    
-    ChangePictureProcPtr	ChangePicture;
-    ValidatePictureProcPtr	ValidatePicture;
+    GetWindowPixmapProcPtr GetWindowPixmap;
+    SetWindowPixmapProcPtr SetWindowPixmap;
 
-    CompositeProcPtr		Composite;
-    CompositeRectsProcPtr	CompositeRects;
+    DestroyPictureProcPtr DestroyPicture;
+    ChangePictureClipProcPtr ChangePictureClip;
+    DestroyPictureClipProcPtr DestroyPictureClip;
 
-    TrapezoidsProcPtr		Trapezoids;
-    TrianglesProcPtr		Triangles;
+    ChangePictureProcPtr ChangePicture;
+    ValidatePictureProcPtr ValidatePicture;
 
-    RasterizeTrapezoidProcPtr	RasterizeTrapezoid;
+    CompositeProcPtr Composite;
+    CompositeRectsProcPtr CompositeRects;
+
+    TrapezoidsProcPtr Trapezoids;
+    TrianglesProcPtr Triangles;
+
+    RasterizeTrapezoidProcPtr RasterizeTrapezoid;
 } cwScreenRec, *cwScreenPtr;
 
 extern _X_EXPORT DevPrivateKeyRec cwScreenKeyRec;
+
 #define cwScreenKey (&cwScreenKeyRec)
 
 #define getCwScreen(pScreen) ((cwScreenPtr)dixLookupPrivate(&(pScreen)->devPrivates, cwScreenKey))
@@ -153,17 +157,17 @@ extern _X_EXPORT DevPrivateKeyRec cwScreenKeyRec;
 
 /* cw.c */
 extern _X_EXPORT DrawablePtr
-cwGetBackingDrawable(DrawablePtr pDrawable, int *x_off, int *y_off);
+ cwGetBackingDrawable(DrawablePtr pDrawable, int *x_off, int *y_off);
 
 /* cw_render.c */
 
 extern _X_EXPORT void
-cwInitializeRender (ScreenPtr pScreen);
+ cwInitializeRender(ScreenPtr pScreen);
 
 extern _X_EXPORT void
-cwFiniRender (ScreenPtr pScreen);
+ cwFiniRender(ScreenPtr pScreen);
 
 /* cw.c */
 
 extern _X_EXPORT void
-miInitializeCompositeWrapper(ScreenPtr pScreen);
+ miInitializeCompositeWrapper(ScreenPtr pScreen);

@@ -17,9 +17,9 @@ is" without express or implied warranty.
 
 Visual *xnestVisual(VisualPtr pVisual);
 Visual *xnestVisualFromID(ScreenPtr pScreen, VisualID visual);
-Colormap xnestDefaultVisualColormap(Visual *visual);
+Colormap xnestDefaultVisualColormap(Visual * visual);
 
 #define xnestDefaultVisual(pScreen) \
   xnestVisualFromID((pScreen), (pScreen)->rootVisual)
 
-#endif /* XNESTVISUAL_H */
+#endif                          /* XNESTVISUAL_H */

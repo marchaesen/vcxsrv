@@ -30,10 +30,10 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef CHGPROP_H
 #define CHGPROP_H 1
 
-int SProcXChangeDeviceDontPropagateList(ClientPtr	/* client */
+int SProcXChangeDeviceDontPropagateList(ClientPtr       /* client */
     );
 
-int ProcXChangeDeviceDontPropagateList(ClientPtr	/* client */
+int ProcXChangeDeviceDontPropagateList(ClientPtr        /* client */
     );
 
-#endif /* CHGPROP_H */
+#endif                          /* CHGPROP_H */

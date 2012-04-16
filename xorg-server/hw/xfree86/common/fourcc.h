@@ -96,7 +96,6 @@
 	XvTopToBottom \
    }
 
-
 #define FOURCC_UYVY 0x59565955
 #define XVIMAGE_UYVY \
    { \
@@ -157,4 +156,4 @@
         XvTopToBottom \
    }
 
-#endif /* _XF86_FOURCC_H_ */
+#endif                          /* _XF86_FOURCC_H_ */

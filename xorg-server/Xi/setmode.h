@@ -30,15 +30,15 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef SETMODE_H
 #define SETMODE_H 1
 
-int SProcXSetDeviceMode(ClientPtr	/* client */
+int SProcXSetDeviceMode(ClientPtr       /* client */
     );
 
-int ProcXSetDeviceMode(ClientPtr	/* client */
+int ProcXSetDeviceMode(ClientPtr        /* client */
     );
 
 void SRepXSetDeviceMode(ClientPtr /* client */ ,
-			int /* size */ ,
-			xSetDeviceModeReply *	/* rep */
+                        int /* size */ ,
+                        xSetDeviceModeReply *   /* rep */
     );
 
-#endif /* SETMODE_H */
+#endif                          /* SETMODE_H */

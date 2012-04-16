@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -48,6 +47,6 @@ SOFTWARE.
 #ifndef RGB_H
 #define RGB_H
 typedef struct _RGB {
-	unsigned short red, green, blue;
-	} RGB;
-#endif /* RGB_H */
+    unsigned short red, green, blue;
+} RGB;
+#endif                          /* RGB_H */

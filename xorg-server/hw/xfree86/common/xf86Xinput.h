@@ -61,6 +61,9 @@
 #define XI86_ALWAYS_CORE	0x04    /* device always controls the pointer */
 /* the device sends Xinput and core pointer events */
 #define XI86_SEND_CORE_EVENTS	XI86_ALWAYS_CORE
+/* 0x08 is reserved for legacy XI86_SEND_DRAG_EVENTS, do not use for now */
+/* server-internal only */
+#define XI86_DEVICE_DISABLED    0x10    /* device was disabled before vt switch */
 
 /* This holds the input driver entry and module information. */
 typedef struct _InputDriverRec {

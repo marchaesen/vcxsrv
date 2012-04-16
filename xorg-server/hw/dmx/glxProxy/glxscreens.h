@@ -33,8 +33,6 @@
 
 #include "GL/internal/glcore.h"
 
-
-
 typedef struct {
 
     __GLXvisualConfig *pGlxVisual;
@@ -47,10 +45,9 @@ typedef struct {
 
 } __GLXscreenInfo;
 
-
 extern void __glXScreenInit(GLint);
 extern void __glXScreenReset(void);
 
-extern char *__glXGetServerString( unsigned int name );
+extern char *__glXGetServerString(unsigned int name);
 
-#endif /* !__GLX_screens_h__ */
+#endif                          /* !__GLX_screens_h__ */

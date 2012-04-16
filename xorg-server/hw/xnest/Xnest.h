@@ -40,6 +40,7 @@ typedef unsigned long Mask64;
 typedef unsigned long Atom64;
 typedef unsigned long VisualID64;
 typedef unsigned long Time64;
+
 #define XID     XID64
 #define Mask    Mask64
 #define Atom    Atom64
@@ -53,6 +54,7 @@ typedef XID Cursor64;
 typedef XID Colormap64;
 typedef XID GContext64;
 typedef XID KeySym64;
+
 #define Window          Window64
 #define Drawable        Drawable64
 #define Font            Font64
@@ -86,9 +88,3 @@ typedef XID KeySym64;
 #undef GContext
 #undef KeySym
 #endif /*_XSERVER64_tmp*/
-
-
-
-
-
-

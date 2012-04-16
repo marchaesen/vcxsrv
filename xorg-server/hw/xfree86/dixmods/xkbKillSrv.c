@@ -45,7 +45,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "xf86.h"
 
 int
-XkbDDXTerminateServer(DeviceIntPtr dev,KeyCode key,XkbAction *act)
+XkbDDXTerminateServer(DeviceIntPtr dev, KeyCode key, XkbAction *act)
 {
     if (dev != inputInfo.keyboard)
         xf86ProcessActionEvent(ACTION_TERMINATE, NULL);

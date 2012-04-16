@@ -16,24 +16,25 @@ is" without express or implied warranty.
 #define XNESTWINDOW_H
 
 typedef struct {
-  Window window;
-  Window parent;
-  int x;
-  int y;
-  unsigned int width;
-  unsigned int height;
-  unsigned int border_width;
-  Window sibling_above;
-  RegionPtr bounding_shape;
-  RegionPtr clip_shape;
+    Window window;
+    Window parent;
+    int x;
+    int y;
+    unsigned int width;
+    unsigned int height;
+    unsigned int border_width;
+    Window sibling_above;
+    RegionPtr bounding_shape;
+    RegionPtr clip_shape;
 } xnestPrivWin;
 
 typedef struct {
-  WindowPtr pWin;
-  Window window;
+    WindowPtr pWin;
+    Window window;
 } xnestWindowMatch;
 
 extern DevPrivateKeyRec xnestWindowPrivateKeyRec;
+
 #define xnestWindowPrivateKey (&xnestWindowPrivateKeyRec)
 
 #define xnestWindowPriv(pWin) ((xnestPrivWin *) \
@@ -66,8 +67,8 @@ Bool xnestUnrealizeWindow(WindowPtr pWin);
 void xnestCopyWindow(WindowPtr pWin, xPoint oldOrigin, RegionPtr oldRegion);
 void xnestClipNotify(WindowPtr pWin, int dx, int dy);
 void xnestWindowExposures(WindowPtr pWin, RegionPtr pRgn,
-			  RegionPtr other_exposed);
+                          RegionPtr other_exposed);
 void xnestSetShape(WindowPtr pWin, int kind);
 void xnestShapeWindow(WindowPtr pWin);
 
-#endif /* XNESTWINDOW_H */
+#endif                          /* XNESTWINDOW_H */

@@ -41,8 +41,9 @@ extern void xf86VGAarbiterUnlock(ScrnInfoPtr pScrn);
 /* allow a driver to remove itself from arbiter - really should be
  * done in the kernel though */
 extern _X_EXPORT void xf86VGAarbiterDeviceDecodes(ScrnInfoPtr pScrn, int rsrc);
+
 /* DRI and arbiter are really not possible together,
  * you really want to remove the card from arbitration if you can */
 extern _X_EXPORT Bool xf86VGAarbiterAllowDRI(ScreenPtr pScreen);
 
-#endif /* __XF86VGAARBITER_H */
+#endif                          /* __XF86VGAARBITER_H */

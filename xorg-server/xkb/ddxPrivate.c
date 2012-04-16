@@ -8,7 +8,7 @@
 #include <xkbsrv.h>
 
 int
-XkbDDXPrivate(DeviceIntPtr dev,KeyCode key,XkbAction *act)
+XkbDDXPrivate(DeviceIntPtr dev, KeyCode key, XkbAction *act)
 {
     return 0;
 }

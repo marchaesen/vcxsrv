@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -53,11 +52,11 @@ SOFTWARE.
 
 /* information about dashes */
 typedef struct _miDash {
-    DDXPointRec	pt;
-    int		e1, e2;	/* keep these, so we don't have to do it again */
-    int		e;	/* bresenham error term for this point on line */
-    int		which;
-    int		newLine;/* 0 if part of same original line as previous dash */
-    } miDashRec;
+    DDXPointRec pt;
+    int e1, e2;                 /* keep these, so we don't have to do it again */
+    int e;                      /* bresenham error term for this point on line */
+    int which;
+    int newLine;                /* 0 if part of same original line as previous dash */
+} miDashRec;
 
-#endif /* MISTRUCT_H */
+#endif                          /* MISTRUCT_H */

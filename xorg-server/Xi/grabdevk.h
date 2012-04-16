@@ -30,10 +30,10 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef GRABDEVK_H
 #define GRABDEVK_H 1
 
-int SProcXGrabDeviceKey(ClientPtr	/* client */
+int SProcXGrabDeviceKey(ClientPtr       /* client */
     );
 
-int ProcXGrabDeviceKey(ClientPtr	/* client */
+int ProcXGrabDeviceKey(ClientPtr        /* client */
     );
 
-#endif /* GRABDEVK_H */
+#endif                          /* GRABDEVK_H */

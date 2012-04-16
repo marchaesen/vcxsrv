@@ -54,7 +54,7 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
+#include "inputstr.h"           /* DeviceIntPtr      */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include "XIstubs.h"
@@ -99,27 +99,27 @@ ProcXSetDeviceValuators(ClientPtr client)
     rep.sequenceNumber = client->sequence;
 
     if (stuff->length != bytes_to_int32(sizeof(xSetDeviceValuatorsReq)) +
-	stuff->num_valuators)
-	return BadLength;
+        stuff->num_valuators)
+        return BadLength;
 
     rc = dixLookupDevice(&dev, stuff->deviceid, client, DixSetAttrAccess);
     if (rc != Success)
-	return rc;
+        return rc;
     if (dev->valuator == NULL)
-	return BadMatch;
+        return BadMatch;
 
     if (stuff->first_valuator + stuff->num_valuators > dev->valuator->numAxes)
-	return BadValue;
+        return BadValue;
 
     if ((dev->deviceGrab.grab) && !SameClient(dev->deviceGrab.grab, client))
-	rep.status = AlreadyGrabbed;
+        rep.status = AlreadyGrabbed;
     else
-	rep.status = SetDeviceValuators(client, dev, (int *)&stuff[1],
-					stuff->first_valuator,
-					stuff->num_valuators);
+        rep.status = SetDeviceValuators(client, dev, (int *) &stuff[1],
+                                        stuff->first_valuator,
+                                        stuff->num_valuators);
 
     if (rep.status != Success && rep.status != AlreadyGrabbed)
-	return rep.status;
+        return rep.status;
 
     WriteReplyToClient(client, sizeof(xSetDeviceValuatorsReply), &rep);
     return Success;
@@ -134,9 +134,9 @@ ProcXSetDeviceValuators(ClientPtr client)
 
 void
 SRepXSetDeviceValuators(ClientPtr client, int size,
-			xSetDeviceValuatorsReply * rep)
+                        xSetDeviceValuatorsReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *)rep);
+    WriteToClient(client, size, (char *) rep);
 }

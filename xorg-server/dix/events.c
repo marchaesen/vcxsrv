@@ -5098,8 +5098,7 @@ ProcQueryPointer(ClientPtr client)
     memset(&rep, 0, sizeof(xQueryPointerReply));
     rep.type = X_Reply;
     rep.sequenceNumber = client->sequence;
-    rep.mask = mouse->button ? (mouse->button->state) : 0;
-    rep.mask |= XkbStateFieldFromRec(&keyboard->key->xkbInfo->state);
+    rep.mask = event_get_corestate(mouse, keyboard);
     rep.length = 0;
     rep.root = (GetCurrentRootWindow(mouse))->drawable.id;
     rep.rootX = pSprite->hot.x;

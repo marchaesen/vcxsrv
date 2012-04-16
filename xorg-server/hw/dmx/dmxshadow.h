@@ -43,4 +43,4 @@
 
 extern void dmxShadowUpdateProc(ScreenPtr pScreen, shadowBufPtr pBuf);
 
-#endif /* DMXSHADOW_H */
+#endif                          /* DMXSHADOW_H */

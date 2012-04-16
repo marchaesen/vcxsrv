@@ -848,7 +848,7 @@ scale_to_desktop(DeviceIntPtr dev, ValuatorMask *mask,
     ScreenPtr scr = miPointerGetScreen(dev);
     double x, y;
 
-    BUG_WARN(!dev->valuator || dev->valuator->numAxes < 2);
+    BUG_WARN(dev->valuator && dev->valuator->numAxes < 2);
     if (!dev->valuator || dev->valuator->numAxes < 2) {
         /* if we have no axes, last.valuators must be in screen coords
          * anyway */

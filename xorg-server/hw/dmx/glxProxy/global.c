@@ -64,7 +64,7 @@ xGLXSingleReply __glXReply;
 ** A set of state for each client.  The 0th one is unused because client
 ** indices start at 1, not 0.
 */
-__GLXclientState *__glXClients[MAXCLIENTS+1];
+__GLXclientState *__glXClients[MAXCLIENTS + 1];
 
 int __glXVersionMajor;
 int __glXVersionMinor;

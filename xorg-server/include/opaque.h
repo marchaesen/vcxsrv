@@ -42,7 +42,7 @@ extern _X_EXPORT volatile char dispatchException;
 /* bit values for dispatchException */
 #define DE_RESET     1
 #define DE_TERMINATE 2
-#define DE_PRIORITYCHANGE 4  /* set when a client's priority changes */
+#define DE_PRIORITYCHANGE 4     /* set when a client's priority changes */
 
 extern _X_EXPORT CARD32 TimeOutValue;
 extern _X_EXPORT int ScreenSaverBlanking;
@@ -56,6 +56,7 @@ extern _X_EXPORT Bool disableBackingStore;
 extern _X_EXPORT Bool enableBackingStore;
 extern _X_EXPORT Bool PartialNetwork;
 extern _X_EXPORT Bool RunFromSigStopParent;
+
 #ifdef RLIMIT_DATA
 extern _X_EXPORT int limitDataSpace;
 #endif
@@ -73,5 +74,4 @@ extern _X_EXPORT Bool bgNoneRoot;
 
 extern _X_EXPORT Bool CoreDump;
 
-
-#endif /* OPAQUE_H */
+#endif                          /* OPAQUE_H */

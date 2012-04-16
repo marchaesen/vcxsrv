@@ -6,7 +6,6 @@
 #define XAA_SCREEN_EPILOGUE(pScreen, field, wrapper)\
     ((pScreen)->field = wrapper)
 
-
 #define XAA_GC_FUNC_PROLOGUE(pGC)\
     XAAGCPtr pGCPriv = (XAAGCPtr)dixLookupPrivate(&(pGC)->devPrivates, XAAGetGCKey()); \
     (pGC)->funcs = pGCPriv->wrapFuncs;\
@@ -22,7 +21,6 @@
 				&XAAPixmapOps;\
     }
 
-
 #define XAA_GC_OP_PROLOGUE(pGC)\
     XAAGCPtr pGCPriv = (XAAGCPtr)dixLookupPrivate(&(pGC)->devPrivates, XAAGetGCKey()); \
     GCFuncs *oldFuncs = pGC->funcs;\
@@ -36,12 +34,10 @@
     pGC->funcs = pGCPriv->wrapFuncs;\
     pGC->ops = pGCPriv->wrapOps
 
-    
 #define XAA_GC_OP_EPILOGUE(pGC)\
     pGCPriv->wrapOps = pGC->ops;\
     pGC->funcs = oldFuncs;\
     pGC->ops   = pGCPriv->XAAOps
-
 
 #define XAA_PIXMAP_OP_PROLOGUE(pGC, pDraw)\
     XAAGCPtr pGCPriv = (XAAGCPtr)dixLookupPrivate(&(pGC)->devPrivates, XAAGetGCKey()); \
@@ -50,7 +46,7 @@
     pGC->funcs = pGCPriv->wrapFuncs;\
     pGC->ops = pGCPriv->wrapOps; \
     SYNC_CHECK(pGC)
-    
+
 #define XAA_PIXMAP_OP_EPILOGUE(pGC)\
     pGCPriv->wrapOps = pGC->ops;\
     pGC->funcs = oldFuncs;\

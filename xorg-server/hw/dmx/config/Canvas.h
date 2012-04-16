@@ -47,9 +47,9 @@ typedef struct _CanvasRec *CanvasWidget;
 extern WidgetClass canvasWidgetClass;
 
 typedef struct _CanvasExposeDataRec {
-    Widget       w;
-    XEvent       *event;
-    Region       region;
+    Widget w;
+    XEvent *event;
+    Region region;
 } CanvasExposeDataRec, *CanvasExposeDataPtr;
 
-#endif /* _Canvas_h */
+#endif                          /* _Canvas_h */

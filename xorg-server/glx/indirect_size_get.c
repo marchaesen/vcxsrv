@@ -25,7 +25,6 @@
  * SOFTWARE.
  */
 
-
 #include <X11/Xfuncproto.h>
 #include <GL/gl.h>
 #include "indirect_size_get.h"
@@ -45,7 +44,6 @@
 #define FASTCALL
 #endif
 
-
 #if defined(__CYGWIN__) || defined(__MINGW32__) || defined(GLX_USE_APPLEGL)
 #undef HAVE_ALIAS
 #endif
@@ -59,7 +57,6 @@
     _X_INTERNAL PURE FASTCALL GLint __gl ## from ## _size( GLenum e ) \
     { return __gl ## to ## _size( e ); }
 #endif
-
 
 _X_INTERNAL PURE FASTCALL GLint
 __glCallLists_size(GLenum e)

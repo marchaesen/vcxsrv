@@ -21,18 +21,19 @@ is" without express or implied warranty.
 #define MINCMAPS 1
 
 typedef struct {
-  Colormap colormap;
+    Colormap colormap;
 } xnestPrivColormap;
 
 typedef struct {
-  int numCmapIDs;
-  Colormap *cmapIDs;
-  int numWindows;
-  Window *windows;
-  int index;
+    int numCmapIDs;
+    Colormap *cmapIDs;
+    int numWindows;
+    Window *windows;
+    int index;
 } xnestInstalledColormapWindows;
 
 extern DevPrivateKeyRec xnestColormapPrivateKeyRec;
+
 #define xnestColormapPriv(pCmap) \
   ((xnestPrivColormap *) dixLookupPrivate(&(pCmap)->devPrivates, &xnestColormapPrivateKeyRec))
 
@@ -48,10 +49,10 @@ void xnestDirectInstallColormaps(ScreenPtr pScreen);
 void xnestDirectUninstallColormaps(ScreenPtr pScreen);
 void xnestInstallColormap(ColormapPtr pCmap);
 void xnestUninstallColormap(ColormapPtr pCmap);
-int xnestListInstalledColormaps(ScreenPtr pScreen, Colormap *pCmapIDs);
-void xnestStoreColors(ColormapPtr pCmap, int nColors, xColorItem *pColors);
+int xnestListInstalledColormaps(ScreenPtr pScreen, Colormap * pCmapIDs);
+void xnestStoreColors(ColormapPtr pCmap, int nColors, xColorItem * pColors);
 void xnestResolveColor(unsigned short *pRed, unsigned short *pGreen,
-		       unsigned short *pBlue, VisualPtr pVisual);
+                       unsigned short *pBlue, VisualPtr pVisual);
 Bool xnestCreateDefaultColormap(ScreenPtr pScreen);
 
-#endif /* XNESTCOLOR_H */
+#endif                          /* XNESTCOLOR_H */

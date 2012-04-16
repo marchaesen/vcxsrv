@@ -45,18 +45,18 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "xf86.h"
 
 int
-XkbDDXSwitchScreen(DeviceIntPtr dev,KeyCode key,XkbAction *act)
+XkbDDXSwitchScreen(DeviceIntPtr dev, KeyCode key, XkbAction *act)
 {
     int scrnnum = XkbSAScreen(&act->screen);
 
     if (act->screen.flags & XkbSA_SwitchApplication) {
         if (act->screen.flags & XkbSA_SwitchAbsolute)
-            xf86ProcessActionEvent(ACTION_SWITCHSCREEN,(void *) &scrnnum);
+            xf86ProcessActionEvent(ACTION_SWITCHSCREEN, (void *) &scrnnum);
         else {
             if (scrnnum < 0)
-                xf86ProcessActionEvent(ACTION_SWITCHSCREEN_PREV,NULL);
+                xf86ProcessActionEvent(ACTION_SWITCHSCREEN_PREV, NULL);
             else
-                xf86ProcessActionEvent(ACTION_SWITCHSCREEN_NEXT,NULL);
+                xf86ProcessActionEvent(ACTION_SWITCHSCREEN_NEXT, NULL);
         }
     }
 

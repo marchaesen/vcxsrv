@@ -10,11 +10,11 @@
 // the basic X server headers. Use QD_<name> to use the QuickDraw
 // definition of any of these symbols, or the normal name for the
 // X11 definition.
-#define Cursor       QD_Cursor
-#define WindowPtr    QD_WindowPtr
-#define Picture      QD_Picture
-#define BOOL         OSX_BOOL
-#define EventType    HIT_EventType
+#define Cursor    QD_Cursor
+#define WindowPtr QD_WindowPtr
+#define Picture   QD_Picture
+#define BOOL      OSX_BOOL
+#define EventType HIT_EventType
 
 #include <ApplicationServices/ApplicationServices.h>
 #include <CoreServices/CoreServices.h>
