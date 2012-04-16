@@ -20,7 +20,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 /* Properties managed by the server. */
 
 #ifndef _XSERVER_PROPERTIES_H_
@@ -62,7 +61,6 @@
 #define ACCEL_PROP_ADAPTIVE_DECELERATION "Device Accel Adaptive Deceleration"
 /* FLOAT, format 32 */
 #define ACCEL_PROP_VELOCITY_SCALING "Device Accel Velocity Scaling"
-
 
 /* Axis labels */
 #define AXIS_LABEL_PROP "Axis Labels"

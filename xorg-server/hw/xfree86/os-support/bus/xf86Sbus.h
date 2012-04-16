@@ -66,4 +66,4 @@
 #define FBTYPE_CREATOR -1
 #endif
 
-#endif /* _XF86_SBUS_H */
+#endif                          /* _XF86_SBUS_H */

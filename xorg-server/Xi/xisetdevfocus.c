@@ -32,12 +32,12 @@
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
-#include "windowstr.h"	/* window structure  */
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
 #include <X11/extensions/XI2.h>
 #include <X11/extensions/XI2proto.h>
 
-#include "exglobals.h" /* BadDevice */
+#include "exglobals.h"          /* BadDevice */
 #include "xisetdevfocus.h"
 
 int
@@ -73,12 +73,12 @@ ProcXISetFocus(ClientPtr client)
 
     ret = dixLookupDevice(&dev, stuff->deviceid, client, DixSetFocusAccess);
     if (ret != Success)
-	return ret;
+        return ret;
     if (!dev->focus)
-	return BadDevice;
+        return BadDevice;
 
     return SetInputFocus(client, dev, stuff->focus, RevertToParent,
-                        stuff->time, TRUE);
+                         stuff->time, TRUE);
 }
 
 int
@@ -93,9 +93,9 @@ ProcXIGetFocus(ClientPtr client)
 
     ret = dixLookupDevice(&dev, stuff->deviceid, client, DixGetFocusAccess);
     if (ret != Success)
-	return ret;
+        return ret;
     if (!dev->focus)
-	return BadDevice;
+        return BadDevice;
 
     rep.repType = X_Reply;
     rep.RepType = X_XIGetFocus;
@@ -103,23 +103,23 @@ ProcXIGetFocus(ClientPtr client)
     rep.sequenceNumber = client->sequence;
 
     if (dev->focus->win == NoneWin)
-	rep.focus = None;
+        rep.focus = None;
     else if (dev->focus->win == PointerRootWin)
-	rep.focus = PointerRoot;
+        rep.focus = PointerRoot;
     else if (dev->focus->win == FollowKeyboardWin)
-	rep.focus = FollowKeyboard;
+        rep.focus = FollowKeyboard;
     else
-	rep.focus = dev->focus->win->drawable.id;
+        rep.focus = dev->focus->win->drawable.id;
 
     WriteReplyToClient(client, sizeof(xXIGetFocusReply), &rep);
     return Success;
 }
 
 void
-SRepXIGetFocus(ClientPtr client, int len, xXIGetFocusReply *rep)
+SRepXIGetFocus(ClientPtr client, int len, xXIGetFocusReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
     swapl(&rep->focus);
-    WriteToClient(client, len, (char *)rep);
+    WriteToClient(client, len, (char *) rep);
 }

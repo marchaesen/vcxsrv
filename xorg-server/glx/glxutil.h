@@ -35,17 +35,17 @@
  * Silicon Graphics, Inc.
  */
 
-extern GLboolean __glXDrawableInit(__GLXdrawable *drawable,
-				   __GLXscreen *screen,
-				   DrawablePtr pDraw, int type, XID drawID,
-				   __GLXconfig *config);
-extern void __glXDrawableRelease(__GLXdrawable *drawable);
+extern GLboolean __glXDrawableInit(__GLXdrawable * drawable,
+                                   __GLXscreen * screen,
+                                   DrawablePtr pDraw, int type, XID drawID,
+                                   __GLXconfig * config);
+extern void __glXDrawableRelease(__GLXdrawable * drawable);
 
 /* context helper routines */
-extern __GLXcontext *__glXLookupContextByTag(__GLXclientState*, GLXContextTag);
+extern __GLXcontext *__glXLookupContextByTag(__GLXclientState *, GLXContextTag);
 
 /* init helper routines */
 extern void *__glXglDDXScreenInfo(void);
 extern void *__glXglDDXExtensionInfo(void);
 
-#endif /* _glxcmds_h_ */
+#endif                          /* _glxcmds_h_ */

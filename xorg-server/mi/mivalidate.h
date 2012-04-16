@@ -37,15 +37,15 @@ from The Open Group.
 
 typedef union _Validate {
     struct BeforeValidate {
-	DDXPointRec	oldAbsCorner;	/* old window position */
-	RegionPtr	borderVisible;	/* visible region of border, */
-					/* non-null when size changes */
-	Bool		resized;	/* unclipped winSize has changed */
+        DDXPointRec oldAbsCorner;       /* old window position */
+        RegionPtr borderVisible;        /* visible region of border, */
+        /* non-null when size changes */
+        Bool resized;           /* unclipped winSize has changed */
     } before;
     struct AfterValidate {
-	RegionRec	exposed;	/* exposed regions, absolute pos */
-	RegionRec	borderExposed;
+        RegionRec exposed;      /* exposed regions, absolute pos */
+        RegionRec borderExposed;
     } after;
 } ValidateRec;
 
-#endif /* MIVALIDATE_H */
+#endif                          /* MIVALIDATE_H */

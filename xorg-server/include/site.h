@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -85,7 +84,7 @@ SOFTWARE.
 #ifndef COMPILEDDISPLAYCLASS
 #define COMPILEDDISPLAYCLASS	"MIT-unspecified"
 #endif
-#define DEFAULT_TIMEOUT		60	/* seconds */
+#define DEFAULT_TIMEOUT		60      /* seconds */
 #define DEFAULT_KEYBOARD_CLICK 	0
 #define DEFAULT_BELL		50
 #define DEFAULT_BELL_PITCH	400
@@ -97,8 +96,8 @@ SOFTWARE.
         0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,\
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 
-#define DEFAULT_LEDS		0x0        /* all off */
-#define DEFAULT_LEDS_MASK	0xffffffff /* 32 */
+#define DEFAULT_LEDS		0x0     /* all off */
+#define DEFAULT_LEDS_MASK	0xffffffff      /* 32 */
 #define DEFAULT_INT_RESOLUTION		1000
 #define DEFAULT_INT_MIN_VALUE		0
 #define DEFAULT_INT_MAX_VALUE		100
@@ -124,4 +123,4 @@ SOFTWARE.
 #define DEFAULT_LOG_FILE_VERBOSITY	3
 #endif
 
-#endif /* SITE_H */
+#endif                          /* SITE_H */

@@ -386,6 +386,7 @@ public:
     * no effect).
     */
    unsigned explicit_location:1;
+   unsigned explicit_index:1;
 
    /**
     * Does this variable have an initializer?
@@ -419,6 +420,11 @@ public:
     * slot has not been assigned, the value will be -1.
     */
    int location;
+
+   /**
+    * output index for dual source blending.
+    */
+   int index;
 
    /**
     * Built-in state that backs this uniform

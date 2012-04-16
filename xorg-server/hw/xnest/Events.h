@@ -26,4 +26,4 @@ void xnestCollectExposures(void);
 void xnestCollectEvents(void);
 void xnestQueueKeyEvent(int type, unsigned int keycode);
 
-#endif /* XNESTEVENTS_H */
+#endif                          /* XNESTEVENTS_H */

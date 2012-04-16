@@ -35,8 +35,8 @@
 
 /* Look at mfb/mfbclip.c for sample implementation */
 RegionPtr
-winPixmapToRegionNativeGDI (PixmapPtr pPix)
+winPixmapToRegionNativeGDI(PixmapPtr pPix)
 {
-  winDebug ("winPixmapToRegion()\n");
-  return NULL;
+    winDebug("winPixmapToRegion()\n");
+    return NULL;
 }

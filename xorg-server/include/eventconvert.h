@@ -38,4 +38,4 @@ _X_INTERNAL int GetCoreType(enum EventType type);
 _X_INTERNAL int GetXIType(enum EventType type);
 _X_INTERNAL int GetXI2Type(enum EventType type);
 
-#endif /* _EVENTCONVERT_H_ */
+#endif                          /* _EVENTCONVERT_H_ */

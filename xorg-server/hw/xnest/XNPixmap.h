@@ -16,10 +16,11 @@ is" without express or implied warranty.
 #define XNESTPIXMAP_H
 
 extern DevPrivateKeyRec xnestPixmapPrivateKeyRec;
+
 #define xnestPixmapPrivateKey (&xnestPixmapPrivateKeyRec)
 
 typedef struct {
-  Pixmap pixmap;
+    Pixmap pixmap;
 } xnestPrivPixmap;
 
 #define xnestPixmapPriv(pPixmap) ((xnestPrivPixmap *) \
@@ -30,8 +31,8 @@ typedef struct {
 #define xnestSharePixmap(pPixmap) ((pPixmap)->refcnt++)
 
 PixmapPtr xnestCreatePixmap(ScreenPtr pScreen, int width, int height,
-			    int depth, unsigned usage_hint);
+                            int depth, unsigned usage_hint);
 Bool xnestDestroyPixmap(PixmapPtr pPixmap);
 RegionPtr xnestPixmapToRegion(PixmapPtr pPixmap);
 
-#endif /* XNESTPIXMAP_H */
+#endif                          /* XNESTPIXMAP_H */

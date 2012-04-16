@@ -30,10 +30,10 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef UNGRDEVB_H
 #define UNGRDEVB_H 1
 
-int SProcXUngrabDeviceButton(ClientPtr	/* client */
+int SProcXUngrabDeviceButton(ClientPtr  /* client */
     );
 
-int ProcXUngrabDeviceButton(ClientPtr	/* client */
+int ProcXUngrabDeviceButton(ClientPtr   /* client */
     );
 
-#endif /* UNGRDEVB_H */
+#endif                          /* UNGRDEVB_H */

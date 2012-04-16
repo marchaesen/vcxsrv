@@ -38,6 +38,6 @@
  */
 
 void
-miInitializeBackingStore (ScreenPtr pScreen)
+miInitializeBackingStore(ScreenPtr pScreen)
 {
 }

@@ -37,4 +37,4 @@ typedef union _Validate *ValidatePtr;
 
 #define UnmapValData ((ValidatePtr)1)
 
-#endif /* VALIDATE_H */
+#endif                          /* VALIDATE_H */

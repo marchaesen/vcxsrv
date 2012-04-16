@@ -38,7 +38,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <xkbsrv.h>
 
 int
-XkbDDXTerminateServer(DeviceIntPtr dev,KeyCode key,XkbAction *act)
+XkbDDXTerminateServer(DeviceIntPtr dev, KeyCode key, XkbAction *act)
 {
     if (dev != inputInfo.keyboard)
         GiveUp(1);

@@ -16,7 +16,7 @@ is" without express or implied warranty.
 #define XNESTHANDLERS_H
 
 void xnestBlockHandler(pointer blockData, OSTimePtr pTimeout,
-		       pointer pReadMask);
+                       pointer pReadMask);
 void xnestWakeupHandler(pointer blockData, int result, pointer pReadMask);
 
-#endif /* XNESTHANDLERS_H */
+#endif                          /* XNESTHANDLERS_H */

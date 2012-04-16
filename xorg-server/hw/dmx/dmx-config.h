@@ -72,4 +72,4 @@
 /* Enable the DMX extension */
 #define DMXEXT
 
-#endif /* DMX_CONFIG_H */
+#endif                          /* DMX_CONFIG_H */

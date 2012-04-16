@@ -38,18 +38,18 @@
 #define _LNX_PS2_H_
 
 extern pointer ps2LinuxCreatePrivate(DeviceIntPtr pMouse);
-extern void    ps2LinuxDestroyPrivate(pointer priv);
-extern void    ps2LinuxRead(DevicePtr pDev,
-                            dmxMotionProcPtr motion,
-                            dmxEnqueueProcPtr enqueue,
-                            dmxCheckSpecialProcPtr checkspecial,
-                            DMXBlockType block);
-extern void    ps2LinuxInit(DevicePtr pDev);
-extern void    ps2LinuxGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
-extern int     ps2LinuxOn(DevicePtr pDev);
-extern void    ps2LinuxOff(DevicePtr pDev);
-extern void    ps2LinuxCtrl(DevicePtr pDev, PtrCtrl *ctrl);
-extern void    ps2LinuxVTPreSwitch(pointer p);
-extern void    ps2LinuxVTPostSwitch(pointer p);
+extern void ps2LinuxDestroyPrivate(pointer priv);
+extern void ps2LinuxRead(DevicePtr pDev,
+                         dmxMotionProcPtr motion,
+                         dmxEnqueueProcPtr enqueue,
+                         dmxCheckSpecialProcPtr checkspecial,
+                         DMXBlockType block);
+extern void ps2LinuxInit(DevicePtr pDev);
+extern void ps2LinuxGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
+extern int ps2LinuxOn(DevicePtr pDev);
+extern void ps2LinuxOff(DevicePtr pDev);
+extern void ps2LinuxCtrl(DevicePtr pDev, PtrCtrl * ctrl);
+extern void ps2LinuxVTPreSwitch(pointer p);
+extern void ps2LinuxVTPostSwitch(pointer p);
 
 #endif

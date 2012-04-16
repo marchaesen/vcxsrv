@@ -21,7 +21,7 @@ is" without express or implied warranty.
 #define MAXVISUALSPERDEPTH 256
 
 extern Display *xnestDisplay;
-extern XVisualInfo *xnestVisuals;       
+extern XVisualInfo *xnestVisuals;
 extern int xnestNumVisuals;
 extern int xnestDefaultVisualIndex;
 extern Colormap *xnestDefaultColormaps;
@@ -30,8 +30,8 @@ extern int *xnestDepths;
 extern int xnestNumDepths;
 extern XPixmapFormatValues *xnestPixmapFormats;
 extern int xnestNumPixmapFormats;
-extern Pixel xnestBlackPixel;             
-extern Pixel xnestWhitePixel;             
+extern Pixel xnestBlackPixel;
+extern Pixel xnestWhitePixel;
 extern Drawable xnestDefaultDrawables[MAXDEPTH + 1];
 extern Pixmap xnestIconBitmap;
 extern Pixmap xnestScreenSaverPixmap;
@@ -41,4 +41,4 @@ extern unsigned long xnestEventMask;
 void xnestOpenDisplay(int argc, char *argv[]);
 void xnestCloseDisplay(void);
 
-#endif /* XNESTCOMMON_H */
+#endif                          /* XNESTCOMMON_H */

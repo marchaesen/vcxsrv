@@ -85,152 +85,150 @@
 /**************************************************************************/
 #if (defined(SYSV) || defined(SVR4)) && \
     (defined(sun) || defined(__i386__))
-# include <sys/ioctl.h>
-# include <signal.h>
-# include <termio.h>
-# include <sys/stat.h>
-# include <sys/types.h>
+#include <sys/ioctl.h>
+#include <signal.h>
+#include <termio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
+#include <errno.h>
 
-# include <errno.h>
-
-# if defined(_NEED_SYSI86)
-#  if !(defined (sun) && defined (SVR4))
-#    include <sys/immu.h>
-#    include <sys/region.h>
-#    include <sys/proc.h>
-#  endif
-#  include <sys/tss.h>
-#  include <sys/sysi86.h>
-#  if defined(SVR4) && !defined(sun)
-#   include <sys/seg.h>
-#  endif /* SVR4 && !sun */
+#if defined(_NEED_SYSI86)
+#if !(defined (sun) && defined (SVR4))
+#include <sys/immu.h>
+#include <sys/region.h>
+#include <sys/proc.h>
+#endif
+#include <sys/tss.h>
+#include <sys/sysi86.h>
+#if defined(SVR4) && !defined(sun)
+#include <sys/seg.h>
+#endif                          /* SVR4 && !sun */
 /* V86SC_IOPL was moved to <sys/sysi86.h> on Solaris 7 and later */
-#  if !defined(V86SC_IOPL)			/* Solaris 7 or later? */
-#   include <sys/v86.h>				/* Nope */
-#  endif
-#  if defined(sun) && (defined (__i386__) || defined(__i386) || defined(__x86))  && defined (SVR4)
-#    include <sys/psw.h>
-#  endif
-# endif /* _NEED_SYSI86 */
+#if !defined(V86SC_IOPL)        /* Solaris 7 or later? */
+#include <sys/v86.h>            /* Nope */
+#endif
+#if defined(sun) && (defined (__i386__) || defined(__i386) || defined(__x86))  && defined (SVR4)
+#include <sys/psw.h>
+#endif
+#endif                          /* _NEED_SYSI86 */
 
-# if defined(HAS_SVR3_MMAPDRV)
-#  include <sys/sysmacros.h>
-#  if !defined(_NEED_SYSI86)
-#   include <sys/immu.h>
-#   include <sys/region.h>
-#  endif
-#  include <sys/mmap.h>		/* MMAP driver header */
-# endif
+#if defined(HAS_SVR3_MMAPDRV)
+#include <sys/sysmacros.h>
+#if !defined(_NEED_SYSI86)
+#include <sys/immu.h>
+#include <sys/region.h>
+#endif
+#include <sys/mmap.h>           /* MMAP driver header */
+#endif
 
-# if !defined(sun) || defined(HAVE_SYS_VT_H)
-#  define HAS_USL_VTS
-# endif
-# if !defined(sun)
-#  include <sys/emap.h>
-# endif
-# if   defined(HAS_USL_VTS)
-#  if !defined(sun)
-#   include <sys/at_ansi.h>
-#  endif
-#  include <sys/kd.h>
-#  include <sys/vt.h>
-# endif
+#if !defined(sun) || defined(HAVE_SYS_VT_H)
+#define HAS_USL_VTS
+#endif
+#if !defined(sun)
+#include <sys/emap.h>
+#endif
+#if   defined(HAS_USL_VTS)
+#if !defined(sun)
+#include <sys/at_ansi.h>
+#endif
+#include <sys/kd.h>
+#include <sys/vt.h>
+#endif
 
-# if defined(sun)
-#  include <sys/fbio.h>
-#  include <sys/kbd.h> 
-#  include <sys/kbio.h>
+#if defined(sun)
+#include <sys/fbio.h>
+#include <sys/kbd.h>
+#include <sys/kbio.h>
 
 /* undefine symbols from <sys/kbd.h> we don't need that conflict with enum
    definitions in parser/xf86tokens.h */
-#  undef STRING
-#  undef LEFTALT
-#  undef RIGHTALT
+#undef STRING
+#undef LEFTALT
+#undef RIGHTALT
 
-#  define LED_CAP LED_CAPS_LOCK
-#  define LED_NUM LED_NUM_LOCK
-#  define LED_SCR LED_SCROLL_LOCK
-#  define LED_COMP LED_COMPOSE
-# endif /* sun */
+#define LED_CAP LED_CAPS_LOCK
+#define LED_NUM LED_NUM_LOCK
+#define LED_SCR LED_SCROLL_LOCK
+#define LED_COMP LED_COMPOSE
+#endif                          /* sun */
 
-# if !defined(VT_ACKACQ)
-#  define VT_ACKACQ 2
-# endif /* !VT_ACKACQ */
+#if !defined(VT_ACKACQ)
+#define VT_ACKACQ 2
+#endif                          /* !VT_ACKACQ */
 
+#if defined(SVR4)
+#include <sys/mman.h>
+#if !(defined(sun) && defined (SVR4))
+#define DEV_MEM "/dev/pmem"
+#endif
+#define CLEARDTR_SUPPORT
+#define POSIX_TTY
+#endif                          /* SVR4 */
 
-# if defined(SVR4) 
-#  include <sys/mman.h>
-#  if !(defined(sun) && defined (SVR4))
-#    define DEV_MEM "/dev/pmem"
-#  endif
-#  define CLEARDTR_SUPPORT
-#  define POSIX_TTY
-# endif /* SVR4 */
-
-#endif /* (SYSV || SVR4) */
+#endif                          /* (SYSV || SVR4) */
 
 /**************************************************************************/
 /* Linux or Glibc-based system                                            */
 /**************************************************************************/
 #if defined(__linux__) || defined(__GLIBC__)
-# include <sys/ioctl.h>
-# include <signal.h>
-# include <stdlib.h>
-# include <sys/types.h>
-# include <assert.h>
+#include <sys/ioctl.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <assert.h>
 
-# ifdef __linux__
-#  include <termio.h>
-# else /* __GLIBC__ */
-#  include <termios.h>
-# endif
-# ifdef __sparc__
-#  include <sys/param.h>
-# endif
+#ifdef __linux__
+#include <termio.h>
+#else                           /* __GLIBC__ */
+#include <termios.h>
+#endif
+#ifdef __sparc__
+#include <sys/param.h>
+#endif
 
-# include <errno.h>
+#include <errno.h>
 
-# include <sys/stat.h>
+#include <sys/stat.h>
 
-# include <sys/mman.h>
-# ifdef __linux__
-#  define HAS_USL_VTS
-#  include <sys/kd.h>
-#  include <sys/vt.h>
-#  define LDGMAP GIO_SCRNMAP
-#  define LDSMAP PIO_SCRNMAP
-#  define LDNMAP LDSMAP
-#  define CLEARDTR_SUPPORT
-# endif
+#include <sys/mman.h>
+#ifdef __linux__
+#define HAS_USL_VTS
+#include <sys/kd.h>
+#include <sys/vt.h>
+#define LDGMAP GIO_SCRNMAP
+#define LDSMAP PIO_SCRNMAP
+#define LDNMAP LDSMAP
+#define CLEARDTR_SUPPORT
+#endif
 
-# define POSIX_TTY
+#define POSIX_TTY
 
-#endif /* __linux__ || __GLIBC__ */
+#endif                          /* __linux__ || __GLIBC__ */
 
 /**************************************************************************/
 /* 386BSD and derivatives,  BSD/386                                       */
 /**************************************************************************/
 
 #if defined(__386BSD__) && (defined(__FreeBSD__) || defined(__NetBSD__))
-# undef __386BSD__
+#undef __386BSD__
 #endif
 
 #ifdef CSRG_BASED
-# include <sys/ioctl.h>
-# include <signal.h>
+#include <sys/ioctl.h>
+#include <signal.h>
 
-# include <termios.h>
-# define termio termios
-# define POSIX_TTY
+#include <termios.h>
+#define termio termios
+#define POSIX_TTY
 
-# include <errno.h>
+#include <errno.h>
 
-# include <sys/types.h>
-# include <sys/mman.h>
-# include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
-#endif /* CSRG_BASED */
+#endif                          /* CSRG_BASED */
 
 /**************************************************************************/
 /* Kernel of *BSD                                                         */
@@ -238,92 +236,92 @@
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || \
  defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
 
-# include <sys/param.h>
-# if defined(__FreeBSD_version) && !defined(__FreeBSD_kernel_version)
-#  define __FreeBSD_kernel_version __FreeBSD_version
-# endif
+#include <sys/param.h>
+#if defined(__FreeBSD_version) && !defined(__FreeBSD_kernel_version)
+#define __FreeBSD_kernel_version __FreeBSD_version
+#endif
 
-# if !defined(LINKKIT)
+#if !defined(LINKKIT)
   /* Don't need this stuff for the Link Kit */
-#   ifdef SYSCONS_SUPPORT
-#    define COMPAT_SYSCONS
-#    if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__DragonFly__)
-#       if defined(__DragonFly__)  || (__FreeBSD_kernel_version >= 410000)
-#         include <sys/consio.h>
-#         include <sys/kbio.h>
-#       else
-#         include <machine/console.h>
-#       endif /* FreeBSD 4.1 RELEASE or lator */
-#    else
-#     include <sys/console.h>
-#    endif
-#   endif /* SYSCONS_SUPPORT */
-#   if defined(PCVT_SUPPORT) && !defined(__NetBSD__) && !defined(__OpenBSD__)
-#    if !defined(SYSCONS_SUPPORT)
+#ifdef SYSCONS_SUPPORT
+#define COMPAT_SYSCONS
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__DragonFly__)
+#if defined(__DragonFly__)  || (__FreeBSD_kernel_version >= 410000)
+#include <sys/consio.h>
+#include <sys/kbio.h>
+#else
+#include <machine/console.h>
+#endif                          /* FreeBSD 4.1 RELEASE or lator */
+#else
+#include <sys/console.h>
+#endif
+#endif                          /* SYSCONS_SUPPORT */
+#if defined(PCVT_SUPPORT) && !defined(__NetBSD__) && !defined(__OpenBSD__)
+#if !defined(SYSCONS_SUPPORT)
       /* no syscons, so include pcvt specific header file */
-#     if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-#      include <machine/pcvt_ioctl.h>
-#     else
-#      include <sys/pcvt_ioctl.h>
-#     endif /* __FreeBSD_kernel__ */
-#    else /* pcvt and syscons: hard-code the ID magic */
-#     define VGAPCVTID _IOWR('V',113, struct pcvtid)
-      struct pcvtid {
-	char name[16];
-	int rmajor, rminor;
-      };
-#    endif /* PCVT_SUPPORT && SYSCONS_SUPPORT */
-#   endif /* PCVT_SUPPORT */
-#   ifdef WSCONS_SUPPORT
-#    include <dev/wscons/wsconsio.h>
-#    include <dev/wscons/wsdisplay_usl_io.h>
-#   endif /* WSCONS_SUPPORT */
-#   if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__DragonFly__)
-#    if defined(__FreeBSD_kernel_version) && (__FreeBSD_kernel_version >= 500013)
-#     include <sys/mouse.h>
-#    else
-#     undef MOUSE_GETINFO
-#     include <machine/mouse.h>
-#    endif
-#   endif
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#include <machine/pcvt_ioctl.h>
+#else
+#include <sys/pcvt_ioctl.h>
+#endif                          /* __FreeBSD_kernel__ */
+#else                           /* pcvt and syscons: hard-code the ID magic */
+#define VGAPCVTID _IOWR('V',113, struct pcvtid)
+struct pcvtid {
+    char name[16];
+    int rmajor, rminor;
+};
+#endif                          /* PCVT_SUPPORT && SYSCONS_SUPPORT */
+#endif                          /* PCVT_SUPPORT */
+#ifdef WSCONS_SUPPORT
+#include <dev/wscons/wsconsio.h>
+#include <dev/wscons/wsdisplay_usl_io.h>
+#endif                          /* WSCONS_SUPPORT */
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__DragonFly__)
+#if defined(__FreeBSD_kernel_version) && (__FreeBSD_kernel_version >= 500013)
+#include <sys/mouse.h>
+#else
+#undef MOUSE_GETINFO
+#include <machine/mouse.h>
+#endif
+#endif
     /* Include these definitions in case ioctl_pc.h didn't get included */
-#   ifndef CONSOLE_X_MODE_ON
-#    define CONSOLE_X_MODE_ON _IO('t',121)
-#   endif
-#   ifndef CONSOLE_X_MODE_OFF
-#    define CONSOLE_X_MODE_OFF _IO('t',122)
-#   endif
-#   ifndef CONSOLE_X_BELL
-#    define CONSOLE_X_BELL _IOW('t',123,int[2])
-#   endif
-#   ifndef CONSOLE_X_TV_ON
-#    define CONSOLE_X_TV_ON _IOW('t',155,int)
-#    define XMODE_RGB   0
-#    define XMODE_NTSC  1
-#    define XMODE_PAL   2
-#    define XMODE_SECAM 3
-#   endif
-#   ifndef CONSOLE_X_TV_OFF
-#    define CONSOLE_X_TV_OFF _IO('t',156)
-#   endif
+#ifndef CONSOLE_X_MODE_ON
+#define CONSOLE_X_MODE_ON _IO('t',121)
+#endif
+#ifndef CONSOLE_X_MODE_OFF
+#define CONSOLE_X_MODE_OFF _IO('t',122)
+#endif
+#ifndef CONSOLE_X_BELL
+#define CONSOLE_X_BELL _IOW('t',123,int[2])
+#endif
+#ifndef CONSOLE_X_TV_ON
+#define CONSOLE_X_TV_ON _IOW('t',155,int)
+#define XMODE_RGB   0
+#define XMODE_NTSC  1
+#define XMODE_PAL   2
+#define XMODE_SECAM 3
+#endif
+#ifndef CONSOLE_X_TV_OFF
+#define CONSOLE_X_TV_OFF _IO('t',156)
+#endif
 #ifndef CONSOLE_GET_LINEAR_INFO
-#    define CONSOLE_GET_LINEAR_INFO         _IOR('t',157,struct map_info)
+#define CONSOLE_GET_LINEAR_INFO         _IOR('t',157,struct map_info)
 #endif
-#ifndef CONSOLE_GET_IO_INFO 
-#    define CONSOLE_GET_IO_INFO             _IOR('t',158,struct map_info)
+#ifndef CONSOLE_GET_IO_INFO
+#define CONSOLE_GET_IO_INFO             _IOR('t',158,struct map_info)
 #endif
-#ifndef CONSOLE_GET_MEM_INFO 
-#    define CONSOLE_GET_MEM_INFO            _IOR('t',159,struct map_info)
+#ifndef CONSOLE_GET_MEM_INFO
+#define CONSOLE_GET_MEM_INFO            _IOR('t',159,struct map_info)
 #endif
-# endif /* !LINKKIT */
+#endif                          /* !LINKKIT */
 
 #if defined(USE_I386_IOPL) || defined(USE_AMD64_IOPL)
 #include <machine/sysarch.h>
 #endif
 
-# define CLEARDTR_SUPPORT
+#define CLEARDTR_SUPPORT
 
-#endif /* __FreeBSD__ || __NetBSD__ || __OpenBSD__ || __DragonFly__ */
+#endif                          /* __FreeBSD__ || __NetBSD__ || __OpenBSD__ || __DragonFly__ */
 
 /**************************************************************************/
 /* IRIX                                                                   */
@@ -333,7 +331,7 @@
 /* Generic                                                                */
 /**************************************************************************/
 
-#include <sys/wait.h>	/* May need to adjust this for other OSs */
+#include <sys/wait.h>           /* May need to adjust this for other OSs */
 
 /* For PATH_MAX */
 #include "misc.h"
@@ -343,21 +341,20 @@
  * and it's safe, so just do it.
  */
 #if !defined(O_NDELAY) && defined(O_NONBLOCK)
-# define O_NDELAY O_NONBLOCK
-#endif /* !O_NDELAY && O_NONBLOCK */
+#define O_NDELAY O_NONBLOCK
+#endif                          /* !O_NDELAY && O_NONBLOCK */
 
 #if !defined(MAXHOSTNAMELEN)
-# define MAXHOSTNAMELEN 32
-#endif /* !MAXHOSTNAMELEN */
+#define MAXHOSTNAMELEN 32
+#endif                          /* !MAXHOSTNAMELEN */
 
 #if defined(_POSIX_SOURCE)
-# include <limits.h>
+#include <limits.h>
 #else
-# define _POSIX_SOURCE
-# include <limits.h>
-# undef _POSIX_SOURCE
-#endif /* _POSIX_SOURCE */
-
+#define _POSIX_SOURCE
+#include <limits.h>
+#undef _POSIX_SOURCE
+#endif                          /* _POSIX_SOURCE */
 
 #ifndef DEV_MEM
 #define DEV_MEM "/dev/mem"
@@ -376,4 +373,4 @@
 #include "compiler.h"
 #endif
 
-#endif /* _XF86_OSLIB_H */
+#endif                          /* _XF86_OSLIB_H */

@@ -40,8 +40,8 @@
 #include <xkb-config.h>
 
 extern void dmxConfigStoreDisplay(const char *display);
-extern void dmxConfigStoreInput(const char *input); /* Core devices */
-extern void dmxConfigStoreXInput(const char *input); /* Non-core devices */
+extern void dmxConfigStoreInput(const char *input);     /* Core devices */
+extern void dmxConfigStoreXInput(const char *input);    /* Non-core devices */
 extern void dmxConfigStoreFile(const char *file);
 extern void dmxConfigStoreConfig(const char *config);
 extern void dmxConfigConfigure(void);

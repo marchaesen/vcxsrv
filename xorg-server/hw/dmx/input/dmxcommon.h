@@ -98,27 +98,27 @@
 #define DMX_POINTER_EVENT_MASK                                          \
     (ButtonPressMask | ButtonReleaseMask | PointerMotionMask)
 
-extern void    dmxCommonKbdGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
-extern void    dmxCommonKbdGetMap(DevicePtr pDev,
-                                  KeySymsPtr pKeySyms, CARD8 *pModMap);
-extern void    dmxCommonKbdCtrl(DevicePtr pDev, KeybdCtrl *ctrl);
-extern void    dmxCommonKbdBell(DevicePtr pDev, int percent,
-                                int volume, int pitch, int duration);
-extern int     dmxCommonKbdOn(DevicePtr pDev);
-extern void    dmxCommonKbdOff(DevicePtr pDev);
-extern void    dmxCommonMouGetMap(DevicePtr pDev,
-                                  unsigned char *map, int *nButtons);
-extern void    dmxCommonMouCtrl(DevicePtr pDev, PtrCtrl *ctrl);
-extern int     dmxCommonMouOn(DevicePtr pDev);
-extern void    dmxCommonMouOff(DevicePtr pDev);
-extern int     dmxFindPointerScreen(int x, int y);
+extern void dmxCommonKbdGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
+extern void dmxCommonKbdGetMap(DevicePtr pDev,
+                               KeySymsPtr pKeySyms, CARD8 *pModMap);
+extern void dmxCommonKbdCtrl(DevicePtr pDev, KeybdCtrl * ctrl);
+extern void dmxCommonKbdBell(DevicePtr pDev, int percent,
+                             int volume, int pitch, int duration);
+extern int dmxCommonKbdOn(DevicePtr pDev);
+extern void dmxCommonKbdOff(DevicePtr pDev);
+extern void dmxCommonMouGetMap(DevicePtr pDev,
+                               unsigned char *map, int *nButtons);
+extern void dmxCommonMouCtrl(DevicePtr pDev, PtrCtrl * ctrl);
+extern int dmxCommonMouOn(DevicePtr pDev);
+extern void dmxCommonMouOff(DevicePtr pDev);
+extern int dmxFindPointerScreen(int x, int y);
 
-extern int     dmxCommonOthOn(DevicePtr pDev);
-extern void    dmxCommonOthOff(DevicePtr pDev);
-extern void    dmxCommonOthGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
+extern int dmxCommonOthOn(DevicePtr pDev);
+extern void dmxCommonOthOff(DevicePtr pDev);
+extern void dmxCommonOthGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
 
                                 /* helper functions */
 extern pointer dmxCommonCopyPrivate(DeviceIntPtr pDevice);
-extern void    dmxCommonSaveState(pointer private);
-extern void    dmxCommonRestoreState(pointer private);
+extern void dmxCommonSaveState(pointer private);
+extern void dmxCommonRestoreState(pointer private);
 #endif

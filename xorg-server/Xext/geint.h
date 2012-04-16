@@ -38,16 +38,17 @@
 #include <X11/extensions/geproto.h>
 
 extern _X_EXPORT DevPrivateKeyRec GEClientPrivateKeyRec;
+
 #define GEClientPrivateKey (&GEClientPrivateKeyRec)
 
 typedef struct _GEClientInfo {
-    CARD32  major_version;
-    CARD32  minor_version;
+    CARD32 major_version;
+    CARD32 minor_version;
 } GEClientInfoRec, *GEClientInfoPtr;
 
 #define GEGetClient(pClient)    ((GEClientInfoPtr)(dixLookupPrivate(&((pClient)->devPrivates), GEClientPrivateKey)))
 
-extern _X_EXPORT int (*ProcGEVector[/*GENumRequests*/])(ClientPtr);
-extern _X_EXPORT int (*SProcGEVector[/*GENumRequests*/])(ClientPtr);
+extern _X_EXPORT int (*ProcGEVector[ /*GENumRequests */ ]) (ClientPtr);
+extern _X_EXPORT int (*SProcGEVector[ /*GENumRequests */ ]) (ClientPtr);
 
-#endif /* _GEINT_H_ */
+#endif                          /* _GEINT_H_ */

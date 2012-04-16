@@ -71,6 +71,6 @@ extern const ModuleVersions LoaderVersionInfo;
 extern unsigned long LoaderOptions;
 
 /* Internal Functions */
-void * LoaderOpen(const char *, int *, int *);
+void *LoaderOpen(const char *, int *, int *);
 
-#endif /* _LOADER_H */
+#endif                          /* _LOADER_H */

@@ -41,24 +41,23 @@
 
 /** Pixmap private area. */
 typedef struct _dmxPixPriv {
-    Pixmap   pixmap;
-    XImage  *detachedImage;
+    Pixmap pixmap;
+    XImage *detachedImage;
 } dmxPixPrivRec, *dmxPixPrivPtr;
 
-
-extern Bool      dmxInitPixmap(ScreenPtr pScreen);
+extern Bool dmxInitPixmap(ScreenPtr pScreen);
 
 extern PixmapPtr dmxCreatePixmap(ScreenPtr pScreen,
-				 int width, int height, int depth,
-				 unsigned usage_hint);
-extern Bool      dmxDestroyPixmap(PixmapPtr pPixmap);
+                                 int width, int height, int depth,
+                                 unsigned usage_hint);
+extern Bool dmxDestroyPixmap(PixmapPtr pPixmap);
 extern RegionPtr dmxBitmapToRegion(PixmapPtr pPixmap);
 
-extern void      dmxBECreatePixmap(PixmapPtr pPixmap);
-extern Bool      dmxBEFreePixmap(PixmapPtr pPixmap);
+extern void dmxBECreatePixmap(PixmapPtr pPixmap);
+extern Bool dmxBEFreePixmap(PixmapPtr pPixmap);
 
 /** Get pixmap private pointer. */
 #define DMX_GET_PIXMAP_PRIV(_pPix)					\
     (dmxPixPrivPtr)dixLookupPrivate(&(_pPix)->devPrivates, dmxPixPrivateKey)
 
-#endif /* DMXPIXMAP_H */
+#endif                          /* DMXPIXMAP_H */

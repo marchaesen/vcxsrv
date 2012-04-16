@@ -38,7 +38,7 @@
 #include "indirect_size.h"
 
 extern GLint __glReadPixels_size(GLenum format, GLenum type,
-				 GLint width, GLint height);
+                                 GLint width, GLint height);
 extern GLint __glGetMap_size(GLenum pname, GLenum query);
 extern GLint __glGetMapdv_size(GLenum target, GLenum query);
 extern GLint __glGetMapfv_size(GLenum target, GLenum query);
@@ -48,7 +48,7 @@ extern GLint __glGetPixelMapfv_size(GLenum map);
 extern GLint __glGetPixelMapuiv_size(GLenum map);
 extern GLint __glGetPixelMapusv_size(GLenum map);
 extern GLint __glGetTexImage_size(GLenum target, GLint level, GLenum format,
-				  GLenum type, GLint width, GLint height,
-				  GLint depth);
+                                  GLenum type, GLint width, GLint height,
+                                  GLint depth);
 
-#endif /* _singlesize_h_ */
+#endif                          /* _singlesize_h_ */

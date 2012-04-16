@@ -41,7 +41,5 @@
 PMClose
 xf86OSPMOpen(void)
 {
-	return NULL;
+    return NULL;
 }
-
-

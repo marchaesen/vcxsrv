@@ -36,5 +36,5 @@
 
 #ifndef _CHKNOTMASKEV_H_
 #define _CHKNOTMASKEV_H_
-extern Bool XCheckNotMaskEvent (Display *dpy, long mask, XEvent *event);
+extern Bool XCheckNotMaskEvent(Display * dpy, long mask, XEvent * event);
 #endif

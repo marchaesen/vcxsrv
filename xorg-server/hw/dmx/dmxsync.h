@@ -39,5 +39,5 @@
 
 extern void dmxSyncActivate(const char *interval);
 extern void dmxSyncInit(void);
-extern void dmxSync(DMXScreenInfo *dmxScreen, Bool now);
+extern void dmxSync(DMXScreenInfo * dmxScreen, Bool now);
 #endif

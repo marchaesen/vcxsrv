@@ -54,7 +54,7 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
+#include "inputstr.h"           /* DeviceIntPtr      */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XI2.h>
 #include <X11/extensions/XIproto.h>
@@ -95,7 +95,7 @@ ProcXSetDeviceModifierMapping(ClientPtr client)
     REQUEST_AT_LEAST_SIZE(xSetDeviceModifierMappingReq);
 
     if (stuff->length != bytes_to_int32(sizeof(xSetDeviceModifierMappingReq)) +
-                          (stuff->numKeyPerModifier << 1))
+        (stuff->numKeyPerModifier << 1))
         return BadLength;
 
     rep.repType = X_Reply;
@@ -113,9 +113,9 @@ ProcXSetDeviceModifierMapping(ClientPtr client)
         ret = MappingSuccess;
 
     if (ret == MappingSuccess || ret == MappingBusy || ret == MappingFailed) {
-	rep.success = ret;
-	WriteReplyToClient(client, sizeof(xSetDeviceModifierMappingReply),
-			   &rep);
+        rep.success = ret;
+        WriteReplyToClient(client, sizeof(xSetDeviceModifierMappingReply),
+                           &rep);
     }
     else if (ret == -1) {
         return BadValue;
@@ -136,9 +136,9 @@ ProcXSetDeviceModifierMapping(ClientPtr client)
 
 void
 SRepXSetDeviceModifierMapping(ClientPtr client, int size,
-			      xSetDeviceModifierMappingReply * rep)
+                              xSetDeviceModifierMappingReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *)rep);
+    WriteToClient(client, size, (char *) rep);
 }

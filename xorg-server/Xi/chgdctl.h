@@ -30,15 +30,15 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef CHGDCTL_H
 #define CHGDCTL_H 1
 
-int SProcXChangeDeviceControl(ClientPtr	/* client */
+int SProcXChangeDeviceControl(ClientPtr /* client */
     );
 
-int ProcXChangeDeviceControl(ClientPtr	/* client */
+int ProcXChangeDeviceControl(ClientPtr  /* client */
     );
 
 void SRepXChangeDeviceControl(ClientPtr /* client */ ,
-			      int /* size */ ,
-			      xChangeDeviceControlReply *	/* rep */
+                              int /* size */ ,
+                              xChangeDeviceControlReply *       /* rep */
     );
 
-#endif /* CHGDCTL_H */
+#endif                          /* CHGDCTL_H */

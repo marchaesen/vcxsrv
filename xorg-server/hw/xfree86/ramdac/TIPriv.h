@@ -6,15 +6,15 @@
 #include "TI.h"
 
 typedef struct {
-	const char *DeviceName;
+    const char *DeviceName;
 } xf86TIramdacInfo;
 
 extern xf86TIramdacInfo TIramdacDeviceInfo[];
 
 #ifdef INIT_TI_RAMDAC_INFO
 xf86TIramdacInfo TIramdacDeviceInfo[] = {
-	{"TI TVP3030"},
-	{"TI TVP3026"}
+    {"TI TVP3030"},
+    {"TI TVP3026"}
 };
 #endif
 

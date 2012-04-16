@@ -30,23 +30,23 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef GRABDEV_H
 #define GRABDEV_H 1
 
-int SProcXGrabDevice(ClientPtr	/* client */
+int SProcXGrabDevice(ClientPtr  /* client */
     );
 
-int ProcXGrabDevice(ClientPtr	/* client */
+int ProcXGrabDevice(ClientPtr   /* client */
     );
 
 int CreateMaskFromList(ClientPtr /* client */ ,
-		       XEventClass * /* list */ ,
-		       int /* count */ ,
-		       struct tmask /* mask */ [],
-		       DeviceIntPtr /* dev */ ,
-		       int	/* req */
+                       XEventClass * /* list */ ,
+                       int /* count */ ,
+                       struct tmask /* mask */ [],
+                       DeviceIntPtr /* dev */ ,
+                       int      /* req */
     );
 
 void SRepXGrabDevice(ClientPtr /* client */ ,
-		     int /* size */ ,
-		     xGrabDeviceReply *	/* rep */
+                     int /* size */ ,
+                     xGrabDeviceReply * /* rep */
     );
 
-#endif /* GRABDEV_H */
+#endif                          /* GRABDEV_H */

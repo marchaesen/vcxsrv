@@ -33,4 +33,4 @@
 int ProcXIAllowEvents(ClientPtr client);
 int SProcXIAllowEvents(ClientPtr client);
 
-#endif /* XIALLOWEV_H */
+#endif                          /* XIALLOWEV_H */

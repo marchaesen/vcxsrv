@@ -16,7 +16,7 @@ extern int PanoramiXUnmapSubwindows(ClientPtr client);
 extern int PanoramiXConfigureWindow(ClientPtr client);
 extern int PanoramiXCirculateWindow(ClientPtr client);
 extern int PanoramiXGetGeometry(ClientPtr client);
-extern int PanoramiXTranslateCoords(ClientPtr client);	
+extern int PanoramiXTranslateCoords(ClientPtr client);
 extern int PanoramiXCreatePixmap(ClientPtr client);
 extern int PanoramiXFreePixmap(ClientPtr client);
 extern int PanoramiXChangeGC(ClientPtr client);
@@ -40,7 +40,7 @@ extern int PanoramiXPolyFillRectangle(ClientPtr client);
 extern int PanoramiXPutImage(ClientPtr client);
 extern int PanoramiXGetImage(ClientPtr client);
 extern int PanoramiXPolyText8(ClientPtr client);
-extern int PanoramiXPolyText16(ClientPtr client);	
+extern int PanoramiXPolyText16(ClientPtr client);
 extern int PanoramiXImageText8(ClientPtr client);
 extern int PanoramiXImageText16(ClientPtr client);
 extern int PanoramiXCreateColormap(ClientPtr client);
@@ -57,11 +57,11 @@ extern int PanoramiXAllocColorPlanes(ClientPtr client);
 
 #define PROC_EXTERN(pfunc)      extern int pfunc(ClientPtr)
 
-PROC_EXTERN(ProcPanoramiXQueryVersion); 
-PROC_EXTERN(ProcPanoramiXGetState); 
-PROC_EXTERN(ProcPanoramiXGetScreenCount); 
-PROC_EXTERN(ProcPanoramiXGetScreenSize); 
- 
+PROC_EXTERN(ProcPanoramiXQueryVersion);
+PROC_EXTERN(ProcPanoramiXGetState);
+PROC_EXTERN(ProcPanoramiXGetScreenCount);
+PROC_EXTERN(ProcPanoramiXGetScreenSize);
+
 PROC_EXTERN(ProcXineramaQueryScreens);
 PROC_EXTERN(ProcXineramaIsActive);
 
@@ -70,4 +70,4 @@ extern int SProcPanoramiXDispatch(ClientPtr client);
 extern int connBlockScreenStart;
 extern xConnSetupPrefix connSetupPrefix;
 
-extern int (* SavedProcVector[256]) (ClientPtr client);
+extern int (*SavedProcVector[256]) (ClientPtr client);

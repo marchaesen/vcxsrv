@@ -17,7 +17,7 @@ xf86CloseConsole()
 int
 xf86ProcessArgument(int argc, char *argv[], int i)
 {
-	return 0;
+    return 0;
 }
 
 void

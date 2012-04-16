@@ -17,4 +17,4 @@ is" without express or implied warranty.
 
 extern Bool xnestDoFullGeneration;
 
-#endif /* XNESTINIT_H */
+#endif                          /* XNESTINIT_H */

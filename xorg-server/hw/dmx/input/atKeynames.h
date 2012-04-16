@@ -90,20 +90,20 @@
  *      ----------------   ---------- -------    ------    ------
  */
 
-#define KEY_Escape       /* Escape                0x01  */    1  
-#define KEY_1            /* 1           !         0x02  */    2 
-#define KEY_2            /* 2           @         0x03  */    3 
-#define KEY_3            /* 3           #         0x04  */    4 
-#define KEY_4            /* 4           $         0x05  */    5 
-#define KEY_5            /* 5           %         0x06  */    6 
-#define KEY_6            /* 6           ^         0x07  */    7 
-#define KEY_7            /* 7           &         0x08  */    8 
-#define KEY_8            /* 8           *         0x09  */    9 
-#define KEY_9            /* 9           (         0x0a  */   10 
-#define KEY_0            /* 0           )         0x0b  */   11 
+#define KEY_Escape       /* Escape                0x01  */    1
+#define KEY_1            /* 1           !         0x02  */    2
+#define KEY_2            /* 2           @         0x03  */    3
+#define KEY_3            /* 3           #         0x04  */    4
+#define KEY_4            /* 4           $         0x05  */    5
+#define KEY_5            /* 5           %         0x06  */    6
+#define KEY_6            /* 6           ^         0x07  */    7
+#define KEY_7            /* 7           &         0x08  */    8
+#define KEY_8            /* 8           *         0x09  */    9
+#define KEY_9            /* 9           (         0x0a  */   10
+#define KEY_0            /* 0           )         0x0b  */   11
 #define KEY_Minus        /* - (Minus)   _ (Under) 0x0c  */   12
-#define KEY_Equal        /* = (Equal)   +         0x0d  */   13 
-#define KEY_BackSpace    /* Back Space            0x0e  */   14 
+#define KEY_Equal        /* = (Equal)   +         0x0d  */   13
+#define KEY_BackSpace    /* Back Space            0x0e  */   14
 #define KEY_Tab          /* Tab                   0x0f  */   15
 #define KEY_Q            /* Q                     0x10  */   16
 #define KEY_W            /* W                     0x11  */   17
@@ -116,12 +116,12 @@
 #define KEY_O            /* O                     0x18  */   24
 #define KEY_P            /* P                     0x19  */   25
 #define KEY_LBrace       /* [           {         0x1a  */   26
-#define KEY_RBrace       /* ]           }         0x1b  */   27 
+#define KEY_RBrace       /* ]           }         0x1b  */   27
 #define KEY_Enter        /* Enter                 0x1c  */   28
 #define KEY_LCtrl        /* Ctrl(left)            0x1d  */   29
 #define KEY_A            /* A                     0x1e  */   30
 #define KEY_S            /* S                     0x1f  */   31
-#define KEY_D            /* D                     0x20  */   32 
+#define KEY_D            /* D                     0x20  */   32
 #define KEY_F            /* F                     0x21  */   33
 #define KEY_G            /* G                     0x22  */   34
 #define KEY_H            /* H                     0x23  */   35
@@ -160,9 +160,9 @@
 #define KEY_F10          /* F10                   0x44  */   68
 #define KEY_NumLock      /* NumLock               0x45  */   69
 #define KEY_ScrollLock   /* ScrollLock            0x46  */   70
-#define KEY_KP_7         /* 7           Home      0x47  */   71 
-#define KEY_KP_8         /* 8           Up        0x48  */   72 
-#define KEY_KP_9         /* 9           PgUp      0x49  */   73 
+#define KEY_KP_7         /* 7           Home      0x47  */   71
+#define KEY_KP_8         /* 8           Up        0x48  */   72
+#define KEY_KP_9         /* 9           PgUp      0x49  */   73
 #define KEY_KP_Minus     /* - (Minus)             0x4a  */   74
 #define KEY_KP_4         /* 4           Left      0x4b  */   75
 #define KEY_KP_5         /* 5                     0x4c  */   76
@@ -172,7 +172,7 @@
 #define KEY_KP_2         /* 2           Down      0x50  */   80
 #define KEY_KP_3         /* 3           PgDown    0x51  */   81
 #define KEY_KP_0         /* 0           Insert    0x52  */   82
-#define KEY_KP_Decimal   /* . (Decimal) Delete    0x53  */   83 
+#define KEY_KP_Decimal   /* . (Decimal) Delete    0x53  */   83
 #define KEY_SysReqest    /* SysReqest             0x54  */   84
                          /* NOTUSED               0x55  */
 #define KEY_Less         /* < (Less)   >(Greater) 0x56  */   86
@@ -289,4 +289,4 @@
 #define KEY_NOTUSED	  0
 #define KEY_UNKNOWN	255
 
-#endif /* _ATKEYNAMES_H */
+#endif                          /* _ATKEYNAMES_H */

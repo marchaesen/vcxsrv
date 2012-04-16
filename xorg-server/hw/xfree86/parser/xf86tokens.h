@@ -52,7 +52,6 @@
  * authorization from the copyright holder(s) and author(s).
  */
 
-
 #ifdef HAVE_XORG_CONFIG_H
 #include <xorg-config.h>
 #endif
@@ -70,13 +69,13 @@
 
 typedef enum {
     /* errno-style tokens */
-    OBSOLETE_TOKEN	= -5,
-    EOF_TOKEN		= -4,
-    LOCK_TOKEN		= -3,
-    ERROR_TOKEN		= -2,
+    OBSOLETE_TOKEN = -5,
+    EOF_TOKEN = -4,
+    LOCK_TOKEN = -3,
+    ERROR_TOKEN = -2,
 
     /* value type tokens */
-    NUMBER		= 1,
+    NUMBER = 1,
     STRING,
 
     /* Tokens that can appear in many sections */
@@ -148,7 +147,7 @@ typedef enum {
     DEFAULTDEPTH,
     DEFAULTBPP,
     DEFAULTFBBPP,
-    
+
     /* VideoAdaptor tokens */
     VIDEOADAPTOR,
 
@@ -170,7 +169,7 @@ typedef enum {
     LOAD,
     LOAD_DRIVER,
     DISABLE,
-    
+
     /* Device tokens */
     DRIVER,
     CHIPSET,
@@ -251,7 +250,7 @@ typedef enum {
     DEPTH,
     BPP,
     WEIGHT,
-    
+
     /* Layout Tokens */
     SCREEN,
     INACTIVE,
@@ -289,4 +288,4 @@ typedef enum {
     MATCH_IS_TOUCHSCREEN
 } ParserTokens;
 
-#endif /* _xf86_tokens_h */
+#endif                          /* _xf86_tokens_h */

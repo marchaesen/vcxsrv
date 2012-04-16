@@ -28,6 +28,6 @@
 #define _DAMAGEEXT_H_
 
 void
-DamageExtensionInit(void);
+ DamageExtensionInit(void);
 
-#endif /* _DAMAGEEXT_H_ */
+#endif                          /* _DAMAGEEXT_H_ */

@@ -38,12 +38,11 @@
 Bool
 xf86EnableIO()
 {
-	return TRUE;
+    return TRUE;
 }
 
 void
 xf86DisableIO()
 {
-	return;
+    return;
 }
-

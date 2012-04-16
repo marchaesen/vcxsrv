@@ -129,7 +129,7 @@
 Bool
 xf86scanpci(void)
 {
-    Bool  success = FALSE;
+    Bool success = FALSE;
 
     success = (pci_system_init() == 0);
 

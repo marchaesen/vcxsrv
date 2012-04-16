@@ -33,4 +33,4 @@
 
 #undef MITSHM
 
-#endif /* XNEST_CONFIG_H */
+#endif                          /* XNEST_CONFIG_H */

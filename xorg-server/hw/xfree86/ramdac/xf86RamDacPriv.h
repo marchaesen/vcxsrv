@@ -8,6 +8,6 @@
 
 void RamDacGetRecPrivate(void);
 Bool RamDacGetRec(ScrnInfoPtr pScrn);
-int  RamDacGetScreenIndex(void);
+int RamDacGetScreenIndex(void);
 void RamDacLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices,
-    			LOCO *colors, VisualPtr pVisual);
+                       LOCO * colors, VisualPtr pVisual);

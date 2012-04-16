@@ -27,7 +27,7 @@
 #include "misync.h"
 
 extern _X_EXPORT int
-SyncVerifyFence(SyncFence **ppFence, XID fid, ClientPtr client, Mask mode);
+ SyncVerifyFence(SyncFence ** ppFence, XID fid, ClientPtr client, Mask mode);
 
 #define VERIFY_SYNC_FENCE(pFence, fid, client, mode)			\
     do {								\
@@ -43,5 +43,4 @@ SyncVerifyFence(SyncFence **ppFence, XID fid, ClientPtr client, Mask mode);
 	    VERIFY_SYNC_FENCE((pFence), (fid), (client), (mode));	\
     } while (0)
 
-#endif /* _SYNCSDK_H_ */
-
+#endif                          /* _SYNCSDK_H_ */

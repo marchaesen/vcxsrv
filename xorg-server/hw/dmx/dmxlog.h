@@ -55,20 +55,20 @@ typedef enum {
 /* Logging functions used by Xserver/hw/dmx routines. */
 extern dmxLogLevel dmxSetLogLevel(dmxLogLevel newLevel);
 extern dmxLogLevel dmxGetLogLevel(void);
-extern void        dmxLog(dmxLogLevel logLevel, const char *format, ...);
-extern void        dmxLogCont(dmxLogLevel logLevel, const char *format, ...);
-extern const char  *dmxEventName(int type);
+extern void dmxLog(dmxLogLevel logLevel, const char *format, ...);
+extern void dmxLogCont(dmxLogLevel logLevel, const char *format, ...);
+extern const char *dmxEventName(int type);
 
 #ifndef DMX_LOG_STANDALONE
-extern void dmxLogOutput(DMXScreenInfo *dmxScreen, const char *format, ...);
-extern void dmxLogOutputCont(DMXScreenInfo *dmxScreen, const char *format,
+extern void dmxLogOutput(DMXScreenInfo * dmxScreen, const char *format, ...);
+extern void dmxLogOutputCont(DMXScreenInfo * dmxScreen, const char *format,
                              ...);
-extern void dmxLogOutputWarning(DMXScreenInfo *dmxScreen, const char *format,
+extern void dmxLogOutputWarning(DMXScreenInfo * dmxScreen, const char *format,
                                 ...);
-extern void dmxLogInput(DMXInputInfo *dmxInput, const char *format, ...);
-extern void dmxLogInputCont(DMXInputInfo *dmxInput, const char *format, ...);
+extern void dmxLogInput(DMXInputInfo * dmxInput, const char *format, ...);
+extern void dmxLogInputCont(DMXInputInfo * dmxInput, const char *format, ...);
 extern void dmxLogArgs(dmxLogLevel logLevel, int argc, char **argv);
-extern void dmxLogVisual(DMXScreenInfo *dmxScreen, XVisualInfo *vi,
+extern void dmxLogVisual(DMXScreenInfo * dmxScreen, XVisualInfo * vi,
                          int defaultVisual);
 extern const char *dmxXInputEventName(int type);
 #endif

@@ -35,29 +35,36 @@
 #include "xf86i2c.h"
 
 typedef struct {
-	I2CDevRec d;
-	
-	CARD16 analog_mixer_settings;	/* register 0x03 */
-	
-	} UDA1380Rec, *UDA1380Ptr;
+    I2CDevRec d;
+
+    CARD16 analog_mixer_settings;       /* register 0x03 */
+
+} UDA1380Rec, *UDA1380Ptr;
 
 #define UDA1380_ADDR_1   0x30
 #define UDA1380_ADDR_2   0x34
 
 #define xf86_Detect_uda1380		Detect_uda1380
 extern _X_EXPORT UDA1380Ptr Detect_uda1380(I2CBusPtr b, I2CSlaveAddr addr);
+
 #define xf86_uda1380_init		uda1380_init
 extern _X_EXPORT Bool uda1380_init(UDA1380Ptr t);
+
 #define xf86_uda1380_shutdown		uda1380_shutdown
 extern _X_EXPORT void uda1380_shutdown(UDA1380Ptr t);
+
 #define xf86_uda1380_setvolume		uda1380_setvolume
 extern _X_EXPORT void uda1380_setvolume(UDA1380Ptr t, INT32);
+
 #define xf86_uda1380_mute		uda1380_mute
 extern _X_EXPORT void uda1380_mute(UDA1380Ptr t, Bool);
+
 #define xf86_uda1380_setparameters	uda1380_setparameters
 extern _X_EXPORT void uda1380_setparameters(UDA1380Ptr t);
+
 #define xf86_uda1380_getstatus		uda1380_getstatus
 extern _X_EXPORT void uda1380_getstatus(UDA1380Ptr t);
+
 #define xf86_uda1380_dumpstatus		uda1380_dumpstatus
 extern _X_EXPORT void uda1380_dumpstatus(UDA1380Ptr t);
 

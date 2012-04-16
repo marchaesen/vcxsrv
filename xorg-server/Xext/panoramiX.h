@@ -26,7 +26,6 @@ Equipment Corporation.
 
 ******************************************************************/
 
-
 /* THIS IS NOT AN X PROJECT TEAM SPECIFICATION */
 
 /*  
@@ -47,25 +46,25 @@ Equipment Corporation.
 #include "dixstruct.h"
 
 typedef struct _PanoramiXInfo {
-    XID id ;
+    XID id;
 } PanoramiXInfo;
 
 typedef struct {
     PanoramiXInfo info[MAXSCREENS];
     RESTYPE type;
     union {
-	struct {
-	    char   visibility;
-	    char   class;
-            char   root;
-	} win;
-	struct {
-	    Bool shared;
-	} pix;
-	struct {
-	    Bool root;
-	} pict;
-	char raw_data[4];
+        struct {
+            char visibility;
+            char class;
+            char root;
+        } win;
+        struct {
+            Bool shared;
+        } pix;
+        struct {
+            Bool root;
+        } pict;
+        char raw_data[4];
     } u;
 } PanoramiXRes;
 
@@ -77,4 +76,4 @@ typedef struct {
 #define IS_SHARED_PIXMAP(r) (((r)->type == XRT_PIXMAP) && (r)->u.pix.shared)
 
 #define IS_ROOT_DRAWABLE(d) (((d)->type == XRT_WINDOW) && (d)->u.win.root)
-#endif /* _PANORAMIX_H_ */
+#endif                          /* _PANORAMIX_H_ */

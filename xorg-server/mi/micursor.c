@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -65,5 +64,5 @@ miRecolorCursor(DeviceIntPtr pDev, ScreenPtr pScr,
     pScr->UnrealizeCursor(pDev, pScr, pCurs);
     pScr->RealizeCursor(pDev, pScr, pCurs);
     if (displayed)
-	pScr->DisplayCursor(pDev, pScr, pCurs);
+        pScr->DisplayCursor(pDev, pScr, pCurs);
 }

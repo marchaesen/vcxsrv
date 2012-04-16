@@ -26,94 +26,94 @@
 #include "fake.h"
 
 void
-InitCard (char *name)
+InitCard(char *name)
 {
-    KdCardInfoAdd (&fakeFuncs, 0);
+    KdCardInfoAdd(&fakeFuncs, 0);
 }
 
 void
-InitOutput (ScreenInfo *pScreenInfo, int argc, char **argv)
+InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 {
-    KdInitOutput (pScreenInfo, argc, argv);
+    KdInitOutput(pScreenInfo, argc, argv);
 }
 
 void
-InitInput (int argc, char **argv)
+InitInput(int argc, char **argv)
 {
     KdPointerInfo *pi;
     KdKeyboardInfo *ki;
 
-    pi = KdNewPointer ();
+    pi = KdNewPointer();
     if (!pi)
         return;
     pi->driver = &FakePointerDriver;
     KdAddPointer(pi);
 
-    ki = KdNewKeyboard ();
+    ki = KdNewKeyboard();
     if (!ki)
         return;
     ki->driver = &FakeKeyboardDriver;
     KdAddKeyboard(ki);
 
-    KdInitInput ();
+    KdInitInput();
 }
 
 void
-CloseInput (void)
+CloseInput(void)
 {
-    KdCloseInput ();
+    KdCloseInput();
 }
 
 #ifdef DDXBEFORERESET
 void
-ddxBeforeReset (void)
+ddxBeforeReset(void)
 {
 }
 #endif
 
 void
-ddxUseMsg (void)
+ddxUseMsg(void)
 {
     KdUseMsg();
 }
 
 int
-ddxProcessArgument (int argc, char **argv, int i)
+ddxProcessArgument(int argc, char **argv, int i)
 {
-    return KdProcessArgument (argc, argv, i);
+    return KdProcessArgument(argc, argv, i);
 }
 
 void
-OsVendorInit (void)
+OsVendorInit(void)
 {
-    KdOsInit (&FakeOsFuncs);
+    KdOsInit(&FakeOsFuncs);
 }
 
-KdCardFuncs	fakeFuncs = {
-    fakeCardInit,	    /* cardinit */
-    fakeScreenInit,	    /* scrinit */
-    fakeInitScreen,	    /* initScreen */
-    fakeFinishInitScreen,  /* finishInitScreen */
-    fakeCreateResources,   /* createRes */
-    fakePreserve,	    /* preserve */
-    fakeEnable,	    /* enable */
-    fakeDPMS,		    /* dpms */
-    fakeDisable,	    /* disable */
-    fakeRestore,	    /* restore */
-    fakeScreenFini,	    /* scrfini */
-    fakeCardFini,	    /* cardfini */
-    
-    0,			    /* initCursor */
-    0,			    /* enableCursor */
-    0,			    /* disableCursor */
-    0,			    /* finiCursor */
-    0,			    /* recolorCursor */
-    
-    0,			    /* initAccel */
-    0,			    /* enableAccel */
-    0,			    /* disableAccel */
-    0,			    /* finiAccel */
-    
-    fakeGetColors,    	    /* getColors */
-    fakePutColors,	    /* putColors */
+KdCardFuncs fakeFuncs = {
+    fakeCardInit,               /* cardinit */
+    fakeScreenInit,             /* scrinit */
+    fakeInitScreen,             /* initScreen */
+    fakeFinishInitScreen,       /* finishInitScreen */
+    fakeCreateResources,        /* createRes */
+    fakePreserve,               /* preserve */
+    fakeEnable,                 /* enable */
+    fakeDPMS,                   /* dpms */
+    fakeDisable,                /* disable */
+    fakeRestore,                /* restore */
+    fakeScreenFini,             /* scrfini */
+    fakeCardFini,               /* cardfini */
+
+    0,                          /* initCursor */
+    0,                          /* enableCursor */
+    0,                          /* disableCursor */
+    0,                          /* finiCursor */
+    0,                          /* recolorCursor */
+
+    0,                          /* initAccel */
+    0,                          /* enableAccel */
+    0,                          /* disableAccel */
+    0,                          /* finiAccel */
+
+    fakeGetColors,              /* getColors */
+    fakePutColors,              /* putColors */
 };

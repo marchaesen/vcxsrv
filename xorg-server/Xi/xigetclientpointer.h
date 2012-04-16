@@ -29,10 +29,10 @@
 
 #ifndef GETCPTR_H
 #define GETCPTR_H 1
-int SProcXIGetClientPointer(ClientPtr /* client */);
-int ProcXIGetClientPointer(ClientPtr /* client */);
-void SRepXIGetClientPointer(ClientPtr /* client */,
-        int /* size */,
-        xXIGetClientPointerReply* /* rep */);
+int SProcXIGetClientPointer(ClientPtr /* client */ );
+int ProcXIGetClientPointer(ClientPtr /* client */ );
+void SRepXIGetClientPointer(ClientPtr /* client */ ,
+                            int /* size */ ,
+                            xXIGetClientPointerReply * /* rep */ );
 
-#endif /* GETCPTR_H */
+#endif                          /* GETCPTR_H */

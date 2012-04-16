@@ -9,7 +9,7 @@
 
 #include "dixstruct.h"
 
-int  DPMSSet(ClientPtr client, int level);
+int DPMSSet(ClientPtr client, int level);
 Bool DPMSSupported(void);
 
 #endif

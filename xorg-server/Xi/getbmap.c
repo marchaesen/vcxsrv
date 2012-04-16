@@ -54,7 +54,7 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"	/* DeviceIntPtr      */
+#include "inputstr.h"           /* DeviceIntPtr      */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include "exglobals.h"
@@ -100,16 +100,16 @@ ProcXGetDeviceButtonMapping(ClientPtr client)
 
     rc = dixLookupDevice(&dev, stuff->deviceid, client, DixGetAttrAccess);
     if (rc != Success)
-	return rc;
+        return rc;
 
     b = dev->button;
     if (b == NULL)
-	return BadMatch;
+        return BadMatch;
 
     rep.nElts = b->numButtons;
     rep.length = bytes_to_int32(rep.nElts);
     WriteReplyToClient(client, sizeof(xGetDeviceButtonMappingReply), &rep);
-    (void)WriteToClient(client, rep.nElts, (char *)&b->map[1]);
+    (void) WriteToClient(client, rep.nElts, (char *) &b->map[1]);
     return Success;
 }
 
@@ -122,9 +122,9 @@ ProcXGetDeviceButtonMapping(ClientPtr client)
 
 void
 SRepXGetDeviceButtonMapping(ClientPtr client, int size,
-			    xGetDeviceButtonMappingReply * rep)
+                            xGetDeviceButtonMappingReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *)rep);
+    WriteToClient(client, size, (char *) rep);
 }

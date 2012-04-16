@@ -33,67 +33,67 @@
 #endif
 
 typedef struct _fbdevPriv {
-    struct fb_var_screeninfo	var;
-    struct fb_fix_screeninfo	fix;
-    __u16			red[256];
-    __u16			green[256];
-    __u16			blue[256];
-    int				fd;
-    char			*fb;
-    char			*fb_base;
+    struct fb_var_screeninfo var;
+    struct fb_fix_screeninfo fix;
+    __u16 red[256];
+    __u16 green[256];
+    __u16 blue[256];
+    int fd;
+    char *fb;
+    char *fb_base;
 } FbdevPriv;
 
 typedef struct _fbdevScrPriv {
-    Rotation			randr;
-    Bool			shadow;
+    Rotation randr;
+    Bool shadow;
 } FbdevScrPriv;
 
-extern KdCardFuncs  fbdevFuncs;
-extern char*        fbdevDevicePath;
+extern KdCardFuncs fbdevFuncs;
+extern char *fbdevDevicePath;
 
 Bool
-fbdevCardInit (KdCardInfo *card);
+ fbdevCardInit(KdCardInfo * card);
 
 Bool
-fbdevScreenInit (KdScreenInfo *screen);
+ fbdevScreenInit(KdScreenInfo * screen);
 
 Bool
-fbdevInitScreen (ScreenPtr pScreen);
+ fbdevInitScreen(ScreenPtr pScreen);
 
 Bool
-fbdevFinishInitScreen (ScreenPtr pScreen);
+ fbdevFinishInitScreen(ScreenPtr pScreen);
 
 Bool
-fbdevCreateResources (ScreenPtr pScreen);
+ fbdevCreateResources(ScreenPtr pScreen);
 
 void
-fbdevPreserve (KdCardInfo *card);
+ fbdevPreserve(KdCardInfo * card);
 
 Bool
-fbdevEnable (ScreenPtr pScreen);
+ fbdevEnable(ScreenPtr pScreen);
 
 Bool
-fbdevDPMS (ScreenPtr pScreen, int mode);
+ fbdevDPMS(ScreenPtr pScreen, int mode);
 
 void
-fbdevDisable (ScreenPtr pScreen);
+ fbdevDisable(ScreenPtr pScreen);
 
 void
-fbdevRestore (KdCardInfo *card);
+ fbdevRestore(KdCardInfo * card);
 
 void
-fbdevScreenFini (KdScreenInfo *screen);
+ fbdevScreenFini(KdScreenInfo * screen);
 
 void
-fbdevCardFini (KdCardInfo *card);
+ fbdevCardFini(KdCardInfo * card);
 
 void
-fbdevGetColors (ScreenPtr pScreen, int n, xColorItem *pdefs);
+ fbdevGetColors(ScreenPtr pScreen, int n, xColorItem * pdefs);
 
 void
-fbdevPutColors (ScreenPtr pScreen, int n, xColorItem *pdefs);
+ fbdevPutColors(ScreenPtr pScreen, int n, xColorItem * pdefs);
 
 Bool
-fbdevMapFramebuffer (KdScreenInfo *screen);
+ fbdevMapFramebuffer(KdScreenInfo * screen);
 
-#endif /* _FBDEV_H_ */
+#endif                          /* _FBDEV_H_ */

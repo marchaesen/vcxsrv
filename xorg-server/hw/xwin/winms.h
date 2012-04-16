@@ -46,4 +46,4 @@
 
 #undef CreateWindow
 
-#endif /* _WINMS_H_ */
+#endif                          /* _WINMS_H_ */

@@ -91,4 +91,4 @@
 #define xf86SetSingleMode XF86NAME(xf86SetSingleMode)
 #define xf86SetDesiredModes XF86NAME(xf86SetDesiredModes)
 
-#endif /* _XF86RENAME_H_ */
+#endif                          /* _XF86RENAME_H_ */

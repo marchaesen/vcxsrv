@@ -37,52 +37,52 @@
 extern _X_EXPORT DevPrivateKey XF86XvScreenKey;
 
 typedef struct {
-   DestroyWindowProcPtr		DestroyWindow;
-   ClipNotifyProcPtr		ClipNotify;
-   WindowExposuresProcPtr	WindowExposures;
-   PostValidateTreeProcPtr	PostValidateTree;
-   void                         (*AdjustFrame)(int, int, int, int);
-   Bool                         (*EnterVT)(int, int);
-   void                         (*LeaveVT)(int, int);
-   xf86ModeSetProc		*ModeSet;
+    DestroyWindowProcPtr DestroyWindow;
+    ClipNotifyProcPtr ClipNotify;
+    WindowExposuresProcPtr WindowExposures;
+    PostValidateTreeProcPtr PostValidateTree;
+    void (*AdjustFrame) (int, int, int, int);
+    Bool (*EnterVT) (int, int);
+    void (*LeaveVT) (int, int);
+    xf86ModeSetProc *ModeSet;
 } XF86XVScreenRec, *XF86XVScreenPtr;
 
 typedef struct {
-  int flags;  
-  PutVideoFuncPtr PutVideo;
-  PutStillFuncPtr PutStill;
-  GetVideoFuncPtr GetVideo;
-  GetStillFuncPtr GetStill;
-  StopVideoFuncPtr StopVideo;
-  SetPortAttributeFuncPtr SetPortAttribute;
-  GetPortAttributeFuncPtr GetPortAttribute;
-  QueryBestSizeFuncPtr QueryBestSize;
-  PutImageFuncPtr PutImage;
-  ReputImageFuncPtr ReputImage;
-  QueryImageAttributesFuncPtr QueryImageAttributes;
-  ClipNotifyFuncPtr ClipNotify;
+    int flags;
+    PutVideoFuncPtr PutVideo;
+    PutStillFuncPtr PutStill;
+    GetVideoFuncPtr GetVideo;
+    GetStillFuncPtr GetStill;
+    StopVideoFuncPtr StopVideo;
+    SetPortAttributeFuncPtr SetPortAttribute;
+    GetPortAttributeFuncPtr GetPortAttribute;
+    QueryBestSizeFuncPtr QueryBestSize;
+    PutImageFuncPtr PutImage;
+    ReputImageFuncPtr ReputImage;
+    QueryImageAttributesFuncPtr QueryImageAttributes;
+    ClipNotifyFuncPtr ClipNotify;
 } XvAdaptorRecPrivate, *XvAdaptorRecPrivatePtr;
 
 typedef struct {
-   ScrnInfoPtr pScrn;
-   DrawablePtr pDraw;
-   unsigned char type;
-   unsigned int subWindowMode;
-   RegionPtr clientClip;
-   RegionPtr ckeyFilled;
-   RegionPtr pCompositeClip;
-   Bool FreeCompositeClip;
-   XvAdaptorRecPrivatePtr AdaptorRec;
-   XvStatus isOn;
-   Bool clipChanged;
-   int vid_x, vid_y, vid_w, vid_h;
-   int drw_x, drw_y, drw_w, drw_h;
-   DevUnion DevPriv;
+    ScrnInfoPtr pScrn;
+    DrawablePtr pDraw;
+    unsigned char type;
+    unsigned int subWindowMode;
+    RegionPtr clientClip;
+    RegionPtr ckeyFilled;
+    RegionPtr pCompositeClip;
+    Bool FreeCompositeClip;
+    XvAdaptorRecPrivatePtr AdaptorRec;
+    XvStatus isOn;
+    Bool clipChanged;
+    int vid_x, vid_y, vid_w, vid_h;
+    int drw_x, drw_y, drw_w, drw_h;
+    DevUnion DevPriv;
 } XvPortRecPrivate, *XvPortRecPrivatePtr;
 
-typedef struct _XF86XVWindowRec{
-   XvPortRecPrivatePtr PortRec;
-   struct _XF86XVWindowRec *next;
+typedef struct _XF86XVWindowRec {
+    XvPortRecPrivatePtr PortRec;
+    struct _XF86XVWindowRec *next;
 } XF86XVWindowRec, *XF86XVWindowPtr;
 
-#endif  /* _XF86XVPRIV_H_ */
+#endif                          /* _XF86XVPRIV_H_ */

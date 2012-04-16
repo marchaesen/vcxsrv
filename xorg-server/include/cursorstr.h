@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -46,7 +45,7 @@ SOFTWARE.
 ******************************************************************/
 
 #ifndef CURSORSTRUCT_H
-#define CURSORSTRUCT_H 
+#define CURSORSTRUCT_H
 
 #include "cursor.h"
 #include "privates.h"
@@ -59,14 +58,14 @@ SOFTWARE.
  * bitmap format.
  */
 typedef struct _CursorBits {
-    unsigned char *source;			/* points to bits */
-    unsigned char *mask;			/* points to bits */
-    Bool emptyMask;				/* all zeros mask */
-    unsigned short width, height, xhot, yhot;	/* metrics */
-    int refcnt;					/* can be shared */
-    PrivateRec *devPrivates;			/* set by pScr->RealizeCursor*/
+    unsigned char *source;      /* points to bits */
+    unsigned char *mask;        /* points to bits */
+    Bool emptyMask;             /* all zeros mask */
+    unsigned short width, height, xhot, yhot;   /* metrics */
+    int refcnt;                 /* can be shared */
+    PrivateRec *devPrivates;    /* set by pScr->RealizeCursor */
 #ifdef ARGB_CURSOR
-    CARD32 *argb;				/* full-color alpha blended */
+    CARD32 *argb;               /* full-color alpha blended */
 #endif
 } CursorBits, *CursorBitsPtr;
 
@@ -74,10 +73,10 @@ typedef struct _CursorBits {
 
 typedef struct _Cursor {
     CursorBitsPtr bits;
-    unsigned short foreRed, foreGreen, foreBlue; /* device-independent color */
-    unsigned short backRed, backGreen, backBlue; /* device-independent color */
+    unsigned short foreRed, foreGreen, foreBlue;        /* device-independent color */
+    unsigned short backRed, backGreen, backBlue;        /* device-independent color */
     int refcnt;
-    PrivateRec *devPrivates;			/* set by pScr->RealizeCursor*/
+    PrivateRec *devPrivates;    /* set by pScr->RealizeCursor */
     XID id;
 #ifdef XFIXES
     CARD32 serialNumber;
@@ -92,8 +91,8 @@ typedef struct _CursorMetric {
 } CursorMetricRec;
 
 typedef struct {
-    int                x, y;
-    ScreenPtr  pScreen;
+    int x, y;
+    ScreenPtr pScreen;
 } HotSpot;
 
-#endif /* CURSORSTRUCT_H */
+#endif                          /* CURSORSTRUCT_H */

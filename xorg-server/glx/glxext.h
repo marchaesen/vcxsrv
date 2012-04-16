@@ -41,17 +41,16 @@
 #define SERVEXTERN _declspec(dllexport)
 #endif
 
-extern GLboolean __glXFreeContext(__GLXcontext *glxc);
+extern GLboolean __glXFreeContext(__GLXcontext * glxc);
 extern void __glXFlushContextCache(void);
 
-extern void __glXAddToContextList(__GLXcontext *cx);
+extern void __glXAddToContextList(__GLXcontext * cx);
 SERVEXTERN void __glXErrorCallBack(GLenum code);
 extern void __glXClearErrorOccured(void);
 extern GLboolean __glXErrorOccured(void);
-extern void __glXResetLargeCommandStatus(__GLXclientState*);
+extern void __glXResetLargeCommandStatus(__GLXclientState *);
 
 extern const char GLServerVersion[];
-extern int DoGetString(__GLXclientState *cl, GLbyte *pc, GLboolean need_swap);
+extern int DoGetString(__GLXclientState * cl, GLbyte * pc, GLboolean need_swap);
 
-#endif /* _glxext_h_ */
-
+#endif                          /* _glxext_h_ */

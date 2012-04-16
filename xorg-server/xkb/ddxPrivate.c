@@ -18,7 +18,7 @@
 #include "xf86.h"
 
 int
-XkbDDXPrivate(DeviceIntPtr dev,KeyCode key,XkbAction *act)
+XkbDDXPrivate(DeviceIntPtr dev, KeyCode key, XkbAction *act)
 {
     XkbAnyAction *xf86act = &(act->any);
     char msgbuf[XkbAnyActionDataSize+1];

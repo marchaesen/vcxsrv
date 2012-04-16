@@ -20,4 +20,4 @@
 
 #define miInitializeBackingStore(x) do {} while (0)
 
-#endif /* _MIBSTORE_H */
+#endif                          /* _MIBSTORE_H */

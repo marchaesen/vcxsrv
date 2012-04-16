@@ -48,4 +48,4 @@ extern GLint __glTexGeniv_size(GLenum e);
 extern GLint __glTexParameterfv_size(GLenum e);
 extern GLint __glTexParameteriv_size(GLenum e);
 
-#endif /* !__compsize_h__ */
+#endif                          /* !__compsize_h__ */

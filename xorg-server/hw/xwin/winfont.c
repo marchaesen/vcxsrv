@@ -37,36 +37,38 @@
 /* See Porting Layer Definition - p. 32 */
 /* See mfb/mfbfont.c - mfbRealizeFont() - which is empty :) */
 Bool
-winRealizeFontNativeGDI (ScreenPtr pScreen, FontPtr pFont)
+winRealizeFontNativeGDI(ScreenPtr pScreen, FontPtr pFont)
 {
-  BOOL			fResult = TRUE;
-  winScreenPriv(pScreen);
-  
-  winDebug ("winRealizeFont (%p, %p)\n", pScreen, pFont);
+    BOOL fResult = TRUE;
 
-  WIN_UNWRAP(RealizeFont);
-  if (pScreen->RealizeFont)
-    fResult = (*pScreen->RealizeFont) (pScreen, pFont);
-  WIN_WRAP(RealizeFont, winRealizeFontNativeGDI);
-  
-  return fResult;
+    winScreenPriv(pScreen);
+
+    winDebug("winRealizeFont (%p, %p)\n", pScreen, pFont);
+
+    WIN_UNWRAP(RealizeFont);
+    if (pScreen->RealizeFont)
+        fResult = (*pScreen->RealizeFont) (pScreen, pFont);
+    WIN_WRAP(RealizeFont, winRealizeFontNativeGDI);
+
+    return fResult;
 }
 
 /* See Porting Layer Definition - p. 32 */
 /* See mfb/mfbfont.c - mfbUnrealizeFont() - which is empty :) */
 Bool
-winUnrealizeFontNativeGDI (ScreenPtr pScreen, FontPtr pFont)
+winUnrealizeFontNativeGDI(ScreenPtr pScreen, FontPtr pFont)
 {
-  BOOL			fResult = TRUE;
-  winScreenPriv(pScreen);
-  
-  winDebug ("winUnrealizeFont (%p, %p)\n", pScreen, pFont);
+    BOOL fResult = TRUE;
 
-  WIN_UNWRAP(UnrealizeFont);
-  if (pScreen->UnrealizeFont)
-    fResult = (*pScreen->UnrealizeFont) (pScreen, pFont);
-  WIN_WRAP(UnrealizeFont, winUnrealizeFontNativeGDI);
-  
-  return fResult;
+    winScreenPriv(pScreen);
+
+    winDebug("winUnrealizeFont (%p, %p)\n", pScreen, pFont);
+
+    WIN_UNWRAP(UnrealizeFont);
+    if (pScreen->UnrealizeFont)
+        fResult = (*pScreen->UnrealizeFont) (pScreen, pFont);
+    WIN_WRAP(UnrealizeFont, winUnrealizeFontNativeGDI);
+
+    return fResult;
 }
 #endif

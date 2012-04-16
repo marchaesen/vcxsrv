@@ -30,7 +30,7 @@
 #ifndef SETCPTR_H
 #define SETCPTR_H 1
 
-int SProcXISetClientPointer(ClientPtr /* client */);
-int ProcXISetClientPointer(ClientPtr /* client */);
+int SProcXISetClientPointer(ClientPtr /* client */ );
+int ProcXISetClientPointer(ClientPtr /* client */ );
 
-#endif /* SETCPTR_H */
+#endif                          /* SETCPTR_H */

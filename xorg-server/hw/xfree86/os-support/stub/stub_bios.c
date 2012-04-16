@@ -6,7 +6,7 @@
 
 int
 xf86ReadBIOS(unsigned long Base, unsigned long Offset, unsigned char *Buf,
-		int Len)
+             int Len)
 {
-	return -1;
+    return -1;
 }

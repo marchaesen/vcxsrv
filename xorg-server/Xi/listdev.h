@@ -30,17 +30,17 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef LISTDEV_H
 #define LISTDEV_H 1
 
-#define VPC	20	/* Max # valuators per chunk */
+#define VPC	20              /* Max # valuators per chunk */
 
-int SProcXListInputDevices(ClientPtr	/* client */
+int SProcXListInputDevices(ClientPtr    /* client */
     );
 
-int ProcXListInputDevices(ClientPtr	/* client */
+int ProcXListInputDevices(ClientPtr     /* client */
     );
 
 void SRepXListInputDevices(ClientPtr /* client */ ,
-			   int /* size */ ,
-			   xListInputDevicesReply *	/* rep */
+                           int /* size */ ,
+                           xListInputDevicesReply *     /* rep */
     );
 
-#endif /* LISTDEV_H */
+#endif                          /* LISTDEV_H */

@@ -43,16 +43,16 @@ from The Open Group.
 void BigReqExtensionInit(INITARGS);
 
 static int
-ProcBigReqDispatch (ClientPtr client)
+ProcBigReqDispatch(ClientPtr client)
 {
     REQUEST(xBigReqEnableReq);
     xBigReqEnableReply rep;
 
     if (client->swapped) {
-	swaps(&stuff->length);
+        swaps(&stuff->length);
     }
     if (stuff->brReqType != X_BigReqEnable)
-	return BadRequest;
+        return BadRequest;
     REQUEST_SIZE_MATCH(xBigReqEnableReq);
     client->big_requests = TRUE;
     memset(&rep, 0, sizeof(xBigReqEnableReply));
@@ -61,10 +61,10 @@ ProcBigReqDispatch (ClientPtr client)
     rep.sequenceNumber = client->sequence;
     rep.max_request_size = maxBigRequestSize;
     if (client->swapped) {
-	swaps(&rep.sequenceNumber);
-	swapl(&rep.max_request_size);
+        swaps(&rep.sequenceNumber);
+        swapl(&rep.max_request_size);
     }
-    WriteToClient(client, sizeof(xBigReqEnableReply), (char *)&rep);
+    WriteToClient(client, sizeof(xBigReqEnableReply), (char *) &rep);
     return Success;
 }
 
@@ -72,6 +72,6 @@ void
 BigReqExtensionInit(INITARGS)
 {
     AddExtension(XBigReqExtensionName, 0, 0,
-		 ProcBigReqDispatch, ProcBigReqDispatch,
-		 NULL, StandardMinorOpcode);
+                 ProcBigReqDispatch, ProcBigReqDispatch,
+                 NULL, StandardMinorOpcode);
 }

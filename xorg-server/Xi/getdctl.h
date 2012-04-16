@@ -30,15 +30,15 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef GETDCTL_H
 #define GETDCTL_H 1
 
-int SProcXGetDeviceControl(ClientPtr	/* client */
+int SProcXGetDeviceControl(ClientPtr    /* client */
     );
 
-int ProcXGetDeviceControl(ClientPtr	/* client */
+int ProcXGetDeviceControl(ClientPtr     /* client */
     );
 
 void SRepXGetDeviceControl(ClientPtr /* client */ ,
-			   int /* size */ ,
-			   xGetDeviceControlReply *	/* rep */
+                           int /* size */ ,
+                           xGetDeviceControlReply *     /* rep */
     );
 
-#endif /* GETDCTL_H */
+#endif                          /* GETDCTL_H */

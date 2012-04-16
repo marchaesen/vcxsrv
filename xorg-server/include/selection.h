@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -65,13 +64,12 @@ typedef struct _Selection {
     PrivateRec *devPrivates;
 } Selection;
 
-
 /*
  *  Selection API
  */
 
-extern _X_EXPORT int dixLookupSelection(Selection **result, Atom name,
-		       ClientPtr client, Mask access_mode);
+extern _X_EXPORT int dixLookupSelection(Selection ** result, Atom name,
+                                        ClientPtr client, Mask access_mode);
 
 extern _X_EXPORT Selection *CurrentSelections;
 
@@ -84,11 +82,10 @@ typedef enum {
 } SelectionCallbackKind;
 
 typedef struct {
-    struct _Selection	    *selection;
-    ClientPtr		    client;
-    SelectionCallbackKind   kind;
+    struct _Selection *selection;
+    ClientPtr client;
+    SelectionCallbackKind kind;
 } SelectionInfoRec;
-
 
 /*
  *  Selection server internals
@@ -100,6 +97,4 @@ extern _X_EXPORT void DeleteWindowFromAnySelections(WindowPtr pWin);
 
 extern _X_EXPORT void DeleteClientFromAnySelections(ClientPtr client);
 
-#endif /* SELECTION_H */
-
-
+#endif                          /* SELECTION_H */

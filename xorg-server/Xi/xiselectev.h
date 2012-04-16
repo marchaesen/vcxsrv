@@ -35,6 +35,6 @@ int ProcXISelectEvents(ClientPtr client);
 int SProcXIGetSelectedEvents(ClientPtr client);
 int ProcXIGetSelectedEvents(ClientPtr client);
 void SRepXIGetSelectedEvents(ClientPtr client,
-                             int len, xXIGetSelectedEventsReply *rep);
+                             int len, xXIGetSelectedEventsReply * rep);
 
-#endif /* _XISELECTEVENTS_H_ */
+#endif                          /* _XISELECTEVENTS_H_ */

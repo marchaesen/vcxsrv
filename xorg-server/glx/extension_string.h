@@ -36,29 +36,29 @@
 
 enum {
 /*   GLX_ARB_get_proc_address is implemented on the client. */
-   ARB_multisample_bit = 0,
-   EXT_import_context_bit,
-   EXT_texture_from_pixmap_bit,
-   EXT_visual_info_bit,
-   EXT_visual_rating_bit,
-   MESA_copy_sub_buffer_bit,
-   OML_swap_method_bit,
-   SGI_make_current_read_bit,
-   SGI_swap_control_bit,
-   SGI_video_sync_bit,
-   SGIS_multisample_bit,
-   SGIX_fbconfig_bit,
-   SGIX_pbuffer_bit,
-   SGIX_visual_select_group_bit,
-   INTEL_swap_event_bit,
-   __NUM_GLX_EXTS,
+    ARB_multisample_bit = 0,
+    EXT_import_context_bit,
+    EXT_texture_from_pixmap_bit,
+    EXT_visual_info_bit,
+    EXT_visual_rating_bit,
+    MESA_copy_sub_buffer_bit,
+    OML_swap_method_bit,
+    SGI_make_current_read_bit,
+    SGI_swap_control_bit,
+    SGI_video_sync_bit,
+    SGIS_multisample_bit,
+    SGIX_fbconfig_bit,
+    SGIX_pbuffer_bit,
+    SGIX_visual_select_group_bit,
+    INTEL_swap_event_bit,
+    __NUM_GLX_EXTS,
 };
 
 #define __GLX_EXT_BYTES ((__NUM_GLX_EXTS + 7) / 8)
 
 extern int __glXGetExtensionString(const unsigned char *enable_bits,
-    char *buffer);
+                                   char *buffer);
 extern void __glXEnableExtension(unsigned char *enable_bits, const char *ext);
 extern void __glXInitExtensionEnableBits(unsigned char *enable_bits);
 
-#endif /* GLX_EXTENSION_STRING_H */
+#endif                          /* GLX_EXTENSION_STRING_H */

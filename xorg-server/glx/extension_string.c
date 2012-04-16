@@ -45,10 +45,10 @@
 #define EXT_ENABLED(bit,supported) (IS_SET(supported, bit))
 
 struct extension_info {
-    const char * const name;
-    unsigned   name_len;
+    const char *const name;
+    unsigned name_len;
 
-    unsigned char  bit;
+    unsigned char bit;
 
     /**
      * This is the lowest version of GLX that "requires" this extension.
@@ -56,36 +56,35 @@ struct extension_info {
      * SGI_make_current_read.  If the extension is not required by any known
      * version of GLX, use 0, 0.
      */
-    unsigned char  version_major;
-    unsigned char  version_minor;
+    unsigned char version_major;
+    unsigned char version_minor;
 
     /**
      * Is driver support forced by the ABI?
      */
-    unsigned char  driver_support;
+    unsigned char driver_support;
 };
 
 static const struct extension_info known_glx_extensions[] = {
 /*   GLX_ARB_get_proc_address is implemented on the client. */
-   { GLX(ARB_multisample),             VER(1,4), Y, },
+    {GLX(ARB_multisample), VER(1, 4), Y,},
 
-   { GLX(EXT_import_context),          VER(0,0), Y, },
-   { GLX(EXT_texture_from_pixmap),     VER(0,0), Y, },
-   { GLX(EXT_visual_info),             VER(0,0), Y, },
-   { GLX(EXT_visual_rating),           VER(0,0), Y, },
+    {GLX(EXT_import_context), VER(0, 0), Y,},
+    {GLX(EXT_texture_from_pixmap), VER(0, 0), Y,},
+    {GLX(EXT_visual_info), VER(0, 0), Y,},
+    {GLX(EXT_visual_rating), VER(0, 0), Y,},
 
-   { GLX(MESA_copy_sub_buffer),        VER(0,0), N, },
-   { GLX(OML_swap_method),             VER(0,0), Y, },
-   { GLX(SGI_make_current_read),       VER(1,3), N, },
-   { GLX(SGI_swap_control),            VER(0,0), N, },
-   { GLX(SGIS_multisample),            VER(0,0), Y, },
-   { GLX(SGIX_fbconfig),               VER(1,3), Y, },
-   { GLX(SGIX_pbuffer),                VER(1,3), Y, },
-   { GLX(SGIX_visual_select_group),    VER(0,0), Y, },
-   { GLX(INTEL_swap_event),            VER(1,4), N, },
-   { NULL }
+    {GLX(MESA_copy_sub_buffer), VER(0, 0), N,},
+    {GLX(OML_swap_method), VER(0, 0), Y,},
+    {GLX(SGI_make_current_read), VER(1, 3), N,},
+    {GLX(SGI_swap_control), VER(0, 0), N,},
+    {GLX(SGIS_multisample), VER(0, 0), Y,},
+    {GLX(SGIX_fbconfig), VER(1, 3), Y,},
+    {GLX(SGIX_pbuffer), VER(1, 3), Y,},
+    {GLX(SGIX_visual_select_group), VER(0, 0), Y,},
+    {GLX(INTEL_swap_event), VER(1, 4), N,},
+    {NULL}
 };
-
 
 /**
  * Create a GLX extension string for a set of enable bits.
@@ -111,27 +110,25 @@ __glXGetExtensionString(const unsigned char *enable_bits, char *buffer)
     unsigned i;
     int length = 0;
 
-
     for (i = 0; known_glx_extensions[i].name != NULL; i++) {
-	const unsigned bit = known_glx_extensions[i].bit;
-	const size_t len = known_glx_extensions[i].name_len;
+        const unsigned bit = known_glx_extensions[i].bit;
+        const size_t len = known_glx_extensions[i].name_len;
 
-	if (EXT_ENABLED(bit, enable_bits)) {
-	    if (buffer != NULL) {
-		(void) memcpy(& buffer[length], known_glx_extensions[i].name,
-			      len);
-		
-		buffer[length + len + 0] = ' ';
-		buffer[length + len + 1] = '\0';
-	    }
+        if (EXT_ENABLED(bit, enable_bits)) {
+            if (buffer != NULL) {
+                (void) memcpy(&buffer[length], known_glx_extensions[i].name,
+                              len);
 
-	    length += len + 1;
-	}
+                buffer[length + len + 0] = ' ';
+                buffer[length + len + 1] = '\0';
+            }
+
+            length += len + 1;
+        }
     }
 
     return length + 1;
 }
-
 
 void
 __glXEnableExtension(unsigned char *enable_bits, const char *ext)
@@ -139,28 +136,25 @@ __glXEnableExtension(unsigned char *enable_bits, const char *ext)
     const size_t ext_name_len = strlen(ext);
     unsigned i;
 
-
     for (i = 0; known_glx_extensions[i].name != NULL; i++) {
-	if ((ext_name_len == known_glx_extensions[i].name_len)
-	    && (memcmp(ext, known_glx_extensions[i].name, ext_name_len) == 0)) {
-	    SET_BIT(enable_bits, known_glx_extensions[i].bit);
-	    break;
-	}
+        if ((ext_name_len == known_glx_extensions[i].name_len)
+            && (memcmp(ext, known_glx_extensions[i].name, ext_name_len) == 0)) {
+            SET_BIT(enable_bits, known_glx_extensions[i].bit);
+            break;
+        }
     }
 }
-
 
 void
 __glXInitExtensionEnableBits(unsigned char *enable_bits)
 {
     unsigned i;
 
-
     (void) memset(enable_bits, 0, __GLX_EXT_BYTES);
 
     for (i = 0; known_glx_extensions[i].name != NULL; i++) {
-	if (known_glx_extensions[i].driver_support) {
-	    SET_BIT(enable_bits, known_glx_extensions[i].bit);
-	}
+        if (known_glx_extensions[i].driver_support) {
+            SET_BIT(enable_bits, known_glx_extensions[i].bit);
+        }
     }
 }

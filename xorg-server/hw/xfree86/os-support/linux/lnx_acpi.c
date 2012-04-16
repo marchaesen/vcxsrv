@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
- 
+
 #define ACPI_SOCKET  "/var/run/acpid.socket"
 
 #define ACPI_VIDEO_NOTIFY_SWITCH	0x80
@@ -43,8 +43,8 @@ static CARD32
 lnxACPIReopen(OsTimerPtr timer, CARD32 time, pointer arg)
 {
     if (lnxACPIOpen()) {
-	TimerFree(timer);
-	return 0;
+        TimerFree(timer);
+        return 0;
     }
 
     return ACPI_REOPEN_DELAY;
@@ -53,7 +53,7 @@ lnxACPIReopen(OsTimerPtr timer, CARD32 time, pointer arg)
 #define LINE_LENGTH 80
 
 static int
-lnxACPIGetEventFromOs(int fd, pmEvent *events, int num)
+lnxACPIGetEventFromOs(int fd, pmEvent * events, int num)
 {
     char ev[LINE_LENGTH];
     int n;
@@ -61,59 +61,59 @@ lnxACPIGetEventFromOs(int fd, pmEvent *events, int num)
     memset(ev, 0, LINE_LENGTH);
 
     do {
-	n = read( fd, ev, LINE_LENGTH );
+        n = read(fd, ev, LINE_LENGTH);
     } while ((n == -1) && (errno == EAGAIN || errno == EINTR));
 
     if (n <= 0) {
-	lnxCloseACPI();
-	TimerSet(NULL, 0, ACPI_REOPEN_DELAY, lnxACPIReopen, NULL);
-	return 0;
+        lnxCloseACPI();
+        TimerSet(NULL, 0, ACPI_REOPEN_DELAY, lnxACPIReopen, NULL);
+        return 0;
     }
     /* FIXME: this only processes the first read ACPI event & might break
      * with interrupted reads. */
-    
+
     /* Check that we have a video event */
     if (!strncmp(ev, "video", 5)) {
-	char *video = NULL;
-	char *GFX = NULL;
-	char *notify = NULL;
-	char *data = NULL; /* doesn't appear to be used in the kernel */
-	unsigned long int notify_l, data_l;
+        char *video = NULL;
+        char *GFX = NULL;
+        char *notify = NULL;
+        char *data = NULL;      /* doesn't appear to be used in the kernel */
+        unsigned long int notify_l, data_l;
 
-	video = strtok(ev, " ");
+        video = strtok(ev, " ");
 
-	GFX = strtok(NULL, " ");
+        GFX = strtok(NULL, " ");
 #if 0
-	ErrorF("GFX: %s\n",GFX);
+        ErrorF("GFX: %s\n", GFX);
 #endif
 
-	notify = strtok(NULL, " ");
-	notify_l = strtoul(notify, NULL, 16);
+        notify = strtok(NULL, " ");
+        notify_l = strtoul(notify, NULL, 16);
 #if 0
-	ErrorF("notify: 0x%lx\n",notify_l);
+        ErrorF("notify: 0x%lx\n", notify_l);
 #endif
 
-	data = strtok(NULL, " ");
-	data_l = strtoul(data, NULL, 16);
+        data = strtok(NULL, " ");
+        data_l = strtoul(data, NULL, 16);
 #if 0
-	ErrorF("data: 0x%lx\n",data_l);
+        ErrorF("data: 0x%lx\n", data_l);
 #endif
 
-	/* Differentiate between events */
-	switch (notify_l) {
-		case ACPI_VIDEO_NOTIFY_SWITCH:
-		case ACPI_VIDEO_NOTIFY_CYCLE:
-		case ACPI_VIDEO_NOTIFY_NEXT_OUTPUT:
-		case ACPI_VIDEO_NOTIFY_PREV_OUTPUT:
-		    events[0] = XF86_APM_CAPABILITY_CHANGED;
-		    return 1;
-		case ACPI_VIDEO_NOTIFY_PROBE:
-		    return 0;
-		default:
-		    return 0;
-	}
+        /* Differentiate between events */
+        switch (notify_l) {
+        case ACPI_VIDEO_NOTIFY_SWITCH:
+        case ACPI_VIDEO_NOTIFY_CYCLE:
+        case ACPI_VIDEO_NOTIFY_NEXT_OUTPUT:
+        case ACPI_VIDEO_NOTIFY_PREV_OUTPUT:
+            events[0] = XF86_APM_CAPABILITY_CHANGED;
+            return 1;
+        case ACPI_VIDEO_NOTIFY_PROBE:
+            return 0;
+        default:
+            return 0;
+        }
     }
-    
+
     return 0;
 }
 
@@ -123,42 +123,42 @@ lnxACPIConfirmEventToOs(int fd, pmEvent event)
     /* No ability to send back to the kernel in ACPI */
     switch (event) {
     default:
-	return PM_NONE;
+        return PM_NONE;
     }
 }
 
 PMClose
 lnxACPIOpen(void)
 {
-    int fd;    
+    int fd;
     struct sockaddr_un addr;
     int r = -1;
     static int warned = 0;
 
     DebugF("ACPI: OSPMOpen called\n");
     if (ACPIihPtr || !xf86Info.pmFlag)
-	return NULL;
-   
+        return NULL;
+
     DebugF("ACPI: Opening device\n");
     if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) > -1) {
-	memset(&addr, 0, sizeof(addr));
-	addr.sun_family = AF_UNIX;
-	strcpy(addr.sun_path, ACPI_SOCKET);
-	if ((r = connect(fd, (struct sockaddr*)&addr, sizeof(addr))) == -1) {
-	    if (!warned)
-		xf86MsgVerb(X_WARNING,3,"Open ACPI failed (%s) (%s)\n",
-		            ACPI_SOCKET, strerror(errno));
-	    warned = 1;
-	    shutdown(fd, 2);
-	    close(fd);
-	    return NULL;
-    	}
+        memset(&addr, 0, sizeof(addr));
+        addr.sun_family = AF_UNIX;
+        strcpy(addr.sun_path, ACPI_SOCKET);
+        if ((r = connect(fd, (struct sockaddr *) &addr, sizeof(addr))) == -1) {
+            if (!warned)
+                xf86MsgVerb(X_WARNING, 3, "Open ACPI failed (%s) (%s)\n",
+                            ACPI_SOCKET, strerror(errno));
+            warned = 1;
+            shutdown(fd, 2);
+            close(fd);
+            return NULL;
+        }
     }
 
     xf86PMGetEventFromOs = lnxACPIGetEventFromOs;
     xf86PMConfirmEventToOs = lnxACPIConfirmEventToOs;
-    ACPIihPtr = xf86AddGeneralHandler(fd,xf86HandlePMEvents,NULL);
-    xf86MsgVerb(X_INFO,3,"Open ACPI successful (%s)\n", ACPI_SOCKET);
+    ACPIihPtr = xf86AddGeneralHandler(fd, xf86HandlePMEvents, NULL);
+    xf86MsgVerb(X_INFO, 3, "Open ACPI successful (%s)\n", ACPI_SOCKET);
     warned = 0;
 
     return lnxCloseACPI;
@@ -171,9 +171,9 @@ lnxCloseACPI(void)
 
     DebugF("ACPI: Closing device\n");
     if (ACPIihPtr) {
-	fd = xf86RemoveGeneralHandler(ACPIihPtr);
-	shutdown(fd, 2);
-	close(fd);
-	ACPIihPtr = NULL;
+        fd = xf86RemoveGeneralHandler(ACPIihPtr);
+        shutdown(fd, 2);
+        close(fd);
+        ACPIihPtr = NULL;
     }
 }

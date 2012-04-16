@@ -101,7 +101,6 @@
 #define PCI_VENDOR_INTEL		0x8086
 #define PCI_VENDOR_ARK			0xEDD8
 
-
 /* Generic */
 #define PCI_CHIP_VGA			0x0000
 #define PCI_CHIP_8514			0x0001
@@ -215,10 +214,10 @@
 #define PCI_CHIP_R300_NE		0x4E45
 #define PCI_CHIP_R300_NF		0x4E46
 #define PCI_CHIP_R300_NG		0x4E47
-#define PCI_CHIP_R350_NH                0x4E48  
-#define PCI_CHIP_R350_NI                0x4E49  
-#define PCI_CHIP_R360_NJ                0x4E4A  
-#define PCI_CHIP_R350_NK                0x4E4B  
+#define PCI_CHIP_R350_NH                0x4E48
+#define PCI_CHIP_R350_NI                0x4E49
+#define PCI_CHIP_R360_NJ                0x4E4A
+#define PCI_CHIP_R350_NK                0x4E4B
 #define PCI_CHIP_RV350_NP               0x4E50
 #define PCI_CHIP_RV350_NQ               0x4E51
 #define PCI_CHIP_RV350_NR               0x4E52
@@ -498,16 +497,16 @@
 #define PCI_CHIP_SIS330			0x0330
 #define PCI_CHIP_SIS630			0x6300
 #define PCI_CHIP_SIS540			0x5300
-#define PCI_CHIP_SIS550			0x5315 
-#define PCI_CHIP_SIS650			0x6325 
+#define PCI_CHIP_SIS550			0x5315
+#define PCI_CHIP_SIS650			0x6325
 #define PCI_CHIP_SIS730			0x7300
 
 /* Hewlett-Packard */
 #define PCI_CHIP_ELROY			0x1054
 #define PCI_CHIP_ZX1_SBA		0x1229
 #define PCI_CHIP_ZX1_IOC		0x122A
-#define PCI_CHIP_ZX1_LBA		0x122E	/* a.k.a. Mercury */
-#define PCI_CHIP_ZX1_AGP8		0x12B4	/* a.k.a. QuickSilver */
+#define PCI_CHIP_ZX1_LBA		0x122E  /* a.k.a. Mercury */
+#define PCI_CHIP_ZX1_AGP8		0x12B4  /* a.k.a. QuickSilver */
 #define PCI_CHIP_ZX2_LBA		0x12EE
 #define PCI_CHIP_ZX2_SBA		0x4030
 #define PCI_CHIP_ZX2_IOC		0x4031
@@ -713,9 +712,9 @@
 #define PCI_CHIP_I740_AGP		0x7800
 #define PCI_CHIP_460GX_PXB		0x84CB
 #define PCI_CHIP_460GX_SAC		0x84E0
-#define PCI_CHIP_460GX_GXB_2		0x84E2	/* PCI function 2 */
+#define PCI_CHIP_460GX_GXB_2		0x84E2  /* PCI function 2 */
 #define PCI_CHIP_460GX_WXB		0x84E6
-#define PCI_CHIP_460GX_GXB_1		0x84EA	/* PCI function 1 */
+#define PCI_CHIP_460GX_GXB_1		0x84EA  /* PCI function 1 */
 
 /* Silicon Motion Inc. */
 #define PCI_CHIP_SMI910			0x0910
@@ -730,4 +729,4 @@
 #define PCI_CHIP_VMWARE0405		0x0405
 #define PCI_CHIP_VMWARE0710		0x0710
 
-#endif /* _XF86_PCIINFO_H */
+#endif                          /* _XF86_PCIINFO_H */

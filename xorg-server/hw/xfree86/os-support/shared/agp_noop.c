@@ -43,61 +43,60 @@
 Bool
 xf86GARTCloseScreen(int screenNum)
 {
-	return FALSE;
+    return FALSE;
 }
 
 Bool
 xf86AgpGARTSupported()
 {
-	return FALSE;
+    return FALSE;
 }
 
 AgpInfoPtr
 xf86GetAGPInfo(int screenNum)
 {
-	return NULL;
+    return NULL;
 }
 
 Bool
 xf86AcquireGART(int screenNum)
 {
-	return FALSE;
+    return FALSE;
 }
 
 Bool
 xf86ReleaseGART(int screenNum)
 {
-	return FALSE;
+    return FALSE;
 }
 
 int
 xf86AllocateGARTMemory(int screenNum, unsigned long size, int type,
-			unsigned long *physical)
+                       unsigned long *physical)
 {
-	return -1;
+    return -1;
 }
 
 Bool
 xf86DeallocateGARTMemory(int screenNum, int key)
 {
-	return FALSE;
+    return FALSE;
 }
 
 Bool
 xf86BindGARTMemory(int screenNum, int key, unsigned long offset)
 {
-	return FALSE;
+    return FALSE;
 }
-
 
 Bool
 xf86UnbindGARTMemory(int screenNum, int key)
 {
-	return FALSE;
+    return FALSE;
 }
 
 Bool
 xf86EnableAGP(int screenNum, CARD32 mode)
 {
-	return FALSE;
+    return FALSE;
 }

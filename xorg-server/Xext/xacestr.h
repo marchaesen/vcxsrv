@@ -144,4 +144,4 @@ typedef struct {
     int requestResult;
 } XaceAuditRec;
 
-#endif /* _XACESTR_H */
+#endif                          /* _XACESTR_H */

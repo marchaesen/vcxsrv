@@ -40,6 +40,6 @@ extern void dmxSigioBlock(void);
 extern void dmxSigioUnblock(void);
 extern void dmxSigioEnableInput(void);
 extern void dmxSigioDisableInput(void);
-extern void dmxSigioRegister(DMXInputInfo *dmxInput, int fd);
-extern void dmxSigioUnregister(DMXInputInfo *dmxInput);
+extern void dmxSigioRegister(DMXInputInfo * dmxInput, int fd);
+extern void dmxSigioUnregister(DMXInputInfo * dmxInput);
 #endif

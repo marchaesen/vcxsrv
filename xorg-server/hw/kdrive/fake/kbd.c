@@ -29,7 +29,7 @@
 #define FAKE_WIDTH  2
 
 static Status
-FakeKeyboardInit (KdKeyboardInfo *ki)
+FakeKeyboardInit(KdKeyboardInfo * ki)
 {
     ki->minScanCode = 8;
     ki->maxScanCode = 255;
@@ -37,29 +37,29 @@ FakeKeyboardInit (KdKeyboardInfo *ki)
 }
 
 static Status
-FakeKeyboardEnable (KdKeyboardInfo *ki)
+FakeKeyboardEnable(KdKeyboardInfo * ki)
 {
     return Success;
 }
 
 static void
-FakeKeyboardDisable (KdKeyboardInfo *ki)
+FakeKeyboardDisable(KdKeyboardInfo * ki)
 {
     return;
 }
 
 static void
-FakeKeyboardFini (KdKeyboardInfo *ki)
+FakeKeyboardFini(KdKeyboardInfo * ki)
 {
 }
 
 static void
-FakeKeyboardLeds (KdKeyboardInfo *ki, int leds)
+FakeKeyboardLeds(KdKeyboardInfo * ki, int leds)
 {
 }
 
 static void
-FakeKeyboardBell (KdKeyboardInfo *ki, int volume, int frequency, int duration)
+FakeKeyboardBell(KdKeyboardInfo * ki, int volume, int frequency, int duration)
 {
 }
 

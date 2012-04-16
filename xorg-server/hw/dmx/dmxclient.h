@@ -51,19 +51,21 @@ typedef unsigned long Mask64;
 typedef unsigned long Atom64;
 typedef unsigned long VisualID64;
 typedef unsigned long Time64;
+
 #define XID           XID64
 #define Mask          Mask64
 #define Atom          Atom64
 #define VisualID      VisualID64
 #define Time          Time64
-typedef XID           Window64;
-typedef XID           Drawable64;
-typedef XID           Font64;
-typedef XID           Pixmap64;
-typedef XID           Cursor64;
-typedef XID           Colormap64;
-typedef XID           GContext64;
-typedef XID           KeySym64;
+typedef XID Window64;
+typedef XID Drawable64;
+typedef XID Font64;
+typedef XID Pixmap64;
+typedef XID Cursor64;
+typedef XID Colormap64;
+typedef XID GContext64;
+typedef XID KeySym64;
+
 #define Window        Window64
 #define Drawable      Drawable64
 #define Font          Font64
@@ -94,7 +96,7 @@ typedef XID           KeySym64;
 #include <X11/extensions/XI.h>
 
 /* Always include these, since we query them even if we don't export XINPUT. */
-#include <X11/extensions/XInput.h> /* For XDevice */
+#include <X11/extensions/XInput.h>      /* For XDevice */
 #include <X11/extensions/Xext.h>
 
 #undef GC

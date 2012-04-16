@@ -29,4 +29,4 @@
 extern _X_EXPORT void config_init(void);
 extern _X_EXPORT void config_fini(void);
 
-#endif /* HOTPLUG_H */
+#endif                          /* HOTPLUG_H */

@@ -27,10 +27,12 @@
 typedef struct _DeviceEvent DeviceEvent;
 typedef struct _DeviceChangedEvent DeviceChangedEvent;
 typedef struct _TouchOwnershipEvent TouchOwnershipEvent;
+
 #if XFreeXDGA
 typedef struct _DGAEvent DGAEvent;
 #endif
 typedef struct _RawDeviceEvent RawDeviceEvent;
+
 #ifdef XQUARTZ
 typedef struct _XQuartzEvent XQuartzEvent;
 #endif

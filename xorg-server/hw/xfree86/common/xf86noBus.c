@@ -51,7 +51,7 @@ xf86ClaimNoSlot(DriverPtr drvp, int chipset, GDevPtr dev, Bool active)
 {
     EntityPtr p;
     int num;
-    
+
     num = xf86AllocateEntity();
     p = xf86Entities[num];
     p->driver = drvp;

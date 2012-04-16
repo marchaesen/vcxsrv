@@ -48,5 +48,4 @@ extern int __glXUnsupportedPrivateRequest;
 extern int __glXBadFBConfig;
 extern int __glXBadPbuffer;
 
-
 #endif

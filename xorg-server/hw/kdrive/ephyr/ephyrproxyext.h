@@ -28,7 +28,6 @@
 #ifndef __EPHYRPROXYEXT_H__
 #define __EPHYRPROXYEXT_H__
 
-Bool ephyrProxyExtensionInit (const char *a_extension_name) ;
+Bool ephyrProxyExtensionInit(const char *a_extension_name);
 
 #endif /*__EPHYRPROXYEXT_H__*/
-

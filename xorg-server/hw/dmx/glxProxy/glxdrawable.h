@@ -48,11 +48,10 @@ typedef struct {
     DrawablePtr pDraw;
     int type;
     Bool idExists;
-    int refcnt;                         /* contexts bound */
+    int refcnt;                 /* contexts bound */
     __GLXFBConfig *pGlxFBConfig;
     ScreenPtr pScreen;
 } __glXWindow;
-
 
 typedef struct {
     __GLXscreenInfo *pGlxScreen;
@@ -63,4 +62,4 @@ typedef struct {
     XID *be_xids;
 } __glXPbuffer;
 
-#endif /* !__GLX_drawable_h__ */
+#endif                          /* !__GLX_drawable_h__ */
