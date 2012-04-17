@@ -350,11 +350,11 @@ references into filename form.
     </para><para>
 A null or empty <parameter>name</parameter> indicates that the default configuration file should
 be used; which file this references can be overridden with the
-FC_CONFIG_FILE environment variable.  Next, if the name starts with <parameter>~</parameter>, it
+FONTCONFIG_FILE environment variable.  Next, if the name starts with <parameter>~</parameter>, it
 refers to a file in the current users home directory.  Otherwise if the name
 doesn't start with '/', it refers to a file in the default configuration
 directory; the built-in default directory can be overridden with the
-FC_CONFIG_DIR environment variable.
+FONTCONFIG_PATH environment variable.
 @@
 
 @RET@		FcBool

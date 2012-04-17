@@ -609,6 +609,9 @@ FcDirCacheMapFd (int fd, struct stat *fd_stat, struct stat *dir_stat)
     {
 #if defined(HAVE_MMAP) || defined(__CYGWIN__)
 	cache = mmap (0, fd_stat->st_size, PROT_READ, MAP_SHARED, fd, 0);
+#ifdef HAVE_POSIX_FADVISE
+	posix_fadvise (fd, 0, fd_stat->st_size, POSIX_FADV_WILLNEED);
+#endif
 	if (cache == MAP_FAILED)
 	    cache = NULL;
 #elif defined(_WIN32)
