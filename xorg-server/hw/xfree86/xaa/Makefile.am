@@ -10,7 +10,7 @@ POLYSEG = s-xaaLine.c s-xaaDashLine.c
 
 if XAA
 
-libxaa_la_LDFLAGS = -module -avoid-version
+libxaa_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 if COMPOSITE
 libxaa_la_LIBADD = $(top_builddir)/miext/cw/libcw.la
 endif

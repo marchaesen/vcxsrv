@@ -699,11 +699,21 @@ dnl DDX Detection... Yes, it's ugly to have it here... but we need to
 dnl handle this early on so that we don't require unsupported extensions
 case $host_os in
 	cygwin*)
+		CONFIG_DBUS_API=no
+		CONFIG_HAL=no
+		CONFIG_UDEV=no
 		DGA=no
 		DRI2=no
+		INT10MODULE=no
+		PCI=no
+		VGAHW=no
+		VBE=no
+		XAA=no
+		XF86UTILS=no
 		XF86VIDMODE=no
 		XSELINUX=no
 		XV=no
+		SYMBOL_VISIBILITY=no
 		;;
 	darwin*)
 		PCI=no
@@ -759,7 +769,7 @@ VIDEOPROTO="videoproto"
 COMPOSITEPROTO="compositeproto >= 0.4"
 RECORDPROTO="recordproto >= 1.13.99.1"
 SCRNSAVERPROTO="scrnsaverproto >= 1.1"
-RESOURCEPROTO="resourceproto"
+RESOURCEPROTO="resourceproto >= 1.2.0"
 DRIPROTO="xf86driproto >= 2.1.0"
 DRI2PROTO="dri2proto >= 2.6"
 XINERAMAPROTO="xineramaproto"
@@ -1060,6 +1070,7 @@ if test "x$GLX_USE_TLS" = xyes ; then
 	GLX_SYS_LIBS="$GLX_SYS_LIBS -lpthread"
 fi
 AC_SUBST([GLX_DEFINES])
+AC_SUBST([GLX_SYS_LIBS])
 
 AM_CONDITIONAL(DRI, test "x$DRI" = xyes)
 if test "x$DRI" = xyes; then
@@ -1461,7 +1472,21 @@ AC_SUBST([UTILS_SYS_LIBS])
 # Some platforms require extra flags to do this.   libtool should set the
 # necessary flags for each platform when -export-dynamic is passed to it.
 LD_EXPORT_SYMBOLS_FLAG="-export-dynamic"
+LD_NO_UNDEFINED_FLAG=
+XORG_DRIVER_LIBS=
+case "$host_os" in
+    cygwin*)
+	LD_EXPORT_SYMBOLS_FLAG="-Wl,--export-all,--out-implib,lib\$@.a"
+	LD_NO_UNDEFINED_FLAG="-no-undefined -Wl,\$(top_builddir)/hw/xfree86/libXorg.exe.a"
+	XORG_DRIVER_LIBS="-lXorg.exe -L\${moduledir} -lshadow -lfb -no-undefined"
+	CYGWIN=yes
+	;;
+esac
 AC_SUBST([LD_EXPORT_SYMBOLS_FLAG])
+AC_SUBST([LD_NO_UNDEFINED_FLAG])
+AC_SUBST([XORG_DRIVER_LIBS])
+AM_CONDITIONAL([CYGWIN], [test x"$CYGWIN" = xyes])
+AM_CONDITIONAL([NO_UNDEFINED], [test x"$LD_NO_UNDEFINED_FLAG" != x])
 
 dnl Imake defines SVR4 on SVR4 systems, and many files check for it, so
 dnl we need to replicate that here until those can all be fixed

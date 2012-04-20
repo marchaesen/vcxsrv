@@ -61,19 +61,9 @@
 struct vbo_context {
    struct gl_client_array currval[VBO_ATTRIB_MAX];
    
-   /* These point into the above.  TODO: remove. 
-    */
-   struct gl_client_array *legacy_currval;
-   struct gl_client_array *generic_currval;
-   struct gl_client_array *mat_currval;
-
    /** Map VERT_ATTRIB_x to VBO_ATTRIB_y */
    GLuint map_vp_none[VERT_ATTRIB_MAX];
    GLuint map_vp_arb[VERT_ATTRIB_MAX];
-
-   GLfloat *current[VBO_ATTRIB_MAX]; /* points into ctx->Current, ctx->Light.Material */
-   GLfloat CurrentFloatEdgeFlag;
-
 
    struct vbo_exec_context exec;
 #if FEATURE_dlist

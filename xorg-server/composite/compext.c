@@ -497,6 +497,28 @@ SProcCompositeDispatch(ClientPtr client)
         return BadRequest;
 }
 
+/** @see GetDefaultBytes */
+static void
+GetCompositeClientWindowBytes(pointer value, XID id, ResourceSizePtr size)
+{
+    WindowPtr window = value;
+
+    /* Currently only pixmap bytes are reported to clients. */
+    size->resourceSize = 0;
+
+    /* Calculate pixmap reference sizes. */
+    size->pixmapRefSize = 0;
+    if (window->redirectDraw != RedirectDrawNone)
+    {
+        SizeType pixmapSizeFunc = GetResourceTypeSizeFunc(RT_PIXMAP);
+        ResourceSizeRec pixmapSize = { 0, 0 };
+        ScreenPtr screen = window->drawable.pScreen;
+        PixmapPtr pixmap = screen->GetWindowPixmap(window);
+        pixmapSizeFunc(pixmap, pixmap->drawable.id, &pixmapSize);
+        size->pixmapRefSize += pixmapSize.pixmapRefSize;
+    }
+}
+
 void
 CompositeExtensionInit(void)
 {
@@ -528,6 +550,9 @@ CompositeExtensionInit(void)
         (FreeCompositeClientWindow, "CompositeClientWindow");
     if (!CompositeClientWindowType)
         return;
+
+    SetResourceTypeSizeFunc(CompositeClientWindowType,
+                            GetCompositeClientWindowBytes);
 
     CompositeClientSubwindowsType = CreateNewResourceType
         (FreeCompositeClientSubwindows, "CompositeClientSubwindows");

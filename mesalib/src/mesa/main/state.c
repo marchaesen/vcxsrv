@@ -473,12 +473,13 @@ _mesa_update_state_locked( struct gl_context *ctx )
    /* Determine which state flags effect vertex/fragment program state */
    if (ctx->FragmentProgram._MaintainTexEnvProgram) {
       prog_flags |= (_NEW_BUFFERS | _NEW_TEXTURE | _NEW_FOG |
-		     _NEW_ARRAY | _NEW_LIGHT | _NEW_POINT | _NEW_RENDERMODE |
-		     _NEW_PROGRAM | _NEW_FRAG_CLAMP | _NEW_COLOR);
+		     _NEW_VARYING_VP_INPUTS | _NEW_LIGHT | _NEW_POINT |
+		     _NEW_RENDERMODE | _NEW_PROGRAM | _NEW_FRAG_CLAMP |
+		     _NEW_COLOR);
    }
    if (ctx->VertexProgram._MaintainTnlProgram) {
-      prog_flags |= (_NEW_ARRAY | _NEW_TEXTURE | _NEW_TEXTURE_MATRIX |
-                     _NEW_TRANSFORM | _NEW_POINT |
+      prog_flags |= (_NEW_VARYING_VP_INPUTS | _NEW_TEXTURE |
+                     _NEW_TEXTURE_MATRIX | _NEW_TRANSFORM | _NEW_POINT |
                      _NEW_FOG | _NEW_LIGHT |
                      _MESA_NEW_NEED_EYE_COORDS);
    }
@@ -580,8 +581,6 @@ _mesa_update_state_locked( struct gl_context *ctx )
    ctx->NewState = 0;
    ctx->Driver.UpdateState(ctx, new_state);
    ctx->Array.NewState = 0;
-   if (!ctx->Array.RebindArrays)
-      ctx->Array.RebindArrays = (new_state & (_NEW_ARRAY | _NEW_PROGRAM)) != 0;
 }
 
 
@@ -626,7 +625,16 @@ _mesa_set_varying_vp_inputs( struct gl_context *ctx,
 {
    if (ctx->varying_vp_inputs != varying_inputs) {
       ctx->varying_vp_inputs = varying_inputs;
-      ctx->NewState |= _NEW_ARRAY;
+
+      /* Only the fixed-func generated programs need to use the flag
+       * and the fixed-func fragment program uses it only if there is also
+       * a fixed-func vertex program, so this only depends on the latter.
+       *
+       * It's okay to check the VP pointer here, because this is called after
+       * _mesa_update_state in the vbo module. */
+      if (ctx->VertexProgram._TnlProgram) {
+         ctx->NewState |= _NEW_VARYING_VP_INPUTS;
+      }
       /*printf("%s %x\n", __FUNCTION__, varying_inputs);*/
    }
 }

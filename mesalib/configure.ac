@@ -708,7 +708,7 @@ default_driver="xlib"
 case "$host_os" in
 linux*)
     case "$host_cpu" in
-    i*86|x86_64|powerpc*|sparc*) default_driver="dri";;
+    i*86|x86_64|powerpc*|sparc*|ia64*) default_driver="dri";;
     esac
     ;;
 *freebsd* | dragonfly* | *netbsd*)
@@ -1993,6 +1993,7 @@ dnl Substitute the config
 AC_CONFIG_FILES([configs/autoconf
 		src/gallium/drivers/Makefile
 		src/gallium/drivers/r300/Makefile
+		src/gallium/drivers/r600/Makefile
 		src/gbm/Makefile
 		src/gbm/main/gbm.pc
 		src/egl/drivers/Makefile
@@ -2004,6 +2005,7 @@ AC_CONFIG_FILES([configs/autoconf
 		src/egl/wayland/wayland-egl/Makefile
 		src/egl/wayland/wayland-egl/wayland-egl.pc
 		src/egl/wayland/wayland-drm/Makefile
+		src/glsl/tests/Makefile
 		src/glx/Makefile
 		src/mapi/shared-glapi/Makefile
 		src/gtest/Makefile

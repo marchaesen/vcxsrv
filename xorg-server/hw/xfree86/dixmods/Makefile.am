@@ -30,35 +30,39 @@ INCLUDES = @XORG_INCS@ \
            -I$(top_srcdir)/miext/shadow \
            -I$(top_srcdir)/glx
 
-libdbe_la_LDFLAGS = -module -avoid-version
+libdbe_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libdbe_la_LIBADD = $(top_builddir)/dbe/libdbe.la
 libdbe_la_SOURCES = dbemodule.c
 
-libfb_la_LDFLAGS = -module -avoid-version
+libfb_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libfb_la_LIBADD = $(top_builddir)/fb/libfb.la
 libfb_la_SOURCES = $(top_builddir)/fb/fbcmap_mi.c fbmodule.c
 libfb_la_CFLAGS = $(AM_CFLAGS)
 
-libwfb_la_LDFLAGS = -module -avoid-version
+libwfb_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libwfb_la_LIBADD = $(top_builddir)/fb/libwfb.la
 libwfb_la_SOURCES = $(top_builddir)/fb/fbcmap_mi.c fbmodule.c
 libwfb_la_CFLAGS = $(AM_CFLAGS) -DFB_ACCESS_WRAPPER
 
-libglx_la_LDFLAGS = -module -avoid-version
+libglx_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
+libglx_la_LIBADD = $(top_builddir)/glx/libglx.la $(GLX_SYS_LIBS)
 if AIGLX_DRI_LOADER
-GLXDRI_LIBRARY = $(top_builddir)/glx/libglxdri.la
+libglx_la_LIBADD += $(top_builddir)/glx/libglxdri.la
+if NO_UNDEFINED
+libglx_la_LIBADD += ../dri/libdri.la ../dri2/libdri2.la
 endif
-libglx_la_LIBADD = \
-	$(top_builddir)/glx/libglx.la \
-	$(GLXDRI_LIBRARY)
+endif
 libglx_la_SOURCES = glxmodule.c
 
-librecord_la_LDFLAGS = -module -avoid-version
+librecord_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 librecord_la_LIBADD = $(top_builddir)/record/librecord.la
 librecord_la_SOURCES = recordmod.c
 
-libshadow_la_LDFLAGS = -module -avoid-version
+libshadow_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libshadow_la_LIBADD = $(top_builddir)/miext/shadow/libshadow.la
+if NO_UNDEFINED
+libshadow_la_LIBADD += libfb.la
+endif
 libshadow_la_SOURCES = shmodule.c
 
 libdixmods_la_SOURCES = $(top_srcdir)/mi/miinitext.c

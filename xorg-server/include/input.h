@@ -563,8 +563,8 @@ extern void TouchAddListener(TouchPointInfoPtr ti, XID resource,
 extern Bool TouchRemoveListener(TouchPointInfoPtr ti, XID resource);
 extern void TouchSetupListeners(DeviceIntPtr dev, TouchPointInfoPtr ti,
                                 InternalEvent *ev);
-extern Bool TouchEnsureSprite(DeviceIntPtr sourcedev, TouchPointInfoPtr ti,
-                              InternalEvent *ev);
+extern Bool TouchBuildSprite(DeviceIntPtr sourcedev, TouchPointInfoPtr ti,
+                             InternalEvent *ev);
 extern Bool TouchBuildDependentSpriteTrace(DeviceIntPtr dev, SpritePtr sprite);
 extern int TouchConvertToPointerEvent(const InternalEvent *ev,
                                       InternalEvent *motion,
@@ -572,6 +572,8 @@ extern int TouchConvertToPointerEvent(const InternalEvent *ev,
 extern int TouchGetPointerEventType(const InternalEvent *ev);
 extern void TouchRemovePointerGrab(DeviceIntPtr dev);
 extern void TouchListenerGone(XID resource);
+extern int TouchListenerAcceptReject(DeviceIntPtr dev, TouchPointInfoPtr ti,
+                                     int listener, int mode);
 extern int TouchAcceptReject(ClientPtr client, DeviceIntPtr dev, int mode,
                              uint32_t touchid, Window grab_window, XID *error);
 

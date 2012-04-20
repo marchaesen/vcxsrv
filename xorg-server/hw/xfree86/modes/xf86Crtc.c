@@ -44,7 +44,9 @@
 #include "X11/Xatom.h"
 #include "picturestr.h"
 
+#ifdef XV
 #include "xf86xv.h"
+#endif
 
 #define NO_OUTPUT_DEFAULT_WIDTH 1024
 #define NO_OUTPUT_DEFAULT_HEIGHT 768

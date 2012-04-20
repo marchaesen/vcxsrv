@@ -328,6 +328,9 @@ FcDirCacheUnlink (const FcChar8 *dir, FcConfig *config);
 FcPublic FcBool
 FcDirCacheValid (const FcChar8 *cache_file);
 
+FcPublic FcBool
+FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose);
+
 /* fccfg.c */
 FcPublic FcChar8 *
 FcConfigHome (void);

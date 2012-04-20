@@ -591,6 +591,29 @@ PictureParseCmapPolicy(const char *name)
         return PictureCmapPolicyInvalid;
 }
 
+/** @see GetDefaultBytes */
+static void
+GetPictureBytes(pointer value, XID id, ResourceSizePtr size)
+{
+    PicturePtr picture = value;
+
+    /* Currently only pixmap bytes are reported to clients. */
+    size->resourceSize = 0;
+
+    size->refCnt = picture->refcnt;
+
+    /* Calculate pixmap reference sizes. */
+    size->pixmapRefSize = 0;
+    if (picture->pDrawable && (picture->pDrawable->type == DRAWABLE_PIXMAP))
+    {
+        SizeType pixmapSizeFunc = GetResourceTypeSizeFunc(RT_PIXMAP);
+        ResourceSizeRec pixmapSize = { 0, 0, 0 };
+        PixmapPtr pixmap = (PixmapPtr)picture->pDrawable;
+        pixmapSizeFunc(pixmap, pixmap->drawable.id, &pixmapSize);
+        size->pixmapRefSize += pixmapSize.pixmapRefSize;
+    }
+}
+
 Bool
 PictureInit(ScreenPtr pScreen, PictFormatPtr formats, int nformats)
 {
@@ -602,6 +625,7 @@ PictureInit(ScreenPtr pScreen, PictFormatPtr formats, int nformats)
         PictureType = CreateNewResourceType(FreePicture, "PICTURE");
         if (!PictureType)
             return FALSE;
+        SetResourceTypeSizeFunc(PictureType, GetPictureBytes);
         PictFormatType = CreateNewResourceType(FreePictFormat, "PICTFORMAT");
         if (!PictFormatType)
             return FALSE;

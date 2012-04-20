@@ -566,7 +566,7 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #error "IWMMXT is only available on ARM"
 #endif
 #if defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 5))
-#error "Need GCC >= 4.6 for IWMMXT intrinsics"
+#error "Need GCC >= 4.5 for IWMMXT intrinsics"
 #endif
 #include <mmintrin.h>
 int main () {

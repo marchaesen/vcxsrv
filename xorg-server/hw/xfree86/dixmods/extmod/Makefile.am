@@ -21,7 +21,7 @@ INCLUDES = @XORG_INCS@ \
            -I$(top_srcdir)/hw/xfree86/loader \
            -I$(top_srcdir)/miext/shadow
 
-libextmod_la_LDFLAGS = -module -avoid-version
+libextmod_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libextmod_la_SOURCES = modinit.c \
                        modinit.h \
                        $(DGA_SRCS) \

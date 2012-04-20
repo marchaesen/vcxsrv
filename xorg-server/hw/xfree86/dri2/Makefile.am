@@ -6,7 +6,8 @@ libdri2_la_CFLAGS = \
 	-I$(top_srcdir)/hw/xfree86/common \
 	-I$(top_srcdir)/hw/xfree86/os-support/bus
 
-libdri2_la_LDFLAGS = -module -avoid-version @LIBDRM_LIBS@
+libdri2_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
+libdri2_la_LIBADD = @LIBDRM_LIBS@
 libdri2_ladir = $(moduledir)/extensions
 libdri2_la_SOURCES = \
 	dri2.c \
