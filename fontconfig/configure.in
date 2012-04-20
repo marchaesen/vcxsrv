@@ -150,7 +150,11 @@ AC_DEFINE_UNQUOTED(USE_REGEX,$use_regex,[Use regex.])
 AC_ARG_WITH(libiconv,
 	[AC_HELP_STRING([--with-libiconv=DIR],
 			[Use libiconv in DIR])],
-	[libiconv_prefix=$withval],
+	[if test "x$withval" = "xyes"; then
+		libiconv_prefix=$prefix
+	 else
+		libiconv_prefix=$withval
+	 fi],
 	[libiconv_prefix=auto])
 AC_ARG_WITH(libiconv-includes,
 	[AC_HELP_STRING([--with-libiconv-includes=DIR],
@@ -163,33 +167,33 @@ AC_ARG_WITH(libiconv-lib,
 	[libiconv_lib=$withval],
 	[libiconv_lib=auto])
 
-# if none of libiconv,libiconv-includes,libiconv-libs are specified
-if test "$libiconv_prefix" != "auto" -o "$libiconv_includes" != "auto" -o "$libiconv_lib" != "auto"; then
-	if test "$libiconv_includes" != "auto" -a -r ${libiconv_includes}/iconv.h; then
-		libiconv_cflags="-I${libiconv_includes}"
-	elif test "$libiconv_prefix" != "auto" -a -r ${libiconv_prefix}/include/iconv.h; then
-		libiconv_cflags="-I${libiconv_prefix}/include"
+# if no libiconv,libiconv-includes,libiconv-lib are specified,
+# libc's iconv has a priority.
+if test "$libiconv_includes" != "auto" -a -r ${libiconv_includes}/iconv.h; then
+	libiconv_cflags="-I${libiconv_includes}"
+elif test "$libiconv_prefix" != "auto" -a -r ${libiconv_prefix}/include/iconv.h; then
+	libiconv_cflags="-I${libiconv_prefix}/include"
+else
+	libiconv_cflags=""
+fi
+libiconv_libs=""
+if test "x$libiconv_cflags" != "x"; then
+	if test "$libiconv_lib" != "auto" -a -d ${libiconv_lib}; then
+		libiconv_libs="-L${libiconv_lib} -liconv"
+	elif test "$libiconv_prefix" != "auto" -a -d ${libiconv_prefix}/lib; then
+		libiconv_libs="-L${libiconv_prefix}/lib -liconv"
 	else
-		libiconv_cflags=""
-	fi
-	if test "$libiconv_lib" != "auto"; then
-		libiconv_lib="-L${libiconv_lib} -liconv"
-	elif test "$libiconv_prefix" != "auto"; then
-		libiconv_lib="-L${libiconv_prefix}/lib -liconv"
-	elif test "x$libiconv_cflags" != "x"; then
-		libiconv_lib="-liconv"
-	else
-		libiconv_lib=""
+		libiconv_libs="-liconv"
 	fi
 fi
 
 use_iconv=0
 AC_MSG_CHECKING([for a usable iconv])
-if test "x$libiconv_cflags" != "x" -o "x$libiconv_lib" != "x"; then
+if test "x$libiconv_cflags" != "x" -o "x$libiconv_libs" != "x"; then
 	iconvsaved_CFLAGS="$CFLAGS"
 	iconvsaved_LIBS="$LIBS"
 	CFLAGS="$CFLAGS $libiconv_cflags"
-	LIBS="$LIBS $libiconv_lib"
+	LIBS="$LIBS $libiconv_libs"
 
 	AC_TRY_LINK([#include <iconv.h>],
 		[iconv_open ("from", "to");],
@@ -200,7 +204,7 @@ if test "x$libiconv_cflags" != "x" -o "x$libiconv_lib" != "x"; then
 	CFLAGS="$iconvsaved_CFLAGS"
 	LIBS="$iconvsaved_LIBS"
 	ICONV_CFLAGS="$libiconv_cflags"
-	ICONV_LIBS="$libiconv_lib"
+	ICONV_LIBS="$libiconv_libs"
 fi
 if test "x$use_iconv" = "x0"; then
 	AC_TRY_LINK([#include <iconv.h>],

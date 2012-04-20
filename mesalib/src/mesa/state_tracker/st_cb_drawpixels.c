@@ -66,6 +66,7 @@
 #include "util/u_inlines.h"
 #include "util/u_math.h"
 #include "util/u_tile.h"
+#include "util/u_upload_mgr.h"
 #include "cso_cache/cso_context.h"
 
 
@@ -554,7 +555,15 @@ draw_quad(struct gl_context *ctx, GLfloat x0, GLfloat y0, GLfloat z,
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   GLfloat verts[4][3][4]; /* four verts, three attribs, XYZW */
+   GLfloat (*verts)[3][4]; /* four verts, three attribs, XYZW */
+   struct pipe_resource *buf = NULL;
+   unsigned offset;
+
+   u_upload_alloc(st->uploader, 0, 4 * sizeof(verts[0]), &offset, &buf,
+		  (void**)&verts);
+   if (!buf) {
+      return;
+   }
 
    /* setup vertex data */
    {
@@ -618,22 +627,12 @@ draw_quad(struct gl_context *ctx, GLfloat x0, GLfloat y0, GLfloat z,
       }
    }
 
-   {
-      struct pipe_resource *buf;
-
-      /* allocate/load buffer object with vertex data */
-      buf = pipe_buffer_create(pipe->screen,
-			       PIPE_BIND_VERTEX_BUFFER,
-			       PIPE_USAGE_STATIC,
-                               sizeof(verts));
-      pipe_buffer_write(st->pipe, buf, 0, sizeof(verts), verts);
-
-      util_draw_vertex_buffer(pipe, st->cso_context, buf, 0,
-                              PIPE_PRIM_QUADS,
-                              4,  /* verts */
-                              3); /* attribs/vert */
-      pipe_resource_reference(&buf, NULL);
-   }
+   u_upload_unmap(st->uploader);
+   util_draw_vertex_buffer(pipe, st->cso_context, buf, offset,
+			   PIPE_PRIM_QUADS,
+			   4,  /* verts */
+			   3); /* attribs/vert */
+   pipe_resource_reference(&buf, NULL);
 }
 
 

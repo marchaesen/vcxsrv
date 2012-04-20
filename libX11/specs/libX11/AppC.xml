@@ -37,9 +37,9 @@ and should use minor opcodes to distinguish the requests.
 <!-- .LP -->
 The symbols and macros used for writing stubs to Xlib are listed in
 <filename class="headerfile">&lt;X11/Xlibint.h&gt;</filename>.
-<!-- .SH -->
-Basic Protocol Support Routines
 </para>
+<sect1 id="Basic_Protocol_Support_Routines">
+<title>Basic Protocol Support Routines</title>
 <para>
 The basic protocol requests for extensions are 
 <xref linkend='XQueryExtension' xrefstyle='select: title'/>
@@ -202,9 +202,10 @@ The
 <xref linkend='XFreeExtensionList' xrefstyle='select: title'/>
 function frees the memory allocated by 
 <xref linkend='XListExtensions' xrefstyle='select: title'/>.
-<!-- .SH -->
-Hooking into Xlib 
 </para>
+</sect1>
+<sect1 id="Hooking_into_Xlib">
+<title>Hooking into Xlib</title>
 <para>
 <!-- .LP -->
 These functions allow you to hook into the library.  
@@ -350,9 +351,9 @@ function allocates the
 structure, bumps the extension number count,
 and chains the extension onto the extension list.
 (This permits extensions to Xlib without requiring server extensions.)
-<!-- .SH -->
-Hooks into the Library
 </para>
+<sect2 id="Hooks_into_the_Library">
+<title>Hooks into the Library</title>
 <para>
 <!-- .LP -->
 These functions allow you to define procedures that are to be
@@ -1536,9 +1537,10 @@ The data argument specifies a portion of the outgoing data buffer,
 and its length in bytes is specified by the len argument.
 Your procedure must not alter the contents of the data and must not
 do additional protocol requests to the same display.
-<!-- .SH -->
-Hooks onto Xlib Data Structures
 </para>
+</sect2>
+<sect2 id="Hooks_onto_Xlib_Data_Structures">
+<title>Hooks onto Xlib Data Structures</title>
 <para>
 <!-- .LP -->
 Various Xlib data structures have provisions for extension procedures
@@ -1817,9 +1819,11 @@ To correctly handle automatic reuse of resource IDs, you must call
 <xref linkend='XAllocIDs' xrefstyle='select: title'/>
 when requesting multiple resource IDs.  This call might generate
 protocol requests.
-<!-- .SH -->
-GC Caching
 </para>
+</sect2>
+</sect1>
+<sect1 id="GC_Caching">
+<title>GC Caching</title>
 <para>
 <!-- .LP -->
 GCs are cached by the library to allow merging of independent change
@@ -1922,12 +1926,11 @@ Specifies the GC.
   </listitem>
   </varlistentry>
 </variablelist>
-<para>
 <!-- .LP -->
 <!-- .eM -->
-<!-- .SH -->
-Graphics Batching
-</para>
+</sect1>
+<sect1 id="Graphics_Batching">
+<title>Graphics Batching</title>
 <para>
 <!-- .LP -->
 If you extend X to add more poly graphics primitives, you may be able to
@@ -2010,9 +2013,10 @@ Note that
 <xref linkend='FlushGC' xrefstyle='select: title'/>
 is called <emphasis remap='I'>before</emphasis> picking up the value of last_req,
 because it may modify this field.
-<!-- .SH -->
-Writing Extension Stubs
 </para>
+</sect1>
+<sect1 id="Writing_Extension_Stubs">
+<title>Writing Extension Stubs</title>
 <para>
 <!-- .LP -->
 All X requests always contain the length of the request,
@@ -2023,10 +2027,11 @@ Some servers may not support single requests of such a length.
 The value of dpy-&gt;max_request_size contains the maximum length as
 defined by the server implementation.
 For further information,
-see ``X Window System Protocol.''
-<!-- .SH -->
-Requests, Replies, and Xproto.h
+see <olink targetdoc='x11protocol' targetptr='Maximum-request-length'
+><citetitle>X Window System Protocol</citetitle></olink>.
 </para>
+<sect2 id="Requests_Replies_and_Xproto.h">
+<title>Requests, Replies, and Xproto.h</title>
 <para>
 <!-- .LP -->
 The 
@@ -2068,9 +2073,10 @@ that looks similar to this:
 In your extension header file, 
 this will be a minor opcode, 
 instead of a major opcode.
-<!-- .SH -->
-Request Format
 </para>
+</sect2>
+<sect2 id="Request_Format">
+<title>Request Format</title>
 <para>
 <!-- .LP -->
 Every request contains an 8-bit major opcode and a 16-bit length field
@@ -2269,9 +2275,10 @@ Instead, they use the
 <structname>xGenericReply</structname>
 structure, which contains only a type, length,
 and sequence number (and sufficient padding to make it 32 bytes long).
-<!-- .SH -->
-Starting to Write a Stub Procedure
 </para>
+</sect2>
+<sect2 id="Starting_to_Write_a_Stub_Procedure">
+<title>Starting to Write a Stub Procedure</title>
 <para>
 <!-- .LP -->
 An Xlib stub procedure should start like this:
@@ -2299,9 +2306,10 @@ The following is an example:
 <programlisting>
 xDoSomethingReply rep;
 </programlisting>
-<!-- .SH -->
-Locking Data Structures
 </para>
+</sect2>
+<sect2 id="Locking_Data_Structures">
+<title>Locking Data Structures</title>
 <para>
 <!-- .LP -->
 To lock the display structure for systems that
@@ -2343,12 +2351,11 @@ Specifies the connection to the X server.
   </listitem>
   </varlistentry>
 </variablelist>
-<para>
 <!-- .LP -->
 <!-- .eM -->
-<!-- .SH -->
-Sending the Protocol Request and Arguments
-</para>
+</sect2>
+<sect2 id="Sending_the_Protocol_Request_and_Arguments">
+<title>Sending the Protocol Request and Arguments</title>
 <para>
 <!-- .LP -->
 After the variable declarations, 
@@ -2462,9 +2469,10 @@ which is the same as
 except that it takes an additional argument (the number of
 extra bytes to allocate in the output buffer after the request structure).  
 This number should always be a multiple of four.
-<!-- .SH -->
-Variable Length Arguments
 </para>
+</sect2>
+<sect2 id="Variable_Length_Arguments">
+<title>Variable Length Arguments</title>
 <para>
 <!-- .LP -->
 Some protocol requests take additional variable-length data that
@@ -2544,9 +2552,10 @@ copying it into the output buffer (which would later be flushed
 anyway by the following call on 
 <xref linkend='_XReply' xrefstyle='select: title'/>),
 it is faster.
-<!-- .SH -->
-Replies
 </para>
+</sect2>
+<sect2 id="Replies">
+<title>Replies</title>
 <para>
 <!-- .LP -->
 If the protocol request has a reply, 
@@ -2995,9 +3004,10 @@ reads and discards up to three additional pad bytes.
 Each protocol request is a little different. 
 For further information,
 see the Xlib sources for examples.
-<!-- .SH -->
-Synchronous Calling
 </para>
+</sect2>
+<sect2 id="Synchronous_Calling">
+<title>Synchronous Calling</title>
 <para>
 <!-- .LP -->
 Each procedure should have a call, just before returning to the user, 
@@ -3008,9 +3018,10 @@ If synchronous mode is enabled (see
 the request is sent immediately.
 The library, however, waits until any error the procedure could generate
 at the server has been handled.
-<!-- .SH -->
-Allocating and Deallocating Memory
 </para>
+</sect2>
+<sect2 id="Allocating_and_Deallocating_Memory">
+<title>Allocating and Deallocating Memory</title>
 <para>
 <!-- .LP -->
 To support the possible reentry of these procedures, 
@@ -3181,9 +3192,10 @@ Specifies the size of the buffer.
 <!-- .eM -->
 You must pass back the same pointer and size that were returned by
 <xref linkend='_XAllocTemp' xrefstyle='select: title'/>.
-<!-- .SH -->
-Portability Considerations
 </para>
+</sect2>
+<sect2 id="Portability_Considerations">
+<title>Portability Considerations</title>
 <para>
 <!-- .LP -->
 Many machine architectures, 
@@ -3252,9 +3264,10 @@ The
 <function>PackData</function>
 macro is a half-hearted attempt to deal with the possibility of 32 bit shorts. 
 However, much more work is needed to make this work properly.
-<!-- .SH -->
-Deriving the Correct Extension Opcode
 </para>
+</sect2>
+<sect2 id="Deriving_the_Correct_Extension_Opcode">
+<title>Deriving the Correct Extension Opcode</title>
 <para>
 <!-- .LP -->
 The remaining problem a writer of an extension stub procedure faces that
@@ -3310,4 +3323,6 @@ structure.
     </para>
   </listitem>
 </itemizedlist>
+</sect2>
+</sect1>
 </appendix>

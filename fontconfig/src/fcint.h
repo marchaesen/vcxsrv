@@ -64,8 +64,10 @@ typedef HRESULT (WINAPI *pfnSHGetFolderPathA)(HWND, int, HANDLE, DWORD, LPSTR);
 extern pfnGetSystemWindowsDirectory pGetSystemWindowsDirectory;
 extern pfnSHGetFolderPathA pSHGetFolderPathA;
 #  define FC_SEARCH_PATH_SEPARATOR ';'
+#  define FC_DIR_SEPARATOR_S       "\\"
 #else
 #  define FC_SEARCH_PATH_SEPARATOR ':'
+#  define FC_DIR_SEPARATOR_S       "/"
 #endif
 
 #define FC_DBG_MATCH	1

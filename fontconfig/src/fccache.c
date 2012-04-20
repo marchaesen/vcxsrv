@@ -1020,6 +1020,97 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
     return FcFalse;
 }
 
+FcBool
+FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose)
+{
+    DIR		*d;
+    struct dirent *ent;
+    FcChar8	*dir_base;
+    FcBool	ret = FcTrue;
+    FcBool	remove;
+    FcCache	*cache;
+    struct stat	target_stat;
+
+    dir_base = FcStrPlus (cache_dir, (FcChar8 *) FC_DIR_SEPARATOR_S);
+    if (!dir_base)
+    {
+	fprintf (stderr, "Fontconfig error: %s: out of memory\n", cache_dir);
+	return FcFalse;
+    }
+    if (access ((char *) cache_dir, W_OK) != 0)
+    {
+	if (verbose || FcDebug () & FC_DBG_CACHE)
+	    printf ("%s: not cleaning %s cache directory\n", cache_dir,
+		    access ((char *) cache_dir, F_OK) == 0 ? "unwritable" : "non-existent");
+	goto bail0;
+    }
+    if (verbose || FcDebug () & FC_DBG_CACHE)
+	printf ("%s: cleaning cache directory\n", cache_dir);
+    d = opendir ((char *) cache_dir);
+    if (!d)
+    {
+	perror ((char *) cache_dir);
+	ret = FcFalse;
+	goto bail0;
+    }
+    while ((ent = readdir (d)))
+    {
+	FcChar8	*file_name;
+	const FcChar8	*target_dir;
+
+	if (ent->d_name[0] == '.')
+	    continue;
+	/* skip cache files for different architectures and */
+	/* files which are not cache files at all */
+	if (strlen(ent->d_name) != 32 + strlen ("-" FC_ARCHITECTURE FC_CACHE_SUFFIX) ||
+	    strcmp(ent->d_name + 32, "-" FC_ARCHITECTURE FC_CACHE_SUFFIX))
+	    continue;
+
+	file_name = FcStrPlus (dir_base, (FcChar8 *) ent->d_name);
+	if (!file_name)
+	{
+	    fprintf (stderr, "Fontconfig error: %s: allocation failure\n", cache_dir);
+	    ret = FcFalse;
+	    break;
+	}
+	remove = FcFalse;
+	cache = FcDirCacheLoadFile (file_name, NULL);
+	if (!cache)
+	{
+	    if (verbose || FcDebug () & FC_DBG_CACHE)
+		printf ("%s: invalid cache file: %s\n", cache_dir, ent->d_name);
+	    remove = FcTrue;
+	}
+	else
+	{
+	    target_dir = FcCacheDir (cache);
+	    if (stat ((char *) target_dir, &target_stat) < 0)
+	    {
+		if (verbose || FcDebug () & FC_DBG_CACHE)
+		    printf ("%s: %s: missing directory: %s \n",
+			    cache_dir, ent->d_name, target_dir);
+		remove = FcTrue;
+	    }
+	}
+	if (remove)
+	{
+	    if (unlink ((char *) file_name) < 0)
+	    {
+		perror ((char *) file_name);
+		ret = FcFalse;
+	    }
+	}
+	FcDirCacheUnload (cache);
+        FcStrFree (file_name);
+    }
+
+    closedir (d);
+  bail0:
+    FcStrFree (dir_base);
+
+    return ret;
+}
+
 /*
  * Hokey little macro trick to permit the definitions of C functions
  * with the same name as CPP macros

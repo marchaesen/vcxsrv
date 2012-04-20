@@ -47,7 +47,7 @@ static GLuint check_size( const GLfloat *attr )
 static void init_legacy_currval(struct gl_context *ctx)
 {
    struct vbo_context *vbo = vbo_context(ctx);
-   struct gl_client_array *arrays = vbo->legacy_currval;
+   struct gl_client_array *arrays = &vbo->currval[VBO_ATTRIB_POS];
    GLuint i;
 
    memset(arrays, 0, sizeof(*arrays) * VERT_ATTRIB_FF_MAX);
@@ -77,7 +77,7 @@ static void init_legacy_currval(struct gl_context *ctx)
 static void init_generic_currval(struct gl_context *ctx)
 {
    struct vbo_context *vbo = vbo_context(ctx);
-   struct gl_client_array *arrays = vbo->generic_currval;
+   struct gl_client_array *arrays = &vbo->currval[VBO_ATTRIB_GENERIC0];
    GLuint i;
 
    memset(arrays, 0, sizeof(*arrays) * VERT_ATTRIB_GENERIC_MAX);
@@ -104,7 +104,8 @@ static void init_generic_currval(struct gl_context *ctx)
 static void init_mat_currval(struct gl_context *ctx)
 {
    struct vbo_context *vbo = vbo_context(ctx);
-   struct gl_client_array *arrays = vbo->mat_currval;
+   struct gl_client_array *arrays =
+      &vbo->currval[VBO_ATTRIB_MAT_FRONT_AMBIENT];
    GLuint i;
 
    ASSERT(NR_MAT_ATTRIBS == MAT_ATTRIB_MAX);
@@ -159,12 +160,6 @@ GLboolean _vbo_CreateContext( struct gl_context *ctx )
        !_ae_create_context( ctx )) {
       return GL_FALSE;
    }
-
-   /* TODO: remove these pointers.
-    */
-   vbo->legacy_currval = &vbo->currval[VBO_ATTRIB_POS];
-   vbo->generic_currval = &vbo->currval[VBO_ATTRIB_GENERIC0];
-   vbo->mat_currval = &vbo->currval[VBO_ATTRIB_MAT_FRONT_AMBIENT];
 
    init_legacy_currval( ctx );
    init_generic_currval( ctx );

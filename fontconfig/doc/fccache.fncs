@@ -66,3 +66,12 @@ This returns the total number of subdirectories in the cache.
 This returns the number of fonts which would be included in the return from
 FcCacheCopySet.
 @@
+
+@RET@		FcBool
+@FUNC@		FcDirCacheClean
+@TYPE1@		const FcChar8 *			@ARG1@		cache_dir
+@TYPE2@		FcBool				@ARG2@		verbose
+@PURPOSE@
+This tries to clean up the cache directory of <parameter>cache_dir</parameter>.
+This returns FcTrue if the operation is successfully complete. otherwise FcFalse.
+@@

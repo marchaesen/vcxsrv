@@ -1632,7 +1632,6 @@ struct gl_array_attrib
    GLuint RestartIndex;
 
    GLbitfield64 NewState;		/**< mask of VERT_BIT_* values */
-   GLboolean RebindArrays; /**< whether the VBO module should rebind arrays */
 
    /* GL_ARB_vertex_buffer_object */
    struct gl_buffer_object *ArrayBufferObj;
@@ -3063,6 +3062,7 @@ struct gl_matrix_stack
 #define _NEW_BUFFER_OBJECT     (1 << 28)
 #define _NEW_FRAG_CLAMP        (1 << 29)
 #define _NEW_TRANSFORM_FEEDBACK (1 << 30) /**< gl_context::TransformFeedback */
+#define _NEW_VARYING_VP_INPUTS (1 << 31) /**< gl_context::varying_vp_inputs */
 #define _NEW_ALL ~0
 
 /**

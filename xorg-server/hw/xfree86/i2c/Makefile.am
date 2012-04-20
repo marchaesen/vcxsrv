@@ -21,23 +21,26 @@ sdk_HEADERS = xf86i2c.h bt829.h fi1236.h msp3430.h tda8425.h tda9850.h tda9885.h
 #
 # i2c drivers
 #
-bt829_drv_la_LDFLAGS = -module -avoid-version
+bt829_drv_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 bt829_drv_la_SOURCES = bt829.c bt829.h bt829_module.c
 
-fi1236_drv_la_LDFLAGS = -module -avoid-version
+fi1236_drv_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 fi1236_drv_la_SOURCES = fi1236.c fi1236.h fi1236_module.c
+if NO_UNDEFINED
+fi1236_drv_la_LIBADD = tda9885_drv.la
+endif
 
-msp3430_drv_la_LDFLAGS = -module -avoid-version
+msp3430_drv_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 msp3430_drv_la_SOURCES = msp3430.c msp3430.h msp3430_module.c
 
-tda8425_drv_la_LDFLAGS = -module -avoid-version
+tda8425_drv_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 tda8425_drv_la_SOURCES = tda8425.c tda8425.h tda8425_module.c
 
-tda9850_drv_la_LDFLAGS = -module -avoid-version
+tda9850_drv_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 tda9850_drv_la_SOURCES = tda9850.c tda9850.h tda9850_module.c
 
-tda9885_drv_la_LDFLAGS = -module -avoid-version
+tda9885_drv_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 tda9885_drv_la_SOURCES = tda9885.c tda9885.h tda9885_module.c
 
-uda1380_drv_la_LDFLAGS = -module -avoid-version
+uda1380_drv_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 uda1380_drv_la_SOURCES = uda1380.c uda1380.h uda1380_module.c

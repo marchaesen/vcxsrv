@@ -49,7 +49,7 @@ public:
    variable_entry(ir_variable *var)
    {
       this->var = var;
-      this->whole_array_access = 0;
+      this->split = true;
       this->declaration = false;
       this->components = NULL;
       this->mem_ctx = NULL;
@@ -62,10 +62,14 @@ public:
    ir_variable *var; /* The key: the variable's pointer. */
    unsigned size; /* array length or matrix columns */
 
-   /** Number of times the variable is referenced, including assignments. */
-   unsigned whole_array_access;
+   /** Whether this array should be split or not. */
+   bool split;
 
-   bool declaration; /* If the variable had a decl in the instruction stream */
+   /* If the variable had a decl we can work with in the instruction
+    * stream.  We can't do splitting on function arguments, which
+    * don't get this variable set.
+    */
+   bool declaration;
 
    ir_variable **components;
 
@@ -99,6 +103,7 @@ public:
    virtual ir_visitor_status visit(ir_variable *);
    virtual ir_visitor_status visit(ir_dereference_variable *);
    virtual ir_visitor_status visit_enter(ir_dereference_array *);
+   virtual ir_visitor_status visit_enter(ir_function_signature *);
 
    variable_entry *get_variable_entry(ir_variable *var);
 
@@ -154,12 +159,13 @@ ir_array_reference_visitor::visit(ir_dereference_variable *ir)
 {
    variable_entry *entry = this->get_variable_entry(ir->var);
 
-   /* If we made it to here, then the dereference of this array didn't
-    * have a constant index (see the visit_continue_with_parent
-    * below), so we can't split the variable.
+   /* If we made it to here without seeing an ir_dereference_array,
+    * then the dereference of this array didn't have a constant index
+    * (see the visit_continue_with_parent below), so we can't split
+    * the variable.
     */
    if (entry)
-      entry->whole_array_access++;
+      entry->split = false;
 
    return visit_continue;
 }
@@ -173,9 +179,23 @@ ir_array_reference_visitor::visit_enter(ir_dereference_array *ir)
 
    variable_entry *entry = this->get_variable_entry(deref->var);
 
+   /* If the access to the array has a variable index, we wouldn't
+    * know which split variable this dereference should go to.
+    */
    if (entry && !ir->array_index->as_constant())
-      entry->whole_array_access++;
+      entry->split = false;
 
+   return visit_continue_with_parent;
+}
+
+ir_visitor_status
+ir_array_reference_visitor::visit_enter(ir_function_signature *ir)
+{
+   /* We don't have logic for array-splitting function arguments,
+    * so just look at the body instructions and not the parameter
+    * declarations.
+    */
+   visit_list_elements(this, &ir->body);
    return visit_continue_with_parent;
 }
 
@@ -204,12 +224,12 @@ ir_array_reference_visitor::get_split_list(exec_list *instructions,
       variable_entry *entry = (variable_entry *)iter.get();
 
       if (debug) {
-	 printf("array %s@%p: decl %d, whole_access %d\n",
+	 printf("array %s@%p: decl %d, split %d\n",
 		entry->var->name, (void *) entry->var, entry->declaration,
-		entry->whole_array_access);
+		entry->split);
       }
 
-      if (!entry->declaration || entry->whole_array_access) {
+      if (!(entry->declaration && entry->split)) {
 	 entry->remove();
       }
    }
@@ -217,7 +237,10 @@ ir_array_reference_visitor::get_split_list(exec_list *instructions,
    return !variable_list.is_empty();
 }
 
-/** This is the class that does the actual work of splitting. */
+/**
+ * This class rewrites the dereferences of arrays that have been split
+ * to use the newly created ir_variables for each component.
+ */
 class ir_array_splitting_visitor : public ir_rvalue_visitor {
 public:
    ir_array_splitting_visitor(exec_list *vars)
@@ -236,7 +259,6 @@ public:
    variable_entry *get_splitting_entry(ir_variable *var);
 
    exec_list *variable_list;
-   void *mem_ctx;
 };
 
 variable_entry *
@@ -348,8 +370,7 @@ optimize_split_arrays(exec_list *instructions, bool linked)
       const struct glsl_type *subtype;
 
       if (type->is_matrix())
-	 subtype = glsl_type::get_instance(GLSL_TYPE_FLOAT,
-					   type->vector_elements, 1);
+	 subtype = type->column_type();
       else
 	 subtype = type->fields.array;
 

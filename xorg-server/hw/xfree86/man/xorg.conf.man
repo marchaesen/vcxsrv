@@ -701,7 +701,7 @@ This instructs the server to load the module called
 The module name given should be the module's standard name, not the
 module file name.
 The standard name is case\-sensitive, and does not include the \(lqlib\(rq
-prefix, or the \(lq.a\(rq, \(lq.o\(rq, or \(lq.so\(rq suffixes.
+or \(lqcyg\(rq prefixes, or the \(lq.so\(rq or \(lq.dll\(rq suffixes.
 .PP
 .RS 7
 Example: the DRI extension module can be loaded with the following entry:

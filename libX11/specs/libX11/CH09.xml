@@ -1434,7 +1434,8 @@ setup.
 Servers also can implement other access control policies in addition to
 or in place of this host access facility.
 For further information about other access control implementations,
-see ``X Window System Protocol.''
+see <olink targetdoc='x11protocol' targetptr='Connection_Setup'
+><citetitle>X Window System Protocol</citetitle></olink>.
 </para>
 <sect2 id="Adding_Getting_or_Removing_Hosts">
 <title>Adding, Getting, or Removing Hosts</title>

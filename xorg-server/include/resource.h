@@ -152,11 +152,45 @@ typedef Bool (*FindComplexResType) (pointer /*value */ ,
                                     XID /*id */ ,
                                     pointer /*cdata */ );
 
+/* Structure for estimating resource memory usage. Memory usage
+ * consists of space allocated for the resource itself and of
+ * references to other resources. Currently the most important use for
+ * this structure is to estimate pixmap usage of different resources
+ * more accurately. */
+typedef struct {
+    /* Size of resource itself. Zero if not implemented. */
+    unsigned long resourceSize;
+    /* Size attributed to pixmap references from the resource. */
+    unsigned long pixmapRefSize;
+    /* Number of references to this resource; typically 1 */
+    unsigned long refCnt;
+} ResourceSizeRec, *ResourceSizePtr;
+
+typedef void (*SizeType)(pointer /*value*/,
+                         XID /*id*/,
+                         ResourceSizePtr /*size*/);
+
 extern _X_EXPORT RESTYPE CreateNewResourceType(DeleteType /*deleteFunc */ ,
                                                const char * /*name */ );
 
+typedef void (*FindTypeSubResources)(pointer /* value */,
+                                     FindAllRes /* func */,
+                                     pointer /* cdata */);
+
 extern _X_EXPORT void SetResourceTypeErrorValue(RESTYPE /*type */ ,
                                                 int /*errorValue */ );
+
+extern _X_EXPORT SizeType GetResourceTypeSizeFunc(
+    RESTYPE /*type*/);
+
+extern _X_EXPORT void SetResourceTypeFindSubResFunc(
+    RESTYPE /*type*/, FindTypeSubResources /*findFunc*/);
+
+extern _X_EXPORT void SetResourceTypeSizeFunc(
+    RESTYPE /*type*/, SizeType /*sizeFunc*/);
+
+extern _X_EXPORT void SetResourceTypeErrorValue(
+    RESTYPE /*type*/, int /*errorValue*/);
 
 extern _X_EXPORT RESTYPE CreateNewResourceClass(void);
 
@@ -192,6 +226,15 @@ extern _X_EXPORT void FindClientResourcesByType(ClientPtr /*client */ ,
 extern _X_EXPORT void FindAllClientResources(ClientPtr /*client */ ,
                                              FindAllRes /*func */ ,
                                              pointer /*cdata */ );
+
+/** @brief Iterate through all subresources of a resource.
+
+    @note The XID argument provided to the FindAllRes function
+          may be 0 for subresources that don't have an XID */
+extern _X_EXPORT void FindSubResources(pointer /*resource*/,
+                                       RESTYPE /*type*/,
+                                       FindAllRes /*func*/,
+                                       pointer /*cdata*/);
 
 extern _X_EXPORT void FreeClientNeverRetainResources(ClientPtr /*client */ );
 
@@ -231,4 +274,17 @@ extern _X_EXPORT unsigned int GetXIDList(ClientPtr /*client */ ,
 extern _X_EXPORT RESTYPE lastResourceType;
 extern _X_EXPORT RESTYPE TypeMask;
 
-#endif                          /* RESOURCE_H */
+/** @brief A hashing function to be used for hashing resource IDs
+
+    @param id The resource ID to hash
+    @param numBits The number of bits in the resulting hash. Must be >=0.
+
+    @note This function is really only for handling
+    INITHASHSIZE..MAXHASHSIZE bit hashes, but will handle any number
+    of bits by either masking numBits lower bits of the ID or by
+    providing at most MAXHASHSIZE hashes.
+*/
+extern _X_EXPORT int HashResourceID(XID id,
+                                    int numBits);
+
+#endif /* RESOURCE_H */

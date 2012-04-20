@@ -26,7 +26,8 @@ programming language. Other higher-level abstractions (for example,
 those provided by the toolkits for X) are built on top of the Xlib
 library. For further information about these higher-level libraries,
 see the appropriate toolkit documentation.
-The <citetitle>X Window System Protocol</citetitle> provides the
+The <olink targetdoc='x11protocol' targetptr='x11protocol'
+><citetitle>X Window System Protocol</citetitle></olink> provides the
 definitive word on the behavior of X.
 Although additional information appears here, the protocol document is
 the ruling document.

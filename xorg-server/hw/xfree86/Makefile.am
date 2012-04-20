@@ -25,9 +25,9 @@ if INT10MODULE
 INT10_SUBDIR = int10
 endif
 
-SUBDIRS = common ddc i2c x86emu $(INT10_SUBDIR) fbdevhw os-support parser \
-	  ramdac shadowfb $(VBE_SUBDIR) $(VGAHW_SUBDIR) $(XAA_SUBDIR) \
-	  loader dixmods exa modes \
+SUBDIRS = common ddc x86emu $(INT10_SUBDIR) os-support parser \
+	  ramdac $(VBE_SUBDIR) $(VGAHW_SUBDIR) $(XAA_SUBDIR) \
+	  loader modes . i2c dixmods fbdevhw shadowfb exa \
 	  $(DRI_SUBDIR) $(DRI2_SUBDIR) $(XF86UTILS_SUBDIR) doc man
 
 DIST_SUBDIRS = common ddc i2c x86emu int10 fbdevhw os-support \
@@ -92,6 +92,9 @@ if INSTALL_SETUID
 	chown root $(DESTDIR)$(bindir)/Xorg
 	chmod u+s $(DESTDIR)$(bindir)/Xorg
 endif
+if CYGWIN
+	$(INSTALL_DATA) libXorg.exe.a $(DESTDIR)$(libdir)/libXorg.exe.a
+endif
 
 # Use variables from XORG_MANPAGE_SECTIONS and X Server configuration
 # Do not include manpages.am as values are not appropriate for rc files
@@ -113,3 +116,12 @@ sdksyms.dep sdksyms.c: sdksyms.sh
 
 SDKSYMS_DEP = sdksyms.dep
 include $(SDKSYMS_DEP)
+
+i2c/libi2c.la:
+	$(AM_V_at)cd i2c && $(MAKE) libi2c.la
+
+dixmods/libdixmods.la:
+	$(AM_V_at)cd dixmods && $(MAKE) libdixmods.la
+
+dixmods/libxorgxkb.la:
+	$(AM_V_at)cd dixmods && $(MAKE) libxorgxkb.la
