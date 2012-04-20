@@ -117,7 +117,7 @@ AddFragment(struct xorg_list *frags, int bytes)
 static void
 WriteFragmentsToClient(ClientPtr client, struct xorg_list *frags)
 {
-    FragmentList *it;
+    FragmentList *it=NULL;
     xorg_list_for_each_entry(it, frags, l) {
         WriteToClient(client, it->bytes, (char*) it + sizeof(*it));
     }
@@ -130,7 +130,7 @@ WriteFragmentsToClient(ClientPtr client, struct xorg_list *frags)
 static void
 DestroyFragments(struct xorg_list *frags)
 {
-    FragmentList *it, *tmp;
+    FragmentList *it=NULL, *tmp;
     xorg_list_for_each_entry_safe(it, tmp, frags, l) {
         xorg_list_del(&it->l);
         free(it);
@@ -818,7 +818,7 @@ AddResourceSizeValue(pointer ptr, XID id, RESTYPE type, pointer cdata)
         Bool ok = TRUE;
         HashTable ht;
         HtGenericHashSetupRec htSetup = {
-            .keySize = sizeof(void*)
+            /*.keySize = */sizeof(void*)
         };
 
         /* it doesn't matter that we don't undo the work done here

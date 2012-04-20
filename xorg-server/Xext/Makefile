@@ -9,6 +9,7 @@ sleepuntil.c \
 sync.c \
 xace.c \
 xcmisc.c \
+hashtable.c \
 xres.c \
 xtest.c \
 geext.c \

@@ -1,3 +1,6 @@
+#ifdef HAVE_DIX_CONFIG_H
+#include <dix-config.h>
+#endif
 #include <stdlib.h>
 #include "misc.h"
 #include "hashtable.h"
@@ -68,7 +71,7 @@ void
 ht_destroy(HashTable ht)
 {
     int c;
-    BucketPtr it, tmp;
+    BucketPtr it=NULL, tmp;
     int numBuckets = 1 << ht->bucketBits;
     for (c = 0; c < numBuckets; ++c) {
         xorg_list_for_each_entry_safe(it, tmp, &ht->buckets[c], l) {
@@ -95,7 +98,7 @@ double_size(HashTable ht)
         }
 
         for (c = 0; c < numBuckets; ++c) {
-            BucketPtr it, tmp;
+            BucketPtr it=NULL, tmp;
             xorg_list_for_each_entry_safe(it, tmp, &ht->buckets[c], l) {
                 struct xorg_list *newBucket =
                     &newBuckets[ht->hash(ht->cdata, it->key, newBucketBits)];
@@ -164,7 +167,7 @@ ht_remove(HashTable ht, pointer key)
 {
     unsigned index = ht->hash(ht->cdata, key, ht->bucketBits);
     struct xorg_list *bucket = &ht->buckets[index];
-    BucketPtr it;
+    BucketPtr it=NULL;
 
     xorg_list_for_each_entry(it, bucket, l) {
         if (ht->compare(ht->cdata, key, it->key) == 0) {
@@ -183,7 +186,7 @@ ht_find(HashTable ht, pointer key)
 {
     unsigned index = ht->hash(ht->cdata, key, ht->bucketBits);
     struct xorg_list *bucket = &ht->buckets[index];
-    BucketPtr it;
+    BucketPtr it=NULL;
 
     xorg_list_for_each_entry(it, bucket, l) {
         if (ht->compare(ht->cdata, key, it->key) == 0) {
@@ -200,7 +203,7 @@ ht_dump_distribution(HashTable ht)
     int c;
     int numBuckets = 1 << ht->bucketBits;
     for (c = 0; c < numBuckets; ++c) {
-        BucketPtr it;
+        BucketPtr it=NULL;
         int n = 0;
 
         xorg_list_for_each_entry(it, &ht->buckets[c], l) {
@@ -273,7 +276,7 @@ ht_dump_contents(HashTable ht,
     int c;
     int numBuckets = 1 << ht->bucketBits;
     for (c = 0; c < numBuckets; ++c) {
-        BucketPtr it;
+        BucketPtr it=NULL;
         int n = 0;
 
         printf("%d: ", c);

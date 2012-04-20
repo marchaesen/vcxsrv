@@ -432,65 +432,65 @@ FindGCSubRes(pointer value, FindAllRes func, pointer cdata)
 static struct ResourceType *resourceTypes;
 
 static const struct ResourceType predefTypes[] = {
-   /* [RT_NONE & (RC_LASTPREDEF - 1)] = */ {
-	/*.deleteFunc = */(DeleteType)NoopDDA,
+  /* [RT_NONE & (RC_LASTPREDEF - 1)] = */ {
+  /*.deleteFunc = */(DeleteType)NoopDDA,
   /*.sizeFunc = */GetDefaultBytes,
   /*.findSubResFunc = */DefaultFindSubRes,
-	/*.errorValue = */BadValue,
+  /*.errorValue = */BadValue,
     },
-   /* [RT_WINDOW & (RC_LASTPREDEF - 1)] = */ {
-	/*.deleteFunc = */DeleteWindow,
+  /* [RT_WINDOW & (RC_LASTPREDEF - 1)] = */ {
+  /*.deleteFunc = */DeleteWindow,
   /*.sizeFunc = */GetWindowBytes,
   /*.findSubResFunc = */FindWindowSubRes,
-	/*.errorValue = */BadWindow,
+  /*.errorValue = */BadWindow,
     },
-   /* [RT_PIXMAP & (RC_LASTPREDEF - 1)] = */ {
-	/*.deleteFunc = */dixDestroyPixmap,
+  /* [RT_PIXMAP & (RC_LASTPREDEF - 1)] = */ {
+  /*.deleteFunc = */dixDestroyPixmap,
   /*.sizeFunc = */GetPixmapBytes,
   /*.findSubResFunc = */DefaultFindSubRes,
-	/*.errorValue = */BadPixmap,
+  /*.errorValue = */BadPixmap,
     },
-   /* [RT_GC & (RC_LASTPREDEF - 1)] = */ {
-	/*.deleteFunc = */FreeGC,
+  /* [RT_GC & (RC_LASTPREDEF - 1)] = */ {
+  /*.deleteFunc = */FreeGC,
   /*.sizeFunc = */GetGcBytes,
   /*.findSubResFunc = */FindGCSubRes,
-	/*.errorValue = */BadGC,
+  /*.errorValue = */BadGC,
     },
-   /* [RT_FONT & (RC_LASTPREDEF - 1)] = */ {
-	/*.deleteFunc = */CloseFont,
+  /* [RT_FONT & (RC_LASTPREDEF - 1)] = */ {
+  /*.deleteFunc = */CloseFont,
   /*.sizeFunc = */GetDefaultBytes,
   /*.findSubResFunc = */DefaultFindSubRes,
-	/*.errorValue = */BadFont,
+  /*.errorValue = */BadFont,
     },
-   /* [RT_CURSOR & (RC_LASTPREDEF - 1)] = */ {
-	/*.deleteFunc = */FreeCursor,
+  /* [RT_CURSOR & (RC_LASTPREDEF - 1)] = */ {
+  /*.deleteFunc = */FreeCursor,
   /*.sizeFunc = */GetDefaultBytes,
   /*.findSubResFunc = */DefaultFindSubRes,
-	/*.errorValue = */BadCursor,
+  /*.errorValue = */BadCursor,
     },
-   /* [RT_COLORMAP & (RC_LASTPREDEF - 1)] = */ {
-	/*.deleteFunc = */FreeColormap,
+  /* [RT_COLORMAP & (RC_LASTPREDEF - 1)] = */ {
+  /*.deleteFunc = */FreeColormap,
   /*.sizeFunc = */GetDefaultBytes,
   /*.findSubResFunc = */DefaultFindSubRes,
-	/*.errorValue = */BadColor,
+  /*.errorValue = */BadColor,
     },
-   /* [RT_CMAPENTRY & (RC_LASTPREDEF - 1)] = */ {
-	/*.deleteFunc = */FreeClientPixels,
+  /* [RT_CMAPENTRY & (RC_LASTPREDEF - 1)] = */ {
+  /*.deleteFunc = */FreeClientPixels,
   /*.sizeFunc = */GetDefaultBytes,
   /*.findSubResFunc = */DefaultFindSubRes,
-	/*.errorValue = */BadColor,
+  /*.errorValue = */BadColor,
     },
-   /* [RT_OTHERCLIENT & (RC_LASTPREDEF - 1)] = */ {
-	/*.deleteFunc = */OtherClientGone,
+  /* [RT_OTHERCLIENT & (RC_LASTPREDEF - 1)] = */ {
+  /*.deleteFunc = */OtherClientGone,
   /*.sizeFunc = */GetDefaultBytes,
   /*.findSubResFunc = */DefaultFindSubRes,
-	/*.errorValue = */BadValue,
+  /*.errorValue = */BadValue,
     },
-   /* [RT_PASSIVEGRAB & (RC_LASTPREDEF - 1)] = */ {
-	/*.deleteFunc = */DeletePassiveGrab,
+  /* [RT_PASSIVEGRAB & (RC_LASTPREDEF - 1)] = */ {
   /*.deleteFunc = */DeletePassiveGrab,
   /*.sizeFunc = */GetDefaultBytes,
-	/*.errorValue = */BadValue,
+  /*.findSubResFunc = */DefaultFindSubRes,
+  /*.errorValue = */BadValue,
     },
 };
 
