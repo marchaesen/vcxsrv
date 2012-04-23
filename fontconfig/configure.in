@@ -138,11 +138,9 @@ AC_CHECK_FUNCS([geteuid getuid link memmove memset mkstemp strchr strrchr strtol
 #
 # regex
 #
-use_regex=0
 if test "x$ac_cv_func_regcomp" = "xyes" -a "x$ac_cv_func_regerror" = "xyes" -a "x$ac_cv_func_regexec" = "xyes" -a "x$ac_cv_func_regfree"; then
-	use_regex=1
+	AC_DEFINE(USE_REGEX,,[Use regex])
 fi
-AC_DEFINE_UNQUOTED(USE_REGEX,$use_regex,[Use regex.])
 
 #
 # Checks for iconv
