@@ -75,3 +75,12 @@ FcCacheCopySet.
 This tries to clean up the cache directory of <parameter>cache_dir</parameter>.
 This returns FcTrue if the operation is successfully complete. otherwise FcFalse.
 @@
+
+@RET@		void
+@FUNC@		FcCacheCreateTagFile
+@TYPE1@		const FcConfig *		@ARG1@		config
+@PURPOSE@	Create CACHEDIR.TAG at cache directory.
+@DESC@
+This tries to create CACHEDIR.TAG file at the cache directory registered
+to <parameter>config</parameter>.
+@@

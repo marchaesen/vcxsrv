@@ -542,6 +542,9 @@ FcDirCacheBuild (FcFontSet *set, const FcChar8 *dir, struct stat *dir_stat, FcSt
 FcPrivate FcBool
 FcDirCacheWrite (FcCache *cache, FcConfig *config);
 
+FcPrivate FcBool
+FcDirCacheCreateTagFile (const FcChar8 *cache_dir);
+
 FcPrivate void
 FcCacheObjectReference (void *object);
 

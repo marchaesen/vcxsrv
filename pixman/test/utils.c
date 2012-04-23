@@ -358,9 +358,16 @@ a8r8g8b8_to_rgba_np (uint32_t *dst, uint32_t *src, int n_pixels)
 
 	if (a != 0)
 	{
-	    r = (r * 255) / a;
-	    g = (g * 255) / a;
-	    b = (b * 255) / a;
+#define DIVIDE(c, a)							\
+	    do								\
+	    {								\
+		int t = ((c) * 255) / a;				\
+		(c) = t < 0? 0 : t > 255? 255 : t;			\
+	    } while (0)
+
+	    DIVIDE (r, a);
+	    DIVIDE (g, a);
+	    DIVIDE (b, a);
 	}
 
 	*dst8++ = r;

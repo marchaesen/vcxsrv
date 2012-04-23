@@ -175,7 +175,7 @@ static int _xcb_open(const char *host, char *protocol, const int display)
     if(strncmp(host, "/tmp/launch", 11) == 0) {
         base = host;
         host = "";
-        protocol = NULL;
+        protocol = "unix";
     }
 #endif
 

@@ -306,7 +306,7 @@ _FcStrRegexCmp (const FcChar8 *s, const FcChar8 *regex, int cflags, int eflags)
     return ret == 0 ? FcTrue : FcFalse;
 }
 #else
-#  define _FcStrRegexCmp(_s_, _regex_)	(FcFalse)
+#  define _FcStrRegexCmp(_s_, _regex_, _cflags_, _eflags_)	(FcFalse)
 #endif
 
 FcBool

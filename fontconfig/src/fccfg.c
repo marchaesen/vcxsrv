@@ -471,7 +471,7 @@ FcConfigAddCacheDir (FcConfig	    *config,
 }
 
 FcStrList *
-FcConfigGetCacheDirs (FcConfig	*config)
+FcConfigGetCacheDirs (const FcConfig *config)
 {
     if (!config)
     {

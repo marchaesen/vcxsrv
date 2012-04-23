@@ -930,6 +930,8 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
 		if (FcMakeDirectory (test_dir))
 		{
 		    cache_dir = test_dir;
+		    /* Create CACHEDIR.TAG */
+		    FcDirCacheCreateTagFile (cache_dir);
 		    break;
 		}
 	    }
@@ -939,6 +941,8 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
 	    else if (chmod ((char *) test_dir, 0755) == 0)
 	    {
 		cache_dir = test_dir;
+		/* Try to create CACHEDIR.TAG too */
+		FcDirCacheCreateTagFile (cache_dir);
 		break;
 	    }
 	}
@@ -1408,6 +1412,87 @@ static void MD5Transform(FcChar32 buf[4], FcChar32 in[16])
     buf[2] += c;
     buf[3] += d;
 }
+
+FcBool
+FcDirCacheCreateTagFile (const FcChar8 *cache_dir)
+{
+    FcChar8		*cache_tag;
+    int 		 fd;
+    FILE		*fp;
+    FcAtomic		*atomic;
+    static const FcChar8 cache_tag_contents[] =
+	"Signature: 8a477f597d28d172789f06886806bc55\n"
+	"# This file is a cache directory tag created by fontconfig.\n"
+	"# For information about cache directory tags, see:\n"
+	"#       http://www.brynosaurus.com/cachedir/\n";
+    static size_t	 cache_tag_contents_size = sizeof (cache_tag_contents) - 1;
+    FcBool		 ret = FcFalse;
+
+    if (!cache_dir)
+	return FcFalse;
+
+    if (access ((char *) cache_dir, W_OK|X_OK) == 0)
+    {
+	/* Create CACHEDIR.TAG */
+	cache_tag = FcStrPlus (cache_dir, (const FcChar8 *) FC_DIR_SEPARATOR_S "CACHEDIR.TAG");
+	if (!cache_tag)
+	    return FcFalse;
+	atomic = FcAtomicCreate ((FcChar8 *)cache_tag);
+	if (!atomic)
+	    goto bail1;
+	if (!FcAtomicLock (atomic))
+	    goto bail2;
+	fd = open((char *)FcAtomicNewFile (atomic), O_RDWR | O_CREAT, 0644);
+	if (fd == -1)
+	    goto bail3;
+	fp = fdopen(fd, "wb");
+	if (fp == NULL)
+	    goto bail3;
+
+	fwrite(cache_tag_contents, cache_tag_contents_size, sizeof (FcChar8), fp);
+	fclose(fp);
+
+	if (!FcAtomicReplaceOrig(atomic))
+	    goto bail3;
+
+	ret = FcTrue;
+      bail3:
+	FcAtomicUnlock (atomic);
+      bail2:
+	FcAtomicDestroy (atomic);
+      bail1:
+	FcStrFree (cache_tag);
+    }
+
+    if (FcDebug () & FC_DBG_CACHE)
+    {
+	if (ret)
+	    printf ("Created CACHEDIR.TAG at %s\n", cache_dir);
+	else
+	    printf ("Unable to create CACHEDIR.TAG at %s\n", cache_dir);
+    }
+
+    return ret;
+}
+
+void
+FcCacheCreateTagFile (const FcConfig *config)
+{
+    FcChar8   *cache_dir = NULL;
+    FcStrList *list;
+
+    list = FcConfigGetCacheDirs (config);
+    if (!list)
+	return;
+
+    while ((cache_dir = FcStrListNext (list)))
+    {
+	if (FcDirCacheCreateTagFile (cache_dir))
+	    break;
+    }
+    FcStrListDone (list);
+}
+
 #define __fccache__
 #include "fcaliastail.h"
 #undef __fccache__

@@ -31,13 +31,22 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xos.h>
 #include <stdlib.h>
 
+static char *buf = NULL;
+
+static void
+free_filename_buffer(void)
+{
+    free(buf);
+    buf = NULL;
+}
+
 char *
 XauFileName (void)
 {
     const char *slashDotXauthority = "/.Xauthority";
     char    *name;
-    static char	*buf;
     static int	bsize;
+    static int atexit_registered = 0;
 #ifdef WIN32
     char    dir[128];
 #endif
@@ -64,6 +73,12 @@ XauFileName (void)
 	buf = malloc ((unsigned) size);
 	if (!buf)
 	    return NULL;
+
+        if (!atexit_registered) {
+            atexit(free_filename_buffer);
+            atexit_registered = 1;
+        }
+
 	bsize = size;
     }
     strcpy (buf, name);

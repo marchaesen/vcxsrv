@@ -203,7 +203,7 @@ typedef struct {
 } XSyncCounterNotifyEvent;
 
 typedef struct {
-    int type;			/* event base + XSyncCounterNotify */
+    int type;			/* event base + XSyncAlarmNotify */
     unsigned long serial;	/* # of last request processed by server */
     Bool send_event;		/* true if this came from a SendEvent request */
     Display *display;		/* Display the event was read from */

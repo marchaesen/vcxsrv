@@ -218,7 +218,15 @@ _xgeDpyClose(Display* dpy, XExtCodes* codes)
         XFree(xge_data);
     }
 
-    return XextRemoveDisplay(xge_info, dpy);
+    if(!XextRemoveDisplay(xge_info, dpy))
+        return 0;
+
+    if (xge_info->ndisplays == 0) {
+        XextDestroyExtension(xge_info);
+        xge_info = NULL;
+    }
+
+    return 1;
 }
 
 /*

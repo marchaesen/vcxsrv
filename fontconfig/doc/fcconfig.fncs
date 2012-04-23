@@ -154,7 +154,7 @@ simply returns NULL to indicate that no per-user file exists.
 
 @RET@		FcStrList *
 @FUNC@		FcConfigGetCacheDirs
-@TYPE1@		FcConfig *			@ARG1@		config
+@TYPE1@		const FcConfig *		@ARG1@		config
 @PURPOSE@	return the list of directories searched for cache files
 @DESC@
 <function>FcConfigGetCacheDirs</function> returns a string list containing
