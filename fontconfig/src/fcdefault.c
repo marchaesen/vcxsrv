@@ -119,7 +119,7 @@ FcGetDefaultLang (void)
 void
 FcDefaultSubstitute (FcPattern *pattern)
 {
-    FcValue v;
+    FcValue v, namelang, v2;
     int	    i;
 
     if (FcPatternObjectGet (pattern, FC_WEIGHT_OBJECT, 0, &v) == FcResultNoMatch )
@@ -175,6 +175,41 @@ FcDefaultSubstitute (FcPattern *pattern)
     {
 	FcPatternObjectAddInteger (pattern, FC_HINT_STYLE_OBJECT, FC_HINT_FULL);
     }
+    if (FcPatternObjectGet (pattern, FC_NAMELANG_OBJECT, 0, &v) == FcResultNoMatch)
+    {
+	FcPatternObjectAddString (pattern, FC_NAMELANG_OBJECT, FcGetDefaultLang ());
+    }
+    /* shouldn't be failed. */
+    FcPatternObjectGet (pattern, FC_NAMELANG_OBJECT, 0, &namelang);
+    /* Add a fallback to ensure the english name when the requested language
+     * isn't available. this would helps for the fonts that have non-English
+     * name at the beginning.
+     */
+    /* Set "en-us" instead of "en" to avoid giving higher score to "en".
+     * This is a hack for the case that the orth is not like ll-cc, because,
+     * if no namelang isn't explicitly set, it will has something like ll-cc
+     * according to current locale. which may causes FcLangDifferentTerritory
+     * at FcLangCompare(). thus, the English name is selected so that
+     * exact matched "en" has higher score than ll-cc.
+     */
+    v2.type = FcTypeString;
+    v2.u.s = FcSharedStr ((FcChar8 *)"en-us");
+    if (FcPatternObjectGet (pattern, FC_FAMILYLANG_OBJECT, 0, &v) == FcResultNoMatch)
+    {
+	FcPatternObjectAdd (pattern, FC_FAMILYLANG_OBJECT, namelang, FcTrue);
+	FcPatternObjectAddWithBinding (pattern, FC_FAMILYLANG_OBJECT, v2, FcValueBindingWeak, FcTrue);
+    }
+    if (FcPatternObjectGet (pattern, FC_STYLELANG_OBJECT, 0, &v) == FcResultNoMatch)
+    {
+	FcPatternObjectAdd (pattern, FC_STYLELANG_OBJECT, namelang, FcTrue);
+	FcPatternObjectAddWithBinding (pattern, FC_STYLELANG_OBJECT, v2, FcValueBindingWeak, FcTrue);
+    }
+    if (FcPatternObjectGet (pattern, FC_FULLNAMELANG_OBJECT, 0, &v) == FcResultNoMatch)
+    {
+	FcPatternObjectAdd (pattern, FC_FULLNAMELANG_OBJECT, namelang, FcTrue);
+	FcPatternObjectAddWithBinding (pattern, FC_FULLNAMELANG_OBJECT, v2, FcValueBindingWeak, FcTrue);
+    }
+    FcSharedStrFree (v2.u.s);
 }
 #define __fcdefault__
 #include "fcaliastail.h"

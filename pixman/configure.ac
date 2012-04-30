@@ -271,6 +271,59 @@ PIXMAN_CHECK_CFLAG([-xldscope=hidden], [dnl
 ])
 
 dnl ===========================================================================
+dnl Check for Loongson Multimedia Instructions
+
+if test "x$LS_CFLAGS" = "x" ; then
+    LS_CFLAGS="-march=loongson2f"
+fi
+
+have_loongson_mmi=no
+AC_MSG_CHECKING(whether to use Loongson MMI)
+
+xserver_save_CFLAGS=$CFLAGS
+CFLAGS=" $CFLAGS $LS_CFLAGS"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+#ifndef __mips_loongson_vector_rev
+#error "Loongson Multimedia Instructions are only available on Loongson"
+#endif
+#if defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 4))
+#error "Need GCC >= 4.4 for Loongson MMI compilation"
+#endif
+#include "pixman/loongson-mmintrin.h"
+int main () {
+    union {
+        __m64 v;
+        char c[8];
+    } a = { .c = {1, 2, 3, 4, 5, 6, 7, 8} };
+    int b = 4;
+    __m64 c = _mm_srli_pi16 (a.v, b);
+    return 0;
+}]])], have_loongson_mmi=yes)
+CFLAGS=$xserver_save_CFLAGS
+
+AC_ARG_ENABLE(loongson,
+   [AC_HELP_STRING([--disable-loongson],
+                   [disable Loongson fast paths])],
+   [enable_loongson=$enableval], [enable_loongson=auto])
+
+if test $enable_loongson = no ; then
+   have_loongson_mmi=disabled
+fi
+
+if test $have_loongson_mmi = yes ; then
+   AC_DEFINE(USE_LOONGSON_MMI, 1, [use Loongson Multimedia Instructions])
+else
+   LS_CFLAGS=
+fi
+
+AC_MSG_RESULT($have_loongson_mmi)
+if test $enable_loongson = yes && test $have_loongson_mmi = no ; then
+   AC_MSG_ERROR([Loongson MMI not detected])
+fi
+
+AM_CONDITIONAL(USE_LOONGSON_MMI, test $have_loongson_mmi = yes)
+
+dnl ===========================================================================
 dnl Check for MMX
 
 if test "x$MMX_CFLAGS" = "x" ; then
@@ -416,6 +469,7 @@ case $host_os in
       ;;
 esac
 
+AC_SUBST(LS_CFLAGS)
 AC_SUBST(IWMMXT_CFLAGS)
 AC_SUBST(MMX_CFLAGS)
 AC_SUBST(MMX_LDFLAGS)

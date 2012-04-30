@@ -4,11 +4,12 @@
 <chapter id='Inter_Client_Communication_Functions'>
 <title>Inter-Client Communication Functions</title>
 <para>
-The Inter-Client Communication Conventions Manual, hereafter referred to as the <acronym>ICCCM</acronym>,
+The <citetitle>Inter-Client Communication Conventions Manual</citetitle>,
+hereafter referred to as the <acronym>ICCCM</acronym>,
 details the X Consortium approved conventions that govern inter-client communications. These
 conventions ensure peer-to-peer client cooperation in the use of selections, cut buffers, and shared
 resources as well as client cooperation with window and session managers. For further information,
-see the Inter-Client Communication Conventions Manual.
+see the <olink targetdoc='icccm' targetptr='icccm'><citetitle>Inter-Client Communication Conventions Manual</citetitle></olink>.
 </para>
 <para>
 Xlib provides a number of standard properties and programming interfaces that are <acronym>ICCCM</acronym>
@@ -313,8 +314,9 @@ function sends a <property>WM_CHANGE_STATE</property>
 <symbol>ClientMessage</symbol>
 event with a format of 32 and a first data element of 
 <symbol>IconicState</symbol>
-(as described in section 4.1.4 of the 
-<emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis>)
+(as described in <olink targetdoc='icccm' targetptr='Changing_Window_State'
+>section 4.1.4 of the
+<citetitle>Inter-Client Communication Conventions Manual</citetitle></olink>)
 and a window of w
 to the root window of the specified screen
 with an event mask set to

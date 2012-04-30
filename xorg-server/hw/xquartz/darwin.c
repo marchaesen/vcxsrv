@@ -309,7 +309,7 @@ static int
 DarwinMouseProc(DeviceIntPtr pPointer, int what)
 {
 #define NBUTTONS 3
-#define NAXES    4
+#define NAXES    6
     // 3 buttons: left, middle, right
     CARD8 map[NBUTTONS + 1] = { 0, 1, 2, 3};
     Atom btn_labels[NBUTTONS] = { 0 };
@@ -323,10 +323,12 @@ DarwinMouseProc(DeviceIntPtr pPointer, int what)
         btn_labels[1] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_MIDDLE);
         btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
 
-        axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
-        axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
-        axes_labels[2] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_WHEEL);
-        axes_labels[3] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_HWHEEL);
+        axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_X);
+        axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_Y);
+        axes_labels[2] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
+        axes_labels[3] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
+        axes_labels[4] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_WHEEL);
+        axes_labels[5] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_HWHEEL);
 
         // Set button map.
         InitPointerDeviceStruct((DevicePtr)pPointer, map, NBUTTONS,
@@ -334,21 +336,27 @@ DarwinMouseProc(DeviceIntPtr pPointer, int what)
                                 (PtrCtrlProcPtr)NoopDDA,
                                 GetMotionHistorySize(), NAXES,
                                 axes_labels);
-        InitValuatorAxisStruct(pPointer, 0, axes_labels[0], 
+        InitValuatorAxisStruct(pPointer, 0, axes_labels[0],
                                NO_AXIS_LIMITS, NO_AXIS_LIMITS,
-                               1, 0, 1, Relative);
-        InitValuatorAxisStruct(pPointer, 1, axes_labels[1], 
+                               0, 0, 0, Absolute);
+        InitValuatorAxisStruct(pPointer, 1, axes_labels[1],
                                NO_AXIS_LIMITS, NO_AXIS_LIMITS,
-                               1, 0, 1, Relative);
+                               0, 0, 0, Absolute);
         InitValuatorAxisStruct(pPointer, 2, axes_labels[2], 
                                NO_AXIS_LIMITS, NO_AXIS_LIMITS,
                                1, 0, 1, Relative);
         InitValuatorAxisStruct(pPointer, 3, axes_labels[3], 
                                NO_AXIS_LIMITS, NO_AXIS_LIMITS,
                                1, 0, 1, Relative);
+        InitValuatorAxisStruct(pPointer, 4, axes_labels[4], 
+                               NO_AXIS_LIMITS, NO_AXIS_LIMITS,
+                               1, 0, 1, Relative);
+        InitValuatorAxisStruct(pPointer, 5, axes_labels[5], 
+                               NO_AXIS_LIMITS, NO_AXIS_LIMITS,
+                               1, 0, 1, Relative);
 
-        SetScrollValuator(pPointer, 2, SCROLL_TYPE_VERTICAL, -1.0, SCROLL_FLAG_PREFERRED);
-        SetScrollValuator(pPointer, 3, SCROLL_TYPE_HORIZONTAL, -1.0, SCROLL_FLAG_NONE);
+        SetScrollValuator(pPointer, 4, SCROLL_TYPE_VERTICAL, -1.0, SCROLL_FLAG_PREFERRED);
+        SetScrollValuator(pPointer, 5, SCROLL_TYPE_HORIZONTAL, -1.0, SCROLL_FLAG_NONE);
         break;
 
     case DEVICE_ON:
@@ -399,23 +407,24 @@ DarwinTabletProc(DeviceIntPtr pPointer, int what)
                                 axes_labels);
         InitProximityClassDeviceStruct(pPointer);
 
-        InitValuatorAxisStruct(pPointer, 0, axes_labels[0], 0,
-                               XQUARTZ_VALUATOR_LIMIT, 1, 0, 1,
-                               Absolute);
-        InitValuatorAxisStruct(pPointer, 1, axes_labels[1], 0,
-                               XQUARTZ_VALUATOR_LIMIT, 1, 0, 1,
-                               Absolute);
-        InitValuatorAxisStruct(pPointer, 2, axes_labels[2], 0,
-                               XQUARTZ_VALUATOR_LIMIT, 1, 0, 1,
-                               Absolute);
+        InitValuatorAxisStruct(pPointer, 0, axes_labels[0],
+                               0, XQUARTZ_VALUATOR_LIMIT,
+                               1, 0, 1, Absolute);
+        InitValuatorAxisStruct(pPointer, 1, axes_labels[1],
+                               0, XQUARTZ_VALUATOR_LIMIT,
+                               1, 0, 1, Absolute);
+        InitValuatorAxisStruct(pPointer, 2, axes_labels[2],
+                               0, XQUARTZ_VALUATOR_LIMIT,
+                               1, 0, 1, Absolute);
         InitValuatorAxisStruct(pPointer, 3, axes_labels[3],
                                -XQUARTZ_VALUATOR_LIMIT,
-                               XQUARTZ_VALUATOR_LIMIT, 1, 0, 1,
-                               Absolute);
+                               XQUARTZ_VALUATOR_LIMIT,
+                               1, 0, 1, Absolute);
         InitValuatorAxisStruct(pPointer, 4, axes_labels[4],
                                -XQUARTZ_VALUATOR_LIMIT,
-                               XQUARTZ_VALUATOR_LIMIT, 1, 0, 1,
-                               Absolute);
+                               XQUARTZ_VALUATOR_LIMIT,
+                               1, 0, 1, Absolute);
+
         //          pPointer->use = IsXExtensionDevice;
         break;
 

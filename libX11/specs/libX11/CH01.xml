@@ -685,7 +685,7 @@ What you do inside of your top-level window, however,
 is up to your application.
 For further information,
 see <link linkend='Inter_Client_Communication_Functions'>chapter 14</link>
-and the <citetitle>Inter-Client Communication Conventions Manual</citetitle>.
+and the <olink targetdoc='icccm' targetptr='icccm'><citetitle>Inter-Client Communication Conventions Manual</citetitle></olink>.
     </para>
   </listitem>
 </itemizedlist>

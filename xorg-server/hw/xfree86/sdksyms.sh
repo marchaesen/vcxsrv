@@ -251,8 +251,9 @@ cat > sdksyms.c << EOF
 #include "exa.h"
  */
 
-
+#ifdef COMPOSITE
 #include "compositeext.h"
+#endif
 
 /* xfixes/Makefile.am */
 #include "xfixes.h"

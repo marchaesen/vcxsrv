@@ -2995,7 +2995,7 @@ A font is not guaranteed to have any properties.
 The interpretation of the property value (for example, long or unsigned long)
 must be derived from <emphasis remap='I'>a priori</emphasis> knowledge of the property. 
 A basic set of font properties is specified in the X Consortium standard
-<emphasis remap='I'>X Logical Font Description Conventions</emphasis>.
+<olink targetdoc='xlfd' targetptr='xlfd'><citetitle>X Logical Font Description Conventions</citetitle></olink>.
 </para>
 <sect2 id="Loading_and_Freeing_Fonts">
 <title>Loading and Freeing Fonts</title>
@@ -3067,7 +3067,7 @@ In the pattern,
 the ``?'' character will match any single character, 
 and the ``*'' character will match any number of characters.
 A structured format for font names is specified in the X Consortium standard 
-<emphasis remap='I'>X Logical Font Description Conventions</emphasis>.
+<olink targetdoc='xlfd' targetptr='xlfd'><citetitle>X Logical Font Description Conventions</citetitle></olink>.
 If 
 <xref linkend='XLoadFont' xrefstyle='select: title'/>
 was unsuccessful at loading the specified font, 

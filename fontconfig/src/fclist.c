@@ -221,7 +221,18 @@ FcListPatternMatchAny (const FcPattern *p,
     for (i = 0; i < p->num; i++)
     {
 	FcPatternElt	*pe = &FcPatternElts(p)[i];
-	FcPatternElt	*fe = FcPatternObjectFindElt (font, pe->object);
+	FcPatternElt	*fe;
+
+	if (pe->object == FC_NAMELANG_OBJECT)
+	{
+	    /* "namelang" object is the alias object to change "familylang",
+	     * "stylelang" and "fullnamelang" object alltogether. it won't be
+	     * available on the font pattern. so checking its availability
+	     * causes no results. we should ignore it here.
+	     */
+	    continue;
+	}
+	fe = FcPatternObjectFindElt (font, pe->object);
 	if (!fe)
 	    return FcFalse;
 	if (!FcListValueListMatchAny (FcPatternEltValues(pe),    /* pat elts */
@@ -340,13 +351,13 @@ FcListHashTableCleanup (FcListHashTable *table)
 }
 
 static int
-FcGetDefaultObjectLangIndex (FcPattern *font, FcObject object)
+FcGetDefaultObjectLangIndex (FcPattern *font, FcObject object, const FcChar8 *lang)
 {
-    FcChar8	   *lang = FcGetDefaultLang ();
     FcPatternElt   *e = FcPatternObjectFindElt (font, object);
     FcValueListPtr  v;
     FcValue         value;
     int             idx = -1;
+    int             defidx = -1;
     int             i;
 
     if (e)
@@ -363,17 +374,27 @@ FcGetDefaultObjectLangIndex (FcPattern *font, FcObject object)
 
 		if (res == FcLangDifferentCountry && idx < 0)
 		    idx = i;
+		if (defidx < 0)
+		{
+		    /* workaround for fonts that has non-English value
+		     * at the head of values.
+		     */
+		    res = FcLangCompare (value.u.s, (FcChar8 *)"en");
+		    if (res == FcLangEqual)
+			defidx = i;
+		}
 	    }
 	}
     }
 
-    return (idx > 0) ? idx : 0;
+    return (idx > 0) ? idx : (defidx > 0) ? defidx : 0;
 }
 
 static FcBool
 FcListAppend (FcListHashTable	*table,
 	      FcPattern		*font,
-	      FcObjectSet	*os)
+	      FcObjectSet	*os,
+	      const FcChar8	*lang)
 {
     int		    o;
     FcPatternElt    *e;
@@ -409,19 +430,19 @@ FcListAppend (FcListHashTable	*table,
 	if (!strcmp (os->objects[o], FC_FAMILY) || !strcmp (os->objects[o], FC_FAMILYLANG))
 	{
 	    if (familyidx < 0)
-		familyidx = FcGetDefaultObjectLangIndex (font, FC_FAMILYLANG_OBJECT);
+		familyidx = FcGetDefaultObjectLangIndex (font, FC_FAMILYLANG_OBJECT, lang);
 	    defidx = familyidx;
 	}
 	else if (!strcmp (os->objects[o], FC_FULLNAME) || !strcmp (os->objects[o], FC_FULLNAMELANG))
 	{
 	    if (fullnameidx < 0)
-		fullnameidx = FcGetDefaultObjectLangIndex (font, FC_FULLNAMELANG_OBJECT);
+		fullnameidx = FcGetDefaultObjectLangIndex (font, FC_FULLNAMELANG_OBJECT, lang);
 	    defidx = fullnameidx;
 	}
 	else if (!strcmp (os->objects[o], FC_STYLE) || !strcmp (os->objects[o], FC_STYLELANG))
 	{
 	    if (styleidx < 0)
-		styleidx = FcGetDefaultObjectLangIndex (font, FC_STYLELANG_OBJECT);
+		styleidx = FcGetDefaultObjectLangIndex (font, FC_STYLELANG_OBJECT, lang);
 	    defidx = styleidx;
 	}
 	else
@@ -499,8 +520,16 @@ FcFontSetList (FcConfig	    *config,
 	for (f = 0; f < s->nfont; f++)
 	    if (FcListPatternMatchAny (p,		/* pattern */
 				       s->fonts[f]))	/* font */
-		if (!FcListAppend (&table, s->fonts[f], os))
+	    {
+		FcChar8 *lang;
+
+		if (FcPatternObjectGetString (p, FC_NAMELANG_OBJECT, 0, &lang) != FcResultMatch)
+		{
+			lang = FcGetDefaultLang ();
+		}
+		if (!FcListAppend (&table, s->fonts[f], os, lang))
 		    goto bail1;
+	    }
     }
 #if 0
     {

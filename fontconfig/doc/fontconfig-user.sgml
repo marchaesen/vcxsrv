@@ -224,7 +224,7 @@ values as the font name is read.
     </para>
   </refsect2>
 </refsect1>
-<refsect1><title>Debugging Applications</title>
+<refsect1 id="debug"><title>Debugging Applications</title>
   <para>
 To help diagnose font and applications problems, fontconfig is built with a
 large amount of internal debugging left enabled. It is controlled by means
@@ -690,6 +690,24 @@ actual location is specified in the global fonts.conf file.
 <emphasis> ~/.fontconfig/*.cache-*</emphasis>
 is the conventional repository of font information that isn't found in the
 per-directory caches.  This file is automatically maintained by fontconfig.
+  </para>
+</refsect1>
+<refsect1><title>Environment variables</title>
+  <para>
+<emphasis>FONTCONFIG_FILE</emphasis>
+is used to override the default configuration file.
+  </para>
+  <para>
+<emphasis>FONTCONFIG_PATH</emphasis>
+is used to override the default configuration directory.
+  </para>
+  <para>
+<emphasis>FC_DEBUG</emphasis>
+is used to output the detailed debugging messages. see <link linkend="debug">Debugging Applications</link> section for more details.
+  </para>
+  <para>
+<emphasis>FONTCONFIG_USE_MMAP</emphasis>
+is used to control the use of mmap(2) for the cache files if available. this take a boolean value. fontconfig will checks if the cache files are stored on the filesystem that is safe to use mmap(2). explicitly setting this environment variable will causes skipping this check and enforce to use or not use mmap(2) anyway.
   </para>
 </refsect1>
 <refsect1><title>See Also</title>

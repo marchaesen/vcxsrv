@@ -427,22 +427,19 @@ pixman_have_arm_iwmmxt (void)
 
 #endif /* USE_ARM_SIMD || USE_ARM_NEON || USE_ARM_IWMMXT */
 
-#if defined(USE_MIPS_DSPR2)
+#if defined(USE_MIPS_DSPR2) || defined(USE_LOONGSON_MMI)
 
 #if defined (__linux__) /* linux ELF */
 
-pixman_bool_t
-pixman_have_mips_dspr2 (void)
+static pixman_bool_t
+pixman_have_mips_feature (const char *search_string)
 {
-    const char *search_string = "MIPS 74K";
     const char *file_name = "/proc/cpuinfo";
-    /* Simple detection of MIPS DSP ASE (revision 2) at runtime for Linux.
+    /* Simple detection of MIPS features at runtime for Linux.
      * It is based on /proc/cpuinfo, which reveals hardware configuration
      * to user-space applications.  According to MIPS (early 2010), no similar
      * facility is universally available on the MIPS architectures, so it's up
      * to individual OSes to provide such.
-     *
-     * Only currently available MIPS core that supports DSPr2 is 74K.
      */
 
     char cpuinfo_line[256];
@@ -467,13 +464,32 @@ pixman_have_mips_dspr2 (void)
     return FALSE;
 }
 
+#if defined(USE_MIPS_DSPR2)
+pixman_bool_t
+pixman_have_mips_dspr2 (void)
+{
+     /* Only currently available MIPS core that supports DSPr2 is 74K. */
+    return pixman_have_mips_feature ("MIPS 74K");
+}
+#endif
+
+#if defined(USE_LOONGSON_MMI)
+pixman_bool_t
+pixman_have_loongson_mmi (void)
+{
+    /* I really don't know if some Loongson CPUs don't have MMI. */
+    return pixman_have_mips_feature ("Loongson");
+}
+#endif
+
 #else /* linux ELF */
 
 #define pixman_have_mips_dspr2() FALSE
+#define pixman_have_loongson_mmi() FALSE
 
 #endif /* linux ELF */
 
-#endif /* USE_MIPS_DSPR2 */
+#endif /* USE_MIPS_DSPR2 || USE_LOONGSON_MMI */
 
 #if defined(USE_X86_MMX) || defined(USE_SSE2)
 /* The CPU detection code needs to be in a file not compiled with
@@ -773,7 +789,10 @@ _pixman_choose_implementation (void)
     if (!disabled ("arm-iwmmxt") && pixman_have_arm_iwmmxt ())
 	imp = _pixman_implementation_create_mmx (imp);
 #endif
-
+#ifdef USE_LOONGSON_MMI
+    if (!disabled ("loongson-mmi") && pixman_have_loongson_mmi ())
+	imp = _pixman_implementation_create_mmx (imp);
+#endif
 #ifdef USE_ARM_NEON
     if (!disabled ("arm-neon") && pixman_have_arm_neon ())
 	imp = _pixman_implementation_create_arm_neon (imp);

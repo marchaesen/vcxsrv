@@ -190,6 +190,9 @@ convenience for the application's rendering mechanism.
                                                   the font
     embolden       FC_EMBOLDEN            Bool    Rasterizer should
                                                   synthetically embolden the font
+    namelang       FC_NAMELANG            String  Language name to be used for the
+                                                  default value of familylang,
+                                                  stylelang and fullnamelang
     </programlisting>
   </sect2>
 </sect1>

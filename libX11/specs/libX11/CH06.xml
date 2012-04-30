@@ -7109,8 +7109,9 @@ a class of output devices.
 <indexterm><primary>Device Color Characterization</primary></indexterm>
 For details about how color characterization data is
 stored in root window properties,
-see the section on Device Color Characterization in the
-<emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis>.
+see <olink targetdoc='icccm' targetptr='Device_Color_Characterization'>the
+section on Device Color Characterization in the
+<citetitle>Inter-Client Communication Conventions Manual</citetitle></olink>.
 The LINEAR_RGB function set is provided by Xlib
 and will support most color monitors.
 Function sets may require data that differs
