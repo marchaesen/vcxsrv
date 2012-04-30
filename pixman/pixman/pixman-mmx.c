@@ -439,6 +439,11 @@ pack8888 (__m64 lo, __m64 hi)
     return _mm_packs_pu16 (lo, hi);
 }
 
+#ifdef _MSC_VER
+#define store8888(dest,v) *(dest)=_mm_cvtsi64_si32 (pack8888 (v, _mm_setzero_si64 ()))
+#define store(dest,v) *(dest) = _mm_cvtsi64_si32 (v)
+#else
+
 static force_inline void
 store (uint32_t *dest, __m64 v)
 {
@@ -452,11 +457,6 @@ store (uint32_t *dest, __m64 v)
     *dest = _mm_cvtsi64_si32 (v);
 #endif
 }
-
-#ifdef _MSC_VER
-#define store8888(dest,v) *(dest)=_mm_cvtsi64_si32 (pack8888 (v, _mm_setzero_si64 ()))
-#define ret_store8888(v) _mm_cvtsi64_si32 (pack8888 (v, _mm_setzero_si64 ()))
-#else
 
 static force_inline void
 store8888 (uint32_t *dest, __m64 v)
@@ -473,7 +473,9 @@ is_equal (__m64 a, __m64 b)
     /* __m64 is double, we can compare directly. */
     return a == b;
 #else
-    return _mm_movemask_pi8 (_mm_cmpeq_pi8 (a, b)) == 0xff;
+    pixman_bool_t ret = _mm_movemask_pi8 (_mm_cmpeq_pi8 (a, b)) == 0xff;
+    _mm_empty();
+    return ret;
 #endif
 }
 
@@ -484,15 +486,21 @@ is_opaque (__m64 v)
     return is_equal (_mm_and_si64 (v, MC (full_alpha)), MC (full_alpha));
 #else
     __m64 ffs = _mm_cmpeq_pi8 (v, v);
-    return (_mm_movemask_pi8 (_mm_cmpeq_pi8 (v, ffs)) & 0x40);
+    pixman_bool_t ret = (_mm_movemask_pi8 (_mm_cmpeq_pi8 (v, ffs)) & 0x40);
+    _mm_empty();
+    return ret;
 #endif
 }
 
+#ifdef _MSC_VER
+#define is_zero(v) is_equal (v, _mm_setzero_si64 ())
+#else
 static force_inline pixman_bool_t
 is_zero (__m64 v)
 {
     return is_equal (v, _mm_setzero_si64 ());
 }
+#endif
 
 /* Expand 16 bits positioned at @pos (0-3) of a mmx register into
  *
@@ -634,13 +642,6 @@ pix_add_mul (__m64 x, __m64 a, __m64 y, __m64 b)
 
 /* --------------- MMX code patch for fbcompose.c --------------------- */
 
-#ifdef _MSC_VER
-#define combine(src, mask)                                                        \
-  ((mask) ?                                                                         \
-      ret_store8888 (pix_multiply (load8888 (src), expand_alpha (load8888 (mask))))  \
-    :                                                                              \
-      *src)
-#else
 static force_inline __m64
 combine (const uint32_t *src, const uint32_t *mask)
 {
@@ -656,7 +657,6 @@ combine (const uint32_t *src, const uint32_t *mask)
 
     return vsrc;
 }
-#endif
 
 static void
 mmx_combine_over_u (pixman_implementation_t *imp,
@@ -2195,6 +2195,7 @@ mmx_composite_src_x888_0565 (pixman_implementation_t *imp,
 	    w--;
 	}
     }
+    _mm_empty();
 }
 
 static void
@@ -3342,7 +3343,7 @@ mmx_fetch_x8r8g8b8 (pixman_iter_t *iter, const uint32_t *mask)
 	*dst++ = (*src++) | 0xff000000;
 	w--;
     }
-
+    _mm_empty();
     return iter->buffer;
 }
 
@@ -3388,6 +3389,7 @@ mmx_fetch_r5g6b5 (pixman_iter_t *iter, const uint32_t *mask)
 	w--;
     }
 
+    _mm_empty();
     return iter->buffer;
 }
 
@@ -3433,6 +3435,7 @@ mmx_fetch_a8 (pixman_iter_t *iter, const uint32_t *mask)
 	w--;
     }
 
+    _mm_empty();
     return iter->buffer;
 }
 
