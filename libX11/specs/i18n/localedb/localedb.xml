@@ -422,7 +422,7 @@ for this fontset.  The format of value is;
 
 <para>
 For detail definition of CHARSET_REGISTRY-CHARSET_ENCODING, refer
-"X Logical Font Descriptions" document.
+to the <olink targetdoc='xlfd' targetptr='xlfd'><citetitle>X Logical Font Description Conventions</citetitle></olink> document.
 </para>
 <literallayout>
 example:
@@ -778,7 +778,7 @@ END XLC_XLOCALE
 [1] <emphasis remap='I'>ISO/IEC 9899:1990 C Language Standard</emphasis>
 </para>
 <para>
-[2] <emphasis remap='I'>X Logical Font Descriptions</emphasis>
+[2] <olink targetdoc='xlfd' targetptr='xlfd'><citetitle>X Logical Font Description Conventions</citetitle></olink>
 </para>
 
 </sect1>

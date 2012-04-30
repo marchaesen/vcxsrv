@@ -1926,7 +1926,7 @@ error.
 Xlib provides functions that you can use to set and get the input focus.
 The input focus is a shared resource, and cooperation among clients is
 required for correct interaction.  See the
-<emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis> 
+<olink targetdoc='icccm' targetptr='Input_Focus'><citetitle>Inter-Client Communication Conventions Manual</citetitle></olink>
 for input focus policy.
 </para>
 <para>

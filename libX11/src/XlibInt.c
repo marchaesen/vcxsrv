@@ -886,7 +886,7 @@ void _XEnq(
 	extension = ((xGenericEvent*)event)->extension;
 
 	qelt->event.type = type;
-	/* If an extension has registerd a generic_event_vec handler, then
+	/* If an extension has registered a generic_event_vec handler, then
 	 * it can handle event cookies. Otherwise, proceed with the normal
 	 * event handlers.
 	 *

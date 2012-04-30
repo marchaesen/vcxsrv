@@ -44,19 +44,20 @@
 #include <dix-config.h>
 #endif
 
-#include   <X11/X.h>
-#include   <X11/Xmd.h>
-#include   <X11/Xproto.h>
-#include   "misc.h"
-#include   "windowstr.h"
-#include   "pixmapstr.h"
-#include   "inputstr.h"
-#include   "inpututils.h"
-#include   "eventstr.h"
-#include   "mi.h"
-#include   "scrnintstr.h"
-#include   "mipointer.h"
-#include   "os.h"
+#include <X11/X.h>
+#include <X11/Xmd.h>
+#include <X11/Xproto.h>
+#include "misc.h"
+#include "windowstr.h"
+#include "pixmapstr.h"
+#include "inputstr.h"
+#include "inpututils.h"
+#include "eventstr.h"
+#include "mi.h"
+#include "scrnintstr.h"
+#include "mipointer.h"
+#include "os.h"
+#include "exglobals.h"
 
 #include "darwin.h"
 #include "quartz.h"
@@ -72,12 +73,6 @@
 #include <time.h>
 
 #include <IOKit/hidsystem/IOLLEvent.h>
-
-/* Fake button press/release for scroll wheel move. */
-#define SCROLLWHEELUPFAKE    4
-#define SCROLLWHEELDOWNFAKE  5
-#define SCROLLWHEELLEFTFAKE  6
-#define SCROLLWHEELRIGHTFAKE 7
 
 #include <X11/extensions/applewmconst.h>
 #include "applewmExt.h"
@@ -442,56 +437,6 @@ DarwinPokeEQ(void)
     write(darwinEventWriteFD, &nullbyte, sizeof(nullbyte));
 }
 
-/* Convert from Appkit pointer input values to X input values:
- * Note: pointer_x and pointer_y are relative to the upper-left of primary
- *       display.
- */
-static void
-DarwinPrepareValuators(DeviceIntPtr pDev, ValuatorMask *pmask,
-                       ScreenPtr screen,
-                       double pointer_x, double pointer_y,
-                       double pressure, double tilt_x,
-                       double tilt_y)
-{
-
-    valuator_mask_zero(pmask);
-
-    /* Fix offset between darwin and X screens */
-    pointer_x -= darwinMainScreenX + screen->x;
-    pointer_y -= darwinMainScreenY + screen->y;
-
-    if (pointer_x < 0.0)
-        pointer_x = 0.0;
-
-    if (pointer_y < 0.0)
-        pointer_y = 0.0;
-
-    if (pDev == darwinPointer) {
-        valuator_mask_set_double(pmask, 0, pointer_x);
-        valuator_mask_set_double(pmask, 1, pointer_y);
-    }
-    else {
-        valuator_mask_set_double(pmask, 0, XQUARTZ_VALUATOR_LIMIT *
-                                 (pointer_x /
-                                  (double)screenInfo.screens[0]->width));
-        valuator_mask_set_double(pmask, 1, XQUARTZ_VALUATOR_LIMIT *
-                                 (pointer_y /
-                                  (double)screenInfo.screens[0]->height));
-        valuator_mask_set_double(pmask, 2, XQUARTZ_VALUATOR_LIMIT * pressure);
-        valuator_mask_set_double(pmask, 3, XQUARTZ_VALUATOR_LIMIT * tilt_x);
-        valuator_mask_set_double(pmask, 4, XQUARTZ_VALUATOR_LIMIT * tilt_y);
-        DEBUG_LOG("Pointer (%lf, %lf), Valuators: {%lf,%lf,%lf,%lf,%lf}\n",
-                  pointer_x, pointer_y,
-                  valuator_mask_get_double(pmask,
-                                           0),
-                  valuator_mask_get_double(pmask, 1),
-                  valuator_mask_get_double(pmask,
-                                           2),
-                  valuator_mask_get_double(pmask, 3),
-                  valuator_mask_get_double(pmask, 4));
-    }
-}
-
 void
 DarwinInputReleaseButtonsAndKeys(DeviceIntPtr pDev)
 {
@@ -521,27 +466,73 @@ DarwinInputReleaseButtonsAndKeys(DeviceIntPtr pDev)
 }
 
 void
-DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
-                        double pointer_x, double pointer_y,
-                        double pressure, double tilt_x,
-                        double tilt_y)
+DarwinSendTabletEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
+                       double pointer_x, double pointer_y,
+                       double pressure, double tilt_x,
+                       double tilt_y)
 {
-    static int darwinFakeMouseButtonDown = 0;
     ScreenPtr screen;
     ValuatorMask valuators;
 
-    //DEBUG_LOG("x=%f, y=%f, p=%f, tx=%f, ty=%f\n", pointer_x, pointer_y, pressure, tilt_x, tilt_y);
-
     if (!darwinEvents) {
-        DEBUG_LOG(
-            "DarwinSendPointerEvents called before darwinEvents was initialized\n");
+        DEBUG_LOG("%s called before darwinEvents was initialized\n",
+                  __FUNCTION__);
         return;
     }
 
     screen = miPointerGetScreen(pDev);
     if (!screen) {
-        DEBUG_LOG(
-            "DarwinSendPointerEvents called before screen was initialized\n");
+        DEBUG_LOG("%s called before screen was initialized\n",
+                  __FUNCTION__);
+        return;
+    }
+
+    /* Fix offset between darwin and X screens */
+    pointer_x -= darwinMainScreenX + screen->x;
+    pointer_y -= darwinMainScreenY + screen->y;
+
+    /* Adjust our pointer location to the [0,1] range */
+    pointer_x = pointer_x / (double)screenInfo.width;
+    pointer_y = pointer_y / (double)screenInfo.height;
+
+    valuator_mask_zero(&valuators);
+    valuator_mask_set_double(&valuators, 0, XQUARTZ_VALUATOR_LIMIT * pointer_x);
+    valuator_mask_set_double(&valuators, 1, XQUARTZ_VALUATOR_LIMIT * pointer_y);
+    valuator_mask_set_double(&valuators, 2, XQUARTZ_VALUATOR_LIMIT * pressure);
+    valuator_mask_set_double(&valuators, 3, XQUARTZ_VALUATOR_LIMIT * tilt_x);
+    valuator_mask_set_double(&valuators, 4, XQUARTZ_VALUATOR_LIMIT * tilt_y);
+
+    darwinEvents_lock();
+    {
+        if (ev_type == ProximityIn || ev_type == ProximityOut) {
+            QueueProximityEvents(pDev, ev_type, &valuators);
+        } else {
+            QueuePointerEvents(pDev, ev_type, ev_button, POINTER_ABSOLUTE,
+                               &valuators);
+        }
+        DarwinPokeEQ();
+    } darwinEvents_unlock();
+}
+
+void
+DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
+                        double pointer_x, double pointer_y,
+                        double pointer_dx, double pointer_dy)
+{
+    static int darwinFakeMouseButtonDown = 0;
+    ScreenPtr screen;
+    ValuatorMask valuators;
+
+    if (!darwinEvents) {
+        DEBUG_LOG("%s called before darwinEvents was initialized\n",
+                  __FUNCTION__);
+        return;
+    }
+
+    screen = miPointerGetScreen(pDev);
+    if (!screen) {
+        DEBUG_LOG("%s called before screen was initialized\n",
+                  __FUNCTION__);
         return;
     }
 
@@ -550,9 +541,8 @@ DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
         if (darwinFakeMouseButtonDown != 0) {
             /* We're currently "down" with another button, so release it first */
             DarwinSendPointerEvents(pDev, ButtonRelease,
-                                    darwinFakeMouseButtonDown, pointer_x,
-                                    pointer_y, pressure, tilt_x,
-                                    tilt_y);
+                                    darwinFakeMouseButtonDown,
+                                    pointer_x, pointer_y, 0.0, 0.0);
             darwinFakeMouseButtonDown = 0;
         }
         if (darwin_all_modifier_flags & darwinFakeMouse2Mask) {
@@ -586,15 +576,27 @@ DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
         darwinFakeMouseButtonDown = 0;
     }
 
-    DarwinPrepareValuators(pDev, &valuators, screen, pointer_x, pointer_y,
-                           pressure, tilt_x,
-                           tilt_y);
+    /* Fix offset between darwin and X screens */
+    pointer_x -= darwinMainScreenX + screen->x;
+    pointer_y -= darwinMainScreenY + screen->y;
+
+    valuator_mask_zero(&valuators);
+    valuator_mask_set_double(&valuators, 0, pointer_x);
+    valuator_mask_set_double(&valuators, 1, pointer_y);
+
+    if (ev_type == MotionNotify) {
+        if (pointer_dx != 0.0)
+            valuator_mask_set_double(&valuators, 2, pointer_dx);
+        if (pointer_dy != 0.0)
+            valuator_mask_set_double(&valuators, 3, pointer_dy);
+    }
+
     darwinEvents_lock();
     {
         QueuePointerEvents(pDev, ev_type, ev_button, POINTER_ABSOLUTE,
                            &valuators);
         DarwinPokeEQ();
-    } darwinEvents_unlock();
+    } darwinEvents_unlock();   
 }
 
 void
@@ -611,42 +613,6 @@ DarwinSendKeyboardEvents(int ev_type, int keycode)
     {
         QueueKeyboardEvents(darwinKeyboard, ev_type, keycode + MIN_KEYCODE,
                             NULL);
-        DarwinPokeEQ();
-    } darwinEvents_unlock();
-}
-
-void
-DarwinSendProximityEvents(DeviceIntPtr pDev, int ev_type, double pointer_x,
-                          double pointer_y,
-                          double pressure, double tilt_x,
-                          double tilt_y)
-{
-    ScreenPtr screen;
-    ValuatorMask valuators;
-
-    DEBUG_LOG("DarwinSendProximityEvents: %d l:%f,%f p:%f t:%f,%f\n", ev_type,
-              pointer_x, pointer_y, pressure, tilt_x,
-              tilt_y);
-
-    if (!darwinEvents) {
-        DEBUG_LOG(
-            "DarwinSendProximityEvents called before darwinEvents was initialized\n");
-        return;
-    }
-
-    screen = miPointerGetScreen(pDev);
-    if (!screen) {
-        DEBUG_LOG(
-            "DarwinSendPointerEvents called before screen was initialized\n");
-        return;
-    }
-
-    DarwinPrepareValuators(pDev, &valuators, screen, pointer_x, pointer_y,
-                           pressure, tilt_x,
-                           tilt_y);
-    darwinEvents_lock();
-    {
-        QueueProximityEvents(pDev, ev_type, &valuators);
         DarwinPokeEQ();
     } darwinEvents_unlock();
 }
@@ -671,8 +637,8 @@ DarwinSendScrollEvents(double scroll_x, double scroll_y) {
     }
 
     valuator_mask_zero(&valuators);
-    valuator_mask_set_double(&valuators, 2, scroll_y);
-    valuator_mask_set_double(&valuators, 3, scroll_x);
+    valuator_mask_set_double(&valuators, 4, scroll_y);
+    valuator_mask_set_double(&valuators, 5, scroll_x);
 
     darwinEvents_lock();
     {

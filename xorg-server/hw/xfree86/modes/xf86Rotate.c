@@ -290,14 +290,19 @@ xf86RotateDestroy(xf86CrtcPtr crtc)
      * Clean up damage structures when no crtcs are rotated
      */
     if (xf86_config->rotation_damage) {
+        DrawablePtr screenDrawable = NULL;
+        if (pScreen && pScreen->root)
+            screenDrawable = &pScreen->root->drawable;
         /* Free damage structure */
         if (xf86_config->rotation_damage_registered) {
-            DamageUnregister(&pScreen->root->drawable,
-                             xf86_config->rotation_damage);
+            if (screenDrawable)
+                DamageUnregister(screenDrawable,
+                        xf86_config->rotation_damage);
             xf86_config->rotation_damage_registered = FALSE;
             DisableLimitedSchedulingLatency();
         }
-        DamageDestroy(xf86_config->rotation_damage);
+        if (screenDrawable)
+            DamageDestroy(xf86_config->rotation_damage);
         xf86_config->rotation_damage = NULL;
     }
 }

@@ -336,7 +336,7 @@ xq_asl_log_fd(aslclient asl, aslmsg msg, int level, int fd)
                   {
                       /* Reallocate if we need more space */
                       if (fd >= n_redirect_fds) {
-                          size_t new_n = 1 << (ffs(fd) + 1);
+                          size_t new_n = 1 << (fls(fd) + 1);
                           asl_redirect *new_array =
                               realloc(redirect_fds, new_n *
                                       sizeof(*redirect_fds));

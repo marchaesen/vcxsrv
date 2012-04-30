@@ -24,12 +24,20 @@ not only for the quality of this document, but for the quality of the
 Keyboard extension itself.
 </para>
 <para>
+<literallayout>
 Matt Landau
-</para>
-<para>
 Manager, X Window System
-</para>
-<para>
 X Consortium Inc.
+</literallayout>
 </para>
+<simplesect>
+<title>X Version 11, Release 7 addendum</title>
+<para>
+This document is made available to you in modern formats such as HTML and PDF
+thanks to the efforts of Matt Dew, who converted the original troff sources to
+DocBook/XML and edited them into shape; Fernando Carrijo, who converted the
+images to SVG format; and Gaetan Nadon, who set up the formatting machinery in
+the libX11 builds and performed further editing of the DocBook markup.
+</para>
+</simplesect>
 </preface>

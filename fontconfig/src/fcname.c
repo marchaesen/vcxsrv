@@ -76,6 +76,7 @@ static const FcObjectType _FcBaseObjectTypes[] = {
     { FC_EMBEDDED_BITMAP,   FcTypeBool },
     { FC_DECORATIVE,	FcTypeBool },
     { FC_LCD_FILTER,	FcTypeInteger }, /* 41 */
+    { FC_NAMELANG,	FcTypeString }, /* 42 */
 };
 
 #define NUM_OBJECT_TYPES    (sizeof _FcBaseObjectTypes / sizeof _FcBaseObjectTypes[0])

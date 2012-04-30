@@ -65,6 +65,7 @@
 #include "util/u_inlines.h"
 #include "util/u_upload_mgr.h"
 #include "cso_cache/cso_context.h"
+#include "util/u_vbuf.h"
 
 
 DEBUG_GET_ONCE_BOOL_OPTION(mesa_mvp_dp4, "MESA_MVP_DP4", FALSE)
@@ -111,6 +112,29 @@ st_get_msaa(void)
 }
 
 
+static void st_init_vbuf(struct st_context *st)
+{
+   struct u_vbuf_caps caps;
+
+   u_vbuf_get_caps(st->pipe->screen, &caps);
+
+   /* Create u_vbuf if there is anything unsupported. */
+   if (!caps.buffer_offset_unaligned ||
+       !caps.buffer_stride_unaligned ||
+       !caps.velem_src_offset_unaligned ||
+       !caps.format_fixed32 ||
+       !caps.format_float16 ||
+       !caps.format_float64 ||
+       !caps.format_norm32 ||
+       !caps.format_scaled32 ||
+       !caps.user_vertex_buffers) {
+      /* XXX user vertex buffers are always uploaded regardless of the CAP. */
+      st->vbuf = u_vbuf_create(st->pipe, &caps);
+      cso_install_vbuf(st->cso_context, st->vbuf);
+   }
+}
+
+
 static struct st_context *
 st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe )
 {
@@ -134,6 +158,7 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe )
    st->uploader = u_upload_create(st->pipe, 65536, 4, PIPE_BIND_VERTEX_BUFFER);
    st->cso_context = cso_create_context(pipe);
 
+   st_init_vbuf(st);
    st_init_atoms( st );
    st_init_bitmap(st);
    st_init_clear(st);
@@ -245,6 +270,7 @@ static void st_destroy_context_priv( struct st_context *st )
 void st_destroy_context( struct st_context *st )
 {
    struct pipe_context *pipe = st->pipe;
+   struct u_vbuf *vbuf = st->vbuf;
    struct cso_context *cso = st->cso_context;
    struct gl_context *ctx = st->ctx;
    GLuint i;
@@ -275,7 +301,13 @@ void st_destroy_context( struct st_context *st )
 
    _mesa_free_context_data(ctx);
 
+   /* This will free the st_context too, so 'st' must not be accessed
+    * afterwards. */
    st_destroy_context_priv(st);
+   st = NULL;
+
+   if (vbuf)
+      u_vbuf_destroy(vbuf);
 
    cso_destroy_context(cso);
 

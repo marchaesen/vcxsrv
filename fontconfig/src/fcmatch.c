@@ -240,7 +240,8 @@ static const FcMatcher _FcMatchers [] = {
 #define NUM_MATCH_VALUES    17
 
 static const FcMatcher*
-FcObjectToMatcher (FcObject object)
+FcObjectToMatcher (FcObject object,
+		   FcBool   include_lang)
 {
     int 	i;
 
@@ -278,6 +279,16 @@ FcObjectToMatcher (FcObject object)
 	i = MATCH_OUTLINE; break;
     case FC_DECORATIVE_OBJECT:
 	i = MATCH_DECORATIVE; break;
+    default:
+	if (include_lang)
+	{
+	    switch (object) {
+	    case FC_FAMILYLANG_OBJECT:
+	    case FC_STYLELANG_OBJECT:
+	    case FC_FULLNAMELANG_OBJECT:
+		i = MATCH_LANG; break;
+	    }
+	}
     }
 
     if (i < 0)
@@ -287,22 +298,25 @@ FcObjectToMatcher (FcObject object)
 }
 
 static FcBool
-FcCompareValueList (FcObject	 object,
-		    FcValueListPtr v1orig,	/* pattern */
-		    FcValueListPtr v2orig,	/* target */
-		    FcValue	*bestValue,
-		    double	*value,
-		    FcResult	*result)
+FcCompareValueList (FcObject	     object,
+		    const FcMatcher *match,
+		    FcValueListPtr   v1orig,	/* pattern */
+		    FcValueListPtr   v2orig,	/* target */
+		    FcValue         *bestValue,
+		    double          *value,
+		    int             *n,
+		    FcResult        *result)
 {
     FcValueListPtr  v1, v2;
     double    	    v, best, bestStrong, bestWeak;
-    int		    j;
-    const FcMatcher *match = FcObjectToMatcher(object);
+    int		    j, k, pos = 0;
 
     if (!match)
     {
 	if (bestValue)
 	    *bestValue = FcValueCanonicalize(&v2orig->value);
+	if (n)
+	    *n = 0;
 	return FcTrue;
     }
 
@@ -312,7 +326,7 @@ FcCompareValueList (FcObject	 object,
     j = 1;
     for (v1 = v1orig; v1; v1 = FcValueListNext(v1))
     {
-	for (v2 = v2orig; v2; v2 = FcValueListNext(v2))
+	for (v2 = v2orig, k = 0; v2; v2 = FcValueListNext(v2), k++)
 	{
 	    v = (match->compare) (&v1->value, &v2->value);
 	    if (v < 0)
@@ -326,6 +340,7 @@ FcCompareValueList (FcObject	 object,
 		if (bestValue)
 		    *bestValue = FcValueCanonicalize(&v2->value);
 		best = v;
+		pos = k;
 	    }
 	    if (v1->binding == FcValueBindingStrong)
 	    {
@@ -360,6 +375,9 @@ FcCompareValueList (FcObject	 object,
 	    value[strong] += bestStrong;
 	}
     }
+    if (n)
+	*n = pos;
+
     return FcTrue;
 }
 
@@ -393,10 +411,11 @@ FcCompare (FcPattern	*pat,
 	    i1++;
 	else
 	{
-	    if (!FcCompareValueList (elt_i1->object,
+	    const FcMatcher *match = FcObjectToMatcher (elt_i1->object, FcFalse);
+	    if (!FcCompareValueList (elt_i1->object, match,
 				     FcPatternEltValues(elt_i1),
 				     FcPatternEltValues(elt_i2),
-				     0, value, result))
+				     NULL, value, NULL, result))
 		return FcFalse;
 	    i1++;
 	    i2++;
@@ -412,8 +431,8 @@ FcFontRenderPrepare (FcConfig	    *config,
 {
     FcPattern	    *new;
     int		    i;
-    FcPatternElt    *fe, *pe;
-    FcValue	    v;
+    FcPatternElt    *fe, *pe, *fel, *pel;
+    FcValue	    v, vl;
     FcResult	    result;
 
     assert (pat != NULL);
@@ -425,19 +444,81 @@ FcFontRenderPrepare (FcConfig	    *config,
     for (i = 0; i < font->num; i++)
     {
 	fe = &FcPatternElts(font)[i];
+	if (fe->object == FC_FAMILYLANG_OBJECT ||
+	    fe->object == FC_STYLELANG_OBJECT ||
+	    fe->object == FC_FULLNAMELANG_OBJECT)
+	{
+	    /* ignore those objects. we need to deal with them
+	     * another way */
+	    continue;
+	}
+	if (fe->object == FC_FAMILY_OBJECT ||
+	    fe->object == FC_STYLE_OBJECT ||
+	    fe->object == FC_FULLNAME_OBJECT)
+	{
+	    FC_ASSERT_STATIC ((FC_FAMILY_OBJECT + 1) == FC_FAMILYLANG_OBJECT);
+	    FC_ASSERT_STATIC ((FC_STYLE_OBJECT + 1) == FC_STYLELANG_OBJECT);
+	    FC_ASSERT_STATIC ((FC_FULLNAME_OBJECT + 1) == FC_FULLNAMELANG_OBJECT);
+
+	    fel = FcPatternObjectFindElt (font, fe->object + 1);
+	    pel = FcPatternObjectFindElt (pat, fe->object + 1);
+	}
+	else
+	{
+	    fel = NULL;
+	    pel = NULL;
+	}
 	pe = FcPatternObjectFindElt (pat, fe->object);
 	if (pe)
 	{
-	    if (!FcCompareValueList (pe->object, FcPatternEltValues(pe),
-				     FcPatternEltValues(fe), &v, 0, &result))
+	    const FcMatcher *match = FcObjectToMatcher (pe->object, FcFalse);
+
+	    if (!FcCompareValueList (pe->object, match,
+				     FcPatternEltValues(pe),
+				     FcPatternEltValues(fe), &v, NULL, NULL, &result))
 	    {
 		FcPatternDestroy (new);
 		return 0;
 	    }
+	    if (fel && pel)
+	    {
+		int n = 1, j;
+
+		match = FcObjectToMatcher (pel->object, FcTrue);
+		if (!FcCompareValueList (pel->object, match,
+					 FcPatternEltValues (pel),
+					 FcPatternEltValues (fel), &vl, NULL, &n, &result))
+		{
+		    FcPatternDestroy (new);
+		    return NULL;
+		}
+		else
+		{
+		    FcValueListPtr l;
+
+		    for (j = 0, l = FcPatternEltValues (fe);
+			 j < n && l != NULL;
+			 j++, l = FcValueListNext (l));
+		    if (l)
+			v = FcValueCanonicalize (&l->value);
+		    else
+			v = FcValueCanonicalize (&FcPatternEltValues (fe)->value);
+		}
+	    }
+	    else if (fel)
+	    {
+		vl = FcValueCanonicalize (&FcPatternEltValues (fel)->value);
+	    }
 	}
 	else
+	{
 	    v = FcValueCanonicalize(&FcPatternEltValues (fe)->value);
+	    if (fel)
+		vl = FcValueCanonicalize (&FcPatternEltValues (fel)->value);
+	}
 	FcPatternObjectAdd (new, fe->object, v, FcFalse);
+	if (fel)
+	    FcPatternObjectAdd (new, fel->object, vl, FcFalse);
     }
     for (i = 0; i < pat->num; i++)
     {

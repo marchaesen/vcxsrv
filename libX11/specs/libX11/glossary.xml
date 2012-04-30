@@ -1689,8 +1689,8 @@ see the <glossterm linkend="glossary:Host_Portable_Character_Encoding">Host Port
 <indexterm significance="preferred"><primary><acronym>XLFD</acronym></primary></indexterm>
   <glossdef>
     <para>
-The X Logical Font Description Conventions that define a standard syntax 
-for structured font names.
+The <olink targetdoc='xlfd' targetptr='xlfd'><citetitle>X Logical Font Description Conventions</citetitle></olink>
+that define a standard syntax for structured font names.
     </para>
   </glossdef>
 </glossentry>

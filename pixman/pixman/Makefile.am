@@ -118,5 +118,17 @@ libpixman_1_la_LIBADD += libpixman-mips-dspr2.la
 ASM_CFLAGS_mips_dspr2=
 endif
 
+# loongson code
+if USE_LOONGSON_MMI
+noinst_LTLIBRARIES += libpixman-loongson-mmi.la
+libpixman_loongson_mmi_la_SOURCES = pixman-mmx.c loongson-mmintrin.h
+libpixman_loongson_mmi_la_CFLAGS = $(DEP_CFLAGS) $(LS_CFLAGS)
+libpixman_loongson_mmi_la_LIBADD = $(DEP_LIBS)
+libpixman_1_la_LDFLAGS += $(LS_LDFLAGS)
+libpixman_1_la_LIBADD += libpixman-loongson-mmi.la
+
+ASM_CFLAGS_ls=$(LS_CFLAGS)
+endif
+
 .c.s : $(libpixmaninclude_HEADERS) $(BUILT_SOURCES)
 	$(CC) $(CFLAGS) $(ASM_CFLAGS_$(@:pixman-%.s=%)) $(ASM_CFLAGS_$(@:pixman-arm-%.s=arm_%)) -DHAVE_CONFIG_H -I$(srcdir) -I$(builddir) -I$(top_builddir) -S -o $@ $<

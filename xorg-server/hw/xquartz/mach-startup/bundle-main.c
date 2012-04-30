@@ -78,7 +78,7 @@ FatalError(const char *f, ...) _X_ATTRIBUTE_PRINTF(1, 2) _X_NORETURN;
 extern int noPanoramiXExtension;
 
 #define DEFAULT_CLIENT X11BINDIR "/xterm"
-#define DEFAULT_STARTX X11BINDIR "/startx"
+#define DEFAULT_STARTX X11BINDIR "/startx -- " X11BINDIR "/Xquartz"
 #define DEFAULT_SHELL  "/bin/sh"
 
 #ifndef BUILD_DATE

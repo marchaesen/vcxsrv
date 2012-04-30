@@ -25,8 +25,8 @@
  *
  **************************************************************************/
 
-#ifndef U_VBUF_MGR_H
-#define U_VBUF_MGR_H
+#ifndef U_VBUF_H
+#define U_VBUF_H
 
 /* This module builds upon u_upload_mgr and translate_cache and takes care of
  * user buffer uploads and vertex format fallbacks. It's designed
@@ -35,7 +35,9 @@
 
 #include "pipe/p_context.h"
 #include "pipe/p_state.h"
-#include "util/u_transfer.h"
+
+struct cso_context;
+struct u_vbuf;
 
 /* Hardware vertex fetcher limitations can be described by this structure. */
 struct u_vbuf_caps {
@@ -47,99 +49,38 @@ struct u_vbuf_caps {
    unsigned format_norm32:1;     /* PIPE_FORMAT_*32*NORM */
    unsigned format_scaled32:1;   /* PIPE_FORMAT_*32*SCALED */
 
-   /* Whether vertex fetches don't have to be dword-aligned. */
+   /* Whether vertex fetches don't have to be 4-byte-aligned. */
    /* TRUE if hardware supports it. */
-   unsigned fetch_dword_unaligned:1;
+   unsigned buffer_offset_unaligned:1;
+   unsigned buffer_stride_unaligned:1;
+   unsigned velem_src_offset_unaligned:1;
+
+   /* Whether the driver supports user vertex buffers. */
+   unsigned user_vertex_buffers:1;
 };
 
-/* The manager.
- * This structure should also be used to access vertex buffers
- * from a driver. */
-struct u_vbuf {
-   /* This is what was set in set_vertex_buffers.
-    * May contain user buffers. */
-   struct pipe_vertex_buffer vertex_buffer[PIPE_MAX_ATTRIBS];
-   unsigned nr_vertex_buffers;
 
-   /* Contains only real vertex buffers.
-    * Hardware drivers should use real_vertex_buffers[i]
-    * instead of vertex_buffers[i].buffer. */
-   struct pipe_vertex_buffer real_vertex_buffer[PIPE_MAX_ATTRIBS];
-   int nr_real_vertex_buffers;
-
-   /* The index buffer. */
-   struct pipe_index_buffer index_buffer;
-
-   /* This uploader can optionally be used by the driver.
-    *
-    * Allowed functions:
-    * - u_upload_alloc
-    * - u_upload_data
-    * - u_upload_buffer
-    * - u_upload_flush */
-   struct u_upload_mgr *uploader;
-
-   struct u_vbuf_caps caps;
-};
-
-struct u_vbuf_resource {
-   struct u_resource b;
-   uint8_t *user_ptr;
-};
-
-/* Opaque type containing information about vertex elements for the manager. */
-struct u_vbuf_elements;
-
-enum u_fetch_alignment {
-   U_VERTEX_FETCH_BYTE_ALIGNED,
-   U_VERTEX_FETCH_DWORD_ALIGNED
-};
-
-enum u_vbuf_return_flags {
-   U_VBUF_BUFFERS_UPDATED = 1
-};
-
+void u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps);
 
 struct u_vbuf *
 u_vbuf_create(struct pipe_context *pipe,
-              unsigned upload_buffer_size,
-              unsigned upload_buffer_alignment,
-              unsigned upload_buffer_bind,
-              enum u_fetch_alignment fetch_alignment);
+              struct u_vbuf_caps *caps);
 
 void u_vbuf_destroy(struct u_vbuf *mgr);
 
-struct u_vbuf_elements *
-u_vbuf_create_vertex_elements(struct u_vbuf *mgr,
-                              unsigned count,
-                              const struct pipe_vertex_element *attrs,
-                              struct pipe_vertex_element *native_attrs);
-
-void u_vbuf_bind_vertex_elements(struct u_vbuf *mgr,
-                                 void *cso,
-                                 struct u_vbuf_elements *ve);
-
-void u_vbuf_destroy_vertex_elements(struct u_vbuf *mgr,
-                                    struct u_vbuf_elements *ve);
-
-void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
-                               unsigned count,
+/* State and draw functions. */
+void u_vbuf_set_vertex_elements(struct u_vbuf *mgr, unsigned count,
+                                const struct pipe_vertex_element *states);
+void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr, unsigned count,
                                const struct pipe_vertex_buffer *bufs);
-
 void u_vbuf_set_index_buffer(struct u_vbuf *mgr,
                              const struct pipe_index_buffer *ib);
+void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info);
 
-enum u_vbuf_return_flags u_vbuf_draw_begin(struct u_vbuf *mgr,
-                                           struct pipe_draw_info *info);
-
-unsigned u_vbuf_draw_max_vertex_count(struct u_vbuf *mgr);
-
-void u_vbuf_draw_end(struct u_vbuf *mgr);
-
-
-static INLINE struct u_vbuf_resource *u_vbuf_resource(struct pipe_resource *r)
-{
-   return (struct u_vbuf_resource*)r;
-}
+/* Save/restore functionality. */
+void u_vbuf_save_vertex_elements(struct u_vbuf *mgr);
+void u_vbuf_restore_vertex_elements(struct u_vbuf *mgr);
+void u_vbuf_save_vertex_buffers(struct u_vbuf *mgr);
+void u_vbuf_restore_vertex_buffers(struct u_vbuf *mgr);
 
 #endif

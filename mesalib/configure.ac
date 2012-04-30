@@ -16,7 +16,7 @@ AC_INIT([Mesa],[mesa_version],
     [https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa])
 AC_CONFIG_AUX_DIR([bin])
 AC_CANONICAL_HOST
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([foreign -Wall])
 
 dnl http://people.gnome.org/~walters/docs/build-api.txt
 dnl We don't support srcdir != builddir.
@@ -636,6 +636,12 @@ AC_ARG_ENABLE([gallium_gbm],
          @<:@default=auto@:>@])],
     [enable_gallium_gbm="$enableval"],
     [enable_gallium_gbm=auto])
+
+AC_ARG_ENABLE([r600-llvm-compiler],
+    [AS_HELP_STRING([--enable-r600-llvm-compilerl],
+        [Enable experimental LLVM backend for graphics shaders @<:default=disable@:>@])],
+    [enable_r600_llvm="$enableval"],
+    [enable_r600_llvm=no])
 
 # Option for Gallium drivers
 GALLIUM_DRIVERS_DEFAULT="r300,r600,svga,swrast"
@@ -1805,7 +1811,7 @@ if test "x$enable_gallium_llvm" = xyes; then
 	LLVM_BINDIR=`$LLVM_CONFIG --bindir`
 	LLVM_CXXFLAGS=`$LLVM_CONFIG --cxxflags`
 	LLVM_INCLUDEDIR=`$LLVM_CONFIG --includedir`
-	DEFINES="$DEFINES -D__STDC_CONSTANT_MACROS"
+	DEFINES="${DEFINES} -DHAVE_LLVM=`echo $LLVM_VERSION | sed -e 's/\([[0-9]]\)\.\([[0-9]]\)/0x0\10\2/g'`"
 	MESA_LLVM=1
     else
 	MESA_LLVM=0
@@ -1906,6 +1912,13 @@ if test "x$with_gallium_drivers" != x; then
         xr600)
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS r600"
+            if test "x$enable_r600_llvm" = xyes; then
+                if test "x$LLVM_VERSION" != "x3.1"; then
+                    AC_MSG_ERROR([LLVM 3.1 is required for the r600 llvm compiler.])
+                fi
+                NEED_RADEON_GALLIUM=yes;
+                USE_R600_LLVM_COMPILER=yes;
+            fi
             gallium_check_st "radeon/drm" "dri-r600" "xorg-r600" "" "xvmc-r600" "vdpau-r600" "va-r600"
             ;;
         xradeonsi)
@@ -1976,6 +1989,7 @@ AM_CONDITIONAL(HAVE_GALAHAD_GALLIUM, test x$HAVE_GALAHAD_GALLIUM = xyes)
 AM_CONDITIONAL(HAVE_IDENTITY_GALLIUM, test x$HAVE_IDENTITY_GALLIUM = xyes)
 AM_CONDITIONAL(HAVE_NOOP_GALLIUM, test x$HAVE_NOOP_GALLIUM = xyes)
 AM_CONDITIONAL(NEED_RADEON_GALLIUM, test x$NEED_RADEON_GALLIUM = xyes)
+AM_CONDITIONAL(USE_R600_LLVM_COMPILER, test x$USE_R600_LLVM_COMPILER = xyes)
 AC_SUBST([GALLIUM_MAKE_DIRS])
 
 dnl prepend CORE_DIRS to SRC_DIRS

@@ -250,7 +250,8 @@ iso8859_6_to_unicode(unsigned isocode, void *client_data)
     if(isocode<=0xA0 || isocode==0xA4 || isocode==0xAD)
         return isocode;
     else if(isocode==0xAC || isocode==0xBB ||
-            (isocode>=0xBF && isocode<=0xDA) ||
+	    isocode==0xBF ||
+            (isocode>=0xC1 && isocode<=0xDA) ||
             (isocode>=0xE0 && isocode<=0xEF) ||
             (isocode>=0xF0 && isocode<=0xF2))
         return isocode-0xA0+0x0600;
@@ -278,6 +279,8 @@ iso8859_7_to_unicode(unsigned isocode, void *client_data)
         return 0x02BC;
     else if(isocode==0xAF)
         return 0x2015;
+    else if(isocode==0xD2) /* unassigned */
+        return 0;
     else if(isocode>=0xB4)
         return isocode-0xA0+0x0370;
     else

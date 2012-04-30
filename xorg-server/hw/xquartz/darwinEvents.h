@@ -44,14 +44,13 @@ DarwinEQSwitchScreen(ScreenPtr pScreen, Bool fromDIX);
 void
 DarwinInputReleaseButtonsAndKeys(DeviceIntPtr pDev);
 void
-DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
-                        double pointer_x, double pointer_y, double pressure,
-                        double tilt_x,
-                        double tilt_y);
+DarwinSendTabletEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
+                       double pointer_x, double pointer_y, double pressure,
+                       double tilt_x, double tilt_y);
 void
-DarwinSendProximityEvents(DeviceIntPtr pDev, int ev_type, double pointer_x,
-                          double pointer_y, double pressure, double tilt_x,
-                          double tilt_y);
+DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
+                        double pointer_x, double pointer_y,
+                        double pointer_dx, double pointer_dy);
 void
 DarwinSendKeyboardEvents(int ev_type, int keycode);
 void

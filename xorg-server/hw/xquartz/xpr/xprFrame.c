@@ -212,7 +212,7 @@ xprCreateFrame(RootlessWindowPtr pFrame, ScreenPtr pScreen,
 #else
     pthread_rwlock_wrlock(&window_hash_rwlock);
     x_hash_table_insert(window_hash, pFrame->wid, pFrame);
-    pthread_rwlock_wrlock(&window_hash_rwlock);
+    pthread_rwlock_unlock(&window_hash_rwlock);
 #endif
 
     xprSetNativeProperty(pFrame);

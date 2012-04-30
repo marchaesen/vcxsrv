@@ -37,6 +37,21 @@
 #  include <unistd.h>
 #  include <sys/mman.h>
 #endif
+#ifdef HAVE_SYS_VFS_H
+#include <sys/vfs.h>
+#endif
+#ifdef HAVE_SYS_STATFS_H
+#include <sys/statfs.h>
+#endif
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#ifdef HAVE_SYS_MOUNT_H
+#include <sys/mount.h>
+#endif
+#ifdef HAVE_MNTENT_H
+#include <mntent.h>
+#endif
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -143,6 +158,64 @@ FcStat (const FcChar8 *file, struct stat *statb)
 }
 
 #endif
+
+static FcBool
+FcCacheIsMmapSafe (int fd)
+{
+    FcBool retval = FcTrue;
+    static FcBool is_initialized = FcFalse;
+    static FcBool is_env_available = FcFalse;
+    static FcBool use_mmap = FcFalse;
+
+    if (!is_initialized)
+    {
+	const char *env;
+
+	env = getenv ("FONTCONFIG_USE_MMAP");
+	if (env)
+	{
+	    if (FcNameBool ((const FcChar8 *)env, &use_mmap))
+		is_env_available = FcTrue;
+	}
+	is_initialized = FcTrue;
+    }
+    if (is_env_available)
+	return use_mmap;
+#if defined(HAVE_FSTATVFS) && (defined(HAVE_STRUCT_STATVFS_F_BASETYPE) || defined(HAVE_STRUCT_STATVFS_F_FSTYPENAME))
+    struct statvfs buf;
+
+    if (fstatvfs (fd, &buf) == 0)
+    {
+	const char *p;
+#if defined(HAVE_STRUCT_STATVFS_F_BASETYPE)
+	p = buf.f_basetype;
+#elif defined(HAVE_STRUCT_STATVFS_F_FSTYPENAME)
+	p = buf.f_fstypename;
+#endif
+
+	if (strcmp (p, "nfs") == 0)
+	    retval = FcFalse;
+    }
+#elif defined(HAVE_FSTATFS) && (defined(HAVE_STRUCT_STATFS_F_FLAGS) || defined(HAVE_STRUCT_STATFS_F_FSTYPENAME) || defined(__linux__))
+    struct statfs buf;
+
+    if (fstatfs (fd, &buf) == 0)
+    {
+#  if defined(HAVE_STRUCT_STATFS_F_FLAGS) && defined(MNT_LOCAL)
+	if (!(buf.f_flags & MNT_LOCAL))
+#  elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
+	if (strcmp (buf.f_fstypename, "nfs") == 0)
+#  elif defined(__linux__)
+	if (buf.f_type == 0x6969) /* nfs */
+#  else
+#    error "BUG: No way to figure out with fstatfs()"
+#  endif
+	    retval = FcFalse;
+    }
+#endif
+
+    return retval;
+}
 
 static const char bin2hex[] = { '0', '1', '2', '3',
 				'4', '5', '6', '7',
@@ -602,10 +675,10 @@ FcDirCacheMapFd (int fd, struct stat *fd_stat, struct stat *dir_stat)
     }
 
     /*
-     * Lage cache files are mmap'ed, smaller cache files are read. This
+     * Large cache files are mmap'ed, smaller cache files are read. This
      * balances the system cost of mmap against per-process memory usage.
      */
-    if (fd_stat->st_size >= FC_CACHE_MIN_MMAP)
+    if (FcCacheIsMmapSafe (fd) && fd_stat->st_size >= FC_CACHE_MIN_MMAP)
     {
 #if defined(HAVE_MMAP) || defined(__CYGWIN__)
 	cache = mmap (0, fd_stat->st_size, PROT_READ, MAP_SHARED, fd, 0);

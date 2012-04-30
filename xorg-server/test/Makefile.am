@@ -54,8 +54,6 @@ libxservertest_la_LIBADD += \
             $(top_builddir)/hw/xfree86/dixmods/libxorgxkb.la \
             @XORG_LIBS@
 
-EXTRA_DIST = ddxstubs.c
-
 else
 nodist_libxservertest_la_SOURCES = \
             ddxstubs.c \
@@ -111,3 +109,6 @@ endif
 
 libxservertest_la_DEPENDENCIES = $(libxservertest_la_LIBADD)
 endif
+
+EXTRA_DIST = ddxstubs.c
+

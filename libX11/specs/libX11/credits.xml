@@ -224,4 +224,14 @@ Massachusetts Institute of Technology
 </literallayout>
 </para>
 </simplesect>
+<simplesect>
+<title>Release 7</title>
+<para>
+This document is made available to you in modern formats such as HTML and PDF
+thanks to the efforts of Matt Dew, who converted the original troff sources to
+DocBook/XML and edited them into shape; along with Gaetan Nadon and
+Alan Coopersmith, who set up the formatting machinery in the libX11 builds and
+performed further editing of the DocBook markup.
+</para>
+</simplesect>
 </preface>
