@@ -858,6 +858,10 @@ set_sun_path(const char *port, const char *upath, char *path, int abstract)
 
 #ifdef TRANS_SERVER
 
+#ifndef SO_BINDRETRYCOUNT
+#define SO_BINDRETRYCOUNT 20
+#endif
+
 static int
 TRANS(SocketCreateListener) (XtransConnInfo ciptr,
 			     struct sockaddr *sockname,
@@ -875,7 +879,7 @@ TRANS(SocketCreateListener) (XtransConnInfo ciptr,
       || Sockettrans2devtab[ciptr->index].family == AF_INET6
 #endif
 	)
-	retry = 20;
+	retry = SO_BINDRETRYCOUNT;
     else
 	retry = 0;
 
