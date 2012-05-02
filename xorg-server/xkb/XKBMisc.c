@@ -330,7 +330,7 @@ _XkbFindMatchingInterp(XkbDescPtr xkb,
 static void
 _XkbAddKeyChange(KeyCode *pFirst, unsigned char *pNum, KeyCode newKey)
 {
-    KeyCode last;
+    int last;
 
     last = (*pFirst) + (*pNum);
     if (newKey < *pFirst) {
