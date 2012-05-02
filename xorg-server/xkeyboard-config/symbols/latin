@@ -35,7 +35,7 @@ xkb_symbols "basic" {
     key <AC04>	{ [         f,          F,      dstroke,  ordfeminine ]	};
     key <AC05>	{ [         g,          G,          eng,          ENG ]	};
     key <AC06>	{ [         h,          H,      hstroke,      Hstroke ]	};
-    key <AC07>	{ [         j,          J,            j,            J ]	};
+    key <AC07>	{ [         j,          J,    dead_hook,    dead_horn ] };
     key <AC08>	{ [         k,          K,          kra,    ampersand ]	};
     key <AC09>	{ [         l,          L,      lstroke,      Lstroke ]	};
     key <AC10>	{ [ semicolon,    colon, dead_acute, dead_doubleacute ]	};

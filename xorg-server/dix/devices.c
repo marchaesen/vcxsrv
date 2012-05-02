@@ -441,6 +441,7 @@ DisableDevice(DeviceIntPtr dev, BOOL sendevent)
     if (*prev != dev)
         return FALSE;
 
+    ReleaseButtonsAndKeys(dev);
     SyncRemoveDeviceIdleTime(dev->idle_counter);
     dev->idle_counter = NULL;
 

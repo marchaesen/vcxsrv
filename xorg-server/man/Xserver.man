@@ -127,6 +127,13 @@ Not obeyed by all servers.
 .B \-core
 causes the server to generate a core dump on fatal errors.
 .TP 8
+.B \-displayfd \fIfd\fP
+specifies a file descriptor in the launching process.  Rather than specify
+a display number, the X server will attempt to listen on successively higher
+display numbers, and upon finding a free one, will write the port number back
+on this file descriptor as a newline-terminated string.  The \-pn option is
+ignored when using \-displayfd.
+.TP 8
 .B \-deferglyphs \fIwhichfonts\fP
 specifies the types of fonts for which the server should attempt to use
 deferred glyph loading.  \fIwhichfonts\fP can be all (all fonts),

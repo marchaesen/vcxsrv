@@ -54,6 +54,8 @@ struct test_data {
     int minor_client;
     int major_server;
     int minor_server;
+    int major_cached;
+    int minor_cached;
 };
 
 static void
@@ -80,6 +82,24 @@ reply_XIQueryVersion(ClientPtr client, int len, char *data, void *userdata)
 
     assert(ver >= 2000);
     assert((sver > cver) ? ver == cver : ver == sver);
+}
+
+static void
+reply_XIQueryVersion_multiple(ClientPtr client, int len, char *data, void *userdata)
+{
+    xXIQueryVersionReply *rep = (xXIQueryVersionReply *) data;
+    struct test_data *versions = (struct test_data *) userdata;
+
+    reply_check_defaults(rep, len, XIQueryVersion);
+    assert(rep->length == 0);
+
+    if (versions->major_cached == -1) {
+        versions->major_cached = rep->major_version;
+        versions->minor_cached = rep->minor_version;
+    }
+
+    assert(versions->major_cached == rep->major_version);
+    assert(versions->minor_cached == rep->minor_version);
 }
 
 /**
@@ -173,12 +193,105 @@ test_XIQueryVersion(void)
     reply_handler = NULL;
 }
 
+
+static void
+test_XIQueryVersion_multiple(void)
+{
+    xXIQueryVersionReq request;
+    ClientRec client;
+    struct test_data versions;
+    int rc;
+
+    request_init(&request, XIQueryVersion);
+    client = init_client(request.length, &request);
+
+    /* Change the server to support 2.2 */
+    XIVersion.major_version = 2;
+    XIVersion.minor_version = 2;
+
+    reply_handler = reply_XIQueryVersion_multiple;
+    userdata = (void *) &versions;
+
+    /* run 1 */
+    versions.major_cached = -1;
+    versions.minor_cached = -1;
+
+    /* client is lower than server, noncached */
+    request.major_version = 2;
+    request.minor_version = 1;
+    rc = ProcXIQueryVersion(&client);
+    assert(rc == Success);
+
+    /* client is higher than server, cached */
+    request.major_version = 2;
+    request.minor_version = 3;
+    rc = ProcXIQueryVersion(&client);
+    assert(rc == Success);
+
+    /* client is equal, cached */
+    request.major_version = 2;
+    request.minor_version = 2;
+    rc = ProcXIQueryVersion(&client);
+    assert(rc == Success);
+
+    /* client is low than cached */
+    request.major_version = 2;
+    request.minor_version = 0;
+    rc = ProcXIQueryVersion(&client);
+    assert(rc == BadValue);
+
+    /* run 2 */
+    client = init_client(request.length, &request);
+    XIVersion.major_version = 2;
+    XIVersion.minor_version = 2;
+    versions.major_cached = -1;
+    versions.minor_cached = -1;
+
+    request.major_version = 2;
+    request.minor_version = 2;
+    rc = ProcXIQueryVersion(&client);
+    assert(rc == Success);
+
+    request.major_version = 2;
+    request.minor_version = 3;
+    rc = ProcXIQueryVersion(&client);
+    assert(rc == Success);
+
+    request.major_version = 2;
+    request.minor_version = 1;
+    rc = ProcXIQueryVersion(&client);
+    assert(rc == BadValue);
+
+    /* run 3 */
+    client = init_client(request.length, &request);
+    XIVersion.major_version = 2;
+    XIVersion.minor_version = 2;
+    versions.major_cached = -1;
+    versions.minor_cached = -1;
+
+    request.major_version = 2;
+    request.minor_version = 3;
+    rc = ProcXIQueryVersion(&client);
+    assert(rc == Success);
+
+    request.major_version = 2;
+    request.minor_version = 2;
+    rc = ProcXIQueryVersion(&client);
+    assert(rc == Success);
+
+    request.major_version = 2;
+    request.minor_version = 1;
+    rc = ProcXIQueryVersion(&client);
+    assert(rc == BadValue);
+}
+
 int
 main(int argc, char **argv)
 {
     init_simple();
 
     test_XIQueryVersion();
+    test_XIQueryVersion_multiple();
 
     return 0;
 }

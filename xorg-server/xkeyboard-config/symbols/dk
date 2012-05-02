@@ -69,4 +69,5 @@ xkb_symbols "dvorak" {
     include "no(dvorak)"
 
     name[Group1]= "Danish (Dvorak)";
+    key <AD12> { [  asciitilde, asciicircum, dead_diaeresis, dead_tilde ] };
 };
