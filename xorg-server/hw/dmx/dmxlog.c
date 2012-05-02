@@ -86,6 +86,8 @@ ErrorF(const char *format, ...)
 
 /** Provide an VFatalError function when used stand-alone. */
 static void
+VFatalError(const char *format, va_list args) _X_ATTRIBUTE_PRINTF(1, 0) _X_NORETURN;
+static void
 VFatalError(const char *format, va_list args)
 {
     vfprintf(stderr, format, args);     /* RATS: We assume the format string
@@ -104,7 +106,9 @@ VErrorF(const char *format, va_list args)
 }
 #else
 /** This function was removed between XFree86 4.3.0 and XFree86 4.4.0. */
-extern void AbortServer(void);
+extern void AbortServer(void) _X_NORETURN;
+static void
+VFatalError(const char *format, va_list args) _X_ATTRIBUTE_PRINTF(1, 0) _X_NORETURN;
 static void
 VFatalError(const char *format, va_list args)
 {
@@ -162,6 +166,8 @@ dmxHeader(dmxLogLevel logLevel, DMXInputInfo * dmxInput,
 
 /* Prints the error message with the appropriate low-level X output
  * routine. */
+static void
+dmxMessage(dmxLogLevel logLevel, const char *format, va_list args) _X_ATTRIBUTE_PRINTF(2, 0);
 static void
 dmxMessage(dmxLogLevel logLevel, const char *format, va_list args)
 {
@@ -300,10 +306,11 @@ dmxLogVisual(DMXScreenInfo * dmxScreen, XVisualInfo * vi, int defaultVisual)
         class = "DirectColor";
         break;
     }
+#define VisualLogFormat "0x%02lx %s %2db %db/rgb %3d 0x%04lx 0x%04lx 0x%04lx%s\n"
 
     if (dmxScreen) {
         dmxLogOutput(dmxScreen,
-                     "0x%02x %s %2db %db/rgb %3d 0x%04x 0x%04x 0x%04x%s\n",
+                     VisualLogFormat,
                      vi->visualid, class, vi->depth, vi->bits_per_rgb,
                      vi->colormap_size,
                      vi->red_mask, vi->green_mask, vi->blue_mask,
@@ -311,7 +318,7 @@ dmxLogVisual(DMXScreenInfo * dmxScreen, XVisualInfo * vi, int defaultVisual)
     }
     else {
         dmxLog(dmxInfo,
-               "  0x%02x %s %2db %db/rgb %3d 0x%04x 0x%04x 0x%04x%s\n",
+               "  " VisualLogFormat,
                vi->visualid, class, vi->depth, vi->bits_per_rgb,
                vi->colormap_size,
                vi->red_mask, vi->green_mask, vi->blue_mask,

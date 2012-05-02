@@ -659,6 +659,15 @@ ProcessCommandLine(int argc, char *argv[])
             else
                 UseMsg();
         }
+        else if (strcmp(argv[i], "-displayfd") == 0) {
+            if (++i < argc) {
+                displayfd = atoi(argv[i]);
+                display = NULL;
+                nolock = TRUE;
+            }
+            else
+                UseMsg();
+        }
 #ifdef DPMSExtension
         else if (strcmp(argv[i], "dpms") == 0)
             /* ignored for compatibility */ ;

@@ -110,7 +110,6 @@ dnl ==========================================================================
 AC_ARG_WITH(arch,
 	[AC_HELP_STRING([--with-arch=ARCH],
 			[Force architecture to ARCH])],
-	,
 	arch="$withval", arch=auto)
 
 if test "x$arch" != xauto; then

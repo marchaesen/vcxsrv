@@ -382,6 +382,7 @@ CheckAllTimers(void)
     OsTimerPtr timer;
     CARD32 now;
 
+    OsBlockSignals();
  start:
     now = GetTimeInMillis();
 
@@ -391,6 +392,7 @@ CheckAllTimers(void)
             goto start;
         }
     }
+    OsReleaseSignals();
 }
 
 static void
@@ -398,11 +400,13 @@ DoTimer(OsTimerPtr timer, CARD32 now, OsTimerPtr *prev)
 {
     CARD32 newTime;
 
+    OsBlockSignals();
     *prev = timer->next;
     timer->next = NULL;
     newTime = (*timer->callback) (timer, now, timer->arg);
     if (newTime)
         TimerSet(timer, 0, newTime, timer->callback, timer->arg);
+    OsReleaseSignals();
 }
 
 OsTimerPtr
@@ -418,6 +422,7 @@ TimerSet(OsTimerPtr timer, int flags, CARD32 millis,
             return NULL;
     }
     else {
+        OsBlockSignals();
         for (prev = &timers; *prev; prev = &(*prev)->next) {
             if (*prev == timer) {
                 *prev = timer->next;
@@ -426,6 +431,7 @@ TimerSet(OsTimerPtr timer, int flags, CARD32 millis,
                 break;
             }
         }
+        OsReleaseSignals();
     }
     if (!millis)
         return timer;
@@ -445,26 +451,32 @@ TimerSet(OsTimerPtr timer, int flags, CARD32 millis,
         if (!millis)
             return timer;
     }
+    OsBlockSignals();
     for (prev = &timers;
          *prev && (int) ((*prev)->expires - millis) <= 0;
          prev = &(*prev)->next);
     timer->next = *prev;
     *prev = timer;
+    OsReleaseSignals();
     return timer;
 }
 
 Bool
 TimerForce(OsTimerPtr timer)
 {
+    int rc = FALSE;
     OsTimerPtr *prev;
 
+    OsBlockSignals();
     for (prev = &timers; *prev; prev = &(*prev)->next) {
         if (*prev == timer) {
             DoTimer(timer, GetTimeInMillis(), prev);
-            return TRUE;
+            rc = TRUE;
+            break;
         }
     }
-    return FALSE;
+    OsReleaseSignals();
+    return rc;
 }
 
 void
@@ -474,12 +486,14 @@ TimerCancel(OsTimerPtr timer)
 
     if (!timer)
         return;
+    OsBlockSignals();
     for (prev = &timers; *prev; prev = &(*prev)->next) {
         if (*prev == timer) {
             *prev = timer->next;
             break;
         }
     }
+    OsReleaseSignals();
 }
 
 void

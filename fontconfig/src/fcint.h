@@ -701,7 +701,13 @@ FcCharSetGetNumbers(const FcCharSet *c);
 
 /* fcdbg.c */
 FcPrivate void
-FcValueListPrint (const FcValueListPtr l);
+FcValuePrintWithPosition (const FcValue v, FcBool show_pos_mark);
+
+FcPrivate void
+FcValueListPrintWithPosition (FcValueListPtr l, const FcValueListPtr pos);
+
+FcPrivate void
+FcValueListPrint (FcValueListPtr l);
 
 FcPrivate void
 FcLangSetPrint (const FcLangSet *ls);

@@ -1302,7 +1302,7 @@ FcConfigAdd (FcValueListPtr *head,
     if (FcDebug () & FC_DBG_EDIT)
     {
 	printf ("%s list before ", append ? "Append" : "Prepend");
-	FcValueListPrint (*head);
+	FcValueListPrintWithPosition (*head, *prev);
 	printf ("\n");
     }
 

@@ -26,40 +26,83 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void
-FcValuePrint (const FcValue v)
+static void
+_FcValuePrint (const FcValue v)
 {
     switch (v.type) {
     case FcTypeVoid:
-	printf (" <void>");
+	printf ("<void>");
 	break;
     case FcTypeInteger:
-	printf (" %d(i)", v.u.i);
+	printf ("%d(i)", v.u.i);
 	break;
     case FcTypeDouble:
-	printf (" %g(f)", v.u.d);
+	printf ("%g(f)", v.u.d);
 	break;
     case FcTypeString:
-	printf (" \"%s\"", v.u.s);
+	printf ("\"%s\"", v.u.s);
 	break;
     case FcTypeBool:
-	printf (" %s", v.u.b ? "FcTrue" : "FcFalse");
+	printf ("%s", v.u.b ? "FcTrue" : "FcFalse");
 	break;
     case FcTypeMatrix:
-	printf (" (%f %f; %f %f)", v.u.m->xx, v.u.m->xy, v.u.m->yx, v.u.m->yy);
+	printf ("(%f %f; %f %f)", v.u.m->xx, v.u.m->xy, v.u.m->yx, v.u.m->yy);
 	break;
     case FcTypeCharSet:	/* XXX */
-	printf (" ");
 	FcCharSetPrint (v.u.c);
 	break;
     case FcTypeLangSet:
-	printf (" ");
 	FcLangSetPrint (v.u.l);
 	break;
     case FcTypeFTFace:
-	printf (" face");
+	printf ("face");
 	break;
     }
+}
+
+void
+FcValuePrint (const FcValue v)
+{
+    printf (" ");
+    _FcValuePrint (v);
+}
+
+void
+FcValuePrintWithPosition (const FcValue v, FcBool show_pos_mark)
+{
+    if (show_pos_mark)
+	printf (" [insert here] ");
+    else
+	printf (" ");
+    _FcValuePrint (v);
+}
+
+static void
+FcValueBindingPrint (const FcValueListPtr l)
+{
+    switch (l->binding) {
+    case FcValueBindingWeak:
+	printf ("(w)");
+	break;
+    case FcValueBindingStrong:
+	printf ("(s)");
+	break;
+    case FcValueBindingSame:
+	printf ("(=)");
+	break;
+    }
+}
+
+void
+FcValueListPrintWithPosition (FcValueListPtr l, const FcValueListPtr pos)
+{
+    for (; l != NULL; l = FcValueListNext(l))
+    {
+	FcValuePrintWithPosition (FcValueCanonicalize (&l->value), pos != NULL && l == pos);
+	FcValueBindingPrint (l);
+    }
+    if (!pos)
+	printf (" [insert here]");
 }
 
 void
@@ -67,18 +110,8 @@ FcValueListPrint (FcValueListPtr l)
 {
     for (; l != NULL; l = FcValueListNext(l))
     {
-	FcValuePrint (FcValueCanonicalize(&l->value));
-	switch (l->binding) {
-	case FcValueBindingWeak:
-	    printf ("(w)");
-	    break;
-	case FcValueBindingStrong:
-	    printf ("(s)");
-	    break;
-	case FcValueBindingSame:
-	    printf ("(=)");
-	    break;
-	}
+	FcValuePrint (FcValueCanonicalize (&l->value));
+	FcValueBindingPrint (l);
     }
 }
 

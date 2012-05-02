@@ -966,6 +966,11 @@ TouchListenerAcceptReject(DeviceIntPtr dev, TouchPointInfoPtr ti, int listener,
     int nev;
     int i;
 
+    BUG_WARN(listener < 0);
+    BUG_WARN(listener >= ti->num_listeners);
+    if (listener < 0 || listener >= ti->num_listeners)
+        return BadMatch;
+
     if (listener > 0) {
         if (mode == XIRejectTouch)
             TouchRejected(dev, ti, ti->listeners[listener].listener, NULL);

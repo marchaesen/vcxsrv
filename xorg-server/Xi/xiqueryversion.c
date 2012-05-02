@@ -70,27 +70,28 @@ ProcXIQueryVersion(ClientPtr client)
 
     pXIClient = dixLookupPrivate(&client->devPrivates, XIClientPrivateKey);
 
-    if (pXIClient->major_version &&
-           (stuff->major_version != pXIClient->major_version ||
-            stuff->minor_version != pXIClient->minor_version))
-    {
-        client->errorValue = stuff->major_version;
-        return BadValue;
-    }
+    if (pXIClient->major_version) {
+        if (version_compare(stuff->major_version, stuff->minor_version,
+                            pXIClient->major_version, pXIClient->minor_version) < 0) {
+            client->errorValue = stuff->major_version;
+            return BadValue;
+        }
+        major = pXIClient->major_version;
+        minor = pXIClient->minor_version;
+    } else {
+        if (version_compare(XIVersion.major_version, XIVersion.minor_version,
+                    stuff->major_version, stuff->minor_version) > 0) {
+            major = stuff->major_version;
+            minor = stuff->minor_version;
+        }
+        else {
+            major = XIVersion.major_version;
+            minor = XIVersion.minor_version;
+        }
 
-
-    if (version_compare(XIVersion.major_version, XIVersion.minor_version,
-                        stuff->major_version, stuff->minor_version) > 0) {
-        major = stuff->major_version;
-        minor = stuff->minor_version;
+        pXIClient->major_version = major;
+        pXIClient->minor_version = minor;
     }
-    else {
-        major = XIVersion.major_version;
-        minor = XIVersion.minor_version;
-    }
-
-    pXIClient->major_version = major;
-    pXIClient->minor_version = minor;
 
     memset(&rep, 0, sizeof(xXIQueryVersionReply));
     rep.repType = X_Reply;

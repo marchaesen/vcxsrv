@@ -1598,6 +1598,9 @@ GetPointerEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
     /* Now turn the smooth-scrolling axes back into emulated button presses
      * for legacy clients, based on the integer delta between before and now */
     for (i = 0; i < valuator_mask_size(&mask); i++) {
+        if (i >= pDev->valuator->numAxes)
+            break;
+
         if (!valuator_mask_isset(&mask, i))
             continue;
 
