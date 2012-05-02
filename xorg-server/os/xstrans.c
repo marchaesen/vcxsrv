@@ -15,5 +15,9 @@ _X_ATTRIBUTE_PRINTF(1, 2);*/
 #ifndef TCPCONN
 #define TCPCONN
 #endif
+#ifdef WIN32
+#undef SO_REUSEADDR
+#define SO_BINDRETRYCOUNT 0  // do not try to bind again when it fails, this will speed up searching for a free listening port
+#endif
 
 #include <X11/Xtrans/transport.c>
