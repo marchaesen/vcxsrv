@@ -153,6 +153,7 @@ static Pid_t ParentProcess;
 Bool RunFromSigStopParent;      /* send SIGSTOP to our own process; Upstart (or
                                    equivalent) will send SIGCONT back. */
 static char dynamic_display[7]; /* display name */
+static int dynamic_display_id;
 Bool PartialNetwork;            /* continue even if unable to bind all addrs */
 
 static Bool debug_conns = FALSE;
@@ -388,6 +389,11 @@ NotifyParentProcess(void)
     }
     if (RunFromSigStopParent)
         raise(SIGSTOP);
+#else
+/* On windows the displayfd points to shared memory, so write the id to it */
+    int *pDisplayfd=(int*)MapViewOfFile((HANDLE)displayfd, FILE_MAP_READ|FILE_MAP_WRITE, 0, 0, 0);
+    if (pDisplayfd)
+      *pDisplayfd=dynamic_display_id;
 #endif
 }
 
@@ -449,6 +455,7 @@ CreateWellKnownSockets(void)
         }
         if (!found)
             FatalError("Failed to find a socket to listen on");
+        dynamic_display_id=i;
         snprintf(dynamic_display, sizeof(dynamic_display), "%d", i);
         display = dynamic_display;
     }
