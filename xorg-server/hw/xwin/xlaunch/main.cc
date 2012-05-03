@@ -35,6 +35,7 @@
 #include <X11/Xlib.h>
 
 #include <stdlib.h>
+#include <sstream>
 
 /// @brief Send WM_ENDSESSION to all program windows.
 /// This will shutdown the started xserver
@@ -536,11 +537,14 @@ class CMyWizard : public CWizard
             std::string client;
 
             // Construct display strings
+            int DisplayNbr=atoi(config.display.c_str());
             std::string display_id = ":" + config.display;
             std::string display = "DISPLAY=127.0.0.1" + display_id + ".0";
 
             // Build Xsrv commandline
-            buffer = "vcxsrv " + display_id + " ";
+            buffer = "vcxsrv ";
+            if (DisplayNbr!=-1)
+              buffer += display_id + " ";
             switch (config.window)
             {
                 case CConfig::MultiWindow:
@@ -585,7 +589,23 @@ class CMyWizard : public CWizard
                 buffer += config.extra_params;
                 buffer += " ";
             }
-            
+
+            int *pDisplayfd;
+            if (DisplayNbr==-1)
+            {
+              // Pass the handle of some shared memory to vcxsrv to getting back the display nbr
+              SECURITY_ATTRIBUTES sa;
+              sa.nLength=sizeof(sa);
+              sa.lpSecurityDescriptor=NULL;
+              sa.bInheritHandle=TRUE;
+              HANDLE hDisplayFdMem=CreateFileMapping(INVALID_HANDLE_VALUE, &sa, PAGE_READWRITE, 0, sizeof(int), NULL);
+              pDisplayfd=(int*)MapViewOfFile(hDisplayFdMem, FILE_MAP_READ|FILE_MAP_WRITE, 0, 0, 0);
+              *pDisplayfd=-1;  // Not yet initialised
+              buffer+="-displayfd ";
+              std::stringstream ss;
+              ss<<(int)hDisplayFdMem;
+              buffer+=ss.str();
+            }
             // Construct client commandline
             if (config.client == CConfig::StartProgram)
             {
@@ -630,13 +650,29 @@ class CMyWizard : public CWizard
             char CurDir[MAX_PATH];
             GetModuleFileName(NULL,CurDir,MAX_PATH);
             *strrchr(CurDir,'\\')=0;
+            
             if( !CreateProcess( NULL, (CHAR*)buffer.c_str(), NULL, NULL, 
-                        FALSE, 0, NULL, CurDir, &si, &pi )) 
+                        TRUE, 0, NULL, CurDir, &si, &pi )) 
                 throw win32_error("CreateProcess failed");
             handles[hcount++] = pi.hProcess;
 
             if (!client.empty())
             {
+                if (DisplayNbr==-1)
+                {
+                  // Wait maximum 10 seconds
+                  int Count=1000;
+                  while (-1==*pDisplayfd)
+                  {
+                    if (Count-- < 0)
+                      throw std::runtime_error("Connection to server failed");
+                    Sleep(10);
+                  }
+                  std::stringstream ss;
+                  ss<<*pDisplayfd;
+                  display_id = ":" + ss.str();
+                  display = "DISPLAY=127.0.0.1" + display_id + ".0";
+                }
                 // Set DISPLAY variable
                 _putenv(display.c_str());
 

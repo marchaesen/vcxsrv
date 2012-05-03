@@ -30,6 +30,7 @@
 #define STR_WINDOWED                "One large window"
 #define STR_NODECORATION            "One window without titlebar"
 #define STR_DISPLAY_DESC            "Display number"
+#define STR_DISPLAY_EXTRA_DESC      "(Specify -1 to let vcxsrv automatically choose one)"
 
 #define STR_CAPTION_CLIENTS         "Client startup"
 #define STR_CLIENT_NONE             "Start no client"

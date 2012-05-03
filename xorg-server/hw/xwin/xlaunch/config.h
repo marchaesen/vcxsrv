@@ -59,11 +59,7 @@ struct CConfig
     bool disableac;
     bool xdmcpterminate;
     std::string extra_params;
-#ifdef _DEBUG
-    CConfig() : window(MultiWindow), client(NoClient), display("1"), 
-#else
-    CConfig() : window(MultiWindow), client(NoClient), display("0"), 
-#endif
+    CConfig() : window(MultiWindow), client(NoClient), display("-1"), 
                 local(false),
                 remotepassword(""),
                 localprogram("xcalc"),
@@ -77,7 +73,7 @@ struct CConfig
                 clipboard(true),
                 clipboardprimary(true),
                 extra_params(),
-                disableac(true),
+                disableac(false),
                 wgl(true),
                 xdmcpterminate(false)
     {
