@@ -598,7 +598,8 @@ class CMyWizard : public CWizard
                         host = config.user + "@" + config.host;
                     if (!config.remotepassword.empty())
                       remotepassword=std::string(" -pw ")+config.remotepassword;
-                    _snprintf(cmdline,512,"plink -ssh -X%s %s %s", 
+                      // Need to use -console since certain commands will not execute when no console
+                    _snprintf(cmdline,512,"plink -console -ssh -X%s %s %s", 
                                 remotepassword.c_str(), host.c_str(),config.remoteprogram.c_str());
                     client += cmdline;
                 }
@@ -658,6 +659,24 @@ class CMyWizard : public CWizard
                 sic.wShowWindow = SW_HIDE;
                 
                 // Start the child process. 
+
+                // Create a console, otherwise some commands will not execute with plink
+                #ifdef WITH_FLASH
+                AllocConsole();
+                #else
+                HWINSTA h=GetProcessWindowStation();
+                HWINSTA horig=h;
+                if (h)
+                {
+                  h=CreateWindowStationW(NULL, 0, STANDARD_RIGHTS_READ, NULL);
+                  if (h)
+                    SetProcessWindowStation(h);
+                  AllocConsole();
+                  SetProcessWindowStation(horig);
+                  CloseWindowStation(h);
+                }
+                #endif
+
                 if( !CreateProcess( NULL, (CHAR*)client.c_str(), NULL, NULL,
                             FALSE, 0, NULL, CurDir, &sic, &pic )) 
                 {
@@ -667,6 +686,9 @@ class CMyWizard : public CWizard
                     throw win32_error("CreateProcess failed", err);
                 }
                 handles[hcount++] = pic.hProcess;
+                #ifdef WITHFLASH
+                ShowWindow( GetConsoleWindow(), SW_HIDE );  // make it hidden
+                #endif
             }
 
             // Wait until any child process exits.
