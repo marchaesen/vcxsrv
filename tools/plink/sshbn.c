@@ -172,7 +172,7 @@ static BignumInt internal_add(const BignumInt *a, const BignumInt *b,
 
     for (i = len-1; i >= 0; i--) {
         carry += (BignumDblInt)a[i] + b[i];
-        c[i] = (BignumInt)carry;
+        c[i] = (BignumInt)(carry&BIGNUM_INT_MASK);
         carry >>= BIGNUM_INT_BITS;
     }
 
@@ -192,7 +192,7 @@ static void internal_sub(const BignumInt *a, const BignumInt *b,
 
     for (i = len-1; i >= 0; i--) {
         carry += (BignumDblInt)a[i] + (b[i] ^ BIGNUM_INT_MASK);
-        c[i] = (BignumInt)carry;
+        c[i] = (BignumInt)(carry&BIGNUM_INT_MASK);
         carry >>= BIGNUM_INT_BITS;
     }
 }
@@ -520,7 +520,7 @@ static void internal_mul_low(const BignumInt *a, const BignumInt *b,
             carry = 0;
             for (cp = cps, bp = b + len; bp--, cp-- > c ;) {
                 t = (MUL_WORD(*ap, *bp) + carry) + *cp;
-                *cp = (BignumInt) t;
+                *cp = (BignumInt) (t&BIGNUM_INT_MASK);
                 carry = (BignumInt)(t >> BIGNUM_INT_BITS);
             }
         }
@@ -1390,7 +1390,7 @@ Bignum bigmuladd(Bignum a, Bignum b, Bignum addend)
 	for (i = 1; i <= rlen; i++) {
 	    carry += (i <= (int)ret[0] ? ret[i] : 0);
 	    carry += (i <= (int)addend[0] ? addend[i] : 0);
-	    ret[i] = (BignumInt) carry & BIGNUM_INT_MASK;
+	    ret[i] = (BignumInt) (carry & BIGNUM_INT_MASK);
 	    carry >>= BIGNUM_INT_BITS;
 	    if (ret[i] != 0 && i > maxspot)
 		maxspot = i;
