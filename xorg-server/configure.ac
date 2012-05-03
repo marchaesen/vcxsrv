@@ -271,10 +271,11 @@ AC_CACHE_CHECK([for SYSV IPC],
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <sys/stat.h>
 ],[
 { 
     int id;
-    id = shmget(IPC_PRIVATE, 512, SHM_W | SHM_R);
+    id = shmget(IPC_PRIVATE, 512, S_IRUSR | S_IWUSR);
     if (id < 0) return -1;
     return shmctl(id, IPC_RMID, 0);
 }],
@@ -592,7 +593,7 @@ AC_ARG_WITH(khronos-spec-dir, AS_HELP_STRING([--with-khronos-spec-dir=PATH], [Pa
 dnl Extensions.
 AC_ARG_ENABLE(registry,       AS_HELP_STRING([--disable-registry], [Build string registry module (default: enabled)]), [XREGISTRY=$enableval], [XREGISTRY=yes])
 AC_ARG_ENABLE(composite,      AS_HELP_STRING([--disable-composite], [Build Composite extension (default: enabled)]), [COMPOSITE=$enableval], [COMPOSITE=yes])
-AC_ARG_ENABLE(mitshm,         AS_HELP_STRING([--disable-mitshm], [Build SHM extension (default: enabled)]), [MITSHM=$enableval], [MITSHM=yes])
+AC_ARG_ENABLE(mitshm,         AS_HELP_STRING([--disable-mitshm], [Build SHM extension (default: auto)]), [MITSHM=$enableval], [MITSHM=auto])
 AC_ARG_ENABLE(xres,           AS_HELP_STRING([--disable-xres], [Build XRes extension (default: enabled)]), [RES=$enableval], [RES=yes])
 AC_ARG_ENABLE(record,         AS_HELP_STRING([--disable-record], [Build Record extension (default: enabled)]), [RECORD=$enableval], [RECORD=yes])
 AC_ARG_ENABLE(xv,             AS_HELP_STRING([--disable-xv], [Build Xv extension (default: enabled)]), [XV=$enableval], [XV=yes])
@@ -656,6 +657,7 @@ AC_MSG_CHECKING([to see if we can install the Xorg server as root])
 if test "x$SETUID" = "xauto" ; then
 	case $host_os in
 	    cygwin*)		SETUID="no"  ;;
+	    mingw*)		SETUID="no"  ;;
 	    darwin*)		SETUID="no"  ;;
 	    *)
 	   	case $host_cpu in
@@ -698,7 +700,7 @@ AM_CONDITIONAL(INSTALL_LIBXF86CONFIG, [test "x$INSTALL_LIBXF86CONFIG" = xyes])
 dnl DDX Detection... Yes, it's ugly to have it here... but we need to
 dnl handle this early on so that we don't require unsupported extensions
 case $host_os in
-	cygwin*)
+	cygwin* | mingw*)
 		CONFIG_DBUS_API=no
 		CONFIG_HAL=no
 		CONFIG_UDEV=no
@@ -1000,6 +1002,9 @@ if test "x$COMPOSITE" = xyes; then
 	COMPOSITE_INC='-I$(top_srcdir)/composite'
 fi
 
+if test "x$MITSHM" = xauto; then
+	MITSHM="$ac_cv_sysv_ipc"
+fi
 AM_CONDITIONAL(MITSHM, [test "x$MITSHM" = xyes])
 if test "x$MITSHM" = xyes; then
 	AC_DEFINE(MITSHM, 1, [Support MIT-SHM extension])
@@ -1547,6 +1552,7 @@ if test "x$XORG" = xauto; then
 	XORG="yes"
 	case $host_os in
 		cygwin*) XORG="no" ;;
+		mingw*)  XORG="no" ;;
 		darwin*) XORG="no" ;;
 	esac
 fi
@@ -1857,7 +1863,7 @@ if test "x$XWIN" = xyes; then
 			XWIN_SERVER_NAME=Xming
 			AC_DEFINE(RELOCATE_PROJECTROOT,1,[Make PROJECT_ROOT relative to the xserver location])
 			AC_DEFINE(HAS_WINSOCK,1,[Use Windows sockets])
-			XWIN_SYS_LIBS=-lwinsock2
+			XWIN_SYS_LIBS=-lws2_32
 			;;
 	esac
 	XWIN_LIBS="$FB_LIB $MI_LIB $FIXES_LIB $XEXT_LIB $RANDR_LIB $RENDER_LIB $DBE_LIB $RECORD_LIB $GLX_LIBS $XKB_LIB $XKB_STUB_LIB $COMPOSITE_LIB $DAMAGE_LIB $MIEXT_SYNC_LIB $MIEXT_DAMAGE_LIB $MIEXT_SHADOW_LIB $XI_LIB $OS_LIB"
@@ -1948,6 +1954,7 @@ if test "x$DMX" = xauto; then
 	DMX="$have_dmx"
 	case $host_os in
 		cygwin*) DMX="no" ;;
+		mingw*)  DMX="no" ;;
 		darwin*) DMX="no" ;;
 	esac
 fi
