@@ -93,7 +93,7 @@ static double __inline trunc(double d)
 #ifndef MAXSCREENS
 #define MAXSCREENS	16
 #endif
-#define MAXCLIENTS	256
+#define MAXCLIENTS	1024
 #define MAXEXTENSIONS   128
 #define MAXFORMATS	8
 #define MAXDEVICES	40      /* input devices */

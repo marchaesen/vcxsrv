@@ -99,6 +99,9 @@ typedef uint32_t RESTYPE;
 #if MAXCLIENTS == 512
 #define RESOURCE_CLIENT_BITS	9
 #endif
+#if MAXCLIENTS == 1024
+#define RESOURCE_CLIENT_BITS	10
+#endif
 /* client field offset */
 #define CLIENTOFFSET	    (RESOURCE_AND_CLIENT_COUNT - RESOURCE_CLIENT_BITS)
 /* resource field */
