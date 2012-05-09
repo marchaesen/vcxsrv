@@ -129,6 +129,7 @@ void vbo_rebase_prims( struct gl_context *ctx,
 
    struct _mesa_index_buffer tmp_ib;
    struct _mesa_prim *tmp_prims = NULL;
+   const struct gl_client_array **saved_arrays = ctx->Array._DrawArrays;
    void *tmp_indices = NULL;
    GLuint i;
 
@@ -226,15 +227,20 @@ void vbo_rebase_prims( struct gl_context *ctx,
    
    /* Re-issue the draw call.
     */
+   ctx->Array._DrawArrays = tmp_array_pointers;
+   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
+
    draw( ctx, 
-	 tmp_array_pointers, 
-	 prim, 
+	 prim,
 	 nr_prims, 
 	 ib, 
 	 GL_TRUE,
 	 0, 
 	 max_index - min_index,
 	 NULL );
+
+   ctx->Array._DrawArrays = saved_arrays;
+   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
    
    if (tmp_indices)
       free(tmp_indices);

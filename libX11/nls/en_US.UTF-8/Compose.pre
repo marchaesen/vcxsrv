@@ -5830,3 +5830,188 @@ XCOMM
 <Multi_key> <asciicircum> <Cyrillic_ER>		: "Р̂"		# CYRILLIC CAPITAL LETTER ER WITH COMBINING CIRCUMFLEX ACCENT
 
 <Multi_key> <backslash> <o> <slash>		: "🙌"		# PERSON RAISING BOTH HANDS IN CELEBRATION
+
+XCOMM APL support Geoff Streeter 2012-01-04
+
+XCOMM APL was initially an overstruck language. The original APL terminal was an IBM golfball
+XCOMM with a specially designed golfball. This meant that characters could be overstruck to
+XCOMM produce other characters. This gave APL a richness of primitives which is still powerful
+XCOMM today. Overstrikes were always independent of order.
+
+XCOMM APLs have extended this into a number of dialects. Let us try to support lots of them.
+XCOMM Together with some that have not been used yet. Some traditional ones are not included.
+
+XCOMM Characters from "Mathematical Operators"
+
+<Multi_key> <v> <slash>                         : "√"   U221a   # v / SQUARE ROOT
+<Multi_key> <slash> <v>                         : "√"   U221a   # / v SQUARE ROOT
+<Multi_key> <8> <8>                             : "∞"   U221e   # 8 8 INFINITY
+<Multi_key> <equal> <slash>                     : "≠"   U2260   # = / NOT EQUAL TO
+<Multi_key> <slash> <equal>                     : "≠"   U2260   # / = NOT EQUAL TO
+<Multi_key> <underscore> <equal>                : "≡"   U2261   # _ = IDENTICAL TO
+<Multi_key> <equal> <underscore>                : "≡"   U2261   # = _ IDENTICAL TO
+<Multi_key> <underscore> <U2260>                : "≢"   U2262   # _ ≠ NOT IDENTICAL TO
+<Multi_key> <U2260> <underscore>                : "≢"   U2262   # ≠ _ NOT IDENTICAL TO
+<Multi_key> <less> <underscore>                 : "≤"   U2264   # < _ LESS-THAN OR EQUAL TO
+<Multi_key> <underscore> <less>                 : "≤"   U2264   # _ < LESS-THAN OR EQUAL TO
+<Multi_key> <greater> <underscore>              : "≥"   U2265   # > _ GREATER-THAN OR EQUAL TO
+<Multi_key> <underscore> <greater>              : "≥"   U2265   # _ > GREATER-THAN OR EQUAL TO
+<Multi_key> <underscore> <U2282>                : "⊆"   U2286   # _ ⊂ SUBSET OF OR EQUAL TO
+<Multi_key> <U2282> <underscore>                : "⊆"   U2286   # ⊂ _ SUBSET OF OR EQUAL TO
+<Multi_key> <underscore> <U2283>                : "⊇"   U2287   # _ ⊃ SUPERSET OF OR EQUAL TO
+<Multi_key> <U2283> <underscore>                : "⊇"   U2287   # ⊃ _ SUPERSET OF OR EQUAL TO
+<Multi_key> <U25cb> <minus>                     : "⊖"   U2296   # ○ - CIRCLED MINUS
+<Multi_key> <minus> <U25cb>                     : "⊖"   U2296   # - ○ CIRCLED MINUS
+<Multi_key> <U25cb> <period>                    : "⊙"   U2299   # ○ - CIRCLED DOT
+<Multi_key> <period> <U25cb>                    : "⊙"   U2299   # - ○ CIRCLED DOT
+<Multi_key> <parenleft> <minus>                 : "⊢"   U22a2   # ( - RIGHT TACK
+<Multi_key> <minus> <parenleft>                 : "⊢"   U22a2   # - ( RIGHT TACK
+<Multi_key> <parenright> <minus>                : "⊣"   U22a3   # ) - LEFT TACK
+<Multi_key> <minus> <parenright>                : "⊣"   U22a3   # - ) LEFT TACK
+<Multi_key> <less> <greater>                    : "⋄"   U22c4   # < > DIAMOND OPERATOR
+<Multi_key> <greater> <less>                    : "⋄"   U22c4   # > < DIAMOND OPERATOR
+<Multi_key> <U2227> <U2228>                     : "⋄"   U22c4   # ∧ ∨ DIAMOND OPERATOR
+<Multi_key> <U2228> <U2227>                     : "⋄"   U22c4   # ∨ ∧ DIAMOND OPERATOR
+
+XCOMM Characters from "Miscellaneous Technical"
+
+<Multi_key> <U22a5> <U22a4>                     : "⌶"   U2336   # ⊥ ⊤ APL FUNCTIONAL SYMBOL I-BEAM
+<Multi_key> <U22a4> <U22a5>                     : "⌶"   U2336   # ⊥ ⊤ APL FUNCTIONAL SYMBOL I-BEAM
+<Multi_key> <bracketleft> <bracketright>        : "⌷"   U2337   # [ ] APL FUNCTIONAL SYMBOL SQUISH QUAD
+<Multi_key> <bracketright> <bracketleft>        : "⌷"   U2337   # ] [ APL FUNCTIONAL SYMBOL SQUISH QUAD
+<Multi_key> <U2395> <equal>                     : "⌸"   U2338   # ⎕ = APL FUNCTIONAL SYMBOL QUAD EQUAL
+<Multi_key> <equal> <U2395>                     : "⌸"   U2338   # = ⎕ APL FUNCTIONAL SYMBOL QUAD EQUAL
+<Multi_key> <U2395> <division>                  : "⌹"   U2339   # ⎕ ÷ APL FUNCTIONAL SYMBOL QUAD DIVIDE
+<Multi_key> <division> <U2395>                  : "⌹"   U2339   # ÷ ⎕ APL FUNCTIONAL SYMBOL QUAD DIVIDE
+<Multi_key> <U2395> <U22c4>                     : "⌺"   U233a   # ⎕ ⋄ APL FUNCTIONAL SYMBOL QUAD DIAMOND
+<Multi_key> <U22c4> <U2395>                     : "⌺"   U233a   # ⋄ ⎕ APL FUNCTIONAL SYMBOL QUAD DIAMOND
+<Multi_key> <U2395> <U2218>                     : "⌻"   U233b   # ⎕ ∘ APL FUNCTIONAL SYMBOL QUAD JOT
+<Multi_key> <U2218> <U2395>                     : "⌻"   U233b   # ∘ ⎕ APL FUNCTIONAL SYMBOL QUAD JOT
+<Multi_key> <U2395> <U25cb>                     : "⌼"   U233c   # ⎕ ○ APL FUNCTIONAL SYMBOL QUAD CIRCLE
+<Multi_key> <U25cb> <U2395>                     : "⌼"   U233c   # ○ ⎕ APL FUNCTIONAL SYMBOL QUAD CIRCLE
+<Multi_key> <U25cb> <bar>                       : "⌽"   U233d   # ○ | APL FUNCTIONAL SYMBOL CIRCLE STILE
+<Multi_key> <bar> <U25cb>                       : "⌽"   U233d   # | ○ APL FUNCTIONAL SYMBOL CIRCLE STILE
+<Multi_key> <U25cb> <U2218>                     : "⌾"   U233e   # ○ ∘ APL FUNCTIONAL SYMBOL CIRCLE JOT
+<Multi_key> <U2218> <U25cb>                     : "⌾"   U233e   # ∘ ○ APL FUNCTIONAL SYMBOL CIRCLE JOT
+<Multi_key> <slash> <minus>                     : "⌿"   U233f   # / - APL FUNCTIONAL SYMBOL SLASH BAR
+<Multi_key> <minus> <slash>                     : "⌿"   U233f   # - / APL FUNCTIONAL SYMBOL SLASH BAR
+<Multi_key> <backslash> <minus>                 : "⍀"   U2340   # \ - APL FUNCTIONAL SYMBOL BACKSLASH BAR
+<Multi_key> <minus> <backslash>                 : "⍀"   U2340   # - \ APL FUNCTIONAL SYMBOL BACKSLASH BAR
+<Multi_key> <slash> <U2395>                     : "⍁"   U2341   # / ⎕ APL FUNCTIONAL SYMBOL QUAD SLASH
+<Multi_key> <U2395> <slash>                     : "⍁"   U2341   # ⎕ / APL FUNCTIONAL SYMBOL QUAD SLASH
+<Multi_key> <backslash> <U2395>                 : "⍂"   U2342   # \ ⎕ APL FUNCTIONAL SYMBOL QUAD BACKSLASH
+<Multi_key> <U2395> <backslash>                 : "⍂"   U2342   # ⎕ \ APL FUNCTIONAL SYMBOL QUAD BACKSLASH
+<Multi_key> <less> <U2395>                      : "⍃"   U2343   # < ⎕ APL FUNCTIONAL SYMBOL QUAD LESS-THAN
+<Multi_key> <U2395> <less>                      : "⍃"   U2343   # ⎕ < APL FUNCTIONAL SYMBOL QUAD LESS-THAN
+<Multi_key> <greater> <U2395>                   : "⍄"   U2344   # > ⎕ APL FUNCTIONAL SYMBOL QUAD GREATER-THAN
+<Multi_key> <U2395> <greater>                   : "⍄"   U2344   # ⎕ > APL FUNCTIONAL SYMBOL QUAD GREATER-THAN
+<Multi_key> <U2190> <bar>                       : "⍅"   U2345   # ← | APL FUNCTIONAL SYMBOL LEFTWARDS VANE
+<Multi_key> <bar> <U2190>                       : "⍅"   U2345   # | ← APL FUNCTIONAL SYMBOL LEFTWARDS VANE
+<Multi_key> <U2192> <bar>                       : "⍆"   U2346   # → | APL FUNCTIONAL SYMBOL RIGHTWARDS VANE
+<Multi_key> <bar> <U2192>                       : "⍆"   U2346   # | → APL FUNCTIONAL SYMBOL RIGHTWARDS VANE
+<Multi_key> <U2190> <U2395>                     : "⍇"   U2347   # ← ⎕ APL FUNCTIONAL SYMBOL QUAD LEFTWARDS ARROW
+<Multi_key> <U2395> <U2190>                     : "⍇"   U2347   # ⎕ ← APL FUNCTIONAL SYMBOL QUAD LEFTWARDS ARROW
+<Multi_key> <U2192> <U2395>                     : "⍈"   U2348   # → ⎕ APL FUNCTIONAL SYMBOL QUAD RIGHTWARDS ARROW
+<Multi_key> <U2395> <U2192>                     : "⍈"   U2348   # ⎕ → APL FUNCTIONAL SYMBOL QUAD RIGHTWARDS ARROW
+<Multi_key> <U25cb> <backslash>                 : "⍉"   U2349   # ○ \ APL FUNCTIONAL SYMBOL CIRCLE SLOPE
+<Multi_key> <backslash> <U25cb>                 : "⍉"   U2349   # \ ○ APL FUNCTIONAL SYMBOL CIRCLE SLOPE
+<Multi_key> <underscore> <U22a5>                : "⍊"   U234a   # _ ⊥ APL FUNCTIONAL SYMBOL DOWN TACK UNDERBAR
+<Multi_key> <U22a5> <underscore>                : "⍊"   U234a   # ⊥ _ APL FUNCTIONAL SYMBOL DOWN TACK UNDERBAR
+<Multi_key> <U2206> <bar>                       : "⍋"   U234b   # ∆ | APL FUNCTIONAL SYMBOL DELTA STILE
+<Multi_key> <bar> <U2206>                       : "⍋"   U234b   # | ∆ APL FUNCTIONAL SYMBOL DELTA STILE
+<Multi_key> <U2228> <U2395>                     : "⍌"   U234c   # ∨ ⎕ APL FUNCTIONAL SYMBOL QUAD DOWN CARET
+<Multi_key> <U2395> <U2228>                     : "⍌"   U234c   # ⎕ ∨ APL FUNCTIONAL SYMBOL QUAD DOWN CARET
+<Multi_key> <U2206> <U2395>                     : "⍍"   U234d   # ∆ ⎕ APL FUNCTIONAL SYMBOL QUAD DELTA
+<Multi_key> <U2395> <U2206>                     : "⍍"   U234d   # ⎕ ∆ APL FUNCTIONAL SYMBOL QUAD DELTA
+<Multi_key> <U2218> <U22a5>                     : "⍎"   U234e   # ∘ ⊥ APL FUNCTIONAL SYMBOL DOWN TACK JOT
+<Multi_key> <U22a5> <U2218>                     : "⍎"   U234e   # ⊥ ∘ APL FUNCTIONAL SYMBOL DOWN TACK JOT
+<Multi_key> <U2191> <minus>                     : "⍏"   U234f   # ↑ - APL FUNCTIONAL SYMBOL UPWARDS VANE
+<Multi_key> <minus> <U2191>                     : "⍏"   U234f   # - ↑ APL FUNCTIONAL SYMBOL UPWARDS VANE
+<Multi_key> <U2191> <U2395>                     : "⍐"   U2350   # ↑ ⎕ APL FUNCTIONAL SYMBOL QUAD UPWARDS ARROW
+<Multi_key> <U2395> <U2191>                     : "⍐"   U2350   # ⎕ ↑ APL FUNCTIONAL SYMBOL QUAD UPWARDS ARROW
+XCOMM I cannot get anything to work with <macron>. Given that no extant APLs use ⍑ I will just leave the lines
+XCOMM in place.
+<Multi_key> <macron> <U22a4>                    : "⍑"   U2351   # ¯ ⊤ APL FUNCTIONAL SYMBOL UP TACK OVERBAR
+<Multi_key> <U22a4> <macron>                    : "⍑"   U2351   # ⊤ ¯ APL FUNCTIONAL SYMBOL UP TACK OVERBAR
+<Multi_key> <U2207> <bar>                       : "⍒"   U2352   # ∇ | APL FUNCTIONAL SYMBOL DEL STILE
+<Multi_key> <bar> <U2207>                       : "⍒"   U2352   # | ∇ APL FUNCTIONAL SYMBOL DEL STILE
+<Multi_key> <U2227> <U2395>                     : "⍓"   U2353   # ∧ ⎕ APL FUNCTIONAL SYMBOL QUAD UP CARET
+<Multi_key> <U2395> <U2227>                     : "⍓"   U2353   # ⎕ ∧ APL FUNCTIONAL SYMBOL QUAD UP CARET
+<Multi_key> <U2207> <U2395>                     : "⍔"   U2354   # ∇ ⎕ APL FUNCTIONAL SYMBOL QUAD DEL
+<Multi_key> <U2395> <U2207>                     : "⍔"   U2354   # ⎕ ∇ APL FUNCTIONAL SYMBOL QUAD DEL
+<Multi_key> <U2218> <U22a4>                     : "⍕"   U2355   # ∘ ⊤ APL FUNCTIONAL SYMBOL UP TACK JOT
+<Multi_key> <U22a4> <U2218>                     : "⍕"   U2355   # ⊤ ∘ APL FUNCTIONAL SYMBOL UP TACK JOT
+<Multi_key> <U2193> <minus>                     : "⍖"   U2356   # ↓ - APL FUNCTIONAL SYMBOL DOWNWARDS VANE
+<Multi_key> <minus> <U2193>                     : "⍖"   U2356   # - ↓ APL FUNCTIONAL SYMBOL DOWNWARDS VANE
+<Multi_key> <U2193> <U2395>                     : "⍗"   U2357   # ↓ ⎕ APL FUNCTIONAL SYMBOL QUAD DOWNWARDS ARROW
+<Multi_key> <U2395> <U2193>                     : "⍗"   U2357   # ⎕ ↓ APL FUNCTIONAL SYMBOL QUAD DOWNWARDS ARROW
+XCOMM This line clashes with the <apostrophe> <underscore> <E> (and similar) that appear to be there to provide
+XCOMM a work around for the problems with <macron>. Or to cope with keyboards that do not have <macron> (more likely).
+XCOMM All APL keyboards have <macron>, it is used as the -ve sign for numbers.
+XCOMM I do not know of an extant APL using ⍘
+<Multi_key> <apostrophe> <underscore>           : "⍘"   U2358   # ' _ APL FUNCTIONAL SYMBOL QUOTE UNDERBAR
+<Multi_key> <underscore> <apostrophe>           : "⍘"   U2358   # _ ' APL FUNCTIONAL SYMBOL QUOTE UNDERBAR
+<Multi_key> <U2206> <underscore>                : "⍙"   U2359   # ∆ _ APL FUNCTIONAL SYMBOL DELTA UNDERBAR
+<Multi_key> <underscore> <U2206>                : "⍙"   U2359   # _ ∆ APL FUNCTIONAL SYMBOL DELTA UNDERBAR
+<Multi_key> <U22c4> <underscore>                : "⍚"   U235a   # ⋄ _ APL FUNCTIONAL SYMBOL DIAMOND UNDERBAR
+<Multi_key> <underscore> <U22c4>                : "⍚"   U235a   # _ ⋄ APL FUNCTIONAL SYMBOL DIAMOND UNDERBAR
+<Multi_key> <U2218> <underscore>                : "⍛"   U235b   # ∘ _ APL FUNCTIONAL SYMBOL JOT UNDERBAR
+<Multi_key> <underscore> <U2218>                : "⍛"   U235b   # _ ∘ APL FUNCTIONAL SYMBOL JOT UNDERBAR
+<Multi_key> <U25cb> <underscore>                : "⍜"   U235c   # ○ _ APL FUNCTIONAL SYMBOL CIRCLE UNDERBAR
+<Multi_key> <underscore> <U25cb>                : "⍜"   U235c   # _ ○ APL FUNCTIONAL SYMBOL CIRCLE UNDERBAR
+<Multi_key> <U2218> <U2229>                     : "⍝"   U235d   # ∘ ∩ APL FUNCTIONAL SYMBOL UP SHOE JOT
+<Multi_key> <U2229> <U2218>                     : "⍝"   U235d   # ∩ ∘ APL FUNCTIONAL SYMBOL UP SHOE JOT
+<Multi_key> <U2395> <apostrophe>                : "⍞"   U235e   # * ¨ APL FUNCTIONAL SYMBOL QUOTE QUAD
+<Multi_key> <apostrophe> <U2395>                : "⍞"   U235e   # ¨ * APL FUNCTIONAL SYMBOL QUOTE QUAD
+<Multi_key> <U25cb> <asterisk>                  : "⍟"   U235f   # ○ * APL FUNCTIONAL SYMBOL CIRCLE STAR
+<Multi_key> <asterisk> <U25cb>                  : "⍟"   U235f   # * ○ APL FUNCTIONAL SYMBOL CIRCLE STAR
+<Multi_key> <colon> <U2395>                     : "⍠"   U2360   # : ⎕ APL FUNCTIONAL SYMBOL QUAD COLON
+<Multi_key> <U2395> <colon>                     : "⍠"   U2360   # ⎕ : APL FUNCTIONAL SYMBOL QUAD COLON
+<Multi_key> <diaeresis> <U22a4>                 : "⍡"   U2361   # ¨ ⊤ APL FUNCTIONAL SYMBOL UP TACK DIAERESIS
+<Multi_key> <U22a4> <diaeresis>                 : "⍡"   U2361   # ⊤ ¨ APL FUNCTIONAL SYMBOL UP TACK DIAERESIS
+<Multi_key> <diaeresis> <U2207>                 : "⍢"   U2362   # ¨ ∇ APL FUNCTIONAL SYMBOL DEL DIAERESIS
+<Multi_key> <U2207> <diaeresis>                 : "⍢"   U2362   # ∇ ¨ APL FUNCTIONAL SYMBOL DEL DIAERESIS
+<Multi_key> <asterisk> <diaeresis>              : "⍣"   U2363   # * ¨ APL FUNCTIONAL SYMBOL STAR DIAERESIS
+<Multi_key> <diaeresis> <asterisk>              : "⍣"   U2363   # ¨ * APL FUNCTIONAL SYMBOL STAR DIAERESIS
+<Multi_key> <U2218> <diaeresis>                 : "⍤"   U2364   # ∘ ¨ APL FUNCTIONAL SYMBOL JOT DIAERESIS
+<Multi_key> <diaeresis> <U2218>                 : "⍤"   U2364   # ¨ ∘ APL FUNCTIONAL SYMBOL JOT DIAERESIS
+<Multi_key> <U25cb> <diaeresis>                 : "⍥"   U2365   # ○ ¨ APL FUNCTIONAL SYMBOL CIRCLE DIAERESIS
+<Multi_key> <diaeresis> <U25cb>                 : "⍥"   U2365   # ¨ ○ APL FUNCTIONAL SYMBOL CIRCLE DIAERESIS
+<Multi_key> <U222a> <bar>                       : "⍦"   U2366   # ∪ | APL FUNCTIONAL SYMBOL DOWN SHOE STILE
+<Multi_key> <bar> <U222a>                       : "⍦"   U2366   # | ∪ APL FUNCTIONAL SYMBOL DOWN SHOE STILE
+<Multi_key> <U2282> <bar>                       : "⍧"   U2367   # ⊂ | APL FUNCTIONAL SYMBOL LEFT SHOE STILE
+<Multi_key> <bar> <U2282>                       : "⍧"   U2367   # | ⊂ APL FUNCTIONAL SYMBOL LEFT SHOE STILE
+<Multi_key> <diaeresis> <asciitilde>            : "⍨"   U2368   # ¨ ~ APL FUNCTIONAL SYMBOL TILDE DIAERESIS
+<Multi_key> <asciitilde> <diaeresis>            : "⍨"   U2368   # ~ ¨ APL FUNCTIONAL SYMBOL TILDE DIAERESIS
+<Multi_key> <diaeresis> <greater>               : "⍩"   U2369   # ¨ > APL FUNCTIONAL SYMBOL GREATER-THAN DIAERESIS
+<Multi_key> <greater> <diaeresis>               : "⍩"   U2369   # > ¨ APL FUNCTIONAL SYMBOL GREATER-THAN DIAERESIS
+<Multi_key> <comma> <minus>                     : "⍪"   U236a   # , - APL FUNCTIONAL SYMBOL COMMA BAR
+<Multi_key> <minus> <comma>                     : "⍪"   U236a   # - , APL FUNCTIONAL SYMBOL COMMA BAR
+<Multi_key> <U2207> <asciitilde>                : "⍫"   U236b   # ∇ ~ APL FUNCTIONAL SYMBOL DEL TILDE
+<Multi_key> <asciitilde> <U2207>                : "⍫"   U236b   # ~ ∇ APL FUNCTIONAL SYMBOL DEL TILDE
+<Multi_key> <0> <asciitilde>                    : "⍬"   U236c   # 0 ~ APL FUNCTIONAL SYMBOL ZILDE
+<Multi_key> <asciitilde> <0>                    : "⍬"   U236c   # ~ 0 APL FUNCTIONAL SYMBOL ZILDE
+<Multi_key> <bar> <asciitilde>                  : "⍭"   U236d   # | ~ APL FUNCTIONAL SYMBOL STILE TILDE
+<Multi_key> <asciitilde> <bar>                  : "⍭"   U236d   # ~ | APL FUNCTIONAL SYMBOL STILE TILDE
+XCOMM This line does not work. It clashes with
+XCOMM <underscore> <semicolon> <O> for Ǭ and
+XCOMM <underscore> <semicolon> <o> for ǭ.
+XCOMM Given that no extant APLs use ⍮ I will just leave the line in place.
+<Multi_key> <underscore> <semicolon>            : "⍮"   U236e   # _ ; APL FUNCTIONAL SYMBOL SEMICOLON UNDERBAR
+<Multi_key> <semicolon> <underscore>            : "⍮"   U236e   # ; _ APL FUNCTIONAL SYMBOL SEMICOLON UNDERBAR
+<Multi_key> <U2260> <U2395>                     : "⍯"   U236f   # ≠ ⎕ APL FUNCTIONAL SYMBOL QUAD NOT EQUAL
+<Multi_key> <U2395> <U2260>                     : "⍯"   U236f   # ⎕ ≠ APL FUNCTIONAL SYMBOL QUAD NOT EQUAL
+<Multi_key> <question> <U2395>                  : "⍰"   U2370   # ? ⎕ APL FUNCTIONAL SYMBOL QUAD QUESTION
+<Multi_key> <U2395> <question>                  : "⍰"   U2370   # ⎕ ? APL FUNCTIONAL SYMBOL QUAD QUESTION
+<Multi_key> <U2228> <asciitilde>                : "⍱"   U2371   # ∨ ~ APL FUNCTIONAL SYMBOL DOWN CARET TILDE
+<Multi_key> <asciitilde> <U2228>                : "⍱"   U2371   # ~ ∨ APL FUNCTIONAL SYMBOL DOWN CARET TILDE
+<Multi_key> <U2227> <asciitilde>                : "⍲"   U2372   # ∧ ~ APL FUNCTIONAL SYMBOL UP CARET TILDE
+<Multi_key> <asciitilde> <U2227>                : "⍲"   U2372   # ~ ∧ APL FUNCTIONAL SYMBOL UP CARET TILDE
+<Multi_key> <U237a> <underscore>                : "⍶"   U2376   # ⍺ _ APL FUNCTIONAL SYMBOL ALPHA UNDERBAR
+<Multi_key> <underscore> <U237a>                : "⍶"   U2376   # _ ⍺ APL FUNCTIONAL SYMBOL ALPHA UNDERBAR
+<Multi_key> <U220a> <underscore>                : "⍷"   U2377   # ∊ _ APL FUNCTIONAL SYMBOL EPSILON UNDERBAR
+<Multi_key> <underscore> <U220a>                : "⍷"   U2377   # _ ∊ APL FUNCTIONAL SYMBOL EPSILON UNDERBAR
+<Multi_key> <U2373> <underscore>                : "⍸"   U2378   # ⍳ _ APL FUNCTIONAL SYMBOL IOTA UNDERBAR
+<Multi_key> <underscore> <U2373>                : "⍸"   U2378   # _ ⍳ APL FUNCTIONAL SYMBOL IOTA UNDERBAR
+<Multi_key> <U2375> <underscore>                : "⍹"   U2379   # ⍵ _ APL FUNCTIONAL SYMBOL OMEGA UNDERBAR
+<Multi_key> <underscore> <U2375>                : "⍹"   U2379   # _ ⍵ APL FUNCTIONAL SYMBOL OMEGA UNDERBAR

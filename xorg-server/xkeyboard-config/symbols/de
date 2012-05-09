@@ -484,6 +484,21 @@ xkb_symbols "dsb_qwertz"
 	key <AD09> { [              o,              O,         oacute,         Oacute ] };
 };
 
+partial alphanumeric_keys 
+xkb_symbols "qwerty" {
+ 
+    // This layout should work exactly as a de with the exception 
+    // of 'Z' and 'Y' keys, which are in the qwerty style (ie. swapped).
+    // 2008 by Matej Košík <kosik@fiit.stuba.sk>
+    
+    include "de(basic)"
+
+    name[Group1] = "German (qwerty)";
+
+    key <AB01>	{ [         z,          Z,     leftarrow,         yen ]	};
+    key <AD06>	{ [         y,          Y, guillemotleft,        less ]	};
+};
+
 // layout for Russian letters on an german keyboard
 // based on US-RU layout by Ivan Popov <pin@konvalo.org> 2005-07-17
 // adopted for german layout by Alexey Fisher <bug-track@fisher-privat.net> 2010-08-19

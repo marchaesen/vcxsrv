@@ -79,9 +79,20 @@ ProcXIQueryPointer(ClientPtr client)
     XkbStatePtr state;
     char *buttons = NULL;
     int buttons_size = 0;       /* size of buttons array */
+    XIClientPtr xi_client;
+    Bool have_xi22 = FALSE;
 
     REQUEST(xXIQueryPointerReq);
     REQUEST_SIZE_MATCH(xXIQueryPointerReq);
+
+    /* Check if client is compliant with XInput 2.2 or later. Earlier clients
+     * do not know about touches, so we must report emulated button presses. 2.2
+     * and later clients are aware of touches, so we don't include emulated
+     * button presses in the reply. */
+    xi_client = dixLookupPrivate(&client->devPrivates, XIClientPrivateKey);
+    if (version_compare(xi_client->major_version,
+                        xi_client->minor_version, 2, 2) >= 0)
+        have_xi22 = TRUE;
 
     rc = dixLookupDevice(&pDev, stuff->deviceid, client, DixReadAccess);
     if (rc != Success) {
@@ -132,7 +143,7 @@ ProcXIQueryPointer(ClientPtr client)
     }
 
     if (pDev->button) {
-        int i, down;
+        int i;
 
         rep.buttons_len =
             bytes_to_int32(bits_to_bytes(pDev->button->numButtons));
@@ -142,14 +153,12 @@ ProcXIQueryPointer(ClientPtr client)
         if (!buttons)
             return BadAlloc;
 
-        down = pDev->button->buttonsDown;
+        for (i = 1; i < pDev->button->numButtons; i++)
+            if (BitIsOn(pDev->button->down, i))
+                SetBit(buttons, pDev->button->map[i]);
 
-        for (i = 0; i < pDev->button->numButtons && down; i++) {
-            if (BitIsOn(pDev->button->down, i)) {
-                SetBit(buttons, i);
-                down--;
-            }
-        }
+        if (!have_xi22 && pDev->touch && pDev->touch->buttonsDown > 0)
+            SetBit(buttons, pDev->button->map[1]);
     }
     else
         rep.buttons_len = 0;

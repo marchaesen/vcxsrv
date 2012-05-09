@@ -175,9 +175,9 @@ xkb_symbols "olpc" {
 partial alphanumeric_keys modifier_keys
 xkb_symbols "us" {
 
-    name[Group1]= "Italian (US keyboard with Italian letters)";
-    
     include "us(euro)"
+
+    name[Group1]= "Italian (US keyboard with Italian letters)";
     
     // Alphanumeric section
 

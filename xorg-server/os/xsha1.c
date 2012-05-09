@@ -74,6 +74,48 @@ x_sha1_final(void *ctx, unsigned char result[20])
     return 1;
 }
 
+#elif defined(HAVE_SHA1_IN_CRYPTOAPI)        /* Use CryptoAPI for SHA1 */
+
+#define WIN32_LEAN_AND_MEAN
+#include <X11/Xwindows.h>
+#include <wincrypt.h>
+
+static HCRYPTPROV hProv;
+
+void *
+x_sha1_init(void)
+{
+    HCRYPTHASH *ctx = malloc(sizeof(*ctx));
+
+    if (!ctx)
+        return NULL;
+    CryptAcquireContext(&hProv, NULL, MS_DEF_PROV, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
+    CryptCreateHash(hProv, CALG_SHA1, 0, 0, ctx);
+    return ctx;
+}
+
+int
+x_sha1_update(void *ctx, void *data, int size)
+{
+    HCRYPTHASH *hHash = ctx;
+
+    CryptHashData(*hHash, data, size, 0);
+    return 1;
+}
+
+int
+x_sha1_final(void *ctx, unsigned char result[20])
+{
+    HCRYPTHASH *hHash = ctx;
+    DWORD len = 20;
+
+    CryptGetHashParam(*hHash, HP_HASHVAL, result, &len, 0);
+    CryptDestroyHash(*hHash);
+    CryptReleaseContext(hProv, 0);
+    free(ctx);
+    return 1;
+}
+
 #elif defined(HAVE_SHA1_IN_LIBGCRYPT)   /* Use libgcrypt for SHA1 */
 
 #include <gcrypt.h>
