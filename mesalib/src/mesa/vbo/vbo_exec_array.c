@@ -506,7 +506,7 @@ recalculate_input_bindings(struct gl_context *ctx)
    }
 
    _mesa_set_varying_vp_inputs( ctx, VERT_BIT_ALL & (~const_inputs) );
-   ctx->Driver.UpdateState(ctx, _NEW_ARRAY);
+   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
 }
 
 
@@ -523,7 +523,7 @@ vbo_bind_arrays(struct gl_context *ctx)
    struct vbo_context *vbo = vbo_context(ctx);
    struct vbo_exec_context *exec = &vbo->exec;
 
-   vbo_draw_method(exec, DRAW_ARRAYS);
+   vbo_draw_method(vbo, DRAW_ARRAYS);
 
    if (exec->array.recalculate_inputs) {
       recalculate_input_bindings(ctx);
@@ -600,7 +600,7 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
       if (primCount > 0) {
          /* draw one or two prims */
          check_buffers_are_unmapped(exec->array.inputs);
-         vbo->draw_prims(ctx, exec->array.inputs, prim, primCount, NULL,
+         vbo->draw_prims(ctx, prim, primCount, NULL,
                          GL_TRUE, start, start + count - 1, NULL);
       }
    }
@@ -610,7 +610,7 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
       prim[0].count = count;
 
       check_buffers_are_unmapped(exec->array.inputs);
-      vbo->draw_prims(ctx, exec->array.inputs, prim, 1, NULL,
+      vbo->draw_prims(ctx, prim, 1, NULL,
                       GL_TRUE, start, start + count - 1,
                       NULL);
    }
@@ -801,7 +801,7 @@ vbo_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
     */
 
    check_buffers_are_unmapped(exec->array.inputs);
-   vbo->draw_prims( ctx, exec->array.inputs, prim, 1, &ib,
+   vbo->draw_prims( ctx, prim, 1, &ib,
 		    index_bounds_valid, start, end, NULL );
 }
 
@@ -1096,7 +1096,7 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
       }
 
       check_buffers_are_unmapped(exec->array.inputs);
-      vbo->draw_prims(ctx, exec->array.inputs, prim, primcount, &ib,
+      vbo->draw_prims(ctx, prim, primcount, &ib,
 		      GL_FALSE, ~0, ~0, NULL);
    } else {
       /* render one prim at a time */
@@ -1121,7 +1121,7 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
 	    prim[0].basevertex = 0;
 
          check_buffers_are_unmapped(exec->array.inputs);
-         vbo->draw_prims(ctx, exec->array.inputs, prim, 1, &ib,
+         vbo->draw_prims(ctx, prim, 1, &ib,
                          GL_FALSE, ~0, ~0, NULL);
       }
    }
@@ -1199,7 +1199,7 @@ vbo_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
     * will be rendered. */
 
    check_buffers_are_unmapped(exec->array.inputs);
-   vbo->draw_prims(ctx, exec->array.inputs, prim, 1, NULL,
+   vbo->draw_prims(ctx, prim, 1, NULL,
                    GL_TRUE, 0, 0, obj);
 }
 

@@ -153,21 +153,21 @@ verify_parameter_modes(_mesa_glsl_parse_state *state,
 	 }
 
 	 ir_variable *var = actual->variable_referenced();
-	 if (var) {
-	    if (var->read_only) {
-	       _mesa_glsl_error(&loc, state,
-				"function parameter '%s %s' references the "
-				"read-only variable '%s'",
-				mode, formal->name,
-				actual->variable_referenced()->name);
-	       return false;
-	    } else if (!actual->is_lvalue()) {
-	       _mesa_glsl_error(&loc, state,
-				"function parameter '%s %s' is not an lvalue",
-				mode, formal->name);
-	       return false;
-	    }
+	 if (var)
 	    var->assigned = true;
+
+	 if (var && var->read_only) {
+	    _mesa_glsl_error(&loc, state,
+			     "function parameter '%s %s' references the "
+			     "read-only variable '%s'",
+			     mode, formal->name,
+			     actual->variable_referenced()->name);
+	    return false;
+	 } else if (!actual->is_lvalue()) {
+	    _mesa_glsl_error(&loc, state,
+			     "function parameter '%s %s' is not an lvalue",
+			     mode, formal->name);
+	    return false;
 	 }
       }
 
@@ -278,7 +278,7 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
     * Function calls were first allowed to be constant expressions in GLSL 1.20.
     */
    if (state->language_version >= 120) {
-      ir_constant *value = sig->constant_expression_value(actual_parameters);
+      ir_constant *value = sig->constant_expression_value(actual_parameters, NULL);
       if (value != NULL) {
 	 return value;
       }

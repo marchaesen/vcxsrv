@@ -32,10 +32,10 @@ AM_CFLAGS = -DHAVE_XWIN_CONFIG_H $(DIX_CFLAGS) \
 if XWIN_GLX_WINDOWS
 
 generated_gl_wrappers.c: gen_gl_wrappers.py $(KHRONOS_SPEC_DIR)/gl.spec $(KHRONOS_SPEC_DIR)/gl.tm
-	$(srcdir)/gen_gl_wrappers.py --spec=$(KHRONOS_SPEC_DIR)/gl.spec --typemap=$(KHRONOS_SPEC_DIR)/gl.tm --dispatch-header=$(top_srcdir)/glx/dispatch.h --staticwrappers >generated_gl_wrappers.c
+	$(AM_V_GEN)$(srcdir)/gen_gl_wrappers.py --spec=$(KHRONOS_SPEC_DIR)/gl.spec --typemap=$(KHRONOS_SPEC_DIR)/gl.tm --dispatch-header=$(top_srcdir)/glx/dispatch.h --staticwrappers >generated_gl_wrappers.c
 
 generated_wgl_wrappers.c: gen_gl_wrappers.py $(KHRONOS_SPEC_DIR)/wglext.spec $(KHRONOS_SPEC_DIR)/wgl.tm
-	$(srcdir)/gen_gl_wrappers.py --spec=$(KHRONOS_SPEC_DIR)/wglext.spec --typemap=$(KHRONOS_SPEC_DIR)/wgl.tm --prefix=wgl --preresolve >generated_wgl_wrappers.c
+	$(AM_V_GEN)$(srcdir)/gen_gl_wrappers.py --spec=$(KHRONOS_SPEC_DIR)/wglext.spec --typemap=$(KHRONOS_SPEC_DIR)/wgl.tm --prefix=wgl --preresolve >generated_wgl_wrappers.c
 endif
 
 BUILT_SOURCES = generated_gl_wrappers.c generated_wgl_wrappers.c

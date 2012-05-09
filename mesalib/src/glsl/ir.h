@@ -146,7 +146,7 @@ public:
 
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
 
-   virtual ir_constant *constant_expression_value();
+   virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
    virtual ir_rvalue * as_rvalue()
    {
@@ -502,10 +502,11 @@ public:
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
 
    /**
-    * Attempt to evaluate this function as a constant expression, given
-    * a list of the actual parameters.  Returns NULL for non-built-ins.
+    * Attempt to evaluate this function as a constant expression,
+    * given a list of the actual parameters and the variable context.
+    * Returns NULL for non-built-ins.
     */
-   ir_constant *constant_expression_value(exec_list *actual_parameters);
+   ir_constant *constant_expression_value(exec_list *actual_parameters, struct hash_table *variable_context);
 
    /**
     * Get the name of the function for which this is a signature
@@ -571,7 +572,25 @@ private:
    /** Function of which this signature is one overload. */
    class ir_function *_function;
 
+   /** Function signature of which this one is a prototype clone */
+   const ir_function_signature *origin;
+
    friend class ir_function;
+
+   /**
+    * Helper function to run a list of instructions for constant
+    * expression evaluation.
+    *
+    * The hash table represents the values of the visible variables.
+    * There are no scoping issues because the table is indexed on
+    * ir_variable pointers, not variable names.
+    *
+    * Returns false if the expression is not constant, true otherwise,
+    * and the value in *result if result is non-NULL.
+    */
+   bool constant_expression_evaluate_expression_list(const struct exec_list &body,
+						     struct hash_table *variable_context,
+						     ir_constant **result);
 };
 
 
@@ -763,7 +782,7 @@ public:
 
    virtual ir_assignment *clone(void *mem_ctx, struct hash_table *ht) const;
 
-   virtual ir_constant *constant_expression_value();
+   virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
    virtual void accept(ir_visitor *v)
    {
@@ -999,10 +1018,14 @@ public:
    /**
     * Attempt to constant-fold the expression
     *
+    * The "variable_context" hash table links ir_variable * to ir_constant *
+    * that represent the variables' values.  \c NULL represents an empty
+    * context.
+    *
     * If the expression cannot be constant folded, this method will return
     * \c NULL.
     */
-   virtual ir_constant *constant_expression_value();
+   virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
    /**
     * Determine the number of operands used by an expression
@@ -1065,7 +1088,7 @@ public:
 
    virtual ir_call *clone(void *mem_ctx, struct hash_table *ht) const;
 
-   virtual ir_constant *constant_expression_value();
+   virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
    virtual ir_call *as_call()
    {
@@ -1297,7 +1320,7 @@ public:
 
    virtual ir_texture *clone(void *mem_ctx, struct hash_table *) const;
 
-   virtual ir_constant *constant_expression_value();
+   virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
    virtual void accept(ir_visitor *v)
    {
@@ -1389,7 +1412,7 @@ public:
 
    virtual ir_swizzle *clone(void *mem_ctx, struct hash_table *) const;
 
-   virtual ir_constant *constant_expression_value();
+   virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
    virtual ir_swizzle *as_swizzle()
    {
@@ -1446,6 +1469,15 @@ public:
     * Get the variable that is ultimately referenced by an r-value
     */
    virtual ir_variable *variable_referenced() const = 0;
+
+   /**
+    * Get the constant that is ultimately referenced by an r-value,
+    * in a constant expression evaluation context.
+    *
+    * The offset is used when the reference is to a specific column of
+    * a matrix.
+    */
+  virtual void constant_referenced(struct hash_table *variable_context, ir_constant *&store, int &offset) const = 0;
 };
 
 
@@ -1456,7 +1488,7 @@ public:
    virtual ir_dereference_variable *clone(void *mem_ctx,
 					  struct hash_table *) const;
 
-   virtual ir_constant *constant_expression_value();
+   virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
    virtual ir_dereference_variable *as_dereference_variable()
    {
@@ -1470,6 +1502,15 @@ public:
    {
       return this->var;
    }
+
+   /**
+    * Get the constant that is ultimately referenced by an r-value,
+    * in a constant expression evaluation context.
+    *
+    * The offset is used when the reference is to a specific column of
+    * a matrix.
+    */
+   virtual void constant_referenced(struct hash_table *variable_context, ir_constant *&store, int &offset) const;
 
    virtual ir_variable *whole_variable_referenced()
    {
@@ -1505,7 +1546,7 @@ public:
    virtual ir_dereference_array *clone(void *mem_ctx,
 				       struct hash_table *) const;
 
-   virtual ir_constant *constant_expression_value();
+   virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
    virtual ir_dereference_array *as_dereference_array()
    {
@@ -1519,6 +1560,15 @@ public:
    {
       return this->array->variable_referenced();
    }
+
+   /**
+    * Get the constant that is ultimately referenced by an r-value,
+    * in a constant expression evaluation context.
+    *
+    * The offset is used when the reference is to a specific column of
+    * a matrix.
+    */
+   virtual void constant_referenced(struct hash_table *variable_context, ir_constant *&store, int &offset) const;
 
    virtual void accept(ir_visitor *v)
    {
@@ -1544,7 +1594,7 @@ public:
    virtual ir_dereference_record *clone(void *mem_ctx,
 					struct hash_table *) const;
 
-   virtual ir_constant *constant_expression_value();
+   virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
    /**
     * Get the variable that is ultimately referenced by an r-value
@@ -1553,6 +1603,15 @@ public:
    {
       return this->record->variable_referenced();
    }
+
+   /**
+    * Get the constant that is ultimately referenced by an r-value,
+    * in a constant expression evaluation context.
+    *
+    * The offset is used when the reference is to a specific column of
+    * a matrix.
+    */
+   virtual void constant_referenced(struct hash_table *variable_context, ir_constant *&store, int &offset) const;
 
    virtual void accept(ir_visitor *v)
    {
@@ -1609,7 +1668,7 @@ public:
 
    virtual ir_constant *clone(void *mem_ctx, struct hash_table *) const;
 
-   virtual ir_constant *constant_expression_value();
+   virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
    virtual ir_constant *as_constant()
    {
@@ -1640,6 +1699,31 @@ public:
    ir_constant *get_array_element(unsigned i) const;
 
    ir_constant *get_record_field(const char *name);
+
+   /**
+    * Copy the values on another constant at a given offset.
+    *
+    * The offset is ignored for array or struct copies, it's only for
+    * scalars or vectors into vectors or matrices.
+    *
+    * With identical types on both sides and zero offset it's clone()
+    * without creating a new object.
+    */
+
+   void copy_offset(ir_constant *src, int offset);
+
+   /**
+    * Copy the values on another constant at a given offset and
+    * following an assign-like mask.
+    *
+    * The mask is ignored for scalars.
+    *
+    * Note that this function only handles what assign can handle,
+    * i.e. at most a vector as source and a column of a matrix as
+    * destination.
+    */
+
+   void copy_masked_offset(ir_constant *src, int offset, unsigned int mask);
 
    /**
     * Determine whether a constant has the same value as another constant

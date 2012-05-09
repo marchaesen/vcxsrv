@@ -257,7 +257,7 @@ vbo_exec_bind_arrays( struct gl_context *ctx )
    }
 
    _mesa_set_varying_vp_inputs( ctx, varying_inputs );
-   ctx->Driver.UpdateState(ctx, _NEW_ARRAY);
+   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
 }
 
 
@@ -407,8 +407,7 @@ vbo_exec_vtx_flush(struct vbo_exec_context *exec, GLboolean keepUnmapped)
 		   exec->vtx.vert_count);
 
 	 vbo_context(ctx)->draw_prims( ctx, 
-				       exec->vtx.inputs, 
-				       exec->vtx.prim, 
+				       exec->vtx.prim,
 				       exec->vtx.prim_count,
 				       NULL,
 				       GL_TRUE,

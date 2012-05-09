@@ -716,11 +716,26 @@ ir_constant::ir_constant(const struct glsl_type *type, exec_list *value_list)
 ir_constant *
 ir_constant::zero(void *mem_ctx, const glsl_type *type)
 {
-   assert(type->is_numeric() || type->is_boolean());
+   assert(type->is_scalar() || type->is_vector() || type->is_matrix()
+	  || type->is_record() || type->is_array());
 
    ir_constant *c = new(mem_ctx) ir_constant;
    c->type = type;
    memset(&c->value, 0, sizeof(c->value));
+
+   if (type->is_array()) {
+      c->array_elements = ralloc_array(c, ir_constant *, type->length);
+
+      for (unsigned i = 0; i < type->length; i++)
+	 c->array_elements[i] = ir_constant::zero(c, type->element_type());
+   }
+
+   if (type->is_record()) {
+      for (unsigned i = 0; i < type->length; i++) {
+	 ir_constant *comp = ir_constant::zero(mem_ctx, type->fields.structure[i].type);
+	 c->components.push_tail(comp);
+      }
+   }
 
    return c;
 }
@@ -841,6 +856,95 @@ ir_constant::get_record_field(const char *name)
    return (ir_constant *) node;
 }
 
+void
+ir_constant::copy_offset(ir_constant *src, int offset)
+{
+   switch (this->type->base_type) {
+   case GLSL_TYPE_UINT:
+   case GLSL_TYPE_INT:
+   case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_BOOL: {
+      unsigned int size = src->type->components();
+      assert (size <= this->type->components() - offset);
+      for (unsigned int i=0; i<size; i++) {
+	 switch (this->type->base_type) {
+	 case GLSL_TYPE_UINT:
+	    value.u[i+offset] = src->get_uint_component(i);
+	    break;
+	 case GLSL_TYPE_INT:
+	    value.i[i+offset] = src->get_int_component(i);
+	    break;
+	 case GLSL_TYPE_FLOAT:
+	    value.f[i+offset] = src->get_float_component(i);
+	    break;
+	 case GLSL_TYPE_BOOL:
+	    value.b[i+offset] = src->get_bool_component(i);
+	    break;
+	 default: // Shut up the compiler
+	    break;
+	 }
+      }
+      break;
+   }
+
+   case GLSL_TYPE_STRUCT: {
+      assert (src->type == this->type);
+      this->components.make_empty();
+      foreach_list(node, &src->components) {
+	 ir_constant *const orig = (ir_constant *) node;
+
+	 this->components.push_tail(orig->clone(this, NULL));
+      }
+      break;
+   }
+
+   case GLSL_TYPE_ARRAY: {
+      assert (src->type == this->type);
+      for (unsigned i = 0; i < this->type->length; i++) {
+	 this->array_elements[i] = src->array_elements[i]->clone(this, NULL);
+      }
+      break;
+   }
+
+   default:
+      assert(!"Should not get here.");
+      break;
+   }
+}
+
+void
+ir_constant::copy_masked_offset(ir_constant *src, int offset, unsigned int mask)
+{
+   assert (!type->is_array() && !type->is_record());
+
+   if (!type->is_vector() && !type->is_matrix()) {
+      offset = 0;
+      mask = 1;
+   }
+
+   int id = 0;
+   for (int i=0; i<4; i++) {
+      if (mask & (1 << i)) {
+	 switch (this->type->base_type) {
+	 case GLSL_TYPE_UINT:
+	    value.u[i+offset] = src->get_uint_component(id++);
+	    break;
+	 case GLSL_TYPE_INT:
+	    value.i[i+offset] = src->get_int_component(id++);
+	    break;
+	 case GLSL_TYPE_FLOAT:
+	    value.f[i+offset] = src->get_float_component(id++);
+	    break;
+	 case GLSL_TYPE_BOOL:
+	    value.b[i+offset] = src->get_bool_component(id++);
+	    break;
+	 default:
+	    assert(!"Should not get here.");
+	    return;
+	 }
+      }
+   }
+}
 
 bool
 ir_constant::has_value(const ir_constant *c) const
@@ -1377,6 +1481,7 @@ ir_function_signature::ir_function_signature(const glsl_type *return_type)
 {
    this->ir_type = ir_type_function_signature;
    this->is_builtin = false;
+   this->origin = NULL;
 }
 
 

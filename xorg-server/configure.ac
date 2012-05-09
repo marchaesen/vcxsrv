@@ -1355,7 +1355,7 @@ CORE_INCS='-I$(top_srcdir)/include -I$(top_builddir)/include'
 
 # SHA1 hashing
 AC_ARG_WITH([sha1],
-            [AS_HELP_STRING([--with-sha1=libc|libmd|libgcrypt|libcrypto|libsha1|CommonCrypto],
+            [AS_HELP_STRING([--with-sha1=libc|libmd|libgcrypt|libcrypto|libsha1|CommonCrypto|CryptoAPI],
                             [choose SHA1 implementation])])
 AC_CHECK_FUNC([SHA1Init], [HAVE_SHA1_IN_LIBC=yes])
 if test "x$with_sha1" = x && test "x$HAVE_SHA1_IN_LIBC" = xyes; then
@@ -1379,6 +1379,19 @@ fi
 if test "x$with_sha1" = xCommonCrypto; then
 	AC_DEFINE([HAVE_SHA1_IN_COMMONCRYPTO], [1],
 		[Use CommonCrypto SHA1 functions])
+	SHA1_LIBS=""
+fi
+dnl stdcall functions cannot be tested with AC_CHECK_LIB
+AC_CHECK_HEADER([wincrypt.h], [HAVE_SHA1_IN_CRYPTOAPI=yes], [], [#include <windows.h>])
+if test "x$with_sha1" = x && test "x$HAVE_SHA1_IN_CRYPTOAPI" = xyes; then
+	with_sha1=CryptoAPI
+fi
+if test "x$with_sha1" = xCryptoAPI && test "x$HAVE_SHA1_IN_CRYPTOAPI" != xyes; then
+	AC_MSG_ERROR([CryptoAPI requested but not found])
+fi
+if test "x$with_sha1" = xCryptoAPI; then
+	AC_DEFINE([HAVE_SHA1_IN_CRYPTOAPI], [1],
+		[Use CryptoAPI SHA1 functions])
 	SHA1_LIBS=""
 fi
 AC_CHECK_LIB([md], [SHA1Init], [HAVE_LIBMD=yes])
