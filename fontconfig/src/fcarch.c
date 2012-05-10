@@ -56,8 +56,6 @@ FC_ASSERT_STATIC (SIZEOF_VOID_P == sizeof (FcStrSet *));
 FC_ASSERT_STATIC (SIZEOF_VOID_P == sizeof (FcCharLeaf **));
 FC_ASSERT_STATIC (SIZEOF_VOID_P == sizeof (FcChar16 *));
 
-#define FC_MAX(a,b)	((a) > (b) ? (a) : (b))
-
 FC_ASSERT_STATIC (0x08 + 1*FC_MAX(4,ALIGNOF_DOUBLE) == sizeof (FcValue));
 FC_ASSERT_STATIC (0x00 + 2*SIZEOF_VOID_P == sizeof (FcPatternElt));
 FC_ASSERT_STATIC (0x08 + 2*SIZEOF_VOID_P == sizeof (FcPattern));
