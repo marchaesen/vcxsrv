@@ -1679,11 +1679,11 @@ gamma_to_ramp(float gamma, CARD16 *ramp, int size)
 
     for (i = 0; i < size; i++) {
         if (gamma == 1.0)
-            ramp[i] = i << 8;
+            ramp[i] = i | i << 8;
         else
             ramp[i] =
                 (CARD16) (pow((double) i / (double) (size - 1), 1. / gamma)
-                          * (double) (size - 1) * 256);
+                          * (double) (size - 1) * 257);
     }
 }
 

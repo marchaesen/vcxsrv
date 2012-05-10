@@ -168,7 +168,7 @@ asm(".desc ___crashreporter_info__, 0x10");
 #define X_DEBUG_STRING			"(DB)"
 #endif
 #ifndef X_NONE_STRING
-#define X_NONE_STRING                   ""
+#define X_NONE_STRING			""
 #endif
 
 /*
@@ -226,7 +226,7 @@ LogInit(const char *fname, const char *backup)
      * needed.
      */
     if (saveBuffer && bufferSize > 0) {
-        free(saveBuffer);       /* Must be free(), not free() */
+        free(saveBuffer);
         saveBuffer = NULL;
         bufferSize = 0;
     }
@@ -268,36 +268,19 @@ LogSetParameter(LogParameter param, int value)
 }
 
 /* This function does the actual log message writes. */
-
-void
-LogVWrite(int verb, const char *f, va_list args)
+static void
+LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
 {
-    static char tmpBuffer[1024];
-    int len = 0;
     static Bool newline = TRUE;
 
-    if (newline) {
-        sprintf(tmpBuffer, "[%10.3f] ", GetTimeInMillis() / 1000.0);
-        len = strlen(tmpBuffer);
-        if (logFile)
-            fwrite(tmpBuffer, len, 1, logFile);
-    }
-
-    /*
-     * Since a va_list can only be processed once, write the string to a
-     * buffer, and then write the buffer out to the appropriate output
-     * stream(s).
-     */
-    if (verb < 0 || logFileVerbosity >= verb || logVerbosity >= verb) {
-        vsnprintf(tmpBuffer, sizeof(tmpBuffer), f, args);
-        len = strlen(tmpBuffer);
-    }
-    newline = (tmpBuffer[len - 1] == '\n');
-    if ((verb < 0 || logVerbosity >= verb) && len > 0)
-        fwrite(tmpBuffer, len, 1, stderr);
-    if ((verb < 0 || logFileVerbosity >= verb) && len > 0) {
+    if (verb < 0 || logVerbosity >= verb)
+        fwrite(buf, len, 1, stderr);
+    if (verb < 0 || logFileVerbosity >= verb) {
         if (logFile) {
-            fwrite(tmpBuffer, len, 1, logFile);
+            if (newline)
+                fprintf(logFile, "[%10.3f] ", GetTimeInMillis() / 1000.0);
+            newline = end_line;
+            fwrite(buf, len, 1, logFile);
             if (logFlush) {
                 fflush(logFile);
 #ifndef WIN32
@@ -315,10 +298,16 @@ LogVWrite(int verb, const char *f, va_list args)
                     FatalError("realloc() failed while saving log messages\n");
             }
             bufferUnused -= len;
-            memcpy(saveBuffer + bufferPos, tmpBuffer, len);
+            memcpy(saveBuffer + bufferPos, buf, len);
             bufferPos += len;
         }
     }
+}
+
+void
+LogVWrite(int verb, const char *f, va_list args)
+{
+    return LogVMessageVerb(X_NONE, verb, f, args);
 }
 
 void
@@ -376,22 +365,28 @@ void
 LogVMessageVerb(MessageType type, int verb, const char *format, va_list args)
 {
     const char *type_str;
-    char tmpFormat[1024];
-    const char *new_format;
+    char buf[1024];
+    const size_t size = sizeof(buf);
+    Bool newline;
+    size_t len = 0;
 
     type_str = LogMessageTypeVerbString(type, verb);
     if (!type_str)
         return;
 
-    /* if type_str is not "", prepend it and ' ', to format */
-    if (type_str[0] == '\0')
-        new_format = format;
-    else {
-        new_format = tmpFormat;
-        snprintf(tmpFormat, sizeof(tmpFormat), "%s %s", type_str, format);
-    }
+    /* if type_str is not "", prepend it and ' ', to message */
+    if (type_str[0] != '\0')
+        len += Xscnprintf(&buf[len], size - len, "%s ", type_str);
 
-    LogVWrite(verb, new_format, args);
+    if (size - len > 1)
+        len += Xvscnprintf(&buf[len], size - len, format, args);
+
+    /* Force '\n' at end of truncated line */
+    if (size - len == 1)
+        buf[len - 1] = '\n';
+
+    newline = (buf[len - 1] == '\n');
+    LogSWrite(verb, buf, len, newline);
 }
 
 /* Log message with verbosity level specified. */
@@ -421,31 +416,31 @@ LogVHdrMessageVerb(MessageType type, int verb, const char *msg_format,
                    va_list msg_args, const char *hdr_format, va_list hdr_args)
 {
     const char *type_str;
-    char tmpFormat[1024];
-    char *tmpFormat_end = &tmpFormat[sizeof(tmpFormat)];
-    char *p;
-    int left;
+    char buf[1024];
+    const size_t size = sizeof(buf);
+    Bool newline;
+    size_t len = 0;
 
     type_str = LogMessageTypeVerbString(type, verb);
     if (!type_str)
         return;
 
-    /* if type_str != "", copy it and ' ' to tmpFormat; set p after ' ' */
-    p = tmpFormat;
+    /* if type_str is not "", prepend it and ' ', to message */
     if (type_str[0] != '\0')
-        p += snprintf(tmpFormat, sizeof(tmpFormat), "%s ", type_str);
+        len += Xscnprintf(&buf[len], size - len, "%s ", type_str);
 
-    /* append as much of hdr as fits after type_str (if there was one) */
-    left = tmpFormat_end - p;
-    if (left > 1)
-        p += vsnprintf(p, left, hdr_format, hdr_args);
+    if (hdr_format && size - len > 1)
+        len += Xvscnprintf(&buf[len], size - len, hdr_format, hdr_args);
 
-    /* append as much of msg_format as will fit after hdr */
-    left = tmpFormat_end - p;
-    if (left > 1)
-        snprintf(p, left, "%s", msg_format);
+    if (msg_format && size - len > 1)
+        len += Xvscnprintf(&buf[len], size - len, msg_format, msg_args);
 
-    LogVWrite(verb, tmpFormat, msg_args);
+    /* Force '\n' at end of truncated line */
+    if (size - len == 1)
+        buf[len - 1] = '\n';
+
+    newline = (buf[len - 1] == '\n');
+    LogSWrite(verb, buf, len, newline);
 }
 
 void

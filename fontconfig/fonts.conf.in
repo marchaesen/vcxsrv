@@ -34,7 +34,7 @@
 		<test qual="any" name="family">
 			<string>mono</string>
 		</test>
-		<edit name="family" mode="assign">
+		<edit name="family" mode="assign" binding="same">
 			<string>monospace</string>
 		</edit>
 	</match>
@@ -46,7 +46,7 @@
 		<test qual="any" name="family">
 			<string>sans serif</string>
 		</test>
-		<edit name="family" mode="assign">
+		<edit name="family" mode="assign" binding="same">
 			<string>sans-serif</string>
 		</edit>
 	</match>
@@ -58,7 +58,7 @@
 		<test qual="any" name="family">
 			<string>sans</string>
 		</test>
-		<edit name="family" mode="assign">
+		<edit name="family" mode="assign" binding="same">
 			<string>sans-serif</string>
 		</edit>
 	</match>
