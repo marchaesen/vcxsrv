@@ -313,7 +313,7 @@ LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
 void
 LogVWrite(int verb, const char *f, va_list args)
 {
-    return LogVMessageVerb(X_NONE, verb, f, args);
+    LogVMessageVerb(X_NONE, verb, f, args);
 }
 
 void
