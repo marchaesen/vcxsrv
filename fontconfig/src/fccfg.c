@@ -691,12 +691,14 @@ FcConfigPromote (FcValue v, FcValue u)
 
 FcBool
 FcConfigCompareValue (const FcValue	*left_o,
-		      FcOp		op,
+		      FcOp		op_,
 		      const FcValue	*right_o)
 {
     FcValue	left = FcValueCanonicalize(left_o);
     FcValue	right = FcValueCanonicalize(right_o);
     FcBool	ret = FcFalse;
+    FcOp	op = FC_OP_GET_OP (op_);
+    int		flags = FC_OP_GET_FLAGS (op_);
 
     left = FcConfigPromote (left, right);
     right = FcConfigPromote (right, left);
@@ -751,13 +753,19 @@ FcConfigCompareValue (const FcValue	*left_o,
 	    switch (op) {
 	    case FcOpEqual:
 	    case FcOpListing:
-		ret = FcStrCmpIgnoreCase (left.u.s, right.u.s) == 0;
+		if (flags & FcOpFlagIgnoreBlanks)
+		    ret = FcStrCmpIgnoreBlanksAndCase (left.u.s, right.u.s) == 0;
+		else
+		    ret = FcStrCmpIgnoreCase (left.u.s, right.u.s) == 0;
 		break;
 	    case FcOpContains:
 		ret = FcStrStrIgnoreCase (left.u.s, right.u.s) != 0;
 		break;
 	    case FcOpNotEqual:
-		ret = FcStrCmpIgnoreCase (left.u.s, right.u.s) != 0;
+		if (flags & FcOpFlagIgnoreBlanks)
+		    ret = FcStrCmpIgnoreBlanksAndCase (left.u.s, right.u.s) != 0;
+		else
+		    ret = FcStrCmpIgnoreCase (left.u.s, right.u.s) != 0;
 		break;
 	    case FcOpNotContains:
 		ret = FcStrStrIgnoreCase (left.u.s, right.u.s) == 0;
@@ -872,8 +880,9 @@ FcConfigEvaluate (FcPattern *p, FcExpr *e)
     FcResult	r;
     FcMatrix	*m;
     FcChar8     *str;
+    FcOp	op = FC_OP_GET_OP (e->op);
 
-    switch (e->op) {
+    switch (op) {
     case FcOpInteger:
 	v.type = FcTypeInteger;
 	v.u.i = e->u.ival;
@@ -961,7 +970,7 @@ FcConfigEvaluate (FcPattern *p, FcExpr *e)
 	{
 	    switch (vl.type) {
 	    case FcTypeDouble:
-		switch (e->op) {
+		switch (op) {
 		case FcOpPlus:	
 		    v.type = FcTypeDouble;
 		    v.u.d = vl.u.d + vr.u.d;
@@ -990,7 +999,7 @@ FcConfigEvaluate (FcPattern *p, FcExpr *e)
 		}
 		break;
 	    case FcTypeBool:
-		switch (e->op) {
+		switch (op) {
 		case FcOpOr:
 		    v.type = FcTypeBool;
 		    v.u.b = vl.u.b || vr.u.b;
@@ -1005,7 +1014,7 @@ FcConfigEvaluate (FcPattern *p, FcExpr *e)
 		}
 		break;
 	    case FcTypeString:
-		switch (e->op) {
+		switch (op) {
 		case FcOpPlus:
 		    v.type = FcTypeString;
 		    str = FcStrPlus (vl.u.s, vr.u.s);
@@ -1021,7 +1030,7 @@ FcConfigEvaluate (FcPattern *p, FcExpr *e)
 		}
 		break;
 	    case FcTypeMatrix:
-		switch (e->op) {
+		switch (op) {
 		case FcOpTimes:
 		    v.type = FcTypeMatrix;
 		    m = malloc (sizeof (FcMatrix));
@@ -1042,7 +1051,7 @@ FcConfigEvaluate (FcPattern *p, FcExpr *e)
 		}
 		break;
 	    case FcTypeCharSet:
-		switch (e->op) {
+		switch (op) {
 		case FcOpPlus:
 		    v.type = FcTypeCharSet;
 		    v.u.c = FcCharSetUnion (vl.u.c, vr.u.c);
@@ -1061,7 +1070,7 @@ FcConfigEvaluate (FcPattern *p, FcExpr *e)
 		}
 		break;
 	    case FcTypeLangSet:
-		switch (e->op) {
+		switch (op) {
 		case FcOpPlus:
 		    v.type = FcTypeLangSet;
 		    v.u.l = FcLangSetUnion (vl.u.l, vr.u.l);
@@ -1186,7 +1195,7 @@ FcConfigMatchValueList (FcPattern	*p,
     while (e)
     {
 	/* Compute the value of the match expression */
-	if (e->op == FcOpComma)
+	if (FC_OP_GET_OP (e->op) == FcOpComma)
 	{
 	    value = FcConfigEvaluate (p, e->u.tree.left);
 	    e = e->u.tree.right;
@@ -1230,7 +1239,7 @@ FcConfigValues (FcPattern *p, FcExpr *e, FcValueBinding binding)
     if (!l)
 	return 0;
     FcMemAlloc (FC_MEM_VALLIST, sizeof (FcValueList));
-    if (e->op == FcOpComma)
+    if (FC_OP_GET_OP (e->op) == FcOpComma)
     {
 	l->value = FcConfigEvaluate (p, e->u.tree.left);
 	l->next = FcConfigValues (p, e->u.tree.right, binding);
@@ -1518,7 +1527,7 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 		    break;
 		}
 	    }
-	    switch (e->op) {
+	    switch (FC_OP_GET_OP (e->op)) {
 	    case FcOpAssign:
 		/*
 		 * If there was a test, then replace the matched

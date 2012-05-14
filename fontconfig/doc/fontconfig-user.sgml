@@ -396,7 +396,8 @@ above). 'compare' can be one of "eq", "not_eq", "less", "less_eq", "more", "more
 "not_contains".  'qual' may either be the default, "any", in which case the match
 succeeds if any value associated with the property matches the test value, or
 "all", in which case all of the values associated with the property must
-match the test value.  When used in a &lt;match target="font"&gt; element,
+match the test value.  'ignore-blanks' takes a boolean value. if 'ignore-blanks' is set "true", any blanks in the string will be ignored on its comparison. this takes effects only when compare="eq" or compare="not_eq".
+When used in a &lt;match target="font"&gt; element,
 the target= attribute in the &lt;test&gt; element selects between matching
 the original pattern or the font.  "default" selects whichever target the
 outer &lt;match&gt; element has selected.

@@ -598,6 +598,12 @@ pack_4xpacked565 (__m64 a, __m64 b)
 #endif
 }
 
+static force_inline __m64
+pack_4x565 (__m64 v0, __m64 v1, __m64 v2, __m64 v3)
+{
+    return pack_4xpacked565 (pack8888 (v0, v1), pack8888 (v2, v3));
+}
+
 #ifndef _MSC_VER
 
 static force_inline __m64
@@ -1396,16 +1402,14 @@ mmx_composite_over_n_0565 (pixman_implementation_t *imp,
 
 	while (w >= 4)
 	{
-	    __m64 vdest;
+	    __m64 vdest = *(__m64 *)dst;
 
-	    vdest = *(__m64 *)dst;
+	    __m64 v0 = over (vsrc, vsrca, expand565 (vdest, 0));
+	    __m64 v1 = over (vsrc, vsrca, expand565 (vdest, 1));
+	    __m64 v2 = over (vsrc, vsrca, expand565 (vdest, 2));
+	    __m64 v3 = over (vsrc, vsrca, expand565 (vdest, 3));
 
-	    vdest = pack_565 (over (vsrc, vsrca, expand565 (vdest, 0)), vdest, 0);
-	    vdest = pack_565 (over (vsrc, vsrca, expand565 (vdest, 1)), vdest, 1);
-	    vdest = pack_565 (over (vsrc, vsrca, expand565 (vdest, 2)), vdest, 2);
-	    vdest = pack_565 (over (vsrc, vsrca, expand565 (vdest, 3)), vdest, 3);
-
-	    *(__m64 *)dst = vdest;
+	    *(__m64 *)dst = pack_4x565 (v0, v1, v2, v3);
 
 	    dst += 4;
 	    w -= 4;
@@ -1818,22 +1822,19 @@ mmx_composite_over_8888_0565 (pixman_implementation_t *imp,
 
 	while (w >= 4)
 	{
-	    __m64 vsrc0, vsrc1, vsrc2, vsrc3;
-	    __m64 vdest;
+	    __m64 vdest = *(__m64 *)dst;
 
-	    vsrc0 = load8888 ((src + 0));
-	    vsrc1 = load8888 ((src + 1));
-	    vsrc2 = load8888 ((src + 2));
-	    vsrc3 = load8888 ((src + 3));
+	    __m64 vsrc0 = load8888 ((src + 0));
+	    __m64 vsrc1 = load8888 ((src + 1));
+	    __m64 vsrc2 = load8888 ((src + 2));
+	    __m64 vsrc3 = load8888 ((src + 3));
 
-	    vdest = *(__m64 *)dst;
+	    __m64 v0 = over (vsrc0, expand_alpha (vsrc0), expand565 (vdest, 0));
+	    __m64 v1 = over (vsrc1, expand_alpha (vsrc1), expand565 (vdest, 1));
+	    __m64 v2 = over (vsrc2, expand_alpha (vsrc2), expand565 (vdest, 2));
+	    __m64 v3 = over (vsrc3, expand_alpha (vsrc3), expand565 (vdest, 3));
 
-	    vdest = pack_565 (over (vsrc0, expand_alpha (vsrc0), expand565 (vdest, 0)), vdest, 0);
-	    vdest = pack_565 (over (vsrc1, expand_alpha (vsrc1), expand565 (vdest, 1)), vdest, 1);
-	    vdest = pack_565 (over (vsrc2, expand_alpha (vsrc2), expand565 (vdest, 2)), vdest, 2);
-	    vdest = pack_565 (over (vsrc3, expand_alpha (vsrc3), expand565 (vdest, 3)), vdest, 3);
-
-	    *(__m64 *)dst = vdest;
+	    *(__m64 *)dst = pack_4x565 (v0, v1, v2, v3);
 
 	    w -= 4;
 	    dst += 4;
@@ -2368,25 +2369,22 @@ mmx_composite_over_n_8_0565 (pixman_implementation_t *imp,
 	    }
 	    else if (m0 | m1 | m2 | m3)
 	    {
-		__m64 vdest;
-		__m64 vm0, vm1, vm2, vm3;
+		__m64 vdest = *(__m64 *)dst;
 
-		vdest = *(__m64 *)dst;
+		__m64 vm0 = to_m64 (m0);
+		__m64 v0 = in_over (vsrc, vsrca, expand_alpha_rev (vm0),
+					   expand565 (vdest, 0));
+		__m64 vm1 = to_m64 (m1);
+		__m64 v1 = in_over (vsrc, vsrca, expand_alpha_rev (vm1),
+					   expand565 (vdest, 1));
+		__m64 vm2 = to_m64 (m2);
+		__m64 v2 = in_over (vsrc, vsrca, expand_alpha_rev (vm2),
+					   expand565 (vdest, 2));
+		__m64 vm3 = to_m64 (m3);
+		__m64 v3 = in_over (vsrc, vsrca, expand_alpha_rev (vm3),
+					   expand565 (vdest, 3));
 
-		vm0 = to_m64 (m0);
-		vdest = pack_565 (in_over (vsrc, vsrca, expand_alpha_rev (vm0),
-					   expand565 (vdest, 0)), vdest, 0);
-		vm1 = to_m64 (m1);
-		vdest = pack_565 (in_over (vsrc, vsrca, expand_alpha_rev (vm1),
-					   expand565 (vdest, 1)), vdest, 1);
-		vm2 = to_m64 (m2);
-		vdest = pack_565 (in_over (vsrc, vsrca, expand_alpha_rev (vm2),
-					   expand565 (vdest, 2)), vdest, 2);
-		vm3 = to_m64 (m3);
-		vdest = pack_565 (in_over (vsrc, vsrca, expand_alpha_rev (vm3),
-					   expand565 (vdest, 3)), vdest, 3);
-
-		*(__m64 *)dst = vdest;
+		*(__m64 *)dst = pack_4x565 (v0, v1, v2, v3);;
 	    }
 
 	    w -= 4;
@@ -2483,24 +2481,23 @@ mmx_composite_over_pixbuf_0565 (pixman_implementation_t *imp,
 
 	    if ((a0 & a1 & a2 & a3) == 0xFF)
 	    {
-		__m64 vdest;
-		vdest = pack_565 (invert_colors (load8888 (&s0)), _mm_setzero_si64 (), 0);
-		vdest = pack_565 (invert_colors (load8888 (&s1)), vdest, 1);
-		vdest = pack_565 (invert_colors (load8888 (&s2)), vdest, 2);
-		vdest = pack_565 (invert_colors (load8888 (&s3)), vdest, 3);
+		__m64 v0 = invert_colors (load8888 (&s0));
+		__m64 v1 = invert_colors (load8888 (&s1));
+		__m64 v2 = invert_colors (load8888 (&s2));
+		__m64 v3 = invert_colors (load8888 (&s3));
 
-		*(__m64 *)dst = vdest;
+		*(__m64 *)dst = pack_4x565 (v0, v1, v2, v3);
 	    }
 	    else if (s0 | s1 | s2 | s3)
 	    {
 		__m64 vdest = *(__m64 *)dst;
 
-		vdest = pack_565 (over_rev_non_pre (load8888 (&s0), expand565 (vdest, 0)), vdest, 0);
-		vdest = pack_565 (over_rev_non_pre (load8888 (&s1), expand565 (vdest, 1)), vdest, 1);
-		vdest = pack_565 (over_rev_non_pre (load8888 (&s2), expand565 (vdest, 2)), vdest, 2);
-		vdest = pack_565 (over_rev_non_pre (load8888 (&s3), expand565 (vdest, 3)), vdest, 3);
+		__m64 v0 = over_rev_non_pre (load8888 (&s0), expand565 (vdest, 0));
+		__m64 v1 = over_rev_non_pre (load8888 (&s1), expand565 (vdest, 1));
+		__m64 v2 = over_rev_non_pre (load8888 (&s2), expand565 (vdest, 2));
+		__m64 v3 = over_rev_non_pre (load8888 (&s3), expand565 (vdest, 3));
 
-		*(__m64 *)dst = vdest;
+		*(__m64 *)dst = pack_4x565 (v0, v1, v2, v3);
 	    }
 
 	    w -= 4;
@@ -2675,12 +2672,12 @@ mmx_composite_over_n_8888_0565_ca (pixman_implementation_t *imp,
 	    {
 		__m64 vdest = *(__m64 *)q;
 
-		vdest = pack_565 (in_over (vsrc, vsrca, load8888 (&m0), expand565 (vdest, 0)), vdest, 0);
-		vdest = pack_565 (in_over (vsrc, vsrca, load8888 (&m1), expand565 (vdest, 1)), vdest, 1);
-		vdest = pack_565 (in_over (vsrc, vsrca, load8888 (&m2), expand565 (vdest, 2)), vdest, 2);
-		vdest = pack_565 (in_over (vsrc, vsrca, load8888 (&m3), expand565 (vdest, 3)), vdest, 3);
+		__m64 v0 = in_over (vsrc, vsrca, load8888 (&m0), expand565 (vdest, 0));
+		__m64 v1 = in_over (vsrc, vsrca, load8888 (&m1), expand565 (vdest, 1));
+		__m64 v2 = in_over (vsrc, vsrca, load8888 (&m2), expand565 (vdest, 2));
+		__m64 v3 = in_over (vsrc, vsrca, load8888 (&m3), expand565 (vdest, 3));
 
-		*(__m64 *)q = vdest;
+		*(__m64 *)q = pack_4x565 (v0, v1, v2, v3);
 	    }
 	    twidth -= 4;
 	    p += 4;

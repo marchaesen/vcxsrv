@@ -278,10 +278,10 @@ if test "x$LS_CFLAGS" = "x" ; then
 fi
 
 have_loongson_mmi=no
-AC_MSG_CHECKING(whether to use Loongson MMI)
+AC_MSG_CHECKING(whether to use Loongson MMI assembler)
 
 xserver_save_CFLAGS=$CFLAGS
-CFLAGS=" $CFLAGS $LS_CFLAGS"
+CFLAGS=" $LS_CFLAGS $CFLAGS -I$srcdir"
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #ifndef __mips_loongson_vector_rev
 #error "Loongson Multimedia Instructions are only available on Loongson"
@@ -301,12 +301,12 @@ int main () {
 }]])], have_loongson_mmi=yes)
 CFLAGS=$xserver_save_CFLAGS
 
-AC_ARG_ENABLE(loongson,
-   [AC_HELP_STRING([--disable-loongson],
-                   [disable Loongson fast paths])],
-   [enable_loongson=$enableval], [enable_loongson=auto])
+AC_ARG_ENABLE(loongson-mmi,
+   [AC_HELP_STRING([--disable-loongson-mmi],
+                   [disable Loongson MMI fast paths])],
+   [enable_loongson_mmi=$enableval], [enable_loongson_mmi=auto])
 
-if test $enable_loongson = no ; then
+if test $enable_loongson_mmi = no ; then
    have_loongson_mmi=disabled
 fi
 
@@ -317,7 +317,7 @@ else
 fi
 
 AC_MSG_RESULT($have_loongson_mmi)
-if test $enable_loongson = yes && test $have_loongson_mmi = no ; then
+if test $enable_loongson_mmi = yes && test $have_loongson_mmi = no ; then
    AC_MSG_ERROR([Loongson MMI not detected])
 fi
 

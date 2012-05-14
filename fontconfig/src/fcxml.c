@@ -195,7 +195,7 @@ FcExprDestroy (FcExpr *e)
 {
     if (!e)
 	return;
-    switch (e->op) {
+    switch (FC_OP_GET_OP (e->op)) {
     case FcOpInteger:
 	break;
     case FcOpDouble:
@@ -571,7 +571,7 @@ FcTypecheckExpr (FcConfigParse *parse, FcExpr *expr, FcType type)
     if (!expr)
 	return;
 
-    switch (expr->op) {
+    switch (FC_OP_GET_OP (expr->op)) {
     case FcOpInteger:
     case FcOpDouble:
 	FcTypecheckValue (parse, FcTypeDouble, type);
@@ -1687,7 +1687,7 @@ FcParseAlias (FcConfigParse *parse)
 	FcTest *t = FcTestCreate (parse, FcMatchPattern,
 				  FcQualAny,
 				  (FcChar8 *) FC_FAMILY,
-				  FcOpEqual,
+				  FC_OP (FcOpEqual, FcOpFlagIgnoreBlanks),
 				  family);
 	if (test)
 	{
@@ -1911,6 +1911,8 @@ FcParseTest (FcConfigParse *parse)
     FcOp	    compare;
     FcExpr	    *expr;
     FcTest	    *test;
+    const FcChar8   *iblanks_string;
+    int              flags = 0;
 
     kind_string = FcConfigGetAttribute (parse, "target");
     if (!kind_string)
@@ -1968,13 +1970,27 @@ FcParseTest (FcConfigParse *parse)
 	    return;
 	}
     }
+    iblanks_string = FcConfigGetAttribute (parse, "ignore-blanks");
+    if (iblanks_string)
+    {
+	FcBool f = FcFalse;
+
+	if (!FcNameBool (iblanks_string, &f))
+	{
+	    FcConfigMessage (parse,
+			     FcSevereWarning,
+			     "invalid test ignore-blanks \"%s\"", iblanks_string);
+	}
+	if (f)
+	    flags |= FcOpFlagIgnoreBlanks;
+    }
     expr = FcPopBinary (parse, FcOpComma);
     if (!expr)
     {
 	FcConfigMessage (parse, FcSevereWarning, "missing test expression");
 	return;
     }
-    test = FcTestCreate (parse, kind, qual, name, compare, expr);
+    test = FcTestCreate (parse, kind, qual, name, FC_OP (compare, flags), expr);
     if (!test)
     {
 	FcConfigMessage (parse, FcSevereError, "out of memory");

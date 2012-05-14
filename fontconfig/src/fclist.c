@@ -148,7 +148,7 @@ FcListValueListMatchAny (FcValueListPtr patOrig,	    /* pattern */
 	     *  where it requires an exact match)
 	     */
 	    if (FcConfigCompareValue (&fnt->value,
-				      FcOpListing,
+				      FC_OP (FcOpListing, FcOpFlagIgnoreBlanks),
 				      &pat->value))
 		break;
 	}

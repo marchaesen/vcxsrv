@@ -44,7 +44,6 @@
 unsigned
 util_draw_max_index(
       const struct pipe_vertex_buffer *vertex_buffers,
-      unsigned nr_vertex_buffers,
       const struct pipe_vertex_element *vertex_elements,
       unsigned nr_vertex_elements,
       const struct pipe_draw_info *info)
@@ -61,6 +60,10 @@ util_draw_max_index(
       unsigned buffer_size;
       const struct util_format_description *format_desc;
       unsigned format_size;
+
+      if (!buffer->buffer) {
+         continue;
+      }
 
       assert(buffer->buffer->height0 == 1);
       assert(buffer->buffer->depth0 == 1);

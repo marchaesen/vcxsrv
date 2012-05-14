@@ -159,6 +159,7 @@
 	  qual (any|all|first|not_first)    "any"
 	  name CDATA	    #REQUIRED
 	  target (pattern|font|default)		"default"
+	  ignore-blanks (#PCDATA)	"false"
 	  compare (eq|not_eq|less|less_eq|more|more_eq|contains|not_contains)	"eq">
 
 <!--

@@ -5846,9 +5846,6 @@ XCOMM Characters from "Mathematical Operators"
 <Multi_key> <v> <slash>                         : "√"   U221a   # v / SQUARE ROOT
 <Multi_key> <slash> <v>                         : "√"   U221a   # / v SQUARE ROOT
 <Multi_key> <8> <8>                             : "∞"   U221e   # 8 8 INFINITY
-<Multi_key> <equal> <slash>                     : "≠"   U2260   # = / NOT EQUAL TO
-<Multi_key> <slash> <equal>                     : "≠"   U2260   # / = NOT EQUAL TO
-<Multi_key> <underscore> <equal>                : "≡"   U2261   # _ = IDENTICAL TO
 <Multi_key> <equal> <underscore>                : "≡"   U2261   # = _ IDENTICAL TO
 <Multi_key> <underscore> <U2260>                : "≢"   U2262   # _ ≠ NOT IDENTICAL TO
 <Multi_key> <U2260> <underscore>                : "≢"   U2262   # ≠ _ NOT IDENTICAL TO
@@ -5864,10 +5861,6 @@ XCOMM Characters from "Mathematical Operators"
 <Multi_key> <minus> <U25cb>                     : "⊖"   U2296   # - ○ CIRCLED MINUS
 <Multi_key> <U25cb> <period>                    : "⊙"   U2299   # ○ - CIRCLED DOT
 <Multi_key> <period> <U25cb>                    : "⊙"   U2299   # - ○ CIRCLED DOT
-<Multi_key> <parenleft> <minus>                 : "⊢"   U22a2   # ( - RIGHT TACK
-<Multi_key> <minus> <parenleft>                 : "⊢"   U22a2   # - ( RIGHT TACK
-<Multi_key> <parenright> <minus>                : "⊣"   U22a3   # ) - LEFT TACK
-<Multi_key> <minus> <parenright>                : "⊣"   U22a3   # - ) LEFT TACK
 <Multi_key> <less> <greater>                    : "⋄"   U22c4   # < > DIAMOND OPERATOR
 <Multi_key> <greater> <less>                    : "⋄"   U22c4   # > < DIAMOND OPERATOR
 <Multi_key> <U2227> <U2228>                     : "⋄"   U22c4   # ∧ ∨ DIAMOND OPERATOR
@@ -5949,7 +5942,6 @@ XCOMM This line clashes with the <apostrophe> <underscore> <E> (and similar) tha
 XCOMM a work around for the problems with <macron>. Or to cope with keyboards that do not have <macron> (more likely).
 XCOMM All APL keyboards have <macron>, it is used as the -ve sign for numbers.
 XCOMM I do not know of an extant APL using ⍘
-<Multi_key> <apostrophe> <underscore>           : "⍘"   U2358   # ' _ APL FUNCTIONAL SYMBOL QUOTE UNDERBAR
 <Multi_key> <underscore> <apostrophe>           : "⍘"   U2358   # _ ' APL FUNCTIONAL SYMBOL QUOTE UNDERBAR
 <Multi_key> <U2206> <underscore>                : "⍙"   U2359   # ∆ _ APL FUNCTIONAL SYMBOL DELTA UNDERBAR
 <Multi_key> <underscore> <U2206>                : "⍙"   U2359   # _ ∆ APL FUNCTIONAL SYMBOL DELTA UNDERBAR
@@ -5981,12 +5973,9 @@ XCOMM I do not know of an extant APL using ⍘
 <Multi_key> <bar> <U222a>                       : "⍦"   U2366   # | ∪ APL FUNCTIONAL SYMBOL DOWN SHOE STILE
 <Multi_key> <U2282> <bar>                       : "⍧"   U2367   # ⊂ | APL FUNCTIONAL SYMBOL LEFT SHOE STILE
 <Multi_key> <bar> <U2282>                       : "⍧"   U2367   # | ⊂ APL FUNCTIONAL SYMBOL LEFT SHOE STILE
-<Multi_key> <diaeresis> <asciitilde>            : "⍨"   U2368   # ¨ ~ APL FUNCTIONAL SYMBOL TILDE DIAERESIS
 <Multi_key> <asciitilde> <diaeresis>            : "⍨"   U2368   # ~ ¨ APL FUNCTIONAL SYMBOL TILDE DIAERESIS
 <Multi_key> <diaeresis> <greater>               : "⍩"   U2369   # ¨ > APL FUNCTIONAL SYMBOL GREATER-THAN DIAERESIS
 <Multi_key> <greater> <diaeresis>               : "⍩"   U2369   # > ¨ APL FUNCTIONAL SYMBOL GREATER-THAN DIAERESIS
-<Multi_key> <comma> <minus>                     : "⍪"   U236a   # , - APL FUNCTIONAL SYMBOL COMMA BAR
-<Multi_key> <minus> <comma>                     : "⍪"   U236a   # - , APL FUNCTIONAL SYMBOL COMMA BAR
 <Multi_key> <U2207> <asciitilde>                : "⍫"   U236b   # ∇ ~ APL FUNCTIONAL SYMBOL DEL TILDE
 <Multi_key> <asciitilde> <U2207>                : "⍫"   U236b   # ~ ∇ APL FUNCTIONAL SYMBOL DEL TILDE
 <Multi_key> <0> <asciitilde>                    : "⍬"   U236c   # 0 ~ APL FUNCTIONAL SYMBOL ZILDE
@@ -5997,7 +5986,6 @@ XCOMM This line does not work. It clashes with
 XCOMM <underscore> <semicolon> <O> for Ǭ and
 XCOMM <underscore> <semicolon> <o> for ǭ.
 XCOMM Given that no extant APLs use ⍮ I will just leave the line in place.
-<Multi_key> <underscore> <semicolon>            : "⍮"   U236e   # _ ; APL FUNCTIONAL SYMBOL SEMICOLON UNDERBAR
 <Multi_key> <semicolon> <underscore>            : "⍮"   U236e   # ; _ APL FUNCTIONAL SYMBOL SEMICOLON UNDERBAR
 <Multi_key> <U2260> <U2395>                     : "⍯"   U236f   # ≠ ⎕ APL FUNCTIONAL SYMBOL QUAD NOT EQUAL
 <Multi_key> <U2395> <U2260>                     : "⍯"   U236f   # ⎕ ≠ APL FUNCTIONAL SYMBOL QUAD NOT EQUAL
