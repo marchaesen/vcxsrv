@@ -39,10 +39,4 @@ int ProcXChangePointerDevice(ClientPtr  /* client */
 void DeleteFocusClassDeviceStruct(DeviceIntPtr  /* dev */
     );
 
-void SendEventToAllWindows(DeviceIntPtr /* dev */ ,
-                           Mask /* mask */ ,
-                           xEvent * /* ev */ ,
-                           int  /* count */
-    );
-
 #endif                          /* CHGPTR_H */

@@ -93,64 +93,6 @@ SOFTWARE.
 #include "micmap.h"
 #include "globals.h"
 
-extern Bool noTestExtensions;
-
-#ifdef COMPOSITE
-extern Bool noCompositeExtension;
-#endif
-#ifdef DBE
-extern Bool noDbeExtension;
-#endif
-#ifdef DPMSExtension
-extern Bool noDPMSExtension;
-#endif
-#ifdef GLXEXT
-extern Bool noGlxExtension;
-#endif
-#ifdef SCREENSAVER
-extern Bool noScreenSaverExtension;
-#endif
-#ifdef MITSHM
-extern Bool noMITShmExtension;
-#endif
-#ifdef RANDR
-extern Bool noRRExtension;
-#endif
-extern Bool noRenderExtension;
-
-#ifdef XCSECURITY
-extern Bool noSecurityExtension;
-#endif
-#ifdef RES
-extern Bool noResExtension;
-#endif
-#ifdef XF86BIGFONT
-extern Bool noXFree86BigfontExtension;
-#endif
-#ifdef XFreeXDGA
-extern Bool noXFree86DGAExtension;
-#endif
-#ifdef XF86DRI
-extern Bool noXFree86DRIExtension;
-#endif
-#ifdef XF86VIDMODE
-extern Bool noXFree86VidModeExtension;
-#endif
-#ifdef XFIXES
-extern Bool noXFixesExtension;
-#endif
-#ifdef PANORAMIX
-extern Bool noPanoramiXExtension;
-#endif
-#ifdef INXQUARTZ
-extern Bool noPseudoramiXExtension;
-#endif
-#ifdef XSELINUX
-extern Bool noSELinuxExtension;
-#endif
-#ifdef XV
-extern Bool noXvExtension;
-#endif
 extern Bool noGEExtension;
 
 #ifndef XFree86LOADER
@@ -265,7 +207,6 @@ extern void DamageExtensionInit(INITARGS);
 #ifdef COMPOSITE
 extern void CompositeExtensionInit(INITARGS);
 #endif
-extern void GEExtensionInit(INITARGS);
 
 /* The following is only a small first step towards run-time
  * configurable extensions.

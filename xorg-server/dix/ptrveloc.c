@@ -61,10 +61,7 @@
  ****************************************************************************/
 
 /* fwds */
-int
- SetAccelerationProfile(DeviceVelocityPtr vel, int profile_num);
 static double
-
 SimpleSmoothProfile(DeviceIntPtr dev, DeviceVelocityPtr vel, double velocity,
                     double threshold, double acc);
 static PointerAccelerationProfileFunc

@@ -47,7 +47,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 DevPrivateKeyRec xkbDevicePrivateKeyRec;
 
-void XkbFakeDeviceButton(DeviceIntPtr dev, Bool press, int button);
 static void XkbFakePointerMotion(DeviceIntPtr dev, unsigned flags, int x,
                                  int y);
 

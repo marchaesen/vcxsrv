@@ -702,8 +702,6 @@ KdKbdCtrl(DeviceIntPtr pDevice, KeybdCtrl * ctrl)
     ki->bellDuration = ctrl->bell_duration;
 }
 
-extern KeybdCtrl defaultKeyboardControl;
-
 static int
 KdKeyboardProc(DeviceIntPtr pDevice, int onoff)
 {

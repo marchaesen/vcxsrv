@@ -349,8 +349,6 @@ IsFloating(DeviceIntPtr dev)
  */
 extern int lastEvent;
 
-extern int DeviceMotionNotify;
-
 #define CantBeFiltered NoEventMask
 /**
  * Event masks for each event type.

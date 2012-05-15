@@ -177,9 +177,6 @@ typedef void (*FindTypeSubResources)(pointer /* value */,
                                      FindAllRes /* func */,
                                      pointer /* cdata */);
 
-extern _X_EXPORT void SetResourceTypeErrorValue(RESTYPE /*type */ ,
-                                                int /*errorValue */ );
-
 extern _X_EXPORT SizeType GetResourceTypeSizeFunc(
     RESTYPE /*type*/);
 
