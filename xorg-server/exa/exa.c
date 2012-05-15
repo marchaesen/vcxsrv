@@ -483,9 +483,6 @@ static void
  exaCopyClip(GCPtr pGCDst, GCPtr pGCSrc);
 
 static void
- exaCopyClip(GCPtr pGCDst, GCPtr pGCSrc);
-
-static void
  exaDestroyClip(GCPtr pGC);
 
 const GCFuncs exaGCFuncs = {

@@ -499,4 +499,71 @@ LEAF_MIPS32R2(symbol)                                   \
     precr.qb.ph       \d2_8888,  \scratch5, \scratch6
 .endm
 
+/*
+ * OVER operation on single a8r8g8b8 source pixel (s_8888) and single a8r8g8b8
+ * destination pixel (d_8888) using a8 mask (m_8). It also requires maskLSR
+ * needed for rounding process. maskLSR must have following value:
+ *   li       maskLSR, 0x00ff00ff
+ */
+.macro OVER_8888_8_8888 s_8888,   \
+                        m_8,      \
+                        d_8888,   \
+                        out_8888, \
+                        maskLSR,  \
+                        scratch1, scratch2, scratch3, scratch4
+    MIPS_UN8x4_MUL_UN8 \s_8888,   \m_8, \
+                       \scratch1, \maskLSR, \
+                       \scratch2, \scratch3, \scratch4
+
+    not                \scratch2, \scratch1
+    srl                \scratch2, \scratch2, 24
+
+    MIPS_UN8x4_MUL_UN8 \d_8888,   \scratch2, \
+                       \d_8888,   \maskLSR,  \
+                       \scratch3, \scratch4, \out_8888
+
+    addu_s.qb          \out_8888, \d_8888,   \scratch1
+.endm
+
+/*
+ * OVER operation on two a8r8g8b8 source pixels (s1_8888 and s2_8888) and two
+ * a8r8g8b8 destination pixels (d1_8888 and d2_8888) using a8 masks (m1_8 and
+ * m2_8). It also requires maskLSR needed for rounding process. maskLSR must
+ * have following value:
+ *   li       maskLSR, 0x00ff00ff
+ */
+.macro OVER_2x8888_2x8_2x8888 s1_8888,   \
+                              s2_8888,   \
+                              m1_8,      \
+                              m2_8,      \
+                              d1_8888,   \
+                              d2_8888,   \
+                              out1_8888, \
+                              out2_8888, \
+                              maskLSR,   \
+                              scratch1, scratch2, scratch3, \
+                              scratch4, scratch5, scratch6
+    MIPS_2xUN8x4_MUL_2xUN8 \s1_8888,   \s2_8888, \
+                           \m1_8,      \m2_8, \
+                           \scratch1,  \scratch2, \
+                           \maskLSR, \
+                           \scratch3,  \scratch4, \out1_8888, \
+                           \out2_8888, \scratch5, \scratch6
+
+    not                    \scratch3,  \scratch1
+    srl                    \scratch3,  \scratch3, 24
+    not                    \scratch4,  \scratch2
+    srl                    \scratch4,  \scratch4, 24
+
+    MIPS_2xUN8x4_MUL_2xUN8 \d1_8888,   \d2_8888, \
+                           \scratch3,  \scratch4, \
+                           \d1_8888,   \d2_8888, \
+                           \maskLSR, \
+                           \scratch5,  \scratch6, \out1_8888, \
+                           \out2_8888, \scratch3, \scratch4
+
+    addu_s.qb              \out1_8888, \d1_8888,  \scratch1
+    addu_s.qb              \out2_8888, \d2_8888,  \scratch2
+.endm
+
 #endif //PIXMAN_MIPS_DSPR2_ASM_H

@@ -27,7 +27,6 @@
 #include "xfixesint.h"
 #include "scrnintstr.h"
 #include <picturestr.h>
-extern int RenderErrBase;
 
 #include <regionstr.h>
 #include <gcstruct.h>

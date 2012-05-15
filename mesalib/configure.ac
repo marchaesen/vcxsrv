@@ -109,11 +109,11 @@ if test "x$GCC" = xyes -a "x$acv_mesa_CLANG" = xno; then
 
     GCC_VERSION=`$CC -dumpversion`
     if test $? -eq 0; then
-        major=`echo $GCC_VERSION | cut -d. -f1`
-        minor=`echo $GCC_VERSION | cut -d. -f2`
+        GCC_VERSION_MAJOR=`echo $GCC_VERSION | cut -d. -f1`
+        GCC_VERSION_MINOR=`echo $GCC_VERSION | cut -d. -f2`
     fi
 
-    if test $major -lt 3 -o $major -eq 3 -a $minor -lt 3 ; then
+    if test $GCC_VERSION_MAJOR -lt 3 -o $GCC_VERSION_MAJOR -eq 3 -a $GCC_VERSION_MINOR -lt 3 ; then
         AC_MSG_RESULT([no])
         AC_MSG_ERROR([If using GCC, version 3.3.0 or later is required.])
     else
@@ -616,7 +616,11 @@ AC_ARG_ENABLE([va],
          [enable va library @<:@default=auto@:>@])],
    [enable_va="$enableval"],
    [enable_va=auto])
-
+AC_ARG_ENABLE([opencl],
+   [AS_HELP_STRING([--enable-opencl],
+         [enable OpenCL library @<:@default=no@:>@])],
+   [enable_opencl="$enableval"],
+   [enable_opencl=no])
 AC_ARG_ENABLE([xlib_glx],
     [AS_HELP_STRING([--enable-xlib-glx],
         [make GLX library Xlib-based instead of DRI-based @<:@default=disable@:>@])],
@@ -642,6 +646,12 @@ AC_ARG_ENABLE([r600-llvm-compiler],
         [Enable experimental LLVM backend for graphics shaders @<:default=disable@:>@])],
     [enable_r600_llvm="$enableval"],
     [enable_r600_llvm=no])
+
+AC_ARG_ENABLE([gallium_tests],
+    [AS_HELP_STRING([--enable-gallium-tests],
+        [Enable optional Gallium tests) @<:@default=disable@:>@])],
+    [enable_gallium_tests="$enableval"],
+    [enable_gallium_tests=no])
 
 # Option for Gallium drivers
 GALLIUM_DRIVERS_DEFAULT="r300,r600,svga,swrast"
@@ -670,7 +680,8 @@ if test "x$enable_opengl" = xno -a \
         "x$enable_d3d1x" = xno -a \
         "x$enable_xvmc" = xno -a \
         "x$enable_vdpau" = xno -a \
-        "x$enable_va" = xno; then
+        "x$enable_va" = xno -a \
+        "x$enable_opencl" = xno; then
     AC_MSG_ERROR([at least one API should be enabled])
 fi
 
@@ -1477,6 +1488,7 @@ if test "x$enable_gallium_gbm" = xyes; then
     GALLIUM_STATE_TRACKERS_DIRS="gbm $GALLIUM_STATE_TRACKERS_DIRS"
     GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS gbm"
     HAVE_ST_GBM="yes"
+    enable_gallium_loader=yes
 fi
 
 dnl
@@ -1594,6 +1606,24 @@ if test "x$enable_va" = xyes; then
     AC_MSG_WARN([vaapi state tracker currently unmaintained])
     GALLIUM_STATE_TRACKERS_DIRS="$GALLIUM_STATE_TRACKERS_DIRS va"
     HAVE_ST_VA="yes"
+fi
+
+dnl
+dnl OpenCL configuration
+dnl
+
+if test "x$enable_opencl" = xyes; then
+    if test "x$with_gallium_drivers" = x; then
+        AC_MSG_ERROR([cannot enable OpenCL without Gallium])
+    fi
+
+    if test $GCC_VERSION_MAJOR -lt 4 -o $GCC_VERSION_MAJOR -eq 4 -a $GCC_VERSION_MINOR -lt 6; then
+        AC_MSG_ERROR([gcc >= 4.6 is required to build clover])
+    fi
+
+    GALLIUM_STATE_TRACKERS_DIRS="$GALLIUM_STATE_TRACKERS_DIRS clover"
+    GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS opencl"
+    enable_gallium_loader=yes
 fi
 
 dnl
@@ -1828,6 +1858,14 @@ AC_ARG_WITH([xvmc-libdir],
     [XVMC_LIB_INSTALL_DIR='${libdir}'])
 AC_SUBST([XVMC_LIB_INSTALL_DIR])
 
+dnl
+dnl Gallium Tests
+dnl
+if test "x$enable_gallium_tests" = xyes; then
+    SRC_DIRS="$SRC_DIRS gallium/tests/trivial"
+    enable_gallium_loader=yes
+fi
+
 dnl Directory for VDPAU libs
 AC_ARG_WITH([vdpau-libdir],
     [AS_HELP_STRING([--with-vdpau-libdir=DIR],
@@ -1843,6 +1881,14 @@ AC_ARG_WITH([va-libdir],
     [VA_LIB_INSTALL_DIR="$withval"],
     [VA_LIB_INSTALL_DIR='${libdir}/va'])
 AC_SUBST([VA_LIB_INSTALL_DIR])
+
+dnl Directory for OpenCL libs
+AC_ARG_WITH([opencl-libdir],
+    [AS_HELP_STRING([--with-opencl-libdir=DIR],
+        [directory for the OpenCL libraries @<:@default=${libdir}/opencl@:>@])],
+    [OPENCL_LIB_INSTALL_DIR="$withval"],
+    [OPENCL_LIB_INSTALL_DIR='${libdir}/opencl'])
+AC_SUBST([OPENCL_LIB_INSTALL_DIR])
 
 dnl
 dnl Gallium helper functions
@@ -1884,6 +1930,17 @@ gallium_require_llvm() {
     fi
 }
 
+gallium_require_drm_loader() {
+    if test "x$enable_gallium_loader" = xyes; then
+        PKG_CHECK_MODULES([LIBUDEV], [libudev], [],
+                          AC_MSG_ERROR([Gallium drm loader requrires libudev]))
+        if test "x$have_libdrm" != xyes; then
+            AC_MSG_ERROR([Gallium drm loader requires libdrm >= $LIBDRM_REQUIRED])
+        fi
+        enable_gallium_drm_loader=yes
+    fi
+}
+
 dnl Gallium drivers
 dnl Duplicates in GALLIUM_DRIVERS_DIRS are removed by sorting it after this block
 if test "x$with_gallium_drivers" != x; then
@@ -1911,6 +1968,7 @@ if test "x$with_gallium_drivers" != x; then
             ;;
         xr600)
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
+            gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS r600"
             if test "x$enable_r600_llvm" = xyes; then
                 if test "x$LLVM_VERSION" != "x3.1"; then
@@ -1922,6 +1980,8 @@ if test "x$with_gallium_drivers" != x; then
             gallium_check_st "radeon/drm" "dri-r600" "xorg-r600" "" "xvmc-r600" "vdpau-r600" "va-r600"
             ;;
         xradeonsi)
+            PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
+            gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS radeonsi"
             if test "x$LLVM_VERSION" != "x3.1"; then
                 AC_MSG_ERROR([LLVM 3.1 is required to build the radeonsi driver.])
@@ -1931,6 +1991,7 @@ if test "x$with_gallium_drivers" != x; then
             ;;
         xnouveau)
             PKG_CHECK_MODULES([NOUVEAU], [libdrm_nouveau >= $LIBDRM_NOUVEAU_REQUIRED])
+            gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS nouveau nv30 nv50 nvc0"
             gallium_check_st "nouveau/drm" "dri-nouveau" "xorg-nouveau" "" "xvmc-nouveau" "vdpau-nouveau"
             ;;
@@ -1967,6 +2028,25 @@ if test "x$with_gallium_drivers" != x; then
     done
 fi
 
+if test "x$enable_gallium_loader" = xyes; then
+    GALLIUM_WINSYS_DIRS="$GALLIUM_WINSYS_DIRS sw/null"
+    GALLIUM_PIPE_LOADER_DEFINES="-DHAVE_PIPE_LOADER_SW"
+    GALLIUM_PIPE_LOADER_LIBS="\$(TOP)/src/gallium/auxiliary/pipe-loader/libpipe_loader.a"
+    GALLIUM_PIPE_LOADER_LIBS="$GALLIUM_PIPE_LOADER_LIBS \$(TOP)/src/gallium/winsys/sw/null/libws_null.a"
+
+    if test "x$HAVE_WINSYS_XLIB" = xyes; then
+        GALLIUM_PIPE_LOADER_DEFINES="$GALLIUM_PIPE_LOADER_DEFINES -DHAVE_PIPE_LOADER_XLIB"
+        GALLIUM_PIPE_LOADER_LIBS="$GALLIUM_PIPE_LOADER_LIBS \$(TOP)/src/gallium/winsys/sw/xlib/libws_xlib.a"
+    fi
+
+    if test "x$enable_gallium_drm_loader" = xyes; then
+        GALLIUM_PIPE_LOADER_DEFINES="$GALLIUM_PIPE_LOADER_DEFINES -DHAVE_PIPE_LOADER_DRM"
+    fi
+
+    AC_SUBST([GALLIUM_PIPE_LOADER_DEFINES])
+    AC_SUBST([GALLIUM_PIPE_LOADER_LIBS])
+fi
+
 dnl Tell Automake which drivers to build
 for driver in $GALLIUM_DRIVERS_DIRS; do
     case "x$driver" in
@@ -1990,6 +2070,8 @@ AM_CONDITIONAL(HAVE_IDENTITY_GALLIUM, test x$HAVE_IDENTITY_GALLIUM = xyes)
 AM_CONDITIONAL(HAVE_NOOP_GALLIUM, test x$HAVE_NOOP_GALLIUM = xyes)
 AM_CONDITIONAL(NEED_RADEON_GALLIUM, test x$NEED_RADEON_GALLIUM = xyes)
 AM_CONDITIONAL(USE_R600_LLVM_COMPILER, test x$USE_R600_LLVM_COMPILER = xyes)
+AM_CONDITIONAL(HAVE_LOADER_GALLIUM, test x$enable_gallium_loader = xyes)
+AM_CONDITIONAL(HAVE_DRM_LOADER_GALLIUM, test x$enable_gallium_drm_loader = xyes)
 AC_SUBST([GALLIUM_MAKE_DIRS])
 
 dnl prepend CORE_DIRS to SRC_DIRS
@@ -2005,9 +2087,12 @@ CXXFLAGS="$CXXFLAGS $USER_CXXFLAGS"
 
 dnl Substitute the config
 AC_CONFIG_FILES([configs/autoconf
+		src/gallium/auxiliary/pipe-loader/Makefile
+		src/gallium/state_trackers/clover/Makefile
 		src/gallium/drivers/Makefile
 		src/gallium/drivers/r300/Makefile
 		src/gallium/drivers/r600/Makefile
+		src/gallium/targets/opencl/Makefile
 		src/gbm/Makefile
 		src/gbm/main/gbm.pc
 		src/egl/drivers/Makefile

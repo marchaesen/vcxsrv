@@ -552,9 +552,6 @@ void
  KdEnableInput(void);
 
 void
- ProcessInputEvents(void);
-
-void
  KdRingBell(KdKeyboardInfo * ki, int volume, int pitch, int duration);
 
 /* kmode.c */

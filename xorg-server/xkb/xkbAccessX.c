@@ -694,7 +694,6 @@ AccessXFilterReleaseEvent(DeviceEvent *event, DeviceIntPtr keybd)
 /*									*/
 /************************************************************************/
 extern int xkbDevicePrivateIndex;
-extern void xkbUnwrapProc(DeviceIntPtr, DeviceHandleProc, pointer);
 void
 ProcessPointerEvent(InternalEvent *ev, DeviceIntPtr mouse)
 {

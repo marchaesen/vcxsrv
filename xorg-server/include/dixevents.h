@@ -77,11 +77,4 @@ extern _X_EXPORT int ProcUngrabButton(ClientPtr /* client */ );
 
 extern _X_EXPORT int ProcRecolorCursor(ClientPtr /* client */ );
 
-#ifdef PANORAMIX
-extern _X_EXPORT void PostSyntheticMotion(DeviceIntPtr pDev,
-                                          int x,
-                                          int y,
-                                          int screen, unsigned long time);
-#endif
-
 #endif                          /* DIXEVENTS_H */

@@ -233,14 +233,6 @@ pipe_buffer_create( struct pipe_screen *screen,
    return screen->resource_create(screen, &buffer);
 }
 
-
-static INLINE struct pipe_resource *
-pipe_user_buffer_create( struct pipe_screen *screen, void *ptr, unsigned size,
-			 unsigned usage )
-{
-   return screen->user_buffer_create(screen, ptr, size, usage);
-}
-
 static INLINE void *
 pipe_buffer_map_range(struct pipe_context *pipe,
 		      struct pipe_resource *buffer,
@@ -376,6 +368,19 @@ pipe_buffer_write_nooverlap(struct pipe_context *pipe,
                                0, 0);
 }
 
+static INLINE struct pipe_resource *
+pipe_buffer_create_with_data(struct pipe_context *pipe,
+                             unsigned bind,
+                             unsigned usage,
+                             unsigned size,
+                             void *ptr)
+{
+   struct pipe_resource *res = pipe_buffer_create(pipe->screen,
+                                                  bind, usage, size);
+   pipe_buffer_write_nooverlap(pipe, res, 0, size, ptr);
+   return res;
+}
+
 static INLINE void
 pipe_buffer_read(struct pipe_context *pipe,
                  struct pipe_resource *buf,
@@ -435,6 +440,22 @@ pipe_transfer_destroy( struct pipe_context *context,
                        struct pipe_transfer *transfer )
 {
    context->transfer_destroy(context, transfer);
+}
+
+static INLINE void
+pipe_set_constant_buffer(struct pipe_context *pipe, uint shader, uint index,
+                         struct pipe_resource *buf)
+{
+   if (buf) {
+      struct pipe_constant_buffer cb;
+      cb.buffer = buf;
+      cb.buffer_offset = 0;
+      cb.buffer_size = buf->width0;
+      cb.user_buffer = NULL;
+      pipe->set_constant_buffer(pipe, shader, index, &cb);
+   } else {
+      pipe->set_constant_buffer(pipe, shader, index, NULL);
+   }
 }
 
 

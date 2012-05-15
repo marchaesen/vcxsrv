@@ -185,9 +185,18 @@ FcPatternPrint (const FcPattern *p)
     printf ("\n");
 }
 
+#define FcOpFlagsPrint(_o_)		\
+    {					\
+	int f = FC_OP_GET_FLAGS (_o_);	\
+	if (f & FcOpFlagIgnoreBlanks)	\
+	    printf ("(ignore blanks)");	\
+    }
+
 void
-FcOpPrint (FcOp op)
+FcOpPrint (FcOp op_)
 {
+    FcOp op = FC_OP_GET_OP (op_);
+
     switch (op) {
     case FcOpInteger: printf ("Integer"); break;
     case FcOpDouble: printf ("Double"); break;
@@ -208,8 +217,8 @@ FcOpPrint (FcOp op)
     case FcOpQuest: printf ("Quest"); break;
     case FcOpOr: printf ("Or"); break;
     case FcOpAnd: printf ("And"); break;
-    case FcOpEqual: printf ("Equal"); break;
-    case FcOpNotEqual: printf ("NotEqual"); break;
+    case FcOpEqual: printf ("Equal"); FcOpFlagsPrint (op_); break;
+    case FcOpNotEqual: printf ("NotEqual"); FcOpFlagsPrint (op_); break;
     case FcOpLess: printf ("Less"); break;
     case FcOpLessEqual: printf ("LessEqual"); break;
     case FcOpMore: printf ("More"); break;
@@ -227,7 +236,7 @@ FcOpPrint (FcOp op)
     case FcOpCeil: printf ("Ceil"); break;
     case FcOpRound: printf ("Round"); break;
     case FcOpTrunc: printf ("Trunc"); break;
-    case FcOpListing: printf ("Listing"); break;
+    case FcOpListing: printf ("Listing"); FcOpFlagsPrint (op_); break;
     case FcOpInvalid: printf ("Invalid"); break;
     }
 }
@@ -236,7 +245,7 @@ void
 FcExprPrint (const FcExpr *expr)
 {
     if (!expr) printf ("none");
-    else switch (expr->op) {
+    else switch (FC_OP_GET_OP (expr->op)) {
     case FcOpInteger: printf ("%d", expr->u.ival); break;
     case FcOpDouble: printf ("%g", expr->u.dval); break;
     case FcOpString: printf ("\"%s\"", expr->u.sval); break;
@@ -287,7 +296,7 @@ FcExprPrint (const FcExpr *expr)
     case FcOpComma:
 	FcExprPrint (expr->u.tree.left);
 	printf (" ");
-	switch (expr->op) {
+	switch (FC_OP_GET_OP (expr->op)) {
 	case FcOpAssign: printf ("Assign"); break;
 	case FcOpAssignReplace: printf ("AssignReplace"); break;
 	case FcOpPrependFirst: printf ("PrependFirst"); break;
@@ -296,14 +305,14 @@ FcExprPrint (const FcExpr *expr)
 	case FcOpAppendLast: printf ("AppendLast"); break;
 	case FcOpOr: printf ("Or"); break;
 	case FcOpAnd: printf ("And"); break;
-	case FcOpEqual: printf ("Equal"); break;
-	case FcOpNotEqual: printf ("NotEqual"); break;
+	case FcOpEqual: printf ("Equal"); FcOpFlagsPrint (expr->op); break;
+	case FcOpNotEqual: printf ("NotEqual"); FcOpFlagsPrint (expr->op); break;
 	case FcOpLess: printf ("Less"); break;
 	case FcOpLessEqual: printf ("LessEqual"); break;
 	case FcOpMore: printf ("More"); break;
 	case FcOpMoreEqual: printf ("MoreEqual"); break;
 	case FcOpContains: printf ("Contains"); break;
-	case FcOpListing: printf ("Listing"); break;
+	case FcOpListing: printf ("Listing"); FcOpFlagsPrint (expr->op); break;
 	case FcOpNotContains: printf ("NotContains"); break;
 	case FcOpPlus: printf ("Plus"); break;
 	case FcOpMinus: printf ("Minus"); break;

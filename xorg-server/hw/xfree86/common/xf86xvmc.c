@@ -40,8 +40,6 @@
 #include "resource.h"
 #include "dixstruct.h"
 
-#include "xvmodproc.h"
-
 #include "xf86xvpriv.h"
 #include "xf86xvmc.h"
 

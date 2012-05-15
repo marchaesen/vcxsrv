@@ -54,9 +54,6 @@
 #endif
 
 void
- FUNC(ScreenPtr pScreen, shadowBufPtr pBuf);
-
-void
 FUNC(ScreenPtr pScreen, shadowBufPtr pBuf)
 {
     RegionPtr damage = shadowDamage(pBuf);

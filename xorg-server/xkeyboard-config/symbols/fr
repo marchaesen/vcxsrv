@@ -810,7 +810,7 @@ xkb_symbols "bre" {
 partial alphanumeric_keys
 xkb_symbols "oci" {
 
-    include "keypad(oss)"
+    include "fr(oss)"
 
     name[Group1]= "Occitan";
 

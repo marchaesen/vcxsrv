@@ -57,6 +57,13 @@ RRTransformSetFilter(RRTransformPtr dst,
 extern _X_EXPORT Bool
  RRTransformCopy(RRTransformPtr dst, RRTransformPtr src);
 
+/*
+ * Compute the complete transformation matrix including
+ * client-specified transform, rotation/reflection values and the crtc 
+ * offset.
+ *
+ * Return TRUE if the resulting transform is not a simple translation.
+ */
 extern _X_EXPORT Bool
 
 RRTransformCompute(int x,
