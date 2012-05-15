@@ -620,13 +620,12 @@ pack_4xpacked565 (__m64 a, __m64 b)
 #endif
 }
 
+#ifndef _MSC_VER
 static force_inline __m64
 pack_4x565 (__m64 v0, __m64 v1, __m64 v2, __m64 v3)
 {
     return pack_4xpacked565 (pack8888 (v0, v1), pack8888 (v2, v3));
 }
-
-#ifndef _MSC_VER
 
 static force_inline __m64
 pix_add_mul (__m64 x, __m64 a, __m64 y, __m64 b)
@@ -638,6 +637,8 @@ pix_add_mul (__m64 x, __m64 a, __m64 y, __m64 b)
 }
 
 #else
+
+#define pack_4x565(v0, v1, v2, v3) pack_4xpacked565 (pack8888 (v0, v1), pack8888 (v2, v3))
 
 #define pix_add_mul(x, a, y, b)	 \
     ( x = pix_multiply (x, a),	 \
