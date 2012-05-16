@@ -177,9 +177,6 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_dead_code_local.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_discard_simplification.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_cond_assign.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -244,6 +241,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\ir_builder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\lower_discard_flow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
