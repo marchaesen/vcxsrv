@@ -55,6 +55,7 @@
 #include "windowstr.h"
 #include "extinit.h"            /* for XInputExtensionInit */
 #include "scrnintstr.h"
+#include "exglobals.h"
 #include "xiselectev.h"
 
 #include "protocol-common.h"

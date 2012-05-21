@@ -101,48 +101,43 @@ typedef struct _PredictableAccelSchemeRec {
 } PredictableAccelSchemeRec, *PredictableAccelSchemePtr;
 
 extern _X_EXPORT void
- InitVelocityData(DeviceVelocityPtr vel);
+InitVelocityData(DeviceVelocityPtr vel);
 
 extern _X_EXPORT void
- InitTrackers(DeviceVelocityPtr vel, int ntracker);
+InitTrackers(DeviceVelocityPtr vel, int ntracker);
 
 extern _X_EXPORT BOOL
 ProcessVelocityData2D(DeviceVelocityPtr vel, double dx, double dy, int time);
 
 extern _X_EXPORT double
-
 BasicComputeAcceleration(DeviceIntPtr dev, DeviceVelocityPtr vel,
                          double velocity, double threshold, double acc);
 
 extern _X_EXPORT void
- FreeVelocityData(DeviceVelocityPtr vel);
+FreeVelocityData(DeviceVelocityPtr vel);
 
 extern _X_EXPORT int
- SetAccelerationProfile(DeviceVelocityPtr vel, int profile_num);
+SetAccelerationProfile(DeviceVelocityPtr vel, int profile_num);
 
 extern _X_EXPORT DeviceVelocityPtr
 GetDevicePredictableAccelData(DeviceIntPtr dev);
 
 extern _X_EXPORT void
-
 SetDeviceSpecificAccelerationProfile(DeviceVelocityPtr vel,
                                      PointerAccelerationProfileFunc profile);
 
 extern _X_INTERNAL void
- AccelerationDefaultCleanup(DeviceIntPtr dev);
+AccelerationDefaultCleanup(DeviceIntPtr dev);
 
 extern _X_INTERNAL Bool
-
 InitPredictableAccelerationScheme(DeviceIntPtr dev,
                                   struct _ValuatorAccelerationRec *protoScheme);
 
 extern _X_INTERNAL void
-
 acceleratePointerPredictable(DeviceIntPtr dev, ValuatorMask *val,
                              CARD32 evtime);
 
 extern _X_INTERNAL void
-
 acceleratePointerLightweight(DeviceIntPtr dev, ValuatorMask *val,
                              CARD32 evtime);
 

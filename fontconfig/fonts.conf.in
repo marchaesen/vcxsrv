@@ -25,6 +25,8 @@
 
 	<dir>@FC_DEFAULT_FONTS@</dir>
 	@FC_FONTPATH@
+	<dir prefix="xdg">fonts</dir>
+	<!-- the following element will be removed in the future -->
 	<dir>~/.fonts</dir>
 
 <!--
@@ -71,6 +73,8 @@
 <!-- Font cache directory list -->
 
 	<cachedir>@FC_CACHEDIR@</cachedir>
+	<cachedir prefix="xdg">fontconfig</cachedir>
+	<!-- the following element will be removed in the future -->
 	<cachedir>~/.fontconfig</cachedir>
 
 	<config>

@@ -175,17 +175,17 @@ ProcXISelectEvents(ClientPtr client)
                 if (inputMasks)
                     iclient = inputMasks->inputClients;
                 for (; iclient; iclient = iclient->next) {
-                    DeviceIntPtr dummy;
+                    DeviceIntPtr tmp;
 
                     if (CLIENT_ID(iclient->resource) == client->index)
                         continue;
 
-                    dixLookupDevice(&dummy, evmask->deviceid, serverClient,
+                    dixLookupDevice(&tmp, evmask->deviceid, serverClient,
                                     DixReadAccess);
-                    if (!dummy)
+                    if (!tmp)
                         return BadImplementation;       /* this shouldn't happen */
 
-                    if (xi2mask_isset(iclient->xi2mask, dummy, XI_TouchBegin))
+                    if (xi2mask_isset(iclient->xi2mask, tmp, XI_TouchBegin))
                         return BadAccess;
                 }
             }

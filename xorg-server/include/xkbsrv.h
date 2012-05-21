@@ -305,9 +305,6 @@ extern _X_EXPORT CARD32 xkbDebugFlags;
 #define	_XkbErrCode3(a,b,c)	_XkbErrCode2(a,(((unsigned int)(b))<<16)|(c))
 #define	_XkbErrCode4(a,b,c,d) _XkbErrCode3(a,b,((((unsigned int)(c))<<8)|(d)))
 
-extern _X_EXPORT int DeviceKeyPress, DeviceKeyRelease, DeviceMotionNotify;
-extern _X_EXPORT int DeviceButtonPress, DeviceButtonRelease;
-
 #define	Status		int
 
 extern _X_EXPORT void XkbUseMsg(void

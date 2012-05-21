@@ -52,6 +52,11 @@ extern void DeviceEnterLeaveEvent(DeviceIntPtr mouse,
                                   int type,
                                   int mode,
                                   int detail, WindowPtr pWin, Window child);
+extern void DeviceFocusEvent(DeviceIntPtr dev,
+                             int type,
+                             int mode,
+                             int detail ,
+                             WindowPtr pWin);
 
 extern void EnterWindow(DeviceIntPtr dev, WindowPtr win, int mode);
 

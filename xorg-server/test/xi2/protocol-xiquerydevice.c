@@ -32,6 +32,7 @@
 #include <X11/Xatom.h>
 #include "inputstr.h"
 #include "extinit.h"
+#include "exglobals.h"
 #include "scrnintstr.h"
 #include "xkbsrv.h"
 
@@ -54,9 +55,9 @@ struct test_data {
 };
 
 static void reply_XIQueryDevice_data(ClientPtr client, int len, char *data,
-                                     void *userdata);
+                                     void *closure);
 static void reply_XIQueryDevice(ClientPtr client, int len, char *data,
-                                void *userdata);
+                                void *closure);
 
 /* reply handling for the first bytes that constitute the reply */
 static void
@@ -86,10 +87,10 @@ reply_XIQueryDevice(ClientPtr client, int len, char *data, void *userdata)
 
 /* reply handling for the trailing bytes that constitute the device info */
 static void
-reply_XIQueryDevice_data(ClientPtr client, int len, char *data, void *userdata)
+reply_XIQueryDevice_data(ClientPtr client, int len, char *data, void *closure)
 {
     int i, j;
-    struct test_data *querydata = (struct test_data *) userdata;
+    struct test_data *querydata = (struct test_data *) closure;
 
     DeviceIntPtr dev;
     xXIDeviceInfo *info = (xXIDeviceInfo *) data;
@@ -222,7 +223,7 @@ reply_XIQueryDevice_data(ClientPtr client, int len, char *data, void *userdata)
                            any->type == XIValuatorClass);
 
                 if (any->type == XIButtonClass) {
-                    int len;
+                    int l;
                     xXIButtonInfo *bi = (xXIButtonInfo *) any;
 
                     if (client->swapped)
@@ -230,10 +231,9 @@ reply_XIQueryDevice_data(ClientPtr client, int len, char *data, void *userdata)
 
                     assert(bi->num_buttons == devices.vcp->button->numButtons);
 
-                    len =
-                        2 + bi->num_buttons +
+                    l = 2 + bi->num_buttons +
                         bytes_to_int32(bits_to_bytes(bi->num_buttons));
-                    assert(bi->length == len);
+                    assert(bi->length == l);
                 }
                 else if (any->type == XIValuatorClass) {
                     xXIValuatorInfo *vi = (xXIValuatorInfo *) any;

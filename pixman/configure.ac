@@ -54,7 +54,7 @@ AC_PREREQ([2.57])
 
 m4_define([pixman_major], 0)
 m4_define([pixman_minor], 25)
-m4_define([pixman_micro], 3)
+m4_define([pixman_micro], 7)
 
 m4_define([pixman_version],[pixman_major.pixman_minor.pixman_micro])
 
@@ -618,6 +618,9 @@ CFLAGS="$IWMMXT_CFLAGS $CFLAGS"
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #ifndef __arm__
 #error "IWMMXT is only available on ARM"
+#endif
+#ifndef __IWMMXT__
+#error "IWMMXT not enabled (with -march=iwmmxt)"
 #endif
 #if defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 5))
 #error "Need GCC >= 4.5 for IWMMXT intrinsics"

@@ -33,8 +33,6 @@
 #ifndef PROTOCOL_COMMON_H
 #define PROTOCOL_COMMON_H
 
-extern int BadDevice;
-
 /* Check default values in a reply */
 #define reply_check_defaults(rep, len, type) \
     { \
@@ -83,7 +81,7 @@ struct devices {
 
     int num_devices;
     int num_master_devices;
-} devices;
+};
 
 /**
  * The set of default devices available in all tests if necessary.

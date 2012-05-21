@@ -1837,6 +1837,81 @@ FcConfigHome (void)
     return 0;
 }
 
+FcChar8 *
+FcConfigXdgCacheHome (void)
+{
+    const char *env = getenv ("XDG_CACHE_HOME");
+    FcChar8 *ret = NULL;
+
+    if (env)
+	ret = FcStrCopy ((const FcChar8 *)env);
+    else
+    {
+	const FcChar8 *home = FcConfigHome ();
+	size_t len = home ? strlen ((const char *)home) : 0;
+
+	ret = malloc (len + 7 + 1);
+	if (ret)
+	{
+	    memcpy (ret, home, len);
+	    memcpy (&ret[len], FC_DIR_SEPARATOR_S ".cache", 7);
+	    ret[len + 7] = 0;
+	}
+    }
+
+    return ret;
+}
+
+FcChar8 *
+FcConfigXdgConfigHome (void)
+{
+    const char *env = getenv ("XDG_CONFIG_HOME");
+    FcChar8 *ret = NULL;
+
+    if (env)
+	ret = FcStrCopy ((const FcChar8 *)env);
+    else
+    {
+	const FcChar8 *home = FcConfigHome ();
+	size_t len = home ? strlen ((const char *)home) : 0;
+
+	ret = malloc (len + 8 + 1);
+	if (ret)
+	{
+	    memcpy (ret, home, len);
+	    memcpy (&ret[len], FC_DIR_SEPARATOR_S ".config", 8);
+	    ret[len + 8] = 0;
+	}
+    }
+
+    return ret;
+}
+
+FcChar8 *
+FcConfigXdgDataHome (void)
+{
+    const char *env = getenv ("XDG_DATA_HOME");
+    FcChar8 *ret = NULL;
+
+    if (env)
+	ret = FcStrCopy ((const FcChar8 *)env);
+    else
+    {
+	const FcChar8 *home = FcConfigHome ();
+	size_t len = home ? strlen ((const char *)home) : 0;
+
+	ret = malloc (len + 13 + 1);
+	if (ret)
+	{
+	    memcpy (ret, home, len);
+	    memcpy (&ret[len], FC_DIR_SEPARATOR_S ".local" FC_DIR_SEPARATOR_S "share", 13);
+	    ret[len + 13] = 0;
+	}
+    }
+
+    return ret;
+}
+
 FcBool
 FcConfigEnableHome (FcBool enable)
 {
@@ -1883,7 +1958,7 @@ FcConfigFilename (const FcChar8 *url)
     default:
 	path = FcConfigGetPath ();
 	if (!path)
-	    return 0;
+	    return NULL;
 	for (p = path; *p; p++)
 	{
 	    file = FcConfigFileExists (*p, url);
@@ -1893,6 +1968,7 @@ FcConfigFilename (const FcChar8 *url)
 	FcConfigFreePath (path);
 	break;
     }
+
     return file;
 }
 

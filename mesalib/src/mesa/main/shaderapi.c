@@ -83,6 +83,8 @@ get_shader_flags(void)
          flags |= GLSL_UNIFORMS;
       if (strstr(env, "useprog"))
          flags |= GLSL_USE_PROG;
+      if (strstr(env, "errors"))
+         flags |= GLSL_REPORT_ERRORS;
    }
 
    return flags;
@@ -627,7 +629,8 @@ get_shader_source(struct gl_context *ctx, GLuint shader, GLsizei maxLength,
 
 
 /**
- * Set/replace shader source code.
+ * Set/replace shader source code.  A helper function used by
+ * glShaderSource[ARB] and glCreateShaderProgramEXT.
  */
 static void
 shader_source(struct gl_context *ctx, GLuint shader, const GLchar *source)
@@ -672,6 +675,12 @@ compile_shader(struct gl_context *ctx, GLuint shaderObj)
     * compilation was successful.
     */
    _mesa_glsl_compile_shader(ctx, sh);
+
+   if (sh->CompileStatus == GL_FALSE && 
+       (ctx->Shader.Flags & GLSL_REPORT_ERRORS)) {
+      _mesa_debug(ctx, "Error compiling shader %u:\n%s\n",
+                  sh->Name, sh->InfoLog);
+   }
 }
 
 
@@ -701,6 +710,12 @@ link_program(struct gl_context *ctx, GLuint program)
    FLUSH_VERTICES(ctx, _NEW_PROGRAM);
 
    _mesa_glsl_link_shader(ctx, shProg);
+
+   if (shProg->LinkStatus == GL_FALSE && 
+       (ctx->Shader.Flags & GLSL_REPORT_ERRORS)) {
+      _mesa_debug(ctx, "Error linking program %u:\n%s\n",
+                  shProg->Name, shProg->InfoLog);
+   }
 
    /* debug code */
    if (0) {
@@ -1534,6 +1549,10 @@ _mesa_use_shader_program(struct gl_context *ctx, GLenum type,
       ctx->Driver.UseProgram(ctx, shProg);
 }
 
+
+/**
+ * For GL_EXT_separate_shader_objects
+ */
 void GLAPIENTRY
 _mesa_UseShaderProgramEXT(GLenum type, GLuint program)
 {
@@ -1570,6 +1589,10 @@ _mesa_UseShaderProgramEXT(GLenum type, GLuint program)
    _mesa_use_shader_program(ctx, type, shProg);
 }
 
+
+/**
+ * For GL_EXT_separate_shader_objects
+ */
 void GLAPIENTRY
 _mesa_ActiveProgramEXT(GLuint program)
 {
@@ -1582,6 +1605,10 @@ _mesa_ActiveProgramEXT(GLuint program)
    return;
 }
 
+
+/**
+ * For GL_EXT_separate_shader_objects
+ */
 GLuint GLAPIENTRY
 _mesa_CreateShaderProgramEXT(GLenum type, const GLchar *string)
 {

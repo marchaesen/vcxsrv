@@ -59,10 +59,10 @@ struct test_data {
 };
 
 static void
-reply_XIQueryVersion(ClientPtr client, int len, char *data, void *userdata)
+reply_XIQueryVersion(ClientPtr client, int len, char *data, void *closure)
 {
     xXIQueryVersionReply *rep = (xXIQueryVersionReply *) data;
-    struct test_data *versions = (struct test_data *) userdata;
+    struct test_data *versions = (struct test_data *) closure;
     unsigned int sver, cver, ver;
 
     if (client->swapped) {
@@ -85,10 +85,10 @@ reply_XIQueryVersion(ClientPtr client, int len, char *data, void *userdata)
 }
 
 static void
-reply_XIQueryVersion_multiple(ClientPtr client, int len, char *data, void *userdata)
+reply_XIQueryVersion_multiple(ClientPtr client, int len, char *data, void *closure)
 {
     xXIQueryVersionReply *rep = (xXIQueryVersionReply *) data;
-    struct test_data *versions = (struct test_data *) userdata;
+    struct test_data *versions = (struct test_data *) closure;
 
     reply_check_defaults(rep, len, XIQueryVersion);
     assert(rep->length == 0);
