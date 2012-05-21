@@ -104,6 +104,10 @@ extern _X_EXPORT Bool noXFixesExtension;
 extern _X_EXPORT Bool noPanoramiXExtension;
 #endif
 
+#ifdef INXQUARTZ
+extern _X_EXPORT Bool noPseudoramiXExtension;
+#endif
+
 #ifdef XSELINUX
 extern _X_EXPORT Bool noSELinuxExtension;
 

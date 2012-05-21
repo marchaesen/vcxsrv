@@ -1332,13 +1332,10 @@ InitValuatorClassDeviceStruct(DeviceIntPtr dev, int numAxes, Atom *labels,
 
 /* global list of acceleration schemes */
 ValuatorAccelerationRec pointerAccelerationScheme[] = {
-    {PtrAccelNoOp, NULL, NULL, NULL, NULL}
-    ,
+    {PtrAccelNoOp, NULL, NULL, NULL, NULL},
     {PtrAccelPredictable, acceleratePointerPredictable, NULL,
-     InitPredictableAccelerationScheme, AccelerationDefaultCleanup}
-    ,
-    {PtrAccelLightweight, acceleratePointerLightweight, NULL, NULL, NULL}
-    ,
+     InitPredictableAccelerationScheme, AccelerationDefaultCleanup},
+    {PtrAccelLightweight, acceleratePointerLightweight, NULL, NULL, NULL},
     {-1, NULL, NULL, NULL, NULL}        /* terminator */
 };
 
@@ -1375,8 +1372,7 @@ InitPointerAccelerationScheme(DeviceIntPtr dev, int scheme)
 
     if (pointerAccelerationScheme[i].AccelInitProc) {
         if (!pointerAccelerationScheme[i].AccelInitProc(dev,
-                                                        &pointerAccelerationScheme
-                                                        [i])) {
+                                            &pointerAccelerationScheme[i])) {
             return FALSE;
         }
     }

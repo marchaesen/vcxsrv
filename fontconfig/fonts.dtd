@@ -12,7 +12,9 @@
     Add a directory that provides fonts
 -->
 <!ELEMENT dir (#PCDATA)>
-<!ATTLIST dir xml:space (default|preserve) 'preserve'>
+<!ATTLIST dir
+	  prefix    (#PCDATA)	       "default"
+	  xml:space (default|preserve) 'preserve'>
 
 <!--
     Define the per-user file that holds cache font information.
@@ -33,7 +35,9 @@
     home directory path.
 -->
 <!ELEMENT cachedir (#PCDATA)>
-<!ATTLIST cachedir xml:space (default|preserve) 'preserve'>
+<!ATTLIST cachedir
+	  prefix    (#PCDATA)	       "default"
+	  xml:space (default|preserve) 'preserve'>
 
 <!--
     Reference another configuration file; note that this
@@ -48,6 +52,8 @@
 <!ELEMENT include (#PCDATA)>
 <!ATTLIST include
 	  ignore_missing    (no|yes)		"no"
+	  prefix	    (#PCDATA)		"default"
+	  deprecated	    (#PCDATA)		"no"
 	  xml:space	    (default|preserve)	"preserve">
 
 <!--

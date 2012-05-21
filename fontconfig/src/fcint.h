@@ -64,9 +64,11 @@ typedef HRESULT (WINAPI *pfnSHGetFolderPathA)(HWND, int, HANDLE, DWORD, LPSTR);
 extern pfnGetSystemWindowsDirectory pGetSystemWindowsDirectory;
 extern pfnSHGetFolderPathA pSHGetFolderPathA;
 #  define FC_SEARCH_PATH_SEPARATOR ';'
+#  define FC_DIR_SEPARATOR         '\\'
 #  define FC_DIR_SEPARATOR_S       "\\"
 #else
 #  define FC_SEARCH_PATH_SEPARATOR ':'
+#  define FC_DIR_SEPARATOR         '/'
 #  define FC_DIR_SEPARATOR_S       "/"
 #endif
 
@@ -569,6 +571,15 @@ FcPrivate int
 FcStat (const FcChar8 *file, struct stat *statb);
 
 /* fccfg.c */
+
+FcPrivate FcChar8 *
+FcConfigXdgCacheHome (void);
+
+FcPrivate FcChar8 *
+FcConfigXdgConfigHome (void);
+
+FcPrivate FcChar8 *
+FcConfigXdgDataHome (void);
 
 FcPrivate FcExpr *
 FcConfigAllocExpr (FcConfig *config);

@@ -37,6 +37,7 @@
 #include "scrnintstr.h"
 #include "xipassivegrab.h"
 #include "exevents.h"
+#include "exglobals.h"
 
 #include "protocol-common.h"
 
@@ -54,7 +55,7 @@ int __wrap_GrabButton(ClientPtr client, DeviceIntPtr dev,
                       GrabParameters *param, enum InputLevel grabtype,
                       GrabMask *mask);
 static void reply_XIPassiveGrabDevice_data(ClientPtr client, int len,
-                                           char *data, void *userdata);
+                                           char *data, void *closure);
 
 int
 __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
@@ -85,7 +86,7 @@ __wrap_GrabButton(ClientPtr client, DeviceIntPtr dev,
 }
 
 static void
-reply_XIPassiveGrabDevice(ClientPtr client, int len, char *data, void *userdata)
+reply_XIPassiveGrabDevice(ClientPtr client, int len, char *data, void *closure)
 {
     xXIPassiveGrabDeviceReply *rep = (xXIPassiveGrabDeviceReply *) data;
 
@@ -107,7 +108,7 @@ reply_XIPassiveGrabDevice(ClientPtr client, int len, char *data, void *userdata)
 
 static void
 reply_XIPassiveGrabDevice_data(ClientPtr client, int len, char *data,
-                               void *userdata)
+                               void *closure)
 {
     int i;
 

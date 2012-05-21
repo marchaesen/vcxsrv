@@ -69,6 +69,12 @@
 #include <rootlessCommon.h>
 #include <Xplugin.h>
 
+/* Work around a bug on Leopard's headers */
+#if defined (__LP64__) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1050 && MAC_OS_X_VERSION_MAX_ALLOWED < 1060
+extern OSErr UpdateSystemActivity(UInt8 activity);
+#define OverallAct 0
+#endif
+
 DevPrivateKeyRec quartzScreenKeyRec;
 int aquaMenuBarHeight = 0;
 QuartzModeProcsPtr quartzProcs = NULL;

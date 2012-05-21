@@ -1329,6 +1329,11 @@ untrusted_str(NSEvent *e)
 }
 #endif
 
+extern void
+darwinEvents_lock(void);
+extern void
+darwinEvents_unlock(void);
+
 - (void) sendX11NSEvent:(NSEvent *)e
 {
     NSPoint location = NSZeroPoint;
@@ -1341,18 +1346,15 @@ untrusted_str(NSEvent *e)
     int modifierFlags;
     BOOL isMouseOrTabletEvent, isTabletEvent;
 
-#ifdef HAVE_LIBDISPATCH
-    static dispatch_once_t once_pred;
-    dispatch_once(&once_pred, ^{
-                      tilt = NSZeroPoint;
-                      darwinTabletCurrent = darwinTabletStylus;
-                  });
-#else
     if (!darwinTabletCurrent) {
+        /* Ensure that the event system is initialized */
+        darwinEvents_lock();
+        darwinEvents_unlock();
+        assert(darwinTabletStylus);
+
         tilt = NSZeroPoint;
         darwinTabletCurrent = darwinTabletStylus;
     }
-#endif
 
     isMouseOrTabletEvent = [e type] == NSLeftMouseDown ||
                            [e type] == NSOtherMouseDown ||
@@ -1641,6 +1643,11 @@ handle_mouse:
 
     case NSScrollWheel:
     {
+#if MAC_OS_X_VERSION_MAX_ALLOWED < 1050
+        float deltaX = [e deltaX];
+        float deltaY = [e deltaY];
+        BOOL isContinuous = NO;
+#else
         CGFloat deltaX = [e deltaX];
         CGFloat deltaY = [e deltaY];
         CGEventRef cge = [e CGEvent];
@@ -1661,6 +1668,7 @@ handle_mouse:
             deltaX *= lineHeight / 5.0;
             deltaY *= lineHeight / 5.0;
         }
+#endif
 #endif
         
 #if !defined(XPLUGIN_VERSION) || XPLUGIN_VERSION == 0

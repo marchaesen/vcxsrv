@@ -896,11 +896,11 @@ FcStrCopyFilename (const FcChar8 *s)
 	FcChar8	*full;
 	int	size;
 	if (!home)
-	    return 0;
+	    return NULL;
 	size = strlen ((char *) home) + strlen ((char *) s);
 	full = (FcChar8 *) malloc (size);
 	if (!full)
-	    return 0;
+	    return NULL;
 	strcpy ((char *) full, (char *) home);
 	strcat ((char *) full, (char *) s + 1);
 	new = FcStrCanonFilename (full);
@@ -908,6 +908,7 @@ FcStrCopyFilename (const FcChar8 *s)
     }
     else
 	new = FcStrCanonFilename (s);
+
     return new;
 }
 

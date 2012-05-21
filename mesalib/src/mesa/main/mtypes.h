@@ -2355,6 +2355,7 @@ struct gl_shader_program
 #define GLSL_NOP_VERT 0x20  /**< Force no-op vertex shaders */
 #define GLSL_NOP_FRAG 0x40  /**< Force no-op fragment shaders */
 #define GLSL_USE_PROG 0x80  /**< Log glUseProgram calls */
+#define GLSL_REPORT_ERRORS 0x100  /**< Print compilation errors */
 
 
 /**
@@ -2845,6 +2846,11 @@ struct gl_constants
     */
    GLboolean GLSLSkipStrictMaxVaryingLimitCheck;
    GLboolean GLSLSkipStrictMaxUniformLimitCheck;
+
+   /**
+    * Force software support for primitive restart in the VBO module.
+    */
+   GLboolean PrimitiveRestartInSoftware;
 };
 
 

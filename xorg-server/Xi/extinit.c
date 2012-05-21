@@ -1137,6 +1137,9 @@ IResetProc(ExtensionEntry * unused)
     EventSwapVector[DevicePresenceNotify] = NotImplemented;
     EventSwapVector[DevicePropertyNotify] = NotImplemented;
     RestoreExtensionEvents();
+
+    free(xi_all_devices.name);
+    free(xi_all_master_devices.name);
 }
 
 /***********************************************************************
@@ -1298,9 +1301,9 @@ XInputExtensionInit(void)
         memset(&xi_all_devices, 0, sizeof(xi_all_devices));
         memset(&xi_all_master_devices, 0, sizeof(xi_all_master_devices));
         xi_all_devices.id = XIAllDevices;
-        xi_all_devices.name = "XIAllDevices";
+        xi_all_devices.name = strdup("XIAllDevices");
         xi_all_master_devices.id = XIAllMasterDevices;
-        xi_all_master_devices.name = "XIAllMasterDevices";
+        xi_all_master_devices.name = strdup("XIAllMasterDevices");
 
         inputInfo.all_devices = &xi_all_devices;
         inputInfo.all_master_devices = &xi_all_master_devices;

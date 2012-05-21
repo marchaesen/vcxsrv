@@ -44,6 +44,7 @@
 #include "scrnintstr.h"
 #include "xisetclientpointer.h"
 #include "exevents.h"
+#include "exglobals.h"
 
 #include "protocol-common.h"
 

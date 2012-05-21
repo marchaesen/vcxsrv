@@ -310,6 +310,20 @@ xq_asl_init(void)
     atexit(redirect_atexit);
 }
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED < 1050
+#define fls(v) xq_fls(v)
+
+static inline int fls(int value) {
+    unsigned int b, v;
+
+    v = *((unsigned int *)&value);
+
+    for(b=0 ; v ; v >>= 1 , b++);
+
+    return b;
+}
+#endif
+
 int
 xq_asl_log_fd(aslclient asl, aslmsg msg, int level, int fd)
 {

@@ -22,6 +22,8 @@ DEMOS =				\
 	quad2quad		\
 	checkerboard
 
+EXTRA_DIST = parrot.c parrot.jpg
+
 gradient_test_SOURCES = gradient-test.c $(GTK_UTILS)
 alpha_test_SOURCES = alpha-test.c $(GTK_UTILS)
 composite_test_SOURCES = composite-test.c $(GTK_UTILS)

@@ -269,8 +269,6 @@ DeepCopyFeedbackClasses(DeviceIntPtr from, DeviceIntPtr to)
         }
     }
     else if (to->intfeed && !from->intfeed) {
-        ClassesPtr classes;
-
         classes = to->unused_classes;
         classes->intfeed = to->intfeed;
         to->intfeed = NULL;
@@ -301,8 +299,6 @@ DeepCopyFeedbackClasses(DeviceIntPtr from, DeviceIntPtr to)
         }
     }
     else if (to->stringfeed && !from->stringfeed) {
-        ClassesPtr classes;
-
         classes = to->unused_classes;
         classes->stringfeed = to->stringfeed;
         to->stringfeed = NULL;
@@ -334,8 +330,6 @@ DeepCopyFeedbackClasses(DeviceIntPtr from, DeviceIntPtr to)
         }
     }
     else if (to->bell && !from->bell) {
-        ClassesPtr classes;
-
         classes = to->unused_classes;
         classes->bell = to->bell;
         to->bell = NULL;
@@ -369,8 +363,6 @@ DeepCopyFeedbackClasses(DeviceIntPtr from, DeviceIntPtr to)
         }
     }
     else if (to->leds && !from->leds) {
-        ClassesPtr classes;
-
         classes = to->unused_classes;
         classes->leds = to->leds;
         to->leds = NULL;
@@ -417,8 +409,6 @@ DeepCopyKeyboardClasses(DeviceIntPtr from, DeviceIntPtr to)
         }
     }
     else if (to->kbdfeed && !from->kbdfeed) {
-        ClassesPtr classes;
-
         classes = to->unused_classes;
         classes->kbdfeed = to->kbdfeed;
         to->kbdfeed = NULL;
@@ -437,8 +427,6 @@ DeepCopyKeyboardClasses(DeviceIntPtr from, DeviceIntPtr to)
         CopyKeyClass(from, to);
     }
     else if (to->key && !from->key) {
-        ClassesPtr classes;
-
         classes = to->unused_classes;
         classes->key = to->key;
         to->key = NULL;
@@ -494,8 +482,6 @@ DeepCopyKeyboardClasses(DeviceIntPtr from, DeviceIntPtr to)
         }
     }
     else if (to->focus) {
-        ClassesPtr classes;
-
         classes = to->unused_classes;
         classes->focus = to->focus;
         to->focus = NULL;
@@ -536,8 +522,6 @@ DeepCopyPointerClasses(DeviceIntPtr from, DeviceIntPtr to)
         }
     }
     else if (to->ptrfeed && !from->ptrfeed) {
-        ClassesPtr classes;
-
         classes = to->unused_classes;
         classes->ptrfeed = to->ptrfeed;
         to->ptrfeed = NULL;
@@ -564,8 +548,6 @@ DeepCopyPointerClasses(DeviceIntPtr from, DeviceIntPtr to)
         v->sourceid = from->id;
     }
     else if (to->valuator && !from->valuator) {
-        ClassesPtr classes;
-
         classes = to->unused_classes;
         classes->valuator = to->valuator;
         to->valuator = NULL;
@@ -601,8 +583,6 @@ DeepCopyPointerClasses(DeviceIntPtr from, DeviceIntPtr to)
         to->button->sourceid = from->id;
     }
     else if (to->button && !from->button) {
-        ClassesPtr classes;
-
         classes = to->unused_classes;
         classes->button = to->button;
         to->button = NULL;
@@ -624,8 +604,6 @@ DeepCopyPointerClasses(DeviceIntPtr from, DeviceIntPtr to)
         to->proximity->sourceid = from->id;
     }
     else if (to->proximity) {
-        ClassesPtr classes;
-
         classes = to->unused_classes;
         classes->proximity = to->proximity;
         to->proximity = NULL;
@@ -1461,9 +1439,9 @@ DeliverTouchEmulatedEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
 
             if (grab->ownerEvents) {
                 WindowPtr focus = NullWindow;
-                WindowPtr win = dev->spriteInfo->sprite->win;
+                WindowPtr sprite_win = dev->spriteInfo->sprite->win;
 
-                deliveries = DeliverDeviceEvents(win, ptrev, grab, focus, dev);
+                deliveries = DeliverDeviceEvents(sprite_win, ptrev, grab, focus, dev);
             }
 
             if (!deliveries)
@@ -1494,7 +1472,7 @@ DeliverTouchEmulatedEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
          * the event.
          */
         if (!devgrab && dev->deviceGrab.grab && dev->deviceGrab.implicitGrab) {
-            TouchListener *listener;
+            TouchListener *l;
 
             devgrab = dev->deviceGrab.grab;
 
@@ -1504,13 +1482,13 @@ DeliverTouchEmulatedEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
              * selection. Implicit grab activation occurs through delivering an
              * event selection. Thus, we update the last listener in the array.
              */
-            listener = &ti->listeners[ti->num_listeners - 1];
-            listener->listener = devgrab->resource;
+            l = &ti->listeners[ti->num_listeners - 1];
+            l->listener = devgrab->resource;
 
             if (devgrab->grabtype != XI2 || devgrab->type != XI_TouchBegin)
-                listener->type = LISTENER_POINTER_GRAB;
+                l->type = LISTENER_POINTER_GRAB;
             else
-                listener->type = LISTENER_GRAB;
+                l->type = LISTENER_GRAB;
         }
 
     }
@@ -2112,240 +2090,6 @@ SetScrollValuator(DeviceIntPtr dev, int axnum, enum ScrollType type,
         ChangeMasterDeviceClasses(master, &dce.changed_event);
 
     return TRUE;
-}
-
-static void
-FixDeviceStateNotify(DeviceIntPtr dev, deviceStateNotify * ev, KeyClassPtr k,
-                     ButtonClassPtr b, ValuatorClassPtr v, int first)
-{
-    ev->type = DeviceStateNotify;
-    ev->deviceid = dev->id;
-    ev->time = currentTime.milliseconds;
-    ev->classes_reported = 0;
-    ev->num_keys = 0;
-    ev->num_buttons = 0;
-    ev->num_valuators = 0;
-
-    if (b) {
-        ev->classes_reported |= (1 << ButtonClass);
-        ev->num_buttons = b->numButtons;
-        memcpy((char *) ev->buttons, (char *) b->down, 4);
-    }
-    else if (k) {
-        ev->classes_reported |= (1 << KeyClass);
-        ev->num_keys = k->xkbInfo->desc->max_key_code -
-            k->xkbInfo->desc->min_key_code;
-        memmove((char *) &ev->keys[0], (char *) k->down, 4);
-    }
-    if (v) {
-        int nval = v->numAxes - first;
-
-        ev->classes_reported |= (1 << ValuatorClass);
-        ev->classes_reported |= valuator_get_mode(dev, 0) << ModeBitsShift;
-        ev->num_valuators = nval < 3 ? nval : 3;
-        switch (ev->num_valuators) {
-        case 3:
-            ev->valuator2 = v->axisVal[first + 2];
-        case 2:
-            ev->valuator1 = v->axisVal[first + 1];
-        case 1:
-            ev->valuator0 = v->axisVal[first];
-            break;
-        }
-    }
-}
-
-static void
-FixDeviceValuator(DeviceIntPtr dev, deviceValuator * ev, ValuatorClassPtr v,
-                  int first)
-{
-    int nval = v->numAxes - first;
-
-    ev->type = DeviceValuator;
-    ev->deviceid = dev->id;
-    ev->num_valuators = nval < 3 ? nval : 3;
-    ev->first_valuator = first;
-    switch (ev->num_valuators) {
-    case 3:
-        ev->valuator2 = v->axisVal[first + 2];
-    case 2:
-        ev->valuator1 = v->axisVal[first + 1];
-    case 1:
-        ev->valuator0 = v->axisVal[first];
-        break;
-    }
-    first += ev->num_valuators;
-}
-
-static void
-DeliverStateNotifyEvent(DeviceIntPtr dev, WindowPtr win)
-{
-    int evcount = 1;
-    deviceStateNotify *ev, *sev;
-    deviceKeyStateNotify *kev;
-    deviceButtonStateNotify *bev;
-
-    KeyClassPtr k;
-    ButtonClassPtr b;
-    ValuatorClassPtr v;
-    int nval = 0, nkeys = 0, nbuttons = 0, first = 0;
-
-    if (!(wOtherInputMasks(win)) ||
-        !(wOtherInputMasks(win)->inputEvents[dev->id] & DeviceStateNotifyMask))
-        return;
-
-    if ((b = dev->button) != NULL) {
-        nbuttons = b->numButtons;
-        if (nbuttons > 32)
-            evcount++;
-    }
-    if ((k = dev->key) != NULL) {
-        nkeys = k->xkbInfo->desc->max_key_code - k->xkbInfo->desc->min_key_code;
-        if (nkeys > 32)
-            evcount++;
-        if (nbuttons > 0) {
-            evcount++;
-        }
-    }
-    if ((v = dev->valuator) != NULL) {
-        nval = v->numAxes;
-
-        if (nval > 3)
-            evcount++;
-        if (nval > 6) {
-            if (!(k && b))
-                evcount++;
-            if (nval > 9)
-                evcount += ((nval - 7) / 3);
-        }
-    }
-
-    sev = ev = (deviceStateNotify *) malloc(evcount * sizeof(xEvent));
-    FixDeviceStateNotify(dev, ev, NULL, NULL, NULL, first);
-
-    if (b != NULL) {
-        FixDeviceStateNotify(dev, ev++, NULL, b, v, first);
-        first += 3;
-        nval -= 3;
-        if (nbuttons > 32) {
-            (ev - 1)->deviceid |= MORE_EVENTS;
-            bev = (deviceButtonStateNotify *) ev++;
-            bev->type = DeviceButtonStateNotify;
-            bev->deviceid = dev->id;
-            memcpy((char *) &bev->buttons[4], (char *) &b->down[4],
-                   DOWN_LENGTH - 4);
-        }
-        if (nval > 0) {
-            (ev - 1)->deviceid |= MORE_EVENTS;
-            FixDeviceValuator(dev, (deviceValuator *) ev++, v, first);
-            first += 3;
-            nval -= 3;
-        }
-    }
-
-    if (k != NULL) {
-        FixDeviceStateNotify(dev, ev++, k, NULL, v, first);
-        first += 3;
-        nval -= 3;
-        if (nkeys > 32) {
-            (ev - 1)->deviceid |= MORE_EVENTS;
-            kev = (deviceKeyStateNotify *) ev++;
-            kev->type = DeviceKeyStateNotify;
-            kev->deviceid = dev->id;
-            memmove((char *) &kev->keys[0], (char *) &k->down[4], 28);
-        }
-        if (nval > 0) {
-            (ev - 1)->deviceid |= MORE_EVENTS;
-            FixDeviceValuator(dev, (deviceValuator *) ev++, v, first);
-            first += 3;
-            nval -= 3;
-        }
-    }
-
-    while (nval > 0) {
-        FixDeviceStateNotify(dev, ev++, NULL, NULL, v, first);
-        first += 3;
-        nval -= 3;
-        if (nval > 0) {
-            (ev - 1)->deviceid |= MORE_EVENTS;
-            FixDeviceValuator(dev, (deviceValuator *) ev++, v, first);
-            first += 3;
-            nval -= 3;
-        }
-    }
-
-    DeliverEventsToWindow(dev, win, (xEvent *) sev, evcount,
-                          DeviceStateNotifyMask, NullGrab);
-    free(sev);
-}
-
-void
-DeviceFocusEvent(DeviceIntPtr dev, int type, int mode, int detail,
-                 WindowPtr pWin)
-{
-    deviceFocus event;
-    xXIFocusInEvent *xi2event;
-    DeviceIntPtr mouse;
-    int btlen, len, i;
-
-    mouse = IsFloating(dev) ? dev : GetMaster(dev, MASTER_POINTER);
-
-    /* XI 2 event */
-    btlen = (mouse->button) ? bits_to_bytes(mouse->button->numButtons) : 0;
-    btlen = bytes_to_int32(btlen);
-    len = sizeof(xXIFocusInEvent) + btlen * 4;
-
-    xi2event = calloc(1, len);
-    xi2event->type = GenericEvent;
-    xi2event->extension = IReqCode;
-    xi2event->evtype = type;
-    xi2event->length = bytes_to_int32(len - sizeof(xEvent));
-    xi2event->buttons_len = btlen;
-    xi2event->detail = detail;
-    xi2event->time = currentTime.milliseconds;
-    xi2event->deviceid = dev->id;
-    xi2event->sourceid = dev->id;       /* a device doesn't change focus by itself */
-    xi2event->mode = mode;
-    xi2event->root_x = FP1616(mouse->spriteInfo->sprite->hot.x, 0);
-    xi2event->root_y = FP1616(mouse->spriteInfo->sprite->hot.y, 0);
-
-    for (i = 0; mouse && mouse->button && i < mouse->button->numButtons; i++)
-        if (BitIsOn(mouse->button->down, i))
-            SetBit(&xi2event[1], mouse->button->map[i]);
-
-    if (dev->key) {
-        xi2event->mods.base_mods = dev->key->xkbInfo->state.base_mods;
-        xi2event->mods.latched_mods = dev->key->xkbInfo->state.latched_mods;
-        xi2event->mods.locked_mods = dev->key->xkbInfo->state.locked_mods;
-        xi2event->mods.effective_mods = dev->key->xkbInfo->state.mods;
-
-        xi2event->group.base_group = dev->key->xkbInfo->state.base_group;
-        xi2event->group.latched_group = dev->key->xkbInfo->state.latched_group;
-        xi2event->group.locked_group = dev->key->xkbInfo->state.locked_group;
-        xi2event->group.effective_group = dev->key->xkbInfo->state.group;
-    }
-
-    FixUpEventFromWindow(dev->spriteInfo->sprite, (xEvent *) xi2event, pWin,
-                         None, FALSE);
-
-    DeliverEventsToWindow(dev, pWin, (xEvent *) xi2event, 1,
-                          GetEventFilter(dev, (xEvent *) xi2event), NullGrab);
-
-    free(xi2event);
-
-    /* XI 1.x event */
-    event.deviceid = dev->id;
-    event.mode = mode;
-    event.type = (type == XI_FocusIn) ? DeviceFocusIn : DeviceFocusOut;
-    event.detail = detail;
-    event.window = pWin->drawable.id;
-    event.time = currentTime.milliseconds;
-
-    DeliverEventsToWindow(dev, pWin, (xEvent *) &event, 1,
-                          DeviceFocusChangeMask, NullGrab);
-
-    if (event.type == DeviceFocusIn)
-        DeliverStateNotifyEvent(dev, pWin);
 }
 
 int

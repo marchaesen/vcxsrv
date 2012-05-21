@@ -1166,16 +1166,33 @@ static void
 transformAbsolute(DeviceIntPtr dev, ValuatorMask *mask)
 {
     double x, y, ox, oy;
+    int has_x, has_y;
+
+    has_x = valuator_mask_fetch_double(mask, 0, &ox);
+    has_y = valuator_mask_fetch_double(mask, 1, &oy);
+
+    if (!has_x && !has_y)
+        return;
+
+    if (!has_x || !has_y) {
+        struct pixman_f_transform invert;
+
+        /* undo transformation from last event */
+        ox = dev->last.valuators[0];
+        oy = dev->last.valuators[1];
+
+        pixman_f_transform_invert(&invert, &dev->transform);
+        transform(&invert, &ox, &oy);
+
+        x = ox;
+        y = oy;
+    }
 
     if (valuator_mask_isset(mask, 0))
         ox = x = valuator_mask_get_double(mask, 0);
-    else
-        ox = x = dev->last.valuators[0];
 
     if (valuator_mask_isset(mask, 1))
         oy = y = valuator_mask_get_double(mask, 1);
-    else
-        oy = y = dev->last.valuators[1];
 
     transform(&dev->transform, &x, &y);
 

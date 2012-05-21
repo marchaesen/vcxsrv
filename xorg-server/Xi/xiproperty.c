@@ -754,7 +754,7 @@ XIChangeDeviceProperty(DeviceIntPtr dev, Atom property, Atom type,
             break;
         }
         if (new_data)
-            memcpy((char *) new_data, (char *) value, len * size_in_bytes);
+            memcpy((char *) new_data, value, len * size_in_bytes);
         if (old_data)
             memcpy((char *) old_data, (char *) prop_value->data,
                    prop_value->size * size_in_bytes);

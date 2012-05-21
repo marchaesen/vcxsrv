@@ -48,13 +48,17 @@ xkb_symbols "olpc" {
 
     name[Group1]="French";
 
-    key <AD02>	{ [ z,  Z,  VoidSymbol, guillemotleft ]	};
+    key <I219>	{ [ less, greater ]	};
+    key <AD11>	{ [ dead_circumflex, dead_diaeresis, notsign, dead_abovering ]	};
+    key <AB08>	{ [ semicolon, period, underscore, multiply ]	};
+    key <TLDE>	{ [ twosuperior, asciitilde, VoidSymbol, VoidSymbol ]	};
 
-    key <AC02>	{ [ s,  S,  VoidSymbol, ssharp ] };
-
-    key <AB02>	{ [  x,  X,  VoidSymbol,     guillemotright ] };
-
-    key <I219>  { [ less, greater ] };
+    // Some keys only have the Shift+AltGr character printed on them (alongside
+    // the unmodified one). Make such keys shift-invariant so that the printed
+    // value is achieved by pressing AltGr or Shift+AltGr.
+    key <AB02>	{ [ x,  X,  guillemotright, guillemotright ]	};
+    key <AC02>	{ [ s,  S,  ssharp, ssharp ]	};
+    key <AD02>	{ [ z,  Z,  guillemotleft, guillemotleft ]	};
 };
 
 partial alphanumeric_keys

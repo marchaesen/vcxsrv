@@ -37,6 +37,7 @@
 #include "scrnintstr.h"
 #include "xiwarppointer.h"
 #include "exevents.h"
+#include "exglobals.h"
 
 #include "protocol-common.h"
 
