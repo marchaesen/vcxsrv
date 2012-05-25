@@ -1846,6 +1846,9 @@ FcParseUnary (FcConfigParse *parse, FcOp op)
 static void
 FcParseDir (FcConfigParse *parse)
 {
+#ifdef _WIN32
+    FcChar8 buffer[MAX_PATH];
+#endif
     const FcChar8 *attr, *data;
     FcChar8 *prefix = NULL;
 
@@ -1882,7 +1885,7 @@ FcParseDir (FcConfigParse *parse)
 	if (!GetModuleFileName (NULL, buffer, sizeof (buffer) - 20))
 	{
 	    FcConfigMessage (parse, FcSevereError, "GetModuleFileName failed");
-	    break;
+	    goto bail;
 	}
 	/*
 	 * Must use the multi-byte aware function to search
@@ -1901,7 +1904,7 @@ FcParseDir (FcConfigParse *parse)
 	if (!GetModuleFileName (NULL, buffer, sizeof (buffer) - 20))
 	{
 	    FcConfigMessage (parse, FcSevereError, "GetModuleFileName failed");
-	    break;
+	    goto bail;
 	}
 	p = _mbsrchr (data, '\\');
 	if (p) *p = '\0';
@@ -1915,7 +1918,7 @@ FcParseDir (FcConfigParse *parse)
 	if (rc == 0 || rc > sizeof (buffer) - 20)
 	{
 	    FcConfigMessage (parse, FcSevereError, "GetSystemWindowsDirectory failed");
-	    break;
+	    goto bail;
 	}
 	if (data [strlen (data) - 1] != '\\')
 	    strcat (data, "\\");
