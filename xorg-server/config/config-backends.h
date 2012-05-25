@@ -33,6 +33,7 @@ void remove_devices(const char *backend, const char *config_info);
 BOOL device_is_duplicate(const char *config_info);
 
 #ifdef CONFIG_UDEV
+int config_udev_pre_init(void);
 int config_udev_init(void);
 void config_udev_fini(void);
 #else

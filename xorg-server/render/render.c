@@ -1136,11 +1136,11 @@ ProcRenderAddGlyphs(ClientPtr client)
                     goto bail;
                 }
 
-                GlyphPicture(glyph)[screen] = pDst =
-                    CreatePicture(0, &pDstPix->drawable,
+                pDst = CreatePicture(0, &pDstPix->drawable,
                                   glyphSet->format,
                                   CPComponentAlpha, &component_alpha,
                                   serverClient, &error);
+                SetGlyphPicture(glyph, pScreen, pDst);
 
                 /* The picture takes a reference to the pixmap, so we
                    drop ours. */

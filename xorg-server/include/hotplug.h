@@ -26,6 +26,7 @@
 #ifndef HOTPLUG_H
 #define HOTPLUG_H
 
+extern _X_EXPORT void config_pre_init(void);
 extern _X_EXPORT void config_init(void);
 extern _X_EXPORT void config_fini(void);
 

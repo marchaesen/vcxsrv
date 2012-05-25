@@ -15,8 +15,8 @@ xkb_symbols "kr104" {
 
 partial hidden function_keys
 xkb_symbols "koreankeys" {
-    key <K72> { [ Hangul ] };
-    key <K71> { [ Hangul_Hanja ] };    
+    key <K71> { [ Hangul ] };
+    key <K72> { [ Hangul_Hanja ] };    
 };
 
 partial hidden function_keys

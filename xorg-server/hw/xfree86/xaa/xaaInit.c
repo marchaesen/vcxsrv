@@ -92,7 +92,7 @@ XAADestroyInfoRec(XAAInfoRecPtr infoRec)
         return;
 
     if (infoRec->ClosePixmapCache)
-        (*infoRec->ClosePixmapCache) (infoRec->pScrn->pScreen);
+        (*infoRec->ClosePixmapCache) (xf86ScrnToScreen(infoRec->pScrn));
 
     free(infoRec->PreAllocMem);
 
@@ -104,7 +104,7 @@ XAADestroyInfoRec(XAAInfoRecPtr infoRec)
 Bool
 XAAInit(ScreenPtr pScreen, XAAInfoRecPtr infoRec)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     XAAScreenPtr pScreenPriv;
     int i;
     PictureScreenPtr ps = GetPictureScreenIfSet(pScreen);
@@ -216,7 +216,7 @@ XAAInit(ScreenPtr pScreen, XAAInfoRecPtr infoRec)
 static Bool
 XAACloseScreen(int i, ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     XAAScreenPtr pScreenPriv =
         (XAAScreenPtr) dixLookupPrivate(&pScreen->devPrivates, XAAScreenKey);
 
@@ -278,7 +278,7 @@ XAAGetSpans(DrawablePtr pDraw,
     ScreenPtr pScreen = pDraw->pScreen;
 
     XAA_SCREEN_PROLOGUE(pScreen, GetSpans);
-    if (xf86Screens[pScreen->myNum]->vtSema &&
+    if (xf86ScreenToScrn(pScreen)->vtSema &&
         ((pDraw->type == DRAWABLE_WINDOW) || IS_OFFSCREEN_PIXMAP(pDraw))) {
         SYNC_CHECK(pDraw);
     }
@@ -311,7 +311,7 @@ static void
 XAAInitializeOffscreenDepths(ScreenPtr pScreen)
 {
     XAAInfoRecPtr infoRec = GET_XAAINFORECPTR_FROM_SCREEN(pScreen);
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     int d, dep;
 
     infoRec->offscreenDepthsInitialized = TRUE;
@@ -329,7 +329,7 @@ static PixmapPtr
 XAACreatePixmap(ScreenPtr pScreen, int w, int h, int depth, unsigned usage_hint)
 {
     XAAInfoRecPtr infoRec = GET_XAAINFORECPTR_FROM_SCREEN(pScreen);
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     XAAPixmapPtr pPriv;
     PixmapPtr pPix = NULL;
     int size = w * h;

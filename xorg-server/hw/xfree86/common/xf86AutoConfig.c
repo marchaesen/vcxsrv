@@ -270,6 +270,10 @@ listPossibleVideoDrivers(char *matches[], int nmatches)
 #endif
     }
 
+#if defined(__linux__)
+    matches[i++] = xnfstrdup("modesetting");
+#endif
+
 #if !defined(sun)
     /* Fallback to platform default frame buffer driver */
     if (i < (nmatches - 1)) {

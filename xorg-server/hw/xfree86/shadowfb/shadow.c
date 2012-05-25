@@ -136,7 +136,7 @@ ShadowFBInit2(ScreenPtr pScreen,
               RefreshAreaFuncPtr preRefreshArea,
               RefreshAreaFuncPtr postRefreshArea)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     ShadowScreenPtr pPriv;
     PictureScreenPtr ps = GetPictureScreenIfSet(pScreen);
 
@@ -229,7 +229,7 @@ ShadowLeaveVT(int index, int flags)
 static Bool
 ShadowCloseScreen(int i, ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     ShadowScreenPtr pPriv = GET_SCREEN_PRIVATE(pScreen);
     PictureScreenPtr ps = GetPictureScreenIfSet(pScreen);
 

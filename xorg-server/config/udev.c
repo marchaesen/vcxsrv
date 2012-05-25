@@ -281,15 +281,14 @@ block_handler(pointer data, struct timeval **tv, pointer read_mask)
 }
 
 int
-config_udev_init(void)
+config_udev_pre_init(void)
 {
     struct udev *udev;
-    struct udev_enumerate *enumerate;
-    struct udev_list_entry *devices, *device;
 
     udev = udev_new();
     if (!udev)
         return 0;
+
     udev_monitor = udev_monitor_new_from_netlink(udev, "udev");
     if (!udev_monitor)
         return 0;
@@ -302,12 +301,21 @@ config_udev_init(void)
     if (SeatId && strcmp(SeatId, "seat0"))
         udev_monitor_filter_add_match_tag(udev_monitor, SeatId);
 #endif
-
     if (udev_monitor_enable_receiving(udev_monitor)) {
         ErrorF("config/udev: failed to bind the udev monitor\n");
         return 0;
     }
+    return 1;
+}
 
+int
+config_udev_init(void)
+{
+    struct udev *udev;
+    struct udev_enumerate *enumerate;
+    struct udev_list_entry *devices, *device;
+
+    udev = udev_monitor_get_udev(udev_monitor);
     enumerate = udev_enumerate_new(udev);
     if (!enumerate)
         return 0;

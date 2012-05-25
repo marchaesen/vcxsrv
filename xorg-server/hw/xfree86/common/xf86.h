@@ -76,8 +76,8 @@ extern _X_EXPORT Bool xf86DRI2Enabled(void);
 
 extern _X_EXPORT Bool VTSwitchEnabled;  /* kbd driver */
 
-#define XF86SCRNINFO(p) ((ScrnInfoPtr)dixLookupPrivate(&(p)->devPrivates, \
-						       xf86ScreenKey))
+#define XF86SCRNINFO(p) xf86ScreenToScrn(p)
+
 #define XF86FLIP_PIXELS() \
 	do { \
 	    if (xf86GetFlipPixels()) { \
@@ -97,12 +97,12 @@ extern _X_EXPORT Bool VTSwitchEnabled;  /* kbd driver */
 /* PCI related */
 #ifdef XSERVER_LIBPCIACCESS
 #include <pciaccess.h>
-extern _X_EXPORT Bool pciSlotClaimed;
+extern _X_EXPORT int pciSlotClaimed;
 
 extern _X_EXPORT Bool xf86CheckPciSlot(const struct pci_device *);
 extern _X_EXPORT int xf86ClaimPciSlot(struct pci_device *, DriverPtr drvp,
                                       int chipset, GDevPtr dev, Bool active);
-extern _X_EXPORT void xf86UnclaimPciSlot(struct pci_device *);
+extern _X_EXPORT void xf86UnclaimPciSlot(struct pci_device *, GDevPtr dev);
 extern _X_EXPORT Bool xf86ParsePciBusString(const char *busID, int *bus,
                                             int *device, int *func);
 extern _X_EXPORT Bool xf86ComparePciBusString(const char *busID, int bus,
@@ -449,6 +449,13 @@ xf86RandRSetNewVirtualAndDimensions(ScreenPtr pScreen,
 extern _X_EXPORT Bool
 VidModeExtensionInit(ScreenPtr pScreen);
 
+/* convert ScreenPtr to ScrnInfoPtr */
+extern _X_EXPORT ScrnInfoPtr xf86ScreenToScrn(ScreenPtr pScreen);
+/* convert ScrnInfoPtr to ScreenPtr */
+extern _X_EXPORT ScreenPtr xf86ScrnToScreen(ScrnInfoPtr pScrn);
+
 #endif                          /* _NO_XF86_PROTOTYPES */
+
+#define XF86_HAS_SCRN_CONV 1 /* define for drivers to use in api compat */
 
 #endif                          /* _XF86_H */

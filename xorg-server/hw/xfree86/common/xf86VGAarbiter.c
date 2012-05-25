@@ -106,7 +106,7 @@ xf86VGAarbiterAllowDRI(ScreenPtr pScreen)
 {
     int vga_count;
     int rsrc_decodes;
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 
     if (vga_no_arb)
         return TRUE;
@@ -173,7 +173,7 @@ xf86VGAarbiterWrapFunctions(void)
     for (i = 0; i < xf86NumScreens; i++) {
         pScreen = xf86Screens[i]->pScreen;
         ps = GetPictureScreenIfSet(pScreen);
-        pScrn = xf86Screens[pScreen->myNum];
+        pScrn = xf86ScreenToScrn(pScreen);
         PointPriv = dixLookupPrivate(&pScreen->devPrivates, miPointerScreenKey);
 
         if (!dixRegisterPrivateKey
@@ -224,7 +224,7 @@ static Bool
 VGAarbiterCloseScreen(int i, ScreenPtr pScreen)
 {
     Bool val;
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     VGAarbiterScreenPtr pScreenPriv =
         (VGAarbiterScreenPtr) dixLookupPrivate(&pScreen->devPrivates,
                                                VGAarbiterScreenKey);
@@ -298,9 +298,7 @@ VGAarbiterGetImage(DrawablePtr pDrawable,
     ScreenPtr pScreen = pDrawable->pScreen;
 
     SCREEN_PROLOG(GetImage);
-//    if (xf86Screens[pScreen->myNum]->vtSema) {
     VGAGet(pScreen);
-//    }
     (*pScreen->GetImage) (pDrawable, sx, sy, w, h, format, planemask, pdstLine);
     VGAPut();
     SCREEN_EPILOG(GetImage, VGAarbiterGetImage);

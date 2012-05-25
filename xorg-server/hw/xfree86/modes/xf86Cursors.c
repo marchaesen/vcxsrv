@@ -477,7 +477,7 @@ xf86_load_cursor_image(ScrnInfoPtr scrn, unsigned char *src)
 static Bool
 xf86_use_hw_cursor(ScreenPtr screen, CursorPtr cursor)
 {
-    ScrnInfoPtr scrn = xf86Screens[screen->myNum];
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
     xf86CursorInfoPtr cursor_info = xf86_config->cursor_info;
 
@@ -496,7 +496,7 @@ xf86_use_hw_cursor(ScreenPtr screen, CursorPtr cursor)
 static Bool
 xf86_use_hw_cursor_argb(ScreenPtr screen, CursorPtr cursor)
 {
-    ScrnInfoPtr scrn = xf86Screens[screen->myNum];
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
     xf86CursorInfoPtr cursor_info = xf86_config->cursor_info;
 
@@ -564,7 +564,7 @@ xf86_load_cursor_argb(ScrnInfoPtr scrn, CursorPtr cursor)
 Bool
 xf86_cursors_init(ScreenPtr screen, int max_width, int max_height, int flags)
 {
-    ScrnInfoPtr scrn = xf86Screens[screen->myNum];
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
     xf86CursorInfoPtr cursor_info;
 
@@ -631,7 +631,7 @@ xf86_reload_cursors(ScreenPtr screen)
     if (!cursor_screen_priv || !cursor_screen_priv->isUp)
         return;
 
-    scrn = xf86Screens[screen->myNum];
+    scrn = xf86ScreenToScrn(screen);
     xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
 
     /* make sure the cursor code has been initialized */
@@ -667,7 +667,7 @@ xf86_reload_cursors(ScreenPtr screen)
 void
 xf86_cursors_fini(ScreenPtr screen)
 {
-    ScrnInfoPtr scrn = xf86Screens[screen->myNum];
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
 
     if (xf86_config->cursor_info) {

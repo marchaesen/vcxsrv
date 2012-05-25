@@ -37,7 +37,7 @@ USER_CXXFLAGS="$CXXFLAGS"
 dnl Versions for external dependencies
 LIBDRM_REQUIRED=2.4.24
 LIBDRM_RADEON_REQUIRED=2.4.31
-LIBDRM_INTEL_REQUIRED=2.4.32
+LIBDRM_INTEL_REQUIRED=2.4.34
 LIBDRM_NVVIEUX_REQUIRED=2.4.33
 LIBDRM_NOUVEAU_REQUIRED=2.4.33
 DRI2PROTO_REQUIRED=2.6
@@ -1830,7 +1830,7 @@ if test "x$enable_gallium_llvm" = xyes; then
 
     if test "x$LLVM_CONFIG" != xno; then
 	LLVM_VERSION=`$LLVM_CONFIG --version | sed 's/svn.*//g'`
-	LLVM_CFLAGS=`$LLVM_CONFIG --cppflags|sed -e 's/-DNDEBUG\>//g' -e 's/-pedantic//g'`
+	LLVM_CFLAGS=`$LLVM_CONFIG --cppflags|sed -e 's/-DNDEBUG\>//g' -e 's/-pedantic//g' -e 's/-Wcovered-switch-default//g'`
 	if test "x$with_llvm_shared_libs" = xyes; then
 	    dnl We can't use $LLVM_VERSION because it has 'svn' stripped out,
 	    LLVM_LIBS="-lLLVM-`$LLVM_CONFIG --version`"

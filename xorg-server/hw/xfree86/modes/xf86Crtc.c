@@ -182,7 +182,7 @@ xf86CrtcSetScreenSubpixelOrder(ScreenPtr pScreen)
 {
     int subpixel_order = SubPixelUnknown;
     Bool has_none = FALSE;
-    ScrnInfoPtr scrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
     int c, o;
 
@@ -698,7 +698,7 @@ xf86OutputDestroy(xf86OutputPtr output)
 static Bool
 xf86CrtcCreateScreenResources(ScreenPtr screen)
 {
-    ScrnInfoPtr scrn = xf86Screens[screen->myNum];
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
 
     screen->CreateScreenResources = config->CreateScreenResources;
@@ -718,7 +718,7 @@ xf86CrtcCreateScreenResources(ScreenPtr screen)
 static Bool
 xf86CrtcCloseScreen(int index, ScreenPtr screen)
 {
-    ScrnInfoPtr scrn = xf86Screens[screen->myNum];
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
     int o, c;
 
@@ -751,7 +751,7 @@ Bool
 #endif
 xf86CrtcScreenInit(ScreenPtr screen)
 {
-    ScrnInfoPtr scrn = xf86Screens[screen->myNum];
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
     int c;
 
@@ -2823,7 +2823,7 @@ xf86DPMSSet(ScrnInfoPtr scrn, int mode, int flags)
 Bool
 xf86SaveScreen(ScreenPtr pScreen, int mode)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 
     if (xf86IsUnblank(mode))
         xf86DPMSSet(pScrn, DPMSModeOn, 0);
@@ -3151,7 +3151,7 @@ xf86_crtc_notify_proc_ptr
 xf86_wrap_crtc_notify(ScreenPtr screen, xf86_crtc_notify_proc_ptr new)
 {
     if (xf86CrtcConfigPrivateIndex != -1) {
-        ScrnInfoPtr scrn = xf86Screens[screen->myNum];
+        ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
         xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
         xf86_crtc_notify_proc_ptr old;
 
@@ -3166,7 +3166,7 @@ void
 xf86_unwrap_crtc_notify(ScreenPtr screen, xf86_crtc_notify_proc_ptr old)
 {
     if (xf86CrtcConfigPrivateIndex != -1) {
-        ScrnInfoPtr scrn = xf86Screens[screen->myNum];
+        ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
         xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
 
         config->xf86_crtc_notify = old;
@@ -3176,7 +3176,7 @@ xf86_unwrap_crtc_notify(ScreenPtr screen, xf86_crtc_notify_proc_ptr old)
 void
 xf86_crtc_notify(ScreenPtr screen)
 {
-    ScrnInfoPtr scrn = xf86Screens[screen->myNum];
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
 
     if (config->xf86_crtc_notify)

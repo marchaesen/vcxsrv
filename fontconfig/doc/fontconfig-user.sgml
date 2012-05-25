@@ -627,6 +627,29 @@ This is an example of a system-wide configuration file
 	&lt;family&gt;monospace&lt;/family&gt;
 	&lt;prefer&gt;&lt;family&gt;Andale Mono&lt;/family&gt;&lt;/prefer&gt;
 &lt;/alias&gt;
+
+&lt;--
+	The example of the requirements of OR operator;
+	If the 'family' contains 'Courier New' OR 'Courier'
+	add 'monospace' as the alternative
+--&gt;
+&lt;match target="pattern"&gt;
+	&lt;test name="family" mode="eq"&gt;
+		&lt;string&gt;Courier New&lt;/string&gt;
+	&lt;/test&gt;
+	&lt;edit name="family" mode="prepend"&gt;
+		&lt;string&gt;monospace&lt;/string&gt;
+	&lt;/edit&gt;
+&lt;/match&gt;
+&lt;match target="pattern"&gt;
+	&lt;test name="family" mode="eq"&gt;
+		&lt;string&gt;Courier&lt;/string&gt;
+	&lt;/test&gt;
+	&lt;edit name="family" mode="prepend"&gt;
+		&lt;string&gt;monospace&lt;/string&gt;
+	&lt;/edit&gt;
+&lt;/match&gt;
+
 &lt;/fontconfig&gt;
     </programlisting>
   </refsect2>

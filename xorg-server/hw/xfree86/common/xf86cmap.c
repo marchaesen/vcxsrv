@@ -66,7 +66,7 @@
 #define LOAD_PALETTE(pmap) \
     ((pmap == GetInstalledmiColormap(pmap->pScreen)) && \
      ((pScreenPriv->flags & CMAP_LOAD_EVEN_IF_OFFSCREEN) || \
-      xf86Screens[pmap->pScreen->myNum]->vtSema || pScreenPriv->isDGAmode))
+      xf86ScreenToScrn(pmap->pScreen)->vtSema || pScreenPriv->isDGAmode))
 
 typedef struct _CMapLink {
     ColormapPtr cmap;
@@ -151,7 +151,7 @@ xf86HandleColormaps(ScreenPtr pScreen,
                     xf86LoadPaletteProc * loadPalette,
                     xf86SetOverscanProc * setOverscan, unsigned int flags)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     ColormapPtr pDefMap = NULL;
     CMapScreenPtr pScreenPriv;
     LOCO *gamma;
@@ -511,7 +511,7 @@ CMapSetDGAMode(int index, int num, DGADevicePtr dev)
     pScreenPriv->isDGAmode = DGAActive(index);
 
     if (!pScreenPriv->isDGAmode && GetInstalledmiColormap(pScreen)
-        && xf86Screens[pScreen->myNum]->vtSema)
+        && xf86ScreenToScrn(pScreen)->vtSema)
         CMapReinstallMap(GetInstalledmiColormap(pScreen));
 
     return ret;
@@ -528,7 +528,7 @@ CMapReinstallMap(ColormapPtr pmap)
                                          CMapScreenKey);
     CMapColormapPtr cmapPriv =
         (CMapColormapPtr) dixLookupPrivate(&pmap->devPrivates, CMapColormapKey);
-    ScrnInfoPtr pScrn = xf86Screens[pmap->pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pmap->pScreen);
     int i = cmapPriv->numColors;
     int *indices = pScreenPriv->PreAllocIndices;
 
@@ -560,7 +560,7 @@ CMapRefreshColors(ColormapPtr pmap, int defs, int *indices)
     CMapColormapPtr pColPriv =
         (CMapColormapPtr) dixLookupPrivate(&pmap->devPrivates, CMapColormapKey);
     VisualPtr pVisual = pmap->pVisual;
-    ScrnInfoPtr pScrn = xf86Screens[pmap->pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pmap->pScreen);
     int numColors, i;
     LOCO *gamma, *colors;
     EntryPtr entry;
@@ -692,7 +692,7 @@ CMapSetOverscan(ColormapPtr pmap, int defs, int *indices)
                                          CMapScreenKey);
     CMapColormapPtr pColPriv =
         (CMapColormapPtr) dixLookupPrivate(&pmap->devPrivates, CMapColormapKey);
-    ScrnInfoPtr pScrn = xf86Screens[pmap->pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pmap->pScreen);
     VisualPtr pVisual = pmap->pVisual;
     int i;
     LOCO *colors;
@@ -833,7 +833,7 @@ CMapUnwrapScreen(ScreenPtr pScreen)
 {
     CMapScreenPtr pScreenPriv =
         (CMapScreenPtr) dixLookupPrivate(&pScreen->devPrivates, CMapScreenKey);
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 
     pScreen->CloseScreen = pScreenPriv->CloseScreen;
     pScreen->CreateColormap = pScreenPriv->CreateColormap;
@@ -1008,7 +1008,7 @@ xf86ChangeGammaRamp(ScreenPtr pScreen,
                     unsigned short *red,
                     unsigned short *green, unsigned short *blue)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     CMapColormapPtr pColPriv;
     CMapScreenPtr pScreenPriv;
     CMapLinkPtr pLink;
@@ -1085,7 +1085,7 @@ xf86ChangeGammaRamp(ScreenPtr pScreen,
 int
 xf86GetGammaRampSize(ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     CMapScreenPtr pScreenPriv;
 
     if (xf86_crtc_supports_gamma(pScrn)) {
@@ -1112,7 +1112,7 @@ xf86GetGammaRamp(ScreenPtr pScreen,
                  unsigned short *red,
                  unsigned short *green, unsigned short *blue)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     CMapScreenPtr pScreenPriv;
     LOCO *entry;
     int shift, sigbits;
@@ -1172,7 +1172,7 @@ xf86GetGammaRamp(ScreenPtr pScreen,
 int
 xf86ChangeGamma(ScreenPtr pScreen, Gamma gamma)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 
     if (pScrn->ChangeGamma)
         return (*pScrn->ChangeGamma) (pScreen->myNum, gamma);

@@ -100,7 +100,7 @@ typedef struct {
 Bool
 DGAInit(ScreenPtr pScreen, DGAFunctionPtr funcs, DGAModePtr modes, int num)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     DGAScreenPtr pScreenPriv;
     int i;
 

@@ -59,7 +59,7 @@ Bool
 RamDacHandleColormaps(ScreenPtr pScreen, int maxColors, int sigRGBbits,
                       unsigned int flags)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     RamDacRecPtr hwp = RAMDACSCRPTR(pScrn);
 
     if (hwp->LoadPalette == NULL)
