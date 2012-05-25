@@ -1532,7 +1532,7 @@ XAAStateWrapSetupForCPUToScreenTexture2(ScrnInfoPtr pScrn, int op,
 Bool
 XAAInitStateWrap(ScreenPtr pScreen, XAAInfoRecPtr infoRec)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     XAAStateWrapPtr pStatePriv;
     int i = 0;
 

@@ -52,7 +52,7 @@
 #define PCI_VENDOR_GENERIC		0x00FF
 
 /* Bus-specific globals */
-Bool pciSlotClaimed = FALSE;
+int pciSlotClaimed = 0;
 
 #define PCIINFOCLASSES(c) \
     ( (((c) & 0x00ff0000) == (PCI_CLASS_PREHISTORIC << 16)) \
@@ -223,7 +223,7 @@ xf86ClaimPciSlot(struct pci_device *d, DriverPtr drvp,
         p->inUse = FALSE;
         if (dev)
             xf86AddDevToEntity(num, dev);
-        pciSlotClaimed = TRUE;
+        pciSlotClaimed++;
 
         return num;
     }
@@ -235,7 +235,7 @@ xf86ClaimPciSlot(struct pci_device *d, DriverPtr drvp,
  * Unclaim PCI slot, e.g. if probing failed, so that a different driver can claim.
  */
 void
-xf86UnclaimPciSlot(struct pci_device *d)
+xf86UnclaimPciSlot(struct pci_device *d, GDevPtr dev)
 {
     int i;
 
@@ -244,6 +244,8 @@ xf86UnclaimPciSlot(struct pci_device *d)
 
         if ((p->bus.type == BUS_PCI) && (p->bus.id.pci == d)) {
             /* Probably the slot should be deallocated? */
+            xf86RemoveDevFromEntity(i, dev);
+            pciSlotClaimed--;
             p->bus.type = BUS_NONE;
             return;
         }
@@ -537,7 +539,7 @@ xf86PciProbeDev(DriverPtr drvp)
                         foundScreen = TRUE;
                     }
                     else
-                        xf86UnclaimPciSlot(pPci);
+                        xf86UnclaimPciSlot(pPci, devList[i]);
                 }
 
                 break;

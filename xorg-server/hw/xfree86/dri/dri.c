@@ -315,7 +315,7 @@ DRIScreenInit(ScreenPtr pScreen, DRIInfoPtr pDRIInfo, int *pDRMFD)
     int reserved_count;
     int i;
     DRIEntPrivPtr pDRIEntPriv;
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     DRIContextFlags flags = 0;
     DRIContextPrivPtr pDRIContextPriv;
 
@@ -615,7 +615,7 @@ DRIFinishScreenInit(ScreenPtr pScreen)
         pScreen->ClipNotify = pDRIInfo->wrap.ClipNotify;
     }
     if (pDRIInfo->wrap.AdjustFrame) {
-        ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+        ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 
         pDRIPriv->wrap.AdjustFrame = pScrn->AdjustFrame;
         pScrn->AdjustFrame = pDRIInfo->wrap.AdjustFrame;
@@ -634,7 +634,7 @@ DRICloseScreen(ScreenPtr pScreen)
     DRIInfoPtr pDRIInfo;
     drm_context_t *reserved;
     int reserved_count;
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     DRIEntPrivPtr pDRIEntPriv = DRI_ENT_PRIV(pScrn);
     Bool closeMaster;
 
@@ -672,7 +672,7 @@ DRICloseScreen(ScreenPtr pScreen)
                 pDRIPriv->wrap.ClipNotify = NULL;
             }
             if (pDRIInfo->wrap.AdjustFrame) {
-                ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+                ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 
                 pScrn->AdjustFrame = pDRIPriv->wrap.AdjustFrame;
                 pDRIPriv->wrap.AdjustFrame = NULL;
@@ -2311,7 +2311,7 @@ DRIAdjustFrame(int scrnIndex, int x, int y, int flags)
 {
     ScreenPtr pScreen = screenInfo.screens[scrnIndex];
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     int px, py;
 
     if (!pDRIPriv || !pDRIPriv->pSAREA) {

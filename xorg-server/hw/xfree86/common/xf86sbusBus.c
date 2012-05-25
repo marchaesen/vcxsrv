@@ -619,8 +619,9 @@ xf86SbusUseBuiltinMode(ScrnInfoPtr pScrn, sbusDevicePtr psdp)
     pScrn->virtualY = psdp->height;
 }
 
-static sbusPaletteKeyIndex;
-static DevPrivateKey sbusPaletteKey = &sbusPaletteKeyIndex;
+static DevPrivateKeyRec sbusPaletteKeyRec;
+#define sbusPaletteKey (&sbusPaletteKeyRec)
+
 typedef struct _sbusCmap {
     sbusDevicePtr psdp;
     CloseScreenProcPtr CloseScreen;
@@ -691,6 +692,9 @@ xf86SbusHandleColormaps(ScreenPtr pScreen, sbusDevicePtr psdp)
     sbusCmapPtr cmap;
     struct fbcmap fbcmap;
     unsigned char data[2];
+
+    if (!dixRegisterPrivateKey(sbusPaletteKey, PRIVATE_SCREEN, 0))
+        FatalError("Cannot register sbus private key");
 
     cmap = xnfcalloc(1, sizeof(sbusCmapRec));
     dixSetPrivate(&pScreen->devPrivates, sbusPaletteKey, cmap);

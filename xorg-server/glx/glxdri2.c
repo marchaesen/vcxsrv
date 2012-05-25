@@ -686,7 +686,7 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
     const char *driverName, *deviceName;
     __GLXDRIscreen *screen;
     size_t buffer_size;
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 
     screen = calloc(1, sizeof *screen);
     if (screen == NULL)

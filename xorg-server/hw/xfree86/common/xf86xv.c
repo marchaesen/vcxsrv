@@ -271,7 +271,7 @@ xf86XVScreenInit(ScreenPtr pScreen, XF86VideoAdaptorPtr * adaptors, int num)
     if (!ScreenPriv)
         return FALSE;
 
-    pScrn = xf86Screens[pScreen->myNum];
+    pScrn = xf86ScreenToScrn(pScreen);
 
     ScreenPriv->DestroyWindow = pScreen->DestroyWindow;
     ScreenPriv->WindowExposures = pScreen->WindowExposures;
@@ -356,7 +356,7 @@ static Bool
 xf86XVInitAdaptors(ScreenPtr pScreen, XF86VideoAdaptorPtr * infoPtr, int number)
 {
     XvScreenPtr pxvs = GET_XV_SCREEN(pScreen);
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     XF86VideoAdaptorPtr adaptorPtr;
     XvAdaptorPtr pAdaptor, pa;
     XvAdaptorRecPrivatePtr adaptorPriv;
@@ -1150,7 +1150,7 @@ xf86XVPostValidateTree(WindowPtr pWin, WindowPtr pLayerWin, VTKind kind)
         pScreen = pLayerWin->drawable.pScreen;
 
     ScreenPriv = GET_XF86XV_SCREEN(pScreen);
-    pScrn = xf86Screens[pScreen->myNum];
+    pScrn = xf86ScreenToScrn(pScreen);
 
     xf86XVReputOrStopAllPorts(pScrn, TRUE);
 
@@ -1257,7 +1257,7 @@ xf86XVClipNotify(WindowPtr pWin, int dx, int dy)
 static Bool
 xf86XVCloseScreen(int i, ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     XvScreenPtr pxvs = GET_XV_SCREEN(pScreen);
     XF86XVScreenPtr ScreenPriv = GET_XF86XV_SCREEN(pScreen);
     XvAdaptorPtr pa;
@@ -1899,7 +1899,7 @@ xf86XVFillKeyHelperDrawable(DrawablePtr pDraw, CARD32 key, RegionPtr fillboxes)
     xRectangle *rects;
     GCPtr gc;
 
-    if (!xf86Screens[pScreen->myNum]->vtSema)
+    if (!xf86ScreenToScrn(pScreen)->vtSema)
         return;
 
     gc = GetScratchGC(pDraw->depth, pScreen);

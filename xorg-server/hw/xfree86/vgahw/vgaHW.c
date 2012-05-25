@@ -651,7 +651,7 @@ vgaHWSaveScreen(ScreenPtr pScreen, int mode)
     Bool on;
 
     if (pScreen != NULL)
-        pScrn = xf86Screens[pScreen->myNum];
+        pScrn = xf86ScreenToScrn(pScreen);
 
     on = xf86IsUnblank(mode);
 
@@ -1873,7 +1873,7 @@ vgaHWSetOverscan(ScrnInfoPtr pScrn, int overscan)
 Bool
 vgaHWHandleColormaps(ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 
     if (pScrn->depth > 1 && pScrn->depth <= 8) {
         return xf86HandleColormaps(pScreen, 1 << pScrn->depth,

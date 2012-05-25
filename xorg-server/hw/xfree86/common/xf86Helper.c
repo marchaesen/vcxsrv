@@ -1577,7 +1577,7 @@ xf86SetBackingStore(ScreenPtr pScreen)
 {
     Bool useBS = FALSE;
     MessageType from = X_DEFAULT;
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     OptionInfoPtr options;
 
     options = xnfalloc(sizeof(BSOptions));
@@ -1618,7 +1618,7 @@ xf86SetSilkenMouse(ScreenPtr pScreen)
 {
     Bool useSM = TRUE;
     MessageType from = X_DEFAULT;
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     OptionInfoPtr options;
 
     options = xnfalloc(sizeof(SMOptions));
@@ -1833,4 +1833,18 @@ void
 xf86MotionHistoryAllocate(InputInfoPtr pInfo)
 {
     AllocateMotionHistory(pInfo->dev);
+}
+
+ScrnInfoPtr
+xf86ScreenToScrn(ScreenPtr pScreen)
+{
+    assert(pScreen->myNum < xf86NumScreens);
+    return xf86Screens[pScreen->myNum];
+}
+
+ScreenPtr
+xf86ScrnToScreen(ScrnInfoPtr pScrn)
+{
+    assert(pScrn->scrnIndex < screenInfo.numScreens);
+    return screenInfo.screens[pScrn->scrnIndex];
 }

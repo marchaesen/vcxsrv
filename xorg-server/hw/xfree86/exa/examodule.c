@@ -72,7 +72,7 @@ static const OptionInfoRec EXAOptions[] = {
 static Bool
 exaXorgCloseScreen(int i, ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = XF86SCRNINFO(pScreen);
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     ExaXorgScreenPrivPtr pScreenPriv = (ExaXorgScreenPrivPtr)
         dixLookupPrivate(&pScreen->devPrivates, exaXorgScreenPrivateKey);
 
@@ -111,8 +111,7 @@ void
 exaDDXDriverInit(ScreenPtr pScreen)
 {
     ExaScreenPriv(pScreen);
-    /* Do NOT use XF86SCRNINFO macro here!! */
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     ExaXorgScreenPrivPtr pScreenPriv;
 
     if (!dixRegisterPrivateKey(&exaXorgScreenPrivateKeyRec, PRIVATE_SCREEN, 0))

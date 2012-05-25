@@ -566,4 +566,60 @@ LEAF_MIPS32R2(symbol)                                   \
     addu_s.qb              \out2_8888, \d2_8888,  \scratch2
 .endm
 
+.macro BILINEAR_INTERPOLATE_SINGLE_PIXEL tl, tr, bl, br,         \
+                                         scratch1, scratch2,     \
+                                         alpha, red, green, blue \
+                                         wt1, wt2, wb1, wb2
+    andi            \scratch1, \tl,  0xff
+    andi            \scratch2, \tr,  0xff
+    andi            \alpha,    \bl,  0xff
+    andi            \red,      \br,  0xff
+
+    multu           $ac0,      \wt1, \scratch1
+    maddu           $ac0,      \wt2, \scratch2
+    maddu           $ac0,      \wb1, \alpha
+    maddu           $ac0,      \wb2, \red
+
+    ext             \scratch1, \tl,  8, 8
+    ext             \scratch2, \tr,  8, 8
+    ext             \alpha,    \bl,  8, 8
+    ext             \red,      \br,  8, 8
+
+    multu           $ac1,      \wt1, \scratch1
+    maddu           $ac1,      \wt2, \scratch2
+    maddu           $ac1,      \wb1, \alpha
+    maddu           $ac1,      \wb2, \red
+
+    ext             \scratch1, \tl,  16, 8
+    ext             \scratch2, \tr,  16, 8
+    ext             \alpha,    \bl,  16, 8
+    ext             \red,      \br,  16, 8
+
+    mflo            \blue,     $ac0
+
+    multu           $ac2,      \wt1, \scratch1
+    maddu           $ac2,      \wt2, \scratch2
+    maddu           $ac2,      \wb1, \alpha
+    maddu           $ac2,      \wb2, \red
+
+    ext             \scratch1, \tl,  24, 8
+    ext             \scratch2, \tr,  24, 8
+    ext             \alpha,    \bl,  24, 8
+    ext             \red,      \br,  24, 8
+
+    mflo            \green,    $ac1
+
+    multu           $ac3,      \wt1, \scratch1
+    maddu           $ac3,      \wt2, \scratch2
+    maddu           $ac3,      \wb1, \alpha
+    maddu           $ac3,      \wb2, \red
+
+    mflo            \red,      $ac2
+    mflo            \alpha,    $ac3
+
+    precr.qb.ph     \alpha,    \alpha, \red
+    precr.qb.ph     \scratch1, \green, \blue
+    precrq.qb.ph    \tl,       \alpha, \scratch1
+.endm
+
 #endif //PIXMAN_MIPS_DSPR2_ASM_H

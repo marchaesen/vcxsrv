@@ -95,7 +95,7 @@
 static inline void
 VGAGet(ScreenPtr pScreen)
 {
-    pci_device_vgaarb_set_target(xf86Screens[pScreen->myNum]->vgaDev);
+    pci_device_vgaarb_set_target(xf86ScreenToScrn(pScreen)->vgaDev);
     pci_device_vgaarb_lock();
 }
 

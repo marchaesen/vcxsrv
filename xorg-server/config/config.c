@@ -33,6 +33,15 @@
 #include "config-backends.h"
 
 void
+config_pre_init(void)
+{
+#ifdef CONFIG_UDEV
+    if (!config_udev_pre_init())
+        ErrorF("[config] failed to pre-init udev\n");
+#endif
+}
+
+void
 config_init(void)
 {
 #ifdef CONFIG_UDEV

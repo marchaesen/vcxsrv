@@ -19,8 +19,8 @@ standard is printed. This modeline can be included in Xorg
 .SH OPTIONS
 .TP 8
 .BR refresh
-Provide a vertical refresh rate in kHz.  The CVT standard prefers either 50.0,
-60.0, 75.0 or 85.0kHz.  The default is 60.0kHz.
+Provide a vertical refresh rate in Hz.  The CVT standard prefers either 50.0,
+60.0, 75.0 or 85.0Hz.  The default is 60.0Hz.
 .TP 8
 .BR \-v | \-\-verbose
 Warn verbosely when a given mode does not completely correspond with CVT

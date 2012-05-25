@@ -652,7 +652,7 @@ ConvertSomePartialsTo8x8(int *NumMono, int *NumColor, int *NumPartial,
 void
 XAAInitPixmapCache(ScreenPtr pScreen, RegionPtr areas, pointer data)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     XAAInfoRecPtr infoRec = (XAAInfoRecPtr) data;
     XAAPixmapCachePrivatePtr pCachePriv;
     BoxPtr pBox = RegionRects(areas);
@@ -2015,7 +2015,7 @@ XAAWriteBitmapToCacheLinear(ScrnInfoPtr pScrn,
                             int x, int y, int w, int h,
                             unsigned char *src, int srcwidth, int fg, int bg)
 {
-    ScreenPtr pScreen = pScrn->pScreen;
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     PixmapPtr pScreenPix, pDstPix;
     ChangeGCVal gcvals[2];
     GCPtr pGC;
@@ -2061,7 +2061,7 @@ XAAWritePixmapToCacheLinear(ScrnInfoPtr pScrn,
                             unsigned char *src,
                             int srcwidth, int bpp, int depth)
 {
-    ScreenPtr pScreen = pScrn->pScreen;
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     PixmapPtr pScreenPix, pDstPix;
     GCPtr pGC;
 

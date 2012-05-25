@@ -55,7 +55,7 @@ static Bool xf86CursorSwitchMode(int, DisplayModePtr, int);
 Bool
 xf86InitCursor(ScreenPtr pScreen, xf86CursorInfoPtr infoPtr)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CursorScreenPtr ScreenPriv;
     miPointerScreenPtr PointPriv;
 
@@ -120,7 +120,7 @@ xf86InitCursor(ScreenPtr pScreen, xf86CursorInfoPtr infoPtr)
 static Bool
 xf86CursorCloseScreen(int i, ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     miPointerScreenPtr PointPriv =
         (miPointerScreenPtr) dixLookupPrivate(&pScreen->devPrivates,
                                               miPointerScreenKey);

@@ -58,6 +58,9 @@ PIXMAN_MIPS_BIND_FAST_PATH_N_MASK_DST (SKIP_ZERO_SRC, over_n_8_8888,
 PIXMAN_MIPS_BIND_FAST_PATH_N_MASK_DST (SKIP_ZERO_SRC, over_n_8_0565,
                                        uint8_t, 1, uint16_t, 1)
 
+PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_A8_DST (SKIP_ZERO_SRC, 8888_8_8888, OVER,
+                                             uint32_t, uint32_t)
+
 static pixman_bool_t
 pixman_fill_mips (uint32_t *bits,
                   int       stride,
@@ -205,6 +208,9 @@ static const pixman_fast_path_t mips_dspr2_fast_paths[] =
     PIXMAN_STD_FAST_PATH (OVER, solid,    a8,       x8b8g8r8, mips_composite_over_n_8_8888),
     PIXMAN_STD_FAST_PATH (OVER, solid,    a8,       r5g6b5,   mips_composite_over_n_8_0565),
     PIXMAN_STD_FAST_PATH (OVER, solid,    a8,       b5g6r5,   mips_composite_over_n_8_0565),
+
+    SIMPLE_BILINEAR_A8_MASK_FAST_PATH (OVER, a8r8g8b8, a8r8g8b8, mips_8888_8_8888),
+    SIMPLE_BILINEAR_A8_MASK_FAST_PATH (OVER, a8r8g8b8, x8r8g8b8, mips_8888_8_8888),
 
     { PIXMAN_OP_NONE },
 };

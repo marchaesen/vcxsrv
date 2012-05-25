@@ -171,7 +171,7 @@ static DevPrivateKeyRec XAAOverlayKeyRec;
 Bool
 XAAInitDualFramebufferOverlay(ScreenPtr pScreen, DepthChangeFuncPtr callback)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     XAAInfoRecPtr infoRec = GET_XAAINFORECPTR_FROM_SCREEN(pScreen);
     XAAOverlayPtr pOverPriv;
 

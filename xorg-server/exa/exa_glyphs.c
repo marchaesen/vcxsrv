@@ -365,7 +365,7 @@ exaGlyphCacheUploadGlyph(ScreenPtr pScreen,
                          ExaGlyphCachePtr cache, int x, int y, GlyphPtr pGlyph)
 {
     ExaScreenPriv(pScreen);
-    PicturePtr pGlyphPicture = GlyphPicture(pGlyph)[pScreen->myNum];
+    PicturePtr pGlyphPicture = GetGlyphPicture(pGlyph, pScreen);
     PixmapPtr pGlyphPixmap = (PixmapPtr) pGlyphPicture->pDrawable;
 
     ExaPixmapPriv(pGlyphPixmap);
@@ -544,7 +544,7 @@ exaBufferGlyph(ScreenPtr pScreen,
                INT16 ySrc, INT16 xMask, INT16 yMask, INT16 xDst, INT16 yDst)
 {
     ExaScreenPriv(pScreen);
-    unsigned int format = (GlyphPicture(pGlyph)[pScreen->myNum])->format;
+    unsigned int format = (GetGlyphPicture(pGlyph, pScreen))->format;
     int width = pGlyph->info.width;
     int height = pGlyph->info.height;
     ExaCompositeRectPtr rect;
@@ -586,7 +586,7 @@ exaBufferGlyph(ScreenPtr pScreen,
 
     /* Couldn't find the glyph in the cache, use the glyph picture directly */
 
-    mask = GlyphPicture(pGlyph)[pScreen->myNum];
+    mask = GetGlyphPicture(pGlyph, pScreen);
     if (buffer->mask && buffer->mask != mask)
         return ExaGlyphNeedFlush;
 

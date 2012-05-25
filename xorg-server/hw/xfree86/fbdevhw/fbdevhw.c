@@ -866,7 +866,7 @@ fbdevHWDPMSSet(ScrnInfoPtr pScrn, int mode, int flags)
 Bool
 fbdevHWSaveScreen(ScreenPtr pScreen, int mode)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     fbdevHWPtr fPtr = FBDEVHWPTR(pScrn);
     unsigned long unblank;
 

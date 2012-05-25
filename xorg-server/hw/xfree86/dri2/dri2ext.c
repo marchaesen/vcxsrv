@@ -589,11 +589,14 @@ SProcDRI2Connect(ClientPtr client)
     if (sizeof(*stuff) / 4 != client->req_len)
         return BadLength;
 
+    rep.type = X_Reply;
     rep.sequenceNumber = client->sequence;
     swaps(&rep.sequenceNumber);
     rep.length = 0;
     rep.driverNameLength = 0;
     rep.deviceNameLength = 0;
+
+    WriteToClient(client, sizeof(xDRI2ConnectReply), &rep);
 
     return Success;
 }

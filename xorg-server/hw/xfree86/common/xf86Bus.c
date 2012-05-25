@@ -420,6 +420,26 @@ xf86AddDevToEntity(int entityIndex, GDevPtr dev)
     dev->claimed = TRUE;
 }
 
+
+void
+xf86RemoveDevFromEntity(int entityIndex, GDevPtr dev)
+{
+    EntityPtr pEnt;
+    int i, j;
+    if (entityIndex >= xf86NumEntities)
+        return;
+
+    pEnt = xf86Entities[entityIndex];
+    for (i = 0; i < pEnt->numInstances; i++) {
+        if (pEnt->devices[i] == dev) {
+            for (j = i; j < pEnt->numInstances - 1; j++)
+                pEnt->devices[j] = pEnt->devices[j + 1];
+            break;
+        }
+    }
+    pEnt->numInstances--;
+    dev->claimed = FALSE;
+}
 /*
  * xf86GetEntityInfo() -- This function hands information from the
  * EntityRec struct to the drivers. The EntityRec structure itself

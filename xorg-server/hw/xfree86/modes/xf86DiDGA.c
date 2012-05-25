@@ -41,7 +41,7 @@
 static Bool
 xf86_dga_get_modes(ScreenPtr pScreen)
 {
-    ScrnInfoPtr scrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
     DGAModePtr modes, mode;
     DisplayModePtr display_mode;
@@ -175,7 +175,7 @@ xf86DiDGAReInit(ScreenPtr pScreen)
 Bool
 _xf86_di_dga_reinit_internal(ScreenPtr pScreen)
 {
-    ScrnInfoPtr scrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
 
     if (!DGAAvailable(pScreen->myNum))
@@ -197,7 +197,7 @@ xf86DiDGAInit(ScreenPtr pScreen, unsigned long dga_address)
 Bool
 _xf86_di_dga_init_internal(ScreenPtr pScreen)
 {
-    ScrnInfoPtr scrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
 
     xf86_config->dga_flags = 0;

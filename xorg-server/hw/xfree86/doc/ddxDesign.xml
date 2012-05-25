@@ -665,11 +665,6 @@ Here is what <function>InitOutput()</function> does:
       </para>
 
       <para>
-    The core server contains a list of mandatory modules.  These are loaded
-    first.  Currently the only module on this list is the bitmap font module.
-      </para>
-
-      <para>
     The next set of modules loaded are those specified explicitly in the
     &k.module; section of the config file.
       </para>
@@ -5994,26 +5989,6 @@ typedef struct {
 
 	  </blockquote></para></blockquote>
 
-      <blockquote><para>
-	  <programlisting>
-    void LoadFont(FontModule *font);
-	  </programlisting>
-	  <blockquote><para>
-    This registers the entry points for the font rasteriser module
-    identified by <parameter>font</parameter>.  The <structname>FontModule</structname>
-    struct is defined as:
-
-	      <programlisting>
- typedef struct {
-    InitFont    initFunc;
-    char *      name;
-    pointer     module;
-} FontModule;
-	      </programlisting>
-	    </para>
-
-	  </blockquote></para></blockquote>
-
     </sect2>
 
   </sect1>
@@ -9061,7 +9036,7 @@ static Bool
 ZZZScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 {
     /* Get the ScrnInfoRec */
-    pScrn = xf86Screens[pScreen-&gt;myNum];
+    pScrn = xf86ScreenToScrn(pScreen);
 
     /*
      * If using the vgahw module, its data structures and related

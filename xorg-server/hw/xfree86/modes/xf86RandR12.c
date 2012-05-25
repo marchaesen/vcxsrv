@@ -447,7 +447,7 @@ static Bool
 xf86RandR12GetInfo(ScreenPtr pScreen, Rotation * rotations)
 {
     RRScreenSizePtr pSize;
-    ScrnInfoPtr scrp = XF86SCRNINFO(pScreen);
+    ScrnInfoPtr scrp = xf86ScreenToScrn(pScreen);
     XF86RandRInfoPtr randrp = XF86RANDRINFO(pScreen);
     DisplayModePtr mode;
     int refresh0 = 60;
@@ -504,7 +504,7 @@ xf86RandR12SetMode(ScreenPtr pScreen,
                    DisplayModePtr mode,
                    Bool useVirtual, int mmWidth, int mmHeight)
 {
-    ScrnInfoPtr scrp = XF86SCRNINFO(pScreen);
+    ScrnInfoPtr scrp = xf86ScreenToScrn(pScreen);
     XF86RandRInfoPtr randrp = XF86RANDRINFO(pScreen);
     int oldWidth = pScreen->width;
     int oldHeight = pScreen->height;
@@ -576,7 +576,7 @@ Bool
 xf86RandR12SetConfig(ScreenPtr pScreen,
                      Rotation rotation, int rate, RRScreenSizePtr pSize)
 {
-    ScrnInfoPtr scrp = XF86SCRNINFO(pScreen);
+    ScrnInfoPtr scrp = xf86ScreenToScrn(pScreen);
     XF86RandRInfoPtr randrp = XF86RANDRINFO(pScreen);
     DisplayModePtr mode;
     int pos[MAXDEVICES][2];
@@ -671,7 +671,7 @@ xf86RandR12ScreenSetSize(ScreenPtr pScreen,
                          CARD16 height, CARD32 mmWidth, CARD32 mmHeight)
 {
     XF86RandRInfoPtr randrp = XF86RANDRINFO(pScreen);
-    ScrnInfoPtr pScrn = XF86SCRNINFO(pScreen);
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
     WindowPtr pRoot = pScreen->root;
     PixmapPtr pScrnPix;
@@ -743,7 +743,7 @@ xf86RandR12GetRotation(ScreenPtr pScreen)
 Bool
 xf86RandR12CreateScreenResources(ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr config;
     XF86RandRInfoPtr randrp;
     int c;
@@ -902,7 +902,7 @@ xf86RandR12CloseScreen(ScreenPtr pScreen)
 
     randrp = XF86RANDRINFO(pScreen);
 #if RANDR_12_INTERFACE
-    xf86Screens[pScreen->myNum]->EnterVT = randrp->orig_EnterVT;
+    xf86ScreenToScrn(pScreen)->EnterVT = randrp->orig_EnterVT;
 #endif
 
     free(randrp);
@@ -914,7 +914,7 @@ xf86RandR12SetRotations(ScreenPtr pScreen, Rotation rotations)
     XF86RandRInfoPtr randrp;
 
 #if RANDR_12_INTERFACE
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     int c;
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
 #endif
@@ -939,7 +939,7 @@ xf86RandR12SetTransformSupport(ScreenPtr pScreen, Bool transforms)
     XF86RandRInfoPtr randrp;
 
 #if RANDR_13_INTERFACE
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     int c;
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
 #endif
@@ -960,7 +960,7 @@ xf86RandR12SetTransformSupport(ScreenPtr pScreen, Bool transforms)
 void
 xf86RandR12GetOriginalVirtualSize(ScrnInfoPtr pScrn, int *x, int *y)
 {
-    ScreenPtr pScreen = screenInfo.screens[pScrn->scrnIndex];
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
 
     if (xf86RandR12Generation != serverGeneration ||
         XF86RANDRINFO(pScreen)->virtualX == -1) {
@@ -1041,7 +1041,7 @@ static Bool
 xf86RandR12CrtcNotify(RRCrtcPtr randr_crtc)
 {
     ScreenPtr pScreen = randr_crtc->pScreen;
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
     RRModePtr randr_mode = NULL;
     int x;
@@ -1136,7 +1136,7 @@ xf86RandR12CrtcSet(ScreenPtr pScreen,
                    int num_randr_outputs, RROutputPtr * randr_outputs)
 {
     XF86RandRInfoPtr randrp = XF86RANDRINFO(pScreen);
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
     xf86CrtcPtr crtc = randr_crtc->devPrivate;
     RRTransformPtr transform;
@@ -1349,7 +1349,7 @@ static Bool
 xf86RandR12OutputValidateMode(ScreenPtr pScreen,
                               RROutputPtr randr_output, RRModePtr randr_mode)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86OutputPtr output = randr_output->devPrivate;
     DisplayModeRec mode;
 
@@ -1434,7 +1434,7 @@ xf86RROutputSetModes(RROutputPtr randr_output, DisplayModePtr modes)
 static Bool
 xf86RandR12SetInfo12(ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
     RROutputPtr *clones;
     RRCrtcPtr *crtcs;
@@ -1510,7 +1510,7 @@ xf86RandR12SetInfo12(ScreenPtr pScreen)
 static Bool
 xf86RandR12GetInfo12(ScreenPtr pScreen, Rotation * rotations)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 
     if (!pScrn->vtSema)
         return TRUE;
@@ -1522,7 +1522,7 @@ xf86RandR12GetInfo12(ScreenPtr pScreen, Rotation * rotations)
 static Bool
 xf86RandR12CreateObjects12(ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
     int c;
     int o;
@@ -1559,7 +1559,7 @@ static Bool
 xf86RandR12CreateScreenResources12(ScreenPtr pScreen)
 {
     int c;
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
 
     if (xf86RandR12Key == NULL)
@@ -1581,7 +1581,7 @@ xf86RandR12CreateScreenResources12(ScreenPtr pScreen)
 void
 xf86RandR12TellChanged(ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
     int c;
 
@@ -1751,7 +1751,7 @@ xf86RandR12EnterVT(int screen_index, int flags)
 static Bool
 xf86RandR12Init12(ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     rrScrPrivPtr rp = rrGetScrPriv(pScreen);
     XF86RandRInfoPtr randrp = XF86RANDRINFO(pScreen);
     int i;

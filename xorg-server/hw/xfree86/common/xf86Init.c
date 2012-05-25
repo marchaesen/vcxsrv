@@ -405,6 +405,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 
     xf86Initialising = TRUE;
 
+    config_pre_init();
+
     if (serverGeneration == 1) {
         if ((xf86ServerName = strrchr(argv[0], '/')) != 0)
             xf86ServerName++;
