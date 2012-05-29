@@ -358,7 +358,7 @@ struct _FcCache {
     intptr_t	dirs;		    /* offset to subdirs */
     int		dirs_count;	    /* number of subdir strings */
     intptr_t	set;		    /* offset to font set */
-    int		mtime;		    /* low bits of directory mtime */
+    int		checksum;	    /* checksum of directory state */
 };
 
 #undef FcCacheDir
@@ -539,6 +539,13 @@ struct _FcRange {
     FcChar32 end;
 };
 
+typedef struct _FcStatFS    FcStatFS;
+
+struct _FcStatFS {
+    FcBool is_remote_fs;
+    FcBool is_mtime_broken;
+};
+
 /* fcblanks.c */
 
 /* fccache.c */
@@ -566,9 +573,6 @@ FcCacheFini (void);
 
 FcPrivate void
 FcDirCacheReference (FcCache *cache, int nref);
-
-FcPrivate int
-FcStat (const FcChar8 *file, struct stat *statb);
 
 /* fccfg.c */
 
@@ -1019,6 +1023,20 @@ extern FcPrivate const FcMatrix    FcIdentityMatrix;
 
 FcPrivate void
 FcMatrixFree (FcMatrix *mat);
+
+/* fcstat.c */
+
+FcPrivate int
+FcStat (const FcChar8 *file, struct stat *statb);
+
+FcPrivate int
+FcStatChecksum (const FcChar8 *file, struct stat *statb);
+
+FcPrivate FcBool
+FcIsFsMmapSafe (int fd);
+
+FcPrivate FcBool
+FcIsFsMtimeBroken (const FcChar8 *dir);
 
 /* fcstr.c */
 FcPrivate void

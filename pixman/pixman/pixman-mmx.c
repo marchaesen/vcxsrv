@@ -185,6 +185,9 @@ typedef struct
     mmxdatafield mmx_565_b;
     mmxdatafield mmx_packed_565_rb;
     mmxdatafield mmx_packed_565_g;
+    mmxdatafield mmx_expand_565_g;
+    mmxdatafield mmx_expand_565_b;
+    mmxdatafield mmx_expand_565_r;
 #ifndef USE_LOONGSON_MMI
     mmxdatafield mmx_mask_0;
     mmxdatafield mmx_mask_1;
@@ -216,6 +219,9 @@ static const mmx_data_t c =
     MMXDATA_INIT (.mmx_565_b,                    0x00000000000000f8),
     MMXDATA_INIT (.mmx_packed_565_rb,            0x00f800f800f800f8),
     MMXDATA_INIT (.mmx_packed_565_g,             0x0000fc000000fc00),
+    MMXDATA_INIT (.mmx_expand_565_g,             0x07e007e007e007e0),
+    MMXDATA_INIT (.mmx_expand_565_b,             0x001f001f001f001f),
+    MMXDATA_INIT (.mmx_expand_565_r,             0xf800f800f800f800),
 #ifndef USE_LOONGSON_MMI
     MMXDATA_INIT (.mmx_mask_0,                   0xffffffffffff0000),
     MMXDATA_INIT (.mmx_mask_1,                   0xffffffff0000ffff),
@@ -518,6 +524,36 @@ expand565 (__m64 pixel, int pos)
     return _mm_srli_pi16 (pixel, 8);
 }
 
+/* Expand 4 16 bit pixels in an mmx register into two mmx registers of
+ *
+ *    AARRGGBBRRGGBB
+ */
+static force_inline void
+expand_4xpacked565 (__m64 vin, __m64 *vout0, __m64 *vout1, int full_alpha)
+{
+    __m64 t0, t1, alpha = _mm_setzero_si64 ();;
+    __m64 r = _mm_and_si64 (vin, MC (expand_565_r));
+    __m64 g = _mm_and_si64 (vin, MC (expand_565_g));
+    __m64 b = _mm_and_si64 (vin, MC (expand_565_b));
+    if (full_alpha)
+	alpha = _mm_cmpeq_pi32 (alpha, alpha);
+
+    /* Replicate high bits into empty low bits. */
+    r = _mm_or_si64 (_mm_srli_pi16 (r, 8), _mm_srli_pi16 (r, 13));
+    g = _mm_or_si64 (_mm_srli_pi16 (g, 3), _mm_srli_pi16 (g, 9));
+    b = _mm_or_si64 (_mm_slli_pi16 (b, 3), _mm_srli_pi16 (b, 2));
+
+    r = _mm_packs_pu16 (r, _mm_setzero_si64 ());	/* 00 00 00 00 R3 R2 R1 R0 */
+    g = _mm_packs_pu16 (g, _mm_setzero_si64 ());	/* 00 00 00 00 G3 G2 G1 G0 */
+    b = _mm_packs_pu16 (b, _mm_setzero_si64 ());	/* 00 00 00 00 B3 B2 B1 B0 */
+
+    t1 = _mm_unpacklo_pi8 (r, alpha);			/* A3 R3 A2 R2 A1 R1 A0 R0 */
+    t0 = _mm_unpacklo_pi8 (b, g);			/* G3 B3 G2 B2 G1 B1 G0 B0 */
+
+    *vout0 = _mm_unpacklo_pi16 (t0, t1);		/* A1 R1 G1 B1 A0 R0 G0 B0 */
+    *vout1 = _mm_unpackhi_pi16 (t0, t1);		/* A3 R3 G3 B3 A2 R2 G2 B2 */
+}
+
 static force_inline __m64
 expand8888 (__m64 in, int pos)
 {
@@ -531,6 +567,17 @@ static force_inline __m64
 expandx888 (__m64 in, int pos)
 {
     return _mm_or_si64 (expand8888 (in, pos), MC (full_alpha));
+}
+
+static force_inline void
+expand_4x565 (__m64 vin, __m64 *vout0, __m64 *vout1, __m64 *vout2, __m64 *vout3, int full_alpha)
+{
+    __m64 v0, v1;
+    expand_4xpacked565 (vin, &v0, &v1, full_alpha);
+    *vout0 = expand8888 (v0, 0);
+    *vout1 = expand8888 (v0, 1);
+    *vout2 = expand8888 (v1, 0);
+    *vout3 = expand8888 (v1, 1);
 }
 
 static force_inline __m64
@@ -598,13 +645,13 @@ pack_4xpacked565 (__m64 a, __m64 b)
 #endif
 }
 
+#ifndef _MSC_VER
+
 static force_inline __m64
 pack_4x565 (__m64 v0, __m64 v1, __m64 v2, __m64 v3)
 {
     return pack_4xpacked565 (pack8888 (v0, v1), pack8888 (v2, v3));
 }
-
-#ifndef _MSC_VER
 
 static force_inline __m64
 pix_add_mul (__m64 x, __m64 a, __m64 y, __m64 b)
@@ -616,6 +663,11 @@ pix_add_mul (__m64 x, __m64 a, __m64 y, __m64 b)
 }
 
 #else
+
+/* MSVC only handles a "pass by register" of up to three SSE intrinsics */
+
+#define pack_4x565(v0, v1, v2, v3) \
+    pack_4xpacked565 (pack8888 (v0, v1), pack8888 (v2, v3))
 
 #define pix_add_mul(x, a, y, b)	 \
     ( x = pix_multiply (x, a),	 \
@@ -1403,11 +1455,14 @@ mmx_composite_over_n_0565 (pixman_implementation_t *imp,
 	while (w >= 4)
 	{
 	    __m64 vdest = *(__m64 *)dst;
+	    __m64 v0, v1, v2, v3;
 
-	    __m64 v0 = over (vsrc, vsrca, expand565 (vdest, 0));
-	    __m64 v1 = over (vsrc, vsrca, expand565 (vdest, 1));
-	    __m64 v2 = over (vsrc, vsrca, expand565 (vdest, 2));
-	    __m64 v3 = over (vsrc, vsrca, expand565 (vdest, 3));
+	    expand_4x565 (vdest, &v0, &v1, &v2, &v3, 0);
+
+	    v0 = over (vsrc, vsrca, v0);
+	    v1 = over (vsrc, vsrca, v1);
+	    v2 = over (vsrc, vsrca, v2);
+	    v3 = over (vsrc, vsrca, v3);
 
 	    *(__m64 *)dst = pack_4x565 (v0, v1, v2, v3);
 
@@ -1823,16 +1878,19 @@ mmx_composite_over_8888_0565 (pixman_implementation_t *imp,
 	while (w >= 4)
 	{
 	    __m64 vdest = *(__m64 *)dst;
+	    __m64 v0, v1, v2, v3;
+
+	    expand_4x565 (vdest, &v0, &v1, &v2, &v3, 0);
 
 	    __m64 vsrc0 = load8888 ((src + 0));
 	    __m64 vsrc1 = load8888 ((src + 1));
 	    __m64 vsrc2 = load8888 ((src + 2));
 	    __m64 vsrc3 = load8888 ((src + 3));
 
-	    __m64 v0 = over (vsrc0, expand_alpha (vsrc0), expand565 (vdest, 0));
-	    __m64 v1 = over (vsrc1, expand_alpha (vsrc1), expand565 (vdest, 1));
-	    __m64 v2 = over (vsrc2, expand_alpha (vsrc2), expand565 (vdest, 2));
-	    __m64 v3 = over (vsrc3, expand_alpha (vsrc3), expand565 (vdest, 3));
+	    v0 = over (vsrc0, expand_alpha (vsrc0), v0);
+	    v1 = over (vsrc1, expand_alpha (vsrc1), v1);
+	    v2 = over (vsrc2, expand_alpha (vsrc2), v2);
+	    v3 = over (vsrc3, expand_alpha (vsrc3), v3);
 
 	    *(__m64 *)dst = pack_4x565 (v0, v1, v2, v3);
 
@@ -2174,6 +2232,8 @@ mmx_composite_src_x888_0565 (pixman_implementation_t *imp,
 	    w--;
 	}
     }
+
+    _mm_empty ();
 }
 
 static void
@@ -2370,19 +2430,21 @@ mmx_composite_over_n_8_0565 (pixman_implementation_t *imp,
 	    else if (m0 | m1 | m2 | m3)
 	    {
 		__m64 vdest = *(__m64 *)dst;
+		__m64 v0, v1, v2, v3;
+
+		expand_4x565 (vdest, &v0, &v1, &v2, &v3, 0);
 
 		__m64 vm0 = to_m64 (m0);
-		__m64 v0 = in_over (vsrc, vsrca, expand_alpha_rev (vm0),
-					   expand565 (vdest, 0));
+		v0 = in_over (vsrc, vsrca, expand_alpha_rev (vm0), v0);
+
 		__m64 vm1 = to_m64 (m1);
-		__m64 v1 = in_over (vsrc, vsrca, expand_alpha_rev (vm1),
-					   expand565 (vdest, 1));
+		v1 = in_over (vsrc, vsrca, expand_alpha_rev (vm1), v1);
+
 		__m64 vm2 = to_m64 (m2);
-		__m64 v2 = in_over (vsrc, vsrca, expand_alpha_rev (vm2),
-					   expand565 (vdest, 2));
+		v2 = in_over (vsrc, vsrca, expand_alpha_rev (vm2), v2);
+
 		__m64 vm3 = to_m64 (m3);
-		__m64 v3 = in_over (vsrc, vsrca, expand_alpha_rev (vm3),
-					   expand565 (vdest, 3));
+		v3 = in_over (vsrc, vsrca, expand_alpha_rev (vm3), v3);
 
 		*(__m64 *)dst = pack_4x565 (v0, v1, v2, v3);;
 	    }
@@ -2491,11 +2553,19 @@ mmx_composite_over_pixbuf_0565 (pixman_implementation_t *imp,
 	    else if (s0 | s1 | s2 | s3)
 	    {
 		__m64 vdest = *(__m64 *)dst;
+		__m64 v0, v1, v2, v3;
 
-		__m64 v0 = over_rev_non_pre (load8888 (&s0), expand565 (vdest, 0));
-		__m64 v1 = over_rev_non_pre (load8888 (&s1), expand565 (vdest, 1));
-		__m64 v2 = over_rev_non_pre (load8888 (&s2), expand565 (vdest, 2));
-		__m64 v3 = over_rev_non_pre (load8888 (&s3), expand565 (vdest, 3));
+		__m64 vsrc0 = load8888 (&s0);
+		__m64 vsrc1 = load8888 (&s1);
+		__m64 vsrc2 = load8888 (&s2);
+		__m64 vsrc3 = load8888 (&s3);
+
+		expand_4x565 (vdest, &v0, &v1, &v2, &v3, 0);
+
+		v0 = over_rev_non_pre (vsrc0, v0);
+		v1 = over_rev_non_pre (vsrc1, v1);
+		v2 = over_rev_non_pre (vsrc2, v2);
+		v3 = over_rev_non_pre (vsrc3, v3);
 
 		*(__m64 *)dst = pack_4x565 (v0, v1, v2, v3);
 	    }
@@ -2671,11 +2741,14 @@ mmx_composite_over_n_8888_0565_ca (pixman_implementation_t *imp,
 	    if ((m0 | m1 | m2 | m3))
 	    {
 		__m64 vdest = *(__m64 *)q;
+		__m64 v0, v1, v2, v3;
 
-		__m64 v0 = in_over (vsrc, vsrca, load8888 (&m0), expand565 (vdest, 0));
-		__m64 v1 = in_over (vsrc, vsrca, load8888 (&m1), expand565 (vdest, 1));
-		__m64 v2 = in_over (vsrc, vsrca, load8888 (&m2), expand565 (vdest, 2));
-		__m64 v3 = in_over (vsrc, vsrca, load8888 (&m3), expand565 (vdest, 3));
+		expand_4x565 (vdest, &v0, &v1, &v2, &v3, 0);
+
+		v0 = in_over (vsrc, vsrca, load8888 (&m0), v0);
+		v1 = in_over (vsrc, vsrca, load8888 (&m1), v1);
+		v2 = in_over (vsrc, vsrca, load8888 (&m2), v2);
+		v3 = in_over (vsrc, vsrca, load8888 (&m3), v3);
 
 		*(__m64 *)q = pack_4x565 (v0, v1, v2, v3);
 	    }
@@ -3006,6 +3079,90 @@ mmx_composite_add_8_8 (pixman_implementation_t *imp,
 }
 
 static void
+mmx_composite_add_0565_0565 (pixman_implementation_t *imp,
+                             pixman_composite_info_t *info)
+{
+    PIXMAN_COMPOSITE_ARGS (info);
+    uint16_t    *dst_line, *dst;
+    uint32_t	d;
+    uint16_t    *src_line, *src;
+    uint32_t	s;
+    int dst_stride, src_stride;
+    int32_t w;
+
+    CHECKPOINT ();
+
+    PIXMAN_IMAGE_GET_LINE (src_image, src_x, src_y, uint16_t, src_stride, src_line, 1);
+    PIXMAN_IMAGE_GET_LINE (dest_image, dest_x, dest_y, uint16_t, dst_stride, dst_line, 1);
+
+    while (height--)
+    {
+	dst = dst_line;
+	dst_line += dst_stride;
+	src = src_line;
+	src_line += src_stride;
+	w = width;
+
+	while (w && (unsigned long)dst & 7)
+	{
+	    s = *src++;
+	    if (s)
+	    {
+		d = *dst;
+		s = CONVERT_0565_TO_8888 (s);
+		if (d)
+		{
+		    d = CONVERT_0565_TO_8888 (d);
+		    UN8x4_ADD_UN8x4 (s, d);
+		}
+		*dst = CONVERT_8888_TO_0565 (s);
+	    }
+	    dst++;
+	    w--;
+	}
+
+	while (w >= 4)
+	{
+	    __m64 vdest = *(__m64 *)dst;
+	    __m64 vsrc = ldq_u ((__m64 *)src);
+	    __m64 vd0, vd1;
+	    __m64 vs0, vs1;
+
+	    expand_4xpacked565 (vdest, &vd0, &vd1, 0);
+	    expand_4xpacked565 (vsrc, &vs0, &vs1, 0);
+
+	    vd0 = _mm_adds_pu8 (vd0, vs0);
+	    vd1 = _mm_adds_pu8 (vd1, vs1);
+
+	    *(__m64 *)dst = pack_4xpacked565 (vd0, vd1);
+
+	    dst += 4;
+	    src += 4;
+	    w -= 4;
+	}
+
+	while (w--)
+	{
+	    s = *src++;
+	    if (s)
+	    {
+		d = *dst;
+		s = CONVERT_0565_TO_8888 (s);
+		if (d)
+		{
+		    d = CONVERT_0565_TO_8888 (d);
+		    UN8x4_ADD_UN8x4 (s, d);
+		}
+		*dst = CONVERT_8888_TO_0565 (s);
+	    }
+	    dst++;
+	}
+    }
+
+    _mm_empty ();
+}
+
+static void
 mmx_composite_add_8888_8888 (pixman_implementation_t *imp,
                              pixman_composite_info_t *info)
 {
@@ -3280,6 +3437,75 @@ mmx_composite_over_x888_8_8888 (pixman_implementation_t *imp,
     _mm_empty ();
 }
 
+static void
+mmx_composite_over_reverse_n_8888 (pixman_implementation_t *imp,
+                                   pixman_composite_info_t *info)
+{
+    PIXMAN_COMPOSITE_ARGS (info);
+    uint32_t src;
+    uint32_t    *dst_line, *dst;
+    int32_t w;
+    int dst_stride;
+    __m64 vsrc;
+
+    CHECKPOINT ();
+
+    src = _pixman_image_get_solid (imp, src_image, dest_image->bits.format);
+
+    if (src == 0)
+	return;
+
+    PIXMAN_IMAGE_GET_LINE (dest_image, dest_x, dest_y, uint32_t, dst_stride, dst_line, 1);
+
+    vsrc = load8888 (&src);
+
+    while (height--)
+    {
+	dst = dst_line;
+	dst_line += dst_stride;
+	w = width;
+
+	CHECKPOINT ();
+
+	while (w && (unsigned long)dst & 7)
+	{
+	    __m64 vdest = load8888 (dst);
+
+	    store8888 (dst, over (vdest, expand_alpha (vdest), vsrc));
+
+	    w--;
+	    dst++;
+	}
+
+	while (w >= 2)
+	{
+	    __m64 vdest = *(__m64 *)dst;
+	    __m64 dest0 = expand8888 (vdest, 0);
+	    __m64 dest1 = expand8888 (vdest, 1);
+
+
+	    dest0 = over (dest0, expand_alpha (dest0), vsrc);
+	    dest1 = over (dest1, expand_alpha (dest1), vsrc);
+
+	    *(__m64 *)dst = pack8888 (dest0, dest1);
+
+	    dst += 2;
+	    w -= 2;
+	}
+
+	CHECKPOINT ();
+
+	if (w)
+	{
+	    __m64 vdest = load8888 (dst);
+
+	    store8888 (dst, over (vdest, expand_alpha (vdest), vsrc));
+	}
+    }
+
+    _mm_empty ();
+}
+
 static uint32_t *
 mmx_fetch_x8r8g8b8 (pixman_iter_t *iter, const uint32_t *mask)
 {
@@ -3318,6 +3544,7 @@ mmx_fetch_x8r8g8b8 (pixman_iter_t *iter, const uint32_t *mask)
 	w--;
     }
 
+    _mm_empty ();
     return iter->buffer;
 }
 
@@ -3341,14 +3568,12 @@ mmx_fetch_r5g6b5 (pixman_iter_t *iter, const uint32_t *mask)
     while (w >= 4)
     {
 	__m64 vsrc = ldq_u ((__m64 *)src);
+	__m64 mm0, mm1;
 
-	__m64 mm0 = expand565 (vsrc, 0);
-	__m64 mm1 = expand565 (vsrc, 1);
-	__m64 mm2 = expand565 (vsrc, 2);
-	__m64 mm3 = expand565 (vsrc, 3);
+	expand_4xpacked565 (vsrc, &mm0, &mm1, 1);
 
-	*(__m64 *)(dst + 0) = _mm_or_si64 (pack8888 (mm0, mm1), MC (ff000000));
-	*(__m64 *)(dst + 2) = _mm_or_si64 (pack8888 (mm2, mm3), MC (ff000000));
+	*(__m64 *)(dst + 0) = mm0;
+	*(__m64 *)(dst + 2) = mm1;
 
 	dst += 4;
 	src += 4;
@@ -3363,6 +3588,7 @@ mmx_fetch_r5g6b5 (pixman_iter_t *iter, const uint32_t *mask)
 	w--;
     }
 
+    _mm_empty ();
     return iter->buffer;
 }
 
@@ -3408,6 +3634,7 @@ mmx_fetch_a8 (pixman_iter_t *iter, const uint32_t *mask)
 	w--;
     }
 
+    _mm_empty ();
     return iter->buffer;
 }
 
@@ -3510,6 +3737,11 @@ static const pixman_fast_path_t mmx_fast_paths[] =
     PIXMAN_STD_FAST_PATH    (OVER, a8b8g8r8, null,     x8b8g8r8, mmx_composite_over_8888_8888      ),
     PIXMAN_STD_FAST_PATH    (OVER, a8b8g8r8, null,     b5g6r5,   mmx_composite_over_8888_0565      ),
 
+    PIXMAN_STD_FAST_PATH    (OVER_REVERSE, solid, null, a8r8g8b8, mmx_composite_over_reverse_n_8888),
+    PIXMAN_STD_FAST_PATH    (OVER_REVERSE, solid, null, a8b8g8r8, mmx_composite_over_reverse_n_8888),
+
+    PIXMAN_STD_FAST_PATH    (ADD,  r5g6b5,   null,     r5g6b5,   mmx_composite_add_0565_0565       ),
+    PIXMAN_STD_FAST_PATH    (ADD,  b5g6r5,   null,     b5g6r5,   mmx_composite_add_0565_0565       ),
     PIXMAN_STD_FAST_PATH    (ADD,  a8r8g8b8, null,     a8r8g8b8, mmx_composite_add_8888_8888       ),
     PIXMAN_STD_FAST_PATH    (ADD,  a8b8g8r8, null,     a8b8g8r8, mmx_composite_add_8888_8888       ),
     PIXMAN_STD_FAST_PATH    (ADD,  a8,       null,     a8,       mmx_composite_add_8_8		   ),

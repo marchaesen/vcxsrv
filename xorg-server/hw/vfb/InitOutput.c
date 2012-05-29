@@ -774,6 +774,13 @@ vfbCloseScreen(int index, ScreenPtr pScreen)
     for (i = 0; i < screenInfo.numScreens; i++)
         SetInstalledColormap(screenInfo.screens[i], NULL);
 
+    /*
+     * fb overwrites miCloseScreen, so do this here
+     */
+    if (pScreen->devPrivate)
+        (*pScreen->DestroyPixmap) (pScreen->devPrivate);
+    pScreen->devPrivate = NULL;
+
     return pScreen->CloseScreen(index, pScreen);
 }
 

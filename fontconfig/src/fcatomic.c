@@ -130,6 +130,13 @@ FcAtomicLock (FcAtomic *atomic)
 	return FcFalse;
     }
     ret = link ((char *) atomic->tmp, (char *) atomic->lck);
+    if (ret < 0 && errno == EPERM)
+    {
+	/* the filesystem where atomic->lck points to may not supports
+	 * the hard link. so better try to fallback
+	 */
+	ret = mkdir ((char *) atomic->lck, 0600);
+    }
     (void) unlink ((char *) atomic->tmp);
 #else
     ret = mkdir ((char *) atomic->lck, 0600);
@@ -195,7 +202,8 @@ void
 FcAtomicUnlock (FcAtomic *atomic)
 {
 #ifdef HAVE_LINK
-    unlink ((char *) atomic->lck);
+    if (unlink ((char *) atomic->lck) == -1)
+	rmdir ((char *) atomic->lck);
 #else
     rmdir ((char *) atomic->lck);
 #endif

@@ -1059,25 +1059,23 @@ xf86PostMotionEventP(DeviceIntPtr device,
     xf86PostMotionEventM(device, is_absolute, &mask);
 }
 
-void
-xf86PostMotionEventM(DeviceIntPtr device,
-                     int is_absolute, const ValuatorMask *mask)
+static int
+xf86CheckMotionEvent4DGA(DeviceIntPtr device, int is_absolute,
+                         const ValuatorMask *mask)
 {
-    int flags = 0;
-
-    if (valuator_mask_num_valuators(mask) > 0) {
-        if (is_absolute)
-            flags = POINTER_ABSOLUTE;
-        else
-            flags = POINTER_RELATIVE | POINTER_ACCELERATE;
-    }
+    int stolen = 0;
 
 #if XFreeXDGA
+    ScreenPtr scr = NULL;
+    int idx, i;
+
     /* The evdev driver may not always send all axes across. */
-    if (valuator_mask_isset(mask, 0) || valuator_mask_isset(mask, 1))
-        if (miPointerGetScreen(device)) {
-            int index = miPointerGetScreen(device)->myNum;
+    if (valuator_mask_isset(mask, 0) || valuator_mask_isset(mask, 1)) {
+        scr = miPointerGetScreen(device);
+        if (scr) {
             int dx = 0, dy = 0;
+
+            idx = scr->myNum;
 
             if (valuator_mask_isset(mask, 0)) {
                 dx = valuator_mask_get(mask, 0);
@@ -1091,10 +1089,74 @@ xf86PostMotionEventM(DeviceIntPtr device,
                     dy -= device->last.valuators[1];
             }
 
-            if (DGAStealMotionEvent(device, index, dx, dy))
-                return;
+            if (DGAStealMotionEvent(device, idx, dx, dy))
+                stolen = 1;
         }
+    }
+
+    for (i = 2; i < valuator_mask_size(mask); i++) {
+        AxisInfoPtr ax;
+        double incr;
+        int val, button;
+
+        if (i >= device->valuator->numAxes)
+            break;
+
+        if (!valuator_mask_isset(mask, i))
+            continue;
+
+        ax = &device->valuator->axes[i];
+
+        if (ax->scroll.type == SCROLL_TYPE_NONE)
+            continue;
+
+        if (!scr) {
+            scr = miPointerGetScreen(device);
+            if (!scr)
+                break;
+            idx = scr->myNum;
+        }
+
+        incr = ax->scroll.increment;
+        val = valuator_mask_get(mask, i);
+
+        if (ax->scroll.type == SCROLL_TYPE_VERTICAL) {
+            if (incr * val < 0)
+                button = 4; /* up */
+            else
+                button = 5; /* down */
+        } else { /* SCROLL_TYPE_HORIZONTAL */
+            if (incr * val < 0)
+                button = 6; /* left */
+            else
+                button = 7; /* right */
+        }
+
+        if (DGAStealButtonEvent(device, idx, button, 1) &&
+                DGAStealButtonEvent(device, idx, button, 0))
+            stolen = 1;
+    }
+
 #endif
+
+    return stolen;
+}
+
+void
+xf86PostMotionEventM(DeviceIntPtr device,
+                     int is_absolute, const ValuatorMask *mask)
+{
+    int flags = 0;
+
+    if (xf86CheckMotionEvent4DGA(device, is_absolute, mask))
+        return;
+
+    if (valuator_mask_num_valuators(mask) > 0) {
+        if (is_absolute)
+            flags = POINTER_ABSOLUTE;
+        else
+            flags = POINTER_RELATIVE | POINTER_ACCELERATE;
+    }
 
     QueuePointerEvents(device, MotionNotify, 0, flags, mask);
 }

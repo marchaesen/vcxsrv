@@ -525,15 +525,16 @@ composite_test (image_t *dst,
 		int testno)
 {
     pixman_color_t fill;
-    pixman_rectangle16_t rect;
     color_t expected, tdst, tsrc, tmsk;
     pixel_checker_t checker;
+    pixman_image_t *solid;
 
     /* Initialize dst */
     compute_pixman_color (dst->color, &fill);
-    rect.x = rect.y = 0;
-    rect.width = rect.height = dst->size;
-    pixman_image_fill_rectangles (PIXMAN_OP_SRC, dst->image, &fill, 1, &rect);
+    solid = pixman_image_create_solid_fill (&fill);
+    pixman_image_composite32 (PIXMAN_OP_SRC, solid, NULL, dst->image,
+			      0, 0, 0, 0, 0, 0, dst->size, dst->size);
+    pixman_image_unref (solid);
 
     if (mask)
     {
@@ -644,16 +645,16 @@ image_init (image_t *info,
 
     if (info->size)
     {
-	pixman_rectangle16_t rect;
+	pixman_image_t *solid;
 
 	info->image = pixman_image_create_bits (info->format->format,
 						info->size, info->size,
 						NULL, 0);
 
-	rect.x = rect.y = 0;
-	rect.width = rect.height = info->size;
-	pixman_image_fill_rectangles (PIXMAN_OP_SRC, info->image, &fill,
-				      1, &rect);
+	solid = pixman_image_create_solid_fill (&fill);
+	pixman_image_composite32 (PIXMAN_OP_SRC, solid, NULL, info->image,
+				  0, 0, 0, 0, 0, 0, info->size, info->size);
+	pixman_image_unref (solid);
 
 	if (sizes[size] & REPEAT)
 	{
