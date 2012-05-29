@@ -149,6 +149,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\linker.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_functions.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_uniforms.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\link_uniform_initializers.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\loop_analysis.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\loop_controls.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\loop_unroll.cpp" />
@@ -331,6 +332,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\vbo\vbo_exec_array.c" />
     <ClCompile Include="..\..\..\..\src\mesa\vbo\vbo_exec_draw.c" />
     <ClCompile Include="..\..\..\..\src\mesa\vbo\vbo_exec_eval.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\vbo\vbo_primitive_restart.c" />
     <ClCompile Include="..\..\..\..\src\mesa\vbo\vbo_rebase.c" />
     <ClCompile Include="..\..\..\..\src\mesa\vbo\vbo_save.c" />
     <ClCompile Include="..\..\..\..\src\mesa\vbo\vbo_save_api.c" />
