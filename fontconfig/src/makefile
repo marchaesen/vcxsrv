@@ -33,6 +33,7 @@ CSRCS = \
 	fcname.c \
 	fcpat.c \
 	fcserialize.c \
+	fcstat.c \
 	fcstr.c \
 	fcxml.c \
 	\

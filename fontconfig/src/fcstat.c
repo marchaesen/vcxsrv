@@ -218,7 +218,7 @@ static int
 FcFStatFs (int fd, FcStatFS *statb)
 {
     const char *p = NULL;
-    int ret;
+    int ret=0;
     FcBool flag = FcFalse;
 
     memset (statb, 0, sizeof (FcStatFS));

@@ -1850,7 +1850,8 @@ FcParseDir (FcConfigParse *parse)
 #ifdef _WIN32
     FcChar8 buffer[MAX_PATH];
 #endif
-    const FcChar8 *attr, *data;
+    const FcChar8 *attr;
+    FcChar8 *data;
     FcChar8 *prefix = NULL;
 
     attr = FcConfigGetAttribute (parse, "prefix");
