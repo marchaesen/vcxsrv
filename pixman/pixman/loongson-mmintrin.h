@@ -77,6 +77,17 @@ _mm_and_si64 (__m64 __m1, __m64 __m2)
 	return ret;
 }
 
+extern __inline __m64 __attribute__((__gnu_inline__, __always_inline__, __artificial__))
+_mm_cmpeq_pi32 (__m64 __m1, __m64 __m2)
+{
+	__m64 ret;
+	asm("pcmpeqw %0, %1, %2\n\t"
+	   : "=f" (ret)
+	   : "f" (__m1), "f" (__m2)
+	);
+	return ret;
+}
+
 extern __inline void __attribute__((__gnu_inline__, __always_inline__, __artificial__))
 _mm_empty (void)
 {
@@ -149,6 +160,16 @@ _mm_shuffle_pi16 (__m64 __m, int64_t __n)
 	return ret;
 }
 
+extern __inline __m64 __attribute__((__gnu_inline__, __always_inline__, __artificial__))
+_mm_slli_pi16 (__m64 __m, int64_t __count)
+{
+	__m64 ret;
+	asm("psllh  %0, %1, %2\n\t"
+	   : "=f" (ret)
+	   : "f" (__m), "f" (*(__m64 *)&__count)
+	);
+	return ret;
+}
 extern __inline __m64 __attribute__((__gnu_inline__, __always_inline__, __artificial__))
 _mm_slli_si64 (__m64 __m, int64_t __count)
 {

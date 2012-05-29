@@ -32,8 +32,8 @@ run_test (int32_t		dst_width,
     pixman_transform_t transform;
     uint32_t *         srcbuf;
     uint32_t *         dstbuf;
-    pixman_box32_t     box = { 0, 0, src_width, src_height };
     pixman_color_t     color_cc = { 0xcccc, 0xcccc, 0xcccc, 0xcccc };
+    pixman_image_t *   solid;
     int result;
     int i;
 
@@ -62,7 +62,10 @@ run_test (int32_t		dst_width,
         PIXMAN_a8r8g8b8, src_width, src_height,
 	srcbuf + (src_width + 10) * 5 + 5, (src_width + 10) * 4);
 
-    pixman_image_fill_boxes (PIXMAN_OP_SRC, src_img, &color_cc, 1, &box);
+    solid = pixman_image_create_solid_fill (&color_cc);
+    pixman_image_composite32 (PIXMAN_OP_SRC, solid, NULL, src_img,
+			      0, 0, 0, 0, 0, 0, src_width, src_height);
+    pixman_image_unref (solid);
 
     dst_img = pixman_image_create_bits (
         PIXMAN_a8r8g8b8, dst_width, dst_height, dstbuf, dst_width * 4);

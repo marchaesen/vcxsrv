@@ -661,6 +661,7 @@ tests_tbl[] =
     { "outrev_n_8888_1555_ca", PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OUT_REV, PIXMAN_a8r8g8b8, 2, PIXMAN_a1r5g5b5 },
     { "outrev_n_8888_x888_ca", PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OUT_REV, PIXMAN_a8r8g8b8, 2, PIXMAN_x8r8g8b8 },
     { "outrev_n_8888_8888_ca", PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OUT_REV, PIXMAN_a8r8g8b8, 2, PIXMAN_a8r8g8b8 },
+    { "over_reverse_n_8888",   PIXMAN_a8r8g8b8,    0, PIXMAN_OP_OVER_REVERSE, PIXMAN_null, 0, PIXMAN_a8r8g8b8 },
 };
 
 int
