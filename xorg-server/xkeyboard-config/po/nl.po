@@ -18,7 +18,8 @@
 # UK             -UK/VK/GB/Engels
 # US             -US/VS/USA/Amerikaans
 # while pressed  -gedurende het indrukken/ingedrukt houden
-# win-key        -windows-toets/win-toets
+# win-key        -windows-toets 
+# TODO, win-toets overal vervangen door windows-toets. 
 #
 #
 msgid ""
@@ -26,7 +27,7 @@ msgstr ""
 "Project-Id-Version: xkeyboard-config-2.4.99\n"
 "Report-Msgid-Bugs-To: svu@users.sourceforge.net\n"
 "POT-Creation-Date: 2012-01-17 20:46+0000\n"
-"PO-Revision-Date: 2012-01-29 23:25+0800\n"
+"PO-Revision-Date: 2012-02-11 20:38+0800\n"
 "Last-Translator: Tino Meinen <tino.meinen@gmail.com>\n"
 "Language-Team: Dutch <vertaling@vrijschrift.org>\n"
 "Language: nl\n"
@@ -42,12 +43,12 @@ msgstr "&lt;Kleiner dan/Groter dan&gt;"
 # latches - vergrendelt
 #: ../rules/base.xml.in.h:2
 msgid "&lt;Less/Greater&gt; chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
-msgstr "&lt;Kleiner dan/Groter dan&gt; geeft het 3de niveau, en vergrendelt eenmalig wanneer het ingedrukt wordt samen met een andere 3de niveau-kiezer"
+msgstr "&lt;Kleiner dan/Groter dan&gt; geeft het 3de niveau, en vergrendelt eenmalig wanneer ingedrukt samen met een andere 3de niveau-kiezer"
 
 # locks - op slot gezet/blijvend/in stand houden
 #: ../rules/base.xml.in.h:3
 msgid "&lt;Less/Greater&gt; chooses 5th level, locks when pressed together with another 5th-level-chooser"
-msgstr "&lt;Kleiner dan/Groter dan&gt; geeft het 5de niveau en vergrendelt het ingedrukt wordt samen met een andere 5de niveau-kiezer"
+msgstr "&lt;Kleiner dan/Groter dan&gt; geeft het 5de niveau, en vergrendelt wanneer ingedrukt samen met een andere 5de niveau-kiezer"
 
 #: ../rules/base.xml.in.h:4
 msgid "A4Tech KB-21"
@@ -118,7 +119,7 @@ msgstr "Alt en Meta zitten op de Alt-toetsen"
 # zit op is veel korter en is ook duidelijker
 #: ../rules/base.xml.in.h:20
 msgid "Alt is mapped to Right Win, Super to Menu"
-msgstr "Alt zit op de rechter Win-toets, Super op de Menu-toets"
+msgstr "Alt zit op de rechter windows-toets, Super op de Menu-toets"
 
 # voor de duidelijkheid Caps Lock vervangen door CapsLock
 #: ../rules/base.xml.in.h:21
@@ -139,7 +140,7 @@ msgstr "Alt+Spatie"
 
 #: ../rules/base.xml.in.h:25
 msgid "Alt/Win key behavior"
-msgstr "Alt/Win-toetsgedrag"
+msgstr "Gedrag Alt/Win-toets"
 
 # Het Amhaars is een Semitische taal die in Ethiopië gesproken wordt
 #: ../rules/base.xml.in.h:26
@@ -325,7 +326,7 @@ msgstr "Backslash"
 
 #: ../rules/base.xml.in.h:70
 msgid "Backslash chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
-msgstr "Backslash geeft het 3de niveau en vergrendelt eenmalig wanneer het ingedrukt wordt samen met een andere 3de niveau-kiezer"
+msgstr "Backslash geeft het 3de niveau, en vergrendelt eenmalig wanneer ingedrukt samen met een andere 3de niveau-kiezer"
 
 # Bambara, ook bekend onder de naam Bamanankan, is een Mande-taal die door meer
 # dan zes miljoen mensen gesproken wordt, voornamelijk in Mali
@@ -588,7 +589,7 @@ msgstr "CapsLock is Ctrl-toets"
 
 #: ../rules/base.xml.in.h:132
 msgid "Caps Lock chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
-msgstr "CapsLock geeft het 3de niveau en vergrendelt eenmalig wanneer het ingedrukt wordt samen met een andere 3de niveau-kiezer"
+msgstr "CapsLock geeft het 3de niveau, en vergrendelt eenmalig wanneer ingedrukt samen met een andere 3de niveau-kiezer"
 
 # heeft geen functie/geen effect
 #: ../rules/base.xml.in.h:133
@@ -608,7 +609,7 @@ msgstr "CapsLock wisselt Shift op alle toetsen"
 # bepaalt hoofdletters/kleine letters bij alfabetische tekens.<
 #: ../rules/base.xml.in.h:136
 msgid "Caps Lock toggles normal capitalization of alphabetic characters"
-msgstr "CapsLock beïnvloedt alleen de alfabetische toetsen"
+msgstr "CapsLock beïnvloedt alleen alfabetische tekens"
 
 #: ../rules/base.xml.in.h:137
 msgid "Caps Lock uses internal capitalization. Shift \"pauses\" Caps Lock"
@@ -717,7 +718,7 @@ msgstr "Compaq iPaq-toetsenbord"
 
 #: ../rules/base.xml.in.h:163
 msgid "Compose key position"
-msgstr "Samensteltoets-positie"
+msgstr "Positie samensteltoets"
 
 #: ../rules/base.xml.in.h:164
 msgid "Control + Alt + Backspace"
@@ -2014,7 +2015,7 @@ msgstr "Linker Win-toets (ingedrukt houden)"
 
 #: ../rules/base.xml.in.h:481
 msgid "Left Win chooses 5th level, locks when pressed together with another 5th-level-chooser"
-msgstr "Linker Win-toets geeft het 5de niveau en vergrendelt wanneer het ingedrukt wordt samen met een andere 5de niveau-kiezer"
+msgstr "Linker Win-toets geeft het 5de niveau, en vergrendelt wanneer ingedrukt samen met een andere 5de niveau-kiezer"
 
 #: ../rules/base.xml.in.h:482
 msgid "LeftCtrl+LeftWin (to first layout), RightCtrl+Menu (to second layout)"
@@ -2667,7 +2668,7 @@ msgstr "Rechter Alt is rechter Ctrl-toets"
 
 #: ../rules/base.xml.in.h:637
 msgid "Right Alt chooses 5th level, locks when pressed together with another 5th-level-chooser"
-msgstr "Rechter Alt-toets geeft het 5de niveau en vergrendelt wanneer het ingedrukt wordt samen met een andere 5de niveau-kiezer"
+msgstr "Rechter Alt-toets geeft het 5de niveau, en vergrendelt wanneer ingedrukt samen met een andere 5de niveau-kiezer"
 
 #: ../rules/base.xml.in.h:638
 msgid "Right Alt key never chooses 3rd level"
@@ -2709,7 +2710,7 @@ msgstr "Rechter Win-toets (ingedrukt houden)"
 
 #: ../rules/base.xml.in.h:647
 msgid "Right Win chooses 5th level, locks when pressed together with another 5th-level-chooser"
-msgstr "Rechter Win-toets geeft het 5de niveau en vergrendelt wanneer het ingedrukt wordt samen met een andere 5de niveau-kiezer"
+msgstr "Rechter Win-toets geeft het 5de niveau, en vergrendelt wanneer ingedrukt samen met een andere 5de niveau-kiezer"
 
 #: ../rules/base.xml.in.h:648 ../rules/base.extras.xml.in.h:30
 msgid "Romanian"
@@ -2934,7 +2935,7 @@ msgstr "Slowaaks"
 # brede backslash/uitgebreide backslash
 #: ../rules/base.xml.in.h:701
 msgid "Slovak (extended Backslash)"
-msgstr "Slovaaks (brede backslash)"
+msgstr "Slovaaks (uitgebreid backslash)"
 
 #: ../rules/base.xml.in.h:702
 msgid "Slovak (qwerty)"
@@ -4041,26 +4042,8 @@ msgstr "kut"
 msgid "shs"
 msgstr "shs"
 
-#~ msgid "&lt;Less/Greater&gt; chooses 5th level and activates level5-Lock when pressed together with another 5th-level-chooser, one press releases the lock"
-#~ msgstr "&lt;Kleiner dan/Groter dan&gt; geeft het 5de niveau en vergrendelt wanneer het ingedrukt wordt samen met een andere 5de niveau-kiezer, één toetsaanslag heft de vergrendeling op"
-
-#~ msgid "&lt;Less/Greater&gt; chooses 5th level, locks when pressed together with another 5th-level-chooser, one press releases the lock"
-#~ msgstr "&lt;Groter dan/Kleiner dan&gt; geeft het 5de niveau en vergrendelt wanneer het ingedrukt wordt samen met een andere 5de niveau-kiezer, één toetsaanslag heft de vergrendeling op"
-
 #~ msgid "English (Cameroon Dvorak)"
 #~ msgstr "Engels (Kameroen Dvorak)"
-
-#~ msgid "Left Win chooses 5th level, locks when pressed together with another 5th-level-chooser, one press releases the lock"
-#~ msgstr "Linker Win-toets geeft het 5de niveau en vergrendelt wanneer het ingedrukt wordt samen met een andere 5de niveau-kiezer, één toetsaanslag heft de vergrendeling op"
-
-#~ msgid "Right Alt chooses 5th level and activates level5-Lock when pressed together with another 5th-level-chooser, one press releases the lock"
-#~ msgstr "Rechter Alt-toets geeft het 5de niveau en vergrendelt dit niveau wanneer het ingedrukt wordt samen met een andere 5de niveau-kiezer, één toetsaanslag heft de vergrendeling op"
-
-#~ msgid "Right Alt chooses 5th level, locks when pressed together with another 5th-level-chooser, one press releases the lock"
-#~ msgstr "Rechter Alt-toets geeft het 5de niveau en vergrendelt wanneer het ingedrukt wordt samen met een andere 5de niveau-kiezer, één toetsaanslag heft de vergrendeling op"
-
-#~ msgid "Right Win chooses 5th level, locks when pressed together with another 5th-level-chooser, one press releases the lock"
-#~ msgstr "Rechter Win-toets geeft het 5de niveau en vergrendelt wanneer het ingedrukt wordt samen met een andere 5de niveau-kiezer, één toetsaanslag heft de vergrendeling op"
 
 #~ msgid "Serbian (Z and ZHE swapped)"
 #~ msgstr "Servisch (Z en ZHE omgewisseld)"

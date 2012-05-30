@@ -6,15 +6,8 @@ include $(TOP)/configs/current
 MESA_LIBS := libmesa.a libmesagallium.a
 DEPENDS := depend
 
-MESA_OBJ_DIR := .
-DRICORE_OBJ_DIR := objs-dricore
-
+SRCDIR = .
 include sources.mak
-
-# adjust object dirs
-DRICORE_OBJECTS := $(addprefix $(DRICORE_OBJ_DIR)/, $(MESA_OBJECTS))
-MESA_OBJECTS := $(addprefix $(MESA_OBJ_DIR)/, $(MESA_OBJECTS))
-MESA_GALLIUM_OBJECTS := $(addprefix $(MESA_OBJ_DIR)/, $(MESA_GALLIUM_OBJECTS))
 
 # define preprocessor flags
 MESA_CPPFLAGS := $(API_DEFINES) $(DEFINES)
@@ -22,54 +15,41 @@ MESA_CPPFLAGS := $(API_DEFINES) $(DEFINES)
 # append include dirs
 MESA_CPPFLAGS += $(INCLUDE_DIRS)
 
-DRICORE_CPPFLAGS = $(MESA_CPPFLAGS)
-
 # tidy compiler flags
 CFLAGS := $(filter-out $(DEFINES), $(CFLAGS))
 CXXFLAGS := $(filter-out $(DEFINES), $(CXXFLAGS))
 
 # LLVM is needed for the state tracker
 MESA_CFLAGS := $(LLVM_CFLAGS) $(CFLAGS)
-DRICORE_CFLAGS := $(LLVM_CFLAGS) $(DRI_CFLAGS)
-
 MESA_CXXFLAGS := $(LLVM_CFLAGS) $(CXXFLAGS)
-DRICORE_CXXFLAGS := $(LLVM_CFLAGS) $(DRI_CXXFLAGS)
 
-define mesa-cc-c
-	@mkdir -p $(dir $@)
-	$(CC) -c -o $@ $< $($(1)_CPPFLAGS) $($(1)_CFLAGS)
-endef
+%.o: %.c
+	$(CC) -c -o $@ $< $(MESA_CPPFLAGS) $(MESA_CFLAGS)
 
-define mesa-cxx-c
-	@mkdir -p $(dir $@)
-	$(CXX) -c -o $@ $< $($(1)_CPPFLAGS) $($(1)_CXXFLAGS)
-endef
+%.o: %.cpp
+	$(CXX) -c -o $@ $< $(MESA_CPPFLAGS) $(MESA_CXXFLAGS)
 
-$(MESA_OBJ_DIR)/%.o: %.c
-	$(call mesa-cc-c,MESA)
-
-$(MESA_OBJ_DIR)/%.o: %.cpp
-	$(call mesa-cxx-c,MESA)
-
-$(MESA_OBJ_DIR)/%.o: %.S
-	$(call mesa-cc-c,MESA)
-
-$(DRICORE_OBJ_DIR)/%.o: %.c
-	$(call mesa-cc-c,DRICORE)
-
-$(DRICORE_OBJ_DIR)/%.o: %.cpp
-	$(call mesa-cxx-c,DRICORE)
-
-$(DRICORE_OBJ_DIR)/%.o: %.S
-	$(call mesa-cc-c,DRICORE)
+%.o: %.S
+	$(CC) -c -o $@ $< $(MESA_CPPFLAGS) $(MESA_CFLAGS)
 
 # Default: build dependencies, then asm_subdirs, GLSL built-in lib,
 # then convenience libs (.a) and finally the device drivers:
-default: $(DEPENDS) asm_subdirs $(MESA_LIBS) $(DRICORE_LIBS) driver_subdirs
+default: $(DEPENDS) asm_subdirs $(MESA_LIBS) driver_subdirs
 
 # include glapi_gen.mk for generating glapi headers for GLES
 GLAPI := $(TOP)/src/mapi/glapi/gen
 include $(GLAPI)/glapi_gen.mk
+
+BUILT_SOURCES = \
+	main/api_exec_es1_dispatch.h \
+	main/api_exec_es1_remap_helper.h \
+	main/api_exec_es2_dispatch.h \
+	main/api_exec_es2_remap_helper.h \
+	main/api_exec_es1.c \
+	main/api_exec_es2.c \
+	program/program_parse.tab.c \
+	program/program_parse.tab.h \
+	program/lex.yy.c
 
 main/api_exec_es1_dispatch.h: $(GLAPI)/gl_and_es_API.xml $(glapi_gen_dispatch_deps)
 	$(call glapi_gen_dispatch,$<,es1)
@@ -99,6 +79,11 @@ program/program_parse.tab.c program/program_parse.tab.h: program/program_parse.y
 program/lex.yy.c: program/program_lexer.l
 	$(FLEX) --never-interactive --outfile=$@ $<
 
+ifneq (,$(DRICORE_LIBS))
+DRICORE_TARGET = dricore
+DRICORE_INSTALL_TARGET = install-dricore
+endif
+
 ######################################################################
 # Helper libraries used by many drivers:
 
@@ -106,20 +91,16 @@ program/lex.yy.c: program/program_lexer.l
 libmesa.a: $(MESA_OBJECTS) $(GLSL_LIBS)
 	@ $(MKLIB) -o mesa -static $(MESA_OBJECTS) $(GLSL_LIBS)
 
-# Shared dricore library for classic DRI drivers
-$(TOP)/$(LIB_DIR)/libdricore.so: $(DRICORE_OBJECTS) $(DRICORE_GLSL_LIBS)
-	@$(MKLIB) -o $@ -linker '$(CXX)' -ldflags '$(LDFLAGS)' \
-		-cplusplus -noprefix \
-		-install $(TOP)/$(LIB_DIR) -id $(DRI_DRIVER_INSTALL_DIR)/$@.dylib \
-		$(DRICORE_LIB_DEPS) $(DRICORE_OBJECTS)
-
 # Make archive of subset of core mesa object files for gallium
 libmesagallium.a: $(MESA_GALLIUM_OBJECTS) $(GLSL_LIBS)
 	@ $(MKLIB) -o mesagallium -static $(MESA_GALLIUM_OBJECTS) $(GLSL_LIBS)
 
+dricore: $(BUILT_SOURCES)
+	@ (cd libdricore && $(MAKE))
+
 ######################################################################
 # Device drivers
-driver_subdirs: $(MESA_LIBS) $(DRICORE_LIBS)
+driver_subdirs: $(MESA_LIBS) $(DRICORE_TARGET)
 	@ (cd drivers && $(MAKE))
 
 
@@ -134,17 +115,14 @@ asm_subdirs:
 		(cd x86-64 && $(MAKE)) || exit 1 ; \
 	fi
 
-
 ######################################################################
 # Dependency generation
 
-depend: $(ALL_SOURCES)
+depend: $(ALL_FILES)
 	@ echo "running $(MKDEP)"
 	@ touch depend
-	@$(MKDEP) $(MKDEP_OPTIONS) -p$(MESA_OBJ_DIR)/ $(MESA_CPPFLAGS) \
-		$(ALL_SOURCES) > /dev/null 2>/dev/null
-	@$(MKDEP) $(MKDEP_OPTIONS) -a -p$(DRICORE_OBJ_DIR)/ $(MESA_CPPFLAGS) \
-		$(ALL_SOURCES) > /dev/null 2>/dev/null
+	@$(MKDEP) $(MKDEP_OPTIONS) $(MESA_CPPFLAGS) \
+		$(ALL_FILES) > /dev/null 2>/dev/null
 
 ######################################################################
 # Installation rules
@@ -152,10 +130,6 @@ depend: $(ALL_SOURCES)
 # this isn't fleshed out yet but is probably the way to go in the future
 new_install:
 	(cd drivers && $(MAKE) install)
-
-ifneq (,$(DRICORE_LIBS))
-DRICORE_INSTALL_TARGET = install-dricore
-endif
 
 # XXX replace this with new_install above someday
 install: default $(DRICORE_INSTALL_TARGET)
@@ -166,8 +140,8 @@ install: default $(DRICORE_INSTALL_TARGET)
 	            else \
 	              $(MAKE) install-osmesa || exit 1 ; \
 	            fi ;; \
-	    dri)    $(MAKE) install-libgl install-dri || exit 1 ;; \
-	    *)      $(MAKE) install-libgl || exit 1 ;; \
+	    dri)    $(MAKE) install-libgl-pc install-dri || exit 1 ;; \
+	    *)      $(MAKE) install-libgl-pc install-libgl || exit 1 ;; \
 	  esac ; \
 	done
 
@@ -203,7 +177,11 @@ install-headers:
 	$(INSTALL) -m 644 $(TOP)/include/GL/*.h \
 		$(DESTDIR)$(INSTALL_INC_DIR)/GL
 
-install-libgl: default gl.pc install-headers
+install-libgl: default
+	$(MINSTALL) $(TOP)/$(LIB_DIR)/$(GL_LIB_GLOB) \
+	$(DESTDIR)$(INSTALL_LIB_DIR)
+
+install-libgl-pc: gl.pc install-headers
 	$(INSTALL) -d $(DESTDIR)$(INSTALL_LIB_DIR)
 	$(INSTALL) -d $(DESTDIR)$(INSTALL_LIB_DIR)/pkgconfig
 	$(INSTALL) -m 644 gl.pc $(DESTDIR)$(INSTALL_LIB_DIR)/pkgconfig
@@ -218,27 +196,20 @@ install-osmesa: default osmesa.pc
 install-dri: default
 	cd drivers/dri && $(MAKE) install
 
-# We don't need MINSTALL here because we're not installing symbolic links
 install-dricore: default
-	$(INSTALL) -d $(DESTDIR)$(DRI_DRIVER_INSTALL_DIR)
-	$(INSTALL) -m 755 $(DRICORE_LIBS) $(DESTDIR)$(DRI_DRIVER_INSTALL_DIR)
-
+	@ (cd libdricore && $(MAKE) install)
 
 # Emacs tags
 tags:
 	etags `find . -name \*.[ch]` $(TOP)/include/GL/*.h
 
-clean-dricore:
-	-rm -f libdricore.so
-	-rm -f $(DRICORE_LIBS)
-	-rm -rf $(DRICORE_OBJ_DIR)
-
-clean: clean-dricore
+clean:
 	-rm -f */*.o
 	-rm -f */*/*.o
 	-rm -f depend depend.bak libmesa.a libmesagallium.a
 	-rm -f drivers/*/*.o
 	-rm -f *.pc
+	-rm -f $(BUILT_SOURCES)
 	-@cd drivers/dri && $(MAKE) clean
 	-@cd drivers/x11 && $(MAKE) clean
 	-@cd drivers/osmesa && $(MAKE) clean
