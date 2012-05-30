@@ -41,9 +41,21 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       $(wildcard ..\..\..\src\mesa\drivers\dri\common\*.c) \
       $(wildcard ..\..\..\src\mesa\drivers\dri\common\*.h) \
       $(wildcard ..\..\..\src\mesa\drivers\common\*.c) \
-      $(wildcard ..\..\..\src\mesa\drivers\common\*.h)
+      $(wildcard ..\..\..\src\mesa\drivers\common\*.h) \
+      ..\..\..\src\mesa\main\dispatch.h \
+      ..\..\..\src\mesa\main\glapitable.h \
+      ..\..\..\src\mesa\main\enums.c
 
 all: Release\swrast_dri.dll Debug\swrast_dri.dll
+
+..\..\..\src\mesa\main\dispatch.h: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml)
+	cd ..\..\..\src\mapi\glapi\gen & python gl_table.py -m remap_table > ..\..\..\mesa\main\dispatch.h
+
+..\..\..\src\mesa\main\glapitable.h: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml)
+	cd ..\..\..\src\mapi\glapi\gen & python gl_table.py > ..\..\..\mesa\main\glapitable.h
+
+..\..\..\src\mesa\main\enums.c: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml)
+	cd ..\..\..\src\mapi\glapi\gen & python gl_enums.py -f gl_and_es_API.xml > ..\..\..\mesa\main\enums.c
 
 Debug\swrast_dri.dll: $(DEPS)
 	$(BUILDCMD) "Debug|Win32" 
