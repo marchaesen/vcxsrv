@@ -103,7 +103,9 @@ class PrintRemapTable(gl_XML.gl_print_base):
 
 	def printBody(self, api):
 		print '#ifdef _MSC_VER'
+		print '#ifndef INLINE'
 		print '#define INLINE __inline'
+		print '#endif'
 		print '#endif'
 		print '#define CALL_by_offset(disp, cast, offset, parameters) \\'
 		print '    (*(cast (GET_by_offset(disp, offset)))) parameters'
