@@ -48,7 +48,9 @@
 #endif
 
 #ifdef _MSC_VER
+#ifndef INLINE
 #define INLINE __inline
+#endif
 #endif
 #define CALL_by_offset(disp, cast, offset, parameters) \
     (*(cast (GET_by_offset(disp, offset)))) parameters
