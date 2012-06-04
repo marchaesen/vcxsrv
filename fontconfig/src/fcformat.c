@@ -294,7 +294,7 @@ interpret_builtin (FcFormatContext *c,
 	if (new_str)
 	{
 	    FcStrBufString (buf, new_str);
-	    free (new_str);
+	    FcStrFree (new_str);
 	    return FcTrue;
 	}
 	else
@@ -1014,7 +1014,7 @@ interpret_convert (FcFormatContext *c,
 	if (new_str)
 	{
 	    FcStrBufString (buf, new_str);
-	    free (new_str);
+	    FcStrFree (new_str);
 	    return FcTrue;
 	}
 	else

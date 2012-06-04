@@ -833,6 +833,7 @@ FcStrBufChar (FcStrBuf *buf, FcChar8 c)
 	if (buf->allocated)
 	{
 	    size = buf->size * 2;
+	    FcMemFree (FC_MEM_STRBUF, buf->size);
 	    new = realloc (buf->buf, size);
 	}
 	else
@@ -850,8 +851,6 @@ FcStrBufChar (FcStrBuf *buf, FcChar8 c)
 	    buf->failed = FcTrue;
 	    return FcFalse;
 	}
-	if (buf->size)
-	    FcMemFree (FC_MEM_STRBUF, buf->size);
 	FcMemAlloc (FC_MEM_STRBUF, size);
 	buf->size = size;
 	buf->buf = new;

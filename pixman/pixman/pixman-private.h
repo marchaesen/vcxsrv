@@ -218,7 +218,8 @@ struct pixman_iter_t
     int				x, y;
     int				width;
     int				height;
-    iter_flags_t		flags;
+    iter_flags_t		iter_flags;
+    uint32_t			image_flags;
 
     /* These function pointers are initialized by the implementation */
     pixman_iter_get_scanline_t	get_scanline;
@@ -516,7 +517,8 @@ _pixman_implementation_src_iter_init (pixman_implementation_t       *imp,
 				      int                            width,
 				      int                            height,
 				      uint8_t                       *buffer,
-				      iter_flags_t                   flags);
+				      iter_flags_t                   flags,
+				      uint32_t                       image_flags);
 
 void
 _pixman_implementation_dest_iter_init (pixman_implementation_t       *imp,
@@ -527,7 +529,8 @@ _pixman_implementation_dest_iter_init (pixman_implementation_t       *imp,
 				       int                            width,
 				       int                            height,
 				       uint8_t                       *buffer,
-				       iter_flags_t                   flags);
+				       iter_flags_t                   flags,
+				       uint32_t                       image_flags);
 
 /* Specific implementations */
 pixman_implementation_t *

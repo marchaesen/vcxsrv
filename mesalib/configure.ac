@@ -72,6 +72,11 @@ AC_PROG_LEX
 
 AC_PATH_PROG([PERL], [perl])
 
+AC_CHECK_PROG(INDENT, indent, indent, cat)
+if test "x$INDENT" != "xcat"; then
+    AC_SUBST(INDENT_FLAGS, '-i4 -nut -br -brs -npcs -ce -T GLubyte -T GLbyte -T Bool')
+fi
+
 dnl Our fallback install-sh is a symlink to minstall. Use the existing
 dnl configuration in that case.
 AC_PROG_INSTALL
@@ -266,6 +271,7 @@ if test "x$enable_32bit" = xyes; then
     if test "x$GCC" = xyes; then
         CFLAGS="$CFLAGS -m32"
         ARCH_FLAGS="$ARCH_FLAGS -m32"
+        CCASFLAGS="$CCASFLAGS -m32"
     fi
     if test "x$GXX" = xyes; then
         CXXFLAGS="$CXXFLAGS -m32"
@@ -1615,6 +1621,14 @@ dnl
 dnl OpenCL configuration
 dnl
 
+AC_ARG_WITH([libclc-path],
+   [AS_HELP_STRING([--with-libclc-path],
+         [Path to libclc builtins library.  Example: --with-libclc-path=\$HOME/libclc/])],
+   [LIBCLC_PATH="$withval"],
+   [LIBCLC_PATH=""])
+
+AC_SUBST([LIBCLC_PATH])
+
 if test "x$enable_opencl" = xyes; then
     if test "x$with_gallium_drivers" = x; then
         AC_MSG_ERROR([cannot enable OpenCL without Gallium])
@@ -1692,7 +1706,9 @@ fi
 
 AC_SUBST([LLVM_BINDIR])
 AC_SUBST([LLVM_CFLAGS])
+AC_SUBST([LLVM_CPPFLAGS])
 AC_SUBST([LLVM_CXXFLAGS])
+AC_SUBST([LLVM_LIBDIR])
 AC_SUBST([LLVM_LIBS])
 AC_SUBST([LLVM_LDFLAGS])
 AC_SUBST([LLVM_INCLUDEDIR])
@@ -1839,11 +1855,16 @@ if test "x$enable_gallium_llvm" = xyes; then
 	    LLVM_LIBS="-lLLVM-`$LLVM_CONFIG --version`"
 	else
 	    LLVM_LIBS="`$LLVM_CONFIG --libs engine bitwriter`"
+            if test "x$enable_opencl" = xyes; then
+                LLVM_LIBS="${LLVM_LIBS} `llvm-config --libs ipo linker instrumentation`"
+            fi
 	fi
 	LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags`
 	LLVM_BINDIR=`$LLVM_CONFIG --bindir`
 	LLVM_CXXFLAGS=`$LLVM_CONFIG --cxxflags`
+	LLVM_CPPFLAGS=`$LLVM_CONFIG --cppflags`
 	LLVM_INCLUDEDIR=`$LLVM_CONFIG --includedir`
+	LLVM_LIBDIR=`$LLVM_CONFIG --libdir`
 	DEFINES="${DEFINES} -DHAVE_LLVM=`echo $LLVM_VERSION | sed -e 's/\([[0-9]]\)\.\([[0-9]]\)/0x0\10\2/g'`"
 	MESA_LLVM=1
     else
@@ -1973,12 +1994,17 @@ if test "x$with_gallium_drivers" != x; then
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS r600"
-            if test "x$enable_r600_llvm" = xyes; then
+            if test "x$enable_r600_llvm" = xyes -o "x$enable_opencl" = xyes; then
                 if test "x$LLVM_VERSION" != "x3.1"; then
                     AC_MSG_ERROR([LLVM 3.1 is required for the r600 llvm compiler.])
                 fi
                 NEED_RADEON_GALLIUM=yes;
+            fi
+            if test "x$enable_r600_llvm" = xyes; then
                 USE_R600_LLVM_COMPILER=yes;
+            fi
+            if test "x$enable_opencl" = xyes -a "x$with_llvm_shared_libs" = xno; then
+                LLVM_LIBS="${LLVM_LIBS} `llvm-config --libs bitreader asmparser`"
             fi
             gallium_check_st "radeon/drm" "dri-r600" "xorg-r600" "" "xvmc-r600" "vdpau-r600" "va-r600"
             ;;
@@ -2075,6 +2101,7 @@ AM_CONDITIONAL(NEED_RADEON_GALLIUM, test x$NEED_RADEON_GALLIUM = xyes)
 AM_CONDITIONAL(USE_R600_LLVM_COMPILER, test x$USE_R600_LLVM_COMPILER = xyes)
 AM_CONDITIONAL(HAVE_LOADER_GALLIUM, test x$enable_gallium_loader = xyes)
 AM_CONDITIONAL(HAVE_DRM_LOADER_GALLIUM, test x$enable_gallium_drm_loader = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_COMPUTE, test x$enable_opencl = xyes)
 AC_SUBST([GALLIUM_MAKE_DIRS])
 
 AM_CONDITIONAL(HAVE_X11_DRIVER, echo "$DRIVER_DIRS" | grep 'x11' >/dev/null 2>&1)

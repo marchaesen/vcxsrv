@@ -21,14 +21,14 @@ xkb_symbols "basic" {
     key <AE12>	{ [     minus, underscore, dead_cedilla,  dead_ogonek ]	};
 
     key <AD11>	{ [       eth,        ETH, dead_diaeresis, dead_abovering ] };
-    key <AD12>	{ [apostrophe,   question,   dead_tilde,  dead_macron ]	};
+    key <AD12>	{ [apostrophe,   question,   asciitilde,  dead_macron ]	};
 
     key <AC10>	{ [        ae,         AE,  asciicircum, dead_doubleacute ] };
     key <AC11>	{ [dead_acute, dead_acute, dead_circumflex, dead_caron ] };
     key <TLDE>	{ [dead_abovering,  dead_diaeresis,      notsign,      hyphen ]	};
 
 //  <AC12> = <BKSL>
-    key <BKSL>	{ [      plus,   asterisk,   dead_grave,   dead_breve ]	};
+    key <BKSL>	{ [      plus,   asterisk,   grave,   dead_breve ]	};
 
 //  <AB00> = <LSGT>, is in file "pc": pc105
     key <AB10>	{ [     thorn,      THORN, dead_belowdot, dead_abovedot ] };

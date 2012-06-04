@@ -375,8 +375,10 @@ XkbResizeKeyType(XkbDescPtr xkb,
         nResize = 0;
         for (nTotal = 1, i = xkb->min_key_code; i <= xkb->max_key_code; i++) {
             width = XkbKeyGroupsWidth(xkb, i);
-            if (width < type->num_levels)
+            if (width < type->num_levels || width >= new_num_lvls) {
+                nTotal += XkbKeyNumSyms(xkb,i);
                 continue;
+            }
             for (match = 0, g = XkbKeyNumGroups(xkb, i) - 1;
                  (g >= 0) && (!match); g--) {
                 if (XkbKeyKeyTypeIndex(xkb, i, g) == type_ndx) {
@@ -384,7 +386,7 @@ XkbResizeKeyType(XkbDescPtr xkb,
                     match = 1;
                 }
             }
-            if ((!match) || (width >= new_num_lvls))
+            if (!match)
                 nTotal += XkbKeyNumSyms(xkb, i);
             else {
                 nTotal += XkbKeyNumGroups(xkb, i) * new_num_lvls;

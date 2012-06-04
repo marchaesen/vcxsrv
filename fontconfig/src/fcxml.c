@@ -1359,6 +1359,7 @@ FcParseRange (FcConfigParse *parse)
 	    break;
 	default:
 	    FcConfigMessage (parse, FcSevereError, "invalid element in range");
+	    n = 0;
 	    break;
 	}
 	if (count == 1)
@@ -1868,12 +1869,14 @@ FcParseDir (FcConfigParse *parse)
 	size_t plen = strlen ((const char *)prefix);
 	size_t dlen = strlen ((const char *)data);
 
+	FcMemFree (FC_MEM_STRING, plen + 1);
 	prefix = realloc (prefix, plen + 1 + dlen + 1);
 	if (!prefix)
 	{
 	    FcConfigMessage (parse, FcSevereError, "out of memory");
 	    goto bail;
 	}
+	FcMemAlloc (FC_MEM_STRING, plen + 1 + dlen + 1);
 	prefix[plen] = FC_DIR_SEPARATOR;
 	memcpy (&prefix[plen + 1], data, dlen);
 	prefix[plen + 1 + dlen] = 0;
@@ -1938,7 +1941,7 @@ FcParseDir (FcConfigParse *parse)
 
   bail:
     if (prefix)
-	free (prefix);
+	FcStrFree (prefix);
 }
 
 static void
@@ -1961,12 +1964,14 @@ FcParseCacheDir (FcConfigParse *parse)
 	size_t plen = strlen ((const char *)prefix);
 	size_t dlen = strlen ((const char *)data);
 
+	FcMemFree (FC_MEM_STRING, plen + 1);
 	prefix = realloc (prefix, plen + 1 + dlen + 1);
 	if (!prefix)
 	{
 	    FcConfigMessage (parse, FcSevereError, "out of memory");
 	    goto bail;
 	}
+	FcMemAlloc (FC_MEM_STRING, plen + 1 + dlen + 1);
 	prefix[plen] = FC_DIR_SEPARATOR;
 	memcpy (&prefix[plen + 1], data, dlen);
 	prefix[plen + 1 + dlen] = 0;
@@ -2057,12 +2062,14 @@ FcParseInclude (FcConfigParse *parse)
 	size_t plen = strlen ((const char *)prefix);
 	size_t dlen = strlen ((const char *)s);
 
+	FcMemFree (FC_MEM_STRING, plen + 1);
 	prefix = realloc (prefix, plen + 1 + dlen + 1);
 	if (!prefix)
 	{
 	    FcConfigMessage (parse, FcSevereError, "out of memory");
 	    goto bail;
 	}
+	FcMemAlloc (FC_MEM_STRING, plen + 1 + dlen + 1);
 	prefix[plen] = FC_DIR_SEPARATOR;
 	memcpy (&prefix[plen + 1], s, dlen);
 	prefix[plen + 1 + dlen] = 0;
@@ -2080,7 +2087,7 @@ FcParseInclude (FcConfigParse *parse)
 
   bail:
     if (prefix)
-	free (prefix);
+	FcStrFree (prefix);
 }
 
 typedef struct _FcOpMap {

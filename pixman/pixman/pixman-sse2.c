@@ -5976,19 +5976,13 @@ static void
 sse2_src_iter_init (pixman_implementation_t *imp, pixman_iter_t *iter)
 {
     pixman_image_t *image = iter->image;
-    int x = iter->x;
-    int y = iter->y;
-    int width = iter->width;
-    int height = iter->height;
 
 #define FLAGS								\
-    (FAST_PATH_STANDARD_FLAGS | FAST_PATH_ID_TRANSFORM | FAST_PATH_BITS_IMAGE)
+    (FAST_PATH_STANDARD_FLAGS | FAST_PATH_ID_TRANSFORM |		\
+     FAST_PATH_BITS_IMAGE | FAST_PATH_SAMPLES_COVER_CLIP_NEAREST)
 
-    if ((iter->flags & ITER_NARROW)				&&
-	(image->common.flags & FLAGS) == FLAGS			&&
-	x >= 0 && y >= 0					&&
-	x + width <= image->bits.width				&&
-	y + height <= image->bits.height)
+    if ((iter->iter_flags & ITER_NARROW)			&&
+	(iter->image_flags & FLAGS) == FLAGS)
     {
 	const fetcher_info_t *f;
 
@@ -5999,7 +5993,7 @@ sse2_src_iter_init (pixman_implementation_t *imp, pixman_iter_t *iter)
 		uint8_t *b = (uint8_t *)image->bits.bits;
 		int s = image->bits.rowstride * 4;
 
-		iter->bits = b + s * iter->y + x * PIXMAN_FORMAT_BPP (f->format) / 8;
+		iter->bits = b + s * iter->y + iter->x * PIXMAN_FORMAT_BPP (f->format) / 8;
 		iter->stride = s;
 
 		iter->get_scanline = f->get_scanline;

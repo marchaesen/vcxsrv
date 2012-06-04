@@ -176,9 +176,23 @@ typedef Bool (*DRI2SwapLimitValidateProcPtr) (DrawablePtr pDraw,
                                               int swap_limit);
 
 /**
+ * \brief Get the value of a parameter.
+ *
+ * The parameter's \a value is looked up on the screen associated with
+ * \a pDrawable.
+ *
+ * \return \c Success or error code.
+ */
+typedef int (*DRI2GetParamProcPtr) (ClientPtr client,
+                                    DrawablePtr pDrawable,
+                                    CARD64 param,
+                                    BOOL *is_param_recognized,
+                                    CARD64 *value);
+
+/**
  * Version of the DRI2InfoRec structure defined in this header
  */
-#define DRI2INFOREC_VERSION 6
+#define DRI2INFOREC_VERSION 7
 
 typedef struct {
     unsigned int version;       /**< Version of this struct */
@@ -211,6 +225,10 @@ typedef struct {
 
     DRI2ReuseBufferNotifyProcPtr ReuseBufferNotify;
     DRI2SwapLimitValidateProcPtr SwapLimitValidate;
+
+    /* added in version 7 */
+
+    DRI2GetParamProcPtr GetParam;
 } DRI2InfoRec, *DRI2InfoPtr;
 
 extern _X_EXPORT int DRI2EventBase;
@@ -307,5 +325,11 @@ extern _X_EXPORT void DRI2SwapComplete(ClientPtr client, DrawablePtr pDraw,
 extern _X_EXPORT void DRI2WaitMSCComplete(ClientPtr client, DrawablePtr pDraw,
                                           int frame, unsigned int tv_sec,
                                           unsigned int tv_usec);
+
+extern _X_EXPORT int DRI2GetParam(ClientPtr client,
+                                  DrawablePtr pDrawable,
+                                  CARD64 param,
+                                  BOOL *is_param_recognized,
+                                  CARD64 *value);
 
 #endif

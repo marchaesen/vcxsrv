@@ -110,7 +110,7 @@ general_composite_rect  (pixman_implementation_t *imp,
     pixman_iter_t src_iter, mask_iter, dest_iter;
     pixman_combine_32_func_t compose;
     pixman_bool_t component_alpha;
-    iter_flags_t narrow, src_flags;
+    iter_flags_t narrow, src_iter_flags;
     int Bpp;
     int i;
 
@@ -140,14 +140,14 @@ general_composite_rect  (pixman_implementation_t *imp,
     dest_buffer = mask_buffer + width * Bpp;
 
     /* src iter */
-    src_flags = narrow | op_flags[op].src;
+    src_iter_flags = narrow | op_flags[op].src;
 
     _pixman_implementation_src_iter_init (imp->toplevel, &src_iter, src_image,
 					  src_x, src_y, width, height,
-					  src_buffer, src_flags);
+					  src_buffer, src_iter_flags, info->src_flags);
 
     /* mask iter */
-    if ((src_flags & (ITER_IGNORE_ALPHA | ITER_IGNORE_RGB)) ==
+    if ((src_iter_flags & (ITER_IGNORE_ALPHA | ITER_IGNORE_RGB)) ==
 	(ITER_IGNORE_ALPHA | ITER_IGNORE_RGB))
     {
 	/* If it doesn't matter what the source is, then it doesn't matter
@@ -164,12 +164,12 @@ general_composite_rect  (pixman_implementation_t *imp,
 
     _pixman_implementation_src_iter_init (
 	imp->toplevel, &mask_iter, mask_image, mask_x, mask_y, width, height,
-	mask_buffer, narrow | (component_alpha? 0 : ITER_IGNORE_RGB));
+	mask_buffer, narrow | (component_alpha? 0 : ITER_IGNORE_RGB), info->mask_flags);
 
     /* dest iter */
     _pixman_implementation_dest_iter_init (
 	imp->toplevel, &dest_iter, dest_image, dest_x, dest_y, width, height,
-	dest_buffer, narrow | op_flags[op].dst);
+	dest_buffer, narrow | op_flags[op].dst, info->dest_flags);
 
     compose = _pixman_implementation_lookup_combiner (
 	imp->toplevel, op, component_alpha, narrow);
