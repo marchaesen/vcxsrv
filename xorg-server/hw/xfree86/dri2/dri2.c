@@ -107,6 +107,7 @@ typedef struct _DRI2Screen {
     DRI2AuthMagicProcPtr AuthMagic;
     DRI2ReuseBufferNotifyProcPtr ReuseBufferNotify;
     DRI2SwapLimitValidateProcPtr SwapLimitValidate;
+    DRI2GetParamProcPtr GetParam;
 
     HandleExposuresProcPtr HandleExposures;
 
@@ -1210,6 +1211,11 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
         ds->SwapLimitValidate = info->SwapLimitValidate;
     }
 
+    if (info->version >= 7) {
+        ds->GetParam = info->GetParam;
+        cur_minor = 4;
+    }
+
     /*
      * if the driver doesn't provide an AuthMagic function or the info struct
      * version is too low, it relies on the old method (using libdrm) or fail
@@ -1331,4 +1337,39 @@ DRI2Version(int *major, int *minor)
 
     if (minor != NULL)
         *minor = DRI2VersRec.minorversion;
+}
+
+int
+DRI2GetParam(ClientPtr client,
+             DrawablePtr drawable,
+             CARD64 param,
+             BOOL *is_param_recognized,
+             CARD64 *value)
+{
+    DRI2ScreenPtr ds = DRI2GetScreen(drawable->pScreen);
+    char high_byte = (param >> 24);
+
+    switch (high_byte) {
+    case 0:
+        /* Parameter names whose high_byte is 0 are reserved for the X
+         * server. The server currently recognizes no parameters.
+         */
+        goto not_recognized;
+    case 1:
+        /* Parameter names whose high byte is 1 are reserved for the DDX. */
+        if (ds->GetParam)
+            return ds->GetParam(client, drawable, param,
+                                is_param_recognized, value);
+        else
+            goto not_recognized;
+    default:
+        /* Other parameter names are reserved for future use. They are never
+         * recognized.
+         */
+        goto not_recognized;
+    }
+
+not_recognized:
+    *is_param_recognized = FALSE;
+    return Success;
 }

@@ -154,6 +154,8 @@ if test "x$ac_cv_func_fstatfs" = "xyes"; then
 #include <sys/mount.h>
 #endif])
 fi
+AC_CHECK_MEMBERS([struct dirent.d_type],,,
+	[#include <dirent.h>])
 #
 # regex
 #

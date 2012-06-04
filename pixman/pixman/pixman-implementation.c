@@ -185,7 +185,8 @@ _pixman_implementation_src_iter_init (pixman_implementation_t	*imp,
 				      int			 width,
 				      int			 height,
 				      uint8_t			*buffer,
-				      iter_flags_t		 flags)
+				      iter_flags_t		 iter_flags,
+				      uint32_t                   image_flags)
 {
     iter->image = image;
     iter->buffer = (uint32_t *)buffer;
@@ -193,7 +194,8 @@ _pixman_implementation_src_iter_init (pixman_implementation_t	*imp,
     iter->y = y;
     iter->width = width;
     iter->height = height;
-    iter->flags = flags;
+    iter->iter_flags = iter_flags;
+    iter->image_flags = image_flags;
 
     (*imp->src_iter_init) (imp, iter);
 }
@@ -207,7 +209,8 @@ _pixman_implementation_dest_iter_init (pixman_implementation_t	*imp,
 				       int			 width,
 				       int			 height,
 				       uint8_t			*buffer,
-				       iter_flags_t		 flags)
+				       iter_flags_t		 iter_flags,
+				       uint32_t                  image_flags)
 {
     iter->image = image;
     iter->buffer = (uint32_t *)buffer;
@@ -215,7 +218,8 @@ _pixman_implementation_dest_iter_init (pixman_implementation_t	*imp,
     iter->y = y;
     iter->width = width;
     iter->height = height;
-    iter->flags = flags;
+    iter->iter_flags = iter_flags;
+    iter->image_flags = image_flags;
 
     (*imp->dest_iter_init) (imp, iter);
 }

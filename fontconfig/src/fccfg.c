@@ -1698,17 +1698,17 @@ static FcChar8 *
 FcConfigFileExists (const FcChar8 *dir, const FcChar8 *file)
 {
     FcChar8    *path;
-    int         size;
+    int         size, osize;
 
     if (!dir)
 	dir = (FcChar8 *) "";
 
-    size = strlen ((char *) dir) + 1 + strlen ((char *) file) + 1;
+    osize = strlen ((char *) dir) + 1 + strlen ((char *) file) + 1;
     /*
      * workaround valgrind warning because glibc takes advantage of how it knows memory is
      * allocated to implement strlen by reading in groups of 4
      */
-    size = (size + 3) & ~3;
+    size = (osize + 3) & ~3;
 
     path = malloc (size);
     if (!path)
@@ -1729,11 +1729,12 @@ FcConfigFileExists (const FcChar8 *dir, const FcChar8 *file)
 #endif
     strcat ((char *) path, (char *) file);
 
-    FcMemAlloc (FC_MEM_STRING, size);
+    FcMemAlloc (FC_MEM_STRING, osize);
     if (access ((char *) path, R_OK) == 0)
 	return path;
 
     FcStrFree (path);
+
     return 0;
 }
 
@@ -1853,6 +1854,7 @@ FcConfigXdgCacheHome (void)
 	ret = malloc (len + 7 + 1);
 	if (ret)
 	{
+	    FcMemAlloc (FC_MEM_STRING, len + 7 + 1);
 	    memcpy (ret, home, len);
 	    memcpy (&ret[len], FC_DIR_SEPARATOR_S ".cache", 7);
 	    ret[len + 7] = 0;
@@ -1878,6 +1880,7 @@ FcConfigXdgConfigHome (void)
 	ret = malloc (len + 8 + 1);
 	if (ret)
 	{
+	    FcMemAlloc (FC_MEM_STRING, len + 8 + 1);
 	    memcpy (ret, home, len);
 	    memcpy (&ret[len], FC_DIR_SEPARATOR_S ".config", 8);
 	    ret[len + 8] = 0;
@@ -1903,6 +1906,7 @@ FcConfigXdgDataHome (void)
 	ret = malloc (len + 13 + 1);
 	if (ret)
 	{
+	    FcMemAlloc (FC_MEM_STRING, len + 13 + 1);
 	    memcpy (ret, home, len);
 	    memcpy (&ret[len], FC_DIR_SEPARATOR_S ".local" FC_DIR_SEPARATOR_S "share", 13);
 	    ret[len + 13] = 0;

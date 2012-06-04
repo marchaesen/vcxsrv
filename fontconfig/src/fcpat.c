@@ -1046,7 +1046,8 @@ FcSharedStrFree (const FcChar8 *name)
 	    {
 		*p = b->next;
 		size = sizeof (struct objectBucket) + strlen ((char *)name) + 1;
-		FcMemFree (FC_MEM_SHAREDSTR, size + sizeof (int));
+		size = (size + 3) & ~3;
+		FcMemFree (FC_MEM_SHAREDSTR, size);
 		free (b);
 	    }
             return FcTrue;

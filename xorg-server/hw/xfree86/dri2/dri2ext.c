@@ -535,6 +535,37 @@ ProcDRI2WaitSBC(ClientPtr client)
 }
 
 static int
+ProcDRI2GetParam(ClientPtr client)
+{
+    REQUEST(xDRI2GetParamReq);
+    xDRI2GetParamReply rep;
+    DrawablePtr pDrawable;
+    CARD64 value;
+    int status;
+
+    REQUEST_SIZE_MATCH(xDRI2GetParamReq);
+    rep.type = X_Reply;
+    rep.length = 0;
+    rep.sequenceNumber = client->sequence;
+
+    if (!validDrawable(client, stuff->drawable, DixReadAccess,
+                       &pDrawable, &status))
+        return status;
+
+    status = DRI2GetParam(client, pDrawable, stuff->param,
+                          &rep.is_param_recognized, &value);
+    rep.value_hi = value >> 32;
+    rep.value_lo = value & 0xffffffff;
+
+    if (status != Success)
+        return status;
+
+    WriteToClient(client, sizeof(xDRI2GetParamReply), &rep);
+
+    return status;
+}
+
+static int
 ProcDRI2Dispatch(ClientPtr client)
 {
     REQUEST(xReq);
@@ -572,6 +603,8 @@ ProcDRI2Dispatch(ClientPtr client)
         return ProcDRI2WaitSBC(client);
     case X_DRI2SwapInterval:
         return ProcDRI2SwapInterval(client);
+    case X_DRI2GetParam:
+        return ProcDRI2GetParam(client);
     default:
         return BadRequest;
     }
