@@ -716,7 +716,7 @@ xf86CrtcCreateScreenResources(ScreenPtr screen)
  * Clean up config on server reset
  */
 static Bool
-xf86CrtcCloseScreen(int index, ScreenPtr screen)
+xf86CrtcCloseScreen(ScreenPtr screen)
 {
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
@@ -738,7 +738,7 @@ xf86CrtcCloseScreen(int index, ScreenPtr screen)
     }
     xf86RandR12CloseScreen(screen);
 
-    return screen->CloseScreen(index, screen);
+    return screen->CloseScreen(screen);
 }
 
 /*
@@ -3009,7 +3009,7 @@ xf86OutputGetEDID(xf86OutputPtr output, I2CBusPtr pDDCBus)
     ScrnInfoPtr scrn = output->scrn;
     xf86MonPtr mon;
 
-    mon = xf86DoEEDID(scrn->scrnIndex, pDDCBus, TRUE);
+    mon = xf86DoEEDID(scrn, pDDCBus, TRUE);
     if (mon)
         xf86DDCApplyQuirks(scrn->scrnIndex, mon);
 

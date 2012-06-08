@@ -81,9 +81,9 @@ static Bool
  */
 
 Bool
-winScreenInit(int index, ScreenPtr pScreen, int argc, char **argv)
+winScreenInit(ScreenPtr pScreen, int argc, char **argv)
 {
-    winScreenInfoPtr pScreenInfo = &g_ScreenInfo[index];
+    winScreenInfoPtr pScreenInfo = &g_ScreenInfo[pScreen->myNum];
     winPrivScreenPtr pScreenPriv;
     HDC hdc;
     DWORD dwInitialBPP;
@@ -202,11 +202,11 @@ winScreenInit(int index, ScreenPtr pScreen, int argc, char **argv)
     miClearVisualTypes();
 
     /* Call the engine dependent screen initialization procedure */
-    if (!((*pScreenPriv->pwinFinishScreenInit) (index, pScreen, argc, argv))) {
+    if (!((*pScreenPriv->pwinFinishScreenInit) (pScreen->myNum, pScreen, argc, argv))) {
         ErrorF("winScreenInit - winFinishScreenInit () failed\n");
 
         /* call the engine dependent screen close procedure to clean up from a failure */
-        pScreenPriv->pwinCloseScreen(index, pScreen);
+        pScreenPriv->pwinCloseScreen(pScreen);
 
         return FALSE;
     }
@@ -224,7 +224,7 @@ winScreenInit(int index, ScreenPtr pScreen, int argc, char **argv)
     pScreen->y = pScreenInfo->dwInitialY - GetSystemMetrics(SM_YVIRTUALSCREEN);
 
     ErrorF("Screen %d added at virtual desktop coordinate (%d,%d).\n",
-           index, pScreen->x, pScreen->y);
+           pScreen->myNum, pScreen->x, pScreen->y);
 
 #if CYGDEBUG || YES
     winDebug("winScreenInit - returning\n");
@@ -355,8 +355,6 @@ winFinishScreenInitFB(int index, ScreenPtr pScreen, int argc, char **argv)
      */
     pScreen->BlockHandler = winBlockHandler;
     pScreen->WakeupHandler = winWakeupHandler;
-    pScreen->blockData = pScreen;
-    pScreen->wakeupData = pScreen;
 
     /* Render extension initialization, calls miPictureInit */
     if (!fbPictureInit(pScreen, NULL, 0)) {
@@ -636,8 +634,6 @@ winFinishScreenInitNativeGDI(int index,
      */
     pScreen->BlockHandler = winBlockHandler;
     pScreen->WakeupHandler = winWakeupHandler;
-    pScreen->blockData = pScreen;
-    pScreen->wakeupData = pScreen;
 
     /* Place our save screen function */
     pScreen->SaveScreen = winSaveScreen;

@@ -360,10 +360,8 @@ ExaOffscreenSwapIn(ScreenPtr pScreen)
  * swapped out.
  */
 void
-exaEnableDisableFBAccess(int index, Bool enable)
+exaEnableDisableFBAccess(ScreenPtr pScreen, Bool enable)
 {
-    ScreenPtr pScreen = screenInfo.screens[index];
-
     ExaScreenPriv(pScreen);
 
     if (pExaScr->info->flags & EXA_HANDLES_PIXMAPS)

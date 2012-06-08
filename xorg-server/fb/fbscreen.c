@@ -27,7 +27,7 @@
 #include "fb.h"
 
 Bool
-fbCloseScreen(int index, ScreenPtr pScreen)
+fbCloseScreen(ScreenPtr pScreen)
 {
     int d;
     DepthPtr depths = pScreen->allowedDepths;

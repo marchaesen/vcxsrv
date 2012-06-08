@@ -209,7 +209,7 @@ main(int argc, char *argv[], char *envp[])
         for (i = 0; i < screenInfo.numScreens; i++) {
             ScreenPtr pScreen = screenInfo.screens[i];
 
-            if (!CreateScratchPixmapsForScreen(i))
+            if (!CreateScratchPixmapsForScreen(pScreen))
                 FatalError("failed to create scratch pixmaps");
             if (pScreen->CreateScreenResources &&
                 !(*pScreen->CreateScreenResources) (pScreen))
@@ -322,10 +322,10 @@ main(int argc, char *argv[], char *envp[])
         CloseDownEvents();
 
         for (i = screenInfo.numScreens - 1; i >= 0; i--) {
-            FreeScratchPixmapsForScreen(i);
+            FreeScratchPixmapsForScreen(screenInfo.screens[i]);
             FreeGCperDepth(i);
             FreeDefaultStipple(i);
-            (*screenInfo.screens[i]->CloseScreen) (i, screenInfo.screens[i]);
+            (*screenInfo.screens[i]->CloseScreen) (screenInfo.screens[i]);
             dixFreePrivates(screenInfo.screens[i]->devPrivates, PRIVATE_SCREEN);
             free(screenInfo.screens[i]);
             screenInfo.numScreens = i;

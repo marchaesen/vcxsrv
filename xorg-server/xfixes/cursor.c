@@ -190,7 +190,7 @@ CursorDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
 }
 
 static Bool
-CursorCloseScreen(int index, ScreenPtr pScreen)
+CursorCloseScreen(ScreenPtr pScreen)
 {
     CursorScreenPtr cs = GetCursorScreen(pScreen);
     Bool ret;
@@ -202,7 +202,7 @@ CursorCloseScreen(int index, ScreenPtr pScreen)
     Unwrap(cs, pScreen, DisplayCursor, display_proc);
     Unwrap(cs, pScreen, ConstrainCursorHarder, constrain_proc);
     deleteCursorHideCountsForScreen(pScreen);
-    ret = (*pScreen->CloseScreen) (index, pScreen);
+    ret = (*pScreen->CloseScreen) (pScreen);
     free(cs);
     return ret;
 }

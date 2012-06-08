@@ -381,7 +381,7 @@ extern _X_EXPORT Bool
  PictureDestroyWindow(WindowPtr pWindow);
 
 extern _X_EXPORT Bool
- PictureCloseScreen(int Index, ScreenPtr pScreen);
+ PictureCloseScreen(ScreenPtr pScreen);
 
 extern _X_EXPORT void
  PictureStoreColors(ColormapPtr pColormap, int ndef, xColorItem * pdef);

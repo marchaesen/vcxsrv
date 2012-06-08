@@ -202,14 +202,14 @@ CheckForShmSyscall(void)
 #endif
 
 static Bool
-ShmCloseScreen(int i, ScreenPtr pScreen)
+ShmCloseScreen(ScreenPtr pScreen)
 {
     ShmScrPrivateRec *screen_priv = ShmGetScreenPriv(pScreen);
 
     pScreen->CloseScreen = screen_priv->CloseScreen;
     dixSetPrivate(&pScreen->devPrivates, shmScrPrivateKey, NULL);
     free(screen_priv);
-    return (*pScreen->CloseScreen) (i, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }
 
 static ShmScrPrivateRec *

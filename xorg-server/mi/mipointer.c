@@ -91,7 +91,7 @@ static void miPointerCursorLimits(DeviceIntPtr pDev, ScreenPtr pScreen,
                                   BoxPtr pTopLeftBox);
 static Bool miPointerSetCursorPosition(DeviceIntPtr pDev, ScreenPtr pScreen,
                                        int x, int y, Bool generateEvent);
-static Bool miPointerCloseScreen(int index, ScreenPtr pScreen);
+static Bool miPointerCloseScreen(ScreenPtr pScreen);
 static void miPointerMove(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y);
 static Bool miPointerDeviceInitialize(DeviceIntPtr pDev, ScreenPtr pScreen);
 static void miPointerDeviceCleanup(DeviceIntPtr pDev, ScreenPtr pScreen);
@@ -154,7 +154,7 @@ miPointerInitialize(ScreenPtr pScreen,
  * @param pScreen The actual screen pointer
  */
 static Bool
-miPointerCloseScreen(int index, ScreenPtr pScreen)
+miPointerCloseScreen(ScreenPtr pScreen)
 {
     SetupScreen(pScreen);
 
@@ -162,7 +162,7 @@ miPointerCloseScreen(int index, ScreenPtr pScreen)
     free((pointer) pScreenPriv);
     FreeEventList(events, GetMaximumEventsNum());
     events = NULL;
-    return (*pScreen->CloseScreen) (index, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }
 
 /*

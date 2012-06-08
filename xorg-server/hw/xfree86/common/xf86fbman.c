@@ -1149,7 +1149,7 @@ static FBManagerFuncs xf86FBManFuncs = {
 };
 
 static Bool
-xf86FBCloseScreen(int i, ScreenPtr pScreen)
+xf86FBCloseScreen(ScreenPtr pScreen)
 {
     FBLinkPtr pLink, tmp;
     FBLinearLinkPtr pLinearLink, tmp2;
@@ -1180,7 +1180,7 @@ xf86FBCloseScreen(int i, ScreenPtr pScreen)
     free(offman);
     dixSetPrivate(&pScreen->devPrivates, xf86FBScreenKey, NULL);
 
-    return (*pScreen->CloseScreen) (i, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }
 
 Bool

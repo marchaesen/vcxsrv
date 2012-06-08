@@ -72,14 +72,14 @@ PictureDestroyWindow(WindowPtr pWindow)
 }
 
 Bool
-PictureCloseScreen(int index, ScreenPtr pScreen)
+PictureCloseScreen(ScreenPtr pScreen)
 {
     PictureScreenPtr ps = GetPictureScreen(pScreen);
     Bool ret;
     int n;
 
     pScreen->CloseScreen = ps->CloseScreen;
-    ret = (*pScreen->CloseScreen) (index, pScreen);
+    ret = (*pScreen->CloseScreen) (pScreen);
     PictureResetFilters(pScreen);
     for (n = 0; n < ps->nformats; n++)
         if (ps->formats[n].type == PictTypeIndexed)

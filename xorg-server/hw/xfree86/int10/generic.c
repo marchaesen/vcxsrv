@@ -70,12 +70,12 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
     void *base = 0;
     void *vbiosMem = 0;
     void *options = NULL;
-    int screen;
     legacyVGARec vga;
+    ScrnInfoPtr pScrn;
 
-    screen = (xf86FindScreenForEntity(entityIndex))->scrnIndex;
+    pScrn = xf86FindScreenForEntity(entityIndex);
 
-    options = xf86HandleInt10Options(xf86Screens[screen], entityIndex);
+    options = xf86HandleInt10Options(pScrn, entityIndex);
 
     if (int10skip(options)) {
         free(options);
@@ -89,7 +89,7 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
     pInt->mem = &genericMem;
     pInt->private = (pointer) xnfcalloc(1, sizeof(genericInt10Priv));
     INTPriv(pInt)->alloc = (pointer) xnfcalloc(1, ALLOC_ENTRIES(getpagesize()));
-    pInt->scrnIndex = screen;
+    pInt->pScrn = pScrn;
     base = INTPriv(pInt)->base = xnfalloc(SYS_BIOS);
 
     /* FIXME: Shouldn't this be a failure case?  Leaving dev as NULL seems like
@@ -109,7 +109,7 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
     INTPriv(pInt)->sysMem = sysMem;
 
     if (xf86ReadBIOS(0, 0, base, LOW_PAGE_SIZE) < 0) {
-        xf86DrvMsg(screen, X_ERROR, "Cannot read int vect\n");
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Cannot read int vect\n");
         goto error1;
     }
 
@@ -148,7 +148,7 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
             vbiosMem = (unsigned char *) base + bios_location;
             err = pci_device_read_rom(rom_device, vbiosMem);
             if (err) {
-                xf86DrvMsg(screen, X_ERROR, "Cannot read V_BIOS (3) %s\n",
+                xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Cannot read V_BIOS (3) %s\n",
                            strerror(err));
                 goto error1;
             }
@@ -249,7 +249,6 @@ MapVRam(xf86Int10InfoPtr pInt)
 static void
 UnmapVRam(xf86Int10InfoPtr pInt)
 {
-    int screen = pInt->scrnIndex;
     int pagesize = getpagesize();
     int size = ((VRAM_SIZE + pagesize - 1) / pagesize) * pagesize;
 

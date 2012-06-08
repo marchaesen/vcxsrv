@@ -1419,7 +1419,7 @@ fbPushPixels(GCPtr pGC,
  */
 
 extern _X_EXPORT Bool
- fbCloseScreen(int indx, ScreenPtr pScreen);
+ fbCloseScreen(ScreenPtr pScreen);
 
 extern _X_EXPORT Bool
  fbRealizeFont(ScreenPtr pScreen, FontPtr pFont);

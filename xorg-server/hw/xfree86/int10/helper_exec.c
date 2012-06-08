@@ -125,7 +125,7 @@ run_bios_int(int num, xf86Int10InfoPtr pInt)
     if (MEM_RW(pInt, (num << 2) + 2) == (SYS_BIOS >> 4)) {      /* SYS_BIOS_SEG ? */
 
         if (num == 21 && X86_AH == 0x4e) {
-            xf86DrvMsg(pInt->scrnIndex, X_NOTICE,
+            xf86DrvMsg(pInt->pScrn->scrnIndex, X_NOTICE,
                        "Failing Find-Matching-File on non-PC"
                        " (int 21, func 4e)\n");
             X86_AX = 2;
@@ -133,7 +133,7 @@ run_bios_int(int num, xf86Int10InfoPtr pInt)
             return 1;
         }
         else {
-            xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 2,
+            xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                            "Ignoring int 0x%02x call\n", num);
             if (xf86GetVerbosity() > 3) {
                 dump_registers(pInt);
@@ -169,7 +169,7 @@ dump_code(xf86Int10InfoPtr pInt)
     int i;
     CARD32 lina = SEG_ADR((CARD32), X86_CS, IP);
 
-    xf86DrvMsgVerb(pInt->scrnIndex, X_INFO, 3, "code at 0x%8.8" PRIx32 ":\n",
+    xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_INFO, 3, "code at 0x%8.8" PRIx32 ":\n",
                    lina);
     for (i = 0; i < 0x10; i++)
         xf86ErrorFVerb(3, " %2.2x", MEM_RB(pInt, lina + i));
@@ -182,19 +182,19 @@ dump_code(xf86Int10InfoPtr pInt)
 void
 dump_registers(xf86Int10InfoPtr pInt)
 {
-    xf86DrvMsgVerb(pInt->scrnIndex, X_INFO, 3,
+    xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_INFO, 3,
                    "EAX=0x%8.8lx, EBX=0x%8.8lx, ECX=0x%8.8lx, EDX=0x%8.8lx\n",
                    (unsigned long) X86_EAX, (unsigned long) X86_EBX,
                    (unsigned long) X86_ECX, (unsigned long) X86_EDX);
-    xf86DrvMsgVerb(pInt->scrnIndex, X_INFO, 3,
+    xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_INFO, 3,
                    "ESP=0x%8.8lx, EBP=0x%8.8lx, ESI=0x%8.8lx, EDI=0x%8.8lx\n",
                    (unsigned long) X86_ESP, (unsigned long) X86_EBP,
                    (unsigned long) X86_ESI, (unsigned long) X86_EDI);
-    xf86DrvMsgVerb(pInt->scrnIndex, X_INFO, 3,
+    xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_INFO, 3,
                    "CS=0x%4.4x, SS=0x%4.4x,"
                    " DS=0x%4.4x, ES=0x%4.4x, FS=0x%4.4x, GS=0x%4.4x\n",
                    X86_CS, X86_SS, X86_DS, X86_ES, X86_FS, X86_GS);
-    xf86DrvMsgVerb(pInt->scrnIndex, X_INFO, 3,
+    xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_INFO, 3,
                    "EIP=0x%8.8lx, EFLAGS=0x%8.8lx\n",
                    (unsigned long) X86_EIP, (unsigned long) X86_EFLAGS);
 }
@@ -337,7 +337,7 @@ x_inb(CARD16 port)
     }
     else if (port < 0x0100) {   /* Don't interfere with mainboard */
         val = 0;
-        xf86DrvMsgVerb(Int10Current->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(Int10Current->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "inb 0x%4.4x\n", port);
         if (xf86GetVerbosity() > 3) {
             dump_registers(Int10Current);
@@ -395,7 +395,7 @@ x_outb(CARD16 port, CARD8 val)
 #ifdef __NOT_YET__
     }
     else if (port < 0x0100) {   /* Don't interfere with mainboard */
-        xf86DrvMsgVerb(Int10Current->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(Int10Current->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "outb 0x%4.4x,0x%2.2x\n", port, val);
         if (xf86GetVerbosity() > 3) {
             dump_registers(Int10Current);

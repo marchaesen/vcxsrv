@@ -250,17 +250,16 @@ xf86RotateRedisplay(ScreenPtr pScreen)
 }
 
 static void
-xf86RotateBlockHandler(int screenNum, pointer blockData,
+xf86RotateBlockHandler(ScreenPtr pScreen,
                        pointer pTimeout, pointer pReadmask)
 {
-    ScreenPtr pScreen = screenInfo.screens[screenNum];
-    ScrnInfoPtr pScrn = xf86Screens[screenNum];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
     Bool rotation_active;
 
     rotation_active = xf86RotateRedisplay(pScreen);
     pScreen->BlockHandler = xf86_config->BlockHandler;
-    (*pScreen->BlockHandler) (screenNum, blockData, pTimeout, pReadmask);
+    (*pScreen->BlockHandler) (pScreen, pTimeout, pReadmask);
     /* cannot avoid re-wrapping until all wrapping is audited */
     xf86_config->BlockHandler = pScreen->BlockHandler;
     pScreen->BlockHandler = xf86RotateBlockHandler;

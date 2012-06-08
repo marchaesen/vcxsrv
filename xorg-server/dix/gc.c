@@ -458,6 +458,60 @@ ChangeGCXIDs(ClientPtr client, GC * pGC, BITS32 mask, CARD32 *pC32)
     return ChangeGC(client, pGC, mask, vals);
 }
 
+static GCPtr
+NewGCObject(ScreenPtr pScreen, int depth)
+{
+    GCPtr pGC;
+
+    pGC = dixAllocateObjectWithPrivates(GC, PRIVATE_GC);
+    if (!pGC) {
+        return (GCPtr) NULL;
+    }
+
+    pGC->pScreen = pScreen;
+    pGC->depth = depth;
+    pGC->alu = GXcopy;          /* dst <- src */
+    pGC->planemask = ~0;
+    pGC->serialNumber = 0;
+    pGC->funcs = 0;
+    pGC->fgPixel = 0;
+    pGC->bgPixel = 1;
+    pGC->lineWidth = 0;
+    pGC->lineStyle = LineSolid;
+    pGC->capStyle = CapButt;
+    pGC->joinStyle = JoinMiter;
+    pGC->fillStyle = FillSolid;
+    pGC->fillRule = EvenOddRule;
+    pGC->arcMode = ArcPieSlice;
+    pGC->tile.pixel = 0;
+    pGC->tile.pixmap = NullPixmap;
+
+    pGC->tileIsPixel = TRUE;
+    pGC->patOrg.x = 0;
+    pGC->patOrg.y = 0;
+    pGC->subWindowMode = ClipByChildren;
+    pGC->graphicsExposures = TRUE;
+    pGC->clipOrg.x = 0;
+    pGC->clipOrg.y = 0;
+    pGC->clientClipType = CT_NONE;
+    pGC->clientClip = (pointer) NULL;
+    pGC->numInDashList = 2;
+    pGC->dash = DefaultDash;
+    pGC->dashOffset = 0;
+
+    /* use the default font and stipple */
+    pGC->font = defaultFont;
+    if (pGC->font)              /* necessary, because open of default font could fail */
+        pGC->font->refcnt++;
+    pGC->stipple = pGC->pScreen->PixmapPerDepth[0];
+    if (pGC->stipple)
+        pGC->stipple->refcnt++;
+
+    /* this is not a scratch GC */
+    pGC->scratch_inuse = FALSE;
+    return pGC;
+}
+
 /* CreateGC(pDrawable, mask, pval, pStatus)
    creates a default GC for the given drawable, using mask to fill
    in any non-default values.
@@ -473,29 +527,13 @@ CreateGC(DrawablePtr pDrawable, BITS32 mask, XID *pval, int *pStatus,
 {
     GCPtr pGC;
 
-    pGC = dixAllocateObjectWithPrivates(GC, PRIVATE_GC);
+    pGC = NewGCObject(pDrawable->pScreen, pDrawable->depth);
     if (!pGC) {
         *pStatus = BadAlloc;
         return (GCPtr) NULL;
     }
 
-    pGC->pScreen = pDrawable->pScreen;
-    pGC->depth = pDrawable->depth;
-    pGC->alu = GXcopy;          /* dst <- src */
-    pGC->planemask = ~0;
     pGC->serialNumber = GC_CHANGE_SERIAL_BIT;
-    pGC->funcs = 0;
-    pGC->fgPixel = 0;
-    pGC->bgPixel = 1;
-    pGC->lineWidth = 0;
-    pGC->lineStyle = LineSolid;
-    pGC->capStyle = CapButt;
-    pGC->joinStyle = JoinMiter;
-    pGC->fillStyle = FillSolid;
-    pGC->fillRule = EvenOddRule;
-    pGC->arcMode = ArcPieSlice;
-    pGC->tile.pixel = 0;
-    pGC->tile.pixmap = NullPixmap;
     if (mask & GCForeground) {
         /*
          * magic special case -- ChangeGC checks for this condition
@@ -506,27 +544,6 @@ CreateGC(DrawablePtr pDrawable, BITS32 mask, XID *pval, int *pStatus,
     else {
         pGC->tileIsPixel = TRUE;
     }
-
-    pGC->patOrg.x = 0;
-    pGC->patOrg.y = 0;
-    pGC->subWindowMode = ClipByChildren;
-    pGC->graphicsExposures = TRUE;
-    pGC->clipOrg.x = 0;
-    pGC->clipOrg.y = 0;
-    pGC->clientClipType = CT_NONE;
-    pGC->clientClip = (pointer) NULL;
-    pGC->numInDashList = 2;
-    pGC->dash = DefaultDash;
-    pGC->dashOffset = 0;
-
-    /* use the default font and stipple */
-    pGC->font = defaultFont;
-    defaultFont->refcnt++;
-    pGC->stipple = pGC->pScreen->PixmapPerDepth[0];
-    pGC->stipple->refcnt++;
-
-    /* this is not a scratch GC */
-    pGC->scratch_inuse = FALSE;
 
     /* security creation/labeling check */
     *pStatus = XaceHook(XACE_RESOURCE_ACCESS, client, gcid, RT_GC, pGC,
@@ -784,44 +801,9 @@ CreateScratchGC(ScreenPtr pScreen, unsigned depth)
 {
     GCPtr pGC;
 
-    pGC = dixAllocateObjectWithPrivates(GC, PRIVATE_GC);
+    pGC = NewGCObject(pScreen, depth);
     if (!pGC)
         return (GCPtr) NULL;
-
-    pGC->pScreen = pScreen;
-    pGC->depth = depth;
-    pGC->alu = GXcopy;          /* dst <- src */
-    pGC->planemask = ~0;
-    pGC->serialNumber = 0;
-    pGC->fgPixel = 0;
-    pGC->bgPixel = 1;
-    pGC->lineWidth = 0;
-    pGC->lineStyle = LineSolid;
-    pGC->capStyle = CapButt;
-    pGC->joinStyle = JoinMiter;
-    pGC->fillStyle = FillSolid;
-    pGC->fillRule = EvenOddRule;
-    pGC->arcMode = ArcPieSlice;
-    pGC->font = defaultFont;
-    if (pGC->font)              /* necessary, because open of default font could fail */
-        pGC->font->refcnt++;
-    pGC->tileIsPixel = TRUE;
-    pGC->tile.pixel = 0;
-    pGC->tile.pixmap = NullPixmap;
-    pGC->stipple = NullPixmap;
-    pGC->patOrg.x = 0;
-    pGC->patOrg.y = 0;
-    pGC->subWindowMode = ClipByChildren;
-    pGC->graphicsExposures = TRUE;
-    pGC->clipOrg.x = 0;
-    pGC->clipOrg.y = 0;
-    pGC->clientClipType = CT_NONE;
-    pGC->dashOffset = 0;
-    pGC->numInDashList = 2;
-    pGC->dash = DefaultDash;
-
-    /* scratch GCs in the GCperDepth pool start off unused */
-    pGC->scratch_inuse = FALSE;
 
     pGC->stateChanges = GCAllBits;
     if (!(*pScreen->CreateGC) (pGC)) {

@@ -198,7 +198,7 @@ typedef Bool (*RRSetPanningProcPtr) (ScreenPtr pScrn,
 #endif                          /* RANDR_13_INTERFACE */
 
 typedef Bool (*RRGetInfoProcPtr) (ScreenPtr pScreen, Rotation * rotations);
-typedef Bool (*RRCloseScreenProcPtr) (int i, ScreenPtr pscreen);
+typedef Bool (*RRCloseScreenProcPtr) (ScreenPtr pscreen);
 
 /* These are for 1.0 compatibility */
 

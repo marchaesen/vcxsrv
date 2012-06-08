@@ -56,7 +56,7 @@ static DevPrivateKeyRec DGAScreenKeyRec;
 #define DGAScreenKeyRegistered dixPrivateKeyRegistered(&DGAScreenKeyRec)
 static Bool mieq_installed;
 
-static Bool DGACloseScreen(int i, ScreenPtr pScreen);
+static Bool DGACloseScreen(ScreenPtr pScreen);
 static void DGADestroyColormap(ColormapPtr pmap);
 static void DGAInstallColormap(ColormapPtr pmap);
 static void DGAUninstallColormap(ColormapPtr pmap);
@@ -235,7 +235,7 @@ FreeMarkedVisuals(ScreenPtr pScreen)
 }
 
 static Bool
-DGACloseScreen(int i, ScreenPtr pScreen)
+DGACloseScreen(ScreenPtr pScreen)
 {
     DGAScreenPtr pScreenPriv = DGA_GET_SCREEN_PRIV(pScreen);
 
@@ -256,7 +256,7 @@ DGACloseScreen(int i, ScreenPtr pScreen)
 
     free(pScreenPriv);
 
-    return ((*pScreen->CloseScreen) (i, pScreen));
+    return ((*pScreen->CloseScreen) (pScreen));
 }
 
 static void
@@ -323,11 +323,10 @@ DGAUninstallColormap(ColormapPtr pmap)
 }
 
 int
-xf86SetDGAMode(int index, int num, DGADevicePtr devRet)
+xf86SetDGAMode(ScrnInfoPtr pScrn, int num, DGADevicePtr devRet)
 {
-    ScreenPtr pScreen = screenInfo.screens[index];
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     DGAScreenPtr pScreenPriv;
-    ScrnInfoPtr pScrn;
     DGADevicePtr device;
     PixmapPtr pPix = NULL;
     DGAModePtr pMode = NULL;
@@ -338,7 +337,6 @@ xf86SetDGAMode(int index, int num, DGADevicePtr devRet)
     pScreenPriv = DGA_GET_SCREEN_PRIV(pScreen);
     if (!pScreenPriv)
         return BadValue;
-    pScrn = pScreenPriv->pScrn;
 
     if (!num) {
         if (pScreenPriv->current) {
@@ -359,7 +357,7 @@ xf86SetDGAMode(int index, int num, DGADevicePtr devRet)
                 pScreenPriv->savedColormap = NULL;
             }
             pScreenPriv->dgaColormap = NULL;
-            (*pScrn->EnableDisableFBAccess) (index, TRUE);
+            (*pScrn->EnableDisableFBAccess) (pScrn, TRUE);
 
             FreeMarkedVisuals(pScreen);
         }
@@ -385,7 +383,7 @@ xf86SetDGAMode(int index, int num, DGADevicePtr devRet)
         Bool oldVTSema = pScrn->vtSema;
 
         pScrn->vtSema = FALSE;  /* kludge until we rewrite VT switching */
-        (*pScrn->EnableDisableFBAccess) (index, FALSE);
+        (*pScrn->EnableDisableFBAccess) (pScrn, FALSE);
         pScrn->vtSema = oldVTSema;
     }
 
@@ -564,7 +562,7 @@ DGAShutdown(void)
     for (i = 0; i < screenInfo.numScreens; i++) {
         pScrn = xf86Screens[i];
 
-        (void) (*pScrn->SetDGAMode) (pScrn->scrnIndex, 0, NULL);
+        (void) (*pScrn->SetDGAMode) (pScrn, 0, NULL);
     }
 }
 
@@ -579,7 +577,7 @@ DGASetMode(int index, int num, XDGAModePtr mode, PixmapPtr *pPix)
 
     /* We rely on the extension to check that DGA is available */
 
-    ret = (*pScrn->SetDGAMode) (index, num, &device);
+    ret = (*pScrn->SetDGAMode) (pScrn, num, &device);
     if ((ret == Success) && num) {
         DGACopyModeInfo(device.mode, mode);
         *pPix = device.pPix;

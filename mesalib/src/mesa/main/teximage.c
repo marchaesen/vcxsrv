@@ -2606,26 +2606,9 @@ teximage(struct gl_context *ctx, GLuint dims,
                                           border, internalFormat, texFormat);
 
                /* Give the texture to the driver.  <pixels> may be null. */
-               ASSERT(ctx->Driver.TexImage3D);
-               switch (dims) {
-               case 1:
-                  ctx->Driver.TexImage1D(ctx, texImage, internalFormat,
-                                         width, border, format,
-                                         type, pixels, unpack);
-                  break;
-               case 2:
-                  ctx->Driver.TexImage2D(ctx, texImage, internalFormat,
-                                         width, height, border, format,
-                                         type, pixels, unpack);
-                  break;
-               case 3:
-                  ctx->Driver.TexImage3D(ctx, texImage, internalFormat,
-                                         width, height, depth, border, format,
-                                         type, pixels, unpack);
-                  break;
-               default:
-                  _mesa_problem(ctx, "invalid dims=%u in teximage()", dims);
-               }
+               ctx->Driver.TexImage(ctx, dims, texImage, internalFormat,
+                                    width, height, depth, border, format,
+                                    type, pixels, unpack);
 
                check_gen_mipmap(ctx, target, texObj, level);
 
@@ -2809,26 +2792,10 @@ texsubimage(struct gl_context *ctx, GLuint dims, GLenum target, GLint level,
             xoffset += texImage->Border;
          }
 
-         switch (dims) {
-         case 1:
-            ctx->Driver.TexSubImage1D(ctx, texImage,
-                                      xoffset, width,
-                                      format, type, pixels, &ctx->Unpack);
-            break;
-         case 2:
-            ctx->Driver.TexSubImage2D(ctx, texImage,
-                                      xoffset, yoffset, width, height,
-                                      format, type, pixels, &ctx->Unpack);
-            break;
-         case 3:
-            ctx->Driver.TexSubImage3D(ctx, texImage,
-                                      xoffset, yoffset, zoffset,
-                                      width, height, depth,
-                                      format, type, pixels, &ctx->Unpack);
-            break;
-         default:
-            _mesa_problem(ctx, "unexpected dims in subteximage()");
-         }
+         ctx->Driver.TexSubImage(ctx, dims, texImage,
+                                 xoffset, yoffset, zoffset,
+                                 width, height, depth,
+                                 format, type, pixels, &ctx->Unpack);
 
          check_gen_mipmap(ctx, target, texObj, level);
 
@@ -2959,7 +2926,7 @@ copyteximage(struct gl_context *ctx, GLuint dims,
                                                            GL_NONE, GL_NONE);
 
          if (legal_texture_size(ctx, texFormat, width, height, 1)) {
-            GLint srcX = x, srcY = y, dstX = 0, dstY = 0;
+            GLint srcX = x, srcY = y, dstX = 0, dstY = 0, dstZ = 0;
 
             /* Free old texture image */
             ctx->Driver.FreeTextureImageBuffer(ctx, texImage);
@@ -2968,29 +2935,17 @@ copyteximage(struct gl_context *ctx, GLuint dims,
                                        border, internalFormat, texFormat);
 
             /* Allocate texture memory (no pixel data yet) */
-            if (dims == 1) {
-               ctx->Driver.TexImage1D(ctx, texImage, internalFormat,
-                                      width, border, GL_NONE, GL_NONE, NULL,
-                                      &ctx->Unpack);
-            }
-            else {
-               ctx->Driver.TexImage2D(ctx, texImage, internalFormat,
-                                      width, height, border, GL_NONE, GL_NONE,
-                                      NULL, &ctx->Unpack);
-            }
+            ctx->Driver.TexImage(ctx, dims, texImage, internalFormat,
+                                 width, height, 1, border, GL_NONE, GL_NONE,
+                                 NULL, &ctx->Unpack);
 
             if (_mesa_clip_copytexsubimage(ctx, &dstX, &dstY, &srcX, &srcY,
                                            &width, &height)) {
                struct gl_renderbuffer *srcRb =
                   get_copy_tex_image_source(ctx, texImage->TexFormat);
 
-               if (dims == 1)
-                  ctx->Driver.CopyTexSubImage1D(ctx, texImage, dstX,
-                                                srcRb, srcX, srcY, width);
-                                                
-               else
-                  ctx->Driver.CopyTexSubImage2D(ctx, texImage, dstX, dstY,
-                                                srcRb, srcX, srcY, width, height);
+               ctx->Driver.CopyTexSubImage(ctx, dims, texImage, dstX, dstY, dstZ,
+                                           srcRb, srcX, srcY, width, height);
             }
 
             check_gen_mipmap(ctx, target, texObj, level);
@@ -3089,23 +3044,9 @@ copytexsubimage(struct gl_context *ctx, GLuint dims, GLenum target, GLint level,
             struct gl_renderbuffer *srcRb =
                get_copy_tex_image_source(ctx, texImage->TexFormat);
 
-            switch (dims) {
-            case 1:
-               ctx->Driver.CopyTexSubImage1D(ctx, texImage, xoffset,
-                                             srcRb, x, y, width);
-               break;
-            case 2:
-               ctx->Driver.CopyTexSubImage2D(ctx, texImage, xoffset, yoffset,
-                                             srcRb, x, y, width, height);
-               break;
-            case 3:
-               ctx->Driver.CopyTexSubImage3D(ctx, texImage,
-                                             xoffset, yoffset, zoffset,
-                                             srcRb, x, y, width, height);
-               break;
-            default:
-               _mesa_problem(ctx, "bad dims in copytexsubimage()");
-            }
+            ctx->Driver.CopyTexSubImage(ctx, dims, texImage,
+                                        xoffset, yoffset, zoffset,
+                                        srcRb, x, y, width, height);
 
             check_gen_mipmap(ctx, target, texObj, level);
 
@@ -3600,31 +3541,10 @@ compressedteximage(struct gl_context *ctx, GLuint dims,
                                           width, height, depth,
                                           border, internalFormat, texFormat);
 
-               switch (dims) {
-               case 1:
-                  ASSERT(ctx->Driver.CompressedTexImage1D);
-                  ctx->Driver.CompressedTexImage1D(ctx, texImage,
-                                                   internalFormat,
-                                                   width,
-                                                   border, imageSize, data);
-                  break;
-               case 2:
-                  ASSERT(ctx->Driver.CompressedTexImage2D);
-                  ctx->Driver.CompressedTexImage2D(ctx, texImage,
-                                                   internalFormat,
-                                                   width, height,
-                                                   border, imageSize, data);
-                  break;
-               case 3:
-                  ASSERT(ctx->Driver.CompressedTexImage3D);
-                  ctx->Driver.CompressedTexImage3D(ctx, texImage,
-                                                   internalFormat,
-                                                   width, height, depth,
-                                                   border, imageSize, data);
-                  break;
-               default:
-                  _mesa_problem(ctx, "bad dims in compressedteximage");
-               }
+               ctx->Driver.CompressedTexImage(ctx, dims, texImage,
+                                              internalFormat,
+                                              width, height, depth,
+                                              border, imageSize, data);
 
                check_gen_mipmap(ctx, target, texObj, level);
 
@@ -3713,33 +3633,10 @@ compressed_tex_sub_image(GLuint dims, GLenum target, GLint level,
          /* error was recorded */
       }
       else if (width > 0 && height > 0 && depth > 0) {
-         switch (dims) {
-         case 1:
-            if (ctx->Driver.CompressedTexSubImage1D) {
-               ctx->Driver.CompressedTexSubImage1D(ctx, texImage,
-                                                   xoffset, width,
-                                                   format, imageSize, data);
-            }
-            break;
-         case 2:
-            if (ctx->Driver.CompressedTexSubImage2D) {
-               ctx->Driver.CompressedTexSubImage2D(ctx, texImage,
-                                                   xoffset, yoffset,
-                                                   width, height,
-                                                   format, imageSize, data);
-            }
-            break;
-         case 3:
-            if (ctx->Driver.CompressedTexSubImage3D) {
-               ctx->Driver.CompressedTexSubImage3D(ctx, texImage,
-                                                   xoffset, yoffset, zoffset,
-                                                   width, height, depth,
-                                                   format, imageSize, data);
-            }
-            break;
-         default:
-            ;
-         }
+         ctx->Driver.CompressedTexSubImage(ctx, dims, texImage,
+                                           xoffset, yoffset, zoffset,
+                                           width, height, depth,
+                                           format, imageSize, data);
 
          check_gen_mipmap(ctx, target, texObj, level);
 

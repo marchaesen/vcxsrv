@@ -21,10 +21,10 @@
 /* int10 info structure */
 typedef struct {
     int entityIndex;
-    int scrnIndex;
-    pointer cpuRegs;
     CARD16 BIOSseg;
     CARD16 inb40time;
+    ScrnInfoPtr pScrn;
+    pointer cpuRegs;
     char *BIOSScratch;
     int Flags;
     pointer private;

@@ -53,7 +53,7 @@ DevPrivateKeyRec CompWindowPrivateKeyRec;
 DevPrivateKeyRec CompSubwindowsPrivateKeyRec;
 
 static Bool
-compCloseScreen(int index, ScreenPtr pScreen)
+compCloseScreen(ScreenPtr pScreen)
 {
     CompScreenPtr cs = GetCompScreen(pScreen);
     Bool ret;
@@ -82,7 +82,7 @@ compCloseScreen(int index, ScreenPtr pScreen)
 
     free(cs);
     dixSetPrivate(&pScreen->devPrivates, CompScreenPrivateKey, NULL);
-    ret = (*pScreen->CloseScreen) (index, pScreen);
+    ret = (*pScreen->CloseScreen) (pScreen);
 
     return ret;
 }

@@ -38,7 +38,7 @@
 
 typedef struct _ExaXorgScreenPrivRec {
     CloseScreenProcPtr SavedCloseScreen;
-    EnableDisableFBAccessProcPtr SavedEnableDisableFBAccess;
+    xf86EnableDisableFBAccessProc *SavedEnableDisableFBAccess;
     OptionInfoPtr options;
 } ExaXorgScreenPrivRec, *ExaXorgScreenPrivPtr;
 
@@ -70,7 +70,7 @@ static const OptionInfoRec EXAOptions[] = {
 };
 
 static Bool
-exaXorgCloseScreen(int i, ScreenPtr pScreen)
+exaXorgCloseScreen(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     ExaXorgScreenPrivPtr pScreenPriv = (ExaXorgScreenPrivPtr)
@@ -83,24 +83,24 @@ exaXorgCloseScreen(int i, ScreenPtr pScreen)
     free(pScreenPriv->options);
     free(pScreenPriv);
 
-    return pScreen->CloseScreen(i, pScreen);
+    return pScreen->CloseScreen(pScreen);
 }
 
 static void
-exaXorgEnableDisableFBAccess(int index, Bool enable)
+exaXorgEnableDisableFBAccess(ScrnInfoPtr pScrn, Bool enable)
 {
-    ScreenPtr pScreen = screenInfo.screens[index];
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     ExaXorgScreenPrivPtr pScreenPriv = (ExaXorgScreenPrivPtr)
         dixLookupPrivate(&pScreen->devPrivates, exaXorgScreenPrivateKey);
 
     if (!enable)
-        exaEnableDisableFBAccess(index, enable);
+        exaEnableDisableFBAccess(pScreen, enable);
 
     if (pScreenPriv->SavedEnableDisableFBAccess)
-        pScreenPriv->SavedEnableDisableFBAccess(index, enable);
+        pScreenPriv->SavedEnableDisableFBAccess(pScrn, enable);
 
     if (enable)
-        exaEnableDisableFBAccess(index, enable);
+        exaEnableDisableFBAccess(pScreen, enable);
 }
 
 /**

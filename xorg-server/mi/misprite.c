@@ -191,7 +191,7 @@ static DevPrivateKeyRec miSpriteDevPrivatesKeyRec;
 
 #define miSpriteDevPrivatesKey (&miSpriteDevPrivatesKeyRec)
 
-static Bool miSpriteCloseScreen(int i, ScreenPtr pScreen);
+static Bool miSpriteCloseScreen(ScreenPtr pScreen);
 static void miSpriteGetImage(DrawablePtr pDrawable, int sx, int sy,
                              int w, int h, unsigned int format,
                              unsigned long planemask, char *pdstLine);
@@ -203,7 +203,7 @@ static void miSpriteSourceValidate(DrawablePtr pDrawable, int x, int y,
                                    unsigned int subWindowMode);
 static void miSpriteCopyWindow(WindowPtr pWindow,
                                DDXPointRec ptOldOrg, RegionPtr prgnSrc);
-static void miSpriteBlockHandler(int i, pointer blockData,
+static void miSpriteBlockHandler(ScreenPtr pScreen,
                                  pointer pTimeout, pointer pReadMask);
 static void miSpriteInstallColormap(ColormapPtr pMap);
 static void miSpriteStoreColors(ColormapPtr pMap, int ndef, xColorItem * pdef);
@@ -367,7 +367,7 @@ miSpriteInitialize(ScreenPtr pScreen, miPointerScreenFuncPtr screenFuncs)
  */
 
 static Bool
-miSpriteCloseScreen(int i, ScreenPtr pScreen)
+miSpriteCloseScreen(ScreenPtr pScreen)
 {
     miSpriteScreenPtr pScreenPriv = GetSpriteScreen(pScreen);
 
@@ -382,7 +382,7 @@ miSpriteCloseScreen(int i, ScreenPtr pScreen)
 
     free(pScreenPriv);
 
-    return (*pScreen->CloseScreen) (i, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }
 
 static void
@@ -520,10 +520,9 @@ miSpriteCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 }
 
 static void
-miSpriteBlockHandler(int i, pointer blockData, pointer pTimeout,
+miSpriteBlockHandler(ScreenPtr pScreen, pointer pTimeout,
                      pointer pReadmask)
 {
-    ScreenPtr pScreen = screenInfo.screens[i];
     miSpriteScreenPtr pPriv = GetSpriteScreen(pScreen);
     DeviceIntPtr pDev;
     miCursorInfoPtr pCursorInfo;
@@ -554,7 +553,7 @@ miSpriteBlockHandler(int i, pointer blockData, pointer pTimeout,
 
     SCREEN_PROLOGUE(pPriv, pScreen, BlockHandler);
 
-    (*pScreen->BlockHandler) (i, blockData, pTimeout, pReadmask);
+    (*pScreen->BlockHandler) (pScreen, pTimeout, pReadmask);
 
     if (WorkToDo)
         SCREEN_EPILOGUE(pPriv, pScreen, BlockHandler);

@@ -65,7 +65,7 @@ static void
  winShadowUpdateDD(ScreenPtr pScreen, shadowBufPtr pBuf);
 
 static Bool
- winCloseScreenShadowDD(int nIndex, ScreenPtr pScreen);
+ winCloseScreenShadowDD(ScreenPtr pScreen);
 
 static Bool
  winInitVisualsShadowDD(ScreenPtr pScreen);
@@ -648,7 +648,7 @@ winInitScreenShadowDD(ScreenPtr pScreen)
  */
 
 static Bool
-winCloseScreenShadowDD(int nIndex, ScreenPtr pScreen)
+winCloseScreenShadowDD(ScreenPtr pScreen)
 {
     winScreenPriv(pScreen);
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
@@ -665,7 +665,7 @@ winCloseScreenShadowDD(int nIndex, ScreenPtr pScreen)
     /* Call the wrapped CloseScreen procedure */
     WIN_UNWRAP(CloseScreen);
     if (pScreen->CloseScreen)
-        fReturn = (*pScreen->CloseScreen) (nIndex, pScreen);
+        fReturn = (*pScreen->CloseScreen) (pScreen);
 
     winFreeFBShadowDD(pScreen);
 

@@ -846,18 +846,17 @@ static const __DRIextension *loader_extensions[] = {
 };
 
 static Bool
-glxDRIEnterVT(int index, int flags)
+glxDRIEnterVT(ScrnInfoPtr scrn)
 {
-    ScrnInfoPtr scrn = xf86Screens[index];
     Bool ret;
     __GLXDRIscreen *screen = (__GLXDRIscreen *)
-        glxGetScreen(screenInfo.screens[index]);
+        glxGetScreen(xf86ScrnToScreen(scrn));
 
     LogMessage(X_INFO, "AIGLX: Resuming AIGLX clients after VT switch\n");
 
     scrn->EnterVT = screen->enterVT;
 
-    ret = scrn->EnterVT(index, flags);
+    ret = scrn->EnterVT(scrn);
 
     screen->enterVT = scrn->EnterVT;
     scrn->EnterVT = glxDRIEnterVT;
@@ -871,18 +870,17 @@ glxDRIEnterVT(int index, int flags)
 }
 
 static void
-glxDRILeaveVT(int index, int flags)
+glxDRILeaveVT(ScrnInfoPtr scrn)
 {
-    ScrnInfoPtr scrn = xf86Screens[index];
     __GLXDRIscreen *screen = (__GLXDRIscreen *)
-        glxGetScreen(screenInfo.screens[index]);
+        glxGetScreen(xf86ScrnToScreen(scrn));
 
     LogMessage(X_INFO, "AIGLX: Suspending AIGLX clients for VT switch\n");
 
     glxSuspendClients();
 
     scrn->LeaveVT = screen->leaveVT;
-    (*screen->leaveVT) (index, flags);
+    (*screen->leaveVT) (scrn);
     screen->leaveVT = scrn->LeaveVT;
     scrn->LeaveVT = glxDRILeaveVT;
 }

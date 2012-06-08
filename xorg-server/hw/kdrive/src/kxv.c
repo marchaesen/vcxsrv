@@ -58,7 +58,7 @@ of the copyright holder.
 
 /* XvScreenRec fields */
 
-static Bool KdXVCloseScreen(int, ScreenPtr);
+static Bool KdXVCloseScreen(ScreenPtr);
 static int KdXVQueryAdaptors(ScreenPtr, XvAdaptorPtr *, int *);
 
 /* XvAdaptorRec fields */
@@ -1118,7 +1118,7 @@ KdXVClipNotify(WindowPtr pWin, int dx, int dy)
 /**** Required XvScreenRec fields ****/
 
 static Bool
-KdXVCloseScreen(int i, ScreenPtr pScreen)
+KdXVCloseScreen(ScreenPtr pScreen)
 {
     XvScreenPtr pxvs = GET_XV_SCREEN(pScreen);
     KdXVScreenPtr ScreenPriv = GET_KDXV_SCREEN(pScreen);

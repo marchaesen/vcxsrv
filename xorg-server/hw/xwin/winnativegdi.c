@@ -44,7 +44,7 @@ static void
  winShadowUpdateNativeGDI(ScreenPtr pScreen, shadowBufPtr pBuf);
 
 static Bool
- winCloseScreenNativeGDI(int nIndex, ScreenPtr pScreen);
+ winCloseScreenNativeGDI(ScreenPtr pScreen);
 
 static Bool
  winInitVisualsNativeGDI(ScreenPtr pScreen);
@@ -104,7 +104,7 @@ winInitScreenNativeGDI(ScreenPtr pScreen)
  */
 
 static Bool
-winCloseScreenNativeGDI(int nIndex, ScreenPtr pScreen)
+winCloseScreenNativeGDI(ScreenPtr pScreen)
 {
     winScreenPriv(pScreen);
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;

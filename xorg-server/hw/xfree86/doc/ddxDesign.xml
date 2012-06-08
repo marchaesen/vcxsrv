@@ -1306,7 +1306,7 @@ Here is what <function>InitOutput()</function> does:
 
       <blockquote><para>
 	  <programlisting>
-    Bool ChipScreenInit(int index, ScreenPtr pScreen,
+    Bool ChipScreenInit(ScreenPtr pScreen,
                         int argc, char **argv);
 	  </programlisting>
 	  <blockquote><para>
@@ -1442,7 +1442,7 @@ Here is what <function>InitOutput()</function> does:
 
       <blockquote><para>
 	  <programlisting>
-    Bool ChipSwitchMode(int index, DisplayModePtr mode, int flags);
+    Bool ChipSwitchMode(int index, DisplayModePtr mode);
 	  </programlisting>
 	  <blockquote><para>
       Initialises the new mode for the screen identified by
@@ -1464,7 +1464,7 @@ Here is what <function>InitOutput()</function> does:
 
       <blockquote><para>
 	  <programlisting>
-    void ChipAdjustFrame(int index, int x, int y, int flags);
+    void ChipAdjustFrame(int index, int x, int y);
 	  </programlisting>
 	  <blockquote><para>
       Changes the viewport for the screen identified by
@@ -1572,7 +1572,7 @@ Here is what <function>InitOutput()</function> does:
 
       <blockquote><para>
 	  <programlisting>
-    Bool ChipEnterVT(int index, int flags);
+    Bool ChipEnterVT(ScrnInfoPtr pScrn);
 	  </programlisting>
 	  <blockquote><para>
       This function should initialise the current video mode and
@@ -1589,7 +1589,7 @@ Here is what <function>InitOutput()</function> does:
 
       <blockquote><para>
 	  <programlisting>
-    void ChipLeaveVT(int index, int flags);
+    void ChipLeaveVT(ScrnInfoPtr pScrn);
 	  </programlisting>
 	  <blockquote><para>
       This function should restore the saved video state.  If
@@ -1691,7 +1691,7 @@ but their presence is optional.
 
       <blockquote><para>
 	  <programlisting>
-    ModeStatus ChipValidMode(int index, DisplayModePtr mode,
+    ModeStatus ChipValidMode(ScrnInfoPtr pScrn, DisplayModePtr mode,
                              Bool verbose, int flags);
 	  </programlisting>
 	  <blockquote><para>
@@ -1739,7 +1739,7 @@ MODECHECK_FINAL are intended for checks that may involve more than one mode.
 
       <blockquote><para>
 	  <programlisting>
-    void ChipFreeScreen(int scrnindex, int flags);
+    void ChipFreeScreen(ScrnInfoPtr pScrn);
 	  </programlisting>
 	  <blockquote><para>
       Free any driver-allocated data that may have been allocated up to
@@ -2824,12 +2824,12 @@ Several functions are provided to simplify resource registration:
 
 	  <blockquote><para>
 	      <programlisting>
-    Bool xf86IsScreenPrimary(int scrnIndex);
+    Bool xf86IsScreenPrimary(ScrnInfoPtr pScrn);
 	      </programlisting>
 	      <blockquote><para>
       This function returns <constant>TRUE</constant> if the primary entity
       is registered with the screen referenced by
-      <parameter>scrnIndex</parameter>.
+      <parameter>pScrn</parameter>.
 		</para>
 
 	      </blockquote></para></blockquote>
@@ -9033,7 +9033,7 @@ ZZZModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
 
 	<programlisting>
 static Bool
-ZZZScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
+ZZZScreenInit(ScreenPtr pScreen, int argc, char **argv)
 {
     /* Get the ScrnInfoRec */
     pScrn = xf86ScreenToScrn(pScreen);
@@ -9051,7 +9051,7 @@ ZZZScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     /* Set the viewport if supported */
 
-    ZZZAdjustFrame(scrnIndex, pScrn-&gt;frameX0, pScrn-&gt;frameY0, 0);
+    ZZZAdjustFrame(pScrn, pScrn-&gt;frameX0, pScrn-&gt;frameY0);
 
     /*
      * Setup the screen's visuals, and initialise the framebuffer
@@ -9220,9 +9220,9 @@ ZZZScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
 	<programlisting>
 static Bool
-ZZZSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
+ZZZSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 {
-    return ZZZModeInit(xf86Screens[scrnIndex], mode);
+    return ZZZModeInit(pScrn, mode);
 }
 	</programlisting>
       </sect3>
@@ -9237,7 +9237,7 @@ ZZZSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
 
 	<programlisting>
 static void
-ZZZAdjustFrame(int scrnIndex, int x, int y, int flags)
+ZZZAdjustFrame(ScrnInfoPtr pScrn, int x, int y)
 {
     /* Adjust the viewport */
 }
@@ -9258,16 +9258,14 @@ ZZZAdjustFrame(int scrnIndex, int x, int y, int flags)
 
 	<programlisting>
 static Bool
-ZZZEnterVT(int scrnIndex, int flags)
+ZZZEnterVT(ScrnInfoPtr pScrn)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     return ZZZModeInit(pScrn, pScrn-&gt;currentMode);
 }
 
 static void
-ZZZLeaveVT(int scrnIndex, int flags)
+ZZZLeaveVT(ScrnInfoPtr pScrn)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     ZZZRestore(pScrn);
 }
 	</programlisting>
@@ -9288,16 +9286,16 @@ ZZZLeaveVT(int scrnIndex, int flags)
 
 	<programlisting>
 static Bool
-ZZZCloseScreen(int scrnIndex, ScreenPtr pScreen)
+ZZZCloseScreen(ScreenPtr pScreen)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     if (pScrn-&gt;vtSema) {
         ZZZRestore(pScrn);
         ZZZUnmapMem(pScrn);
     }
     pScrn-&gt;vtSema = FALSE;
     pScreen-&gt;CloseScreen = ZZZPTR(pScrn)-&gt;CloseScreen;
-    return (*pScreen-&gt;CloseScreen)(scrnIndex, pScreen);
+    return (*pScreen-&gt;CloseScreen)(pScreen);
 }
 	</programlisting>
       </sect3>
@@ -9342,13 +9340,13 @@ ZZZSaveScreen(ScreenPtr pScreen, int mode)
 
 	<programlisting>
 static void
-ZZZFreeScreen(int scrnIndex, int flags)
+ZZZFreeScreen(ScrnInfoPtr pScrn)
 {
     /*
      * If the vgahw module is used vgaHWFreeHWRec() would be called
      * here.
      */
-    ZZZFreeRec(xf86Screens[scrnIndex]);
+    ZZZFreeRec(pScrn);
 }
 
 	</programlisting>

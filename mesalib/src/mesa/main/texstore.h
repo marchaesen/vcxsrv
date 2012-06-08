@@ -90,103 +90,40 @@ _mesa_make_temp_float_image(struct gl_context *ctx, GLuint dims,
 			    GLbitfield transferOps);
 
 extern void
-_mesa_store_teximage1d(struct gl_context *ctx,
-                       struct gl_texture_image *texImage,
-                       GLint internalFormat,
-                       GLint width, GLint border,
-                       GLenum format, GLenum type, const GLvoid *pixels,
-                       const struct gl_pixelstore_attrib *packing);
+_mesa_store_teximage(struct gl_context *ctx,
+                     GLuint dims,
+                     struct gl_texture_image *texImage,
+                     GLint internalFormat,
+                     GLint width, GLint height, GLint depth, GLint border,
+                     GLenum format, GLenum type, const GLvoid *pixels,
+                     const struct gl_pixelstore_attrib *packing);
 
 
 extern void
-_mesa_store_teximage2d(struct gl_context *ctx,
-                       struct gl_texture_image *texImage,
-                       GLint internalFormat,
-                       GLint width, GLint height, GLint border,
-                       GLenum format, GLenum type, const GLvoid *pixels,
-                       const struct gl_pixelstore_attrib *packing);
+_mesa_store_texsubimage(struct gl_context *ctx, GLuint dims,
+                        struct gl_texture_image *texImage,
+                        GLint xoffset, GLint yoffset, GLint zoffset,
+                        GLint width, GLint height, GLint depth,
+                        GLenum format, GLenum type, const GLvoid *pixels,
+                        const struct gl_pixelstore_attrib *packing);
 
 
 extern void
-_mesa_store_teximage3d(struct gl_context *ctx,
-                       struct gl_texture_image *texImage,
-                       GLint internalFormat,
-                       GLint width, GLint height, GLint depth, GLint border,
-                       GLenum format, GLenum type, const GLvoid *pixels,
-                       const struct gl_pixelstore_attrib *packing);
+_mesa_store_compressed_teximage(struct gl_context *ctx, GLuint dims,
+                                struct gl_texture_image *texImage,
+                                GLint internalFormat,
+                                GLint width, GLint height, GLint depth,
+                                GLint border,
+                                GLsizei imageSize, const GLvoid *data);
 
 
 extern void
-_mesa_store_texsubimage1d(struct gl_context *ctx,
-                          struct gl_texture_image *texImage,
-                          GLint xoffset, GLint width,
-                          GLenum format, GLenum type, const GLvoid *pixels,
-                          const struct gl_pixelstore_attrib *packing);
-
-
-extern void
-_mesa_store_texsubimage2d(struct gl_context *ctx,
-                          struct gl_texture_image *texImage,
-                          GLint xoffset, GLint yoffset,
-                          GLint width, GLint height,
-                          GLenum format, GLenum type, const GLvoid *pixels,
-                          const struct gl_pixelstore_attrib *packing);
-
-
-extern void
-_mesa_store_texsubimage3d(struct gl_context *ctx,
-                          struct gl_texture_image *texImage,
-                          GLint xoffset, GLint yoffset, GLint zoffset,
-                          GLint width, GLint height, GLint depth,
-                          GLenum format, GLenum type, const GLvoid *pixels,
-                          const struct gl_pixelstore_attrib *packing);
-
-
-extern void
-_mesa_store_compressed_teximage1d(struct gl_context *ctx,
-                                  struct gl_texture_image *texImage,
-                                  GLint internalFormat,
-                                  GLint width, GLint border,
-                                  GLsizei imageSize, const GLvoid *data);
-
-extern void
-_mesa_store_compressed_teximage2d(struct gl_context *ctx,
-                                  struct gl_texture_image *texImage,
-                                  GLint internalFormat,
-                                  GLint width, GLint height, GLint border,
-                                  GLsizei imageSize, const GLvoid *data);
-
-extern void
-_mesa_store_compressed_teximage3d(struct gl_context *ctx,
-                                  struct gl_texture_image *texImage,
-                                  GLint internalFormat,
-                                  GLint width, GLint height, GLint depth,
-                                  GLint border,
-                                  GLsizei imageSize, const GLvoid *data);
-
-
-extern void
-_mesa_store_compressed_texsubimage1d(struct gl_context *ctx,
-                                     struct gl_texture_image *texImage,
-                                     GLint xoffset, GLsizei width,
-                                     GLenum format,
-                                     GLsizei imageSize, const GLvoid *data);
-
-extern void
-_mesa_store_compressed_texsubimage2d(struct gl_context *ctx,
-                                     struct gl_texture_image *texImage,
-                                     GLint xoffset, GLint yoffset,
-                                     GLsizei width, GLsizei height,
-                                     GLenum format,
-                                     GLsizei imageSize, const GLvoid *data);
-
-extern void
-_mesa_store_compressed_texsubimage3d(struct gl_context *ctx,
-                                     struct gl_texture_image *texImage,
-                                     GLint xoffset, GLint yoffset, GLint zoffset,
-                                     GLsizei width, GLsizei height, GLsizei depth,
-                                     GLenum format,
-                                     GLsizei imageSize, const GLvoid *data);
+_mesa_store_compressed_texsubimage(struct gl_context *ctx, GLuint dims,
+                                   struct gl_texture_image *texImage,
+                                   GLint xoffset, GLint yoffset, GLint zoffset,
+                                   GLsizei width, GLsizei height, GLsizei depth,
+                                   GLenum format,
+                                   GLsizei imageSize, const GLvoid *data);
 
 
 #endif

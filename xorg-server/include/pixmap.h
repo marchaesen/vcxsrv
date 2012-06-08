@@ -100,9 +100,9 @@ extern _X_EXPORT PixmapPtr GetScratchPixmapHeader(ScreenPtr /*pScreen */ ,
 
 extern _X_EXPORT void FreeScratchPixmapHeader(PixmapPtr /*pPixmap */ );
 
-extern _X_EXPORT Bool CreateScratchPixmapsForScreen(int /*scrnum */ );
+extern _X_EXPORT Bool CreateScratchPixmapsForScreen(ScreenPtr /*pScreen */ );
 
-extern _X_EXPORT void FreeScratchPixmapsForScreen(int /*scrnum */ );
+extern _X_EXPORT void FreeScratchPixmapsForScreen(ScreenPtr /*pScreen */ );
 
 extern _X_EXPORT PixmapPtr AllocatePixmap(ScreenPtr /*pScreen */ ,
                                           int /*pixDataSize */ );

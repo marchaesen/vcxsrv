@@ -91,24 +91,14 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
 
    /* Texture functions */
    driver->ChooseTextureFormat = _mesa_choose_tex_format;
-   driver->TexImage1D = _mesa_store_teximage1d;
-   driver->TexImage2D = _mesa_store_teximage2d;
-   driver->TexImage3D = _mesa_store_teximage3d;
-   driver->TexSubImage1D = _mesa_store_texsubimage1d;
-   driver->TexSubImage2D = _mesa_store_texsubimage2d;
-   driver->TexSubImage3D = _mesa_store_texsubimage3d;
+   driver->TexImage = _mesa_store_teximage;
+   driver->TexSubImage = _mesa_store_texsubimage;
    driver->GetTexImage = _mesa_meta_GetTexImage;
-   driver->CopyTexSubImage1D = _mesa_meta_CopyTexSubImage1D;
-   driver->CopyTexSubImage2D = _mesa_meta_CopyTexSubImage2D;
-   driver->CopyTexSubImage3D = _mesa_meta_CopyTexSubImage3D;
+   driver->CopyTexSubImage = _mesa_meta_CopyTexSubImage;
    driver->GenerateMipmap = _mesa_meta_GenerateMipmap;
    driver->TestProxyTexImage = _mesa_test_proxy_teximage;
-   driver->CompressedTexImage1D = _mesa_store_compressed_teximage1d;
-   driver->CompressedTexImage2D = _mesa_store_compressed_teximage2d;
-   driver->CompressedTexImage3D = _mesa_store_compressed_teximage3d;
-   driver->CompressedTexSubImage1D = _mesa_store_compressed_texsubimage1d;
-   driver->CompressedTexSubImage2D = _mesa_store_compressed_texsubimage2d;
-   driver->CompressedTexSubImage3D = _mesa_store_compressed_texsubimage3d;
+   driver->CompressedTexImage = _mesa_store_compressed_teximage;
+   driver->CompressedTexSubImage = _mesa_store_compressed_texsubimage;
    driver->GetCompressedTexImage = _mesa_get_compressed_teximage;
    driver->BindTexture = NULL;
    driver->NewTextureObject = _mesa_new_texture_object;

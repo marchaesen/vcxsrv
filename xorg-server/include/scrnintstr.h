@@ -95,8 +95,7 @@ typedef struct _ScreenSaverStuff {
  *  or as a local variable) can easily do so and retain full type checking.
  */
 
-typedef Bool (*CloseScreenProcPtr) (int /*index */ ,
-                                    ScreenPtr /*pScreen */ );
+typedef Bool (*CloseScreenProcPtr) (ScreenPtr /*pScreen */ );
 
 typedef void (*QueryBestSizeProcPtr) (int /*class */ ,
                                       unsigned short * /*pwidth */ ,
@@ -258,13 +257,11 @@ typedef void (*SendGraphicsExposeProcPtr) (ClientPtr /*client */ ,
                                            int /*major */ ,
                                            int /*minor */ );
 
-typedef void (*ScreenBlockHandlerProcPtr) (int /*screenNum */ ,
-                                           pointer /*blockData */ ,
+typedef void (*ScreenBlockHandlerProcPtr) (ScreenPtr /*pScreen*/ ,
                                            pointer /*pTimeout */ ,
                                            pointer /*pReadmask */ );
 
-typedef void (*ScreenWakeupHandlerProcPtr) (int /*screenNum */ ,
-                                            pointer /*wakeupData */ ,
+typedef void (*ScreenWakeupHandlerProcPtr) (ScreenPtr /*pScreen*/ ,
                                             unsigned long /*result */ ,
                                             pointer /*pReadMask */ );
 
@@ -439,9 +436,6 @@ typedef struct _Screen {
 
     ScreenBlockHandlerProcPtr BlockHandler;
     ScreenWakeupHandlerProcPtr WakeupHandler;
-
-    pointer blockData;
-    pointer wakeupData;
 
     /* anybody can get a piece of this array */
     PrivateRec *devPrivates;

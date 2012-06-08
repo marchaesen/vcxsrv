@@ -258,10 +258,9 @@ EDIDRead_DDC1(ScrnInfoPtr pScrn, DDC1SetSpeedProc DDCSpeed,
  * @return NULL if no monitor attached or failure to interpret the EDID.
  */
 xf86MonPtr
-xf86DoEDID_DDC1(int scrnIndex, DDC1SetSpeedProc DDC1SetSpeed,
+xf86DoEDID_DDC1(ScrnInfoPtr pScrn, DDC1SetSpeedProc DDC1SetSpeed,
                 unsigned int (*DDC1Read) (ScrnInfoPtr))
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     unsigned char *EDID_block = NULL;
     xf86MonPtr tmp = NULL;
 
@@ -285,7 +284,7 @@ xf86DoEDID_DDC1(int scrnIndex, DDC1SetSpeedProc DDC1SetSpeed,
     OsReleaseSignals();
 
     if (EDID_block) {
-        tmp = xf86InterpretEDID(scrnIndex, EDID_block);
+        tmp = xf86InterpretEDID(pScrn->scrnIndex, EDID_block);
     }
 #ifdef DEBUG
     else
@@ -323,7 +322,7 @@ DDC2MakeDevice(I2CBusPtr pBus, int address, char *name)
 }
 
 static I2CDevPtr
-DDC2Init(int scrnIndex, I2CBusPtr pBus)
+DDC2Init(I2CBusPtr pBus)
 {
     I2CDevPtr dev = NULL;
 
@@ -403,9 +402,8 @@ DDC2Read(I2CDevPtr dev, int block, unsigned char *R_Buffer)
  * @return NULL if no monitor attached or failure to interpret the EDID.
  */
 xf86MonPtr
-xf86DoEEDID(int scrnIndex, I2CBusPtr pBus, Bool complete)
+xf86DoEEDID(ScrnInfoPtr pScrn, I2CBusPtr pBus, Bool complete)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     unsigned char *EDID_block = NULL;
     xf86MonPtr tmp = NULL;
     I2CDevPtr dev = NULL;
@@ -427,7 +425,7 @@ xf86DoEEDID(int scrnIndex, I2CBusPtr pBus, Bool complete)
     if (noddc || noddc2)
         return NULL;
 
-    if (!(dev = DDC2Init(scrnIndex, pBus)))
+    if (!(dev = DDC2Init(pBus)))
         return NULL;
 
     EDID_block = calloc(1, EDID1_LEN);
@@ -444,7 +442,7 @@ xf86DoEEDID(int scrnIndex, I2CBusPtr pBus, Bool complete)
                 DDC2Read(dev, i + 1, EDID_block + (EDID1_LEN * (1 + i)));
         }
 
-        tmp = xf86InterpretEEDID(scrnIndex, EDID_block);
+        tmp = xf86InterpretEEDID(pScrn->scrnIndex, EDID_block);
     }
 
     if (tmp && complete)
@@ -465,9 +463,9 @@ xf86DoEEDID(int scrnIndex, I2CBusPtr pBus, Bool complete)
  * @return NULL if no monitor attached or failure to interpret the EDID.
  */
 xf86MonPtr
-xf86DoEDID_DDC2(int scrnIndex, I2CBusPtr pBus)
+xf86DoEDID_DDC2(ScrnInfoPtr pScrn, I2CBusPtr pBus)
 {
-    return xf86DoEEDID(scrnIndex, pBus, FALSE);
+    return xf86DoEEDID(pScrn, pBus, FALSE);
 }
 
 /* XXX write me */
@@ -489,9 +487,8 @@ DDC2ReadDisplayID(void)
  * @return NULL if no monitor attached or failure to interpret the DisplayID.
  */
 xf86MonPtr
-xf86DoDisplayID(int scrnIndex, I2CBusPtr pBus)
+xf86DoDisplayID(ScrnInfoPtr pScrn, I2CBusPtr pBus)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     unsigned char *did = NULL;
     xf86MonPtr tmp = NULL;
     I2CDevPtr dev = NULL;
@@ -513,7 +510,7 @@ xf86DoDisplayID(int scrnIndex, I2CBusPtr pBus)
     if (noddc || noddc2)
         return NULL;
 
-    if (!(dev = DDC2Init(scrnIndex, pBus)))
+    if (!(dev = DDC2Init(pBus)))
         return NULL;
 
     if ((did = DDC2ReadDisplayID())) {
@@ -521,7 +518,7 @@ xf86DoDisplayID(int scrnIndex, I2CBusPtr pBus)
         if (!tmp)
             return NULL;
 
-        tmp->scrnIndex = scrnIndex;
+        tmp->scrnIndex = pScrn->scrnIndex;
         tmp->flags |= MONITOR_DISPLAYID;
         tmp->rawData = did;
     }

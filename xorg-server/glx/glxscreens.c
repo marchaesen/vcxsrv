@@ -177,7 +177,7 @@ static char GLXServerExtensions[] =
     "GLX_SGIX_pbuffer " "GLX_MESA_copy_sub_buffer " "GLX_INTEL_swap_event";
 
 static Bool
-glxCloseScreen(int index, ScreenPtr pScreen)
+glxCloseScreen(ScreenPtr pScreen)
 {
     __GLXscreen *pGlxScreen = glxGetScreen(pScreen);
 
@@ -185,7 +185,7 @@ glxCloseScreen(int index, ScreenPtr pScreen)
 
     pGlxScreen->destroy(pGlxScreen);
 
-    return pScreen->CloseScreen(index, pScreen);
+    return pScreen->CloseScreen(pScreen);
 }
 
 __GLXscreen *

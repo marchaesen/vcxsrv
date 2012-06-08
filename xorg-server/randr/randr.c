@@ -83,7 +83,7 @@ RRClientCallback(CallbackListPtr *list, pointer closure, pointer data)
 }
 
 static Bool
-RRCloseScreen(int i, ScreenPtr pScreen)
+RRCloseScreen(ScreenPtr pScreen)
 {
     rrScrPriv(pScreen);
     int j;
@@ -98,7 +98,7 @@ RRCloseScreen(int i, ScreenPtr pScreen)
     free(pScrPriv->outputs);
     free(pScrPriv);
     RRNScreens -= 1;            /* ok, one fewer screen with RandR running */
-    return (*pScreen->CloseScreen) (i, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }
 
 static void

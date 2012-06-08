@@ -3117,17 +3117,15 @@ get_temp_image_type(struct gl_context *ctx, GLenum baseFormat)
  * Helper for _mesa_meta_CopyTexSubImage1/2/3D() functions.
  * Have to be careful with locking and meta state for pixel transfer.
  */
-static void
-copy_tex_sub_image(struct gl_context *ctx,
-                   GLuint dims,
-                   struct gl_texture_image *texImage,
-                   GLint xoffset, GLint yoffset, GLint zoffset,
-                   struct gl_renderbuffer *rb,
-                   GLint x, GLint y,
-                   GLsizei width, GLsizei height)
+void
+_mesa_meta_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
+                           struct gl_texture_image *texImage,
+                           GLint xoffset, GLint yoffset, GLint zoffset,
+                           struct gl_renderbuffer *rb,
+                           GLint x, GLint y,
+                           GLsizei width, GLsizei height)
 {
    struct gl_texture_object *texObj = texImage->TexObject;
-   const GLenum target = texObj->Target;
    GLenum format, type;
    GLint bpp;
    void *buf;
@@ -3152,7 +3150,7 @@ copy_tex_sub_image(struct gl_context *ctx,
    type = get_temp_image_type(ctx, format);
    bpp = _mesa_bytes_per_pixel(format, type);
    if (bpp <= 0) {
-      _mesa_problem(ctx, "Bad bpp in meta copy_tex_sub_image()");
+      _mesa_problem(ctx, "Bad bpp in _mesa_meta_CopyTexSubImage()");
       return;
    }
 
@@ -3181,64 +3179,16 @@ copy_tex_sub_image(struct gl_context *ctx,
     * Store texture data (with pixel transfer ops)
     */
    _mesa_meta_begin(ctx, MESA_META_PIXEL_STORE);
-   if (target == GL_TEXTURE_1D) {
-      ctx->Driver.TexSubImage1D(ctx, texImage,
-                                xoffset, width,
-                                format, type, buf, &ctx->Unpack);
-   }
-   else if (target == GL_TEXTURE_3D) {
-      ctx->Driver.TexSubImage3D(ctx, texImage,
-                                xoffset, yoffset, zoffset, width, height, 1,
-                                format, type, buf, &ctx->Unpack);
-   }
-   else {
-      ctx->Driver.TexSubImage2D(ctx, texImage,
-                                xoffset, yoffset, width, height,
-                                format, type, buf, &ctx->Unpack);
-   }
+
+   ctx->Driver.TexSubImage(ctx, dims, texImage,
+                           xoffset, yoffset, zoffset, width, height, 1,
+                           format, type, buf, &ctx->Unpack);
+
    _mesa_meta_end(ctx);
 
    _mesa_lock_texture(ctx, texObj); /* re-lock */
 
    free(buf);
-}
-
-
-void
-_mesa_meta_CopyTexSubImage1D(struct gl_context *ctx,
-                             struct gl_texture_image *texImage,
-                             GLint xoffset,
-                             struct gl_renderbuffer *rb,
-                             GLint x, GLint y, GLsizei width)
-{
-   copy_tex_sub_image(ctx, 1, texImage, xoffset, 0, 0,
-                      rb, x, y, width, 1);
-}
-
-
-void
-_mesa_meta_CopyTexSubImage2D(struct gl_context *ctx,
-                             struct gl_texture_image *texImage,
-                             GLint xoffset, GLint yoffset,
-                             struct gl_renderbuffer *rb,
-                             GLint x, GLint y,
-                             GLsizei width, GLsizei height)
-{
-   copy_tex_sub_image(ctx, 2, texImage, xoffset, yoffset, 0,
-                      rb, x, y, width, height);
-}
-
-
-void
-_mesa_meta_CopyTexSubImage3D(struct gl_context *ctx,
-                             struct gl_texture_image *texImage,
-                             GLint xoffset, GLint yoffset, GLint zoffset,
-                             struct gl_renderbuffer *rb,
-                             GLint x, GLint y,
-                             GLsizei width, GLsizei height)
-{
-   copy_tex_sub_image(ctx, 3, texImage, xoffset, yoffset, zoffset,
-                      rb, x, y, width, height);
 }
 
 
@@ -3269,6 +3219,7 @@ decompress_texture_image(struct gl_context *ctx,
    };
    struct vertex verts[4];
    GLuint fboDrawSave, fboReadSave;
+   GLuint rbSave;
 
    if (slice > 0) {
       assert(target == GL_TEXTURE_3D ||
@@ -3285,6 +3236,7 @@ decompress_texture_image(struct gl_context *ctx,
    /* save fbo bindings (not saved by _mesa_meta_begin()) */
    fboDrawSave = ctx->DrawBuffer->Name;
    fboReadSave = ctx->ReadBuffer->Name;
+   rbSave = ctx->CurrentRenderbuffer ? ctx->CurrentRenderbuffer->Name : 0;
 
    _mesa_meta_begin(ctx, MESA_META_ALL & ~MESA_META_PIXEL_STORE);
 
@@ -3305,6 +3257,7 @@ decompress_texture_image(struct gl_context *ctx,
 
    /* alloc dest surface */
    if (width > decompress->Width || height > decompress->Height) {
+      _mesa_BindRenderbufferEXT(GL_RENDERBUFFER_EXT, decompress->RBO);
       _mesa_RenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_RGBA,
                                    width, height);
       decompress->Width = width;
@@ -3437,6 +3390,7 @@ decompress_texture_image(struct gl_context *ctx,
       _mesa_BindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, fboDrawSave);
       _mesa_BindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, fboReadSave);
    }
+   _mesa_BindRenderbufferEXT(GL_RENDERBUFFER_EXT, rbSave);
 }
 
 

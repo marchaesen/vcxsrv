@@ -55,7 +55,6 @@ typedef struct _Depth *DepthPtr;
 typedef struct _Screen *ScreenPtr;
 
 extern _X_EXPORT int AddScreen(Bool (* /*pfnInit */ )(
-                                                         int /*index */ ,
                                                          ScreenPtr /*pScreen */
                                                          ,
                                                          int /*argc */ ,

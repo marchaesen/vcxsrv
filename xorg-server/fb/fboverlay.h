@@ -63,7 +63,7 @@ extern _X_EXPORT Bool
  fbOverlayCreateWindow(WindowPtr pWin);
 
 extern _X_EXPORT Bool
- fbOverlayCloseScreen(int iScreen, ScreenPtr pScreen);
+ fbOverlayCloseScreen(ScreenPtr pScreen);
 
 extern _X_EXPORT int
  fbOverlayWindowLayer(WindowPtr pWin);

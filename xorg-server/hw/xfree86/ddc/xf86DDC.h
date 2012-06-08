@@ -24,15 +24,15 @@ typedef enum {
 
 typedef void (*DDC1SetSpeedProc) (ScrnInfoPtr, xf86ddcSpeed);
 
-extern _X_EXPORT xf86MonPtr xf86DoEDID_DDC1(int scrnIndex,
+extern _X_EXPORT xf86MonPtr xf86DoEDID_DDC1(ScrnInfoPtr pScrn,
                                             DDC1SetSpeedProc DDC1SetSpeed,
                                             unsigned
                                             int (*DDC1Read) (ScrnInfoPtr)
     );
 
-extern _X_EXPORT xf86MonPtr xf86DoEDID_DDC2(int scrnIndex, I2CBusPtr pBus);
+extern _X_EXPORT xf86MonPtr xf86DoEDID_DDC2(ScrnInfoPtr pScrn, I2CBusPtr pBus);
 
-extern _X_EXPORT xf86MonPtr xf86DoEEDID(int scrnIndex, I2CBusPtr pBus, Bool);
+extern _X_EXPORT xf86MonPtr xf86DoEEDID(ScrnInfoPtr pScrn, I2CBusPtr pBus, Bool);
 
 extern _X_EXPORT xf86MonPtr xf86PrintEDID(xf86MonPtr monPtr);
 
@@ -50,7 +50,7 @@ extern _X_EXPORT DisplayModePtr xf86DDCGetModes(int scrnIndex, xf86MonPtr DDC);
 extern _X_EXPORT Bool
  xf86MonitorIsHDMI(xf86MonPtr mon);
 
-extern _X_EXPORT xf86MonPtr xf86DoDisplayID(int scrnIndex, I2CBusPtr pBus);
+extern _X_EXPORT xf86MonPtr xf86DoDisplayID(ScrnInfoPtr pScrn, I2CBusPtr pBus);
 
 extern _X_EXPORT void
  xf86DisplayIDMonitorSet(int scrnIndex, MonPtr mon, xf86MonPtr DDC);

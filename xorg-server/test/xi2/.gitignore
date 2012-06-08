@@ -1,0 +1,11 @@
+protocol-eventconvert
+protocol-xigetclientpointer
+protocol-xigetselectedevents
+protocol-xipassivegrabdevice
+protocol-xiquerydevice
+protocol-xiquerypointer
+protocol-xiqueryversion
+protocol-xiselectevents
+protocol-xisetclientpointer
+protocol-xiwarppointer
+xi2

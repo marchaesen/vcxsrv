@@ -442,13 +442,13 @@ Bool
  KdCreateScreenResources(ScreenPtr pScreen);
 
 Bool
- KdCloseScreen(int index, ScreenPtr pScreen);
+ KdCloseScreen(ScreenPtr pScreen);
 
 Bool
  KdSaveScreen(ScreenPtr pScreen, int on);
 
 Bool
- KdScreenInit(int index, ScreenPtr pScreen, int argc, char **argv);
+ KdScreenInit(ScreenPtr pScreen, int argc, char **argv);
 
 void
 
@@ -537,12 +537,12 @@ void
 
 void
 
-KdBlockHandler(int screen,
+KdBlockHandler(ScreenPtr pScreen,
                pointer blockData, pointer timeout, pointer readmask);
 
 void
 
-KdWakeupHandler(int screen,
+KdWakeupHandler(ScreenPtr pScreen,
                 pointer data, unsigned long result, pointer readmask);
 
 void

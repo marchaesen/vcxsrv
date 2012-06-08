@@ -66,7 +66,7 @@ static Bool HasUnderlayChildren(WindowPtr);
 static void MarkUnderlayWindow(WindowPtr);
 static Bool CollectUnderlayChildrenRegions(WindowPtr, RegionPtr);
 
-static Bool miOverlayCloseScreen(int, ScreenPtr);
+static Bool miOverlayCloseScreen(ScreenPtr);
 static Bool miOverlayCreateWindow(WindowPtr);
 static Bool miOverlayDestroyWindow(WindowPtr);
 static Bool miOverlayUnrealizeWindow(WindowPtr);
@@ -160,7 +160,7 @@ miInitOverlay(ScreenPtr pScreen,
 }
 
 static Bool
-miOverlayCloseScreen(int i, ScreenPtr pScreen)
+miOverlayCloseScreen(ScreenPtr pScreen)
 {
     miOverlayScreenPtr pScreenPriv = MIOVERLAY_GET_SCREEN_PRIVATE(pScreen);
 
@@ -172,7 +172,7 @@ miOverlayCloseScreen(int i, ScreenPtr pScreen)
 
     free(pScreenPriv);
 
-    return (*pScreen->CloseScreen) (i, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }
 
 static Bool

@@ -57,7 +57,7 @@ int_handler(xf86Int10InfoPtr pInt)
         ret = run_bios_int(num, pInt);
 
     if (!ret) {
-        xf86DrvMsg(pInt->scrnIndex, X_ERROR, "Halting on int 0x%2.2x!\n", num);
+        xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR, "Halting on int 0x%2.2x!\n", num);
         dump_registers(pInt);
         stack_trace(pInt);
     }
@@ -257,7 +257,7 @@ int42_handler(xf86Int10InfoPtr pInt)
         /*         DL = character column                      */
         /* Not Implemented                                    */
     {                           /* Localise */
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "int 0x%2.2x(AH=0x04) -- Get Light Pen Position\n",
                        pInt->num);
         if (xf86GetVerbosity() > 3) {
@@ -314,10 +314,10 @@ int42_handler(xf86Int10InfoPtr pInt)
         /* Leave:  Nothing                                    */
         /* Not Implemented                                    */
     {                           /* Localise */
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "int 0x%2.2x(AH=0x06) -- Initialise or Scroll Window Up\n",
                        pInt->num);
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 3,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 3,
                        " AL=0x%2.2x, BH=0x%2.2x,"
                        " CH=0x%2.2x, CL=0x%2.2x, DH=0x%2.2x, DL=0x%2.2x\n",
                        X86_AL, X86_BH, X86_CH, X86_CL, X86_DH, X86_DL);
@@ -339,10 +339,10 @@ int42_handler(xf86Int10InfoPtr pInt)
         /* Leave:  Nothing                                    */
         /* Not Implemented                                    */
     {                           /* Localise */
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "int 0x%2.2x(AH=0x07) -- Initialise or Scroll Window Down\n",
                        pInt->num);
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 3,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 3,
                        " AL=0x%2.2x, BH=0x%2.2x,"
                        " CH=0x%2.2x, CL=0x%2.2x, DH=0x%2.2x, DL=0x%2.2x\n",
                        X86_AL, X86_BH, X86_CH, X86_CL, X86_DH, X86_DL);
@@ -360,10 +360,10 @@ int42_handler(xf86Int10InfoPtr pInt)
         /*         AL = character                             */
         /* Not Implemented                                    */
     {                           /* Localise */
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "int 0x%2.2x(AH=0x08) -- Read Character and Attribute at"
                        " Cursor\n", pInt->num);
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 3,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 3,
                        "BH=0x%2.2x\n", X86_BH);
         if (xf86GetVerbosity() > 3) {
             dump_registers(pInt);
@@ -382,10 +382,10 @@ int42_handler(xf86Int10InfoPtr pInt)
         /* Leave:  Nothing                                    */
         /* Not Implemented                                    */
     {                           /* Localise */
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "int 0x%2.2x(AH=0x09) -- Write Character and Attribute at"
                        " Cursor\n", pInt->num);
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 3,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 3,
                        "AL=0x%2.2x, BH=0x%2.2x, BL=0x%2.2x, CX=0x%4.4x\n",
                        X86_AL, X86_BH, X86_BL, X86_CX);
         if (xf86GetVerbosity() > 3) {
@@ -404,10 +404,10 @@ int42_handler(xf86Int10InfoPtr pInt)
         /* Leave:  Nothing                                    */
         /* Not Implemented                                    */
     {                           /* Localise */
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "int 0x%2.2x(AH=0x0A) -- Write Character at Cursor\n",
                        pInt->num);
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 3,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 3,
                        "AL=0x%2.2x, BH=0x%2.2x, BL=0x%2.2x, CX=0x%4.4x\n",
                        X86_AL, X86_BH, X86_BL, X86_CX);
         if (xf86GetVerbosity() > 3) {
@@ -450,10 +450,10 @@ int42_handler(xf86Int10InfoPtr pInt)
         /* Leave:  Nothing                                    */
         /* Not Implemented                                    */
     {                           /* Localise */
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "int 0x%2.2x(AH=0x0C) -- Write Graphics Pixel\n",
                        pInt->num);
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 3,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 3,
                        "AL=0x%2.2x, BH=0x%2.2x, CX=0x%4.4x, DX=0x%4.4x\n",
                        X86_AL, X86_BH, X86_CX, X86_DX);
         if (xf86GetVerbosity() > 3) {
@@ -471,10 +471,10 @@ int42_handler(xf86Int10InfoPtr pInt)
         /* Leave:  AL = pixel value                           */
         /* Not Implemented                                    */
     {                           /* Localise */
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "int 0x%2.2x(AH=0x0D) -- Read Graphics Pixel\n",
                        pInt->num);
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 3,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 3,
                        "BH=0x%2.2x, CX=0x%4.4x, DX=0x%4.4x\n", X86_BH, X86_CX,
                        X86_DX);
         if (xf86GetVerbosity() > 3) {
@@ -498,10 +498,10 @@ int42_handler(xf86Int10InfoPtr pInt)
         /*           which might or might not have been       */
         /*           installed yet.                           */
     {                           /* Localise */
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "int 0x%2.2x(AH=0x0E) -- Write Character in Teletype Mode\n",
                        pInt->num);
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 3,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 3,
                        "AL=0x%2.2x, BH=0x%2.2x, BL=0x%2.2x\n",
                        X86_AL, X86_BH, X86_BL);
         if (xf86GetVerbosity() > 3) {
@@ -564,10 +564,10 @@ int42_handler(xf86Int10InfoPtr pInt)
         /*           which might or might not have been       */
         /*           installed yet.                           */
     {                           /* Localise */
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "int 0x%2.2x(AH=0x13) -- Write String in Teletype Mode\n",
                        pInt->num);
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 3,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 3,
                        "AL=0x%2.2x, BL=0x%2.2x, CX=0x%4.4x,"
                        " DH=0x%2.2x, DL=0x%2.2x, ES:BP=0x%4.4x:0x%4.4x\n",
                        X86_AL, X86_BL, X86_CX, X86_DH, X86_DL, X86_ES, X86_BP);
@@ -840,7 +840,7 @@ int1A_handler(xf86Int10InfoPtr pInt)
 #endif
         return 1;
     default:
-        xf86DrvMsgVerb(pInt->scrnIndex, X_NOT_IMPLEMENTED, 2,
+        xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_NOT_IMPLEMENTED, 2,
                        "int 0x1a subfunction\n");
         dump_registers(pInt);
         if (xf86GetVerbosity() > 3)

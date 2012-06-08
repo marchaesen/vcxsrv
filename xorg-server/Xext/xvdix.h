@@ -215,7 +215,7 @@ typedef struct {
     DestroyWindowProcPtr DestroyWindow;
     DestroyPixmapProcPtr DestroyPixmap;
     CloseScreenProcPtr CloseScreen;
-    Bool (*ddCloseScreen) (int, ScreenPtr);
+    Bool (*ddCloseScreen) (ScreenPtr);
     int (*ddQueryAdaptors) (ScreenPtr, XvAdaptorPtr *, int *);
     DevUnion devPriv;
 } XvScreenRec, *XvScreenPtr;

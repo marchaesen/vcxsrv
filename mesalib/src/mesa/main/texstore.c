@@ -4261,170 +4261,71 @@ store_texsubimage(struct gl_context *ctx,
 
 
 /**
- * This is the fallback for Driver.TexImage1D().
+ * Fallback code for ctx->Driver.TexImage().
+ * Basically, allocate storage for the texture image, then copy the
+ * user's image into it.
  */
 void
-_mesa_store_teximage1d(struct gl_context *ctx,
-                       struct gl_texture_image *texImage,
-                       GLint internalFormat,
-                       GLint width, GLint border,
-                       GLenum format, GLenum type, const GLvoid *pixels,
-                       const struct gl_pixelstore_attrib *packing)
+_mesa_store_teximage(struct gl_context *ctx,
+                     GLuint dims,
+                     struct gl_texture_image *texImage,
+                     GLint internalFormat,
+                     GLint width, GLint height, GLint depth, GLint border,
+                     GLenum format, GLenum type, const GLvoid *pixels,
+                     const struct gl_pixelstore_attrib *packing)
 {
-   if (width == 0)
-      return;
+   assert(dims == 1 || dims == 2 || dims == 3);
 
-   /* allocate storage for texture data */
-   if (!ctx->Driver.AllocTextureImageBuffer(ctx, texImage, texImage->TexFormat,
-                                            width, 1, 1)) {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage1D");
-      return;
-   }
-
-   store_texsubimage(ctx, texImage,
-                     0, 0, 0, width, 1, 1,
-                     format, type, pixels, packing, "glTexImage1D");
-}
-
-
-/**
- * This is the fallback for Driver.TexImage2D().
- */
-void
-_mesa_store_teximage2d(struct gl_context *ctx,
-                       struct gl_texture_image *texImage,
-                       GLint internalFormat,
-                       GLint width, GLint height, GLint border,
-                       GLenum format, GLenum type, const void *pixels,
-                       const struct gl_pixelstore_attrib *packing)
-{
-   if (width == 0 || height == 0)
-      return;
-
-   /* allocate storage for texture data */
-   if (!ctx->Driver.AllocTextureImageBuffer(ctx, texImage, texImage->TexFormat,
-                                            width, height, 1)) {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage2D");
-      return;
-   }
-
-   store_texsubimage(ctx, texImage,
-                     0, 0, 0, width, height, 1,
-                     format, type, pixels, packing, "glTexImage2D");
-}
-
-
-
-/**
- * This is the fallback for Driver.TexImage3D().
- */
-void
-_mesa_store_teximage3d(struct gl_context *ctx,
-                       struct gl_texture_image *texImage,
-                       GLint internalFormat,
-                       GLint width, GLint height, GLint depth, GLint border,
-                       GLenum format, GLenum type, const void *pixels,
-                       const struct gl_pixelstore_attrib *packing)
-{
    if (width == 0 || height == 0 || depth == 0)
       return;
 
    /* allocate storage for texture data */
    if (!ctx->Driver.AllocTextureImageBuffer(ctx, texImage, texImage->TexFormat,
                                             width, height, depth)) {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage3D");
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage%uD", dims);
       return;
    }
 
    store_texsubimage(ctx, texImage,
                      0, 0, 0, width, height, depth,
-                     format, type, pixels, packing, "glTexImage3D");
-}
-
-
-
-
-/*
- * This is the fallback for Driver.TexSubImage1D().
- */
-void
-_mesa_store_texsubimage1d(struct gl_context *ctx,
-                          struct gl_texture_image *texImage,
-                          GLint xoffset, GLint width,
-                          GLenum format, GLenum type, const void *pixels,
-                          const struct gl_pixelstore_attrib *packing)
-{
-   store_texsubimage(ctx, texImage,
-                     xoffset, 0, 0, width, 1, 1,
-                     format, type, pixels, packing, "glTexSubImage1D");
-}
-
-
-
-/**
- * This is the fallback for Driver.TexSubImage2D().
- */
-void
-_mesa_store_texsubimage2d(struct gl_context *ctx,
-                          struct gl_texture_image *texImage,
-                          GLint xoffset, GLint yoffset,
-                          GLint width, GLint height,
-                          GLenum format, GLenum type, const void *pixels,
-                          const struct gl_pixelstore_attrib *packing)
-{
-   store_texsubimage(ctx, texImage,
-                     xoffset, yoffset, 0, width, height, 1,
-                     format, type, pixels, packing, "glTexSubImage2D");
+                     format, type, pixels, packing, "glTexImage");
 }
 
 
 /*
- * This is the fallback for Driver.TexSubImage3D().
+ * Fallback for Driver.TexSubImage().
  */
 void
-_mesa_store_texsubimage3d(struct gl_context *ctx,
-                          struct gl_texture_image *texImage,
-                          GLint xoffset, GLint yoffset, GLint zoffset,
-                          GLint width, GLint height, GLint depth,
-                          GLenum format, GLenum type, const void *pixels,
-                          const struct gl_pixelstore_attrib *packing)
+_mesa_store_texsubimage(struct gl_context *ctx, GLuint dims,
+                        struct gl_texture_image *texImage,
+                        GLint xoffset, GLint yoffset, GLint zoffset,
+                        GLint width, GLint height, GLint depth,
+                        GLenum format, GLenum type, const void *pixels,
+                        const struct gl_pixelstore_attrib *packing)
 {
    store_texsubimage(ctx, texImage,
                      xoffset, yoffset, zoffset, width, height, depth,
-                     format, type, pixels, packing, "glTexSubImage3D");
+                     format, type, pixels, packing, "glTexSubImage");
 }
-
-
-/*
- * Fallback for Driver.CompressedTexImage1D()
- */
-void
-_mesa_store_compressed_teximage1d(struct gl_context *ctx,
-                                  struct gl_texture_image *texImage,
-                                  GLint internalFormat,
-                                  GLint width, GLint border,
-                                  GLsizei imageSize, const GLvoid *data)
-{
-   /* no compressed 1D image formats at this time */
-   (void) ctx;
-   (void) internalFormat;
-   (void) width; (void) border;
-   (void) imageSize; (void) data;
-   (void) texImage;
-}
-
 
 
 /**
- * Fallback for Driver.CompressedTexImage2D()
+ * Fallback for Driver.CompressedTexImage()
  */
 void
-_mesa_store_compressed_teximage2d(struct gl_context *ctx,
-                                  struct gl_texture_image *texImage,
-                                  GLint internalFormat,
-                                  GLint width, GLint height, GLint border,
-                                  GLsizei imageSize, const GLvoid *data)
+_mesa_store_compressed_teximage(struct gl_context *ctx, GLuint dims,
+                                struct gl_texture_image *texImage,
+                                GLint internalFormat,
+                                GLint width, GLint height, GLint depth,
+                                GLint border,
+                                GLsizei imageSize, const GLvoid *data)
 {
+   /* only 2D compressed images are supported at this time */
+   if (dims != 2) {
+      _mesa_problem(ctx, "Unexpected glCompressedTexImage1D/3D call");
+      return;
+   }
+
    /* This is pretty simple, because unlike the general texstore path we don't
     * have to worry about the usual image unpacking or image transfer
     * operations.
@@ -4441,66 +4342,24 @@ _mesa_store_compressed_teximage2d(struct gl_context *ctx,
       return;
    }
 
-   _mesa_store_compressed_texsubimage2d(ctx, texImage,
-					0, 0,
-					width, height,
-					texImage->TexFormat,
-					imageSize, data);
-}
-
-
-
-/*
- * Fallback for Driver.CompressedTexImage3D()
- */
-void
-_mesa_store_compressed_teximage3d(struct gl_context *ctx,
-                                  struct gl_texture_image *texImage,
-                                  GLint internalFormat,
-                                  GLint width, GLint height, GLint depth,
-                                  GLint border,
-                                  GLsizei imageSize, const GLvoid *data)
-{
-   /* this space intentionally left blank */
-   (void) ctx;
-   (void) internalFormat;
-   (void) width; (void) height; (void) depth;
-   (void) border;
-   (void) imageSize; (void) data;
-   (void) texImage;
-}
-
-
-
-/**
- * Fallback for Driver.CompressedTexSubImage1D()
- */
-void
-_mesa_store_compressed_texsubimage1d(struct gl_context *ctx,
-                                     struct gl_texture_image *texImage,
-                                     GLint xoffset, GLsizei width,
-                                     GLenum format,
-                                     GLsizei imageSize, const GLvoid *data)
-{
-   /* there are no compressed 1D texture formats yet */
-   (void) ctx;
-   (void) xoffset; (void) width;
-   (void) format;
-   (void) imageSize; (void) data;
-   (void) texImage;
+   _mesa_store_compressed_texsubimage(ctx, dims, texImage,
+                                      0, 0, 0,
+                                      width, height, depth,
+                                      texImage->TexFormat,
+                                      imageSize, data);
 }
 
 
 /**
- * Fallback for Driver.CompressedTexSubImage2D()
+ * Fallback for Driver.CompressedTexSubImage()
  */
 void
-_mesa_store_compressed_texsubimage2d(struct gl_context *ctx,
-                                     struct gl_texture_image *texImage,
-                                     GLint xoffset, GLint yoffset,
-                                     GLsizei width, GLsizei height,
-                                     GLenum format,
-                                     GLsizei imageSize, const GLvoid *data)
+_mesa_store_compressed_texsubimage(struct gl_context *ctx, GLuint dims,
+                                   struct gl_texture_image *texImage,
+                                   GLint xoffset, GLint yoffset, GLint zoffset,
+                                   GLsizei width, GLsizei height, GLsizei depth,
+                                   GLenum format,
+                                   GLsizei imageSize, const GLvoid *data)
 {
    GLint bytesPerRow, dstRowStride, srcRowStride;
    GLint i, rows;
@@ -4508,6 +4367,11 @@ _mesa_store_compressed_texsubimage2d(struct gl_context *ctx,
    const GLubyte *src;
    const gl_format texFormat = texImage->TexFormat;
    GLuint bw, bh;
+
+   if (dims != 2) {
+      _mesa_problem(ctx, "Unexpected 1D/3D compressed texsubimage call");
+      return;
+   }
 
    _mesa_get_format_block_size(texFormat, &bw, &bh);
 
@@ -4551,25 +4415,4 @@ _mesa_store_compressed_texsubimage2d(struct gl_context *ctx,
    }
 
    _mesa_unmap_teximage_pbo(ctx, &ctx->Unpack);
-}
-
-
-/**
- * Fallback for Driver.CompressedTexSubImage3D()
- */
-void
-_mesa_store_compressed_texsubimage3d(struct gl_context *ctx,
-                                     struct gl_texture_image *texImage,
-                                     GLint xoffset, GLint yoffset, GLint zoffset,
-                                     GLsizei width, GLsizei height, GLsizei depth,
-                                     GLenum format,
-                                     GLsizei imageSize, const GLvoid *data)
-{
-   /* there are no compressed 3D texture formats yet */
-   (void) ctx;
-   (void) xoffset; (void) yoffset; (void) zoffset;
-   (void) width; (void) height; (void) depth;
-   (void) format;
-   (void) imageSize; (void) data;
-   (void) texImage;
 }

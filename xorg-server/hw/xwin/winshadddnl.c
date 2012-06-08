@@ -67,7 +67,7 @@ static void
  winShadowUpdateDDNL(ScreenPtr pScreen, shadowBufPtr pBuf);
 
 static Bool
- winCloseScreenShadowDDNL(int nIndex, ScreenPtr pScreen);
+ winCloseScreenShadowDDNL(ScreenPtr pScreen);
 
 static Bool
  winInitVisualsShadowDDNL(ScreenPtr pScreen);
@@ -719,7 +719,7 @@ winInitScreenShadowDDNL(ScreenPtr pScreen)
  */
 
 static Bool
-winCloseScreenShadowDDNL(int nIndex, ScreenPtr pScreen)
+winCloseScreenShadowDDNL(ScreenPtr pScreen)
 {
     winScreenPriv(pScreen);
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
@@ -736,7 +736,7 @@ winCloseScreenShadowDDNL(int nIndex, ScreenPtr pScreen)
     /* Call the wrapped CloseScreen procedure */
     WIN_UNWRAP(CloseScreen);
     if (pScreen->CloseScreen)
-        fReturn = (*pScreen->CloseScreen) (nIndex, pScreen);
+        fReturn = (*pScreen->CloseScreen) (pScreen);
 
     winFreeFBShadowDDNL(pScreen);
 
