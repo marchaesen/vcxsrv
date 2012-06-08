@@ -163,13 +163,13 @@ miSyncGetScreenFuncs(ScreenPtr pScreen)
 }
 
 static Bool
-SyncCloseScreen(int i, ScreenPtr pScreen)
+SyncCloseScreen(ScreenPtr pScreen)
 {
     SyncScreenPrivPtr pScreenPriv = SYNC_SCREEN_PRIV(pScreen);
 
     pScreen->CloseScreen = pScreenPriv->CloseScreen;
 
-    return (*pScreen->CloseScreen) (i, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }
 
 Bool

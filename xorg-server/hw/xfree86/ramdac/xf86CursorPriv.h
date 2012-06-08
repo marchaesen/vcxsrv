@@ -26,7 +26,7 @@ typedef struct {
     miPointerSpriteFuncPtr spriteFuncs;
     Bool PalettedCursor;
     ColormapPtr pInstalledMap;
-    Bool (*SwitchMode) (int, DisplayModePtr, int);
+    Bool (*SwitchMode) (ScrnInfoPtr, DisplayModePtr);
     xf86EnableDisableFBAccessProc *EnableDisableFBAccess;
     CursorPtr SavedCursor;
 

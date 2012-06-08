@@ -52,7 +52,6 @@ typedef struct {
     int highMem;
     char *base;
     char *base_high;
-    int screen;
     char *alloc;
 } linuxInt10Priv;
 
@@ -89,15 +88,16 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
     memType cs;
     legacyVGARec vga;
     Bool videoBiosMapped = FALSE;
-
+    ScrnInfoPtr pScrn;
     if (int10Generation != serverGeneration) {
         counter = 0;
         int10Generation = serverGeneration;
     }
 
-    screen = (xf86FindScreenForEntity(entityIndex))->scrnIndex;
+    pScrn = xf86FindScreenForEntity(entityIndex);
+    screen = pScrn->scrnIndex;
 
-    options = xf86HandleInt10Options(xf86Screens[screen], entityIndex);
+    options = xf86HandleInt10Options(pScrn, entityIndex);
 
     if (int10skip(options)) {
         free(options);
@@ -106,7 +106,7 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
 
 #if defined DoSubModules
     if (loadedSubModule == INT10_NOT_LOADED)
-        loadedSubModule = int10LinuxLoadSubModule(xf86Screens[screen]);
+        loadedSubModule = int10LinuxLoadSubModule(pScrn);
 
     if (loadedSubModule == INT10_LOAD_FAILED)
         return NULL;
@@ -145,7 +145,7 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
     }
 
     pInt = (xf86Int10InfoPtr) xnfcalloc(1, sizeof(xf86Int10InfoRec));
-    pInt->scrnIndex = screen;
+    pInt->pScrn = pScrn;
     pInt->entityIndex = entityIndex;
     pInt->dev = xf86GetPciInfoForEntity(entityIndex);
 
@@ -154,7 +154,6 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
     pInt->mem = &linuxMem;
     pagesize = getpagesize();
     pInt->private = (pointer) xnfcalloc(1, sizeof(linuxInt10Priv));
-    ((linuxInt10Priv *) pInt->private)->screen = screen;
     ((linuxInt10Priv *) pInt->private)->alloc =
         (pointer) xnfcalloc(1, ALLOC_ENTRIES(pagesize));
 
@@ -333,28 +332,28 @@ MapCurrentInt10(xf86Int10InfoPtr pInt)
     addr =
         shmat(((linuxInt10Priv *) pInt->private)->lowMem, (char *) 1, SHM_RND);
     if (addr == SHMERRORPTR) {
-        xf86DrvMsg(pInt->scrnIndex, X_ERROR, "Cannot shmat() low memory\n");
-        xf86DrvMsg(pInt->scrnIndex, X_ERROR,
+        xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR, "Cannot shmat() low memory\n");
+        xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR,
                    "shmat(low_mem) error: %s\n", strerror(errno));
         return FALSE;
     }
     if (mprotect((void *) 0, V_RAM, PROT_READ | PROT_WRITE | PROT_EXEC) != 0)
-        xf86DrvMsg(pInt->scrnIndex, X_ERROR,
+        xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR,
                    "Cannot set EXEC bit on low memory: %s\n", strerror(errno));
 
     if (((linuxInt10Priv *) pInt->private)->highMem >= 0) {
         addr = shmat(((linuxInt10Priv *) pInt->private)->highMem,
                      (char *) HIGH_MEM, 0);
         if (addr == SHMERRORPTR) {
-            xf86DrvMsg(pInt->scrnIndex, X_ERROR,
+            xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR,
                        "Cannot shmat() high memory\n");
-            xf86DrvMsg(pInt->scrnIndex, X_ERROR,
+            xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR,
                        "shmget error: %s\n", strerror(errno));
             return FALSE;
         }
         if (mprotect((void *) HIGH_MEM, HIGH_MEM_SIZE,
                      PROT_READ | PROT_WRITE | PROT_EXEC) != 0)
-            xf86DrvMsg(pInt->scrnIndex, X_ERROR,
+            xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR,
                        "Cannot set EXEC bit on high memory: %s\n",
                        strerror(errno));
     }
@@ -364,13 +363,13 @@ MapCurrentInt10(xf86Int10InfoPtr pInt)
                      PROT_READ | PROT_WRITE | PROT_EXEC,
                      MAP_SHARED | MAP_FIXED, fd, V_BIOS)
                 == MAP_FAILED) {
-                xf86DrvMsg(pInt->scrnIndex, X_ERROR, "Cannot map V_BIOS\n");
+                xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR, "Cannot map V_BIOS\n");
                 close(fd);
                 return FALSE;
             }
         }
         else {
-            xf86DrvMsg(pInt->scrnIndex, X_ERROR, "Cannot open %s\n", DEV_MEM);
+            xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR, "Cannot open %s\n", DEV_MEM);
             return FALSE;
         }
         close(fd);

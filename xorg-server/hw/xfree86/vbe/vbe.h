@@ -350,7 +350,7 @@ struct vbePanelID {
     char reserved[14];
 };
 
-extern _X_EXPORT void VBEInterpretPanelID(int scrnIndex,
+extern _X_EXPORT void VBEInterpretPanelID(ScrnInfoPtr pScrn,
                                           struct vbePanelID *data);
 extern _X_EXPORT struct vbePanelID *VBEReadPanelID(vbeInfoPtr pVbe);
 

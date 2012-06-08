@@ -63,7 +63,7 @@ static DevScreenPrivateKeyRec miDCDeviceKeyRec;
 
 #define miDCDeviceKey (&miDCDeviceKeyRec)
 
-static Bool miDCCloseScreen(int index, ScreenPtr pScreen);
+static Bool miDCCloseScreen(ScreenPtr pScreen);
 
 /* per device private data */
 typedef struct {
@@ -128,7 +128,7 @@ miDCInitialize(ScreenPtr pScreen, miPointerScreenFuncPtr screenFuncs)
 }
 
 static Bool
-miDCCloseScreen(int index, ScreenPtr pScreen)
+miDCCloseScreen(ScreenPtr pScreen)
 {
     miDCScreenPtr pScreenPriv;
 
@@ -136,7 +136,7 @@ miDCCloseScreen(int index, ScreenPtr pScreen)
                                                    miDCScreenKey);
     pScreen->CloseScreen = pScreenPriv->CloseScreen;
     free((pointer) pScreenPriv);
-    return (*pScreen->CloseScreen) (index, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }
 
 Bool

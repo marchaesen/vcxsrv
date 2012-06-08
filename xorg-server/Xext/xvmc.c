@@ -709,7 +709,7 @@ XvMCExtensionInit(void)
 }
 
 static Bool
-XvMCCloseScreen(int i, ScreenPtr pScreen)
+XvMCCloseScreen(ScreenPtr pScreen)
 {
     XvMCScreenPtr pScreenPriv = XVMC_GET_PRIVATE(pScreen);
 
@@ -717,7 +717,7 @@ XvMCCloseScreen(int i, ScreenPtr pScreen)
 
     free(pScreenPriv);
 
-    return (*pScreen->CloseScreen) (i, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }
 
 int

@@ -137,7 +137,7 @@ xf86_dga_get_viewport(ScrnInfoPtr scrn)
 static void
 xf86_dga_set_viewport(ScrnInfoPtr scrn, int x, int y, int flags)
 {
-    scrn->AdjustFrame(scrn->pScreen->myNum, x, y, flags);
+    scrn->AdjustFrame(scrn, x, y);
 }
 
 static Bool

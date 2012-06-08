@@ -28,13 +28,13 @@
 
 #include "picturestr.h"
 
-static Bool ShadowCloseScreen(int i, ScreenPtr pScreen);
+static Bool ShadowCloseScreen(ScreenPtr pScreen);
 static void ShadowCopyWindow(WindowPtr pWin,
                              DDXPointRec ptOldOrg, RegionPtr prgn);
 static Bool ShadowCreateGC(GCPtr pGC);
 
-static Bool ShadowEnterVT(int index, int flags);
-static void ShadowLeaveVT(int index, int flags);
+static Bool ShadowEnterVT(ScrnInfoPtr pScrn);
+static void ShadowLeaveVT(ScrnInfoPtr pScrn);
 
 static void ShadowComposite(CARD8 op,
                             PicturePtr pSrc,
@@ -56,8 +56,8 @@ typedef struct {
     CreateGCProcPtr CreateGC;
     ModifyPixmapHeaderProcPtr ModifyPixmapHeader;
     CompositeProcPtr Composite;
-    Bool (*EnterVT) (int, int);
-    void (*LeaveVT) (int, int);
+    Bool (*EnterVT) (ScrnInfoPtr);
+    void (*LeaveVT) (ScrnInfoPtr);
     Bool vtSema;
 } ShadowScreenRec, *ShadowScreenPtr;
 
@@ -192,14 +192,13 @@ ShadowFBInit(ScreenPtr pScreen, RefreshAreaFuncPtr refreshArea)
 /**********************************************************/
 
 static Bool
-ShadowEnterVT(int index, int flags)
+ShadowEnterVT(ScrnInfoPtr pScrn)
 {
-    ScrnInfoPtr pScrn = xf86Screens[index];
     Bool ret;
     ShadowScreenPtr pPriv = GET_SCREEN_PRIVATE(pScrn->pScreen);
 
     pScrn->EnterVT = pPriv->EnterVT;
-    ret = (*pPriv->EnterVT) (index, flags);
+    ret = (*pPriv->EnterVT) (pScrn);
     pPriv->EnterVT = pScrn->EnterVT;
     pScrn->EnterVT = ShadowEnterVT;
     if (ret) {
@@ -211,15 +210,14 @@ ShadowEnterVT(int index, int flags)
 }
 
 static void
-ShadowLeaveVT(int index, int flags)
+ShadowLeaveVT(ScrnInfoPtr pScrn)
 {
-    ScrnInfoPtr pScrn = xf86Screens[index];
-    ShadowScreenPtr pPriv = GET_SCREEN_PRIVATE(xf86Screens[index]->pScreen);
+    ShadowScreenPtr pPriv = GET_SCREEN_PRIVATE(pScrn->pScreen);
 
     pPriv->vtSema = FALSE;
 
     pScrn->LeaveVT = pPriv->LeaveVT;
-    (*pPriv->LeaveVT) (index, flags);
+    (*pPriv->LeaveVT) (pScrn);
     pPriv->LeaveVT = pScrn->LeaveVT;
     pScrn->LeaveVT = ShadowLeaveVT;
 }
@@ -227,7 +225,7 @@ ShadowLeaveVT(int index, int flags)
 /**********************************************************/
 
 static Bool
-ShadowCloseScreen(int i, ScreenPtr pScreen)
+ShadowCloseScreen(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     ShadowScreenPtr pPriv = GET_SCREEN_PRIVATE(pScreen);
@@ -247,7 +245,7 @@ ShadowCloseScreen(int i, ScreenPtr pScreen)
 
     free((pointer) pPriv);
 
-    return (*pScreen->CloseScreen) (i, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }
 
 static void

@@ -244,7 +244,7 @@ extern _X_EXPORT void xf86AddDriver(DriverPtr driver, pointer module,
                                     int flags);
 extern _X_EXPORT void xf86DeleteDriver(int drvIndex);
 extern _X_EXPORT ScrnInfoPtr xf86AllocateScreen(DriverPtr drv, int flags);
-extern _X_EXPORT void xf86DeleteScreen(int scrnIndex, int flags);
+extern _X_EXPORT void xf86DeleteScreen(ScrnInfoPtr pScrn);
 extern _X_EXPORT int xf86AllocateScrnInfoPrivateIndex(void);
 extern _X_EXPORT Bool xf86AddPixFormat(ScrnInfoPtr pScrn, int depth, int bpp,
                                        int pad);
@@ -256,7 +256,7 @@ extern _X_EXPORT Bool xf86SetDefaultVisual(ScrnInfoPtr scrp, int visual);
 extern _X_EXPORT Bool xf86SetGamma(ScrnInfoPtr scrp, Gamma newGamma);
 extern _X_EXPORT void xf86SetDpi(ScrnInfoPtr pScrn, int x, int y);
 extern _X_EXPORT void xf86SetBlackWhitePixels(ScreenPtr pScreen);
-extern _X_EXPORT void xf86EnableDisableFBAccess(int scrnIndex, Bool enable);
+extern _X_EXPORT void xf86EnableDisableFBAccess(ScrnInfoPtr pScrn, Bool enable);
 extern _X_EXPORT void
 xf86VDrvMsgVerb(int scrnIndex, MessageType type, int verb,
                 const char *format, va_list args)
@@ -347,7 +347,7 @@ xf86SetBackingStore(ScreenPtr pScreen);
 extern _X_EXPORT void
 xf86SetSilkenMouse(ScreenPtr pScreen);
 extern _X_EXPORT pointer
-xf86FindXvOptions(int scrnIndex, int adapt_index, char *port_name,
+xf86FindXvOptions(ScrnInfoPtr pScrn, int adapt_index, char *port_name,
                   char **adaptor_name, pointer *adaptor_options);
 extern _X_EXPORT void
 xf86GetOS(const char **name, int *major, int *minor, int *teeny);
@@ -357,7 +357,7 @@ xf86ConfigFbEntity(ScrnInfoPtr pScrn, int scrnFlag,
                    EntityProc enter, EntityProc leave, pointer private);
 
 extern _X_EXPORT Bool
-xf86IsScreenPrimary(int scrnIndex);
+xf86IsScreenPrimary(ScrnInfoPtr pScrn);
 extern _X_EXPORT int
 xf86RegisterRootWindowProperty(int ScrnIndex, Atom property, Atom type,
                                int format, unsigned long len, pointer value);
@@ -457,5 +457,7 @@ extern _X_EXPORT ScreenPtr xf86ScrnToScreen(ScrnInfoPtr pScrn);
 #endif                          /* _NO_XF86_PROTOTYPES */
 
 #define XF86_HAS_SCRN_CONV 1 /* define for drivers to use in api compat */
+
+#define XF86_SCRN_INTERFACE 1 /* define for drivers to use in api compat */
 
 #endif                          /* _XF86_H */

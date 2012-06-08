@@ -153,7 +153,7 @@ struct __GLXscreen {
     unsigned GLXminor;
     /*@} */
 
-    Bool (*CloseScreen) (int index, ScreenPtr pScreen);
+    Bool (*CloseScreen) (ScreenPtr pScreen);
 };
 
 void __glXScreenInit(__GLXscreen * screen, ScreenPtr pScreen);

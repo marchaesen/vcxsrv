@@ -680,7 +680,7 @@ pReadmask is a pointer to the information describing the descriptors
 that will be waited on.
 </para>
 <para>
-In the sample server,  pTimeout is a struct timeval **,  and pReadmask is
+In the sample server,  pTimeout is a pointer,  and pReadmask is
 the address of the select() mask for reading.
 </para>
 <para>
@@ -688,15 +688,14 @@ The DIX BlockHandler() iterates through the Screens,  for each one calling
 its BlockHandler.  A BlockHandler is declared thus:
 <blockquote>
 <programlisting>
-	void xxxBlockHandler(nscreen, pbdata, pptv, pReadmask)
-		int nscreen;
-		pointer pbdata;
-		struct timeval ** pptv;
+	void xxxBlockHandler(pScreen, pTimeout, pReadmask)
+		ScreenPtr pScreen;
+		pointer pTimeout;
 		pointer pReadmask;
 </programlisting>
 </blockquote>
-The arguments are the index of the Screen,  the blockData field
-of the Screen,  and the arguments to the DIX BlockHandler().
+The arguments are a pointer to the Screen, and the arguments to the
+DIX BlockHandler().
 </para>
 <para>
 Immediately after WaitForSomething returns from the
@@ -721,15 +720,14 @@ The DIX WakeupHandler() calls each Screen's
 WakeupHandler.  A WakeupHandler is declared thus:
 <blockquote>
 <programlisting>
-	void xxxWakeupHandler(nscreen, pbdata, err, pReadmask)
-		int nscreen;
-		pointer pbdata;
+	void xxxWakeupHandler(pScreen, result, pReadmask)
+		ScreenPtr pScreen;
 		unsigned long result;
 		pointer pReadmask;
 </programlisting>
 </blockquote>
-The arguments are the index of the Screen,  the blockData field
-of the Screen,  and the arguments to the DIX WakeupHandler().
+The arguments are the Screen, of the Screen, and the arguments to
+the DIX WakeupHandler().
 </para>
 <para>
 In addition to the per-screen BlockHandlers, any module may register
@@ -1942,18 +1940,15 @@ FALSE.</para>
 The scrInitProc should be of the following form:
 <blockquote><programlisting>
 
-	Bool scrInitProc(iScreen, pScreen, argc, argv)
-		int iScreen;
+	Bool scrInitProc(pScreen, argc, argv)
 		ScreenPtr pScreen;
 		int argc;
 		char **argv;
 </programlisting></blockquote>
-iScreen is the index for this screen; 0 for the first one initialized,
-1 for the second, etc.  pScreen is the pointer to the screen's new
-ScreenRec.  argc and argv are as before.  Your screen initialize
-procedure should return TRUE upon success or FALSE if the screen
-cannot be initialized (for instance, if the screen hardware does not
-exist on this machine).</para>
+pScreen is the pointer to the screen's new ScreenRec. argc and argv
+are as before.  Your screen initialize procedure should return TRUE
+upon success or FALSE if the screen cannot be initialized (for
+ instance, if the screen hardware does not exist on this machine).</para>
 <para>
 This procedure must determine what actual device it is supposed to initialize.
 If you have a different procedure for each screen, then it is no problem.

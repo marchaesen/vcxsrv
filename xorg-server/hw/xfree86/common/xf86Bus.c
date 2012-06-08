@@ -179,7 +179,7 @@ xf86BusConfig(void)
             xf86Msg(X_ERROR,
                     "Screen %d deleted because of no matching config section.\n",
                     i);
-            xf86DeleteScreen(i--, 0);
+            xf86DeleteScreen(xf86Screens[i--]);
         }
     }
 
@@ -377,13 +377,12 @@ xf86RemoveEntityFromScreen(ScrnInfoPtr pScrn, int entityIndex)
 }
 
 /*
- * xf86ClearEntitiesForScreen() - called when a screen is deleted
+ * xf86ClearEntityListForScreen() - called when a screen is deleted
  * to mark it's entities unused. Called by xf86DeleteScreen().
  */
 void
-xf86ClearEntityListForScreen(int scrnIndex)
+xf86ClearEntityListForScreen(ScrnInfoPtr pScrn)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     int i, entityIndex;
 
     if (pScrn->entityList == NULL || pScrn->numEntities == 0)

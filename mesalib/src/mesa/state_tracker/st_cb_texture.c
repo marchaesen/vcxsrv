@@ -530,62 +530,31 @@ prep_teximage(struct gl_context *ctx, struct gl_texture_image *texImage,
 
 
 static void
-st_TexImage3D(struct gl_context * ctx,
-              struct gl_texture_image *texImage,
-              GLint internalFormat,
-              GLint width, GLint height, GLint depth,
-              GLint border,
-              GLenum format, GLenum type, const void *pixels,
-              const struct gl_pixelstore_attrib *unpack)
+st_TexImage(struct gl_context * ctx, GLuint dims,
+            struct gl_texture_image *texImage,
+            GLint internalFormat,
+            GLint width, GLint height, GLint depth, GLint border,
+            GLenum format, GLenum type, const void *pixels,
+            const struct gl_pixelstore_attrib *unpack)
 {
    prep_teximage(ctx, texImage, internalFormat, width, height, depth, border,
                  format, type);
-   _mesa_store_teximage3d(ctx, texImage, internalFormat, width, height, depth,
-                          border, format, type, pixels, unpack);
+   _mesa_store_teximage(ctx, dims, texImage, internalFormat, width, height, depth,
+                        border, format, type, pixels, unpack);
 }
 
 
 static void
-st_TexImage2D(struct gl_context * ctx,
-              struct gl_texture_image *texImage,
-              GLint internalFormat,
-              GLint width, GLint height, GLint border,
-              GLenum format, GLenum type, const void *pixels,
-              const struct gl_pixelstore_attrib *unpack)
+st_CompressedTexImage(struct gl_context *ctx, GLuint dims,
+                      struct gl_texture_image *texImage,
+                      GLint internalFormat,
+                      GLint width, GLint height, GLint border, GLint depth,
+                      GLsizei imageSize, const GLvoid *data)
 {
-   prep_teximage(ctx, texImage, internalFormat, width, height, 1, border,
-                 format, type);
-   _mesa_store_teximage2d(ctx, texImage, internalFormat, width, height,
-                          border, format, type, pixels, unpack);
-}
-
-
-static void
-st_TexImage1D(struct gl_context * ctx,
-              struct gl_texture_image *texImage,
-              GLint internalFormat,
-              GLint width, GLint border,
-              GLenum format, GLenum type, const void *pixels,
-              const struct gl_pixelstore_attrib *unpack)
-{
-   prep_teximage(ctx, texImage, internalFormat, width, 1, 1, border,
-                 format, type);
-   _mesa_store_teximage1d(ctx, texImage, internalFormat, width,
-                          border, format, type, pixels, unpack);
-}
-
-
-static void
-st_CompressedTexImage2D(struct gl_context *ctx,
-                        struct gl_texture_image *texImage,
-                        GLint internalFormat,
-                        GLint width, GLint height, GLint border,
-                        GLsizei imageSize, const GLvoid *data)
-{
-   prep_teximage(ctx, texImage, internalFormat, width, 1, 1, border,
+   prep_teximage(ctx, texImage, internalFormat, width, height, depth, border,
                  GL_NONE, GL_NONE);
-   _mesa_store_compressed_teximage2d(ctx, texImage, internalFormat, width,
-                                     height, border, imageSize, data);
+   _mesa_store_compressed_teximage(ctx, dims, texImage, internalFormat, width,
+                                   height, depth, border, imageSize, data);
 }
 
 
@@ -959,12 +928,11 @@ compatible_src_dst_formats(struct gl_context *ctx,
  * Note: srcY=0=Bottom of renderbuffer (GL convention)
  */
 static void
-st_copy_texsubimage(struct gl_context *ctx,
-                    struct gl_texture_image *texImage,
-                    GLint destX, GLint destY, GLint destZ,
-                    struct gl_renderbuffer *rb,
-                    GLint srcX, GLint srcY,
-                    GLsizei width, GLsizei height)
+st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
+                   struct gl_texture_image *texImage,
+                   GLint destX, GLint destY, GLint destZ,
+                   struct gl_renderbuffer *rb,
+                   GLint srcX, GLint srcY, GLsizei width, GLsizei height)
 {
    struct st_texture_image *stImage = st_texture_image(texImage);
    const GLenum texBaseFormat = texImage->_BaseFormat;
@@ -1124,49 +1092,6 @@ fallback:
                              strb, stImage, texBaseFormat,
                              destX, destY, destZ,
                              srcX, srcY, width, height);
-}
-
-
-
-static void
-st_CopyTexSubImage1D(struct gl_context *ctx,
-                     struct gl_texture_image *texImage,
-                     GLint xoffset,
-                     struct gl_renderbuffer *rb,
-                     GLint x, GLint y, GLsizei width)
-{
-   const GLint yoffset = 0, zoffset = 0;
-   const GLsizei height = 1;
-   st_copy_texsubimage(ctx, texImage,
-                       xoffset, yoffset, zoffset,  /* destX,Y,Z */
-                       rb, x, y, width, height);  /* src X, Y, size */
-}
-
-
-static void
-st_CopyTexSubImage2D(struct gl_context *ctx,
-                     struct gl_texture_image *texImage,
-                     GLint xoffset, GLint yoffset,
-                     struct gl_renderbuffer *rb,
-                     GLint x, GLint y, GLsizei width, GLsizei height)
-{
-   const GLint zoffset = 0;
-   st_copy_texsubimage(ctx, texImage,
-                       xoffset, yoffset, zoffset,  /* destX,Y,Z */
-                       rb, x, y, width, height);  /* src X, Y, size */
-}
-
-
-static void
-st_CopyTexSubImage3D(struct gl_context *ctx,
-                     struct gl_texture_image *texImage,
-                     GLint xoffset, GLint yoffset, GLint zoffset,
-                     struct gl_renderbuffer *rb,
-                     GLint x, GLint y, GLsizei width, GLsizei height)
-{
-   st_copy_texsubimage(ctx, texImage,
-                       xoffset, yoffset, zoffset,  /* destX,Y,Z */
-                       rb, x, y, width, height);  /* src X, Y, size */
 }
 
 
@@ -1427,24 +1352,16 @@ void
 st_init_texture_functions(struct dd_function_table *functions)
 {
    functions->ChooseTextureFormat = st_ChooseTextureFormat;
-   functions->TexImage1D = st_TexImage1D;
-   functions->TexImage2D = st_TexImage2D;
-   functions->TexImage3D = st_TexImage3D;
-   functions->TexSubImage1D = _mesa_store_texsubimage1d;
-   functions->TexSubImage2D = _mesa_store_texsubimage2d;
-   functions->TexSubImage3D = _mesa_store_texsubimage3d;
-   functions->CompressedTexSubImage1D = _mesa_store_compressed_texsubimage1d;
-   functions->CompressedTexSubImage2D = _mesa_store_compressed_texsubimage2d;
-   functions->CompressedTexSubImage3D = _mesa_store_compressed_texsubimage3d;
-   functions->CopyTexSubImage1D = st_CopyTexSubImage1D;
-   functions->CopyTexSubImage2D = st_CopyTexSubImage2D;
-   functions->CopyTexSubImage3D = st_CopyTexSubImage3D;
+   functions->TexImage = st_TexImage;
+   functions->TexSubImage = _mesa_store_texsubimage;
+   functions->CompressedTexSubImage = _mesa_store_compressed_texsubimage;
+   functions->CopyTexSubImage = st_CopyTexSubImage;
    functions->GenerateMipmap = st_generate_mipmap;
 
    functions->GetTexImage = st_GetTexImage;
 
    /* compressed texture functions */
-   functions->CompressedTexImage2D = st_CompressedTexImage2D;
+   functions->CompressedTexImage = st_CompressedTexImage;
    functions->GetCompressedTexImage = _mesa_get_compressed_teximage;
 
    functions->NewTextureObject = st_NewTextureObject;

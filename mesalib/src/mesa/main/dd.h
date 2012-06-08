@@ -198,81 +198,32 @@ struct dd_function_table {
                                      GLenum srcFormat, GLenum srcType );
 
    /**
-    * Called by glTexImage1D().  Simply copy the source texture data into the
-    * destination texture memory.  The gl_texture_image fields, etc. will be
-    * fully initialized.
-    * The parameters are the same as glTexImage1D(), plus:
+    * Called by glTexImage[123]D() and glCopyTexImage[12]D()
+    * Allocate texture memory and copy the user's image to the buffer.
+    * The gl_texture_image fields, etc. will be fully initialized.
+    * The parameters are the same as glTexImage3D(), plus:
+    * \param dims  1, 2, or 3 indicating glTexImage1/2/3D()
     * \param packing describes how to unpack the source data.
     * \param texImage is the destination texture image.
     */
-   void (*TexImage1D)(struct gl_context *ctx,
-                      struct gl_texture_image *texImage,
-                      GLint internalFormat,
-                      GLint width, GLint border,
-                      GLenum format, GLenum type, const GLvoid *pixels,
-                      const struct gl_pixelstore_attrib *packing);
+   void (*TexImage)(struct gl_context *ctx, GLuint dims,
+                    struct gl_texture_image *texImage,
+                    GLint internalFormat,
+                    GLint width, GLint height, GLint depth, GLint border,
+                    GLenum format, GLenum type, const GLvoid *pixels,
+                    const struct gl_pixelstore_attrib *packing);
 
    /**
-    * Called by glTexImage2D().
-    * 
-    * \sa dd_function_table::TexImage1D.
+    * Called by glTexSubImage[123]D().
+    * Replace a subset of the target texture with new texel data.
     */
-   void (*TexImage2D)(struct gl_context *ctx,
-                      struct gl_texture_image *texImage,
-                      GLint internalFormat,
-                      GLint width, GLint height, GLint border,
-                      GLenum format, GLenum type, const GLvoid *pixels,
-                      const struct gl_pixelstore_attrib *packing);
-   
-   /**
-    * Called by glTexImage3D().
-    * 
-    * \sa dd_function_table::TexImage1D.
-    */
-   void (*TexImage3D)(struct gl_context *ctx,
-                      struct gl_texture_image *texImage,
-                      GLint internalFormat,
-                      GLint width, GLint height, GLint depth, GLint border,
-                      GLenum format, GLenum type, const GLvoid *pixels,
-                      const struct gl_pixelstore_attrib *packing);
-
-   /**
-    * Called by glTexSubImage1D().  Replace a subset of the target texture
-    * with new texel data.
-    * \sa dd_function_table::TexImage1D.
-    */
-   void (*TexSubImage1D)(struct gl_context *ctx,
-                         struct gl_texture_image *texImage,
-                         GLint xoffset, GLsizei width,
-                         GLenum format, GLenum type,
-                         const GLvoid *pixels,
-                         const struct gl_pixelstore_attrib *packing);
-   
-   /**
-    * Called by glTexSubImage2D().
-    *
-    * \sa dd_function_table::TexSubImage1D.
-    */
-   void (*TexSubImage2D)(struct gl_context *ctx,
-                         struct gl_texture_image *texImage,
-                         GLint xoffset, GLint yoffset,
-                         GLsizei width, GLsizei height,
-                         GLenum format, GLenum type,
-                         const GLvoid *pixels,
-                         const struct gl_pixelstore_attrib *packing);
-   
-   /**
-    * Called by glTexSubImage3D().
-    *
-    * \sa dd_function_table::TexSubImage1D.
-    */
-   void (*TexSubImage3D)(struct gl_context *ctx,
-                         struct gl_texture_image *texImage,
-                         GLint xoffset, GLint yoffset, GLint zoffset,
-                         GLsizei width, GLsizei height, GLint depth,
-                         GLenum format, GLenum type,
-                         const GLvoid *pixels,
-                         const struct gl_pixelstore_attrib *packing);
+   void (*TexSubImage)(struct gl_context *ctx, GLuint dims,
+                       struct gl_texture_image *texImage,
+                       GLint xoffset, GLint yoffset, GLint zoffset,
+                       GLsizei width, GLsizei height, GLint depth,
+                       GLenum format, GLenum type,
+                       const GLvoid *pixels,
+                       const struct gl_pixelstore_attrib *packing);
 
 
    /**
@@ -283,33 +234,14 @@ struct dd_function_table {
                         struct gl_texture_image *texImage );
 
    /**
-    * Called by glCopyTexSubImage1D() and glCopyTexImage1D().
+    * Called by glCopyTex[Sub]Image[123]D().
     */
-   void (*CopyTexSubImage1D)(struct gl_context *ctx,
-                             struct gl_texture_image *texImage,
-                             GLint xoffset,
-                             struct gl_renderbuffer *rb,
-                             GLint x, GLint y, GLsizei width);
-
-   /**
-    * Called by glCopyTexSubImage2D() and glCopyTexImage2D().
-    */
-   void (*CopyTexSubImage2D)(struct gl_context *ctx,
-                             struct gl_texture_image *texImage,
-                             GLint xoffset, GLint yoffset,
-                             struct gl_renderbuffer *rb,
-                             GLint x, GLint y,
-                             GLsizei width, GLsizei height);
-
-   /**
-    * Called by glCopyTexSubImage3D() and glCopyTexImage3D().
-    */
-   void (*CopyTexSubImage3D)(struct gl_context *ctx,
-                             struct gl_texture_image *texImage,
-                             GLint xoffset, GLint yoffset, GLint zoffset,
-                             struct gl_renderbuffer *rb,
-                             GLint x, GLint y,
-                             GLsizei width, GLsizei height);
+   void (*CopyTexSubImage)(struct gl_context *ctx, GLuint dims,
+                           struct gl_texture_image *texImage,
+                           GLint xoffset, GLint yoffset, GLint zoffset,
+                           struct gl_renderbuffer *rb,
+                           GLint x, GLint y,
+                           GLsizei width, GLsizei height);
 
    /**
     * Called by glGenerateMipmap() or when GL_GENERATE_MIPMAP_SGIS is enabled.
@@ -337,66 +269,24 @@ struct dd_function_table {
    /*@{*/
 
    /**
-    * Called by glCompressedTexImage1D().
-    * The parameters are the same as for glCompressedTexImage1D(), plus a
-    * pointer to the destination texure image.
+    * Called by glCompressedTexImage[123]D().
     */
-   void (*CompressedTexImage1D)(struct gl_context *ctx,
-                                struct gl_texture_image *texImage,
-                                GLint internalFormat,
-                                GLsizei width, GLint border,
-                                GLsizei imageSize, const GLvoid *data);
-   /**
-    * Called by glCompressedTexImage2D().
-    *
-    * \sa dd_function_table::CompressedTexImage1D.
-    */
-   void (*CompressedTexImage2D)(struct gl_context *ctx,
-                                struct gl_texture_image *texImage,
-                                GLint internalFormat,
-                                GLsizei width, GLsizei height, GLint border,
-                                GLsizei imageSize, const GLvoid *data);
+   void (*CompressedTexImage)(struct gl_context *ctx, GLuint dims,
+                              struct gl_texture_image *texImage,
+                              GLint internalFormat,
+                              GLsizei width, GLsizei height, GLsizei depth,
+                              GLint border,
+                              GLsizei imageSize, const GLvoid *data);
 
    /**
-    * Called by glCompressedTexImage3D().
-    *
-    * \sa dd_function_table::CompressedTexImage3D.
+    * Called by glCompressedTexSubImage[123]D().
     */
-   void (*CompressedTexImage3D)(struct gl_context *ctx,
-                                struct gl_texture_image *texImage,
-                                GLint internalFormat,
-                                GLsizei width, GLsizei height, GLsizei depth,
-                                GLint border,
-                                GLsizei imageSize, const GLvoid *data);
-
-   /**
-    * Called by glCompressedTexSubImage1D().
-    */
-   void (*CompressedTexSubImage1D)(struct gl_context *ctx,
-                                   struct gl_texture_image *texImage,
-                                   GLint xoffset, GLsizei width,
-                                   GLenum format,
-                                   GLsizei imageSize, const GLvoid *data);
-
-   /**
-    * Called by glCompressedTexSubImage2D().
-    */
-   void (*CompressedTexSubImage2D)(struct gl_context *ctx,
-                                   struct gl_texture_image *texImage,
-                                   GLint xoffset, GLint yoffset,
-                                   GLsizei width, GLint height,
-                                   GLenum format,
-                                   GLsizei imageSize, const GLvoid *data);
-
-   /**
-    * Called by glCompressedTexSubImage3D().
-    */
-   void (*CompressedTexSubImage3D)(struct gl_context *ctx,
-                                   struct gl_texture_image *texImage,
-                                   GLint xoffset, GLint yoffset, GLint zoffset,
-                                   GLsizei width, GLint height, GLint depth,
-                                   GLenum format,
-                                   GLsizei imageSize, const GLvoid *data);
+   void (*CompressedTexSubImage)(struct gl_context *ctx, GLuint dims,
+                                 struct gl_texture_image *texImage,
+                                 GLint xoffset, GLint yoffset, GLint zoffset,
+                                 GLsizei width, GLint height, GLint depth,
+                                 GLenum format,
+                                 GLsizei imageSize, const GLvoid *data);
 
    /**
     * Called by glGetCompressedTexImage.

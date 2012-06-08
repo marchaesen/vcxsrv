@@ -281,7 +281,7 @@ xf86int10GetBiosLocationType(const xf86Int10InfoPtr pInt)
 
 #define CHECK_V_SEGMENT_RANGE(x)   \
     if (((x) << 4) < V_BIOS) { \
-	xf86DrvMsg(pInt->scrnIndex, X_ERROR, \
+	xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR, \
 		   "V_BIOS address 0x%lx out of range\n", \
 		   (unsigned long)(x) << 4); \
 	return FALSE; \
@@ -306,17 +306,17 @@ xf86int10GetBiosSegment(xf86Int10InfoPtr pInt, void *base)
 
         CHECK_V_SEGMENT_RANGE(cs);
         vbiosMem = (unsigned char *) base + (cs << 4);
-        if (int10_check_bios(pInt->scrnIndex, cs, vbiosMem)) {
+        if (int10_check_bios(pInt->pScrn->scrnIndex, cs, vbiosMem)) {
             break;
         }
     }
 
     if (segments[i] == ~0) {
-        xf86DrvMsg(pInt->scrnIndex, X_ERROR, "No V_BIOS found\n");
+        xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR, "No V_BIOS found\n");
         return FALSE;
     }
 
-    xf86DrvMsg(pInt->scrnIndex, X_INFO, "Primary V_BIOS segment is: 0x%lx\n",
+    xf86DrvMsg(pInt->pScrn->scrnIndex, X_INFO, "Primary V_BIOS segment is: 0x%lx\n",
                (unsigned long) cs);
 
     pInt->BIOSseg = cs;

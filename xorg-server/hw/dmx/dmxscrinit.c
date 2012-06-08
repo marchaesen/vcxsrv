@@ -59,7 +59,7 @@
 #include "mipointer.h"
 #include "micmap.h"
 
-extern Bool dmxCloseScreen(int idx, ScreenPtr pScreen);
+extern Bool dmxCloseScreen(ScreenPtr pScreen);
 static Bool dmxSaveScreen(ScreenPtr pScreen, int what);
 
 static unsigned long dmxGeneration;
@@ -77,9 +77,9 @@ DevPrivateKeyRec dmxGlyphSetPrivateKeyRec;
 /** Initialize the parts of screen \a idx that require access to the
  *  back-end server. */
 void
-dmxBEScreenInit(int idx, ScreenPtr pScreen)
+dmxBEScreenInit(ScreenPtr pScreen)
 {
-    DMXScreenInfo *dmxScreen = &dmxScreens[idx];
+    DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
     XSetWindowAttributes attribs;
     XGCValues gcvals;
     unsigned long mask;
@@ -192,11 +192,11 @@ dmxBEScreenInit(int idx, ScreenPtr pScreen)
     }
 }
 
-/** Initialize screen number \a idx. */
+/** Initialize screen number \a pScreen->myNum. */
 Bool
-dmxScreenInit(int idx, ScreenPtr pScreen, int argc, char *argv[])
+dmxScreenInit(ScreenPtr pScreen, int argc, char *argv[])
 {
-    DMXScreenInfo *dmxScreen = &dmxScreens[idx];
+    DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
     int i, j;
 
     if (!dixRegisterPrivateKey(&dmxScreenPrivateKeyRec, PRIVATE_SCREEN, 0))
@@ -286,20 +286,20 @@ dmxScreenInit(int idx, ScreenPtr pScreen, int argc, char *argv[])
     }
     else {
         MAXSCREENSALLOC(dmxCursorGeneration);
-        if (dmxCursorGeneration[idx] != serverGeneration) {
+        if (dmxCursorGeneration[pScreen->myNum] != serverGeneration) {
             if (!(miPointerInitialize(pScreen,
                                       &dmxPointerSpriteFuncs,
                                       &dmxPointerCursorFuncs, FALSE)))
                 return FALSE;
 
-            dmxCursorGeneration[idx] = serverGeneration;
+            dmxCursorGeneration[pScreen->myNum] = serverGeneration;
         }
     }
 
     DMX_WRAP(CloseScreen, dmxCloseScreen, dmxScreen, pScreen);
     DMX_WRAP(SaveScreen, dmxSaveScreen, dmxScreen, pScreen);
 
-    dmxBEScreenInit(idx, pScreen);
+    dmxBEScreenInit(pScreen);
 
     if (!dmxShadowFB) {
         /* Wrap GC functions */
@@ -422,12 +422,12 @@ dmxBECloseScreen(ScreenPtr pScreen)
 
 /** Close screen number \a idx. */
 Bool
-dmxCloseScreen(int idx, ScreenPtr pScreen)
+dmxCloseScreen(ScreenPtr pScreen)
 {
-    DMXScreenInfo *dmxScreen = &dmxScreens[idx];
+    DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
 
     /* Reset the proc vectors */
-    if (idx == 0) {
+    if (pScreen->myNum == 0) {
         dmxResetRender();
         dmxResetFonts();
     }
@@ -498,7 +498,7 @@ dmxCloseScreen(int idx, ScreenPtr pScreen)
     }
 
     DMX_UNWRAP(CloseScreen, dmxScreen, pScreen);
-    return pScreen->CloseScreen(idx, pScreen);
+    return pScreen->CloseScreen(pScreen);
 }
 
 static Bool

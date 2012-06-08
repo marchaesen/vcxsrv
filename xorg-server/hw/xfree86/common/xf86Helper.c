@@ -198,24 +198,22 @@ xf86AllocateScreen(DriverPtr drv, int flags)
  */
 
 void
-xf86DeleteScreen(int scrnIndex, int flags)
+xf86DeleteScreen(ScrnInfoPtr pScrn)
 {
-    ScrnInfoPtr pScrn;
     int i;
+    int scrnIndex;
 
     /* First check if the screen is valid */
     if (xf86NumScreens == 0 || xf86Screens == NULL)
         return;
 
-    if (scrnIndex > xf86NumScreens - 1)
+    if (!pScrn)
         return;
 
-    if (!(pScrn = xf86Screens[scrnIndex]))
-        return;
-
+    scrnIndex = pScrn->scrnIndex;
     /* If a FreeScreen function is defined, call it here */
     if (pScrn->FreeScreen != NULL)
-        pScrn->FreeScreen(scrnIndex, 0);
+        pScrn->FreeScreen(pScrn);
 
     while (pScrn->modes)
         xf86DeleteMode(&pScrn->modes, pScrn->modes);
@@ -233,7 +231,7 @@ xf86DeleteScreen(int scrnIndex, int flags)
 
     free(pScrn->privates);
 
-    xf86ClearEntityListForScreen(scrnIndex);
+    xf86ClearEntityListForScreen(pScrn);
 
     free(pScrn);
 
@@ -1027,9 +1025,8 @@ xf86SetBlackWhitePixels(ScreenPtr pScreen)
  * private data, and therefore don't need to access pScrnInfo->vtSema.
  */
 void
-xf86EnableDisableFBAccess(int scrnIndex, Bool enable)
+xf86EnableDisableFBAccess(ScrnInfoPtr pScrnInfo, Bool enable)
 {
-    ScrnInfoPtr pScrnInfo = xf86Screens[scrnIndex];
     ScreenPtr pScreen = pScrnInfo->pScreen;
     PixmapPtr pspix;
 
@@ -1651,10 +1648,9 @@ xf86SetSilkenMouse(ScreenPtr pScreen)
 /* Wrote this function for the PM2 Xv driver, preliminary. */
 
 pointer
-xf86FindXvOptions(int scrnIndex, int adaptor_index, char *port_name,
+xf86FindXvOptions(ScrnInfoPtr pScrn, int adaptor_index, char *port_name,
                   char **adaptor_name, pointer *adaptor_options)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     confXvAdaptorPtr adaptor;
     int i;
 
@@ -1726,9 +1722,8 @@ xf86ConfigFbEntity(ScrnInfoPtr pScrn, int scrnFlag, int entityIndex,
 }
 
 Bool
-xf86IsScreenPrimary(int scrnIndex)
+xf86IsScreenPrimary(ScrnInfoPtr pScrn)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     int i;
 
     for (i = 0; i < pScrn->numEntities; i++) {

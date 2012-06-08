@@ -950,7 +950,7 @@ xf86InitialCheckModeForDriver(ScrnInfoPtr scrp, DisplayModePtr mode,
                 mode->SynthClock /= 2;
         }
 
-        status = (*scrp->ValidMode) (scrp->scrnIndex, mode, FALSE,
+        status = (*scrp->ValidMode) (scrp, mode, FALSE,
                                      MODECHECK_INITIAL);
         if (status != MODE_OK)
             return status;
@@ -1840,7 +1840,7 @@ xf86ValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
             scrp->virtualX = newVirtX;
             scrp->virtualY = newVirtY;
             scrp->displayWidth = newLinePitch;
-            p->status = (scrp->ValidMode) (scrp->scrnIndex, p, FALSE,
+            p->status = (scrp->ValidMode) (scrp, p, FALSE,
                                            MODECHECK_FINAL);
 
             if (p->status != MODE_OK) {

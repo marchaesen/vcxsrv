@@ -2388,7 +2388,8 @@ To request conversion of a selection, use
 <funcprototype>
   <funcdef><function>XConvertSelection</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>Atomselection,<parameter> target</parameter></paramdef>
+  <paramdef>Atom<parameter> selection</parameter></paramdef>
+  <paramdef>Atom<parameter> target</parameter></paramdef>
   <paramdef>Atom<parameter> property</parameter></paramdef>
   <paramdef>Window<parameter> requestor</parameter></paramdef>
   <paramdef>Time<parameter> time</parameter></paramdef>

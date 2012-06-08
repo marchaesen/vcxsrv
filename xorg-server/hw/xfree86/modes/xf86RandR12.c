@@ -515,7 +515,7 @@ xf86RandR12SetMode(ScreenPtr pScreen,
     Bool ret = TRUE;
 
     if (pRoot)
-        (*scrp->EnableDisableFBAccess) (pScreen->myNum, FALSE);
+        (*scrp->EnableDisableFBAccess) (scrp, FALSE);
     if (useVirtual) {
         scrp->virtualX = randrp->virtualX;
         scrp->virtualY = randrp->virtualY;
@@ -568,7 +568,7 @@ xf86RandR12SetMode(ScreenPtr pScreen,
     xf86SetViewport(pScreen, pScreen->width, pScreen->height);
     xf86SetViewport(pScreen, 0, 0);
     if (pRoot)
-        (*scrp->EnableDisableFBAccess) (pScreen->myNum, TRUE);
+        (*scrp->EnableDisableFBAccess) (scrp, TRUE);
     return ret;
 }
 
@@ -685,7 +685,7 @@ xf86RandR12ScreenSetSize(ScreenPtr pScreen,
         }
     }
     if (pRoot && pScrn->vtSema)
-        (*pScrn->EnableDisableFBAccess) (pScreen->myNum, FALSE);
+        (*pScrn->EnableDisableFBAccess) (pScrn, FALSE);
 
     /* Let the driver update virtualX and virtualY */
     if (!(*config->funcs->resize) (pScrn, width, height))
@@ -724,7 +724,7 @@ xf86RandR12ScreenSetSize(ScreenPtr pScreen,
     update_desktop_dimensions();
 
     if (pRoot && pScrn->vtSema)
-        (*pScrn->EnableDisableFBAccess) (pScreen->myNum, TRUE);
+        (*pScrn->EnableDisableFBAccess) (pScrn, TRUE);
 #if RANDR_12_INTERFACE
     if (xf86RandR12Key && pScreen->root && ret)
         RRScreenSizeNotify(pScreen);
@@ -1596,10 +1596,9 @@ xf86RandR12TellChanged(ScreenPtr pScreen)
 }
 
 static void
-xf86RandR12PointerMoved(int scrnIndex, int x, int y)
+xf86RandR12PointerMoved(ScrnInfoPtr pScrn, int x, int y)
 {
-    ScreenPtr pScreen = screenInfo.screens[scrnIndex];
-    ScrnInfoPtr pScrn = XF86SCRNINFO(pScreen);
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
     XF86RandRInfoPtr randrp = XF86RANDRINFO(pScreen);
     int c;
@@ -1688,10 +1687,9 @@ gamma_to_ramp(float gamma, CARD16 *ramp, int size)
 }
 
 static int
-xf86RandR12ChangeGamma(int scrnIndex, Gamma gamma)
+xf86RandR12ChangeGamma(ScrnInfoPtr pScrn, Gamma gamma)
 {
     CARD16 *points, *red, *green, *blue;
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RRCrtcPtr crtc = xf86CompatRRCrtc(pScrn);
     int size;
 
@@ -1723,10 +1721,9 @@ xf86RandR12ChangeGamma(int scrnIndex, Gamma gamma)
 }
 
 static Bool
-xf86RandR12EnterVT(int screen_index, int flags)
+xf86RandR12EnterVT(ScrnInfoPtr pScrn)
 {
-    ScreenPtr pScreen = screenInfo.screens[screen_index];
-    ScrnInfoPtr pScrn = xf86Screens[screen_index];
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     XF86RandRInfoPtr randrp = XF86RANDRINFO(pScreen);
     rrScrPrivPtr rp = rrGetScrPriv(pScreen);
     Bool ret;
@@ -1734,7 +1731,7 @@ xf86RandR12EnterVT(int screen_index, int flags)
 
     if (randrp->orig_EnterVT) {
         pScrn->EnterVT = randrp->orig_EnterVT;
-        ret = pScrn->EnterVT(screen_index, flags);
+        ret = pScrn->EnterVT(pScrn);
         randrp->orig_EnterVT = pScrn->EnterVT;
         pScrn->EnterVT = xf86RandR12EnterVT;
         if (!ret)

@@ -125,11 +125,11 @@ typedef struct _VGAarbiterScreen {
     UnrealizeCursorProcPtr UnrealizeCursor;
     RecolorCursorProcPtr RecolorCursor;
     SetCursorPositionProcPtr SetCursorPosition;
-    void (*AdjustFrame) (int, int, int, int);
-    Bool (*SwitchMode) (int, DisplayModePtr, int);
-    Bool (*EnterVT) (int, int);
-    void (*LeaveVT) (int, int);
-    void (*FreeScreen) (int, int);
+    void (*AdjustFrame) (ScrnInfoPtr, int, int);
+    Bool (*SwitchMode) (ScrnInfoPtr, DisplayModePtr);
+    Bool (*EnterVT) (ScrnInfoPtr);
+    void (*LeaveVT) (ScrnInfoPtr);
+    void (*FreeScreen) (ScrnInfoPtr);
     miPointerSpriteFuncPtr miSprite;
     CompositeProcPtr Composite;
     GlyphsProcPtr Glyphs;
@@ -142,11 +142,11 @@ typedef struct _VGAarbiterGC {
 } VGAarbiterGCRec, *VGAarbiterGCPtr;
 
 /* Screen funcs */
-static void VGAarbiterBlockHandler(int i, pointer blockData, pointer pTimeout,
+static void VGAarbiterBlockHandler(ScreenPtr pScreen, pointer pTimeout,
                                    pointer pReadmask);
-static void VGAarbiterWakeupHandler(int i, pointer blockData,
+static void VGAarbiterWakeupHandler(ScreenPtr pScreen,
                                     unsigned long result, pointer pReadmask);
-static Bool VGAarbiterCloseScreen(int i, ScreenPtr pScreen);
+static Bool VGAarbiterCloseScreen(ScreenPtr pScreen);
 static void VGAarbiterGetImage(DrawablePtr pDrawable, int sx, int sy, int w,
                                int h, unsigned int format,
                                unsigned long planemask, char *pdstLine);
@@ -176,11 +176,11 @@ static Bool VGAarbiterDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
 static Bool VGAarbiterSetCursorPosition(DeviceIntPtr pDev, ScreenPtr
                                         pScreen, int x, int y,
                                         Bool generateEvent);
-static void VGAarbiterAdjustFrame(int index, int x, int y, int flags);
-static Bool VGAarbiterSwitchMode(int index, DisplayModePtr mode, int flags);
-static Bool VGAarbiterEnterVT(int index, int flags);
-static void VGAarbiterLeaveVT(int index, int flags);
-static void VGAarbiterFreeScreen(int index, int flags);
+static void VGAarbiterAdjustFrame(ScrnInfoPtr pScrn, int x, int y);
+static Bool VGAarbiterSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode);
+static Bool VGAarbiterEnterVT(ScrnInfoPtr pScrn);
+static void VGAarbiterLeaveVT(ScrnInfoPtr pScrn);
+static void VGAarbiterFreeScreen(ScrnInfoPtr pScrn);
 
 /* GC funcs */
 static void VGAarbiterValidateGC(GCPtr pGC, unsigned long changes,

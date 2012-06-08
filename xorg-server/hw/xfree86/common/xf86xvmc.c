@@ -132,7 +132,7 @@ xf86XvMCDestroySubpicture(XvMCSubpicturePtr pSubpicture)
 }
 
 static Bool
-xf86XvMCCloseScreen(int i, ScreenPtr pScreen)
+xf86XvMCCloseScreen(ScreenPtr pScreen)
 {
     xf86XvMCScreenPtr pScreenPriv = XF86XVMC_GET_PRIVATE(pScreen);
 
@@ -141,7 +141,7 @@ xf86XvMCCloseScreen(int i, ScreenPtr pScreen)
     free(pScreenPriv->dixinfo);
     free(pScreenPriv);
 
-    return (*pScreen->CloseScreen) (i, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }
 
 Bool

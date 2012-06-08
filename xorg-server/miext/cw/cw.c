@@ -51,7 +51,7 @@ DevPrivateKeyRec cwPictureKeyRec;
 extern GCOps cwGCOps;
 
 static Bool
- cwCloseScreen(int i, ScreenPtr pScreen);
+ cwCloseScreen(ScreenPtr pScreen);
 
 static void
  cwValidateGC(GCPtr pGC, unsigned long stateChanges, DrawablePtr pDrawable);
@@ -502,7 +502,7 @@ miInitializeCompositeWrapper(ScreenPtr pScreen)
 }
 
 static Bool
-cwCloseScreen(int i, ScreenPtr pScreen)
+cwCloseScreen(ScreenPtr pScreen)
 {
     cwScreenPtr pScreenPriv;
     PictureScreenPtr ps = GetPictureScreenIfSet(pScreen);
@@ -520,5 +520,5 @@ cwCloseScreen(int i, ScreenPtr pScreen)
 
     free((pointer) pScreenPriv);
 
-    return (*pScreen->CloseScreen) (i, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }

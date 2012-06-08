@@ -1646,7 +1646,7 @@ damageDestroyWindow(WindowPtr pWindow)
 }
 
 static Bool
-damageCloseScreen(int i, ScreenPtr pScreen)
+damageCloseScreen(ScreenPtr pScreen)
 {
     damageScrPriv(pScreen);
 
@@ -1655,7 +1655,7 @@ damageCloseScreen(int i, ScreenPtr pScreen)
     unwrap(pScrPriv, pScreen, CopyWindow);
     unwrap(pScrPriv, pScreen, CloseScreen);
     free(pScrPriv);
-    return (*pScreen->CloseScreen) (i, pScreen);
+    return (*pScreen->CloseScreen) (pScreen);
 }
 
 /**

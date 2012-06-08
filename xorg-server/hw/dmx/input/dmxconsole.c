@@ -640,7 +640,7 @@ dmxCloseConsole(myPrivate * priv)
 }
 
 static Bool
-dmxCloseConsoleScreen(int idx, ScreenPtr pScreen)
+dmxCloseConsoleScreen(ScreenPtr pScreen)
 {
     myPrivate *priv, *last;
 
@@ -650,7 +650,7 @@ dmxCloseConsoleScreen(int idx, ScreenPtr pScreen)
         dmxCloseConsole(last = priv);
 
     DMX_UNWRAP(CloseScreen, last, pScreen);
-    return pScreen->CloseScreen(idx, pScreen);
+    return pScreen->CloseScreen(pScreen);
 }
 
 static Cursor

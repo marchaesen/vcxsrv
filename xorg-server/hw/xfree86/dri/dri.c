@@ -1618,7 +1618,7 @@ DRIWakeupHandler(pointer wakeupData, int result, pointer pReadmask)
         DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
         if (pDRIPriv && pDRIPriv->pDriverInfo->wrap.WakeupHandler)
-            (*pDRIPriv->pDriverInfo->wrap.WakeupHandler) (i, wakeupData,
+            (*pDRIPriv->pDriverInfo->wrap.WakeupHandler) (pScreen,
                                                           result, pReadmask);
     }
 }
@@ -1633,16 +1633,15 @@ DRIBlockHandler(pointer blockData, OSTimePtr pTimeout, pointer pReadmask)
         DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
         if (pDRIPriv && pDRIPriv->pDriverInfo->wrap.BlockHandler)
-            (*pDRIPriv->pDriverInfo->wrap.BlockHandler) (i, blockData,
+            (*pDRIPriv->pDriverInfo->wrap.BlockHandler) (pScreen,
                                                          pTimeout, pReadmask);
     }
 }
 
 void
-DRIDoWakeupHandler(int screenNum, pointer wakeupData,
+DRIDoWakeupHandler(ScreenPtr pScreen,
                    unsigned long result, pointer pReadmask)
 {
-    ScreenPtr pScreen = screenInfo.screens[screenNum];
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
     DRILock(pScreen, 0);
@@ -1658,10 +1657,9 @@ DRIDoWakeupHandler(int screenNum, pointer wakeupData,
 }
 
 void
-DRIDoBlockHandler(int screenNum, pointer blockData,
+DRIDoBlockHandler(ScreenPtr pScreen,
                   pointer pTimeout, pointer pReadmask)
 {
-    ScreenPtr pScreen = screenInfo.screens[screenNum];
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
     if (pDRIPriv->pDriverInfo->driverSwapMethod == DRI_HIDE_X_CONTEXT) {
@@ -2307,15 +2305,14 @@ _DRIAdjustFrame(ScrnInfoPtr pScrn, DRIScreenPrivPtr pDRIPriv, int x, int y)
 }
 
 void
-DRIAdjustFrame(int scrnIndex, int x, int y, int flags)
+DRIAdjustFrame(ScrnInfoPtr pScrn, int x, int y)
 {
-    ScreenPtr pScreen = screenInfo.screens[scrnIndex];
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
-    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     int px, py;
 
     if (!pDRIPriv || !pDRIPriv->pSAREA) {
-        DRIDrvMsg(scrnIndex, X_ERROR, "[DRI] No SAREA (%p %p)\n",
+        DRIDrvMsg(pScrn->scrnIndex, X_ERROR, "[DRI] No SAREA (%p %p)\n",
                   pDRIPriv, pDRIPriv ? pDRIPriv->pSAREA : NULL);
         return;
     }
@@ -2347,7 +2344,7 @@ DRIAdjustFrame(int scrnIndex, int x, int y, int flags)
         /* unwrap */
         pScrn->AdjustFrame = pDRIPriv->wrap.AdjustFrame;
         /* call lower layers */
-        (*pScrn->AdjustFrame) (scrnIndex, x, y, flags);
+        (*pScrn->AdjustFrame) (pScrn, x, y);
         /* rewrap */
         pDRIPriv->wrap.AdjustFrame = pScrn->AdjustFrame;
         pScrn->AdjustFrame = DRIAdjustFrame;

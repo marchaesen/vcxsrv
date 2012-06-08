@@ -138,7 +138,7 @@ RootlessCreateScreenResources(ScreenPtr pScreen)
 }
 
 static Bool
-RootlessCloseScreen(int i, ScreenPtr pScreen)
+RootlessCloseScreen(ScreenPtr pScreen)
 {
     RootlessScreenRec *s;
 
@@ -154,7 +154,7 @@ RootlessCloseScreen(int i, ScreenPtr pScreen)
     }
 
     free(s);
-    return pScreen->CloseScreen(i, pScreen);
+    return pScreen->CloseScreen(pScreen);
 }
 
 static void

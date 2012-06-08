@@ -28,7 +28,7 @@ authorization from the authors.
 -->
 
 <xcb header="dri2" extension-xname="DRI2" extension-name="DRI2"
-  major-version="1" minor-version="3">
+  major-version="1" minor-version="4">
   <import>xproto</import>
 
   <enum name="Attachment">
@@ -239,6 +239,18 @@ authorization from the authors.
   <request name="SwapInterval" opcode="12">
     <field type="DRAWABLE" name="drawable" />
     <field type="CARD32" name="interval" />
+  </request>
+
+  <!-- Version 1.4 -->
+
+  <request name="GetParam" opcode="13">
+    <field type="DRAWABLE" name="drawable" />
+    <field type="CARD32" name="param" />
+    <reply>
+      <field type="BOOL" name="is_param_recognized" />
+      <field type="CARD32" name="value_hi" />
+      <field type="CARD32" name="value_lo" />
+    </reply>
   </request>
 
   <!-- Events -->

@@ -1,0 +1,3 @@
+# ignore generated files
+generated_gl_wrappers.c
+generated_wgl_wrappers.c

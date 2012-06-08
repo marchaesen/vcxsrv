@@ -131,30 +131,30 @@ fbdevHWLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices,
 }
 
 ModeStatus
-fbdevHWValidMode(int scrnIndex, DisplayModePtr mode, Bool verbose, int flags)
+fbdevHWValidMode(ScrnInfoPtr pScrn, DisplayModePtr mode, Bool verbose, int flags)
 {
     return MODE_ERROR;
 }
 
 Bool
-fbdevHWSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
+fbdevHWSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 {
     return FALSE;
 }
 
 void
-fbdevHWAdjustFrame(int scrnIndex, int x, int y, int flags)
+fbdevHWAdjustFrame(ScrnInfoPtr pScrn, int x, int y, int flags)
 {
 }
 
 Bool
-fbdevHWEnterVT(int scrnIndex, int flags)
+fbdevHWEnterVT(ScrnInfoPtr pScrn)
 {
     return FALSE;
 }
 
 void
-fbdevHWLeaveVT(int scrnIndex, int flags)
+fbdevHWLeaveVT(ScrnInfoPtr pScrn)
 {
 }
 

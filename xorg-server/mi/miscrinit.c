@@ -119,7 +119,7 @@ miModifyPixmapHeader(PixmapPtr pPixmap, int width, int height, int depth,
 }
 
 static Bool
-miCloseScreen(int iScreen, ScreenPtr pScreen)
+miCloseScreen(ScreenPtr pScreen)
 {
     return ((*pScreen->DestroyPixmap) ((PixmapPtr) pScreen->devPrivate));
 }
@@ -262,8 +262,6 @@ miScreenInit(ScreenPtr pScreen, pointer pbits,  /* pointer to screen bits */
     pScreen->SendGraphicsExpose = miSendGraphicsExpose;
     pScreen->BlockHandler = (ScreenBlockHandlerProcPtr) NoopDDA;
     pScreen->WakeupHandler = (ScreenWakeupHandlerProcPtr) NoopDDA;
-    pScreen->blockData = (pointer) 0;
-    pScreen->wakeupData = (pointer) 0;
     pScreen->MarkWindow = miMarkWindow;
     pScreen->MarkOverlappedWindows = miMarkOverlappedWindows;
     pScreen->MoveWindow = miMoveWindow;

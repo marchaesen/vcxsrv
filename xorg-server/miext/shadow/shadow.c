@@ -96,7 +96,7 @@ shadowGetImage(DrawablePtr pDrawable, int sx, int sy, int w, int h,
 #define BACKWARDS_COMPATIBILITY
 
 static Bool
-shadowCloseScreen(int i, ScreenPtr pScreen)
+shadowCloseScreen(ScreenPtr pScreen)
 {
     shadowBuf(pScreen);
 
@@ -110,7 +110,7 @@ shadowCloseScreen(int i, ScreenPtr pScreen)
     if (pBuf->pPixmap)
         pScreen->DestroyPixmap(pBuf->pPixmap);
     free(pBuf);
-    return pScreen->CloseScreen(i, pScreen);
+    return pScreen->CloseScreen(pScreen);
 }
 
 #ifdef BACKWARDS_COMPATIBILITY

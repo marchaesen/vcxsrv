@@ -789,7 +789,7 @@ extern _X_EXPORT void
  ExaOffscreenMarkUsed(PixmapPtr pPixmap);
 
 extern _X_EXPORT void
- exaEnableDisableFBAccess(int index, Bool enable);
+ exaEnableDisableFBAccess(ScreenPtr pScreen, Bool enable);
 
 extern _X_EXPORT Bool
  exaDrawableIsOffscreen(DrawablePtr pDrawable);

@@ -66,7 +66,7 @@ static Bool xf86CursorOffScreen(ScreenPtr *pScreen, int *x, int *y);
 static void xf86CrossScreen(ScreenPtr pScreen, Bool entering);
 static void xf86WarpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y);
 
-static void xf86PointerMoved(int scrnIndex, int x, int y);
+static void xf86PointerMoved(ScrnInfoPtr pScrn, int x, int y);
 
 static miPointerScreenFuncRec xf86PointerScreenFuncs = {
     xf86CursorOffScreen,
@@ -135,14 +135,13 @@ xf86SetViewport(ScreenPtr pScreen, int x, int y)
 {
     ScrnInfoPtr pScr = xf86ScreenToScrn(pScreen);
 
-    (*pScr->PointerMoved) (pScreen->myNum, x, y);
+    (*pScr->PointerMoved) (pScr, x, y);
 }
 
 static void
-xf86PointerMoved(int scrnIndex, int x, int y)
+xf86PointerMoved(ScrnInfoPtr pScr, int x, int y)
 {
     Bool frameChanged = FALSE;
-    ScrnInfoPtr pScr = xf86Screens[scrnIndex];
 
     /*
      * check wether (x,y) belongs to the visual part of the screen
@@ -173,7 +172,7 @@ xf86PointerMoved(int scrnIndex, int x, int y)
     }
 
     if (frameChanged && pScr->AdjustFrame != NULL)
-        pScr->AdjustFrame(pScr->scrnIndex, pScr->frameX0, pScr->frameY0, 0);
+        pScr->AdjustFrame(pScr, pScr->frameX0, pScr->frameY0);
 }
 
 /*
@@ -230,7 +229,7 @@ xf86SwitchMode(ScreenPtr pScreen, DisplayModePtr mode)
         miPointerGetPosition(dev, &px, &py);
 
     was_blocked = xf86BlockSIGIO();
-    Switched = (*pScr->SwitchMode) (pScr->scrnIndex, mode, 0);
+    Switched = (*pScr->SwitchMode) (pScr, mode);
     if (Switched) {
         pScr->currentMode = mode;
 
@@ -271,7 +270,7 @@ xf86SwitchMode(ScreenPtr pScreen, DisplayModePtr mode)
     xf86UnblockSIGIO(was_blocked);
 
     if (pScr->AdjustFrame)
-        (*pScr->AdjustFrame) (pScr->scrnIndex, pScr->frameX0, pScr->frameY0, 0);
+        (*pScr->AdjustFrame) (pScr, pScr->frameX0, pScr->frameY0);
 
     /* The original code centered the frame around the cursor if possible.
      * Since this is hard to achieve with multiple cursors, we do the following:

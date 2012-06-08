@@ -147,7 +147,7 @@ typedef struct _ExaMigrationRec {
     RegionPtr pReg;
 } ExaMigrationRec, *ExaMigrationPtr;
 
-typedef void (*EnableDisableFBAccessProcPtr) (int, Bool);
+typedef void (*EnableDisableFBAccessProcPtr) (ScreenPtr, Bool);
 typedef struct {
     ExaDriverPtr info;
     ScreenBlockHandlerProcPtr SavedBlockHandler;

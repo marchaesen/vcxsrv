@@ -44,7 +44,7 @@ static Bool
  winAllocateFBPrimaryDD(ScreenPtr pScreen);
 
 static Bool
- winCloseScreenPrimaryDD(int nIndex, ScreenPtr pScreen);
+ winCloseScreenPrimaryDD(ScreenPtr pScreen);
 
 static Bool
  winInitVisualsPrimaryDD(ScreenPtr pScreen);
@@ -264,7 +264,7 @@ winInitScreenPrimaryDD(ScreenPtr pScreen)
  */
 
 static Bool
-winCloseScreenPrimaryDD(int nIndex, ScreenPtr pScreen)
+winCloseScreenPrimaryDD(ScreenPtr pScreen)
 {
     winScreenPriv(pScreen);
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
@@ -279,7 +279,7 @@ winCloseScreenPrimaryDD(int nIndex, ScreenPtr pScreen)
     /* Call the wrapped CloseScreen procedure */
     WIN_UNWRAP(CloseScreen);
     if (pScreen->CloseScreen)
-        fReturn = (*pScreen->CloseScreen) (nIndex, pScreen);
+        fReturn = (*pScreen->CloseScreen) (pScreen);
 
     /* Delete the window property */
     RemoveProp(pScreenPriv->hwndScreen, WIN_SCR_PROP);

@@ -56,7 +56,7 @@
 
 /* XvScreenRec fields */
 
-static Bool xf86XVCloseScreen(int, ScreenPtr);
+static Bool xf86XVCloseScreen(ScreenPtr);
 static int xf86XVQueryAdaptors(ScreenPtr, XvAdaptorPtr *, int *);
 
 /* XvAdaptorRec fields */
@@ -100,9 +100,9 @@ static void xf86XVClipNotify(WindowPtr pWin, int dx, int dy);
 
 /* ScrnInfoRec functions */
 
-static Bool xf86XVEnterVT(int, int);
-static void xf86XVLeaveVT(int, int);
-static void xf86XVAdjustFrame(int index, int x, int y, int flags);
+static Bool xf86XVEnterVT(ScrnInfoPtr);
+static void xf86XVLeaveVT(ScrnInfoPtr);
+static void xf86XVAdjustFrame(ScrnInfoPtr, int x, int y);
 static void xf86XVModeSet(ScrnInfoPtr pScrn);
 
 /* misc */
@@ -1066,7 +1066,7 @@ xf86XVReputOrStopPort(XvPortRecPrivatePtr pPriv, WindowPtr pWin, Bool visible)
 static void
 xf86XVReputOrStopAllPorts(ScrnInfoPtr pScrn, Bool onlyChanged)
 {
-    ScreenPtr pScreen = pScrn->pScreen;
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     XvScreenPtr pxvs = GET_XV_SCREEN(pScreen);
     XvAdaptorPtr pa;
     int c, i;
@@ -1255,7 +1255,7 @@ xf86XVClipNotify(WindowPtr pWin, int dx, int dy)
 /**** Required XvScreenRec fields ****/
 
 static Bool
-xf86XVCloseScreen(int i, ScreenPtr pScreen)
+xf86XVCloseScreen(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     XvScreenPtr pxvs = GET_XV_SCREEN(pScreen);
@@ -1299,15 +1299,14 @@ xf86XVQueryAdaptors(ScreenPtr pScreen,
 /**** ScrnInfoRec fields ****/
 
 static Bool
-xf86XVEnterVT(int index, int flags)
+xf86XVEnterVT(ScrnInfoPtr pScrn)
 {
-    ScrnInfoPtr pScrn = xf86Screens[index];
-    ScreenPtr pScreen = screenInfo.screens[index];
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     XF86XVScreenPtr ScreenPriv = GET_XF86XV_SCREEN(pScreen);
     Bool ret;
 
     pScrn->EnterVT = ScreenPriv->EnterVT;
-    ret = (*ScreenPriv->EnterVT) (index, flags);
+    ret = (*ScreenPriv->EnterVT) (pScrn);
     ScreenPriv->EnterVT = pScrn->EnterVT;
     pScrn->EnterVT = xf86XVEnterVT;
 
@@ -1318,10 +1317,9 @@ xf86XVEnterVT(int index, int flags)
 }
 
 static void
-xf86XVLeaveVT(int index, int flags)
+xf86XVLeaveVT(ScrnInfoPtr pScrn)
 {
-    ScrnInfoPtr pScrn = xf86Screens[index];
-    ScreenPtr pScreen = screenInfo.screens[index];
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     XvScreenPtr pxvs = GET_XV_SCREEN(pScreen);
     XF86XVScreenPtr ScreenPriv = GET_XF86XV_SCREEN(pScreen);
     XvAdaptorPtr pAdaptor;
@@ -1353,21 +1351,20 @@ xf86XVLeaveVT(int index, int flags)
     }
 
     pScrn->LeaveVT = ScreenPriv->LeaveVT;
-    (*ScreenPriv->LeaveVT) (index, flags);
+    (*ScreenPriv->LeaveVT) (pScrn);
     ScreenPriv->LeaveVT = pScrn->LeaveVT;
     pScrn->LeaveVT = xf86XVLeaveVT;
 }
 
 static void
-xf86XVAdjustFrame(int index, int x, int y, int flags)
+xf86XVAdjustFrame(ScrnInfoPtr pScrn, int x, int y)
 {
-    ScrnInfoPtr pScrn = xf86Screens[index];
-    ScreenPtr pScreen = pScrn->pScreen;
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     XF86XVScreenPtr ScreenPriv = GET_XF86XV_SCREEN(pScreen);
 
     if (ScreenPriv->AdjustFrame) {
         pScrn->AdjustFrame = ScreenPriv->AdjustFrame;
-        (*pScrn->AdjustFrame) (index, x, y, flags);
+        (*pScrn->AdjustFrame) (pScrn, x, y);
         pScrn->AdjustFrame = xf86XVAdjustFrame;
     }
 
@@ -1377,7 +1374,7 @@ xf86XVAdjustFrame(int index, int x, int y, int flags)
 static void
 xf86XVModeSet(ScrnInfoPtr pScrn)
 {
-    ScreenPtr pScreen = pScrn->pScreen;
+    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     XF86XVScreenPtr ScreenPriv;
 
     /* Can be called before pScrn->pScreen is set */

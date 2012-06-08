@@ -709,6 +709,7 @@ xf86CreateI2CBusRec(void)
 
     if (b != NULL) {
         b->scrnIndex = -1;
+        b->pScrn = NULL;
         b->HoldTime = 5;        /* 100 kHz bus */
         b->BitTimeout = 5;
         b->ByteTimeout = 5;

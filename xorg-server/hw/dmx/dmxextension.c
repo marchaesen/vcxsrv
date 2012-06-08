@@ -1318,7 +1318,7 @@ dmxAttachScreen(int idx, DMXScreenAttributesPtr attr)
     }
 
     /* Initialize the BE screen resources */
-    dmxBEScreenInit(idx, screenInfo.screens[idx]);
+    dmxBEScreenInit(screenInfo.screens[idx]);
 
     /* TODO: Handle GLX visual initialization.  GLXProxy needs to be
      * updated to handle dynamic addition/removal of screens. */

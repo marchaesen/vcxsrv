@@ -50,7 +50,7 @@ static void
  winShadowUpdateGDI(ScreenPtr pScreen, shadowBufPtr pBuf);
 
 static Bool
- winCloseScreenShadowGDI(int nIndex, ScreenPtr pScreen);
+ winCloseScreenShadowGDI(ScreenPtr pScreen);
 
 static Bool
  winInitVisualsShadowGDI(ScreenPtr pScreen);
@@ -565,7 +565,7 @@ winInitScreenShadowGDI(ScreenPtr pScreen)
  */
 
 static Bool
-winCloseScreenShadowGDI(int nIndex, ScreenPtr pScreen)
+winCloseScreenShadowGDI(ScreenPtr pScreen)
 {
     winScreenPriv(pScreen);
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
@@ -580,7 +580,7 @@ winCloseScreenShadowGDI(int nIndex, ScreenPtr pScreen)
     /* Call the wrapped CloseScreen procedure */
     WIN_UNWRAP(CloseScreen);
     if (pScreen->CloseScreen)
-        fReturn = (*pScreen->CloseScreen) (nIndex, pScreen);
+        fReturn = (*pScreen->CloseScreen) (pScreen);
 
     /* Delete the window property */
     RemoveProp(pScreenPriv->hwndScreen, WIN_SCR_PROP);

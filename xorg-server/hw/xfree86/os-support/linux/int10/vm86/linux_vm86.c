@@ -210,19 +210,19 @@ vm86_GP_fault(xf86Int10InfoPtr pInt)
         return FALSE;
 
     case 0x0f:
-        xf86DrvMsg(pInt->scrnIndex, X_ERROR,
+        xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR,
                    "CPU 0x0f Trap at CS:EIP=0x%4.4x:0x%8.8lx\n", X86_CS,
                    X86_EIP);
         goto op0ferr;
 
     default:
-        xf86DrvMsg(pInt->scrnIndex, X_ERROR, "unknown reason for exception\n");
+        xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR, "unknown reason for exception\n");
 
  op0ferr:
         dump_registers(pInt);
         stack_trace(pInt);
         dump_code(pInt);
-        xf86DrvMsg(pInt->scrnIndex, X_ERROR, "cannot continue\n");
+        xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR, "cannot continue\n");
         return FALSE;
     }                           /* end of switch() */
     return TRUE;
@@ -238,7 +238,7 @@ do_vm86(xf86Int10InfoPtr pInt)
     xf86InterceptSignals(NULL);
 
     if (signo >= 0) {
-        xf86DrvMsg(pInt->scrnIndex, X_ERROR,
+        xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR,
                    "vm86() syscall generated signal %d.\n", signo);
         dump_registers(pInt);
         dump_code(pInt);
@@ -252,7 +252,7 @@ do_vm86(xf86Int10InfoPtr pInt)
             return 0;
         break;
     case VM86_STI:
-        xf86DrvMsg(pInt->scrnIndex, X_ERROR, "vm86_sti :-((\n");
+        xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR, "vm86_sti :-((\n");
         dump_registers(pInt);
         dump_code(pInt);
         stack_trace(pInt);
@@ -260,7 +260,7 @@ do_vm86(xf86Int10InfoPtr pInt)
     case VM86_INTx:
         pInt->num = VM86_ARG(retval);
         if (!int_handler(pInt)) {
-            xf86DrvMsg(pInt->scrnIndex, X_ERROR,
+            xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR,
                        "Unknown vm86_int: 0x%X\n\n", VM86_ARG(retval));
             dump_registers(pInt);
             dump_code(pInt);
@@ -275,10 +275,10 @@ do_vm86(xf86Int10InfoPtr pInt)
          * we used to warn here and bail out - but now the sigio stuff
          * always fires signals at us. So we just ignore them for now.
          */
-        xf86DrvMsg(pInt->scrnIndex, X_WARNING, "received signal\n");
+        xf86DrvMsg(pInt->pScrn->scrnIndex, X_WARNING, "received signal\n");
         return 0;
     default:
-        xf86DrvMsg(pInt->scrnIndex, X_ERROR, "unknown type(0x%x)=0x%x\n",
+        xf86DrvMsg(pInt->pScrn->scrnIndex, X_ERROR, "unknown type(0x%x)=0x%x\n",
                    VM86_ARG(retval), VM86_TYPE(retval));
         dump_registers(pInt);
         dump_code(pInt);

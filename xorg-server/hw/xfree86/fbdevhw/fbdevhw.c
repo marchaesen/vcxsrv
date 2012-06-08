@@ -775,10 +775,8 @@ fbdevHWLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices,
 /* these can be hooked directly into ScrnInfoRec                        */
 
 ModeStatus
-fbdevHWValidMode(int scrnIndex, DisplayModePtr mode, Bool verbose, int flags)
+fbdevHWValidMode(ScrnInfoPtr pScrn, DisplayModePtr mode, Bool verbose, int flags)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
-
     if (!fbdevHWSetMode(pScrn, mode, TRUE))
         return MODE_BAD;
 
@@ -786,10 +784,8 @@ fbdevHWValidMode(int scrnIndex, DisplayModePtr mode, Bool verbose, int flags)
 }
 
 Bool
-fbdevHWSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
+fbdevHWSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
-
     if (!fbdevHWSetMode(pScrn, mode, FALSE))
         return FALSE;
 
@@ -797,9 +793,8 @@ fbdevHWSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
 }
 
 void
-fbdevHWAdjustFrame(int scrnIndex, int x, int y, int flags)
+fbdevHWAdjustFrame(ScrnInfoPtr pScrn, int x, int y)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     fbdevHWPtr fPtr = FBDEVHWPTR(pScrn);
 
     if (x < 0 || x + fPtr->var.xres > fPtr->var.xres_virtual ||
@@ -809,26 +804,22 @@ fbdevHWAdjustFrame(int scrnIndex, int x, int y, int flags)
     fPtr->var.xoffset = x;
     fPtr->var.yoffset = y;
     if (-1 == ioctl(fPtr->fd, FBIOPAN_DISPLAY, (void *) &fPtr->var))
-        xf86DrvMsgVerb(scrnIndex, X_WARNING, 5,
+        xf86DrvMsgVerb(pScrn->scrnIndex, X_WARNING, 5,
                        "FBIOPAN_DISPLAY: %s\n", strerror(errno));
 }
 
 Bool
-fbdevHWEnterVT(int scrnIndex, int flags)
+fbdevHWEnterVT(ScrnInfoPtr pScrn)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
-
     if (!fbdevHWModeInit(pScrn, pScrn->currentMode))
         return FALSE;
-    fbdevHWAdjustFrame(scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
+    fbdevHWAdjustFrame(pScrn, pScrn->frameX0, pScrn->frameY0);
     return TRUE;
 }
 
 void
-fbdevHWLeaveVT(int scrnIndex, int flags)
+fbdevHWLeaveVT(ScrnInfoPtr pScrn)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
-
     fbdevHWRestore(pScrn);
 }
 
