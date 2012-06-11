@@ -868,6 +868,65 @@ void          pixman_image_composite32        (pixman_op_t        op,
 void pixman_disable_out_of_bounds_workaround (void);
 
 /*
+ * Glyphs
+ */
+typedef struct pixman_glyph_cache_t pixman_glyph_cache_t;
+typedef struct
+{
+    int		x, y;
+    const void *glyph;
+} pixman_glyph_t;
+
+pixman_glyph_cache_t *pixman_glyph_cache_create       (void);
+void                  pixman_glyph_cache_destroy      (pixman_glyph_cache_t *cache);
+void                  pixman_glyph_cache_freeze       (pixman_glyph_cache_t *cache);
+void                  pixman_glyph_cache_thaw         (pixman_glyph_cache_t *cache);
+const void *          pixman_glyph_cache_lookup       (pixman_glyph_cache_t *cache,
+						       void                 *font_key,
+						       void                 *glyph_key);
+const void *          pixman_glyph_cache_insert       (pixman_glyph_cache_t *cache,
+						       void                 *font_key,
+						       void                 *glyph_key,
+						       int		     origin_x,
+						       int                   origin_y,
+						       pixman_image_t       *glyph_image);
+void                  pixman_glyph_cache_remove       (pixman_glyph_cache_t *cache,
+						       void                 *font_key,
+						       void                 *glyph_key);
+void                  pixman_glyph_get_extents        (pixman_glyph_cache_t *cache,
+						       int                   n_glyphs,
+						       pixman_glyph_t       *glyphs,
+						       pixman_box32_t       *extents);
+pixman_format_code_t  pixman_glyph_get_mask_format    (pixman_glyph_cache_t *cache,
+						       int		     n_glyphs,
+						       pixman_glyph_t *      glyphs);
+void                  pixman_composite_glyphs         (pixman_op_t           op,
+						       pixman_image_t       *src,
+						       pixman_image_t       *dest,
+						       pixman_format_code_t  mask_format,
+						       int32_t               src_x,
+						       int32_t               src_y,
+						       int32_t		     mask_x,
+						       int32_t		     mask_y,
+						       int32_t               dest_x,
+						       int32_t               dest_y,
+						       int32_t		     width,
+						       int32_t		     height,
+						       pixman_glyph_cache_t *cache,
+						       int		     n_glyphs,
+						       pixman_glyph_t       *glyphs);
+void                  pixman_composite_glyphs_no_mask (pixman_op_t           op,
+						       pixman_image_t       *src,
+						       pixman_image_t       *dest,
+						       int32_t               src_x,
+						       int32_t               src_y,
+						       int32_t               dest_x,
+						       int32_t               dest_y,
+						       pixman_glyph_cache_t *cache,
+						       int		     n_glyphs,
+						       pixman_glyph_t       *glyphs);
+
+/*
  * Trapezoids
  */
 typedef struct pixman_edge pixman_edge_t;

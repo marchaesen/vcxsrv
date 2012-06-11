@@ -286,6 +286,7 @@ extern "C" {
 /*
  * GLX_ARB_create_context
  * GLX_ARB_create_context_profile
+ * GLX_EXT_create_context_es2_profile
  */
 #define GLX_CONTEXT_MAJOR_VERSION_ARB      0x2091
 #define GLX_CONTEXT_MINOR_VERSION_ARB      0x2092
@@ -297,6 +298,7 @@ extern "C" {
 
 #define GLX_CONTEXT_CORE_PROFILE_BIT_ARB   0x0001
 #define GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB   0x0002
+#define GLX_CONTEXT_ES2_PROFILE_BIT_EXT    0x0004
 
 /*
  * GLX_ARB_create_context_robustness
@@ -304,7 +306,7 @@ extern "C" {
 #define GLX_CONTEXT_ROBUST_ACCESS_BIT_ARB  0x0004
 #define GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB 0x8256
 #define GLX_NO_RESET_NOTIFICATION_ARB      0x8261
-#define GLX_LOST_CONTEXT_ON_RESET_ARB      0x8252
+#define GLX_LOSE_CONTEXT_ON_RESET_ARB      0x8252
 #ifdef __cplusplus
 }
 #endif

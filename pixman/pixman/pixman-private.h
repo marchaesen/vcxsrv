@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <stddef.h>
 
 #include "pixman-compiler.h"
 
@@ -580,6 +581,19 @@ _pixman_choose_implementation (void);
 /*
  * Utilities
  */
+pixman_bool_t
+_pixman_compute_composite_region32 (pixman_region32_t * region,
+				    pixman_image_t *    src_image,
+				    pixman_image_t *    mask_image,
+				    pixman_image_t *    dest_image,
+				    int32_t             src_x,
+				    int32_t             src_y,
+				    int32_t             mask_x,
+				    int32_t             mask_y,
+				    int32_t             dest_x,
+				    int32_t             dest_y,
+				    int32_t             width,
+				    int32_t             height);
 uint32_t *
 _pixman_iter_get_scanline_noop (pixman_iter_t *iter, const uint32_t *mask);
 
@@ -687,6 +701,18 @@ _pixman_iter_get_scanline_noop (pixman_iter_t *iter, const uint32_t *mask);
 	    dest, FAST_PATH_STD_DEST_FLAGS,				\
 	    func) }
 
+extern pixman_implementation_t *global_implementation;
+
+static force_inline pixman_implementation_t *
+get_implementation (void)
+{
+#ifndef TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR
+    if (!global_implementation)
+	global_implementation = _pixman_choose_implementation ();
+#endif
+    return global_implementation;
+}
+
 /* Memory allocation helpers */
 void *
 pixman_malloc_ab (unsigned int n, unsigned int b);
@@ -736,6 +762,50 @@ pixman_bool_t
 pixman_region16_copy_from_region32 (pixman_region16_t *dst,
                                     pixman_region32_t *src);
 
+/* Doubly linked lists */
+typedef struct pixman_link_t pixman_link_t;
+struct pixman_link_t
+{
+    pixman_link_t *next;
+    pixman_link_t *prev;
+};
+
+typedef struct pixman_list_t pixman_list_t;
+struct pixman_list_t
+{
+    pixman_link_t *head;
+    pixman_link_t *tail;
+};
+
+static force_inline void
+pixman_list_init (pixman_list_t *list)
+{
+    list->head = (pixman_link_t *)list;
+    list->tail = (pixman_link_t *)list;
+}
+
+static force_inline void
+pixman_list_prepend (pixman_list_t *list, pixman_link_t *link)
+{
+    link->next = list->head;
+    link->prev = (pixman_link_t *)list;
+    list->head->prev = link;
+    list->head = link;
+}
+
+static force_inline void
+pixman_list_unlink (pixman_link_t *link)
+{
+    link->prev->next = link->next;
+    link->next->prev = link->prev;
+}
+
+static force_inline void
+pixman_list_move_to_front (pixman_list_t *list, pixman_link_t *link)
+{
+    pixman_list_unlink (link);
+    pixman_list_prepend (list, link);
+}
 
 /* Misc macros */
 

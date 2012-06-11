@@ -816,6 +816,9 @@ FcPrivate FcLangSet *
 FcFreeTypeLangSet (const FcCharSet  *charset,
 		   const FcChar8    *exclusiveLang);
 
+FcPrivate FcChar8 *
+FcLangNormalize (const FcChar8 *lang);
+
 FcPrivate FcLangResult
 FcLangCompare (const FcChar8 *s1, const FcChar8 *s2);
 
@@ -1039,6 +1042,9 @@ FcPrivate FcBool
 FcIsFsMtimeBroken (const FcChar8 *dir);
 
 /* fcstr.c */
+FcPrivate FcBool
+FcStrSetAddLangs (FcStrSet *strs, const char *languages);
+
 FcPrivate void
 FcStrSetSort (FcStrSet * set);
 

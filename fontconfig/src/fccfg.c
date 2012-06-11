@@ -1407,6 +1407,7 @@ FcConfigSubstituteWithPat (FcConfig    *config,
     FcEdit	    *e;
     FcValueList	    *l;
     FcPattern	    *m;
+    FcStrSet	    *strs;
 
     if (!config)
     {
@@ -1418,6 +1419,22 @@ FcConfigSubstituteWithPat (FcConfig    *config,
     switch (kind) {
     case FcMatchPattern:
 	s = config->substPattern;
+	strs = FcGetDefaultLangs ();
+	if (strs)
+	{
+	    FcStrList *l = FcStrListCreate (strs);
+	    FcChar8 *lang;
+	    FcValue v;
+
+	    FcStrSetDestroy (strs);
+	    while (l && (lang = FcStrListNext (l)))
+	    {
+		v.type = FcTypeString;
+		v.u.s = lang;
+		FcPatternObjectAddWithBinding (p, FC_LANG_OBJECT, v, FcValueBindingWeak, FcTrue);
+	    }
+	    FcStrListDone (l);
+	}
 	break;
     case FcMatchFont:
 	s = config->substFont;

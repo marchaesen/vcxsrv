@@ -607,14 +607,27 @@ fi
 dnl ===========================================================================
 dnl Check for IWMMXT
 
+AC_ARG_ENABLE(arm-iwmmxt,
+   [AC_HELP_STRING([--disable-arm-iwmmxt],
+                   [disable ARM IWMMXT fast paths])],
+   [enable_iwmmxt=$enableval], [enable_iwmmxt=auto])
+
+AC_ARG_ENABLE(arm-iwmmxt2,
+   [AC_HELP_STRING([--disable-arm-iwmmxt2],
+                   [build ARM IWMMXT fast paths with -march=iwmmxt instead of -march=iwmmxt2])],
+   [enable_iwmmxt2=$enableval], [enable_iwmmxt2=auto])
+
 if test "x$IWMMXT_CFLAGS" = "x" ; then
-   IWMMXT_CFLAGS="-march=iwmmxt -flax-vector-conversions -Winline"
+   IWMMXT_CFLAGS="-flax-vector-conversions -Winline -march=iwmmxt"
+   if test $enable_iwmmxt2 != no ; then
+      IWMMXT_CFLAGS+="2"
+   fi
 fi
 
 have_iwmmxt_intrinsics=no
 AC_MSG_CHECKING(whether to use ARM IWMMXT intrinsics)
 xserver_save_CFLAGS=$CFLAGS
-CFLAGS="$IWMMXT_CFLAGS $CFLAGS"
+CFLAGS="$CFLAGS $IWMMXT_CFLAGS"
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #ifndef __arm__
 #error "IWMMXT is only available on ARM"
@@ -635,11 +648,6 @@ int main () {
 	__m64 c = _mm_srli_si64 (a.v, b);
 }]])], have_iwmmxt_intrinsics=yes)
 CFLAGS=$xserver_save_CFLAGS
-
-AC_ARG_ENABLE(arm-iwmmxt,
-   [AC_HELP_STRING([--disable-arm-iwmmxt],
-                   [disable ARM IWMMXT fast paths])],
-   [enable_iwmmxt=$enableval], [enable_iwmmxt=auto])
 
 if test $enable_iwmmxt = no ; then
    have_iwmmxt_intrinsics=disabled

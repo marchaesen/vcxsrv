@@ -83,39 +83,10 @@ free_random_image (uint32_t initcrc,
 		   pixman_format_code_t fmt)
 {
     uint32_t crc32 = 0;
-    int stride = pixman_image_get_stride (img);
     uint32_t *data = pixman_image_get_data (img);
-    int height = pixman_image_get_height (img);
 
     if (fmt != PIXMAN_null)
-    {
-	/* mask unused 'x' part */
-	if (PIXMAN_FORMAT_BPP (fmt) - PIXMAN_FORMAT_DEPTH (fmt) &&
-	    PIXMAN_FORMAT_DEPTH (fmt) != 0)
-	{
-	    int i;
-	    uint32_t *data = pixman_image_get_data (img);
-	    uint32_t mask = (1 << PIXMAN_FORMAT_DEPTH (fmt)) - 1;
-
-	    if (PIXMAN_FORMAT_TYPE (fmt) == PIXMAN_TYPE_BGRA ||
-		PIXMAN_FORMAT_TYPE (fmt) == PIXMAN_TYPE_RGBA)
-	    {
-		mask <<= (PIXMAN_FORMAT_BPP (fmt) - PIXMAN_FORMAT_DEPTH (fmt));
-	    }
-
-	    for (i = 0; i * PIXMAN_FORMAT_BPP (fmt) < 32; i++)
-		mask |= mask << (i * PIXMAN_FORMAT_BPP (fmt));
-
-	    for (i = 0; i < stride * height / 4; i++)
-		data[i] &= mask;
-	}
-
-	/* swap endiannes in order to provide identical results on both big
-	 * and litte endian systems
-	 */
-	image_endian_swap (img);
-	crc32 = compute_crc32 (initcrc, data, stride * height);
-    }
+	crc32 = compute_crc32_for_image (initcrc, img);
 
     pixman_image_unref (img);
     free (data);

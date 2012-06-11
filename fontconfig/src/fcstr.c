@@ -1177,6 +1177,50 @@ FcStrSetAddFilename (FcStrSet *set, const FcChar8 *s)
 }
 
 FcBool
+FcStrSetAddLangs (FcStrSet *strs, const char *languages)
+{
+    const char *p = languages, *next;
+    FcChar8 lang[128] = {0}, *normalized_lang;
+    size_t len;
+    FcBool ret = FcFalse;
+
+    if (!languages)
+	return FcFalse;
+
+    while ((next = strchr (p, ':')))
+    {
+	len = next - p;
+	len = FC_MIN (len, 128);
+	strncpy ((char *) lang, p, len);
+	lang[len] = 0;
+	/* ignore an empty item */
+	if (*lang)
+	{
+	    normalized_lang = FcLangNormalize ((const FcChar8 *) lang);
+	    if (normalized_lang)
+	    {
+		FcStrSetAdd (strs, normalized_lang);
+		free (normalized_lang);
+		ret = FcTrue;
+	    }
+	}
+	p = next + 1;
+    }
+    if (*p)
+    {
+	normalized_lang = FcLangNormalize ((const FcChar8 *) p);
+	if (normalized_lang)
+	{
+	    FcStrSetAdd (strs, normalized_lang);
+	    free (normalized_lang);
+	    ret = FcTrue;
+	}
+    }
+
+    return ret;
+}
+
+FcBool
 FcStrSetDel (FcStrSet *set, const FcChar8 *s)
 {
     int	i;
