@@ -135,6 +135,107 @@ compute_crc32 (uint32_t    in_crc32,
     return (crc32 ^ 0xFFFFFFFF);
 }
 
+static uint32_t
+compute_crc32_for_image_internal (uint32_t        crc32,
+				  pixman_image_t *img,
+				  pixman_bool_t	  remove_alpha,
+				  pixman_bool_t	  remove_rgb)
+{
+    pixman_format_code_t fmt = pixman_image_get_format (img);
+    uint32_t *data = pixman_image_get_data (img);
+    int stride = pixman_image_get_stride (img);
+    int height = pixman_image_get_height (img);
+    uint32_t mask = 0xffffffff;
+    int i;
+
+    /* mask unused 'x' part */
+    if (PIXMAN_FORMAT_BPP (fmt) - PIXMAN_FORMAT_DEPTH (fmt) &&
+	PIXMAN_FORMAT_DEPTH (fmt) != 0)
+    {
+	uint32_t m = (1 << PIXMAN_FORMAT_DEPTH (fmt)) - 1;
+
+	if (PIXMAN_FORMAT_TYPE (fmt) == PIXMAN_TYPE_BGRA ||
+	    PIXMAN_FORMAT_TYPE (fmt) == PIXMAN_TYPE_RGBA)
+	{
+	    m <<= (PIXMAN_FORMAT_BPP (fmt) - PIXMAN_FORMAT_DEPTH (fmt));
+	}
+
+	mask &= m;
+    }
+
+    /* mask alpha channel */
+    if (remove_alpha && PIXMAN_FORMAT_A (fmt))
+    {
+	uint32_t m;
+
+	if (PIXMAN_FORMAT_BPP (fmt) == 32)
+	    m = 0xffffffff;
+	else
+	    m = (1 << PIXMAN_FORMAT_BPP (fmt)) - 1;
+
+	m >>= PIXMAN_FORMAT_A (fmt);
+
+	if (PIXMAN_FORMAT_TYPE (fmt) == PIXMAN_TYPE_BGRA ||
+	    PIXMAN_FORMAT_TYPE (fmt) == PIXMAN_TYPE_RGBA ||
+	    PIXMAN_FORMAT_TYPE (fmt) == PIXMAN_TYPE_A)
+	{
+	    /* Alpha is at the bottom of the pixel */
+	    m <<= PIXMAN_FORMAT_A (fmt);
+	}
+
+	mask &= m;
+    }
+
+    /* mask rgb channels */
+    if (remove_rgb && PIXMAN_FORMAT_RGB (fmt))
+    {
+	uint32_t m = ((uint32_t)~0) >> (32 - PIXMAN_FORMAT_BPP (fmt));
+	uint32_t size = PIXMAN_FORMAT_R (fmt) + PIXMAN_FORMAT_G (fmt) + PIXMAN_FORMAT_B (fmt);
+
+	m &= ~((1 << size) - 1);
+
+	if (PIXMAN_FORMAT_TYPE (fmt) == PIXMAN_TYPE_BGRA ||
+	    PIXMAN_FORMAT_TYPE (fmt) == PIXMAN_TYPE_RGBA)
+	{
+	    /* RGB channels are at the top of the pixel */
+	    m >>= size;
+	}
+
+	mask &= m;
+    }
+
+    for (i = 0; i * PIXMAN_FORMAT_BPP (fmt) < 32; i++)
+	mask |= mask << (i * PIXMAN_FORMAT_BPP (fmt));
+
+    for (i = 0; i < stride * height / 4; i++)
+	data[i] &= mask;
+
+    /* swap endiannes in order to provide identical results on both big
+     * and litte endian systems
+     */
+    image_endian_swap (img);
+
+    return compute_crc32 (crc32, data, stride * height);
+}
+
+uint32_t
+compute_crc32_for_image (uint32_t        crc32,
+			 pixman_image_t *img)
+{
+    if (img->common.alpha_map)
+    {
+	crc32 = compute_crc32_for_image_internal (crc32, img, TRUE, FALSE);
+	crc32 = compute_crc32_for_image_internal (
+	    crc32, (pixman_image_t *)img->common.alpha_map, FALSE, TRUE);
+    }
+    else
+    {
+	crc32 = compute_crc32_for_image_internal (crc32, img, FALSE, FALSE);
+    }
+
+    return crc32;
+}
+
 pixman_bool_t
 is_little_endian (void)
 {

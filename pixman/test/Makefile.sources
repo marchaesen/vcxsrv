@@ -16,6 +16,7 @@ TESTPROGRAMS =			\
 	stress-test		\
 	composite-traps-test	\
 	blitters-test		\
+	glyph-test		\
 	scaling-test		\
 	affine-test		\
 	composite		\

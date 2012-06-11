@@ -22,6 +22,7 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <string.h>
 #include "fcint.h"
 #include "fcftint.h"
 
@@ -42,6 +43,9 @@ struct _FcLangSet {
     FcChar32    map_size;
     FcChar32	map[NUM_LANG_SET_MAP];
 };
+
+static int FcLangSetIndex (const FcChar8 *lang);
+
 
 static void
 FcLangSetBitSet (FcLangSet    *ls,
@@ -171,6 +175,161 @@ FcFreeTypeLangSet (const FcCharSet  *charset,
 
 
     return ls;
+}
+
+FcChar8 *
+FcLangNormalize (const FcChar8 *lang)
+{
+    FcChar8 *result = NULL, *s, *orig;
+    char *territory, *encoding, *modifier;
+    size_t llen, tlen = 0, mlen = 0;
+
+    if (!lang || !*lang)
+	return NULL;
+
+    if (FcStrCmpIgnoreCase (lang, (const FcChar8 *)"C") == 0 ||
+	FcStrCmpIgnoreCase (lang, (const FcChar8 *)"POSIX") == 0)
+    {
+	result = FcStrCopy ((const FcChar8 *)"en");
+	goto bail;
+    }
+
+    s = FcStrCopy (lang);
+    if (!s)
+	goto bail;
+
+    /* from the comments in glibc:
+     *
+     * LOCALE can consist of up to four recognized parts for the XPG syntax:
+     *
+     *            language[_territory[.codeset]][@modifier]
+     *
+     * Beside the first all of them are allowed to be missing.  If the
+     * full specified locale is not found, the less specific one are
+     * looked for.  The various part will be stripped off according to
+     * the following order:
+     *            (1) codeset
+     *            (2) normalized codeset
+     *            (3) territory
+     *            (4) modifier
+     *
+     * So since we don't take care of the codeset part here, what patterns
+     * we need to deal with is:
+     *
+     *   1. language_territory@modifier
+     *   2. language@modifier
+     *   3. language
+     *
+     * then. and maybe no need to try language_territory here.
+     */
+    modifier = strchr ((const char *) s, '@');
+    if (modifier)
+    {
+	*modifier = 0;
+	modifier++;
+	mlen = strlen (modifier);
+    }
+    encoding = strchr ((const char *) s, '.');
+    if (encoding)
+    {
+	*encoding = 0;
+	encoding++;
+	if (modifier)
+	{
+	    memmove (encoding, modifier, mlen + 1);
+	    modifier = encoding;
+	}
+    }
+    territory = strchr ((const char *) s, '_');
+    if (!territory)
+	territory = strchr ((const char *) s, '-');
+    if (territory)
+    {
+	*territory = 0;
+	territory++;
+	tlen = strlen (territory);
+    }
+    llen = strlen ((const char *) s);
+    if (llen < 2 || llen > 3)
+    {
+	fprintf (stderr, "Fontconfig warning: ignoring %s: not a valid language tag\n",
+		 lang);
+	goto bail0;
+    }
+    if (territory && (tlen < 2 || tlen > 3))
+    {
+	fprintf (stderr, "Fontconfig warning: ignoring %s: not a valid region tag\n",
+		 lang);
+	goto bail0;
+    }
+    if (territory)
+	territory[-1] = '-';
+    if (modifier)
+	modifier[-1] = '@';
+    orig = FcStrDowncase (s);
+    if (!orig)
+	goto bail0;
+    if (territory)
+    {
+	if (FcDebug () & FC_DBG_LANGSET)
+	    printf("Checking the existence of %s.orth\n", s);
+	if (FcLangSetIndex (s) < 0)
+	{
+	    memmove (territory - 1, territory + tlen, (mlen > 0 ? mlen + 1 : 0) + 1);
+	    if (modifier)
+		modifier = territory;
+	}
+	else
+	{
+	    result = s;
+	    s = NULL;
+	    goto bail1;
+	}
+    }
+    if (modifier)
+    {
+	if (FcDebug () & FC_DBG_LANGSET)
+	    printf("Checking the existence of %s.orth\n", s);
+	if (FcLangSetIndex (s) < 0)
+	    modifier[-1] = 0;
+	else
+	{
+	    result = s;
+	    s = NULL;
+	    goto bail1;
+	}
+    }
+    if (FcDebug () & FC_DBG_LANGSET)
+	printf("Checking the existence of %s.orth\n", s);
+    if (FcLangSetIndex (s) < 0)
+    {
+	/* there seems no languages matched in orth.
+	 * add the language as is for fallback.
+	 */
+	result = orig;
+	orig = NULL;
+    }
+    else
+    {
+	result = s;
+	s = NULL;
+    }
+  bail1:
+    if (orig)
+	free (orig);
+  bail0:
+    if (s)
+	free (s);
+  bail:
+    if (FcDebug () & FC_DBG_LANGSET)
+    {
+	if (result)
+	    printf ("normalized: %s -> %s\n", lang, result);
+	else
+	    printf ("Unable to normalize %s\n", lang);
+    }
+
+    return result;
 }
 
 #define FcLangEnd(c)	((c) == '-' || (c) == '\0')

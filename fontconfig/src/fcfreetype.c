@@ -1179,10 +1179,11 @@ FcFreeTypeQueryFace (const FT_Face  face,
 
 	    for (snamei = 0; snamei < snamec; snamei++)
 	    {
-		FcChar8		*utf8;
+		FcChar8		*utf8, *pp;
 		const FcChar8	*lang;
 		const char	*elt = 0, *eltlang = 0;
 		int		*np = 0, *nlangp = 0;
+		size_t		len;
 
 		if (FT_Get_Sfnt_Name (face, snamei, &sname) != 0)
 		    continue;
@@ -1253,6 +1254,18 @@ FcFreeTypeQueryFace (const FT_Face  face,
 #endif
 		case TT_NAME_ID_PREFERRED_SUBFAMILY:
 		case TT_NAME_ID_FONT_SUBFAMILY:
+		    if (utf8)
+		    {
+			pp = utf8;
+			while (*pp == ' ')
+			    pp++;
+			len = strlen ((const char *) pp);
+			memmove (utf8, pp, len + 1);
+			pp = utf8 + len - 1;
+			while (*pp == ' ')
+			    pp--;
+			*(pp + 1) = 0;
+		    }
 		    if (FcDebug () & FC_DBG_SCANV)
 			printf ("found style  (n %2d p %d e %d l 0x%04x) %s\n",
 				sname.name_id, sname.platform_id,

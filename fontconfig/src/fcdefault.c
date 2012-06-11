@@ -23,7 +23,7 @@
  */
 
 #include "fcint.h"
-#include <locale.h>
+#include <string.h>
 
 static const struct {
     FcObject	field;
@@ -39,81 +39,45 @@ static const struct {
 
 #define NUM_FC_BOOL_DEFAULTS	(int) (sizeof FcBoolDefaults / sizeof FcBoolDefaults[0])
 
+FcStrSet *
+FcGetDefaultLangs (void)
+{
+    FcStrSet *result = FcStrSetCreate ();
+    char *langs;
+
+    langs = getenv ("FC_LANG");
+    if (!langs || !langs[0])
+	langs = getenv ("LC_ALL");
+    if (!langs || !langs[0])
+	langs = getenv ("LC_CTYPE");
+    if (!langs || !langs[0])
+	langs = getenv ("LANG");
+    if (langs && langs[0])
+    {
+	if (!FcStrSetAddLangs (result, langs))
+	    FcStrSetAdd (result, (const FcChar8 *) "en");
+    }
+    else
+	FcStrSetAdd (result, (const FcChar8 *) "en");
+
+    return result;
+}
+
 FcChar8 *
 FcGetDefaultLang (void)
 {
-    static char	lang_local [128] = {0};
-    char        *ctype;
-    char        *territory;
-    char        *after;
-    int         lang_len, territory_len;
+    static FcChar8 lang_local[128] = {0};
+    FcStrSet *langs;
 
-    if (lang_local [0])
-	return (FcChar8 *) lang_local;
-
-    ctype = setlocale (LC_CTYPE, NULL);
-
-    /*
-     * Check if setlocale (LC_ALL, "") has been called
-     */
-    if (!ctype || !strcmp (ctype, "C"))
+    if (!lang_local[0])
     {
-	ctype = getenv ("LC_ALL");
-	if (!ctype)
-	{
-	    ctype = getenv ("LC_CTYPE");
-	    if (!ctype)
-		ctype = getenv ("LANG");
-	}
+	langs = FcGetDefaultLangs ();
+	strncpy ((char *)lang_local, (const char *)langs->strs[0], 127);
+	lang_local[127] = 0;
+	FcStrSetDestroy (langs);
     }
 
-    /* ignore missing or empty ctype */
-    if (ctype && *ctype != '\0')
-    {
-	territory = strchr (ctype, '_');
-	if (territory)
-	{
-	    lang_len = territory - ctype;
-	    territory = territory + 1;
-	    after = strchr (territory, '.');
-	    if (!after)
-	    {
-		after = strchr (territory, '@');
-		if (!after)
-		    after = territory + strlen (territory);
-	    }
-	    territory_len = after - territory;
-	    if (lang_len + 1 + territory_len + 1 <= (int) sizeof (lang_local))
-	    {
-		strncpy (lang_local, ctype, lang_len);
-		lang_local[lang_len] = '-';
-		strncpy (lang_local + lang_len + 1, territory, territory_len);
-		lang_local[lang_len + 1 + territory_len] = '\0';
-	    }
-	}
-	else
-	{
-	    after = strchr (ctype, '.');
-	    if (!after)
-	    {
-		after = strchr (ctype, '@');
-		if (!after)
-		    after = ctype + strlen (ctype);
-	    }
-	    lang_len = after - ctype;
-	    if (lang_len + 1 <= (int) sizeof (lang_local))
-	    {
-		strncpy (lang_local, ctype, lang_len);
-		lang_local[lang_len] = '\0';
-	    }
-	}
-    }
-
-    /* set default lang to en */
-    if (!lang_local [0])
-	strcpy (lang_local, "en");
-
-    return (FcChar8 *) lang_local;
+    return lang_local;
 }
 
 void
@@ -162,10 +126,6 @@ FcDefaultSubstitute (FcPattern *pattern)
 	FcPatternObjectAddDouble (pattern, FC_PIXEL_SIZE_OBJECT, size);
     }
 
-    if (FcPatternObjectGet (pattern, FC_LANG_OBJECT, 0, &v) == FcResultNoMatch)
-    {
- 	FcPatternObjectAddString (pattern, FC_LANG_OBJECT, FcGetDefaultLang ());
-    }
     if (FcPatternObjectGet (pattern, FC_FONTVERSION_OBJECT, 0, &v) == FcResultNoMatch)
     {
 	FcPatternObjectAddInteger (pattern, FC_FONTVERSION_OBJECT, 0x7fffffff);

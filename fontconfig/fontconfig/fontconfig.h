@@ -497,6 +497,9 @@ FcPublic void
 FcFontSetPrint (const FcFontSet *s);
 
 /* fcdefault.c */
+FcPublic FcStrSet *
+FcGetDefaultLangs (void);
+
 FcPublic void
 FcDefaultSubstitute (FcPattern *pattern);
 

@@ -154,6 +154,15 @@ has no matching language, this function returns FcLangDifferentLang.
 @@
 
 @RET@		FcStrSet *
+@FUNC@		FcGetDefaultLangs
+@TYPE1@		void
+@PURPOSE@	Get the default languages list
+@DESC@
+Returns a string set of the default languages according to the environment variables on the system.
+This function looks for them in order of FC_LANG, LC_ALL, LC_CTYPE and LANG then.
+If there are no valid values in those environment variables, "en" will be set as fallback.
+
+@RET@		FcStrSet *
 @FUNC@		FcLangSetGetLangs
 @TYPE1@		const FcLangSet *		@ARG1@		ls
 @PURPOSE@	get the list of languages in the langset
