@@ -112,7 +112,7 @@ convenience for the applications' rendering mechanism.
   hintstyle       Int     Automatic hinting style
   verticallayout  Bool    Use vertical layout
   autohint        Bool    Use autohinter instead of normal hinter
-  globaladvance   Bool    Use font global advance data
+  globaladvance   Bool    Use font global advance data (deprecated)
   file            String  The filename holding the font
   index           Int     The index of the font within the file
   ftface          FT_Face Use the specified FreeType face object

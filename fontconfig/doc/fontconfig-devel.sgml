@@ -164,7 +164,7 @@ convenience for the application's rendering mechanism.
     verticallayout FC_VERTICAL_LAYOUT     Bool    Use vertical layout
     autohint       FC_AUTOHINT            Bool    Use autohinter instead of
                                                   normal hinter
-    globaladvance  FC_GLOBAL_ADVANCE      Bool    Use font global advance data
+    globaladvance  FC_GLOBAL_ADVANCE      Bool    Use font global advance data (deprecated)
     file           FC_FILE                String  The filename holding the font
     index          FC_INDEX               Int     The index of the font within
                                                   the file

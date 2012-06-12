@@ -1,11 +1,90 @@
                               Fontconfig
              Font configuration and customization library
-                              Version 2.9
+                       Version 2.9.91 (2.10 RC1)
                               2012-03-11
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.9.91 (2.10 RC1)
+
+Akira TAGOH (60):
+      [doc] Update the path for cache files and the version.
+      [doc] Update for cachedir.
+      Revert "Fix a build fail on some environment."
+      Revert "Fix a build fail on some environment"
+      Fix a build issue due to the use of non-portable variables
+      Get rid of the prerequisites from the sufix rules
+      Bug 39914 - Please tag the cache directory with CACHEDIR.TAG
+      fc-cache: improvement of the fix for Bug#39914.
+      fcmatch: Set FcResultMatch at the end if the return value is valid.
+      Bug 47703 - SimSun default family
+      Bug 17722 - Don't overwrite user's configurations in default config
+      Fix a memory leak in FcDirScanConfig()
+      Bug 17832 - Memory leaks due to FcStrStaticName use for external patterns
+      fcpat: Increase the number of buckets in the shared string hash table
+      Fix the hardcoded cache file suffix
+      Move workaround macros for fat binaries into the separate header file
+      Bug 48020 - Fix for src/makealias on Solaris 10
+      Bug 24729 - [ne_NP] Fix ortho file
+      doc: Add contains and not_contains operators and elements
+      Use AC_HELP_STRING instead of formatting manually
+      Use pkgconfig to check builddeps
+      Bug 29341 - Make some fontconfig paths configurable
+      Bug 22862 - <alias> ignores <match> <test>s
+      Bug 26830 - Add search for libiconv non-default directory
+      Bug 28491 - Allow matching on FC_FILE
+      Bug 48573 - platform without regex do not have also REG_XXX defines
+      Bug 27526 - Compatibility fix for old windows sytems
+      Add --with-expat, --with-expat-includes and --with-expat-lib back.
+      doc: Fix a typo of the environment variable name.
+      Bug 25151 - Move cleanCacheDirectory() from fc-cache.c into
+      Rework to avoid adding the unexpected value to ICONV_CFLAGS and ICONV_LIBS
+      Fix a build issue again when no regex functions available
+      C++11 requires a space between literal and identifier
+      Bug 47721 - Add ChromeOS fonts to 30-metric-aliases.conf
+      Create CACHEDIR.TAG when fc-cache is run or only when the cache directory is created at the runtime.
+      Add --enable-iconv option to configure
+      Bug 27765 - FcMatch() returns style in wrong language
+      Disable iconv support anyway...
+      Bug 39278 - make usage of mmap optional
+      Output more verbose debugging log to show where to insert the element into the value list
+      fonts.conf: keeps same binding for alternatives
+      fcarch.c: get rid of the duplicate definition of FC_MAX
+      Bug 19128 - Handling whitespace in aliases
+      Bug 20411 - fontconfig doesn't match FreeDesktop directories specs
+      Correct the example
+      Bug 33644 - Fontconfig doesn't match correctly in <test>
+      fcatomic: fallback to create a directory with FcAtomicLock
+      Move statfs/statvfs wrapper to fcstat.c and add a test for the mtime broken fs
+      Fix the build fail on Solaris
+      Fix a typo and polish the previous change
+      Fix the wrong estimation for the memory usage information in fontconfig
+      Bug 32853 - Export API to get the default language
+      fcdefault: fallback if the environment variables are empty
+      Add the default language to the pattern prior to do build the substitution
+      fcdefault: no need to set FC_LANG in FcDefaultSubstitute() anymore
+      fcdefault: Add the lang object at FcConfigSubstituteWithPat() only when kind is FcMatchPattern
+      Bug 50525 - superfluous whitespace in the style
+      Bump libtool revision
+      doc: Fix distcheck error again...
+      Generate bzip2-compressed tarball too
+
+Jeremy Huddleston (1):
+      fcarch: Check for architecture signature at compile time rather than configure time
+
+Keith Packard (3):
+      Use posix_fadvise to speed startup
+      Extra ',' in AC_ARG_WITH(arch causes arch to never be autodetected
+      Deal with architectures where ALIGNOF_DOUBLE < 4
+
+Mark Brand (1):
+      fix building for WIN32
+
+Mikhail Gusarov (2):
+      Move FcStat to separate compilation unit
+      Fix cache aging for fonts on FAT filesystem under Linux
 
 2.9
 

@@ -49,8 +49,8 @@ g_NoSkipGit=g_Options.NoSkipGit
 
 g_WriteMask=stat.S_IWUSR|stat.S_IWGRP|stat.S_IWOTH
 
-SrcDir=g_Args[0]
-DestDir=g_Args[1]
+g_SrcDir=os.path.realpath(g_Args[0])
+g_DestDir=os.path.realpath(g_Args[1])
 
 if g_Options.Extension:
   g_Extre=re.compile('.*\.%s$'%g_Options.Extension,re.I)
@@ -58,10 +58,14 @@ else:
   g_Extre=None
 
 ###############################################################################
+g_LenSrcDir=len(g_SrcDir)
+if g_SrcDir[-1]!=os.path.sep:
+  g_LenSrcDir+=1
+
 def SkipDir(SrcDir,File):
   Ret = g_DirsToSkip.has_key(File)
-  if SrcDir[1]==':':
-    SrcDir=SrcDir[3:]
+  SrcDir=SrcDir[g_LenSrcDir:]
+
   while not Ret and SrcDir:
     SrcDir,Part=os.path.split(SrcDir)
     File=os.path.join(Part,File)
@@ -102,8 +106,8 @@ def PrintBusy():
   sys.stdout.write(chr(8)*len(item))
 ###############################################################################
 
-if not os.path.isdir(DestDir):
-  print DestDir,"is not a directory"
+if not os.path.isdir(g_DestDir):
+  print g_DestDir,"is not a directory"
   sys.exit(1)
 
 def FileDiff(SrcFile,DestFile):
@@ -227,5 +231,5 @@ def SynchroniseDir(SrcDir,DestDir):
         PrintBusy()
         g_Dot=1
 
-SynchroniseDir(SrcDir,DestDir)
+SynchroniseDir(g_SrcDir,g_DestDir)
 sys.stdout.write("\n")

@@ -2,17 +2,11 @@ dnl Process this file with autoconf to create configure.
 
 AC_PREREQ([2.60])
 
-dnl Versioning - scrape the version from configs/default
-m4_define([mesa_version],
-    [m4_esyscmd([${MAKE-make} -s -f bin/version.mk version | tr -d '\n' | tr -d '\r'])])
-m4_ifval(mesa_version,,
-    [m4_fatal([Failed to get the Mesa version from `make -f bin/version.mk version`])])
-
 dnl Tell the user about autoconf.html in the --help output
 m4_divert_once([HELP_END], [
 See docs/autoconf.html for more details on the options for Mesa.])
 
-AC_INIT([Mesa],[mesa_version],
+AC_INIT([Mesa], [8.1.0],
     [https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa])
 AC_CONFIG_AUX_DIR([bin])
 AC_CANONICAL_HOST
@@ -26,6 +20,8 @@ echo \#buildapi-variable-no-builddir >/dev/null
 # by either passing --disable-silent-rules to configure or passing V=1
 # to make
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
@@ -356,6 +352,24 @@ else
         LIB_EXTENSION='so' ;;
     esac
 fi
+AC_ARG_WITH([gl-lib-name],
+  [AS_HELP_STRING([--with-gl-lib-name@<:@=NAME@:>@],
+    [specify GL library name @<:@default=GL@:>@])],
+  [GL_LIB=$withval],
+  [GL_LIB=GL])
+AC_ARG_WITH([glu-lib-name],
+  [AS_HELP_STRING([--with-glu-lib-name@<:@=NAME@:>@],
+    [specify GLU library name @<:@default=GLU@:>@])],
+  [GLU_LIB=$withval],
+  [GLU_LIB=GLU])
+AC_ARG_WITH([osmesa-lib-name],
+  [AS_HELP_STRING([--with-osmesa-lib-name@<:@=NAME@:>@],
+    [specify OSMesa library name @<:@default=OSMesa@:>@])],
+  [OSMESA_LIB=$withval],
+  [OSMESA_LIB=OSMesa])
+AS_IF([test "x$GL_LIB" = xyes], [GL_LIB=GL])
+AS_IF([test "x$GLU_LIB" = xyes], [GLU_LIB=GLU])
+AS_IF([test "x$OSMESA_LIB" = xyes], [OSMESA_LIB=OSMesa])
 
 dnl
 dnl Mangled Mesa support
@@ -366,19 +380,16 @@ AC_ARG_ENABLE([mangling],
   [enable_mangling="${enableval}"],
   [enable_mangling=no]
 )
-GL_LIB="GL"
-GLU_LIB="GLU"
-OSMESA_LIB="OSMesa"
 if test "x${enable_mangling}" = "xyes" ; then
   DEFINES="${DEFINES} -DUSE_MGL_NAMESPACE"
-  GL_LIB="MangledGL"
-  GLU_LIB="MangledGLU"
-  OSMESA_LIB="MangledOSMesa"
+  GL_LIB="Mangled${GL_LIB}"
+  GLU_LIB="Mangled${GLU_LIB}"
+  OSMESA_LIB="Mangled${OSMESA_LIB}"
 fi
 AC_SUBST([GL_LIB])
 AC_SUBST([GLU_LIB])
 AC_SUBST([OSMESA_LIB])
-AM_CONDITIONAL(HAVE_MANGLED_GL, test $GL_LIB = MangledGL)
+AM_CONDITIONAL(HAVE_MANGLED_GL, test "x${enable_mangling}" = "xyes")
 
 dnl
 dnl potentially-infringing-but-nobody-knows-for-sure stuff
@@ -1087,18 +1098,16 @@ DRI_LIB_DEPS='$(TOP)/src/mesa/libmesa.a'
 MESA_MODULES='$(TOP)/src/mesa/libmesa.a'
 
 if test "x$enable_dri" = xyes && test "x$driglx_direct" = xyes ; then
-    DRICORE_GLSL_LIBS='$(TOP)/$(LIB_DIR)/libglsl.so'
     DRICORE_LIBS='$(TOP)/$(LIB_DIR)/libdricore.so'
-    DRICORE_LIB_DEPS='-L$(TOP)/$(LIB_DIR) -Wl,-R$(DRI_DRIVER_INSTALL_DIR) -lglsl'
-    DRI_LIB_DEPS='-L$(TOP)/$(LIB_DIR) -Wl,-R$(DRI_DRIVER_INSTALL_DIR) -ldricore -lglsl'
+    DRICORE_LIB_DEPS='-L$(TOP)/$(LIB_DIR) -Wl,-R$(DRI_DRIVER_INSTALL_DIR)'
+    DRI_LIB_DEPS='-L$(TOP)/$(LIB_DIR) -Wl,-R$(DRI_DRIVER_INSTALL_DIR) -ldricore'
     DRI_CFLAGS='$(CFLAGS_NOVISIBILITY) -DUSE_DRICORE'
     DRI_CXXFLAGS='$(CXXFLAGS_NOVISIBILITY) -DUSE_DRICORE'
-    MESA_MODULES='$(DRICORE_LIBS) $(DRICORE_GLSL_LIBS)'
+    MESA_MODULES='$(DRICORE_LIBS)'
     HAVE_DRICORE=yes
 fi
 AM_CONDITIONAL(HAVE_DRICORE, test x$HAVE_DRICORE = xyes)
 AC_SUBST([DRICORE_LIBS])
-AC_SUBST([DRICORE_GLSL_LIBS])
 AC_SUBST([DRICORE_LIB_DEPS])
 AC_SUBST([DRI_CXXFLAGS])
 AC_SUBST([DRI_CFLAGS])
@@ -2136,6 +2145,8 @@ CXXFLAGS="$CXXFLAGS $USER_CXXFLAGS"
 
 dnl Substitute the config
 AC_CONFIG_FILES([configs/autoconf
+		Makefile
+		src/Makefile
 		src/gallium/auxiliary/pipe-loader/Makefile
 		src/gallium/state_trackers/clover/Makefile
 		src/gallium/drivers/Makefile

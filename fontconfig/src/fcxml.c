@@ -1854,6 +1854,9 @@ FcParseDir (FcConfigParse *parse)
     const FcChar8 *attr;
     FcChar8 *data;
     FcChar8 *prefix = NULL;
+#ifdef _WIN32
+    FcChar8         buffer[1000];
+#endif
 
     attr = FcConfigGetAttribute (parse, "prefix");
     if (attr && FcStrCmp (attr, (const FcChar8 *)"xdg") == 0)
@@ -2514,9 +2517,6 @@ FcEndElement(void *userData, const XML_Char *name)
 {
     FcConfigParse   *parse = userData;
     FcChar8	    *data;
-#ifdef _WIN32
-    FcChar8         buffer[1000];
-#endif
 
     if (!parse->pstack)
 	return;

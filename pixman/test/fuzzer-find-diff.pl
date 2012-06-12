@@ -29,10 +29,17 @@ sub test_range {
     my $min = shift;
     my $max = shift;
 
+    # check that [$min, $max] range is "bad", otherwise return
     if (`$ARGV[0] $min $max 2>/dev/null` eq `$ARGV[1] $min $max 2>/dev/null`) {
         return;
     }
 
+    # check that $min itself is "good", otherwise return
+    if (`$ARGV[0] $min 2>/dev/null` ne `$ARGV[1] $min 2>/dev/null`) {
+        return $min;
+    }
+
+    # start bisecting
     while ($max != $min + 1) {
         my $avg = int(($min + $max) / 2);
         my $res1 = `$ARGV[0] $min $avg 2>/dev/null`;
