@@ -848,6 +848,10 @@ _mesa_DeleteBuffersARB(GLsizei n, const GLuint *ids)
             _mesa_BindBufferARB( GL_PIXEL_UNPACK_BUFFER_EXT, 0 );
          }
 
+         if (ctx->Texture.BufferObject == bufObj) {
+            _mesa_BindBufferARB( GL_TEXTURE_BUFFER, 0 );
+         }
+
          /* The ID is immediately freed for re-use */
          _mesa_HashRemove(ctx->Shared->BufferObjects, ids[i]);
          /* Make sure we do not run into the classic ABA problem on bind.
@@ -1357,6 +1361,12 @@ _mesa_CopyBufferSubData(GLenum readTarget, GLenum writeTarget,
    if (writeOffset < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glCopyBufferSubData(writeOffset = %d)", (int) writeOffset);
+      return;
+   }
+
+   if (size < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glCopyBufferSubData(writeOffset = %d)", (int) size);
       return;
    }
 

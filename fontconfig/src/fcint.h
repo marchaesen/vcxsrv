@@ -868,7 +868,7 @@ FcListPatternMatchAny (const FcPattern *p,
 #define FC_HINTING_OBJECT	17
 #define FC_VERTICAL_LAYOUT_OBJECT	18
 #define FC_AUTOHINT_OBJECT	19
-#define FC_GLOBAL_ADVANCE_OBJECT	20
+#define FC_GLOBAL_ADVANCE_OBJECT	20	/* deprecated */
 #define FC_FILE_OBJECT		21
 #define FC_INDEX_OBJECT		22
 #define FC_RASTERIZER_OBJECT	23

@@ -155,9 +155,6 @@ struct bits_image
     uint32_t *                 free_me;
     int                        rowstride;  /* in number of uint32_t's */
 
-    fetch_scanline_t           get_scanline_32;
-    fetch_scanline_t           get_scanline_64;
-
     fetch_scanline_t           fetch_scanline_32;
     fetch_pixel_32_t	       fetch_pixel_32;
     store_scanline_t           store_scanline_32;
@@ -227,6 +224,7 @@ struct pixman_iter_t
     pixman_iter_write_back_t	write_back;
 
     /* These fields are scratch data that implementations can use */
+    void *			data;
     uint8_t *			bits;
     int				stride;
 };

@@ -26,6 +26,8 @@ SUBDIRS=fontconfig fc-case fc-lang fc-glyphname src \
 	fc-cache fc-cat fc-list fc-match fc-pattern fc-query fc-scan \
 	conf.d $(DOCSRC) test
 
+AUTOMAKE_OPTIONS = dist-bzip2
+
 EXTRA_DIST = \
         fontconfig.pc.in \
         fonts.conf.in \

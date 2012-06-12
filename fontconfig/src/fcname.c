@@ -54,7 +54,7 @@ static const FcObjectType _FcBaseObjectTypes[] = {
     { FC_HINTING,	FcTypeBool, },
     { FC_VERTICAL_LAYOUT,   FcTypeBool, },
     { FC_AUTOHINT,	FcTypeBool, },
-    { FC_GLOBAL_ADVANCE,    FcTypeBool, },
+    { FC_GLOBAL_ADVANCE,    FcTypeBool, },	/* deprecated */
     { FC_FILE,		FcTypeString, },
     { FC_INDEX,		FcTypeInteger, },
     { FC_RASTERIZER,	FcTypeString, },
@@ -442,7 +442,7 @@ static const FcConstant _FcBaseConstants[] = {
     { (FcChar8 *) "hinting",	    "hinting",	    FcTrue },
     { (FcChar8 *) "verticallayout", "verticallayout",	FcTrue },
     { (FcChar8 *) "autohint",	    "autohint",	    FcTrue },
-    { (FcChar8 *) "globaladvance",  "globaladvance",	FcTrue },
+    { (FcChar8 *) "globaladvance",  "globaladvance",	FcTrue }, /* deprecated */
     { (FcChar8 *) "outline",	    "outline",	    FcTrue },
     { (FcChar8 *) "scalable",	    "scalable",	    FcTrue },
     { (FcChar8 *) "minspace",	    "minspace",	    FcTrue },

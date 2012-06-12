@@ -1850,6 +1850,9 @@ FcParseDir (FcConfigParse *parse)
 {
     const FcChar8 *attr, *data;
     FcChar8 *prefix = NULL;
+#ifdef _WIN32
+    FcChar8         buffer[1000];
+#endif
 
     attr = FcConfigGetAttribute (parse, "prefix");
     if (attr && FcStrCmp (attr, (const FcChar8 *)"xdg") == 0)
@@ -1886,7 +1889,7 @@ FcParseDir (FcConfigParse *parse)
 	if (!GetModuleFileName (NULL, buffer, sizeof (buffer) - 20))
 	{
 	    FcConfigMessage (parse, FcSevereError, "GetModuleFileName failed");
-	    break;
+	    goto bail;
 	}
 	/*
 	 * Must use the multi-byte aware function to search
@@ -1905,7 +1908,7 @@ FcParseDir (FcConfigParse *parse)
 	if (!GetModuleFileName (NULL, buffer, sizeof (buffer) - 20))
 	{
 	    FcConfigMessage (parse, FcSevereError, "GetModuleFileName failed");
-	    break;
+	    goto bail;
 	}
 	p = _mbsrchr (data, '\\');
 	if (p) *p = '\0';
@@ -1919,7 +1922,7 @@ FcParseDir (FcConfigParse *parse)
 	if (rc == 0 || rc > sizeof (buffer) - 20)
 	{
 	    FcConfigMessage (parse, FcSevereError, "GetSystemWindowsDirectory failed");
-	    break;
+	    goto bail;
 	}
 	if (data [strlen (data) - 1] != '\\')
 	    strcat (data, "\\");
@@ -2510,9 +2513,6 @@ FcEndElement(void *userData, const XML_Char *name)
 {
     FcConfigParse   *parse = userData;
     FcChar8	    *data;
-#ifdef _WIN32
-    FcChar8         buffer[1000];
-#endif
 
     if (!parse->pstack)
 	return;

@@ -150,9 +150,13 @@ create_image (int max_size, const pixman_format_code_t *formats, uint32_t flags)
     }
     else
     {
+	uint8_t *d8;
+
 	data = malloc (stride * height);
-	for (i = 0; i < height * stride / 4; ++i)
-	    data[i] = lcg_rand_u32();
+
+	d8 = (uint8_t *)data;
+	for (i = 0; i < height * stride; ++i)
+	    d8[i] = lcg_rand_n (256);
 
 	destroy = destroy_malloced;
     }
@@ -326,6 +330,6 @@ int
 main (int argc, const char *argv[])
 {
     return fuzzer_test_main ("glyph", 30000,
-			     0xA2B67F99,
+			     0x1B7696A2,
 			     test_glyphs, argc, argv);
 }

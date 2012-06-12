@@ -52,7 +52,7 @@ typedef int		FcBool;
 
 #define FC_MAJOR	2
 #define FC_MINOR	9
-#define FC_REVISION	0
+#define FC_REVISION	91
 
 #define FC_VERSION	((FC_MAJOR * 10000) + (FC_MINOR * 100) + (FC_REVISION))
 
@@ -85,6 +85,7 @@ typedef int		FcBool;
 #define FC_HINT_STYLE	    "hintstyle"		/* Int */
 #define FC_VERTICAL_LAYOUT  "verticallayout"	/* Bool (false) */
 #define FC_AUTOHINT	    "autohint"		/* Bool (false) */
+/* FC_GLOBAL_ADVANCE is deprecated. this is simply ignored on freetype 2.4.5 or later */
 #define FC_GLOBAL_ADVANCE   "globaladvance"	/* Bool (true) */
 #define FC_WIDTH	    "width"		/* Int */
 #define FC_FILE		    "file"		/* String */

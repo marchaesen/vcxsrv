@@ -739,7 +739,8 @@ main (int argc, char **argv)
 {
 #define N_TESTS (8 * 1024 * 1024)
     int result = 0;
-    uint32_t i, seed;
+    uint32_t seed;
+    int32_t i;
 
     if (argc > 1)
     {
