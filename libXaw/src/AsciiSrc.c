@@ -164,7 +164,7 @@ static XtResource resources[] = {
     XtNcallback,
     XtCCallback,
     XtRCallback,
-    sizeof(XtPointer), 
+    sizeof(XtPointer),
     offset(callback),
     XtRCallback,
     (XtPointer)NULL
@@ -360,7 +360,7 @@ ReadText(Widget w, XawTextPosition pos, XawTextBlock *text, int length)
     AsciiSrcObject src = (AsciiSrcObject)w;
     XawTextPosition count, start;
     Piece *piece;
-#ifndef OLDXAW 
+#ifndef OLDXAW
     XawTextAnchor *anchor;
     XawTextEntity *entity;
     XawTextPosition offset, end = pos + length;
@@ -454,7 +454,7 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
     /*
      * Editing a read only source is not allowed
      */
-    if (src->text_src.edit_mode == XawtextRead) 
+    if (src->text_src.edit_mode == XawtextRead)
 	return (XawEditError);
 
     start_piece = FindPiece(src, startPos, &start_first);
@@ -561,7 +561,7 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
     src->ascii_src.length += -(endPos - startPos) + text->length;
 
     if ( text->length != 0) {
-	/* 
+	/*
 	 * Put in the New Stuff
 	 */
 	start_piece = FindPiece(src, startPos, &start_first);
@@ -834,7 +834,7 @@ Scan(Widget w, register XawTextPosition position, XawTextScanType type,
  * Returns:
  *	The position of the item found
  */
-static XawTextPosition 
+static XawTextPosition
 Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
        XawTextBlock *text)
 {
@@ -1078,7 +1078,7 @@ XawAsciiSrcDestroy(Widget w)
 }
 
 /*
- * Public routines 
+ * Public routines
  */
 /*
  * Function:
@@ -1146,7 +1146,7 @@ XawAsciiSave(Widget w)
      * If using the string in place then there is no need to play games
      * to get the internal info into a readable string.
      */
-    if (src->ascii_src.use_string_in_place) 
+    if (src->ascii_src.use_string_in_place)
 	return (True);
 
     if (src->ascii_src.type == XawAsciiFile) {
@@ -1211,7 +1211,7 @@ XawAsciiSaveAsFile(Widget w, _Xconst char *name)
     if (src->ascii_src.type == XawAsciiFile)
 	ret = WritePiecesToFile(src, (String)name);
     else {
-	String string = StorePiecesInString(src); 
+	String string = StorePiecesInString(src);
 
 	ret = WriteToFile(string, (String)name, src->ascii_src.length);
 	XtFree(string);
@@ -1258,7 +1258,7 @@ XawAsciiSourceChanged(Widget w)
  * Private Functions
  */
 static void
-RemoveOldStringOrFile(AsciiSrcObject src, Bool checkString) 
+RemoveOldStringOrFile(AsciiSrcObject src, Bool checkString)
 {
     FreeAllPieces(src);
 
@@ -1379,8 +1379,8 @@ StorePiecesInString(AsciiSrcObject src)
 
     string = XtMalloc((unsigned)(src->ascii_src.length + 1));
 
-    for (first = 0, piece = src->ascii_src.first_piece ; piece != NULL; 
-	 first += piece->used, piece = piece->next) 
+    for (first = 0, piece = src->ascii_src.first_piece ; piece != NULL;
+	 first += piece->used, piece = piece->next)
       memcpy(string + first, piece->text, (unsigned)piece->used);
 
     string[src->ascii_src.length] = '\0';
@@ -1661,7 +1661,7 @@ RemovePiece(AsciiSrcObject src, Piece *piece)
  * Parameters:
  *	src	 - AsciiSrc Widget
  *	position - position that we are searching for
- * 	first	 - position of the first character in this piece (return)
+ *	first	 - position of the first character in this piece (return)
  *
  * Description:
  *	Finds the piece containing the position indicated.
@@ -1686,7 +1686,7 @@ FindPiece(AsciiSrcObject src, XawTextPosition position, XawTextPosition *first)
 
     return (old_piece);	/* if we run off the end the return the last piece */
 }
-    
+
 /*
  * Function:
  *	BreakPiece
@@ -1874,9 +1874,9 @@ XawDiskSourceCreate(Widget parent, ArgList args, Cardinal num_args)
     ascii_args = XtMergeArgLists(temp, ONE, args, num_args);
     num_args++;
 
-    for (i = 0; i < num_args; i++) 
+    for (i = 0; i < num_args; i++)
 	if (streq(ascii_args[i].name, XtNfile)
-	    || streq(ascii_args[i].name, XtCFile)) 
+	    || streq(ascii_args[i].name, XtCFile))
 	    ascii_args[i].name = XtNstring;
 
     src = XtCreateWidget("genericAsciiDisk", asciiSrcObjectClass, parent,

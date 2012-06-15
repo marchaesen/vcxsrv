@@ -32,16 +32,16 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xaw/Reports.h>
 
 /*****************************************************************************
- * 
+ *
  * Panner Widget (subclass of Simple)
- * 
+ *
  * This widget is used to represent navigation in a 2d coordinate system
- * 
+ *
  * Resources:
- * 
+ *
  *  Name		Class		Type		Default
  *  ----		-----		----		-------
- * 
+ *
  *  allowOff		AllowOff	Boolean		FALSE
  *  background		Background	Pixel		XtDefaultBackground
  *  backgroundStipple	BackgroundStipple	String	NULL
@@ -60,7 +60,7 @@ in this Software without prior written authorization from The Open Group.
  *  sliderY		SliderY		Position	0
  *  sliderWidth		SliderWidth	Dimension	0
  *  sliderHeight	SliderHeight	Dimension	0
- * 
+ *
  *****************************************************************************/
 
 #ifndef _XtStringDefs_h_

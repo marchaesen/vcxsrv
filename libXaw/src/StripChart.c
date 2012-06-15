@@ -27,13 +27,13 @@ Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -247,10 +247,10 @@ CreateGC(StripChartWidget w, unsigned int which)
 static void
 DestroyGC(StripChartWidget w, unsigned int which)
 {
-    if (which & FOREGROUND) 
+    if (which & FOREGROUND)
 	XtReleaseGC((Widget)w, w->strip_chart.fgGC);
 
-    if (which & HIGHLIGHT) 
+    if (which & HIGHLIGHT)
 	XtReleaseGC((Widget)w, w->strip_chart.hiGC);
 }
 
@@ -264,7 +264,7 @@ XawStripChartInitialize(Widget greq, Widget gnew,
     if (w->strip_chart.update > 0)
     w->strip_chart.interval_id =
     XtAppAddTimeOut(XtWidgetToApplicationContext(gnew),
-		    w->strip_chart.update * MS_PER_SEC, 
+		    w->strip_chart.update * MS_PER_SEC,
 		    draw_it, (XtPointer)gnew);
     CreateGC(w, ALL_GCS);
 
@@ -274,7 +274,7 @@ XawStripChartInitialize(Widget greq, Widget gnew,
     w->strip_chart.points = NULL;
     XawStripChartResize(gnew);
 }
- 
+
 static void
 XawStripChartDestroy(Widget gw)
 {
@@ -288,7 +288,7 @@ XawStripChartDestroy(Widget gw)
 }
 
 /*
- * NOTE: This function really needs to recieve graphics exposure 
+ * NOTE: This function really needs to recieve graphics exposure
  *       events, but since this is not easily supported until R4 I am
  *       going to hold off until then.
  */
@@ -305,12 +305,12 @@ XawStripChartRedisplay(Widget w, XEvent *event, Region region)
 }
 
 /*ARGSUSED*/
-static void 
+static void
 draw_it(XtPointer client_data, XtIntervalId *id)
 {
     StripChartWidget w = (StripChartWidget)client_data;
     double value;
-   
+
     if (w->strip_chart.update > 0)
 	w->strip_chart.interval_id =
 	    XtAppAddTimeOut(XtWidgetToApplicationContext((Widget)w),
@@ -326,8 +326,8 @@ draw_it(XtPointer client_data, XtIntervalId *id)
 
     XtCallCallbacks((Widget)w, XtNgetValue, (XtPointer)&value);
 
-    /* 
-     * Keep w->strip_chart.max_value up to date, and if this data 
+    /*
+     * Keep w->strip_chart.max_value up to date, and if this data
      * point is off the graph, change the scale to make it fit
      */
     if (value > w->strip_chart.max_value) {
@@ -345,7 +345,7 @@ draw_it(XtPointer client_data, XtIntervalId *id)
 		     / w->strip_chart.scale);
 
 	XFillRectangle(XtDisplay(w), XtWindow(w), w->strip_chart.fgGC,
-		       w->strip_chart.interval, y, 
+		       w->strip_chart.interval, y,
 		       1, XtHeight(w) - y);
 
 	/*
@@ -372,7 +372,7 @@ draw_it(XtPointer client_data, XtIntervalId *id)
  * changed, then w->strip_chart.max_value is updated to reflect the
  * largest data point
  */
-static int 
+static int
 repaint_window(StripChartWidget w, int left, int width)
 {
     int i, j;
@@ -415,7 +415,7 @@ repaint_window(StripChartWidget w, int left, int width)
 	    int y = XtHeight(w) - (XtHeight(w) * w->strip_chart.valuedata[i])
 				   / w->strip_chart.scale;
 
-	    XFillRectangle(dpy, win, w->strip_chart.fgGC, 
+	    XFillRectangle(dpy, win, w->strip_chart.fgGC,
 			   i, y, 1, XtHeight(w) - y);
 	}
 
@@ -463,15 +463,15 @@ MoveChart(StripChartWidget w, Bool blit)
 		  (char *)(w->strip_chart.valuedata + next - j),
 		  j * sizeof(double));
     next = w->strip_chart.interval = j;
-	
+
     /*
-     * Since we just lost some data, recompute the 
+     * Since we just lost some data, recompute the
      * w->strip_chart.max_value
      */
     old_max = w->strip_chart.max_value;
     w->strip_chart.max_value = 0.0;
     for (i = 0; i < next; i++) {
-	if (w->strip_chart.valuedata[i] > w->strip_chart.max_value) 
+	if (w->strip_chart.valuedata[i] > w->strip_chart.max_value)
 	    w->strip_chart.max_value = w->strip_chart.valuedata[i];
     }
 
@@ -487,7 +487,7 @@ MoveChart(StripChartWidget w, Bool blit)
     XCopyArea(XtDisplay((Widget)w), XtWindow((Widget)w), XtWindow((Widget)w),
 	      w->strip_chart.hiGC, (int)XtWidth(w) - j, 0, j, XtHeight(w), 0, 0);
 
-    XClearArea(XtDisplay((Widget)w), XtWindow((Widget)w), 
+    XClearArea(XtDisplay((Widget)w), XtWindow((Widget)w),
 	       j, 0, XtWidth(w) - j, XtHeight(w), False);
 
     /* Draw graph reference lines */
@@ -521,17 +521,17 @@ XawStripChartSetValues(Widget current, Widget request, Widget cnew,
 
     if (w->strip_chart.min_scale > w->strip_chart.max_value + 1)
 	ret_val = True;
-     
+
     if (w->strip_chart.fgpixel != old->strip_chart.fgpixel) {
 	new_gc |= FOREGROUND;
 	ret_val = True;
     }
-    
+
     if (w->strip_chart.hipixel != old->strip_chart.hipixel) {
 	new_gc |= HIGHLIGHT;
 	ret_val = True;
     }
-    
+
     DestroyGC(old, new_gc);
     CreateGC(w, new_gc);
 
@@ -561,7 +561,7 @@ XawStripChartResize(Widget widget)
 	w->strip_chart.points = NULL;
 	return;
     }
-    
+
     size = sizeof(XPoint) * (w->strip_chart.scale - 1);
 
     points = (XPoint *)XtRealloc((XtPointer)w->strip_chart.points, size);

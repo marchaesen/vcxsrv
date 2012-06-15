@@ -2,6 +2,78 @@
  OpenSSL CHANGES
  _______________
 
+ Changes between 1.0.1b and 1.0.1c [10 May 2012]
+
+  *) Sanity check record length before skipping explicit IV in TLS
+     1.2, 1.1 and DTLS to fix DoS attack.
+
+     Thanks to Codenomicon for discovering this issue using Fuzz-o-Matic
+     fuzzing as a service testing platform.
+     (CVE-2012-2333)
+     [Steve Henson]
+
+  *) Initialise tkeylen properly when encrypting CMS messages.
+     Thanks to Solar Designer of Openwall for reporting this issue.
+     [Steve Henson]
+
+  *) In FIPS mode don't try to use composite ciphers as they are not
+     approved.
+     [Steve Henson]
+
+ Changes between 1.0.1a and 1.0.1b [26 Apr 2012]
+
+  *) OpenSSL 1.0.0 sets SSL_OP_ALL to 0x80000FFFL and OpenSSL 1.0.1 and
+     1.0.1a set SSL_OP_NO_TLSv1_1 to 0x00000400L which would unfortunately
+     mean any application compiled against OpenSSL 1.0.0 headers setting
+     SSL_OP_ALL would also set SSL_OP_NO_TLSv1_1, unintentionally disablng
+     TLS 1.1 also. Fix this by changing the value of SSL_OP_NO_TLSv1_1 to
+     0x10000000L Any application which was previously compiled against
+     OpenSSL 1.0.1 or 1.0.1a headers and which cares about SSL_OP_NO_TLSv1_1
+     will need to be recompiled as a result. Letting be results in
+     inability to disable specifically TLS 1.1 and in client context,
+     in unlike event, limit maximum offered version to TLS 1.0 [see below].
+     [Steve Henson]
+
+  *) In order to ensure interoperabilty SSL_OP_NO_protocolX does not
+     disable just protocol X, but all protocols above X *if* there are
+     protocols *below* X still enabled. In more practical terms it means
+     that if application wants to disable TLS1.0 in favor of TLS1.1 and
+     above, it's not sufficient to pass SSL_OP_NO_TLSv1, one has to pass
+     SSL_OP_NO_TLSv1|SSL_OP_NO_SSLv3|SSL_OP_NO_SSLv2. This applies to
+     client side.
+     [Andy Polyakov]
+
+ Changes between 1.0.1 and 1.0.1a [19 Apr 2012]
+
+  *) Check for potentially exploitable overflows in asn1_d2i_read_bio
+     BUF_mem_grow and BUF_mem_grow_clean. Refuse attempts to shrink buffer
+     in CRYPTO_realloc_clean.
+
+     Thanks to Tavis Ormandy, Google Security Team, for discovering this
+     issue and to Adam Langley <agl@chromium.org> for fixing it.
+     (CVE-2012-2110)
+     [Adam Langley (Google), Tavis Ormandy, Google Security Team]
+
+  *) Don't allow TLS 1.2 SHA-256 ciphersuites in TLS 1.0, 1.1 connections.
+     [Adam Langley]
+
+  *) Workarounds for some broken servers that "hang" if a client hello
+     record length exceeds 255 bytes.
+
+     1. Do not use record version number > TLS 1.0 in initial client
+        hello: some (but not all) hanging servers will now work.
+     2. If we set OPENSSL_MAX_TLS1_2_CIPHER_LENGTH this will truncate
+	the number of ciphers sent in the client hello. This should be
+        set to an even number, such as 50, for example by passing:
+        -DOPENSSL_MAX_TLS1_2_CIPHER_LENGTH=50 to config or Configure.
+        Most broken servers should now work.
+     3. If all else fails setting OPENSSL_NO_TLS1_2_CLIENT will disable
+	TLS 1.2 client support entirely.
+     [Steve Henson]
+
+  *) Fix SEGV in Vector Permutation AES module observed in OpenSSH.
+     [Andy Polyakov]
+
  Changes between 1.0.0h and 1.0.1  [14 Mar 2012]
 
   *) Add compatibility with old MDC2 signatures which use an ASN1 OCTET
@@ -285,7 +357,18 @@
        Add command line options to s_client/s_server.
      [Steve Henson]
 
- Changes between 1.0.0g and 1.0.0h [xx XXX xxxx]
+ Changes between 1.0.0g and 1.0.0h [12 Mar 2012]
+
+  *) Fix MMA (Bleichenbacher's attack on PKCS #1 v1.5 RSA padding) weakness
+     in CMS and PKCS7 code. When RSA decryption fails use a random key for
+     content decryption and always return the same error. Note: this attack
+     needs on average 2^20 messages so it only affects automated senders. The
+     old behaviour can be reenabled in the CMS code by setting the
+     CMS_DEBUG_DECRYPT flag: this is useful for debugging and testing where
+     an MMA defence is not necessary.
+     Thanks to Ivan Nestlerode <inestlerode@us.ibm.com> for discovering
+     this issue. (CVE-2012-0884)
+     [Steve Henson]
 
   *) Fix CVE-2011-4619: make sure we really are receiving a 
      client hello before rejecting multiple SGC restarts. Thanks to

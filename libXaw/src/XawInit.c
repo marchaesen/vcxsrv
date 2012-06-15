@@ -22,10 +22,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
- * 
- * 
- * 			    XawInitializeWidgetSet
- * 
+ *
+ *
+ *			    XawInitializeWidgetSet
+ *
  * This routine forces a reference to vendor shell so that the one in this
  * widget is installed.  Any other cross-widget set initialization should be
  * done here as well.  All Athena widgets should include "XawInit.h" and
@@ -76,7 +76,7 @@ Widget XawOpenApplication(XtAppContext *app_context_return,
     *app_context_return = XtCreateApplicationContext();
     if( *app_context_return == NULL )
         return NULL;
-      
+
     XtDisplayInitialize(*app_context_return, dpy,
                         application_name, application_class,
                         NULL, 0,
@@ -86,7 +86,7 @@ Widget XawOpenApplication(XtAppContext *app_context_return,
     if (screen) {
         XtSetArg(args[n], XtNscreen, screen); n++;
     }
-    toplevel = XtAppCreateShell(application_name, 
+    toplevel = XtAppCreateShell(application_name,
                                 application_class,
                                 widget_class,
                                 dpy,

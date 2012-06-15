@@ -29,7 +29,7 @@ in this Software without prior written authorization from The Open Group.
  * Author: Chris D. Peterson
  *         MIT X Consortium
  *         kit@expo.lcs.mit.edu
- *  
+ *
  * Date:   January 12, 1989
  */
 
@@ -105,7 +105,7 @@ typedef struct _ToggleRec        *ToggleWidget;
  */
 
 _XFUNCPROTOBEGIN
-   
+
 /*
  * Function:
  *	XawToggleChangeRadioGroup

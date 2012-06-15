@@ -23,7 +23,7 @@ used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
  *
  * Author:  Jim Fulton, MIT X Consortium
- * 
+ *
  * This widget is a trivial clipping widget.  It is typically used with a
  * panner or scrollbar to navigate.
  */
@@ -112,7 +112,7 @@ PortholeClassRec portholeClassRec = {
     NULL,				/* extension */
   },
   /* composite */
-  { 
+  {
     XawPortholeGeometryManager,		/* geometry_manager */
     XawPortholeChangeManaged,		/* change_managed */
     XtInheritInsertChild,		/* insert_child */
@@ -367,7 +367,7 @@ XawPortholeChangeManaged(Widget gw)
 		== XtGeometryAlmost)
 		(void)XtMakeGeometryRequest(gw, &retgeom, NULL);
 	}
-	
+
 	XtResizeWidget(child, Max(XtWidth(child), XtWidth(pw)),
 		       Max(XtHeight(child), XtHeight(pw)), 0);
 

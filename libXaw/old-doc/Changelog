@@ -349,7 +349,7 @@ Moved the code clipping code I have put in Text.c in my previous patch to
   code is now heavily used by the TextWidget.
 
 
--- XEDIT -- 
+-- XEDIT --
 Removed a XDefineCursor in xedit.c:main(). There are several ways to specify
   a cursor for a program (most times inherited from the wm decoration window),
   so, it is better to let the user choose one.
@@ -358,7 +358,7 @@ Before starting the main loop, now xedit sets the keyboard focus to the
   none was especified in the command line (do not use the new xedit without
   the new Xaw library, or you will not be able to change the keyboard focus).
 Updated the Scrollbar configurations in Xedit.ad
-  
+
 
 #1788 12 July 1998
 
@@ -368,7 +368,7 @@ Updated the Scrollbar configurations in Xedit.ad
  + Automatic resize was removed, it is not required with automatic horizontal
    scroll, but I will look for programs that rely on it; the only program
    affected (that I know) is xmh, because it popups dialogs of a small size,
-   and expects that the text widget (with a warning message) do a geometry  
+   and expects that the text widget (with a warning message) do a geometry
    request.
  + Scroll mode set to "WhenNeeded" was removed. It generates several unespected
    conditions when editing text, and the new feature of automatic scrolling
@@ -432,7 +432,7 @@ Fixed problem with the default macro for type conversion, where it was
   possible to the code tell the wrong size of a string, since it was
   returning the string size with 'strlen' but making the copy with strcpy.
 Complete ansification of Xaw (and Xmu).
-Corrected some problems caused due to an alteration in the text code, to 
+Corrected some problems caused due to an alteration in the text code, to
   make the cursor always visible when the wrap mode is 'line' or 'word'.
 Text.c:VJump() was made a bit smarter and a problem that would cause it
   to jump incorrectly was also corrected so that now the jumping should be
@@ -510,7 +510,7 @@ also fixed a possible buffer overflow while searching the source of the
 
 #1945, 31 Aug 1998
 
--- XAW -- 
+-- XAW --
  + Corrected bug in Viewport.c:ComputeLayout(), that would put the scrollbar
    in the incorrect position, if w->viewport.useright == True
  + Corrected bug in Converters.c:_XawCvtCARD32ToString(), so that now it
@@ -531,7 +531,7 @@ also fixed a possible buffer overflow while searching the source of the
 
 #2028, 2033, 7 Oct 1998
 
--- Xaw -- 
+-- Xaw --
 Added a delete translation to the text widget, that deletes the current
   selection if any, else the backwards char.
 Corrected bug that would not update correctly the screen if page-up or
@@ -550,20 +550,20 @@ Added a 'hack' to be able to type ^U<any-numeric-sequence> to be able
 Corrected a nasty bug in Text.c:CvtStringToScrollMode(); XtConvertAndStore
   can't be called from a type converter!
 added UNDO/REDO to the text widget. Please try it, I think it is very nice.
-  Undo is enabled by the new resource 'enableUndo', and, by default is  
+  Undo is enabled by the new resource 'enableUndo', and, by default is
   triggered with 'Ctrl+_'.
 
 -- editres --
 Resubmitting a patch to editres/handler.c, to make editres work properly.
 
--- xedit -- 
+-- xedit --
 NOTE that with this patch, xedit probably will not work with Xaw3d, neXtaw...
   this surelly can be fixed, or in the xedit side or the *Xaw* side, but
   the patch seens to be necessary.
 Changed the defaults file to be more user friendly and previsible.
   Added some 'Emacs like' binding translations.
 Added file completion in the filename prompt. This is a very nice
-  feature, but I'm not sure if the code is portable to all the XFree86  
+  feature, but I'm not sure if the code is portable to all the XFree86
   supported platforms (surely it will not work 'as is' with OS/2).
 
 
@@ -577,7 +577,7 @@ Changed the functions {Ascii,Multi}Sink.c:CharWidth and PaintText, to
   surely be made faster (based on comparition with some popular X editors).
 Changed the way the AsciiSink prints characters with value bigger than
   126 decimal. Now it prints DEL as ^?, and the other characters as \XXX
-  where 'X' is an octal digit. The MultiSink widget was unchanged in this  
+  where 'X' is an octal digit. The MultiSink widget was unchanged in this
   respect, i.e. when calling xedit with something like:
   xedit -xrm '*international: true'
 Converted all calls to strncpy, in AsciiSrc.c to memcpy, so that the (ascii)
@@ -593,14 +593,14 @@ Changed Text.c:TextScroll() to be smarter when calculating the offset of
 Added a nice feature, to show the matching '(', '[' or '{', when a ')',
   ']' or '}' is typped.
 Changed TextAction.c:FormParagraph() to generate only one undo/redo step.
-  
+
 -- xedit --
 Changed the defaults file to enable backups and made the backup suffix
   the character '~'.
 Replaced all instances of sprintf by XmuSnprintf.
 Changed xedit to set the label when saving a file also, to reflect what
   is being edited correctly.
-Corrected a bug in the new action 'file-completion', to replace correctly  
+Corrected a bug in the new action 'file-completion', to replace correctly
   the home directory, and keep correctly whatever was after the '~'. This
   isn't the correct place to this code (xedit/commands.c), since there are
   several other file name prompt windows in Xaw, but since it is required
@@ -742,7 +742,7 @@ Added a 'hints' feature to xedit. Instead of a 'dead'
 
 
 #2544 12 Mar 1999
-  
+
 -- Xaw --
   Mostly changes to add support to latin-* languages in the text code, when not
   using the international resource.
@@ -826,7 +826,7 @@ xedit.c:
    without it. Just ifdef'ed again the code to avoid warnings or dead code.
 
 -- xedit --
- + Added a ispell interface to xedit. Sorry for not documenting enough about it 
+ + Added a ispell interface to xedit. Sorry for not documenting enough about it
    the man page, but here is a small explanation of the new funcionality:
     Replace:	Replace's the selected word.
     All (right side of Replace button): Replaces all occurrences of the selected

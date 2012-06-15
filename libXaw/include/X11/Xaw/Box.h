@@ -27,13 +27,13 @@ Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -63,11 +63,11 @@ SOFTWARE.
  borderWidth	     BorderWidth	Dimension	1
  destroyCallback     Callback		Pointer		NULL
  displayList	     DisplayList	XawDisplayList*	NULL
- hSpace 	     HSpace		Dimension	4
+ hSpace		     HSpace		Dimension	4
  height		     Height		Dimension	0
  mappedWhenManaged   MappedWhenManaged	Boolean		True
  orientation	     Orientation	XtOrientation	vertical
- vSpace 	     VSpace		Dimension	4
+ vSpace		     VSpace		Dimension	4
  width		     Width		Dimension	0
  x		     Position		Position	0
  y		     Position		Position	0
@@ -83,7 +83,7 @@ SOFTWARE.
 #ifndef XawNdisplayList
 #define XawNdisplayList "displayList"
 #endif
- 
+
 #ifndef XawCDisplayList
 #define XawCDisplayList "DisplayList"
 #endif

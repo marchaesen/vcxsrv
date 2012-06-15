@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Auto-fitter hinting routines for latin script (body).                */
 /*                                                                         */
-/*  Copyright 2003-2011 by                                                 */
+/*  Copyright 2003-2012 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -133,7 +133,7 @@
               dist = -dist;
 
             if ( num_widths < AF_LATIN_MAX_WIDTHS )
-              axis->widths[ num_widths++ ].org = dist;
+              axis->widths[num_widths++].org = dist;
           }
         }
 
@@ -658,6 +658,7 @@
   {
     metrics->root.scaler.render_mode = scaler->render_mode;
     metrics->root.scaler.face        = scaler->face;
+    metrics->root.scaler.flags       = scaler->flags;
 
     af_latin2_metrics_scale_dim( metrics, scaler, AF_DIMENSION_HORZ );
     af_latin2_metrics_scale_dim( metrics, scaler, AF_DIMENSION_VERT );
@@ -1359,10 +1360,10 @@
   af_latin2_hints_compute_blue_edges( AF_GlyphHints    hints,
                                       AF_LatinMetrics  metrics )
   {
-    AF_AxisHints  axis       = &hints->axis[ AF_DIMENSION_VERT ];
+    AF_AxisHints  axis       = &hints->axis[AF_DIMENSION_VERT];
     AF_Edge       edge       = axis->edges;
     AF_Edge       edge_limit = edge + axis->num_edges;
-    AF_LatinAxis  latin      = &metrics->axis[ AF_DIMENSION_VERT ];
+    AF_LatinAxis  latin      = &metrics->axis[AF_DIMENSION_VERT];
     FT_Fixed      scale      = latin->scale;
     FT_Pos        best_dist0;  /* initial threshold */
 
@@ -2356,11 +2357,11 @@
   };
 
 
-  AF_DEFINE_SCRIPT_CLASS(af_latin2_script_class,
+  AF_DEFINE_SCRIPT_CLASS( af_latin2_script_class,
     AF_SCRIPT_LATIN2,
     af_latin2_uniranges,
 
-    sizeof( AF_LatinMetricsRec ),
+    sizeof ( AF_LatinMetricsRec ),
 
     (AF_Script_InitMetricsFunc) af_latin2_metrics_init,
     (AF_Script_ScaleMetricsFunc)af_latin2_metrics_scale,
