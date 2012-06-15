@@ -27,13 +27,13 @@ Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -54,7 +54,7 @@ SOFTWARE.
 #include <X11/Xmu/Misc.h>
 #include <X11/Xaw/AsciiText.h>
 #include <X11/Xaw/Cardinals.h>
-#include <X11/Xaw/Command.h>	
+#include <X11/Xaw/Command.h>
 #include <X11/Xaw/Label.h>
 #include <X11/Xaw/DialogP.h>
 #include <X11/Xaw/XawInit.h>
@@ -220,7 +220,7 @@ XawDialogInitialize(Widget request, Widget cnew,
 	XtSetArg(arglist[0], XtNheight, XtHeight(dw->dialog.iconW));
 	XtSetValues(dw->dialog.labelW, arglist, 1);
     }
-    if (dw->dialog.value != NULL) 
+    if (dw->dialog.value != NULL)
 	CreateDialogValueWidget((Widget)dw);
     else
         dw->dialog.valueW = NULL;
@@ -238,7 +238,7 @@ XawDialogConstraintInitialize(Widget request, Widget cnew,
 	return;					 /* then just use defaults */
 
     constraint->form.left = constraint->form.right = XtChainLeft;
-    if (dw->dialog.valueW == NULL) 
+    if (dw->dialog.valueW == NULL)
 	constraint->form.vert_base = dw->dialog.labelW;
     else
 	constraint->form.vert_base = dw->dialog.valueW;
@@ -360,7 +360,7 @@ XawDialogGetValuesHook(Widget w, ArgList args, Cardinal *num_args)
     String s;
     DialogWidget src = (DialogWidget)w;
     unsigned int i;
-  
+
     for (i = 0; i < *num_args; i++)
 	if (streq(args[i].name, XtNvalue)) {
 	    XtSetArg(a[0], XtNstring, &s);

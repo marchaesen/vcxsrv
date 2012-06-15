@@ -75,6 +75,8 @@ typedef struct
     size_t		payload_length;
     } EVP_RC4_HMAC_MD5;
 
+#define NO_PAYLOAD_LENGTH	((size_t)-1)
+
 void rc4_md5_enc (RC4_KEY *key, const void *in0, void *out,
 		MD5_CTX *ctx,const void *inp,size_t blocks);
 
@@ -93,7 +95,7 @@ static int rc4_hmac_md5_init_key(EVP_CIPHER_CTX *ctx,
 	key->tail = key->head;
 	key->md   = key->head;
 
-	key->payload_length = 0;
+	key->payload_length = NO_PAYLOAD_LENGTH;
 
 	return 1;
 	}
@@ -120,18 +122,20 @@ static int rc4_hmac_md5_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 		md5_off = MD5_CBLOCK-key->md.num,
 		blocks;
 	unsigned int l;
+	extern unsigned int OPENSSL_ia32cap_P[];
 #endif
 	size_t	plen = key->payload_length;
 
-	if (plen && len!=(plen+MD5_DIGEST_LENGTH)) return 0;
+	if (plen!=NO_PAYLOAD_LENGTH && len!=(plen+MD5_DIGEST_LENGTH)) return 0;
 
 	if (ctx->encrypt) {
-		if (plen==0) plen = len;
+		if (plen==NO_PAYLOAD_LENGTH) plen = len;
 #if defined(STITCHED_CALL)
 		/* cipher has to "fall behind" */
 		if (rc4_off>md5_off) md5_off+=MD5_CBLOCK;
 
-		if (plen>md5_off && (blocks=(plen-md5_off)/MD5_CBLOCK)) {
+		if (plen>md5_off && (blocks=(plen-md5_off)/MD5_CBLOCK) &&
+		    (OPENSSL_ia32cap_P[0]&(1<<20))==0) {
 			MD5_Update(&key->md,in,md5_off);
 			RC4(&key->ks,rc4_off,in,out);
 
@@ -171,7 +175,8 @@ static int rc4_hmac_md5_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 		if (md5_off>rc4_off)	rc4_off += 2*MD5_CBLOCK;
 		else			rc4_off += MD5_CBLOCK;
 
-		if (len>rc4_off && (blocks=(len-rc4_off)/MD5_CBLOCK)) {
+		if (len>rc4_off && (blocks=(len-rc4_off)/MD5_CBLOCK) &&
+		    (OPENSSL_ia32cap_P[0]&(1<<20))==0) {
 			RC4(&key->ks,rc4_off,in,out);
 			MD5_Update(&key->md,out,md5_off);
 
@@ -191,7 +196,7 @@ static int rc4_hmac_md5_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 #endif
 		/* decrypt HMAC at once */
 		RC4(&key->ks,len-rc4_off,in+rc4_off,out+rc4_off);
-		if (plen) {	/* "TLS" mode of operation */
+		if (plen!=NO_PAYLOAD_LENGTH) {	/* "TLS" mode of operation */
 			MD5_Update(&key->md,out+md5_off,plen-md5_off);
 
 			/* calculate HMAC and verify it */
@@ -207,7 +212,7 @@ static int rc4_hmac_md5_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 		}
 	}
 
-	key->payload_length = 0;
+	key->payload_length = NO_PAYLOAD_LENGTH;
 
 	return 1;
 	}

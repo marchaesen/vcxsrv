@@ -26,7 +26,7 @@ in this Software without prior written authorization from The Open Group.
  * Date:    September 26, 1989
  *
  * By:      Chris D. Peterson
- *          MIT X Consortium 
+ *          MIT X Consortium
  *          kit@expo.lcs.mit.edu
  */
 
@@ -75,7 +75,7 @@ static XtResource resources[] = {
     XtRImmediate,
     (XtPointer)False
   },
-};   
+};
 #undef offset
 
 #define Superclass	(&rectObjClassRec)
@@ -147,13 +147,13 @@ XawSmeClassPartInitialize(WidgetClass cclass)
     m_ent = (SmeObjectClass)cclass;
     superC = (SmeObjectClass)m_ent->rect_class.superclass;
 
-    if (m_ent->sme_class.highlight == XtInheritHighlight) 
+    if (m_ent->sme_class.highlight == XtInheritHighlight)
 	m_ent->sme_class.highlight = superC->sme_class.highlight;
 
     if (m_ent->sme_class.unhighlight == XtInheritUnhighlight)
 	m_ent->sme_class.unhighlight = superC->sme_class.unhighlight;
 
-    if (m_ent->sme_class.notify == XtInheritNotify) 
+    if (m_ent->sme_class.notify == XtInheritNotify)
 	m_ent->sme_class.notify = superC->sme_class.notify;
 }
 
@@ -164,7 +164,7 @@ XawSmeClassPartInitialize(WidgetClass cclass)
  * Parameters:
  *	request - widget requested by the argument list
  *	cnew	- new widget with both resource and non  resource values
- * 
+ *
  * Description:
  *	Initializes the simple menu widget entry
  */
@@ -234,7 +234,7 @@ Notify(Widget w)
  *	w	   - menu entry object
  *	itended	   - intended and return geometry info
  *	return_val -
- * 
+ *
  * Description:
  *	Returns the preferred geometry for this widget.
  *
@@ -259,7 +259,7 @@ XawSmeQueryGeometry(Widget w, XtWidgetGeometry *intended,
 	return_val->request_mode |= CWWidth;
 	return_val->width = width;
 	mode = return_val->request_mode;
-	
+
 	if ((mode & CWWidth) && width == XtWidth(entry))
 	    return (XtGeometryNo);
 	return (XtGeometryAlmost);

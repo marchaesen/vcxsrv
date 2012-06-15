@@ -2278,7 +2278,7 @@ DoFormatText(TextWidget ctx, XawTextPosition left, Bool force, int level,
 			    text.length = bytes;
 			bytes -= text.length;
 			if (_XawTextReplace(ctx, tmp, tmp, &text)) {
-			    XawStackFree(buf, text.ptr);
+			    XawStackFree(text.ptr, buf);
 			    return (XawEditError);
 			}
 			if (num_pos) {
@@ -2293,7 +2293,7 @@ DoFormatText(TextWidget ctx, XawTextPosition left, Bool force, int level,
 		    }
 		    position += count;
 		    right += count;
-		    XawStackFree(buf, text.ptr);
+		    XawStackFree(text.ptr, buf);
 		}
 		break;
 	}
@@ -3935,6 +3935,8 @@ FormParagraph(Widget w, XEvent *event, String *params, Cardinal *num_params)
     }
 
     if (FormRegion(ctx, from, to, pos, src->textSrc.num_text) == XawReplaceError) {
+	XawStackFree(pos, buf);
+	pos = buf;
 #else
     from =  SrcScan(ctx->text.source, ctx->text.insertPos,
 		    XawstParagraph, XawsdLeft, 1, False);
@@ -3943,7 +3945,6 @@ FormParagraph(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
     if (FormRegion(ctx, from, to, pos, 1) == XawReplaceError) {
 #endif
-	XawStackFree(pos, buf);
 	XBell(XtDisplay(w), 0);
 #ifndef OLDXAW
 	if (undo) {
@@ -3991,13 +3992,13 @@ FormParagraph(Widget w, XEvent *event, String *params, Cardinal *num_params)
 			       XawsdLeft, 1, False), False);
 	tw->text.clear_to_eol = True;
     }
+    XawStackFree(pos, buf);
 #else
     ctx->text.old_insert = ctx->text.insertPos = *pos;
     _XawTextBuildLineTable(ctx, SrcScan(ctx->text.source, ctx->text.lt.top,
 			   XawstEOL, XawsdLeft, 1, False), False);
     ctx->text.clear_to_eol = True;
 #endif
-    XawStackFree(pos, buf);
     ctx->text.showposition = True;
 
     EndAction(ctx);

@@ -282,32 +282,51 @@ static int ssl23_client_hello(SSL *s)
 	SSL_COMP *comp;
 #endif
 	int ret;
+	unsigned long mask, options = s->options;
 
-	ssl2_compat = (s->options & SSL_OP_NO_SSLv2) ? 0 : 1;
+	ssl2_compat = (options & SSL_OP_NO_SSLv2) ? 0 : 1;
 
 	if (ssl2_compat && ssl23_no_ssl2_ciphers(s))
 		ssl2_compat = 0;
 
-	if (!(s->options & SSL_OP_NO_TLSv1_2))
-		{
-		version = TLS1_2_VERSION;
-		}
-	else if (!(s->options & SSL_OP_NO_TLSv1_1))
-		{
+	/*
+	 * SSL_OP_NO_X disables all protocols above X *if* there are
+	 * some protocols below X enabled. This is required in order
+	 * to maintain "version capability" vector contiguous. So
+	 * that if application wants to disable TLS1.0 in favour of
+	 * TLS1>=1, it would be insufficient to pass SSL_NO_TLSv1, the
+	 * answer is SSL_OP_NO_TLSv1|SSL_OP_NO_SSLv3|SSL_OP_NO_SSLv2.
+	 */
+	mask =	SSL_OP_NO_TLSv1_1|SSL_OP_NO_TLSv1
+#if !defined(OPENSSL_NO_SSL3)
+		|SSL_OP_NO_SSLv3
+#endif
+#if !defined(OPENSSL_NO_SSL2)
+		|(ssl2_compat?SSL_OP_NO_SSLv2:0)
+#endif
+		;
+#if !defined(OPENSSL_NO_TLS1_2_CLIENT)
+	version = TLS1_2_VERSION;
+
+	if ((options & SSL_OP_NO_TLSv1_2) && (options & mask) != mask)
 		version = TLS1_1_VERSION;
-		}
-	else if (!(s->options & SSL_OP_NO_TLSv1))
-		{
+#else
+	version = TLS1_1_VERSION;
+#endif
+	mask &= ~SSL_OP_NO_TLSv1_1;
+	if ((options & SSL_OP_NO_TLSv1_1) && (options & mask) != mask)
 		version = TLS1_VERSION;
-		}
-	else if (!(s->options & SSL_OP_NO_SSLv3))
-		{
+	mask &= ~SSL_OP_NO_TLSv1;
+#if !defined(OPENSSL_NO_SSL3)
+	if ((options & SSL_OP_NO_TLSv1) && (options & mask) != mask)
 		version = SSL3_VERSION;
-		}
-	else if (!(s->options & SSL_OP_NO_SSLv2))
-		{
+	mask &= ~SSL_OP_NO_SSLv3;
+#endif
+#if !defined(OPENSSL_NO_SSL2)
+	if ((options & SSL_OP_NO_SSLv3) && (options & mask) != mask)
 		version = SSL2_VERSION;
-		}
+#endif
+
 #ifndef OPENSSL_NO_TLSEXT
 	if (version != SSL2_VERSION)
 		{
@@ -467,6 +486,15 @@ static int ssl23_client_hello(SSL *s)
 				SSLerr(SSL_F_SSL23_CLIENT_HELLO,SSL_R_NO_CIPHERS_AVAILABLE);
 				return -1;
 				}
+#ifdef OPENSSL_MAX_TLS1_2_CIPHER_LENGTH
+			/* Some servers hang if client hello > 256 bytes
+			 * as hack workaround chop number of supported ciphers
+			 * to keep it well below this if we use TLS v1.2
+			 */
+			if (TLS1_get_version(s) >= TLS1_2_VERSION
+				&& i > OPENSSL_MAX_TLS1_2_CIPHER_LENGTH)
+				i = OPENSSL_MAX_TLS1_2_CIPHER_LENGTH & ~1;
+#endif
 			s2n(i,p);
 			p+=i;
 
@@ -521,8 +549,13 @@ static int ssl23_client_hello(SSL *s)
 			d=buf;
 			*(d++) = SSL3_RT_HANDSHAKE;
 			*(d++) = version_major;
-			*(d++) = version_minor; /* arguably we should send the *lowest* suported version here
-			                         * (indicating, e.g., TLS 1.0 in "SSL 3.0 format") */
+			/* Some servers hang if we use long client hellos
+			 * and a record number > TLS 1.0.
+			 */
+			if (TLS1_get_client_version(s) > TLS1_VERSION)
+				*(d++) = 1;
+			else
+				*(d++) = version_minor;
 			s2n((int)l,d);
 
 			/* number of bytes to write */

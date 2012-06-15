@@ -1,3 +1,95 @@
+commit ffaad7ee2ef6e06b4585567df04f6b64356fb6fe
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Jun 1 20:31:30 2012 -0700
+
+    libXaw 1.0.11
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 52081b462ff7d1844d014bf9be887197caa88160
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 26 15:07:07 2012 -0700
+
+    Only call XawStackFree if XawStackAlloc was used for allocation
+    
+    In FormParagraph() in TextAction.c, the #if OLDXAW case always uses
+    fixed length buffers, while the !OLDXAW case uses XawStackAlloc &
+    XawStackFree to switch to dynamic allocations when the buffers aren't
+    large enough.
+    
+    A couple instances of XawStackFree slipped into the wrong side of
+    the #if checks though, so move them back where they belong.   Also
+    reset pos afterwards, in the case we continue and may use it again,
+    to avoid the chance of a double free.
+    
+    Found by the Parfait 0.5.0.1 bug checking tool:
+    
+    Error: Free memory not allocated dynamically by alloc (CWE 590)
+       Free() was called on a pointer 'buf' to the auto variable 'buf'. Free() must only be used on dynamically allocated memory
+            at line 3946 of TextAction.c in function 'FormParagraph'.
+              'buf' allocated at line 0 as auto variable.
+            at line 4000 of TextAction.c in function 'FormParagraph'.
+              'buf' allocated at line 0 as auto variable.
+    Error: Use after free (CWE 416)
+       Use after free of pointer '&buf'
+            at line 3995 of TextAction.c in function 'FormParagraph'.
+              Previously freed at line 3946 with XtFree.
+    Error: Use after free
+       Double free (CWE 415): Double free of pointer '&buf' in call to XtFree
+            at line 4000 of TextAction.c in function 'FormParagraph'.
+              Previously freed at line 3946 with XtFree.
+       Double free (CWE 415): Double free of pointer '<unknown>' in call to XtFree
+            at line 4000 of TextAction.c in function 'FormParagraph'.
+              Previously freed at line 3946 with XtFree.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Acked-by: pcpa <paulo.cesar.pereira.de.andrade@gmail.com>
+
+commit ca35cff72a3100c9367b7e7f4811117c8733b8be
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 26 14:44:26 2012 -0700
+
+    Correct order of arguments to XawStackFree()
+    
+    XawStackAlloc() & XawStackFree() are macros to automate the process of
+    using a fixed size stack buffer for strings smaller than the buffer size,
+    and allocating/freeing memory for larger strings.
+    
+    XawStackFree is defined in src/Private.h as taking (pointer, stk_buffer)
+    and freeing pointer if it's not pointing to the stack buffer.
+    
+    Most of the calls of this macro get the ordering right, but a couple
+    got it reversed, passing a stack buffer to free() instead of the
+    allocated pointer.
+    
+    Found by the Parfait 0.5.0.1 bug checking tool:
+    
+    Error: Free memory not allocated dynamically by alloc (CWE 590)
+       Free() was called on a pointer 'buf' to the auto variable 'buf'. Free() must only be used on dynamically allocated memory
+            at line 2281 of TextAction.c in function 'DoFormatText'.
+              'buf' allocated at line 0 as auto variable.
+            at line 2296 of TextAction.c in function 'DoFormatText'.
+              'buf' allocated at line 0 as auto variable.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Acked-by: pcpa <paulo.cesar.pereira.de.andrade@gmail.com>
+
+commit 11c3a104141e1a4946ad949dfb5514df0b66a031
+Author: pcpa <paulo.cesar.pereira.de.andrade@gmail.com>
+Date:   Tue May 22 20:42:32 2012 -0300
+
+    Correct undefined behavior access to out of scope pointer contents.
+    
+      This problem is triggered in gcc 4.7 DCE (dead code elimination).
+    In the Xaw code, the local constant "String" is not guaranteed to
+    have global scope.
+      The problem was found when debugging the reason xedit built with
+    gcc 4.7 would be very unstable, and that happens regardless of using
+    a libXaw built with gcc 4.6.
+    
+    Signed-off-by: pcpa <paulo.cesar.pereira.de.andrade@gmail.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit b16cc35e551860a0bff54c47b33317536ddeae52
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Thu Mar 22 19:51:33 2012 -0700

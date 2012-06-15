@@ -245,7 +245,7 @@ static wchar_t SrcWNL[2];
 /*
  * Implementation
  */
-static void 
+static void
 XawTextSrcClassInitialize(void)
 {
     XawInitializeWidgetSet();
@@ -274,22 +274,22 @@ XawTextSrcClassPartInitialize(WidgetClass wc)
      * We don't need to check for null super since we'll get to TextSrc
      * eventually
      */
-    if (t_src->textSrc_class.Read == XtInheritRead) 
+    if (t_src->textSrc_class.Read == XtInheritRead)
 	t_src->textSrc_class.Read = superC->textSrc_class.Read;
 
-    if (t_src->textSrc_class.Replace == XtInheritReplace) 
+    if (t_src->textSrc_class.Replace == XtInheritReplace)
 	t_src->textSrc_class.Replace = superC->textSrc_class.Replace;
 
-    if (t_src->textSrc_class.Scan == XtInheritScan) 
+    if (t_src->textSrc_class.Scan == XtInheritScan)
 	t_src->textSrc_class.Scan = superC->textSrc_class.Scan;
 
-    if (t_src->textSrc_class.Search == XtInheritSearch) 
+    if (t_src->textSrc_class.Search == XtInheritSearch)
 	t_src->textSrc_class.Search = superC->textSrc_class.Search;
 
-    if (t_src->textSrc_class.SetSelection == XtInheritSetSelection) 
+    if (t_src->textSrc_class.SetSelection == XtInheritSetSelection)
 	t_src->textSrc_class.SetSelection = superC->textSrc_class.SetSelection;
 
-    if (t_src->textSrc_class.ConvertSelection == XtInheritConvertSelection) 
+    if (t_src->textSrc_class.ConvertSelection == XtInheritConvertSelection)
 	t_src->textSrc_class.ConvertSelection =
 	    superC->textSrc_class.ConvertSelection;
 }
@@ -430,7 +430,7 @@ Read(Widget w, XawTextPosition pos, XawTextBlock *text, int length)
  *	Replaces a block of text with new text.
  */
 /*ARGSUSED*/
-static int 
+static int
 Replace(Widget w, XawTextPosition startPos, XawTextPosition endPos,
 	XawTextBlock *text)
 {
@@ -454,7 +454,7 @@ Replace(Widget w, XawTextPosition startPos, XawTextPosition endPos,
  *	Scans the text source for the number and type of item specified.
  */
 /*ARGSUSED*/
-static XawTextPosition 
+static XawTextPosition
 Scan(Widget w, XawTextPosition position, XawTextScanType type,
      XawTextScanDirection dir, int count, Bool include)
 {
@@ -498,14 +498,14 @@ SetSelection(Widget w, XawTextPosition left, XawTextPosition right,
 }
 
 /*ARGSUSED*/
-static void 
+static void
 CvtStringToEditMode(XrmValuePtr args, Cardinal *num_args,
 		    XrmValuePtr fromVal, XrmValuePtr toVal)
 {
     static XawTextEditType editType;
     XrmQuark	q;
     char name[7];
- 
+
     XmuNCopyISOLatin1Lowered(name, (char *)fromVal->addr, sizeof(name));
     q = XrmStringToQuark(name);
 
@@ -1401,7 +1401,7 @@ UndoGC(XawTextUndo *undo)
  *	dir	 - direction to scan
  *	count	 - which occurance if this thing to search for
  *	include  - whether or not to include the character found in
- *		   the position that is returned. 
+ *		   the position that is returned.
  *
  * Description:
  *	Scans the text source for the number and type of item specified.
@@ -1441,7 +1441,7 @@ XawTextSourceScan(Widget w, XawTextPosition position,
  * Description:
  *	Searchs the text source for the text block passed
  */
-XawTextPosition 
+XawTextPosition
 XawTextSourceSearch(Widget w, XawTextPosition position,
 #if NeedWidePrototypes
 		    int dir,
@@ -1472,7 +1472,7 @@ XawTextSourceSearch(Widget w, XawTextPosition position,
  *	True if the selection has been converted
  */
 Boolean
-XawTextSourceConvertSelection(Widget w, Atom *selection, Atom *target, 
+XawTextSourceConvertSelection(Widget w, Atom *selection, Atom *target,
 			      Atom *type, XtPointer *value,
 			      unsigned long *length, int *format)
 {
@@ -1496,7 +1496,7 @@ XawTextSourceConvertSelection(Widget w, Atom *selection, Atom *target,
  *	Allows special setting of the selection.
  */
 void
-XawTextSourceSetSelection(Widget w, XawTextPosition left, 
+XawTextSourceSetSelection(Widget w, XawTextPosition left,
 			  XawTextPosition right, Atom selection)
 {
     TextSrcObjectClass cclass = (TextSrcObjectClass)w->core.widget_class;
@@ -1508,7 +1508,7 @@ XawTextSourceSetSelection(Widget w, XawTextPosition left,
  * External Functions for Multi Text
  */
 /*
- * TextFormat(): 
+ * TextFormat():
  *	returns the format of text: FMT8BIT or FMTWIDE
  */
 XrmQuark
@@ -1546,7 +1546,7 @@ _XawTextWCToMB(Display *d, wchar_t *wstr, int *len_in_out)
 /* _XawTextMBToWC():
  *	Convert the string to internal processing codeset WC.
  *   The caller is responsible for freeing both the source and ret string.
- * 
+ *
  *	str	   - source string
  *	len_in_out - lengh of string
  *		     As In, it is length of source string

@@ -1,4 +1,29 @@
 
+CHANGES BETWEEN 2.4.9 and 2.4.10
+
+  I. IMPORTANT BUG FIXES
+
+    - Incremental glyph loading as needed by ghostscript was broken.
+
+
+  II. MISCELLANEOUS
+
+    - A new  function `FT_Outline_EmboldenXY',  contributed by  Alexei
+      Podtelezhnikov.
+
+    - In the `ftview' demo program, key `e' has been replaced with `x'
+      and `y' to  embolden in  the horizontal and  vertical direction,
+      respectively.
+
+    - The glyph  spacing computation  in `FT_GlyphSlot_Embolden'  (and
+      similar code in `ftview') has been improved.
+
+    - Minor  improvements to  the TrueType  bytecode  interpreter  and
+      glyph loader, the auto-hinter, and the B/W rasterizer.
+
+
+======================================================================
+
 CHANGES BETWEEN 2.4.8 and 2.4.9
 
   I. IMPORTANT BUG FIXES

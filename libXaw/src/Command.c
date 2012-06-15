@@ -27,13 +27,13 @@ Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -110,7 +110,7 @@ static char defaultTranslations[] =
 ;
 
 #define offset(field) XtOffsetOf(CommandRec, field)
-static XtResource resources[] = { 
+static XtResource resources[] = {
   {
     XtNcallback,
     XtCCallback,
@@ -216,21 +216,21 @@ WidgetClass commandWidgetClass = (WidgetClass)&commandClassRec;
 /*
  * Implementation
  */
-static GC 
+static GC
 Get_GC(CommandWidget cbw, Pixel fg, Pixel bg)
 {
     XGCValues	values;
-  
+
     values.foreground	= fg;
     values.background	= bg;
     values.font		= cbw->label.font->fid;
     values.cap_style	= CapProjecting;
-  
+
     if (cbw->command.highlight_thickness > 1)
 	values.line_width = cbw->command.highlight_thickness;
-    else 
+    else
 	values.line_width = 0;
-  
+
     if (cbw->simple.international == True)
 	return (XtAllocateGC((Widget)cbw, 0,
 			     GCForeground | GCBackground | GCLineWidth |
@@ -242,7 +242,7 @@ Get_GC(CommandWidget cbw, Pixel fg, Pixel bg)
 }
 
 /*ARGSUSED*/
-static void 
+static void
 XawCommandInitialize(Widget request, Widget cnew,
 		     ArgList args, Cardinal *num_args)
 {
@@ -250,7 +250,7 @@ XawCommandInitialize(Widget request, Widget cnew,
     int shape_event_base, shape_error_base;
 
     if (!cbw->label.font) XtError("Aborting: no font found\n");
-    
+
     if (cbw->command.shape_style != XawShapeRectangle &&
 	!XShapeQueryExtension(XtDisplay(cnew), &shape_event_base,
 			      &shape_error_base))
@@ -263,9 +263,9 @@ XawCommandInitialize(Widget request, Widget cnew,
 	    cbw->command.highlight_thickness = DEFAULT_HIGHLIGHT_THICKNESS;
     }
 
-    cbw->command.normal_GC = Get_GC(cbw, cbw->label.foreground, 
+    cbw->command.normal_GC = Get_GC(cbw, cbw->label.foreground,
 				    cbw->core.background_pixel);
-    cbw->command.inverse_GC = Get_GC(cbw, cbw->core.background_pixel, 
+    cbw->command.inverse_GC = Get_GC(cbw, cbw->core.background_pixel,
 				     cbw->label.foreground);
     XtReleaseGC(cnew, cbw->label.normal_GC);
     cbw->label.normal_GC = cbw->command.normal_GC;
@@ -274,7 +274,7 @@ XawCommandInitialize(Widget request, Widget cnew,
     cbw->command.highlighted = HighlightNone;
 }
 
-static Region 
+static Region
 HighlightRegion(CommandWidget cbw)
 {
     static Region outerRegion = NULL, innerRegion, emptyRegion;
@@ -323,7 +323,7 @@ XawCommandToggle(Widget w)
 }
 
 /*ARGSUSED*/
-static void 
+static void
 Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
     CommandWidget cbw = (CommandWidget)w;
@@ -349,7 +349,7 @@ Unset(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 /*ARGSUSED*/
-static void 
+static void
 Reset(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
     CommandWidget cbw = (CommandWidget)w;
@@ -363,7 +363,7 @@ Reset(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 /*ARGSUSED*/
-static void 
+static void
 Highlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
     CommandWidget cbw = (CommandWidget)w;
@@ -389,7 +389,7 @@ Highlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 /*ARGSUSED*/
-static void 
+static void
 Unhighlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
     CommandWidget cbw = (CommandWidget)w;
@@ -400,10 +400,10 @@ Unhighlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 /*ARGSUSED*/
-static void 
+static void
 Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
-    CommandWidget cbw = (CommandWidget)w; 
+    CommandWidget cbw = (CommandWidget)w;
 
     /* check to be sure state is still Set so that user can cancel
        the action (e.g. by moving outside the window, in the default
@@ -427,13 +427,13 @@ XawCommandRedisplay(Widget w, XEvent *event, Region region)
  *	region - region to paint (passed to the superclass)
  *                 change - did it change either set or highlight state?
  */
-static void 
+static void
 PaintCommandWidget(Widget w, XEvent *event, Region region, Bool change)
 {
     CommandWidget cbw = (CommandWidget)w;
     Bool very_thick;
     GC rev_gc;
-   
+
     very_thick = cbw->command.highlight_thickness
 		 > Min(XtWidth(cbw), XtHeight(cbw)) / 2;
 
@@ -485,7 +485,7 @@ PaintCommandWidget(Widget w, XEvent *event, Region region, Bool change)
 	    else {
 		int offset = cbw->command.highlight_thickness / 2;
 
-		XDrawRectangle(XtDisplay(w),XtWindow(w), rev_gc, offset, offset, 
+		XDrawRectangle(XtDisplay(w),XtWindow(w), rev_gc, offset, offset,
 			       XtWidth(cbw) - cbw->command.highlight_thickness,
 			      XtHeight(cbw) - cbw->command.highlight_thickness);
 	   }
@@ -495,7 +495,7 @@ PaintCommandWidget(Widget w, XEvent *event, Region region, Bool change)
     (*SuperClass->core_class.expose)(w, event, region);
 }
 
-static void 
+static void
 XawCommandDestroy(Widget w)
 {
     CommandWidget cbw = (CommandWidget)w;
@@ -505,7 +505,7 @@ XawCommandDestroy(Widget w)
 }
 
 /*ARGSUSED*/
-static Boolean 
+static Boolean
 XawCommandSetValues(Widget current, Widget request, Widget cnew,
 		    ArgList args, Cardinal *num_args)
 {
@@ -541,9 +541,9 @@ XawCommandSetValues(Widget current, Widget request, Widget cnew,
 	|| oldcbw->label.font != cbw->label.font) {
 	XtReleaseGC(cnew, cbw->command.inverse_GC);
 
-	cbw->command.normal_GC = Get_GC(cbw, cbw->label.foreground, 
+	cbw->command.normal_GC = Get_GC(cbw, cbw->label.foreground,
 					cbw->core.background_pixel);
-	cbw->command.inverse_GC = Get_GC(cbw, cbw->core.background_pixel, 
+	cbw->command.inverse_GC = Get_GC(cbw, cbw->core.background_pixel,
 					 cbw->label.foreground);
 	XtReleaseGC(cnew, cbw->label.normal_GC);
 	cbw->label.normal_GC = cbw->command.normal_GC;
@@ -619,7 +619,7 @@ XawCommandRealize(Widget w, Mask *valueMask, XSetWindowAttributes *attributes)
 static void
 XawCommandResize(Widget w)
 {
-    if (XtIsRealized(w)) 
+    if (XtIsRealized(w))
 	ShapeButton((CommandWidget)w, False);
 
     (*commandWidgetClass->core_class.superclass->core_class.resize)(w);

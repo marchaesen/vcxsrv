@@ -28,11 +28,11 @@ AsciiSrc (Text):
 	Memory leak when freeing pieces in a source of type "ascii String"
 	has been plugged.
 
-	Buffer is now updated whenever the "string" resource is	set using 
+	Buffer is now updated whenever the "string" resource is	set using
 	XtSetValues().  If type is file then the file is read in again.
 
 Box:
-	The public header file now includes Xmu/Converters.h for the 
+	The public header file now includes Xmu/Converters.h for the
 	orientation resources.
 
 Clock:
@@ -53,7 +53,7 @@ Form:
 	Fixed EdgeTypes to be Xaw* instead of Xt*, but left the
  	old definitions around with #define so that code will still work.
 
-	StringToWidget converter no longer caches resources.  
+	StringToWidget converter no longer caches resources.
 
 Logo:
 	Made subclass of simple instead of Core.
@@ -67,13 +67,13 @@ MenuButton:
 *	The MenuButton widget no longer places a server grab on itself.
 	Instead, PopupMenu is registered as a grab action.  As a result
 	of this, clients which popped up menus without using XtMenuPopup
-	or MenuPopup or PopupMenu in the menu button translations will 
-	fail to have a grab active.  They should make a call to 
-	XtRegisterGrabAction on the appropriate action in the application 
+	or MenuPopup or PopupMenu in the menu button translations will
+	fail to have a grab active.  They should make a call to
+	XtRegisterGrabAction on the appropriate action in the application
 	initialization routine, or use a different translation.
 
 Paned:
-	The public header file now includes Xmu/Converters.h for the 
+	The public header file now includes Xmu/Converters.h for the
 	orientation resources.
 
 Panner:	This widget is new in R5.
@@ -86,14 +86,14 @@ Scrollbar:
 	Made subclass of simple instead of Core
 
 	Type of thumb resource is XtRBitmap; it used to be XtRPixmap.
-	However, if applications provide the resource conversion, the 
+	However, if applications provide the resource conversion, the
 	Scrollbar's SetValues can still handle pixmaps of correct depth.
 
 Simple:
 	Added a color cursor converter. and the new resource types:
 		XtNpointerColor
 		XtNpointerColorBackground
-		XtNcursorName	
+		XtNcursorName
 
 SmeBSB:
 	Right bitmaps are now painted in the correct location.
@@ -132,7 +132,7 @@ TextP.h:
 		#define XawDEL	0x7f
 		#define XawBSLASH '\\'
 
-	
+
 Toggle:
 *	Toggle widget state is preserved across changes in sensitivity.
 

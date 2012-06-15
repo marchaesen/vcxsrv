@@ -30,7 +30,7 @@ in this Software without prior written authorization from The Open Group.
  * Date:    September 26, 1989
  *
  * By:      Chris D. Peterson
- *          MIT X Consortium 
+ *          MIT X Consortium
  *          kit@expo.lcs.mit.edu
  */
 
@@ -183,17 +183,17 @@ CreateGC(Widget w)
     SmeLineObject entry = (SmeLineObject)w;
     XGCValues values;
     XtGCMask mask = GCForeground | GCGraphicsExposures | GCLineWidth;
-    
+
     values.foreground = entry->sme_line.foreground;
     values.graphics_exposures = False;
     values.line_width = entry->sme_line.line_width;
-    
+
     if (entry->sme_line.stipple != XtUnspecifiedPixmap) {
 	values.stipple = entry->sme_line.stipple;
-	values.fill_style = FillStippled; 
+	values.fill_style = FillStippled;
 	mask |= GCStipple | GCFillStyle;
-	
-	entry->sme_line.gc = XCreateGC(XtDisplayOfObject(w), 
+
+	entry->sme_line.gc = XCreateGC(XtDisplayOfObject(w),
 				      RootWindowOfScreen(XtScreenOfObject(w)),
 				      mask, &values);
     }
@@ -212,7 +212,7 @@ DestroyGC(Widget w)
 {
     SmeLineObject entry = (SmeLineObject)w;
 
-    if (entry->sme_line.stipple != XtUnspecifiedPixmap) 
+    if (entry->sme_line.stipple != XtUnspecifiedPixmap)
 	XFreeGC(XtDisplayOfObject(w), entry->sme_line.gc);
     else
 	XtReleaseGC(w, entry->sme_line.gc);
@@ -225,7 +225,7 @@ XawSmeLineRedisplay(Widget w, XEvent *event, Region region)
     SmeLineObject entry = (SmeLineObject)w;
     int y = XtY(w) + (((int)XtHeight(w) - entry->sme_line.line_width) >> 1);
 
-    if (entry->sme_line.stipple != XtUnspecifiedPixmap) 
+    if (entry->sme_line.stipple != XtUnspecifiedPixmap)
 	XSetTSOrigin(XtDisplayOfObject(w), entry->sme_line.gc, 0, y);
 
     XFillRectangle(XtDisplayOfObject(w), XtWindowOfObject(w),
@@ -252,7 +252,7 @@ XawSmeLineSetValues(Widget current, Widget request, Widget cnew,
 {
     SmeLineObject entry = (SmeLineObject)cnew;
     SmeLineObject old_entry = (SmeLineObject)current;
-  
+
     if (entry->sme_line.line_width != old_entry->sme_line.line_width &&
 	entry->sme_line.stipple != old_entry->sme_line.stipple) {
 	DestroyGC(current);

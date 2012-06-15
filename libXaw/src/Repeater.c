@@ -23,7 +23,7 @@ used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
  *
  * Author:  Jim Fulton, MIT X Consortium
- * 
+ *
  * This widget is used for press-and-hold style buttons.
  */
 
@@ -278,7 +278,7 @@ ActionStart(Widget gw, XEvent *event, String *params, Cardinal *num_params)
     RepeaterWidget rw = (RepeaterWidget)gw;
 
     CLEAR_TIMEOUT(rw);
-    if (rw->repeater.start_callbacks) 
+    if (rw->repeater.start_callbacks)
 	XtCallCallbackList(gw, rw->repeater.start_callbacks, NULL);
 
     DO_CALLBACK(rw);
@@ -293,6 +293,6 @@ ActionStop(Widget gw, XEvent *event, String *params, Cardinal *num_params)
     RepeaterWidget rw = (RepeaterWidget)gw;
 
     CLEAR_TIMEOUT((RepeaterWidget)gw);
-    if (rw->repeater.stop_callbacks) 
+    if (rw->repeater.stop_callbacks)
 	XtCallCallbackList(gw, rw->repeater.stop_callbacks, NULL);
 }

@@ -170,7 +170,7 @@ static XtResource resources[] = {
     XtNcallback,
     XtCCallback,
     XtRCallback,
-    sizeof(XtPointer), 
+    sizeof(XtPointer),
     offset(callback),
     XtRCallback,
     (XtPointer)NULL
@@ -331,7 +331,7 @@ ReadText(Widget w, XawTextPosition pos, XawTextBlock *text, int length)
     MultiSrcObject src = (MultiSrcObject)w;
     XawTextPosition count, start;
     MultiPiece *piece = FindPiece(src, pos, &start);
-    
+
     text->format = XawFmtWide;
     text->firstPos = pos;
     text->ptr = (char *)(piece->text + (pos - start));
@@ -358,7 +358,7 @@ ReadText(Widget w, XawTextPosition pos, XawTextBlock *text, int length)
  *	XawEditDone on success, XawEditError otherwise
  */
 /*ARGSUSED*/
-static int 
+static int
 ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
 	    XawTextBlock *u_text_p)
 {
@@ -370,9 +370,9 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
     Bool local_artificial_block = False;
     XawTextBlock text;
 
-    /* STEP 1: The user handed me a text block called `u_text' that may be 
-     * in either FMTWIDE or FMT8BIT (ie MB.)  Later code needs the block 
-     * `text' to hold FMTWIDE.	So, this copies `u_text' to `text', and if 
+    /* STEP 1: The user handed me a text block called `u_text' that may be
+     * in either FMTWIDE or FMT8BIT (ie MB.)  Later code needs the block
+     * `text' to hold FMTWIDE.	So, this copies `u_text' to `text', and if
      * `u_text' was MB, I knock it up to WIDE
      */
     if (u_text_p->length == 0)	/* if so, the block contents never ref'd */
@@ -406,7 +406,7 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
     }
 
     /* STEP 2: some initialization... */
-    if (src->text_src.edit_mode == XawtextRead) 
+    if (src->text_src.edit_mode == XawtextRead)
 	return (XawEditError);
 
     start_piece = FindPiece(src, startPos, &start_first);
@@ -455,11 +455,11 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
         start_piece = FindPiece(src, startPos, &start_first);
         length = text.length;
         firstPos = text.firstPos;
-    
+
 	while (length > 0) {
 	    wchar_t *ptr;
 	    int fill;
-      
+
 	    if (src->multi_src.use_string_in_place) {
 		if (start_piece->used == src->multi_src.piece_size - 1)  {
 
@@ -481,13 +481,13 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
 	    }
 
 	    fill = Min((int)(src->multi_src.piece_size - start_piece->used), length);
-      
+
 	    ptr = start_piece->text + (startPos - start_first);
 	    memmove(ptr + fill, ptr, (start_piece->used -
 		    (startPos - start_first)) * sizeof(wchar_t));
 	    wptr =(wchar_t *)text.ptr;
 	    (void)wcsncpy(ptr, wptr + firstPos, fill);
-      
+
 	    startPos += fill;
 	    firstPos += fill;
 	    start_piece->used += fill;
@@ -681,7 +681,7 @@ Scan(Widget w, register XawTextPosition position, XawTextScanType type,
  * Returns:
  *	The position of the item found
  */
-static XawTextPosition 
+static XawTextPosition
 Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
        XawTextBlock *text)
 {
@@ -752,7 +752,7 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
 
 	ptr += inc;
 	position += inc;
-    
+
 	while (ptr < piece->text) {
 	    cnt = piece->text - ptr;
 
@@ -763,7 +763,7 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
 	    }
 	    ptr = piece->text + piece->used - cnt;
 	}
-   
+
 	while (ptr >= piece->text + piece->used) {
 	    cnt = ptr - (piece->text + piece->used);
 
@@ -816,7 +816,7 @@ XawMultiSrcSetValues(Widget current, Widget request, Widget cnew,
 	XtAppWarning(app_con,
 		     "MultiSrc: The XtNuseStringInPlace resources "
 		     "may not be changed.");
-	src->multi_src.use_string_in_place = 
+	src->multi_src.use_string_in_place =
 	    old_src->multi_src.use_string_in_place;
     }
 
@@ -825,7 +825,7 @@ XawMultiSrcSetValues(Widget current, Widget request, Widget cnew,
 	    string_set = True;
 	    break;
 	}
-  
+
     if (string_set || old_src->multi_src.type != src->multi_src.type) {
 	RemoveOldStringOrFile(old_src, string_set);
 	src->multi_src.allocated_string = old_src->multi_src.allocated_string;
@@ -890,14 +890,14 @@ XawMultiSrcGetValuesHook(Widget w, ArgList args, Cardinal *num_args)
     }
 }
 
-static void 
+static void
 XawMultiSrcDestroy(Widget w)
 {
     RemoveOldStringOrFile((MultiSrcObject) w, True);
 }
 
 /*
- * Public routines 
+ * Public routines
  */
 /*
  * Function:
@@ -952,14 +952,14 @@ _XawMultiSave(Widget w)
      * If using the string in place then there is no need to play games
      * to get the internal info into a readable string
      */
-    if (src->multi_src.use_string_in_place) 
+    if (src->multi_src.use_string_in_place)
 	return (True);
 
     if (src->multi_src.type == XawAsciiFile) {
 #ifdef OLDXAW
 	 if (!src->multi_src.changes)
 #else
-	if (!src->text_src.changed) 		/* No changes to save */
+	if (!src->text_src.changed)		/* No changes to save */
 #endif
 	    return (True);
 
@@ -1006,7 +1006,7 @@ _XawMultiSave(Widget w)
 	    XtFree((char *)src->multi_src.string);
 	else
 	    src->multi_src.allocated_string = True;
-    
+
         src->multi_src.string = mb_string;
     }
 #ifdef OLDXAW
@@ -1092,7 +1092,7 @@ static Bool
 WriteToFile(String string, String name)
 {
     int fd;
-  
+
     if (((fd = creat(name, 0666)) == -1)
 	|| (write(fd, string, strlen(string)) == -1))
 	return (False);
@@ -1197,12 +1197,12 @@ InitStringOrFile(MultiSrcObject src, Bool newString)
 	    if (src->multi_src.length > src->multi_src.multi_length)
 		src->multi_src.multi_length = src->multi_src.length;
 
-	    if (src->multi_src.multi_length == MAGIC_VALUE) 
+	    if (src->multi_src.multi_length == MAGIC_VALUE)
 		src->multi_src.piece_size = src->multi_src.length;
 	    else
 		src->multi_src.piece_size = src->multi_src.multi_length + 1;
 	}
-		
+
 	return (NULL);
     }
 
@@ -1252,7 +1252,7 @@ InitStringOrFile(MultiSrcObject src, Bool newString)
 	src->multi_src.string = temp;
 	src->multi_src.allocated_string = True;
     }
-    
+
     if (!src->multi_src.is_tempfile) {
 	if ((fd = open((char *)src->multi_src.string, open_mode, 0666)) != -1) {
 	    if ((file = fdopen(fd, fdopen_mode)) != NULL) {
@@ -1264,7 +1264,7 @@ InitStringOrFile(MultiSrcObject src, Bool newString)
 	{
 	    String params[2];
 	    Cardinal num_params = 2;
-	    
+
 	    params[0] = (String)src->multi_src.string;
 	    params[1] = strerror(errno);
 	    XtAppWarningMsg(XtWidgetToApplicationContext((Widget)src),
@@ -1294,25 +1294,25 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
     int bytes = sizeof(wchar_t);
     char* temp_mb_holder = NULL;
 
-    /* 
-     * This is tricky - the _XawTextMBtoWC converter uses its 3rd arg 
-     * in as MB length, out as WC length.  We want local_length to be 
-     * WC count. 
+    /*
+     * This is tricky - the _XawTextMBtoWC converter uses its 3rd arg
+     * in as MB length, out as WC length.  We want local_length to be
+     * WC count.
      */
     int local_length = src->multi_src.length;
 
     if (string != NULL) {
-	/* 
-	 * ASSERT: IF our caller passed a non-null string, THEN 
-	 * src->multi_src.length is currently string's * byte count, 
+	/*
+	 * ASSERT: IF our caller passed a non-null string, THEN
+	 * src->multi_src.length is currently string's * byte count,
 	 * AND string is in a MB format
 	*/
 	local_str = _XawTextMBToWC(d, (char *)string, &local_length);
 	src->multi_src.length = (XawTextPosition) local_length;
     }
     else if (src->multi_src.type != XawAsciiFile) {
-	/* 
-	 * here, we are not changing the contents, just reloading, 
+	/*
+	 * here, we are not changing the contents, just reloading,
 	 * so don't change len...
 	 */
 	local_length = src->multi_src.string ?
@@ -1322,13 +1322,13 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
     }
     else {
 	if (src->multi_src.length != 0) {
-	    temp_mb_holder = 
+	    temp_mb_holder =
 		XtMalloc((src->multi_src.length + 1) * sizeof(unsigned char));
 	    fseek(file, 0, 0);
 	    src->multi_src.length = fread(temp_mb_holder,
-					  (Size_t)sizeof(unsigned char), 
+					  (Size_t)sizeof(unsigned char),
 					  (Size_t)src->multi_src.length, file);
-	    if (src->multi_src.length <= 0) 
+	    if (src->multi_src.length <= 0)
 		XtAppErrorMsg(XtWidgetToApplicationContext ((Widget) src),
 			      "readError", "multiSource", "XawError",
 			      "fread returned error.", NULL, NULL);
@@ -1339,7 +1339,7 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
 	    if (local_str == 0) {
 		String params[2];
 		Cardinal num_params;
-		static char err_text[] = 
+		static char err_text[] =
 		    "<<< FILE CONTENTS NOT REPRESENTABLE IN THIS LOCALE >>>";
 
 		params[0] = XtName(XtParent((Widget)src));
@@ -1353,7 +1353,7 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
 				params, &num_params);
 		src->multi_src.length = sizeof err_text;
 		local_length = src->multi_src.length;
-        	local_str = _XawTextMBToWC(d, err_text, &local_length);
+		local_str = _XawTextMBToWC(d, err_text, &local_length);
 		src->multi_src.length = local_length;
 	    }
 	}
@@ -1420,7 +1420,7 @@ AllocNewPiece(MultiSrcObject src, MultiPiece *prev)
 	piece->next = prev->next;
 	prev->next = piece;
     }
-  
+
     piece->prev = prev;
 
     return (piece);
@@ -1436,7 +1436,7 @@ AllocNewPiece(MultiSrcObject src, MultiPiece *prev)
  * Description:
  *	Frees all the pieces
  */
-static void 
+static void
 FreeAllPieces(MultiSrcObject src)
 {
     MultiPiece *next, *first = src->multi_src.first_piece;
@@ -1451,7 +1451,7 @@ FreeAllPieces(MultiSrcObject src)
 	RemovePiece(src, first);
     }
 }
-  
+
 /*
  * Function:
  *	RemovePiece
@@ -1511,7 +1511,7 @@ FindPiece(MultiSrcObject src, XawTextPosition position, XawTextPosition *first)
 
     return (old_piece);	  /* if we run off the end the return the last piece */
 }
-    
+
 /*
  * Function:
  *	BreakPiece
@@ -1528,7 +1528,7 @@ static void
 BreakPiece(MultiSrcObject src, MultiPiece *piece)
 {
     MultiPiece *cnew = AllocNewPiece(src, piece);
-  
+
     cnew->text = (wchar_t *)
 	XtMalloc(src->multi_src.piece_size * sizeof(wchar_t));
     (void)wcsncpy(cnew->text, piece->text + HALF_PIECE,

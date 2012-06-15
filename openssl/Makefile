@@ -4,7 +4,7 @@
 ## Makefile for OpenSSL
 ##
 
-VERSION=1.0.1
+VERSION=1.0.1c
 MAJOR=1
 MINOR=0.1
 SHLIB_VERSION_NUMBER=1.0.0
@@ -200,7 +200,7 @@ CLEARENV=	TOP= && unset TOP $${LIB+LIB} $${LIBS+LIBS}	\
 		$${EXHEADER+EXHEADER} $${HEADER+HEADER}		\
 		$${GENERAL+GENERAL} $${CFLAGS+CFLAGS}		\
 		$${ASFLAGS+ASFLAGS} $${AFLAGS+AFLAGS}		\
-		$${LDCMD+LDCMD} $${LDFLAGS+LDFLAGS}		\
+		$${LDCMD+LDCMD} $${LDFLAGS+LDFLAGS} $${SCRIPTS+SCRIPTS}	\
 		$${SHAREDCMD+SHAREDCMD} $${SHAREDFLAGS+SHAREDFLAGS}	\
 		$${SHARED_LIB+SHARED_LIB} $${LIBEXTRAS+LIBEXTRAS}
 
@@ -471,9 +471,9 @@ tags:
 	find . -name '[^.]*.[ch]' | xargs etags -a
 
 errors:
+	$(PERL) util/ck_errf.pl -strict */*.c */*/*.c
 	$(PERL) util/mkerr.pl -recurse -write
 	(cd engines; $(MAKE) PERL=$(PERL) errors)
-	$(PERL) util/ck_errf.pl -strict */*.c */*/*.c
 
 stacks:
 	$(PERL) util/mkstack.pl -write
