@@ -436,7 +436,10 @@ fbConfigsDump(unsigned int n, __GLXconfig * c)
 static __GLXscreen *glxWinScreenProbe(ScreenPtr pScreen);
 static __GLXcontext *glxWinCreateContext(__GLXscreen * screen,
                                          __GLXconfig * modes,
-                                         __GLXcontext * baseShareContext);
+                                         __GLXcontext * baseShareContext,
+                                         unsigned num_attribs,
+                                         const uint32_t *attribs,
+                                         int *error);
 static __GLXdrawable *glxWinCreateDrawable(ClientPtr client,
                                            __GLXscreen * screen,
                                            DrawablePtr pDraw,
@@ -1768,7 +1771,10 @@ glxWinContextDestroy(__GLXcontext * base)
 
 static __GLXcontext *
 glxWinCreateContext(__GLXscreen * screen,
-                    __GLXconfig * modes, __GLXcontext * baseShareContext)
+                    __GLXconfig * modes, __GLXcontext * baseShareContext,
+                    unsigned num_attribs,
+                    const uint32_t *attribs,
+                    int *error)
 {
     __GLXWinContext *context;
     __GLXWinContext *shareContext = (__GLXWinContext *) baseShareContext;
