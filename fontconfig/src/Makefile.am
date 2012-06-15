@@ -134,9 +134,11 @@ libfontconfig_la_LIBADD = $(ICONV_LIBS) $(FREETYPE_LIBS) $(LIBXML2_LIBS) $(EXPAT
 
 libfontconfig_la_DEPENDENCIES = $(fontconfig_def_dependency)
 
+if ENABLE_SHARED
 install-data-local: install-ms-import-lib install-libtool-import-lib
 
 uninstall-local: uninstall-ms-import-lib uninstall-libtool-import-lib
+endif
 
 PUBLIC_FILES = \
 	$(top_srcdir)/fontconfig/fontconfig.h \

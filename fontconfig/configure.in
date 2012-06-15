@@ -104,6 +104,7 @@ AC_SUBST(WARN_CFLAGS)
 dnl ==========================================================================
 
 AM_CONDITIONAL(CROSS_COMPILING, test $cross_compiling = yes)
+AM_CONDITIONAL(ENABLE_SHARED, test "$enable_shared" = "yes")
 
 dnl ==========================================================================
 

@@ -7965,7 +7965,12 @@
 <xi:include href="ARB_blend_func_extended.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <!-- 79. GL_ARB_explicit_attrib_location -->
-<!-- 80. GL_ARB_occlusion_query2 -->
+
+<category name="GL_ARB_occlusion_query2" number="80">
+    <enum name="ANY_SAMPLES_PASSED"            count="1"  value="0x8C2F">
+        <size name="GetQueryiv" mode="get"/>
+    </enum>
+</category>
 
 <xi:include href="ARB_sampler_objects.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
@@ -8614,37 +8619,37 @@
 </category>
 
 <category name="GL_SGIS_pixel_texture" number="15">
-    <function name="PixelTexGenParameteriSGIS" offset="assign" static_dispatch="false">
+    <function name="PixelTexGenParameteriSGIS">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="PixelTexGenParameterivSGIS" offset="assign" static_dispatch="false">
+    <function name="PixelTexGenParameterivSGIS">
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLint *"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="PixelTexGenParameterfSGIS" offset="assign" static_dispatch="false">
+    <function name="PixelTexGenParameterfSGIS">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="PixelTexGenParameterfvSGIS" offset="assign" static_dispatch="false">
+    <function name="PixelTexGenParameterfvSGIS">
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLfloat *"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="GetPixelTexGenParameterivSGIS" offset="assign" static_dispatch="false">
+    <function name="GetPixelTexGenParameterivSGIS">
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLint *" output="true" variable_param="pname"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="GetPixelTexGenParameterfvSGIS" offset="assign" static_dispatch="false">
+    <function name="GetPixelTexGenParameterfvSGIS">
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLfloat *" output="true" variable_param="pname"/>
         <glx ignore="true"/>
@@ -8787,6 +8792,15 @@
 <!-- Extension number 29 is not listed in the extension registry. -->
 
 <category name="GL_EXT_vertex_array" number="30">
+    <!-- These enums are part of the extension only. -->
+    <enum name="VERTEX_ARRAY_COUNT_EXT"                   value="0x807D"/>
+    <enum name="NORMAL_ARRAY_COUNT_EXT"                   value="0x8080"/>
+    <enum name="COLOR_ARRAY_COUNT_EXT"                    value="0x8084"/>
+    <enum name="INDEX_ARRAY_COUNT_EXT"                    value="0x8087"/>
+    <enum name="TEXTURE_COORD_ARRAY_COUNT_EXT"            value="0x808B"/>
+    <enum name="EDGE_FLAG_ARRAY_COUNT_EXT"                value="0x808D"/>
+
+
     <function name="ArrayElementEXT" alias="ArrayElement">
         <param name="i" type="GLint"/>
     </function>
@@ -9381,6 +9395,9 @@
 </category>
 
 <category name="GL_EXT_compiled_vertex_array" number="97">
+    <enum name="ARRAY_ELEMENT_LOCK_FIRST_EXT"             value="0x81A8"/>
+    <enum name="ARRAY_ELEMENT_LOCK_COUNT_EXT"             value="0x81A9"/>
+
     <function name="LockArraysEXT" offset="assign">
         <param name="first" type="GLint"/>
         <param name="count" type="GLsizei"/>
@@ -10003,7 +10020,7 @@
 </category>
 
 <category name="GL_SGIX_pixel_texture" number="160">
-    <function name="PixelTexGenSGIX" offset="assign" static_dispatch="false">
+    <function name="PixelTexGenSGIX">
         <param name="mode" type="GLenum"/>
         <glx rop="2059" ignore="true"/>
     </function>
@@ -10522,11 +10539,11 @@
 </category>
 
 <category name="GL_NV_vertex_array_range" number="190">
-    <function name="FlushVertexArrayRangeNV" offset="assign">
+    <function name="FlushVertexArrayRangeNV">
         <glx ignore="true"/>
     </function>
 
-    <function name="VertexArrayRangeNV" offset="assign">
+    <function name="VertexArrayRangeNV">
         <param name="length" type="GLsizei"/>
         <param name="pointer" type="const GLvoid *"/>
         <glx ignore="true"/>
@@ -10534,31 +10551,31 @@
 </category>
 
 <category name="GL_NV_register_combiners" number="191">
-    <function name="CombinerParameterfvNV" offset="assign">
+    <function name="CombinerParameterfvNV">
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLfloat *" variable_param="pname"/>
         <glx rop="4137" ignore="true"/>
     </function>
 
-    <function name="CombinerParameterfNV" offset="assign">
+    <function name="CombinerParameterfNV">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx rop="4136" ignore="true"/>
     </function>
 
-    <function name="CombinerParameterivNV" offset="assign">
+    <function name="CombinerParameterivNV">
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLint *" variable_param="pname"/>
         <glx rop="4139" ignore="true"/>
     </function>
 
-    <function name="CombinerParameteriNV" offset="assign">
+    <function name="CombinerParameteriNV">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx rop="4138" ignore="true"/>
     </function>
 
-    <function name="CombinerInputNV" offset="assign">
+    <function name="CombinerInputNV">
         <param name="stage" type="GLenum"/>
         <param name="portion" type="GLenum"/>
         <param name="variable" type="GLenum"/>
@@ -10568,7 +10585,7 @@
         <glx rop="4140" ignore="true"/>
     </function>
 
-    <function name="CombinerOutputNV" offset="assign">
+    <function name="CombinerOutputNV">
         <param name="stage" type="GLenum"/>
         <param name="portion" type="GLenum"/>
         <param name="abOutput" type="GLenum"/>
@@ -10582,7 +10599,7 @@
         <glx rop="4141" ignore="true"/>
     </function>
 
-    <function name="FinalCombinerInputNV" offset="assign">
+    <function name="FinalCombinerInputNV">
         <param name="variable" type="GLenum"/>
         <param name="input" type="GLenum"/>
         <param name="mapping" type="GLenum"/>
@@ -10590,7 +10607,7 @@
         <glx rop="4142" ignore="true"/>
     </function>
 
-    <function name="GetCombinerInputParameterfvNV" offset="assign">
+    <function name="GetCombinerInputParameterfvNV">
         <param name="stage" type="GLenum"/>
         <param name="portion" type="GLenum"/>
         <param name="variable" type="GLenum"/>
@@ -10599,7 +10616,7 @@
         <glx vendorpriv="1270" ignore="true"/>
     </function>
 
-    <function name="GetCombinerInputParameterivNV" offset="assign">
+    <function name="GetCombinerInputParameterivNV">
         <param name="stage" type="GLenum"/>
         <param name="portion" type="GLenum"/>
         <param name="variable" type="GLenum"/>
@@ -10608,7 +10625,7 @@
         <glx vendorpriv="1271" ignore="true"/>
     </function>
 
-    <function name="GetCombinerOutputParameterfvNV" offset="assign">
+    <function name="GetCombinerOutputParameterfvNV">
         <param name="stage" type="GLenum"/>
         <param name="portion" type="GLenum"/>
         <param name="pname" type="GLenum"/>
@@ -10616,7 +10633,7 @@
         <glx vendorpriv="1272" ignore="true"/>
     </function>
 
-    <function name="GetCombinerOutputParameterivNV" offset="assign">
+    <function name="GetCombinerOutputParameterivNV">
         <param name="stage" type="GLenum"/>
         <param name="portion" type="GLenum"/>
         <param name="pname" type="GLenum"/>
@@ -10624,14 +10641,14 @@
         <glx vendorpriv="1273" ignore="true"/>
     </function>
 
-    <function name="GetFinalCombinerInputParameterfvNV" offset="assign">
+    <function name="GetFinalCombinerInputParameterfvNV">
         <param name="variable" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLfloat *" output="true"/>
         <glx vendorpriv="1274" ignore="true"/>
     </function>
 
-    <function name="GetFinalCombinerInputParameterivNV" offset="assign">
+    <function name="GetFinalCombinerInputParameterivNV">
         <param name="variable" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLint *" output="true"/>
@@ -10654,7 +10671,7 @@
 </category>
 
 <category name="GL_NV_texture_env_combine4" number="195">
-    <enum name="COMBINE4"                                 value="0x8503"/>
+    <enum name="COMBINE4_NV"                              value="0x8503"/>
     <enum name="SOURCE3_RGB_NV"                count="1"  value="0x8583">
         <size name="TexEnvfv" mode="get"/>
         <size name="TexEnviv" mode="get"/>
@@ -10988,43 +11005,43 @@
 </category>
 
 <category name="GL_NV_fence" number="222">
-    <function name="DeleteFencesNV" offset="assign" static_dispatch="false">
+    <function name="DeleteFencesNV">
         <param name="n" type="GLsizei"/>
         <param name="fences" type="const GLuint *"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="GenFencesNV" offset="assign" static_dispatch="false">
+    <function name="GenFencesNV">
         <param name="n" type="GLsizei" counter="true"/>
         <param name="fences" type="GLuint *" output="true" count="n"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="IsFenceNV" offset="assign" static_dispatch="false">
+    <function name="IsFenceNV">
         <param name="fence" type="GLuint"/>
         <return type="GLboolean"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="TestFenceNV" offset="assign" static_dispatch="false">
+    <function name="TestFenceNV">
         <param name="fence" type="GLuint"/>
         <return type="GLboolean"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="GetFenceivNV" offset="assign" static_dispatch="false">
+    <function name="GetFenceivNV">
         <param name="fence" type="GLuint"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLint *" output="true"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="FinishFenceNV" offset="assign" static_dispatch="false">
+    <function name="FinishFenceNV">
         <param name="fence" type="GLuint"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="SetFenceNV" offset="assign" static_dispatch="false">
+    <function name="SetFenceNV">
         <param name="fence" type="GLuint"/>
         <param name="condition" type="GLenum"/>
         <glx ignore="true"/>
@@ -11776,6 +11793,117 @@
 </category>
 
 <category name="GL_ATI_fragment_shader" number="245">
+    <enum name="FRAGMENT_SHADER_ATI"                      value="0x8920"/>
+    <enum name="REG_0_ATI"                                value="0x8921"/>
+    <enum name="REG_1_ATI"                                value="0x8922"/>
+    <enum name="REG_2_ATI"                                value="0x8923"/>
+    <enum name="REG_3_ATI"                                value="0x8924"/>
+    <enum name="REG_4_ATI"                                value="0x8925"/>
+    <enum name="REG_5_ATI"                                value="0x8926"/>
+
+    <!-- These values are not in the extension spec, but they are in glext.h -->
+    <enum name="REG_6_ATI"                                value="0x8927"/>
+    <enum name="REG_7_ATI"                                value="0x8928"/>
+    <enum name="REG_8_ATI"                                value="0x8929"/>
+    <enum name="REG_9_ATI"                                value="0x892A"/>
+    <enum name="REG_10_ATI"                               value="0x892B"/>
+    <enum name="REG_11_ATI"                               value="0x892C"/>
+    <enum name="REG_12_ATI"                               value="0x892D"/>
+    <enum name="REG_13_ATI"                               value="0x892E"/>
+    <enum name="REG_14_ATI"                               value="0x892F"/>
+    <enum name="REG_15_ATI"                               value="0x8930"/>
+    <enum name="REG_16_ATI"                               value="0x8931"/>
+    <enum name="REG_17_ATI"                               value="0x8932"/>
+    <enum name="REG_18_ATI"                               value="0x8933"/>
+    <enum name="REG_19_ATI"                               value="0x8934"/>
+    <enum name="REG_20_ATI"                               value="0x8935"/>
+    <enum name="REG_21_ATI"                               value="0x8936"/>
+    <enum name="REG_22_ATI"                               value="0x8937"/>
+    <enum name="REG_23_ATI"                               value="0x8938"/>
+    <enum name="REG_24_ATI"                               value="0x8939"/>
+    <enum name="REG_25_ATI"                               value="0x893A"/>
+    <enum name="REG_26_ATI"                               value="0x893B"/>
+    <enum name="REG_27_ATI"                               value="0x893C"/>
+    <enum name="REG_28_ATI"                               value="0x893D"/>
+    <enum name="REG_29_ATI"                               value="0x893E"/>
+    <enum name="REG_30_ATI"                               value="0x893F"/>
+    <enum name="REG_31_ATI"                               value="0x8940"/>
+
+    <enum name="CON_0_ATI"                                value="0x8941"/>
+    <enum name="CON_1_ATI"                                value="0x8942"/>
+    <enum name="CON_2_ATI"                                value="0x8943"/>
+    <enum name="CON_3_ATI"                                value="0x8944"/>
+    <enum name="CON_4_ATI"                                value="0x8945"/>
+    <enum name="CON_5_ATI"                                value="0x8946"/>
+    <enum name="CON_6_ATI"                                value="0x8947"/>
+    <enum name="CON_7_ATI"                                value="0x8948"/>
+
+    <!-- These values are not in the extension spec, but they are in glext.h -->
+    <enum name="CON_8_ATI"                                value="0x8949"/>
+    <enum name="CON_9_ATI"                                value="0x894A"/>
+    <enum name="CON_10_ATI"                               value="0x894B"/>
+    <enum name="CON_11_ATI"                               value="0x894C"/>
+    <enum name="CON_12_ATI"                               value="0x894D"/>
+    <enum name="CON_13_ATI"                               value="0x894E"/>
+    <enum name="CON_14_ATI"                               value="0x894F"/>
+    <enum name="CON_15_ATI"                               value="0x8950"/>
+    <enum name="CON_16_ATI"                               value="0x8951"/>
+    <enum name="CON_17_ATI"                               value="0x8952"/>
+    <enum name="CON_18_ATI"                               value="0x8953"/>
+    <enum name="CON_19_ATI"                               value="0x8954"/>
+    <enum name="CON_20_ATI"                               value="0x8955"/>
+    <enum name="CON_21_ATI"                               value="0x8956"/>
+    <enum name="CON_22_ATI"                               value="0x8957"/>
+    <enum name="CON_23_ATI"                               value="0x8958"/>
+    <enum name="CON_24_ATI"                               value="0x8959"/>
+    <enum name="CON_25_ATI"                               value="0x895A"/>
+    <enum name="CON_26_ATI"                               value="0x895B"/>
+    <enum name="CON_27_ATI"                               value="0x895C"/>
+    <enum name="CON_28_ATI"                               value="0x895D"/>
+    <enum name="CON_29_ATI"                               value="0x895E"/>
+    <enum name="CON_30_ATI"                               value="0x895F"/>
+    <enum name="CON_31_ATI"                               value="0x8960"/>
+
+    <enum name="MOV_ATI"                                  value="0x8961"/>
+    <enum name="ADD_ATI"                                  value="0x8963"/>
+    <enum name="MUL_ATI"                                  value="0x8964"/>
+    <enum name="SUB_ATI"                                  value="0x8965"/>
+    <enum name="DOT3_ATI"                                 value="0x8966"/>
+    <enum name="DOT4_ATI"                                 value="0x8967"/>
+    <enum name="MAD_ATI"                                  value="0x8968"/>
+    <enum name="LERP_ATI"                                 value="0x8969"/>
+    <enum name="CND_ATI"                                  value="0x896A"/>
+    <enum name="CND0_ATI"                                 value="0x896B"/>
+    <enum name="DOT2_ADD_ATI"                             value="0x896C"/>
+    <enum name="SECONDARY_INTERPOLATOR_ATI"               value="0x896D"/>
+
+    <!--
+    These values are not in the extension spec, but they are in glext.h.
+    However, the specification does say that they are deprecated.
+    -->
+    <enum name="NUM_FRAGMENT_REGISTERS_ATI"               value="0x896E"/>
+    <enum name="NUM_FRAGMENT_CONSTANTS_ATI"               value="0x896F"/>
+    <enum name="NUM_PASSES_ATI"                           value="0x8970"/>
+    <enum name="NUM_INSTRUCTIONS_PER_PASS_ATI"            value="0x8971"/>
+    <enum name="NUM_INSTRUCTIONS_TOTAL_ATI"               value="0x8972"/>
+    <enum name="NUM_INPUT_INTERPOLATOR_COMPONENTS_ATI"    value="0x8973"/>
+    <enum name="NUM_LOOPBACK_COMPONENTS_ATI"              value="0x8974"/>
+    <enum name="COLOR_ALPHA_PAIRING_ATI"                  value="0x8975"/>
+
+    <enum name="SWIZZLE_STR_ATI"                          value="0x8976"/>
+    <enum name="SWIZZLE_STQ_ATI"                          value="0x8977"/>
+    <enum name="SWIZZLE_STR_DR_ATI"                       value="0x8978"/>
+    <enum name="SWIZZLE_STQ_DQ_ATI"                       value="0x8979"/>
+
+    <!-- These values are not in the extension spec, but they are in glext.h -->
+    <enum name="SWIZZLE_STRQ_ATI"                         value="0x897A"/>
+    <enum name="SWIZZLE_STRQ_DQ_ATI"                      value="0x897B"/>
+
+    <!--
+    The _BIT enums are not added because they just clutter enums.c with
+    redudndant garbage.  There are a lot of enums with the value 0x00000001.
+    -->
+
     <function name="GenFragmentShadersATI" offset="assign">
       <return type="GLuint"/>
       <param name="range" type="GLuint"/>
@@ -12030,6 +12158,13 @@
 </category>
 
 <category name="GL_NV_fragment_program" number="282">
+    <enum name="FRAGMENT_PROGRAM_NV"                      value="0x8870"/>
+    <enum name="MAX_TEXTURE_COORDS_NV"                    value="0x8871"/>
+    <enum name="MAX_TEXTURE_IMAGE_UNITS_NV"               value="0x8872"/>
+    <enum name="FRAGMENT_PROGRAM_BINDING_NV"              value="0x8873"/>
+    <enum name="MAX_FRAGMENT_PROGRAM_LOCAL_PARAMETERS_NV" value="0x8868"/>
+    <enum name="PROGRAM_ERROR_STRING_NV"                  value="0x8874"/>
+
     <function name="ProgramNamedParameter4fNV" offset="assign" vectorequiv="ProgramNamedParameter4fvNV">
         <param name="id" type="GLuint"/>
         <param name="len" type="GLsizei" counter="true"/>
@@ -12236,7 +12371,18 @@
     </function>
 </category>
 
+<category name="GL_EXT_packed_float" number="328">
+    <enum name="R11F_G11F_B10F_EXT"                value="0x8C3A"/>
+    <enum name="UNSIGNED_INT_10F_11F_11F_REV"      value="0x8C3B"/>
+    <enum name="RGBA_SIGNED_COMPONENTS_EXT"        value="0x8C3C"/>
+</category>
+
 <xi:include href="EXT_texture_array.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<category name="GL_EXT_framebuffer_sRGB" number="337">
+    <enum name="FRAMEBUFFER_SRGB_EXT"              value="0x8DB9"/>
+    <enum name="FRAMEBUFFER_SRGB_CAPABLE_EXT"      value="0x8DBA"/>
+</category>
 
 <category name="GL_APPLE_texture_range" number="367">
     <enum name="TEXTURE_STORAGE_HINT_APPLE" count="1" value="0x85BC">
@@ -12264,12 +12410,12 @@
     <enum name="TEXTURE_RANGE_POINTER_APPLE" count="1" value="0x85B8">
         <size name="GetTexParameterPointervAPPLE" mode="get"/>
     </enum>
-    <function name="TextureRangeAPPLE" offset="assign" static_dispatch="false">
+    <function name="TextureRangeAPPLE">
         <param name="target" type="GLenum"/>
         <param name="length" type="GLsizei"/>
         <param name="pointer" type="GLvoid *"/>
     </function>
-    <function name="GetTexParameterPointervAPPLE" offset="assign" static_dispatch="false">
+    <function name="GetTexParameterPointervAPPLE">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLvoid **"/>
@@ -12278,6 +12424,12 @@
 
 <xi:include href="EXT_separate_shader_objects.xml"
 	    xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<category name="GL_EXT_texture_sRGB_decode" number="402">
+    <enum name="TEXTURE_SRGB_DECODE_EXT"              value="0x8A48"/>
+    <enum name="DECODE_EXT"                           value="0x8A49"/>
+    <enum name="SKIP_DECODE_EXT"                      value="0x8A4A"/>
+</category>
 
 <!-- Unnumbered extensions sorted by name. -->
 

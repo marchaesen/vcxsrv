@@ -293,12 +293,6 @@ remove_master(ClientPtr client, xXIRemoveMasterInfo * r, int flags[MAXDEVICES])
         }
     }
 
-    /* can't disable until we removed pairing */
-    keybd->spriteInfo->paired = NULL;
-    ptr->spriteInfo->paired = NULL;
-    XTestptr->spriteInfo->paired = NULL;
-    XTestkeybd->spriteInfo->paired = NULL;
-
     /* disable the remove the devices, XTest devices must be done first
        else the sprites they rely on will be destroyed  */
     DisableDevice(XTestptr, FALSE);

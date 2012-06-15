@@ -264,7 +264,7 @@ extern _X_EXPORT Bool ActivateDevice(DeviceIntPtr /*device */ ,
 
 extern _X_EXPORT Bool DisableDevice(DeviceIntPtr /*device */ ,
                                     BOOL /* sendevent */ );
-
+extern void DisableAllDevices(void);
 extern int InitAndStartDevices(void);
 
 extern void CloseDownDevices(void);

@@ -1,15 +1,13 @@
-<HTML>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa News</title>
+  <link rel="stylesheet" type="text/css" href="mesa.css">
+</head>
+<body>
 
-<TITLE>Mesa News</TITLE>
-
-<head><link rel="stylesheet" type="text/css" href="mesa.css"></head>
-
-<BODY>
-
-<body bgcolor="#eeeeee">
-
-<H1>News</H1>
-
+<h1>News</h1>
 
 <h2>May 18, 2012</h2>
 
@@ -311,7 +309,7 @@ shading language and built-in functions.
 <h2>April 2007</h2>
 <p>
 Thomas Hellstr&ouml;m of Tungsten Graphics has written a whitepaper
-describing the new DRI memory management system</a>.
+describing the new DRI memory management system.
 </p>
 
 <h2>December 5, 2006</h2>
@@ -541,7 +539,7 @@ release).
 	- sampling an incomplete texture in a fragment program would segfault
 	- glTexImage was missing a few error checks
 	- fixed some minor glGetTexParameter glitches
-	- GL_INTENSITY was mistakenly accepted as a <format> to glTexImage
+	- GL_INTENSITY was mistakenly accepted as a &lt;format&gt; to glTexImage
 	- fragment program writes to RC/HC register were broken
 	- fixed a few glitches in GL_HP_occlusion_test extension
 	- glBeginQueryARB and glEndQueryARB didn't work inside display lists
@@ -549,6 +547,7 @@ release).
 	- fixed triangle color interpolation bug on AIX (Shane Blackett)
 	- fixed a number of minor memory leaks (bug #1002030)
 </pre>
+<p>
 The MD5 checksums are:
 </p>
 <pre>
@@ -578,7 +577,7 @@ This release basically just fixes bugs since the 6.0. release.
 	- fixed build problems on OpenBSD
 	- omit CVS directories from tarballs
 	- glGetTexImage(GL_COLOR_INDEX) was broken
-	- fixed an infinite loop in t&l module
+	- fixed an infinite loop in t&amp;l module
 	- silenced some valgrind warnings about using unitialized memory
 	- fixed some compilation/link glitches on IRIX (Mike Stephens)
 	- glBindProgram wasn't getting compiled into display lists
@@ -600,6 +599,7 @@ This release basically just fixes bugs since the 6.0. release.
 	- fragment program XPD instruction was incorrect
 	- glGetMaterial() didn't work reliably
 </pre>
+<p>
 The MD5 checksums are:
 </p>
 <pre>
@@ -610,7 +610,6 @@ b7b648599e0aaee1c4ffc554a2a9139e  MesaDemos-6.0.1.tar.gz
 dd6aadfd9ca8e1cfa90c6ee492bc6f43  MesaDemos-6.0.1.tar.bz2
 eff71d59c211825e949199852f5a2316  MesaDemos-6.0.1.zip
 </pre>
-
 
 
 <h2>January 16, 2004</h2>
@@ -639,7 +638,6 @@ and primarily just incorporates bug fixes.
 </pre>
 
 
-
 <h2>December 28, 2003</h2>
 
 <p>
@@ -663,7 +661,7 @@ OpenGL 1.5 features.
 <pre>
     New features:
 	- reorganized directory tree
-	- GL_ARB_vertex/fragment_program extensions (Michal Krol & Karl Rasche)
+	- GL_ARB_vertex/fragment_program extensions (Michal Krol &amp; Karl Rasche)
 	- GL_ATI_texture_env_combine3 extension (Ian Romanick)
 	- GL_SGI_texture_color_table extension (Eric Plante)
 	- GL_NV_fragment_program extension
@@ -699,7 +697,7 @@ OpenGL 1.5 features.
 	- glTexImage1/2/3D now allows width/height/depth = 0
 	- disable SPARC asm code on Linux (bug 852204)
 </pre>
-
+<p>
 The MD5 checksums are:
 </p>
 <pre>
@@ -729,7 +727,6 @@ a9dcf3ff9ad1b7d6ce73a0df7cff8b5b  MesaLib-5.0.2.tar.gz
 b81fafff90995025d2f25ea02b786642  MesaDemos-5.0.2.tar.bz2
 a21be975589e8a2d1871b6bb7874fffa  MesaDemos-5.0.2.zip
 </pre>
-
 
 
 <h2>September 5, 2003</h2>
@@ -766,7 +763,6 @@ Mesa 5.0.2 has been released.  This is a stable, bug-fix release.
 </pre>
 
 
-
 <h2>June 2003</h2>
 
 <p>
@@ -778,7 +774,6 @@ In CVS, the latest Mesa 5.1 development code is now rooted under the
 <b>Mesa-newtree/</b> directory.  The old top-level <b>Mesa/</b> directory
 holds the Mesa 5.0.x code which will be abandoned at some point.
 </p>
-
 
 
 <h2>March 30, 2003</h2>
@@ -1175,8 +1170,8 @@ Here's what's new:</p>
     Known problems:
         - NURBS or evaluator surfaces inside display lists don't always work
 </pre>
-<p>
-</p><h2>November 3, 2000</h2>
+
+<h2>November 3, 2000</h2>
 <p>Mesa 3.4 has been released. Here's what's new since the 3.3 release:</p>
 <pre>    New:
     - optimized glDrawPixels for glPixelZoom(1,-1)
@@ -1204,8 +1199,8 @@ Here's what's new:</p>
     Changes:
     - finished internal support for compressed textures for DRI
 </pre>
-<p>
-</p><h2>April 24, 2000</h2>
+
+<h2>April 24, 2000</h2>
 <p>Mesa 3.2 has been released. Here's what's new since the beta release:</p>
 <pre>    Bug fixes:
     - fixed memcpy bugs in span.c
@@ -1220,78 +1215,69 @@ Here's what's new:</p>
     - use bcopy() optimizations on FreeBSD
     - re-enabled the optimized persp_textured_triangle() function
 </pre>
-<p>
-</p><h2>March 23, 2000</h2>
+
+<h2>March 23, 2000</h2>
 <p>I've just upload the Mesa 3.2 beta 1 files to SourceForge at <a href="http://sourceforge.net/project/showfiles.php?group_id=3" target="_parent">http://sourceforge.net/project/filelist.php?group_id=3</a><a href="http://sourceforge.net/project/showfiles.php?group_id=3"></a></p>
 <p>3.2 (note even number) is a stabilization release of Mesa 3.1 meaning it's mainly
 just bug fixes.</p>
-<p>Here's what's changed:
-
-</p><ul>
-	Bug fixes:
-	<ul>
-		- mixed drawing of lines and bitmaps sometimes had wrong colors<br>
-		- added missing glHintPGI() function<br>
-		- fixed a polygon culling bug<br>
-		- fixed bugs in gluPartialDisk()<br>
-		- Z values in selection mode were wrong<br>
-		- added missing tokens:
-		<ul>
-			GL_SMOOTH_POINT_SIZE_RANGE<br>
-			GL_SMOOTH_POINT_SIZE_GRANULARITY<br>
-			GL_SMOOTH_LINE_WIDTH_RANGE<br>
-			GL_SMOOTH_LINE_WIDTH_GRANULARITY<br>
-			GL_ALIASED_POINT_SIZE_RANGE<br>
-			GL_ALIASED_LINE_WIDTH_RANGE
-		</ul>
-		- fixed glCopyPixels when copying from back to front buffer<br>
-		- GL_EXT_compiled_vertex_array tokens had _SGI suffix instead of _EXT<br>
-		- glDrawRangeElements(GL_LINES, 0, 1, 2, type, indices) was broken<br>
-		- glDeleteTextures() didn't decrement reference count correctly<br>
-		- GL_SRCA_ALPHA_SATURATE blend mode didn't work correctly<br>
-		- Actual depth of transformation matrix stacks was off by one<br>
-		- 24bpp visuals didn't address pixels correctly<br>
-		- mipmap level of detail (lambda) calculation simplified, more accurate<br>
-		- 101691 - Polygon clipping and GL_LINE<br>
-		- 101928 - Polygon clipping and GL_LINE (same fix as above)<br>
-		- 101808 - Non-glVertexArrays tristrip bug<br>
-		- 101971 - find_last_3f on Dec OSF (worked around)<br>
-		- 102369 - segv on dec osf (possibly a duplicate of the above)<br>
-		- 102893 - orientations of modelview cause segfault
-	</ul>
-	New:
-	<ul>
-		- updated SVGA Linux driver<br>
-		- added the MESA_FX_NO_SIGNALS env var, see docs/README.3DFX<br>
-		- build libGLw.a (Xt/OpenGL drawing area widget) library by default<br>
-		- changed -O2 to -O3 for a number of gcc configs
-	</ul>
-	Changes:
-	<ul>
-		- glXCopyContext's mask parameter is now unsigned long, per GLX spec
-	</ul>
-</ul>
+<p>Here's what's changed:</p>
+<pre>
+    Bug fixes:
+        - mixed drawing of lines and bitmaps sometimes had wrong colors
+        - added missing glHintPGI() function
+        - fixed a polygon culling bug
+        - fixed bugs in gluPartialDisk()
+        - Z values in selection mode were wrong
+        - added missing tokens:
+            GL_SMOOTH_POINT_SIZE_RANGE
+            GL_SMOOTH_POINT_SIZE_GRANULARITY
+            GL_SMOOTH_LINE_WIDTH_RANGE
+            GL_SMOOTH_LINE_WIDTH_GRANULARITY
+            GL_ALIASED_POINT_SIZE_RANGE
+            GL_ALIASED_LINE_WIDTH_RANGE
+        - fixed glCopyPixels when copying from back to front buffer
+        - GL_EXT_compiled_vertex_array tokens had _SGI suffix instead of _EXT
+        - glDrawRangeElements(GL_LINES, 0, 1, 2, type, indices) was broken
+        - glDeleteTextures() didn't decrement reference count correctly
+        - GL_SRCA_ALPHA_SATURATE blend mode didn't work correctly
+        - Actual depth of transformation matrix stacks was off by one
+        - 24bpp visuals didn't address pixels correctly
+        - mipmap level of detail (lambda) calculation simplified, more accurate
+        - 101691 - Polygon clipping and GL_LINE
+        - 101928 - Polygon clipping and GL_LINE (same fix as above)
+        - 101808 - Non-glVertexArrays tristrip bug
+        - 101971 - find_last_3f on Dec OSF (worked around)
+        - 102369 - segv on dec osf (possibly a duplicate of the above)
+        - 102893 - orientations of modelview cause segfault
+    New:
+        - updated SVGA Linux driver
+        - added the MESA_FX_NO_SIGNALS env var, see docs/README.3DFX
+        - build libGLw.a (Xt/OpenGL drawing area widget) library by default
+        - changed -O2 to -O3 for a number of gcc configs
+    Changes:
+        - glXCopyContext's mask parameter is now unsigned long, per GLX spec
+</pre>
 
 <p>Please report any problems with this release ASAP. Bugs should be filed on the
 Mesa3D website at sourceforge.<br>
 After 3.2 is wrapped up I hope to release 3.3 beta 1 soon afterward.</p>
 <p>-- Brian</p>
-<p>
-</p><h2>December 17, 1999</h2>
+
+<h2>December 17, 1999</h2>
 <p>A Slashdot interview with Brian about Mesa (questions submitted by Slashdot readers)
 can be found at <a href="http://slashdot.org/interviews/99/12/17/0927212.shtml" target="_parent">http://slashdot.org/interviews/99/12/17/0927212.shtml</a>.</p>
-<p>
-</p><h2>December 14, 1999</h2>
+
+<h2>December 14, 1999</h2>
 <p>Mesa 3.1 is released!</p>
-<p>
-</p><h2>September 21, 1999</h2>
+
+<h2>September 21, 1999</h2>
 <p>There appear to be two new files on the ftp site, <a href="ftp://ftp.mesa3d.org/mesa/beta/MesaLib-3.1beta3.tar.gz">MesaLib-3.1beta3.tar.gz</a>
 and <a href="ftp://ftp.mesa3d.org/mesa/beta/MesaDemos-3.1beta3.tar.gz">MesaDemos-3.1beta3.tar.gz</a>,
 that seem to be... yes, I've just received confirmation from the beta center, they
 are indeed the <b>THIRD</b> beta release of Mesa 3.1! Happy Days. Happy Days. Thanks
 Keith Whitwell for preparing these for us during Brian's absence.</p>
-<p>
-</p><h2>August 30, 1999</h2>
+
+<h2>August 30, 1999</h2>
 <p>I'm pleased to announce that I've accepted a position with Precision Insight,
 Inc. effective October, 1999. I'll be leaving Avid Technology in September.</p>
 <p>I've been working on Mesa in my spare time for over five years. With Precision
@@ -1301,41 +1287,41 @@ and OpenGL on Linux.</p>
 my work will continue to be open sourced and available to any other programmers who
 may want to contribute to it, or use it for other projects or platforms</p>
 <p>PS: I'm going to be traveling until Sep 6 and won't be reading email until then.</p>
-<p>
-</p><h2>August 23, 1999</h2>
+
+<h2>August 23, 1999</h2>
 <p>Anonymous CVS access is back online so suck up all the bandwidth you can afford.
 Note that this is a new archive, so you will need to re-checkout the archive. That
 means don't <i>cvs update</i> from a previous download.</p>
-<p>
-</p><h2>August 17, 1999</h2>
+
+<h2>August 17, 1999</h2>
 <p>A report from the SIGGRAPH '99 Linux/OpenGL
 BOF meeting is now available.</p>
 <p>-Brian</p>
-<p>
-</p><h2>August 14, 1999</h2>
+
+<h2>August 14, 1999</h2>
 <p>www.mesa3d.org is having technical problems due to hardware failures at VA Linux
 systems. The Mac pages, ftp, and CVS services aren't fully restored yet. Please be
 patient.</p>
 <p>-Brian</p>
-<p>
-</p><h2>June 7, 1999</h2>
+
+<h2>June 7, 1999</h2>
 <p>RPMS of the nVidia RIVA server can be found at <a href="ftp://ftp.mesa3d.org/mesa/misc/nVidia/">ftp://ftp.mesa3d.org/mesa/misc/nVidia/</a>.</p>
-<p>
-</p><h2>June 2, 1999</h2>
+
+<h2>June 2, 1999</h2>
 <p><a href="http://www.nvidia.com/">nVidia</a> has released some Linux binaries for
 xfree86 3.3.3.1, along with the <b>full source</b>, which includes GLX acceleration
 based on Mesa 3.0. They can be downloaded from <a href="http://www.nvidia.com/Products.nsf/htmlmedia/software_drivers.html">http://www.nvidia.com/Products.nsf/htmlmedia/software_drivers.html</a>.</p>
-<p>
-</p><h2>May 24, 1999</h2>
+
+<h2>May 24, 1999</h2>
 <p>Beta 2 of Mesa 3.1 has been make available at <a href="ftp://ftp.mesa3d.org/mesa/beta/">ftp://ftp.mesa3d.org/mesa/beta/</a>.
 If you are into the quake scene, you may want to try this out, as it contains some
 optimizations specifically in the Q3A rendering path.
-<p>
-</p><h2>May 13, 1999</h2>
+
+<h2>May 13, 1999</h2>
 <p>For those interested in the integration of Mesa into XFree86 4.0, Precision Insight
 has posted their lowlevel design documents at http://www.precisioninsight.com.</p>
-<p>
-</p><h2>May 13, 1999</h2>
+
+<h2>May 13, 1999</h2>
 <pre>May 1999 - John Carmack of id Software, Inc. has made a donation of
 US$10,000 to the Mesa project to support its continuing development.
 Mesa is a free implementation of the OpenGL 3D graphics library and id's
@@ -1356,33 +1342,27 @@ This donation from John/id is very generous.  Keith and I are very
 grateful.
 
 </pre>
-<p>
-</p><h2>May 1, 1999</h2>
-<p>John Carmack made an interesting .plan update yesterday:
 
-</p><ul>
-	<i>"I put together a document on optimizing OpenGL drivers for Q3 that
-	should be helpful to the various Linux 3D teams. <br>
-	</i>http://www.quake3arena.com/news/glopt.html</i>"
-</ul>
+<h2>May 1, 1999</h2>
+<p>John Carmack made an interesting .plan update yesterday:</p>
+<blockquote>
+    <i>"I put together a document on optimizing OpenGL drivers for Q3 that
+    should be helpful to the various Linux 3D teams.</i><br>
+    http://www.quake3arena.com/news/glopt.html"
+</blockquote>
 
-<p>
-</p><h2>April 7, 1999</h2>
+<h2>April 7, 1999</h2>
 <p>Updated the Mesa contributors section and added links to RPM Mesa packages.</p>
-<p>
-</p><h2>March 18, 1999</h2>
+
+<h2>March 18, 1999</h2>
 <p>The new webpages are now online. Enjoy, and let me know if you find any errors.
-<p>
-</p><h2>February 16, 1999</h2>
+
+<h2>February 16, 1999</h2>
 <p><a href="http://www.sgi.com/">SGI</a> releases its <a href="http://www.sgi.com/software/opensource/glx/">GLX
 source code</a>.</p>
-<p>
-</p><h2>January 22, 1999</h2>
+
+<h2>January 22, 1999</h2>
 <p>www.mesa3d.org established</p>
-
-
-</p>
-
 
 <hr>
 </body>

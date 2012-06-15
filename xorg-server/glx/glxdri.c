@@ -602,7 +602,10 @@ __glXDRIscreenDestroy(__GLXscreen * baseScreen)
 static __GLXcontext *
 __glXDRIscreenCreateContext(__GLXscreen * baseScreen,
                             __GLXconfig * glxConfig,
-                            __GLXcontext * baseShareContext)
+                            __GLXcontext * baseShareContext,
+                            unsigned num_attribs,
+                            const uint32_t *attribs,
+                            int *error)
 {
     __GLXDRIscreen *screen = (__GLXDRIscreen *) baseScreen;
     __GLXDRIcontext *context, *shareContext;
@@ -613,6 +616,13 @@ __glXDRIscreenCreateContext(__GLXscreen * baseScreen,
     __DRIcontext *driShare;
     drm_context_t hwContext;
     ScreenPtr pScreen = baseScreen->pScreen;
+
+    /* DRI1 cannot support createContextAttribs, so these parameters will
+     * never be used.
+     */
+    (void) num_attribs;
+    (void) attribs;
+    (void) error;
 
     shareContext = (__GLXDRIcontext *) baseShareContext;
     if (shareContext)

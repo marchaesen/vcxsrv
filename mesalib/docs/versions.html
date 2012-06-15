@@ -1,28 +1,27 @@
-<HTML>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Version History</title>
+  <link rel="stylesheet" type="text/css" href="mesa.css">
+</head>
+<body>
 
-<TITLE>Mesa Version History</TITLE>
-
-<head><link rel="stylesheet" type="text/css" href="mesa.css"></head>
-
-<BODY>
-
-<body bgcolor="#eeeeee">
-
-<B>
+<b>
 NOTE: Changes for Mesa 6.4 and later are documented in the corresponding
 <a href="relnotes.html">release notes</a> file.
-</B>
+</b>
 
 
-<H1>Mesa Version History</H1>
+<h1>Mesa Version History</h1>
 
 
-<H2>1.0 beta   February 1995</H2>
+<h2>1.0 beta   February 1995</h2>
 <ul>
 <li>Initial release
 </ul>
 
-<H2>1.1 beta   March 4, 1995</H2>
+<h2>1.1 beta   March 4, 1995</h2>
 Changes:
 <ul>
 <li>faster point and line drawing (2x faster)
@@ -37,7 +36,7 @@ New:
 <li>GLUT support
 </ul>
 
-<H2>1.1.1 beta   March 7, 1995</H2>
+<h2>1.1.1 beta   March 7, 1995</h2>
 Changes:
 <ul>
 <li>Reverted from eval2.c to eval.c due to FPE on Linux
@@ -45,7 +44,7 @@ Changes:
 <li>more Makefile changes
 </ul>
 
-<H2>1.1.2 beta   March 14, 1995</H2>
+<h2>1.1.2 beta   March 14, 1995</h2>
 New:
 <ul>
 <li>implementation of SGI's blending extensions
@@ -61,7 +60,7 @@ Changes:
 <li>faster transformation arithmetic
 </ul>
 
-<H2>1.1.3 beta   March 31, 1995</H2>
+<h2>1.1.3 beta   March 31, 1995</h2>
 New:
 <ul>
 <li>gluScaleImage() and gluBuild2DMipMaps() implemented
@@ -76,7 +75,7 @@ Changes:
 <li>more bug fixes
 </ul>
 
-<H2>1.1.4 beta   April 20, 1995</H2>
+<h2>1.1.4 beta   April 20, 1995</h2>
 Bug fixes:
 <ul>
 <li>missing #define SEEK_SET in src-tk/image.c
@@ -96,7 +95,7 @@ New features:
 <li>Implemented gluPartialDisk()
 </ul>
 
-<H2>1.2   May 22, 1995</H2>
+<h2>1.2   May 22, 1995</h2>
 Bug fixes:
 <ul>
 <li>IRIX 4.x makefile problem
@@ -128,7 +127,7 @@ Bug fixes:
 <li>X/Mesa incorrect default clear color and drawing color
 <li>more robust X MIT-SHM support in X/Mesa
 <li>glTexImage( format=GL_LUMINANCE ) didn't work
-<li>GL_LINE mode polygons with line width > 1.0 could cause a crash
+<li>GL_LINE mode polygons with line width &gt; 1.0 could cause a crash
 <li>numerous feedback bugs
 <li>glReadPixels() from depth buffer was wrong
 <li>error prone depth and stencil buffer allocation
@@ -391,7 +390,7 @@ Bug fixes:
 <li>using 24-bit color on some X servers resulted in garbage rendering
 <li>32-bit per pixel mode for XFree86 now works
 <li>glRotate(a,0,0,0) gave unpredictable results
-<li>GL_LINE_STRIP with > 480 vertices had occasional clipping problems
+<li>GL_LINE_STRIP with &gt; 480 vertices had occasional clipping problems
 <li>8-bit TrueColor GLXPixmap rendering incorrectly required a colormap
 <li>glMaterial() wasn't ignored when GL_COLOR_MATERIAL was enabled
 <li>glEnable(GL_COLOR_MATERIAL) followed by glColor() didn't work right
@@ -505,7 +504,7 @@ Changes:
 <li>many 3Dfx driver updates
 <li>cygnus Makefiles now included
 <li>updated DOS driver
-<li>made a few changes to dosmesa.c and wmesa.c (VB->Unclipped)
+<li>made a few changes to dosmesa.c and wmesa.c (VB-&gt;Unclipped)
 <li>internally, colors now stored in GLubytes, not GLfixed
 <li>optimized changing of GL_SHININESS parameter
 </ul>
@@ -594,7 +593,7 @@ New:
 <li>v0.22 of 3Dfx Glide driver
 <li>more X86 assembly language optimizations
 <li>faster blending for some modes
-<li>XMesaSetFXmode() to switch between 3Dfx window and full-screen mode 
+<li>XMesaSetFXmode() to switch between 3Dfx window and full-screen mode
 <li>added preliminary thread support
 <li>added GLX_MESA_copy_sub_buffer extension
 <li>some clipping optimizations
@@ -606,7 +605,7 @@ Bug fixes:
 <li>fixed clipping bug when using 3Dfx driver
 <li>fixed a problem when trying to use X fonts w/ 3Dfx driver
 <li>fixed a texture filter bug in 3Dfx/Glide driver
-<li>fixed bug in 3Dfx/Glide driver involving depth mask & clearing
+<li>fixed bug in 3Dfx/Glide driver involving depth mask &amp; clearing
 <li>glLoadMatrix to set projection matrix confused the 3Dfx driver
 <li>non-identity texture matrices didn't work with linux-386 configs
 <li>glGenTextures() didn't reserve the returned texture IDs
@@ -621,7 +620,7 @@ Changes:
 <ul>
 <li>replaced old Mesa/windows/ directory with Mesa/WIN32/ directory
 <li>converted a few old glaux/gltk demos to GLUT
-<li>renamed directories:  demos -> xdemos,  gdemos -> demos
+<li>renamed directories:  demos -&gt; xdemos,  gdemos -&gt; demos
 </ul>
 
 
@@ -898,9 +897,9 @@ New:
 <li>demos/texenv.c demo
 <li>GL_EXT_texture_env_combine extension (by Holger Waechtler)
 <li>Xlib driver is now thread-safe (see xdemos/glthreads)
-<ul>
-Bug Fixes:
 </ul>
+Bug Fixes:
+<ul>
 <li>various GL conformance failures fixed since 3.2.1
 </ul>
 Changes:
@@ -936,9 +935,9 @@ Bug Fixes:
 <li>texture matrix changes weren't always detected (GLUT projtex demo)
 <li>fixed random color problem in vertex fog code
 <li>fixed Glide-related bug that let Quake get a 24-bit Z buffer
-<ul>
-Changes:
 </ul>
+Changes:
+<ul>
 <li>finished internal support for compressed textures for DRI
 </ul>
 
@@ -1137,12 +1136,12 @@ Bug fixes:
 <li>glDraw/ReadPixels didn't catch all the errors that they should have
 <li>Fixed 24bpp rendering problem in Windows driver (Karl Schultz)
 <li>16-bit GLchan mode fixes (m_trans_tmp.h, s_triangle.c)
-<li>Fixed 1-bit float->int conversion bug in glDrawPixels(GL_DEPTH_COMP)
+<li>Fixed 1-bit float-&gt;int conversion bug in glDrawPixels(GL_DEPTH_COMP)
 <li>glColorMask as sometimes effecting glXSwapBuffers()
 <li>fixed a potential bug in XMesaGarbageCollect()
 <li>N threads rendering into one window didn't work reliably
 <li>glCopyPixels didn't work for deep color channels
-<li>improved 8 -> 16bit/channel texture image conversion (Gerk Huisma)
+<li>improved 8 -&gt; 16bit/channel texture image conversion (Gerk Huisma)
 <li>glPopAttrib() didn't correctly restore user clip planes
 <li>user clip planes failed for some perspective projections (Chromium)
 </ul>
@@ -1180,7 +1179,7 @@ Bug fixes:
 Changes:
 <ul>
 <li>lots of C++ (g++) code clean-ups
-<li>lots of T&L updates for the Radeon DRI driver
+<li>lots of T&amp;L updates for the Radeon DRI driver
 </ul>
 Known bugs:
 <ul>
@@ -1380,7 +1379,7 @@ Changes:
 New:
 <ul>
 <li>reorganized directory tree
-<li>GL_ARB_vertex/fragment_program extensions (Michal Krol & Karl Rasche)
+<li>GL_ARB_vertex/fragment_program extensions (Michal Krol &amp; Karl Rasche)
 <li>GL_ATI_texture_env_combine3 extension (Ian Romanick)
 <li>GL_SGI_texture_color_table extension (Eric Plante)
 <li>GL_NV_fragment_program extension
@@ -1443,7 +1442,7 @@ Bug fixes:
 </ul>
 
 
-<h2><a name="6.0.1">6.0.1  April 2, 2004</h2>
+<h2>6.0.1  April 2, 2004</h2>
 New:
 <ul>
 <li>upgraded glext.h to version 22
@@ -1456,7 +1455,7 @@ Bug fixes:
 <li>fixed build problems on OpenBSD
 <li>omit CVS directories from tarballs
 <li>glGetTexImage(GL_COLOR_INDEX) was broken
-<li>fixed an infinite loop in t&l module
+<li>fixed an infinite loop in t&amp;l module
 <li>silenced some valgrind warnings about using unitialized memory
 <li>fixed some compilation/link glitches on IRIX (Mike Stephens)
 <li>glBindProgram wasn't getting compiled into display lists
@@ -1481,7 +1480,7 @@ Bug fixes:
 </ul>
 
 
-<h2><a name="6.1">6.1  August 18, 2004</h2>
+<h2>6.1  August 18, 2004</h2>
 New:
 <ul>
 <li>Revamped Makefile system
@@ -1514,7 +1513,7 @@ Bug fixes:
 <li>sampling an incomplete texture in a fragment program would segfault
 <li>glTexImage was missing a few error checks
 <li>fixed some minor glGetTexParameter glitches
-<li>GL_INTENSITY was mistakenly accepted as a <format> to glTexImage
+<li>GL_INTENSITY was mistakenly accepted as a &lt;format&gt; to glTexImage
 <li>fragment program writes to RC/HC register were broken
 <li>fixed a few glitches in GL_HP_occlusion_test extension
 <li>glBeginQueryARB and glEndQueryARB didn't work inside display lists
@@ -1524,7 +1523,7 @@ Bug fixes:
 </ul>
 
 
-<h2><a name="6.2">6.2  October 2, 2004</h2>
+<h2>6.2  October 2, 2004</h2>
 New:
 <ul>
 <li>enabled GL_ARB_texture_rectangle (same as GL_NV_texture_rectangle)
@@ -1551,7 +1550,7 @@ Bug fixes:
 </ul>
 
 
-<h2><a name="6.2.1">6.2.1  December 9, 2004</h2>
+<h2>6.2.1  December 9, 2004</h2>
 Bug fixes:
 <ul>
 <li>don't apply regular fog or color sum when using a fragment program
@@ -1572,7 +1571,7 @@ Changes:
 </ul>
 
 
-<h2><a name="6.3">6.3  July 20, 2005</h2>
+<h2>6.3  July 20, 2005</h2>
 New:
 <ul>
 <li>GL_EXT_framebuffer_object extension
@@ -1616,13 +1615,13 @@ Bug fixes:
 </ul>
 
 
-<h2><a name="6.3.1">6.3.1</h2>
+<h2>6.3.1</h2>
 <p>
 This was an intermediate release for X.org which wasn't otherwise released.)
 </p>
 
 
-<h2><a name="6.3.2">6.3.2  August 19, 2005</h2>
+<h2>6.3.2  August 19, 2005</h2>
 New:
 <ul>
 <li>The distribution now includes the DRI drivers and GLX code
@@ -1646,10 +1645,10 @@ Bug fixes:
 </ul>
 
 
-<B>
+<b>
 NOTE: Changes for Mesa 6.4 and later are documented in the corresponding
 <a href="relnotes.html">release notes</a> file.
-</B>
+</b>
 
 
 </body>

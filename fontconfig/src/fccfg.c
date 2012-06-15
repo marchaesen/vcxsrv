@@ -1672,7 +1672,7 @@ DllMain (HINSTANCE hinstDLL,
 
   switch (fdwReason) {
   case DLL_PROCESS_ATTACH:
-      if (!GetModuleFileName ((HMODULE) hinstDLL, fontconfig_path,
+      if (!GetModuleFileName ((HMODULE) hinstDLL, (LPCH) fontconfig_path,
 			      sizeof (fontconfig_path)))
 	  break;
 
@@ -1681,15 +1681,15 @@ DllMain (HINSTANCE hinstDLL,
        * "etc/fonts" in there as FONTCONFIG_PATH. Otherwise use the
        * folder where the DLL is as FONTCONFIG_PATH.
        */
-      p = strrchr (fontconfig_path, '\\');
+      p = (FcChar8 *) strrchr ((const char *) fontconfig_path, '\\');
       if (p)
       {
 	  *p = '\0';
-	  p = strrchr (fontconfig_path, '\\');
-	  if (p && (FcStrCmpIgnoreCase (p + 1, "bin") == 0 ||
-		    FcStrCmpIgnoreCase (p + 1, "lib") == 0))
+	  p = (FcChar8 *) strrchr ((const char *) fontconfig_path, '\\');
+	  if (p && (FcStrCmpIgnoreCase (p + 1, (const FcChar8 *) "bin") == 0 ||
+		    FcStrCmpIgnoreCase (p + 1, (const FcChar8 *) "lib") == 0))
 	      *p = '\0';
-	  strcat (fontconfig_path, "\\etc\\fonts");
+	  strcat ((char *) fontconfig_path, "\\etc\\fonts");
       }
       else
           fontconfig_path[0] = '\0';
@@ -1804,11 +1804,11 @@ FcConfigGetPath (void)
 	if (fontconfig_path[0] == '\0')
 	{
 		char *p;
-		if(!GetModuleFileName(NULL, fontconfig_path, sizeof(fontconfig_path)))
+		if(!GetModuleFileName(NULL, (LPCH) fontconfig_path, sizeof(fontconfig_path)))
 			goto bail1;
-		p = strrchr (fontconfig_path, '\\');
+		p = strrchr ((const char *) fontconfig_path, '\\');
 		if (p) *p = '\0';
-		strcat (fontconfig_path, "\\fonts");
+		strcat ((char *) fontconfig_path, "\\fonts");
 	}
 #endif
     dir = (FcChar8 *) FONTCONFIG_PATH;

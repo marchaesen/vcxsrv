@@ -40,6 +40,7 @@ touch_grow_queue(void)
     int i;
 
     memset(&dev, 0, sizeof(dev));
+    dev.name = "test device";
     dev.id = 2;
     dev.valuator = &val;
     val.numAxes = 5;
@@ -94,6 +95,7 @@ touch_find_ddxid(void)
     int i;
 
     memset(&dev, 0, sizeof(dev));
+    dev.name = "test device";
     dev.id = 2;
     dev.valuator = &val;
     val.numAxes = 5;
@@ -162,6 +164,7 @@ touch_begin_ddxtouch(void)
     int size = 5;
 
     memset(&dev, 0, sizeof(dev));
+    dev.name = "test device";
     dev.id = 2;
     dev.valuator = &val;
     val.numAxes = 5;
@@ -209,6 +212,7 @@ touch_begin_touch(void)
     screenInfo.screens[0] = &screen;
 
     memset(&dev, 0, sizeof(dev));
+    dev.name = "test device";
     dev.id = 2;
 
     memset(&sprite, 0, sizeof(sprite));
@@ -247,6 +251,7 @@ touch_init(void)
     screenInfo.screens[0] = &screen;
 
     memset(&dev, 0, sizeof(dev));
+    dev.name = "test device";
 
     memset(&sprite, 0, sizeof(sprite));
     dev.spriteInfo = &sprite;

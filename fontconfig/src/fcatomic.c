@@ -100,12 +100,13 @@ FcAtomicCreate (const FcChar8   *file)
 FcBool
 FcAtomicLock (FcAtomic *atomic)
 {
-    int		fd = -1;
-    FILE	*f = 0;
     int		ret;
     struct stat	lck_stat;
 
 #ifdef HAVE_LINK
+    int		fd = -1;
+    FILE	*f = 0;
+
     strcpy ((char *) atomic->tmp, (char *) atomic->file);
     strcat ((char *) atomic->tmp, TMP_NAME);
     fd = mkstemp ((char *) atomic->tmp);
@@ -186,7 +187,7 @@ FcBool
 FcAtomicReplaceOrig (FcAtomic *atomic)
 {
 #ifdef _WIN32
-    unlink (atomic->file);
+    unlink ((const char *) atomic->file);
 #endif
     if (rename ((char *) atomic->new, (char *) atomic->file) < 0)
 	return FcFalse;

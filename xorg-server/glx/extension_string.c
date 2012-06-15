@@ -67,23 +67,27 @@ struct extension_info {
 
 static const struct extension_info known_glx_extensions[] = {
 /*   GLX_ARB_get_proc_address is implemented on the client. */
-    {GLX(ARB_multisample), VER(1, 4), Y,},
+    /* *INDENT-OFF* */
+    { GLX(ARB_create_context),          VER(0,0), N, },
+    { GLX(ARB_create_context_profile),  VER(0,0), N, },
+    { GLX(ARB_multisample),             VER(1,4), Y, },
 
-    {GLX(EXT_import_context), VER(0, 0), Y,},
-    {GLX(EXT_texture_from_pixmap), VER(0, 0), Y,},
-    {GLX(EXT_visual_info), VER(0, 0), Y,},
-    {GLX(EXT_visual_rating), VER(0, 0), Y,},
+    { GLX(EXT_import_context),          VER(0,0), Y, },
+    { GLX(EXT_texture_from_pixmap),     VER(0,0), Y, },
+    { GLX(EXT_visual_info),             VER(0,0), Y, },
+    { GLX(EXT_visual_rating),           VER(0,0), Y, },
 
-    {GLX(MESA_copy_sub_buffer), VER(0, 0), N,},
-    {GLX(OML_swap_method), VER(0, 0), Y,},
-    {GLX(SGI_make_current_read), VER(1, 3), N,},
-    {GLX(SGI_swap_control), VER(0, 0), N,},
-    {GLX(SGIS_multisample), VER(0, 0), Y,},
-    {GLX(SGIX_fbconfig), VER(1, 3), Y,},
-    {GLX(SGIX_pbuffer), VER(1, 3), Y,},
-    {GLX(SGIX_visual_select_group), VER(0, 0), Y,},
-    {GLX(INTEL_swap_event), VER(1, 4), N,},
-    {NULL}
+    { GLX(MESA_copy_sub_buffer),        VER(0,0), N, },
+    { GLX(OML_swap_method),             VER(0,0), Y, },
+    { GLX(SGI_make_current_read),       VER(1,3), N, },
+    { GLX(SGI_swap_control),            VER(0,0), N, },
+    { GLX(SGIS_multisample),            VER(0,0), Y, },
+    { GLX(SGIX_fbconfig),               VER(1,3), Y, },
+    { GLX(SGIX_pbuffer),                VER(1,3), Y, },
+    { GLX(SGIX_visual_select_group),    VER(0,0), Y, },
+    { GLX(INTEL_swap_event),            VER(1,4), N, },
+    { NULL }
+    /* *INDENT-ON* */
 };
 
 /**
