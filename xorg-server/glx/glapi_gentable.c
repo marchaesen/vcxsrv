@@ -6492,48 +6492,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->GetPixelTexGenParameterfvSGIS) {
-        void ** procp = (void **) &disp->GetPixelTexGenParameterfvSGIS;
-        snprintf(symboln, sizeof(symboln), "%sGetPixelTexGenParameterfvSGIS", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetPixelTexGenParameterivSGIS) {
-        void ** procp = (void **) &disp->GetPixelTexGenParameterivSGIS;
-        snprintf(symboln, sizeof(symboln), "%sGetPixelTexGenParameterivSGIS", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PixelTexGenParameterfSGIS) {
-        void ** procp = (void **) &disp->PixelTexGenParameterfSGIS;
-        snprintf(symboln, sizeof(symboln), "%sPixelTexGenParameterfSGIS", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PixelTexGenParameterfvSGIS) {
-        void ** procp = (void **) &disp->PixelTexGenParameterfvSGIS;
-        snprintf(symboln, sizeof(symboln), "%sPixelTexGenParameterfvSGIS", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PixelTexGenParameteriSGIS) {
-        void ** procp = (void **) &disp->PixelTexGenParameteriSGIS;
-        snprintf(symboln, sizeof(symboln), "%sPixelTexGenParameteriSGIS", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PixelTexGenParameterivSGIS) {
-        void ** procp = (void **) &disp->PixelTexGenParameterivSGIS;
-        snprintf(symboln, sizeof(symboln), "%sPixelTexGenParameterivSGIS", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->SampleMaskSGIS) {
         void ** procp = (void **) &disp->SampleMaskSGIS;
         snprintf(symboln, sizeof(symboln), "%sSampleMaskSGIS", symbol_prefix);
@@ -7010,13 +6968,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->PixelTexGenSGIX) {
-        void ** procp = (void **) &disp->PixelTexGenSGIX;
-        snprintf(symboln, sizeof(symboln), "%sPixelTexGenSGIX", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->BlendFuncSeparateEXT) {
         void ** procp = (void **) &disp->BlendFuncSeparateEXT;
         snprintf(symboln, sizeof(symboln), "%sBlendFuncSeparate", symbol_prefix);
@@ -7034,111 +6985,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->BlendFuncSeparateEXT) {
         void ** procp = (void **) &disp->BlendFuncSeparateEXT;
         snprintf(symboln, sizeof(symboln), "%sBlendFuncSeparateINGR", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FlushVertexArrayRangeNV) {
-        void ** procp = (void **) &disp->FlushVertexArrayRangeNV;
-        snprintf(symboln, sizeof(symboln), "%sFlushVertexArrayRangeNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexArrayRangeNV) {
-        void ** procp = (void **) &disp->VertexArrayRangeNV;
-        snprintf(symboln, sizeof(symboln), "%sVertexArrayRangeNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CombinerInputNV) {
-        void ** procp = (void **) &disp->CombinerInputNV;
-        snprintf(symboln, sizeof(symboln), "%sCombinerInputNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CombinerOutputNV) {
-        void ** procp = (void **) &disp->CombinerOutputNV;
-        snprintf(symboln, sizeof(symboln), "%sCombinerOutputNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CombinerParameterfNV) {
-        void ** procp = (void **) &disp->CombinerParameterfNV;
-        snprintf(symboln, sizeof(symboln), "%sCombinerParameterfNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CombinerParameterfvNV) {
-        void ** procp = (void **) &disp->CombinerParameterfvNV;
-        snprintf(symboln, sizeof(symboln), "%sCombinerParameterfvNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CombinerParameteriNV) {
-        void ** procp = (void **) &disp->CombinerParameteriNV;
-        snprintf(symboln, sizeof(symboln), "%sCombinerParameteriNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CombinerParameterivNV) {
-        void ** procp = (void **) &disp->CombinerParameterivNV;
-        snprintf(symboln, sizeof(symboln), "%sCombinerParameterivNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FinalCombinerInputNV) {
-        void ** procp = (void **) &disp->FinalCombinerInputNV;
-        snprintf(symboln, sizeof(symboln), "%sFinalCombinerInputNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetCombinerInputParameterfvNV) {
-        void ** procp = (void **) &disp->GetCombinerInputParameterfvNV;
-        snprintf(symboln, sizeof(symboln), "%sGetCombinerInputParameterfvNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetCombinerInputParameterivNV) {
-        void ** procp = (void **) &disp->GetCombinerInputParameterivNV;
-        snprintf(symboln, sizeof(symboln), "%sGetCombinerInputParameterivNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetCombinerOutputParameterfvNV) {
-        void ** procp = (void **) &disp->GetCombinerOutputParameterfvNV;
-        snprintf(symboln, sizeof(symboln), "%sGetCombinerOutputParameterfvNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetCombinerOutputParameterivNV) {
-        void ** procp = (void **) &disp->GetCombinerOutputParameterivNV;
-        snprintf(symboln, sizeof(symboln), "%sGetCombinerOutputParameterivNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetFinalCombinerInputParameterfvNV) {
-        void ** procp = (void **) &disp->GetFinalCombinerInputParameterfvNV;
-        snprintf(symboln, sizeof(symboln), "%sGetFinalCombinerInputParameterfvNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetFinalCombinerInputParameterivNV) {
-        void ** procp = (void **) &disp->GetFinalCombinerInputParameterivNV;
-        snprintf(symboln, sizeof(symboln), "%sGetFinalCombinerInputParameterivNV", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -7552,55 +7398,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->MultiModeDrawElementsIBM) {
         void ** procp = (void **) &disp->MultiModeDrawElementsIBM;
         snprintf(symboln, sizeof(symboln), "%sMultiModeDrawElementsIBM", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteFencesNV) {
-        void ** procp = (void **) &disp->DeleteFencesNV;
-        snprintf(symboln, sizeof(symboln), "%sDeleteFencesNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FinishFenceNV) {
-        void ** procp = (void **) &disp->FinishFenceNV;
-        snprintf(symboln, sizeof(symboln), "%sFinishFenceNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenFencesNV) {
-        void ** procp = (void **) &disp->GenFencesNV;
-        snprintf(symboln, sizeof(symboln), "%sGenFencesNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetFenceivNV) {
-        void ** procp = (void **) &disp->GetFenceivNV;
-        snprintf(symboln, sizeof(symboln), "%sGetFenceivNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsFenceNV) {
-        void ** procp = (void **) &disp->IsFenceNV;
-        snprintf(symboln, sizeof(symboln), "%sIsFenceNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SetFenceNV) {
-        void ** procp = (void **) &disp->SetFenceNV;
-        snprintf(symboln, sizeof(symboln), "%sSetFenceNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TestFenceNV) {
-        void ** procp = (void **) &disp->TestFenceNV;
-        snprintf(symboln, sizeof(symboln), "%sTestFenceNV", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -9407,20 +9204,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->ProvokingVertexEXT) {
         void ** procp = (void **) &disp->ProvokingVertexEXT;
         snprintf(symboln, sizeof(symboln), "%sProvokingVertex", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetTexParameterPointervAPPLE) {
-        void ** procp = (void **) &disp->GetTexParameterPointervAPPLE;
-        snprintf(symboln, sizeof(symboln), "%sGetTexParameterPointervAPPLE", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TextureRangeAPPLE) {
-        void ** procp = (void **) &disp->TextureRangeAPPLE;
-        snprintf(symboln, sizeof(symboln), "%sTextureRangeAPPLE", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
