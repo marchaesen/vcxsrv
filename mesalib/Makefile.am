@@ -19,13 +19,16 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-SUBDIRS = src tests
+SUBDIRS = src
 
 doxygen:
 	cd doxygen && $(MAKE)
 
 check-local:
+	$(MAKE) -C src/mapi/glapi/tests check
+	$(MAKE) -C src/mesa/main/tests check
 	$(MAKE) -C src/glsl/tests check
+	$(MAKE) -C src/glx/tests check
 
 clean-local:
 	-@touch $(top_builddir)/configs/current
@@ -56,8 +59,6 @@ PACKAGE_NAME = MesaLib-$(PACKAGE_VERSION)
 EXTRA_FILES = \
 	aclocal.m4					\
 	configure					\
-	tests/Makefile.in				\
-	tests/glx/Makefile.in				\
 	src/glsl/glsl_parser.cpp			\
 	src/glsl/glsl_parser.h				\
 	src/glsl/glsl_lexer.cpp				\

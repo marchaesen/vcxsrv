@@ -103,11 +103,11 @@ TouchResizeQueue(ClientPtr client, pointer closure)
 
         tmp = realloc(dev->last.touches, size * sizeof(*dev->last.touches));
         if (tmp) {
-            int i;
+            int j;
 
             dev->last.touches = tmp;
-            for (i = dev->last.num_touches; i < size; i++)
-                TouchInitDDXTouchPoint(dev, &dev->last.touches[i]);
+            for (j = dev->last.num_touches; j < size; j++)
+                TouchInitDDXTouchPoint(dev, &dev->last.touches[j]);
             dev->last.num_touches = size;
         }
 
@@ -598,8 +598,8 @@ TouchConvertToPointerEvent(const InternalEvent *event,
     int ptrtype;
     int nevents = 0;
 
-    BUG_WARN(!event);
-    BUG_WARN(!motion_event);
+    BUG_RETURN_VAL(!event, 0);
+    BUG_RETURN_VAL(!motion_event, 0);
 
     switch (event->any.type) {
     case ET_TouchUpdate:
@@ -627,7 +627,7 @@ TouchConvertToPointerEvent(const InternalEvent *event,
     motion_event->device_event.flags = XIPointerEmulated;
 
     if (nevents > 1) {
-        BUG_WARN(!button_event);
+        BUG_RETURN_VAL(!button_event, 0);
         *button_event = *event;
         button_event->any.type = ptrtype;
         button_event->device_event.flags = XIPointerEmulated;
@@ -966,10 +966,8 @@ TouchListenerAcceptReject(DeviceIntPtr dev, TouchPointInfoPtr ti, int listener,
     int nev;
     int i;
 
-    BUG_WARN(listener < 0);
-    BUG_WARN(listener >= ti->num_listeners);
-    if (listener < 0 || listener >= ti->num_listeners)
-        return BadMatch;
+    BUG_RETURN_VAL(listener < 0, BadMatch);
+    BUG_RETURN_VAL(listener >= ti->num_listeners, BadMatch);
 
     if (listener > 0) {
         if (mode == XIRejectTouch)
@@ -981,10 +979,7 @@ TouchListenerAcceptReject(DeviceIntPtr dev, TouchPointInfoPtr ti, int listener,
     }
 
     events = InitEventList(GetMaximumEventsNum());
-    if (!events) {
-        BUG_WARN_MSG(TRUE, "Failed to allocate touch ownership events\n");
-        return BadAlloc;
-    }
+    BUG_RETURN_VAL_MSG(!events, BadAlloc, "Failed to allocate touch ownership events\n");
 
     nev = GetTouchOwnershipEvents(events, dev, ti, mode,
                                   ti->listeners[0].listener, 0);

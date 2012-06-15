@@ -412,6 +412,7 @@ set_general_properties (pixman_image_t *image, pixman_bool_t allow_alpha_map)
 
 	case 6: case 7:
 	    n_rects = 3;
+	    break;
 
 	default:
 	    n_rects = lcg_rand_n (100);

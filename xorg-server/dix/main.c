@@ -104,6 +104,7 @@ Equipment Corporation.
 #include "privates.h"
 #include "registry.h"
 #include "client.h"
+#include "exevents.h"
 #ifdef PANORAMIX
 #include "panoramiXsrv.h"
 #else
@@ -295,6 +296,7 @@ main(int argc, char *argv[], char *envp[])
 #endif
 
         UndisplayDevices();
+        DisableAllDevices();
 
         /* Now free up whatever must be freed */
         if (screenIsSaved == SCREEN_SAVER_ON)
@@ -318,7 +320,9 @@ main(int argc, char *argv[], char *envp[])
 
         for (i = 0; i < screenInfo.numScreens; i++)
             screenInfo.screens[i]->root = NullWindow;
+
         CloseDownDevices();
+
         CloseDownEvents();
 
         for (i = screenInfo.numScreens - 1; i >= 0; i--) {

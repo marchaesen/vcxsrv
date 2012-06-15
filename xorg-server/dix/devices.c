@@ -178,12 +178,9 @@ DeviceSetProperty(DeviceIntPtr dev, Atom property, XIPropertyValuePtr prop,
 
 /* Pair the keyboard to the pointer device. Keyboard events will follow the
  * pointer sprite. Only applicable for master devices.
- * If the client is set, the request to pair comes from some client. In this
- * case, we need to check for access. If the client is NULL, it's from an
- * internal automatic pairing, we must always permit this.
  */
 static int
-PairDevices(ClientPtr client, DeviceIntPtr ptr, DeviceIntPtr kbd)
+PairDevices(DeviceIntPtr ptr, DeviceIntPtr kbd)
 {
     if (!ptr)
         return BadDevice;
@@ -365,13 +362,12 @@ EnableDevice(DeviceIntPtr dev, BOOL sendevent)
                 /* mode doesn't matter */
                 EnterWindow(dev, screenInfo.screens[0]->root, NotifyAncestor);
             }
-            else if ((other = NextFreePointerDevice()) == NULL) {
-                ErrorF("[dix] cannot find pointer to pair with. "
-                       "This is a bug.\n");
-                return FALSE;
+            else {
+                other = NextFreePointerDevice();
+                BUG_RETURN_VAL_MSG(other == NULL, FALSE,
+                                   "[dix] cannot find pointer to pair with.\n");
+                PairDevices(other, dev);
             }
-            else
-                PairDevices(NULL, other, dev);
         }
         else {
             if (dev->coreEvents)
@@ -432,6 +428,9 @@ DisableDevice(DeviceIntPtr dev, BOOL sendevent)
     BOOL enabled;
     int flags[MAXDEVICES] = { 0 };
 
+    if (!dev->enabled)
+        return TRUE;
+
     for (prev = &inputInfo.devices;
          *prev && (*prev != dev); prev = &(*prev)->next);
     if (*prev != dev)
@@ -458,17 +457,18 @@ DisableDevice(DeviceIntPtr dev, BOOL sendevent)
     }
 
     if (IsMaster(dev) && dev->spriteInfo->sprite) {
-        for (other = inputInfo.devices; other; other = other->next) {
-            if (other->spriteInfo->paired == dev) {
-                ErrorF("[dix] cannot disable device, still paired. "
-                       "This is a bug. \n");
-                return FALSE;
-            }
-        }
+        for (other = inputInfo.devices; other; other = other->next)
+            if (other->spriteInfo->paired == dev && !other->spriteInfo->spriteOwner)
+                DisableDevice(other, sendevent);
     }
+
+    if (dev->spriteInfo->paired)
+        dev->spriteInfo->paired = NULL;
 
     (void) (*dev->deviceProc) (dev, DEVICE_OFF);
     dev->enabled = FALSE;
+
+    FreeSprite(dev);
 
     /* now that the device is disabled, we can reset the signal handler's
      * last.slave */
@@ -499,6 +499,26 @@ DisableDevice(DeviceIntPtr dev, BOOL sendevent)
     RecalculateMasterButtons(dev);
 
     return TRUE;
+}
+
+void
+DisableAllDevices(void)
+{
+    DeviceIntPtr dev, tmp;
+
+    nt_list_for_each_entry_safe(dev, tmp, inputInfo.devices, next) {
+        if (!IsMaster(dev))
+            DisableDevice(dev, FALSE);
+    }
+    /* master keyboards need to be disabled first */
+    nt_list_for_each_entry_safe(dev, tmp, inputInfo.devices, next) {
+        if (dev->enabled && IsMaster(dev) && IsKeyboardDevice(dev))
+            DisableDevice(dev, FALSE);
+    }
+    nt_list_for_each_entry_safe(dev, tmp, inputInfo.devices, next) {
+        if (dev->enabled)
+            DisableDevice(dev, FALSE);
+    }
 }
 
 /**
@@ -923,12 +943,7 @@ CloseDevice(DeviceIntPtr dev)
         free(classes);
     }
 
-    if (DevHasCursor(dev) && dev->spriteInfo->sprite) {
-        if (dev->spriteInfo->sprite->current)
-            FreeCursor(dev->spriteInfo->sprite->current, None);
-        free(dev->spriteInfo->sprite->spriteTrace);
-        free(dev->spriteInfo->sprite);
-    }
+    FreeSprite(dev);
 
     /* a client may have the device set as client pointer */
     for (j = 0; j < currentMaxClients; j++) {

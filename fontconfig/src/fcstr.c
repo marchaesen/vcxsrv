@@ -1052,13 +1052,13 @@ FcStrCanonFilename (const FcChar8 *s)
 {
 #ifdef _WIN32
     FcChar8 full[FC_MAX_FILE_LEN + 2];
-    int size = GetFullPathName (s, sizeof (full) -1,
-				full, NULL);
+    int size = GetFullPathName ((LPCSTR) s, sizeof (full) -1,
+				(LPSTR) full, NULL);
 
     if (size == 0)
 	perror ("GetFullPathName");
 
-    FcConvertDosPath (full);
+    FcConvertDosPath ((char *) full);
     return FcStrCanonAbsoluteFilename (full);
 #else
     if (s[0] == '/')

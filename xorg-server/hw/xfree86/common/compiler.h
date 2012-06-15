@@ -119,6 +119,23 @@ extern _X_EXPORT unsigned int inb(unsigned long);
 extern _X_EXPORT unsigned int inw(unsigned long);
 extern _X_EXPORT unsigned int inl(unsigned long);
 
+#ifdef __SUNPRO_C
+extern _X_EXPORT unsigned char  xf86ReadMmio8    (void *, unsigned long);
+extern _X_EXPORT unsigned short xf86ReadMmio16Be (void *, unsigned long);
+extern _X_EXPORT unsigned short xf86ReadMmio16Le (void *, unsigned long);
+extern _X_EXPORT unsigned int   xf86ReadMmio32Be (void *, unsigned long);
+extern _X_EXPORT unsigned int   xf86ReadMmio32Le (void *, unsigned long);
+extern _X_EXPORT void xf86WriteMmio8    (void *, unsigned long, unsigned int);
+extern _X_EXPORT void xf86WriteMmio16Be (void *, unsigned long, unsigned int);
+extern _X_EXPORT void xf86WriteMmio16Le (void *, unsigned long, unsigned int);
+extern _X_EXPORT void xf86WriteMmio32Be (void *, unsigned long, unsigned int);
+extern _X_EXPORT void xf86WriteMmio32Le (void *, unsigned long, unsigned int);
+extern _X_EXPORT void xf86WriteMmio8NB    (void *, unsigned long, unsigned int);
+extern _X_EXPORT void xf86WriteMmio16BeNB (void *, unsigned long, unsigned int);
+extern _X_EXPORT void xf86WriteMmio16LeNB (void *, unsigned long, unsigned int);
+extern _X_EXPORT void xf86WriteMmio32BeNB (void *, unsigned long, unsigned int);
+extern _X_EXPORT void xf86WriteMmio32LeNB (void *, unsigned long, unsigned int);
+#endif                          /* _SUNPRO_C */
 #endif                          /* __sparc__,  __arm32__, __alpha__, __nds32__ */
 #endif                          /* __arm__ */
 

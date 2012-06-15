@@ -179,7 +179,7 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
     vbiosMem = (char *) base + V_BIOS;
     memset(vbiosMem, 0, 2 * V_BIOS_SIZE);
     if (pci_device_read_rom(pInt->dev, vbiosMem) < V_BIOS_SIZE) {
-        xf86DrvMsg(screen, X_WARNING,
+        xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
                    "Unable to retrieve all of segment 0x0C0000.\n");
     }
 
@@ -194,10 +194,10 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
         vbiosMem = (unsigned char *) base + bios_location;
 
         if (xf86IsEntityPrimary(entityIndex)) {
-            if (int10_check_bios(screen, bios_location >> 4, vbiosMem))
+            if (int10_check_bios(pScrn->scrnIndex, bios_location >> 4, vbiosMem))
                 done = TRUE;
             else
-                xf86DrvMsg(screen, X_INFO,
+                xf86DrvMsg(pScrn->scrnIndex, X_INFO,
                            "No legacy BIOS found -- trying PCI\n");
         }
         if (!done) {
@@ -207,7 +207,7 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
 
             err = pci_device_read_rom(rom_device, vbiosMem);
             if (err) {
-                xf86DrvMsg(screen, X_ERROR, "Cannot read V_BIOS (5) %s\n",
+                xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Cannot read V_BIOS (5) %s\n",
                            strerror(err));
                 goto error1;
             }

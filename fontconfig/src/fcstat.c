@@ -82,7 +82,7 @@ FcStat (const FcChar8 *file, struct stat *statb)
     char *basename;
     DWORD rc;
 
-    if (!GetFileAttributesEx (file, GetFileExInfoStandard, &wfad))
+    if (!GetFileAttributesEx ((LPCSTR) file, GetFileExInfoStandard, &wfad))
 	return -1;
 
     statb->st_dev = 0;
@@ -91,12 +91,12 @@ FcStat (const FcChar8 *file, struct stat *statb)
      * Call GetLongPathName() to get the spelling of the path name as it
      * is on disk.
      */
-    rc = GetFullPathName (file, sizeof (full_path_name), full_path_name, &basename);
+    rc = GetFullPathName ((LPCSTR) file, sizeof (full_path_name), full_path_name, &basename);
     if (rc == 0 || rc > sizeof (full_path_name))
 	return -1;
 
     rc = GetLongPathName (full_path_name, full_path_name, sizeof (full_path_name));
-    statb->st_ino = FcStringHash (full_path_name);
+    statb->st_ino = FcStringHash ((const FcChar8 *) full_path_name);
 
     statb->st_mode = _S_IREAD | _S_IWRITE;
     statb->st_mode |= (statb->st_mode >> 3) | (statb->st_mode >> 6);
@@ -128,8 +128,6 @@ FcStat (const FcChar8 *file, struct stat *statb)
 {
   return stat ((char *) file, statb);
 }
-
-#endif
 
 /* Adler-32 checksum implementation */
 struct Adler32 {
@@ -238,6 +236,7 @@ FcDirChecksum (const FcChar8 *dir, time_t *checksum)
 
     return 0;
 }
+#endif /* _WIN32 */
 
 int
 FcStatChecksum (const FcChar8 *file, struct stat *statb)
@@ -245,11 +244,16 @@ FcStatChecksum (const FcChar8 *file, struct stat *statb)
     if (FcStat (file, statb) == -1)
         return -1;
 
+#ifndef _WIN32
+    /* We have a workaround of the broken stat() in FcStat() for Win32.
+     * No need to do something further more.
+     */
     if (FcIsFsMtimeBroken (file))
     {
         if (FcDirChecksum (file, &statb->st_mtime) == -1)
             return -1;
     }
+#endif
 
     return 0;
 }
@@ -258,7 +262,7 @@ static int
 FcFStatFs (int fd, FcStatFS *statb)
 {
     const char *p = NULL;
-    int ret;
+    int ret = -1;
     FcBool flag = FcFalse;
 
     memset (statb, 0, sizeof (FcStatFS));

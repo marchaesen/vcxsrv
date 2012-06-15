@@ -926,10 +926,10 @@ UpdateDeviceState(DeviceIntPtr device, DeviceEvent *event)
     else if (event->type == ET_ProximityOut)
         device->proximity->in_proximity = FALSE;
     else if (event->type == ET_TouchBegin) {
-        BUG_WARN(!b || !v);
-        BUG_WARN(!t);
+        BUG_RETURN_VAL(!b || !v, DONT_PROCESS);
+        BUG_RETURN_VAL(!t, DONT_PROCESS);
 
-        if (!b || !t || !b->map[key])
+        if (!b->map[key])
             return DONT_PROCESS;
 
         if (!(event->flags & TOUCH_POINTER_EMULATED) ||
@@ -941,10 +941,10 @@ UpdateDeviceState(DeviceIntPtr device, DeviceEvent *event)
         UpdateDeviceMotionMask(device, t->state, DeviceButtonMotionMask);
     }
     else if (event->type == ET_TouchEnd) {
-        BUG_WARN(!b || !v);
-        BUG_WARN(!t);
+        BUG_RETURN_VAL(!b || !v, DONT_PROCESS);
+        BUG_RETURN_VAL(!t, DONT_PROCESS);
 
-        if (!b || !t || t->buttonsDown <= 0 || !b->map[key])
+        if (t->buttonsDown <= 0 || !b->map[key])
             return DONT_PROCESS;
 
         if (!(event->flags & TOUCH_POINTER_EMULATED))
@@ -1356,9 +1356,8 @@ RetrieveTouchDeliveryData(DeviceIntPtr dev, TouchPointInfoPtr ti,
                                    wOtherInputMasks(*win)->inputClients, next)
                 if (xi2mask_isset(iclients->xi2mask, dev, evtype))
                 break;
-            BUG_WARN(!iclients);
-            if (!iclients)
-                return FALSE;
+
+            BUG_RETURN_VAL(!iclients, FALSE);
 
             *mask = iclients->xi2mask;
             *client = rClient(iclients);
@@ -1371,9 +1370,7 @@ RetrieveTouchDeliveryData(DeviceIntPtr dev, TouchPointInfoPtr ti,
                                    wOtherInputMasks(*win)->inputClients, next)
                 if (iclients->mask[dev->id] & xi_filter)
                 break;
-            BUG_WARN(!iclients);
-            if (!iclients)
-                return FALSE;
+            BUG_RETURN_VAL(!iclients, FALSE);
 
             *client = rClient(iclients);
         }
@@ -1414,9 +1411,7 @@ DeliverTouchEmulatedEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
         return Success;
 
     nevents = TouchConvertToPointerEvent(ev, &motion, &button);
-    BUG_WARN(nevents == 0);
-    if (nevents == 0)
-        return BadValue;
+    BUG_RETURN_VAL(nevents == 0, BadValue);
 
     if (nevents > 1)
         ptrev = &button;

@@ -143,7 +143,7 @@ fbdevHWSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 }
 
 void
-fbdevHWAdjustFrame(ScrnInfoPtr pScrn, int x, int y, int flags)
+fbdevHWAdjustFrame(ScrnInfoPtr pScrn, int x, int y)
 {
 }
 

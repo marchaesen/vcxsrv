@@ -295,10 +295,15 @@ AccessXKRGExpire(OsTimerPtr timer, CARD32 now, pointer arg)
     cn.eventType = 0;
     cn.requestMajor = 0;
     cn.requestMinor = 0;
-    if (xkbi->desc->ctrls->enabled_ctrls & XkbSlowKeysMask)
+    if (xkbi->desc->ctrls->enabled_ctrls & XkbSlowKeysMask) {
         AccessXKRGTurnOff((DeviceIntPtr) arg, &cn);
-    else
+        LogMessage(X_INFO, "XKB SlowKeys are disabled.\n");
+    }
+    else {
         AccessXKRGTurnOn((DeviceIntPtr) arg, XkbSlowKeysMask, &cn);
+        LogMessage(X_INFO, "XKB SlowKeys are now enabled. Hold shift to disable.\n");
+    }
+
     return 0;
 }
 

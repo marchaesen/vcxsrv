@@ -395,6 +395,8 @@ DeliverTouchEvents(DeviceIntPtr /* dev */ ,
 extern void
 InitializeSprite(DeviceIntPtr /* pDev */ ,
                  WindowPtr /* pWin */ );
+extern void
+FreeSprite(DeviceIntPtr pDev);
 
 extern void
 UpdateSpriteForScreen(DeviceIntPtr /* pDev */ ,

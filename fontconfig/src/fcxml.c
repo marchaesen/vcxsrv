@@ -1882,11 +1882,11 @@ FcParseDir (FcConfigParse *parse)
 	data = prefix;
     }
 #ifdef _WIN32
-    if (strcmp (data, "CUSTOMFONTDIR") == 0)
+    if (strcmp ((const char *) data, "CUSTOMFONTDIR") == 0)
     {
 	char *p;
 	data = buffer;
-	if (!GetModuleFileName (NULL, buffer, sizeof (buffer) - 20))
+	if (!GetModuleFileName (NULL, (LPCH) buffer, sizeof (buffer) - 20))
 	{
 	    FcConfigMessage (parse, FcSevereError, "GetModuleFileName failed");
 	    goto bail;
@@ -1901,11 +1901,11 @@ FcParseDir (FcConfigParse *parse)
 	if (p) *p = '\0';
 	strcat (data, "\\fonts");
     }
-    else if (strcmp (data, "APPSHAREFONTDIR") == 0)
+    else if (strcmp ((const char *) data, "APPSHAREFONTDIR") == 0)
     {
 	char *p;
 	data = buffer;
-	if (!GetModuleFileName (NULL, buffer, sizeof (buffer) - 20))
+	if (!GetModuleFileName (NULL, (LPCH) buffer, sizeof (buffer) - 20))
 	{
 	    FcConfigMessage (parse, FcSevereError, "GetModuleFileName failed");
 	    goto bail;
@@ -1914,17 +1914,17 @@ FcParseDir (FcConfigParse *parse)
 	if (p) *p = '\0';
 	strcat (data, "\\..\\share\\fonts");
     }
-    else if (strcmp (data, "WINDOWSFONTDIR") == 0)
+    else if (strcmp ((const char *) data, "WINDOWSFONTDIR") == 0)
     {
 	int rc;
 	data = buffer;
-	rc = pGetSystemWindowsDirectory (buffer, sizeof (buffer) - 20);
+	rc = pGetSystemWindowsDirectory ((LPSTR) buffer, sizeof (buffer) - 20);
 	if (rc == 0 || rc > sizeof (buffer) - 20)
 	{
 	    FcConfigMessage (parse, FcSevereError, "GetSystemWindowsDirectory failed");
 	    goto bail;
 	}
-	if (data [strlen (data) - 1] != '\\')
+	if (data [strlen ((const char *) data) - 1] != '\\')
 	    strcat (data, "\\");
 	strcat (data, "fonts");
     }
@@ -1978,7 +1978,7 @@ FcParseCacheDir (FcConfigParse *parse)
 	data = prefix;
     }
 #ifdef _WIN32
-    if (strcmp (data, "WINDOWSTEMPDIR_FONTCONFIG_CACHE") == 0)
+    if (strcmp ((const char *) data, "WINDOWSTEMPDIR_FONTCONFIG_CACHE") == 0)
     {
 	int rc;
 	FcStrFree (data);
@@ -1989,17 +1989,17 @@ FcParseCacheDir (FcConfigParse *parse)
 	    goto bail;
 	}
 	FcMemAlloc (FC_MEM_STRING, 1000);
-	rc = GetTempPath (800, data);
+	rc = GetTempPath (800, (LPSTR) data);
 	if (rc == 0 || rc > 800)
 	{
 	    FcConfigMessage (parse, FcSevereError, "GetTempPath failed");
 	    goto bail;
 	}
-	if (data [strlen (data) - 1] != '\\')
+	if (data [strlen ((const char *) data) - 1] != '\\')
 	    strcat (data, "\\");
 	strcat (data, "fontconfig\\cache");
     }
-    else if (strcmp (data, "LOCAL_APPDATA_FONTCONFIG_CACHE") == 0)
+    else if (strcmp ((const char *) data, "LOCAL_APPDATA_FONTCONFIG_CACHE") == 0)
     {
 	char szFPath[MAX_PATH + 1];
 	size_t len;
@@ -2019,7 +2019,7 @@ FcParseCacheDir (FcConfigParse *parse)
 	    goto bail;
 	}
 	FcMemAlloc (FC_MEM_STRING, len);
-	strncpy(data, szFPath, len);
+	strncpy((char *) data, szFPath, len);
     }
 #endif
     if (strlen ((char *) data) == 0)

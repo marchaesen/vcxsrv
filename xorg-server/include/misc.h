@@ -381,4 +381,16 @@ extern _X_EXPORT unsigned long serverGeneration;
 
 #define BUG_WARN(cond)  __BUG_WARN_MSG(cond, 0, NULL)
 
+#define BUG_RETURN(cond) \
+        do { if (cond) { __BUG_WARN_MSG(cond, 0, NULL); return; } } while(0)
+
+#define BUG_RETURN_MSG(cond, ...) \
+        do { if (cond) { __BUG_WARN_MSG(cond, 1, __VA_ARGS__); return; } } while(0)
+
+#define BUG_RETURN_VAL(cond, val) \
+        do { if (cond) { __BUG_WARN_MSG(cond, 0, NULL); return (val); } } while(0)
+
+#define BUG_RETURN_VAL_MSG(cond, val, ...) \
+        do { if (cond) { __BUG_WARN_MSG(cond, 1, __VA_ARGS__); return (val); } } while(0)
+
 #endif                          /* MISC_H */

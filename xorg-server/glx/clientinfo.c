@@ -26,17 +26,62 @@
 
 #include "glxserver.h"
 #include "indirect_dispatch.h"
+#include "glxbyteorder.h"
+#include "unpack.h"
 
 int
 __glXDisp_SetClientInfoARB(__GLXclientState * cl, GLbyte * pc)
 {
-    return BadRequest;
+    xGLXSetClientInfoARBReq *req = (xGLXSetClientInfoARBReq *) pc;
+    char *gl_extensions;
+    char *glx_extensions;
+
+    /* Verify that the size of the packet matches the size inferred from the
+     * sizes specified for the various fields.
+     */
+    const unsigned expected_size = sz_xGLXSetClientInfoARBReq
+        + (req->numVersions * 8)
+        + __GLX_PAD(req->numGLExtensionBytes)
+        + __GLX_PAD(req->numGLXExtensionBytes);
+
+    if (req->length != (expected_size / 4))
+        return BadLength;
+
+    /* Verify that the actual length of the GL extension string matches what's
+     * encoded in protocol packet.
+     */
+    gl_extensions = (char *) (req + 1) + (req->numVersions * 8);
+    if (req->numGLExtensionBytes != 0
+        && memchr(gl_extensions, 0,
+                  __GLX_PAD(req->numGLExtensionBytes)) == NULL)
+        return BadLength;
+
+    /* Verify that the actual length of the GLX extension string matches
+     * what's encoded in protocol packet.
+     */
+    glx_extensions = gl_extensions + __GLX_PAD(req->numGLExtensionBytes);
+    if (req->numGLXExtensionBytes != 0
+        && memchr(glx_extensions, 0,
+                  __GLX_PAD(req->numGLXExtensionBytes)) == NULL)
+        return BadLength;
+
+    free(cl->GLClientextensions);
+    cl->GLClientextensions = strdup(gl_extensions);
+
+    return 0;
 }
 
 int
 __glXDispSwap_SetClientInfoARB(__GLXclientState * cl, GLbyte * pc)
 {
-    return BadRequest;
+    xGLXSetClientInfoARBReq *req = (xGLXSetClientInfoARBReq *) pc;
+
+    req->length = bswap_16(req->length);
+    req->numVersions = bswap_32(req->numVersions);
+    req->numGLExtensionBytes = bswap_32(req->numGLExtensionBytes);
+    req->numGLXExtensionBytes = bswap_32(req->numGLXExtensionBytes);
+
+    return __glXDisp_SetClientInfoARB(cl, pc);
 }
 
 int

@@ -1,15 +1,16 @@
-<HTML>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Development Notes</title>
+  <link rel="stylesheet" type="text/css" href="mesa.css">
+</head>
+<body>
 
-<TITLE>Development Notes</TITLE>
-
-<link rel="stylesheet" type="text/css" href="mesa.css"></head>
-
-<BODY>
-
-<H1>Development Notes</H1>
+<h1>Development Notes</h1>
 
 
-<H2>Adding Extentions</H2>
+<h2>Adding Extentions</h2>
 
 <p>
 To add a new GL extension to Mesa you have to do at least the following.
@@ -52,7 +53,7 @@ To add a new GL extension to Mesa you have to do at least the following.
 
 
 
-<H2>Coding Style</H2>
+<h2>Coding Style</h2>
 
 <p>
 Mesa's code style has changed over the years.  Here's the latest.
@@ -148,20 +149,20 @@ src/mesa/state_tracker/st_glsl_to_tgsi.cpp can serve as examples.
 </p>
 
 
-<H2>Making a New Mesa Release</H2>
+<h2>Making a New Mesa Release</h2>
 
 <p>
 These are the instructions for making a new Mesa release.
 </p>
 
-<H3>Get latest source files</H3>
+<h3>Get latest source files</h3>
 <p>
 Use git to get the latest Mesa files from the git repository, from whatever
 branch is relevant.
 </p>
 
 
-<H3>Verify and update version info</H3>
+<h3>Verify and update version info</h3>
 <p>
 Create/edit the docs/relnotes-x.y.html file to document what's new in the release.
 Add the new relnotes-x.y.html file to <a href="relnotes.html">relnotes.html</a>.
@@ -182,7 +183,10 @@ Update docs/news.html.
 </p>
 
 <p>
-Check in all updates to git.
+Create a docs/relnotes-x.y.z.html file.
+The bin/shortlog_mesa.sh script can be used to create a HTML-formatted list
+of changes to include in the file.
+Link the new docs/relnotes-x.y.z.html file into the main relnotes.html file.
 </p>
 
 <p>
@@ -192,7 +196,7 @@ Then: <code>git push origin mesa_X_Y</code>
 </p>
 
 
-<H3>Make the tarballs</H3>
+<h3>Make the tarballs</h3>
 <p>
 Make the distribution files.  From inside the Mesa directory:
 <pre>
@@ -210,7 +214,7 @@ Copy the distribution files to a temporary directory, unpack them,
 compile everything, and run some demos to be sure everything works.
 </p>
 
-<H3>Update the website and announce the release</H3>
+<h3>Update the website and announce the release</h3>
 <p>
 Follow the directions on SourceForge for creating a new "release" and
 uploading the tarballs.
@@ -241,8 +245,6 @@ Make an announcement on the mailing lists:
 and
 <em>m</em><em>e</em><em>s</em><em>a</em><em>-</em><em>a</em><em>n</em><em>n</em><em>o</em><em>u</em><em>n</em><em>c</em><em>e</em><em>@</em><em>l</em><em>i</em><em>s</em><em>t</em><em>s</em><em>.</em><em>f</em><em>r</em><em>e</em><em>e</em><em>d</em><em>e</em><em>s</em><em>k</em><em>t</em><em>o</em><em>p</em><em>.</em><em>o</em><em>r</em><em>g</em>
 </p>
-
-
 
 </body>
 </html>

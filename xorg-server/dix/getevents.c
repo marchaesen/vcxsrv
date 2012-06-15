@@ -1821,10 +1821,7 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
 
     if (flags & TOUCH_CLIENT_ID) {      /* A DIX-submitted TouchEnd */
         touchpoint.dix_ti = TouchFindByClientID(dev, ddx_touchid);
-        BUG_WARN(!touchpoint.dix_ti);
-
-        if (!touchpoint.dix_ti)
-            return 0;
+        BUG_RETURN_VAL(!touchpoint.dix_ti, 0);
 
         if (!mask_in ||
             !valuator_mask_isset(mask_in, 0) ||

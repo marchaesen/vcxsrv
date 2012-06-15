@@ -1,12 +1,13 @@
-<HTML>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Shading Language Support</title>
+  <link rel="stylesheet" type="text/css" href="mesa.css">
+</head>
+<body>
 
-<TITLE>Shading Language Support</TITLE>
-
-<link rel="stylesheet" type="text/css" href="mesa.css"></head>
-
-<BODY>
-
-<H1>Shading Language Support</H1>
+<h1>Shading Language Support</h1>
 
 <p>
 This page describes the features and status of Mesa's support for the
@@ -19,7 +20,7 @@ Contents
 </p>
 <ul>
 <li><a href="#envvars">Environment variables</a>
-<li><a href="#120">GLSL 1.20 support</a>
+<li><a href="#glsl120">GLSL 1.20 support</a>
 <li><a href="#unsup">Unsupported Features</a>
 <li><a href="#notes">Implementation Notes</a>
 <li><a href="#hints">Programming Hints</a>
@@ -29,9 +30,7 @@ Contents
 </ul>
 
 
-
-<a name="envvars">
-<h2>Environment Variables</h2>
+<h2 id="envvars">Environment Variables</h2>
 
 <p>
 The <b>MESA_GLSL</b> environment variable can be set to a comma-separated
@@ -58,8 +57,7 @@ Example:  export MESA_GLSL=dump,nopt
 </p>
 
 
-<a name="120">
-<h2>GLSL Version</h2>
+<h2 id="glsl120">GLSL Version</h2>
 
 <p>
 The GLSL compiler currently supports version 1.20 of the shading language.
@@ -76,8 +74,7 @@ Several GLSL extensions are also supported:
 </ul>
 
 
-<a name="unsup">
-<h2>Unsupported Features</h2>
+<h2 id="unsup">Unsupported Features</h2>
 
 <p>XXX update this section</p>
 
@@ -100,8 +97,7 @@ All other major features of the shading language should function.
 </p>
 
 
-<a name="notes">
-<h2>Implementation Notes</h2>
+<h2 id="notes">Implementation Notes</h2>
 
 <ul>
 <li>Shading language programs are compiled into low-level programs
@@ -124,8 +120,7 @@ These issues will be addressed/resolved in the future.
 </p>
 
 
-<a name="hints">
-<h2>Programming Hints</h2>
+<h2 id="hints">Programming Hints</h2>
 
 <ul>
 <li>Use the built-in library functions whenever possible.
@@ -141,8 +136,7 @@ These issues will be addressed/resolved in the future.
 </ul>
 
 
-<a name="standalone">
-<h2>Stand-alone GLSL Compiler</h2>
+<h2 id="standalone">Stand-alone GLSL Compiler</h2>
 
 <p>
 The stand-alone GLSL compiler program can be used to compile GLSL shaders
@@ -151,7 +145,7 @@ into low-level GPU code.
 
 <p>
 This tool is useful for:
-<p>
+</p>
 <ul>
 <li>Inspecting GPU code to gain insight into compilation
 <li>Generating initial GPU code for subsequent hand-tuning
@@ -179,10 +173,7 @@ Options include
 </ul>
 
 
-
-
-<a name="implementation">
-<h2>Compiler Implementation</h2>
+<h2 id="implementation">Compiler Implementation</h2>
 
 <p>
 The source code for Mesa's shading language compiler is in the
@@ -240,13 +231,11 @@ This option is only relevant if EmitHighLevelInstructions is set.
 <br>
 If set, instructions will be annoted with comments to help with debugging.
 Extra NOP instructions will also be inserted.
-</br>
-
+</li>
 </ul>
 
 
-<a name="validation">
-<h2>Compiler Validation</h2>
+<h2 id="validation">Compiler Validation</h2>
 
 <p>
 Developers working on the GLSL compiler should test frequently to avoid
@@ -264,5 +253,5 @@ tests GLSL features.
 The Mesa demos repository also has some good GLSL tests.
 </p>
 
-</BODY>
-</HTML>
+</body>
+</html>

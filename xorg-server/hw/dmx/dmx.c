@@ -74,8 +74,9 @@ _DMXXineramaActive(void)
 {
 #ifdef PANORAMIX
     return !noPanoramiXExtension;
-#endif
+#else
     return 0;
+#endif
 }
 
 static void

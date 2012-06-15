@@ -50,7 +50,7 @@
 #include "indirect_table.h"
 #include "indirect_util.h"
 
-static int
+_X_HIDDEN int
 validGlxScreen(ClientPtr client, int screen, __GLXscreen ** pGlxScreen,
                int *err)
 {
@@ -67,7 +67,7 @@ validGlxScreen(ClientPtr client, int screen, __GLXscreen ** pGlxScreen,
     return TRUE;
 }
 
-static int
+_X_HIDDEN int
 validGlxFBConfig(ClientPtr client, __GLXscreen * pGlxScreen, XID id,
                  __GLXconfig ** config, int *err)
 {
@@ -131,7 +131,7 @@ validGlxFBConfigForWindow(ClientPtr client, __GLXconfig * config,
     return TRUE;
 }
 
-static int
+_X_HIDDEN int
 validGlxContext(ClientPtr client, XID id, int access_mode,
                 __GLXcontext ** context, int *err)
 {
@@ -200,7 +200,7 @@ __glXdirectContextDestroy(__GLXcontext * context)
     free(context);
 }
 
-static __GLXcontext *
+_X_HIDDEN __GLXcontext *
 __glXdirectContextCreate(__GLXscreen * screen,
                          __GLXconfig * modes, __GLXcontext * shareContext)
 {
@@ -251,20 +251,20 @@ DoCreateContext(__GLXclientState * cl, GLXContextID gcId,
                              &shareglxc, &err))
             return err;
 
-        if (shareglxc->isDirect) {
-            /*
-             ** NOTE: no support for sharing display lists between direct
-             ** contexts, even if they are in the same address space.
-             */
-#if 0
-            /* Disabling this code seems to allow shared display lists
-             * and texture objects to work.  We'll leave it disabled for now.
-             */
+        /* Page 26 (page 32 of the PDF) of the GLX 1.4 spec says:
+         *
+         *     "The server context state for all sharing contexts must exist
+         *     in a single address space or a BadMatch error is generated."
+         *
+         * If the share context is indirect, force the new context to also be
+         * indirect.  If the shard context is direct but the new context
+         * cannot be direct, generate BadMatch.
+         */
+        if (shareglxc->isDirect && !isDirect) {
             client->errorValue = shareList;
             return BadMatch;
-#endif
         }
-        else {
+        else if (!shareglxc->isDirect) {
             /*
              ** Create an indirect context regardless of what the client asked
              ** for; this way we can share display list space with shareList.
@@ -276,42 +276,45 @@ DoCreateContext(__GLXclientState * cl, GLXContextID gcId,
     /*
      ** Allocate memory for the new context
      */
-    if (!isDirect)
-        glxc = pGlxScreen->createContext(pGlxScreen, config, shareglxc);
+    if (!isDirect) {
+        /* Without any attributes, the only error that the driver should be
+         * able to generate is BadAlloc.  As result, just drop the error
+         * returned from the driver on the floor.
+         */
+        glxc = pGlxScreen->createContext(pGlxScreen, config, shareglxc,
+                                         0, NULL, &err);
+    }
     else
         glxc = __glXdirectContextCreate(pGlxScreen, config, shareglxc);
     if (!glxc) {
         return BadAlloc;
     }
 
-    /*
-     ** Initially, setup the part of the context that could be used by
-     ** a GL core that needs windowing information (e.g., Mesa).
+    /* Initialize the GLXcontext structure.
      */
     glxc->pGlxScreen = pGlxScreen;
     glxc->config = config;
-
-    /*
-     ** Register this context as a resource.
-     */
-    if (!AddResource(gcId, __glXContextRes, (pointer) glxc)) {
-        (*glxc->destroy) (glxc);
-        client->errorValue = gcId;
-        return BadAlloc;
-    }
-
-    /*
-     ** Finally, now that everything is working, setup the rest of the
-     ** context.
-     */
     glxc->id = gcId;
     glxc->share_id = shareList;
     glxc->idExists = GL_TRUE;
     glxc->isCurrent = GL_FALSE;
     glxc->isDirect = isDirect;
+    glxc->hasUnflushedCommands = GL_FALSE;
     glxc->renderMode = GL_RENDER;
+    glxc->feedbackBuf = NULL;
+    glxc->feedbackBufSize = 0;
+    glxc->selectBuf = NULL;
+    glxc->selectBufSize = 0;
+    glxc->drawPriv = NULL;
+    glxc->readPriv = NULL;
 
-    __glXAddToContextList(glxc);
+    /* Add the new context to the various global tables of GLX contexts.
+     */
+    if (!__glXAddContext(glxc)) {
+        (*glxc->destroy) (glxc);
+        client->errorValue = gcId;
+        return BadAlloc;
+    }
 
     return Success;
 }
@@ -2396,8 +2399,6 @@ __glXDisp_ClientInfo(__GLXclientState * cl, GLbyte * pc)
     if (!memchr(buf, 0, (client->req_len << 2) - sizeof(xGLXClientInfoReq)))
         return BadLength;
 
-    cl->GLClientmajorVersion = req->major;
-    cl->GLClientminorVersion = req->minor;
     free(cl->GLClientextensions);
     cl->GLClientextensions = strdup(buf);
 

@@ -1,5 +1,6 @@
 tags
 TAGS
+*.exe
 *.tar.gz
 .libs
 .deps
