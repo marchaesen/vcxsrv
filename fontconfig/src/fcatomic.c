@@ -106,6 +106,7 @@ FcAtomicLock (FcAtomic *atomic)
 #ifdef HAVE_LINK
     int		fd = -1;
     FILE	*f = 0;
+    FcBool	no_link = FcFalse;
 
     strcpy ((char *) atomic->tmp, (char *) atomic->file);
     strcat ((char *) atomic->tmp, TMP_NAME);
@@ -138,6 +139,7 @@ FcAtomicLock (FcAtomic *atomic)
 	 * the hard link. so better try to fallback
 	 */
 	ret = mkdir ((char *) atomic->lck, 0600);
+	no_link = FcTrue;
     }
     (void) unlink ((char *) atomic->tmp);
 #else
@@ -157,8 +159,16 @@ FcAtomicLock (FcAtomic *atomic)
 	    if ((long int) (now - lck_stat.st_mtime) > 10 * 60)
 	    {
 #ifdef HAVE_LINK
-		if (unlink ((char *) atomic->lck) == 0)
-		    return FcAtomicLock (atomic);
+		if (no_link)
+		{
+		    if (rmdir ((char *) atomic->lck) == 0)
+			return FcAtomicLock (atomic);
+		}
+		else
+		{
+		    if (unlink ((char *) atomic->lck) == 0)
+			return FcAtomicLock (atomic);
+		}
 #else
 		if (rmdir ((char *) atomic->lck) == 0)
 		    return FcAtomicLock (atomic);
