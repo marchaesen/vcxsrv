@@ -21,7 +21,7 @@ eval `echo $version |
 			   
 # Update the version numbers
 
-sed -i configure.in -e "/^AM_INIT_AUTOMAKE/s/2\.[0-9.]*/$version/"
+sed -i configure.ac -e "/^AM_INIT_AUTOMAKE/s/2\.[0-9.]*/$version/"
 
 sed -i fontconfig/fontconfig.h \
 	-e "/^#define FC_MAJOR/s/[0-9][0-9]*/$major/" \
@@ -105,7 +105,7 @@ if [ $version != $last ]; then
 fi
 
 $test git commit -m"Bump version to $version" \
-	configure.in \
+	configure.ac \
 	fontconfig/fontconfig.h \
 	README
 
