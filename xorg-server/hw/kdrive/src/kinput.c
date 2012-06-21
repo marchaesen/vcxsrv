@@ -1972,7 +1972,7 @@ _KdEnqueuePointerEvent(KdPointerInfo * pi, int type, int x, int y, int z,
 }
 
 void
-KdBlockHandler(ScreenPtr pScreen, pointer blockData, pointer timeout, pointer readmask)
+KdBlockHandler(ScreenPtr pScreen, pointer timeout, pointer readmask)
 {
     KdPointerInfo *pi;
     int myTimeout = 0;
@@ -1998,8 +1998,7 @@ KdBlockHandler(ScreenPtr pScreen, pointer blockData, pointer timeout, pointer re
 }
 
 void
-KdWakeupHandler(ScreenPtr pScreen,
-                pointer data, unsigned long lresult, pointer readmask)
+KdWakeupHandler(ScreenPtr pScreen, unsigned long lresult, pointer readmask)
 {
     int result = (int) lresult;
     fd_set *pReadmask = (fd_set *) readmask;

@@ -23,9 +23,13 @@
  *
  * Author: Soren Sandmann <sandmann@cs.au.dk>
  */
+
+#ifdef HAVE_CONFIG_H
 #include <config.h>
-#include <stdlib.h>
+#endif
 #include "pixman-private.h"
+
+#include <stdlib.h>
 
 typedef struct glyph_metrics_t glyph_metrics_t;
 typedef struct glyph_t glyph_t;

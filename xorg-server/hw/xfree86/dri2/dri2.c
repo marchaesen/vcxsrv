@@ -104,7 +104,8 @@ typedef struct _DRI2Screen {
     DRI2ScheduleSwapProcPtr ScheduleSwap;
     DRI2GetMSCProcPtr GetMSC;
     DRI2ScheduleWaitMSCProcPtr ScheduleWaitMSC;
-    DRI2AuthMagicProcPtr AuthMagic;
+    DRI2AuthMagic2ProcPtr AuthMagic;
+    DRI2AuthMagicProcPtr LegacyAuthMagic;
     DRI2ReuseBufferNotifyProcPtr ReuseBufferNotify;
     DRI2SwapLimitValidateProcPtr SwapLimitValidate;
     DRI2GetParamProcPtr GetParam;
@@ -1110,12 +1111,22 @@ DRI2Connect(ScreenPtr pScreen, unsigned int driverType, int *fd,
     return TRUE;
 }
 
+static Bool
+DRI2AuthMagic (ScreenPtr pScreen, uint32_t magic)
+{
+    DRI2ScreenPtr ds = DRI2GetScreen(pScreen);
+    if (ds == NULL || (*ds->LegacyAuthMagic) (ds->fd, magic))
+        return FALSE;
+
+    return TRUE;
+}
+
 Bool
 DRI2Authenticate(ScreenPtr pScreen, uint32_t magic)
 {
     DRI2ScreenPtr ds = DRI2GetScreen(pScreen);
 
-    if (ds == NULL || (*ds->AuthMagic) (ds->fd, magic))
+    if (ds == NULL || (*ds->AuthMagic) (pScreen, magic))
         return FALSE;
 
     return TRUE;
@@ -1202,8 +1213,11 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
         cur_minor = 1;
     }
 
+    if (info->version >= 8) {
+        ds->AuthMagic = info->AuthMagic2;
+    }
     if (info->version >= 5) {
-        ds->AuthMagic = info->AuthMagic;
+        ds->LegacyAuthMagic = info->AuthMagic;
     }
 
     if (info->version >= 6) {
@@ -1218,14 +1232,21 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
 
     /*
      * if the driver doesn't provide an AuthMagic function or the info struct
-     * version is too low, it relies on the old method (using libdrm) or fail
+     * version is too low, call through LegacyAuthMagic
      */
-    if (!ds->AuthMagic)
+    if (!ds->AuthMagic) {
+        ds->AuthMagic = DRI2AuthMagic;
+        /*
+         * If the driver doesn't provide an AuthMagic function
+         * it relies on the old method (using libdrm) or fails
+         */
+        if (!ds->LegacyAuthMagic)
 #ifdef WITH_LIBDRM
-        ds->AuthMagic = drmAuthMagic;
+            ds->LegacyAuthMagic = drmAuthMagic;
 #else
-        goto err_out;
+            goto err_out;
 #endif
+    }
 
     /* Initialize minor if needed and set to minimum provied by DDX */
     if (!dri2_minor || dri2_minor > cur_minor)

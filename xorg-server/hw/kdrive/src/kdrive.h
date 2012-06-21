@@ -537,13 +537,11 @@ void
 
 void
 
-KdBlockHandler(ScreenPtr pScreen,
-               pointer blockData, pointer timeout, pointer readmask);
+KdBlockHandler(ScreenPtr pScreen, pointer timeout, pointer readmask);
 
 void
 
-KdWakeupHandler(ScreenPtr pScreen,
-                pointer data, unsigned long result, pointer readmask);
+KdWakeupHandler(ScreenPtr pScreen, unsigned long result, pointer readmask);
 
 void
  KdDisableInput(void);
