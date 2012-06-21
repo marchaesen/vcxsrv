@@ -23,11 +23,11 @@ in this Software without prior written authorization from The Open Group.
 */
 
 
-/* 
+/*
  * This is a List widget.  It allows the user to select an item in a list and
  * notifies the application through a callback function.
  *
- *	Created: 	8/13/88
+ *	Created:	8/13/88
  *	By:		Chris D. Peterson
  *                      MIT - Project Athena
  */

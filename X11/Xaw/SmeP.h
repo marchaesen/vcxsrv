@@ -25,12 +25,12 @@ in this Software without prior written authorization from The Open Group.
 
 /*
  * This is the private header file for the Athena Sme object.
- * This object is intended to be used with the simple menu widget.  
+ * This object is intended to be used with the simple menu widget.
  *
  * Date:    April 3, 1989
  *
  * By:      Chris D. Peterson
- *          MIT X Consortium 
+ *          MIT X Consortium
  *          kit@expo.lcs.mit.edu
  */
 

@@ -6443,6 +6443,27 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->DrawArraysInstancedBaseInstance) {
+        void ** procp = (void **) &disp->DrawArraysInstancedBaseInstance;
+        snprintf(symboln, sizeof(symboln), "%sDrawArraysInstancedBaseInstance", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawElementsInstancedBaseInstance) {
+        void ** procp = (void **) &disp->DrawElementsInstancedBaseInstance;
+        snprintf(symboln, sizeof(symboln), "%sDrawElementsInstancedBaseInstance", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawElementsInstancedBaseVertexBaseInstance) {
+        void ** procp = (void **) &disp->DrawElementsInstancedBaseVertexBaseInstance;
+        snprintf(symboln, sizeof(symboln), "%sDrawElementsInstancedBaseVertexBaseInstance", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->TexStorage1D) {
         void ** procp = (void **) &disp->TexStorage1D;
         snprintf(symboln, sizeof(symboln), "%sTexStorage1D", symbol_prefix);

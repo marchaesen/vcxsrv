@@ -35,7 +35,7 @@ in this Software without prior written authorization from The Open Group.
  * Date:    June 29, 1989
  *
  * By:      Chris D. Peterson
- *          MIT X Consortium 
+ *          MIT X Consortium
  *          kit@expo.lcs.mit.edu
  */
 
@@ -57,7 +57,7 @@ in this Software without prior written authorization from The Open Group.
  useStringInPlace    UseStringInPlace	Boolean		False
 
 */
- 
+
 extern WidgetClass asciiSrcObjectClass;
 
 typedef struct _AsciiSrcClassRec *AsciiSrcObjectClass;

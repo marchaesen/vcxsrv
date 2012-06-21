@@ -73,7 +73,7 @@ typedef struct _SimpleMenuPart {
 
     /* private */
     Boolean	recursive_set_values; /* contain a possible infinite loop */
-    Boolean	menu_width;	/* If true then force width to remain 
+    Boolean	menu_width;	/* If true then force width to remain
 				   core.width */
     Boolean	menu_height;	/* Just like menu_width, but for height */
     SmeObject	entry_set;	/* The entry that is currently set or
@@ -90,7 +90,7 @@ typedef struct _SimpleMenuPart {
 
 typedef struct _SimpleMenuRec {
     CorePart		core;
-    CompositePart 	composite;
+    CompositePart	composite;
     ShellPart		shell;
     OverrideShellPart	override;
     SimpleMenuPart	simple_menu;
