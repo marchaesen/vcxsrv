@@ -1313,8 +1313,7 @@ xkb_symbols "alt-intl-unicode" {
 
  name[Group1]= "English (US, international AltGr Unicode combining, alternative)";
 
- include "extras/us(intl-unicode)"
- include "level3(ralt_switch)"
+ include "us(intl-unicode)"
 
  // easier macron; em-dash.
  // em-dash is available via compose, but I added here since it's such

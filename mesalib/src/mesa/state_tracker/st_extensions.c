@@ -222,6 +222,7 @@ void st_init_limits(struct st_context *st)
          options->MaxUnrollIterations = MIN2(screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INSTRUCTIONS), 65536);
       else
          options->MaxUnrollIterations = 255; /* SM3 limit */
+      options->LowerClipDistance = true;
    }
 
    /* PIPE_SHADER_CAP_MAX_INPUTS for the FS specifies the maximum number
@@ -337,6 +338,7 @@ void st_init_extensions(struct st_context *st)
    GLboolean *extensions = (GLboolean *) &ctx->Extensions;
 
    static const struct st_extension_cap_mapping cap_mapping[] = {
+      { o(ARB_base_instance),                PIPE_CAP_START_INSTANCE                   },
       { o(ARB_depth_clamp),                  PIPE_CAP_DEPTH_CLIP_DISABLE               },
       { o(ARB_depth_texture),                PIPE_CAP_TEXTURE_SHADOW_MAP               },
       { o(ARB_draw_buffers_blend),           PIPE_CAP_INDEP_BLEND_FUNC                 },

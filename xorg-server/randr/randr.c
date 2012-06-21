@@ -416,7 +416,7 @@ RRTellChanged(ScreenPtr pScreen)
     int i;
 
     if (pScrPriv->changed) {
-        UpdateCurrentTime();
+        UpdateCurrentTimeIf();
         if (pScrPriv->configChanged) {
             pScrPriv->lastConfigTime = currentTime;
             pScrPriv->configChanged = FALSE;
