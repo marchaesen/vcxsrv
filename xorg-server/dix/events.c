@@ -4325,7 +4325,6 @@ OtherClientGone(pointer value, XID id)
         prev = other;
     }
     FatalError("client not on event list");
-     /*NOTREACHED*/ return -1;  /* make compiler happy */
 }
 
 int
@@ -4348,12 +4347,10 @@ EventSelectForWindow(WindowPtr pWin, ClientPtr client, Mask mask)
             return rc;
     }
     check = (mask & AtMostOneClient);
-    if (check & (pWin->eventMask | wOtherEventMasks(pWin))) {   /* It is illegal for two different
-                                                                   clients to select on any of the
-                                                                   events for AtMostOneClient. However,
-                                                                   it is OK, for some client to
-                                                                   continue selecting on one of those
-                                                                   events.  */
+    if (check & (pWin->eventMask | wOtherEventMasks(pWin))) {
+        /* It is illegal for two different clients to select on any of the
+           events for AtMostOneClient. However, it is OK, for some client to
+           continue selecting on one of those events.  */
         if ((wClient(pWin) != client) && (check & pWin->eventMask))
             return BadAccess;
         for (others = wOtherClients(pWin); others; others = others->next) {
@@ -5633,8 +5630,8 @@ DeleteWindowFromAnyEvents(WindowPtr pWin, Bool freeResources)
         if (IsKeyboardDevice(keybd)) {
             focus = keybd->focus;
 
-            /* If the focus window is a root window (ie. has no parent) then don't
-               delete the focus from it. */
+            /* If the focus window is a root window (ie. has no parent)
+               then don't delete the focus from it. */
 
             if ((pWin == focus->win) && (pWin->parent != NullWindow)) {
                 int focusEventMode = NotifyNormal;
@@ -5656,12 +5653,12 @@ DeleteWindowFromAnyEvents(WindowPtr pWin, Bool freeResources)
                         parent = parent->parent;
                         focus->traceGood--;
                     } while (!parent->realized
-                             /* This would be a good protocol change -- windows being reparented
-                                during SaveSet processing would cause the focus to revert to the
-                                nearest enclosing window which will survive the death of the exiting
-                                client, instead of ending up reverting to a dying window and thence
-                                to None
-                              */
+                    /* This would be a good protocol change -- windows being
+                       reparented during SaveSet processing would cause the
+                       focus to revert to the nearest enclosing window which
+                       will survive the death of the exiting client, instead
+                       of ending up reverting to a dying window and thence
+                       to None */
 #ifdef NOTDEF
                              || wClient(parent)->clientGone
 #endif

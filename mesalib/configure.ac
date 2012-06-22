@@ -10,7 +10,7 @@ AC_INIT([Mesa], [8.1.0],
     [https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa])
 AC_CONFIG_AUX_DIR([bin])
 AC_CANONICAL_HOST
-AM_INIT_AUTOMAKE([foreign -Wall])
+AM_INIT_AUTOMAKE([foreign])
 
 dnl http://people.gnome.org/~walters/docs/build-api.txt
 dnl We don't support srcdir != builddir.
@@ -453,7 +453,6 @@ AC_ARG_ENABLE([asm],
     [enable_asm=yes]
 )
 asm_arch=""
-ASM_FLAGS=""
 MESA_ASM_FILES=""
 GLAPI_ASM_SOURCES=""
 AC_MSG_CHECKING([whether to enable assembly])
@@ -502,19 +501,19 @@ if test "x$enable_asm" = xyes; then
 
     case "$asm_arch" in
     x86)
-        ASM_FLAGS="-DUSE_X86_ASM -DUSE_MMX_ASM -DUSE_3DNOW_ASM -DUSE_SSE_ASM"
+        DEFINES="$DEFINES -DUSE_X86_ASM -DUSE_MMX_ASM -DUSE_3DNOW_ASM -DUSE_SSE_ASM"
         MESA_ASM_FILES='$(X86_FILES)'
         GLAPI_ASM_SOURCES='$(X86_API)'
         AC_MSG_RESULT([yes, x86])
         ;;
     x86_64)
-        ASM_FLAGS="-DUSE_X86_64_ASM"
+        DEFINES="$DEFINES -DUSE_X86_64_ASM"
         MESA_ASM_FILES='$(X86_64_FILES)'
         GLAPI_ASM_SOURCES='$(X86-64_API)'
         AC_MSG_RESULT([yes, x86_64])
         ;;
     sparc)
-        ASM_FLAGS="-DUSE_SPARC_ASM"
+        DEFINES="$DEFINES -DUSE_SPARC_ASM"
         MESA_ASM_FILES='$(SPARC_FILES)'
         GLAPI_ASM_SOURCES='$(SPARC_API)'
         AC_MSG_RESULT([yes, sparc])
@@ -524,7 +523,6 @@ if test "x$enable_asm" = xyes; then
         ;;
     esac
 fi
-AC_SUBST([ASM_FLAGS])
 AC_SUBST([MESA_ASM_FILES])
 AC_SUBST([GLAPI_ASM_SOURCES])
 
@@ -881,12 +879,7 @@ if test "x$enable_dri" = xyes; then
 fi
 
 if test "x$enable_osmesa" = xyes; then
-    # the empty space matters for osmesa... (see src/mesa/Makefile)
-    if test -n "$DRIVER_DIRS"; then
-        DRIVER_DIRS="$DRIVER_DIRS osmesa"
-    else
-        DRIVER_DIRS="osmesa"
-    fi
+    DRIVER_DIRS="$DRIVER_DIRS osmesa"
 fi
 
 AC_SUBST([SRC_DIRS])
@@ -1092,25 +1085,15 @@ AC_SUBST([GLAPI_LIB_DEPS])
 
 
 dnl Setup default DRI CFLAGS
-DRI_CFLAGS='$(CFLAGS)'
-DRI_CXXFLAGS='$(CXXFLAGS)'
 DRI_LIB_DEPS='$(TOP)/src/mesa/libmesa.a'
 MESA_MODULES='$(TOP)/src/mesa/libmesa.a'
 
 if test "x$enable_dri" = xyes && test "x$driglx_direct" = xyes ; then
-    DRICORE_LIBS='$(TOP)/$(LIB_DIR)/libdricore.so'
-    DRICORE_LIB_DEPS='-L$(TOP)/$(LIB_DIR) -Wl,-R$(DRI_DRIVER_INSTALL_DIR)'
-    DRI_LIB_DEPS='-L$(TOP)/$(LIB_DIR) -Wl,-R$(DRI_DRIVER_INSTALL_DIR) -ldricore'
-    DRI_CFLAGS='$(CFLAGS_NOVISIBILITY) -DUSE_DRICORE'
-    DRI_CXXFLAGS='$(CXXFLAGS_NOVISIBILITY) -DUSE_DRICORE'
-    MESA_MODULES='$(DRICORE_LIBS)'
+    DRI_LIB_DEPS="-L\$(TOP)/\$(LIB_DIR) -ldricore$VERSION"
+    MESA_MODULES="\$(TOP)/\$(LIB_DIR)/libdricore$VERSION.so"
     HAVE_DRICORE=yes
 fi
 AM_CONDITIONAL(HAVE_DRICORE, test x$HAVE_DRICORE = xyes)
-AC_SUBST([DRICORE_LIBS])
-AC_SUBST([DRICORE_LIB_DEPS])
-AC_SUBST([DRI_CXXFLAGS])
-AC_SUBST([DRI_CFLAGS])
 AC_SUBST([MESA_MODULES])
 
 AC_SUBST([HAVE_XF86VIDMODE])
@@ -2128,9 +2111,9 @@ AM_CONDITIONAL(HAVE_X11_DRIVER, echo "$DRIVER_DIRS" | grep 'x11' >/dev/null 2>&1
 AM_CONDITIONAL(HAVE_DRI_DRIVER, echo "$DRIVER_DIRS" | grep 'dri' >/dev/null 2>&1)
 AM_CONDITIONAL(HAVE_OSMESA_DRIVER, echo "$DRIVER_DIRS" | grep 'osmesa' >/dev/null 2>&1)
 
-AM_CONDITIONAL(HAVE_X86_ASM, echo "$ASM_FLAGS" | grep 'X86_ASM' >/dev/null 2>&1)
-AM_CONDITIONAL(HAVE_X86_64_ASM, echo "$ASM_FLAGS" | grep 'X86_64_ASM' >/dev/null 2>&1)
-AM_CONDITIONAL(HAVE_SPARC_ASM, echo "$ASM_FLAGS" | grep 'SPARC_ASM' >/dev/null 2>&1)
+AM_CONDITIONAL(HAVE_X86_ASM, echo "$DEFINES" | grep 'X86_ASM' >/dev/null 2>&1)
+AM_CONDITIONAL(HAVE_X86_64_ASM, echo "$DEFINES" | grep 'X86_64_ASM' >/dev/null 2>&1)
+AM_CONDITIONAL(HAVE_SPARC_ASM, echo "$DEFINES" | grep 'SPARC_ASM' >/dev/null 2>&1)
 
 dnl prepend CORE_DIRS to SRC_DIRS
 SRC_DIRS="$CORE_DIRS $SRC_DIRS"
@@ -2144,9 +2127,10 @@ CFLAGS="$CFLAGS $USER_CFLAGS"
 CXXFLAGS="$CXXFLAGS $USER_CXXFLAGS"
 
 dnl Substitute the config
-AC_CONFIG_FILES([configs/autoconf
+AC_CONFIG_FILES([configs/current
 		Makefile
 		src/Makefile
+		src/gallium/Makefile
 		src/gallium/auxiliary/pipe-loader/Makefile
 		src/gallium/state_trackers/clover/Makefile
 		src/gallium/drivers/Makefile
@@ -2158,6 +2142,7 @@ AC_CONFIG_FILES([configs/autoconf
 		src/egl/drivers/Makefile
 		src/egl/drivers/dri2/Makefile
 		src/egl/drivers/glx/Makefile
+		src/egl/Makefile
 		src/egl/main/Makefile
 		src/egl/main/egl.pc
 		src/egl/wayland/Makefile
@@ -2167,11 +2152,16 @@ AC_CONFIG_FILES([configs/autoconf
 		src/glsl/tests/Makefile
 		src/glx/Makefile
 		src/glx/tests/Makefile
+		src/mapi/glapi/gen/Makefile
 		src/mapi/shared-glapi/Makefile
 		src/mapi/glapi/tests/Makefile
 		src/gtest/Makefile
+		src/mesa/Makefile
 		src/mesa/libdricore/Makefile
 		src/mesa/main/tests/Makefile
+		src/mesa/x86/Makefile
+		src/mesa/x86-64/Makefile
+		src/mesa/drivers/Makefile
 		src/mesa/drivers/dri/dri.pc
 		src/mesa/drivers/dri/Makefile
 		src/mesa/drivers/dri/common/Makefile
@@ -2180,15 +2170,10 @@ AC_CONFIG_FILES([configs/autoconf
 		src/mesa/drivers/dri/nouveau/Makefile
 		src/mesa/drivers/dri/r200/Makefile
 		src/mesa/drivers/dri/radeon/Makefile
-		src/mesa/drivers/dri/swrast/Makefile])
-
-dnl Replace the configs/current symlink
-AC_CONFIG_COMMANDS([configs],[
-if test -f configs/current || test -L configs/current; then
-    rm -f configs/current
-fi
-ln -s autoconf configs/current
-])
+		src/mesa/drivers/dri/swrast/Makefile
+		src/mesa/drivers/x11/Makefile
+		src/mesa/gl.pc
+		src/mesa/osmesa.pc])
 
 dnl Sort the dirs alphabetically
 GALLIUM_TARGET_DIRS=`echo $GALLIUM_TARGET_DIRS|tr " " "\n"|sort -u|tr "\n" " "`
@@ -2302,7 +2287,7 @@ cflags=`echo $CFLAGS $OPT_FLAGS $PIC_FLAGS $ARCH_FLAGS | \
     $SED 's/^ *//;s/  */ /;s/ *$//'`
 cxxflags=`echo $CXXFLAGS $OPT_FLAGS $PIC_FLAGS $ARCH_FLAGS | \
     $SED 's/^ *//;s/  */ /;s/ *$//'`
-defines=`echo $DEFINES $ASM_FLAGS | $SED 's/^ *//;s/  */ /;s/ *$//'`
+defines=`echo $DEFINES | $SED 's/^ *//;s/  */ /;s/ *$//'`
 echo ""
 echo "        CFLAGS:          $cflags"
 echo "        CXXFLAGS:        $cxxflags"
