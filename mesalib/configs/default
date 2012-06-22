@@ -19,11 +19,9 @@ DRM_SOURCE_PATH=$(TOP)/../drm
 # Compiler and flags
 CC = cc
 CXX = CC
-HOST_CC = $(CC)
 CFLAGS = -O
 CXXFLAGS = -O
 LDFLAGS =
-HOST_CFLAGS = $(CFLAGS)
 GLU_CFLAGS = 
 GLX_TLS = no
 
@@ -84,9 +82,6 @@ GLESv1_CM_LIB_GLOB = $(GLESv1_CM_LIB_NAME)*
 GLESv2_LIB_GLOB = $(GLESv2_LIB_NAME)*
 VG_LIB_GLOB = $(VG_LIB_NAME)*
 GLAPI_LIB_GLOB = $(GLAPI_LIB_NAME)*
-
-DRI_CFLAGS = $(CFLAGS)
-DRI_CXXFLAGS = $(CXXFLAGS)
 
 # Optional assembly language optimization files for libGL
 MESA_ASM_FILES =

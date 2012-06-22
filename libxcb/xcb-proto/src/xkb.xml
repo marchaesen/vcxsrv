@@ -2593,7 +2593,9 @@ authorization from the authors.
 
 	<!-- Events -->
 
-	<event name="NewKeyboardNotify" number="0">
+	<event name="NewKeyboardNotify" number="0" no-sequence-number="true">
+		<field name="xkbType" type="CARD8" />
+		<field name="sequence" type="CARD16" />
 		<field name="time" type="TIMESTAMP" />
 		<field name="deviceID" type="CARD8" />
 		<field name="oldDeviceID" type="CARD8" />
@@ -2607,7 +2609,9 @@ authorization from the authors.
 		<pad bytes="14" />
 	</event>
 
-	<event name="MapNotify" number="1">
+	<event name="MapNotify" number="1" no-sequence-number="true">
+		<field name="xkbType" type="CARD8" />
+		<field name="sequence" type="CARD16" />
 		<field name="time" type="TIMESTAMP" />
 		<field name="deviceID" type="CARD8" />
 		<field name="ptrBtnActions" type="CARD8" />
@@ -2632,7 +2636,9 @@ authorization from the authors.
 		<pad bytes="2" />
 	</event>
 
-	<event name="StateNotify" number="2">
+	<event name="StateNotify" number="2" no-sequence-number="true">
+		<field name="xkbType" type="CARD8" />
+		<field name="sequence" type="CARD16" />
 		<field name="time" type="TIMESTAMP" />
 		<field name="deviceID" type="CARD8" />
 		<field name="mods" type="CARD8" mask="ModMask" />
@@ -2656,7 +2662,9 @@ authorization from the authors.
 		<field name="requestMinor" type="CARD8" />
 	</event>
 
-	<event name="ControlsNotify" number="3">
+	<event name="ControlsNotify" number="3" no-sequence-number="true">
+		<field name="xkbType" type="CARD8" />
+		<field name="sequence" type="CARD16" />
 		<field name="time" type="TIMESTAMP" />
 		<field name="deviceID" type="CARD8" />
 		<field name="numGroups" type="CARD8" />
@@ -2671,7 +2679,9 @@ authorization from the authors.
 		<pad bytes="4" />
 	</event>
 
-	<event name="IndicatorStateNotify" number="4">
+	<event name="IndicatorStateNotify" number="4" no-sequence-number="true">
+		<field name="xkbType" type="CARD8" />
+		<field name="sequence" type="CARD16" />
 		<field name="time" type="TIMESTAMP" />
 		<field name="deviceID" type="CARD8" />
 		<pad bytes="3" />
@@ -2680,7 +2690,9 @@ authorization from the authors.
 		<pad bytes="12" />
 	</event>
 
-	<event name="IndicatorMapNotify" number="5">
+	<event name="IndicatorMapNotify" number="5" no-sequence-number="true">
+		<field name="xkbType" type="CARD8" />
+		<field name="sequence" type="CARD16" />
 		<field name="time" type="TIMESTAMP" />
 		<field name="deviceID" type="CARD8" />
 		<pad bytes="3" />
@@ -2689,7 +2701,9 @@ authorization from the authors.
 		<pad bytes="12" />
 	</event>
 
-	<event name="NamesNotify" number="6">
+	<event name="NamesNotify" number="6" no-sequence-number="true">
+		<field name="xkbType" type="CARD8" />
+		<field name="sequence" type="CARD16" />
 		<field name="time" type="TIMESTAMP" />
 		<field name="deviceID" type="CARD8" />
 		<pad bytes="1" />
@@ -2709,7 +2723,9 @@ authorization from the authors.
 		<pad bytes="4" />
 	</event>
 
-	<event name="CompatMapNotify" number="7">
+	<event name="CompatMapNotify" number="7" no-sequence-number="true">
+		<field name="xkbType" type="CARD8" />
+		<field name="sequence" type="CARD16" />
 		<field name="time" type="TIMESTAMP" />
 		<field name="deviceID" type="CARD8" />
 		<field name="changedGroups" type="CARD8" mask="SetOfGroup" />
@@ -2719,7 +2735,9 @@ authorization from the authors.
 		<pad bytes="16" />
 	</event>
 
-	<event name="BellNotify" number="8">
+	<event name="BellNotify" number="8" no-sequence-number="true">
+		<field name="xkbType" type="CARD8" />
+		<field name="sequence" type="CARD16" />
 		<field name="time" type="TIMESTAMP" />
 		<field name="deviceID" type="CARD8" />
 		<field name="bellClass" type="CARD8" enum="BellClassResult" />
@@ -2733,7 +2751,9 @@ authorization from the authors.
 		<pad bytes="7" />
 	</event>
 
-	<event name="ActionMessage" number="9">
+	<event name="ActionMessage" number="9" no-sequence-number="true">
+		<field name="xkbType" type="CARD8" />
+		<field name="sequence" type="CARD16" />
 		<field name="time" type="TIMESTAMP" />
 		<field name="deviceID" type="CARD8" />
 		<field name="keycode" type="KEYCODE" />
@@ -2747,7 +2767,9 @@ authorization from the authors.
 		<pad bytes="10" />
 	</event>
 
-	<event name="AccessXNotify" number="10">
+	<event name="AccessXNotify" number="10" no-sequence-number="true">
+		<field name="xkbType" type="CARD8" />
+		<field name="sequence" type="CARD16" />
 		<field name="time" type="TIMESTAMP" />
 		<field name="deviceID" type="CARD8" />
 		<field name="keycode" type="KEYCODE" />
@@ -2757,7 +2779,9 @@ authorization from the authors.
 		<pad bytes="16" />
 	</event>
 
-	<event name="ExtensionDeviceNotify" number="11">
+	<event name="ExtensionDeviceNotify" number="11" no-sequence-number="true">
+		<field name="xkbType" type="CARD8" />
+		<field name="sequence" type="CARD16" />
 		<field name="time" type="TIMESTAMP" />
 		<field name="deviceID" type="CARD8" />
 		<pad bytes="1" />

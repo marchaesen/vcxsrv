@@ -20,3 +20,4 @@ indirect_size_get.c
 indirect_size_get.h
 indirect_table.c
 glapi_gentable.c
+/Makefile

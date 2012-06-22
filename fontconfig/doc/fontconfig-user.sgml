@@ -677,6 +677,41 @@ $XDG_CONFIG_HOME/fontconfig/fonts.conf
 &lt;match target="font"&gt;
 	&lt;edit name="rgba" mode="assign"&gt;&lt;const&gt;rgb&lt;/const&gt;&lt;/edit&gt;
 &lt;/match&gt;
+&lt;!--
+	use WenQuanYi Zen Hei font when serif is requested for Chinese
+--&gt;
+&lt;match&gt;
+	&lt;!--
+		If you don't want to use WenQuanYi Zen Hei font for zh-tw etc,
+		you can use zh-cn instead of zh.
+		Please note, even if you set zh-cn, it still matches zh.
+		if you don't like it, you can use compare="eq"
+		instead of compare="contains".
+	--&gt;
+	&lt;test name="lang" compare="contains"&gt;
+		&lt;string&gt;zh&lt;/string&gt;
+	&lt;/test&gt;
+	&lt;test name="family"&gt;
+		&lt;string&gt;serif&lt;/string&gt;
+	&lt;/test&gt;
+	&lt;edit name="family" mode="prepend"&gt;
+		&lt;string&gt;WenQuanYi Zen Hei&lt;/string&gt;
+	&lt;/edit&gt;
+&lt;/match&gt;
+&lt;!--
+	use VL Gothic font when sans-serif is requested for Japanese
+--&gt;
+&lt;match&gt;
+	&lt;test name="lang" compare="contains"&gt;
+		&lt;string&gt;ja&lt;/string&gt;
+	&lt;/test&gt;
+	&lt;test name="family"&gt;
+		&lt;string&gt;sans-serif&lt;/string&gt;
+	&lt;/test&gt;
+	&lt;edit name="family" mode="prepend"&gt;
+		&lt;string&gt;VL Gothic&lt;/string&gt;
+	&lt;/edit&gt;
+&lt;/match&gt;
 &lt;/fontconfig&gt;
     </programlisting>
   </refsect2>

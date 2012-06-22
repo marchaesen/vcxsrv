@@ -2043,6 +2043,7 @@ FcParseInclude (FcConfigParse *parse)
     FcChar8	    *s;
     const FcChar8   *attr;
     FcBool	    ignore_missing = FcFalse;
+    FcBool	    deprecated = FcFalse;
     FcChar8	    *prefix = NULL;
 
     s = FcStrBufDoneStatic (&parse->pstack->str);
@@ -2054,6 +2055,9 @@ FcParseInclude (FcConfigParse *parse)
     attr = FcConfigGetAttribute (parse, "ignore_missing");
     if (attr && FcConfigLexBool (parse, (FcChar8 *) attr) == FcTrue)
 	ignore_missing = FcTrue;
+    attr = FcConfigGetAttribute (parse, "deprecated");
+    if (attr && FcConfigLexBool (parse, (FcChar8 *) attr) == FcTrue)
+        deprecated = FcTrue;
     attr = FcConfigGetAttribute (parse, "prefix");
     if (attr && FcStrCmp (attr, (const FcChar8 *)"xdg") == 0)
 	prefix = FcConfigXdgConfigHome ();
@@ -2079,9 +2083,15 @@ FcParseInclude (FcConfigParse *parse)
 	parse->error = FcTrue;
     else
     {
-	attr = FcConfigGetAttribute (parse, "deprecated");
-	if (attr && FcConfigLexBool (parse, (FcChar8 *) attr) == FcTrue)
-	    FcConfigMessage (parse, FcSevereWarning, "reading configurations from %s is deprecated.\n", s);
+        FcChar8 *filename;
+
+        filename = FcConfigFilename(s);
+        if ((deprecated == FcTrue) && filename)
+        {
+            FcConfigMessage (parse, FcSevereWarning, "reading configurations from %s is deprecated.", s);
+        }
+        if(filename)
+            FcStrFree(filename);
     }
     FcStrBufDestroy (&parse->pstack->str);
 

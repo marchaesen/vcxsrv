@@ -1,6 +1,4 @@
-
-
-# Copyright © 2012 Matt Turner <mattst88@gmail.com>
+# Copyright © 2012 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -21,36 +19,21 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-include Makefile.sources
+if HAVE_X86_ASM
 
-# Hack to make some of the non-automake variables work.
-TOP=$(top_builddir)
-
-AM_CFLAGS = \
-	-D__NOT_HAVE_DRM_H \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/src/ \
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/src/mesa \
 	-I$(top_srcdir)/src/mapi \
-	-I$(top_srcdir)/src/mesa/ \
-	-I$(top_srcdir)/src/mesa/drivers/dri/common \
-	$(DEFINES) \
-	$(API_DEFINES)
+	$(API_DEFINES) \
+	$(DEFINES)
 
-dridir = $(DRI_DRIVER_INSTALL_DIR)
+noinst_PROGRAMS = gen_matypes
 
-if HAVE_SWRAST_DRI
-dri_LTLIBRARIES = swrast_dri.la
+gen_matypes_SOURCES = gen_matypes.c
+BUILT_SOURCES = matypes.h
+CLEANFILES = matypes.h
+
+matypes.h: gen_matypes
+	$(AM_V_GEN)./gen_matypes > $@
+
 endif
-
-swrast_dri_la_SOURCES = \
-	$(SWRAST_C_FILES)
-
-swrast_dri_la_LDFLAGS = -module -avoid-version -shared
-swrast_dri_la_LIBADD = \
-	$(DRI_LIB_DEPS)
-
-# Provide compatibility with scripts for the old Mesa build system for
-# a while by putting a link to the driver into /lib of the build tree.
-all-local: swrast_dri.la
-	$(MKDIR_P) $(top_builddir)/$(LIB_DIR);
-	ln -f .libs/swrast_dri.so $(top_builddir)/$(LIB_DIR)/swrast_dri.so;
