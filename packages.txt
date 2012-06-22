@@ -91,4 +91,4 @@ xproto-7.0.23
 xserver git version
 xtrans git version
 xwininfo git version
-zlib-1.2.3
+zlib-1.2.7
