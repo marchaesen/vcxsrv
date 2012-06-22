@@ -5673,6 +5673,55 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->GetActiveUniformBlockName) {
+        void ** procp = (void **) &disp->GetActiveUniformBlockName;
+        snprintf(symboln, sizeof(symboln), "%sGetActiveUniformBlockName", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetActiveUniformBlockiv) {
+        void ** procp = (void **) &disp->GetActiveUniformBlockiv;
+        snprintf(symboln, sizeof(symboln), "%sGetActiveUniformBlockiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetActiveUniformName) {
+        void ** procp = (void **) &disp->GetActiveUniformName;
+        snprintf(symboln, sizeof(symboln), "%sGetActiveUniformName", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetActiveUniformsiv) {
+        void ** procp = (void **) &disp->GetActiveUniformsiv;
+        snprintf(symboln, sizeof(symboln), "%sGetActiveUniformsiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetUniformBlockIndex) {
+        void ** procp = (void **) &disp->GetUniformBlockIndex;
+        snprintf(symboln, sizeof(symboln), "%sGetUniformBlockIndex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetUniformIndices) {
+        void ** procp = (void **) &disp->GetUniformIndices;
+        snprintf(symboln, sizeof(symboln), "%sGetUniformIndices", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UniformBlockBinding) {
+        void ** procp = (void **) &disp->UniformBlockBinding;
+        snprintf(symboln, sizeof(symboln), "%sUniformBlockBinding", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->CopyBufferSubData) {
         void ** procp = (void **) &disp->CopyBufferSubData;
         snprintf(symboln, sizeof(symboln), "%sCopyBufferSubData", symbol_prefix);

@@ -544,6 +544,8 @@ extern _X_HIDDEN int __glXDisp_GetTexParameteriv(struct __GLXclientStateRec *, G
 extern _X_HIDDEN int __glXDispSwap_GetTexParameteriv(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN int __glXDisp_GenRenderbuffersEXT(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN int __glXDispSwap_GenRenderbuffersEXT(struct __GLXclientStateRec *, GLbyte *);
+extern _X_HIDDEN void __glXDisp_VertexAttribs4dvNV(GLbyte * pc);
+extern _X_HIDDEN void __glXDispSwap_VertexAttribs4dvNV(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_VertexAttrib2dvARB(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_VertexAttrib2dvARB(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_VertexAttribs2svNV(GLbyte * pc);
@@ -818,8 +820,6 @@ extern _X_HIDDEN int __glXDisp_GetConvolutionParameterfv(struct __GLXclientState
 extern _X_HIDDEN int __glXDispSwap_GetConvolutionParameterfv(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN int __glXDisp_GetConvolutionParameterfvEXT(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN int __glXDispSwap_GetConvolutionParameterfvEXT(struct __GLXclientStateRec *, GLbyte *);
-extern _X_HIDDEN void __glXDisp_VertexAttribs4dvNV(GLbyte * pc);
-extern _X_HIDDEN void __glXDispSwap_VertexAttribs4dvNV(GLbyte * pc);
 extern _X_HIDDEN int __glXDisp_GetMaterialfv(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN int __glXDispSwap_GetMaterialfv(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN int __glXDisp_UseXFont(struct __GLXclientStateRec *, GLbyte *);
