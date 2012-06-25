@@ -53,7 +53,7 @@ const char Test[]="dit is een test";
 %token <theString> COMMAND
 %token <theString> COMMA
 %token <theString> STRING DOLLAREXPR EQUAL COLON DOUBLECOLON VARDEF VARVAL
-%token IMEQUAL PEQUAL OPTEQUAL PHONY AUTODEPS EXPORT NEWLINE INCLUDEMAK SPACE VPATH
+%token IMEQUAL PEQUAL OPTEQUAL PHONY AUTODEPS EXPORT NEWLINE INCLUDEMAK SPACE VPATH ENVVARS_TOIGNORE
 
 %type <theString> expression nonspaceexpression simpleexpression
 %type <theString> maybeemptyexpression
@@ -92,6 +92,7 @@ statement: NEWLINE |
            ruledef |
            phonyrule |
            autodepsrule |
+           envvarstoignorerule |
            varassignment |
            imvarassignment |
            pvarassignment |
@@ -178,6 +179,26 @@ autodepsrule: AUTODEPS COLON expression
            }
            NEWLINE
 ;
+
+envvarstoignorerule: ENVVARS_TOIGNORE COLON expression
+           {
+             string VarsStr=m_pMakefile->ExpandExpression($3);
+             PRINTF(("Defining envvarstoignore rule : %s\n",$3.c_str()));
+             PRINTF(("  Expanded to : %s\n",m_pMakefile->ExpandExpression($3).c_str()));
+             const char *pTmp=VarsStr.c_str();
+             while (*pTmp)
+             {
+               string Var;
+               pTmp=NextItem(pTmp,Var);
+               if (!Var.empty())
+               {  // Add it to the list of env vars to ignore
+                 m_pMakefile->m_EnvVarsToIgnore.insert(Var);
+               }
+             }
+           }
+           NEWLINE
+;
+
 
 exportrule: EXPORT space exportstrings NEWLINE |
             EXPORT space STRING EQUAL maybeemptyexpression

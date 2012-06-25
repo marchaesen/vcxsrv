@@ -35,6 +35,9 @@
 #include <X11/Xlib.h>
 
 #include <stdlib.h>
+// Define here because it is not defined in stdlib.h because of the _POSIX_ defined
+extern "C"
+_Check_return_ _CRTIMP int    __cdecl _putenv(_In_z_ const char * _EnvString);
 #include <sstream>
 
 /// @brief Send WM_ENDSESSION to all program windows.

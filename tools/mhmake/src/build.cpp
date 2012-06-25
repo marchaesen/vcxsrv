@@ -497,7 +497,7 @@ mh_pid_t mhmakefileparser::CopyFiles(const string &Params) const
 
     if (pSrc->IsDir())
     {
-      SrcFileName+=OSPATHSEPSTR"*";
+      SrcFileName+=OSPATHSEPSTR "*";
       pSrc=GetFileInfo(SrcFileName,m_MakeDir);
     }
 
@@ -797,7 +797,7 @@ static void CommandSep(const string &Command, unsigned &EndPos, unsigned &NextBe
       {
         continue;
       }
-    while (strchr(" \t|<>",Command[NextBegin])) NextBegin++;
+      while (strchr(" \t|<>",Command[NextBegin])) NextBegin++;
     }
     while (strchr(" \t|<>",Command[EndPos])) EndPos--;
     break;
@@ -838,6 +838,7 @@ mh_pid_t mhmakefileparser::OsExeCommand(const string &Command, const string &Par
     unsigned NextBegin=0;
     unsigned EndPos=0;
     CommandSep(ComspecCommandLine,EndPos,NextBegin);
+
       // We have multiple commands so create an temporary batch file
     FILE *pFile;
     while (1)
@@ -1507,7 +1508,7 @@ mh_time_t mhmakefileparser::StartBuildTarget(fileinfo* pTarget,bool bCheckTarget
           }
           ImplicitRuleDepsIt++;
         }
-        
+
         IMPLICITRULE::PopRule(ResultIt->second);
         #ifdef _DEBUG
         m_ImplicitSearch--;

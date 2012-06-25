@@ -41,11 +41,11 @@ class commandqueue
   };
 private:
   queue<fileinfo*>     m_Queue;
-  unsigned                   m_MaxNrCommandsInParallel;
-  mh_pid_t                  *m_pActiveProcesses;
-  refptr<activeentry>       *m_pActiveEntries;
-  unsigned                   m_NrActiveEntries;
-  mh_pid_t                   m_DummyWaitHandle;
+  unsigned             m_MaxNrCommandsInParallel;
+  mh_pid_t            *m_pActiveProcesses;
+  refptr<activeentry> *m_pActiveEntries;
+  unsigned             m_NrActiveEntries;
+  mh_pid_t             m_DummyWaitHandle;
 
 private:
   void ThrowCommandExecutionError(refptr<activeentry> pActiveEntry);

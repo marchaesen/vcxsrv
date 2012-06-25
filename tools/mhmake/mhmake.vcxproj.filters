@@ -2,23 +2,23 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
-      <UniqueIdentifier>{e9db2f40-4c63-488d-bb89-1eee3e458055}</UniqueIdentifier>
+      <UniqueIdentifier>{bafa54b0-cf70-4114-a02b-5950c0d4d6e3}</UniqueIdentifier>
       <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
     </Filter>
     <Filter Include="Header Files">
-      <UniqueIdentifier>{bf259917-974f-4378-94e5-126d6d1889e9}</UniqueIdentifier>
+      <UniqueIdentifier>{a92d61c8-68ae-49f8-b843-a793ac9bb6c6}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl</Extensions>
     </Filter>
     <Filter Include="Parser Files">
-      <UniqueIdentifier>{5c6c4864-cd40-427e-825a-4a3028933fe0}</UniqueIdentifier>
+      <UniqueIdentifier>{a793606c-0dbc-4f42-9ad8-a61cf7773455}</UniqueIdentifier>
       <Extensions>l;y;cpp;h</Extensions>
     </Filter>
     <Filter Include="Parser Files\Auto">
-      <UniqueIdentifier>{06532204-d72c-459e-be81-db8b0725c996}</UniqueIdentifier>
+      <UniqueIdentifier>{e31daf7b-6a21-4a06-ac86-07625e21fd87}</UniqueIdentifier>
       <Extensions>cpp;h</Extensions>
     </Filter>
     <Filter Include="Resource Files">
-      <UniqueIdentifier>{c4505c11-9108-48e9-8d61-6247b696335e}</UniqueIdentifier>
+      <UniqueIdentifier>{bd4cf27c-0b86-4d5c-8dae-963cc3953cbb}</UniqueIdentifier>
       <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
     </Filter>
   </ItemGroup>
@@ -92,6 +92,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\flexlexer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\flexint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

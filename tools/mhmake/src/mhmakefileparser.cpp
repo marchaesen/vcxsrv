@@ -27,7 +27,7 @@
 #include "flexlexer.h"
 #include "mhmakeparser.hpp"
 
-commandqueue mhmakefileparser::sm_CommandQueue;
+commandqueue             mhmakefileparser::sm_CommandQueue;
 stack<yy::mhmakeparser*> mhmakefileparser::sm_ParserStack; // Keeps track of the currently active parser
 
 string mhmakefileparser::GetFileNameLineNo(void)
@@ -93,11 +93,7 @@ bool mhmakefileparser::IsDefined(const string &Var) const
   bool Ret = m_Variables.find(Var)!=m_Variables.end();
   if (!Ret)
   {
-    string Env=GetFromEnv(Var);
-    if (!Env.empty())
-    {
-      Ret=true;
-    }
+    GetFromEnv(Var, &Ret);
   }
   return Ret;
 }
@@ -185,21 +181,21 @@ inline string mhmakefileparser::ExpandExpression(const string &ExprIn) const
       char Char=Expr[i++];
       if (Char=='$')
       {
-          size_t inew=SkipMakeExpr(Expr,i);
-          i++;
-          if (inew>i)
-          {
-            ToAdd=ExpandMacro(Expr.substr(i,inew-i-1));
-            i=inew;
-          }
-          else
-          {
-            // This is a single character expression
-            ToAdd=ExpandMacro(string(1,Expr[i-1]));
-          }
-          if (ToAdd.find('$')!=string::npos && ToAdd.length()!=1)
-          {
-            Recurse=true;
+        size_t inew=SkipMakeExpr(Expr,i);
+        i++;
+        if (inew>i)
+        {
+          ToAdd=ExpandMacro(Expr.substr(i,inew-i-1));
+          i=inew;
+        }
+        else
+        {
+          // This is a single character expression
+          ToAdd=ExpandMacro(string(1,Expr[i-1]));
+        }
+        if (ToAdd.find('$')!=string::npos && ToAdd.length()!=1)
+        {
+          Recurse=true;
         }
         Ret+=ToAdd;
       }
@@ -298,7 +294,7 @@ string mhmakefileparser::ExpandMacro(const string &Expr) const
       return ExpandExpression(Ret);
     else
       return Ret;
-}
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -682,7 +678,7 @@ const refptr<fileinfoarray> mhmakefileparser::GetIncludeDirs() const
     ((mhmakefileparser*)this)->m_IncludeDirs=Includes;
     ((mhmakefileparser*)this)->m_pIncludeDirs=refptr<fileinfoarray>(new fileinfoarray);
     if (Includes.empty())  // If not defined try a default path
-      Includes="include inc .."OSPATHSEPSTR"include .."OSPATHSEPSTR"inc";
+      Includes="include inc .." OSPATHSEPSTR "include .." OSPATHSEPSTR "inc";
     const char *pTmp=Includes.c_str();
     while (*pTmp)
     {
@@ -774,7 +770,7 @@ void mhmakefileparser::LoadAutoDepsFile(fileinfo *pDepFile)
 
     if (!pTarget->CompareMd5_32(0) && !pTarget->CompareMd5_32(Md5_32))
     {
-        MakeNotDirty=false; /* BuildTarget had set the dirty flag, but since the md5 did not change it was a false dirty. This is for BuildTargets called before this routine */
+      MakeNotDirty=false; /* BuildTarget had set the dirty flag, but since the md5 did not change it was a false dirty. This is for BuildTargets called before this routine */
       #ifdef _DEBUG
       cout << "Warning: trying to set to different md5's for Target "<<pTarget->GetQuotedFullFileName()<<" Old: "<<hex<<pTarget->GetCommandsMd5_32()<<" New: "<<Md5_32<<endl;
       #endif
@@ -946,7 +942,7 @@ void mhmakefileparser::SetExport(const string &Var, const string &Val)
   {
     const char *pVar=Var.c_str();
     char *pStart=pEnv;
-    while (*pEnv!='=' && *pEnv==*pVar)
+    while (*pEnv!='=' && tolower(*pEnv)==tolower(*pVar))
     {
       pEnv++; pVar++;
     }
@@ -1141,16 +1137,7 @@ void mhmakefileparser::CheckEnv(void)
 //
 
 
-static bool SkipVar(const string &Var)
-{
-  if (Var==WC_REVISION)
-    return true;
-  if (Var==WC_URL)
-    return true;
-  if (Var==MAKE)
-    return true;
-  return false;
-}
+#define SkipVar(Var) (m_EnvVarsToIgnore.find(Var)!=m_EnvVarsToIgnore.end())
 
 #define DBGOUT(stuff)
 
@@ -1208,32 +1195,33 @@ void mhmakefileparser::InitBuildTime()
 
 ///////////////////////////////////////////////////////////////////////////////
 // Returns a variable from the environment or from the command line and adds it the m_UsedEnvVars
-string mhmakefileparser::GetFromEnv(const string &Var, bool Cache) const
+string mhmakefileparser::GetFromEnv(const string &Var, bool *pDefined) const
 {
   /* First we look into the command line variables, before we are looking in the environment */
   map<string,string>::const_iterator pLineFind=m_CommandLineVars.find(Var);
   if (pLineFind!=m_CommandLineVars.end())
   {
     ((mhmakefileparser*)this)->m_UsedEnvVars.insert(Var);
-    if (Cache)
-      ((mhmakefileparser*)this)->m_Variables[Var]=pLineFind->second;
+    ((mhmakefileparser*)this)->m_Variables[Var]=pLineFind->second;
+    if (pDefined) *pDefined=true;
     return pLineFind->second;
   }
 
   const char *pEnv=getenv(Var.c_str());
   if (!pEnv)
   {
+    if (pDefined) *pDefined=false;
     return g_EmptyString;
   }
   ((mhmakefileparser*)this)->m_UsedEnvVars.insert(Var);
 
-  if (Cache)
-    ((mhmakefileparser*)this)->m_Variables[Var]=pEnv;
+  ((mhmakefileparser*)this)->m_Variables[Var]=pEnv;
+  if (pDefined) *pDefined=true;
   return pEnv;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Creates the variable USER_ENVVARS to be saved in the autodeps file
+// Creates the variable USED_ENVVARS to be saved in the autodeps file
 //
 
 void mhmakefileparser::CreateUSED_ENVVARS()

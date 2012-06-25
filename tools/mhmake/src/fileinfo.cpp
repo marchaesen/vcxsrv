@@ -257,7 +257,7 @@ string &NormalizePathName(string &Name)
             if (pLastSlash<pBeg)
               pWr=(char*)pBeg;
             else
-            pWr=(char*)pLastSlash;
+              pWr=(char*)pLastSlash;
           }
         }
         else

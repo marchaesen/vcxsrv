@@ -98,7 +98,7 @@ Section "VcXsrv (required)"
   File "..\swrastwgl_dri_dbg.dll"
   File "..\dxtn.dll"
   File "..\..\libxml2\bin\libxml2.dll"
-  File "..\..\libxml2\bin\zlib1.dll"
+  File "..\..\zlib\obj\release\zlib1.dll"
   File "..\..\libxml2\bin\iconv.dll"
 !ifndef VS2008
   File "msvcr100.dll"

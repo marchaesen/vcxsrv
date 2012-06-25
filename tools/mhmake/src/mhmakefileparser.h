@@ -57,7 +57,7 @@ class mhmakefileparser : public refbase
   friend class yy::mhmakeparser;
 
 private:
-  static commandqueue   sm_CommandQueue;
+  static commandqueue             sm_CommandQueue;
   static stack<yy::mhmakeparser*> sm_ParserStack; // Keeps track of the currently active parser
 private:
   fileinfo             *m_RuleThatIsBuild;
@@ -93,6 +93,7 @@ protected:
   bool                  m_RebuildAll; /* true when to rebuild all targets of this makefile */
 
   set<string>           m_UsedEnvVars;     // Array containing a list of variables that are taken from the environment (This is used for rebuild checking)
+  set<string>           m_EnvVarsToIgnore; // List of env vars that do not have to be taken into account for rebuild checking
   set<string>           m_Exports;         // Array containing a list of exported variables in the makefile (This is used for rebuild checking)
   vector< pair< string, refptr<fileinfoarray> > > m_vPath;
 #ifdef WIN32
@@ -135,6 +136,9 @@ public:
     SetVariable("MAKE_VERSION",MHMAKEVER);
     SetVariable(OBJEXTVAR,OBJEXT);
     SetVariable(EXEEXTVAR,EXEEXT);
+    m_EnvVarsToIgnore.insert(WC_REVISION);
+    m_EnvVarsToIgnore.insert(WC_URL);
+    m_EnvVarsToIgnore.insert(MAKE);
   }
 
   /* Needed if you only want to use the searchcommand and execommand functions */
@@ -151,7 +155,7 @@ public:
 
   bool CompareEnv() const;
   uint32 CreateEnvMd5_32() const;
-  string GetFromEnv(const string &Var,bool Cache=true) const;
+  string GetFromEnv(const string &Var, bool *pDefined=NULL) const;
   void CreateUSED_ENVVARS();
 
   void SetExport(const string & Var, const string & Val);
@@ -350,7 +354,7 @@ public:
     mh_time_t TargetDate=StartBuildTarget(pTarget,bCheckTargetDir);
     if (!TargetDate.IsDateValid())
       TargetDate=WaitBuildTarget(pTarget);
-      return TargetDate;
+    return TargetDate;
   }
 
   void BuildDependencies(const refptr<rule> &pRule, fileinfo* pTarget, mh_time_t TargetDate, mh_time_t &YoungestDate, bool &MakeTarget);

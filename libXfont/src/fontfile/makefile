@@ -1,8 +1,6 @@
 
 LIBRARY = libfontfile
 
-INCLUDES += $(MHMAKECONF)\zlib\src\zlib-1.2.3
-
 DEFINES += X_GZIP_FONT_COMPRESSION
 
 CSRCS = bitsource.c		\

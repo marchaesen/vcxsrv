@@ -35,7 +35,7 @@ static uint32 LoadMakMd5(fileinfo *pTarget)
     return Md5_32;
   if (1!=fread(&Md5_32,sizeof(Md5_32),1,pFile))
   {
-  fclose(pFile);
+    fclose(pFile);
     return Md5_32;
   }
   pTarget->SetCommandsMd5_32(Md5_32);
@@ -71,7 +71,7 @@ static void ReplaceCurlyBraces(string &String)
     Pos=0;
     while ((Pos=String.find_first_of('}',Pos))!=(int)string::npos)
       String.replace(Pos,1,1,')');
-        }
+  }
 }
 
 #include "mhmakeparser.hpp"
@@ -248,6 +248,13 @@ load_makefile {
 }
 
  /*---------------------------------------------------------------------------*/
+[ \t]*override[ \t]* {
+  // override is not supported by mhmake, it is the default behavior
+  PRINTF(("%s %d: SPACE (ignoring override):\n",m_InputFileName.c_str(),lineno()));
+  return yy::mhmakeparser::token::SPACE;
+}
+
+ /*---------------------------------------------------------------------------*/
 [ \t]*=[ \t]*\\[ \t\r]*\n[ \t]* {
   PRINTF(("%s %d: EQUAL: %s\n",m_InputFileName.c_str(),lineno(),yytext));
   inclineno();
@@ -297,6 +304,12 @@ load_makefile {
   return yy::mhmakeparser::token::PEQUAL;
 }
 
+ /*---------------------------------------------------------------------------*/
+\\; {
+  PRINTF(("%s %d: -Escaped SEMICOLON (STRING): %s\n",m_InputFileName.c_str(),lineno(),yytext));
+  yylval->theString=(const char *)yytext+1;
+  return yy::mhmakeparser::token::STRING;
+}
  /*---------------------------------------------------------------------------*/
 [ \t]*;[ \t]*\\[ \t\r]*\n[ \t]* {
   PRINTF(("%s %d: -SEMICOLON (NEWLINE): %s\n",m_InputFileName.c_str(),lineno(),yytext));
@@ -595,7 +608,7 @@ load_makefile {
 }
 
  /*---------------------------------------------------------------------------*/
-<SKIPUNTILELSEORENDIF>[a-zA-Z]+    /* skip */
+<SKIPUNTILELSEORENDIF>[a-zA-Z]+  /* skip */
  /*---------------------------------------------------------------------------*/
 <SKIPUNTILELSEORENDIF>[^a-zA-Z\n]+ /* skip */
  /*---------------------------------------------------------------------------*/
@@ -629,6 +642,12 @@ load_makefile {
 \.AUTODEPS {
   PRINTF(("%s %d: .AUTODEPS: %s\n",m_InputFileName.c_str(),lineno(),yytext));
   return yy::mhmakeparser::token::AUTODEPS;
+}
+
+ /*---------------------------------------------------------------------------*/
+\.ENVVARS_TOIGNORE {
+  PRINTF(("%s %d: .ENVVARS_TOIGNORE: %s\n",m_InputFileName.c_str(),lineno(),yytext));
+  return yy::mhmakeparser::token::ENVVARS_TOIGNORE;
 }
 
  /*---------------------------------------------------------------------------*/
@@ -842,7 +861,7 @@ export {
 
 <SINGLEQUOTE>[^\\\'\r\n$]+ |
 <SINGLEQUOTE>[\\\$]      |
-<SINGLEQUOTE>\\\'         |
+<SINGLEQUOTE>\\\'            |
 <SINGLEQUOTE>\\# {
   yymore();
 }

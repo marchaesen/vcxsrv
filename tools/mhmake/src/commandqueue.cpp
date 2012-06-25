@@ -80,9 +80,9 @@ commandqueue::commandqueue() :
       {
         if (!szProc[cur+1])
         {
-        NrProcs++;
+          NrProcs++;
+        }
       }
-    }
       cur++;
     }
   }
@@ -120,7 +120,7 @@ void commandqueue::SetNrParallelBuilds(unsigned NrParallelBuilds)
 void commandqueue::ThrowCommandExecutionError(refptr<activeentry> pActiveEntry)
 {
   fileinfo*     pTarget=pActiveEntry->pTarget;
-  const string    &Command=pActiveEntry->Command;
+  const string &Command=pActiveEntry->Command;
   mhmakefileparser *pMakefile=pTarget->GetRule()->GetMakefile();
 
   string ErrorMessage = string("Error running command: ")+ Command +"\n";

@@ -738,12 +738,12 @@ static string dir(const string &FileName, void *)
     return g_EmptyString;
   }
 
-    string Ret=g_EmptyString;
-    Ret+=FileName.substr(0,Pos+1);
-    if (FileName[0]=='"' && FileName.end()[-1]=='"')
-      Ret+=s_QuoteString;
-    return Ret;
-  }
+  string Ret=g_EmptyString;
+  Ret+=FileName.substr(0,Pos+1);
+  if (FileName[0]=='"' && FileName.end()[-1]=='"')
+    Ret+=s_QuoteString;
+  return Ret;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 string mhmakefileparser::f_dir(const string & FileNames) const
@@ -801,7 +801,7 @@ static string relpath(const string &FileName,void *pvDir)
     while (*pCur)
     {
       if (*pCur==OSPATHSEP)
-        retPath+=OSPATHSEPSTR"..";
+        retPath+=OSPATHSEPSTR "..";
       pCur++;
     }
     if (pszPath)
@@ -810,11 +810,11 @@ static string relpath(const string &FileName,void *pvDir)
   else
   {
     if (*pCur)
-      retPath=".."OSPATHSEPSTR;
+      retPath=".." OSPATHSEPSTR;
     while (*pCur)
     {
       if (*pCur==OSPATHSEP)
-        retPath+=".."OSPATHSEPSTR;
+        retPath+=".." OSPATHSEPSTR;
       pCur++;
     }
     retPath+=pLast;

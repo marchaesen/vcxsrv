@@ -650,27 +650,7 @@ void loadedmakefile::LoadMakefile()
   }
   else
   {
-    /* Create a file that is depending on the makefile name and the arguments */
-    md5_context ctx;
-
-    md5_starts( &ctx );
-
-    map<string,string>::const_iterator pIt=m_CommandLineVars.begin();
-    while (pIt!=m_CommandLineVars.end())
-    {
-      if (pIt->first!="MAKE")
-      {
-        md5_update(&ctx, (uint8*)pIt->first.c_str(), pIt->first.size());
-        md5_update(&ctx, (uint8*)pIt->second.c_str(), pIt->second.size());
-      }
-      pIt++;
-    }
-    md5_update(&ctx, (uint8*)m_Makefile->GetFullFileName().c_str(), m_Makefile->GetFullFileName().size());
-
-    char ID[10];
-    sprintf(ID,"_%lx",md5_finish32( &ctx));
-
-    pDepFile=GetFileInfo(string(".") + m_Makefile->GetName()+ ".dep"+ID,m_MakeDir);
+    pDepFile=GetFileInfo(string(".") + m_Makefile->GetName()+ ".dep",m_MakeDir);
     m_pMakefileParser->SetVariable(AUTODEPFILE,pDepFile->GetQuotedFullFileName());
   }
 
@@ -683,10 +663,12 @@ void loadedmakefile::LoadMakefile()
   {
     throw string("Error parsing ")+m_Makefile->GetQuotedFullFileName();
   }
+
+  fileinfo *pMaybeNewDepFile=GetFileInfo(m_pMakefileParser->ExpandVar(AUTODEPFILE),m_MakeDir);
   #ifdef _DEBUG
   /* Check if the makefile has changed the AUTODEPFILE variable, if so generate a warning that a
    * rebuild could happen for the rules defined for making included makefiles */
-  if (m_pMakefileParser->ExpandVar(AUTODEPFILE)!=pDepFile->GetQuotedFullFileName())
+  if (pMaybeNewDepFile!=pDepFile)
   {
     cout << "\n\nWARNING:\n  makefile '"<< m_Makefile->GetQuotedFullFileName() <<"' re-defines AUTODEPFILE\n  from '"<< pDepFile->GetQuotedFullFileName() <<"'\n  to '"<<
             m_pMakefileParser->ExpandVar(AUTODEPFILE) << "'\n  (may cause needless rebuilds when having rules for included makefiles!!!!!)\n\n\n";
@@ -700,6 +682,15 @@ void loadedmakefile::LoadMakefile()
       cout<<"No First target for "<<m_Makefile->GetQuotedFullFileName()<<endl;
   }
   #endif
+
+  if (pMaybeNewDepFile!=pDepFile)
+  {
+    // this means the makefile has overruled the AUTODEPFILE, so parse it again
+    pDepFile=pMaybeNewDepFile;
+    if (pDepFile->Exists())
+      m_pMakefileParser->LoadAutoDepsFile(pDepFile); /* If it already exists, load it. */
+  }
+
   m_pMakefileParser->UpdateDate(m_Makefile->GetDate());
 
   if (sm_Statics.m_MhMakeConf)

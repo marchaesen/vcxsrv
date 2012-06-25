@@ -62,11 +62,11 @@ endif
 
 all: $(EXE)
 
-$(EXE) :  $(OBJS) $(INCLUDELIBFILES) $(RESOBJS) $(MANIFESTFILE) $(EXTRALIB)
+$(EXE) :  $(OBJS) $(INCLUDELIBFILES) $(INCLUDENOSERVLIBFILES) $(RESOBJS) $(MANIFESTFILE) $(EXTRALIB)
 ifndef VS2008
-	$(LINK) $(LINKFLAGS) /OUT:$(relpath $@) $(INCLUDELIBFILES) $(SYSTEMLIBS) $(LINKLIBS) $(EXTRALIB) $(OBJS) $(RESOBJS)
+	$(LINK) $(LINKFLAGS) /OUT:$(relpath $@) $(INCLUDELIBFILES) $(INCLUDENOSERVLIBFILES) $(SYSTEMLIBS) $(LINKLIBS) $(EXTRALIB) $(OBJS) $(RESOBJS)
 else
-	$(LINK) $(LINKFLAGS) /MANIFEST:NO /OUT:$(relpath $@) $(INCLUDELIBFILES) $(SYSTEMLIBS) $(LINKLIBS) $(EXTRALIB) $(OBJS) $(RESOBJS)
+	$(LINK) $(LINKFLAGS) /MANIFEST:NO /OUT:$(relpath $@) $(INCLUDELIBFILES) $(INCLUDENOSERVLIBFILES) $(SYSTEMLIBS) $(LINKLIBS) $(EXTRALIB) $(OBJS) $(RESOBJS)
 	mt -nologo -manifest $(MANIFESTFILE) -outputresource:$(relpath $@);\#1
 endif
 
@@ -117,6 +117,10 @@ $(OBJDIR)\%.res : %.rc
 ifdef INC_BDF_RULES
 load_makefile $(MHMAKECONF)\bdftopcf\makefile MAKESERVER=0 DEBUG=$(DEBUG)
 load_makefile $(MHMAKECONF)\mkfontscale\makefile MAKESERVER=0 DEBUG=$(DEBUG)
+
+#bdftopcf is dependent on zlib1.dll, so we need to add the directory of the zlib dll to the path env variable
+PATH:=$(relpath $(MHMAKECONF)\zlib\$(NOSERVOBJDIR))\;$(PATH)
+export PATH
 
 $(DESTDIR)\%.pcf.gz: %.bdf
 	@del -e $@

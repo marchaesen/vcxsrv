@@ -82,7 +82,7 @@ class IMPLICITRULE
   static set<rule*> m_ImplicitRuleRecurseDetStack;
   static vector<implicitrule_t> m_ImplicitRules;  // Use a vector and not a map because the order of the implicit rules is important
 public:
-  static void AddImplicitRule(fileinfo *pTarget,const vector<fileinfo*> &Deps, refptr<rule> pRule);
+  static void AddImplicitRule(fileinfo *pTarget,const vector<fileinfo*> &Deps,refptr<rule> pRule);
   static void SearchImplicitRule(const fileinfo *pTarget, implicitruledep_t &Result);
   static void PrintImplicitRules();
   static bool PushRule(rule *pRule)

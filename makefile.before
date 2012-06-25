@@ -38,7 +38,6 @@ endif
 ifeq ($(NORELDBG),1)
 # This all is here to avoid unnecessary rebuilds when switching between release and debug and MAKESERVER
 OBJDIR?=obj
-OBJDIRPREFIX=noreldbg
 DEBUG=0
 MAKESERVER=0
 endif
@@ -47,6 +46,7 @@ ifeq ($(DEBUG),1)
 CCFLAGS   += -MDd -RTCc -RTC1 -Od -GS -GR -Zi
 LINKFLAGS += /DEBUG
 OBJDIR ?= obj\$(OBJDIRPREFIX)debug
+NOSERVOBJDIR ?= obj\debug
 DEFINES += _DEBUG DEBUG
 RCFLAGS += -d "_DEBUG"
 else
@@ -54,13 +54,14 @@ CCFLAGS   += -MD -O2 -Ob2 -Oi -Ox -Oy -Ot -Zi -GL
 DEFINES   +=  NDEBUG
 LINKFLAGS += /OPT:REF /OPT:ICF /DEBUG /LTCG:STATUS
 OBJDIR ?= obj\$(OBJDIRPREFIX)release
+NOSERVOBJDIR ?= obj\release
 RCFLAGS += -d "NDEBUG"
 AR += /LTCG
 endif
 
 
 
-DEFINES += WIN32 _WIN32 _WINDOWS WINDOWS _MBCS __i386__ __MINGW32__ OPEN_MAX=256 PATH_MAX=256 _TIMEVAL_DEFINED mode_t=int __STDC__ X_LOCALE
+DEFINES += WIN32 _WIN32 _WINDOWS WINDOWS _MBCS __i386__ __MINGW32__ _POSIX_ X_NOT_POSIX _TIMEVAL_DEFINED mode_t=int __STDC__ X_LOCALE
 DEFINES += FAKEIT HAVE_CONFIG_H _BSD_SOURCE _WIN32_WINNT=_WIN32_WINNT_WINXP
 
 TOPSRCDIR=$(MHMAKECONF)\xorg-server

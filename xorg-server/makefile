@@ -43,16 +43,20 @@ INCLUDELIBFILES =  \
  $(MHMAKECONF)\libX11\modules\lc\utf8\$(OBJDIR)\libxlcUTF8Load.lib \
  $(MHMAKECONF)\libX11\modules\lc\def\$(OBJDIR)\libxlcDef.lib \
  $(MHMAKECONF)\libX11\modules\lc\gen\$(OBJDIR)\liblcGenConvLoad.lib \
- $(MHMAKECONF)\zlib\$(OBJDIR)\libz.lib \
  $(MHMAKECONF)\libX11\modules\lc\xlocale\$(OBJDIR)\libxlocale.lib \
  $(MHMAKECONF)\libfontenc\src\$(OBJDIR)\libfontenc.lib \
  $(MHMAKECONF)\libXfont\src\freetype\$(OBJDIR)\libft.lib \
  $(MHMAKECONF)\libXfont\src\stubs\$(OBJDIR)\libstubs.lib \
  $(MHMAKECONF)\libXinerama\src\$(OBJDIR)\libXinerama.lib
 
+INCLUDENOSERVLIBFILES =  \
+ $(MHMAKECONF)\zlib\$(NOSERVOBJDIR)\zlib1.lib
+
 LIBDIRS=$(dir $(INCLUDELIBFILES))
+NOSERVLIBDIRS=$(dir $(INCLUDENOSERVLIBFILES))
 
 load_makefile $(LIBDIRS:%$(OBJDIR)\=%makefile MAKESERVER=$(MAKESERVER) DEBUG=$(DEBUG);)
+load_makefile $(NOSERVLIBDIRS:%$(NOSERVOBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(DEBUG);)
 
 OBJS = dix\$(OBJDIR)\main.obj
 
