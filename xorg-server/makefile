@@ -25,31 +25,31 @@ INCLUDELIBFILES =  \
  Xi\$(OBJDIR)\libXi.lib \
  xkb\$(OBJDIR)\libxkb.lib \
  render\$(OBJDIR)\librender.lib \
- $(MHMAKECONF)\libXau\$(OBJDIR)\libXau.lib \
- $(MHMAKECONF)\libXdmcp\$(OBJDIR)\libXdmcp.lib \
- $(MHMAKECONF)\libXfont\src\util\$(OBJDIR)\libutil.lib \
- $(MHMAKECONF)\libXfont\src\fc\$(OBJDIR)\libfc.lib \
- $(MHMAKECONF)\libXfont\src\fontfile\$(OBJDIR)\libfontfile.lib \
- $(MHMAKECONF)\libXfont\src\builtins\$(OBJDIR)\libbuiltins.lib \
- $(MHMAKECONF)\libXfont\src\bitmap\$(OBJDIR)\libbitmap.lib \
- $(MHMAKECONF)\pixman\pixman\$(OBJDIR)\libpixman-1.lib \
- $(MHMAKECONF)\libX11\modules\im\ximcp\$(OBJDIR)\libximcp.lib \
- $(MHMAKECONF)\libX11\src\xlibi18n\$(OBJDIR)\libi18n.lib \
- $(MHMAKECONF)\libX11\src\$(OBJDIR)\libx11.lib \
- $(MHMAKECONF)\libX11\src\xcms\$(OBJDIR)\libxcms.lib \
- $(MHMAKECONF)\libxcb\src\$(OBJDIR)\libxcb.lib \
- $(MHMAKECONF)\libX11\src\xkb\$(OBJDIR)\libxkb.lib \
- $(MHMAKECONF)\libX11\modules\om\generic\$(OBJDIR)\libxomGeneric.lib \
- $(MHMAKECONF)\libX11\modules\lc\utf8\$(OBJDIR)\libxlcUTF8Load.lib \
- $(MHMAKECONF)\libX11\modules\lc\def\$(OBJDIR)\libxlcDef.lib \
- $(MHMAKECONF)\libX11\modules\lc\gen\$(OBJDIR)\liblcGenConvLoad.lib \
- $(MHMAKECONF)\libX11\modules\lc\xlocale\$(OBJDIR)\libxlocale.lib \
- $(MHMAKECONF)\libfontenc\src\$(OBJDIR)\libfontenc.lib \
- $(MHMAKECONF)\libXfont\src\freetype\$(OBJDIR)\libft.lib \
- $(MHMAKECONF)\libXfont\src\stubs\$(OBJDIR)\libstubs.lib \
- $(MHMAKECONF)\libXinerama\src\$(OBJDIR)\libXinerama.lib
 
 INCLUDENOSERVLIBFILES =  \
+ $(MHMAKECONF)\libX11\modules\im\ximcp\$(NOSERVOBJDIR)\libximcp.lib \
+ $(MHMAKECONF)\libX11\src\xlibi18n\$(NOSERVOBJDIR)\libi18n.lib \
+ $(MHMAKECONF)\libX11\src\$(NOSERVOBJDIR)\libx11.lib \
+ $(MHMAKECONF)\libX11\src\xcms\$(NOSERVOBJDIR)\libxcms.lib \
+ $(MHMAKECONF)\libX11\src\xkb\$(NOSERVOBJDIR)\libxkb.lib \
+ $(MHMAKECONF)\libX11\modules\om\generic\$(NOSERVOBJDIR)\libxomGeneric.lib \
+ $(MHMAKECONF)\libX11\modules\lc\utf8\$(NOSERVOBJDIR)\libxlcUTF8Load.lib \
+ $(MHMAKECONF)\libX11\modules\lc\def\$(NOSERVOBJDIR)\libxlcDef.lib \
+ $(MHMAKECONF)\libX11\modules\lc\gen\$(NOSERVOBJDIR)\liblcGenConvLoad.lib \
+ $(MHMAKECONF)\libX11\modules\lc\xlocale\$(NOSERVOBJDIR)\libxlocale.lib \
+ $(MHMAKECONF)\libxcb\src\$(NOSERVOBJDIR)\libxcb.lib \
+ $(MHMAKECONF)\pixman\pixman\$(NOSERVOBJDIR)\libpixman-1.lib \
+ $(MHMAKECONF)\libXdmcp\$(NOSERVOBJDIR)\libXdmcp.lib \
+ $(MHMAKECONF)\libXau\$(NOSERVOBJDIR)\libXau.lib \
+ $(MHMAKECONF)\libXfont\src\util\$(NOSERVOBJDIR)\libutil.lib \
+ $(MHMAKECONF)\libXfont\src\fc\$(NOSERVOBJDIR)\libfc.lib \
+ $(MHMAKECONF)\libXfont\src\fontfile\$(NOSERVOBJDIR)\libfontfile.lib \
+ $(MHMAKECONF)\libXfont\src\builtins\$(NOSERVOBJDIR)\libbuiltins.lib \
+ $(MHMAKECONF)\libXfont\src\bitmap\$(NOSERVOBJDIR)\libbitmap.lib \
+ $(MHMAKECONF)\libXfont\src\freetype\$(NOSERVOBJDIR)\libft.lib \
+ $(MHMAKECONF)\libXfont\src\stubs\$(NOSERVOBJDIR)\libstubs.lib \
+ $(MHMAKECONF)\libfontenc\src\$(NOSERVOBJDIR)\libfontenc.lib \
+ $(MHMAKECONF)\libXinerama\src\$(NOSERVOBJDIR)\libXinerama.lib \
  $(MHMAKECONF)\zlib\$(NOSERVOBJDIR)\zlib1.lib
 
 LIBDIRS=$(dir $(INCLUDELIBFILES))

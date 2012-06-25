@@ -39,8 +39,8 @@ ifeq (1,$(call OR, $(call NE,$(WINAPP)_,_) $(call NE,$(TTYAPP)_,_)))
 
 ifdef WINAPP
 
-load_makefile $(MHMAKECONF)\libwinmain\makefile MAKESERVER=$(MAKESERVER) DEBUG=$(DEBUG)
-EXTRALIB := $(MHMAKECONF)\libwinmain\$(OBJDIR)\libwinmain.lib
+load_makefile $(MHMAKECONF)\libwinmain\makefile MAKESERVER=0 DEBUG=$(DEBUG)
+EXTRALIB := $(MHMAKECONF)\libwinmain\$(NOSERVOBJDIR)\libwinmain.lib
 
 EXE := $(WINAPP:%=$(OBJDIR)\%.exe)
 LINKFLAGS += /SUBSYSTEM:WINDOWS

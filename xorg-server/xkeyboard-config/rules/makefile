@@ -2,7 +2,7 @@ ifeq ($(MAKESERVER),1)
 $(error Please do not specify MAKESERVER=1)
 endif
 
-load_makefile compat\makefile DEBUG=$(DEBUG)
+load_makefile compat\makefile MAKESERVER=0 DEBUG=$(DEBUG)
 
 DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\rules
 
