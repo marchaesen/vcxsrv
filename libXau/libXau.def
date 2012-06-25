@@ -1,0 +1,10 @@
+LIBRARY libXau
+
+EXPORTS
+   XauDisposeAuth
+   XauGetBestAuthByAddr
+   XauReadAuth
+   XauWriteAuth
+   XauUnlockAuth
+   XauLockAuth
+   XauFileName

@@ -1,4 +1,4 @@
-LIBRARY = libXau
+SHAREDLIB = libXau
 
 CSRCS = AuDispose.c \
 	AuFileName.c \
