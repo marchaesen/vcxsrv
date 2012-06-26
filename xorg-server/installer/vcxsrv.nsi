@@ -67,23 +67,6 @@ Section "VcXsrv (required)"
   IfFileExists "$INSTDIR\opengl32.dll" 0 +2
     Delete "$INSTDIR\opengl32.dll"
 
-  SectionGetFlags ${VcXsrv_debug_version"} $0
-  IntCmp $0 0 nodebug
-  nodebug:
-    IfFileExists "$INSTDIR\vcxsrv_dbg.exe" 0 +2
-      Delete "$INSTDIR\vcxsrv_dbg.exe"
-    IfFileExists "$INSTDIR\vcxsrv_dbg.pdb" 0 +2
-      Delete "$INSTDIR\vcxsrv_dbg.pdb"
-    IfFileExists "$INSTDIR\swrast_dri_dbg.dll" 0 +2
-      Delete "$INSTDIR\swrast_dri_dbg.dll"
-    IfFileExists "$INSTDIR\swrastwgl_dri_dbg.dll" 0 +2
-      Delete "$INSTDIR\swrastwgl_dri_dbg.dll"
-    IfFileExists "$INSTDIR\dxtn_dbg.dll" 0 +2
-      Delete "$INSTDIR\dxtn_dbg.dll"
-    IfFileExists "$INSTDIR\msvcr100d.dll" 0 +2
-      Delete "$INSTDIR\msvcr100d.dll"
-  done:
-
   ; Put files there
   File "..\obj\servrelease\vcxsrv.exe"
   File "..\protocol.txt"
@@ -109,6 +92,7 @@ Section "VcXsrv (required)"
   File "..\dxtn.dll"
   File "..\..\libxml2\bin\libxml2.dll"
   File "..\..\zlib\obj\release\zlib1.dll"
+  File "..\..\libxcb\src\obj\release\libxcb.dll"
   File "..\..\libXau\obj\release\libXau.dll"
   File "..\..\libX11\obj\release\libX11.dll"
   File "..\..\libxml2\bin\iconv.dll"
@@ -209,6 +193,25 @@ Section "VcXsrv debug version" VcXsrv_debug_version
 
 SectionEnd
 
+Section -removedbg
+  SectionGetFlags ${VcXsrv_debug_version} $0
+  IntCmp $0 0 nodebug done done
+  nodebug:
+    IfFileExists "$INSTDIR\vcxsrv_dbg.exe" 0 +2
+      Delete "$INSTDIR\vcxsrv_dbg.exe"
+    IfFileExists "$INSTDIR\vcxsrv_dbg.pdb" 0 +2
+      Delete "$INSTDIR\vcxsrv_dbg.pdb"
+    IfFileExists "$INSTDIR\swrast_dri_dbg.dll" 0 +2
+      Delete "$INSTDIR\swrast_dri_dbg.dll"
+    IfFileExists "$INSTDIR\swrastwgl_dri_dbg.dll" 0 +2
+      Delete "$INSTDIR\swrastwgl_dri_dbg.dll"
+    IfFileExists "$INSTDIR\dxtn_dbg.dll" 0 +2
+      Delete "$INSTDIR\dxtn_dbg.dll"
+    IfFileExists "$INSTDIR\msvcr100d.dll" 0 +2
+      Delete "$INSTDIR\msvcr100d.dll"
+  done:
+SectionEnd
+
 ;--------------------------------
 
 ; Uninstaller
@@ -251,6 +254,7 @@ Section "Uninstall"
   Delete "$INSTDIR\dxtn_dbg.dll"
   Delete "$INSTDIR\swrastwgl_dri.dll"
   Delete "$INSTDIR\swrastwgl_dri_dbg.dll"
+  Delete "$INSTDIR\libxcb.dll"
   Delete "$INSTDIR\libXau.dll"
   Delete "$INSTDIR\libX11.dll"
   Delete "$INSTDIR\libxml2.dll"
