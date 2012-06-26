@@ -1,6 +1,9 @@
-LIBRARY = libXext
+SHAREDLIB = libXext
 
 INCLUDES := ..\include $(INCLUDES)
+
+INCLUDELIBFILES =  \
+ $(MHMAKECONF)\libX11\$(OBJDIR)\libX11.lib
 
 CSRCS = \
 	DPMS.c \

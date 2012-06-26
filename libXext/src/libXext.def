@@ -1,0 +1,8 @@
+LIBRARY libXext
+EXPORTS
+  XSecurityGenerateAuthorization
+  XSecurityFreeXauth
+  XSecurityQueryExtension
+  XSecurityAllocXauth
+  XShapeCombineMask
+  XShapeQueryExtension

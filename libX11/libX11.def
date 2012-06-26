@@ -4,11 +4,15 @@ EXPORTS
   _XAllocTemp
   _XDeqAsyncHandler
   _XEatData
+  _XFlushGCCache
   _XFlushIt
   _XFreeTemp
   _XGetAsyncReply
+  _XGetBitsPerPixel
   _XGetRequest
+  _XGetScanlinePad
   _Xglobal_lock_p
+  _XInitImageFuncPtrs
   _XLockMutex_fn_p
   _XRead
   _XReadPad
@@ -226,6 +230,7 @@ EXPORTS
   XPutImage
   XQueryColor
   XQueryColors
+  XQueryExtension
   XQueryFont
   XQueryPointer
   XQueryTree

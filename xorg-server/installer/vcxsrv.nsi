@@ -58,7 +58,7 @@ XPStyle on
 Section "VcXsrv (required)"
 
   SectionIn RO
-  SectionIn 1 2
+  SectionIn 1 2 3
 
   ; Set output path to the installation directory.
   SetOutPath $INSTDIR
@@ -95,6 +95,7 @@ Section "VcXsrv (required)"
   File "..\..\libxcb\src\obj\release\libxcb.dll"
   File "..\..\libXau\obj\release\libXau.dll"
   File "..\..\libX11\obj\release\libX11.dll"
+  File "..\..\libXext\src\obj\release\libXext.dll"
   File "..\..\libxml2\bin\iconv.dll"
   File "msvcr100.dll"
   File "msvcp100.dll"
@@ -145,7 +146,7 @@ SectionEnd
 
 ; Optional section (can be disabled by the user)
 Section "Fonts"
-  SectionIn 1
+  SectionIn 1 3
 
   SetOutPath $INSTDIR\fonts
   CreateDirectory "$SMPROGRAMS\VcXsrv"
@@ -155,7 +156,7 @@ SectionEnd
 
 ; Optional section (can be disabled by the user)
 Section "Start Menu Shortcuts"
-  SectionIn 1
+  SectionIn 1 3
 
   SetOutPath $INSTDIR
   CreateDirectory "$SMPROGRAMS\VcXsrv"
@@ -167,7 +168,7 @@ SectionEnd
 
 ; Optional section (can be disabled by the user)
 Section "Desktop Shortcuts"
-  SectionIn 1
+  SectionIn 1 3
 
   SetOutPath $INSTDIR
   CreateShortCut "$DESKTOP\VcXsrv.lnk" "$INSTDIR\vcxsrv.exe" " :0 -ac -terminate -lesspointer -multiwindow -clipboard -wgl" "$INSTDIR\vcxsrv.exe" 0
@@ -257,6 +258,7 @@ Section "Uninstall"
   Delete "$INSTDIR\libxcb.dll"
   Delete "$INSTDIR\libXau.dll"
   Delete "$INSTDIR\libX11.dll"
+  Delete "$INSTDIR\libXext.dll"
   Delete "$INSTDIR\libxml2.dll"
   Delete "$INSTDIR\zlib1.dll"
   Delete "$INSTDIR\iconv.dll"
