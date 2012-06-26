@@ -11,3 +11,5 @@ XCBPROTO_XCBINCLUDEDIR = ..\xcb-proto\src
 %.c: $(XCBPROTO_XCBINCLUDEDIR)\%.xml
 	python c_client.py -p $(XCBPROTO_XCBPYTHONDIR) $<
 
+CLEANRULEPOSTFIX=noobjs
+

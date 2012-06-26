@@ -79,6 +79,7 @@ COMMONCFLAGS += $(DEFINES:%=-D%) $(INCLUDES:%=-I%) -Fo$(relpath $@) -Fd"$(PDB)" 
 #PDB=   # There is no PDB file generated in a release build
 endif
 
+ifndef CLEANRULEPOSTFIX
 ifeq ($(OBJDIRPREFIX),)
 ifeq ($(DEBUG),1)
 CLEANRULEPOSTFIX=debug
@@ -87,6 +88,7 @@ CLEANRULEPOSTFIX=release
 endif
 else
 CLEANRULEPOSTFIX=$(OBJDIRPREFIX)
+endif
 endif
 
 .PHONY: all cleanall clean clean$(CLEANRULEPOSTFIX)

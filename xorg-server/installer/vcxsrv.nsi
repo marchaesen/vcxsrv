@@ -100,6 +100,7 @@ Section "VcXsrv (required)"
   File "..\..\libxml2\bin\libxml2.dll"
   File "..\..\zlib\obj\release\zlib1.dll"
   File "..\..\libXau\obj\release\libXau.dll"
+  File "..\..\libX11\obj\release\libX11.dll"
   File "..\..\libxml2\bin\iconv.dll"
 !ifndef VS2008
   File "msvcr100.dll"

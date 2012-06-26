@@ -12,7 +12,7 @@ INCLUDELIBFILES = \
 
 LIBDIRS=$(dir $(INCLUDELIBFILES))
 
-load_makefile $(LIBDIRS:%$(OBJDIR)\=%makefile MAKESERVER=$(MAKESERVER) DEBUG=$(DEBUG);)
+load_makefile $(LIBDIRS:%$(OBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(DEBUG);)
 
 CSRCS = hash.c \
 	ident.c \

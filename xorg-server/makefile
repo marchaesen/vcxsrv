@@ -27,16 +27,7 @@ INCLUDELIBFILES =  \
  render\$(OBJDIR)\librender.lib \
 
 INCLUDENOSERVLIBFILES =  \
- $(MHMAKECONF)\libX11\modules\im\ximcp\$(NOSERVOBJDIR)\libximcp.lib \
- $(MHMAKECONF)\libX11\src\xlibi18n\$(NOSERVOBJDIR)\libi18n.lib \
- $(MHMAKECONF)\libX11\src\$(NOSERVOBJDIR)\libx11.lib \
- $(MHMAKECONF)\libX11\src\xcms\$(NOSERVOBJDIR)\libxcms.lib \
- $(MHMAKECONF)\libX11\src\xkb\$(NOSERVOBJDIR)\libxkb.lib \
- $(MHMAKECONF)\libX11\modules\om\generic\$(NOSERVOBJDIR)\libxomGeneric.lib \
- $(MHMAKECONF)\libX11\modules\lc\utf8\$(NOSERVOBJDIR)\libxlcUTF8Load.lib \
- $(MHMAKECONF)\libX11\modules\lc\def\$(NOSERVOBJDIR)\libxlcDef.lib \
- $(MHMAKECONF)\libX11\modules\lc\gen\$(NOSERVOBJDIR)\liblcGenConvLoad.lib \
- $(MHMAKECONF)\libX11\modules\lc\xlocale\$(NOSERVOBJDIR)\libxlocale.lib \
+ $(MHMAKECONF)\libX11\$(NOSERVOBJDIR)\libX11.lib \
  $(MHMAKECONF)\libxcb\src\$(NOSERVOBJDIR)\libxcb.lib \
  $(MHMAKECONF)\pixman\pixman\$(NOSERVOBJDIR)\libpixman-1.lib \
  $(MHMAKECONF)\libXdmcp\$(NOSERVOBJDIR)\libXdmcp.lib \
@@ -133,12 +124,11 @@ load_makefile ..\tools\plink\makefile MAKESERVER=0 DEBUG=0
 plink.exe: ..\tools\plink\obj\release\plink.exe
 	copy $< $@
 
-load_makefile ..\libX11\nls\makefile MAKESERVER=0 DEBUG=0
 load_makefile fonts.src\makefile MAKESERVER=0 DEBUG=0
 load_makefile xkeyboard-config\makefile MAKESERVER=0 DEBUG=0
 
 all: $(APP).exe xlaunch.exe xkbcomp.exe protocol.txt XErrorDB xhost.exe xauth.exe \
-     ..\libX11\nls\all fonts.src\all xkeyboard-config\all plink.exe xclock.exe xcalc.exe \
+     fonts.src\all xkeyboard-config\all plink.exe xclock.exe xcalc.exe \
      xwininfo.exe swrast_dri_dbg.dll swrast_dri.dll dxtn.dll dxtn_dbg.dll \
      swrastwgl_dri.dll swrastwgl_dri_dbg.dll
 

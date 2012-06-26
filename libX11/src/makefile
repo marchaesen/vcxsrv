@@ -268,7 +268,7 @@ INCLUDES := . xcms xlibi18n xkb $(MHMAKECONF)\X11 $(OBJDIR) $(INCLUDES)
 
 KEYSYMDEF = $(MHMAKECONF)/X11/keysymdef.h
 
-load_makefile util\makefile MAKESERVER=$(MAKESERVER) DEBUG=$(DEBUG)
+load_makefile util\makefile MAKESERVER=0 DEBUG=$(DEBUG)
 
 $(OBJDIR)\ks_tables.h: $(KEYSYMDEF) util\$(OBJDIR)\makekeys.exe
 	util\$(OBJDIR)\makekeys $(relpath $<) > $(relpath $@)

@@ -68,7 +68,7 @@ STRING_LIST = ../util/string.list
 
 $(BUILT_HEADER): $(BUILT_SOURCE)
 
-load_makefile ../util/makefile DEBUG=$(DEBUG) MAKESERVER=0
+load_makefile ../util/makefile MAKESERVER=0 DEBUG=$(DEBUG)
 
 $(BUILT_SOURCE) $(BUILT_HEADER) : ../util/$(OBJDIR)/makestrs.exe $(STRING_LIST) ../util/StrDefs.ht ../util/StrDefs.ct ../util/Shell.ht
 	../util/$(OBJDIR)/makestrs -i .. $(STRINGSABIOPTIONS) < $(STRING_LIST) > StringDefs.c
