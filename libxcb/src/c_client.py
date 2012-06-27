@@ -200,7 +200,7 @@ def c_open(self):
         _h('#define XCB_%s_MAJOR_VERSION %s', _ns.ext_name.upper(), _ns.major_version)
         _h('#define XCB_%s_MINOR_VERSION %s', _ns.ext_name.upper(), _ns.minor_version)
         _h('  ') #XXX
-        _h('extern xcb_extension_t %s;', _ns.c_ext_global_name)
+        _h('XCB_EXTERN xcb_extension_t %s;', _ns.c_ext_global_name)
 
         _c('')
         _c('xcb_extension_t %s = { "%s", 0 };', _ns.c_ext_global_name, _ns.ext_xname)
