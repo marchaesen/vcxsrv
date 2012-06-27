@@ -37,6 +37,7 @@
 
 #ifndef _WIN32
 #include <sys/uio.h>
+#define XCB_EXTERN extern
 #else
 #include "xcb_windefs.h"
 #endif

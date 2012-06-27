@@ -21,7 +21,7 @@ extern "C" {
 #define XCB_BIGREQUESTS_MAJOR_VERSION 0
 #define XCB_BIGREQUESTS_MINOR_VERSION 0
   
-extern xcb_extension_t xcb_big_requests_id;
+XCB_EXTERN xcb_extension_t xcb_big_requests_id;
 
 /**
  * @brief xcb_big_requests_enable_cookie_t

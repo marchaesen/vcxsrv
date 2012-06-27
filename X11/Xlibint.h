@@ -272,29 +272,32 @@ struct _XLockPtrs {
 	);
 };
 
-#if defined(WIN32) && !defined(_XLIBINT_)
-#define _XCreateMutex_fn (*_XCreateMutex_fn_p)
-#define _XFreeMutex_fn (*_XFreeMutex_fn_p)
-#define _XLockMutex_fn (*_XLockMutex_fn_p)
-#define _XUnlockMutex_fn (*_XUnlockMutex_fn_p)
-#define _Xglobal_lock (*_Xglobal_lock_p)
+#ifdef WIN32
+#ifdef LIB11_DLL
+#define X11_EXTERN __declspec(dllexport) extern
+#else
+#define X11_EXTERN __declspec(dllimport) extern
 #endif
+#else
+#define X11_EXTERN extern
+#endif
+
 
 /* in XlibInt.c */
-extern void (*_XCreateMutex_fn)(
+X11_EXTERN void (*_XCreateMutex_fn)(
     LockInfoPtr /* lock */
 );
-extern void (*_XFreeMutex_fn)(
+X11_EXTERN void (*_XFreeMutex_fn)(
     LockInfoPtr /* lock */
 );
-extern void (*_XLockMutex_fn)(
+X11_EXTERN void (*_XLockMutex_fn)(
     LockInfoPtr	/* lock */
 #if defined(XTHREADS_WARN) || defined(XTHREADS_FILE_LINE)
     , char * /* file */
     , int /* line */
 #endif
 );
-extern void (*_XUnlockMutex_fn)(
+X11_EXTERN void (*_XUnlockMutex_fn)(
     LockInfoPtr	/* lock */
 #if defined(XTHREADS_WARN) || defined(XTHREADS_FILE_LINE)
     , char * /* file */
@@ -302,7 +305,7 @@ extern void (*_XUnlockMutex_fn)(
 #endif
 );
 
-extern LockInfoPtr _Xglobal_lock;
+X11_EXTERN LockInfoPtr _Xglobal_lock;
 
 #if defined(XTHREADS_WARN) || defined(XTHREADS_FILE_LINE)
 #define LockDisplay(d)	     if ((d)->lock_fns) (*(d)->lock_fns->lock_display)((d),__FILE__,__LINE__)
@@ -872,10 +875,10 @@ extern int _XError(
 extern int _XIOError(
     Display*	/* dpy */
 ) _X_NORETURN;
-extern int (*_XIOErrorFunction)(
+X11_EXTERN int (*_XIOErrorFunction)(
     Display*	/* dpy */
 );
-extern int (*_XErrorFunction)(
+X11_EXTERN int (*_XErrorFunction)(
     Display*		/* dpy */,
     XErrorEvent*	/* error_event */
 );

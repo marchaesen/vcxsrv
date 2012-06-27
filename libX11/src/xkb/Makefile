@@ -1,5 +1,7 @@
 LIBRARY = libxkb
 
+DEFINES += LIB11_DLL
+
 CSRCS = \
 	XKB.c \
 	XKBBind.c \

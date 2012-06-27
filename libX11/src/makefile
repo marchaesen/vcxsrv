@@ -1,6 +1,7 @@
 LIBRARY=libx11
 
-DEFINES += X11_t TRANS_CLIENT
+DEFINES += X11_t TRANS_CLIENT LIB11_DLL
+
 
 CSRCS = \
                   AllCells.c \

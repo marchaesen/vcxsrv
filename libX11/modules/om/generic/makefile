@@ -1,5 +1,7 @@
 LIBRARY = libxomGeneric
 
+DEFINES += LIB11_DLL
+
 CSRCS = \
 	omDefault.c \
 	omGeneric.c \

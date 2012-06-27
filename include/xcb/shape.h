@@ -22,7 +22,7 @@ extern "C" {
 #define XCB_SHAPE_MAJOR_VERSION 1
 #define XCB_SHAPE_MINOR_VERSION 1
   
-extern xcb_extension_t xcb_shape_id;
+XCB_EXTERN xcb_extension_t xcb_shape_id;
 
 typedef uint8_t xcb_shape_op_t;
 

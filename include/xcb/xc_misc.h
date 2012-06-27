@@ -21,7 +21,7 @@ extern "C" {
 #define XCB_XCMISC_MAJOR_VERSION 1
 #define XCB_XCMISC_MINOR_VERSION 1
   
-extern xcb_extension_t xcb_xc_misc_id;
+XCB_EXTERN xcb_extension_t xcb_xc_misc_id;
 
 /**
  * @brief xcb_xc_misc_get_version_cookie_t

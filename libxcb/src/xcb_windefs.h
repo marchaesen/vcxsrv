@@ -49,4 +49,10 @@ typedef int pid_t;
 
 #define STDERR_FILENO 2
 
+#ifdef LIBXCB_DLL
+#define XCB_EXTERN __declspec(dllexport) extern
+#else
+#define XCB_EXTERN __declspec(dllimport) extern
+#endif
+
 #endif /* xcb_windefs.h */

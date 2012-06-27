@@ -1,6 +1,7 @@
 LIBRARY = libxcms
 
-DEFINES += HAVE_CONFIG_H
+DEFINES += HAVE_CONFIG_H LIB11_DLL
+
 
 CSRCS = \
 		  AddDIC.c \

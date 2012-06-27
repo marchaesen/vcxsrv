@@ -4,7 +4,7 @@ CSRCS = \
 		xcb_conn.c xcb_out.c xcb_in.c xcb_ext.c xcb_xid.c \
 		xcb_list.c xcb_util.c xcb_auth.c
 
-DEFINES += PTW32_STATIC_LIB HAVE_GETADDRINFO
+DEFINES += PTW32_STATIC_LIB HAVE_GETADDRINFO LIBXCB_DLL
 
 INCLUDELIBFILES = \
  $(MHMAKECONF)\libxau\$(OBJDIR)\libXau.lib

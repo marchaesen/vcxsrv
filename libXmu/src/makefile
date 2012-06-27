@@ -1,8 +1,18 @@
-LIBRARY = libXmu
+SHAREDLIB = libXmu
 
 INCLUDES := ..\include ..\include\X11\Xmu $(INCLUDES)
 
 DEFINES += XT_NO_SM BITMAPDIR="""bitmaps"""
+
+INCLUDELIBFILES =  \
+ $(MHMAKECONF)\libX11\$(OBJDIR)\libX11.lib \
+ $(MHMAKECONF)\libXext\src\$(OBJDIR)\libXext.lib \
+ $(MHMAKECONF)\libXt\src\$(OBJDIR)\libXt.lib
+
+LIBDIRS=$(dir $(INCLUDELIBFILES))
+
+load_makefile $(LIBDIRS:%$(OBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(DEBUG);)
+
 
 CSRCS = \
 	ClientWin.c \

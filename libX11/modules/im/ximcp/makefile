@@ -2,6 +2,8 @@ DEFINES += XIM_t TRANS_CLIENT
 
 LIBRARY=libximcp
 
+DEFINES += LIB11_DLL
+
 CSRCS = \
 	imCallbk.c \
 	imDefFlt.c \

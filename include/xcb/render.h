@@ -22,7 +22,7 @@ extern "C" {
 #define XCB_RENDER_MAJOR_VERSION 0
 #define XCB_RENDER_MINOR_VERSION 11
   
-extern xcb_extension_t xcb_render_id;
+XCB_EXTERN xcb_extension_t xcb_render_id;
 
 typedef enum xcb_render_pict_type_t {
     XCB_RENDER_PICT_TYPE_INDEXED,

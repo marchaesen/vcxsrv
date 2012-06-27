@@ -11,8 +11,10 @@ EXPORTS
   _XGetBitsPerPixel
   _XGetRequest
   _XGetScanlinePad
+  _Xglobal_lock
   _Xglobal_lock_p
   _XInitImageFuncPtrs
+  _XLockMutex_fn
   _XLockMutex_fn_p
   _XRead
   _XReadPad
@@ -20,15 +22,18 @@ EXPORTS
   _XSend
   _XSetLastRequestRead
   _Xsetlocale
+  _XUnlockMutex_fn
   _XUnlockMutex_fn_p
   _XVIDtoVisual
   XAddConnectionWatch
   XAddExtension
   XAddHost
   XAllocColor
+  XAllocColorCells
   XAllocIconSize
   XAllocNamedColor
   XAllocSizeHints
+  XAllocStandardColormap
   XBell
   XChangeGC
   XChangeProperty
@@ -44,6 +49,7 @@ EXPORTS
   XCopyArea
   XCopyPlane
   XCreateBitmapFromData
+  XCreateColormap
   XCreateFontCursor
   XCreateFontSet
   XCreateGC
@@ -71,6 +77,7 @@ EXPORTS
   XDisplayName
   XDisplayOfIM
   XDisplayOfScreen
+  XDisplayString
   XDrawArc
   XDrawArcs
   XDrawImageString
@@ -110,6 +117,7 @@ EXPORTS
   XFlush
   XFontsOfFontSet
   XFree
+  XFreeColormap
   XFreeColors
   XFreeCursor
   XFreeFont
@@ -133,6 +141,7 @@ EXPORTS
   XGetInputFocus
   XGetKeyboardMapping
   XGetModifierMapping
+  XGetRGBColormaps
   XGetSelectionOwner
   XGetVisualInfo
   XGetWindowAttributes
@@ -276,6 +285,7 @@ EXPORTS
   XSetClipMask
   XSetClipOrigin
   XSetClipRectangles
+  XSetCloseDownMode
   XSetCommand
   XSetDashes
   XSetErrorHandler
@@ -293,6 +303,7 @@ EXPORTS
   XSetLocaleModifiers
   XSetPlaneMask
   XSetRegion
+  XSetRGBColormaps
   XSetSelectionOwner
   XSetStipple
   XSetSubwindowMode
@@ -308,6 +319,7 @@ EXPORTS
   XSetWMNormalHints
   XSetWMProperties
   XSetWMProtocols
+  XStoreColors
   XStoreName
   XStringToKeysym
   XSubtractRegion
@@ -331,6 +343,7 @@ EXPORTS
   Xutf8TextListToTextProperty
   Xutf8TextPropertyToTextList
   XVaCreateNestedList
+  XVisualIDFromVisual
   XwcDrawImageString
   XwcDrawString
   XwcFreeStringList
