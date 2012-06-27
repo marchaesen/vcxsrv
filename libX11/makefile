@@ -26,4 +26,4 @@ endif
 
 load_makefile nls\makefile MAKESERVER=0 DEBUG=0
 
-all : nls\all
+$(OBJDIR)\libX11.lib : nls\all
