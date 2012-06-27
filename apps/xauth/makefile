@@ -3,7 +3,7 @@ TTYAPP = xauth
 INCLUDELIBFILES = \
  ..\common\$(OBJDIR)\common.lib \
  $(MHMAKECONF)\libxcb\src\$(OBJDIR)\libxcb.lib \
- $(MHMAKECONF)\libxau\$(OBJDIR)\libXau.lib \
+ $(MHMAKECONF)\libXau\$(OBJDIR)\libXau.lib \
  $(MHMAKECONF)\libXmu\src\$(OBJDIR)\libXmu.lib \
  $(MHMAKECONF)\libXext\src\$(OBJDIR)\libXext.lib \
  $(MHMAKECONF)\libX11\$(OBJDIR)\libX11.lib

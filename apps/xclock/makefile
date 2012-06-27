@@ -6,7 +6,7 @@ INCLUDELIBFILES = \
  $(MHMAKECONF)\libxcb\src\$(OBJDIR)\libxcb.lib \
  $(MHMAKECONF)\libxkbfile\src\$(OBJDIR)\libxkbfile.lib \
  $(MHMAKECONF)\libXpm\src\$(OBJDIR)\libXpm.lib \
- $(MHMAKECONF)\libxau\$(OBJDIR)\libXau.lib \
+ $(MHMAKECONF)\libXau\$(OBJDIR)\libXau.lib \
  $(MHMAKECONF)\libXaw\src\$(OBJDIR)\libXaw.lib \
  $(MHMAKECONF)\libXt\src\$(OBJDIR)\libXt.lib \
  $(MHMAKECONF)\libXext\src\$(OBJDIR)\libXext.lib \

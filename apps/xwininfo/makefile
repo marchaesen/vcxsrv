@@ -2,7 +2,7 @@ TTYAPP = xwininfo
 
 INCLUDELIBFILES = \
  $(MHMAKECONF)\libxcb\src\$(OBJDIR)\libxcb.lib \
- $(MHMAKECONF)\libxau\$(OBJDIR)\libXau.lib \
+ $(MHMAKECONF)\libXau\$(OBJDIR)\libXau.lib \
  $(MHMAKECONF)\libXext\src\$(OBJDIR)\libXext.lib \
  $(MHMAKECONF)\libX11\$(OBJDIR)\libX11.lib
 

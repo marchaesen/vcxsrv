@@ -1,6 +1,6 @@
 INCLUDELIBFILES = $(MHMAKECONF)\libX11\$(OBJDIR)\libX11.lib \
                   $(MHMAKECONF)\libxcb\src\$(OBJDIR)\libxcb.lib \
-                  $(MHMAKECONF)\libxau\$(OBJDIR)\libxau.lib \
+                  $(MHMAKECONF)\libXau\$(OBJDIR)\libXau.lib \
                   $(MHMAKECONF)\libxkbfile\src\$(OBJDIR)\libxkbfile.lib
 
 LIBDIRS=$(dir $(INCLUDELIBFILES))
