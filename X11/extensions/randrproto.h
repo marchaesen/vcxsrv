@@ -49,7 +49,6 @@
 #define RRMode CARD32
 #define RRCrtc CARD32
 #define RRModeFlags CARD32
-#define PictFormat CARD32
 
 #define Rotation CARD16
 #define SizeID CARD16
@@ -647,126 +646,6 @@ typedef struct {
 #define sz_xRRGetOutputPrimaryReply	32
 
 /*
- * Additions for 1.4
- */
-
-typedef struct {
-    PictFormat format B32;
-    CARD16 maxWidth B16, maxHeight B16;
-    Rotation rotations B16;
-    CARD16 pad0 B16;
-    CARD32 pad1 B32;
-} xRRScanoutPixmapInfo;
-#define sz_xRRScanoutPixmapInfo	16
-
-typedef struct {
-    RRCrtc crtc B32;
-    CARD32 set B32;
-    INT16 x B16, y B16;
-    RRMode mode B32;
-    Rotation rotation B16;
-    CARD16 nOutput B16;
-    xRenderTransform spritePositionTransform;
-    xRenderTransform spriteImageTransform;
-    Pixmap pixmap B32;
-    INT16 xPixmap B16, yPixmap B16;
-} xRRCrtcConfig;
-#define sz_xRRCrtcConfig (2*sz_xRenderTransform + 28)
-
-typedef struct {
-    CARD8 reqType;
-    CARD8 randrReqType;
-    CARD16 length B16;
-    Drawable drawable B32;
-} xRRQueryScanoutPixmapsReq;
-#define sz_xRRQueryScanoutPixmapsReq	8
-
-typedef struct {
-    BYTE	type;
-    CARD8	pad;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-} xRRQueryScanoutPixmapsReply;
-#define sz_xRRQueryScanoutPixmapsReply	32
-
-typedef struct {
-    CARD8 reqType;
-    CARD8 randrReqType;
-    CARD16 length B16;
-    Pixmap pid B32;
-    Drawable drawable B32;
-    CARD16 width B16, height B16;
-    PictFormat format B32;
-    Rotation rotations B16;
-    CARD16 pad B16;
-} xRRCreateScanoutPixmapReq;
-#define sz_xRRCreateScanoutPixmapReq	24
-
-typedef struct {
-    CARD8 reqType;
-    CARD8 randrReqType;
-    CARD16 length B16;
-    RRCrtc crtc B32;
-    xRenderTransform positionTransform;
-    xRenderTransform imageTransform;
-} xRRSetCrtcSpriteTransformReq;
-#define sz_xRRSetCrtcSpriteTransformReq	(2*sz_xRenderTransform + 8)
-
-typedef struct {
-    CARD8 reqType;
-    CARD8 randrReqType;
-    CARD16 length B16;
-    RRCrtc crtc B32;
-} xRRGetCrtcSpriteTransformReq;
-#define sz_xRRGetCrtcSpriteTransformReq	8
-
-typedef struct {
-    BYTE type;
-    CARD8 pad;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    xRenderTransform positionTransform;
-    xRenderTransform imageTransform;
-} xRRGetCrtcSpriteTransformReply;
-#define sz_xRRGetCrtcSpriteTransformReply	(2*sz_xRenderTransform + 8)
-
-typedef struct {
-    CARD8 reqType;
-    CARD8 randrReqType;
-    CARD16 length B16;
-    Drawable drawable B32;
-    CARD32 set B32;
-    CARD16 screenPixmapWidth B16, screenPixmapHeight B16;
-    CARD16 screenWidth B16, screenHeight B16;
-    CARD32 widthInMillimeters B32;
-    CARD32 heightInMillimeters B32;
-    CARD16 nConfigs B16;
-    CARD16 pad0 B16;
-    CARD32 pad1 B32;
-} xRRSetCrtcConfigsReq;
-#define sz_xRRSetCrtcConfigsReq 36
-
-typedef struct {
-    BYTE	type;
-    CARD8	status;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B16;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-} xRRSetCrtcConfigsReply;
-#define sz_xRRSetCrtcConfigsReply	32
-
-/*
  * event
  */
 typedef struct {
@@ -899,7 +778,6 @@ typedef struct {
 } xRRSetPanningReply;
 #define sz_xRRSetPanningReply	32
 
-#undef PictFormat
 #undef RRModeFlags
 #undef RRCrtc
 #undef RRMode

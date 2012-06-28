@@ -630,6 +630,26 @@ struct gl_config
 
 
 /**
+ * Material state.
+ */
+struct gl_material
+{
+   GLfloat Attrib[MAT_ATTRIB_MAX][4];
+};
+
+
+/**
+ * Light state flags.
+ */
+/*@{*/
+#define LIGHT_SPOT         0x1
+#define LIGHT_LOCAL_VIEWER 0x2
+#define LIGHT_POSITIONAL   0x4
+#define LIGHT_NEED_VERTICES (LIGHT_POSITIONAL|LIGHT_LOCAL_VIEWER)
+/*@}*/
+
+
+/**
  * Light source state.
  */
 struct gl_light
@@ -654,7 +674,7 @@ struct gl_light
     * \name Derived fields
     */
    /*@{*/
-   GLbitfield _Flags;		/**< State */
+   GLbitfield _Flags;		/**< Mask of LIGHT_x bits defined above */
 
    GLfloat _Position[4];	/**< position in eye/obj coordinates */
    GLfloat _VP_inf_norm[3];	/**< Norm direction to infinite light */
@@ -679,15 +699,6 @@ struct gl_lightmodel
    GLboolean TwoSide;		/**< Two (or one) sided lighting? */
    GLenum ColorControl;		/**< either GL_SINGLE_COLOR
 				 *    or GL_SEPARATE_SPECULAR_COLOR */
-};
-
-
-/**
- * Material state.
- */
-struct gl_material
-{
-   GLfloat Attrib[MAT_ATTRIB_MAX][4];
 };
 
 
@@ -912,16 +923,6 @@ struct gl_hint_attrib
    GLenum FragmentShaderDerivative; /**< GL_ARB_fragment_shader */
 };
 
-/**
- * Light state flags.
- */
-/*@{*/
-#define LIGHT_SPOT         0x1
-#define LIGHT_LOCAL_VIEWER 0x2
-#define LIGHT_POSITIONAL   0x4
-#define LIGHT_NEED_VERTICES (LIGHT_POSITIONAL|LIGHT_LOCAL_VIEWER)
-/*@}*/
-
 
 /**
  * Lighting attribute group (GL_LIGHT_BIT).
@@ -932,20 +933,19 @@ struct gl_light_attrib
    struct gl_lightmodel Model;		/**< Lighting model */
 
    /**
-    * Must flush FLUSH_VERTICES before referencing:
+    * Front and back material values.
+    * Note: must call FLUSH_VERTICES() before using.
     */
-   /*@{*/
-   struct gl_material Material; 	/**< Includes front & back values */
-   /*@}*/
+   struct gl_material Material;
 
    GLboolean Enabled;			/**< Lighting enabled flag */
    GLenum ShadeModel;			/**< GL_FLAT or GL_SMOOTH */
    GLenum ProvokingVertex;              /**< GL_EXT_provoking_vertex */
    GLenum ColorMaterialFace;		/**< GL_FRONT, BACK or FRONT_AND_BACK */
    GLenum ColorMaterialMode;		/**< GL_AMBIENT, GL_DIFFUSE, etc */
-   GLbitfield ColorMaterialBitmask;	/**< bitmask formed from Face and Mode */
+   GLbitfield _ColorMaterialBitmask;	/**< bitmask formed from Face and Mode */
    GLboolean ColorMaterialEnabled;
-   GLenum ClampVertexColor;
+   GLenum ClampVertexColor;             /**< GL_TRUE, GL_FALSE, GL_FIXED_ONLY */
    GLboolean _ClampVertexColor;
 
    struct gl_light EnabledList;         /**< List sentinel */
@@ -1181,46 +1181,6 @@ typedef enum
 
 
 /**
- * TexGenEnabled flags.
- */
-/*@{*/
-#define S_BIT 1
-#define T_BIT 2
-#define R_BIT 4
-#define Q_BIT 8
-#define STR_BITS (S_BIT | T_BIT | R_BIT)
-/*@}*/
-
-
-/**
- * Bit flag versions of the corresponding GL_ constants.
- */
-/*@{*/
-#define TEXGEN_SPHERE_MAP        0x1
-#define TEXGEN_OBJ_LINEAR        0x2
-#define TEXGEN_EYE_LINEAR        0x4
-#define TEXGEN_REFLECTION_MAP_NV 0x8
-#define TEXGEN_NORMAL_MAP_NV     0x10
-
-#define TEXGEN_NEED_NORMALS      (TEXGEN_SPHERE_MAP        | \
-				  TEXGEN_REFLECTION_MAP_NV | \
-				  TEXGEN_NORMAL_MAP_NV)
-#define TEXGEN_NEED_EYE_COORD    (TEXGEN_SPHERE_MAP        | \
-				  TEXGEN_REFLECTION_MAP_NV | \
-				  TEXGEN_NORMAL_MAP_NV     | \
-				  TEXGEN_EYE_LINEAR)
-/*@}*/
-
-
-
-/** Tex-gen enabled for texture unit? */
-#define ENABLE_TEXGEN(unit) (1 << (unit))
-
-/** Non-identity texture matrix for texture unit? */
-#define ENABLE_TEXMAT(unit) (1 << (unit))
-
-
-/**
  * Texture image state.  Drivers will typically create a subclass of this
  * with extra fields for memory buffers, etc.
  */
@@ -1364,6 +1324,46 @@ struct gl_tex_env_combine_state
    GLuint _NumArgsRGB;   /**< Number of inputs used for the RGB combiner */
    GLuint _NumArgsA;     /**< Number of inputs used for the A combiner */
 };
+
+
+/**
+ * TexGenEnabled flags.
+ */
+/*@{*/
+#define S_BIT 1
+#define T_BIT 2
+#define R_BIT 4
+#define Q_BIT 8
+#define STR_BITS (S_BIT | T_BIT | R_BIT)
+/*@}*/
+
+
+/**
+ * Bit flag versions of the corresponding GL_ constants.
+ */
+/*@{*/
+#define TEXGEN_SPHERE_MAP        0x1
+#define TEXGEN_OBJ_LINEAR        0x2
+#define TEXGEN_EYE_LINEAR        0x4
+#define TEXGEN_REFLECTION_MAP_NV 0x8
+#define TEXGEN_NORMAL_MAP_NV     0x10
+
+#define TEXGEN_NEED_NORMALS      (TEXGEN_SPHERE_MAP        | \
+				  TEXGEN_REFLECTION_MAP_NV | \
+				  TEXGEN_NORMAL_MAP_NV)
+#define TEXGEN_NEED_EYE_COORD    (TEXGEN_SPHERE_MAP        | \
+				  TEXGEN_REFLECTION_MAP_NV | \
+				  TEXGEN_NORMAL_MAP_NV     | \
+				  TEXGEN_EYE_LINEAR)
+/*@}*/
+
+
+
+/** Tex-gen enabled for texture unit? */
+#define ENABLE_TEXGEN(unit) (1 << (unit))
+
+/** Non-identity texture matrix for texture unit? */
+#define ENABLE_TEXMAT(unit) (1 << (unit))
 
 
 /**
@@ -2021,6 +2021,12 @@ struct gl_fragment_program
     * GLSL, the value is INTERP_QUALIFIER_NONE.
     */
    enum glsl_interp_qualifier InterpQualifier[FRAG_ATTRIB_MAX];
+
+   /**
+    * Bitfield indicating, for each fragment shader input, 1 if that input
+    * uses centroid interpolation, 0 otherwise.  Unused inputs are 0.
+    */
+   GLbitfield64 IsCentroid;
 };
 
 

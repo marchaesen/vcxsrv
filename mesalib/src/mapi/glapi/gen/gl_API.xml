@@ -4677,7 +4677,7 @@
         <param name="mode" type="GLenum"/>
         <param name="count" type="const GLsizei *"/>
         <param name="type" type="GLenum"/>
-        <param name="indices" type="const GLvoid **"/>
+        <param name="indices" type="const GLvoid * const *"/>
         <param name="primcount" type="GLsizei"/>
     </function>
 
@@ -5363,7 +5363,7 @@
     <function name="ShaderSource" alias="ShaderSourceARB">
         <param name="shader" type="GLuint"/>
         <param name="count" type="GLsizei"/>
-        <param name="string" type="const GLchar **"/>
+        <param name="string" type="const GLchar * const *"/>
         <param name="length" type="const GLint *"/>
         <glx ignore="true"/>
     </function>

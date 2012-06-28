@@ -40,11 +40,11 @@ typedef unsigned long	XRandrModeFlags;
 
 #define RANDR_NAME		"RANDR"
 #define RANDR_MAJOR		1
-#define RANDR_MINOR		4
+#define RANDR_MINOR		3
 
 #define RRNumberErrors		3
 #define RRNumberEvents		2
-#define RRNumberRequests	37
+#define RRNumberRequests	32
 
 #define X_RRQueryVersion	0
 /* we skip 1 to make old clients fail pretty immediately */
@@ -91,28 +91,6 @@ typedef unsigned long	XRandrModeFlags;
 #define RRTransformScaleUp	    (1L << 1)
 #define RRTransformScaleDown	    (1L << 2)
 #define RRTransformProjective	    (1L << 3)
-
-/* V1.4 additions */
-
-#define RR_SetScreenPixmapSize			(1 << 0)
-#define RR_SetScreenSize			(1 << 1)
-#define RR_SetScreenSizeInMillimeters		(1 << 2)
-#define RR_SetScreenCrtcs			(1 << 3)
-
-#define RR_SetCrtcPosition	    		(1 << 4)
-#define RR_SetCrtcMode		    		(1 << 5)
-#define RR_SetCrtcRotation	    		(1 << 6)
-#define RR_SetCrtcOutputs	    		(1 << 7)
-#define RR_SetCrtcSpritePositionTransform	(1 << 8)
-#define RR_SetCrtcSpriteImageTransform		(1 << 9)
-#define RR_SetCrtcPixmap			(1 << 10)
-#define RR_SetCrtcPixmapPosition		(1 << 11)
-
-#define X_RRQueryScanoutPixmaps	    32
-#define X_RRCreateScanoutPixmap	    33
-#define X_RRSetCrtcSpriteTransform  34
-#define X_RRGetCrtcSpriteTransform  35
-#define X_RRSetCrtcConfigs	    36
 
 /* Event selection bits */
 #define RRScreenChangeNotifyMask  (1L << 0)
