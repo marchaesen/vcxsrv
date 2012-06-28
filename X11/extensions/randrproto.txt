@@ -1,5 +1,5 @@
 	       The X Resize, Rotate and Reflect Extension
-			     Version 1.4.0
+			     Version 1.3.1
 			       2009-10-5
 
 			      Jim Gettys
@@ -121,56 +121,13 @@ following features are added in this version:
 
 1.4 Introduction to version 1.4 of the extension
 
-Version 1.4 adds a couple more capabilities to further expose the
-underlying hardware to clients
-
-   • Per-crtc pixmaps. This provides for multiple scan-out buffers
-     which applications can create and assign to arbitrary collections
-     of crtcs.
-
-   • Sprite position and image transforms. These provide a projective
-     transform for both the hot spot location and the sprite image
-     itself for each CRTC.
-
-   • RRSetCrtcConfigs request. This supplies a set of
-     crtc configurations to the server that must be applied together
-     or not at all. This can reduce screen flicker while also
-     providing the server a complete configuration for appropriate
-     resource management.
+Version 1.4 adds an optional Border property.
 
    • An optional Border property. This property allows a client to
      specify that the viewport of the CRTC is smaller than the active
      display region described its mode.  This is useful, for example,
      for compensating for the overscan behavior of certain
      televisions.
-
-The first two additions, per-crtc pixmaps and sprite transforms are
-designed to solve two problems:
-
- 1) Screen transforms. The software transform code in the X server
-    uses a shadow frame buffer, adding another copy to every graphics
-    operation. Worse, the server has no idea about when clients are
-    done drawing a frame, so the user gets additional latency and
-    judder.
-
-    The goal is to move this operation out to the compositing manager
-    which already deals with an extra copy of the frame buffer for
-    many operations. Have the compositing manager create and draw to a
-    separate pixmap for scanout. It can perform whatever transforms
-    are required to get the image in the right orientation for the
-    user.
-
- 2) Hardware scanout engine size limits. With a single scanout buffer
-    for the entire screen, it's possible for the user to ask for a
-    configuration which requires that scanout buffer to be larger than
-    the hardware is capable of scanning out from. Again, having the
-    compositing manager create a pixmap for each CRTC will allow for
-    any configuration where monitor position within the virtual space
-    isn't limited by the scanout limits.
-
-In both of these cases, the Sprite transforms are necessary to ensure
-that the sprite appears at the desired spot on each CRTC and with the
-right shape.
 
 1.99 Acknowledgements
 
@@ -347,102 +304,6 @@ MODEINFO { id: MODE
 	   modeFlags: SETofMODEFLAG }
 
 REFRESH { rates: LISTofCARD16 }
-
-			      ❧❧❧❧❧❧❧❧❧❧❧
-
-5.4. Protocol Types added in version 1.4 of the extension
-
-SCANOUTPIXMAPINFO { format: PICTFORMAT
-		    maxWidth, maxHeight: CARD16
-		    rotations: SETofROTATION }
-
-	'format' is the format of the pixels within the scanout
-	pixmap. Only 'Direct' formats are supported, this will never
-	be an 'Indexed' format.
-
-	'maxWidth' and 'maxHeight' define the largest supported
-	scanout pixmap. There is no minimum size; scanout pixmaps down
-	to 1x1 may be created.
-
-	'rotations' lists the set of rotations which can be provided
-	without additional latency or memory usage within the
-	environment. This typically means that they are supported
-	directly by the hardware. It is expected that a compositing
-	manager will perform other transforms as a part of the
-	compositing process in conjunction with the sprite transforms
-	described in this extension.
-
-SCREENFLAG { SetScreenPixmapSize
-             SetScreenSize
-	     SetScreenSizeInMillimeters
-	     SetScreenCrtcs }
-
-CRTCFLAG { SetCrtcPosition
-	   SetCrtcMode
-	   SetCrtcRotation
-	   SetCrtcOutputs
-	   SetCrtcSpritePositionTransform
-	   SetCrtcSpriteImageTransform
-	   SetCrtcPixmap
-	   SetCrtcPixmapPosition }
-
-CRTCCONFIG { crtc: CRTC
-	     set: SETofCRTCFLAG
-	     x, y: INT16
-	     mode: MODE
-	     rotation: ROTATION
-	     sprite-position-transform: TRANSFORM
-	     sprite-image-transform: TRANSFORM
-	     outputs: LISTofOUTPUT
-	     pixmap: PIXMAP or None
-	     pixmap-x, pixmap-y: INT16 }
-
-	If 'set' includes SetCrtcSpritePositionTransform, then
-	sprite-position-transform is used as in the
-	RRSetCrtcSpriteTransform request position-transform parameter.
-
-	If 'set' includes SetCrtcSpriteImageTransform, then
-	sprite-image-transform is used as in the
-	RRSetCrtcSpriteTransform request image-transform parameter.
-
-	If 'set' includes SetCrtcPixmap, then 'pixmap' specifies the
-	origin of the pixel data to be presented on 'crtc'. If
-	'pixmap' is None, then data will be presented from the screen
-	pixmap.
-
-	If 'set' includes SetCrtcPixmapPosition, then 'pixmap-x' and
-	'pixmap-y' specify the origin of the scanout data within the
-	pixmap, the area from that location to pixmap-x +
-	width-of(mode), pixmap-y + height-of(mode) is what will be
-	seen on the connected outputs.
-
-	If 'set' includes SetCrtcPixmap, then 'pixmap' must specify a
-	scanout pixmap as created by RRCreateScanoutPixmap or
-	None. Otherwise a Match error results. Furthermore: 
-
-	 * 'pixmap' must be at least as large as the area to be
-	   scanned out, or a Match error results.
-
-	 * If 'pixmap' is destroyed while still being used as a
-	   scanout pixmap, then the associated CRTC will have its
-	   scanout pixmap set back to None, the CRTC origin set back
-	   to 0,0 (to make sure it fits) and the screen pixmap width
-	   and height increased to be at least as big as the current
-	   CRTC mode.
-
-	 * Future crtc changes that do not change the scanout pixmap
-	   will cause an existing scanout pixmap to be resized to be
-	   large enough to hold the new mode at the then-current
-	   pixmap-x/pixmap-y location.
-
-	If 'set' includes SetCrtcRotation then:
-
-	 * Any new or existing scanout pixmap must have had the
-	   specified 'rotation' included as a part of its creation
-	   parameters, or a Match error results.
-
-	 * If no scanout pixmap is in use, then the crtc must support
-	   'rotation' else a Value error results.
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
 
@@ -1379,107 +1240,6 @@ dynamic changes in the display environment.
 	Errors: Window
 
 	RRGetOutputPrimary returns the primary output for the screen.
-
-			      ❧❧❧❧❧❧❧❧❧❧❧
-
-7.3. Extension Requests added in version 1.4 of the extension.
-
-┌───
-    RRQueryScanoutPixmaps
-	window: WINDOW
-      ▶
-	infos: LISTofSCANOUTPIXMAPINFO
-└───
-	Errors: Window
-
-	This request returns information about the server support for
-	alternate scanout pixmaps. For each pictformat, there is a set
-	of rotations and a maximum supported size. The rotations here
-	are those provided by the scanout hardware itself, not by
-	software emulation.
-
-┌───
-    RRCreateScanoutPixmap
-	pixmap: PIXMAP
-	drawable: DRAWABLE
-	width, height: CARD16
-	format: PICTFORMAT
-	rotations: SETofROTATION
-└───
-	Errors: Drawable, Match, Value
-
-	Creates a pixmap which can subsequently be used as a scanout
-	buffer for the screen associated with 'drawable'. 'rotations'
-	is the set of rotation values which may be used with the
-	resulting scanout buffer when it is associated with a CRTC.
-
-	'format' must be one of the supported scanout formats, or a
-	Match error results.
-
-	'width' and 'height' must be within the supported range for
-	the specified format or a Value error results.
-
-	'rotations' must be a subset of those supported for the
-	specified format or a Match error results.
-
-┌───
-    RRSetCrtcSpriteTransform
-	crtc: CRTC
-	position-transform: TRANSFORM
-	image-transform: TRANSFORM
-└───
-	Sets the sprite transforms for the specified crtc, any sprites
-	presented on this crtc will have their positions transformed
-	by the position-transform matrix. Sprite images displayed on the crtc
-	will be transformed by the image-transform matrix.
-
-┌───
-    RRGetCrtcSpriteTransform
-	crtc: CRTC
-      ▶
-	position-transform: TRANSFORM
-	image-transform: TRANSFORM
-└───
-	Gets the sprite transforms for the specified crtc.
-
-┌───
-    RRSetCrtcConfigs
-	drawable: DRAWABLE
-	set: SETofSCREENFLAG
-	screen-pixmap-width: CARD16
-	screen-pixmap-height: CARD16
-	screen-width: CARD16
-	screen-height: CARD16
-	width-in-millimeters: CARD32
-	height-in-millimeters: CARD32
-	configs: LISTofCRTCCONFIG
-      ▶
-	status: RRCONFIGSTATUS
-└───
-	Errors: Value, Match
-
-	This works much like RRSetScreenSize followed by a sequence of
-	RRSetCrtcConfig, except that the entire configuration can be set
-	in a single operation, either succeeding or failing without
-	any partial execution.
-
-	If 'set' includes 'SetScreenPixmapSize', then
-	'screen-pixmap-width' and 'screen-pixmap-height' specify the
-	new screen pixmap size.
-
-	If 'set' includes 'SetScreenSize', then 'screen-width' and
-	'screen-height' specify the new screen size.
-
-	If 'set' includes 'SetScreenSizeInMillimeters', then
-	'width-in-millimeters' and 'height-in-millimeters' specify
-	the new screen physical size.
-
-	If 'set' includes 'SetScreenCrtcs', then 'configs' includes
-	the list of new CRTC configurations.
-
-	In addition to the pre-1.4 semantics, this request adds the
-	ability to specific a scanout pixmap for each crtc, and
-	integrates the 1.4 sprite transform request as well.
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
 

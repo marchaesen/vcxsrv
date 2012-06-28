@@ -105,9 +105,15 @@ _parser_active_list_pop (glcpp_parser_t *parser);
 static int
 _parser_active_list_contains (glcpp_parser_t *parser, const char *identifier);
 
+/* Expand list, and begin lexing from the result (after first
+ * prefixing a token of type 'head_token_type').
+ */
 static void
-_glcpp_parser_expand_if (glcpp_parser_t *parser, int type, token_list_t *list);
+_glcpp_parser_expand_and_lex_from (glcpp_parser_t *parser,
+				   int head_token_type,
+				   token_list_t *list);
 
+/* Perform macro expansion in-place on the given list. */
 static void
 _glcpp_parser_expand_token_list (glcpp_parser_t *parser,
 				 token_list_t *list);
@@ -156,7 +162,7 @@ add_builtin_define(glcpp_parser_t *parser, const char *name, int value);
 %lex-param {glcpp_parser_t *parser}
 
 %expect 0
-%token COMMA_FINAL DEFINED ELIF_EXPANDED HASH HASH_DEFINE_FUNC HASH_DEFINE_OBJ HASH_ELIF HASH_ELSE HASH_ENDIF HASH_IF HASH_IFDEF HASH_IFNDEF HASH_UNDEF HASH_VERSION IDENTIFIER IF_EXPANDED INTEGER INTEGER_STRING NEWLINE OTHER PLACEHOLDER SPACE
+%token COMMA_FINAL DEFINED ELIF_EXPANDED HASH HASH_DEFINE_FUNC HASH_DEFINE_OBJ HASH_ELIF HASH_ELSE HASH_ENDIF HASH_IF HASH_IFDEF HASH_IFNDEF HASH_LINE HASH_UNDEF HASH_VERSION IDENTIFIER IF_EXPANDED INTEGER INTEGER_STRING LINE_EXPANDED NEWLINE OTHER PLACEHOLDER SPACE
 %token PASTE
 %type <ival> expression INTEGER operator SPACE integer_constant
 %type <str> IDENTIFIER INTEGER_STRING OTHER
@@ -202,6 +208,24 @@ expanded_line:
 |	ELIF_EXPANDED expression NEWLINE {
 		_glcpp_parser_skip_stack_change_if (parser, & @1, "elif", $2);
 	}
+|	LINE_EXPANDED integer_constant NEWLINE {
+		parser->has_new_line_number = 1;
+		parser->new_line_number = $2;
+		ralloc_asprintf_rewrite_tail (&parser->output,
+					      &parser->output_length,
+					      "#line %" PRIiMAX,
+					      $2);
+	}
+|	LINE_EXPANDED integer_constant integer_constant NEWLINE {
+		parser->has_new_line_number = 1;
+		parser->new_line_number = $2;
+		parser->has_new_source_number = 1;
+		parser->new_source_number = $3;
+		ralloc_asprintf_rewrite_tail (&parser->output,
+					      &parser->output_length,
+					      "#line %" PRIiMAX " %" PRIiMAX,
+					      $2, $3);
+	}
 ;
 
 control_line:
@@ -222,6 +246,14 @@ control_line:
 		}
 		ralloc_free ($2);
 	}
+|	HASH_LINE pp_tokens NEWLINE {
+		if (parser->skip_stack == NULL ||
+		    parser->skip_stack->type == SKIP_NO_SKIP)
+		{
+			_glcpp_parser_expand_and_lex_from (parser,
+							   LINE_EXPANDED, $2);
+		}
+	}
 |	HASH_IF conditional_tokens NEWLINE {
 		/* Be careful to only evaluate the 'if' expression if
 		 * we are not skipping. When we are skipping, we
@@ -233,7 +265,8 @@ control_line:
 		if (parser->skip_stack == NULL ||
 		    parser->skip_stack->type == SKIP_NO_SKIP)
 		{
-			_glcpp_parser_expand_if (parser, IF_EXPANDED, $2);
+			_glcpp_parser_expand_and_lex_from (parser,
+							   IF_EXPANDED, $2);
 		}	
 		else
 		{
@@ -272,7 +305,8 @@ control_line:
 		if (parser->skip_stack &&
 		    parser->skip_stack->type == SKIP_TO_ELSE)
 		{
-			_glcpp_parser_expand_if (parser, ELIF_EXPANDED, $2);
+			_glcpp_parser_expand_and_lex_from (parser,
+							   ELIF_EXPANDED, $2);
 		}
 		else
 		{
@@ -341,6 +375,9 @@ integer_constant:
 
 expression:
 	integer_constant
+|	IDENTIFIER {
+		$$ = 0;
+	}
 |	expression OR expression {
 		$$ = $1 || $3;
 	}
@@ -1109,6 +1146,11 @@ glcpp_parser_create (const struct gl_extensions *extensions, int api)
 	parser->info_log_length = 0;
 	parser->error = 0;
 
+	parser->has_new_line_number = 0;
+	parser->new_line_number = 1;
+	parser->has_new_source_number = 0;
+	parser->new_source_number = 0;
+
 	/* Add pre-defined macros. */
 	add_builtin_define(parser, "GL_ARB_draw_buffers", 1);
 	add_builtin_define(parser, "GL_ARB_texture_rectangle", 1);
@@ -1269,14 +1311,21 @@ _token_list_create_with_one_space (void *ctx)
 	return list;
 }
 
+/* Perform macro expansion on 'list', placing the resulting tokens
+ * into a new list which is initialized with a first token of type
+ * 'head_token_type'. Then begin lexing from the resulting list,
+ * (return to the current lexing source when this list is exhausted).
+ */
 static void
-_glcpp_parser_expand_if (glcpp_parser_t *parser, int type, token_list_t *list)
+_glcpp_parser_expand_and_lex_from (glcpp_parser_t *parser,
+				   int head_token_type,
+				   token_list_t *list)
 {
 	token_list_t *expanded;
 	token_t *token;
 
 	expanded = _token_list_create (parser);
-	token = _token_create_ival (parser, type, type);
+	token = _token_create_ival (parser, head_token_type, head_token_type);
 	_token_list_append (expanded, token);
 	_glcpp_parser_expand_token_list (parser, list);
 	_token_list_append_list (expanded, list);

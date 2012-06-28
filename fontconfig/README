@@ -1,11 +1,28 @@
                               Fontconfig
              Font configuration and customization library
-                       Version 2.9.91 (2.10 RC1)
+                       Version 2.9.92 (2.10 RC2)
                               2012-03-11
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.9.92 (2.10 RC2)
+
+Akira TAGOH (9):
+      Bug 50835 - Deprecate FC_GLOBAL_ADVANCE
+      Fix a typo and build fail.
+      Fix a build fail on MINGW
+      Fix the fail of make install with --disable-shared on Win32
+      clean up the lock file properly on even hardlink-not-supported filesystem.
+      Rename configure.in to configure.ac
+      Bug 18726 - RFE: help write locale-specific tests
+      Bump libtool revision
+      Update INSTALL
+
+Marius Tolzmann (2):
+      Fix newline in warning about deprecated config includes
+      Fix warning about deprecated, non-existent config includes
 
 2.9.91 (2.10 RC1)
 

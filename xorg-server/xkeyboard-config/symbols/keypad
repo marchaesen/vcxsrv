@@ -267,13 +267,12 @@ xkb_symbols "legacymath" {
 partial keypad_keys
 xkb_symbols "ossmath" {
 
-    key.type[Group1]="FOUR_LEVEL_X" ;
+    key.type[Group1]="CTRL+ALT" ;
 
-    key <KPDV> { [   KP_Divide, 0x1002215, 0x10000F7,     XF86_Ungrab ] }; // / ∕ ÷     <XF86_Ungrab>
-    key <KPMU> { [ KP_Multiply, 0x10022C5, 0x10000D7,  XF86_ClearGrab ] }; // * ⋅ ×  <XF86_ClearGrab>
-    key <KPSU> { [ KP_Subtract, 0x1002212, 0x1002212, XF86_Prev_VMode ] }; // - − − <XF86_Prev_VMode>
-
-    key <KPAD> { [      KP_Add, 0x100002B, 0x100002B, XF86_Next_VMode ] }; // + + + <XF86_Next_VMode>
+    key <KPDV> { [   KP_Divide, 0x1002215, 0x10000F7, VoidSymbol,     XF86_Ungrab ] }; // / ∕ ÷     <XF86_Ungrab>
+    key <KPMU> { [ KP_Multiply, 0x10022C5, 0x10000D7, VoidSymbol,  XF86_ClearGrab ] }; // * ⋅ ×  <XF86_ClearGrab>
+    key <KPSU> { [ KP_Subtract, 0x1002212, 0x1002212, VoidSymbol, XF86_Prev_VMode ] }; // - − − <XF86_Prev_VMode>
+    key <KPAD> { [      KP_Add, 0x100002B, 0x100002B, VoidSymbol, XF86_Next_VMode ] }; // + + + <XF86_Next_VMode>
 
 };
 
