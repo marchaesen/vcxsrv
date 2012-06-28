@@ -100,6 +100,14 @@ xorg-server\glx\indirect_size_get.c               mesalib\src\mapi\glapi\gen\ind
 xorg-server\glx\indirect_size_get.h               mesalib\src\mapi\glapi\gen\indirect_size_get.h
 xorg-server\glx\indirect_table.c                  mesalib\src\mapi\glapi\gen\indirect_table.c
 
+xorg-server\hw\xwin\glx\gl.spec                   xorg-server\hw\xwin\swrastwgl_dri\gl.spec
+xorg-server\hw\xwin\glx\gl.tm                     xorg-server\hw\xwin\swrastwgl_dri\gl.tm
+xorg-server\hw\xwin\glx\wgl.tm                    xorg-server\hw\xwin\swrastwgl_dri\wgl.tm
+xorg-server\hw\xwin\glx\wgl_ext_api.c             xorg-server\hw\xwin\swrastwgl_dri\wgl_ext_api.c
+xorg-server\hw\xwin\glx\wgl_ext_api.h             xorg-server\hw\xwin\swrastwgl_dri\wgl_ext_api.h
+xorg-server\hw\xwin\glx\wglext.h                  xorg-server\hw\xwin\swrastwgl_dri\wglext.h
+xorg-server\hw\xwin\glx\wglext.spec               xorg-server\hw\xwin\swrastwgl_dri\wglext.spec
+
 libXaw\include\X11\Xaw\AllWidgets.h               X11\Xaw\AllWidgets.h
 libXaw\include\X11\Xaw\AsciiSink.h                X11\Xaw\AsciiSink.h
 libXaw\include\X11\Xaw\AsciiSinkP.h               X11\Xaw\AsciiSinkP.h

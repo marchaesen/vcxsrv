@@ -12,6 +12,7 @@ Boolean,*,*,			    GLboolean,*,*
 BooleanPointer,*,*,		    GLboolean*,*,*
 Char,*,*,			    GLchar,*,*
 CharPointer,*,*,		    GLchar*,*,*
+ConstCharPointer,*,*,		    GLchar* const,*,*
 CheckedFloat32,*,*,		    GLfloat,*,*
 CheckedInt32,*,*,		    GLint,*,*
 ClampColorTargetARB,*,*,	    GLenum,*,*
@@ -317,6 +318,8 @@ BufferAccessMask,*,*,		    GLbitfield,*,*
 # NV_explicit_multisample
 GetMultisamplePNameNV,*,*,	    GLenum,*,*
 SampleMaskNV,*,*,		    GLbitfield,*,*
+# ARB_debug_output
+GLDEBUGPROC,*,*,		    GLDEBUGPROC,*,*
 # ARB_debug_output
 GLDEBUGPROCARB,*,*,		    GLDEBUGPROCARB,*,*
 # AMD_debug_output

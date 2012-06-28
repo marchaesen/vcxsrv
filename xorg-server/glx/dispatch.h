@@ -8618,14 +8618,14 @@ static INLINE void SET_GetUniformBlockIndex(struct _glapi_table *disp, GLuint (G
    SET_by_offset(disp, _gloffset_GetUniformBlockIndex, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_GetUniformIndices)(GLuint, GLsizei, const GLchar **, GLuint *);
+typedef void (GLAPIENTRYP _glptr_GetUniformIndices)(GLuint, GLsizei, const GLchar * const *, GLuint *);
 #define CALL_GetUniformIndices(disp, parameters) \
     (* GET_GetUniformIndices(disp)) parameters
 static INLINE _glptr_GetUniformIndices GET_GetUniformIndices(struct _glapi_table *disp) {
    return (_glptr_GetUniformIndices) (GET_by_offset(disp, _gloffset_GetUniformIndices));
 }
 
-static INLINE void SET_GetUniformIndices(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, const GLchar **, GLuint *)) {
+static INLINE void SET_GetUniformIndices(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, const GLchar * const *, GLuint *)) {
    SET_by_offset(disp, _gloffset_GetUniformIndices, fn);
 }
 
@@ -8761,14 +8761,14 @@ static INLINE void SET_DrawRangeElementsBaseVertex(struct _glapi_table *disp, vo
    SET_by_offset(disp, _gloffset_DrawRangeElementsBaseVertex, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_MultiDrawElementsBaseVertex)(GLenum, const GLsizei *, GLenum, const GLvoid **, GLsizei, const GLint *);
+typedef void (GLAPIENTRYP _glptr_MultiDrawElementsBaseVertex)(GLenum, const GLsizei *, GLenum, const GLvoid * const *, GLsizei, const GLint *);
 #define CALL_MultiDrawElementsBaseVertex(disp, parameters) \
     (* GET_MultiDrawElementsBaseVertex(disp)) parameters
 static INLINE _glptr_MultiDrawElementsBaseVertex GET_MultiDrawElementsBaseVertex(struct _glapi_table *disp) {
    return (_glptr_MultiDrawElementsBaseVertex) (GET_by_offset(disp, _gloffset_MultiDrawElementsBaseVertex));
 }
 
-static INLINE void SET_MultiDrawElementsBaseVertex(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLsizei *, GLenum, const GLvoid **, GLsizei, const GLint *)) {
+static INLINE void SET_MultiDrawElementsBaseVertex(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLsizei *, GLenum, const GLvoid * const *, GLsizei, const GLint *)) {
    SET_by_offset(disp, _gloffset_MultiDrawElementsBaseVertex, fn);
 }
 
@@ -9542,14 +9542,14 @@ static INLINE void SET_ShaderBinary(struct _glapi_table *disp, void (GLAPIENTRYP
    SET_by_offset(disp, _gloffset_ShaderBinary, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_DebugMessageCallbackARB)(GLDEBUGPROCARB, GLvoid *);
+typedef void (GLAPIENTRYP _glptr_DebugMessageCallbackARB)(GLDEBUGPROCARB, const GLvoid *);
 #define CALL_DebugMessageCallbackARB(disp, parameters) \
     (* GET_DebugMessageCallbackARB(disp)) parameters
 static INLINE _glptr_DebugMessageCallbackARB GET_DebugMessageCallbackARB(struct _glapi_table *disp) {
    return (_glptr_DebugMessageCallbackARB) (GET_by_offset(disp, _gloffset_DebugMessageCallbackARB));
 }
 
-static INLINE void SET_DebugMessageCallbackARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLDEBUGPROCARB, GLvoid *)) {
+static INLINE void SET_DebugMessageCallbackARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLDEBUGPROCARB, const GLvoid *)) {
    SET_by_offset(disp, _gloffset_DebugMessageCallbackARB, fn);
 }
 
