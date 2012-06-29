@@ -208,7 +208,6 @@ main(int argc, char *argv[], char *envp[])
 #endif
         InitBlockAndWakeupHandlers();
         /* Perform any operating system dependent initializations you'd like */
-        OsInit();
         if (serverGeneration == 1) {
             CreateWellKnownSockets();
             for (i = 1; i < MAXCLIENTS; i++)
@@ -222,6 +221,7 @@ main(int argc, char *argv[], char *envp[])
             ResetWellKnownSockets();
         clients[0] = serverClient;
         currentMaxClients = 1;
+        OsInit();
 
         /* Initialize privates before first allocation */
         dixResetPrivates();
