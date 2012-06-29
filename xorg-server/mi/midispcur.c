@@ -151,19 +151,6 @@ miDCRealizeCursor(ScreenPtr pScreen, CursorPtr pCursor)
 #ifdef ARGB_CURSOR
 #define EnsurePicture(picture,draw,win) (picture || miDCMakePicture(&picture,draw,win))
 
-static VisualPtr
-miDCGetWindowVisual(WindowPtr pWin)
-{
-    ScreenPtr pScreen = pWin->drawable.pScreen;
-    VisualID vid = wVisual(pWin);
-    int i;
-
-    for (i = 0; i < pScreen->numVisuals; i++)
-        if (pScreen->visuals[i].vid == vid)
-            return &pScreen->visuals[i];
-    return 0;
-}
-
 static PicturePtr
 miDCMakePicture(PicturePtr * ppPicture, DrawablePtr pDraw, WindowPtr pWin)
 {
@@ -174,10 +161,7 @@ miDCMakePicture(PicturePtr * ppPicture, DrawablePtr pDraw, WindowPtr pWin)
     PicturePtr pPicture;
     int error;
 
-    pVisual = miDCGetWindowVisual(pWin);
-    if (!pVisual)
-        return 0;
-    pFormat = PictureMatchVisual(pScreen, pDraw->depth, pVisual);
+    pFormat = PictureWindowFormat(pWin);
     if (!pFormat)
         return 0;
     pPicture = CreatePicture(0, pDraw, pFormat,

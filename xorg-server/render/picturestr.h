@@ -377,6 +377,9 @@ extern _X_EXPORT RESTYPE GlyphSetType;
     } \
 } \
 
+extern _X_EXPORT PictFormatPtr
+ PictureWindowFormat(WindowPtr pWindow);
+
 extern _X_EXPORT Bool
  PictureDestroyWindow(WindowPtr pWindow);
 

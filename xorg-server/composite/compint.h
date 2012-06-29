@@ -272,8 +272,6 @@ void
 #define compCheckTree(s)
 #endif
 
-PictFormatPtr compWindowFormat(WindowPtr pWin);
-
 void
  compSetPixmap(WindowPtr pWin, PixmapPtr pPixmap);
 

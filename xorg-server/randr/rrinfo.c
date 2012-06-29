@@ -82,6 +82,7 @@ RRScanOldConfig(ScreenPtr pScreen, Rotation rotations)
     int i;
     CARD16 minWidth = MAXSHORT, minHeight = MAXSHORT;
     CARD16 maxWidth = 0, maxHeight = 0;
+    CARD16 width, height;
 
     /*
      * First time through, create a crtc and output and hook
@@ -141,11 +142,11 @@ RRScanOldConfig(ScreenPtr pScreen, Rotation rotations)
 
     /* find size bounds */
     for (i = 0; i < output->numModes + output->numUserModes; i++) {
-        RRModePtr mode = (i < output->numModes ?
+        mode = (i < output->numModes ?
                           output->modes[i] :
                           output->userModes[i - output->numModes]);
-        CARD16 width = mode->mode.width;
-        CARD16 height = mode->mode.height;
+        width = mode->mode.width;
+        height = mode->mode.height;
 
         if (width < minWidth)
             minWidth = width;

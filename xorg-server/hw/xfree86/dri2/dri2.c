@@ -1111,14 +1111,14 @@ DRI2Connect(ScreenPtr pScreen, unsigned int driverType, int *fd,
     return TRUE;
 }
 
-static Bool
+static int
 DRI2AuthMagic (ScreenPtr pScreen, uint32_t magic)
 {
     DRI2ScreenPtr ds = DRI2GetScreen(pScreen);
-    if (ds == NULL || (*ds->LegacyAuthMagic) (ds->fd, magic))
-        return FALSE;
+    if (ds == NULL)
+        return -EINVAL;
 
-    return TRUE;
+    return (*ds->LegacyAuthMagic) (ds->fd, magic);
 }
 
 Bool

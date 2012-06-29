@@ -560,8 +560,8 @@ compNewPixmap(WindowPtr pWin, int x, int y, int w, int h)
         }
     }
     else {
-        PictFormatPtr pSrcFormat = compWindowFormat(pParent);
-        PictFormatPtr pDstFormat = compWindowFormat(pWin);
+        PictFormatPtr pSrcFormat = PictureWindowFormat(pParent);
+        PictFormatPtr pDstFormat = PictureWindowFormat(pWin);
         XID inferiors = IncludeInferiors;
         int error;
 

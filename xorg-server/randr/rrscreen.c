@@ -248,6 +248,9 @@ ProcRRSetScreenSize(ClientPtr client)
 
     pScreen = pWin->drawable.pScreen;
     pScrPriv = rrGetScrPriv(pScreen);
+    if (!pScrPriv)
+        return BadMatch;
+
     if (stuff->width < pScrPriv->minWidth || pScrPriv->maxWidth < stuff->width) {
         client->errorValue = stuff->width;
         return BadValue;

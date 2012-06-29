@@ -20,7 +20,7 @@ INCLUDES += -I$(top_srcdir)/hw/xfree86/parser \
 	-I$(top_srcdir)/hw/xfree86/i2c -I$(top_srcdir)/hw/xfree86/modes \
 	-I$(top_srcdir)/hw/xfree86/ramdac
 endif
-TEST_LDADD=libxservertest.la $(XORG_SYS_LIBS) $(XSERVER_SYS_LIBS)
+TEST_LDADD=libxservertest.la $(XORG_SYS_LIBS) $(XSERVER_SYS_LIBS) $(GLX_SYS_LIBS)
 
 if XORG
 if SPECIAL_DTRACE_OBJECTS

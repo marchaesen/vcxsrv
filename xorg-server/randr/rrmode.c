@@ -173,7 +173,7 @@ RRModesForScreen(ScreenPtr pScreen, int *num_ret)
      */
     for (o = 0; o < pScrPriv->numOutputs; o++) {
         RROutputPtr output = pScrPriv->outputs[o];
-        int m, n;
+        int n;
 
         for (m = 0; m < output->numModes + output->numUserModes; m++) {
             RRModePtr mode = (m < output->numModes ?
@@ -285,7 +285,6 @@ ProcRRCreateMode(ClientPtr client)
     xRRCreateModeReply rep = { 0 };
     WindowPtr pWin;
     ScreenPtr pScreen;
-    rrScrPrivPtr pScrPriv;
     xRRModeInfo *modeInfo;
     long units_after;
     char *name;
@@ -298,7 +297,6 @@ ProcRRCreateMode(ClientPtr client)
         return rc;
 
     pScreen = pWin->drawable.pScreen;
-    pScrPriv = rrGetScrPriv(pScreen);
 
     modeInfo = &stuff->modeInfo;
     name = (char *) (stuff + 1);

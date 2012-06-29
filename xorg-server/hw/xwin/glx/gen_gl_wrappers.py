@@ -224,6 +224,8 @@ for w in sorted(wrappers.keys()) :
                         if l[2] == 'in' :
                                 if l[3] == 'array' :
                                         arg = 'const ' + typemap[l[1]] + ' *' + l[0]
+                                elif l[3] == 'reference' :
+                                        arg = 'const ' + typemap[l[1]] + ' *' + l[0]
                                 else :
                                         arg = typemap[l[1]] + ' ' + l[0]
                         elif l[2] == 'out' :
@@ -318,7 +320,7 @@ if dispatchheader :
 
         for d in sorted(dispatch.keys()) :
                 if wrappers.has_key(d) :
-                        print '  SET_'+ d + '(disp, (void *)' + prefix + d + 'Wrapper);'
+                        print '      SET_'+ d + '(disp, (void *)' + prefix + d + 'Wrapper);'
                 else :
                         print '#pragma message("No wrapper for ' + prefix + d + ' !")'
 

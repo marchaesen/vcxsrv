@@ -80,10 +80,28 @@ bench_memcpy ()
     return (double)total / (t2 - t1);
 }
 
+static pixman_bool_t use_scaling = FALSE;
+static pixman_filter_t filter = PIXMAN_FILTER_NEAREST;
+
+/* nearly 1x scale factor */
+static pixman_transform_t m =
+{
+    {
+        { pixman_fixed_1 + 1, 0,              0              },
+        { 0,                  pixman_fixed_1, 0              },
+        { 0,                  0,              pixman_fixed_1 }
+    }
+};
+
 static void
 pixman_image_composite_wrapper (pixman_implementation_t *impl,
 				pixman_composite_info_t *info)
 {
+    if (use_scaling)
+    {
+        pixman_image_set_filter (info->src_image, filter, NULL, 0);
+        pixman_image_set_transform(info->src_image, &m);
+    }
     pixman_image_composite (info->op,
 			    info->src_image, info->mask_image, info->dest_image,
 			    info->src_x, info->src_y,
@@ -96,6 +114,11 @@ static void
 pixman_image_composite_empty (pixman_implementation_t *impl,
 			      pixman_composite_info_t *info)
 {
+    if (use_scaling)
+    {
+        pixman_image_set_filter (info->src_image, filter, NULL, 0);
+        pixman_image_set_transform(info->src_image, &m);
+    }
     pixman_image_composite (info->op,
 			    info->src_image, info->mask_image, info->dest_image,
 			    0, 0, 0, 0, 0, 0, 1, 1);
@@ -669,7 +692,35 @@ main (int argc, char *argv[])
 {
     double x;
     int i;
-    char *pattern = argc > 1 ? argv[1] : "all";
+    const char *pattern = NULL;
+    for (i = 1; i < argc; i++)
+    {
+	if (argv[i][0] == '-')
+	{
+	    if (strchr (argv[i] + 1, 'b'))
+	    {
+		use_scaling = TRUE;
+		filter = PIXMAN_FILTER_BILINEAR;
+	    }
+	    else if (strchr (argv[i] + 1, 'n'))
+	    {
+		use_scaling = TRUE;
+		filter = PIXMAN_FILTER_NEAREST;
+	    }
+	}
+	else
+	{
+	    pattern = argv[i];
+	}
+    }
+
+    if (!pattern)
+    {
+	printf ("Usage: lowlevel-blt-bench [-b] [-n] pattern\n");
+	printf ("  -n : benchmark nearest scaling\n");
+	printf ("  -b : benchmark bilinear scaling\n");
+	return 1;
+    }
 
     src = aligned_malloc (4096, BUFSIZE * 3);
     memset (src, 0xCC, BUFSIZE * 3);
@@ -706,6 +757,16 @@ main (int argc, char *argv[])
     bandwidth = x = bench_memcpy ();
     printf ("reference memcpy speed = %.1fMB/s (%.1fMP/s for 32bpp fills)\n",
             x / 1000000., x / 4000000);
+    if (use_scaling)
+    {
+	printf ("---\n");
+	if (filter == PIXMAN_FILTER_BILINEAR)
+	    printf ("BILINEAR scaling\n");
+	else if (filter == PIXMAN_FILTER_NEAREST)
+	    printf ("NEAREST scaling\n");
+	else
+	    printf ("UNKNOWN scaling\n");
+    }
     printf ("---\n");
 
     for (i = 0; i < ARRAY_LENGTH (tests_tbl); i++)
