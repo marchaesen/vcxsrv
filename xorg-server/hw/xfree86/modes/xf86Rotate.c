@@ -46,28 +46,6 @@
 
 /* borrowed from composite extension, move to Render and publish? */
 
-static VisualPtr
-compGetWindowVisual(WindowPtr pWin)
-{
-    ScreenPtr pScreen = pWin->drawable.pScreen;
-    VisualID vid = wVisual(pWin);
-    int i;
-
-    for (i = 0; i < pScreen->numVisuals; i++)
-        if (pScreen->visuals[i].vid == vid)
-            return &pScreen->visuals[i];
-    return 0;
-}
-
-static PictFormatPtr
-compWindowFormat(WindowPtr pWin)
-{
-    ScreenPtr pScreen = pWin->drawable.pScreen;
-
-    return PictureMatchVisual(pScreen, pWin->drawable.depth,
-                              compGetWindowVisual(pWin));
-}
-
 #define F(x)	IntToxFixed(x)
 
 #define toF(x)	((float) (x) / 65536.0f)
@@ -79,7 +57,7 @@ xf86RotateCrtcRedisplay(xf86CrtcPtr crtc, RegionPtr region)
     ScreenPtr screen = scrn->pScreen;
     WindowPtr root = screen->root;
     PixmapPtr dst_pixmap = crtc->rotatedPixmap;
-    PictFormatPtr format = compWindowFormat(screen->root);
+    PictFormatPtr format = PictureWindowFormat(screen->root);
     int error;
     PicturePtr src, dst;
     int n = RegionNumRects(region);

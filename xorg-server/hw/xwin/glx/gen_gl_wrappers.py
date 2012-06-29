@@ -67,7 +67,7 @@ if dispatchheader :
         fh = open(dispatchheader)
         dispatchh = fh.readlines()
 
-        dispatch_regex = re.compile(r'#define\sSET_(\S*)\(')
+        dispatch_regex = re.compile(r'^SET_(\S*)\(')
 
         for line in dispatchh :
                 line = line.strip()
@@ -308,12 +308,20 @@ for w in sorted(wrappers.keys()) :
 if dispatchheader :
         print 'void glWinSetupDispatchTable(void)'
         print '{'
-        print '  struct _glapi_table *disp = _glapi_get_dispatch();'
+        print '  static struct _glapi_table *disp = NULL;'
+        print ''
+        print '  if (!disp)'
+        print '    {'
+        print '      disp = calloc(sizeof(void *), _glapi_get_dispatch_table_size());'
+        print '      assert(disp);'
 
         for d in sorted(dispatch.keys()) :
                 if wrappers.has_key(d) :
-                        print '  SET_'+ d + '(disp, (void *)' + prefix + d + 'Wrapper);'
+                        print '      SET_'+ d + '(disp, (void *)' + prefix + d + 'Wrapper);'
                 else :
                         print '#warning  No wrapper for ' + prefix + d + ' !'
 
+        print '    }'
+        print ''
+        print '  _glapi_set_dispatch(disp);'
         print '}'

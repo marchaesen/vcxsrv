@@ -5377,17 +5377,16 @@ FAST_NEAREST_MAINLOOP_COMMON (sse2_8888_n_8888_none_OVER,
 #define BILINEAR_INTERPOLATE_ONE_PIXEL(pix)					\
 do {										\
     __m128i xmm_wh, xmm_lo, xmm_hi, a;						\
-    /* fetch 2x2 pixel block into sse2 register */				\
-    uint32_t tl = src_top [pixman_fixed_to_int (vx)];				\
-    uint32_t tr = src_top [pixman_fixed_to_int (vx) + 1];			\
-    uint32_t bl = src_bottom [pixman_fixed_to_int (vx)];			\
-    uint32_t br = src_bottom [pixman_fixed_to_int (vx) + 1];			\
-    a = _mm_set_epi32 (tr, tl, br, bl);						\
+    /* fetch 2x2 pixel block into sse2 registers */				\
+    __m128i tltr = _mm_loadl_epi64 (						\
+			    (__m128i *)&src_top[pixman_fixed_to_int (vx)]);	\
+    __m128i blbr = _mm_loadl_epi64 (						\
+			    (__m128i *)&src_bottom[pixman_fixed_to_int (vx)]);	\
     vx += unit_x;								\
     /* vertical interpolation */						\
-    a = _mm_add_epi16 (_mm_mullo_epi16 (_mm_unpackhi_epi8 (a, xmm_zero),	\
+    a = _mm_add_epi16 (_mm_mullo_epi16 (_mm_unpacklo_epi8 (tltr, xmm_zero),	\
 					xmm_wt),				\
-		       _mm_mullo_epi16 (_mm_unpacklo_epi8 (a, xmm_zero),	\
+		       _mm_mullo_epi16 (_mm_unpacklo_epi8 (blbr, xmm_zero),	\
 					xmm_wb));				\
     /* calculate horizontal weights */						\
     xmm_wh = _mm_add_epi16 (xmm_addc,						\

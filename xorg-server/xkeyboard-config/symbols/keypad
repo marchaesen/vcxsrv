@@ -577,7 +577,7 @@ xkb_symbols "atm" {
 };
 
 
-partial default modifier_keys
+partial modifier_keys
 xkb_symbols "pointerkeys" {
     key <NMLK> {	[ Num_Lock,	Pointer_EnableKeys 	]	};
 };

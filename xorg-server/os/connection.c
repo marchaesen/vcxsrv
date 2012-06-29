@@ -353,6 +353,7 @@ NotifyParentProcess(void)
 #if !defined(WIN32)
     if (dynamic_display[0]) {
         write(displayfd, dynamic_display, strlen(dynamic_display));
+        write(displayfd, "\n", 1);
         close(displayfd);
     }
     if (RunFromSmartParent) {

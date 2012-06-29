@@ -686,9 +686,9 @@ gettime (void)
 uint32_t
 get_random_seed (void)
 {
-    double d = gettime();
-
-    lcg_srand (*(uint32_t *)&d);
+    union { double d; uint32_t u32; } t;
+    t.d = gettime();
+    lcg_srand (t.u32);
 
     return lcg_rand_u32 ();
 }

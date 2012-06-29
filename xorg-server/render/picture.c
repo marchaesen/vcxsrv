@@ -50,6 +50,14 @@ RESTYPE PictFormatType;
 RESTYPE GlyphSetType;
 int PictureCmapPolicy = PictureCmapPolicyDefault;
 
+PictFormatPtr
+PictureWindowFormat(WindowPtr pWindow)
+{
+    ScreenPtr pScreen = pWindow->drawable.pScreen;
+    return PictureMatchVisual(pScreen, pWindow->drawable.depth,
+                              WindowGetVisual(pWindow));
+}
+
 Bool
 PictureDestroyWindow(WindowPtr pWindow)
 {

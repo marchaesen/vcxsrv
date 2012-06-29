@@ -825,10 +825,9 @@ ProcRRSetCrtcConfig(ClientPtr client)
     int numOutputs;
     RROutputPtr *outputs = NULL;
     RROutput *outputIds;
-    TimeStamp configTime;
     TimeStamp time;
     Rotation rotation;
-    int rc, i, j;
+    int ret, i, j;
 
     REQUEST_AT_LEAST_SIZE(xRRSetCrtcConfigReq);
     numOutputs = (stuff->length - bytes_to_int32(SIZEOF(xRRSetCrtcConfigReq)));
@@ -855,11 +854,11 @@ ProcRRSetCrtcConfig(ClientPtr client)
 
     outputIds = (RROutput *) (stuff + 1);
     for (i = 0; i < numOutputs; i++) {
-        rc = dixLookupResourceByType((pointer *) (outputs + i), outputIds[i],
+        ret = dixLookupResourceByType((pointer *) (outputs + i), outputIds[i],
                                      RROutputType, client, DixSetAttrAccess);
-        if (rc != Success) {
+        if (ret != Success) {
             free(outputs);
-            return rc;
+            return ret;
         }
         /* validate crtc for this output */
         for (j = 0; j < outputs[i]->numCrtcs; j++)
@@ -904,7 +903,6 @@ ProcRRSetCrtcConfig(ClientPtr client)
     pScrPriv = rrGetScrPriv(pScreen);
 
     time = ClientTimeToServerTime(stuff->timestamp);
-    configTime = ClientTimeToServerTime(stuff->configTimestamp);
 
     if (!pScrPriv) {
         time = currentTime;

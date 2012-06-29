@@ -35,6 +35,7 @@
 #include <X11/keysym.h>
 #include <X11/Xproto.h>
 #include <math.h>
+#include <limits.h>
 
 #include "misc.h"
 #include "resource.h"
@@ -756,6 +757,29 @@ clipAbsolute(DeviceIntPtr dev, ValuatorMask *mask)
     }
 }
 
+static void
+add_to_scroll_valuator(DeviceIntPtr dev, ValuatorMask *mask, int valuator, double value)
+{
+    double v;
+
+    if (!valuator_mask_fetch_double(mask, valuator, &v))
+        return;
+
+    /* protect against scrolling overflow. INT_MAX for double, because
+     * we'll eventually write this as 32.32 fixed point */
+    if ((value > 0 && v > INT_MAX - value) || (value < 0 && v < INT_MIN - value)) {
+        v = 0;
+
+        /* reset last.scroll to avoid a button storm */
+        valuator_mask_set_double(dev->last.scroll, valuator, 0);
+    }
+    else
+        v += value;
+
+    valuator_mask_set_double(mask, valuator, v);
+}
+
+
 /**
  * Move the device's pointer by the values given in @valuators.
  *
@@ -774,13 +798,17 @@ moveRelative(DeviceIntPtr dev, ValuatorMask *mask)
 
         if (!valuator_mask_isset(mask, i))
             continue;
-        val += valuator_mask_get_double(mask, i);
+
+        add_to_scroll_valuator(dev, mask, i, val);
+
         /* x & y need to go over the limits to cross screens if the SD
          * isn't currently attached; otherwise, clip to screen bounds. */
         if (valuator_get_mode(dev, i) == Absolute &&
-            ((i != 0 && i != 1) || clip_xy))
+            ((i != 0 && i != 1) || clip_xy)) {
+            val = valuator_mask_get_double(mask, i);
             clipAxis(dev, i, &val);
-        valuator_mask_set_double(mask, i, val);
+            valuator_mask_set_double(mask, i, val);
+        }
     }
 }
 
@@ -1506,6 +1534,7 @@ emulate_scroll_button_events(InternalEvent *events,
     return num_events;
 }
 
+
 /**
  * Generate a complete series of InternalEvents (filled into the EventList)
  * representing pointer motion, or button presses.  If the device is a slave
@@ -1560,7 +1589,7 @@ GetPointerEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
      * necessary. This only needs to cater for the XIScrollFlagPreferred
      * axis (if more than one scrolling axis is present) */
     if (type == ButtonPress) {
-        double val, adj;
+        double adj;
         int axis;
         int h_scroll_axis = -1;
         int v_scroll_axis = -1;
@@ -1596,8 +1625,7 @@ GetPointerEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
 
         if (adj != 0.0 && axis != -1) {
             adj *= pDev->valuator->axes[axis].scroll.increment;
-            val = valuator_mask_get_double(&mask, axis) + adj;
-            valuator_mask_set_double(&mask, axis, val);
+            add_to_scroll_valuator(pDev, &mask, axis, adj);
             type = MotionNotify;
             buttons = 0;
             flags |= POINTER_EMULATED;
