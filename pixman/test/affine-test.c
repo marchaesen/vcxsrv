@@ -301,11 +301,21 @@ test_composite (int      testnum,
     return crc32;
 }
 
+#if BILINEAR_INTERPOLATION_BITS == 8
+#define CHECKSUM 0x1EF2175A
+#elif BILINEAR_INTERPOLATION_BITS == 7
+#define CHECKSUM 0x74050F50
+#elif BILINEAR_INTERPOLATION_BITS == 4
+#define CHECKSUM 0x4362EAE8
+#else
+#define CHECKSUM 0x00000000
+#endif
+
 int
 main (int argc, const char *argv[])
 {
     pixman_disable_out_of_bounds_workaround ();
 
-    return fuzzer_test_main ("affine", 8000000, 0x1EF2175A,
+    return fuzzer_test_main ("affine", 8000000, CHECKSUM,
 			     test_composite, argc, argv);
 }

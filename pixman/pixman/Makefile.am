@@ -92,6 +92,7 @@ endif
 
 # iwmmxt code
 if USE_ARM_IWMMXT
+libpixman_iwmmxt_la_SOURCES = pixman-mmx.c
 noinst_LTLIBRARIES += libpixman-iwmmxt.la
 libpixman_1_la_LIBADD += libpixman-iwmmxt.la
 

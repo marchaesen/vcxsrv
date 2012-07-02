@@ -29,6 +29,7 @@
  * Author:  Nemanja Lukic (nlukic@mips.com)
  */
 
+#include "pixman-private.h"
 #include "pixman-mips-dspr2-asm.h"
 
 LEAF_MIPS_DSPR2(pixman_fill_buff16_mips)
@@ -771,11 +772,15 @@ LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_8888_8_8888_OVER_asm_mips)
     lw       s1, 48(sp)        /* s1 = wb */
     lw       s2, 52(sp)        /* s2 = vx */
     lw       s3, 56(sp)        /* s3 = unit_x */
-    li       v0, 256
+    li       v0, BILINEAR_INTERPOLATION_RANGE
     li       s8, 0x00ff00ff
+
+    sll      s0, s0, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+    sll      s1, s1, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+
 0:
     andi     t4, s2, 0xffff    /* t4 = (short)vx */
-    srl      t4, t4, 8         /* t4 = vx >> 8 */
+    srl      t4, t4, (16 - BILINEAR_INTERPOLATION_BITS) /* t4 = vx >> 8 */
     subu     t5, v0, t4        /* t5 = ( 256 - (vx>>8)) */
 
     mul      s4, s0, t5        /* s4 = wt*(256-(vx>>8)) */
