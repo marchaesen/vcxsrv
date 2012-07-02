@@ -3562,32 +3562,35 @@ mmx_composite_over_reverse_n_8888 (pixman_implementation_t *imp,
 
 #define BILINEAR_INTERPOLATE_ONE_PIXEL(pix)					\
 do {										\
+    __m64 t_hi, t_lo, b_hi, b_lo, hi, lo;					\
     /* fetch 2x2 pixel block into 2 mmx registers */				\
     __m64 t = ldq_u ((__m64 *)&src_top [pixman_fixed_to_int (vx)]);		\
     __m64 b = ldq_u ((__m64 *)&src_bottom [pixman_fixed_to_int (vx)]);		\
     vx += unit_x;								\
     /* vertical interpolation */						\
-    __m64 t_hi = _mm_mullo_pi16 (_mm_unpackhi_pi8 (t, mm_zero), mm_wt);		\
-    __m64 t_lo = _mm_mullo_pi16 (_mm_unpacklo_pi8 (t, mm_zero), mm_wt);		\
-    __m64 b_hi = _mm_mullo_pi16 (_mm_unpackhi_pi8 (b, mm_zero), mm_wb);		\
-    __m64 b_lo = _mm_mullo_pi16 (_mm_unpacklo_pi8 (b, mm_zero), mm_wb);		\
-    __m64 hi = _mm_add_pi16 (t_hi, b_hi);					\
-    __m64 lo = _mm_add_pi16 (t_lo, b_lo);					\
+    t_hi = _mm_mullo_pi16 (_mm_unpackhi_pi8 (t, mm_zero), mm_wt);		\
+    t_lo = _mm_mullo_pi16 (_mm_unpacklo_pi8 (t, mm_zero), mm_wt);		\
+    b_hi = _mm_mullo_pi16 (_mm_unpackhi_pi8 (b, mm_zero), mm_wb);		\
+    b_lo = _mm_mullo_pi16 (_mm_unpacklo_pi8 (b, mm_zero), mm_wb);		\
+    hi = _mm_add_pi16 (t_hi, b_hi);						\
+    lo = _mm_add_pi16 (t_lo, b_lo);						\
     if (BILINEAR_INTERPOLATION_BITS < 8)					\
     {										\
+	__m64 p, q;								\
 	/* calculate horizontal weights */					\
 	__m64 mm_wh = _mm_add_pi16 (mm_addc7, _mm_xor_si64 (mm_xorc7,		\
 			  _mm_srli_pi16 (mm_x,					\
 					 16 - BILINEAR_INTERPOLATION_BITS)));	\
 	mm_x = _mm_add_pi16 (mm_x, mm_ux);					\
 	/* horizontal interpolation */						\
-	__m64 p = _mm_unpacklo_pi16 (lo, hi);					\
-	__m64 q = _mm_unpackhi_pi16 (lo, hi);					\
+	p = _mm_unpacklo_pi16 (lo, hi);						\
+	q = _mm_unpackhi_pi16 (lo, hi);						\
 	lo = _mm_madd_pi16 (p, mm_wh);						\
 	hi = _mm_madd_pi16 (q, mm_wh);						\
     }										\
     else									\
     {										\
+	__m64 mm_lo_lo, mm_lo_hi, mm_hi_lo, mm_hi_hi;				\
 	/* calculate horizontal weights */					\
 	__m64 mm_wh_lo = _mm_sub_pi16 (mm_BSHIFT, _mm_srli_pi16 (mm_x,		\
 					16 - BILINEAR_INTERPOLATION_BITS));	\
@@ -3595,10 +3598,10 @@ do {										\
 					16 - BILINEAR_INTERPOLATION_BITS);	\
 	mm_x = _mm_add_pi16 (mm_x, mm_ux);					\
 	/* horizontal interpolation */						\
-	__m64 mm_lo_lo = _mm_mullo_pi16 (lo, mm_wh_lo);				\
-	__m64 mm_lo_hi = _mm_mullo_pi16 (hi, mm_wh_hi);				\
-	__m64 mm_hi_lo = _mm_mulhi_pu16 (lo, mm_wh_lo);				\
-	__m64 mm_hi_hi = _mm_mulhi_pu16 (hi, mm_wh_hi);				\
+	mm_lo_lo = _mm_mullo_pi16 (lo, mm_wh_lo);				\
+	mm_lo_hi = _mm_mullo_pi16 (hi, mm_wh_hi);				\
+	mm_hi_lo = _mm_mulhi_pu16 (lo, mm_wh_lo);				\
+	mm_hi_hi = _mm_mulhi_pu16 (hi, mm_wh_hi);				\
 	lo = _mm_add_pi32 (_mm_unpacklo_pi16 (mm_lo_lo, mm_hi_lo),		\
 			   _mm_unpacklo_pi16 (mm_lo_hi, mm_hi_hi));		\
 	hi = _mm_add_pi32 (_mm_unpackhi_pi16 (mm_lo_lo, mm_hi_lo),		\
