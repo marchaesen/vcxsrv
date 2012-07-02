@@ -5364,11 +5364,15 @@ FAST_NEAREST_MAINLOOP_COMMON (sse2_8888_n_8888_none_OVER,
 			      scaled_nearest_scanline_sse2_8888_n_8888_OVER,
 			      uint32_t, uint32_t, uint32_t, NONE, TRUE, TRUE)
 
+#define BMSK ((1 << BILINEAR_INTERPOLATION_BITS) - 1)
+
 #define BILINEAR_DECLARE_VARIABLES						\
     const __m128i xmm_wt = _mm_set_epi16 (wt, wt, wt, wt, wt, wt, wt, wt);	\
     const __m128i xmm_wb = _mm_set_epi16 (wb, wb, wb, wb, wb, wb, wb, wb);	\
-    const __m128i xmm_xorc = _mm_set_epi16 (0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff);\
-    const __m128i xmm_addc = _mm_set_epi16 (0, 0, 0, 0, 1, 1, 1, 1);		\
+    const __m128i xmm_xorc8 = _mm_set_epi16 (0, 0, 0, 0, BMSK, BMSK, BMSK, BMSK);\
+    const __m128i xmm_addc8 = _mm_set_epi16 (0, 0, 0, 0, 1, 1, 1, 1);		\
+    const __m128i xmm_xorc7 = _mm_set_epi16 (0, BMSK, 0, BMSK, 0, BMSK, 0, BMSK);\
+    const __m128i xmm_addc7 = _mm_set_epi16 (0, 1, 0, 1, 0, 1, 0, 1);		\
     const __m128i xmm_ux = _mm_set_epi16 (unit_x, unit_x, unit_x, unit_x,	\
 					  unit_x, unit_x, unit_x, unit_x);	\
     const __m128i xmm_zero = _mm_setzero_si128 ();				\
@@ -5388,18 +5392,30 @@ do {										\
 					xmm_wt),				\
 		       _mm_mullo_epi16 (_mm_unpacklo_epi8 (blbr, xmm_zero),	\
 					xmm_wb));				\
-    /* calculate horizontal weights */						\
-    xmm_wh = _mm_add_epi16 (xmm_addc,						\
-			    _mm_xor_si128 (xmm_xorc,				\
-					   _mm_srli_epi16 (xmm_x, 8)));		\
-    xmm_x = _mm_add_epi16 (xmm_x, xmm_ux);					\
-    /* horizontal interpolation */						\
-    xmm_lo = _mm_mullo_epi16 (a, xmm_wh);					\
-    xmm_hi = _mm_mulhi_epu16 (a, xmm_wh);					\
-    a = _mm_add_epi32 (_mm_unpacklo_epi16 (xmm_lo, xmm_hi),			\
-		       _mm_unpackhi_epi16 (xmm_lo, xmm_hi));			\
+    if (BILINEAR_INTERPOLATION_BITS < 8)					\
+    {										\
+	/* calculate horizontal weights */					\
+	xmm_wh = _mm_add_epi16 (xmm_addc7, _mm_xor_si128 (xmm_xorc7,		\
+		   _mm_srli_epi16 (xmm_x, 16 - BILINEAR_INTERPOLATION_BITS)));	\
+	xmm_x = _mm_add_epi16 (xmm_x, xmm_ux);					\
+	/* horizontal interpolation */						\
+	a = _mm_madd_epi16 (_mm_unpackhi_epi16 (_mm_shuffle_epi32 (		\
+		a, _MM_SHUFFLE (1, 0, 3, 2)), a), xmm_wh);			\
+    }										\
+    else									\
+    {										\
+	/* calculate horizontal weights */					\
+	xmm_wh = _mm_add_epi16 (xmm_addc8, _mm_xor_si128 (xmm_xorc8,		\
+		_mm_srli_epi16 (xmm_x, 16 - BILINEAR_INTERPOLATION_BITS)));	\
+	xmm_x = _mm_add_epi16 (xmm_x, xmm_ux);					\
+	/* horizontal interpolation */						\
+	xmm_lo = _mm_mullo_epi16 (a, xmm_wh);					\
+	xmm_hi = _mm_mulhi_epu16 (a, xmm_wh);					\
+	a = _mm_add_epi32 (_mm_unpacklo_epi16 (xmm_lo, xmm_hi),			\
+			   _mm_unpackhi_epi16 (xmm_lo, xmm_hi));		\
+    }										\
     /* shift and pack the result */						\
-    a = _mm_srli_epi32 (a, 16);							\
+    a = _mm_srli_epi32 (a, BILINEAR_INTERPOLATION_BITS * 2);			\
     a = _mm_packs_epi32 (a, a);							\
     a = _mm_packus_epi16 (a, a);						\
     pix = _mm_cvtsi128_si32 (a);						\
@@ -5845,6 +5861,9 @@ static const pixman_fast_path_t sse2_fast_paths[] =
     SIMPLE_BILINEAR_FAST_PATH (SRC, a8r8g8b8, a8r8g8b8, sse2_8888_8888),
     SIMPLE_BILINEAR_FAST_PATH (SRC, a8r8g8b8, x8r8g8b8, sse2_8888_8888),
     SIMPLE_BILINEAR_FAST_PATH (SRC, x8r8g8b8, x8r8g8b8, sse2_8888_8888),
+    SIMPLE_BILINEAR_FAST_PATH (SRC, a8b8g8r8, a8b8g8r8, sse2_8888_8888),
+    SIMPLE_BILINEAR_FAST_PATH (SRC, a8b8g8r8, x8b8g8r8, sse2_8888_8888),
+    SIMPLE_BILINEAR_FAST_PATH (SRC, x8b8g8r8, x8b8g8r8, sse2_8888_8888),
 
     SIMPLE_BILINEAR_FAST_PATH (OVER, a8r8g8b8, x8r8g8b8, sse2_8888_8888),
     SIMPLE_BILINEAR_FAST_PATH (OVER, a8b8g8r8, x8b8g8r8, sse2_8888_8888),

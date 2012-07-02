@@ -1,9 +1,23 @@
+#ifndef PIXMAN_PRIVATE_H
+#define PIXMAN_PRIVATE_H
+
+/*
+ * The defines which are shared between C and assembly code
+ */
+
+/* bilinear interpolation precision (must be <= 8) */
+#define BILINEAR_INTERPOLATION_BITS 7
+#define BILINEAR_INTERPOLATION_RANGE (1 << BILINEAR_INTERPOLATION_BITS)
+
+/*
+ * C specific part
+ */
+
+#ifndef __ASSEMBLER__
+
 #ifndef PACKAGE
 #  error config.h must be included before pixman-private.h
 #endif
-
-#ifndef PIXMAN_PRIVATE_H
-#define PIXMAN_PRIVATE_H
 
 #define PIXMAN_DISABLE_DEPRECATED
 #define PIXMAN_USE_INTERNAL_API
@@ -1051,5 +1065,7 @@ void pixman_timer_register (pixman_timer_t *timer);
     }
 
 #endif /* PIXMAN_TIMERS */
+
+#endif /* __ASSEMBLER__ */
 
 #endif /* PIXMAN_PRIVATE_H */

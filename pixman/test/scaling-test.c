@@ -357,11 +357,21 @@ test_composite (int      testnum,
     return crc32;
 }
 
+#if BILINEAR_INTERPOLATION_BITS == 8
+#define CHECKSUM 0x80DF1CB2
+#elif BILINEAR_INTERPOLATION_BITS == 7
+#define CHECKSUM 0x2818D5FB
+#elif BILINEAR_INTERPOLATION_BITS == 4
+#define CHECKSUM 0x387540A5
+#else
+#define CHECKSUM 0x00000000
+#endif
+
 int
 main (int argc, const char *argv[])
 {
     pixman_disable_out_of_bounds_workaround ();
 
-    return fuzzer_test_main("scaling", 8000000, 0x80DF1CB2,
+    return fuzzer_test_main("scaling", 8000000, CHECKSUM,
 			    test_composite, argc, argv);
 }
