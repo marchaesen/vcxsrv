@@ -1132,6 +1132,7 @@ fast_composite_scaled_bilinear ## scale_func_name (pixman_implementation_t *imp,
 			   weight1, weight2, vx, unit_x, max_vx, FALSE);			\
 	}											\
     }												\
+    _mm_empty ();										\
 }
 
 /* A workaround for old sun studio, see: https://bugs.freedesktop.org/show_bug.cgi?id=32764 */
