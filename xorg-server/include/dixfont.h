@@ -117,12 +117,13 @@ extern _X_EXPORT void FreeFonts(void);
 
 extern _X_EXPORT FontPtr find_old_font(XID /*id */ );
 
-extern _X_EXPORT void GetGlyphs(FontPtr /*font */ ,
-                                unsigned long /*count */ ,
-                                unsigned char * /*chars */ ,
-                                FontEncoding /*fontEncoding */ ,
-                                unsigned long * /*glyphcount */ ,
-                                CharInfoPtr * /*glyphs */ );
+#define GetGlyphs dixGetGlyphs
+extern _X_EXPORT void dixGetGlyphs(FontPtr /*font */ ,
+                                   unsigned long /*count */ ,
+                                   unsigned char * /*chars */ ,
+                                   FontEncoding /*fontEncoding */ ,
+                                   unsigned long * /*glyphcount */ ,
+                                   CharInfoPtr * /*glyphs */ );
 
 extern _X_EXPORT void QueryGlyphExtents(FontPtr /*pFont */ ,
                                         CharInfoPtr * /*charinfo */ ,

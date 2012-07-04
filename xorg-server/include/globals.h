@@ -2,6 +2,8 @@
 #ifndef _XSERV_GLOBAL_H_
 #define _XSERV_GLOBAL_H_
 
+#include <signal.h>
+
 #include "window.h"             /* for WindowPtr */
 
 /* Global X server variables that are visible to mi, dix, os, and ddx */
@@ -23,6 +25,7 @@ extern _X_EXPORT int GrabInProgress;
 extern _X_EXPORT Bool noTestExtensions;
 extern _X_EXPORT char *SeatId;
 extern _X_EXPORT char *ConnectionInfo;
+extern _X_EXPORT sig_atomic_t inSignalContext;
 
 #ifdef DPMSExtension
 extern _X_EXPORT CARD32 DPMSStandbyTime;
