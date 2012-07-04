@@ -108,6 +108,7 @@ void (*OsVendorVErrorFProc) (const char *, va_list args) = NULL;
 #endif
 
 static FILE *logFile = NULL;
+static int logFileFd = -1;
 static Bool logFlush = FALSE;
 static Bool logSync = FALSE;
 static int logVerbosity = DEFAULT_LOG_VERBOSITY;
@@ -171,6 +172,14 @@ asm(".desc ___crashreporter_info__, 0x10");
 #define X_NONE_STRING			""
 #endif
 
+static size_t
+strlen_sigsafe(const char *s)
+{
+    size_t len;
+    for (len = 0; s[len]; len++);
+    return len;
+}
+
 /*
  * LogInit is called to start logging to a file.  It is also called (with
  * NULL arguments) when logging to a file is not wanted.  It must always be
@@ -211,6 +220,8 @@ LogInit(const char *fname, const char *backup)
             FatalError("Cannot open log file \"%s\"\n", logFileName);
         setvbuf(logFile, NULL, _IONBF, 0);
 
+        logFileFd = fileno(logFile);
+
         /* Flush saved log information. */
         if (saveBuffer && bufferSize > 0) {
             fwrite(saveBuffer, bufferPos, 1, logFile);
@@ -243,6 +254,7 @@ LogClose(enum ExitCode error)
                (error == EXIT_NO_ERROR) ? "successfully" : "with error", error);
         fclose(logFile);
         logFile = NULL;
+        logFileFd = -1;
     }
 }
 
@@ -267,16 +279,97 @@ LogSetParameter(LogParameter param, int value)
     }
 }
 
-/* This function does the actual log message writes. */
+static int
+pnprintf(char *string, size_t size, const char *f, va_list args)
+{
+    int f_idx = 0;
+    int s_idx = 0;
+    int f_len = strlen_sigsafe(f);
+    char *string_arg;
+    char number[21];
+    int p_len;
+    int i;
+    uint64_t ui;
+
+    for (; f_idx < f_len && s_idx < size - 1; f_idx++) {
+        if (f[f_idx] != '%') {
+            string[s_idx++] = f[f_idx];
+            continue;
+        }
+
+        switch (f[++f_idx]) {
+        case 's':
+            string_arg = va_arg(args, char*);
+            p_len = strlen_sigsafe(string_arg);
+
+            for (i = 0; i < p_len && s_idx < size - 1; i++)
+                string[s_idx++] = string_arg[i];
+            break;
+
+        case 'u':
+            ui = va_arg(args, unsigned);
+            FormatUInt64(ui, number);
+            p_len = strlen_sigsafe(number);
+
+            for (i = 0; i < p_len && s_idx < size - 1; i++)
+                string[s_idx++] = number[i];
+            break;
+
+        case 'p':
+            string[s_idx++] = '0';
+            if (s_idx < size - 1)
+                string[s_idx++] = 'x';
+            ui = (uintptr_t)va_arg(args, void*);
+            FormatUInt64Hex(ui, number);
+            p_len = strlen_sigsafe(number);
+
+            for (i = 0; i < p_len && s_idx < size - 1; i++)
+                string[s_idx++] = number[i];
+            break;
+
+        case 'x':
+            ui = va_arg(args, unsigned);
+            FormatUInt64Hex(ui, number);
+            p_len = strlen_sigsafe(number);
+
+            for (i = 0; i < p_len && s_idx < size - 1; i++)
+                string[s_idx++] = number[i];
+            break;
+
+        default:
+            va_arg(args, char*);
+            string[s_idx++] = '%';
+            if (s_idx < size - 1)
+                string[s_idx++] = f[f_idx];
+            break;
+        }
+    }
+
+    string[s_idx] = '\0';
+
+    return s_idx;
+}
+
+/* This function does the actual log message writes. It must be signal safe.
+ * When attempting to call non-signal-safe functions, guard them with a check
+ * of the inSignalContext global variable. */
 static void
 LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
 {
     static Bool newline = TRUE;
 
     if (verb < 0 || logVerbosity >= verb)
-        fwrite(buf, len, 1, stderr);
+        write(2, buf, len);
+
     if (verb < 0 || logFileVerbosity >= verb) {
-        if (logFile) {
+        if (inSignalContext && logFileFd >= 0) {
+            write(logFileFd, buf, len);
+#ifdef WIN32
+            if (logFlush && logSync)
+                fsync(logFileFd);
+#endif
+        }
+        else if (!inSignalContext && logFile) {
             if (newline)
                 fprintf(logFile, "[%10.3f] ", GetTimeInMillis() / 1000.0);
             newline = end_line;
@@ -289,7 +382,7 @@ LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
 #endif
             }
         }
-        else if (needBuffer) {
+        else if (!inSignalContext && needBuffer) {
             if (len > bufferUnused) {
                 bufferSize += 1024;
                 bufferUnused += 1024;
@@ -370,6 +463,16 @@ LogVMessageVerb(MessageType type, int verb, const char *format, va_list args)
     Bool newline;
     size_t len = 0;
 
+    if (inSignalContext) {
+        BUG_WARN_MSG(inSignalContext,
+                     "Warning: attempting to log data in a signal unsafe "
+                     "manner while in signal context. Please update to check "
+                     "inSignalContext and/or use LogMessageVerbSigSafe() or "
+                     "ErrorFSigSafe(). The offending log format message is:\n"
+                     "%s\n", format);
+        return;
+    }
+
     type_str = LogMessageTypeVerbString(type, verb);
     if (!type_str)
         return;
@@ -411,6 +514,44 @@ LogMessage(MessageType type, const char *format, ...)
     va_end(ap);
 }
 
+/* Log a message using only signal safe functions. */
+void
+LogMessageVerbSigSafe(MessageType type, int verb, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    LogVMessageVerbSigSafe(type, verb, format, ap);
+    va_end(ap);
+}
+
+void
+LogVMessageVerbSigSafe(MessageType type, int verb, const char *format, va_list args)
+{
+    const char *type_str;
+    char buf[1024];
+    int len;
+    Bool newline;
+
+    type_str = LogMessageTypeVerbString(type, verb);
+    if (!type_str)
+        return;
+
+    /* if type_str is not "", prepend it and ' ', to message */
+    if (type_str[0] != '\0') {
+        LogSWrite(verb, type_str, strlen_sigsafe(type_str), FALSE);
+        LogSWrite(verb, " ", 1, FALSE);
+    }
+
+    len = pnprintf(buf, sizeof(buf), format, args);
+
+    /* Force '\n' at end of truncated line */
+    if (sizeof(buf) - len == 1)
+        buf[len - 1] = '\n';
+
+    newline = (buf[len - 1] == '\n');
+    LogSWrite(verb, buf, len, newline);
+}
+
 void
 LogVHdrMessageVerb(MessageType type, int verb, const char *msg_format,
                    va_list msg_args, const char *hdr_format, va_list hdr_args)
@@ -420,6 +561,16 @@ LogVHdrMessageVerb(MessageType type, int verb, const char *msg_format,
     const size_t size = sizeof(buf);
     Bool newline;
     size_t len = 0;
+
+    if (inSignalContext) {
+        BUG_WARN_MSG(inSignalContext,
+                     "Warning: attempting to log data in a signal unsafe "
+                     "manner while in signal context. Please update to check "
+                     "inSignalContext and/or use LogMessageVerbSigSafe(). The "
+                     "offending header and log message formats are:\n%s %s\n",
+                     hdr_format, msg_format);
+        return;
+    }
 
     type_str = LogMessageTypeVerbString(type, verb);
     if (!type_str)
@@ -645,6 +796,22 @@ ErrorF(const char *f, ...)
 
     va_start(args, f);
     VErrorF(f, args);
+    va_end(args);
+}
+
+void
+VErrorFSigSafe(const char *f, va_list args)
+{
+    LogVMessageVerbSigSafe(X_ERROR, -1, f, args);
+}
+
+void
+ErrorFSigSafe(const char *f, ...)
+{
+    va_list args;
+
+    va_start(args, f);
+    VErrorFSigSafe(f, args);
     va_end(args);
 }
 

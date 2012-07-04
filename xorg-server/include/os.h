@@ -49,6 +49,7 @@ SOFTWARE.
 
 #include "misc.h"
 #include <stdarg.h>
+#include <stdint.h>
 #include <string.h>
 
 #define SCREEN_SAVER_ON   0
@@ -604,6 +605,12 @@ _X_ATTRIBUTE_PRINTF(3, 4);
 extern _X_EXPORT void
 LogMessage(MessageType type, const char *format, ...)
 _X_ATTRIBUTE_PRINTF(2, 3);
+extern _X_EXPORT void
+LogMessageVerbSigSafe(MessageType type, int verb, const char *format, ...)
+_X_ATTRIBUTE_PRINTF(3, 4);
+extern _X_EXPORT void
+LogVMessageVerbSigSafe(MessageType type, int verb, const char *format, va_list args)
+_X_ATTRIBUTE_PRINTF(3, 0);
 
 extern _X_EXPORT void
 LogVHdrMessageVerb(MessageType type, int verb,
@@ -647,6 +654,12 @@ VErrorF(const char *f, va_list args)
 _X_ATTRIBUTE_PRINTF(1, 0);
 extern _X_EXPORT void
 ErrorF(const char *f, ...)
+_X_ATTRIBUTE_PRINTF(1, 2);
+extern _X_EXPORT void
+VErrorFSigSafe(const char *f, va_list args)
+_X_ATTRIBUTE_PRINTF(1, 0);
+extern _X_EXPORT void
+ErrorFSigSafe(const char *f, ...)
 _X_ATTRIBUTE_PRINTF(1, 2);
 extern _X_EXPORT void
 LogPrintMarkers(void);

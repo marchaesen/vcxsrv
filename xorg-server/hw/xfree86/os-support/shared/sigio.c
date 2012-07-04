@@ -99,6 +99,8 @@ xf86SIGIO(int sig)
     int save_errno = errno;     /* do not clobber the global errno */
     int r;
 
+    inSignalContext = TRUE;
+
     ready = xf86SigIOMask;
     to.tv_sec = 0;
     to.tv_usec = 0;
@@ -114,6 +116,8 @@ xf86SIGIO(int sig)
     }
     /* restore global errno */
     errno = save_errno;
+
+    inSignalContext = FALSE;
 }
 
 static int

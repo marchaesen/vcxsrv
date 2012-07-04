@@ -1499,6 +1499,26 @@ case "$host_os" in
 	XORG_DRIVER_LIBS="-lXorg.exe -L\${moduledir} -lshadow -lfb -no-undefined"
 	CYGWIN=yes
 	;;
+    solaris*)
+	# We use AC_LINK_IFELSE to generate a temporary program conftest$EXEEXT
+	# that we can link against for testing if the system linker is new
+	# enough to support -z parent=<program> for verifying loadable modules
+	# are only calling functions defined in either the loading program or
+	# the libraries they're linked with.
+	AC_LINK_IFELSE(
+	    [AC_LANG_SOURCE([int main(int argc, char **argv) { return 0; }])],
+	    [mv conftest$EXEEXT conftest.parent
+	     XORG_CHECK_LINKER_FLAGS([-Wl,-z,parent=conftest.parent -G],
+		[LD_NO_UNDEFINED_FLAG="-Wl,-z,defs -Wl,-z,parent=\$(top_builddir)/hw/xfree86/Xorg"
+# Not set yet, since this gets exported in xorg-server.pc to all the drivers,
+# and they're not all fixed to build correctly with it yet.
+#		 XORG_DRIVER_LIBS="-Wl,-z,defs -Wl,-z,parent=${bindir}/Xorg"
+         ],[],
+		[AC_LANG_SOURCE([extern int main(int argc, char **argv);
+			int call_main(void) { return main(0, NULL); }])])
+	     rm -f conftest.parent
+	    ])
+	;;
 esac
 AC_SUBST([LD_EXPORT_SYMBOLS_FLAG])
 AC_SUBST([LD_NO_UNDEFINED_FLAG])

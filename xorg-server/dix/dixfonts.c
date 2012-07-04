@@ -115,6 +115,15 @@ LoadGlyphs(ClientPtr client, FontPtr pfont, unsigned nchars, int item_size,
         return Successful;
 }
 
+void
+dixGetGlyphs(FontPtr font, unsigned long count, unsigned char *chars,
+             FontEncoding fontEncoding,
+             unsigned long *glyphcount,    /* RETURN */
+             CharInfoPtr *glyphs)          /* RETURN */
+{
+    (*font->get_glyphs) (font, count, chars, fontEncoding, glyphcount, glyphs);
+}
+
 /*
  * adding RT_FONT prevents conflict with default cursor font
  */

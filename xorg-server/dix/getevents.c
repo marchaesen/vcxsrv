@@ -1867,8 +1867,8 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
         touchpoint.ti =
             TouchFindByDDXID(dev, ddx_touchid, (type == XI_TouchBegin));
         if (!touchpoint.ti) {
-            ErrorF("[dix] %s: unable to %s touch point %x\n", dev->name,
-                   type == XI_TouchBegin ? "begin" : "find", ddx_touchid);
+            ErrorFSigSafe("[dix] %s: unable to %s touch point %u\n", dev->name,
+                          type == XI_TouchBegin ? "begin" : "find", ddx_touchid);
             return 0;
         }
         client_id = touchpoint.ti->client_id;

@@ -198,8 +198,9 @@ TouchBeginDDXTouch(DeviceIntPtr dev, uint32_t ddx_id)
     /* If we get here, then we've run out of touches and we need to drop the
      * event (we're inside the SIGIO handler here) schedule a WorkProc to
      * grow the queue for us for next time. */
-    ErrorF("%s: not enough space for touch events (max %d touchpoints). "
-           "Dropping this event.\n", dev->name, dev->last.num_touches);
+    ErrorFSigSafe("%s: not enough space for touch events (max %u touchpoints). "
+                  "Dropping this event.\n", dev->name, dev->last.num_touches);
+
     if (!BitIsOn(resize_waiting, dev->id)) {
         SetBit(resize_waiting, dev->id);
         QueueWorkProc(TouchResizeQueue, serverClient, NULL);

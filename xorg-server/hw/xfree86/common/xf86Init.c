@@ -1058,16 +1058,16 @@ void
 OsVendorFatalError(const char *f, va_list args)
 {
 #ifdef VENDORSUPPORT
-    ErrorF("\nPlease refer to your Operating System Vendor support pages\n"
-           "at %s for support on this crash.\n", VENDORSUPPORT);
+    ErrorFSigSafe("\nPlease refer to your Operating System Vendor support "
+                 "pages\nat %s for support on this crash.\n", VENDORSUPPORT);
 #else
-    ErrorF("\nPlease consult the " XVENDORNAME " support \n"
-           "\t at " __VENDORDWEBSUPPORT__ "\n for help. \n");
+    ErrorFSigSafe("\nPlease consult the " XVENDORNAME " support \n\t at "
+                 __VENDORDWEBSUPPORT__ "\n for help. \n");
 #endif
     if (xf86LogFile && xf86LogFileWasOpened)
-        ErrorF("Please also check the log file at \"%s\" for additional "
-               "information.\n", xf86LogFile);
-    ErrorF("\n");
+        ErrorFSigSafe("Please also check the log file at \"%s\" for additional "
+                     "information.\n", xf86LogFile);
+    ErrorFSigSafe("\n");
 }
 
 int

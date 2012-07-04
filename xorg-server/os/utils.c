@@ -204,6 +204,8 @@ int auditTrailLevel = 1;
 
 char *SeatId = NULL;
 
+sig_atomic_t inSignalContext = FALSE;
+
 #if defined(SVR4) || defined(__linux__) || defined(CSRG_BASED)
 #define HAS_SAVED_IDS_AND_SETEUID
 #endif
@@ -1790,4 +1792,48 @@ xstrtokenize(const char *str, const char *separators)
         free(list[n]);
     free(list);
     return NULL;
+}
+
+/* Format a number into a string in a signal safe manner. The string should be
+ * at least 21 characters in order to handle all uint64_t values. */
+void
+FormatUInt64(uint64_t num, char *string)
+{
+    uint64_t divisor;
+    int len;
+    int i;
+
+    for (len = 1, divisor = 10;
+         len < 20 && num / divisor;
+         len++, divisor *= 10);
+
+    for (i = len, divisor = 1; i > 0; i--, divisor *= 10)
+        string[i - 1] = '0' + ((num / divisor) % 10);
+
+    string[len] = '\0';
+}
+
+/* Format a number into a hexadecimal string in a signal safe manner. The string
+ * should be at least 17 characters in order to handle all uint64_t values. */
+void
+FormatUInt64Hex(uint64_t num, char *string)
+{
+    uint64_t divisor;
+    int len;
+    int i;
+
+    for (len = 1, divisor = 0x10;
+         len < 16 && num / divisor;
+         len++, divisor *= 0x10);
+
+    for (i = len, divisor = 1; i > 0; i--, divisor *= 0x10) {
+        int val = (num / divisor) % 0x10;
+
+        if (val < 10)
+            string[i - 1] = '0' + val;
+        else
+            string[i - 1] = 'a' + val - 10;
+    }
+
+    string[len] = '\0';
 }

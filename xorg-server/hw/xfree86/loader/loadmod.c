@@ -1093,9 +1093,10 @@ UnloadModuleOrDriver(ModuleDescPtr mod)
         return;
 
     if (mod->parent)
-        xf86MsgVerb(X_INFO, 3, "UnloadSubModule: \"%s\"\n", mod->name);
+        LogMessageVerbSigSafe(X_INFO, 3, "UnloadSubModule: \"%s\"\n",
+                              mod->name);
     else
-        xf86MsgVerb(X_INFO, 3, "UnloadModule: \"%s\"\n", mod->name);
+        LogMessageVerbSigSafe(X_INFO, 3, "UnloadModule: \"%s\"\n", mod->name);
 
     if (mod->TearDownData != ModuleDuplicated) {
         if ((mod->TearDownProc) && (mod->TearDownData))

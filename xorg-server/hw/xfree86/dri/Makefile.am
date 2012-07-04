@@ -13,7 +13,7 @@ libdri_la_CFLAGS = -I$(top_srcdir)/hw/xfree86/common \
                    @LIBDRM_CFLAGS@ \
                    @DRI_CFLAGS@
 libdri_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
-libdri_la_LIBADD = @LIBDRM_LIBS@
+libdri_la_LIBADD = @LIBDRM_LIBS@ $(PIXMAN_LIBS)
 libdri_ladir = $(moduledir)/extensions
 libdri_la_SOURCES = \
 	dri.c \

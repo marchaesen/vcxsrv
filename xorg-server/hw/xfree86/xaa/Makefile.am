@@ -11,8 +11,9 @@ POLYSEG = s-xaaLine.c s-xaaDashLine.c
 if XAA
 
 libxaa_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
+libxaa_la_LIBADD = $(PIXMAN_LIBS)
 if COMPOSITE
-libxaa_la_LIBADD = $(top_builddir)/miext/cw/libcw.la
+libxaa_la_LIBADD += $(top_builddir)/miext/cw/libcw.la
 endif
 
 module_LTLIBRARIES = libxaa.la
