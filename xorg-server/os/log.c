@@ -370,7 +370,7 @@ LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
     if (verb < 0 || logFileVerbosity >= verb) {
         if (inSignalContext && logFileFd >= 0) {
             write(logFileFd, buf, len);
-#ifdef WIN32
+#ifndef WIN32
             if (logFlush && logSync)
                 fsync(logFileFd);
 #endif
