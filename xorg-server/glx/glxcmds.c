@@ -308,6 +308,16 @@ DoCreateContext(__GLXclientState * cl, GLXContextID gcId,
     glxc->drawPriv = NULL;
     glxc->readPriv = NULL;
 
+    /* The GLX_ARB_create_context_robustness spec says:
+     *
+     *     "The default value for GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB
+     *     is GLX_NO_RESET_NOTIFICATION_ARB."
+     *
+     * Without using glXCreateContextAttribsARB, there is no way to specify a
+     * non-default reset notification strategy.
+     */
+    glxc->resetNotificationStrategy = GLX_NO_RESET_NOTIFICATION_ARB;
+
     /* Add the new context to the various global tables of GLX contexts.
      */
     if (!__glXAddContext(glxc)) {

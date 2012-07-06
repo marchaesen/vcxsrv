@@ -446,7 +446,7 @@ CreateRootWindow(ScreenPtr pScreen)
     BoxRec box;
     PixmapFormatRec *format;
 
-    pWin = dixAllocateObjectWithPrivates(WindowRec, PRIVATE_WINDOW);
+    pWin = dixAllocateScreenObjectWithPrivates(pScreen, WindowRec, PRIVATE_WINDOW);
     if (!pWin)
         return FALSE;
 
@@ -710,7 +710,7 @@ CreateWindow(Window wid, WindowPtr pParent, int x, int y, unsigned w,
         return NullWindow;
     }
 
-    pWin = dixAllocateObjectWithPrivates(WindowRec, PRIVATE_WINDOW);
+    pWin = dixAllocateScreenObjectWithPrivates(pScreen, WindowRec, PRIVATE_WINDOW);
     if (!pWin) {
         *error = BadAlloc;
         return NullWindow;

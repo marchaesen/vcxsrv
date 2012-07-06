@@ -3743,6 +3743,8 @@ AddScreen(Bool (*pfnInit) (ScreenPtr /*pScreen */ ,
     if (!pScreen)
         return -1;
 
+    dixInitScreenSpecificPrivates(pScreen);
+
     if (!dixAllocatePrivates(&pScreen->devPrivates, PRIVATE_SCREEN)) {
         free(pScreen);
         return -1;
@@ -3794,6 +3796,7 @@ AddScreen(Bool (*pfnInit) (ScreenPtr /*pScreen */ ,
     screenInfo.screens[i] = pScreen;
     screenInfo.numScreens++;
     if (!(*pfnInit) (pScreen, argc, argv)) {
+        dixFreeScreenSpecificPrivates(pScreen);
         dixFreePrivates(pScreen->devPrivates, PRIVATE_SCREEN);
         free(pScreen);
         screenInfo.numScreens--;

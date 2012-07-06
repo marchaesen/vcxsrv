@@ -69,15 +69,11 @@
 #define fbFixCoordModePrevious wfbFixCoordModePrevious
 #define fbGCFuncs wfbGCFuncs
 #define fbGCOps wfbGCOps
-#define fbGCPrivateKeyRec wfbGCPrivateKeyRec
 #define fbGeneration wfbGeneration
-#define fbGetGCPrivateKey wfbGetGCPrivateKey
 #define fbGetImage wfbGetImage
 #define fbGetScreenPrivateKey wfbGetScreenPrivateKey
 #define fbGetSpans wfbGetSpans
 #define _fbGetWindowPixmap _wfbGetWindowPixmap
-#define fbWinPrivateKeyRec wfbWinPrivateKeyRec
-#define fbGetWinPrivateKey wfbGetWinPrivateKey
 #define fbGlyph16 wfbGlyph16
 #define fbGlyph24 wfbGlyph24
 #define fbGlyph32 wfbGlyph32

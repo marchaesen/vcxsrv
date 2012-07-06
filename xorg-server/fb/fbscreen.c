@@ -85,7 +85,7 @@ _fbGetWindowPixmap(WindowPtr pWindow)
 void
 _fbSetWindowPixmap(WindowPtr pWindow, PixmapPtr pPixmap)
 {
-    dixSetPrivate(&pWindow->devPrivates, fbGetWinPrivateKey(), pPixmap);
+    dixSetPrivate(&pWindow->devPrivates, fbGetWinPrivateKey(pWindow), pPixmap);
 }
 
 Bool
@@ -95,7 +95,7 @@ fbSetupScreen(ScreenPtr pScreen, pointer pbits, /* pointer to screen bitmap */
               int dpiy, int width,      /* pixel width of frame buffer */
               int bpp)
 {                               /* bits per pixel for screen */
-    if (!fbAllocatePrivates(pScreen, NULL))
+    if (!fbAllocatePrivates(pScreen))
         return FALSE;
     pScreen->defColormap = FakeClientID(0);
     /* let CreateDefColormap do whatever it wants for pixels */

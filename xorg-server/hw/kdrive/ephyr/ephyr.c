@@ -772,26 +772,6 @@ ephyrUpdateModifierState(unsigned int state)
     }
 }
 
-static void
-ephyrBlockSigio(void)
-{
-    sigset_t set;
-
-    sigemptyset(&set);
-    sigaddset(&set, SIGIO);
-    sigprocmask(SIG_BLOCK, &set, 0);
-}
-
-static void
-ephyrUnblockSigio(void)
-{
-    sigset_t set;
-
-    sigemptyset(&set);
-    sigaddset(&set, SIGIO);
-    sigprocmask(SIG_UNBLOCK, &set, 0);
-}
-
 static Bool
 ephyrCursorOffScreen(ScreenPtr *ppScreen, int *x, int *y)
 {
@@ -808,11 +788,11 @@ int ephyrCurScreen;             /*current event screen */
 static void
 ephyrWarpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 {
-    ephyrBlockSigio();
+    OsBlockSIGIO();
     ephyrCurScreen = pScreen->myNum;
     miPointerWarpCursor(inputInfo.pointer, pScreen, x, y);
 
-    ephyrUnblockSigio();
+    OsReleaseSIGIO();
 }
 
 miPointerScreenFuncRec ephyrPointerScreenFuncs = {

@@ -208,6 +208,8 @@ typedef struct {
     RegionRec maskReg;
     PixmapPtr srcPix;
 
+    DevPrivateKeyRec pixmapPrivateKeyRec;
+    DevPrivateKeyRec gcPrivateKeyRec;
 } ExaScreenPrivRec, *ExaScreenPrivPtr;
 
 /*
@@ -225,17 +227,11 @@ typedef struct {
 extern DevPrivateKeyRec exaScreenPrivateKeyRec;
 
 #define exaScreenPrivateKey (&exaScreenPrivateKeyRec)
-extern DevPrivateKeyRec exaPixmapPrivateKeyRec;
-
-#define exaPixmapPrivateKey (&exaPixmapPrivateKeyRec)
-extern DevPrivateKeyRec exaGCPrivateKeyRec;
-
-#define exaGCPrivateKey (&exaGCPrivateKeyRec)
 
 #define ExaGetScreenPriv(s) ((ExaScreenPrivPtr)dixGetPrivate(&(s)->devPrivates, exaScreenPrivateKey))
 #define ExaScreenPriv(s)	ExaScreenPrivPtr    pExaScr = ExaGetScreenPriv(s)
 
-#define ExaGetGCPriv(gc) ((ExaGCPrivPtr)dixGetPrivateAddr(&(gc)->devPrivates, exaGCPrivateKey))
+#define ExaGetGCPriv(gc) ((ExaGCPrivPtr)dixGetPrivateAddr(&(gc)->devPrivates, &ExaGetScreenPriv(gc->pScreen)->gcPrivateKeyRec))
 #define ExaGCPriv(gc) ExaGCPrivPtr pExaGC = ExaGetGCPriv(gc)
 
 /*
@@ -286,7 +282,7 @@ extern DevPrivateKeyRec exaGCPrivateKeyRec;
 #define EXA_PIXMAP_SCORE_PINNED	    1000
 #define EXA_PIXMAP_SCORE_INIT	    1001
 
-#define ExaGetPixmapPriv(p) ((ExaPixmapPrivPtr)dixGetPrivateAddr(&(p)->devPrivates, exaPixmapPrivateKey))
+#define ExaGetPixmapPriv(p) ((ExaPixmapPrivPtr)dixGetPrivateAddr(&(p)->devPrivates, &ExaGetScreenPriv((p)->drawable.pScreen)->pixmapPrivateKeyRec))
 #define ExaPixmapPriv(p)	ExaPixmapPrivPtr pExaPixmap = ExaGetPixmapPriv(p)
 
 #define EXA_RANGE_PITCH (1 << 0)

@@ -5,7 +5,7 @@ if XORG
 # Tests that require at least some DDX functions in order to fully link
 # For now, requires xf86 ddx, could be adjusted to use another
 SUBDIRS += xi2
-noinst_PROGRAMS += xkb input xtest misc fixes xfree86 hashtabletest signal-logging
+noinst_PROGRAMS += xkb input xtest misc fixes xfree86 hashtabletest os signal-logging
 endif
 check_LTLIBRARIES = libxservertest.la
 
@@ -38,6 +38,7 @@ xfree86_LDADD=$(TEST_LDADD)
 touch_LDADD=$(TEST_LDADD)
 signal_logging_LDADD=$(TEST_LDADD)
 hashtabletest_LDADD=$(TEST_LDADD) $(top_srcdir)/Xext/hashtable.c
+os_LDADD=$(TEST_LDADD)
 
 libxservertest_la_LIBADD = $(XSERVER_LIBS)
 if XORG

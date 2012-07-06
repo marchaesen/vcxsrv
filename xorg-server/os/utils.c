@@ -1167,14 +1167,14 @@ OsBlockSignals(void)
     if (BlockedSignalCount++ == 0) {
         sigset_t set;
 
+#ifdef SIGIO
+        OsBlockSIGIO();
+#endif
         sigemptyset(&set);
         sigaddset(&set, SIGALRM);
         sigaddset(&set, SIGVTALRM);
 #ifdef SIGWINCH
         sigaddset(&set, SIGWINCH);
-#endif
-#ifdef SIGIO
-        sigaddset(&set, SIGIO);
 #endif
         sigaddset(&set, SIGTSTP);
         sigaddset(&set, SIGTTIN);
@@ -1185,12 +1185,60 @@ OsBlockSignals(void)
 #endif
 }
 
+#ifdef SIG_BLOCK
+static sig_atomic_t sigio_blocked;
+#endif
+
+/**
+ * returns zero if this call caused SIGIO to be blocked now, non-zero if it
+ * was already blocked by a previous call to this function.
+ */
+int
+OsBlockSIGIO(void)
+{
+#ifdef SIGIO
+#ifdef SIG_BLOCK
+    if (sigio_blocked++ == 0) {
+        sigset_t set, old;
+        int ret;
+
+        sigemptyset(&set);
+        sigaddset(&set, SIGIO);
+        sigprocmask(SIG_BLOCK, &set, &old);
+        ret = sigismember(&old, SIGIO);
+        return ret;
+    } else
+        return 1;
+#endif
+#endif
+}
+
+void
+OsReleaseSIGIO(void)
+{
+#ifdef SIGIO
+#ifdef SIG_BLOCK
+    if (--sigio_blocked == 0) {
+        sigset_t set;
+
+        sigemptyset(&set);
+        sigaddset(&set, SIGIO);
+        sigprocmask(SIG_UNBLOCK, &set, NULL);
+    } else if (sigio_blocked < 0) {
+        BUG_WARN(sigio_blocked < 0);
+        sigio_blocked = 0;
+    }
+#endif
+#endif
+}
+
 void
 OsReleaseSignals(void)
 {
 #ifdef SIG_BLOCK
     if (--BlockedSignalCount == 0) {
         sigprocmask(SIG_SETMASK, &PreviousSignalMask, 0);
+        OsReleaseSIGIO();
     }
 #endif
 }

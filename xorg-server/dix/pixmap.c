@@ -88,7 +88,7 @@ CreateScratchPixmapsForScreen(ScreenPtr pScreen)
 {
     unsigned int pixmap_size;
 
-    pixmap_size = sizeof(PixmapRec) + dixPrivatesSize(PRIVATE_PIXMAP);
+    pixmap_size = sizeof(PixmapRec) + dixScreenSpecificPrivatesSize(pScreen, PRIVATE_PIXMAP);
     pScreen->totalPixmapSize =
         BitmapBytePad(pixmap_size * 8);
 
@@ -118,7 +118,7 @@ AllocatePixmap(ScreenPtr pScreen, int pixDataSize)
     if (!pPixmap)
         return NullPixmap;
 
-    dixInitPrivates(pPixmap, pPixmap + 1, PRIVATE_PIXMAP);
+    dixInitScreenPrivates(pScreen, pPixmap, pPixmap + 1, PRIVATE_PIXMAP);
     return pPixmap;
 }
 

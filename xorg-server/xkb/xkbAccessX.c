@@ -281,12 +281,12 @@ AccessXStickyKeysTurnOff(DeviceIntPtr dev, xkbControlsNotify * pCN)
 static CARD32
 AccessXKRGExpire(OsTimerPtr timer, CARD32 now, pointer arg)
 {
-    XkbSrvInfoPtr xkbi = ((DeviceIntPtr) arg)->key->xkbInfo;
     xkbControlsNotify cn;
+    DeviceIntPtr dev = arg;
+    XkbSrvInfoPtr xkbi = dev->key->xkbInfo;
 
     if (xkbi->krgTimerActive == _KRG_WARN_TIMER) {
-        XkbDDXAccessXBeep((DeviceIntPtr) arg, _BEEP_SLOW_WARN,
-                          XkbStickyKeysMask);
+        XkbDDXAccessXBeep(dev, _BEEP_SLOW_WARN, XkbStickyKeysMask);
         xkbi->krgTimerActive = _KRG_TIMER;
         return 4000;
     }
@@ -296,11 +296,11 @@ AccessXKRGExpire(OsTimerPtr timer, CARD32 now, pointer arg)
     cn.requestMajor = 0;
     cn.requestMinor = 0;
     if (xkbi->desc->ctrls->enabled_ctrls & XkbSlowKeysMask) {
-        AccessXKRGTurnOff((DeviceIntPtr) arg, &cn);
+        AccessXKRGTurnOff(dev, &cn);
         LogMessage(X_INFO, "XKB SlowKeys are disabled.\n");
     }
     else {
-        AccessXKRGTurnOn((DeviceIntPtr) arg, XkbSlowKeysMask, &cn);
+        AccessXKRGTurnOn(dev, XkbSlowKeysMask, &cn);
         LogMessage(X_INFO, "XKB SlowKeys are now enabled. Hold shift to disable.\n");
     }
 

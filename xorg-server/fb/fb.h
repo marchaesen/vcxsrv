@@ -570,12 +570,6 @@ extern _X_EXPORT void fbSetBits(FbStip * bits, int stride, FbStip data);
     }							    \
 }
 
-extern _X_EXPORT DevPrivateKey
- fbGetGCPrivateKey(void);
-
-extern _X_EXPORT DevPrivateKey
- fbGetWinPrivateKey(void);
-
 extern _X_EXPORT const GCOps fbGCOps;
 extern _X_EXPORT const GCFuncs fbGCFuncs;
 
@@ -605,7 +599,7 @@ typedef void (*FinishWrapProcPtr) (DrawablePtr pDraw);
 #endif
 
 extern _X_EXPORT DevPrivateKey
- fbGetScreenPrivateKey(void);
+fbGetScreenPrivateKey(void);
 
 /* private field of a screen */
 typedef struct {
@@ -615,6 +609,8 @@ typedef struct {
     SetupWrapProcPtr setupWrap; /* driver hook to set pixmap access wrapping */
     FinishWrapProcPtr finishWrap;       /* driver hook to clean up pixmap access wrapping */
 #endif
+    DevPrivateKeyRec    gcPrivateKeyRec;
+    DevPrivateKeyRec    winPrivateKeyRec;
 } FbScreenPrivRec, *FbScreenPrivPtr;
 
 #define fbGetScreenPrivate(pScreen) ((FbScreenPrivPtr) \
@@ -630,8 +626,10 @@ typedef struct {
     unsigned char bpp;          /* current drawable bpp */
 } FbGCPrivRec, *FbGCPrivPtr;
 
+#define fbGetGCPrivateKey(pGC)  (&fbGetScreenPrivate((pGC)->pScreen)->gcPrivateKeyRec)
+
 #define fbGetGCPrivate(pGC)	((FbGCPrivPtr)\
-				 dixLookupPrivate(&(pGC)->devPrivates, fbGetGCPrivateKey()))
+				 dixLookupPrivate(&(pGC)->devPrivates, fbGetGCPrivateKey(pGC)))
 
 #define fbGetCompositeClip(pGC) ((pGC)->pCompositeClip)
 #define fbGetExpose(pGC)	((pGC)->fExpose)
@@ -639,8 +637,11 @@ typedef struct {
 #define fbGetRotatedPixmap(pGC)	((pGC)->pRotatedPixmap)
 
 #define fbGetScreenPixmap(s)	((PixmapPtr) (s)->devPrivate)
+
+#define fbGetWinPrivateKey(pWin)        (&fbGetScreenPrivate(((DrawablePtr) (pWin))->pScreen)->winPrivateKeyRec)
+
 #define fbGetWindowPixmap(pWin)	((PixmapPtr)\
-				 dixLookupPrivate(&((WindowPtr)(pWin))->devPrivates, fbGetWinPrivateKey()))
+				 dixLookupPrivate(&((WindowPtr)(pWin))->devPrivates, fbGetWinPrivateKey(pWin)))
 
 #ifdef ROOTLESS
 #define __fbPixDrawableX(pPix)	((pPix)->drawable.x)
@@ -782,14 +783,14 @@ fb24_32ModifyPixmapHeader(PixmapPtr pPixmap,
  * fballpriv.c
  */
 extern _X_EXPORT Bool
- fbAllocatePrivates(ScreenPtr pScreen, DevPrivateKey *pGCIndex);
+fbAllocatePrivates(ScreenPtr pScreen);
 
 /*
  * fbarc.c
  */
 
 extern _X_EXPORT void
- fbPolyArc(DrawablePtr pDrawable, GCPtr pGC, int narcs, xArc * parcs);
+fbPolyArc(DrawablePtr pDrawable, GCPtr pGC, int narcs, xArc * parcs);
 
 /*
  * fbbits.c

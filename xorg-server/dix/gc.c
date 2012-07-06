@@ -463,7 +463,7 @@ NewGCObject(ScreenPtr pScreen, int depth)
 {
     GCPtr pGC;
 
-    pGC = dixAllocateObjectWithPrivates(GC, PRIVATE_GC);
+    pGC = dixAllocateScreenObjectWithPrivates(pScreen, GC, PRIVATE_GC);
     if (!pGC) {
         return (GCPtr) NULL;
     }

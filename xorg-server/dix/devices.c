@@ -246,13 +246,17 @@ AddInputDevice(ClientPtr client, DeviceProc deviceProc, Bool autoStart)
 
     if (devid >= MAXDEVICES)
         return (DeviceIntPtr) NULL;
-    dev =
-        _dixAllocateObjectWithPrivates(sizeof(DeviceIntRec) +
-                                       sizeof(SpriteInfoRec),
-                                       sizeof(DeviceIntRec) +
-                                       sizeof(SpriteInfoRec),
-                                       offsetof(DeviceIntRec, devPrivates),
-                                       PRIVATE_DEVICE);
+    dev = calloc(1,
+                 sizeof(DeviceIntRec) +
+                 sizeof(SpriteInfoRec));
+    if (!dev)
+        return (DeviceIntPtr) NULL;
+
+    if (!dixAllocatePrivates(&dev->devPrivates, PRIVATE_DEVICE)) {
+        free(dev);
+        return NULL;
+    }
+
     if (!dev)
         return (DeviceIntPtr) NULL;
 
@@ -282,6 +286,7 @@ AddInputDevice(ClientPtr client, DeviceProc deviceProc, Bool autoStart)
     /*  security creation/labeling check
      */
     if (XaceHook(XACE_DEVICE_ACCESS, client, dev, DixCreateAccess)) {
+        dixFreePrivates(dev->devPrivates, PRIVATE_DEVICE);
         free(dev);
         return NULL;
     }
@@ -961,7 +966,8 @@ CloseDevice(DeviceIntPtr dev)
         free(dev->last.touches[j].valuators);
     free(dev->last.touches);
     dev->config_info = NULL;
-    dixFreeObjectWithPrivates(dev, PRIVATE_DEVICE);
+    dixFreePrivates(dev->devPrivates, PRIVATE_DEVICE);
+    free(dev);
 }
 
 /**

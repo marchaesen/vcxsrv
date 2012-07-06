@@ -40,11 +40,11 @@ typedef unsigned long	XRandrModeFlags;
 
 #define RANDR_NAME		"RANDR"
 #define RANDR_MAJOR		1
-#define RANDR_MINOR		3
+#define RANDR_MINOR		4
 
-#define RRNumberErrors		3
+#define RRNumberErrors		4
 #define RRNumberEvents		2
-#define RRNumberRequests	32
+#define RRNumberRequests	42
 
 #define X_RRQueryVersion	0
 /* we skip 1 to make old clients fail pretty immediately */
@@ -92,12 +92,28 @@ typedef unsigned long	XRandrModeFlags;
 #define RRTransformScaleDown	    (1L << 2)
 #define RRTransformProjective	    (1L << 3)
 
+/* v1.4 */
+#define X_RRGetProviders	      32
+#define X_RRGetProviderInfo	      33
+#define X_RRSetProviderOffloadSink    34
+#define X_RRSetProviderOutputSource   35
+#define X_RRListProviderProperties    36
+#define X_RRQueryProviderProperty     37
+#define X_RRConfigureProviderProperty 38
+#define X_RRChangeProviderProperty    39
+#define X_RRDeleteProviderProperty    40
+#define X_RRGetProviderProperty	      41
+
 /* Event selection bits */
 #define RRScreenChangeNotifyMask  (1L << 0)
 /* V1.2 additions */
 #define RRCrtcChangeNotifyMask	    (1L << 1)
 #define RROutputChangeNotifyMask    (1L << 2)
 #define RROutputPropertyNotifyMask  (1L << 3)
+/* V1.4 additions */
+#define RRProviderChangeNotifyMask   (1L << 4)
+#define RRProviderPropertyNotifyMask (1L << 5)
+#define RRResourceChangeNotifyMask   (1L << 6)
 
 /* Event codes */
 #define RRScreenChangeNotify	0
@@ -107,7 +123,9 @@ typedef unsigned long	XRandrModeFlags;
 #define  RRNotify_CrtcChange	    0
 #define  RRNotify_OutputChange	    1
 #define  RRNotify_OutputProperty    2
-
+#define  RRNotify_ProviderChange    3
+#define  RRNotify_ProviderProperty  4
+#define  RRNotify_ResourceChange    5
 /* used in the rotation field; rotation and reflection in 0.1 proto. */
 #define RR_Rotate_0		1
 #define RR_Rotate_90		2
@@ -148,6 +166,7 @@ typedef unsigned long	XRandrModeFlags;
 #define BadRROutput		0
 #define BadRRCrtc		1
 #define BadRRMode		2
+#define BadRRProvider		3
 
 /* Conventional RandR output properties */
 
@@ -161,5 +180,12 @@ typedef unsigned long	XRandrModeFlags;
 #define RR_PROPERTY_CLONE_LIST		"CloneList"
 #define RR_PROPERTY_BORDER		"Border"
 #define RR_PROPERTY_BORDER_DIMENSIONS	"BorderDimensions"
+
+/* roles this device can carry out */
+#define RR_Capability_None 0
+#define RR_Capability_SourceOutput 1
+#define RR_Capability_SinkOutput 2
+#define RR_Capability_SourceOffload 4
+#define RR_Capability_SinkOffload 8
 
 #endif	/* _RANDR_H_ */

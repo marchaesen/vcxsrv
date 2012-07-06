@@ -227,25 +227,25 @@ dmxCoreMotion(DevicePtr pDev, int x, int y, int delta, DMXBlockType block)
             && pScreen->myNum == dmxScreen->index) {
             /* Screen is old screen */
             if (block)
-                dmxSigioBlock();
+                OsBlockSIGIO();
             if (pDev)
                 enqueueMotion(pDev, localX, localY);
             if (block)
-                dmxSigioUnblock();
+                OsReleaseSIGIO();
         }
         else {
             /* Screen is new */
             DMXDBG4("   New screen: old=%d new=%d localX=%d localY=%d\n",
                     pScreen->myNum, dmxScreen->index, localX, localY);
             if (block)
-                dmxSigioBlock();
+                OsBlockSIGIO();
             mieqProcessInputEvents();
             miPointerSetScreen(inputInfo.pointer, dmxScreen->index,
                                localX, localY);
             if (pDev)
                 enqueueMotion(pDev, localX, localY);
             if (block)
-                dmxSigioUnblock();
+                OsReleaseSIGIO();
         }
 #if 00
         miPointerGetPosition(inputInfo.pointer, &localX, &localY);
@@ -387,12 +387,12 @@ dmxExtMotion(DMXLocalInputInfoPtr dmxLocal,
     }
 
     if (block)
-        dmxSigioBlock();
+        OsBlockSIGIO();
     valuator_mask_set_range(&mask, firstAxis, axesCount, v);
     QueuePointerEvents(pDevice, MotionNotify, 0, POINTER_ABSOLUTE, &mask);
 
     if (block)
-        dmxSigioUnblock();
+        OsReleaseSIGIO();
 }
 
 static int
@@ -492,10 +492,10 @@ dmxTranslateAndEnqueueExtEvent(DMXLocalInputInfoPtr dmxLocal,
         valuator_mask_set_range(&mask, ke->first_axis, ke->axes_count,
                                 valuators);
         if (block)
-            dmxSigioBlock();
+            OsBlockSIGIO();
         QueueKeyboardEvents(pDevice, event, ke->keycode, &mask);
         if (block)
-            dmxSigioUnblock();
+            OsReleaseSIGIO();
         break;
     case XI_DeviceButtonPress:
     case XI_DeviceButtonRelease:
@@ -503,11 +503,11 @@ dmxTranslateAndEnqueueExtEvent(DMXLocalInputInfoPtr dmxLocal,
         valuator_mask_set_range(&mask, ke->first_axis, ke->axes_count,
                                 valuators);
         if (block)
-            dmxSigioBlock();
+            OsBlockSIGIO();
         QueuePointerEvents(pDevice, event, ke->keycode,
                            POINTER_ABSOLUTE, &mask);
         if (block)
-            dmxSigioUnblock();
+            OsReleaseSIGIO();
         break;
     case XI_ProximityIn:
     case XI_ProximityOut:
@@ -515,10 +515,10 @@ dmxTranslateAndEnqueueExtEvent(DMXLocalInputInfoPtr dmxLocal,
         valuator_mask_set_range(&mask, ke->first_axis, ke->axes_count,
                                 valuators);
         if (block)
-            dmxSigioBlock();
+            OsBlockSIGIO();
         QueueProximityEvents(pDevice, event, &mask);
         if (block)
-            dmxSigioUnblock();
+            OsReleaseSIGIO();
         break;
 
         break;

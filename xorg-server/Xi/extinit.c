@@ -365,7 +365,7 @@ RESTYPE RT_INPUTCLIENT;
 
 extern XExtensionVersion XIVersion;
 
-Mask PropagateMask[MAXDEVICES];
+Mask PropagateMask[EMASKSIZE];
 
 /*****************************************************************
  *

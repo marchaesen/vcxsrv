@@ -394,7 +394,7 @@ InstallSignalHandlers(void)
 void
 InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 {
-    int i, j, k, scr_index, was_blocked = 0;
+    int i, j, k, scr_index;
     char **modulelist;
     pointer *optionlist;
     Pix24Flags screenpix24, pix24;
@@ -806,7 +806,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             ioctl(xf86Info.consoleFd, VT_RELDISP, VT_ACKACQ);
 #endif
             xf86AccessEnter();
-            was_blocked = xf86BlockSIGIO();
+            OsBlockSIGIO();
         }
     }
 
@@ -879,7 +879,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
     }
 
     xf86VGAarbiterWrapFunctions();
-    xf86UnblockSIGIO(was_blocked);
+    OsReleaseSIGIO();
 
     xf86InitOrigins();
 
@@ -964,6 +964,7 @@ OsVendorInit(void)
     }
 #endif
 #endif
+    OsReleaseSIGIO();
 
     beenHere = TRUE;
 }
@@ -1022,7 +1023,7 @@ AbortDDX(enum ExitCode error)
 {
     int i;
 
-    xf86BlockSIGIO();
+    OsBlockSIGIO();
 
     /*
      * try to restore the original video state

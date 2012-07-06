@@ -102,26 +102,6 @@ KdSigio(int sig)
         (*kdInputFds[i].read) (kdInputFds[i].fd, kdInputFds[i].closure);
 }
 
-static void
-KdBlockSigio(void)
-{
-    sigset_t set;
-
-    sigemptyset(&set);
-    sigaddset(&set, SIGIO);
-    sigprocmask(SIG_BLOCK, &set, 0);
-}
-
-static void
-KdUnblockSigio(void)
-{
-    sigset_t set;
-
-    sigemptyset(&set);
-    sigaddset(&set, SIGIO);
-    sigprocmask(SIG_UNBLOCK, &set, 0);
-}
-
 #ifdef DEBUG_SIGIO
 
 void
@@ -261,7 +241,7 @@ KdDisableInput(void)
     KdPointerInfo *pi;
     int found = 0, i = 0;
 
-    KdBlockSigio();
+    OsBlockSIGIO();
 
     for (ki = kdKeyboards; ki; ki = ki->next) {
         if (ki->driver && ki->driver->Disable)
@@ -343,7 +323,7 @@ KdEnableInput(void)
     NoticeEventTime(&ev, pi->dixdev);
     NoticeEventTime(&ev, ki->dixdev);
 
-    KdUnblockSigio();
+    OsReleaseSIGIO();
 }
 
 static KdKeyboardDriver *
@@ -1801,7 +1781,7 @@ KdReleaseAllKeys(void)
     int key;
     KdKeyboardInfo *ki;
 
-    KdBlockSigio();
+    OsBlockSIGIO();
 
     for (ki = kdKeyboards; ki; ki = ki->next) {
         for (key = ki->keySyms.minKeyCode; key < ki->keySyms.maxKeyCode; key++) {
@@ -1812,7 +1792,7 @@ KdReleaseAllKeys(void)
         }
     }
 
-    KdUnblockSigio();
+    OsReleaseSIGIO();
 #endif
 }
 
@@ -2008,18 +1988,18 @@ KdWakeupHandler(ScreenPtr pScreen, unsigned long lresult, pointer readmask)
     if (kdInputEnabled && result > 0) {
         for (i = 0; i < kdNumInputFds; i++)
             if (FD_ISSET(kdInputFds[i].fd, pReadmask)) {
-                KdBlockSigio();
+                OsBlockSIGIO();
                 (*kdInputFds[i].read) (kdInputFds[i].fd, kdInputFds[i].closure);
-                KdUnblockSigio();
+                OsReleaseSIGIO();
             }
     }
     for (pi = kdPointers; pi; pi = pi->next) {
         if (pi->timeoutPending) {
             if ((long) (GetTimeInMillis() - pi->emulationTimeout) >= 0) {
                 pi->timeoutPending = FALSE;
-                KdBlockSigio();
+                OsBlockSIGIO();
                 KdReceiveTimeout(pi);
-                KdUnblockSigio();
+                OsReleaseSIGIO();
             }
         }
     }
@@ -2116,10 +2096,10 @@ int KdCurScreen;                /* current event screen */
 static void
 KdWarpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 {
-    KdBlockSigio();
+    OsBlockSIGIO();
     KdCurScreen = pScreen->myNum;
     miPointerWarpCursor(pDev, pScreen, x, y);
-    KdUnblockSigio();
+    OsReleaseSIGIO();
 }
 
 miPointerScreenFuncRec kdPointerScreenFuncs = {

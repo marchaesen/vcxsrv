@@ -763,7 +763,8 @@ CreatePicture(Picture pid,
     PicturePtr pPicture;
     PictureScreenPtr ps = GetPictureScreen(pDrawable->pScreen);
 
-    pPicture = dixAllocateObjectWithPrivates(PictureRec, PRIVATE_PICTURE);
+    pPicture = dixAllocateScreenObjectWithPrivates(pDrawable->pScreen,
+                                                   PictureRec, PRIVATE_PICTURE);
     if (!pPicture) {
         *error = BadAlloc;
         return 0;
@@ -853,7 +854,7 @@ createSourcePicture(void)
 {
     PicturePtr pPicture;
 
-    pPicture = dixAllocateObjectWithPrivates(PictureRec, PRIVATE_PICTURE);
+    pPicture = dixAllocateScreenObjectWithPrivates(NULL, PictureRec, PRIVATE_PICTURE);
     pPicture->pDrawable = 0;
     pPicture->pFormat = 0;
     pPicture->pNext = 0;

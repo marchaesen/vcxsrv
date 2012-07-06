@@ -33,33 +33,20 @@ fbGetScreenPrivateKey(void)
     return &fbScreenPrivateKeyRec;
 }
 
-static DevPrivateKeyRec fbGCPrivateKeyRec;
-DevPrivateKey
-fbGetGCPrivateKey(void)
-{
-    return &fbGCPrivateKeyRec;
-}
-
-static DevPrivateKeyRec fbWinPrivateKeyRec;
-DevPrivateKey
-fbGetWinPrivateKey(void)
-{
-    return &fbWinPrivateKeyRec;
-}
-
 Bool
-fbAllocatePrivates(ScreenPtr pScreen, DevPrivateKey *pGCKey)
+fbAllocatePrivates(ScreenPtr pScreen)
 {
-    if (pGCKey)
-        *pGCKey = &fbGCPrivateKeyRec;
+    FbScreenPrivPtr     pScrPriv;
 
-    if (!dixRegisterPrivateKey
-        (&fbGCPrivateKeyRec, PRIVATE_GC, sizeof(FbGCPrivRec)))
-        return FALSE;
     if (!dixRegisterPrivateKey
         (&fbScreenPrivateKeyRec, PRIVATE_SCREEN, sizeof(FbScreenPrivRec)))
         return FALSE;
-    if (!dixRegisterPrivateKey(&fbWinPrivateKeyRec, PRIVATE_WINDOW, 0))
+
+    pScrPriv = fbGetScreenPrivate(pScreen);
+
+    if (!dixRegisterScreenSpecificPrivateKey (pScreen, &pScrPriv->gcPrivateKeyRec, PRIVATE_GC, sizeof(FbGCPrivRec)))
+        return FALSE;
+    if (!dixRegisterScreenSpecificPrivateKey (pScreen, &pScrPriv->winPrivateKeyRec, PRIVATE_WINDOW, 0))
         return FALSE;
 
     return TRUE;
