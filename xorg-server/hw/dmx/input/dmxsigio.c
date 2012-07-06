@@ -84,28 +84,6 @@ dmxSigioHandler(int sig)
     }
 }
 
-/** Block SIGIO handling. */
-void
-dmxSigioBlock(void)
-{
-    sigset_t s;
-
-    sigemptyset(&s);
-    sigaddset(&s, SIGIO);
-    sigprocmask(SIG_BLOCK, &s, 0);
-}
-
-/** Unblock SIGIO handling. */
-void
-dmxSigioUnblock(void)
-{
-    sigset_t s;
-
-    sigemptyset(&s);
-    sigaddset(&s, SIGIO);
-    sigprocmask(SIG_UNBLOCK, &s, 0);
-}
-
 static void
 dmxSigioHook(void)
 {

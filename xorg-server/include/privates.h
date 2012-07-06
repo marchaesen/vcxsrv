@@ -33,9 +33,9 @@ typedef enum {
     PRIVATE_SCREEN,
     PRIVATE_EXTENSION,
     PRIVATE_COLORMAP,
+    PRIVATE_DEVICE,
 
     /* These cannot have any objects before all relevant keys are registered */
-    PRIVATE_DEVICE,
     PRIVATE_CLIENT,
     PRIVATE_PROPERTY,
     PRIVATE_SELECTION,
@@ -65,6 +65,13 @@ typedef struct _DevPrivateKeyRec {
     DevPrivateType type;
     struct _DevPrivateKeyRec *next;
 } DevPrivateKeyRec, *DevPrivateKey;
+
+typedef struct _DevPrivateSetRec {
+    DevPrivateKey key;
+    unsigned offset;
+    int created;
+    int allocated;
+} DevPrivateSetRec, *DevPrivateSetPtr;
 
 typedef struct _DevScreenPrivateKeyRec {
     DevPrivateKeyRec screenKey;
@@ -219,6 +226,51 @@ dixLookupScreenPrivateAddr(PrivatePtr *privates, const DevScreenPrivateKey key,
 }
 
 /*
+ * These functions relate to allocations related to a specific screen;
+ * space will only be available for objects allocated for use on that
+ * screen. As such, only objects which are related directly to a specific
+ * screen are candidates for allocation this way, this includes
+ * windows, pixmaps, gcs, pictures and colormaps. This key is
+ * used just like any other key using dixGetPrivate and friends.
+ *
+ * This is distinctly different from the ScreenPrivateKeys above which
+ * allocate space in global objects like cursor bits for a specific
+ * screen, allowing multiple screen-related chunks of storage in a
+ * single global object.
+ */
+
+#define HAVE_SCREEN_SPECIFIC_PRIVATE_KEYS       1
+
+extern _X_EXPORT Bool
+dixRegisterScreenSpecificPrivateKey(ScreenPtr pScreen, DevPrivateKey key,
+                                    DevPrivateType type, unsigned size);
+
+/* Clean up screen-specific privates before CloseScreen */
+extern void
+dixFreeScreenSpecificPrivates(ScreenPtr pScreen);
+
+/* Initialize screen-specific privates in AddScreen */
+extern void
+dixInitScreenSpecificPrivates(ScreenPtr pScreen);
+
+extern _X_EXPORT void *
+_dixAllocateScreenObjectWithPrivates(ScreenPtr pScreen,
+                                     unsigned size,
+                                     unsigned clear,
+                                     unsigned offset,
+                                     DevPrivateType type);
+
+#define dixAllocateScreenObjectWithPrivates(s, t, type) _dixAllocateScreenObjectWithPrivates(s, sizeof(t), sizeof(t), offsetof(t, devPrivates), type)
+
+extern _X_EXPORT int
+dixScreenSpecificPrivatesSize(ScreenPtr pScreen, DevPrivateType type);
+
+extern _X_EXPORT void
+_dixInitScreenPrivates(ScreenPtr pScreen, PrivatePtr *privates, void *addr, DevPrivateType type);
+
+#define dixInitScreenPrivates(s, o, v, type) _dixInitScreenPrivates(s, &(o)->devPrivates, (v), type);
+
+/*
  * Allocates private data separately from main object.
  *
  * For objects created during server initialization, this allows those
@@ -240,7 +292,7 @@ extern _X_EXPORT void
  * Initialize privates by zeroing them
  */
 extern _X_EXPORT void
- _dixInitPrivates(PrivatePtr *privates, void *addr, DevPrivateType type);
+_dixInitPrivates(PrivatePtr *privates, void *addr, DevPrivateType type);
 
 #define dixInitPrivates(o, v, type) _dixInitPrivates(&(o)->devPrivates, (v), type);
 

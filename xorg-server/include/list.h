@@ -453,7 +453,7 @@ xorg_list_is_empty(struct xorg_list *head)
 #define nt_list_del(_entry, _list, _type, _member)		\
 	do {							\
 		_type *__e = _entry;				\
-		if (__e == NULL) break;				\
+		if (__e == NULL || _list == NULL) break;        \
 		if ((_list) == __e) {				\
 		    _list = __e->_member;			\
 		} else {					\

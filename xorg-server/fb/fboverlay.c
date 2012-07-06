@@ -63,7 +63,7 @@ fbOverlayCreateWindow(WindowPtr pWin)
     for (i = 0; i < pScrPriv->nlayers; i++) {
         pPixmap = pScrPriv->layer[i].u.run.pixmap;
         if (pWin->drawable.depth == pPixmap->drawable.depth) {
-            dixSetPrivate(&pWin->devPrivates, fbGetWinPrivateKey(), pPixmap);
+            dixSetPrivate(&pWin->devPrivates, fbGetWinPrivateKey(pWin), pPixmap);
             /*
              * Make sure layer keys are written correctly by
              * having non-root layers set to full while the
@@ -103,7 +103,7 @@ fbOverlayWindowLayer(WindowPtr pWin)
     int i;
 
     for (i = 0; i < pScrPriv->nlayers; i++)
-        if (dixLookupPrivate(&pWin->devPrivates, fbGetWinPrivateKey()) ==
+        if (dixLookupPrivate(&pWin->devPrivates, fbGetWinPrivateKey(pWin)) ==
             (pointer) pScrPriv->layer[i].u.run.pixmap)
             return i;
     return 0;

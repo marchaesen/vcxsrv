@@ -160,6 +160,12 @@ LoaderSymbol(const char *name)
     return NULL;
 }
 
+void *
+LoaderSymbolFromModule(void *handle, const char *name)
+{
+    return dlsym(handle, name);
+}
+
 void
 LoaderUnload(const char *name, void *handle)
 {

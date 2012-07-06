@@ -109,6 +109,12 @@
 	<revremark>Revised for Xorg 1.9 devPrivates changes
 	  and 1.8 CreateNewResourceType changes</revremark>
       </revision>
+      <revision>
+	<revnumber>3.6</revnumber>
+	<date>July 2012</date>
+	<authorinitials>kp</authorinitials>
+	<revremark>Revised for X server 1.13 screen-specific devPrivates changes</revremark>
+      </revision>
     </revhistory>
     <abstract>
       <para>The following document explains the structure of the X Window System display server and the interfaces among the larger pieces.  It is intended as a reference for programmers who are implementing an X Display Server on their workstation hardware.  It is included with the X Window System source tape, along with the document "Strategies for Porting the X v11 Sample Server."  The order in which you should read these documents is:
@@ -4714,7 +4720,8 @@ Two new extensibility concepts have been developed for release 4, Wrappers
 and devPrivates.  These replace the R3 GCInterest queues, which were not a
 general enough mechanism for many extensions and only provided hooks into a
 single data structure.  devPrivates have been revised substantially for
-X.Org X server release 1.5, and updated again for the 1.9 release.</para>
+X.Org X server release 1.5, updated again for the 1.9 release and extended
+again for the 1.13 relealse.</para>
 <section>
   <title>devPrivates</title>
 <para>
@@ -4756,6 +4763,23 @@ function ensures the given <parameter>key</parameter> exists on objects of
 the specified type with distinct storage for the given
 <parameter>pScreen</parameter>. The key is usable on ScreenPrivate variants
 that are otherwise equivalent to the following Private functions.</para>
+
+<para>
+  To request private space in objects created for a specific screen, use
+  <blockquote><programlisting>
+    Bool dixRegisterScreenSpecificPrivateKey(ScreenPtr pScreen, DevPrivateKey key, DevPrivateType type, unsigned size);
+  </programlisting></blockquote>
+  The <parameter>type</parameter> and <parameter>size</parameter> arguments are
+  the same as those to <function>dixRegisterPrivateKey</function> but this
+  function ensures only that the given <parameter>key</parameter> exists on objects of
+  the specified type that are allocated with reference to the specified
+  <parameter>pScreen</parameter>. Using the key on objects allocated for
+  other screens will result in incorrect results; there is no check made to
+  ensure that the caller's screen matches the private's screen. The key is
+  usable in any of the following functions. Screen-specific private storage is available
+  only for Windows, GCs, Pixmaps and Pictures. Attempts to allocate screen-specific
+  privates on other objects will result in a call to FatalError.
+</para>
 
 <para>
 To attach a piece of private data to an object, use:

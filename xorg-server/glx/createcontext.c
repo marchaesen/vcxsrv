@@ -30,7 +30,8 @@
 #include "indirect_dispatch.h"
 
 #define ALL_VALID_FLAGS \
-    (GLX_CONTEXT_DEBUG_BIT_ARB | GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB)
+    (GLX_CONTEXT_DEBUG_BIT_ARB | GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB \
+     | GLX_CONTEXT_ROBUST_ACCESS_BIT_ARB)
 
 static Bool
 validate_GL_version(int major_version, int minor_version)
@@ -89,6 +90,24 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
     __GLXscreen *glxScreen;
     __GLXconfig *config;
     int err;
+
+    /* The GLX_ARB_create_context_robustness spec says:
+     *
+     *     "The default value for GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB
+     *     is GLX_NO_RESET_NOTIFICATION_ARB."
+     */
+    int reset = GLX_NO_RESET_NOTIFICATION_ARB;
+
+    /* The GLX_ARB_create_context_profile spec says:
+     *
+     *     "The default value for GLX_CONTEXT_PROFILE_MASK_ARB is
+     *     GLX_CONTEXT_CORE_PROFILE_BIT_ARB."
+     *
+     * The core profile only makes sense for OpenGL versions 3.2 and later.
+     * If the version ultimately specified is less than 3.2, the core profile
+     * bit is cleared (see below).
+     */
+    int profile = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
 
     /* Verify that the size of the packet matches the size inferred from the
      * sizes specified for the various fields.
@@ -161,6 +180,18 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
             render_type = attribs[2 * i + 1];
             break;
 
+        case GLX_CONTEXT_PROFILE_MASK_ARB:
+            profile = attribs[2 * i + 1];
+            break;
+
+        case GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB:
+            reset = attribs[2 * i + 1];
+            if (reset != GLX_NO_RESET_NOTIFICATION_ARB
+                && reset != GLX_LOSE_CONTEXT_ON_RESET_ARB)
+                return BadValue;
+
+            break;
+
         default:
             return BadValue;
         }
@@ -202,6 +233,73 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
     if ((flags & ~ALL_VALID_FLAGS) != 0)
         return BadValue;
 
+    /* The GLX_ARB_create_context_profile spec says:
+     *
+     *     "* If attribute GLX_CONTEXT_PROFILE_MASK_ARB has no bits set; has
+     *        any bits set other than GLX_CONTEXT_CORE_PROFILE_BIT_ARB and
+     *        GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB; has more than one of
+     *        these bits set; or if the implementation does not support the
+     *        requested profile, then GLXBadProfileARB is generated."
+     */
+    switch (profile) {
+    case GLX_CONTEXT_CORE_PROFILE_BIT_ARB:
+    case GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB:
+        break;
+    case GLX_CONTEXT_ES2_PROFILE_BIT_EXT:
+        /* The GLX_EXT_create_context_es2_profile spec says:
+         *
+         *     "... If the version requested is 2.0, and the
+         *     GLX_CONTEXT_ES2_PROFILE_BIT_EXT bit is set in the
+         *     GLX_CONTEXT_PROFILE_MASK_ARB attribute (see below), then the
+         *     context returned will implement OpenGL ES 2.0."
+         *
+         * It also says:
+         *
+         *     "* If attribute GLX_CONTEXT_PROFILE_MASK_ARB has no bits set;
+         *        has any bits set other than
+         *        GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+         *        GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB, or
+         *        GLX_CONTEXT_ES2_PROFILE_BIT_EXT; has more than one of these
+         *        bits set; or if the implementation does not supported the
+         *        requested profile, then GLXBadProfileARB is generated."
+         *
+         * It does not specifically say what is supposed to happen if
+         * GLX_CONTEXT_ES2_PROFILE_BIT_EXT is set but the version requested is
+         * not 2.0.  We choose to generate GLXBadProfileARB as this matches
+         * NVIDIA's behavior.
+         */
+        if (major_version != 2 || minor_version != 0)
+            return __glXError(GLXBadProfileARB);
+        break;
+    default:
+        return __glXError(GLXBadProfileARB);
+    }
+
+    /* The GLX_ARB_create_context_robustness spec says:
+     *
+     *     "* If the reset notification behavior of <share_context> and the
+     *        newly created context are different, BadMatch is generated."
+     */
+    if (shareCtx != NULL && shareCtx->resetNotificationStrategy != reset)
+        return BadMatch;
+
+    /* There is no GLX protocol for desktop OpenGL versions after 1.4.  There
+     * is no GLX protocol for any version of OpenGL ES.  If the application is
+     * requested an indirect rendering context for a version that cannot be
+     * satisfied, reject it.
+     *
+     * The GLX_ARB_create_context spec says:
+     *
+     *     "* If <config> does not support compatible OpenGL contexts
+     *        providing the requested API major and minor version,
+     *        forward-compatible flag, and debug context flag, GLXBadFBConfig
+     *        is generated."
+     */
+    if (!req->isDirect && (major_version > 1 || minor_version > 4
+                           || profile == GLX_CONTEXT_ES2_PROFILE_BIT_EXT)) {
+        return __glXError(GLXBadFBConfig);
+    }
+
     /* Allocate memory for the new context
      */
     if (req->isDirect) {
@@ -232,6 +330,7 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
     ctx->selectBufSize = 0;
     ctx->drawPriv = NULL;
     ctx->readPriv = NULL;
+    ctx->resetNotificationStrategy = reset;
 
     /* Add the new context to the various global tables of GLX contexts.
      */

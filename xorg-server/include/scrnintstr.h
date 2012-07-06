@@ -371,6 +371,8 @@ typedef struct _Screen {
     WindowPtr root;
     ScreenSaverStuffRec screensaver;
 
+    DevPrivateSetRec    screenSpecificPrivates[PRIVATE_LAST];
+
     /* Random screen procedures */
 
     CloseScreenProcPtr CloseScreen;

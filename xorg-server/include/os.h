@@ -336,6 +336,12 @@ OsBlockSignals(void);
 extern _X_EXPORT void
 OsReleaseSignals(void);
 
+extern _X_EXPORT int
+OsBlockSIGIO(void);
+
+extern _X_EXPORT void
+OsReleaseSIGIO(void);
+
 extern _X_EXPORT void
 OsAbort(void)
     _X_NORETURN;

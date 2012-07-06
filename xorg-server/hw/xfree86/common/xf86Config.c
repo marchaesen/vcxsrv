@@ -2329,6 +2329,7 @@ checkInput(serverLayoutPtr layout, Bool implicit_layout)
 
                 current = dev;
                 free(*dev);
+                *dev = NULL;
 
                 do {
                     *current = *(current + 1);

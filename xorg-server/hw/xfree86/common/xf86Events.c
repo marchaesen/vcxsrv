@@ -254,7 +254,7 @@ xf86Wakeup(pointer blockData, int err, pointer pReadmask)
             while (pInfo) {
                 if (pInfo->read_input && pInfo->fd >= 0 &&
                     (FD_ISSET(pInfo->fd, &devicesWithInput) != 0)) {
-                    int sigstate = xf86BlockSIGIO();
+                    OsBlockSIGIO();
 
                     /*
                      * Remove the descriptior from the set because more than one
@@ -263,7 +263,7 @@ xf86Wakeup(pointer blockData, int err, pointer pReadmask)
                     FD_CLR(pInfo->fd, &devicesWithInput);
 
                     pInfo->read_input(pInfo);
-                    xf86UnblockSIGIO(sigstate);
+                    OsReleaseSIGIO();
                 }
                 pInfo = pInfo->next;
             }
@@ -397,9 +397,9 @@ xf86ReleaseKeys(DeviceIntPtr pDev)
     for (i = keyc->xkbInfo->desc->min_key_code;
          i < keyc->xkbInfo->desc->max_key_code; i++) {
         if (key_is_down(pDev, i, KEY_POSTED)) {
-            sigstate = xf86BlockSIGIO();
+            OsBlockSIGIO();
             QueueKeyboardEvents(pDev, KeyRelease, i, NULL);
-            xf86UnblockSIGIO(sigstate);
+            OsReleaseSIGIO();
         }
     }
 }
@@ -457,7 +457,7 @@ xf86VTSwitch(void)
             }
         }
 
-        prevSIGIO = xf86BlockSIGIO();
+        OsBlockSIGIO();
         for (i = 0; i < xf86NumScreens; i++)
             xf86Screens[i]->LeaveVT(xf86Screens[i]);
 
@@ -492,7 +492,7 @@ xf86VTSwitch(void)
             for (ih = InputHandlers; ih; ih = ih->next)
                 xf86EnableInputHandler(ih);
 
-            xf86UnblockSIGIO(prevSIGIO);
+            OsReleaseSIGIO();
 
         }
         else {
@@ -549,7 +549,7 @@ xf86VTSwitch(void)
         for (ih = InputHandlers; ih; ih = ih->next)
             xf86EnableInputHandler(ih);
 
-        xf86UnblockSIGIO(prevSIGIO);
+        OsReleaseSIGIO();
     }
 }
 

@@ -956,7 +956,7 @@ doLoadModule(const char *module, const char *path, const char **subdirlist,
             *errmin = 0;
         goto LoadModule_fail;
     }
-    initdata = LoaderSymbol(p);
+    initdata = LoaderSymbolFromModule(ret->handle, p);
     if (initdata) {
         ModuleSetupProc setup;
         ModuleTearDownProc teardown;

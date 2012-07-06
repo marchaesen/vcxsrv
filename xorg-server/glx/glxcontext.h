@@ -104,6 +104,11 @@ struct __GLXcontext {
      */
     GLenum renderMode;
 
+    /**
+     * Reset notification strategy used when a GPU reset occurs.
+     */
+    GLenum resetNotificationStrategy;
+
     /*
      ** Buffers for feedback and selection.
      */

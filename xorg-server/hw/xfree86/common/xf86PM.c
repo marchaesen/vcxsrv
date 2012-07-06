@@ -92,8 +92,6 @@ eventName(pmEvent event, const char **str)
     }
 }
 
-static int sigio_blocked_for_suspend;
-
 static void
 suspend(pmEvent event, Bool undo)
 {
@@ -109,7 +107,7 @@ suspend(pmEvent event, Bool undo)
         DisableDevice(pInfo->dev, TRUE);
         pInfo = pInfo->next;
     }
-    sigio_blocked_for_suspend = xf86BlockSIGIO();
+    OsBlockSIGIO();
     for (i = 0; i < xf86NumScreens; i++) {
         if (xf86Screens[i]->PMEvent)
             xf86Screens[i]->PMEvent(xf86Screens[i], event, undo);
@@ -137,7 +135,7 @@ resume(pmEvent event, Bool undo)
             xf86Screens[i]->EnterVT(xf86Screens[i]);
         }
     }
-    xf86UnblockSIGIO(sigio_blocked_for_suspend);
+    OsReleaseSIGIO();
     for (i = 0; i < xf86NumScreens; i++) {
         if (xf86Screens[i]->EnableDisableFBAccess)
             (*xf86Screens[i]->EnableDisableFBAccess) (xf86Screens[i], TRUE);
@@ -153,7 +151,7 @@ resume(pmEvent event, Bool undo)
 static void
 DoApmEvent(pmEvent event, Bool undo)
 {
-    int i, was_blocked;
+    int i;
 
     switch (event) {
 #if 0
@@ -184,13 +182,13 @@ DoApmEvent(pmEvent event, Bool undo)
         }
         break;
     default:
-        was_blocked = xf86BlockSIGIO();
+        OsBlockSIGIO();
         for (i = 0; i < xf86NumScreens; i++) {
             if (xf86Screens[i]->PMEvent) {
                 xf86Screens[i]->PMEvent(xf86Screens[i], event, undo);
             }
         }
-        xf86UnblockSIGIO(was_blocked);
+        OsReleaseSIGIO();
         break;
     }
 }

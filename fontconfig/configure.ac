@@ -353,6 +353,18 @@ if test "$enable_libxml2" = "yes"; then
 
     AC_SUBST(LIBXML2_CFLAGS)
     AC_SUBST(LIBXML2_LIBS)
+
+    fc_saved_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS $LIBXML2_CFLAGS"
+    AC_MSG_CHECKING([SAX1 support in libxml2])
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+	#include <libxml/xmlversion.h>
+	#if !defined(LIBXML_SAX1_ENABLED)
+	#  include "error: No SAX1 support in libxml2"
+	#endif
+	]])], [AC_MSG_RESULT([found])], [AC_MSG_ERROR([
+*** SAX1 support in libxml2 is required. enable it or use expat instead.])])
+    CFLAGS="$fc_saved_CFLAGS"
 fi
 
 #
