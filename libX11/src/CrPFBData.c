@@ -60,8 +60,10 @@ Pixmap XCreatePixmapFromBitmapData(
 {
     Pixmap pix = XCreatePixmap(display, d, width, height, depth);
     XGCValues gcv = {
-        .foreground = fg,
-        .background = bg
+        /*.function =*/ 0,
+        /*.plane_mask =*/ 0,
+        /*.foreground =*/ fg,
+        /*.background =*/ bg
     };
     GC gc = XCreateGC(display, pix, GCForeground|GCBackground, &gcv);
     if (gc == NULL) {
@@ -69,18 +71,18 @@ Pixmap XCreatePixmapFromBitmapData(
         return (Pixmap) None;
     } else {
         XImage ximage = {
-            .height = height,
-            .width = width,
-            .depth = 1,
-            .bits_per_pixel = 1,
-            .xoffset = 0,
-            .format = XYBitmap,
-            .data = data,
-            .byte_order = LSBFirst,
-            .bitmap_unit = 8,
-            .bitmap_bit_order = LSBFirst,
-            .bitmap_pad = 8,
-            .bytes_per_line = (width + 7) / 8
+            /*.width =*/ width,
+            /*.height =*/ height,
+            /*.xoffset =*/ 0,
+            /*.format =*/ XYBitmap,
+            /*.data =*/ data,
+            /*.byte_order =*/ LSBFirst,
+            /*.bitmap_unit =*/ 8,
+            /*.bitmap_bit_order =*/ LSBFirst,
+            /*.bitmap_pad =*/ 8,
+            /*.depth =*/ 1,
+            /*.bytes_per_line =*/ (width + 7) / 8,
+            /*.bits_per_pixel =*/ 1
         };
         XPutImage(display, pix, gc, &ximage, 0, 0, 0, 0, width, height);
         XFreeGC(display, gc);

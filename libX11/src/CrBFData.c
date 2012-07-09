@@ -60,18 +60,18 @@ Pixmap XCreateBitmapFromData(
         return (Pixmap) None;
     } else {
         XImage ximage = {
-            .height = height,
-            .width = width,
-            .depth = 1,
-            .bits_per_pixel = 1,
-            .xoffset = 0,
-            .format = XYPixmap,
-            .data = (char *) data,
-            .byte_order = LSBFirst,
-            .bitmap_unit = 8,
-            .bitmap_bit_order = LSBFirst,
-            .bitmap_pad = 8,
-            .bytes_per_line = (width + 7) / 8,
+            /*.width =*/ width,
+            /*.height =*/ height,
+            /*.xoffset =*/ 0,
+            /*.format =*/ XYPixmap,
+            /*.data =*/ (char *) data,
+            /*.byte_order =*/ LSBFirst,
+            /*.bitmap_unit =*/ 8,
+            /*.bitmap_bit_order =*/ LSBFirst,
+            /*.bitmap_pad =*/ 8,
+            /*.depth =*/ 1,
+            /*.bytes_per_line =*/ (width + 7) / 8,
+            /*.bits_per_pixel =*/ 1
         };
         XPutImage(display, pix, gc, &ximage, 0, 0, 0, 0, width, height);
         XFreeGC(display, gc);
