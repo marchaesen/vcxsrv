@@ -167,29 +167,43 @@ ScrnInfoPtr
 xf86AllocateScreen(DriverPtr drv, int flags)
 {
     int i;
+    ScrnInfoPtr pScrn;
 
-    if (xf86Screens == NULL)
-        xf86NumScreens = 0;
+    if (flags & XF86_ALLOCATE_GPU_SCREEN) {
+        if (xf86GPUScreens == NULL)
+            xf86NumGPUScreens = 0;
+        i = xf86NumGPUScreens++;
+        xf86GPUScreens = xnfrealloc(xf86GPUScreens, xf86NumGPUScreens * sizeof(ScrnInfoPtr));
+        xf86GPUScreens[i] = xnfcalloc(sizeof(ScrnInfoRec), 1);
+        pScrn = xf86GPUScreens[i];
+        pScrn->scrnIndex = i + GPU_SCREEN_OFFSET;      /* Changes when a screen is removed */
+        pScrn->is_gpu = TRUE;
+    } else {
+        if (xf86Screens == NULL)
+            xf86NumScreens = 0;
 
-    i = xf86NumScreens++;
-    xf86Screens = xnfrealloc(xf86Screens, xf86NumScreens * sizeof(ScrnInfoPtr));
-    xf86Screens[i] = xnfcalloc(sizeof(ScrnInfoRec), 1);
-    xf86Screens[i]->scrnIndex = i;      /* Changes when a screen is removed */
-    xf86Screens[i]->origIndex = i;      /* This never changes */
-    xf86Screens[i]->privates = xnfcalloc(sizeof(DevUnion),
-                                         xf86ScrnInfoPrivateCount);
+        i = xf86NumScreens++;
+        xf86Screens = xnfrealloc(xf86Screens, xf86NumScreens * sizeof(ScrnInfoPtr));
+        xf86Screens[i] = xnfcalloc(sizeof(ScrnInfoRec), 1);
+        pScrn = xf86Screens[i];
+
+        pScrn->scrnIndex = i;      /* Changes when a screen is removed */
+    }
+
+    pScrn->origIndex = pScrn->scrnIndex;      /* This never changes */
+    pScrn->privates = xnfcalloc(sizeof(DevUnion), xf86ScrnInfoPrivateCount);
     /*
      * EnableDisableFBAccess now gets initialized in InitOutput()
-     * xf86Screens[i]->EnableDisableFBAccess = xf86EnableDisableFBAccess;
+     * pScrn->EnableDisableFBAccess = xf86EnableDisableFBAccess;
      */
 
-    xf86Screens[i]->drv = drv;
+    pScrn->drv = drv;
     drv->refCount++;
-    xf86Screens[i]->module = DuplicateModule(drv->module, NULL);
+    pScrn->module = DuplicateModule(drv->module, NULL);
 
-    xf86Screens[i]->DriverFunc = drv->driverFunc;
+    pScrn->DriverFunc = drv->driverFunc;
 
-    return xf86Screens[i];
+    return pScrn;
 }
 
 /*
@@ -202,10 +216,17 @@ xf86DeleteScreen(ScrnInfoPtr pScrn)
 {
     int i;
     int scrnIndex;
-
-    /* First check if the screen is valid */
-    if (xf86NumScreens == 0 || xf86Screens == NULL)
-        return;
+    Bool is_gpu = FALSE;
+    if (pScrn->is_gpu) {
+        /* First check if the screen is valid */
+        if (xf86NumGPUScreens == 0 || xf86GPUScreens == NULL)
+            return;
+        is_gpu = TRUE;
+    } else {
+        /* First check if the screen is valid */
+        if (xf86NumScreens == 0 || xf86Screens == NULL)
+            return;
+    }
 
     if (!pScrn)
         return;
@@ -237,12 +258,23 @@ xf86DeleteScreen(ScrnInfoPtr pScrn)
 
     /* Move the other entries down, updating their scrnIndex fields */
 
-    xf86NumScreens--;
+    if (is_gpu) {
+        xf86NumGPUScreens--;
+        scrnIndex -= GPU_SCREEN_OFFSET;
+        for (i = scrnIndex; i < xf86NumGPUScreens; i++) {
+            xf86GPUScreens[i] = xf86GPUScreens[i + 1];
+            xf86GPUScreens[i]->scrnIndex = i + GPU_SCREEN_OFFSET;
+            /* Also need to take care of the screen layout settings */
+        }
+    }
+    else {
+        xf86NumScreens--;
 
-    for (i = scrnIndex; i < xf86NumScreens; i++) {
-        xf86Screens[i] = xf86Screens[i + 1];
-        xf86Screens[i]->scrnIndex = i;
-        /* Also need to take care of the screen layout settings */
+        for (i = scrnIndex; i < xf86NumScreens; i++) {
+            xf86Screens[i] = xf86Screens[i + 1];
+            xf86Screens[i]->scrnIndex = i;
+            /* Also need to take care of the screen layout settings */
+        }
     }
 }
 
@@ -260,6 +292,14 @@ xf86AllocateScrnInfoPrivateIndex(void)
     idx = xf86ScrnInfoPrivateCount++;
     for (i = 0; i < xf86NumScreens; i++) {
         pScr = xf86Screens[i];
+        nprivs = xnfrealloc(pScr->privates,
+                            xf86ScrnInfoPrivateCount * sizeof(DevUnion));
+        /* Zero the new private */
+        memset(&nprivs[idx], 0, sizeof(DevUnion));
+        pScr->privates = nprivs;
+    }
+    for (i = 0; i < xf86NumGPUScreens; i++) {
+        pScr = xf86GPUScreens[i];
         nprivs = xnfrealloc(pScr->privates,
                             xf86ScrnInfoPrivateCount * sizeof(DevUnion));
         /* Zero the new private */
@@ -1058,6 +1098,11 @@ xf86VDrvMsgVerb(int scrnIndex, MessageType type, int verb, const char *format,
         xf86Screens[scrnIndex]->name)
         LogHdrMessageVerb(type, verb, format, args, "%s(%d): ",
                           xf86Screens[scrnIndex]->name, scrnIndex);
+    else if (scrnIndex >= GPU_SCREEN_OFFSET &&
+             scrnIndex < GPU_SCREEN_OFFSET + xf86NumGPUScreens &&
+             xf86GPUScreens[scrnIndex - GPU_SCREEN_OFFSET]->name)
+        LogHdrMessageVerb(type, verb, format, args, "%s(G%d): ",
+                          xf86GPUScreens[scrnIndex - GPU_SCREEN_OFFSET]->name, scrnIndex - GPU_SCREEN_OFFSET);
     else
         LogVMessageVerb(type, verb, format, args);
 }
@@ -1833,13 +1878,23 @@ xf86MotionHistoryAllocate(InputInfoPtr pInfo)
 ScrnInfoPtr
 xf86ScreenToScrn(ScreenPtr pScreen)
 {
-    assert(pScreen->myNum < xf86NumScreens);
-    return xf86Screens[pScreen->myNum];
+    if (pScreen->isGPU) {
+        assert(pScreen->myNum - GPU_SCREEN_OFFSET < xf86NumGPUScreens);
+        return xf86GPUScreens[pScreen->myNum - GPU_SCREEN_OFFSET];
+    } else {
+        assert(pScreen->myNum < xf86NumScreens);
+        return xf86Screens[pScreen->myNum];
+    }
 }
 
 ScreenPtr
 xf86ScrnToScreen(ScrnInfoPtr pScrn)
 {
-    assert(pScrn->scrnIndex < screenInfo.numScreens);
-    return screenInfo.screens[pScrn->scrnIndex];
+    if (pScrn->is_gpu) {
+        assert(pScrn->scrnIndex - GPU_SCREEN_OFFSET < screenInfo.numGPUScreens);
+        return screenInfo.gpuscreens[pScrn->scrnIndex - GPU_SCREEN_OFFSET];
+    } else {
+        assert(pScrn->scrnIndex < screenInfo.numScreens);
+        return screenInfo.screens[pScrn->scrnIndex];
+    }
 }

@@ -712,7 +712,8 @@ typedef enum {
     FLAG_AUTO_ENABLE_DEVICES,
     FLAG_GLX_VISUALS,
     FLAG_DRI2,
-    FLAG_USE_SIGIO
+    FLAG_USE_SIGIO,
+    FLAG_AUTO_ADD_GPU,
 } FlagValues;
 
 /**
@@ -769,6 +770,8 @@ static OptionInfoRec FlagOptions[] = {
     {FLAG_DRI2, "DRI2", OPTV_BOOLEAN,
      {0}, FALSE},
     {FLAG_USE_SIGIO, "UseSIGIO", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_AUTO_ADD_GPU, "AutoAddGPU", OPTV_BOOLEAN,
      {0}, FALSE},
     {-1, NULL, OPTV_NONE,
      {0}, FALSE},
@@ -862,6 +865,16 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     xf86Msg(from, "%sutomatically enabling devices\n",
             xf86Info.autoEnableDevices ? "A" : "Not a");
 
+    if (xf86IsOptionSet(FlagOptions, FLAG_AUTO_ADD_GPU)) {
+        xf86GetOptValBool(FlagOptions, FLAG_AUTO_ADD_GPU,
+                          &xf86Info.autoAddGPU);
+        from = X_CONFIG;
+    }
+    else {
+        from = X_DEFAULT;
+    }
+    xf86Msg(from, "%sutomatically adding GPU devices\n",
+            xf86Info.autoAddGPU ? "A" : "Not a");
     /*
      * Set things up based on the config file information.  Some of these
      * settings may be overridden later when the command line options are

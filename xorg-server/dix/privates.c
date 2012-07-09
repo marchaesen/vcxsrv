@@ -222,6 +222,10 @@ fixupScreens(FixupFunc fixup, unsigned bytes)
     for (s = 0; s < screenInfo.numScreens; s++)
         if (!fixupOneScreen (screenInfo.screens[s], fixup, bytes))
             return FALSE;
+
+    for (s = 0; s < screenInfo.numGPUScreens; s++)
+        if (!fixupOneScreen (screenInfo.gpuscreens[s], fixup, bytes))
+            return FALSE;
     return TRUE;
 }
 

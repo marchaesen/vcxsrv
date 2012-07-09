@@ -54,6 +54,10 @@ xf86ClaimFbSlot(DriverPtr drvp, int chipset, GDevPtr dev, Bool active)
     EntityPtr p;
     int num;
 
+#ifdef XSERVER_PLATFORM_BUS
+    if (platformSlotClaimed)
+        return -1;
+#endif
 #ifdef XSERVER_LIBPCIACCESS
     if (pciSlotClaimed)
         return -1;

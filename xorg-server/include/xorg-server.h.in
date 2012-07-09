@@ -205,6 +205,9 @@
 /* X Access Control Extension */
 #undef XACE
 
+/* Have X server platform bus support */
+#undef XSERVER_PLATFORM_BUS
+
 #ifdef _LP64
 #define _XSERVER64 1
 #endif

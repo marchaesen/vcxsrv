@@ -110,7 +110,7 @@ xf86PciProbe(void)
             xf86PciVideoInfo[num - 1] = info;
 
             pci_device_probe(info);
-            if (pci_device_is_boot_vga(info)) {
+            if (primaryBus.type == BUS_NONE && pci_device_is_boot_vga(info)) {
                 primaryBus.type = BUS_PCI;
                 primaryBus.id.pci = info;
             }
@@ -352,7 +352,15 @@ xf86ComparePciBusString(const char *busID, int bus, int device, int func)
 Bool
 xf86IsPrimaryPci(struct pci_device *pPci)
 {
-    return ((primaryBus.type == BUS_PCI) && (pPci == primaryBus.id.pci));
+    if (primaryBus.type == BUS_PCI)
+        return pPci == primaryBus.id.pci;
+#ifdef XSERVER_PLATFORM_BUS
+    if (primaryBus.type == BUS_PLATFORM)
+        if (primaryBus.id.plat->pdev)
+            if (MATCH_PCI_DEVICES(primaryBus.id.plat->pdev, pPci))
+                return TRUE;
+#endif
+    return FALSE;
 }
 
 /*
@@ -367,7 +375,15 @@ xf86GetPciInfoForEntity(int entityIndex)
         return NULL;
 
     p = xf86Entities[entityIndex];
-    return (p->bus.type == BUS_PCI) ? p->bus.id.pci : NULL;
+    switch (p->bus.type) {
+    case BUS_PCI:
+        return p->bus.id.pci;
+    case BUS_PLATFORM:
+        return p->bus.id.plat->pdev;
+    default:
+        break;
+    }
+    return NULL;
 }
 
 /*
@@ -400,6 +416,13 @@ xf86CheckPciSlot(const struct pci_device *d)
         if ((p->bus.type == BUS_PCI) && (p->bus.id.pci == d)) {
             return FALSE;
         }
+#ifdef XSERVER_PLATFORM_BUS
+        if ((p->bus.type == BUS_PLATFORM) && (p->bus.id.plat->pdev)) {
+            struct pci_device *ud = p->bus.id.plat->pdev;
+            if (MATCH_PCI_DEVICES(ud, d))
+                return FALSE;
+        }
+#endif
     }
     return TRUE;
 }
@@ -1065,8 +1088,8 @@ xf86ConfigActivePciEntity(ScrnInfoPtr pScrn, int entityIndex,
     return TRUE;
 }
 
-static int
-videoPtrToDriverList(struct pci_device *dev,
+int
+xf86VideoPtrToDriverList(struct pci_device *dev,
                      char *returnList[], int returnListMax)
 {
     int i;
@@ -1249,8 +1272,8 @@ xchomp(char *line)
  * don't export their PCI ID's properly. If distros don't end up using this
  * feature it can and should be removed because the symbol-based resolution
  * scheme should be the primary one */
-static void
-matchDriverFromFiles(char **matches, uint16_t match_vendor, uint16_t match_chip)
+void
+xf86MatchDriverFromFiles(char **matches, uint16_t match_vendor, uint16_t match_chip)
 {
     DIR *idsdir;
     FILE *fp;
@@ -1379,7 +1402,7 @@ xf86PciMatchDriver(char *matches[], int nmatches)
     pci_iterator_destroy(iter);
 #ifdef __linux__
     if (info)
-        matchDriverFromFiles(matches, info->vendor_id, info->device_id);
+        xf86MatchDriverFromFiles(matches, info->vendor_id, info->device_id);
 #endif
 
     for (i = 0; (i < nmatches) && (matches[i]); i++) {
@@ -1387,7 +1410,7 @@ xf86PciMatchDriver(char *matches[], int nmatches)
     }
 
     if ((info != NULL) && (i < nmatches)) {
-        i += videoPtrToDriverList(info, &(matches[i]), nmatches - i);
+        i += xf86VideoPtrToDriverList(info, &(matches[i]), nmatches - i);
     }
 
     return i;

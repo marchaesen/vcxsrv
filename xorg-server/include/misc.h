@@ -83,10 +83,14 @@ OF THIS SOFTWARE.
 #ifndef MAXSCREENS
 #define MAXSCREENS	16
 #endif
+#ifndef MAXGPUSCREENS
+#define MAXGPUSCREENS	16
+#endif
 #define MAXCLIENTS	256
 #define MAXEXTENSIONS   128
 #define MAXFORMATS	8
 #define MAXDEVICES	40      /* input devices */
+#define GPU_SCREEN_OFFSET 256
 
 /* 128 event opcodes for core + extension events, excluding GE */
 #define MAXEVENTS       128

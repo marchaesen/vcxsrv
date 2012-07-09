@@ -749,6 +749,645 @@ LEAF_MIPS_DSPR2(pixman_composite_over_n_8_0565_asm_mips)
 
 END(pixman_composite_over_n_8_0565_asm_mips)
 
+LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_8888_8888_SRC_asm_mips)
+/*
+ * a0     - *dst
+ * a1     - *src_top
+ * a2     - *src_bottom
+ * a3     - w
+ * 16(sp) - wt
+ * 20(sp) - wb
+ * 24(sp) - vx
+ * 28(sp) - unit_x
+ */
+
+    beqz     a3, 1f
+     nop
+
+    SAVE_REGS_ON_STACK 20, v0, s0, s1, s2, s3, s4, s5, s6, s7
+
+    lw       s0, 36(sp)     /* s0 = wt */
+    lw       s1, 40(sp)     /* s1 = wb */
+    lw       s2, 44(sp)     /* s2 = vx */
+    lw       s3, 48(sp)     /* s3 = unit_x */
+    li       v0, BILINEAR_INTERPOLATION_RANGE
+
+    sll      s0, s0, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+    sll      s1, s1, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+0:
+    andi     t4, s2, 0xffff /* t4 = (short)vx */
+    srl      t4, t4, (16 - BILINEAR_INTERPOLATION_BITS) /* t4 = vx >> 8 */
+    subu     t5, v0, t4     /* t5 = ( 256 - (vx>>8)) */
+
+    mul      s4, s0, t5     /* s4 = wt*(256-(vx>>8)) */
+    mul      s5, s0, t4     /* s5 = wt*(vx>>8) */
+    mul      s6, s1, t5     /* s6 = wb*(256-(vx>>8)) */
+    mul      s7, s1, t4     /* s7 = wb*(vx>>8) */
+
+    sra      t9, s2, 16
+    sll      t9, t9, 2
+    addiu    t8, t9, 4
+    lwx      t0, t9(a1)     /* t0 = tl */
+    lwx      t1, t8(a1)     /* t1 = tr */
+    addiu    a3, a3, -1
+    lwx      t2, t9(a2)     /* t2 = bl */
+    lwx      t3, t8(a2)     /* t3 = br */
+
+    BILINEAR_INTERPOLATE_SINGLE_PIXEL t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, s4, s5, s6, s7
+
+    addu     s2, s2, s3     /* vx += unit_x; */
+    sw       t0, 0(a0)
+    bnez     a3, 0b
+     addiu   a0, a0, 4
+
+    RESTORE_REGS_FROM_STACK 20, v0, s0, s1, s2, s3, s4, s5, s6, s7
+1:
+    j        ra
+     nop
+
+END(pixman_scaled_bilinear_scanline_8888_8888_SRC_asm_mips)
+
+LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_8888_0565_SRC_asm_mips)
+/*
+ * a0     - *dst
+ * a1     - *src_top
+ * a2     - *src_bottom
+ * a3     - w
+ * 16(sp) - wt
+ * 20(sp) - wb
+ * 24(sp) - vx
+ * 28(sp) - unit_x
+ */
+
+    beqz     a3, 1f
+     nop
+
+    SAVE_REGS_ON_STACK 20, v0, s0, s1, s2, s3, s4, s5, s6, s7
+
+    lw       s0, 36(sp)     /* s0 = wt */
+    lw       s1, 40(sp)     /* s1 = wb */
+    lw       s2, 44(sp)     /* s2 = vx */
+    lw       s3, 48(sp)     /* s3 = unit_x */
+    li       v0, BILINEAR_INTERPOLATION_RANGE
+
+    sll      s0, s0, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+    sll      s1, s1, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+0:
+    andi     t4, s2, 0xffff /* t4 = (short)vx */
+    srl      t4, t4, (16 - BILINEAR_INTERPOLATION_BITS) /* t4 = vx >> 8 */
+    subu     t5, v0, t4     /* t5 = ( 256 - (vx>>8)) */
+
+    mul      s4, s0, t5     /* s4 = wt*(256-(vx>>8)) */
+    mul      s5, s0, t4     /* s5 = wt*(vx>>8) */
+    mul      s6, s1, t5     /* s6 = wb*(256-(vx>>8)) */
+    mul      s7, s1, t4     /* s7 = wb*(vx>>8) */
+
+    sra      t9, s2, 16
+    sll      t9, t9, 2
+    addiu    t8, t9, 4
+    lwx      t0, t9(a1)     /* t0 = tl */
+    lwx      t1, t8(a1)     /* t1 = tr */
+    addiu    a3, a3, -1
+    lwx      t2, t9(a2)     /* t2 = bl */
+    lwx      t3, t8(a2)     /* t3 = br */
+
+    BILINEAR_INTERPOLATE_SINGLE_PIXEL t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, s4, s5, s6, s7
+    CONVERT_1x8888_TO_1x0565 t0, t1, t2, t3
+
+    addu     s2, s2, s3     /* vx += unit_x; */
+    sh       t1, 0(a0)
+    bnez     a3, 0b
+     addiu   a0, a0, 2
+
+    RESTORE_REGS_FROM_STACK 20, v0, s0, s1, s2, s3, s4, s5, s6, s7
+1:
+    j        ra
+     nop
+
+END(pixman_scaled_bilinear_scanline_8888_0565_SRC_asm_mips)
+
+LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_0565_8888_SRC_asm_mips)
+/*
+ * a0     - *dst
+ * a1     - *src_top
+ * a2     - *src_bottom
+ * a3     - w
+ * 16(sp) - wt
+ * 20(sp) - wb
+ * 24(sp) - vx
+ * 28(sp) - unit_x
+ */
+
+    beqz     a3, 1f
+     nop
+
+    SAVE_REGS_ON_STACK 28, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8
+
+    lw       s0, 44(sp)     /* s0 = wt */
+    lw       s1, 48(sp)     /* s1 = wb */
+    lw       s2, 52(sp)     /* s2 = vx */
+    lw       s3, 56(sp)     /* s3 = unit_x */
+    li       v0, BILINEAR_INTERPOLATION_RANGE
+    li       v1, 0x07e007e0
+    li       s8, 0x001f001f
+
+    sll      s0, s0, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+    sll      s1, s1, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+0:
+    andi     t4, s2, 0xffff /* t4 = (short)vx */
+    srl      t4, t4, (16 - BILINEAR_INTERPOLATION_BITS) /* t4 = vx >> 8 */
+    subu     t5, v0, t4     /* t5 = ( 256 - (vx>>8)) */
+
+    mul      s4, s0, t5     /* s4 = wt*(256-(vx>>8)) */
+    mul      s5, s0, t4     /* s5 = wt*(vx>>8) */
+    mul      s6, s1, t5     /* s6 = wb*(256-(vx>>8)) */
+    mul      s7, s1, t4     /* s7 = wb*(vx>>8) */
+
+    sra      t9, s2, 16
+    sll      t9, t9, 1
+    addiu    t8, t9, 2
+    lhx      t0, t9(a1)     /* t0 = tl */
+    lhx      t1, t8(a1)     /* t1 = tr */
+    andi     t1, t1, 0xffff
+    addiu    a3, a3, -1
+    lhx      t2, t9(a2)     /* t2 = bl */
+    lhx      t3, t8(a2)     /* t3 = br */
+    andi     t3, t3, 0xffff
+
+    CONVERT_2x0565_TO_2x8888 t0, t1, t0, t1, v1, s8, t4, t5, t6, t7
+    CONVERT_2x0565_TO_2x8888 t2, t3, t2, t3, v1, s8, t4, t5, t6, t7
+    BILINEAR_INTERPOLATE_SINGLE_PIXEL t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, s4, s5, s6, s7
+
+    addu     s2, s2, s3     /* vx += unit_x; */
+    sw       t0, 0(a0)
+    bnez     a3, 0b
+     addiu   a0, a0, 4
+
+    RESTORE_REGS_FROM_STACK 28, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8
+1:
+    j        ra
+     nop
+
+END(pixman_scaled_bilinear_scanline_0565_8888_SRC_asm_mips)
+
+LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_0565_0565_SRC_asm_mips)
+/*
+ * a0     - *dst
+ * a1     - *src_top
+ * a2     - *src_bottom
+ * a3     - w
+ * 16(sp) - wt
+ * 20(sp) - wb
+ * 24(sp) - vx
+ * 28(sp) - unit_x
+ */
+
+    beqz     a3, 1f
+     nop
+
+    SAVE_REGS_ON_STACK 28, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8
+
+    lw       s0, 44(sp)     /* s0 = wt */
+    lw       s1, 48(sp)     /* s1 = wb */
+    lw       s2, 52(sp)     /* s2 = vx */
+    lw       s3, 56(sp)     /* s3 = unit_x */
+    li       v0, BILINEAR_INTERPOLATION_RANGE
+    li       v1, 0x07e007e0
+    li       s8, 0x001f001f
+
+    sll      s0, s0, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+    sll      s1, s1, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+0:
+    andi     t4, s2, 0xffff /* t4 = (short)vx */
+    srl      t4, t4, (16 - BILINEAR_INTERPOLATION_BITS) /* t4 = vx >> 8 */
+    subu     t5, v0, t4     /* t5 = ( 256 - (vx>>8)) */
+
+    mul      s4, s0, t5     /* s4 = wt*(256-(vx>>8)) */
+    mul      s5, s0, t4     /* s5 = wt*(vx>>8) */
+    mul      s6, s1, t5     /* s6 = wb*(256-(vx>>8)) */
+    mul      s7, s1, t4     /* s7 = wb*(vx>>8) */
+
+    sra      t9, s2, 16
+    sll      t9, t9, 1
+    addiu    t8, t9, 2
+    lhx      t0, t9(a1)     /* t0 = tl */
+    lhx      t1, t8(a1)     /* t1 = tr */
+    andi     t1, t1, 0xffff
+    addiu    a3, a3, -1
+    lhx      t2, t9(a2)     /* t2 = bl */
+    lhx      t3, t8(a2)     /* t3 = br */
+    andi     t3, t3, 0xffff
+
+    CONVERT_2x0565_TO_2x8888 t0, t1, t0, t1, v1, s8, t4, t5, t6, t7
+    CONVERT_2x0565_TO_2x8888 t2, t3, t2, t3, v1, s8, t4, t5, t6, t7
+    BILINEAR_INTERPOLATE_SINGLE_PIXEL t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, s4, s5, s6, s7
+    CONVERT_1x8888_TO_1x0565 t0, t1, t2, t3
+
+    addu     s2, s2, s3     /* vx += unit_x; */
+    sh       t1, 0(a0)
+    bnez     a3, 0b
+     addiu   a0, a0, 2
+
+    RESTORE_REGS_FROM_STACK 28, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8
+1:
+    j        ra
+     nop
+
+END(pixman_scaled_bilinear_scanline_0565_0565_SRC_asm_mips)
+
+LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_8888_8888_OVER_asm_mips)
+/*
+ * a0     - *dst
+ * a1     - *src_top
+ * a2     - *src_bottom
+ * a3     - w
+ * 16(sp) - wt
+ * 20(sp) - wb
+ * 24(sp) - vx
+ * 28(sp) - unit_x
+ */
+
+    beqz     a3, 1f
+     nop
+
+    SAVE_REGS_ON_STACK 24, v0, s0, s1, s2, s3, s4, s5, s6, s7, s8
+
+    lw       s0, 40(sp)     /* s0 = wt */
+    lw       s1, 44(sp)     /* s1 = wb */
+    lw       s2, 48(sp)     /* s2 = vx */
+    lw       s3, 52(sp)     /* s3 = unit_x */
+    li       v0, BILINEAR_INTERPOLATION_RANGE
+    li       s8, 0x00ff00ff
+
+    sll      s0, s0, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+    sll      s1, s1, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+0:
+    andi     t4, s2, 0xffff /* t4 = (short)vx */
+    srl      t4, t4, (16 - BILINEAR_INTERPOLATION_BITS) /* t4 = vx >> 8 */
+    subu     t5, v0, t4     /* t5 = ( 256 - (vx>>8)) */
+
+    mul      s4, s0, t5     /* s4 = wt*(256-(vx>>8)) */
+    mul      s5, s0, t4     /* s5 = wt*(vx>>8) */
+    mul      s6, s1, t5     /* s6 = wb*(256-(vx>>8)) */
+    mul      s7, s1, t4     /* s7 = wb*(vx>>8) */
+
+    sra      t9, s2, 16
+    sll      t9, t9, 2
+    addiu    t8, t9, 4
+    lwx      t0, t9(a1)     /* t0 = tl */
+    lwx      t1, t8(a1)     /* t1 = tr */
+    addiu    a3, a3, -1
+    lwx      t2, t9(a2)     /* t2 = bl */
+    lwx      t3, t8(a2)     /* t3 = br */
+
+    BILINEAR_INTERPOLATE_SINGLE_PIXEL t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, s4, s5, s6, s7
+    lw       t1, 0(a0)      /* t1 = dest */
+    OVER_8888_8888 t0, t1, t2, s8, t3, t4, t5, t6
+
+    addu     s2, s2, s3     /* vx += unit_x; */
+    sw       t2, 0(a0)
+    bnez     a3, 0b
+     addiu   a0, a0, 4
+
+    RESTORE_REGS_FROM_STACK 24, v0, s0, s1, s2, s3, s4, s5, s6, s7, s8
+1:
+    j        ra
+     nop
+
+END(pixman_scaled_bilinear_scanline_8888_8888_OVER_asm_mips)
+
+LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_8888_8888_ADD_asm_mips)
+/*
+ * a0     - *dst
+ * a1     - *src_top
+ * a2     - *src_bottom
+ * a3     - w
+ * 16(sp) - wt
+ * 20(sp) - wb
+ * 24(sp) - vx
+ * 28(sp) - unit_x
+ */
+
+    beqz         a3, 1f
+     nop
+
+    SAVE_REGS_ON_STACK 20, v0, s0, s1, s2, s3, s4, s5, s6, s7
+
+    lw           s0, 36(sp)     /* s0 = wt */
+    lw           s1, 40(sp)     /* s1 = wb */
+    lw           s2, 44(sp)     /* s2 = vx */
+    lw           s3, 48(sp)     /* s3 = unit_x */
+    li           v0, BILINEAR_INTERPOLATION_RANGE
+
+    sll          s0, s0, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+    sll          s1, s1, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+0:
+    andi         t4, s2, 0xffff /* t4 = (short)vx */
+    srl          t4, t4, (16 - BILINEAR_INTERPOLATION_BITS) /* t4 = vx >> 8 */
+    subu         t5, v0, t4     /* t5 = ( 256 - (vx>>8)) */
+
+    mul          s4, s0, t5     /* s4 = wt*(256-(vx>>8)) */
+    mul          s5, s0, t4     /* s5 = wt*(vx>>8) */
+    mul          s6, s1, t5     /* s6 = wb*(256-(vx>>8)) */
+    mul          s7, s1, t4     /* s7 = wb*(vx>>8) */
+
+    sra          t9, s2, 16
+    sll          t9, t9, 2
+    addiu        t8, t9, 4
+    lwx          t0, t9(a1)     /* t0 = tl */
+    lwx          t1, t8(a1)     /* t1 = tr */
+    addiu        a3, a3, -1
+    lwx          t2, t9(a2)     /* t2 = bl */
+    lwx          t3, t8(a2)     /* t3 = br */
+
+    BILINEAR_INTERPOLATE_SINGLE_PIXEL t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, s4, s5, s6, s7
+    lw           t1, 0(a0)
+    addu_s.qb    t2, t0, t1
+
+    addu         s2, s2, s3     /* vx += unit_x; */
+    sw           t2, 0(a0)
+    bnez         a3, 0b
+     addiu       a0, a0, 4
+
+    RESTORE_REGS_FROM_STACK 20, v0, s0, s1, s2, s3, s4, s5, s6, s7
+1:
+    j            ra
+     nop
+
+END(pixman_scaled_bilinear_scanline_8888_8888_ADD_asm_mips)
+
+LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_8888_8_8888_SRC_asm_mips)
+/*
+ * a0     - *dst
+ * a1     - *mask
+ * a2     - *src_top
+ * a3     - *src_bottom
+ * 16(sp) - wt
+ * 20(sp) - wb
+ * 24(sp) - vx
+ * 28(sp) - unit_x
+ * 32(sp) - w
+ */
+
+    lw       v1, 32(sp)
+    beqz     v1, 1f
+     nop
+
+    SAVE_REGS_ON_STACK 28, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8
+
+    lw       s0, 44(sp)        /* s0 = wt */
+    lw       s1, 48(sp)        /* s1 = wb */
+    lw       s2, 52(sp)        /* s2 = vx */
+    lw       s3, 56(sp)        /* s3 = unit_x */
+    li       v0, BILINEAR_INTERPOLATION_RANGE
+    li       s8, 0x00ff00ff
+
+    sll      s0, s0, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+    sll      s1, s1, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+0:
+    andi     t4, s2, 0xffff    /* t4 = (short)vx */
+    srl      t4, t4, (16 - BILINEAR_INTERPOLATION_BITS) /* t4 = vx >> 8 */
+    subu     t5, v0, t4        /* t5 = ( 256 - (vx>>8)) */
+
+    mul      s4, s0, t5        /* s4 = wt*(256-(vx>>8)) */
+    mul      s5, s0, t4        /* s5 = wt*(vx>>8) */
+    mul      s6, s1, t5        /* s6 = wb*(256-(vx>>8)) */
+    mul      s7, s1, t4        /* s7 = wb*(vx>>8) */
+
+    sra      t9, s2, 16
+    sll      t9, t9, 2
+    addiu    t8, t9, 4
+    lwx      t0, t9(a2)        /* t0 = tl */
+    lwx      t1, t8(a2)        /* t1 = tr */
+    addiu    v1, v1, -1
+    lwx      t2, t9(a3)        /* t2 = bl */
+    lwx      t3, t8(a3)        /* t3 = br */
+
+    BILINEAR_INTERPOLATE_SINGLE_PIXEL t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, s4, s5, s6, s7
+    lbu      t1, 0(a1)         /* t1 = mask */
+    addiu    a1, a1, 1
+    MIPS_UN8x4_MUL_UN8 t0, t1, t0, s8, t2, t3, t4
+
+    addu     s2, s2, s3        /* vx += unit_x; */
+    sw       t0, 0(a0)
+    bnez     v1, 0b
+     addiu   a0, a0, 4
+
+    RESTORE_REGS_FROM_STACK 28, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8
+1:
+    j        ra
+     nop
+
+END(pixman_scaled_bilinear_scanline_8888_8_8888_SRC_asm_mips)
+
+LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_8888_8_0565_SRC_asm_mips)
+/*
+ * a0     - *dst
+ * a1     - *mask
+ * a2     - *src_top
+ * a3     - *src_bottom
+ * 16(sp) - wt
+ * 20(sp) - wb
+ * 24(sp) - vx
+ * 28(sp) - unit_x
+ * 32(sp) - w
+ */
+
+    lw       v1, 32(sp)
+    beqz     v1, 1f
+     nop
+
+    SAVE_REGS_ON_STACK 28, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8
+
+    lw       s0, 44(sp)        /* s0 = wt */
+    lw       s1, 48(sp)        /* s1 = wb */
+    lw       s2, 52(sp)        /* s2 = vx */
+    lw       s3, 56(sp)        /* s3 = unit_x */
+    li       v0, BILINEAR_INTERPOLATION_RANGE
+    li       s8, 0x00ff00ff
+
+    sll      s0, s0, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+    sll      s1, s1, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+0:
+    andi     t4, s2, 0xffff    /* t4 = (short)vx */
+    srl      t4, t4, (16 - BILINEAR_INTERPOLATION_BITS) /* t4 = vx >> 8 */
+    subu     t5, v0, t4        /* t5 = ( 256 - (vx>>8)) */
+
+    mul      s4, s0, t5        /* s4 = wt*(256-(vx>>8)) */
+    mul      s5, s0, t4        /* s5 = wt*(vx>>8) */
+    mul      s6, s1, t5        /* s6 = wb*(256-(vx>>8)) */
+    mul      s7, s1, t4        /* s7 = wb*(vx>>8) */
+
+    sra      t9, s2, 16
+    sll      t9, t9, 2
+    addiu    t8, t9, 4
+    lwx      t0, t9(a2)        /* t0 = tl */
+    lwx      t1, t8(a2)        /* t1 = tr */
+    addiu    v1, v1, -1
+    lwx      t2, t9(a3)        /* t2 = bl */
+    lwx      t3, t8(a3)        /* t3 = br */
+
+    BILINEAR_INTERPOLATE_SINGLE_PIXEL t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, s4, s5, s6, s7
+    lbu      t1, 0(a1)         /* t1 = mask */
+    addiu    a1, a1, 1
+    MIPS_UN8x4_MUL_UN8 t0, t1, t0, s8, t2, t3, t4
+    CONVERT_1x8888_TO_1x0565 t0, t1, t2, t3
+
+    addu     s2, s2, s3        /* vx += unit_x; */
+    sh       t1, 0(a0)
+    bnez     v1, 0b
+     addiu   a0, a0, 2
+
+    RESTORE_REGS_FROM_STACK 28, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8
+1:
+    j        ra
+     nop
+
+END(pixman_scaled_bilinear_scanline_8888_8_0565_SRC_asm_mips)
+
+LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_0565_8_x888_SRC_asm_mips)
+/*
+ * a0     - *dst
+ * a1     - *mask
+ * a2     - *src_top
+ * a3     - *src_bottom
+ * 16(sp) - wt
+ * 20(sp) - wb
+ * 24(sp) - vx
+ * 28(sp) - unit_x
+ * 32(sp) - w
+ */
+
+    lw       t0, 32(sp)
+    beqz     t0, 1f
+     nop
+
+    SAVE_REGS_ON_STACK 32, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8, ra
+
+    lw       s0, 48(sp)        /* s0 = wt */
+    lw       s1, 52(sp)        /* s1 = wb */
+    lw       s2, 56(sp)        /* s2 = vx */
+    lw       s3, 60(sp)        /* s3 = unit_x */
+    lw       ra, 64(sp)        /* ra = w */
+    li       v0, 0x00ff00ff
+    li       v1, 0x07e007e0
+    li       s8, 0x001f001f
+
+    sll      s0, s0, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+    sll      s1, s1, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+0:
+    andi     t4, s2, 0xffff    /* t4 = (short)vx */
+    srl      t4, t4, (16 - BILINEAR_INTERPOLATION_BITS) /* t4 = vx >> 8 */
+    li       t5, BILINEAR_INTERPOLATION_RANGE
+    subu     t5, t5, t4        /* t5 = ( 256 - (vx>>8)) */
+
+    mul      s4, s0, t5        /* s4 = wt*(256-(vx>>8)) */
+    mul      s5, s0, t4        /* s5 = wt*(vx>>8) */
+    mul      s6, s1, t5        /* s6 = wb*(256-(vx>>8)) */
+    mul      s7, s1, t4        /* s7 = wb*(vx>>8) */
+
+    sra      t9, s2, 16
+    sll      t9, t9, 1
+    addiu    t8, t9, 2
+    lhx      t0, t9(a2)        /* t0 = tl */
+    lhx      t1, t8(a2)        /* t1 = tr */
+    andi     t1, t1, 0xffff
+    addiu    ra, ra, -1
+    lhx      t2, t9(a3)        /* t2 = bl */
+    lhx      t3, t8(a3)        /* t3 = br */
+    andi     t3, t3, 0xffff
+
+    CONVERT_2x0565_TO_2x8888 t0, t1, t0, t1, v1, s8, t4, t5, t6, t7
+    CONVERT_2x0565_TO_2x8888 t2, t3, t2, t3, v1, s8, t4, t5, t6, t7
+    BILINEAR_INTERPOLATE_SINGLE_PIXEL t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, s4, s5, s6, s7
+    lbu      t1, 0(a1)         /* t1 = mask */
+    addiu    a1, a1, 1
+    MIPS_UN8x4_MUL_UN8 t0, t1, t0, v0, t2, t3, t4
+
+    addu     s2, s2, s3        /* vx += unit_x; */
+    sw       t0, 0(a0)
+    bnez     ra, 0b
+     addiu   a0, a0, 4
+
+    RESTORE_REGS_FROM_STACK 32, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8, ra
+1:
+    j        ra
+     nop
+
+END(pixman_scaled_bilinear_scanline_0565_8_x888_SRC_asm_mips)
+
+LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_0565_8_0565_SRC_asm_mips)
+/*
+ * a0     - *dst
+ * a1     - *mask
+ * a2     - *src_top
+ * a3     - *src_bottom
+ * 16(sp) - wt
+ * 20(sp) - wb
+ * 24(sp) - vx
+ * 28(sp) - unit_x
+ * 32(sp) - w
+ */
+
+    lw       t0, 32(sp)
+    beqz     t0, 1f
+     nop
+
+    SAVE_REGS_ON_STACK 32, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8, ra
+
+    lw       s0, 48(sp)        /* s0 = wt */
+    lw       s1, 52(sp)        /* s1 = wb */
+    lw       s2, 56(sp)        /* s2 = vx */
+    lw       s3, 60(sp)        /* s3 = unit_x */
+    lw       ra, 64(sp)        /* ra = w */
+    li       v0, 0x00ff00ff
+    li       v1, 0x07e007e0
+    li       s8, 0x001f001f
+
+    sll      s0, s0, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+    sll      s1, s1, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+0:
+    andi     t4, s2, 0xffff    /* t4 = (short)vx */
+    srl      t4, t4, (16 - BILINEAR_INTERPOLATION_BITS) /* t4 = vx >> 8 */
+    li       t5, BILINEAR_INTERPOLATION_RANGE
+    subu     t5, t5, t4        /* t5 = ( 256 - (vx>>8)) */
+
+    mul      s4, s0, t5        /* s4 = wt*(256-(vx>>8)) */
+    mul      s5, s0, t4        /* s5 = wt*(vx>>8) */
+    mul      s6, s1, t5        /* s6 = wb*(256-(vx>>8)) */
+    mul      s7, s1, t4        /* s7 = wb*(vx>>8) */
+
+    sra      t9, s2, 16
+    sll      t9, t9, 1
+    addiu    t8, t9, 2
+    lhx      t0, t9(a2)        /* t0 = tl */
+    lhx      t1, t8(a2)        /* t1 = tr */
+    andi     t1, t1, 0xffff
+    addiu    ra, ra, -1
+    lhx      t2, t9(a3)        /* t2 = bl */
+    lhx      t3, t8(a3)        /* t3 = br */
+    andi     t3, t3, 0xffff
+
+    CONVERT_2x0565_TO_2x8888 t0, t1, t0, t1, v1, s8, t4, t5, t6, t7
+    CONVERT_2x0565_TO_2x8888 t2, t3, t2, t3, v1, s8, t4, t5, t6, t7
+    BILINEAR_INTERPOLATE_SINGLE_PIXEL t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, s4, s5, s6, s7
+    lbu      t1, 0(a1)         /* t1 = mask */
+    addiu    a1, a1, 1
+    MIPS_UN8x4_MUL_UN8 t0, t1, t0, v0, t2, t3, t4
+    CONVERT_1x8888_TO_1x0565 t0, t1, t2, t3
+
+    addu     s2, s2, s3        /* vx += unit_x; */
+    sh       t1, 0(a0)
+    bnez     ra, 0b
+     addiu   a0, a0, 2
+
+    RESTORE_REGS_FROM_STACK 32, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8, ra
+1:
+    j        ra
+     nop
+
+END(pixman_scaled_bilinear_scanline_0565_8_0565_SRC_asm_mips)
+
 LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_8888_8_8888_OVER_asm_mips)
 /*
  * a0     - dst        (a8r8g8b8)
@@ -815,3 +1454,68 @@ LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_8888_8_8888_OVER_asm_mips)
      nop
 
 END(pixman_scaled_bilinear_scanline_8888_8_8888_OVER_asm_mips)
+
+LEAF_MIPS_DSPR2(pixman_scaled_bilinear_scanline_8888_8_8888_ADD_asm_mips)
+/*
+ * a0     - *dst
+ * a1     - *mask
+ * a2     - *src_top
+ * a3     - *src_bottom
+ * 16(sp) - wt
+ * 20(sp) - wb
+ * 24(sp) - vx
+ * 28(sp) - unit_x
+ * 32(sp) - w
+ */
+
+    lw       v1, 32(sp)
+    beqz     v1, 1f
+     nop
+
+    SAVE_REGS_ON_STACK 28, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8
+
+    lw       s0, 44(sp)        /* s0 = wt */
+    lw       s1, 48(sp)        /* s1 = wb */
+    lw       s2, 52(sp)        /* s2 = vx */
+    lw       s3, 56(sp)        /* s3 = unit_x */
+    li       v0, BILINEAR_INTERPOLATION_RANGE
+    li       s8, 0x00ff00ff
+
+    sll      s0, s0, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+    sll      s1, s1, (2 * (8 - BILINEAR_INTERPOLATION_BITS))
+0:
+    andi     t4, s2, 0xffff    /* t4 = (short)vx */
+    srl      t4, t4, (16 - BILINEAR_INTERPOLATION_BITS) /* t4 = vx >> 8 */
+    subu     t5, v0, t4        /* t5 = ( 256 - (vx>>8)) */
+
+    mul      s4, s0, t5        /* s4 = wt*(256-(vx>>8)) */
+    mul      s5, s0, t4        /* s5 = wt*(vx>>8) */
+    mul      s6, s1, t5        /* s6 = wb*(256-(vx>>8)) */
+    mul      s7, s1, t4        /* s7 = wb*(vx>>8) */
+
+    sra      t9, s2, 16
+    sll      t9, t9, 2
+    addiu    t8, t9, 4
+    lwx      t0, t9(a2)        /* t0 = tl */
+    lwx      t1, t8(a2)        /* t1 = tr */
+    addiu    v1, v1, -1
+    lwx      t2, t9(a3)        /* t2 = bl */
+    lwx      t3, t8(a3)        /* t3 = br */
+
+    BILINEAR_INTERPOLATE_SINGLE_PIXEL t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, s4, s5, s6, s7
+    lbu      t1, 0(a1)         /* t1 = mask */
+    lw       t2, 0(a0)         /* t2 = dst */
+    addiu    a1, a1, 1
+    MIPS_UN8x4_MUL_UN8_ADD_UN8x4 t0, t1, t2, t0, s8, t3, t4, t5
+
+    addu     s2, s2, s3        /* vx += unit_x; */
+    sw       t0, 0(a0)
+    bnez     v1, 0b
+     addiu   a0, a0, 4
+
+    RESTORE_REGS_FROM_STACK 28, v0, v1, s0, s1, s2, s3, s4, s5, s6, s7, s8
+1:
+    j        ra
+     nop
+
+END(pixman_scaled_bilinear_scanline_8888_8_8888_ADD_asm_mips)

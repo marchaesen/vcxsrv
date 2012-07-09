@@ -51,6 +51,7 @@ DevPrivateKeyRec xf86CreateRootWindowKeyRec;
 DevPrivateKeyRec xf86ScreenKeyRec;
 
 ScrnInfoPtr *xf86Screens = NULL;        /* List of ScrnInfos */
+ScrnInfoPtr *xf86GPUScreens = NULL;        /* List of ScrnInfos */
 
 const unsigned char byte_reversed[256] = {
     0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0,
@@ -125,11 +126,16 @@ xf86InfoRec xf86Info = {
 #if defined(CONFIG_HAL) || defined(CONFIG_UDEV) || defined(CONFIG_WSCONS)
     .forceInputDevices = FALSE,
     .autoAddDevices = TRUE,
-    .autoEnableDevices = TRUE
+    .autoEnableDevices = TRUE,
 #else
     .forceInputDevices = TRUE,
     .autoAddDevices = FALSE,
-    .autoEnableDevices = FALSE
+    .autoEnableDevices = FALSE,
+#endif
+#if defined(CONFIG_UDEV_KMS)
+    .autoAddGPU = TRUE,
+#else
+    .autoAddGPU = FALSE,
 #endif
 };
 
@@ -153,6 +159,7 @@ int xf86NumDrivers = 0;
 InputDriverPtr *xf86InputDriverList = NULL;
 int xf86NumInputDrivers = 0;
 int xf86NumScreens = 0;
+int xf86NumGPUScreens = 0;
 
 const char *xf86VisualNames[] = {
     "StaticGray",

@@ -127,6 +127,55 @@ mips_composite_##name (pixman_implementation_t *imp,                \
     }                                                               \
 }
 
+/****************************************************************************/
+
+#define PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_DST(flags, name, op,            \
+                                                 src_type, dst_type)         \
+void                                                                         \
+pixman_scaled_bilinear_scanline_##name##_##op##_asm_mips(                    \
+                                             dst_type *       dst,           \
+                                             const src_type * src_top,       \
+                                             const src_type * src_bottom,    \
+                                             int32_t          w,             \
+                                             int              wt,            \
+                                             int              wb,            \
+                                             pixman_fixed_t   vx,            \
+                                             pixman_fixed_t   unit_x);       \
+static force_inline void                                                     \
+scaled_bilinear_scanline_mips_##name##_##op (dst_type *       dst,           \
+                                             const uint32_t * mask,          \
+                                             const src_type * src_top,       \
+                                             const src_type * src_bottom,    \
+                                             int32_t          w,             \
+                                             int              wt,            \
+                                             int              wb,            \
+                                             pixman_fixed_t   vx,            \
+                                             pixman_fixed_t   unit_x,        \
+                                             pixman_fixed_t   max_vx,        \
+                                             pixman_bool_t    zero_src)      \
+{                                                                            \
+    if ((flags & SKIP_ZERO_SRC) && zero_src)                                 \
+        return;                                                              \
+    pixman_scaled_bilinear_scanline_##name##_##op##_asm_mips (dst, src_top,  \
+                                                              src_bottom, w, \
+                                                              wt, wb,        \
+                                                              vx, unit_x);   \
+}                                                                            \
+                                                                             \
+FAST_BILINEAR_MAINLOOP_COMMON (mips_##name##_cover_##op,                     \
+                       scaled_bilinear_scanline_mips_##name##_##op,          \
+                       src_type, uint32_t, dst_type, COVER, FLAG_NONE)       \
+FAST_BILINEAR_MAINLOOP_COMMON (mips_##name##_none_##op,                      \
+                       scaled_bilinear_scanline_mips_##name##_##op,          \
+                       src_type, uint32_t, dst_type, NONE, FLAG_NONE)        \
+FAST_BILINEAR_MAINLOOP_COMMON (mips_##name##_pad_##op,                       \
+                       scaled_bilinear_scanline_mips_##name##_##op,          \
+                       src_type, uint32_t, dst_type, PAD, FLAG_NONE)         \
+FAST_BILINEAR_MAINLOOP_COMMON (mips_##name##_normal_##op,                    \
+                       scaled_bilinear_scanline_mips_##name##_##op,          \
+                       src_type, uint32_t, dst_type, NORMAL,                 \
+                       FLAG_NONE)
+
 /*****************************************************************************/
 
 #define PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_A8_DST(flags, name, op,          \

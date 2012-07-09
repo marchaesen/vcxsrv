@@ -723,7 +723,13 @@ static const struct {
     1920, 1200, 75, 0}, {
     1920, 1200, 85, 0}, {
     1920, 1440, 60, 0}, {
-1920, 1440, 75, 0},};
+    1920, 1440, 75, 0},
+        /* fill up last byte */
+    {
+    0,0,0,0}, {
+    0,0,0,0}, {
+    0,0,0,0}, {
+    0,0,0,0}, };
 
 static DisplayModePtr
 DDCModesFromEstIII(unsigned char *est)
@@ -732,10 +738,11 @@ DDCModesFromEstIII(unsigned char *est)
     int i, j, m;
 
     for (i = 0; i < 6; i++) {
-        for (j = 7; j > 0; j--) {
+        for (j = 7; j >= 0; j--) {
             if (est[i] & (1 << j)) {
                 m = (i * 8) + (7 - j);
-                modes = xf86ModesAdd(modes,
+                if (EstIIIModes[m].w)
+                    modes = xf86ModesAdd(modes,
                                      FindDMTMode(EstIIIModes[m].w,
                                                  EstIIIModes[m].h,
                                                  EstIIIModes[m].r,

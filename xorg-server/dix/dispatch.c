@@ -3724,32 +3724,20 @@ with its screen number, a pointer to its ScreenRec, argc, and argv.
 
 */
 
-int
-AddScreen(Bool (*pfnInit) (ScreenPtr /*pScreen */ ,
-                           int /*argc */ ,
-                           char **      /*argv */
-          ), int argc, char **argv)
+static int init_screen(ScreenPtr pScreen, int i, Bool gpu)
 {
-
-    int i;
     int scanlinepad, format, depth, bitsPerPixel, j, k;
-    ScreenPtr pScreen;
-
-    i = screenInfo.numScreens;
-    if (i == MAXSCREENS)
-        return -1;
-
-    pScreen = (ScreenPtr) calloc(1, sizeof(ScreenRec));
-    if (!pScreen)
-        return -1;
 
     dixInitScreenSpecificPrivates(pScreen);
 
     if (!dixAllocatePrivates(&pScreen->devPrivates, PRIVATE_SCREEN)) {
-        free(pScreen);
         return -1;
     }
     pScreen->myNum = i;
+    if (gpu) {
+        pScreen->myNum += GPU_SCREEN_OFFSET;
+        pScreen->isGPU = TRUE;
+    }
     pScreen->totalPixmapSize = 0;       /* computed in CreateScratchPixmapForScreen */
     pScreen->ClipNotify = 0;    /* for R4 ddx compatibility */
     pScreen->CreateScreenResources = 0;
@@ -3784,7 +3772,33 @@ AddScreen(Bool (*pfnInit) (ScreenPtr /*pScreen */ ,
             PixmapWidthPaddingInfo[depth].notPower2 = 0;
         }
     }
+    return 0;
+}
 
+int
+AddScreen(Bool (*pfnInit) (ScreenPtr /*pScreen */ ,
+                           int /*argc */ ,
+                           char **      /*argv */
+          ), int argc, char **argv)
+{
+
+    int i;
+    ScreenPtr pScreen;
+    Bool ret;
+
+    i = screenInfo.numScreens;
+    if (i == MAXSCREENS)
+        return -1;
+
+    pScreen = (ScreenPtr) calloc(1, sizeof(ScreenRec));
+    if (!pScreen)
+        return -1;
+
+    ret = init_screen(pScreen, i, FALSE);
+    if (ret != 0) {
+        free(pScreen);
+        return ret;
+    }
     /* This is where screen specific stuff gets initialized.  Load the
        screen structure, call the hardware, whatever.
        This is also where the default colormap should be allocated and
@@ -3809,4 +3823,69 @@ AddScreen(Bool (*pfnInit) (ScreenPtr /*pScreen */ ,
                                 0);
 
     return i;
+}
+
+int
+AddGPUScreen(Bool (*pfnInit) (ScreenPtr /*pScreen */ ,
+                              int /*argc */ ,
+                              char **      /*argv */
+                              ),
+             int argc, char **argv)
+{
+    int i;
+    ScreenPtr pScreen;
+    Bool ret;
+
+    i = screenInfo.numGPUScreens;
+    if (i == MAXGPUSCREENS)
+        return -1;
+
+    pScreen = (ScreenPtr) calloc(1, sizeof(ScreenRec));
+    if (!pScreen)
+        return -1;
+
+    ret = init_screen(pScreen, i, TRUE);
+    if (ret != 0) {
+        free(pScreen);
+        return ret;
+    }
+
+    /* This is where screen specific stuff gets initialized.  Load the
+       screen structure, call the hardware, whatever.
+       This is also where the default colormap should be allocated and
+       also pixel values for blackPixel, whitePixel, and the cursor
+       Note that InitScreen is NOT allowed to modify argc, argv, or
+       any of the strings pointed to by argv.  They may be passed to
+       multiple screens.
+     */
+    screenInfo.gpuscreens[i] = pScreen;
+    screenInfo.numGPUScreens++;
+    if (!(*pfnInit) (pScreen, argc, argv)) {
+        dixFreePrivates(pScreen->devPrivates, PRIVATE_SCREEN);
+        free(pScreen);
+        screenInfo.numGPUScreens--;
+        return -1;
+    }
+
+    update_desktop_dimensions();
+
+    return i;
+}
+
+void
+RemoveGPUScreen(ScreenPtr pScreen)
+{
+    int idx, j;
+    if (!pScreen->isGPU)
+        return;
+
+    idx = pScreen->myNum - GPU_SCREEN_OFFSET;
+    for (j = idx; j < screenInfo.numGPUScreens - 1; j++) {
+        screenInfo.gpuscreens[j] = screenInfo.gpuscreens[j + 1];
+        screenInfo.gpuscreens[j]->myNum = j + GPU_SCREEN_OFFSET;
+    }
+    screenInfo.numGPUScreens--;
+
+    free(pScreen);
+
 }

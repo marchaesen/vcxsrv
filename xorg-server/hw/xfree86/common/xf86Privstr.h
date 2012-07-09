@@ -110,6 +110,8 @@ typedef struct {
 
     Bool dri2;
     MessageType dri2From;
+
+    Bool autoAddGPU;
 } xf86InfoRec, *xf86InfoPtr;
 
 #ifdef DPMSExtension

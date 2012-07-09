@@ -22,9 +22,13 @@ if DGA
 DGASOURCES = xf86DGA.c
 endif
 
+if XORG_BUS_PLATFORM
+PLATSOURCES = xf86platformBus.c
+endif
+
 RANDRSOURCES = xf86RandR.c
 
-BUSSOURCES = xf86fbBus.c xf86noBus.c $(PCI_SOURCES) $(SBUS_SOURCES)
+BUSSOURCES = xf86fbBus.c xf86noBus.c $(PCI_SOURCES) $(SBUS_SOURCES) $(PLATSOURCES)
 
 MODEDEFSOURCES = $(srcdir)/vesamodes $(srcdir)/extramodes
 
@@ -56,7 +60,7 @@ sdk_HEADERS = compiler.h fourcc.h xf86.h xf86Module.h xf86Opt.h \
               xf86PciInfo.h xf86Priv.h xf86Privstr.h \
               xf86cmap.h xf86fbman.h xf86str.h xf86Xinput.h xisb.h \
               $(XVSDKINCS) $(XF86VMODE_SDK) xorgVersion.h \
-              xf86sbusBus.h xf86VGAarbiter.h xf86Optionstr.h
+              xf86sbusBus.h xf86VGAarbiter.h xf86Optionstr.h xf86platformBus.h
 
 DISTCLEANFILES = xf86Build.h
 CLEANFILES = $(BUILT_SOURCES)

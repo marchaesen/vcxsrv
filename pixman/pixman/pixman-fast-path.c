@@ -1280,8 +1280,9 @@ fast_composite_tiled_repeat (pixman_implementation_t *imp,
 
 	src_bpp = PIXMAN_FORMAT_BPP (src_image->bits.format);
 
-	if (src_image->bits.width < REPEAT_MIN_WIDTH &&
-	    (src_bpp == 32 || src_bpp == 16 || src_bpp == 8))
+	if (src_image->bits.width < REPEAT_MIN_WIDTH		&&
+	    (src_bpp == 32 || src_bpp == 16 || src_bpp == 8)	&&
+	    !src_image->bits.indexed)
 	{
 	    sx = src_x;
 	    sx = MOD (sx, src_image->bits.width);

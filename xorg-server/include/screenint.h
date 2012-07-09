@@ -62,6 +62,15 @@ extern _X_EXPORT int AddScreen(Bool (* /*pfnInit */ )(
                                int /*argc */ ,
                                char ** /*argv */ );
 
+
+extern _X_EXPORT int AddGPUScreen(Bool (*pfnInit) (ScreenPtr /*pScreen */ ,
+                                                   int /*argc */ ,
+                                                   char **      /*argv */
+                                                   ),
+                                  int argc, char **argv);
+
+extern _X_EXPORT void RemoveGPUScreen(ScreenPtr pScreen);
+
 typedef struct _ColormapRec *ColormapPtr;
 
 #endif                          /* SCREENINT_H */

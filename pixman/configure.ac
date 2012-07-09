@@ -351,12 +351,11 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 int main () {
     __m64 v = _mm_cvtsi32_si64 (1);
     __m64 w;
-    signed char x = 0;
 
     /* Some versions of clang will choke on K */
     asm ("pshufw %2, %1, %0\n\t"
         : "=y" (w)
-        : "y" (v), "K" (x)
+        : "y" (v), "K" (5)
     );
 
     return _mm_cvtsi64_si32 (v);

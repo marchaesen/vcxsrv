@@ -85,6 +85,14 @@ config_fini(void)
 #endif
 }
 
+void
+config_odev_probe(config_odev_probe_proc_ptr probe_callback)
+{
+#if defined(CONFIG_UDEV_KMS)
+    config_udev_odev_probe(probe_callback);
+#endif
+}
+
 static void
 remove_device(const char *backend, DeviceIntPtr dev)
 {
@@ -132,4 +140,52 @@ device_is_duplicate(const char *config_info)
     }
 
     return FALSE;
+}
+
+struct OdevAttributes *
+config_odev_allocate_attribute_list(void)
+{
+    struct OdevAttributes *attriblist;
+
+    attriblist = malloc(sizeof(struct OdevAttributes));
+    if (!attriblist)
+        return NULL;
+
+    xorg_list_init(&attriblist->list);
+    return attriblist;
+}
+
+void
+config_odev_free_attribute_list(struct OdevAttributes *attribs)
+{
+    config_odev_free_attributes(attribs);
+    free(attribs);
+}
+
+Bool
+config_odev_add_attribute(struct OdevAttributes *attribs, int attrib,
+                          const char *attrib_name)
+{
+    struct OdevAttribute *oa;
+
+    oa = malloc(sizeof(struct OdevAttribute));
+    if (!oa)
+        return FALSE;
+
+    oa->attrib_id = attrib;
+    oa->attrib_name = strdup(attrib_name);
+    xorg_list_append(&oa->member, &attribs->list);
+    return TRUE;
+}
+
+void
+config_odev_free_attributes(struct OdevAttributes *attribs)
+{
+    struct OdevAttribute *iter, *safe;
+
+    xorg_list_for_each_entry_safe(iter, safe, &attribs->list, member) {
+        xorg_list_del(&iter->member);
+        free(iter->attrib_name);
+        free(iter);
+    }
 }

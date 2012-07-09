@@ -566,6 +566,40 @@ LEAF_MIPS32R2(symbol)                                   \
     addu_s.qb              \out2_8888, \d2_8888,  \scratch2
 .endm
 
+/*
+ * OVER operation on single a8r8g8b8 source pixel (s_8888) and single a8r8g8b8
+ * destination pixel (d_8888). It also requires maskLSR needed for rounding
+ * process. maskLSR must have following value:
+ *   li       maskLSR, 0x00ff00ff
+ */
+.macro OVER_8888_8888 s_8888,   \
+                      d_8888,   \
+                      out_8888, \
+                      maskLSR,  \
+                      scratch1, scratch2, scratch3, scratch4
+    not                \scratch1, \s_8888
+    srl                \scratch1, \scratch1, 24
+
+    MIPS_UN8x4_MUL_UN8 \d_8888,   \scratch1, \
+                       \out_8888, \maskLSR, \
+                       \scratch2, \scratch3, \scratch4
+
+    addu_s.qb          \out_8888, \out_8888, \s_8888
+.endm
+
+.macro MIPS_UN8x4_MUL_UN8_ADD_UN8x4 s_8888,   \
+                                    m_8,      \
+                                    d_8888,   \
+                                    out_8888, \
+                                    maskLSR,  \
+                                    scratch1, scratch2, scratch3
+    MIPS_UN8x4_MUL_UN8 \s_8888, \m_8, \
+                       \out_8888, \maskLSR, \
+                       \scratch1, \scratch2, \scratch3
+
+    addu_s.qb          \out_8888, \out_8888, \d_8888
+.endm
+
 .macro BILINEAR_INTERPOLATE_SINGLE_PIXEL tl, tr, bl, br,         \
                                          scratch1, scratch2,     \
                                          alpha, red, green, blue \

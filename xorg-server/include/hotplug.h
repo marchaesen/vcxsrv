@@ -26,8 +26,47 @@
 #ifndef HOTPLUG_H
 #define HOTPLUG_H
 
+#include "list.h"
+
 extern _X_EXPORT void config_pre_init(void);
 extern _X_EXPORT void config_init(void);
 extern _X_EXPORT void config_fini(void);
 
+struct OdevAttribute {
+    struct xorg_list member;
+    int attrib_id;
+    char *attrib_name;
+};
+
+struct OdevAttributes {
+    struct xorg_list list;
+};
+
+struct OdevAttributes *
+config_odev_allocate_attribute_list(void);
+
+void
+config_odev_free_attribute_list(struct OdevAttributes *attribs);
+
+Bool
+config_odev_add_attribute(struct OdevAttributes *attribs, int attrib,
+                          const char *attrib_name);
+
+void
+config_odev_free_attributes(struct OdevAttributes *attribs);
+
+/* path to kernel device node - Linux e.g. /dev/dri/card0 */
+#define ODEV_ATTRIB_PATH 1
+/* system device path - Linux e.g. /sys/devices/pci0000:00/0000:00:01.0/0000:01:00.0/drm/card1 */
+#define ODEV_ATTRIB_SYSPATH 2
+/* DRI-style bus id */
+#define ODEV_ATTRIB_BUSID 3
+
+typedef void (*config_odev_probe_proc_ptr)(struct OdevAttributes *attribs);
+void config_odev_probe(config_odev_probe_proc_ptr probe_callback);
+
+#ifdef CONFIG_UDEV_KMS
+void NewGPUDeviceRequest(struct OdevAttributes *attribs);
+void DeleteGPUDeviceRequest(struct OdevAttributes *attribs);
+#endif
 #endif                          /* HOTPLUG_H */

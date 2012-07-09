@@ -58,7 +58,30 @@ PIXMAN_MIPS_BIND_FAST_PATH_N_MASK_DST (SKIP_ZERO_SRC, over_n_8_8888,
 PIXMAN_MIPS_BIND_FAST_PATH_N_MASK_DST (SKIP_ZERO_SRC, over_n_8_0565,
                                        uint8_t, 1, uint16_t, 1)
 
+PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_DST (0, 8888_8888, SRC,
+                                          uint32_t, uint32_t)
+PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_DST (0, 8888_0565, SRC,
+                                          uint32_t, uint16_t)
+PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_DST (0, 0565_8888, SRC,
+                                          uint16_t, uint32_t)
+PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_DST (0, 0565_0565, SRC,
+                                          uint16_t, uint16_t)
+PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_DST (SKIP_ZERO_SRC, 8888_8888, OVER,
+                                          uint32_t, uint32_t)
+PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_DST (SKIP_ZERO_SRC, 8888_8888, ADD,
+                                          uint32_t, uint32_t)
+
+PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_A8_DST (0, 8888_8_8888, SRC,
+                                             uint32_t, uint32_t)
+PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_A8_DST (0, 8888_8_0565, SRC,
+                                             uint32_t, uint16_t)
+PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_A8_DST (0, 0565_8_x888, SRC,
+                                             uint16_t, uint32_t)
+PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_A8_DST (0, 0565_8_0565, SRC,
+                                             uint16_t, uint16_t)
 PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_A8_DST (SKIP_ZERO_SRC, 8888_8_8888, OVER,
+                                             uint32_t, uint32_t)
+PIXMAN_MIPS_BIND_SCALED_BILINEAR_SRC_A8_DST (SKIP_ZERO_SRC, 8888_8_8888, ADD,
                                              uint32_t, uint32_t)
 
 static pixman_bool_t
@@ -209,9 +232,37 @@ static const pixman_fast_path_t mips_dspr2_fast_paths[] =
     PIXMAN_STD_FAST_PATH (OVER, solid,    a8,       r5g6b5,   mips_composite_over_n_8_0565),
     PIXMAN_STD_FAST_PATH (OVER, solid,    a8,       b5g6r5,   mips_composite_over_n_8_0565),
 
+    SIMPLE_BILINEAR_FAST_PATH (SRC, a8r8g8b8, a8r8g8b8, mips_8888_8888),
+    SIMPLE_BILINEAR_FAST_PATH (SRC, a8r8g8b8, x8r8g8b8, mips_8888_8888),
+    SIMPLE_BILINEAR_FAST_PATH (SRC, x8r8g8b8, x8r8g8b8, mips_8888_8888),
+
+    SIMPLE_BILINEAR_FAST_PATH (SRC, a8r8g8b8, r5g6b5, mips_8888_0565),
+    SIMPLE_BILINEAR_FAST_PATH (SRC, x8r8g8b8, r5g6b5, mips_8888_0565),
+
+    SIMPLE_BILINEAR_FAST_PATH (SRC, r5g6b5, x8r8g8b8, mips_0565_8888),
+    SIMPLE_BILINEAR_FAST_PATH (SRC, r5g6b5, r5g6b5, mips_0565_0565),
+
+    SIMPLE_BILINEAR_FAST_PATH (OVER, a8r8g8b8, a8r8g8b8, mips_8888_8888),
+    SIMPLE_BILINEAR_FAST_PATH (OVER, a8r8g8b8, x8r8g8b8, mips_8888_8888),
+
+    SIMPLE_BILINEAR_FAST_PATH (ADD, a8r8g8b8, a8r8g8b8, mips_8888_8888),
+    SIMPLE_BILINEAR_FAST_PATH (ADD, a8r8g8b8, x8r8g8b8, mips_8888_8888),
+
+    SIMPLE_BILINEAR_A8_MASK_FAST_PATH (SRC, a8r8g8b8, a8r8g8b8, mips_8888_8_8888),
+    SIMPLE_BILINEAR_A8_MASK_FAST_PATH (SRC, a8r8g8b8, x8r8g8b8, mips_8888_8_8888),
+    SIMPLE_BILINEAR_A8_MASK_FAST_PATH (SRC, x8r8g8b8, x8r8g8b8, mips_8888_8_8888),
+
+    SIMPLE_BILINEAR_A8_MASK_FAST_PATH (SRC, a8r8g8b8, r5g6b5, mips_8888_8_0565),
+    SIMPLE_BILINEAR_A8_MASK_FAST_PATH (SRC, x8r8g8b8, r5g6b5, mips_8888_8_0565),
+
+    SIMPLE_BILINEAR_A8_MASK_FAST_PATH (SRC, r5g6b5, x8r8g8b8, mips_0565_8_x888),
+    SIMPLE_BILINEAR_A8_MASK_FAST_PATH (SRC, r5g6b5, r5g6b5, mips_0565_8_0565),
+
     SIMPLE_BILINEAR_A8_MASK_FAST_PATH (OVER, a8r8g8b8, a8r8g8b8, mips_8888_8_8888),
     SIMPLE_BILINEAR_A8_MASK_FAST_PATH (OVER, a8r8g8b8, x8r8g8b8, mips_8888_8_8888),
 
+    SIMPLE_BILINEAR_A8_MASK_FAST_PATH (ADD, a8r8g8b8, a8r8g8b8, mips_8888_8_8888),
+    SIMPLE_BILINEAR_A8_MASK_FAST_PATH (ADD, a8r8g8b8, x8r8g8b8, mips_8888_8_8888),
     { PIXMAN_OP_NONE },
 };
 
