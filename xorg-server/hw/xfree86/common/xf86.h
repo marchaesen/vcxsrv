@@ -71,6 +71,11 @@ extern _X_EXPORT Bool fbSlotClaimed;
 #if (defined(__sparc__) || defined(__sparc)) && !defined(__OpenBSD__)
 extern _X_EXPORT Bool sbusSlotClaimed;
 #endif
+
+#if defined(XSERVER_PLATFORM_BUS)
+extern _X_EXPORT int platformSlotClaimed;
+#endif
+
 extern _X_EXPORT confDRIRec xf86ConfigDRI;
 extern _X_EXPORT Bool xf86DRI2Enabled(void);
 
@@ -459,5 +464,8 @@ extern _X_EXPORT ScreenPtr xf86ScrnToScreen(ScrnInfoPtr pScrn);
 #define XF86_HAS_SCRN_CONV 1 /* define for drivers to use in api compat */
 
 #define XF86_SCRN_INTERFACE 1 /* define for drivers to use in api compat */
+
+/* flags passed to xf86 allocate screen */
+#define XF86_ALLOCATE_GPU_SCREEN 1
 
 #endif                          /* _XF86_H */

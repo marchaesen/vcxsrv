@@ -615,6 +615,7 @@ AC_ARG_ENABLE(dbe,            AS_HELP_STRING([--disable-dbe], [Build DBE extensi
 AC_ARG_ENABLE(xf86bigfont,    AS_HELP_STRING([--enable-xf86bigfont], [Build XF86 Big Font extension (default: disabled)]), [XF86BIGFONT=$enableval], [XF86BIGFONT=no])
 AC_ARG_ENABLE(dpms,           AS_HELP_STRING([--disable-dpms], [Build DPMS extension (default: enabled)]), [DPMSExtension=$enableval], [DPMSExtension=yes])
 AC_ARG_ENABLE(config-udev,    AS_HELP_STRING([--enable-config-udev], [Build udev support (default: auto)]), [CONFIG_UDEV=$enableval], [CONFIG_UDEV=auto])
+AC_ARG_ENABLE(config-udev-kms,    AS_HELP_STRING([--enable-config-udev-kms], [Build udev kms support (default: auto)]), [CONFIG_UDEV_KMS=$enableval], [CONFIG_UDEV_KMS=auto])
 AC_ARG_ENABLE(config-dbus,    AS_HELP_STRING([--enable-config-dbus], [Build D-BUS API support (default: no)]), [CONFIG_DBUS_API=$enableval], [CONFIG_DBUS_API=no])
 AC_ARG_ENABLE(config-hal,     AS_HELP_STRING([--disable-config-hal], [Build HAL support (default: auto)]), [CONFIG_HAL=$enableval], [CONFIG_HAL=auto])
 AC_ARG_ENABLE(config-wscons,  AS_HELP_STRING([--enable-config-wscons], [Build wscons config support (default: auto)]), [CONFIG_WSCONS=$enableval], [CONFIG_WSCONS=auto])
@@ -704,6 +705,7 @@ case $host_os in
 		CONFIG_DBUS_API=no
 		CONFIG_HAL=no
 		CONFIG_UDEV=no
+		CONFIG_UDEV_KMS=no
 		DGA=no
 		DRI2=no
 		INT10MODULE=no
@@ -838,11 +840,16 @@ AM_CONDITIONAL(CONFIG_UDEV, [test "x$CONFIG_UDEV" = xyes])
 if test "x$CONFIG_UDEV" = xyes; then
 	CONFIG_DBUS_API=no
 	CONFIG_HAL=no
+	if test "x$CONFIG_UDEV_KMS" = xauto; then
+		CONFIG_UDEV_KMS="$HAVE_LIBUDEV"
+	fi
 	if ! test "x$HAVE_LIBUDEV" = xyes; then
 		AC_MSG_ERROR([udev configuration API requested, but libudev is not installed])
 	fi
 	AC_DEFINE(CONFIG_UDEV, 1, [Use libudev for input hotplug])
-
+	if test "x$CONFIG_UDEV_KMS" = xyes; then
+		AC_DEFINE(CONFIG_UDEV_KMS, 1, [Use libudev for kms enumeration])
+	fi
 	SAVE_LIBS=$LIBS
 	SAVE_CFLAGS=$CFLAGS
 	CFLAGS=$UDEV_CFLAGS
@@ -852,6 +859,7 @@ if test "x$CONFIG_UDEV" = xyes; then
 	LIBS=$SAVE_LIBS
 	CFLAGS=$SAVE_CFLAGS
 fi
+AM_CONDITIONAL(CONFIG_UDEV_KMS, [test "x$CONFIG_UDEV_KMS" = xyes])
 
 dnl HAVE_DBUS is true if we actually have the D-Bus library, whereas
 dnl CONFIG_DBUS_API is true if we want to enable the D-Bus config
@@ -1099,7 +1107,7 @@ case "$DRI2,$HAVE_DRI2PROTO" in
 esac
 AM_CONDITIONAL(DRI2, test "x$DRI2" = xyes)
 
-if test "x$DRI" = xyes || test "x$DRI2" = xyes; then
+if test "x$DRI" = xyes || test "x$DRI2" = xyes || test "x$CONFIG_UDEV_KMS" = xyes; then
 	if test "x$DRM" = xyes; then
 		AC_DEFINE(WITH_LIBDRM, 1, [Building with libdrm support])
 		PKG_CHECK_MODULES([LIBDRM], $LIBDRM)
@@ -1650,7 +1658,7 @@ if test "x$XORG" = xyes; then
 
 	PKG_CHECK_MODULES([PCIACCESS], $LIBPCIACCESS)
 	SDK_REQUIRED_MODULES="$SDK_REQUIRED_MODULES $LIBPCIACCESS"
-	XORG_SYS_LIBS="$XORG_SYS_LIBS $PCIACCESS_LIBS $GLX_SYS_LIBS"
+	XORG_SYS_LIBS="$XORG_SYS_LIBS $PCIACCESS_LIBS $GLX_SYS_LIBS $LIBDRM_LIBS"
 	XORG_CFLAGS="$XORG_CFLAGS $PCIACCESS_CFLAGS"
 
 	AC_DEFINE(XSERVER_LIBPCIACCESS, 1, [Use libpciaccess for all pci manipulation])
@@ -1668,6 +1676,10 @@ if test "x$XORG" = xyes; then
 	fi
 	AC_MSG_RESULT([$PCI])
 
+	if test "x$CONFIG_UDEV_KMS" = xyes; then
+		AC_DEFINE(XSERVER_PLATFORM_BUS, 1, [X server supports platform device enumeration])
+	fi
+	AC_MSG_RESULT([$XSERVER_PLATFORM_BUS])
 	dnl ===================================================================
 	dnl ==================== end of PCI configuration =====================
 	dnl ===================================================================
@@ -1856,7 +1868,7 @@ AM_CONDITIONAL([SOLARIS_ASM_INLINE], [test "x$solaris_asm_inline" = xyes])
 AM_CONDITIONAL([SOLARIS_VT], [test "x$solaris_vt" = xyes])
 AM_CONDITIONAL([DGA], [test "x$DGA" = xyes])
 AM_CONDITIONAL([XF86VIDMODE], [test "x$XF86VIDMODE" = xyes])
-
+AM_CONDITIONAL([XORG_BUS_PLATFORM], [test "x$CONFIG_UDEV_KMS" = xyes])
 dnl XWin DDX
 
 AC_MSG_CHECKING([whether to build XWin DDX])

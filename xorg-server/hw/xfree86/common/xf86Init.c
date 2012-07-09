@@ -593,6 +593,18 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             if (!xf86Screens[i]->configured)
                 xf86DeleteScreen(xf86Screens[i--]);
 
+        for (i = 0; i < xf86NumGPUScreens; i++) {
+            xf86VGAarbiterScrnInit(xf86GPUScreens[i]);
+            xf86VGAarbiterLock(xf86GPUScreens[i]);
+            if (xf86GPUScreens[i]->PreInit &&
+                xf86GPUScreens[i]->PreInit(xf86GPUScreens[i], 0))
+                xf86GPUScreens[i]->configured = TRUE;
+            xf86VGAarbiterUnlock(xf86GPUScreens[i]);
+        }
+        for (i = 0; i < xf86NumGPUScreens; i++)
+            if (!xf86GPUScreens[i]->configured)
+                xf86DeleteScreen(xf86GPUScreens[i--]);
+
         /*
          * If no screens left, return now.
          */
@@ -817,6 +829,36 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
     if (!dixRegisterPrivateKey(&xf86ScreenKeyRec, PRIVATE_SCREEN, 0) ||
         !dixRegisterPrivateKey(&xf86CreateRootWindowKeyRec, PRIVATE_SCREEN, 0))
         FatalError("Cannot register DDX private keys");
+
+    for (i = 0; i < xf86NumGPUScreens; i++) {
+        ScrnInfoPtr pScrn = xf86GPUScreens[i];
+        xf86VGAarbiterLock(pScrn);
+
+        /*
+         * Almost everything uses these defaults, and many of those that
+         * don't, will wrap them.
+         */
+        pScrn->EnableDisableFBAccess = xf86EnableDisableFBAccess;
+#ifdef XFreeXDGA
+        pScrn->SetDGAMode = xf86SetDGAMode;
+#endif
+        pScrn->DPMSSet = NULL;
+        pScrn->LoadPalette = NULL;
+        pScrn->SetOverscan = NULL;
+        pScrn->DriverFunc = NULL;
+        pScrn->pScreen = NULL;
+        scr_index = AddGPUScreen(pScrn->ScreenInit, argc, argv);
+        xf86VGAarbiterUnlock(pScrn);
+        if (scr_index == i) {
+            dixSetPrivate(&screenInfo.gpuscreens[scr_index]->devPrivates,
+                          xf86ScreenKey, xf86GPUScreens[i]);
+            pScrn->pScreen = screenInfo.gpuscreens[scr_index];
+            /* The driver should set this, but make sure it is set anyway */
+            pScrn->vtSema = TRUE;
+        } else {
+            FatalError("AddScreen/ScreenInit failed for gpu driver %d %d\n", i, scr_index);
+        }
+    }
 
     for (i = 0; i < xf86NumScreens; i++) {
         xf86VGAarbiterLock(xf86Screens[i]);

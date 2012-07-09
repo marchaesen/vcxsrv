@@ -481,6 +481,8 @@ typedef struct _Screen {
      * malicious users to steal framebuffer's content if that would be the
      * default */
     Bool canDoBGNoneRoot;
+
+    Bool isGPU;
 } ScreenRec;
 
 static inline RegionPtr
@@ -498,6 +500,8 @@ typedef struct _ScreenInfo {
      PixmapFormatRec formats[MAXFORMATS];
     int numScreens;
     ScreenPtr screens[MAXSCREENS];
+    int numGPUScreens;
+    ScreenPtr gpuscreens[MAXGPUSCREENS];
     int x;                      /* origin */
     int y;                      /* origin */
     int width;                  /* total width of all screens together */

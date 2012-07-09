@@ -311,6 +311,7 @@ struct _SymTabRec;
 struct _PciChipsets;
 
 struct pci_device;
+struct xf86_platform_device;
 
 typedef struct _DriverRec {
     int driverVersion;
@@ -325,7 +326,14 @@ typedef struct _DriverRec {
     const struct pci_id_match *supported_devices;
     Bool (*PciProbe) (struct _DriverRec * drv, int entity_num,
                       struct pci_device * dev, intptr_t match_data);
+    Bool (*platformProbe) (struct _DriverRec * drv, int entity_num, int flags,
+                           struct xf86_platform_device * dev, intptr_t match_data);
 } DriverRec, *DriverPtr;
+
+/*
+ * platform probe flags
+ */
+#define PLATFORM_PROBE_GPU_SCREEN 1
 
 /*
  *  AddDriver flags
@@ -343,6 +351,7 @@ typedef struct _DriverRec {
 #undef BUS_NONE
 #undef BUS_PCI
 #undef BUS_SBUS
+#undef BUS_PLATFORM
 #undef BUS_last
 #endif
 
@@ -350,6 +359,7 @@ typedef enum {
     BUS_NONE,
     BUS_PCI,
     BUS_SBUS,
+    BUS_PLATFORM,
     BUS_last                    /* Keep last */
 } BusType;
 
@@ -362,6 +372,7 @@ typedef struct _bus {
     union {
         struct pci_device *pci;
         SbusBusId sbus;
+        struct xf86_platform_device *plat;
     } id;
 } BusRec, *BusPtr;
 
@@ -802,6 +813,7 @@ typedef struct _ScrnInfoRec {
      */
     funcPointer reservedFuncs[NUM_RESERVED_FUNCS];
 
+    Bool is_gpu;
 } ScrnInfoRec;
 
 typedef struct {

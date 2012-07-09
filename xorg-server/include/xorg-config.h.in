@@ -136,4 +136,7 @@
 /* Have getresuid */
 #undef HAVE_GETRESUID
 
+/* Have X server platform bus support */
+#undef XSERVER_PLATFORM_BUS
+
 #endif /* _XORG_CONFIG_H_ */

@@ -6,7 +6,10 @@ libpixman_sources =			\
 	pixman-combine32.c		\
 	pixman-combine64.c		\
 	pixman-conical-gradient.c	\
-	pixman-cpu.c			\
+	pixman-x86.c			\
+	pixman-mips.c			\
+	pixman-arm.c			\
+	pixman-ppc.c			\
 	pixman-edge.c			\
 	pixman-edge-accessors.c		\
 	pixman-fast-path.c		\

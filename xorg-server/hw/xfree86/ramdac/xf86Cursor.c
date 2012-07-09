@@ -336,28 +336,19 @@ xf86CursorSetCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCurs,
         if (!infoPtr->pScrn->vtSema)
             ScreenPriv->SavedCursor = pCurs;
 
-        if (infoPtr->pScrn->vtSema && (ScreenPriv->ForceHWCursorCount || ((
+        if (infoPtr->pScrn->vtSema &&
+            (ScreenPriv->ForceHWCursorCount ||
+             ((
 #ifdef ARGB_CURSOR
-                                                                              pCurs->
-                                                                              bits->
-                                                                              argb
-                                                                              &&
-                                                                              infoPtr->
-                                                                              UseHWCursorARGB
-                                                                              &&
-                                                                              (*infoPtr->
-                                                                               UseHWCursorARGB)
-                                                                              (pScreen,
-                                                                               pCurs))
-                                                                          ||
-                                                                          (pCurs->
-                                                                           bits->
-                                                                           argb
-                                                                           == 0
-                                                                           &&
+               pCurs->bits->argb &&
+               infoPtr->UseHWCursorARGB &&
+               (*infoPtr->UseHWCursorARGB)(pScreen, pCurs)) ||
+              (pCurs->bits->argb == 0 &&
 #endif
-                                                                           (pCurs->bits->height <= infoPtr->MaxHeight) && (pCurs->bits->width <= infoPtr->MaxWidth) && (!infoPtr->UseHWCursor || (*infoPtr->UseHWCursor) (pScreen, pCurs)))))) {
-
+               (pCurs->bits->height <= infoPtr->MaxHeight) &&
+               (pCurs->bits->width <= infoPtr->MaxWidth) &&
+               (!infoPtr->UseHWCursor || (*infoPtr->UseHWCursor) (pScreen, pCurs)))))) {
+            
             if (ScreenPriv->SWCursor)   /* remove the SW cursor */
                 (*ScreenPriv->spriteFuncs->SetCursor) (pDev, pScreen,
                                                        NullCursor, x, y);

@@ -58,30 +58,32 @@ Pixmap XCreatePixmapFromBitmapData(
     unsigned long bg,
     unsigned int depth)
 {
-    XImage ximage;
-    GC gc;
-    XGCValues gcv;
-    Pixmap pix;
-
-    pix = XCreatePixmap(display, d, width, height, depth);
-    gcv.foreground = fg;
-    gcv.background = bg;
-    if (! (gc = XCreateGC(display, pix, GCForeground|GCBackground, &gcv)))
-	return (Pixmap) NULL;
-    ximage.height = height;
-    ximage.width = width;
-    ximage.depth = 1;
-    ximage.bits_per_pixel = 1;
-    ximage.xoffset = 0;
-    ximage.format = XYBitmap;
-    ximage.data = data;
-    ximage.byte_order = LSBFirst;
-    ximage.bitmap_unit = 8;
-    ximage.bitmap_bit_order = LSBFirst;
-    ximage.bitmap_pad = 8;
-    ximage.bytes_per_line = (width+7)/8;
-
-    XPutImage(display, pix, gc, &ximage, 0, 0, 0, 0, width, height);
-    XFreeGC(display, gc);
-    return(pix);
+    Pixmap pix = XCreatePixmap(display, d, width, height, depth);
+    XGCValues gcv = {
+        .foreground = fg,
+        .background = bg
+    };
+    GC gc = XCreateGC(display, pix, GCForeground|GCBackground, &gcv);
+    if (gc == NULL) {
+        XFreePixmap(display, pix);
+        return (Pixmap) None;
+    } else {
+        XImage ximage = {
+            .height = height,
+            .width = width,
+            .depth = 1,
+            .bits_per_pixel = 1,
+            .xoffset = 0,
+            .format = XYBitmap,
+            .data = data,
+            .byte_order = LSBFirst,
+            .bitmap_unit = 8,
+            .bitmap_bit_order = LSBFirst,
+            .bitmap_pad = 8,
+            .bytes_per_line = (width + 7) / 8
+        };
+        XPutImage(display, pix, gc, &ximage, 0, 0, 0, 0, width, height);
+        XFreeGC(display, gc);
+        return(pix);
+    }
 }

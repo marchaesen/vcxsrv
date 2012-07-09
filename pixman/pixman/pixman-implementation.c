@@ -223,3 +223,54 @@ _pixman_implementation_dest_iter_init (pixman_implementation_t	*imp,
 
     (*imp->dest_iter_init) (imp, iter);
 }
+
+pixman_bool_t
+_pixman_disabled (const char *name)
+{
+    const char *env;
+
+    if ((env = getenv ("PIXMAN_DISABLE")))
+    {
+	do
+	{
+	    const char *end;
+	    int len;
+
+	    if ((end = strchr (env, ' ')))
+		len = end - env;
+	    else
+		len = strlen (env);
+
+	    if (strlen (name) == len && strncmp (name, env, len) == 0)
+	    {
+		printf ("pixman: Disabled %s implementation\n", name);
+		return TRUE;
+	    }
+
+	    env += len;
+	}
+	while (*env++);
+    }
+
+    return FALSE;
+}
+
+pixman_implementation_t *
+_pixman_choose_implementation (void)
+{
+    pixman_implementation_t *imp;
+
+    imp = _pixman_implementation_create_general();
+
+    if (!_pixman_disabled ("fast"))
+	imp = _pixman_implementation_create_fast_path (imp);
+
+    imp = _pixman_x86_get_implementations (imp);
+    imp = _pixman_arm_get_implementations (imp);
+    imp = _pixman_ppc_get_implementations (imp);
+    imp = _pixman_mips_get_implementations (imp);
+
+    imp = _pixman_implementation_create_noop (imp);
+
+    return imp;
+}

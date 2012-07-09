@@ -198,10 +198,13 @@ listPossibleVideoDrivers(char *matches[], int nmatches)
     }
     i = 0;
 
+#ifdef XSERVER_PLATFORM_BUS
+    i = xf86PlatformMatchDriver(matches, nmatches);
+#endif
 #ifdef sun
     /* Check for driver type based on /dev/fb type and if valid, use
        it instead of PCI bus probe results */
-    if (xf86Info.consoleFd >= 0) {
+    if (xf86Info.consoleFd >= 0 && (i < (nmatches - 1))) {
         struct vis_identifier visid;
         const char *cp;
         extern char xf86SolarisFbDev[PATH_MAX];
@@ -251,6 +254,7 @@ listPossibleVideoDrivers(char *matches[], int nmatches)
     }
 #endif
 #ifdef __sparc__
+    if (i < (nmatches - 1))
     {
         char *sbusDriver = sparcDriverName();
 
@@ -259,7 +263,8 @@ listPossibleVideoDrivers(char *matches[], int nmatches)
     }
 #endif
 #ifdef XSERVER_LIBPCIACCESS
-    i = xf86PciMatchDriver(matches, nmatches);
+    if (i < (nmatches - 1))
+        i = xf86PciMatchDriver(matches, nmatches);
 #endif
     /* Fallback to platform default hardware */
     if (i < (nmatches - 1)) {

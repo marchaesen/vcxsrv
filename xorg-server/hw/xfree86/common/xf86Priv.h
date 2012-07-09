@@ -95,6 +95,8 @@ extern _X_EXPORT Bool xorgHWAccess;
 
 extern _X_EXPORT RootWinPropPtr *xf86RegisteredPropertiesTable;
 
+extern ScrnInfoPtr *xf86GPUScreens;      /* List of pointers to ScrnInfoRecs */
+extern int xf86NumGPUScreens;
 #ifndef DEFAULT_VERBOSE
 #define DEFAULT_VERBOSE		0
 #endif

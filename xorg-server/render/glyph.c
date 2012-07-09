@@ -687,6 +687,8 @@ miGlyphs(CARD8 op,
 
 PicturePtr GetGlyphPicture(GlyphPtr glyph, ScreenPtr pScreen)
 {
+    if (pScreen->isGPU)
+        return NULL;
     return GlyphPicture(glyph)[pScreen->myNum];
 }
 
