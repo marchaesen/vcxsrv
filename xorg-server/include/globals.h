@@ -5,6 +5,7 @@
 #include <signal.h>
 
 #include "window.h"             /* for WindowPtr */
+#include "extinit.h"
 
 /* Global X server variables that are visible to mi, dix, os, and ddx */
 
@@ -41,92 +42,12 @@ extern _X_EXPORT Bool DPMSCapableFlag;
 extern _X_EXPORT Bool PanoramiXExtensionDisabledHack;
 #endif
 
-#ifdef COMPOSITE
-extern _X_EXPORT Bool noCompositeExtension;
-#endif
-
-#ifdef DAMAGE
-extern _X_EXPORT Bool noDamageExtension;
-#endif
-
-#ifdef DBE
-extern _X_EXPORT Bool noDbeExtension;
-#endif
-
-#ifdef DPMSExtension
-extern _X_EXPORT Bool noDPMSExtension;
-#endif
-
-#ifdef GLXEXT
-extern _X_EXPORT Bool noGlxExtension;
-#endif
-
-#ifdef SCREENSAVER
-extern _X_EXPORT Bool noScreenSaverExtension;
-#endif
-
-#ifdef MITSHM
-extern _X_EXPORT Bool noMITShmExtension;
-#endif
-
-#ifdef RANDR
-extern _X_EXPORT Bool noRRExtension;
-#endif
-
-extern _X_EXPORT Bool noRenderExtension;
-
-#ifdef XCSECURITY
-extern _X_EXPORT Bool noSecurityExtension;
-#endif
-
-#ifdef RES
-extern _X_EXPORT Bool noResExtension;
-#endif
-
-#ifdef XF86BIGFONT
-extern _X_EXPORT Bool noXFree86BigfontExtension;
-#endif
-
-#ifdef XFreeXDGA
-extern _X_EXPORT Bool noXFree86DGAExtension;
-#endif
-
-#ifdef XF86DRI
-extern _X_EXPORT Bool noXFree86DRIExtension;
-#endif
-
-#ifdef XF86VIDMODE
-extern _X_EXPORT Bool noXFree86VidModeExtension;
-#endif
-
-#ifdef XFIXES
-extern _X_EXPORT Bool noXFixesExtension;
-#endif
-
-#ifdef PANORAMIX
-extern _X_EXPORT Bool noPanoramiXExtension;
-#endif
-
-#ifdef INXQUARTZ
-extern _X_EXPORT Bool noPseudoramiXExtension;
-#endif
-
 #ifdef XSELINUX
-extern _X_EXPORT Bool noSELinuxExtension;
-
 #define SELINUX_MODE_DEFAULT    0
 #define SELINUX_MODE_DISABLED   1
 #define SELINUX_MODE_PERMISSIVE 2
 #define SELINUX_MODE_ENFORCING  3
 extern _X_EXPORT int selinuxEnforcingState;
-#endif
-
-#ifdef XV
-extern _X_EXPORT Bool noXvExtension;
-#endif
-
-#ifdef DRI2
-extern _X_EXPORT Bool noDRI2Extension;
 #endif
 
 #endif                          /* !_XSERV_GLOBAL_H_ */

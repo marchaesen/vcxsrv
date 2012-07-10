@@ -1,24 +1,18 @@
-libdri_la_LTLIBRARIES = libdri.la
-libdri_la_CFLAGS = -I$(top_srcdir)/hw/xfree86/common \
-                   -I$(top_srcdir)/hw/xfree86/os-support \
-                   -I$(top_srcdir)/hw/xfree86/modes \
-                   -I$(top_srcdir)/hw/xfree86/ddc \
-                   -I$(top_srcdir)/hw/xfree86/i2c \
-                   -I$(top_srcdir)/hw/xfree86/parser \
-                   -I$(top_srcdir)/hw/xfree86/ramdac \
-                   -I$(top_srcdir)/hw/xfree86/os-support/bus \
-                   -I$(top_srcdir)/glx \
-                   -DHAVE_XORG_CONFIG_H \
-                   @DIX_CFLAGS@ @XORG_CFLAGS@ @DRIPROTO_CFLAGS@ \
-                   @LIBDRM_CFLAGS@ \
-                   @DRI_CFLAGS@
-libdri_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
-libdri_la_LIBADD = @LIBDRM_LIBS@ $(PIXMAN_LIBS)
-libdri_ladir = $(moduledir)/extensions
+noinst_LTLIBRARIES = libdri.la
+AM_CFLAGS = -I$(top_srcdir)/hw/xfree86/common \
+            -I$(top_srcdir)/hw/xfree86/os-support \
+            -I$(top_srcdir)/hw/xfree86/modes \
+            -I$(top_srcdir)/hw/xfree86/ddc \
+            -I$(top_srcdir)/hw/xfree86/i2c \
+            -I$(top_srcdir)/hw/xfree86/parser \
+            -I$(top_srcdir)/hw/xfree86/ramdac \
+            -I$(top_srcdir)/hw/xfree86/os-support/bus \
+            -I$(top_srcdir)/glx \
+            -DHAVE_XORG_CONFIG_H \
+            @DIX_CFLAGS@ @XORG_CFLAGS@
 libdri_la_SOURCES = \
 	dri.c \
 	dri.h \
-	drimodule.c \
 	dristruct.h \
 	sarea.h \
 	xf86dri.c

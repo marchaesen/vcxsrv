@@ -214,10 +214,8 @@ extern _X_EXPORT void ResizeChildrenWinSize(WindowPtr /*pWin */ ,
                                             int /*dw */ ,
                                             int /*dh */ );
 
-extern _X_EXPORT void ShapeExtensionInit(void);
-
 extern _X_EXPORT void SendShapeNotify(WindowPtr /* pWin */ ,
-                                      int /* which */ );
+                                      int /* which */);
 
 extern _X_EXPORT RegionPtr CreateBoundingShape(WindowPtr /* pWin */ );
 

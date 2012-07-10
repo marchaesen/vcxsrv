@@ -305,28 +305,22 @@ RRDeliverOutputEvent(ClientPtr client, WindowPtr pWin, RROutputPtr output)
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
     rrScrPriv(pScreen);
-    xRROutputChangeNotifyEvent oe;
     RRCrtcPtr crtc = output->crtc;
-    RRModePtr mode = crtc ? crtc->mode : 0;
+    RRModePtr mode = crtc ? crtc->mode : NULL;
 
-    oe.type = RRNotify + RREventBase;
-    oe.subCode = RRNotify_OutputChange;
-    oe.timestamp = pScrPriv->lastSetTime.milliseconds;
-    oe.configTimestamp = pScrPriv->lastConfigTime.milliseconds;
-    oe.window = pWin->drawable.id;
-    oe.output = output->id;
-    if (crtc) {
-        oe.crtc = crtc->id;
-        oe.mode = mode ? mode->mode.id : None;
-        oe.rotation = crtc->rotation;
-    }
-    else {
-        oe.crtc = None;
-        oe.mode = None;
-        oe.rotation = RR_Rotate_0;
-    }
-    oe.connection = output->connection;
-    oe.subpixelOrder = output->subpixelOrder;
+    xRROutputChangeNotifyEvent oe = {
+        .type = RRNotify + RREventBase,
+        .subCode = RRNotify_OutputChange,
+        .timestamp = pScrPriv->lastSetTime.milliseconds,
+        .configTimestamp = pScrPriv->lastConfigTime.milliseconds,
+        .window = pWin->drawable.id,
+        .output = output->id,
+        .crtc = crtc ? crtc->id : None,
+        .mode = mode ? mode->mode.id : None,
+        .rotation = crtc ? crtc->rotation : RR_Rotate_0,
+        .connection = output->connection,
+        .subpixelOrder = output->subpixelOrder
+    };
     WriteEventsToClient(client, 1, (xEvent *) &oe);
 }
 
@@ -425,21 +419,23 @@ ProcRRGetOutputInfo(ClientPtr client)
     pScreen = output->pScreen;
     pScrPriv = rrGetScrPriv(pScreen);
 
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = bytes_to_int32(OutputInfoExtra);
-    rep.timestamp = pScrPriv->lastSetTime.milliseconds;
-    rep.crtc = output->crtc ? output->crtc->id : None;
-    rep.mmWidth = output->mmWidth;
-    rep.mmHeight = output->mmHeight;
-    rep.connection = output->connection;
-    rep.subpixelOrder = output->subpixelOrder;
-    rep.nCrtcs = output->numCrtcs;
-    rep.nModes = output->numModes + output->numUserModes;
-    rep.nPreferred = output->numPreferred;
-    rep.nClones = output->numClones;
-    rep.nameLength = output->nameLength;
-
+    rep = (xRRGetOutputInfoReply) {
+        .type = X_Reply,
+        .status = RRSetConfigSuccess,
+        .sequenceNumber = client->sequence,
+        .length = bytes_to_int32(OutputInfoExtra),
+        .timestamp = pScrPriv->lastSetTime.milliseconds,
+        .crtc = output->crtc ? output->crtc->id : None,
+        .mmWidth = output->mmWidth,
+        .mmHeight = output->mmHeight,
+        .connection = output->connection,
+        .subpixelOrder = output->subpixelOrder,
+        .nCrtcs = output->numCrtcs,
+        .nModes = output->numModes + output->numUserModes,
+        .nPreferred = output->numPreferred,
+        .nClones = output->numClones,
+        .nameLength = output->nameLength
+    };
     extraLen = ((output->numCrtcs +
                  output->numModes + output->numUserModes +
                  output->numClones + bytes_to_int32(rep.nameLength)) << 2);
@@ -489,9 +485,9 @@ ProcRRGetOutputInfo(ClientPtr client)
         swaps(&rep.nClones);
         swaps(&rep.nameLength);
     }
-    WriteToClient(client, sizeof(xRRGetOutputInfoReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRRGetOutputInfoReply), &rep);
     if (extraLen) {
-        WriteToClient(client, extraLen, (char *) extra);
+        WriteToClient(client, extraLen, extra);
         free(extra);
     }
 
@@ -572,10 +568,11 @@ ProcRRGetOutputPrimary(ClientPtr client)
     if (pScrPriv)
         primary = pScrPriv->primaryOutput;
 
-    memset(&rep, 0, sizeof(rep));
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.output = primary ? primary->id : None;
+    rep = (xRRGetOutputPrimaryReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .output = primary ? primary->id : None
+    };
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);

@@ -286,7 +286,7 @@ LookupResourceName(RESTYPE resource)
 void
 dixResetRegistry(void)
 {
-    ExtensionEntry extEntry;
+    ExtensionEntry extEntry = { .name = CORE };
 
     /* Free all memory */
     while (nmajor--) {
@@ -336,8 +336,6 @@ dixResetRegistry(void)
     RegisterResourceName(RT_PASSIVEGRAB, "PASSIVE GRAB");
 
     /* Add the core protocol */
-    memset(&extEntry, 0, sizeof(extEntry));
-    extEntry.name = CORE;
     RegisterExtensionNames(&extEntry);
 }
 

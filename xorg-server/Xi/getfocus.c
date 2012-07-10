@@ -99,10 +99,12 @@ ProcXGetDeviceFocus(ClientPtr client)
     if (!dev->focus)
         return BadDevice;
 
-    rep.repType = X_Reply;
-    rep.RepType = X_GetDeviceFocus;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
+    rep = (xGetDeviceFocusReply) {
+        .repType = X_Reply,
+        .RepType = X_GetDeviceFocus,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
 
     focus = dev->focus;
 
@@ -135,5 +137,5 @@ SRepXGetDeviceFocus(ClientPtr client, int size, xGetDeviceFocusReply * rep)
     swapl(&rep->length);
     swapl(&rep->focus);
     swapl(&rep->time);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

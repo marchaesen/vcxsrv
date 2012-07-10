@@ -2,7 +2,7 @@ noinst_LTLIBRARIES = libloader.la
 
 INCLUDES = $(XORG_INCS) -I$(srcdir)/../parser -I$(top_srcdir)/miext/cw \
 	   -I$(srcdir)/../ddc -I$(srcdir)/../i2c -I$(srcdir)/../modes \
-	   -I$(srcdir)/../ramdac
+	   -I$(srcdir)/../ramdac -I$(srcdir)/../dri -I$(srcdir)/../dri2
 
 #AM_LDFLAGS = -r
 AM_CFLAGS = $(DIX_CFLAGS) $(XORG_CFLAGS)
@@ -14,7 +14,6 @@ EXTRA_DIST = \
 libloader_la_SOURCES = \
 	loader.c \
 	loaderProcs.h \
-	loadext.c \
         loadmod.c \
 	os.c
 

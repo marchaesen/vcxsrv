@@ -39,6 +39,7 @@
 #include <registry.h>
 #include "privates.h"
 #include <os.h>
+#include "extinit.h"
 #include "unpack.h"
 #include "glxutil.h"
 #include "glxext.h"
@@ -322,8 +323,14 @@ GlxExtensionInit(void)
     ExtensionEntry *extEntry;
     ScreenPtr pScreen;
     int i;
-    __GLXprovider *p;
+    __GLXprovider *p, **stack;
     Bool glx_provided = False;
+
+    if (serverGeneration == 1) {
+        for (stack = &__glXProviderStack; *stack; stack = &(*stack)->next)
+            ;
+        *stack = &__glXDRISWRastProvider;
+    }
 
     __glXContextRes = CreateNewResourceType((DeleteType) ContextGone,
                                             "GLXContext");
@@ -331,6 +338,9 @@ GlxExtensionInit(void)
                                              "GLXDrawable");
     if (!__glXContextRes || !__glXDrawableRes)
         return;
+
+    if (serverGeneration == 1)
+        GlxPushProvider(&__glXDRISWRastProvider);
 
     if (!dixRegisterPrivateKey
         (&glxClientPrivateKeyRec, PRIVATE_CLIENT, sizeof(__GLXclientState)))

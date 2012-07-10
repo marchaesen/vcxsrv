@@ -340,6 +340,9 @@ OsBlockSIGIO(void);
 extern _X_EXPORT void
 OsReleaseSIGIO(void);
 
+extern void
+OsResetSignals(void);
+
 extern _X_EXPORT void
 OsAbort(void)
     _X_NORETURN;

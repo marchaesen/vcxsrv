@@ -32,10 +32,9 @@
 #include "geint.h"
 #include "geext.h"
 #include "protocol-versions.h"
+#include "extinit.h"
 
 DevPrivateKeyRec GEClientPrivateKeyRec;
-
-int RT_GECLIENT = 0;
 
 GEExtension GEExtensions[MAXEXTENSIONS];
 
@@ -65,14 +64,16 @@ ProcGEQueryVersion(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xGEQueryVersionReq);
 
-    rep.repType = X_Reply;
-    rep.RepType = X_GEQueryVersion;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
+    rep = (xGEQueryVersionReply) {
+        .repType = X_Reply,
+        .RepType = X_GEQueryVersion,
+        .sequenceNumber = client->sequence,
+        .length = 0,
 
-    /* return the supported version by the server */
-    rep.majorVersion = SERVER_GE_MAJOR_VERSION;
-    rep.minorVersion = SERVER_GE_MINOR_VERSION;
+        /* return the supported version by the server */
+        .majorVersion = SERVER_GE_MAJOR_VERSION,
+        .minorVersion = SERVER_GE_MINOR_VERSION
+    };
 
     /* Remember version the client requested */
     pGEClient->major_version = stuff->majorVersion;
@@ -85,7 +86,7 @@ ProcGEQueryVersion(ClientPtr client)
         swaps(&rep.minorVersion);
     }
 
-    WriteToClient(client, sizeof(xGEQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xGEQueryVersionReply), &rep);
     return Success;
 }
 

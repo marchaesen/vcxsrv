@@ -22,8 +22,6 @@
 
 #include "randrstr.h"
 
-static const int padlength[4] = { 0, 3, 2, 1 };
-
 static CARD16
  RR10CurrentSizeID(ScreenPtr pScreen);
 
@@ -46,8 +44,7 @@ RREditConnectionInfo(ScreenPtr pScreen)
     connSetup = (xConnSetup *) ConnectionInfo;
     vendor = (char *) connSetup + sizeof(xConnSetup);
     formats = (xPixmapFormat *) ((char *) vendor +
-                                 connSetup->nbytesVendor +
-                                 padlength[connSetup->nbytesVendor & 3]);
+                                 pad_to_int32(connSetup->nbytesVendor));
     root = (xWindowRoot *) ((char *) formats +
                             sizeof(xPixmapFormat) *
                             screenInfo.numPixmapFormats);
@@ -71,20 +68,20 @@ void
 RRSendConfigNotify(ScreenPtr pScreen)
 {
     WindowPtr pWin = pScreen->root;
-    xEvent event;
-
-    event.u.u.type = ConfigureNotify;
-    event.u.configureNotify.window = pWin->drawable.id;
-    event.u.configureNotify.aboveSibling = None;
-    event.u.configureNotify.x = 0;
-    event.u.configureNotify.y = 0;
+    xEvent event = {
+        .u.configureNotify.window = pWin->drawable.id,
+        .u.configureNotify.aboveSibling = None,
+        .u.configureNotify.x = 0,
+        .u.configureNotify.y = 0,
 
     /* XXX xinerama stuff ? */
 
-    event.u.configureNotify.width = pWin->drawable.width;
-    event.u.configureNotify.height = pWin->drawable.height;
-    event.u.configureNotify.borderWidth = wBorderWidth(pWin);
-    event.u.configureNotify.override = pWin->overrideRedirect;
+        .u.configureNotify.width = pWin->drawable.width,
+        .u.configureNotify.height = pWin->drawable.height,
+        .u.configureNotify.borderWidth = wBorderWidth(pWin),
+        .u.configureNotify.override = pWin->overrideRedirect
+    };
+    event.u.u.type = ConfigureNotify;
     DeliverEvents(pWin, &event, 1, NullWindow);
 }
 
@@ -92,19 +89,20 @@ void
 RRDeliverScreenEvent(ClientPtr client, WindowPtr pWin, ScreenPtr pScreen)
 {
     rrScrPriv(pScreen);
-    xRRScreenChangeNotifyEvent se;
     RRCrtcPtr crtc = pScrPriv->numCrtcs ? pScrPriv->crtcs[0] : NULL;
     WindowPtr pRoot = pScreen->root;
 
-    se.type = RRScreenChangeNotify + RREventBase;
-    se.rotation = (CARD8) (crtc ? crtc->rotation : RR_Rotate_0);
-    se.timestamp = pScrPriv->lastSetTime.milliseconds;
-    se.configTimestamp = pScrPriv->lastConfigTime.milliseconds;
-    se.root = pRoot->drawable.id;
-    se.window = pWin->drawable.id;
-    se.subpixelOrder = PictureGetSubpixelOrder(pScreen);
+    xRRScreenChangeNotifyEvent se = {
+        .type = RRScreenChangeNotify + RREventBase,
+        .rotation = (CARD8) (crtc ? crtc->rotation : RR_Rotate_0),
+        .timestamp = pScrPriv->lastSetTime.milliseconds,
+        .configTimestamp = pScrPriv->lastConfigTime.milliseconds,
+        .root = pRoot->drawable.id,
+        .window = pWin->drawable.id,
+        .subpixelOrder = PictureGetSubpixelOrder(pScreen),
 
-    se.sizeID = RR10CurrentSizeID(pScreen);
+        .sizeID = RR10CurrentSizeID(pScreen)
+    };
 
     if (se.rotation & (RR_Rotate_90 | RR_Rotate_270)) {
         se.widthInPixels = pScreen->height;
@@ -203,10 +201,12 @@ ProcRRGetScreenSizeRange(ClientPtr client)
     pScreen = pWin->drawable.pScreen;
     pScrPriv = rrGetScrPriv(pScreen);
 
-    rep.type = X_Reply;
-    rep.pad = 0;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
+    rep = (xRRGetScreenSizeRangeReply) {
+        .type = X_Reply,
+        .pad = 0,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
 
     if (pScrPriv) {
         if (!RRGetInfo(pScreen, FALSE))
@@ -228,7 +228,7 @@ ProcRRGetScreenSizeRange(ClientPtr client)
         swaps(&rep.maxWidth);
         swaps(&rep.maxHeight);
     }
-    WriteToClient(client, sizeof(xRRGetScreenSizeRangeReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRRGetScreenSizeRangeReply), &rep);
     return Success;
 }
 
@@ -292,6 +292,172 @@ ProcRRSetScreenSize(ClientPtr client)
     return Success;
 }
 
+
+#define update_totals(gpuscreen, pScrPriv) do {       \
+    total_crtcs += pScrPriv->numCrtcs;                \
+    total_outputs += pScrPriv->numOutputs;            \
+    modes = RRModesForScreen(gpuscreen, &num_modes);  \
+    if (!modes)                                       \
+        return BadAlloc;                              \
+    for (j = 0; j < num_modes; j++)                   \
+        total_name_len += modes[j]->mode.nameLength;  \
+    total_modes += num_modes;                         \
+    free(modes);                                      \
+} while(0)
+
+static inline void swap_modeinfos(xRRModeInfo *modeinfos, int i)
+{
+    swapl(&modeinfos[i].id);
+    swaps(&modeinfos[i].width);
+    swaps(&modeinfos[i].height);
+    swapl(&modeinfos[i].dotClock);
+    swaps(&modeinfos[i].hSyncStart);
+    swaps(&modeinfos[i].hSyncEnd);
+    swaps(&modeinfos[i].hTotal);
+    swaps(&modeinfos[i].hSkew);
+    swaps(&modeinfos[i].vSyncStart);
+    swaps(&modeinfos[i].vSyncEnd);
+    swaps(&modeinfos[i].vTotal);
+    swaps(&modeinfos[i].nameLength);
+    swapl(&modeinfos[i].modeFlags);
+}
+
+#define update_arrays(gpuscreen, pScrPriv) do {            \
+    for (j = 0; j < pScrPriv->numCrtcs; j++) {             \
+        crtcs[crtc_count] = pScrPriv->crtcs[j]->id;        \
+        if (client->swapped)                               \
+            swapl(&crtcs[crtc_count]);                     \
+        crtc_count++;                                      \
+    }                                                      \
+    for (j = 0; j < pScrPriv->numOutputs; j++) {           \
+        outputs[output_count] = pScrPriv->outputs[j]->id;  \
+        if (client->swapped)                               \
+            swapl(&outputs[output_count]);                 \
+        output_count++;                                    \
+    }                                                      \
+    {                                                      \
+        RRModePtr mode;                                    \
+        modes = RRModesForScreen(gpuscreen, &num_modes);   \
+        for (j = 0; j < num_modes; j++) {                  \
+            mode = modes[j];                               \
+            modeinfos[mode_count] = mode->mode;            \
+            if (client->swapped) {                         \
+                swap_modeinfos(modeinfos, mode_count);     \
+            }                                              \
+            memcpy(names, mode->name, mode->mode.nameLength); \
+            names += mode->mode.nameLength;                \
+            mode_count++;                                  \
+        }                                                  \
+        free(modes);                                       \
+    }                                                      \
+    } while (0)
+
+static int
+rrGetMultiScreenResources(ClientPtr client, Bool query, ScreenPtr pScreen)
+{
+    int j;
+    int total_crtcs, total_outputs, total_modes, total_name_len;
+    int crtc_count, output_count, mode_count;
+    ScreenPtr iter;
+    rrScrPrivPtr pScrPriv;
+    int num_modes;
+    RRModePtr *modes;
+    xRRGetScreenResourcesReply rep;
+    unsigned long extraLen;
+    CARD8 *extra;
+    RRCrtc *crtcs;
+    RROutput *outputs;
+    xRRModeInfo *modeinfos;
+    CARD8 *names;
+
+    /* we need to iterate all the GPU masters and all their output slaves */
+    total_crtcs = 0;
+    total_outputs = 0;
+    total_modes = 0;
+    total_name_len = 0;
+
+    pScrPriv = rrGetScrPriv(pScreen);
+
+    if (query && pScrPriv)
+        if (!RRGetInfo(pScreen, query))
+            return BadAlloc;
+
+    update_totals(pScreen, pScrPriv);
+
+    xorg_list_for_each_entry(iter, &pScreen->output_slave_list, output_head) {
+        pScrPriv = rrGetScrPriv(iter);
+
+        if (query)
+          if (!RRGetInfo(iter, query))
+            return BadAlloc;
+        update_totals(iter, pScrPriv);
+    }
+
+    ErrorF("reporting %d %d %d %d\n", total_crtcs, total_outputs, total_modes, total_name_len);
+
+    pScrPriv = rrGetScrPriv(pScreen);
+    rep.pad = 0;
+    rep.type = X_Reply;
+    rep.sequenceNumber = client->sequence;
+    rep.length = 0;
+    rep.timestamp = pScrPriv->lastSetTime.milliseconds;
+    rep.configTimestamp = pScrPriv->lastConfigTime.milliseconds;
+    rep.nCrtcs = total_crtcs;
+    rep.nOutputs = total_outputs;
+    rep.nModes = total_modes;
+    rep.nbytesNames = total_name_len;
+
+    rep.length = (total_crtcs + total_outputs + total_modes * bytes_to_int32(SIZEOF(xRRModeInfo)) +
+                  bytes_to_int32(rep.nbytesNames));
+
+    extraLen = rep.length << 2;
+    if (extraLen) {
+        extra = malloc(extraLen);
+        if (!extra) {
+            return BadAlloc;
+        }
+    }
+    else
+        extra = NULL;
+
+    crtcs = (RRCrtc *)extra;
+    outputs = (RROutput *)(crtcs + total_crtcs);
+    modeinfos = (xRRModeInfo *)(outputs + total_outputs);
+    names = (CARD8 *)(modeinfos + total_modes);
+
+    /* TODO primary */
+    crtc_count = 0;
+    output_count = 0;
+    mode_count = 0;
+
+    pScrPriv = rrGetScrPriv(pScreen);
+    update_arrays(pScreen, pScrPriv);
+
+    xorg_list_for_each_entry(iter, &pScreen->output_slave_list, output_head) {
+        pScrPriv = rrGetScrPriv(iter);
+
+        update_arrays(iter, pScrPriv);
+    }
+
+    assert(bytes_to_int32((char *) names - (char *) extra) == rep.length);
+    if (client->swapped) {
+        swaps(&rep.sequenceNumber);
+        swapl(&rep.length);
+        swapl(&rep.timestamp);
+        swapl(&rep.configTimestamp);
+        swaps(&rep.nCrtcs);
+        swaps(&rep.nOutputs);
+        swaps(&rep.nModes);
+        swaps(&rep.nbytesNames);
+    }
+    WriteToClient(client, sizeof(xRRGetScreenResourcesReply), &rep);
+    if (extraLen) {
+        WriteToClient(client, extraLen, extra);
+        free(extra);
+    }
+    return Success;
+}
+
 static int
 rrGetScreenResources(ClientPtr client, Bool query)
 {
@@ -315,22 +481,26 @@ rrGetScreenResources(ClientPtr client, Bool query)
 
     pScreen = pWin->drawable.pScreen;
     pScrPriv = rrGetScrPriv(pScreen);
-    rep.pad = 0;
 
     if (query && pScrPriv)
         if (!RRGetInfo(pScreen, query))
             return BadAlloc;
 
+    if (!xorg_list_is_empty(&pScreen->output_slave_list))
+        return rrGetMultiScreenResources(client, query, pScreen);
+
     if (!pScrPriv) {
-        rep.type = X_Reply;
-        rep.sequenceNumber = client->sequence;
-        rep.length = 0;
-        rep.timestamp = currentTime.milliseconds;
-        rep.configTimestamp = currentTime.milliseconds;
-        rep.nCrtcs = 0;
-        rep.nOutputs = 0;
-        rep.nModes = 0;
-        rep.nbytesNames = 0;
+        rep = (xRRGetScreenResourcesReply) {
+            .type = X_Reply,
+            .sequenceNumber = client->sequence,
+            .length = 0,
+            .timestamp = currentTime.milliseconds,
+            .configTimestamp = currentTime.milliseconds,
+            .nCrtcs = 0,
+            .nOutputs = 0,
+            .nModes = 0,
+            .nbytesNames = 0
+        };
         extra = NULL;
         extraLen = 0;
     }
@@ -342,15 +512,18 @@ rrGetScreenResources(ClientPtr client, Bool query)
         if (!modes)
             return BadAlloc;
 
-        rep.type = X_Reply;
-        rep.sequenceNumber = client->sequence;
-        rep.length = 0;
-        rep.timestamp = pScrPriv->lastSetTime.milliseconds;
-        rep.configTimestamp = pScrPriv->lastConfigTime.milliseconds;
-        rep.nCrtcs = pScrPriv->numCrtcs;
-        rep.nOutputs = pScrPriv->numOutputs;
-        rep.nModes = num_modes;
-        rep.nbytesNames = 0;
+        rep = (xRRGetScreenResourcesReply) {
+            .type = X_Reply,
+            .sequenceNumber = client->sequence,
+            .length = 0,
+            .timestamp = pScrPriv->lastSetTime.milliseconds,
+            .configTimestamp = pScrPriv->lastConfigTime.milliseconds,
+            .nCrtcs = pScrPriv->numCrtcs,
+            .nOutputs = pScrPriv->numOutputs,
+            .nModes = num_modes,
+            .nbytesNames = 0
+        };
+
 
         for (i = 0; i < num_modes; i++)
             rep.nbytesNames += modes[i]->mode.nameLength;
@@ -575,7 +748,6 @@ ProcRRGetScreenInfo(ClientPtr client)
 
     pScreen = pWin->drawable.pScreen;
     pScrPriv = rrGetScrPriv(pScreen);
-    rep.pad = 0;
 
     if (pScrPriv)
         if (!RRGetInfo(pScreen, TRUE))
@@ -584,18 +756,20 @@ ProcRRGetScreenInfo(ClientPtr client)
     output = RRFirstOutput(pScreen);
 
     if (!pScrPriv || !output) {
-        rep.type = X_Reply;
-        rep.setOfRotations = RR_Rotate_0;
-        rep.sequenceNumber = client->sequence;
-        rep.length = 0;
-        rep.root = pWin->drawable.pScreen->root->drawable.id;
-        rep.timestamp = currentTime.milliseconds;
-        rep.configTimestamp = currentTime.milliseconds;
-        rep.nSizes = 0;
-        rep.sizeID = 0;
-        rep.rotation = RR_Rotate_0;
-        rep.rate = 0;
-        rep.nrateEnts = 0;
+        rep = (xRRGetScreenInfoReply) {
+            .type = X_Reply,
+            .setOfRotations = RR_Rotate_0,
+            .sequenceNumber = client->sequence,
+            .length = 0,
+            .root = pWin->drawable.pScreen->root->drawable.id,
+            .timestamp = currentTime.milliseconds,
+            .configTimestamp = currentTime.milliseconds,
+            .nSizes = 0,
+            .sizeID = 0,
+            .rotation = RR_Rotate_0,
+            .rate = 0,
+            .nrateEnts = 0
+        };
         extra = 0;
         extraLen = 0;
     }
@@ -612,18 +786,20 @@ ProcRRGetScreenInfo(ClientPtr client)
         if (!pData)
             return BadAlloc;
 
-        rep.type = X_Reply;
-        rep.setOfRotations = output->crtc->rotations;
-        rep.sequenceNumber = client->sequence;
-        rep.length = 0;
-        rep.root = pWin->drawable.pScreen->root->drawable.id;
-        rep.timestamp = pScrPriv->lastSetTime.milliseconds;
-        rep.configTimestamp = pScrPriv->lastConfigTime.milliseconds;
-        rep.rotation = output->crtc->rotation;
-        rep.nSizes = pData->nsize;
-        rep.nrateEnts = pData->nrefresh + pData->nsize;
-        rep.sizeID = pData->size;
-        rep.rate = pData->refresh;
+        rep = (xRRGetScreenInfoReply) {
+            .type = X_Reply,
+            .setOfRotations = output->crtc->rotations,
+            .sequenceNumber = client->sequence,
+            .length = 0,
+            .root = pWin->drawable.pScreen->root->drawable.id,
+            .timestamp = pScrPriv->lastSetTime.milliseconds,
+            .configTimestamp = pScrPriv->lastConfigTime.milliseconds,
+            .rotation = output->crtc->rotation,
+            .nSizes = pData->nsize,
+            .nrateEnts = pData->nrefresh + pData->nsize,
+            .sizeID = pData->size,
+            .rate = pData->refresh
+        };
 
         extraLen = rep.nSizes * sizeof(xScreenSizes);
         if (has_rate)
@@ -685,15 +861,16 @@ ProcRRGetScreenInfo(ClientPtr client)
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.timestamp);
+        swapl(&rep.configTimestamp);
         swaps(&rep.rotation);
         swaps(&rep.nSizes);
         swaps(&rep.sizeID);
         swaps(&rep.rate);
         swaps(&rep.nrateEnts);
     }
-    WriteToClient(client, sizeof(xRRGetScreenInfoReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRRGetScreenInfoReply), &rep);
     if (extraLen) {
-        WriteToClient(client, extraLen, (char *) extra);
+        WriteToClient(client, extraLen, extra);
         free(extra);
     }
     return Success;
@@ -713,6 +890,7 @@ ProcRRSetScreenConfig(ClientPtr client)
     Rotation rotation;
     int rate;
     Bool has_rate;
+    CARD8 status;
     RROutputPtr output;
     RRCrtcPtr crtc;
     RRModePtr mode;
@@ -743,7 +921,7 @@ ProcRRSetScreenConfig(ClientPtr client)
 
     if (!pScrPriv) {
         time = currentTime;
-        rep.status = RRSetConfigFailed;
+        status = RRSetConfigFailed;
         goto sendReply;
     }
     if (!RRGetInfo(pScreen, FALSE))
@@ -752,7 +930,7 @@ ProcRRSetScreenConfig(ClientPtr client)
     output = RRFirstOutput(pScreen);
     if (!output) {
         time = currentTime;
-        rep.status = RRSetConfigFailed;
+        status = RRSetConfigFailed;
         goto sendReply;
     }
 
@@ -768,7 +946,7 @@ ProcRRSetScreenConfig(ClientPtr client)
      * stop working after several hours have passed (freedesktop bug #6502).
      */
     if (stuff->configTimestamp != pScrPriv->lastConfigTime.milliseconds) {
-        rep.status = RRSetConfigInvalidConfigTime;
+        status = RRSetConfigInvalidConfigTime;
         goto sendReply;
     }
 
@@ -847,7 +1025,7 @@ ProcRRSetScreenConfig(ClientPtr client)
      * the last set-time
      */
     if (CompareTimeStamps(time, pScrPriv->lastSetTime) < 0) {
-        rep.status = RRSetConfigInvalidTime;
+        status = RRSetConfigInvalidTime;
         goto sendReply;
     }
 
@@ -879,24 +1057,24 @@ ProcRRSetScreenConfig(ClientPtr client)
         for (c = 0; c < pScrPriv->numCrtcs; c++) {
             if (!RRCrtcSet(pScrPriv->crtcs[c], NULL, 0, 0, RR_Rotate_0,
                            0, NULL)) {
-                rep.status = RRSetConfigFailed;
+                status = RRSetConfigFailed;
                 /* XXX recover from failure */
                 goto sendReply;
             }
         }
         if (!RRScreenSizeSet(pScreen, width, height,
                              pScreen->mmWidth, pScreen->mmHeight)) {
-            rep.status = RRSetConfigFailed;
+            status = RRSetConfigFailed;
             /* XXX recover from failure */
             goto sendReply;
         }
     }
 
     if (!RRCrtcSet(crtc, mode, 0, 0, stuff->rotation, 1, &output))
-        rep.status = RRSetConfigFailed;
+        status = RRSetConfigFailed;
     else {
         pScrPriv->lastSetTime = time;
-        rep.status = RRSetConfigSuccess;
+        status = RRSetConfigSuccess;
     }
 
     /*
@@ -907,14 +1085,17 @@ ProcRRSetScreenConfig(ClientPtr client)
 
     free(pData);
 
-    rep.type = X_Reply;
-    /* rep.status has already been filled in */
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
+    rep = (xRRSetScreenConfigReply) {
+        .type = X_Reply,
+        .status = status,
+        .sequenceNumber = client->sequence,
+        .length = 0,
 
-    rep.newTimestamp = pScrPriv->lastSetTime.milliseconds;
-    rep.newConfigTimestamp = pScrPriv->lastConfigTime.milliseconds;
-    rep.root = pDraw->pScreen->root->drawable.id;
+        .newTimestamp = pScrPriv->lastSetTime.milliseconds,
+        .newConfigTimestamp = pScrPriv->lastConfigTime.milliseconds,
+        .root = pDraw->pScreen->root->drawable.id,
+        /* .subpixelOrder = ?? */
+    };
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
@@ -923,7 +1104,7 @@ ProcRRSetScreenConfig(ClientPtr client)
         swapl(&rep.newConfigTimestamp);
         swapl(&rep.root);
     }
-    WriteToClient(client, sizeof(xRRSetScreenConfigReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRRSetScreenConfigReply), &rep);
 
     return Success;
 }

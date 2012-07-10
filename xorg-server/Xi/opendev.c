@@ -117,10 +117,6 @@ ProcXOpenDevice(ClientPtr client)
     if (status != Success)
         return status;
 
-    memset(&rep, 0, sizeof(xOpenDeviceReply));
-    rep.repType = X_Reply;
-    rep.RepType = X_OpenDevice;
-    rep.sequenceNumber = client->sequence;
     if (dev->key != NULL) {
         evbase[j].class = KeyClass;
         evbase[j++].event_type_base = event_base[KeyClass];
@@ -148,10 +144,15 @@ ProcXOpenDevice(ClientPtr client)
     }
     evbase[j].class = OtherClass;
     evbase[j++].event_type_base = event_base[OtherClass];
-    rep.length = bytes_to_int32(j * sizeof(xInputClassInfo));
-    rep.num_classes = j;
+    rep = (xOpenDeviceReply) {
+        .repType = X_Reply,
+        .RepType = X_OpenDevice,
+        .sequenceNumber = client->sequence,
+        .length = bytes_to_int32(j * sizeof(xInputClassInfo)),
+        .num_classes = j
+    };
     WriteReplyToClient(client, sizeof(xOpenDeviceReply), &rep);
-    WriteToClient(client, j * sizeof(xInputClassInfo), (char *) evbase);
+    WriteToClient(client, j * sizeof(xInputClassInfo), evbase);
     return Success;
 }
 
@@ -167,5 +168,5 @@ SRepXOpenDevice(ClientPtr client, int size, xOpenDeviceReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

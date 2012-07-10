@@ -51,6 +51,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "misc.h"
 #include "dixstruct.h"
 #include "extnsionst.h"
+#include "extinit.h"
 #include "colormapst.h"
 #include "cursorstr.h"
 #include "scrnintstr.h"
@@ -68,6 +69,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "xf86_OSproc.h"
 #include "inputstr.h"
 #include "xf86VGAarbiter.h"
+#include "xf86Extensions.h"
 
 static int DRIEntPrivIndex = -1;
 static DevPrivateKeyRec DRIScreenPrivKeyRec;
@@ -788,6 +790,8 @@ DRIExtensionInit(void)
         return FALSE;
 
     RegisterBlockAndWakeupHandlers(DRIBlockHandler, DRIWakeupHandler, NULL);
+
+    drmSetServerInfo(&DRIDRMServerInfo);
 
     return TRUE;
 }

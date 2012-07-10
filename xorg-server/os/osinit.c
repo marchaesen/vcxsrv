@@ -288,6 +288,7 @@ OsInit(void)
     }
     TimerInit();
     OsVendorInit();
+    OsResetSignals();
     /*
      * No log file by default.  OsVendorInit() should call LogInit() with the
      * log file name if logging to a file is desired.

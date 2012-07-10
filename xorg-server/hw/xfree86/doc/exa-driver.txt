@@ -8,15 +8,10 @@ from system memory, and Porter-Duff compositing and transform operations.
 
 Configuration
 -------------
-A new config file option, AccelMethod, should be added to your driver, to allow
-the user to select between the EXA and XAA acceleration APIs.
-
 Some drivers implement a per-instance useEXA flag to track whether EXA is
-active or not.  It can be helpful to also conditionalize XAA support with an
-ifdef so that it can easily be turned off/removed in the future.
+active or not.
 
-Setting the flag and checking for AccelMethod can be done in the driver's
-Options parsing routine.
+Setting the flag can be done in the driver's Options parsing routine.
 
 Loading EXA
 ------------

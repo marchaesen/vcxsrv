@@ -330,8 +330,8 @@ that.  This is a significant difference compared with the old design.
 
     <para>
 The entry points for drawing operations are already taken care of by
-the framebuffer code (including, XAA).  Extensions and enhancements to
-framebuffer code are outside the scope of this document.
+the framebuffer code.  Extensions and enhancements to framebuffer code
+are outside the scope of this document.
     </para>
 
     <para>
@@ -2003,10 +2003,9 @@ also include the video card's saved state.
       </para>
 
       <para>
-Per-screen data for other modules that the driver uses (for example,
-the XAA module) that is reset for each server generation is hooked into
-the <structname>ScrnInfoRec</structname> through it's <structfield>privates</structfield>
-field.
+Per-screen data for other modules that the driver uses that is reset for each
+server generation is hooked into the <structname>ScrnInfoRec</structname>
+through its <structfield>privates</structfield> field.
       </para>
 
       <para>
@@ -3615,14 +3614,6 @@ The following include files are typically required by video drivers:
 	  </para>
 
 	  <para>
-  If a driver uses XAA, it needs these:
-	    <literallayout><filename>
-    "xaa.h"
-    "xaalocal.h"
-	      </filename></literallayout>
-	  </para>
-
-	  <para>
   If a driver uses the fb manager, it needs this:
 	    <literallayout><filename>
     "xf86fbman.h"
@@ -3840,31 +3831,6 @@ manager is allowed to manage.  This is typically a box with a width of
 can be fit within the total video memory, however, the driver can reserve
 areas at the extremities by passing a smaller area to the manager.
     </para>
-
-    <para>
-<function>xf86InitFBManager()</function> must be called before XAA is
-initialized since XAA uses the manager for it's pixmap cache.
-    </para>
-
-    <para>
-An alternative function is provided to allow the driver to initialize
-the framebuffer manager with a Region rather than a box.
-
-    <programlisting>
-    Bool xf86InitFBManagerRegion(ScreenPtr pScreen,
-                                 RegionPtr FullRegion);
-    </programlisting>
-
-<function>xf86InitFBManagerRegion()</function>, unlike
-<function>xf86InitFBManager()</function>, does not remove the area used for
-the visible screen so that area should not be included in the region
-passed to the function.  <function>xf86InitFBManagerRegion()</function> is
-useful when non-contiguous areas are available to be managed, and is
-required when multiple framebuffers are stored in video memory (as in
-the case where an overlay of a different depth is stored as a second
-framebuffer in offscreen memory).
-    </para>
-
   </sect1>
 
   <sect1 id="cmap">
@@ -5363,15 +5329,6 @@ XFree86 common layer.
 		  way by modules loaded directly by the XFree86 common
 		  layer.  However, it may be used for application-specific
 		  parameter passing in other situations.
-		    </para>
-
-		    <para>
-		  When loading <quote>external</quote> modules (modules that don't
-		  have the standard entry point, for example a
-		  special shared library) the options parameter can be
-		  set to <constant>EXTERN_MODULE</constant> to tell the
-		  loader not to reject the module when it doesn't find
-		  the standard entry point.
 		    </para></listitem></varlistentry>
 
 
@@ -5982,7 +5939,6 @@ typedef struct {
     InitExtension       initFunc;
     char *              name;
     Bool                *disablePtr;
-    InitExtension       setupFunc;
 } ExtensionModule;
 	      </programlisting>
 	    </para>
@@ -8910,12 +8866,6 @@ ZZZPreInit(ScrnInfoPtr pScrn, int flags)
         ZZZFreeRec(pScrn);
         return FALSE;
 
-    /* Load XAA if needed */
-    if (!pZzz-&gt;noAccel || pZzz-&gt;hwCursor)
-        if (!xf86LoadSubModule(pScrn, "xaa")) {
-            ZZZFreeRec(pScrn);
-            return FALSE;
-        }
 
     /* Done */
     return TRUE;

@@ -892,7 +892,7 @@ ErrorConnMax(XtransConnInfo trans_conn)
 {
     int fd = _XSERVTransGetConnectionNumber(trans_conn);
     xConnSetupPrefix csp;
-    char pad[3];
+    char pad[3] = { 0, 0, 0 };
     struct iovec iov[3];
     char byteOrder = 0;
     int whichbyte = 1;

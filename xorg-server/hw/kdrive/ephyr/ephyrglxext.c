@@ -159,17 +159,19 @@ ephyrGLXQueryVersion(__GLXclientState * a_cl, GLbyte * a_pc)
         goto out;
     }
     EPHYR_LOG("major:%d, minor:%d\n", major, minor);
-    reply.majorVersion = major;
-    reply.minorVersion = minor;
-    reply.length = 0;
-    reply.type = X_Reply;
-    reply.sequenceNumber = client->sequence;
+    reply = (xGLXQueryVersionReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .majorVersion = major,
+        .minorVersion = minor
+    };
 
     if (client->swapped) {
         __glXSwapQueryVersionReply(client, &reply);
     }
     else {
-        WriteToClient(client, sz_xGLXQueryVersionReply, (char *) &reply);
+        WriteToClient(client, sz_xGLXQueryVersionReply, &reply);
     }
 
     res = Success;
@@ -215,11 +217,13 @@ ephyrGLXGetVisualConfigsReal(__GLXclientState * a_cl,
     }
     EPHYR_LOG("num_visuals:%d, num_props:%d\n", num_visuals, num_props);
 
-    reply.numVisuals = num_visuals;
-    reply.numProps = num_props;
-    reply.length = (num_visuals * __GLX_SIZE_CARD32 * num_props) >> 2;
-    reply.type = X_Reply;
-    reply.sequenceNumber = client->sequence;
+    reply = (xGLXGetVisualConfigsReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = (num_visuals * __GLX_SIZE_CARD32 * num_props) >> 2,
+        .numVisuals = num_visuals,
+        .numProps = num_props
+    };
 
     if (a_do_swap) {
         __GLX_SWAP_SHORT(&reply.sequenceNumber);
@@ -228,7 +232,7 @@ ephyrGLXGetVisualConfigsReal(__GLXclientState * a_cl,
         __GLX_SWAP_INT(&reply.numProps);
         __GLX_SWAP_INT_ARRAY(props_buf, num_props);
     }
-    WriteToClient(client, sz_xGLXGetVisualConfigsReply, (char *) &reply);
+    WriteToClient(client, sz_xGLXGetVisualConfigsReply, &reply);
     props_per_visual_size = props_buf_size / num_visuals;
     for (i = 0; i < num_visuals; i++) {
         WriteToClient(client,
@@ -269,11 +273,13 @@ ephyrGLXGetFBConfigsSGIXReal(__GLXclientState * a_cl,
     }
     EPHYR_LOG("num_visuals:%d, num_props:%d\n", num_visuals, num_props);
 
-    reply.numVisuals = num_visuals;
-    reply.numProps = num_props;
-    reply.length = props_buf_size >> 2;
-    reply.type = X_Reply;
-    reply.sequenceNumber = client->sequence;
+    reply = (xGLXGetVisualConfigsReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = props_buf_size >> 2,
+        .numVisuals = num_visuals,
+        .numProps = num_props
+    };
 
     if (a_do_swap) {
         __GLX_SWAP_SHORT(&reply.sequenceNumber);
@@ -282,7 +288,7 @@ ephyrGLXGetFBConfigsSGIXReal(__GLXclientState * a_cl,
         __GLX_SWAP_INT(&reply.numProps);
         __GLX_SWAP_INT_ARRAY(props_buf, num_props);
     }
-    WriteToClient(client, sz_xGLXGetVisualConfigsReply, (char *) &reply);
+    WriteToClient(client, sz_xGLXGetVisualConfigsReply, &reply);
     props_per_visual_size = props_buf_size / num_visuals;
     for (i = 0; i < num_visuals; i++) {
         WriteToClient(client,
@@ -351,7 +357,7 @@ ephyrGLXQueryServerString(__GLXclientState * a_cl, GLbyte * a_pc)
     ClientPtr client = a_cl->client;
     xGLXQueryServerStringReq *req = (xGLXQueryServerStringReq *) a_pc;
     xGLXQueryServerStringReply reply;
-    char *server_string = NULL, *buf = NULL;
+    char *server_string = NULL;
     int length = 0;
 
     EPHYR_LOG("enter\n");
@@ -364,18 +370,14 @@ ephyrGLXQueryServerString(__GLXclientState * a_cl, GLbyte * a_pc)
     }
     EPHYR_LOG("string: %s\n", server_string);
     length = strlen(server_string) + 1;
-    reply.type = X_Reply;
-    reply.sequenceNumber = client->sequence;
-    reply.length = __GLX_PAD(length) >> 2;
-    reply.n = length;
-    buf = calloc(reply.length << 2, 1);
-    if (!buf) {
-        EPHYR_LOG_ERROR("failed to allocate string\n;");
-        return BadAlloc;
-    }
-    memcpy(buf, server_string, length);
+    reply = (xGLXQueryServerStringReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = __GLX_PAD(length) >> 2,
+        .n = length
+    };
 
-    WriteToClient(client, sz_xGLXQueryServerStringReply, (char *) &reply);
+    WriteToClient(client, sz_xGLXQueryServerStringReply, &reply);
     WriteToClient(client, (int) (reply.length << 2), server_string);
 
     res = Success;
@@ -384,9 +386,6 @@ ephyrGLXQueryServerString(__GLXclientState * a_cl, GLbyte * a_pc)
     EPHYR_LOG("leave\n");
     free(server_string);
     server_string = NULL;
-
-    free(buf);
-    buf = NULL;
 
     return res;
 }
@@ -512,6 +511,7 @@ ephyrGLXMakeCurrentReal(__GLXclientState * a_cl, GLbyte * a_pc, Bool a_do_swap)
     xGLXMakeCurrentReq *req = (xGLXMakeCurrentReq *) a_pc;
     xGLXMakeCurrentReply reply;
     DrawablePtr drawable = NULL;
+    GLXContextTag contextTag = 0;
     int rc = 0;
 
     EPHYR_LOG("enter\n");
@@ -521,24 +521,26 @@ ephyrGLXMakeCurrentReal(__GLXclientState * a_cl, GLbyte * a_pc, Bool a_do_swap)
     EPHYR_RETURN_VAL_IF_FAIL(drawable->pScreen, BadValue);
     EPHYR_LOG("screen nummber requested:%d\n", drawable->pScreen->myNum);
 
-    memset(&reply, 0, sizeof(reply));
     if (!ephyrHostGLXMakeCurrent(hostx_get_window(drawable->pScreen->myNum),
                                  req->context,
                                  req->oldContextTag,
-                                 (int *) &reply.contextTag)) {
+                                 (int *) &contextTag)) {
         EPHYR_LOG_ERROR("ephyrHostGLXMakeCurrent() failed\n");
         goto out;
     }
-    reply.length = 0;
-    reply.type = X_Reply;
-    reply.sequenceNumber = a_cl->client->sequence;
+    reply = (xGLXMakeCurrentReply) {
+        .type = X_Reply,
+        .sequenceNumber = a_cl->client->sequence,
+        .length = 0,
+        .contextTag = contextTag
+    };
     if (a_do_swap) {
         __GLX_DECLARE_SWAP_VARIABLES;
         __GLX_SWAP_SHORT(&reply.sequenceNumber);
         __GLX_SWAP_INT(&reply.length);
         __GLX_SWAP_INT(&reply.contextTag);
     }
-    WriteToClient(a_cl->client, sz_xGLXMakeCurrentReply, (char *) &reply);
+    WriteToClient(a_cl->client, sz_xGLXMakeCurrentReply, &reply);
 
     res = Success;
  out:
@@ -601,7 +603,7 @@ ephyrGLXGetStringReal(__GLXclientState * a_cl, GLbyte * a_pc, Bool a_do_swap)
         __GLX_SWAP_REPLY_SIZE();
         __GLX_SWAP_REPLY_HEADER();
     }
-    WriteToClient(client, length, (char *) string);
+    WriteToClient(client, length, string);
 
     res = Success;
  out:
@@ -681,16 +683,18 @@ ephyrGLXIsDirectReal(__GLXclientState * a_cl, GLbyte * a_pc, Bool a_do_swap)
 
     EPHYR_LOG("enter\n");
 
-    memset(&reply, 0, sizeof(reply));
     if (!ephyrHostIsContextDirect(req->context, (int *) &is_direct)) {
         EPHYR_LOG_ERROR("ephyrHostIsContextDirect() failed\n");
         goto out;
     }
-    reply.isDirect = is_direct;
-    reply.length = 0;
-    reply.type = X_Reply;
-    reply.sequenceNumber = client->sequence;
-    WriteToClient(client, sz_xGLXIsDirectReply, (char *) &reply);
+    reply = (xGLXIsDirectReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .isDirect = is_direct
+    };
+
+    WriteToClient(client, sz_xGLXIsDirectReply, &reply);
     res = Success;
 
  out:

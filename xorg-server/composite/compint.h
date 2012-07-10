@@ -229,13 +229,6 @@ compReallocPixmap(WindowPtr pWin, int x, int y,
                   unsigned int w, unsigned int h, int bw);
 
 /*
- * compext.c
- */
-
-void
- CompositeExtensionInit(void);
-
-/*
  * compinit.c
  */
 

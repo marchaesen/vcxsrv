@@ -71,14 +71,13 @@ static void
 do_butmap_change(DeviceIntPtr dev, CARD8 *map, int len, ClientPtr client)
 {
     int i;
-    xEvent core_mn;
+    xEvent core_mn = { .u.u.type = MappingNotify };
     deviceMappingNotify xi_mn;
 
     /* The map in ButtonClassRec refers to button numbers, whereas the
      * protocol is zero-indexed.  Sigh. */
     memcpy(&(dev->button->map[1]), map, len);
 
-    core_mn.u.u.type = MappingNotify;
     core_mn.u.mappingNotify.request = MappingPointer;
 
     /* 0 is the server client. */
@@ -93,10 +92,12 @@ do_butmap_change(DeviceIntPtr dev, CARD8 *map, int len, ClientPtr client)
         WriteEventsToClient(clients[i], 1, &core_mn);
     }
 
-    xi_mn.type = DeviceMappingNotify;
-    xi_mn.request = MappingPointer;
-    xi_mn.deviceid = dev->id;
-    xi_mn.time = GetTimeInMillis();
+    xi_mn = (deviceMappingNotify) {
+        .type = DeviceMappingNotify,
+        .request = MappingPointer,
+        .deviceid = dev->id,
+        .time = GetTimeInMillis()
+    };
 
     SendEventToAllWindows(dev, DeviceMappingNotifyMask, (xEvent *) &xi_mn, 1);
 }

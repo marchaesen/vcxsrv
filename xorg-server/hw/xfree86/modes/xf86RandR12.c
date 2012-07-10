@@ -1157,6 +1157,9 @@ xf86RandR12CrtcSet(ScreenPtr pScreen,
     if (rotation != crtc->rotation)
         changed = TRUE;
 
+    if (crtc->current_scanout != randr_crtc->scanout_pixmap)
+        changed = TRUE;
+
     transform = RRCrtcGetTransform(randr_crtc);
     if ((transform != NULL) != crtc->transformPresent)
         changed = TRUE;
@@ -1218,6 +1221,7 @@ xf86RandR12CrtcSet(ScreenPtr pScreen,
              */
             crtc->desiredMode = mode;
             crtc->desiredRotation = rotation;
+            crtc->current_scanout = randr_crtc->scanout_pixmap;
             if (transform) {
                 crtc->desiredTransform = *transform;
                 crtc->desiredTransformPresent = TRUE;
@@ -1552,6 +1556,14 @@ xf86RandR12CreateObjects12(ScreenPtr pScreen)
             output->funcs->create_resources(output);
         RRPostPendingProperties(output->randr_output);
     }
+
+    if (config->name) {
+        config->randr_provider = RRProviderCreate(pScreen, config->name,
+                                                  strlen(config->name));
+
+        RRProviderSetCapabilities(config->randr_provider, pScrn->capabilities);
+    }
+
     return TRUE;
 }
 
@@ -1746,6 +1758,108 @@ xf86RandR12EnterVT(ScrnInfoPtr pScrn)
 }
 
 static Bool
+xf86RandR14ProviderSetOutputSource(ScreenPtr pScreen,
+                                   RRProviderPtr provider,
+                                   RRProviderPtr source_provider)
+{
+
+
+    if (!source_provider) {
+        if (provider->output_source) {
+            ScreenPtr cmScreen = pScreen->current_master;
+
+            DetachOutputGPU(pScreen);
+            AttachUnboundGPU(cmScreen, pScreen);
+        }
+        provider->output_source = NULL;
+        return TRUE;
+    }
+
+    if (provider->output_source == source_provider)
+        return TRUE;
+
+    SetRootClip(source_provider->pScreen, FALSE);
+
+    DetachUnboundGPU(pScreen);
+    AttachOutputGPU(source_provider->pScreen, pScreen);
+
+    provider->output_source = source_provider;
+    SetRootClip(source_provider->pScreen, TRUE);
+    return TRUE;
+}
+
+static Bool
+xf86RandR14ProviderSetOffloadSink(ScreenPtr pScreen,
+                                  RRProviderPtr provider,
+                                  RRProviderPtr sink_provider)
+{
+    if (!sink_provider) {
+        if (provider->offload_sink) {
+            ScreenPtr cmScreen = pScreen->current_master;
+            DetachOutputGPU(pScreen);
+            AttachUnboundGPU(cmScreen, pScreen);
+        }
+
+        provider->offload_sink = NULL;
+        return TRUE;
+    }
+
+    if (provider->offload_sink == sink_provider)
+        return TRUE;
+
+    DetachUnboundGPU(pScreen);
+    AttachOffloadGPU(sink_provider->pScreen, pScreen);
+
+    provider->offload_sink = sink_provider;
+    return TRUE;
+}
+
+static Bool
+xf86RandR14ProviderSetProperty(ScreenPtr pScreen,
+                             RRProviderPtr randr_provider,
+                             Atom property, RRPropertyValuePtr value)
+{
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
+    xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
+
+    /* If we don't have any property handler, then we don't care what the
+     * user is setting properties to.
+     */
+    if (config->provider_funcs->set_property == NULL)
+        return TRUE;
+
+    /*
+     * This function gets called even when vtSema is FALSE, as
+     * drivers will need to remember the correct value to apply
+     * when the VT switch occurs
+     */
+    return config->provider_funcs->set_property(pScrn, property, value);
+}
+
+static Bool
+xf86RandR14ProviderGetProperty(ScreenPtr pScreen,
+                               RRProviderPtr randr_provider, Atom property)
+{
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
+    xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
+
+    if (config->provider_funcs->get_property == NULL)
+        return TRUE;
+
+    /* Should be safe even w/o vtSema */
+    return config->provider_funcs->get_property(pScrn, property);
+}
+
+static Bool
+xf86CrtcSetScanoutPixmap(RRCrtcPtr randr_crtc, PixmapPtr pixmap)
+{
+    xf86CrtcPtr crtc = randr_crtc->devPrivate;
+    if (!crtc->funcs->set_scanout_pixmap)
+        return FALSE;
+    return crtc->funcs->set_scanout_pixmap(crtc, pixmap);
+}
+
+static Bool
 xf86RandR12Init12(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
@@ -1767,6 +1881,14 @@ xf86RandR12Init12(ScreenPtr pScreen)
 #endif
     rp->rrModeDestroy = xf86RandR12ModeDestroy;
     rp->rrSetConfig = NULL;
+
+    rp->rrProviderSetOutputSource = xf86RandR14ProviderSetOutputSource;
+    rp->rrProviderSetOffloadSink = xf86RandR14ProviderSetOffloadSink;
+
+    rp->rrProviderSetProperty = xf86RandR14ProviderSetProperty;
+    rp->rrProviderGetProperty = xf86RandR14ProviderGetProperty;
+    rp->rrCrtcSetScanoutPixmap = xf86CrtcSetScanoutPixmap;
+
     pScrn->PointerMoved = xf86RandR12PointerMoved;
     pScrn->ChangeGamma = xf86RandR12ChangeGamma;
 

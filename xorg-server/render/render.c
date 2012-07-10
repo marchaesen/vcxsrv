@@ -37,6 +37,7 @@
 #include "pixmapstr.h"
 #include "colormapst.h"
 #include "extnsionst.h"
+#include "extinit.h"
 #include "servermd.h"
 #include <X11/extensions/render.h>
 #include <X11/extensions/renderproto.h>
@@ -267,7 +268,11 @@ static int
 ProcRenderQueryVersion(ClientPtr client)
 {
     RenderClientPtr pRenderClient = GetRenderClient(client);
-    xRenderQueryVersionReply rep;
+    xRenderQueryVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
 
     REQUEST(xRenderQueryVersionReq);
 
@@ -275,10 +280,6 @@ ProcRenderQueryVersion(ClientPtr client)
     pRenderClient->minor_version = stuff->minorVersion;
 
     REQUEST_SIZE_MATCH(xRenderQueryVersionReq);
-    memset(&rep, 0, sizeof(xRenderQueryVersionReply));
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
 
     if ((stuff->majorVersion * 1000 + stuff->minorVersion) <
         (SERVER_RENDER_MAJOR_VERSION * 1000 + SERVER_RENDER_MINOR_VERSION)) {
@@ -296,7 +297,7 @@ ProcRenderQueryVersion(ClientPtr client)
         swapl(&rep.majorVersion);
         swapl(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xRenderQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRenderQueryVersionReply), &rep);
     return Success;
 }
 
@@ -500,7 +501,7 @@ ProcRenderQueryPictFormats(ClientPtr client)
         swapl(&reply->numVisuals);
         swapl(&reply->numSubpixel);
     }
-    WriteToClient(client, rlength, (char *) reply);
+    WriteToClient(client, rlength, reply);
     free(reply);
     return Success;
 }
@@ -531,7 +532,7 @@ ProcRenderQueryPictIndexValues(ClientPtr client)
     num = pFormat->index.nvalues;
     rlength = (sizeof(xRenderQueryPictIndexValuesReply) +
                num * sizeof(xIndexValue));
-    reply = (xRenderQueryPictIndexValuesReply *) malloc(rlength);
+    reply = (xRenderQueryPictIndexValuesReply *) calloc(1, rlength);
     if (!reply)
         return BadAlloc;
 
@@ -557,7 +558,7 @@ ProcRenderQueryPictIndexValues(ClientPtr client)
         swapl(&reply->numIndexValues);
     }
 
-    WriteToClient(client, rlength, (char *) reply);
+    WriteToClient(client, rlength, reply);
     free(reply);
     return Success;
 }
@@ -1688,7 +1689,7 @@ ProcRenderQueryFilters(ClientPtr client)
     }
     len = ((nnames + 1) >> 1) + bytes_to_int32(nbytesName);
     total_bytes = sizeof(xRenderQueryFiltersReply) + (len << 2);
-    reply = (xRenderQueryFiltersReply *) malloc(total_bytes);
+    reply = (xRenderQueryFiltersReply *) calloc(1, total_bytes);
     if (!reply)
         return BadAlloc;
     aliases = (INT16 *) (reply + 1);
@@ -1748,7 +1749,7 @@ ProcRenderQueryFilters(ClientPtr client)
         swapl(&reply->numAliases);
         swapl(&reply->numFilters);
     }
-    WriteToClient(client, total_bytes, (char *) reply);
+    WriteToClient(client, total_bytes, reply);
     free(reply);
 
     return Success;

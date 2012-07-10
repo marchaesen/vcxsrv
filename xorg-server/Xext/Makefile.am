@@ -1,16 +1,4 @@
-# libXext.la:        includes all extensions and should be linked into Xvfb,
-#                    Xnest, Xdmx and Xprt
-# libXextbuiltin.la: includes those extensions that are built directly into
-#                    Xorg by default
-# libXextmodule.la:  includes those extensions that are built into a module
-#                    that Xorg loads
-if XORG
-noinst_LTLIBRARIES = libXext.la libXextbuiltin.la libXextmodule.la
-else
 noinst_LTLIBRARIES = libXext.la
-endif
-
-INCLUDES = -I$(top_srcdir)/hw/xfree86/dixmods/extmod
 
 AM_CFLAGS = $(DIX_CFLAGS)
 
@@ -30,10 +18,7 @@ BUILTIN_SRCS =			\
 	syncsrv.h		\
 	xcmisc.c		\
 	xtest.c
-
-# Sources always included in libXextmodule.la & libXext.la. That's right, zero.
-MODULE_SRCS =
-MODULE_LIBS =
+BUILTIN_LIBS =
 
 # Optional sources included if extension enabled by configure.ac rules
 
@@ -46,19 +31,19 @@ endif
 # XVideo extension
 XV_SRCS = xvmain.c xvdisp.c xvmc.c xvdix.h xvmcext.h xvdisp.h
 if XV
-MODULE_SRCS  += $(XV_SRCS)
+BUILTIN_SRCS  += $(XV_SRCS)
 endif
 
 # XResource extension: lets clients get data about per-client resource usage
-RES_SRCS = hashtable.c xres.c
+RES_SRCS = hashtable.c hashtable.h xres.c
 if RES
-MODULE_SRCS  += $(RES_SRCS)
+BUILTIN_SRCS  += $(RES_SRCS)
 endif
 
 # MIT ScreenSaver extension
 SCREENSAVER_SRCS = saver.c
 if SCREENSAVER
-MODULE_SRCS  += $(SCREENSAVER_SRCS)
+BUILTIN_SRCS  += $(SCREENSAVER_SRCS)
 endif
 
 # Xinerama extension: making multiple video devices act as one virtual screen
@@ -84,8 +69,8 @@ endif
 # requires X-ACE extension
 XSELINUX_SRCS = xselinux_ext.c xselinux_hooks.c xselinux_label.c xselinux.h xselinuxint.h
 if XSELINUX
-MODULE_SRCS += $(XSELINUX_SRCS)
-MODULE_LIBS += $(SELINUX_LIBS)
+BUILTIN_SRCS += $(XSELINUX_SRCS)
+BUILTIN_LIBS += $(SELINUX_LIBS)
 endif
 
 # Security extension: multi-level security to protect clients from each other
@@ -103,20 +88,13 @@ endif
 # DPMS extension
 DPMS_SRCS = dpms.c dpmsproc.h
 if DPMSExtension
-MODULE_SRCS += $(DPMS_SRCS)
+BUILTIN_SRCS += $(DPMS_SRCS)
 endif
 
 # Now take all of the above, mix well, bake for 10 minutes and get libXext*.la
 
-libXext_la_SOURCES =		$(BUILTIN_SRCS) $(MODULE_SRCS)
-libXext_la_LIBADD =		$(MODULE_LIBS)
-
-if XORG
-libXextbuiltin_la_SOURCES =	$(BUILTIN_SRCS)
-
-libXextmodule_la_SOURCES =	$(MODULE_SRCS)
-libXextmodule_la_LIBADD =	$(MODULE_LIBS)
-endif
+libXext_la_SOURCES =		$(BUILTIN_SRCS)
+libXext_la_LIBADD =		$(BUILTIN_LIBS)
 
 EXTRA_DIST = \
 	$(MITSHM_SRCS) \

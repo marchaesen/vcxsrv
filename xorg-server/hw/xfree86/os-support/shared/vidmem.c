@@ -157,19 +157,6 @@ checkMtrrOption(VidMapPtr vp)
 }
 
 void
-xf86MakeNewMapping(int ScreenNum, int Flags, unsigned long Base,
-                   unsigned long Size, pointer Vbase)
-{
-    VidMapPtr vp;
-    MappingPtr mp;
-
-    vp = getVidMapRec(ScreenNum);
-    mp = newMapping(vp);
-    mp->size = Size;
-    mp->virtBase = Vbase;
-}
-
-void
 xf86InitVidMem(void)
 {
     if (!vidMemInfo.initialised) {

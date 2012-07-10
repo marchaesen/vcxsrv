@@ -49,8 +49,6 @@ SOFTWARE.
  *  Dispatch routines and initialization routines for the X input extension.
  *
  */
-#define ARRAY_SIZE(_a)        (sizeof((_a)) / sizeof((_a)[0]))
-
 #define	 NUMTYPES 15
 
 #ifdef HAVE_DIX_CONFIG_H
@@ -150,10 +148,8 @@ const Mask ChangeDeviceNotifyMask = (1L << 16);
 const Mask DeviceButtonGrabMask = (1L << 17);
 const Mask DeviceOwnerGrabButtonMask = (1L << 17);
 const Mask DevicePresenceNotifyMask = (1L << 18);
-const Mask DeviceEnterWindowMask = (1L << 18);
-const Mask DeviceLeaveWindowMask = (1L << 19);
-const Mask DevicePropertyNotifyMask = (1L << 20);
-const Mask XIAllMasks = (1L << 21) - 1;
+const Mask DevicePropertyNotifyMask = (1L << 19);
+const Mask XIAllMasks = (1L << 20) - 1;
 
 int ExtEventIndex;
 Mask ExtExclusiveMasks[EMASKSIZE];
@@ -438,8 +434,9 @@ SProcIDispatch(ClientPtr client)
 
 static void
 SReplyIDispatch(ClientPtr client, int len, xGrabDeviceReply * rep)
-                                        /* All we look at is the type field */
-{                               /* This is common to all replies    */
+{
+    /* All we look at is the type field */
+    /* This is common to all replies    */
     if (rep->RepType == X_GetExtensionVersion)
         SRepXGetExtensionVersion(client, len,
                                  (xGetExtensionVersionReply *) rep);

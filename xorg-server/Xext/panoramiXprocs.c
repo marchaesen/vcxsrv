@@ -566,14 +566,18 @@ PanoramiXGetGeometry(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
-    rep.root = screenInfo.screens[0]->root->drawable.id;
-    rep.depth = pDraw->depth;
-    rep.width = pDraw->width;
-    rep.height = pDraw->height;
-    rep.x = rep.y = rep.borderWidth = 0;
+    rep = (xGetGeometryReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .root = screenInfo.screens[0]->root->drawable.id,
+        .depth = pDraw->depth,
+        .width = pDraw->width,
+        .height = pDraw->height,
+        .x = 0,
+        .y = 0,
+        .borderWidth = 0
+    };
 
     if (stuff->id == rep.root) {
         xWindowRoot *root = (xWindowRoot *)
@@ -617,11 +621,13 @@ PanoramiXTranslateCoords(ClientPtr client)
     rc = dixLookupWindow(&pDst, stuff->dstWid, client, DixReadAccess);
     if (rc != Success)
         return rc;
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
-    rep.sameScreen = xTrue;
-    rep.child = None;
+    rep = (xTranslateCoordsReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .sameScreen = xTrue,
+        .child = None
+    };
 
     if ((pWin == screenInfo.screens[0]->root) ||
         (pWin->drawable.id == screenInfo.screens[0]->screensaver.wid)) {
@@ -1954,10 +1960,12 @@ PanoramiXGetImage(ClientPtr client)
             return rc;
     }
 
-    xgi.visual = wVisual(((WindowPtr) pDraw));
-    xgi.type = X_Reply;
-    xgi.sequenceNumber = client->sequence;
-    xgi.depth = pDraw->depth;
+    xgi = (xGetImageReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .visual = wVisual(((WindowPtr) pDraw)),
+        .depth = pDraw->depth
+    };
     if (format == ZPixmap) {
         widthBytesLine = PixmapBytePad(w, pDraw->depth);
         length = widthBytesLine * h;
@@ -2003,7 +2011,7 @@ PanoramiXGetImage(ClientPtr client)
                                  format, planemask, pBuf, widthBytesLine,
                                  isRoot);
 
-            (void) WriteToClient(client, (int) (nlines * widthBytesLine), pBuf);
+            WriteToClient(client, (int) (nlines * widthBytesLine), pBuf);
             linesDone += nlines;
         }
     }
@@ -2020,8 +2028,7 @@ PanoramiXGetImage(ClientPtr client)
                                          nlines, format, plane, pBuf,
                                          widthBytesLine, isRoot);
 
-                    (void) WriteToClient(client,
-                                         (int) (nlines * widthBytesLine), pBuf);
+                    WriteToClient(client, (int)(nlines * widthBytesLine), pBuf);
 
                     linesDone += nlines;
                 }

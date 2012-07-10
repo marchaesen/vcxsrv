@@ -38,7 +38,7 @@ in this Software without prior written authorization from The Open Group.
 #include "xacestr.h"
 #include "securitysrv.h"
 #include <X11/extensions/securproto.h>
-#include "modinit.h"
+#include "extinit.h"
 #include "protocol-versions.h"
 
 /* Extension stuff */
@@ -192,10 +192,10 @@ SecurityDeleteAuthorization(pointer value, XID id)
 
     while ((pEventClient = pAuth->eventClients)) {
         /* send revocation event event */
-        xSecurityAuthorizationRevokedEvent are;
-
-        are.type = SecurityEventBase + XSecurityAuthorizationRevoked;
-        are.authId = pAuth->id;
+        xSecurityAuthorizationRevokedEvent are = {
+            .type = SecurityEventBase + XSecurityAuthorizationRevoked,
+            .authId = pAuth->id
+        };
         WriteEventsToClient(rClient(pEventClient), 1, (xEvent *) &are);
         FreeResource(pEventClient->resource, RT_NONE);
     }
@@ -338,21 +338,22 @@ static int
 ProcSecurityQueryVersion(ClientPtr client)
 {
     /* REQUEST(xSecurityQueryVersionReq); */
-    xSecurityQueryVersionReply rep;
+    xSecurityQueryVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .majorVersion = SERVER_SECURITY_MAJOR_VERSION,
+        .minorVersion = SERVER_SECURITY_MINOR_VERSION
+    };
 
     REQUEST_SIZE_MATCH(xSecurityQueryVersionReq);
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.majorVersion = SERVER_SECURITY_MAJOR_VERSION;
-    rep.minorVersion = SERVER_SECURITY_MINOR_VERSION;
+
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swaps(&rep.majorVersion);
         swaps(&rep.minorVersion);
     }
-    (void) WriteToClient(client, SIZEOF(xSecurityQueryVersionReply),
-                         (char *) &rep);
+    WriteToClient(client, SIZEOF(xSecurityQueryVersionReply), &rep);
     return Success;
 }                               /* ProcSecurityQueryVersion */
 
@@ -528,11 +529,13 @@ ProcSecurityGenerateAuthorization(ClientPtr client)
 
     /* tell client the auth id and data */
 
-    rep.type = X_Reply;
-    rep.length = bytes_to_int32(authdata_len);
-    rep.sequenceNumber = client->sequence;
-    rep.authId = authId;
-    rep.dataLength = authdata_len;
+    rep = (xSecurityGenerateAuthorizationReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = bytes_to_int32(authdata_len),
+        .authId = authId,
+        .dataLength = authdata_len
+    };
 
     if (client->swapped) {
         swapl(&rep.length);
@@ -541,8 +544,7 @@ ProcSecurityGenerateAuthorization(ClientPtr client)
         swaps(&rep.dataLength);
     }
 
-    WriteToClient(client, SIZEOF(xSecurityGenerateAuthorizationReply),
-                  (char *) &rep);
+    WriteToClient(client, SIZEOF(xSecurityGenerateAuthorizationReply), &rep);
     WriteToClient(client, authdata_len, pAuthdata);
 
     SecurityAudit
@@ -1025,7 +1027,7 @@ SecurityResetProc(ExtensionEntry * extEntry)
  */
 
 void
-SecurityExtensionInit(INITARGS)
+SecurityExtensionInit(void)
 {
     ExtensionEntry *extEntry;
     int ret = TRUE;

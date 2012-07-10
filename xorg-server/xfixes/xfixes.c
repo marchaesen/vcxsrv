@@ -48,6 +48,7 @@
 
 #include "xfixesint.h"
 #include "protocol-versions.h"
+#include "extinit.h"
 
 static unsigned char XFixesReqCode;
 int XFixesEventBase;
@@ -61,15 +62,15 @@ static int
 ProcXFixesQueryVersion(ClientPtr client)
 {
     XFixesClientPtr pXFixesClient = GetXFixesClient(client);
-    xXFixesQueryVersionReply rep;
+    xXFixesQueryVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
 
     REQUEST(xXFixesQueryVersionReq);
 
     REQUEST_SIZE_MATCH(xXFixesQueryVersionReq);
-    memset(&rep, 0, sizeof(xXFixesQueryVersionReply));
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
 
     if (version_compare(stuff->majorVersion, stuff->minorVersion,
                         SERVER_XFIXES_MAJOR_VERSION,
@@ -90,7 +91,7 @@ ProcXFixesQueryVersion(ClientPtr client)
         swapl(&rep.majorVersion);
         swapl(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xXFixesQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xXFixesQueryVersionReply), &rep);
     return Success;
 }
 

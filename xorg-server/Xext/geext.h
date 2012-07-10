@@ -78,6 +78,4 @@ extern _X_EXPORT void GERegisterExtension(int extension,
 
 extern _X_EXPORT void GEInitEvent(xGenericEvent *ev, int extension);
 
-extern _X_EXPORT void GEExtensionInit(void);
-
 #endif                          /* _GEEXT_H_ */

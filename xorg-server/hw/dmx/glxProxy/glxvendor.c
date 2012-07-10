@@ -138,9 +138,9 @@ SendSwappedReply(ClientPtr client,
 
     }
 
-    WriteToClient(client, sizeof(xGLXVendorPrivReply), (char *) reply);
+    WriteToClient(client, sizeof(xGLXVendorPrivReply), reply);
     if (buf_size > 0)
-        WriteToClient(client, buf_size, (char *) buf);
+        WriteToClient(client, buf_size, buf);
 
 }
 
@@ -265,9 +265,9 @@ __glXVForwardPipe0WithReply(__GLXclientState * cl, GLbyte * pc)
         SendSwappedReply(client, &reply, be_buf, be_buf_size);
     }
     else {
-        WriteToClient(client, sizeof(xGLXVendorPrivReply), (char *) &reply);
+        WriteToClient(client, sizeof(xGLXVendorPrivReply), &reply);
         if (be_buf_size > 0)
-            WriteToClient(client, be_buf_size, (char *) be_buf);
+            WriteToClient(client, be_buf_size, be_buf);
     }
 
     if (be_buf_size > 0)
@@ -364,9 +364,9 @@ __glXVForwardAllWithReply(__GLXclientState * cl, GLbyte * pc)
         SendSwappedReply(client, &reply, be_buf, be_buf_size);
     }
     else {
-        WriteToClient(client, sizeof(xGLXVendorPrivReply), (char *) &reply);
+        WriteToClient(client, sizeof(xGLXVendorPrivReply), &reply);
         if (be_buf_size > 0)
-            WriteToClient(client, be_buf_size, (char *) be_buf);
+            WriteToClient(client, be_buf_size, be_buf);
     }
 
     if (be_buf_size > 0)

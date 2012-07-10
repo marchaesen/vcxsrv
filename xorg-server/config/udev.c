@@ -331,9 +331,11 @@ config_udev_pre_init(void)
 
     udev_monitor_filter_add_match_subsystem_devtype(udev_monitor, "input",
                                                     NULL);
-    udev_monitor_filter_add_match_subsystem_devtype(udev_monitor, "tty", NULL); /* For Wacom serial devices */
+    /* For Wacom serial devices */
+    udev_monitor_filter_add_match_subsystem_devtype(udev_monitor, "tty", NULL);
 #ifdef CONFIG_UDEV_KMS
-    udev_monitor_filter_add_match_subsystem_devtype(udev_monitor, "drm", NULL); /* For output GPU devices */
+    /* For output GPU devices */
+    udev_monitor_filter_add_match_subsystem_devtype(udev_monitor, "drm", NULL);
 #endif
 
 #ifdef HAVE_UDEV_MONITOR_FILTER_ADD_MATCH_TAG

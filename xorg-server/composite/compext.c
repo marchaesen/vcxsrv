@@ -48,6 +48,7 @@
 #include "compint.h"
 #include "xace.h"
 #include "protocol-versions.h"
+#include "extinit.h"
 
 static CARD8 CompositeReqCode;
 static DevPrivateKeyRec CompositeClientPrivateKeyRec;
@@ -107,14 +108,15 @@ static int
 ProcCompositeQueryVersion(ClientPtr client)
 {
     CompositeClientPtr pCompositeClient = GetCompositeClient(client);
-    xCompositeQueryVersionReply rep;
+    xCompositeQueryVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
 
     REQUEST(xCompositeQueryVersionReq);
 
     REQUEST_SIZE_MATCH(xCompositeQueryVersionReq);
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
     if (stuff->majorVersion < SERVER_COMPOSITE_MAJOR_VERSION) {
         rep.majorVersion = stuff->majorVersion;
         rep.minorVersion = stuff->minorVersion;
@@ -131,7 +133,7 @@ ProcCompositeQueryVersion(ClientPtr client)
         swapl(&rep.majorVersion);
         swapl(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xCompositeQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xCompositeQueryVersionReply), &rep);
     return Success;
 }
 
@@ -311,18 +313,19 @@ ProcCompositeGetOverlayWindow(ClientPtr client)
         return rc;
     }
 
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.overlayWin = cs->pOverlayWin->drawable.id;
+    rep = (xCompositeGetOverlayWindowReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .overlayWin = cs->pOverlayWin->drawable.id
+    };
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.overlayWin);
     }
-    (void) WriteToClient(client, sz_xCompositeGetOverlayWindowReply,
-                         (char *) &rep);
+    WriteToClient(client, sz_xCompositeGetOverlayWindowReply, &rep);
 
     return Success;
 }
@@ -843,18 +846,19 @@ PanoramiXCompositeGetOverlayWindow(ClientPtr client)
 
     cs = GetCompScreen(screenInfo.screens[0]);
 
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.overlayWin = cs->pOverlayWin->drawable.id;
+    rep = (xCompositeGetOverlayWindowReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .overlayWin = cs->pOverlayWin->drawable.id
+    };
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.overlayWin);
     }
-    (void) WriteToClient(client, sz_xCompositeGetOverlayWindowReply,
-                         (char *) &rep);
+    WriteToClient(client, sz_xCompositeGetOverlayWindowReply, &rep);
 
     return Success;
 }

@@ -98,10 +98,12 @@ ProcXSetDeviceModifierMapping(ClientPtr client)
         (stuff->numKeyPerModifier << 1))
         return BadLength;
 
-    rep.repType = X_Reply;
-    rep.RepType = X_SetDeviceModifierMapping;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
+    rep = (xSetDeviceModifierMappingReply) {
+        .repType = X_Reply,
+        .RepType = X_SetDeviceModifierMapping,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
 
     ret = dixLookupDevice(&dev, stuff->deviceid, client, DixManageAccess);
     if (ret != Success)
@@ -140,5 +142,5 @@ SRepXSetDeviceModifierMapping(ClientPtr client, int size,
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

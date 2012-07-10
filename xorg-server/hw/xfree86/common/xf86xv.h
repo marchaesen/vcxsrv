@@ -263,8 +263,4 @@ extern _X_EXPORT void
 xf86XVCopyPacked(const void *src,
                  void *dst, int srcPitch, int dstPitch, int h, int w);
 
-extern _X_EXPORT DevPrivateKey (*XvGetScreenKeyProc) (void);
-extern _X_EXPORT unsigned long (*XvGetRTPortProc) (void);
-extern _X_EXPORT int (*XvScreenInitProc) (ScreenPtr);
-
 #endif                          /* _XF86XV_H_ */

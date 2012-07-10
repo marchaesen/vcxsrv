@@ -1266,7 +1266,7 @@ ProcessTouchOwnershipEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
         else
             ti->listeners[0].state = LISTENER_HAS_ACCEPTED;
     }
-    else {                      /* this is the very first ownership event for a grab */
+    else {  /* this is the very first ownership event for a grab */
         DeliverTouchEvents(dev, ti, (InternalEvent *) ev, ev->resource);
     }
 }
@@ -2312,12 +2312,11 @@ SelectForWindow(DeviceIntPtr dev, WindowPtr pWin, ClientPtr client,
 
     check = (mask & exclusivemasks);
     if (wOtherInputMasks(pWin)) {
-        if (check & wOtherInputMasks(pWin)->inputEvents[mskidx]) {      /* It is illegal for two different
-                                                                         * clients to select on any of the
-                                                                         * events for maskcheck. However,
-                                                                         * it is OK, for some client to
-                                                                         * continue selecting on one of those
-                                                                         * events.  */
+        if (check & wOtherInputMasks(pWin)->inputEvents[mskidx]) {
+            /* It is illegal for two different clients to select on any of
+             * the events for maskcheck. However, it is OK, for some client
+             * to continue selecting on one of those events.
+             */
             for (others = wOtherInputMasks(pWin)->inputClients; others;
                  others = others->next) {
                 if (!SameClient(others, client) && (check &

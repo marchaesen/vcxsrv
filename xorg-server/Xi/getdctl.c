@@ -158,7 +158,7 @@ SRepXGetDeviceControl(ClientPtr client, int size, xGetDeviceControlReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }
 
 /***********************************************************************
@@ -182,10 +182,12 @@ ProcXGetDeviceControl(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    rep.repType = X_Reply;
-    rep.RepType = X_GetDeviceControl;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
+    rep = (xGetDeviceControlReply) {
+        .repType = X_Reply,
+        .RepType = X_GetDeviceControl,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
 
     switch (stuff->control) {
     case DEVICE_RESOLUTION:

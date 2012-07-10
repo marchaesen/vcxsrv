@@ -110,13 +110,15 @@ ProcXGetDeviceMotionEvents(ClientPtr client)
     if (dev->valuator->motionHintWindow)
         MaybeStopDeviceHint(dev, client);
     axes = v->numAxes;
-    rep.repType = X_Reply;
-    rep.RepType = X_GetDeviceMotionEvents;
-    rep.sequenceNumber = client->sequence;
-    rep.nEvents = 0;
-    rep.axes = axes;
-    rep.mode = Absolute;        /* XXX we don't do relative at the moment */
-    rep.length = 0;
+    rep = (xGetDeviceMotionEventsReply) {
+        .repType = X_Reply,
+        .RepType = X_GetDeviceMotionEvents,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .nEvents = 0,
+        .axes = axes,
+        .mode = Absolute        /* XXX we don't do relative at the moment */
+    };
     start = ClientTimeToServerTime(stuff->start);
     stop = ClientTimeToServerTime(stuff->stop);
     if (CompareTimeStamps(start, stop) == LATER ||
@@ -147,7 +149,7 @@ ProcXGetDeviceMotionEvents(ClientPtr client)
                 bufptr++;
             }
         }
-        WriteToClient(client, length * 4, (char *) coords);
+        WriteToClient(client, length * 4, coords);
     }
     free(coords);
     return Success;
@@ -167,5 +169,5 @@ SRepXGetDeviceMotionEvents(ClientPtr client, int size,
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
     swapl(&rep->nEvents);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

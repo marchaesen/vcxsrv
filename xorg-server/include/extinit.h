@@ -23,8 +23,29 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ********************************************************/
 
-/********************************************************************
- * Interface of extinit.c
+/*
+ * Copyright (C) 1994-2003 The XFree86 Project, Inc.  All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do
+ * so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FIT-
+ * NESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+ * XFREE86 PROJECT BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * Except as contained in this notice, the name of the XFree86 Project shall not
+ * be used in advertising or otherwise to promote the sale, use or other dealings
+ * in this Software without prior written authorization from the XFree86 Project.
  */
 
 #ifndef EXTINIT_H
@@ -32,14 +53,134 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "extnsionst.h"
 
-extern void
- XInputExtensionInit(void
-    );
+#ifdef COMPOSITE
+extern Bool noCompositeExtension;
+extern void CompositeExtensionInit(void);
+#endif
 
-extern _X_EXPORT void
- AssignTypeAndName(DeviceIntPtr /* dev */ ,
-                   Atom /* type */ ,
-                   const char * /* name */
-    );
+#ifdef DAMAGE
+extern Bool noDamageExtension;
+extern void DamageExtensionInit(void);
+#endif
 
-#endif                          /* EXTINIT_H */
+#if defined(DBE)
+extern Bool noDbeExtension;
+extern void DbeExtensionInit(void);
+#endif
+
+#ifdef DMXEXT
+extern void DMXExtensionInit(void);
+#endif
+
+#if defined(DPMSExtension)
+#include <X11/extensions/dpmsconst.h>
+extern Bool noDPMSExtension;
+extern void DPMSExtensionInit(void);
+#endif
+
+extern Bool noGEExtension;
+extern void GEExtensionInit(void);
+
+#ifdef GLXEXT
+extern _X_EXPORT Bool noGlxExtension;
+extern void GlxExtensionInit(void);
+#endif
+
+#ifdef PANORAMIX
+#include <X11/extensions/panoramiXproto.h>
+extern Bool noPanoramiXExtension;
+extern void PanoramiXExtensionInit(void);
+#endif
+
+#ifdef RANDR
+extern Bool noRRExtension;
+extern void RRExtensionInit(void);
+#endif
+
+#if defined(XRECORD)
+extern void RecordExtensionInit(void);
+#endif
+
+extern Bool noRenderExtension;
+extern void RenderExtensionInit(void);
+
+#if defined(RES)
+#include <X11/extensions/XResproto.h>
+extern Bool noResExtension;
+extern void ResExtensionInit(void);
+#endif
+
+#if defined(SCREENSAVER)
+#include <X11/extensions/saver.h>
+extern Bool noScreenSaverExtension;
+extern void ScreenSaverExtensionInit(void);
+#endif
+
+#include <X11/extensions/shapeproto.h>
+extern void ShapeExtensionInit(void);
+
+#ifdef MITSHM
+#include <X11/extensions/shm.h>
+#include <X11/extensions/shmproto.h>
+extern Bool noMITShmExtension;
+extern void ShmExtensionInit(void);
+#endif
+
+extern void SyncExtensionInit(void);
+
+extern void XCMiscExtensionInit(void);
+
+#ifdef XCSECURITY
+#include <X11/extensions/secur.h>
+#include "securitysrv.h"
+extern Bool noSecurityExtension;
+extern void SecurityExtensionInit(void);
+#endif
+
+#ifdef XF86BIGFONT
+#include <X11/extensions/xf86bigfproto.h>
+extern Bool noXFree86BigfontExtension;
+extern void XFree86BigfontExtensionInit(void);
+#endif
+
+extern void BigReqExtensionInit(void);
+
+#ifdef XFIXES
+extern Bool noXFixesExtension;
+extern void XFixesExtensionInit(void);
+#endif
+
+extern void XInputExtensionInit(void);
+extern _X_EXPORT void AssignTypeAndName(DeviceIntPtr dev,
+                                        Atom type,
+                                        const char *name);
+
+#include <X11/extensions/XKB.h>
+extern void XkbExtensionInit(void);
+
+#if defined(XSELINUX)
+#include "xselinux.h"
+extern Bool noSELinuxExtension;
+extern void SELinuxExtensionInit(void);
+#endif
+
+#ifdef XTEST
+#include <X11/extensions/xtestconst.h>
+#include <X11/extensions/xtestproto.h>
+extern void XTestExtensionInit(void);
+#endif
+
+#ifdef INXQUARTZ
+extern Bool noPseudoramiXExtension;
+extern void PseudoramiXExtensionInit(void);
+#endif
+
+#if defined(XV)
+#include <X11/extensions/Xv.h>
+#include <X11/extensions/XvMC.h>
+extern Bool noXvExtension;
+extern void XvExtensionInit(void);
+extern void XvMCExtensionInit(void);
+#endif
+
+#endif

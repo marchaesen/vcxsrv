@@ -205,7 +205,10 @@ AllocGrab(void)
 }
 
 GrabPtr
-CreateGrab(int client, DeviceIntPtr device, DeviceIntPtr modDevice, WindowPtr window, enum InputLevel grabtype, GrabMask *mask, GrabParameters *param, int type, KeyCode keybut,        /* key or button */
+CreateGrab(int client, DeviceIntPtr device, DeviceIntPtr modDevice,
+           WindowPtr window, enum InputLevel grabtype, GrabMask *mask,
+           GrabParameters *param, int type,
+           KeyCode keybut,        /* key or button */
            WindowPtr confineTo, CursorPtr cursor)
 {
     GrabPtr grab;

@@ -641,7 +641,6 @@ CreateWindow(Window wid, WindowPtr pParent, int x, int y, unsigned w,
     WindowPtr pWin;
     WindowPtr pHead;
     ScreenPtr pScreen;
-    xEvent event;
     int idepth, ivisual;
     Bool fOK;
     DepthPtr pDepth;
@@ -828,16 +827,17 @@ CreateWindow(Window wid, WindowPtr pParent, int x, int y, unsigned w,
     }
 
     if (SubSend(pParent)) {
-        memset(&event, 0, sizeof(xEvent));
+        xEvent event = {
+            .u.createNotify.window = wid,
+            .u.createNotify.parent = pParent->drawable.id,
+            .u.createNotify.x = x,
+            .u.createNotify.y = y,
+            .u.createNotify.width = w,
+            .u.createNotify.height = h,
+            .u.createNotify.borderWidth = bw,
+            .u.createNotify.override = pWin->overrideRedirect
+        };
         event.u.u.type = CreateNotify;
-        event.u.createNotify.window = wid;
-        event.u.createNotify.parent = pParent->drawable.id;
-        event.u.createNotify.x = x;
-        event.u.createNotify.y = y;
-        event.u.createNotify.width = w;
-        event.u.createNotify.height = h;
-        event.u.createNotify.borderWidth = bw;
-        event.u.createNotify.override = pWin->overrideRedirect;
         DeliverEvents(pParent, &event, 1, NullWindow);
     }
     return pWin;
@@ -912,7 +912,6 @@ CrushTree(WindowPtr pWin)
 {
     WindowPtr pChild, pSib, pParent;
     UnrealizeWindowProcPtr UnrealizeWindow;
-    xEvent event;
 
     if (!(pChild = pWin->firstChild))
         return;
@@ -925,8 +924,7 @@ CrushTree(WindowPtr pWin)
         while (1) {
             pParent = pChild->parent;
             if (SubStrSend(pChild, pParent)) {
-                memset(&event, 0, sizeof(xEvent));
-                event.u.u.type = DestroyNotify;
+                xEvent event = { .u.u.type = DestroyNotify };
                 event.u.destroyNotify.window = pChild->drawable.id;
                 DeliverEvents(pChild, &event, 1, NullWindow);
             }
@@ -961,7 +959,6 @@ DeleteWindow(pointer value, XID wid)
 {
     WindowPtr pParent;
     WindowPtr pWin = (WindowPtr) value;
-    xEvent event;
 
     UnmapWindow(pWin, FALSE);
 
@@ -969,8 +966,7 @@ DeleteWindow(pointer value, XID wid)
 
     pParent = pWin->parent;
     if (wid && pParent && SubStrSend(pWin, pParent)) {
-        memset(&event, 0, sizeof(xEvent));
-        event.u.u.type = DestroyNotify;
+        xEvent event = { .u.u.type = DestroyNotify };
         event.u.destroyNotify.window = pWin->drawable.id;
         DeliverEvents(pWin, &event, 1, NullWindow);
     }
@@ -1355,11 +1351,13 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                         CheckWindowOptionalNeed(pChild);
                 }
 
+                xE = (xEvent) {
+                    .u.colormap.window = pWin->drawable.id,
+                    .u.colormap.colormap = cmap,
+                    .u.colormap.new = xTrue,
+                    .u.colormap.state = IsMapInstalled(cmap, pWin)
+                };
                 xE.u.u.type = ColormapNotify;
-                xE.u.colormap.window = pWin->drawable.id;
-                xE.u.colormap.colormap = cmap;
-                xE.u.colormap.new = xTrue;
-                xE.u.colormap.state = IsMapInstalled(cmap, pWin);
                 DeliverEvents(pWin, &xE, 1, NullWindow);
             }
             break;
@@ -1746,12 +1744,12 @@ ResizeChildrenWinSize(WindowPtr pWin, int dx, int dy, int dw, int dh)
             GravityTranslate(cwsx, cwsy, cwsx - dx, cwsy - dy, dw, dh,
                              pSib->winGravity, &cwsx, &cwsy);
             if (cwsx != pSib->origin.x || cwsy != pSib->origin.y) {
-                xEvent event;
-
+                xEvent event = {
+                    .u.gravity.window = pSib->drawable.id,
+                    .u.gravity.x = cwsx - wBorderWidth(pSib),
+                    .u.gravity.y = cwsy - wBorderWidth(pSib)
+                };
                 event.u.u.type = GravityNotify;
-                event.u.gravity.window = pSib->drawable.id;
-                event.u.gravity.x = cwsx - wBorderWidth(pSib);
-                event.u.gravity.y = cwsy - wBorderWidth(pSib);
                 DeliverEvents(pSib, &event, 1, NullWindow);
                 pSib->origin.x = cwsx;
                 pSib->origin.y = cwsy;
@@ -2090,7 +2088,6 @@ ConfigureWindow(WindowPtr pWin, Mask mask, XID *vlist, ClientPtr client)
     unsigned short w = pWin->drawable.width,
         h = pWin->drawable.height, bw = pWin->borderWidth;
     int rc, action, smode = Above;
-    xEvent event;
 
     if ((pWin->drawable.class == InputOnly) &&
         (mask & IllegalInputOnlyConfigureMask))
@@ -2179,30 +2176,25 @@ ConfigureWindow(WindowPtr pWin, Mask mask, XID *vlist, ClientPtr client)
 
     if ((!pWin->overrideRedirect) && (RedirectSend(pParent)
         )) {
-        memset(&event, 0, sizeof(xEvent));
+        xEvent event = {
+            .u.configureRequest.window = pWin->drawable.id,
+            .u.configureRequest.sibling = (mask & CWSibling) ? sibwid : None,
+            .u.configureRequest.x = x,
+            .u.configureRequest.y = y,
+            .u.configureRequest.width = w,
+            .u.configureRequest.height = h,
+            .u.configureRequest.borderWidth = bw,
+            .u.configureRequest.valueMask = mask,
+            .u.configureRequest.parent = pParent->drawable.id
+        };
         event.u.u.type = ConfigureRequest;
-        event.u.configureRequest.window = pWin->drawable.id;
-        if (mask & CWSibling)
-            event.u.configureRequest.sibling = sibwid;
-        else
-            event.u.configureRequest.sibling = None;
-        if (mask & CWStackMode)
-            event.u.u.detail = smode;
-        else
-            event.u.u.detail = Above;
-        event.u.configureRequest.x = x;
-        event.u.configureRequest.y = y;
+        event.u.u.detail = (mask & CWStackMode) ? smode : Above;
 #ifdef PANORAMIX
         if (!noPanoramiXExtension && (!pParent || !pParent->parent)) {
             event.u.configureRequest.x += screenInfo.screens[0]->x;
             event.u.configureRequest.y += screenInfo.screens[0]->y;
         }
 #endif
-        event.u.configureRequest.width = w;
-        event.u.configureRequest.height = h;
-        event.u.configureRequest.borderWidth = bw;
-        event.u.configureRequest.valueMask = mask;
-        event.u.configureRequest.parent = pParent->drawable.id;
         if (MaybeDeliverEventsToClient(pParent, &event, 1,
                                        SubstructureRedirectMask, client) == 1)
             return Success;
@@ -2213,13 +2205,12 @@ ConfigureWindow(WindowPtr pWin, Mask mask, XID *vlist, ClientPtr client)
 
         if (size_change &&
             ((pWin->eventMask | wOtherEventMasks(pWin)) & ResizeRedirectMask)) {
-            xEvent eventT;
-
-            memset(&eventT, 0, sizeof(xEvent));
+            xEvent eventT = {
+                .u.resizeRequest.window = pWin->drawable.id,
+                .u.resizeRequest.width = w,
+                .u.resizeRequest.height = h
+            };
             eventT.u.u.type = ResizeRequest;
-            eventT.u.resizeRequest.window = pWin->drawable.id;
-            eventT.u.resizeRequest.width = w;
-            eventT.u.resizeRequest.height = h;
             if (MaybeDeliverEventsToClient(pWin, &eventT, 1,
                                            ResizeRedirectMask, client) == 1) {
                 /* if event is delivered, leave the actual size alone. */
@@ -2270,25 +2261,23 @@ ConfigureWindow(WindowPtr pWin, Mask mask, XID *vlist, ClientPtr client)
     }
 
     if (SubStrSend(pWin, pParent)) {
-        memset(&event, 0, sizeof(xEvent));
+        xEvent event = {
+            .u.configureNotify.window = pWin->drawable.id,
+            .u.configureNotify.aboveSibling = pSib ? pSib->drawable.id : None,
+            .u.configureNotify.x = x,
+            .u.configureNotify.y = y,
+            .u.configureNotify.width = w,
+            .u.configureNotify.height = h,
+            .u.configureNotify.borderWidth = bw,
+            .u.configureNotify.override = pWin->overrideRedirect
+        };
         event.u.u.type = ConfigureNotify;
-        event.u.configureNotify.window = pWin->drawable.id;
-        if (pSib)
-            event.u.configureNotify.aboveSibling = pSib->drawable.id;
-        else
-            event.u.configureNotify.aboveSibling = None;
-        event.u.configureNotify.x = x;
-        event.u.configureNotify.y = y;
 #ifdef PANORAMIX
         if (!noPanoramiXExtension && (!pParent || !pParent->parent)) {
             event.u.configureNotify.x += screenInfo.screens[0]->x;
             event.u.configureNotify.y += screenInfo.screens[0]->y;
         }
 #endif
-        event.u.configureNotify.width = w;
-        event.u.configureNotify.height = h;
-        event.u.configureNotify.borderWidth = bw;
-        event.u.configureNotify.override = pWin->overrideRedirect;
         DeliverEvents(pWin, &event, 1, NullWindow);
     }
     if (mask & CWBorderWidth) {
@@ -2361,13 +2350,13 @@ CirculateWindow(WindowPtr pParent, int direction, ClientPtr client)
             return Success;
     }
 
-    event.u.circulate.window = pWin->drawable.id;
-    event.u.circulate.parent = pParent->drawable.id;
-    event.u.circulate.event = pParent->drawable.id;
-    if (direction == RaiseLowest)
-        event.u.circulate.place = PlaceOnTop;
-    else
-        event.u.circulate.place = PlaceOnBottom;
+    event = (xEvent) {
+        .u.circulate.window = pWin->drawable.id,
+        .u.circulate.parent = pParent->drawable.id,
+        .u.circulate.event = pParent->drawable.id,
+        .u.circulate.place = (direction == RaiseLowest) ?
+                              PlaceOnTop : PlaceOnBottom,
+    };
 
     if (RedirectSend(pParent)) {
         event.u.u.type = CirculateRequest;
@@ -2420,19 +2409,20 @@ ReparentWindow(WindowPtr pWin, WindowPtr pParent,
     if (WasMapped)
         UnmapWindow(pWin, FALSE);
 
-    memset(&event, 0, sizeof(xEvent));
+    event = (xEvent) {
+        .u.reparent.window = pWin->drawable.id,
+        .u.reparent.parent = pParent->drawable.id,
+        .u.reparent.x = x,
+        .u.reparent.y = y,
+        .u.reparent.override = pWin->overrideRedirect
+    };
     event.u.u.type = ReparentNotify;
-    event.u.reparent.window = pWin->drawable.id;
-    event.u.reparent.parent = pParent->drawable.id;
-    event.u.reparent.x = x;
-    event.u.reparent.y = y;
 #ifdef PANORAMIX
     if (!noPanoramiXExtension && !pParent->parent) {
         event.u.reparent.x += screenInfo.screens[0]->x;
         event.u.reparent.y += screenInfo.screens[0]->y;
     }
 #endif
-    event.u.reparent.override = pWin->overrideRedirect;
     DeliverEvents(pWin, &event, 1, pParent);
 
     /* take out of sibling chain */
@@ -2568,15 +2558,15 @@ MapWindow(WindowPtr pWin, ClientPtr client)
 
     pScreen = pWin->drawable.pScreen;
     if ((pParent = pWin->parent)) {
-        xEvent event;
         Bool anyMarked;
 
         if ((!pWin->overrideRedirect) && (RedirectSend(pParent)
             )) {
-            memset(&event, 0, sizeof(xEvent));
+            xEvent event = {
+                .u.mapRequest.window = pWin->drawable.id,
+                .u.mapRequest.parent = pParent->drawable.id
+            };
             event.u.u.type = MapRequest;
-            event.u.mapRequest.window = pWin->drawable.id;
-            event.u.mapRequest.parent = pParent->drawable.id;
 
             if (MaybeDeliverEventsToClient(pParent, &event, 1,
                                            SubstructureRedirectMask,
@@ -2586,10 +2576,11 @@ MapWindow(WindowPtr pWin, ClientPtr client)
 
         pWin->mapped = TRUE;
         if (SubStrSend(pWin, pParent) && MapUnmapEventsEnabled(pWin)) {
-            memset(&event, 0, sizeof(xEvent));
+            xEvent event = {
+                .u.mapNotify.window = pWin->drawable.id,
+                .u.mapNotify.override = pWin->overrideRedirect,
+            };
             event.u.u.type = MapNotify;
-            event.u.mapNotify.window = pWin->drawable.id;
-            event.u.mapNotify.override = pWin->overrideRedirect;
             DeliverEvents(pWin, &event, 1, NullWindow);
         }
 
@@ -2644,7 +2635,6 @@ MapSubwindows(WindowPtr pParent, ClientPtr client)
     ScreenPtr pScreen;
     Mask parentRedirect;
     Mask parentNotify;
-    xEvent event;
     Bool anyMarked;
     WindowPtr pLayerWin;
 
@@ -2655,10 +2645,11 @@ MapSubwindows(WindowPtr pParent, ClientPtr client)
     for (pWin = pParent->firstChild; pWin; pWin = pWin->nextSib) {
         if (!pWin->mapped) {
             if (parentRedirect && !pWin->overrideRedirect) {
-                memset(&event, 0, sizeof(xEvent));
+                xEvent event = {
+                    .u.mapRequest.window = pWin->drawable.id,
+                    .u.mapRequest.parent = pParent->drawable.id
+                };
                 event.u.u.type = MapRequest;
-                event.u.mapRequest.window = pWin->drawable.id;
-                event.u.mapRequest.parent = pParent->drawable.id;
 
                 if (MaybeDeliverEventsToClient(pParent, &event, 1,
                                                SubstructureRedirectMask,
@@ -2668,10 +2659,11 @@ MapSubwindows(WindowPtr pParent, ClientPtr client)
 
             pWin->mapped = TRUE;
             if (parentNotify || StrSend(pWin)) {
-                memset(&event, 0, sizeof(xEvent));
+                xEvent event = {
+                    .u.mapNotify.window = pWin->drawable.id,
+                    .u.mapNotify.override = pWin->overrideRedirect
+                };
                 event.u.u.type = MapNotify;
-                event.u.mapNotify.window = pWin->drawable.id;
-                event.u.mapNotify.override = pWin->overrideRedirect;
                 DeliverEvents(pWin, &event, 1, NullWindow);
             }
 
@@ -2765,7 +2757,6 @@ int
 UnmapWindow(WindowPtr pWin, Bool fromConfigure)
 {
     WindowPtr pParent;
-    xEvent event;
     Bool wasRealized = (Bool) pWin->realized;
     Bool wasViewable = (Bool) pWin->viewable;
     ScreenPtr pScreen = pWin->drawable.pScreen;
@@ -2774,10 +2765,11 @@ UnmapWindow(WindowPtr pWin, Bool fromConfigure)
     if ((!pWin->mapped) || (!(pParent = pWin->parent)))
         return Success;
     if (SubStrSend(pWin, pParent) && MapUnmapEventsEnabled(pWin)) {
-        memset(&event, 0, sizeof(xEvent));
+        xEvent event = {
+            .u.unmapNotify.window = pWin->drawable.id,
+            .u.unmapNotify.fromConfigure = fromConfigure
+        };
         event.u.u.type = UnmapNotify;
-        event.u.unmapNotify.window = pWin->drawable.id;
-        event.u.unmapNotify.fromConfigure = fromConfigure;
         DeliverEvents(pWin, &event, 1, NullWindow);
     }
     if (wasViewable && !fromConfigure) {
@@ -2813,7 +2805,6 @@ void
 UnmapSubwindows(WindowPtr pWin)
 {
     WindowPtr pChild, pHead;
-    xEvent event;
     Bool wasRealized = (Bool) pWin->realized;
     Bool wasViewable = (Bool) pWin->viewable;
     Bool anyMarked = FALSE;
@@ -2832,9 +2823,11 @@ UnmapSubwindows(WindowPtr pWin)
     for (pChild = pWin->lastChild; pChild != pHead; pChild = pChild->prevSib) {
         if (pChild->mapped) {
             if (parentNotify || StrSend(pChild)) {
+                xEvent event = {
+                    .u.unmapNotify.window = pChild->drawable.id,
+                    .u.unmapNotify.fromConfigure = xFalse
+                };
                 event.u.u.type = UnmapNotify;
-                event.u.unmapNotify.window = pChild->drawable.id;
-                event.u.unmapNotify.fromConfigure = xFalse;
                 DeliverEvents(pChild, &event, 1, NullWindow);
             }
             if (pChild->viewable) {
@@ -3028,10 +3021,11 @@ SendVisibilityNotify(WindowPtr pWin)
     }
 #endif
 
-    memset(&event, 0, sizeof(xEvent));
+    event = (xEvent) {
+        .u.visibility.window = pWin->drawable.id,
+        .u.visibility.state = visibility
+    };
     event.u.u.type = VisibilityNotify;
-    event.u.visibility.window = pWin->drawable.id;
-    event.u.visibility.state = visibility;
     DeliverEvents(pWin, &event, 1, NullWindow);
 }
 

@@ -119,11 +119,13 @@ ProcXGetDeviceKeyMapping(ClientPtr client)
     if (!syms)
         return BadAlloc;
 
-    rep.repType = X_Reply;
-    rep.RepType = X_GetDeviceKeyMapping;
-    rep.sequenceNumber = client->sequence;
-    rep.keySymsPerKeyCode = syms->mapWidth;
-    rep.length = (syms->mapWidth * stuff->count);       /* KeySyms are 4 bytes */
+    rep = (xGetDeviceKeyMappingReply) {
+        .repType = X_Reply,
+        .RepType = X_GetDeviceKeyMapping,
+        .sequenceNumber = client->sequence,
+        .keySymsPerKeyCode = syms->mapWidth,
+        .length = (syms->mapWidth * stuff->count) /* KeySyms are 4 bytes */
+    };
     WriteReplyToClient(client, sizeof(xGetDeviceKeyMappingReply), &rep);
 
     client->pSwapReplyFunc = (ReplySwapPtr) CopySwap32Write;
@@ -150,5 +152,5 @@ SRepXGetDeviceKeyMapping(ClientPtr client, int size,
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

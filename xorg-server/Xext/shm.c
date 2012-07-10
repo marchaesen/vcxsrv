@@ -87,7 +87,7 @@ in this Software without prior written authorization from The Open Group.
 #include "panoramiXsrv.h"
 #endif
 
-#include "modinit.h"
+#include "extinit.h"
 
 typedef struct _ShmDesc {
     struct _ShmDesc *next;
@@ -285,19 +285,20 @@ ShmRegisterFbFuncs(ScreenPtr pScreen)
 static int
 ProcShmQueryVersion(ClientPtr client)
 {
-    xShmQueryVersionReply rep;
+    xShmQueryVersionReply rep = {
+        .type = X_Reply,
+        .sharedPixmaps = sharedPixmaps,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .majorVersion = SERVER_SHM_MAJOR_VERSION,
+        .minorVersion = SERVER_SHM_MINOR_VERSION,
+        .uid = geteuid(),
+        .gid = getegid(),
+        .pixmapFormat = sharedPixmaps ? ZPixmap : 0
+    };
 
     REQUEST_SIZE_MATCH(xShmQueryVersionReq);
-    memset(&rep, 0, sizeof(xShmQueryVersionReply));
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
-    rep.sharedPixmaps = sharedPixmaps;
-    rep.pixmapFormat = sharedPixmaps ? ZPixmap : 0;
-    rep.majorVersion = SERVER_SHM_MAJOR_VERSION;
-    rep.minorVersion = SERVER_SHM_MINOR_VERSION;
-    rep.uid = geteuid();
-    rep.gid = getegid();
+
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
@@ -306,7 +307,7 @@ ProcShmQueryVersion(ClientPtr client)
         swaps(&rep.uid);
         swaps(&rep.gid);
     }
-    WriteToClient(client, sizeof(xShmQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xShmQueryVersionReply), &rep);
     return Success;
 }
 
@@ -594,14 +595,14 @@ ProcShmPutImage(ClientPtr client)
                       stuff->dstX, stuff->dstY, shmdesc->addr + stuff->offset);
 
     if (stuff->sendEvent) {
-        xShmCompletionEvent ev;
-
-        ev.type = ShmCompletionCode;
-        ev.drawable = stuff->drawable;
-        ev.minorEvent = X_ShmPutImage;
-        ev.majorEvent = ShmReqCode;
-        ev.shmseg = stuff->shmseg;
-        ev.offset = stuff->offset;
+        xShmCompletionEvent ev = {
+            .type = ShmCompletionCode,
+            .drawable = stuff->drawable,
+            .minorEvent = X_ShmPutImage,
+            .majorEvent = ShmReqCode,
+            .shmseg = stuff->shmseg,
+            .offset = stuff->offset
+        };
         WriteEventsToClient(client, 1, (xEvent *) &ev);
     }
 
@@ -616,6 +617,7 @@ ProcShmGetImage(ClientPtr client)
     Mask plane = 0;
     xShmGetImageReply xgi;
     ShmDescPtr shmdesc;
+    VisualID visual = None;
     int rc;
 
     REQUEST(xShmGetImageReq);
@@ -630,7 +632,7 @@ ProcShmGetImage(ClientPtr client)
         return rc;
     VERIFY_SHMPTR(stuff->shmseg, stuff->offset, TRUE, shmdesc, client);
     if (pDraw->type == DRAWABLE_WINDOW) {
-        if (                    /* check for being viewable */
+        if (   /* check for being viewable */
                !((WindowPtr) pDraw)->realized ||
                /* check for being on screen */
                pDraw->x + stuff->x < 0 ||
@@ -646,19 +648,22 @@ ProcShmGetImage(ClientPtr client)
                stuff->y + (int) stuff->height >
                wBorderWidth((WindowPtr) pDraw) + (int) pDraw->height)
             return BadMatch;
-        xgi.visual = wVisual(((WindowPtr) pDraw));
+        visual = wVisual(((WindowPtr) pDraw));
     }
     else {
         if (stuff->x < 0 ||
             stuff->x + (int) stuff->width > pDraw->width ||
             stuff->y < 0 || stuff->y + (int) stuff->height > pDraw->height)
             return BadMatch;
-        xgi.visual = None;
+        visual = None;
     }
-    xgi.type = X_Reply;
-    xgi.length = 0;
-    xgi.sequenceNumber = client->sequence;
-    xgi.depth = pDraw->depth;
+    xgi = (xShmGetImageReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .visual = visual,
+        .depth = pDraw->depth
+    };
     if (stuff->format == ZPixmap) {
         length = PixmapBytePad(stuff->width, pDraw->depth) * stuff->height;
     }
@@ -702,7 +707,7 @@ ProcShmGetImage(ClientPtr client)
         swapl(&xgi.visual);
         swapl(&xgi.size);
     }
-    WriteToClient(client, sizeof(xShmGetImageReply), (char *) &xgi);
+    WriteToClient(client, sizeof(xShmGetImageReply), &xgi);
 
     return Success;
 }
@@ -830,11 +835,13 @@ ProcPanoramiXShmGetImage(ClientPtr client)
         }
     }
 
-    xgi.visual = wVisual(((WindowPtr) pDraw));
-    xgi.type = X_Reply;
-    xgi.length = 0;
-    xgi.sequenceNumber = client->sequence;
-    xgi.depth = pDraw->depth;
+    xgi = (xShmGetImageReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .visual = wVisual(((WindowPtr) pDraw)),
+        .depth = pDraw->depth
+    };
 
     if (format == ZPixmap) {
         widthBytesLine = PixmapBytePad(w, pDraw->depth);
@@ -877,7 +884,7 @@ ProcPanoramiXShmGetImage(ClientPtr client)
         swapl(&xgi.visual);
         swapl(&xgi.size);
     }
-    WriteToClient(client, sizeof(xShmGetImageReply), (char *) &xgi);
+    WriteToClient(client, sizeof(xShmGetImageReply), &xgi);
 
     return Success;
 }
@@ -1241,7 +1248,7 @@ SProcShmDispatch(ClientPtr client)
 }
 
 void
-ShmExtensionInit(INITARGS)
+ShmExtensionInit(void)
 {
     ExtensionEntry *extEntry;
     int i;

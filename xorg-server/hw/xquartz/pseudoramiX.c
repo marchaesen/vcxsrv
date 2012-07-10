@@ -40,6 +40,7 @@
 #include "darwin.h"
 #include "pseudoramiX.h"
 #include "extnsionst.h"
+#include "extinit.h"
 #include "dixstruct.h"
 #include "window.h"
 #include <X11/extensions/panoramiXproto.h>
@@ -216,7 +217,7 @@ ProcPseudoramiXGetState(ClientPtr client)
         swapl(&rep.length);
         swaps(&rep.state);
     }
-    WriteToClient(client, sizeof(xPanoramiXGetStateReply), (char *)&rep);
+    WriteToClient(client, sizeof(xPanoramiXGetStateReply),&rep);
     return Success;
 }
 
@@ -245,7 +246,7 @@ ProcPseudoramiXGetScreenCount(ClientPtr client)
         swapl(&rep.length);
         swaps(&rep.ScreenCount);
     }
-    WriteToClient(client, sizeof(xPanoramiXGetScreenCountReply), (char *)&rep);
+    WriteToClient(client, sizeof(xPanoramiXGetScreenCountReply),&rep);
     return Success;
 }
 
@@ -279,7 +280,7 @@ ProcPseudoramiXGetScreenSize(ClientPtr client)
         swaps(&rep.width);
         swaps(&rep.height);
     }
-    WriteToClient(client, sizeof(xPanoramiXGetScreenSizeReply), (char *)&rep);
+    WriteToClient(client, sizeof(xPanoramiXGetScreenSizeReply),&rep);
     return Success;
 }
 
@@ -303,7 +304,7 @@ ProcPseudoramiXIsActive(ClientPtr client)
         swapl(&rep.length);
         swapl(&rep.state);
     }
-    WriteToClient(client, sizeof(xXineramaIsActiveReply), (char *)&rep);
+    WriteToClient(client, sizeof(xXineramaIsActiveReply),&rep);
     return Success;
 }
 
@@ -329,7 +330,7 @@ ProcPseudoramiXQueryScreens(ClientPtr client)
         swapl(&rep.length);
         swapl(&rep.number);
     }
-    WriteToClient(client, sizeof(xXineramaQueryScreensReply), (char *)&rep);
+    WriteToClient(client, sizeof(xXineramaQueryScreensReply),&rep);
 
     if (!noPseudoramiXExtension) {
         xXineramaScreenInfo scratch;
@@ -347,7 +348,7 @@ ProcPseudoramiXQueryScreens(ClientPtr client)
                 swaps(&scratch.width);
                 swaps(&scratch.height);
             }
-            WriteToClient(client, sz_XineramaScreenInfo, (char *)&scratch);
+            WriteToClient(client, sz_XineramaScreenInfo,&scratch);
         }
     }
 

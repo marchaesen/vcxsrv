@@ -193,15 +193,17 @@ __glXDisp_RenderMode(__GLXclientState * cl, GLbyte * pc)
      */
  noChangeAllowed:;
     client = cl->client;
-    reply.length = nitems;
-    reply.type = X_Reply;
-    reply.sequenceNumber = client->sequence;
-    reply.retval = retval;
-    reply.size = nitems;
-    reply.newMode = newMode;
-    WriteToClient(client, sz_xGLXRenderModeReply, (char *) &reply);
+    reply = (xGLXRenderModeReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = nitems,
+        .retval = retval,
+        .size = nitems,
+        .newMode = newMode
+    };
+    WriteToClient(client, sz_xGLXRenderModeReply, &reply);
     if (retBytes) {
-        WriteToClient(client, retBytes, (char *) retBuffer);
+        WriteToClient(client, retBytes, retBuffer);
     }
     return Success;
 }
@@ -384,7 +386,7 @@ DoGetString(__GLXclientState * cl, GLbyte * pc, GLboolean need_swap)
     }
 
     __GLX_SEND_HEADER();
-    WriteToClient(client, length, (char *) string);
+    WriteToClient(client, length, string);
     free(buf);
 
     return Success;

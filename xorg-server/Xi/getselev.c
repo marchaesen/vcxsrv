@@ -102,12 +102,14 @@ ProcXGetSelectedExtensionEvents(ClientPtr client)
     REQUEST(xGetSelectedExtensionEventsReq);
     REQUEST_SIZE_MATCH(xGetSelectedExtensionEventsReq);
 
-    rep.repType = X_Reply;
-    rep.RepType = X_GetSelectedExtensionEvents;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
-    rep.this_client_count = 0;
-    rep.all_clients_count = 0;
+    rep = (xGetSelectedExtensionEventsReply) {
+        .repType = X_Reply,
+        .RepType = X_GetSelectedExtensionEvents,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .this_client_count = 0,
+        .all_clients_count = 0
+    };
 
     rc = dixLookupWindow(&pWin, stuff->window, client, DixGetAttrAccess);
     if (rc != Success)
@@ -170,5 +172,5 @@ SRepXGetSelectedExtensionEvents(ClientPtr client, int size,
     swapl(&rep->length);
     swaps(&rep->this_client_count);
     swaps(&rep->all_clients_count);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

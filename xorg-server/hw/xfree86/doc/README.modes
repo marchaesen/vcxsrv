@@ -133,11 +133,10 @@ this function computes an initial configuration for the server. It tries to
 enable as much hardware as possible using some fairly simple heuristics. 
 
 The 'canGrow' parameter indicates that the frame buffer does not have a fixed
-size (fixed size frame buffers are required by XAA). When the frame buffer
-has a fixed size, the configuration selects a 'reasonablely large' frame
-buffer so that common reconfiguration options are possible. For resizable
-frame buffers, the frame buffer is set to the smallest size that encloses
-the desired configuration.
+size. When the frame buffer has a fixed size, the configuration selects a
+'reasonablely large' frame buffer so that common reconfiguration options are
+possible. For resizable frame buffers, the frame buffer is set to the smallest
+size that encloses the desired configuration.
     
 3.2 ScreenInit functions
 

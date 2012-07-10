@@ -38,13 +38,8 @@
 #include <dix-config.h>
 #endif
 
-#ifdef XFree86LOADER
-#include "xf86.h"
-#include "xf86_ansic.h"
-#else
 #include <sys/time.h>
 #include <unistd.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xproto.h>
@@ -55,6 +50,7 @@
 #include "misc.h"
 #include "dixstruct.h"
 #include "extnsionst.h"
+#include "extinit.h"
 #include "colormapst.h"
 #include "cursorstr.h"
 #include "scrnintstr.h"

@@ -134,8 +134,6 @@ extern void SyncChangeCounter(SyncCounter *pCounter,
 
 extern void SyncDestroySystemCounter(pointer pCounter);
 
-extern void SyncExtensionInit(void);
-
 extern SyncCounter *SyncInitDeviceIdleTime(DeviceIntPtr dev);
 extern void SyncRemoveDeviceIdleTime(SyncCounter *counter);
 #endif                          /* _SYNCSRV_H_ */

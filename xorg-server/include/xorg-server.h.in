@@ -197,7 +197,7 @@
 #undef WSCONS_SUPPORT
 
 /* Loadable XFree86 server awesomeness */
-#undef XFree86LOADER
+#define XFree86LOADER
 
 /* Use libpciaccess */
 #undef XSERVER_LIBPCIACCESS

@@ -38,6 +38,7 @@ and Jim Haggerty of Metheus.
 
 #include "dixstruct.h"
 #include "extnsionst.h"
+#include "extinit.h"
 #include <X11/extensions/recordproto.h>
 #include "set.h"
 #include "swaprep.h"
@@ -139,8 +140,6 @@ static int RecordDeleteContext(pointer /*value */ ,
                                XID      /*id */
     );
 
-void RecordExtensionInit(void);
-
 /***************************************************************************/
 
 /* client private stuff */
@@ -241,12 +240,12 @@ RecordFlushReplyBuffer(RecordContextPtr pContext,
     ++pContext->inFlush;
     if (pContext->numBufBytes)
         WriteToClient(pContext->pRecordingClient, pContext->numBufBytes,
-                      (char *) pContext->replyBuffer);
+                      pContext->replyBuffer);
     pContext->numBufBytes = 0;
     if (len1)
-        WriteToClient(pContext->pRecordingClient, len1, (char *) data1);
+        WriteToClient(pContext->pRecordingClient, len1, data1);
     if (len2)
-        WriteToClient(pContext->pRecordingClient, len2, (char *) data2);
+        WriteToClient(pContext->pRecordingClient, len2, data2);
     --pContext->inFlush;
 }                               /* RecordFlushReplyBuffer */
 
@@ -1816,21 +1815,21 @@ static int
 ProcRecordQueryVersion(ClientPtr client)
 {
     /* REQUEST(xRecordQueryVersionReq); */
-    xRecordQueryVersionReply rep;
+    xRecordQueryVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .majorVersion = SERVER_RECORD_MAJOR_VERSION,
+        .minorVersion = SERVER_RECORD_MINOR_VERSION
+    };
 
     REQUEST_SIZE_MATCH(xRecordQueryVersionReq);
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.majorVersion = SERVER_RECORD_MAJOR_VERSION;
-    rep.minorVersion = SERVER_RECORD_MINOR_VERSION;
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swaps(&rep.majorVersion);
         swaps(&rep.minorVersion);
     }
-    (void) WriteToClient(client, sizeof(xRecordQueryVersionReply),
-                         (char *) &rep);
+    WriteToClient(client, sizeof(xRecordQueryVersionReply), &rep);
     return Success;
 }                               /* ProcRecordQueryVersion */
 
@@ -2136,6 +2135,7 @@ ProcRecordGetContext(ClientPtr client)
     GetContextRangeInfoPtr pri;
     int i;
     int err;
+    CARD32 nClients, length;
 
     REQUEST_SIZE_MATCH(xRecordGetContextReq);
     VERIFY_CONTEXT(pContext, stuff->context, client);
@@ -2219,28 +2219,32 @@ ProcRecordGetContext(ClientPtr client)
 
     /* calculate number of clients and reply length */
 
-    rep.nClients = 0;
-    rep.length = 0;
+    nClients = 0;
+    length = 0;
     for (pRCAP = pContext->pListOfRCAP, pri = pRangeInfo;
          pRCAP; pRCAP = pRCAP->pNextRCAP, pri++) {
-        rep.nClients += pRCAP->numClients;
-        rep.length += pRCAP->numClients *
+        nClients += pRCAP->numClients;
+        length += pRCAP->numClients *
             (bytes_to_int32(sizeof(xRecordClientInfo)) +
              pri->nRanges * bytes_to_int32(sizeof(xRecordRange)));
     }
 
     /* write the reply header */
 
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.enabled = pContext->pRecordingClient != NULL;
-    rep.elementHeader = pContext->elemHeaders;
+    rep = (xRecordGetContextReply) {
+        .type = X_Reply,
+        .enabled = pContext->pRecordingClient != NULL,
+        .sequenceNumber = client->sequence,
+        .length = length,
+        .elementHeader = pContext->elemHeaders,
+        .nClients = nClients
+    };
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.nClients);
     }
-    (void) WriteToClient(client, sizeof(xRecordGetContextReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRecordGetContextReply), &rep);
 
     /* write all the CLIENT_INFOs */
 
@@ -2257,9 +2261,9 @@ ProcRecordGetContext(ClientPtr client)
             rci.clientResource = pRCAP->pClientIDs[i];
             if (client->swapped)
                 swapl(&rci.clientResource);
-            WriteToClient(client, sizeof(xRecordClientInfo), (char *) &rci);
+            WriteToClient(client, sizeof(xRecordClientInfo), &rci);
             WriteToClient(client, sizeof(xRecordRange) * pri->nRanges,
-                          (char *) pri->pRanges);
+                          pri->pRanges);
         }
     }
     err = Success;

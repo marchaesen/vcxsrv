@@ -23,6 +23,7 @@ dnl  PERFORMANCE OF THIS SOFTWARE.
 dnl
 dnl Process this file with autoconf to create configure.
 
+AC_PREREQ(2.61)
 AC_INIT(fonts.dtd)
 
 dnl ==========================================================================
@@ -128,6 +129,7 @@ AC_CHECK_HEADERS([fcntl.h regex.h stdlib.h string.h unistd.h sys/vfs.h sys/statf
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_C_INLINE
+AC_C_FLEXIBLE_ARRAY_MEMBER
 AC_TYPE_PID_T
 
 # Checks for library functions.

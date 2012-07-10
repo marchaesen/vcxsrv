@@ -42,6 +42,7 @@
 #include <X11/Xproto.h>
 #include "scrnintstr.h"
 #include "extnsionst.h"
+#include "extinit.h"
 #include "gcstruct.h"
 #include "dixstruct.h"
 #define NEED_DBE_PROTOCOL
@@ -118,21 +119,21 @@ static int
 ProcDbeGetVersion(ClientPtr client)
 {
     /* REQUEST(xDbeGetVersionReq); */
-    xDbeGetVersionReply rep;
+    xDbeGetVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .majorVersion = DBE_MAJOR_VERSION,
+        .minorVersion = DBE_MINOR_VERSION
+    };
 
     REQUEST_SIZE_MATCH(xDbeGetVersionReq);
-
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
-    rep.majorVersion = DBE_MAJOR_VERSION;
-    rep.minorVersion = DBE_MINOR_VERSION;
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
     }
 
-    WriteToClient(client, sizeof(xDbeGetVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xDbeGetVersionReply), &rep);
 
     return Success;
 
@@ -667,10 +668,12 @@ ProcDbeGetVisualInfo(ClientPtr client)
         length += pScrVisInfo[i].count * sizeof(xDbeVisInfo);
     }
 
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = bytes_to_int32(length);
-    rep.m = count;
+    rep = (xDbeGetVisualInfoReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = bytes_to_int32(length),
+        .m = count
+    };
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
@@ -679,7 +682,7 @@ ProcDbeGetVisualInfo(ClientPtr client)
     }
 
     /* Send off reply. */
-    WriteToClient(client, sizeof(xDbeGetVisualInfoReply), (char *) &rep);
+    WriteToClient(client, sizeof(xDbeGetVisualInfoReply), &rep);
 
     for (i = 0; i < count; i++) {
         CARD32 data32;
@@ -693,7 +696,7 @@ ProcDbeGetVisualInfo(ClientPtr client)
             swapl(&data32);
         }
 
-        WriteToClient(client, sizeof(CARD32), (char *) &data32);
+        WriteToClient(client, sizeof(CARD32), &data32);
 
         /* Now send off visual info items. */
         for (j = 0; j < pScrVisInfo[i].count; j++) {
@@ -717,8 +720,7 @@ ProcDbeGetVisualInfo(ClientPtr client)
             }
 
             /* Write visualID(32), depth(8), perfLevel(8), and pad(16). */
-            WriteToClient(client, 2 * sizeof(CARD32),
-                          (char *) &visInfo.visualID);
+            WriteToClient(client, 2 * sizeof(CARD32), &visInfo.visualID);
         }
     }
 
@@ -756,7 +758,11 @@ static int
 ProcDbeGetBackBufferAttributes(ClientPtr client)
 {
     REQUEST(xDbeGetBackBufferAttributesReq);
-    xDbeGetBackBufferAttributesReply rep;
+    xDbeGetBackBufferAttributesReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
     DbeWindowPrivPtr pDbeWindowPriv;
     int rc;
 
@@ -772,18 +778,13 @@ ProcDbeGetBackBufferAttributes(ClientPtr client)
         rep.attributes = None;
     }
 
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.attributes);
     }
 
-    WriteToClient(client, sizeof(xDbeGetBackBufferAttributesReply),
-                  (char *) &rep);
+    WriteToClient(client, sizeof(xDbeGetBackBufferAttributesReply), &rep);
     return Success;
 
 }                               /* ProcDbeGetbackBufferAttributes() */

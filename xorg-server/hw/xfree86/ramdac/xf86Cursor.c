@@ -336,7 +336,7 @@ xf86CursorSetCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCurs,
         if (!infoPtr->pScrn->vtSema)
             ScreenPriv->SavedCursor = pCurs;
 
-        if (infoPtr->pScrn->vtSema &&
+        if (infoPtr->pScrn->vtSema && xorg_list_is_empty(&pScreen->pixmap_dirty_list) &&
             (ScreenPriv->ForceHWCursorCount ||
              ((
 #ifdef ARGB_CURSOR

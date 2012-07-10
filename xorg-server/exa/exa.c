@@ -782,6 +782,10 @@ exaCloseScreen(ScreenPtr pScreen)
     unwrap(pExaScr, pScreen, ChangeWindowAttributes);
     unwrap(pExaScr, pScreen, BitmapToRegion);
     unwrap(pExaScr, pScreen, CreateScreenResources);
+    if (pExaScr->SavedSharePixmapBacking)
+        unwrap(pExaScr, pScreen, SharePixmapBacking);
+    if (pExaScr->SavedSetSharedPixmapBacking)
+        unwrap(pExaScr, pScreen, SetSharedPixmapBacking);
     unwrap(pExaScr, ps, Composite);
     if (pExaScr->SavedGlyphs)
         unwrap(pExaScr, ps, Glyphs);
@@ -976,6 +980,9 @@ exaDriverInit(ScreenPtr pScreen, ExaDriverPtr pScreenInfo)
                 wrap(pExaScr, pScreen, DestroyPixmap, exaDestroyPixmap_mixed);
                 wrap(pExaScr, pScreen, ModifyPixmapHeader,
                      exaModifyPixmapHeader_mixed);
+                wrap(pExaScr, pScreen, SharePixmapBacking, exaSharePixmapBacking_mixed);
+                wrap(pExaScr, pScreen, SetSharedPixmapBacking, exaSetSharedPixmapBacking_mixed);
+
                 pExaScr->do_migration = exaDoMigration_mixed;
                 pExaScr->pixmap_has_gpu_copy = exaPixmapHasGpuCopy_mixed;
                 pExaScr->do_move_in_pixmap = exaMoveInPixmap_mixed;

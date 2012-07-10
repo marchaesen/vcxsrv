@@ -97,7 +97,7 @@ xColorItem *pdefs;
     }
 
     writeColormap = scrninfp->vtSema;
-    if (DGAAvailable(scrnIndex)) {
+    if (DGAScreenAvailable(pmap->pScreen)) {
         writeColormap = writeColormap ||
             (DGAGetDirectMode(scrnIndex) &&
              !(DGAGetFlags(scrnIndex) & XF86DGADirectColormap)) ||

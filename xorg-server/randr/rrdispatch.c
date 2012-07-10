@@ -35,16 +35,17 @@ RRClientKnowsRates(ClientPtr pClient)
 static int
 ProcRRQueryVersion(ClientPtr client)
 {
-    xRRQueryVersionReply rep = { 0 };
+    xRRQueryVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
     REQUEST(xRRQueryVersionReq);
     rrClientPriv(client);
 
     REQUEST_SIZE_MATCH(xRRQueryVersionReq);
     pRRClient->major_version = stuff->majorVersion;
     pRRClient->minor_version = stuff->minorVersion;
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
 
     if (version_compare(stuff->majorVersion, stuff->minorVersion,
                         SERVER_RANDR_MAJOR_VERSION,
@@ -63,7 +64,7 @@ ProcRRQueryVersion(ClientPtr client)
         swapl(&rep.majorVersion);
         swapl(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xRRQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRRQueryVersionReply), &rep);
     return Success;
 }
 
@@ -90,7 +91,8 @@ ProcRRSelectInput(ClientPtr client)
     if (stuff->enable & (RRScreenChangeNotifyMask |
                          RRCrtcChangeNotifyMask |
                          RROutputChangeNotifyMask |
-                         RROutputPropertyNotifyMask)) {
+                         RROutputPropertyNotifyMask |
+                         RRProviderPropertyNotifyMask)) {
         ScreenPtr pScreen = pWin->drawable.pScreen;
 
         rrScrPriv(pScreen);
@@ -241,4 +243,15 @@ int (*ProcRandrVector[RRNumberRequests]) (ClientPtr) = {
         ProcRRSetPanning,       /* 29 */
         ProcRRSetOutputPrimary, /* 30 */
         ProcRRGetOutputPrimary, /* 31 */
+/* V1.4 additions */
+        ProcRRGetProviders,     /* 32 */
+        ProcRRGetProviderInfo,  /* 33 */
+        ProcRRSetProviderOffloadSink, /* 34 */
+        ProcRRSetProviderOutputSource, /* 35 */
+        ProcRRListProviderProperties,    /* 36 */
+        ProcRRQueryProviderProperty,     /* 37 */
+        ProcRRConfigureProviderProperty, /* 38 */
+        ProcRRChangeProviderProperty, /* 39 */
+        ProcRRDeleteProviderProperty, /* 40 */
+        ProcRRGetProviderProperty,    /* 41 */
 };

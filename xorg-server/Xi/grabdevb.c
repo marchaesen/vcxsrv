@@ -137,13 +137,14 @@ ProcXGrabDeviceButton(ClientPtr client)
                                   X_GrabDeviceButton)) != Success)
         return ret;
 
-    memset(&param, 0, sizeof(param));
-    param.grabtype = XI;
-    param.ownerEvents = stuff->ownerEvents;
-    param.this_device_mode = stuff->this_device_mode;
-    param.other_devices_mode = stuff->other_devices_mode;
-    param.grabWindow = stuff->grabWindow;
-    param.modifiers = stuff->modifiers;
+    param = (GrabParameters) {
+        .grabtype = XI,
+        .ownerEvents = stuff->ownerEvents,
+        .this_device_mode = stuff->this_device_mode,
+        .other_devices_mode = stuff->other_devices_mode,
+        .grabWindow = stuff->grabWindow,
+        .modifiers = stuff->modifiers
+    };
     mask.xi = tmp[stuff->grabbed_device].mask;
 
     ret = GrabButton(client, dev, mdev, stuff->button, &param, XI, &mask);

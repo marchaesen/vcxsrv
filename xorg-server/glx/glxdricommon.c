@@ -107,8 +107,6 @@ __ATTRIB(__DRI_ATTRIB_BUFFER_SIZE, rgbBits),
         __ATTRIB(__DRI_ATTRIB_BIND_TO_MIPMAP_TEXTURE, bindToMipmapTexture),
         __ATTRIB(__DRI_ATTRIB_YINVERTED, yInverted),};
 
-#define ARRAY_SIZE(a) (sizeof (a) / sizeof ((a)[0]))
-
 static void
 setScalar(__GLXconfig * config, unsigned int attrib, unsigned int value)
 {

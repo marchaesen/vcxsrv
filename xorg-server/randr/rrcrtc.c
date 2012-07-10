@@ -236,29 +236,21 @@ RRDeliverCrtcEvent(ClientPtr client, WindowPtr pWin, RRCrtcPtr crtc)
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
     rrScrPriv(pScreen);
-    xRRCrtcChangeNotifyEvent ce;
     RRModePtr mode = crtc->mode;
 
-    ce.type = RRNotify + RREventBase;
-    ce.subCode = RRNotify_CrtcChange;
-    ce.timestamp = pScrPriv->lastSetTime.milliseconds;
-    ce.window = pWin->drawable.id;
-    ce.crtc = crtc->id;
-    ce.rotation = crtc->rotation;
-    if (mode) {
-        ce.mode = mode->mode.id;
-        ce.x = crtc->x;
-        ce.y = crtc->y;
-        ce.width = mode->mode.width;
-        ce.height = mode->mode.height;
-    }
-    else {
-        ce.mode = None;
-        ce.x = 0;
-        ce.y = 0;
-        ce.width = 0;
-        ce.height = 0;
-    }
+    xRRCrtcChangeNotifyEvent ce = {
+        .type = RRNotify + RREventBase,
+        .subCode = RRNotify_CrtcChange,
+        .timestamp = pScrPriv->lastSetTime.milliseconds,
+        .window = pWin->drawable.id,
+        .crtc = crtc->id,
+        .mode = mode ? mode->mode.id : None,
+        .rotation = crtc->rotation,
+        .x = mode ? crtc->x : 0,
+        .y = mode ? crtc->y : 0,
+        .width = mode ? mode->mode.width : 0,
+        .height = mode ? mode->mode.height : 0
+    };
     WriteEventsToClient(client, 1, (xEvent *) &ce);
 }
 
@@ -367,6 +359,154 @@ RRComputeContiguity(ScreenPtr pScreen)
     pScrPriv->discontiguous = discontiguous;
 }
 
+void
+RRCrtcDetachScanoutPixmap(RRCrtcPtr crtc)
+{
+    ScreenPtr master = crtc->pScreen->current_master;
+    int ret;
+    PixmapPtr mscreenpix;
+    rrScrPriv(crtc->pScreen);
+
+    mscreenpix = master->GetScreenPixmap(master);
+
+    ret = pScrPriv->rrCrtcSetScanoutPixmap(crtc, NULL);
+    if (crtc->scanout_pixmap) {
+        master->StopPixmapTracking(mscreenpix, crtc->scanout_pixmap);
+        master->DestroyPixmap(crtc->scanout_pixmap->master_pixmap);
+        crtc->pScreen->DestroyPixmap(crtc->scanout_pixmap);
+    }
+    crtc->scanout_pixmap = NULL;
+    RRCrtcChanged(crtc, TRUE);
+}
+
+static Bool
+rrCreateSharedPixmap(RRCrtcPtr crtc, int width, int height,
+                     int x, int y)
+{
+    PixmapPtr mpix, spix;
+    ScreenPtr master = crtc->pScreen->current_master;
+    Bool ret;
+    int depth;
+    PixmapPtr mscreenpix;
+    PixmapPtr protopix = crtc->pScreen->current_master->GetScreenPixmap(crtc->pScreen->current_master);
+    rrScrPriv(crtc->pScreen);
+
+    /* create a pixmap on the master screen,
+       then get a shared handle for it
+       create a shared pixmap on the slave screen using the handle
+       set the master screen to do dirty updates to the shared pixmap
+       from the screen pixmap.
+       set slave screen to scanout shared linear pixmap
+    */
+
+    mscreenpix = master->GetScreenPixmap(master);
+    depth = protopix->drawable.depth;
+
+    if (crtc->scanout_pixmap)
+        RRCrtcDetachScanoutPixmap(crtc);
+
+    if (width == 0 && height == 0) {
+        return TRUE;
+    }
+
+    mpix = master->CreatePixmap(master, width, height, depth,
+                                CREATE_PIXMAP_USAGE_SHARED);
+    if (!mpix)
+        return FALSE;
+
+    spix = PixmapShareToSlave(mpix, crtc->pScreen);
+    if (spix == NULL) {
+        master->DestroyPixmap(mpix);
+        return FALSE;
+    }
+
+    ret = pScrPriv->rrCrtcSetScanoutPixmap(crtc, spix);
+    if (ret == FALSE) {
+        ErrorF("failed to set shadow slave pixmap\n");
+        return FALSE;
+    }
+
+    crtc->scanout_pixmap = spix;
+
+    master->StartPixmapTracking(mscreenpix, spix, x, y);
+    return TRUE;
+}
+
+static Bool
+rrCheckPixmapBounding(ScreenPtr pScreen,
+                      RRCrtcPtr rr_crtc, int x, int y, int w, int h)
+{
+    RegionRec root_pixmap_region, total_region, new_crtc_region;
+    int i, c;
+    BoxRec newbox;
+    BoxPtr newsize;
+    ScreenPtr slave;
+    int new_width, new_height;
+    PixmapPtr screen_pixmap = pScreen->GetScreenPixmap(pScreen);
+    rrScrPriv(pScreen);
+
+    PixmapRegionInit(&root_pixmap_region, screen_pixmap);
+    RegionInit(&total_region, NULL, 0);
+
+    /* have to iterate all the crtcs of the attached gpu masters
+       and all their output slaves */
+    for (c = 0; c < pScrPriv->numCrtcs; c++) {
+        if (pScrPriv->crtcs[c] == rr_crtc) {
+            newbox.x1 = x;
+            newbox.x2 = x + w;
+            newbox.y1 = y;
+            newbox.y2 = y + h;
+        } else {
+            if (!pScrPriv->crtcs[c]->mode)
+                continue;
+            newbox.x1 = pScrPriv->crtcs[c]->x;
+            newbox.x2 = pScrPriv->crtcs[c]->x + pScrPriv->crtcs[c]->mode->mode.width;
+            newbox.y1 = pScrPriv->crtcs[c]->y;
+            newbox.y2 = pScrPriv->crtcs[c]->y + pScrPriv->crtcs[c]->mode->mode.height;
+        }
+        RegionInit(&new_crtc_region, &newbox, 1);
+        RegionUnion(&total_region, &total_region, &new_crtc_region);
+    }
+
+    xorg_list_for_each_entry(slave, &pScreen->output_slave_list, output_head) {
+        rrScrPriv(slave);
+        for (c = 0; c < pScrPriv->numCrtcs; c++)
+            if (pScrPriv->crtcs[c] == rr_crtc) {
+                newbox.x1 = x;
+                newbox.x2 = x + w;
+                newbox.y1 = y;
+                newbox.y2 = y + h;
+            }
+            else {
+                if (!pScrPriv->crtcs[c]->mode)
+                    continue;
+                newbox.x1 = pScrPriv->crtcs[c]->x;
+                newbox.x2 = pScrPriv->crtcs[c]->x + pScrPriv->crtcs[c]->mode->mode.width;
+                newbox.y1 = pScrPriv->crtcs[c]->y;
+                newbox.y2 = pScrPriv->crtcs[c]->y + pScrPriv->crtcs[c]->mode->mode.height;
+            }
+        RegionInit(&new_crtc_region, &newbox, 1);
+        RegionUnion(&total_region, &total_region, &new_crtc_region);
+    }
+
+    newsize = RegionExtents(&total_region);
+    new_width = newsize->x2 - newsize->x1;
+    new_height = newsize->y2 - newsize->y1;
+
+    if (new_width == screen_pixmap->drawable.width &&
+        new_height == screen_pixmap->drawable.height) {
+        ErrorF("adjust shatters %d %d\n", newsize->x1, newsize->x2);
+    } else {
+        int ret;
+        rrScrPriv(pScreen);
+        ret = pScrPriv->rrScreenSetSize(pScreen,
+                                           new_width, new_height, 0, 0);
+    }
+
+    /* set shatters TODO */
+    return TRUE;
+}
+
 /*
  * Request that the Crtc be reconfigured
  */
@@ -394,6 +534,26 @@ RRCrtcSet(RRCrtcPtr crtc,
         ret = TRUE;
     }
     else {
+        if (pScreen->isGPU) {
+            ScreenPtr master = pScreen->current_master;
+            int width = 0, height = 0;
+
+            if (mode) {
+                width = mode->mode.width;
+                height = mode->mode.height;
+            }
+            ErrorF("have a master to look out for\n");
+            ret = rrCheckPixmapBounding(master, crtc,
+                                        x, y, width, height);
+            if (!ret)
+                return FALSE;
+
+            if (pScreen->current_master) {
+                ret = rrCreateSharedPixmap(crtc, width, height, x, y);
+                ErrorF("need to create shared pixmap %d", ret);
+
+            }
+        }
 #if RANDR_12_INTERFACE
         if (pScrPriv->rrCrtcSet) {
             ret = (*pScrPriv->rrCrtcSet) (pScreen, crtc, mode, x, y,
@@ -508,6 +668,9 @@ RRCrtcDestroyResource(pointer value, XID pid)
             }
         }
     }
+
+    if (crtc->scanout_pixmap)
+        RRCrtcDetachScanoutPixmap(crtc);
     free(crtc->gammaRed);
     if (crtc->mode)
         RRModeDestroy(crtc->mode);
@@ -729,11 +892,13 @@ ProcRRGetCrtcInfo(ClientPtr client)
 
     mode = crtc->mode;
 
-    rep.type = X_Reply;
-    rep.status = RRSetConfigSuccess;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.timestamp = pScrPriv->lastSetTime.milliseconds;
+    rep = (xRRGetCrtcInfoReply) {
+        .type = X_Reply,
+        .status = RRSetConfigSuccess,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .timestamp = pScrPriv->lastSetTime.milliseconds
+    };
     if (pScrPriv->rrGetPanning &&
         pScrPriv->rrGetPanning(pScreen, crtc, &panned_area, NULL, NULL) &&
         (panned_area.x2 > panned_area.x1) && (panned_area.y2 > panned_area.y1))
@@ -804,9 +969,9 @@ ProcRRGetCrtcInfo(ClientPtr client)
         swaps(&rep.nOutput);
         swaps(&rep.nPossibleOutput);
     }
-    WriteToClient(client, sizeof(xRRGetCrtcInfoReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRRGetCrtcInfoReply), &rep);
     if (extraLen) {
-        WriteToClient(client, extraLen, (char *) extra);
+        WriteToClient(client, extraLen, extra);
         free(extra);
     }
 
@@ -828,6 +993,7 @@ ProcRRSetCrtcConfig(ClientPtr client)
     TimeStamp time;
     Rotation rotation;
     int ret, i, j;
+    CARD8 status;
 
     REQUEST_AT_LEAST_SIZE(xRRSetCrtcConfigReq);
     numOutputs = (stuff->length - bytes_to_int32(SIZEOF(xRRSetCrtcConfigReq)));
@@ -906,7 +1072,7 @@ ProcRRSetCrtcConfig(ClientPtr client)
 
     if (!pScrPriv) {
         time = currentTime;
-        rep.status = RRSetConfigFailed;
+        status = RRSetConfigFailed;
         goto sendReply;
     }
 
@@ -954,6 +1120,16 @@ ProcRRSetCrtcConfig(ClientPtr client)
             int source_height;
             PictTransform transform;
             struct pixman_f_transform f_transform, f_inverse;
+            int width, height;
+
+            if (pScreen->isGPU) {
+                width = pScreen->current_master->width;
+                height = pScreen->current_master->height;
+            }
+            else {
+                width = pScreen->width;
+                height = pScreen->height;
+            }
 
             RRTransformCompute(stuff->x, stuff->y,
                                mode->mode.width, mode->mode.height,
@@ -963,13 +1139,13 @@ ProcRRSetCrtcConfig(ClientPtr client)
 
             RRModeGetScanoutSize(mode, &transform, &source_width,
                                  &source_height);
-            if (stuff->x + source_width > pScreen->width) {
+            if (stuff->x + source_width > width) {
                 client->errorValue = stuff->x;
                 free(outputs);
                 return BadValue;
             }
 
-            if (stuff->y + source_height > pScreen->height) {
+            if (stuff->y + source_height > height) {
                 client->errorValue = stuff->y;
                 free(outputs);
                 return BadValue;
@@ -980,27 +1156,29 @@ ProcRRSetCrtcConfig(ClientPtr client)
 
     if (!RRCrtcSet(crtc, mode, stuff->x, stuff->y,
                    rotation, numOutputs, outputs)) {
-        rep.status = RRSetConfigFailed;
+        status = RRSetConfigFailed;
         goto sendReply;
     }
-    rep.status = RRSetConfigSuccess;
+    status = RRSetConfigSuccess;
     pScrPriv->lastSetTime = time;
 
  sendReply:
     free(outputs);
 
-    rep.type = X_Reply;
-    /* rep.status has already been filled in */
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
-    rep.newTimestamp = pScrPriv->lastSetTime.milliseconds;
+    rep = (xRRSetCrtcConfigReply) {
+        .type = X_Reply,
+        .status = status,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .newTimestamp = pScrPriv->lastSetTime.milliseconds
+    };
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.newTimestamp);
     }
-    WriteToClient(client, sizeof(xRRSetCrtcConfigReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRRSetCrtcConfigReply), &rep);
 
     return Success;
 }
@@ -1029,12 +1207,13 @@ ProcRRGetPanning(ClientPtr client)
     if (!pScrPriv)
         return RRErrorBase + BadRRCrtc;
 
-    memset(&rep, 0, sizeof(rep));
-    rep.type = X_Reply;
-    rep.status = RRSetConfigSuccess;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 1;
-    rep.timestamp = pScrPriv->lastSetTime.milliseconds;
+    rep = (xRRGetPanningReply) {
+        .type = X_Reply,
+        .status = RRSetConfigSuccess,
+        .sequenceNumber = client->sequence,
+        .length = 1,
+        .timestamp = pScrPriv->lastSetTime.milliseconds
+    };
 
     if (pScrPriv->rrGetPanning &&
         pScrPriv->rrGetPanning(pScreen, crtc, &total, &tracking, border)) {
@@ -1069,7 +1248,7 @@ ProcRRGetPanning(ClientPtr client)
         swaps(&rep.border_right);
         swaps(&rep.border_bottom);
     }
-    WriteToClient(client, sizeof(xRRGetPanningReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRRGetPanningReply), &rep);
     return Success;
 }
 
@@ -1085,6 +1264,7 @@ ProcRRSetPanning(ClientPtr client)
     BoxRec total;
     BoxRec tracking;
     INT16 border[4];
+    CARD8 status;
 
     REQUEST_SIZE_MATCH(xRRSetPanningReq);
     VERIFY_RR_CRTC(stuff->crtc, crtc, DixReadAccess);
@@ -1097,7 +1277,7 @@ ProcRRSetPanning(ClientPtr client)
 
     if (!pScrPriv) {
         time = currentTime;
-        rep.status = RRSetConfigFailed;
+        status = RRSetConfigFailed;
         goto sendReply;
     }
 
@@ -1124,20 +1304,23 @@ ProcRRSetPanning(ClientPtr client)
 
     pScrPriv->lastSetTime = time;
 
-    rep.status = RRSetConfigSuccess;
+    status = RRSetConfigSuccess;
 
  sendReply:
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.newTimestamp = pScrPriv->lastSetTime.milliseconds;
+    rep = (xRRSetPanningReply) {
+        .type = X_Reply,
+        .status = status,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .newTimestamp = pScrPriv->lastSetTime.milliseconds
+    };
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.newTimestamp);
     }
-    WriteToClient(client, sizeof(xRRSetPanningReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRRSetPanningReply), &rep);
     return Success;
 }
 
@@ -1155,16 +1338,18 @@ ProcRRGetCrtcGammaSize(ClientPtr client)
     if (!RRCrtcGammaGet(crtc))
         return RRErrorBase + BadRRCrtc;
 
-    reply.type = X_Reply;
-    reply.sequenceNumber = client->sequence;
-    reply.length = 0;
-    reply.size = crtc->gammaSize;
+    reply = (xRRGetCrtcGammaSizeReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .size = crtc->gammaSize
+    };
     if (client->swapped) {
         swaps(&reply.sequenceNumber);
         swapl(&reply.length);
         swaps(&reply.size);
     }
-    WriteToClient(client, sizeof(xRRGetCrtcGammaSizeReply), (char *) &reply);
+    WriteToClient(client, sizeof(xRRGetCrtcGammaSizeReply), &reply);
     return Success;
 }
 
@@ -1192,16 +1377,18 @@ ProcRRGetCrtcGamma(ClientPtr client)
             return BadAlloc;
     }
 
-    reply.type = X_Reply;
-    reply.sequenceNumber = client->sequence;
-    reply.length = bytes_to_int32(len);
-    reply.size = crtc->gammaSize;
+    reply = (xRRGetCrtcGammaReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = bytes_to_int32(len),
+        .size = crtc->gammaSize
+    };
     if (client->swapped) {
         swaps(&reply.sequenceNumber);
         swapl(&reply.length);
         swaps(&reply.size);
     }
-    WriteToClient(client, sizeof(xRRGetCrtcGammaReply), (char *) &reply);
+    WriteToClient(client, sizeof(xRRGetCrtcGammaReply), &reply);
     if (crtc->gammaSize) {
         memcpy(extra, crtc->gammaRed, len);
         client->pSwapReplyFunc = (ReplySwapPtr) CopySwap16Write;
@@ -1342,7 +1529,7 @@ ProcRRGetCrtcTransform(ClientPtr client)
     nextra = (transform_filter_length(pending) +
               transform_filter_length(current));
 
-    reply = malloc(sizeof(xRRGetCrtcTransformReply) + nextra);
+    reply = calloc(1, sizeof(xRRGetCrtcTransformReply) + nextra);
     if (!reply)
         return BadAlloc;
 
@@ -1367,24 +1554,15 @@ ProcRRGetCrtcTransform(ClientPtr client)
         swaps(&reply->sequenceNumber);
         swapl(&reply->length);
     }
-    WriteToClient(client, sizeof(xRRGetCrtcTransformReply) + nextra,
-                  (char *) reply);
+    WriteToClient(client, sizeof(xRRGetCrtcTransformReply) + nextra, reply);
     free(reply);
     return Success;
 }
 
-void
-RRConstrainCursorHarder(DeviceIntPtr pDev, ScreenPtr pScreen, int mode, int *x,
-                        int *y)
+static Bool check_all_screen_crtcs(ScreenPtr pScreen, int *x, int *y)
 {
     rrScrPriv(pScreen);
     int i;
-
-    /* intentional dead space -> let it float */
-    if (pScrPriv->discontiguous)
-        return;
-
-    /* if we're moving inside a crtc, we're fine */
     for (i = 0; i < pScrPriv->numCrtcs; i++) {
         RRCrtcPtr crtc = pScrPriv->crtcs[i];
 
@@ -1396,8 +1574,15 @@ RRConstrainCursorHarder(DeviceIntPtr pDev, ScreenPtr pScreen, int mode, int *x,
         crtc_bounds(crtc, &left, &right, &top, &bottom);
 
         if ((*x >= left) && (*x < right) && (*y >= top) && (*y < bottom))
-            return;
+            return TRUE;
     }
+    return FALSE;
+}
+
+static Bool constrain_all_screen_crtcs(DeviceIntPtr pDev, ScreenPtr pScreen, int *x, int *y)
+{
+    rrScrPriv(pScreen);
+    int i;
 
     /* if we're trying to escape, clamp to the CRTC we're coming from */
     for (i = 0; i < pScrPriv->numCrtcs; i++) {
@@ -1421,7 +1606,101 @@ RRConstrainCursorHarder(DeviceIntPtr pDev, ScreenPtr pScreen, int mode, int *x,
             if (*y >= bottom)
                 *y = bottom - 1;
 
-            return;
+            return TRUE;
         }
     }
+    return FALSE;
+}
+
+void
+RRConstrainCursorHarder(DeviceIntPtr pDev, ScreenPtr pScreen, int mode, int *x,
+                        int *y)
+{
+    rrScrPriv(pScreen);
+    Bool ret;
+    ScreenPtr slave;
+
+    /* intentional dead space -> let it float */
+    if (pScrPriv->discontiguous)
+        return;
+
+    /* if we're moving inside a crtc, we're fine */
+    ret = check_all_screen_crtcs(pScreen, x, y);
+    if (ret == TRUE)
+        return;
+
+    xorg_list_for_each_entry(slave, &pScreen->output_slave_list, output_head) {
+        ret = check_all_screen_crtcs(slave, x, y);
+        if (ret == TRUE)
+            return;
+    }
+
+    /* if we're trying to escape, clamp to the CRTC we're coming from */
+    ret = constrain_all_screen_crtcs(pDev, pScreen, x, y);
+    if (ret == TRUE)
+        return;
+
+    xorg_list_for_each_entry(slave, &pScreen->output_slave_list, output_head) {
+        ret = constrain_all_screen_crtcs(pDev, slave, x, y);
+        if (ret == TRUE)
+            return;
+    }
+}
+
+Bool
+RRReplaceScanoutPixmap(DrawablePtr pDrawable, PixmapPtr pPixmap, Bool enable)
+{
+    rrScrPriv(pDrawable->pScreen);
+    int i;
+    Bool size_fits = FALSE;
+    Bool changed = FALSE;
+    Bool ret = TRUE;
+
+    for (i = 0; i < pScrPriv->numCrtcs; i++) {
+        RRCrtcPtr crtc = pScrPriv->crtcs[i];
+
+        if (!crtc->mode && enable)
+            continue;
+
+        changed = FALSE;
+        if (crtc->mode && crtc->x == pDrawable->x &&
+            crtc->y == pDrawable->y &&
+            crtc->mode->mode.width == pDrawable->width &&
+            crtc->mode->mode.height == pDrawable->height)
+            size_fits = TRUE;
+
+        /* is the pixmap already set? */
+        if (crtc->scanout_pixmap == pPixmap) {
+            /* if its a disable then don't care about size */
+            if (enable == FALSE) {
+                /* set scanout to NULL */
+                crtc->scanout_pixmap = NULL;
+                changed = TRUE;
+            } else {
+                /* if the size fits then we are already setup */
+                if (size_fits)
+                    return TRUE;
+                /* if the size no longer fits then drop off */
+                crtc->scanout_pixmap = NULL;
+                changed = TRUE;
+                ret = FALSE;
+            }
+        } else {
+            if (!size_fits)
+                return FALSE;
+            if (enable) {
+                crtc->scanout_pixmap = pPixmap;
+                pScrPriv->rrCrtcSetScanoutPixmap(crtc, pPixmap);
+                changed = TRUE;
+            }
+        }
+
+        if (changed && pScrPriv->rrCrtcSet) {
+            pScrPriv->rrCrtcSetScanoutPixmap(crtc, crtc->scanout_pixmap);
+
+            (*pScrPriv->rrCrtcSet) (pDrawable->pScreen, crtc, crtc->mode, crtc->x, crtc->y,
+                                    crtc->rotation, crtc->numOutputs, crtc->outputs);
+        }
+    }
+    return ret;
 }

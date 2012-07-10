@@ -734,10 +734,27 @@ xf86CrtcCloseScreen(ScreenPtr screen)
     for (c = 0; c < config->num_crtc; c++) {
         xf86CrtcPtr crtc = config->crtc[c];
 
+        if (crtc->randr_crtc->scanout_pixmap)
+            RRCrtcDetachScanoutPixmap(crtc->randr_crtc);
+
         crtc->randr_crtc = NULL;
+    }
+    /* detach any providers */
+    if (config->randr_provider) {
+        if (config->randr_provider->offload_sink) {
+            DetachOffloadGPU(screen);
+            config->randr_provider->offload_sink = NULL;
+        }
+        else if (config->randr_provider->output_source) {
+            DetachOutputGPU(screen);
+            config->randr_provider->output_source = NULL;
+        }
+        else if (screen->current_master)
+            DetachUnboundGPU(screen);
     }
     xf86RandR12CloseScreen(screen);
 
+    free(config->name);
     return screen->CloseScreen(screen);
 }
 
@@ -3201,4 +3218,41 @@ xf86_crtc_supports_gamma(ScrnInfoPtr pScrn)
     }
 
     return FALSE;
+}
+
+void
+xf86ProviderSetup(ScrnInfoPtr scrn,
+                  const xf86ProviderFuncsRec *funcs, const char *name)
+{
+    xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
+
+    assert(!xf86_config->name);
+    assert(name);
+
+    xf86_config->name = strdup(name);
+    xf86_config->provider_funcs = funcs;
+#ifdef RANDR_12_INTERFACE
+    xf86_config->randr_provider = NULL;
+#endif
+}
+
+void
+xf86DetachAllCrtc(ScrnInfoPtr scrn)
+{
+        xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
+        int i;
+
+        for (i = 0; i < xf86_config->num_crtc; i++) {
+            xf86CrtcPtr crtc = xf86_config->crtc[i];
+
+            if (crtc->randr_crtc)
+                RRCrtcDetachScanoutPixmap(crtc->randr_crtc);
+
+            /* dpms off */
+            (*crtc->funcs->dpms) (crtc, DPMSModeOff);
+            /* force a reset the next time its used */
+            crtc->randr_crtc->mode = NULL;
+            crtc->mode.HDisplay = 0;
+            crtc->x = crtc->y = 0;
+        }
 }

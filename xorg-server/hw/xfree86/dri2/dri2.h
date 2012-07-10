@@ -176,6 +176,18 @@ typedef void (*DRI2InvalidateProcPtr) (DrawablePtr pDraw, void *data, XID id);
 typedef Bool (*DRI2SwapLimitValidateProcPtr) (DrawablePtr pDraw,
                                               int swap_limit);
 
+typedef DRI2BufferPtr(*DRI2CreateBuffer2ProcPtr) (ScreenPtr pScreen,
+                                                  DrawablePtr pDraw,
+                                                  unsigned int attachment,
+                                                  unsigned int format);
+typedef void (*DRI2DestroyBuffer2ProcPtr) (ScreenPtr pScreen, DrawablePtr pDraw,
+                                          DRI2BufferPtr buffer);
+
+typedef void (*DRI2CopyRegion2ProcPtr) (ScreenPtr pScreen, DrawablePtr pDraw,
+                                        RegionPtr pRegion,
+                                        DRI2BufferPtr pDestBuffer,
+                                        DRI2BufferPtr pSrcBuffer);
+
 /**
  * \brief Get the value of a parameter.
  *
@@ -193,7 +205,7 @@ typedef int (*DRI2GetParamProcPtr) (ClientPtr client,
 /**
  * Version of the DRI2InfoRec structure defined in this header
  */
-#define DRI2INFOREC_VERSION 8
+#define DRI2INFOREC_VERSION 9
 
 typedef struct {
     unsigned int version;       /**< Version of this struct */
@@ -228,7 +240,6 @@ typedef struct {
     DRI2SwapLimitValidateProcPtr SwapLimitValidate;
 
     /* added in version 7 */
-
     DRI2GetParamProcPtr GetParam;
 
     /* added in version 8 */
@@ -236,9 +247,12 @@ typedef struct {
     /* If this is NULL the AuthMagic callback is used */
     /* If this is non-NULL the AuthMagic callback is ignored */
     DRI2AuthMagic2ProcPtr AuthMagic2;
-} DRI2InfoRec, *DRI2InfoPtr;
 
-extern _X_EXPORT int DRI2EventBase;
+    /* added in version 9 */
+    DRI2CreateBuffer2ProcPtr CreateBuffer2;
+    DRI2DestroyBuffer2ProcPtr DestroyBuffer2;
+    DRI2CopyRegion2ProcPtr CopyRegion2;
+} DRI2InfoRec, *DRI2InfoPtr;
 
 extern _X_EXPORT Bool DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info);
 
@@ -246,21 +260,19 @@ extern _X_EXPORT void DRI2CloseScreen(ScreenPtr pScreen);
 
 extern _X_EXPORT Bool DRI2HasSwapControl(ScreenPtr pScreen);
 
-extern _X_EXPORT Bool DRI2Connect(ScreenPtr pScreen,
+extern _X_EXPORT Bool DRI2Connect(ClientPtr client, ScreenPtr pScreen,
                                   unsigned int driverType,
                                   int *fd,
                                   const char **driverName,
                                   const char **deviceName);
 
-extern _X_EXPORT Bool DRI2Authenticate(ScreenPtr pScreen, uint32_t magic);
+extern _X_EXPORT Bool DRI2Authenticate(ClientPtr client, ScreenPtr pScreen, uint32_t magic);
 
 extern _X_EXPORT int DRI2CreateDrawable(ClientPtr client,
                                         DrawablePtr pDraw,
                                         XID id,
                                         DRI2InvalidateProcPtr invalidate,
                                         void *priv);
-
-extern _X_EXPORT void DRI2DestroyDrawable(DrawablePtr pDraw);
 
 extern _X_EXPORT DRI2BufferPtr *DRI2GetBuffers(DrawablePtr pDraw,
                                                int *width,
@@ -339,4 +351,5 @@ extern _X_EXPORT int DRI2GetParam(ClientPtr client,
                                   BOOL *is_param_recognized,
                                   CARD64 *value);
 
+extern _X_EXPORT DrawablePtr DRI2UpdatePrime(DrawablePtr pDraw, DRI2BufferPtr pDest);
 #endif

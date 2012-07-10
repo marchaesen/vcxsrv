@@ -232,6 +232,20 @@ pad_to_int32(const int bytes)
     return (((bytes) + 3) & ~3);
 }
 
+/**
+ * Calculate padding needed to bring the number of bytes to an even
+ * multiple of 4.
+ * @param bytes The minimum number of bytes needed.
+ * @return The bytes of padding needed to arrive at the closest multiple of 4
+ * that is equal or higher than bytes.
+ */
+static inline int
+padding_for_int32(const int bytes)
+{
+    return ((-bytes) & 3);
+}
+
+
 extern char **xstrtokenize(const char *str, const char *separators);
 extern void FormatUInt64(uint64_t num, char *string);
 extern void FormatUInt64Hex(uint64_t num, char *string);

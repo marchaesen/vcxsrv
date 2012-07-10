@@ -64,6 +64,7 @@ extern _X_EXPORT void
  DGASelectInput(int Index, ClientPtr client, long mask);
 
 extern _X_EXPORT Bool DGAAvailable(int Index);
+extern _X_EXPORT Bool DGAScreenAvailable(ScreenPtr pScreen);
 extern _X_EXPORT Bool DGAActive(int Index);
 extern _X_EXPORT void DGAShutdown(void);
 extern _X_EXPORT void DGAInstallCmap(ColormapPtr cmap);
@@ -105,10 +106,5 @@ extern _X_EXPORT void DGACloseFramebuffer(int Index);
 extern _X_EXPORT Bool DGAChangePixmapMode(int Index, int *x, int *y, int mode);
 extern _X_EXPORT int DGACreateColormap(int Index, ClientPtr client, int id,
                                        int mode, int alloc);
-
-extern _X_EXPORT unsigned char DGAReqCode;
-extern _X_EXPORT int DGAErrorBase;
-extern _X_EXPORT int DGAEventBase;
-extern _X_EXPORT int *XDGAEventBase;
 
 #endif                          /* __DGAPROC_H */

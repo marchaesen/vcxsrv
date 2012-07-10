@@ -76,7 +76,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #include <sys/time.h>
 #endif
 
-#include "modinit.h"
+#include "extinit.h"
 
 /*
  * Local Global Variables
@@ -437,21 +437,24 @@ SyncSendAlarmNotifyEvents(SyncAlarm * pAlarm)
 
     UpdateCurrentTime();
 
-    ane.type = SyncEventBase + XSyncAlarmNotify;
-    ane.kind = XSyncAlarmNotify;
-    ane.alarm = pAlarm->alarm_id;
+    ane = (xSyncAlarmNotifyEvent) {
+        .type = SyncEventBase + XSyncAlarmNotify,
+        .kind = XSyncAlarmNotify,
+        .alarm = pAlarm->alarm_id,
+        .alarm_value_hi = XSyncValueHigh32(pTrigger->test_value),
+        .alarm_value_lo = XSyncValueLow32(pTrigger->test_value),
+        .time = currentTime.milliseconds,
+        .state = pAlarm->state
+    };
+
     if (pTrigger->pSync && SYNC_COUNTER == pTrigger->pSync->type) {
         ane.counter_value_hi = XSyncValueHigh32(pCounter->value);
         ane.counter_value_lo = XSyncValueLow32(pCounter->value);
     }
-    else {                      /* XXX what else can we do if there's no counter? */
+    else {
+        /* XXX what else can we do if there's no counter? */
         ane.counter_value_hi = ane.counter_value_lo = 0;
     }
-
-    ane.alarm_value_hi = XSyncValueHigh32(pTrigger->test_value);
-    ane.alarm_value_lo = XSyncValueLow32(pTrigger->test_value);
-    ane.time = currentTime.milliseconds;
-    ane.state = pAlarm->state;
 
     /* send to owner */
     if (pAlarm->events)
@@ -474,7 +477,7 @@ SyncSendCounterNotifyEvents(ClientPtr client, SyncAwait ** ppAwait,
 
     if (client->clientGone)
         return;
-    pev = pEvents = malloc(num_events * sizeof(xSyncCounterNotifyEvent));
+    pev = pEvents = calloc(num_events, sizeof(xSyncCounterNotifyEvent));
     if (!pEvents)
         return;
     UpdateCurrentTime();
@@ -1184,21 +1187,20 @@ FreeAlarmClient(void *value, XID id)
 static int
 ProcSyncInitialize(ClientPtr client)
 {
-    xSyncInitializeReply rep;
+    xSyncInitializeReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .majorVersion = SERVER_SYNC_MAJOR_VERSION,
+        .minorVersion = SERVER_SYNC_MINOR_VERSION,
+    };
 
     REQUEST_SIZE_MATCH(xSyncInitializeReq);
-
-    memset(&rep, 0, sizeof(xSyncInitializeReply));
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.majorVersion = SERVER_SYNC_MAJOR_VERSION;
-    rep.minorVersion = SERVER_SYNC_MINOR_VERSION;
-    rep.length = 0;
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
     }
-    WriteToClient(client, sizeof(rep), (char *) &rep);
+    WriteToClient(client, sizeof(rep), &rep);
     return Success;
 }
 
@@ -1208,16 +1210,16 @@ ProcSyncInitialize(ClientPtr client)
 static int
 ProcSyncListSystemCounters(ClientPtr client)
 {
-    xSyncListSystemCountersReply rep;
+    xSyncListSystemCountersReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .nCounters = 0,
+    };
     SysCounterInfo *psci;
     int len = 0;
     xSyncSystemCounter *list = NULL, *walklist = NULL;
 
     REQUEST_SIZE_MATCH(xSyncListSystemCountersReq);
-
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.nCounters = 0;
 
     xorg_list_for_each_entry(psci, &SysCounterList, entry) {
         /* pad to 4 byte boundary */
@@ -1263,9 +1265,9 @@ ProcSyncListSystemCounters(ClientPtr client)
                                                         namelen));
     }
 
-    WriteToClient(client, sizeof(rep), (char *) &rep);
+    WriteToClient(client, sizeof(rep), &rep);
     if (len) {
-        WriteToClient(client, len, (char *) list);
+        WriteToClient(client, len, list);
         free(list);
     }
 
@@ -1328,17 +1330,19 @@ ProcSyncGetPriority(ClientPtr client)
             return rc;
     }
 
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
-    rep.priority = priorityclient->priority;
+    rep = (xSyncGetPriorityReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .priority = priorityclient->priority
+    };
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.priority);
     }
 
-    WriteToClient(client, sizeof(xSyncGetPriorityReply), (char *) &rep);
+    WriteToClient(client, sizeof(xSyncGetPriorityReply), &rep);
 
     return Success;
 }
@@ -1605,26 +1609,27 @@ ProcSyncQueryCounter(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
-
     /* if system counter, ask it what the current value is */
-
     if (IsSystemCounter(pCounter)) {
         (*pCounter->pSysCounterInfo->QueryValue) ((pointer) pCounter,
                                                   &pCounter->value);
     }
 
-    rep.value_hi = XSyncValueHigh32(pCounter->value);
-    rep.value_lo = XSyncValueLow32(pCounter->value);
+    rep = (xSyncQueryCounterReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .value_hi = XSyncValueHigh32(pCounter->value),
+        .value_lo = XSyncValueLow32(pCounter->value)
+    };
+
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.value_hi);
         swapl(&rep.value_lo);
     }
-    WriteToClient(client, sizeof(xSyncQueryCounterReply), (char *) &rep);
+    WriteToClient(client, sizeof(xSyncQueryCounterReply), &rep);
     return Success;
 }
 
@@ -1771,32 +1776,33 @@ ProcSyncQueryAlarm(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    rep.type = X_Reply;
-    rep.length =
-        bytes_to_int32(sizeof(xSyncQueryAlarmReply) - sizeof(xGenericReply));
-    rep.sequenceNumber = client->sequence;
-
     pTrigger = &pAlarm->trigger;
-    rep.counter = (pTrigger->pSync) ? pTrigger->pSync->id : None;
+    rep = (xSyncQueryAlarmReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length =
+          bytes_to_int32(sizeof(xSyncQueryAlarmReply) - sizeof(xGenericReply)),
+        .counter = (pTrigger->pSync) ? pTrigger->pSync->id : None,
 
-#if 0                           /* XXX unclear what to do, depends on whether relative value-types
-                                 * are "consumed" immediately and are considered absolute from then
-                                 * on.
-                                 */
-    rep.value_type = pTrigger->value_type;
-    rep.wait_value_hi = XSyncValueHigh32(pTrigger->wait_value);
-    rep.wait_value_lo = XSyncValueLow32(pTrigger->wait_value);
+#if 0  /* XXX unclear what to do, depends on whether relative value-types
+        * are "consumed" immediately and are considered absolute from then
+        * on.
+        */
+        .value_type = pTrigger->value_type,
+        .wait_value_hi = XSyncValueHigh32(pTrigger->wait_value),
+        .wait_value_lo = XSyncValueLow32(pTrigger->wait_value),
 #else
-    rep.value_type = XSyncAbsolute;
-    rep.wait_value_hi = XSyncValueHigh32(pTrigger->test_value);
-    rep.wait_value_lo = XSyncValueLow32(pTrigger->test_value);
+        .value_type = XSyncAbsolute,
+        .wait_value_hi = XSyncValueHigh32(pTrigger->test_value),
+        .wait_value_lo = XSyncValueLow32(pTrigger->test_value),
 #endif
 
-    rep.test_type = pTrigger->test_type;
-    rep.delta_hi = XSyncValueHigh32(pAlarm->delta);
-    rep.delta_lo = XSyncValueLow32(pAlarm->delta);
-    rep.events = pAlarm->events;
-    rep.state = pAlarm->state;
+        .test_type = pTrigger->test_type,
+        .delta_hi = XSyncValueHigh32(pAlarm->delta),
+        .delta_lo = XSyncValueLow32(pAlarm->delta),
+        .events = pAlarm->events,
+        .state = pAlarm->state
+    };
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
@@ -1809,7 +1815,7 @@ ProcSyncQueryAlarm(ClientPtr client)
         swapl(&rep.delta_lo);
     }
 
-    WriteToClient(client, sizeof(xSyncQueryAlarmReply), (char *) &rep);
+    WriteToClient(client, sizeof(xSyncQueryAlarmReply), &rep);
     return Success;
 }
 
@@ -1955,18 +1961,20 @@ ProcSyncQueryFence(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
+    rep = (xSyncQueryFenceReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
 
-    rep.triggered = pFence->funcs.CheckTriggered(pFence);
+        .triggered = pFence->funcs.CheckTriggered(pFence)
+    };
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
     }
 
-    WriteToClient(client, sizeof(xSyncQueryFenceReply), (char *) &rep);
+    WriteToClient(client, sizeof(xSyncQueryFenceReply), &rep);
     return client->noClientException;
 }
 

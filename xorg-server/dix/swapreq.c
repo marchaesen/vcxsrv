@@ -283,7 +283,7 @@ SProcConvertSelection(ClientPtr client)
 int
 SProcSendEvent(ClientPtr client)
 {
-    xEvent eventT;
+    xEvent eventT = { .u.u.type = 0 };
     EventSwapPtr proc;
 
     REQUEST(xSendEventReq);

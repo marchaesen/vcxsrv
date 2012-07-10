@@ -174,8 +174,6 @@ ProcSetSelectionOwner(ClientPtr client)
     rc = dixLookupSelection(&pSel, stuff->selection, client, DixSetAttrAccess);
 
     if (rc == Success) {
-        xEvent event;
-
         /* If the timestamp in client's request is in the past relative
            to the time stamp indicating the last time the owner of the
            selection was set, do not set the selection, just return 
@@ -183,10 +181,12 @@ ProcSetSelectionOwner(ClientPtr client)
         if (CompareTimeStamps(time, pSel->lastTimeChanged) == EARLIER)
             return Success;
         if (pSel->client && (!pWin || (pSel->client != client))) {
+            xEvent event = {
+                .u.selectionClear.time = time.milliseconds,
+                .u.selectionClear.window = pSel->window,
+                .u.selectionClear.atom = pSel->selection
+            };
             event.u.u.type = SelectionClear;
-            event.u.selectionClear.time = time.milliseconds;
-            event.u.selectionClear.window = pSel->window;
-            event.u.selectionClear.atom = pSel->selection;
             WriteEventsToClient(pSel->client, 1, &event);
         }
     }
@@ -238,10 +238,11 @@ ProcGetSelectionOwner(ClientPtr client)
         return BadAtom;
     }
 
-    memset(&reply, 0, sizeof(xGetSelectionOwnerReply));
-    reply.type = X_Reply;
-    reply.length = 0;
-    reply.sequenceNumber = client->sequence;
+    reply = (xGetSelectionOwnerReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+    };
 
     rc = dixLookupSelection(&pSel, stuff->id, client, DixGetAttrAccess);
     if (rc == Success)

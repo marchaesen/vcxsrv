@@ -26,6 +26,7 @@
 
 #include "damageextint.h"
 #include "protocol-versions.h"
+#include "extinit.h"
 
 static unsigned char DamageReqCode;
 static int DamageEventBase;
@@ -46,15 +47,17 @@ DamageExtNotify(DamageExtPtr pDamageExt, BoxPtr pBoxes, int nBoxes)
     int i;
 
     UpdateCurrentTimeIf();
-    ev.type = DamageEventBase + XDamageNotify;
-    ev.level = pDamageExt->level;
-    ev.drawable = pDamageExt->drawable;
-    ev.damage = pDamageExt->id;
-    ev.timestamp = currentTime.milliseconds;
-    ev.geometry.x = pDrawable->x;
-    ev.geometry.y = pDrawable->y;
-    ev.geometry.width = pDrawable->width;
-    ev.geometry.height = pDrawable->height;
+    ev = (xDamageNotifyEvent) {
+        .type = DamageEventBase + XDamageNotify,
+        .level = pDamageExt->level,
+        .drawable = pDamageExt->drawable,
+        .damage = pDamageExt->id,
+        .timestamp = currentTime.milliseconds,
+        .geometry.x = pDrawable->x,
+        .geometry.y = pDrawable->y,
+        .geometry.width = pDrawable->width,
+        .geometry.height = pDrawable->height
+    };
     if (pBoxes) {
         for (i = 0; i < nBoxes; i++) {
             ev.level = pDamageExt->level;
@@ -126,14 +129,16 @@ static int
 ProcDamageQueryVersion(ClientPtr client)
 {
     DamageClientPtr pDamageClient = GetDamageClient(client);
-    xDamageQueryVersionReply rep;
+    xDamageQueryVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
 
     REQUEST(xDamageQueryVersionReq);
 
     REQUEST_SIZE_MATCH(xDamageQueryVersionReq);
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
+
     if (stuff->majorVersion < SERVER_DAMAGE_MAJOR_VERSION) {
         rep.majorVersion = stuff->majorVersion;
         rep.minorVersion = stuff->minorVersion;
@@ -154,7 +159,7 @@ ProcDamageQueryVersion(ClientPtr client)
         swapl(&rep.majorVersion);
         swapl(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xDamageQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xDamageQueryVersionReply), &rep);
     return Success;
 }
 

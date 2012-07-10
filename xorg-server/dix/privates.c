@@ -317,6 +317,11 @@ grow_screen_specific_set(DevPrivateType type, unsigned bytes)
 
         grow_private_set(&pScreen->screenSpecificPrivates[type], bytes);
     }
+    for (s = 0; s < screenInfo.numGPUScreens; s++) {
+        ScreenPtr       pScreen = screenInfo.gpuscreens[s];
+
+        grow_private_set(&pScreen->screenSpecificPrivates[type], bytes);
+    }
 }
 
 /*

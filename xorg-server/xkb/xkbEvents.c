@@ -59,8 +59,6 @@ XkbSendLegacyMapNotify(DeviceIntPtr kbd, CARD16 xkb_event, CARD16 changed,
     int i;
     int keymap_changed = 0;
     int modmap_changed = 0;
-    xEvent core_mn;
-    deviceMappingNotify xi_mn;
     CARD32 time = GetTimeInMillis();
 
     if (xkb_event == XkbNewKeyboardNotify) {
@@ -77,11 +75,6 @@ XkbSendLegacyMapNotify(DeviceIntPtr kbd, CARD16 xkb_event, CARD16 changed,
     }
     if (!keymap_changed && !modmap_changed)
         return;
-
-    core_mn.u.u.type = MappingNotify;
-    xi_mn.type = DeviceMappingNotify;
-    xi_mn.deviceid = kbd->id;
-    xi_mn.time = time;
 
     /* 0 is serverClient. */
     for (i = 1; i < currentMaxClients; i++) {
@@ -106,6 +99,7 @@ XkbSendLegacyMapNotify(DeviceIntPtr kbd, CARD16 xkb_event, CARD16 changed,
             continue;
 
         if (keymap_changed) {
+            xEvent core_mn = { .u.u.type = MappingNotify };
             core_mn.u.mappingNotify.request = MappingKeyboard;
 
             /* Clip the keycode range to what the client knows about, so it
@@ -123,9 +117,12 @@ XkbSendLegacyMapNotify(DeviceIntPtr kbd, CARD16 xkb_event, CARD16 changed,
             WriteEventsToClient(clients[i], 1, &core_mn);
         }
         if (modmap_changed) {
-            core_mn.u.mappingNotify.request = MappingModifier;
-            core_mn.u.mappingNotify.firstKeyCode = 0;
-            core_mn.u.mappingNotify.count = 0;
+            xEvent core_mn = {
+                .u.mappingNotify.request = MappingModifier,
+                .u.mappingNotify.firstKeyCode = 0,
+                .u.mappingNotify.count = 0
+            };
+            core_mn.u.u.type = MappingNotify;
             WriteEventsToClient(clients[i], 1, &core_mn);
         }
     }
@@ -134,16 +131,26 @@ XkbSendLegacyMapNotify(DeviceIntPtr kbd, CARD16 xkb_event, CARD16 changed,
      * here? Clients might be upset, but that seems better than the
      * alternative of stale keymaps. -ds */
     if (keymap_changed) {
-        xi_mn.request = MappingKeyboard;
-        xi_mn.firstKeyCode = first_key;
-        xi_mn.count = num_keys;
+        deviceMappingNotify xi_mn = {
+            .type = DeviceMappingNotify,
+            .deviceid = kbd->id,
+            .request = MappingKeyboard,
+            .firstKeyCode = first_key,
+            .count = num_keys,
+            .time = time
+        };
         SendEventToAllWindows(kbd, DeviceMappingNotifyMask, (xEvent *) &xi_mn,
                               1);
     }
     if (modmap_changed) {
-        xi_mn.request = MappingModifier;
-        xi_mn.firstKeyCode = 0;
-        xi_mn.count = 0;
+        deviceMappingNotify xi_mn = {
+            .type = DeviceMappingNotify,
+            .deviceid = kbd->id,
+            .request = MappingModifier,
+            .firstKeyCode = 0,
+            .count = 0,
+            .time = time
+        };
         SendEventToAllWindows(kbd, DeviceMappingNotifyMask, (xEvent *) &xi_mn,
                               1);
     }
@@ -243,7 +250,7 @@ XkbSendStateNotify(DeviceIntPtr kbd, xkbStateNotify * pSN)
                 swaps(&pSN->changed);
                 swaps(&pSN->ptrBtnState);
             }
-            WriteToClient(interest->client, sizeof(xEvent), (char *) pSN);
+            WriteToClient(interest->client, sizeof(xEvent), pSN);
         }
         interest = interest->next;
     }
@@ -416,7 +423,7 @@ XkbSendControlsNotify(DeviceIntPtr kbd, xkbControlsNotify * pCN)
                 swapl(&pCN->enabledControlChanges);
                 swapl(&pCN->time);
             }
-            WriteToClient(interest->client, sizeof(xEvent), (char *) pCN);
+            WriteToClient(interest->client, sizeof(xEvent), pCN);
         }
         interest = interest->next;
     }
@@ -463,7 +470,7 @@ XkbSendIndicatorNotify(DeviceIntPtr kbd, int xkbType, xkbIndicatorNotify * pEv)
                 swapl(&pEv->changed);
                 swapl(&pEv->state);
             }
-            WriteToClient(interest->client, sizeof(xEvent), (char *) pEv);
+            WriteToClient(interest->client, sizeof(xEvent), pEv);
         }
         interest = interest->next;
     }
@@ -550,7 +557,7 @@ XkbHandleBell(BOOL force,
                 swapl(&bn.name);
                 swapl(&bn.window);
             }
-            WriteToClient(interest->client, sizeof(xEvent), (char *) &bn);
+            WriteToClient(interest->client, sizeof(xEvent), &bn);
         }
         interest = interest->next;
     }
@@ -594,7 +601,7 @@ XkbSendAccessXNotify(DeviceIntPtr kbd, xkbAccessXNotify * pEv)
                 swaps(&pEv->slowKeysDelay);
                 swaps(&pEv->debounceDelay);
             }
-            WriteToClient(interest->client, sizeof(xEvent), (char *) pEv);
+            WriteToClient(interest->client, sizeof(xEvent), pEv);
         }
         interest = interest->next;
     }
@@ -642,7 +649,7 @@ XkbSendNamesNotify(DeviceIntPtr kbd, xkbNamesNotify * pEv)
                 swapl(&pEv->changedIndicators);
                 swaps(&pEv->changedVirtualMods);
             }
-            WriteToClient(interest->client, sizeof(xEvent), (char *) pEv);
+            WriteToClient(interest->client, sizeof(xEvent), pEv);
         }
         interest = interest->next;
     }
@@ -689,7 +696,7 @@ XkbSendCompatMapNotify(DeviceIntPtr kbd, xkbCompatMapNotify * pEv)
                 swaps(&pEv->nSI);
                 swaps(&pEv->nTotalSI);
             }
-            WriteToClient(interest->client, sizeof(xEvent), (char *) pEv);
+            WriteToClient(interest->client, sizeof(xEvent), pEv);
         }
         interest = interest->next;
     }
@@ -732,7 +739,7 @@ XkbSendActionMessage(DeviceIntPtr kbd, xkbActionMessage * pEv)
                 swaps(&pEv->sequenceNumber);
                 swapl(&pEv->time);
             }
-            WriteToClient(interest->client, sizeof(xEvent), (char *) pEv);
+            WriteToClient(interest->client, sizeof(xEvent), pEv);
         }
         interest = interest->next;
     }
@@ -786,7 +793,7 @@ XkbSendExtensionDeviceNotify(DeviceIntPtr dev,
                 swaps(&pEv->reason);
                 swaps(&pEv->supported);
             }
-            WriteToClient(interest->client, sizeof(xEvent), (char *) pEv);
+            WriteToClient(interest->client, sizeof(xEvent), pEv);
         }
         interest = interest->next;
     }

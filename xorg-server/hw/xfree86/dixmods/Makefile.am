@@ -1,17 +1,7 @@
 noinst_LTLIBRARIES = libdixmods.la libxorgxkb.la
 
-SUBDIRS = extmod
-
 if GLX
 GLXMODS = libglx.la
-endif
-
-if DBE
-DBEMOD = libdbe.la
-endif
-
-if RECORD
-RECORDMOD = librecord.la
 endif
 
 module_LTLIBRARIES = libfb.la \
@@ -19,20 +9,13 @@ module_LTLIBRARIES = libfb.la \
                      libshadow.la
 
 extsmoduledir = $(moduledir)/extensions
-extsmodule_LTLIBRARIES = $(RECORDMOD) \
-			 $(DBEMOD) \
-                         $(GLXMODS)
+extsmodule_LTLIBRARIES = $(GLXMODS)
 
 AM_CFLAGS = @XORG_CFLAGS@ @DIX_CFLAGS@
 INCLUDES = @XORG_INCS@ \
-           -I$(top_srcdir)/dbe \
            -I$(top_srcdir)/hw/xfree86/loader \
            -I$(top_srcdir)/miext/shadow \
            -I$(top_srcdir)/glx
-
-libdbe_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
-libdbe_la_LIBADD = $(top_builddir)/dbe/libdbe.la
-libdbe_la_SOURCES = dbemodule.c
 
 libfb_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libfb_la_LIBADD = $(top_builddir)/fb/libfb.la
@@ -54,10 +37,6 @@ endif
 endif
 libglx_la_SOURCES = glxmodule.c
 
-librecord_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
-librecord_la_LIBADD = $(top_builddir)/record/librecord.la
-librecord_la_SOURCES = recordmod.c
-
 libshadow_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libshadow_la_LIBADD = $(top_builddir)/miext/shadow/libshadow.la
 if NO_UNDEFINED
@@ -66,6 +45,6 @@ endif
 libshadow_la_SOURCES = shmodule.c
 
 libdixmods_la_SOURCES = $(top_srcdir)/mi/miinitext.c
-libdixmods_la_CFLAGS = -DXFree86LOADER $(AM_CFLAGS)
+libdixmods_la_CFLAGS = $(AM_CFLAGS)
 
 libxorgxkb_la_SOURCES = xkbVT.c xkbPrivate.c xkbKillSrv.c

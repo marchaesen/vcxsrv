@@ -965,6 +965,19 @@ test_pad_to_int32(int i)
 }
 
 static void
+test_padding_for_int32(int i)
+{
+    static const int padlength[4] = { 0, 3, 2, 1 };
+    int expected_bytes = (((i + 3) / 4) * 4) - i;
+
+    assert(padding_for_int32(i) >= 0);
+    assert(padding_for_int32(i) <= 3);
+    assert(padding_for_int32(i) == expected_bytes);
+    assert(padding_for_int32(i) == padlength[i & 3]);
+    assert((padding_for_int32(i) + i) == pad_to_int32(i));
+}
+
+static void
 include_byte_padding_macros(void)
 {
     printf("Testing bits_to_bytes()\n");
@@ -996,12 +1009,12 @@ include_byte_padding_macros(void)
     test_bytes_to_int32(INT_MAX - 4);
     test_bytes_to_int32(INT_MAX - 3);
 
-    printf("Testing pad_to_int32\n");
+    printf("Testing pad_to_int32()\n");
 
-    test_pad_to_int32(0);
     test_pad_to_int32(0);
     test_pad_to_int32(1);
     test_pad_to_int32(2);
+    test_pad_to_int32(3);
     test_pad_to_int32(7);
     test_pad_to_int32(8);
     test_pad_to_int32(0xFF);
@@ -1012,6 +1025,23 @@ include_byte_padding_macros(void)
     test_pad_to_int32(0x1000000);
     test_pad_to_int32(INT_MAX - 4);
     test_pad_to_int32(INT_MAX - 3);
+
+    printf("Testing padding_for_int32()\n");
+
+    test_padding_for_int32(0);
+    test_padding_for_int32(1);
+    test_padding_for_int32(2);
+    test_padding_for_int32(3);
+    test_padding_for_int32(7);
+    test_padding_for_int32(8);
+    test_padding_for_int32(0xFF);
+    test_padding_for_int32(0x100);
+    test_padding_for_int32(0xFFFF);
+    test_padding_for_int32(0x10000);
+    test_padding_for_int32(0xFFFFFF);
+    test_padding_for_int32(0x1000000);
+    test_padding_for_int32(INT_MAX - 4);
+    test_padding_for_int32(INT_MAX - 3);
 }
 
 static void
