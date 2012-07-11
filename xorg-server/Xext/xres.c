@@ -21,7 +21,7 @@
 #include "pixmapstr.h"
 #include "windowstr.h"
 #include "gcstruct.h"
-#include "modinit.h"
+#include "extinit.h"
 #include "protocol-versions.h"
 #include "client.h"
 #include "list.h"
@@ -190,6 +190,8 @@ DestroyConstructResourceBytesCtx(ConstructResourceBytesCtx *ctx)
     ht_destroy(ctx->visitedResources);
 }
 
+extern void ResExtensionInit(void);
+
 static int
 ProcXResQueryVersion(ClientPtr client)
 {
@@ -199,8 +201,8 @@ ProcXResQueryVersion(ClientPtr client)
     REQUEST_SIZE_MATCH(xXResQueryVersionReq);
 
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.server_major = SERVER_XRES_MAJOR_VERSION;
     rep.server_minor = SERVER_XRES_MINOR_VERSION;
     if (client->swapped) {
@@ -209,7 +211,7 @@ ProcXResQueryVersion(ClientPtr client)
         swaps(&rep.server_major);
         swaps(&rep.server_minor);
     }
-    WriteToClient(client, sizeof(xXResQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xXResQueryVersionReply), &rep);
     return Success;
 }
 
@@ -233,16 +235,17 @@ ProcXResQueryClients(ClientPtr client)
         }
     }
 
+
     rep.type = X_Reply;
     rep.sequenceNumber = client->sequence;
+    rep.length = bytes_to_int32(num_clients * sz_xXResClient);
     rep.num_clients = num_clients;
-    rep.length = bytes_to_int32(rep.num_clients * sz_xXResClient);
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.num_clients);
     }
-    WriteToClient(client, sizeof(xXResQueryClientsReply), (char *) &rep);
+    WriteToClient(client, sizeof(xXResQueryClientsReply), &rep);
 
     if (num_clients) {
         xXResClient scratch;
@@ -255,7 +258,7 @@ ProcXResQueryClients(ClientPtr client)
                 swapl(&scratch.resource_base);
                 swapl(&scratch.resource_mask);
             }
-            WriteToClient(client, sz_xXResClient, (char *) &scratch);
+            WriteToClient(client, sz_xXResClient, &scratch);
         }
     }
 
@@ -300,18 +303,18 @@ ProcXResQueryClientResources(ClientPtr client)
             num_types++;
     }
 
+
     rep.type = X_Reply;
     rep.sequenceNumber = client->sequence;
+    rep.length = bytes_to_int32(num_types * sz_xXResType);
     rep.num_types = num_types;
-    rep.length = bytes_to_int32(rep.num_types * sz_xXResType);
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.num_types);
     }
 
-    WriteToClient(client, sizeof(xXResQueryClientResourcesReply),
-                  (char *) &rep);
+    WriteToClient(client, sizeof(xXResQueryClientResourcesReply), &rep);
 
     if (num_types) {
         xXResType scratch;
@@ -337,7 +340,7 @@ ProcXResQueryClientResources(ClientPtr client)
                 swapl(&scratch.resource_type);
                 swapl(&scratch.count);
             }
-            WriteToClient(client, sz_xXResType, (char *) &scratch);
+            WriteToClient(client, sz_xXResType, &scratch);
         }
     }
 
@@ -471,6 +474,7 @@ ProcXResQueryClientPixmapBytes(ClientPtr client)
                               (pointer)(&bytes));
 #endif
 
+
     rep.type = X_Reply;
     rep.sequenceNumber = client->sequence;
     rep.length = 0;
@@ -486,8 +490,7 @@ ProcXResQueryClientPixmapBytes(ClientPtr client)
         swapl(&rep.bytes);
         swapl(&rep.bytes_overflow);
     }
-    WriteToClient(client, sizeof(xXResQueryClientPixmapBytesReply),
-                  (char *) &rep);
+    WriteToClient(client, sizeof(xXResQueryClientPixmapBytesReply), &rep);
 
     return Success;
 }
@@ -652,7 +655,6 @@ ProcXResQueryClientIds (ClientPtr client)
 {
     REQUEST(xXResQueryClientIdsReq);
 
-    xXResQueryClientIdsReply  rep;
     xXResClientIdSpec        *specs = (void*) ((char*) stuff + sizeof(*stuff));
     int                       rc;
     ConstructClientIdCtx      ctx;
@@ -666,12 +668,13 @@ ProcXResQueryClientIds (ClientPtr client)
     rc = ConstructClientIds(client, stuff->numSpecs, specs, &ctx);
 
     if (rc == Success) {
+        xXResQueryClientIdsReply  rep;
         rep.type = X_Reply;
         rep.sequenceNumber = client->sequence;
-
-        assert((ctx.resultBytes & 3) == 0);
         rep.length = bytes_to_int32(ctx.resultBytes);
         rep.numIds = ctx.numIds;
+
+        assert((ctx.resultBytes & 3) == 0);
 
         if (client->swapped) {
             swaps (&rep.sequenceNumber);
@@ -679,7 +682,7 @@ ProcXResQueryClientIds (ClientPtr client)
             swapl (&rep.numIds);
         }
 
-        WriteToClient(client,sizeof(rep),(char*)&rep);
+        WriteToClient(client, sizeof(rep), &rep);
         WriteFragmentsToClient(client, &ctx.response);
     }
 
@@ -1030,7 +1033,6 @@ ProcXResQueryResourceBytes (ClientPtr client)
 {
     REQUEST(xXResQueryResourceBytesReq);
 
-    xXResQueryResourceBytesReply rep;
     int                          rc;
     ConstructResourceBytesCtx    ctx;
 
@@ -1048,10 +1050,11 @@ ProcXResQueryResourceBytes (ClientPtr client)
     rc = ConstructResourceBytes(stuff->client, &ctx);
 
     if (rc == Success) {
+        xXResQueryResourceBytesReply rep;
         rep.type = X_Reply;
         rep.sequenceNumber = client->sequence;
-        rep.numSizes = ctx.numSizes;
         rep.length = bytes_to_int32(ctx.resultBytes);
+        rep.numSizes = ctx.numSizes;
 
         if (client->swapped) {
             swaps (&rep.sequenceNumber);
@@ -1061,7 +1064,7 @@ ProcXResQueryResourceBytes (ClientPtr client)
             SwapXResQueryResourceBytes(&ctx.response);
         }
 
-        WriteToClient(client,sizeof(rep),(char*)&rep);
+        WriteToClient(client, sizeof(rep), &rep);
         WriteFragmentsToClient(client, &ctx.response);
     }
 
@@ -1177,7 +1180,7 @@ SProcResDispatch (ClientPtr client)
 }
 
 void
-ResExtensionInit(INITARGS)
+ResExtensionInit(void)
 {
     (void) AddExtension(XRES_NAME, 0, 0,
                         ProcResDispatch, SProcResDispatch,

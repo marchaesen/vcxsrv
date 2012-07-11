@@ -547,8 +547,6 @@ CompositeTriFan(CARD8 op,
                 PictFormatPtr maskFormat,
                 INT16 xSrc, INT16 ySrc, int npoints, xPointFixed * points);
 
-extern _X_EXPORT void RenderExtensionInit(void);
-
 Bool
  AnimCurInit(ScreenPtr pScreen);
 

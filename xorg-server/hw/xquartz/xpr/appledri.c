@@ -105,7 +105,7 @@ ProcAppleDRIQueryVersion(register ClientPtr client)
         swaps(&rep.minorVersion);
         swapl(&rep.patchVersion);
     }
-    WriteToClient(client, sizeof(xAppleDRIQueryVersionReply), (char *)&rep);
+    WriteToClient(client, sizeof(xAppleDRIQueryVersionReply), &rep);
     return Success;
 }
 
@@ -139,7 +139,7 @@ ProcAppleDRIQueryDirectRenderingCapable(register ClientPtr client)
 
     WriteToClient(client,
                   sizeof(xAppleDRIQueryDirectRenderingCapableReply),
-                  (char *)&rep);
+                  &rep);
     return Success;
 }
 
@@ -168,7 +168,7 @@ ProcAppleDRIAuthConnection(register ClientPtr client)
         swapl(&rep.authenticated); /* Yes, this is a CARD32 ... sigh */
     }
 
-    WriteToClient(client, sizeof(xAppleDRIAuthConnectionReply), (char *)&rep);
+    WriteToClient(client, sizeof(xAppleDRIAuthConnectionReply), &rep);
     return Success;
 }
 
@@ -232,7 +232,7 @@ ProcAppleDRICreateSurface(ClientPtr client)
         swapl(&rep.uid);
     }
 
-    WriteToClient(client, sizeof(xAppleDRICreateSurfaceReply), (char *)&rep);
+    WriteToClient(client, sizeof(xAppleDRICreateSurfaceReply), &rep);
     return Success;
 }
 

@@ -827,6 +827,7 @@ DeviceFocusEvent(DeviceIntPtr dev, int type, int mode, int detail,
     free(xi2event);
 
     /* XI 1.x event */
+
     event.deviceid = dev->id;
     event.mode = mode;
     event.type = (type == XI_FocusIn) ? DeviceFocusIn : DeviceFocusOut;
@@ -1246,7 +1247,8 @@ HasOtherPointer(WindowPtr win, DeviceIntPtr exclude)
  * Assumption: Neither A nor B are valid windows.
  */
 static void
-CoreFocusPointerRootNoneSwitch(DeviceIntPtr dev, WindowPtr A,   /* PointerRootWin or NoneWin */
+CoreFocusPointerRootNoneSwitch(DeviceIntPtr dev,
+                               WindowPtr A,     /* PointerRootWin or NoneWin */
                                WindowPtr B,     /* NoneWin or PointerRootWin */
                                int mode)
 {
@@ -1290,7 +1292,8 @@ CoreFocusPointerRootNoneSwitch(DeviceIntPtr dev, WindowPtr A,   /* PointerRootWi
  * Assumption: A is a valid window and not PointerRoot or None.
  */
 static void
-CoreFocusToPointerRootOrNone(DeviceIntPtr dev, WindowPtr A, WindowPtr B,        /* PointerRootWin or NoneWin */
+CoreFocusToPointerRootOrNone(DeviceIntPtr dev, WindowPtr A,
+                             WindowPtr B,        /* PointerRootWin or NoneWin */
                              int mode)
 {
     WindowPtr root;
@@ -1336,7 +1339,8 @@ CoreFocusToPointerRootOrNone(DeviceIntPtr dev, WindowPtr A, WindowPtr B,        
  * Assumption: B is a valid window and not PointerRoot or None.
  */
 static void
-CoreFocusFromPointerRootOrNone(DeviceIntPtr dev, WindowPtr A,   /* PointerRootWin or NoneWin */
+CoreFocusFromPointerRootOrNone(DeviceIntPtr dev,
+                               WindowPtr A,   /* PointerRootWin or NoneWin */
                                WindowPtr B, int mode)
 {
     WindowPtr root;

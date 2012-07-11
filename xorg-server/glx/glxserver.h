@@ -77,8 +77,6 @@ extern __GLXclientState *glxGetClient(ClientPtr pClient);
 
 /************************************************************************/
 
-void GlxExtensionInit(void);
-
 void GlxSetVisualConfigs(int nconfigs, void *configs, void **privates);
 
 void __glXScreenInitVisuals(__GLXscreen * screen);
@@ -100,6 +98,7 @@ struct __GLXprovider {
     const char *name;
     __GLXprovider *next;
 };
+extern __GLXprovider __glXDRISWRastProvider;
 
 void GlxPushProvider(__GLXprovider * provider);
 

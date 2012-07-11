@@ -72,9 +72,6 @@ DRIFinishScreenInit(ScreenPtr pScreen);
 extern void
 DRICloseScreen(ScreenPtr pScreen);
 
-extern Bool
-DRIExtensionInit(void);
-
 extern void
 DRIReset(void);
 

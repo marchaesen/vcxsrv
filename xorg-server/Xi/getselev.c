@@ -102,10 +102,11 @@ ProcXGetSelectedExtensionEvents(ClientPtr client)
     REQUEST(xGetSelectedExtensionEventsReq);
     REQUEST_SIZE_MATCH(xGetSelectedExtensionEventsReq);
 
+
     rep.repType = X_Reply;
     rep.RepType = X_GetSelectedExtensionEvents;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.this_client_count = 0;
     rep.all_clients_count = 0;
 
@@ -170,5 +171,5 @@ SRepXGetSelectedExtensionEvents(ClientPtr client, int size,
     swapl(&rep->length);
     swaps(&rep->this_client_count);
     swaps(&rep->all_clients_count);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

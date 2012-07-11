@@ -4,7 +4,6 @@ bin_PROGRAMS = Xnest
 noinst_LIBRARIES = libfbcmap.a
 
 AM_CFLAGS = -DHAVE_XNEST_CONFIG_H \
-            -DNO_HW_ONLY_EXTS \
             $(DIX_CFLAGS) \
             $(XNESTMODULES_CFLAGS)
 

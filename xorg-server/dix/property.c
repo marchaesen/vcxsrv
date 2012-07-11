@@ -108,14 +108,13 @@ dixLookupProperty(PropertyPtr *result, WindowPtr pWin, Atom propertyName,
 static void
 deliverPropertyNotifyEvent(WindowPtr pWin, int state, Atom atom)
 {
-    xEvent event;
-
-    memset(&event, 0, sizeof(xEvent));
-    event.u.u.type = PropertyNotify;
+    xEvent event; memset(&event, 0, sizeof(xEvent));
     event.u.property.window = pWin->drawable.id;
     event.u.property.state = state;
     event.u.property.atom = atom;
     event.u.property.time = currentTime.milliseconds;
+
+    event.u.u.type = PropertyNotify;
     DeliverEvents(pWin, &event, 1, (WindowPtr) NULL);
 }
 
@@ -413,15 +412,17 @@ DeleteAllWindowProperties(WindowPtr pWin)
 }
 
 static int
-NullPropertyReply(ClientPtr client,
-                  ATOM propertyType, int format, xGetPropertyReply * reply)
+NullPropertyReply(ClientPtr client, ATOM propertyType, int format)
 {
-    reply->nItems = 0;
-    reply->length = 0;
-    reply->bytesAfter = 0;
-    reply->propertyType = propertyType;
-    reply->format = format;
-    WriteReplyToClient(client, sizeof(xGenericReply), reply);
+    xGetPropertyReply reply;
+    reply.type = X_Reply;
+    reply.format = format;
+    reply.sequenceNumber = client->sequence;
+    reply.length = 0;
+    reply.propertyType = propertyType;
+    reply.bytesAfter = 0;
+    reply.nItems = 0;
+    WriteReplyToClient(client, sizeof(xGenericReply), &reply);
     return Success;
 }
 
@@ -470,13 +471,9 @@ ProcGetProperty(ClientPtr client)
         return BadAtom;
     }
 
-    memset(&reply, 0, sizeof(xGetPropertyReply));
-    reply.type = X_Reply;
-    reply.sequenceNumber = client->sequence;
-
     rc = dixLookupProperty(&pProp, pWin, stuff->property, client, prop_mode);
     if (rc == BadMatch)
-        return NullPropertyReply(client, None, 0, &reply);
+        return NullPropertyReply(client, None, 0);
     else if (rc != Success)
         return rc;
 
@@ -485,6 +482,9 @@ ProcGetProperty(ClientPtr client)
 
     if (((stuff->type != pProp->type) && (stuff->type != AnyPropertyType))
         ) {
+        memset(&reply, 0, sizeof(xGetPropertyReply));
+        reply.type = X_Reply;
+        reply.sequenceNumber = client->sequence;
         reply.bytesAfter = pProp->size;
         reply.format = pProp->format;
         reply.length = 0;
@@ -510,6 +510,9 @@ ProcGetProperty(ClientPtr client)
 
     len = min(n - ind, 4 * stuff->longLength);
 
+    memset(&reply, 0, sizeof(xGetPropertyReply));
+    reply.type = X_Reply;
+    reply.sequenceNumber = client->sequence,
     reply.bytesAfter = n - (ind + len);
     reply.format = pProp->format;
     reply.length = bytes_to_int32(len);
@@ -589,10 +592,12 @@ ProcListProperties(ClientPtr client)
         }
     }
 
+
     xlpr.type = X_Reply;
-    xlpr.nProperties = numProps;
-    xlpr.length = bytes_to_int32(numProps * sizeof(Atom));
     xlpr.sequenceNumber = client->sequence;
+    xlpr.length = bytes_to_int32(numProps * sizeof(Atom));
+    xlpr.nProperties = numProps;
+    
     WriteReplyToClient(client, sizeof(xGenericReply), &xlpr);
     if (numProps) {
         client->pSwapReplyFunc = (ReplySwapPtr) Swap32Write;

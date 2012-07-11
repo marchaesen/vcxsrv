@@ -345,8 +345,8 @@ ProcXListInputDevices(ClientPtr client)
     memset(&rep, 0, sizeof(xListInputDevicesReply));
     rep.repType = X_Reply;
     rep.RepType = X_ListInputDevices;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
 
     /* allocate space for saving skip value */
     skip = calloc(sizeof(Bool), inputInfo.numDevices);
@@ -417,5 +417,5 @@ SRepXListInputDevices(ClientPtr client, int size, xListInputDevicesReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

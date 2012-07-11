@@ -96,8 +96,8 @@ ProcXIQueryVersion(ClientPtr client)
     memset(&rep, 0, sizeof(xXIQueryVersionReply));
     rep.repType = X_Reply;
     rep.RepType = X_XIQueryVersion;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.major_version = major;
     rep.minor_version = minor;
 
@@ -126,5 +126,5 @@ SRepXIQueryVersion(ClientPtr client, int size, xXIQueryVersionReply * rep)
     swapl(&rep->length);
     swaps(&rep->major_version);
     swaps(&rep->minor_version);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

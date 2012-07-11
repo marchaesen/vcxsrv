@@ -26,7 +26,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "windowstr.h"
 #include "propertyst.h"
 #include "extnsionst.h"
-#include "modinit.h"
+#include "extinit.h"
 #include "xselinuxint.h"
 
 #define CTX_DEV offsetof(SELinuxSubjectRec, dev_create_sid)
@@ -63,20 +63,20 @@ SELinuxCopyContext(char *ptr, unsigned len)
 static int
 ProcSELinuxQueryVersion(ClientPtr client)
 {
-    SELinuxQueryVersionReply rep;
-
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
-    rep.server_major = SELINUX_MAJOR_VERSION;
-    rep.server_minor = SELINUX_MINOR_VERSION;
+    SELinuxQueryVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .server_major = SELINUX_MAJOR_VERSION,
+        .server_minor = SELINUX_MINOR_VERSION
+    };
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swaps(&rep.server_major);
         swaps(&rep.server_minor);
     }
-    WriteToClient(client, sizeof(rep), (char *) &rep);
+    WriteToClient(client, sizeof(rep), &rep);
     return Success;
 }
 
@@ -93,10 +93,12 @@ SELinuxSendContextReply(ClientPtr client, security_id_t sid)
         len = strlen(ctx) + 1;
     }
 
-    rep.type = X_Reply;
-    rep.length = bytes_to_int32(len);
-    rep.sequenceNumber = client->sequence;
-    rep.context_len = len;
+    rep = (SELinuxGetContextReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = bytes_to_int32(len),
+        .context_len = len
+    };
 
     if (client->swapped) {
         swapl(&rep.length);
@@ -104,7 +106,7 @@ SELinuxSendContextReply(ClientPtr client, security_id_t sid)
         swapl(&rep.context_len);
     }
 
-    WriteToClient(client, sizeof(SELinuxGetContextReply), (char *) &rep);
+    WriteToClient(client, sizeof(SELinuxGetContextReply), &rep);
     WriteToClient(client, len, ctx);
     freecon(ctx);
     return Success;
@@ -372,10 +374,12 @@ SELinuxSendItemsToClient(ClientPtr client, SELinuxListItemRec * items,
     }
 
     /* Send reply to client */
-    rep.type = X_Reply;
-    rep.length = size;
-    rep.sequenceNumber = client->sequence;
-    rep.count = count;
+    rep = (SELinuxListItemsReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = size,
+        .count = count
+    };
 
     if (client->swapped) {
         swapl(&rep.length);
@@ -383,8 +387,8 @@ SELinuxSendItemsToClient(ClientPtr client, SELinuxListItemRec * items,
         swapl(&rep.count);
     }
 
-    WriteToClient(client, sizeof(SELinuxListItemsReply), (char *) &rep);
-    WriteToClient(client, size * 4, (char *) buf);
+    WriteToClient(client, sizeof(SELinuxListItemsReply), &rep);
+    WriteToClient(client, size * 4, buf);
 
     /* Free stuff and return */
     rc = Success;
@@ -683,7 +687,7 @@ SELinuxResetProc(ExtensionEntry * extEntry)
 }
 
 void
-SELinuxExtensionInit(INITARGS)
+SELinuxExtensionInit(void)
 {
     ExtensionEntry *extEntry;
 

@@ -42,6 +42,7 @@
 #define _XF86MODULE_H
 
 #include "misc.h"
+#include "extension.h"
 #ifndef NULL
 #define NULL ((void *)0)
 #endif
@@ -54,9 +55,6 @@ typedef enum {
 } LoaderResolveOptions;
 
 #define DEFAULT_LIST ((char *)-1)
-
-/* This indicates a special module that doesn't have the usual entry point */
-#define EXTERN_MODULE ((pointer)-1)
 
 /* Built-in ABI classes.  These definitions must not be changed. */
 #define ABI_CLASS_NONE		NULL
@@ -171,18 +169,6 @@ typedef struct {
 
 #define INITARGS void
 
-typedef void (*InitExtension) (INITARGS);
-
-typedef struct {
-    InitExtension initFunc;
-    const char *name;
-    Bool *disablePtr;
-    InitExtension setupFunc;
-    const char **initDependencies;
-} ExtensionModule;
-
-extern _X_EXPORT ExtensionModule *ExtensionModuleList;
-
 /* Prototypes for Loader functions that are exported to modules */
 extern _X_EXPORT pointer LoadSubModule(pointer, const char *, const char **,
                                        const char **, pointer,
@@ -193,7 +179,6 @@ extern _X_EXPORT pointer LoaderSymbol(const char *);
 extern _X_EXPORT char **LoaderListDirs(const char **, const char **);
 extern _X_EXPORT void LoaderFreeDirList(char **);
 extern _X_EXPORT void LoaderErrorMsg(const char *, const char *, int, int);
-extern _X_EXPORT void LoadExtension(ExtensionModule *, Bool);
 extern _X_EXPORT void LoaderGetOS(const char **name, int *major, int *minor,
                                   int *teeny);
 extern _X_EXPORT Bool LoaderShouldIgnoreABI(void);

@@ -178,7 +178,7 @@ _xf86_di_dga_reinit_internal(ScreenPtr pScreen)
     ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
 
-    if (!DGAAvailable(pScreen->myNum))
+    if (!DGAScreenAvailable(pScreen))
         return TRUE;
 
     if (!xf86_dga_get_modes(pScreen))

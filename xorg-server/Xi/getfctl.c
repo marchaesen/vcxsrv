@@ -265,7 +265,7 @@ SRepXGetFeedbackControl(ClientPtr client, int size,
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
     swaps(&rep->num_feedbacks);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }
 
 /***********************************************************************
@@ -295,10 +295,11 @@ ProcXGetFeedbackControl(ClientPtr client)
     if (rc != Success)
         return rc;
 
+
     rep.repType = X_Reply;
     rep.RepType = X_GetFeedbackControl;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.num_feedbacks = 0;
 
     for (k = dev->kbdfeed; k; k = k->next) {

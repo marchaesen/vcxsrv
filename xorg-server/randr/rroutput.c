@@ -307,7 +307,8 @@ RRDeliverOutputEvent(ClientPtr client, WindowPtr pWin, RROutputPtr output)
     rrScrPriv(pScreen);
     xRROutputChangeNotifyEvent oe;
     RRCrtcPtr crtc = output->crtc;
-    RRModePtr mode = crtc ? crtc->mode : 0;
+    RRModePtr mode = crtc ? crtc->mode : NULL;
+
 
     oe.type = RRNotify + RREventBase;
     oe.subCode = RRNotify_OutputChange;
@@ -315,18 +316,12 @@ RRDeliverOutputEvent(ClientPtr client, WindowPtr pWin, RROutputPtr output)
     oe.configTimestamp = pScrPriv->lastConfigTime.milliseconds;
     oe.window = pWin->drawable.id;
     oe.output = output->id;
-    if (crtc) {
-        oe.crtc = crtc->id;
-        oe.mode = mode ? mode->mode.id : None;
-        oe.rotation = crtc->rotation;
-    }
-    else {
-        oe.crtc = None;
-        oe.mode = None;
-        oe.rotation = RR_Rotate_0;
-    }
+    oe.crtc = crtc ? crtc->id : None;
+    oe.mode = mode ? mode->mode.id : None;
+    oe.rotation = crtc ? crtc->rotation : RR_Rotate_0;
     oe.connection = output->connection;
     oe.subpixelOrder = output->subpixelOrder;
+
     WriteEventsToClient(client, 1, (xEvent *) &oe);
 }
 
@@ -425,7 +420,9 @@ ProcRRGetOutputInfo(ClientPtr client)
     pScreen = output->pScreen;
     pScrPriv = rrGetScrPriv(pScreen);
 
+
     rep.type = X_Reply;
+    rep.status = RRSetConfigSuccess;
     rep.sequenceNumber = client->sequence;
     rep.length = bytes_to_int32(OutputInfoExtra);
     rep.timestamp = pScrPriv->lastSetTime.milliseconds;
@@ -489,9 +486,9 @@ ProcRRGetOutputInfo(ClientPtr client)
         swaps(&rep.nClones);
         swaps(&rep.nameLength);
     }
-    WriteToClient(client, sizeof(xRRGetOutputInfoReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRRGetOutputInfoReply), &rep);
     if (extraLen) {
-        WriteToClient(client, extraLen, (char *) extra);
+        WriteToClient(client, extraLen, extra);
         free(extra);
     }
 

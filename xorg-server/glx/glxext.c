@@ -43,6 +43,7 @@
 #include <registry.h>
 #include "privates.h"
 #include <os.h>
+#include "extinit.h"
 #include "unpack.h"
 #include "glxutil.h"
 #include "glxext.h"
@@ -333,13 +334,19 @@ GlxExtensionInit(void)
     int i;
     __GLXprovider *p;
     Bool glx_provided = False;
-
+    
     __glXContextRes = CreateNewResourceType((DeleteType) ContextGone,
                                             "GLXContext");
     __glXDrawableRes = CreateNewResourceType((DeleteType) DrawableGone,
                                              "GLXDrawable");
     if (!__glXContextRes || !__glXDrawableRes)
         return;
+
+    if (serverGeneration == 1)
+    {
+        GlxPushProvider(&__glXDRISWRastProvider);
+        glxWinPushNativeProvider();
+    }
 
     if (!dixRegisterPrivateKey
         (&glxClientPrivateKeyRec, PRIVATE_CLIENT, sizeof(__GLXclientState)))

@@ -113,6 +113,7 @@ ProcXGrabDevice(ClientPtr client)
         bytes_to_int32(sizeof(xGrabDeviceReq)) + stuff->event_count)
         return BadLength;
 
+
     rep.repType = X_Reply;
     rep.RepType = X_GrabDevice;
     rep.sequenceNumber = client->sequence;
@@ -211,5 +212,5 @@ SRepXGrabDevice(ClientPtr client, int size, xGrabDeviceReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

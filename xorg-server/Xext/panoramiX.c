@@ -59,7 +59,7 @@ Equipment Corporation.
 #ifdef COMPOSITE
 #include "compint.h"
 #endif
-#include "modinit.h"
+#include "extinit.h"
 #include "protocol-versions.h"
 
 #ifdef GLXPROXY
@@ -434,7 +434,7 @@ XineramaReinitData(void)
  */
 
 void
-PanoramiXExtensionInit(int argc, char *argv[])
+PanoramiXExtensionInit(void)
 {
     int i;
     Bool success = FALSE;
@@ -895,6 +895,9 @@ PanoramiXResetProc(ExtensionEntry * extEntry)
 #ifdef XFIXES
     PanoramiXFixesReset();
 #endif
+#ifdef COMPOSITE
+    PanoramiXCompositeReset ();
+#endif
     screenInfo.numScreens = PanoramiXNumScreens;
     for (i = 256; i--;)
         ProcVector[i] = SavedProcVector[i];
@@ -908,8 +911,8 @@ ProcPanoramiXQueryVersion(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xPanoramiXQueryVersionReq);
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.majorVersion = SERVER_PANORAMIX_MAJOR_VERSION;
     rep.minorVersion = SERVER_PANORAMIX_MINOR_VERSION;
     if (client->swapped) {
@@ -918,7 +921,7 @@ ProcPanoramiXQueryVersion(ClientPtr client)
         swaps(&rep.majorVersion);
         swaps(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xPanoramiXQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xPanoramiXQueryVersionReply), &rep);
     return Success;
 }
 
@@ -935,17 +938,18 @@ ProcPanoramiXGetState(ClientPtr client)
     if (rc != Success)
         return rc;
 
+
     rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
     rep.state = !noPanoramiXExtension;
+    rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.window = stuff->window;
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.window);
     }
-    WriteToClient(client, sizeof(xPanoramiXGetStateReply), (char *) &rep);
+    WriteToClient(client, sizeof(xPanoramiXGetStateReply), &rep);
     return Success;
 
 }
@@ -963,17 +967,18 @@ ProcPanoramiXGetScreenCount(ClientPtr client)
     if (rc != Success)
         return rc;
 
+
     rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
     rep.ScreenCount = PanoramiXNumScreens;
+    rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.window = stuff->window;
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.window);
     }
-    WriteToClient(client, sizeof(xPanoramiXGetScreenCountReply), (char *) &rep);
+    WriteToClient(client, sizeof(xPanoramiXGetScreenCountReply), &rep);
     return Success;
 }
 
@@ -993,9 +998,10 @@ ProcPanoramiXGetScreenSize(ClientPtr client)
     if (rc != Success)
         return rc;
 
+
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     /* screen dimensions */
     rep.width = screenInfo.screens[stuff->screen]->width;
     rep.height = screenInfo.screens[stuff->screen]->height;
@@ -1009,7 +1015,7 @@ ProcPanoramiXGetScreenSize(ClientPtr client)
         swapl(&rep.window);
         swapl(&rep.screen);
     }
-    WriteToClient(client, sizeof(xPanoramiXGetScreenSizeReply), (char *) &rep);
+    WriteToClient(client, sizeof(xPanoramiXGetScreenSizeReply), &rep);
     return Success;
 }
 
@@ -1021,15 +1027,14 @@ ProcXineramaIsActive(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xXineramaIsActiveReq);
 
+
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
 #if 1
-    {
         /* The following hack fools clients into thinking that Xinerama
          * is disabled even though it is not. */
-        rep.state = !noPanoramiXExtension && !PanoramiXExtensionDisabledHack;
-    }
+    rep.state = !noPanoramiXExtension && !PanoramiXExtensionDisabledHack;
 #else
     rep.state = !noPanoramiXExtension;
 #endif
@@ -1038,7 +1043,7 @@ ProcXineramaIsActive(ClientPtr client)
         swapl(&rep.length);
         swapl(&rep.state);
     }
-    WriteToClient(client, sizeof(xXineramaIsActiveReply), (char *) &rep);
+    WriteToClient(client, sizeof(xXineramaIsActiveReply), &rep);
     return Success;
 }
 
@@ -1059,7 +1064,7 @@ ProcXineramaQueryScreens(ClientPtr client)
         swapl(&rep.length);
         swapl(&rep.number);
     }
-    WriteToClient(client, sizeof(xXineramaQueryScreensReply), (char *) &rep);
+    WriteToClient(client, sizeof(xXineramaQueryScreensReply), &rep);
 
     if (!noPanoramiXExtension) {
         xXineramaScreenInfo scratch;
@@ -1077,7 +1082,7 @@ ProcXineramaQueryScreens(ClientPtr client)
                 swaps(&scratch.width);
                 swaps(&scratch.height);
             }
-            WriteToClient(client, sz_XineramaScreenInfo, (char *) &scratch);
+            WriteToClient(client, sz_XineramaScreenInfo, &scratch);
         }
     }
 

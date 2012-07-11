@@ -78,15 +78,11 @@ XFixesSelectionCallback(CallbackListPtr *callbacks, pointer data, pointer args)
     for (e = selectionEvents; e; e = e->next) {
         if (e->selection == selection->selection && (e->eventMask & eventMask)) {
             xXFixesSelectionNotifyEvent ev;
-
-            memset(&ev, 0, sizeof(xXFixesSelectionNotifyEvent));
             ev.type = XFixesEventBase + XFixesSelectionNotify;
             ev.subtype = subtype;
             ev.window = e->pWindow->drawable.id;
-            if (subtype == XFixesSetSelectionOwnerNotify)
-                ev.owner = selection->window;
-            else
-                ev.owner = 0;
+            ev.owner = (subtype == XFixesSetSelectionOwnerNotify) ?
+                            selection->window : 0;
             ev.selection = e->selection;
             ev.timestamp = currentTime.milliseconds;
             ev.selectionTimestamp = selection->lastTimeChanged.milliseconds;

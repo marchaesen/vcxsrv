@@ -93,6 +93,7 @@ do_butmap_change(DeviceIntPtr dev, CARD8 *map, int len, ClientPtr client)
         WriteEventsToClient(clients[i], 1, &core_mn);
     }
 
+
     xi_mn.type = DeviceMappingNotify;
     xi_mn.request = MappingPointer;
     xi_mn.deviceid = dev->id;

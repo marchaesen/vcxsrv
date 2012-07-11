@@ -401,6 +401,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
     MessageType pix24From = X_DEFAULT;
     Bool pix24Fail = FALSE;
     Bool autoconfig = FALSE;
+    Bool sigio_blocked = FALSE;
     GDevPtr configured_device;
 
     xf86Initialising = TRUE;
@@ -470,6 +471,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 #ifdef XF86PM
         xf86OSPMClose = xf86OSPMOpen();
 #endif
+
+        xf86ExtensionInit();
 
         /* Load all modules specified explicitly in the config file */
         if ((modulelist = xf86ModulelistFromConfig(&optionlist))) {
@@ -819,6 +822,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 #endif
             xf86AccessEnter();
             OsBlockSIGIO();
+            sigio_blocked = TRUE;
         }
     }
 
@@ -920,8 +924,12 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 #endif
     }
 
+    for (i = 0; i < xf86NumGPUScreens; i++)
+        AttachUnboundGPU(xf86Screens[0]->pScreen, xf86GPUScreens[i]->pScreen);
+
     xf86VGAarbiterWrapFunctions();
-    OsReleaseSIGIO();
+    if (sigio_blocked)
+        OsReleaseSIGIO();
 
     xf86InitOrigins();
 
@@ -1006,7 +1014,6 @@ OsVendorInit(void)
     }
 #endif
 #endif
-    OsReleaseSIGIO();
 
     beenHere = TRUE;
 }

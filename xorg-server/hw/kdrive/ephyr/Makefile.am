@@ -5,7 +5,6 @@ INCLUDES = 			\
 	@KDRIVE_CFLAGS@		\
 	@XEPHYR_INCS@		\
 	@XEPHYR_CFLAGS@		\
-	@DRIPROTO_CFLAGS@	\
 	-I$(top_srcdir)		\
 	-I$(top_srcdir)/exa
 

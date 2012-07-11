@@ -282,7 +282,7 @@ int
 ProcRRCreateMode(ClientPtr client)
 {
     REQUEST(xRRCreateModeReq);
-    xRRCreateModeReply rep = { 0 };
+    xRRCreateModeReply rep;
     WindowPtr pWin;
     ScreenPtr pScreen;
     xRRModeInfo *modeInfo;
@@ -310,8 +310,8 @@ ProcRRCreateMode(ClientPtr client)
     if (!mode)
         return error;
 
+    memset(&rep, 0, sizeof(rep));
     rep.type = X_Reply;
-    rep.pad0 = 0;
     rep.sequenceNumber = client->sequence;
     rep.length = 0;
     rep.mode = mode->mode.id;
@@ -320,7 +320,7 @@ ProcRRCreateMode(ClientPtr client)
         swapl(&rep.length);
         swapl(&rep.mode);
     }
-    WriteToClient(client, sizeof(xRRCreateModeReply), (char *) &rep);
+    WriteToClient(client, sizeof(xRRCreateModeReply), &rep);
     /* Drop out reference to this mode */
     RRModeDestroy(mode);
     return Success;

@@ -43,8 +43,6 @@
 #include "xf86xvpriv.h"
 #include "xf86xvmc.h"
 
-XvMCScreenInitProcPtr XvMCScreenInitProc = NULL;
-
 typedef struct {
     CloseScreenProcPtr CloseScreen;
     int num_adaptors;
@@ -154,7 +152,7 @@ xf86XvMCScreenInit(ScreenPtr pScreen,
                                                       XF86XvScreenKey);
     int i, j;
 
-    if (!XvMCScreenInitProc)
+    if (noXvExtension)
         return FALSE;
 
     if (!(pAdapt = malloc(sizeof(XvMCAdaptorRec) * num_adaptors)))
@@ -203,7 +201,7 @@ xf86XvMCScreenInit(ScreenPtr pScreen,
         adaptors++;
     }
 
-    if (Success != (*XvMCScreenInitProc) (pScreen, num_adaptors, pAdapt))
+    if (Success != XvMCScreenInit(pScreen, num_adaptors, pAdapt))
         return FALSE;
 
     return TRUE;

@@ -698,9 +698,10 @@ ConfineToShape(DeviceIntPtr pDev, RegionPtr shape, int *px, int *py)
 }
 
 static void
-CheckPhysLimits(DeviceIntPtr pDev, CursorPtr cursor, Bool generateEvents, Bool confineToScreen, /* unused if PanoramiX on */
-                ScreenPtr pScreen)
-{                               /* unused if PanoramiX on */
+CheckPhysLimits(DeviceIntPtr pDev, CursorPtr cursor, Bool generateEvents,
+                Bool confineToScreen, /* unused if PanoramiX on */
+                ScreenPtr pScreen)    /* unused if PanoramiX on */
+{
     HotSpot new;
     SpritePtr pSprite = pDev->spriteInfo->sprite;
 
@@ -4331,6 +4332,7 @@ OtherClientGone(pointer value, XID id)
         prev = other;
     }
     FatalError("client not on event list");
+    return BadValue; // to avoid warning
 }
 
 int
@@ -4517,11 +4519,13 @@ CoreEnterLeaveEvent(DeviceIntPtr mouse,
     if ((type == EnterNotify) && (mask & KeymapStateMask)) {
         xKeymapEvent ke;
         ClientPtr client = grab ? rClient(grab) : wClient(pWin);
+        int rc;
 
-        if (XaceHook(XACE_DEVICE_ACCESS, client, keybd, DixReadAccess))
-            memset((char *) &ke.map[0], 0, 31);
+        rc = XaceHook(XACE_DEVICE_ACCESS, client, keybd, DixReadAccess);
+        if (rc == Success)
+            memcpy((char *) &ke.map[0], (char *) &keybd->key->down[1], 31);
         else
-            memmove((char *) &ke.map[0], (char *) &keybd->key->down[1], 31);
+            memset((char *) &ke.map[0], 0, 31);        
 
         ke.type = KeymapNotify;
         if (grab)
@@ -4608,12 +4612,11 @@ DeviceEnterLeaveEvent(DeviceIntPtr mouse,
 void
 CoreFocusEvent(DeviceIntPtr dev, int type, int mode, int detail, WindowPtr pWin)
 {
-    xEvent event;
-
-    memset(&event, 0, sizeof(xEvent));
-    event.u.focus.mode = mode;
+    xEvent event; memset(&event, 0, sizeof(xEvent));
     event.u.u.type = type;
     event.u.u.detail = detail;
+
+    event.u.focus.mode = mode;
     event.u.focus.window = pWin->drawable.id;
 
     DeliverEventsToWindow(dev, pWin, &event, 1,
@@ -4622,11 +4625,13 @@ CoreFocusEvent(DeviceIntPtr dev, int type, int mode, int detail, WindowPtr pWin)
         ((pWin->eventMask | wOtherEventMasks(pWin)) & KeymapStateMask)) {
         xKeymapEvent ke;
         ClientPtr client = wClient(pWin);
+        int rc;
 
-        if (XaceHook(XACE_DEVICE_ACCESS, client, dev, DixReadAccess))
-            memset((char *) &ke.map[0], 0, 31);
+        rc = XaceHook(XACE_DEVICE_ACCESS, client, dev, DixReadAccess);
+        if (rc == Success)
+            memcpy((char *) &ke.map[0], (char *) &dev->key->down[1], 31);
         else
-            memmove((char *) &ke.map[0], (char *) &dev->key->down[1], 31);
+            memset((char *) &ke.map[0], 0, 31);
 
         ke.type = KeymapNotify;
         DeliverEventsToWindow(dev, pWin, (xEvent *) &ke, 1,
@@ -4774,13 +4779,15 @@ ProcGetInputFocus(ClientPtr client)
     rep.type = X_Reply;
     rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.revertTo = focus->revert;
+
     if (focus->win == NoneWin)
         rep.focus = None;
     else if (focus->win == PointerRootWin)
         rep.focus = PointerRoot;
     else
         rep.focus = focus->win->drawable.id;
-    rep.revertTo = focus->revert;
+
     WriteReplyToClient(client, sizeof(xGetInputFocusReply), &rep);
     return Success;
 }
@@ -4800,6 +4807,7 @@ ProcGrabPointer(ClientPtr client)
     GrabMask mask;
     WindowPtr confineTo;
     CursorPtr oldCursor;
+    BYTE status;
 
     REQUEST(xGrabPointerReq);
     int rc;
@@ -4821,7 +4829,6 @@ ProcGrabPointer(ClientPtr client)
             return rc;
     }
 
-    memset(&rep, 0, sizeof(xGrabPointerReply));
     oldCursor = NullCursor;
     grab = device->deviceGrab.grab;
 
@@ -4836,14 +4843,16 @@ ProcGrabPointer(ClientPtr client)
 
     rc = GrabDevice(client, device, stuff->pointerMode, stuff->keyboardMode,
                     stuff->grabWindow, stuff->ownerEvents, stuff->time,
-                    &mask, CORE, stuff->cursor, stuff->confineTo, &rep.status);
+                    &mask, CORE, stuff->cursor, stuff->confineTo, &status);
     if (rc != Success)
         return rc;
 
-    if (oldCursor && rep.status == GrabSuccess)
+    if (oldCursor && status == GrabSuccess)
         FreeCursor(oldCursor, (Cursor) 0);
 
+    memset(&rep, 0, sizeof(xGrabPointerReply));
     rep.type = X_Reply;
+    rep.status = status;
     rep.sequenceNumber = client->sequence;
     rep.length = 0;
     WriteReplyToClient(client, sizeof(xGrabPointerReply), &rep);
@@ -5062,6 +5071,7 @@ int
 ProcGrabKeyboard(ClientPtr client)
 {
     xGrabKeyboardReply rep;
+    BYTE status;
 
     REQUEST(xGrabKeyboardReq);
     int result;
@@ -5070,17 +5080,19 @@ ProcGrabKeyboard(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xGrabKeyboardReq);
 
-    memset(&rep, 0, sizeof(xGrabKeyboardReply));
     mask.core = KeyPressMask | KeyReleaseMask;
 
     result = GrabDevice(client, keyboard, stuff->pointerMode,
                         stuff->keyboardMode, stuff->grabWindow,
                         stuff->ownerEvents, stuff->time, &mask, CORE, None,
-                        None, &rep.status);
+                        None, &status);
 
     if (result != Success)
         return result;
+
+    memset(&rep, 0, sizeof(xGrabKeyboardReply));
     rep.type = X_Reply;
+    rep.status = status,
     rep.sequenceNumber = client->sequence;
     rep.length = 0;
     WriteReplyToClient(client, sizeof(xGrabKeyboardReply), &rep);
@@ -5148,12 +5160,13 @@ ProcQueryPointer(ClientPtr client)
     memset(&rep, 0, sizeof(xQueryPointerReply));
     rep.type = X_Reply;
     rep.sequenceNumber = client->sequence;
-    rep.mask = event_get_corestate(mouse, keyboard);
     rep.length = 0;
+    rep.mask = event_get_corestate(mouse, keyboard);
     rep.root = (GetCurrentRootWindow(mouse))->drawable.id;
     rep.rootX = pSprite->hot.x;
     rep.rootY = pSprite->hot.y;
     rep.child = None;
+    
     if (pSprite->hot.pScreen == pWin->drawable.pScreen) {
         rep.sameScreen = xTrue;
         rep.winX = pSprite->hot.x - pWin->drawable.x;
@@ -5905,14 +5918,14 @@ WriteEventsToClient(ClientPtr pClient, int count, xEvent *events)
             (*EventSwapVector[eventFrom->u.u.type & 0177])
                 (eventFrom, eventTo);
 
-            WriteToClient(pClient, eventlength, (char *) eventTo);
+            WriteToClient(pClient, eventlength, eventTo);
         }
     }
     else {
         /* only one GenericEvent, remember? that means either count is 1 and
          * eventlength is arbitrary or eventlength is 32 and count doesn't
          * matter. And we're all set. Woohoo. */
-        WriteToClient(pClient, count * eventlength, (char *) events);
+        WriteToClient(pClient, count * eventlength, events);
     }
 }
 

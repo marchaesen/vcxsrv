@@ -42,6 +42,7 @@
 #include "darwin.h"
 #include "darwinEvents.h"
 #include "pseudoramiX.h"
+#include "extension.h"
 #define _APPLEWM_SERVER_
 #include "applewmExt.h"
 
@@ -143,6 +144,22 @@ QuartzSetupScreen(int index,
     return TRUE;
 }
 
+static const ExtensionModule quartzExtensions[] = {
+    { PseudoramiXExtensionInit, "PseudoramiX", &noPseudoramiXExtension, NULL },
+};
+
+/*
+ * QuartzExtensionInit
+ * Initialises XQuartz-specific extensions.
+ */
+void QuartzExtensionInit(void)
+{
+    int i;
+
+    for (i = 0; i < ARRAY_SIZE(quartzExtensions); i++)
+        LoadExtension(&quartzExtensions[i], TRUE);
+}
+
 /*
  * QuartzInitOutput
  *  Quartz display initialization.
@@ -182,6 +199,8 @@ QuartzInitOutput(int argc,
 
     // Do display mode specific initialization
     quartzProcs->DisplayInit();
+
+    QuartzExtensionInit();
 }
 
 /*

@@ -44,12 +44,15 @@
 #include "windowstr.h"
 #include "dixstruct.h"
 #include "dri2.h"
+#include "dri2int.h"
 #include "xf86VGAarbiter.h"
-
+#include "damage.h"
 #include "xf86.h"
 
 CARD8 dri2_major;               /* version of DRI2 supported by DDX */
 CARD8 dri2_minor;
+
+uint32_t prime_id_allocate_bitmask;
 
 static DevPrivateKeyRec dri2ScreenPrivateKeyRec;
 
@@ -62,6 +65,17 @@ static DevPrivateKeyRec dri2WindowPrivateKeyRec;
 static DevPrivateKeyRec dri2PixmapPrivateKeyRec;
 
 #define dri2PixmapPrivateKey (&dri2PixmapPrivateKeyRec)
+
+static DevPrivateKeyRec dri2ClientPrivateKeyRec;
+
+#define dri2ClientPrivateKey (&dri2ClientPrivateKeyRec)
+
+#define dri2ClientPrivate(_pClient) (dixLookupPrivate(&(_pClient)->devPrivates, \
+                                                      dri2ClientPrivateKey))
+
+typedef struct _DRI2Client {
+    int prime_id;
+} DRI2ClientRec, *DRI2ClientPtr;
 
 static RESTYPE dri2DrawableRes;
 
@@ -87,6 +101,9 @@ typedef struct _DRI2Drawable {
     int swap_limit;             /* for N-buffering */
     unsigned long serialNumber;
     Bool needInvalidate;
+    int prime_id;
+    PixmapPtr prime_slave_pixmap;
+    PixmapPtr redirectpixmap;
 } DRI2DrawableRec, *DRI2DrawablePtr;
 
 typedef struct _DRI2Screen {
@@ -97,6 +114,7 @@ typedef struct _DRI2Screen {
     const char *deviceName;
     int fd;
     unsigned int lastSequence;
+    int prime_id;
 
     DRI2CreateBufferProcPtr CreateBuffer;
     DRI2DestroyBufferProcPtr DestroyBuffer;
@@ -113,12 +131,44 @@ typedef struct _DRI2Screen {
     HandleExposuresProcPtr HandleExposures;
 
     ConfigNotifyProcPtr ConfigNotify;
+    DRI2CreateBuffer2ProcPtr CreateBuffer2;
+    DRI2DestroyBuffer2ProcPtr DestroyBuffer2;
+    DRI2CopyRegion2ProcPtr CopyRegion2;
 } DRI2ScreenRec;
+
+static void
+destroy_buffer(DrawablePtr pDraw, DRI2BufferPtr buffer, int prime_id);
 
 static DRI2ScreenPtr
 DRI2GetScreen(ScreenPtr pScreen)
 {
     return dixLookupPrivate(&pScreen->devPrivates, dri2ScreenPrivateKey);
+}
+
+static ScreenPtr
+GetScreenPrime(ScreenPtr master, int prime_id)
+{
+    ScreenPtr slave;
+    if (prime_id == 0 || xorg_list_is_empty(&master->offload_slave_list)) {
+        return master;
+    }
+    xorg_list_for_each_entry(slave, &master->offload_slave_list, offload_head) {
+        DRI2ScreenPtr ds;
+
+        ds = DRI2GetScreen(slave);
+        if (ds->prime_id == prime_id)
+            break;
+    }
+    if (!slave)
+        return master;
+    return slave;
+}
+
+static DRI2ScreenPtr
+DRI2GetScreenPrime(ScreenPtr master, int prime_id)
+{
+    ScreenPtr slave = GetScreenPrime(master, prime_id);
+    return DRI2GetScreen(slave);
 }
 
 static DRI2DrawablePtr
@@ -187,7 +237,8 @@ DRI2AllocateDrawable(DrawablePtr pDraw)
     xorg_list_init(&pPriv->reference_list);
     pPriv->serialNumber = DRI2DrawableSerial(pDraw);
     pPriv->needInvalidate = FALSE;
-
+    pPriv->redirectpixmap = NULL;
+    pPriv->prime_slave_pixmap = NULL;
     if (pDraw->type == DRAWABLE_WINDOW) {
         pWin = (WindowPtr) pDraw;
         dixSetPrivate(&pWin->devPrivates, dri2WindowPrivateKey, pPriv);
@@ -286,6 +337,7 @@ DRI2CreateDrawable(ClientPtr client, DrawablePtr pDraw, XID id,
                    DRI2InvalidateProcPtr invalidate, void *priv)
 {
     DRI2DrawablePtr pPriv;
+    DRI2ClientPtr dri2_client = dri2ClientPrivate(client);
     XID dri2_id;
     int rc;
 
@@ -294,6 +346,8 @@ DRI2CreateDrawable(ClientPtr client, DrawablePtr pDraw, XID id,
         pPriv = DRI2AllocateDrawable(pDraw);
     if (pPriv == NULL)
         return BadAlloc;
+
+    pPriv->prime_id = dri2_client->prime_id;
 
     dri2_id = FakeClientID(client->index);
     rc = DRI2AddDrawableRef(pPriv, id, dri2_id, invalidate, priv);
@@ -307,7 +361,6 @@ static int
 DRI2DrawableGone(pointer p, XID id)
 {
     DRI2DrawablePtr pPriv = p;
-    DRI2ScreenPtr ds = pPriv->dri2_screen;
     DRI2DrawableRefPtr ref, next;
     WindowPtr pWin;
     PixmapPtr pPixmap;
@@ -347,14 +400,50 @@ DRI2DrawableGone(pointer p, XID id)
 
     if (pPriv->buffers != NULL) {
         for (i = 0; i < pPriv->bufferCount; i++)
-            (*ds->DestroyBuffer) (pDraw, pPriv->buffers[i]);
+            destroy_buffer(pDraw, pPriv->buffers[i], pPriv->prime_id);
 
         free(pPriv->buffers);
+    }
+
+    if (pPriv->redirectpixmap) {
+        (*pDraw->pScreen->ReplaceScanoutPixmap)(pDraw, pPriv->redirectpixmap, FALSE);
+        (*pDraw->pScreen->DestroyPixmap)(pPriv->redirectpixmap);
     }
 
     free(pPriv);
 
     return Success;
+}
+
+static DRI2BufferPtr
+create_buffer(DrawablePtr pDraw,
+              unsigned int attachment, unsigned int format)
+{
+    ScreenPtr primeScreen;
+    DRI2DrawablePtr pPriv;
+    DRI2ScreenPtr ds;
+    DRI2BufferPtr buffer;
+    pPriv = DRI2GetDrawable(pDraw);
+    primeScreen = GetScreenPrime(pDraw->pScreen, pPriv->prime_id);
+    ds = DRI2GetScreenPrime(pDraw->pScreen, pPriv->prime_id);
+    if (ds->CreateBuffer2)
+        buffer = (*ds->CreateBuffer2)(primeScreen, pDraw, attachment, format);
+    else
+        buffer = (*ds->CreateBuffer)(pDraw, attachment, format);
+    return buffer;
+}
+
+static void
+destroy_buffer(DrawablePtr pDraw, DRI2BufferPtr buffer, int prime_id)
+{
+    ScreenPtr primeScreen;
+    DRI2ScreenPtr ds;
+    primeScreen = GetScreenPrime(pDraw->pScreen, prime_id);
+    ds = DRI2GetScreen(primeScreen);
+    if (ds->DestroyBuffer2)
+        (*ds->DestroyBuffer2)(primeScreen, pDraw, buffer);
+    else
+        (*ds->DestroyBuffer)(pDraw, buffer);
 }
 
 static int
@@ -387,7 +476,7 @@ allocate_or_reuse_buffer(DrawablePtr pDraw, DRI2ScreenPtr ds,
     if ((old_buf < 0)
         || attachment == DRI2BufferFrontLeft
         || !dimensions_match || (pPriv->buffers[old_buf]->format != format)) {
-        *buffer = (*ds->CreateBuffer) (pDraw, attachment, format);
+        *buffer = create_buffer (pDraw, attachment, format);
         pPriv->serialNumber = DRI2DrawableSerial(pDraw);
         return TRUE;
 
@@ -408,13 +497,12 @@ update_dri2_drawable_buffers(DRI2DrawablePtr pPriv, DrawablePtr pDraw,
                              DRI2BufferPtr * buffers, int out_count, int *width,
                              int *height)
 {
-    DRI2ScreenPtr ds = DRI2GetScreen(pDraw->pScreen);
     int i;
 
     if (pPriv->buffers != NULL) {
         for (i = 0; i < pPriv->bufferCount; i++) {
             if (pPriv->buffers[i] != NULL) {
-                (*ds->DestroyBuffer) (pDraw, pPriv->buffers[i]);
+                destroy_buffer(pDraw, pPriv->buffers[i], pPriv->prime_id);
             }
         }
 
@@ -434,8 +522,8 @@ do_get_buffers(DrawablePtr pDraw, int *width, int *height,
                unsigned int *attachments, int count, int *out_count,
                int has_format)
 {
-    DRI2ScreenPtr ds = DRI2GetScreen(pDraw->pScreen);
     DRI2DrawablePtr pPriv = DRI2GetDrawable(pDraw);
+    DRI2ScreenPtr ds;
     DRI2BufferPtr *buffers;
     int need_real_front = 0;
     int need_fake_front = 0;
@@ -451,6 +539,8 @@ do_get_buffers(DrawablePtr pDraw, int *width, int *height,
         *out_count = 0;
         return NULL;
     }
+
+    ds = DRI2GetScreen(pDraw->pScreen);
 
     dimensions_match = (pDraw->width == pPriv->width)
         && (pDraw->height == pPriv->height)
@@ -556,7 +646,7 @@ do_get_buffers(DrawablePtr pDraw, int *width, int *height,
     if (buffers) {
         for (i = 0; i < count; i++) {
             if (buffers[i] != NULL)
-                (*ds->DestroyBuffer) (pDraw, buffers[i]);
+                destroy_buffer(pDraw, buffers[i], 0);
         }
 
         free(buffers);
@@ -650,11 +740,118 @@ DRI2BlockClient(ClientPtr client, DrawablePtr pDraw)
     pPriv->blockedOnMsc = TRUE;
 }
 
+static inline PixmapPtr GetDrawablePixmap(DrawablePtr drawable)
+{
+    if (drawable->type == DRAWABLE_PIXMAP)
+        return (PixmapPtr)drawable;
+    else {
+        struct _Window *pWin = (struct _Window *)drawable;
+        return drawable->pScreen->GetWindowPixmap(pWin);
+    }
+}
+
+DrawablePtr DRI2UpdatePrime(DrawablePtr pDraw, DRI2BufferPtr pDest)
+{
+    DRI2DrawablePtr pPriv = DRI2GetDrawable(pDraw);
+    PixmapPtr spix;
+    PixmapPtr mpix = GetDrawablePixmap(pDraw);
+    ScreenPtr master, slave;
+    Bool ret;
+
+    master = mpix->drawable.pScreen;
+
+    if (pDraw->type == DRAWABLE_WINDOW) {
+        WindowPtr pWin = (WindowPtr)pDraw;
+        PixmapPtr pPixmap = pDraw->pScreen->GetWindowPixmap(pWin);
+
+        if (pDraw->pScreen->GetScreenPixmap(pDraw->pScreen) == pPixmap) {
+            if (pPriv->redirectpixmap &&
+                pPriv->redirectpixmap->drawable.width == pDraw->width &&
+                pPriv->redirectpixmap->drawable.height == pDraw->height &&
+                pPriv->redirectpixmap->drawable.depth == pDraw->depth) {
+                mpix = pPriv->redirectpixmap;
+            } else {
+                if (master->ReplaceScanoutPixmap) {
+                    mpix = (*master->CreatePixmap)(master, pDraw->width, pDraw->height,
+                                                   pDraw->depth, CREATE_PIXMAP_USAGE_SHARED);
+                    if (!mpix)
+                        return NULL;
+
+                    ret = (*master->ReplaceScanoutPixmap)(pDraw, mpix, TRUE);
+                    if (ret == FALSE) {
+                        (*master->DestroyPixmap)(mpix);
+                        return NULL;
+                    }
+                    pPriv->redirectpixmap = mpix;
+                } else
+                    return NULL;
+            }
+        } else if (pPriv->redirectpixmap) {
+            (*master->ReplaceScanoutPixmap)(pDraw, pPriv->redirectpixmap, FALSE);
+            (*master->DestroyPixmap)(pPriv->redirectpixmap);
+            pPriv->redirectpixmap = NULL;
+        }
+    }
+
+    slave = GetScreenPrime(pDraw->pScreen, pPriv->prime_id);
+
+    /* check if the pixmap is still fine */
+    if (pPriv->prime_slave_pixmap) {
+        if (pPriv->prime_slave_pixmap->master_pixmap == mpix)
+            return &pPriv->prime_slave_pixmap->drawable;
+        else {
+            (*master->DestroyPixmap)(pPriv->prime_slave_pixmap->master_pixmap);
+            (*slave->DestroyPixmap)(pPriv->prime_slave_pixmap);
+        }
+    }
+
+    spix = PixmapShareToSlave(mpix, slave);
+    if (!spix)
+        return NULL;
+
+    pPriv->prime_slave_pixmap = spix;
+#ifdef COMPOSITE
+    spix->screen_x = mpix->screen_x;
+    spix->screen_y = mpix->screen_y;
+#endif
+    return &spix->drawable;
+}
+
+static void dri2_copy_region(DrawablePtr pDraw, RegionPtr pRegion,
+                             DRI2BufferPtr pDest, DRI2BufferPtr pSrc)
+{
+    DRI2DrawablePtr pPriv = DRI2GetDrawable(pDraw);
+    DRI2ScreenPtr ds;
+    ScreenPtr primeScreen;
+
+    primeScreen = GetScreenPrime(pDraw->pScreen, pPriv->prime_id);
+    ds = DRI2GetScreen(primeScreen);
+
+    if (ds->CopyRegion2)
+        (*ds->CopyRegion2)(primeScreen, pDraw, pRegion, pDest, pSrc);
+    else
+        (*ds->CopyRegion) (pDraw, pRegion, pDest, pSrc);
+
+    /* cause damage to the box */
+    if (pPriv->prime_id) {
+       BoxRec box;
+       RegionRec region;
+       box.x1 = 0;
+       box.x2 = box.x1 + pDraw->width;
+       box.y1 = 0;
+       box.y2 = box.y1 + pDraw->height;
+       RegionInit(&region, &box, 1);
+       RegionTranslate(&region, pDraw->x, pDraw->y);
+       DamageRegionAppend(pDraw, &region);
+       DamageRegionProcessPending(pDraw);
+       RegionUninit(&region);
+    }
+}
+
 int
 DRI2CopyRegion(DrawablePtr pDraw, RegionPtr pRegion,
                unsigned int dest, unsigned int src)
 {
-    DRI2ScreenPtr ds = DRI2GetScreen(pDraw->pScreen);
     DRI2DrawablePtr pPriv;
     DRI2BufferPtr pDestBuffer, pSrcBuffer;
     int i;
@@ -674,7 +871,7 @@ DRI2CopyRegion(DrawablePtr pDraw, RegionPtr pRegion,
     if (pSrcBuffer == NULL || pDestBuffer == NULL)
         return BadValue;
 
-    (*ds->CopyRegion) (pDraw, pRegion, pDestBuffer, pSrcBuffer);
+    dri2_copy_region(pDraw, pRegion, pDestBuffer, pSrcBuffer);
 
     return Success;
 }
@@ -879,7 +1076,7 @@ DRI2SwapBuffers(ClientPtr client, DrawablePtr pDraw, CARD64 target_msc,
     }
 
     /* Old DDX or no swap interval, just blit */
-    if (!ds->ScheduleSwap || !pPriv->swap_interval) {
+    if (!ds->ScheduleSwap || !pPriv->swap_interval || pPriv->prime_id) {
         BoxRec box;
         RegionRec region;
 
@@ -891,7 +1088,7 @@ DRI2SwapBuffers(ClientPtr client, DrawablePtr pDraw, CARD64 target_msc,
 
         pPriv->swapsPending++;
 
-        (*ds->CopyRegion) (pDraw, &region, pDestBuffer, pSrcBuffer);
+        dri2_copy_region(pDraw, &region, pDestBuffer, pSrcBuffer);
         DRI2SwapComplete(client, pDraw, target_msc, 0, 0, DRI2_BLIT_COMPLETE,
                          func, data);
         return Success;
@@ -1091,22 +1288,34 @@ DRI2HasSwapControl(ScreenPtr pScreen)
 }
 
 Bool
-DRI2Connect(ScreenPtr pScreen, unsigned int driverType, int *fd,
+DRI2Connect(ClientPtr client, ScreenPtr pScreen,
+            unsigned int driverType, int *fd,
             const char **driverName, const char **deviceName)
 {
     DRI2ScreenPtr ds;
+    uint32_t prime_id = DRI2DriverPrimeId(driverType);
+    uint32_t driver_id = driverType & 0xffff;
 
     if (!dixPrivateKeyRegistered(dri2ScreenPrivateKey))
         return FALSE;
 
-    ds = DRI2GetScreen(pScreen);
-    if (ds == NULL || driverType >= ds->numDrivers ||
-        !ds->driverNames[driverType])
+    ds = DRI2GetScreenPrime(pScreen, prime_id);
+    if (ds == NULL)
         return FALSE;
 
-    *fd = ds->fd;
-    *driverName = ds->driverNames[driverType];
+    if (driver_id >= ds->numDrivers ||
+        !ds->driverNames[driver_id])
+        return FALSE;
+
+    *driverName = ds->driverNames[driver_id];
     *deviceName = ds->deviceName;
+    *fd = ds->fd;
+
+    if (client) {
+        DRI2ClientPtr dri2_client;
+        dri2_client = dri2ClientPrivate(client);
+        dri2_client->prime_id = prime_id;
+    }
 
     return TRUE;
 }
@@ -1122,13 +1331,19 @@ DRI2AuthMagic (ScreenPtr pScreen, uint32_t magic)
 }
 
 Bool
-DRI2Authenticate(ScreenPtr pScreen, uint32_t magic)
+DRI2Authenticate(ClientPtr client, ScreenPtr pScreen, uint32_t magic)
 {
-    DRI2ScreenPtr ds = DRI2GetScreen(pScreen);
+    DRI2ScreenPtr ds;
+    DRI2ClientPtr dri2_client = dri2ClientPrivate(client);
+    ScreenPtr primescreen;
 
-    if (ds == NULL || (*ds->AuthMagic) (pScreen, magic))
+    ds = DRI2GetScreenPrime(pScreen, dri2_client->prime_id);
+    if (ds == NULL)
         return FALSE;
 
+    primescreen = GetScreenPrime(pScreen, dri2_client->prime_id);
+    if ((*ds->AuthMagic)(primescreen, magic))
+        return FALSE;
     return TRUE;
 }
 
@@ -1160,6 +1375,22 @@ DRI2ConfigNotify(WindowPtr pWin, int x, int y, int w, int h, int bw,
     return Success;
 }
 
+#define MAX_PRIME DRI2DriverPrimeMask
+static int
+get_prime_id(void)
+{
+    int i;
+    /* start at 1, prime id 0 is just normal driver */
+    for (i = 1; i < MAX_PRIME; i++) {
+         if (prime_id_allocate_bitmask & (1 << i))
+             continue;
+
+         prime_id_allocate_bitmask |= (1 << i);
+         return i;
+    }
+    return -1;
+}
+
 Bool
 DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
 {
@@ -1188,6 +1419,9 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
         return FALSE;
 
     if (!dixRegisterPrivateKey(&dri2PixmapPrivateKeyRec, PRIVATE_PIXMAP, 0))
+        return FALSE;
+
+    if (!dixRegisterPrivateKey(&dri2ClientPrivateKeyRec, PRIVATE_CLIENT, sizeof(DRI2ClientRec)))
         return FALSE;
 
     ds = calloc(1, sizeof *ds);
@@ -1228,6 +1462,19 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
     if (info->version >= 7) {
         ds->GetParam = info->GetParam;
         cur_minor = 4;
+    }
+
+    if (info->version >= 9) {
+        ds->CreateBuffer2 = info->CreateBuffer2;
+        if (info->CreateBuffer2 && pScreen->isGPU) {
+            ds->prime_id = get_prime_id();
+            if (ds->prime_id == -1) {
+                free(ds);
+                return FALSE;
+            }
+        }
+        ds->DestroyBuffer2 = info->DestroyBuffer2;
+        ds->CopyRegion2 = info->CopyRegion2;
     }
 
     /*
@@ -1299,12 +1546,13 @@ DRI2CloseScreen(ScreenPtr pScreen)
 
     pScreen->ConfigNotify = ds->ConfigNotify;
 
+    if (ds->prime_id)
+        prime_id_allocate_bitmask &= ~(1 << ds->prime_id);
     free(ds->driverNames);
     free(ds);
     dixSetPrivate(&pScreen->devPrivates, dri2ScreenPrivateKey, NULL);
 }
 
-extern ExtensionModule dri2ExtensionModule;
 extern Bool DRI2ModuleSetup(void);
 
 /* Called by InitExtensions() */
@@ -1318,46 +1566,14 @@ DRI2ModuleSetup(void)
     return TRUE;
 }
 
-static pointer
-DRI2Setup(pointer module, pointer opts, int *errmaj, int *errmin)
-{
-    static Bool setupDone = FALSE;
-
-    if (!setupDone) {
-        setupDone = TRUE;
-        LoadExtension(&dri2ExtensionModule, FALSE);
-    }
-    else {
-        if (errmaj)
-            *errmaj = LDR_ONCEONLY;
-    }
-
-    return (pointer) 1;
-}
-
-static XF86ModuleVersionInfo DRI2VersRec = {
-    "dri2",
-    MODULEVENDORSTRING,
-    MODINFOSTRING1,
-    MODINFOSTRING2,
-    XORG_VERSION_CURRENT,
-    1, 2, 0,
-    ABI_CLASS_EXTENSION,
-    ABI_EXTENSION_VERSION,
-    MOD_CLASS_NONE,
-    {0, 0, 0, 0}
-};
-
-_X_EXPORT XF86ModuleData dri2ModuleData = { &DRI2VersRec, DRI2Setup, NULL };
-
 void
 DRI2Version(int *major, int *minor)
 {
     if (major != NULL)
-        *major = DRI2VersRec.majorversion;
+        *major = 1;
 
     if (minor != NULL)
-        *minor = DRI2VersRec.minorversion;
+        *minor = 2;
 }
 
 int

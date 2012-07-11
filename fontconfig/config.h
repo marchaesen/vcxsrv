@@ -4,3 +4,4 @@
 #define HAVE_RAND 1
 #define HAVE_STRUCT_DIRENT_D_TYPE 1
 #undef __STDC__
+#define FLEXIBLE_ARRAY_MEMBER

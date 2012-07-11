@@ -26,8 +26,8 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.12.99.0, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2012-03-14"
+AC_INIT([xorg-server], 1.12.99.901, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2012-07-10"
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_MAINTAINER_MODE
@@ -620,7 +620,6 @@ AC_ARG_ENABLE(config-dbus,    AS_HELP_STRING([--enable-config-dbus], [Build D-BU
 AC_ARG_ENABLE(config-hal,     AS_HELP_STRING([--disable-config-hal], [Build HAL support (default: auto)]), [CONFIG_HAL=$enableval], [CONFIG_HAL=auto])
 AC_ARG_ENABLE(config-wscons,  AS_HELP_STRING([--enable-config-wscons], [Build wscons config support (default: auto)]), [CONFIG_WSCONS=$enableval], [CONFIG_WSCONS=auto])
 AC_ARG_ENABLE(xfree86-utils,     AS_HELP_STRING([--enable-xfree86-utils], [Build xfree86 DDX utilities (default: enabled)]), [XF86UTILS=$enableval], [XF86UTILS=yes])
-AC_ARG_ENABLE(xaa,               AS_HELP_STRING([--enable-xaa], [Build XAA (default: enabled)]), [XAA=$enableval], [XAA=yes])
 AC_ARG_ENABLE(vgahw,          AS_HELP_STRING([--enable-vgahw], [Build Xorg with vga access (default: enabled)]), [VGAHW=$enableval], [VGAHW=yes])
 AC_ARG_ENABLE(vbe,            AS_HELP_STRING([--enable-vbe], [Build Xorg with VBE module (default: enabled)]), [VBE=$enableval], [VBE=yes])
 AC_ARG_ENABLE(int10-module,     AS_HELP_STRING([--enable-int10-module], [Build Xorg with int10 module (default: enabled)]), [INT10MODULE=$enableval], [INT10MODULE=yes])
@@ -712,7 +711,6 @@ case $host_os in
 		PCI=no
 		VGAHW=no
 		VBE=no
-		XAA=no
 		XF86UTILS=no
 		XF86VIDMODE=no
 		XSELINUX=no
@@ -766,7 +764,6 @@ dnl Extension section
 dnl ---------------------------------------------------------------------------
 XEXT_INC='-I$(top_srcdir)/Xext'
 XEXT_LIB='$(top_builddir)/Xext/libXext.la'
-XEXTXORG_LIB='$(top_builddir)/Xext/libXextbuiltin.la'
 
 dnl Optional modules
 VIDEOPROTO="videoproto"
@@ -775,7 +772,7 @@ RECORDPROTO="recordproto >= 1.13.99.1"
 SCRNSAVERPROTO="scrnsaverproto >= 1.1"
 RESOURCEPROTO="resourceproto >= 1.2.0"
 DRIPROTO="xf86driproto >= 2.1.0"
-DRI2PROTO="dri2proto >= 2.7"
+DRI2PROTO="dri2proto >= 2.8"
 XINERAMAPROTO="xineramaproto"
 BIGFONTPROTO="xf86bigfontproto >= 1.2.0"
 DGAPROTO="xf86dgaproto >= 2.0.99.1"
@@ -787,7 +784,7 @@ APPLEWMPROTO="applewmproto >= 1.4"
 
 dnl Required modules
 XPROTO="xproto >= 7.0.22"
-RANDRPROTO="randrproto >= 1.2.99.3"
+RANDRPROTO="randrproto >= 1.4.0"
 RENDERPROTO="renderproto >= 0.11"
 XEXTPROTO="xextproto >= 7.1.99"
 INPUTPROTO="inputproto >= 2.1.99.6"
@@ -1088,9 +1085,8 @@ AC_SUBST([GLX_SYS_LIBS])
 AM_CONDITIONAL(DRI, test "x$DRI" = xyes)
 if test "x$DRI" = xyes; then
 	AC_DEFINE(XF86DRI, 1, [Build DRI extension])
-	PKG_CHECK_MODULES([DRIPROTO], [$DRIPROTO])
-	PKG_CHECK_MODULES([DRI], $GLPROTO $LIBDRI)
-	AC_SUBST(DRIPROTO_CFLAGS)
+	REQUIRED_MODULES="$REQUIRED_MODULES $DRIPROTO $GLPROTO $LIBDRI"
+	SDK_REQUIRED_MODULES="$SDK_REQUIRED_MODULES $DRIPROTO $GLPROTO $LIBDRI"
 fi
 
 PKG_CHECK_MODULES([DRI2PROTO], $DRI2PROTO,
@@ -1173,6 +1169,7 @@ AM_CONDITIONAL(DBE, [test "x$DBE" = xyes])
 if test "x$DBE" = xyes; then
 	AC_DEFINE(DBE, 1, [Support DBE extension])
 	DBE_LIB='$(top_builddir)/dbe/libdbe.la'
+	DBE_INC='-I$(top_srcdir)/dbe'
 fi
 
 AM_CONDITIONAL(XF86BIGFONT, [test "x$XF86BIGFONT" = xyes])
@@ -1210,7 +1207,6 @@ XI_LIB='$(top_builddir)/Xi/libXi.la'
 XI_INC='-I$(top_srcdir)/Xi'
 
 AM_CONDITIONAL(XF86UTILS, test "x$XF86UTILS" = xyes)
-AM_CONDITIONAL(XAA, test "x$XAA" = xyes)
 AM_CONDITIONAL(VGAHW, test "x$VGAHW" = xyes)
 AM_CONDITIONAL(VBE, test "x$VBE" = xyes)
 AM_CONDITIONAL(INT10MODULE, test "x$INT10MODULE" = xyes)
@@ -1545,7 +1541,7 @@ AC_EGREP_CPP([I_AM_SVR4],[
 AC_DEFINE([SVR4],1,[Define to 1 on systems derived from System V Release 4])
 AC_MSG_RESULT([yes])], AC_MSG_RESULT([no]))
 
-XSERVER_CFLAGS="$XSERVER_CFLAGS $CORE_INCS $XEXT_INC $COMPOSITE_INC $DAMAGE_INC $FIXES_INC $XI_INC $MI_INC $MIEXT_SYNC_INC $MIEXT_SHADOW_INC $MIEXT_LAYER_INC $MIEXT_DAMAGE_INC $RENDER_INC $RANDR_INC $FB_INC"
+XSERVER_CFLAGS="$XSERVER_CFLAGS $CORE_INCS $XEXT_INC $COMPOSITE_INC $DAMAGE_INC $FIXES_INC $XI_INC $MI_INC $MIEXT_SYNC_INC $MIEXT_SHADOW_INC $MIEXT_LAYER_INC $MIEXT_DAMAGE_INC $RENDER_INC $RANDR_INC $FB_INC $DBE_INC"
 
 dnl ---------------------------------------------------------------------------
 dnl DDX section.
@@ -1604,7 +1600,7 @@ if test "x$XORG" = xyes; then
 	XORG_OSINCS='-I$(top_srcdir)/hw/xfree86/os-support -I$(top_srcdir)/hw/xfree86/os-support/bus -I$(top_srcdir)/os'
 	XORG_INCS="$XORG_DDXINCS $XORG_OSINCS"
 	XORG_CFLAGS="$XORGSERVER_CFLAGS -DHAVE_XORG_CONFIG_H"
-	XORG_LIBS="$COMPOSITE_LIB $FIXES_LIB $XEXTXORG_LIB $GLX_LIBS $RANDR_LIB $RENDER_LIB $DAMAGE_LIB $MIEXT_SYNC_LIB $MIEXT_DAMAGE_LIB $XI_LIB $XKB_LIB"
+	XORG_LIBS="$COMPOSITE_LIB $FIXES_LIB $XEXT_LIB $DBE_LIB $RECORD_LIB $GLX_LIBS $RANDR_LIB $RENDER_LIB $DAMAGE_LIB $MIEXT_SYNC_LIB $MIEXT_DAMAGE_LIB $XI_LIB $XKB_LIB"
 
 	dnl ==================================================================
 	dnl symbol visibility
@@ -1659,7 +1655,7 @@ if test "x$XORG" = xyes; then
 	PKG_CHECK_MODULES([PCIACCESS], $LIBPCIACCESS)
 	SDK_REQUIRED_MODULES="$SDK_REQUIRED_MODULES $LIBPCIACCESS"
 	XORG_SYS_LIBS="$XORG_SYS_LIBS $PCIACCESS_LIBS $GLX_SYS_LIBS $LIBDRM_LIBS"
-	XORG_CFLAGS="$XORG_CFLAGS $PCIACCESS_CFLAGS"
+	XORG_CFLAGS="$XORG_CFLAGS $PCIACCESS_CFLAGS $LIBDRM_CFLAGS"
 
 	AC_DEFINE(XSERVER_LIBPCIACCESS, 1, [Use libpciaccess for all pci manipulation])
 	AC_DEFINE_DIR(PCI_TXT_IDS_PATH, PCI_TXT_IDS_DIR, [Default PCI text file ID path])
@@ -1818,7 +1814,6 @@ if test "x$XORG" = xyes; then
 	AC_DEFINE(XORG_SERVER, 1, [Building Xorg server])
 	AC_DEFINE(XORGSERVER, 1, [Building Xorg server])
 	AC_DEFINE(XFree86Server, 1, [Building XFree86 server])
-	AC_DEFINE(XFree86LOADER, 1, [Building loadable XFree86 server])
 	AC_DEFINE_UNQUOTED(XORG_VERSION_CURRENT, [$VENDOR_RELEASE], [Current Xorg version])
 	AC_DEFINE(NEED_XF86_TYPES, 1, [Need XFree86 typedefs])
 	AC_DEFINE(NEED_XF86_PROTOTYPES, 1, [Need XFree86 helper functions])
@@ -2243,7 +2238,6 @@ hw/xfree86/common/Makefile
 hw/xfree86/common/xf86Build.h
 hw/xfree86/ddc/Makefile
 hw/xfree86/dixmods/Makefile
-hw/xfree86/dixmods/extmod/Makefile
 hw/xfree86/doc/Makefile
 hw/xfree86/dri/Makefile
 hw/xfree86/dri2/Makefile
@@ -2270,7 +2264,6 @@ hw/xfree86/shadowfb/Makefile
 hw/xfree86/vbe/Makefile
 hw/xfree86/vgahw/Makefile
 hw/xfree86/x86emu/Makefile
-hw/xfree86/xaa/Makefile
 hw/xfree86/utils/Makefile
 hw/xfree86/utils/man/Makefile
 hw/xfree86/utils/cvt/Makefile

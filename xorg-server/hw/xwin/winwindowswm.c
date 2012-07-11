@@ -95,7 +95,7 @@ ProcWindowsWMQueryVersion(ClientPtr client)
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
     }
-    WriteToClient(client, sizeof(xWindowsWMQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xWindowsWMQueryVersionReply), &rep);
     return Success;
 }
 
@@ -354,7 +354,7 @@ ProcWindowsWMFrameGetRect(ClientPtr client)
     winDebug ("ProcWindowsWMFrameGetRect - %d %d %d %d\n",
            rep.x, rep.y, rep.w, rep.h);
 
-    WriteToClient(client, sizeof(xWindowsWMFrameGetRectReply), (char *) &rep);
+    WriteToClient(client, sizeof(xWindowsWMFrameGetRectReply), &rep);
     return Success;
 }
 

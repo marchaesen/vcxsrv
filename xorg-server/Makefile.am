@@ -95,3 +95,10 @@ DIST_SUBDIRS = \
 # gross hack
 relink: all
 	$(AM_V_at)$(MAKE) -C hw relink
+
+install-headers: Makefile
+	+find . -name Makefile | while read m; do			\
+		if grep -q install-sdkHEADERS $$m; then			\
+			(cd `dirname "$$m"` && make install-sdkHEADERS)	\
+		fi							\
+	done

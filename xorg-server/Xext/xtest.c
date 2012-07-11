@@ -55,7 +55,7 @@
 #include "eventstr.h"
 #include "inpututils.h"
 
-#include "modinit.h"
+#include "extinit.h"
 
 extern int DeviceValuator;
 
@@ -92,15 +92,15 @@ ProcXTestGetVersion(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xXTestGetVersionReq);
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.majorVersion = XTestMajorVersion;
     rep.minorVersion = XTestMinorVersion;
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swaps(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xXTestGetVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xXTestGetVersionReply), &rep);
     return Success;
 }
 
@@ -134,14 +134,15 @@ ProcXTestCompareCursor(ClientPtr client)
             return rc;
         }
     }
+
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.same = (wCursor(pWin) == pCursor);
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
     }
-    WriteToClient(client, sizeof(xXTestCompareCursorReply), (char *) &rep);
+    WriteToClient(client, sizeof(xXTestCompareCursorReply), &rep);
     return Success;
 }
 
@@ -675,7 +676,7 @@ XTestExtensionTearDown(ExtensionEntry * e)
 }
 
 void
-XTestExtensionInit(INITARGS)
+XTestExtensionInit(void)
 {
     AddExtension(XTestExtensionName, 0, 0,
                  ProcXTestDispatch, SProcXTestDispatch,

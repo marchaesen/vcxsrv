@@ -38,7 +38,7 @@ from The Open Group.
 #include "extnsionst.h"
 #include "swaprep.h"
 #include <X11/extensions/xcmiscproto.h>
-#include "modinit.h"
+#include "extinit.h"
 
 #include <stdint.h>
 
@@ -49,8 +49,8 @@ ProcXCMiscGetVersion(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xXCMiscGetVersionReq);
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.majorVersion = XCMiscMajorVersion;
     rep.minorVersion = XCMiscMinorVersion;
     if (client->swapped) {
@@ -58,7 +58,7 @@ ProcXCMiscGetVersion(ClientPtr client)
         swaps(&rep.majorVersion);
         swaps(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xXCMiscGetVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xXCMiscGetVersionReply), &rep);
     return Success;
 }
 
@@ -70,9 +70,10 @@ ProcXCMiscGetXIDRange(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xXCMiscGetXIDRangeReq);
     GetXIDRange(client->index, FALSE, &min_id, &max_id);
+
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.start_id = min_id;
     rep.count = max_id - min_id + 1;
     if (client->swapped) {
@@ -80,7 +81,7 @@ ProcXCMiscGetXIDRange(ClientPtr client)
         swapl(&rep.start_id);
         swapl(&rep.count);
     }
-    WriteToClient(client, sizeof(xXCMiscGetXIDRangeReply), (char *) &rep);
+    WriteToClient(client, sizeof(xXCMiscGetXIDRangeReply), &rep);
     return Success;
 }
 
@@ -102,6 +103,7 @@ ProcXCMiscGetXIDList(ClientPtr client)
         return BadAlloc;
     }
     count = GetXIDList(client, stuff->count, pids);
+
     rep.type = X_Reply;
     rep.sequenceNumber = client->sequence;
     rep.length = count;
@@ -111,7 +113,7 @@ ProcXCMiscGetXIDList(ClientPtr client)
         swapl(&rep.length);
         swapl(&rep.count);
     }
-    WriteToClient(client, sizeof(xXCMiscGetXIDListReply), (char *) &rep);
+    WriteToClient(client, sizeof(xXCMiscGetXIDListReply), &rep);
     if (count) {
         client->pSwapReplyFunc = (ReplySwapPtr) Swap32Write;
         WriteSwappedDataToClient(client, count * sizeof(XID), pids);
@@ -184,7 +186,7 @@ SProcXCMiscDispatch(ClientPtr client)
 }
 
 void
-XCMiscExtensionInit(INITARGS)
+XCMiscExtensionInit(void)
 {
     AddExtension(XCMiscExtensionName, 0, 0,
                  ProcXCMiscDispatch, SProcXCMiscDispatch,

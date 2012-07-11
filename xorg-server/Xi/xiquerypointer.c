@@ -124,8 +124,8 @@ ProcXIQueryPointer(ClientPtr client)
     memset(&rep, 0, sizeof(rep));
     rep.repType = X_Reply;
     rep.RepType = X_XIQueryPointer;
-    rep.length = 6;
     rep.sequenceNumber = client->sequence;
+    rep.length = 6;
     rep.root = (GetCurrentRootWindow(pDev))->drawable.id;
     rep.root_x = FP1616(pSprite->hot.x, 0);
     rep.root_y = FP1616(pSprite->hot.y, 0);
@@ -219,5 +219,5 @@ SRepXIQueryPointer(ClientPtr client, int size, xXIQueryPointerReply * rep)
     swapl(&rep->win_y);
     swaps(&rep->buttons_len);
 
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

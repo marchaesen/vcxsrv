@@ -814,6 +814,7 @@ typedef struct _ScrnInfoRec {
     funcPointer reservedFuncs[NUM_RESERVED_FUNCS];
 
     Bool is_gpu;
+    uint32_t capabilities;
 } ScrnInfoRec;
 
 typedef struct {

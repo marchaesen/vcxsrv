@@ -101,11 +101,11 @@ ProcXGetExtensionVersion(ClientPtr client)
     memset(&rep, 0, sizeof(xGetExtensionVersionReply));
     rep.repType = X_Reply;
     rep.RepType = X_GetExtensionVersion;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
-    rep.present = TRUE;
+    rep.length = 0;
     rep.major_version = XIVersion.major_version;
     rep.minor_version = XIVersion.minor_version;
+    rep.present = TRUE;
 
     WriteReplyToClient(client, sizeof(xGetExtensionVersionReply), &rep);
 
@@ -127,5 +127,5 @@ SRepXGetExtensionVersion(ClientPtr client, int size,
     swapl(&rep->length);
     swaps(&rep->major_version);
     swaps(&rep->minor_version);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

@@ -87,8 +87,8 @@ extern _X_EXPORT void ValidateGC(DrawablePtr /*pDraw */ ,
                                  GCPtr /*pGC */ );
 
 typedef union {
-    CARD32 val;
     pointer ptr;
+    CARD32 val;
 } ChangeGCVal, *ChangeGCValPtr;
 
 extern int ChangeGCXIDs(ClientPtr /*client */ ,

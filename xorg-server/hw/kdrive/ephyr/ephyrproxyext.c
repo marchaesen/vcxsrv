@@ -75,7 +75,7 @@ ephyrProxyProcDispatch(ClientPtr a_client)
     reply.sequence_number = a_client->sequence;
     res = Success;
 
-    WriteToClient(a_client, 32, (char *) &reply);
+    WriteToClient(a_client, 32, &reply);
 
  out:
     return res;

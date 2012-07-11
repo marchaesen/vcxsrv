@@ -142,10 +142,10 @@ __glXSendReply(ClientPtr client, const void *data, size_t elements,
      */
 
     (void) memcpy(&__glXReply.pad3, data, 8);
-    WriteToClient(client, sz_xGLXSingleReply, (char *) &__glXReply);
+    WriteToClient(client, sz_xGLXSingleReply, &__glXReply);
 
     if (reply_ints != 0) {
-        WriteToClient(client, reply_ints * 4, (char *) data);
+        WriteToClient(client, reply_ints * 4, data);
     }
 }
 
@@ -188,10 +188,10 @@ __glXSendReplySwap(ClientPtr client, const void *data, size_t elements,
      */
 
     (void) memcpy(&__glXReply.pad3, data, 8);
-    WriteToClient(client, sz_xGLXSingleReply, (char *) &__glXReply);
+    WriteToClient(client, sz_xGLXSingleReply, &__glXReply);
 
     if (reply_ints != 0) {
-        WriteToClient(client, reply_ints * 4, (char *) data);
+        WriteToClient(client, reply_ints * 4, data);
     }
 }
 

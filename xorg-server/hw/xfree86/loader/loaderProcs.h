@@ -80,7 +80,6 @@ ModuleDescPtr LoadModule(const char *, const char *, const char **,
 ModuleDescPtr DuplicateModule(ModuleDescPtr mod, ModuleDescPtr parent);
 void UnloadDriver(ModuleDescPtr);
 void LoaderSetPath(const char *path);
-void LoaderSortExtensions(void);
 
 void LoaderUnload(const char *, void *);
 unsigned long LoaderGetModuleVersion(ModuleDescPtr mod);

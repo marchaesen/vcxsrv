@@ -432,14 +432,17 @@ xf86platformAddDevice(int index)
         xf86DeleteScreen(xf86GPUScreens[i]);
         return -1;
     }
-        
+
    scr_index = AddGPUScreen(xf86GPUScreens[i]->ScreenInit, 0, NULL);
-   
+
    dixSetPrivate(&xf86GPUScreens[i]->pScreen->devPrivates,
                  xf86ScreenKey, xf86GPUScreens[i]);
 
    CreateScratchPixmapsForScreen(xf86GPUScreens[i]->pScreen);
-  
+
+   /* attach unbound to 0 protocol screen */
+   AttachUnboundGPU(xf86Screens[0]->pScreen, xf86GPUScreens[i]->pScreen);
+
    return 0;
 }
 

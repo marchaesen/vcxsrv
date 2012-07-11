@@ -90,6 +90,12 @@ ProcXIPassiveGrabDevice(ClientPtr client)
     REQUEST(xXIPassiveGrabDeviceReq);
     REQUEST_AT_LEAST_SIZE(xXIPassiveGrabDeviceReq);
 
+    rep.repType = X_Reply;
+    rep.RepType = X_XIPassiveGrabDevice;
+    rep.sequenceNumber = client->sequence;
+    rep.length = 0;
+    rep.num_modifiers = 0;
+
     if (stuff->deviceid == XIAllDevices)
         dev = inputInfo.all_devices;
     else if (stuff->deviceid == XIAllMasterDevices)
@@ -136,12 +142,6 @@ ProcXIPassiveGrabDevice(ClientPtr client)
     mask_len = min(xi2mask_mask_size(mask.xi2mask), stuff->mask_len * 4);
     xi2mask_set_one_mask(mask.xi2mask, stuff->deviceid,
                          (unsigned char *) &stuff[1], mask_len * 4);
-
-    rep.repType = X_Reply;
-    rep.RepType = X_XIPassiveGrabDevice;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
-    rep.num_modifiers = 0;
 
     memset(&param, 0, sizeof(param));
     param.grabtype = XI2;
@@ -224,7 +224,7 @@ ProcXIPassiveGrabDevice(ClientPtr client)
 
     WriteReplyToClient(client, sizeof(rep), &rep);
     if (rep.num_modifiers)
-        WriteToClient(client, rep.length * 4, (char *) modifiers_failed);
+        WriteToClient(client, rep.length * 4, modifiers_failed);
 
     free(modifiers_failed);
  out:
@@ -240,7 +240,7 @@ SRepXIPassiveGrabDevice(ClientPtr client, int size,
     swapl(&rep->length);
     swaps(&rep->num_modifiers);
 
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }
 
 int

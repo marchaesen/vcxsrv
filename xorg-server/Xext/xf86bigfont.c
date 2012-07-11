@@ -71,6 +71,7 @@
 #include "gcstruct.h"
 #include "dixfontstr.h"
 #include "extnsionst.h"
+#include "extinit.h"
 #include "protocol-versions.h"
 
 #include <X11/extensions/xf86bigfproto.h>
@@ -291,16 +292,12 @@ ProcXF86BigfontQueryVersion(ClientPtr client)
     #endif
 #ifdef HAS_SHM
     reply.signature = signature;
+    reply.capabilities = (LocalClient(client) && !client->swapped ? XF86Bigfont_CAP_LocalShm : 0);
 #else
     reply.signature = 0;        /* This is redundant. Avoids uninitialized memory. */
+    reply.capabilities = 0;
 #endif
-    reply.capabilities =
-#ifdef HAS_SHM
-        (LocalClient(client) && !client->swapped ? XF86Bigfont_CAP_LocalShm : 0)
-#else
-        0
-#endif
-        ;                       /* may add more bits here in future versions */
+    
     if (client->swapped) {
         char tmp;
 
@@ -312,8 +309,7 @@ ProcXF86BigfontQueryVersion(ClientPtr client)
         swapl(&reply.gid);
         swapl(&reply.signature);
     }
-    WriteToClient(client,
-                  sizeof(xXF86BigfontQueryVersionReply), (char *) &reply);
+    WriteToClient(client, sizeof(xXF86BigfontQueryVersionReply), &reply);
     return Success;
 }
 
@@ -560,7 +556,7 @@ ProcXF86BigfontQueryFont(ClientPtr client)
                ? nUniqCharInfos * sizeof(xCharInfo)
                + (nCharInfos + 1) / 2 * 2 * sizeof(CARD16)
                : 0);
-        xXF86BigfontQueryFontReply *reply = malloc(rlength);
+        xXF86BigfontQueryFontReply *reply = calloc(1, rlength);
         char *p;
 
         if (!reply) {
@@ -649,7 +645,7 @@ ProcXF86BigfontQueryFont(ClientPtr client)
                 }
             }
         }
-        WriteToClient(client, rlength, (char *) reply);
+        WriteToClient(client, rlength, reply);
         free(reply);
         if (nCharInfos > 0) {
             if (shmid == -1)

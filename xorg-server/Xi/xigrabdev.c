@@ -104,10 +104,11 @@ ProcXIGrabDevice(ClientPtr client)
     if (ret != Success)
         return ret;
 
+
     rep.repType = X_Reply;
     rep.RepType = X_XIGrabDevice;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.status = status;
 
     WriteReplyToClient(client, sizeof(rep), &rep);
@@ -156,5 +157,5 @@ SRepXIGrabDevice(ClientPtr client, int size, xXIGrabDeviceReply * rep)
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

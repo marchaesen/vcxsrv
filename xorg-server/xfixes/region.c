@@ -557,7 +557,8 @@ ProcXFixesFetchRegion(ClientPtr client)
     pBox = RegionRects(pRegion);
     nBox = RegionNumRects(pRegion);
 
-    reply = malloc(sizeof(xXFixesFetchRegionReply) + nBox * sizeof(xRectangle));
+    reply = calloc(sizeof(xXFixesFetchRegionReply) + nBox * sizeof(xRectangle),
+                   1);
     if (!reply)
         return BadAlloc;
     reply->type = X_Reply;
@@ -584,7 +585,7 @@ ProcXFixesFetchRegion(ClientPtr client)
         swaps(&reply->height);
         SwapShorts((INT16 *) pRect, nBox * 4);
     }
-    (void) WriteToClient(client, sizeof(xXFixesFetchRegionReply) +
+    WriteToClient(client, sizeof(xXFixesFetchRegionReply) +
                          nBox * sizeof(xRectangle), (char *) reply);
     free(reply);
     return Success;

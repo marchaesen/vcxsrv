@@ -46,7 +46,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/extensions/shapeproto.h>
 #include "regionstr.h"
 #include "gcstruct.h"
-#include "modinit.h"
+#include "extinit.h"
 #include "protocol-versions.h"
 
 typedef RegionPtr (*CreateDftPtr) (WindowPtr    /* pWin */
@@ -211,8 +211,8 @@ ProcShapeQueryVersion(ClientPtr client)
     REQUEST_SIZE_MATCH(xShapeQueryVersionReq);
     memset(&rep, 0, sizeof(xShapeQueryVersionReply));
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.majorVersion = SERVER_SHAPE_MAJOR_VERSION;
     rep.minorVersion = SERVER_SHAPE_MINOR_VERSION;
     if (client->swapped) {
@@ -221,7 +221,7 @@ ProcShapeQueryVersion(ClientPtr client)
         swaps(&rep.majorVersion);
         swaps(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xShapeQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xShapeQueryVersionReply), &rep);
     return Success;
 }
 
@@ -635,8 +635,8 @@ ProcShapeQueryExtents(ClientPtr client)
         return rc;
     memset(&rep, 0, sizeof(xShapeQueryExtentsReply));
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.boundingShaped = (wBoundingShape(pWin) != 0);
     rep.clipShaped = (wClipShape(pWin) != 0);
     if ((region = wBoundingShape(pWin))) {
@@ -681,7 +681,7 @@ ProcShapeQueryExtents(ClientPtr client)
         swaps(&rep.widthClipShape);
         swaps(&rep.heightClipShape);
     }
-    WriteToClient(client, sizeof(xShapeQueryExtentsReply), (char *) &rep);
+    WriteToClient(client, sizeof(xShapeQueryExtentsReply), &rep);
     return Success;
 }
 
@@ -826,7 +826,6 @@ void
 SendShapeNotify(WindowPtr pWin, int which)
 {
     ShapeEventPtr *pHead, pShapeEvent;
-    xShapeNotifyEvent se;
     BoxRec extents;
     RegionPtr region;
     BYTE shaped;
@@ -883,6 +882,7 @@ SendShapeNotify(WindowPtr pWin, int which)
         return;
     }
     for (pShapeEvent = *pHead; pShapeEvent; pShapeEvent = pShapeEvent->next) {
+        xShapeNotifyEvent se;
         se.type = ShapeNotify + ShapeEventBase;
         se.kind = which;
         se.window = pWin->drawable.id;
@@ -922,15 +922,17 @@ ProcShapeInputSelected(ClientPtr client)
             }
         }
     }
+
     rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
     rep.enabled = enabled;
+    rep.sequenceNumber = client->sequence;
+    rep.length = 0;
+
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
     }
-    WriteToClient(client, sizeof(xShapeInputSelectedReply), (char *) &rep);
+    WriteToClient(client, sizeof(xShapeInputSelectedReply), &rep);
     return Success;
 }
 
@@ -1003,19 +1005,21 @@ ProcShapeGetRectangles(ClientPtr client)
             rects[i].height = box->y2 - box->y1;
         }
     }
+
     rep.type = X_Reply;
+    rep.ordering = YXBanded;
     rep.sequenceNumber = client->sequence;
     rep.length = bytes_to_int32(nrects * sizeof(xRectangle));
-    rep.ordering = YXBanded;
     rep.nrects = nrects;
+
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
         swapl(&rep.nrects);
         SwapShorts((short *) rects, (unsigned long) nrects * 4);
     }
-    WriteToClient(client, sizeof(rep), (char *) &rep);
-    WriteToClient(client, nrects * sizeof(xRectangle), (char *) rects);
+    WriteToClient(client, sizeof(rep), &rep);
+    WriteToClient(client, nrects * sizeof(xRectangle), rects);
     free(rects);
     return Success;
 }

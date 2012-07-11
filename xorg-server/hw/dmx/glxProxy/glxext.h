@@ -64,8 +64,6 @@ extern void __glXResetLargeCommandStatus(__GLXclientState *);
 extern int __glXQueryContextInfoEXT(__GLXclientState * cl, GLbyte * pc);
 extern int __glXSwapQueryContextInfoEXT(__GLXclientState * cl, char *pc);
 
-extern void GlxExtensionInit(void);
-
 extern Bool __glXCoreType(void);
 
 #endif                          /* _glxext_h_ */

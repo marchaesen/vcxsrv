@@ -100,10 +100,11 @@ ProcXSetDeviceButtonMapping(ClientPtr client)
     if (ret != Success)
         return ret;
 
+
     rep.repType = X_Reply;
     rep.RepType = X_SetDeviceButtonMapping;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.status = MappingSuccess;
 
     ret =
@@ -134,5 +135,5 @@ SRepXSetDeviceButtonMapping(ClientPtr client, int size,
 {
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }

@@ -138,7 +138,6 @@ Bool noDPMSExtension = FALSE;
 #endif
 #ifdef GLXEXT
 Bool noGlxExtension = FALSE;
-Bool noGlxVisualInit = FALSE;
 #endif
 #ifdef SCREENSAVER
 Bool noScreenSaverExtension = FALSE;
@@ -785,8 +784,8 @@ ProcessCommandLine(int argc, char *argv[])
         else if (strcmp(argv[i], "-nolisten") == 0) {
             if (++i < argc) {
                 if (_XSERVTransNoListen(argv[i]))
-                    FatalError("Failed to disable listen for %s transport",
-                               argv[i]);
+                    ErrorF("Failed to disable listen for %s transport",
+                           argv[i]);
             }
             else
                 UseMsg();
@@ -1299,6 +1298,19 @@ OsReleaseSignals(void)
         sigprocmask(SIG_SETMASK, &PreviousSignalMask, 0);
         OsReleaseSIGIO();
     }
+#endif
+}
+
+void
+OsResetSignals(void)
+{
+#ifdef SIG_BLOCK
+    while (BlockedSignalCount > 0)
+        OsReleaseSignals();
+#ifdef SIGIO
+    while (sigio_blocked > 0)
+        OsReleaseSIGIO();
+#endif
 #endif
 }
 

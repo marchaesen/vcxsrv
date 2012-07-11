@@ -260,10 +260,11 @@ ProcXIGetSelectedEvents(ClientPtr client)
     if (rc != Success)
         return rc;
 
+
     reply.repType = X_Reply;
     reply.RepType = X_XIGetSelectedEvents;
-    reply.length = 0;
     reply.sequenceNumber = client->sequence;
+    reply.length = 0;
     reply.num_masks = 0;
 
     masks = wOtherInputMasks(win);
@@ -335,5 +336,5 @@ SRepXIGetSelectedEvents(ClientPtr client,
     swaps(&rep->sequenceNumber);
     swapl(&rep->length);
     swaps(&rep->num_masks);
-    WriteToClient(client, len, (char *) rep);
+    WriteToClient(client, len, rep);
 }

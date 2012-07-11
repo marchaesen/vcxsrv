@@ -566,14 +566,17 @@ PanoramiXGetGeometry(ClientPtr client)
     if (rc != Success)
         return rc;
 
+
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.root = screenInfo.screens[0]->root->drawable.id;
     rep.depth = pDraw->depth;
     rep.width = pDraw->width;
     rep.height = pDraw->height;
-    rep.x = rep.y = rep.borderWidth = 0;
+    rep.x = 0;
+    rep.y = 0;
+    rep.borderWidth = 0;
 
     if (stuff->id == rep.root) {
         xWindowRoot *root = (xWindowRoot *)
@@ -617,9 +620,10 @@ PanoramiXTranslateCoords(ClientPtr client)
     rc = dixLookupWindow(&pDst, stuff->dstWid, client, DixReadAccess);
     if (rc != Success)
         return rc;
+
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.sameScreen = xTrue;
     rep.child = None;
 
@@ -1954,10 +1958,12 @@ PanoramiXGetImage(ClientPtr client)
             return rc;
     }
 
-    xgi.visual = wVisual(((WindowPtr) pDraw));
+
     xgi.type = X_Reply;
     xgi.sequenceNumber = client->sequence;
+    xgi.visual = wVisual(((WindowPtr) pDraw));
     xgi.depth = pDraw->depth;
+
     if (format == ZPixmap) {
         widthBytesLine = PixmapBytePad(w, pDraw->depth);
         length = widthBytesLine * h;
@@ -2003,7 +2009,7 @@ PanoramiXGetImage(ClientPtr client)
                                  format, planemask, pBuf, widthBytesLine,
                                  isRoot);
 
-            (void) WriteToClient(client, (int) (nlines * widthBytesLine), pBuf);
+            WriteToClient(client, (int) (nlines * widthBytesLine), pBuf);
             linesDone += nlines;
         }
     }
@@ -2020,8 +2026,7 @@ PanoramiXGetImage(ClientPtr client)
                                          nlines, format, plane, pBuf,
                                          widthBytesLine, isRoot);
 
-                    (void) WriteToClient(client,
-                                         (int) (nlines * widthBytesLine), pBuf);
+                    WriteToClient(client, (int)(nlines * widthBytesLine), pBuf);
 
                     linesDone += nlines;
                 }

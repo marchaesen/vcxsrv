@@ -26,6 +26,7 @@
 
 #include "damageextint.h"
 #include "protocol-versions.h"
+#include "extinit.h"
 
 static unsigned char DamageReqCode;
 static int DamageEventBase;
@@ -154,7 +155,7 @@ ProcDamageQueryVersion(ClientPtr client)
         swapl(&rep.majorVersion);
         swapl(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xDamageQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xDamageQueryVersionReply), &rep);
     return Success;
 }
 

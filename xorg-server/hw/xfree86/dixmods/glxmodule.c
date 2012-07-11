@@ -42,17 +42,14 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "micmap.h"
 #include "globals.h"
 #include "glxserver.h"
+#include "extinit.h"
 
 static MODULESETUPPROTO(glxSetup);
-
-static const char *initdeps[] = { "DOUBLE-BUFFER", "COMPOSITE", NULL };
 
 static ExtensionModule GLXExt = {
     GlxExtensionInit,
     "GLX",
-    &noGlxExtension,
-    NULL,
-    initdeps
+    &noGlxExtension
 };
 
 static XF86ModuleVersionInfo VersRec = {
@@ -83,11 +80,6 @@ glxSetup(pointer module, pointer opts, int *errmaj, int *errmin)
     }
 
     setupDone = TRUE;
-
-    provider = LoaderSymbol("__glXDRISWRastProvider");
-    if (provider == NULL)
-        return NULL;
-    GlxPushProvider(provider);
 
     xf86Msg(xf86Info.aiglxFrom, "AIGLX %s\n",
             xf86Info.aiglx ? "enabled" : "disabled");

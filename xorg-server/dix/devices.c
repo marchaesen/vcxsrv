@@ -1674,9 +1674,10 @@ ProcSetModifierMapping(ClientPtr client)
                             bytes_to_int32(sizeof(xSetModifierMappingReq))))
         return BadLength;
 
+
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
 
     rc = change_modmap(client, PickKeyboard(client), (KeyCode *) &stuff[1],
                        stuff->numKeyPerModifier);
@@ -1712,7 +1713,7 @@ ProcGetModifierMapping(ClientPtr client)
     rep.length = max_keys_per_mod << 1;
 
     WriteReplyToClient(client, sizeof(xGetModifierMappingReply), &rep);
-    (void) WriteToClient(client, max_keys_per_mod * 8, (char *) modkeymap);
+    WriteToClient(client, max_keys_per_mod * 8, modkeymap);
 
     free(modkeymap);
 
@@ -1793,10 +1794,13 @@ ProcSetPointerMapping(ClientPtr client)
     if (client->req_len !=
         bytes_to_int32(sizeof(xSetPointerMappingReq) + stuff->nElts))
         return BadLength;
+
+
     rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
     rep.success = MappingSuccess;
+    rep.sequenceNumber = client->sequence;
+    rep.length = 0;
+    
     map = (BYTE *) &stuff[1];
 
     /* So we're bounded here by the number of core buttons.  This check
@@ -1867,10 +1871,11 @@ ProcGetKeyboardMapping(ClientPtr client)
 
     memset(&rep, 0, sizeof(xGetKeyboardMappingReply));
     rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
     rep.keySymsPerKeyCode = syms->mapWidth;
+    rep.sequenceNumber = client->sequence;
     /* length is a count of 4 byte quantities and KeySyms are 4 bytes */
     rep.length = syms->mapWidth * stuff->count;
+
     WriteReplyToClient(client, sizeof(xGetKeyboardMappingReply), &rep);
     client->pSwapReplyFunc = (ReplySwapPtr) CopySwap32Write;
     WriteSwappedDataToClient(client,
@@ -1900,13 +1905,15 @@ ProcGetPointerMapping(ClientPtr client)
     if (rc != Success)
         return rc;
 
+
     rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
     rep.nElts = (butc) ? butc->numButtons : 0;
+    rep.sequenceNumber = client->sequence;
     rep.length = ((unsigned) rep.nElts + (4 - 1)) / 4;
+
     WriteReplyToClient(client, sizeof(xGetPointerMappingReply), &rep);
     if (butc)
-        WriteToClient(client, (int) rep.nElts, (char *) &butc->map[1]);
+        WriteToClient(client, (int) rep.nElts, &butc->map[1]);
     return Success;
 }
 
@@ -2152,15 +2159,17 @@ ProcGetKeyboardControl(ClientPtr client)
     if (rc != Success)
         return rc;
 
+
     rep.type = X_Reply;
-    rep.length = 5;
-    rep.sequenceNumber = client->sequence;
     rep.globalAutoRepeat = ctrl->autoRepeat;
+    rep.sequenceNumber = client->sequence;
+    rep.length = 5;
+    rep.ledMask = ctrl->leds;
     rep.keyClickPercent = ctrl->click;
     rep.bellPercent = ctrl->bell;
     rep.bellPitch = ctrl->bell_pitch;
     rep.bellDuration = ctrl->bell_duration;
-    rep.ledMask = ctrl->leds;
+    
     for (i = 0; i < 32; i++)
         rep.map[i] = ctrl->autoRepeats[i];
     WriteReplyToClient(client, sizeof(xGetKeyboardControlReply), &rep);
@@ -2295,12 +2304,14 @@ ProcGetPointerControl(ClientPtr client)
     if (rc != Success)
         return rc;
 
+
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
-    rep.threshold = ctrl->threshold;
+    rep.length = 0;
     rep.accelNumerator = ctrl->num;
     rep.accelDenominator = ctrl->den;
+    rep.threshold = ctrl->threshold;
+    
     WriteReplyToClient(client, sizeof(xGenericReply), &rep);
     return Success;
 }
@@ -2344,8 +2355,10 @@ ProcGetMotionEvents(ClientPtr client)
 
     if (mouse->valuator->motionHintWindow)
         MaybeStopHint(mouse, client);
+
     rep.type = X_Reply;
     rep.sequenceNumber = client->sequence;
+    
     nEvents = 0;
     start = ClientTimeToServerTime(stuff->start);
     stop = ClientTimeToServerTime(stuff->stop);
@@ -2393,19 +2406,21 @@ ProcQueryKeymap(ClientPtr client)
     CARD8 *down = keybd->key->down;
 
     REQUEST_SIZE_MATCH(xReq);
+
     rep.type = X_Reply;
     rep.sequenceNumber = client->sequence;
     rep.length = 2;
 
     rc = XaceHook(XACE_DEVICE_ACCESS, client, keybd, DixReadAccess);
-    if (rc != Success && rc != BadAccess)
+    /* If rc is Success, we're allowed to copy out the keymap.
+     * If it's BadAccess, we leave it empty & lie to the client.
+     */
+    if (rc == Success) {
+        for (i = 0; i < 32; i++)
+            rep.map[i] = down[i];
+    }
+    else if (rc != BadAccess)
         return rc;
-
-    for (i = 0; i < 32; i++)
-        rep.map[i] = down[i];
-
-    if (rc == BadAccess)
-        memset(rep.map, 0, 32);
 
     WriteReplyToClient(client, sizeof(xQueryKeymapReply), &rep);
 
@@ -2440,18 +2455,16 @@ RecalculateMasterButtons(DeviceIntPtr slave)
 
     if (master->button && master->button->numButtons != maxbuttons) {
         int i;
-        DeviceChangedEvent event;
-
-        memset(&event, 0, sizeof(event));
-
-        master->button->numButtons = maxbuttons;
-
+        DeviceChangedEvent event; memset(&event, 0, sizeof(event));
         event.header = ET_Internal;
         event.type = ET_DeviceChanged;
         event.time = GetTimeInMillis();
         event.deviceid = master->id;
         event.flags = DEVCHANGE_POINTER_EVENT | DEVCHANGE_DEVICE_CHANGE;
         event.buttons.num_buttons = maxbuttons;
+
+        master->button->numButtons = maxbuttons;
+
         memcpy(&event.buttons.names, master->button->labels, maxbuttons *
                sizeof(Atom));
 

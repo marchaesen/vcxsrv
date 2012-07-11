@@ -83,8 +83,6 @@ typedef struct {
 /* Marker for free elements in the buffer ID array. */
 #define DBE_FREE_ID_ELEMENT	0
 
-extern _X_EXPORT void DbeExtensionInit(void);
-
 /* TYPEDEFS */
 
 /* Record used to pass swap information between DIX and DDX swapping

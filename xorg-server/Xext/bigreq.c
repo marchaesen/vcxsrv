@@ -38,9 +38,7 @@ from The Open Group.
 #include "extnsionst.h"
 #include <X11/extensions/bigreqsproto.h>
 #include "opaque.h"
-#include "modinit.h"
-
-void BigReqExtensionInit(INITARGS);
+#include "extinit.h"
 
 static int
 ProcBigReqDispatch(ClientPtr client)
@@ -57,19 +55,19 @@ ProcBigReqDispatch(ClientPtr client)
     client->big_requests = TRUE;
     memset(&rep, 0, sizeof(xBigReqEnableReply));
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.max_request_size = maxBigRequestSize;
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.max_request_size);
     }
-    WriteToClient(client, sizeof(xBigReqEnableReply), (char *) &rep);
+    WriteToClient(client, sizeof(xBigReqEnableReply), &rep);
     return Success;
 }
 
 void
-BigReqExtensionInit(INITARGS)
+BigReqExtensionInit(void)
 {
     AddExtension(XBigReqExtensionName, 0, 0,
                  ProcBigReqDispatch, ProcBigReqDispatch,

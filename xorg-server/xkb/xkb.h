@@ -27,6 +27,4 @@ extern int ProcXkbGetKbdByName(ClientPtr client);
 extern int ProcXkbGetDeviceInfo(ClientPtr client);
 extern int ProcXkbSetDeviceInfo(ClientPtr client);
 extern int ProcXkbSetDebuggingFlags(ClientPtr client);
-
-extern void XkbExtensionInit(void);
 #endif

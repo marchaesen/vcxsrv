@@ -327,7 +327,7 @@ miSendGraphicsExpose(ClientPtr client, RegionPtr pRgn, XID drawable,
 
         numRects = RegionNumRects(pRgn);
         pBox = RegionRects(pRgn);
-        if (!(pEvent = malloc(numRects * sizeof(xEvent))))
+        if (!(pEvent = calloc(numRects, sizeof(xEvent))))
             return;
         pe = pEvent;
 
@@ -349,13 +349,12 @@ miSendGraphicsExpose(ClientPtr client, RegionPtr pRgn, XID drawable,
         free(pEvent);
     }
     else {
-        xEvent event;
-
-        memset(&event, 0, sizeof(xEvent));
-        event.u.u.type = NoExpose;
+        xEvent event; memset(&event, 0, sizeof(xEvent));
         event.u.noExposure.drawable = drawable;
         event.u.noExposure.majorEvent = major;
         event.u.noExposure.minorEvent = minor;
+        
+        event.u.u.type = NoExpose;
         WriteEventsToClient(client, 1, &event);
     }
 }

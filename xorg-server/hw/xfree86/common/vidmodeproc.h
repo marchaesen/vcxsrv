@@ -39,7 +39,7 @@ typedef union {
     float f;
 } vidMonitorValue;
 
-extern _X_EXPORT void XFree86VidModeExtensionInit(void);
+extern Bool VidModeExtensionInit(ScreenPtr pScreen);
 
 extern _X_EXPORT Bool VidModeAvailable(int scrnIndex);
 extern _X_EXPORT Bool VidModeGetCurrentModeline(int scrnIndex, pointer *mode,

@@ -296,6 +296,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(OES_texture_3D,                 true,  false, true,  false, true,      EXT_texture3D),
    EXT(OES_EGL_image_external,         true,  false, true,  false, true,      OES_EGL_image_external),
    EXT(ARB_shader_bit_encoding,        true,  true,  true,  true,  false,     ARB_shader_bit_encoding),
+   EXT(ARB_uniform_buffer_object,      true,  false, true,  true,  false,     ARB_uniform_buffer_object),
 };
 
 #undef EXT
@@ -1002,7 +1003,7 @@ ast_struct_specifier::print(void) const
 
 
 ast_struct_specifier::ast_struct_specifier(const char *identifier,
-					   ast_node *declarator_list)
+					   ast_declarator_list *declarator_list)
 {
    if (identifier == NULL) {
       static unsigned anon_count = 1;

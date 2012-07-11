@@ -71,11 +71,6 @@ typedef struct _XFixesClient {
 
 extern int (*ProcXFixesVector[XFixesNumberRequests]) (ClientPtr);
 
-/* Initialize extension at server startup time */
-
-void
- XFixesExtensionInit(void);
-
 /* Save set */
 int
  ProcXFixesChangeSaveSet(ClientPtr client);

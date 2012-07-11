@@ -162,7 +162,7 @@ SRepXIQueryDevice(ClientPtr client, int size, xXIQueryDeviceReply * rep)
 
     /* Device info is already swapped, see ProcXIQueryDevice */
 
-    WriteToClient(client, size, (char *) rep);
+    WriteToClient(client, size, rep);
 }
 
 /**

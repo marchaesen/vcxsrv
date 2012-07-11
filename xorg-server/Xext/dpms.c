@@ -41,7 +41,7 @@ Equipment Corporation.
 #include "opaque.h"
 #include <X11/extensions/dpmsproto.h>
 #include "dpmsproc.h"
-#include "modinit.h"
+#include "extinit.h"
 
 static int
 ProcDPMSGetVersion(ClientPtr client)
@@ -52,8 +52,8 @@ ProcDPMSGetVersion(ClientPtr client)
     REQUEST_SIZE_MATCH(xDPMSGetVersionReq);
 
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.majorVersion = DPMSMajorVersion;
     rep.minorVersion = DPMSMinorVersion;
     if (client->swapped) {
@@ -61,7 +61,7 @@ ProcDPMSGetVersion(ClientPtr client)
         swaps(&rep.majorVersion);
         swaps(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xDPMSGetVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xDPMSGetVersionReply), &rep);
     return Success;
 }
 
@@ -74,14 +74,14 @@ ProcDPMSCapable(ClientPtr client)
     REQUEST_SIZE_MATCH(xDPMSCapableReq);
 
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.capable = DPMSCapableFlag;
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
     }
-    WriteToClient(client, sizeof(xDPMSCapableReply), (char *) &rep);
+    WriteToClient(client, sizeof(xDPMSCapableReply), &rep);
     return Success;
 }
 
@@ -94,8 +94,8 @@ ProcDPMSGetTimeouts(ClientPtr client)
     REQUEST_SIZE_MATCH(xDPMSGetTimeoutsReq);
 
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.standby = DPMSStandbyTime / MILLI_PER_SECOND;
     rep.suspend = DPMSSuspendTime / MILLI_PER_SECOND;
     rep.off = DPMSOffTime / MILLI_PER_SECOND;
@@ -106,7 +106,7 @@ ProcDPMSGetTimeouts(ClientPtr client)
         swaps(&rep.suspend);
         swaps(&rep.off);
     }
-    WriteToClient(client, sizeof(xDPMSGetTimeoutsReply), (char *) &rep);
+    WriteToClient(client, sizeof(xDPMSGetTimeoutsReply), &rep);
     return Success;
 }
 
@@ -195,8 +195,8 @@ ProcDPMSInfo(ClientPtr client)
     REQUEST_SIZE_MATCH(xDPMSInfoReq);
 
     rep.type = X_Reply;
-    rep.length = 0;
     rep.sequenceNumber = client->sequence;
+    rep.length = 0;
     rep.power_level = DPMSPowerLevel;
     rep.state = DPMSEnabled;
 
@@ -204,7 +204,7 @@ ProcDPMSInfo(ClientPtr client)
         swaps(&rep.sequenceNumber);
         swaps(&rep.power_level);
     }
-    WriteToClient(client, sizeof(xDPMSInfoReply), (char *) &rep);
+    WriteToClient(client, sizeof(xDPMSInfoReply), &rep);
     return Success;
 }
 
@@ -356,7 +356,7 @@ SProcDPMSDispatch(ClientPtr client)
 }
 
 void
-DPMSExtensionInit(INITARGS)
+DPMSExtensionInit(void)
 {
     AddExtension(DPMSExtensionName, 0, 0,
                  ProcDPMSDispatch, SProcDPMSDispatch,

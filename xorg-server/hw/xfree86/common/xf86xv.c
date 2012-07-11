@@ -117,10 +117,6 @@ DevPrivateKey XF86XvScreenKey;
 
 static unsigned long PortResource = 0;
 
-DevPrivateKey (*XvGetScreenKeyProc) (void) = NULL;
-unsigned long (*XvGetRTPortProc) (void) = NULL;
-int (*XvScreenInitProc) (ScreenPtr) = NULL;
-
 #define GET_XV_SCREEN(pScreen) \
     ((XvScreenPtr)dixLookupPrivate(&(pScreen)->devPrivates, XF86XvScreenKey))
 
@@ -238,19 +234,18 @@ xf86XVScreenInit(ScreenPtr pScreen, XF86VideoAdaptorPtr * adaptors, int num)
     XF86XVScreenPtr ScreenPriv;
     XvScreenPtr pxvs;
 
-    if (num <= 0 ||
-        !XvGetScreenKeyProc || !XvGetRTPortProc || !XvScreenInitProc)
+    if (num <= 0 || noXvExtension)
         return FALSE;
 
-    if (Success != (*XvScreenInitProc) (pScreen))
+    if (Success != XvScreenInit(pScreen))
         return FALSE;
 
     if (!dixRegisterPrivateKey(&XF86XVWindowKeyRec, PRIVATE_WINDOW, 0))
         return FALSE;
 
-    XF86XvScreenKey = (*XvGetScreenKeyProc) ();
+    XF86XvScreenKey = XvGetScreenKey();
 
-    PortResource = (*XvGetRTPortProc) ();
+    PortResource = XvGetRTPort();
 
     pxvs = GET_XV_SCREEN(pScreen);
 

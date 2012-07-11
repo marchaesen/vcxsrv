@@ -48,6 +48,7 @@
 #include "compint.h"
 #include "xace.h"
 #include "protocol-versions.h"
+#include "extinit.h"
 
 static CARD8 CompositeReqCode;
 static DevPrivateKeyRec CompositeClientPrivateKeyRec;
@@ -131,7 +132,7 @@ ProcCompositeQueryVersion(ClientPtr client)
         swapl(&rep.majorVersion);
         swapl(&rep.minorVersion);
     }
-    WriteToClient(client, sizeof(xCompositeQueryVersionReply), (char *) &rep);
+    WriteToClient(client, sizeof(xCompositeQueryVersionReply), &rep);
     return Success;
 }
 
@@ -321,8 +322,7 @@ ProcCompositeGetOverlayWindow(ClientPtr client)
         swapl(&rep.length);
         swapl(&rep.overlayWin);
     }
-    (void) WriteToClient(client, sz_xCompositeGetOverlayWindowReply,
-                         (char *) &rep);
+    WriteToClient(client, sz_xCompositeGetOverlayWindowReply, &rep);
 
     return Success;
 }
@@ -853,8 +853,7 @@ PanoramiXCompositeGetOverlayWindow(ClientPtr client)
         swapl(&rep.length);
         swapl(&rep.overlayWin);
     }
-    (void) WriteToClient(client, sz_xCompositeGetOverlayWindowReply,
-                         (char *) &rep);
+    WriteToClient(client, sz_xCompositeGetOverlayWindowReply, &rep);
 
     return Success;
 }

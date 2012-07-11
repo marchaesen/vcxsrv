@@ -175,7 +175,6 @@ CursorDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
         for (e = cursorEvents; e; e = e->next) {
             if ((e->eventMask & XFixesDisplayCursorNotifyMask)) {
                 xXFixesCursorNotifyEvent ev;
-
                 ev.type = XFixesEventBase + XFixesCursorNotify;
                 ev.subtype = XFixesDisplayCursorNotify;
                 ev.window = e->pWindow->drawable.id;
@@ -382,7 +381,8 @@ ProcXFixesGetCursorImage(ClientPtr client)
     width = pCursor->bits->width;
     height = pCursor->bits->height;
     npixels = width * height;
-    rep = malloc(sizeof(xXFixesGetCursorImageReply) + npixels * sizeof(CARD32));
+    rep = calloc(sizeof(xXFixesGetCursorImageReply) + npixels * sizeof(CARD32),
+                 1);
     if (!rep)
         return BadAlloc;
 
@@ -411,8 +411,8 @@ ProcXFixesGetCursorImage(ClientPtr client)
         swapl(&rep->cursorSerial);
         SwapLongs(image, npixels);
     }
-    WriteToClient(client, sizeof(xXFixesGetCursorImageReply) +
-                  (npixels << 2), (char *) rep);
+    WriteToClient(client,
+                  sizeof(xXFixesGetCursorImageReply) + (npixels << 2), rep);
     free(rep);
     return Success;
 }
@@ -475,11 +475,13 @@ ProcXFixesGetCursorName(ClientPtr client)
         str = "";
     len = strlen(str);
 
+
     reply.type = X_Reply;
-    reply.length = bytes_to_int32(len);
     reply.sequenceNumber = client->sequence;
+    reply.length = bytes_to_int32(len);
     reply.atom = pCursor->name;
     reply.nbytes = len;
+
     if (client->swapped) {
         swaps(&reply.sequenceNumber);
         swapl(&reply.length);
@@ -531,8 +533,8 @@ ProcXFixesGetCursorImageAndName(ClientPtr client)
     name = pCursor->name ? NameForAtom(pCursor->name) : "";
     nbytes = strlen(name);
     nbytesRound = pad_to_int32(nbytes);
-    rep = malloc(sizeof(xXFixesGetCursorImageAndNameReply) +
-                 npixels * sizeof(CARD32) + nbytesRound);
+    rep = calloc(sizeof(xXFixesGetCursorImageAndNameReply) +
+                 npixels * sizeof(CARD32) + nbytesRound, 1);
     if (!rep)
         return BadAlloc;
 
@@ -567,7 +569,7 @@ ProcXFixesGetCursorImageAndName(ClientPtr client)
         SwapLongs(image, npixels);
     }
     WriteToClient(client, sizeof(xXFixesGetCursorImageAndNameReply) +
-                  (npixels << 2) + nbytesRound, (char *) rep);
+                  (npixels << 2) + nbytesRound, rep);
     free(rep);
     return Success;
 }

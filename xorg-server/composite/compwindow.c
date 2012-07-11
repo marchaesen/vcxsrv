@@ -208,7 +208,8 @@ updateOverlayWindow(ScreenPtr pScreen)
         return ConfigureWindow(pWin, CWWidth | CWHeight, vlist, wClient(pWin));
     }
 
-    /* Let's be on the safe side and not assume an overlay window is always allocated. */
+    /* Let's be on the safe side and not assume an overlay window is
+       always allocated. */
     return Success;
 }
 
@@ -678,7 +679,8 @@ compWindowUpdateAutomatic(WindowPtr pWin)
     /*
      * And paint
      */
-    CompositePicture(PictOpSrc, pSrcPicture, 0, pDstPicture, 0, 0,      /* src_x, src_y */
+    CompositePicture(PictOpSrc, pSrcPicture, 0, pDstPicture,
+                     0, 0,      /* src_x, src_y */
                      0, 0,      /* msk_x, msk_y */
                      pSrcPixmap->screen_x - pParent->drawable.x,
                      pSrcPixmap->screen_y - pParent->drawable.y,
