@@ -76,8 +76,6 @@ xtest_init_devices(void)
     InitAtoms();
     SyncExtensionInit();
 
-    XkbInitPrivates();
-
     /* this also inits the xtest devices */
     InitCoreDevices();
 

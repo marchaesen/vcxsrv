@@ -1897,6 +1897,7 @@ ProcGetPointerMapping(ClientPtr client)
      * the ClientPointer could change. */
     DeviceIntPtr ptr = PickPointer(client);
     ButtonClassPtr butc = ptr->button;
+    int nElts;
     int rc;
 
     REQUEST_SIZE_MATCH(xReq);
@@ -1905,15 +1906,16 @@ ProcGetPointerMapping(ClientPtr client)
     if (rc != Success)
         return rc;
 
+    nElts = (butc) ? butc->numButtons : 0;
 
     rep.type = X_Reply;
-    rep.nElts = (butc) ? butc->numButtons : 0;
+    rep.nElts = nElts;
     rep.sequenceNumber = client->sequence;
-    rep.length = ((unsigned) rep.nElts + (4 - 1)) / 4;
+    rep.length = ((unsigned) nElts + (4 - 1)) / 4;
 
     WriteReplyToClient(client, sizeof(xGetPointerMappingReply), &rep);
     if (butc)
-        WriteToClient(client, (int) rep.nElts, &butc->map[1]);
+        WriteToClient(client, nElts, &butc->map[1]);
     return Success;
 }
 
@@ -2676,6 +2678,8 @@ AllocDevicePair(ClientPtr client, const char *name,
     DeviceIntPtr keyboard;
 
     *ptr = *keybd = NULL;
+
+    XkbInitPrivates();
 
     pointer = AddInputDevice(client, ptr_proc, TRUE);
 

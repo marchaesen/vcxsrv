@@ -949,6 +949,7 @@ SyncCreateSystemCounter(const char *name,
         if (RTCounter == 0) {
             return NULL;
         }
+        xorg_list_init(&SysCounterList);
     }
 
     pCounter = SyncCreateCounter(NULL, FakeClientID(0), initial);
@@ -2447,13 +2448,12 @@ SyncExtensionInit(void)
     ExtensionEntry *extEntry;
     int s;
 
-    xorg_list_init(&SysCounterList);
-
     for (s = 0; s < screenInfo.numScreens; s++)
         miSyncSetup(screenInfo.screens[s]);
 
     if (RTCounter == 0) {
         RTCounter = CreateNewResourceType(FreeCounter, "SyncCounter");
+        xorg_list_init(&SysCounterList);
     }
     RTAlarm = CreateNewResourceType(FreeAlarm, "SyncAlarm");
     RTAwait = CreateNewResourceType(FreeAwait, "SyncAwait");
