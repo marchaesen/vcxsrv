@@ -105,8 +105,17 @@ _mm_shuffle_pi16 (__m64 __A, int8_t const __N)
     return ret;
 }
 #  else
-#   define _mm_shuffle_pi16(A, N) \
-    ((__m64) __builtin_ia32_pshufw ((__v4hi)(__m64)(A), (int)(N)))
+#   define _mm_shuffle_pi16(A, N)					\
+    ({									\
+	__m64 ret;							\
+									\
+	asm ("pshufw %2, %1, %0\n\t"					\
+	     : "=y" (ret)						\
+	     : "y" (A), "K" ((const int8_t)N)				\
+	);								\
+									\
+	ret;								\
+    })
 #  endif
 # endif
 #endif
