@@ -5974,6 +5974,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->QueryCounter) {
+        void ** procp = (void **) &disp->QueryCounter;
+        snprintf(symboln, sizeof(symboln), "%sQueryCounter", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->ColorP3ui) {
         void ** procp = (void **) &disp->ColorP3ui;
         snprintf(symboln, sizeof(symboln), "%sColorP3ui", symbol_prefix);
@@ -9350,7 +9357,21 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
 
     if(!disp->GetQueryObjecti64vEXT) {
         void ** procp = (void **) &disp->GetQueryObjecti64vEXT;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryObjecti64v", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryObjecti64vEXT) {
+        void ** procp = (void **) &disp->GetQueryObjecti64vEXT;
         snprintf(symboln, sizeof(symboln), "%sGetQueryObjecti64vEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryObjectui64vEXT) {
+        void ** procp = (void **) &disp->GetQueryObjectui64vEXT;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectui64v", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
