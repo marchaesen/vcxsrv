@@ -191,6 +191,21 @@ xf86SetModeCrtc(DisplayModePtr p, int adjustFlags)
 }
 
 /**
+ * Fills in a copy of mode, removing all stale pointer references.
+ * xf86ModesEqual will return true when comparing with original mode.
+ */
+void
+xf86SaveModeContents(DisplayModePtr intern, const DisplayModeRec *mode)
+{
+    *intern = *mode;
+    intern->prev = intern->next = NULL;
+    intern->name = NULL;
+    intern->PrivSize = 0;
+    intern->PrivFlags = 0;
+    intern->Private = NULL;
+}
+
+/**
  * Allocates and returns a copy of pMode, including pointers within pMode.
  */
 DisplayModePtr
