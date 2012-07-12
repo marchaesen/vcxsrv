@@ -1219,7 +1219,7 @@ xf86RandR12CrtcSet(ScreenPtr pScreen,
             /*
              * Save the last successful setting for EnterVT
              */
-            crtc->desiredMode = mode;
+            xf86SaveModeContents(&crtc->desiredMode, &mode);
             crtc->desiredRotation = rotation;
             crtc->current_scanout = randr_crtc->scanout_pixmap;
             if (transform) {

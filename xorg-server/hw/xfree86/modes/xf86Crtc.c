@@ -2453,7 +2453,7 @@ xf86InitialConfiguration(ScrnInfoPtr scrn, Bool canGrow)
         xf86CrtcPtr crtc = crtcs[o];
 
         if (mode && crtc) {
-            crtc->desiredMode = *mode;
+            xf86SaveModeContents(&crtc->desiredMode, mode);
             crtc->desiredRotation = output->initial_rotation;
             crtc->desiredX = output->initial_x;
             crtc->desiredY = output->initial_y;
@@ -2637,7 +2637,7 @@ xf86SetDesiredModes(ScrnInfoPtr scrn)
 
             if (!mode)
                 return FALSE;
-            crtc->desiredMode = *mode;
+            xf86SaveModeContents(&crtc->desiredMode, mode);
             crtc->desiredRotation = RR_Rotate_0;
             crtc->desiredTransformPresent = FALSE;
             crtc->desiredX = 0;
@@ -2776,7 +2776,7 @@ xf86SetSingleMode(ScrnInfoPtr pScrn, DisplayModePtr desired, Rotation rotation)
         if (!xf86CrtcSetModeTransform(crtc, crtc_mode, rotation, NULL, 0, 0))
             ok = FALSE;
         else {
-            crtc->desiredMode = *crtc_mode;
+            xf86SaveModeContents(&crtc->desiredMode, crtc_mode);
             crtc->desiredRotation = rotation;
             crtc->desiredTransformPresent = FALSE;
             crtc->desiredX = 0;

@@ -422,6 +422,8 @@ extern _X_EXPORT void
 xf86SetModeCrtc(DisplayModePtr p, int adjustFlags);
 extern _X_EXPORT DisplayModePtr
 xf86DuplicateMode(const DisplayModeRec * pMode);
+extern _X_EXPORT void
+xf86SaveModeContents(DisplayModePtr intern, const DisplayModeRec * pMode);
 extern _X_EXPORT DisplayModePtr
 xf86DuplicateModes(ScrnInfoPtr pScrn, DisplayModePtr modeList);
 extern _X_EXPORT Bool
