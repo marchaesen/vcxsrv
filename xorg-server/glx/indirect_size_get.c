@@ -665,11 +665,11 @@ __glGetBooleanv_size( GLenum e )
         case GL_STENCIL_BACK_PASS_DEPTH_PASS_ATI:
         case GL_FRAGMENT_PROGRAM_ARB:
         case GL_MAX_DRAW_BUFFERS_ARB:
-/*      case GL_MAX_DRAW_BUFFERS_NV:*/
+/*      case GL_MAX_DRAW_BUFFERS_ATI:*/
         case GL_DRAW_BUFFER0_ARB:
 /*      case GL_DRAW_BUFFER0_ATI:*/
         case GL_DRAW_BUFFER1_ARB:
-/*      case GL_DRAW_BUFFER1_NV:*/
+/*      case GL_DRAW_BUFFER1_ATI:*/
         case GL_DRAW_BUFFER2_ARB:
 /*      case GL_DRAW_BUFFER2_ATI:*/
         case GL_DRAW_BUFFER3_ARB:
@@ -687,15 +687,15 @@ __glGetBooleanv_size( GLenum e )
         case GL_DRAW_BUFFER9_ARB:
 /*      case GL_DRAW_BUFFER9_ATI:*/
         case GL_DRAW_BUFFER10_ARB:
-/*      case GL_DRAW_BUFFER10_NV:*/
+/*      case GL_DRAW_BUFFER10_ATI:*/
         case GL_DRAW_BUFFER11_ARB:
-/*      case GL_DRAW_BUFFER11_NV:*/
+/*      case GL_DRAW_BUFFER11_ATI:*/
         case GL_DRAW_BUFFER12_ARB:
-/*      case GL_DRAW_BUFFER12_NV:*/
+/*      case GL_DRAW_BUFFER12_ATI:*/
         case GL_DRAW_BUFFER13_ARB:
 /*      case GL_DRAW_BUFFER13_ATI:*/
         case GL_DRAW_BUFFER14_ARB:
-/*      case GL_DRAW_BUFFER14_NV:*/
+/*      case GL_DRAW_BUFFER14_ATI:*/
         case GL_DRAW_BUFFER15_ARB:
 /*      case GL_DRAW_BUFFER15_ATI:*/
         case GL_BLEND_EQUATION_ALPHA_EXT:
