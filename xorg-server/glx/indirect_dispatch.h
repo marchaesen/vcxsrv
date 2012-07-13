@@ -146,6 +146,8 @@ extern _X_HIDDEN void __glXDisp_CopyTexSubImage2D(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_CopyTexSubImage2D(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_DepthRange(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_DepthRange(GLbyte * pc);
+extern _X_HIDDEN int __glXDisp_GetProgramParameterdvNV(struct __GLXclientStateRec *, GLbyte *);
+extern _X_HIDDEN int __glXDispSwap_GetProgramParameterdvNV(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN void __glXDisp_ResetHistogram(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_ResetHistogram(GLbyte * pc);
 extern _X_HIDDEN int __glXDisp_GetProgramNamedParameterfvNV(struct __GLXclientStateRec *, GLbyte *);
@@ -710,8 +712,6 @@ extern _X_HIDDEN int __glXDisp_GetTexLevelParameterfv(struct __GLXclientStateRec
 extern _X_HIDDEN int __glXDispSwap_GetTexLevelParameterfv(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN int __glXDisp_GenFramebuffersEXT(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN int __glXDispSwap_GenFramebuffersEXT(struct __GLXclientStateRec *, GLbyte *);
-extern _X_HIDDEN int __glXDisp_GetProgramParameterdvNV(struct __GLXclientStateRec *, GLbyte *);
-extern _X_HIDDEN int __glXDispSwap_GetProgramParameterdvNV(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN void __glXDisp_Vertex2sv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_Vertex2sv(GLbyte * pc);
 extern _X_HIDDEN int __glXDisp_GetIntegerv(struct __GLXclientStateRec *, GLbyte *);

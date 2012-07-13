@@ -6289,6 +6289,34 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->BeginQueryIndexed) {
+        void ** procp = (void **) &disp->BeginQueryIndexed;
+        snprintf(symboln, sizeof(symboln), "%sBeginQueryIndexed", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawTransformFeedbackStream) {
+        void ** procp = (void **) &disp->DrawTransformFeedbackStream;
+        snprintf(symboln, sizeof(symboln), "%sDrawTransformFeedbackStream", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->EndQueryIndexed) {
+        void ** procp = (void **) &disp->EndQueryIndexed;
+        snprintf(symboln, sizeof(symboln), "%sEndQueryIndexed", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryIndexediv) {
+        void ** procp = (void **) &disp->GetQueryIndexediv;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryIndexediv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->ClearDepthf) {
         void ** procp = (void **) &disp->ClearDepthf;
         snprintf(symboln, sizeof(symboln), "%sClearDepthf", symbol_prefix);
@@ -6509,6 +6537,20 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->DrawElementsInstancedBaseVertexBaseInstance) {
         void ** procp = (void **) &disp->DrawElementsInstancedBaseVertexBaseInstance;
         snprintf(symboln, sizeof(symboln), "%sDrawElementsInstancedBaseVertexBaseInstance", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawTransformFeedbackInstanced) {
+        void ** procp = (void **) &disp->DrawTransformFeedbackInstanced;
+        snprintf(symboln, sizeof(symboln), "%sDrawTransformFeedbackInstanced", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawTransformFeedbackStreamInstanced) {
+        void ** procp = (void **) &disp->DrawTransformFeedbackStreamInstanced;
+        snprintf(symboln, sizeof(symboln), "%sDrawTransformFeedbackStreamInstanced", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 

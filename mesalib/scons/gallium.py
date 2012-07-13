@@ -368,7 +368,6 @@ def generate(env):
         ccflags += [
             '-Wall',
             '-Wno-long-long',
-            '-ffast-math',
             '-fmessage-length=0', # be nice to Eclipse
         ]
         cflags += [
@@ -405,7 +404,6 @@ def generate(env):
                 '/GL-', # disable whole program optimization
             ]
         ccflags += [
-            '/fp:fast', # fast floating point 
             '/W3', # warning level
             #'/Wp64', # enable 64 bit porting warnings
             '/wd4996', # disable deprecated POSIX name warnings
@@ -516,7 +514,7 @@ def generate(env):
     createInstallMethods(env)
 
     env.PkgCheckModules('X11', ['x11', 'xext', 'xdamage', 'xfixes'])
-    env.PkgCheckModules('XCB', ['x11-xcb', 'xcb-glx'])
+    env.PkgCheckModules('XCB', ['x11-xcb', 'xcb-glx >= 1.8.1'])
     env.PkgCheckModules('XF86VIDMODE', ['xxf86vm'])
     env.PkgCheckModules('DRM', ['libdrm >= 2.4.24'])
     env.PkgCheckModules('DRM_INTEL', ['libdrm_intel >= 2.4.30'])

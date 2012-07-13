@@ -403,6 +403,8 @@ internal_format(struct gl_context *ctx, GLenum format, GLenum type)
 
          case GL_UNSIGNED_SHORT_5_6_5:
          case GL_UNSIGNED_SHORT_5_6_5_REV:
+            return GL_RGB565;
+
          case GL_UNSIGNED_SHORT_5_5_5_1:
          case GL_UNSIGNED_SHORT_1_5_5_5_REV:
             return GL_RGB5_A1;
@@ -1165,27 +1167,8 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
              * The stencil is written using the shader stencil export
              * functionality. */
             if (write_stencil) {
-               enum pipe_format stencil_format = PIPE_FORMAT_NONE;
-
-               switch (pt->format) {
-               case PIPE_FORMAT_Z24_UNORM_S8_UINT:
-               case PIPE_FORMAT_X24S8_UINT:
-                  stencil_format = PIPE_FORMAT_X24S8_UINT;
-                  break;
-               case PIPE_FORMAT_S8_UINT_Z24_UNORM:
-               case PIPE_FORMAT_S8X24_UINT:
-                  stencil_format = PIPE_FORMAT_S8X24_UINT;
-                  break;
-               case PIPE_FORMAT_Z32_FLOAT_S8X24_UINT:
-               case PIPE_FORMAT_X32_S8X24_UINT:
-                  stencil_format = PIPE_FORMAT_X32_S8X24_UINT;
-                  break;
-               case PIPE_FORMAT_S8_UINT:
-                  stencil_format = PIPE_FORMAT_S8_UINT;
-                  break;
-               default:
-                  assert(0);
-               }
+               enum pipe_format stencil_format =
+                     util_format_stencil_only(pt->format);
 
                sv[1] = st_create_texture_sampler_view_format(st->pipe, pt,
                                                              stencil_format);

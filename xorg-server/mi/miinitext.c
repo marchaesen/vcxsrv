@@ -112,13 +112,6 @@ SOFTWARE.
 #include "micmap.h"
 #include "globals.h"
 
-#ifdef GLXEXT
-typedef struct __GLXprovider __GLXprovider;
-extern __GLXprovider __glXDRISWRastProvider;
-extern void GlxPushProvider(__GLXprovider * impl);
-extern void GlxExtensionInit(INITARGS);
-#endif
-
 /* The following is only a small first step towards run-time
  * configurable extensions.
  */
@@ -241,7 +234,7 @@ EnableDisableExtensionError(const char *name, Bool enable)
 }
 
 /* List of built-in (statically linked) extensions */
-static ExtensionModule staticExtensions[] = {
+static const ExtensionModule staticExtensions[] = {
     {GEExtensionInit, "Generic Event Extension", &noGEExtension},
     {ShapeExtensionInit, "SHAPE", NULL},
 #ifdef MITSHM
@@ -335,11 +328,6 @@ InitExtensions(int argc, char *argv[])
             (ext->initFunc) ();
         }
     }
-#ifdef GLXEXT
-    if (!noGlxExtension)
-        GlxExtensionInit();
-
-#endif
 }
 
 static ExtensionModule *
@@ -371,7 +359,7 @@ NewExtensionModule(void)
 }
 
 void
-LoadExtension(ExtensionModule * e, Bool builtin)
+LoadExtension(const ExtensionModule * e, Bool builtin)
 {
     ExtensionModule *newext;
 

@@ -1266,8 +1266,10 @@ OsBlockSIGIO(void)
         ret = sigismember(&old, SIGIO);
         return ret;
     } else
-        return 1;
 #endif
+        return 1;
+#else
+    return 1;
 #endif
 }
 

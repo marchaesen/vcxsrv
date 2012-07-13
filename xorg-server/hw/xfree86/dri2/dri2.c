@@ -333,8 +333,9 @@ DRI2AddDrawableRef(DRI2DrawablePtr pPriv, XID id, XID dri2_id,
 }
 
 int
-DRI2CreateDrawable(ClientPtr client, DrawablePtr pDraw, XID id,
-                   DRI2InvalidateProcPtr invalidate, void *priv)
+DRI2CreateDrawable2(ClientPtr client, DrawablePtr pDraw, XID id,
+                    DRI2InvalidateProcPtr invalidate, void *priv,
+                    XID *dri2_id_out)
 {
     DRI2DrawablePtr pPriv;
     DRI2ClientPtr dri2_client = dri2ClientPrivate(client);
@@ -354,7 +355,17 @@ DRI2CreateDrawable(ClientPtr client, DrawablePtr pDraw, XID id,
     if (rc != Success)
         return rc;
 
+    if (dri2_id_out)
+        *dri2_id_out = dri2_id;
+
     return Success;
+}
+
+int
+DRI2CreateDrawable(ClientPtr client, DrawablePtr pDraw, XID id,
+                   DRI2InvalidateProcPtr invalidate, void *priv)
+{
+    return DRI2CreateDrawable2(client, pDraw, id, invalidate, priv, NULL);
 }
 
 static int

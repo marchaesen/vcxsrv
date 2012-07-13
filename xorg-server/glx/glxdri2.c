@@ -106,6 +106,7 @@ struct __GLXDRIdrawable {
     int height;
     __DRIbuffer buffers[MAX_DRAWABLE_BUFFERS];
     int count;
+    XID dri2_id;
 };
 
 static void
@@ -113,6 +114,8 @@ __glXDRIdrawableDestroy(__GLXdrawable * drawable)
 {
     __GLXDRIdrawable *private = (__GLXDRIdrawable *) drawable;
     const __DRIcoreExtension *core = private->screen->core;
+
+    FreeResource(private->dri2_id, FALSE);
 
     (*core->destroyDrawable) (private->driDrawable);
 
@@ -390,7 +393,8 @@ __glXDRIscreenDestroy(__GLXscreen * baseScreen)
 }
 
 static Bool
-dri2_convert_glx_attribs(unsigned num_attribs, const uint32_t *attribs,
+dri2_convert_glx_attribs(__GLXDRIscreen *screen, unsigned num_attribs,
+                         const uint32_t *attribs,
                          unsigned *major_ver, unsigned *minor_ver,
                          uint32_t *flags, int *api, int *reset, unsigned *error)
 {
@@ -482,8 +486,8 @@ dri2_convert_glx_attribs(unsigned num_attribs, const uint32_t *attribs,
      * don't support OpenGL 3.2 may fail the request for a core profile.
      */
     if (*api == __DRI_API_OPENGL_CORE
-        && (*major_ver < 3 || (*major_ver < 3 && *minor_ver < 2))) {
-        *api == __DRI_API_OPENGL;
+        && (*major_ver < 3 || (*major_ver == 3 && *minor_ver < 2))) {
+        *api = __DRI_API_OPENGL;
     }
 
     *error = Success;
@@ -513,11 +517,11 @@ create_driver_context(__GLXDRIcontext * context,
         int api;
 
         if (num_attribs != 0) {
-            if (!dri2_convert_glx_attribs(num_attribs, attribs,
+            if (!dri2_convert_glx_attribs(screen, num_attribs, attribs,
                                           &major_ver, &minor_ver,
                                           &flags, &api, &reset,
                                           (unsigned *) error))
-                return NULL;
+                return;
 
             ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_MAJOR_VERSION;
             ctx_attribs[num_ctx_attribs++] = major_ver;
@@ -534,9 +538,9 @@ create_driver_context(__GLXDRIcontext * context,
             }
 
 #ifdef __DRI2_ROBUSTNESS
-            if (reset != __DRI_CTX_NO_RESET_NOTIFICATION) {
+            if (reset != __DRI_CTX_RESET_NO_NOTIFICATION) {
                 ctx_attribs[num_ctx_attribs++] =
-                    __DRI_CTX_ATTRIB_RESET_NOTIFICATION;
+                    __DRI_CTX_ATTRIB_RESET_STRATEGY;
                 ctx_attribs[num_ctx_attribs++] = reset;
             }
 #endif
@@ -670,8 +674,9 @@ __glXDRIscreenCreateDrawable(ClientPtr client,
     private->base.waitGL = __glXDRIdrawableWaitGL;
     private->base.waitX = __glXDRIdrawableWaitX;
 
-    if (DRI2CreateDrawable(client, pDraw, drawId,
-                           __glXDRIinvalidateBuffers, private)) {
+    if (DRI2CreateDrawable2(client, pDraw, drawId,
+                            __glXDRIinvalidateBuffers, private,
+                            &private->dri2_id)) {
         free(private);
         return NULL;
     }

@@ -332,21 +332,21 @@ GlxExtensionInit(void)
     ExtensionEntry *extEntry;
     ScreenPtr pScreen;
     int i;
-    __GLXprovider *p;
+    __GLXprovider *p, **stack;
     Bool glx_provided = False;
     
+    if (serverGeneration == 1) {
+        for (stack = &__glXProviderStack; *stack; stack = &(*stack)->next)
+            ;
+        *stack = &__glXDRISWRastProvider;
+    }
+
     __glXContextRes = CreateNewResourceType((DeleteType) ContextGone,
                                             "GLXContext");
     __glXDrawableRes = CreateNewResourceType((DeleteType) DrawableGone,
                                              "GLXDrawable");
     if (!__glXContextRes || !__glXDrawableRes)
         return;
-
-    if (serverGeneration == 1)
-    {
-        GlxPushProvider(&__glXDRISWRastProvider);
-        glxWinPushNativeProvider();
-    }
 
     if (!dixRegisterPrivateKey
         (&glxClientPrivateKeyRec, PRIVATE_CLIENT, sizeof(__GLXclientState)))
