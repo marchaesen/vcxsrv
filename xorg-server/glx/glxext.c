@@ -339,9 +339,6 @@ GlxExtensionInit(void)
     if (!__glXContextRes || !__glXDrawableRes)
         return;
 
-    if (serverGeneration == 1)
-        GlxPushProvider(&__glXDRISWRastProvider);
-
     if (!dixRegisterPrivateKey
         (&glxClientPrivateKeyRec, PRIVATE_CLIENT, sizeof(__GLXclientState)))
         return;

@@ -162,6 +162,7 @@ David Dawes for XFree86 DDX integration work
 Thomas Winischhofer for the hardware-accelerated SiS rotation implementation
 Matthew Tippett and Kevin Martin for splitting outputs and CRTCs to more
 fully expose what video hardware can do
+Dave Airlie for the 1.4.0 protocol changes.
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
 
@@ -277,7 +278,10 @@ ROTATION { Rotate_0
 RRSELECTMASK { RRScreenChangeNotifyMask
 	       RRCrtcChangeNotifyMask (New in version 1.2)
 	       RROutputChangeNotifyMask (New in version 1.2)
-	       RROutputPropertyNotifyMask (New in version 1.2) }
+	       RROutputPropertyNotifyMask (New in version 1.2)
+	       RRProviderChangeNotifyMask (New in version 1.4)
+	       RRProviderPropertyNotifyMask (New in version 1.4)
+	       RRResourceChangeNotifyMask (New in version 1.4) }
 
 SIZEID { CARD16 }
 
@@ -400,6 +404,20 @@ The name of this extension is "RANDR".
 	If 'enable' contains RROutputPropertyNotifyMask,
 	RROutputPropertyNotify events will be sent when properties change on
 	this output.
+
+	New for version 1.4:
+
+	If 'enable' contains RRProviderChangeNotifyMask,
+	RRProviderChangeNotify events will be sent whenever the role for a
+	provider object has changed.
+
+	If 'enable' contains RRProviderPropertyNotifyMask,
+	RRProviderPropertyNotify events will be sent when properties change
+	on a provider object.
+
+	If 'enable' contains RRResourceChangeNotifyMask,
+	RRResourceChangeNotify events will be sent whenever the set of
+	available RandR resources associated with the screen has changed.
 
 ┌───
     RRSetScreenConfig
@@ -661,7 +679,7 @@ dynamic changes in the display environment.
     RRListOutputProperties
 	output:OUTPUT
       ▶
-	atoms: LISTof ATOM
+	atoms: LISTofATOM
 └───
 	Errors: Output
 
@@ -1345,7 +1363,7 @@ dynamic changes in the display environment.
     RRListProviderProperties
 	provider:PROVIDERS
       ▶
-	atoms: LISTof ATOM
+	atoms: LISTofATOM
 └───
 	Errors: Provider
 
@@ -1967,7 +1985,7 @@ The RandR extension was developed in parallel with the implementation
 to ensure the feasibility of various portions of the design. As
 portions of the extension are implemented, the version number of the
 extension has changed to reflect the portions of the standard provided.
-This document describes the version 1.2 of the specification, the
+This document describes the version 1.4 of the specification, the
 partial implementations have version numbers less than that. Here's a
 list of what each version provided:
 
@@ -1993,6 +2011,8 @@ list of what each version provided:
 	     transformations.  Added panning.  Added primary outputs.
 	     Added standard properties.
 
+        1.4: Added provider objects for handling multi-GPU systems.
+
 Compatibility between 0.0 and 1.0 was *NOT* preserved, and 0.0 clients
 will fail against 1.0 servers. The wire encoding op-codes were
 changed for GetScreenInfo to ensure this failure in a relatively
@@ -2001,8 +2021,8 @@ graceful way. Version 1.1 servers and clients are cross compatible with
 compatibility from this point. Version 1.2 offers an extended model of the
 system with multiple output support. Version 1.3 adds a cheap version of
 GetScreenResources to avoid expensive DDC operations, CRTC transformations,
-panning, and the primary output concept. 1.2 and 1.3 are backward-compatible
-with 1.1.
+panning, and the primary output concept. Versions 1.2 through 1.4 are
+backward-compatible with 1.1.
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
 
@@ -2070,6 +2090,10 @@ A.1 Common Types
 	0x0002	CrtcChangeNotifyMask		Added in version 1.2
 	0x0004	OutputChangeNotifyMask		Added in version 1.2
 	0x0008	OutputPropertyNotifyMask	Added in version 1.2
+	0x0010	ProviderChangeNotifyMask 	Added in version 1.4
+	0x0020	ProviderPropertyNotifyMask	Added in version 1.4
+	0x0040	ResourceChangeNotifyMask	Added in version 1.4
+
 └───
       Event select mask for RRSelectInput
 

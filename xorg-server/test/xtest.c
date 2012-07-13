@@ -30,6 +30,7 @@
 #include "inputstr.h"
 #include "scrnintstr.h"
 #include "exevents.h"
+#include "extinit.h"
 #include "xkbsrv.h"
 #include "xserver-properties.h"
 #include "syncsrv.h"
