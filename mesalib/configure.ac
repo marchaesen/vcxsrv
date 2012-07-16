@@ -454,7 +454,6 @@ AC_ARG_ENABLE([asm],
 )
 asm_arch=""
 MESA_ASM_FILES=""
-GLAPI_ASM_SOURCES=""
 AC_MSG_CHECKING([whether to enable assembly])
 test "x$enable_asm" = xno && AC_MSG_RESULT([no])
 # disable if cross compiling on x86/x86_64 since we must run gen_matypes
@@ -503,19 +502,16 @@ if test "x$enable_asm" = xyes; then
     x86)
         DEFINES="$DEFINES -DUSE_X86_ASM -DUSE_MMX_ASM -DUSE_3DNOW_ASM -DUSE_SSE_ASM"
         MESA_ASM_FILES='$(X86_FILES)'
-        GLAPI_ASM_SOURCES='$(X86_API)'
         AC_MSG_RESULT([yes, x86])
         ;;
     x86_64)
         DEFINES="$DEFINES -DUSE_X86_64_ASM"
         MESA_ASM_FILES='$(X86_64_FILES)'
-        GLAPI_ASM_SOURCES='$(X86-64_API)'
         AC_MSG_RESULT([yes, x86_64])
         ;;
     sparc)
         DEFINES="$DEFINES -DUSE_SPARC_ASM"
         MESA_ASM_FILES='$(SPARC_FILES)'
-        GLAPI_ASM_SOURCES='$(SPARC_API)'
         AC_MSG_RESULT([yes, sparc])
         ;;
     *)
@@ -524,7 +520,6 @@ if test "x$enable_asm" = xyes; then
     esac
 fi
 AC_SUBST([MESA_ASM_FILES])
-AC_SUBST([GLAPI_ASM_SOURCES])
 
 dnl PIC code macro
 MESA_PIC_FLAGS
@@ -1065,17 +1060,17 @@ GLAPI_LIB_DEPS="-lpthread $SELINUX_LIBS"
 AC_SUBST([GLAPI_LIB_DEPS])
 
 
-dnl Setup default DRI CFLAGS
-DRI_LIB_DEPS='$(TOP)/src/mesa/libmesa.a'
-MESA_MODULES='$(TOP)/src/mesa/libmesa.a'
+dnl dri libraries are linking with mesa
+DRI_LIB_DEPS='$(TOP)/src/mesa/libmesa.la'
+GALLIUM_DRI_LIB_DEPS='$(TOP)/src/mesa/libmesa.a'
 
+dnl ... or dricore?
 if test "x$enable_dri" = xyes && test "x$driglx_direct" = xyes ; then
-    DRI_LIB_DEPS="-L\$(TOP)/\$(LIB_DIR) -ldricore$VERSION"
-    MESA_MODULES="\$(TOP)/\$(LIB_DIR)/libdricore$VERSION.so"
+    DRI_LIB_DEPS="\$(TOP)/src/mesa/libdricore/libdricore${VERSION}.la"
+    GALLIUM_DRI_LIB_DEPS="\$(TOP)/\$(LIB_DIR)/libdricore${VERSION}.so"
     HAVE_DRICORE=yes
 fi
 AM_CONDITIONAL(HAVE_DRICORE, test x$HAVE_DRICORE = xyes)
-AC_SUBST([MESA_MODULES])
 
 AC_SUBST([HAVE_XF86VIDMODE])
 
@@ -1250,10 +1245,12 @@ if test "x$enable_dri" = xyes; then
 
     # put all the necessary libs together
     DRI_LIB_DEPS="$DRI_LIB_DEPS $SELINUX_LIBS $LIBDRM_LIBS $EXPAT_LIB -lm -lpthread $DLOPEN_LIBS"
+    GALLIUM_DRI_LIB_DEPS="$GALLIUM_DRI_LIB_DEPS $SELINUX_LIBS $LIBDRM_LIBS $EXPAT_LIB -lm -lpthread $DLOPEN_LIBS"
 fi
 AC_SUBST([DRI_DIRS])
 AC_SUBST([EXPAT_INCLUDES])
 AC_SUBST([DRI_LIB_DEPS])
+AC_SUBST([GALLIUM_DRI_LIB_DEPS])
 
 case $DRI_DIRS in
 *i915*|*i965*)
@@ -1351,10 +1348,14 @@ if test "x$enable_osmesa" = xyes; then
     OSMESA_MESA_DEPS=""
     OSMESA_PC_LIB_PRIV="-lm -lpthread $SELINUX_LIBS $DLOPEN_LIBS"
 fi
+
+OSMESA_VERSION=`echo "$VERSION" | $SED 's/\./:/g'`
+
 AC_SUBST([OSMESA_LIB_DEPS])
 AC_SUBST([OSMESA_MESA_DEPS])
 AC_SUBST([OSMESA_PC_REQ])
 AC_SUBST([OSMESA_PC_LIB_PRIV])
+AC_SUBST([OSMESA_VERSION])
 
 dnl
 dnl gbm configuration
@@ -1727,8 +1728,9 @@ for plat in $egl_platforms; do
 				  [AC_MSG_ERROR([cannot find libwayland-client])])
 		GALLIUM_WINSYS_DIRS="$GALLIUM_WINSYS_DIRS sw/wayland"
 
-		m4_ifdef([WAYLAND_SCANNER_RULES],
-		         [WAYLAND_SCANNER_RULES(['$(top_srcdir)/src/egl/wayland/wayland-drm/protocol'])])
+                WAYLAND_PREFIX=`$PKG_CONFIG --variable=prefix wayland-client`
+                AC_PATH_PROG([WAYLAND_SCANNER], [wayland-scanner],,
+                             [${WAYLAND_PREFIX}/bin$PATH_SEPARATOR$PATH])
 		;;
 
 	x11)
@@ -2147,9 +2149,12 @@ AC_CONFIG_FILES([configs/current
 		src/egl/wayland/wayland-egl/Makefile
 		src/egl/wayland/wayland-egl/wayland-egl.pc
 		src/egl/wayland/wayland-drm/Makefile
+		src/glsl/Makefile
+		src/glsl/glcpp/Makefile
 		src/glsl/tests/Makefile
 		src/glx/Makefile
 		src/glx/tests/Makefile
+		src/mapi/glapi/Makefile
 		src/mapi/glapi/gen/Makefile
 		src/mapi/shared-glapi/Makefile
 		src/mapi/glapi/tests/Makefile
@@ -2169,6 +2174,7 @@ AC_CONFIG_FILES([configs/current
 		src/mesa/drivers/dri/r200/Makefile
 		src/mesa/drivers/dri/radeon/Makefile
 		src/mesa/drivers/dri/swrast/Makefile
+		src/mesa/drivers/osmesa/Makefile
 		src/mesa/drivers/x11/Makefile
 		src/mesa/gl.pc
 		src/mesa/osmesa.pc])
