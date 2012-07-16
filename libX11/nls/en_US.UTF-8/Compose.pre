@@ -5849,6 +5849,8 @@ XCOMM Characters from "Mathematical Operators"
 <Multi_key> <greater> <less>                    : "⋄"   U22c4   # > < DIAMOND OPERATOR
 <Multi_key> <U2227> <U2228>                     : "⋄"   U22c4   # ∧ ∨ DIAMOND OPERATOR
 <Multi_key> <U2228> <U2227>                     : "⋄"   U22c4   # ∨ ∧ DIAMOND OPERATOR
+<Multi_key> <colon> <period>                    : "∴"   therefore # THEREFORE
+<Multi_key> <period> <colon>                    : "∵"   because # BECAUSE
 
 XCOMM Characters from "Miscellaneous Technical"
 
