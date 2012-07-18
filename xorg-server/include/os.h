@@ -359,9 +359,13 @@ Fopen(const char *, const char *);
 extern _X_EXPORT int
 Fclose(pointer);
 #else
-#define System(a) system(a)
-#define Popen(a,b) popen(a,b)
-#define Pclose(a) pclose(a)
+
+extern const char *
+Win32TempDir(void);
+
+extern int
+System(const char *cmdline);
+
 #define Fopen(a,b) fopen(a,b)
 #define Fclose(a) fclose(a)
 #endif

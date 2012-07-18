@@ -428,6 +428,13 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
         return 0;
 
+    case WM_SYSCOMMAND:
+        if (s_pScreenInfo->iResizeMode == resizeWithRandr &&
+            ((wParam & 0xfff0) == SC_MAXIMIZE ||
+             (wParam & 0xfff0) == SC_RESTORE))
+            PostMessage(hwnd, WM_EXITSIZEMOVE, 0, 0);
+        break;
+
     case WM_ENTERSIZEMOVE:
         ErrorF("winWindowProc - WM_ENTERSIZEMOVE\n");
         break;

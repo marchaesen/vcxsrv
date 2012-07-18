@@ -135,6 +135,7 @@ ProcXvMCListSurfaceTypes(ClientPtr client)
     xvmcSurfaceInfo info;
     XvMCAdaptorPtr adaptor = NULL;
     XvMCSurfaceInfoPtr surface;
+    int num_surfaces;
 
     REQUEST(xvmcListSurfaceTypesReq);
     REQUEST_SIZE_MATCH(xvmcListSurfaceTypesReq);
@@ -154,16 +155,17 @@ ProcXvMCListSurfaceTypes(ClientPtr client)
         }
     }
 
+    num_surfaces = (adaptor) ? adaptor->num_surfaces : 0;
     rep = (xvmcListSurfaceTypesReply) {
         .type = X_Reply,
         .sequenceNumber = client->sequence,
-        .num = (adaptor) ? adaptor->num_surfaces : 0,
-        .length = bytes_to_int32(rep.num * sizeof(xvmcSurfaceInfo)),
+        .num = num_surfaces,
+        .length = bytes_to_int32(num_surfaces * sizeof(xvmcSurfaceInfo)),
     };
 
     WriteToClient(client, sizeof(xvmcListSurfaceTypesReply), &rep);
 
-    for (i = 0; i < rep.num; i++) {
+    for (i = 0; i < num_surfaces; i++) {
         surface = adaptor->surfaces[i];
         info.surface_type_id = surface->surface_type_id;
         info.chroma_format = surface->chroma_format;

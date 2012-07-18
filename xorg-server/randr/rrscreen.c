@@ -396,16 +396,17 @@ rrGetMultiScreenResources(ClientPtr client, Bool query, ScreenPtr pScreen)
     ErrorF("reporting %d %d %d %d\n", total_crtcs, total_outputs, total_modes, total_name_len);
 
     pScrPriv = rrGetScrPriv(pScreen);
-    rep.pad = 0;
-    rep.type = X_Reply;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.timestamp = pScrPriv->lastSetTime.milliseconds;
-    rep.configTimestamp = pScrPriv->lastConfigTime.milliseconds;
-    rep.nCrtcs = total_crtcs;
-    rep.nOutputs = total_outputs;
-    rep.nModes = total_modes;
-    rep.nbytesNames = total_name_len;
+    rep = (xRRGetScreenResourcesReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .timestamp = pScrPriv->lastSetTime.milliseconds,
+        .configTimestamp = pScrPriv->lastConfigTime.milliseconds,
+        .nCrtcs = total_crtcs,
+        .nOutputs = total_outputs,
+        .nModes = total_modes,
+        .nbytesNames = total_name_len
+    };
 
     rep.length = (total_crtcs + total_outputs + total_modes * bytes_to_int32(SIZEOF(xRRModeInfo)) +
                   bytes_to_int32(rep.nbytesNames));

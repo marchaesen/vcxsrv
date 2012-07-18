@@ -1561,6 +1561,79 @@ Fclose(pointer iop)
 
 #endif                          /* !WIN32 */
 
+#ifdef WIN32
+
+#include <X11/Xwindows.h>
+
+const char *
+Win32TempDir()
+{
+    static char buffer[PATH_MAX];
+
+    if (GetTempPath(sizeof(buffer), buffer)) {
+        int len;
+
+        buffer[sizeof(buffer) - 1] = 0;
+        len = strlen(buffer);
+        if (len > 0)
+            if (buffer[len - 1] == '\\')
+                buffer[len - 1] = 0;
+        return buffer;
+    }
+    if (getenv("TEMP") != NULL)
+        return getenv("TEMP");
+    else if (getenv("TMP") != NULL)
+        return getenv("TEMP");
+    else
+        return "/tmp";
+}
+
+int
+System(const char *cmdline)
+{
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+    DWORD dwExitCode;
+    char *cmd = strdup(cmdline);
+
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    ZeroMemory(&pi, sizeof(pi));
+
+    if (!CreateProcess(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+        LPVOID buffer;
+
+        if (!FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                           FORMAT_MESSAGE_FROM_SYSTEM |
+                           FORMAT_MESSAGE_IGNORE_INSERTS,
+                           NULL,
+                           GetLastError(),
+                           MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                           (LPTSTR) & buffer, 0, NULL)) {
+            ErrorF("[xkb] Starting '%s' failed!\n", cmdline);
+        }
+        else {
+            ErrorF("[xkb] Starting '%s' failed: %s", cmdline, (char *) buffer);
+            LocalFree(buffer);
+        }
+
+        free(cmd);
+        return -1;
+    }
+    /* Wait until child process exits. */
+    WaitForSingleObject(pi.hProcess, INFINITE);
+
+    GetExitCodeProcess(pi.hProcess, &dwExitCode);
+
+    /* Close process and thread handles. */
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    free(cmd);
+
+    return dwExitCode;
+}
+#endif
+
 /*
  * CheckUserParameters: check for long command line arguments and long
  * environment variables.  By default, these checks are only done when

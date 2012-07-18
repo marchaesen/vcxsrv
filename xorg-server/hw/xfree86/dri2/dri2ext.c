@@ -550,15 +550,16 @@ static int
 ProcDRI2GetParam(ClientPtr client)
 {
     REQUEST(xDRI2GetParamReq);
-    xDRI2GetParamReply rep;
+    xDRI2GetParamReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0
+    };
     DrawablePtr pDrawable;
     CARD64 value;
     int status;
 
     REQUEST_SIZE_MATCH(xDRI2GetParamReq);
-    rep.type = X_Reply;
-    rep.length = 0;
-    rep.sequenceNumber = client->sequence;
 
     if (!validDrawable(client, stuff->drawable, DixReadAccess,
                        &pDrawable, &status))

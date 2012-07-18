@@ -380,21 +380,21 @@ InitQueue(WMMsgQueuePtr pQueue)
     pQueue->nQueueSize = 0;
 
 #if CYGMULTIWINDOW_DEBUG
-    ErrorF("InitQueue - Queue Size %d %d\n", pQueue->nQueueSize,
-           QueueSize(pQueue));
+    winDebug("InitQueue - Queue Size %d %d\n", pQueue->nQueueSize,
+             QueueSize(pQueue));
 #endif
 
-    ErrorF("InitQueue - Calling pthread_mutex_init\n");
+    winDebug("InitQueue - Calling pthread_mutex_init\n");
 
     /* Create synchronization objects */
     pthread_mutex_init(&pQueue->pmMutex, NULL);
 
-    ErrorF("InitQueue - pthread_mutex_init returned\n");
-    ErrorF("InitQueue - Calling pthread_cond_init\n");
+    winDebug("InitQueue - pthread_mutex_init returned\n");
+    winDebug("InitQueue - Calling pthread_cond_init\n");
 
     pthread_cond_init(&pQueue->pcNotEmpty, NULL);
 
-    ErrorF("InitQueue - pthread_cond_init returned\n");
+    winDebug("InitQueue - pthread_cond_init returned\n");
 
     return TRUE;
 }
@@ -477,23 +477,23 @@ SendXMessage(Display * pDisplay, Window iWin, Atom atmType, long nData)
 }
 
 /*
- * Updates the name of a HWND according to its X WM_NAME property
+ * See if we can get the stored HWND for this window...
  */
-
-static void
-UpdateName(WMInfoPtr pWMInfo, Window iWindow)
+static HWND
+getHwnd(WMInfoPtr pWMInfo, Window iWindow)
 {
-    wchar_t *pszName;
     Atom atmType;
     int fmtRet;
     unsigned long items, remain;
-    HWND *retHwnd, hWnd;
-    XWindowAttributes attr;
+    HWND *retHwnd, hWnd = NULL;
 
-    hWnd = 0;
-
-    /* See if we can get the cached HWND for this window... */
-    if (XGetWindowProperty(pWMInfo->pDisplay, iWindow, pWMInfo->atmPrivMap, 0, 1, False, XA_INTEGER,    //pWMInfo->atmPrivMap,
+    if (XGetWindowProperty(pWMInfo->pDisplay,
+                           iWindow,
+                           pWMInfo->atmPrivMap,
+                           0,
+                           1,
+                           False,
+                           XA_INTEGER,
                            &atmType,
                            &fmtRet,
                            &items,
@@ -506,8 +506,26 @@ UpdateName(WMInfoPtr pWMInfo, Window iWindow)
 
     /* Some sanity checks */
     if (!hWnd)
-        return;
+        return NULL;
     if (!IsWindow(hWnd))
+        return NULL;
+
+    return hWnd;
+}
+
+/*
+ * Updates the name of a HWND according to its X WM_NAME property
+ */
+
+static void
+UpdateName(WMInfoPtr pWMInfo, Window iWindow)
+{
+    wchar_t *pszName;
+    HWND hWnd;
+    XWindowAttributes attr;
+
+    hWnd = getHwnd(pWMInfo, iWindow);
+    if (!hWnd)
         return;
 
     /* Set the Windows window name */
@@ -532,27 +550,12 @@ UpdateName(WMInfoPtr pWMInfo, Window iWindow)
 static void
 PreserveWin32Stack(WMInfoPtr pWMInfo, Window iWindow, UINT direction)
 {
-    Atom atmType;
-    int fmtRet;
-    unsigned long items, remain;
-    HWND hWnd, *retHwnd;
+    HWND hWnd;
     DWORD myWinProcID, winProcID;
     Window xWindow;
     WINDOWPLACEMENT wndPlace;
 
-    hWnd = NULL;
-    /* See if we can get the cached HWND for this window... */
-    if (XGetWindowProperty(pWMInfo->pDisplay, iWindow, pWMInfo->atmPrivMap, 0, 1, False, XA_INTEGER,    //pWMInfo->atmPrivMap,
-                           &atmType,
-                           &fmtRet,
-                           &items,
-                           &remain, (unsigned char **) &retHwnd) == Success) {
-        if (retHwnd) {
-            hWnd = *retHwnd;
-            XFree(retHwnd);
-        }
-    }
-
+    hWnd = getHwnd(pWMInfo, iWindow);
     if (!hWnd)
         return;
 
@@ -802,7 +805,7 @@ winMultiWindowXMsgProc(void *pArg)
     int iReturn;
     XIconSize *xis;
 
-    ErrorF("winMultiWindowXMsgProc - Hello\n");
+    winDebug("winMultiWindowXMsgProc - Hello\n");
 
     /* Check that argument pointer is not invalid */
     if (pProcArg == NULL) {
@@ -1172,7 +1175,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     char pszDisplay[512];
     int iReturn;
 
-    ErrorF("winInitMultiWindowWM - Hello\n");
+    winDebug("winInitMultiWindowWM - Hello\n");
 
     /* Check that argument pointer is not invalid */
     if (pProcArg == NULL) {

@@ -313,18 +313,22 @@ exit silently and don't display any error message.
 .B "\-xkbvariant \fIvariant\fp"
 These options configure the xkeyboard extension to load
 a particular keyboard map as the X server starts.  The behavior is similar
-to the \fIsetxkbmap\fP program.  The layout data is located at \fI
-__datadir__/X11/xkb/\fP.  Additional information is found in the
-README files therein and in the man page of \fIsetxkbmap\fP.  For example
-in order to load a German layout for a pc105 keyboard one uses
-the options:
+to the \fIsetxkbmap\fP(1) program.
+
+See the \fIxkeyboard-config\fP(__miscmansuffix__) manual page for a list of
+keyboard configurations.
+
+The keyboard layout data is located at \fI__datadir__/X11/xkb/\fP.  Additional information
+can be found in the README files there and in the \fIsetxkbmap\fP(1) manual page.
+
+For example, in order to load a German layout for a pc105 keyboard, use the options:
 .br
 .I " \-xkblayout de \-xkbmodel pc105"
 
-Alternatively one may use the \fIsetxkbmap\fP program after \fIXWin\fP is
+Alternatively, you can use the \fIsetxkbmap\fP(1) program after \fIXWin\fP is
 running.
 
-The default is to select a configuration matching your current layout as
+The default is to select a keyboard configuration matching your current layout as
 reported by \fIWindows\fP, if known, or the default X server configuration
 if no matching keyboard configuration was found.
 
@@ -370,7 +374,7 @@ window, in both the generic case and for particular programs.
 * To change the style that is associated to the \fIWindows\fP window that
 \fXWin I-multiwindow\fP produces for each top-level X window.
 .PP
-The format of the \fI.XWinrc\fP file is given in the man page XWinrc(5).
+The format of the \fI.XWinrc\fP file is given in the XWinrc(5) manual page.
 
 .SH EXAMPLES
 Need some examples
@@ -378,15 +382,15 @@ Need some examples
 
 .SH "SEE ALSO"
 X(__miscmansuffix__), Xserver(1), xdm(1), xinit(1), XWinrc(__filemansuffix__),
-setxkbmap(1), xkeyboard-config (__miscmansuffix__).
+setxkbmap(1), xkeyboard-config(__miscmansuffix__).
 
 
 .SH BUGS
 .I XWin
-and this man page still have many limitations.
+and this manual page still have many limitations.
 
 The \fIXWin\fP software is continuously developing; it is therefore possible that
-this man page is not up to date.  It is always prudent to
+this manual page is not up to date.  It is always prudent to
 look also at the output of \fIXWin -help\fP in order to
 check the options that are operative.
 

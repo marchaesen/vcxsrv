@@ -1056,11 +1056,12 @@ int
 ProcXineramaQueryScreens(ClientPtr client)
 {
     /* REQUEST(xXineramaQueryScreensReq); */
+    CARD32 number = (noPanoramiXExtension) ? 0 : PanoramiXNumScreens;
     xXineramaQueryScreensReply rep = {
         .type = X_Reply,
         .sequenceNumber = client->sequence,
-        .length = bytes_to_int32(rep.number * sz_XineramaScreenInfo),
-        .number = (noPanoramiXExtension) ? 0 : PanoramiXNumScreens
+        .length = bytes_to_int32(number * sz_XineramaScreenInfo),
+        .number = number
     };
 
     REQUEST_SIZE_MATCH(xXineramaQueryScreensReq);

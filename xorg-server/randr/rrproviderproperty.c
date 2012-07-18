@@ -65,14 +65,14 @@ RRDestroyProviderProperty(RRPropertyPtr prop)
 static void
 RRDeleteProperty(RRProviderRec * provider, RRPropertyRec * prop)
 {
-    xRRProviderPropertyNotifyEvent event;
-
-    event.type = RREventBase + RRNotify;
-    event.subCode = RRNotify_ProviderProperty;
-    event.provider = provider->id;
-    event.state = PropertyDelete;
-    event.atom = prop->propertyName;
-    event.timestamp = currentTime.milliseconds;
+    xRRProviderPropertyNotifyEvent event = {
+        .type = RREventBase + RRNotify,
+        .subCode = RRNotify_ProviderProperty,
+        .provider = provider->id,
+        .state = PropertyDelete,
+        .atom = prop->propertyName,
+        .timestamp = currentTime.milliseconds
+    };
 
     RRDeliverPropertyEvent(provider->pScreen, (xEvent *) &event);
 
@@ -138,7 +138,6 @@ RRChangeProviderProperty(RRProviderPtr provider, Atom property, Atom type,
                        pointer value, Bool sendevent, Bool pending)
 {
     RRPropertyPtr prop;
-    xRRProviderPropertyNotifyEvent event;
     rrScrPrivPtr pScrPriv = rrGetScrPriv(provider->pScreen);
     int size_in_bytes;
     int total_size;
@@ -237,12 +236,14 @@ RRChangeProviderProperty(RRProviderPtr provider, Atom property, Atom type,
         provider->pendingProperties = TRUE;
 
     if (sendevent) {
-        event.type = RREventBase + RRNotify;
-        event.subCode = RRNotify_ProviderProperty;
-        event.provider = provider->id;
-        event.state = PropertyNewValue;
-        event.atom = prop->propertyName;
-        event.timestamp = currentTime.milliseconds;
+        xRRProviderPropertyNotifyEvent event = {
+            .type = RREventBase + RRNotify,
+            .subCode = RRNotify_ProviderProperty,
+            .provider = provider->id,
+            .state = PropertyNewValue,
+            .atom = prop->propertyName,
+            .timestamp = currentTime.milliseconds
+        };
         RRDeliverPropertyEvent(provider->pScreen, (xEvent *) &event);
     }
     return Success;
@@ -394,10 +395,12 @@ ProcRRListProviderProperties(ClientPtr client)
         if (!(pAtoms = (Atom *) malloc(numProps * sizeof(Atom))))
             return BadAlloc;
 
-    rep.type = X_Reply;
-    rep.length = bytes_to_int32(numProps * sizeof(Atom));
-    rep.sequenceNumber = client->sequence;
-    rep.nAtoms = numProps;
+    rep = (xRRListProviderPropertiesReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = bytes_to_int32(numProps * sizeof(Atom)),
+        .nAtoms = numProps
+    };
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
@@ -438,12 +441,14 @@ ProcRRQueryProviderProperty(ClientPtr client)
         if (!extra)
             return BadAlloc;
     }
-    rep.type = X_Reply;
-    rep.length = prop->num_valid;
-    rep.sequenceNumber = client->sequence;
-    rep.pending = prop->is_pending;
-    rep.range = prop->range;
-    rep.immutable = prop->immutable;
+    rep = (xRRQueryProviderPropertyReply) {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = prop->num_valid,
+        .pending = prop->is_pending,
+        .range = prop->range,
+        .immutable = prop->immutable
+    };
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
@@ -568,7 +573,10 @@ ProcRRGetProviderProperty(ClientPtr client)
     RRPropertyValuePtr prop_value;
     unsigned long n, len, ind;
     RRProviderPtr provider;
-    xRRGetProviderPropertyReply reply;
+    xRRGetProviderPropertyReply reply = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence
+    };
     char *extra = NULL;
 
     REQUEST_SIZE_MATCH(xRRGetProviderPropertyReq);
@@ -594,8 +602,6 @@ ProcRRGetProviderProperty(ClientPtr client)
         if (prop->propertyName == stuff->property)
             break;
 
-    reply.type = X_Reply;
-    reply.sequenceNumber = client->sequence;
     if (!prop) {
         reply.nItems = 0;
         reply.length = 0;
@@ -672,14 +678,14 @@ ProcRRGetProviderProperty(ClientPtr client)
     reply.propertyType = prop_value->type;
 
     if (stuff->delete && (reply.bytesAfter == 0)) {
-        xRRProviderPropertyNotifyEvent event;
-
-        event.type = RREventBase + RRNotify;
-        event.subCode = RRNotify_ProviderProperty;
-        event.provider = provider->id;
-        event.state = PropertyDelete;
-        event.atom = prop->propertyName;
-        event.timestamp = currentTime.milliseconds;
+        xRRProviderPropertyNotifyEvent event = {
+            .type = RREventBase + RRNotify,
+            .subCode = RRNotify_ProviderProperty,
+            .provider = provider->id,
+            .state = PropertyDelete,
+            .atom = prop->propertyName,
+            .timestamp = currentTime.milliseconds
+        };
         RRDeliverPropertyEvent(provider->pScreen, (xEvent *) &event);
     }
 

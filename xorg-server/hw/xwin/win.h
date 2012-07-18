@@ -388,6 +388,7 @@ typedef struct {
     DWORD dwScreen;
 
     int iMonitor;
+    HMONITOR hMonitor;
     DWORD dwUserWidth;
     DWORD dwUserHeight;
     DWORD dwWidth;
@@ -578,7 +579,6 @@ typedef struct _winPrivScreenRec {
     UnrealizeWindowProcPtr UnrealizeWindow;
     ValidateTreeProcPtr ValidateTree;
     PostValidateTreeProcPtr PostValidateTree;
-    WindowExposuresProcPtr WindowExposures;
     CopyWindowProcPtr CopyWindow;
     ClearToBackgroundProcPtr ClearToBackground;
     ClipNotifyProcPtr ClipNotify;
