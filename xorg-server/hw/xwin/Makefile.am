@@ -5,7 +5,6 @@ SRCS_CLIPBOARD = \
 	winclipboardinit.c \
 	winclipboardtextconv.c \
 	winclipboardthread.c \
-	winclipboardunicode.c \
 	winclipboardwndproc.c \
 	winclipboardwrappers.c \
 	winclipboardxevents.c

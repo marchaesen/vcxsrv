@@ -142,7 +142,7 @@ winMessageBoxF(const char *pszError, UINT uType, ...)
     size = asprintf(&pszMsgBox, MESSAGEBOXF,
                     pszErrorF, XVENDORNAME,
                     XORG_VERSION_MAJOR, XORG_VERSION_MINOR, XORG_VERSION_PATCH,
-		    XORG_VERSION_SNAP,
+                    XORG_VERSION_SNAP,
                     BUILDERADDR, BUILDERSTRING, g_pszCommandLine);
 
     if (size == -1) {

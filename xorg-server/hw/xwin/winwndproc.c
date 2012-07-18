@@ -137,7 +137,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             s_pScreenPriv->hwndScreen = hwnd;
 
-            winInitNotifyIcon (s_pScreenPriv,FALSE);
+            winInitNotifyIcon(s_pScreenPriv,FALSE);
         }
         return 0;
 
@@ -328,14 +328,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         break;
       
-      case WM_SYSCOMMAND:
-          if (wParam == SC_MAXIMIZE||wParam == SC_RESTORE)
-          {
-              winDebug("Posting WM_EXITSIZEMOVE message since windows does not send it when the maximised/restored button is clicked.\n");
-              PostMessage(hwnd, WM_EXITSIZEMOVE, 0, 0);
-          }
-        break;
-
     case WM_SIZE:
     {
         SCROLLINFO si;
@@ -442,6 +434,15 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
         return 0;
       
+      case WM_SYSCOMMAND:
+          if ((wParam & 0xfff0) == SC_MAXIMIZE ||
+              (wParam & 0xfff0) == SC_RESTORE)
+          {
+              winDebug("Posting WM_EXITSIZEMOVE message since windows does not send it when the maximised/restored button is clicked.\n");
+              PostMessage(hwnd, WM_EXITSIZEMOVE, 0, 0);
+          }
+        break;
+
     case WM_ENTERSIZEMOVE:
         winDebug("winWindowProc - WM_ENTERSIZEMOVE\n");
         break;
@@ -1161,7 +1162,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 #ifdef XWIN_CLIPBOARD
         /* Make sure the clipboard chain is ok. */
-        winFixClipboardChain (0);
+        winFixClipboardChain(0);
 #endif
 
         /* Call engine specific screen activation/deactivation function */
@@ -1213,7 +1214,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (s_pScreenInfo->fMultiWindow)
             winDeinitMultiWindowWM();
 #endif
-      g_fClipboardStarted=FALSE; /* This is to avoid dead-locls caused by the clipboard thread still doing some stuff */
+        g_fClipboardStarted=FALSE; /* This is to avoid dead-locls caused by the clipboard thread still doing some stuff */
         GiveUp(0);
         return 0;
 
@@ -1232,7 +1233,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 #ifdef XWIN_MULTIWINDOWEXTWM
     case WM_MANAGE:
-        winDebug ("winWindowProc - WM_MANAGE\n");
+        winDebug("winWindowProc - WM_MANAGE\n");
         s_pScreenInfo->fAnotherWMRunning = FALSE;
 
 #ifdef XWIN_MULTIWINDOWINTWM
@@ -1244,7 +1245,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_UNMANAGE:
-        winDebug ("winWindowProc - WM_UNMANAGE\n");
+        winDebug("winWindowProc - WM_UNMANAGE\n");
         s_pScreenInfo->fAnotherWMRunning = TRUE;
 
 #ifdef XWIN_MULTIWINDOWINTWM
@@ -1258,7 +1259,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     default:
         if (message == s_uTaskbarRestart) {
-            winInitNotifyIcon (s_pScreenPriv,FALSE);
+            winInitNotifyIcon(s_pScreenPriv,FALSE);
         }
         break;
     }

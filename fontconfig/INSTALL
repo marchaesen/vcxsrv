@@ -32,7 +32,7 @@ important steps:
 	
  6.	Update the fontconfig documentation
 
-		scp -rp doc/fontconfig-user.html doc/fontconfig-devel fontconfig.org:/srv/www.freedesktop.org/www/software/fontconfig
+		scp -rp doc/fontconfig-user.html doc/fontconfig-devel freedesktop.org:/srv/www.freedesktop.org/www/software/fontconfig
 
  7.	Compute md5sums for release files:
 		md5sum fontconfig-2.4.x.tar.gz ChangeLog-2.4.x

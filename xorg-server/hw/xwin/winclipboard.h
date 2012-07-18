@@ -110,13 +110,6 @@ void
  winDeinitClipboard(void);
 
 /*
- * winclipboardunicode.c
- */
-
-Bool
- winClipboardDetectUnicodeSupport(void);
-
-/*
  * winclipboardwndproc.c
  */
 

@@ -61,7 +61,7 @@ extern HWND g_hwndClipboard;
 Bool
 winInitClipboard(void)
 {
-    winDebug ("winInitClipboard ()\n");
+    winDebug("winInitClipboard ()\n");
 
     /* Wrap some internal server functions */
     if (ProcVector[X_SetSelectionOwner] != winProcSetSelectionOwner) {

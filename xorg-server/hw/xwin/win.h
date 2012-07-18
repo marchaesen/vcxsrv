@@ -349,8 +349,7 @@ typedef struct {
     DWORD dwScreen;
 
     int iMonitor;
-  HMONITOR              hMonitor;
-
+    HMONITOR hMonitor;
     DWORD dwUserWidth;
     DWORD dwUserHeight;
     DWORD dwWidth;

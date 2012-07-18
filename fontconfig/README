@@ -1,11 +1,20 @@
                               Fontconfig
              Font configuration and customization library
-                       Version 2.9.92 (2.10 RC2)
+                            Version 2.10.0
                               2012-03-11
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.10.0
+
+Akira TAGOH (5):
+      Bug 34266 - configs silently ignored if libxml2 doesn't support SAX1 interface
+      Update CaseFolding.txt to Unicode 6.1
+      Fix a build fail with gcc 2.95, not supporting the flexible array members.
+      Bump libtool revision
+      Update INSTALL
 
 2.9.92 (2.10 RC2)
 

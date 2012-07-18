@@ -29,25 +29,25 @@
 #include "extnsionst.h"
 
 #ifdef XF86DRI
-extern Bool noXFree86DRIExtension;
+extern _X_EXPORT Bool noXFree86DRIExtension;
 extern void XFree86DRIExtensionInit(void);
 #endif
 
 #ifdef DRI2
 #include <X11/extensions/dri2proto.h>
-extern Bool noDRI2Extension;
+extern _X_EXPORT Bool noDRI2Extension;
 extern void DRI2ExtensionInit(void);
 #endif
 
 #ifdef XF86VIDMODE
 #include <X11/extensions/xf86vmproto.h>
-extern Bool noXFree86VidModeExtension;
+extern _X_EXPORT Bool noXFree86VidModeExtension;
 extern void XFree86VidModeExtensionInit(void);
 #endif
 
 #ifdef XFreeXDGA
 #include <X11/extensions/xf86dgaproto.h>
-extern Bool noXFree86DGAExtension;
+extern _X_EXPORT Bool noXFree86DGAExtension;
 extern void XFree86DGAExtensionInit(void);
 extern void XFree86DGARegister(void);
 #endif

@@ -354,8 +354,8 @@ InitQueue(WMMsgQueuePtr pQueue)
   #ifdef _DEBUG
     pQueue->nQueueSize = 0;
 
-    winDebug ("InitQueue - Queue Size %d %d\n", pQueue->nQueueSize,
-           QueueSize(pQueue));
+    winDebug("InitQueue - Queue Size %d %d\n", pQueue->nQueueSize,
+             QueueSize(pQueue));
   #endif
 
     winDebug ("InitQueue - Calling pthread_mutex_init\n");
@@ -444,23 +444,23 @@ SendXMessage(Display * pDisplay, Window iWin, Atom atmType, long nData)
 }
 
 /*
- * Updates the name of a HWND according to its X WM_NAME property
+ * See if we can get the stored HWND for this window...
  */
-
-static void
-UpdateName(WMInfoPtr pWMInfo, Window iWindow)
+static HWND
+getHwnd(WMInfoPtr pWMInfo, Window iWindow)
 {
-    wchar_t *pszName;
     Atom atmType;
     int fmtRet;
     unsigned long items, remain;
-    HWND *retHwnd, hWnd;
-    XWindowAttributes attr;
+    HWND *retHwnd, hWnd = NULL;
 
-    hWnd = 0;
-
-    /* See if we can get the cached HWND for this window... */
-    if (XGetWindowProperty(pWMInfo->pDisplay, iWindow, pWMInfo->atmPrivMap, 0, 1, False, XA_INTEGER,    //pWMInfo->atmPrivMap,
+    if (XGetWindowProperty(pWMInfo->pDisplay,
+                           iWindow,
+                           pWMInfo->atmPrivMap,
+                           0,
+                           1,
+                           False,
+                           XA_INTEGER,
                            &atmType,
                            &fmtRet,
                            &items,
@@ -473,8 +473,26 @@ UpdateName(WMInfoPtr pWMInfo, Window iWindow)
 
     /* Some sanity checks */
     if (!hWnd)
-        return;
+        return NULL;
     if (!IsWindow(hWnd))
+        return NULL;
+
+    return hWnd;
+}
+
+/*
+ * Updates the name of a HWND according to its X WM_NAME property
+ */
+
+static void
+UpdateName(WMInfoPtr pWMInfo, Window iWindow)
+{
+    wchar_t *pszName;
+    HWND hWnd;
+    XWindowAttributes attr;
+
+    hWnd = getHwnd(pWMInfo, iWindow);
+    if (!hWnd)
         return;
 
     /* Set the Windows window name */
@@ -499,27 +517,12 @@ UpdateName(WMInfoPtr pWMInfo, Window iWindow)
 static void
 PreserveWin32Stack(WMInfoPtr pWMInfo, Window iWindow, UINT direction)
 {
-    Atom atmType;
-    int fmtRet;
-    unsigned long items, remain;
-    HWND hWnd, *retHwnd;
+    HWND hWnd;
     DWORD myWinProcID, winProcID;
     Window xWindow;
     WINDOWPLACEMENT wndPlace;
 
-    hWnd = NULL;
-    /* See if we can get the cached HWND for this window... */
-    if (XGetWindowProperty(pWMInfo->pDisplay, iWindow, pWMInfo->atmPrivMap, 0, 1, False, XA_INTEGER,    //pWMInfo->atmPrivMap,
-                           &atmType,
-                           &fmtRet,
-                           &items,
-                           &remain, (unsigned char **) &retHwnd) == Success) {
-        if (retHwnd) {
-            hWnd = *retHwnd;
-            XFree(retHwnd);
-        }
-    }
-
+    hWnd = getHwnd(pWMInfo, iWindow);
     if (!hWnd)
         return;
 
@@ -750,7 +753,7 @@ winMultiWindowXMsgProc(void *pArg)
 
     pthread_cleanup_push(&winMultiWindowThreadExit, NULL);
 
-    winDebug ("winMultiWindowXMsgProc - Hello\n");
+    winDebug("winMultiWindowXMsgProc - Hello\n");
 
     /* Check that argument pointer is not invalid */
     if (pProcArg == NULL) {
@@ -1121,7 +1124,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     char pszDisplay[512];
     int iReturn;
 
-    winDebug ("winInitMultiWindowWM - Hello\n");
+    winDebug("winInitMultiWindowWM - Hello\n");
 
     /* Check that argument pointer is not invalid */
     if (pProcArg == NULL) {
@@ -1431,9 +1434,9 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
     Atom type, *pAtom = NULL;
     int format;
     unsigned long hint = 0, maxmin = 0, style, nitems = 0, left = 0;
-  WindowPtr		pWin = GetProp (hWnd, WIN_WINDOW_PROP);
+    WindowPtr pWin = GetProp (hWnd, WIN_WINDOW_PROP);
     MwmHints *mwm_hint = NULL;
-  WinXSizeHints         SizeHints;
+    WinXSizeHints SizeHints;
 
     if (!hWnd)
         return;

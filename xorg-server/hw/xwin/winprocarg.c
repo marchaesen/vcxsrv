@@ -102,14 +102,15 @@ winInitializeScreenDefaults(void)
             int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
 
             winDebug(
-                     "winInitializeDefaultScreens - native DPI x %d y %d\n",
+                     "winInitializeScreenDefaults - native DPI x %d y %d\n",
                      dpiX, dpiY);
+
             monitorResolution = dpiY;
             ReleaseDC(NULL, hdc);
         }
         else {
             winDebug(
-                     "winInitializeDefaultScreens - Failed to retrieve native DPI, falling back to default of %d DPI\n",
+                     "winInitializeScreenDefaults - Failed to retrieve native DPI, falling back to default of %d DPI\n",
                      WIN_DEFAULT_DPI);
             monitorResolution = WIN_DEFAULT_DPI;
         }

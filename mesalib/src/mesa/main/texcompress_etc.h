@@ -24,6 +24,7 @@
 #ifndef TEXCOMPRESS_ETC1_H
 #define TEXCOMPRESS_ETC1_H
 
+#include <inttypes.h>
 #include "glheader.h"
 #include "mfeatures.h"
 #include "texstore.h"
@@ -36,5 +37,13 @@ _mesa_texstore_etc1_rgb8(TEXSTORE_PARAMS);
 void
 _mesa_fetch_texel_2d_f_etc1_rgb8(const struct swrast_texture_image *texImage,
                                  GLint i, GLint j, GLint k, GLfloat *texel);
+
+void
+_mesa_etc1_unpack_rgba8888(uint8_t *dst_row,
+                           unsigned dst_stride,
+                           const uint8_t *src_row,
+                           unsigned src_stride,
+                           unsigned src_width,
+                           unsigned src_height);
 
 #endif

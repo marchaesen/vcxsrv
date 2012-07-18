@@ -53,7 +53,6 @@
  */
 
 extern Bool g_fUseUnicode;
-extern Bool g_fUnicodeSupport;
 extern void *g_pClipboardDisplay;
 extern Window g_iClipboardWindow;
 extern Atom g_atomLastOwnedSelection;
@@ -65,6 +64,7 @@ extern Bool		g_fClipboardPrimary;
  */
 
 static int
+
 
 winProcessXEventsTimeout(HWND hwnd, int iWindow, Display * pDisplay,
                          Bool fUseUnicode, int iTimeoutSec);
@@ -421,7 +421,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (message == WM_RENDERALLFORMATS)
             fConvertToUnicode = FALSE;
         else
-            fConvertToUnicode = g_fUnicodeSupport && (CF_UNICODETEXT == wParam);
+            fConvertToUnicode = (CF_UNICODETEXT == wParam);
 
         /* Request the selection contents */
         iReturn = XConvertSelection(pDisplay,
@@ -472,8 +472,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (WIN_XEVENTS_NOTIFY != iReturn) {
             ErrorF("winClipboardWindowProc - winProcessXEventsTimeout should have returned WIN_XEVENTS_NOTIFY was %d\n",iReturn);
             /* Paste no data, to satisfy required call to SetClipboardData */
-            if (g_fUnicodeSupport)
-                SetClipboardData(CF_UNICODETEXT, NULL);
+            SetClipboardData(CF_UNICODETEXT, NULL);
             SetClipboardData(CF_TEXT, NULL);
 
             ErrorF

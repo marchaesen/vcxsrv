@@ -86,23 +86,26 @@ ProcRRGetProviders (ClientPtr client)
     }
 
     pScrPriv = rrGetScrPriv(pScreen);
-    rep.pad = 0;
 
     if (!pScrPriv)
     {
-        rep.type = X_Reply;
-        rep.sequenceNumber = client->sequence;
-        rep.length = 0;
-        rep.timestamp = currentTime.milliseconds;
-        rep.nProviders = 0;
+        rep = (xRRGetProvidersReply) {
+            .type = X_Reply,
+            .sequenceNumber = client->sequence,
+            .length = 0,
+            .timestamp = currentTime.milliseconds,
+            .nProviders = 0
+        };
         extra = NULL;
         extraLen = 0;
     } else {
-        rep.type = X_Reply;
-        rep.sequenceNumber = client->sequence;
-        rep.timestamp = pScrPriv->lastSetTime.milliseconds;
-        rep.nProviders = total_providers;
-        rep.length = total_providers;
+        rep = (xRRGetProvidersReply) {
+            .type = X_Reply,
+            .sequenceNumber = client->sequence,
+            .timestamp = pScrPriv->lastSetTime.milliseconds,
+            .nProviders = total_providers,
+            .length = total_providers
+        };
         extraLen = rep.length << 2;
         if (extraLen) {
             extra = malloc(extraLen);
@@ -163,18 +166,20 @@ ProcRRGetProviderInfo (ClientPtr client)
     pScreen = provider->pScreen;
     pScrPriv = rrGetScrPriv(pScreen);
 
-    rep.type = X_Reply;
-    rep.status = RRSetConfigSuccess;
-    rep.sequenceNumber = client->sequence;
-    rep.length = 0;
-    rep.capabilities = provider->capabilities;
-    rep.nameLength = provider->nameLength;
-    rep.timestamp = pScrPriv->lastSetTime.milliseconds;
-    rep.nCrtcs = pScrPriv->numCrtcs;
-    rep.nOutputs = pScrPriv->numOutputs;
+    rep = (xRRGetProviderInfoReply) {
+        .type = X_Reply,
+        .status = RRSetConfigSuccess,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .capabilities = provider->capabilities,
+        .nameLength = provider->nameLength,
+        .timestamp = pScrPriv->lastSetTime.milliseconds,
+        .nCrtcs = pScrPriv->numCrtcs,
+        .nOutputs = pScrPriv->numOutputs,
+        .nAssociatedProviders = 0
+    };
 
     /* count associated providers */
-    rep.nAssociatedProviders = 0;
     if (provider->offload_sink)
         rep.nAssociatedProviders++;
     if (provider->output_source)

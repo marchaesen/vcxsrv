@@ -44,12 +44,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #ifdef WIN32
 /* from ddxLoad.c */
-extern const char *Win32TempDir(void);
-extern int Win32System(const char *cmdline);
-
-#undef System
-#define System Win32System
-
 #define W32_tmparg " '%s'"
 #define W32_tmpfile ,tmpname
 #define W32_tmplen strlen(tmpname)+3
