@@ -404,8 +404,6 @@ one_time_init( struct gl_context *ctx )
 
       _mesa_get_cpu_features();
 
-      _mesa_init_sqrt_table();
-
       /* context dependence is never a one-time thing... */
       _mesa_init_get_hash(ctx);
 
@@ -433,7 +431,7 @@ one_time_init( struct gl_context *ctx )
        * when an app is linked to libGLES*, there are not enough dynamic
        * entries.
        */
-      if (ctx->API == API_OPENGL)
+      if (_mesa_is_desktop_gl(ctx))
          _mesa_init_remap_table();
    }
 
@@ -628,7 +626,7 @@ _mesa_init_constants(struct gl_context *ctx)
 #endif
 
    /* Shading language version */
-   if (ctx->API == API_OPENGL) {
+   if (_mesa_is_desktop_gl(ctx)) {
       ctx->Const.GLSLVersion = 120;
       _mesa_override_glsl_version(ctx);
    }
@@ -844,7 +842,10 @@ update_default_objects(struct gl_context *ctx)
 static int
 generic_nop(void)
 {
-   _mesa_warning(NULL, "User called no-op dispatch function (an unsupported extension function?)");
+   GET_CURRENT_CONTEXT(ctx);
+   _mesa_error(ctx, GL_INVALID_OPERATION,
+               "unsupported function called "
+               "(unsupported extension or deprecated function?)");
    return 0;
 }
 
@@ -961,7 +962,8 @@ _mesa_initialize_context(struct gl_context *ctx,
    switch (ctx->API) {
 #if FEATURE_GL
    case API_OPENGL:
-      ctx->Exec = _mesa_create_exec_table();
+   case API_OPENGL_CORE:
+      ctx->Exec = _mesa_create_exec_table(ctx);
       break;
 #endif
 #if FEATURE_ES1
@@ -1006,6 +1008,7 @@ _mesa_initialize_context(struct gl_context *ctx,
 
    switch (ctx->API) {
    case API_OPENGL:
+   case API_OPENGL_CORE:
 #if FEATURE_dlist
       ctx->Save = _mesa_create_save_table();
       if (!ctx->Save) {
@@ -1455,8 +1458,8 @@ _mesa_make_current( struct gl_context *newCtx,
       _glapi_set_dispatch(newCtx->CurrentDispatch);
 
       if (drawBuffer && readBuffer) {
-         ASSERT(drawBuffer->Name == 0);
-         ASSERT(readBuffer->Name == 0);
+         ASSERT(_mesa_is_winsys_fbo(drawBuffer));
+         ASSERT(_mesa_is_winsys_fbo(readBuffer));
          _mesa_reference_framebuffer(&newCtx->WinSysDrawBuffer, drawBuffer);
          _mesa_reference_framebuffer(&newCtx->WinSysReadBuffer, readBuffer);
 
@@ -1464,7 +1467,7 @@ _mesa_make_current( struct gl_context *newCtx,
           * Only set the context's Draw/ReadBuffer fields if they're NULL
           * or not bound to a user-created FBO.
           */
-         if (!newCtx->DrawBuffer || newCtx->DrawBuffer->Name == 0) {
+         if (!newCtx->DrawBuffer || _mesa_is_winsys_fbo(newCtx->DrawBuffer)) {
             _mesa_reference_framebuffer(&newCtx->DrawBuffer, drawBuffer);
             /* Update the FBO's list of drawbuffers/renderbuffers.
              * For winsys FBOs this comes from the GL state (which may have
@@ -1472,7 +1475,7 @@ _mesa_make_current( struct gl_context *newCtx,
              */
             _mesa_update_draw_buffers(newCtx);
          }
-         if (!newCtx->ReadBuffer || newCtx->ReadBuffer->Name == 0) {
+         if (!newCtx->ReadBuffer || _mesa_is_winsys_fbo(newCtx->ReadBuffer)) {
             _mesa_reference_framebuffer(&newCtx->ReadBuffer, readBuffer);
          }
 

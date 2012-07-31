@@ -45,7 +45,6 @@
  * \defgroup MatFlags MAT_FLAG_XXX-flags
  *
  * Bitmasks to indicate different kinds of 4x4 matrices in GLmatrix::flags
- * It would be nice to make all these flags private to m_matrix.c
  */
 /*@{*/
 #define MAT_FLAG_IDENTITY       0     /**< is an identity matrix flag.
@@ -296,19 +295,15 @@ static void print_matrix_floats( const GLfloat m[16] )
 void
 _math_matrix_print( const GLmatrix *m )
 {
+   GLfloat prod[16];
+
    _mesa_debug(NULL, "Matrix type: %s, flags: %x\n", types[m->type], m->flags);
    print_matrix_floats(m->m);
    _mesa_debug(NULL, "Inverse: \n");
-   if (m->inv) {
-      GLfloat prod[16];
-      print_matrix_floats(m->inv);
-      matmul4(prod, m->m, m->inv);
-      _mesa_debug(NULL, "Mat * Inverse:\n");
-      print_matrix_floats(prod);
-   }
-   else {
-      _mesa_debug(NULL, "  - not available\n");
-   }
+   print_matrix_floats(m->inv);
+   matmul4(prod, m->m, m->inv);
+   _mesa_debug(NULL, "Mat * Inverse:\n");
+   print_matrix_floats(prod);
 }
 
 /*@}*/
@@ -333,7 +328,7 @@ _math_matrix_print( const GLmatrix *m )
 /*@{*/
 
 /**
- * Swaps the values of two floating pointer variables.
+ * Swaps the values of two floating point variables.
  *
  * Used by invert_matrix_general() to swap the row pointers.
  */
@@ -513,7 +508,7 @@ static GLboolean invert_matrix_3d_general( GLmatrix *mat )
 
    det = pos + neg;
 
-   if (det*det < 1e-25)
+   if (FABSF(det) < 1e-25)
       return GL_FALSE;
 
    det = 1.0F / det;
@@ -1141,9 +1136,7 @@ void
 _math_matrix_set_identity( GLmatrix *mat )
 {
    memcpy( mat->m, Identity, 16*sizeof(GLfloat) );
-
-   if (mat->inv)
-      memcpy( mat->inv, Identity, 16*sizeof(GLfloat) );
+   memcpy( mat->inv, Identity, 16*sizeof(GLfloat) );
 
    mat->type = MATRIX_IDENTITY;
    mat->flags &= ~(MAT_DIRTY_FLAGS|
@@ -1444,17 +1437,9 @@ void
 _math_matrix_copy( GLmatrix *to, const GLmatrix *from )
 {
    memcpy( to->m, from->m, sizeof(Identity) );
+   memcpy(to->inv, from->inv, 16 * sizeof(GLfloat));
    to->flags = from->flags;
    to->type = from->type;
-
-   if (to->inv != 0) {
-      if (from->inv == 0) {
-	 matrix_invert( to );
-      }
-      else {
-	 memcpy(to->inv, from->inv, sizeof(GLfloat)*16);
-      }
-   }
 }
 
 /**
@@ -1486,7 +1471,9 @@ _math_matrix_ctr( GLmatrix *m )
    m->m = (GLfloat *) _mesa_align_malloc( 16 * sizeof(GLfloat), 16 );
    if (m->m)
       memcpy( m->m, Identity, sizeof(Identity) );
-   m->inv = NULL;
+   m->inv = (GLfloat *) _mesa_align_malloc( 16 * sizeof(GLfloat), 16 );
+   if (m->inv)
+      memcpy( m->inv, Identity, sizeof(Identity) );
    m->type = MATRIX_IDENTITY;
    m->flags = 0;
 }
@@ -1508,23 +1495,6 @@ _math_matrix_dtr( GLmatrix *m )
    if (m->inv) {
       _mesa_align_free( m->inv );
       m->inv = NULL;
-   }
-}
-
-/**
- * Allocate a matrix inverse.
- *
- * \param m matrix.
- *
- * Allocates the matrix inverse, GLmatrix::inv, and sets it to Identity.
- */
-void
-_math_matrix_alloc_inv( GLmatrix *m )
-{
-   if (!m->inv) {
-      m->inv = (GLfloat *) _mesa_align_malloc( 16 * sizeof(GLfloat), 16 );
-      if (m->inv)
-         memcpy( m->inv, Identity, 16 * sizeof(GLfloat) );
    }
 }
 

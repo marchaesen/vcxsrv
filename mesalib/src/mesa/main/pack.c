@@ -29,6 +29,19 @@
  */
 
 
+/*
+ * XXX: MSVC takes forever to compile this module for x86_64 unless we disable
+ * this global optimization.
+ *
+ * See also:
+ * - http://msdn.microsoft.com/en-us/library/1yk3ydd7.aspx
+ * - http://msdn.microsoft.com/en-us/library/chh3fb0k.aspx
+ */
+#if defined(_MSC_VER) && defined(_M_X64)
+#  pragma optimize( "g", off )
+#endif
+
+
 #include "glheader.h"
 #include "colormac.h"
 #include "enums.h"
@@ -39,6 +52,7 @@
 #include "pack.h"
 #include "pixeltransfer.h"
 #include "imports.h"
+#include "glformats.h"
 #include "../../gallium/auxiliary/util/u_format_rgb9e5.h"
 #include "../../gallium/auxiliary/util/u_format_r11g11b10f.h"
 
@@ -500,26 +514,29 @@ _mesa_pack_rgba_span_int(struct gl_context *ctx, GLuint n, GLuint rgba[][4],
 {
    switch(dstType) {
    case GL_UNSIGNED_INT:
-      pack_uint_from_uint_rgba(dstAddr, dstFormat, rgba, n);
+      pack_uint_from_uint_rgba(ctx, dstAddr, dstFormat, rgba, n);
       break;
    case GL_INT:
       /* No conversion necessary. */
-      pack_uint_from_uint_rgba(dstAddr, dstFormat, rgba, n);
+      pack_uint_from_uint_rgba(ctx, dstAddr, dstFormat, rgba, n);
       break;
    case GL_UNSIGNED_SHORT:
-      pack_ushort_from_uint_rgba(dstAddr, dstFormat, rgba, n);
+      pack_ushort_from_uint_rgba(ctx, dstAddr, dstFormat, rgba, n);
       break;
    case GL_SHORT:
-      pack_short_from_uint_rgba(dstAddr, dstFormat, rgba, n);
+      pack_short_from_uint_rgba(ctx, dstAddr, dstFormat, rgba, n);
       break;
    case GL_UNSIGNED_BYTE:
-      pack_ubyte_from_uint_rgba(dstAddr, dstFormat, rgba, n);
+      pack_ubyte_from_uint_rgba(ctx, dstAddr, dstFormat, rgba, n);
       break;
    case GL_BYTE:
-      pack_byte_from_uint_rgba(dstAddr, dstFormat, rgba, n);
+      pack_byte_from_uint_rgba(ctx, dstAddr, dstFormat, rgba, n);
       break;
    default:
-      assert(0);
+      _mesa_problem(ctx,
+         "Unsupported type (%s) for format (%s)",
+         _mesa_lookup_enum_by_nr(dstType),
+         _mesa_lookup_enum_by_nr(dstFormat));
       return;
    }
 }
@@ -545,7 +562,7 @@ _mesa_pack_rgba_span_float(struct gl_context *ctx, GLuint n, GLfloat rgba[][4],
 {
    GLfloat *luminance;
    const GLint comps = _mesa_components_in_format(dstFormat);
-   const GLboolean intDstFormat = _mesa_is_integer_format(dstFormat);
+   const GLboolean intDstFormat = _mesa_is_enum_format_integer(dstFormat);
    GLuint i;
 
    if (dstFormat == GL_LUMINANCE ||
@@ -2476,7 +2493,7 @@ extract_float_rgba(GLuint n, GLfloat rgba[][4],
 
    stride = _mesa_components_in_format(srcFormat);
 
-   intFormat = _mesa_is_integer_format(srcFormat);
+   intFormat = _mesa_is_enum_format_integer(srcFormat);
 
 #define PROCESS(SRC_INDEX, DST_INDEX, DEFAULT_FLT, DEFAULT_INT, TYPE, CONVERSION) \
    if ((SRC_INDEX) < 0) {						\
@@ -3531,7 +3548,7 @@ _mesa_unpack_color_span_ubyte(struct gl_context *ctx,
                               const struct gl_pixelstore_attrib *srcPacking,
                               GLbitfield transferOps )
 {
-   GLboolean intFormat = _mesa_is_integer_format(srcFormat);
+   GLboolean intFormat = _mesa_is_enum_format_integer(srcFormat);
    ASSERT(dstFormat == GL_ALPHA ||
           dstFormat == GL_LUMINANCE ||
           dstFormat == GL_LUMINANCE_ALPHA ||
@@ -3838,7 +3855,7 @@ _mesa_unpack_color_span_float( struct gl_context *ctx,
       GLint dstComponents;
       GLint rDst, gDst, bDst, aDst, lDst, iDst;
       GLfloat (*rgba)[4] = (GLfloat (*)[4]) malloc(4 * n * sizeof(GLfloat));
-      GLboolean intFormat = _mesa_is_integer_format(srcFormat);
+      GLboolean intFormat = _mesa_is_enum_format_integer(srcFormat);
 
       if (!rgba) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "pixel unpacking");

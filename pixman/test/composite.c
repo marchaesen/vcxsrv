@@ -99,6 +99,9 @@ static const format_t formats[] =
     P(x2b10g10r10),
     P(a2r10g10b10),
     P(a2b10g10r10),
+    
+    /* sRGB formats */
+    P(a8r8g8b8_sRGB),
 
     /* 24 bpp formats */
     P(r8g8b8),
@@ -524,17 +527,8 @@ composite_test (image_t *dst,
 		pixman_bool_t component_alpha,
 		int testno)
 {
-    pixman_color_t fill;
     color_t expected, tdst, tsrc, tmsk;
     pixel_checker_t checker;
-    pixman_image_t *solid;
-
-    /* Initialize dst */
-    compute_pixman_color (dst->color, &fill);
-    solid = pixman_image_create_solid_fill (&fill);
-    pixman_image_composite32 (PIXMAN_OP_SRC, solid, NULL, dst->image,
-			      0, 0, 0, 0, 0, 0, dst->size, dst->size);
-    pixman_image_unref (solid);
 
     if (mask)
     {
@@ -553,17 +547,56 @@ composite_test (image_t *dst,
     }
 
     tdst = *dst->color;
-    round_color (dst->format->format, &tdst);
-
     tsrc = *src->color;
-    if (src->size)
-	round_color (src->format->format, &tsrc);
 
     if (mask)
     {
 	tmsk = *mask->color;
-	if (mask->size)
+    }
+
+    /* It turns out that by construction all source, mask etc. colors are
+     * linear because they are made from fills, and fills are always in linear
+     * color space.  However, if they have been converted to bitmaps, we need
+     * to simulate the sRGB approximation to pass the test cases.
+     */
+    if (src->size)
+    {
+	if (PIXMAN_FORMAT_TYPE (src->format->format) == PIXMAN_TYPE_ARGB_SRGB)
+        {
+	    tsrc.r = convert_linear_to_srgb (tsrc.r);
+	    tsrc.g = convert_linear_to_srgb (tsrc.g);
+	    tsrc.b = convert_linear_to_srgb (tsrc.b);
+	    round_color (src->format->format, &tsrc);
+	    tsrc.r = convert_srgb_to_linear (tsrc.r);
+	    tsrc.g = convert_srgb_to_linear (tsrc.g);
+	    tsrc.b = convert_srgb_to_linear (tsrc.b);
+	}
+        else
+        {
+	    round_color (src->format->format, &tsrc);
+	}
+    }
+
+    if (mask && mask->size)
+    {
+	if (PIXMAN_FORMAT_TYPE (mask->format->format) == PIXMAN_TYPE_ARGB_SRGB)
+	{
+	    tmsk.r = convert_linear_to_srgb (tmsk.r);
+	    tmsk.g = convert_linear_to_srgb (tmsk.g);
+	    tmsk.b = convert_linear_to_srgb (tmsk.b);
 	    round_color (mask->format->format, &tmsk);
+	    tmsk.r = convert_srgb_to_linear (tmsk.r);
+	    tmsk.g = convert_srgb_to_linear (tmsk.g);
+	    tmsk.b = convert_srgb_to_linear (tmsk.b);
+	}
+	else
+	{
+	    round_color (mask->format->format, &tmsk);
+	}
+    }
+
+    if (mask)
+    {
 	if (component_alpha && PIXMAN_FORMAT_R (mask->format->format) == 0)
 	{
 	    /* Ax component-alpha masks expand alpha into
@@ -571,6 +604,21 @@ composite_test (image_t *dst,
 	     */
 	    tmsk.r = tmsk.g = tmsk.b = tmsk.a;
 	}
+    }
+
+    if (PIXMAN_FORMAT_TYPE (dst->format->format) == PIXMAN_TYPE_ARGB_SRGB)
+    {
+	tdst.r = convert_linear_to_srgb (tdst.r);
+	tdst.g = convert_linear_to_srgb (tdst.g);
+	tdst.b = convert_linear_to_srgb (tdst.b);
+    	round_color (dst->format->format, &tdst);
+	tdst.r = convert_srgb_to_linear (tdst.r);
+	tdst.g = convert_srgb_to_linear (tdst.g);
+	tdst.b = convert_srgb_to_linear (tdst.b);
+    }
+    else
+    {
+    	round_color (dst->format->format, &tdst);
     }
 
     do_composite (op->op,

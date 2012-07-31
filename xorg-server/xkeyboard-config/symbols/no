@@ -212,7 +212,6 @@ xkb_symbols "mac" {
     key <BKSL>	{ [        at,   asterisk     ]	};
 };
 
-
 partial alphanumeric_keys 
 xkb_symbols "mac_nodeadkeys" {
 
@@ -222,4 +221,33 @@ xkb_symbols "mac_nodeadkeys" {
 
     key <AE12>	{ [      grave,     acute,        acute,       ogonek ]	};
     key <AD12>	{ [  diaeresis, asciicircum, asciitilde,       macron ]	};
+};
+
+partial alphanumeric_keys 
+xkb_symbols "colemak" {
+
+    // Colemak layout - http://colemak.com/
+    // Q W F P G   J L U Y Ø Å ¨
+    // A R S T D   H N E I O Æ '
+    // < Z X C V   B K M , . -
+    include "no(basic)"
+    name[Group1]= "Norwegian (Colemak)";
+
+    key <AB06>	{ [         k,          K,          kra,    ampersand ] };
+    key <AC02>	{ [         r,          R,   registered,    trademark ] };
+    key <AC03>	{ [         s,          S,       ssharp,      section ] };
+    key <AC04>	{ [         t,          T,        thorn,        THORN ] };
+    key <AC05>	{ [         d,          D,          eth,          ETH ] };
+    key <AC07>	{ [         n,          N ] };
+    key <AC08>	{ [         e,          E,     EuroSign,         cent ] };
+    key <AC09>	{ [         i,          I,   rightarrow,     idotless ] };
+    key <AC10>	{ [         o,          O,           oe,           OE ] };
+    key <AD03>	{ [         f,          F,      dstroke,  ordfeminine ] };
+    key <AD04>	{ [         p,          P,     Greek_pi,     Greek_PI ] };
+    key <AD05>	{ [         g,          G,          eng,          ENG ] };
+    key <AD06>	{ [         j,          J ] };
+    key <AD07>	{ [         l,          L,      lstroke,      Lstroke ] };
+    key <AD08>	{ [         u,          U,    downarrow,      uparrow ] };
+    key <AD09>	{ [         y,          Y,    leftarrow,          yen ] };
+    key <AD10>	{ [    oslash,   Ooblique,   dead_acute, dead_doubleacute ] };
 };

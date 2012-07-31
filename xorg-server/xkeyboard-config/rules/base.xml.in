@@ -3877,6 +3877,12 @@
             <_description>Norwegian (Macintosh, eliminate dead keys)</_description>
           </configItem>
         </variant>
+	<variant>
+          <configItem>
+            <name>colemak</name>
+            <_description>Norwegian (Colemak)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>

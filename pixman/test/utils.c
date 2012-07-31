@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 
 #include "utils.h"
+#include <math.h>
 #include <signal.h>
 #include <stdlib.h>
 
@@ -765,6 +766,24 @@ aligned_malloc (size_t align, size_t size)
        (((c) >>  8) & 0xff) * 301 +					\
        (((c)      ) & 0xff) * 58) >> 2))
 
+double
+convert_srgb_to_linear (double c)
+{
+    if (c <= 0.04045)
+        return c / 12.92;
+    else
+        return powf ((c + 0.055) / 1.055, 2.4);
+}
+
+double
+convert_linear_to_srgb (double c)
+{
+    if (c <= 0.0031308)
+        return c * 12.92;
+    else
+        return 1.055 * powf (c, 1.0/2.4) - 0.055;
+}
+
 void
 initialize_palette (pixman_indexed_t *palette, uint32_t depth, int is_rgb)
 {
@@ -868,6 +887,7 @@ pixel_checker_init (pixel_checker_t *checker, pixman_format_code_t format)
 	break;
 
     case PIXMAN_TYPE_ARGB:
+    case PIXMAN_TYPE_ARGB_SRGB:
 	checker->bs = 0;
 	checker->gs = checker->bs + PIXMAN_FORMAT_B (format);
 	checker->rs = checker->gs + PIXMAN_FORMAT_G (format);
@@ -968,11 +988,25 @@ pixel_checker_get_min (const pixel_checker_t *checker, color_t *color,
 
 pixman_bool_t
 pixel_checker_check (const pixel_checker_t *checker, uint32_t pixel,
-		     color_t *color)
+		     color_t *color_in)
 {
     int32_t a_lo, a_hi, r_lo, r_hi, g_lo, g_hi, b_lo, b_hi;
     int32_t ai, ri, gi, bi;
     pixman_bool_t result;
+    color_t tmp, *color;
+
+    if (PIXMAN_FORMAT_TYPE (checker->format) == PIXMAN_TYPE_ARGB_SRGB)
+    {
+	tmp.a = color_in->a;
+	tmp.r = convert_linear_to_srgb (color_in->r);
+	tmp.g = convert_linear_to_srgb (color_in->g);
+	tmp.b = convert_linear_to_srgb (color_in->b);
+	color = &tmp;
+    }
+    else
+    {
+	color = color_in;
+    }
 
     pixel_checker_get_min (checker, color, &a_lo, &r_lo, &g_lo, &b_lo);
     pixel_checker_get_max (checker, color, &a_hi, &r_hi, &g_hi, &b_hi);

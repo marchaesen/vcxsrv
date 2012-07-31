@@ -1,30 +1,3 @@
-/*
-
-   int XAAHelpSolidROP(ScrnInfoPtr pScrn, int *fg, int pm, int *rop)
-
-	For use with solid fills emulated by solid 8x8 patterns.  You 
-	give it the foreground, planemask and X rop and it will replace 
-	the foreground with a new one and the rop with the appropriate 
-	MS triadic raster op.  The function will return which components 
-	(S-P) need to be enabled.  
-
-   int XAAHelpPatternROP(ScrnInfoPtr pScrn, int *fg, int *bg, int pm, int *rop)
-
-	For use with 8x8 opaque pattern fills.  You give it the foreground, 	
-	and background, planemask and X rop and it will replace the 
-	foreground and background with new ones and the rop with the 
-	appropriate MS triadic raster op.  The function will return which 
-	components (S-P) need to be enabled.  
-
-	   ROP_PAT - Means to enable 8x8 mono patterns (all bits 
-		     set for solid patterns).  Set the foreground and
-		     background as returned by the function.  
-
-	   ROP_SRC - Means a source of color == planemask should be used.
-
-
-*/
-
 #ifndef _XAAROP_H
 #define _XAAROP_H
 
@@ -291,21 +264,5 @@
 
 #define NO_SRC_ROP(rop) \
    ((rop == GXnoop) || (rop == GXset) || (rop == GXclear) || (rop == GXinvert))
-
-extern _X_EXPORT int XAAHelpSolidROP(ScrnInfoPtr pScrn, int *fg, int pm,
-                                     int *rop);
-extern _X_EXPORT int XAAHelpPatternROP(ScrnInfoPtr pScrn, int *fg, int *bg,
-                                       int pm, int *rop);
-
-/* XXX These four should be static, but it breaks the 6.7.0 ABI. */
-extern _X_EXPORT int XAACopyROP[16];
-extern _X_EXPORT int XAACopyROP_PM[16];
-extern _X_EXPORT int XAAPatternROP[16];
-extern _X_EXPORT int XAAPatternROP_PM[16];
-
-extern _X_EXPORT int XAAGetCopyROP(int i);
-extern _X_EXPORT int XAAGetCopyROP_PM(int i);
-extern _X_EXPORT int XAAGetPatternROP(int i);
-extern _X_EXPORT int XAAGetPatternROP_PM(int i);
 
 #endif                          /* _XAAROP_H */

@@ -2011,6 +2011,7 @@ struct gl_fragment_program
 {
    struct gl_program Base;   /**< base class */
    GLboolean UsesKill;          /**< shader uses KIL instruction */
+   GLboolean UsesDFdy;          /**< shader uses DDY instruction */
    GLboolean OriginUpperLeft;
    GLboolean PixelCenterInteger;
    enum gl_frag_depth_layout FragDepthLayout;
@@ -2215,6 +2216,15 @@ struct gl_shader
     */
    unsigned num_uniform_components;
 
+   /**
+    * This shader's uniform block information.
+    *
+    * The offsets of the variables are assigned only for shaders in a program's
+    * _LinkedShaders[].
+    */
+   struct gl_uniform_block *UniformBlocks;
+   unsigned NumUniformBlocks;
+
    struct exec_list *ir;
    struct glsl_symbol_table *symbols;
 
@@ -2236,6 +2246,37 @@ typedef enum
    MESA_SHADER_TYPES = 3
 } gl_shader_type;
 
+struct gl_uniform_buffer_variable
+{
+   char *Name;
+   const struct glsl_type *Type;
+   unsigned int Buffer;
+   unsigned int Offset;
+   GLboolean RowMajor;
+};
+
+struct gl_uniform_block
+{
+   /** Declared name of the uniform block */
+   char *Name;
+
+   /** Array of supplemental information about UBO ir_variables. */
+   struct gl_uniform_buffer_variable *Uniforms;
+   GLuint NumUniforms;
+
+   /**
+    * Index (GL_UNIFORM_BLOCK_BINDING) into ctx->UniformBufferBindings[] to use
+    * with glBindBufferBase to bind a buffer object to this uniform block.  When
+    * updated in the program, _NEW_BUFFER_OBJECT will be set.
+    */
+   GLuint Binding;
+
+   /**
+    * Minimum size of a buffer object to back this uniform buffer
+    * (GL_UNIFORM_BLOCK_DATA_SIZE).
+    */
+   GLuint UniformBufferSize;
+};
 
 /**
  * A GLSL program object.
@@ -2318,6 +2359,18 @@ struct gl_shader_program
    /* post-link info: */
    unsigned NumUserUniformStorage;
    struct gl_uniform_storage *UniformStorage;
+
+   struct gl_uniform_block *UniformBlocks;
+   unsigned NumUniformBlocks;
+
+   /**
+    * Indices into the _LinkedShaders's UniformBlocks[] array for each stage
+    * they're used in, or -1.
+    *
+    * This is used to maintain the Binding values of the stage's UniformBlocks[]
+    * and to answer the GL_UNIFORM_BLOCK_REFERENCED_BY_*_SHADER queries.
+    */
+   int *UniformBlockStageIndex[MESA_SHADER_TYPES];
 
    /**
     * Map of active uniform names to locations
@@ -3281,9 +3334,10 @@ struct gl_debug_state
  */
 typedef enum
 {
-   API_OPENGL,
+   API_OPENGL,      /* legacy / compatibility contexts */
    API_OPENGLES,
-   API_OPENGLES2
+   API_OPENGLES2,
+   API_OPENGL_CORE,
 } gl_api;
 
 /**

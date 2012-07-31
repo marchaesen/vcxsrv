@@ -144,15 +144,21 @@ QuartzSetupScreen(int index,
     return TRUE;
 }
 
-static const ExtensionModule quartzExtensions[] = {
-    { PseudoramiXExtensionInit, "PseudoramiX", &noPseudoramiXExtension, NULL },
+static ExtensionModule quartzExtensions[] = {
+    /* PseudoramiX needs to be done before RandR, so
+     * it is in miinitext.c until it can be reordered.
+     * { PseudoramiXExtensionInit, "PseudoramiX", &noPseudoramiXExtension },
+     */
+#ifdef GLXEXT
+    {GlxExtensionInit, "GLX", &noGlxExtension},
+#endif
 };
 
 /*
  * QuartzExtensionInit
  * Initialises XQuartz-specific extensions.
  */
-void QuartzExtensionInit(void)
+static void QuartzExtensionInit(void)
 {
     int i;
 

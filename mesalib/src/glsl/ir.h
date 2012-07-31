@@ -453,13 +453,24 @@ public:
     *   - Vertex shader output: one of the values from \c gl_vert_result.
     *   - Fragment shader input: one of the values from \c gl_frag_attrib.
     *   - Fragment shader output: one of the values from \c gl_frag_result.
-    *   - Uniforms: Per-stage uniform slot number.
+    *   - Uniforms: Per-stage uniform slot number for default uniform block.
+    *   - Uniforms: Index within the uniform block definition for UBO members.
     *   - Other: This field is not currently used.
     *
     * If the variable is a uniform, shader input, or shader output, and the
     * slot has not been assigned, the value will be -1.
     */
    int location;
+
+   /**
+    * Uniform block number for uniforms.
+    *
+    * This index is into the shader's list of uniform blocks, not the
+    * linked program's merged list.
+    *
+    * If the variable is not in a uniform block, the value will be -1.
+    */
+   int uniform_block;
 
    /**
     * output index for dual source blending.
@@ -1016,7 +1027,7 @@ enum ir_expression_operation {
    /**
     * A sentinel marking the last of all operations.
     */
-   ir_last_opcode = ir_last_binop
+   ir_last_opcode = ir_quadop_vector
 };
 
 class ir_expression : public ir_rvalue {

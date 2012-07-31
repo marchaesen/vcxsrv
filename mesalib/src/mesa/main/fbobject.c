@@ -38,8 +38,8 @@
 #include "fbobject.h"
 #include "formats.h"
 #include "framebuffer.h"
+#include "glformats.h"
 #include "hash.h"
-#include "image.h"
 #include "macros.h"
 #include "mfeatures.h"
 #include "mtypes.h"
@@ -164,10 +164,10 @@ get_framebuffer_target(struct gl_context *ctx, GLenum target)
 {
    switch (target) {
    case GL_DRAW_FRAMEBUFFER:
-      return ctx->Extensions.EXT_framebuffer_blit && ctx->API == API_OPENGL
+      return ctx->Extensions.EXT_framebuffer_blit && _mesa_is_desktop_gl(ctx)
 	 ? ctx->DrawBuffer : NULL;
    case GL_READ_FRAMEBUFFER:
-      return ctx->Extensions.EXT_framebuffer_blit && ctx->API == API_OPENGL
+      return ctx->Extensions.EXT_framebuffer_blit && _mesa_is_desktop_gl(ctx)
 	 ? ctx->ReadBuffer : NULL;
    case GL_FRAMEBUFFER_EXT:
       return ctx->DrawBuffer;
@@ -221,7 +221,7 @@ _mesa_get_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
       }
       return &fb->Attachment[BUFFER_COLOR0 + i];
    case GL_DEPTH_STENCIL_ATTACHMENT:
-      if (ctx->API != API_OPENGL)
+      if (!_mesa_is_desktop_gl(ctx))
 	 return NULL;
       /* fall-through */
    case GL_DEPTH_ATTACHMENT_EXT:
@@ -817,7 +817,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
    }
 
 #if FEATURE_GL
-   if (ctx->API == API_OPENGL && !ctx->Extensions.ARB_ES2_compatibility) {
+   if (_mesa_is_desktop_gl(ctx) && !ctx->Extensions.ARB_ES2_compatibility) {
       /* Check that all DrawBuffers are present */
       for (j = 0; j < ctx->Const.MaxDrawBuffers; j++) {
 	 if (fb->ColorDrawBuffer[j] != GL_NONE) {
@@ -2289,7 +2289,7 @@ _mesa_GetFramebufferAttachmentParameterivEXT(GLenum target, GLenum attachment,
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    /* The error differs in GL and GLES. */
-   err = ctx->API == API_OPENGL ? GL_INVALID_OPERATION : GL_INVALID_ENUM;
+   err = _mesa_is_desktop_gl(ctx) ? GL_INVALID_OPERATION : GL_INVALID_ENUM;
 
    buffer = get_framebuffer_target(ctx, target);
    if (!buffer) {
@@ -2309,7 +2309,7 @@ _mesa_GetFramebufferAttachmentParameterivEXT(GLenum target, GLenum attachment,
        * OES_framebuffer_object spec refers to the EXT_framebuffer_object
        * spec.
        */
-      if (ctx->API != API_OPENGL || !ctx->Extensions.ARB_framebuffer_object) {
+      if (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_framebuffer_object) {
 	 _mesa_error(ctx, GL_INVALID_OPERATION,
 		     "glGetFramebufferAttachmentParameteriv(bound FBO = 0)");
 	 return;
@@ -2357,7 +2357,7 @@ _mesa_GetFramebufferAttachmentParameterivEXT(GLenum target, GLenum attachment,
       }
       else {
          assert(att->Type == GL_NONE);
-         if (ctx->API == API_OPENGL) {
+         if (_mesa_is_desktop_gl(ctx)) {
             *params = 0;
          } else {
             _mesa_error(ctx, GL_INVALID_ENUM,
@@ -2633,6 +2633,116 @@ compatible_color_datatypes(gl_format srcFormat, gl_format dstFormat)
 
 
 /**
+ * Return the equivalent non-generic internal format.
+ * This is useful for comparing whether two internal formats are semantically
+ * equivalent.
+ */
+static GLenum
+get_nongeneric_internalformat(GLenum format)
+{
+   switch (format) {
+      /* GL 1.1 formats. */
+      case 4:
+      case GL_RGBA:
+         return GL_RGBA8;
+
+      case 3:
+      case GL_RGB:
+         return GL_RGB8;
+
+      case 2:
+      case GL_LUMINANCE_ALPHA:
+         return GL_LUMINANCE8_ALPHA8;
+
+      case 1:
+      case GL_LUMINANCE:
+         return GL_LUMINANCE8;
+
+      case GL_ALPHA:
+         return GL_ALPHA8;
+
+      case GL_INTENSITY:
+         return GL_INTENSITY8;
+
+      /* GL_ARB_texture_rg */
+      case GL_RED:
+         return GL_R8;
+
+      case GL_RG:
+         return GL_RG8;
+
+      /* GL_EXT_texture_sRGB */
+      case GL_SRGB:
+         return GL_SRGB8;
+
+      case GL_SRGB_ALPHA:
+         return GL_SRGB8_ALPHA8;
+
+      case GL_SLUMINANCE:
+         return GL_SLUMINANCE8;
+
+      case GL_SLUMINANCE_ALPHA:
+         return GL_SLUMINANCE8_ALPHA8;
+
+      /* GL_EXT_texture_snorm */
+      case GL_RGBA_SNORM:
+         return GL_RGBA8_SNORM;
+
+      case GL_RGB_SNORM:
+         return GL_RGB8_SNORM;
+
+      case GL_RG_SNORM:
+         return GL_RG8_SNORM;
+
+      case GL_RED_SNORM:
+         return GL_R8_SNORM;
+
+      case GL_LUMINANCE_ALPHA_SNORM:
+         return GL_LUMINANCE8_ALPHA8_SNORM;
+
+      case GL_LUMINANCE_SNORM:
+         return GL_LUMINANCE8_SNORM;
+
+      case GL_ALPHA_SNORM:
+         return GL_ALPHA8_SNORM;
+
+      case GL_INTENSITY_SNORM:
+         return GL_INTENSITY8_SNORM;
+
+      default:
+         return format;
+   }
+}
+
+
+static GLboolean
+compatible_resolve_formats(const struct gl_renderbuffer *colorReadRb,
+                           const struct gl_renderbuffer *colorDrawRb)
+{
+   /* The simple case where we know the backing formats are the same.
+    */
+   if (colorReadRb->Format == colorDrawRb->Format) {
+      return GL_TRUE;
+   }
+
+   /* The Mesa formats are different, so we must check whether the internal
+    * formats are compatible.
+    *
+    * Under some circumstances, the user may request e.g. two GL_RGBA8
+    * textures and get two entirely different Mesa formats like RGBA8888 and
+    * ARGB8888. Drivers behaving like that should be able to cope with
+    * non-matching formats by themselves, because it's not the user's fault.
+    */
+   if (get_nongeneric_internalformat(colorReadRb->InternalFormat) ==
+       get_nongeneric_internalformat(colorDrawRb->InternalFormat)) {
+      return GL_TRUE;
+   }
+
+   return GL_FALSE;
+}
+
+
+/**
  * Blit rectangular region, optionally from one framebuffer to another.
  *
  * Note, if the src buffer is multisampled and the dest is not, this is
@@ -2798,7 +2908,7 @@ _mesa_BlitFramebufferEXT(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
       /* color formats must match */
       if (colorReadRb &&
           colorDrawRb &&
-          colorReadRb->Format != colorDrawRb->Format) {
+          !compatible_resolve_formats(colorReadRb, colorDrawRb)) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                 "glBlitFramebufferEXT(bad src/dst multisample pixel formats)");
          return;

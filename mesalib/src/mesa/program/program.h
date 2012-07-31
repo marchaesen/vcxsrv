@@ -183,13 +183,11 @@ _mesa_valid_register_index(const struct gl_context *ctx,
 extern void
 _mesa_postprocess_program(struct gl_context *ctx, struct gl_program *prog);
 
-/* keep these in the same order as TGSI_PROCESSOR_* */
 
 static inline GLuint
 _mesa_program_target_to_index(GLenum v)
 {
-   switch(v)
-   {
+   switch (v) {
    case GL_VERTEX_PROGRAM_ARB:
       return MESA_SHADER_VERTEX;
    case GL_FRAGMENT_PROGRAM_ARB:
@@ -205,15 +203,57 @@ _mesa_program_target_to_index(GLenum v)
 static inline GLenum
 _mesa_program_index_to_target(GLuint i)
 {
-   GLenum enums[MESA_SHADER_TYPES] = {
-         GL_VERTEX_PROGRAM_ARB,
-         GL_FRAGMENT_PROGRAM_ARB,
-         GL_GEOMETRY_PROGRAM_NV,
+   static const GLenum enums[MESA_SHADER_TYPES] = {
+      GL_VERTEX_PROGRAM_ARB,
+      GL_FRAGMENT_PROGRAM_ARB,
+      GL_GEOMETRY_PROGRAM_NV,
    };
    if(i >= MESA_SHADER_TYPES)
       return 0;
    else
       return enums[i];
 }
+
+
+/* Cast wrappers from gl_program to gl_vertex/geometry/fragment_program */
+
+static inline struct gl_fragment_program *
+gl_fragment_program(struct gl_program *prog)
+{
+   return (struct gl_fragment_program *) prog;
+}
+
+static inline const struct gl_fragment_program *
+gl_fragment_program_const(const struct gl_program *prog)
+{
+   return (const struct gl_fragment_program *) prog;
+}
+
+
+static inline struct gl_vertex_program *
+gl_vertex_program(struct gl_program *prog)
+{
+   return (struct gl_vertex_program *) prog;
+}
+
+static inline const struct gl_vertex_program *
+gl_vertex_program_const(const struct gl_program *prog)
+{
+   return (const struct gl_vertex_program *) prog;
+}
+
+
+static inline struct gl_geometry_program *
+gl_geometry_program(struct gl_program *prog)
+{
+   return (struct gl_geometry_program *) prog;
+}
+
+static inline const struct gl_geometry_program *
+gl_geometry_program_const(const struct gl_program *prog)
+{
+   return (const struct gl_geometry_program *) prog;
+}
+
 
 #endif /* PROGRAM_H */

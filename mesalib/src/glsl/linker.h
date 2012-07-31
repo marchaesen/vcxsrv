@@ -40,6 +40,15 @@ link_assign_uniform_locations(struct gl_shader_program *prog);
 extern void
 link_set_uniform_initializers(struct gl_shader_program *prog);
 
+extern int
+link_cross_validate_uniform_block(void *mem_ctx,
+				  struct gl_uniform_block **linked_blocks,
+				  unsigned int *num_linked_blocks,
+				  struct gl_uniform_block *new_block);
+
+void
+link_assign_uniform_block_offsets(struct gl_shader *shader);
+
 /**
  * Class for processing all of the leaf fields of an uniform
  *

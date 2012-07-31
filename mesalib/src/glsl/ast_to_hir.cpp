@@ -1917,7 +1917,8 @@ static void
 apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 				 ir_variable *var,
 				 struct _mesa_glsl_parse_state *state,
-				 YYLTYPE *loc)
+				 YYLTYPE *loc,
+				 bool ubo_qualifiers_valid)
 {
    if (qual->flags.q.invariant) {
       if (var->used) {
@@ -2010,24 +2011,10 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
    if (var->interpolation != INTERP_QUALIFIER_NONE &&
        !(state->target == vertex_shader && var->mode == ir_var_out) &&
        !(state->target == fragment_shader && var->mode == ir_var_in)) {
-      const char *qual_string = NULL;
-      switch (var->interpolation) {
-      case INTERP_QUALIFIER_FLAT:
-	 qual_string = "flat";
-	 break;
-      case INTERP_QUALIFIER_NOPERSPECTIVE:
-	 qual_string = "noperspective";
-	 break;
-      case INTERP_QUALIFIER_SMOOTH:
-	 qual_string = "smooth";
-	 break;
-      }
-
       _mesa_glsl_error(loc, state,
 		       "interpolation qualifier `%s' can only be applied to "
 		       "vertex shader outputs and fragment shader inputs.",
-		       qual_string);
-
+		       var->interpolation_string());
    }
 
    var->pixel_center_integer = qual->flags.q.pixel_center_integer;
@@ -2191,6 +2178,23 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
        var->depth_layout = ir_depth_layout_unchanged;
    else
        var->depth_layout = ir_depth_layout_none;
+
+   if (qual->flags.q.std140 ||
+       qual->flags.q.packed ||
+       qual->flags.q.shared) {
+      _mesa_glsl_error(loc, state,
+                       "uniform block layout qualifiers std140, packed, and "
+		       "shared can only be applied to uniform blocks, not "
+		       "members");
+   }
+
+   if (!ubo_qualifiers_valid &&
+       (qual->flags.q.row_major || qual->flags.q.column_major)) {
+      _mesa_glsl_error(loc, state,
+                       "uniform block layout qualifiers row_major and "
+		       "column_major can only be applied to uniform block "
+		       "members");
+   }
 }
 
 /**
@@ -2611,7 +2615,7 @@ ast_declarator_list::hir(exec_list *instructions,
       }
 
       apply_type_qualifier_to_variable(& this->type->qualifier, var, state,
-				       & loc);
+				       & loc, this->ubo_qualifiers_valid);
 
       if (this->type->qualifier.flags.q.invariant) {
 	 if ((state->target == vertex_shader) && !(var->mode == ir_var_out ||
@@ -3028,7 +3032,8 @@ ast_parameter_declarator::hir(exec_list *instructions,
    /* Apply any specified qualifiers to the parameter declaration.  Note that
     * for function parameters the default mode is 'in'.
     */
-   apply_type_qualifier_to_variable(& this->type->qualifier, var, state, & loc);
+   apply_type_qualifier_to_variable(& this->type->qualifier, var, state, & loc,
+				    false);
 
    /* From page 17 (page 23 of the PDF) of the GLSL 1.20 spec:
     *
@@ -3989,6 +3994,25 @@ ast_struct_specifier::hir(exec_list *instructions,
    return NULL;
 }
 
+static struct gl_uniform_block *
+get_next_uniform_block(struct _mesa_glsl_parse_state *state)
+{
+   if (state->num_uniform_blocks >= state->uniform_block_array_size) {
+      state->uniform_block_array_size *= 2;
+      if (state->uniform_block_array_size <= 4)
+	 state->uniform_block_array_size = 4;
+
+      state->uniform_blocks = reralloc(state,
+				       state->uniform_blocks,
+				       struct gl_uniform_block,
+				       state->uniform_block_array_size);
+   }
+
+   memset(&state->uniform_blocks[state->num_uniform_blocks],
+	  0, sizeof(*state->uniform_blocks));
+   return &state->uniform_blocks[state->num_uniform_blocks++];
+}
+
 ir_rvalue *
 ast_uniform_block::hir(exec_list *instructions,
 		       struct _mesa_glsl_parse_state *state)
@@ -3997,6 +4021,62 @@ ast_uniform_block::hir(exec_list *instructions,
     * need to turn those into ir_variables with an association
     * with this uniform block.
     */
+   struct gl_uniform_block *ubo = get_next_uniform_block(state);
+   ubo->Name = ralloc_strdup(state->uniform_blocks, this->block_name);
+
+   unsigned int num_variables = 0;
+   foreach_list_typed(ast_declarator_list, decl_list, link, &declarations) {
+      foreach_list_const(node, &decl_list->declarations) {
+	 num_variables++;
+      }
+   }
+
+   bool block_row_major = this->layout.flags.q.row_major;
+
+   ubo->Uniforms = rzalloc_array(state->uniform_blocks,
+				 struct gl_uniform_buffer_variable,
+				 num_variables);
+
+   foreach_list_typed(ast_declarator_list, decl_list, link, &declarations) {
+      exec_list declared_variables;
+
+      decl_list->hir(&declared_variables, state);
+
+      foreach_list_const(node, &declared_variables) {
+	 struct ir_variable *var = (ir_variable *)node;
+
+	 struct gl_uniform_buffer_variable *ubo_var =
+	    &ubo->Uniforms[ubo->NumUniforms++];
+
+	 var->uniform_block = ubo - state->uniform_blocks;
+
+	 ubo_var->Name = ralloc_strdup(state->uniform_blocks, var->name);
+	 ubo_var->Type = var->type;
+	 ubo_var->Buffer = ubo - state->uniform_blocks;
+	 ubo_var->Offset = 0; /* Assigned at link time. */
+	 ubo_var->RowMajor = block_row_major;
+	 if (decl_list->type->qualifier.flags.q.row_major)
+	    ubo_var->RowMajor = true;
+	 else if (decl_list->type->qualifier.flags.q.column_major)
+	    ubo_var->RowMajor = false;
+
+	 /* From the GL_ARB_uniform_buffer_object spec:
+	  *
+	  *     "Sampler types are not allowed inside of uniform
+	  *      blocks. All other types, arrays, and structures
+	  *      allowed for uniforms are allowed within a uniform
+	  *      block."
+	  */
+	 if (var->type->contains_sampler()) {
+	    YYLTYPE loc = decl_list->get_location();
+	    _mesa_glsl_error(&loc, state,
+			     "Uniform in non-default uniform block contains sampler\n");
+	 }
+      }
+
+      instructions->append_list(&declared_variables);
+   }
+
    return NULL;
 }
 

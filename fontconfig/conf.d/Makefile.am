@@ -76,7 +76,7 @@ template_DATA =				\
 	80-delicious.conf		\
 	90-synthetic.conf
 
-install-data-local:
+install-data-hook:
 	mkdir -p $(DESTDIR)$(configdir)
 	@(echo cd $(DESTDIR)$(configdir);			\
 	  cd $(DESTDIR)$(configdir);				\

@@ -38,9 +38,6 @@
 #include    "gcstruct.h"
 #include    "damage.h"
 #include    "damagestr.h"
-#ifdef COMPOSITE
-#include    "cw.h"
-#endif
 
 #define wrap(priv, real, mem, func) {\
     priv->mem = real->mem; \
