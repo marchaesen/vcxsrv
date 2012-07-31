@@ -14,3 +14,5 @@ Release
 *.pdb
 *.suo
 *.sdf
+glsl_lexer.cpp
+glsl_parser.cpp
