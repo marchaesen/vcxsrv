@@ -887,7 +887,8 @@ pixman_list_move_to_front (pixman_list_t *list, pixman_link_t *link)
     (PIXMAN_FORMAT_A (f) > 8 ||						\
      PIXMAN_FORMAT_R (f) > 8 ||						\
      PIXMAN_FORMAT_G (f) > 8 ||						\
-     PIXMAN_FORMAT_B (f) > 8)
+     PIXMAN_FORMAT_B (f) > 8 ||						\
+     PIXMAN_FORMAT_TYPE (f) == PIXMAN_TYPE_ARGB_SRGB)
 
 #ifdef WORDS_BIGENDIAN
 #   define SCREEN_SHIFT_LEFT(x,n)	((x) << (n))
@@ -1082,6 +1083,18 @@ void pixman_timer_register (pixman_timer_t *timer);
     }
 
 #endif /* PIXMAN_TIMERS */
+
+/* sRGB<->linear conversion tables. Linear color space is the same
+ * as sRGB but the components are in linear light (gamma 1.0).
+ *
+ * linear_to_srgb maps linear value from 0 to 4095 ([0.0, 1.0])
+ * and returns 8-bit sRGB value.
+ *
+ * srgb_to_linear maps 8-bit sRGB value to 16-bit linear value
+ * with range 0 to 65535 ([0.0, 1.0]).
+ */
+extern const uint8_t linear_to_srgb[4096];
+extern const uint16_t srgb_to_linear[256];
 
 #endif /* __ASSEMBLER__ */
 

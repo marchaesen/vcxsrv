@@ -301,7 +301,7 @@ pragma_statement:
 	| PRAGMA_OPTIMIZE_OFF EOL
 	| PRAGMA_INVARIANT_ALL EOL
 	{
-	   if (state->language_version < 120) {
+	   if (state->language_version < 120 && !state->Const.GLSL_100ES) {
 	      _mesa_glsl_warning(& @1, state,
 				 "pragma `invariant(all)' not supported in %s",
 				 state->version_string);
@@ -1967,6 +1967,7 @@ member_declaration:
 	   type->specifier = $3;
 	   $$ = new(ctx) ast_declarator_list(type);
 	   $$->set_location(yylloc);
+	   $$->ubo_qualifiers_valid = true;
 
 	   $$->declarations.push_degenerate_list_at_head(& $4->link);
 	}
@@ -1980,6 +1981,7 @@ member_declaration:
 	   type->specifier = $2;
 	   $$ = new(ctx) ast_declarator_list(type);
 	   $$->set_location(yylloc);
+	   $$->ubo_qualifiers_valid = true;
 
 	   $$->declarations.push_degenerate_list_at_head(& $3->link);
 	}

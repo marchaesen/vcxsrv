@@ -909,7 +909,8 @@ _pixman_image_get_solid (pixman_implementation_t *imp,
     }
 
     /* If necessary, convert RGB <--> BGR. */
-    if (PIXMAN_FORMAT_TYPE (format) != PIXMAN_TYPE_ARGB)
+    if (PIXMAN_FORMAT_TYPE (format) != PIXMAN_TYPE_ARGB
+	&& PIXMAN_FORMAT_TYPE (format) != PIXMAN_TYPE_ARGB_SRGB)
     {
 	result = (((result & 0xff000000) >>  0) |
 	          ((result & 0x00ff0000) >> 16) |

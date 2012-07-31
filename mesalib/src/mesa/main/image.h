@@ -38,55 +38,6 @@ _mesa_swap2( GLushort *p, GLuint n );
 extern void
 _mesa_swap4( GLuint *p, GLuint n );
 
-extern GLboolean
-_mesa_type_is_packed(GLenum type);
-
-extern GLint
-_mesa_sizeof_type( GLenum type );
-
-extern GLint
-_mesa_sizeof_packed_type( GLenum type );
-
-extern GLint
-_mesa_components_in_format( GLenum format );
-
-extern GLint
-_mesa_bytes_per_pixel( GLenum format, GLenum type );
-
-extern GLenum
-_mesa_error_check_format_and_type(const struct gl_context *ctx,
-                                  GLenum format, GLenum type);
-
-extern GLboolean
-_mesa_is_color_format(GLenum format);
-
-extern GLboolean
-_mesa_is_depth_format(GLenum format);
-
-extern GLboolean
-_mesa_is_stencil_format(GLenum format);
-
-extern GLboolean
-_mesa_is_ycbcr_format(GLenum format);
-
-extern GLboolean
-_mesa_is_depthstencil_format(GLenum format);
-
-extern GLboolean
-_mesa_is_depth_or_stencil_format(GLenum format);
-
-extern GLboolean
-_mesa_is_dudv_format(GLenum format);
-
-extern GLboolean
-_mesa_is_integer_format(GLenum format);
-
-extern GLboolean
-_mesa_is_compressed_format(struct gl_context *ctx, GLenum format);
-
-extern GLboolean
-_mesa_base_format_has_channel(GLenum base_format, GLenum pname);
-
 extern GLintptr
 _mesa_image_offset( GLuint dimensions,
                     const struct gl_pixelstore_attrib *packing,

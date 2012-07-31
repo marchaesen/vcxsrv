@@ -28,6 +28,7 @@
 #include "formats.h"
 #include "mfeatures.h"
 #include "macros.h"
+#include "glformats.h"
 
 
 /**
@@ -1519,6 +1520,15 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       0, 0, 0, 0, 0,
       1, 1, 4
    },
+   {
+      MESA_FORMAT_ABGR2101010_UINT,
+      "MESA_FORMAT_ABGR2101010_UINT",
+      GL_RGBA,
+      GL_UNSIGNED_INT,
+      10, 10, 10, 2,
+      0, 0, 0, 0, 0,
+      1, 1, 4
+   },
 };
 
 
@@ -1708,6 +1718,17 @@ _mesa_is_format_integer_color(gl_format format)
       info->BaseFormat != GL_DEPTH_COMPONENT &&
       info->BaseFormat != GL_DEPTH_STENCIL &&
       info->BaseFormat != GL_STENCIL_INDEX;
+}
+
+
+/**
+ * Is the given format an unsigned integer format?
+ */
+GLboolean
+_mesa_is_format_unsigned(gl_format format)
+{
+   const struct gl_format_info *info = _mesa_get_format_info(format);
+   return _mesa_is_type_unsigned(info->DataType);
 }
 
 
@@ -2491,6 +2512,7 @@ _mesa_format_to_type_and_comps(gl_format format,
       return;
 
    case MESA_FORMAT_ARGB2101010_UINT:
+   case MESA_FORMAT_ABGR2101010_UINT:
       *datatype = GL_UNSIGNED_INT_2_10_10_10_REV;
       *comps = 4;
       return;
@@ -2916,6 +2938,11 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
               type == GL_UNSIGNED_INT_2_10_10_10_REV &&
               !swapBytes);
 
+   case MESA_FORMAT_ABGR2101010_UINT:
+      return (format == GL_RGBA_INTEGER_EXT &&
+              type == GL_UNSIGNED_INT_2_10_10_10_REV &&
+              !swapBytes);
+
    case MESA_FORMAT_RGB9_E5_FLOAT:
       return format == GL_RGB && type == GL_UNSIGNED_INT_5_9_9_9_REV &&
          !swapBytes;
@@ -2933,3 +2960,4 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
 
    return GL_FALSE;
 }
+

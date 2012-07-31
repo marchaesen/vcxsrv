@@ -135,11 +135,19 @@ struct __GLXAquaDrawable {
 static __GLXcontext *
 __glXAquaScreenCreateContext(__GLXscreen *screen,
                              __GLXconfig *conf,
-                             __GLXcontext *baseShareContext)
+                             __GLXcontext *baseShareContext,
+                             unsigned num_attribs,
+                             const uint32_t *attribs,
+                             int *error)
 {
     __GLXAquaContext *context;
     __GLXAquaContext *shareContext = (__GLXAquaContext *)baseShareContext;
     CGLError gl_err;
+
+    /* Unused (for now?) */
+    (void)num_attribs;
+    (void)attribs;
+    (void)error;
 
     GLAQUA_DEBUG_MSG("glXAquaScreenCreateContext\n");
 

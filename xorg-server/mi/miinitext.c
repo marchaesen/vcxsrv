@@ -254,6 +254,12 @@ static ExtensionModule staticExtensions[] = {
 #ifdef PANORAMIX
     {PanoramiXExtensionInit, PANORAMIX_PROTOCOL_NAME, &noPanoramiXExtension},
 #endif
+#ifdef INXQUARTZ
+    /* PseudoramiXExtensionInit must be done before RRExtensionInit, or
+     * XQuartz will render windows offscreen.
+     */
+    {PseudoramiXExtensionInit, "PseudoramiX", &noPseudoramiXExtension},
+#endif
 #ifdef XFIXES
     /* must be before Render to layer DisplayCursor correctly */
     {XFixesExtensionInit, "XFIXES", &noXFixesExtension},

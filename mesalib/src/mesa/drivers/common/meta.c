@@ -46,6 +46,7 @@
 #include "main/fbobject.h"
 #include "main/feedback.h"
 #include "main/formats.h"
+#include "main/glformats.h"
 #include "main/image.h"
 #include "main/macros.h"
 #include "main/matrix.h"
@@ -1847,7 +1848,7 @@ meta_glsl_clear_init(struct gl_context *ctx, struct clear_state *clear)
    clear->ColorLocation = _mesa_GetUniformLocationARB(clear->ShaderProg,
 						      "color");
 
-   if (ctx->API == API_OPENGL && ctx->Const.GLSLVersion >= 130) {
+   if (_mesa_is_desktop_gl(ctx) && ctx->Const.GLSLVersion >= 130) {
       vs = compile_shader_with_debug(ctx, GL_VERTEX_SHADER, vs_int_source);
       fs = compile_shader_with_debug(ctx, GL_FRAGMENT_SHADER, fs_int_source);
 
@@ -2280,8 +2281,7 @@ _mesa_meta_DrawPixels(struct gl_context *ctx,
     * Determine if we can do the glDrawPixels with texture mapping.
     */
    fallback = GL_FALSE;
-   if (ctx->_ImageTransferState ||
-       ctx->Fog.Enabled) {
+   if (ctx->Fog.Enabled) {
       fallback = GL_TRUE;
    }
 
@@ -2316,6 +2316,7 @@ _mesa_meta_DrawPixels(struct gl_context *ctx,
          texIntFormat = GL_ALPHA;
          metaExtraSave = (MESA_META_COLOR_MASK |
                           MESA_META_DEPTH_TEST |
+                          MESA_META_PIXEL_TRANSFER |
                           MESA_META_SHADER |
                           MESA_META_STENCIL_TEST);
       }

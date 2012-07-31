@@ -246,14 +246,6 @@ esac
 AC_SUBST([VISIBILITY_CFLAGS])
 AC_SUBST([VISIBILITY_CXXFLAGS])
 
-dnl These should be unnecessary, but let the user set them if they want
-AC_ARG_VAR([OPT_FLAGS], [Additional optimization flags for the compiler.
-    Default is to use CFLAGS.])
-AC_ARG_VAR([ARCH_FLAGS], [Additional architecture specific flags for the
-    compiler. Default is to use CFLAGS.])
-AC_SUBST([OPT_FLAGS])
-AC_SUBST([ARCH_FLAGS])
-
 dnl
 dnl Hacks to enable 32 or 64 bit build
 dnl
@@ -266,7 +258,6 @@ AC_ARG_ENABLE([32-bit],
 if test "x$enable_32bit" = xyes; then
     if test "x$GCC" = xyes; then
         CFLAGS="$CFLAGS -m32"
-        ARCH_FLAGS="$ARCH_FLAGS -m32"
         CCASFLAGS="$CCASFLAGS -m32"
     fi
     if test "x$GXX" = xyes; then
@@ -389,7 +380,6 @@ fi
 AC_SUBST([GL_LIB])
 AC_SUBST([GLU_LIB])
 AC_SUBST([OSMESA_LIB])
-AM_CONDITIONAL(HAVE_MANGLED_GL, test "x${enable_mangling}" = "xyes")
 
 dnl
 dnl potentially-infringing-but-nobody-knows-for-sure stuff
@@ -417,7 +407,6 @@ GLAPI_LIB_NAME='lib$(GLAPI_LIB).'${LIB_EXTENSION}
 
 GL_LIB_GLOB=${LIB_PREFIX_GLOB}'$(GL_LIB)'${LIB_VERSION_SEPARATOR}'*'${LIB_EXTENSION}'*'
 GLU_LIB_GLOB=${LIB_PREFIX_GLOB}'$(GLU_LIB)'${LIB_VERSION_SEPARATOR}'*'${LIB_EXTENSION}'*'
-OSMESA_LIB_GLOB=${LIB_PREFIX_GLOB}'$(OSMESA_LIB)'${LIB_VERSION_SEPARATOR}'*'${LIB_EXTENSION}'*'
 EGL_LIB_GLOB=${LIB_PREFIX_GLOB}'$(EGL_LIB)'${LIB_VERSION_SEPARATOR}'*'${LIB_EXTENSION}'*'
 EGL_LIB_GLOB=${LIB_PREFIX_GLOB}'$(EGL_LIB)'${LIB_VERSION_SEPARATOR}'*'${LIB_EXTENSION}'*'
 GLESv1_CM_LIB_GLOB=${LIB_PREFIX_GLOB}'$(GLESv1_CM_LIB)'${LIB_VERSION_SEPARATOR}'*'${LIB_EXTENSION}'*'
@@ -436,7 +425,6 @@ AC_SUBST([GLAPI_LIB_NAME])
 
 AC_SUBST([GL_LIB_GLOB])
 AC_SUBST([GLU_LIB_GLOB])
-AC_SUBST([OSMESA_LIB_GLOB])
 AC_SUBST([EGL_LIB_GLOB])
 AC_SUBST([GLESv1_CM_LIB_GLOB])
 AC_SUBST([GLESv2_LIB_GLOB])
@@ -1829,6 +1817,13 @@ AC_ARG_WITH([llvm-shared-libs],
     [with_llvm_shared_libs=yes],
     [with_llvm_shared_libs=no])
 
+AC_ARG_WITH([llvm-prefix],
+    [AS_HELP_STRING([--with-llvm-prefix],
+        [Prefix for LLVM installations in non-standard locations])],
+    [llvm_prefix="$withval"],
+    [llvm_prefix=""])
+
+
 if test "x$with_gallium_drivers" = x; then
     enable_gallium_llvm=no
 fi
@@ -1838,7 +1833,11 @@ if test "x$enable_gallium_llvm" = xauto; then
     esac
 fi
 if test "x$enable_gallium_llvm" = xyes; then
-    AC_PATH_PROG([LLVM_CONFIG], [llvm-config], [no])
+    if test "x$llvm_prefix" != x; then
+        AC_PATH_PROG([LLVM_CONFIG], [llvm-config], [no], ["$llvm_prefix/bin"])
+    else
+        AC_PATH_PROG([LLVM_CONFIG], [llvm-config], [no])
+    fi
 
     if test "x$LLVM_CONFIG" != xno; then
 	LLVM_VERSION=`$LLVM_CONFIG --version | sed 's/svn.*//g'`
@@ -1847,10 +1846,14 @@ if test "x$enable_gallium_llvm" = xyes; then
 	    dnl We can't use $LLVM_VERSION because it has 'svn' stripped out,
 	    LLVM_LIBS="-lLLVM-`$LLVM_CONFIG --version`"
 	else
-	    LLVM_LIBS="`$LLVM_CONFIG --libs engine bitwriter mcjit`"
-            if test "x$enable_opencl" = xyes; then
-                LLVM_LIBS="${LLVM_LIBS} `$LLVM_CONFIG --libs ipo linker instrumentation`"
+            LLVM_COMPONENTS="engine bitwriter"
+            if $LLVM_CONFIG --components | grep -q '\<mcjit\>'; then
+                LLVM_COMPONENTS="${LLVM_COMPONENTS} mcjit"
             fi
+            if test "x$enable_opencl" = xyes; then
+                LLVM_COMPONENTS="${LLVM_COMPONENTS} ipo linker instrumentation"
+            fi
+            LLVM_LIBS="`$LLVM_CONFIG --libs ${LLVM_COMPONENTS}`"
 	fi
 	LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags`
 	LLVM_BINDIR=`$LLVM_CONFIG --bindir`
@@ -2073,6 +2076,12 @@ if test "x$enable_gallium_loader" = xyes; then
 
     if test "x$enable_gallium_drm_loader" = xyes; then
         GALLIUM_PIPE_LOADER_DEFINES="$GALLIUM_PIPE_LOADER_DEFINES -DHAVE_PIPE_LOADER_DRM"
+        PKG_CHECK_MODULES([GALLIUM_PIPE_LOADER_XCB], [xcb xcb-dri2],
+                          pipe_loader_have_xcb=yes, pipe_loader_have_xcb=no)
+        if test "x$pipe_loader_have_xcb" = xyes; then
+            GALLIUM_PIPE_LOADER_DEFINES="$GALLIUM_PIPE_LOADER_DEFINES -DPIPE_LOADER_HAVE_XCB"
+            GALLIUM_PIPE_LOADER_LIBS="$GALLIUM_PIPE_LOADER_LIBS $GALLIUM_PIPE_LOADER_XCB_LIBS $LIBDRM_LIBS"
+        fi
     fi
 
     AC_SUBST([GALLIUM_PIPE_LOADER_DEFINES])
@@ -2287,9 +2296,9 @@ echo "        Static libs:     $enable_static"
 
 dnl Compiler options
 # cleanup the CFLAGS/CXXFLAGS/DEFINES vars
-cflags=`echo $CFLAGS $OPT_FLAGS $PIC_FLAGS $ARCH_FLAGS | \
+cflags=`echo $CFLAGS $PIC_FLAGS | \
     $SED 's/^ *//;s/  */ /;s/ *$//'`
-cxxflags=`echo $CXXFLAGS $OPT_FLAGS $PIC_FLAGS $ARCH_FLAGS | \
+cxxflags=`echo $CXXFLAGS $PIC_FLAGS | \
     $SED 's/^ *//;s/  */ /;s/ *$//'`
 defines=`echo $DEFINES | $SED 's/^ *//;s/  */ /;s/ *$//'`
 echo ""

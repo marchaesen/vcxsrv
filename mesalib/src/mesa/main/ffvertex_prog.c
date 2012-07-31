@@ -1572,7 +1572,7 @@ static void build_array_pointsize( struct tnl_program *p )
 
 static void build_tnl_program( struct tnl_program *p )
 {
-   /* Emit the program, starting with modelviewproject:
+   /* Emit the program, starting with the modelview, projection transforms:
     */
    build_hpos(p);
 
@@ -1658,7 +1658,6 @@ create_new_program( const struct state_key *key,
 /**
  * Return a vertex program which implements the current fixed-function
  * transform/lighting/texgen operations.
- * XXX move this into core mesa (main/)
  */
 struct gl_vertex_program *
 _mesa_get_fixed_func_vertex_program(struct gl_context *ctx)
@@ -1672,16 +1671,15 @@ _mesa_get_fixed_func_vertex_program(struct gl_context *ctx)
 
    /* Look for an already-prepared program for this state:
     */
-   prog = (struct gl_vertex_program *)
-      _mesa_search_program_cache(ctx->VertexProgram.Cache, &key, sizeof(key));
+   prog = gl_vertex_program(
+      _mesa_search_program_cache(ctx->VertexProgram.Cache, &key, sizeof(key)));
 
    if (!prog) {
       /* OK, we'll have to build a new one */
       if (0)
          printf("Build new TNL program\n");
 
-      prog = (struct gl_vertex_program *)
-         ctx->Driver.NewProgram(ctx, GL_VERTEX_PROGRAM_ARB, 0);
+      prog = gl_vertex_program(ctx->Driver.NewProgram(ctx, GL_VERTEX_PROGRAM_ARB, 0));
       if (!prog)
          return NULL;
 

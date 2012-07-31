@@ -1894,8 +1894,7 @@ Others are driver\-independent, and will eventually be described here.
 .\" XXX These should really be in an xaa man page.
 .TP 7
 .BI "Option \*qAccel\*q"
-Enables XAA (X Acceleration Architecture), a mechanism that makes video cards'
-2D hardware acceleration available to the  Xorg server.
+Enables 2D hardware acceleration.
 This option is on by default, but it may be necessary to turn it off if
 there are bugs in the driver.
 There are many options to disable specific accelerated operations, listed
@@ -1920,73 +1919,6 @@ Disables MTRR (Memory Type Range Register) support, a feature of modern
 processors which can improve video performance by a factor of up to 2.5.
 Some hardware has buggy MTRR support, and some video drivers have been
 known to exhibit problems when MTRR's are used.
-.TP 7
-.BI "Option \*qXaaNoCPUToScreenColorExpandFill\*q"
-Disables accelerated rectangular expansion blits from source patterns
-stored in system memory (using a memory\-mapped aperture).
-.TP 7
-.BI "Option \*qXaaNoColor8x8PatternFillRect\*q"
-Disables accelerated fills of a rectangular region with a full\-color
-pattern.
-.TP 7
-.BI "Option \*qXaaNoColor8x8PatternFillTrap\*q"
-Disables accelerated fills of a trapezoidal region with a full\-color
-pattern.
-.TP 7
-.BI "Option \*qXaaNoDashedBresenhamLine\*q"
-Disables accelerated dashed Bresenham line draws.
-.TP 7
-.BI "Option \*qXaaNoDashedTwoPointLine\*q"
-Disables accelerated dashed line draws between two arbitrary points.
-.TP 7
-.BI "Option \*qXaaNoImageWriteRect\*q"
-Disables accelerated transfers of full\-color rectangular patterns from
-system memory to video memory (using a memory\-mapped aperture).
-.TP 7
-.BI "Option \*qXaaNoMono8x8PatternFillRect\*q"
-Disables accelerated fills of a rectangular region with a monochrome
-pattern.
-.TP 7
-.BI "Option \*qXaaNoMono8x8PatternFillTrap\*q"
-Disables accelerated fills of a trapezoidal region with a monochrome
-pattern.
-.TP 7
-.BI "Option \*qXaaNoOffscreenPixmaps\*q"
-Disables accelerated draws into pixmaps stored in offscreen video memory.
-.TP 7
-.BI "Option \*qXaaNoPixmapCache\*q"
-Disables caching of patterns in offscreen video memory.
-.TP 7
-.BI "Option \*qXaaNoScanlineCPUToScreenColorExpandFill\*q"
-Disables accelerated rectangular expansion blits from source patterns
-stored in system memory (one scan line at a time).
-.TP 7
-.BI "Option \*qXaaNoScanlineImageWriteRect\*q"
-Disables accelerated transfers of full\-color rectangular patterns from
-system memory to video memory (one scan line at a time).
-.TP 7
-.BI "Option \*qXaaNoScreenToScreenColorExpandFill\*q"
-Disables accelerated rectangular expansion blits from source patterns
-stored in offscreen video memory.
-.TP 7
-.BI "Option \*qXaaNoScreenToScreenCopy\*q"
-Disables accelerated copies of rectangular regions from one part of
-video memory to another part of video memory.
-.TP 7
-.BI "Option \*qXaaNoSolidBresenhamLine\*q"
-Disables accelerated solid Bresenham line draws.
-.TP 7
-.BI "Option \*qXaaNoSolidFillRect\*q"
-Disables accelerated solid\-color fills of rectangles.
-.TP 7
-.BI "Option \*qXaaNoSolidFillTrap\*q"
-Disables accelerated solid\-color fills of Bresenham trapezoids.
-.TP 7
-.BI "Option \*qXaaNoSolidHorVertLine\*q"
-Disables accelerated solid horizontal and vertical line draws.
-.TP 7
-.BI "Option \*qXaaNoSolidTwoPointLine\*q"
-Disables accelerated solid line draws between two arbitrary points.
 .PP
 Each
 .B Screen

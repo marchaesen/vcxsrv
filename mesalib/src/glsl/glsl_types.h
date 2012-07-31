@@ -152,6 +152,8 @@ struct glsl_type {
    static const glsl_type *const error_type;
    static const glsl_type *const void_type;
    static const glsl_type *const int_type;
+   static const glsl_type *const ivec2_type;
+   static const glsl_type *const ivec3_type;
    static const glsl_type *const ivec4_type;
    static const glsl_type *const uint_type;
    static const glsl_type *const uvec2_type;
@@ -162,6 +164,9 @@ struct glsl_type {
    static const glsl_type *const vec3_type;
    static const glsl_type *const vec4_type;
    static const glsl_type *const bool_type;
+   static const glsl_type *const bvec2_type;
+   static const glsl_type *const bvec3_type;
+   static const glsl_type *const bvec4_type;
    static const glsl_type *const mat2_type;
    static const glsl_type *const mat2x3_type;
    static const glsl_type *const mat2x4_type;
@@ -241,6 +246,19 @@ struct glsl_type {
     * might occupy.
     */
    unsigned component_slots() const;
+
+   /**
+    * Alignment in bytes of the start of this type in a std140 uniform
+    * block.
+    */
+   unsigned std140_base_alignment(bool row_major) const;
+
+   /** Size in bytes of this type in a std140 uniform block.
+    *
+    * Note that this is not GL_UNIFORM_SIZE (which is the number of
+    * elements in the array)
+    */
+   unsigned std140_size(bool row_major) const;
 
    /**
     * \brief Can this type be implicitly converted to another?

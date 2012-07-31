@@ -276,6 +276,7 @@ typedef enum
    MESA_FORMAT_Z32_FLOAT_X24S8,
 
    MESA_FORMAT_ARGB2101010_UINT,
+   MESA_FORMAT_ABGR2101010_UINT,
 
    MESA_FORMAT_COUNT
 } gl_format;
@@ -311,6 +312,9 @@ _mesa_is_format_packed_depth_stencil(gl_format format);
 extern GLboolean
 _mesa_is_format_integer_color(gl_format format);
 
+extern GLboolean
+_mesa_is_format_unsigned(gl_format format);
+
 extern GLenum
 _mesa_get_format_color_encoding(gl_format format);
 
@@ -345,7 +349,6 @@ GLboolean
 _mesa_format_matches_format_and_type(gl_format gl_format,
 				     GLenum format, GLenum type,
                                      GLboolean swapBytes);
-
 
 #ifdef __cplusplus
 }

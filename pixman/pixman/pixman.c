@@ -1017,6 +1017,7 @@ pixman_format_supported_source (pixman_format_code_t format)
     case PIXMAN_a2r10g10b10:
     case PIXMAN_x2r10g10b10:
     case PIXMAN_a8r8g8b8:
+    case PIXMAN_a8r8g8b8_sRGB:
     case PIXMAN_x8r8g8b8:
     case PIXMAN_a8b8g8r8:
     case PIXMAN_x8b8g8r8:

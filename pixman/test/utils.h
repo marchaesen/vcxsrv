@@ -163,6 +163,12 @@ write_png (pixman_image_t *image, const char *filename);
 void *
 aligned_malloc (size_t align, size_t size);
 
+double
+convert_srgb_to_linear (double component);
+
+double
+convert_linear_to_srgb (double component);
+
 void
 initialize_palette (pixman_indexed_t *palette, uint32_t depth, int is_rgb);
 

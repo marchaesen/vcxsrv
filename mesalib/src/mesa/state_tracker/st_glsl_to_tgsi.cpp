@@ -1448,9 +1448,29 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
       emit(ir, TGSI_OPCODE_DDX, result_dst, op[0]);
       break;
    case ir_unop_dFdy:
-      op[0].negate = ~op[0].negate;
-      emit(ir, TGSI_OPCODE_DDY, result_dst, op[0]);
+   {
+      /* The X component contains 1 or -1 depending on whether the framebuffer
+       * is a FBO or the window system buffer, respectively.
+       * It is then multiplied with the source operand of DDY.
+       */
+      static const gl_state_index transform_y_state[STATE_LENGTH]
+         = { STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM };
+
+      unsigned transform_y_index =
+         _mesa_add_state_reference(this->prog->Parameters,
+                                   transform_y_state);
+
+      st_src_reg transform_y = st_src_reg(PROGRAM_STATE_VAR,
+                                          transform_y_index,
+                                          glsl_type::vec4_type);
+      transform_y.swizzle = SWIZZLE_XXXX;
+
+      st_src_reg temp = get_temp(glsl_type::vec4_type);
+
+      emit(ir, TGSI_OPCODE_MUL, st_dst_reg(temp), transform_y, op[0]);
+      emit(ir, TGSI_OPCODE_DDY, result_dst, temp);
       break;
+   }
 
    case ir_unop_noise: {
       /* At some point, a motivated person could add a better
@@ -2758,8 +2778,6 @@ glsl_to_tgsi_visitor::visit(ir_return *ir)
 void
 glsl_to_tgsi_visitor::visit(ir_discard *ir)
 {
-   struct gl_fragment_program *fp = (struct gl_fragment_program *)this->prog;
-
    if (ir->condition) {
       ir->condition->accept(this);
       this->result.negate = ~this->result.negate;
@@ -2767,8 +2785,6 @@ glsl_to_tgsi_visitor::visit(ir_discard *ir)
    } else {
       emit(ir, TGSI_OPCODE_KILP);
    }
-
-   fp->UsesKill = GL_TRUE;
 }
 
 void
@@ -2893,13 +2909,15 @@ set_uniform_initializer(struct gl_context *ctx, void *mem_ctx,
       return;
    }
 
-   int loc = _mesa_get_uniform_location(ctx, shader_program, name);
-
-   if (loc == -1) {
+   unsigned offset;
+   unsigned index = _mesa_get_uniform_location(ctx, shader_program, name,
+					       &offset);
+   if (offset == GL_INVALID_INDEX) {
       fail_link(shader_program,
         	"Couldn't find uniform for initializer %s\n", name);
       return;
    }
+   int loc = _mesa_uniform_merge_location_offset(index, offset);
 
    for (unsigned int i = 0; i < (type->is_array() ? type->length : 1); i++) {
       ir_constant *element;
@@ -4483,6 +4501,7 @@ st_translate_program(
    const ubyte inputSemanticName[],
    const ubyte inputSemanticIndex[],
    const GLuint interpMode[],
+   const GLboolean is_centroid[],
    GLuint numOutputs,
    const GLuint outputMapping[],
    const ubyte outputSemanticName[],
@@ -4524,10 +4543,11 @@ st_translate_program(
     */
    if (procType == TGSI_PROCESSOR_FRAGMENT) {
       for (i = 0; i < numInputs; i++) {
-         t->inputs[i] = ureg_DECL_fs_input(ureg,
-                                           inputSemanticName[i],
-                                           inputSemanticIndex[i],
-                                           interpMode[i]);
+         t->inputs[i] = ureg_DECL_fs_input_cyl_centroid(ureg,
+                                                        inputSemanticName[i],
+                                                        inputSemanticIndex[i],
+                                                        interpMode[i], 0,
+                                                        is_centroid[i]);
       }
 
       if (proginfo->InputsRead & FRAG_BIT_WPOS) {

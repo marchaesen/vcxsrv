@@ -25,6 +25,7 @@ libpixman_sources =			\
 	pixman-region16.c		\
 	pixman-region32.c		\
 	pixman-solid-fill.c		\
+	pixman-srgb.c			\
 	pixman-timer.c			\
 	pixman-trap.c			\
 	pixman-utils.c			\
@@ -46,7 +47,11 @@ BUILT_SOURCES =				\
 	pixman-combine32.h		\
 	pixman-combine64.c		\
 	pixman-combine64.h		\
+	pixman-srgb.c			\
 	$(NULL)
+
+pixman-srgb.c: make-srgb.pl
+	$(PERL) $< > $@ || ($(RM) $@; exit 1)
 
 pixman-combine32.c: pixman-combine.c.template make-combine.pl
 	$(PERL) $(lastword $+) 8 < $< > $@ || ($(RM) $@; exit 1)

@@ -35,6 +35,8 @@
 #include "pbo.h"
 #include "state.h"
 #include "dispatch.h"
+#include "glformats.h"
+#include "fbobject.h"
 
 
 #if FEATURE_drawpix
@@ -89,7 +91,7 @@ _mesa_DrawPixels( GLsizei width, GLsizei height,
     * input), NVIDIA's implementation also just returns this error despite
     * exposing GL_EXT_texture_integer, just return an error regardless.
     */
-   if (_mesa_is_integer_format(format)) {
+   if (_mesa_is_enum_format_integer(format)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawPixels(integer format)");
       goto end;
    }
@@ -239,7 +241,8 @@ _mesa_CopyPixels( GLint srcx, GLint srcy, GLsizei width, GLsizei height,
       goto end;
    }
 
-   if (ctx->ReadBuffer->Name != 0 && ctx->ReadBuffer->Visual.samples > 0) {
+   if (_mesa_is_user_fbo(ctx->ReadBuffer) &&
+       ctx->ReadBuffer->Visual.samples > 0) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
 		  "glCopyPixels(multisample FBO)");
       goto end;
