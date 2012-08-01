@@ -1672,7 +1672,7 @@ winUpdateWindowPosition(HWND hWnd, Bool reshape, HWND * zstyle)
     SetRect(&rcNew, iX, iY, iX + iWidth, iY + iHeight);
 
     AdjustWindowRectEx(&rcNew, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE,
-                       WS_EX_APPWINDOW);
+                       GetWindowLongPtr(hWnd, GWL_EXSTYLE));
 
     /* Don't allow window decoration to disappear off to top-left as a result of this adjustment */
     if (rcNew.left < GetSystemMetrics(SM_XVIRTUALSCREEN)) {
