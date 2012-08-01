@@ -37,8 +37,10 @@
 #include "misc.h"
 #include "winmsg.h"
 #include <unistd.h>
-/*
+
 extern Bool		g_fClipboardPrimary;
+
+/*
  * Process any pending X events
  */
 

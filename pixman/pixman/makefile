@@ -29,6 +29,7 @@ CSRCS =			\
 	pixman-region16.c		\
 	pixman-region32.c		\
 	pixman-solid-fill.c		\
+	pixman-srgb.c			\
 	pixman-timer.c			\
 	pixman-trap.c			\
 	pixman-utils.c			\
@@ -40,6 +41,9 @@ BUILT_SOURCES =				\
 	pixman-combine64.c		\
 	pixman-combine64.h		\
 	$(NULL)
+
+$(OBJDIR)\pixman-srgb.c: make-srgb.pl
+	perl make-srgb.pl > $@
 
 $(OBJDIR)\pixman-combine32.c : pixman-combine.c.template $(OBJDIR)\pixman-combine32.h make-combine.pl
 	perl make-combine.pl 8 < pixman-combine.c.template > $@

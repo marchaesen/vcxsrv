@@ -195,6 +195,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\atifragshader.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\errors.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\format_pack.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\glformats.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\nvprogram.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pack.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pixeltransfer.c" />
