@@ -69,7 +69,7 @@ typedef struct {
     DWORD dwDummy;
     HRGN hRgn;
     HWND hWnd;
-  BOOL			OpenGlWindow;
+    BOOL OpenGlWindow;
     winPrivScreenPtr pScreenPriv;
     Bool fXKilled;
     HDWP hDwp;
@@ -110,7 +110,7 @@ typedef struct _winWMMessageRec {
 #define		WM_WM_KILL		(WM_USER + 7)
 #define		WM_WM_ACTIVATE		(WM_USER + 8)
 #define		WM_WM_NAME_EVENT	(WM_USER + 9)
-#define		WM_WM_HINTS_EVENT	(WM_USER + 10)
+#define		WM_WM_ICON_EVENT	(WM_USER + 10)
 #define		WM_WM_CHANGE_STATE	(WM_USER + 11)
 #define		WM_WM_MAP2		(WM_USER + 12)
 #define		WM_WM_MAP3		(WM_USER + 13)
@@ -165,15 +165,6 @@ winSetAppID (HWND hWnd, const char* AppID);
 /*
  * winmultiwindowicons.c
  */
-
-void
- winUpdateIcon(Window id);
-
-void
- winInitGlobalIcons(void);
-
-void
- winDestroyIcon(HICON hIcon);
 
 #endif                          /* XWIN_MULTIWINDOW */
 #endif

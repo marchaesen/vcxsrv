@@ -147,39 +147,8 @@ winMWExtWMMoveResizeXWindow(WindowPtr pWin, int x, int y, int w, int h)
 }
 
 /*
- * winMWExtWMUpdateIcon
- * Change the Windows window icon
- */
 
-void
-winMWExtWMUpdateIcon(Window id)
-{
-    WindowPtr pWin;
-    HICON hIcon, hiconOld;
 
-    dixLookupResourceByType((pointer) &pWin, id, RT_WINDOW, NullClient,
-                            DixUnknownAccess);
-    hIcon = winOverrideIcon((unsigned long) pWin);
-
-    if (!hIcon)
-        hIcon = winXIconToHICON(pWin, GetSystemMetrics(SM_CXICON));
-
-    if (hIcon) {
-        win32RootlessWindowPtr pRLWinPriv
-            = (win32RootlessWindowPtr) RootlessFrameForWindow(pWin, FALSE);
-
-        if (pRLWinPriv->hWnd) {
-
-            hiconOld = (HICON) SendMessage(pRLWinPriv->hWnd,
-                                           WM_SETICON, ICON_BIG,
-                                           (LPARAM) hIcon);
-            winDestroyIcon(hiconOld);
-        }
-        hIcon = NULL;
-    }
-}
-
-/*
  * winMWExtWMDecorateWindow - Update window style. Called by EnumWindows.
  */
 
