@@ -26,7 +26,7 @@
  *the sale, use or other dealings in this Software without prior written
  *authorization from the copyright holder(s) and author(s).
  *
- * Authors:	Harold L Hunt II
+ * Authors:     Harold L Hunt II
  *              Colin Harrison
  */
 
@@ -46,7 +46,7 @@
  * Constants
  */
 
-#define WIN_POLL_TIMEOUT	1
+#define WIN_POLL_TIMEOUT        1
 
 /*
  * References to external symbols
@@ -56,10 +56,10 @@ extern Bool g_fUseUnicode;
 extern void *g_pClipboardDisplay;
 extern Window g_iClipboardWindow;
 extern Atom g_atomLastOwnedSelection;
-extern Bool		g_fClipboardStarted;
-extern HWND		g_hwndClipboard;
-extern Bool		g_fClipboardPrimary;
-/* 
+extern Bool g_fClipboardStarted;
+extern HWND g_hwndClipboard;
+extern Bool g_fClipboardPrimary;
+/*
  * Local function prototypes
  */
 
@@ -80,14 +80,14 @@ winProcessXEventsTimeout(HWND hwnd, int iWindow, Display * pDisplay,
     int iConnNumber;
     struct timeval tv;
     int iReturn;
-    DWORD dwStopTime = (GetTickCount() / 1000) + iTimeoutSec;
+    DWORD dwStopTime = GetTickCount() + iTimeoutSec * 1000;
 
   /* Make sure the output messages are sent before waiting on a response. */
   iReturn = winClipboardFlushXEvents (hwnd,
-				      iWindow,
-				      pDisplay,
-				      fUseUnicode,
-				      TRUE);
+                                      iWindow,
+                                      pDisplay,
+                                      fUseUnicode,
+                                      TRUE);
   if (WIN_XEVENTS_NOTIFY == iReturn)
     {
       /* Bail out if notify processed */
@@ -100,17 +100,19 @@ winProcessXEventsTimeout(HWND hwnd, int iWindow, Display * pDisplay,
     /* Loop for X events */
     while (1) {
         fd_set fdsRead;
+        long remainingTime;
 
         /* Setup the file descriptor set */
         FD_ZERO(&fdsRead);
         FD_SET(iConnNumber, &fdsRead);
 
         /* Adjust timeout */
-        tv.tv_sec = dwStopTime - (GetTickCount() / 1000);
-        tv.tv_usec = 0;
+        remainingTime = dwStopTime - GetTickCount();
+        tv.tv_sec = remainingTime / 1000;
+        tv.tv_usec = (remainingTime % 1000) * 1000;
 
         /* Break out if no time left */
-        if (tv.tv_sec < 0)
+        if (remainingTime <= 0)
             return WIN_XEVENTS_SUCCESS;
 
         /* Wait for an X event */
@@ -118,10 +120,10 @@ winProcessXEventsTimeout(HWND hwnd, int iWindow, Display * pDisplay,
                          &fdsRead,      /* Read mask */
                          NULL,  /* No write mask */
                          NULL,  /* No exception mask */
-                         &tv);  /* No timeout */
+                         &tv);  /* Timeout */
         if (iReturn < 0) {
             ErrorF ("winProcessXEventsTimeout - Call to select () failed: %d (%x).  "
-		                "Bailing.\n", iReturn, WSAGetLastError());
+                    "Bailing.\n", iReturn, WSAGetLastError());
             break;
         }
 
@@ -160,7 +162,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         ChangeClipboardChain(hwnd, s_hwndNextViewer);
 
         s_hwndNextViewer = NULL;
-	g_hwndClipboard = NULL;
+        g_hwndClipboard = NULL;
         PostQuitMessage(0);
     }
         return 0;
@@ -173,14 +175,14 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         winDebug("winClipboardWindowProc - WM_CREATE\n");
 
         /* Add ourselves to the clipboard viewer chain */
-	s_hwndNextViewer = SetClipboardViewer (hwnd);
-	#ifdef _DEBUG
-	if (s_hwndNextViewer== hwnd)
-	{
-	  ErrorF("WM_CREATE: SetClipboardViewer returned own window. This causes an endless loop, so reset s_hwndNextViewer. ");
-	  s_hwndNextViewer=NULL;
-	}
-	#endif
+        s_hwndNextViewer = SetClipboardViewer (hwnd);
+        #ifdef _DEBUG
+        if (s_hwndNextViewer== hwnd)
+        {
+          ErrorF("WM_CREATE: SetClipboardViewer returned own window. This causes an endless loop, so reset s_hwndNextViewer. ");
+          s_hwndNextViewer=NULL;
+        }
+        #endif
 
     }
         return 0;
@@ -194,8 +196,8 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if ((HWND) wParam == s_hwndNextViewer) {
             s_hwndNextViewer = (HWND) lParam;
             if (s_hwndNextViewer == hwnd) {
-	      winDebug("WM_CHANGECBCHAIN: trying to set s_hwndNextViewer to own window. Resetting it back to NULL. ");
-	      s_hwndNextViewer=NULL;  /* This would cause an endless loop, so break it by ending the loop here. I have seen this happening, why??? */
+              winDebug("WM_CHANGECBCHAIN: trying to set s_hwndNextViewer to own window. Resetting it back to NULL. ");
+              s_hwndNextViewer=NULL;  /* This would cause an endless loop, so break it by ending the loop here. I have seen this happening, why??? */
             }
         }
         else if (s_hwndNextViewer)
@@ -227,23 +229,23 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         winDebug("winClipboardWindowProc - WM_WM_REINIT: Enter\n");
 
         first = GetClipboardViewer();   /* Get handle to first viewer in chain. */
-	if (first != hwnd)
-        { 
+        if (first != hwnd)
+        {
           winDebug ("  WM_WM_REINIT: Replacing us(%x) with %x at head "
-		    "of chain\n", hwnd, s_hwndNextViewer);
-	  if (!wParam) ChangeClipboardChain (hwnd, s_hwndNextViewer);   /* When wParam is set, the window was already removed from the chain */
-	  winDebug ("  WM_WM_REINIT: Putting us back at head of chain.\n");
-	  s_hwndNextViewer = SetClipboardViewer (hwnd);
-	  #ifdef _DEBUG
-	  if (s_hwndNextViewer== hwnd)
-	  {
-	    ErrorF("WM_WM_REINIT: SetClipboardViewer returned own window. This causes an endless loop, so reset s_hwndNextViewer. ");
-	    s_hwndNextViewer=NULL;
-	  }
-	  #endif
+                    "of chain\n", hwnd, s_hwndNextViewer);
+          if (!wParam) ChangeClipboardChain (hwnd, s_hwndNextViewer);   /* When wParam is set, the window was already removed from the chain */
+          winDebug ("  WM_WM_REINIT: Putting us back at head of chain.\n");
+          s_hwndNextViewer = SetClipboardViewer (hwnd);
+          #ifdef _DEBUG
+          if (s_hwndNextViewer== hwnd)
+          {
+            ErrorF("WM_WM_REINIT: SetClipboardViewer returned own window. This causes an endless loop, so reset s_hwndNextViewer. ");
+            s_hwndNextViewer=NULL;
+          }
+          #endif
         }
         winDebug ("winClipboardWindowProc - WM_WM_REINIT: Exit\n");
-      }
+    }
         return 0;
 
     case WM_DRAWCLIPBOARD:
@@ -255,15 +257,14 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         Window iWindow = g_iClipboardWindow;
         int iReturn;
 
-	winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD 0x%x 0x%x 0x%x: Enter\n",hwnd,wParam,lParam);
+        winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD 0x%x 0x%x 0x%x: Enter\n",hwnd,wParam,lParam);
 
-	if (!g_fClipboardStarted)
-	{
-	  winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD: Exit with no processing\n");
-	  if (s_hwndNextViewer)
-	    SendMessage (s_hwndNextViewer, message, wParam, lParam);
-	  return 0;
-    }
+        if (!g_fClipboardStarted) {
+          winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD: Exit with no processing\n");
+          if (s_hwndNextViewer)
+            SendMessage (s_hwndNextViewer, message, wParam, lParam);
+          return 0;
+        }
 
         if (generation != serverGeneration) {
             generation = serverGeneration;
@@ -280,8 +281,8 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         else {
             /* Attempt to break the nesting by getting out of the chain, twice?, and then fix and bail */
             ChangeClipboardChain(hwnd, s_hwndNextViewer);
-	    winFixClipboardChain(1);
-	    ErrorF ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
+            winFixClipboardChain(1);
+            ErrorF ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
                           "Nested calls detected.  Re-initing.\n");
             winDebug("winClipboardWindowProc - WM_DRAWCLIPBOARD: Exit\n");
             s_fProcessingDrawClipboard = FALSE;
@@ -305,24 +306,21 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
              * previous XSetSelectionOwner messages.
              */
             XSync(pDisplay, FALSE);
-	    
-	    if (g_fClipboardPrimary)
-	    {
-	    	    /* Release PRIMARY selection if owned */
-	      iReturn = XGetSelectionOwner (pDisplay, XA_PRIMARY);
-	      if (iReturn == g_iClipboardWindow)
-		{
-		  winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-			    "PRIMARY selection is owned by us.\n");
-		  XSetSelectionOwner (pDisplay,
-				      XA_PRIMARY,
-				      None,
-				      CurrentTime);
-		}
-	      else if (BadWindow == iReturn || BadAtom == iReturn)
-		ErrorF ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-		        "XGetSelection failed for PRIMARY: %d\n", iReturn);
-	    }
+
+            if (g_fClipboardPrimary)
+            {
+                /* Release PRIMARY selection if owned */
+              iReturn = XGetSelectionOwner (pDisplay, XA_PRIMARY);
+              if (iReturn == g_iClipboardWindow) {
+                  winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
+                            "PRIMARY selection is owned by us.\n");
+                  XSetSelectionOwner (pDisplay, XA_PRIMARY, None, CurrentTime);
+              }
+              else if (BadWindow == iReturn || BadAtom == iReturn)
+                ErrorF ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
+                        "XGetSelection failed for PRIMARY: %d\n",
+                        iReturn);
+            }
             /* Release CLIPBOARD selection if owned */
             iReturn = XGetSelectionOwner(pDisplay, atomClipboard);
             if (iReturn == g_iClipboardWindow) {
@@ -341,50 +339,40 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 SendMessage(s_hwndNextViewer, message, wParam, lParam);
             return 0;
         }
-	  /* Only reassert ownership when we did not change the clipboard ourselves */
-	if (hwnd!=(HWND)wParam)
-	{
-	  if (g_fClipboardPrimary)
-	  {
-	  	  /* Reassert ownership of PRIMARY */	  
-	    iReturn = XSetSelectionOwner (pDisplay,
-					  XA_PRIMARY,
-					  iWindow,
-					  CurrentTime);
-	    if (iReturn == BadAtom || iReturn == BadWindow ||
-	        XGetSelectionOwner (pDisplay, XA_PRIMARY) != iWindow)
-	      {
-		ErrorF ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-		        "Could not reassert ownership of PRIMARY\n");
-	      }
-	    else
-	      {
-		winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-			  "Reasserted ownership of PRIMARY\n");
-	      }
-	  }
-	  /* Reassert ownership of the CLIPBOARD */	  
-	  iReturn = XSetSelectionOwner (pDisplay,
-				        atomClipboard,
-				        iWindow,
-				        CurrentTime);
+          /* Only reassert ownership when we did not change the clipboard ourselves */
+        if (hwnd!=(HWND)wParam) {
+          if (g_fClipboardPrimary) {
+                  /* Reassert ownership of PRIMARY */
+            iReturn = XSetSelectionOwner (pDisplay,
+                                          XA_PRIMARY, iWindow, CurrentTime);
+            if (iReturn == BadAtom || iReturn == BadWindow ||
+                XGetSelectionOwner (pDisplay, XA_PRIMARY) != iWindow) {
+                ErrorF ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
+                        "Could not reassert ownership of PRIMARY\n");
+            }
+            else {
+                winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
+                          "Reasserted ownership of PRIMARY\n");
+            }
+          }
+          /* Reassert ownership of the CLIPBOARD */
+          iReturn = XSetSelectionOwner (pDisplay,
+                                        atomClipboard, iWindow, CurrentTime);
 
-	  if (iReturn == BadAtom || iReturn == BadWindow ||
-	      XGetSelectionOwner (pDisplay, atomClipboard) != iWindow)
-	    {
-	      ErrorF ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-		      "Could not reassert ownership of CLIPBOARD\n");
-	    }
-	  else
-	    {
-	      winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-		      "Reasserted ownership of CLIPBOARD\n");
-	    }
+          if (iReturn == BadAtom || iReturn == BadWindow ||
+              XGetSelectionOwner (pDisplay, atomClipboard) != iWindow) {
+              ErrorF ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
+                      "Could not reassert ownership of CLIPBOARD\n");
+          }
+          else {
+              winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
+                      "Reasserted ownership of CLIPBOARD\n");
+          }
 
-	  /* Flush the pending SetSelectionOwner event now */
-	  XFlush (pDisplay);
-	}
-        
+          /* Flush the pending SetSelectionOwner event now */
+          XFlush (pDisplay);
+        }
+
         s_fProcessingDrawClipboard = FALSE;
         winDebug("winClipboardWindowProc - WM_DRAWCLIPBOARD: Exit\n");
         /* Pass the message on the next window in the clipboard viewer chain */
@@ -451,7 +439,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 ErrorF ("winClipboardWindowProc - WM_RENDER*FORMATS - "
                               "EmptyClipboard () failed: %08x\n",
                               GetLastError());
-		CloseClipboard ();
+                CloseClipboard ();
                 break;
             }
         }
@@ -484,7 +472,8 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             /* We must close the clipboard */
 
             if (!CloseClipboard()) {
-                ErrorF ("winClipboardWindowProc - WM_RENDERALLFORMATS - "
+                ErrorF (
+                              "winClipboardWindowProc - WM_RENDERALLFORMATS - "
                               "CloseClipboard () failed: %08x\n",
                               GetLastError());
                 break;
