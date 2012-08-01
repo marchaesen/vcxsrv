@@ -120,12 +120,12 @@ typedef struct __GLXWinConfig GLXWinConfig;
 struct __GLXWinContext {
     __GLXcontext base;
     HGLRC ctx;                  /* Windows GL Context */
-  HDC hDC;                           /* Windows device context */
-  HDC hreadDC;                     /* Windows device read context */
+    HDC hDC;                           /* Windows device context */
+    HDC hreadDC;                     /* Windows device read context */
     __GLXWinContext *shareContext;      /* Context with which we will share display lists and textures */
     HWND hwnd;                  /* For detecting when HWND has changed */
-  HWND hreadwnd;
-  struct _glapi_table *Dispatch;
+    HWND hreadwnd;
+    struct _glapi_table *Dispatch;
 };
 
 struct __GLXWinDrawable {
@@ -156,9 +156,9 @@ struct __GLXWinScreen {
     /* wrapped screen functions */
     RealizeWindowProcPtr RealizeWindow;
     UnrealizeWindowProcPtr UnrealizeWindow;
-  DestroyWindowProcPtr DestroyWindow;
+    DestroyWindowProcPtr DestroyWindow;
     CopyWindowProcPtr CopyWindow;
-  PositionWindowProcPtr PositionWindow;
+    PositionWindowProcPtr PositionWindow;
 };
 
 struct __GLXWinConfig {
@@ -1819,11 +1819,12 @@ glxWinCreateContext(__GLXscreen * screen,
  * Utility functions
  */
 
-static int GetShift(int Mask)
+static int
+GetShift(int Mask)
 {
   int Shift=0;
-  while ((Mask&1)==0)
-  {
+
+  while ((Mask&1)==0) {
     Shift++;
     Mask>>=1;
   }
@@ -1876,13 +1877,13 @@ fbConfigToPixelFormat(__GLXconfig * mode, PIXELFORMATDESCRIPTOR * pfdret,
     pfd.cAlphaBits = mode->alphaBits;
     pfd.cAlphaShift = GetShift(mode->alphaMask);
 
-    if (mode->visualType = GLX_TRUE_COLOR)
-    {
+    if (mode->visualType == GLX_TRUE_COLOR) {
       pfd.iPixelType = PFD_TYPE_RGBA;
-      pfd.dwVisibleMask = (pfd.cRedBits << pfd.cRedShift) | (pfd.cGreenBits << pfd.cGreenShift) | (pfd.cBlueBits << pfd.cBlueShift) | (pfd.cAlphaBits << pfd.cAlphaShift);
+      pfd.dwVisibleMask =
+          (pfd.cRedBits << pfd.cRedShift) | (pfd.cGreenBits << pfd.cGreenShift) |
+          (pfd.cBlueBits << pfd.cBlueShift) | (pfd.cAlphaBits << pfd.cAlphaShift);
     }
-    else
-    {
+    else {
       pfd.iPixelType = PFD_TYPE_COLORINDEX;
       pfd.dwVisibleMask = mode->transparentIndex;
     }
@@ -2134,13 +2135,16 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
           c->base.transparentIndex = pfd.dwVisibleMask;
           c->base.transparentPixel = GLX_TRANSPARENT_INDEX;
         }
-      else
-        {
+        else {
           c->base.visualType = GLX_TRUE_COLOR;
-          c->base.transparentRed =   (pfd.dwVisibleMask&c->base.redMask)  >>pfd.cRedShift;
-          c->base.transparentGreen = (pfd.dwVisibleMask&c->base.greenMask)>>pfd.cGreenShift;
-          c->base.transparentBlue =  (pfd.dwVisibleMask&c->base.blueMask) >>pfd.cBlueShift;
-          c->base.transparentAlpha = (pfd.dwVisibleMask&c->base.alphaMask)>>pfd.cAlphaShift;
+          c->base.transparentRed =
+              (pfd.dwVisibleMask&c->base.redMask) >> pfd.cRedShift;
+          c->base.transparentGreen =
+              (pfd.dwVisibleMask&c->base.greenMask) >> pfd.cGreenShift;
+          c->base.transparentBlue =
+              (pfd.dwVisibleMask&c->base.blueMask) >> pfd.cBlueShift;
+          c->base.transparentAlpha =
+              (pfd.dwVisibleMask&c->base.alphaMask) >> pfd.cAlphaShift;
           c->base.transparentIndex = GLX_NONE;
           c->base.transparentPixel = GLX_TRANSPARENT_RGB;
         }
