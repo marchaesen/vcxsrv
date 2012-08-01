@@ -1644,7 +1644,7 @@ Win32TempDir()
     if (getenv("TEMP") != NULL)
         return getenv("TEMP");
     else if (getenv("TMP") != NULL)
-        return getenv("TEMP");
+        return getenv("TMP");
     else
         return "/tmp";
 }
