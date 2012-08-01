@@ -29,6 +29,7 @@
 #include "ast.h"
 #include "glsl_parser_extras.h"
 #include "glsl_types.h"
+#include "main/context.h"
 
 #define YYLEX_PARAM state->scanner
 
@@ -259,19 +260,25 @@ version_statement:
 	   switch ($2) {
 	   case 100:
 	      state->es_shader = true;
-	      supported = state->Const.GLSL_100ES;
+	      supported = state->ctx->API == API_OPENGLES2 ||
+		          state->ctx->Extensions.ARB_ES2_compatibility;
 	      break;
 	   case 110:
-	      supported = state->Const.GLSL_110;
-	      break;
 	   case 120:
-	      supported = state->Const.GLSL_120;
-	      break;
+	      /* FINISHME: Once the OpenGL 3.0 'forward compatible' context or
+	       * the OpenGL 3.2 Core context is supported, this logic will need
+	       * change.  Older versions of GLSL are no longer supported
+	       * outside the compatibility contexts of 3.x.
+	       */
 	   case 130:
-	      supported = state->Const.GLSL_130;
-	      break;
 	   case 140:
-	      supported = state->Const.GLSL_140;
+	   case 150:
+	   case 330:
+	   case 400:
+	   case 410:
+	   case 420:
+	      supported = _mesa_is_desktop_gl(state->ctx) &&
+			  ((unsigned) $2) <= state->ctx->Const.GLSLVersion;
 	      break;
 	   default:
 	      supported = false;
@@ -291,6 +298,10 @@ version_statement:
 			       state->version_string,
 			       state->supported_version_string);
 	   }
+
+	   if (state->language_version >= 140) {
+	      state->ARB_uniform_buffer_object_enable = true;
+	   }
 	}
 	;
 
@@ -301,7 +312,7 @@ pragma_statement:
 	| PRAGMA_OPTIMIZE_OFF EOL
 	| PRAGMA_INVARIANT_ALL EOL
 	{
-	   if (state->language_version < 120 && !state->Const.GLSL_100ES) {
+	   if (state->language_version == 110) {
 	      _mesa_glsl_warning(& @1, state,
 				 "pragma `invariant(all)' not supported in %s",
 				 state->version_string);
@@ -1102,20 +1113,10 @@ layout_qualifier_id_list:
 	layout_qualifier_id
 	| layout_qualifier_id_list ',' layout_qualifier_id
 	{
-	   if (($1.flags.i & $3.flags.i) != 0) {
-	      _mesa_glsl_error(& @3, state,
-			       "duplicate layout qualifiers used\n");
+	   $$ = $1;
+	   if (!$$.merge_qualifier(& @3, state, $3)) {
 	      YYERROR;
 	   }
-
-	   $$ = $1;
-	   $$.flags.i |= $3.flags.i;
-
-	   if ($3.flags.q.explicit_location)
-	      $$.location = $3.location;
-
-	   if ($3.flags.q.explicit_index)
-	      $$.index = $3.index;
 	}
 	;
 
@@ -1905,6 +1906,7 @@ external_declaration:
 	function_definition	{ $$ = $1; }
 	| declaration		{ $$ = $1; }
 	| pragma_statement	{ $$ = NULL; }
+	| layout_defaults	{ $$ = NULL; }
 	;
 
 function_definition:
@@ -1925,14 +1927,18 @@ uniform_block:
 	UNIFORM NEW_IDENTIFIER '{' member_list '}' ';'
 	{
 	   void *ctx = state;
-	   ast_type_qualifier no_qual;
-	   memset(&no_qual, 0, sizeof(no_qual));
-	   $$ = new(ctx) ast_uniform_block(no_qual, $2, $4);
+	   $$ = new(ctx) ast_uniform_block(*state->default_uniform_qualifier,
+					   $2, $4);
 	}
 	| layout_qualifier UNIFORM NEW_IDENTIFIER '{' member_list '}' ';'
 	{
 	   void *ctx = state;
-	   $$ = new(ctx) ast_uniform_block($1, $3, $5);
+
+	   ast_type_qualifier qual = *state->default_uniform_qualifier;
+	   if (!qual.merge_qualifier(& @1, state, $1)) {
+	      YYERROR;
+	   }
+	   $$ = new(ctx) ast_uniform_block(qual, $3, $5);
 	}
 	;
 
@@ -1986,3 +1992,12 @@ member_declaration:
 	   $$->declarations.push_degenerate_list_at_head(& $3->link);
 	}
 	;
+
+layout_defaults:
+	layout_qualifier UNIFORM ';'
+	{
+	   if (!state->default_uniform_qualifier->merge_qualifier(& @1, state,
+								  $1)) {
+	      YYERROR;
+	   }
+	}

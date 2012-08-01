@@ -41,6 +41,7 @@
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
 #include "main/uniforms.h"
+#include "main/enums.h"
 #include "ir_uniform.h"
 #include "glsl_types.h"
 
@@ -521,6 +522,16 @@ _mesa_GetUniformLocationARB(GLhandleARB programObj, const GLcharARB *name)
    if (index == GL_INVALID_INDEX)
       return -1;
 
+   /* From the GL_ARB_uniform_buffer_object spec:
+    *
+    *     "The value -1 will be returned if <name> does not correspond to an
+    *      active uniform variable name in <program>, if <name> is associated
+    *      with a named uniform block, or if <name> starts with the reserved
+    *      prefix "gl_"."
+    */
+   if (shProg->UniformStorage[index].block_index != -1)
+      return -1;
+
    return _mesa_uniform_merge_location_offset(index, offset);
 }
 
@@ -580,6 +591,212 @@ _mesa_GetUniformIndices(GLuint program,
       unsigned offset;
       uniformIndices[i] = _mesa_get_uniform_location(ctx, shProg,
 						     uniformNames[i], &offset);
+   }
+}
+
+static void GLAPIENTRY
+_mesa_UniformBlockBinding(GLuint program,
+			  GLuint uniformBlockIndex,
+			  GLuint uniformBlockBinding)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_shader_program *shProg;
+
+   if (!ctx->Extensions.ARB_uniform_buffer_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glUniformBlockBinding");
+      return;
+   }
+
+   shProg = _mesa_lookup_shader_program_err(ctx, program,
+					    "glUniformBlockBinding");
+   if (!shProg)
+      return;
+
+   if (uniformBlockIndex >= shProg->NumUniformBlocks) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+		  "glUniformBlockBinding(block index %d >= %d)",
+		  uniformBlockIndex, shProg->NumUniformBlocks);
+      return;
+   }
+
+   if (uniformBlockBinding >= ctx->Const.MaxUniformBufferBindings) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+		  "glUniformBlockBinding(block binding %d >= %d)",
+		  uniformBlockBinding, ctx->Const.MaxUniformBufferBindings);
+      return;
+   }
+
+   if (shProg->UniformBlocks[uniformBlockIndex].Binding !=
+       uniformBlockBinding) {
+      int i;
+
+      FLUSH_VERTICES(ctx, _NEW_BUFFER_OBJECT);
+      shProg->UniformBlocks[uniformBlockIndex].Binding = uniformBlockBinding;
+
+      for (i = 0; i < MESA_SHADER_TYPES; i++) {
+	 int stage_index = shProg->UniformBlockStageIndex[i][uniformBlockIndex];
+
+	 if (stage_index != -1) {
+	    struct gl_shader *sh = shProg->_LinkedShaders[i];
+	    sh->UniformBlocks[stage_index].Binding = uniformBlockBinding;
+	 }
+      }
+   }
+}
+
+static void GLAPIENTRY
+_mesa_GetActiveUniformBlockiv(GLuint program,
+			      GLuint uniformBlockIndex,
+			      GLenum pname,
+			      GLint *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_shader_program *shProg;
+   struct gl_uniform_block *block;
+   unsigned i;
+
+   if (!ctx->Extensions.ARB_uniform_buffer_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glGetActiveUniformBlockiv");
+      return;
+   }
+
+   shProg = _mesa_lookup_shader_program_err(ctx, program,
+					    "glGetActiveUniformBlockiv");
+   if (!shProg)
+      return;
+
+   if (uniformBlockIndex >= shProg->NumUniformBlocks) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+		  "glGetActiveUniformBlockiv(block index %d >= %d)",
+		  uniformBlockIndex, shProg->NumUniformBlocks);
+      return;
+   }
+
+   block = &shProg->UniformBlocks[uniformBlockIndex];
+
+   switch (pname) {
+   case GL_UNIFORM_BLOCK_BINDING:
+      params[0] = block->Binding;
+      return;
+
+   case GL_UNIFORM_BLOCK_DATA_SIZE:
+      params[0] = block->UniformBufferSize;
+      return;
+
+   case GL_UNIFORM_BLOCK_NAME_LENGTH:
+      params[0] = strlen(block->Name) + 1;
+      return;
+
+   case GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS:
+      params[0] = block->NumUniforms;
+      return;
+
+   case GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES:
+      for (i = 0; i < block->NumUniforms; i++) {
+	 unsigned offset;
+	 params[i] = _mesa_get_uniform_location(ctx, shProg,
+						block->Uniforms[i].Name,
+						&offset);
+      }
+      return;
+
+   case GL_UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER:
+      params[0] = shProg->UniformBlockStageIndex[MESA_SHADER_VERTEX][uniformBlockIndex] != -1;
+      return;
+
+   case GL_UNIFORM_BLOCK_REFERENCED_BY_GEOMETRY_SHADER:
+      params[0] = shProg->UniformBlockStageIndex[MESA_SHADER_GEOMETRY][uniformBlockIndex] != -1;
+      return;
+
+   case GL_UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER:
+      params[0] = shProg->UniformBlockStageIndex[MESA_SHADER_FRAGMENT][uniformBlockIndex] != -1;
+      return;
+
+   default:
+      _mesa_error(ctx, GL_INVALID_ENUM,
+		  "glGetActiveUniformBlockiv(pname 0x%x (%s))",
+		  pname, _mesa_lookup_enum_by_nr(pname));
+      return;
+   }
+}
+
+static void GLAPIENTRY
+_mesa_GetActiveUniformBlockName(GLuint program,
+				GLuint uniformBlockIndex,
+				GLsizei bufSize,
+				GLsizei *length,
+				GLchar *uniformBlockName)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_shader_program *shProg;
+   struct gl_uniform_block *block;
+
+   if (!ctx->Extensions.ARB_uniform_buffer_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glGetActiveUniformBlockiv");
+      return;
+   }
+
+   if (bufSize < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+		  "glGetActiveUniformBlockName(bufSize %d < 0)",
+		  bufSize);
+      return;
+   }
+
+   shProg = _mesa_lookup_shader_program_err(ctx, program,
+					    "glGetActiveUniformBlockiv");
+   if (!shProg)
+      return;
+
+   if (uniformBlockIndex >= shProg->NumUniformBlocks) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+		  "glGetActiveUniformBlockiv(block index %d >= %d)",
+		  uniformBlockIndex, shProg->NumUniformBlocks);
+      return;
+   }
+
+   block = &shProg->UniformBlocks[uniformBlockIndex];
+
+   if (uniformBlockName) {
+      _mesa_copy_string(uniformBlockName, bufSize, length, block->Name);
+   }
+}
+
+static void GLAPIENTRY
+_mesa_GetActiveUniformName(GLuint program, GLuint uniformIndex,
+			   GLsizei bufSize, GLsizei *length,
+			   GLchar *uniformName)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_shader_program *shProg;
+
+   if (!ctx->Extensions.ARB_uniform_buffer_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glGetActiveUniformBlockiv");
+      return;
+   }
+
+   if (bufSize < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+		  "glGetActiveUniformName(bufSize %d < 0)",
+		  bufSize);
+      return;
+   }
+
+   ASSERT_OUTSIDE_BEGIN_END(ctx);
+
+   shProg = _mesa_lookup_shader_program_err(ctx, program, "glGetActiveUniformName");
+
+   if (!shProg)
+      return;
+
+   if (uniformIndex >= shProg->NumUserUniformStorage) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glGetActiveUniform(index)");
+      return;
+   }
+
+   if (uniformName) {
+      _mesa_copy_string(uniformName, bufSize, length,
+			shProg->UniformStorage[uniformIndex].name);
    }
 }
 
@@ -644,6 +861,10 @@ _mesa_init_shader_uniform_dispatch(struct _glapi_table *exec)
    SET_GetUniformBlockIndex(exec, _mesa_GetUniformBlockIndex);
    SET_GetUniformIndices(exec, _mesa_GetUniformIndices);
    SET_GetActiveUniformsiv(exec, _mesa_GetActiveUniformsiv);
+   SET_GetActiveUniformBlockiv(exec, _mesa_GetActiveUniformBlockiv);
+   SET_GetActiveUniformBlockName(exec, _mesa_GetActiveUniformBlockName);
+   SET_GetActiveUniformName(exec, _mesa_GetActiveUniformName);
+   SET_UniformBlockBinding(exec, _mesa_UniformBlockBinding);
 
 #endif /* FEATURE_GL */
 }
