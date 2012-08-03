@@ -468,6 +468,11 @@ set_general_properties (pixman_image_t *image, pixman_bool_t allow_alpha_map)
 		width = lcg_rand_n (image->bits.width) - x + 10;
 		height = lcg_rand_n (image->bits.height) - y + 10;
 
+		if (width + x < x)
+		    width = INT32_MAX - x;
+		if (height + y < y)
+		    height = INT32_MAX - y;
+		
 		pixman_region32_union_rect (
 		    &region, &region, x, y, width, height);
 	    }

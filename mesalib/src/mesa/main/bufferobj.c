@@ -131,7 +131,7 @@ get_buffer(struct gl_context *ctx, const char *func, GLenum target)
 }
 
 
-static inline GLenum
+static inline GLbitfield
 default_access_mode(const struct gl_context *ctx)
 {
    /* Table 2.6 on page 31 (page 44 of the PDF) of the OpenGL 1.5 spec says:
@@ -150,7 +150,7 @@ default_access_mode(const struct gl_context *ctx)
     * The difference is because GL_OES_mapbuffer only supports mapping buffers
     * write-only.
     */
-   return (ctx->API == API_OPENGLES)
+   return _mesa_is_gles(ctx)
       ? GL_MAP_WRITE_BIT : (GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
 }
 

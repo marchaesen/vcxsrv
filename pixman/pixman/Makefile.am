@@ -13,6 +13,7 @@ noinst_LTLIBRARIES =
 EXTRA_DIST =				\
 	Makefile.win32			\
 	make-combine.pl			\
+	make-srgb.pl			\
 	pixman-combine.c.template	\
 	pixman-combine.h.template	\
 	pixman-region.c			\

@@ -26,10 +26,6 @@ m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
 
-dnl Save user CFLAGS and CXXFLAGS so one can override the default ones
-USER_CFLAGS="$CFLAGS"
-USER_CXXFLAGS="$CXXFLAGS"
-
 dnl Versions for external dependencies
 LIBDRM_REQUIRED=2.4.24
 LIBDRM_RADEON_REQUIRED=2.4.31
@@ -284,11 +280,11 @@ dnl explicitly requested. If both disabled, set to static since shared
 dnl was explicitly requested.
 case "x$enable_static$enable_shared" in
 xyesyes )
-    AC_MSG_WARN([Can't build static and shared libraries, disabling shared])
+    AC_MSG_WARN([Cannot build static and shared libraries, disabling shared])
     enable_shared=no
     ;;
 xnono )
-    AC_MSG_WARN([Can't disable both static and shared libraries, enabling static])
+    AC_MSG_WARN([Cannot disable both static and shared libraries, enabling static])
     enable_static=yes
     ;;
 esac
@@ -467,13 +463,6 @@ if test "x$enable_asm" = xyes; then
         case "$host_os" in
         linux* | *freebsd* | dragonfly* | *netbsd*)
             test "x$enable_32bit" = xyes && asm_arch=x86 || asm_arch=x86_64
-            ;;
-        esac
-        ;;
-    powerpc)
-        case "$host_os" in
-        linux*)
-            asm_arch=ppc
             ;;
         esac
         ;;
@@ -723,9 +712,7 @@ default_driver="xlib"
 
 case "$host_os" in
 linux*)
-    case "$host_cpu" in
-    i*86|x86_64|powerpc*|sparc*|ia64*) default_driver="dri";;
-    esac
+    default_driver="dri"
     ;;
 *freebsd* | dragonfly* | *netbsd*)
     case "$host_cpu" in
@@ -882,7 +869,7 @@ PKG_CHECK_MODULES([LIBDRM], [libdrm >= $LIBDRM_REQUIRED],
 if test "x$enable_dri" = xyes; then
     # DRI must be shared, I think
     if test "$enable_static" = yes; then
-        AC_MSG_ERROR([Can't use static libraries for DRI drivers])
+        AC_MSG_ERROR([Cannot use static libraries for DRI drivers])
     fi
 
     # not a hard requirement as swrast does not depend on it
@@ -1135,7 +1122,7 @@ yes)
     dri_drivers=`IFS=', '; echo $with_dri_drivers`
     for driver in $dri_drivers; do
         test -d "$srcdir/src/mesa/drivers/dri/$driver" || \
-            AC_MSG_ERROR([DRI driver directory '$driver' doesn't exist])
+            AC_MSG_ERROR([DRI driver directory '$driver' does not exist])
     done
     DRI_DIRS="$dri_drivers"
     if test -n "$DRI_DIRS" -a "x$enable_opengl" != xyes; then
@@ -2022,7 +2009,7 @@ if test "x$with_gallium_drivers" != x; then
                 AC_MSG_ERROR([LLVM 3.1 is required to build the radeonsi driver.])
             fi
 	    NEED_RADEON_GALLIUM=yes;
-            gallium_check_st "radeon/drm" "dri-radeonsi" "xorg-radeonsi"
+            gallium_check_st "radeon/drm" "dri-radeonsi" "xorg-radeonsi" "" "" "vdpau-radeonsi" ""
             ;;
         xnouveau)
             PKG_CHECK_MODULES([NOUVEAU], [libdrm_nouveau >= $LIBDRM_NOUVEAU_REQUIRED])

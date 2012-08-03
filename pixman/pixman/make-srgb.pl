@@ -72,7 +72,10 @@ print <<"PROLOG";
 
 #include <stdint.h>
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "pixman-private.h"
 
 PROLOG
