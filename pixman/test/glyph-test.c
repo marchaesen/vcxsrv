@@ -199,7 +199,7 @@ create_image (int max_size, const pixman_format_code_t *formats, uint32_t flags)
 	alpha_x = lcg_rand_n (width);
 	alpha_y = lcg_rand_n (height);
 	alpha_map =
-	    create_image (max_size, formats, (flags & ~ALLOW_ALPHA_MAP));
+	    create_image (max_size, formats, (flags & ~(ALLOW_ALPHA_MAP | ALLOW_SOLID)));
 	pixman_image_set_alpha_map (image, alpha_map, alpha_x, alpha_y);
 	pixman_image_unref (alpha_map);
     }
@@ -330,6 +330,6 @@ int
 main (int argc, const char *argv[])
 {
     return fuzzer_test_main ("glyph", 30000,
-			     0x1B7696A2,
+			     0x741CB2DB,
 			     test_glyphs, argc, argv);
 }

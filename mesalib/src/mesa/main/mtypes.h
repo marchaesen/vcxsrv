@@ -1253,9 +1253,6 @@ struct gl_sampler_object
    GLfloat CompareFailValue;    /**< GL_ARB_shadow_ambient */
    GLenum sRGBDecode;           /**< GL_DECODE_EXT or GL_SKIP_DECODE_EXT */
    GLboolean CubeMapSeamless;   /**< GL_AMD_seamless_cubemap_per_texture */
-
-   /* deprecated sampler state */
-   GLenum DepthMode;		/**< GL_ARB_depth_texture */
 };
 
 
@@ -1271,6 +1268,8 @@ struct gl_texture_object
    GLenum Target;               /**< GL_TEXTURE_1D, GL_TEXTURE_2D, etc. */
 
    struct gl_sampler_object Sampler;
+
+   GLenum DepthMode;		/**< GL_ARB_depth_texture */
 
    GLfloat Priority;		/**< in [0,1] */
    GLint BaseLevel;		/**< min mipmap level, OpenGL 1.2 */
@@ -2966,7 +2965,6 @@ struct gl_extensions
    GLboolean ARB_occlusion_query;
    GLboolean ARB_occlusion_query2;
    GLboolean ARB_point_sprite;
-   GLboolean ARB_sampler_objects;
    GLboolean ARB_seamless_cube_map;
    GLboolean ARB_shader_bit_encoding;
    GLboolean ARB_shader_objects;
