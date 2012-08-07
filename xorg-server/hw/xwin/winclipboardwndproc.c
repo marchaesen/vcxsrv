@@ -110,6 +110,8 @@ winProcessXEventsTimeout(HWND hwnd, int iWindow, Display * pDisplay,
         remainingTime = dwStopTime - GetTickCount();
         tv.tv_sec = remainingTime / 1000;
         tv.tv_usec = (remainingTime % 1000) * 1000;
+        winDebug("winProcessXEventsTimeout () - %d milliseconds left\n",
+                 remainingTime);
 
         /* Break out if no time left */
         if (remainingTime <= 0)
@@ -122,8 +124,8 @@ winProcessXEventsTimeout(HWND hwnd, int iWindow, Display * pDisplay,
                          NULL,  /* No exception mask */
                          &tv);  /* Timeout */
         if (iReturn < 0) {
-            ErrorF ("winProcessXEventsTimeout - Call to select () failed: %d (%x).  "
-                    "Bailing.\n", iReturn, WSAGetLastError());
+            ErrorF("winProcessXEventsTimeout - Call to select () failed: %d (%x).  "
+                   "Bailing.\n", iReturn, WSAGetLastError());
             break;
         }
 
@@ -133,10 +135,18 @@ winProcessXEventsTimeout(HWND hwnd, int iWindow, Display * pDisplay,
             /* Exit when we see that server is shutting down */
             iReturn = winClipboardFlushXEvents(hwnd,
                                                iWindow, pDisplay, fUseUnicode, TRUE);
+
+            winDebug
+                ("winProcessXEventsTimeout () - winClipboardFlushXEvents returned %d\n",
+                 iReturn);
+
             if (WIN_XEVENTS_NOTIFY == iReturn) {
                 /* Bail out if notify processed */
                 return iReturn;
             }
+        }
+        else {
+            winDebug("winProcessXEventsTimeout - Spurious wake\n");
         }
     }
 

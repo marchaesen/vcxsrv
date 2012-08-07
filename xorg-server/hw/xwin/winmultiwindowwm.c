@@ -676,9 +676,9 @@ winMultiWindowWMProc(void *pArg)
             UpdateName(pWMInfo, pNode->msg.iWindow);
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
             {
-              HWND zstyle = HWND_NOTOPMOST;
-              winApplyHints (pWMInfo->pDisplay, pNode->msg.iWindow, pNode->msg.hwndWindow, &zstyle);
-              winUpdateWindowPosition (pNode->msg.hwndWindow, TRUE, &zstyle);
+                HWND zstyle = HWND_NOTOPMOST;
+                winApplyHints (pWMInfo->pDisplay, pNode->msg.iWindow, pNode->msg.hwndWindow, &zstyle);
+                winUpdateWindowPosition (pNode->msg.hwndWindow, TRUE, &zstyle);
             }
             break;
 
@@ -823,7 +823,7 @@ winMultiWindowXMsgProc(void *pArg)
         pthread_exit(NULL);
     }
 
-    winDebug ("winMultiWindowXMsgProc - Calling pthread_mutex_lock ()\n");
+    winDebug("winMultiWindowXMsgProc - Calling pthread_mutex_lock ()\n");
 
     /* Grab the server started mutex - pause until we get it */
     iReturn = pthread_mutex_lock(pProcArg->ppmServerStarted);
@@ -833,12 +833,12 @@ winMultiWindowXMsgProc(void *pArg)
         pthread_exit(NULL);
     }
 
-    winDebug ("winMultiWindowXMsgProc - pthread_mutex_lock () returned.\n");
+    winDebug("winMultiWindowXMsgProc - pthread_mutex_lock () returned.\n");
 
     /* Release the server started mutex */
     pthread_mutex_unlock(pProcArg->ppmServerStarted);
 
-    winDebug ("winMultiWindowXMsgProc - pthread_mutex_unlock () returned.\n");
+    winDebug("winMultiWindowXMsgProc - pthread_mutex_unlock () returned.\n");
 
     /* Install our error handler */
     XSetErrorHandler(winMultiWindowXMsgProcErrorHandler);
@@ -865,7 +865,7 @@ winMultiWindowXMsgProc(void *pArg)
     winGetDisplayName(pszDisplay, (int)pProcArg->dwScreen);
 
     /* Print the display connection string */
-    winDebug ("winMultiWindowXMsgProc - DISPLAY=%s\n", pszDisplay);
+    winDebug("winMultiWindowXMsgProc - DISPLAY=%s\n", pszDisplay);
 
     /* Use our generated cookie for authentication */
     winSetAuthorization();
@@ -878,8 +878,8 @@ winMultiWindowXMsgProc(void *pArg)
         /* Try to open the display */
         pProcArg->pDisplay = XOpenDisplay(pszDisplay);
         if (pProcArg->pDisplay == NULL) {
-            winDebug ("winMultiWindowXMsgProc - Could not open display, try: %d, "
-                      "sleeping: %d\n", iRetries + 1, WIN_CONNECT_DELAY);
+            winDebug("winMultiWindowXMsgProc - Could not open display, try: %d, "
+                     "sleeping: %d\n", iRetries + 1, WIN_CONNECT_DELAY);
             ++iRetries;
             sleep(WIN_CONNECT_DELAY);
             continue;
@@ -896,8 +896,8 @@ winMultiWindowXMsgProc(void *pArg)
         pthread_exit(NULL);
     }
 
-    winDebug ("winMultiWindowXMsgProc - XOpenDisplay () returned and "
-              "successfully opened the display.\n");
+    winDebug("winMultiWindowXMsgProc - XOpenDisplay () returned and "
+             "successfully opened the display.\n");
 
     /* Check if another window manager is already running */
 #ifdef XWIN_MULTIWINDOWINTWM
@@ -1089,7 +1089,7 @@ winMultiWindowXMsgProc(void *pArg)
         else if (event.type == ClientMessage
                  && event.xclient.message_type == atmWmChange
                  && event.xclient.data.l[0] == IconicState) {
-            winDebug ("winMultiWindowXMsgProc - WM_CHANGE_STATE - IconicState\n");
+            winDebug("winMultiWindowXMsgProc - WM_CHANGE_STATE - IconicState\n");
 
             memset(&msg, 0, sizeof(msg));
 
@@ -1195,7 +1195,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
         pthread_exit(NULL);
     }
 
-    winDebug ("winInitMultiWindowWM - Calling pthread_mutex_lock ()\n");
+    winDebug("winInitMultiWindowWM - Calling pthread_mutex_lock ()\n");
 
     /* Grab our garbage mutex to satisfy pthread_cond_wait */
     iReturn = pthread_mutex_lock(pProcArg->ppmServerStarted);
@@ -1205,12 +1205,12 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
         pthread_exit(NULL);
     }
 
-    winDebug ("winInitMultiWindowWM - pthread_mutex_lock () returned.\n");
+    winDebug("winInitMultiWindowWM - pthread_mutex_lock () returned.\n");
 
     /* Release the server started mutex */
     pthread_mutex_unlock(pProcArg->ppmServerStarted);
 
-    winDebug ("winInitMultiWindowWM - pthread_mutex_unlock () returned.\n");
+    winDebug("winInitMultiWindowWM - pthread_mutex_unlock () returned.\n");
 
     /* Install our error handler */
     XSetErrorHandler(winMultiWindowWMErrorHandler);
@@ -1237,7 +1237,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     winGetDisplayName(pszDisplay, (int)pProcArg->dwScreen);
 
     /* Print the display connection string */
-    winDebug ("winInitMultiWindowWM - DISPLAY=%s\n", pszDisplay);
+    winDebug("winInitMultiWindowWM - DISPLAY=%s\n", pszDisplay);
 
     /* Use our generated cookie for authentication */
     winSetAuthorization();
@@ -1265,8 +1265,8 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
         pthread_exit(NULL);
     }
 
-    winDebug ("winInitMultiWindowWM - XOpenDisplay () returned and "
-              "successfully opened the display.\n");
+    winDebug("winInitMultiWindowWM - XOpenDisplay () returned and "
+             "successfully opened the display.\n");
 
     /* Create some atoms */
     pWMInfo->atmWmProtos = XInternAtom(pWMInfo->pDisplay,
@@ -1297,7 +1297,7 @@ winSendMessageToWM(void *pWMInfo, winWMMessagePtr pMsg)
 {
     WMMsgNodePtr pNode;
 
-    winDebug ("winSendMessageToWM ()\n");
+    winDebug("winSendMessageToWM ()\n");
 
     pNode = (WMMsgNodePtr) malloc(sizeof(WMMsgNodeRec));
     if (pNode != NULL) {
@@ -1323,18 +1323,18 @@ winMultiWindowWMErrorHandler(Display * pDisplay, XErrorEvent * pErr)
     }
 
     XGetErrorText(pDisplay, pErr->error_code, pszErrorMsg, sizeof(pszErrorMsg));
-    ErrorF ("winMultiWindowWMErrorHandler - ERROR: %s\n"
-            "  errorCode %d\n"
-            "  serial %d\n"
-            "  resourceID 0x%x\n"
-            "  majorCode %d\n"
-            "  minorCode %d\n"
-            , pszErrorMsg
-            , pErr->error_code
-            , pErr->serial
-            , pErr->resourceid
-            , pErr->request_code
-            , pErr->minor_code);
+    ErrorF("winMultiWindowWMErrorHandler - ERROR: %s\n"
+           "  errorCode %d\n"
+           "  serial %d\n"
+           "  resourceID 0x%x\n"
+           "  majorCode %d\n"
+           "  minorCode %d\n"
+           , pszErrorMsg
+           , pErr->error_code
+           , pErr->serial
+           , pErr->resourceid
+           , pErr->request_code
+           , pErr->minor_code);
 
     return 0;
 }
@@ -1372,18 +1372,18 @@ winMultiWindowXMsgProcErrorHandler(Display * pDisplay, XErrorEvent * pErr)
     char pszErrorMsg[100];
 
     XGetErrorText(pDisplay, pErr->error_code, pszErrorMsg, sizeof(pszErrorMsg));
-    ErrorF ("winMultiWindowXMsgProcErrorHandler - ERROR: %s\n"
-            "  errorCode %d\n"
-            "  serial %d\n"
-            "  resourceID 0x%x\n"
-            "  majorCode %d\n"
-            "  minorCode %d\n"
-            , pszErrorMsg
-            , pErr->error_code
-            , pErr->serial
-            , pErr->resourceid
-            , pErr->request_code
-            , pErr->minor_code);
+    ErrorF("winMultiWindowXMsgProcErrorHandler - ERROR: %s\n"
+           "  errorCode %d\n"
+           "  serial %d\n"
+           "  resourceID 0x%x\n"
+           "  majorCode %d\n"
+           "  minorCode %d\n"
+           , pszErrorMsg
+           , pErr->error_code
+           , pErr->serial
+           , pErr->resourceid
+           , pErr->request_code
+           , pErr->minor_code);
 
     return 0;
 }
@@ -1415,10 +1415,10 @@ winMultiWindowXMsgProcIOErrorHandler(Display * pDisplay)
 static void
 winMultiWindowThreadExit(void *arg)
 {
-  AbortDDX(EXIT_ERR_ABORT);
+    AbortDDX(EXIT_ERR_ABORT);
 
-  /* multiwindow client thread has exited, stop server as well */
-  TerminateProcess(GetCurrentProcess(),1);
+    /* multiwindow client thread has exited, stop server as well */
+    TerminateProcess(GetCurrentProcess(),1);
 }
 /*
  * Catch RedirectError to detect other window manager running
@@ -1471,7 +1471,7 @@ CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
 void
 winDeinitMultiWindowWM(void)
 {
-    winDebug ("winDeinitMultiWindowWM - Noting shutdown in progress\n");
+    winDebug("winDeinitMultiWindowWM - Noting shutdown in progress\n");
     g_shutdown = TRUE;
 }
 
@@ -1627,13 +1627,11 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
 
 #define APPLICATION_ID_FORMAT	"%s.vcxsrv.%s"
 #define APPLICATION_ID_UNKNOWN "unknown"
-            if (class_hint.res_class)
-            {
-              asprintf (&application_id, APPLICATION_ID_FORMAT, XVENDORNAME, class_hint.res_class);
+            if (class_hint.res_class) {
+                asprintf (&application_id, APPLICATION_ID_FORMAT, XVENDORNAME, class_hint.res_class);
             }
-            else
-            {
-              asprintf (&application_id, APPLICATION_ID_FORMAT, XVENDORNAME, APPLICATION_ID_UNKNOWN);
+            else {
+                asprintf (&application_id, APPLICATION_ID_FORMAT, XVENDORNAME, APPLICATION_ID_UNKNOWN);
             }
             winSetAppID (hWnd, application_id);
 
@@ -1694,8 +1692,8 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
 
     if (!IsWindow (hWnd))
     {
-         ErrorF("Windows window 0x%x has become invalid, so returning without applying hints\n",hWnd);
-         return;
+        ErrorF("Windows window 0x%x has become invalid, so returning without applying hints\n",hWnd);
+        return;
     }
                 
     if (winMultiWindowGetWMNormalHints(pWin, &SizeHints))

@@ -28,6 +28,21 @@
 #include <signal.h>
 #include "os.h"
 
+static int last_signal = 0;
+static int expect_signal = 0;
+
+static void sighandler(int signal)
+{
+    assert(expect_signal);
+    expect_signal = 0;
+    if (!last_signal)
+        raise(signal);
+    OsBlockSignals();
+    OsReleaseSignals();
+    last_signal = 1;
+    expect_signal = 1;
+}
+
 static int
 sig_is_blocked(int sig)
 {
@@ -118,7 +133,27 @@ static void block_sigio_test(void)
     assert(sig_is_blocked(SIGIO));
     OsReleaseSignals();
     assert(!sig_is_blocked(SIGIO));
+#endif
+}
 
+static void block_sigio_test_nested(void)
+{
+#ifdef SIG_BLOCK
+    /* Check for bug releasing SIGIO during SIGIO signal handling.
+       test case:
+           raise signal
+           → in signal handler:
+                raise signal
+                OsBlockSignals()
+                OsReleaseSignals()
+                tail guard
+       tail guard must be hit.
+     */
+    sighandler_t old_handler;
+    old_handler = signal(SIGIO, sighandler);
+    expect_signal = 1;
+    assert(raise(SIGIO) == 0);
+    assert(signal(SIGIO, old_handler) == sighandler);
 #endif
 }
 
@@ -126,5 +161,6 @@ int
 main(int argc, char **argv)
 {
     block_sigio_test();
+    block_sigio_test_nested();
     return 0;
 }

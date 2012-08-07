@@ -54,6 +54,7 @@ typedef HRESULT  (__stdcall *  SHGETFOLDERPATHPROC)(HWND hwndOwner,
                                                     DWORD dwFlags, LPTSTR pszPath);
 #endif
 
+#include "glx_extinit.h"
 /*
  * References to external symbols
  */

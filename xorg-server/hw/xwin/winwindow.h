@@ -162,9 +162,6 @@ winTaskbarDestroy (void);
 
 void
 winSetAppID (HWND hWnd, const char* AppID);
-/*
- * winmultiwindowicons.c
- */
 
 #endif                          /* XWIN_MULTIWINDOW */
 #endif

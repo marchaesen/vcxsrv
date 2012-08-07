@@ -23,10 +23,8 @@ INCLUDES += -I$(top_srcdir)/hw/xfree86/parser \
 endif
 TEST_LDADD=libxservertest.la $(XORG_SYS_LIBS) $(XSERVER_SYS_LIBS) $(GLX_SYS_LIBS)
 
-if XORG
 if SPECIAL_DTRACE_OBJECTS
 TEST_LDADD += $(OS_LIB) $(DIX_LIB)
-endif
 endif
 
 xkb_LDADD=$(TEST_LDADD)

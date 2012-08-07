@@ -1573,8 +1573,9 @@ util_gen_mipmap(struct gen_mipmap_state *ctx,
    cso_save_blend(ctx->cso);
    cso_save_depth_stencil_alpha(ctx->cso);
    cso_save_rasterizer(ctx->cso);
-   cso_save_samplers(ctx->cso);
-   cso_save_fragment_sampler_views(ctx->cso);
+   cso_save_sample_mask(ctx->cso);
+   cso_save_samplers(ctx->cso, PIPE_SHADER_FRAGMENT);
+   cso_save_sampler_views(ctx->cso, PIPE_SHADER_FRAGMENT);
    cso_save_stream_outputs(ctx->cso);
    cso_save_framebuffer(ctx->cso);
    cso_save_fragment_shader(ctx->cso);
@@ -1590,6 +1591,7 @@ util_gen_mipmap(struct gen_mipmap_state *ctx,
    cso_set_depth_stencil_alpha(ctx->cso, is_depth ? &ctx->dsa_write_depth :
                                                     &ctx->dsa_keep_depth);
    cso_set_rasterizer(ctx->cso, &ctx->rasterizer);
+   cso_set_sample_mask(ctx->cso, ~0);
    cso_set_vertex_elements(ctx->cso, 2, ctx->velem);
    cso_set_stream_outputs(ctx->cso, 0, NULL, 0);
 
@@ -1675,10 +1677,10 @@ util_gen_mipmap(struct gen_mipmap_state *ctx,
           */
          ctx->sampler.min_lod = ctx->sampler.max_lod = (float) srcLevel;
          ctx->sampler.lod_bias = (float) srcLevel;
-         cso_single_sampler(ctx->cso, 0, &ctx->sampler);
-         cso_single_sampler_done(ctx->cso);
+         cso_single_sampler(ctx->cso, PIPE_SHADER_FRAGMENT, 0, &ctx->sampler);
+         cso_single_sampler_done(ctx->cso, PIPE_SHADER_FRAGMENT);
 
-         cso_set_fragment_sampler_views(ctx->cso, 1, &psv);
+         cso_set_sampler_views(ctx->cso, PIPE_SHADER_FRAGMENT, 1, &psv);
 
          /* quad coords in clip coords */
          offset = set_vertex_data(ctx,
@@ -1703,8 +1705,9 @@ util_gen_mipmap(struct gen_mipmap_state *ctx,
    cso_restore_blend(ctx->cso);
    cso_restore_depth_stencil_alpha(ctx->cso);
    cso_restore_rasterizer(ctx->cso);
-   cso_restore_samplers(ctx->cso);
-   cso_restore_fragment_sampler_views(ctx->cso);
+   cso_restore_sample_mask(ctx->cso);
+   cso_restore_samplers(ctx->cso, PIPE_SHADER_FRAGMENT);
+   cso_restore_sampler_views(ctx->cso, PIPE_SHADER_FRAGMENT);
    cso_restore_framebuffer(ctx->cso);
    cso_restore_fragment_shader(ctx->cso);
    cso_restore_vertex_shader(ctx->cso);

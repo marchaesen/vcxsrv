@@ -478,10 +478,11 @@ util_blit_pixels(struct blit_state *ctx,
 
    /*
     * Check for simple case:  no format conversion, no flipping, no stretching,
-    * no overlapping.
+    * no overlapping, same number of samples.
     * Filter mode should not matter since there's no stretching.
     */
    if (formats_compatible(src_format, dst_format) &&
+       src_tex->nr_samples == dst->texture->nr_samples &&
        is_stencil == blit_stencil &&
        is_depth == blit_depth &&
        srcX0 < srcX1 &&
@@ -503,6 +504,12 @@ util_blit_pixels(struct blit_state *ctx,
                                  dstX0, dstY0, dst->u.tex.first_layer,/* dest */
                                  src_tex, src_level,
                                  &src_box);
+      return;
+   }
+
+   /* XXX Reading multisample textures is unimplemented. */
+   assert(src_tex->nr_samples <= 1);
+   if (src_tex->nr_samples > 1) {
       return;
    }
 
@@ -648,8 +655,9 @@ util_blit_pixels(struct blit_state *ctx,
    cso_save_blend(ctx->cso);
    cso_save_depth_stencil_alpha(ctx->cso);
    cso_save_rasterizer(ctx->cso);
-   cso_save_samplers(ctx->cso);
-   cso_save_fragment_sampler_views(ctx->cso);
+   cso_save_sample_mask(ctx->cso);
+   cso_save_samplers(ctx->cso, PIPE_SHADER_FRAGMENT);
+   cso_save_sampler_views(ctx->cso, PIPE_SHADER_FRAGMENT);
    cso_save_stream_outputs(ctx->cso);
    cso_save_viewport(ctx->cso);
    cso_save_framebuffer(ctx->cso);
@@ -665,6 +673,7 @@ util_blit_pixels(struct blit_state *ctx,
    else
       cso_set_blend(ctx->cso, &ctx->blend_keep_color);
 
+   cso_set_sample_mask(ctx->cso, ~0);
    cso_set_rasterizer(ctx->cso, &ctx->rasterizer);
    cso_set_vertex_elements(ctx->cso, 2, ctx->velem);
    cso_set_stream_outputs(ctx->cso, 0, NULL, 0);
@@ -680,17 +689,17 @@ util_blit_pixels(struct blit_state *ctx,
     * we blit.
     */
    if (blit_depth && blit_stencil) {
-      cso_single_sampler(ctx->cso, 0, &ctx->sampler);
+      cso_single_sampler(ctx->cso, PIPE_SHADER_FRAGMENT, 0, &ctx->sampler);
       /* don't filter stencil */
       ctx->sampler.min_img_filter = PIPE_TEX_FILTER_NEAREST;
       ctx->sampler.mag_img_filter = PIPE_TEX_FILTER_NEAREST;
-      cso_single_sampler(ctx->cso, 1, &ctx->sampler);
+      cso_single_sampler(ctx->cso, PIPE_SHADER_FRAGMENT, 1, &ctx->sampler);
 
       cso_set_depth_stencil_alpha(ctx->cso, &ctx->dsa_write_depthstencil);
       set_depthstencil_fragment_shader(ctx, sampler_view->texture->target);
    }
    else if (blit_depth) {
-      cso_single_sampler(ctx->cso, 0, &ctx->sampler);
+      cso_single_sampler(ctx->cso, PIPE_SHADER_FRAGMENT, 0, &ctx->sampler);
       cso_set_depth_stencil_alpha(ctx->cso, &ctx->dsa_write_depth);
       set_depth_fragment_shader(ctx, sampler_view->texture->target);
    }
@@ -698,17 +707,17 @@ util_blit_pixels(struct blit_state *ctx,
       /* don't filter stencil */
       ctx->sampler.min_img_filter = PIPE_TEX_FILTER_NEAREST;
       ctx->sampler.mag_img_filter = PIPE_TEX_FILTER_NEAREST;
-      cso_single_sampler(ctx->cso, 0, &ctx->sampler);
+      cso_single_sampler(ctx->cso, PIPE_SHADER_FRAGMENT, 0, &ctx->sampler);
 
       cso_set_depth_stencil_alpha(ctx->cso, &ctx->dsa_write_stencil);
       set_stencil_fragment_shader(ctx, sampler_view->texture->target);
    }
    else { /* color */
-      cso_single_sampler(ctx->cso, 0, &ctx->sampler);
+      cso_single_sampler(ctx->cso, PIPE_SHADER_FRAGMENT, 0, &ctx->sampler);
       cso_set_depth_stencil_alpha(ctx->cso, &ctx->dsa_keep_depthstencil);
       set_fragment_shader(ctx, writemask, sampler_view->texture->target);
    }
-   cso_single_sampler_done(ctx->cso);
+   cso_single_sampler_done(ctx->cso, PIPE_SHADER_FRAGMENT);
 
    /* textures */
    if (blit_depth && blit_stencil) {
@@ -722,12 +731,12 @@ util_blit_pixels(struct blit_state *ctx,
 
       views[0] = sampler_view;
       views[1] = pipe->create_sampler_view(pipe, views[0]->texture, &templ);
-      cso_set_fragment_sampler_views(ctx->cso, 2, views);
+      cso_set_sampler_views(ctx->cso, PIPE_SHADER_FRAGMENT, 2, views);
 
       pipe_sampler_view_reference(&views[1], NULL);
    }
    else {
-      cso_set_fragment_sampler_views(ctx->cso, 1, &sampler_view);
+      cso_set_sampler_views(ctx->cso, PIPE_SHADER_FRAGMENT, 1, &sampler_view);
    }
 
    /* viewport */
@@ -777,8 +786,9 @@ util_blit_pixels(struct blit_state *ctx,
    cso_restore_blend(ctx->cso);
    cso_restore_depth_stencil_alpha(ctx->cso);
    cso_restore_rasterizer(ctx->cso);
-   cso_restore_samplers(ctx->cso);
-   cso_restore_fragment_sampler_views(ctx->cso);
+   cso_restore_sample_mask(ctx->cso);
+   cso_restore_samplers(ctx->cso, PIPE_SHADER_FRAGMENT);
+   cso_restore_sampler_views(ctx->cso, PIPE_SHADER_FRAGMENT);
    cso_restore_viewport(ctx->cso);
    cso_restore_framebuffer(ctx->cso);
    cso_restore_fragment_shader(ctx->cso);
@@ -849,8 +859,9 @@ util_blit_pixels_tex(struct blit_state *ctx,
    cso_save_blend(ctx->cso);
    cso_save_depth_stencil_alpha(ctx->cso);
    cso_save_rasterizer(ctx->cso);
-   cso_save_samplers(ctx->cso);
-   cso_save_fragment_sampler_views(ctx->cso);
+   cso_save_sample_mask(ctx->cso);
+   cso_save_samplers(ctx->cso, PIPE_SHADER_FRAGMENT);
+   cso_save_sampler_views(ctx->cso, PIPE_SHADER_FRAGMENT);
    cso_save_stream_outputs(ctx->cso);
    cso_save_viewport(ctx->cso);
    cso_save_framebuffer(ctx->cso);
@@ -863,6 +874,7 @@ util_blit_pixels_tex(struct blit_state *ctx,
    /* set misc state we care about */
    cso_set_blend(ctx->cso, &ctx->blend_write_color);
    cso_set_depth_stencil_alpha(ctx->cso, &ctx->dsa_keep_depthstencil);
+   cso_set_sample_mask(ctx->cso, ~0);
    cso_set_rasterizer(ctx->cso, &ctx->rasterizer);
    cso_set_vertex_elements(ctx->cso, 2, ctx->velem);
    cso_set_stream_outputs(ctx->cso, 0, NULL, 0);
@@ -871,8 +883,8 @@ util_blit_pixels_tex(struct blit_state *ctx,
    ctx->sampler.normalized_coords = normalized;
    ctx->sampler.min_img_filter = filter;
    ctx->sampler.mag_img_filter = filter;
-   cso_single_sampler(ctx->cso, 0, &ctx->sampler);
-   cso_single_sampler_done(ctx->cso);
+   cso_single_sampler(ctx->cso, PIPE_SHADER_FRAGMENT, 0, &ctx->sampler);
+   cso_single_sampler_done(ctx->cso, PIPE_SHADER_FRAGMENT);
 
    /* viewport */
    ctx->viewport.scale[0] = 0.5f * dst->width;
@@ -886,7 +898,7 @@ util_blit_pixels_tex(struct blit_state *ctx,
    cso_set_viewport(ctx->cso, &ctx->viewport);
 
    /* texture */
-   cso_set_fragment_sampler_views(ctx->cso, 1, &src_sampler_view);
+   cso_set_sampler_views(ctx->cso, PIPE_SHADER_FRAGMENT, 1, &src_sampler_view);
 
    /* shaders */
    set_fragment_shader(ctx, TGSI_WRITEMASK_XYZW,
@@ -921,8 +933,9 @@ util_blit_pixels_tex(struct blit_state *ctx,
    cso_restore_blend(ctx->cso);
    cso_restore_depth_stencil_alpha(ctx->cso);
    cso_restore_rasterizer(ctx->cso);
-   cso_restore_samplers(ctx->cso);
-   cso_restore_fragment_sampler_views(ctx->cso);
+   cso_restore_sample_mask(ctx->cso);
+   cso_restore_samplers(ctx->cso, PIPE_SHADER_FRAGMENT);
+   cso_restore_sampler_views(ctx->cso, PIPE_SHADER_FRAGMENT);
    cso_restore_viewport(ctx->cso);
    cso_restore_framebuffer(ctx->cso);
    cso_restore_fragment_shader(ctx->cso);

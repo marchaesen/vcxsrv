@@ -553,7 +553,6 @@ winCreateWindowsWindow(WindowPtr pWin)
     if (iX == CW_USEDEFAULT) {
       winAdjustXWindow(pWin, hWnd);
     }
- 
     /* Change style back to popup, already placed... */
     SetWindowLongPtr(hWnd, GWL_STYLE,
                      WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
@@ -644,7 +643,7 @@ winUpdateWindowsWindow(WindowPtr pWin)
     HWND hWnd = pWinPriv->hWnd;
 
 #if CYGMULTIWINDOW_DEBUG
-    winDebug ("winUpdateWindowsWindow\n");
+    winDebug("winUpdateWindowsWindow\n");
 #endif
 
     /* Check if the Windows window's parents have been destroyed */
@@ -663,45 +662,40 @@ winUpdateWindowsWindow(WindowPtr pWin)
         UpdateWindow(pWinPriv->hWnd);
     }
     else if (hWnd != NULL) {
-      if (pWinPriv->fWglUsed)
-      {
-        /* We do not need to destroy the window but to reparent it and move it to the
-           correct place when it is an opengl window */
-        int offsetx;
-        int offsety;
-        HWND hParentWnd;
-        WindowPtr pParent=pWin->parent;
+        if (pWinPriv->fWglUsed) {
+            /* We do not need to destroy the window but to reparent it and move it to the
+               correct place when it is an opengl window */
+            int offsetx;
+            int offsety;
+            HWND hParentWnd;
+            WindowPtr pParent=pWin->parent;
 
-        while (pParent)
-        {
-          winWindowPriv(pParent);
-          hParentWnd=pWinPriv->hWnd;
-          if (hParentWnd)
-            break;
-          pParent=pParent->parent;
-        }
+            while (pParent) {
+                winWindowPriv(pParent);
+                hParentWnd=pWinPriv->hWnd;
+                if (hParentWnd)
+                    break;
+                pParent=pParent->parent;
+            }
 
-        if (pParent)
-        {
-          offsetx=pParent->drawable.x;
-          offsety=pParent->drawable.y;
+            if (pParent) {
+                offsetx=pParent->drawable.x;
+                offsety=pParent->drawable.y;
+            }
+            else {
+                offsetx=0;
+                offsety=0;
+            }
+            winDebug ("-winUpdateWindowsWindow: %x changing parent to %x and moving to %d,%d\n",pWinPriv->hWnd,hParentWnd,pWin->drawable.x-offsetx,pWin->drawable.y-offsety);
+            SetParent(pWinPriv->hWnd,hParentWnd);
+            SetWindowPos(pWinPriv->hWnd,NULL,pWin->drawable.x-offsetx,pWin->drawable.y-offsety,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW);
         }
-        else
-        {
-          offsetx=0;
-          offsety=0;
+        else {
+            /* Destroy the Windows window if its parents are destroyed */
+            /* First check if we need to release the DC when it is an opengl window */
+            winDestroyWindowsWindow (pWin);
+            assert (pWinPriv->hWnd == NULL);
         }
-        winDebug ("-winUpdateWindowsWindow: %x changing parent to %x and moving to %d,%d\n",pWinPriv->hWnd,hParentWnd,pWin->drawable.x-offsetx,pWin->drawable.y-offsety);
-        SetParent(pWinPriv->hWnd,hParentWnd);
-        SetWindowPos(pWinPriv->hWnd,NULL,pWin->drawable.x-offsetx,pWin->drawable.y-offsety,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_SHOWWINDOW);
-      }
-      else
-      {
-        /* Destroy the Windows window if its parents are destroyed */
-        /* First check if we need to release the DC when it is an opengl window */
-        winDestroyWindowsWindow (pWin);
-        assert (pWinPriv->hWnd == NULL);
-      }
     }
 
 #if CYGMULTIWINDOW_DEBUG
@@ -723,7 +717,7 @@ winGetWindowID(WindowPtr pWin)
     FindClientResourcesByType(c, RT_WINDOW, winFindWindow, &wi);
 
 #if CYGMULTIWINDOW_DEBUG
-    winDebug ("winGetWindowID - Window ID: %d\n", wi.id);
+    winDebug("winGetWindowID - Window ID: %d\n", wi.id);
 #endif
 
     return wi.id;
@@ -758,11 +752,11 @@ winReorderWindowsMultiWindow(void)
     DWORD dwCurrentProcessID = GetCurrentProcessId();
     DWORD dwWindowProcessID = 0;
 
-    winDebug ("winReorderWindowsMultiWindow\n");
+    winDebug("winReorderWindowsMultiWindow\n");
 
     if (fRestacking) {
         /* It is a recusive call so immediately exit */
-        winDebug ("winReorderWindowsMultiWindow - "
+        winDebug("winReorderWindowsMultiWindow - "
                "exit because fRestacking == TRUE\n");
         return;
     }
@@ -816,7 +810,7 @@ winMinimizeWindow(Window id)
     winPrivScreenPtr pScreenPriv = NULL;
     winScreenInfo *pScreenInfo = NULL;
 
-    winDebug ("winMinimizeWindow\n");
+    winDebug("winMinimizeWindow\n");
 
     dixLookupResourceByType((pointer) &pWin, id, RT_WINDOW, NullClient,
                             DixUnknownAccess);
@@ -859,7 +853,7 @@ winCopyWindowMultiWindow(WindowPtr pWin, DDXPointRec oldpt, RegionPtr oldRegion)
 
     winScreenPriv(pScreen);
 
-    winDebug ("CopyWindowMultiWindow\n");
+    winDebug("CopyWindowMultiWindow\n");
 
     WIN_UNWRAP(CopyWindow);
     (*pScreen->CopyWindow) (pWin, oldpt, oldRegion);
@@ -877,7 +871,7 @@ winMoveWindowMultiWindow(WindowPtr pWin, int x, int y,
 
     winScreenPriv(pScreen);
 
-  winDebug ("MoveWindowMultiWindow to (%d, %d)\n", x, y);
+    winDebug("MoveWindowMultiWindow to (%d, %d)\n", x, y);
 
     WIN_UNWRAP(MoveWindow);
     (*pScreen->MoveWindow) (pWin, x, y, pSib, kind);
@@ -895,7 +889,7 @@ winResizeWindowMultiWindow(WindowPtr pWin, int x, int y, unsigned int w,
 
     winScreenPriv(pScreen);
 
-  winDebug ("ResizeWindowMultiWindow to (%d, %d) - %dx%d\n", x, y, w, h);
+    winDebug("ResizeWindowMultiWindow to (%d, %d) - %dx%d\n", x, y, w, h);
 
     WIN_UNWRAP(ResizeWindow);
     (*pScreen->ResizeWindow) (pWin, x, y, w, h, pSib);
@@ -925,10 +919,10 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
 #define WIDTH(rc) (rc.right - rc.left)
 #define HEIGHT(rc) (rc.bottom - rc.top)
 
-    winDebug ("winAdjustXWindow\n");
+    winDebug("winAdjustXWindow\n");
 
     if (IsIconic(hwnd)) {
-      winDebug ("\timmediately return because the window is iconized\n");
+      winDebug("\timmediately return because the window is iconized\n");
         /*
          * If the Windows window is minimized, its WindowRect has
          * meaningless values so we don't adjust X window to it.
@@ -963,7 +957,7 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
 
     if (EqualRect(&rcDraw, &rcWin)) {
         /* Bail if no adjust is needed */
-    winDebug ("\treturn because already adjusted\n");
+    winDebug("\treturn because already adjusted\n");
         return 0;
     }
 
@@ -983,7 +977,7 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
     vlist[1] = pDraw->y + dY - wBorderWidth(pWin);
     vlist[2] = pDraw->width + dW;
     vlist[3] = pDraw->height + dH;
-    winDebug ("\tConfigureWindow to (%ld, %ld) - %ldx%ld\n", vlist[0], vlist[1],
+    winDebug("\tConfigureWindow to (%ld, %ld) - %ldx%ld\n", vlist[0], vlist[1],
               vlist[2], vlist[3]);
     return ConfigureWindow(pWin, CWX | CWY | CWWidth | CWHeight,
                            vlist, wClient(pWin));

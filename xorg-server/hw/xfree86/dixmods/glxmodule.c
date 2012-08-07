@@ -43,6 +43,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "globals.h"
 #include "glxserver.h"
 #include "extinit.h"
+#include "glx_extinit.h"
 
 static MODULESETUPPROTO(glxSetup);
 

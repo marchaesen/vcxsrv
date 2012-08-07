@@ -216,6 +216,8 @@ RRChangeProviderProperty(RRProviderPtr provider, Atom property, Atom type,
         if (pending && pScrPriv->rrProviderSetProperty &&
             !pScrPriv->rrProviderSetProperty(provider->pScreen, provider,
                                            prop->propertyName, &new_value)) {
+            if (add)
+                RRDestroyProviderProperty(prop);
             free(new_value.data);
             return BadValue;
         }
@@ -342,12 +344,18 @@ RRConfigureProviderProperty(RRProviderPtr provider, Atom property,
     /*
      * ranges must have even number of values
      */
-    if (range && (num_values & 1))
+    if (range && (num_values & 1)) {
+        if (add)
+            RRDestroyProviderProperty(prop);
         return BadMatch;
+    }
 
     new_values = malloc(num_values * sizeof(INT32));
-    if (!new_values && num_values)
+    if (!new_values && num_values) {
+        if (add)
+            RRDestroyProviderProperty(prop);
         return BadAlloc;
+    }
     if (num_values)
         memcpy(new_values, values, num_values * sizeof(INT32));
 
