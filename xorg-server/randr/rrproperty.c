@@ -217,6 +217,8 @@ RRChangeOutputProperty(RROutputPtr output, Atom property, Atom type,
             !pScrPriv->rrOutputSetProperty(output->pScreen, output,
                                            prop->propertyName, &new_value)) {
             free(new_value.data);
+            if (add)
+                RRDestroyOutputProperty(prop);
             return BadValue;
         }
         free(prop_value->data);
@@ -342,12 +344,18 @@ RRConfigureOutputProperty(RROutputPtr output, Atom property,
     /*
      * ranges must have even number of values
      */
-    if (range && (num_values & 1))
+    if (range && (num_values & 1)) {
+        if (add)
+            RRDestroyOutputProperty(prop);
         return BadMatch;
+    }
 
     new_values = malloc(num_values * sizeof(INT32));
-    if (!new_values && num_values)
+    if (!new_values && num_values) {
+        if (add)
+            RRDestroyOutputProperty(prop);
         return BadAlloc;
+    }
     if (num_values)
         memcpy(new_values, values, num_values * sizeof(INT32));
 

@@ -40,6 +40,7 @@
 #include "privates.h"
 #include <os.h>
 #include "extinit.h"
+#include "glx_extinit.h"
 #include "unpack.h"
 #include "glxutil.h"
 #include "glxext.h"

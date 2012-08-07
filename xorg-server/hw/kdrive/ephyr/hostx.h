@@ -47,7 +47,8 @@ typedef enum EphyrHostXEventType {
     EPHYR_EV_MOUSE_RELEASE,
     EPHYR_EV_KEY_PRESS,
     EPHYR_EV_KEY_RELEASE,
-    EPHYR_EV_EXPOSE
+    EPHYR_EV_EXPOSE,
+    EPHYR_EV_CONFIGURE,
 } EphyrHostXEventType;
 
 /* I can't believe it's not a KeySymsRec. */
@@ -88,6 +89,13 @@ struct EphyrHostXEvent {
         struct expose {
             int window;
         } expose;
+
+        struct configure {
+            int width;
+            int height;
+            int screen;
+            int window;
+        } configure;
 
     } data;
 

@@ -174,7 +174,7 @@ static char GLXServerExtensions[] =
     "GLX_SGIS_multisample "
 #endif
     "GLX_SGIX_fbconfig "
-    "GLX_SGIX_pbuffer " "GLX_MESA_copy_sub_buffer " "GLX_INTEL_swap_event";
+    "GLX_SGIX_pbuffer " "GLX_MESA_copy_sub_buffer ";
 
 static Bool
 glxCloseScreen(ScreenPtr pScreen)

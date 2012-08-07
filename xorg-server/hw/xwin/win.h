@@ -1174,15 +1174,6 @@ Bool
 void
  winSetShapeRootless(WindowPtr pWindow, int kind);
 
-/*
- * winmultiwindowicons.c - Used by both multi-window and Win32Rootless
- */
-
-HICON winXIconToHICON(WindowPtr pWin, int iconSize);
-
-void
- winSelectIcons(WindowPtr pWin, HICON * pIcon, HICON * pSmallIcon);
-
 #ifdef XWIN_MULTIWINDOW
 /*
  * winmultiwindowshape.c

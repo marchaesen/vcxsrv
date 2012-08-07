@@ -158,25 +158,25 @@ static struct dev_type {
     Atom type;
     const char *name;
 } dev_type[] = {
-    {
-    0, XI_KEYBOARD}, {
-    0, XI_MOUSE}, {
-    0, XI_TABLET}, {
-    0, XI_TOUCHSCREEN}, {
-    0, XI_TOUCHPAD}, {
-    0, XI_BARCODE}, {
-    0, XI_BUTTONBOX}, {
-    0, XI_KNOB_BOX}, {
-    0, XI_ONE_KNOB}, {
-    0, XI_NINE_KNOB}, {
-    0, XI_TRACKBALL}, {
-    0, XI_QUADRATURE}, {
-    0, XI_ID_MODULE}, {
-    0, XI_SPACEBALL}, {
-    0, XI_DATAGLOVE}, {
-    0, XI_EYETRACKER}, {
-    0, XI_CURSORKEYS}, {
-0, XI_FOOTMOUSE}};
+    {0, XI_KEYBOARD},
+    {0, XI_MOUSE},
+    {0, XI_TABLET},
+    {0, XI_TOUCHSCREEN},
+    {0, XI_TOUCHPAD},
+    {0, XI_BARCODE},
+    {0, XI_BUTTONBOX},
+    {0, XI_KNOB_BOX},
+    {0, XI_ONE_KNOB},
+    {0, XI_NINE_KNOB},
+    {0, XI_TRACKBALL},
+    {0, XI_QUADRATURE},
+    {0, XI_ID_MODULE},
+    {0, XI_SPACEBALL},
+    {0, XI_DATAGLOVE},
+    {0, XI_EYETRACKER},
+    {0, XI_CURSORKEYS},
+    {0, XI_FOOTMOUSE}
+};
 
 CARD8 event_base[numInputClasses];
 XExtEventInfo EventInfo[32];

@@ -409,6 +409,11 @@ DRI2DrawableGone(pointer p, XID id)
         dixSetPrivate(&pPixmap->devPrivates, dri2PixmapPrivateKey, NULL);
     }
 
+    if (pPriv->prime_slave_pixmap) {
+        (*pPriv->prime_slave_pixmap->master_pixmap->drawable.pScreen->DestroyPixmap)(pPriv->prime_slave_pixmap->master_pixmap);
+        (*pPriv->prime_slave_pixmap->drawable.pScreen->DestroyPixmap)(pPriv->prime_slave_pixmap);
+    }
+
     if (pPriv->buffers != NULL) {
         for (i = 0; i < pPriv->bufferCount; i++)
             destroy_buffer(pDraw, pPriv->buffers[i], pPriv->prime_id);
@@ -811,8 +816,9 @@ DrawablePtr DRI2UpdatePrime(DrawablePtr pDraw, DRI2BufferPtr pDest)
         if (pPriv->prime_slave_pixmap->master_pixmap == mpix)
             return &pPriv->prime_slave_pixmap->drawable;
         else {
-            (*master->DestroyPixmap)(pPriv->prime_slave_pixmap->master_pixmap);
+            (*pPriv->prime_slave_pixmap->master_pixmap->drawable.pScreen->DestroyPixmap)(pPriv->prime_slave_pixmap->master_pixmap);
             (*slave->DestroyPixmap)(pPriv->prime_slave_pixmap);
+            pPriv->prime_slave_pixmap = NULL;
         }
     }
 

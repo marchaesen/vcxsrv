@@ -148,6 +148,10 @@ PixmapPtr PixmapShareToSlave(PixmapPtr pixmap, ScreenPtr slave)
                               pixmap->drawable.height, depth, 0,
                               pixmap->devKind, NULL);
 
+    /* have the slave pixmap take a reference on the master pixmap
+       later we destroy them both at the same time */
+    pixmap->refcnt++;
+
     spix->master_pixmap = pixmap;
 
     ret = slave->SetSharedPixmapBacking(spix, handle);

@@ -403,16 +403,16 @@ sparcPromAssignNodes(void)
             int devId;
             char *prefix;
         } procFbPrefixes[] = {
-            {
-            SBUS_DEVICE_BW2, "BWtwo"}, {
-            SBUS_DEVICE_CG14, "CGfourteen"}, {
-            SBUS_DEVICE_CG6, "CGsix"}, {
-            SBUS_DEVICE_CG3, "CGthree"}, {
-            SBUS_DEVICE_FFB, "Creator"}, {
-            SBUS_DEVICE_FFB, "Elite 3D"}, {
-            SBUS_DEVICE_LEO, "Leo"}, {
-            SBUS_DEVICE_TCX, "TCX"}, {
-        0, NULL},};
+            {SBUS_DEVICE_BW2, "BWtwo"},
+            {SBUS_DEVICE_CG14, "CGfourteen"},
+            {SBUS_DEVICE_CG6, "CGsix"},
+            {SBUS_DEVICE_CG3, "CGthree"},
+            {SBUS_DEVICE_FFB, "Creator"},
+            {SBUS_DEVICE_FFB, "Elite 3D"},
+            {SBUS_DEVICE_LEO, "Leo"},
+            {SBUS_DEVICE_TCX, "TCX"},
+            {0, NULL},
+        };
 
         while (fscanf(f, "%d %63s\n", &fbNum, buffer) == 2) {
             for (i = 0; procFbPrefixes[i].devId; i++)

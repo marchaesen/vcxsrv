@@ -59,13 +59,6 @@
 #include "rootlessWindow.h"
 #include "xprEvent.h"
 
-/* This is important enough to declare here if building against an old
- * libXplugin, so we pick it up whenever libXplugin  starts to support it.
- */
-#if !defined(XPLUGIN_VERSION) || XPLUGIN_VERSION < 6
-extern xp_error xp_window_bring_all_to_front(void) __attribute__((weak_import));
-#endif
-
 Bool
 QuartzModeEventHandler(int screenNum, XQuartzEvent *e, DeviceIntPtr dev)
 {
@@ -86,21 +79,18 @@ QuartzModeEventHandler(int screenNum, XQuartzEvent *e, DeviceIntPtr dev)
         /* There's no need to do xp_window_bring_all_to_front on Leopard,
          * and we don't care about the result, so just do it async.
          */
-#if defined(HAVE_LIBDISPATCH)
-#if (defined(XPLUGIN_VERSION_MIN_REQUIRED) && XPLUGIN_VERSION_MIN_REQUIRED >= 6) || \
-    (!defined(XPLUGIN_VERSION_MIN_REQUIRED) && defined(XPLUGIN_VERSION) && XPLUGIN_VERSION >= 6)
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            xp_window_bring_all_to_front();
-        });
-#else
-            if (&xp_window_bring_all_to_front) {
-                dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                    xp_window_bring_all_to_front();
-                });
-            } else {
-                RootlessOrderAllWindows(e->data[0]);
-            }
-#endif
+#if defined(HAVE_LIBDISPATCH) && defined(XPLUGIN_VERSION) && XPLUGIN_VERSION >= 6
+#  if defined(XPLUGIN_VERSION_MIN_REQUIRED) && XPLUGIN_VERSION_MIN_REQUIRED < 6
+        if (&xp_window_bring_all_to_front) {
+#  endif
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                xp_window_bring_all_to_front();
+            });
+#  if defined(XPLUGIN_VERSION_MIN_REQUIRED) && XPLUGIN_VERSION_MIN_REQUIRED < 6
+        } else {
+            RootlessOrderAllWindows(e->data[0]);
+        }
+#  endif
 #else
         RootlessOrderAllWindows(e->data[0]);
 #endif

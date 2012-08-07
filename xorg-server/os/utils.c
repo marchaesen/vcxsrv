@@ -1186,6 +1186,7 @@ OsBlockSignals(void)
 
 #ifdef SIG_BLOCK
 static sig_atomic_t sigio_blocked;
+static sigset_t PreviousSigIOMask;
 #endif
 
 /**
@@ -1198,13 +1199,13 @@ OsBlockSIGIO(void)
 #ifdef SIGIO
 #ifdef SIG_BLOCK
     if (sigio_blocked++ == 0) {
-        sigset_t set, old;
+        sigset_t set;
         int ret;
 
         sigemptyset(&set);
         sigaddset(&set, SIGIO);
-        sigprocmask(SIG_BLOCK, &set, &old);
-        ret = sigismember(&old, SIGIO);
+        sigprocmask(SIG_BLOCK, &set, &PreviousSigIOMask);
+        ret = sigismember(&PreviousSigIOMask, SIGIO);
         return ret;
     } else
         return 1;
@@ -1218,11 +1219,7 @@ OsReleaseSIGIO(void)
 #ifdef SIGIO
 #ifdef SIG_BLOCK
     if (--sigio_blocked == 0) {
-        sigset_t set;
-
-        sigemptyset(&set);
-        sigaddset(&set, SIGIO);
-        sigprocmask(SIG_UNBLOCK, &set, NULL);
+        sigprocmask(SIG_SETMASK, &PreviousSigIOMask, 0);
     } else if (sigio_blocked < 0) {
         BUG_WARN(sigio_blocked < 0);
         sigio_blocked = 0;
@@ -1583,7 +1580,7 @@ Win32TempDir()
     if (getenv("TEMP") != NULL)
         return getenv("TEMP");
     else if (getenv("TMP") != NULL)
-        return getenv("TEMP");
+        return getenv("TMP");
     else
         return "/tmp";
 }

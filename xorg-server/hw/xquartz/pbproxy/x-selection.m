@@ -1499,7 +1499,7 @@ get_property(Window win, Atom property, struct propdata *pdata, Bool delete,
 
 /* Allocation */
 
-- init
+- (id) init
 {
     unsigned long pixel;
 

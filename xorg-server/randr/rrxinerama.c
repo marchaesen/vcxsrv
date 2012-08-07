@@ -157,6 +157,7 @@ static int
 RRXineramaScreenCount(ScreenPtr pScreen)
 {
     int i, n;
+    ScreenPtr slave;
 
     n = 0;
     if (rrGetScrPriv(pScreen)) {
@@ -165,6 +166,15 @@ RRXineramaScreenCount(ScreenPtr pScreen)
             if (RRXineramaCrtcActive(pScrPriv->crtcs[i]))
                 n++;
     }
+
+    xorg_list_for_each_entry(slave, &pScreen->output_slave_list, output_head) {
+        rrScrPrivPtr pSlavePriv;
+        pSlavePriv = rrGetScrPriv(slave);
+        for (i = 0; i < pSlavePriv->numCrtcs; i++)
+            if (RRXineramaCrtcActive(pSlavePriv->crtcs[i]))
+                n++;
+    }
+
     return n;
 }
 
@@ -308,6 +318,7 @@ ProcRRXineramaQueryScreens(ClientPtr client)
     xXineramaQueryScreensReply rep;
     ScreenPtr pScreen = screenInfo.screens[RR_XINERAMA_SCREEN];
     int n = 0;
+    int i;
 
     REQUEST_SIZE_MATCH(xXineramaQueryScreensReq);
 
@@ -330,8 +341,8 @@ ProcRRXineramaQueryScreens(ClientPtr client)
     WriteToClient(client, sizeof(xXineramaQueryScreensReply), &rep);
 
     if (n) {
+        ScreenPtr slave;
         rrScrPriv(pScreen);
-        int i;
         int has_primary = 0;
 
         if (pScrPriv->primaryOutput && pScrPriv->primaryOutput->crtc) {
@@ -346,6 +357,13 @@ ProcRRXineramaQueryScreens(ClientPtr client)
                 continue;
             }
             RRXineramaWriteCrtc(client, pScrPriv->crtcs[i]);
+        }
+
+        xorg_list_for_each_entry(slave, &pScreen->output_slave_list, output_head) {
+            rrScrPrivPtr pSlavePriv;
+            pSlavePriv = rrGetScrPriv(slave);
+            for (i = 0; i < pSlavePriv->numCrtcs; i++)
+                RRXineramaWriteCrtc(client, pSlavePriv->crtcs[i]);
         }
     }
 

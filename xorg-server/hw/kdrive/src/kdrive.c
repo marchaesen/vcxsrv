@@ -730,22 +730,22 @@ KdSetSubpixelOrder(ScreenPtr pScreen, Rotation randr)
         int subpixel_order;
         Rotation direction;
     } orders[] = {
-        {
-        SubPixelHorizontalRGB, RR_Rotate_0}, {
-        SubPixelHorizontalBGR, RR_Rotate_180}, {
-        SubPixelVerticalRGB, RR_Rotate_270}, {
-    SubPixelVerticalBGR, RR_Rotate_90},};
+        {SubPixelHorizontalRGB, RR_Rotate_0},
+        {SubPixelHorizontalBGR, RR_Rotate_180},
+        {SubPixelVerticalRGB, RR_Rotate_270},
+        {SubPixelVerticalBGR, RR_Rotate_90},
+    };
 
     static struct {
         int bit;
         int normal;
         int reflect;
     } reflects[] = {
-        {
-        RR_Reflect_X, SubPixelHorizontalRGB, SubPixelHorizontalBGR}, {
-        RR_Reflect_X, SubPixelHorizontalBGR, SubPixelHorizontalRGB}, {
-        RR_Reflect_Y, SubPixelVerticalRGB, SubPixelVerticalBGR}, {
-    RR_Reflect_Y, SubPixelVerticalRGB, SubPixelVerticalRGB},};
+        {RR_Reflect_X, SubPixelHorizontalRGB, SubPixelHorizontalBGR},
+        {RR_Reflect_X, SubPixelHorizontalBGR, SubPixelHorizontalRGB},
+        {RR_Reflect_Y, SubPixelVerticalRGB, SubPixelVerticalBGR},
+        {RR_Reflect_Y, SubPixelVerticalRGB, SubPixelVerticalRGB},
+    };
 
     /* map subpixel to direction */
     for (i = 0; i < 4; i++)

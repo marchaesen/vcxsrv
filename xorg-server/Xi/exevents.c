@@ -1888,6 +1888,12 @@ DeliverTouchEndEvent(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev,
         if (normal_end)
             listener->state = LISTENER_HAS_END;
     }
+    else if (ev->device_event.flags & TOUCH_ACCEPT) {
+        /* Touch has been accepted by its owner, which is not this listener */
+        if (listener->state != LISTENER_HAS_END)
+            rc = DeliverOneTouchEvent(client, dev, ti, grab, win, ev);
+        listener->state = LISTENER_HAS_END;
+    }
 
  out:
     return rc;

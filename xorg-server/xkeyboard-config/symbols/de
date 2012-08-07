@@ -26,7 +26,7 @@ xkb_symbols "basic" {
     key <AD03>	{ [         e,          E,     EuroSign,     EuroSign ]	};
     key <AD06>	{ [         z,          Z,    leftarrow,          yen ]	};
     key <AD11>	{ [udiaeresis, Udiaeresis, dead_diaeresis, dead_abovering ] };
-    key <AD12>	{ [      plus,   asterisk,   dead_tilde,  dead_macron ]	};
+    key <AD12>	{ [      plus,   asterisk,   asciitilde,  macron ]	};
 
     key <AC02>  { [         s,          S,                U017F,     U1E9E    ] };
     key <AC07>  { [         j,          J,        dead_belowdot, dead_abovedot   ] };

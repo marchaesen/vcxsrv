@@ -1626,6 +1626,18 @@ glxWinCreateContext(__GLXscreen * screen,
  */
 
 static int
+GetShift(int Mask)
+{
+    int Shift = 0;
+
+    while ((Mask &1) == 0) {
+        Shift++;
+        Mask >>=1;
+    }
+    return Shift;
+}
+
+static int
 fbConfigToPixelFormat(__GLXconfig * mode, PIXELFORMATDESCRIPTOR * pfdret,
                       int drawableTypeOverride)
 {
@@ -1661,16 +1673,26 @@ fbConfigToPixelFormat(__GLXconfig * mode, PIXELFORMATDESCRIPTOR * pfdret,
         pfd.dwFlags |= PFD_DOUBLEBUFFER;
     }
 
-    pfd.iPixelType = PFD_TYPE_RGBA;
     pfd.cColorBits = mode->redBits + mode->greenBits + mode->blueBits;
     pfd.cRedBits = mode->redBits;
-    pfd.cRedShift = 0;          /* FIXME */
+    pfd.cRedShift = GetShift(mode->redMask);
     pfd.cGreenBits = mode->greenBits;
-    pfd.cGreenShift = 0;        /* FIXME  */
+    pfd.cGreenShift = GetShift(mode->greenMask);
     pfd.cBlueBits = mode->blueBits;
-    pfd.cBlueShift = 0;         /* FIXME */
+    pfd.cBlueShift = GetShift(mode->blueMask);
     pfd.cAlphaBits = mode->alphaBits;
-    pfd.cAlphaShift = 0;        /* FIXME */
+    pfd.cAlphaShift = GetShift(mode->alphaMask);
+
+    if (mode->visualType == GLX_TRUE_COLOR) {
+        pfd.iPixelType = PFD_TYPE_RGBA;
+        pfd.dwVisibleMask =
+            (pfd.cRedBits << pfd.cRedShift) | (pfd.cGreenBits << pfd.cGreenShift) |
+            (pfd.cBlueBits << pfd.cBlueShift) | (pfd.cAlphaBits << pfd.cAlphaShift);
+    }
+    else {
+        pfd.iPixelType = PFD_TYPE_COLORINDEX;
+        pfd.dwVisibleMask = mode->transparentIndex;
+    }
 
     pfd.cAccumBits =
         mode->accumRedBits + mode->accumGreenBits + mode->accumBlueBits +
@@ -1910,24 +1932,26 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
         /* EXT_visual_info / GLX 1.2 */
         if (pfd.iPixelType == PFD_TYPE_COLORINDEX) {
             c->base.visualType = GLX_STATIC_COLOR;
-
-            if (!getenv("GLWIN_ENABLE_COLORINDEX_FBCONFIGS")) {
-                GLWIN_DEBUG_MSG
-                    ("pixelFormat %d is PFD_TYPE_COLORINDEX, skipping", i + 1);
-                continue;
-            }
+            c->base.transparentRed = GLX_NONE;
+            c->base.transparentGreen = GLX_NONE;
+            c->base.transparentBlue = GLX_NONE;
+            c->base.transparentAlpha = GLX_NONE;
+            c->base.transparentIndex = pfd.dwVisibleMask;
+            c->base.transparentPixel = GLX_TRANSPARENT_INDEX;
         }
         else {
             c->base.visualType = GLX_TRUE_COLOR;
+            c->base.transparentRed =
+                (pfd.dwVisibleMask & c->base.redMask) >> pfd.cRedShift;
+            c->base.transparentGreen =
+                (pfd.dwVisibleMask & c->base.greenMask) >> pfd.cGreenShift;
+            c->base.transparentBlue =
+                (pfd.dwVisibleMask & c->base.blueMask) >> pfd.cBlueShift;
+            c->base.transparentAlpha =
+                (pfd.dwVisibleMask & c->base.alphaMask) >> pfd.cAlphaShift;
+            c->base.transparentIndex = GLX_NONE;
+            c->base.transparentPixel = GLX_TRANSPARENT_RGB;
         }
-
-        // pfd.dwVisibleMask; ???
-        c->base.transparentPixel = GLX_NONE;
-        c->base.transparentRed = GLX_NONE;
-        c->base.transparentGreen = GLX_NONE;
-        c->base.transparentBlue = GLX_NONE;
-        c->base.transparentAlpha = GLX_NONE;
-        c->base.transparentIndex = GLX_NONE;
 
         /* ARB_multisample / SGIS_multisample */
         c->base.sampleBuffers = 0;
@@ -2180,14 +2204,6 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
             c->base.indexBits = ATTR_VALUE(WGL_COLOR_BITS_ARB, 0);
             c->base.rgbBits = 0;
             c->base.visualType = GLX_STATIC_COLOR;
-
-            if (!getenv("GLWIN_ENABLE_COLORINDEX_FBCONFIGS")) {
-                GLWIN_DEBUG_MSG
-                    ("pixelFormat %d is WGL_TYPE_COLORINDEX_ARB, skipping",
-                     i + 1);
-                continue;
-            }
-
             break;
 
         case WGL_TYPE_RGBA_FLOAT_ARB:

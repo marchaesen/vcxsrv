@@ -53,8 +53,10 @@ struct nameint {
     int val;
     char *name;
 } kbdenc[] = {
-    KB_OVRENC, KB_ENCTAB, {
-0}};
+    KB_OVRENC,
+    KB_ENCTAB,
+    {0}
+};
 
 struct nameint kbdvar[] = {
     {KB_NODEAD | KB_SG, "de_nodeadkeys"},

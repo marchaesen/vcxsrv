@@ -94,6 +94,8 @@ struct blitter_context
    struct pipe_framebuffer_state saved_fb_state;  /**< framebuffer state */
    struct pipe_stencil_ref saved_stencil_ref;     /**< stencil ref */
    struct pipe_viewport_state saved_viewport;
+   boolean is_sample_mask_saved;
+   unsigned saved_sample_mask;
 
    int saved_num_sampler_states;
    void *saved_sampler_states[PIPE_MAX_SAMPLERS];
@@ -159,6 +161,16 @@ void util_blitter_clear_depth_custom(struct blitter_context *blitter,
                                      double depth, void *custom_dsa);
 
 /**
+ * Check if the blitter (with the help of the driver) can blit between
+ * the two resources.
+ * The mask is a combination of the PIPE_MASK_* flags.
+ * Set to PIPE_MASK_RGBAZS if unsure.
+ */
+boolean util_blitter_is_copy_supported(struct blitter_context *blitter,
+                                       const struct pipe_resource *dst,
+                                       const struct pipe_resource *src,
+                                       unsigned mask);
+/**
  * Copy a block of pixels from one surface to another.
  *
  * You can copy from any color format to any other color format provided
@@ -166,13 +178,6 @@ void util_blitter_clear_depth_custom(struct blitter_context *blitter,
  * a software fallback path is taken and both surfaces must be of the same
  * format.
  *
- * The same holds for depth-stencil formats with the exception that stencil
- * cannot be copied unless you set ignore_stencil to FALSE. In that case,
- * a software fallback path is taken and both surfaces must be of the same
- * format. If the shader stencil export is supported, stencil copy is always
- * accelerated.
- *
- * Use pipe_screen->is_format_supported to know your options.
  *
  * These states must be saved in the blitter in addition to the state objects
  * already required to be saved:
@@ -185,12 +190,11 @@ void util_blitter_clear_depth_custom(struct blitter_context *blitter,
  */
 void util_blitter_copy_texture(struct blitter_context *blitter,
                                struct pipe_resource *dst,
-                               unsigned dstlevel,
+                               unsigned dst_level,
                                unsigned dstx, unsigned dsty, unsigned dstz,
                                struct pipe_resource *src,
-                               unsigned srclevel,
-                               const struct pipe_box *srcbox,
-                               boolean ignore_stencil);
+                               unsigned src_level,
+                               const struct pipe_box *srcbox);
 
 /**
  * Same as util_blitter_copy_texture, but dst and src are pipe_surface and
@@ -207,6 +211,9 @@ void util_blitter_copy_texture(struct blitter_context *blitter,
  * coordinates. The dst dimensions are supplied through pipe_surface::width
  * and height.
  *
+ * The mask is a combination of the PIPE_MASK_* flags.
+ * Set to PIPE_MASK_RGBAZS if unsure.
+ *
  * NOTE: There are no checks whether the blit is actually supported.
  */
 void util_blitter_copy_texture_view(struct blitter_context *blitter,
@@ -214,7 +221,8 @@ void util_blitter_copy_texture_view(struct blitter_context *blitter,
                                     unsigned dstx, unsigned dsty,
                                     struct pipe_sampler_view *src,
                                     const struct pipe_box *srcbox,
-                                    unsigned src_width0, unsigned src_height0);
+                                    unsigned src_width0, unsigned src_height0,
+                                    unsigned mask);
 
 /**
  * Helper function to initialize a view for copy_texture_view.
@@ -416,6 +424,14 @@ util_blitter_save_so_targets(struct blitter_context *blitter,
    for (i = 0; i < num_targets; i++)
       pipe_so_target_reference(&blitter->saved_so_targets[i],
                                targets[i]);
+}
+
+static INLINE void
+util_blitter_save_sample_mask(struct blitter_context *blitter,
+                              unsigned sample_mask)
+{
+   blitter->is_sample_mask_saved = TRUE;
+   blitter->saved_sample_mask = sample_mask;
 }
 
 #ifdef __cplusplus

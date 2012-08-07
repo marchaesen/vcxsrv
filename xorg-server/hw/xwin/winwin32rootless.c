@@ -231,7 +231,7 @@ winMWExtWMCreateFrame(RootlessWindowPtr pFrame, ScreenPtr pScreen,
     // Store the implementation private frame ID
     pFrame->wid = (RootlessFrameID) pRLWinPriv;
 
-    winSelectIcons(pFrame->win, &hIcon, &hIconSmall);
+    winSelectIcons(&hIcon, &hIconSmall);
 
     /* Set standard class name prefix so we can identify window easily */
     strncpy(pszClass, WINDOW_CLASS_X, sizeof(pszClass));

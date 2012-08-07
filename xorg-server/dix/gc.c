@@ -419,11 +419,11 @@ static const struct {
     RESTYPE type;
     Mask access_mode;
 } xidfields[] = {
-    {
-    GCTile, RT_PIXMAP, DixReadAccess}, {
-    GCStipple, RT_PIXMAP, DixReadAccess}, {
-    GCFont, RT_FONT, DixUseAccess}, {
-GCClipMask, RT_PIXMAP, DixReadAccess},};
+    {GCTile, RT_PIXMAP, DixReadAccess},
+    {GCStipple, RT_PIXMAP, DixReadAccess},
+    {GCFont, RT_FONT, DixUseAccess},
+    {GCClipMask, RT_PIXMAP, DixReadAccess},
+};
 
 int
 ChangeGCXIDs(ClientPtr client, GC * pGC, BITS32 mask, CARD32 *pC32)

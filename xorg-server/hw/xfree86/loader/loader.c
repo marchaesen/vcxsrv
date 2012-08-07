@@ -195,13 +195,12 @@ LoaderGetABIVersion(const char *abiclass)
         const char *name;
         int version;
     } classes[] = {
-        {
-        ABI_CLASS_ANSIC, LoaderVersionInfo.ansicVersion}, {
-        ABI_CLASS_VIDEODRV, LoaderVersionInfo.videodrvVersion}, {
-        ABI_CLASS_XINPUT, LoaderVersionInfo.xinputVersion}, {
-        ABI_CLASS_EXTENSION, LoaderVersionInfo.extensionVersion}, {
-        ABI_CLASS_FONT, LoaderVersionInfo.fontVersion}, {
-        NULL, 0}
+        {ABI_CLASS_ANSIC, LoaderVersionInfo.ansicVersion},
+        {ABI_CLASS_VIDEODRV, LoaderVersionInfo.videodrvVersion},
+        {ABI_CLASS_XINPUT, LoaderVersionInfo.xinputVersion},
+        {ABI_CLASS_EXTENSION, LoaderVersionInfo.extensionVersion},
+        {ABI_CLASS_FONT, LoaderVersionInfo.fontVersion},
+        {NULL, 0}
     };
     int i;
 

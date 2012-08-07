@@ -734,9 +734,6 @@ xf86CrtcCloseScreen(ScreenPtr screen)
     for (c = 0; c < config->num_crtc; c++) {
         xf86CrtcPtr crtc = config->crtc[c];
 
-        if (crtc->randr_crtc->scanout_pixmap)
-            RRCrtcDetachScanoutPixmap(crtc->randr_crtc);
-
         crtc->randr_crtc = NULL;
     }
     /* detach any providers */
@@ -2073,12 +2070,13 @@ xf86TargetPreferred(ScrnInfoPtr scrn, xf86CrtcConfigPtr config,
 
     /*
      * If there's no preferred mode, but only one monitor, pick the
-     * biggest mode for its aspect ratio, assuming one exists.
+     * biggest mode for its aspect ratio or 4:3, assuming one exists.
      */
     if (!ret)
         do {
             int i = 0;
             float aspect = 0.0;
+            DisplayModePtr a = NULL, b = NULL;
 
             /* count the number of enabled outputs */
             for (i = 0, p = -1; nextEnabledOutput(config, enabled, &p); i++);
@@ -2092,8 +2090,11 @@ xf86TargetPreferred(ScrnInfoPtr scrn, xf86CrtcConfigPtr config,
                 aspect = (float) config->output[p]->mm_width /
                     (float) config->output[p]->mm_height;
 
+            a = bestModeForAspect(config, enabled, 4.0/3.0);
             if (aspect)
-                preferred_match[p] = bestModeForAspect(config, enabled, aspect);
+                b = bestModeForAspect(config, enabled, aspect);
+
+            preferred_match[p] = biggestMode(a, b);
 
             if (preferred_match[p])
                 ret = TRUE;

@@ -148,7 +148,6 @@ static wBOOL CALLBACK
 ReloadEnumWindowsProc(HWND hwnd, LPARAM lParam)
 {
     HICON hicon;
-    Window wid;
 
     if (!hwnd) {
         ErrorF("ReloadEnumWindowsProc: hwnd==NULL!\n");
@@ -173,10 +172,23 @@ ReloadEnumWindowsProc(HWND hwnd, LPARAM lParam)
         /* This window is now clean of our taint (but with undefined icons) */
     }
     else {
-        /* winUpdateIcon() will set the icon default, dynamic, or from xwinrc */
-        wid = (Window) GetProp(hwnd, WIN_WID_PROP);
-        if (wid)
-            winUpdateIcon(wid);
+        /* Send a message to WM thread telling it re-evaluate the icon for this window */
+        {
+            winWMMessageRec wmMsg;
+
+            WindowPtr pWin = GetProp(hwnd, WIN_WINDOW_PROP);
+
+            if (pWin) {
+                winPrivWinPtr pWinPriv = winGetWindowPriv(pWin);
+                winPrivScreenPtr s_pScreenPriv = pWinPriv->pScreenPriv;
+
+                wmMsg.msg = WM_WM_ICON_EVENT;
+                wmMsg.hwndWindow = hwnd;
+                wmMsg.iWindow = (Window) GetProp(hwnd, WIN_WID_PROP);
+
+                winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+            }
+        }
 
         /* Update the system menu for this window */
         SetupSysMenu((unsigned long) hwnd);
@@ -577,31 +589,15 @@ LoadImageComma(char *fname, int sx, int sy, int flags)
  * ICONS{} section in the prefs file, and load the icon from a file
  */
 HICON
-winOverrideIcon(unsigned long longWin)
+winOverrideIcon(char *res_name, char *res_class, char *wmName)
 {
-    WindowPtr pWin = (WindowPtr) longWin;
-    char *res_name, *res_class;
     int i;
     HICON hicon;
-    char *wmName;
-
-    if (pWin == NULL)
-        return 0;
-
-    /* If we can't find the class, we can't override from default! */
-    if (!winMultiWindowGetClassHint(pWin, &res_name, &res_class))
-        return 0;
-
-    winMultiWindowGetWMName(pWin, &wmName);
 
     for (i = 0; i < pref.iconItems; i++) {
-        if (!strcmp(pref.icon[i].match, res_name) ||
-            !strcmp(pref.icon[i].match, res_class) ||
+        if ((res_name && !strcmp(pref.icon[i].match, res_name)) ||
+            (res_class && !strcmp(pref.icon[i].match, res_class)) ||
             (wmName && strstr(wmName, pref.icon[i].match))) {
-            free(res_name);
-            free(res_class);
-            free(wmName);
-
             if (pref.icon[i].hicon)
                 return pref.icon[i].hicon;
 
@@ -616,10 +612,6 @@ winOverrideIcon(unsigned long longWin)
     }
 
     /* Didn't find the icon, fail gracefully */
-    free(res_name);
-    free(res_class);
-    free(wmName);
-
     return 0;
 }
 

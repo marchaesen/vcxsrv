@@ -1625,6 +1625,8 @@ GetPointerEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
 
         if (adj != 0.0 && axis != -1) {
             adj *= pDev->valuator->axes[axis].scroll.increment;
+            if (!valuator_mask_isset(&mask, axis))
+                valuator_mask_set(&mask, axis, 0);
             add_to_scroll_valuator(pDev, &mask, axis, adj);
             type = MotionNotify;
             buttons = 0;

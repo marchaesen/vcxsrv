@@ -439,8 +439,6 @@ ProcWindowsWMFrameDraw(ClientPtr client)
 
     ShowWindow(pRLWinPriv->hWnd, nCmdShow);
 
-    winMWExtWMUpdateIcon(pWin->drawable.id);
-
     if (wBoundingShape(pWin) != NULL) {
         /* wBoundingShape is relative to *inner* origin of window.
            Translate by borderWidth to get the outside-relative position. */
