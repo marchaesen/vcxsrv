@@ -16,3 +16,8 @@ Release
 *.sdf
 glsl_lexer.cpp
 glsl_parser.cpp
+.fileslist
+GPATH
+GRTAGS
+GTAGS
+TAGS
