@@ -1082,6 +1082,11 @@ void pixman_timer_register (pixman_timer_t *timer);
     timer ## tname.total += OIL_STAMP () - begin ## tname;		\
     }
 
+#else
+
+#define TIMER_BEGIN(tname)
+#define TIMER_END(tname)
+
 #endif /* PIXMAN_TIMERS */
 
 /* sRGB<->linear conversion tables. Linear color space is the same

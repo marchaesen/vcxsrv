@@ -415,20 +415,18 @@ guess_and_alloc_texture(struct st_context *st,
  */
 static GLboolean
 st_AllocTextureImageBuffer(struct gl_context *ctx,
-                           struct gl_texture_image *texImage,
-                           gl_format format, GLsizei width,
-                           GLsizei height, GLsizei depth)
+                           struct gl_texture_image *texImage)
 {
    struct st_context *st = st_context(ctx);
    struct st_texture_image *stImage = st_texture_image(texImage);
    struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
    const GLuint level = texImage->Level;
+   GLuint width = texImage->Width;
+   GLuint height = texImage->Height;
+   GLuint depth = texImage->Depth;
 
    DBG("%s\n", __FUNCTION__);
 
-   assert(width > 0);
-   assert(height > 0);
-   assert(depth > 0);
    assert(!stImage->TexData);
    assert(!stImage->pt); /* xxx this might be wrong */
 
@@ -500,8 +498,6 @@ st_AllocTextureImageBuffer(struct gl_context *ctx,
  */
 static void
 prep_teximage(struct gl_context *ctx, struct gl_texture_image *texImage,
-              GLint internalFormat,
-              GLint width, GLint height, GLint depth, GLint border,
               GLenum format, GLenum type)
 {
    struct gl_texture_object *texObj = texImage->TexObject;
@@ -518,11 +514,13 @@ prep_teximage(struct gl_context *ctx, struct gl_texture_image *texImage,
 
       /* oops, need to init this image again */
       texFormat = _mesa_choose_texture_format(ctx, texObj, target, level,
-                                              internalFormat, format, type);
+                                              texImage->InternalFormat, format,
+                                              type);
 
       _mesa_init_teximage_fields(ctx, texImage,
-                                 width, height, depth, border,
-                                 internalFormat, texFormat);
+                                 texImage->Width, texImage->Height,
+                                 texImage->Depth, texImage->Border,
+                                 texImage->InternalFormat, texFormat);
 
       stObj->surface_based = GL_FALSE;
    }
@@ -532,29 +530,21 @@ prep_teximage(struct gl_context *ctx, struct gl_texture_image *texImage,
 static void
 st_TexImage(struct gl_context * ctx, GLuint dims,
             struct gl_texture_image *texImage,
-            GLint internalFormat,
-            GLint width, GLint height, GLint depth, GLint border,
             GLenum format, GLenum type, const void *pixels,
             const struct gl_pixelstore_attrib *unpack)
 {
-   prep_teximage(ctx, texImage, internalFormat, width, height, depth, border,
-                 format, type);
-   _mesa_store_teximage(ctx, dims, texImage, internalFormat, width, height, depth,
-                        border, format, type, pixels, unpack);
+   prep_teximage(ctx, texImage, format, type);
+   _mesa_store_teximage(ctx, dims, texImage, format, type, pixels, unpack);
 }
 
 
 static void
 st_CompressedTexImage(struct gl_context *ctx, GLuint dims,
                       struct gl_texture_image *texImage,
-                      GLint internalFormat,
-                      GLint width, GLint height, GLint border, GLint depth,
                       GLsizei imageSize, const GLvoid *data)
 {
-   prep_teximage(ctx, texImage, internalFormat, width, height, depth, border,
-                 GL_NONE, GL_NONE);
-   _mesa_store_compressed_teximage(ctx, dims, texImage, internalFormat, width,
-                                   height, depth, border, imageSize, data);
+   prep_teximage(ctx, texImage, GL_NONE, GL_NONE);
+   _mesa_store_compressed_teximage(ctx, dims, texImage, imageSize, data);
 }
 
 
@@ -1004,14 +994,22 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
        !do_flip) {
       /* use surface_copy() / blit */
       struct pipe_box src_box;
+      unsigned dstLevel;
+
       u_box_2d_zslice(srcX, srcY, strb->surface->u.tex.first_layer,
                       width, height, &src_box);
+
+      /* If stImage->pt is an independent image (not a pointer into a full
+       * mipmap) stImage->pt.last_level will be zero and we need to use that
+       * as the dest level.
+       */
+      dstLevel = MIN2(stImage->base.Level, stImage->pt->last_level);
 
       /* for resource_copy_region(), y=0=top, always */
       pipe->resource_copy_region(pipe,
                                  /* dest */
                                  stImage->pt,
-                                 stImage->base.Level,
+                                 dstLevel,
                                  destX, destY, destZ + stImage->base.Face,
                                  /* src */
                                  strb->texture,

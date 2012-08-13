@@ -689,9 +689,9 @@ AC_SUBST([API_DEFINES])
 
 AC_ARG_ENABLE([shared-glapi],
     [AS_HELP_STRING([--enable-shared-glapi],
-        [EXPERIMENTAL.  Enable shared glapi for OpenGL @<:@default=no@:>@])],
+        [Enable shared glapi for OpenGL @<:@default=yes@:>@])],
     [enable_shared_glapi="$enableval"],
-    [enable_shared_glapi=no])
+    [enable_shared_glapi=yes])
 
 SHARED_GLAPI="0"
 if test "x$enable_shared_glapi" = xyes; then
@@ -976,6 +976,7 @@ xyesno)
 
     # find the DRI deps for libGL
     if test "$x11_pkgconfig" = yes; then
+        PKG_CHECK_MODULES([XCB],[x11-xcb xcb-glx >= 1.8.1])
         dri_modules="x11 xext xdamage xfixes x11-xcb xcb-glx"
 
         # add xf86vidmode if available
@@ -2153,6 +2154,7 @@ AC_CONFIG_FILES([configs/current
 		src/mapi/glapi/gen/Makefile
 		src/mapi/shared-glapi/Makefile
 		src/mapi/glapi/tests/Makefile
+		src/mapi/shared-glapi/tests/Makefile
 		src/gtest/Makefile
 		src/mesa/Makefile
 		src/mesa/libdricore/Makefile

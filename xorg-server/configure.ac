@@ -26,8 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.12.99.903, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2012-07-25"
+AC_INIT([xorg-server], 1.12.99.904, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2012-08-07"
+RELEASE_NAME="Sweating Aardvark"
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_MAINTAINER_MODE
@@ -776,7 +777,7 @@ DRI2PROTO="dri2proto >= 2.8"
 XINERAMAPROTO="xineramaproto"
 BIGFONTPROTO="xf86bigfontproto >= 1.2.0"
 DGAPROTO="xf86dgaproto >= 2.0.99.1"
-GLPROTO="glproto >= 1.4.15"
+GLPROTO="glproto >= 1.4.16"
 DMXPROTO="dmxproto >= 2.2.99.1"
 VIDMODEPROTO="xf86vidmodeproto >= 2.2.99.1"
 WINDOWSWMPROTO="windowswmproto"

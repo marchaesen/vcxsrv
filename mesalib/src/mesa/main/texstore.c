@@ -4336,25 +4336,22 @@ void
 _mesa_store_teximage(struct gl_context *ctx,
                      GLuint dims,
                      struct gl_texture_image *texImage,
-                     GLint internalFormat,
-                     GLint width, GLint height, GLint depth, GLint border,
                      GLenum format, GLenum type, const GLvoid *pixels,
                      const struct gl_pixelstore_attrib *packing)
 {
    assert(dims == 1 || dims == 2 || dims == 3);
 
-   if (width == 0 || height == 0 || depth == 0)
+   if (texImage->Width == 0 || texImage->Height == 0 || texImage->Depth == 0)
       return;
 
    /* allocate storage for texture data */
-   if (!ctx->Driver.AllocTextureImageBuffer(ctx, texImage, texImage->TexFormat,
-                                            width, height, depth)) {
+   if (!ctx->Driver.AllocTextureImageBuffer(ctx, texImage)) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage%uD", dims);
       return;
    }
 
    store_texsubimage(ctx, texImage,
-                     0, 0, 0, width, height, depth,
+                     0, 0, 0, texImage->Width, texImage->Height, texImage->Depth,
                      format, type, pixels, packing, "glTexImage");
 }
 
@@ -4382,9 +4379,6 @@ _mesa_store_texsubimage(struct gl_context *ctx, GLuint dims,
 void
 _mesa_store_compressed_teximage(struct gl_context *ctx, GLuint dims,
                                 struct gl_texture_image *texImage,
-                                GLint internalFormat,
-                                GLint width, GLint height, GLint depth,
-                                GLint border,
                                 GLsizei imageSize, const GLvoid *data)
 {
    /* only 2D compressed images are supported at this time */
@@ -4403,15 +4397,14 @@ _mesa_store_compressed_teximage(struct gl_context *ctx, GLuint dims,
    ASSERT(texImage->Depth == 1);
 
    /* allocate storage for texture data */
-   if (!ctx->Driver.AllocTextureImageBuffer(ctx, texImage, texImage->TexFormat,
-                                            width, height, 1)) {
+   if (!ctx->Driver.AllocTextureImageBuffer(ctx, texImage)) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCompressedTexImage2D");
       return;
    }
 
    _mesa_store_compressed_texsubimage(ctx, dims, texImage,
                                       0, 0, 0,
-                                      width, height, depth,
+                                      texImage->Width, texImage->Height, texImage->Depth,
                                       texImage->TexFormat,
                                       imageSize, data);
 }

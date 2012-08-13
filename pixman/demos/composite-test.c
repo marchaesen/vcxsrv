@@ -149,7 +149,7 @@ main (int argc, char **argv)
 				0, 0, 0, 0, 0, 0, WIDTH, HEIGHT);
 	pixman_image_composite (operators[i].op, parrot, NULL, dest_img,
 				0, 0, 0, 0, 0, 0, WIDTH, HEIGHT);
-	pixbuf = pixbuf_from_argb32 (pixman_image_get_data (dest_img), TRUE,
+	pixbuf = pixbuf_from_argb32 (pixman_image_get_data (dest_img),
 				     WIDTH, HEIGHT, WIDTH * 4);
 	image = gtk_image_new_from_pixbuf (pixbuf);
 	gtk_box_pack_start (GTK_BOX (vbox), image, FALSE, FALSE, 0);
