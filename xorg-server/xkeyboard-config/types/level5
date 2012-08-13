@@ -188,6 +188,7 @@ partial default xkb_types "default" {
 	map[LevelFive] = Level5;
 	map[Shift+LevelFive] = Level6;
 	map[Lock+LevelFive]  = Level6;
+	map[Lock+Shift+LevelFive]  = Level6;
 	map[LevelThree+LevelFive] = Level7;
 	map[Shift+LevelThree+LevelFive] = Level8;
 	map[Lock+LevelThree+LevelFive] =  Level7;

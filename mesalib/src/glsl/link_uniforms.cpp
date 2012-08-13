@@ -224,14 +224,24 @@ public:
    }
 
    void set_and_process(struct gl_shader_program *prog,
+			struct gl_shader *shader,
 			ir_variable *var)
    {
       ubo_var = NULL;
       if (var->uniform_block != -1) {
 	 struct gl_uniform_block *block =
-	    &prog->UniformBlocks[var->uniform_block];
+	    &shader->UniformBlocks[var->uniform_block];
 
-	 ubo_block_index = var->uniform_block;
+	 ubo_block_index = -1;
+	 for (unsigned i = 0; i < prog->NumUniformBlocks; i++) {
+	    if (!strcmp(prog->UniformBlocks[i].Name,
+			shader->UniformBlocks[var->uniform_block].Name)) {
+	       ubo_block_index = i;
+	       break;
+	    }
+	 }
+	 assert(ubo_block_index != -1);
+
 	 ubo_var_index = var->location;
 	 ubo_var = &block->Uniforms[var->location];
 	 ubo_byte_offset = ubo_var->Offset;
@@ -490,7 +500,19 @@ link_assign_uniform_block_offsets(struct gl_shader *shader)
 	 ubo_var->Offset = offset;
 	 offset += size;
       }
-      block->UniformBufferSize = offset;
+
+      /* From the GL_ARB_uniform_buffer_object spec:
+       *
+       *     "For uniform blocks laid out according to [std140] rules,
+       *      the minimum buffer object size returned by the
+       *      UNIFORM_BLOCK_DATA_SIZE query is derived by taking the
+       *      offset of the last basic machine unit consumed by the
+       *      last uniform of the uniform block (including any
+       *      end-of-array or end-of-structure padding), adding one,
+       *      and rounding up to the next multiple of the base
+       *      alignment required for a vec4."
+       */
+      block->UniformBufferSize = align(offset, 16);
    }
 }
 
@@ -598,7 +620,7 @@ link_assign_uniform_locations(struct gl_shader_program *prog)
 	 if (strncmp("gl_", var->name, 3) == 0)
 	    continue;
 
-	 parcel.set_and_process(prog, var);
+	 parcel.set_and_process(prog, prog->_LinkedShaders[i], var);
       }
 
       prog->_LinkedShaders[i]->active_samplers = parcel.shader_samplers_used;

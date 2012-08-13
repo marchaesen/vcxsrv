@@ -208,8 +208,6 @@ struct dd_function_table {
     */
    void (*TexImage)(struct gl_context *ctx, GLuint dims,
                     struct gl_texture_image *texImage,
-                    GLint internalFormat,
-                    GLint width, GLint height, GLint depth, GLint border,
                     GLenum format, GLenum type, const GLvoid *pixels,
                     const struct gl_pixelstore_attrib *packing);
 
@@ -273,9 +271,6 @@ struct dd_function_table {
     */
    void (*CompressedTexImage)(struct gl_context *ctx, GLuint dims,
                               struct gl_texture_image *texImage,
-                              GLint internalFormat,
-                              GLsizei width, GLsizei height, GLsizei depth,
-                              GLint border,
                               GLsizei imageSize, const GLvoid *data);
 
    /**
@@ -329,9 +324,7 @@ struct dd_function_table {
 
    /** Called to allocate memory for a single texture image */
    GLboolean (*AllocTextureImageBuffer)(struct gl_context *ctx,
-                                        struct gl_texture_image *texImage,
-                                        gl_format format, GLsizei width,
-                                        GLsizei height, GLsizei depth);
+                                        struct gl_texture_image *texImage);
 
    /** Free the memory for a single texture image */
    void (*FreeTextureImageBuffer)(struct gl_context *ctx,

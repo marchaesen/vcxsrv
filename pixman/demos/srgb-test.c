@@ -79,15 +79,6 @@ main (int argc, char **argv)
     pixman_image_unref (src1_img);
     free (src1);
 
-    pixman_image_unref (dest_img);
-
-    /* Now that the picture has been correctly constructed,
-     * we hand it over to our support library as argb which it
-     * knows how to handle (it doesn't understand _sRGB format). */
-    dest_img = pixman_image_create_bits (PIXMAN_a8r8g8b8,
-			 		 WIDTH, HEIGHT,
-					 dest,
-					 WIDTH * 4);
     show_image (dest_img);
     pixman_image_unref (dest_img);
     free (dest);
