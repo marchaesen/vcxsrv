@@ -6597,6 +6597,48 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->InvalidateBufferData) {
+        void ** procp = (void **) &disp->InvalidateBufferData;
+        snprintf(symboln, sizeof(symboln), "%sInvalidateBufferData", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->InvalidateBufferSubData) {
+        void ** procp = (void **) &disp->InvalidateBufferSubData;
+        snprintf(symboln, sizeof(symboln), "%sInvalidateBufferSubData", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->InvalidateFramebuffer) {
+        void ** procp = (void **) &disp->InvalidateFramebuffer;
+        snprintf(symboln, sizeof(symboln), "%sInvalidateFramebuffer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->InvalidateSubFramebuffer) {
+        void ** procp = (void **) &disp->InvalidateSubFramebuffer;
+        snprintf(symboln, sizeof(symboln), "%sInvalidateSubFramebuffer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->InvalidateTexImage) {
+        void ** procp = (void **) &disp->InvalidateTexImage;
+        snprintf(symboln, sizeof(symboln), "%sInvalidateTexImage", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->InvalidateTexSubImage) {
+        void ** procp = (void **) &disp->InvalidateTexSubImage;
+        snprintf(symboln, sizeof(symboln), "%sInvalidateTexSubImage", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->PolygonOffsetEXT) {
         void ** procp = (void **) &disp->PolygonOffsetEXT;
         snprintf(symboln, sizeof(symboln), "%sPolygonOffsetEXT", symbol_prefix);
