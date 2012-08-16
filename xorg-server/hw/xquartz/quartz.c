@@ -43,6 +43,7 @@
 #include "darwinEvents.h"
 #include "pseudoramiX.h"
 #include "extension.h"
+#include "glx_extinit.h"
 #define _APPLEWM_SERVER_
 #include "applewmExt.h"
 

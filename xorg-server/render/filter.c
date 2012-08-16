@@ -273,7 +273,10 @@ PictureResetFilters(ScreenPtr pScreen)
 
     free(ps->filters);
     free(ps->filterAliases);
-    PictureFreeFilterIds();
+
+    /* Free the filters when the last screen is closed */
+    if (pScreen->myNum == 0)
+        PictureFreeFilterIds();
 }
 
 int
