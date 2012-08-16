@@ -331,6 +331,15 @@ main(int argc, char *argv[], char *envp[])
 
         CloseDownEvents();
 
+        for (i = screenInfo.numGPUScreens - 1; i >= 0; i--) {
+            ScreenPtr pScreen = screenInfo.gpuscreens[i];
+            FreeScratchPixmapsForScreen(pScreen);
+            (*pScreen->CloseScreen) (pScreen);
+            dixFreePrivates(pScreen->devPrivates, PRIVATE_SCREEN);
+            free(pScreen);
+            screenInfo.numGPUScreens = i;
+        }
+
         for (i = screenInfo.numScreens - 1; i >= 0; i--) {
             FreeScratchPixmapsForScreen(screenInfo.screens[i]);
             FreeGCperDepth(i);
@@ -340,15 +349,6 @@ main(int argc, char *argv[], char *envp[])
             dixFreePrivates(screenInfo.screens[i]->devPrivates, PRIVATE_SCREEN);
             free(screenInfo.screens[i]);
             screenInfo.numScreens = i;
-        }
-
-        for (i = screenInfo.numGPUScreens - 1; i >= 0; i--) {
-            ScreenPtr pScreen = screenInfo.gpuscreens[i];
-            FreeScratchPixmapsForScreen(pScreen);
-            (*pScreen->CloseScreen) (pScreen);
-            dixFreePrivates(pScreen->devPrivates, PRIVATE_SCREEN);
-            free(pScreen);
-            screenInfo.numGPUScreens = i;
         }
 
         ReleaseClientIds(serverClient);

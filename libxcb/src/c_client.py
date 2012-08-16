@@ -5,6 +5,7 @@ from functools import reduce
 import getopt
 import os
 import sys
+import errno
 import time
 import re
 
@@ -2902,8 +2903,11 @@ Refer to the README file in xcb/proto for more info.
     raise
 
 # Ensure the man subdirectory exists
-if not os.path.exists('man'):
+try:
     os.mkdir('man')
+except OSError, e:
+    if e.errno != errno.EEXIST:
+        raise
 
 today = time.strftime('%Y-%m-%d', time.gmtime(os.path.getmtime(args[0])))
 

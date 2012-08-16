@@ -726,6 +726,12 @@ xf86CrtcCloseScreen(ScreenPtr screen)
 
     xf86RotateCloseScreen(screen);
 
+    xf86RandR12CloseScreen(screen);
+
+    free(config->name);
+
+    screen->CloseScreen(screen);
+
     for (o = 0; o < config->num_output; o++) {
         xf86OutputPtr output = config->output[o];
 
@@ -749,10 +755,7 @@ xf86CrtcCloseScreen(ScreenPtr screen)
         else if (screen->current_master)
             DetachUnboundGPU(screen);
     }
-    xf86RandR12CloseScreen(screen);
-
-    free(config->name);
-    return screen->CloseScreen(screen);
+    return TRUE;
 }
 
 /*

@@ -42,8 +42,7 @@ main/git_sha1.h: main/git_sha1.h.tmp
 	fi
 
 # include glapi_gen.mk for generating glapi headers for GLES
-TOP = $(top_srcdir)
-GLAPI = $(TOP)/src/mapi/glapi/gen
+GLAPI = $(top_srcdir)/src/mapi/glapi/gen
 include $(GLAPI)/glapi_gen.mk
 
 BUILT_SOURCES = \
@@ -78,24 +77,25 @@ main/api_exec_es2_remap_helper.h: $(GLAPI)/gl_and_es_API.xml $(glapi_gen_remap_d
 main/api_exec_es2.o: main/api_exec_es2_dispatch.h main/api_exec_es2_remap_helper.h
 
 main/api_exec_es1.c: main/APIspec.xml main/es_generator.py main/APIspecutil.py main/APIspec.py
-	$(PYTHON2) $(PYTHON_FLAGS) main/es_generator.py \
+	$(AM_V_GEN) $(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/main/es_generator.py \
 	  -S $(srcdir)/main/APIspec.xml -V GLES1.1 > $@
 
 main/api_exec_es2.c: main/APIspec.xml main/es_generator.py main/APIspecutil.py main/APIspec.py
-	$(PYTHON2) $(PYTHON_FLAGS) main/es_generator.py \
+	$(AM_V_GEN) $(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/main/es_generator.py \
 	  -S $(srcdir)/main/APIspec.xml -V GLES2.0 > $@
 
 program/program_parse.tab.c program/program_parse.tab.h: program/program_parse.y
-	mkdir -p program
-	$(YACC) -v -d --output=program/program_parse.tab.c $<
+	$(MKDIR_P) program
+	$(AM_V_GEN) $(YACC) -v -d --output=program/program_parse.tab.c $<
 
 program/lex.yy.c: program/program_lexer.l
-	mkdir -p program
-	$(LEX) --never-interactive --outfile=$@ $<
+	$(MKDIR_P) program
+	$(AM_V_GEN) $(LEX) --never-interactive --outfile=$@ $<
 
 noinst_LTLIBRARIES = libmesa.la libmesagallium.la
 
 SRCDIR = $(top_srcdir)/src/mesa/
+BUILDDIR = $(top_builddir)/src/mesa/
 include sources.mak
 
 AM_CPPFLAGS = $(API_DEFINES) $(DEFINES) $(INCLUDE_DIRS)
@@ -107,12 +107,21 @@ MESA_ASM_FILES_FOR_ARCH =
 
 if HAVE_X86_ASM
 MESA_ASM_FILES_FOR_ARCH += $(X86_FILES)
+AM_CPPFLAGS += \
+        -I$(top_builddir)/src/mesa/x86 \
+        -I$(top_srcdir)/src/mesa/x86
 endif
 if HAVE_X86_64_ASM
 MESA_ASM_FILES_FOR_ARCH += $(X86_64_FILES)
+AM_CPPFLAGS += \
+        -I$(top_builddir)/src/mesa/x86-64 \
+        -I$(top_srcdir)/src/mesa/x86-64
 endif
 if HAVE_SPARC_ASM
 MESA_ASM_FILES_FOR_ARCH += $(SPARC_FILES)
+AM_CPPFLAGS += \
+        -I$(top_builddir)/src/mesa/sparc \
+        -I$(top_srcdir)/src/mesa/sparc
 endif
 
 libmesa_la_SOURCES = \

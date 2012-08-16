@@ -203,7 +203,7 @@ set_fragment_shader(struct blit_state *ctx, uint writemask,
                     enum pipe_texture_target pipe_tex)
 {
    if (!ctx->fs[pipe_tex][writemask]) {
-      unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(pipe_tex);
+      unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(pipe_tex, 0);
 
       ctx->fs[pipe_tex][writemask] =
          util_make_fragment_tex_shader_writemask(ctx->pipe, tgsi_tex,
@@ -223,7 +223,7 @@ set_depthstencil_fragment_shader(struct blit_state *ctx,
                                  enum pipe_texture_target pipe_tex)
 {
    if (!ctx->fs_depthstencil[pipe_tex]) {
-      unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(pipe_tex);
+      unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(pipe_tex, 0);
 
       ctx->fs_depthstencil[pipe_tex] =
          util_make_fragment_tex_shader_writedepthstencil(ctx->pipe, tgsi_tex,
@@ -242,7 +242,7 @@ set_depth_fragment_shader(struct blit_state *ctx,
                           enum pipe_texture_target pipe_tex)
 {
    if (!ctx->fs_depth[pipe_tex]) {
-      unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(pipe_tex);
+      unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(pipe_tex, 0);
 
       ctx->fs_depth[pipe_tex] =
          util_make_fragment_tex_shader_writedepth(ctx->pipe, tgsi_tex,
@@ -261,7 +261,7 @@ set_stencil_fragment_shader(struct blit_state *ctx,
                             enum pipe_texture_target pipe_tex)
 {
    if (!ctx->fs_stencil[pipe_tex]) {
-      unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(pipe_tex);
+      unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(pipe_tex, 0);
 
       ctx->fs_stencil[pipe_tex] =
          util_make_fragment_tex_shader_writestencil(ctx->pipe, tgsi_tex,
@@ -464,7 +464,7 @@ util_blit_pixels(struct blit_state *ctx,
                       dstX0, dstY0, dstX1, dstY1);
 
    src_format = util_format_linear(src_tex->format);
-   dst_format = util_format_linear(dst->format);
+   dst_format = util_format_linear(dst->texture->format);
 
    /* See whether we will blit depth or stencil. */
    is_depth = util_format_has_depth(src_desc);

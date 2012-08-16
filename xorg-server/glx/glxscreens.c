@@ -288,6 +288,9 @@ pickFBConfig(__GLXscreen * pGlxScreen, VisualPtr visual)
             continue;
         if (config->visualRating != GLX_NONE)
             continue;
+        /* Ignore multisampled configs */
+        if (config->sampleBuffers)
+            continue;
         if (glxConvertToXVisualType(config->visualType) != visual->class)
             continue;
         /* If it's the 32-bit RGBA visual, demand a 32-bit fbconfig. */

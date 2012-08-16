@@ -23,9 +23,6 @@
 # builtin_compiler is built before libglsl to generate builtin_function.cpp for libglsl.
 # For this to work, a dummy version of builtin_function.cpp, builtin_stubs.cpp, is used.
 
-# Hack to make some of the non-automake variables work.
-TOP=$(top_builddir)
-
 AM_CFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src/mapi \
@@ -39,7 +36,6 @@ AM_CXXFLAGS = $(AM_CFLAGS)
 
 AM_LFLAGS = --nounistd -o$(LEX_OUTPUT_ROOT).c
 
-GLSL_SRCDIR=$(top_srcdir)/src/glsl
 include Makefile.sources
 
 noinst_LTLIBRARIES = libglslcommon.la libglsl.la
@@ -96,8 +92,8 @@ glsl_parser.cc glsl_parser.h: glsl_parser.yy
 BUILT_SOURCES = glsl_parser.h builtin_function.cpp
 CLEANFILES = glsl_lexer.cc glsl_parser.cc $(BUILT_SOURCES)
 
-builtin_function.cpp: builtins/profiles/* builtins/ir/* builtins/glsl/* builtins/tools/generate_builtins.py builtins/tools/texture_builtins.py builtin_compiler$(EXEEXT)
-	$(AM_V_GEN) $(PYTHON2) $(PYTHON_FLAGS) builtins/tools/generate_builtins.py ./builtin_compiler > builtin_function.cpp || rm -f builtin_function.cpp
+builtin_function.cpp: $(srcdir)/builtins/profiles/* $(srcdir)/builtins/ir/* $(srcdir)/builtins/glsl/* $(srcdir)/builtins/tools/generate_builtins.py $(srcdir)/builtins/tools/texture_builtins.py builtin_compiler$(EXEEXT)
+	$(AM_V_GEN) $(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/builtins/tools/generate_builtins.py ./builtin_compiler > builtin_function.cpp || rm -f builtin_function.cpp
 
 glcpp/libglcpp.la:
 	cd glcpp ; $(MAKE) $(AM_MAKEFLAGS)
