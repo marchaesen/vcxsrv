@@ -1591,7 +1591,7 @@ FcParseAlias (FcConfigParse *parse)
 	case FcVStackFamily:
 	    if (family)
 	    {
-		FcConfigMessage (parse, FcSevereWarning, "Having multiple <family> in <alias> isn't supported and may not works as expected");
+		FcConfigMessage (parse, FcSevereWarning, "Having multiple <family> in <alias> isn't supported and may not work as expected");
 		new = FcExprCreateOp (parse->config, vstack->u.expr, FcOpComma, family);
 		if (!new)
 		    FcConfigMessage (parse, FcSevereError, "out of memory");
@@ -2227,7 +2227,7 @@ FcParseTest (FcConfigParse *parse)
     }
     if (expr->op == FcOpComma)
     {
-	FcConfigMessage (parse, FcSevereWarning, "Having multiple values in <test> isn't supported and may not works as expected");
+	FcConfigMessage (parse, FcSevereWarning, "Having multiple values in <test> isn't supported and may not work as expected");
     }
     test = FcTestCreate (parse, kind, qual, name, FC_OP (compare, flags), expr);
     if (!test)
