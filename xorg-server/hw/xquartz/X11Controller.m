@@ -53,6 +53,11 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <asl.h>
+#include <stdlib.h>
+
+extern aslclient aslc;
+extern char *bundle_id_prefix;
 
 @implementation X11Controller
 
@@ -342,9 +347,12 @@
     const char *newargv[4];
     char buf[128];
     char *s;
+#if 0 && MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
+    int stdout_pipe[2];
+    int stderr_pipe[2];
+#endif
 
-    newargv[0] =
-        [X11App prefs_get_string:@PREFS_LOGIN_SHELL default:"/bin/sh"];
+    newargv[0] = [X11App prefs_get_string:@PREFS_LOGIN_SHELL default:"/bin/sh"];
     newargv[1] = "-c";
     newargv[2] = [filename UTF8String];
     newargv[3] = NULL;
@@ -354,6 +362,40 @@
         snprintf(buf, sizeof(buf), ":%s", display);
         setenv("DISPLAY", buf, TRUE);
     }
+
+#if 0 && MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
+    if (asl_log_descriptor) {
+        char *asl_sender;
+        aslmsg amsg = asl_new(ASL_TYPE_MSG);
+        assert(amsg);
+
+        asprintf(&asl_sender, "%s.%s", bundle_id_prefix, newargv[2]);
+        assert(asl_sender);
+        for(s = asl_sender + strlen(bundle_id_prefix) + 1; *s; s++) {
+            if(! ((*s >= 'a' && *s <= 'z') ||
+                  (*s >= 'A' && *s <= 'Z') ||
+                  (*s >= '0' && *s <= '9'))) {
+                *s = '_';
+            }
+        }
+
+        (void)asl_set(amsg, ASL_KEY_SENDER, asl_sender);
+        free(asl_sender);
+
+        assert(0 == pipe(stdout_pipe));
+        fcntl(stdout_pipe[0], F_SETFD, FD_CLOEXEC);
+        fcntl(stdout_pipe[0], F_SETFL, O_NONBLOCK);
+
+        assert(0 == pipe(stderr_pipe));
+        fcntl(stderr_pipe[0], F_SETFD, FD_CLOEXEC);
+        fcntl(stderr_pipe[0], F_SETFL, O_NONBLOCK);
+
+        asl_log_descriptor(aslc, amsg, ASL_LEVEL_INFO, stdout_pipe[0], ASL_LOG_DESCRIPTOR_READ);
+        asl_log_descriptor(aslc, amsg, ASL_LEVEL_NOTICE, stderr_pipe[0], ASL_LOG_DESCRIPTOR_READ);
+
+        asl_free(amsg);
+    }
+#endif
 
     /* Do the fork-twice trick to avoid having to reap zombies */
     child1 = fork();
@@ -371,6 +413,14 @@
             _exit(1);
 
         case 0:                                     /* child2 */
+#if 0 && MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
+            if (asl_log_descriptor) {
+                /* Replace our stdout/stderr */
+                dup2(stdout_pipe[1], STDOUT_FILENO);
+                dup2(stderr_pipe[1], STDERR_FILENO);
+            }
+#endif
+
             /* close all open files except for standard streams */
             max_files = sysconf(_SC_OPEN_MAX);
             for (i = 3; i < max_files; i++)
@@ -391,6 +441,14 @@
     default:                                    /* parent */
         waitpid(child1, &status, 0);
     }
+
+#if 0 && MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
+    if (asl_log_descriptor) {
+        /* Close the write ends of the pipe */
+        close(stdout_pipe[1]);
+        close(stderr_pipe[1]);
+    }
+#endif
 }
 
 - (void) app_selected:sender

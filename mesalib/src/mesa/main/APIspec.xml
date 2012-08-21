@@ -48,12 +48,6 @@
 		<return type="void"/>
 		<param name="mode" type="GLenum"/>
 	</proto>
-
-	<desc name="mode">
-		<value name="GL_FRONT"/>
-		<value name="GL_BACK"/>
-		<value name="GL_FRONT_AND_BACK"/>
-	</desc>
 </template>
 
 <template name="Fog">
@@ -94,11 +88,6 @@
 		<return type="void"/>
 		<param name="mode" type="GLenum"/>
 	</proto>
-
-	<desc name="mode">
-		<value name="GL_CW"/>
-		<value name="GL_CCW"/>
-	</desc>
 </template>
 
 <template name="Hint">
@@ -120,12 +109,6 @@
 	<desc name="target">
 		<value name="GL_GENERATE_MIPMAP_HINT"/>
 	</desc>
-
-	<desc name="mode">
-		<value name="GL_FASTEST"/>
-		<value name="GL_NICEST"/>
-		<value name="GL_DONT_CARE"/>
-	</desc>
 </template>
 
 <template name="Light">
@@ -137,35 +120,6 @@
 			<param name="param" type="GLtype"/>
 		</vector>
 	</proto>
-
-	<desc name="light">
-		<range base="GL_LIGHT" from="0" to="7"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_AMBIENT"/>
-		<value name="GL_DIFFUSE"/>
-		<value name="GL_SPECULAR"/>
-		<value name="GL_POSITION"/>
-
-		<desc name="params" vector_size="4"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_SPOT_DIRECTION"/>
-
-		<desc name="params" vector_size="3"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_SPOT_EXPONENT"/>
-		<value name="GL_SPOT_CUTOFF"/>
-		<value name="GL_CONSTANT_ATTENUATION"/>
-		<value name="GL_LINEAR_ATTENUATION"/>
-		<value name="GL_QUADRATIC_ATTENUATION"/>
-
-		<desc name="params" vector_size="1"/>
-	</desc>
 </template>
 
 <template name="LightModel">
@@ -244,11 +198,6 @@
 		<param name="stride" type="GLsizei"/>
 		<param name="pointer" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="type">
-		<value name="GL_FLOAT"/>
-		<value name="GL_FIXED"/>
-	</desc>
 </template>
 
 <template name="Scissor">
@@ -266,11 +215,6 @@
 		<return type="void"/>
 		<param name="mode" type="GLenum"/>
 	</proto>
-
-	<desc name="mode">
-		<value name="GL_FLAT"/>
-		<value name="GL_SMOOTH"/>
-	</desc>
 </template>
 
 <template name="TexParameter">
@@ -304,27 +248,11 @@
 		</desc>
 	</desc>
 
-	<desc name="pname">
-		<value name="GL_TEXTURE_MIN_FILTER"/>
-
-		<desc name="param">
-			<value name="GL_NEAREST"/>
-			<value name="GL_LINEAR"/>
-			<value name="GL_NEAREST_MIPMAP_NEAREST"/>
-			<value name="GL_NEAREST_MIPMAP_LINEAR"/>
-			<value name="GL_LINEAR_MIPMAP_NEAREST"/>
-			<value name="GL_LINEAR_MIPMAP_LINEAR"/>
-		</desc>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_TEXTURE_MAG_FILTER"/>
-
-		<desc name="param">
-			<value name="GL_NEAREST"/>
-			<value name="GL_LINEAR"/>
-		</desc>
-	</desc>
+        <desc name="pname">
+               <value name="GL_TEXTURE_MIN_FILTER"/>
+               <value name="GL_TEXTURE_MAG_FILTER"/>
+		<value name="GL_TEXTURE_MAX_ANISOTROPY_EXT" category="EXT_texture_filter_anisotropic"/>
+        </desc>
 
 	<desc name="pname" category="GLES1.1">
 		<value name="GL_GENERATE_MIPMAP"/>
@@ -333,11 +261,6 @@
 			<value name="GL_TRUE"/>
 			<value name="GL_FALSE"/>
 		</desc>
-	</desc>
-
-	<desc name="pname" category="EXT_texture_filter_anisotropic">
-		<value name="GL_TEXTURE_MAX_ANISOTROPY_EXT"/>
-		<desc name="params" vector_size="1"/>
 	</desc>
 
 	<desc name="pname" category="OES_draw_texture">
@@ -762,12 +685,6 @@
 		<param name="face" type="GLenum"/>
 		<param name="mask" type="GLuint"/>
 	</proto>
-
-	<desc name="face">
-		<value name="GL_FRONT"/>
-		<value name="GL_BACK"/>
-		<value name="GL_FRONT_AND_BACK"/>
-	</desc>
 </template>
 
 <template name="ColorMask">
@@ -920,16 +837,6 @@
 		<param name="func" type="GLenum"/>
 		<param name="ref" type="GLtype"/>
 	</proto>
-	<desc name="func">
-		<value name="GL_NEVER"/>
-		<value name="GL_LESS"/>
-		<value name="GL_EQUAL"/>
-		<value name="GL_LEQUAL"/>
-		<value name="GL_GREATER"/>
-		<value name="GL_NOTEQUAL"/>
-		<value name="GL_GEQUAL"/>
-		<value name="GL_ALWAYS"/>
-	</desc>
 </template>
 
 <template name="BlendFunc">
@@ -982,25 +889,6 @@
 		<return type="void"/>
 		<param name="opcode" type="GLenum"/>
 	</proto>
-
-	<desc name="opcode">
-		<value name="GL_CLEAR"/>
-		<value name="GL_SET"/>
-		<value name="GL_COPY"/>
-		<value name="GL_COPY_INVERTED"/>
-		<value name="GL_NOOP"/>
-		<value name="GL_INVERT"/>
-		<value name="GL_AND"/>
-		<value name="GL_NAND"/>
-		<value name="GL_OR"/>
-		<value name="GL_NOR"/>
-		<value name="GL_XOR"/>
-		<value name="GL_EQUIV"/>
-		<value name="GL_AND_REVERSE"/>
-		<value name="GL_AND_INVERTED"/>
-		<value name="GL_OR_REVERSE"/>
-		<value name="GL_OR_INVERTED"/>
-	</desc>
 </template>
 
 <template name="StencilFunc">
@@ -1010,17 +898,6 @@
 		<param name="ref" type="GLint"/>
 		<param name="mask" type="GLuint"/>
 	</proto>
-
-	<desc name="func">
-		<value name="GL_NEVER"/>
-		<value name="GL_LESS"/>
-		<value name="GL_LEQUAL"/>
-		<value name="GL_GREATER"/>
-		<value name="GL_GEQUAL"/>
-		<value name="GL_EQUAL"/>
-		<value name="GL_NOTEQUAL"/>
-		<value name="GL_ALWAYS"/>
-	</desc>
 </template>
 
 <template name="StencilFuncSeparate">
@@ -1031,23 +908,6 @@
 		<param name="ref" type="GLint"/>
 		<param name="mask" type="GLuint"/>
 	</proto>
-
-	<desc name="face">
-		<value name="GL_FRONT"/>
-		<value name="GL_BACK"/>
-		<value name="GL_FRONT_AND_BACK"/>
-	</desc>
-
-	<desc name="func">
-		<value name="GL_NEVER"/>
-		<value name="GL_LESS"/>
-		<value name="GL_LEQUAL"/>
-		<value name="GL_GREATER"/>
-		<value name="GL_GEQUAL"/>
-		<value name="GL_EQUAL"/>
-		<value name="GL_NOTEQUAL"/>
-		<value name="GL_ALWAYS"/>
-	</desc>
 </template>
 
 <template name="StencilOp">
@@ -1057,45 +917,6 @@
 		<param name="zfail" type="GLenum"/>
 		<param name="zpass" type="GLenum"/>
 	</proto>
-
-	<desc name="fail">
-		<value name="GL_KEEP"/>
-		<value name="GL_ZERO"/>
-		<value name="GL_REPLACE"/>
-		<value name="GL_INCR"/>
-		<value name="GL_DECR"/>
-		<value name="GL_INVERT"/>
-		<value name="GL_INCR_WRAP" category="GLES2.0"/>
-		<value name="GL_DECR_WRAP" category="GLES2.0"/>
-		<value name="GL_INCR_WRAP_OES" category="OES_stencil_wrap"/>
-		<value name="GL_DECR_WRAP_OES" category="OES_stencil_wrap"/>
-	</desc>
-
-	<desc name="zfail">
-		<value name="GL_KEEP"/>
-		<value name="GL_ZERO"/>
-		<value name="GL_REPLACE"/>
-		<value name="GL_INCR"/>
-		<value name="GL_DECR"/>
-		<value name="GL_INVERT"/>
-		<value name="GL_INCR_WRAP" category="GLES2.0"/>
-		<value name="GL_DECR_WRAP" category="GLES2.0"/>
-		<value name="GL_INCR_WRAP_OES" category="OES_stencil_wrap"/>
-		<value name="GL_DECR_WRAP_OES" category="OES_stencil_wrap"/>
-	</desc>
-
-	<desc name="zpass">
-		<value name="GL_KEEP"/>
-		<value name="GL_ZERO"/>
-		<value name="GL_REPLACE"/>
-		<value name="GL_INCR"/>
-		<value name="GL_DECR"/>
-		<value name="GL_INVERT"/>
-		<value name="GL_INCR_WRAP" category="GLES2.0"/>
-		<value name="GL_DECR_WRAP" category="GLES2.0"/>
-		<value name="GL_INCR_WRAP_OES" category="OES_stencil_wrap"/>
-		<value name="GL_DECR_WRAP_OES" category="OES_stencil_wrap"/>
-	</desc>
 </template>
 
 <template name="StencilOpSeparate">
@@ -1106,45 +927,6 @@
 		<param name="zfail" type="GLenum"/>
 		<param name="zpass" type="GLenum"/>
 	</proto>
-
-	<desc name="face">
-		<value name="GL_FRONT"/>
-		<value name="GL_BACK"/>
-		<value name="GL_FRONT_AND_BACK"/>
-	</desc>
-
-	<desc name="fail">
-		<value name="GL_KEEP"/>
-		<value name="GL_ZERO"/>
-		<value name="GL_REPLACE"/>
-		<value name="GL_INCR"/>
-		<value name="GL_DECR"/>
-		<value name="GL_INVERT"/>
-		<value name="GL_INCR_WRAP"/>
-		<value name="GL_DECR_WRAP"/>
-	</desc>
-
-	<desc name="zfail">
-		<value name="GL_KEEP"/>
-		<value name="GL_ZERO"/>
-		<value name="GL_REPLACE"/>
-		<value name="GL_INCR"/>
-		<value name="GL_DECR"/>
-		<value name="GL_INVERT"/>
-		<value name="GL_INCR_WRAP"/>
-		<value name="GL_DECR_WRAP"/>
-	</desc>
-
-	<desc name="zpass">
-		<value name="GL_KEEP"/>
-		<value name="GL_ZERO"/>
-		<value name="GL_REPLACE"/>
-		<value name="GL_INCR"/>
-		<value name="GL_DECR"/>
-		<value name="GL_INVERT"/>
-		<value name="GL_INCR_WRAP"/>
-		<value name="GL_DECR_WRAP"/>
-	</desc>
 </template>
 
 <template name="DepthFunc">
@@ -1152,17 +934,6 @@
 		<return type="void"/>
 		<param name="func" type="GLenum"/>
 	</proto>
-
-	<desc name="func">
-		<value name="GL_NEVER"/>
-		<value name="GL_LESS"/>
-		<value name="GL_EQUAL"/>
-		<value name="GL_LEQUAL"/>
-		<value name="GL_GREATER"/>
-		<value name="GL_NOTEQUAL"/>
-		<value name="GL_GEQUAL"/>
-		<value name="GL_ALWAYS"/>
-	</desc>
 </template>
 
 <template name="PixelStore">
@@ -1297,35 +1068,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="params" type="GLtype *" size="dynamic"/>
 	</proto>
-
-	<desc name="light">
-		<range base="GL_LIGHT" from="0" to="7"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_AMBIENT"/>
-		<value name="GL_DIFFUSE"/>
-		<value name="GL_SPECULAR"/>
-		<value name="GL_POSITION"/>
-
-		<desc name="params" vector_size="4"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_SPOT_DIRECTION"/>
-
-		<desc name="params" vector_size="3"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_SPOT_EXPONENT"/>
-		<value name="GL_SPOT_CUTOFF"/>
-		<value name="GL_CONSTANT_ATTENUATION"/>
-		<value name="GL_LINEAR_ATTENUATION"/>
-		<value name="GL_QUADRATIC_ATTENUATION"/>
-
-		<desc name="params" vector_size="1"/>
-	</desc>
 </template>
 
 <template name="GetMaterial" direction="get">
@@ -1770,12 +1512,6 @@
 		<value name="GL_TRIANGLE_STRIP"/>
 		<value name="GL_TRIANGLE_FAN"/>
 	</desc>
-
-	<desc name="type">
-		<value name="GL_UNSIGNED_BYTE"/>
-		<value name="GL_UNSIGNED_SHORT"/>
-		<value name="GL_UNSIGNED_INT" category="OES_element_index_uint"/>
-	</desc>
 </template>
 
 <template name="EnableClientState">
@@ -2133,18 +1869,6 @@
 		<return type="void"/>
 		<param name="mode" type="GLenum"/>
 	</proto>
-
-	<desc name="mode">
-		<value name="GL_FUNC_ADD" category="GLES2.0"/>
-		<value name="GL_FUNC_SUBTRACT" category="GLES2.0"/>
-		<value name="GL_FUNC_REVERSE_SUBTRACT" category="GLES2.0"/>
-		<value name="GL_FUNC_ADD_OES" category="OES_blend_subtract"/>
-		<value name="GL_FUNC_SUBTRACT_OES" category="OES_blend_subtract"/>
-		<value name="GL_FUNC_REVERSE_SUBTRACT_OES" category="OES_blend_subtract"/>
-
-		<value name="GL_MIN_EXT" category="EXT_blend_minmax"/>
-		<value name="GL_MAX_EXT" category="EXT_blend_minmax"/>
-	</desc>
 </template>
 
 <template name="BlendEquationSeparate">
@@ -2153,30 +1877,6 @@
 		<param name="modeRGB" type="GLenum"/>
 		<param name="modeAlpha" type="GLenum"/>
 	</proto>
-
-	<desc name="modeRGB">
-		<value name="GL_FUNC_ADD" category="GLES2.0"/>
-		<value name="GL_FUNC_SUBTRACT" category="GLES2.0"/>
-		<value name="GL_FUNC_REVERSE_SUBTRACT" category="GLES2.0"/>
-		<value name="GL_FUNC_ADD_OES" category="OES_blend_subtract"/>
-		<value name="GL_FUNC_SUBTRACT_OES" category="OES_blend_subtract"/>
-		<value name="GL_FUNC_REVERSE_SUBTRACT_OES" category="OES_blend_subtract"/>
-
-		<value name="GL_MIN_EXT" category="EXT_blend_minmax"/>
-		<value name="GL_MAX_EXT" category="EXT_blend_minmax"/>
-	</desc>
-
-	<desc name="modeAlpha">
-		<value name="GL_FUNC_ADD" category="GLES2.0"/>
-		<value name="GL_FUNC_SUBTRACT" category="GLES2.0"/>
-		<value name="GL_FUNC_REVERSE_SUBTRACT" category="GLES2.0"/>
-		<value name="GL_FUNC_ADD_OES" category="OES_blend_subtract"/>
-		<value name="GL_FUNC_SUBTRACT_OES" category="OES_blend_subtract"/>
-		<value name="GL_FUNC_REVERSE_SUBTRACT_OES" category="OES_blend_subtract"/>
-
-		<value name="GL_MIN_EXT" category="EXT_blend_minmax"/>
-		<value name="GL_MAX_EXT" category="EXT_blend_minmax"/>
-	</desc>
 </template>
 
 <template name="TexImage3D">
@@ -2366,10 +2066,6 @@
 			<param name="q" type="GLtype"/>
 		</vector>
 	</proto>
-
-	<desc name="texture">
-		<range base="GL_TEXTURE" from="0" to="31"/>
-	</desc>
 </template>
 
 <template name="CompressedTexImage3D">
@@ -2388,14 +2084,6 @@
 
 	<desc name="target">
 		<value name="GL_TEXTURE_3D_OES"/>
-	</desc>
-
-	<desc name="internalFormat">
-		<value name="GL_3DC_X_AMD" category="AMD_compressed_3DC_texture"/>
-		<value name="GL_3DC_XY_AMD" category="AMD_compressed_3DC_texture"/>
-		<value name="GL_ATC_RGB_AMD" category="AMD_compressed_ATC_texture"/>
-		<value name="GL_ATC_RGBA_EXPLICIT_ALPHA_AMD" category="AMD_compressed_ATC_texture"/>
-		<value name="GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD" category="AMD_compressed_ATC_texture"/>
 	</desc>
 </template>
 
@@ -2425,10 +2113,6 @@
 		<return type="void"/>
 		<param name="texture" type="GLenum"/>
 	</proto>
-
-	<desc name="texture">
-		<range base="GL_TEXTURE" from="0" to="31"/>
-	</desc>
 </template>
 
 <template name="ClientActiveTexture">
@@ -2436,10 +2120,6 @@
 		<return type="void"/>
 		<param name="texture" type="GLenum"/>
 	</proto>
-
-	<desc name="texture">
-		<range base="GL_TEXTURE" from="0" to="31"/>
-	</desc>
 </template>
 
 <template name="SampleCoverage">
@@ -2493,19 +2173,8 @@
 		<value name="GL_PALETTE8_RGBA4_OES" category="OES_compressed_paletted_texture"/>
 		<value name="GL_PALETTE8_RGB5_A1_OES" category="OES_compressed_paletted_texture"/>
 
-		<value name="GL_3DC_X_AMD" category="AMD_compressed_3DC_texture"/>
-		<value name="GL_3DC_XY_AMD" category="AMD_compressed_3DC_texture"/>
-
-		<value name="GL_ATC_RGB_AMD" category="AMD_compressed_ATC_texture"/>
-		<value name="GL_ATC_RGBA_EXPLICIT_ALPHA_AMD" category="AMD_compressed_ATC_texture"/>
-		<value name="GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD" category="AMD_compressed_ATC_texture"/>
-
 		<value name="GL_COMPRESSED_RGB_S3TC_DXT1_EXT" category="EXT_texture_compression_dxt1"/>
 		<value name="GL_COMPRESSED_RGBA_S3TC_DXT1_EXT" category="EXT_texture_compression_dxt1"/>
-	</desc>
-
-	<desc name="border" error="GL_INVALID_VALUE">
-		<value name="0"/>
 	</desc>
 </template>
 
@@ -2783,10 +2452,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="pointer" type="GLvoid **" size="dynamic"/>
 	</proto>
-
-	<desc name="pname">
-		<value name="GL_VERTEX_ATTRIB_ARRAY_POINTER"/>
-	</desc>
 </template>
 
 <template name="GetBufferPointer" direction="get">
@@ -2800,10 +2465,6 @@
 	<desc name="target">
 		<value name="GL_ARRAY_BUFFER"/>
 		<value name="GL_ELEMENT_ARRAY_BUFFER"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_BUFFER_MAP_POINTER_OES"/>
 	</desc>
 </template>
 
@@ -3251,10 +2912,6 @@
 		<param name="level" type="GLint"/>
 		<param name="zoffset" type="GLint"/>
 	</proto>
-
-	<desc name="textarget" error="GL_INVALID_OPERATION">
-		<value name="GL_TEXTURE_3D_OES" category="OES_texture_3D"/>
-	</desc>
 </template>
 
 <template name="CheckFramebufferStatus" direction="get">
@@ -3354,14 +3011,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="params" type="GLtype *" size="dynamic"/>
 	</proto>
-
-	<desc name="pname">
-		<value name="GL_SHADER_TYPE"/>
-		<value name="GL_COMPILE_STATUS"/>
-		<value name="GL_DELETE_STATUS"/>
-		<value name="GL_INFO_LOG_LENGTH"/>
-		<value name="GL_SHADER_SOURCE_LENGTH"/>
-	</desc>
 </template>
 
 <template name="GetAttachedShaders" direction="get">
@@ -3412,20 +3061,6 @@
 		<param name="range" type="GLint *"/>
 		<param name="precision" type="GLint *"/>
 	</proto>
-
-	<desc name="shadertype">
-		<value name="GL_VERTEX_SHADER"/>
-		<value name="GL_FRAGMENT_SHADER"/>
-	</desc>
-
-	<desc name="precisiontype">
-		<value name="GL_LOW_FLOAT"/>
-		<value name="GL_MEDIUM_FLOAT"/>
-		<value name="GL_HIGH_FLOAT"/>
-		<value name="GL_LOW_INT"/>
-		<value name="GL_MEDIUM_INT"/>
-		<value name="GL_HIGH_INT"/>
-	</desc>
 </template>
 
 <template name="GetUniform" direction="get">
@@ -3496,12 +3131,6 @@
 		<value name="GL_TRIANGLES"/>
 		<value name="GL_TRIANGLE_STRIP"/>
 		<value name="GL_TRIANGLE_FAN"/>
-	</desc>
-
-	<desc name="type">
-		<value name="GL_UNSIGNED_BYTE"/>
-		<value name="GL_UNSIGNED_SHORT"/>
-		<value name="GL_UNSIGNED_INT" category="OES_element_index_uint"/>
 	</desc>
 </template>
 

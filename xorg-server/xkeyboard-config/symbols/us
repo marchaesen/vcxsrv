@@ -1290,7 +1290,7 @@ xkb_symbols "intl-unicode" {
  // abovedot, caron
  key <AB09> { [ period, greater, U0307, U030C ] };
  // hook
- key <AB10> { [ slash, question, questiondown, 0309 ] };
+ key <AB10> { [ slash, question, questiondown, U0309 ] };
 
  // alt-intl compatibility
  // cedilla, caron
