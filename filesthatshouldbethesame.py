@@ -1,3 +1,4 @@
+#!python
 from itertools import *
 import sys,os,difflib
 
