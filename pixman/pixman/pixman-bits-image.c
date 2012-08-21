@@ -1123,10 +1123,6 @@ bits_image_fetch_untransformed_64 (pixman_iter_t * iter,
     return buffer;
 }
 
-static uint32_t *
-_pixman_image_get_scanline_generic_64 (pixman_iter_t   *iter,
-				       const uint32_t * mask);
-
 typedef struct
 {
     pixman_format_code_t	format;

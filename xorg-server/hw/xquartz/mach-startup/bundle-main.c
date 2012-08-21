@@ -563,8 +563,25 @@ setup_console_redirect(const char *bundle_id)
     free(asl_facility);
 
     asl_set_filter(aslc, ASL_FILTER_MASK_UPTO(ASL_LEVEL_WARNING));
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
+# if MAC_OS_X_VERSION_MIN_REQUIRED < 1080
+    if (asl_log_descriptor)
+# endif
+    {
+        asl_log_descriptor(aslc, NULL, ASL_LEVEL_INFO, STDOUT_FILENO, ASL_LOG_DESCRIPTOR_WRITE);
+        asl_log_descriptor(aslc, NULL, ASL_LEVEL_NOTICE, STDERR_FILENO, ASL_LOG_DESCRIPTOR_WRITE);
+    }
+# if MAC_OS_X_VERSION_MIN_REQUIRED < 1080
+    else {
+        xq_asl_capture_fd(aslc, NULL, ASL_LEVEL_INFO, STDOUT_FILENO);
+        xq_asl_capture_fd(aslc, NULL, ASL_LEVEL_NOTICE, STDERR_FILENO);
+    }
+# endif
+#else
     xq_asl_capture_fd(aslc, NULL, ASL_LEVEL_INFO, STDOUT_FILENO);
     xq_asl_capture_fd(aslc, NULL, ASL_LEVEL_NOTICE, STDERR_FILENO);
+#endif
 }
 
 static void
