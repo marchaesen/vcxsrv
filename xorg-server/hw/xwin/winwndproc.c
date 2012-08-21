@@ -1023,14 +1023,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             return 0;
         }
 
-        /*
-         * Don't do anything for the Windows keys, as focus will soon
-         * be returned to Windows.  We may be able to trap the Windows keys,
-         * but we should determine if that is desirable before doing so.
-         */
-        if ((wParam == VK_LWIN || wParam == VK_RWIN) && !g_fKeyboardHookLL)
-            break;
-
         /* Discard fake Ctrl_L events that precede AltGR on non-US keyboards */
         if (winIsFakeCtrl_L(message, wParam, lParam))
             return 0;
@@ -1068,14 +1060,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_SYSKEYUP:
     case WM_KEYUP:
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
-            break;
-
-        /*
-         * Don't do anything for the Windows keys, as focus will soon
-         * be returned to Windows.  We may be able to trap the Windows keys,
-         * but we should determine if that is desirable before doing so.
-         */
-        if ((wParam == VK_LWIN || wParam == VK_RWIN) && !g_fKeyboardHookLL)
             break;
 
         /* Ignore the fake Ctrl_L that follows an AltGr release */
