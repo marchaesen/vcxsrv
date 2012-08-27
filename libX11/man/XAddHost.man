@@ -75,7 +75,7 @@
 .de Ds
 .nf
 .\\$1D \\$2 \\$1
-.ft 1
+.ft CW
 .\".ps \\n(PS
 .\".if \\n(VS>=40 .vs \\n(VSu
 .\".if \\n(VS<=39 .vs \\n(VSp
@@ -89,42 +89,7 @@
 .sp \\n(DDu
 .fi
 ..
-.de FD
-.LP
-.KS
-.TA .5i 3i
-.ta .5i 3i
-.nf
-..
-.de FN
-.fi
-.KE
-.LP
-..
 .de IN		\" send an index entry to the stderr
-..
-.de C{
-.KS
-.nf
-.D
-.\"
-.\"	choose appropriate monospace font
-.\"	the imagen conditional, 480,
-.\"	may be changed to L if LB is too
-.\"	heavy for your eyes...
-.\"
-.ie "\\*(.T"480" .ft L
-.el .ie "\\*(.T"300" .ft L
-.el .ie "\\*(.T"202" .ft PO
-.el .ie "\\*(.T"aps" .ft CW
-.el .ft R
-.ps \\n(PS
-.ie \\n(VS>40 .vs \\n(VSu
-.el .vs \\n(VSp
-..
-.de C}
-.DE
-.R
 ..
 .de Pn
 .ie t \\$1\fB\^\\$2\^\fR\\$3
@@ -137,32 +102,6 @@
 .de hN
 .ie t <\fB\\$1\fR>\\$2
 .el <\fI\\$1\fP>\\$2
-..
-.de NT
-.ne 7
-.ds NO Note
-.if \\n(.$>$1 .if !'\\$2'C' .ds NO \\$2
-.if \\n(.$ .if !'\\$1'C' .ds NO \\$1
-.ie n .sp
-.el .sp 10p
-.TB
-.ce
-\\*(NO
-.ie n .sp
-.el .sp 5p
-.if '\\$1'C' .ce 99
-.if '\\$2'C' .ce 99
-.in +5n
-.ll -5n
-.R
-..
-.		\" Note End -- doug kraft 3/85
-.de NE
-.ce 0
-.in -5n
-.ll +5n
-.ie n .sp
-.el .sp 10p
 ..
 .ny0
 .TH XAddHost __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
@@ -320,12 +259,10 @@ The
 structure contains:
 .LP
 .Ds 0
-.TA .5i 3i
-.ta .5i 3i
 typedef struct {
-	int family;	/\&* for example FamilyInternet */
-	int length;	/\&* length of address, in bytes */
-	char *address;	/\&* pointer to where to find the address */
+        int family;     /\&* for example FamilyInternet */
+        int length;     /\&* length of address, in bytes */
+        char *address;  /\&* pointer to where to find the address */
 } XHostAddress;
 .De
 .LP
@@ -346,13 +283,11 @@ member is a pointer to a
 structure which contains:
 .LP
 .Ds 0
-.TA .5i 3i
-.ta .5i 3i
 typedef struct {
-	int typelength;		/\&* length of type string, in bytes */
-	int valuelength;	/\&* length of value string, in bytes */
-	char *type;		/\&* pointer to where to find the type string */
-	char *value;		/\&* pointer to where to find the address */
+        int typelength;         /\&* length of type string, in bytes */
+        int valuelength;        /\&* length of value string, in bytes */
+        char *type;             /\&* pointer to where to find the type string */
+        char *value;            /\&* pointer to where to find the address */
 } XServerInterpretedAddress;
 .De
 .LP

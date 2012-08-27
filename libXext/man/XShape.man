@@ -123,8 +123,7 @@ XRectangle *XShapeGetRectangles (
 .fi
 .SH STRUCTURES
 .nf
-.LP
-.ta 3i
+.ft CW
 typedef struct {
     int type;	/\&* of event */
     unsigned long serial;	/\&* # of last request processed by server */
@@ -137,38 +136,39 @@ typedef struct {
     Time time;	/\&* server timestamp when region changed */
     Bool shaped;	/\&* true if the region exists */
 } XShapeEvent;
+.ft
 .fi
 .SH DESCRIPTION
 The \fIX11 Nonrectangular Window Shape Extension\fP adds nonrectangular
 windows to the X Window System.
 .SH PREDEFINED VALUES
 Operations:
-.in +.5i
+.RS
 .nf
 .ZN ShapeSet
 .ZN ShapeUnion
 .ZN ShapeIntersect
 .ZN ShapeSubtract
 .ZN ShapeInvert
-.in -.5i
 .fi
+.RE
 .sp
 Shape Kinds:
-.in +.5i
+.RS
 .nf
 .ZN ShapeBounding
 .ZN ShapeClip
-.in -.5i
 .fi
+.RE
 .sp
 Event defines:
-.in +.5i
+.RS
 .nf
 .ZN ShapeNotifyMask
 .ZN ShapeNotify
-.in -.5i
 .fi
+.RE
 .SH BUGS
-This manual pages needs a lot more work.
+This manual page needs a lot more work.
 .SH SEE ALSO
 \fIX11 Nonrectangular Window Shape Extension\fP

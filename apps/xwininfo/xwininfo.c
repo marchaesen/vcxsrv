@@ -254,7 +254,7 @@ static Bool window_id_format_dec = False;
 static iconv_t iconv_from_utf8;
 #endif
 static const char *user_encoding;
-static void print_utf8 (const char *, char *, size_t, const char *);
+static void print_utf8 (const char *, const char *, size_t, const char *);
 static char *get_friendly_name (const char *, const char *);
 
 static xcb_connection_t *dpy;
@@ -281,6 +281,7 @@ static size_t strlcat (char *dst, const char *src, size_t dstsize)
 /*
  * Report the syntax for calling xwininfo:
  */
+_X_NORETURN
 static void
 usage (void)
 {
@@ -327,12 +328,12 @@ static int bp = 0, bmm = 0;
 static int english = 0, metric = 0;
 
 static void
-scale_init (xcb_screen_t *screen)
+scale_init (xcb_screen_t *scale_screen)
 {
-    xp = screen->width_in_pixels;
-    yp = screen->height_in_pixels;
-    xmm = screen->width_in_millimeters;
-    ymm = screen->height_in_millimeters;
+    xp = scale_screen->width_in_pixels;
+    yp = scale_screen->height_in_pixels;
+    xmm = scale_screen->width_in_millimeters;
+    ymm = scale_screen->height_in_millimeters;
     bp  = xp  + yp;
     bmm = xmm + ymm;
 }
@@ -715,10 +716,10 @@ fetch_win_attributes (struct wininfo *w)
 
 #ifndef USE_XCB_ICCCM
 static Bool
-wm_size_hints_reply (xcb_connection_t *dpy, xcb_get_property_cookie_t cookie,
-		     wm_size_hints_t *hints_return, xcb_generic_error_t **err)
+wm_size_hints_reply (xcb_connection_t *wshr_dpy, xcb_get_property_cookie_t cookie,
+		     wm_size_hints_t *hints_return, xcb_generic_error_t **wshr_err)
 {
-    xcb_get_property_reply_t *prop = xcb_get_property_reply (dpy, cookie, err);
+    xcb_get_property_reply_t *prop = xcb_get_property_reply (wshr_dpy, cookie, wshr_err);
     int length;
 
     if (!prop || (prop->type != XCB_ATOM_WM_SIZE_HINTS) ||
@@ -853,7 +854,7 @@ Display_Window_Id (struct wininfo *w, Bool newline_wanted)
 	    if (wm_name_encoding == XCB_ATOM_STRING) {
 		printf (" \"%.*s\"", wm_name_len, wm_name);
 	    } else if (wm_name_encoding == atom_utf8_string) {
-		print_utf8 (" \"", (char *) wm_name, wm_name_len,  "\"");
+		print_utf8 (" \"", wm_name, wm_name_len,  "\"");
 	    } else {
 		/* Encodings we don't support, including COMPOUND_TEXT */
 		const char *enc_name = Get_Atom_Name (dpy, wm_name_encoding);
@@ -1619,10 +1620,10 @@ static const binding _state_hints[] = {
 
 #ifndef USE_XCB_ICCCM
 static Bool
-wm_hints_reply (xcb_connection_t *dpy, xcb_get_property_cookie_t cookie,
-		wm_hints_t *hints_return, xcb_generic_error_t **err)
+wm_hints_reply (xcb_connection_t *whr_dpy, xcb_get_property_cookie_t cookie,
+		wm_hints_t *hints_return, xcb_generic_error_t **whr_err)
 {
-    xcb_get_property_reply_t *prop = xcb_get_property_reply (dpy, cookie, err);
+    xcb_get_property_reply_t *prop = xcb_get_property_reply (whr_dpy, cookie, whr_err);
     int length;
 
     if (!prop || (prop->type != XCB_ATOM_WM_HINTS) || (prop->format != 32)) {
@@ -1789,16 +1790,16 @@ wininfo_wipe (struct wininfo *w)
 
 /* Gets UTF-8 encoded EMWH property _NET_WM_NAME for a window */
 static xcb_get_property_cookie_t
-get_net_wm_name (xcb_connection_t *dpy, xcb_window_t win)
+get_net_wm_name (xcb_connection_t *gnwn_dpy, xcb_window_t win)
 {
     if (!atom_net_wm_name)
-	atom_net_wm_name = Get_Atom (dpy, "_NET_WM_NAME");
+	atom_net_wm_name = Get_Atom (gnwn_dpy, "_NET_WM_NAME");
 
     if (!atom_utf8_string)
-	atom_utf8_string = Get_Atom (dpy, "UTF8_STRING");
+	atom_utf8_string = Get_Atom (gnwn_dpy, "UTF8_STRING");
 
     if (atom_net_wm_name && atom_utf8_string)
-	return xcb_get_property (dpy, False, win, atom_net_wm_name,
+	return xcb_get_property (gnwn_dpy, False, win, atom_net_wm_name,
 				 atom_utf8_string, 0, BUFSIZ);
     else {
 	xcb_get_property_cookie_t dummy = { 0 };
@@ -1889,13 +1890,9 @@ is_valid_utf8 (const char *string, int len)
  * Length of the string is specified in bytes, or -1 for going until '\0'
  */
 static void
-print_utf8 (const char *prefix, char *u8str, size_t length, const char *suffix)
+print_utf8 (const char *prefix, const char *u8str, size_t length, const char *suffix)
 {
     size_t inlen = length;
-
-    if (inlen < 0) {
-	inlen = strlen (u8str);
-    }
 
     if (is_valid_utf8 (u8str, inlen) != UTF8_VALID) {
 	printf (" (invalid UTF8_STRING)");
@@ -1978,7 +1975,7 @@ get_friendly_name (const char *string, const char *prefix)
 	} else if (first) {
 	    first = False;
 	} else {
-	    *n = tolower(*n);
+	    *n = tolower((unsigned char)*n);
 	}
     }
 

@@ -22,14 +22,12 @@
 .TH XkbSetDetectableAutoRepeat __libmansuffix__ __xorgversion__ "XKB FUNCTIONS"
 .SH NAME
 XkbSetDetectableAutoRepeat \- Sets DetectableAutoRepeat
-.SH SYNTAX
+.SH SYNOPSIS
 .HP
 .B Bool XkbSetDetectableAutoRepeat
 .BI "(\^Display *" "display" "\^,"
 .BI "Bool " "detectable" "\^,"
 .BI "Bool *" "supported_rtrn" "\^);"
-.if n .ti +5n
-.if t .ti +.5i
 .SH ARGUMENTS
 .TP
 .I \- display

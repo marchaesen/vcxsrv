@@ -27,8 +27,6 @@ XkbSAGroup \- Returns the group_XXX field of act converted to a signed int
 .HP
 .B int XkbSAGroup
 .BI "(\^XkbAction " "act" "\^);"
-.if n .ti +5n
-.if t .ti +.5i
 .SH ARGUMENTS
 .TP
 .I \- act
@@ -47,14 +45,15 @@ Actions associated with the XkbGroupAction structure change the current group
 state when keys are 
 pressed and released:
 .nf
-
+.ft CW
     typedef struct _XkbGroupAction {
         unsigned char    type;       /\(** XkbSA_{Set|Latch|Lock}Group */
         unsigned char    flags;      /\(** with type, controls the effect on groups 
 */
         char             group_XXX;  /\(** represents a group index or delta */
     } XkbGroupAction;
-   
+.ft
+.fi
 .SH WARNING
 .LP
 This manpage seems to be incomplete

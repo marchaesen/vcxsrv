@@ -23,13 +23,11 @@
 .TH XkbSASetGroup __libmansuffix__ __xorgversion__ "XKB FUNCTIONS"
 .SH NAME
 XkbSASetGroup \- Sets the group_XXX field of act from the group index grp
-.SH SYNTAX
+.SH SYNOPSIS
 .HP
 .B void XkbSASetGroup
 .BI "(\^XkbAction " "act" "\^,"
 .BI "int " "grp" "\^);"
-.if n .ti +5n
-.if t .ti +.5i
 .SH ARGUMENTS
 .TP
 .I \- act
@@ -48,16 +46,18 @@ from the group index
 .I grp. 
 .SH STRUCTURE
 .LP
-Actions associated with the XkbGroupAction structure change the current group state when keys are 
-pressed and released:
-.nf
+Actions associated with the XkbGroupAction structure change the
+current group state when keys are pressed and released:
 
+.nf
+.ft CW
     typedef struct _XkbGroupAction {
         unsigned char    type;       /\(** XkbSA_{Set|Latch|Lock}Group */
         unsigned char    flags;      /\(** with type, controls the effect on groups */
         char             group_XXX;  /\(** represents a group index or delta */
     } XkbGroupAction;
-    
+.ft
+.fi
 .SH WARNING
 .LP
 This manpage seems to be incomplete

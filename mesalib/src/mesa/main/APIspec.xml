@@ -226,47 +226,6 @@
 			<param name="param" type="GLtype"/>
 		</vector>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_TEXTURE_CUBE_MAP" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_3D_OES" category="OES_texture_3D"/>
-		<value name="GL_TEXTURE_EXTERNAL_OES" category="OES_EGL_image_external"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_TEXTURE_WRAP_S"/>
-		<value name="GL_TEXTURE_WRAP_T"/>
-		<value name="GL_TEXTURE_WRAP_R_OES" category="OES_texture_3D"/>
-
-		<desc name="param">
-			<value name="GL_CLAMP_TO_EDGE"/>
-			<value name="GL_REPEAT"/>
-			<value name="GL_MIRRORED_REPEAT" category="GLES2.0"/>
-			<value name="GL_MIRRORED_REPEAT_OES" category="OES_texture_mirrored_repeat"/>
-		</desc>
-	</desc>
-
-        <desc name="pname">
-               <value name="GL_TEXTURE_MIN_FILTER"/>
-               <value name="GL_TEXTURE_MAG_FILTER"/>
-		<value name="GL_TEXTURE_MAX_ANISOTROPY_EXT" category="EXT_texture_filter_anisotropic"/>
-        </desc>
-
-	<desc name="pname" category="GLES1.1">
-		<value name="GL_GENERATE_MIPMAP"/>
-
-		<desc name="param">
-			<value name="GL_TRUE"/>
-			<value name="GL_FALSE"/>
-		</desc>
-	</desc>
-
-	<desc name="pname" category="OES_draw_texture">
-		<value name="GL_TEXTURE_CROP_RECT_OES"/>
-		<desc name="params" vector_size="4"/>
-	</desc>
 </template>
 
 <template name="TexImage2D">
@@ -282,168 +241,6 @@
 		<param name="type" type="GLenum"/>
 		<param name="pixels" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_OES" category="OES_texture_cube_map"/>
-	</desc>
-
-	<desc name="internalFormat">
-		<value name="GL_ALPHA"/>
-
-		<desc name="format" error="GL_INVALID_VALUE">
-			<value name="GL_ALPHA"/>
-		</desc>
-	</desc>
-
-	<desc name="internalFormat">
-		<value name="GL_RGB"/>
-
-		<desc name="format" error="GL_INVALID_VALUE">
-			<value name="GL_RGB"/>
-		</desc>
-	</desc>
-
-	<desc name="internalFormat">
-		<value name="GL_RGBA"/>
-
-		<desc name="format" error="GL_INVALID_VALUE">
-			<value name="GL_RGBA"/>
-		</desc>
-	</desc>
-
-	<desc name="internalFormat">
-		<value name="GL_LUMINANCE"/>
-
-		<desc name="format" error="GL_INVALID_VALUE">
-			<value name="GL_LUMINANCE"/>
-		</desc>
-	</desc>
-
-	<desc name="internalFormat">
-		<value name="GL_LUMINANCE_ALPHA"/>
-
-		<desc name="format" error="GL_INVALID_VALUE">
-			<value name="GL_LUMINANCE_ALPHA"/>
-		</desc>
-	</desc>
-
-	<desc name="internalFormat" category="OES_depth_texture">
-		<value name="GL_DEPTH_COMPONENT"/>
-
-		<desc name="format" error="GL_INVALID_VALUE">
-			<value name="GL_DEPTH_COMPONENT"/>
-		</desc>
-	</desc>
-
-	<desc name="internalFormat" category="OES_packed_depth_stencil">
-		<value name="GL_DEPTH_STENCIL_OES"/>
-
-		<desc name="format" error="GL_INVALID_VALUE">
-			<value name="GL_DEPTH_STENCIL_OES"/>
-		</desc>
-	</desc>
-
-	<desc name="internalFormat" category="EXT_texture_format_BGRA8888">
-		<value name="GL_BGRA_EXT"/>
-
-		<desc name="format" error="GL_INVALID_VALUE">
-			<value name="GL_BGRA_EXT"/>
-		</desc>
-	</desc>
-
-	<desc name="border" error="GL_INVALID_VALUE">
-		<value name="0"/>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_ALPHA"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_RGB"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_UNSIGNED_SHORT_5_6_5"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_RGBA"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_UNSIGNED_SHORT_4_4_4_4"/>
-			<value name="GL_UNSIGNED_SHORT_5_5_5_1"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-			<value name="GL_UNSIGNED_INT_2_10_10_10_REV_EXT" category="EXT_texture_type_2_10_10_10_REV"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_LUMINANCE"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_LUMINANCE_ALPHA"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format" category="OES_depth_texture">
-		<value name="GL_DEPTH_COMPONENT"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_SHORT"/>
-			<value name="GL_UNSIGNED_INT"/>
-		</desc>
-	</desc>
-
-	<desc name="format" category="OES_packed_depth_stencil">
-		<value name="GL_DEPTH_STENCIL_OES"/>
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_INT_24_8_OES"/>
-		</desc>
-	</desc>
-
-	<desc name="format" category="EXT_texture_format_BGRA8888">
-		<value name="GL_BGRA_EXT"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-		</desc>
-	</desc>
 </template>
 
 <template name="TexEnv">
@@ -1231,30 +1028,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="params" type="GLtype *" size="dynamic"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_TEXTURE_CUBE_MAP" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_3D_OES" category="OES_texture_3D"/>
-		<value name="GL_TEXTURE_EXTERNAL_OES" category="OES_EGL_image_external"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_TEXTURE_WRAP_S"/>
-		<value name="GL_TEXTURE_WRAP_T"/>
-		<value name="GL_TEXTURE_WRAP_R_OES" category="OES_texture_3D"/>
-		<value name="GL_TEXTURE_MIN_FILTER"/>
-		<value name="GL_TEXTURE_MAG_FILTER"/>
-		<value name="GL_GENERATE_MIPMAP" category="GLES1.1"/>
-
-		<desc name="params" vector_size="1" convert="false"/>
-	</desc>
-
-	<desc name="pname" category="OES_draw_texture">
-		<value name="GL_TEXTURE_CROP_RECT_OES"/>
-		<desc name="params" vector_size="4"/>
-	</desc>
 </template>
 
 <template name="IsEnabled" direction="get">
@@ -1445,17 +1218,6 @@
 		<param name="stride" type="GLsizei"/>
 		<param name="pointer" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="size" error="GL_INVALID_VALUE">
-		<value name="4"/>
-	</desc>
-
-	<desc name="type">
-		<value name="GL_UNSIGNED_BYTE"/>
-		<value name="GL_FLOAT"/>
-		<value name="GL_FIXED"/>
-		<value name="GL_HALF_FLOAT_OES" category="OES_vertex_half_float"/>
-	</desc>
 </template>
 
 <template name="DisableClientState">
@@ -1567,14 +1329,6 @@
 		<param name="stride" type="GLsizei"/>
 		<param name="pointer" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="type">
-		<value name="GL_BYTE"/>
-		<value name="GL_SHORT"/>
-		<value name="GL_FLOAT"/>
-		<value name="GL_FIXED"/>
-		<value name="GL_HALF_FLOAT_OES" category="OES_vertex_half_float"/>
-	</desc>
 </template>
 
 <template name="TexCoordPointer">
@@ -1585,20 +1339,6 @@
 		<param name="stride" type="GLsizei"/>
 		<param name="pointer" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="size" error="GL_INVALID_VALUE">
-		<value name="2"/>
-		<value name="3"/>
-		<value name="4"/>
-	</desc>
-
-	<desc name="type">
-		<value name="GL_BYTE"/>
-		<value name="GL_SHORT"/>
-		<value name="GL_FLOAT"/>
-		<value name="GL_FIXED"/>
-		<value name="GL_HALF_FLOAT_OES" category="OES_vertex_half_float"/>
-	</desc>
 </template>
 
 <template name="VertexPointer">
@@ -1609,20 +1349,6 @@
 		<param name="stride" type="GLsizei"/>
 		<param name="pointer" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="size" error="GL_INVALID_VALUE">
-		<value name="2"/>
-		<value name="3"/>
-		<value name="4"/>
-	</desc>
-
-	<desc name="type">
-		<value name="GL_BYTE"/>
-		<value name="GL_SHORT"/>
-		<value name="GL_FLOAT"/>
-		<value name="GL_FIXED"/>
-		<value name="GL_HALF_FLOAT_OES" category="OES_vertex_half_float"/>
-	</desc>
 </template>
 
 <template name="PolygonOffset">
@@ -1645,34 +1371,6 @@
 		<param name="height" type="GLsizei"/>
 		<param name="border" type="GLint"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_OES" category="OES_texture_cube_map"/>
-	</desc>
-
-	<desc name="internalFormat" error="GL_INVALID_VALUE">
-		<value name="GL_ALPHA"/>
-		<value name="GL_RGB"/>
-		<value name="GL_RGBA"/>
-		<value name="GL_LUMINANCE"/>
-		<value name="GL_LUMINANCE_ALPHA"/>
-	</desc>
-
-	<desc name="border" error="GL_INVALID_VALUE">
-		<value name="0"/>
-	</desc>
 </template>
 
 <template name="CopyTexSubImage2D">
@@ -1687,22 +1385,6 @@
 		<param name="width" type="GLsizei"/>
 		<param name="height" type="GLsizei"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_OES" category="OES_texture_cube_map"/>
-	</desc>
 </template>
 
 <template name="TexSubImage2D">
@@ -1718,101 +1400,6 @@
 		<param name="type" type="GLenum"/>
 		<param name="pixels" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_OES" category="OES_texture_cube_map"/>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_ALPHA"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_RGB"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_UNSIGNED_SHORT_5_6_5"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_RGBA"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_UNSIGNED_SHORT_4_4_4_4"/>
-			<value name="GL_UNSIGNED_SHORT_5_5_5_1"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-			<value name="GL_UNSIGNED_INT_2_10_10_10_REV_EXT" category="EXT_texture_type_2_10_10_10_REV"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_LUMINANCE"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_LUMINANCE_ALPHA"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format" category="OES_depth_texture">
-		<value name="GL_DEPTH_COMPONENT"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_SHORT"/>
-			<value name="GL_UNSIGNED_INT"/>
-		</desc>
-	</desc>
-
-	<desc name="format" category="OES_packed_depth_stencil">
-		<value name="GL_DEPTH_STENCIL_OES"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_INT_24_8_OES"/>
-		</desc>
-	</desc>
-
-	<desc name="format" category="EXT_texture_format_BGRA8888">
-		<value name="GL_BGRA_EXT"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-		</desc>
-	</desc>
 </template>
 
 <template name="BindTexture">
@@ -1821,14 +1408,6 @@
 		<param name="target" type="GLenum"/>
 		<param name="texture" type="GLuint"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_TEXTURE_CUBE_MAP" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_3D_OES" category="OES_texture_3D"/>
-		<value name="GL_TEXTURE_EXTERNAL_OES" category="OES_EGL_image_external"/>
-	</desc>
 </template>
 
 <template name="DeleteTextures">
@@ -1894,71 +1473,6 @@
 		<param name="pixels" type="const GLvoid *"/>
 	</proto>
 
-	<desc name="target">
-		<value name="GL_TEXTURE_3D_OES"/>
-	</desc>
-
-	<desc name="internalFormat">
-		<value name="GL_ALPHA"/>
-		<value name="GL_RGB"/>
-		<value name="GL_RGBA"/>
-		<value name="GL_LUMINANCE"/>
-		<value name="GL_LUMINANCE_ALPHA"/>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_ALPHA"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_RGB"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_UNSIGNED_SHORT_5_6_5"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_RGBA"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_UNSIGNED_SHORT_4_4_4_4"/>
-			<value name="GL_UNSIGNED_SHORT_5_5_5_1"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-			<value name="GL_UNSIGNED_INT_2_10_10_10_REV_EXT" category="EXT_texture_type_2_10_10_10_REV"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_LUMINANCE"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_LUMINANCE_ALPHA"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
 </template>
 
 <template name="TexSubImage3D">
@@ -1976,64 +1490,6 @@
 		<param name="type" type="GLenum"/>
 		<param name="pixels" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_3D_OES"/>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_ALPHA"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_RGB"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_UNSIGNED_SHORT_5_6_5"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_RGBA"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_UNSIGNED_SHORT_4_4_4_4"/>
-			<value name="GL_UNSIGNED_SHORT_5_5_5_1"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-			<value name="GL_UNSIGNED_INT_2_10_10_10_REV_EXT" category="EXT_texture_type_2_10_10_10_REV"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_LUMINANCE"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_LUMINANCE_ALPHA"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_FLOAT" category="OES_texture_float"/>
-			<value name="GL_HALF_FLOAT_OES" category="OES_texture_half_float"/>
-		</desc>
-	</desc>
 </template>
 
 <template name="CopyTexSubImage3D">
@@ -2049,10 +1505,6 @@
 		<param name="width" type="GLsizei"/>
 		<param name="height" type="GLsizei"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_3D_OES"/>
-	</desc>
 </template>
 
 <template name="MultiTexCoord">
@@ -2081,10 +1533,6 @@
 		<param name="imagesize" type="GLsizei"/>
 		<param name="data" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_3D_OES"/>
-	</desc>
 </template>
 
 <template name="CompressedTexSubImage3D">
@@ -2102,10 +1550,6 @@
 		<param name="imagesize" type="GLsizei"/>
 		<param name="data" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_3D_OES"/>
-	</desc>
 </template>
 
 <template name="ActiveTexture">
@@ -2142,40 +1586,6 @@
 		<param name="imageSize" type="GLsizei"/>
 		<param name="data" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_OES" category="OES_texture_cube_map"/>
-	</desc>
-
-	<desc name="internalFormat">
-		<value name="GL_ETC1_RGB8_OES" category="OES_compressed_ETC1_RGB8_texture"/>
-
-		<value name="GL_PALETTE4_RGB8_OES" category="OES_compressed_paletted_texture"/>
-		<value name="GL_PALETTE4_RGBA8_OES" category="OES_compressed_paletted_texture"/>
-		<value name="GL_PALETTE4_R5_G6_B5_OES" category="OES_compressed_paletted_texture"/>
-		<value name="GL_PALETTE4_RGBA4_OES" category="OES_compressed_paletted_texture"/>
-		<value name="GL_PALETTE4_RGB5_A1_OES" category="OES_compressed_paletted_texture"/>
-		<value name="GL_PALETTE8_RGB8_OES" category="OES_compressed_paletted_texture"/>
-		<value name="GL_PALETTE8_RGBA8_OES" category="OES_compressed_paletted_texture"/>
-		<value name="GL_PALETTE8_R5_G6_B5_OES" category="OES_compressed_paletted_texture"/>
-		<value name="GL_PALETTE8_RGBA4_OES" category="OES_compressed_paletted_texture"/>
-		<value name="GL_PALETTE8_RGB5_A1_OES" category="OES_compressed_paletted_texture"/>
-
-		<value name="GL_COMPRESSED_RGB_S3TC_DXT1_EXT" category="EXT_texture_compression_dxt1"/>
-		<value name="GL_COMPRESSED_RGBA_S3TC_DXT1_EXT" category="EXT_texture_compression_dxt1"/>
-	</desc>
 </template>
 
 <template name="CompressedTexSubImage2D">
@@ -2191,27 +1601,6 @@
 		<param name="imageSize" type="GLsizei"/>
 		<param name="data" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_OES" category="OES_texture_cube_map"/>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_COMPRESSED_RGB_S3TC_DXT1_EXT" category="EXT_texture_compression_dxt1"/>
-		<value name="GL_COMPRESSED_RGBA_S3TC_DXT1_EXT" category="EXT_texture_compression_dxt1"/>
-	</desc>
 </template>
 
 <template name="BlendFuncSeparate">
@@ -2344,35 +1733,6 @@
 		<param name="stride" type="GLsizei"/>
 		<param name="pointer" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="size" error="GL_INVALID_VALUE">
-		<value name="1"/>
-		<value name="2"/>
-		<value name="3"/>
-		<value name="4"/>
-	</desc>
-
-	<desc name="type" error="GL_INVALID_VALUE">
-		<value name="GL_BYTE"/>
-		<value name="GL_UNSIGNED_BYTE"/>
-		<value name="GL_SHORT"/>
-		<value name="GL_UNSIGNED_SHORT"/>
-		<value name="GL_FLOAT"/>
-		<value name="GL_FIXED"/>
-		<value name="GL_HALF_FLOAT_OES" category="OES_vertex_half_float"/>
-		<value name="GL_UNSIGNED_INT_10_10_10_2_OES" category="OES_vertex_type_10_10_10_2"/>
-		<value name="GL_INT_10_10_10_2_OES" category="OES_vertex_type_10_10_10_2"/>
-	</desc>
-
-	<desc name="type" category="OES_vertex_type_10_10_10_2">
-		<value name="GL_UNSIGNED_INT_10_10_10_2_OES"/>
-		<value name="GL_INT_10_10_10_2_OES"/>
-
-		<desc name="size">
-			<value name="3"/>
-			<value name="4"/>
-		</desc>
-	</desc>
 </template>
 
 <template name="EnableVertexAttribArray">
@@ -2403,21 +1763,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="params" type="GLtype *" size="dynamic"/>
 	</proto>
-
-	<desc name="pname">
-		<value name="GL_DELETE_STATUS"/>
-		<value name="GL_LINK_STATUS"/>
-		<value name="GL_VALIDATE_STATUS"/>
-		<value name="GL_INFO_LOG_LENGTH"/>
-		<value name="GL_ATTACHED_SHADERS"/>
-		<value name="GL_ACTIVE_ATTRIBUTES"/>
-		<value name="GL_ACTIVE_ATTRIBUTE_MAX_LENGTH"/>
-		<value name="GL_ACTIVE_UNIFORMS"/>
-		<value name="GL_ACTIVE_UNIFORM_MAX_LENGTH"/>
-		<value name="GL_PROGRAM_BINARY_LENGTH_OES" category="OES_get_program_binary"/>
-
-		<desc name="params" convert="false"/>
-	</desc>
 </template>
 
 <template name="GetVertexAttrib" direction="get">
@@ -2461,11 +1806,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="params" type="GLvoid **" size="dynamic"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_ARRAY_BUFFER"/>
-		<value name="GL_ELEMENT_ARRAY_BUFFER"/>
-	</desc>
 </template>
 
 <template name="MapBuffer" direction="get">
@@ -2474,15 +1814,6 @@
 		<param name="target" type="GLenum"/>
 		<param name="access" type="GLenum"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_ARRAY_BUFFER"/>
-		<value name="GL_ELEMENT_ARRAY_BUFFER"/>
-	</desc>
-
-	<desc name="access">
-		<value name="GL_WRITE_ONLY_OES"/>
-	</desc>
 </template>
 
 <template name="UnmapBuffer" direction="get">
@@ -2490,11 +1821,6 @@
 		<return type="GLboolean"/>
 		<param name="target" type="GLenum"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_ARRAY_BUFFER"/>
-		<value name="GL_ELEMENT_ARRAY_BUFFER"/>
-	</desc>
 </template>
 
 <template name="BindBuffer">
@@ -2503,11 +1829,6 @@
 		<param name="target" type="GLenum"/>
 		<param name="buffer" type="GLuint"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_ARRAY_BUFFER"/>
-		<value name="GL_ELEMENT_ARRAY_BUFFER"/>
-	</desc>
 </template>
 
 <template name="BufferData">
@@ -2518,17 +1839,6 @@
 		<param name="data" type="const GLvoid *"/>
 		<param name="usage" type="GLenum"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_ARRAY_BUFFER"/>
-		<value name="GL_ELEMENT_ARRAY_BUFFER"/>
-	</desc>
-
-	<desc name="usage">
-		<value name="GL_STATIC_DRAW"/>
-		<value name="GL_DYNAMIC_DRAW"/>
-		<value name="GL_STREAM_DRAW" category="GLES2.0"/>
-	</desc>
 </template>
 
 <template name="BufferSubData">
@@ -2539,11 +1849,6 @@
 		<param name="size" type="GLsizeiptr"/>
 		<param name="data" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_ARRAY_BUFFER"/>
-		<value name="GL_ELEMENT_ARRAY_BUFFER"/>
-	</desc>
 </template>
 
 <template name="DeleteBuffers">
@@ -2569,18 +1874,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="params" type="GLtype *" size="dynamic"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_ARRAY_BUFFER"/>
-		<value name="GL_ELEMENT_ARRAY_BUFFER"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_BUFFER_SIZE"/>
-		<value name="GL_BUFFER_USAGE"/>
-		<value name="GL_BUFFER_ACCESS_OES" category="OES_mapbuffer"/>
-		<value name="GL_BUFFER_MAPPED_OES" category="OES_mapbuffer"/>
-	</desc>
 </template>
 
 <template name="IsBuffer" direction="get">
@@ -2595,11 +1888,6 @@
 		<return type="GLuint"/>
 		<param name="type" type="GLenum"/>
 	</proto>
-
-	<desc name="type">
-		<value name="GL_VERTEX_SHADER"/>
-		<value name="GL_FRAGMENT_SHADER"/>
-	</desc>
 </template>
 
 <template name="ShaderSource">
@@ -3140,11 +2428,6 @@
 		<param name="target" type="GLenum"/>
 		<param name="image" type="GLeglImageOES"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_TEXTURE_EXTERNAL_OES" category="OES_EGL_image_external"/>
-	</desc>
 </template>
 
 <template name="EGLImageTargetRenderbufferStorage">

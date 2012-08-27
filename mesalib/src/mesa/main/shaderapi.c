@@ -177,7 +177,7 @@ validate_shader_target(const struct gl_context *ctx, GLenum type)
 #endif
 #if FEATURE_ARB_geometry_shader4
    case GL_GEOMETRY_SHADER_ARB:
-      return ctx->Extensions.ARB_geometry_shader4;
+      return _mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_geometry_shader4;
 #endif
    default:
       return false;
@@ -473,6 +473,29 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname, GLint *param
    struct gl_shader_program *shProg
       = _mesa_lookup_shader_program(ctx, program);
 
+#if FEATURE_EXT_transform_feedback
+   /* Is transform feedback available in this context?
+    */
+   const bool has_xfb =
+      (ctx->API == API_OPENGL && ctx->Extensions.EXT_transform_feedback)
+      || ctx->API == API_OPENGL_CORE
+      || _mesa_is_gles3(ctx);
+#endif
+
+#if FEATURE_ARB_geometry_shader4
+   /* Are geometry shaders available in this context?
+    */
+   const bool has_gs =
+      _mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_geometry_shader4;
+#endif
+
+   /* Are uniform buffer objects available in this context?
+    */
+   const bool has_ubo =
+      (ctx->API == API_OPENGL && ctx->Extensions.ARB_uniform_buffer_object)
+      || ctx->API == API_OPENGL_CORE
+      || _mesa_is_gles3(ctx);
+
    if (!shProg) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glGetProgramiv(program)");
       return;
@@ -481,28 +504,28 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname, GLint *param
    switch (pname) {
    case GL_DELETE_STATUS:
       *params = shProg->DeletePending;
-      break; 
+      return;
    case GL_LINK_STATUS:
       *params = shProg->LinkStatus;
-      break;
+      return;
    case GL_VALIDATE_STATUS:
       *params = shProg->Validated;
-      break;
+      return;
    case GL_INFO_LOG_LENGTH:
       *params = shProg->InfoLog ? strlen(shProg->InfoLog) + 1 : 0;
-      break;
+      return;
    case GL_ATTACHED_SHADERS:
       *params = shProg->NumShaders;
-      break;
+      return;
    case GL_ACTIVE_ATTRIBUTES:
       *params = _mesa_count_active_attribs(shProg);
-      break;
+      return;
    case GL_ACTIVE_ATTRIBUTE_MAX_LENGTH:
       *params = _mesa_longest_attribute_name_length(shProg);
-      break;
+      return;
    case GL_ACTIVE_UNIFORMS:
       *params = shProg->NumUserUniformStorage;
-      break;
+      return;
    case GL_ACTIVE_UNIFORM_MAX_LENGTH: {
       unsigned i;
       GLint max_len = 0;
@@ -517,41 +540,48 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname, GLint *param
       }
 
       *params = max_len;
-      break;
+      return;
    }
-   case GL_PROGRAM_BINARY_LENGTH_OES:
-      *params = 0;
-      break;
 #if FEATURE_EXT_transform_feedback
    case GL_TRANSFORM_FEEDBACK_VARYINGS:
+      if (!has_xfb)
+         break;
       *params = shProg->TransformFeedback.NumVarying;
-      break;
+      return;
    case GL_TRANSFORM_FEEDBACK_VARYING_MAX_LENGTH:
+      if (!has_xfb)
+         break;
       *params = longest_feedback_varying_name(shProg) + 1;
-      break;
+      return;
    case GL_TRANSFORM_FEEDBACK_BUFFER_MODE:
+      if (!has_xfb)
+         break;
       *params = shProg->TransformFeedback.BufferMode;
-      break;
+      return;
 #endif
 #if FEATURE_ARB_geometry_shader4
    case GL_GEOMETRY_VERTICES_OUT_ARB:
+      if (!has_gs)
+         break;
       *params = shProg->Geom.VerticesOut;
-      break;
+      return;
    case GL_GEOMETRY_INPUT_TYPE_ARB:
+      if (!has_gs)
+         break;
       *params = shProg->Geom.InputType;
-      break;
+      return;
    case GL_GEOMETRY_OUTPUT_TYPE_ARB:
+      if (!has_gs)
+         break;
       *params = shProg->Geom.OutputType;
-      break;
+      return;
 #endif
    case GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH: {
       unsigned i;
       GLint max_len = 0;
 
-      if (!ctx->Extensions.ARB_uniform_buffer_object) {
-         _mesa_error(ctx, GL_INVALID_ENUM, "glGetProgramiv(pname)");
-         return;
-      }
+      if (!has_ubo)
+         break;
 
       for (i = 0; i < shProg->NumUniformBlocks; i++) {
 	 /* Add one for the terminating NUL character.
@@ -563,20 +593,20 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname, GLint *param
       }
 
       *params = max_len;
-      break;
-   }
-   case GL_ACTIVE_UNIFORM_BLOCKS:
-      if (!ctx->Extensions.ARB_uniform_buffer_object) {
-         _mesa_error(ctx, GL_INVALID_ENUM, "glGetProgramiv(pname)");
-         return;
-      }
-
-      *params = shProg->NumUniformBlocks;
-      break;
-   default:
-      _mesa_error(ctx, GL_INVALID_ENUM, "glGetProgramiv(pname)");
       return;
    }
+   case GL_ACTIVE_UNIFORM_BLOCKS:
+      if (!has_ubo)
+         break;
+
+      *params = shProg->NumUniformBlocks;
+      return;
+   default:
+      break;
+   }
+
+   _mesa_error(ctx, GL_INVALID_ENUM, "glGetProgramiv(pname=%s)",
+               _mesa_lookup_enum_by_nr(pname));
 }
 
 

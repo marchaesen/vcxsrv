@@ -372,7 +372,7 @@ _mesa_glenum_to_compressed_format(GLenum format)
  * internal format unchanged.
  */
 GLenum
-_mesa_compressed_format_to_glenum(struct gl_context *ctx, GLuint mesaFormat)
+_mesa_compressed_format_to_glenum(struct gl_context *ctx, gl_format mesaFormat)
 {
    switch (mesaFormat) {
 #if FEATURE_texture_fxt1
@@ -494,16 +494,16 @@ _mesa_decompress_image(gl_format format, GLuint width, GLuint height,
    switch (format) {
    /* DXT formats */
    case MESA_FORMAT_RGB_DXT1:
-      fetch = _mesa_fetch_texel_2d_f_rgb_dxt1;
+      fetch = _mesa_fetch_texel_rgb_dxt1;
       break;
    case MESA_FORMAT_RGBA_DXT1:
-      fetch = _mesa_fetch_texel_2d_f_rgba_dxt1;
+      fetch = _mesa_fetch_texel_rgba_dxt1;
       break;
    case MESA_FORMAT_RGBA_DXT3:
-      fetch = _mesa_fetch_texel_2d_f_rgba_dxt3;
+      fetch = _mesa_fetch_texel_rgba_dxt3;
       break;
    case MESA_FORMAT_RGBA_DXT5:
-      fetch = _mesa_fetch_texel_2d_f_rgba_dxt5;
+      fetch = _mesa_fetch_texel_rgba_dxt5;
       break;
 
    /* FXT1 formats */
@@ -516,30 +516,30 @@ _mesa_decompress_image(gl_format format, GLuint width, GLuint height,
 
    /* Red/RG formats */
    case MESA_FORMAT_RED_RGTC1:
-      fetch = _mesa_fetch_texel_2d_f_red_rgtc1;
+      fetch = _mesa_fetch_texel_red_rgtc1;
       break;
    case MESA_FORMAT_SIGNED_RED_RGTC1:
-      fetch = _mesa_fetch_texel_2d_f_signed_red_rgtc1;
+      fetch = _mesa_fetch_texel_signed_red_rgtc1;
       break;
    case MESA_FORMAT_RG_RGTC2:
-      fetch = _mesa_fetch_texel_2d_f_rg_rgtc2;
+      fetch = _mesa_fetch_texel_rg_rgtc2;
       break;
    case MESA_FORMAT_SIGNED_RG_RGTC2:
-      fetch = _mesa_fetch_texel_2d_f_signed_rg_rgtc2;
+      fetch = _mesa_fetch_texel_signed_rg_rgtc2;
       break;
 
    /* L/LA formats */
    case MESA_FORMAT_L_LATC1:
-      fetch = _mesa_fetch_texel_2d_f_l_latc1;
+      fetch = _mesa_fetch_texel_l_latc1;
       break;
    case MESA_FORMAT_SIGNED_L_LATC1:
-      fetch = _mesa_fetch_texel_2d_f_signed_l_latc1;
+      fetch = _mesa_fetch_texel_signed_l_latc1;
       break;
    case MESA_FORMAT_LA_LATC2:
-      fetch = _mesa_fetch_texel_2d_f_la_latc2;
+      fetch = _mesa_fetch_texel_la_latc2;
       break;
    case MESA_FORMAT_SIGNED_LA_LATC2:
-      fetch = _mesa_fetch_texel_2d_f_signed_la_latc2;
+      fetch = _mesa_fetch_texel_signed_la_latc2;
       break;
 
    /* ETC1 formats */
