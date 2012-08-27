@@ -203,6 +203,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderapi.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderobj.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shader_query.cpp" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\texcompress_cpal.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\texstorage.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\uniform_query.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\main\transformfeedback.c" />
@@ -224,7 +225,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\debug.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\depth.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\dlist.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\main\dlopen.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\drawpix.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\enable.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\enums.c" />
