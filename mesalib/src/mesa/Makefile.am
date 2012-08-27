@@ -39,6 +39,8 @@ main/git_sha1.h: main/git_sha1.h.tmp
 	@echo "updating main/git_sha1.h"
 	@if ! cmp -s main/git_sha1.h.tmp main/git_sha1.h; then \
 		mv main/git_sha1.h.tmp main/git_sha1.h ;\
+	else \
+		rm main/git_sha1.h.tmp ;\
 	fi
 
 # include glapi_gen.mk for generating glapi headers for GLES
@@ -92,7 +94,15 @@ program/lex.yy.c: program/program_lexer.l
 	$(MKDIR_P) program
 	$(AM_V_GEN) $(LEX) --never-interactive --outfile=$@ $<
 
-noinst_LTLIBRARIES = libmesa.la libmesagallium.la
+noinst_LTLIBRARIES =
+if NEED_LIBMESA
+noinst_LTLIBRARIES += libmesa.la
+else
+check_LTLIBRARIES = libmesa.la
+endif
+if HAVE_GALLIUM
+noinst_LTLIBRARIES += libmesagallium.la
+endif
 
 SRCDIR = $(top_srcdir)/src/mesa/
 BUILDDIR = $(top_builddir)/src/mesa/
@@ -140,13 +150,14 @@ libmesagallium_la_SOURCES = \
 libmesagallium_la_LIBADD = $(top_builddir)/src/glsl/libglsl.la
 libmesagallium_la_LDFLAGS =
 
+if HAVE_GALLIUM
 # Provide compatibility with scripts for the old Mesa build system for
 # a while by putting a link to the library in the current directory.
-all-local: libmesa.la libmesagallium.la
-	ln -f .libs/libmesa.a .
+all-local: $(noinst_LTLIBRARIES)
 	ln -f .libs/libmesagallium.a .
+endif
 
-CLEANFILES += libmesa.a libmesagallium.a
+CLEANFILES += libmesagallium.a
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gl.pc

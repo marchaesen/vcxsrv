@@ -29,22 +29,21 @@ Xau library: XauFileName, XauReadAuth, XauLockAuth, XauUnlockAuth,
 XauWriteAuth, XauDisposeAuth,
 XauGetAuthByAddr, XauGetBestAuthByAddr \- X authority database routines
 .SH SYNOPSIS
-.B "#include <X11/Xauth.h>"
-.PP
+.ft CW
 .nf
-.ta .5i 2i
-typedef struct xauth {
-	unsigned short	family;
-	unsigned short	address_length;
-	char	*address;
-	unsigned short	number_length;
-	char	*number;
-	unsigned short	name_length;
-	char	*name;
-	unsigned short	data_length;
-	char	*data;
-} Xauth;
+#include <X11/Xauth.h>
 
+typedef struct xauth {
+        unsigned short  family;
+        unsigned short  address_length;
+        char    *address;
+        unsigned short  number_length;
+        char    *number;
+        unsigned short  name_length;
+        char    *name;
+        unsigned short  data_length;
+        char    *data;
+} Xauth;
 .HP
 char *XauFileName (void);
 .HP
@@ -68,7 +67,8 @@ int XauLockAuth (const char *\fIfile_name\fP\^, int \fIretries\fP\^, int
 int XauUnlockAuth (const char *\fIfile_name\fP\^);
 .HP
 int XauDisposeAuth (Xauth *\fIauth\fP\^);
-.ft R
+.fi
+.ft
 .SH DESCRIPTION
 .PP
 \fBXauFileName\fP generates the default authorization file name by first
@@ -106,18 +106,16 @@ files to be removed.  \fIXauLockAuth\fP makes \fIretries\fP attempts to
 create and link the file names, pausing \fItimeout\fP seconds between each
 attempt.  \fIXauLockAuth\fP returns a collection of values depending on the
 results:
-.nf
-.ta .5i 2i
-
-	LOCK_ERROR	A system error occurred, either a file_name
-		which is too long, or an unexpected failure from
-		a system call.  errno may prove useful.
-
-	LOCK_TIMEOUT	\fIretries\fP attempts failed
-
-	LOCK_SUCCESS	The lock succeeded.
-
-.fi
+.TP
+LOCK_ERROR
+A system error occurred, either a file_name which is too long, or an
+unexpected failure from a system call.  errno may prove useful.
+.TP
+LOCK_TIMEOUT
+\fIretries\fP attempts failed
+.TP
+LOCK_SUCCESS
+The lock succeeded.
 .PP
 \fBXauUnlockAuth\fP undoes the work of \fIXauLockAuth\fP by unlinking both
 the ``-c'' and ``-l'' file names.

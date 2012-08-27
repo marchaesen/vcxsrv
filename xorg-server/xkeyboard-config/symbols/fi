@@ -6,14 +6,6 @@
 // Eliminate deadkeys alternative sent by Linus Torvalds
 //
 
-//
-// Missing from X11/keysymdef.h as of 2010-05-13
-//
-// U2030 # PER MILLE SIGN
-// U0292 # LATIN SMALL LETTER EZH
-// U01B7 # LATIN CAPITAL LETTER EZH
-//
-
 partial alphanumeric_keys default
 xkb_symbols "kotoistus" {
 
@@ -21,7 +13,7 @@ xkb_symbols "kotoistus" {
     //
     // This keymap implements all the functionality of Annex 1
     // of the standard and additionally defines the following to
-    // allow entering these characters with keyboars without LSGT.
+    // allow entering these characters with keyboards without LSGT.
     //
     // AE08+4, U+003C : LESS-THAN SIGN     (less)
     // AE09+4, U+003E : GREATER-THAN SIGN  (greater)
@@ -36,7 +28,7 @@ xkb_symbols "kotoistus" {
     key <AE02> { [  2,               quotedbl,         at,                    rightdoublequotemark  ] };
     key <AE03> { [  3,               numbersign,       sterling,              guillemotright        ] };
     key <AE04> { [  4,               currency,         dollar,                guillemotleft         ] };
-    key <AE05> { [  5,               percent,          U2030,                 leftdoublequotemark   ] };
+    key <AE05> { [  5,               percent,          permille,              leftdoublequotemark   ] };
     key <AE06> { [  6,               ampersand,        singlelowquotemark,    doublelowquotemark    ] };
     key <AE07> { [  7,               slash,            braceleft,             NoSymbol              ] };
     key <AE08> { [  8,               parenleft,        bracketleft,           less                  ] };
@@ -72,7 +64,7 @@ xkb_symbols "kotoistus" {
     key <BKSL> { [  apostrophe,      asterisk,         dead_caron,            dead_breve            ] };
 
     key <LSGT> { [  less,            greater,          bar,                   NoSymbol              ] };
-    key <AB01> { [  z,               Z,                U0292,                 U01B7                 ] };
+    key <AB01> { [  z,               Z,                ezh,                   EZH                   ] };
     key <AB02> { [  x,               X,                multiply,              periodcentered        ] };
     key <AB03> { [  c,               C,                c,                     C                     ] };
     key <AB04> { [  v,               V,                v,                     V                     ] };

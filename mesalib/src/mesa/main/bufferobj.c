@@ -30,7 +30,7 @@
  * \author Brian Paul, Ian Romanick
  */
 
-
+#include <stdbool.h>
 #include "glheader.h"
 #include "enums.h"
 #include "hash.h"
@@ -68,6 +68,12 @@ static struct gl_buffer_object DummyBufferObject;
 static inline struct gl_buffer_object **
 get_buffer_target(struct gl_context *ctx, GLenum target)
 {
+   /* Other targets are only supported in desktop OpenGL and OpenGL ES 3.0.
+    */
+   if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx)
+       && target != GL_ARRAY_BUFFER && target != GL_ELEMENT_ARRAY_BUFFER)
+      return NULL;
+
    switch (target) {
    case GL_ARRAY_BUFFER_ARB:
       return &ctx->Array.ArrayBufferObj;
@@ -89,7 +95,8 @@ get_buffer_target(struct gl_context *ctx, GLenum target)
       break;
 #endif
    case GL_TEXTURE_BUFFER:
-      if (ctx->Extensions.ARB_texture_buffer_object) {
+      if (_mesa_is_desktop_gl(ctx)
+          && ctx->Extensions.ARB_texture_buffer_object) {
          return &ctx->Texture.BufferObject;
       }
       break;
@@ -1002,6 +1009,7 @@ _mesa_BufferDataARB(GLenum target, GLsizeiptrARB size,
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
+   bool valid_usage;
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    if (MESA_VERBOSE & VERBOSE_API)
@@ -1017,18 +1025,30 @@ _mesa_BufferDataARB(GLenum target, GLsizeiptrARB size,
 
    switch (usage) {
    case GL_STREAM_DRAW_ARB:
+      valid_usage = (ctx->API != API_OPENGLES);
+      break;
+
+   case GL_STATIC_DRAW_ARB:
+   case GL_DYNAMIC_DRAW_ARB:
+      valid_usage = true;
+      break;
+
    case GL_STREAM_READ_ARB:
    case GL_STREAM_COPY_ARB:
-   case GL_STATIC_DRAW_ARB:
    case GL_STATIC_READ_ARB:
    case GL_STATIC_COPY_ARB:
-   case GL_DYNAMIC_DRAW_ARB:
    case GL_DYNAMIC_READ_ARB:
    case GL_DYNAMIC_COPY_ARB:
-      /* OK */
+      valid_usage = _mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx);
       break;
+
    default:
-      _mesa_error(ctx, GL_INVALID_ENUM, "glBufferDataARB(usage)");
+      valid_usage = false;
+      break;
+   }
+
+   if (!valid_usage) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glBufferData(usage)");
       return;
    }
 
@@ -1115,20 +1135,29 @@ _mesa_MapBufferARB(GLenum target, GLenum access)
    struct gl_buffer_object * bufObj;
    GLbitfield accessFlags;
    void *map;
+   bool valid_access;
 
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, NULL);
 
    switch (access) {
    case GL_READ_ONLY_ARB:
       accessFlags = GL_MAP_READ_BIT;
+      valid_access = _mesa_is_desktop_gl(ctx);
       break;
    case GL_WRITE_ONLY_ARB:
       accessFlags = GL_MAP_WRITE_BIT;
+      valid_access = true;
       break;
    case GL_READ_WRITE_ARB:
       accessFlags = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT;
+      valid_access = _mesa_is_desktop_gl(ctx);
       break;
    default:
+      valid_access = false;
+      break;
+   }
+
+   if (!valid_access) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glMapBufferARB(access)");
       return NULL;
    }
@@ -1282,17 +1311,20 @@ _mesa_GetBufferParameterivARB(GLenum target, GLenum pname, GLint *params)
       *params = _mesa_bufferobj_mapped(bufObj);
       return;
    case GL_BUFFER_ACCESS_FLAGS:
-      if (!ctx->Extensions.ARB_map_buffer_range)
+      if ((!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_map_buffer_range)
+          && !_mesa_is_gles3(ctx))
          goto invalid_pname;
       *params = bufObj->AccessFlags;
       return;
    case GL_BUFFER_MAP_OFFSET:
-      if (!ctx->Extensions.ARB_map_buffer_range)
+      if ((!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_map_buffer_range)
+          && !_mesa_is_gles3(ctx))
          goto invalid_pname;
       *params = (GLint) bufObj->Offset;
       return;
    case GL_BUFFER_MAP_LENGTH:
-      if (!ctx->Extensions.ARB_map_buffer_range)
+      if ((!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_map_buffer_range)
+          && !_mesa_is_gles3(ctx))
          goto invalid_pname;
       *params = (GLint) bufObj->Length;
       return;

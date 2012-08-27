@@ -1631,7 +1631,8 @@ st_ChooseTextureFormat_renderable(struct gl_context *ctx, GLint internalFormat,
  * Called via ctx->Driver.ChooseTextureFormat().
  */
 gl_format
-st_ChooseTextureFormat(struct gl_context *ctx, GLint internalFormat,
+st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
+                       GLint internalFormat,
                        GLenum format, GLenum type)
 {
    boolean want_renderable =
@@ -1639,6 +1640,15 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLint internalFormat,
       internalFormat == GL_RGB || internalFormat == GL_RGBA ||
       internalFormat == GL_RGB8 || internalFormat == GL_RGBA8 ||
       internalFormat == GL_BGRA;
+
+   if (target == GL_TEXTURE_1D || target == GL_TEXTURE_1D_ARRAY) {
+      /* We don't do compression for these texture targets because of
+       * difficulty with sub-texture updates on non-block boundaries, etc.
+       * So change the internal format request to an uncompressed format.
+       */
+      internalFormat =
+        _mesa_generic_compressed_format_to_uncompressed_format(internalFormat);
+   }
 
    return st_ChooseTextureFormat_renderable(ctx, internalFormat,
 					    format, type, want_renderable);

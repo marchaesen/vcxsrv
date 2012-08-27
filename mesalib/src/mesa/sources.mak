@@ -32,7 +32,6 @@ MAIN_FILES = \
 	$(SRCDIR)main/debug.c \
 	$(SRCDIR)main/depth.c \
 	$(SRCDIR)main/dlist.c \
-	$(SRCDIR)main/dlopen.c \
 	$(SRCDIR)main/drawpix.c \
 	$(SRCDIR)main/drawtex.c \
 	$(SRCDIR)main/enable.c \
@@ -85,6 +84,7 @@ MAIN_FILES = \
 	$(SRCDIR)main/stencil.c \
 	$(SRCDIR)main/syncobj.c \
 	$(SRCDIR)main/texcompress.c \
+	$(SRCDIR)main/texcompress_cpal.c \
 	$(SRCDIR)main/texcompress_rgtc.c \
 	$(SRCDIR)main/texcompress_s3tc.c \
 	$(SRCDIR)main/texcompress_fxt1.c \
@@ -95,7 +95,6 @@ MAIN_FILES = \
 	$(SRCDIR)main/texgetimage.c \
 	$(SRCDIR)main/teximage.c \
 	$(SRCDIR)main/texobj.c \
-	$(SRCDIR)main/texpal.c \
 	$(SRCDIR)main/texparam.c \
 	$(SRCDIR)main/texstate.c \
 	$(SRCDIR)main/texstorage.c \

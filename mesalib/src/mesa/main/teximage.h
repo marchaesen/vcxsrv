@@ -120,10 +120,6 @@ _mesa_get_tex_image(struct gl_context *ctx, struct gl_texture_object *texObj,
                     GLenum target, GLint level);
 
 
-extern struct gl_texture_image *
-_mesa_get_proxy_tex_image(struct gl_context *ctx, GLenum target, GLint level);
-
-
 extern GLint
 _mesa_max_texture_levels(struct gl_context *ctx, GLenum target);
 
@@ -139,6 +135,10 @@ _mesa_tex_target_to_face(GLenum target);
 
 extern GLint
 _mesa_get_texture_dimensions(GLenum target);
+
+extern GLenum
+_mesa_es_error_check_format_and_type(GLenum format, GLenum type,
+                                     unsigned dimensions);
 
 /**
  * Lock a texture for updating.  See also _mesa_lock_context_textures().

@@ -72,7 +72,7 @@ extern "C" {
 /** xcb connection errors because of socket, pipe and other stream errors. */
 #define XCB_CONN_ERROR 1
 
-/** xcb connection shutdown because of extension not sppported */
+/** xcb connection shutdown because of extension not supported */
 #define XCB_CONN_CLOSED_EXT_NOTSUPPORTED 2
 
 /** malloc(), calloc() and realloc() error upon failure, for eg ENOMEM */

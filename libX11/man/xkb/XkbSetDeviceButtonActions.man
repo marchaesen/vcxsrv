@@ -23,15 +23,13 @@
 .TH XkbSetDeviceButtonActions __libmansuffix__ __xorgversion__ "XKB FUNCTIONS"
 .SH NAME
 XkbSetDeviceButtonActions \- Change only the button actions for an input extension device
-.SH SYNTAX
+.SH SYNOPSIS
 .HP
 .B Bool XkbSetDeviceButtonActions
 .BI "(\^Display *" "dpy" "\^,"
 .BI "XkbDeviceInfoPtr " "device" "\^,"
 .BI "unsigned int " "first_button" "\^,"
 .BI "unsigned int " "num_buttons" "\^);"
-.if n .ti +5n
-.if t .ti +.5i
 .SH ARGUMENTS
 .TP
 .I \- dpy

@@ -36,25 +36,32 @@
 .ie t \fB\^\\$1\^\fR\\$2
 .el \fI\^\\$1\^\fP\\$2
 ..
+.de EX
+.nf
+.ft CW
+..
+.de EE
+.ft
+.fi
+..
 .TH XMBUF __libmansuffix__ __xorgversion__ "X FUNCTIONS"
 .SH NAME
 XmbufQueryExtension, XmbufGetVersion, XmbufCreateBuffers, XmbufDestroyBuffers, XmbufDisplayBuffers, XmbufGetWindowAttributes, XmbufChangeWindowAttributes, XmbufGetBufferAttributes, XmbufChangeBufferAttributes, XmbufGetScreenInfo, XmbufCreateStereoWindow - X multibuffering functions
 .SH SYNTAX
-.nf
-.LP
+.EX
 \&#include <X11/extensions/multibuf.h>
-.LP
+
 Bool XmbufQueryExtension(
     Display *dpy,
     Display *dpy,
     int *event_base_return,
     int *error_base_return);
-.LP
+
 Status XmbufGetVersion(
     Display *dpy,
     int *major_version_return,
     int *minor_version_return);
-.LP
+
 int XmbufCreateBuffers(
     Display *dpy,
     Window window,
@@ -62,40 +69,40 @@ int XmbufCreateBuffers(
     int update_action,
     int update_hint,
     Multibuffer *buffers_update);
-.LP
+
 void XmbufDestroyBuffers(
     Display *dpy,
     Window window);
-.LP
+
 void XmbufDisplayBuffers(
     Display *dpy,
     int count,
     Multibuffer *buffers,
     int min_delay,
     int max_delay);
-.LP
+
 Status XmbufGetWindowAttributes(
     Display *dpy,
     Window window,
     XmbufWindowAttributes *attributes);
-.LP
+
 void XmbufChangeWindowAttributes(
     Display *dpy,
     Window window,
     unsigned long valuemask,
     XmbufSetWindowAttributes *attributes);
-.LP
+
 Status XmbufGetBufferAttributes(
     Display *dpy,
     Multibuffer buffer,
     XmbufBufferAttributes *attributes);
-.LP
+
 void XmbufChangeBufferAttributes(
     Display *dpy,
     Multibuffer buffer,
     unsigned long valuemask,
     XmbufSetBufferAttributes *attributes);
-.LP
+
 Status XmbufGetScreenInfo(
     Display *dpy,
     Drawable drawable,
@@ -103,7 +110,7 @@ Status XmbufGetScreenInfo(
     XmbufBufferInfo **mono_info_return,
     int *nstereo_return,
     XmbufBufferInfo **stereo_info_return);
-.LP
+
 Window XmbufCreateStereoWindow(
     Display *dpy,
     Window parent,
@@ -119,29 +126,31 @@ Window XmbufCreateStereoWindow(
     XSetWindowAttributes *attributes,
     Multibuffer *left_return,
     Multibuffer *right_return);
-.fi
+.EE
 .SH STRUCTURES
-.nf
-.ta 3i
 \fIEvents:\fP
+.EX
 typedef struct {
-    int type;	/\&* of event */
-    unsigned long serial;	/\&* # of last request processed by server */
-    int send_event;	/\&* true if this came from a SendEvent request */
-    Display *display;	/\&* Display the event was read from */
-    Multibuffer buffer;	/\&* buffer of event */
-    int state;	/\&* see Clobbered constants above */
+    int type;   /\&* of event */
+    unsigned long serial;       /\&* # of last request processed by server */
+    int send_event;     /\&* true if this came from a SendEvent request */
+    Display *display;   /\&* Display the event was read from */
+    Multibuffer buffer; /\&* buffer of event */
+    int state;  /\&* see Clobbered constants above */
 } XmbufClobberNotifyEvent;
-.LP
+
 typedef struct {
-    int type;	/\&* of event */
-    unsigned long serial;	/\&* # of last request processed by server */
-    int send_event;	/\&* true if this came from a SendEvent request */
-    Display *display;	/\&* Display the event was read from */
-    Multibuffer buffer;	/\&* buffer of event */
+    int type;   /\&* of event */
+    unsigned long serial;       /\&* # of last request processed by server */
+    int send_event;     /\&* true if this came from a SendEvent request */
+    Display *display;   /\&* Display the event was read from */
+    Multibuffer buffer; /\&* buffer of event */
 } XmbufUpdateNotifyEvent;
-.LP
+.EE
+
 \fIPer-window attributes that can be got:\fP
+
+.EX
 typedef struct {
     int displayed_index;	/\&* which buffer is being displayed */
     int update_action;	/\&* Undefined, Background, Untouched, Copied */
@@ -150,32 +159,44 @@ typedef struct {
     int nbuffers;	/\&* Number of buffers */
     Multibuffer *buffers;	/\&* Buffers */
 } XmbufWindowAttributes;
-.LP
+.EE
+
 \fIPer-window attributes that can be set:\fP
+
+.EX
 typedef struct {
     int update_hint;	/\&* Frequent, Intermittent, Static */
 } XmbufSetWindowAttributes;
-.LP
+.EE
+
 \fIPer-buffer attributes that can be got:\fP
+
+.EX
 typedef struct {
     Window window;	/\&* which window this belongs to */
     unsigned long event_mask;	/\&* events that have been selected */
     int buffer_index;	/\&* which buffer is this */
     int side;	/\&* Mono, Left, Right */
 } XmbufBufferAttributes;
-.LP
+.EE
+
 \fIPer-buffer attributes that can be set:\fP
+
+.EX
 typedef struct {
     unsigned long event_mask;	/\&* events that have been selected */
 } XmbufSetBufferAttributes;
-.LP
+.EE
+
 \fIPer-screen buffer info (there will be lists of them):\fP
+
+.EX
 typedef struct {
     VisualID visualid;	/\&* visual usable at this depth */
     int max_buffers;	/\&* most buffers for this visual */
     int depth;	/\&* depth of buffers to be created */
 } XmbufBufferInfo;
-.fi
+.EE
 .SH DESCRIPTION
 The application programming library for the
 \fIX11 Double-Buffering, Multi-Buffering, and Stereo Extension\fP
@@ -279,54 +300,54 @@ will be returned if the extension is not available on this display.
 .SH PREDEFINED VALUES
 .sp
 Update_action field:
-.in +.5i
+.RS
 .nf
 .ZN MultibufferUpdateActionUndefined
 .ZN MultibufferUpdateActionBackground
 .ZN MultibufferUpdateActionUntouched
 .ZN MultibufferUpdateActionCopied
-.in -.5i
 .fi
+.RE
 .sp
 Update_hint field:
-.in +.5i
+.RS
 .nf
 .ZN MultibufferUpdateHintFrequent
 .ZN MultibufferUpdateHintIntermittent
 .ZN MultibufferUpdateHintStatic
-.in -.5i
-.sp
 .fi
+.RE
+.sp
 Valuemask fields:
-.in +.5i
+.RS
 .nf
 .ZN MultibufferWindowUpdateHint
 .ZN MultibufferBufferEventMask
-.in -.5i
 .fi
+.RE
 .sp
 Mono vs. stereo and left vs. right:
-.in +.5i
+.RS
 .nf
 .ZN MultibufferModeMono
 .ZN MultibufferModeStereo
 .ZN MultibufferSideMono
 .ZN MultibufferSideLeft
 .ZN MultibufferSideRight
-.in -.5i
 .fi
+.RE
 .sp
 Clobber state:
-.in +.5i
+.RS
 .nf
 .ZN MultibufferUnclobbered
 .ZN MultibufferPartiallyClobbered
 .ZN MultibufferFullyClobbered
-.in -.5i
 .fi
+.RE
 .sp
 Event stuff:
-.in +.5i
+.RS
 .nf
 .ZN MultibufferClobberNotifyMask
 .ZN MultibufferUpdateNotifyMask
@@ -335,8 +356,8 @@ Event stuff:
 .ZN MultibufferNumberEvents
 .ZN MultibufferBadBuffer
 .ZN MultibufferNumberErrors
-.in -.5i
 .fi
+.RE
 .SH BUGS
 This manual page needs more work.
 .SH SEE ALSO
