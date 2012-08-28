@@ -1924,6 +1924,20 @@ xstrtokenize(const char *str, const char *separators)
     return NULL;
 }
 
+/* Format a signed number into a string in a signal safe manner. The string
+ * should be at least 21 characters in order to handle all int64_t values.
+ */
+void
+FormatInt64(int64_t num, char *string)
+{
+    if (num < 0) {
+        string[0] = '-';
+        num *= -1;
+        string++;
+    }
+    FormatUInt64(num, string);
+}
+
 /* Format a number into a string in a signal safe manner. The string should be
  * at least 21 characters in order to handle all uint64_t values. */
 void

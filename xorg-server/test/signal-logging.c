@@ -26,6 +26,7 @@
 #endif
 
 #include <stdint.h>
+#include <unistd.h>
 #include "assert.h"
 #include "misc.h"
 
@@ -34,6 +35,26 @@ struct number_format_test {
     char string[21];
     char hex_string[17];
 };
+
+struct signed_number_format_test {
+    int64_t number;
+    char string[21];
+};
+
+static Bool
+check_signed_number_format_test(const struct signed_number_format_test *test)
+{
+    char string[21];
+
+    FormatInt64(test->number, string);
+    if(strncmp(string, test->string, 21) != 0) {
+        fprintf(stderr, "Failed to convert %jd to decimal string (%s vs %s)\n",
+                test->number, test->string, string);
+        return FALSE;
+    }
+
+    return TRUE;
+}
 
 static Bool
 check_number_format_test(const struct number_format_test *test)
@@ -57,11 +78,11 @@ check_number_format_test(const struct number_format_test *test)
     return TRUE;
 }
 
-static Bool
+static void
 number_formatting(void)
 {
     int i;
-    struct number_format_test tests[] = {
+    struct number_format_test unsigned_tests[] = {
         { /* Zero */
             0,
             "0",
@@ -99,17 +120,190 @@ number_formatting(void)
         },
     };
 
-    for (i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
-        if (!check_number_format_test(tests + i))
-            return FALSE;
+    struct signed_number_format_test signed_tests[] = {
+        { /* Zero */
+            0,
+            "0",
+        },
+        { /* Single digit number */
+            5,
+            "5",
+        },
+        { /* Two digit decimal number */
+            12,
+            "12",
+        },
+        { /* Two digit hex number */
+            37,
+            "37",
+        },
+        { /* Large < 32 bit number */
+            0xC90B2,
+            "823474",
+        },
+        { /* Large > 32 bit number */
+            0x15D027BF211B37A,
+            "98237498237498234",
+        },
+        { /* Maximum 64-bit signed number */
+            0x7FFFFFFFFFFFFFFF,
+            "9223372036854775807",
+        },
+        { /* Single digit number */
+            -1,
+            "-1",
+        },
+        { /* Two digit decimal number */
+            -12,
+            "-12",
+        },
+        { /* Large < 32 bit number */
+            -0xC90B2,
+            "-823474",
+        },
+        { /* Large > 32 bit number */
+            -0x15D027BF211B37A,
+            "-98237498237498234",
+        },
+        { /* Maximum 64-bit number */
+            -0x7FFFFFFFFFFFFFFF,
+            "-9223372036854775807",
+        },
+    };
 
-    return TRUE;
+    for (i = 0; i < sizeof(unsigned_tests) / sizeof(unsigned_tests[0]); i++)
+        assert(check_number_format_test(unsigned_tests + i));
+
+    for (i = 0; i < sizeof(unsigned_tests) / sizeof(signed_tests[0]); i++)
+        assert(check_signed_number_format_test(signed_tests + i));
+}
+
+static void logging_format(void)
+{
+    const char *log_file_path = "/tmp/Xorg-logging-test.log";
+    const char *str = "%s %d %u %% %p %i";
+    char buf[1024];
+    int i;
+    unsigned int ui;
+    FILE *f;
+    char read_buf[2048];
+    char *logmsg;
+    uintptr_t ptr;
+
+    /* set up buf to contain ".....end" */
+    memset(buf, '.', sizeof(buf));
+    strcpy(&buf[sizeof(buf) - 4], "end");
+
+    LogInit(log_file_path, NULL);
+    assert(f = fopen(log_file_path, "r"));
+
+#define read_log_msg(msg) \
+    fgets(read_buf, sizeof(read_buf), f); \
+    msg = strchr(read_buf, ']') + 2; /* advance past [time.stamp] */
+
+    /* boring test message */
+    LogMessageVerbSigSafe(X_ERROR, -1, "test message\n");
+    read_log_msg(logmsg);
+    assert(strcmp(logmsg, "(EE) test message\n") == 0);
+
+    /* long buf is truncated to "....en\n" */
+#pragma GCC diagnostic ignored "-Wformat-security"
+    LogMessageVerbSigSafe(X_ERROR, -1, buf);
+#pragma GCC diagnostic pop "-Wformat-security"
+    read_log_msg(logmsg);
+    assert(strcmp(&logmsg[strlen(logmsg) - 3], "en\n") == 0);
+
+    /* same thing, this time as string substitution */
+    LogMessageVerbSigSafe(X_ERROR, -1, "%s", buf);
+    read_log_msg(logmsg);
+    assert(strcmp(&logmsg[strlen(logmsg) - 3], "en\n") == 0);
+
+    /* strings containing placeholders should just work */
+    LogMessageVerbSigSafe(X_ERROR, -1, "%s\n", str);
+    read_log_msg(logmsg);
+    assert(strcmp(logmsg, "(EE) %s %d %u %% %p %i\n") == 0);
+
+    /* string substitution */
+    LogMessageVerbSigSafe(X_ERROR, -1, "%s\n", "substituted string");
+    read_log_msg(logmsg);
+    assert(strcmp(logmsg, "(EE) substituted string\n") == 0);
+
+    /* number substitution */
+    ui = 0;
+    do {
+        char expected[30];
+        sprintf(expected, "(EE) %u\n", ui);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%u\n", ui);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+        if (ui == 0)
+            ui = 1;
+        else
+            ui <<= 1;
+    } while(ui);
+
+    /* signed number substitution */
+    i = 0;
+    do {
+        char expected[30];
+        sprintf(expected, "(EE) %d\n", i);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%d\n", i);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+
+
+        sprintf(expected, "(EE) %d\n", i | INT_MIN);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%d\n", i | INT_MIN);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+
+        if (i == 0)
+            i = 1;
+        else
+            i <<= 1;
+    } while(i > INT_MIN);
+
+    /* hex number substitution */
+    ui = 0;
+    do {
+        char expected[30];
+        sprintf(expected, "(EE) %x\n", ui);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%x\n", ui);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+        if (ui == 0)
+            ui = 1;
+        else
+            ui <<= 1;
+    } while(ui);
+
+    /* pointer substitution */
+    /* we print a null-pointer differently to printf */
+    LogMessageVerbSigSafe(X_ERROR, -1, "%p\n", NULL);
+    read_log_msg(logmsg);
+    assert(strcmp(logmsg, "(EE) 0x0\n") == 0);
+
+    ptr = 1;
+    do {
+        char expected[30];
+        sprintf(expected, "(EE) %p\n", (void*)ptr);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%p\n", (void*)ptr);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+        ptr <<= 1;
+    } while(ptr);
+
+    LogClose(EXIT_NO_ERROR);
+    unlink(log_file_path);
+
+#undef read_log_msg
 }
 
 int
 main(int argc, char **argv)
 {
-    int ok = number_formatting();
+    number_formatting();
+    logging_format();
 
-    return ok ? 0 : 1;
+    return 0;
 }

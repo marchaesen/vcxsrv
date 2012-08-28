@@ -20,8 +20,6 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-#ifndef _CONFIG_FIXUPS_H_
-#define _CONFIG_FIXUPS_H_
 
 /* This header file is supposed to be included in config.h */
 
@@ -40,5 +38,3 @@
 #  define ALIGNOF_DOUBLE 4
 # endif
 #endif
-
-#endif /* _CONFIG_FIXUPS_H_ */

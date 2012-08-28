@@ -27,6 +27,7 @@ SUBDIRS=fontconfig fc-case fc-lang fc-glyphname src \
 	conf.d $(DOCSRC) test
 
 AUTOMAKE_OPTIONS = dist-bzip2
+ACLOCAL_AMFLAGS = -I m4
 
 EXTRA_DIST = \
         fontconfig.pc.in \

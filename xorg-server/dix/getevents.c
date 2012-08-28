@@ -1327,6 +1327,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
     RawDeviceEvent *raw;
     double screenx = 0.0, screeny = 0.0;        /* desktop coordinate system */
     double devx = 0.0, devy = 0.0;      /* desktop-wide in device coords */
+    int sx, sy;                         /* for POINTER_SCREEN */
     ValuatorMask mask;
     ScreenPtr scr;
 
@@ -1369,8 +1370,11 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
     /* valuators are in driver-native format (rel or abs) */
 
     if (flags & POINTER_ABSOLUTE) {
-        if (flags & POINTER_SCREEN)     /* valuators are in screen coords */
+        if (flags & POINTER_SCREEN) {    /* valuators are in screen coords */
+            sx = valuator_mask_get(&mask, 0);
+            sy = valuator_mask_get(&mask, 1);
             scale_from_screen(pDev, &mask);
+        }
 
         transformAbsolute(pDev, &mask);
         clipAbsolute(pDev, &mask);
@@ -1388,6 +1392,18 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
 
     /* valuators are in device coordinate system in absolute coordinates */
     scale_to_desktop(pDev, &mask, &devx, &devy, &screenx, &screeny);
+
+    /* #53037 XWarpPointer's scaling back and forth between screen and
+       device may leave us with rounding errors. End result is that the
+       pointer doesn't end up on the pixel it should.
+       Avoid this by forcing screenx/screeny back to what the input
+       coordinates were.
+     */
+    if (flags & POINTER_SCREEN) {
+        screenx = sx;
+        screeny = sy;
+    }
+
     scr = positionSprite(pDev, (flags & POINTER_ABSOLUTE) ? Absolute : Relative,
                          &mask, &devx, &devy, &screenx, &screeny);
 

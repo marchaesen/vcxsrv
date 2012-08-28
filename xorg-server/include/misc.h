@@ -247,6 +247,7 @@ padding_for_int32(const int bytes)
 
 
 extern char **xstrtokenize(const char *str, const char *separators);
+extern void FormatInt64(int64_t num, char *string);
 extern void FormatUInt64(uint64_t num, char *string);
 extern void FormatUInt64Hex(uint64_t num, char *string);
 
