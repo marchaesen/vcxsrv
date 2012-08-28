@@ -57,6 +57,7 @@ AC_SUBST(LIBT_CURRENT_MINUS_AGE)
 dnl ==========================================================================
 
 AC_CONFIG_HEADERS(config.h)
+AC_CONFIG_MACRO_DIR([m4])
 
 AC_PROG_CC
 AC_PROG_INSTALL

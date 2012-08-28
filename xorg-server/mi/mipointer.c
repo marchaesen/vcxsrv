@@ -575,7 +575,7 @@ miPointerSetPosition(DeviceIntPtr pDev, int mode, double *screenx,
 
     miPointerPtr pPointer;
 
-    if (!pDev || !pDev->coreEvents)
+    if (!pDev)
         return NULL;
 
     pPointer = MIPOINTER(pDev);
