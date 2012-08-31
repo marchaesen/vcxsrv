@@ -853,7 +853,7 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
     if (!list)
 	return FcFalse;
     while ((test_dir = FcStrListNext (list))) {
-	if (access ((char *) test_dir, W_OK|X_OK) == 0)
+	if (access ((char *) test_dir, W_OK) == 0)
 	{
 	    cache_dir = test_dir;
 	    break;
@@ -1368,7 +1368,7 @@ FcDirCacheCreateTagFile (const FcChar8 *cache_dir)
     if (!cache_dir)
 	return FcFalse;
 
-    if (access ((char *) cache_dir, W_OK|X_OK) == 0)
+    if (access ((char *) cache_dir, W_OK) == 0)
     {
 	/* Create CACHEDIR.TAG */
 	cache_tag = FcStrPlus (cache_dir, (const FcChar8 *) FC_DIR_SEPARATOR_S "CACHEDIR.TAG");

@@ -1,7 +1,7 @@
 SUBDIRS = digital_vndr fujitsu_vndr hp_vndr macintosh_vndr nec_vndr nokia_vndr sgi_vndr sony_vndr sun_vndr xfree68_vndr
 
 symbolsdir = $(xkb_base)/symbols
-dist_symbols_DATA = \
+symbols_DATA = \
 ad af al \
 am apl ara \
 at az \
@@ -21,7 +21,7 @@ ke kg kh \
 kr kz \
 la latam latin \
 lk lt lv \
-ma mao me \
+ma mao md me \
 mk ml mm \
 mn mt mv \
 ng nl no np \
@@ -36,6 +36,4 @@ za \
 altwin capslock compose ctrl empty eurosign rupeesign group inet \
 keypad kpdl level3 level5 nbsp olpc shift srvr_ctrl typo
 
-dir_data = $(dist_symbols_DATA)
-
-include $(top_srcdir)/xkbrules.am
+EXTRA_DIST = $(symbols_DATA)

@@ -108,19 +108,38 @@ void Setup_Display_And_Screen (
     xcb_connection_t **dpy,	/* MODIFIED */
     xcb_screen_t **screen)	/* MODIFIED */
 {
-    int screen_number, i;
+    int screen_number, i, err;
 
     /* Open Display */
     *dpy = xcb_connect (display_name, &screen_number);
-    if (xcb_connection_has_error (*dpy)) {
-	Fatal_Error ("unable to open display \"%s\"",
-		     Get_Display_Name(display_name) );
+    if ((err = xcb_connection_has_error (*dpy)) != 0) {
+        switch (err) {
+        case XCB_CONN_CLOSED_MEM_INSUFFICIENT:
+            Fatal_Error ("Failed to allocate memory in xcb_connect");
+        case XCB_CONN_CLOSED_PARSE_ERR:
+            Fatal_Error ("unable to parse display name \"%s\"",
+                         Get_Display_Name(display_name) );
+#ifdef XCB_CONN_CLOSED_INVALID_SCREEN
+        case XCB_CONN_CLOSED_INVALID_SCREEN:
+            Fatal_Error ("invalid screen %d in display \"%s\"",
+                         screen_number, Get_Display_Name(display_name));
+#endif
+        default:
+            Fatal_Error ("unable to open display \"%s\"",
+                         Get_Display_Name(display_name) );
+        }
     }
 
     if (screen) {
 	/* find our screen */
 	const xcb_setup_t *setup = xcb_get_setup(*dpy);
 	xcb_screen_iterator_t screen_iter = xcb_setup_roots_iterator(setup);
+	int screen_count = xcb_setup_roots_length(setup);
+	if (screen_count <= screen_number)
+	{
+	    Fatal_Error ("unable to access screen %d, max is %d",
+			 screen_number, screen_count-1 );
+	}
 
 	for (i = 0; i < screen_number; i++)
 	    xcb_screen_next(&screen_iter);

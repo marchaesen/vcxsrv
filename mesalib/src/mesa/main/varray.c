@@ -133,6 +133,23 @@ update_array(struct gl_context *ctx,
    GLsizei elementSize;
    GLenum format = GL_RGBA;
 
+   /* Page 407 (page 423 of the PDF) of the OpenGL 3.0 spec says:
+    *
+    *     "Client vertex arrays - all vertex array attribute pointers must
+    *     refer to buffer objects (section 2.9.2). The default vertex array
+    *     object (the name zero) is also deprecated. Calling
+    *     VertexAttribPointer when no buffer object or no vertex array object
+    *     is bound will generate an INVALID_OPERATION error..."
+    *
+    * The check for VBOs is handled below.
+    */
+   if (ctx->API == API_OPENGL_CORE
+       && (ctx->Array.ArrayObj == ctx->Array.DefaultArrayObj)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(no array object bound)",
+                  func);
+      return;
+   }
+
    if (_mesa_is_gles(ctx)) {
       /* Once Mesa gets support for GL_OES_vertex_half_float this mask will
        * change.  Adding support for this extension isn't quite as trivial as
@@ -216,11 +233,20 @@ update_array(struct gl_context *ctx,
       return;
    }
 
-   if (ctx->Array.ArrayObj->ARBsemantics &&
+   /* Page 29 (page 44 of the PDF) of the OpenGL 3.3 spec says:
+    *
+    *     "An INVALID_OPERATION error is generated under any of the following
+    *     conditions:
+    *
+    *     ...
+    *
+    *     * any of the *Pointer commands specifying the location and
+    *       organization of vertex array data are called while zero is bound
+    *       to the ARRAY_BUFFER buffer object binding point (see section
+    *       2.9.6), and the pointer argument is not NULL."
+    */
+   if (ptr != NULL && ctx->Array.ArrayObj->ARBsemantics &&
        !_mesa_is_bufferobj(ctx->Array.ArrayBufferObj)) {
-      /* GL_ARB_vertex_array_object requires that all arrays reside in VBOs.
-       * Generate GL_INVALID_OPERATION if that's not true.
-       */
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(non-VBO array)", func);
       return;
    }
@@ -590,12 +616,15 @@ get_vertex_array_attrib(struct gl_context *ctx, GLuint index, GLenum pname,
    case GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING_ARB:
       return array->BufferObj->Name;
    case GL_VERTEX_ATTRIB_ARRAY_INTEGER:
-      if (ctx->Version >= 30 || ctx->Extensions.EXT_gpu_shader4) {
+      if ((_mesa_is_desktop_gl(ctx)
+           && (ctx->Version >= 30 || ctx->Extensions.EXT_gpu_shader4))
+          || _mesa_is_gles3(ctx)) {
          return array->Integer;
       }
       goto error;
    case GL_VERTEX_ATTRIB_ARRAY_DIVISOR_ARB:
-      if (ctx->Extensions.ARB_instanced_arrays) {
+      if ((_mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_instanced_arrays)
+          || _mesa_is_gles3(ctx)) {
          return array->InstanceDivisor;
       }
       goto error;
@@ -613,7 +642,13 @@ static const GLfloat *
 get_current_attrib(struct gl_context *ctx, GLuint index, const char *function)
 {
    if (index == 0) {
-      if (ctx->API != API_OPENGLES2) {
+      /* In OpenGL 3.1 attribute 0 becomes non-magic, just like in OpenGL ES
+       * 2.0.  Note that we cannot just check for API_OPENGL_CORE here because
+       * that will erroneously allow this usage in a 3.0 forward-compatible
+       * context too.
+       */
+      if ((ctx->API != API_OPENGL_CORE || ctx->Version < 31)
+          && ctx->API != API_OPENGLES2) {
 	 _mesa_error(ctx, GL_INVALID_OPERATION, "%s(index==0)", function);
 	 return NULL;
       }

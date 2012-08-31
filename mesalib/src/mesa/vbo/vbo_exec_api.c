@@ -457,10 +457,10 @@ vbo_Materialfv(GLenum face, GLenum pname, const GLfloat *params)
       updateMats = ALL_MATERIAL_BITS;
    }
 
-   if (face == GL_FRONT) {
+   if (ctx->API == API_OPENGL && face == GL_FRONT) {
       updateMats &= FRONT_MATERIAL_BITS;
    }
-   else if (face == GL_BACK) {
+   else if (ctx->API == API_OPENGL && face == GL_BACK) {
       updateMats &= BACK_MATERIAL_BITS;
    }
    else if (face != GL_FRONT_AND_BACK) {
@@ -506,6 +506,10 @@ vbo_Materialfv(GLenum face, GLenum pname, const GLfloat *params)
          MAT_ATTR(VBO_ATTRIB_MAT_BACK_SHININESS, 1, params);
       break;
    case GL_COLOR_INDEXES:
+      if (ctx->API != API_OPENGL) {
+         _mesa_error(ctx, GL_INVALID_ENUM, "glMaterialfv(pname)");
+         return;
+      }
       if (updateMats & MAT_BIT_FRONT_INDEXES)
          MAT_ATTR(VBO_ATTRIB_MAT_FRONT_INDEXES, 3, params);
       if (updateMats & MAT_BIT_BACK_INDEXES)
@@ -894,6 +898,7 @@ vbo_exec_PrimitiveRestartNV(void)
 
 static void vbo_exec_vtxfmt_init( struct vbo_exec_context *exec )
 {
+   struct gl_context *ctx = exec->ctx;
    GLvertexformat *vfmt = &exec->vtxfmt;
 
    _MESA_INIT_ARRAYELT_VTXFMT(vfmt, _ae_);
@@ -942,14 +947,25 @@ static void vbo_exec_vtxfmt_init( struct vbo_exec_context *exec )
    vfmt->Vertex4f = vbo_Vertex4f;
    vfmt->Vertex4fv = vbo_Vertex4fv;
    
-   vfmt->VertexAttrib1fARB = vbo_VertexAttrib1fARB;
-   vfmt->VertexAttrib1fvARB = vbo_VertexAttrib1fvARB;
-   vfmt->VertexAttrib2fARB = vbo_VertexAttrib2fARB;
-   vfmt->VertexAttrib2fvARB = vbo_VertexAttrib2fvARB;
-   vfmt->VertexAttrib3fARB = vbo_VertexAttrib3fARB;
-   vfmt->VertexAttrib3fvARB = vbo_VertexAttrib3fvARB;
-   vfmt->VertexAttrib4fARB = vbo_VertexAttrib4fARB;
-   vfmt->VertexAttrib4fvARB = vbo_VertexAttrib4fvARB;
+   if (ctx->API == API_OPENGLES2) {
+      vfmt->VertexAttrib1fARB = _es_VertexAttrib1f;
+      vfmt->VertexAttrib1fvARB = _es_VertexAttrib1fv;
+      vfmt->VertexAttrib2fARB = _es_VertexAttrib2f;
+      vfmt->VertexAttrib2fvARB = _es_VertexAttrib2fv;
+      vfmt->VertexAttrib3fARB = _es_VertexAttrib3f;
+      vfmt->VertexAttrib3fvARB = _es_VertexAttrib3fv;
+      vfmt->VertexAttrib4fARB = _es_VertexAttrib4f;
+      vfmt->VertexAttrib4fvARB = _es_VertexAttrib4fv;
+   } else {
+      vfmt->VertexAttrib1fARB = vbo_VertexAttrib1fARB;
+      vfmt->VertexAttrib1fvARB = vbo_VertexAttrib1fvARB;
+      vfmt->VertexAttrib2fARB = vbo_VertexAttrib2fARB;
+      vfmt->VertexAttrib2fvARB = vbo_VertexAttrib2fvARB;
+      vfmt->VertexAttrib3fARB = vbo_VertexAttrib3fARB;
+      vfmt->VertexAttrib3fvARB = vbo_VertexAttrib3fvARB;
+      vfmt->VertexAttrib4fARB = vbo_VertexAttrib4fARB;
+      vfmt->VertexAttrib4fvARB = vbo_VertexAttrib4fvARB;
+   }
 
    vfmt->VertexAttrib1fNV = vbo_VertexAttrib1fNV;
    vfmt->VertexAttrib1fvNV = vbo_VertexAttrib1fvNV;

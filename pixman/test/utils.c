@@ -772,7 +772,7 @@ convert_srgb_to_linear (double c)
     if (c <= 0.04045)
         return c / 12.92;
     else
-        return powf ((c + 0.055) / 1.055, 2.4);
+        return pow ((c + 0.055) / 1.055, 2.4);
 }
 
 double
@@ -781,7 +781,7 @@ convert_linear_to_srgb (double c)
     if (c <= 0.0031308)
         return c * 12.92;
     else
-        return 1.055 * powf (c, 1.0/2.4) - 0.055;
+        return 1.055 * pow (c, 1.0/2.4) - 0.055;
 }
 
 void
@@ -962,6 +962,18 @@ get_limits (const pixel_checker_t *checker, double limit,
 	    color_t *color,
 	    int *ao, int *ro, int *go, int *bo)
 {
+    color_t tmp;
+
+    if (PIXMAN_FORMAT_TYPE (checker->format) == PIXMAN_TYPE_ARGB_SRGB)
+    {
+	tmp.a = color->a;
+	tmp.r = convert_linear_to_srgb (color->r);
+	tmp.g = convert_linear_to_srgb (color->g);
+	tmp.b = convert_linear_to_srgb (color->b);
+
+	color = &tmp;
+    }
+    
     *ao = convert (color->a + limit, checker->aw, checker->am, checker->as, 1.0);
     *ro = convert (color->r + limit, checker->rw, checker->rm, checker->rs, 0.0);
     *go = convert (color->g + limit, checker->gw, checker->gm, checker->gs, 0.0);
@@ -988,25 +1000,11 @@ pixel_checker_get_min (const pixel_checker_t *checker, color_t *color,
 
 pixman_bool_t
 pixel_checker_check (const pixel_checker_t *checker, uint32_t pixel,
-		     color_t *color_in)
+		     color_t *color)
 {
     int32_t a_lo, a_hi, r_lo, r_hi, g_lo, g_hi, b_lo, b_hi;
     int32_t ai, ri, gi, bi;
     pixman_bool_t result;
-    color_t tmp, *color;
-
-    if (PIXMAN_FORMAT_TYPE (checker->format) == PIXMAN_TYPE_ARGB_SRGB)
-    {
-	tmp.a = color_in->a;
-	tmp.r = convert_linear_to_srgb (color_in->r);
-	tmp.g = convert_linear_to_srgb (color_in->g);
-	tmp.b = convert_linear_to_srgb (color_in->b);
-	color = &tmp;
-    }
-    else
-    {
-	color = color_in;
-    }
 
     pixel_checker_get_min (checker, color, &a_lo, &r_lo, &g_lo, &b_lo);
     pixel_checker_get_max (checker, color, &a_hi, &r_hi, &g_hi, &b_hi);

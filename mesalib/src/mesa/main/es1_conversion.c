@@ -134,28 +134,7 @@ _es_DrawTexxvOES(const GLfixed *coords)
 void GL_APIENTRY
 _es_Fogx(GLenum pname, GLfixed param)
 {
-   bool convert_param_value = true;
-
-   switch(pname) {
-   case GL_FOG_MODE:
-      if (param != GL_EXP && param != GL_EXP2 && param != GL_LINEAR) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glFogx(pname=0x%x)", pname);
-         return;
-      }
-      convert_param_value = false;
-      break;
-   case GL_FOG_DENSITY:
-   case GL_FOG_START:
-   case GL_FOG_END:
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glFogx(pname=0x%x)", pname);
-      return;
-   }
-
-   if (convert_param_value) {
+   if (pname != GL_FOG_MODE) {
       _mesa_Fogf(pname, (GLfloat) (param / 65536.0f));
    } else {
       _mesa_Fogf(pname, (GLfloat) param);
@@ -173,11 +152,6 @@ _es_Fogxv(GLenum pname, const GLfixed *params)
 
    switch(pname) {
    case GL_FOG_MODE:
-      if (params[0] != GL_EXP && params[0] != GL_EXP2 && params[0] != GL_LINEAR) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glFogxv(pname=0x%x)", pname);
-         return;
-      }
       convert_params_value = false;
       n_params = 1;
       break;
@@ -319,7 +293,6 @@ _es_GetMaterialxv(GLenum face, GLenum pname, GLfixed *params)
       break;
    case GL_AMBIENT:
    case GL_DIFFUSE:
-   case GL_AMBIENT_AND_DIFFUSE:
    case GL_SPECULAR:
    case GL_EMISSION:
       n_params = 4;
@@ -425,63 +398,13 @@ _es_GetTexEnvxv(GLenum target, GLenum pname, GLfixed *params)
 void GL_APIENTRY
 _check_GetTexGenivOES(GLenum coord, GLenum pname, GLint *params)
 {
-   unsigned int i;
-   unsigned int n_params = 1;
-   GLfloat converted_params[1];
-
-   switch(coord) {
-   case GL_TEXTURE_GEN_STR_OES:
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glGetTexGenivOES(coord=0x%x)", coord);
-      return;
-   }
-   switch(pname) {
-   case GL_TEXTURE_GEN_MODE:
-      n_params = 1;
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glGetTexGenivOES(pname=0x%x)", pname);
-      return;
-   }
-
-   _es_GetTexGenfv(coord, pname, converted_params);
-   for (i = 0; i < n_params; i++) {
-      params[i] = (GLfloat) converted_params[i];
-   }
+   _mesa_GetTexGeniv(coord, pname, params);
 }
 
 void GL_APIENTRY
 _check_GetTexGenxvOES(GLenum coord, GLenum pname, GLfixed *params)
 {
-   unsigned int i;
-   unsigned int n_params = 1;
-   GLfloat converted_params[1];
-
-   switch(coord) {
-   case GL_TEXTURE_GEN_STR_OES:
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glGetTexGenxvOES(coord=0x%x)", coord);
-      return;
-   }
-   switch(pname) {
-   case GL_TEXTURE_GEN_MODE:
-      n_params = 1;
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glGetTexGenxvOES(pname=0x%x)", pname);
-      return;
-   }
-
-   _es_GetTexGenfv(coord, pname, converted_params);
-   for (i = 0; i < n_params; i++) {
-      params[i] = (GLfloat) converted_params[i];
-   }
+   _mesa_GetTexGeniv(coord, pname, (GLint *) params);
 }
 
 void GL_APIENTRY
@@ -535,20 +458,6 @@ _es_GetTexParameterxv(GLenum target, GLenum pname, GLfixed *params)
 void GL_APIENTRY
 _es_LightModelx(GLenum pname, GLfixed param)
 {
-   switch(pname) {
-   case GL_LIGHT_MODEL_TWO_SIDE:
-      if (param != GL_TRUE && param != GL_FALSE) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glLightModelx(pname=0x%x)", pname);
-         return;
-      }
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glLightModelx(pname=0x%x)", pname);
-      return;
-   }
-
    _mesa_LightModelf(pname, (GLfloat) param);
 }
 
@@ -565,11 +474,6 @@ _es_LightModelxv(GLenum pname, const GLfixed *params)
       n_params = 4;
       break;
    case GL_LIGHT_MODEL_TWO_SIDE:
-      if (params[0] != GL_TRUE && params[0] != GL_FALSE) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glLightModelxv(pname=0x%x)", pname);
-         return;
-      }
       convert_params_value = false;
       n_params = 1;
       break;
@@ -662,18 +566,13 @@ _es_LoadMatrixx(const GLfixed *m)
 void GL_APIENTRY
 _es_Materialx(GLenum face, GLenum pname, GLfixed param)
 {
-   switch(face) {
-   case GL_FRONT_AND_BACK:
-      break;
-   default:
+   if (face != GL_FRONT_AND_BACK) {
       _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
                   "glMaterialx(face=0x%x)", face);
       return;
    }
-   switch(pname) {
-   case GL_SHININESS:
-      break;
-   default:
+
+   if (pname != GL_SHININESS) {
       _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
                   "glMaterialx(pname=0x%x)", pname);
       return;
@@ -689,14 +588,12 @@ _es_Materialxv(GLenum face, GLenum pname, const GLfixed *params)
    unsigned int n_params = 4;
    GLfloat converted_params[4];
 
-   switch(face) {
-   case GL_FRONT_AND_BACK:
-      break;
-   default:
+   if (face != GL_FRONT_AND_BACK) {
       _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
                   "glMaterialxv(face=0x%x)", face);
       return;
    }
+
    switch(pname) {
    case GL_AMBIENT:
    case GL_DIFFUSE:
@@ -779,17 +676,6 @@ _es_Orthox(GLfixed left, GLfixed right, GLfixed bottom, GLfixed top,
 void GL_APIENTRY
 _es_PointParameterx(GLenum pname, GLfixed param)
 {
-   switch(pname) {
-   case GL_POINT_SIZE_MIN:
-   case GL_POINT_SIZE_MAX:
-   case GL_POINT_FADE_THRESHOLD_SIZE:
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glPointParameterx(pname=0x%x)", pname);
-      return;
-   }
-
    _mesa_PointParameterf(pname, (GLfloat) (param / 65536.0f));
 }
 
@@ -862,376 +748,126 @@ _es_Scalex(GLfixed x, GLfixed y, GLfixed z)
 void GL_APIENTRY
 _es_TexEnvx(GLenum target, GLenum pname, GLfixed param)
 {
-   GLfloat converted_param;
-   bool convert_param_value = true;
-
    switch(target) {
    case GL_POINT_SPRITE:
-      if (pname != GL_COORD_REPLACE) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvx(target=0x%x)", target);
-         return;
-      }
-      break;
    case GL_TEXTURE_FILTER_CONTROL_EXT:
-      if (pname != GL_TEXTURE_LOD_BIAS_EXT) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvx(target=0x%x)", target);
-         return;
-      }
-      break;
    case GL_TEXTURE_ENV:
-      if (pname != GL_TEXTURE_ENV_MODE && pname != GL_COMBINE_RGB && pname != GL_COMBINE_ALPHA && pname != GL_RGB_SCALE && pname != GL_ALPHA_SCALE && pname != GL_SRC0_RGB && pname != GL_SRC1_RGB && pname != GL_SRC2_RGB && pname != GL_SRC0_ALPHA && pname != GL_SRC1_ALPHA && pname != GL_SRC2_ALPHA && pname != GL_OPERAND0_RGB && pname != GL_OPERAND1_RGB && pname != GL_OPERAND2_RGB && pname != GL_OPERAND0_ALPHA && pname != GL_OPERAND1_ALPHA && pname != GL_OPERAND2_ALPHA && pname != GL_TEXTURE_ENV_COLOR) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvx(target=0x%x)", target);
-         return;
-      }
       break;
    default:
       _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
                   "glTexEnvx(target=0x%x)", target);
       return;
    }
+
    switch(pname) {
    case GL_COORD_REPLACE:
-      if (param != GL_TRUE && param != GL_FALSE) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvx(pname=0x%x)", pname);
-         return;
-      }
-      convert_param_value = false;
-      break;
-   case GL_TEXTURE_LOD_BIAS_EXT:
-      break;
    case GL_TEXTURE_ENV_MODE:
-      if (param != GL_REPLACE && param != GL_MODULATE && param != GL_DECAL && param != GL_BLEND && param != GL_ADD && param != GL_COMBINE) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvx(pname=0x%x)", pname);
-         return;
-      }
-      convert_param_value = false;
-      break;
    case GL_COMBINE_RGB:
-      if (param != GL_REPLACE && param != GL_MODULATE && param != GL_ADD && param != GL_ADD_SIGNED && param != GL_INTERPOLATE && param != GL_SUBTRACT && param != GL_DOT3_RGB && param != GL_DOT3_RGBA) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvx(pname=0x%x)", pname);
-         return;
-      }
-      convert_param_value = false;
-      break;
    case GL_COMBINE_ALPHA:
-      if (param != GL_REPLACE && param != GL_MODULATE && param != GL_ADD && param != GL_ADD_SIGNED && param != GL_INTERPOLATE && param != GL_SUBTRACT) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvx(pname=0x%x)", pname);
-         return;
-      }
-      convert_param_value = false;
-      break;
-   case GL_RGB_SCALE:
-   case GL_ALPHA_SCALE:
-      break;
    case GL_SRC0_RGB:
    case GL_SRC1_RGB:
    case GL_SRC2_RGB:
    case GL_SRC0_ALPHA:
    case GL_SRC1_ALPHA:
    case GL_SRC2_ALPHA:
-      convert_param_value = false;
-      break;
    case GL_OPERAND0_RGB:
    case GL_OPERAND1_RGB:
    case GL_OPERAND2_RGB:
-      if (param != GL_SRC_COLOR && param != GL_ONE_MINUS_SRC_COLOR && param != GL_SRC_ALPHA && param != GL_ONE_MINUS_SRC_ALPHA) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvx(pname=0x%x)", pname);
-         return;
-      }
-      convert_param_value = false;
-      break;
    case GL_OPERAND0_ALPHA:
    case GL_OPERAND1_ALPHA:
    case GL_OPERAND2_ALPHA:
-      if (param != GL_SRC_ALPHA && param != GL_ONE_MINUS_SRC_ALPHA) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvx(pname=0x%x)", pname);
-         return;
-      }
-      convert_param_value = false;
+      _mesa_TexEnvf(target, pname, (GLfloat) param);
+      break;
+   case GL_TEXTURE_LOD_BIAS_EXT:
+   case GL_RGB_SCALE:
+   case GL_ALPHA_SCALE:
+      _mesa_TexEnvf(target, pname, (GLfloat) (param / 65536.0f));
       break;
    default:
       _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
                   "glTexEnvx(pname=0x%x)", pname);
       return;
    }
-
-   if (convert_param_value) {
-      converted_param = (GLfloat) (param / 65536.0f);
-   } else {
-      converted_param = (GLfloat) param;
-   }
-
-   _mesa_TexEnvf(target, pname, converted_param);
 }
 
 void GL_APIENTRY
 _es_TexEnvxv(GLenum target, GLenum pname, const GLfixed *params)
 {
-   unsigned int i;
-   unsigned int n_params = 4;
-   GLfloat converted_params[4];
-   bool convert_params_value = true;
-
    switch(target) {
    case GL_POINT_SPRITE:
-      if (pname != GL_COORD_REPLACE) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvxv(target=0x%x)", target);
-         return;
-      }
-      break;
    case GL_TEXTURE_FILTER_CONTROL_EXT:
-      if (pname != GL_TEXTURE_LOD_BIAS_EXT) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvxv(target=0x%x)", target);
-         return;
-      }
-      break;
    case GL_TEXTURE_ENV:
-      if (pname != GL_TEXTURE_ENV_MODE && pname != GL_COMBINE_RGB && pname != GL_COMBINE_ALPHA && pname != GL_RGB_SCALE && pname != GL_ALPHA_SCALE && pname != GL_SRC0_RGB && pname != GL_SRC1_RGB && pname != GL_SRC2_RGB && pname != GL_SRC0_ALPHA && pname != GL_SRC1_ALPHA && pname != GL_SRC2_ALPHA && pname != GL_OPERAND0_RGB && pname != GL_OPERAND1_RGB && pname != GL_OPERAND2_RGB && pname != GL_OPERAND0_ALPHA && pname != GL_OPERAND1_ALPHA && pname != GL_OPERAND2_ALPHA && pname != GL_TEXTURE_ENV_COLOR) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvxv(target=0x%x)", target);
-         return;
-      }
       break;
    default:
       _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
                   "glTexEnvxv(target=0x%x)", target);
       return;
    }
+
    switch(pname) {
    case GL_COORD_REPLACE:
-      if (params[0] != GL_TRUE && params[0] != GL_FALSE) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvxv(pname=0x%x)", pname);
-         return;
-      }
-      convert_params_value = false;
-      n_params = 1;
-      break;
-   case GL_TEXTURE_LOD_BIAS_EXT:
-      n_params = 1;
-      break;
    case GL_TEXTURE_ENV_MODE:
-      if (params[0] != GL_REPLACE && params[0] != GL_MODULATE && params[0] != GL_DECAL && params[0] != GL_BLEND && params[0] != GL_ADD && params[0] != GL_COMBINE) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvxv(pname=0x%x)", pname);
-         return;
-      }
-      convert_params_value = false;
-      n_params = 1;
-      break;
    case GL_COMBINE_RGB:
-      if (params[0] != GL_REPLACE && params[0] != GL_MODULATE && params[0] != GL_ADD && params[0] != GL_ADD_SIGNED && params[0] != GL_INTERPOLATE && params[0] != GL_SUBTRACT && params[0] != GL_DOT3_RGB && params[0] != GL_DOT3_RGBA) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvxv(pname=0x%x)", pname);
-         return;
-      }
-      convert_params_value = false;
-      n_params = 1;
-      break;
    case GL_COMBINE_ALPHA:
-      if (params[0] != GL_REPLACE && params[0] != GL_MODULATE && params[0] != GL_ADD && params[0] != GL_ADD_SIGNED && params[0] != GL_INTERPOLATE && params[0] != GL_SUBTRACT) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvxv(pname=0x%x)", pname);
-         return;
-      }
-      convert_params_value = false;
-      n_params = 1;
-      break;
-   case GL_RGB_SCALE:
-   case GL_ALPHA_SCALE:
-      break;
    case GL_SRC0_RGB:
    case GL_SRC1_RGB:
    case GL_SRC2_RGB:
    case GL_SRC0_ALPHA:
    case GL_SRC1_ALPHA:
    case GL_SRC2_ALPHA:
-      convert_params_value = false;
-      n_params = 1;
-      break;
    case GL_OPERAND0_RGB:
    case GL_OPERAND1_RGB:
    case GL_OPERAND2_RGB:
-      if (params[0] != GL_SRC_COLOR && params[0] != GL_ONE_MINUS_SRC_COLOR && params[0] != GL_SRC_ALPHA && params[0] != GL_ONE_MINUS_SRC_ALPHA) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvxv(pname=0x%x)", pname);
-         return;
-      }
-      convert_params_value = false;
-      n_params = 1;
-      break;
    case GL_OPERAND0_ALPHA:
    case GL_OPERAND1_ALPHA:
    case GL_OPERAND2_ALPHA:
-      if (params[0] != GL_SRC_ALPHA && params[0] != GL_ONE_MINUS_SRC_ALPHA) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexEnvxv(pname=0x%x)", pname);
-         return;
+      _mesa_TexEnvf(target, pname, (GLfloat) params[0]);
+      break;
+   case GL_TEXTURE_LOD_BIAS_EXT:
+   case GL_RGB_SCALE:
+   case GL_ALPHA_SCALE:
+      _mesa_TexEnvf(target, pname, (GLfloat) (params[0] / 65536.0f));
+      break;
+   case GL_TEXTURE_ENV_COLOR: {
+      unsigned int i;
+      GLfloat converted_params[4];
+
+      for (i = 0; i < Elements(converted_params); i++) {
+         converted_params[i] = (GLfloat) (params[i] / 65536.0f);
       }
-      convert_params_value = false;
-      n_params = 1;
+
+      _mesa_TexEnvfv(target, pname, converted_params);
       break;
-   case GL_TEXTURE_ENV_COLOR:
-      n_params = 4;
-      break;
+   }
    default:
       _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
                   "glTexEnvxv(pname=0x%x)", pname);
       return;
    }
-
-   if (convert_params_value) {
-      for (i = 0; i < n_params; i++) {
-         converted_params[i] = (GLfloat) (params[i] / 65536.0f);
-      }
-   } else {
-      for (i = 0; i < n_params; i++) {
-         converted_params[i] = (GLfloat) params[i];
-      }
-   }
-
-   _mesa_TexEnvfv(target, pname, converted_params);
 }
 
 void GL_APIENTRY
 _check_TexGeniOES(GLenum coord, GLenum pname, GLint param)
 {
-   switch(coord) {
-   case GL_TEXTURE_GEN_STR_OES:
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glTexGeniOES(coord=0x%x)", coord);
-      return;
-   }
-   switch(pname) {
-   case GL_TEXTURE_GEN_MODE:
-      if (param != GL_NORMAL_MAP && param != GL_REFLECTION_MAP) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexGeniOES(pname=0x%x)", pname);
-         return;
-      }
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glTexGeniOES(pname=0x%x)", pname);
-      return;
-   }
-
    _es_TexGenf(coord, pname, (GLfloat) param);
 }
 
 void GL_APIENTRY
 _check_TexGenivOES(GLenum coord, GLenum pname, const GLint *params)
 {
-   unsigned int i;
-   unsigned int n_params = 1;
-   GLfloat converted_params[1];
-
-   switch(coord) {
-   case GL_TEXTURE_GEN_STR_OES:
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glTexGenivOES(coord=0x%x)", coord);
-      return;
-   }
-   switch(pname) {
-   case GL_TEXTURE_GEN_MODE:
-      if (params[0] != GL_NORMAL_MAP && params[0] != GL_REFLECTION_MAP) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexGenivOES(pname=0x%x)", pname);
-         return;
-      }
-      n_params = 1;
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glTexGenivOES(pname=0x%x)", pname);
-      return;
-   }
-
-   for (i = 0; i < n_params; i++) {
-      converted_params[i] = (GLfloat) params[i];
-   }
-
-   _es_TexGenfv(coord, pname, converted_params);
+   _es_TexGenf(coord, pname, (GLfloat) params[0]);
 }
 
 void GL_APIENTRY
 _check_TexGenxOES(GLenum coord, GLenum pname, GLfixed param)
 {
-   switch(coord) {
-   case GL_TEXTURE_GEN_STR_OES:
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glTexGenxOES(coord=0x%x)", coord);
-      return;
-   }
-   switch(pname) {
-   case GL_TEXTURE_GEN_MODE:
-      if (param != GL_NORMAL_MAP && param != GL_REFLECTION_MAP) {
-         _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                     "glTexGenxOES(pname=0x%x)", pname);
-         return;
-      }
-      break;
-   default:
-      _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                  "glTexGenxOES(pname=0x%x)", pname);
-      return;
-   }
-
    _es_TexGenf(coord, pname, (GLfloat) param);
 }
 
 void GL_APIENTRY
 _check_TexGenxvOES(GLenum coord, GLenum pname, const GLfixed *params)
 {
-    unsigned int i;
-    unsigned int n_params = 1;
-    GLfloat converted_params[1];
-
-    switch(coord) {
-    case GL_TEXTURE_GEN_STR_OES:
-       break;
-    default:
-       _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                   "glTexGenxvOES(coord=0x%x)", coord);
-       return;
-    }
-    switch(pname) {
-    case GL_TEXTURE_GEN_MODE:
-       if (params[0] != GL_NORMAL_MAP && params[0] != GL_REFLECTION_MAP) {
-          _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                      "glTexGenxvOES(pname=0x%x)", pname);
-          return;
-       }
-       n_params = 1;
-       break;
-    default:
-       _mesa_error(_mesa_get_current_context(), GL_INVALID_ENUM,
-                   "glTexGenxvOES(pname=0x%x)", pname);
-       return;
-    }
-
-    for (i = 0; i < n_params; i++) {
-       converted_params[i] = (GLfloat) params[i];
-    }
-
-    _es_TexGenfv(coord, pname, converted_params);
+   _es_TexGenf(coord, pname, (GLfloat) params[0]);
 }
 
 void GL_APIENTRY

@@ -178,6 +178,7 @@ number_formatting(void)
         assert(check_signed_number_format_test(signed_tests + i));
 }
 
+#pragma GCC diagnostic ignored "-Wformat-security"
 static void logging_format(void)
 {
     const char *log_file_path = "/tmp/Xorg-logging-test.log";
@@ -207,9 +208,7 @@ static void logging_format(void)
     assert(strcmp(logmsg, "(EE) test message\n") == 0);
 
     /* long buf is truncated to "....en\n" */
-#pragma GCC diagnostic ignored "-Wformat-security"
     LogMessageVerbSigSafe(X_ERROR, -1, buf);
-#pragma GCC diagnostic pop "-Wformat-security"
     read_log_msg(logmsg);
     assert(strcmp(&logmsg[strlen(logmsg) - 3], "en\n") == 0);
 
@@ -298,6 +297,7 @@ static void logging_format(void)
 
 #undef read_log_msg
 }
+#pragma GCC diagnostic pop "-Wformat-security"
 
 int
 main(int argc, char **argv)

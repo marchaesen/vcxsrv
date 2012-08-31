@@ -5474,6 +5474,24 @@
         </variant>
       </variantList>
     </layout>
+    <layout>
+      <configItem>
+        <name>md</name>
+        <_shortDescription>md</_shortDescription>
+        <_description>Moldavian</_description>
+        <languageList><iso639Id>rum</iso639Id></languageList>
+      </configItem>
+      <variantList>
+        <variant>
+          <configItem>
+            <name>gag</name>
+            <_shortDescription>gag</_shortDescription>
+            <_description>Gagauz</_description>
+            <languageList><iso639Id>gag</iso639Id></languageList>
+          </configItem>
+        </variant>
+      </variantList>
+    </layout>
   </layoutList>
   <optionList>
     <group allowMultipleSelection="true">

@@ -48,9 +48,8 @@ static void
 install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
                const GLvertexformat *vfmt)
 {
-   _mesa_install_arrayelt_vtxfmt(tab, vfmt);
-
    if (ctx->API != API_OPENGL_CORE) {
+      _mesa_install_arrayelt_vtxfmt(tab, vfmt);
       SET_Color3f(tab, vfmt->Color3f);
       SET_Color3fv(tab, vfmt->Color3fv);
       SET_Color4f(tab, vfmt->Color4f);
@@ -58,7 +57,9 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
       SET_EdgeFlag(tab, vfmt->EdgeFlag);
    }
 
-   _mesa_install_eval_vtxfmt(tab, vfmt);
+   if (ctx->API == API_OPENGL) {
+      _mesa_install_eval_vtxfmt(tab, vfmt);
+   }
 
    if (ctx->API != API_OPENGL_CORE) {
       SET_FogCoordfEXT(tab, vfmt->FogCoordfEXT);
@@ -94,7 +95,9 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
       SET_Vertex4fv(tab, vfmt->Vertex4fv);
    }
 
-   _mesa_install_dlist_vtxfmt(tab, vfmt);   /* glCallList / glCallLists */
+   if (ctx->API == API_OPENGL) {
+      _mesa_install_dlist_vtxfmt(tab, vfmt);   /* glCallList / glCallLists */
+   }
 
    if (ctx->API != API_OPENGL_CORE) {
       SET_Begin(tab, vfmt->Begin);
@@ -218,8 +221,7 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
 void
 _mesa_install_exec_vtxfmt(struct gl_context *ctx, const GLvertexformat *vfmt)
 {
-   if (_mesa_is_desktop_gl(ctx))
-      install_vtxfmt( ctx, ctx->Exec, vfmt );
+   install_vtxfmt( ctx, ctx->Exec, vfmt );
 }
 
 

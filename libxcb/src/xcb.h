@@ -84,6 +84,9 @@ extern "C" {
 /** Connection closed, error during parsing display string. */
 #define XCB_CONN_CLOSED_PARSE_ERR 5
 
+/** Connection closed because the server does not have a screen matching the display. */
+#define XCB_CONN_CLOSED_INVALID_SCREEN 6
+
 #define XCB_TYPE_PAD(T,I) (-(I) & (sizeof(T) > 4 ? 3 : sizeof(T) - 1))
 
 /* Opaque structures */
@@ -423,6 +426,7 @@ int xcb_get_file_descriptor(xcb_connection_t *c);
  * @return XCB_CONN_CLOSED_MEM_INSUFFICIENT, when memory not available.
  * @return XCB_CONN_CLOSED_REQ_LEN_EXCEED, exceeding request length that server accepts.
  * @return XCB_CONN_CLOSED_PARSE_ERR, error during parsing display string.
+ * @return XCB_CONN_CLOSED_INVALID_SCREEN, because the server does not have a screen matching the display.
  */
 int xcb_connection_has_error(xcb_connection_t *c);
 
