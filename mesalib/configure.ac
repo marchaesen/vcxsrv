@@ -28,7 +28,7 @@ LT_INIT([disable-static])
 
 dnl Versions for external dependencies
 LIBDRM_REQUIRED=2.4.24
-LIBDRM_RADEON_REQUIRED=2.4.38
+LIBDRM_RADEON_REQUIRED=2.4.39
 LIBDRM_INTEL_REQUIRED=2.4.38
 LIBDRM_NVVIEUX_REQUIRED=2.4.33
 LIBDRM_NOUVEAU_REQUIRED=2.4.33
@@ -644,7 +644,7 @@ GALLIUM_DRIVERS_DEFAULT="r300,r600,svga,swrast"
 AC_ARG_WITH([gallium-drivers],
     [AS_HELP_STRING([--with-gallium-drivers@<:@=DIRS...@:>@],
         [comma delimited Gallium drivers list, e.g.
-        "i915,nouveau,r300,r600,svga,swrast"
+        "i915,nouveau,r300,r600,radeonsi,svga,swrast"
         @<:@default=r300,r600,swrast@:>@])],
     [with_gallium_drivers="$withval"],
     [with_gallium_drivers="$GALLIUM_DRIVERS_DEFAULT"])

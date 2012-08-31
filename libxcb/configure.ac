@@ -1,11 +1,18 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
+# Initialize Autoconf
 AC_PREREQ(2.57)
 AC_INIT([libxcb],
         1.8.1,
         [xcb@lists.freedesktop.org])
 AC_CONFIG_SRCDIR([xcb.pc.in])
+# Set common system defines for POSIX extensions, such as _GNU_SOURCE
+# Must be called before any macros that run the compiler (like AC_PROG_LIBTOOL)
+# to avoid autoconf errors.
+AC_USE_SYSTEM_EXTENSIONS
+
+# Initialize Automake
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 

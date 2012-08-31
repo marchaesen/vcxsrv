@@ -167,6 +167,15 @@ _mesa_Clear( GLbitfield mask )
       return;
    }
 
+   /* Accumulation buffers were removed in core contexts, and they never
+    * existed in OpenGL ES.
+    */
+   if ((mask & GL_ACCUM_BUFFER_BIT) != 0
+       && (ctx->API == API_OPENGL_CORE || _mesa_is_gles(ctx))) {
+      _mesa_error( ctx, GL_INVALID_VALUE, "glClear(GL_ACCUM_BUFFER_BIT)");
+      return;
+   }
+
    if (ctx->NewState) {
       _mesa_update_state( ctx );	/* update _Xmin, etc */
    }
@@ -510,7 +519,7 @@ _mesa_ClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
             /* save color */
             clearSave = ctx->Color.ClearColor;
             /* set color */
-            COPY_4V_CAST(ctx->Color.ClearColor.f, value, GLclampf);
+            COPY_4V(ctx->Color.ClearColor.f, value);
             /* clear buffer(s) */
             ctx->Driver.Clear(ctx, mask);
             /* restore color */

@@ -176,6 +176,9 @@ def c_open(self):
     _h('')
     _h('#include "xcb.h"')
 
+    _c('#ifdef HAVE_CONFIG_H')
+    _c('#include "config.h"')
+    _c('#endif')
     _c('#include <stdlib.h>')
     _c('#include <string.h>')
     _c('#include <assert.h>')

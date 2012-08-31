@@ -25,6 +25,10 @@
 
 /* Stuff that reads stuff from the server. */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>

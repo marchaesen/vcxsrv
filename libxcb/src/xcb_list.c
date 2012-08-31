@@ -25,6 +25,10 @@
 
 /* A generic implementation of a list of void-pointers. */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdlib.h>
 
 #include "xcb.h"

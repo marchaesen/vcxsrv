@@ -25,6 +25,10 @@
 
 /* Connection management: the core of XCB. */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
@@ -68,6 +72,7 @@ typedef struct {
 static const int xcb_con_error = XCB_CONN_ERROR;
 static const int xcb_con_closed_mem_er = XCB_CONN_CLOSED_MEM_INSUFFICIENT;
 static const int xcb_con_closed_parse_er = XCB_CONN_CLOSED_PARSE_ERR;
+static const int xcb_con_closed_screen_er = XCB_CONN_CLOSED_INVALID_SCREEN;
 
 static int set_fd_flags(const int fd)
 {
@@ -365,6 +370,10 @@ xcb_connection_t *_xcb_conn_ret_error(int err)
         case XCB_CONN_CLOSED_PARSE_ERR:
         {
             return (xcb_connection_t *) &xcb_con_closed_parse_er;
+        }
+        case XCB_CONN_CLOSED_INVALID_SCREEN:
+        {
+            return (xcb_connection_t *) &xcb_con_closed_screen_er;
         }
         case XCB_CONN_ERROR:
         default:

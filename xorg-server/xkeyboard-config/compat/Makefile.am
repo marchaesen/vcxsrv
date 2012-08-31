@@ -1,6 +1,6 @@
 compatdir = $(xkb_base)/compat
 
-dist_compat_DATA = \
+compat_DATA = \
 accessx basic caps complete \
 iso9995 \
 japan ledcaps \
@@ -9,7 +9,4 @@ misc mousekeys \
 olpc pc pc98 xfree86 \
 xtest README
 
-dir_data = $(dist_compat_DATA)
-
-include $(top_srcdir)/xkbrules.am
-
+EXTRA_DIST = $(compat_DATA)

@@ -284,6 +284,12 @@ static const int extra_GLSL_130[] = {
    EXTRA_END
 };
 
+static const int extra_texture_buffer_object[] = {
+   EXTRA_VERSION_31,
+   EXT(ARB_texture_buffer_object),
+   EXTRA_END
+};
+
 static const int extra_ARB_uniform_buffer_object_and_geometry_shader[] = {
    EXT(ARB_uniform_buffer_object),
    EXT(ARB_geometry_shader4),
@@ -316,7 +322,6 @@ EXTRA_EXT(ARB_fragment_shader);
 EXTRA_EXT(ARB_fragment_program);
 EXTRA_EXT2(ARB_framebuffer_object, EXT_framebuffer_multisample);
 EXTRA_EXT(EXT_framebuffer_object);
-EXTRA_EXT(APPLE_vertex_array_object);
 EXTRA_EXT(ARB_seamless_cube_map);
 EXTRA_EXT(EXT_compiled_vertex_array);
 EXTRA_EXT(ARB_sync);
@@ -530,6 +535,9 @@ static const struct value_desc values[] = {
     * GLSL: */
    { GL_MAX_CLIP_PLANES, CONTEXT_INT(Const.MaxClipPlanes), NO_EXTRA },
 
+   /* GL_{APPLE,ARB,OES}_vertex_array_object */
+   { GL_VERTEX_ARRAY_BINDING_APPLE, ARRAY_INT(Name), NO_EXTRA },
+
 #if FEATURE_GL || FEATURE_ES1
    /* Enums in OpenGL and GLES1 */
    { 0, 0, TYPE_API_MASK, API_OPENGL_BIT | API_OPENGLES_BIT | API_OPENGL_CORE_BIT, NO_EXTRA },
@@ -701,10 +709,19 @@ static const struct value_desc values[] = {
 #endif /* FEATURE_ES1 */
 
 #if FEATURE_GL || FEATURE_ES2
-   { 0, 0, TYPE_API_MASK, API_OPENGL_BIT | API_OPENGLES2_BIT, NO_EXTRA },
+   { 0, 0, TYPE_API_MASK, API_OPENGL_BIT | API_OPENGL_CORE_BIT | API_OPENGLES2_BIT, NO_EXTRA },
    { GL_MAX_TEXTURE_COORDS_ARB, /* == GL_MAX_TEXTURE_COORDS_NV */
      CONTEXT_INT(Const.MaxTextureCoordUnits),
      extra_ARB_fragment_program_NV_fragment_program },
+   { GL_PACK_IMAGE_HEIGHT_EXT, CONTEXT_INT(Pack.ImageHeight), NO_EXTRA },
+   { GL_PACK_ROW_LENGTH, CONTEXT_INT(Pack.RowLength), NO_EXTRA },
+   { GL_PACK_SKIP_PIXELS, CONTEXT_INT(Pack.SkipPixels), NO_EXTRA },
+   { GL_PACK_SKIP_ROWS, CONTEXT_INT(Pack.SkipRows), NO_EXTRA },
+   { GL_UNPACK_ROW_LENGTH, CONTEXT_INT(Unpack.RowLength), NO_EXTRA },
+   { GL_UNPACK_SKIP_PIXELS, CONTEXT_INT(Unpack.SkipPixels), NO_EXTRA },
+   { GL_UNPACK_SKIP_ROWS, CONTEXT_INT(Unpack.SkipRows), NO_EXTRA },
+   { GL_UNPACK_SKIP_IMAGES_EXT, CONTEXT_INT(Unpack.SkipImages), NO_EXTRA },
+   { GL_UNPACK_IMAGE_HEIGHT_EXT, CONTEXT_INT(Unpack.ImageHeight), NO_EXTRA },
 
    /* GL_ARB_draw_buffers */
    { GL_MAX_DRAW_BUFFERS_ARB, CONTEXT_INT(Const.MaxDrawBuffers), NO_EXTRA },
@@ -882,11 +899,7 @@ static const struct value_desc values[] = {
    { GL_MAX_PIXEL_MAP_TABLE, CONST(MAX_PIXEL_MAP_TABLE), NO_EXTRA },
    { GL_NAME_STACK_DEPTH, CONTEXT_INT(Select.NameStackDepth), NO_EXTRA },
    { GL_PACK_LSB_FIRST, CONTEXT_BOOL(Pack.LsbFirst), NO_EXTRA },
-   { GL_PACK_ROW_LENGTH, CONTEXT_INT(Pack.RowLength), NO_EXTRA },
-   { GL_PACK_SKIP_PIXELS, CONTEXT_INT(Pack.SkipPixels), NO_EXTRA },
-   { GL_PACK_SKIP_ROWS, CONTEXT_INT(Pack.SkipRows), NO_EXTRA },
    { GL_PACK_SWAP_BYTES, CONTEXT_BOOL(Pack.SwapBytes), NO_EXTRA },
-   { GL_PACK_IMAGE_HEIGHT_EXT, CONTEXT_INT(Pack.ImageHeight), NO_EXTRA },
    { GL_PACK_INVERT_MESA, CONTEXT_BOOL(Pack.Invert), NO_EXTRA },
    { GL_PIXEL_MAP_A_TO_A_SIZE, CONTEXT_INT(PixelMaps.AtoA.Size), NO_EXTRA },
    { GL_PIXEL_MAP_B_TO_B_SIZE, CONTEXT_INT(PixelMaps.BtoB.Size), NO_EXTRA },
@@ -936,12 +949,7 @@ static const struct value_desc values[] = {
    { GL_TEXTURE_GEN_Q, LOC_TEXUNIT, TYPE_BIT_3,
      offsetof(struct gl_texture_unit, TexGenEnabled), NO_EXTRA },
    { GL_UNPACK_LSB_FIRST, CONTEXT_BOOL(Unpack.LsbFirst), NO_EXTRA },
-   { GL_UNPACK_ROW_LENGTH, CONTEXT_INT(Unpack.RowLength), NO_EXTRA },
-   { GL_UNPACK_SKIP_PIXELS, CONTEXT_INT(Unpack.SkipPixels), NO_EXTRA },
-   { GL_UNPACK_SKIP_ROWS, CONTEXT_INT(Unpack.SkipRows), NO_EXTRA },
    { GL_UNPACK_SWAP_BYTES, CONTEXT_BOOL(Unpack.SwapBytes), NO_EXTRA },
-   { GL_UNPACK_SKIP_IMAGES_EXT, CONTEXT_INT(Unpack.SkipImages), NO_EXTRA },
-   { GL_UNPACK_IMAGE_HEIGHT_EXT, CONTEXT_INT(Unpack.ImageHeight), NO_EXTRA },
    { GL_ZOOM_X, CONTEXT_FLOAT(Pixel.ZoomX), NO_EXTRA },
    { GL_ZOOM_Y, CONTEXT_FLOAT(Pixel.ZoomY), NO_EXTRA },
 
@@ -1207,10 +1215,6 @@ static const struct value_desc values[] = {
    { GL_MAX_SAMPLES, CONTEXT_INT(Const.MaxSamples),
      extra_ARB_framebuffer_object_EXT_framebuffer_multisample },
 
-   /* GL_APPLE_vertex_array_object */
-   { GL_VERTEX_ARRAY_BINDING_APPLE, ARRAY_INT(Name),
-     extra_APPLE_vertex_array_object },
-
    /* GL_ARB_seamless_cube_map */
    { GL_TEXTURE_CUBE_MAP_SEAMLESS,
      CONTEXT_BOOL(Texture.CubeMapSeamless), extra_ARB_seamless_cube_map },
@@ -1287,15 +1291,15 @@ static const struct value_desc values[] = {
 
    /* GL_ARB_texture_buffer_object */
    { GL_MAX_TEXTURE_BUFFER_SIZE_ARB, CONTEXT_INT(Const.MaxTextureBufferSize),
-     extra_ARB_texture_buffer_object },
+     extra_texture_buffer_object },
    { GL_TEXTURE_BINDING_BUFFER_ARB, LOC_CUSTOM, TYPE_INT, 0,
-     extra_ARB_texture_buffer_object },
+     extra_texture_buffer_object },
    { GL_TEXTURE_BUFFER_DATA_STORE_BINDING_ARB, LOC_CUSTOM, TYPE_INT,
-     TEXTURE_BUFFER_INDEX, extra_ARB_texture_buffer_object },
+     TEXTURE_BUFFER_INDEX, extra_texture_buffer_object },
    { GL_TEXTURE_BUFFER_FORMAT_ARB, LOC_CUSTOM, TYPE_INT, 0,
-     extra_ARB_texture_buffer_object },
+     extra_texture_buffer_object },
    { GL_TEXTURE_BUFFER_ARB, LOC_CUSTOM, TYPE_INT, 0,
-     extra_ARB_texture_buffer_object },
+     extra_texture_buffer_object },
 
    /* GL_ARB_sampler_objects / GL 3.3 */
    { GL_SAMPLER_BINDING,

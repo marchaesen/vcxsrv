@@ -14,11 +14,6 @@ AC_PROG_SED
 
 AC_SUBST(VERSION)
 
-AC_PATH_PROG([XKBCOMP], [xkbcomp], [not_found])
-if test x$XKBCOMP = xnot_found ; then
-        AC_ERROR([xkbcomp is required to install the xkb data files])
-fi
-
 AC_ARG_WITH( xkb_base,
              [AS_HELP_STRING([--with-xkb-base=DIR],[XKB base path @<:@DATADIR/X11/xkb@:>@])],
              xkb_base="$withval", 

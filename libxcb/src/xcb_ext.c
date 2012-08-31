@@ -25,6 +25,10 @@
 
 /* A cache for QueryExtension results. */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 

@@ -200,11 +200,16 @@ extern GLfloat _mesa_ubyte_to_float_color_tab[256];
               (a)[3] == (b)[3])
 
 /** Test for equality (unsigned bytes) */
+static inline GLboolean
+TEST_EQ_4UBV(const GLubyte a[4], const GLubyte b[4])
+{
 #if defined(__i386__)
-#define TEST_EQ_4UBV(DST, SRC) *((GLuint*)(DST)) == *((GLuint*)(SRC))
+   return *((const GLuint *) a) == *((const GLuint *) b);
 #else
-#define TEST_EQ_4UBV(DST, SRC) TEST_EQ_4V(DST, SRC)
+   return TEST_EQ_4V(a, b);
 #endif
+}
+
 
 /** Copy a 4-element vector */
 #define COPY_4V( DST, SRC )         \
@@ -215,40 +220,25 @@ do {                                \
    (DST)[3] = (SRC)[3];             \
 } while (0)
 
-/** Copy a 4-element vector with cast */
-#define COPY_4V_CAST( DST, SRC, CAST )  \
-do {                                    \
-   (DST)[0] = (CAST)(SRC)[0];           \
-   (DST)[1] = (CAST)(SRC)[1];           \
-   (DST)[2] = (CAST)(SRC)[2];           \
-   (DST)[3] = (CAST)(SRC)[3];           \
-} while (0)
-
 /** Copy a 4-element unsigned byte vector */
+static inline void
+COPY_4UBV(GLubyte dst[4], const GLubyte src[4])
+{
 #if defined(__i386__)
-#define COPY_4UBV(DST, SRC)                 \
-do {                                        \
-   *((GLuint*)(DST)) = *((GLuint*)(SRC));   \
-} while (0)
+   *((GLuint *) dst) = *((GLuint *) src);
 #else
-/* The GLuint cast might fail if DST or SRC are not dword-aligned (RISC) */
-#define COPY_4UBV(DST, SRC)         \
-do {                                \
-   (DST)[0] = (SRC)[0];             \
-   (DST)[1] = (SRC)[1];             \
-   (DST)[2] = (SRC)[2];             \
-   (DST)[3] = (SRC)[3];             \
-} while (0)
+   /* The GLuint cast might fail if DST or SRC are not dword-aligned (RISC) */
+   COPY_4V(dst, src);
 #endif
+}
 
-/**
- * Copy a 4-element float vector
- * memcpy seems to be most efficient
- */
-#define COPY_4FV( DST, SRC )                  \
-do {                                          \
-   memcpy(DST, SRC, sizeof(GLfloat) * 4);     \
-} while (0)
+/** Copy a 4-element float vector */
+static inline void
+COPY_4FV(GLfloat dst[4], const GLfloat src[4])
+{
+   /* memcpy seems to be most efficient */
+   memcpy(dst, src, sizeof(GLfloat) * 4);
+}
 
 /** Copy \p SZ elements into a 4-element vector */
 #define COPY_SZ_4V(DST, SZ, SRC)  \
@@ -584,34 +574,31 @@ do {				\
 /*@}*/
 
 
-/** \name Linear interpolation macros */
+/** \name Linear interpolation functions */
 /*@{*/
 
-/**
- * Linear interpolation
- *
- * \note \p OUT argument is evaluated twice!
- * \note Be wary of using *coord++ as an argument to any of these macros!
- */
-#define LINTERP(T, OUT, IN) ((OUT) + (T) * ((IN) - (OUT)))
+static inline GLfloat
+LINTERP(GLfloat t, GLfloat out, GLfloat in)
+{
+   return out + t * (in - out);
+}
 
-#define INTERP_F( t, dstf, outf, inf )      \
-   dstf = LINTERP( t, outf, inf )
+static inline void
+INTERP_3F(GLfloat t, GLfloat dst[3], const GLfloat out[3], const GLfloat in[3])
+{
+   dst[0] = LINTERP( t, out[0], in[0] );
+   dst[1] = LINTERP( t, out[1], in[1] );
+   dst[2] = LINTERP( t, out[2], in[2] );
+}
 
-#define INTERP_4F( t, dst, out, in )        \
-do {                        \
-   dst[0] = LINTERP( (t), (out)[0], (in)[0] );  \
-   dst[1] = LINTERP( (t), (out)[1], (in)[1] );  \
-   dst[2] = LINTERP( (t), (out)[2], (in)[2] );  \
-   dst[3] = LINTERP( (t), (out)[3], (in)[3] );  \
-} while (0)
-
-#define INTERP_3F( t, dst, out, in )        \
-do {                        \
-   dst[0] = LINTERP( (t), (out)[0], (in)[0] );  \
-   dst[1] = LINTERP( (t), (out)[1], (in)[1] );  \
-   dst[2] = LINTERP( (t), (out)[2], (in)[2] );  \
-} while (0)
+static inline void
+INTERP_4F(GLfloat t, GLfloat dst[4], const GLfloat out[4], const GLfloat in[4])
+{
+   dst[0] = LINTERP( t, out[0], in[0] );
+   dst[1] = LINTERP( t, out[1], in[1] );
+   dst[2] = LINTERP( t, out[2], in[2] );
+   dst[3] = LINTERP( t, out[3], in[3] );
+}
 
 /*@}*/
 
@@ -630,43 +617,76 @@ do {                        \
 #define MIN3( A, B, C ) ((A) < (B) ? MIN2(A, C) : MIN2(B, C))
 #define MAX3( A, B, C ) ((A) > (B) ? MAX2(A, C) : MAX2(B, C))
 
-/** Dot product of two 2-element vectors */
-#define DOT2( a, b )  ( (a)[0]*(b)[0] + (a)[1]*(b)[1] )
-
-/** Dot product of two 3-element vectors */
-#define DOT3( a, b )  ( (a)[0]*(b)[0] + (a)[1]*(b)[1] + (a)[2]*(b)[2] )
-
-/** Dot product of two 4-element vectors */
-#define DOT4( a, b )  ( (a)[0]*(b)[0] + (a)[1]*(b)[1] + \
-            (a)[2]*(b)[2] + (a)[3]*(b)[3] )
 
 
 /** Cross product of two 3-element vectors */
-#define CROSS3(n, u, v)             \
-do {                        \
-   (n)[0] = (u)[1]*(v)[2] - (u)[2]*(v)[1];  \
-   (n)[1] = (u)[2]*(v)[0] - (u)[0]*(v)[2];  \
-   (n)[2] = (u)[0]*(v)[1] - (u)[1]*(v)[0];  \
-} while (0)
+static inline void
+CROSS3(GLfloat n[3], const GLfloat u[3], const GLfloat v[3])
+{
+   n[0] = u[1] * v[2] - u[2] * v[1];
+   n[1] = u[2] * v[0] - u[0] * v[2];
+   n[2] = u[0] * v[1] - u[1] * v[0];
+}
+
+
+/** Dot product of two 2-element vectors */
+static inline GLfloat
+DOT2(const GLfloat a[2], const GLfloat b[2])
+{
+   return a[0] * b[0] + a[1] * b[1];
+}
+
+static inline GLfloat
+DOT3(const GLfloat a[3], const GLfloat b[3])
+{
+   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+static inline GLfloat
+DOT4(const GLfloat a[4], const GLfloat b[4])
+{
+   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+}
+
+
+static inline GLfloat
+LEN_SQUARED_3FV(const GLfloat v[3])
+{
+   return DOT3(v, v);
+}
+
+static inline GLfloat
+LEN_SQUARED_2FV(const GLfloat v[2])
+{
+   return DOT2(v, v);
+}
+
+
+static inline GLfloat
+LEN_3FV(const GLfloat v[3])
+{
+   return SQRTF(LEN_SQUARED_3FV(v));
+}
+
+static inline GLfloat
+LEN_2FV(const GLfloat v[2])
+{
+   return SQRTF(LEN_SQUARED_2FV(v));
+}
 
 
 /* Normalize a 3-element vector to unit length. */
-#define NORMALIZE_3FV( V )          \
-do {                        \
-   GLfloat len = (GLfloat) LEN_SQUARED_3FV(V);  \
-   if (len) {                   \
-      len = INV_SQRTF(len);         \
-      (V)[0] = (GLfloat) ((V)[0] * len);    \
-      (V)[1] = (GLfloat) ((V)[1] * len);    \
-      (V)[2] = (GLfloat) ((V)[2] * len);    \
-   }                        \
-} while(0)
-
-#define LEN_3FV( V ) (SQRTF((V)[0]*(V)[0]+(V)[1]*(V)[1]+(V)[2]*(V)[2]))
-#define LEN_2FV( V ) (SQRTF((V)[0]*(V)[0]+(V)[1]*(V)[1]))
-
-#define LEN_SQUARED_3FV( V ) ((V)[0]*(V)[0]+(V)[1]*(V)[1]+(V)[2]*(V)[2])
-#define LEN_SQUARED_2FV( V ) ((V)[0]*(V)[0]+(V)[1]*(V)[1])
+static inline void
+NORMALIZE_3FV(GLfloat v[3])
+{
+   GLfloat len = (GLfloat) LEN_SQUARED_3FV(v);
+   if (len) {
+      len = INV_SQRTF(len);
+      v[0] *= len;
+      v[1] *= len;
+      v[2] *= len;
+   }
+}
 
 
 /** Compute ceiling of integer quotient of A divided by B. */

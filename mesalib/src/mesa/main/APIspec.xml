@@ -58,29 +58,6 @@
 			<param name="param" type="GLtype"/>
 		</vector>
 	</proto>
-
-        <desc name="pname">
-		<value name="GL_FOG_MODE"/>
-		<desc name="param">
-			<value name="GL_EXP"/>
-			<value name="GL_EXP2"/>
-			<value name="GL_LINEAR"/>
-		</desc>
-        </desc>
-
-	<desc name="pname">
-		<value name="GL_FOG_COLOR"/>
-
-		<desc name="params" vector_size="4"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_FOG_DENSITY"/>
-		<value name="GL_FOG_START"/>
-		<value name="GL_FOG_END"/>
-
-		<desc name="params" vector_size="1"/>
-	</desc>
 </template>
 
 <template name="FrontFace">
@@ -96,19 +73,6 @@
 		<param name="target" type="GLenum"/>
 		<param name="mode" type="GLenum"/>
 	</proto>
-
-	<desc name="target" category="GLES1.1">
-		<value name="GL_FOG_HINT"/>
-		<value name="GL_LINE_SMOOTH_HINT"/>
-		<value name="GL_PERSPECTIVE_CORRECTION_HINT"/>
-		<value name="GL_POINT_SMOOTH_HINT"/>
-	</desc>
-	<desc name="target" category="OES_standard_derivatives">
-		<value name="GL_FRAGMENT_SHADER_DERIVATIVE_HINT_OES"/>
-	</desc>
-	<desc name="target">
-		<value name="GL_GENERATE_MIPMAP_HINT"/>
-	</desc>
 </template>
 
 <template name="Light">
@@ -130,20 +94,6 @@
 			<param name="param" type="GLtype"/>
 		</vector>
 	</proto>
-
-	<desc name="pname">
-		<value name="GL_LIGHT_MODEL_AMBIENT"/>
-
-		<desc name="params" vector_size="4"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_LIGHT_MODEL_TWO_SIDE"/>
-		<desc name="param">
-			<value name="GL_TRUE"/>
-			<value name="GL_FALSE"/>
-		</desc>
-	</desc>
 </template>
 
 <template name="LineWidth">
@@ -162,26 +112,6 @@
 			<param name="param" type="GLtype"/>
 		</vector>
 	</proto>
-
-	<desc name="face">
-		<value name="GL_FRONT_AND_BACK"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_AMBIENT"/>
-		<value name="GL_DIFFUSE"/>
-		<value name="GL_AMBIENT_AND_DIFFUSE"/>
-		<value name="GL_SPECULAR"/>
-		<value name="GL_EMISSION"/>
-
-		<desc name="params" vector_size="4"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_SHININESS"/>
-
-		<desc name="params" vector_size="1"/>
-	</desc>
 </template>
 
 <template name="PointSize">
@@ -252,155 +182,6 @@
 			<param name="param" type="GLtype"/>
 		</vector>
 	</proto>
-
-	<desc name="target" category="OES_point_sprite">
-		<value name="GL_POINT_SPRITE_OES"/>
-
-		<desc name="pname">
-			<value name="GL_COORD_REPLACE_OES"/>
-		</desc>
-	</desc>
-
-	<desc name="pname" category="OES_point_sprite">
-		<value name="GL_COORD_REPLACE_OES"/>
-
-		<desc name="param">
-			<value name="GL_TRUE"/>
-			<value name="GL_FALSE"/>
-		</desc>
-	</desc>
-
-	<desc name="target" category="EXT_texture_lod_bias">
-		<value name="GL_TEXTURE_FILTER_CONTROL_EXT"/>
-
-		<desc name="pname">
-			<value name="GL_TEXTURE_LOD_BIAS_EXT"/>
-		</desc>
-	</desc>
-
-	<desc name="pname" category="EXT_texture_lod_bias">
-		<value name="GL_TEXTURE_LOD_BIAS_EXT"/>
-		<desc name="params" vector_size="1"/>
-	</desc>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_ENV"/>
-
-		<desc name="pname">
-			<value name="GL_TEXTURE_ENV_MODE"/>
-			<value name="GL_COMBINE_RGB"/>
-			<value name="GL_COMBINE_ALPHA"/>
-			<value name="GL_RGB_SCALE"/>
-			<value name="GL_ALPHA_SCALE"/>
-			<value name="GL_SRC0_RGB"/>
-			<value name="GL_SRC1_RGB"/>
-			<value name="GL_SRC2_RGB"/>
-			<value name="GL_SRC0_ALPHA"/>
-			<value name="GL_SRC1_ALPHA"/>
-			<value name="GL_SRC2_ALPHA"/>
-			<value name="GL_OPERAND0_RGB"/>
-			<value name="GL_OPERAND1_RGB"/>
-			<value name="GL_OPERAND2_RGB"/>
-			<value name="GL_OPERAND0_ALPHA"/>
-			<value name="GL_OPERAND1_ALPHA"/>
-			<value name="GL_OPERAND2_ALPHA"/>
-			<value name="GL_TEXTURE_ENV_COLOR"/>
-		</desc>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_TEXTURE_ENV_MODE"/>
-
-		<desc name="param">
-			<value name="GL_REPLACE"/>
-			<value name="GL_MODULATE"/>
-			<value name="GL_DECAL"/>
-			<value name="GL_BLEND"/>
-			<value name="GL_ADD"/>
-			<value name="GL_COMBINE"/>
-		</desc>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_COMBINE_RGB"/>
-
-		<desc name="param">
-			<value name="GL_REPLACE"/>
-			<value name="GL_MODULATE"/>
-			<value name="GL_ADD"/>
-			<value name="GL_ADD_SIGNED"/>
-			<value name="GL_INTERPOLATE"/>
-			<value name="GL_SUBTRACT"/>
-			<value name="GL_DOT3_RGB"/>
-			<value name="GL_DOT3_RGBA"/>
-		</desc>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_COMBINE_ALPHA"/>
-
-		<desc name="param">
-			<value name="GL_REPLACE"/>
-			<value name="GL_MODULATE"/>
-			<value name="GL_ADD"/>
-			<value name="GL_ADD_SIGNED"/>
-			<value name="GL_INTERPOLATE"/>
-			<value name="GL_SUBTRACT"/>
-		</desc>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_RGB_SCALE"/>
-		<value name="GL_ALPHA_SCALE"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_SRC0_RGB"/>
-		<value name="GL_SRC1_RGB"/>
-		<value name="GL_SRC2_RGB"/>
-		<value name="GL_SRC0_ALPHA"/>
-		<value name="GL_SRC1_ALPHA"/>
-		<value name="GL_SRC2_ALPHA"/>
-
-		<desc name="param">
-			<value name="GL_TEXTURE"/>
-			<value name="GL_CONSTANT"/>
-			<value name="GL_PRIMARY_COLOR"/>
-			<value name="GL_PREVIOUS"/>
-
-			<range base="GL_TEXTURE" from="0" to="31" category="OES_texture_env_crossbar"/>
-		</desc>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_OPERAND0_RGB"/>
-		<value name="GL_OPERAND1_RGB"/>
-		<value name="GL_OPERAND2_RGB"/>
-
-		<desc name="param">
-			<value name="GL_SRC_COLOR"/>
-			<value name="GL_ONE_MINUS_SRC_COLOR"/>
-			<value name="GL_SRC_ALPHA"/>
-			<value name="GL_ONE_MINUS_SRC_ALPHA"/>
-		</desc>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_OPERAND0_ALPHA"/>
-		<value name="GL_OPERAND1_ALPHA"/>
-		<value name="GL_OPERAND2_ALPHA"/>
-
-		<desc name="param">
-			<value name="GL_SRC_ALPHA"/>
-			<value name="GL_ONE_MINUS_SRC_ALPHA"/>
-		</desc>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_TEXTURE_ENV_COLOR"/>
-
-		<desc name="params" vector_size="4"/>
-	</desc>
 </template>
 
 <template name="TexGen">
@@ -412,19 +193,6 @@
 			<param name="param" type="GLtype"/>
 		</vector>
 	</proto>
-
-	<desc name="coord" category="OES_texture_cube_map">
-		<value name="GL_TEXTURE_GEN_STR_OES"/>
-	</desc>
-
-	<desc name="pname" category="OES_texture_cube_map">
-		<value name="GL_TEXTURE_GEN_MODE_OES"/>
-
-		<desc name="param">
-			<value name="GL_NORMAL_MAP_OES"/>
-			<value name="GL_REFLECTION_MAP_OES"/>
-		</desc>
-	</desc>
 </template>
 
 <template name="Clear">
@@ -432,17 +200,6 @@
 		<return type="void"/>
 		<param name="mask" type="GLbitfield"/>
 	</proto>
-
-	<desc name="mask" error="GL_INVALID_VALUE">
-		<value name="0"/>
-		<value name="(GL_COLOR_BUFFER_BIT)"/>
-		<value name="(GL_DEPTH_BUFFER_BIT)"/>
-		<value name="(GL_STENCIL_BUFFER_BIT)"/>
-		<value name="(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)"/>
-		<value name="(GL_COLOR_BUFFER_BIT|GL_STENCIL_BUFFER_BIT)"/>
-		<value name="(GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT)"/>
-		<value name="(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT)"/>
-	</desc>
 </template>
 
 <template name="ClearColor">
@@ -506,56 +263,6 @@
 		<return type="void"/>
 		<param name="cap" type="GLenum"/>
 	</proto>
-
-	<desc name="cap" category="GLES1.1">
-		<value name="GL_NORMALIZE"/>
-		<value name="GL_RESCALE_NORMAL"/>
-
-		<range base="GL_CLIP_PLANE" from="0" to="5"/>
-		<value name="GL_CLIP_PLANE0+6"/>
-		<value name="GL_CLIP_PLANE0+7"/>
-
-		<value name="GL_FOG"/>
-		<value name="GL_LIGHTING"/>
-		<value name="GL_COLOR_MATERIAL"/>
-
-		<range base="GL_LIGHT" from="0" to="7"/>
-
-		<value name="GL_POINT_SMOOTH"/>
-		<value name="GL_LINE_SMOOTH"/>
-		<value name="GL_CULL_FACE"/>
-		<value name="GL_POLYGON_OFFSET_FILL"/>
-		<value name="GL_MULTISAMPLE"/>
-		<value name="GL_SAMPLE_ALPHA_TO_COVERAGE"/>
-		<value name="GL_SAMPLE_ALPHA_TO_ONE"/>
-		<value name="GL_SAMPLE_COVERAGE"/>
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_SCISSOR_TEST"/>
-		<value name="GL_ALPHA_TEST"/>
-		<value name="GL_STENCIL_TEST"/>
-		<value name="GL_DEPTH_TEST"/>
-		<value name="GL_BLEND"/>
-		<value name="GL_DITHER"/>
-		<value name="GL_COLOR_LOGIC_OP"/>
-
-		<value name="GL_POINT_SPRITE_OES" category="OES_point_sprite"/>
-		<value name="GL_MATRIX_PALETTE_OES" category="OES_matrix_palette"/>
-		<value name="GL_TEXTURE_CUBE_MAP_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_GEN_STR_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_EXTERNAL_OES" category="OES_EGL_image_external"/>
-	</desc>
-
-	<desc name="cap" category="GLES2.0">
-		<value name="GL_CULL_FACE"/>
-		<value name="GL_SCISSOR_TEST"/>
-		<value name="GL_POLYGON_OFFSET_FILL"/>
-		<value name="GL_SAMPLE_ALPHA_TO_COVERAGE"/>
-		<value name="GL_SAMPLE_COVERAGE"/>
-		<value name="GL_STENCIL_TEST"/>
-		<value name="GL_DEPTH_TEST"/>
-		<value name="GL_DITHER"/>
-		<value name="GL_BLEND"/>
-	</desc>
 </template>
 
 <!-- it is exactly the same as Disable -->
@@ -564,56 +271,6 @@
 		<return type="void"/>
 		<param name="cap" type="GLenum"/>
 	</proto>
-
-	<desc name="cap" category="GLES1.1">
-		<value name="GL_NORMALIZE"/>
-		<value name="GL_RESCALE_NORMAL"/>
-
-		<range base="GL_CLIP_PLANE" from="0" to="5"/>
-		<value name="GL_CLIP_PLANE0+6"/>
-		<value name="GL_CLIP_PLANE0+7"/>
-
-		<value name="GL_FOG"/>
-		<value name="GL_LIGHTING"/>
-		<value name="GL_COLOR_MATERIAL"/>
-
-		<range base="GL_LIGHT" from="0" to="7"/>
-
-		<value name="GL_POINT_SMOOTH"/>
-		<value name="GL_LINE_SMOOTH"/>
-		<value name="GL_CULL_FACE"/>
-		<value name="GL_POLYGON_OFFSET_FILL"/>
-		<value name="GL_MULTISAMPLE"/>
-		<value name="GL_SAMPLE_ALPHA_TO_COVERAGE"/>
-		<value name="GL_SAMPLE_ALPHA_TO_ONE"/>
-		<value name="GL_SAMPLE_COVERAGE"/>
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_SCISSOR_TEST"/>
-		<value name="GL_ALPHA_TEST"/>
-		<value name="GL_STENCIL_TEST"/>
-		<value name="GL_DEPTH_TEST"/>
-		<value name="GL_BLEND"/>
-		<value name="GL_DITHER"/>
-		<value name="GL_COLOR_LOGIC_OP"/>
-
-		<value name="GL_POINT_SPRITE_OES" category="OES_point_sprite"/>
-		<value name="GL_MATRIX_PALETTE_OES" category="OES_matrix_palette"/>
-		<value name="GL_TEXTURE_CUBE_MAP_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_GEN_STR_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_EXTERNAL_OES" category="OES_EGL_image_external"/>
-	</desc>
-
-	<desc name="cap" category="GLES2.0">
-		<value name="GL_CULL_FACE"/>
-		<value name="GL_SCISSOR_TEST"/>
-		<value name="GL_POLYGON_OFFSET_FILL"/>
-		<value name="GL_SAMPLE_ALPHA_TO_COVERAGE"/>
-		<value name="GL_SAMPLE_COVERAGE"/>
-		<value name="GL_STENCIL_TEST"/>
-		<value name="GL_DEPTH_TEST"/>
-		<value name="GL_DITHER"/>
-		<value name="GL_BLEND"/>
-	</desc>
 </template>
 
 <template name="Finish">
@@ -642,43 +299,6 @@
 		<param name="sfactor" type="GLenum"/>
 		<param name="dfactor" type="GLenum"/>
 	</proto>
-
-	<desc name="sfactor">
-		<value name="GL_ZERO"/>
-		<value name="GL_ONE"/>
-		<value name="GL_SRC_COLOR"/>
-		<value name="GL_ONE_MINUS_SRC_COLOR"/>
-		<value name="GL_SRC_ALPHA"/>
-		<value name="GL_ONE_MINUS_SRC_ALPHA"/>
-		<value name="GL_DST_ALPHA"/>
-		<value name="GL_ONE_MINUS_DST_ALPHA"/>
-		<value name="GL_DST_COLOR"/>
-		<value name="GL_ONE_MINUS_DST_COLOR"/>
-		<value name="GL_SRC_ALPHA_SATURATE"/>
-
-		<value name="GL_CONSTANT_COLOR" category="GLES2.0"/>
-		<value name="GL_CONSTANT_ALPHA" category="GLES2.0"/>
-		<value name="GL_ONE_MINUS_CONSTANT_COLOR" category="GLES2.0"/>
-		<value name="GL_ONE_MINUS_CONSTANT_ALPHA" category="GLES2.0"/>
-	</desc>
-
-	<desc name="dfactor">
-		<value name="GL_ZERO"/>
-		<value name="GL_ONE"/>
-		<value name="GL_SRC_COLOR"/>
-		<value name="GL_ONE_MINUS_SRC_COLOR"/>
-		<value name="GL_SRC_ALPHA"/>
-		<value name="GL_ONE_MINUS_SRC_ALPHA"/>
-		<value name="GL_DST_ALPHA"/>
-		<value name="GL_ONE_MINUS_DST_ALPHA"/>
-		<value name="GL_DST_COLOR"/>
-		<value name="GL_ONE_MINUS_DST_COLOR"/>
-
-		<value name="GL_CONSTANT_COLOR" category="GLES2.0"/>
-		<value name="GL_CONSTANT_ALPHA" category="GLES2.0"/>
-		<value name="GL_ONE_MINUS_CONSTANT_COLOR" category="GLES2.0"/>
-		<value name="GL_ONE_MINUS_CONSTANT_ALPHA" category="GLES2.0"/>
-	</desc>
 </template>
 
 <template name="LogicOp">
@@ -739,33 +359,6 @@
 		<param name="pname" type="GLenum"/>
 		<param name="param" type="GLtype"/>
 	</proto>
-
-	<desc name="pname">
-		<value name="GL_PACK_ALIGNMENT"/>
-		<desc name="param" error="GL_INVALID_VALUE">
-			<value name="1"/>
-			<value name="2"/>
-			<value name="4"/>
-			<value name="8"/>
-		</desc>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_UNPACK_ALIGNMENT"/>
-		<desc name="param" error="GL_INVALID_VALUE">
-			<value name="1"/>
-			<value name="2"/>
-			<value name="4"/>
-			<value name="8"/>
-		</desc>
-	</desc>
-
-	<desc name="pname" category="EXT_unpack_subimage">
-		<value name="GL_UNPACK_ROW_LENGTH"/>
-		<value name="GL_UNPACK_SKIP_PIXELS"/>
-		<value name="GL_UNPACK_SKIP_ROWS"/>
-	</desc>
-
 </template>
 
 <template name="ReadPixels" direction="get">
@@ -779,59 +372,6 @@
 		<param name="type" type="GLenum"/>
 		<param name="pixels" type="GLvoid *"/>
 	</proto>
-
-	<!-- Technically, only two combinations are actually allowed:
-	     GL_RGBA/GL_UNSIGNED_BYTE, and some implementation-specific
-	     internal preferred combination.  I don't know what that is, so I'm
-	     allowing any valid combination for now; the underlying support
-	     should fail when necessary.-->
-	<desc name="format">
-		<value name="GL_ALPHA"/>
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_RGB"/>
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_UNSIGNED_SHORT_5_6_5"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_RGBA"/>
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_UNSIGNED_SHORT_4_4_4_4"/>
-			<value name="GL_UNSIGNED_SHORT_5_5_5_1"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_LUMINANCE"/>
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-		</desc>
-	</desc>
-
-	<desc name="format">
-		<value name="GL_LUMINANCE_ALPHA"/>
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-		</desc>
-	</desc>
-
-	<desc name="format" category="EXT_read_format_bgra">
-		<value name="GL_BGRA_EXT"/>
-
-		<desc name="type" error="GL_INVALID_OPERATION">
-			<value name="GL_UNSIGNED_BYTE"/>
-			<value name="GL_UNSIGNED_SHORT_4_4_4_4_REV_EXT"/>
-			<value name="GL_UNSIGNED_SHORT_1_5_5_5_REV_EXT"/>
-		</desc>
-	</desc>
 </template>
 
 <template name="GetClipPlane" direction="get">
@@ -876,26 +416,6 @@
 			<param name="param" type="GLtype"/>
 		</vector>
 	</proto>
-
-	<desc name="face">
-		<value name="GL_FRONT"/>
-		<value name="GL_BACK"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_SHININESS"/>
-		<desc name="params" vector_size="1"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_AMBIENT"/>
-		<value name="GL_DIFFUSE"/>
-		<value name="GL_AMBIENT_AND_DIFFUSE"/>
-		<value name="GL_SPECULAR"/>
-		<value name="GL_EMISSION"/>
-
-		<desc name="params" vector_size="4"/>
-	</desc>
 </template>
 
 <template name="GetString" direction="get">
@@ -903,14 +423,6 @@
 		<return type="const GLubyte *"/>
 		<param name="name" type="GLenum"/>
 	</proto>
-
-	<desc name="name">
-		<value name="GL_VENDOR"/>
-		<value name="GL_RENDERER"/>
-		<value name="GL_VERSION"/>
-		<value name="GL_EXTENSIONS"/>
-		<value name="GL_SHADING_LANGUAGE_VERSION" category="GLES2.0"/>
-	</desc>
 </template>
 
 <template name="GetTexEnv" direction="get">
@@ -920,88 +432,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="params" type="GLtype *" size="dynamic"/>
 	</proto>
-
-	<desc name="target" category="OES_point_sprite">
-		<value name="GL_POINT_SPRITE_OES"/>
-		<desc name="pname">
-			<value name="GL_COORD_REPLACE_OES"/>
-		</desc>
-	</desc>
-
-	<desc name="pname" category="OES_point_sprite">
-		<value name="GL_COORD_REPLACE_OES"/>
-		<desc name="params" vector_size="1" convert="false"/>
-	</desc>
-
-	<desc name="target" category="EXT_texture_lod_bias">
-		<value name="GL_TEXTURE_FILTER_CONTROL_EXT"/>
-
-		<desc name="pname">
-			<value name="GL_TEXTURE_LOD_BIAS_EXT"/>
-		</desc>
-	</desc>
-
-	<desc name="pname" category="EXT_texture_lod_bias">
-		<value name="GL_TEXTURE_LOD_BIAS_EXT"/>
-		<desc name="params" vector_size="1"/>
-	</desc>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_ENV"/>
-
-		<desc name="pname">
-			<value name="GL_TEXTURE_ENV_COLOR"/>
-			<value name="GL_RGB_SCALE"/>
-			<value name="GL_ALPHA_SCALE"/>
-			<value name="GL_TEXTURE_ENV_MODE"/>
-			<value name="GL_COMBINE_RGB"/>
-			<value name="GL_COMBINE_ALPHA"/>
-			<value name="GL_SRC0_RGB"/>
-			<value name="GL_SRC1_RGB"/>
-			<value name="GL_SRC2_RGB"/>
-			<value name="GL_SRC0_ALPHA"/>
-			<value name="GL_SRC1_ALPHA"/>
-			<value name="GL_SRC2_ALPHA"/>
-			<value name="GL_OPERAND0_RGB"/>
-			<value name="GL_OPERAND1_RGB"/>
-			<value name="GL_OPERAND2_RGB"/>
-			<value name="GL_OPERAND0_ALPHA"/>
-			<value name="GL_OPERAND1_ALPHA"/>
-			<value name="GL_OPERAND2_ALPHA"/>
-		</desc>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_TEXTURE_ENV_COLOR"/>
-		<desc name="params" vector_size="4"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_RGB_SCALE"/>
-		<value name="GL_ALPHA_SCALE"/>
-
-		<desc name="params" vector_size="1"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_TEXTURE_ENV_MODE"/>
-		<value name="GL_COMBINE_RGB"/>
-		<value name="GL_COMBINE_ALPHA"/>
-		<value name="GL_SRC0_RGB"/>
-		<value name="GL_SRC1_RGB"/>
-		<value name="GL_SRC2_RGB"/>
-		<value name="GL_SRC0_ALPHA"/>
-		<value name="GL_SRC1_ALPHA"/>
-		<value name="GL_SRC2_ALPHA"/>
-		<value name="GL_OPERAND0_RGB"/>
-		<value name="GL_OPERAND1_RGB"/>
-		<value name="GL_OPERAND2_RGB"/>
-		<value name="GL_OPERAND0_ALPHA"/>
-		<value name="GL_OPERAND1_ALPHA"/>
-		<value name="GL_OPERAND2_ALPHA"/>
-
-		<desc name="params" vector_size="1" convert="false"/>
-	</desc>
 </template>
 
 <template name="GetTexGen" direction="get">
@@ -1011,14 +441,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="params" type="GLtype *" size="dynamic"/>
 	</proto>
-
-	<desc name="coord">
-		<value name="GL_TEXTURE_GEN_STR_OES"/>
-	</desc>
-	<desc name="pname">
-		<value name="GL_TEXTURE_GEN_MODE_OES"/>
-		<desc name="params" vector_size="1" convert="false"/>
-	</desc>
 </template>
 
 <template name="GetTexParameter" direction="get">
@@ -1035,63 +457,6 @@
 		<return type="GLboolean"/>
 		<param name="cap" type="GLenum"/>
 	</proto>
-
-	<desc name="cap" category="GLES1.1">
-		<value name="GL_NORMALIZE"/>
-		<value name="GL_RESCALE_NORMAL"/>
-
-		<range base="GL_CLIP_PLANE" from="0" to="5"/>
-		<value name="GL_CLIP_PLANE0+6"/>
-		<value name="GL_CLIP_PLANE0+7"/>
-
-		<value name="GL_FOG"/>
-		<value name="GL_LIGHTING"/>
-		<value name="GL_COLOR_MATERIAL"/>
-
-		<range base="GL_LIGHT" from="0" to="7"/>
-
-		<value name="GL_POINT_SMOOTH"/>
-		<value name="GL_LINE_SMOOTH"/>
-		<value name="GL_CULL_FACE"/>
-		<value name="GL_POLYGON_OFFSET_FILL"/>
-		<value name="GL_MULTISAMPLE"/>
-		<value name="GL_SAMPLE_ALPHA_TO_COVERAGE"/>
-		<value name="GL_SAMPLE_ALPHA_TO_ONE"/>
-		<value name="GL_SAMPLE_COVERAGE"/>
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_SCISSOR_TEST"/>
-		<value name="GL_ALPHA_TEST"/>
-		<value name="GL_STENCIL_TEST"/>
-		<value name="GL_DEPTH_TEST"/>
-		<value name="GL_BLEND"/>
-		<value name="GL_DITHER"/>
-		<value name="GL_COLOR_LOGIC_OP"/>
-
-		<value name="GL_POINT_SPRITE_OES" category="OES_point_sprite"/>
-		<value name="GL_TEXTURE_CUBE_MAP_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_GEN_STR_OES" category="OES_texture_cube_map"/>
-
-		<value name="GL_VERTEX_ARRAY"/>
-		<value name="GL_NORMAL_ARRAY"/>
-		<value name="GL_COLOR_ARRAY"/>
-		<value name="GL_TEXTURE_COORD_ARRAY"/>
-		<value name="GL_MATRIX_INDEX_ARRAY_OES" category="OES_matrix_palette"/>
-		<value name="GL_WEIGHT_ARRAY_OES" category="OES_matrix_palette"/>
-		<value name="GL_POINT_SIZE_ARRAY_OES" category="OES_point_size_array"/>
-		<value name="GL_TEXTURE_EXTERNAL_OES" category="OES_EGL_image_external"/>
-	</desc>
-
-	<desc name="cap" category="GLES2.0">
-		<value name="GL_CULL_FACE"/>
-		<value name="GL_SCISSOR_TEST"/>
-		<value name="GL_POLYGON_OFFSET_FILL"/>
-		<value name="GL_SAMPLE_ALPHA_TO_COVERAGE"/>
-		<value name="GL_SAMPLE_COVERAGE"/>
-		<value name="GL_STENCIL_TEST"/>
-		<value name="GL_DEPTH_TEST"/>
-		<value name="GL_DITHER"/>
-		<value name="GL_BLEND"/>
-	</desc>
 </template>
 
 <template name="DepthRange">
@@ -1132,13 +497,6 @@
 		<return type="void"/>
 		<param name="mode" type="GLenum"/>
 	</proto>
-
-	<desc name="mode">
-		<value name="GL_MODELVIEW"/>
-		<value name="GL_PROJECTION"/>
-		<value name="GL_TEXTURE"/>
-		<value name="GL_MATRIX_PALETTE_OES" category="OES_matrix_palette"/>
-	</desc>
 </template>
 
 <template name="MultMatrix">
@@ -1225,16 +583,6 @@
 		<return type="void"/>
 		<param name="array" type="GLenum"/>
 	</proto>
-
-	<desc name="array">
-		<value name="GL_VERTEX_ARRAY"/>
-		<value name="GL_NORMAL_ARRAY"/>
-		<value name="GL_COLOR_ARRAY"/>
-		<value name="GL_TEXTURE_COORD_ARRAY"/>
-		<value name="GL_MATRIX_INDEX_ARRAY_OES" category="OES_matrix_palette"/>
-		<value name="GL_WEIGHT_ARRAY_OES" category="OES_matrix_palette"/>
-		<value name="GL_POINT_SIZE_ARRAY_OES" category="OES_point_size_array"/>
-	</desc>
 </template>
 
 <template name="DrawArrays">
@@ -1244,16 +592,6 @@
 		<param name="first" type="GLint"/>
 		<param name="count" type="GLsizei"/>
 	</proto>
-
-	<desc name="mode">
-		<value name="GL_POINTS"/>
-		<value name="GL_LINES"/>
-		<value name="GL_LINE_LOOP"/>
-		<value name="GL_LINE_STRIP"/>
-		<value name="GL_TRIANGLES"/>
-		<value name="GL_TRIANGLE_STRIP"/>
-		<value name="GL_TRIANGLE_FAN"/>
-	</desc>
 </template>
 
 <template name="DrawElements">
@@ -1264,16 +602,6 @@
 		<param name="type" type="GLenum"/>
 		<param name="indices" type="const GLvoid *"/>
 	</proto>
-
-	<desc name="mode">
-		<value name="GL_POINTS"/>
-		<value name="GL_LINES"/>
-		<value name="GL_LINE_LOOP"/>
-		<value name="GL_LINE_STRIP"/>
-		<value name="GL_TRIANGLES"/>
-		<value name="GL_TRIANGLE_STRIP"/>
-		<value name="GL_TRIANGLE_FAN"/>
-	</desc>
 </template>
 
 <template name="EnableClientState">
@@ -1281,16 +609,6 @@
 		<return type="void"/>
 		<param name="array" type="GLenum"/>
 	</proto>
-
-	<desc name="array">
-		<value name="GL_VERTEX_ARRAY"/>
-		<value name="GL_NORMAL_ARRAY"/>
-		<value name="GL_COLOR_ARRAY"/>
-		<value name="GL_TEXTURE_COORD_ARRAY"/>
-		<value name="GL_MATRIX_INDEX_ARRAY_OES" category="OES_matrix_palette"/>
-		<value name="GL_WEIGHT_ARRAY_OES" category="OES_matrix_palette"/>
-		<value name="GL_POINT_SIZE_ARRAY_OES" category="OES_point_size_array"/>
-	</desc>
 </template>
 
 <template name="GetPointer" direction="get">
@@ -1299,16 +617,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="params" type="GLvoid **" size="dynamic"/>
 	</proto>
-
-	<desc name="pname">
-		<value name="GL_VERTEX_ARRAY_POINTER"/>
-		<value name="GL_NORMAL_ARRAY_POINTER"/>
-		<value name="GL_COLOR_ARRAY_POINTER"/>
-		<value name="GL_TEXTURE_COORD_ARRAY_POINTER"/>
-		<value name="GL_MATRIX_INDEX_ARRAY_POINTER_OES" category="OES_matrix_palette"/>
-		<value name="GL_WEIGHT_ARRAY_POINTER_OES" category="OES_matrix_palette"/>
-		<value name="GL_POINT_SIZE_ARRAY_POINTER_OES" category="OES_point_size_array"/>
-	</desc>
 </template>
 
 <template name="Normal">
@@ -1611,80 +919,6 @@
 		<param name="srcAlpha" type="GLenum"/>
 		<param name="dstAlpha" type="GLenum"/>
 	</proto>
-
-	<desc name="srcRGB">
-		<value name="GL_ZERO"/>
-		<value name="GL_ONE"/>
-		<value name="GL_SRC_COLOR"/>
-		<value name="GL_ONE_MINUS_SRC_COLOR"/>
-		<value name="GL_SRC_ALPHA"/>
-		<value name="GL_ONE_MINUS_SRC_ALPHA"/>
-		<value name="GL_DST_ALPHA"/>
-		<value name="GL_ONE_MINUS_DST_ALPHA"/>
-		<value name="GL_DST_COLOR"/>
-		<value name="GL_ONE_MINUS_DST_COLOR"/>
-		<value name="GL_SRC_ALPHA_SATURATE"/>
-
-		<value name="GL_CONSTANT_COLOR" category="GLES2.0"/>
-		<value name="GL_ONE_MINUS_CONSTANT_COLOR" category="GLES2.0"/>
-		<value name="GL_CONSTANT_ALPHA" category="GLES2.0"/>
-		<value name="GL_ONE_MINUS_CONSTANT_ALPHA" category="GLES2.0"/>
-	</desc>
-
-	<desc name="dstRGB">
-		<value name="GL_ZERO"/>
-		<value name="GL_ONE"/>
-		<value name="GL_SRC_COLOR"/>
-		<value name="GL_ONE_MINUS_SRC_COLOR"/>
-		<value name="GL_SRC_ALPHA"/>
-		<value name="GL_ONE_MINUS_SRC_ALPHA"/>
-		<value name="GL_DST_ALPHA"/>
-		<value name="GL_ONE_MINUS_DST_ALPHA"/>
-		<value name="GL_DST_COLOR"/>
-		<value name="GL_ONE_MINUS_DST_COLOR"/>
-
-		<value name="GL_CONSTANT_COLOR" category="GLES2.0"/>
-		<value name="GL_ONE_MINUS_CONSTANT_COLOR" category="GLES2.0"/>
-		<value name="GL_CONSTANT_ALPHA" category="GLES2.0"/>
-		<value name="GL_ONE_MINUS_CONSTANT_ALPHA" category="GLES2.0"/>
-	</desc>
-
-	<desc name="srcAlpha">
-		<value name="GL_ZERO"/>
-		<value name="GL_ONE"/>
-		<value name="GL_SRC_COLOR"/>
-		<value name="GL_ONE_MINUS_SRC_COLOR"/>
-		<value name="GL_SRC_ALPHA"/>
-		<value name="GL_ONE_MINUS_SRC_ALPHA"/>
-		<value name="GL_DST_ALPHA"/>
-		<value name="GL_ONE_MINUS_DST_ALPHA"/>
-		<value name="GL_DST_COLOR"/>
-		<value name="GL_ONE_MINUS_DST_COLOR"/>
-		<value name="GL_SRC_ALPHA_SATURATE"/>
-
-		<value name="GL_CONSTANT_COLOR" category="GLES2.0"/>
-		<value name="GL_ONE_MINUS_CONSTANT_COLOR" category="GLES2.0"/>
-		<value name="GL_CONSTANT_ALPHA" category="GLES2.0"/>
-		<value name="GL_ONE_MINUS_CONSTANT_ALPHA" category="GLES2.0"/>
-	</desc>
-
-	<desc name="dstAlpha">
-		<value name="GL_ZERO"/>
-		<value name="GL_ONE"/>
-		<value name="GL_SRC_COLOR"/>
-		<value name="GL_ONE_MINUS_SRC_COLOR"/>
-		<value name="GL_SRC_ALPHA"/>
-		<value name="GL_ONE_MINUS_SRC_ALPHA"/>
-		<value name="GL_DST_ALPHA"/>
-		<value name="GL_ONE_MINUS_DST_ALPHA"/>
-		<value name="GL_DST_COLOR"/>
-		<value name="GL_ONE_MINUS_DST_COLOR"/>
-
-		<value name="GL_CONSTANT_COLOR" category="GLES2.0"/>
-		<value name="GL_ONE_MINUS_CONSTANT_COLOR" category="GLES2.0"/>
-		<value name="GL_CONSTANT_ALPHA" category="GLES2.0"/>
-		<value name="GL_ONE_MINUS_CONSTANT_ALPHA" category="GLES2.0"/>
-	</desc>
 </template>
 
 <template name="PointParameter">
@@ -1695,19 +929,6 @@
 			<param name="param" type="GLtype"/>
 		</vector>
 	</proto>
-
-	<desc name="pname">
-		<value name="GL_POINT_SIZE_MIN"/>
-		<value name="GL_POINT_SIZE_MAX"/>
-		<value name="GL_POINT_FADE_THRESHOLD_SIZE"/>
-
-		<desc name="params" vector_size="1"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_POINT_DISTANCE_ATTENUATION"/>
-		<desc name="params" vector_size="3"/>
-	</desc>
 </template>
 
 <template name="VertexAttrib">
@@ -1772,22 +993,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="params" type="GLtype *" size="dynamic"/>
 	</proto>
-
-	<desc name="pname">
-		<value name="GL_VERTEX_ATTRIB_ARRAY_ENABLED"/>
-		<value name="GL_VERTEX_ATTRIB_ARRAY_SIZE"/>
-		<value name="GL_VERTEX_ATTRIB_ARRAY_STRIDE"/>
-		<value name="GL_VERTEX_ATTRIB_ARRAY_TYPE"/>
-		<value name="GL_VERTEX_ATTRIB_ARRAY_NORMALIZED"/>
-		<value name="GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING"/>
-
-		<desc name="params" vector_size="1" convert="false"/>
-	</desc>
-
-	<desc name="pname">
-		<value name="GL_CURRENT_VERTEX_ATTRIB"/>
-		<desc name="params" vector_size="16?" convert="false"/>
-	</desc>
 </template>
 
 <template name="GetVertexAttribPointer" direction="get">
@@ -2061,13 +1266,6 @@
 		<return type="void"/>
 		<param name="target" type="GLenum"/>
 	</proto>
-
-	<desc name="target">
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_TEXTURE_CUBE_MAP" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_3D_OES" category="OES_texture_3D"/>
-	</desc>
 </template>
 
 <template name="BindFramebuffer">
@@ -2126,28 +1324,6 @@
 		<param name="width" type="GLsizei"/>
 		<param name="height" type="GLsizei"/>
 	</proto>
-
-	<desc name="internalFormat">
-		<value name="GL_DEPTH_COMPONENT16_OES" category="OES_framebuffer_object"/>
-		<value name="GL_RGBA4_OES" category="OES_framebuffer_object"/>
-		<value name="GL_RGB5_A1_OES" category="OES_framebuffer_object"/>
-		<value name="GL_RGB565_OES" category="OES_framebuffer_object"/>
-		<value name="GL_STENCIL_INDEX8_OES" category="OES_stencil8"/>
-
-		<value name="GL_DEPTH_COMPONENT16" category="GLES2.0"/>
-		<value name="GL_RGBA4" category="GLES2.0"/>
-		<value name="GL_RGB5_A1" category="GLES2.0"/>
-		<value name="GL_RGB565" category="GLES2.0"/>
-		<value name="GL_STENCIL_INDEX8" category="GLES2.0"/>
-
-		<value name="GL_DEPTH_COMPONENT24_OES" category="OES_depth24"/>
-		<value name="GL_DEPTH_COMPONENT32_OES" category="OES_depth32"/>
-		<value name="GL_RGB8_OES" category="OES_rgb8_rgba8"/>
-		<value name="GL_RGBA8_OES" category="OES_rgb8_rgba8"/>
-		<value name="GL_STENCIL_INDEX1_OES" category="OES_stencil1"/>
-		<value name="GL_STENCIL_INDEX4_OES" category="OES_stencil4"/>
-		<value name="GL_DEPTH24_STENCIL8_OES" category="OES_packed_depth_stencil"/>
-	</desc>
 </template>
 
 <template name="FramebufferRenderbuffer">
@@ -2169,22 +1345,6 @@
 		<param name="texture" type="GLuint"/>
 		<param name="level" type="GLint"/>
 	</proto>
-
-	<desc name="textarget" error="GL_INVALID_OPERATION">
-		<value name="GL_TEXTURE_2D"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z" category="GLES2.0"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_POSITIVE_Z_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_X_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_OES" category="OES_texture_cube_map"/>
-		<value name="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_OES" category="OES_texture_cube_map"/>
-	</desc>
 	<!-- According to the base specification, "level" must be 0.  But
 	     extension GL_OES_fbo_render_mipmap lifts that restriction,
 	     so no restriction is placed here. -->
@@ -2217,21 +1377,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="params" type="GLtype *" size="dynamic"/>
 	</proto>
-
-	<desc name="pname">
-		<value name="GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE_OES" category="OES_framebuffer_object"/>
-		<value name="GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME_OES" category="OES_framebuffer_object"/>
-		<value name="GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL_OES" category="OES_framebuffer_object"/>
-		<value name="GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE_OES" category="OES_framebuffer_object"/>
-
-		<value name="GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE" category="GLES2.0"/>
-		<value name="GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME" category="GLES2.0"/>
-		<value name="GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL" category="GLES2.0"/>
-		<value name="GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE" category="GLES2.0"/>
-		<value name="GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_3D_ZOFFSET_OES" category="OES_texture_3D"/>
-
-		<desc name="params" vector_size="1" convert="false"/>
-	</desc>
 </template>
 
 <template name="GetRenderbufferParameter" direction="get">
@@ -2241,34 +1386,6 @@
 		<param name="pname" type="GLenum"/>
 		<vector name="params" type="GLtype *" size="dynamic"/>
 	</proto>
-
-	<desc name="pname" category="OES_framebuffer_object">
-		<value name="GL_RENDERBUFFER_WIDTH_OES"/>
-		<value name="GL_RENDERBUFFER_HEIGHT_OES"/>
-		<value name="GL_RENDERBUFFER_INTERNAL_FORMAT_OES"/>
-		<value name="GL_RENDERBUFFER_RED_SIZE_OES"/>
-		<value name="GL_RENDERBUFFER_GREEN_SIZE_OES"/>
-		<value name="GL_RENDERBUFFER_BLUE_SIZE_OES"/>
-		<value name="GL_RENDERBUFFER_ALPHA_SIZE_OES"/>
-		<value name="GL_RENDERBUFFER_DEPTH_SIZE_OES"/>
-		<value name="GL_RENDERBUFFER_STENCIL_SIZE_OES"/>
-
-		<desc name="params" vector_size="1" convert="false"/>
-	</desc>
-
-	<desc name="pname" category="GLES2.0">
-		<value name="GL_RENDERBUFFER_WIDTH"/>
-		<value name="GL_RENDERBUFFER_HEIGHT"/>
-		<value name="GL_RENDERBUFFER_INTERNAL_FORMAT"/>
-		<value name="GL_RENDERBUFFER_RED_SIZE"/>
-		<value name="GL_RENDERBUFFER_GREEN_SIZE"/>
-		<value name="GL_RENDERBUFFER_BLUE_SIZE"/>
-		<value name="GL_RENDERBUFFER_ALPHA_SIZE"/>
-		<value name="GL_RENDERBUFFER_DEPTH_SIZE"/>
-		<value name="GL_RENDERBUFFER_STENCIL_SIZE"/>
-
-		<desc name="params" vector_size="1" convert="false"/>
-	</desc>
 </template>
 
 <template name="IsRenderbuffer" direction="get">
@@ -2389,16 +1506,6 @@
 		<param name="count" type="const GLsizei *"/>
 		<param name="primcount" type="GLsizei"/>
 	</proto>
-
-	<desc name="mode">
-		<value name="GL_POINTS"/>
-		<value name="GL_LINES"/>
-		<value name="GL_LINE_LOOP"/>
-		<value name="GL_LINE_STRIP"/>
-		<value name="GL_TRIANGLES"/>
-		<value name="GL_TRIANGLE_STRIP"/>
-		<value name="GL_TRIANGLE_FAN"/>
-	</desc>
 </template>
 
 <template name="MultiDrawElements">
@@ -2410,16 +1517,6 @@
 		<param name="indices" type="const GLvoid **"/>
 		<param name="primcount" type="GLsizei"/>
 	</proto>
-
-	<desc name="mode">
-		<value name="GL_POINTS"/>
-		<value name="GL_LINES"/>
-		<value name="GL_LINE_LOOP"/>
-		<value name="GL_LINE_STRIP"/>
-		<value name="GL_TRIANGLES"/>
-		<value name="GL_TRIANGLE_STRIP"/>
-		<value name="GL_TRIANGLE_FAN"/>
-	</desc>
 </template>
 
 <template name="EGLImageTargetTexture2D">

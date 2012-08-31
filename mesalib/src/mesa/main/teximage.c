@@ -87,14 +87,14 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
       case GL_ALPHA8:
       case GL_ALPHA12:
       case GL_ALPHA16:
-         return GL_ALPHA;
+         return (ctx->API != API_OPENGL_CORE) ? GL_ALPHA : -1;
       case 1:
       case GL_LUMINANCE:
       case GL_LUMINANCE4:
       case GL_LUMINANCE8:
       case GL_LUMINANCE12:
       case GL_LUMINANCE16:
-         return GL_LUMINANCE;
+         return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE : -1;
       case 2:
       case GL_LUMINANCE_ALPHA:
       case GL_LUMINANCE4_ALPHA4:
@@ -103,14 +103,15 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
       case GL_LUMINANCE12_ALPHA4:
       case GL_LUMINANCE12_ALPHA12:
       case GL_LUMINANCE16_ALPHA16:
-         return GL_LUMINANCE_ALPHA;
+         return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE_ALPHA : -1;
       case GL_INTENSITY:
       case GL_INTENSITY4:
       case GL_INTENSITY8:
       case GL_INTENSITY12:
       case GL_INTENSITY16:
-         return GL_INTENSITY;
+         return (ctx->API != API_OPENGL_CORE) ? GL_INTENSITY : -1;
       case 3:
+         return (ctx->API != API_OPENGL_CORE) ? GL_RGB : -1;
       case GL_RGB:
       case GL_R3_G3_B2:
       case GL_RGB4:
@@ -121,6 +122,7 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
       case GL_RGB16:
          return GL_RGB;
       case 4:
+         return (ctx->API != API_OPENGL_CORE) ? GL_RGBA : -1;
       case GL_RGBA:
       case GL_RGBA2:
       case GL_RGBA4:
@@ -754,7 +756,8 @@ _mesa_select_tex_object(struct gl_context *ctx,
       case GL_PROXY_TEXTURE_2D_ARRAY_EXT:
          return arrayTex ? ctx->Texture.ProxyTex[TEXTURE_2D_ARRAY_INDEX] : NULL;
       case GL_TEXTURE_BUFFER:
-         return ctx->Extensions.ARB_texture_buffer_object
+         return _mesa_is_desktop_gl(ctx) 
+            && ctx->Extensions.ARB_texture_buffer_object
             ? texUnit->CurrentTex[TEXTURE_BUFFER_INDEX] : NULL;
       case GL_TEXTURE_EXTERNAL_OES:
          return ctx->Extensions.OES_EGL_image_external
@@ -947,9 +950,9 @@ _mesa_max_texture_levels(struct gl_context *ctx, GLenum target)
               ctx->Extensions.EXT_texture_array)
          ? ctx->Const.MaxTextureLevels : 0;
    case GL_TEXTURE_BUFFER:
-      return _mesa_is_desktop_gl(ctx) &&
-         (ctx->Extensions.ARB_texture_buffer_object ||
-          (ctx->Version >= 31)) ? 1 : 0;
+      return _mesa_is_desktop_gl(ctx)
+         && ctx->Extensions.ARB_texture_buffer_object
+         ? 1 : 0;
    case GL_TEXTURE_EXTERNAL_OES:
       /* fall-through */
    default:
@@ -2796,6 +2799,37 @@ _mesa_choose_texture_format(struct gl_context *ctx,
       }
    }
 
+   /* If the application requested compression to an S3TC format but we don't
+    * have the DTXn library, force a generic compressed format instead.
+    */
+   if (internalFormat != format) {
+      const GLenum before = internalFormat;
+
+      switch (internalFormat) {
+      case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+         if (!ctx->Mesa_DXTn)
+            internalFormat = GL_COMPRESSED_RGB;
+         break;
+      case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+      case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+      case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+         if (!ctx->Mesa_DXTn)
+            internalFormat = GL_COMPRESSED_RGBA;
+         break;
+      default:
+         break;
+      }
+
+      if (before != internalFormat) {
+         _mesa_warning(ctx,
+                       "DXT compression requested (%s), "
+                       "but libtxc_dxtn library not installed.  Using %s "
+                       "instead.",
+                       _mesa_lookup_enum_by_nr(before),
+                       _mesa_lookup_enum_by_nr(internalFormat));
+      }
+   }
+
    /* choose format from scratch */
    f = ctx->Driver.ChooseTextureFormat(ctx, texObj->Target, internalFormat,
                                        format, type);
@@ -3975,7 +4009,8 @@ _mesa_TexBuffer(GLenum target, GLenum internalFormat, GLuint buffer)
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
 
-   if (!ctx->Extensions.ARB_texture_buffer_object) {
+   if (!(ctx->Extensions.ARB_texture_buffer_object
+         && _mesa_is_desktop_gl(ctx))) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glTexBuffer");
       return;
    }

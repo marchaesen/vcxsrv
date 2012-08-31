@@ -104,88 +104,74 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
+   /* Drivers that support point sprites must also support point parameters.
+    * If point parameters aren't supported, then this function shouldn't even
+    * exist.
+    */
+   ASSERT(!(ctx->Extensions.ARB_point_sprite
+            || ctx->Extensions.NV_point_sprite)
+          || ctx->Extensions.EXT_point_parameters);
+
+   if (!ctx->Extensions.EXT_point_parameters) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "unsupported function called (unsupported extension)");
+      return;
+   }
+
    switch (pname) {
       case GL_DISTANCE_ATTENUATION_EXT:
-         if (ctx->Extensions.EXT_point_parameters) {
-            if (TEST_EQ_3V(ctx->Point.Params, params))
-	       return;
-	    FLUSH_VERTICES(ctx, _NEW_POINT);
-            COPY_3V(ctx->Point.Params, params);
-            ctx->Point._Attenuated = (ctx->Point.Params[0] != 1.0 ||
-                                      ctx->Point.Params[1] != 0.0 ||
-                                      ctx->Point.Params[2] != 0.0);
-
-            if (ctx->Point._Attenuated)
-               ctx->_TriangleCaps |= DD_POINT_ATTEN;
-            else
-               ctx->_TriangleCaps &= ~DD_POINT_ATTEN;
-         }
-         else {
-            _mesa_error(ctx, GL_INVALID_ENUM,
-                        "glPointParameterf[v]{EXT,ARB}(pname)");
+         if (TEST_EQ_3V(ctx->Point.Params, params))
             return;
-         }
+         FLUSH_VERTICES(ctx, _NEW_POINT);
+         COPY_3V(ctx->Point.Params, params);
+         ctx->Point._Attenuated = (ctx->Point.Params[0] != 1.0 ||
+                                   ctx->Point.Params[1] != 0.0 ||
+                                   ctx->Point.Params[2] != 0.0);
+
+         if (ctx->Point._Attenuated)
+            ctx->_TriangleCaps |= DD_POINT_ATTEN;
+         else
+            ctx->_TriangleCaps &= ~DD_POINT_ATTEN;
          break;
       case GL_POINT_SIZE_MIN_EXT:
-         if (ctx->Extensions.EXT_point_parameters) {
-            if (params[0] < 0.0F) {
-               _mesa_error( ctx, GL_INVALID_VALUE,
-                            "glPointParameterf[v]{EXT,ARB}(param)" );
-               return;
-            }
-            if (ctx->Point.MinSize == params[0])
-               return;
-            FLUSH_VERTICES(ctx, _NEW_POINT);
-            ctx->Point.MinSize = params[0];
-         }
-         else {
-            _mesa_error(ctx, GL_INVALID_ENUM,
-                        "glPointParameterf[v]{EXT,ARB}(pname)");
+         if (params[0] < 0.0F) {
+            _mesa_error( ctx, GL_INVALID_VALUE,
+                         "glPointParameterf[v]{EXT,ARB}(param)" );
             return;
          }
+         if (ctx->Point.MinSize == params[0])
+            return;
+         FLUSH_VERTICES(ctx, _NEW_POINT);
+         ctx->Point.MinSize = params[0];
          break;
       case GL_POINT_SIZE_MAX_EXT:
-         if (ctx->Extensions.EXT_point_parameters) {
-            if (params[0] < 0.0F) {
-               _mesa_error( ctx, GL_INVALID_VALUE,
-                            "glPointParameterf[v]{EXT,ARB}(param)" );
-               return;
-            }
-            if (ctx->Point.MaxSize == params[0])
-               return;
-            FLUSH_VERTICES(ctx, _NEW_POINT);
-            ctx->Point.MaxSize = params[0];
-         }
-         else {
-            _mesa_error(ctx, GL_INVALID_ENUM,
-                        "glPointParameterf[v]{EXT,ARB}(pname)");
+         if (params[0] < 0.0F) {
+            _mesa_error( ctx, GL_INVALID_VALUE,
+                         "glPointParameterf[v]{EXT,ARB}(param)" );
             return;
          }
+         if (ctx->Point.MaxSize == params[0])
+            return;
+         FLUSH_VERTICES(ctx, _NEW_POINT);
+         ctx->Point.MaxSize = params[0];
          break;
       case GL_POINT_FADE_THRESHOLD_SIZE_EXT:
-         if (ctx->Extensions.EXT_point_parameters) {
-            if (params[0] < 0.0F) {
-               _mesa_error( ctx, GL_INVALID_VALUE,
-                            "glPointParameterf[v]{EXT,ARB}(param)" );
-               return;
-            }
-            if (ctx->Point.Threshold == params[0])
-               return;
-            FLUSH_VERTICES(ctx, _NEW_POINT);
-            ctx->Point.Threshold = params[0];
-         }
-         else {
-            _mesa_error(ctx, GL_INVALID_ENUM,
-                        "glPointParameterf[v]{EXT,ARB}(pname)");
+         if (params[0] < 0.0F) {
+            _mesa_error( ctx, GL_INVALID_VALUE,
+                         "glPointParameterf[v]{EXT,ARB}(param)" );
             return;
          }
+         if (ctx->Point.Threshold == params[0])
+            return;
+         FLUSH_VERTICES(ctx, _NEW_POINT);
+         ctx->Point.Threshold = params[0];
          break;
       case GL_POINT_SPRITE_R_MODE_NV:
          /* This is one area where ARB_point_sprite and NV_point_sprite
 	  * differ.  In ARB_point_sprite the POINT_SPRITE_R_MODE is
 	  * always ZERO.  NV_point_sprite adds the S and R modes.
 	  */
-         if (ctx->Extensions.NV_point_sprite) {
+         if (_mesa_is_desktop_gl(ctx) && ctx->Extensions.NV_point_sprite) {
             GLenum value = (GLenum) params[0];
             if (value != GL_ZERO && value != GL_S && value != GL_R) {
                _mesa_error(ctx, GL_INVALID_VALUE,
@@ -204,12 +190,11 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
          }
          break;
       case GL_POINT_SPRITE_COORD_ORIGIN:
-	 /* This is not completely correct.  GL_POINT_SPRITE_COORD_ORIGIN was
-	  * added to point sprites when the extension was merged into OpenGL
-	  * 2.0.  It is expected that an implementation supporting OpenGL 1.4
-	  * and GL_ARB_point_sprite will generate an error here.
+	 /* GL_POINT_SPRITE_COORD_ORIGIN was added to point sprites when the
+	  * extension was merged into OpenGL 2.0.
 	  */
-         if (ctx->Extensions.ARB_point_sprite) {
+         if ((ctx->API == API_OPENGL && ctx->Version >= 20)
+             || ctx->API == API_OPENGL_CORE) {
             GLenum value = (GLenum) params[0];
             if (value != GL_LOWER_LEFT && value != GL_UPPER_LEFT) {
                _mesa_error(ctx, GL_INVALID_VALUE,
@@ -263,7 +248,19 @@ _mesa_init_point(struct gl_context *ctx)
    ctx->Point.MaxSize
       = MAX2(ctx->Const.MaxPointSize, ctx->Const.MaxPointSizeAA);
    ctx->Point.Threshold = 1.0;
-   ctx->Point.PointSprite = GL_FALSE; /* GL_ARB/NV_point_sprite */
+
+   /* Page 403 (page 423 of the PDF) of the OpenGL 3.0 spec says:
+    *
+    *     "Non-sprite points (section 3.4) - Enable/Disable targets
+    *     POINT_SMOOTH and POINT_SPRITE, and all associated state. Point
+    *     rasterization is always performed as though POINT_SPRITE were
+    *     enabled."
+    *
+    * In a core context, the state will default to true, and the setters and
+    * getters are disabled.
+    */
+   ctx->Point.PointSprite = (ctx->API == API_OPENGL_CORE);
+
    ctx->Point.SpriteRMode = GL_ZERO; /* GL_NV_point_sprite (only!) */
    ctx->Point.SpriteOrigin = GL_UPPER_LEFT; /* GL_ARB_point_sprite */
    for (i = 0; i < Elements(ctx->Point.CoordReplace); i++) {

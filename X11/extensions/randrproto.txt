@@ -2739,7 +2739,7 @@ A.2.3 Protocol Requests added with version 1.4
 	2	CARD16			maximum masters
 	4	CARD32			flags
 	4p	LISTofPROVIDERS		providers
-
+└───
 ┌───
     RRGetProviderInfo
 	1	CARD8			major opcode
@@ -2764,7 +2764,7 @@ A.2.3 Protocol Requests added with version 1.4
 	4a	CARD32			associated provider capability
 	n	STRING8			name
 	p				unused, p=pad(n)
-
+└───
 ┌───
     RRSetProviderOffloadSink
 	1	CARD8			major opcode
@@ -2773,6 +2773,7 @@ A.2.3 Protocol Requests added with version 1.4
 	4	PROVIDER		provider
 	4	PROVIDER		offload sink provider
 	4	TIMESTAMP		timestamp
+└───
 ┌───
     RRSetProviderOutputSource
 	1	CARD8			major opcode
@@ -2781,7 +2782,7 @@ A.2.3 Protocol Requests added with version 1.4
 	4	PROVIDER		provider
 	4	PROVIDER		output source provider
 	4	TIMESTAMP		timestamp
-
+└───
 ┌───
     RRListProviderProperties
 	1	CARD8			major opcode
