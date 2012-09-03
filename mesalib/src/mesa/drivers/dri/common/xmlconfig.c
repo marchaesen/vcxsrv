@@ -86,7 +86,7 @@ static const char *__getProgramName () {
 #endif
 
 #if !defined(GET_PROGRAM_NAME)
-#    if defined(__OpenBSD__) || defined(NetBSD) || defined(__UCLIBC__)
+#    if defined(__OpenBSD__) || defined(NetBSD) || defined(__UCLIBC__) || defined(ANDROID)
 /* This is a hack. It's said to work on OpenBSD, NetBSD and GNU.
  * Rogelio M.Serrano Jr. reported it's also working with UCLIBC. It's
  * used as a last resort, if there is no documented facility available. */
@@ -142,10 +142,10 @@ static GLuint countOptions (const driOptionCache *cache) {
     return count;
 }
 
-/** \brief Like strdup but using MALLOC and with error checking. */
+/** \brief Like strdup but using malloc and with error checking. */
 #define XSTRDUP(dest,source) do { \
     GLuint len = strlen (source); \
-    if (!(dest = MALLOC (len+1))) { \
+    if (!(dest = malloc(len+1))) { \
 	fprintf (stderr, "%s: %d: out of memory.\n", __FILE__, __LINE__); \
 	abort(); \
     } \
@@ -347,7 +347,7 @@ static GLboolean parseRanges (driOptionInfo *info, const XML_Char *string) {
 	if (*range == ',')
 	    ++nRanges;
 
-    if ((ranges = MALLOC (nRanges*sizeof(driOptionRange))) == NULL) {
+    if ((ranges = malloc(nRanges*sizeof(driOptionRange))) == NULL) {
 	fprintf (stderr, "%s: %d: out of memory.\n", __FILE__, __LINE__);
 	abort();
     }
@@ -382,9 +382,9 @@ static GLboolean parseRanges (driOptionInfo *info, const XML_Char *string) {
 	else
 	    range = NULL;
     }
-    FREE (cp);
+    free(cp);
     if (i < nRanges) {
-	FREE (ranges);
+	free(ranges);
 	return GL_FALSE;
     } else
 	assert (range == NULL);
@@ -702,8 +702,8 @@ void driParseOptionInfo (driOptionCache *info,
     GLuint size, log2size;
     for (size = 1, log2size = 0; size < minSize; size <<= 1, ++log2size);
     info->tableSize = log2size;
-    info->info = CALLOC (size * sizeof (driOptionInfo));
-    info->values = CALLOC (size * sizeof (driOptionValue));
+    info->info = calloc(size, sizeof (driOptionInfo));
+    info->values = calloc(size, sizeof (driOptionValue));
     if (info->info == NULL || info->values == NULL) {
 	fprintf (stderr, "%s: %d: out of memory.\n", __FILE__, __LINE__);
 	abort();
@@ -895,7 +895,7 @@ static void optConfEndElem (void *userData, const XML_Char *name) {
 static void initOptionCache (driOptionCache *cache, const driOptionCache *info) {
     cache->info = info->info;
     cache->tableSize = info->tableSize;
-    cache->values = MALLOC ((1<<info->tableSize) * sizeof (driOptionValue));
+    cache->values = malloc((1<<info->tableSize) * sizeof (driOptionValue));
     if (cache->values == NULL) {
 	fprintf (stderr, "%s: %d: out of memory.\n", __FILE__, __LINE__);
 	abort();
@@ -959,7 +959,7 @@ void driParseConfigFiles (driOptionCache *cache, const driOptionCache *info,
 
     if ((home = getenv ("HOME"))) {
 	GLuint len = strlen (home);
-	filenames[1] = MALLOC (len + 7+1);
+	filenames[1] = malloc(len + 7+1);
 	if (filenames[1] == NULL)
 	    __driUtilMessage ("Can't allocate memory for %s/.drirc.", home);
 	else {
@@ -990,7 +990,7 @@ void driParseConfigFiles (driOptionCache *cache, const driOptionCache *info,
     }
 
     if (filenames[1])
-	FREE (filenames[1]);
+	free(filenames[1]);
 }
 
 void driDestroyOptionInfo (driOptionCache *info) {
@@ -999,18 +999,18 @@ void driDestroyOptionInfo (driOptionCache *info) {
 	GLuint i, size = 1 << info->tableSize;
 	for (i = 0; i < size; ++i) {
 	    if (info->info[i].name) {
-		FREE (info->info[i].name);
+		free(info->info[i].name);
 		if (info->info[i].ranges)
-		    FREE (info->info[i].ranges);
+		    free(info->info[i].ranges);
 	    }
 	}
-	FREE (info->info);
+	free(info->info);
     }
 }
 
 void driDestroyOptionCache (driOptionCache *cache) {
     if (cache->values)
-	FREE (cache->values);
+	free(cache->values);
 }
 
 GLboolean driCheckOption (const driOptionCache *cache, const char *name,

@@ -514,7 +514,7 @@ init_vp(struct gl_context *ctx, struct tnl_pipeline_stage *stage)
    struct vp_stage_data *store;
    const GLuint size = VB->Size;
 
-   stage->privatePtr = CALLOC(sizeof(*store));
+   stage->privatePtr = calloc(1, sizeof(*store));
    store = VP_STAGE_DATA(stage);
    if (!store)
       return GL_FALSE;
@@ -546,7 +546,7 @@ dtr(struct tnl_pipeline_stage *stage)
       _mesa_vector4f_free( &store->ndcCoords );
       _mesa_align_free( store->clipmask );
 
-      FREE( store );
+      free( store );
       stage->privatePtr = NULL;
    }
 }

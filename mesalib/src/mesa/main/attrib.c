@@ -398,7 +398,7 @@ _mesa_PushAttrib(GLbitfield mask)
 
    if (mask & GL_POLYGON_STIPPLE_BIT) {
       GLuint *stipple;
-      stipple = (GLuint *) MALLOC( 32*sizeof(GLuint) );
+      stipple = (GLuint *) malloc( 32*sizeof(GLuint) );
       memcpy( stipple, ctx->PolygonStipple, 32*sizeof(GLuint) );
       save_attrib_data(&head, GL_POLYGON_STIPPLE_BIT, stipple);
    }
@@ -1314,8 +1314,8 @@ _mesa_PopAttrib(void)
       }
 
       next = attr->next;
-      FREE( attr->data );
-      FREE( attr );
+      free(attr->data);
+      free(attr);
       attr = next;
    }
 }
@@ -1592,8 +1592,8 @@ _mesa_PopClientAttrib(void)
       }
 
       next = node->next;
-      FREE( node->data );
-      FREE( node );
+      free(node->data);
+      free(node);
       node = next;
    }
 }

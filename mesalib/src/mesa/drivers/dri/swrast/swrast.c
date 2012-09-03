@@ -273,7 +273,7 @@ swrast_delete_renderbuffer(struct gl_renderbuffer *rb)
     TRACE;
 
     free(xrb->Base.Buffer);
-    free(xrb);
+    _mesa_delete_renderbuffer(rb);
 }
 
 /* see bytes_per_line in libGL */
@@ -509,7 +509,7 @@ drawable_fail:
     if (drawable)
 	free(drawable->row);
 
-    FREE(drawable);
+    free(drawable);
 
     return GL_FALSE;
 }
@@ -811,7 +811,7 @@ dri_create_context(gl_api api,
 
 context_fail:
 
-    FREE(ctx);
+    free(ctx);
 
     return GL_FALSE;
 }
