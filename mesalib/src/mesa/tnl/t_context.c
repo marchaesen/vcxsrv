@@ -50,7 +50,7 @@ _tnl_CreateContext( struct gl_context *ctx )
 
    /* Create the TNLcontext structure
     */
-   ctx->swtnl_context = tnl = (TNLcontext *) CALLOC( sizeof(TNLcontext) );
+   ctx->swtnl_context = tnl = (TNLcontext *) calloc(1, sizeof(TNLcontext));
 
    if (!tnl) {
       return GL_FALSE;
@@ -116,7 +116,7 @@ _tnl_DestroyContext( struct gl_context *ctx )
 
    _tnl_destroy_pipeline( ctx );
 
-   FREE(tnl);
+   free(tnl);
    ctx->swtnl_context = NULL;
 }
 
