@@ -1,54 +1,18 @@
 Prerequisits:
 - Visual C++ 2010
   Visual C++ 2010 Express Edition is probably also ok (not tested)
-  Microsoft Visual C++ 2008 (Express Edition) with SP1 (http://www.microsoft.com/express/vc/) is probably still working
-  but is not actively supported anymore
 - Perl (cygwin perl (http://www.cygwin.com/), strawberry perl (http://strawberryperl.com)  or activestate perl (http://www.activestate.com/activeperl/) )
-- Python (2.7 used: http://www.python.org/)
+- Python (2.7 used: http://www.python.org/) + libxml2 python bindings
 - Gnuwin32 gawk, gzip, flex, bison (and it's dependancies), sed (and it's dependancies (http://gnuwin32.sourceforge.net/)
 - nasm (http://nasm.sourceforge.net). Make sure the nasm directory is in your path
 - Make sure that the gnuwin32 binaries are in a directory path with no spaces, like 'C:\gnuwin32\bin'
 - Make sure the environment PATH includes the directory where the gnuwin32 binaries are
 - Make sure python, perl are in the environment PATH
 - make sure the command prompt is set for compiling with the visual studio compiler (vcvars32.bat)
-- When using Visual C++ 2008 define the environment variable VS2008=1
+- To build the installer: nsis
 
-When you want to use the tools/cleantree.py script, also install svn command line client:
-- Download/install a command line version of svn. http://www.sliksvn.com/en/download (other versions are fine too).
-- Make sure that the directory where the svn.exe file is, is added to the System PATH
+Run the command buildall.bat. This will build everything including the installer.
 
-Building freetype:
-- open freetype\freetype.sln in Visual C++ 2008 Express Edition or freetype\freetypevc10.sln in Visual C++ 2010
-  Build configurations 'Release Multithreaded' and 'Debug Multithreaded'
-
-Building openssl:
-- run 'perl Configure VC-WIN32' in the openssl directory
-- run 'ms\do_nasm.bat' in the openssl' directory
-- run 'nmake -f ms\nt.mak' in the openssl directory
-- run 'nmake DEBUG=1 -f ms\nt.mak' in the openssl directory (if you want to build the DEBUG version of vcxsrv)
-
-Building pthreads:
-- goto pthreads directory
-- run 'nmake VC-static'
-- run 'nmake VC-static-debug'
-
-Building mhmake
-- open tools\mhmake\mhmake.sln in Visual C++ 2008 or tools\mhmake\mhmakevc10.sln in Visual C++ 2010
-- Build the Debug and Release configurations
-- Copy Debug\mhmake_dbg.exe and Release\mhmake.exe to a directory in your environment PATH
-
-Add an environment variable named MHMAKECONF having as value the root directory of the sources.
-e.g.: set MHMAKECONF=c:\vcxsrv\trunk
-
-Building vcxsrv:
-- run 'mhmake DEBUG=1 MAKESERVER=1 vcxsrv_dbg.exe' in xorg-server directory for a debugable version (doing this first will cause the next
-  step not to generate an error
-- run 'mhmake MAKESERVER=1' in xorg-server directory.
-
-To build installer:
-- install http://nsis.sourceforge.net
-- run 'packageall.bat' in xorg-server\installer
-
-To clean the project tree (uses svn) go to the top directory at a command prompt and type in 'python tools\cleantree.py -r'
-Do this only working on a source tree checked out with svn (svn co https://vcxsrv.svn.sourceforge.net/svnroot/vcxsrv/trunk).
+To clean the project tree (uses git) go to the top directory at a command prompt
+and type in 'git clean -dfx'
 
