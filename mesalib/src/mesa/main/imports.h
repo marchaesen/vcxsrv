@@ -96,18 +96,6 @@ typedef union { GLfloat f; GLint i; } fi_type;
 #define DEG2RAD (M_PI/180.0)
 
 
-/***
- *** SQRTF: single-precision square root
- ***/
-#define SQRTF(X)  (float) sqrt((float) (X))
-
-
-/***
- *** INV_SQRTF: single-precision inverse square root
- ***/
-#define INV_SQRTF(X) (1.0F / SQRTF(X))
-
-
 /**
  * \name Work-arounds for platforms that lack C99 math functions
  */
@@ -156,9 +144,15 @@ static inline int isblank(int ch) { return ch == ' ' || ch == '\t'; }
 #endif
 /*@}*/
 
-#if defined(__SUNPRO_C)
-#define sqrtf(f) ((float) sqrt(f))
-#endif
+
+
+/** single-precision inverse square root */
+static inline float
+INV_SQRTF(float x)
+{
+   /* XXX we could try Quake's fast inverse square root function here */
+   return 1.0F / sqrtf(x);
+}
 
 
 /***

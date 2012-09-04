@@ -182,7 +182,7 @@ static int has_cpuid(void)
 static INLINE void
 cpuid(uint32_t ax, uint32_t *p)
 {
-#if defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86)
+#if (defined(PIPE_CC_GCC) || defined(PIPE_CC_SUNPRO)) && defined(PIPE_ARCH_X86)
    __asm __volatile (
      "xchgl %%ebx, %1\n\t"
      "cpuid\n\t"
@@ -193,7 +193,7 @@ cpuid(uint32_t ax, uint32_t *p)
        "=d" (p[3])
      : "0" (ax)
    );
-#elif defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86_64)
+#elif (defined(PIPE_CC_GCC) || defined(PIPE_CC_SUNPRO)) && defined(PIPE_ARCH_X86_64)
    __asm __volatile (
      "cpuid\n\t"
      : "=a" (p[0]),
@@ -284,6 +284,11 @@ util_cpu_detect(void)
          cacheline = ((regs2[1] >> 8) & 0xFF) * 8;
          if (cacheline > 0)
             util_cpu_caps.cacheline = cacheline;
+      }
+
+      if (regs[1] == 0x756e6547 && regs[2] == 0x6c65746e && regs[3] == 0x49656e69) {
+         /* GenuineIntel */
+         util_cpu_caps.has_intel = 1;
       }
 
       cpuid(0x80000000, regs);
