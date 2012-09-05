@@ -728,8 +728,6 @@ xf86CrtcCloseScreen(ScreenPtr screen)
 
     xf86RandR12CloseScreen(screen);
 
-    free(config->name);
-
     screen->CloseScreen(screen);
 
     for (o = 0; o < config->num_output; o++) {

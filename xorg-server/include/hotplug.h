@@ -69,4 +69,6 @@ void config_odev_probe(config_odev_probe_proc_ptr probe_callback);
 void NewGPUDeviceRequest(struct OdevAttributes *attribs);
 void DeleteGPUDeviceRequest(struct OdevAttributes *attribs);
 #endif
+
+#define ServerIsNotSeat0() (SeatId && strcmp(SeatId, "seat0"))
 #endif                          /* HOTPLUG_H */

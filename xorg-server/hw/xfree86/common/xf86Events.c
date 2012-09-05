@@ -460,6 +460,8 @@ xf86VTSwitch(void)
         OsBlockSIGIO();
         for (i = 0; i < xf86NumScreens; i++)
             xf86Screens[i]->LeaveVT(xf86Screens[i]);
+        for (i = 0; i < xf86NumGPUScreens; i++)
+            xf86GPUScreens[i]->LeaveVT(xf86GPUScreens[i]);
 
         xf86AccessLeave();      /* We need this here, otherwise */
 
@@ -473,6 +475,10 @@ xf86VTSwitch(void)
             for (i = 0; i < xf86NumScreens; i++) {
                 if (!xf86Screens[i]->EnterVT(xf86Screens[i]))
                     FatalError("EnterVT failed for screen %d\n", i);
+            }
+            for (i = 0; i < xf86NumGPUScreens; i++) {
+                if (!xf86GPUScreens[i]->EnterVT(xf86GPUScreens[i]))
+                    FatalError("EnterVT failed for gpu screen %d\n", i);
             }
             if (!(dispatchException & DE_TERMINATE)) {
                 for (i = 0; i < xf86NumScreens; i++) {
@@ -529,6 +535,11 @@ xf86VTSwitch(void)
             xf86Screens[i]->vtSema = TRUE;
             if (!xf86Screens[i]->EnterVT(xf86Screens[i]))
                 FatalError("EnterVT failed for screen %d\n", i);
+        }
+        for (i = 0; i < xf86NumGPUScreens; i++) {
+            xf86GPUScreens[i]->vtSema = TRUE;
+            if (!xf86GPUScreens[i]->EnterVT(xf86GPUScreens[i]))
+                FatalError("EnterVT failed for gpu screen %d\n", i);
         }
         for (i = 0; i < xf86NumScreens; i++) {
             if (xf86Screens[i]->EnableDisableFBAccess)
