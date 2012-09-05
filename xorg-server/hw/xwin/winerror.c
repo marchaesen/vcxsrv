@@ -102,11 +102,11 @@ OsVendorFatalError(const char *f, va_list args)
     }
     LogClose(EXIT_ERR_ABORT);
 
-  winMessageBoxF (
-          "A fatal error has occurred and " PROJECT_NAME " will now exit.\n" \
-	  "%s\n"	  
-          "Please open %s for more information.\n",
-		  MB_ICONERROR, g_FatalErrorMessage, (g_pszLogFile?g_pszLogFile:"the logfile"));
+    winMessageBoxF (
+      "Error: %s\n\n"\
+      PROJECT_NAME " will now exit.\n\n" \
+      "Please open %s for more information.\n",
+      MB_ICONERROR, g_FatalErrorMessage, (g_pszLogFile?g_pszLogFile:"the logfile"));
 }
 
 /*
