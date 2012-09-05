@@ -181,6 +181,7 @@ main(int argc, char *argv[], char *envp[])
          chdir(ModuleFilename);
        }
      }
+    OsVendorPreInit(argc, argv);
     #endif
 
     InitRegions();

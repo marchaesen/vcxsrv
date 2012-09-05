@@ -633,11 +633,8 @@ winFixupPaths(void)
 }
 
 void
-OsVendorInit(void)
+OsVendorPreInit(int argc, char *argv[])
 {
-    /* Re-initialize global variables on server reset */
-    winInitializeGlobals();
-
     winFixupPaths();
 
 #ifdef DDXOSVERRORF
@@ -657,6 +654,17 @@ OsVendorInit(void)
     LogSetParameter(XLOG_FLUSH, 1);
     LogSetParameter(XLOG_VERBOSITY, g_iLogVerbose);
     LogSetParameter(XLOG_FILE_VERBOSITY, g_iLogVerbose);
+
+    /* Log the command line */
+    winLogCommandLine(argc, argv);
+
+}
+
+void
+OsVendorInit(void)
+{
+    /* Re-initialize global variables on server reset */
+    winInitializeGlobals();
 
     /* Log the version information */
     if (serverGeneration == 1)
@@ -921,9 +929,6 @@ InitOutput(ScreenInfo * screenInfo, int argc, char *argv[])
     int i;
 
     XwinExtensionInit();
-
-    /* Log the command line */
-    winLogCommandLine(argc, argv);
 
     winDebug("InitOutput\n");
 
