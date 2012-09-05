@@ -268,8 +268,9 @@ ddxProcessArgument(int argc, char *argv[], int i)
      */
     if (IS_OPTION("-help") || IS_OPTION("-h") || IS_OPTION("--help")) {
         /* Reset logfile. We don't need that helpmessage in the logfile */
-        g_pszLogFile = NULL;
+#ifdef _DEBUG
         g_fNoHelpMessageBox = TRUE;
+#endif
         UseMsg();
         exit(0);
         return 1;
@@ -277,7 +278,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
 
     if (IS_OPTION("-version") || IS_OPTION("--version")) {
         /* Reset logfile. We don't need that versioninfo in the logfile */
-        g_pszLogFile = NULL;
         winLogVersionInfo();
         exit(0);
         return 1;
