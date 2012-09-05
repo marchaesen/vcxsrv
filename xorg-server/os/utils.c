@@ -1700,7 +1700,6 @@ System(const char *cmdline)
  */
 
 /* Consider LD* variables insecure? */
-#ifndef _MSC_VER
 #ifndef REMOVE_ENV_LD
 #define REMOVE_ENV_LD 1
 #endif
@@ -1708,7 +1707,6 @@ System(const char *cmdline)
 /* Remove long environment variables? */
 #ifndef REMOVE_LONG_ENV
 #define REMOVE_LONG_ENV 1
-#endif
 #endif
 
 /*
