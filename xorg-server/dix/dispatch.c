@@ -3904,6 +3904,10 @@ RemoveGPUScreen(ScreenPtr pScreen)
     }
     screenInfo.numGPUScreens--;
 
+    /* this gets freed later in the resource list, but without
+     * the screen existing it causes crashes - so remove it here */
+    if (pScreen->defColormap)
+        FreeResource(pScreen->defColormap, RT_COLORMAP);
     free(pScreen);
 
 }
