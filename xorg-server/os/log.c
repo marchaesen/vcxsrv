@@ -386,8 +386,8 @@ LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
 #endif
         }
         else if (!inSignalContext && logFile) {
-            if (newline)
-                fprintf(logFile, "[%10.3f] ", GetTimeInMillis() / 1000.0);
+//            if (newline)
+//                fprintf(logFile, "[%10.3f] ", GetTimeInMillis() / 1000.0);
             newline = end_line;
             fwrite(buf, len, 1, logFile);
             if (logFlush) {
