@@ -159,6 +159,9 @@
 /* Define to use CommonCrypto SHA1 functions */
 #undef HAVE_SHA1_IN_COMMONCRYPTO
 
+/* Define to use CryptoAPI SHA1 functions */
+#undef HAVE_SHA1_IN_CRYPTOAPI
+
 /* Define to use libmd SHA1 functions */
 #undef HAVE_SHA1_IN_LIBMD
 
@@ -426,6 +429,9 @@
 /* Use libudev for input hotplug */
 #undef CONFIG_UDEV
 
+/* Use libudev for kms enumeration */
+#undef CONFIG_UDEV_KMS
+
 /* Use udev_monitor_filter_add_match_tag() */
 #undef HAVE_UDEV_MONITOR_FILTER_ADD_MATCH_TAG
 
@@ -455,6 +461,9 @@
 
 /* Define to 64-bit byteswap macro */
 #undef bswap_64
+
+/* Define to 1 if typeof works with your compiler. */
+#undef HAVE_TYPEOF
 
 /* The compiler supported TLS storage class, prefering initial-exec if tls_model is supported */
 #undef TLS
