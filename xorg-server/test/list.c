@@ -137,7 +137,7 @@ static void
 test_xorg_list_del(void)
 {
     struct parent parent = { 0 };
-    struct child child[3];
+    struct child child[2];
     struct child *c;
 
     xorg_list_init(&parent.children);
@@ -178,8 +178,8 @@ test_xorg_list_del(void)
     xorg_list_add(&child[0].node, &parent.children);
     xorg_list_del(&parent.children);
     assert(xorg_list_is_empty(&parent.children));
+    assert(!xorg_list_is_empty(&child[0].node));
     assert(!xorg_list_is_empty(&child[1].node));
-    assert(!xorg_list_is_empty(&child[2].node));
 }
 
 static void

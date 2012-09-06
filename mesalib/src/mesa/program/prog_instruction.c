@@ -69,7 +69,7 @@ _mesa_init_instructions(struct prog_instruction *inst, GLuint count)
 struct prog_instruction *
 _mesa_alloc_instructions(GLuint numInst)
 {
-   return (struct prog_instruction *)
+   return
       calloc(1, numInst * sizeof(struct prog_instruction));
 }
 
@@ -127,10 +127,8 @@ _mesa_free_instructions(struct prog_instruction *inst, GLuint count)
 {
    GLuint i;
    for (i = 0; i < count; i++) {
-      if (inst[i].Data)
-         free(inst[i].Data);
-      if (inst[i].Comment)
-         free((char *) inst[i].Comment);
+      free(inst[i].Data);
+      free((char *)inst[i].Comment);
    }
    free(inst);
 }

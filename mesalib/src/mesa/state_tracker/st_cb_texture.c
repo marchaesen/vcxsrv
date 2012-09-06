@@ -648,7 +648,7 @@ decompress_with_blit(struct gl_context * ctx,
       enum pipe_format pformat = util_format_linear(dst_texture->format);
       GLfloat *rgba;
 
-      rgba = (GLfloat *) malloc(width * 4 * sizeof(GLfloat));
+      rgba = malloc(width * 4 * sizeof(GLfloat));
       if (!rgba) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glGetTexImage()");
          goto end;
@@ -775,7 +775,7 @@ fallback_copy_texsubimage(struct gl_context *ctx,
          yStep = 1;
       }
 
-      data = (uint *) malloc(width * sizeof(uint));
+      data = malloc(width * sizeof(uint));
 
       if (data) {
          /* To avoid a large temp memory allocation, do copy row by row */
@@ -796,7 +796,7 @@ fallback_copy_texsubimage(struct gl_context *ctx,
    else {
       /* RGBA format */
       GLfloat *tempSrc =
-         (GLfloat *) malloc(width * height * 4 * sizeof(GLfloat));
+         malloc(width * height * 4 * sizeof(GLfloat));
 
       if (tempSrc && texDest) {
          const GLint dims = 2;
@@ -835,8 +835,7 @@ fallback_copy_texsubimage(struct gl_context *ctx,
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexSubImage");
       }
 
-      if (tempSrc)
-         free(tempSrc);
+      free(tempSrc);
    }
 
    st_texture_image_unmap(st, stImage);
