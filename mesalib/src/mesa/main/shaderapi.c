@@ -377,7 +377,7 @@ detach_shader(struct gl_context *ctx, GLuint program, GLuint shader)
          _mesa_reference_shader(ctx, &shProg->Shaders[i], NULL);
 
          /* alloc new, smaller array */
-         newList = (struct gl_shader **)
+         newList =
             malloc((n - 1) * sizeof(struct gl_shader *));
          if (!newList) {
             _mesa_error(ctx, GL_OUT_OF_MEMORY, "glDetachShader");
@@ -703,9 +703,7 @@ shader_source(struct gl_context *ctx, GLuint shader, const GLchar *source)
       return;
 
    /* free old shader source string and install new one */
-   if (sh->Source) {
-      free((void *) sh->Source);
-   }
+   free((void *)sh->Source);
    sh->Source = source;
    sh->CompileStatus = GL_FALSE;
 #ifdef DEBUG
@@ -1299,7 +1297,7 @@ read_shader(const char *fname)
       return NULL;
    }
 
-   buffer = (char *) malloc(max);
+   buffer = malloc(max);
    len = fread(buffer, 1, max, f);
    buffer[len] = 0;
 
@@ -1336,7 +1334,7 @@ _mesa_ShaderSourceARB(GLhandleARB shaderObj, GLsizei count,
     * This array holds offsets of where the appropriate string ends, thus the
     * last element will be set to the total length of the source code.
     */
-   offsets = (GLint *) malloc(count * sizeof(GLint));
+   offsets = malloc(count * sizeof(GLint));
    if (offsets == NULL) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glShaderSourceARB");
       return;
@@ -1363,7 +1361,7 @@ _mesa_ShaderSourceARB(GLhandleARB shaderObj, GLsizei count,
     * valgrind warnings in the parser/grammer code.
     */
    totalLength = offsets[count - 1] + 2;
-   source = (GLcharARB *) malloc(totalLength * sizeof(GLcharARB));
+   source = malloc(totalLength * sizeof(GLcharARB));
    if (source == NULL) {
       free((GLvoid *) offsets);
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glShaderSourceARB");

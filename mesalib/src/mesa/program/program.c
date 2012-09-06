@@ -249,7 +249,7 @@ _mesa_find_line_column(const GLubyte *string, const GLubyte *pos,
    while (*p != 0 && *p != '\n')
       p++;
    len = p - lineStart;
-   s = (GLubyte *) malloc(len + 1);
+   s = malloc(len + 1);
    memcpy(s, lineStart, len);
    s[len] = 0;
 
@@ -382,8 +382,7 @@ _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog)
    if (prog == &_mesa_DummyProgram)
       return;
 
-   if (prog->String)
-      free(prog->String);
+   free(prog->String);
 
    if (prog->Instructions) {
       _mesa_free_instructions(prog->Instructions, prog->NumInstructions);

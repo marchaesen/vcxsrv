@@ -57,7 +57,7 @@
 #endif
 
 
-#ifdef WIN32
+#ifdef _WIN32
 #define vsnprintf _vsnprintf
 #elif defined(__IBMC__) || defined(__IBMCPP__) || ( defined(__VMS) && __CRTL_VER < 70312000 )
 extern int vsnprintf(char *str, size_t count, const char *fmt, va_list arg);
@@ -97,7 +97,7 @@ _mesa_align_malloc(size_t bytes, unsigned long alignment)
 
    ASSERT( alignment > 0 );
 
-   ptr = (uintptr_t) malloc(bytes + alignment + sizeof(void *));
+   ptr = malloc(bytes + alignment + sizeof(void *));
    if (!ptr)
       return NULL;
 
@@ -146,7 +146,7 @@ _mesa_align_calloc(size_t bytes, unsigned long alignment)
 
    ASSERT( alignment > 0 );
 
-   ptr = (uintptr_t) calloc(1, bytes + alignment + sizeof(void *));
+   ptr = calloc(1, bytes + alignment + sizeof(void *));
    if (!ptr)
       return NULL;
 
@@ -218,8 +218,7 @@ _mesa_realloc(void *oldBuffer, size_t oldSize, size_t newSize)
    void *newBuffer = malloc(newSize);
    if (newBuffer && oldBuffer && copySize > 0)
       memcpy(newBuffer, oldBuffer, copySize);
-   if (oldBuffer)
-      free(oldBuffer);
+   free(oldBuffer);
    return newBuffer;
 }
 
@@ -527,7 +526,7 @@ _mesa_strdup( const char *s )
 {
    if (s) {
       size_t l = strlen(s);
-      char *s2 = (char *) malloc(l + 1);
+      char *s2 = malloc(l + 1);
       if (s2)
          strcpy(s2, s);
       return s2;

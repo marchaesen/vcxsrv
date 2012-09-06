@@ -146,7 +146,7 @@ void vbo_rebase_prims( struct gl_context *ctx,
       /* If we can just tell the hardware or the TNL to interpret our
        * indices with a different base, do so.
        */
-      tmp_prims = (struct _mesa_prim *)malloc(sizeof(*prim) * nr_prims);
+      tmp_prims = malloc(sizeof(*prim) * nr_prims);
 
       for (i = 0; i < nr_prims; i++) {
 	 tmp_prims[i] = prim[i];
@@ -195,7 +195,7 @@ void vbo_rebase_prims( struct gl_context *ctx,
    else {
       /* Otherwise the primitives need adjustment.
        */
-      tmp_prims = (struct _mesa_prim *)malloc(sizeof(*prim) * nr_prims);
+      tmp_prims = malloc(sizeof(*prim) * nr_prims);
 
       for (i = 0; i < nr_prims; i++) {
 	 /* If this fails, it could indicate an application error:
@@ -242,11 +242,9 @@ void vbo_rebase_prims( struct gl_context *ctx,
    ctx->Array._DrawArrays = saved_arrays;
    ctx->NewDriverState |= ctx->DriverFlags.NewArray;
    
-   if (tmp_indices)
-      free(tmp_indices);
+   free(tmp_indices);
    
-   if (tmp_prims)
-      free(tmp_prims);
+   free(tmp_prims);
 }
 
 

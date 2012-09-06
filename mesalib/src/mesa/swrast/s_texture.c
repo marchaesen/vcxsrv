@@ -83,7 +83,7 @@ _swrast_alloc_texture_image_buffer(struct gl_context *ctx,
     * We allocate the array for 1D/2D textures too in order to avoid special-
     * case code in the texstore routines.
     */
-   swImg->ImageOffsets = (GLuint *) malloc(texImage->Depth * sizeof(GLuint));
+   swImg->ImageOffsets = malloc(texImage->Depth * sizeof(GLuint));
    if (!swImg->ImageOffsets)
       return GL_FALSE;
 
@@ -144,10 +144,8 @@ _swrast_free_texture_image_buffer(struct gl_context *ctx,
       swImage->Buffer = NULL;
    }
 
-   if (swImage->ImageOffsets) {
-      free(swImage->ImageOffsets);
-      swImage->ImageOffsets = NULL;
-   }
+   free(swImage->ImageOffsets);
+   swImage->ImageOffsets = NULL;
 }
 
 

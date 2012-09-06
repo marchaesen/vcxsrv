@@ -423,6 +423,9 @@
 /* Define to 64-bit byteswap macro */
 #undef bswap_64
 
+/* Define to 1 if typeof works with your compiler. */
+#undef HAVE_TYPEOF
+
 /* The compiler supported TLS storage class, prefering initial-exec if tls_model is supported */
 #undef TLS
 

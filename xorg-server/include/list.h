@@ -26,6 +26,8 @@
 #ifndef _XORG_LIST_H_
 #define _XORG_LIST_H_
 
+#include <stddef.h> /* offsetof() */
+
 /**
  * @file Classic doubly-link circular list implementation.
  * For real usage examples of the linked list, see the file test/list.c
@@ -232,7 +234,7 @@ xorg_list_is_empty(struct xorg_list *head)
  */
 #ifndef container_of
 #define container_of(ptr, type, member) \
-    (type *)((char *)(ptr) - (char *) &((type *)0)->member)
+    (type *)((char *)(ptr) - offsetof(type, member))
 #endif
 
 /**
@@ -271,9 +273,20 @@ xorg_list_is_empty(struct xorg_list *head)
 #define xorg_list_last_entry(ptr, type, member) \
     xorg_list_entry((ptr)->prev, type, member)
 
-#define __container_of(ptr, sample, member)				\
-    (void *)((char *)(ptr)						\
-	     - ((char *)&(sample)->member - (char *)(sample)))
+#ifdef HAVE_TYPEOF
+#define __container_of(ptr, sample, member)			\
+    container_of(ptr, typeof(*sample), member)
+#else
+/* This implementation of __container_of has undefined behavior according
+ * to the C standard, but it works in many cases.  If your compiler doesn't
+ * support typeof() and fails with this implementation, please try a newer
+ * compiler.
+ */
+#define __container_of(ptr, sample, member)                            \
+    (void *)((char *)(ptr)                                             \
+            - ((char *)&(sample)->member - (char *)(sample)))
+#endif
+
 /**
  * Loop through the list given by head and set pos to struct in the list.
  *
