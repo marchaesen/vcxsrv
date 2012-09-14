@@ -1,4 +1,4 @@
-SUBDIRS = digital_vndr fujitsu_vndr hp_vndr macintosh_vndr nec_vndr nokia_vndr sgi_vndr sony_vndr sun_vndr xfree68_vndr
+SUBDIRS = digital_vndr fujitsu_vndr hp_vndr macintosh_vndr nec_vndr nokia_vndr sharp_vndr sgi_vndr sony_vndr sun_vndr xfree68_vndr
 
 ifeq ($(MAKESERVER),1)
 $(error Please do not specify MAKESERVER=1)
@@ -28,7 +28,7 @@ ke kg kh \
 kr kz \
 la latam latin \
 lk lt lv \
-ma mao me \
+ma mao md me \
 mk ml mm \
 mn mt mv \
 ng nl no np \
