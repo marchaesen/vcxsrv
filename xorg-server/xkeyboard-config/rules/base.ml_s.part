@@ -36,6 +36,11 @@
   olpc		$olpclayouts		=	olpc+%l%(m)
   olpc		*			=	olpc+%l%(v)
  $thinkpads   	br			=	pc+br(thinkpad)
+  sl-c3x00	*			=	pc+sharp_vndr/sl-c3x00(basic)
+  ws003sh	*			=	pc+sharp_vndr/ws003sh(basic)
+  ws007sh	*			=	pc+sharp_vndr/ws007sh(basic)
+  ws011sh	*			=	pc+sharp_vndr/ws011sh(basic)
+  ws020sh	*			=	pc+sharp_vndr/ws020sh(basic)
   htcdream	$htcdreamlayouts	=	%l(htcdream)
   *	   	$nonlatin		=	pc+us+%l%(v):2
   *		*			=	pc+%l%(v)

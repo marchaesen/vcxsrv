@@ -306,7 +306,15 @@ AC_CHECK_FUNC(poll, [AC_DEFINE(USE_POLL, 1, [poll() function is available])], )
 # Find keysymdef.h
 #
 AC_MSG_CHECKING([keysym definitions])
-KEYSYMDEFDIR=`$PKG_CONFIG --variable=includedir xproto`/X11
+AC_ARG_WITH([keysymdefdir],
+        [AC_HELP_STRING([--with-keysymdefdir=DIR], [The location of keysymdef.h (defaults to xproto include dir)])],
+        [KEYSYMDEFDIR=$withval],
+        [KEYSYMDEFDIR=`$PKG_CONFIG --variable=includedir xproto`/X11])
+
+if test ! -d "$KEYSYMDEFDIR"; then
+	AC_MSG_ERROR([$KEYSYMDEFDIR doesn't exist or isn't a directory])
+fi
+
 FILES="keysymdef.h XF86keysym.h Sunkeysym.h DECkeysym.h HPkeysym.h"
 for i in $FILES; do
     if test -f "$KEYSYMDEFDIR/$i"; then
