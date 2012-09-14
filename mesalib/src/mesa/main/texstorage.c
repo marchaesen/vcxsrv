@@ -192,9 +192,10 @@ setup_texstorage(struct gl_context *ctx,
 
          return;
       }
-   }
 
-   texObj->Immutable = GL_TRUE;
+      /* Only set this field for non-proxy texture objects */
+      texObj->Immutable = GL_TRUE;
+   }
 }
 
 
@@ -242,25 +243,68 @@ tex_storage_error_check(struct gl_context *ctx, GLuint dims, GLenum target,
                         GLsizei levels, GLenum internalformat,
                         GLsizei width, GLsizei height, GLsizei depth)
 {
-   const GLboolean isProxy = _mesa_is_proxy_texture(target);
    struct gl_texture_object *texObj;
    GLuint maxDim;
+   GLboolean legalFormat;
+
+   /* check internal format - note that only sized formats are allowed */
+   switch (internalformat) {
+   case GL_ALPHA:
+   case GL_LUMINANCE:
+   case GL_LUMINANCE_ALPHA:
+   case GL_INTENSITY:
+   case GL_RED:
+   case GL_RG:
+   case GL_RGB:
+   case GL_RGBA:
+   case GL_BGRA:
+   case GL_DEPTH_COMPONENT:
+   case GL_DEPTH_STENCIL:
+   case GL_COMPRESSED_ALPHA:
+   case GL_COMPRESSED_LUMINANCE_ALPHA:
+   case GL_COMPRESSED_LUMINANCE:
+   case GL_COMPRESSED_INTENSITY:
+   case GL_COMPRESSED_RGB:
+   case GL_COMPRESSED_RGBA:
+   case GL_COMPRESSED_SRGB:
+   case GL_COMPRESSED_SRGB_ALPHA:
+   case GL_COMPRESSED_SLUMINANCE:
+   case GL_COMPRESSED_SLUMINANCE_ALPHA:
+   case GL_RED_INTEGER:
+   case GL_GREEN_INTEGER:
+   case GL_BLUE_INTEGER:
+   case GL_ALPHA_INTEGER:
+   case GL_RGB_INTEGER:
+   case GL_RGBA_INTEGER:
+   case GL_BGR_INTEGER:
+   case GL_BGRA_INTEGER:
+   case GL_LUMINANCE_INTEGER_EXT:
+   case GL_LUMINANCE_ALPHA_INTEGER_EXT:
+      /* these unsized formats are illegal */
+      legalFormat = GL_FALSE;
+      break;
+   default:
+      legalFormat = _mesa_base_tex_format(ctx, internalformat) > 0;
+   }
+
+   if (!legalFormat) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glTexStorage%uD(internalformat = %s)", dims,
+                  _mesa_lookup_enum_by_nr(internalformat));
+      return GL_TRUE;
+   }
 
    /* size check */
    if (width < 1 || height < 1 || depth < 1) {
-      if (!isProxy) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glTexStorage%uD(width, height or depth < 1)", dims);
-      }
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glTexStorage%uD(width, height or depth < 1)", dims);
       return GL_TRUE;
    }  
 
    /* levels check */
    if (levels < 1 || height < 1 || depth < 1) {
-      if (!isProxy) {
-         _mesa_error(ctx, GL_INVALID_VALUE, "glTexStorage%uD(levels < 1)",
-                     dims);
-      }
+      _mesa_error(ctx, GL_INVALID_VALUE, "glTexStorage%uD(levels < 1)",
+                  dims);
       return GL_TRUE;
    }  
 
@@ -274,40 +318,32 @@ tex_storage_error_check(struct gl_context *ctx, GLuint dims, GLenum target,
 
    /* check levels against maximum */
    if (levels > _mesa_max_texture_levels(ctx, target)) {
-      if (!isProxy) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glTexStorage%uD(levels too large)", dims);
-      }
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glTexStorage%uD(levels too large)", dims);
       return GL_TRUE;
    }
 
    /* check levels against width/height/depth */
    maxDim = MAX3(width, height, depth);
    if (levels > _mesa_logbase2(maxDim) + 1) {
-      if (!isProxy) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glTexStorage%uD(too many levels for max texture dimension)",
-                     dims);
-      }
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glTexStorage%uD(too many levels for max texture dimension)",
+                  dims);
       return GL_TRUE;
    }
 
    /* non-default texture object check */
    texObj = _mesa_get_current_tex_object(ctx, target);
-   if (!texObj || (texObj->Name == 0 && !isProxy)) {
-      if (!isProxy) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glTexStorage%uD(texture object 0)", dims);
-      }
+   if (!texObj || (texObj->Name == 0)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glTexStorage%uD(texture object 0)", dims);
       return GL_TRUE;
    }
 
    /* Check if texObj->Immutable is set */
    if (texObj->Immutable) {
-      if (!isProxy) {
-         _mesa_error(ctx, GL_INVALID_OPERATION, "glTexStorage%uD(immutable)",
-                     dims);
-      }
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glTexStorage%uD(immutable)",
+                  dims);
       return GL_TRUE;
    }
 
@@ -323,21 +359,37 @@ texstorage(GLuint dims, GLenum target, GLsizei levels, GLenum internalformat,
            GLsizei width, GLsizei height, GLsizei depth)
 {
    struct gl_texture_object *texObj;
-   GLboolean error;
+   GLboolean sizeOK;
+   GLenum proxyTarget = _mesa_get_proxy_target(target);
 
    GET_CURRENT_CONTEXT(ctx);
 
    texObj = _mesa_get_current_tex_object(ctx, target);
 
-   error = tex_storage_error_check(ctx, dims, target, levels,
-                                   internalformat, width, height, depth);
-   if (!error) {
+   if (tex_storage_error_check(ctx, dims, target, levels,
+                               internalformat, width, height, depth)) {
+      return; /* error was recorded */
+   }
+
+   sizeOK = ctx->Driver.TestProxyTexImage(ctx, proxyTarget, 0,
+                                          internalformat, GL_NONE, GL_NONE,
+                                          width, height, depth, 0);
+
+   if (!sizeOK) {
+      if (_mesa_is_proxy_texture(texObj->Target)) {
+         /* clear all image fields for [levels] */
+         clear_image_fields(ctx, dims, texObj);
+      }
+      else {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glTexStorage%uD(invalid width, height or depth)",
+                     dims);
+         return;
+      }
+   }
+   else {
       setup_texstorage(ctx, texObj, dims, levels, internalformat,
                        width, height, depth);
-   }
-   else if (_mesa_is_proxy_texture(target)) {
-      /* clear all image fields for [levels] */
-      clear_image_fields(ctx, dims, texObj);
    }
 }
 

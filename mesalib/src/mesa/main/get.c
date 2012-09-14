@@ -789,6 +789,15 @@ static const struct value_desc values[] = {
 
 #endif /* FEATURE_GL || FEATURE_ES2 */
 
+#if FEATURE_ES1 || FEATURE_ES2
+   { 0, 0, TYPE_API_MASK, API_OPENGLES | API_OPENGLES2_BIT, NO_EXTRA },
+   /* GL_OES_EGL_image_external */
+   { GL_TEXTURE_BINDING_EXTERNAL_OES, LOC_CUSTOM,
+     TYPE_INT, TEXTURE_EXTERNAL_INDEX, extra_OES_EGL_image_external },
+   { GL_TEXTURE_EXTERNAL_OES, LOC_CUSTOM,
+     TYPE_BOOLEAN, 0, extra_OES_EGL_image_external },
+#endif
+
 #if FEATURE_ES2
    /* Enums unique to OpenGL ES 2.0 */
    { 0, 0, TYPE_API_MASK, API_OPENGLES2_BIT, NO_EXTRA },
@@ -800,12 +809,6 @@ static const struct value_desc values[] = {
    { GL_NUM_SHADER_BINARY_FORMATS, CONST(0), NO_EXTRA },
    { GL_SHADER_BINARY_FORMATS, CONST(0), NO_EXTRA },
 #endif /* FEATURE_ES2 */
-
-   /* GL_OES_EGL_image_external */
-   { GL_TEXTURE_BINDING_EXTERNAL_OES, LOC_CUSTOM,
-     TYPE_INT, TEXTURE_EXTERNAL_INDEX, extra_OES_EGL_image_external },
-   { GL_TEXTURE_EXTERNAL_OES, LOC_CUSTOM,
-     TYPE_BOOLEAN, 0, extra_OES_EGL_image_external },
 
 #if FEATURE_GL
    /* Remaining enums are only in OpenGL */
@@ -1398,29 +1401,29 @@ print_table_stats(void)
 
    for (i = 0; i < Elements(table); i++) {
       if (!table[i])
-	 continue;
+         continue;
       count++;
       d = &values[table[i]];
       hash = (d->pname * prime_factor);
       j = 0;
       while (1) {
-	 if (values[table[hash & mask]].pname == d->pname)
-	    break;
-	 hash += prime_step;
-	 j++;
+         if (values[table[hash & mask]].pname == d->pname)
+            break;
+         hash += prime_step;
+         j++;
       }
 
       if (j < 10)
-	 collisions[j]++;
+         collisions[j]++;
       else
-	 collisions[10]++;
+         collisions[10]++;
    }
 
    printf("number of enums: %d (total %d)\n", count, Elements(values));
    for (i = 0; i < Elements(collisions) - 1; i++)
       if (collisions[i] > 0)
-	 printf("  %d enums with %d %scollisions\n",
-		collisions[i], i, i == 10 ? "or more " : "");
+         printf("  %d enums with %d %scollisions\n",
+               collisions[i], i, i == 10 ? "or more " : "");
 }
 #endif
 
@@ -1442,20 +1445,20 @@ void _mesa_init_get_hash(struct gl_context *ctx)
 
    for (i = 0; i < Elements(values); i++) {
       if (values[i].type == TYPE_API_MASK) {
-	 api_mask = values[i].offset;
-	 continue;
+         api_mask = values[i].offset;
+         continue;
       }
       if (!(api_mask & api_bit))
-	 continue;
+         continue;
 
       hash = (values[i].pname * prime_factor) & mask;
       while (1) {
-	 index = hash & mask;
-	 if (!table[index]) {
-	    table[index] = i;
-	    break;
-	 }
-	 hash += prime_step;
+         index = hash & mask;
+         if (!table[index]) {
+            table[index] = i;
+            break;
+         }
+         hash += prime_step;
       }
    }
 
@@ -1992,13 +1995,13 @@ find_value(const char *func, GLenum pname, void **p, union value *v)
       /* If the enum isn't valid, the hash walk ends with index 0,
        * which is the API mask entry at the beginning of values[]. */
       if (unlikely(d->type == TYPE_API_MASK)) {
-	 _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname=%s)", func,
-                     _mesa_lookup_enum_by_nr(pname));
-	 return &error_value;
+         _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname=%s)", func,
+               _mesa_lookup_enum_by_nr(pname));
+         return &error_value;
       }
 
       if (likely(d->pname == pname))
-	 break;
+         break;
 
       hash += prime_step;
    }

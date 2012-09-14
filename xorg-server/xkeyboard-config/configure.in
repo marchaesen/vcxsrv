@@ -1,4 +1,4 @@
-AC_INIT(xkeyboard-config, 2.6)
+AC_INIT(xkeyboard-config, 2.6.99)
 AC_CONFIG_SRCDIR(rules/base.xml.in)
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_MAINTAINER_MODE
@@ -97,6 +97,7 @@ symbols/macintosh_vndr/Makefile
 symbols/nec_vndr/Makefile
 symbols/nokia_vndr/Makefile
 symbols/sgi_vndr/Makefile
+symbols/sharp_vndr/Makefile
 symbols/sony_vndr/Makefile
 symbols/sun_vndr/Makefile
 symbols/xfree68_vndr/Makefile

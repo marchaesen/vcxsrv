@@ -1,3 +1,6 @@
+2.7	8 bugs fixed, most important:
+	- Fxx fixed (CTRL+ALT type)
+	- *.dir files not produced any more
 2.6	16 bugs fixed
 	Updated translations
 	Using proper gettext, instead of glib-gettext
