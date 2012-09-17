@@ -92,14 +92,11 @@ client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
          flag = VERT_BIT_COLOR1;
          break;
 
-#if FEATURE_point_size_array
       case GL_POINT_SIZE_ARRAY_OES:
          var = &arrayObj->VertexAttrib[VERT_ATTRIB_POINT_SIZE].Enabled;
          flag = VERT_BIT_POINT_SIZE;
          break;
-#endif
 
-#if FEATURE_NV_vertex_program
       case GL_VERTEX_ATTRIB_ARRAY0_NV:
       case GL_VERTEX_ATTRIB_ARRAY1_NV:
       case GL_VERTEX_ATTRIB_ARRAY2_NV:
@@ -124,7 +121,6 @@ client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
             flag = VERT_BIT_GENERIC(n);
          }
          break;
-#endif /* FEATURE_NV_vertex_program */
 
       /* GL_NV_primitive_restart */
       case GL_PRIMITIVE_RESTART_NV:
@@ -251,6 +247,23 @@ enable_texture(struct gl_context *ctx, GLboolean state, GLbitfield texBit)
 
 
 /**
+ * Helper function to enable or disable GL_MULTISAMPLE, skipping the check for
+ * whether the API supports it (GLES doesn't).
+ */
+void
+_mesa_set_multisample(struct gl_context *ctx, GLboolean state)
+{
+   if (ctx->Multisample.Enabled == state)
+      return;
+   FLUSH_VERTICES(ctx, _NEW_MULTISAMPLE);
+   ctx->Multisample.Enabled = state;
+
+   if (ctx->Driver.Enable) {
+      ctx->Driver.Enable(ctx, GL_MULTISAMPLE, state);
+   }
+}
+
+/**
  * Helper function to enable or disable state.
  *
  * \param ctx GL context.
@@ -298,7 +311,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             }
          }
          break;
-#if FEATURE_userclip
       case GL_CLIP_DISTANCE0:
       case GL_CLIP_DISTANCE1:
       case GL_CLIP_DISTANCE2:
@@ -328,7 +340,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             }               
          }
          break;
-#endif
       case GL_COLOR_MATERIAL:
          if (ctx->API != API_OPENGL && ctx->API != API_OPENGLES)
             goto invalid_enum_error;
@@ -767,11 +778,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_MULTISAMPLE_ARB:
          if (!_mesa_is_desktop_gl(ctx) && ctx->API != API_OPENGLES)
             goto invalid_enum_error;
-         if (ctx->Multisample.Enabled == state)
-            return;
-         FLUSH_VERTICES(ctx, _NEW_MULTISAMPLE);
-         ctx->Multisample.Enabled = state;
-         break;
+         _mesa_set_multisample(ctx, state);
+         return;
       case GL_SAMPLE_ALPHA_TO_COVERAGE_ARB:
          if (ctx->Multisample.SampleAlphaToCoverage == state)
             return;
@@ -823,7 +831,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          ctx->Point.PointSprite = state;
          break;
 
-#if FEATURE_NV_vertex_program || FEATURE_ARB_vertex_program
       case GL_VERTEX_PROGRAM_ARB:
          if (ctx->API != API_OPENGL)
             goto invalid_enum_error;
@@ -854,8 +861,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          FLUSH_VERTICES(ctx, _NEW_PROGRAM); 
          ctx->VertexProgram.TwoSideEnabled = state;
          break;
-#endif
-#if FEATURE_NV_vertex_program
+
       case GL_MAP1_VERTEX_ATTRIB0_4_NV:
       case GL_MAP1_VERTEX_ATTRIB1_4_NV:
       case GL_MAP1_VERTEX_ATTRIB2_4_NV:
@@ -906,9 +912,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             ctx->Eval.Map2Attrib[map] = state;
          }
          break;
-#endif /* FEATURE_NV_vertex_program */
 
-#if FEATURE_NV_fragment_program
       case GL_FRAGMENT_PROGRAM_NV:
          if (ctx->API != API_OPENGL)
             goto invalid_enum_error;
@@ -918,7 +922,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          FLUSH_VERTICES(ctx, _NEW_PROGRAM);
          ctx->FragmentProgram.Enabled = state;
          break;
-#endif /* FEATURE_NV_fragment_program */
 
       /* GL_NV_texture_rectangle */
       case GL_TEXTURE_RECTANGLE_NV:
@@ -946,7 +949,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          }
          break;
 
-#if FEATURE_ARB_fragment_program
       case GL_FRAGMENT_PROGRAM_ARB:
          if (ctx->API != API_OPENGL)
             goto invalid_enum_error;
@@ -956,7 +958,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          FLUSH_VERTICES(ctx, _NEW_PROGRAM);
          ctx->FragmentProgram.Enabled = state;
          break;
-#endif /* FEATURE_ARB_fragment_program */
 
       /* GL_EXT_depth_bounds_test */
       case GL_DEPTH_BOUNDS_TEST_EXT:
@@ -979,7 +980,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
 	 ctx->Transform.DepthClamp = state;
 	 break;
 
-#if FEATURE_ATI_fragment_shader
       case GL_FRAGMENT_SHADER_ATI:
          if (ctx->API != API_OPENGL)
             goto invalid_enum_error;
@@ -989,7 +989,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
 	FLUSH_VERTICES(ctx, _NEW_PROGRAM);
 	ctx->ATIFragmentShader.Enabled = state;
         break;
-#endif
 
       /* GL_MESA_texture_array */
       case GL_TEXTURE_1D_ARRAY_EXT:
@@ -1020,7 +1019,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
 	 }
 	 break;
 
-#if FEATURE_EXT_transform_feedback
       case GL_RASTERIZER_DISCARD:
          if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
@@ -1030,7 +1028,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             ctx->RasterDiscard = state;
          }
          break;
-#endif
 
       /* GL 3.1 primitive restart.  Note: this enum is different from
        * GL_PRIMITIVE_RESTART_NV (which is client state).
@@ -1488,7 +1485,7 @@ _mesa_IsEnabled( GLenum cap )
             goto invalid_enum_error;
          CHECK_EXTENSION(EXT_secondary_color);
          return (ctx->Array.ArrayObj->VertexAttrib[VERT_ATTRIB_COLOR1].Enabled != 0);
-#if FEATURE_point_size_array
+#if FEATURE_ES
       case GL_POINT_SIZE_ARRAY_OES:
          if (ctx->API != API_OPENGLES)
             goto invalid_enum_error;
@@ -1539,7 +1536,6 @@ _mesa_IsEnabled( GLenum cap )
          CHECK_EXTENSION2(NV_point_sprite, ARB_point_sprite)
          return ctx->Point.PointSprite;
 
-#if FEATURE_NV_vertex_program || FEATURE_ARB_vertex_program
       case GL_VERTEX_PROGRAM_ARB:
          if (ctx->API != API_OPENGL)
             goto invalid_enum_error;
@@ -1558,8 +1554,7 @@ _mesa_IsEnabled( GLenum cap )
             goto invalid_enum_error;
          CHECK_EXTENSION2(ARB_vertex_program, NV_vertex_program);
          return ctx->VertexProgram.TwoSideEnabled;
-#endif
-#if FEATURE_NV_vertex_program
+
       case GL_VERTEX_ATTRIB_ARRAY0_NV:
       case GL_VERTEX_ATTRIB_ARRAY1_NV:
       case GL_VERTEX_ATTRIB_ARRAY2_NV:
@@ -1630,15 +1625,12 @@ _mesa_IsEnabled( GLenum cap )
             const GLuint map = (GLuint) (cap - GL_MAP2_VERTEX_ATTRIB0_4_NV);
             return ctx->Eval.Map2Attrib[map];
          }
-#endif /* FEATURE_NV_vertex_program */
 
-#if FEATURE_NV_fragment_program
       case GL_FRAGMENT_PROGRAM_NV:
          if (ctx->API != API_OPENGL)
             goto invalid_enum_error;
          CHECK_EXTENSION(NV_fragment_program);
          return ctx->FragmentProgram.Enabled;
-#endif /* FEATURE_NV_fragment_program */
 
       /* GL_NV_texture_rectangle */
       case GL_TEXTURE_RECTANGLE_NV:
@@ -1654,12 +1646,10 @@ _mesa_IsEnabled( GLenum cap )
          CHECK_EXTENSION(EXT_stencil_two_side);
          return ctx->Stencil.TestTwoSide;
 
-#if FEATURE_ARB_fragment_program
       case GL_FRAGMENT_PROGRAM_ARB:
          if (ctx->API != API_OPENGL)
             goto invalid_enum_error;
          return ctx->FragmentProgram.Enabled;
-#endif /* FEATURE_ARB_fragment_program */
 
       /* GL_EXT_depth_bounds_test */
       case GL_DEPTH_BOUNDS_TEST_EXT:
@@ -1675,13 +1665,11 @@ _mesa_IsEnabled( GLenum cap )
          CHECK_EXTENSION(ARB_depth_clamp);
          return ctx->Transform.DepthClamp;
 
-#if FEATURE_ATI_fragment_shader
       case GL_FRAGMENT_SHADER_ATI:
          if (ctx->API != API_OPENGL)
             goto invalid_enum_error;
 	 CHECK_EXTENSION(ATI_fragment_shader);
 	 return ctx->ATIFragmentShader.Enabled;
-#endif /* FEATURE_ATI_fragment_shader */
 
       case GL_TEXTURE_CUBE_MAP_SEAMLESS:
          if (!_mesa_is_desktop_gl(ctx))
@@ -1689,13 +1677,11 @@ _mesa_IsEnabled( GLenum cap )
 	 CHECK_EXTENSION(ARB_seamless_cube_map);
 	 return ctx->Texture.CubeMapSeamless;
 
-#if FEATURE_EXT_transform_feedback
       case GL_RASTERIZER_DISCARD:
          if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
 	 CHECK_EXTENSION(EXT_transform_feedback);
          return ctx->RasterDiscard;
-#endif
 
       /* GL_NV_primitive_restart */
       case GL_PRIMITIVE_RESTART_NV:

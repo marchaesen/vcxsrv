@@ -110,25 +110,20 @@ check_valid_to_render(struct gl_context *ctx, const char *function)
    }
 
    switch (ctx->API) {
-#if FEATURE_es2_glsl
    case API_OPENGLES2:
       /* For ES2, we can draw if any vertex array is enabled (and we
        * should always have a vertex program/shader). */
       if (ctx->Array.ArrayObj->_Enabled == 0x0 || !ctx->VertexProgram._Current)
 	 return GL_FALSE;
       break;
-#endif
 
-#if FEATURE_ES1
    case API_OPENGLES:
       /* For OpenGL ES, only draw if we have vertex positions
        */
       if (!ctx->Array.ArrayObj->VertexAttrib[VERT_ATTRIB_POS].Enabled)
 	 return GL_FALSE;
       break;
-#endif
 
-#if FEATURE_GL
    case API_OPENGL:
    case API_OPENGL_CORE:
       {
@@ -151,7 +146,6 @@ check_valid_to_render(struct gl_context *ctx, const char *function)
          }
       }
       break;
-#endif
 
    default:
       ASSERT_NO_FEATURE();
@@ -616,8 +610,6 @@ _mesa_validate_DrawElementsInstanced(struct gl_context *ctx,
 }
 
 
-#if FEATURE_EXT_transform_feedback
-
 GLboolean
 _mesa_validate_DrawTransformFeedback(struct gl_context *ctx,
                                      GLenum mode,
@@ -662,5 +654,3 @@ _mesa_validate_DrawTransformFeedback(struct gl_context *ctx,
 
    return GL_TRUE;
 }
-
-#endif

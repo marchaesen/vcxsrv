@@ -38,8 +38,6 @@
 #include "main/dispatch.h"
 
 
-#if FEATURE_beginend
-
 /**
  * Use the per-vertex functions found in <vfmt> to initialize the given
  * API dispatch table.
@@ -136,7 +134,6 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
    SET_VertexAttrib3fvNV(tab, vfmt->VertexAttrib3fvNV);
    SET_VertexAttrib4fNV(tab, vfmt->VertexAttrib4fNV);
    SET_VertexAttrib4fvNV(tab, vfmt->VertexAttrib4fvNV);
-#if FEATURE_ARB_vertex_program
    SET_VertexAttrib1fARB(tab, vfmt->VertexAttrib1fARB);
    SET_VertexAttrib1fvARB(tab, vfmt->VertexAttrib1fvARB);
    SET_VertexAttrib2fARB(tab, vfmt->VertexAttrib2fARB);
@@ -145,7 +142,6 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
    SET_VertexAttrib3fvARB(tab, vfmt->VertexAttrib3fvARB);
    SET_VertexAttrib4fARB(tab, vfmt->VertexAttrib4fARB);
    SET_VertexAttrib4fvARB(tab, vfmt->VertexAttrib4fvARB);
-#endif
 
    /* GL_EXT_gpu_shader4 / OpenGL 3.0 */
    SET_VertexAttribI1iEXT(tab, vfmt->VertexAttribI1i);
@@ -235,6 +231,3 @@ _mesa_install_save_vtxfmt(struct gl_context *ctx, const GLvertexformat *vfmt)
    if (_mesa_is_desktop_gl(ctx))
       install_vtxfmt( ctx, ctx->Save, vfmt );
 }
-
-
-#endif /* FEATURE_beginend */

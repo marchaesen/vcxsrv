@@ -375,13 +375,10 @@ GLenum
 _mesa_compressed_format_to_glenum(struct gl_context *ctx, gl_format mesaFormat)
 {
    switch (mesaFormat) {
-#if FEATURE_texture_fxt1
    case MESA_FORMAT_RGB_FXT1:
       return GL_COMPRESSED_RGB_FXT1_3DFX;
    case MESA_FORMAT_RGBA_FXT1:
       return GL_COMPRESSED_RGBA_FXT1_3DFX;
-#endif
-#if FEATURE_texture_s3tc
    case MESA_FORMAT_RGB_DXT1:
       return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
    case MESA_FORMAT_RGBA_DXT1:
@@ -390,7 +387,6 @@ _mesa_compressed_format_to_glenum(struct gl_context *ctx, gl_format mesaFormat)
       return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
    case MESA_FORMAT_RGBA_DXT5:
       return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-#if FEATURE_EXT_texture_sRGB
    case MESA_FORMAT_SRGB_DXT1:
       return GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
    case MESA_FORMAT_SRGBA_DXT1:
@@ -399,9 +395,6 @@ _mesa_compressed_format_to_glenum(struct gl_context *ctx, gl_format mesaFormat)
       return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
    case MESA_FORMAT_SRGBA_DXT5:
       return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
-#endif
-#endif
-
    case MESA_FORMAT_RED_RGTC1:
       return GL_COMPRESSED_RED_RGTC1;
    case MESA_FORMAT_SIGNED_RED_RGTC1:

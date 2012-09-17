@@ -311,7 +311,6 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
       }
    }
 
-#if FEATURE_EXT_texture_sRGB
    if (ctx->Extensions.EXT_texture_sRGB) {
       switch (internalFormat) {
       case GL_SRGB_EXT:
@@ -338,7 +337,6 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
          ; /* fallthrough */
       }
    }
-#endif /* FEATURE_EXT_texture_sRGB */
 
    if (ctx->Version >= 30 ||
        ctx->Extensions.EXT_texture_integer) {
@@ -3134,7 +3132,6 @@ _mesa_TexImage3DEXT( GLenum target, GLint level, GLenum internalFormat,
 }
 
 
-#if FEATURE_OES_EGL_image
 void GLAPIENTRY
 _mesa_EGLImageTargetTexture2DOES (GLenum target, GLeglImageOES image)
 {
@@ -3189,7 +3186,6 @@ _mesa_EGLImageTargetTexture2DOES (GLenum target, GLeglImageOES image)
    _mesa_unlock_texture(ctx, texObj);
 
 }
-#endif
 
 
 

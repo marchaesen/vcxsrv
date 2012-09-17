@@ -64,3 +64,5 @@ endif
 # pixman linking
 $(CFG_VAR)/$(LIBRARY).lib: $(OBJECTS)
 	@$(AR) $(PIXMAN_ARFLAGS) -OUT:$@ $^
+
+.PHONY: all informMMX informSSE2

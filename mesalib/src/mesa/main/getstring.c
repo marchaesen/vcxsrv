@@ -131,14 +131,10 @@ _mesa_GetString( GLenum name )
             return (const GLubyte *) 0;
          }
          return (const GLubyte *) ctx->Extensions.String;
-#if FEATURE_ARB_shading_language_100 || FEATURE_ES2
       case GL_SHADING_LANGUAGE_VERSION:
          if (ctx->API == API_OPENGLES)
             break;
 	 return shading_language_version(ctx);
-#endif
-#if FEATURE_NV_fragment_program || FEATURE_ARB_fragment_program || \
-    FEATURE_NV_vertex_program || FEATURE_ARB_vertex_program
       case GL_PROGRAM_ERROR_STRING_NV:
          if (ctx->API == API_OPENGL &&
              (ctx->Extensions.NV_fragment_program ||
@@ -148,7 +144,6 @@ _mesa_GetString( GLenum name )
             return (const GLubyte *) ctx->Program.ErrorString;
          }
          break;
-#endif
       default:
          break;
    }
@@ -261,13 +256,11 @@ _mesa_GetPointerv( GLenum pname, GLvoid **params )
             goto invalid_pname;
          *params = ctx->Select.Buffer;
          break;
-#if FEATURE_point_size_array
       case GL_POINT_SIZE_ARRAY_POINTER_OES:
          if (ctx->API != API_OPENGLES)
             goto invalid_pname;
          *params = (GLvoid *) ctx->Array.ArrayObj->VertexAttrib[VERT_ATTRIB_POINT_SIZE].Ptr;
          break;
-#endif
       case GL_DEBUG_CALLBACK_FUNCTION_ARB:
          if (!_mesa_is_desktop_gl(ctx))
             goto invalid_pname;

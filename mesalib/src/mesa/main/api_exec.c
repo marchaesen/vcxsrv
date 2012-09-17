@@ -33,17 +33,13 @@
 #include "accum.h"
 #include "api_loopback.h"
 #include "api_exec.h"
-#if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
 #include "arbprogram.h"
-#endif
 #include "atifragshader.h"
 #include "attrib.h"
 #include "blend.h"
 #include "bufferobj.h"
 #include "arrayobj.h"
-#if FEATURE_draw_read_buffer
 #include "buffers.h"
-#endif
 #include "clear.h"
 #include "clip.h"
 #include "colortab.h"
@@ -60,9 +56,7 @@
 #include "get.h"
 #include "feedback.h"
 #include "fog.h"
-#if FEATURE_EXT_framebuffer_object
 #include "fbobject.h"
-#endif
 #include "framebuffer.h"
 #include "hint.h"
 #include "histogram.h"
@@ -77,9 +71,7 @@
 #include "polygon.h"
 #include "queryobj.h"
 #include "readpix.h"
-#if FEATURE_ARB_sampler_objects
 #include "samplerobj.h"
-#endif
 #include "scissor.h"
 #include "stencil.h"
 #include "texenv.h"
@@ -95,18 +87,11 @@
 #include "mtypes.h"
 #include "varray.h"
 #include "viewport.h"
-#if FEATURE_NV_vertex_program || FEATURE_NV_fragment_program
 #include "nvprogram.h"
-#endif
-#if FEATURE_ARB_shader_objects
 #include "shaderapi.h"
 #include "uniforms.h"
-#endif
 #include "syncobj.h"
 #include "main/dispatch.h"
-
-
-#if FEATURE_GL || FEATURE_ES2
 
 
 /**
@@ -144,12 +129,9 @@ _mesa_create_exec_table(struct gl_context *ctx)
    SET_ColorMask(exec, _mesa_ColorMask);
    SET_CullFace(exec, _mesa_CullFace);
    SET_Disable(exec, _mesa_Disable);
-#if FEATURE_draw_read_buffer
    if (ctx->API == API_OPENGL || ctx->API == API_OPENGL_CORE)
       SET_DrawBuffer(exec, _mesa_DrawBuffer);
-
    SET_ReadBuffer(exec, _mesa_ReadBuffer);
-#endif
    SET_Enable(exec, _mesa_Enable);
    SET_Finish(exec, _mesa_Finish);
    SET_Flush(exec, _mesa_Flush);
@@ -376,10 +358,8 @@ _mesa_create_exec_table(struct gl_context *ctx)
    SET_StencilMaskSeparate(exec, _mesa_StencilMaskSeparate);
    SET_StencilOpSeparate(exec, _mesa_StencilOpSeparate);
 
-#if FEATURE_ARB_shader_objects
    _mesa_init_shader_dispatch(exec);
    _mesa_init_shader_uniform_dispatch(exec);
-#endif
 
    /* 2. GL_EXT_blend_color */
 #if 0
@@ -485,7 +465,6 @@ _mesa_create_exec_table(struct gl_context *ctx)
 #endif
 
    /* 233. GL_NV_vertex_program */
-#if FEATURE_NV_vertex_program
    if (ctx->API == API_OPENGL) {
       SET_BindProgramNV(exec, _mesa_BindProgram);
       SET_DeleteProgramsNV(exec, _mesa_DeletePrograms);
@@ -513,7 +492,6 @@ _mesa_create_exec_table(struct gl_context *ctx)
       SET_VertexAttribPointerNV(exec, _mesa_VertexAttribPointerNV);
       /* glVertexAttrib*NV functions handled in api_loopback.c */
    }
-#endif
    SET_GetVertexAttribPointervNV(exec, _mesa_GetVertexAttribPointervNV);
 
    /* 273. GL_APPLE_vertex_array_object */
@@ -526,7 +504,6 @@ _mesa_create_exec_table(struct gl_context *ctx)
    SET_IsVertexArrayAPPLE(exec, _mesa_IsVertexArrayAPPLE);
 
    /* 282. GL_NV_fragment_program */
-#if FEATURE_NV_fragment_program
    if (ctx->API == API_OPENGL) {
       SET_ProgramNamedParameter4fNV(exec, _mesa_ProgramNamedParameter4fNV);
       SET_ProgramNamedParameter4dNV(exec, _mesa_ProgramNamedParameter4dNV);
@@ -541,7 +518,6 @@ _mesa_create_exec_table(struct gl_context *ctx)
       SET_GetProgramLocalParameterdvARB(exec, _mesa_GetProgramLocalParameterdvARB);
       SET_GetProgramLocalParameterfvARB(exec, _mesa_GetProgramLocalParameterfvARB);
    }
-#endif
 
    /* 262. GL_NV_point_sprite */
 #if _HAVE_FULL_GL
@@ -624,7 +600,6 @@ _mesa_create_exec_table(struct gl_context *ctx)
 
    /* ARB 26. GL_ARB_vertex_program */
    /* ARB 27. GL_ARB_fragment_program */
-#if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
    /* glVertexAttrib1sARB aliases glVertexAttrib1sNV */
    /* glVertexAttrib1fARB aliases glVertexAttrib1fNV */
    /* glVertexAttrib1dARB aliases glVertexAttrib1dNV */
@@ -692,7 +667,6 @@ _mesa_create_exec_table(struct gl_context *ctx)
       SET_GetProgramStringARB(exec, _mesa_GetProgramStringARB);
    }
    SET_GetProgramivARB(exec, _mesa_GetProgramivARB);
-#endif
 
    /* ARB 28. GL_ARB_vertex_buffer_object */
    _mesa_init_bufferobj_dispatch(ctx, exec);
@@ -703,9 +677,7 @@ _mesa_create_exec_table(struct gl_context *ctx)
    }
 
    /* ARB 37. GL_ARB_draw_buffers */
-#if FEATURE_draw_read_buffer
    SET_DrawBuffersARB(exec, _mesa_DrawBuffersARB);
-#endif
 
    /* ARB 66. GL_ARB_sync */
    if (ctx->API != API_OPENGLES2) {
@@ -738,7 +710,6 @@ _mesa_create_exec_table(struct gl_context *ctx)
       SET_TexBumpParameterfvATI(exec, _mesa_TexBumpParameterfvATI);
    }
 
-#if FEATURE_EXT_framebuffer_object
    SET_IsRenderbufferEXT(exec, _mesa_IsRenderbufferEXT);
    SET_BindRenderbufferEXT(exec, _mesa_BindRenderbufferEXT);
    SET_DeleteRenderbuffersEXT(exec, _mesa_DeleteRenderbuffersEXT);
@@ -758,49 +729,38 @@ _mesa_create_exec_table(struct gl_context *ctx)
    SET_FramebufferRenderbufferEXT(exec, _mesa_FramebufferRenderbufferEXT);
    SET_GetFramebufferAttachmentParameterivEXT(exec, _mesa_GetFramebufferAttachmentParameterivEXT);
    SET_GenerateMipmapEXT(exec, _mesa_GenerateMipmapEXT);
-#endif
 
-#if FEATURE_EXT_framebuffer_blit
    if (ctx->API != API_OPENGLES2) {
       SET_BlitFramebufferEXT(exec, _mesa_BlitFramebufferEXT);
    }
-#endif
 
    /* GL_EXT_gpu_program_parameters */
-#if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
    if (ctx->API == API_OPENGL) {
       SET_ProgramEnvParameters4fvEXT(exec, _mesa_ProgramEnvParameters4fvEXT);
       SET_ProgramLocalParameters4fvEXT(exec, _mesa_ProgramLocalParameters4fvEXT);
    }
-#endif
 
    /* GL_MESA_texture_array / GL_EXT_texture_array */
-#if FEATURE_EXT_framebuffer_object
    if (ctx->API != API_OPENGLES2) {
       SET_FramebufferTextureLayerEXT(exec, _mesa_FramebufferTextureLayerEXT);
    }
-#endif
 
    /* GL_ATI_separate_stencil */
    if (ctx->API == API_OPENGL) {
       SET_StencilFuncSeparateATI(exec, _mesa_StencilFuncSeparateATI);
    }
 
-#if FEATURE_ARB_framebuffer_object
    /* The ARB_fbo functions are the union of
     * GL_EXT_fbo, GL_EXT_framebuffer_blit, GL_EXT_texture_array
     */
    if (ctx->API != API_OPENGLES2) {
       SET_RenderbufferStorageMultisample(exec, _mesa_RenderbufferStorageMultisample);
    }
-#endif
 
-#if FEATURE_ARB_map_buffer_range
    if (ctx->API != API_OPENGLES2) {
       SET_MapBufferRange(exec, _mesa_MapBufferRange);
       SET_FlushMappedBufferRange(exec, _mesa_FlushMappedBufferRange);
    }
-#endif
 
    /* GL_ARB_copy_buffer */
    if (ctx->API != API_OPENGLES2) {
@@ -827,25 +787,19 @@ _mesa_create_exec_table(struct gl_context *ctx)
       SET_EndConditionalRenderNV(exec, _mesa_EndConditionalRender);
    }
 
-#if FEATURE_OES_EGL_image
    SET_EGLImageTargetTexture2DOES(exec, _mesa_EGLImageTargetTexture2DOES);
    SET_EGLImageTargetRenderbufferStorageOES(exec, _mesa_EGLImageTargetRenderbufferStorageOES);
-#endif
 
-#if FEATURE_APPLE_object_purgeable
    if (ctx->API != API_OPENGLES2) {
       SET_ObjectPurgeableAPPLE(exec, _mesa_ObjectPurgeableAPPLE);
       SET_ObjectUnpurgeableAPPLE(exec, _mesa_ObjectUnpurgeableAPPLE);
       SET_GetObjectParameterivAPPLE(exec, _mesa_GetObjectParameterivAPPLE);
    }
-#endif
 
-#if FEATURE_ARB_geometry_shader4
    if (ctx->API != API_OPENGLES2) {
       SET_FramebufferTextureARB(exec, _mesa_FramebufferTextureARB);
       SET_FramebufferTextureFaceARB(exec, _mesa_FramebufferTextureFaceARB);
    }
-#endif
 
    if (ctx->API != API_OPENGLES2) {
       SET_ClampColorARB(exec, _mesa_ClampColorARB);
@@ -913,11 +867,9 @@ _mesa_create_exec_table(struct gl_context *ctx)
    SET_TextureStorage2DEXT(exec, _mesa_TextureStorage2DEXT);
    SET_TextureStorage3DEXT(exec, _mesa_TextureStorage3DEXT);
 
-#if FEATURE_ARB_sampler_objects
    if (ctx->API != API_OPENGLES2) {
       _mesa_init_sampler_object_dispatch(exec);
    }
-#endif
 
    if (_mesa_is_desktop_gl(ctx)) {
       SET_InvalidateTexSubImage(exec, _mesa_InvalidateTexSubImage);
@@ -931,5 +883,3 @@ _mesa_create_exec_table(struct gl_context *ctx)
 
    return exec;
 }
-
-#endif /* FEATURE_GL || FEATURE_ES2 */

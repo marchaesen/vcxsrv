@@ -530,14 +530,10 @@ void st_init_extensions(struct st_context *st)
    ctx->Extensions.NV_vertex_program1_1 = GL_TRUE;
 #endif
 
-#if FEATURE_OES_EGL_image
    ctx->Extensions.OES_EGL_image = GL_TRUE;
    if (ctx->API != API_OPENGL)
       ctx->Extensions.OES_EGL_image_external = GL_TRUE;
-#endif
-#if FEATURE_OES_draw_texture
    ctx->Extensions.OES_draw_texture = GL_TRUE;
-#endif
 
    /* Expose the extensions which directly correspond to gallium caps. */
    for (i = 0; i < Elements(cap_mapping); i++) {

@@ -235,14 +235,10 @@ static const struct extension extension_table[] = {
    { "GL_OES_depth24",                             o(EXT_framebuffer_object),                       ES1 | ES2, 2005 },
    { "GL_OES_depth32",                             o(dummy_false),                     DISABLE,                2005 },
    { "GL_OES_depth_texture",                       o(ARB_depth_texture),                                  ES2, 2006 },
-#if FEATURE_OES_draw_texture
    { "GL_OES_draw_texture",                        o(OES_draw_texture),                             ES1,       2004 },
-#endif
-#if FEATURE_OES_EGL_image
    /*  FIXME: Mesa expects GL_OES_EGL_image to be available in OpenGL contexts. */
    { "GL_OES_EGL_image",                           o(OES_EGL_image),                           GL | ES1 | ES2, 2006 },
    { "GL_OES_EGL_image_external",                  o(OES_EGL_image_external),                       ES1 | ES2, 2010 },
-#endif
    { "GL_OES_element_index_uint",                  o(dummy_true),                                   ES1 | ES2, 2005 },
    { "GL_OES_fbo_render_mipmap",                   o(EXT_framebuffer_object),                       ES1 | ES2, 2005 },
    { "GL_OES_fixed_point",                         o(dummy_true),                                   ES1,       2002 },
@@ -399,35 +395,23 @@ _mesa_enable_sw_extensions(struct gl_context *ctx)
    ctx->Extensions.ARB_draw_instanced = GL_TRUE;
    ctx->Extensions.ARB_explicit_attrib_location = GL_TRUE;
    ctx->Extensions.ARB_fragment_coord_conventions = GL_TRUE;
-#if FEATURE_ARB_fragment_program
    ctx->Extensions.ARB_fragment_program = GL_TRUE;
    ctx->Extensions.ARB_fragment_program_shadow = GL_TRUE;
-#endif
-#if FEATURE_ARB_fragment_shader
    ctx->Extensions.ARB_fragment_shader = GL_TRUE;
-#endif
-#if FEATURE_ARB_framebuffer_object
    ctx->Extensions.ARB_framebuffer_object = GL_TRUE;
-#endif
-#if FEATURE_ARB_geometry_shader4 && 0
    /* XXX re-enable when GLSL compiler again supports geometry shaders */
+#if 0
    ctx->Extensions.ARB_geometry_shader4 = GL_TRUE;
 #endif
    ctx->Extensions.ARB_half_float_pixel = GL_TRUE;
    ctx->Extensions.ARB_half_float_vertex = GL_TRUE;
    ctx->Extensions.ARB_map_buffer_range = GL_TRUE;
-#if FEATURE_queryobj
    ctx->Extensions.ARB_occlusion_query = GL_TRUE;
    ctx->Extensions.ARB_occlusion_query2 = GL_TRUE;
-#endif
    ctx->Extensions.ARB_point_sprite = GL_TRUE;
-#if FEATURE_ARB_shader_objects
    ctx->Extensions.ARB_shader_objects = GL_TRUE;
    ctx->Extensions.EXT_separate_shader_objects = GL_TRUE;
-#endif
-#if FEATURE_ARB_shading_language_100
    ctx->Extensions.ARB_shading_language_100 = GL_TRUE;
-#endif
    ctx->Extensions.ARB_shadow = GL_TRUE;
    ctx->Extensions.ARB_texture_border_clamp = GL_TRUE;
    ctx->Extensions.ARB_texture_cube_map = GL_TRUE;
@@ -439,22 +423,12 @@ _mesa_enable_sw_extensions(struct gl_context *ctx)
    ctx->Extensions.ARB_texture_rg = GL_TRUE;
    ctx->Extensions.ARB_texture_compression_rgtc = GL_TRUE;
    ctx->Extensions.ARB_texture_storage = GL_TRUE;
-#if FEATURE_ARB_vertex_program
    ctx->Extensions.ARB_vertex_program = GL_TRUE;
-#endif
-#if FEATURE_ARB_vertex_shader
    ctx->Extensions.ARB_vertex_shader = GL_TRUE;
-#endif
-#if FEATURE_ARB_sync
    ctx->Extensions.ARB_sync = GL_TRUE;
-#endif
-#if FEATURE_APPLE_object_purgeable
    ctx->Extensions.APPLE_object_purgeable = GL_TRUE;
-#endif
    ctx->Extensions.ATI_envmap_bumpmap = GL_TRUE;
-#if FEATURE_ATI_fragment_shader
    ctx->Extensions.ATI_fragment_shader = GL_TRUE;
-#endif
    ctx->Extensions.ATI_texture_compression_3dc = GL_TRUE;
    ctx->Extensions.ATI_texture_env_combine3 = GL_TRUE;
    ctx->Extensions.ATI_texture_mirror_once = GL_TRUE;
@@ -466,19 +440,11 @@ _mesa_enable_sw_extensions(struct gl_context *ctx)
    ctx->Extensions.EXT_depth_bounds_test = GL_TRUE;
    ctx->Extensions.EXT_draw_buffers2 = GL_TRUE;
    ctx->Extensions.EXT_fog_coord = GL_TRUE;
-#if FEATURE_EXT_framebuffer_object
    ctx->Extensions.EXT_framebuffer_object = GL_TRUE;
-#endif
-#if FEATURE_EXT_framebuffer_blit
    ctx->Extensions.EXT_framebuffer_blit = GL_TRUE;
-#endif
-#if FEATURE_ARB_framebuffer_object
    ctx->Extensions.EXT_framebuffer_multisample = GL_TRUE;
-#endif
    ctx->Extensions.EXT_packed_depth_stencil = GL_TRUE;
-#if FEATURE_EXT_pixel_buffer_object
    ctx->Extensions.EXT_pixel_buffer_object = GL_TRUE;
-#endif
    ctx->Extensions.EXT_point_parameters = GL_TRUE;
    ctx->Extensions.EXT_provoking_vertex = GL_TRUE;
    ctx->Extensions.EXT_shadow_funcs = GL_TRUE;
@@ -490,14 +456,10 @@ _mesa_enable_sw_extensions(struct gl_context *ctx)
    ctx->Extensions.EXT_texture_filter_anisotropic = GL_TRUE;
    ctx->Extensions.EXT_texture_mirror_clamp = GL_TRUE;
    ctx->Extensions.EXT_texture_shared_exponent = GL_TRUE;
-#if FEATURE_EXT_texture_sRGB
    ctx->Extensions.EXT_texture_sRGB = GL_TRUE;
    ctx->Extensions.EXT_texture_sRGB_decode = GL_TRUE;
-#endif
    ctx->Extensions.EXT_texture_swizzle = GL_TRUE;
-#if FEATURE_EXT_transform_feedback
    /*ctx->Extensions.EXT_transform_feedback = GL_TRUE;*/
-#endif
    ctx->Extensions.EXT_vertex_array_bgra = GL_TRUE;
    /*ctx->Extensions.IBM_multimode_draw_arrays = GL_TRUE;*/
    ctx->Extensions.MESA_pack_invert = GL_TRUE;
@@ -511,28 +473,16 @@ _mesa_enable_sw_extensions(struct gl_context *ctx)
    ctx->Extensions.NV_texture_env_combine4 = GL_TRUE;
    ctx->Extensions.NV_texture_rectangle = GL_TRUE;
    /*ctx->Extensions.NV_texgen_reflection = GL_TRUE;*/
-#if FEATURE_NV_vertex_program
    ctx->Extensions.NV_vertex_program = GL_TRUE;
    ctx->Extensions.NV_vertex_program1_1 = GL_TRUE;
-#endif
-#if FEATURE_NV_fragment_program
    ctx->Extensions.NV_fragment_program = GL_TRUE;
-#endif
-#if FEATURE_NV_fragment_program && FEATURE_ARB_fragment_program
    ctx->Extensions.NV_fragment_program_option = GL_TRUE;
-#endif
-#if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
    ctx->Extensions.EXT_gpu_program_parameters = GL_TRUE;
-#endif
-#if FEATURE_texture_fxt1
    _mesa_enable_extension(ctx, "GL_3DFX_texture_compression_FXT1");
-#endif
-#if FEATURE_texture_s3tc
    if (ctx->Mesa_DXTn) {
       _mesa_enable_extension(ctx, "GL_EXT_texture_compression_s3tc");
       _mesa_enable_extension(ctx, "GL_S3_s3tc");
    }
-#endif
 }
 
 
@@ -591,22 +541,14 @@ _mesa_enable_1_5_extensions(struct gl_context *ctx)
 void
 _mesa_enable_2_0_extensions(struct gl_context *ctx)
 {
-#if FEATURE_ARB_fragment_shader
    ctx->Extensions.ARB_fragment_shader = GL_TRUE;
-#endif
    ctx->Extensions.ARB_point_sprite = GL_TRUE;
    ctx->Extensions.EXT_blend_equation_separate = GL_TRUE;
    ctx->Extensions.ARB_texture_non_power_of_two = GL_TRUE;
-#if FEATURE_ARB_shader_objects
    ctx->Extensions.ARB_shader_objects = GL_TRUE;
-#endif
-#if FEATURE_ARB_shading_language_100
    ctx->Extensions.ARB_shading_language_100 = GL_TRUE;
-#endif
    ctx->Extensions.EXT_stencil_two_side = GL_TRUE;
-#if FEATURE_ARB_vertex_shader
    ctx->Extensions.ARB_vertex_shader = GL_TRUE;
-#endif
 }
 
 
@@ -617,12 +559,8 @@ _mesa_enable_2_0_extensions(struct gl_context *ctx)
 void
 _mesa_enable_2_1_extensions(struct gl_context *ctx)
 {
-#if FEATURE_EXT_pixel_buffer_object
    ctx->Extensions.EXT_pixel_buffer_object = GL_TRUE;
-#endif
-#if FEATURE_EXT_texture_sRGB
    ctx->Extensions.EXT_texture_sRGB = GL_TRUE;
-#endif
 }
 
 
@@ -947,7 +885,7 @@ _mesa_get_enabled_extension(struct gl_context *ctx, GLuint index)
    base = (GLboolean*) &ctx->Extensions;
    n = 0;
    for (i = extension_table; i->name != 0; ++i) {
-      if (base[i->offset] & (i->api_set & (1 << ctx->API))) {
+      if (base[i->offset] && (i->api_set & (1 << ctx->API))) {
          if (n == index)
             return (const GLubyte*) i->name;
          else

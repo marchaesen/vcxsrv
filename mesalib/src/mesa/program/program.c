@@ -83,14 +83,9 @@ _mesa_init_program(struct gl_context *ctx)
    ctx->Program.ErrorPos = -1;
    ctx->Program.ErrorString = _mesa_strdup("");
 
-#if FEATURE_NV_vertex_program || FEATURE_ARB_vertex_program
    ctx->VertexProgram.Enabled = GL_FALSE;
-#if FEATURE_es2_glsl
    ctx->VertexProgram.PointSizeEnabled =
       (ctx->API == API_OPENGLES2) ? GL_TRUE : GL_FALSE;
-#else
-   ctx->VertexProgram.PointSizeEnabled = GL_FALSE;
-#endif
    ctx->VertexProgram.TwoSideEnabled = GL_FALSE;
    _mesa_reference_vertprog(ctx, &ctx->VertexProgram.Current,
                             ctx->Shared->DefaultVertexProgram);
@@ -100,31 +95,24 @@ _mesa_init_program(struct gl_context *ctx)
       ctx->VertexProgram.TrackMatrixTransform[i] = GL_IDENTITY_NV;
    }
    ctx->VertexProgram.Cache = _mesa_new_program_cache();
-#endif
 
-#if FEATURE_NV_fragment_program || FEATURE_ARB_fragment_program
    ctx->FragmentProgram.Enabled = GL_FALSE;
    _mesa_reference_fragprog(ctx, &ctx->FragmentProgram.Current,
                             ctx->Shared->DefaultFragmentProgram);
    assert(ctx->FragmentProgram.Current);
    ctx->FragmentProgram.Cache = _mesa_new_program_cache();
-#endif
 
-#if FEATURE_ARB_geometry_shader4
    ctx->GeometryProgram.Enabled = GL_FALSE;
    /* right now by default we don't have a geometry program */
    _mesa_reference_geomprog(ctx, &ctx->GeometryProgram.Current,
                             NULL);
    ctx->GeometryProgram.Cache = _mesa_new_program_cache();
-#endif
 
    /* XXX probably move this stuff */
-#if FEATURE_ATI_fragment_shader
    ctx->ATIFragmentShader.Enabled = GL_FALSE;
    ctx->ATIFragmentShader.Current = ctx->Shared->DefaultFragmentShader;
    assert(ctx->ATIFragmentShader.Current);
    ctx->ATIFragmentShader.Current->RefCount++;
-#endif
 }
 
 
@@ -134,27 +122,21 @@ _mesa_init_program(struct gl_context *ctx)
 void
 _mesa_free_program_data(struct gl_context *ctx)
 {
-#if FEATURE_NV_vertex_program || FEATURE_ARB_vertex_program
    _mesa_reference_vertprog(ctx, &ctx->VertexProgram.Current, NULL);
    _mesa_delete_program_cache(ctx, ctx->VertexProgram.Cache);
-#endif
-#if FEATURE_NV_fragment_program || FEATURE_ARB_fragment_program
    _mesa_reference_fragprog(ctx, &ctx->FragmentProgram.Current, NULL);
    _mesa_delete_shader_cache(ctx, ctx->FragmentProgram.Cache);
-#endif
-#if FEATURE_ARB_geometry_shader4
    _mesa_reference_geomprog(ctx, &ctx->GeometryProgram.Current, NULL);
    _mesa_delete_program_cache(ctx, ctx->GeometryProgram.Cache);
-#endif
+
    /* XXX probably move this stuff */
-#if FEATURE_ATI_fragment_shader
    if (ctx->ATIFragmentShader.Current) {
       ctx->ATIFragmentShader.Current->RefCount--;
       if (ctx->ATIFragmentShader.Current->RefCount <= 0) {
          free(ctx->ATIFragmentShader.Current);
       }
    }
-#endif
+
    free((void *) ctx->Program.ErrorString);
 }
 
@@ -167,25 +149,18 @@ _mesa_free_program_data(struct gl_context *ctx)
 void
 _mesa_update_default_objects_program(struct gl_context *ctx)
 {
-#if FEATURE_NV_vertex_program || FEATURE_ARB_vertex_program
    _mesa_reference_vertprog(ctx, &ctx->VertexProgram.Current,
                             ctx->Shared->DefaultVertexProgram);
    assert(ctx->VertexProgram.Current);
-#endif
 
-#if FEATURE_NV_fragment_program || FEATURE_ARB_fragment_program
    _mesa_reference_fragprog(ctx, &ctx->FragmentProgram.Current,
                             ctx->Shared->DefaultFragmentProgram);
    assert(ctx->FragmentProgram.Current);
-#endif
 
-#if FEATURE_ARB_geometry_shader4
    _mesa_reference_geomprog(ctx, &ctx->GeometryProgram.Current,
                       ctx->Shared->DefaultGeometryProgram);
-#endif
 
    /* XXX probably move this stuff */
-#if FEATURE_ATI_fragment_shader
    if (ctx->ATIFragmentShader.Current) {
       ctx->ATIFragmentShader.Current->RefCount--;
       if (ctx->ATIFragmentShader.Current->RefCount <= 0) {
@@ -195,7 +170,6 @@ _mesa_update_default_objects_program(struct gl_context *ctx)
    ctx->ATIFragmentShader.Current = (struct ati_fragment_shader *) ctx->Shared->DefaultFragmentShader;
    assert(ctx->ATIFragmentShader.Current);
    ctx->ATIFragmentShader.Current->RefCount++;
-#endif
 }
 
 

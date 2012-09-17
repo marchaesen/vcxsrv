@@ -766,6 +766,44 @@ static inline PixmapPtr GetDrawablePixmap(DrawablePtr drawable)
     }
 }
 
+/*
+ * A TraverseTree callback to invalidate all windows using the same
+ * pixmap
+ */
+static int
+DRI2InvalidateWalk(WindowPtr pWin, pointer data)
+{
+    if (pWin->drawable.pScreen->GetWindowPixmap(pWin) != data)
+        return WT_DONTWALKCHILDREN;
+    DRI2InvalidateDrawable(&pWin->drawable);
+    return WT_WALKCHILDREN;
+}
+
+static void
+DRI2InvalidateDrawableAll(DrawablePtr pDraw)
+{
+    if (pDraw->type == DRAWABLE_WINDOW) {
+        WindowPtr pWin = (WindowPtr) pDraw;
+        PixmapPtr pPixmap = pDraw->pScreen->GetWindowPixmap(pWin);
+
+        /*
+         * Find the top-most window using this pixmap
+         */
+        while (pWin->parent &&
+               pDraw->pScreen->GetWindowPixmap(pWin->parent) == pPixmap)
+            pWin = pWin->parent;
+
+        /*
+         * Walk the sub-tree to invalidate all of the
+         * windows using the same pixmap
+         */
+        TraverseTree(pWin, DRI2InvalidateWalk, pPixmap);
+        DRI2InvalidateDrawable(&pPixmap->drawable);
+    }
+    else
+        DRI2InvalidateDrawable(pDraw);
+}
+
 DrawablePtr DRI2UpdatePrime(DrawablePtr pDraw, DRI2BufferPtr pDest)
 {
     DRI2DrawablePtr pPriv = DRI2GetDrawable(pDraw);
@@ -831,6 +869,8 @@ DrawablePtr DRI2UpdatePrime(DrawablePtr pDraw, DRI2BufferPtr pDest)
     spix->screen_x = mpix->screen_x;
     spix->screen_y = mpix->screen_y;
 #endif
+
+    DRI2InvalidateDrawableAll(pDraw);
     return &spix->drawable;
 }
 
@@ -1048,18 +1088,7 @@ DRI2WaitSwap(ClientPtr client, DrawablePtr pDrawable)
     return FALSE;
 }
 
-/*
- * A TraverseTree callback to invalidate all windows using the same
- * pixmap
- */
-static int
-DRI2InvalidateWalk(WindowPtr pWin, pointer data)
-{
-    if (pWin->drawable.pScreen->GetWindowPixmap(pWin) != data)
-        return WT_DONTWALKCHILDREN;
-    DRI2InvalidateDrawable(&pWin->drawable);
-    return WT_WALKCHILDREN;
-}
+
 
 int
 DRI2SwapBuffers(ClientPtr client, DrawablePtr pDraw, CARD64 target_msc,
@@ -1162,26 +1191,7 @@ DRI2SwapBuffers(ClientPtr client, DrawablePtr pDraw, CARD64 target_msc,
      */
     *swap_target = pPriv->swap_count + pPriv->swapsPending;
 
-    if (pDraw->type == DRAWABLE_WINDOW) {
-        WindowPtr pWin = (WindowPtr) pDraw;
-        PixmapPtr pPixmap = pScreen->GetWindowPixmap(pWin);
-
-        /*
-         * Find the top-most window using this pixmap
-         */
-        while (pWin->parent &&
-               pScreen->GetWindowPixmap(pWin->parent) == pPixmap)
-            pWin = pWin->parent;
-
-        /*
-         * Walk the sub-tree to invalidate all of the
-         * windows using the same pixmap
-         */
-        TraverseTree(pWin, DRI2InvalidateWalk, pPixmap);
-        DRI2InvalidateDrawable(&pPixmap->drawable);
-    }
-    else
-        DRI2InvalidateDrawable(pDraw);
+    DRI2InvalidateDrawableAll(pDraw);
 
     return Success;
 }

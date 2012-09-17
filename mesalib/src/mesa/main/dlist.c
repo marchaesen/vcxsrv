@@ -35,9 +35,7 @@
 #include "api_exec.h"
 #include "api_loopback.h"
 #include "api_validate.h"
-#if FEATURE_ATI_fragment_shader
 #include "atifragshader.h"
-#endif
 #include "config.h"
 #include "mfeatures.h"
 #include "bufferobj.h"
@@ -46,9 +44,7 @@
 #include "dlist.h"
 #include "enums.h"
 #include "eval.h"
-#if FEATURE_EXT_framebuffer_object
 #include "fbobject.h"
-#endif
 #include "framebuffer.h"
 #include "glapi/glapi.h"
 #include "glformats.h"
@@ -66,15 +62,9 @@
 #include "texstorage.h"
 #include "mtypes.h"
 #include "varray.h"
-#if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
 #include "arbprogram.h"
-#endif
-#if FEATURE_NV_vertex_program || FEATURE_NV_fragment_program
 #include "nvprogram.h"
-#endif
-#if FEATURE_EXT_transform_feedback
 #include "transformfeedback.h"
-#endif
 
 #include "math/m_matrix.h"
 
@@ -553,9 +543,6 @@ union uint64_pair
 static GLuint InstSize[OPCODE_END_OF_LIST + 1];
 
 
-#if FEATURE_dlist
-
-
 void mesa_print_display_list(GLuint list);
 
 
@@ -741,7 +728,6 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
             free(n[11].data);
             n += InstSize[n[0].opcode];
             break;
-#if FEATURE_NV_vertex_program
          case OPCODE_LOAD_PROGRAM_NV:
             free(n[4].data);      /* program string */
             n += InstSize[n[0].opcode];
@@ -750,19 +736,14 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
             free(n[2].data);      /* array of program ids */
             n += InstSize[n[0].opcode];
             break;
-#endif
-#if FEATURE_NV_fragment_program
          case OPCODE_PROGRAM_NAMED_PARAMETER_NV:
             free(n[3].data);      /* parameter name */
             n += InstSize[n[0].opcode];
             break;
-#endif
-#if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
          case OPCODE_PROGRAM_STRING_ARB:
             free(n[4].data);      /* program string */
             n += InstSize[n[0].opcode];
             break;
-#endif
          case OPCODE_UNIFORM_1FV:
          case OPCODE_UNIFORM_2FV:
          case OPCODE_UNIFORM_3FV:
@@ -4861,7 +4842,6 @@ save_SampleCoverageARB(GLclampf value, GLboolean invert)
 /*
  * GL_NV_vertex_program
  */
-#if FEATURE_NV_vertex_program || FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
 static void GLAPIENTRY
 save_BindProgramNV(GLenum target, GLuint id)
 {
@@ -4961,9 +4941,7 @@ save_ProgramEnvParameter4dvARB(GLenum target, GLuint index,
                                  (GLfloat) params[2], (GLfloat) params[3]);
 }
 
-#endif /* FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program || FEATURE_NV_vertex_program */
 
-#if FEATURE_NV_vertex_program
 static void GLAPIENTRY
 save_ExecuteProgramNV(GLenum target, GLuint id, const GLfloat *params)
 {
@@ -5078,13 +5056,11 @@ save_TrackMatrixNV(GLenum target, GLuint address,
       CALL_TrackMatrixNV(ctx->Exec, (target, address, matrix, transform));
    }
 }
-#endif /* FEATURE_NV_vertex_program */
 
 
 /*
  * GL_NV_fragment_program
  */
-#if FEATURE_NV_fragment_program
 static void GLAPIENTRY
 save_ProgramLocalParameter4fARB(GLenum target, GLuint index,
                                 GLfloat x, GLfloat y, GLfloat z, GLfloat w)
@@ -5262,9 +5238,6 @@ save_ProgramNamedParameter4dvNV(GLuint id, GLsizei len, const GLubyte * name,
                                   (GLfloat) v[3]);
 }
 
-#endif /* FEATURE_NV_fragment_program */
-
-
 
 /* GL_EXT_stencil_two_side */
 static void GLAPIENTRY
@@ -5302,8 +5275,6 @@ save_DepthBoundsEXT(GLclampd zmin, GLclampd zmax)
 
 
 
-#if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
-
 static void GLAPIENTRY
 save_ProgramStringARB(GLenum target, GLenum format, GLsizei len,
                       const GLvoid * string)
@@ -5331,10 +5302,6 @@ save_ProgramStringARB(GLenum target, GLenum format, GLsizei len,
    }
 }
 
-#endif /* FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program */
-
-
-#if FEATURE_queryobj
 
 static void GLAPIENTRY
 save_BeginQueryARB(GLenum target, GLuint id)
@@ -5416,8 +5383,6 @@ save_EndQueryIndexed(GLenum target, GLuint index)
    }
 }
 
-#endif /* FEATURE_queryobj */
-
 
 static void GLAPIENTRY
 save_DrawBuffersARB(GLsizei count, const GLenum * buffers)
@@ -5470,7 +5435,6 @@ save_TexBumpParameterivATI(GLenum pname, const GLint *param)
    save_TexBumpParameterfvATI(pname, p);
 }
 
-#if FEATURE_ATI_fragment_shader
 static void GLAPIENTRY
 save_BindFragmentShaderATI(GLuint id)
 {
@@ -5504,7 +5468,6 @@ save_SetFragmentShaderConstantATI(GLuint dst, const GLfloat *value)
       CALL_SetFragmentShaderConstantATI(ctx->Exec, (dst, value));
    }
 }
-#endif
 
 static void GLAPIENTRY
 save_Attr1fNV(GLenum attr, GLfloat x)
@@ -6354,7 +6317,6 @@ exec_GetUniformLocationARB(GLuint program, const GLchar *name)
 /* XXX more shader functions needed here */
 
 
-#if FEATURE_EXT_framebuffer_blit
 static void GLAPIENTRY
 save_BlitFramebufferEXT(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                         GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
@@ -6382,7 +6344,6 @@ save_BlitFramebufferEXT(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                                           mask, filter));
    }
 }
-#endif
 
 
 /** GL_EXT_provoking_vertex */
@@ -8412,12 +8373,9 @@ execute_list(struct gl_context *ctx, GLuint list)
          case OPCODE_WINDOW_POS_ARB:   /* GL_ARB_window_pos */
             CALL_WindowPos3fMESA(ctx->Exec, (n[1].f, n[2].f, n[3].f));
             break;
-#if FEATURE_NV_vertex_program || FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
          case OPCODE_BIND_PROGRAM_NV:  /* GL_NV_vertex_program */
             CALL_BindProgramNV(ctx->Exec, (n[1].e, n[2].ui));
             break;
-#endif
-#if FEATURE_NV_vertex_program
          case OPCODE_EXECUTE_PROGRAM_NV:
             {
                GLfloat v[4];
@@ -8439,9 +8397,6 @@ execute_list(struct gl_context *ctx, GLuint list)
          case OPCODE_TRACK_MATRIX_NV:
             CALL_TrackMatrixNV(ctx->Exec, (n[1].e, n[2].ui, n[3].e, n[4].e));
             break;
-#endif
-
-#if FEATURE_NV_fragment_program
          case OPCODE_PROGRAM_LOCAL_PARAMETER_ARB:
             CALL_ProgramLocalParameter4fARB(ctx->Exec,
                                             (n[1].e, n[2].ui, n[3].f, n[4].f,
@@ -8453,28 +8408,21 @@ execute_list(struct gl_context *ctx, GLuint list)
                                                        data, n[4].f, n[5].f,
                                                        n[6].f, n[7].f));
             break;
-#endif
-
          case OPCODE_ACTIVE_STENCIL_FACE_EXT:
             CALL_ActiveStencilFaceEXT(ctx->Exec, (n[1].e));
             break;
          case OPCODE_DEPTH_BOUNDS_EXT:
             CALL_DepthBoundsEXT(ctx->Exec, (n[1].f, n[2].f));
             break;
-#if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
          case OPCODE_PROGRAM_STRING_ARB:
             CALL_ProgramStringARB(ctx->Exec,
                                   (n[1].e, n[2].e, n[3].i, n[4].data));
             break;
-#endif
-#if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program || FEATURE_NV_vertex_program
          case OPCODE_PROGRAM_ENV_PARAMETER_ARB:
             CALL_ProgramEnvParameter4fARB(ctx->Exec, (n[1].e, n[2].ui, n[3].f,
                                                       n[4].f, n[5].f,
                                                       n[6].f));
             break;
-#endif
-#if FEATURE_queryobj
          case OPCODE_BEGIN_QUERY_ARB:
             CALL_BeginQueryARB(ctx->Exec, (n[1].e, n[2].ui));
             break;
@@ -8490,7 +8438,6 @@ execute_list(struct gl_context *ctx, GLuint list)
          case OPCODE_END_QUERY_INDEXED:
             CALL_EndQueryIndexed(ctx->Exec, (n[1].e, n[2].ui));
             break;
-#endif
          case OPCODE_DRAW_BUFFERS_ARB:
             {
                GLenum buffers[MAX_DRAW_BUFFERS];
@@ -8500,14 +8447,11 @@ execute_list(struct gl_context *ctx, GLuint list)
                CALL_DrawBuffersARB(ctx->Exec, (n[1].i, buffers));
             }
             break;
-#if FEATURE_EXT_framebuffer_blit
 	 case OPCODE_BLIT_FRAMEBUFFER:
 	    CALL_BlitFramebufferEXT(ctx->Exec, (n[1].i, n[2].i, n[3].i, n[4].i,
                                                 n[5].i, n[6].i, n[7].i, n[8].i,
                                                 n[9].i, n[10].e));
 	    break;
-#endif
-
 	 case OPCODE_USE_PROGRAM:
 	    CALL_UseProgramObjectARB(ctx->Exec, (n[1].ui));
 	    break;
@@ -8644,7 +8588,6 @@ execute_list(struct gl_context *ctx, GLuint list)
                CALL_TexBumpParameterfvATI(ctx->Exec, (pname, values));
             }
             break;
-#if FEATURE_ATI_fragment_shader
          case OPCODE_BIND_FRAGMENT_SHADER_ATI:
             CALL_BindFragmentShaderATI(ctx->Exec, (n[1].i));
             break;
@@ -8658,7 +8601,6 @@ execute_list(struct gl_context *ctx, GLuint list)
                CALL_SetFragmentShaderConstantATI(ctx->Exec, (dst, values));
             }
             break;
-#endif
          case OPCODE_ATTR_1F_NV:
             CALL_VertexAttrib1fNV(ctx->Exec, (n[1].e, n[2].f));
             break;
@@ -10289,7 +10231,6 @@ _mesa_create_save_table(void)
    SET_MultiModeDrawArraysIBM(table, exec_MultiModeDrawArraysIBM);
    SET_MultiModeDrawElementsIBM(table, exec_MultiModeDrawElementsIBM);
 
-#if FEATURE_NV_vertex_program
    /* 233. GL_NV_vertex_program */
    /* The following commands DO NOT go into display lists:
     * AreProgramsResidentNV, IsProgramNV, GenProgramsNV, DeleteProgramsNV,
@@ -10320,20 +10261,16 @@ _mesa_create_save_table(void)
    SET_ProgramParameters4fvNV(table, save_ProgramParameters4fvNV);
    SET_TrackMatrixNV(table, save_TrackMatrixNV);
    SET_VertexAttribPointerNV(table, _mesa_VertexAttribPointerNV);
-#endif
 
    /* 244. GL_ATI_envmap_bumpmap */
    SET_TexBumpParameterivATI(table, save_TexBumpParameterivATI);
    SET_TexBumpParameterfvATI(table, save_TexBumpParameterfvATI);
 
    /* 245. GL_ATI_fragment_shader */
-#if FEATURE_ATI_fragment_shader
    SET_BindFragmentShaderATI(table, save_BindFragmentShaderATI);
    SET_SetFragmentShaderConstantATI(table, save_SetFragmentShaderConstantATI);
-#endif
 
    /* 282. GL_NV_fragment_program */
-#if FEATURE_NV_fragment_program
    SET_ProgramNamedParameter4fNV(table, save_ProgramNamedParameter4fNV);
    SET_ProgramNamedParameter4dNV(table, save_ProgramNamedParameter4dNV);
    SET_ProgramNamedParameter4fvNV(table, save_ProgramNamedParameter4fvNV);
@@ -10350,7 +10287,6 @@ _mesa_create_save_table(void)
                                      _mesa_GetProgramLocalParameterdvARB);
    SET_GetProgramLocalParameterfvARB(table,
                                      _mesa_GetProgramLocalParameterfvARB);
-#endif
 
    /* 262. GL_NV_point_sprite */
    SET_PointParameteriNV(table, save_PointParameteriNV);
@@ -10420,7 +10356,6 @@ _mesa_create_save_table(void)
 
    /* ARB 26. GL_ARB_vertex_program */
    /* ARB 27. GL_ARB_fragment_program */
-#if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
    /* glVertexAttrib* functions alias the NV ones, handled elsewhere */
    SET_VertexAttribPointerARB(table, _mesa_VertexAttribPointerARB);
    SET_EnableVertexAttribArrayARB(table, _mesa_EnableVertexAttribArrayARB);
@@ -10450,7 +10385,6 @@ _mesa_create_save_table(void)
                                      _mesa_GetProgramLocalParameterfvARB);
    SET_GetProgramivARB(table, _mesa_GetProgramivARB);
    SET_GetProgramStringARB(table, _mesa_GetProgramStringARB);
-#endif
 
    /* ARB 28. GL_ARB_vertex_buffer_object */
    /* None of the extension's functions get compiled */
@@ -10466,18 +10400,14 @@ _mesa_create_save_table(void)
    SET_MapBufferARB(table, _mesa_MapBufferARB);
    SET_UnmapBufferARB(table, _mesa_UnmapBufferARB);
 
-#if FEATURE_queryobj
    _mesa_init_queryobj_dispatch(table); /* glGetQuery, etc */
    SET_BeginQueryARB(table, save_BeginQueryARB);
    SET_EndQueryARB(table, save_EndQueryARB);
    SET_QueryCounter(table, save_QueryCounter);
-#endif
 
    SET_DrawBuffersARB(table, save_DrawBuffersARB);
 
-#if FEATURE_EXT_framebuffer_blit
    SET_BlitFramebufferEXT(table, save_BlitFramebufferEXT);
-#endif
 
    /* GL_ARB_shader_objects */
    _mesa_init_shader_dispatch(table); /* Plug in glCreate/Delete/Get, etc */
@@ -10518,16 +10448,12 @@ _mesa_create_save_table(void)
    SET_BlendEquationSeparateEXT(table, save_BlendEquationSeparateEXT);
 
    /* GL_EXT_gpu_program_parameters */
-#if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
    SET_ProgramEnvParameters4fvEXT(table, save_ProgramEnvParameters4fvEXT);
    SET_ProgramLocalParameters4fvEXT(table, save_ProgramLocalParameters4fvEXT);
-#endif
 
    /* ARB 50. GL_ARB_map_buffer_range */
-#if FEATURE_ARB_map_buffer_range
    SET_MapBufferRange(table, _mesa_MapBufferRange); /* no dlist save */
    SET_FlushMappedBufferRange(table, _mesa_FlushMappedBufferRange); /* no dl */
-#endif
 
    /* ARB 51. GL_ARB_texture_buffer_object */
    SET_TexBufferARB(table, _mesa_TexBuffer); /* no dlist save */
@@ -10539,11 +10465,9 @@ _mesa_create_save_table(void)
    SET_ProvokingVertexEXT(table, save_ProvokingVertexEXT);
 
    /* 371. GL_APPLE_object_purgeable */
-#if FEATURE_APPLE_object_purgeable
    SET_ObjectPurgeableAPPLE(table, _mesa_ObjectPurgeableAPPLE);
    SET_ObjectUnpurgeableAPPLE(table, _mesa_ObjectUnpurgeableAPPLE);
    SET_GetObjectParameterivAPPLE(table, _mesa_GetObjectParameterivAPPLE);
-#endif
 
    /* GL_EXT_texture_integer */
    SET_ClearColorIiEXT(table, save_ClearColorIi);
@@ -10586,7 +10510,6 @@ _mesa_create_save_table(void)
    (void) save_Uniform4uiv;
 #endif
 
-#if FEATURE_EXT_transform_feedback
    /* These are not compiled into display lists: */
    SET_BindBufferBaseEXT(table, _mesa_BindBufferBase);
    SET_BindBufferOffsetEXT(table, _mesa_BindBufferOffsetEXT);
@@ -10604,11 +10527,8 @@ _mesa_create_save_table(void)
                                       save_DrawTransformFeedbackInstanced);
    SET_DrawTransformFeedbackStreamInstanced(table,
                                 save_DrawTransformFeedbackStreamInstanced);
-#if FEATURE_queryobj
    SET_BeginQueryIndexed(table, save_BeginQueryIndexed);
    SET_EndQueryIndexed(table, save_EndQueryIndexed);
-#endif
-#endif
 
    /* GL_ARB_instanced_arrays */
    SET_VertexAttribDivisorARB(table, save_VertexAttribDivisor);
@@ -11076,9 +10996,6 @@ void _mesa_init_dlist_dispatch(struct _glapi_table *disp)
 }
 
 
-#endif /* FEATURE_dlist */
-
-
 /**
  * Initialize display list state for given context.
  */
@@ -11106,9 +11023,7 @@ _mesa_init_display_list(struct gl_context *ctx)
    /* Display List group */
    ctx->List.ListBase = 0;
 
-#if FEATURE_dlist
    _mesa_save_vtxfmt_init(&ctx->ListState.ListVtxfmt);
-#endif
 }
 
 
