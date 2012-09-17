@@ -46,9 +46,11 @@ endif
 endif
 
 
-$(CFG_VAR)/%.obj: %.c $(BUILT_SOURCES)
+$(CFG_VAR)/%.obj: %.c $(libpixman_headers)
 	@mkdir -p $(CFG_VAR)
 	@$(CC) -c $(PIXMAN_CFLAGS) -Fo"$@" $<
 
 clean: inform
 	@$(RM) $(CFG_VAR)/*.{exe,ilk,lib,obj,pdb} $(BUILT_SOURCES) || exit 0
+
+.PHONY: inform clean

@@ -819,7 +819,6 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
       }
    }
 
-#if FEATURE_GL
    if (_mesa_is_desktop_gl(ctx) && !ctx->Extensions.ARB_ES2_compatibility) {
       /* Check that all DrawBuffers are present */
       for (j = 0; j < ctx->Const.MaxDrawBuffers; j++) {
@@ -847,9 +846,6 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
 	 }
       }
    }
-#else
-   (void) j;
-#endif
 
    if (numImages == 0) {
       fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT;
@@ -1497,7 +1493,6 @@ renderbuffer_storage(GLenum target, GLenum internalFormat,
 }
 
 
-#if FEATURE_OES_EGL_image
 void GLAPIENTRY
 _mesa_EGLImageTargetRenderbufferStorageOES(GLenum target, GLeglImageOES image)
 {
@@ -1528,7 +1523,6 @@ _mesa_EGLImageTargetRenderbufferStorageOES(GLenum target, GLeglImageOES image)
 
    ctx->Driver.EGLImageTargetRenderbufferStorage(ctx, rb, image);
 }
-#endif
 
 
 /**
@@ -1734,7 +1728,6 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
    }
 
    switch (target) {
-#if FEATURE_EXT_framebuffer_blit
    case GL_DRAW_FRAMEBUFFER_EXT:
       if (!ctx->Extensions.EXT_framebuffer_blit) {
          _mesa_error(ctx, GL_INVALID_ENUM, "glBindFramebufferEXT(target)");
@@ -1751,7 +1744,6 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
       bindDrawBuf = GL_FALSE;
       bindReadBuf = GL_TRUE;
       break;
-#endif
    case GL_FRAMEBUFFER_EXT:
       bindDrawBuf = GL_TRUE;
       bindReadBuf = GL_TRUE;
@@ -2659,8 +2651,6 @@ _mesa_GenerateMipmapEXT(GLenum target)
 }
 
 
-#if FEATURE_EXT_framebuffer_blit
-
 static const struct gl_renderbuffer_attachment *
 find_attachment(const struct gl_framebuffer *fb,
                 const struct gl_renderbuffer *rb)
@@ -3062,10 +3052,8 @@ _mesa_BlitFramebufferEXT(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                                dstX0, dstY0, dstX1, dstY1,
                                mask, filter);
 }
-#endif /* FEATURE_EXT_framebuffer_blit */
 
 
-#if FEATURE_ARB_geometry_shader4
 void GLAPIENTRY
 _mesa_FramebufferTextureARB(GLenum target, GLenum attachment,
                             GLuint texture, GLint level)
@@ -3086,7 +3074,6 @@ _mesa_FramebufferTextureFaceARB(GLenum target, GLenum attachment,
                "glFramebufferTextureFaceARB "
                "not implemented!");
 }
-#endif /* FEATURE_ARB_geometry_shader4 */
 
 static void
 invalidate_framebuffer_storage(GLenum target, GLsizei numAttachments,

@@ -536,6 +536,11 @@ static const struct value_desc values[] = {
    /* GL_{APPLE,ARB,OES}_vertex_array_object */
    { GL_VERTEX_ARRAY_BINDING_APPLE, ARRAY_INT(Name), NO_EXTRA },
 
+   /* GL_EXT_texture_filter_anisotropic */
+   { GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT,
+     CONTEXT_FLOAT(Const.MaxTextureMaxAnisotropy),
+     extra_EXT_texture_filter_anisotropic },
+
 #if FEATURE_GL || FEATURE_ES1
    /* Enums in OpenGL and GLES1 */
    { 0, 0, TYPE_API_MASK, API_OPENGL_BIT | API_OPENGLES_BIT | API_OPENGL_CORE_BIT, NO_EXTRA },
@@ -685,11 +690,6 @@ static const struct value_desc values[] = {
    /* GL_EXT_texture_lod_bias */
    { GL_MAX_TEXTURE_LOD_BIAS_EXT, CONTEXT_FLOAT(Const.MaxTextureLodBias),
      NO_EXTRA },
-
-   /* GL_EXT_texture_filter_anisotropic */
-   { GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT,
-     CONTEXT_FLOAT(Const.MaxTextureMaxAnisotropy),
-     extra_EXT_texture_filter_anisotropic },
 #endif /* FEATURE_GL || FEATURE_ES1 */
 
 #if FEATURE_ES1
@@ -2316,7 +2316,6 @@ _mesa_GetIntegerv(GLenum pname, GLint *params)
    }
 }
 
-#if FEATURE_ARB_sync
 void GLAPIENTRY
 _mesa_GetInteger64v(GLenum pname, GLint64 *params)
 {
@@ -2411,7 +2410,6 @@ _mesa_GetInteger64v(GLenum pname, GLint64 *params)
       break;
    }
 }
-#endif /* FEATURE_ARB_sync */
 
 void GLAPIENTRY
 _mesa_GetDoublev(GLenum pname, GLdouble *params)
@@ -2684,7 +2682,6 @@ _mesa_GetIntegerIndexedv( GLenum pname, GLuint index, GLint *params )
    }
 }
 
-#if FEATURE_ARB_sync
 void GLAPIENTRY
 _mesa_GetInteger64Indexedv( GLenum pname, GLuint index, GLint64 *params )
 {
@@ -2709,7 +2706,6 @@ _mesa_GetInteger64Indexedv( GLenum pname, GLuint index, GLint64 *params )
       ; /* nothing - GL error was recorded */
    }
 }
-#endif /* FEATURE_ARB_sync */
 
 #if FEATURE_ES1
 void GLAPIENTRY

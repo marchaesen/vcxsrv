@@ -87,13 +87,11 @@ get_buffer_target(struct gl_context *ctx, GLenum target)
       return &ctx->CopyReadBuffer;
    case GL_COPY_WRITE_BUFFER:
       return &ctx->CopyWriteBuffer;
-#if FEATURE_EXT_transform_feedback
    case GL_TRANSFORM_FEEDBACK_BUFFER:
       if (ctx->Extensions.EXT_transform_feedback) {
          return &ctx->TransformFeedback.CurrentBuffer;
       }
       break;
-#endif
    case GL_TEXTURE_BUFFER:
       if (_mesa_is_desktop_gl(ctx)
           && ctx->Extensions.ARB_texture_buffer_object) {
@@ -1670,7 +1668,6 @@ _mesa_FlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length)
 }
 
 
-#if FEATURE_APPLE_object_purgeable
 static GLenum
 buffer_object_purgeable(struct gl_context *ctx, GLuint name, GLenum option)
 {
@@ -2044,8 +2041,6 @@ _mesa_GetObjectParameterivAPPLE(GLenum objectType, GLuint name, GLenum pname,
                   name, objectType);
    }
 }
-
-#endif /* FEATURE_APPLE_object_purgeable */
 
 static void
 set_ubo_binding(struct gl_context *ctx,

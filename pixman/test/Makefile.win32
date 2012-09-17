@@ -16,9 +16,9 @@ OBJECTS = $(patsubst %.c, $(CFG_VAR)/%.obj, $(SOURCES))
 TESTS   = $(patsubst %,   $(CFG_VAR)/%.exe, $(TESTPROGRAMS))
 BENCHS  = $(patsubst %,   $(CFG_VAR)/%.exe, $(BENCHMARKS))
 
-all: inform $(TESTS) $(BENCHS)
+all: pixman inform $(TESTS) $(BENCHS)
 
-check: inform $(TESTS)
+check: pixman inform $(TESTS)
 	@failures=0 ; \
 	total=0 ; \
 	for test in $(TESTS) ; \
@@ -46,5 +46,9 @@ $(CFG_VAR)/libutils.lib: $(libutils_OBJECTS)
 $(CFG_VAR)/%.exe: $(CFG_VAR)/%.obj $(TEST_LDADD)
 	@$(LD) $(PIXMAN_LDFLAGS) -OUT:$@ $^
 
-$(top_builddir)/pixman/$(CFG_VAR)/$(LIBRARY).lib:
+$(top_builddir)/pixman/$(CFG_VAR)/$(LIBRARY).lib: pixman
+
+pixman:
 	@$(MAKE) -C $(top_builddir)/pixman -f Makefile.win32
+
+.PHONY: all check pixman

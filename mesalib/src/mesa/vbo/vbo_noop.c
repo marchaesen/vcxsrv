@@ -37,9 +37,6 @@
 #include "main/mfeatures.h"
 #include "vbo/vbo_noop.h"
 
-#if FEATURE_beginend
-
-
 static void GLAPIENTRY
 _mesa_noop_EdgeFlag(GLboolean b)
 {
@@ -304,8 +301,6 @@ _mesa_noop_Vertex4f(GLfloat a, GLfloat b, GLfloat c, GLfloat d)
 {
 }
 
-
-#if FEATURE_evaluators
 static void GLAPIENTRY
 _mesa_noop_EvalCoord1f(GLfloat a)
 {
@@ -335,8 +330,6 @@ static void GLAPIENTRY
 _mesa_noop_EvalPoint2(GLint a, GLint b)
 {
 }
-#endif /* FEATURE_evaluators */
-
 
 static void GLAPIENTRY
 _mesa_noop_Begin(GLenum mode)
@@ -514,6 +507,3 @@ _mesa_using_noop_vtxfmt(const struct _glapi_table *dispatch)
 {
    return GET_Begin((struct _glapi_table *) dispatch) == _mesa_noop_Begin;
 }
-
-
-#endif /* FEATURE_beginend */

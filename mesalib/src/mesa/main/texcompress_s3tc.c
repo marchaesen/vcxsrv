@@ -47,9 +47,6 @@
 #include "swrast/s_context.h"
 
 
-#if FEATURE_texture_s3tc
-
-
 #if defined(_WIN32) || defined(WIN32)
 #ifdef _DEBUG
 #define DXTN_LIBNAME "dxtn_dbg.dll"
@@ -64,7 +61,6 @@
 #define DXTN_LIBNAME "libtxc_dxtn.so"
 #endif
 
-#if FEATURE_EXT_texture_sRGB
 /**
  * Convert an 8-bit sRGB value from non-linear space to a
  * linear RGB value in [0, 1].
@@ -91,14 +87,13 @@ nonlinear_to_linear(GLubyte cs8)
    }
    return table[cs8];
 }
-#endif /* FEATURE_EXT_texture_sRGB */
 
 typedef void (*dxtFetchTexelFuncExt)( GLint srcRowstride, GLubyte *pixdata, GLint col, GLint row, GLvoid *texelOut );
 
-dxtFetchTexelFuncExt fetch_ext_rgb_dxt1 = NULL;
-dxtFetchTexelFuncExt fetch_ext_rgba_dxt1 = NULL;
-dxtFetchTexelFuncExt fetch_ext_rgba_dxt3 = NULL;
-dxtFetchTexelFuncExt fetch_ext_rgba_dxt5 = NULL;
+static dxtFetchTexelFuncExt fetch_ext_rgb_dxt1 = NULL;
+static dxtFetchTexelFuncExt fetch_ext_rgba_dxt1 = NULL;
+static dxtFetchTexelFuncExt fetch_ext_rgba_dxt3 = NULL;
+static dxtFetchTexelFuncExt fetch_ext_rgba_dxt5 = NULL;
 
 typedef void (*dxtCompressTexFuncExt)(GLint srccomps, GLint width,
                                       GLint height, const GLubyte *srcPixData,
@@ -482,7 +477,6 @@ _mesa_fetch_texel_rgba_dxt5(const struct swrast_texture_image *texImage,
    texel[ACOMP] = UBYTE_TO_FLOAT(rgba[ACOMP]);
 }
 
-#if FEATURE_EXT_texture_sRGB
 void
 _mesa_fetch_texel_srgb_dxt1(const struct swrast_texture_image *texImage,
                             GLint i, GLint j, GLint k, GLfloat *texel)
@@ -534,7 +528,3 @@ _mesa_fetch_texel_srgba_dxt5(const struct swrast_texture_image *texImage,
    texel[BCOMP] = nonlinear_to_linear(rgba[BCOMP]);
    texel[ACOMP] = UBYTE_TO_FLOAT(rgba[ACOMP]);
 }
-#endif /* FEATURE_EXT_texture_sRGB */
-
-
-#endif /* FEATURE_texture_s3tc */

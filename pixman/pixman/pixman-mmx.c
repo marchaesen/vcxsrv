@@ -3575,7 +3575,6 @@ do {										\
     /* fetch 2x2 pixel block into 2 mmx registers */				\
     __m64 t = ldq_u ((__m64 *)&src_top [pixman_fixed_to_int (vx)]);		\
     __m64 b = ldq_u ((__m64 *)&src_bottom [pixman_fixed_to_int (vx)]);		\
-    vx += unit_x;								\
     /* vertical interpolation */						\
     t_hi = _mm_mullo_pi16 (_mm_unpackhi_pi8 (t, mm_zero), mm_wt);		\
     t_lo = _mm_mullo_pi16 (_mm_unpacklo_pi8 (t, mm_zero), mm_wt);		\
@@ -3583,6 +3582,7 @@ do {										\
     b_lo = _mm_mullo_pi16 (_mm_unpacklo_pi8 (b, mm_zero), mm_wb);		\
     hi = _mm_add_pi16 (t_hi, b_hi);						\
     lo = _mm_add_pi16 (t_lo, b_lo);						\
+    vx += unit_x;								\
     if (BILINEAR_INTERPOLATION_BITS < 8)					\
     {										\
 	__m64 p, q;								\
@@ -3590,7 +3590,6 @@ do {										\
 	__m64 mm_wh = _mm_add_pi16 (mm_addc7, _mm_xor_si64 (mm_xorc7,		\
 			  _mm_srli_pi16 (mm_x,					\
 					 16 - BILINEAR_INTERPOLATION_BITS)));	\
-	mm_x = _mm_add_pi16 (mm_x, mm_ux);					\
 	/* horizontal interpolation */						\
 	p = _mm_unpacklo_pi16 (lo, hi);						\
 	q = _mm_unpackhi_pi16 (lo, hi);						\
@@ -3605,7 +3604,6 @@ do {										\
 					16 - BILINEAR_INTERPOLATION_BITS));	\
 	__m64 mm_wh_hi = _mm_srli_pi16 (mm_x,					\
 					16 - BILINEAR_INTERPOLATION_BITS);	\
-	mm_x = _mm_add_pi16 (mm_x, mm_ux);					\
 	/* horizontal interpolation */						\
 	mm_lo_lo = _mm_mullo_pi16 (lo, mm_wh_lo);				\
 	mm_lo_hi = _mm_mullo_pi16 (hi, mm_wh_hi);				\
@@ -3616,6 +3614,7 @@ do {										\
 	hi = _mm_add_pi32 (_mm_unpackhi_pi16 (mm_lo_lo, mm_hi_lo),		\
 			   _mm_unpackhi_pi16 (mm_lo_hi, mm_hi_hi));		\
     }										\
+    mm_x = _mm_add_pi16 (mm_x, mm_ux);						\
     /* shift and pack the result */						\
     hi = _mm_srli_pi32 (hi, BILINEAR_INTERPOLATION_BITS * 2);			\
     lo = _mm_srli_pi32 (lo, BILINEAR_INTERPOLATION_BITS * 2);			\

@@ -76,8 +76,9 @@
 #include "drivers/common/meta.h"
 #include "main/enums.h"
 #include "main/glformats.h"
+#include "../glsl/ralloc.h"
 
-
+static void *mem_ctx;
 /** Return offset in bytes of the field within a vertex struct */
 #define OFFSET(FIELD) ((void *) offsetof(struct vertex, FIELD))
 
@@ -178,12 +179,10 @@ struct save_state
    struct gl_query_object *CondRenderQuery;
    GLenum CondRenderMode;
 
-#if FEATURE_feedback
    /** MESA_META_SELECT_FEEDBACK */
    GLenum RenderMode;
    struct gl_selection Select;
    struct gl_feedback Feedback;
-#endif
 
    /** MESA_META_MULTISAMPLE */
    GLboolean MultisampleEnabled;
@@ -191,9 +190,7 @@ struct save_state
    /** Miscellaneous (always disabled) */
    GLboolean Lighting;
    GLboolean RasterDiscard;
-#if FEATURE_EXT_transform_feedback
    GLboolean TransformFeedbackNeedsResume;
-#endif
 };
 
 /**
@@ -286,6 +283,15 @@ struct gen_mipmap_state
    GLuint IntegerShaderProg;
 };
 
+/**
+ * State for GLSL texture sampler which is used to generate fragment
+ * shader in _mesa_meta_generate_mipmap().
+ */
+struct glsl_sampler {
+   const char *type;
+   const char *func;
+   const char *texcoords;
+};
 
 /**
  * State for texture decompression
@@ -438,35 +444,6 @@ _mesa_meta_free(struct gl_context *ctx)
 
 
 /**
- * This is an alternative to _mesa_set_enable() to handle some special cases.
- * See comments inside.
- */
-static void
-meta_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
-{
-   switch (cap) {
-   case GL_MULTISAMPLE:
-      /* We need to enable/disable multisample when using GLES but this enum
-       * is not supported there.
-       */
-      if (ctx->Multisample.Enabled == state)
-         return;
-      FLUSH_VERTICES(ctx, _NEW_MULTISAMPLE);
-      ctx->Multisample.Enabled = state;
-      break;
-   default:
-      _mesa_problem(ctx, "Unexpected cap in _meta_set_enable()");
-      return;
-   }
-
-   if (ctx->Driver.Enable) {
-      ctx->Driver.Enable(ctx, cap, state);
-   }
-}
-
-
-
-/**
  * Enter meta state.  This is like a light-weight version of glPushAttrib
  * but it also resets most GL state back to default values.
  *
@@ -485,7 +462,6 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
    memset(save, 0, sizeof(*save));
    save->SavedState = state;
 
-#if FEATURE_EXT_transform_feedback
    /* Pausing transform feedback needs to be done early, or else we won't be
     * able to change other state.
     */
@@ -494,7 +470,6 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
       !ctx->TransformFeedback.CurrentObject->Paused;
    if (save->TransformFeedbackNeedsResume)
       _mesa_PauseTransformFeedback();
-#endif
 
    if (state & MESA_META_ALPHA_TEST) {
       save->AlphaEnabled = ctx->Color.AlphaEnabled;
@@ -648,19 +623,24 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
             if (ctx->Texture.Unit[u].Enabled ||
                 ctx->Texture.Unit[u].TexGenEnabled) {
                _mesa_ActiveTextureARB(GL_TEXTURE0 + u);
-               _mesa_set_enable(ctx, GL_TEXTURE_1D, GL_FALSE);
                _mesa_set_enable(ctx, GL_TEXTURE_2D, GL_FALSE);
-               _mesa_set_enable(ctx, GL_TEXTURE_3D, GL_FALSE);
                if (ctx->Extensions.ARB_texture_cube_map)
                   _mesa_set_enable(ctx, GL_TEXTURE_CUBE_MAP, GL_FALSE);
-               if (ctx->Extensions.NV_texture_rectangle)
-                  _mesa_set_enable(ctx, GL_TEXTURE_RECTANGLE, GL_FALSE);
                if (ctx->Extensions.OES_EGL_image_external)
                   _mesa_set_enable(ctx, GL_TEXTURE_EXTERNAL_OES, GL_FALSE);
-               _mesa_set_enable(ctx, GL_TEXTURE_GEN_S, GL_FALSE);
-               _mesa_set_enable(ctx, GL_TEXTURE_GEN_T, GL_FALSE);
-               _mesa_set_enable(ctx, GL_TEXTURE_GEN_R, GL_FALSE);
-               _mesa_set_enable(ctx, GL_TEXTURE_GEN_Q, GL_FALSE);
+
+               if (ctx->API == API_OPENGL) {
+                  _mesa_set_enable(ctx, GL_TEXTURE_1D, GL_FALSE);
+                  _mesa_set_enable(ctx, GL_TEXTURE_3D, GL_FALSE);
+                  if (ctx->Extensions.NV_texture_rectangle)
+                     _mesa_set_enable(ctx, GL_TEXTURE_RECTANGLE, GL_FALSE);
+                  _mesa_set_enable(ctx, GL_TEXTURE_GEN_S, GL_FALSE);
+                  _mesa_set_enable(ctx, GL_TEXTURE_GEN_T, GL_FALSE);
+                  _mesa_set_enable(ctx, GL_TEXTURE_GEN_R, GL_FALSE);
+                  _mesa_set_enable(ctx, GL_TEXTURE_GEN_Q, GL_FALSE);
+               } else {
+                  _mesa_set_enable(ctx, GL_TEXTURE_GEN_STR_OES, GL_FALSE);
+               }
             }
          }
       }
@@ -770,7 +750,6 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
 	 _mesa_EndConditionalRender();
    }
 
-#if FEATURE_feedback
    if (state & MESA_META_SELECT_FEEDBACK) {
       save->RenderMode = ctx->RenderMode;
       if (ctx->RenderMode == GL_SELECT) {
@@ -781,12 +760,11 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
 	 _mesa_RenderMode(GL_RENDER);
       }
    }
-#endif
 
    if (state & MESA_META_MULTISAMPLE) {
       save->MultisampleEnabled = ctx->Multisample.Enabled;
       if (ctx->Multisample.Enabled)
-         meta_set_enable(ctx, GL_MULTISAMPLE, GL_FALSE);
+         _mesa_set_multisample(ctx, GL_FALSE);
    }
 
    /* misc */
@@ -1076,7 +1054,6 @@ _mesa_meta_end(struct gl_context *ctx)
 				      save->CondRenderMode);
    }
 
-#if FEATURE_feedback
    if (state & MESA_META_SELECT_FEEDBACK) {
       if (save->RenderMode == GL_SELECT) {
 	 _mesa_RenderMode(GL_SELECT);
@@ -1086,11 +1063,10 @@ _mesa_meta_end(struct gl_context *ctx)
 	 ctx->Feedback = save->Feedback;
       }
    }
-#endif
 
    if (state & MESA_META_MULTISAMPLE) {
       if (ctx->Multisample.Enabled != save->MultisampleEnabled)
-         meta_set_enable(ctx, GL_MULTISAMPLE, save->MultisampleEnabled);
+         _mesa_set_multisample(ctx, save->MultisampleEnabled);
    }
 
    /* misc */
@@ -1100,10 +1076,8 @@ _mesa_meta_end(struct gl_context *ctx)
    if (save->RasterDiscard) {
       _mesa_set_enable(ctx, GL_RASTERIZER_DISCARD, GL_TRUE);
    }
-#if FEATURE_EXT_transform_feedback
    if (save->TransformFeedbackNeedsResume)
       _mesa_ResumeTransformFeedback();
-#endif
 
    ctx->Meta->SaveStackDepth--;
 }
@@ -2974,7 +2948,7 @@ setup_texture_coords(GLenum faceTarget,
 
 static void
 setup_ff_generate_mipmap(struct gl_context *ctx,
-                           struct gen_mipmap_state *mipmap)
+                         struct gen_mipmap_state *mipmap)
 {
    struct vertex {
       GLfloat x, y, tex[3];
@@ -3004,30 +2978,61 @@ setup_ff_generate_mipmap(struct gl_context *ctx,
 
 
 static void
+setup_texture_sampler(GLenum target, struct glsl_sampler *sampler)
+{
+   switch(target) {
+   case GL_TEXTURE_1D:
+      sampler->type = "sampler1D";
+      sampler->func = "texture1D";
+      sampler->texcoords = "texCoords.x";
+      break;
+   case GL_TEXTURE_2D:
+      sampler->type = "sampler2D";
+      sampler->func = "texture2D";
+      sampler->texcoords = "texCoords.xy";
+      break;
+   case GL_TEXTURE_3D:
+      /* Code for mipmap generation with 3D textures is not used yet.
+       * It's a sw fallback.
+       */
+      sampler->type = "sampler3D";
+      sampler->func = "texture3D";
+      sampler->texcoords = "texCoords";
+      break;
+   case GL_TEXTURE_CUBE_MAP:
+      sampler->type = "samplerCube";
+      sampler->func = "textureCube";
+      sampler->texcoords = "texCoords";
+      break;
+   case GL_TEXTURE_1D_ARRAY:
+      sampler->type = "sampler1DArray";
+      sampler->func = "texture1DArray";
+      sampler->texcoords = "texCoords.xy";
+      break;
+   case GL_TEXTURE_2D_ARRAY:
+      sampler->type = "sampler2DArray";
+      sampler->func = "texture2DArray";
+      sampler->texcoords = "texCoords";
+      break;
+   default:
+      _mesa_problem(NULL, "Unexpected texture target 0x%x in"
+                    " setup_texture_sampler()\n", target);
+   }
+}
+
+
+static void
 setup_glsl_generate_mipmap(struct gl_context *ctx,
-                           struct gen_mipmap_state *mipmap)
+                           struct gen_mipmap_state *mipmap,
+                           GLenum target)
 {
    struct vertex {
       GLfloat x, y, tex[3];
    };
+   struct glsl_sampler sampler;
+   const char *vs_source;
+   const char *fs_template;
 
-   static const char *vs_source =
-      "attribute vec2 position;\n"
-      "attribute vec3 textureCoords;\n"
-      "varying vec3 texCoords;\n"
-      "void main()\n"
-      "{\n"
-      "   texCoords = textureCoords;\n"
-      "   gl_Position = vec4(position, 0.0, 1.0);\n"
-      "}\n";
-   static const char *fs_source =
-      "uniform sampler2D tex2d;\n"
-      "varying vec3 texCoords;\n"
-      "void main()\n"
-      "{\n"
-      "   gl_FragColor = texture2D(tex2d, texCoords.xy);\n"
-      "}\n";
- 
    static const char *vs_int_source =
       "#version 130\n"
       "in vec2 position;\n"
@@ -3048,7 +3053,50 @@ setup_glsl_generate_mipmap(struct gl_context *ctx,
       "{\n"
       "   out_color = texture(tex2d, texCoords.xy);\n"
       "}\n";
+   char *fs_source;
+   const char *extension_mode;
    GLuint vs, fs;
+
+   if (ctx->Const.GLSLVersion < 130) {
+      vs_source =
+         "attribute vec2 position;\n"
+         "attribute vec3 textureCoords;\n"
+         "varying vec3 texCoords;\n"
+         "void main()\n"
+         "{\n"
+         "   texCoords = textureCoords;\n"
+         "   gl_Position = vec4(position, 0.0, 1.0);\n"
+         "}\n";
+      fs_template =
+         "#extension GL_EXT_texture_array : %s\n"
+         "uniform %s texSampler;\n"
+         "varying vec3 texCoords;\n"
+         "void main()\n"
+         "{\n"
+         "   gl_FragColor = %s(texSampler, %s);\n"
+         "}\n";
+   } else {
+      vs_source =
+         "#version 130\n"
+         "in vec2 position;\n"
+         "in vec3 textureCoords;\n"
+         "out vec3 texCoords;\n"
+         "void main()\n"
+         "{\n"
+         "   texCoords = textureCoords;\n"
+         "   gl_Position = vec4(position, 0.0, 1.0);\n"
+         "}\n";
+      fs_template =
+         "#version 130\n"
+         "uniform %s texSampler;\n"
+         "in vec3 texCoords;\n"
+         "out %s out_color;\n"
+         "\n"
+         "void main()\n"
+         "{\n"
+         "   out_color = texture(texSampler, %s);\n"
+         "}\n";
+    }
 
    /* Check if already initialized */
    if (mipmap->ArrayObj != 0)
@@ -3067,6 +3115,25 @@ setup_glsl_generate_mipmap(struct gl_context *ctx,
    _mesa_VertexAttribPointerARB(1, 3, GL_FLOAT, GL_FALSE,
                                 sizeof(struct vertex), OFFSET(tex));
 
+   /* Generate a fragment shader program appropriate for the texture target */
+   setup_texture_sampler(target, &sampler);
+   mem_ctx = ralloc_context(NULL);
+
+   if (ctx->Const.GLSLVersion < 130) {
+      extension_mode = ((target == GL_TEXTURE_1D_ARRAY) ||
+                        (target == GL_TEXTURE_2D_ARRAY)) ?
+                       "require" : "disable";
+
+      fs_source = ralloc_asprintf(mem_ctx, fs_template,
+                                  extension_mode, sampler.type,
+                                  sampler.func, sampler.texcoords);
+   }
+   else {
+      fs_source = ralloc_asprintf(mem_ctx, fs_template,
+                                  sampler.type, "vec4",
+                                  sampler.texcoords);
+   }
+
    vs = compile_shader_with_debug(ctx, GL_VERTEX_SHADER, vs_source);
    fs = compile_shader_with_debug(ctx, GL_FRAGMENT_SHADER, fs_source);
 
@@ -3080,6 +3147,7 @@ setup_glsl_generate_mipmap(struct gl_context *ctx,
    _mesa_EnableVertexAttribArrayARB(0);
    _mesa_EnableVertexAttribArrayARB(1);
    link_program_with_debug(ctx, mipmap->ShaderProg);
+   ralloc_free(mem_ctx);
 
    if ((_mesa_is_desktop_gl(ctx) && ctx->Const.GLSLVersion >= 130) ||
        _mesa_is_gles3(ctx)){
@@ -3172,7 +3240,7 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
     * GenerateMipmap function.
     */
    if (use_glsl_version) {
-      setup_glsl_generate_mipmap(ctx, mipmap);
+      setup_glsl_generate_mipmap(ctx, mipmap, target);
 
       if (texObj->_IsIntegerFormat)
          _mesa_UseProgramObjectARB(mipmap->IntegerShaderProg);
@@ -3738,7 +3806,6 @@ void
 _mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
                    GLfloat width, GLfloat height)
 {
-#if FEATURE_OES_draw_texture
    struct drawtex_state *drawtex = &ctx->Meta->DrawTex;
    struct vertex {
       GLfloat x, y, z, st[MAX_TEXTURE_UNITS][2];
@@ -3854,5 +3921,4 @@ _mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
    _mesa_DrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
    _mesa_meta_end(ctx);
-#endif /* FEATURE_OES_draw_texture */
 }

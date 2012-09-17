@@ -599,15 +599,10 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MaxUniformBlockSize = 16384;
    ctx->Const.UniformBufferOffsetAlignment = 1;
 
-#if FEATURE_ARB_vertex_program
    init_program_limits(ctx, GL_VERTEX_PROGRAM_ARB, &ctx->Const.VertexProgram);
-#endif
-#if FEATURE_ARB_fragment_program
    init_program_limits(ctx, GL_FRAGMENT_PROGRAM_ARB, &ctx->Const.FragmentProgram);
-#endif
-#if FEATURE_ARB_geometry_shader4
    init_program_limits(ctx, MESA_GEOMETRY_PROGRAM, &ctx->Const.GeometryProgram);
-#endif
+
    ctx->Const.MaxProgramMatrices = MAX_PROGRAM_MATRICES;
    ctx->Const.MaxProgramMatrixStackDepth = MAX_PROGRAM_MATRIX_STACK_DEPTH;
 
@@ -617,23 +612,17 @@ _mesa_init_constants(struct gl_context *ctx)
    /* GL_ARB_draw_buffers */
    ctx->Const.MaxDrawBuffers = MAX_DRAW_BUFFERS;
 
-#if FEATURE_EXT_framebuffer_object
    ctx->Const.MaxColorAttachments = MAX_COLOR_ATTACHMENTS;
    ctx->Const.MaxRenderbufferSize = MAX_RENDERBUFFER_SIZE;
-#endif
 
-#if FEATURE_ARB_vertex_shader
    ctx->Const.MaxVertexTextureImageUnits = MAX_VERTEX_TEXTURE_IMAGE_UNITS;
    ctx->Const.MaxCombinedTextureImageUnits = MAX_COMBINED_TEXTURE_IMAGE_UNITS;
    ctx->Const.MaxVarying = MAX_VARYING;
-#endif
-#if FEATURE_ARB_geometry_shader4
    ctx->Const.MaxGeometryTextureImageUnits = MAX_GEOMETRY_TEXTURE_IMAGE_UNITS;
    ctx->Const.MaxVertexVaryingComponents = MAX_VERTEX_VARYING_COMPONENTS;
    ctx->Const.MaxGeometryVaryingComponents = MAX_GEOMETRY_VARYING_COMPONENTS;
    ctx->Const.MaxGeometryOutputVertices = MAX_GEOMETRY_OUTPUT_VERTICES;
    ctx->Const.MaxGeometryTotalOutputComponents = MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS;
-#endif
 
    /* Shading language version */
    if (_mesa_is_desktop_gl(ctx)) {
@@ -961,7 +950,6 @@ _mesa_initialize_context(struct gl_context *ctx,
       return GL_FALSE;
    }
 
-#if FEATURE_dispatch
    /* setup the API dispatch tables */
    switch (ctx->API) {
 #if FEATURE_GL || FEATURE_ES2
@@ -985,7 +973,6 @@ _mesa_initialize_context(struct gl_context *ctx,
       _mesa_reference_shared_state(ctx, &ctx->Shared, NULL);
       return GL_FALSE;
    }
-#endif
    ctx->CurrentDispatch = ctx->Exec;
 
    ctx->FragmentProgram._MaintainTexEnvProgram
@@ -1008,7 +995,6 @@ _mesa_initialize_context(struct gl_context *ctx,
 
    switch (ctx->API) {
    case API_OPENGL:
-#if FEATURE_dlist
       ctx->Save = _mesa_create_save_table();
       if (!ctx->Save) {
          _mesa_reference_shared_state(ctx, &ctx->Shared, NULL);
@@ -1017,7 +1003,6 @@ _mesa_initialize_context(struct gl_context *ctx,
       }
 
       _mesa_install_save_vtxfmt( ctx, &ctx->ListState.ListVtxfmt );
-#endif
    case API_OPENGL_CORE:
       break;
    case API_OPENGLES:
@@ -1138,12 +1123,9 @@ _mesa_free_context_data( struct gl_context *ctx )
    _mesa_free_varray_data(ctx);
    _mesa_free_transform_feedback(ctx);
 
-#if FEATURE_ARB_pixel_buffer_object
    _mesa_reference_buffer_object(ctx, &ctx->Pack.BufferObj, NULL);
    _mesa_reference_buffer_object(ctx, &ctx->Unpack.BufferObj, NULL);
    _mesa_reference_buffer_object(ctx, &ctx->DefaultPacking.BufferObj, NULL);
-#endif
-
    _mesa_reference_buffer_object(ctx, &ctx->Array.ArrayBufferObj, NULL);
 
    /* free dispatch tables */

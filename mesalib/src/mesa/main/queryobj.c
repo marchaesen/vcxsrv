@@ -34,9 +34,6 @@
 #include "main/dispatch.h"
 
 
-#if FEATURE_queryobj
-
-
 /**
  * Allocate a new query object.  This is a fallback routine called via
  * ctx->Driver.NewQueryObject().
@@ -155,7 +152,6 @@ get_query_binding_point(struct gl_context *ctx, GLenum target)
          return &ctx->Query.CurrentTimerObject;
       else
          return NULL;
-#if FEATURE_EXT_transform_feedback
    case GL_PRIMITIVES_GENERATED:
       if (ctx->Extensions.EXT_transform_feedback)
          return &ctx->Query.PrimitivesGenerated;
@@ -166,7 +162,6 @@ get_query_binding_point(struct gl_context *ctx, GLenum target)
          return &ctx->Query.PrimitivesWritten;
       else
          return NULL;
-#endif
    default:
       return NULL;
    }
@@ -732,9 +727,6 @@ _mesa_init_queryobj_dispatch(struct _glapi_table *disp)
    SET_EndQueryIndexed(disp, _mesa_EndQueryIndexed);
    SET_GetQueryIndexediv(disp, _mesa_GetQueryIndexediv);
 }
-
-
-#endif /* FEATURE_queryobj */
 
 
 /**

@@ -3,23 +3,23 @@ default: all
 top_srcdir = .
 include $(top_srcdir)/Makefile.win32.common
 
-# Recursive targets
-pixman_r:
+all: pixman test
+
+pixman:
 	@$(MAKE) -C pixman -f Makefile.win32
 
-test_r:
+test:
 	@$(MAKE) -C test -f Makefile.win32
 
 clean_r:
 	@$(MAKE) -C pixman -f Makefile.win32 clean
 	@$(MAKE) -C test   -f Makefile.win32 clean
 
-check_r:
+check:
 	@$(MAKE) -C test -f Makefile.win32 check
 
-# Base targets
-all: test_r
 
 clean: clean_r
 
-check: check_r
+
+.PHONY: all pixman test clean check

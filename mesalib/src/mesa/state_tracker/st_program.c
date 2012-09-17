@@ -66,10 +66,8 @@ delete_vp_variant(struct st_context *st, struct st_vp_variant *vpv)
    if (vpv->driver_shader) 
       cso_delete_vertex_shader(st->cso_context, vpv->driver_shader);
       
-#if FEATURE_feedback || FEATURE_rastpos
    if (vpv->draw_shader)
       draw_delete_vertex_shader( st->draw, vpv->draw_shader );
-#endif
       
    if (vpv->tgsi.tokens)
       st_free_tokens(vpv->tgsi.tokens);
@@ -497,7 +495,6 @@ st_translate_fragment_program(struct st_context *st,
 
    assert(!(key->bitmap && key->drawpixels));
 
-#if FEATURE_drawpix
    if (key->bitmap) {
       /* glBitmap drawing */
       struct gl_fragment_program *fp; /* we free this temp program below */
@@ -525,7 +522,6 @@ st_translate_fragment_program(struct st_context *st,
       }
       stfp = st_fragment_program(fp);
    }
-#endif
 
    if (!stfp->glsl_to_tgsi)
       _mesa_remove_output_reads(&stfp->Base.Base, PROGRAM_OUTPUT);
