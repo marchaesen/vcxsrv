@@ -117,6 +117,13 @@ dnl check for support for Solaris Trusted Extensions
 AC_CHECK_HEADERS([tsol/label.h])
 AC_CHECK_FUNCS([is_system_labeled])
 
+dnl check for IOV_MAX, and fall back to UIO_MAXIOV on BSDish systems
+AC_CHECK_DECL([IOV_MAX], [],
+	      [AC_CHECK_DECL([UIO_MAXIOV], [AC_DEFINE([IOV_MAX], [UIO_MAXIOV])],
+					   [AC_DEFINE([IOV_MAX], [16], [Define if not provided by <limits.h>])],
+					   [[#include <sys/uio.h>]])],
+	      [[#include <limits.h>]])
+
 xcbincludedir='${includedir}/xcb'
 AC_SUBST(xcbincludedir)
 

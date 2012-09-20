@@ -213,11 +213,12 @@ xf86platformProbe(void)
     int i;
     Bool pci = TRUE;
 
+    config_odev_probe(xf86PlatformDeviceProbe);
+
     if (!xf86scanpci()) {
         pci = FALSE;
     }
 
-    config_odev_probe(&xf86PlatformDeviceProbe);
     for (i = 0; i < xf86_num_platform_devices; i++) {
         char *busid = xf86_get_platform_attrib(i, ODEV_ATTRIB_BUSID);
 
@@ -358,6 +359,9 @@ xf86platformProbeDev(DriverPtr drvp)
                     break;
             }
             else {
+                /* for non-seat0 servers assume first device is the master */
+                if (ServerIsNotSeat0())
+                    break;
                 if (xf86_platform_devices[j].pdev) {
                     if (xf86IsPrimaryPlatform(&xf86_platform_devices[j]))
                         break;

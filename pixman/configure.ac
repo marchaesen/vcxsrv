@@ -796,8 +796,6 @@ AM_CONDITIONAL(HAVE_GTK, [test "x$enable_gtk" = xyes])
 
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)
-AC_SUBST(DEP_CFLAGS)
-AC_SUBST(DEP_LIBS)
 
 dnl =====================================
 dnl posix_memalign, sigaction, alarm, gettimeofday

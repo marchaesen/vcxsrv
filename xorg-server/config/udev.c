@@ -300,9 +300,15 @@ wakeup_handler(pointer data, int err, pointer read_mask)
             return;
         action = udev_device_get_action(udev_device);
         if (action) {
-            if (!strcmp(action, "add") || !strcmp(action, "change")) {
+            if (!strcmp(action, "add")) {
                 device_removed(udev_device);
                 device_added(udev_device);
+            } else if (!strcmp(action, "change")) {
+                /* ignore change for the drm devices */
+                if (strcmp(udev_device_get_subsystem(udev_device), "drm")) {
+                    device_removed(udev_device);
+                    device_added(udev_device);
+                }
             }
             else if (!strcmp(action, "remove"))
                 device_removed(udev_device);

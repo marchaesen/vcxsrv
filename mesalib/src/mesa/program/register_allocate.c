@@ -255,14 +255,25 @@ ra_class_add_reg(struct ra_regs *regs, unsigned int c, unsigned int r)
 /**
  * Must be called after all conflicts and register classes have been
  * set up and before the register set is used for allocation.
+ * To avoid costly q value computation, use the q_values paramater
+ * to pass precomputed q values to this function.
  */
 void
-ra_set_finalize(struct ra_regs *regs)
+ra_set_finalize(struct ra_regs *regs, unsigned int **q_values)
 {
    unsigned int b, c;
 
    for (b = 0; b < regs->class_count; b++) {
       regs->classes[b]->q = ralloc_array(regs, unsigned int, regs->class_count);
+   }
+
+   if (q_values) {
+      for (b = 0; b < regs->class_count; b++) {
+         for (c = 0; c < regs->class_count; c++) {
+            regs->classes[b]->q[c] = q_values[b][c];
+	 }
+      }
+      return;
    }
 
    /* Compute, for each class B and C, how many regs of B an
@@ -490,6 +501,8 @@ ra_get_node_reg(struct ra_graph *g, unsigned int n)
  * input data).  These nodes do not end up in the stack during
  * ra_simplify(), and thus at ra_select() time it is as if they were
  * the first popped off the stack and assigned their fixed locations.
+ * Nodes that use this function do not need to be assigned a register
+ * class.
  *
  * Must be called before ra_simplify().
  */

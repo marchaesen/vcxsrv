@@ -66,6 +66,7 @@ xf86CrtcConfigInit(ScrnInfoPtr scrn, const xf86CrtcConfigFuncsRec * funcs)
     config = xnfcalloc(1, sizeof(xf86CrtcConfigRec));
 
     config->funcs = funcs;
+    config->compat_output = -1;
 
     scrn->privates[xf86CrtcConfigPrivateIndex].ptr = config;
 }
@@ -1841,7 +1842,7 @@ SetCompatOutput(xf86CrtcConfigPtr config)
     if (compat >= 0) {
         config->compat_output = compat;
     }
-    else {
+    else if (config->compat_output >= 0 && config->compat_output < config->num_output) {
         /* Don't change the compat output when no valid outputs found */
         output = config->output[config->compat_output];
     }
