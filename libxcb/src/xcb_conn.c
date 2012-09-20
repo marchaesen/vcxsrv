@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <limits.h>
 
 #include "xcb.h"
 #include "xcbint.h"
@@ -230,7 +231,11 @@ static int write_vec(xcb_connection_t *c, struct iovec **vector, int *count)
     }
 #else
     assert(!c->out.queue_len);
-    n = writev(c->fd, *vector, *count);
+    n = *count;
+    if (n > IOV_MAX)
+	n = IOV_MAX;
+
+    n = writev(c->fd, *vector, n);
     if(n < 0 && errno == EAGAIN)
         return 1;
 #endif /* _WIN32 */    

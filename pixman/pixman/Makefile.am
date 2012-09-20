@@ -3,7 +3,7 @@ include $(top_srcdir)/pixman/Makefile.sources
 lib_LTLIBRARIES = libpixman-1.la
 
 libpixman_1_la_LDFLAGS = -version-info $(LT_VERSION_INFO) -no-undefined @PTHREAD_LDFLAGS@ 
-libpixman_1_la_LIBADD = @PTHREAD_LIBS@ @DEP_LIBS@ -lm
+libpixman_1_la_LIBADD = @PTHREAD_LIBS@ -lm
 libpixman_1_la_SOURCES = $(libpixman_sources) $(libpixman_headers)
 
 libpixmanincludedir = $(includedir)/pixman-1
@@ -27,8 +27,7 @@ if USE_X86_MMX
 noinst_LTLIBRARIES += libpixman-mmx.la
 libpixman_mmx_la_SOURCES = \
 	pixman-mmx.c
-libpixman_mmx_la_CFLAGS = $(DEP_CFLAGS) $(MMX_CFLAGS)
-libpixman_mmx_la_LIBADD = $(DEP_LIBS)
+libpixman_mmx_la_CFLAGS = $(MMX_CFLAGS)
 libpixman_1_la_LDFLAGS += $(MMX_LDFLAGS)
 libpixman_1_la_LIBADD += libpixman-mmx.la
 
@@ -41,8 +40,7 @@ noinst_LTLIBRARIES += libpixman-vmx.la
 libpixman_vmx_la_SOURCES = \
 	pixman-vmx.c \
 	pixman-combine32.h
-libpixman_vmx_la_CFLAGS = $(DEP_CFLAGS) $(VMX_CFLAGS)
-libpixman_vmx_la_LIBADD = $(DEP_LIBS)
+libpixman_vmx_la_CFLAGS = $(VMX_CFLAGS)
 libpixman_1_la_LIBADD += libpixman-vmx.la
 
 ASM_CFLAGS_vmx=$(VMX_CFLAGS)
@@ -53,8 +51,7 @@ if USE_SSE2
 noinst_LTLIBRARIES += libpixman-sse2.la
 libpixman_sse2_la_SOURCES = \
 	pixman-sse2.c
-libpixman_sse2_la_CFLAGS = $(DEP_CFLAGS) $(SSE2_CFLAGS)
-libpixman_sse2_la_LIBADD = $(DEP_LIBS)
+libpixman_sse2_la_CFLAGS = $(SSE2_CFLAGS)
 libpixman_1_la_LDFLAGS += $(SSE2_LDFLAGS)
 libpixman_1_la_LIBADD += libpixman-sse2.la
 
@@ -68,8 +65,6 @@ libpixman_arm_simd_la_SOURCES = \
 	pixman-arm-simd.c	\
 	pixman-arm-common.h	\
 	pixman-arm-simd-asm.S
-libpixman_arm_simd_la_CFLAGS = $(DEP_CFLAGS)
-libpixman_arm_simd_la_LIBADD = $(DEP_LIBS)
 libpixman_1_la_LIBADD += libpixman-arm-simd.la
 
 ASM_CFLAGS_arm_simd=
@@ -84,8 +79,6 @@ libpixman_arm_neon_la_SOURCES = \
         pixman-arm-neon-asm.S	\
 		pixman-arm-neon-asm-bilinear.S \
         pixman-arm-neon-asm.h
-libpixman_arm_neon_la_CFLAGS = $(DEP_CFLAGS)
-libpixman_arm_neon_la_LIBADD = $(DEP_LIBS)
 libpixman_1_la_LIBADD += libpixman-arm-neon.la
 
 ASM_CFLAGS_arm_neon=
@@ -106,7 +99,6 @@ libpixman_iwmmxt_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
         $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(CFLAGS) $(IWMMXT_CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-libpixman_iwmmxt_la_LIBADD = $(DEP_LIBS)
 
 libpixman-iwmmxt.la: libpixman_iwmmxt_la-pixman-mmx.lo $(libpixman_iwmmxt_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libpixman_iwmmxt_la_LINK) libpixman_iwmmxt_la-pixman-mmx.lo $(libpixman_iwmmxt_la_LIBADD) $(LIBS)
@@ -121,8 +113,6 @@ libpixman_mips_dspr2_la_SOURCES = \
         pixman-mips-dspr2-asm.S \
         pixman-mips-dspr2-asm.h \
         pixman-mips-memcpy-asm.S
-libpixman_mips_dspr2_la_CFLAGS = $(DEP_CFLAGS)
-libpixman_mips_dspr2_la_LIBADD = $(DEP_LIBS)
 libpixman_1_la_LIBADD += libpixman-mips-dspr2.la
 
 ASM_CFLAGS_mips_dspr2=
@@ -132,12 +122,9 @@ endif
 if USE_LOONGSON_MMI
 noinst_LTLIBRARIES += libpixman-loongson-mmi.la
 libpixman_loongson_mmi_la_SOURCES = pixman-mmx.c loongson-mmintrin.h
-libpixman_loongson_mmi_la_CFLAGS = $(DEP_CFLAGS) $(LS_CFLAGS)
-libpixman_loongson_mmi_la_LIBADD = $(DEP_LIBS)
+libpixman_loongson_mmi_la_CFLAGS = $(LS_CFLAGS)
 libpixman_1_la_LDFLAGS += $(LS_LDFLAGS)
 libpixman_1_la_LIBADD += libpixman-loongson-mmi.la
-
-ASM_CFLAGS_ls=$(LS_CFLAGS)
 endif
 
 .c.s : $(libpixmaninclude_HEADERS) $(BUILT_SOURCES)
