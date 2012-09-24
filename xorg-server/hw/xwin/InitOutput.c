@@ -161,7 +161,7 @@ void XwinExtensionInit(void)
     int i;
 
 #ifdef XWIN_GLX_WINDOWS
-    if ((g_fNativeGl) && (serverGeneration == 1)) {
+    if (g_fNativeGl) {
         /* install the native GL provider */
         glxWinPushNativeProvider();
     }
@@ -928,7 +928,8 @@ InitOutput(ScreenInfo * screenInfo, int argc, char *argv[])
 {
     int i;
 
-    XwinExtensionInit();
+    if (serverGeneration == 1)
+        XwinExtensionInit();
 
     winDebug("InitOutput\n");
 
