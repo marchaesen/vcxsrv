@@ -117,27 +117,12 @@ xf86BusConfig(void)
     screenLayoutPtr layout;
     int i, j;
 
-    /* Enable full I/O access */
-    if (xorgHWAccess)
-        xorgHWAccess = xf86EnableIO();
-
     /*
      * Now call each of the Probe functions.  Each successful probe will
      * result in an extra entry added to the xf86Screens[] list for each
      * instance of the hardware found.
      */
     for (i = 0; i < xf86NumDrivers; i++) {
-        xorgHWFlags flags;
-
-        if (!xorgHWAccess) {
-            if (!xf86DriverList[i]->driverFunc
-                || !xf86DriverList[i]->driverFunc(NULL,
-                                                  GET_REQUIRED_HW_INTERFACES,
-                                                  &flags)
-                || NEED_IO_ENABLED(flags))
-                continue;
-        }
-
         xf86CallDriverProbe(xf86DriverList[i], FALSE);
     }
 

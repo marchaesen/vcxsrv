@@ -64,6 +64,7 @@
 #include "mi.h"
 #include "mipointer.h"
 #include "rootless.h"
+#include "rootlessCommon.h"
 #include "x-hash.h"
 #include "x-hook.h"
 #include "driWrap.h"
@@ -380,6 +381,11 @@ DRICreateSurface(ScreenPtr pScreen, Drawable id,
     DRIDrawablePrivPtr pDRIDrawablePriv;
 
     if (pDrawable->type == DRAWABLE_WINDOW) {
+        /* <rdar://problem/12338921>
+         * http://bugs.winehq.org/show_bug.cgi?id=31751
+         */
+        RootlessStopDrawing((WindowPtr)pDrawable, FALSE);
+
         pDRIDrawablePriv = CreateSurfaceForWindow(pScreen,
                                                   (WindowPtr)pDrawable, &wid);
 

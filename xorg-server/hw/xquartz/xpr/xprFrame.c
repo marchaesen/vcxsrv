@@ -49,6 +49,10 @@
 #include <pthread.h>
 #endif
 
+#ifdef DEBUG_XP_LOCK_WINDOW
+#include <execinfo.h>
+#endif
+
 #define DEFINE_ATOM_HELPER(func, atom_name)                      \
     static Atom func(void) {                                       \
         static int generation;                                      \
@@ -376,6 +380,18 @@ xprStartDrawing(RootlessFrameID wid, char **pixelData, int *bytesPerRow)
     unsigned int rowbytes[2];
     xp_error err;
 
+#ifdef DEBUG_XP_LOCK_WINDOW
+    void* callstack[128];
+    int i, frames = backtrace(callstack, 128);
+    char** strs = backtrace_symbols(callstack, frames);
+
+    ErrorF("=== LOCK %d ===\n", (int)x_cvt_vptr_to_uint(wid));
+    for (i = 0; i < frames; ++i) {
+        ErrorF("    %s\n", strs[i]);
+    }
+    free(strs);
+#endif
+
     err = xp_lock_window(x_cvt_vptr_to_uint(
                              wid), NULL, NULL, data, rowbytes, NULL);
     if (err != Success)
@@ -394,6 +410,18 @@ static void
 xprStopDrawing(RootlessFrameID wid, Bool flush)
 {
     xp_error err;
+
+#ifdef DEBUG_XP_LOCK_WINDOW
+    void* callstack[128];
+    int i, frames = backtrace(callstack, 128);
+    char** strs = backtrace_symbols(callstack, frames);
+
+    ErrorF("=== UNLOCK %d ===\n", (int)x_cvt_vptr_to_uint(wid));
+    for (i = 0; i < frames; ++i) {
+        ErrorF("    %s\n", strs[i]);
+    }
+    free(strs);
+#endif
 
     err = xp_unlock_window(x_cvt_vptr_to_uint(wid), flush);
     /* This should be a FatalError, but we started tripping over it.  Make it a

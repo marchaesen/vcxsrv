@@ -306,6 +306,9 @@ AddInputDevice(ClientPtr client, DeviceProc deviceProc, Bool autoStart)
     /* unity matrix */
     memset(transform, 0, sizeof(transform));
     transform[0] = transform[4] = transform[8] = 1.0f;
+    dev->transform.m[0][0] = 1.0;
+    dev->transform.m[1][1] = 1.0;
+    dev->transform.m[2][2] = 1.0;
 
     XIChangeDeviceProperty(dev, XIGetKnownProperty(XI_PROP_TRANSFORM),
                            XIGetKnownProperty(XATOM_FLOAT), 32,

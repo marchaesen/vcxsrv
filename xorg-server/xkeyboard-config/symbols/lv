@@ -1,3 +1,4 @@
+// $XKeyboardConfig$
 // Latvian keymap version 1.1
 // Copyright (C) Dmitry Golubev <lastguru@mail.ru>, 2003-2004
 //
@@ -279,10 +280,10 @@ xkb_symbols "modern" {
 	key <AD01> {[ emacron,		Emacron,	emacron,	Emacron			]};
 	key <AD02> {[ o,		O,		omacron,	Omacron			]};
 	key <AD03> {[ amacron,		Amacron,	amacron,	Amacron			]};
-	key <AD04> {[ p,		P,		p,		P			]};
-	key <AD05> {[ b,		B,		b,		B			]};
-	key <AD06> {[ j,		J,		j,		J			]};
-	key <AD07> {[ d,		D,		d,		D			]};
+	key <AD04> {[ p,		P,		question,	P			]};
+	key <AD05> {[ b,		B,		exclam,		B			]};
+	key <AD06> {[ j,		J,		emdash,		J			]};
+	key <AD07> {[ d,		D,		endash,		D			]};
 	key <AD08> {[ imacron,		Imacron,	imacron,	Imacron			]};
 	key <AD09> {[ l,		L,		lcedilla,	Lcedilla		]};
 	key <AD10> {[ g,		G,		gcedilla,	Gcedilla		]};
@@ -306,10 +307,10 @@ xkb_symbols "modern" {
 	key <AB01> {[ x,		X,		q,		Q			]};
 	key <AB02> {[ z,		Z,		zcaron,		Zcaron			]};
 	key <AB03> {[ c,		C,		ccaron,		Ccaron			]};
-	key <AB04> {[ v,		V,		period,		V			]};
-	key <AB05> {[ w,		W,		slash,		W			]};
-	key <AB06> {[ f,		F,		bar,		F			]};
-	key <AB07> {[ y,		Y,		backslash,	Y			]};
+	key <AB04> {[ v,		V,		bar,		V			]};
+	key <AB05> {[ w,		W,		backslash,	W			]};
+	key <AB06> {[ f,		F,		period,		F			]};
+	key <AB07> {[ y,		Y,		slash,		Y			]};
 	key <AB08> {[ h,		H,		U263A,		U2639			]};
 	key <AB09> {[ comma,		semicolon,	less,		multiply		]};
 	key <AB10> {[ period,		colon,		greater,	division		]};

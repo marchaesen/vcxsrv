@@ -1,7 +1,7 @@
 noinst_LTLIBRARIES = libmi.la
 
 if XORG
-sdk_HEADERS = micmap.h miline.h mipointer.h mi.h mibstore.h \
+sdk_HEADERS = micmap.h miline.h mipointer.h mi.h \
               migc.h mipointrst.h mizerarc.h micoord.h mifillarc.h \
               mispans.h miwideline.h mistruct.h mifpoly.h mioverlay.h
 endif
@@ -12,7 +12,6 @@ libmi_la_SOURCES = 	\
 	mi.h		\
 	miarc.c		\
 	mibitblt.c	\
-	mibstore.h	\
 	micmap.c	\
 	micmap.h	\
 	micoord.h	\

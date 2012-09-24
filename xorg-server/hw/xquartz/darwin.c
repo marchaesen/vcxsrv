@@ -38,7 +38,6 @@
 #include "servermd.h"
 #include "inputstr.h"
 #include "scrnintstr.h"
-#include "mibstore.h"           // mi backing store implementation
 #include "mipointer.h"          // mi software cursor
 #include "micmap.h"             // mi colormap code
 #include "fb.h"                 // fb framebuffer code

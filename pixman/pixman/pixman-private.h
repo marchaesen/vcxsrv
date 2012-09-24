@@ -445,8 +445,8 @@ typedef pixman_bool_t (*pixman_fill_func_t) (pixman_implementation_t *imp,
 					     int                      width,
 					     int                      height,
 					     uint32_t                 xor);
-typedef void (*pixman_iter_init_func_t) (pixman_implementation_t *imp,
-                                         pixman_iter_t           *iter);
+typedef pixman_bool_t (*pixman_iter_init_func_t) (pixman_implementation_t *imp,
+						  pixman_iter_t           *iter);
 
 void _pixman_setup_combiner_functions_32 (pixman_implementation_t *imp);
 void _pixman_setup_combiner_functions_64 (pixman_implementation_t *imp);
@@ -466,7 +466,7 @@ typedef struct
 struct pixman_implementation_t
 {
     pixman_implementation_t *	toplevel;
-    pixman_implementation_t *	delegate;
+    pixman_implementation_t *	fallback;
     const pixman_fast_path_t *	fast_paths;
 
     pixman_blt_func_t		blt;
@@ -486,8 +486,20 @@ _pixman_image_get_solid (pixman_implementation_t *imp,
                          pixman_format_code_t     format);
 
 pixman_implementation_t *
-_pixman_implementation_create (pixman_implementation_t *delegate,
+_pixman_implementation_create (pixman_implementation_t *fallback,
 			       const pixman_fast_path_t *fast_paths);
+
+pixman_bool_t
+_pixman_implementation_lookup_composite (pixman_implementation_t  *toplevel,
+					 pixman_op_t               op,
+					 pixman_format_code_t      src_format,
+					 uint32_t                  src_flags,
+					 pixman_format_code_t      mask_format,
+					 uint32_t                  mask_flags,
+					 pixman_format_code_t      dest_format,
+					 uint32_t                  dest_flags,
+					 pixman_implementation_t **out_imp,
+					 pixman_composite_func_t  *out_func);
 
 pixman_combine_32_func_t
 _pixman_implementation_lookup_combiner (pixman_implementation_t *imp,
@@ -521,7 +533,7 @@ _pixman_implementation_fill (pixman_implementation_t *imp,
                              int                      height,
                              uint32_t                 xor);
 
-void
+pixman_bool_t
 _pixman_implementation_src_iter_init (pixman_implementation_t       *imp,
 				      pixman_iter_t                 *iter,
 				      pixman_image_t                *image,
@@ -533,7 +545,7 @@ _pixman_implementation_src_iter_init (pixman_implementation_t       *imp,
 				      iter_flags_t                   flags,
 				      uint32_t                       image_flags);
 
-void
+pixman_bool_t
 _pixman_implementation_dest_iter_init (pixman_implementation_t       *imp,
 				       pixman_iter_t                 *iter,
 				       pixman_image_t                *image,
@@ -769,18 +781,6 @@ void
 pixman_contract (uint32_t *      dst,
                  const uint64_t *src,
                  int             width);
-
-pixman_bool_t
-_pixman_lookup_composite_function (pixman_implementation_t     *toplevel,
-				   pixman_op_t			op,
-				   pixman_format_code_t		src_format,
-				   uint32_t			src_flags,
-				   pixman_format_code_t		mask_format,
-				   uint32_t			mask_flags,
-				   pixman_format_code_t		dest_format,
-				   uint32_t			dest_flags,
-				   pixman_implementation_t    **out_imp,
-				   pixman_composite_func_t     *out_func);
 
 /* Region Helpers */
 pixman_bool_t

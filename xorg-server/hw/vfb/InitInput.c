@@ -36,7 +36,6 @@ from The Open Group.
 #include "scrnintstr.h"
 #include "inputstr.h"
 #include <X11/Xos.h>
-#include "mibstore.h"
 #include "mipointer.h"
 #include "xkbsrv.h"
 #include <X11/keysym.h>

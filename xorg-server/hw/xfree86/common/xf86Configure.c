@@ -545,40 +545,15 @@ DoConfigure(void)
 
     free(vlist);
 
-    for (i = 0; i < xf86NumDrivers; i++) {
-        xorgHWFlags flags;
-
-        if (!xf86DriverList[i]->driverFunc
-            || !xf86DriverList[i]->driverFunc(NULL,
-                                              GET_REQUIRED_HW_INTERFACES,
-                                              &flags)
-            || NEED_IO_ENABLED(flags)) {
-            xorgHWAccess = TRUE;
-            break;
-        }
-    }
-    /* Enable full I/O access */
-    if (xorgHWAccess) {
-        if (!xf86EnableIO())
-            /* oops, we have failed */
-            xorgHWAccess = FALSE;
-    }
+    xorgHWAccess = xf86EnableIO();
 
     /* Create XF86Config file structure */
     xf86config = calloc(1, sizeof(XF86ConfigRec));
 
     /* Call all of the probe functions, reporting the results. */
     for (CurrentDriver = 0; CurrentDriver < xf86NumDrivers; CurrentDriver++) {
-        xorgHWFlags flags;
         Bool found_screen;
         DriverRec *const drv = xf86DriverList[CurrentDriver];
-
-        if (!xorgHWAccess) {
-            if (!drv->driverFunc
-                || !drv->driverFunc(NULL, GET_REQUIRED_HW_INTERFACES, &flags)
-                || NEED_IO_ENABLED(flags))
-                continue;
-        }
 
         found_screen = xf86CallDriverProbe(drv, TRUE);
         if (found_screen && drv->Identify) {

@@ -436,9 +436,13 @@ damageCreateGC(GCPtr pGC)
 static void
 damageValidateGC(GCPtr pGC, unsigned long changes, DrawablePtr pDrawable)
 {
+    drawableDamage(pDrawable);
     DAMAGE_GC_FUNC_PROLOGUE(pGC);
     (*pGC->funcs->ValidateGC) (pGC, changes, pDrawable);
-    pGCPriv->ops = pGC->ops;    /* just so it's not NULL */
+    if (pDamage)
+        pGCPriv->ops = pGC->ops; /* so it's not NULL, so FUNC_EPILOGUE does work */
+    else
+        pGCPriv->ops = NULL;
     DAMAGE_GC_FUNC_EPILOGUE(pGC);
 }
 
@@ -1663,14 +1667,38 @@ miDamageCreate(DamagePtr pDamage)
 {
 }
 
+/*
+ * We only wrap into the GC when there's a registered listener.  For windows,
+ * damage includes damage to children.  So if there's a GC validated against
+ * a subwindow and we then register a damage on the parent, we need to bump
+ * the serial numbers of the children to re-trigger validation.
+ *
+ * Since we can't know if a GC has been validated against one of the affected
+ * children, just bump them all to be safe.
+ */
+static int 
+damageRegisterVisit(WindowPtr pWin, void *data)
+{
+    pWin->drawable.serialNumber = NEXT_SERIAL_NUMBER;
+    return WT_WALKCHILDREN;
+}
+
 void
 miDamageRegister(DrawablePtr pDrawable, DamagePtr pDamage)
 {
+    if (pDrawable->type == DRAWABLE_WINDOW)
+        TraverseTree((WindowPtr)pDrawable, damageRegisterVisit, NULL);
+    else
+        pDrawable->serialNumber = NEXT_SERIAL_NUMBER;
 }
 
 void
 miDamageUnregister(DrawablePtr pDrawable, DamagePtr pDamage)
 {
+    if (pDrawable->type == DRAWABLE_WINDOW)
+        TraverseTree((WindowPtr)pDrawable, damageRegisterVisit, NULL);
+    else
+        pDrawable->serialNumber = NEXT_SERIAL_NUMBER;
 }
 
 void

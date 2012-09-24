@@ -1215,14 +1215,6 @@ area.  Common functions to wrap are CloseScreen() and SaveScreen().
 </para></listitem></varlistentry>
 
 <varlistentry>
-<term>miInitializeBackingStore()</term>
-<listitem>
-<para>This MI function initializes the
-screen's backing storage functions, which are used to save areas of
-windows that are currently covered by other windows.
-</para></listitem></varlistentry>
-
-<varlistentry>
 <term>miDCInitialize()</term>
 <listitem>
 <para>This MI function initializes the MI cursor
@@ -1320,8 +1312,8 @@ initialize each of its screens.
 <para>Xnest's ScreenInit() function is called
 xnestOpenScreen().  This function initializes its screen's depth and
 visual information, and then calls miScreenInit() to set up the default
-screen functions.  It then calls miInitializeBackingStore() and
-miDCInitialize() to initialize backing store and the software cursor.
+screen functions.  It then calls miDCInitialize() to initialize the
+software cursor.
 Finally, it replaces many of the screen functions with its own
 functions that repackage and send the requests to the real X server to
 which Xnest is attached.
