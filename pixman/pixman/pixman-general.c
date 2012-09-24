@@ -37,7 +37,7 @@
 #include <string.h>
 #include "pixman-private.h"
 
-static void
+static pixman_bool_t
 general_src_iter_init (pixman_implementation_t *imp, pixman_iter_t *iter)
 {
     pixman_image_t *image = iter->image;
@@ -54,18 +54,24 @@ general_src_iter_init (pixman_implementation_t *imp, pixman_iter_t *iter)
 	_pixman_bits_image_src_iter_init (image, iter);
     else
 	_pixman_log_error (FUNC, "Pixman bug: unknown image type\n");
+
+    return TRUE;
 }
 
-static void
+static pixman_bool_t
 general_dest_iter_init (pixman_implementation_t *imp, pixman_iter_t *iter)
 {
     if (iter->image->type == BITS)
     {
 	_pixman_bits_image_dest_iter_init (iter->image, iter);
+
+	return TRUE;
     }
     else
     {
 	_pixman_log_error (FUNC, "Trying to write to a non-writable image");
+
+	return FALSE;
     }
 }
 
@@ -200,40 +206,6 @@ static const pixman_fast_path_t general_fast_path[] =
     { PIXMAN_OP_NONE }
 };
 
-static pixman_bool_t
-general_blt (pixman_implementation_t *imp,
-             uint32_t *               src_bits,
-             uint32_t *               dst_bits,
-             int                      src_stride,
-             int                      dst_stride,
-             int                      src_bpp,
-             int                      dst_bpp,
-             int                      src_x,
-             int                      src_y,
-             int                      dest_x,
-             int                      dest_y,
-             int                      width,
-             int                      height)
-{
-    /* We can't blit unless we have sse2 or mmx */
-
-    return FALSE;
-}
-
-static pixman_bool_t
-general_fill (pixman_implementation_t *imp,
-              uint32_t *               bits,
-              int                      stride,
-              int                      bpp,
-              int                      x,
-              int                      y,
-              int                      width,
-              int                      height,
-              uint32_t xor)
-{
-    return FALSE;
-}
-
 pixman_implementation_t *
 _pixman_implementation_create_general (void)
 {
@@ -242,8 +214,6 @@ _pixman_implementation_create_general (void)
     _pixman_setup_combiner_functions_32 (imp);
     _pixman_setup_combiner_functions_64 (imp);
 
-    imp->blt = general_blt;
-    imp->fill = general_fill;
     imp->src_iter_init = general_src_iter_init;
     imp->dest_iter_init = general_dest_iter_init;
 

@@ -207,7 +207,6 @@ cat > sdksyms.c << EOF
 #include "miline.h"
 #include "mipointer.h"
 #include "mi.h"
-#include "mibstore.h"
 #include "migc.h"
 #include "mipointrst.h"
 #include "mizerarc.h"

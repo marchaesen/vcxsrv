@@ -669,7 +669,7 @@ pixman_image_composite32 (pixman_op_t      op,
      */
     op = optimize_operator (op, src_flags, mask_flags, dest_flags);
 
-    if (_pixman_lookup_composite_function (
+    if (_pixman_implementation_lookup_composite (
 	    get_implementation (), op,
 	    src_format, src_flags, mask_format, mask_flags, dest_format, dest_flags,
 	    &imp, &func))

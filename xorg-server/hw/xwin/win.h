@@ -167,7 +167,6 @@ typedef int pid_t;
 #include "micmap.h"
 #include "mifillarc.h"
 #include "mifpoly.h"
-#include "mibstore.h"
 #include "input.h"
 #include "mipointer.h"
 #include "X11/keysym.h"

@@ -479,45 +479,39 @@ volatile unsigned char *ioBase = NULL;
 #define __NR_pciconfig_iobase	200
 #endif
 
-#endif
-
-Bool
-xf86EnableIO(void)
+static Bool
+hwEnableIO(void)
 {
-#if defined(__powerpc__)
     int fd;
-    unsigned int ioBase_phys;
-#endif
-
-    if (ExtendedEnabled)
-        return TRUE;
-
-#if defined(__powerpc__)
-    ioBase_phys = syscall(__NR_pciconfig_iobase, 2, 0, 0);
+    unsigned int ioBase_phys = syscall(__NR_pciconfig_iobase, 2, 0, 0);
 
     fd = open("/dev/mem", O_RDWR);
     if (ioBase == NULL) {
         ioBase = (volatile unsigned char *) mmap(0, 0x20000,
                                                  PROT_READ | PROT_WRITE,
                                                  MAP_SHARED, fd, ioBase_phys);
-/* Should this be fatal or just a warning? */
-#if 0
-        if (ioBase == MAP_FAILED) {
-            xf86Msg(X_WARNING,
-                    "xf86EnableIOPorts: Failed to map iobase (%s)\n",
-                    strerror(errno));
-            return FALSE;
-        }
-#endif
     }
     close(fd);
-#elif !defined(__mc68000__) && !defined(__sparc__) && !defined(__mips__) && !defined(__sh__) && !defined(__hppa__) && !defined(__s390__) && !defined(__arm__) && !defined(__m32r__) && !defined(__nds32__)
+
+    return ioBase != MAP_FAILED;
+}
+
+static void
+hwDisableIO(void)
+{
+    munmap(ioBase, 0x20000);
+    ioBase = NULL;
+}
+
+#elif defined(__i386__) || defined(__x86_64__) || defined(__ia64__) || \
+      defined(__alpha__)
+
+static Bool
+hwEnableIO(void)
+{
     if (ioperm(0, 1024, 1) || iopl(3)) {
-        if (errno == ENODEV)
-            ErrorF("xf86EnableIOPorts: no I/O ports found\n");
-        else
-            FatalError("xf86EnableIOPorts: failed to set IOPL"
-                       " for I/O (%s)\n", strerror(errno));
+        ErrorF("xf86EnableIOPorts: failed to set IOPL for I/O (%s)\n",
+               strerror(errno));
         return FALSE;
     }
 #if !defined(__alpha__)
@@ -526,10 +520,33 @@ xf86EnableIO(void)
     ioperm(0x40, 4, 0);         /* trap access to the timer chip */
     ioperm(0x60, 4, 0);         /* trap access to the keyboard controller */
 #endif
-#endif
-    ExtendedEnabled = TRUE;
 
     return TRUE;
+}
+
+static void
+hwDisableIO(void)
+{
+    iopl(0);
+    ioperm(0, 1024, 0);
+}
+
+#else /* non-IO architectures */
+
+#define hwEnableIO() TRUE
+#define hwDisableIO() do {} while (0)
+
+#endif
+
+Bool
+xf86EnableIO(void)
+{
+    if (ExtendedEnabled)
+        return TRUE;
+
+    ExtendedEnabled = hwEnableIO();
+
+    return ExtendedEnabled;
 }
 
 void
@@ -537,16 +554,10 @@ xf86DisableIO(void)
 {
     if (!ExtendedEnabled)
         return;
-#if defined(__powerpc__)
-    munmap(ioBase, 0x20000);
-    ioBase = NULL;
-#elif !defined(__mc68000__) && !defined(__sparc__) && !defined(__mips__) && !defined(__sh__) && !defined(__hppa__) && !defined(__arm__) && !defined(__s390__) && !defined(__m32r__) && !defined(__nds32__)
-    iopl(0);
-    ioperm(0, 1024, 0);
-#endif
-    ExtendedEnabled = FALSE;
 
-    return;
+    hwDisableIO();
+
+    ExtendedEnabled = FALSE;
 }
 
 #if defined (__alpha__)

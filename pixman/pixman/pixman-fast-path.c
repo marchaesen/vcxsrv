@@ -1258,7 +1258,7 @@ fast_composite_tiled_repeat (pixman_implementation_t *imp,
 	mask_flags = FAST_PATH_IS_OPAQUE;
     }
 
-    if (_pixman_lookup_composite_function (
+    if (_pixman_implementation_lookup_composite (
 	    imp->toplevel, info->op,
 	    src_image->common.extended_format_code, src_flags,
 	    mask_format, mask_flags,
@@ -1458,7 +1458,7 @@ fetch_nearest (pixman_repeat_t src_repeat,
 {
     if (repeat (src_repeat, &x, src_width))
     {
-	if (format == PIXMAN_x8r8g8b8)
+	if (format == PIXMAN_x8r8g8b8 || format == PIXMAN_x8b8g8r8)
 	    return *(src + x) | 0xff000000;
 	else
 	    return *(src + x);
@@ -2192,9 +2192,7 @@ fast_path_fill (pixman_implementation_t *imp,
 	break;
 
     default:
-	return _pixman_implementation_fill (
-	    imp->delegate, bits, stride, bpp, x, y, width, height, xor);
-	break;
+	return FALSE;
     }
 
     return TRUE;

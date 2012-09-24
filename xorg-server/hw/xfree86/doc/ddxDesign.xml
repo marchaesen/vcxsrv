@@ -3561,13 +3561,6 @@ The following include files are typically required by video drivers:
 	  </para>
 
 	  <para>
-  All drivers implementing backing store need this:
-	    <literallayout><filename>
-    "mibstore.h"
-	      </filename></literallayout>
-	  </para>
-
-	  <para>
   All drivers using the mi colourmap code need this:
 	    <literallayout><filename>
     "micmap.h"
@@ -8092,13 +8085,6 @@ visible symbols.
       </para>
 
       <para>
-  All drivers implementing backing store need this:
-	<literallayout><filename>
-    "mibstore.h"
-	  </filename></literallayout>
-      </para>
-
-      <para>
   All drivers using the mi colourmap code need this:
 	<literallayout><filename>
     "micmap.h"
@@ -9101,12 +9087,6 @@ ZZZScreenInit(ScreenPtr pScreen, int argc, char **argv)
     if (!miInitializeBanking(pScreen, pScrn-&gt;virtualX, pScrn-&gt;virtualY,
                                      pScrn-&gt;displayWidth, pBankInfo))
         return FALSE;
-
-    /*
-     * If backing store is to be supported (as is usually the case),
-     * initialise it.
-     */
-    miInitializeBackingStore(pScreen);
 
     /*
      * Set initial black &amp; white colourmap indices.

@@ -221,9 +221,6 @@ extern _X_EXPORT RegionPtr CreateBoundingShape(WindowPtr /* pWin */ );
 
 extern _X_EXPORT RegionPtr CreateClipShape(WindowPtr /* pWin */ );
 
-extern _X_EXPORT void DisableMapUnmapEvents(WindowPtr /* pWin */ );
-extern _X_EXPORT void EnableMapUnmapEvents(WindowPtr /* pWin */ );
-
 extern _X_EXPORT void SetRootClip(ScreenPtr pScreen, Bool enable);
 extern _X_EXPORT void PrintWindowTree(void);
 

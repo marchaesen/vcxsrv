@@ -2079,15 +2079,16 @@ mmx_composite_over_n_8_8888 (pixman_implementation_t *imp,
     _mm_empty ();
 }
 
-pixman_bool_t
-pixman_fill_mmx (uint32_t *bits,
-                 int       stride,
-                 int       bpp,
-                 int       x,
-                 int       y,
-                 int       width,
-                 int       height,
-                 uint32_t xor)
+static pixman_bool_t
+mmx_fill (pixman_implementation_t *imp,
+          uint32_t *               bits,
+          int                      stride,
+          int                      bpp,
+          int                      x,
+          int                      y,
+          int                      width,
+          int                      height,
+          uint32_t		   xor)
 {
     uint64_t fill;
     __m64 vfill;
@@ -2305,9 +2306,9 @@ mmx_composite_src_n_8_8888 (pixman_implementation_t *imp,
     srca = src >> 24;
     if (src == 0)
     {
-	pixman_fill_mmx (dest_image->bits.bits, dest_image->bits.rowstride,
-			 PIXMAN_FORMAT_BPP (dest_image->bits.format),
-	                 dest_x, dest_y, width, height, 0);
+	mmx_fill (imp, dest_image->bits.bits, dest_image->bits.rowstride,
+		  PIXMAN_FORMAT_BPP (dest_image->bits.format),
+		  dest_x, dest_y, width, height, 0);
 	return;
     }
 
@@ -3264,18 +3265,19 @@ mmx_composite_add_8888_8888 (pixman_implementation_t *imp,
 }
 
 static pixman_bool_t
-pixman_blt_mmx (uint32_t *src_bits,
-                uint32_t *dst_bits,
-                int       src_stride,
-                int       dst_stride,
-                int       src_bpp,
-                int       dst_bpp,
-                int       src_x,
-                int       src_y,
-                int       dest_x,
-                int       dest_y,
-                int       width,
-                int       height)
+mmx_blt (pixman_implementation_t *imp,
+         uint32_t *               src_bits,
+         uint32_t *               dst_bits,
+         int                      src_stride,
+         int                      dst_stride,
+         int                      src_bpp,
+         int                      dst_bpp,
+         int                      src_x,
+         int                      src_y,
+         int                      dest_x,
+         int                      dest_y,
+         int                      width,
+         int                      height)
 {
     uint8_t *   src_bytes;
     uint8_t *   dst_bytes;
@@ -3420,13 +3422,13 @@ mmx_composite_copy_area (pixman_implementation_t *imp,
 {
     PIXMAN_COMPOSITE_ARGS (info);
 
-    pixman_blt_mmx (src_image->bits.bits,
-                    dest_image->bits.bits,
-                    src_image->bits.rowstride,
-                    dest_image->bits.rowstride,
-                    PIXMAN_FORMAT_BPP (src_image->bits.format),
-                    PIXMAN_FORMAT_BPP (dest_image->bits.format),
-                    src_x, src_y, dest_x, dest_y, width, height);
+    mmx_blt (imp, src_image->bits.bits,
+	     dest_image->bits.bits,
+	     src_image->bits.rowstride,
+	     dest_image->bits.rowstride,
+	     PIXMAN_FORMAT_BPP (src_image->bits.format),
+	     PIXMAN_FORMAT_BPP (dest_image->bits.format),
+	     src_x, src_y, dest_x, dest_y, width, height);
 }
 
 static void
@@ -3940,7 +3942,7 @@ static const fetcher_info_t fetchers[] =
     { PIXMAN_null }
 };
 
-static void
+static pixman_bool_t
 mmx_src_iter_init (pixman_implementation_t *imp, pixman_iter_t *iter)
 {
     pixman_image_t *image = iter->image;
@@ -3965,12 +3967,12 @@ mmx_src_iter_init (pixman_implementation_t *imp, pixman_iter_t *iter)
 		iter->stride = s;
 
 		iter->get_scanline = f->get_scanline;
-		return;
+		return TRUE;
 	    }
 	}
     }
 
-    imp->delegate->src_iter_init (imp->delegate, iter);
+    return FALSE;
 }
 
 static const pixman_fast_path_t mmx_fast_paths[] =
@@ -4068,55 +4070,6 @@ static const pixman_fast_path_t mmx_fast_paths[] =
 
     { PIXMAN_OP_NONE },
 };
-
-static pixman_bool_t
-mmx_blt (pixman_implementation_t *imp,
-         uint32_t *               src_bits,
-         uint32_t *               dst_bits,
-         int                      src_stride,
-         int                      dst_stride,
-         int                      src_bpp,
-         int                      dst_bpp,
-         int                      src_x,
-         int                      src_y,
-         int                      dest_x,
-         int                      dest_y,
-         int                      width,
-         int                      height)
-{
-    if (!pixman_blt_mmx (
-            src_bits, dst_bits, src_stride, dst_stride, src_bpp, dst_bpp,
-            src_x, src_y, dest_x, dest_y, width, height))
-
-    {
-	return _pixman_implementation_blt (
-	    imp->delegate,
-	    src_bits, dst_bits, src_stride, dst_stride, src_bpp, dst_bpp,
-	    src_x, src_y, dest_x, dest_y, width, height);
-    }
-
-    return TRUE;
-}
-
-static pixman_bool_t
-mmx_fill (pixman_implementation_t *imp,
-          uint32_t *               bits,
-          int                      stride,
-          int                      bpp,
-          int                      x,
-          int                      y,
-          int                      width,
-          int                      height,
-          uint32_t xor)
-{
-    if (!pixman_fill_mmx (bits, stride, bpp, x, y, width, height, xor))
-    {
-	return _pixman_implementation_fill (
-	    imp->delegate, bits, stride, bpp, x, y, width, height, xor);
-    }
-
-    return TRUE;
-}
 
 pixman_implementation_t *
 _pixman_implementation_create_mmx (pixman_implementation_t *fallback)

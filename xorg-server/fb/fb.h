@@ -39,7 +39,6 @@
 #include "privates.h"
 #include "mi.h"
 #include "migc.h"
-#include "mibstore.h"
 #include "picturestr.h"
 
 #ifdef FB_ACCESS_WRAPPER

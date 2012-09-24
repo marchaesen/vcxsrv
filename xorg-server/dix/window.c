@@ -1890,8 +1890,7 @@ AnyWindowOverlapsMe(WindowPtr pWin, WindowPtr pHead, BoxPtr box)
         if (pSib->mapped) {
             sbox = WindowExtents(pSib, &sboxrec);
             if (BOXES_OVERLAP(sbox, box)
-                && ShapeOverlap(pWin, box, pSib, sbox)
-                )
+                && ShapeOverlap(pWin, box, pSib, sbox))
                 return TRUE;
         }
     }
@@ -1909,8 +1908,7 @@ IOverlapAnyWindow(WindowPtr pWin, BoxPtr box)
         if (pSib->mapped) {
             sbox = WindowExtents(pSib, &sboxrec);
             if (BOXES_OVERLAP(sbox, box)
-                && ShapeOverlap(pWin, box, pSib, sbox)
-                )
+                && ShapeOverlap(pWin, box, pSib, sbox))
                 return TRUE;
         }
     }
@@ -2178,8 +2176,7 @@ ConfigureWindow(WindowPtr pWin, Mask mask, XID *vlist, ClientPtr client)
     else
         pSib = pWin->nextSib;
 
-    if ((!pWin->overrideRedirect) && (RedirectSend(pParent)
-        )) {
+    if ((!pWin->overrideRedirect) && (RedirectSend(pParent))) {
         xEvent event; memset(&event, 0, sizeof(xEvent));
         event.u.configureRequest.window = pWin->drawable.id;
         event.u.configureRequest.sibling = (mask & CWSibling) ? sibwid : None;
@@ -2511,28 +2508,29 @@ RealizeTree(WindowPtr pWin)
     }
 }
 
-static WindowPtr windowDisableMapUnmapEvents;
-
-void
-DisableMapUnmapEvents(WindowPtr pWin)
-{
-    assert(windowDisableMapUnmapEvents == NULL);
-
-    windowDisableMapUnmapEvents = pWin;
-}
-
-void
-EnableMapUnmapEvents(WindowPtr pWin)
-{
-    assert(windowDisableMapUnmapEvents != NULL);
-
-    windowDisableMapUnmapEvents = NULL;
-}
-
 static Bool
-MapUnmapEventsEnabled(WindowPtr pWin)
+MaybeDeliverMapRequest(WindowPtr pWin, WindowPtr pParent, ClientPtr client)
 {
-    return pWin != windowDisableMapUnmapEvents;
+    xEvent event; memset(&event, 0, sizeof(event));
+    event.u.mapRequest.window = pWin->drawable.id;
+    event.u.mapRequest.parent = pParent->drawable.id;
+
+    event.u.u.type = MapRequest;
+
+    return MaybeDeliverEventsToClient(pParent, &event, 1,
+                                      SubstructureRedirectMask,
+                                      client) == 1;
+}
+
+static void
+DeliverMapNotify(WindowPtr pWin)
+{
+    xEvent event; memset(&event, 0, sizeof(event));
+    event.u.mapNotify.window = pWin->drawable.id;
+    event.u.mapNotify.override = pWin->overrideRedirect;
+
+    event.u.u.type = MapNotify;
+    DeliverEvents(pWin, &event, 1, NullWindow);
 }
 
 /*****
@@ -2554,7 +2552,7 @@ MapWindow(WindowPtr pWin, ClientPtr client)
     if (pWin->mapped)
         return Success;
 
-    /*  general check for permission to map window */
+    /* general check for permission to map window */
     if (XaceHook(XACE_RESOURCE_ACCESS, client, pWin->drawable.id, RT_WINDOW,
                  pWin, RT_NONE, NULL, DixShowAccess) != Success)
         return Success;
@@ -2563,29 +2561,13 @@ MapWindow(WindowPtr pWin, ClientPtr client)
     if ((pParent = pWin->parent)) {
         Bool anyMarked;
 
-        if ((!pWin->overrideRedirect) && (RedirectSend(pParent)
-            )) {
-            xEvent event; memset(&event, 0, sizeof(xEvent));
-            event.u.mapRequest.window = pWin->drawable.id;
-            event.u.mapRequest.parent = pParent->drawable.id;
-            
-            event.u.u.type = MapRequest;
-
-            if (MaybeDeliverEventsToClient(pParent, &event, 1,
-                                           SubstructureRedirectMask,
-                                           client) == 1)
+        if ((!pWin->overrideRedirect) && (RedirectSend(pParent)))
+            if (MaybeDeliverMapRequest(pWin, pParent, client))
                 return Success;
-        }
 
         pWin->mapped = TRUE;
-        if (SubStrSend(pWin, pParent) && MapUnmapEventsEnabled(pWin)) {
-            xEvent event; memset(&event, 0, sizeof(xEvent));
-            event.u.mapNotify.window = pWin->drawable.id;
-            event.u.mapNotify.override = pWin->overrideRedirect;
-            
-            event.u.u.type = MapNotify;
-            DeliverEvents(pWin, &event, 1, NullWindow);
-        }
+        if (SubStrSend(pWin, pParent))
+            DeliverMapNotify(pWin);
 
         if (!pParent->realized)
             return Success;
@@ -2647,28 +2629,13 @@ MapSubwindows(WindowPtr pParent, ClientPtr client)
     anyMarked = FALSE;
     for (pWin = pParent->firstChild; pWin; pWin = pWin->nextSib) {
         if (!pWin->mapped) {
-            if (parentRedirect && !pWin->overrideRedirect) {
-                xEvent event; memset(&event, 0, sizeof(xEvent));
-                event.u.mapRequest.window = pWin->drawable.id;
-                event.u.mapRequest.parent = pParent->drawable.id;
-
-                event.u.u.type = MapRequest;
-
-                if (MaybeDeliverEventsToClient(pParent, &event, 1,
-                                               SubstructureRedirectMask,
-                                               client) == 1)
+            if (parentRedirect && !pWin->overrideRedirect)
+                if (MaybeDeliverMapRequest(pWin, pParent, client))
                     continue;
-            }
 
             pWin->mapped = TRUE;
-            if (parentNotify || StrSend(pWin)) {
-                xEvent event; memset(&event, 0, sizeof(xEvent));
-                event.u.mapNotify.window = pWin->drawable.id;
-                event.u.mapNotify.override = pWin->overrideRedirect;
-
-                event.u.u.type = MapNotify;
-                DeliverEvents(pWin, &event, 1, NullWindow);
-            }
+            if (parentNotify || StrSend(pWin))
+                DeliverMapNotify(pWin);
 
             if (!pFirstMapped)
                 pFirstMapped = pWin;
@@ -2729,8 +2696,7 @@ UnrealizeTree(WindowPtr pWin, Bool fromConfigure)
             }
 #endif
             (*Unrealize) (pChild);
-            if (MapUnmapEventsEnabled(pWin))
-                DeleteWindowFromAnyEvents(pChild, FALSE);
+            DeleteWindowFromAnyEvents(pChild, FALSE);
             if (pChild->viewable) {
                 pChild->viewable = FALSE;
                 (*MarkUnrealizedWindow) (pChild, pWin, fromConfigure);
@@ -2747,6 +2713,17 @@ UnrealizeTree(WindowPtr pWin, Bool fromConfigure)
             return;
         pChild = pChild->nextSib;
     }
+}
+
+static void
+DeliverUnmapNotify(WindowPtr pWin, Bool fromConfigure)
+{
+    xEvent event; memset(&event, 0, sizeof(event));
+    event.u.unmapNotify.window = pWin->drawable.id;
+    event.u.unmapNotify.fromConfigure = fromConfigure;
+
+    event.u.u.type = UnmapNotify;
+    DeliverEvents(pWin, &event, 1, NullWindow);
 }
 
 /*****
@@ -2767,14 +2744,8 @@ UnmapWindow(WindowPtr pWin, Bool fromConfigure)
 
     if ((!pWin->mapped) || (!(pParent = pWin->parent)))
         return Success;
-    if (SubStrSend(pWin, pParent) && MapUnmapEventsEnabled(pWin)) {
-        xEvent event; memset(&event, 0, sizeof(xEvent));
-        event.u.unmapNotify.window = pWin->drawable.id;
-        event.u.unmapNotify.fromConfigure = fromConfigure;
-        
-        event.u.u.type = UnmapNotify;
-        DeliverEvents(pWin, &event, 1, NullWindow);
-    }
+    if (SubStrSend(pWin, pParent))
+        DeliverUnmapNotify(pWin, fromConfigure);
     if (wasViewable && !fromConfigure) {
         pWin->valdata = UnmapValData;
         (*pScreen->MarkOverlappedWindows) (pWin, pWin->nextSib, &pLayerWin);
@@ -2825,14 +2796,8 @@ UnmapSubwindows(WindowPtr pWin)
 
     for (pChild = pWin->lastChild; pChild != pHead; pChild = pChild->prevSib) {
         if (pChild->mapped) {
-            if (parentNotify || StrSend(pChild)) {
-                xEvent event;
-                event.u.unmapNotify.window = pChild->drawable.id;
-                event.u.unmapNotify.fromConfigure = xFalse;
-                
-                event.u.u.type = UnmapNotify;
-                DeliverEvents(pChild, &event, 1, NullWindow);
-            }
+            if (parentNotify || StrSend(pChild))
+                DeliverUnmapNotify(pChild, xFalse);
             if (pChild->viewable) {
                 pChild->valdata = UnmapValData;
                 anyMarked = TRUE;
@@ -2959,8 +2924,6 @@ SendVisibilityNotify(WindowPtr pWin)
     xEvent event;
     unsigned int visibility = pWin->visibility;
 
-    if (!MapUnmapEventsEnabled(pWin))
-        return;
 #ifdef PANORAMIX
     /* This is not quite correct yet, but it's close */
     if (!noPanoramiXExtension) {

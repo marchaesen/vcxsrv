@@ -402,6 +402,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
     Bool pix24Fail = FALSE;
     Bool autoconfig = FALSE;
     Bool sigio_blocked = FALSE;
+    Bool want_hw_access = FALSE;
     GDevPtr configured_device;
 
     xf86Initialising = TRUE;
@@ -530,29 +531,31 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
          */
 
         for (i = 0; i < xf86NumDrivers; i++) {
+            xorgHWFlags flags = HW_IO;
+
             if (xf86DriverList[i]->Identify != NULL)
                 xf86DriverList[i]->Identify(0);
 
-            if (!xorgHWAccess || !xorgHWOpenConsole) {
-                xorgHWFlags flags;
+            if (xf86DriverList[i]->driverFunc)
+                xf86DriverList[i]->driverFunc(NULL,
+                                              GET_REQUIRED_HW_INTERFACES,
+                                              &flags);
 
-                if (!xf86DriverList[i]->driverFunc
-                    || !xf86DriverList[i]->driverFunc(NULL,
-                                                      GET_REQUIRED_HW_INTERFACES,
-                                                      &flags))
-                    flags = HW_IO;
+            if (NEED_IO_ENABLED(flags))
+                want_hw_access = TRUE;
 
-                if (NEED_IO_ENABLED(flags))
-                    xorgHWAccess = TRUE;
-                if (!(flags & HW_SKIP_CONSOLE))
-                    xorgHWOpenConsole = TRUE;
-            }
+            if (!(flags & HW_SKIP_CONSOLE))
+                xorgHWOpenConsole = TRUE;
         }
 
         if (xorgHWOpenConsole)
             xf86OpenConsole();
         else
             xf86Info.dontVTSwitch = TRUE;
+
+	/* Enable full I/O access */
+	if (want_hw_access)
+	    xorgHWAccess = xf86EnableIO();
 
         if (xf86BusConfig() == FALSE)
             return;

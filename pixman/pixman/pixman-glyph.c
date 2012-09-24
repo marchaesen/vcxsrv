@@ -464,7 +464,7 @@ pixman_composite_glyphs_no_mask (pixman_op_t            op,
 		    glyph_format = glyph_img->common.extended_format_code;
 		    glyph_flags = glyph_img->common.flags;
 		    
-		    _pixman_lookup_composite_function (
+		    _pixman_implementation_lookup_composite (
 			get_implementation(), op,
 			src->common.extended_format_code, src->common.flags,
 			glyph_format, glyph_flags | extra,
@@ -576,7 +576,7 @@ add_glyphs (pixman_glyph_cache_t *cache,
 		white_src = TRUE;
 	    }
 
-	    _pixman_lookup_composite_function (
+	    _pixman_implementation_lookup_composite (
 		get_implementation(), PIXMAN_OP_ADD,
 		src_format, info.src_flags,
 		mask_format, info.mask_flags,
