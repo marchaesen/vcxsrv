@@ -34,7 +34,7 @@ msgstr ""
 "Project-Id-Version: xkeyboard-config-2.5.99\n"
 "Report-Msgid-Bugs-To: svu@users.sourceforge.net\n"
 "POT-Creation-Date: 2012-05-16 23:56+0100\n"
-"PO-Revision-Date: 2012-05-18 23:06+0100\n"
+"PO-Revision-Date: 2012-06-03 23:06+0100\n"
 "Last-Translator: Joe Hansen <joedalton2@yahoo.dk>\n"
 "Language-Team: Danish <dansk@dansk-gruppen.dk>\n"
 "Language: da\n"
@@ -3847,9 +3847,11 @@ msgstr "Atsina"
 msgid "Avestan"
 msgstr "Avestisk"
 
+# Er lidt usikker på betydningen af SIL, men antager at det drejer sig om:
+# http://www.sil.org/sil/
 #: ../rules/base.extras.xml.in.h:6
 msgid "Biblical SIL phonetic"
-msgstr "Bibelsk SIL fonetisk"
+msgstr "Bibelsk SIL-fonetik"
 
 # http://en.wikipedia.org/wiki/Interior_Salish_languages
 #: ../rules/base.extras.xml.in.h:7

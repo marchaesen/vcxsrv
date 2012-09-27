@@ -200,11 +200,19 @@ test_composite (int      testnum,
 
     if (verbose)
     {
+#define M(r,c)								\
+	transform.matrix[r][c]
+
 	printf ("src_fmt=%08X, dst_fmt=%08X\n", src_fmt, dst_fmt);
-	printf ("op=%d, scale_x=%d, scale_y=%d, repeat=%d\n",
-	        op, scale_x, scale_y, repeat);
-	printf ("translate_x=%d, translate_y=%d\n",
-	        translate_x, translate_y);
+	printf ("op=%d, repeat=%d, transform=\n",
+	        op, repeat);
+	printf (" { { { 0x%08x, 0x%08x, 0x%08x },\n"
+		"     { 0x%08x, 0x%08x, 0x%08x },\n"
+		"     { 0x%08x, 0x%08x, 0x%08x },\n"
+		" } };\n",
+		M(0,0), M(0,1), M(0,2),
+		M(1,0), M(1,1), M(1,2),
+		M(2,0), M(2,1), M(2,2));
 	printf ("src_width=%d, src_height=%d, dst_width=%d, dst_height=%d\n",
 	        src_width, src_height, dst_width, dst_height);
 	printf ("src_x=%d, src_y=%d, dst_x=%d, dst_y=%d\n",
