@@ -146,7 +146,7 @@ pack_565_2packedx128_128 (__m128i lo, __m128i hi)
     return _mm_packs_epi32 (t0, t1);
 }
 
-__m128i
+static force_inline __m128i
 pack_565_2x128_128 (__m128i lo, __m128i hi)
 {
     __m128i data;
@@ -5159,7 +5159,7 @@ scaled_nearest_scanline_sse2_8888_8888_OVER (uint32_t*       pd,
                                              int32_t         w,
                                              pixman_fixed_t  vx,
                                              pixman_fixed_t  unit_x,
-                                             pixman_fixed_t  max_vx,
+                                             pixman_fixed_t  src_width_fixed,
                                              pixman_bool_t   fully_transparent_src)
 {
     uint32_t s, d;
@@ -5176,8 +5176,10 @@ scaled_nearest_scanline_sse2_8888_8888_OVER (uint32_t*       pd,
     while (w && ((unsigned long)pd & 15))
     {
 	d = *pd;
-	s = combine1 (ps + (vx >> 16), pm);
+	s = combine1 (ps + pixman_fixed_to_int (vx), pm);
 	vx += unit_x;
+	while (vx >= 0)
+	    vx -= src_width_fixed;
 
 	*pd++ = core_combine_over_u_pixel_sse2 (s, d);
 	if (pm)
@@ -5190,14 +5192,22 @@ scaled_nearest_scanline_sse2_8888_8888_OVER (uint32_t*       pd,
 	__m128i tmp;
 	uint32_t tmp1, tmp2, tmp3, tmp4;
 
-	tmp1 = ps[vx >> 16];
+	tmp1 = *(ps + pixman_fixed_to_int (vx));
 	vx += unit_x;
-	tmp2 = ps[vx >> 16];
+	while (vx >= 0)
+	    vx -= src_width_fixed;
+	tmp2 = *(ps + pixman_fixed_to_int (vx));
 	vx += unit_x;
-	tmp3 = ps[vx >> 16];
+	while (vx >= 0)
+	    vx -= src_width_fixed;
+	tmp3 = *(ps + pixman_fixed_to_int (vx));
 	vx += unit_x;
-	tmp4 = ps[vx >> 16];
+	while (vx >= 0)
+	    vx -= src_width_fixed;
+	tmp4 = *(ps + pixman_fixed_to_int (vx));
 	vx += unit_x;
+	while (vx >= 0)
+	    vx -= src_width_fixed;
 
 	tmp = _mm_set_epi32 (tmp4, tmp3, tmp2, tmp1);
 
@@ -5235,8 +5245,10 @@ scaled_nearest_scanline_sse2_8888_8888_OVER (uint32_t*       pd,
     while (w)
     {
 	d = *pd;
-	s = combine1 (ps + (vx >> 16), pm);
+	s = combine1 (ps + pixman_fixed_to_int (vx), pm);
 	vx += unit_x;
+	while (vx >= 0)
+	    vx -= src_width_fixed;
 
 	*pd++ = core_combine_over_u_pixel_sse2 (s, d);
 	if (pm)
@@ -5255,6 +5267,9 @@ FAST_NEAREST_MAINLOOP (sse2_8888_8888_none_OVER,
 FAST_NEAREST_MAINLOOP (sse2_8888_8888_pad_OVER,
 		       scaled_nearest_scanline_sse2_8888_8888_OVER,
 		       uint32_t, uint32_t, PAD)
+FAST_NEAREST_MAINLOOP (sse2_8888_8888_normal_OVER,
+		       scaled_nearest_scanline_sse2_8888_8888_OVER,
+		       uint32_t, uint32_t, NORMAL)
 
 static force_inline void
 scaled_nearest_scanline_sse2_8888_n_8888_OVER (const uint32_t * mask,
@@ -5263,7 +5278,7 @@ scaled_nearest_scanline_sse2_8888_n_8888_OVER (const uint32_t * mask,
 					       int32_t          w,
 					       pixman_fixed_t   vx,
 					       pixman_fixed_t   unit_x,
-					       pixman_fixed_t   max_vx,
+					       pixman_fixed_t   src_width_fixed,
 					       pixman_bool_t    zero_src)
 {
     __m128i xmm_mask;
@@ -5278,8 +5293,10 @@ scaled_nearest_scanline_sse2_8888_n_8888_OVER (const uint32_t * mask,
 
     while (w && (unsigned long)dst & 15)
     {
-	uint32_t s = src[pixman_fixed_to_int (vx)];
+	uint32_t s = *(src + pixman_fixed_to_int (vx));
 	vx += unit_x;
+	while (vx >= 0)
+	    vx -= src_width_fixed;
 
 	if (s)
 	{
@@ -5301,14 +5318,22 @@ scaled_nearest_scanline_sse2_8888_n_8888_OVER (const uint32_t * mask,
     {
 	uint32_t tmp1, tmp2, tmp3, tmp4;
 
-	tmp1 = src[pixman_fixed_to_int (vx)];
+	tmp1 = *(src + pixman_fixed_to_int (vx));
 	vx += unit_x;
-	tmp2 = src[pixman_fixed_to_int (vx)];
+	while (vx >= 0)
+	    vx -= src_width_fixed;
+	tmp2 = *(src + pixman_fixed_to_int (vx));
 	vx += unit_x;
-	tmp3 = src[pixman_fixed_to_int (vx)];
+	while (vx >= 0)
+	    vx -= src_width_fixed;
+	tmp3 = *(src + pixman_fixed_to_int (vx));
 	vx += unit_x;
-	tmp4 = src[pixman_fixed_to_int (vx)];
+	while (vx >= 0)
+	    vx -= src_width_fixed;
+	tmp4 = *(src + pixman_fixed_to_int (vx));
 	vx += unit_x;
+	while (vx >= 0)
+	    vx -= src_width_fixed;
 
 	xmm_src = _mm_set_epi32 (tmp4, tmp3, tmp2, tmp1);
 
@@ -5336,8 +5361,10 @@ scaled_nearest_scanline_sse2_8888_n_8888_OVER (const uint32_t * mask,
 
     while (w)
     {
-	uint32_t s = src[pixman_fixed_to_int (vx)];
+	uint32_t s = *(src + pixman_fixed_to_int (vx));
 	vx += unit_x;
+	while (vx >= 0)
+	    vx -= src_width_fixed;
 
 	if (s)
 	{
@@ -5367,6 +5394,9 @@ FAST_NEAREST_MAINLOOP_COMMON (sse2_8888_n_8888_pad_OVER,
 FAST_NEAREST_MAINLOOP_COMMON (sse2_8888_n_8888_none_OVER,
 			      scaled_nearest_scanline_sse2_8888_n_8888_OVER,
 			      uint32_t, uint32_t, uint32_t, NONE, TRUE, TRUE)
+FAST_NEAREST_MAINLOOP_COMMON (sse2_8888_n_8888_normal_OVER,
+			      scaled_nearest_scanline_sse2_8888_n_8888_OVER,
+			      uint32_t, uint32_t, uint32_t, NORMAL, TRUE, TRUE)
 
 #define BMSK ((1 << BILINEAR_INTERPOLATION_BITS) - 1)
 
@@ -5856,11 +5886,19 @@ static const pixman_fast_path_t sse2_fast_paths[] =
     SIMPLE_NEAREST_FAST_PATH_PAD (OVER, a8b8g8r8, x8b8g8r8, sse2_8888_8888),
     SIMPLE_NEAREST_FAST_PATH_PAD (OVER, a8r8g8b8, a8r8g8b8, sse2_8888_8888),
     SIMPLE_NEAREST_FAST_PATH_PAD (OVER, a8b8g8r8, a8b8g8r8, sse2_8888_8888),
+    SIMPLE_NEAREST_FAST_PATH_NORMAL (OVER, a8r8g8b8, x8r8g8b8, sse2_8888_8888),
+    SIMPLE_NEAREST_FAST_PATH_NORMAL (OVER, a8b8g8r8, x8b8g8r8, sse2_8888_8888),
+    SIMPLE_NEAREST_FAST_PATH_NORMAL (OVER, a8r8g8b8, a8r8g8b8, sse2_8888_8888),
+    SIMPLE_NEAREST_FAST_PATH_NORMAL (OVER, a8b8g8r8, a8b8g8r8, sse2_8888_8888),
 
     SIMPLE_NEAREST_SOLID_MASK_FAST_PATH (OVER, a8r8g8b8, a8r8g8b8, sse2_8888_n_8888),
     SIMPLE_NEAREST_SOLID_MASK_FAST_PATH (OVER, a8b8g8r8, a8b8g8r8, sse2_8888_n_8888),
     SIMPLE_NEAREST_SOLID_MASK_FAST_PATH (OVER, a8r8g8b8, x8r8g8b8, sse2_8888_n_8888),
     SIMPLE_NEAREST_SOLID_MASK_FAST_PATH (OVER, a8b8g8r8, x8b8g8r8, sse2_8888_n_8888),
+    SIMPLE_NEAREST_SOLID_MASK_FAST_PATH_NORMAL (OVER, a8r8g8b8, a8r8g8b8, sse2_8888_n_8888),
+    SIMPLE_NEAREST_SOLID_MASK_FAST_PATH_NORMAL (OVER, a8b8g8r8, a8b8g8r8, sse2_8888_n_8888),
+    SIMPLE_NEAREST_SOLID_MASK_FAST_PATH_NORMAL (OVER, a8r8g8b8, x8r8g8b8, sse2_8888_n_8888),
+    SIMPLE_NEAREST_SOLID_MASK_FAST_PATH_NORMAL (OVER, a8b8g8r8, x8b8g8r8, sse2_8888_n_8888),
 
     SIMPLE_BILINEAR_FAST_PATH (SRC, a8r8g8b8, a8r8g8b8, sse2_8888_8888),
     SIMPLE_BILINEAR_FAST_PATH (SRC, a8r8g8b8, x8r8g8b8, sse2_8888_8888),

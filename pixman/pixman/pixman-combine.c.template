@@ -6,10 +6,9 @@
 #include <string.h>
 
 #include "pixman-private.h"
-
 #include "pixman-combine.h"
 
-/*** per channel helper functions ***/
+/* component alpha helper functions */
 
 static void
 combine_mask_ca (comp4_t *src, comp4_t *mask)
@@ -91,13 +90,9 @@ combine_mask_alpha_ca (const comp4_t *src, comp4_t *mask)
 /*
  * There are two ways of handling alpha -- either as a single unified value or
  * a separate value for each component, hence each macro must have two
- * versions.  The unified alpha version has a 'U' at the end of the name,
- * the component version has a 'C'.  Similarly, functions which deal with
+ * versions.  The unified alpha version has a 'u' at the end of the name,
+ * the component version has a 'ca'.  Similarly, functions which deal with
  * this difference will have two versions using the same convention.
- */
-
-/*
- * All of the composing functions
  */
 
 static force_inline comp4_t
@@ -154,7 +149,9 @@ combine_src_u (pixman_implementation_t *imp,
     int i;
 
     if (!mask)
+    {
 	memcpy (dest, src, width * sizeof (comp4_t));
+    }
     else
     {
 	for (i = 0; i < width; ++i)
@@ -166,7 +163,6 @@ combine_src_u (pixman_implementation_t *imp,
     }
 }
 
-/* if the Src is opaque, call combine_src_u */
 static void
 combine_over_u (pixman_implementation_t *imp,
                 pixman_op_t              op,
@@ -188,7 +184,6 @@ combine_over_u (pixman_implementation_t *imp,
     }
 }
 
-/* if the Dst is opaque, this is a noop */
 static void
 combine_over_reverse_u (pixman_implementation_t *imp,
                         pixman_op_t              op,
@@ -209,7 +204,6 @@ combine_over_reverse_u (pixman_implementation_t *imp,
     }
 }
 
-/* if the Dst is opaque, call combine_src_u */
 static void
 combine_in_u (pixman_implementation_t *imp,
               pixman_op_t              op,
@@ -229,7 +223,6 @@ combine_in_u (pixman_implementation_t *imp,
     }
 }
 
-/* if the Src is opaque, this is a noop */
 static void
 combine_in_reverse_u (pixman_implementation_t *imp,
                       pixman_op_t              op,
@@ -250,7 +243,6 @@ combine_in_reverse_u (pixman_implementation_t *imp,
     }
 }
 
-/* if the Dst is opaque, call combine_clear */
 static void
 combine_out_u (pixman_implementation_t *imp,
                pixman_op_t              op,
@@ -270,7 +262,6 @@ combine_out_u (pixman_implementation_t *imp,
     }
 }
 
-/* if the Src is opaque, call combine_clear */
 static void
 combine_out_reverse_u (pixman_implementation_t *imp,
                        pixman_op_t              op,
@@ -291,9 +282,6 @@ combine_out_reverse_u (pixman_implementation_t *imp,
     }
 }
 
-/* if the Src is opaque, call combine_in_u */
-/* if the Dst is opaque, call combine_over_u */
-/* if both the Src and Dst are opaque, call combine_src_u */
 static void
 combine_atop_u (pixman_implementation_t *imp,
                 pixman_op_t              op,
@@ -316,9 +304,6 @@ combine_atop_u (pixman_implementation_t *imp,
     }
 }
 
-/* if the Src is opaque, call combine_over_reverse_u */
-/* if the Dst is opaque, call combine_in_reverse_u */
-/* if both the Src and Dst are opaque, call combine_dst_u */
 static void
 combine_atop_reverse_u (pixman_implementation_t *imp,
                         pixman_op_t              op,
@@ -341,9 +326,6 @@ combine_atop_reverse_u (pixman_implementation_t *imp,
     }
 }
 
-/* if the Src is opaque, call combine_over_u */
-/* if the Dst is opaque, call combine_over_reverse_u */
-/* if both the Src and Dst are opaque, call combine_clear */
 static void
 combine_xor_u (pixman_implementation_t *imp,
                pixman_op_t              op,
@@ -385,9 +367,6 @@ combine_add_u (pixman_implementation_t *imp,
     }
 }
 
-/* if the Src is opaque, call combine_add_u */
-/* if the Dst is opaque, call combine_add_u */
-/* if both the Src and Dst are opaque, call combine_add_u */
 static void
 combine_saturate_u (pixman_implementation_t *imp,
                     pixman_op_t              op,
@@ -444,7 +423,6 @@ combine_saturate_u (pixman_implementation_t *imp,
  * Multiply
  * B(Dca, ad, Sca, as) = Dca.Sca
  */
-
 static void
 combine_multiply_u (pixman_implementation_t *imp,
                     pixman_op_t              op,
@@ -489,7 +467,7 @@ combine_multiply_ca (pixman_implementation_t *imp,
 	comp4_t r = d;
 	comp4_t dest_ia = ALPHA_c (~d);
 
-	combine_mask_value_ca (&s, &m);
+	combine_mask_ca (&s, &m);
 
 	UNcx4_MUL_UNcx4_ADD_UNcx4_MUL_UNc (r, ~m, s, dest_ia);
 	UNcx4_MUL_UNcx4 (d, s);
@@ -546,7 +524,7 @@ combine_multiply_ca (pixman_implementation_t *imp,
 	    comp1_t ida = ~da;						\
 	    comp4_t result;						\
             								\
-	    combine_mask_value_ca (&s, &m);				\
+	    combine_mask_ca (&s, &m);					\
             								\
 	    result = d;							\
 	    UNcx4_MUL_UNcx4_ADD_UNcx4_MUL_UNc (result, ~m, s, ida);     \
@@ -1579,9 +1557,8 @@ combine_conjoint_xor_u (pixman_implementation_t *imp,
     combine_conjoint_general_u (dest, src, mask, width, COMBINE_XOR);
 }
 
-/************************************************************************/
-/*********************** Per Channel functions **************************/
-/************************************************************************/
+
+/* Component alpha combiners */
 
 static void
 combine_clear_ca (pixman_implementation_t *imp,
@@ -2458,4 +2435,3 @@ _pixman_setup_combiner_functions_width (pixman_implementation_t *imp)
     imp->combine_width_ca[PIXMAN_OP_HSL_COLOR] = combine_dst;
     imp->combine_width_ca[PIXMAN_OP_HSL_LUMINOSITY] = combine_dst;
 }
-
