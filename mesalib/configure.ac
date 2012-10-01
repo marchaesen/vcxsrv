@@ -9,6 +9,7 @@ See docs/autoconf.html for more details on the options for Mesa.])
 AC_INIT([Mesa], [9.1.0],
     [https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa])
 AC_CONFIG_AUX_DIR([bin])
+AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE([foreign])
 
@@ -499,6 +500,16 @@ AC_SUBST([DLOPEN_LIBS])
 dnl See if posix_memalign is available
 AC_CHECK_FUNC([posix_memalign], [DEFINES="$DEFINES -DHAVE_POSIX_MEMALIGN"])
 
+dnl signbit() is a macro in glibc's math.h, so AC_CHECK_FUNC fails. To handle
+dnl this, use AC_CHECK_DECLS and fallback to AC_CHECK_FUNC in case it fails.
+AC_CHECK_DECLS([signbit],[],
+               AC_CHECK_FUNC([signbit],[],
+                             AC_MSG_ERROR([could not find signbit()])),
+               [#include <math.h>])
+
+dnl Check for pthreads
+AX_PTHREAD
+
 dnl SELinux awareness.
 AC_ARG_ENABLE([selinux],
     [AS_HELP_STRING([--enable-selinux],
@@ -513,6 +524,7 @@ if test "x$enable_selinux" = "xyes"; then
     SELINUX_LIBS="-lselinux"
     DEFINES="$DEFINES -DMESA_SELINUX"
 fi
+AC_SUBST([SELINUX_LIBS])
 
 dnl Options for APIs
 AC_ARG_ENABLE([opengl],
@@ -908,10 +920,6 @@ AC_SUBST([GLESv1_CM_LIB_DEPS])
 AC_SUBST([GLESv1_CM_PC_LIB_PRIV])
 AC_SUBST([GLESv2_LIB_DEPS])
 AC_SUBST([GLESv2_PC_LIB_PRIV])
-
-GLAPI_LIB_DEPS="-lpthread $SELINUX_LIBS"
-AC_SUBST([GLAPI_LIB_DEPS])
-
 
 DRI_LIB_DEPS="\$(top_builddir)/src/mesa/libdricore/libdricore${VERSION}.la"
 

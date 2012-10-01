@@ -1,0 +1,3 @@
+*.3
+!xcb-examples.3
+!xcb-requests.3

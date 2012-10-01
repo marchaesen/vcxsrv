@@ -52,7 +52,7 @@
 #define CHECKPOINT()
 #endif
 
-#ifdef USE_ARM_IWMMXT
+#if defined USE_ARM_IWMMXT && __GNUC__ == 4 && __GNUC_MINOR__ < 8
 /* Empty the multimedia state. For some reason, ARM's mmintrin.h doesn't provide this.  */
 extern __inline void __attribute__((__gnu_inline__, __always_inline__, __artificial__))
 _mm_empty (void)

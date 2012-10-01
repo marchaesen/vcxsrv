@@ -114,7 +114,7 @@ _mesa_create_exec_table(struct gl_context *ctx)
       return NULL;
 
 #if _HAVE_FULL_GL
-   _mesa_loopback_init_api_table( exec );
+   _mesa_loopback_init_api_table(ctx, exec);
 #endif
 
    /* load the dispatch slots we understand */
@@ -188,7 +188,10 @@ _mesa_create_exec_table(struct gl_context *ctx)
       _mesa_init_dlist_dispatch(exec);
    }
 
-   SET_ClearDepth(exec, _mesa_ClearDepth);
+   if (ctx->API != API_OPENGLES2) {
+      SET_ClearDepth(exec, _mesa_ClearDepth);
+   }
+
    if (ctx->API == API_OPENGL) {
       SET_ClearIndex(exec, _mesa_ClearIndex);
       SET_ClipPlane(exec, _mesa_ClipPlane);
@@ -196,7 +199,10 @@ _mesa_create_exec_table(struct gl_context *ctx)
    }
    SET_DepthFunc(exec, _mesa_DepthFunc);
    SET_DepthMask(exec, _mesa_DepthMask);
-   SET_DepthRange(exec, _mesa_DepthRange);
+
+   if (ctx->API != API_OPENGLES2) {
+      SET_DepthRange(exec, _mesa_DepthRange);
+   }
 
    if (ctx->API != API_OPENGLES2 && ctx->API != API_OPENGL_CORE) {
       _mesa_init_drawpix_dispatch(exec);
@@ -214,7 +220,9 @@ _mesa_create_exec_table(struct gl_context *ctx)
       SET_GetClipPlane(exec, _mesa_GetClipPlane);
    }
    SET_GetBooleanv(exec, _mesa_GetBooleanv);
-   SET_GetDoublev(exec, _mesa_GetDoublev);
+   if (ctx->API != API_OPENGLES2) {
+      SET_GetDoublev(exec, _mesa_GetDoublev);
+   }
    SET_GetIntegerv(exec, _mesa_GetIntegerv);
    if (ctx->API != API_OPENGL_CORE && ctx->API != API_OPENGLES2) {
       SET_GetLightfv(exec, _mesa_GetLightfv);
@@ -259,11 +267,9 @@ _mesa_create_exec_table(struct gl_context *ctx)
 
    if (ctx->API != API_OPENGLES2) {
       SET_PixelStoref(exec, _mesa_PixelStoref);
-   }
 
-   SET_PointSize(exec, _mesa_PointSize);
+      SET_PointSize(exec, _mesa_PointSize);
 
-   if (ctx->API != API_OPENGLES2) {
       SET_PolygonMode(exec, _mesa_PolygonMode);
    }
 
@@ -358,8 +364,8 @@ _mesa_create_exec_table(struct gl_context *ctx)
    SET_StencilMaskSeparate(exec, _mesa_StencilMaskSeparate);
    SET_StencilOpSeparate(exec, _mesa_StencilOpSeparate);
 
-   _mesa_init_shader_dispatch(exec);
-   _mesa_init_shader_uniform_dispatch(exec);
+   _mesa_init_shader_dispatch(ctx, exec);
+   _mesa_init_shader_uniform_dispatch(ctx, exec);
 
    /* 2. GL_EXT_blend_color */
 #if 0
@@ -422,8 +428,10 @@ _mesa_create_exec_table(struct gl_context *ctx)
 
    /* 54. GL_EXT_point_parameters */
 #if _HAVE_FULL_GL
-   SET_PointParameterfEXT(exec, _mesa_PointParameterf);
-   SET_PointParameterfvEXT(exec, _mesa_PointParameterfv);
+   if (ctx->API != API_OPENGLES2) {
+      SET_PointParameterfEXT(exec, _mesa_PointParameterf);
+      SET_PointParameterfvEXT(exec, _mesa_PointParameterfv);
+   }
 #endif
 
    /* 95. GL_ARB_ES2_compatibility */
@@ -450,7 +458,9 @@ _mesa_create_exec_table(struct gl_context *ctx)
 
    /* 196. GL_MESA_resize_buffers */
 #if _HAVE_FULL_GL
-   SET_ResizeBuffersMESA(exec, _mesa_ResizeBuffersMESA);
+   if (_mesa_is_desktop_gl(ctx)) {
+      SET_ResizeBuffersMESA(exec, _mesa_ResizeBuffersMESA);
+   }
 #endif
 
    /* 197. GL_MESA_window_pos */
@@ -521,8 +531,10 @@ _mesa_create_exec_table(struct gl_context *ctx)
 
    /* 262. GL_NV_point_sprite */
 #if _HAVE_FULL_GL
-   SET_PointParameteriNV(exec, _mesa_PointParameteri);
-   SET_PointParameterivNV(exec, _mesa_PointParameteriv);
+   if (_mesa_is_desktop_gl(ctx)) {
+      SET_PointParameteriNV(exec, _mesa_PointParameteri);
+      SET_PointParameterivNV(exec, _mesa_PointParameteriv);
+   }
 #endif
 
    /* 268. GL_EXT_stencil_two_side */
@@ -662,11 +674,11 @@ _mesa_create_exec_table(struct gl_context *ctx)
       SET_ProgramLocalParameter4fvARB(exec, _mesa_ProgramLocalParameter4fvARB);
       SET_GetProgramEnvParameterdvARB(exec, _mesa_GetProgramEnvParameterdvARB);
       SET_GetProgramEnvParameterfvARB(exec, _mesa_GetProgramEnvParameterfvARB);
+      SET_GetProgramivARB(exec, _mesa_GetProgramivARB);
       SET_GetProgramLocalParameterdvARB(exec, _mesa_GetProgramLocalParameterdvARB);
       SET_GetProgramLocalParameterfvARB(exec, _mesa_GetProgramLocalParameterfvARB);
       SET_GetProgramStringARB(exec, _mesa_GetProgramStringARB);
    }
-   SET_GetProgramivARB(exec, _mesa_GetProgramivARB);
 
    /* ARB 28. GL_ARB_vertex_buffer_object */
    _mesa_init_bufferobj_dispatch(ctx, exec);
@@ -862,10 +874,12 @@ _mesa_create_exec_table(struct gl_context *ctx)
       SET_TexStorage1D(exec, _mesa_TexStorage1D);
       SET_TextureStorage1DEXT(exec, _mesa_TextureStorage1DEXT);
    }
-   SET_TexStorage2D(exec, _mesa_TexStorage2D);
-   SET_TexStorage3D(exec, _mesa_TexStorage3D);
-   SET_TextureStorage2DEXT(exec, _mesa_TextureStorage2DEXT);
-   SET_TextureStorage3DEXT(exec, _mesa_TextureStorage3DEXT);
+   if (_mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx)) {
+      SET_TexStorage2D(exec, _mesa_TexStorage2D);
+      SET_TexStorage3D(exec, _mesa_TexStorage3D);
+      SET_TextureStorage2DEXT(exec, _mesa_TextureStorage2DEXT);
+      SET_TextureStorage3DEXT(exec, _mesa_TextureStorage3DEXT);
+   }
 
    if (ctx->API != API_OPENGLES2) {
       _mesa_init_sampler_object_dispatch(exec);
