@@ -9875,7 +9875,7 @@ exec_MultiModeDrawElementsIBM(const GLenum * mode,
  * struct.
  */
 struct _glapi_table *
-_mesa_create_save_table(void)
+_mesa_create_save_table(const struct gl_context *ctx)
 {
    struct _glapi_table *table;
 
@@ -9883,7 +9883,7 @@ _mesa_create_save_table(void)
    if (table == NULL)
       return NULL;
 
-   _mesa_loopback_init_api_table(table);
+   _mesa_loopback_init_api_table(ctx, table);
 
    /* GL 1.0 */
    SET_Accum(table, save_Accum);
@@ -10410,7 +10410,7 @@ _mesa_create_save_table(void)
    SET_BlitFramebufferEXT(table, save_BlitFramebufferEXT);
 
    /* GL_ARB_shader_objects */
-   _mesa_init_shader_dispatch(table); /* Plug in glCreate/Delete/Get, etc */
+   _mesa_init_shader_dispatch(ctx, table); /* Plug in glCreate/Delete/Get, etc */
    SET_UseProgramObjectARB(table, save_UseProgramObjectARB);
    SET_Uniform1fARB(table, save_Uniform1fARB);
    SET_Uniform2fARB(table, save_Uniform2fARB);

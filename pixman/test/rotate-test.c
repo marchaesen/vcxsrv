@@ -74,7 +74,9 @@ make_image (void)
     pixman_image_set_transform (image, RANDOM_TRANSFORM());
     pixman_image_set_destroy_function (image, on_destroy, bytes);
     pixman_image_set_repeat (image, PIXMAN_REPEAT_NORMAL);
-    
+
+    image_endian_swap (image);
+
     return image;
 }
 

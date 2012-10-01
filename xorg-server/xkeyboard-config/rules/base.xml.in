@@ -3898,6 +3898,12 @@
       <variantList>
         <variant>
           <configItem>
+            <name>legacy</name>
+            <_description>Polish (legacy)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>qwertz</name>
             <_description>Polish (qwertz)</_description>
           </configItem>
@@ -3927,6 +3933,13 @@
             <languageList>
               <iso639Id>csb</iso639Id>
             </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>szl</name>
+            <description>Silesian</description>
+            <languageList><iso639Id>szl</iso639Id></languageList>
           </configItem>
         </variant>
         <variant>

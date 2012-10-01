@@ -460,10 +460,20 @@ int _xcb_conn_wait(xcb_connection_t *c, pthread_cond_t *cond, struct iovec **vec
 
     if(ret)
     {
+        /* The code allows two threads to call select()/poll() at the same time.
+         * First thread just wants to read, a second thread wants to write, too.
+         * We have to make sure that we don't steal the reading thread's reply
+         * and let it get stuck in select()/poll().
+         * So a thread may read if either:
+         * - There is no other thread that wants to read (the above situation
+         *   did not occur).
+         * - It is the reading thread (above situation occurred).
+         */
+        int may_read = c->in.reading == 1 || !count;
 #if USE_POLL
-        if((fd.revents & POLLIN) == POLLIN)
+        if(may_read && (fd.revents & POLLIN) == POLLIN)
 #else
-        if(FD_ISSET(c->fd, &rfds))
+        if(may_read && FD_ISSET(c->fd, &rfds))
 #endif
             ret = ret && _xcb_in_read(c);
 
