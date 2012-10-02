@@ -1199,18 +1199,16 @@ winLogCommandLine(int argc, char *argv[])
 void
 winLogVersionInfo(void)
 {
-#ifdef WINDBG
     static Bool s_fBeenHere = FALSE;
 
     if (s_fBeenHere)
         return;
     s_fBeenHere = TRUE;
 
-    winDebug ("Welcome to the VcXsrv X Server\n");
-    winDebug ("Vendor: %s\n", XVENDORNAME);
-    winDebug ("Release: %d.%d.%d.%d\n\n", XORG_VERSION_MAJOR,
-              XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP);
-    winDebug ("%s\n\n", BUILDERSTRING);
-    winDebug ("Contact: %s\n\n", BUILDERADDR);
-#endif
+    ErrorF ("Welcome to the VcXsrv X Server\n");
+    ErrorF ("Vendor: %s\n", XVENDORNAME);
+    ErrorF ("Release: %d.%d.%d.%d\n\n", XORG_VERSION_MAJOR,
+            XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP);
+    ErrorF ("%s\n\n", BUILDERSTRING);
+    ErrorF ("Contact: %s\n\n", BUILDERADDR);
 }
