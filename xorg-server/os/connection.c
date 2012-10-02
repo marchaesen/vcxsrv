@@ -447,7 +447,7 @@ CreateWellKnownSockets(void)
     else { /* -displayfd */
         Bool found = 0;
         for (i = 0; i < 65535 - X_TCP_PORT; i++) {
-            if (TryCreateSocket(i, &partial) && !partial) {
+            if (TryCreateSocket(i, &partial) && ListenTransCount >= 1 && (PartialNetwork || !partial)) {
                 found = 1;
                 break;
             }
