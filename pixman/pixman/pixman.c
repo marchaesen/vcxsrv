@@ -774,9 +774,9 @@ color_to_uint32 (const pixman_color_t *color)
 }
 
 static pixman_bool_t
-color_to_pixel (pixman_color_t *     color,
-                uint32_t *           pixel,
-                pixman_format_code_t format)
+color_to_pixel (const pixman_color_t *color,
+                uint32_t *            pixel,
+                pixman_format_code_t  format)
 {
     uint32_t c = color_to_uint32 (color);
 
@@ -833,7 +833,7 @@ color_to_pixel (pixman_color_t *     color,
 PIXMAN_EXPORT pixman_bool_t
 pixman_image_fill_rectangles (pixman_op_t                 op,
                               pixman_image_t *            dest,
-                              pixman_color_t *            color,
+			      const pixman_color_t *      color,
                               int                         n_rects,
                               const pixman_rectangle16_t *rects)
 {
@@ -872,7 +872,7 @@ pixman_image_fill_rectangles (pixman_op_t                 op,
 PIXMAN_EXPORT pixman_bool_t
 pixman_image_fill_boxes (pixman_op_t           op,
                          pixman_image_t *      dest,
-                         pixman_color_t *      color,
+                         const pixman_color_t *color,
                          int                   n_boxes,
                          const pixman_box32_t *boxes)
 {

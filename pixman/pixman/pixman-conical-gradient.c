@@ -180,7 +180,7 @@ _pixman_conical_gradient_iter_init (pixman_image_t *image, pixman_iter_t *iter)
 }
 
 PIXMAN_EXPORT pixman_image_t *
-pixman_image_create_conical_gradient (pixman_point_fixed_t *        center,
+pixman_image_create_conical_gradient (const pixman_point_fixed_t *  center,
                                       pixman_fixed_t                angle,
                                       const pixman_gradient_stop_t *stops,
                                       int                           n_stops)

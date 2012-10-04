@@ -72,7 +72,7 @@ color_to_uint64 (const pixman_color_t *color)
 }
 
 PIXMAN_EXPORT pixman_image_t *
-pixman_image_create_solid_fill (pixman_color_t *color)
+pixman_image_create_solid_fill (const pixman_color_t *color)
 {
     pixman_image_t *img = _pixman_image_allocate ();
 

@@ -212,9 +212,12 @@ are visible on the reconfigured screen).
 
 3. Data Types
 
-The subpixel order is shared with the Render extension, and is documented
-there. The only datatype defined is the screen size, defined in the normal
-(0 degree) orientation.
+The subpixel order and transform data types are shared with the Render
+extension, and are documented there.
+
+The only datatype defined in the original extension is the screen size,
+defined in the normal (0 degree) orientation.  Several more are added
+in later revisions.
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
 
@@ -259,7 +262,7 @@ RRCONFIGSTATUS { Success
 	configuration is unsupported by the hardware. The goal is to make
 	these limitations expressed by the protocol, but when that isn't
 	possible it is correct to return this error value. If, as a
-	implentor, you find this error code required, please submit the
+	implementor, you find this error code required, please submit the
 	hardware constraints that exist so that a future version of the
 	extension can correctly capture the configuration constraints in
 	your system.
@@ -296,15 +299,9 @@ CONNECTION { Connected, Disconnected, UnknownConnection }
 	This value provides an indication of whether an output is actually
 	connected to a monitor or other presentation device.
 
-SUBPIXELORDER { SubPixelUnknown		The subpixel order uses the Render
-		SubPixelHorizontalRGB	extensions definitions; they are here
-		SubPixelHorizontalBGR	only for convenience.
-		SubPixelVerticalRGB
-		SubPixelVerticalBGR
-		SubPixelNone }
 
-SCREENSIZE { widthInPixels, heightInPixels: CARD16
-	     widthInMillimeters, heightInMillimeters: CARD16 }
+SCREENSIZE [ widthInPixels, heightInPixels: CARD16
+	     widthInMillimeters, heightInMillimeters: CARD16 ]
 
 MODEFLAG { HSyncPositive
 	   HSyncNegative
@@ -321,15 +318,37 @@ MODEFLAG { HSyncPositive
 	   DoubleClock
 	   ClockDivideBy2 }
 
-MODEINFO { id: MODE
+MODEINFO [ id: MODE
 	   name: STRING
 	   width, height: CARD16
 	   dotClock: CARD32
 	   hSyncStart, hSyncEnd, hTotal, hSkew: CARD16
 	   vSyncStart, vSyncEnd, vTotal: CARD16
-	   modeFlags: SETofMODEFLAG }
+	   modeFlags: SETofMODEFLAG ]
 
-REFRESH { rates: LISTofCARD16 }
+REFRESH [ rates: LISTofCARD16 ]
+
+			      ❧❧❧❧❧❧❧❧❧❧❧
+
+5.1 Data Types defined by the Render extension
+
+These data types use the Render extension definitions; they are shown here
+only for convenience:
+
+SUBPIXELORDER { SubPixelUnknown
+		SubPixelHorizontalRGB
+		SubPixelHorizontalBGR
+		SubPixelVerticalRGB
+		SubPixelVerticalBGR
+		SubPixelNone }
+
+FIXED         32-bit value (top 16 are integer portion, bottom 16 are fraction)
+
+TRANSFORM     [
+                        p11, p12, p13:  FIXED
+                        p21, p22, p23:  FIXED
+                        p31, p32, p33:  FIXED
+              ]
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
 
@@ -338,7 +357,7 @@ REFRESH { rates: LISTofCARD16 }
 PROVIDER { XID }
 
 PROVIDER_CAPS { SourceOutput, SinkOutput, SourceOffload, SinkOffload }
-	Capabilties for this provider:
+	Capabilities for this provider:
 	SourceOutput: This device can source output buffers.
 	SinkOutput: This device can sink output buffers.
 	SourceOffload: This device can source offload buffers.
@@ -1307,7 +1326,7 @@ dynamic changes in the display environment.
 └───
 	Errors: Window
 
-	RRGetPRoviders returns the list of providers connected to the screen
+	RRGetProviders returns the list of providers connected to the screen
 	associated with 'window'.
 
 	'timestamp' indicates when the configuration was last set.
@@ -1329,7 +1348,7 @@ dynamic changes in the display environment.
 	Errors: Provider
 
 	RRGetProviderInfo return information about the specified provider.
-	The capabilites of the current provider are returned, along with
+	The capabilities of the current provider are returned, along with
 	the list of providers currently associated with this provider and
 	the capability they are associated with. It also provides the list
 	of crtcs and outputs that this provider is responsible for.
@@ -1341,7 +1360,7 @@ dynamic changes in the display environment.
     RRSetProviderOffloadSink
 	provider: PROVIDER
 	sink_provider: PROVIDER
-     ▶
+	config-timestamp: TIMESTAMP
 └───
 	Errors: Provider
 
@@ -1352,7 +1371,7 @@ dynamic changes in the display environment.
     RRSetProviderOutputSource
 	provider: PROVIDER
 	source_provider: PROVIDER
-     ▶
+	config-timestamp: TIMESTAMP
 └───
 	Errors: Provider
 
@@ -1661,25 +1680,20 @@ factors, such as re-cabling a monitor, etc.
 ┌───
     RRProviderChangeNotify:
 	timestamp: TIMESTAMP		time screen was reconfigured
-	config-timestamp: TIMESTAMP	time available config data was changed
 	window: WINDOW			window requesting notification
 	provider: PROVIDER		provider affected by change
-	role: CRTC			new role for provider
 └───
 
 	This event is generated whenever the role for a provider has changed
 	and is sent to requesting clients. 'timestamp' indicates when the
-	provider configuration was changed by a client.
-	'config-timestamp' says when the last time the available
-	configurations changed. 'root' is the root of the screen the change
-	occurred on, 'window' is window selecting for this event. The
-	precise change can be detected by examining the new state of the
-	system.
+	provider configuration was changed by a client.  'window' is the
+	window selecting for this event.  The precise change can be detected
+	by examining the new state of the system.
 
 ┌───
     RRProviderPropertyNotify:
 	window: WINDOW			window requesting notification
-	provider: PROVIDER		providre affected by change
+	provider: PROVIDER		provider affected by change
 	atom: ATOM			affected property
 	time: TIMESTAMP			time property was changed
 	state: { NewValue, Deleted }	new property state
@@ -2155,6 +2169,13 @@ A.1 Common Types
 	2		UnknownConnection
 └───
 
+┌───
+    PROVIDER_CAPS				Added in version 1.4
+	0x00000001	SourceOutput
+	0x00000002	SinkOutput
+	0x00000004	SourceOffload
+	0x00000008	SinkOffload
+└───
 
 A.2 Protocol Requests
 
@@ -2443,7 +2464,7 @@ A.2.1 Protocol Requests added with version 1.2
     RRCreateMode
 	1	CARD8			major opcode
 	1	16			RandR opcode
-	2	12+(n+p)/4		length
+	2	10+(n+p)/4		length
 	4	WINDOW			window
 	32	MODEINFO		mode
 	n	STRING8			mode name
@@ -2491,7 +2512,7 @@ A.2.1 Protocol Requests added with version 1.2
 	1	RRCONFIGSTATUS		status
 	2	CARD16			sequence number
 	4	o+p			reply length
-	4	TIMESTATMP		timestamp
+	4	TIMESTAMP		timestamp
 	2	INT16			x
 	2	INT16			y
 	2	CARD16			width
@@ -2508,7 +2529,7 @@ A.2.1 Protocol Requests added with version 1.2
     RRSetCrtcConfig
 	1	CARD8			major opcode
 	1	21			RandR opcode
-	2	7+2n			length
+	2	7+n			length
 	4	CRTC			crtc
 	4	TIMESTAMP		timestamp
 	4	TIMESTAMP		config timestamp
@@ -2517,7 +2538,7 @@ A.2.1 Protocol Requests added with version 1.2
 	4	MODE			mode
 	2	ROTATION		rotation/reflection
 	2				unused
-	8n	LISTofOUTPUT		outputs
+	4n	LISTofOUTPUT		outputs
       ▶
 	1	1			Reply
 	1	RRCONFIGSTATUS		status
@@ -2550,7 +2571,7 @@ A.2.1 Protocol Requests added with version 1.2
 	1	1			Reply
 	1				unused
 	2	CARD16			sequence number
-	4	(6n+2)/4		reply length
+	4	(6n+p)/4		reply length
 	2	n			size
 	20				unused
 	2n	LISTofCARD16		red
@@ -2562,7 +2583,7 @@ A.2.1 Protocol Requests added with version 1.2
     RRSetCrtcGamma
 	1	CARD8			major opcode
 	1	24			RandR opcode
-	2	3+(6n+2)/4		length
+	2	3+(6n+p)/4		length
 	4	CRTC			crtc
 	2	n			size
 	2				unused
@@ -2733,11 +2754,10 @@ A.2.3 Protocol Requests added with version 1.4
 	1	1			Reply
 	1				unused
 	2	CARD16			sequence number
-	4	CARD32			length
+	4	p			length
 	4	TIMESTAMP		timestamp
 	2	p			number of Providers
-	2	CARD16			maximum masters
-	4	CARD32			flags
+	18				unused
 	4p	LISTofPROVIDERS		providers
 └───
 ┌───
@@ -2752,12 +2772,13 @@ A.2.3 Protocol Requests added with version 1.4
 	1	RRCONFIGSTATUS		status
 	2	CARD16			sequence number
 	4	1+c+o+(a*2)+(n+p)/4		reply length
-	4	TIMESTATMP		timestamp
-	4	CARD32			capabilites
+	4	TIMESTAMP		timestamp
+	4	CARD32			capabilities
 	2	c			number of crtcs
 	2	o 			number of outputs
 	2	a 			number of associated providers
 	2	n			length of name
+	8       			unused
 	4c	LISTofCRTC		crtcs
 	4o	LISTofOUTPUT		outputs
 	4a	LISTofPROVIDER		associated providers
@@ -2769,7 +2790,7 @@ A.2.3 Protocol Requests added with version 1.4
     RRSetProviderOffloadSink
 	1	CARD8			major opcode
 	1	34			RandR opcode
-	2	2			length
+	2	4			length
 	4	PROVIDER		provider
 	4	PROVIDER		offload sink provider
 	4	TIMESTAMP		timestamp
@@ -2778,7 +2799,7 @@ A.2.3 Protocol Requests added with version 1.4
     RRSetProviderOutputSource
 	1	CARD8			major opcode
 	1	35			RandR opcode
-	2	2			length
+	2	4			length
 	4	PROVIDER		provider
 	4	PROVIDER		output source provider
 	4	TIMESTAMP		timestamp
@@ -2965,7 +2986,7 @@ A.3.2 Protocol Events added with version 1.4
 ┌───
     RRProviderChangeNotify
 	1	Base + 1		code
-	1	1			sub-code
+	1	3			sub-code
 	2	CARD16			sequence number
 	4	TIMESTAMP		timestamp
 	4	WINDOW			request window
@@ -2975,7 +2996,7 @@ A.3.2 Protocol Events added with version 1.4
 ┌───
     RRProviderPropertyNotify
 	1	Base + 1		code
-	1	2			sub-code
+	1	4			sub-code
 	2	CARD16			sequence number
 	4	WINDOW			window
 	4	PROVIDER		provider
@@ -2989,7 +3010,7 @@ A.3.2 Protocol Events added with version 1.4
 ┌───
     RRResourceChangeNotify
 	1	Base + 1		code
-	1	2			sub-code
+	1	5			sub-code
 	2	CARD16			sequence number
 	4	TIMESTAMP		time
 	4	WINDOW			window

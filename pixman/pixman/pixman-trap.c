@@ -230,11 +230,11 @@ pixman_line_fixed_edge_init (pixman_edge_t *            e,
 }
 
 PIXMAN_EXPORT void
-pixman_add_traps (pixman_image_t * image,
-                  int16_t          x_off,
-                  int16_t          y_off,
-                  int              ntrap,
-                  pixman_trap_t *  traps)
+pixman_add_traps (pixman_image_t *     image,
+                  int16_t              x_off,
+                  int16_t              y_off,
+                  int                  ntrap,
+                  const pixman_trap_t *traps)
 {
     int bpp;
     int height;
