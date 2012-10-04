@@ -160,13 +160,13 @@ DEFINES=""
 AC_SUBST([DEFINES])
 case "$host_os" in
 linux*|*-gnu*|gnu*)
-    DEFINES="$DEFINES -D_GNU_SOURCE -DPTHREADS"
+    DEFINES="$DEFINES -D_GNU_SOURCE"
     ;;
 solaris*)
-    DEFINES="$DEFINES -DPTHREADS -DSVR4"
+    DEFINES="$DEFINES -DSVR4"
     ;;
 cygwin*)
-    DEFINES="$DEFINES -DPTHREADS"
+    DEFINES="$DEFINES"
     ;;
 esac
 
@@ -500,15 +500,12 @@ AC_SUBST([DLOPEN_LIBS])
 dnl See if posix_memalign is available
 AC_CHECK_FUNC([posix_memalign], [DEFINES="$DEFINES -DHAVE_POSIX_MEMALIGN"])
 
-dnl signbit() is a macro in glibc's math.h, so AC_CHECK_FUNC fails. To handle
-dnl this, use AC_CHECK_DECLS and fallback to AC_CHECK_FUNC in case it fails.
-AC_CHECK_DECLS([signbit],[],
-               AC_CHECK_FUNC([signbit],[],
-                             AC_MSG_ERROR([could not find signbit()])),
-               [#include <math.h>])
-
 dnl Check for pthreads
 AX_PTHREAD
+dnl AX_PTHREADS leaves PTHREAD_LIBS empty for gcc and sets PTHREAD_CFLAGS
+dnl to -pthread, which causes problems if we need -lpthread to appear in
+dnl pkgconfig files.
+test -z "$PTHREAD_LIBS" && PTHREAD_LIBS="-lpthread"
 
 dnl SELinux awareness.
 AC_ARG_ENABLE([selinux],
@@ -867,8 +864,8 @@ xyesyes)
     GL_PC_REQ_PRIV="x11 xext"
     X11_INCLUDES="$X11_INCLUDES $XLIBGL_CFLAGS"
     GL_LIB_DEPS="$XLIBGL_LIBS"
-    GL_LIB_DEPS="$GL_LIB_DEPS $SELINUX_LIBS -lm -lpthread $DLOPEN_LIBS"
-    GL_PC_LIB_PRIV="$GL_PC_LIB_PRIV $SELINUX_LIBS -lm -lpthread"
+    GL_LIB_DEPS="$GL_LIB_DEPS $SELINUX_LIBS -lm $PTHREAD_LIBS $DLOPEN_LIBS"
+    GL_PC_LIB_PRIV="$GL_PC_LIB_PRIV $SELINUX_LIBS -lm $PTHREAD_LIBS"
     ;;
 xyesno)
     # DRI-based GLX
@@ -895,9 +892,9 @@ xyesno)
     X11_INCLUDES="$X11_INCLUDES $DRIGL_CFLAGS"
     GL_LIB_DEPS="$DRIGL_LIBS"
 
-    # need DRM libs, -lpthread, etc.
-    GL_LIB_DEPS="$GL_LIB_DEPS $LIBDRM_LIBS -lm -lpthread $DLOPEN_LIBS"
-    GL_PC_LIB_PRIV="-lm -lpthread $DLOPEN_LIBS"
+    # need DRM libs, $PTHREAD_LIBS, etc.
+    GL_LIB_DEPS="$GL_LIB_DEPS $LIBDRM_LIBS -lm $PTHREAD_LIBS $DLOPEN_LIBS"
+    GL_PC_LIB_PRIV="-lm $PTHREAD_LIBS $DLOPEN_LIBS"
     ;;
 esac
 
@@ -905,10 +902,10 @@ esac
 # builds.
 AM_CONDITIONAL(HAVE_XF86VIDMODE, test "x$HAVE_XF86VIDMODE" = xyes)
 
-GLESv1_CM_LIB_DEPS="$LIBDRM_LIBS -lm -lpthread $DLOPEN_LIBS"
-GLESv1_CM_PC_LIB_PRIV="-lm -lpthread $DLOPEN_LIBS"
-GLESv2_LIB_DEPS="$LIBDRM_LIBS -lm -lpthread $DLOPEN_LIBS"
-GLESv2_PC_LIB_PRIV="-lm -lpthread $DLOPEN_LIBS"
+GLESv1_CM_LIB_DEPS="$LIBDRM_LIBS -lm $PTHREAD_LIBS $DLOPEN_LIBS"
+GLESv1_CM_PC_LIB_PRIV="-lm $PTHREAD_LIBS $DLOPEN_LIBS"
+GLESv2_LIB_DEPS="$LIBDRM_LIBS -lm $PTHREAD_LIBS $DLOPEN_LIBS"
+GLESv2_PC_LIB_PRIV="-lm $PTHREAD_LIBS $DLOPEN_LIBS"
 
 AC_SUBST([X11_INCLUDES])
 AC_SUBST([GL_LIB_DEPS])
@@ -951,8 +948,8 @@ AC_ARG_ENABLE([glx-tls],
     [GLX_USE_TLS=no])
 AC_SUBST(GLX_TLS, ${GLX_USE_TLS})
 
-AS_IF([test "x$GLX_USE_TLS" = xyes],
-      [DEFINES="${DEFINES} -DGLX_USE_TLS -DPTHREADS"])
+AS_IF([test "x$GLX_USE_TLS" = xyes -a "x$ax_pthread_ok" = xyes],
+      [DEFINES="${DEFINES} -DGLX_USE_TLS"])
 
 dnl
 dnl More DRI setup
@@ -1036,7 +1033,7 @@ if test "x$enable_dri" = xyes; then
         esac
         ;;
     freebsd* | dragonfly* | *netbsd*)
-        DEFINES="$DEFINES -DPTHREADS -DUSE_EXTERNAL_DXTN_LIB=1"
+        DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1"
         DEFINES="$DEFINES -DIN_DRI_DRIVER -DHAVE_ALIAS"
 
         if test "x$DRI_DIRS" = "xyes"; then
@@ -1095,9 +1092,10 @@ if test "x$enable_dri" = xyes; then
     fi
 
     # put all the necessary libs together
-    DRI_LIB_DEPS="$DRI_LIB_DEPS $SELINUX_LIBS $LIBDRM_LIBS $EXPAT_LIB -lm -lpthread $DLOPEN_LIBS"
-    GALLIUM_DRI_LIB_DEPS="$GALLIUM_DRI_LIB_DEPS $SELINUX_LIBS $LIBDRM_LIBS $EXPAT_LIB -lm -lpthread $DLOPEN_LIBS"
+    DRI_LIB_DEPS="$DRI_LIB_DEPS $SELINUX_LIBS $LIBDRM_LIBS $EXPAT_LIB -lm $PTHREAD_LIBS $DLOPEN_LIBS"
+    GALLIUM_DRI_LIB_DEPS="$GALLIUM_DRI_LIB_DEPS $SELINUX_LIBS $LIBDRM_LIBS $EXPAT_LIB -lm $PTHREAD_LIBS $DLOPEN_LIBS"
 fi
+AM_CONDITIONAL(NEED_LIBDRICORE, test -n "$DRI_DIRS")
 AC_SUBST([DRI_DIRS])
 AC_SUBST([EXPAT_INCLUDES])
 AC_SUBST([DRI_LIB_DEPS])
@@ -1192,12 +1190,12 @@ esac
 if test "x$enable_osmesa" = xyes; then
     # only link libraries with osmesa if shared
     if test "$enable_static" = no; then
-        OSMESA_LIB_DEPS="-lm -lpthread $SELINUX_LIBS $DLOPEN_LIBS"
+        OSMESA_LIB_DEPS="-lm $PTHREAD_LIBS $SELINUX_LIBS $DLOPEN_LIBS"
     else
         OSMESA_LIB_DEPS=""
     fi
     OSMESA_MESA_DEPS=""
-    OSMESA_PC_LIB_PRIV="-lm -lpthread $SELINUX_LIBS $DLOPEN_LIBS"
+    OSMESA_PC_LIB_PRIV="-lm $PTHREAD_LIBS $SELINUX_LIBS $DLOPEN_LIBS"
 fi
 
 AC_SUBST([OSMESA_LIB_DEPS])
@@ -1243,7 +1241,7 @@ EGL_CLIENT_APIS=""
 
 if test "x$enable_egl" = xyes; then
     SRC_DIRS="$SRC_DIRS egl"
-    EGL_LIB_DEPS="$DLOPEN_LIBS $SELINUX_LIBS -lpthread"
+    EGL_LIB_DEPS="$DLOPEN_LIBS $SELINUX_LIBS $PTHREAD_LIBS"
 
     AC_CHECK_FUNC(mincore, [DEFINES="$DEFINES -DHAVE_MINCORE"])
 
@@ -1366,11 +1364,11 @@ if test "x$enable_openvg" = xyes; then
     fi
 
     EGL_CLIENT_APIS="$EGL_CLIENT_APIS "'$(VG_LIB)'
-    VG_LIB_DEPS="$VG_LIB_DEPS $SELINUX_LIBS -lpthread"
+    VG_LIB_DEPS="$VG_LIB_DEPS $SELINUX_LIBS $PTHREAD_LIBS"
     CORE_DIRS="$CORE_DIRS mapi/vgapi"
     GALLIUM_STATE_TRACKERS_DIRS="vega $GALLIUM_STATE_TRACKERS_DIRS"
     HAVE_ST_VEGA=yes
-    VG_PC_LIB_PRIV="-lm -lpthread $DLOPEN_LIBS"
+    VG_PC_LIB_PRIV="-lm $PTHREAD_LIBS $DLOPEN_LIBS"
     AC_SUBST([VG_PC_LIB_PRIV])
 fi
 
@@ -1661,6 +1659,7 @@ if test "x$enable_gallium_llvm" = xyes; then
             if $LLVM_CONFIG --components | grep -q '\<mcjit\>'; then
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} mcjit"
             fi
+
             if test "x$enable_opencl" = xyes; then
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} ipo linker instrumentation"
             fi
@@ -1782,6 +1781,21 @@ gallium_require_drm_loader() {
     fi
 }
 
+radeon_llvm_check() {
+    LLVM_VERSION_MAJOR=`echo $LLVM_VERSION | cut -d. -f1`
+    if test "$LLVM_VERSION_MAJOR" -lt "3" -o "x$LLVM_VERSION" = "x3.0"; then
+        AC_MSG_ERROR([LLVM 3.1 or newer is required for the r600/radeonsi llvm compiler.])
+    fi
+    if test "$LLVM_VERSION_MAJOR" -ge "3" -a "x$LLVM_VERSION" != "x3.1" && $LLVM_CONFIG --targets-built | grep -qv '\<AMDGPU\>' ; then
+        AC_MSG_ERROR([To use the r600/radeonsi LLVM backend with LLVM 3.2 and newer, you need to fetch the LLVM source from:
+                      git://people.freedesktop.org/~tstellar/llvm master
+                      and build with --enable-experimental-targets==AMDGPU])
+    fi
+    if test "x$LLVM_VERSION" = "x3.2"; then
+        LLVM_LIBS="$LLVM_LIBS `$LLVM_CONFIG --libs amdgpu`"
+    fi
+}
+
 dnl Gallium drivers
 dnl Duplicates in GALLIUM_DRIVERS_DIRS are removed by sorting it after this block
 if test "x$with_gallium_drivers" != x; then
@@ -1812,9 +1826,7 @@ if test "x$with_gallium_drivers" != x; then
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS r600"
             if test "x$enable_r600_llvm" = xyes -o "x$enable_opencl" = xyes; then
-                if test "x$LLVM_VERSION" != "x3.1"; then
-                    AC_MSG_ERROR([LLVM 3.1 is required for the r600 llvm compiler.])
-                fi
+                radeon_llvm_check
                 NEED_RADEON_GALLIUM=yes;
             fi
             if test "x$enable_r600_llvm" = xyes; then
@@ -1829,9 +1841,7 @@ if test "x$with_gallium_drivers" != x; then
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS radeonsi"
-            if test "x$LLVM_VERSION" != "x3.1"; then
-                AC_MSG_ERROR([LLVM 3.1 is required to build the radeonsi driver.])
-            fi
+            radeon_llvm_check
 	    NEED_RADEON_GALLIUM=yes;
             gallium_check_st "radeon/drm" "dri-radeonsi" "xorg-radeonsi" "" "" "vdpau-radeonsi" ""
             ;;
@@ -1947,6 +1957,7 @@ CXXFLAGS="$CXXFLAGS $USER_CXXFLAGS"
 dnl Substitute the config
 AC_CONFIG_FILES([configs/current
 		Makefile
+		src/Makefile
 		src/egl/Makefile
 		src/egl/drivers/Makefile
 		src/egl/drivers/dri2/Makefile
@@ -1972,7 +1983,6 @@ AC_CONFIG_FILES([configs/current
 		src/glx/Makefile
 		src/glx/tests/Makefile
 		src/gtest/Makefile
-		src/Makefile
 		src/mapi/es1api/Makefile
 		src/mapi/es1api/glesv1_cm.pc
 		src/mapi/es2api/Makefile

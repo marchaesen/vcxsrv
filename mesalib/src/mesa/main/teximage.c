@@ -203,6 +203,18 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
       }
    }
 
+   /* GL_COMPRESSED_RGBA_S3TC_DXT3_ANGLE && GL_COMPRESSED_RGBA_S3TC_DXT5_ANGLE */
+   if (ctx->API == API_OPENGLES2 &&
+       ctx->Extensions.ANGLE_texture_compression_dxt) {
+      switch (internalFormat) {
+         case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+         case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+            return GL_RGBA;
+         default:
+            ; /* fallthrough */
+      }
+   }
+
    if (ctx->Extensions.S3_s3tc) {
       switch (internalFormat) {
          case GL_RGB_S3TC:
@@ -2041,28 +2053,6 @@ compressed_texture_error_check(struct gl_context *ctx, GLint dimensions,
       reason = "width != height";
       error = GL_INVALID_VALUE;
       goto error;
-   }
-
-   /* check image size against compression block size */
-   /* XXX possibly move this into the _mesa_legal_texture_dimensions() func */
-   {
-      gl_format texFormat =
-         ctx->Driver.ChooseTextureFormat(ctx, target, proxy_format,
-					 choose_format, choose_type);
-      GLuint bw, bh;
-
-      _mesa_get_format_block_size(texFormat, &bw, &bh);
-      if ((width > bw && width % bw > 0) ||
-          (height > bh && height % bh > 0)) {
-         /*
-          * Per GL_ARB_texture_compression:  GL_INVALID_OPERATION is
-          * generated [...] if any parameter combinations are not
-          * supported by the specific compressed internal format. 
-          */
-         reason = "invalid width or height for compression format";
-         error = GL_INVALID_OPERATION;
-         goto error;
-      }
    }
 
    /* check image size in bytes */

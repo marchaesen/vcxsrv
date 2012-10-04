@@ -420,8 +420,8 @@ _pixman_radial_gradient_iter_init (pixman_image_t *image, pixman_iter_t *iter)
 }
 
 PIXMAN_EXPORT pixman_image_t *
-pixman_image_create_radial_gradient (pixman_point_fixed_t *        inner,
-                                     pixman_point_fixed_t *        outer,
+pixman_image_create_radial_gradient (const pixman_point_fixed_t *  inner,
+                                     const pixman_point_fixed_t *  outer,
                                      pixman_fixed_t                inner_radius,
                                      pixman_fixed_t                outer_radius,
                                      const pixman_gradient_stop_t *stops,
