@@ -177,11 +177,11 @@ _pixman_implementation_lookup_combiner (pixman_implementation_t *imp,
 	switch ((narrow << 1) | component_alpha)
 	{
 	case 0: /* not narrow, not component alpha */
-	    f = (pixman_combine_32_func_t)imp->combine_64[op];
+	    f = (pixman_combine_32_func_t)imp->combine_float[op];
 	    break;
 	    
 	case 1: /* not narrow, component_alpha */
-	    f = (pixman_combine_32_func_t)imp->combine_64_ca[op];
+	    f = (pixman_combine_32_func_t)imp->combine_float_ca[op];
 	    break;
 
 	case 2: /* narrow, not component alpha */

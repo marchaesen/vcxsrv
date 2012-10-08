@@ -525,7 +525,7 @@ ProcWindowsWMDispatch(ClientPtr client)
         return ProcWindowsWMQueryVersion(client);
     }
 
-    if (!LocalClient(client))
+    if (!client->local)
         return WMErrorBase + WindowsWMClientNotLocal;
 
     switch (stuff->data) {
@@ -575,7 +575,7 @@ SProcWindowsWMDispatch(ClientPtr client)
     REQUEST(xReq);
 
     /* It is bound to be non-local when there is byte swapping */
-    if (!LocalClient(client))
+    if (!client->local)
         return WMErrorBase + WindowsWMClientNotLocal;
 
     /* only local clients are allowed WM access */

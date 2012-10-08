@@ -1,3 +1,16 @@
+Release 1.9 (2012-10-05)
+========================
+
+* Always include "config.h" at the start of all C source files.
+* Add AC_USE_SYSTEM_EXTENSIONS to allow use of more system functionality
+* Return connection failure if display string specifies non-existent screen
+* c_client: Fix parallel-make issue creating 'man' directory
+* xcb_connect: launchd: Don't fall back on tcp if $DISPLAY is a path to a launchd socket
+* c_client.py: generate manpages
+* Allow xcb_send_request with >MAX_IOV iovecs
+* Add a .gitignore for src/man/
+* Fix a multi-thread deadlock
+
 Release 1.8.1 (2012-03-09)
 ==========================
 - Fix a busy loop on BSD and Mac OS

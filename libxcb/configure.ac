@@ -4,7 +4,7 @@
 # Initialize Autoconf
 AC_PREREQ(2.57)
 AC_INIT([libxcb],
-        1.8.1,
+        1.9,
         [xcb@lists.freedesktop.org])
 AC_CONFIG_SRCDIR([xcb.pc.in])
 # Set common system defines for POSIX extensions, such as _GNU_SOURCE

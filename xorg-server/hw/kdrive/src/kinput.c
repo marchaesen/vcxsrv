@@ -1034,7 +1034,7 @@ KdGetOptions(InputOption **options, char *string)
 
     if (strchr(string, '=')) {
         tam_key = (strchr(string, '=') - string);
-        key = strndup(string, tam_key + 1);
+        key = strndup(string, tam_key);
         if (!key)
             goto out;
 

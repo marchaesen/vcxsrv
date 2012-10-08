@@ -178,7 +178,8 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
      */
     vbiosMem = (char *) base + V_BIOS;
     memset(vbiosMem, 0, 2 * V_BIOS_SIZE);
-    if (pci_device_read_rom(pInt->dev, vbiosMem) < V_BIOS_SIZE) {
+    if (pci_device_read_rom(pInt->dev, vbiosMem) != 0
+        || pInt->dev->rom_size < V_BIOS_SIZE) {
         xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
                    "Unable to retrieve all of segment 0x0C0000.\n");
     }

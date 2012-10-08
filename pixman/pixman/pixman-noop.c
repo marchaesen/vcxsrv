@@ -93,9 +93,9 @@ noop_src_iter_init (pixman_implementation_t *imp, pixman_iter_t *iter)
 	}
 	else
 	{
-	    uint64_t color = bits->fetch_pixel_64 (bits, 0, 0);
-	    uint64_t *buffer = (uint64_t *)iter->buffer;
-	    uint64_t *end = buffer + iter->width;
+	    argb_t color = bits->fetch_pixel_float (bits, 0, 0);
+	    argb_t *buffer = (argb_t *)iter->buffer;
+	    argb_t *end = buffer + iter->width;
 
 	    while (buffer < end)
 		*(buffer++) = color;

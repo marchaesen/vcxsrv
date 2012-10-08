@@ -1,3 +1,9 @@
+Release 1.8 (2012-10-05)
+========================
+* dri2: Update to DRI2 1.4
+* XKB: Fix broken events
+* xproto: add doc tags, xcbgen: handle doc tags
+
 Release 1.7.1 (2012-03-23)
 ==========================
 * Add ge and xf86vidmode protocol descriptions

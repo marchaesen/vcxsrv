@@ -85,7 +85,7 @@ main (int argc, char **argv)
     pixman_fixed_t r_inner;
     pixman_fixed_t r_outer;
 
-    enable_fp_exceptions();
+    enable_divbyzero_exceptions();
     
     for (i = 0; i < WIDTH * HEIGHT; ++i)
 	dest[i] = 0x4f00004f; /* pale blue */

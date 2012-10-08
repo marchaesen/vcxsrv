@@ -182,12 +182,6 @@ AC_SUBST(LT_VERSION_INFO)
 PIXMAN_CHECK_CFLAG([-Wall])
 PIXMAN_CHECK_CFLAG([-fno-strict-aliasing])
 
-AC_PATH_PROG(PERL, perl, no)
-if test "x$PERL" = xno; then
-    AC_MSG_ERROR([Perl is required to build pixman.])
-fi
-AC_SUBST(PERL)
-
 dnl =========================================================================
 dnl OpenMP for the test suite?
 dnl

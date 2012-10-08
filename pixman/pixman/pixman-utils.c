@@ -71,59 +71,96 @@ pixman_malloc_abc (unsigned int a,
 	return malloc (a * b * c);
 }
 
-static void
-unorm_to_unorm_params (int in_width, int out_width, uint32_t *factor, int *shift)
+static force_inline uint16_t
+float_to_unorm (float f, int n_bits)
 {
-    int w = 0;
+    uint32_t u;
 
-    *factor = 0;
-    while (in_width != 0 && w < out_width)
-    {
-	*factor |= 1 << w;
-	w += in_width;
-    }
+    if (f > 1.0)
+	f = 1.0;
+    if (f < 0.0)
+	f = 0.0;
 
-    /* Did we generate too many bits? */
-    *shift = w - out_width;
+    u = f * (1 << n_bits);
+    u -= (u >> n_bits);
+
+    return u;
+}
+
+static force_inline float
+unorm_to_float (uint16_t u, int n_bits)
+{
+    uint32_t m = ((1 << n_bits) - 1);
+
+    return (u & m) * (1.f / (float)m);
 }
 
 /*
- * This function expands images from ARGB8 format to ARGB16.  To preserve
- * precision, it needs to know the original source format.  For example, if the
- * source was PIXMAN_x1r5g5b5 and the red component contained bits 12345, then
- * the expanded value is 12345123.  To correctly expand this to 16 bits, it
- * should be 1234512345123451 and not 1234512312345123.
+ * This function expands images from a8r8g8b8 to argb_t.  To preserve
+ * precision, it needs to know from which source format the a8r8g8b8 pixels
+ * originally came.
+ *
+ * For example, if the source was PIXMAN_x1r5g5b5 and the red component
+ * contained bits 12345, then the 8-bit value is 12345123.  To correctly
+ * expand this to floating point, it should be 12345 / 31.0 and not
+ * 12345123 / 255.0.
  */
 void
-pixman_expand (uint64_t *           dst,
-               const uint32_t *     src,
-               pixman_format_code_t format,
-               int                  width)
+pixman_expand_to_float (argb_t               *dst,
+			const uint32_t       *src,
+			pixman_format_code_t  format,
+			int                   width)
 {
+    static const float multipliers[16] = {
+	0.0f,
+	1.0f / ((1 <<  1) - 1),
+	1.0f / ((1 <<  2) - 1),
+	1.0f / ((1 <<  3) - 1),
+	1.0f / ((1 <<  4) - 1),
+	1.0f / ((1 <<  5) - 1),
+	1.0f / ((1 <<  6) - 1),
+	1.0f / ((1 <<  7) - 1),
+	1.0f / ((1 <<  8) - 1),
+	1.0f / ((1 <<  9) - 1),
+	1.0f / ((1 << 10) - 1),
+	1.0f / ((1 << 11) - 1),
+	1.0f / ((1 << 12) - 1),
+	1.0f / ((1 << 13) - 1),
+	1.0f / ((1 << 14) - 1),
+	1.0f / ((1 << 15) - 1),
+    };
+    int a_size, r_size, g_size, b_size;
+    int a_shift, r_shift, g_shift, b_shift;
+    float a_mul, r_mul, g_mul, b_mul;
+    uint32_t a_mask, r_mask, g_mask, b_mask;
+    int i;
+
+    if (!PIXMAN_FORMAT_VIS (format))
+	format = PIXMAN_a8r8g8b8;
+
     /*
      * Determine the sizes of each component and the masks and shifts
      * required to extract them from the source pixel.
      */
-    const int a_size = PIXMAN_FORMAT_A (format),
-              r_size = PIXMAN_FORMAT_R (format),
-              g_size = PIXMAN_FORMAT_G (format),
-              b_size = PIXMAN_FORMAT_B (format);
-    const int a_shift = 32 - a_size,
-              r_shift = 24 - r_size,
-              g_shift = 16 - g_size,
-              b_shift =  8 - b_size;
-    const uint8_t a_mask = ~(~0 << a_size),
-                  r_mask = ~(~0 << r_size),
-                  g_mask = ~(~0 << g_size),
-                  b_mask = ~(~0 << b_size);
-    uint32_t au_factor, ru_factor, gu_factor, bu_factor;
-    int au_shift, ru_shift, gu_shift, bu_shift;
-    int i;
+    a_size = PIXMAN_FORMAT_A (format);
+    r_size = PIXMAN_FORMAT_R (format);
+    g_size = PIXMAN_FORMAT_G (format);
+    b_size = PIXMAN_FORMAT_B (format);
 
-    unorm_to_unorm_params (a_size, 16, &au_factor, &au_shift);
-    unorm_to_unorm_params (r_size, 16, &ru_factor, &ru_shift);
-    unorm_to_unorm_params (g_size, 16, &gu_factor, &gu_shift);
-    unorm_to_unorm_params (b_size, 16, &bu_factor, &bu_shift);
+    a_shift = 32 - a_size;
+    r_shift = 24 - r_size;
+    g_shift = 16 - g_size;
+    b_shift =  8 - b_size;
+
+    a_mask = ((1 << a_size) - 1);
+    r_mask = ((1 << r_size) - 1);
+    g_mask = ((1 << g_size) - 1);
+    b_mask = ((1 << b_size) - 1);
+
+    a_mul = multipliers[a_size];
+    r_mul = multipliers[r_size];
+    g_mul = multipliers[g_size];
+    b_mul = multipliers[b_size];
 
     /* Start at the end so that we can do the expansion in place
      * when src == dst
@@ -131,59 +168,43 @@ pixman_expand (uint64_t *           dst,
     for (i = width - 1; i >= 0; i--)
     {
 	const uint32_t pixel = src[i];
-	uint8_t a, r, g, b;
-	uint64_t a16, r16, g16, b16;
 
-	if (a_size)
-	{
-	    a = (pixel >> a_shift) & a_mask;
-            a16 = a * au_factor >> au_shift;
-	}
-	else
-	{
-	    a16 = 0xffff;
-	}
-
-	if (r_size)
-	{
-	    r = (pixel >> r_shift) & r_mask;
-	    g = (pixel >> g_shift) & g_mask;
-	    b = (pixel >> b_shift) & b_mask;
-            r16 = r * ru_factor >> ru_shift;
-            g16 = g * gu_factor >> gu_shift;
-            b16 = b * bu_factor >> bu_shift;
-	}
-	else
-	{
-	    r16 = g16 = b16 = 0;
-	}
-	
-	dst[i] = a16 << 48 | r16 << 32 | g16 << 16 | b16;
+	dst[i].a = a_mask? ((pixel >> a_shift) & a_mask) * a_mul : 1.0f;
+	dst[i].r = ((pixel >> r_shift) & r_mask) * r_mul;
+	dst[i].g = ((pixel >> g_shift) & g_mask) * g_mul;
+	dst[i].b = ((pixel >> b_shift) & b_mask) * b_mul;
     }
 }
 
-/*
- * Contracting is easier than expanding.  We just need to truncate the
- * components.
- */
+uint16_t
+pixman_float_to_unorm (float f, int n_bits)
+{
+    return float_to_unorm (f, n_bits);
+}
+
+float
+pixman_unorm_to_float (uint16_t u, int n_bits)
+{
+    return unorm_to_float (u, n_bits);
+}
+
 void
-pixman_contract (uint32_t *      dst,
-                 const uint64_t *src,
-                 int             width)
+pixman_contract_from_float (uint32_t     *dst,
+			    const argb_t *src,
+			    int           width)
 {
     int i;
 
-    /* Start at the beginning so that we can do the contraction in
-     * place when src == dst
-     */
-    for (i = 0; i < width; i++)
+    for (i = 0; i < width; ++i)
     {
-	const uint8_t a = src[i] >> 56,
-	              r = src[i] >> 40,
-	              g = src[i] >> 24,
-	              b = src[i] >> 8;
+	uint8_t a, r, g, b;
 
-	dst[i] = a << 24 | r << 16 | g << 8 | b;
+	a = float_to_unorm (src[i].a, 8);
+	r = float_to_unorm (src[i].r, 8);
+	g = float_to_unorm (src[i].g, 8);
+	b = float_to_unorm (src[i].b, 8);
+
+	dst[i] = (a << 24) | (r << 16) | (g << 8) | (b << 0);
     }
 }
 
@@ -260,6 +281,15 @@ pixman_region32_copy_from_region16 (pixman_region32_t *dst,
 	free (boxes32);
 
     return retval;
+}
+
+/* This function is exported for the sake of the test suite and not part
+ * of the ABI.
+ */
+PIXMAN_EXPORT pixman_implementation_t *
+_pixman_internal_only_get_implementation (void)
+{
+    return get_implementation ();
 }
 
 #ifdef DEBUG

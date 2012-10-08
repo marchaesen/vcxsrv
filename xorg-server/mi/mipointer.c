@@ -575,13 +575,8 @@ miPointerSetPosition(DeviceIntPtr pDev, int mode, double *screenx,
 
     miPointerPtr pPointer;
 
-    if (!pDev)
-        return NULL;
-
     pPointer = MIPOINTER(pDev);
     pScreen = pPointer->pScreen;
-    if (!pScreen)
-        return NULL;            /* called before ready */
 
     x = trunc(*screenx);
     y = trunc(*screeny);

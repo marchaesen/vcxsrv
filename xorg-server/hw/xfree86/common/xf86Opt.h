@@ -85,7 +85,7 @@ extern _X_EXPORT int xf86CheckIntOption(XF86OptionPtr optlist, const char *name,
 extern _X_EXPORT double xf86CheckRealOption(XF86OptionPtr optlist,
                                             const char *name, double deflt);
 extern _X_EXPORT char *xf86CheckStrOption(XF86OptionPtr optlist,
-                                          const char *name, char *deflt);
+                                          const char *name, const char *deflt);
 extern _X_EXPORT int xf86CheckBoolOption(XF86OptionPtr list, const char *name,
                                          int deflt);
 extern _X_EXPORT double xf86CheckPercentOption(XF86OptionPtr list,

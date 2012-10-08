@@ -2095,7 +2095,7 @@ ProcXDGADispatch(ClientPtr client)
 {
     REQUEST(xReq);
 
-    if (!LocalClient(client))
+    if (!client->local)
         return DGAErrorBase + XF86DGAClientNotLocal;
 
 #ifdef DGA_REQ_DEBUG

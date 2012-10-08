@@ -850,7 +850,7 @@ main (int argc, char **argv)
 
     pixman_disable_out_of_bounds_workaround ();
 
-    enable_fp_exceptions();
+    enable_divbyzero_exceptions();
 
     if (getenv ("VERBOSE") != NULL)
 	verbose = TRUE;

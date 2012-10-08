@@ -30,10 +30,13 @@ static const pixman_format_code_t formats[] =
     PIXMAN_x14r6g6b6,
     PIXMAN_r8g8b8,
     PIXMAN_b8g8r8,
+#if 0
+    /* These use floating point */
     PIXMAN_x2r10g10b10,
     PIXMAN_a2r10g10b10,
     PIXMAN_x2b10g10r10,
     PIXMAN_a2b10g10r10,
+#endif
     PIXMAN_a1r5g5b5,
     PIXMAN_x1r5g5b5,
     PIXMAN_a1b5g5r5,
@@ -329,7 +332,7 @@ test_glyphs (int testnum, int verbose)
 int
 main (int argc, const char *argv[])
 {
-    return fuzzer_test_main ("glyph", 30000,
-			     0x741CB2DB,
+    return fuzzer_test_main ("glyph", 30000,	
+			     0x79E74996,
 			     test_glyphs, argc, argv);
 }
