@@ -8,7 +8,7 @@ CSRCS =			\
 	pixman-access-accessors.c	\
 	pixman-bits-image.c		\
 	pixman-combine32.c		\
-	pixman-combine64.c		\
+	pixman-combine-float.c		\
 	pixman-conical-gradient.c	\
 	pixman-x86.c			\
 	pixman-mips.c			\
@@ -29,31 +29,10 @@ CSRCS =			\
 	pixman-region16.c		\
 	pixman-region32.c		\
 	pixman-solid-fill.c		\
-	pixman-srgb.c			\
 	pixman-timer.c			\
 	pixman-trap.c			\
 	pixman-utils.c			\
 	$(NULL)
-
-BUILT_SOURCES =				\
-	pixman-combine32.c		\
-	pixman-combine32.h		\
-	pixman-combine64.c		\
-	pixman-combine64.h		\
-	$(NULL)
-
-$(OBJDIR)\pixman-srgb.c: make-srgb.pl
-	perl make-srgb.pl > $@
-
-$(OBJDIR)\pixman-combine32.c : pixman-combine.c.template $(OBJDIR)\pixman-combine32.h make-combine.pl
-	perl make-combine.pl 8 < pixman-combine.c.template > $@
-$(OBJDIR)\pixman-combine32.h : pixman-combine.h.template make-combine.pl
-	perl make-combine.pl 8 < pixman-combine.h.template > $@
-
-$(OBJDIR)\pixman-combine64.c : pixman-combine.c.template $(OBJDIR)\pixman-combine64.h make-combine.pl
-	perl make-combine.pl 16 < pixman-combine.c.template > $@
-$(OBJDIR)\pixman-combine64.h : pixman-combine.h.template make-combine.pl
-	perl make-combine.pl 16 < pixman-combine.h.template > $@
 
 ## mmx code
 CSRCS += pixman-mmx.c
