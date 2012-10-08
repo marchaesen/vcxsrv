@@ -82,6 +82,23 @@ SOFTWARE.
 CallbackListPtr ReplyCallback;
 CallbackListPtr FlushCallback;
 
+typedef struct _connectionInput {
+    struct _connectionInput *next;
+    char *buffer;               /* contains current client input */
+    char *bufptr;               /* pointer to current start of data */
+    int bufcnt;                 /* count of bytes in buffer */
+    int lenLastReq;
+    int size;
+    unsigned int ignoreBytes;   /* bytes to ignore before the next request */
+} ConnectionInput;
+
+typedef struct _connectionOutput {
+    struct _connectionOutput *next;
+    unsigned char *buf;
+    int size;
+    int count;
+} ConnectionOutput;
+
 static ConnectionInputPtr AllocateInputBuffer(void);
 static ConnectionOutputPtr AllocateOutputBuffer(void);
 
@@ -846,10 +863,13 @@ FlushClient(ClientPtr who, OsCommPtr oc, const void *__extraBuf, int extraCount)
     long todo;
 
     if (!oco)
-        return 0;
+	return 0;
     written = 0;
     padsize = padding_for_int32(extraCount);
     notWritten = oco->count + extraCount + padsize;
+    if (!notWritten)
+        return 0;
+
     todo = notWritten;
     while (notWritten) {
         long before = written;  /* amount of whole thing written */

@@ -26,12 +26,11 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.13.0, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2012-09-05"
-RELEASE_NAME="Iced Tea"
+AC_INIT([xorg-server], 1.13.99.0, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2012-10-04"
+RELEASE_NAME="Horchata"
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
-AM_MAINTAINER_MODE
 
 # Require xorg-macros minimum of 1.14 for XORG_COMPILER_BRAND in XORG_DEFAULT_OPTIONS
 m4_ifndef([XORG_MACROS_VERSION],

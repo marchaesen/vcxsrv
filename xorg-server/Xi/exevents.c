@@ -951,8 +951,6 @@ UpdateDeviceState(DeviceIntPtr device, DeviceEvent *event)
 
         if (!(event->flags & TOUCH_POINTER_EMULATED))
             return DONT_PROCESS;
-        if (!(event->flags & TOUCH_END))
-            return DONT_PROCESS;
 
         DecreaseButtonCount(device, key, &t->buttonsDown, &t->motionMask,
                             &t->state);

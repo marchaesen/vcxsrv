@@ -3433,6 +3433,12 @@
             </languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>ibm</name>
+            <_description>Italian (IBM 142)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>

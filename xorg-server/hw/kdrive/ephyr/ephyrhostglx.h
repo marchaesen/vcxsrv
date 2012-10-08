@@ -55,13 +55,16 @@ Bool ephyrHostGLXGetMajorOpcode(int32_t * a_opcode);
 Bool ephyrHostGLXSendClientInfo(int32_t a_major, int32_t a_minor,
                                 const char *a_extension_list);
 Bool ephyrHostGLXCreateContext(int a_screen,
-                               int a_visual_id,
+                               int a_generic_id,
                                int a_context_id,
-                               int a_shared_list_ctx_id, Bool a_direct);
+                               int a_share_list_ctxt_id,
+                               int a_render_type,
+                               Bool a_direct,
+                               int code);
 
 Bool ephyrHostDestroyContext(int a_ctxt_id);
 
-Bool ephyrHostGLXMakeCurrent(int a_drawable, int a_glx_ctxt_id,
+Bool ephyrHostGLXMakeCurrent(int a_drawable, int a_readable, int a_glx_ctxt_id,
                              int a_olg_ctxt_tag, int *a_ctxt_tag);
 
 Bool ephyrHostGetIntegerValue(int a_current_context_tag, int a_int, int *a_val);

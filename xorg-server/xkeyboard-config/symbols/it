@@ -255,3 +255,46 @@ xkb_symbols "htcdream" {
 
         include "level3(alt_switch)"
 };
+
+partial alphanumeric_keys
+xkb_symbols "ibm" {
+
+    // Modifies the basic italian layout to match IBM 142 variant
+
+    include "us"
+
+    name[Group1]="Italian (IBM 142)";
+
+    key <TLDE>	{ [ backslash,        bar                             ] };
+
+    key <AE02>	{ [         2,   quotedbl                             ] };
+    key <AE03>	{ [         3,   sterling,   numbersign               ] };
+    key <AE06>	{ [         6,  ampersand                             ] };
+    key <AE07>	{ [         7,      slash,    braceleft               ] };
+    key <AE08>	{ [         8,  parenleft,  bracketleft               ] };
+    key <AE09>	{ [         9, parenright, bracketright               ] };
+    key <AE10>	{ [         0,      equal,   braceright               ] };
+    key <AE11>	{ [apostrophe,   question                             ] };
+    key <AE12>	{ [    igrave, asciicircum                            ] };
+
+    key <AD01>	{ [         q,           Q,          at               ] };
+    key <AD03>	{ [         e,           E,    EuroSign               ] };
+    key <AD11>	{ [    egrave,     eacute                             ] };
+    key <AD12>	{ [      plus,   asterisk,   asciitilde               ] };
+
+    key <AC10>	{ [    ograve,   ccedilla                             ] };
+    key <AC11>	{ [    agrave,     degree                             ] };
+
+    key <AB08>	{ [     comma,  semicolon                             ] };
+    key <AB09>	{ [    period,      colon                             ] };
+    key <AB10>	{ [     minus, underscore                             ] };
+
+    key <BKSL>	{ [    ugrave,    section,       grave                ] };
+
+    key <LSGT>	{ [      less,    greater                             ] };
+
+    include "level3(ralt_switch)"
+    include "kpdl(comma)"
+
+};
+

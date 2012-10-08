@@ -172,10 +172,12 @@ static pixman_format_code_t img_fmt_list[] = {
     PIXMAN_x14r6g6b6,
     PIXMAN_r8g8b8,
     PIXMAN_b8g8r8,
+#if 0 /* These are going to use floating point in the near future */
     PIXMAN_x2r10g10b10,
     PIXMAN_a2r10g10b10,
     PIXMAN_x2b10g10r10,
     PIXMAN_a2b10g10r10,
+#endif
     PIXMAN_a1r5g5b5,
     PIXMAN_x1r5g5b5,
     PIXMAN_a1b5g5r5,
@@ -395,6 +397,6 @@ main (int argc, const char *argv[])
     }
 
     return fuzzer_test_main("blitters", 2000000,
-			    0x3E1DD2E8,
+			    0x46136E0A,
 			    test_composite, argc, argv);
 }

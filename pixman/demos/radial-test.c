@@ -133,7 +133,7 @@ main (int argc, char **argv)
     pixman_image_t *src_img, *dest_img;
     int i, j;
 
-    enable_fp_exceptions ();
+    enable_divbyzero_exceptions ();
 
     dest_img = pixman_image_create_bits (PIXMAN_a8r8g8b8,
 					 WIDTH, HEIGHT,

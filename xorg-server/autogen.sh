@@ -9,4 +9,4 @@ cd $srcdir
 autoreconf --force -v --install || exit 1
 cd $ORIGDIR || exit $?
 
-$srcdir/configure --enable-maintainer-mode "$@"
+$srcdir/configure "$@"

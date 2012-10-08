@@ -278,9 +278,10 @@ ProcXF86BigfontQueryVersion(ClientPtr client)
     xXF86BigfontQueryVersionReply reply;
 
     REQUEST_SIZE_MATCH(xXF86BigfontQueryVersionReq);
+
     reply.type = X_Reply;
-    reply.length = 0;
     reply.sequenceNumber = client->sequence;
+    reply.length = 0;
     reply.majorVersion = SERVER_XF86BIGFONT_MAJOR_VERSION;
     reply.minorVersion = SERVER_XF86BIGFONT_MINOR_VERSION;
     #ifdef WIN32
@@ -292,7 +293,8 @@ ProcXF86BigfontQueryVersion(ClientPtr client)
     #endif
 #ifdef HAS_SHM
     reply.signature = signature;
-    reply.capabilities = (LocalClient(client) && !client->swapped ? XF86Bigfont_CAP_LocalShm : 0);
+    reply.capabilities = (client->local && !client->swapped)
+                         ? XF86Bigfont_CAP_LocalShm : 0
 #else
     reply.signature = 0;        /* This is redundant. Avoids uninitialized memory. */
     reply.capabilities = 0;
@@ -360,7 +362,7 @@ ProcXF86BigfontQueryFont(ClientPtr client)
 #else
     switch (client->req_len) {
     case 2:                    /* client with version 1.0 libX11 */
-        stuff_flags = (LocalClient(client) &&
+        stuff_flags = (client->local &&
                        !client->swapped ? XF86Bigfont_FLAGS_Shm : 0);
         break;
     case 3:                    /* client with version 1.1 libX11 */

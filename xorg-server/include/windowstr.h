@@ -86,8 +86,8 @@ typedef struct _WindowOpt {
     struct _OtherClients *otherClients; /* default: NULL */
     struct _GrabRec *passiveGrabs;      /* default: NULL */
     PropertyPtr userProps;      /* default: NULL */
-    unsigned long backingBitPlanes;     /* default: ~0L */
-    unsigned long backingPixel; /* default: 0 */
+    CARD32 backingBitPlanes;    /* default: ~0L */
+    CARD32 backingPixel;        /* default: 0 */
     RegionPtr boundingShape;    /* default: NULL */
     RegionPtr clipShape;        /* default: NULL */
     RegionPtr inputShape;       /* default: NULL */
