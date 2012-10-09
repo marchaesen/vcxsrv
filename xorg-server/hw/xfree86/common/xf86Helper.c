@@ -1898,3 +1898,9 @@ xf86ScrnToScreen(ScrnInfoPtr pScrn)
         return screenInfo.screens[pScrn->scrnIndex];
     }
 }
+
+void
+xf86UpdateDesktopDimensions(void)
+{
+    update_desktop_dimensions();
+}

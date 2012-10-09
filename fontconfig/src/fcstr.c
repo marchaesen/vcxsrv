@@ -974,6 +974,10 @@ FcStrCanonAbsoluteFilename (const FcChar8 *s)
     FcMemAlloc (FC_MEM_STRING, size);
     slash = NULL;
     f = file;
+#ifdef _WIN32
+    if (*s == '/' && *(s+1) == '/') /* Network path, do not squash // */
+	*f++ = *s++;
+#endif
     for (;;) {
 	if (*s == '/' || *s == '\0')
 	{

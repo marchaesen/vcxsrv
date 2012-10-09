@@ -13,7 +13,7 @@
 -->
 <!ELEMENT dir (#PCDATA)>
 <!ATTLIST dir
-	  prefix    (#PCDATA)	       "default"
+	  prefix    CDATA       "default"
 	  xml:space (default|preserve) 'preserve'>
 
 <!--
@@ -36,7 +36,7 @@
 -->
 <!ELEMENT cachedir (#PCDATA)>
 <!ATTLIST cachedir
-	  prefix    (#PCDATA)	       "default"
+	  prefix    CDATA      "default"
 	  xml:space (default|preserve) 'preserve'>
 
 <!--
@@ -52,8 +52,8 @@
 <!ELEMENT include (#PCDATA)>
 <!ATTLIST include
 	  ignore_missing    (no|yes)		"no"
-	  prefix	    (#PCDATA)		"default"
-	  deprecated	    (#PCDATA)		"no"
+	  prefix	    CDATA               "default"
+	  deprecated	    (yes|no)		"no"
 	  xml:space	    (default|preserve)	"preserve">
 
 <!--
@@ -165,7 +165,7 @@
 	  qual (any|all|first|not_first)    "any"
 	  name CDATA	    #REQUIRED
 	  target (pattern|font|default)		"default"
-	  ignore-blanks (#PCDATA)	"false"
+	  ignore-blanks (true|false)	"false"
 	  compare (eq|not_eq|less|less_eq|more|more_eq|contains|not_contains)	"eq">
 
 <!--

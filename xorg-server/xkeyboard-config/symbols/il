@@ -126,8 +126,16 @@ xkb_symbols "lyx" {
     // Note the parens mirroring below:
     key <AD11> { [ bracketright,	braceright	]       };
     key <AD12> { [ bracketleft,	braceleft	]       };
-    key <AE09> { [ 9         ,	parenright	]       };
-    key <AE10> { [ 0         ,	parenleft	]       };
+    key <AE01> { [ 1, exclam      ]};
+    key <AE02> { [ 2, at          ]};
+    key <AE03> { [ 3, numbersign  ]};
+    key <AE04> { [ 4, dollar      ]};
+    key <AE05> { [ 5, percent     ]};
+    key <AE06> { [ 6, asciicircum ]};
+    key <AE07> { [ 7, ampersand   ]};
+    key <AE08> { [ 8, asterisk    ]};
+    key <AE09> { [ 9, parenright  ]};
+    key <AE10> { [ 0, parenleft	  ]};
     
     key <AE11> { [ minus     ,	0x10005be	]	}; // H. Hiphen
     key <AE12> { [ equal     ,	plus		]	};
