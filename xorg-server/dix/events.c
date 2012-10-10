@@ -1593,13 +1593,10 @@ DeactivateKeyboardGrab(DeviceIntPtr keybd)
 {
     GrabPtr grab = keybd->deviceGrab.grab;
     DeviceIntPtr dev;
-    WindowPtr focusWin = keybd->focus ? keybd->focus->win
-        : keybd->spriteInfo->sprite->win;
+    WindowPtr focusWin;
     Bool wasImplicit = (keybd->deviceGrab.fromPassiveGrab &&
                         keybd->deviceGrab.implicitGrab);
 
-    if (focusWin == FollowKeyboardWin)
-        focusWin = inputInfo.keyboard->focus->win;
     if (keybd->valuator)
         keybd->valuator->motionHintWindow = NullWindow;
     keybd->deviceGrab.grab = NullGrab;
@@ -1610,6 +1607,17 @@ DeactivateKeyboardGrab(DeviceIntPtr keybd)
         if (dev->deviceGrab.sync.other == grab)
             dev->deviceGrab.sync.other = NullGrab;
     }
+
+    if (keybd->focus)
+        focusWin = keybd->focus->win;
+    else if (keybd->spriteInfo->sprite)
+        focusWin = keybd->spriteInfo->sprite->win;
+    else
+        focusWin = NullWindow;
+
+    if (focusWin == FollowKeyboardWin)
+        focusWin = inputInfo.keyboard->focus->win;
+
     DoFocusEvents(keybd, grab->window, focusWin, NotifyUngrab);
 
     if (!wasImplicit && grab->grabtype == XI2)

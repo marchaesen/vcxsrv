@@ -129,7 +129,7 @@ OsSigHandler(int signo)
 
 #ifdef SA_SIGINFO
     if (sip->si_code == SI_USER) {
-        ErrorFSigSafe("Recieved signal %u sent by process %u, uid %u\n", signo,
+        ErrorFSigSafe("Received signal %u sent by process %u, uid %u\n", signo,
                      sip->si_pid, sip->si_uid);
     }
     else {
