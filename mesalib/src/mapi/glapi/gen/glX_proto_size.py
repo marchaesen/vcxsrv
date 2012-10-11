@@ -450,14 +450,14 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
 
 
     def printRealHeader(self):
-		print ''
-		print '#ifdef HAVE_DIX_CONFIG_H'
-		print '#include <dix-config.h>'
-		print '#else'
-		print ''
-		print '#include "glheader.h"'
-		print ''
-		print '#endif'
+        print ''
+        print '#ifdef HAVE_DIX_CONFIG_H'
+        print '#include <dix-config.h>'
+        print '#else'
+        print ''
+        print '#include "glheader.h"'
+        print ''
+        print '#endif'
         print ''
         print '#include <GL/gl.h>'
         print '#include "glxserver.h"'

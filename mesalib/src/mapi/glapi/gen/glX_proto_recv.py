@@ -78,14 +78,14 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
 
 
     def printRealHeader(self):
-		print '#ifdef HAVE_DIX_CONFIG_H'
-		print '#include <dix-config.h>'
-		print '#else'
-		print ''
-		print '#include "glheader.h"'
-		print ''
-		print '#endif'
-		print ''
+        print '#ifdef HAVE_DIX_CONFIG_H'
+        print '#include <dix-config.h>'
+        print '#else'
+        print ''
+        print '#include "glheader.h"'
+        print ''
+        print '#endif'
+        print ''
         print '#include <X11/Xmd.h>'
         print '#include <GL/gl.h>'
         print '#include <GL/glxproto.h>'
@@ -286,10 +286,10 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
             if param.is_image():
                 offset = f.offset_of( param.name )
 
-				if cond:
-                print '%s    %s const %s = (%s) (%s(pc + %s));' % (indent, type_string, param.name, type_string, cond, offset)
-				else:
-                print '%s    %s const %s = (%s) (pc + %s);' % (indent, type_string, param.name, type_string, offset)
+                if cond:
+                    print '%s    %s const %s = (%s) (%s(pc + %s));' % (indent, type_string, param.name, type_string, cond, offset)
+                else:
+                    print '%s    %s const %s = (%s) (pc + %s);' % (indent, type_string, param.name, type_string, offset)
 
                 if param.depth:
                     print '%s    __GLXpixel3DHeader * const hdr = (__GLXpixel3DHeader *)(pc);' % (indent)
