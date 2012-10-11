@@ -981,7 +981,7 @@ Display_Stats_Info (struct wininfo *w)
 
 	    visual_iter = xcb_depth_visuals_iterator (depth_iter.data);
 	    for (; visual_iter.rem; xcb_visualtype_next (&visual_iter)) {
-		if (screen->root_visual == visual_iter.data->visual_id) {
+		if (win_attributes->visual == visual_iter.data->visual_id) {
 		    visual_type = visual_iter.data;
 		    break;
 		}
