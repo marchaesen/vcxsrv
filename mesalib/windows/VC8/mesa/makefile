@@ -44,7 +44,8 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       $(wildcard ..\..\..\src\mesa\drivers\common\*.h) \
       ..\..\..\src\mesa\main\dispatch.h \
       ..\..\..\src\mesa\main\glapitable.h \
-      ..\..\..\src\mesa\main\enums.c
+      ..\..\..\src\mesa\main\enums.c \
+      ..\..\..\src\mesa\main\get_hash.h
 
 all: Release\swrast_dri.dll Debug\swrast_dri.dll
 
@@ -57,11 +58,17 @@ all: Release\swrast_dri.dll Debug\swrast_dri.dll
 ..\..\..\src\mesa\main\enums.c: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml)
 	cd ..\..\..\src\mapi\glapi\gen & python gl_enums.py -f gl_and_es_API.xml > ..\..\..\mesa\main\enums.c
 
+API_DEFINES=-DFEATURE_GL=1
+GET_HASH_GEN = ..\..\..\src\mesa\main\get_hash_generator.py
+GET_HASH_GEN_FLAGS := $(patsubst -DFEATURE_%=1,-a %, $(patsubst -DFEATURE_%=0,,$(API_DEFINES)))
+..\..\..\src\mesa\main\get_hash.h: ..\..\..\src\mapi\glapi\gen\gl_and_es_API.xml ..\..\..\src\mesa\main\get_hash_params.py $(GET_HASH_GEN)
+	python $(GET_HASH_GEN) $(GET_HASH_GEN_FLAGS) -f $< > $@
+
 Debug\swrast_dri.dll: $(DEPS)
-	$(BUILDCMD) "Debug|Win32" 
+	$(BUILDCMD) "Debug|Win32"
 
 Release\swrast_dri.dll: $(DEPS)
-	$(BUILDCMD) "Release|Win32" 
+	$(BUILDCMD) "Release|Win32"
 
 clean: cleanthis
 
