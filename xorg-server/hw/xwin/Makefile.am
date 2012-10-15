@@ -109,13 +109,16 @@ SRCS =	InitInput.c \
 	winclipboard.h \
 	winconfig.h \
 	win.h \
+	winglobals.h \
 	winkeybd.h \
 	winkeynames.h \
 	winlayouts.h \
 	winmessages.h \
+	winmonitors.h \
 	winmsg.h \
 	winms.h \
 	winmultiwindowclass.h \
+	winmultiwindowicons.h \
 	winprefs.h \
 	winresource.h \
 	winwindow.h \

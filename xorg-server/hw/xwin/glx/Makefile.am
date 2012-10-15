@@ -6,7 +6,8 @@ libXwinGLX_la_SOURCES = \
 	glwindows.h \
 	glwrap.c \
 	indirect.c \
-	wgl_ext_api.c
+	wgl_ext_api.c \
+	wgl_ext_api.h
 
 if XWIN_MULTIWINDOW
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW

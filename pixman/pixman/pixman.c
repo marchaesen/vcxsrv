@@ -605,6 +605,7 @@ pixman_image_composite32 (pixman_op_t      op,
     if ((mask_format == PIXMAN_a8r8g8b8 || mask_format == PIXMAN_a8b8g8r8) &&
 	(src->type == BITS && src->bits.bits == mask->bits.bits)	   &&
 	(src->common.repeat == mask->common.repeat)			   &&
+	(src_flags & mask_flags & FAST_PATH_ID_TRANSFORM)		   &&
 	(src_x == mask_x && src_y == mask_y))
     {
 	if (src_format == PIXMAN_x8b8g8r8)

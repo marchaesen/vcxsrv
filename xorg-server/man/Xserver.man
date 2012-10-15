@@ -130,7 +130,7 @@ causes the server to generate a core dump on fatal errors.
 .B \-displayfd \fIfd\fP
 specifies a file descriptor in the launching process.  Rather than specify
 a display number, the X server will attempt to listen on successively higher
-display numbers, and upon finding a free one, will write the port number back
+display numbers, and upon finding a free one, will write the display number back
 on this file descriptor as a newline-terminated string.  The \-pn option is
 ignored when using \-displayfd.
 .TP 8
