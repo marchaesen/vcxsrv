@@ -60,16 +60,10 @@ _mesa_register_file_name(gl_register_file f)
       return "INPUT";
    case PROGRAM_OUTPUT:
       return "OUTPUT";
-   case PROGRAM_NAMED_PARAM:
-      return "NAMED";
    case PROGRAM_CONSTANT:
       return "CONST";
    case PROGRAM_UNIFORM:
       return "UNIFORM";
-   case PROGRAM_VARYING:
-      return "VARYING";
-   case PROGRAM_WRITE_ONLY:
-      return "WRITE_ONLY";
    case PROGRAM_ADDRESS:
       return "ADDR";
    case PROGRAM_SAMPLER:
@@ -350,9 +344,6 @@ reg_string(gl_register_file f, GLint index, gl_prog_print_mode mode,
       case PROGRAM_LOCAL_PARAM:
          sprintf(str, "program.local[%s%d]", addr, index);
          break;
-      case PROGRAM_VARYING: /* extension */
-         sprintf(str, "varying[%s%d]", addr, index);
-         break;
       case PROGRAM_CONSTANT: /* extension */
          sprintf(str, "constant[%s%d]", addr, index);
          break;
@@ -373,40 +364,6 @@ reg_string(gl_register_file f, GLint index, gl_prog_print_mode mode,
          break;
       case PROGRAM_ADDRESS:
          sprintf(str, "A%d", index);
-         break;
-      default:
-         _mesa_problem(NULL, "bad file in reg_string()");
-      }
-      break;
-
-   case PROG_PRINT_NV:
-      switch (f) {
-      case PROGRAM_INPUT:
-         if (prog->Target == GL_VERTEX_PROGRAM_ARB)
-            sprintf(str, "v[%d]", index);
-         else
-            sprintf(str, "f[%d]", index);
-         break;
-      case PROGRAM_OUTPUT:
-         sprintf(str, "o[%d]", index);
-         break;
-      case PROGRAM_TEMPORARY:
-         sprintf(str, "R%d", index);
-         break;
-      case PROGRAM_ENV_PARAM:
-         sprintf(str, "c[%d]", index);
-         break;
-      case PROGRAM_VARYING: /* extension */
-         sprintf(str, "varying[%s%d]", addr, index);
-         break;
-      case PROGRAM_UNIFORM: /* extension */
-         sprintf(str, "uniform[%s%d]", addr, index);
-         break;
-      case PROGRAM_CONSTANT: /* extension */
-         sprintf(str, "constant[%s%d]", addr, index);
-         break;
-      case PROGRAM_STATE_VAR: /* extension */
-         sprintf(str, "state[%s%d]", addr, index);
          break;
       default:
          _mesa_problem(NULL, "bad file in reg_string()");
@@ -748,13 +705,6 @@ _mesa_fprint_instruction_opt(FILE *f,
       fprint_src_reg(f, &inst->SrcReg[0], mode, prog);
       fprint_comment(f, inst);
       break;
-   case OPCODE_BRA:
-      fprintf(f, "BRA %d (%s%s)",
-	      inst->BranchTarget,
-	      _mesa_condcode_string(inst->DstReg.CondMask),
-	      _mesa_swizzle_string(inst->DstReg.CondSwizzle, 0, GL_FALSE));
-      fprint_comment(f, inst);
-      break;
    case OPCODE_IF:
       if (inst->SrcReg[0].File != PROGRAM_UNDEFINED) {
          /* Use ordinary register */
@@ -795,15 +745,9 @@ _mesa_fprint_instruction_opt(FILE *f,
       break;
 
    case OPCODE_BGNSUB:
-      if (mode == PROG_PRINT_NV) {
-         fprintf(f, "%s:\n", inst->Comment); /* comment is label */
-         return indent;
-      }
-      else {
-         fprintf(f, "BGNSUB");
-         fprint_comment(f, inst);
-         return indent + 3;
-      }
+      fprintf(f, "BGNSUB");
+      fprint_comment(f, inst);
+      return indent + 3;
    case OPCODE_ENDSUB:
       if (mode == PROG_PRINT_DEBUG) {
          fprintf(f, "ENDSUB");
@@ -811,13 +755,8 @@ _mesa_fprint_instruction_opt(FILE *f,
       }
       break;
    case OPCODE_CAL:
-      if (mode == PROG_PRINT_NV) {
-         fprintf(f, "CAL %s;  # (goto %d)\n", inst->Comment, inst->BranchTarget);
-      }
-      else {
-         fprintf(f, "CAL %u", inst->BranchTarget);
-         fprint_comment(f, inst);
-      }
+      fprintf(f, "CAL %u", inst->BranchTarget);
+      fprint_comment(f, inst);
       break;
    case OPCODE_RET:
       fprintf(f, "RET (%s%s)",
@@ -900,17 +839,12 @@ _mesa_fprint_program_opt(FILE *f,
    case GL_VERTEX_PROGRAM_ARB:
       if (mode == PROG_PRINT_ARB)
          fprintf(f, "!!ARBvp1.0\n");
-      else if (mode == PROG_PRINT_NV)
-         fprintf(f, "!!VP1.0\n");
       else
          fprintf(f, "# Vertex Program/Shader %u\n", prog->Id);
       break;
    case GL_FRAGMENT_PROGRAM_ARB:
-   case GL_FRAGMENT_PROGRAM_NV:
       if (mode == PROG_PRINT_ARB)
          fprintf(f, "!!ARBfp1.0\n");
-      else if (mode == PROG_PRINT_NV)
-         fprintf(f, "!!FP1.0\n");
       else
          fprintf(f, "# Fragment Program/Shader %u\n", prog->Id);
       break;
@@ -1036,14 +970,6 @@ _mesa_fprint_parameter_list(FILE *f,
 	      i, param->Size,
 	      _mesa_register_file_name(list->Parameters[i].Type),
 	      param->Name, v[0], v[1], v[2], v[3]);
-      if (param->Flags & PROG_PARAM_BIT_CENTROID)
-         fprintf(f, " Centroid");
-      if (param->Flags & PROG_PARAM_BIT_INVARIANT)
-         fprintf(f, " Invariant");
-      if (param->Flags & PROG_PARAM_BIT_FLAT)
-         fprintf(f, " Flat");
-      if (param->Flags & PROG_PARAM_BIT_LINEAR)
-         fprintf(f, " Linear");
       fprintf(f, "\n");
    }
 }

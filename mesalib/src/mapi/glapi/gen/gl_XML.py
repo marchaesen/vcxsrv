@@ -25,6 +25,7 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+from decimal import Decimal
 import libxml2
 import re, sys, string
 import typeexpr
@@ -72,7 +73,7 @@ def is_attr_true( element, name ):
         raise RuntimeError('Invalid value "%s" for boolean "%s".' % (value, name))
 
 
-class gl_print_base:
+class gl_print_base(object):
     """Base class of all API pretty-printers.
 
     In the model-view-controller pattern, this is the view.  Any derived
@@ -322,7 +323,7 @@ def create_parameter_string(parameters, include_names):
     return string.join(list, ", ")
 
 
-class gl_item:
+class gl_item(object):
     def __init__(self, element, context):
         self.context = context
         self.name = element.nsProp( "name", None )
@@ -401,7 +402,7 @@ class gl_enum( gl_item ):
 
 
 
-class gl_parameter:
+class gl_parameter(object):
     def __init__(self, element, context):
         self.name = element.nsProp( "name", None )
 
@@ -606,6 +607,16 @@ class gl_function( gl_item ):
         self.initialized = 0
         self.images = []
 
+        # self.entry_point_api_map[name][api] is a decimal value
+        # indicating the earliest version of the given API in which
+        # each entry point exists.  Every entry point is included in
+        # the first level of the map; the second level of the map only
+        # lists APIs which contain the entry point in at least one
+        # version.  For example,
+        # self.entry_point_gles_map['ClipPlanex'] == { 'es1':
+        # Decimal('1.1') }.
+        self.entry_point_api_map = {}
+
         self.assign_offset = 0
 
         self.static_entry_points = []
@@ -634,6 +645,14 @@ class gl_function( gl_item ):
             self.static_entry_points.append(name)
 
         self.entry_points.append( name )
+
+        self.entry_point_api_map[name] = {}
+        for api in ('es1', 'es2'):
+            version_str = element.nsProp(api, None)
+            assert version_str is not None
+            if version_str != 'none':
+                self.entry_point_api_map[name][api] = Decimal(version_str)
+
         if alias:
             true_name = alias
         else:
@@ -779,8 +798,24 @@ class gl_function( gl_item ):
         else:
             return "_dispatch_stub_%u" % (self.offset)
 
+    def entry_points_for_api_version(self, api, version = None):
+        """Return a list of the entry point names for this function
+        which are supported in the given API (and optionally, version).
 
-class gl_item_factory:
+        Use the decimal.Decimal type to precisely express non-integer
+        versions.
+        """
+        result = []
+        for entry_point, api_to_ver in self.entry_point_api_map.iteritems():
+            if api not in api_to_ver:
+                continue
+            if version is not None and version < api_to_ver[api]:
+                continue
+            result.append(entry_point)
+        return result
+
+
+class gl_item_factory(object):
     """Factory to create objects derived from gl_item."""
 
     def create_item(self, item_name, element, context):
@@ -798,7 +833,7 @@ class gl_item_factory:
             return None
 
 
-class gl_api:
+class gl_api(object):
     def __init__(self, factory):
         self.functions_by_name = {}
         self.enums_by_name = {}
@@ -819,6 +854,19 @@ class gl_api:
         functions_by_name = {}
         for func in self.functions_by_name.itervalues():
             entry_points = [ent for ent in func.entry_points if ent in entry_point_list]
+            if entry_points:
+                func.filter_entry_points(entry_points)
+                functions_by_name[func.name] = func
+
+        self.functions_by_name = functions_by_name
+
+    def filter_functions_by_api(self, api, version = None):
+        """Filter out entry points not in the given API (or
+        optionally, not in the given version of the given API).
+        """
+        functions_by_name = {}
+        for func in self.functions_by_name.itervalues():
+            entry_points = func.entry_points_for_api_version(api, version)
             if entry_points:
                 func.filter_entry_points(entry_points)
                 functions_by_name[func.name] = func

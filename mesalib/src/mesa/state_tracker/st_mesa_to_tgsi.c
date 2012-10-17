@@ -49,7 +49,6 @@
 #define PROGRAM_ANY_CONST ((1 << PROGRAM_LOCAL_PARAM) |  \
                            (1 << PROGRAM_ENV_PARAM) |    \
                            (1 << PROGRAM_STATE_VAR) |    \
-                           (1 << PROGRAM_NAMED_PARAM) |  \
                            (1 << PROGRAM_CONSTANT) |     \
                            (1 << PROGRAM_UNIFORM))
 
@@ -221,7 +220,6 @@ src_register( struct st_translate *t,
          t->temps[index] = ureg_DECL_temporary( t->ureg );
       return ureg_src(t->temps[index]);
 
-   case PROGRAM_NAMED_PARAM:
    case PROGRAM_ENV_PARAM:
    case PROGRAM_LOCAL_PARAM:
    case PROGRAM_UNIFORM:
@@ -543,8 +541,6 @@ translate_opcode( unsigned op )
       return TGSI_OPCODE_BGNLOOP;
    case OPCODE_BGNSUB:
       return TGSI_OPCODE_BGNSUB;
-   case OPCODE_BRA:
-      return TGSI_OPCODE_BRA;
    case OPCODE_BRK:
       return TGSI_OPCODE_BRK;
    case OPCODE_CAL:
@@ -1056,19 +1052,10 @@ st_translate_mesa_program(
     */
    if (procType == TGSI_PROCESSOR_FRAGMENT) {
       for (i = 0; i < numInputs; i++) {
-         if (program->InputFlags[0] & PROG_PARAM_BIT_CYL_WRAP) {
-            t->inputs[i] = ureg_DECL_fs_input_cyl(ureg,
-                                                  inputSemanticName[i],
-                                                  inputSemanticIndex[i],
-                                                  interpMode[i],
-                                                  TGSI_CYLINDRICAL_WRAP_X);
-         }
-         else {
-            t->inputs[i] = ureg_DECL_fs_input(ureg,
-                                              inputSemanticName[i],
-                                              inputSemanticIndex[i],
-                                              interpMode[i]);
-         }
+         t->inputs[i] = ureg_DECL_fs_input(ureg,
+                                           inputSemanticName[i],
+                                           inputSemanticIndex[i],
+                                           interpMode[i]);
       }
 
       if (program->InputsRead & FRAG_BIT_WPOS) {
@@ -1211,7 +1198,6 @@ st_translate_mesa_program(
          case PROGRAM_ENV_PARAM:
          case PROGRAM_LOCAL_PARAM:
          case PROGRAM_STATE_VAR:
-         case PROGRAM_NAMED_PARAM:
          case PROGRAM_UNIFORM:
             t->constants[i] = ureg_DECL_constant( ureg, i );
             break;

@@ -259,7 +259,7 @@ descriptor=[
 
 { "apis": ["GL", "GL_CORE", "GLES2"], "params": [
 # == GL_MAX_TEXTURE_COORDS_NV
-  [ "MAX_TEXTURE_COORDS_ARB", "CONTEXT_INT(Const.MaxTextureCoordUnits), extra_ARB_fragment_program_NV_fragment_program" ],
+  [ "MAX_TEXTURE_COORDS_ARB", "CONTEXT_INT(Const.MaxTextureCoordUnits), extra_ARB_fragment_program" ],
   [ "PACK_IMAGE_HEIGHT", "CONTEXT_INT(Pack.ImageHeight), NO_EXTRA" ],
   [ "PACK_ROW_LENGTH", "CONTEXT_INT(Pack.RowLength), NO_EXTRA" ],
   [ "PACK_SKIP_PIXELS", "CONTEXT_INT(Pack.SkipPixels), NO_EXTRA" ],
@@ -289,7 +289,7 @@ descriptor=[
 
 # GL_ARB_fragment_program
 # == GL_MAX_TEXTURE_IMAGE_UNITS_NV
-  [ "MAX_TEXTURE_IMAGE_UNITS_ARB", "CONTEXT_INT(Const.MaxTextureImageUnits), extra_ARB_fragment_program_NV_fragment_program" ],
+  [ "MAX_TEXTURE_IMAGE_UNITS_ARB", "CONTEXT_INT(Const.MaxTextureImageUnits), extra_ARB_fragment_program" ],
   [ "MAX_VERTEX_TEXTURE_IMAGE_UNITS_ARB", "CONTEXT_INT(Const.MaxVertexTextureImageUnits), extra_ARB_vertex_shader" ],
   [ "MAX_COMBINED_TEXTURE_IMAGE_UNITS_ARB", "CONTEXT_INT(Const.MaxCombinedTextureImageUnits), extra_ARB_vertex_shader" ],
 
@@ -513,46 +513,6 @@ descriptor=[
   [ "POINT_SPRITE_R_MODE_NV", "CONTEXT_ENUM(Point.SpriteRMode), extra_NV_point_sprite" ],
   [ "POINT_SPRITE_COORD_ORIGIN", "CONTEXT_ENUM(Point.SpriteOrigin), extra_NV_point_sprite_ARB_point_sprite" ],
 
-# GL_NV_vertex_program
-  [ "VERTEX_PROGRAM_BINDING_NV", "LOC_CUSTOM, TYPE_INT, 0, extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY0_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(0)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY1_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(1)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY2_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(2)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY3_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(3)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY4_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(4)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY5_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(5)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY6_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(6)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY7_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(7)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY8_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(8)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY9_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(9)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY10_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(10)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY11_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(11)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY12_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(12)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY13_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(13)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY14_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(14)].Enabled), extra_NV_vertex_program" ],
-  [ "VERTEX_ATTRIB_ARRAY15_NV", "ARRAY_BOOL(VertexAttrib[VERT_ATTRIB_GENERIC(15)].Enabled), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB0_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[0]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB1_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[1]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB2_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[2]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB3_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[3]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB4_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[4]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB5_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[5]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB6_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[6]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB7_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[7]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB8_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[8]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB9_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[9]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB10_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[10]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB11_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[11]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB12_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[12]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB13_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[13]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB14_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[14]), extra_NV_vertex_program" ],
-  [ "MAP1_VERTEX_ATTRIB15_4_NV", "CONTEXT_BOOL(Eval.Map1Attrib[15]), extra_NV_vertex_program" ],
-
-# GL_NV_fragment_program
-  [ "FRAGMENT_PROGRAM_NV", "CONTEXT_BOOL(FragmentProgram.Enabled), extra_NV_fragment_program" ],
-  [ "FRAGMENT_PROGRAM_BINDING_NV", "LOC_CUSTOM, TYPE_INT, 0, extra_NV_fragment_program" ],
-  [ "MAX_FRAGMENT_PROGRAM_LOCAL_PARAMETERS_NV", "CONST(MAX_NV_FRAGMENT_PROGRAM_PARAMS), extra_NV_fragment_program" ],
-
 # GL_NV_texture_rectangle
   [ "TEXTURE_RECTANGLE_NV", "LOC_CUSTOM, TYPE_BOOLEAN, 0, extra_NV_texture_rectangle" ],
   [ "TEXTURE_BINDING_RECTANGLE_NV", "LOC_CUSTOM, TYPE_INT, TEXTURE_RECT_INDEX, extra_NV_texture_rectangle" ],
@@ -582,23 +542,23 @@ descriptor=[
 
 # GL_ARB_vertex_program
 # == GL_VERTEX_PROGRAM_NV
-  [ "VERTEX_PROGRAM_ARB", "CONTEXT_BOOL(VertexProgram.Enabled), extra_ARB_vertex_program_NV_vertex_program" ],
+  [ "VERTEX_PROGRAM_ARB", "CONTEXT_BOOL(VertexProgram.Enabled), extra_ARB_vertex_program" ],
 # == GL_VERTEX_PROGRAM_POINT_SIZE_NV
-  [ "VERTEX_PROGRAM_POINT_SIZE_ARB", "CONTEXT_BOOL(VertexProgram.PointSizeEnabled), extra_ARB_vertex_program_NV_vertex_program" ],
+  [ "VERTEX_PROGRAM_POINT_SIZE_ARB", "CONTEXT_BOOL(VertexProgram.PointSizeEnabled), extra_ARB_vertex_program" ],
 # == GL_VERTEX_PROGRAM_TWO_SIDE_NV
-  [ "VERTEX_PROGRAM_TWO_SIDE_ARB", "CONTEXT_BOOL(VertexProgram.TwoSideEnabled), extra_ARB_vertex_program_NV_vertex_program" ],
+  [ "VERTEX_PROGRAM_TWO_SIDE_ARB", "CONTEXT_BOOL(VertexProgram.TwoSideEnabled), extra_ARB_vertex_program" ],
 # == GL_MAX_TRACK_MATRIX_STACK_DEPTH_NV
-  [ "MAX_PROGRAM_MATRIX_STACK_DEPTH_ARB", "CONTEXT_INT(Const.MaxProgramMatrixStackDepth), extra_ARB_vertex_program_ARB_fragment_program_NV_vertex_program" ],
+  [ "MAX_PROGRAM_MATRIX_STACK_DEPTH_ARB", "CONTEXT_INT(Const.MaxProgramMatrixStackDepth), extra_ARB_vertex_program_ARB_fragment_program" ],
 # == GL_MAX_TRACK_MATRICES_NV
-  [ "MAX_PROGRAM_MATRICES_ARB", "CONTEXT_INT(Const.MaxProgramMatrices), extra_ARB_vertex_program_ARB_fragment_program_NV_vertex_program" ],
+  [ "MAX_PROGRAM_MATRICES_ARB", "CONTEXT_INT(Const.MaxProgramMatrices), extra_ARB_vertex_program_ARB_fragment_program" ],
 # == GL_CURRENT_MATRIX_STACK_DEPTH_NV
-  [ "CURRENT_MATRIX_STACK_DEPTH_ARB", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_vertex_program_ARB_fragment_program_NV_vertex_program" ],
+  [ "CURRENT_MATRIX_STACK_DEPTH_ARB", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_vertex_program_ARB_fragment_program" ],
 # == GL_CURRENT_MATRIX_NV
-  [ "CURRENT_MATRIX_ARB", "LOC_CUSTOM, TYPE_MATRIX, 0, extra_ARB_vertex_program_ARB_fragment_program_NV_vertex_program" ],
+  [ "CURRENT_MATRIX_ARB", "LOC_CUSTOM, TYPE_MATRIX, 0, extra_ARB_vertex_program_ARB_fragment_program" ],
 # == GL_CURRENT_MATRIX_NV
   [ "TRANSPOSE_CURRENT_MATRIX_ARB", "LOC_CUSTOM, TYPE_MATRIX, 0, extra_ARB_vertex_program_ARB_fragment_program" ],
 # == GL_PROGRAM_ERROR_POSITION_NV
-  [ "PROGRAM_ERROR_POSITION_ARB", "CONTEXT_INT(Program.ErrorPos), extra_NV_vertex_program_ARB_vertex_program_ARB_fragment_program_NV_vertex_program" ],
+  [ "PROGRAM_ERROR_POSITION_ARB", "CONTEXT_INT(Program.ErrorPos), extra_ARB_vertex_program_ARB_fragment_program" ],
 
 # GL_ARB_fragment_program
   [ "FRAGMENT_PROGRAM_ARB", "CONTEXT_BOOL(FragmentProgram.Enabled), extra_ARB_fragment_program" ],

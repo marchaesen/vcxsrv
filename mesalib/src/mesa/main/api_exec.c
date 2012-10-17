@@ -87,7 +87,6 @@
 #include "mtypes.h"
 #include "varray.h"
 #include "viewport.h"
-#include "nvprogram.h"
 #include "shaderapi.h"
 #include "uniforms.h"
 #include "syncobj.h"
@@ -476,31 +475,10 @@ _mesa_create_exec_table(struct gl_context *ctx)
    if (ctx->API == API_OPENGL) {
       SET_BindProgramNV(exec, _mesa_BindProgram);
       SET_DeleteProgramsNV(exec, _mesa_DeletePrograms);
-      SET_ExecuteProgramNV(exec, _mesa_ExecuteProgramNV);
       SET_GenProgramsNV(exec, _mesa_GenPrograms);
-      SET_AreProgramsResidentNV(exec, _mesa_AreProgramsResidentNV);
-      SET_RequestResidentProgramsNV(exec, _mesa_RequestResidentProgramsNV);
-      SET_GetProgramParameterfvNV(exec, _mesa_GetProgramParameterfvNV);
-      SET_GetProgramParameterdvNV(exec, _mesa_GetProgramParameterdvNV);
-      SET_GetProgramivNV(exec, _mesa_GetProgramivNV);
-      SET_GetProgramStringNV(exec, _mesa_GetProgramStringNV);
-      SET_GetTrackMatrixivNV(exec, _mesa_GetTrackMatrixivNV);
-      SET_GetVertexAttribdvNV(exec, _mesa_GetVertexAttribdvNV);
-      SET_GetVertexAttribfvNV(exec, _mesa_GetVertexAttribfvNV);
-      SET_GetVertexAttribivNV(exec, _mesa_GetVertexAttribivNV);
       SET_IsProgramNV(exec, _mesa_IsProgramARB);
-      SET_LoadProgramNV(exec, _mesa_LoadProgramNV);
-      SET_ProgramEnvParameter4dARB(exec, _mesa_ProgramEnvParameter4dARB); /* alias to ProgramParameter4dNV */
-      SET_ProgramEnvParameter4dvARB(exec, _mesa_ProgramEnvParameter4dvARB);  /* alias to ProgramParameter4dvNV */
-      SET_ProgramEnvParameter4fARB(exec, _mesa_ProgramEnvParameter4fARB);  /* alias to ProgramParameter4fNV */
-      SET_ProgramEnvParameter4fvARB(exec, _mesa_ProgramEnvParameter4fvARB);  /* alias to ProgramParameter4fvNV */
-      SET_ProgramParameters4dvNV(exec, _mesa_ProgramParameters4dvNV);
-      SET_ProgramParameters4fvNV(exec, _mesa_ProgramParameters4fvNV);
-      SET_TrackMatrixNV(exec, _mesa_TrackMatrixNV);
-      SET_VertexAttribPointerNV(exec, _mesa_VertexAttribPointerNV);
       /* glVertexAttrib*NV functions handled in api_loopback.c */
    }
-   SET_GetVertexAttribPointervNV(exec, _mesa_GetVertexAttribPointervNV);
 
    /* 273. GL_APPLE_vertex_array_object */
    if (ctx->API == API_OPENGL) {
@@ -510,22 +488,6 @@ _mesa_create_exec_table(struct gl_context *ctx)
    /* Reused by ARB_vertex_array_object / OES_vertex_array_object */
    SET_DeleteVertexArraysAPPLE(exec, _mesa_DeleteVertexArraysAPPLE);
    SET_IsVertexArrayAPPLE(exec, _mesa_IsVertexArrayAPPLE);
-
-   /* 282. GL_NV_fragment_program */
-   if (ctx->API == API_OPENGL) {
-      SET_ProgramNamedParameter4fNV(exec, _mesa_ProgramNamedParameter4fNV);
-      SET_ProgramNamedParameter4dNV(exec, _mesa_ProgramNamedParameter4dNV);
-      SET_ProgramNamedParameter4fvNV(exec, _mesa_ProgramNamedParameter4fvNV);
-      SET_ProgramNamedParameter4dvNV(exec, _mesa_ProgramNamedParameter4dvNV);
-      SET_GetProgramNamedParameterfvNV(exec, _mesa_GetProgramNamedParameterfvNV);
-      SET_GetProgramNamedParameterdvNV(exec, _mesa_GetProgramNamedParameterdvNV);
-      SET_ProgramLocalParameter4dARB(exec, _mesa_ProgramLocalParameter4dARB);
-      SET_ProgramLocalParameter4dvARB(exec, _mesa_ProgramLocalParameter4dvARB);
-      SET_ProgramLocalParameter4fARB(exec, _mesa_ProgramLocalParameter4fARB);
-      SET_ProgramLocalParameter4fvARB(exec, _mesa_ProgramLocalParameter4fvARB);
-      SET_GetProgramLocalParameterdvARB(exec, _mesa_GetProgramLocalParameterdvARB);
-      SET_GetProgramLocalParameterfvARB(exec, _mesa_GetProgramLocalParameterfvARB);
-   }
 
    /* 262. GL_NV_point_sprite */
 #if _HAVE_FULL_GL
@@ -660,7 +622,7 @@ _mesa_create_exec_table(struct gl_context *ctx)
 
    SET_GetVertexAttribfvARB(exec, _mesa_GetVertexAttribfvARB);
    SET_GetVertexAttribivARB(exec, _mesa_GetVertexAttribivARB);
-   /* glGetVertexAttribPointervARB aliases glGetVertexAttribPointervNV */
+   SET_GetVertexAttribPointervNV(exec, _mesa_GetVertexAttribPointervARB);
    if (ctx->API == API_OPENGL) {
       SET_ProgramEnvParameter4dARB(exec, _mesa_ProgramEnvParameter4dARB);
       SET_ProgramEnvParameter4dvARB(exec, _mesa_ProgramEnvParameter4dvARB);
@@ -767,10 +729,9 @@ _mesa_create_exec_table(struct gl_context *ctx)
       SET_RenderbufferStorageMultisample(exec, _mesa_RenderbufferStorageMultisample);
    }
 
-   if (ctx->API != API_OPENGLES2) {
-      SET_MapBufferRange(exec, _mesa_MapBufferRange);
-      SET_FlushMappedBufferRange(exec, _mesa_FlushMappedBufferRange);
-   }
+   /* GL_ARB_map_buffer_range / GL_EXT_map_buffer_range */
+   SET_MapBufferRange(exec, _mesa_MapBufferRange);
+   SET_FlushMappedBufferRange(exec, _mesa_FlushMappedBufferRange);
 
    /* GL_ARB_copy_buffer */
    if (ctx->API != API_OPENGLES2) {

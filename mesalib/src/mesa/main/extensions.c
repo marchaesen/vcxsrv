@@ -176,6 +176,7 @@ static const struct extension extension_table[] = {
    { "GL_EXT_framebuffer_sRGB",                    o(EXT_framebuffer_sRGB),                    GL,             1998 },
    { "GL_EXT_gpu_program_parameters",              o(EXT_gpu_program_parameters),              GLL,            2006 },
    { "GL_EXT_gpu_shader4",                         o(EXT_gpu_shader4),                         GL,             2006 },
+   { "GL_EXT_map_buffer_range",                    o(ARB_map_buffer_range),                          ES1 | ES2, 2012 },
    { "GL_EXT_multi_draw_arrays",                   o(dummy_true),                              GLL | ES1 | ES2, 1999 },
    { "GL_EXT_packed_depth_stencil",                o(EXT_packed_depth_stencil),                GL,             2005 },
    { "GL_EXT_packed_float",                        o(EXT_packed_float),                        GL,             2004 },
@@ -301,7 +302,6 @@ static const struct extension extension_table[] = {
    { "GL_NV_draw_buffers",                         o(dummy_true),                                         ES2, 2011 },
    { "GL_NV_fbo_color_attachments",                o(EXT_framebuffer_object),                             ES2, 2010 },
    { "GL_NV_fog_distance",                         o(NV_fog_distance),                         GLL,            2001 },
-   { "GL_NV_fragment_program",                     o(NV_fragment_program),                     GLL,            2001 },
    { "GL_NV_fragment_program_option",              o(NV_fragment_program_option),              GLL,            2005 },
    { "GL_NV_light_max_exponent",                   o(NV_light_max_exponent),                   GLL,            1999 },
    { "GL_NV_packed_depth_stencil",                 o(EXT_packed_depth_stencil),                GL,             2000 },
@@ -312,8 +312,6 @@ static const struct extension extension_table[] = {
    { "GL_NV_texture_barrier",                      o(NV_texture_barrier),                      GL,             2009 },
    { "GL_NV_texture_env_combine4",                 o(NV_texture_env_combine4),                 GLL,            1999 },
    { "GL_NV_texture_rectangle",                    o(NV_texture_rectangle),                    GLL,            2000 },
-   { "GL_NV_vertex_program1_1",                    o(NV_vertex_program1_1),                    GLL,            2001 },
-   { "GL_NV_vertex_program",                       o(NV_vertex_program),                       GLL,            2000 },
    { "GL_S3_s3tc",                                 o(S3_s3tc),                                 GL,             1999 },
    { "GL_SGIS_generate_mipmap",                    o(dummy_true),                              GLL,            1997 },
    { "GL_SGIS_texture_border_clamp",               o(ARB_texture_border_clamp),                GLL,            1997 },
@@ -475,9 +473,6 @@ _mesa_enable_sw_extensions(struct gl_context *ctx)
    ctx->Extensions.NV_texture_env_combine4 = GL_TRUE;
    ctx->Extensions.NV_texture_rectangle = GL_TRUE;
    /*ctx->Extensions.NV_texgen_reflection = GL_TRUE;*/
-   ctx->Extensions.NV_vertex_program = GL_TRUE;
-   ctx->Extensions.NV_vertex_program1_1 = GL_TRUE;
-   ctx->Extensions.NV_fragment_program = GL_TRUE;
    ctx->Extensions.NV_fragment_program_option = GL_TRUE;
    ctx->Extensions.EXT_gpu_program_parameters = GL_TRUE;
    _mesa_enable_extension(ctx, "GL_3DFX_texture_compression_FXT1");
