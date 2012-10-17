@@ -60,7 +60,6 @@ MAIN_FILES = \
 	$(SRCDIR)main/mipmap.c \
 	$(SRCDIR)main/mm.c \
 	$(SRCDIR)main/multisample.c \
-	$(SRCDIR)main/nvprogram.c \
 	$(SRCDIR)main/pack.c \
 	$(SRCDIR)main/pbo.c \
 	$(SRCDIR)main/pixel.c \
@@ -250,8 +249,6 @@ STATETRACKER_FILES = \
 PROGRAM_FILES = \
 	$(SRCDIR)program/arbprogparse.c \
 	$(SRCDIR)program/hash_table.c \
-	$(SRCDIR)program/nvfragparse.c \
-	$(SRCDIR)program/nvvertparse.c \
 	$(SRCDIR)program/program.c \
 	$(SRCDIR)program/program_parse_extra.c \
 	$(SRCDIR)program/prog_cache.c \

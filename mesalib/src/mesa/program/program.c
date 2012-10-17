@@ -52,8 +52,6 @@ struct gl_program _mesa_DummyProgram;
 void
 _mesa_init_program(struct gl_context *ctx)
 {
-   GLuint i;
-
    /*
     * If this assertion fails, we need to increase the field
     * size for register indexes (see INST_INDEX_BITS).
@@ -90,10 +88,6 @@ _mesa_init_program(struct gl_context *ctx)
    _mesa_reference_vertprog(ctx, &ctx->VertexProgram.Current,
                             ctx->Shared->DefaultVertexProgram);
    assert(ctx->VertexProgram.Current);
-   for (i = 0; i < MAX_NV_VERTEX_PROGRAM_PARAMS / 4; i++) {
-      ctx->VertexProgram.TrackMatrix[i] = GL_NONE;
-      ctx->VertexProgram.TrackMatrixTransform[i] = GL_IDENTITY_NV;
-   }
    ctx->VertexProgram.Cache = _mesa_new_program_cache();
 
    ctx->FragmentProgram.Enabled = GL_FALSE;
@@ -244,7 +238,6 @@ _mesa_init_program_struct( struct gl_context *ctx, struct gl_program *prog,
       memset(prog, 0, sizeof(*prog));
       prog->Id = id;
       prog->Target = target;
-      prog->Resident = GL_TRUE;
       prog->RefCount = 1;
       prog->Format = GL_PROGRAM_FORMAT_ASCII_ARB;
 
@@ -317,7 +310,6 @@ _mesa_new_program(struct gl_context *ctx, GLenum target, GLuint id)
    struct gl_program *prog;
    switch (target) {
    case GL_VERTEX_PROGRAM_ARB: /* == GL_VERTEX_PROGRAM_NV */
-   case GL_VERTEX_STATE_PROGRAM_NV:
       prog = _mesa_init_vertex_program(ctx, CALLOC_STRUCT(gl_vertex_program),
                                        target, id );
       break;
@@ -511,7 +503,6 @@ _mesa_clone_program(struct gl_context *ctx, const struct gl_program *prog)
          const struct gl_vertex_program *vp = gl_vertex_program_const(prog);
          struct gl_vertex_program *vpc = gl_vertex_program(clone);
          vpc->IsPositionInvariant = vp->IsPositionInvariant;
-         vpc->IsNVProgram = vp->IsNVProgram;
       }
       break;
    case GL_FRAGMENT_PROGRAM_ARB:
@@ -924,9 +915,6 @@ _mesa_valid_register_index(const struct gl_context *ctx,
 
    case PROGRAM_LOCAL_PARAM:
       return index >= 0 && index < c->MaxLocalParams;
-
-   case PROGRAM_NAMED_PARAM:
-      return index >= 0 && index < c->MaxParameters;
 
    case PROGRAM_UNIFORM:
    case PROGRAM_STATE_VAR:

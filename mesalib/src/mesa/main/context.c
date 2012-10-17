@@ -129,9 +129,7 @@
 #include "vtxfmt.h"
 #include "program/program.h"
 #include "program/prog_print.h"
-#if _HAVE_FULL_GL
 #include "math/m_matrix.h"
-#endif
 #include "main/dispatch.h" /* for _gloffset_COUNT */
 
 #ifdef USE_SPARC_ASM
@@ -490,7 +488,7 @@ init_program_limits(struct gl_context *ctx, GLenum type,
    switch (type) {
    case GL_VERTEX_PROGRAM_ARB:
       prog->MaxParameters = MAX_VERTEX_PROGRAM_PARAMS;
-      prog->MaxAttribs = MAX_NV_VERTEX_PROGRAM_INPUTS;
+      prog->MaxAttribs = MAX_VERTEX_GENERIC_ATTRIBS;
       prog->MaxAddressRegs = MAX_VERTEX_PROGRAM_ADDRESS_REGS;
       prog->MaxUniformComponents = 4 * MAX_UNIFORMS;
       break;
@@ -501,8 +499,8 @@ init_program_limits(struct gl_context *ctx, GLenum type,
       prog->MaxUniformComponents = 4 * MAX_UNIFORMS;
       break;
    case MESA_GEOMETRY_PROGRAM:
-      prog->MaxParameters = MAX_NV_VERTEX_PROGRAM_PARAMS;
-      prog->MaxAttribs = MAX_NV_VERTEX_PROGRAM_INPUTS;
+      prog->MaxParameters = MAX_VERTEX_PROGRAM_PARAMS;
+      prog->MaxAttribs = MAX_VERTEX_GENERIC_ATTRIBS;
       prog->MaxAddressRegs = MAX_VERTEX_PROGRAM_ADDRESS_REGS;
       prog->MaxUniformComponents = MAX_GEOMETRY_UNIFORM_COMPONENTS;
       break;
@@ -686,11 +684,6 @@ check_context_limits(struct gl_context *ctx)
    /* shader-related checks */
    assert(ctx->Const.FragmentProgram.MaxLocalParams <= MAX_PROGRAM_LOCAL_PARAMS);
    assert(ctx->Const.VertexProgram.MaxLocalParams <= MAX_PROGRAM_LOCAL_PARAMS);
-
-   assert(MAX_NV_FRAGMENT_PROGRAM_TEMPS <= MAX_PROGRAM_TEMPS);
-   assert(MAX_NV_VERTEX_PROGRAM_TEMPS <= MAX_PROGRAM_TEMPS);
-   assert(MAX_NV_VERTEX_PROGRAM_INPUTS <= VERT_ATTRIB_MAX);
-   assert(MAX_NV_VERTEX_PROGRAM_OUTPUTS <= VERT_RESULT_MAX);
 
    /* Texture unit checks */
    assert(ctx->Const.MaxTextureImageUnits > 0);
@@ -1165,7 +1158,6 @@ _mesa_destroy_context( struct gl_context *ctx )
 }
 
 
-#if _HAVE_FULL_GL
 /**
  * Copy attribute groups from one context to another.
  * 
@@ -1286,7 +1278,6 @@ _mesa_copy_context( const struct gl_context *src, struct gl_context *dst,
    dst->NewState = _NEW_ALL;
    dst->NewDriverState = ~0;
 }
-#endif
 
 
 /**
@@ -1463,8 +1454,6 @@ _mesa_make_current( struct gl_context *newCtx,
 
 #if 1
          /* We want to get rid of these lines: */
-
-#if _HAVE_FULL_GL
          if (!drawBuffer->Initialized) {
             initialize_framebuffer_size(newCtx, drawBuffer);
          }
@@ -1473,8 +1462,6 @@ _mesa_make_current( struct gl_context *newCtx,
          }
 
 	 _mesa_resizebuffers(newCtx);
-#endif
-
 #else
          /* We want the drawBuffer and readBuffer to be initialized by
           * the driver.

@@ -63,7 +63,6 @@
 #include "mtypes.h"
 #include "varray.h"
 #include "arbprogram.h"
-#include "nvprogram.h"
 #include "transformfeedback.h"
 
 #include "math/m_matrix.h"
@@ -319,15 +318,9 @@ typedef enum
    OPCODE_SAMPLE_COVERAGE,
    /* GL_ARB_window_pos */
    OPCODE_WINDOW_POS_ARB,
-   /* GL_NV_vertex_program */
-   OPCODE_BIND_PROGRAM_NV,
-   OPCODE_EXECUTE_PROGRAM_NV,
-   OPCODE_REQUEST_RESIDENT_PROGRAMS_NV,
-   OPCODE_LOAD_PROGRAM_NV,
-   OPCODE_TRACK_MATRIX_NV,
    /* GL_NV_fragment_program */
+   OPCODE_BIND_PROGRAM_NV,
    OPCODE_PROGRAM_LOCAL_PARAMETER_ARB,
-   OPCODE_PROGRAM_NAMED_PARAMETER_NV,
    /* GL_EXT_stencil_two_side */
    OPCODE_ACTIVE_STENCIL_FACE_EXT,
    /* GL_EXT_depth_bounds_test */
@@ -726,18 +719,6 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
             break;
          case OPCODE_COMPRESSED_TEX_SUB_IMAGE_3D:
             free(n[11].data);
-            n += InstSize[n[0].opcode];
-            break;
-         case OPCODE_LOAD_PROGRAM_NV:
-            free(n[4].data);      /* program string */
-            n += InstSize[n[0].opcode];
-            break;
-         case OPCODE_REQUEST_RESIDENT_PROGRAMS_NV:
-            free(n[2].data);      /* array of program ids */
-            n += InstSize[n[0].opcode];
-            break;
-         case OPCODE_PROGRAM_NAMED_PARAMETER_NV:
-            free(n[3].data);      /* parameter name */
             n += InstSize[n[0].opcode];
             break;
          case OPCODE_PROGRAM_STRING_ARB:
@@ -4840,7 +4821,7 @@ save_SampleCoverageARB(GLclampf value, GLboolean invert)
 
 
 /*
- * GL_NV_vertex_program
+ * GL_NV_fragment_program
  */
 static void GLAPIENTRY
 save_BindProgramNV(GLenum target, GLuint id)
@@ -4942,125 +4923,6 @@ save_ProgramEnvParameter4dvARB(GLenum target, GLuint index,
 }
 
 
-static void GLAPIENTRY
-save_ExecuteProgramNV(GLenum target, GLuint id, const GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   Node *n;
-   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   n = alloc_instruction(ctx, OPCODE_EXECUTE_PROGRAM_NV, 6);
-   if (n) {
-      n[1].e = target;
-      n[2].ui = id;
-      n[3].f = params[0];
-      n[4].f = params[1];
-      n[5].f = params[2];
-      n[6].f = params[3];
-   }
-   if (ctx->ExecuteFlag) {
-      CALL_ExecuteProgramNV(ctx->Exec, (target, id, params));
-   }
-}
-
-
-static void GLAPIENTRY
-save_ProgramParameters4dvNV(GLenum target, GLuint index,
-                            GLsizei num, const GLdouble *params)
-{
-   GLint i;
-   for (i = 0; i < num; i++) {
-      save_ProgramEnvParameter4dvARB(target, index + i, params + 4 * i);
-   }
-}
-
-
-static void GLAPIENTRY
-save_ProgramParameters4fvNV(GLenum target, GLuint index,
-                            GLsizei num, const GLfloat *params)
-{
-   GLint i;
-   for (i = 0; i < num; i++) {
-      save_ProgramEnvParameter4fvARB(target, index + i, params + 4 * i);
-   }
-}
-
-
-static void GLAPIENTRY
-save_LoadProgramNV(GLenum target, GLuint id, GLsizei len,
-                   const GLubyte * program)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   Node *n;
-
-   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-
-   n = alloc_instruction(ctx, OPCODE_LOAD_PROGRAM_NV, 4);
-   if (n) {
-      GLubyte *programCopy = malloc(len);
-      if (!programCopy) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glLoadProgramNV");
-         return;
-      }
-      memcpy(programCopy, program, len);
-      n[1].e = target;
-      n[2].ui = id;
-      n[3].i = len;
-      n[4].data = programCopy;
-   }
-   if (ctx->ExecuteFlag) {
-      CALL_LoadProgramNV(ctx->Exec, (target, id, len, program));
-   }
-}
-
-
-static void GLAPIENTRY
-save_RequestResidentProgramsNV(GLsizei num, const GLuint * ids)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   Node *n;
-
-   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-
-   n = alloc_instruction(ctx, OPCODE_TRACK_MATRIX_NV, 2);
-   if (n) {
-      GLuint *idCopy = malloc(num * sizeof(GLuint));
-      if (!idCopy) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glRequestResidentProgramsNV");
-         return;
-      }
-      memcpy(idCopy, ids, num * sizeof(GLuint));
-      n[1].i = num;
-      n[2].data = idCopy;
-   }
-   if (ctx->ExecuteFlag) {
-      CALL_RequestResidentProgramsNV(ctx->Exec, (num, ids));
-   }
-}
-
-
-static void GLAPIENTRY
-save_TrackMatrixNV(GLenum target, GLuint address,
-                   GLenum matrix, GLenum transform)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   Node *n;
-   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   n = alloc_instruction(ctx, OPCODE_TRACK_MATRIX_NV, 4);
-   if (n) {
-      n[1].e = target;
-      n[2].ui = address;
-      n[3].e = matrix;
-      n[4].e = transform;
-   }
-   if (ctx->ExecuteFlag) {
-      CALL_TrackMatrixNV(ctx->Exec, (target, address, matrix, transform));
-   }
-}
-
-
-/*
- * GL_NV_fragment_program
- */
 static void GLAPIENTRY
 save_ProgramLocalParameter4fARB(GLenum target, GLuint index,
                                 GLfloat x, GLfloat y, GLfloat z, GLfloat w)
@@ -5179,63 +5041,6 @@ save_ProgramLocalParameter4dvARB(GLenum target, GLuint index,
    if (ctx->ExecuteFlag) {
       CALL_ProgramLocalParameter4dvARB(ctx->Exec, (target, index, params));
    }
-}
-
-static void GLAPIENTRY
-save_ProgramNamedParameter4fNV(GLuint id, GLsizei len, const GLubyte * name,
-                               GLfloat x, GLfloat y, GLfloat z, GLfloat w)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   Node *n;
-
-   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-
-   n = alloc_instruction(ctx, OPCODE_PROGRAM_NAMED_PARAMETER_NV, 6);
-   if (n) {
-      GLubyte *nameCopy = malloc(len);
-      if (!nameCopy) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glProgramNamedParameter4fNV");
-         return;
-      }
-      memcpy(nameCopy, name, len);
-      n[1].ui = id;
-      n[2].i = len;
-      n[3].data = nameCopy;
-      n[4].f = x;
-      n[5].f = y;
-      n[6].f = z;
-      n[7].f = w;
-   }
-   if (ctx->ExecuteFlag) {
-      CALL_ProgramNamedParameter4fNV(ctx->Exec, (id, len, name, x, y, z, w));
-   }
-}
-
-
-static void GLAPIENTRY
-save_ProgramNamedParameter4fvNV(GLuint id, GLsizei len, const GLubyte * name,
-                                const float v[])
-{
-   save_ProgramNamedParameter4fNV(id, len, name, v[0], v[1], v[2], v[3]);
-}
-
-
-static void GLAPIENTRY
-save_ProgramNamedParameter4dNV(GLuint id, GLsizei len, const GLubyte * name,
-                               GLdouble x, GLdouble y, GLdouble z, GLdouble w)
-{
-   save_ProgramNamedParameter4fNV(id, len, name, (GLfloat) x, (GLfloat) y,
-                                  (GLfloat) z, (GLfloat) w);
-}
-
-
-static void GLAPIENTRY
-save_ProgramNamedParameter4dvNV(GLuint id, GLsizei len, const GLubyte * name,
-                                const double v[])
-{
-   save_ProgramNamedParameter4fNV(id, len, name, (GLfloat) v[0],
-                                  (GLfloat) v[1], (GLfloat) v[2],
-                                  (GLfloat) v[3]);
 }
 
 
@@ -6133,85 +5938,6 @@ index_error(void)
    GET_CURRENT_CONTEXT(ctx);
    _mesa_error(ctx, GL_INVALID_VALUE, "VertexAttribf(index)");
 }
-
-
-/* First level for NV_vertex_program:
- *
- * Check for errors at compile time?.
- */
-static void GLAPIENTRY
-save_VertexAttrib1fNV(GLuint index, GLfloat x)
-{
-   if (index < MAX_NV_VERTEX_PROGRAM_INPUTS)
-      save_Attr1fNV(index, x);
-   else
-      index_error();
-}
-
-static void GLAPIENTRY
-save_VertexAttrib1fvNV(GLuint index, const GLfloat * v)
-{
-   if (index < MAX_NV_VERTEX_PROGRAM_INPUTS)
-      save_Attr1fNV(index, v[0]);
-   else
-      index_error();
-}
-
-static void GLAPIENTRY
-save_VertexAttrib2fNV(GLuint index, GLfloat x, GLfloat y)
-{
-   if (index < MAX_NV_VERTEX_PROGRAM_INPUTS)
-      save_Attr2fNV(index, x, y);
-   else
-      index_error();
-}
-
-static void GLAPIENTRY
-save_VertexAttrib2fvNV(GLuint index, const GLfloat * v)
-{
-   if (index < MAX_NV_VERTEX_PROGRAM_INPUTS)
-      save_Attr2fNV(index, v[0], v[1]);
-   else
-      index_error();
-}
-
-static void GLAPIENTRY
-save_VertexAttrib3fNV(GLuint index, GLfloat x, GLfloat y, GLfloat z)
-{
-   if (index < MAX_NV_VERTEX_PROGRAM_INPUTS)
-      save_Attr3fNV(index, x, y, z);
-   else
-      index_error();
-}
-
-static void GLAPIENTRY
-save_VertexAttrib3fvNV(GLuint index, const GLfloat * v)
-{
-   if (index < MAX_NV_VERTEX_PROGRAM_INPUTS)
-      save_Attr3fNV(index, v[0], v[1], v[2]);
-   else
-      index_error();
-}
-
-static void GLAPIENTRY
-save_VertexAttrib4fNV(GLuint index, GLfloat x, GLfloat y,
-                      GLfloat z, GLfloat w)
-{
-   if (index < MAX_NV_VERTEX_PROGRAM_INPUTS)
-      save_Attr4fNV(index, x, y, z, w);
-   else
-      index_error();
-}
-
-static void GLAPIENTRY
-save_VertexAttrib4fvNV(GLuint index, const GLfloat * v)
-{
-   if (index < MAX_NV_VERTEX_PROGRAM_INPUTS)
-      save_Attr4fNV(index, v[0], v[1], v[2], v[3]);
-   else
-      index_error();
-}
-
 
 
 
@@ -8373,40 +8099,13 @@ execute_list(struct gl_context *ctx, GLuint list)
          case OPCODE_WINDOW_POS_ARB:   /* GL_ARB_window_pos */
             CALL_WindowPos3fMESA(ctx->Exec, (n[1].f, n[2].f, n[3].f));
             break;
-         case OPCODE_BIND_PROGRAM_NV:  /* GL_NV_vertex_program */
+         case OPCODE_BIND_PROGRAM_NV:  /* GL_ARB_vertex_program */
             CALL_BindProgramNV(ctx->Exec, (n[1].e, n[2].ui));
-            break;
-         case OPCODE_EXECUTE_PROGRAM_NV:
-            {
-               GLfloat v[4];
-               v[0] = n[3].f;
-               v[1] = n[4].f;
-               v[2] = n[5].f;
-               v[3] = n[6].f;
-               CALL_ExecuteProgramNV(ctx->Exec, (n[1].e, n[2].ui, v));
-            }
-            break;
-         case OPCODE_REQUEST_RESIDENT_PROGRAMS_NV:
-            CALL_RequestResidentProgramsNV(ctx->Exec, (n[1].ui,
-                                                       (GLuint *) n[2].data));
-            break;
-         case OPCODE_LOAD_PROGRAM_NV:
-            CALL_LoadProgramNV(ctx->Exec, (n[1].e, n[2].ui, n[3].i,
-                                           (const GLubyte *) n[4].data));
-            break;
-         case OPCODE_TRACK_MATRIX_NV:
-            CALL_TrackMatrixNV(ctx->Exec, (n[1].e, n[2].ui, n[3].e, n[4].e));
             break;
          case OPCODE_PROGRAM_LOCAL_PARAMETER_ARB:
             CALL_ProgramLocalParameter4fARB(ctx->Exec,
                                             (n[1].e, n[2].ui, n[3].f, n[4].f,
                                              n[5].f, n[6].f));
-            break;
-         case OPCODE_PROGRAM_NAMED_PARAMETER_NV:
-            CALL_ProgramNamedParameter4fNV(ctx->Exec, (n[1].ui, n[2].i,
-                                                       (const GLubyte *) n[3].
-                                                       data, n[4].f, n[5].f,
-                                                       n[6].f, n[7].f));
             break;
          case OPCODE_ACTIVE_STENCIL_FACE_EXT:
             CALL_ActiveStencilFaceEXT(ctx->Exec, (n[1].e));
@@ -10238,29 +9937,8 @@ _mesa_create_save_table(const struct gl_context *ctx)
     */
    SET_BindProgramNV(table, save_BindProgramNV);
    SET_DeleteProgramsNV(table, _mesa_DeletePrograms);
-   SET_ExecuteProgramNV(table, save_ExecuteProgramNV);
    SET_GenProgramsNV(table, _mesa_GenPrograms);
-   SET_AreProgramsResidentNV(table, _mesa_AreProgramsResidentNV);
-   SET_RequestResidentProgramsNV(table, save_RequestResidentProgramsNV);
-   SET_GetProgramParameterfvNV(table, _mesa_GetProgramParameterfvNV);
-   SET_GetProgramParameterdvNV(table, _mesa_GetProgramParameterdvNV);
-   SET_GetProgramivNV(table, _mesa_GetProgramivNV);
-   SET_GetProgramStringNV(table, _mesa_GetProgramStringNV);
-   SET_GetTrackMatrixivNV(table, _mesa_GetTrackMatrixivNV);
-   SET_GetVertexAttribdvNV(table, _mesa_GetVertexAttribdvNV);
-   SET_GetVertexAttribfvNV(table, _mesa_GetVertexAttribfvNV);
-   SET_GetVertexAttribivNV(table, _mesa_GetVertexAttribivNV);
-   SET_GetVertexAttribPointervNV(table, _mesa_GetVertexAttribPointervNV);
    SET_IsProgramNV(table, _mesa_IsProgramARB);
-   SET_LoadProgramNV(table, save_LoadProgramNV);
-   SET_ProgramEnvParameter4dARB(table, save_ProgramEnvParameter4dARB);
-   SET_ProgramEnvParameter4dvARB(table, save_ProgramEnvParameter4dvARB);
-   SET_ProgramEnvParameter4fARB(table, save_ProgramEnvParameter4fARB);
-   SET_ProgramEnvParameter4fvARB(table, save_ProgramEnvParameter4fvARB);
-   SET_ProgramParameters4dvNV(table, save_ProgramParameters4dvNV);
-   SET_ProgramParameters4fvNV(table, save_ProgramParameters4fvNV);
-   SET_TrackMatrixNV(table, save_TrackMatrixNV);
-   SET_VertexAttribPointerNV(table, _mesa_VertexAttribPointerNV);
 
    /* 244. GL_ATI_envmap_bumpmap */
    SET_TexBumpParameterivATI(table, save_TexBumpParameterivATI);
@@ -10269,24 +9947,6 @@ _mesa_create_save_table(const struct gl_context *ctx)
    /* 245. GL_ATI_fragment_shader */
    SET_BindFragmentShaderATI(table, save_BindFragmentShaderATI);
    SET_SetFragmentShaderConstantATI(table, save_SetFragmentShaderConstantATI);
-
-   /* 282. GL_NV_fragment_program */
-   SET_ProgramNamedParameter4fNV(table, save_ProgramNamedParameter4fNV);
-   SET_ProgramNamedParameter4dNV(table, save_ProgramNamedParameter4dNV);
-   SET_ProgramNamedParameter4fvNV(table, save_ProgramNamedParameter4fvNV);
-   SET_ProgramNamedParameter4dvNV(table, save_ProgramNamedParameter4dvNV);
-   SET_GetProgramNamedParameterfvNV(table,
-                                    _mesa_GetProgramNamedParameterfvNV);
-   SET_GetProgramNamedParameterdvNV(table,
-                                    _mesa_GetProgramNamedParameterdvNV);
-   SET_ProgramLocalParameter4dARB(table, save_ProgramLocalParameter4dARB);
-   SET_ProgramLocalParameter4dvARB(table, save_ProgramLocalParameter4dvARB);
-   SET_ProgramLocalParameter4fARB(table, save_ProgramLocalParameter4fARB);
-   SET_ProgramLocalParameter4fvARB(table, save_ProgramLocalParameter4fvARB);
-   SET_GetProgramLocalParameterdvARB(table,
-                                     _mesa_GetProgramLocalParameterdvARB);
-   SET_GetProgramLocalParameterfvARB(table,
-                                     _mesa_GetProgramLocalParameterfvARB);
 
    /* 262. GL_NV_point_sprite */
    SET_PointParameteriNV(table, save_PointParameteriNV);
@@ -10368,7 +10028,7 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_GetVertexAttribdvARB(table, _mesa_GetVertexAttribdvARB);
    SET_GetVertexAttribfvARB(table, _mesa_GetVertexAttribfvARB);
    SET_GetVertexAttribivARB(table, _mesa_GetVertexAttribivARB);
-   SET_GetVertexAttribPointervNV(table, _mesa_GetVertexAttribPointervNV);
+   SET_GetVertexAttribPointervNV(table, _mesa_GetVertexAttribPointervARB);
    SET_ProgramEnvParameter4dARB(table, save_ProgramEnvParameter4dARB);
    SET_ProgramEnvParameter4dvARB(table, save_ProgramEnvParameter4dvARB);
    SET_ProgramEnvParameter4fARB(table, save_ProgramEnvParameter4fARB);
@@ -10924,14 +10584,6 @@ _mesa_save_vtxfmt_init(GLvertexformat * vfmt)
    vfmt->Vertex3fv = save_Vertex3fv;
    vfmt->Vertex4f = save_Vertex4f;
    vfmt->Vertex4fv = save_Vertex4fv;
-   vfmt->VertexAttrib1fNV = save_VertexAttrib1fNV;
-   vfmt->VertexAttrib1fvNV = save_VertexAttrib1fvNV;
-   vfmt->VertexAttrib2fNV = save_VertexAttrib2fNV;
-   vfmt->VertexAttrib2fvNV = save_VertexAttrib2fvNV;
-   vfmt->VertexAttrib3fNV = save_VertexAttrib3fNV;
-   vfmt->VertexAttrib3fvNV = save_VertexAttrib3fvNV;
-   vfmt->VertexAttrib4fNV = save_VertexAttrib4fNV;
-   vfmt->VertexAttrib4fvNV = save_VertexAttrib4fvNV;
    vfmt->VertexAttrib1fARB = save_VertexAttrib1fARB;
    vfmt->VertexAttrib1fvARB = save_VertexAttrib1fvARB;
    vfmt->VertexAttrib2fARB = save_VertexAttrib2fARB;

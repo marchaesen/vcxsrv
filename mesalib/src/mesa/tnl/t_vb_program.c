@@ -231,21 +231,6 @@ init_machine(struct gl_context *ctx, struct gl_program_machine *machine,
    memcpy(machine->VertAttribs, ctx->Current.Attrib,
           MAX_VERTEX_GENERIC_ATTRIBS * 4 * sizeof(GLfloat));
 
-   if (ctx->VertexProgram._Current->IsNVProgram) {
-      GLuint i;
-      /* Output/result regs are initialized to [0,0,0,1] */
-      for (i = 0; i < MAX_NV_VERTEX_PROGRAM_OUTPUTS; i++) {
-         ASSIGN_4V(machine->Outputs[i], 0.0F, 0.0F, 0.0F, 1.0F);
-      }
-      /* Temp regs are initialized to [0,0,0,0] */
-      for (i = 0; i < MAX_NV_VERTEX_PROGRAM_TEMPS; i++) {
-         ASSIGN_4V(machine->Temporaries[i], 0.0F, 0.0F, 0.0F, 0.0F);
-      }
-      for (i = 0; i < MAX_VERTEX_PROGRAM_ADDRESS_REGS; i++) {
-         ASSIGN_4V(machine->AddressReg[i], 0, 0, 0, 0);
-      }
-   }
-
    machine->NumDeriv = 0;
 
    /* init condition codes */
@@ -321,13 +306,8 @@ run_vp( struct gl_context *ctx, struct tnl_pipeline_stage *stage )
    if (!program)
       return GL_TRUE;
 
-   if (program->IsNVProgram) {
-      _mesa_load_tracked_matrices(ctx);
-   }
-   else {
-      /* ARB program or vertex shader */
-      _mesa_load_state_parameters(ctx, program->Base.Parameters);
-   }
+   /* ARB program or vertex shader */
+   _mesa_load_state_parameters(ctx, program->Base.Parameters);
 
    /* make list of outputs to save some time below */
    numOutputs = 0;
@@ -424,23 +404,6 @@ run_vp( struct gl_context *ctx, struct tnl_pipeline_stage *stage )
    }
 
    unmap_textures(ctx, program);
-
-   /* Fixup fog and point size results if needed */
-   if (program->IsNVProgram) {
-      if (ctx->Fog.Enabled &&
-          (program->Base.OutputsWritten & BITFIELD64_BIT(VERT_RESULT_FOGC)) == 0) {
-         for (i = 0; i < VB->Count; i++) {
-            store->results[VERT_RESULT_FOGC].data[i][0] = 1.0;
-         }
-      }
-
-      if (ctx->VertexProgram.PointSizeEnabled &&
-          (program->Base.OutputsWritten & BITFIELD64_BIT(VERT_RESULT_PSIZ)) == 0) {
-         for (i = 0; i < VB->Count; i++) {
-            store->results[VERT_RESULT_PSIZ].data[i][0] = ctx->Point.Size;
-         }
-      }
-   }
 
    if (program->IsPositionInvariant) {
       /* We need the exact same transform as in the fixed function path here

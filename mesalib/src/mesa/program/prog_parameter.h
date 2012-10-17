@@ -41,18 +41,6 @@ extern "C" {
 
 
 /**
- * Program parameter flags
- */
-/*@{*/
-#define PROG_PARAM_BIT_CENTROID   0x1  /**< for varying vars (GLSL 1.20) */
-#define PROG_PARAM_BIT_INVARIANT  0x2  /**< for varying vars (GLSL 1.20) */
-#define PROG_PARAM_BIT_FLAT       0x4  /**< for varying vars (GLSL 1.30) */
-#define PROG_PARAM_BIT_LINEAR     0x8  /**< for varying vars (GLSL 1.30) */
-#define PROG_PARAM_BIT_CYL_WRAP  0x10  /**< XXX gallium debug */
-/*@}*/
-
-
-/**
  * Actual data for constant values of parameters.
  */
 typedef union gl_constant_value
@@ -71,7 +59,7 @@ typedef union gl_constant_value
 struct gl_program_parameter
 {
    const char *Name;        /**< Null-terminated string */
-   gl_register_file Type;   /**< PROGRAM_NAMED_PARAM, CONSTANT or STATE_VAR */
+   gl_register_file Type;   /**< PROGRAM_CONSTANT or STATE_VAR */
    GLenum DataType;         /**< GL_FLOAT, GL_FLOAT_VEC2, etc */
    /**
     * Number of components (1..4), or more.
@@ -81,7 +69,6 @@ struct gl_program_parameter
     */
    GLuint Size;
    GLboolean Initialized;   /**< debug: Has the ParameterValue[] been set? */
-   GLbitfield Flags;        /**< Bitmask of PROG_PARAM_*_BIT */
    /**
     * A sequence of STATE_* tokens and integers to identify GL state.
     */
@@ -130,12 +117,7 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
                     gl_register_file type, const char *name,
                     GLuint size, GLenum datatype,
                     const gl_constant_value *values,
-                    const gl_state_index state[STATE_LENGTH],
-                    GLbitfield flags);
-
-extern GLint
-_mesa_add_named_parameter(struct gl_program_parameter_list *paramList,
-                          const char *name, const gl_constant_value values[4]);
+                    const gl_state_index state[STATE_LENGTH]);
 
 extern GLint
 _mesa_add_named_constant(struct gl_program_parameter_list *paramList,
@@ -153,15 +135,6 @@ _mesa_add_unnamed_constant(struct gl_program_parameter_list *paramList,
                            GLuint *swizzleOut);
 
 extern GLint
-_mesa_add_varying(struct gl_program_parameter_list *paramList,
-                  const char *name, GLuint size, GLenum datatype,
-                  GLbitfield flags);
-
-extern GLint
-_mesa_add_attribute(struct gl_program_parameter_list *paramList,
-                    const char *name, GLint size, GLenum datatype, GLint attrib);
-
-extern GLint
 _mesa_add_state_reference(struct gl_program_parameter_list *paramList,
                           const gl_state_index stateTokens[STATE_LENGTH]);
 
@@ -177,11 +150,6 @@ extern GLboolean
 _mesa_lookup_parameter_constant(const struct gl_program_parameter_list *list,
                                 const gl_constant_value v[], GLuint vSize,
                                 GLint *posOut, GLuint *swizzleOut);
-
-extern GLuint
-_mesa_num_parameters_of_type(const struct gl_program_parameter_list *list,
-                             gl_register_file type);
-
 
 #ifdef __cplusplus
 }

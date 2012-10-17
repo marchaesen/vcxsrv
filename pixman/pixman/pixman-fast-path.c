@@ -90,7 +90,7 @@ over (uint32_t src,
     return dest;
 }
 
-static uint32_t
+static force_inline uint32_t
 in (uint32_t x,
     uint8_t  y)
 {

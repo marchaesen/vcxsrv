@@ -195,8 +195,6 @@ typedef enum
 #define VERT_BIT_TEX(i)          VERT_BIT(VERT_ATTRIB_TEX(i))
 #define VERT_BIT_TEX_ALL         \
    BITFIELD64_RANGE(VERT_ATTRIB_TEX(0), VERT_ATTRIB_TEX_MAX)
-#define VERT_BIT_FF_NVALIAS      \
-   BITFIELD64_RANGE(VERT_ATTRIB_POS, VERT_ATTRIB_TEX(VERT_ATTRIB_TEX_MAX))
 
 #define VERT_BIT_GENERIC_NV(i)   VERT_BIT(VERT_ATTRIB_GENERIC_NV(i))
 #define VERT_BIT_GENERIC_NV_ALL  \
@@ -858,7 +856,6 @@ struct gl_eval_attrib
    GLboolean Map1TextureCoord4;
    GLboolean Map1Vertex3;
    GLboolean Map1Vertex4;
-   GLboolean Map1Attrib[16];  /* GL_NV_vertex_program */
    GLboolean Map2Color4;
    GLboolean Map2Index;
    GLboolean Map2Normal;
@@ -868,7 +865,6 @@ struct gl_eval_attrib
    GLboolean Map2TextureCoord4;
    GLboolean Map2Vertex3;
    GLboolean Map2Vertex4;
-   GLboolean Map2Attrib[16];  /* GL_NV_vertex_program */
    GLboolean AutoNormal;
    /*@}*/
    
@@ -1719,7 +1715,6 @@ struct gl_evaluators
    struct gl_1d_map Map1Texture2;
    struct gl_1d_map Map1Texture3;
    struct gl_1d_map Map1Texture4;
-   struct gl_1d_map Map1Attrib[16];  /**< GL_NV_vertex_program */
    /*@}*/
 
    /** 
@@ -1735,7 +1730,6 @@ struct gl_evaluators
    struct gl_2d_map Map2Texture2;
    struct gl_2d_map Map2Texture3;
    struct gl_2d_map Map2Texture4;
-   struct gl_2d_map Map2Attrib[16];  /**< GL_NV_vertex_program */
    /*@}*/
 };
 
@@ -1847,7 +1841,7 @@ struct gl_transform_feedback_state
  * NOTE: first four tokens must fit into 2 bits (see t_vb_arbprogram.c)
  * All values should fit in a 4-bit field.
  *
- * NOTE: PROGRAM_ENV_PARAM, PROGRAM_STATE_VAR, PROGRAM_NAMED_PARAM,
+ * NOTE: PROGRAM_ENV_PARAM, PROGRAM_STATE_VAR,
  * PROGRAM_CONSTANT, and PROGRAM_UNIFORM can all be considered to
  * be "uniform" variables since they can only be set outside glBegin/End.
  * They're also all stored in the same Parameters array.
@@ -1857,11 +1851,9 @@ typedef enum
    PROGRAM_TEMPORARY,   /**< machine->Temporary[] */
    PROGRAM_INPUT,       /**< machine->Inputs[] */
    PROGRAM_OUTPUT,      /**< machine->Outputs[] */
-   PROGRAM_VARYING,     /**< machine->Inputs[]/Outputs[] */
    PROGRAM_LOCAL_PARAM, /**< gl_program->LocalParams[] */
    PROGRAM_ENV_PARAM,   /**< gl_program->Parameters[] */
    PROGRAM_STATE_VAR,   /**< gl_program->Parameters[] */
-   PROGRAM_NAMED_PARAM, /**< gl_program->Parameters[] */
    PROGRAM_CONSTANT,    /**< gl_program->Parameters[] */
    PROGRAM_UNIFORM,     /**< gl_program->Parameters[] */
    PROGRAM_WRITE_ONLY,  /**< A dummy, write-only register */
@@ -1928,9 +1920,8 @@ struct gl_program
    GLuint Id;
    GLubyte *String;  /**< Null-terminated program text */
    GLint RefCount;
-   GLenum Target;    /**< GL_VERTEX/FRAGMENT_PROGRAM_ARB, GL_FRAGMENT_PROGRAM_NV */
+   GLenum Target;    /**< GL_VERTEX/FRAGMENT_PROGRAM_ARB */
    GLenum Format;    /**< String encoding format */
-   GLboolean Resident;
 
    struct prog_instruction *Instructions;
 
@@ -1986,7 +1977,6 @@ struct gl_program
 struct gl_vertex_program
 {
    struct gl_program Base;   /**< base class */
-   GLboolean IsNVProgram;    /**< is this a GL_NV_vertex_program program? */
    GLboolean IsPositionInvariant;
    GLboolean UsesClipDistance;
 };
@@ -2059,10 +2049,6 @@ struct gl_vertex_program_state
    struct gl_vertex_program *_Current;
 
    GLfloat Parameters[MAX_PROGRAM_ENV_PARAMS][4]; /**< Env params */
-
-   /* For GL_NV_vertex_program only: */
-   GLenum TrackMatrix[MAX_PROGRAM_ENV_PARAMS / 4];
-   GLenum TrackMatrixTransform[MAX_PROGRAM_ENV_PARAMS / 4];
 
    /** Should fixed-function T&L be implemented with a vertex prog? */
    GLboolean _MaintainTnlProgram;
@@ -2456,7 +2442,6 @@ struct gl_shader_compiler_options
 {
    /** Driver-selectable options: */
    GLboolean EmitCondCodes;             /**< Use condition codes? */
-   GLboolean EmitNVTempInitialization;  /**< 0-fill NV temp registers */
    GLboolean EmitNoLoops;
    GLboolean EmitNoFunctions;
    GLboolean EmitNoCont;                  /**< Emit CONT opcode? */
@@ -3068,7 +3053,6 @@ struct gl_extensions
    GLboolean NV_blend_square;
    GLboolean NV_conditional_render;
    GLboolean NV_fog_distance;
-   GLboolean NV_fragment_program;
    GLboolean NV_fragment_program_option;
    GLboolean NV_light_max_exponent;
    GLboolean NV_point_sprite;
@@ -3078,8 +3062,6 @@ struct gl_extensions
    GLboolean NV_texgen_reflection;
    GLboolean NV_texture_env_combine4;
    GLboolean NV_texture_rectangle;
-   GLboolean NV_vertex_program;
-   GLboolean NV_vertex_program1_1;
    GLboolean SGIS_texture_lod;
    GLboolean TDFX_texture_compression_FXT1;
    GLboolean S3_s3tc;

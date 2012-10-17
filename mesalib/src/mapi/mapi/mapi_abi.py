@@ -34,6 +34,9 @@ sys.path.append(GLAPI)
 
 import re
 from optparse import OptionParser
+import gl_XML
+import glX_XML
+
 
 # number of dynamic entries
 ABI_NUM_DYNAMIC_ENTRIES = 256
@@ -44,13 +47,14 @@ class ABIEntry(object):
     _match_c_param = re.compile(
             '^(?P<type>[\w\s*]+?)(?P<name>\w+)(\[(?P<array>\d+)\])?$')
 
-    def __init__(self, cols, attrs):
+    def __init__(self, cols, attrs, xml_data = None):
         self._parse(cols)
 
         self.slot = attrs['slot']
         self.hidden = attrs['hidden']
         self.alias = attrs['alias']
         self.handcode = attrs['handcode']
+        self.xml_data = xml_data
 
     def c_prototype(self):
         return '%s %s(%s)' % (self.c_return(), self.name, self.c_params())
@@ -133,8 +137,6 @@ class ABIEntry(object):
 
 def abi_parse_xml(xml):
     """Parse a GLAPI XML file for ABI entries."""
-    import gl_XML, glX_XML
-
     api = gl_XML.parse_GL_API(xml, glX_XML.glx_item_factory())
 
     entry_dict = {}
@@ -175,7 +177,7 @@ def abi_parse_xml(xml):
             params = func.get_parameter_string(name)
             cols.extend([p.strip() for p in params.split(',')])
 
-            ent = ABIEntry(cols, attrs)
+            ent = ABIEntry(cols, attrs, func)
             entry_dict[ent.name] = ent
 
     entries = entry_dict.values()
@@ -686,9 +688,10 @@ class ABIPrinter(object):
 class GLAPIPrinter(ABIPrinter):
     """OpenGL API Printer"""
 
-    def __init__(self, entries, api=None):
-        api_entries = self._get_api_entries(entries, api)
-        super(GLAPIPrinter, self).__init__(api_entries)
+    def __init__(self, entries):
+        for ent in entries:
+            self._override_for_api(ent)
+        super(GLAPIPrinter, self).__init__(entries)
 
         self.api_defines = ['GL_GLEXT_PROTOTYPES']
         self.api_headers = ['"GL/gl.h"', '"GL/glext.h"']
@@ -709,35 +712,11 @@ class GLAPIPrinter(ABIPrinter):
 
         self.c_header = self._get_c_header()
 
-    def _get_api_entries(self, entries, api):
-        """Override the entry attributes according to API."""
-        import copy
-
-        # no override
-        if api is None:
-            return entries
-
-        api_entries = {}
-        for ent in entries:
-            ent = copy.copy(ent)
-
-            # override 'hidden' and 'handcode'
-            ent.hidden = ent.name not in api
-            ent.handcode = False
-            if ent.alias:
-                ent.alias = api_entries[ent.alias.name]
-
-            api_entries[ent.name] = ent
-
-        # sanity check
-        missed = [name for name in api if name not in api_entries]
-        if missed:
-            raise Exception('%s is missing' % str(missed))
-
-        entries = api_entries.values()
-        entries.sort()
-
-        return entries
+    def _override_for_api(self, ent):
+        """Override attributes of an entry if necessary for this
+        printer."""
+        # By default, no override is necessary.
+        pass
 
     def _get_c_header(self):
         header = """#ifndef _GLAPI_TMP_H_
@@ -760,11 +739,16 @@ class ES1APIPrinter(GLAPIPrinter):
     """OpenGL ES 1.x API Printer"""
 
     def __init__(self, entries):
-        from gles_api import es1_api
-
-        super(ES1APIPrinter, self).__init__(entries, es1_api)
+        super(ES1APIPrinter, self).__init__(entries)
         self.prefix_lib = 'gl'
         self.prefix_warn = 'gl'
+
+    def _override_for_api(self, ent):
+        if ent.xml_data is None:
+            raise Exception('ES2 API printer requires XML input')
+        ent.hidden = ent.name not in \
+            ent.xml_data.entry_points_for_api_version('es1')
+        ent.handcode = False
 
     def _get_c_header(self):
         header = """#ifndef _GLAPI_TMP_H_
@@ -779,11 +763,16 @@ class ES2APIPrinter(GLAPIPrinter):
     """OpenGL ES 2.x API Printer"""
 
     def __init__(self, entries):
-        from gles_api import es2_api
-
-        super(ES2APIPrinter, self).__init__(entries, es2_api)
+        super(ES2APIPrinter, self).__init__(entries)
         self.prefix_lib = 'gl'
         self.prefix_warn = 'gl'
+
+    def _override_for_api(self, ent):
+        if ent.xml_data is None:
+            raise Exception('ES2 API printer requires XML input')
+        ent.hidden = ent.name not in \
+            ent.xml_data.entry_points_for_api_version('es2')
+        ent.handcode = False
 
     def _get_c_header(self):
         header = """#ifndef _GLAPI_TMP_H_
@@ -798,7 +787,7 @@ class SharedGLAPIPrinter(GLAPIPrinter):
     """Shared GLAPI API Printer"""
 
     def __init__(self, entries):
-        super(SharedGLAPIPrinter, self).__init__(entries, [])
+        super(SharedGLAPIPrinter, self).__init__(entries)
 
         self.lib_need_table_size = True
         self.lib_need_noop_array = True
@@ -808,6 +797,10 @@ class SharedGLAPIPrinter(GLAPIPrinter):
 
         self.prefix_lib = 'shared'
         self.prefix_warn = 'gl'
+
+    def _override_for_api(self, ent):
+        ent.hidden = True
+        ent.handcode = False
 
     def _get_c_header(self):
         header = """#ifndef _GLAPI_TMP_H_
