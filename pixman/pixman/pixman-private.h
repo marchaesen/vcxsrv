@@ -283,7 +283,8 @@ _pixman_bits_image_init (pixman_image_t *     image,
                          int                  width,
                          int                  height,
                          uint32_t *           bits,
-                         int                  rowstride);
+                         int                  rowstride,
+			 pixman_bool_t	      clear);
 pixman_bool_t
 _pixman_image_fini (pixman_image_t *image);
 

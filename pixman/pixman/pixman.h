@@ -757,6 +757,11 @@ pixman_image_t *pixman_image_create_bits             (pixman_format_code_t      
 						      int                           height,
 						      uint32_t                     *bits,
 						      int                           rowstride_bytes);
+pixman_image_t *pixman_image_create_bits_no_clear    (pixman_format_code_t format,
+						      int                  width,
+						      int                  height,
+						      uint32_t *           bits,
+						      int                  rowstride_bytes);
 
 /* Destructor */
 pixman_image_t *pixman_image_ref                     (pixman_image_t               *image);

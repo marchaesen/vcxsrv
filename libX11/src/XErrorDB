@@ -583,6 +583,7 @@ XProtoError.GLX.9: GLXBadFBConfig
 XProtoError.GLX.10: GLXBadPbuffer
 XProtoError.GLX.11: GLXBadCurrentDrawable
 XProtoError.GLX.12: GLXBadWindow
+XProtoError.GLX.13: GLXBadProfileARB
 ! XC-MISC extension, an X Consortium standard
 XRequest.XC-MISC.0: XCMiscGetVersion
 XRequest.XC-MISC.1: XCMiscGetXIDRange
