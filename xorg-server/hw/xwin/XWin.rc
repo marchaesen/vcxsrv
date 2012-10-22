@@ -47,7 +47,7 @@ BEGIN
   LTEXT			"VcXsrv X Server ", IDC_STATIC, 36, 8, 220, 8
   LTEXT			"http://vcxsrv.sourceforge.net", IDC_STATIC, 36, 18, 220, 8
   LTEXT			"marha@users.sourceforge.net", IDC_STATIC, 36, 28, 220, 8
-  LTEXT			"Version 1.12.99.0 (22 Aug 2012)", IDC_STATIC, 36, 38, 220, 8
+  LTEXT			"Version 1.13.0.0 (22 Oct 2012)", IDC_STATIC, 36, 38, 220, 8
   DEFPUSHBUTTON		"OK", IDOK, 105, 75, 50, 15
 END
 
