@@ -172,7 +172,14 @@ esac
 
 dnl Add flags for gcc and g++
 if test "x$GCC" = xyes; then
-    CFLAGS="$CFLAGS -Wall -std=c99"
+    case "$host_os" in
+    cygwin*)
+        CFLAGS="$CFLAGS -Wall -std=gnu99"
+        ;;
+    *)
+        CFLAGS="$CFLAGS -Wall -std=c99"
+        ;;
+    esac
 
     # Enable -Werror=implicit-function-declaration and
     # -Werror=missing-prototypes, if available, or otherwise, just
@@ -1215,8 +1222,6 @@ if test "x$enable_gbm" = xyes; then
         if test "x$enable_shared_glapi" = xno; then
             AC_MSG_ERROR([gbm_dri requires --enable-shared-glapi])
         fi
-        PKG_CHECK_MODULES([LIBKMS], [libkms], [],
-                          AC_MSG_ERROR([gbm needs libkms]))
     fi
 fi
 GBM_PC_REQ_PRIV="libudev"
@@ -1498,7 +1503,7 @@ for plat in $egl_platforms; do
 		;;
 
 	wayland)
-		PKG_CHECK_MODULES([WAYLAND], [wayland-client wayland-server],, \
+		PKG_CHECK_MODULES([WAYLAND], [wayland-client >= 0.99.0 wayland-server >= 0.99.0],, \
 				  [AC_MSG_ERROR([cannot find libwayland-client])])
 		GALLIUM_WINSYS_DIRS="$GALLIUM_WINSYS_DIRS sw/wayland"
 
@@ -1750,7 +1755,7 @@ radeon_llvm_check() {
     if test "$LLVM_VERSION_MAJOR" -ge "3" -a "x$LLVM_VERSION" != "x3.1" && $LLVM_CONFIG --targets-built | grep -qv '\<AMDGPU\>' ; then
         AC_MSG_ERROR([To use the r600/radeonsi LLVM backend with LLVM 3.2 and newer, you need to fetch the LLVM source from:
                       git://people.freedesktop.org/~tstellar/llvm master
-                      and build with --enable-experimental-targets==AMDGPU])
+                      and build with --enable-experimental-targets=AMDGPU])
     fi
     if test "x$LLVM_VERSION" = "x3.2"; then
         LLVM_LIBS="$LLVM_LIBS `$LLVM_CONFIG --libs amdgpu`"

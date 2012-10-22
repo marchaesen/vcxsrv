@@ -1296,7 +1296,8 @@ fast_composite_tiled_repeat (pixman_implementation_t *imp,
 
 	    /* Initialize/validate stack-allocated temporary image */
 	    _pixman_bits_image_init (&extended_src_image, src_image->bits.format,
-				     src_width, 1, &extended_src[0], src_stride);
+				     src_width, 1, &extended_src[0], src_stride,
+				     FALSE);
 	    _pixman_image_validate (&extended_src_image);
 
 	    info2.src_image = &extended_src_image;

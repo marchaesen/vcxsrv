@@ -375,6 +375,8 @@ guess_and_alloc_texture(struct st_context *st,
     */
    if ((stObj->base.Sampler.MinFilter == GL_NEAREST ||
         stObj->base.Sampler.MinFilter == GL_LINEAR ||
+        (stObj->base.BaseLevel == 0 &&
+         stObj->base.MaxLevel == 0) ||
         stImage->base._BaseFormat == GL_DEPTH_COMPONENT ||
         stImage->base._BaseFormat == GL_DEPTH_STENCIL_EXT) &&
        !stObj->base.GenerateMipmap &&
@@ -1111,10 +1113,14 @@ copy_image_data_to_texture(struct st_context *st,
       /* Copy potentially with the blitter:
        */
       GLuint src_level;
-      if (stImage->pt != stObj->pt)
+      if (stImage->pt->last_level == 0)
          src_level = 0;
       else
          src_level = stImage->base.Level;
+
+      assert(src_level <= stImage->pt->last_level);
+      assert(u_minify(stImage->pt->width0, src_level) == stImage->base.Width);
+      assert(u_minify(stImage->pt->height0, src_level) == stImage->base.Height);
 
       st_texture_image_copy(st->pipe,
                             stObj->pt, dstLevel,  /* dest texture, level */

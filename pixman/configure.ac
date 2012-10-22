@@ -89,6 +89,9 @@ AC_DEFUN([PIXMAN_LINK_WITH_ENV],[dnl
 	LDFLAGS=""
 	LIBS=""
 	$1
+	CFLAGS="$save_CFLAGS $CFLAGS"
+	LDFLAGS="$save_LDFLAGS $LDFLAGS"
+	LIBS="$save_LIBS $LIBS"
 	AC_LINK_IFELSE(
 		[AC_LANG_SOURCE([$2])],
 		[pixman_cc_stderr=`test -f conftest.err && cat conftest.err`
@@ -921,8 +924,8 @@ if test $ac_cv_tls = none ; then
 
     AC_MSG_CHECKING(for pthread_setspecific)
 
-    PIXMAN_CHECK_PTHREAD([CFLAGS="-D_REENTRANT"; LIBS="-lpthread"])
     PIXMAN_CHECK_PTHREAD([CFLAGS="-pthread"; LDFLAGS="-pthread"])
+    PIXMAN_CHECK_PTHREAD([CFLAGS="-D_REENTRANT"; LIBS="-lpthread"])
     PIXMAN_CHECK_PTHREAD([CFLAGS="-D_REENTRANT"; LDFLAGS="-lroot"])
     
     if test $support_for_pthread_setspecific = yes; then
