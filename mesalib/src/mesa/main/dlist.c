@@ -10060,7 +10060,7 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_MapBufferARB(table, _mesa_MapBufferARB);
    SET_UnmapBufferARB(table, _mesa_UnmapBufferARB);
 
-   _mesa_init_queryobj_dispatch(table); /* glGetQuery, etc */
+   _mesa_init_queryobj_dispatch(ctx, table); /* glGetQuery, etc */
    SET_BeginQueryARB(table, save_BeginQueryARB);
    SET_EndQueryARB(table, save_EndQueryARB);
    SET_QueryCounter(table, save_QueryCounter);
@@ -10143,7 +10143,6 @@ _mesa_create_save_table(const struct gl_context *ctx)
 
    /* GL_ARB_color_buffer_float */
    SET_ClampColorARB(table, save_ClampColorARB);
-   SET_ClampColor(table, save_ClampColorARB);
 
    /* GL 3.0 */
    SET_ClearBufferiv(table, save_ClearBufferiv);
@@ -10197,7 +10196,7 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_TextureBarrierNV(table, save_TextureBarrierNV);
 
    /* GL_ARB_sampler_objects */
-   _mesa_init_sampler_object_dispatch(table); /* plug in Gen/Get/etc functions */
+   _mesa_init_sampler_object_dispatch(ctx, table); /* plug in Gen/Get/etc functions */
    SET_BindSampler(table, save_BindSampler);
    SET_SamplerParameteri(table, save_SamplerParameteri);
    SET_SamplerParameterf(table, save_SamplerParameterf);

@@ -35,6 +35,13 @@
 
 #include "pixman-private.h"
 
+/* Workaround for http://gcc.gnu.org/PR54965 */
+/* GCC 4.6 has problems with force_inline, so just use normal inline instead */
+#if defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ == 6)
+#undef force_inline
+#define force_inline __inline__
+#endif
+
 typedef float (* combine_channel_t) (float sa, float s, float da, float d);
 
 static force_inline void

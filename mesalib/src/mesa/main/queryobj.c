@@ -301,6 +301,19 @@ _mesa_BeginQueryIndexed(GLenum target, GLuint index, GLuint id)
       return;
    }
 
+   /* From the GL_ARB_occlusion_query spec:
+    *
+    *     "If BeginQueryARB is called while another query is already in
+    *      progress with the same target, an INVALID_OPERATION error is
+    *      generated."
+    */
+   if (*bindpt) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glBeginQuery{Indexed}(target=%s is active)",
+                  _mesa_lookup_enum_by_nr(target));
+      return;
+   }
+
    if (id == 0) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glBeginQuery{Indexed}(id==0)");
       return;
@@ -361,6 +374,16 @@ _mesa_EndQueryIndexed(GLenum target, GLuint index)
 
    /* XXX should probably refcount query objects */
    q = *bindpt;
+
+   /* Check for GL_ANY_SAMPLES_PASSED vs GL_SAMPLES_PASSED. */
+   if (q && q->Target != target) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glEndQuery(target=%s with active query of target %s)",
+                  _mesa_lookup_enum_by_nr(target),
+                  _mesa_lookup_enum_by_nr(q->Target));
+      return;
+   }
+
    *bindpt = NULL;
 
    if (!q || !q->Active) {
@@ -509,7 +532,7 @@ _mesa_GetQueryIndexediv(GLenum target, GLuint index, GLenum pname,
          }
          break;
       case GL_CURRENT_QUERY_ARB:
-         *params = q ? q->Id : 0;
+         *params = (q && q->Target == target) ? q->Id : 0;
          break;
       default:
          _mesa_error(ctx, GL_INVALID_ENUM, "glGetQuery{Indexed}iv(pname)");
@@ -708,7 +731,8 @@ _mesa_GetQueryObjectui64vEXT(GLuint id, GLenum pname, GLuint64EXT *params)
 
 
 void
-_mesa_init_queryobj_dispatch(struct _glapi_table *disp)
+_mesa_init_queryobj_dispatch(const struct gl_context *ctx,
+                             struct _glapi_table *disp)
 {
    SET_GenQueriesARB(disp, _mesa_GenQueriesARB);
    SET_DeleteQueriesARB(disp, _mesa_DeleteQueriesARB);
@@ -716,16 +740,19 @@ _mesa_init_queryobj_dispatch(struct _glapi_table *disp)
    SET_BeginQueryARB(disp, _mesa_BeginQueryARB);
    SET_EndQueryARB(disp, _mesa_EndQueryARB);
    SET_GetQueryivARB(disp, _mesa_GetQueryivARB);
-   SET_GetQueryObjectivARB(disp, _mesa_GetQueryObjectivARB);
    SET_GetQueryObjectuivARB(disp, _mesa_GetQueryObjectuivARB);
-   SET_QueryCounter(disp, _mesa_QueryCounter);
 
-   SET_GetQueryObjecti64vEXT(disp, _mesa_GetQueryObjecti64vEXT);
-   SET_GetQueryObjectui64vEXT(disp, _mesa_GetQueryObjectui64vEXT);
+   if (_mesa_is_desktop_gl(ctx)) {
+      SET_GetQueryObjectivARB(disp, _mesa_GetQueryObjectivARB);
+      SET_QueryCounter(disp, _mesa_QueryCounter);
 
-   SET_BeginQueryIndexed(disp, _mesa_BeginQueryIndexed);
-   SET_EndQueryIndexed(disp, _mesa_EndQueryIndexed);
-   SET_GetQueryIndexediv(disp, _mesa_GetQueryIndexediv);
+      SET_GetQueryObjecti64vEXT(disp, _mesa_GetQueryObjecti64vEXT);
+      SET_GetQueryObjectui64vEXT(disp, _mesa_GetQueryObjectui64vEXT);
+
+      SET_BeginQueryIndexed(disp, _mesa_BeginQueryIndexed);
+      SET_EndQueryIndexed(disp, _mesa_EndQueryIndexed);
+      SET_GetQueryIndexediv(disp, _mesa_GetQueryIndexediv);
+   }
 }
 
 
