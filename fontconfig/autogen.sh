@@ -19,6 +19,7 @@ PROJECT=Fontconfig
 TEST_TYPE=-f
 FILE=fontconfig/fontconfig.h
 ACLOCAL=${ACLOCAL-aclocal}
+ACLOCAL_FLAGS="-I m4"
 LIBTOOLIZE=${LIBTOOLIZE-libtoolize}
 AUTOMAKE=${AUTOMAKE-automake}
 AUTOHEADER=${AUTOHEADER-autoheader}
