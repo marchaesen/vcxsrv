@@ -48,6 +48,8 @@ endif
 
 EXTRA_DIST=fc-cache.sgml $(BUILT_MANS)
 
+CLEANFILES =
+
 fc_cache_LDADD = ${top_builddir}/src/libfontconfig.la
 
 if USEDOCBOOK
@@ -59,10 +61,7 @@ ${man_MANS}: ${SGML}
 
 all-local: $(man_MANS)
 
-clean-local:
-	$(RM) $(man_MANS)
-
+CLEANFILES += ${man_MANS}
 else
 all-local:
-clean-local:
 endif
