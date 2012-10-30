@@ -59,7 +59,6 @@ winCreateWindowNativeGDI(WindowPtr pWin)
     Bool fResult = TRUE;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
 #if CYGDEBUG
@@ -82,7 +81,6 @@ winDestroyWindowNativeGDI(WindowPtr pWin)
     Bool fResult = TRUE;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
 #if CYGDEBUG
@@ -105,7 +103,6 @@ winPositionWindowNativeGDI(WindowPtr pWin, int x, int y)
     Bool fResult = TRUE;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
 #if CYGDEBUG
@@ -210,7 +207,6 @@ winChangeWindowAttributesNativeGDI(WindowPtr pWin, unsigned long mask)
     Bool fResult = TRUE;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
 #if CYGDEBUG
@@ -238,7 +234,6 @@ winUnmapWindowNativeGDI(WindowPtr pWin)
     Bool fResult = TRUE;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
 #if CYGDEBUG
@@ -262,7 +257,6 @@ winMapWindowNativeGDI(WindowPtr pWin)
     Bool fResult = TRUE;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
 #if CYGDEBUG

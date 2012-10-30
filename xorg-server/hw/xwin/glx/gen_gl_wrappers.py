@@ -146,9 +146,8 @@ for line in glspec :
                         arglist_use = m1.group(2)
                         wrappers[function] = {}
 
-                        # near and far might be reserved words or macros so can't be used as formal parameter names
-                        arglist_use = arglist_use.replace('near','zNear')
-                        arglist_use = arglist_use.replace('far','zFar')
+                        # ensure formal parameter names don't collide with reserved names or shadow global declarations
+                        arglist_use = ',' .join([i.rstrip() + '_' for i in arglist_use.split(",")])
 
                         wrappers[function]['arglist_use'] = arglist_use
                         param_count = 0
@@ -217,9 +216,8 @@ for w in sorted(wrappers.keys()) :
                 if k.startswith('param') :
                         l = wrappers[w][k].split()
 
-                        # near and far might be reserved words or macros so can't be used as formal parameter names
-                        l[0] = l[0].replace('near','zNear')
-                        l[0] = l[0].replace('far','zFar')
+                        # ensure formal parameter names don't collide with reserved names or shadow global declarations
+                        l[0] = l[0] + '_'
 
                         if l[2] == 'in' :
                                 if l[3] == 'array' :

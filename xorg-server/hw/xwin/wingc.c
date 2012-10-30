@@ -33,11 +33,6 @@
 #endif
 #include "win.h"
 
-void
-
-winPushPixels(GCPtr pGC, PixmapPtr pBitMap, DrawablePtr pDrawable, int dx,
-              int dy, int xOrg, int yOrg);
-
 /*
  * Local prototypes
  */

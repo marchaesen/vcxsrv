@@ -38,7 +38,9 @@
 #endif
 #include <stdarg.h>
 
-void winVMsg(int, MessageType, int verb, const char *, va_list);
+void
+winVMsg(int, MessageType, int verb, const char *, va_list)
+_X_ATTRIBUTE_PRINTF(4, 0);
 
 void
 winVMsg(int scrnIndex, MessageType type, int verb, const char *format,

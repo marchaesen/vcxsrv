@@ -30,11 +30,11 @@
 typedef struct {
     unsigned int winlayout;
     int winkbtype;
-    char *xkbmodel;
-    char *xkblayout;
-    char *xkbvariant;
-    char *xkboptions;
-    char *layoutname;
+    const char *xkbmodel;
+    const char *xkblayout;
+    const char *xkbvariant;
+    const char *xkboptions;
+    const char *layoutname;
 } WinKBLayoutRec, *WinKBLayoutPtr;
 
 /*

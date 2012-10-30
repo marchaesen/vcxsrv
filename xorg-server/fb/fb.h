@@ -1344,6 +1344,9 @@ extern _X_EXPORT void
 extern _X_EXPORT Bool
  fbPictureInit(ScreenPtr pScreen, PictFormatPtr formats, int nformats);
 
+extern _X_EXPORT void
+fbDestroyGlyphCache(void);
+
 /*
  * fbpixmap.c
  */

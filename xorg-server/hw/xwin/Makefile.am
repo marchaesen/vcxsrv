@@ -95,7 +95,6 @@ SRCS =	InitInput.c \
 	winprefsyacc.y \
 	winprefslex.l \
 	winprocarg.c \
-	winregistry.c \
 	winscrinit.c \
 	winshaddd.c \
 	winshadddnl.c \

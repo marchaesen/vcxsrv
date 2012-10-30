@@ -443,6 +443,7 @@ DisableDevice(DeviceIntPtr dev, BOOL sendevent)
     if (*prev != dev)
         return FALSE;
 
+    TouchEndPhysicallyActiveTouches(dev);
     ReleaseButtonsAndKeys(dev);
     SyncRemoveDeviceIdleTime(dev->idle_counter);
     dev->idle_counter = NULL;

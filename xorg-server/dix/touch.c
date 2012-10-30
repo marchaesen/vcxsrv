@@ -1029,3 +1029,31 @@ TouchAcceptReject(ClientPtr client, DeviceIntPtr dev, int mode,
 
     return TouchListenerAcceptReject(dev, ti, i, mode);
 }
+
+/**
+ * End physically active touches for a device.
+ */
+void
+TouchEndPhysicallyActiveTouches(DeviceIntPtr dev)
+{
+    InternalEvent *eventlist = InitEventList(GetMaximumEventsNum());
+    int i;
+
+    OsBlockSignals();
+    mieqProcessInputEvents();
+    for (i = 0; i < dev->last.num_touches; i++) {
+        DDXTouchPointInfoPtr ddxti = dev->last.touches + i;
+
+        if (ddxti->active) {
+            int j;
+            int nevents = GetTouchEvents(eventlist, dev, ddxti->ddx_id,
+                                         XI_TouchEnd, 0, NULL);
+
+            for (j = 0; j < nevents; j++)
+                mieqProcessDeviceEvent(dev, eventlist + j, NULL);
+        }
+    }
+    OsReleaseSignals();
+
+    FreeEventList(eventlist, GetMaximumEventsNum());
+}

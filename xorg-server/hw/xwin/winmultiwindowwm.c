@@ -132,13 +132,6 @@ typedef struct _XMsgProcArgRec {
 } XMsgProcArgRec, *XMsgProcArgPtr;
 
 /*
- * References to external symbols
- */
-
-extern char *display;
-extern void ErrorF(const char * /*f */ , ...);
-
-/*
  * Prototypes for local functions
  */
 
@@ -526,7 +519,6 @@ getHwnd(WMInfoPtr pWMInfo, Window iWindow)
 static void
 UpdateName(WMInfoPtr pWMInfo, Window iWindow)
 {
-    wchar_t *pszName;
     HWND hWnd;
     XWindowAttributes attr;
 

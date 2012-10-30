@@ -38,7 +38,7 @@
 void
  winClipboardDOStoUNIX(char *pszSrc, int iLength);
 void
- winClipboardUNIXtoDOS(unsigned char **ppszData, int iLength);
+ winClipboardUNIXtoDOS(char **ppszData, int iLength);
 
 /*
  * Convert \r\n to \n
@@ -75,12 +75,12 @@ winClipboardDOStoUNIX(char *pszSrc, int iLength)
  */
 
 void
-winClipboardUNIXtoDOS(unsigned char **ppszData, int iLength)
+winClipboardUNIXtoDOS(char **ppszData, int iLength)
 {
     int iNewlineCount = 0;
-    unsigned char *pszSrc = *ppszData;
-    unsigned char *pszEnd = pszSrc + iLength;
-    unsigned char *pszDest = NULL, *pszDestBegin = NULL;
+    char *pszSrc = *ppszData;
+    char *pszEnd = pszSrc + iLength;
+    char *pszDest = NULL, *pszDestBegin = NULL;
 
     winDebug("UNIXtoDOS () - Original data:'%s'\n", *ppszData);
 

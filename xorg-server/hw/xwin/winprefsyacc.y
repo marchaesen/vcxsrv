@@ -37,6 +37,7 @@
 #endif
 #include <stdio.h>
 #include <stdlib.h>
+#define _STDLIB_H 1 /* bison checks this to know if stdlib has been included */
 #include <string.h>
 #include "winprefs.h"
 
@@ -80,7 +81,6 @@ static void CloseSysMenu(void);
 
 static int yyerror (char *s);
 
-extern void ErrorF (const char* /*f*/, ...);
 extern char *yytext;
 extern int yylex(void);
 
@@ -283,16 +283,16 @@ SetTrayIcon (char *fname)
 }
 
 static void
-SetRootMenu (char *menu)
+SetRootMenu (char *menuname)
 {
-  strncpy (pref.rootMenuName, menu, MENU_MAX);
+  strncpy (pref.rootMenuName, menuname, MENU_MAX);
   pref.rootMenuName[MENU_MAX] = 0;
 }
 
 static void
-SetDefaultSysMenu (char *menu, int pos)
+SetDefaultSysMenu (char *menuname, int pos)
 {
-  strncpy (pref.defaultSysMenuName, menu, MENU_MAX);
+  strncpy (pref.defaultSysMenuName, menuname, MENU_MAX);
   pref.defaultSysMenuName[MENU_MAX] = 0;
   pref.defaultSysMenuPos = pos;
 }

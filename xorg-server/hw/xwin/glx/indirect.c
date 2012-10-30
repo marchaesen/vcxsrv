@@ -1626,15 +1626,15 @@ glxWinCreateContext(__GLXscreen * screen,
  */
 
 static int
-GetShift(int Mask)
+GetShift(int mask)
 {
-    int Shift = 0;
+    int shift = 0;
 
-    while ((Mask &1) == 0) {
-        Shift++;
-        Mask >>=1;
+    while ((mask &1) == 0) {
+        shift++;
+        mask >>=1;
     }
-    return Shift;
+    return shift;
 }
 
 static int

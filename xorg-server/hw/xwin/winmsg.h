@@ -34,15 +34,29 @@
  * Function prototypes
  */
 
-void winDrvMsgVerb(int scrnIndex,
-                   MessageType type, int verb, const char *format, ...);
-void winDrvMsg(int scrnIndex, MessageType type, const char *format, ...);
-void winMsgVerb(MessageType type, int verb, const char *format, ...);
-void winMsg(MessageType type, const char *format, ...);
-void winDebug(const char *format, ...);
-void winTrace(const char *format, ...);
+void
+winDrvMsgVerb(int scrnIndex,
+              MessageType type, int verb, const char *format, ...)
+_X_ATTRIBUTE_PRINTF(4, 5);
+void
+winDrvMsg(int scrnIndex, MessageType type, const char *format, ...)
+_X_ATTRIBUTE_PRINTF(3, 4);
+void
+winMsgVerb(MessageType type, int verb, const char *format, ...)
+_X_ATTRIBUTE_PRINTF(3, 4);
+void
+winMsg(MessageType type, const char *format, ...)
+_X_ATTRIBUTE_PRINTF(2, 3);
+void
+winDebug(const char *format, ...)
+_X_ATTRIBUTE_PRINTF(1, 2);
+void
+winTrace(const char *format, ...)
+_X_ATTRIBUTE_PRINTF(1, 2);
 
-void winErrorFVerb(int verb, const char *format, ...);
+void
+winErrorFVerb(int verb, const char *format, ...)
+_X_ATTRIBUTE_PRINTF(2, 3);
 void winW32Error(int verb, const char *message);
 void winW32ErrorEx(int verb, const char *message, DWORD errorcode);
 void winDebugWin32Message(const char *function, HWND hwnd, UINT message,

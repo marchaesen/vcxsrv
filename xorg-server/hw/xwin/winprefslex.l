@@ -37,13 +37,9 @@
 #include <string.h>
 #include "winprefsyacc.h"
 
-extern YYSTYPE yylval;
-extern char *yytext;
 extern int yyparse(void);
 
 extern void ErrorF (const char* /*f*/, ...);
-
-int yylineno;
 
 /* Copy the parsed string, must be free()d in yacc parser */
 static char *makestr(char *str)
@@ -62,6 +58,9 @@ static char *makestr(char *str)
 %}
 
 %option yylineno
+%option nounput
+%option noinput
+%option never-interactive
 
 %%
 \#.*[\r\n]              { /* comment */ return NEWLINE; }

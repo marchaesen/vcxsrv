@@ -254,7 +254,7 @@ winCreateScreenResources(ScreenPtr pScreen)
 
 /* See Porting Layer Definition - p. 20 */
 Bool
-winFinishScreenInitFB(int index, ScreenPtr pScreen, int argc, char **argv)
+winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
 {
     winScreenPriv(pScreen);
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
@@ -578,11 +578,11 @@ winFinishScreenInitFB(int index, ScreenPtr pScreen, int argc, char **argv)
 /* See Porting Layer Definition - p. 20 */
 
 Bool
-winFinishScreenInitNativeGDI(int index,
+winFinishScreenInitNativeGDI(int i,
                              ScreenPtr pScreen, int argc, char **argv)
 {
     winScreenPriv(pScreen);
-    winScreenInfoPtr pScreenInfo = &g_ScreenInfo[index];
+    winScreenInfoPtr pScreenInfo = &g_ScreenInfo[i];
     VisualPtr pVisuals = NULL;
     DepthPtr pDepths = NULL;
     VisualID rootVisual = 0;

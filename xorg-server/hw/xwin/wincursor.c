@@ -158,7 +158,6 @@ winLoadCursor(ScreenPtr pScreen, CursorPtr pCursor, int screen)
     HBITMAP hAnd, hXor;
     ICONINFO ii;
     unsigned char *pCur;
-    int x, y;
     unsigned char bit;
     HDC hDC;
     BITMAPV4HEADER bi;
@@ -262,6 +261,7 @@ winLoadCursor(ScreenPtr pScreen, CursorPtr pCursor, int screen)
                                      sizeof(unsigned long));
 
         if (lpBits) {
+            int y;
             for (y = 0; y < nCY; y++) {
                 unsigned long *src, *dst;
 
@@ -305,6 +305,7 @@ winLoadCursor(ScreenPtr pScreen, CursorPtr pCursor, int screen)
 
         pCur = (unsigned char *) lpBits;
         if (lpBits) {
+	    int x, y;
             for (y = 0; y < pScreenPriv->cursor.sm_cy; y++) {
                 for (x = 0; x < pScreenPriv->cursor.sm_cx; x++) {
                     if (x >= nCX || y >= nCY)   /* Outside of X11 icon bounds */

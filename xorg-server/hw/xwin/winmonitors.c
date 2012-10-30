@@ -27,6 +27,10 @@ from The Open Group.
 
 */
 
+#ifdef HAVE_XWIN_CONFIG_H
+#include <xwin-config.h>
+#endif
+
 #include "win.h"
 #include "winmonitors.h"
 
@@ -55,13 +59,13 @@ getMonitorInfo(HMONITOR hMonitor, HDC hdc, LPRECT rect, LPARAM _data)
 }
 
 Bool
-QueryMonitor(int index, struct GetMonitorInfoData *data)
+QueryMonitor(int i, struct GetMonitorInfoData *data)
 {
     /* prepare data */
     if (data == NULL)
         return FALSE;
     memset(data, 0, sizeof(*data));
-    data->requestedMonitor = index;
+    data->requestedMonitor = i;
 
     /* query information */
     EnumDisplayMonitors(NULL, NULL, getMonitorInfo, (LPARAM) data);

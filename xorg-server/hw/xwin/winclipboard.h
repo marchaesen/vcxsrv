@@ -79,7 +79,6 @@
  */
 
 extern char *display;
-extern void ErrorF(const char * /*f */ , ...);
 extern void winDebug(const char *format, ...);
 extern void winErrorFVerb(int verb, const char *format, ...);
 
@@ -100,7 +99,7 @@ void
  winClipboardDOStoUNIX(char *pszData, int iLength);
 
 void
- winClipboardUNIXtoDOS(unsigned char **ppszData, int iLength);
+ winClipboardUNIXtoDOS(char **ppszData, int iLength);
 
 /*
  * winclipboardthread.c

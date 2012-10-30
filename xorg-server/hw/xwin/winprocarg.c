@@ -56,10 +56,6 @@ void
 void
  winLogVersionInfo(void);
 
-#ifdef DDXOSVERRORF
-void OsVendorVErrorF(const char *pszFormat, va_list va_args);
-#endif
-
 /*
  * Process arguments on the command line
  */
