@@ -29,7 +29,7 @@ if %errorlevel% NEQ 0 goto end
 
 set MHMAKECONF=%~dp0
 
-tools\mhmake\release\mhmake.exe -C xorg-server MAKESERVER=1 DEBUG=1 vcxsrv_dbg.exe
+tools\mhmake\release\mhmake.exe -C xorg-server MAKESERVER=1 DEBUG=1
 if %errorlevel% NEQ 0 goto end
 tools\mhmake\release\mhmake.exe -C xorg-server MAKESERVER=1
 if %errorlevel% NEQ 0 goto end

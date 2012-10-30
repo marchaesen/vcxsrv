@@ -36,7 +36,6 @@ RequestExecutionLevel admin
 ;--------------------------------
 InstType "Full"
 InstType "Minimal"
-InstType "Full with Debug"
 
 ; Pages
 
@@ -69,27 +68,27 @@ Section "VcXsrv (required)"
 
   ; Put files there
   File "..\obj\servrelease\vcxsrv.exe"
-  File "..\protocol.txt"
+  File "..\dix\protocol.txt"
   File "..\system.XWinrc"
   File "..\..\xkbcomp\obj\release\xkbcomp.exe"
   File "..\..\apps\xhost\obj\release\xhost.exe"
   File "..\..\apps\xauth\obj\release\xauth.exe"
   File "..\..\apps\xcalc\obj\release\xcalc.exe"
-  File "..\xcalc"
-  File "..\xcalc-color"
+  File "..\..\apps\xcalc\app-defaults\xcalc"
+  File "..\..\apps\xcalc\app-defaults\xcalc-color"
   File "..\..\apps\xclock\obj\release\xclock.exe"
-  File "..\xclock"
-  File "..\xclock-color"
+  File "..\..\apps\xclock\app-defaults\xclock"
+  File "..\..\apps\xclock\app-defaults\xclock-color"
   File "..\..\apps\xwininfo\obj\release\xwininfo.exe"
   File "..\XKeysymDB"
-  File "..\XErrorDB"
+  File "..\..\libX11\src\XErrorDB"
   File "..\XtErrorDB"
   File "..\.Xdefaults"
   File "..\hw\xwin\xlaunch\obj\release\xlaunch.exe"
   File "..\..\tools\plink\obj\release\plink.exe"
-  File "..\swrast_dri.dll"
-  File "..\swrastwgl_dri.dll"
-  File "..\dxtn.dll"
+  File "..\..\mesalib\windows\VC8\mesa\Release\swrast_dri.dll"
+  File "..\hw\xwin\swrastwgl_dri\obj\release\swrastwgl_dri.dll"
+  File "..\..\dxtn\obj\release\dxtn.dll"
   File "..\..\libxml2\bin\libxml2.dll"
   File "..\..\zlib\obj\release\zlib1.dll"
   File "..\..\libxcb\src\obj\release\libxcb.dll"
@@ -116,7 +115,7 @@ Section "VcXsrv (required)"
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "NoModify" 1
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "NoRepair" 1
   WriteUninstaller "uninstall.exe"
-  
+
   ; Register the xlaunch file extension
   WriteRegStr HKCR ".xlaunch" "" "XLaunchFile"
   WriteRegStr HKCR "XLaunchFile" "" "XLaunch Configuration"
@@ -178,43 +177,6 @@ Section "Desktop Shortcuts"
 SectionEnd
 
 ;--------------------------------
-; Optional debug libraries
-Section "VcXsrv debug version" VcXsrv_debug_version
-  SectionIn 3
-
-  ; Set output path to the installation directory.
-  SetOutPath $INSTDIR
-
-  ; Put files there
-  File "..\obj\servdebug\vcxsrv_dbg.exe"
-  File "..\obj\servdebug\vcxsrv_dbg.pdb"
-  File "..\swrast_dri_dbg.dll"
-  File "..\swrastwgl_dri_dbg.dll"
-  File "..\dxtn_dbg.dll"
-  File "msvcr100d.dll"
-
-SectionEnd
-
-Section -removedbg
-  SectionGetFlags ${VcXsrv_debug_version} $0
-  IntCmp $0 0 nodebug done done
-  nodebug:
-    IfFileExists "$INSTDIR\vcxsrv_dbg.exe" 0 +2
-      Delete "$INSTDIR\vcxsrv_dbg.exe"
-    IfFileExists "$INSTDIR\vcxsrv_dbg.pdb" 0 +2
-      Delete "$INSTDIR\vcxsrv_dbg.pdb"
-    IfFileExists "$INSTDIR\swrast_dri_dbg.dll" 0 +2
-      Delete "$INSTDIR\swrast_dri_dbg.dll"
-    IfFileExists "$INSTDIR\swrastwgl_dri_dbg.dll" 0 +2
-      Delete "$INSTDIR\swrastwgl_dri_dbg.dll"
-    IfFileExists "$INSTDIR\dxtn_dbg.dll" 0 +2
-      Delete "$INSTDIR\dxtn_dbg.dll"
-    IfFileExists "$INSTDIR\msvcr100d.dll" 0 +2
-      Delete "$INSTDIR\msvcr100d.dll"
-  done:
-SectionEnd
-
-;--------------------------------
 
 ; Uninstaller
 
@@ -231,8 +193,6 @@ Section "Uninstall"
 
   ; Remove files and uninstaller
   Delete "$INSTDIR\vcxsrv.exe"
-  Delete "$INSTDIR\vcxsrv_dbg.exe"
-  Delete "$INSTDIR\vcxsrv_dbg.pdb"
   Delete "$INSTDIR\uninstall.exe"
   Delete "$INSTDIR\protocol.txt"
   Delete "$INSTDIR\system.XWinrc"
@@ -251,11 +211,8 @@ Section "Uninstall"
   Delete "$INSTDIR\xlaunch.exe"
   Delete "$INSTDIR\plink.exe"
   Delete "$INSTDIR\swrast_dri.dll"
-  Delete "$INSTDIR\swrast_dri_dbg.dll"
   Delete "$INSTDIR\dxtn.dll"
-  Delete "$INSTDIR\dxtn_dbg.dll"
   Delete "$INSTDIR\swrastwgl_dri.dll"
-  Delete "$INSTDIR\swrastwgl_dri_dbg.dll"
   Delete "$INSTDIR\libxcb.dll"
   Delete "$INSTDIR\libXau.dll"
   Delete "$INSTDIR\libX11.dll"
@@ -267,6 +224,7 @@ Section "Uninstall"
   Delete "$INSTDIR\msvcr100.dll"
   Delete "$INSTDIR\msvcp100.dll"
   Delete "$INSTDIR\msvcr100d.dll"
+  Delete "$INSTDIR\msvcp100d.dll"
 
   RMDir /r "$INSTDIR\fonts"
   RMDir /r "$INSTDIR\xkbdata"

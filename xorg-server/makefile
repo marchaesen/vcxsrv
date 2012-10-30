@@ -52,14 +52,12 @@ load_makefile $(NOSERVLIBDIRS:%$(NOSERVOBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(D
 OBJS = dix\$(OBJDIR)\main.obj
 
 ifeq ($(DEBUG),1)
-TTYAPP=vcxsrv_dbg
+TTYAPP=vcxsrv
 APP:=$(TTYAPP)
 
 LINKLIBS += $(MHMAKECONF)\openssl\out32_d\libeay32.lib \
             $(MHMAKECONF)\freetype\lib\freetype2410MT_D.lib \
             $(MHMAKECONF)\pthreads\pthreadVC2d.lib
-
-$(OBJDIR)\$(TTYAPP).exe: $(LINKLIBS)
 
 else
 WINAPP=vcxsrv
@@ -80,87 +78,29 @@ RESOURCES = XWin.rc
 
 $(OBJDIR)\$(APP).exe: $(LINKLIBS)
 
-XErrorDB: ..\libX11\src\XErrorDB
-	copy $< $@
-
-%.exe: $(OBJDIR)\%.exe
-	copy $< $@
-
-load_makefile hw\xwin\xlaunch\makefile MAKESERVER=0 DEBUG=0
-xlaunch.exe: hw\xwin\xlaunch\obj\release\xlaunch.exe
-	copy $< $@
-
-load_makefile ..\xkbcomp\makefile MAKESERVER=0 DEBUG=0
-xkbcomp.exe: ..\xkbcomp\obj\release\xkbcomp.exe
-	copy $< $@
-
-%: ..\apps\xcalc\app-defaults\%
-	copy $< $@
-
-load_makefile ..\apps\xcalc\makefile MAKESERVER=0 DEBUG=0
-xcalc.exe: ..\apps\xcalc\obj\release\xcalc.exe XCalc XCalc-color
-	copy $< $@
-
-%: ..\apps\xclock\app-defaults\%
-	copy $< $@
-
-load_makefile ..\apps\xclock\makefile MAKESERVER=0 DEBUG=0
-xclock.exe: ..\apps\xclock\obj\release\xclock.exe XClock XClock-color
-	copy $< $@
-
-load_makefile ..\apps\xwininfo\makefile MAKESERVER=0 DEBUG=0
-xwininfo.exe: ..\apps\xwininfo\obj\release\xwininfo.exe
-	copy $< $@
-
-load_makefile ..\apps\xhost\makefile MAKESERVER=0 DEBUG=0
-xhost.exe: ..\apps\xhost\obj\release\xhost.exe
-	copy $< $@
-
-load_makefile ..\apps\xauth\makefile MAKESERVER=0 DEBUG=0
-xauth.exe: ..\apps\xauth\obj\release\xauth.exe
-	copy $< $@
-
-load_makefile ..\tools\plink\makefile MAKESERVER=0 DEBUG=0
-plink.exe: ..\tools\plink\obj\release\plink.exe
-	copy $< $@
-
 load_makefile fonts.src\makefile MAKESERVER=0 DEBUG=0
 load_makefile xkeyboard-config\makefile MAKESERVER=0 DEBUG=0
 
-all: $(APP).exe xlaunch.exe xkbcomp.exe protocol.txt XErrorDB xhost.exe xauth.exe \
-     fonts.src\all xkeyboard-config\all plink.exe xclock.exe xcalc.exe \
-     xwininfo.exe swrast_dri_dbg.dll swrast_dri.dll dxtn.dll dxtn_dbg.dll \
-     swrastwgl_dri.dll swrastwgl_dri_dbg.dll
+EXTRASTOBUILD =  \
+ hw\xwin\xlaunch\$(NOSERVOBJDIR)\xlaunch.exe \
+ ..\xkbcomp\$(NOSERVOBJDIR)\xkbcomp.exe \
+ ..\apps\xcalc\$(NOSERVOBJDIR)\xcalc.exe \
+ ..\apps\xclock\$(NOSERVOBJDIR)\xclock.exe \
+ ..\apps\xwininfo\$(NOSERVOBJDIR)\xwininfo.exe \
+ ..\apps\xhost\$(NOSERVOBJDIR)\xhost.exe \
+ ..\apps\xauth\$(NOSERVOBJDIR)\xauth.exe \
+ ..\tools\plink\$(NOSERVOBJDIR)\plink.exe \
+ hw\xwin\swrastwgl_dri\$(NOSERVOBJDIR)\swrastwgl_dri.dll \
+ ..\dxtn\$(NOSERVOBJDIR)\dxtn.dll
 
+EXTRASTOBUILDDIRS=$(dir $(EXTRASTOBUILD))
 
-load_makefile ..\mesalib\windows\VC8\mesa\makefile MAKESERVER=0 DEBUG=0
-swrast_dri.dll: ..\mesalib\windows\VC8\mesa\Release\swrast_dri.dll
-	copy $< $@
+load_makefile $(EXTRASTOBUILDDIRS:%$(NOSERVOBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(DEBUG);)
+all: $(EXTRASTOBUILD)
 
-swrast_dri_dbg.dll: ..\mesalib\windows\VC8\mesa\Debug\swrast_dri.dll
-	copy $< $@
+BASEOBJDIR=$(NOSERVOBJDIR:obj\%=%)
+load_makefile ..\mesalib\windows\VC8\mesa\makefile MAKESERVER=0 DEBUG=$(DEBUG)
+all: ..\mesalib\windows\VC8\mesa\$(BASEOBJDIR)\swrast_dri.dll
 
-load_makefile hw\xwin\swrastwgl_dri\makefile MAKESERVER=0 DEBUG=0
-swrastwgl_dri.dll: hw\xwin\swrastwgl_dri\obj\release\swrastwgl_dri.dll
-	copy $< $@
-
-load_makefile hw\xwin\swrastwgl_dri\makefile MAKESERVER=0 DEBUG=1
-swrastwgl_dri_dbg.dll: hw\xwin\swrastwgl_dri\obj\debug\swrastwgl_dri.dll
-	copy $< $@
-
-
-load_makefile ..\dxtn\makefile MAKESERVER=0 DEBUG=0
-dxtn.dll: ..\dxtn\obj\release\dxtn.dll
-	copy $< $@
-
-load_makefile ..\dxtn\makefile MAKESERVER=0 DEBUG=1
-dxtn_dbg.dll: ..\dxtn\obj\debug\dxtn.dll
-	copy $< $@
-
-mesaopengl32.dll: ..\mesalib\lib\mesaopengl32.dll
-	copy $< $@
-
-protocol.txt: dix\protocol.txt
-	copy $< $@
-
+all: fonts.src\all xkeyboard-config\all
 

@@ -48,11 +48,7 @@
 
 
 #if defined(_WIN32) || defined(WIN32)
-#ifdef _DEBUG
-#define DXTN_LIBNAME "dxtn_dbg.dll"
-#else
 #define DXTN_LIBNAME "dxtn.dll"
-#endif
 #define RTLD_LAZY 0
 #define RTLD_GLOBAL 0
 #elif defined(__DJGPP__)

@@ -3,11 +3,8 @@ SHAREDLIB = swrastwgl_dri
 INCLUDES += $(OBJDIR) ..\..\.. ..
 DEFINES += INSERVER HAVE_XWIN_CONFIG_H PTW32_STATIC_LIB
 
-ifeq ($(DEBUG),1)
-LINKLIBS += ..\..\..\obj\servdebug\vcxsrv_dbg.lib
-else
-LINKLIBS += ..\..\..\obj\servrelease\vcxsrv.lib
-endif
+$(OBJDIR)\swrastwgl_dri.dll : ..\..\..\$(SERVOBJDIR)\vcxsrv.exe
+LINKLIBS += ..\..\..\$(SERVOBJDIR)\vcxsrv.lib
 
 CSRCS = swrastwgl_dri.c glwrap.c wgl_ext_api.c
 

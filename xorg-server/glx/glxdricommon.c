@@ -232,11 +232,7 @@ glxProbeDriver(const char *driverName,
     const __DRIextension **extensions;
 
 #ifdef _MSC_VER
-#ifdef _DEBUG
-#define DLLNAME "%s%s_dri_dbg.dll"
-#else
 #define DLLNAME "%s%s_dri.dll"
-#endif
     snprintf(filename, sizeof filename, DLLNAME,
              dri_driver_path, driverName);
 

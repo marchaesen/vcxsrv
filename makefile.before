@@ -47,6 +47,7 @@ CCFLAGS   += -MDd -RTCc -RTC1 -Od -GS -GR -Zi
 LINKFLAGS += /DEBUG
 OBJDIR ?= obj\$(OBJDIRPREFIX)debug
 NOSERVOBJDIR ?= obj\debug
+SERVOBJDIR ?= obj\servdebug
 DEFINES += _DEBUG DEBUG
 RCFLAGS += -d "_DEBUG"
 else
@@ -55,6 +56,7 @@ DEFINES   +=  NDEBUG
 LINKFLAGS += /OPT:REF /OPT:ICF /DEBUG /LTCG:STATUS
 OBJDIR ?= obj\$(OBJDIRPREFIX)release
 NOSERVOBJDIR ?= obj\release
+SERVOBJDIR ?= obj\servrelease
 RCFLAGS += -d "NDEBUG"
 AR += /LTCG
 endif
