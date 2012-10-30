@@ -108,7 +108,7 @@ winAllocatePrivates(ScreenPtr pScreen)
  */
 
 Bool
-winInitCmapPrivates(ColormapPtr pcmap, int index)
+winInitCmapPrivates(ColormapPtr pcmap, int i)
 {
     winDebug("winInitCmapPrivates\n");
 

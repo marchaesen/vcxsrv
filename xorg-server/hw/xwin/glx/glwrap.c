@@ -70,7 +70,7 @@ glWinCallDelta(void)
 #endif
 
 static PROC
-glWinResolveHelper(PROC * cache, char *symbol)
+glWinResolveHelper(PROC * cache, const char *symbol)
 {
     PROC proc = NULL;
 

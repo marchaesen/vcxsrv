@@ -59,7 +59,6 @@ winCreateWindowNativeGDI(WindowPtr pWin)
     Bool fResult = TRUE;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
     winDebug ("winCreateWindowNativeGDI (%p)\n", pWin);
@@ -80,7 +79,6 @@ winDestroyWindowNativeGDI(WindowPtr pWin)
     Bool fResult = TRUE;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
     winDebug ("winDestroyWindowNativeGDI (%p)\n", pWin);
@@ -101,7 +99,6 @@ winPositionWindowNativeGDI(WindowPtr pWin, int x, int y)
     Bool fResult = TRUE;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
     winDebug ("winPositionWindowNativeGDI (%p)\n", pWin);
@@ -190,7 +187,6 @@ winChangeWindowAttributesNativeGDI(WindowPtr pWin, unsigned long mask)
     Bool fResult = TRUE;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
   winDebug ("winChangeWindowAttributesNativeGDI (%p)\n", pWin);
@@ -216,7 +212,6 @@ winUnmapWindowNativeGDI(WindowPtr pWin)
     Bool fResult = TRUE;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
   winDebug ("winUnmapWindowNativeGDI (%p)\n", pWin);
@@ -238,7 +233,6 @@ winMapWindowNativeGDI(WindowPtr pWin)
     Bool fResult = TRUE;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
-    winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
   winDebug ("winMapWindowNativeGDI (%p)\n", pWin);

@@ -59,9 +59,6 @@ extern int parse_file(FILE * fp);
 /* Currently in use command ID, incremented each new menu item created */
 static int g_cmdid = STARTMENUID;
 
-/* Defined in DIX */
-extern char *display;
-
 /* Local function to handle comma-ified icon names */
 static HICON LoadImageComma(char *fname, int sx, int sy, int flags);
 
@@ -332,12 +329,12 @@ HandleCustomWM_COMMAND(unsigned long hwndIn, int command)
                 case CMD_EXEC:
                     if (fork() == 0) {
                         struct rlimit rl;
-                        unsigned long i;
+                        int fd;
 
                         /* Close any open descriptors except for STD* */
                         getrlimit(RLIMIT_NOFILE, &rl);
-                        for (i = STDERR_FILENO + 1; i < rl.rlim_cur; i++)
-                            close(i);
+                        for (fd = STDERR_FILENO + 1; fd < rl.rlim_cur; fd++)
+                            close(fd);
 
                         /* Disassociate any TTYs */
                         setsid();
@@ -540,21 +537,21 @@ static HICON
 LoadImageComma(char *fname, int sx, int sy, int flags)
 {
     HICON hicon;
-    int index;
+    int i;
     char file[PATH_MAX + NAME_MAX + 2];
 
     /* Some input error checking */
     if (!fname || !fname[0])
         return NULL;
 
-    index = 0;
+    i = 0;
     hicon = NULL;
 
     if (fname[0] == ',') {
         /* It's the XWIN.EXE resource they want */
-        index = atoi(fname + 1);
+        i = atoi(fname + 1);
         hicon = LoadImage(g_hInstance,
-                          MAKEINTRESOURCE(index), IMAGE_ICON, sx, sy, flags);
+                          MAKEINTRESOURCE(i), IMAGE_ICON, sx, sy, flags);
     }
     else {
         file[0] = 0;
@@ -571,8 +568,8 @@ LoadImageComma(char *fname, int sx, int sy, int flags)
             /* Specified as <fname>,<index> */
 
             *(strrchr(file, ',')) = 0;  /* End string at comma */
-            index = atoi(strrchr(fname, ',') + 1);
-            hicon = ExtractIcon(g_hInstance, file, index);
+            i = atoi(strrchr(fname, ',') + 1);
+            hicon = ExtractIcon(g_hInstance, file, i);
         }
         else {
             /* Just an .ico file... */

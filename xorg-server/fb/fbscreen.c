@@ -32,6 +32,7 @@ fbCloseScreen(ScreenPtr pScreen)
     int d;
     DepthPtr depths = pScreen->allowedDepths;
 
+    fbDestroyGlyphCache();
     for (d = 0; d < pScreen->numDepths; d++)
         free(depths[d].vids);
     free(depths);

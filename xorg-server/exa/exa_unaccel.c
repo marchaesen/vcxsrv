@@ -442,14 +442,19 @@ ExaSrcValidate(DrawablePtr pDrawable,
     RegionPtr dst;
     int xoff, yoff;
 
+    if (pExaScr->srcPix == pPix)
+        dst = &pExaScr->srcReg;
+    else if (pExaScr->maskPix == pPix)
+        dst = &pExaScr->maskReg;
+    else
+        return;
+
     exaGetDrawableDeltas(pDrawable, pPix, &xoff, &yoff);
 
     box.x1 = x + xoff;
     box.y1 = y + yoff;
     box.x2 = box.x1 + width;
     box.y2 = box.y1 + height;
-
-    dst = (pExaScr->srcPix == pPix) ? &pExaScr->srcReg : &pExaScr->maskReg;
 
     RegionInit(&reg, &box, 1);
     RegionUnion(dst, dst, &reg);
@@ -495,16 +500,19 @@ ExaPrepareCompositeReg(ScreenPtr pScreen,
         if (pSrc != pDst)
             RegionTranslate(pSrc->pCompositeClip,
                             -pSrc->pDrawable->x, -pSrc->pDrawable->y);
-    }
+    } else
+        pExaScr->srcPix = NULL;
 
     if (pMask && pMask->pDrawable) {
         pMaskPix = exaGetDrawablePixmap(pMask->pDrawable);
         RegionNull(&pExaScr->maskReg);
         maskReg = &pExaScr->maskReg;
+        pExaScr->maskPix = pMaskPix;
         if (pMask != pDst && pMask != pSrc)
             RegionTranslate(pMask->pCompositeClip,
                             -pMask->pDrawable->x, -pMask->pDrawable->y);
-    }
+    } else
+        pExaScr->maskPix = NULL;
 
     RegionTranslate(pDst->pCompositeClip,
                     -pDst->pDrawable->x, -pDst->pDrawable->y);

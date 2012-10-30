@@ -51,7 +51,6 @@
  */
 
 extern Bool g_fUnicodeClipboard;
-extern unsigned long serverGeneration;
 extern Bool g_fClipboardStarted;
 extern Bool	g_fClipboardLaunched;
 extern HWND g_hwndClipboard;

@@ -208,6 +208,7 @@ typedef struct {
     RegionRec srcReg;
     RegionRec maskReg;
     PixmapPtr srcPix;
+    PixmapPtr maskPix;
 
     DevPrivateKeyRec pixmapPrivateKeyRec;
     DevPrivateKeyRec gcPrivateKeyRec;

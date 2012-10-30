@@ -82,7 +82,6 @@ static int
 ProcWindowsWMQueryVersion(ClientPtr client)
 {
     xWindowsWMQueryVersionReply rep;
-    int n;
 
     REQUEST_SIZE_MATCH(xWindowsWMQueryVersionReq);
     rep.type = X_Reply;
@@ -467,7 +466,7 @@ ProcWindowsWMFrameSetTitle(ClientPtr client)
     winDebug ("ProcWindowsWMFrameSetTitle - length is valid\n");
 
     title_bytes = malloc(title_length + 1);
-    strncpy(title_bytes, (unsigned char *) &stuff[1], title_length);
+    strncpy(title_bytes, (char *) &stuff[1], title_length);
     title_bytes[title_length] = '\0';
 
     pRLWinPriv = (win32RootlessWindowPtr) RootlessFrameForWindow(pWin, FALSE);
@@ -536,8 +535,6 @@ SNotifyEvent(xWindowsWMNotifyEvent * from, xWindowsWMNotifyEvent * to)
 static int
 SProcWindowsWMQueryVersion(ClientPtr client)
 {
-    int n;
-
     REQUEST(xWindowsWMQueryVersionReq);
     swaps(&stuff->length);
     return ProcWindowsWMQueryVersion(client);

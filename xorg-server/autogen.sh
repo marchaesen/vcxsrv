@@ -9,4 +9,6 @@ cd $srcdir
 autoreconf --force -v --install || exit 1
 cd $ORIGDIR || exit $?
 
-$srcdir/configure "$@"
+if test -z "$NOCONFIGURE"; then
+    exec $srcdir/configure "$@"
+fi

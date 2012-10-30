@@ -179,7 +179,8 @@ UngrabAllDevices(Bool kill_client)
             continue;
         PrintDeviceGrabInfo(dev);
         client = clients[CLIENT_ID(dev->deviceGrab.grab->resource)];
-        dev->deviceGrab.DeactivateGrab(dev);
+        if (!kill_client || !client || client->clientGone)
+            dev->deviceGrab.DeactivateGrab(dev);
         if (kill_client)
             CloseDownClient(client);
     }

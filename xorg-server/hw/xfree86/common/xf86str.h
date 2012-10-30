@@ -347,7 +347,7 @@ typedef struct _DriverRec {
  */
 
 /* Tolerate prior #include <linux/input.h> */
-#if defined(linux) && defined(_INPUT_H)
+#if defined(linux)
 #undef BUS_NONE
 #undef BUS_PCI
 #undef BUS_SBUS

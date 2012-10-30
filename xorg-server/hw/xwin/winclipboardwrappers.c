@@ -49,9 +49,6 @@
  * Local function prototypes
  */
 
-int winProcEstablishConnection(ClientPtr /* client */ );
-int winProcSetSelectionOwner(ClientPtr /* client */ );
-
 DISPATCH_PROC(winProcEstablishConnection);
 DISPATCH_PROC(winProcSetSelectionOwner);
 
@@ -59,10 +56,8 @@ DISPATCH_PROC(winProcSetSelectionOwner);
  * References to external symbols
  */
 
-extern int g_iNumScreens;
 extern unsigned int g_uiAuthDataLen;
 extern char *g_pAuthData;
-extern Bool g_fXdmcpEnabled;
 extern Bool g_fClipboardLaunched;
 extern Bool g_fClipboardStarted;
 extern Bool g_fClipboard;
@@ -71,8 +66,6 @@ extern Atom g_atomLastOwnedSelection;
 extern HWND g_hwndClipboard;
 extern Bool		g_fClipboardPrimary;
 
-extern winDispatchProcPtr winProcEstablishConnectionOrig;
-extern winDispatchProcPtr winProcSetSelectionOwnerOrig;
 
 /*
  * Wrapper for internal EstablishConnection function.

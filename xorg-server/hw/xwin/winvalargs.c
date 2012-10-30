@@ -57,9 +57,7 @@ Bool
 winValidateArgs(void)
 {
     int i;
-    int iMaxConsecutiveScreen = 0;
     BOOL fHasNormalScreen0 = FALSE;
-    BOOL fImplicitScreenFound = FALSE;
 
     /*
      * Check for a malformed set of -screen parameters.
