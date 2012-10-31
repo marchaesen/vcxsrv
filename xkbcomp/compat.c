@@ -655,14 +655,13 @@ HandleInterpDef(InterpDef * def, XkbDescPtr xkb, unsigned merge,
 
     if (!ResolveStateAndPredicate(def->match, &pred, &mods, info))
     {
-        ERROR("Couldn't determine matching modifiers\n");
+        if (warningLevel > 0)
+          WARN1("Couldn't determine matching modifiers\n");
         ACTION("Symbol interpretation ignored\n");
         return True;
     }
     if (def->ignore)
     {
-        ERROR("Couldn't lookup keysym\n");
-        ACTION("Symbol interpretation ignored\n");
         return True;
     }
 

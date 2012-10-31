@@ -230,7 +230,12 @@ InterpCreate(const char *sym_str, ExprDef * match)
         def->common.stmtType = StmtInterpDef;
         def->common.next = NULL;
         if (LookupKeysym(sym_str, &def->sym) == 0)
+        {
             def->ignore = True;
+            if (warningLevel > 0)
+                WARN1("Couldn't lookup keysym %s\n", sym_str);
+            ACTION("Symbol interpretation ignored\n");
+        }
         else
             def->ignore = False;
         def->match = match;
