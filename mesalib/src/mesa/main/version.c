@@ -161,7 +161,6 @@ compute_version(struct gl_context *ctx)
                               ctx->Extensions.ARB_depth_texture &&
                               ctx->Extensions.ARB_shadow &&
                               ctx->Extensions.ARB_texture_env_crossbar &&
-                              ctx->Extensions.ARB_window_pos &&
                               ctx->Extensions.EXT_blend_color &&
                               ctx->Extensions.EXT_blend_func_separate &&
                               ctx->Extensions.EXT_blend_minmax &&
@@ -213,7 +212,6 @@ compute_version(struct gl_context *ctx)
                               ctx->Extensions.NV_conditional_render);
    const GLboolean ver_3_1 = (ver_3_0 &&
                               ctx->Const.GLSLVersion >= 140 &&
-                              ctx->Extensions.ARB_copy_buffer &&
                               ctx->Extensions.ARB_draw_instanced &&
                               ctx->Extensions.ARB_texture_buffer_object &&
                               ctx->Extensions.ARB_uniform_buffer_object &&

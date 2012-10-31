@@ -2919,6 +2919,9 @@ struct gl_constants
     * Force software support for primitive restart in the VBO module.
     */
    GLboolean PrimitiveRestartInSoftware;
+
+   /** GL_ARB_map_buffer_alignment */
+   GLuint MinMapBufferAlignment;
 };
 
 
@@ -2937,7 +2940,6 @@ struct gl_extensions
    GLboolean ARB_blend_func_extended;
    GLboolean ARB_color_buffer_float;
    GLboolean ARB_conservative_depth;
-   GLboolean ARB_copy_buffer;
    GLboolean ARB_depth_buffer_float;
    GLboolean ARB_depth_clamp;
    GLboolean ARB_depth_texture;
@@ -2954,6 +2956,7 @@ struct gl_extensions
    GLboolean ARB_half_float_pixel;
    GLboolean ARB_half_float_vertex;
    GLboolean ARB_instanced_arrays;
+   GLboolean ARB_map_buffer_alignment;
    GLboolean ARB_map_buffer_range;
    GLboolean ARB_occlusion_query;
    GLboolean ARB_occlusion_query2;
@@ -2983,21 +2986,17 @@ struct gl_extensions
    GLboolean ARB_transform_feedback2;
    GLboolean ARB_transform_feedback3;
    GLboolean ARB_transform_feedback_instanced;
-   GLboolean ARB_transpose_matrix;
    GLboolean ARB_uniform_buffer_object;
    GLboolean ARB_vertex_program;
    GLboolean ARB_vertex_shader;
    GLboolean ARB_vertex_type_2_10_10_10_rev;
-   GLboolean ARB_window_pos;
    GLboolean EXT_blend_color;
    GLboolean EXT_blend_equation_separate;
    GLboolean EXT_blend_func_separate;
    GLboolean EXT_blend_minmax;
    GLboolean EXT_clip_volume_hint;
-   GLboolean EXT_compiled_vertex_array;
    GLboolean EXT_depth_bounds_test;
    GLboolean EXT_draw_buffers2;
-   GLboolean EXT_draw_range_elements;
    GLboolean EXT_fog_coord;
    GLboolean EXT_framebuffer_blit;
    GLboolean EXT_framebuffer_multisample;
@@ -3007,15 +3006,12 @@ struct gl_extensions
    GLboolean EXT_gpu_shader4;
    GLboolean EXT_packed_depth_stencil;
    GLboolean EXT_packed_float;
-   GLboolean EXT_packed_pixels;
    GLboolean EXT_pixel_buffer_object;
    GLboolean EXT_point_parameters;
    GLboolean EXT_provoking_vertex;
-   GLboolean EXT_rescale_normal;
    GLboolean EXT_shadow_funcs;
    GLboolean EXT_secondary_color;
    GLboolean EXT_separate_shader_objects;
-   GLboolean EXT_separate_specular_color;
    GLboolean EXT_stencil_two_side;
    GLboolean EXT_texture3D;
    GLboolean EXT_texture_array;
@@ -3036,7 +3032,6 @@ struct gl_extensions
    GLboolean OES_standard_derivatives;
    /* vendor extensions */
    GLboolean AMD_seamless_cubemap_per_texture;
-   GLboolean APPLE_packed_pixels;
    GLboolean APPLE_object_purgeable;
    GLboolean ATI_envmap_bumpmap;
    GLboolean ATI_texture_compression_3dc;
@@ -3044,8 +3039,6 @@ struct gl_extensions
    GLboolean ATI_texture_env_combine3;
    GLboolean ATI_fragment_shader;
    GLboolean ATI_separate_stencil;
-   GLboolean IBM_rasterpos_clip;
-   GLboolean IBM_multimode_draw_arrays;
    GLboolean MESA_pack_invert;
    GLboolean MESA_resize_buffers;
    GLboolean MESA_ycbcr_texture;
@@ -3054,15 +3047,11 @@ struct gl_extensions
    GLboolean NV_conditional_render;
    GLboolean NV_fog_distance;
    GLboolean NV_fragment_program_option;
-   GLboolean NV_light_max_exponent;
    GLboolean NV_point_sprite;
    GLboolean NV_primitive_restart;
-   GLboolean NV_read_buffer;
    GLboolean NV_texture_barrier;
-   GLboolean NV_texgen_reflection;
    GLboolean NV_texture_env_combine4;
    GLboolean NV_texture_rectangle;
-   GLboolean SGIS_texture_lod;
    GLboolean TDFX_texture_compression_FXT1;
    GLboolean S3_s3tc;
    GLboolean OES_EGL_image;
