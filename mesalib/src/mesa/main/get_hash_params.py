@@ -99,8 +99,8 @@ descriptor=[
   [ "CLAMP_READ_COLOR", "CONTEXT_ENUM(Color.ClampReadColor), extra_ARB_color_buffer_float" ],
 
 # GL_ARB_copy_buffer
-  [ "COPY_READ_BUFFER", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_copy_buffer" ],
-  [ "COPY_WRITE_BUFFER", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_copy_buffer" ],
+  [ "COPY_READ_BUFFER", "LOC_CUSTOM, TYPE_INT, 0, NO_EXTRA" ],
+  [ "COPY_WRITE_BUFFER", "LOC_CUSTOM, TYPE_INT, 0, NO_EXTRA" ],
 
 # GL_OES_read_format
   [ "IMPLEMENTATION_COLOR_READ_TYPE_OES", "LOC_CUSTOM, TYPE_INT, 0, extra_new_buffers" ],
@@ -480,8 +480,8 @@ descriptor=[
   [ "TEXTURE_COMPRESSION_HINT_ARB", "CONTEXT_INT(Hint.TextureCompression), NO_EXTRA" ],
 
 # GL_EXT_compiled_vertex_array
-  [ "ARRAY_ELEMENT_LOCK_FIRST_EXT", "CONTEXT_INT(Array.LockFirst), extra_EXT_compiled_vertex_array" ],
-  [ "ARRAY_ELEMENT_LOCK_COUNT_EXT", "CONTEXT_INT(Array.LockCount), extra_EXT_compiled_vertex_array" ],
+  [ "ARRAY_ELEMENT_LOCK_FIRST_EXT", "CONTEXT_INT(Array.LockFirst), NO_EXTRA" ],
+  [ "ARRAY_ELEMENT_LOCK_COUNT_EXT", "CONTEXT_INT(Array.LockCount), NO_EXTRA" ],
 
 # GL_ARB_transpose_matrix
   [ "TRANSPOSE_MODELVIEW_MATRIX_ARB", "CONTEXT_MATRIX_T(ModelviewMatrixStack), NO_EXTRA" ],
@@ -507,7 +507,7 @@ descriptor=[
   [ "FOG_DISTANCE_MODE_NV", "CONTEXT_ENUM(Fog.FogDistanceMode), extra_NV_fog_distance" ],
 
 # GL_IBM_rasterpos_clip
-  [ "RASTER_POSITION_UNCLIPPED_IBM", "CONTEXT_BOOL(Transform.RasterPositionUnclipped), extra_IBM_rasterpos_clip" ],
+  [ "RASTER_POSITION_UNCLIPPED_IBM", "CONTEXT_BOOL(Transform.RasterPositionUnclipped), NO_EXTRA" ],
 
 # GL_NV_point_sprite
   [ "POINT_SPRITE_R_MODE_NV", "CONTEXT_ENUM(Point.SpriteRMode), extra_NV_point_sprite" ],
@@ -523,8 +523,8 @@ descriptor=[
   [ "ACTIVE_STENCIL_FACE_EXT", "LOC_CUSTOM, TYPE_ENUM, NO_OFFSET, NO_EXTRA" ],
 
 # GL_NV_light_max_exponent
-  [ "MAX_SHININESS_NV", "CONTEXT_FLOAT(Const.MaxShininess), extra_NV_light_max_exponent" ],
-  [ "MAX_SPOT_EXPONENT_NV", "CONTEXT_FLOAT(Const.MaxSpotExponent), extra_NV_light_max_exponent" ],
+  [ "MAX_SHININESS_NV", "CONTEXT_FLOAT(Const.MaxShininess), NO_EXTRA" ],
+  [ "MAX_SPOT_EXPONENT_NV", "CONTEXT_FLOAT(Const.MaxSpotExponent), NO_EXTRA" ],
 
 # GL_NV_primitive_restart
   [ "PRIMITIVE_RESTART_NV", "CONTEXT_BOOL(Array.PrimitiveRestart), extra_NV_primitive_restart" ],
@@ -685,6 +685,9 @@ descriptor=[
 
 # GL_ARB_timer_query
   [ "TIMESTAMP", "LOC_CUSTOM, TYPE_INT64, 0, extra_ARB_timer_query" ],
+
+# GL_ARB_map_buffer_alignment
+  [ "MIN_MAP_BUFFER_ALIGNMENT", "CONTEXT_INT(Const.MinMapBufferAlignment), extra_ARB_map_buffer_alignment" ],
 ]}
 
 ]

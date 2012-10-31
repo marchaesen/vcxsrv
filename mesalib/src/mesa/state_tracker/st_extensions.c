@@ -377,6 +377,8 @@ void st_init_extensions(struct st_context *st)
       /* GL_NV_point_sprite is not supported by gallium because we don't
        * support the GL_POINT_SPRITE_R_MODE_NV option. */
       { o(MESA_texture_array),               PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS         },
+
+      { o(OES_standard_derivatives),         PIPE_CAP_SM3                              }
    };
 
    /* Required: render target and sampler support */
@@ -479,7 +481,6 @@ void st_init_extensions(struct st_context *st)
     * Extensions that are supported by all Gallium drivers:
     */
    ctx->Extensions.ARB_ES2_compatibility = GL_TRUE;
-   ctx->Extensions.ARB_copy_buffer = GL_TRUE;
    ctx->Extensions.ARB_draw_elements_base_vertex = GL_TRUE;
    ctx->Extensions.ARB_explicit_attrib_location = GL_TRUE;
    ctx->Extensions.ARB_fragment_coord_conventions = GL_TRUE;
@@ -498,7 +499,6 @@ void st_init_extensions(struct st_context *st)
    ctx->Extensions.ARB_texture_storage = GL_TRUE;
    ctx->Extensions.ARB_vertex_program = GL_TRUE;
    ctx->Extensions.ARB_vertex_shader = GL_TRUE;
-   ctx->Extensions.ARB_window_pos = GL_TRUE;
 
    ctx->Extensions.EXT_blend_color = GL_TRUE;
    ctx->Extensions.EXT_blend_func_separate = GL_TRUE;
@@ -522,7 +522,6 @@ void st_init_extensions(struct st_context *st)
 
    ctx->Extensions.NV_blend_square = GL_TRUE;
    ctx->Extensions.NV_fog_distance = GL_TRUE;
-   ctx->Extensions.NV_texgen_reflection = GL_TRUE;
    ctx->Extensions.NV_texture_env_combine4 = GL_TRUE;
    ctx->Extensions.NV_texture_rectangle = GL_TRUE;
 
@@ -637,4 +636,10 @@ void st_init_extensions(struct st_context *st)
    }
    if (st->options.force_glsl_extensions_warn)
 	   ctx->Const.ForceGLSLExtensionsWarn = 1;
+
+   ctx->Const.MinMapBufferAlignment =
+      screen->get_param(screen, PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT);
+   if (ctx->Const.MinMapBufferAlignment >= 64) {
+      ctx->Extensions.ARB_map_buffer_alignment = GL_TRUE;
+   }
 }

@@ -574,7 +574,13 @@ static void update_array(struct st_context *st)
       num_velements = vpv->num_inputs;
    }
 
-   cso_set_vertex_buffers(st->cso_context, num_vbuffers, vbuffer);
+   cso_set_vertex_buffers(st->cso_context, 0, num_vbuffers, vbuffer);
+   if (st->last_num_vbuffers > num_vbuffers) {
+      /* Unbind remaining buffers, if any. */
+      cso_set_vertex_buffers(st->cso_context, num_vbuffers,
+                             st->last_num_vbuffers - num_vbuffers, NULL);
+   }
+   st->last_num_vbuffers = num_vbuffers;
    cso_set_vertex_elements(st->cso_context, num_velements, velements);
 }
 
@@ -582,7 +588,7 @@ static void update_array(struct st_context *st)
 const struct st_tracked_state st_update_array = {
    "st_update_array",					/* name */
    {							/* dirty */
-      (_NEW_PROGRAM | _NEW_BUFFER_OBJECT),		/* mesa */
+      _NEW_BUFFER_OBJECT,                               /* mesa */
       ST_NEW_VERTEX_ARRAYS | ST_NEW_VERTEX_PROGRAM,     /* st */
    },
    update_array						/* update */
