@@ -198,11 +198,10 @@ extern int yywrap(void);
 
 extern int yylex(void);
 extern int yyparse(void);
+extern void scan_set_file(FILE *file);
 
 extern int setScanState(char * /* file */ ,
                         int     /* line */
     );
-
-extern FILE *yyin;
 
 #endif /* XKBPARSE_H */

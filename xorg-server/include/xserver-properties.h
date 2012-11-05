@@ -118,6 +118,9 @@
 #define AXIS_LABEL_PROP_ABS_MT_BLOB_ID     "Abs MT Blob ID"
 #define AXIS_LABEL_PROP_ABS_MT_TRACKING_ID "Abs MT Tracking ID"
 #define AXIS_LABEL_PROP_ABS_MT_PRESSURE    "Abs MT Pressure"
+#define AXIS_LABEL_PROP_ABS_MT_DISTANCE    "Abs MT Distance"
+#define AXIS_LABEL_PROP_ABS_MT_TOOL_X      "Abs MT Tool X"
+#define AXIS_LABEL_PROP_ABS_MT_TOOL_Y      "Abs MT Tool Y"
 #define AXIS_LABEL_PROP_ABS_MISC        "Abs Misc"
 
 /* Button names */

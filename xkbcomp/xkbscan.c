@@ -37,7 +37,7 @@
 
 unsigned int scanDebug;
 
-FILE *yyin = NULL;
+static FILE *yyin;
 
 static char scanFileBuf[1024] = {0};
 char *scanFile = scanFileBuf;
@@ -268,6 +268,14 @@ tokText(int tok)
     return buf;
 }
 #endif
+
+void
+scan_set_file(FILE *file)
+{
+    readBufLen = 0;
+    readBufPos = 0;
+    yyin = file;
+}
 
 static int
 scanchar(void)

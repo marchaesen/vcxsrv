@@ -141,7 +141,7 @@ unsigned int parseDebug;
 %type <str>	KeyName MapName OptMapName KeySym
 %type <sval>	FieldSpec Ident Element String 
 %type <any>	DeclList Decl 
-%type <expr>	OptExprList ExprList Expr Term Lhs Terminal ArrayInit
+%type <expr>	OptExprList ExprList Expr Term Lhs Terminal ArrayInit KeySyms
 %type <expr>	OptKeySymList KeySymList Action ActionList Coord CoordList
 %type <var>	VarDecl VarDeclList SymbolsBody SymbolsVarDecl 
 %type <vmod>	VModDecl VModDefList VModDef
@@ -717,8 +717,12 @@ OptKeySymList	:	KeySymList			{ $$= $1; }
 
 KeySymList	:	KeySymList COMMA KeySym
 			{ $$= AppendKeysymList($1,$3); }
+                |       KeySymList COMMA KeySyms
+                        { $$= AppendKeysymList($1,strdup("NoSymbol")); }
 		|	KeySym
 			{ $$= CreateKeysymList($1); }
+		|	KeySyms
+			{ $$= CreateKeysymList(strdup("NoSymbol")); }
 		;
 
 KeySym		:	IDENT           { $$= strdup(scanBuf); }
@@ -729,6 +733,10 @@ KeySym		:	IDENT           { $$= strdup(scanBuf); }
 			    else	{ $$= malloc(19); snprintf($$, 19, "0x%x", $1); }
 			}
 		;
+
+KeySyms         :       OBRACE KeySymList CBRACE
+                        { $$= $2; }
+                ;
 
 SignedNumber	:	MINUS Number    { $$= -$2; }
 		|	Number              { $$= $1; }

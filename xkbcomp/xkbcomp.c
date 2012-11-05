@@ -883,7 +883,7 @@ main(int argc, char *argv[])
     XkbFileInfo result;
     Status status;
 
-    yyin = stdin;
+    scan_set_file(stdin);
     uSetEntryFile(NullString);
     uSetDebugFile(NullString);
     uSetErrorFile(NullString);

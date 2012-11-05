@@ -35,7 +35,7 @@ The server will not build if your toolchain does not support these extensions.
     * interleaved code and declarations: { foo = TRUE; int bar; do_stuff(); }
 
 
-Use of OS and library facilities throughout the X server tree
+Use of library facilities throughout the X server tree
 -------------------------------------------------------------
 
 Non-OS-dependent code can assume facilities at least as good as
@@ -44,6 +44,17 @@ be C99, but even gcc+glibc doesn't implement that yet.
 
 Unix-like systems are assumed to be at least as good as UNIX03.
 
+Note that there are two Windows ports, Cygwin and MinGW:
+- Cygwin is more or less like Linux.
+- MinGW is more restrictive. Windows does not provide the required
+POSIX facilities, so some non-OS-dependent code is stubbed out or
+has an alternate implementation if WIN32 is defined.  Code that
+needs to be portable to Windows should be careful to, well, be portable.
+
+
+Required OS facilities
+-------------------------------------------------------------
+
 Linux systems must be at least 2.4 or later.  As a practical matter
 though, 2.4 kernels never receive any testing.  Use 2.6 already.
 
@@ -51,11 +62,7 @@ TODO: Solaris.
 
 TODO: *BSD.
 
-Code that needs to be portable to Windows should be careful to,
-well, be portable.  Note that there are two Windows ports, cygwin and
-mingw.  Cygwin is more or less like Linux, but mingw is a bit more
-restrictive.  TODO: document which versions of Windows we actually care
-about.
+Windows-dependent code assumes at least NT 5.1.
 
 OSX support is generally limited to the most recent version.  Currently
 that means 10.5.

@@ -420,7 +420,7 @@ case $host_os in
   darwin*)
 	AC_DEFINE(CSRG_BASED, 1, [System is BSD-like])
 	;;
-  cygwin*)
+  cygwin*|mingw*)
 	CFLAGS="$CFLAGS -DFD_SETSIZE=256"
 	;;
 esac
@@ -1904,7 +1904,7 @@ if test "x$XWIN" = xyes; then
 			XWIN_SERVER_NAME=Xming
 			AC_DEFINE(RELOCATE_PROJECTROOT,1,[Make PROJECT_ROOT relative to the xserver location])
 			AC_DEFINE(HAS_WINSOCK,1,[Use Windows sockets])
-			XWIN_SYS_LIBS=-lws2_32
+			XWIN_SYS_LIBS="-lpthread -lws2_32"
 			;;
 	esac
 

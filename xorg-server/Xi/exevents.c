@@ -1862,6 +1862,11 @@ DeliverTouchEndEvent(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev,
         goto out;
     }
 
+    if (listener->state == LISTENER_AWAITING_BEGIN) {
+        listener->state = LISTENER_HAS_END;
+        goto out;
+    }
+
     /* Event in response to reject */
     if (ev->device_event.flags & TOUCH_REJECT) {
         if (listener->state != LISTENER_HAS_END)

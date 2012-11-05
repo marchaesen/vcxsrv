@@ -235,6 +235,19 @@ OsSignal(int sig, OsSigHandlerPtr handler)
 #define LOCK_PREFIX "/.X"
 #define LOCK_SUFFIX "-lock"
 
+#if !defined(WIN32) || defined(__CYGWIN__)
+#define LOCK_SERVER
+#endif
+
+#ifndef LOCK_SERVER
+void
+LockServer(void)
+{}
+
+void
+UnlockServer(void)
+{}
+#else /* LOCK_SERVER */
 static Bool StillLocking = FALSE;
 static char LockFile[PATH_MAX];
 static Bool nolock = FALSE;
@@ -382,6 +395,7 @@ UnlockServer(void)
         (void) unlink(LockFile);
     }
 }
+#endif /* LOCK_SERVER */
 
 /* Force connections to close on SIGHUP from init */
 
@@ -503,7 +517,9 @@ UseMsg(void)
 #ifdef RLIMIT_STACK
     ErrorF("-ls int                limit stack space to N Kb\n");
 #endif
+#ifdef LOCK_SERVER
     ErrorF("-nolock                disable the locking mechanism\n");
+#endif
     ErrorF("-nolisten string       don't listen on protocol\n");
     ErrorF("-noreset               don't reset after last client exists\n");
     ErrorF("-background [none]     create root window with no background\n");
@@ -664,7 +680,9 @@ ProcessCommandLine(int argc, char *argv[])
             if (++i < argc) {
                 displayfd = atoi(argv[i]);
                 display = NULL;
+#ifdef LOCK_SERVER
                 nolock = TRUE;
+#endif
             }
             else
                 UseMsg();
@@ -744,6 +762,7 @@ ProcessCommandLine(int argc, char *argv[])
                 UseMsg();
         }
 #endif
+#ifdef LOCK_SERVER
         else if (strcmp(argv[i], "-nolock") == 0) {
 #if !defined(WIN32) && !defined(__CYGWIN__)
             if (getuid() != 0)
@@ -753,6 +772,7 @@ ProcessCommandLine(int argc, char *argv[])
 #endif
                 nolock = TRUE;
         }
+#endif
         else if (strcmp(argv[i], "-nolisten") == 0) {
             if (++i < argc) {
                 if (_XSERVTransNoListen(argv[i]))

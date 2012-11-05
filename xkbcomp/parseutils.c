@@ -797,7 +797,7 @@ XKBParseFile(FILE * file, XkbFile ** pRtrn)
 {
     if (file)
     {
-        yyin = file;
+        scan_set_file(file);
         rtrnValue = NULL;
         if (yyparse() == 0)
         {

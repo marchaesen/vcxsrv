@@ -126,7 +126,8 @@ ProcXChangeDeviceControl(ClientPtr client)
         .repType = X_Reply,
         .RepType = X_ChangeDeviceControl,
         .sequenceNumber = client->sequence,
-        .length = 0
+        .length = 0,
+        .status = Success,
     };
 
     switch (stuff->control) {

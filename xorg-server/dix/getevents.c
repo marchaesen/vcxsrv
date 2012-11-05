@@ -1400,8 +1400,9 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
        coordinates were.
      */
     if (flags & POINTER_SCREEN) {
-        screenx = sx;
-        screeny = sy;
+        scr = miPointerGetScreen(pDev);
+        screenx = sx + scr->x;
+        screeny = sy + scr->y;
     }
 
     scr = positionSprite(pDev, (flags & POINTER_ABSOLUTE) ? Absolute : Relative,
