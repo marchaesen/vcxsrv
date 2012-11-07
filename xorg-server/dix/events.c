@@ -2027,19 +2027,19 @@ DeliverToWindowOwner(DeviceIntPtr dev, WindowPtr win,
  */
 static Bool
 GetClientsForDelivery(DeviceIntPtr dev, WindowPtr win,
-                      xEvent *events, Mask filter, InputClients ** clients)
+                      xEvent *events, Mask filter, InputClients ** iclients)
 {
     int rc = 0;
 
     if (core_get_type(events) != 0)
-        *clients = (InputClients *) wOtherClients(win);
+        *iclients = (InputClients *) wOtherClients(win);
     else if (xi2_get_type(events) != 0) {
         OtherInputMasks *inputMasks = wOtherInputMasks(win);
 
         /* Has any client selected for the event? */
         if (!WindowXI2MaskIsset(dev, win, events))
             goto out;
-        *clients = inputMasks->inputClients;
+        *iclients = inputMasks->inputClients;
     }
     else {
         OtherInputMasks *inputMasks = wOtherInputMasks(win);
@@ -2048,7 +2048,7 @@ GetClientsForDelivery(DeviceIntPtr dev, WindowPtr win,
         if (!inputMasks || !(inputMasks->inputEvents[dev->id] & filter))
             goto out;
 
-        *clients = inputMasks->inputClients;
+        *iclients = inputMasks->inputClients;
     }
 
     rc = 1;
@@ -2110,12 +2110,12 @@ DeliverEventToWindowMask(DeviceIntPtr dev, WindowPtr win, xEvent *events,
                          int count, Mask filter, GrabPtr grab,
                          ClientPtr *client_return, Mask *mask_return)
 {
-    InputClients *clients;
+    InputClients *iclients;
 
-    if (!GetClientsForDelivery(dev, win, events, filter, &clients))
+    if (!GetClientsForDelivery(dev, win, events, filter, &iclients))
         return EVENT_SKIP;
 
-    return DeliverEventToInputClients(dev, clients, win, events, count, filter,
+    return DeliverEventToInputClients(dev, iclients, win, events, count, filter,
                                       grab, client_return, mask_return);
 
 }
@@ -4417,7 +4417,7 @@ int
 EventSuppressForWindow(WindowPtr pWin, ClientPtr client,
                        Mask mask, Bool *checkOptional)
 {
-    int i, free;
+    int i, freed;
 
     if (mask & ~PropagateMask) {
         client->errorValue = mask;
@@ -4428,14 +4428,14 @@ EventSuppressForWindow(WindowPtr pWin, ClientPtr client,
     if (!mask)
         i = 0;
     else {
-        for (i = DNPMCOUNT, free = 0; --i > 0;) {
+        for (i = DNPMCOUNT, freed = 0; --i > 0;) {
             if (!DontPropagateRefCnts[i])
-                free = i;
+                freed = i;
             else if (mask == DontPropagateMasks[i])
                 break;
         }
-        if (!i && free) {
-            i = free;
+        if (!i && freed) {
+            i = freed;
             DontPropagateMasks[i] = mask;
         }
     }

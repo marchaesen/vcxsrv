@@ -72,7 +72,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #endif
 
 
-Private Bool
+static Bool
 _XimTransConnect(
     Xim			 im)
 {
@@ -122,7 +122,7 @@ _XimTransConnect(
 }
 
 
-Private Bool
+static Bool
 _XimTransShutdown(
     Xim im)
 {
@@ -142,7 +142,7 @@ _XimTransShutdown(
 
 
 
-Public Bool
+Bool
 _XimTransRegisterDispatcher(
     Xim				 im,
     Bool			 (*callback)(
@@ -164,7 +164,7 @@ _XimTransRegisterDispatcher(
 }
 
 
-Public void
+void
 _XimFreeTransIntrCallback(
     Xim				 im)
 {
@@ -180,7 +180,7 @@ _XimFreeTransIntrCallback(
 }
 
 
-Public Bool
+Bool
 _XimTransCallDispatcher(Xim im, INT16 len, XPointer data)
 {
     TransSpecRec		*spec = (TransSpecRec *)im->private.proto.spec;
@@ -194,7 +194,7 @@ _XimTransCallDispatcher(Xim im, INT16 len, XPointer data)
 }
 
 
-Public Bool
+Bool
 _XimTransFilterWaitEvent(
     Display		*d,
     Window		 w,
@@ -209,7 +209,7 @@ _XimTransFilterWaitEvent(
 }
 
 
-Public void
+void
 _XimTransInternalConnection(
     Display		*d,
     int			 fd,
@@ -235,7 +235,7 @@ _XimTransInternalConnection(
 }
 
 
-Public Bool
+Bool
 _XimTransWrite(Xim im, INT16 len, XPointer data)
 {
     TransSpecRec	*spec	= (TransSpecRec *)im->private.proto.spec;
@@ -252,7 +252,7 @@ _XimTransWrite(Xim im, INT16 len, XPointer data)
 }
 
 
-Public Bool
+Bool
 _XimTransRead(
     Xim			 im,
     XPointer		 recv_buf,
@@ -273,7 +273,7 @@ _XimTransRead(
 }
 
 
-Public void
+void
 _XimTransFlush(
     Xim		 im)
 {
@@ -282,7 +282,7 @@ _XimTransFlush(
 
 
 
-Public Bool
+Bool
 _XimTransConf(
     Xim		   	 im,
     char	 	*address)

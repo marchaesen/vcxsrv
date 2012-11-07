@@ -368,7 +368,7 @@ map1(GLenum target, GLfloat u1, GLfloat u2, GLint ustride,
 
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_Map1f( GLenum target, GLfloat u1, GLfloat u2, GLint stride,
              GLint order, const GLfloat *points )
 {
@@ -376,7 +376,7 @@ _mesa_Map1f( GLenum target, GLfloat u1, GLfloat u2, GLint stride,
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_Map1d( GLenum target, GLdouble u1, GLdouble u2, GLint stride,
              GLint order, const GLdouble *points )
 {
@@ -467,7 +467,7 @@ map2( GLenum target, GLfloat u1, GLfloat u2, GLint ustride, GLint uorder,
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_Map2f( GLenum target,
              GLfloat u1, GLfloat u2, GLint ustride, GLint uorder,
              GLfloat v1, GLfloat v2, GLint vstride, GLint vorder,
@@ -478,7 +478,7 @@ _mesa_Map2f( GLenum target,
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_Map2d( GLenum target,
              GLdouble u1, GLdouble u2, GLint ustride, GLint uorder,
              GLdouble v1, GLdouble v2, GLint vstride, GLint vorder,
@@ -490,7 +490,7 @@ _mesa_Map2d( GLenum target,
 
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetnMapdvARB( GLenum target, GLenum query, GLsizei bufSize, GLdouble *v )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -576,13 +576,13 @@ overflow:
                " but %d bytes are required)", bufSize, numBytes );
 }
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetMapdv( GLenum target, GLenum query, GLdouble *v )
 {
    _mesa_GetnMapdvARB(target, query, INT_MAX, v);
 }
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetnMapfvARB( GLenum target, GLenum query, GLsizei bufSize, GLfloat *v )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -669,14 +669,14 @@ overflow:
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetMapfv( GLenum target, GLenum query, GLfloat *v )
 {
    _mesa_GetnMapfvARB(target, query, INT_MAX, v);
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetnMapivARB( GLenum target, GLenum query, GLsizei bufSize, GLint *v )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -763,14 +763,14 @@ overflow:
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetMapiv( GLenum target, GLenum query, GLint *v )
 {
    _mesa_GetnMapivARB(target, query, INT_MAX, v);
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_MapGrid1f( GLint un, GLfloat u1, GLfloat u2 )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -788,14 +788,14 @@ _mesa_MapGrid1f( GLint un, GLfloat u1, GLfloat u2 )
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_MapGrid1d( GLint un, GLdouble u1, GLdouble u2 )
 {
    _mesa_MapGrid1f( un, (GLfloat) u1, (GLfloat) u2 );
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_MapGrid2f( GLint un, GLfloat u1, GLfloat u2,
                  GLint vn, GLfloat v1, GLfloat v2 )
 {
@@ -823,7 +823,7 @@ _mesa_MapGrid2f( GLint un, GLfloat u1, GLfloat u2,
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_MapGrid2d( GLint un, GLdouble u1, GLdouble u2,
                  GLint vn, GLdouble v1, GLdouble v2 )
 {
@@ -845,28 +845,6 @@ _mesa_install_eval_vtxfmt(struct _glapi_table *disp,
 
    SET_EvalMesh1(disp, vfmt->EvalMesh1);
    SET_EvalMesh2(disp, vfmt->EvalMesh2);
-}
-
-
-void
-_mesa_init_eval_dispatch(struct _glapi_table *disp)
-{
-   SET_GetMapdv(disp, _mesa_GetMapdv);
-   SET_GetMapfv(disp, _mesa_GetMapfv);
-   SET_GetMapiv(disp, _mesa_GetMapiv);
-   SET_Map1d(disp, _mesa_Map1d);
-   SET_Map1f(disp, _mesa_Map1f);
-   SET_Map2d(disp, _mesa_Map2d);
-   SET_Map2f(disp, _mesa_Map2f);
-   SET_MapGrid1d(disp, _mesa_MapGrid1d);
-   SET_MapGrid1f(disp, _mesa_MapGrid1f);
-   SET_MapGrid2d(disp, _mesa_MapGrid2d);
-   SET_MapGrid2f(disp, _mesa_MapGrid2f);
-
-   /* GL_ARB_robustness */
-   SET_GetnMapdvARB(disp, _mesa_GetnMapdvARB);
-   SET_GetnMapfvARB(disp, _mesa_GetnMapfvARB);
-   SET_GetnMapivARB(disp, _mesa_GetnMapivARB);
 }
 
 

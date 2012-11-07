@@ -2059,7 +2059,8 @@ framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
       }
       else if ((texObj->Target == GL_TEXTURE_1D_ARRAY_EXT) ||
                (texObj->Target == GL_TEXTURE_2D_ARRAY_EXT)) {
-         if (zoffset < 0 || zoffset >= ctx->Const.MaxArrayTextureLayers) {
+         if (zoffset < 0 ||
+             zoffset >= (GLint) ctx->Const.MaxArrayTextureLayers) {
             _mesa_error(ctx, GL_INVALID_VALUE,
                         "glFramebufferTexture%sEXT(layer)", caller);
             return;
@@ -2637,6 +2638,15 @@ _mesa_GenerateMipmapEXT(GLenum target)
       return;
    }
 
+   if (_mesa_is_enum_format_integer(srcImage->InternalFormat) ||
+       _mesa_is_depthstencil_format(srcImage->InternalFormat) ||
+       _mesa_is_stencil_format(srcImage->InternalFormat)) {
+      _mesa_unlock_texture(ctx, texObj);
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGenerateMipmap(invalid internal format)");
+      return;
+   }
+
    if (target == GL_TEXTURE_CUBE_MAP) {
       GLuint face;
       for (face = 0; face < 6; face++)
@@ -3142,7 +3152,7 @@ invalidate_framebuffer_storage(GLenum target, GLsizei numAttachments,
          case GL_COLOR_ATTACHMENT13:
          case GL_COLOR_ATTACHMENT14:
          case GL_COLOR_ATTACHMENT15: {
-            const int k = attachments[i] - GL_COLOR_ATTACHMENT0;
+            unsigned k = attachments[i] - GL_COLOR_ATTACHMENT0;
             if (k >= ctx->Const.MaxColorAttachments) {
                _mesa_error(ctx, GL_INVALID_OPERATION,
                            "%s(attachment >= max. color attachments)", name);

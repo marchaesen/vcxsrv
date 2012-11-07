@@ -594,6 +594,46 @@ class gl_parameter(object):
             return self.type_expr.format_string()
 
 
+# Regular expression used to parse "mesa_name" attributes.  A
+# mesa_name attribute describes how to adjust a GL function name
+# suffix to obtain the name of the function in Mesa that implements
+# the functionality.  The attribute string consists of a part preceded
+# by a "-", indicating the suffix to remove, and a part preceded by a
+# "+" indicating the suffix to add.  Either part is optional.
+#
+# For example:
+#
+#   <function name="EnableIndexedEXT" mesa_name="-EXT">...</function>
+#   <function name="IsProgramNV" mesa_name="-NV+ARB">...</function>
+#
+# means that EnableIndexedEXT is implemented by a Mesa function called
+# _mesa_EnableIndexed, and IsProgramNV is implemented by a Mesa function
+# called _mesa_IsProgramARB.
+#
+# Note: the prefix "_mesa_" is handled separately, by the "exec"
+# attribute.
+name_modification_regexp = re.compile(
+    r'^(-(?P<minus>[a-zA-Z0-9_]+))?(\+(?P<plus>[a-zA-Z0-9_]+))?$')
+
+
+# Interpret a "mesa_name" attribute (see above) to determine the
+# appropriate suffix for the Mesa function implementing a piece of GL
+# functionality, and return the properly suffixed name.
+def interpret_name_modification(name, mod):
+    m = name_modification_regexp.match(mod)
+    if m is None:
+        raise Exception('Unintelligible mesa_name property: {0!r}'.format(mod))
+    new_name = name
+    if m.group('minus'):
+        if not new_name.endswith(m.group('minus')):
+            raise Exception(
+                'Cannot subtract suffix {0!r} from function {1}'.format(
+                    m.group('minus'), name))
+        new_name = new_name[:-len(m.group('minus'))]
+    if m.group('plus'):
+        new_name += m.group('plus')
+    return new_name
+
 
 class gl_function( gl_item ):
     def __init__(self, element, context):
@@ -606,6 +646,10 @@ class gl_function( gl_item ):
         self.offset = -1
         self.initialized = 0
         self.images = []
+        self.exec_flavor = 'mesa'
+        self.desktop = True
+        self.deprecated = None
+        self.mesa_name = None
 
         # self.entry_point_api_map[name][api] is a decimal value
         # indicating the earliest version of the given API in which
@@ -613,9 +657,17 @@ class gl_function( gl_item ):
         # the first level of the map; the second level of the map only
         # lists APIs which contain the entry point in at least one
         # version.  For example,
-        # self.entry_point_gles_map['ClipPlanex'] == { 'es1':
+        # self.entry_point_api_map['ClipPlanex'] == { 'es1':
         # Decimal('1.1') }.
         self.entry_point_api_map = {}
+
+        # self.api_map[api] is a decimal value indicating the earliest
+        # version of the given API in which ANY alias for the function
+        # exists.  The map only lists APIs which contain the function
+        # in at least one version.  For example, for the ClipPlanex
+        # function, self.entry_point_api_map == { 'es1':
+        # Decimal('1.1') }.
+        self.api_map = {}
 
         self.assign_offset = 0
 
@@ -651,15 +703,30 @@ class gl_function( gl_item ):
             version_str = element.nsProp(api, None)
             assert version_str is not None
             if version_str != 'none':
-                self.entry_point_api_map[name][api] = Decimal(version_str)
+                version_decimal = Decimal(version_str)
+                self.entry_point_api_map[name][api] = version_decimal
+                if api not in self.api_map or \
+                        version_decimal < self.api_map[api]:
+                    self.api_map[api] = version_decimal
+
+        exec_flavor = element.nsProp('exec', None)
+        if exec_flavor:
+            self.exec_flavor = exec_flavor
+
+        deprecated = element.nsProp('deprecated', None)
+        if deprecated != 'none':
+            self.deprecated = Decimal(deprecated)
+
+        if not is_attr_true(element, 'desktop'):
+            self.desktop = False
 
         if alias:
             true_name = alias
         else:
             true_name = name
 
-            # Only try to set the offset when a non-alias
-            # entry-point is being processes.
+            # Only try to set the offset and mesa_name when a
+            # non-alias entry-point is being processed.
 
             offset = element.nsProp( "offset", None )
             if offset:
@@ -670,6 +737,12 @@ class gl_function( gl_item ):
                     self.offset = -1
                     if offset == "assign":
                         self.assign_offset = 1
+
+            mesa_name = element.nsProp('mesa_name', None)
+            if mesa_name is None:
+                self.mesa_name = name
+            else:
+                self.mesa_name = interpret_name_modification(name, mesa_name)
 
 
         if not self.name:

@@ -535,7 +535,7 @@ _mesa_GetUniformLocationARB(GLhandleARB programObj, const GLcharARB *name)
    return _mesa_uniform_merge_location_offset(index, offset);
 }
 
-static GLuint GLAPIENTRY
+GLuint GLAPIENTRY
 _mesa_GetUniformBlockIndex(GLuint program,
 			   const GLchar *uniformBlockName)
 {
@@ -561,7 +561,7 @@ _mesa_GetUniformBlockIndex(GLuint program,
    return GL_INVALID_INDEX;
 }
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetUniformIndices(GLuint program,
 			GLsizei uniformCount,
 			const GLchar * const *uniformNames,
@@ -594,7 +594,7 @@ _mesa_GetUniformIndices(GLuint program,
    }
 }
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_UniformBlockBinding(GLuint program,
 			  GLuint uniformBlockIndex,
 			  GLuint uniformBlockBinding)
@@ -644,7 +644,7 @@ _mesa_UniformBlockBinding(GLuint program,
    }
 }
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetActiveUniformBlockiv(GLuint program,
 			      GLuint uniformBlockIndex,
 			      GLenum pname,
@@ -720,7 +720,7 @@ _mesa_GetActiveUniformBlockiv(GLuint program,
    }
 }
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetActiveUniformBlockName(GLuint program,
 				GLuint uniformBlockIndex,
 				GLsizei bufSize,
@@ -762,7 +762,7 @@ _mesa_GetActiveUniformBlockName(GLuint program,
    }
 }
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetActiveUniformName(GLuint program, GLuint uniformIndex,
 			   GLsizei bufSize, GLsizei *length,
 			   GLchar *uniformName)
@@ -798,81 +798,4 @@ _mesa_GetActiveUniformName(GLuint program, GLuint uniformIndex,
       _mesa_copy_string(uniformName, bufSize, length,
 			shProg->UniformStorage[uniformIndex].name);
    }
-}
-
-/**
- * Plug in shader uniform-related functions into API dispatch table.
- */
-void
-_mesa_init_shader_uniform_dispatch(const struct gl_context *ctx,
-                                   struct _glapi_table *exec)
-{
-#if FEATURE_GL
-   if (ctx->API != API_OPENGLES) {
-      SET_Uniform1fARB(exec, _mesa_Uniform1fARB);
-      SET_Uniform2fARB(exec, _mesa_Uniform2fARB);
-      SET_Uniform3fARB(exec, _mesa_Uniform3fARB);
-      SET_Uniform4fARB(exec, _mesa_Uniform4fARB);
-      SET_Uniform1iARB(exec, _mesa_Uniform1iARB);
-      SET_Uniform2iARB(exec, _mesa_Uniform2iARB);
-      SET_Uniform3iARB(exec, _mesa_Uniform3iARB);
-      SET_Uniform4iARB(exec, _mesa_Uniform4iARB);
-      SET_Uniform1fvARB(exec, _mesa_Uniform1fvARB);
-      SET_Uniform2fvARB(exec, _mesa_Uniform2fvARB);
-      SET_Uniform3fvARB(exec, _mesa_Uniform3fvARB);
-      SET_Uniform4fvARB(exec, _mesa_Uniform4fvARB);
-      SET_Uniform1ivARB(exec, _mesa_Uniform1ivARB);
-      SET_Uniform2ivARB(exec, _mesa_Uniform2ivARB);
-      SET_Uniform3ivARB(exec, _mesa_Uniform3ivARB);
-      SET_Uniform4ivARB(exec, _mesa_Uniform4ivARB);
-      SET_UniformMatrix2fvARB(exec, _mesa_UniformMatrix2fvARB);
-      SET_UniformMatrix3fvARB(exec, _mesa_UniformMatrix3fvARB);
-      SET_UniformMatrix4fvARB(exec, _mesa_UniformMatrix4fvARB);
-
-      SET_GetActiveUniformARB(exec, _mesa_GetActiveUniformARB);
-      SET_GetUniformLocationARB(exec, _mesa_GetUniformLocationARB);
-      SET_GetUniformfvARB(exec, _mesa_GetUniformfvARB);
-      SET_GetUniformivARB(exec, _mesa_GetUniformivARB);
-   }
-
-   /* OpenGL 2.1 */
-   if (_mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx)) {
-      SET_UniformMatrix2x3fv(exec, _mesa_UniformMatrix2x3fv);
-      SET_UniformMatrix3x2fv(exec, _mesa_UniformMatrix3x2fv);
-      SET_UniformMatrix2x4fv(exec, _mesa_UniformMatrix2x4fv);
-      SET_UniformMatrix4x2fv(exec, _mesa_UniformMatrix4x2fv);
-      SET_UniformMatrix3x4fv(exec, _mesa_UniformMatrix3x4fv);
-      SET_UniformMatrix4x3fv(exec, _mesa_UniformMatrix4x3fv);
-
-      /* OpenGL 3.0 */
-      SET_Uniform1uiEXT(exec, _mesa_Uniform1ui);
-      SET_Uniform2uiEXT(exec, _mesa_Uniform2ui);
-      SET_Uniform3uiEXT(exec, _mesa_Uniform3ui);
-      SET_Uniform4uiEXT(exec, _mesa_Uniform4ui);
-      SET_Uniform1uivEXT(exec, _mesa_Uniform1uiv);
-      SET_Uniform2uivEXT(exec, _mesa_Uniform2uiv);
-      SET_Uniform3uivEXT(exec, _mesa_Uniform3uiv);
-      SET_Uniform4uivEXT(exec, _mesa_Uniform4uiv);
-      SET_GetUniformuivEXT(exec, _mesa_GetUniformuiv);
-
-      /* GL_ARB_uniform_buffer_object / GL 3.1 */
-      SET_GetUniformBlockIndex(exec, _mesa_GetUniformBlockIndex);
-      SET_GetUniformIndices(exec, _mesa_GetUniformIndices);
-      SET_GetActiveUniformsiv(exec, _mesa_GetActiveUniformsiv);
-      SET_GetActiveUniformBlockiv(exec, _mesa_GetActiveUniformBlockiv);
-      SET_GetActiveUniformBlockName(exec, _mesa_GetActiveUniformBlockName);
-      SET_UniformBlockBinding(exec, _mesa_UniformBlockBinding);
-   }
-
-   if (_mesa_is_desktop_gl(ctx)) {
-      /* GL_ARB_robustness */
-      SET_GetnUniformfvARB(exec, _mesa_GetnUniformfvARB);
-      SET_GetnUniformivARB(exec, _mesa_GetnUniformivARB);
-      SET_GetnUniformuivARB(exec, _mesa_GetnUniformuivARB);
-      SET_GetnUniformdvARB(exec, _mesa_GetnUniformdvARB);
-
-      /* GL_ARB_uniform_buffer_object / GL 3.1 */
-      SET_GetActiveUniformName(exec, _mesa_GetActiveUniformName);
-   }
-#endif /* FEATURE_GL */
 }

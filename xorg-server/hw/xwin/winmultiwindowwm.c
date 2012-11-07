@@ -55,8 +55,6 @@
 #include <X11/Xwindows.h>
 
 /* Local headers */
-#include "objbase.h"
-#include "ddraw.h"
 #include "winwindow.h"
 #include "winprefs.h"
 #include "window.h"

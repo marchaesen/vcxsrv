@@ -108,7 +108,7 @@ SOFTWARE.
 #endif
 
 #ifdef WIN32
-# include <windows.h>
+# include <X11/Xwindows.h>
 # define FileName(file) file.cFileName
 # undef TEXT
 # undef ALTERNATE

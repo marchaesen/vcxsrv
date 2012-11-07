@@ -2246,7 +2246,7 @@ _mesa_BindBufferBase(GLenum target, GLuint index, GLuint buffer)
    }
 }
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_InvalidateBufferSubData(GLuint buffer, GLintptr offset,
                               GLsizeiptr length)
 {
@@ -2305,7 +2305,7 @@ _mesa_InvalidateBufferSubData(GLuint buffer, GLintptr offset,
    return;
 }
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_InvalidateBufferData(GLuint buffer)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -2336,35 +2336,4 @@ _mesa_InvalidateBufferData(GLuint buffer)
     * validating the parameters and generating the required errors.
     */
    return;
-}
-
-void
-_mesa_init_bufferobj_dispatch(struct gl_context *ctx, struct _glapi_table *disp)
-{
-   SET_BindBufferARB(disp, _mesa_BindBufferARB);
-   SET_BufferDataARB(disp, _mesa_BufferDataARB);
-   SET_BufferSubDataARB(disp, _mesa_BufferSubDataARB);
-   SET_DeleteBuffersARB(disp, _mesa_DeleteBuffersARB);
-   SET_GenBuffersARB(disp, _mesa_GenBuffersARB);
-   SET_GetBufferParameterivARB(disp, _mesa_GetBufferParameterivARB);
-   /* TODO: add GetBufferParameteri64v for desktop GL and GLES3 once tests
-    * exist for it.
-    */
-   SET_GetBufferPointervARB(disp, _mesa_GetBufferPointervARB);
-   if (_mesa_is_desktop_gl(ctx)) {
-      SET_GetBufferSubDataARB(disp, _mesa_GetBufferSubDataARB);
-   }
-   SET_IsBufferARB(disp, _mesa_IsBufferARB);
-   SET_MapBufferARB(disp, _mesa_MapBufferARB);
-   SET_UnmapBufferARB(disp, _mesa_UnmapBufferARB);
-
-   if (_mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx)) {
-      SET_BindBufferRangeEXT(disp, _mesa_BindBufferRange);
-      SET_BindBufferBaseEXT(disp, _mesa_BindBufferBase);
-   }
-
-   if (_mesa_is_desktop_gl(ctx)) {
-      SET_InvalidateBufferData(disp, _mesa_InvalidateBufferData);
-      SET_InvalidateBufferSubData(disp, _mesa_InvalidateBufferSubData);
-   }
 }

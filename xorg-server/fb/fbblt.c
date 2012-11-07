@@ -73,21 +73,21 @@ fbBlt(FbBits * srcLine,
     if (alu == GXcopy && pm == FB_ALLONES && !careful &&
         !(srcX & 7) && !(dstX & 7) && !(width & 7)) {
         int i;
-        CARD8 *src = (CARD8 *) srcLine;
-        CARD8 *dst = (CARD8 *) dstLine;
+        CARD8 *tmpsrc = (CARD8 *) srcLine;
+        CARD8 *tmpdst = (CARD8 *) dstLine;
 
         srcStride *= sizeof(FbBits);
         dstStride *= sizeof(FbBits);
         width >>= 3;
-        src += (srcX >> 3);
-        dst += (dstX >> 3);
+        tmpsrc += (srcX >> 3);
+        tmpdst += (dstX >> 3);
 
         if (!upsidedown)
             for (i = 0; i < height; i++)
-                MEMCPY_WRAPPED(dst + i * dstStride, src + i * srcStride, width);
+                MEMCPY_WRAPPED(tmpdst + i * dstStride, tmpsrc + i * srcStride, width);
         else
             for (i = height - 1; i >= 0; i--)
-                MEMCPY_WRAPPED(dst + i * dstStride, src + i * srcStride, width);
+                MEMCPY_WRAPPED(tmpdst + i * dstStride, tmpsrc + i * srcStride, width);
 
         return;
     }

@@ -116,6 +116,36 @@ x_sha1_final(void *ctx, unsigned char result[20])
     return 1;
 }
 
+#elif defined(HAVE_SHA1_IN_LIBNETTLE)   /* Use libnettle for SHA1 */
+
+#include <nettle/sha.h>
+
+void *
+x_sha1_init(void)
+{
+    struct sha1_ctx *ctx = malloc(sizeof(*ctx));
+
+    if (!ctx)
+        return NULL;
+    sha1_init(ctx);
+    return ctx;
+}
+
+int
+x_sha1_update(void *ctx, void *data, int size)
+{
+    sha1_update(ctx, size, data);
+    return 1;
+}
+
+int
+x_sha1_final(void *ctx, unsigned char result[20])
+{
+    sha1_digest(ctx, 20, result);
+    free(ctx);
+    return 1;
+}
+
 #elif defined(HAVE_SHA1_IN_LIBGCRYPT)   /* Use libgcrypt for SHA1 */
 
 #include <gcrypt.h>

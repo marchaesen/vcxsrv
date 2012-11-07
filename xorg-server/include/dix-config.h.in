@@ -157,6 +157,9 @@
 /* Define to use libgcrypt SHA1 functions */
 #undef HAVE_SHA1_IN_LIBGCRYPT
 
+/* Define to use libnettle SHA1 functions */
+#undef HAVE_SHA1_IN_LIBNETTLE
+
 /* Define to use libsha1 for SHA1 */
 #undef HAVE_SHA1_IN_LIBSHA1
 

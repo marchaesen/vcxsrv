@@ -88,12 +88,12 @@ SOFTWARE.
 
 #define VALIDATE_DRAWABLE_AND_GC(drawID, pDraw, mode)\
     {\
-	int rc = dixLookupDrawable(&(pDraw), drawID, client, M_ANY, mode);\
-	if (rc != Success)\
-	    return rc;\
-	rc = dixLookupGC(&(pGC), stuff->gc, client, DixUseAccess);\
-	if (rc != Success)\
-	    return rc;\
+	int tmprc = dixLookupDrawable(&(pDraw), drawID, client, M_ANY, mode);\
+	if (tmprc != Success)\
+	    return tmprc;\
+	tmprc = dixLookupGC(&(pGC), stuff->gc, client, DixUseAccess);\
+	if (tmprc != Success)\
+	    return tmprc;\
 	if ((pGC->depth != pDraw->depth) || (pGC->pScreen != pDraw->pScreen))\
 	    return BadMatch;\
     }\

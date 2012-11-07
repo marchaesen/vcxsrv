@@ -864,6 +864,7 @@ XkbRF_GetComponents(XkbRF_RulesPtr rules,
     XkbRF_CheckApplyRules(rules, &mdefs, names, XkbRF_Append);
     XkbRF_ApplyPartialMatches(rules, names);
     XkbRF_CheckApplyRules(rules, &mdefs, names, XkbRF_Option);
+    XkbRF_ApplyPartialMatches(rules, names);
 
     if (names->keycodes)
         names->keycodes = XkbRF_SubstituteVars(names->keycodes, &mdefs);

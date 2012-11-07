@@ -57,10 +57,10 @@ static RESTYPE RT_XKBCLIENT;
 
 #define	CHK_DEVICE(dev, id, client, access_mode, lf) {\
     int why;\
-    int rc = lf(&(dev), id, client, access_mode, &why);\
-    if (rc != Success) {\
+    int tmprc = lf(&(dev), id, client, access_mode, &why);\
+    if (tmprc != Success) {\
 	client->errorValue = _XkbErrCode2(why, id);\
-	return rc;\
+	return tmprc;\
     }\
 }
 
@@ -1026,22 +1026,22 @@ XkbWriteKeyTypes(XkbDescPtr xkb,
 
         buf = (char *) &wire[1];
         if (wire->nMapEntries > 0) {
-            xkbKTMapEntryWireDesc *wire;
+            xkbKTMapEntryWireDesc *ewire;
             XkbKTMapEntryPtr entry;
 
-            wire = (xkbKTMapEntryWireDesc *) buf;
+            ewire = (xkbKTMapEntryWireDesc *) buf;
             entry = type->map;
-            for (n = 0; n < type->map_count; n++, wire++, entry++) {
-                wire->active = entry->active;
-                wire->mask = entry->mods.mask;
-                wire->level = entry->level;
-                wire->realMods = entry->mods.real_mods;
-                wire->virtualMods = entry->mods.vmods;
+            for (n = 0; n < type->map_count; n++, ewire++, entry++) {
+                ewire->active = entry->active;
+                ewire->mask = entry->mods.mask;
+                ewire->level = entry->level;
+                ewire->realMods = entry->mods.real_mods;
+                ewire->virtualMods = entry->mods.vmods;
                 if (client->swapped) {
-                    swaps(&wire->virtualMods);
+                    swaps(&ewire->virtualMods);
                 }
             }
-            buf = (char *) wire;
+            buf = (char *) ewire;
             if (type->preserve != NULL) {
                 xkbModsWireDesc *pwire;
                 XkbModsPtr preserve;
@@ -2903,7 +2903,6 @@ _XkbSetCompatMap(ClientPtr client, DeviceIntPtr dev,
     }
 
     if (req->groups != 0) {
-        unsigned i, bit;
         xkbModsWireDesc *wire = (xkbModsWireDesc *) data;
 
         for (i = 0, bit = 1; i < XkbNumKbdGroups; i++, bit <<= 1) {

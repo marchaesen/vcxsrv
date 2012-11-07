@@ -23,10 +23,10 @@ dnl other dealings in this Software without prior written authorization
 dnl from the copyright holders.
 dnl 
 
-# XORG_DRIVER_CHECK_EXT()
+# XORG_DRIVER_CHECK_EXT(MACRO, PROTO)
 # --------------------------
-# Checks for the $1 define in xorg-server.h (from the sdk).  If it
-# is defined, then add $1 to $REQUIRED_MODULES.
+# Checks for the MACRO define in xorg-server.h (from the sdk).  If it
+# is defined, then add the given PROTO to $REQUIRED_MODULES.
 
 AC_DEFUN([XORG_DRIVER_CHECK_EXT],[
 	AC_REQUIRE([PKG_PROG_PKG_CONFIG])

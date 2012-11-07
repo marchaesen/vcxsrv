@@ -36,9 +36,6 @@ PERFORMANCE OF THIS SOFTWARE.
 #include <stdio.h>
 #include <X11/Xutil.h>
 
-#define Public /**/
-#define Private static
-
 typedef struct _Xim	*Xim;
 typedef struct _Xic	*Xic;
 
@@ -982,7 +979,7 @@ extern Bool _XimEncodeSavedICATTRIBUTE(
 );
 #endif
 
-extern Public Bool
+extern Bool
 _XimRegisterDispatcher(
     Xim          im,
     Bool         (*callback)(
@@ -990,7 +987,7 @@ _XimRegisterDispatcher(
                              ),
     XPointer     call_data);
 
-extern Public Bool
+extern Bool
 _XimRespSyncReply(
     Xic          ic,
     BITMASK16    mode);

@@ -57,8 +57,6 @@
 
 #include "extinit.h"
 
-extern int DeviceValuator;
-
 /* XTest events are sent during request processing and may be interruped by
  * a SIGIO. We need a separate event list to avoid events overwriting each
  * other's memory */

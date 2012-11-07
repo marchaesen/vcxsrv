@@ -55,7 +55,7 @@ _mesa_ClearAccum( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha )
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_Accum( GLenum op, GLfloat value )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -103,14 +103,6 @@ _mesa_Accum( GLenum op, GLfloat value )
    if (ctx->RenderMode == GL_RENDER) {
       _mesa_accum(ctx, op, value);
    }
-}
-
-
-void
-_mesa_init_accum_dispatch(struct _glapi_table *disp)
-{
-   SET_Accum(disp, _mesa_Accum);
-   SET_ClearAccum(disp, _mesa_ClearAccum);
 }
 
 

@@ -1480,7 +1480,7 @@ _mesa_GetDoublev(GLenum pname, GLdouble *params)
 }
 
 static enum value_type
-find_value_indexed(const char *func, GLenum pname, int index, union value *v)
+find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
 {
    GET_CURRENT_CONTEXT(ctx);
 
@@ -1686,7 +1686,6 @@ _mesa_GetInteger64Indexedv( GLenum pname, GLuint index, GLint64 *params )
    }
 }
 
-#if FEATURE_ES1
 void GLAPIENTRY
 _mesa_GetFixedv(GLenum pname, GLfixed *params)
 {
@@ -1772,4 +1771,3 @@ _mesa_GetFixedv(GLenum pname, GLfixed *params)
       break;
    }
 }
-#endif

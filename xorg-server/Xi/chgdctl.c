@@ -187,7 +187,10 @@ ProcXChangeDeviceControl(ClientPtr client)
     case DEVICE_ENABLE:
         e = (xDeviceEnableCtl *) &stuff[1];
 
-        status = ChangeDeviceControl(client, dev, (xDeviceCtl *) e);
+        if (IsXTestDevice(dev, NULL))
+            status = !Success;
+        else
+            status = ChangeDeviceControl(client, dev, (xDeviceCtl *) e);
 
         if (status == Success) {
             if (e->enable)

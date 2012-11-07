@@ -259,6 +259,7 @@ cat > sdksyms.c << EOF
 #include "dixevents.h"
 #include "dixfont.h"
 #include "dixfontstr.h"
+#include "dixfontstubs.h"
 #include "dixgrabs.h"
 #include "dixstruct.h"
 #include "exevents.h"

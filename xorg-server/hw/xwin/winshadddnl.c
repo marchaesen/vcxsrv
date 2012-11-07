@@ -36,24 +36,6 @@
 #endif
 #include "win.h"
 
-/*
- * FIXME: Headers are broken, DEFINE_GUID doesn't work correctly,
- * so we have to redefine it here.
- */
-#ifdef DEFINE_GUID
-#undef DEFINE_GUID
-#define DEFINE_GUID(n,l,w1,w2,b1,b2,b3,b4,b5,b6,b7,b8) const GUID n GUID_SECT = {l,w1,w2,{b1,b2,b3,b4,b5,b6,b7,b8}}
-#endif                          /* DEFINE_GUID */
-
-/*
- * FIXME: Headers are broken, IID_IDirectDraw4 has to be defined
- * here manually.  Should be handled by ddraw.h
- */
-#ifndef IID_IDirectDraw4
-DEFINE_GUID(IID_IDirectDraw4, 0x9c59509a, 0x39bd, 0x11d1, 0x8c, 0x4a, 0x00,
-            0xc0, 0x4f, 0xd9, 0x30, 0xc5);
-#endif                          /* IID_IDirectDraw4 */
-
 #define FAIL_MSG_MAX_BLT	10
 
 /*
@@ -525,50 +507,6 @@ winFreeFBShadowDDNL(ScreenPtr pScreen)
     /* Invalidate the ScreenInfo's fb pointer */
     pScreenInfo->pfb = NULL;
 }
-
-#if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
-/*
- * Create a DirectDraw surface for the new multi-window window
- */
-
-static
-    Bool
-winFinishCreateWindowsWindowDDNL(WindowPtr pWin)
-{
-    winWindowPriv(pWin);
-    winPrivScreenPtr pScreenPriv = pWinPriv->pScreenPriv;
-    HRESULT ddrval = DD_OK;
-    DDSURFACEDESC2 ddsd;
-    int iWidth, iHeight;
-    int iX, iY;
-
-    winDebug("winFinishCreateWindowsWindowDDNL!\n\n");
-
-    iX = pWin->drawable.x + GetSystemMetrics(SM_XVIRTUALSCREEN);
-    iY = pWin->drawable.y + GetSystemMetrics(SM_YVIRTUALSCREEN);
-
-    iWidth = pWin->drawable.width;
-    iHeight = pWin->drawable.height;
-
-    /* Describe the primary surface */
-    ZeroMemory(&ddsd, sizeof(ddsd));
-    ddsd.dwSize = sizeof(ddsd);
-    ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-    ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-    ddsd.dwHeight = iHeight;
-    ddsd.dwWidth = iWidth;
-
-    /* Create the primary surface */
-    ddrval = IDirectDraw4_CreateSurface(pScreenPriv->pdd4,
-                                        &ddsd, &pWinPriv->pddsPrimary4, NULL);
-    if (FAILED(ddrval)) {
-        ErrorF("winFinishCreateWindowsWindowDDNL - Could not create primary "
-               "surface: %08x\n", (unsigned int) ddrval);
-        return FALSE;
-    }
-    return TRUE;
-}
-#endif
 
 /*
  * Transfer the damaged regions of the shadow framebuffer to the display.
@@ -1278,7 +1216,7 @@ winSetEngineFunctionsShadowDDNL(ScreenPtr pScreen)
     pScreenPriv->pwinReleasePrimarySurface = winReleasePrimarySurfaceShadowDDNL;
 #ifdef XWIN_MULTIWINDOW
     pScreenPriv->pwinFinishCreateWindowsWindow
-        = winFinishCreateWindowsWindowDDNL;
+        = (winFinishCreateWindowsWindowProcPtr) (void (*)(void)) NoopDDA;
 #endif
 
     return TRUE;

@@ -42,7 +42,7 @@ THIS SOFTWARE.
 #include "Xlcint.h"
 #include "Ximint.h"
 
-Private void
+static void
 _XimThaiUnSetFocus(
     XIC	 xic)
 {
@@ -55,7 +55,7 @@ _XimThaiUnSetFocus(
     return;
 }
 
-Private void
+static void
 _XimThaiDestroyIC(
     XIC	 xic)
 {
@@ -81,7 +81,7 @@ _XimThaiDestroyIC(
     return;
 }
 
-Private void
+static void
 _XimThaiSetFocus(
     XIC	 xic)
 {
@@ -102,7 +102,7 @@ _XimThaiSetFocus(
     return;
 }
 
-Private void
+static void
 _XimThaiReset(
     XIC	 xic)
 {
@@ -115,7 +115,7 @@ _XimThaiReset(
     b->utf8[b->tree[ic->private.local.composed].utf8] = '\0';
 }
 
-Private char *
+static char *
 _XimThaiMbReset(
     XIC	 xic)
 {
@@ -123,7 +123,7 @@ _XimThaiMbReset(
     return (char *)NULL;
 }
 
-Private wchar_t *
+static wchar_t *
 _XimThaiWcReset(
     XIC	 xic)
 {
@@ -131,7 +131,7 @@ _XimThaiWcReset(
     return (wchar_t *)NULL;
 }
 
-Private XICMethodsRec Thai_ic_methods = {
+static XICMethodsRec Thai_ic_methods = {
     _XimThaiDestroyIC, 	/* destroy */
     _XimThaiSetFocus,  	/* set_focus */
     _XimThaiUnSetFocus,	/* unset_focus */

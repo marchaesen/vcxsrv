@@ -57,7 +57,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "XimTrInt.h"
 #include "Ximint.h"
 
-Public TransportSW _XimTransportRec[] = {
+TransportSW _XimTransportRec[] = {
     { "X",          _XimXConf },  /* 1st entry must be X.
 					This will be a fallback */
 #ifdef TCPCONN
@@ -75,25 +75,25 @@ Public TransportSW _XimTransportRec[] = {
     { (char *)NULL, (Bool (*)(Xim, char *))NULL },
 };
 
-Public Bool
+Bool
 _XimConnect(Xim im)
 {
     return im->private.proto.connect(im);
 }
 
-Public Bool
+Bool
 _XimShutdown(Xim im)
 {
     return im->private.proto.shutdown(im);
 }
 
-Public Bool
+Bool
 _XimWrite(Xim im, INT16 len, XPointer data)
 {
     return im->private.proto.write(im, len, data);
 }
 
-Private int
+static int
 _CheckProtocolData(
     Xim		  im,
     char	 *recv_buf)
@@ -104,7 +104,7 @@ _CheckProtocolData(
     return data_len;
 }
 
-Private int
+static int
 _XimReadData(
     Xim		 im,
     INT16	*len,
@@ -221,7 +221,7 @@ _XimReadData(
     return XIM_TRUE;
 }
 
-Private Bool
+static Bool
 _XimCallDispatcher(
     Xim		 im,
     INT16	 len,
@@ -230,7 +230,7 @@ _XimCallDispatcher(
     return im->private.proto.call_dispatcher(im, len, data);
 }
 
-Public int
+int
 _XimRead(Xim im, INT16 *len, XPointer buf, int buf_size,
 	 Bool (*predicate)(Xim, INT16, XPointer, XPointer), XPointer arg)
 {
@@ -252,7 +252,7 @@ _XimRead(Xim im, INT16 *len, XPointer buf, int buf_size,
     return True;
 }
 
-Public Bool
+Bool
 _XimRegisterDispatcher(
     Xim		 im,
     Bool	 (*callback)(
@@ -263,14 +263,14 @@ _XimRegisterDispatcher(
     return im->private.proto.register_dispatcher(im, callback, call_data);
 }
 
-Public void
+void
 _XimFlush(Xim im)
 {
     im->private.proto.flush(im);
     return;
 }
 
-Public Bool
+Bool
 _XimFilterWaitEvent(Xim im)
 {
     INT16	 read_len;
