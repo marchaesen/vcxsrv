@@ -25,6 +25,66 @@
  *
  **************************************************************************/
 
+/**
+ * This module uploads user buffers and translates the vertex buffers which
+ * contain incompatible vertices (i.e. not supported by the driver/hardware)
+ * into compatible ones, based on the Gallium CAPs.
+ *
+ * It does not upload index buffers.
+ *
+ * The module heavily uses bitmasks to represent per-buffer and
+ * per-vertex-element flags to avoid looping over the list of buffers just
+ * to see if there's a non-zero stride, or user buffer, or unsupported format,
+ * etc.
+ *
+ * There are 3 categories of vertex elements, which are processed separately:
+ * - per-vertex attribs (stride != 0, instance_divisor == 0)
+ * - instanced attribs (stride != 0, instance_divisor > 0)
+ * - constant attribs (stride == 0)
+ *
+ * All needed uploads and translations are performed every draw command, but
+ * only the subset of vertices needed for that draw command is uploaded or
+ * translated. (the module never translates whole buffers)
+ *
+ *
+ * The module consists of two main parts:
+ *
+ *
+ * 1) Translate (u_vbuf_translate_begin/end)
+ *
+ * This is pretty much a vertex fetch fallback. It translates vertices from
+ * one vertex buffer to another in an unused vertex buffer slot. It does
+ * whatever is needed to make the vertices readable by the hardware (changes
+ * vertex formats and aligns offsets and strides). The translate module is
+ * used here.
+ *
+ * Each of the 3 categories is translated to a separate buffer.
+ * Only the [min_index, max_index] range is translated. For instanced attribs,
+ * the range is [start_instance, start_instance+instance_count]. For constant
+ * attribs, the range is [0, 1].
+ *
+ *
+ * 2) User buffer uploading (u_vbuf_upload_buffers)
+ *
+ * Only the [min_index, max_index] range is uploaded (just like Translate)
+ * with a single memcpy.
+ *
+ * This method works best for non-indexed draw operations or indexed draw
+ * operations where the [min_index, max_index] range is not being way bigger
+ * than the vertex count.
+ *
+ * If the range is too big (e.g. one triangle with indices {0, 1, 10000}),
+ * the per-vertex attribs are uploaded via the translate module, all packed
+ * into one vertex buffer, and the indexed draw call is turned into
+ * a non-indexed one in the process. This adds additional complexity
+ * to the translate part, but it prevents bad apps from bringing your frame
+ * rate down.
+ *
+ *
+ * If there is nothing to do, it forwards every command to the driver.
+ * The module also has its own CSO cache of vertex element states.
+ */
+
 #include "util/u_vbuf.h"
 
 #include "util/u_dump.h"
@@ -49,6 +109,8 @@ struct u_vbuf_elements {
    enum pipe_format native_format[PIPE_MAX_ATTRIBS];
    unsigned native_format_size[PIPE_MAX_ATTRIBS];
 
+   /* Which buffers are used by the vertex element state. */
+   uint32_t used_vb_mask;
    /* This might mean two things:
     * - src_format != native_format, as discussed above.
     * - src_offset % 4 != 0 (if the caps don't allow such an offset). */
@@ -430,6 +492,8 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
    struct translate_key key[VB_NUM];
    unsigned elem_index[VB_NUM][PIPE_MAX_ATTRIBS]; /* ... into key.elements */
    unsigned i, type;
+   unsigned incompatible_vb_mask = mgr->incompatible_vb_mask &
+                                   mgr->ve->used_vb_mask;
 
    int start[VB_NUM] = {
       start_vertex,     /* VERTEX */
@@ -453,20 +517,20 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
 
       if (!mgr->vertex_buffer[vb_index].stride) {
          if (!(mgr->ve->incompatible_elem_mask & (1 << i)) &&
-             !(mgr->incompatible_vb_mask & (1 << vb_index))) {
+             !(incompatible_vb_mask & (1 << vb_index))) {
             continue;
          }
          mask[VB_CONST] |= 1 << vb_index;
       } else if (mgr->ve->ve[i].instance_divisor) {
          if (!(mgr->ve->incompatible_elem_mask & (1 << i)) &&
-             !(mgr->incompatible_vb_mask & (1 << vb_index))) {
+             !(incompatible_vb_mask & (1 << vb_index))) {
             continue;
          }
          mask[VB_INSTANCE] |= 1 << vb_index;
       } else {
          if (!unroll_indices &&
              !(mgr->ve->incompatible_elem_mask & (1 << i)) &&
-             !(mgr->incompatible_vb_mask & (1 << vb_index))) {
+             !(incompatible_vb_mask & (1 << vb_index))) {
             continue;
          }
          mask[VB_VERTEX] |= 1 << vb_index;
@@ -488,7 +552,7 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
       bit = 1 << vb_index;
 
       if (!(mgr->ve->incompatible_elem_mask & (1 << i)) &&
-          !(mgr->incompatible_vb_mask & (1 << vb_index)) &&
+          !(incompatible_vb_mask & (1 << vb_index)) &&
           (!unroll_indices || !(mask[VB_VERTEX] & bit))) {
          continue;
       }
@@ -690,6 +754,7 @@ u_vbuf_create_vertex_elements(struct u_vbuf *mgr, unsigned count,
       }
    }
 
+   ve->used_vb_mask = used_buffers;
    ve->compatible_vb_mask_all = ~ve->incompatible_vb_mask_any & used_buffers;
    ve->incompatible_vb_mask_all = ~ve->compatible_vb_mask_any & used_buffers;
 
@@ -826,18 +891,18 @@ u_vbuf_upload_buffers(struct u_vbuf *mgr,
 {
    unsigned i;
    unsigned nr_velems = mgr->ve->count;
-   unsigned nr_vbufs = util_last_bit(mgr->enabled_vb_mask);
    struct pipe_vertex_element *velems =
          mgr->using_translate ? mgr->fallback_velems : mgr->ve->ve;
    unsigned start_offset[PIPE_MAX_ATTRIBS];
-   unsigned end_offset[PIPE_MAX_ATTRIBS] = {0};
+   unsigned end_offset[PIPE_MAX_ATTRIBS];
+   uint32_t buffer_mask = 0;
 
    /* Determine how much data needs to be uploaded. */
    for (i = 0; i < nr_velems; i++) {
       struct pipe_vertex_element *velem = &velems[i];
       unsigned index = velem->vertex_buffer_index;
       struct pipe_vertex_buffer *vb = &mgr->vertex_buffer[index];
-      unsigned instance_div, first, size;
+      unsigned instance_div, first, size, index_bit;
 
       /* Skip the buffers generated by translate. */
       if (index == mgr->fallback_vbs[VB_VERTEX] ||
@@ -867,8 +932,10 @@ u_vbuf_upload_buffers(struct u_vbuf *mgr,
          size = vb->stride * (num_vertices - 1) + mgr->ve->src_format_size[i];
       }
 
+      index_bit = 1 << index;
+
       /* Update offsets. */
-      if (!end_offset[index]) {
+      if (!(buffer_mask & index_bit)) {
          start_offset[index] = first;
          end_offset[index] = first + size;
       } else {
@@ -877,19 +944,20 @@ u_vbuf_upload_buffers(struct u_vbuf *mgr,
          if (first + size > end_offset[index])
             end_offset[index] = first + size;
       }
+
+      buffer_mask |= index_bit;
    }
 
    /* Upload buffers. */
-   for (i = 0; i < nr_vbufs; i++) {
-      unsigned start, end = end_offset[i];
+   while (buffer_mask) {
+      unsigned start, end;
       struct pipe_vertex_buffer *real_vb;
       const uint8_t *ptr;
 
-      if (!end) {
-         continue;
-      }
+      i = u_bit_scan(&buffer_mask);
 
       start = start_offset[i];
+      end = end_offset[i];
       assert(start < end);
 
       real_vb = &mgr->real_vertex_buffer[i];
@@ -907,9 +975,10 @@ static boolean u_vbuf_need_minmax_index(struct u_vbuf *mgr)
    /* See if there are any per-vertex attribs which will be uploaded or
     * translated. Use bitmasks to get the info instead of looping over vertex
     * elements. */
-   return ((mgr->user_vb_mask | mgr->incompatible_vb_mask |
-            mgr->ve->incompatible_vb_mask_any) &
-           mgr->ve->noninstance_vb_mask_any & mgr->nonzero_stride_vb_mask) != 0;
+   return (mgr->ve->used_vb_mask &
+           ((mgr->user_vb_mask | mgr->incompatible_vb_mask |
+             mgr->ve->incompatible_vb_mask_any) &
+            mgr->ve->noninstance_vb_mask_any & mgr->nonzero_stride_vb_mask)) != 0;
 }
 
 static boolean u_vbuf_mapping_vertex_buffer_blocks(struct u_vbuf *mgr)
@@ -918,9 +987,10 @@ static boolean u_vbuf_mapping_vertex_buffer_blocks(struct u_vbuf *mgr)
     *
     * We could query whether each buffer is busy, but that would
     * be way more costly than this. */
-   return (~mgr->user_vb_mask & ~mgr->incompatible_vb_mask &
-           mgr->ve->compatible_vb_mask_all & mgr->ve->noninstance_vb_mask_any &
-           mgr->nonzero_stride_vb_mask) != 0;
+   return (mgr->ve->used_vb_mask &
+           (~mgr->user_vb_mask & ~mgr->incompatible_vb_mask &
+            mgr->ve->compatible_vb_mask_all & mgr->ve->noninstance_vb_mask_any &
+            mgr->nonzero_stride_vb_mask)) != 0;
 }
 
 static void u_vbuf_get_minmax_index(struct pipe_context *pipe,
@@ -1041,15 +1111,17 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info)
    int start_vertex, min_index;
    unsigned num_vertices;
    boolean unroll_indices = FALSE;
-   uint32_t user_vb_mask = mgr->user_vb_mask;
+   uint32_t used_vb_mask = mgr->ve->used_vb_mask;
+   uint32_t user_vb_mask = mgr->user_vb_mask & used_vb_mask;
+   uint32_t incompatible_vb_mask = mgr->incompatible_vb_mask & used_vb_mask;
 
    /* Normal draw. No fallback and no user buffers. */
-   if (!mgr->incompatible_vb_mask &&
+   if (!incompatible_vb_mask &&
        !mgr->ve->incompatible_elem_mask &&
        !user_vb_mask) {
 
       /* Set vertex buffers if needed. */
-      if (mgr->dirty_real_vb_mask) {
+      if (mgr->dirty_real_vb_mask & used_vb_mask) {
          u_vbuf_set_driver_vertex_buffers(mgr);
       }
 
@@ -1102,7 +1174,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info)
 
    /* Translate vertices with non-native layouts or formats. */
    if (unroll_indices ||
-       mgr->incompatible_vb_mask ||
+       incompatible_vb_mask ||
        mgr->ve->incompatible_elem_mask) {
       /* XXX check the return value */
       u_vbuf_translate_begin(mgr, start_vertex, num_vertices,
@@ -1110,7 +1182,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info)
                              info->start, info->count, min_index,
                              unroll_indices);
 
-      user_vb_mask &= ~(mgr->incompatible_vb_mask |
+      user_vb_mask &= ~(incompatible_vb_mask |
                         mgr->ve->incompatible_vb_mask_all);
    }
 

@@ -647,7 +647,7 @@ winPrefsLoadPreferences(char *path)
 
     if (path)
         prefFile = fopen(path, "r");
-#ifndef _MSC_VER
+#ifdef __CYGWIN__
     else {
         char defaultPrefs[] =
             "MENU rmenu {\n"

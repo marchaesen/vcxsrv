@@ -48,7 +48,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <GL/gl.h>
+#include "glheader.h"
 
 #include "glapi.h"
 #include "glapitable.h"
@@ -3769,13 +3769,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->ClampColor) {
-        void ** procp = (void **) &disp->ClampColor;
-        snprintf(symboln, sizeof(symboln), "%sClampColor", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->ClearBufferfi) {
         void ** procp = (void **) &disp->ClearBufferfi;
         snprintf(symboln, sizeof(symboln), "%sClearBufferfi", symbol_prefix);
@@ -3813,6 +3806,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
 
     if(!disp->FramebufferTexture) {
         void ** procp = (void **) &disp->FramebufferTexture;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTextureARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTexture) {
+        void ** procp = (void **) &disp->FramebufferTexture;
         snprintf(symboln, sizeof(symboln), "%sFramebufferTexture", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
@@ -3828,13 +3828,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->GetInteger64i_v) {
         void ** procp = (void **) &disp->GetInteger64i_v;
         snprintf(symboln, sizeof(symboln), "%sGetInteger64i_v", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribDivisor) {
-        void ** procp = (void **) &disp->VertexAttribDivisor;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribDivisor", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -5540,6 +5533,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->ClampColorARB) {
+        void ** procp = (void **) &disp->ClampColorARB;
+        snprintf(symboln, sizeof(symboln), "%sClampColor", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->DrawArraysInstancedARB) {
         void ** procp = (void **) &disp->DrawArraysInstancedARB;
         snprintf(symboln, sizeof(symboln), "%sDrawArraysInstancedARB", symbol_prefix);
@@ -5596,13 +5596,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->FramebufferTextureARB) {
-        void ** procp = (void **) &disp->FramebufferTextureARB;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferTextureARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->FramebufferTextureFaceARB) {
         void ** procp = (void **) &disp->FramebufferTextureFaceARB;
         snprintf(symboln, sizeof(symboln), "%sFramebufferTextureFaceARB", symbol_prefix);
@@ -5610,16 +5603,16 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->ProgramParameteriARB) {
-        void ** procp = (void **) &disp->ProgramParameteriARB;
-        snprintf(symboln, sizeof(symboln), "%sProgramParameteriARB", symbol_prefix);
+    if(!disp->VertexAttribDivisorARB) {
+        void ** procp = (void **) &disp->VertexAttribDivisorARB;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribDivisorARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
     if(!disp->VertexAttribDivisorARB) {
         void ** procp = (void **) &disp->VertexAttribDivisorARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribDivisorARB", symbol_prefix);
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribDivisor", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -6348,6 +6341,34 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->ShaderBinary) {
         void ** procp = (void **) &disp->ShaderBinary;
         snprintf(symboln, sizeof(symboln), "%sShaderBinary", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetProgramBinary) {
+        void ** procp = (void **) &disp->GetProgramBinary;
+        snprintf(symboln, sizeof(symboln), "%sGetProgramBinary", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ProgramBinary) {
+        void ** procp = (void **) &disp->ProgramBinary;
+        snprintf(symboln, sizeof(symboln), "%sProgramBinary", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ProgramParameteri) {
+        void ** procp = (void **) &disp->ProgramParameteri;
+        snprintf(symboln, sizeof(symboln), "%sProgramParameteriARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ProgramParameteri) {
+        void ** procp = (void **) &disp->ProgramParameteri;
+        snprintf(symboln, sizeof(symboln), "%sProgramParameteri", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 

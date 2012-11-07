@@ -127,6 +127,7 @@ ProcXChangeDeviceControl(ClientPtr client)
     rep.RepType = X_ChangeDeviceControl;
     rep.sequenceNumber = client->sequence;
     rep.length = 0;
+    rep.status = Success;
 
     switch (stuff->control) {
     case DEVICE_RESOLUTION:
