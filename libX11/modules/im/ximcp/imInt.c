@@ -38,10 +38,10 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "Ximint.h"
 #include "XimImSw.h"
 
-Private Xim 		*_XimCurrentIMlist  = (Xim *)NULL;
-Private int		 _XimCurrentIMcount = 0;
+static Xim 		*_XimCurrentIMlist  = (Xim *)NULL;
+static int		 _XimCurrentIMcount = 0;
 
-Private Bool
+static Bool
 _XimSetIMStructureList(
     Xim		  im)
 {
@@ -73,7 +73,7 @@ _XimSetIMStructureList(
     return True;
 }
 
-Public void
+void
 _XimDestroyIMStructureList(Xim im)
 {
     register int  i;
@@ -87,7 +87,7 @@ _XimDestroyIMStructureList(Xim im)
     return;
 }
 
-Public void
+void
 _XimServerDestroy(Xim im_2_destroy)
 {
     register int  i;
@@ -121,7 +121,7 @@ _XimServerDestroy(Xim im_2_destroy)
 }
 
 #ifdef XIM_CONNECTABLE
-Public void
+void
 _XimServerReconectableDestroy(void)
 {
     register int  i;
@@ -148,7 +148,7 @@ _XimServerReconectableDestroy(void)
 }
 #endif /* XIM_CONNECTABLE */
 
-Private const char *
+static const char *
 _XimStrstr(
     register const char *src,
     register const char *dest)
@@ -164,7 +164,7 @@ _XimStrstr(
     return NULL;
 }
 
-Private char *
+static char *
 _XimMakeImName(
     XLCd	   lcd)
 {
@@ -194,7 +194,7 @@ _XimMakeImName(
     return ret;
 }
 
-Public XIM
+XIM
 _XimOpenIM(
     XLCd		 lcd,
     Display		*dpy,
@@ -252,7 +252,7 @@ Error1:
     return NULL;
 }
 
-Public Bool
+Bool
 _XInitIM(XLCd lcd)
 {
     if(lcd == (XLCd)NULL)

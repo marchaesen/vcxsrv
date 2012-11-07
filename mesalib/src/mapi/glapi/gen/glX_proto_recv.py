@@ -80,11 +80,8 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
     def printRealHeader(self):
         print '#ifdef HAVE_DIX_CONFIG_H'
         print '#include <dix-config.h>'
-        print '#else'
-        print ''
-        print '#include "glheader.h"'
-        print ''
         print '#endif'
+        print '#include "glheader.h"'
         print ''
         print '#include <X11/Xmd.h>'
         print '#include <GL/gl.h>'

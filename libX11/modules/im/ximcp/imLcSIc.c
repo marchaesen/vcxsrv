@@ -37,7 +37,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "Xlcint.h"
 #include "Ximint.h"
 
-Public char *
+char *
 _XimLocalSetICValues(XIC xic, XIMArg *values)
 {
     XimDefICValues	 ic_values;

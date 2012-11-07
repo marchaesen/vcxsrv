@@ -453,8 +453,6 @@ miFillUniqueSpanGroup(DrawablePtr pDraw, GCPtr pGC, SpanGroup * spanGroup)
                             (int *) realloc(newspans->widths,
                                             ysizes[index] * sizeof(int));
                         if (!newpoints || !newwidths) {
-                            int i;
-
                             for (i = 0; i < ylength; i++) {
                                 free(yspans[i].points);
                                 free(yspans[i].widths);
@@ -485,8 +483,6 @@ miFillUniqueSpanGroup(DrawablePtr pDraw, GCPtr pGC, SpanGroup * spanGroup)
         points = malloc(count * sizeof(DDXPointRec));
         widths = malloc(count * sizeof(int));
         if (!points || !widths) {
-            int i;
-
             for (i = 0; i < ylength; i++) {
                 free(yspans[i].points);
                 free(yspans[i].widths);

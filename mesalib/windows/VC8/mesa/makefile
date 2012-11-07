@@ -45,18 +45,22 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\mesa\main\dispatch.h \
       ..\..\..\src\mesa\main\glapitable.h \
       ..\..\..\src\mesa\main\enums.c \
+      ..\..\..\src\mesa\main\api_exec.c \
       ..\..\..\src\mesa\main\get_hash.h
 
 all: Release\swrast_dri.dll Debug\swrast_dri.dll
 
 ..\..\..\src\mesa\main\dispatch.h: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml)
-	cd ..\..\..\src\mapi\glapi\gen & python gl_table.py -m remap_table > ..\..\..\mesa\main\dispatch.h
+	cd ..\..\..\src\mapi\glapi\gen & python gl_table.py -f gl_and_es_API.xml -m remap_table > ..\..\..\mesa\main\dispatch.h
 
 ..\..\..\src\mesa\main\glapitable.h: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml)
-	cd ..\..\..\src\mapi\glapi\gen & python gl_table.py > ..\..\..\mesa\main\glapitable.h
+	cd ..\..\..\src\mapi\glapi\gen & python gl_table.py -f gl_and_es_API.xml > ..\..\..\mesa\main\glapitable.h
 
 ..\..\..\src\mesa\main\enums.c: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml)
 	cd ..\..\..\src\mapi\glapi\gen & python gl_enums.py -f gl_and_es_API.xml > ..\..\..\mesa\main\enums.c
+
+..\..\..\src\mesa\main\api_exec.c: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml)
+	cd ..\..\..\src\mapi\glapi\gen & python gl_genexec.py -f gl_and_es_API.xml > ..\..\..\mesa\main\api_exec.c
 
 API_DEFINES=-DFEATURE_GL=1
 GET_HASH_GEN = ..\..\..\src\mesa\main\get_hash_generator.py

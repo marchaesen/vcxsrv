@@ -49,6 +49,7 @@
 #include <unistd.h>
 
 #include "glapi.h"
+#include "glheader.h"
 #include "dispatch.h"
 #include "glapitable.h"
 

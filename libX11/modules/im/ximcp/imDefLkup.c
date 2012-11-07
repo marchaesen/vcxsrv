@@ -34,7 +34,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "Xlcint.h"
 #include "Ximint.h"
 
-Public Xic
+Xic
 _XimICOfXICID(
     Xim		  im,
     XICID	  icid)
@@ -48,7 +48,7 @@ _XimICOfXICID(
     return (Xic)0;
 }
 
-Private void
+static void
 _XimProcIMSetEventMask(
     Xim		 im,
     XPointer	 buf)
@@ -60,7 +60,7 @@ _XimProcIMSetEventMask(
     return;
 }
 
-Private void
+static void
 _XimProcICSetEventMask(
     Xic		 ic,
     XPointer	 buf)
@@ -73,7 +73,7 @@ _XimProcICSetEventMask(
     return;
 }
 
-Public Bool
+Bool
 _XimSetEventMaskCallback(
     Xim		 xim,
     INT16	 len,
@@ -98,7 +98,7 @@ _XimSetEventMaskCallback(
     return False;
 }
 
-Private Bool
+static Bool
 _XimSyncCheck(
     Xim          im,
     INT16        len,
@@ -127,7 +127,7 @@ _XimSyncCheck(
     return False;
 }
 
-Public Bool
+Bool
 _XimSync(
     Xim		 im,
     Xic		 ic)
@@ -185,7 +185,7 @@ _XimSync(
     return True;
 }
 
-Public Bool
+Bool
 _XimProcSyncReply(
     Xim		 im,
     Xic		 ic)
@@ -208,7 +208,7 @@ _XimProcSyncReply(
     return True;
 }
 
-Public Bool
+Bool
 _XimRespSyncReply(
     Xic		 ic,
     BITMASK16	 mode)
@@ -219,7 +219,7 @@ _XimRespSyncReply(
     return True;
 }
 
-Public Bool
+Bool
 _XimSyncCallback(
     Xim		 xim,
     INT16	 len,
@@ -240,7 +240,7 @@ _XimSyncCallback(
     return False;
 }
 
-Private INT16
+static INT16
 _XimSetEventToWire(
     XEvent	*ev,
     xEvent	*event)
@@ -252,7 +252,7 @@ _XimSetEventToWire(
     return sz_xEvent;
 }
 
-Private Bool
+static Bool
 _XimForwardEventCore(
     Xic		 ic,
     XEvent	*ev,
@@ -324,7 +324,7 @@ _XimForwardEventCore(
     return True;
 }
 
-Public Bool
+Bool
 _XimForwardEvent(
     Xic		 ic,
     XEvent	*ev,
@@ -338,7 +338,7 @@ _XimForwardEvent(
     return _XimForwardEventCore(ic, ev, sync);
 }
 
-Private void
+static void
 _XimProcEvent(
     Display		*d,
     Xic			 ic,
@@ -356,7 +356,7 @@ _XimProcEvent(
     return;
 }
 
-Private Bool
+static Bool
 _XimForwardEventRecv(
     Xim		 im,
     Xic		 ic,
@@ -375,7 +375,7 @@ _XimForwardEventRecv(
     return True;
 }
 
-Public Bool
+Bool
 _XimForwardEventCallback(
     Xim		 xim,
     INT16	 len,
@@ -396,7 +396,7 @@ _XimForwardEventCallback(
     return False;
 }
 
-Private Bool
+static Bool
 _XimRegisterTriggerkey(
     Xim			 im,
     XPointer		 buf)
@@ -443,7 +443,7 @@ _XimRegisterTriggerkey(
     return True;
 }
 
-Public Bool
+Bool
 _XimRegisterTriggerKeysCallback(
     Xim		 xim,
     INT16	 len,
@@ -457,7 +457,7 @@ _XimRegisterTriggerKeysCallback(
     return True;
 }
 
-Public EVENTMASK
+EVENTMASK
 _XimGetWindowEventmask(
     Xic		 ic)
 {
@@ -470,7 +470,7 @@ _XimGetWindowEventmask(
 }
 
 
-Private Bool
+static Bool
 _XimTriggerNotifyCheck(
     Xim          im,
     INT16        len,
@@ -499,7 +499,7 @@ _XimTriggerNotifyCheck(
     return False;
 }
 
-Public Bool
+Bool
 _XimTriggerNotify(
     Xim		 im,
     Xic		 ic,
@@ -567,7 +567,7 @@ _XimTriggerNotify(
     return True;
 }
 
-Private Bool
+static Bool
 _XimRegCommitInfo(
     Xic			 ic,
     char		*string,
@@ -588,7 +588,7 @@ _XimRegCommitInfo(
     return True;
 }
 
-Private void
+static void
 _XimUnregCommitInfo(
     Xic			ic)
 {
@@ -606,7 +606,7 @@ _XimUnregCommitInfo(
     return;
 }
 
-Public void
+void
 _XimFreeCommitInfo(
     Xic			ic)
 {
@@ -615,7 +615,7 @@ _XimFreeCommitInfo(
     return;
 }
 
-Private Bool
+static Bool
 _XimProcKeySym(
     Xic			  ic,
     CARD32		  sym,
@@ -635,7 +635,7 @@ _XimProcKeySym(
     return True;
 }
 
-Private Bool
+static Bool
 _XimProcCommit(
     Xic		  ic,
     BYTE	 *buf,
@@ -659,7 +659,7 @@ _XimProcCommit(
     return True;
 }
 
-Private Bool
+static Bool
 _XimCommitRecv(
     Xim		 im,
     Xic		 ic,
@@ -718,7 +718,7 @@ _XimCommitRecv(
     return True;
 }
 
-Public Bool
+Bool
 _XimCommitCallback(
     Xim		 xim,
     INT16	 len,
@@ -739,7 +739,7 @@ _XimCommitCallback(
     return False;
 }
 
-Public void
+void
 _XimProcError(
     Xim		 im,
     Xic		 ic,
@@ -748,7 +748,7 @@ _XimProcError(
     return;
 }
 
-Public Bool
+Bool
 _XimErrorCallback(
     Xim		 xim,
     INT16	 len,
@@ -777,7 +777,7 @@ _XimErrorCallback(
     return True;
 }
 
-Public Bool
+Bool
 _XimError(
     Xim		 im,
     Xic		 ic,
@@ -821,7 +821,7 @@ _XimError(
     return True;
 }
 
-Private int
+static int
 _Ximctsconvert(
     XlcConv	 conv,
     char	*from,
@@ -887,7 +887,7 @@ _Ximctsconvert(
     return to_cnvlen;
 }
 
-Public int
+int
 _Ximctstombs(XIM xim, char *from, int from_len,
 	     char *to, int to_len, Status *state)
 {
@@ -895,7 +895,7 @@ _Ximctstombs(XIM xim, char *from, int from_len,
 			  from, from_len, to, to_len, state);
 }
 
-Public int
+int
 _Ximctstowcs(
     XIM		 xim,
     char	*from,
@@ -963,7 +963,7 @@ _Ximctstowcs(
     return to_cnvlen;
 }
 
-Public int
+int
 _Ximctstoutf8(
     XIM		 xim,
     char	*from,
@@ -976,7 +976,7 @@ _Ximctstoutf8(
 			  from, from_len, to, to_len, state);
 }
 
-Public int
+int
 _XimProtoMbLookupString(
     XIC			 xic,
     XKeyEvent		*ev,
@@ -1039,7 +1039,7 @@ _XimProtoMbLookupString(
     return ret;
 }
 
-Public int
+int
 _XimProtoWcLookupString(
     XIC			 xic,
     XKeyEvent		*ev,
@@ -1102,7 +1102,7 @@ _XimProtoWcLookupString(
     return ret;
 }
 
-Public int
+int
 _XimProtoUtf8LookupString(
     XIC			 xic,
     XKeyEvent		*ev,

@@ -190,8 +190,6 @@ DestroyConstructResourceBytesCtx(ConstructResourceBytesCtx *ctx)
     ht_destroy(ctx->visitedResources);
 }
 
-extern void ResExtensionInit(void);
-
 static int
 ProcXResQueryVersion(ClientPtr client)
 {

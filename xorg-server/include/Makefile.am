@@ -69,6 +69,6 @@ AM_CFLAGS = $(DIX_CFLAGS)
 
 EXTRA_DIST = 	\
 	dix-config-apple-verbatim.h \
-	eventconvert.h eventstr.h inpututils.h \
+	dixfontstubs.h eventconvert.h eventstr.h inpututils.h \
 	protocol-versions.h \
 	xsha1.h

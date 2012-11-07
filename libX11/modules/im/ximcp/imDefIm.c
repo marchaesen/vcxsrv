@@ -63,7 +63,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "Ximint.h"
 
 
-Public int
+int
 _XimCheckDataSize(
     XPointer	 buf,
     int		 len)
@@ -75,7 +75,7 @@ _XimCheckDataSize(
     return  buf_s[1];
 }
 
-Public void
+void
 _XimSetHeader(
     XPointer	 buf,
     CARD8	 major_opcode,
@@ -93,7 +93,7 @@ _XimSetHeader(
     return;
 }
 
-Public char
+char
 _XimGetMyEndian(void)
 {
     CARD16	 test_card = 1;
@@ -104,7 +104,7 @@ _XimGetMyEndian(void)
 	return BIGENDIAN;
 }
 
-Private Bool
+static Bool
 _XimCheckServerName(
     Xim		   im,
     char	  *str)
@@ -142,7 +142,7 @@ _XimCheckServerName(
     return True;
 }
 
-Private char *
+static char *
 _XimCheckLocaleName(
     Xim		   im,
     char	  *address,
@@ -182,7 +182,7 @@ _XimCheckLocaleName(
     return (char *)NULL;
 }
 
-Private Bool
+static Bool
 _XimCheckTransport(
     char	  *address,
     int		   address_len,
@@ -226,7 +226,7 @@ _XimCheckTransport(
     return True;
 }
 
-Private Bool
+static Bool
 _CheckSNEvent(
     Display		*display,
     XEvent		*xevent,
@@ -240,7 +240,7 @@ _CheckSNEvent(
     return False;
 }
 
-Private Bool
+static Bool
 _XimGetSelectionNotify(
     Display		 *display,
     Window		  window,
@@ -269,7 +269,7 @@ _XimGetSelectionNotify(
     return True;
 }
 
-Private Bool
+static Bool
 _XimPreConnectionIM(
     Xim			 im,
     Atom		 selection)
@@ -387,7 +387,7 @@ Error:
     return False;
 }
 
-Private Bool
+static Bool
 _XimPreConnect(
     Xim		    im)
 {
@@ -434,7 +434,7 @@ _XimPreConnect(
     return True;
 }
 
-Private Bool
+static Bool
 _XimGetAuthProtocolNames(
     Xim		 im,
     CARD16	*buf,
@@ -452,7 +452,7 @@ _XimGetAuthProtocolNames(
     return True;
 }
 
-Private Bool
+static Bool
 _XimSetAuthReplyData(
     Xim		 im,
     XPointer	 buf,
@@ -465,7 +465,7 @@ _XimSetAuthReplyData(
     return True;
 }
 
-Private Bool
+static Bool
 _XimSetAuthNextData(
     Xim		 im,
     XPointer	 buf,
@@ -478,7 +478,7 @@ _XimSetAuthNextData(
     return True;
 }
 
-Private Bool
+static Bool
 _XimSetAuthRequiredData(
     Xim		 im,
     XPointer	 buf,
@@ -491,7 +491,7 @@ _XimSetAuthRequiredData(
     return True;
 }
 
-Private Bool
+static Bool
 _XimCheckAuthSetupData(
     Xim		 im,
     XPointer	 buf)
@@ -502,7 +502,7 @@ _XimCheckAuthSetupData(
     return True;
 }
 
-Private Bool
+static Bool
 _XimCheckAuthNextData(
     Xim		 im,
     XPointer	 buf)
@@ -517,7 +517,7 @@ _XimCheckAuthNextData(
 #define	GOOD_AUTH	1
 #define	BAD_AUTH	0
 
-Private int
+static int
 _XimClientAuthCheck(
     Xim		 im,
     XPointer	 buf)
@@ -528,7 +528,7 @@ _XimClientAuthCheck(
     return NO_MORE_AUTH;
 }
 
-Private void
+static void
 _XimAuthNG(
     Xim		 im)
 {
@@ -542,7 +542,7 @@ _XimAuthNG(
     return;
 }
 
-Private	Bool
+static Bool
 _XimAllRecv(
     Xim		 im,
     INT16	 len,
@@ -555,7 +555,7 @@ _XimAllRecv(
 #define	CLIENT_WAIT1		1
 #define	CLIENT_WAIT2		2
 
-Private Bool
+static Bool
 _XimConnection(
     Xim		 im)
 {
@@ -716,7 +716,7 @@ _XimConnection(
     return True;
 }
 
-Private	Bool
+static Bool
 _XimDisconnectCheck(
     Xim		 im,
     INT16	 len,
@@ -735,7 +735,7 @@ _XimDisconnectCheck(
     return False;
 }
 
-Private Bool
+static Bool
 _XimDisconnect(
     Xim		 im)
 {
@@ -775,7 +775,7 @@ _XimDisconnect(
     return True;
 }
 
-Private	Bool
+static Bool
 _XimOpenCheck(
     Xim		 im,
     INT16	 len,
@@ -794,7 +794,7 @@ _XimOpenCheck(
     return False;
 }
 
-Private Bool
+static Bool
 _XimOpen(
     Xim			 im)
 {
@@ -890,7 +890,7 @@ _XimOpen(
     return True;
 }
 
-Private	Bool
+static Bool
 _XimCloseCheck(
     Xim		 im,
     INT16	 len,
@@ -914,7 +914,7 @@ _XimCloseCheck(
     return False;
 }
 
-Private Bool
+static Bool
 _XimClose(
     Xim		 im)
 {
@@ -972,7 +972,7 @@ _XimClose(
     return True;
 }
 
-Public void
+void
 _XimProtoIMFree(
     Xim		  im)
 {
@@ -1090,7 +1090,7 @@ _XimProtoIMFree(
     return;
 }
 
-Private Status
+static Status
 _XimProtoCloseIM(
     XIM		 xim)
 {
@@ -1138,7 +1138,7 @@ _XimProtoCloseIM(
 }
 
 #ifdef XIM_CONNECTABLE
-Private Bool
+static Bool
 _XimCheckIMQuarkList(
     XrmQuark		*quark_list,
     int			 num_quark,
@@ -1154,7 +1154,7 @@ _XimCheckIMQuarkList(
     return False;
 }
 
-Private Bool
+static Bool
 _XimSaveIMValues(
     Xim			 im,
     XIMArg		*arg)
@@ -1203,7 +1203,7 @@ _XimSaveIMValues(
     return True;
 }
 
-Private char *
+static char *
 _XimDelayModeSetIMValues(
     Xim			 im,
     XIMArg		*arg)
@@ -1221,7 +1221,7 @@ _XimDelayModeSetIMValues(
 }
 #endif /* XIM_CONNECTABLE */
 
-Private Bool
+static Bool
 _XimSetIMValuesCheck(
     Xim          im,
     INT16        len,
@@ -1245,7 +1245,7 @@ _XimSetIMValuesCheck(
     return False;
 }
 
-Private char *
+static char *
 _XimProtoSetIMValues(
     XIM			 xim,
     XIMArg		*arg)
@@ -1377,7 +1377,7 @@ _XimProtoSetIMValues(
 }
 
 #ifdef XIM_CONNECTABLE
-Private char *
+static char *
 _XimDelayModeGetIMValues(
     Xim			 im,
     XIMArg		*arg)
@@ -1390,7 +1390,7 @@ _XimDelayModeGetIMValues(
 }
 #endif /* XIM_CONNECTABLE */
 
-Private Bool
+static Bool
 _XimGetIMValuesCheck(
     Xim          im,
     INT16        len,
@@ -1414,7 +1414,7 @@ _XimGetIMValuesCheck(
     return False;
 }
 
-Private char *
+static char *
 _XimProtoGetIMValues(
     XIM			 xim,
     XIMArg		*arg)
@@ -1526,7 +1526,7 @@ _XimProtoGetIMValues(
 	return makeid_name;
 }
 
-Private XIMMethodsRec     im_methods = {
+static XIMMethodsRec     im_methods = {
     _XimProtoCloseIM,           /* close */
     _XimProtoSetIMValues,       /* set_values */
     _XimProtoGetIMValues,       /* get_values */
@@ -1536,7 +1536,7 @@ Private XIMMethodsRec     im_methods = {
     _Ximctstoutf8		/* ctstoutf8 */
 };
 
-Private Bool
+static Bool
 _XimSetEncodingByName(
     Xim		  im,
     char	**buf,
@@ -1569,7 +1569,7 @@ _XimSetEncodingByName(
     return True;
 }
 
-Private Bool
+static Bool
 _XimSetEncodingByDetail(
     Xim		 im,
     char	**buf,
@@ -1580,7 +1580,7 @@ _XimSetEncodingByDetail(
     return True;
 }
 
-Private Bool
+static Bool
 _XimGetEncoding(
     Xim		 im,
     CARD16	*buf,
@@ -1669,7 +1669,7 @@ _XimGetEncoding(
     return True;
 }
 
-Private	Bool
+static Bool
 _XimEncodingNegoCheck(
     Xim		 im,
     INT16	 len,
@@ -1693,7 +1693,7 @@ _XimEncodingNegoCheck(
     return False;
 }
 
-Private Bool
+static Bool
 _XimEncodingNegotiation(
     Xim		 im)
 {
@@ -1799,7 +1799,7 @@ free_name_ptr:
 }
 
 #ifdef XIM_CONNECTABLE
-Private Bool
+static Bool
 _XimSendSavedIMValues(
     Xim			 im)
 {
@@ -1909,7 +1909,7 @@ _XimSendSavedIMValues(
     return True;
 }
 
-Private void
+static void
 _XimDelayModeIMFree(
     Xim		 im)
 {
@@ -1932,7 +1932,7 @@ _XimDelayModeIMFree(
     return;
 }
 
-Public Bool
+Bool
 _XimConnectServer(
     Xim		 im)
 {
@@ -1956,7 +1956,7 @@ _XimConnectServer(
     return False;
 }
 
-Public Bool
+Bool
 _XimDelayModeSetAttr(
     Xim			 im)
 {
@@ -1988,7 +1988,7 @@ _XimDelayModeSetAttr(
     return True;
 }
 
-Private Bool
+static Bool
 _XimReconnectModeSetAttr(
     Xim			 im)
 {
@@ -2015,7 +2015,7 @@ _XimReconnectModeSetAttr(
 }
 #endif /* XIM_CONNECTABLE */
 
-Public Bool
+Bool
 _XimProtoOpenIM(
     Xim		 im)
 {

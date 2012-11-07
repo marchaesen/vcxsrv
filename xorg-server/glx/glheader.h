@@ -14,11 +14,25 @@
 #define MINSHORT -32768
 #define MAXSHORT 32767
 
+#ifndef PUBLIC
 #define PUBLIC
+#endif
 
 #define GL_GLEXT_PROTOTYPES
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#define DRI_DRIVER_PATH "/usr/lib/dri"
+
+/**
+ * GL_FIXED is defined in glext.h version 64 but these typedefs aren't (yet).
+ */
+typedef int GLfixed;
+typedef int GLclampx;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

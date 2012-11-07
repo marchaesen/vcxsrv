@@ -39,6 +39,7 @@
 #include <X11/Xwindows.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
+#include <glx/glheader.h>
 #include <glx/glxserver.h>
 #include <glx/glxext.h>
 #include <glx/glapi.h>

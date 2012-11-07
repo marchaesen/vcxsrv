@@ -35,7 +35,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "Xlcint.h"
 #include "Ximint.h"
 
-Private long
+static long
 _XimTriggerCheck(
     Xim			 im,
     XKeyEvent		*ev,
@@ -66,7 +66,7 @@ _XimTriggerCheck(
     return -1;
 }
 
-Private long
+static long
 _XimTriggerOnCheck(
     Xim		 im,
     XKeyEvent	*ev)
@@ -75,7 +75,7 @@ _XimTriggerOnCheck(
 					&im->private.proto.im_onkeylist[1]);
 }
 
-Private long
+static long
 _XimTriggerOffCheck(
     Xim		 im,
     XKeyEvent	*ev)
@@ -84,7 +84,7 @@ _XimTriggerOffCheck(
 					&im->private.proto.im_offkeylist[1]);
 }
 
-Private Bool
+static Bool
 _XimOnKeysCheck(
     Xic		 ic,
     XKeyEvent	*ev)
@@ -103,7 +103,7 @@ _XimOnKeysCheck(
     return False;
 }
 
-Private Bool
+static Bool
 _XimOffKeysCheck(
     Xic		 ic,
     XKeyEvent	*ev)
@@ -122,7 +122,7 @@ _XimOffKeysCheck(
     return False;
 }
 
-Private void
+static void
 _XimPendingFilter(
     Xic	 	 ic)
 {
@@ -135,7 +135,7 @@ _XimPendingFilter(
     return;
 }
 
-Private Bool
+static Bool
 _XimProtoKeypressFilter(
     Xic		 ic,
     XKeyEvent	*ev)
@@ -186,7 +186,7 @@ _XimProtoKeypressFilter(
     return NOTFILTERD;
 }
 
-Private Bool
+static Bool
 _XimFilterKeypress(
     Display		*d,
     Window		 w,
@@ -196,7 +196,7 @@ _XimFilterKeypress(
     return _XimProtoKeypressFilter((Xic)client_data, (XKeyEvent *)ev );
 }
 
-Private Bool
+static Bool
 _XimProtoKeyreleaseFilter(
     Xic		 ic,
     XKeyEvent	*ev)
@@ -247,7 +247,7 @@ _XimProtoKeyreleaseFilter(
     return NOTFILTERD;
 }
 
-Private Bool
+static Bool
 _XimFilterKeyrelease(
     Display		*d,
     Window		 w,
@@ -257,7 +257,7 @@ _XimFilterKeyrelease(
     return _XimProtoKeyreleaseFilter((Xic)client_data, (XKeyEvent *)ev);
 }
 
-Private void
+static void
 _XimRegisterKeyPressFilter(
     Xic		 ic)
 {
@@ -274,7 +274,7 @@ _XimRegisterKeyPressFilter(
     return;
 }
 
-Private void
+static void
 _XimRegisterKeyReleaseFilter(
     Xic		 ic)
 {
@@ -291,7 +291,7 @@ _XimRegisterKeyReleaseFilter(
     return;
 }
 
-Private void
+static void
 _XimUnregisterKeyPressFilter(
     Xic		 ic)
 {
@@ -307,7 +307,7 @@ _XimUnregisterKeyPressFilter(
     return;
 }
 
-Private void
+static void
 _XimUnregisterKeyReleaseFilter(
     Xic		 ic)
 {
@@ -323,7 +323,7 @@ _XimUnregisterKeyReleaseFilter(
     return;
 }
 
-Public void
+void
 _XimRegisterFilter(
     Xic		 ic)
 {
@@ -333,7 +333,7 @@ _XimRegisterFilter(
     return;
 }
 
-Public void
+void
 _XimUnregisterFilter(
     Xic		 ic)
 {
@@ -342,7 +342,7 @@ _XimUnregisterFilter(
     return;
 }
 
-Public void
+void
 _XimReregisterFilter(
     Xic		 ic)
 {
@@ -354,7 +354,7 @@ _XimReregisterFilter(
     return;
 }
 
-Private Bool
+static Bool
 _XimFilterServerDestroy(
     Display		*d,
     Window		 w,
@@ -376,7 +376,7 @@ _XimFilterServerDestroy(
     return True;
 }
 
-Public void
+void
 _XimRegisterServerFilter(
     Xim		 im)
 {
@@ -395,7 +395,7 @@ _XimRegisterServerFilter(
     return;
 }
 
-Public void
+void
 _XimUnregisterServerFilter(
     Xim		 im)
 {

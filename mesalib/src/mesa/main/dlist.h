@@ -43,9 +43,22 @@
       (vfmt)->CallLists = impl ## CallLists; \
    } while (0)
 
-extern void GLAPIENTRY _mesa_CallList( GLuint list );
-
-extern void GLAPIENTRY _mesa_CallLists( GLsizei n, GLenum type, const GLvoid *lists );
+GLboolean GLAPIENTRY
+_mesa_IsList(GLuint list);
+void GLAPIENTRY
+_mesa_DeleteLists(GLuint list, GLsizei range);
+GLuint GLAPIENTRY
+_mesa_GenLists(GLsizei range);
+void GLAPIENTRY
+_mesa_NewList(GLuint name, GLenum mode);
+void GLAPIENTRY
+_mesa_EndList(void);
+void GLAPIENTRY
+_mesa_CallList( GLuint list );
+void GLAPIENTRY
+_mesa_CallLists( GLsizei n, GLenum type, const GLvoid *lists );
+void GLAPIENTRY
+_mesa_ListBase(GLuint base);
 
 
 extern void _mesa_compile_error( struct gl_context *ctx, GLenum error, const char *s );
@@ -65,8 +78,6 @@ extern struct _glapi_table *_mesa_create_save_table(const struct gl_context *);
 
 extern void _mesa_install_dlist_vtxfmt(struct _glapi_table *disp,
                                        const GLvertexformat *vfmt);
-
-extern void _mesa_init_dlist_dispatch(struct _glapi_table *disp);
 
 extern void _mesa_init_display_list( struct gl_context * ctx );
 

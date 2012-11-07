@@ -47,7 +47,7 @@ xf86GARTCloseScreen(int screenNum)
 }
 
 Bool
-xf86AgpGARTSupported()
+xf86AgpGARTSupported(void)
 {
     return FALSE;
 }

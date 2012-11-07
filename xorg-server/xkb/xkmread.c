@@ -772,8 +772,6 @@ ReadXkmSymbols(FILE * file, XkbDescPtr xkb)
         memset((char *) typeName, 0, XkbNumKbdGroups * sizeof(Atom));
         memset((char *) type, 0, XkbNumKbdGroups * sizeof(XkbKeyTypePtr));
         if (wireMap.flags & XkmKeyHasTypes) {
-            register int g;
-
             for (g = 0; g < XkbNumKbdGroups; g++) {
                 if ((wireMap.flags & (1 << g)) &&
                     ((tmp = XkmGetCountedString(file, buf, 100)) > 0)) {

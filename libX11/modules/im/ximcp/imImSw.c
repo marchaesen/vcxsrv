@@ -40,7 +40,7 @@ THIS SOFTWARE.
 #include "Ximint.h"
 #include "XimImSw.h"
 
-Private Bool
+static Bool
 _XimCheckIfDefault(
     Xim		im)
 {

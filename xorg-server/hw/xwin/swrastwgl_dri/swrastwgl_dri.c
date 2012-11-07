@@ -1,3 +1,6 @@
+#ifdef HAVE_XWIN_CONFIG_H
+#include <xwin-config.h>
+#endif
 #include <X11/Xwindows.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -5,6 +8,7 @@
 #include <GL/internal/dri_interface.h>
 #include <stdint.h>
 
+#include <glx/glheader.h>
 #include <glx/glapi.h>
 #include <glx/glapitable.h>
 
@@ -17,6 +21,7 @@ typedef int BOOL;
 #define PRINTF(...)
 #endif
 
+#undef PUBLIC
 #define PUBLIC __declspec(dllexport)
 
 BOOL colorIndexMode = FALSE;

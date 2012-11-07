@@ -9,18 +9,18 @@ glx_proto_size.py -m reqsize_h --only-get -h _INDIRECT_SIZE_GET_H_ > indirect_re
 glx_proto_recv.py -m dispatch_c > indirect_dispatch.c
 glx_proto_recv.py -m dispatch_c -s > indirect_dispatch_swap.c
 glx_proto_recv.py -m dispatch_h -f gl_and_glX_API.xml -s > indirect_dispatch.h
-gl_table.py > glapitable.h
-gl_gentable.py > glapi_gentable.c
-gl_table.py -m remap_table > dispatch.h
+gl_table.py -f gl_and_es_API.xml > glapitable.h
+gl_gentable.py -f gl_and_es_API.xml > glapi_gentable.c
+gl_table.py -f gl_and_es_API.xml -m remap_table > dispatch.h
 rem gl_offsets.py > glapioffsets.h
-gl_apitemp.py > glapitemp.h
-gl_procs.py > glprocs.h
+gl_apitemp.py -f gl_and_es_API.xml > glapitemp.h
+gl_procs.py -f gl_and_es_API.xml > glprocs.h
 
 glX_proto_send.py -m proto > indirect.c
 glX_proto_send.py -m init_h > indirect.h
 glX_proto_send.py -m init_c > indirect_init.c
 
 gl_enums.py -f gl_and_es_API.xml > enums.c
-remap_helper.py > remap_helper.h
+remap_helper.py -f gl_and_es_API.xml > remap_helper.h
 copy ..\..\mapi\mapi_abi.py
 mapi_abi.py --printer glapi --mode lib gl_and_es_API.xml > glapi_mapi_tmp.h

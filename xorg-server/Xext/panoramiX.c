@@ -592,8 +592,6 @@ PanoramiXExtensionInit(void)
 
 }
 
-extern Bool CreateConnectionBlock(void);
-
 Bool
 PanoramiXCreateConnectionBlock(void)
 {

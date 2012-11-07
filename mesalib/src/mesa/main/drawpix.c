@@ -42,7 +42,7 @@
 /*
  * Execute glDrawPixels
  */
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_DrawPixels( GLsizei width, GLsizei height,
                   GLenum format, GLenum type, const GLvoid *pixels )
 {
@@ -186,7 +186,7 @@ end:
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_CopyPixels( GLint srcx, GLint srcy, GLsizei width, GLsizei height,
                   GLenum type )
 {
@@ -291,7 +291,7 @@ end:
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_Bitmap( GLsizei width, GLsizei height,
               GLfloat xorig, GLfloat yorig, GLfloat xmove, GLfloat ymove,
               const GLubyte *bitmap )
@@ -364,13 +364,4 @@ _mesa_Bitmap( GLsizei width, GLsizei height,
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
       _mesa_flush(ctx);
    }
-}
-
-
-void
-_mesa_init_drawpix_dispatch(struct _glapi_table *disp)
-{
-   SET_Bitmap(disp, _mesa_Bitmap);
-   SET_CopyPixels(disp, _mesa_CopyPixels);
-   SET_DrawPixels(disp, _mesa_DrawPixels);
 }

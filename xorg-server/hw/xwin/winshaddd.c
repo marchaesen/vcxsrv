@@ -36,8 +36,6 @@
 #endif
 #include "win.h"
 
-
-
 /*
  * Local prototypes
  */

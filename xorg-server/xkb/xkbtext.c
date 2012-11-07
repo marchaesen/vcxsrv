@@ -1266,7 +1266,6 @@ XkbBehaviorText(XkbDescPtr xkb, XkbBehavior * behavior, unsigned format)
         }
         else if (type == XkbKB_RadioGroup) {
             int g;
-            char *tmp;
 
             g = ((behavior->data) & (~XkbKB_RGAllowNone)) + 1;
             if (XkbKB_RGAllowNone & behavior->data) {

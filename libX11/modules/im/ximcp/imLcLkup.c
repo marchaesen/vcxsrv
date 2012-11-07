@@ -43,7 +43,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "XlcPubI.h"
 #include "Ximint.h"
 
-Public int
+int
 _XimLocalMbLookupString(XIC xic, XKeyEvent *ev, char *buffer, int bytes,
 			KeySym *keysym, Status *status)
 {
@@ -126,7 +126,7 @@ _XimLocalMbLookupString(XIC xic, XKeyEvent *ev, char *buffer, int bytes,
     return (ret);
 }
 
-Public int
+int
 _XimLocalWcLookupString(XIC xic, XKeyEvent *ev, wchar_t *buffer, int wlen,
 			KeySym *keysym, Status *status)
 {
@@ -198,7 +198,7 @@ _XimLocalWcLookupString(XIC xic, XKeyEvent *ev, wchar_t *buffer, int wlen,
     return (ret);
 }
 
-Public int
+int
 _XimLocalUtf8LookupString(XIC xic, XKeyEvent *ev, char *buffer, int bytes,
 			  KeySym *keysym, Status *status)
 {
@@ -271,7 +271,7 @@ _XimLocalUtf8LookupString(XIC xic, XKeyEvent *ev, char *buffer, int bytes,
     return (ret);
 }
 
-Private int
+static int
 _XimLcctsconvert(
     XlcConv	 conv,
     char	*from,
@@ -337,7 +337,7 @@ _XimLcctsconvert(
     return to_cnvlen;
 }
 
-Public int
+int
 _XimLcctstombs(XIM xim, char *from, int from_len,
 	       char *to, int to_len, Status *state)
 {
@@ -345,7 +345,7 @@ _XimLcctstombs(XIM xim, char *from, int from_len,
 			    from, from_len, to, to_len, state);
 }
 
-Public int
+int
 _XimLcctstowcs(XIM xim, char *from, int from_len,
 	       wchar_t *to, int to_len, Status *state)
 {
@@ -408,7 +408,7 @@ _XimLcctstowcs(XIM xim, char *from, int from_len,
     return to_cnvlen;
 }
 
-Public int
+int
 _XimLcctstoutf8(XIM xim, char *from, int from_len,
 		char *to, int to_len, Status *state)
 {

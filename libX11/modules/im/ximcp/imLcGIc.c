@@ -33,7 +33,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "Xlcint.h"
 #include "Ximint.h"
 
-Public char *
+char *
 _XimLocalGetICValues(XIC xic, XIMArg *values)
 {
     Xic			 ic = (Xic)xic;

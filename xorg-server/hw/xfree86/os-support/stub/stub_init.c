@@ -5,12 +5,12 @@
 #include "xf86_OSlib.h"
 
 void
-xf86OpenConsole()
+xf86OpenConsole(void)
 {
 }
 
 void
-xf86CloseConsole()
+xf86CloseConsole(void)
 {
 }
 
@@ -21,6 +21,6 @@ xf86ProcessArgument(int argc, char *argv[], int i)
 }
 
 void
-xf86UseMsg()
+xf86UseMsg(void)
 {
 }

@@ -55,7 +55,7 @@ typedef struct	_XIM_QueryExtRec {
     int		 idx;
 } XIM_QueryExtRec;
 
-Private XIM_QueryExtRec	extensions[] = {
+static XIM_QueryExtRec	extensions[] = {
 	{False, "XIM_EXT_SET_EVENT_MASK", 0, 0, 0,
 					XIM_EXT_SET_EVENT_MASK_IDX},
 #ifdef EXT_FORWARD
@@ -68,7 +68,7 @@ Private XIM_QueryExtRec	extensions[] = {
 	{False, NULL, 0, 0, 0, 0}		/* dummy */
 };
 
-Private int
+static int
 _XimIsSupportExt(
     int		 idx)
 {
@@ -86,7 +86,7 @@ _XimIsSupportExt(
     return -1;
 }
 
-Private Bool
+static Bool
 _XimProcExtSetEventMask(
     Xim		 im,
     Xic		 ic,
@@ -113,7 +113,7 @@ _XimProcExtSetEventMask(
     return True;
 }
 
-Private Bool
+static Bool
 _XimExtSetEventMaskCallback(
     Xim		 xim,
     INT16	 len,
@@ -135,7 +135,7 @@ _XimExtSetEventMaskCallback(
 }
 
 #ifdef EXT_FORWARD
-Private Bool
+static Bool
 _XimProcExtForwardKeyEvent(
     Xim		 im,
     Xic		 ic,
@@ -164,7 +164,7 @@ _XimProcExtForwardKeyEvent(
     return True;
 }
 
-Private Bool
+static Bool
 _XimExtForwardKeyEventCallback(
     Xim		 xim,
     INT16	 len,
@@ -185,7 +185,7 @@ _XimExtForwardKeyEventCallback(
     return False;
 }
 
-Private Bool
+static Bool
 _XimExtForwardKeyEventCheck(
     Xim          im,
     INT16        len,
@@ -213,7 +213,7 @@ _XimExtForwardKeyEventCheck(
     return False;
 }
 
-Public Bool
+Bool
 _XimExtForwardKeyEvent(
     Xic		 ic,
     XKeyEvent	*ev,
@@ -295,7 +295,7 @@ _XimExtForwardKeyEvent(
 }
 #endif /* EXT_FORWARD */
 
-Private int
+static int
 _XimCheckExtensionListSize(void)
 {
     register int i;
@@ -312,7 +312,7 @@ _XimCheckExtensionListSize(void)
     return total;
 }
 
-Private void
+static void
 _XimSetExtensionList(
     CARD8	*buf)
 {
@@ -330,7 +330,7 @@ _XimSetExtensionList(
     return;
 }
 
-Private unsigned int
+static unsigned int
 _XimCountNumberOfExtension(
     INT16	 total,
     CARD8	*ext)
@@ -352,7 +352,7 @@ _XimCountNumberOfExtension(
     return n;
 }
 
-Private Bool
+static Bool
 _XimParseExtensionList(
     Xim			 im,
     CARD16		*data)
@@ -388,7 +388,7 @@ _XimParseExtensionList(
     return True;
 }
 
-Private Bool
+static Bool
 _XimQueryExtensionCheck(
     Xim          im,
     INT16        len,
@@ -412,7 +412,7 @@ _XimQueryExtensionCheck(
     return False;
 }
 
-Public Bool
+Bool
 _XimExtension(
     Xim		 im)
 {
@@ -518,7 +518,7 @@ _XimExtension(
 /* length of XPoint attribute */
 #define	XIM_Xpoint_length	12
 
-Private Bool
+static Bool
 _XimExtMove(
     Xim		 im,
     Xic		 ic,
@@ -551,7 +551,7 @@ _XimExtMove(
     return True;
 }
 
-Public BITMASK32
+BITMASK32
 _XimExtenArgCheck(
     XIMArg	*arg)
 {
@@ -561,7 +561,7 @@ _XimExtenArgCheck(
     return flag;
 }
 
-Public Bool
+Bool
 _XimExtenMove(
     Xim		 im,
     Xic		 ic,

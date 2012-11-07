@@ -52,11 +52,11 @@ typedef struct _XimInstCallback {
 } XimInstCallbackRec, *XimInstCallback;
 
 
-Private XimInstCallback	callback_list	= NULL;
-Private Bool		lock		= False;
+static XimInstCallback	callback_list	= NULL;
+static Bool		lock		= False;
 
 
-Private void
+static void
 MakeLocale( XLCd lcd, char locale[] )
 {
     char	*language, *territory, *codeset;
@@ -76,7 +76,7 @@ MakeLocale( XLCd lcd, char locale[] )
 }
 
 
-Private Bool
+static Bool
 _XimFilterPropertyNotify(
     Display	*display,
     Window	 window,
@@ -150,7 +150,7 @@ _XimFilterPropertyNotify(
 }
 
 
-Public Bool
+Bool
 _XimRegisterIMInstantiateCallback(
     XLCd	 lcd,
     Display	*display,
@@ -213,7 +213,7 @@ _XimRegisterIMInstantiateCallback(
 }
 
 
-Public Bool
+Bool
 _XimUnRegisterIMInstantiateCallback(
     XLCd	 lcd,
     Display	*display,
@@ -267,7 +267,7 @@ _XimUnRegisterIMInstantiateCallback(
 }
 
 
-Public void
+void
 _XimResetIMInstantiateCallback(Xim xim)
 {
     char		 locale[XIM_MAXLCNAMELEN];

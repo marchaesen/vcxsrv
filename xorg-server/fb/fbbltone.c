@@ -739,12 +739,12 @@ fbBltPlane(FbBits * src,
 
     pm = fbReplicatePixel(planeMask, srcBpp);
     if (srcBpp == 24) {
-        int w = 24;
+        int tmpw = 24;
 
         rot0 = FbFirst24Rot(srcX);
-        if (srcX + w > FB_UNIT)
-            w = FB_UNIT - srcX;
-        srcMaskFirst = FbRot24(pm, rot0) & FbBitsMask(srcX, w);
+        if (srcX + tmpw > FB_UNIT)
+            tmpw = FB_UNIT - srcX;
+        srcMaskFirst = FbRot24(pm, rot0) & FbBitsMask(srcX, tmpw);
     }
     else {
         rot0 = 0;

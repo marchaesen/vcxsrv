@@ -81,7 +81,7 @@ SOFTWARE.
 
 /* character classification table */
 #define TACTIS_CHARS 256
-Private
+static 
 char const tactis_chtype[TACTIS_CHARS] = {
     CTRL, CTRL, CTRL, CTRL, CTRL, CTRL, CTRL, CTRL,  /*  0 -  7 */
     CTRL, CTRL, CTRL, CTRL, CTRL, CTRL, CTRL, CTRL,  /*  8 - 15 */
@@ -127,7 +127,7 @@ char const tactis_chtype[TACTIS_CHARS] = {
 
 #define CH_CLASSES      17  /* 17 classes of chars */
 
-Private
+static 
 char const write_rules_lookup[CH_CLASSES][CH_CLASSES] = {
         /* Table 0: writing/outputing rules */
         /* row: leading char,  column: following char */
@@ -151,7 +151,7 @@ char const write_rules_lookup[CH_CLASSES][CH_CLASSES] = {
   ,{XC, NC, NC, NC, NC, NC, NC, NC, NC, NC, CP, NC, CP, NC, NC, NC, NC}/*AV3*/
 };
 
-Private
+static 
 char const wtt_isc1_lookup[CH_CLASSES][CH_CLASSES] = {
       /* Table 1: WTT default input sequence check rules */
       /* row: leading char,  column: following char */
@@ -175,7 +175,7 @@ char const wtt_isc1_lookup[CH_CLASSES][CH_CLASSES] = {
   ,{XC, AC, AC, AC, AC, AC, AC, RJ, RJ, RJ, CP, RJ, CP, RJ, RJ, RJ, RJ}/*AV3*/
 };
 
-Private
+static 
 char const wtt_isc2_lookup[CH_CLASSES][CH_CLASSES] = {
       /* Table 2: WTT strict input sequence check rules */
       /* row: leading char,  column: following char */
@@ -199,7 +199,7 @@ char const wtt_isc2_lookup[CH_CLASSES][CH_CLASSES] = {
   ,{XC, AC, AC, AC, RJ, RJ, AC, RJ, RJ, RJ, CP, RJ, CP, RJ, RJ, RJ, RJ}/*AV3*/
 };
 
-Private
+static 
 char const thaicat_isc_lookup[CH_CLASSES][CH_CLASSES] = {
       /* Table 3: Thaicat input sequence check rules */
       /* row: leading char,  column: following char */
@@ -225,7 +225,7 @@ char const thaicat_isc_lookup[CH_CLASSES][CH_CLASSES] = {
 
 
 /* returns classification of a char */
-Private int
+static int
 THAI_chtype (unsigned char	ch)
 {
     return tactis_chtype[ch];
@@ -233,7 +233,7 @@ THAI_chtype (unsigned char	ch)
 
 #ifdef UNUSED
 /* returns the display level */
-Private int
+static int
 THAI_chlevel (unsigned char	ch)
 {
     int     chlevel;
@@ -274,7 +274,7 @@ THAI_chlevel (unsigned char	ch)
 
 
 /* return True if char is non-spacing */
-Private Bool
+static Bool
 THAI_isdead (unsigned char	ch)
 {
     return ((tactis_chtype[ch] == CTRL) || (tactis_chtype[ch] == BV1) ||
@@ -287,7 +287,7 @@ THAI_isdead (unsigned char	ch)
 
 
 /* return True if char is consonant */
-Private Bool
+static Bool
 THAI_iscons (unsigned char	ch)
 {
     return (tactis_chtype[ch] == CONS);
@@ -295,7 +295,7 @@ THAI_iscons (unsigned char	ch)
 
 
 /* return True if char is vowel */
-Private Bool
+static Bool
 THAI_isvowel (unsigned char	ch)
 {
     return ((tactis_chtype[ch] == LV)  || (tactis_chtype[ch] == FV1) ||
@@ -307,14 +307,14 @@ THAI_isvowel (unsigned char	ch)
 
 
 /* return True if char is tonemark */
-Private Bool
+static Bool
 THAI_istone (unsigned char	ch)
 {
     return (tactis_chtype[ch] == TONE);
 }
 #endif
 
-Private Bool
+static Bool
 THAI_iscomposible (
     unsigned char	follow_ch,
     unsigned char	lead_ch)
@@ -324,7 +324,7 @@ THAI_iscomposible (
             == CP);
 }
 
-Private Bool
+static Bool
 THAI_isaccepted (
     unsigned char	follow_ch,
     unsigned char	lead_ch,
@@ -355,7 +355,7 @@ THAI_isaccepted (
 }
 
 #ifdef UNUSED
-Private void
+static void
 THAI_apply_write_rules(
     unsigned char	*instr,
     unsigned char	*outstr,
@@ -401,7 +401,7 @@ Output parameters:
     }
 }
 
-Private int
+static int
 THAI_find_chtype (
     unsigned char	*instr,
     int		chtype)
@@ -430,7 +430,7 @@ Output parameters:
 }
 
 
-Private int
+static int
 THAI_apply_scm(
     unsigned char	*instr,
     unsigned char	*outstr,
@@ -466,33 +466,33 @@ THAI_apply_scm(
 
 /* The following functions are copied from XKeyBind.c */
 
-Private void ComputeMaskFromKeytrans();
-Private int IsCancelComposeKey(KeySym *symbol, XKeyEvent *event);
-Private void SetLed(Display *dpy, int num, int state);
-Private CARD8 FindKeyCode();
+static void ComputeMaskFromKeytrans();
+static int IsCancelComposeKey(KeySym *symbol, XKeyEvent *event);
+static void SetLed(Display *dpy, int num, int state);
+static CARD8 FindKeyCode();
 
 
 /* The following functions are specific to this module */
 
-Private int XThaiTranslateKey();
-Private int XThaiTranslateKeySym();
+static int XThaiTranslateKey();
+static int XThaiTranslateKeySym();
 
 
-Private KeySym HexIMNormalKey(
+static KeySym HexIMNormalKey(
     XicThaiPart *thai_part,
     KeySym symbol,
     XKeyEvent *event);
-Private KeySym HexIMFirstComposeKey(
+static KeySym HexIMFirstComposeKey(
     XicThaiPart *thai_part,
     KeySym symbol,
     XKeyEvent *event);
-Private KeySym HexIMSecondComposeKey(
+static KeySym HexIMSecondComposeKey(
     XicThaiPart *thai_part,
     KeySym symbol
     XKeyEvent *event);
-Private KeySym HexIMComposeSequence(KeySym ks1, KeySym ks2);
-Private void InitIscMode(Xic ic);
-Private Bool ThaiComposeConvert(
+static KeySym HexIMComposeSequence(KeySym ks1, KeySym ks2);
+static void InitIscMode(Xic ic);
+static Bool ThaiComposeConvert(
     Display *dpy,
     KeySym insym,
     KeySym *outsym, KeySym *lower, KeySym *upper);
@@ -530,7 +530,7 @@ Private Bool ThaiComposeConvert(
 #define IC_DeletePreviousChar(ic) \
 		(IC_RealDeletePreviousChar(ic))
 
-Private unsigned char
+static unsigned char
 IC_RealGetPreviousChar(Xic ic, unsigned short pos)
 {
     XICCallback* cb = &ic->core.string_conversion_callback;
@@ -597,7 +597,7 @@ IC_RealGetPreviousChar(Xic ic, unsigned short pos)
     }
 }
 
-Private unsigned char
+static unsigned char
 IC_RealDeletePreviousChar(Xic ic)
 {
     XICCallback* cb = &ic->core.string_conversion_callback;
@@ -701,8 +701,8 @@ typedef KeySym (*StateProc)(
  *  State handler to implement the Thai hex input method.
  */
 
-Private int const nstate_handlers = 3;
-Private StateProc state_handler[] = {
+static int const nstate_handlers = 3;
+static StateProc state_handler[] = {
 	HexIMNormalKey,
 	HexIMFirstComposeKey,
 	HexIMSecondComposeKey
@@ -718,7 +718,7 @@ struct _XMapThaiKey {
 	KeySym to;
 };
 
-Private struct _XMapThaiKey const ThaiComposeTable[] = {
+static struct _XMapThaiKey const ThaiComposeTable[] = {
 	{ /* 0xa4 */ XK_currency,	/* 0xa5 */ XK_yen },
 	{ /* 0xa2 */ XK_cent,		/* 0xa3 */ XK_sterling },
 	{ /* 0xe6 */ XK_ae,		/* 0xef */ XK_idiaeresis },
@@ -742,7 +742,7 @@ struct _XKeytrans {
 
 /* Convert keysym to 'Thai Compose' keysym */
 /* The current implementation use latin-1 keysyms */
-Private Bool
+static Bool
 ThaiComposeConvert(
     Display *dpy,
     KeySym insym,
@@ -762,7 +762,7 @@ ThaiComposeConvert(
     return False;
 }
 
-Private int
+static int
 XThaiTranslateKey(
     register Display *dpy,
     KeyCode keycode,
@@ -847,7 +847,7 @@ XThaiTranslateKey(
  * Should be changed to TACTIS keysyms when they are defined by the
  * standard.
  */
-Private int
+static int
 XThaiTranslateKeySym(
     Display *dpy,
     register KeySym symbol,
@@ -956,7 +956,7 @@ XThaiTranslateKeySym(
 /*
  * given a KeySym, returns the first keycode containing it, if any.
  */
-Private CARD8
+static CARD8
 FindKeyCode(
     register Display *dpy,
     register KeySym code)
@@ -980,7 +980,7 @@ FindKeyCode(
  * what modifier it is bound to, if any.  Sets the AnyModifier bit if it
  * can't map some keysym to a modifier.
  */
-Private void
+static void
 ComputeMaskFromKeytrans(
     Display *dpy,
     register struct _XKeytrans *p)
@@ -1020,7 +1020,7 @@ ComputeMaskFromKeytrans(
 #define FIRST_COMPOSE_KEY_STATE 1
 #define SECOND_COMPOSE_KEY_STATE 2
 
-Private
+static 
 KeySym HexIMNormalKey(
     XicThaiPart *thai_part,
     KeySym symbol,
@@ -1036,7 +1036,7 @@ KeySym HexIMNormalKey(
 }
 
 
-Private
+static 
 KeySym HexIMFirstComposeKey(
     XicThaiPart *thai_part,
     KeySym symbol,
@@ -1059,7 +1059,7 @@ KeySym HexIMFirstComposeKey(
     return NoSymbol;
 }
 
-Private
+static 
 KeySym HexIMSecondComposeKey(
     XicThaiPart *thai_part,
     KeySym symbol,
@@ -1094,7 +1094,7 @@ KeySym HexIMSecondComposeKey(
  * The current implementation of this routine returns ISO Latin Keysyms.
  */
 
-Private
+static 
 KeySym HexIMComposeSequence(KeySym ks1, KeySym ks2)
 {
 int	hi_digit;
@@ -1131,7 +1131,7 @@ int	tactis_code;
  *	2) whether cancelling key event should be processed or ignored
  */
 
-Private
+static 
 int IsCancelComposeKey(
     KeySym *symbol,
     XKeyEvent *event)
@@ -1163,7 +1163,7 @@ int IsCancelComposeKey(
  *	set specified keyboard LED on or off
  */
 
-Private
+static 
 void SetLed(
     Display *dpy,
     int num,
@@ -1180,7 +1180,7 @@ void SetLed(
 /*
  * Initialize ISC mode from im modifier
  */
-Private void InitIscMode(Xic ic)
+static void InitIscMode(Xic ic)
 {
     Xim im;
     char *im_modifier_name;
@@ -1213,7 +1213,7 @@ Private void InitIscMode(Xic ic)
 /*
  * Helper functions for _XimThaiFilter()
  */
-Private Bool
+static Bool
 ThaiFltAcceptInput(Xic ic, unsigned char new_char, KeySym symbol)
 {
     DefTreeBase *b = &ic->private.local.base;
@@ -1228,7 +1228,7 @@ ThaiFltAcceptInput(Xic ic, unsigned char new_char, KeySym symbol)
     return True;
 }
 
-Private Bool
+static Bool
 ThaiFltReorderInput(Xic ic, unsigned char previous_char, unsigned char new_char)
 {
     DefTreeBase *b = &ic->private.local.base;
@@ -1242,7 +1242,7 @@ ThaiFltReorderInput(Xic ic, unsigned char previous_char, unsigned char new_char)
     return True;
 }
 
-Private Bool
+static Bool
 ThaiFltReplaceInput(Xic ic, unsigned char new_char, KeySym symbol)
 {
     DefTreeBase *b = &ic->private.local.base;
@@ -1258,7 +1258,7 @@ ThaiFltReplaceInput(Xic ic, unsigned char new_char, KeySym symbol)
     return True;
 }
 
-Private unsigned
+static unsigned
 NumLockMask(Display *d)
 {
     int i;

@@ -79,6 +79,7 @@
 #endif
 
 #include "glwindows.h"
+#include <glx/glheader.h>
 #include <glx/glxserver.h>
 #include <glx/glxutil.h>
 #include <glx/extension_string.h>

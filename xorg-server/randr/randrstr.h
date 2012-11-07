@@ -933,6 +933,14 @@ RRChangeProviderProperty(RRProviderPtr provider, Atom property, Atom type,
                        pointer value, Bool sendevent, Bool pending);
 
 extern _X_EXPORT int
+ RRConfigureProviderProperty(RRProviderPtr provider, Atom property,
+                             Bool pending, Bool range, Bool immutable,
+                             int num_values, INT32 *values);
+
+extern _X_EXPORT Bool
+ RRPostProviderPendingProperties(RRProviderPtr provider);
+
+extern _X_EXPORT int
  ProcRRGetProviderProperty(ClientPtr client);
 
 extern _X_EXPORT int

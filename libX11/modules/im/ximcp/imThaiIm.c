@@ -46,7 +46,7 @@ THIS SOFTWARE.
 #include "XlcPubI.h"
 #include "Ximint.h"
 
-Private XIMMethodsRec      Xim_im_thai_methods = {
+static XIMMethodsRec      Xim_im_thai_methods = {
     _XimThaiCloseIM,           /* close */
     _XimLocalSetIMValues,      /* set_values */
     _XimLocalGetIMValues,      /* get_values */
@@ -76,7 +76,7 @@ _XimCheckIfThaiProcessing(Xim im)
     return(False);
 }
 
-Public Bool
+Bool
 _XimThaiOpenIM(Xim im)
 {
     XLCd		 lcd = im->core.lcd;
@@ -145,7 +145,7 @@ Open_Error :
     return(False);
 }
 
-Public void
+void
 _XimThaiIMFree(Xim im)
 {
     if(im->core.im_resources) {
@@ -215,7 +215,7 @@ _XimThaiIMFree(Xim im)
     return;
 }
 
-Public Status
+Status
 _XimThaiCloseIM(XIM xim)
 {
     Xim		im = (Xim)xim;

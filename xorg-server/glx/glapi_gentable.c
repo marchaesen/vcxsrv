@@ -1452,9 +1452,23 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->TexGenf) {
+        void ** procp = (void **) &disp->TexGenf;
+        snprintf(symboln, sizeof(symboln), "%sTexGenfOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->TexGenfv) {
         void ** procp = (void **) &disp->TexGenfv;
         snprintf(symboln, sizeof(symboln), "%sTexGenfv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexGenfv) {
+        void ** procp = (void **) &disp->TexGenfv;
+        snprintf(symboln, sizeof(symboln), "%sTexGenfvOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -1466,9 +1480,23 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->TexGeni) {
+        void ** procp = (void **) &disp->TexGeni;
+        snprintf(symboln, sizeof(symboln), "%sTexGeniOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->TexGeniv) {
         void ** procp = (void **) &disp->TexGeniv;
         snprintf(symboln, sizeof(symboln), "%sTexGeniv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexGeniv) {
+        void ** procp = (void **) &disp->TexGeniv;
+        snprintf(symboln, sizeof(symboln), "%sTexGenivOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -1900,6 +1928,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->ReadBuffer) {
+        void ** procp = (void **) &disp->ReadBuffer;
+        snprintf(symboln, sizeof(symboln), "%sReadBufferNV", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->CopyPixels) {
         void ** procp = (void **) &disp->CopyPixels;
         snprintf(symboln, sizeof(symboln), "%sCopyPixels", symbol_prefix);
@@ -2075,9 +2110,23 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->GetTexGenfv) {
+        void ** procp = (void **) &disp->GetTexGenfv;
+        snprintf(symboln, sizeof(symboln), "%sGetTexGenfvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->GetTexGeniv) {
         void ** procp = (void **) &disp->GetTexGeniv;
         snprintf(symboln, sizeof(symboln), "%sGetTexGeniv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexGeniv) {
+        void ** procp = (void **) &disp->GetTexGeniv;
+        snprintf(symboln, sizeof(symboln), "%sGetTexGenivOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -2600,6 +2649,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->BlendEquation) {
+        void ** procp = (void **) &disp->BlendEquation;
+        snprintf(symboln, sizeof(symboln), "%sBlendEquationOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->DrawRangeElements) {
         void ** procp = (void **) &disp->DrawRangeElements;
         snprintf(symboln, sizeof(symboln), "%sDrawRangeElements", symbol_prefix);
@@ -3104,6 +3160,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->TexImage3D) {
+        void ** procp = (void **) &disp->TexImage3D;
+        snprintf(symboln, sizeof(symboln), "%sTexImage3DOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->TexSubImage3D) {
         void ** procp = (void **) &disp->TexSubImage3D;
         snprintf(symboln, sizeof(symboln), "%sTexSubImage3D", symbol_prefix);
@@ -3118,6 +3181,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->TexSubImage3D) {
+        void ** procp = (void **) &disp->TexSubImage3D;
+        snprintf(symboln, sizeof(symboln), "%sTexSubImage3DOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->CopyTexSubImage3D) {
         void ** procp = (void **) &disp->CopyTexSubImage3D;
         snprintf(symboln, sizeof(symboln), "%sCopyTexSubImage3D", symbol_prefix);
@@ -3128,6 +3198,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->CopyTexSubImage3D) {
         void ** procp = (void **) &disp->CopyTexSubImage3D;
         snprintf(symboln, sizeof(symboln), "%sCopyTexSubImage3DEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CopyTexSubImage3D) {
+        void ** procp = (void **) &disp->CopyTexSubImage3D;
+        snprintf(symboln, sizeof(symboln), "%sCopyTexSubImage3DOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -3944,6 +4021,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->CompressedTexImage3DARB) {
+        void ** procp = (void **) &disp->CompressedTexImage3DARB;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage3DOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->CompressedTexSubImage1DARB) {
         void ** procp = (void **) &disp->CompressedTexSubImage1DARB;
         snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage1D", symbol_prefix);
@@ -3982,6 +4066,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->CompressedTexSubImage3DARB) {
         void ** procp = (void **) &disp->CompressedTexSubImage3DARB;
         snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage3DARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexSubImage3DARB) {
+        void ** procp = (void **) &disp->CompressedTexSubImage3DARB;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage3DOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -4819,6 +4910,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->GetBufferPointervARB) {
+        void ** procp = (void **) &disp->GetBufferPointervARB;
+        snprintf(symboln, sizeof(symboln), "%sGetBufferPointervOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->GetBufferSubDataARB) {
         void ** procp = (void **) &disp->GetBufferSubDataARB;
         snprintf(symboln, sizeof(symboln), "%sGetBufferSubData", symbol_prefix);
@@ -4861,6 +4959,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->MapBufferARB) {
+        void ** procp = (void **) &disp->MapBufferARB;
+        snprintf(symboln, sizeof(symboln), "%sMapBufferOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->UnmapBufferARB) {
         void ** procp = (void **) &disp->UnmapBufferARB;
         snprintf(symboln, sizeof(symboln), "%sUnmapBuffer", symbol_prefix);
@@ -4871,6 +4976,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->UnmapBufferARB) {
         void ** procp = (void **) &disp->UnmapBufferARB;
         snprintf(symboln, sizeof(symboln), "%sUnmapBufferARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UnmapBufferARB) {
+        void ** procp = (void **) &disp->UnmapBufferARB;
+        snprintf(symboln, sizeof(symboln), "%sUnmapBufferOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -5526,6 +5638,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->DrawBuffersARB) {
+        void ** procp = (void **) &disp->DrawBuffersARB;
+        snprintf(symboln, sizeof(symboln), "%sDrawBuffersNV", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->ClampColorARB) {
         void ** procp = (void **) &disp->ClampColorARB;
         snprintf(symboln, sizeof(symboln), "%sClampColorARB", symbol_prefix);
@@ -5624,9 +5743,23 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->FlushMappedBufferRange) {
+        void ** procp = (void **) &disp->FlushMappedBufferRange;
+        snprintf(symboln, sizeof(symboln), "%sFlushMappedBufferRangeEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->MapBufferRange) {
         void ** procp = (void **) &disp->MapBufferRange;
         snprintf(symboln, sizeof(symboln), "%sMapBufferRange", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MapBufferRange) {
+        void ** procp = (void **) &disp->MapBufferRange;
+        snprintf(symboln, sizeof(symboln), "%sMapBufferRangeEXT", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -5652,9 +5785,23 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->BindVertexArray) {
+        void ** procp = (void **) &disp->BindVertexArray;
+        snprintf(symboln, sizeof(symboln), "%sBindVertexArrayOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->GenVertexArrays) {
         void ** procp = (void **) &disp->GenVertexArrays;
         snprintf(symboln, sizeof(symboln), "%sGenVertexArrays", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenVertexArrays) {
+        void ** procp = (void **) &disp->GenVertexArrays;
+        snprintf(symboln, sizeof(symboln), "%sGenVertexArraysOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -6317,9 +6464,23 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->ClearDepthf) {
+        void ** procp = (void **) &disp->ClearDepthf;
+        snprintf(symboln, sizeof(symboln), "%sClearDepthfOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->DepthRangef) {
         void ** procp = (void **) &disp->DepthRangef;
         snprintf(symboln, sizeof(symboln), "%sDepthRangef", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DepthRangef) {
+        void ** procp = (void **) &disp->DepthRangef;
+        snprintf(symboln, sizeof(symboln), "%sDepthRangefOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -6352,9 +6513,23 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->GetProgramBinary) {
+        void ** procp = (void **) &disp->GetProgramBinary;
+        snprintf(symboln, sizeof(symboln), "%sGetProgramBinaryOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->ProgramBinary) {
         void ** procp = (void **) &disp->ProgramBinary;
         snprintf(symboln, sizeof(symboln), "%sProgramBinary", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ProgramBinary) {
+        void ** procp = (void **) &disp->ProgramBinary;
+        snprintf(symboln, sizeof(symboln), "%sProgramBinaryOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -6663,6 +6838,76 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->PolygonOffsetEXT) {
         void ** procp = (void **) &disp->PolygonOffsetEXT;
         snprintf(symboln, sizeof(symboln), "%sPolygonOffsetEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawTexfOES) {
+        void ** procp = (void **) &disp->DrawTexfOES;
+        snprintf(symboln, sizeof(symboln), "%sDrawTexfOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawTexfvOES) {
+        void ** procp = (void **) &disp->DrawTexfvOES;
+        snprintf(symboln, sizeof(symboln), "%sDrawTexfvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawTexiOES) {
+        void ** procp = (void **) &disp->DrawTexiOES;
+        snprintf(symboln, sizeof(symboln), "%sDrawTexiOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawTexivOES) {
+        void ** procp = (void **) &disp->DrawTexivOES;
+        snprintf(symboln, sizeof(symboln), "%sDrawTexivOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawTexsOES) {
+        void ** procp = (void **) &disp->DrawTexsOES;
+        snprintf(symboln, sizeof(symboln), "%sDrawTexsOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawTexsvOES) {
+        void ** procp = (void **) &disp->DrawTexsvOES;
+        snprintf(symboln, sizeof(symboln), "%sDrawTexsvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawTexxOES) {
+        void ** procp = (void **) &disp->DrawTexxOES;
+        snprintf(symboln, sizeof(symboln), "%sDrawTexxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawTexxvOES) {
+        void ** procp = (void **) &disp->DrawTexxvOES;
+        snprintf(symboln, sizeof(symboln), "%sDrawTexxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointSizePointerOES) {
+        void ** procp = (void **) &disp->PointSizePointerOES;
+        snprintf(symboln, sizeof(symboln), "%sPointSizePointerOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->QueryMatrixxOES) {
+        void ** procp = (void **) &disp->QueryMatrixxOES;
+        snprintf(symboln, sizeof(symboln), "%sQueryMatrixxOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -7160,6 +7405,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->BlendFuncSeparateEXT) {
         void ** procp = (void **) &disp->BlendFuncSeparateEXT;
         snprintf(symboln, sizeof(symboln), "%sBlendFuncSeparateINGR", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BlendFuncSeparateEXT) {
+        void ** procp = (void **) &disp->BlendFuncSeparateEXT;
+        snprintf(symboln, sizeof(symboln), "%sBlendFuncSeparateOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -8221,6 +8473,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->DeleteVertexArraysAPPLE) {
+        void ** procp = (void **) &disp->DeleteVertexArraysAPPLE;
+        snprintf(symboln, sizeof(symboln), "%sDeleteVertexArraysOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->GenVertexArraysAPPLE) {
         void ** procp = (void **) &disp->GenVertexArraysAPPLE;
         snprintf(symboln, sizeof(symboln), "%sGenVertexArraysAPPLE", symbol_prefix);
@@ -8238,6 +8497,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->IsVertexArrayAPPLE) {
         void ** procp = (void **) &disp->IsVertexArrayAPPLE;
         snprintf(symboln, sizeof(symboln), "%sIsVertexArrayAPPLE", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsVertexArrayAPPLE) {
+        void ** procp = (void **) &disp->IsVertexArrayAPPLE;
+        snprintf(symboln, sizeof(symboln), "%sIsVertexArrayOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -8305,6 +8571,629 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->AlphaFuncxOES) {
+        void ** procp = (void **) &disp->AlphaFuncxOES;
+        snprintf(symboln, sizeof(symboln), "%sAlphaFuncxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->AlphaFuncxOES) {
+        void ** procp = (void **) &disp->AlphaFuncxOES;
+        snprintf(symboln, sizeof(symboln), "%sAlphaFuncx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClearColorxOES) {
+        void ** procp = (void **) &disp->ClearColorxOES;
+        snprintf(symboln, sizeof(symboln), "%sClearColorxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClearColorxOES) {
+        void ** procp = (void **) &disp->ClearColorxOES;
+        snprintf(symboln, sizeof(symboln), "%sClearColorx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClearDepthxOES) {
+        void ** procp = (void **) &disp->ClearDepthxOES;
+        snprintf(symboln, sizeof(symboln), "%sClearDepthxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClearDepthxOES) {
+        void ** procp = (void **) &disp->ClearDepthxOES;
+        snprintf(symboln, sizeof(symboln), "%sClearDepthx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClipPlanexOES) {
+        void ** procp = (void **) &disp->ClipPlanexOES;
+        snprintf(symboln, sizeof(symboln), "%sClipPlanexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClipPlanexOES) {
+        void ** procp = (void **) &disp->ClipPlanexOES;
+        snprintf(symboln, sizeof(symboln), "%sClipPlanex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Color4xOES) {
+        void ** procp = (void **) &disp->Color4xOES;
+        snprintf(symboln, sizeof(symboln), "%sColor4xOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Color4xOES) {
+        void ** procp = (void **) &disp->Color4xOES;
+        snprintf(symboln, sizeof(symboln), "%sColor4x", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DepthRangexOES) {
+        void ** procp = (void **) &disp->DepthRangexOES;
+        snprintf(symboln, sizeof(symboln), "%sDepthRangexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DepthRangexOES) {
+        void ** procp = (void **) &disp->DepthRangexOES;
+        snprintf(symboln, sizeof(symboln), "%sDepthRangex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FogxOES) {
+        void ** procp = (void **) &disp->FogxOES;
+        snprintf(symboln, sizeof(symboln), "%sFogxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FogxOES) {
+        void ** procp = (void **) &disp->FogxOES;
+        snprintf(symboln, sizeof(symboln), "%sFogx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FogxvOES) {
+        void ** procp = (void **) &disp->FogxvOES;
+        snprintf(symboln, sizeof(symboln), "%sFogxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FogxvOES) {
+        void ** procp = (void **) &disp->FogxvOES;
+        snprintf(symboln, sizeof(symboln), "%sFogxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FrustumxOES) {
+        void ** procp = (void **) &disp->FrustumxOES;
+        snprintf(symboln, sizeof(symboln), "%sFrustumxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FrustumxOES) {
+        void ** procp = (void **) &disp->FrustumxOES;
+        snprintf(symboln, sizeof(symboln), "%sFrustumx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetClipPlanexOES) {
+        void ** procp = (void **) &disp->GetClipPlanexOES;
+        snprintf(symboln, sizeof(symboln), "%sGetClipPlanexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetClipPlanexOES) {
+        void ** procp = (void **) &disp->GetClipPlanexOES;
+        snprintf(symboln, sizeof(symboln), "%sGetClipPlanex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetFixedvOES) {
+        void ** procp = (void **) &disp->GetFixedvOES;
+        snprintf(symboln, sizeof(symboln), "%sGetFixedvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetFixedvOES) {
+        void ** procp = (void **) &disp->GetFixedvOES;
+        snprintf(symboln, sizeof(symboln), "%sGetFixedv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetLightxvOES) {
+        void ** procp = (void **) &disp->GetLightxvOES;
+        snprintf(symboln, sizeof(symboln), "%sGetLightxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetLightxvOES) {
+        void ** procp = (void **) &disp->GetLightxvOES;
+        snprintf(symboln, sizeof(symboln), "%sGetLightxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetMaterialxvOES) {
+        void ** procp = (void **) &disp->GetMaterialxvOES;
+        snprintf(symboln, sizeof(symboln), "%sGetMaterialxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetMaterialxvOES) {
+        void ** procp = (void **) &disp->GetMaterialxvOES;
+        snprintf(symboln, sizeof(symboln), "%sGetMaterialxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexEnvxvOES) {
+        void ** procp = (void **) &disp->GetTexEnvxvOES;
+        snprintf(symboln, sizeof(symboln), "%sGetTexEnvxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexEnvxvOES) {
+        void ** procp = (void **) &disp->GetTexEnvxvOES;
+        snprintf(symboln, sizeof(symboln), "%sGetTexEnvxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexGenxvOES) {
+        void ** procp = (void **) &disp->GetTexGenxvOES;
+        snprintf(symboln, sizeof(symboln), "%sGetTexGenxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexParameterxvOES) {
+        void ** procp = (void **) &disp->GetTexParameterxvOES;
+        snprintf(symboln, sizeof(symboln), "%sGetTexParameterxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexParameterxvOES) {
+        void ** procp = (void **) &disp->GetTexParameterxvOES;
+        snprintf(symboln, sizeof(symboln), "%sGetTexParameterxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LightModelxOES) {
+        void ** procp = (void **) &disp->LightModelxOES;
+        snprintf(symboln, sizeof(symboln), "%sLightModelxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LightModelxOES) {
+        void ** procp = (void **) &disp->LightModelxOES;
+        snprintf(symboln, sizeof(symboln), "%sLightModelx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LightModelxvOES) {
+        void ** procp = (void **) &disp->LightModelxvOES;
+        snprintf(symboln, sizeof(symboln), "%sLightModelxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LightModelxvOES) {
+        void ** procp = (void **) &disp->LightModelxvOES;
+        snprintf(symboln, sizeof(symboln), "%sLightModelxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LightxOES) {
+        void ** procp = (void **) &disp->LightxOES;
+        snprintf(symboln, sizeof(symboln), "%sLightxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LightxOES) {
+        void ** procp = (void **) &disp->LightxOES;
+        snprintf(symboln, sizeof(symboln), "%sLightx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LightxvOES) {
+        void ** procp = (void **) &disp->LightxvOES;
+        snprintf(symboln, sizeof(symboln), "%sLightxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LightxvOES) {
+        void ** procp = (void **) &disp->LightxvOES;
+        snprintf(symboln, sizeof(symboln), "%sLightxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LineWidthxOES) {
+        void ** procp = (void **) &disp->LineWidthxOES;
+        snprintf(symboln, sizeof(symboln), "%sLineWidthxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LineWidthxOES) {
+        void ** procp = (void **) &disp->LineWidthxOES;
+        snprintf(symboln, sizeof(symboln), "%sLineWidthx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LoadMatrixxOES) {
+        void ** procp = (void **) &disp->LoadMatrixxOES;
+        snprintf(symboln, sizeof(symboln), "%sLoadMatrixxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LoadMatrixxOES) {
+        void ** procp = (void **) &disp->LoadMatrixxOES;
+        snprintf(symboln, sizeof(symboln), "%sLoadMatrixx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MaterialxOES) {
+        void ** procp = (void **) &disp->MaterialxOES;
+        snprintf(symboln, sizeof(symboln), "%sMaterialxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MaterialxOES) {
+        void ** procp = (void **) &disp->MaterialxOES;
+        snprintf(symboln, sizeof(symboln), "%sMaterialx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MaterialxvOES) {
+        void ** procp = (void **) &disp->MaterialxvOES;
+        snprintf(symboln, sizeof(symboln), "%sMaterialxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MaterialxvOES) {
+        void ** procp = (void **) &disp->MaterialxvOES;
+        snprintf(symboln, sizeof(symboln), "%sMaterialxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultMatrixxOES) {
+        void ** procp = (void **) &disp->MultMatrixxOES;
+        snprintf(symboln, sizeof(symboln), "%sMultMatrixxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultMatrixxOES) {
+        void ** procp = (void **) &disp->MultMatrixxOES;
+        snprintf(symboln, sizeof(symboln), "%sMultMatrixx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultiTexCoord4xOES) {
+        void ** procp = (void **) &disp->MultiTexCoord4xOES;
+        snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4xOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultiTexCoord4xOES) {
+        void ** procp = (void **) &disp->MultiTexCoord4xOES;
+        snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4x", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Normal3xOES) {
+        void ** procp = (void **) &disp->Normal3xOES;
+        snprintf(symboln, sizeof(symboln), "%sNormal3xOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Normal3xOES) {
+        void ** procp = (void **) &disp->Normal3xOES;
+        snprintf(symboln, sizeof(symboln), "%sNormal3x", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->OrthoxOES) {
+        void ** procp = (void **) &disp->OrthoxOES;
+        snprintf(symboln, sizeof(symboln), "%sOrthoxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->OrthoxOES) {
+        void ** procp = (void **) &disp->OrthoxOES;
+        snprintf(symboln, sizeof(symboln), "%sOrthox", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterxOES) {
+        void ** procp = (void **) &disp->PointParameterxOES;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterxOES) {
+        void ** procp = (void **) &disp->PointParameterxOES;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterxvOES) {
+        void ** procp = (void **) &disp->PointParameterxvOES;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterxvOES) {
+        void ** procp = (void **) &disp->PointParameterxvOES;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointSizexOES) {
+        void ** procp = (void **) &disp->PointSizexOES;
+        snprintf(symboln, sizeof(symboln), "%sPointSizexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointSizexOES) {
+        void ** procp = (void **) &disp->PointSizexOES;
+        snprintf(symboln, sizeof(symboln), "%sPointSizex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PolygonOffsetxOES) {
+        void ** procp = (void **) &disp->PolygonOffsetxOES;
+        snprintf(symboln, sizeof(symboln), "%sPolygonOffsetxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PolygonOffsetxOES) {
+        void ** procp = (void **) &disp->PolygonOffsetxOES;
+        snprintf(symboln, sizeof(symboln), "%sPolygonOffsetx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->RotatexOES) {
+        void ** procp = (void **) &disp->RotatexOES;
+        snprintf(symboln, sizeof(symboln), "%sRotatexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->RotatexOES) {
+        void ** procp = (void **) &disp->RotatexOES;
+        snprintf(symboln, sizeof(symboln), "%sRotatex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SampleCoveragexOES) {
+        void ** procp = (void **) &disp->SampleCoveragexOES;
+        snprintf(symboln, sizeof(symboln), "%sSampleCoveragexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SampleCoveragexOES) {
+        void ** procp = (void **) &disp->SampleCoveragexOES;
+        snprintf(symboln, sizeof(symboln), "%sSampleCoveragex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ScalexOES) {
+        void ** procp = (void **) &disp->ScalexOES;
+        snprintf(symboln, sizeof(symboln), "%sScalexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ScalexOES) {
+        void ** procp = (void **) &disp->ScalexOES;
+        snprintf(symboln, sizeof(symboln), "%sScalex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexEnvxOES) {
+        void ** procp = (void **) &disp->TexEnvxOES;
+        snprintf(symboln, sizeof(symboln), "%sTexEnvxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexEnvxOES) {
+        void ** procp = (void **) &disp->TexEnvxOES;
+        snprintf(symboln, sizeof(symboln), "%sTexEnvx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexEnvxvOES) {
+        void ** procp = (void **) &disp->TexEnvxvOES;
+        snprintf(symboln, sizeof(symboln), "%sTexEnvxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexEnvxvOES) {
+        void ** procp = (void **) &disp->TexEnvxvOES;
+        snprintf(symboln, sizeof(symboln), "%sTexEnvxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexGenxOES) {
+        void ** procp = (void **) &disp->TexGenxOES;
+        snprintf(symboln, sizeof(symboln), "%sTexGenxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexGenxvOES) {
+        void ** procp = (void **) &disp->TexGenxvOES;
+        snprintf(symboln, sizeof(symboln), "%sTexGenxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexParameterxOES) {
+        void ** procp = (void **) &disp->TexParameterxOES;
+        snprintf(symboln, sizeof(symboln), "%sTexParameterxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexParameterxOES) {
+        void ** procp = (void **) &disp->TexParameterxOES;
+        snprintf(symboln, sizeof(symboln), "%sTexParameterx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexParameterxvOES) {
+        void ** procp = (void **) &disp->TexParameterxvOES;
+        snprintf(symboln, sizeof(symboln), "%sTexParameterxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexParameterxvOES) {
+        void ** procp = (void **) &disp->TexParameterxvOES;
+        snprintf(symboln, sizeof(symboln), "%sTexParameterxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TranslatexOES) {
+        void ** procp = (void **) &disp->TranslatexOES;
+        snprintf(symboln, sizeof(symboln), "%sTranslatexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TranslatexOES) {
+        void ** procp = (void **) &disp->TranslatexOES;
+        snprintf(symboln, sizeof(symboln), "%sTranslatex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClipPlanefOES) {
+        void ** procp = (void **) &disp->ClipPlanefOES;
+        snprintf(symboln, sizeof(symboln), "%sClipPlanefOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClipPlanefOES) {
+        void ** procp = (void **) &disp->ClipPlanefOES;
+        snprintf(symboln, sizeof(symboln), "%sClipPlanef", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FrustumfOES) {
+        void ** procp = (void **) &disp->FrustumfOES;
+        snprintf(symboln, sizeof(symboln), "%sFrustumfOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FrustumfOES) {
+        void ** procp = (void **) &disp->FrustumfOES;
+        snprintf(symboln, sizeof(symboln), "%sFrustumf", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetClipPlanefOES) {
+        void ** procp = (void **) &disp->GetClipPlanefOES;
+        snprintf(symboln, sizeof(symboln), "%sGetClipPlanefOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetClipPlanefOES) {
+        void ** procp = (void **) &disp->GetClipPlanefOES;
+        snprintf(symboln, sizeof(symboln), "%sGetClipPlanef", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->OrthofOES) {
+        void ** procp = (void **) &disp->OrthofOES;
+        snprintf(symboln, sizeof(symboln), "%sOrthofOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->OrthofOES) {
+        void ** procp = (void **) &disp->OrthofOES;
+        snprintf(symboln, sizeof(symboln), "%sOrthof", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->DepthBoundsEXT) {
         void ** procp = (void **) &disp->DepthBoundsEXT;
         snprintf(symboln, sizeof(symboln), "%sDepthBoundsEXT", symbol_prefix);
@@ -8333,6 +9222,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->BlendEquationSeparateEXT) {
+        void ** procp = (void **) &disp->BlendEquationSeparateEXT;
+        snprintf(symboln, sizeof(symboln), "%sBlendEquationSeparateOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->BindFramebufferEXT) {
         void ** procp = (void **) &disp->BindFramebufferEXT;
         snprintf(symboln, sizeof(symboln), "%sBindFramebuffer", symbol_prefix);
@@ -8343,6 +9239,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->BindFramebufferEXT) {
         void ** procp = (void **) &disp->BindFramebufferEXT;
         snprintf(symboln, sizeof(symboln), "%sBindFramebufferEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindFramebufferEXT) {
+        void ** procp = (void **) &disp->BindFramebufferEXT;
+        snprintf(symboln, sizeof(symboln), "%sBindFramebufferOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -8361,6 +9264,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->BindRenderbufferEXT) {
+        void ** procp = (void **) &disp->BindRenderbufferEXT;
+        snprintf(symboln, sizeof(symboln), "%sBindRenderbufferOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->CheckFramebufferStatusEXT) {
         void ** procp = (void **) &disp->CheckFramebufferStatusEXT;
         snprintf(symboln, sizeof(symboln), "%sCheckFramebufferStatus", symbol_prefix);
@@ -8371,6 +9281,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->CheckFramebufferStatusEXT) {
         void ** procp = (void **) &disp->CheckFramebufferStatusEXT;
         snprintf(symboln, sizeof(symboln), "%sCheckFramebufferStatusEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CheckFramebufferStatusEXT) {
+        void ** procp = (void **) &disp->CheckFramebufferStatusEXT;
+        snprintf(symboln, sizeof(symboln), "%sCheckFramebufferStatusOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -8389,6 +9306,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->DeleteFramebuffersEXT) {
+        void ** procp = (void **) &disp->DeleteFramebuffersEXT;
+        snprintf(symboln, sizeof(symboln), "%sDeleteFramebuffersOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->DeleteRenderbuffersEXT) {
         void ** procp = (void **) &disp->DeleteRenderbuffersEXT;
         snprintf(symboln, sizeof(symboln), "%sDeleteRenderbuffers", symbol_prefix);
@@ -8403,6 +9327,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->DeleteRenderbuffersEXT) {
+        void ** procp = (void **) &disp->DeleteRenderbuffersEXT;
+        snprintf(symboln, sizeof(symboln), "%sDeleteRenderbuffersOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->FramebufferRenderbufferEXT) {
         void ** procp = (void **) &disp->FramebufferRenderbufferEXT;
         snprintf(symboln, sizeof(symboln), "%sFramebufferRenderbuffer", symbol_prefix);
@@ -8413,6 +9344,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->FramebufferRenderbufferEXT) {
         void ** procp = (void **) &disp->FramebufferRenderbufferEXT;
         snprintf(symboln, sizeof(symboln), "%sFramebufferRenderbufferEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferRenderbufferEXT) {
+        void ** procp = (void **) &disp->FramebufferRenderbufferEXT;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferRenderbufferOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -8445,6 +9383,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->FramebufferTexture2DEXT) {
+        void ** procp = (void **) &disp->FramebufferTexture2DEXT;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture2DOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->FramebufferTexture3DEXT) {
         void ** procp = (void **) &disp->FramebufferTexture3DEXT;
         snprintf(symboln, sizeof(symboln), "%sFramebufferTexture3D", symbol_prefix);
@@ -8455,6 +9400,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->FramebufferTexture3DEXT) {
         void ** procp = (void **) &disp->FramebufferTexture3DEXT;
         snprintf(symboln, sizeof(symboln), "%sFramebufferTexture3DEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTexture3DEXT) {
+        void ** procp = (void **) &disp->FramebufferTexture3DEXT;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture3DOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -8473,6 +9425,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->GenFramebuffersEXT) {
+        void ** procp = (void **) &disp->GenFramebuffersEXT;
+        snprintf(symboln, sizeof(symboln), "%sGenFramebuffersOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->GenRenderbuffersEXT) {
         void ** procp = (void **) &disp->GenRenderbuffersEXT;
         snprintf(symboln, sizeof(symboln), "%sGenRenderbuffers", symbol_prefix);
@@ -8483,6 +9442,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->GenRenderbuffersEXT) {
         void ** procp = (void **) &disp->GenRenderbuffersEXT;
         snprintf(symboln, sizeof(symboln), "%sGenRenderbuffersEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenRenderbuffersEXT) {
+        void ** procp = (void **) &disp->GenRenderbuffersEXT;
+        snprintf(symboln, sizeof(symboln), "%sGenRenderbuffersOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -8501,6 +9467,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->GenerateMipmapEXT) {
+        void ** procp = (void **) &disp->GenerateMipmapEXT;
+        snprintf(symboln, sizeof(symboln), "%sGenerateMipmapOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->GetFramebufferAttachmentParameterivEXT) {
         void ** procp = (void **) &disp->GetFramebufferAttachmentParameterivEXT;
         snprintf(symboln, sizeof(symboln), "%sGetFramebufferAttachmentParameteriv", symbol_prefix);
@@ -8511,6 +9484,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->GetFramebufferAttachmentParameterivEXT) {
         void ** procp = (void **) &disp->GetFramebufferAttachmentParameterivEXT;
         snprintf(symboln, sizeof(symboln), "%sGetFramebufferAttachmentParameterivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetFramebufferAttachmentParameterivEXT) {
+        void ** procp = (void **) &disp->GetFramebufferAttachmentParameterivEXT;
+        snprintf(symboln, sizeof(symboln), "%sGetFramebufferAttachmentParameterivOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -8529,6 +9509,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->GetRenderbufferParameterivEXT) {
+        void ** procp = (void **) &disp->GetRenderbufferParameterivEXT;
+        snprintf(symboln, sizeof(symboln), "%sGetRenderbufferParameterivOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->IsFramebufferEXT) {
         void ** procp = (void **) &disp->IsFramebufferEXT;
         snprintf(symboln, sizeof(symboln), "%sIsFramebuffer", symbol_prefix);
@@ -8539,6 +9526,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->IsFramebufferEXT) {
         void ** procp = (void **) &disp->IsFramebufferEXT;
         snprintf(symboln, sizeof(symboln), "%sIsFramebufferEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsFramebufferEXT) {
+        void ** procp = (void **) &disp->IsFramebufferEXT;
+        snprintf(symboln, sizeof(symboln), "%sIsFramebufferOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -8557,6 +9551,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->IsRenderbufferEXT) {
+        void ** procp = (void **) &disp->IsRenderbufferEXT;
+        snprintf(symboln, sizeof(symboln), "%sIsRenderbufferOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->RenderbufferStorageEXT) {
         void ** procp = (void **) &disp->RenderbufferStorageEXT;
         snprintf(symboln, sizeof(symboln), "%sRenderbufferStorage", symbol_prefix);
@@ -8567,6 +9568,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->RenderbufferStorageEXT) {
         void ** procp = (void **) &disp->RenderbufferStorageEXT;
         snprintf(symboln, sizeof(symboln), "%sRenderbufferStorageEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->RenderbufferStorageEXT) {
+        void ** procp = (void **) &disp->RenderbufferStorageEXT;
+        snprintf(symboln, sizeof(symboln), "%sRenderbufferStorageOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 

@@ -104,13 +104,13 @@ XkbProcessKeyboardEvent(DeviceEvent *event, DeviceIntPtr keybd)
                     return;
                 }
                 if (rg->currentDown != 0) {
-                    int key = event->detail.key;
+                    int tmpkey = event->detail.key;
 
                     event->type = ET_KeyRelease;
                     event->detail.key = rg->currentDown;
                     XkbHandleActions(keybd, keybd, event);
                     event->type = ET_KeyPress;
-                    event->detail.key = key;
+                    event->detail.key = tmpkey;
                 }
                 rg->currentDown = key;
             }

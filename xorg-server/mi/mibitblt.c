@@ -614,7 +614,7 @@ miGetImage(DrawablePtr pDraw, int sx, int sy, int w, int h,
     if (format == ZPixmap) {
         if ((((1LL << depth) - 1) & planeMask) != (1LL << depth) - 1) {
             ChangeGCVal gcv;
-            xPoint pt;
+            xPoint xpt;
 
             pGC = GetScratchGC(depth, pDraw->pScreen);
             if (!pGC)
@@ -629,9 +629,9 @@ miGetImage(DrawablePtr pDraw, int sx, int sy, int w, int h,
              * Clear the pixmap before doing anything else
              */
             ValidateGC((DrawablePtr) pPixmap, pGC);
-            pt.x = pt.y = 0;
+            xpt.x = xpt.y = 0;
             width = w;
-            (*pGC->ops->FillSpans) ((DrawablePtr) pPixmap, pGC, 1, &pt, &width,
+            (*pGC->ops->FillSpans) ((DrawablePtr) pPixmap, pGC, 1, &xpt, &width,
                                     TRUE);
 
             /* alu is already GXCopy */

@@ -42,7 +42,11 @@
 #include <X11/Xwindows.h>
 #include <windowsx.h>
 
+#pragma push_macro("Status")
+#undef Status
+#define Status wStatus
 #include "ddraw.h"
+#pragma pop_macro("Status")
 
 #undef CreateWindow
 

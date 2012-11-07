@@ -56,7 +56,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "Xlcint.h"
 #include "Ximint.h"
 
-Private Bool
+static Bool
 _XimCreateICCheck(
     Xim          im,
     INT16        len,
@@ -81,7 +81,7 @@ _XimCreateICCheck(
 }
 
 #ifdef XIM_CONNECTABLE
-Public Bool
+Bool
 _XimReCreateIC(ic)
     Xic			 ic;
 {
@@ -244,7 +244,7 @@ ErrorOnReCreateIC:
     return False;
 }
 
-Private char *
+static char *
 _XimDelayModeGetICValues(ic, arg)
     Xic			 ic;
     XIMArg		*arg;
@@ -259,7 +259,7 @@ _XimDelayModeGetICValues(ic, arg)
 }
 #endif /* XIM_CONNECTABLE */
 
-Private Bool
+static Bool
 _XimGetICValuesCheck(
     Xim          im,
     INT16        len,
@@ -288,7 +288,7 @@ _XimGetICValuesCheck(
     return False;
 }
 
-Private char *
+static char *
 _XimProtoGetICValues(
     XIC			 xic,
     XIMArg		*arg)
@@ -424,7 +424,7 @@ _XimProtoGetICValues(
 }
 
 #ifdef XIM_CONNECTABLE
-Private Bool
+static Bool
 _XimCheckNestQuarkList(quark_list, num_quark, quark, separator)
     XrmQuark		*quark_list;
     int			 num_quark;
@@ -444,7 +444,7 @@ _XimCheckNestQuarkList(quark_list, num_quark, quark, separator)
     return False;
 }
 
-Private Bool
+static Bool
 _XimCheckNestedQuarkList(quark_list, idx, num_quark, arg, separator)
     XrmQuark		**quark_list;
     int			  idx;
@@ -485,7 +485,7 @@ _XimCheckNestedQuarkList(quark_list, idx, num_quark, arg, separator)
     return True;
 }
 
-Private Bool
+static Bool
 _XimCheckICQuarkList(quark_list, num_quark, quark, idx)
     XrmQuark		*quark_list;
     int			 num_quark;
@@ -503,7 +503,7 @@ _XimCheckICQuarkList(quark_list, num_quark, quark, idx)
     return False;
 }
 
-Private Bool
+static Bool
 _XimSaveICValues(ic, arg)
     Xic			 ic;
     XIMArg		*arg;
@@ -610,7 +610,7 @@ _XimSaveICValues(ic, arg)
     return True;
 }
 
-Private char *
+static char *
 _XimDelayModeSetICValues(ic, arg)
     Xic			 ic;
     XIMArg		*arg;
@@ -628,7 +628,7 @@ _XimDelayModeSetICValues(ic, arg)
 }
 #endif /* XIM_CONNECTABLE */
 
-Private Bool
+static Bool
 _XimSetICValuesCheck(
     Xim          im,
     INT16        len,
@@ -657,7 +657,7 @@ _XimSetICValuesCheck(
     return False;
 }
 
-Private char *
+static char *
 _XimProtoSetICValues(
     XIC			 xic,
     XIMArg		*arg)
@@ -807,7 +807,7 @@ _XimProtoSetICValues(
     return name;
 }
 
-Private Bool
+static Bool
 _XimDestroyICCheck(
     Xim          im,
     INT16        len,
@@ -837,7 +837,7 @@ _XimDestroyICCheck(
     return ret;
 }
 
-Private void
+static void
 _XimProtoICFree(
     Xic		 ic)
 {
@@ -884,7 +884,7 @@ _XimProtoICFree(
     return;
 }
 
-Private void
+static void
 _XimProtoDestroyIC(
     XIC		 xic)
 {
@@ -927,7 +927,7 @@ _XimProtoDestroyIC(
     return;
 }
 
-Private void
+static void
 _XimProtoSetFocus(
     XIC		 xic)
 {
@@ -972,7 +972,7 @@ _XimProtoSetFocus(
     return;
 }
 
-Private void
+static void
 _XimProtoUnsetFocus(
     XIC		 xic)
 {
@@ -1017,7 +1017,7 @@ _XimProtoUnsetFocus(
     return;
 }
 
-Private Bool
+static Bool
 _XimResetICCheck(
     Xim          im,
     INT16        len,
@@ -1046,7 +1046,7 @@ _XimResetICCheck(
     return False;
 }
 
-Private char *
+static char *
 _XimProtoReset(
     XIC		 xic,
     char *     (*retfunc) (Xim im, Xic ic, XPointer buf) )
@@ -1117,7 +1117,7 @@ _XimProtoReset(
     return commit;
 }
 
-Private char *
+static char *
 _XimCommitedMbString(
     Xim			 im,
     Xic			 ic,
@@ -1167,14 +1167,14 @@ Error_On_Reset:
     return new_commit;
 }
 
-Private char *
+static char *
 _XimProtoMbReset(
     XIC		 xic)
 {
     return _XimProtoReset(xic, _XimCommitedMbString);
 }
 
-Private wchar_t *
+static wchar_t *
 _XimCommitedWcString(
     Xim		 im,
     Xic		 ic,
@@ -1225,7 +1225,7 @@ Error_On_Reset:
     return new_commit;
 }
 
-Private wchar_t *
+static wchar_t *
 _XimProtoWcReset(
     XIC		 xic)
 {
@@ -1233,7 +1233,7 @@ _XimProtoWcReset(
 			(char * (*) (Xim, Xic, XPointer)) _XimCommitedWcString);
 }
 
-Private char *
+static char *
 _XimCommitedUtf8String(
     Xim			 im,
     Xic			 ic,
@@ -1283,14 +1283,14 @@ Error_On_Reset:
     return new_commit;
 }
 
-Private char *
+static char *
 _XimProtoUtf8Reset(
     XIC		 xic)
 {
     return _XimProtoReset(xic, _XimCommitedUtf8String);
 }
 
-Private XICMethodsRec ic_methods = {
+static XICMethodsRec ic_methods = {
     _XimProtoDestroyIC,		/* destroy */
     _XimProtoSetFocus,		/* set_focus */
     _XimProtoUnsetFocus,	/* unset_focus */
@@ -1304,7 +1304,7 @@ Private XICMethodsRec ic_methods = {
     _XimProtoUtf8LookupString	/* utf8_lookup_string */
 };
 
-Private Bool
+static Bool
 _XimGetInputStyle(
     XIMArg		*arg,
     XIMStyle		*input_style)
@@ -1321,7 +1321,7 @@ _XimGetInputStyle(
 }
 
 #ifdef XIM_CONNECTABLE
-Private Bool
+static Bool
 _XimDelayModeCreateIC(
     Xic			 ic,
     XIMArg		*values,
@@ -1356,7 +1356,7 @@ _XimDelayModeCreateIC(
     return True;
 }
 
-Public Bool
+Bool
 _XimReconnectModeCreateIC(ic)
     Xic			 ic;
 {
@@ -1382,7 +1382,7 @@ _XimReconnectModeCreateIC(ic)
 }
 #endif /* XIM_CONNECTABLE */
 
-Public XIC
+XIC
 _XimProtoCreateIC(
     XIM			 xim,
     XIMArg		*arg)

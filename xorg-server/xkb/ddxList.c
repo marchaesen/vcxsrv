@@ -131,8 +131,6 @@ XkbDDXListComponent(DeviceIntPtr dev,
     file = list->pattern[what];
     map = strrchr(file, '(');
     if (map != NULL) {
-        char *tmp;
-
         map++;
         tmp = strrchr(map, ')');
         if ((tmp == NULL) || (tmp[1] != '\0')) {

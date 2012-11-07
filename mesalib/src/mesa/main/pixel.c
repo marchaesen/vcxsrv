@@ -44,7 +44,7 @@
 /*****                    glPixelZoom                             *****/
 /**********************************************************************/
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_PixelZoom( GLfloat xfactor, GLfloat yfactor )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -177,7 +177,7 @@ validate_pbo_access(struct gl_context *ctx,
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_PixelMapfv( GLenum map, GLsizei mapsize, const GLfloat *values )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -219,7 +219,7 @@ _mesa_PixelMapfv( GLenum map, GLsizei mapsize, const GLfloat *values )
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_PixelMapuiv(GLenum map, GLsizei mapsize, const GLuint *values )
 {
    GLfloat fvalues[MAX_PIXEL_MAP_TABLE];
@@ -275,7 +275,7 @@ _mesa_PixelMapuiv(GLenum map, GLsizei mapsize, const GLuint *values )
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_PixelMapusv(GLenum map, GLsizei mapsize, const GLushort *values )
 {
    GLfloat fvalues[MAX_PIXEL_MAP_TABLE];
@@ -331,7 +331,7 @@ _mesa_PixelMapusv(GLenum map, GLsizei mapsize, const GLushort *values )
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetnPixelMapfvARB( GLenum map, GLsizei bufSize, GLfloat *values )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -376,13 +376,13 @@ _mesa_GetnPixelMapfvARB( GLenum map, GLsizei bufSize, GLfloat *values )
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetPixelMapfv( GLenum map, GLfloat *values )
 {
    _mesa_GetnPixelMapfvARB(map, INT_MAX, values);
 }
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetnPixelMapuivARB( GLenum map, GLsizei bufSize, GLuint *values )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -427,13 +427,13 @@ _mesa_GetnPixelMapuivARB( GLenum map, GLsizei bufSize, GLuint *values )
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetPixelMapuiv( GLenum map, GLuint *values )
 {
    _mesa_GetnPixelMapuivARB(map, INT_MAX, values);
 }
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetnPixelMapusvARB( GLenum map, GLsizei bufSize, GLushort *values )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -486,7 +486,7 @@ _mesa_GetnPixelMapusvARB( GLenum map, GLsizei bufSize, GLushort *values )
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_GetPixelMapusv( GLenum map, GLushort *values )
 {
    _mesa_GetnPixelMapusvARB(map, INT_MAX, values);
@@ -600,7 +600,7 @@ _mesa_PixelTransferf( GLenum pname, GLfloat param )
 }
 
 
-static void GLAPIENTRY
+void GLAPIENTRY
 _mesa_PixelTransferi( GLenum pname, GLint param )
 {
    _mesa_PixelTransferf( pname, (GLfloat) param );
@@ -644,26 +644,6 @@ void _mesa_update_pixel( struct gl_context *ctx, GLuint new_state )
 {
    if (new_state & _NEW_PIXEL)
       update_image_transfer_state(ctx);
-}
-
-
-void
-_mesa_init_pixel_dispatch(struct _glapi_table *disp)
-{
-   SET_GetPixelMapfv(disp, _mesa_GetPixelMapfv);
-   SET_GetPixelMapuiv(disp, _mesa_GetPixelMapuiv);
-   SET_GetPixelMapusv(disp, _mesa_GetPixelMapusv);
-   SET_PixelMapfv(disp, _mesa_PixelMapfv);
-   SET_PixelMapuiv(disp, _mesa_PixelMapuiv);
-   SET_PixelMapusv(disp, _mesa_PixelMapusv);
-   SET_PixelTransferf(disp, _mesa_PixelTransferf);
-   SET_PixelTransferi(disp, _mesa_PixelTransferi);
-   SET_PixelZoom(disp, _mesa_PixelZoom);
-
-   /* GL_ARB_robustness */
-   SET_GetnPixelMapfvARB(disp, _mesa_GetnPixelMapfvARB);
-   SET_GetnPixelMapuivARB(disp, _mesa_GetnPixelMapuivARB);
-   SET_GetnPixelMapusvARB(disp, _mesa_GetnPixelMapusvARB);
 }
 
 

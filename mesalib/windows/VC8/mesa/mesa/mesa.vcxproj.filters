@@ -698,6 +698,12 @@
     <ClCompile Include="..\..\..\..\src\glsl\builtin_compiler\builtin_stubs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\es1_conversion.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\drawtex.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\glsl\strtod.h">

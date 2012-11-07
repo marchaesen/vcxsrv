@@ -46,9 +46,8 @@ struct gl_renderbuffer;
 
 extern void GLAPIENTRY
 _mesa_ClearAccum( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha );
-
-extern void
-_mesa_init_accum_dispatch(struct _glapi_table *disp);
+void GLAPIENTRY
+_mesa_Accum( GLenum op, GLfloat value );
 
 extern void
 _mesa_accum(struct gl_context *ctx, GLenum op, GLfloat value);

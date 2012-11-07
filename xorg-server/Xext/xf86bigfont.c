@@ -301,8 +301,6 @@ ProcXF86BigfontQueryVersion(ClientPtr client)
 #endif
     
     if (client->swapped) {
-        char tmp;
-
         swaps(&reply.sequenceNumber);
         swapl(&reply.length);
         swaps(&reply.majorVersion);
@@ -318,8 +316,6 @@ ProcXF86BigfontQueryVersion(ClientPtr client)
 static void
 swapCharInfo(xCharInfo * pCI)
 {
-    char tmp;
-
     swaps(&pCI->leftSideBearing);
     swaps(&pCI->rightSideBearing);
     swaps(&pCI->characterWidth);
@@ -590,8 +586,6 @@ ProcXF86BigfontQueryFont(ClientPtr client)
         reply->shmid = shmid;
         reply->shmsegoffset = 0;
         if (client->swapped) {
-            char tmp;
-
             swaps(&reply->sequenceNumber);
             swapl(&reply->length);
             swapCharInfo(&reply->minBounds);
@@ -618,8 +612,6 @@ ProcXF86BigfontQueryFont(ClientPtr client)
                 prFP->name = pFP->name;
                 prFP->value = pFP->value;
                 if (client->swapped) {
-                    char tmp;
-
                     swapl(&prFP->name);
                     swapl(&prFP->value);
                 }
@@ -641,8 +633,6 @@ ProcXF86BigfontQueryFont(ClientPtr client)
             for (j = 0; j < nCharInfos; j++, ps++) {
                 *ps = pIndex2UniqIndex[j];
                 if (client->swapped) {
-                    char tmp;
-
                     swaps(ps);
                 }
             }
@@ -678,7 +668,6 @@ static int
 SProcXF86BigfontQueryVersion(ClientPtr client)
 {
     REQUEST(xXF86BigfontQueryVersionReq);
-    char tmp;
 
     swaps(&stuff->length);
     return ProcXF86BigfontQueryVersion(client);
@@ -688,7 +677,6 @@ static int
 SProcXF86BigfontQueryFont(ClientPtr client)
 {
     REQUEST(xXF86BigfontQueryFontReq);
-    char tmp;
 
     swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xXF86BigfontQueryFontReq);

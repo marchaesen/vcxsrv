@@ -60,7 +60,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "XimTrInt.h"
 #include "XimTrX.h"
 
-Private Bool
+static Bool
 _XimXRegisterDispatcher(
     Xim			 im,
     Bool		 (*callback)(
@@ -81,7 +81,7 @@ _XimXRegisterDispatcher(
     return True;
 }
 
-Private void
+static void
 _XimXFreeIntrCallback(
     Xim			 im)
 {
@@ -96,7 +96,7 @@ _XimXFreeIntrCallback(
     return;
 }
 
-Private Bool
+static Bool
 _XimXCallDispatcher(Xim im, INT16 len, XPointer data)
 {
     register XIntrCallbackRec	*rec;
@@ -109,7 +109,7 @@ _XimXCallDispatcher(Xim im, INT16 len, XPointer data)
     return False;
 }
 
-Private Bool
+static Bool
 _XimXFilterWaitEvent(
     Display	*d,
     Window	 w,
@@ -137,7 +137,7 @@ _XimXFilterWaitEvent(
      return ret;
 }
 
-Private Bool
+static Bool
 _CheckConnect(
     Display	*display,
     XEvent	*event,
@@ -153,7 +153,7 @@ _CheckConnect(
     return False;
 }
 
-Private Bool
+static Bool
 _XimXConnect(Xim im)
 {
     XEvent	 event;
@@ -224,7 +224,7 @@ _XimXConnect(Xim im)
     return True;
 }
 
-Private Bool
+static Bool
 _XimXShutdown(Xim im)
 {
     XSpecRec	*spec = (XSpecRec *)im->private.proto.spec;
@@ -244,7 +244,7 @@ _XimXShutdown(Xim im)
     return True;
 }
 
-Private char *
+static char *
 _NewAtom(
     char	*atomName)
 {
@@ -255,7 +255,7 @@ _NewAtom(
     return atomName;
 }
 
-Private Bool
+static Bool
 _XimXWrite(Xim im, INT16 len, XPointer data)
 {
     Atom	 atom;
@@ -316,7 +316,7 @@ _XimXWrite(Xim im, INT16 len, XPointer data)
     return True;
 }
 
-Private Bool
+static Bool
 _XimXGetReadData(
     Xim			  im,
     char		 *buf,
@@ -440,7 +440,7 @@ _XimXGetReadData(
     return True;
 }
 
-Private Bool
+static Bool
 _CheckCMEvent(
     Display	*display,
     XEvent	*event,
@@ -461,7 +461,7 @@ _CheckCMEvent(
     return False;
 }
 
-Private Bool
+static Bool
 _XimXRead(Xim im, XPointer recv_buf, int buf_len, int *ret_len)
 {
     XEvent	*ev;
@@ -484,14 +484,14 @@ _XimXRead(Xim im, XPointer recv_buf, int buf_len, int *ret_len)
     return True;
 }
 
-Private void
+static void
 _XimXFlush(Xim im)
 {
     XFlush(im->core.display);
     return;
 }
 
-Public Bool
+Bool
 _XimXConf(Xim im, char *address)
 {
     XSpecRec	*spec;
