@@ -50,6 +50,7 @@ struct CConfig
     std::string host;
     std::string user;
     std::string remotepassword;
+    std::string privatekey;
     bool broadcast;
     bool indirect;
     std::string xdmcp_host;
@@ -62,6 +63,7 @@ struct CConfig
     CConfig() : window(MultiWindow), client(NoClient), display("-1"), 
                 local(false),
                 remotepassword(""),
+                privatekey(""),
                 localprogram("xcalc"),
                 remoteprogram("xterm"),
                 compress(false),

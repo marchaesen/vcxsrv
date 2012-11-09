@@ -48,7 +48,8 @@
 #define STR_CLIENT_HOST_DESC        "Connect to computer"
 #define STR_CLIENT_USER_DESC        "Login as user"
 
-#define STR_CLIENT_REMOTEPROGRAM_DESC     "Remote program"
+#define STR_CLIENT_REMOTEPROGRAM_DESC  "Remote program"
+#define STR_CLIENT_PRIVATEKEY_DESC     "Private key (putty format)"
 
 
 #define STR_CAPTION_XDMCP           "XDMCP settings"

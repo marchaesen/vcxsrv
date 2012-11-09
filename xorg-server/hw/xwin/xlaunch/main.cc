@@ -23,6 +23,14 @@
  * holders shall not be used in advertising or otherwise to promote the sale,
  * use or other dealings in this Software without prior written authorization.
  */
+#define SAVEPOSIX _POSIX_
+#undef _POSIX_
+#include <io.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <stdio.h>
+#define _POSIX_ SAVEPOSIX
+
 #include "window/util.h"
 #include "window/wizard.h"
 #include "resources/resources.h"
@@ -34,10 +42,6 @@
 
 #include <X11/Xlib.h>
 
-#include <stdlib.h>
-// Define here because it is not defined in stdlib.h because of the _POSIX_ defined
-extern "C"
-_Check_return_ _CRTIMP int    __cdecl _putenv(_In_z_ const char * _EnvString);
 #include <sstream>
 
 /// @brief Send WM_ENDSESSION to all program windows.
@@ -169,6 +173,9 @@ class CMyWizard : public CWizard
                         GetDlgItemText(hwndDlg, IDC_CLIENT_PASSWORD, buffer, 512);
                         buffer[511] = 0;
                         config.remotepassword = buffer;
+                        GetDlgItemText(hwndDlg, IDC_CLIENT_PRIVATEKEY, buffer, 512);
+                        buffer[511] = 0;
+                        config.privatekey = buffer;
                     }
                     // Check for valid input
                     if (!config.local && (config.host.empty() || config.localprogram.empty() || config.remoteprogram.empty()))
@@ -330,6 +337,8 @@ class CMyWizard : public CWizard
             EnableWindow(GetDlgItem(hwndDlg, IDC_CLIENT_USER_DESC), state);
             EnableWindow(GetDlgItem(hwndDlg, IDC_CLIENT_REMOTEPROGRAM), state);
             EnableWindow(GetDlgItem(hwndDlg, IDC_CLIENT_REMOTEPROGRAM_DESC), state);
+            EnableWindow(GetDlgItem(hwndDlg, IDC_CLIENT_PRIVATEKEY), state);
+            EnableWindow(GetDlgItem(hwndDlg, IDC_CLIENT_PRIVATEKEY_DESC), state);
             EnableWindow(GetDlgItem(hwndDlg, IDC_CLIENT_PROGRAM), !state);
             EnableWindow(GetDlgItem(hwndDlg, IDC_CLIENT_PROGRAM_DESC), !state);
         }
@@ -456,13 +465,12 @@ class CMyWizard : public CWizard
                             // Fill combo boxes
                             FillProgramBox(hwndDlg);
                             // Set edit fields
-                            if (!config.localprogram.empty())
-                                       SetDlgItemText(hwndDlg, IDC_CLIENT_PROGRAM, config.localprogram.c_str());
-                            if (!config.remoteprogram.empty())
-                                       SetDlgItemText(hwndDlg, IDC_CLIENT_REMOTEPROGRAM, config.remoteprogram.c_str());
+                            SetDlgItemText(hwndDlg, IDC_CLIENT_PROGRAM, config.localprogram.c_str());
+                            SetDlgItemText(hwndDlg, IDC_CLIENT_REMOTEPROGRAM, config.remoteprogram.c_str());
                             SetDlgItemText(hwndDlg, IDC_CLIENT_USER, config.user.c_str());
                             SetDlgItemText(hwndDlg, IDC_CLIENT_HOST, config.host.c_str());
                             SetDlgItemText(hwndDlg, IDC_CLIENT_PASSWORD, config.remotepassword.c_str());
+                            SetDlgItemText(hwndDlg, IDC_CLIENT_PRIVATEKEY, config.privatekey.c_str());
                             break;
                         case IDD_XDMCP:
                             // Init XDMCP dialog. Check broadcast and indirect button
@@ -621,8 +629,10 @@ class CMyWizard : public CWizard
                         host = config.user + "@" + config.host;
                     if (!config.remotepassword.empty())
                       remotepassword=std::string(" -pw ")+config.remotepassword;
+                    if (!config.privatekey.empty())
+                      remotepassword+=std::string(" -i \"")+config.privatekey+"\"";
                       // Need to use -console since certain commands will not execute when no console
-                    _snprintf(cmdline,512,"plink -console -ssh -X%s %s %s", 
+                    _snprintf(cmdline,512,"plink -ssh -X%s %s %s",
                                 remotepassword.c_str(), host.c_str(),config.remoteprogram.c_str());
                     client += cmdline;
                 }
@@ -716,6 +726,84 @@ class CMyWizard : public CWizard
                 }
                 #endif
 
+                #if 1
+            {
+              HANDLE hChildStdinRd;
+              HANDLE hChildStdinWr;
+              HANDLE hChildStdoutRd;
+              HANDLE hChildStdoutWr;
+              HANDLE hChildStdinWrDup;
+              HANDLE hChildStdoutRdDup;
+              SECURITY_ATTRIBUTES saAttr;
+              BOOL fSuccess;
+              STARTUPINFO StartupInfo;
+              memset(&StartupInfo,0,sizeof(StartupInfo));
+              StartupInfo.cb=sizeof(STARTUPINFO);
+              PROCESS_INFORMATION ProcessInfo;
+
+              saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
+              saAttr.bInheritHandle = TRUE;
+              saAttr.lpSecurityDescriptor = NULL;
+
+              if (!CreatePipe(&hChildStdinRd, &hChildStdinWr, &saAttr, 0))
+                throw win32_error("CreatePipe failed", GetLastError());
+
+              /* Create new output read handle and the input write handle. Set
+               * the inheritance properties to FALSE. Otherwise, the child inherits
+               * the these handles; resulting in non-closeable handles to the pipes
+               * being created. */
+              fSuccess = DuplicateHandle(GetCurrentProcess(), hChildStdinWr,
+                GetCurrentProcess(), &hChildStdinWrDup, 0,
+                FALSE, DUPLICATE_SAME_ACCESS);
+              if (!fSuccess)
+                throw win32_error("DuplicateHandle failed", GetLastError());
+              /* Close the inheritable version of ChildStdin that we're using. */
+              CloseHandle(hChildStdinWr);
+
+              if (!CreatePipe(&hChildStdoutRd, &hChildStdoutWr, &saAttr, 0))
+                throw win32_error("CreatePipe failed", GetLastError());
+
+              fSuccess = DuplicateHandle(GetCurrentProcess(), hChildStdoutRd,
+                GetCurrentProcess(), &hChildStdoutRdDup, 0,
+                FALSE, DUPLICATE_SAME_ACCESS);
+              if (!fSuccess)
+                throw win32_error("DuplicateHandle failed", GetLastError());
+              CloseHandle(hChildStdoutRd);
+
+              int hStdIn = _open_osfhandle((long)hChildStdinWrDup, _O_WRONLY|_O_TEXT);
+              FILE *pStdIn = _fdopen(hStdIn, "w");
+              int hStdOut = _open_osfhandle((long)hChildStdoutRdDup, _O_RDONLY|_O_TEXT);
+              FILE *pStdOut = _fdopen(hStdOut, "r");
+
+              StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+              StartupInfo.hStdInput = hChildStdinRd;
+              StartupInfo.hStdOutput = hChildStdoutWr;
+              StartupInfo.hStdError = hChildStdoutWr;
+
+              if (!CreateProcess(NULL,(CHAR*)client.c_str(),NULL,NULL,TRUE,CREATE_NO_WINDOW,NULL, CurDir, &StartupInfo, &ProcessInfo))
+              {
+                DWORD err = GetLastError();
+                while (hcount--)
+                  TerminateProcess(handles[hcount], (DWORD)-1);
+                throw win32_error("CreateProcess failed", err);
+              }
+              CloseHandle(hChildStdinRd);
+              CloseHandle(hChildStdoutWr);
+
+              CloseHandle(ProcessInfo.hThread);
+              char Buf[256];
+              size_t Nbr;
+              std::string output;
+              while ( (Nbr=fread(Buf,1,sizeof(Buf)-1,pStdOut)) > 0)
+              {
+                output+=Buf;
+              }
+              if (!output.empty())
+              {
+                MessageBox(NULL,output.c_str(),"Child output",MB_OK);
+              }
+            }
+                #else
                 if( !CreateProcess( NULL, (CHAR*)client.c_str(), NULL, NULL,
                             FALSE, 0, NULL, CurDir, &sic, &pic )) 
                 {
@@ -724,6 +812,7 @@ class CMyWizard : public CWizard
                         TerminateProcess(handles[hcount], (DWORD)-1);
                     throw win32_error("CreateProcess failed", err);
                 }
+                #endif
                 handles[hcount++] = pic.hProcess;
                 #ifdef WITHFLASH
                 ShowWindow( GetConsoleWindow(), SW_HIDE );  // make it hidden

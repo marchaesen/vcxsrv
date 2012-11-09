@@ -83,6 +83,7 @@ void CConfig::Save(const char *filename)
     setAttribute(root, "LocalProgram", localprogram.c_str());
     setAttribute(root, "RemoteProgram", remoteprogram.c_str());
     setAttribute(root, "RemotePassword", remotepassword.c_str());
+    setAttribute(root, "PrivateKey", privatekey.c_str());
     setAttribute(root, "RemoteHost", host.c_str());
     setAttribute(root, "RemoteUser", user.c_str());
     setAttribute(root, "XDMCPHost", xdmcp_host.c_str());
@@ -174,6 +175,7 @@ void CConfig::Load(const char *filename)
     getAttribute(root, "LocalProgram", localprogram);
     getAttribute(root, "RemoteProgram", remoteprogram);
     getAttribute(root, "RemotePassword", remotepassword);
+    getAttribute(root, "PrivateKey", privatekey);
     getAttribute(root, "RemoteHost", host);
     getAttribute(root, "RemoteUser", user);
     getAttribute(root, "XDMCPHost", xdmcp_host);
