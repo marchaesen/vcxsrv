@@ -263,6 +263,7 @@ st_translate_texture_target( GLuint textarget,
       case TEXTURE_1D_ARRAY_INDEX: return TGSI_TEXTURE_SHADOW1D_ARRAY;
       case TEXTURE_2D_ARRAY_INDEX: return TGSI_TEXTURE_SHADOW2D_ARRAY;
       case TEXTURE_CUBE_INDEX: return TGSI_TEXTURE_SHADOWCUBE;
+      case TEXTURE_CUBE_ARRAY_INDEX: return TGSI_TEXTURE_SHADOWCUBE_ARRAY;
       default: break;
       }
    }
@@ -272,6 +273,7 @@ st_translate_texture_target( GLuint textarget,
    case TEXTURE_2D_INDEX:   return TGSI_TEXTURE_2D;
    case TEXTURE_3D_INDEX:   return TGSI_TEXTURE_3D;
    case TEXTURE_CUBE_INDEX: return TGSI_TEXTURE_CUBE;
+   case TEXTURE_CUBE_ARRAY_INDEX: return TGSI_TEXTURE_CUBE_ARRAY;
    case TEXTURE_RECT_INDEX: return TGSI_TEXTURE_RECT;
    case TEXTURE_1D_ARRAY_INDEX:   return TGSI_TEXTURE_1D_ARRAY;
    case TEXTURE_2D_ARRAY_INDEX:   return TGSI_TEXTURE_2D_ARRAY;
@@ -563,10 +565,6 @@ translate_opcode( unsigned op )
       return TGSI_OPCODE_DST;
    case OPCODE_ELSE:
       return TGSI_OPCODE_ELSE;
-   case OPCODE_EMIT_VERTEX:
-      return TGSI_OPCODE_EMIT;
-   case OPCODE_END_PRIMITIVE:
-      return TGSI_OPCODE_ENDPRIM;
    case OPCODE_ENDIF:
       return TGSI_OPCODE_ENDIF;
    case OPCODE_ENDLOOP:

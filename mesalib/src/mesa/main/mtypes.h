@@ -1146,6 +1146,7 @@ struct gl_stencil_attrib
  */
 typedef enum
 {
+   TEXTURE_CUBE_ARRAY_INDEX,
    TEXTURE_BUFFER_INDEX,
    TEXTURE_2D_ARRAY_INDEX,
    TEXTURE_1D_ARRAY_INDEX,
@@ -1164,6 +1165,7 @@ typedef enum
  * Used for Texture.Unit[]._ReallyEnabled flags.
  */
 /*@{*/
+#define TEXTURE_CUBE_ARRAY_BIT (1 << TEXTURE_CUBE_ARRAY_INDEX)
 #define TEXTURE_BUFFER_BIT   (1 << TEXTURE_BUFFER_INDEX)
 #define TEXTURE_2D_ARRAY_BIT (1 << TEXTURE_2D_ARRAY_INDEX)
 #define TEXTURE_1D_ARRAY_BIT (1 << TEXTURE_1D_ARRAY_INDEX)
@@ -2973,6 +2975,7 @@ struct gl_extensions
    GLboolean ARB_texture_buffer_object;
    GLboolean ARB_texture_compression_rgtc;
    GLboolean ARB_texture_cube_map;
+   GLboolean ARB_texture_cube_map_array;
    GLboolean ARB_texture_env_combine;
    GLboolean ARB_texture_env_crossbar;
    GLboolean ARB_texture_env_dot3;
