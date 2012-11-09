@@ -27,12 +27,8 @@
 
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#include "glheader.h"
-#else
-
-#include "glheader.h"
-
 #endif
+#include "glheader.h"
 
 #include <X11/Xmd.h>
 #include <GL/gl.h>
