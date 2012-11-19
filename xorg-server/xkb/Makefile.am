@@ -6,8 +6,7 @@ DDX_SRCS = \
         ddxBeep.c \
         ddxCtrls.c \
         ddxLEDs.c \
-        ddxLoad.c \
-        ddxList.c
+        ddxLoad.c
 
 DIX_SRCS = \
         xkb.c \

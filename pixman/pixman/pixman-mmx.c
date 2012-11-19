@@ -62,7 +62,7 @@ _mm_empty (void)
 #endif
 
 #if defined __GNUC__ && defined USE_X86_MMX
-# if (defined(__SUNPRO_C) || defined(_MSC_VER))
+# if (defined(__SUNPRO_C) || defined(_MSC_VER) || defined(_WIN64))
 #  include <xmmintrin.h>
 # else
 /* We have to compile with -msse to use xmmintrin.h, but that causes SSE
@@ -1426,7 +1426,7 @@ mmx_composite_over_n_8888 (pixman_implementation_t *imp,
 
 	CHECKPOINT ();
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    store8888 (dst, over (vsrc, vsrca, load8888 (dst)));
 
@@ -1492,7 +1492,7 @@ mmx_composite_over_n_0565 (pixman_implementation_t *imp,
 
 	CHECKPOINT ();
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    uint64_t d = *dst;
 	    __m64 vdest = expand565 (to_m64 (d), 0);
@@ -1570,7 +1570,7 @@ mmx_composite_over_n_8888_8888_ca (pixman_implementation_t *imp,
 	uint32_t *p = (uint32_t *)mask_line;
 	uint32_t *q = (uint32_t *)dst_line;
 
-	while (twidth && (unsigned long)q & 7)
+	while (twidth && (uintptr_t)q & 7)
 	{
 	    uint32_t m = *(uint32_t *)p;
 
@@ -1661,7 +1661,7 @@ mmx_composite_over_8888_n_8888 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    __m64 s = load8888 (src);
 	    __m64 d = load8888 (dst);
@@ -1731,7 +1731,7 @@ mmx_composite_over_x888_n_8888 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    uint32_t ssrc = *src | 0xff000000;
 	    __m64 s = load8888 (&ssrc);
@@ -1905,7 +1905,7 @@ mmx_composite_over_8888_0565 (pixman_implementation_t *imp,
 
 	CHECKPOINT ();
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    __m64 vsrc = load8888 (src);
 	    uint64_t d = *dst;
@@ -2008,7 +2008,7 @@ mmx_composite_over_n_8_8888 (pixman_implementation_t *imp,
 
 	CHECKPOINT ();
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    uint64_t m = *mask;
 
@@ -2151,21 +2151,21 @@ mmx_fill (pixman_implementation_t *imp,
 	byte_line += stride;
 	w = byte_width;
 
-	if (w >= 1 && ((unsigned long)d & 1))
+	if (w >= 1 && ((uintptr_t)d & 1))
 	{
 	    *(uint8_t *)d = (xor & 0xff);
 	    w--;
 	    d++;
 	}
 
-	if (w >= 2 && ((unsigned long)d & 3))
+	if (w >= 2 && ((uintptr_t)d & 3))
 	{
 	    *(uint16_t *)d = (xor & 0xffff);
 	    w -= 2;
 	    d += 2;
 	}
 
-	while (w >= 4 && ((unsigned long)d & 7))
+	while (w >= 4 && ((uintptr_t)d & 7))
 	{
 	    *(uint32_t *)d = xor;
 
@@ -2251,7 +2251,7 @@ mmx_composite_src_x888_0565 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    s = *src++;
 	    *dst = CONVERT_8888_TO_0565 (s);
@@ -2329,7 +2329,7 @@ mmx_composite_src_n_8_8888 (pixman_implementation_t *imp,
 
 	CHECKPOINT ();
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    uint64_t m = *mask;
 
@@ -2443,7 +2443,7 @@ mmx_composite_over_n_8_0565 (pixman_implementation_t *imp,
 
 	CHECKPOINT ();
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    uint64_t m = *mask;
 
@@ -2560,7 +2560,7 @@ mmx_composite_over_pixbuf_0565 (pixman_implementation_t *imp,
 
 	CHECKPOINT ();
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    __m64 vsrc = load8888 (src);
 	    uint64_t d = *dst;
@@ -2675,7 +2675,7 @@ mmx_composite_over_pixbuf_8888 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    __m64 s = load8888 (src);
 	    __m64 d = load8888 (dst);
@@ -2763,7 +2763,7 @@ mmx_composite_over_n_8888_0565_ca (pixman_implementation_t *imp,
 	uint32_t *p = (uint32_t *)mask_line;
 	uint16_t *q = (uint16_t *)dst_line;
 
-	while (twidth && ((unsigned long)q & 7))
+	while (twidth && ((uintptr_t)q & 7))
 	{
 	    uint32_t m = *(uint32_t *)p;
 
@@ -2864,7 +2864,7 @@ mmx_composite_in_n_8_8 (pixman_implementation_t *imp,
 	mask_line += mask_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    uint16_t tmp;
 	    uint8_t a;
@@ -2935,7 +2935,7 @@ mmx_composite_in_8_8 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 3)
+	while (w && (uintptr_t)dst & 3)
 	{
 	    uint8_t s, d;
 	    uint16_t tmp;
@@ -3014,7 +3014,7 @@ mmx_composite_add_n_8_8 (pixman_implementation_t *imp,
 	mask_line += mask_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 3)
+	while (w && (uintptr_t)dst & 3)
 	{
 	    uint16_t tmp;
 	    uint16_t a;
@@ -3091,7 +3091,7 @@ mmx_composite_add_8_8 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    s = *src;
 	    d = *dst;
@@ -3154,7 +3154,7 @@ mmx_composite_add_0565_0565 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    s = *src++;
 	    if (s)
@@ -3236,7 +3236,7 @@ mmx_composite_add_8888_8888 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    store (dst, _mm_adds_pu8 (load ((const uint32_t *)src),
 	                              load ((const uint32_t *)dst)));
@@ -3320,7 +3320,7 @@ mmx_blt (pixman_implementation_t *imp,
 	dst_bytes += dst_stride;
 	w = byte_width;
 
-	if (w >= 1 && ((unsigned long)d & 1))
+	if (w >= 1 && ((uintptr_t)d & 1))
 	{
 	    *(uint8_t *)d = *(uint8_t *)s;
 	    w -= 1;
@@ -3328,7 +3328,7 @@ mmx_blt (pixman_implementation_t *imp,
 	    d += 1;
 	}
 
-	if (w >= 2 && ((unsigned long)d & 3))
+	if (w >= 2 && ((uintptr_t)d & 3))
 	{
 	    *(uint16_t *)d = *(uint16_t *)s;
 	    w -= 2;
@@ -3336,7 +3336,7 @@ mmx_blt (pixman_implementation_t *imp,
 	    d += 2;
 	}
 
-	while (w >= 4 && ((unsigned long)d & 7))
+	while (w >= 4 && ((uintptr_t)d & 7))
 	{
 	    *(uint32_t *)d = ldl_u ((uint32_t *)s);
 
@@ -3519,7 +3519,7 @@ mmx_composite_over_reverse_n_8888 (pixman_implementation_t *imp,
 
 	CHECKPOINT ();
 
-	while (w && (unsigned long)dst & 7)
+	while (w && (uintptr_t)dst & 7)
 	{
 	    __m64 vdest = load8888 (dst);
 
@@ -3805,7 +3805,7 @@ mmx_fetch_x8r8g8b8 (pixman_iter_t *iter, const uint32_t *mask)
 
     iter->bits += iter->stride;
 
-    while (w && ((unsigned long)dst) & 7)
+    while (w && ((uintptr_t)dst) & 7)
     {
 	*dst++ = (*src++) | 0xff000000;
 	w--;
@@ -3847,7 +3847,7 @@ mmx_fetch_r5g6b5 (pixman_iter_t *iter, const uint32_t *mask)
 
     iter->bits += iter->stride;
 
-    while (w && ((unsigned long)dst) & 0x0f)
+    while (w && ((uintptr_t)dst) & 0x0f)
     {
 	uint16_t s = *src++;
 
@@ -3891,7 +3891,7 @@ mmx_fetch_a8 (pixman_iter_t *iter, const uint32_t *mask)
 
     iter->bits += iter->stride;
 
-    while (w && (((unsigned long)dst) & 15))
+    while (w && (((uintptr_t)dst) & 15))
     {
         *dst++ = *(src++) << 24;
         w--;

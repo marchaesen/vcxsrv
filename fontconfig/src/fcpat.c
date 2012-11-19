@@ -120,6 +120,20 @@ FcValueSave (FcValue v)
     return v;
 }
 
+FcValueListPtr
+FcValueListCreate (void)
+{
+    FcValueListPtr ret;
+
+    ret = calloc (1, sizeof (FcValueList));
+    if (ret)
+    {
+	FcMemAlloc(FC_MEM_VALLIST, sizeof (FcValueList));
+    }
+
+    return ret;
+}
+
 void
 FcValueListDestroy (FcValueListPtr l)
 {
@@ -149,6 +163,81 @@ FcValueListDestroy (FcValueListPtr l)
 	FcMemFree (FC_MEM_VALLIST, sizeof (FcValueList));
 	free(l);
     }
+}
+
+FcValueListPtr
+FcValueListPrepend (FcValueListPtr vallist,
+		    FcValue        value,
+		    FcValueBinding binding)
+{
+    FcValueListPtr new;
+
+    if (value.type == FcTypeVoid)
+	return vallist;
+    new = FcValueListCreate ();
+    if (!new)
+	return vallist;
+
+    new->value = FcValueSave (value);
+    new->binding = binding;
+    new->next = vallist;
+
+    return new;
+}
+
+FcValueListPtr
+FcValueListAppend (FcValueListPtr vallist,
+		   FcValue        value,
+		   FcValueBinding binding)
+{
+    FcValueListPtr new, last;
+
+    if (value.type == FcTypeVoid)
+	return vallist;
+    new = FcValueListCreate ();
+    if (!new)
+	return vallist;
+
+    new->value = FcValueSave (value);
+    new->binding = binding;
+    new->next = NULL;
+
+    if (vallist)
+    {
+	for (last = vallist; FcValueListNext (last); last = FcValueListNext (last));
+
+	last->next = new;
+    }
+    else
+	vallist = new;
+
+    return vallist;
+}
+
+FcValueListPtr
+FcValueListDuplicate(FcValueListPtr orig)
+{
+    FcValueListPtr new = NULL, l, t = NULL;
+    FcValue v;
+
+    for (l = orig; l != NULL; l = FcValueListNext (l))
+    {
+	if (!new)
+	{
+	    t = new = FcValueListCreate();
+	}
+	else
+	{
+	    t->next = FcValueListCreate();
+	    t = FcValueListNext (t);
+	}
+	v = FcValueCanonicalize (&l->value);
+	t->value = FcValueSave (v);
+	t->binding = l->binding;
+	t->next = NULL;
+    }
+
+    return new;
 }
 
 FcBool
@@ -461,6 +550,59 @@ FcPatternEqualSubset (const FcPattern *pai, const FcPattern *pbi, const FcObject
 }
 
 FcBool
+FcPatternObjectListAdd (FcPattern	*p,
+			FcObject	object,
+			FcValueListPtr	list,
+			FcBool		append)
+{
+    FcPatternElt   *e;
+    FcValueListPtr l, *prev;
+
+    if (p->ref == FC_REF_CONSTANT)
+	goto bail0;
+
+    /*
+     * Make sure the stored type is valid for built-in objects
+     */
+    for (l = list; l != NULL; l = FcValueListNext (l))
+    {
+	if (!FcObjectValidType (object, l->value.type))
+	{
+	    if (FcDebug() & FC_DBG_OBJTYPES)
+	    {
+		printf ("FcPattern object %s does not accept value ",
+			FcObjectName (object));
+		FcValuePrint (l->value);
+	    }
+	    goto bail0;
+	}
+    }
+
+    e = FcPatternObjectInsertElt (p, object);
+    if (!e)
+	goto bail0;
+
+    if (append)
+    {
+	for (prev = &e->values; *prev; prev = &(*prev)->next)
+	    ;
+	*prev = list;
+    }
+    else
+    {
+	for (prev = &list; *prev; prev = &(*prev)->next)
+	    ;
+	*prev = e->values;
+	e->values = list;
+    }
+
+    return FcTrue;
+
+bail0:
+    return FcFalse;
+}
+
+FcBool
 FcPatternObjectAddWithBinding  (FcPattern	*p,
 				FcObject	object,
 				FcValue		value,
@@ -473,12 +615,10 @@ FcPatternObjectAddWithBinding  (FcPattern	*p,
     if (p->ref == FC_REF_CONSTANT)
 	goto bail0;
 
-    new = malloc (sizeof (FcValueList));
+    new = FcValueListCreate ();
     if (!new)
 	goto bail0;
 
-    memset(new, 0, sizeof (FcValueList));
-    FcMemAlloc (FC_MEM_VALLIST, sizeof (FcValueList));
     value = FcValueSave (value);
     if (value.type == FcTypeVoid)
 	goto bail1;

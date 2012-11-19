@@ -673,8 +673,8 @@ eventToDeviceEvent(DeviceEvent *ev, xEvent **xi)
     xde->valuators_len = vallen;
     xde->deviceid = ev->deviceid;
     xde->sourceid = ev->sourceid;
-    xde->root_x = FP1616(ev->root_x, ev->root_x_frac);
-    xde->root_y = FP1616(ev->root_y, ev->root_y_frac);
+    xde->root_x = double_to_fp1616(ev->root_x + ev->root_x_frac);
+    xde->root_y = double_to_fp1616(ev->root_y + ev->root_y_frac);
 
     if (ev->type == ET_TouchUpdate)
         xde->flags |= (ev->flags & TOUCH_PENDING_END) ? XITouchPendingEnd : 0;

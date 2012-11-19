@@ -215,8 +215,8 @@ create_image (int max_size, const pixman_format_code_t *formats, uint32_t flags)
     return image;
 }
 
-#define KEY1(p) ((void *)(((unsigned long)p) ^ (0xa7e23dfaUL)))
-#define KEY2(p) ((void *)(((unsigned long)p) ^ (0xabcd9876UL)))
+#define KEY1(p) ((void *)(((uintptr_t)p) ^ (0xa7e23dfaUL)))
+#define KEY2(p) ((void *)(((uintptr_t)p) ^ (0xabcd9876UL)))
 
 #define MAX_GLYPHS 32
 

@@ -923,14 +923,36 @@ FcObjectFini (void);
 FcPrivate FcValue
 FcValueCanonicalize (const FcValue *v);
 
+FcPrivate FcValueListPtr
+FcValueListCreate (void);
+
 FcPrivate void
 FcValueListDestroy (FcValueListPtr l);
+
+FcPrivate FcValueListPtr
+FcValueListPrepend (FcValueListPtr vallist,
+		    FcValue        value,
+		    FcValueBinding binding);
+
+FcPrivate FcValueListPtr
+FcValueListAppend (FcValueListPtr vallist,
+		   FcValue        value,
+		   FcValueBinding binding);
+
+FcPrivate FcValueListPtr
+FcValueListDuplicate(FcValueListPtr orig);
 
 FcPrivate FcPatternElt *
 FcPatternObjectFindElt (const FcPattern *p, FcObject object);
 
 FcPrivate FcPatternElt *
 FcPatternObjectInsertElt (FcPattern *p, FcObject object);
+
+FcPrivate FcBool
+FcPatternObjectListAdd (FcPattern	*p,
+			FcObject	object,
+			FcValueListPtr	list,
+			FcBool		append);
 
 FcPrivate FcBool
 FcPatternObjectAddWithBinding  (FcPattern	*p,

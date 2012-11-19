@@ -35,7 +35,7 @@
 static force_inline uint32_t
 fetch_24 (uint8_t *a)
 {
-    if (((unsigned long)a) & 1)
+    if (((uintptr_t)a) & 1)
     {
 #ifdef WORDS_BIGENDIAN
 	return (*a << 16) | (*(uint16_t *)(a + 1));
@@ -57,7 +57,7 @@ static force_inline void
 store_24 (uint8_t *a,
           uint32_t v)
 {
-    if (((unsigned long)a) & 1)
+    if (((uintptr_t)a) & 1)
     {
 #ifdef WORDS_BIGENDIAN
 	*a = (uint8_t) (v >> 16);

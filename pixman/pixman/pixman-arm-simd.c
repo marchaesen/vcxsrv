@@ -56,7 +56,7 @@ pixman_composite_add_8_8_asm_armv6 (int32_t  width,
 	/* ensure both src and dst are properly aligned before doing 32 bit reads
 	 * we'll stay in this loop if src and dst have differing alignments
 	 */
-	while (w && (((unsigned long)dst & 3) || ((unsigned long)src & 3)))
+	while (w && (((uintptr_t)dst & 3) || ((uintptr_t)src & 3)))
 	{
 	    s = *src;
 	    d = *dst;

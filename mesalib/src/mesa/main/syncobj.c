@@ -308,7 +308,7 @@ _mesa_ClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
    }
 
    if ((flags & ~GL_SYNC_FLUSH_COMMANDS_BIT) != 0) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glClientWaitSync(flags=0x%x)", flags);
+      _mesa_error(ctx, GL_INVALID_VALUE, "glClientWaitSync(flags=0x%x)", flags);
       return GL_WAIT_FAILED;
    }
 
@@ -352,15 +352,12 @@ _mesa_WaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
    }
 
    if (flags != 0) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glWaitSync(flags=0x%x)", flags);
+      _mesa_error(ctx, GL_INVALID_VALUE, "glWaitSync(flags=0x%x)", flags);
       return;
    }
 
-   /* From the GL_ARB_sync spec:
-    *
-    *     If the value of <timeout> is zero, then WaitSync does nothing.
-    */
-   if (timeout == 0) {
+   if (timeout != GL_TIMEOUT_IGNORED) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glWaitSync(timeout=0x%lx)", timeout);
       return;
    }
 

@@ -5615,9 +5615,9 @@ ProcXkbListComponents(ClientPtr client)
     DeviceIntPtr dev;
     xkbListComponentsReply rep;
     unsigned len;
-    int status;
     unsigned char *str;
-    XkbSrvListInfoRec list;
+    uint8_t size;
+    int i;
 
     REQUEST(xkbListComponentsReq);
     REQUEST_AT_LEAST_SIZE(xkbListComponentsReq);
@@ -5627,39 +5627,33 @@ ProcXkbListComponents(ClientPtr client)
 
     CHK_KBD_DEVICE(dev, stuff->deviceSpec, client, DixGetAttrAccess);
 
-    status = Success;
+    /* The request is followed by six Pascal strings (i.e. size in characters
+     * followed by a string pattern) describing what the client wants us to
+     * list.  We don't care, but might as well check they haven't got the
+     * length wrong. */
     str = (unsigned char *) &stuff[1];
-    memset(&list, 0, sizeof(XkbSrvListInfoRec));
-    list.maxRtrn = stuff->maxNames;
-    list.pattern[_XkbListKeycodes] = GetComponentSpec(&str, FALSE, &status);
-    list.pattern[_XkbListTypes] = GetComponentSpec(&str, FALSE, &status);
-    list.pattern[_XkbListCompat] = GetComponentSpec(&str, FALSE, &status);
-    list.pattern[_XkbListSymbols] = GetComponentSpec(&str, FALSE, &status);
-    list.pattern[_XkbListGeometry] = GetComponentSpec(&str, FALSE, &status);
-    if (status != Success)
-        return status;
-    len = str - ((unsigned char *) stuff);
+    for (i = 0; i < 6; i++) {
+        size = *((uint8_t *)str);
+        len = (str + size + 1) - ((unsigned char *) stuff);
+        if ((XkbPaddedSize(len) / 4) > stuff->length)
+            return BadLength;
+        str += (size + 1);
+    }
     if ((XkbPaddedSize(len) / 4) != stuff->length)
         return BadLength;
-    if ((status = XkbDDXList(dev, &list, client)) != Success) {
-        free(list.pool);
-        list.pool = NULL;
-        return status;
-    }
     memset(&rep, 0, sizeof(xkbListComponentsReply));
     rep.type = X_Reply;
     rep.deviceID = dev->id;
     rep.sequenceNumber = client->sequence;
-    rep.length = XkbPaddedSize(list.nPool) / 4;
-    rep.nKeymaps = 0;
-    rep.nKeycodes = list.nFound[_XkbListKeycodes];
-    rep.nTypes = list.nFound[_XkbListTypes];
-    rep.nCompatMaps = list.nFound[_XkbListCompat];
-    rep.nSymbols = list.nFound[_XkbListSymbols];
-    rep.nGeometries = list.nFound[_XkbListGeometry];
-    rep.extra = 0;
-    if (list.nTotal > list.maxRtrn)
-        rep.extra = (list.nTotal - list.maxRtrn);
+    rep.length = 0,
+    rep.nKeymaps = 0,
+    rep.nKeycodes = 0,
+    rep.nTypes = 0,
+    rep.nCompatMaps = 0,
+    rep.nSymbols = 0,
+    rep.nGeometries = 0,
+    rep.extra = 0
+
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
@@ -5672,11 +5666,6 @@ ProcXkbListComponents(ClientPtr client)
         swaps(&rep.extra);
     }
     WriteToClient(client, SIZEOF(xkbListComponentsReply), &rep);
-    if (list.nPool && list.pool) {
-        WriteToClient(client, XkbPaddedSize(list.nPool), list.pool);
-        free(list.pool);
-        list.pool = NULL;
-    }
     return Success;
 }
 
