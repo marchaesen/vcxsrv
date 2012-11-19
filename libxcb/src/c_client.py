@@ -2616,7 +2616,7 @@ def _man_request(self, name, cookie_type, void, aux):
                 (cookie_type, self.c_reply_name, base_func_name))
     f.write('.SH ERRORS\n')
     if hasattr(self, "doc") and self.doc:
-        for errtype, errtext in self.doc.errors.iteritems():
+        for errtype, errtext in self.doc.errors.items():
             f.write('.IP \\fI%s\\fP 1i\n' % (_t(('xcb', errtype, 'error'))))
             errtext = re.sub(r'`([^`]+)`', r'\\fI\1\\fP', errtext)
             f.write('%s\n' % (errtext))
@@ -2634,7 +2634,7 @@ def _man_request(self, name, cookie_type, void, aux):
         see = ['.BR %s (3)' % 'xcb-requests']
         if self.doc.example:
             see.append('.BR %s (3)' % 'xcb-examples')
-        for seename, seetype in self.doc.see.iteritems():
+        for seename, seetype in self.doc.see.items():
             if seetype == 'program':
                 see.append('.BR %s (1)' % seename)
             elif seetype == 'event':
@@ -2764,7 +2764,7 @@ def _man_event(self, name):
         see = ['.BR %s (3)' % 'xcb_generic_event_t']
         if self.doc.example:
             see.append('.BR %s (3)' % 'xcb-examples')
-        for seename, seetype in self.doc.see.iteritems():
+        for seename, seetype in self.doc.see.items():
             if seetype == 'program':
                 see.append('.BR %s (1)' % seename)
             elif seetype == 'event':
@@ -2908,7 +2908,7 @@ Refer to the README file in xcb/proto for more info.
 # Ensure the man subdirectory exists
 try:
     os.mkdir('man')
-except OSError, e:
+except OSError as e:
     if e.errno != errno.EEXIST:
         raise
 

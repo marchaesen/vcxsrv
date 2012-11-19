@@ -1300,6 +1300,10 @@ CreatePointerBarrierClient(ScreenPtr screen, ClientPtr client,
 
     ret->screen = screen;
     ret->num_devices = stuff->num_devices;
+    if (ret->num_devices > 0)
+        ret->device_ids = (int*)&ret[1];
+    else
+        ret->device_ids = NULL;
 
     in_devices = (CARD16 *) &stuff[1];
     for (i = 0; i < stuff->num_devices; i++) {

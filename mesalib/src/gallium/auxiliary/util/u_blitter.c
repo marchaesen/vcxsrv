@@ -900,7 +900,7 @@ void util_blitter_cache_all_shaders(struct blitter_context *blitter)
               target == PIPE_TEXTURE_2D_ARRAY)) {
             continue;
          }
-         if (!has_arraytex &&
+         if (!has_cubearraytex &&
              (target == PIPE_TEXTURE_CUBE_ARRAY))
             continue;
 
@@ -1890,6 +1890,12 @@ static boolean is_box_inside_resource(const struct pipe_resource *res,
       width = u_minify(res->width0, level);
       height = u_minify(res->height0, level);
       depth = res->array_size;
+      break;
+   case PIPE_TEXTURE_CUBE_ARRAY:
+      width = u_minify(res->width0, level);
+      height = u_minify(res->height0, level);
+      depth = res->array_size;
+      assert(res->array_size % 6 == 0);
       break;
    case PIPE_MAX_TEXTURE_TYPES:;
    }

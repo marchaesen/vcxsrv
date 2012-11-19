@@ -26,6 +26,8 @@
 		<string>x11a</string>
 	<key>CSResourcesFileMapped</key>
 		<true/>
+	<key>NSSupportsAutomaticGraphicsSwitching</key>
+		<true/>
 #ifdef XQUARTZ_SPARKLE
 	<key>SUEnableAutomaticChecks</key>
 		<true/>

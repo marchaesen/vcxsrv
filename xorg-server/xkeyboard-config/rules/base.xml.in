@@ -1372,6 +1372,12 @@
                           <iso639Id>srp</iso639Id> </languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>workman</name>
+            <_description>English (US, Workman)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>

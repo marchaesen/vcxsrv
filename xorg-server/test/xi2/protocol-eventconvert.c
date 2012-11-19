@@ -338,8 +338,8 @@ test_values_XIDeviceEvent(DeviceEvent *in, xXIDeviceEvent * out, BOOL swap)
     assert(out->event_x == 0);  /* set in FixUpEventFromWindow */
     assert(out->event_y == 0);  /* set in FixUpEventFromWindow */
 
-    assert(out->root_x == FP1616(in->root_x, in->root_x_frac));
-    assert(out->root_y == FP1616(in->root_y, in->root_y_frac));
+    assert(out->root_x == double_to_fp1616(in->root_x + in->root_x_frac));
+    assert(out->root_y == double_to_fp1616(in->root_y + in->root_y_frac));
 
     buttons = 0;
     for (i = 0; i < bits_to_bytes(sizeof(in->buttons)); i++) {

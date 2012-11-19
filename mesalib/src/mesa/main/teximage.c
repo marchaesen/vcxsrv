@@ -1027,6 +1027,44 @@ _mesa_get_texture_dimensions(GLenum target)
 }
 
 
+/**
+ * Return the maximum number of mipmap levels for the given target
+ * and the dimensions.
+ * The dimensions are expected not to include the border.
+ */
+GLsizei
+_mesa_get_tex_max_num_levels(GLenum target, GLsizei width, GLsizei height,
+                             GLsizei depth)
+{
+   GLsizei size;
+
+   switch (target) {
+   case GL_TEXTURE_1D:
+   case GL_TEXTURE_1D_ARRAY:
+      size = width;
+      break;
+   case GL_TEXTURE_CUBE_MAP:
+   case GL_TEXTURE_CUBE_MAP_ARRAY:
+      ASSERT(width == height);
+      size = width;
+      break;
+   case GL_TEXTURE_2D:
+   case GL_TEXTURE_2D_ARRAY:
+      size = MAX2(width, height);
+      break;
+   case GL_TEXTURE_3D:
+      size = MAX3(width, height, depth);
+      break;
+   case GL_TEXTURE_RECTANGLE:
+   case GL_TEXTURE_EXTERNAL_OES:
+      return 1;
+   default:
+      assert(0);
+      return 1;
+   }
+
+   return _mesa_logbase2(size) + 1;
+}
 
 
 #if 000 /* not used anymore */
@@ -1214,7 +1252,9 @@ _mesa_init_teximage_fields(struct gl_context *ctx,
                     target);
    }
 
-   img->MaxLog2 = MAX2(img->WidthLog2, img->HeightLog2);
+   img->MaxNumLevels =
+      _mesa_get_tex_max_num_levels(target,
+                                   img->Width2, img->Height2, img->Depth2);
    img->TexFormat = format;
 }
 
@@ -3532,7 +3572,7 @@ compressed_subtexture_error_check(struct gl_context *ctx, GLint dims,
 
 
 void GLAPIENTRY
-_mesa_CompressedTexImage1DARB(GLenum target, GLint level,
+_mesa_CompressedTexImage1D(GLenum target, GLint level,
                               GLenum internalFormat, GLsizei width,
                               GLint border, GLsizei imageSize,
                               const GLvoid *data)
@@ -3544,7 +3584,7 @@ _mesa_CompressedTexImage1DARB(GLenum target, GLint level,
 
 
 void GLAPIENTRY
-_mesa_CompressedTexImage2DARB(GLenum target, GLint level,
+_mesa_CompressedTexImage2D(GLenum target, GLint level,
                               GLenum internalFormat, GLsizei width,
                               GLsizei height, GLint border, GLsizei imageSize,
                               const GLvoid *data)
@@ -3556,7 +3596,7 @@ _mesa_CompressedTexImage2DARB(GLenum target, GLint level,
 
 
 void GLAPIENTRY
-_mesa_CompressedTexImage3DARB(GLenum target, GLint level,
+_mesa_CompressedTexImage3D(GLenum target, GLint level,
                               GLenum internalFormat, GLsizei width,
                               GLsizei height, GLsizei depth, GLint border,
                               GLsizei imageSize, const GLvoid *data)
@@ -3611,7 +3651,7 @@ compressed_tex_sub_image(GLuint dims, GLenum target, GLint level,
 
 
 void GLAPIENTRY
-_mesa_CompressedTexSubImage1DARB(GLenum target, GLint level, GLint xoffset,
+_mesa_CompressedTexSubImage1D(GLenum target, GLint level, GLint xoffset,
                                  GLsizei width, GLenum format,
                                  GLsizei imageSize, const GLvoid *data)
 {
@@ -3621,7 +3661,7 @@ _mesa_CompressedTexSubImage1DARB(GLenum target, GLint level, GLint xoffset,
 
 
 void GLAPIENTRY
-_mesa_CompressedTexSubImage2DARB(GLenum target, GLint level, GLint xoffset,
+_mesa_CompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset,
                                  GLint yoffset, GLsizei width, GLsizei height,
                                  GLenum format, GLsizei imageSize,
                                  const GLvoid *data)
@@ -3632,7 +3672,7 @@ _mesa_CompressedTexSubImage2DARB(GLenum target, GLint level, GLint xoffset,
 
 
 void GLAPIENTRY
-_mesa_CompressedTexSubImage3DARB(GLenum target, GLint level, GLint xoffset,
+_mesa_CompressedTexSubImage3D(GLenum target, GLint level, GLint xoffset,
                                  GLint yoffset, GLint zoffset, GLsizei width,
                                  GLsizei height, GLsizei depth, GLenum format,
                                  GLsizei imageSize, const GLvoid *data)

@@ -164,17 +164,6 @@ key_autorepeats(DeviceIntPtr pDev, int key_code)
 }
 
 static void
-init_event(DeviceIntPtr dev, DeviceEvent *event, Time ms)
-{
-    memset(event, 0, sizeof(DeviceEvent));
-    event->header = ET_Internal;
-    event->length = sizeof(DeviceEvent);
-    event->time = ms;
-    event->deviceid = dev->id;
-    event->sourceid = dev->id;
-}
-
-static void
 init_touch_ownership(DeviceIntPtr dev, TouchOwnershipEvent *event, Time ms)
 {
     memset(event, 0, sizeof(TouchOwnershipEvent));
@@ -1915,7 +1904,7 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
     event = &events->device_event;
     num_events++;
 
-    init_event(dev, event, ms);
+    init_device_event(event, dev, ms);
     /* if submitted for master device, get the sourceid from there */
     if (flags & TOUCH_CLIENT_ID) {
         event->sourceid = touchpoint.dix_ti->sourceid;

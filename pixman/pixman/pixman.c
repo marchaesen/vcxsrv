@@ -587,7 +587,7 @@ pixman_image_composite32 (pixman_op_t      op,
     src_format = src->common.extended_format_code;
     src_flags = src->common.flags;
 
-    if (mask)
+    if (mask && !(mask->common.flags & FAST_PATH_IS_OPAQUE))
     {
 	mask_format = mask->common.extended_format_code;
 	mask_flags = mask->common.flags;

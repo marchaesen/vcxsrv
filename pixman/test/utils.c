@@ -377,7 +377,7 @@ fence_malloc (int64_t len)
 	return NULL;
     }
 
-    initial_page = (uint8_t *)(((unsigned long)addr + page_mask) & ~page_mask);
+    initial_page = (uint8_t *)(((uintptr_t)addr + page_mask) & ~page_mask);
     leading_protected = initial_page + page_size;
     payload = leading_protected + N_LEADING_PROTECTED * page_size;
     trailing_protected = payload + n_payload_bytes;
@@ -694,6 +694,8 @@ get_random_seed (void)
     return lcg_rand_u32 ();
 }
 
+#ifdef HAVE_SIGACTION
+#ifdef HAVE_ALARM
 static const char *global_msg;
 
 static void
@@ -702,6 +704,8 @@ on_alarm (int signo)
     printf ("%s\n", global_msg);
     exit (1);
 }
+#endif
+#endif
 
 void
 fail_after (int seconds, const char *msg)

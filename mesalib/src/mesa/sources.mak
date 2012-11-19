@@ -40,6 +40,7 @@ MAIN_FILES = \
 	$(SRCDIR)main/fbobject.c \
 	$(SRCDIR)main/feedback.c \
 	$(SRCDIR)main/ffvertex_prog.c \
+	$(SRCDIR)main/ff_fragment_shader.cpp \
 	$(SRCDIR)main/fog.c \
 	$(SRCDIR)main/formats.c \
 	$(SRCDIR)main/format_pack.c \
@@ -49,6 +50,7 @@ MAIN_FILES = \
 	$(SRCDIR)main/getstring.c \
 	$(SRCDIR)main/glformats.c \
 	$(SRCDIR)main/hash.c \
+	$(SRCDIR)main/hash_table.c \
 	$(SRCDIR)main/hint.c \
 	$(SRCDIR)main/histogram.c \
 	$(SRCDIR)main/image.c \
@@ -76,6 +78,7 @@ MAIN_FILES = \
 	$(SRCDIR)main/scissor.c \
 	$(SRCDIR)main/shaderapi.c \
 	$(SRCDIR)main/shaderobj.c \
+	$(SRCDIR)main/shader_query.cpp \
 	$(SRCDIR)main/shared.c \
 	$(SRCDIR)main/state.c \
 	$(SRCDIR)main/stencil.c \
@@ -99,17 +102,13 @@ MAIN_FILES = \
 	$(SRCDIR)main/texturebarrier.c \
 	$(SRCDIR)main/transformfeedback.c \
 	$(SRCDIR)main/uniforms.c \
+	$(SRCDIR)main/uniform_query.cpp \
 	$(SRCDIR)main/varray.c \
 	$(SRCDIR)main/version.c \
 	$(SRCDIR)main/viewport.c \
 	$(SRCDIR)main/vtxfmt.c \
 	$(BUILDDIR)main/enums.c \
 	$(MAIN_ES_FILES)
-
-MAIN_CXX_FILES = \
-	$(SRCDIR)main/ff_fragment_shader.cpp \
-	$(SRCDIR)main/shader_query.cpp \
-	$(SRCDIR)main/uniform_query.cpp
 
 MATH_FILES = \
 	$(SRCDIR)math/m_debug_clip.c \
@@ -240,6 +239,7 @@ STATETRACKER_FILES = \
 	$(SRCDIR)state_tracker/st_extensions.c \
 	$(SRCDIR)state_tracker/st_format.c \
 	$(SRCDIR)state_tracker/st_gen_mipmap.c \
+	$(SRCDIR)state_tracker/st_glsl_to_tgsi.cpp \
 	$(SRCDIR)state_tracker/st_manager.c \
 	$(SRCDIR)state_tracker/st_mesa_to_tgsi.c \
 	$(SRCDIR)state_tracker/st_program.c \
@@ -248,6 +248,7 @@ STATETRACKER_FILES = \
 PROGRAM_FILES = \
 	$(SRCDIR)program/arbprogparse.c \
 	$(SRCDIR)program/hash_table.c \
+	$(SRCDIR)program/ir_to_mesa.cpp \
 	$(SRCDIR)program/program.c \
 	$(SRCDIR)program/program_parse_extra.c \
 	$(SRCDIR)program/prog_cache.c \
@@ -262,15 +263,11 @@ PROGRAM_FILES = \
 	$(SRCDIR)program/prog_statevars.c \
 	$(SRCDIR)program/programopt.c \
 	$(SRCDIR)program/register_allocate.c \
+	$(SRCDIR)program/sampler.cpp \
+	$(SRCDIR)program/string_to_uint_map.cpp \
 	$(SRCDIR)program/symbol_table.c \
 	$(BUILDDIR)program/lex.yy.c \
 	$(BUILDDIR)program/program_parse.tab.c
-
-
-SHADER_CXX_FILES = \
-	$(SRCDIR)program/ir_to_mesa.cpp \
-	$(SRCDIR)program/sampler.cpp \
-	$(SRCDIR)program/string_to_uint_map.cpp
 
 ASM_C_FILES =	\
 	$(SRCDIR)x86/common_x86.c \
@@ -320,15 +317,10 @@ MESA_FILES = \
 	$(MATH_XFORM_FILES)	\
 	$(VBO_FILES)		\
 	$(TNL_FILES)		\
-	$(PROGRAM_FILES)	\
 	$(SWRAST_FILES)	\
 	$(SWRAST_SETUP_FILES)	\
 	$(COMMON_DRIVER_FILES)\
 	$(ASM_C_FILES)
-
-MESA_CXX_FILES = \
-	$(MAIN_CXX_FILES) \
-	$(SHADER_CXX_FILES)
 
 # Sources for building Gallium drivers
 MESA_GALLIUM_FILES = \
@@ -336,36 +328,13 @@ MESA_GALLIUM_FILES = \
 	$(MATH_FILES)		\
 	$(VBO_FILES)		\
 	$(STATETRACKER_FILES)	\
-	$(PROGRAM_FILES)	\
 	$(SRCDIR)x86/common_x86.c
-
-MESA_GALLIUM_CXX_FILES = \
-	$(MESA_CXX_FILES) \
-	$(SRCDIR)state_tracker/st_glsl_to_tgsi.cpp
 
 # All the core C sources, for dependency checking
 ALL_FILES = \
 	$(MESA_FILES)		\
-	$(MESA_GALLIUM_CXX_FILES) \
 	$(MESA_ASM_FILES)	\
 	$(STATETRACKER_FILES)
-
-
-### Object files
-
-MESA_OBJECTS = \
-	$(MESA_FILES:.c=.o) \
-	$(MESA_CXX_FILES:.cpp=.o) \
-	$(MESA_ASM_FILES:.S=.o)
-
-MESA_GALLIUM_OBJECTS = \
-	$(MESA_GALLIUM_FILES:.c=.o) \
-	$(MESA_GALLIUM_CXX_FILES:.cpp=.o) \
-	$(MESA_ASM_FILES:.S=.o)
-
-
-COMMON_DRIVER_OBJECTS = $(COMMON_DRIVER_FILES:.c=.o)
-
 
 ### Include directories
 

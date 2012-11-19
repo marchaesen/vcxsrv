@@ -226,6 +226,9 @@ pixman_bool_t pixman_transform_is_inverse       (const struct pixman_transform *
 /*
  * Floating point matrices
  */
+typedef struct pixman_f_transform pixman_f_transform_t;
+typedef struct pixman_f_vector pixman_f_vector_t;
+
 struct pixman_f_vector
 {
     double  v[3];

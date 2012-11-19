@@ -835,23 +835,6 @@ extern void XkbFakeDeviceButton(DeviceIntPtr /* dev */ ,
 #define	_XkbListGeometry	4
 #define	_XkbListNumComponents	5
 
-typedef struct _XkbSrvListInfo {
-    int szPool;
-    int nPool;
-    char *pool;
-
-    int maxRtrn;
-    int nTotal;
-
-    char *pattern[_XkbListNumComponents];
-    int nFound[_XkbListNumComponents];
-} XkbSrvListInfoRec, *XkbSrvListInfoPtr;
-
-extern _X_EXPORT Status XkbDDXList(DeviceIntPtr /* dev */ ,
-                                   XkbSrvListInfoPtr /* listing */ ,
-                                   ClientPtr    /* client */
-    );
-
 extern _X_EXPORT unsigned int XkbDDXLoadKeymapByNames(DeviceIntPtr /* keybd */ ,
                                                       XkbComponentNamesPtr
                                                       /* names */ ,

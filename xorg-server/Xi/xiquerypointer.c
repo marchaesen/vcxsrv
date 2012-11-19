@@ -50,6 +50,7 @@
 #include "panoramiXsrv.h"
 #endif
 
+#include "inpututils.h"
 #include "xiquerypointer.h"
 
 /***********************************************************************
@@ -127,8 +128,8 @@ ProcXIQueryPointer(ClientPtr client)
         .sequenceNumber = client->sequence,
         .length = 6,
         .root = (GetCurrentRootWindow(pDev))->drawable.id,
-        .root_x = FP1616(pSprite->hot.x, 0),
-        .root_y = FP1616(pSprite->hot.y, 0),
+        .root_x = double_to_fp1616(pSprite->hot.x),
+        .root_y = double_to_fp1616(pSprite->hot.y),
         .child = None
     };
 
@@ -166,8 +167,8 @@ ProcXIQueryPointer(ClientPtr client)
 
     if (pSprite->hot.pScreen == pWin->drawable.pScreen) {
         rep.same_screen = xTrue;
-        rep.win_x = FP1616(pSprite->hot.x - pWin->drawable.x, 0);
-        rep.win_y = FP1616(pSprite->hot.y - pWin->drawable.y, 0);
+        rep.win_x = double_to_fp1616(pSprite->hot.x - pWin->drawable.x);
+        rep.win_y = double_to_fp1616(pSprite->hot.y - pWin->drawable.y);
         for (t = pSprite->win; t; t = t->parent)
             if (t->parent == pWin) {
                 rep.child = t->drawable.id;
@@ -182,11 +183,11 @@ ProcXIQueryPointer(ClientPtr client)
 
 #ifdef PANORAMIX
     if (!noPanoramiXExtension) {
-        rep.root_x += FP1616(screenInfo.screens[0]->x, 0);
-        rep.root_y += FP1616(screenInfo.screens[0]->y, 0);
+        rep.root_x += double_to_fp1616(screenInfo.screens[0]->x);
+        rep.root_y += double_to_fp1616(screenInfo.screens[0]->y);
         if (stuff->win == rep.root) {
-            rep.win_x += FP1616(screenInfo.screens[0]->x, 0);
-            rep.win_y += FP1616(screenInfo.screens[0]->y, 0);
+            rep.win_x += double_to_fp1616(screenInfo.screens[0]->x);
+            rep.win_y += double_to_fp1616(screenInfo.screens[0]->y);
         }
     }
 #endif

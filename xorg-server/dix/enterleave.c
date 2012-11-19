@@ -39,6 +39,7 @@
 #include "enterleave.h"
 #include "eventconvert.h"
 #include "xkbsrv.h"
+#include "inpututils.h"
 
 /**
  * @file
@@ -799,8 +800,8 @@ DeviceFocusEvent(DeviceIntPtr dev, int type, int mode, int detail,
     xi2event->deviceid = dev->id;
     xi2event->sourceid = dev->id;       /* a device doesn't change focus by itself */
     xi2event->mode = mode;
-    xi2event->root_x = FP1616(mouse->spriteInfo->sprite->hot.x, 0);
-    xi2event->root_y = FP1616(mouse->spriteInfo->sprite->hot.y, 0);
+    xi2event->root_x = double_to_fp1616(mouse->spriteInfo->sprite->hot.x);
+    xi2event->root_y = double_to_fp1616(mouse->spriteInfo->sprite->hot.y);
 
     for (i = 0; mouse && mouse->button && i < mouse->button->numButtons; i++)
         if (BitIsOn(mouse->button->down, i))

@@ -432,7 +432,7 @@ FcFontRenderPrepare (FcConfig	    *config,
     FcPattern	    *new;
     int		    i;
     FcPatternElt    *fe, *pe, *fel, *pel;
-    FcValue	    v, vl;
+    FcValue	    v;
     FcResult	    result;
 
     assert (pat != NULL);
@@ -440,7 +440,7 @@ FcFontRenderPrepare (FcConfig	    *config,
 
     new = FcPatternCreate ();
     if (!new)
-	return 0;
+	return NULL;
     for (i = 0; i < font->num; i++)
     {
 	fe = &FcPatternElts(font)[i];
@@ -478,47 +478,74 @@ FcFontRenderPrepare (FcConfig	    *config,
 				     FcPatternEltValues(fe), &v, NULL, NULL, &result))
 	    {
 		FcPatternDestroy (new);
-		return 0;
+		return NULL;
 	    }
 	    if (fel && pel)
 	    {
 		int n = 1, j;
+		FcValueListPtr l1, l2, ln = NULL, ll = NULL;
 
 		match = FcObjectToMatcher (pel->object, FcTrue);
 		if (!FcCompareValueList (pel->object, match,
 					 FcPatternEltValues (pel),
-					 FcPatternEltValues (fel), &vl, NULL, &n, &result))
+					 FcPatternEltValues (fel), NULL, NULL, &n, &result))
 		{
 		    FcPatternDestroy (new);
 		    return NULL;
 		}
-		else
-		{
-		    FcValueListPtr l;
 
-		    for (j = 0, l = FcPatternEltValues (fe);
-			 j < n && l != NULL;
-			 j++, l = FcValueListNext (l));
-		    if (l)
-			v = FcValueCanonicalize (&l->value);
+		for (j = 0, l1 = FcPatternEltValues (fe), l2 = FcPatternEltValues (fel);
+		     l1 != NULL || l2 != NULL;
+		     j++, l1 = l1 ? FcValueListNext (l1) : NULL, l2 = l2 ? FcValueListNext (l2) : NULL)
+		{
+		    if (j == n)
+		    {
+			if (l1)
+			    ln = FcValueListPrepend (ln,
+						     FcValueCanonicalize (&l1->value),
+						     FcValueBindingStrong);
+			if (l2)
+			    ll = FcValueListPrepend (ll,
+						     FcValueCanonicalize (&l2->value),
+						     FcValueBindingStrong);
+		    }
 		    else
-			v = FcValueCanonicalize (&FcPatternEltValues (fe)->value);
+		    {
+			if (l1)
+			    ln = FcValueListAppend (ln,
+						    FcValueCanonicalize (&l1->value),
+						    FcValueBindingStrong);
+			if (l2)
+			    ll = FcValueListAppend (ll,
+						    FcValueCanonicalize (&l2->value),
+						    FcValueBindingStrong);
+		    }
 		}
+		FcPatternObjectListAdd (new, fe->object, ln, FcFalse);
+		FcPatternObjectListAdd (new, fel->object, ll, FcFalse);
+
+		continue;
 	    }
 	    else if (fel)
 	    {
-		vl = FcValueCanonicalize (&FcPatternEltValues (fel)->value);
+		FcValueListPtr l1, l2;
+
+	    copy_lang:
+		l1 = FcValueListDuplicate (FcPatternEltValues (fe));
+		l2 = FcValueListDuplicate (FcPatternEltValues (fel));
+		FcPatternObjectListAdd (new, fe->object, l1, FcFalse);
+		FcPatternObjectListAdd (new, fel->object, l2, FcFalse);
+
+		continue;
 	    }
 	}
 	else
 	{
-	    v = FcValueCanonicalize(&FcPatternEltValues (fe)->value);
 	    if (fel)
-		vl = FcValueCanonicalize (&FcPatternEltValues (fel)->value);
+		goto copy_lang;
+	    v = FcValueCanonicalize(&FcPatternEltValues (fe)->value);
 	}
 	FcPatternObjectAdd (new, fe->object, v, FcFalse);
-	if (fel)
-	    FcPatternObjectAdd (new, fel->object, vl, FcFalse);
     }
     for (i = 0; i < pat->num; i++)
     {

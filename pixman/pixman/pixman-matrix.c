@@ -336,14 +336,14 @@ PIXMAN_EXPORT pixman_bool_t
 pixman_transform_invert (struct pixman_transform *      dst,
                          const struct pixman_transform *src)
 {
-    struct pixman_f_transform m, r;
+    struct pixman_f_transform m;
 
     pixman_f_transform_from_pixman_transform (&m, src);
 
-    if (!pixman_f_transform_invert (&r, &m))
+    if (!pixman_f_transform_invert (&m, &m))
 	return FALSE;
 
-    if (!pixman_transform_from_pixman_f_transform (dst, &r))
+    if (!pixman_transform_from_pixman_f_transform (dst, &m))
 	return FALSE;
 
     return TRUE;
@@ -469,10 +469,11 @@ PIXMAN_EXPORT pixman_bool_t
 pixman_f_transform_invert (struct pixman_f_transform *      dst,
                            const struct pixman_f_transform *src)
 {
-    double det;
-    int i, j;
     static const int a[3] = { 2, 2, 1 };
     static const int b[3] = { 1, 0, 0 };
+    pixman_f_transform_t d;
+    double det;
+    int i, j;
 
     det = 0;
     for (i = 0; i < 3; i++)
@@ -507,9 +508,11 @@ pixman_f_transform_invert (struct pixman_f_transform *      dst,
 	    if (((i + j) & 1) != 0)
 		p = -p;
 	    
-	    dst->m[j][i] = det * p;
+	    d.m[j][i] = det * p;
 	}
     }
+
+    *dst = d;
 
     return TRUE;
 }

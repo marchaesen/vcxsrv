@@ -38,6 +38,14 @@
 
 #include <sys/stat.h>
 
+#ifndef K_OFF
+#define K_OFF 0x4
+#endif
+
+#ifndef KDSKBMUTE
+#define KDSKBMUTE 0x4B51
+#endif
+
 static Bool KeepTty = FALSE;
 static int activeVT = -1;
 
@@ -213,19 +221,23 @@ xf86OpenConsole(void)
             tcgetattr(xf86Info.consoleFd, &tty_attr);
             SYSCALL(ioctl(xf86Info.consoleFd, KDGKBMODE, &tty_mode));
 
-#ifdef K_OFF
-            /* disable kernel special keys and buffering */
-            SYSCALL(ret = ioctl(xf86Info.consoleFd, KDSKBMODE, K_OFF));
+            /* disable kernel special keys and buffering, new style */
+            SYSCALL(ret = ioctl(xf86Info.consoleFd, KDSKBMUTE, 1));
             if (ret < 0)
-#endif
             {
-                SYSCALL(ret = ioctl(xf86Info.consoleFd, KDSKBMODE, K_RAW));
+                /* disable kernel special keys and buffering, old style */
+                SYSCALL(ret = ioctl(xf86Info.consoleFd, KDSKBMODE, K_OFF));
                 if (ret < 0)
-                    FatalError("xf86OpenConsole: KDSKBMODE K_RAW failed %s\n",
-                               strerror(errno));
+                {
+                    /* fine, just disable special keys */
+                    SYSCALL(ret = ioctl(xf86Info.consoleFd, KDSKBMODE, K_RAW));
+                    if (ret < 0)
+                        FatalError("xf86OpenConsole: KDSKBMODE K_RAW failed %s\n",
+                                   strerror(errno));
 
-                /* need to keep the buffer clean, else the kernel gets angry */
-                xf86SetConsoleHandler(drain_console, NULL);
+                    /* ... and drain events, else the kernel gets angry */
+                    xf86SetConsoleHandler(drain_console, NULL);
+                }
             }
 
             nTty = tty_attr;
@@ -271,6 +283,7 @@ xf86CloseConsole(void)
         xf86Msg(X_WARNING, "xf86CloseConsole: KDSETMODE failed: %s\n",
                 strerror(errno));
 
+    SYSCALL(ioctl(xf86Info.consoleFd, KDSKBMUTE, 0));
     SYSCALL(ioctl(xf86Info.consoleFd, KDSKBMODE, tty_mode));
     tcsetattr(xf86Info.consoleFd, TCSANOW, &tty_attr);
 

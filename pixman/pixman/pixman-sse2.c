@@ -576,7 +576,7 @@ core_combine_over_u_sse2_mask (uint32_t *	  pd,
     uint32_t s, d;
 
     /* Align dst on a 16-byte boundary */
-    while (w && ((unsigned long)pd & 15))
+    while (w && ((uintptr_t)pd & 15))
     {
 	d = *pd;
 	s = combine1 (ps, pm);
@@ -661,7 +661,7 @@ core_combine_over_u_sse2_no_mask (uint32_t *	  pd,
     uint32_t s, d;
 
     /* Align dst on a 16-byte boundary */
-    while (w && ((unsigned long)pd & 15))
+    while (w && ((uintptr_t)pd & 15))
     {
 	d = *pd;
 	s = *ps;
@@ -753,7 +753,7 @@ sse2_combine_over_reverse_u (pixman_implementation_t *imp,
 
     /* Align dst on a 16-byte boundary */
     while (w &&
-           ((unsigned long)pd & 15))
+           ((uintptr_t)pd & 15))
     {
 	d = *pd;
 	s = combine1 (ps, pm);
@@ -840,7 +840,7 @@ sse2_combine_in_u (pixman_implementation_t *imp,
     __m128i xmm_src_lo, xmm_src_hi;
     __m128i xmm_dst_lo, xmm_dst_hi;
 
-    while (w && ((unsigned long) pd & 15))
+    while (w && ((uintptr_t)pd & 15))
     {
 	s = combine1 (ps, pm);
 	d = *pd;
@@ -901,7 +901,7 @@ sse2_combine_in_reverse_u (pixman_implementation_t *imp,
     __m128i xmm_src_lo, xmm_src_hi;
     __m128i xmm_dst_lo, xmm_dst_hi;
 
-    while (w && ((unsigned long) pd & 15))
+    while (w && ((uintptr_t)pd & 15))
     {
 	s = combine1 (ps, pm);
 	d = *pd;
@@ -957,7 +957,7 @@ sse2_combine_out_reverse_u (pixman_implementation_t *imp,
                             const uint32_t *         pm,
                             int                      w)
 {
-    while (w && ((unsigned long) pd & 15))
+    while (w && ((uintptr_t)pd & 15))
     {
 	uint32_t s = combine1 (ps, pm);
 	uint32_t d = *pd;
@@ -1026,7 +1026,7 @@ sse2_combine_out_u (pixman_implementation_t *imp,
                     const uint32_t *         pm,
                     int                      w)
 {
-    while (w && ((unsigned long) pd & 15))
+    while (w && ((uintptr_t)pd & 15))
     {
 	uint32_t s = combine1 (ps, pm);
 	uint32_t d = *pd;
@@ -1113,7 +1113,7 @@ sse2_combine_atop_u (pixman_implementation_t *imp,
     __m128i xmm_alpha_src_lo, xmm_alpha_src_hi;
     __m128i xmm_alpha_dst_lo, xmm_alpha_dst_hi;
 
-    while (w && ((unsigned long) pd & 15))
+    while (w && ((uintptr_t)pd & 15))
     {
 	s = combine1 (ps, pm);
 	d = *pd;
@@ -1197,7 +1197,7 @@ sse2_combine_atop_reverse_u (pixman_implementation_t *imp,
     __m128i xmm_alpha_src_lo, xmm_alpha_src_hi;
     __m128i xmm_alpha_dst_lo, xmm_alpha_dst_hi;
 
-    while (w && ((unsigned long) pd & 15))
+    while (w && ((uintptr_t)pd & 15))
     {
 	s = combine1 (ps, pm);
 	d = *pd;
@@ -1285,7 +1285,7 @@ sse2_combine_xor_u (pixman_implementation_t *imp,
     __m128i xmm_alpha_src_lo, xmm_alpha_src_hi;
     __m128i xmm_alpha_dst_lo, xmm_alpha_dst_hi;
 
-    while (w && ((unsigned long) pd & 15))
+    while (w && ((uintptr_t)pd & 15))
     {
 	s = combine1 (ps, pm);
 	d = *pd;
@@ -1357,7 +1357,7 @@ sse2_combine_add_u (pixman_implementation_t *imp,
     const uint32_t* ps = src;
     const uint32_t* pm = mask;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = combine1 (ps, pm);
 	d = *pd;
@@ -1430,7 +1430,7 @@ sse2_combine_saturate_u (pixman_implementation_t *imp,
     uint32_t pack_cmp;
     __m128i xmm_src, xmm_dst;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = combine1 (ps, pm);
 	d = *pd;
@@ -1518,7 +1518,7 @@ sse2_combine_src_ca (pixman_implementation_t *imp,
     __m128i xmm_mask_lo, xmm_mask_hi;
     __m128i xmm_dst_lo, xmm_dst_hi;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = *ps++;
 	m = *pm++;
@@ -1586,7 +1586,7 @@ sse2_combine_over_ca (pixman_implementation_t *imp,
     __m128i xmm_dst_lo, xmm_dst_hi;
     __m128i xmm_mask_lo, xmm_mask_hi;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = *ps++;
 	m = *pm++;
@@ -1662,7 +1662,7 @@ sse2_combine_over_reverse_ca (pixman_implementation_t *imp,
     __m128i xmm_dst_lo, xmm_dst_hi;
     __m128i xmm_mask_lo, xmm_mask_hi;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = *ps++;
 	m = *pm++;
@@ -1727,7 +1727,7 @@ sse2_combine_in_ca (pixman_implementation_t *imp,
     __m128i xmm_dst_lo, xmm_dst_hi;
     __m128i xmm_mask_lo, xmm_mask_hi;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = *ps++;
 	m = *pm++;
@@ -1802,7 +1802,7 @@ sse2_combine_in_reverse_ca (pixman_implementation_t *imp,
     __m128i xmm_dst_lo, xmm_dst_hi;
     __m128i xmm_mask_lo, xmm_mask_hi;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = *ps++;
 	m = *pm++;
@@ -1875,7 +1875,7 @@ sse2_combine_out_ca (pixman_implementation_t *imp,
     __m128i xmm_dst_lo, xmm_dst_hi;
     __m128i xmm_mask_lo, xmm_mask_hi;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = *ps++;
 	m = *pm++;
@@ -1951,7 +1951,7 @@ sse2_combine_out_reverse_ca (pixman_implementation_t *imp,
     __m128i xmm_dst_lo, xmm_dst_hi;
     __m128i xmm_mask_lo, xmm_mask_hi;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = *ps++;
 	m = *pm++;
@@ -2048,7 +2048,7 @@ sse2_combine_atop_ca (pixman_implementation_t *imp,
     __m128i xmm_alpha_dst_lo, xmm_alpha_dst_hi;
     __m128i xmm_mask_lo, xmm_mask_hi;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = *ps++;
 	m = *pm++;
@@ -2141,7 +2141,7 @@ sse2_combine_atop_reverse_ca (pixman_implementation_t *imp,
     __m128i xmm_alpha_dst_lo, xmm_alpha_dst_hi;
     __m128i xmm_mask_lo, xmm_mask_hi;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = *ps++;
 	m = *pm++;
@@ -2237,7 +2237,7 @@ sse2_combine_xor_ca (pixman_implementation_t *imp,
     __m128i xmm_alpha_dst_lo, xmm_alpha_dst_hi;
     __m128i xmm_mask_lo, xmm_mask_hi;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = *ps++;
 	m = *pm++;
@@ -2313,7 +2313,7 @@ sse2_combine_add_ca (pixman_implementation_t *imp,
     __m128i xmm_dst_lo, xmm_dst_hi;
     __m128i xmm_mask_lo, xmm_mask_hi;
 
-    while (w && (unsigned long)pd & 15)
+    while (w && (uintptr_t)pd & 15)
     {
 	s = *ps++;
 	m = *pm++;
@@ -2414,7 +2414,7 @@ sse2_composite_over_n_8888 (pixman_implementation_t *imp,
 	dst_line += dst_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    d = *dst;
 	    *dst++ = pack_1x128_32 (over_1x128 (xmm_src,
@@ -2483,7 +2483,7 @@ sse2_composite_over_n_0565 (pixman_implementation_t *imp,
 	dst_line += dst_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    d = *dst;
 
@@ -2568,7 +2568,7 @@ sse2_composite_add_n_8888_8888_ca (pixman_implementation_t *imp,
 	dst_line += dst_stride;
 	mask_line += mask_stride;
 
-	while (w && (unsigned long)pd & 15)
+	while (w && (uintptr_t)pd & 15)
 	{
 	    m = *pm++;
 
@@ -2682,7 +2682,7 @@ sse2_composite_over_n_8888_8888_ca (pixman_implementation_t *imp,
 	dst_line += dst_stride;
 	mask_line += mask_stride;
 
-	while (w && (unsigned long)pd & 15)
+	while (w && (uintptr_t)pd & 15)
 	{
 	    m = *pm++;
 
@@ -2786,7 +2786,7 @@ sse2_composite_over_8888_n_8888 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    uint32_t s = *src++;
 
@@ -2878,7 +2878,7 @@ sse2_composite_src_x888_0565 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    s = *src++;
 	    *dst = CONVERT_8888_TO_0565 (s);
@@ -2932,7 +2932,7 @@ sse2_composite_src_x888_8888 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    *dst++ = *src++ | 0xff000000;
 	    w--;
@@ -2999,7 +2999,7 @@ sse2_composite_over_x888_n_8888 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    uint32_t s = (*src++) | 0xff000000;
 	    uint32_t d = *dst;
@@ -3125,7 +3125,7 @@ sse2_composite_over_8888_0565 (pixman_implementation_t *imp,
 
 	/* Align dst on a 16-byte boundary */
 	while (w &&
-	       ((unsigned long)dst & 15))
+	       ((uintptr_t)dst & 15))
 	{
 	    s = *src++;
 	    d = *dst;
@@ -3231,7 +3231,7 @@ sse2_composite_over_n_8_8888 (pixman_implementation_t *imp,
 	mask_line += mask_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    uint8_t m = *mask++;
 
@@ -3372,21 +3372,21 @@ sse2_fill (pixman_implementation_t *imp,
 	byte_line += stride;
 	w = byte_width;
 
-	if (w >= 1 && ((unsigned long)d & 1))
+	if (w >= 1 && ((uintptr_t)d & 1))
 	{
 	    *(uint8_t *)d = xor;
 	    w -= 1;
 	    d += 1;
 	}
 
-	while (w >= 2 && ((unsigned long)d & 3))
+	while (w >= 2 && ((uintptr_t)d & 3))
 	{
 	    *(uint16_t *)d = xor;
 	    w -= 2;
 	    d += 2;
 	}
 
-	while (w >= 4 && ((unsigned long)d & 15))
+	while (w >= 4 && ((uintptr_t)d & 15))
 	{
 	    *(uint32_t *)d = xor;
 
@@ -3505,7 +3505,7 @@ sse2_composite_src_n_8_8888 (pixman_implementation_t *imp,
 	mask_line += mask_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    uint8_t m = *mask++;
 
@@ -3621,7 +3621,7 @@ sse2_composite_over_n_8_0565 (pixman_implementation_t *imp,
 	mask_line += mask_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    m = *mask++;
 
@@ -3745,7 +3745,7 @@ sse2_composite_over_pixbuf_0565 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    s = *src++;
 	    d = *dst;
@@ -3854,7 +3854,7 @@ sse2_composite_over_pixbuf_8888 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    s = *src++;
 	    d = *dst;
@@ -3957,7 +3957,7 @@ sse2_composite_over_n_8888_0565_ca (pixman_implementation_t *imp,
 	mask_line += mask_stride;
 	dst_line += dst_stride;
 
-	while (w && ((unsigned long)dst & 15))
+	while (w && ((uintptr_t)dst & 15))
 	{
 	    m = *(uint32_t *) mask;
 
@@ -4083,7 +4083,7 @@ sse2_composite_in_n_8_8 (pixman_implementation_t *imp,
 	mask_line += mask_stride;
 	w = width;
 
-	while (w && ((unsigned long)dst & 15))
+	while (w && ((uintptr_t)dst & 15))
 	{
 	    m = (uint32_t) *mask++;
 	    d = (uint32_t) *dst;
@@ -4176,7 +4176,7 @@ sse2_composite_in_n_8 (pixman_implementation_t *imp,
 	dst_line += dst_stride;
 	w = width;
 
-	while (w && ((unsigned long)dst & 15))
+	while (w && ((uintptr_t)dst & 15))
 	{
 	    d = (uint32_t) *dst;
 
@@ -4245,7 +4245,7 @@ sse2_composite_in_8_8 (pixman_implementation_t *imp,
 	src_line += src_stride;
 	w = width;
 
-	while (w && ((unsigned long)dst & 15))
+	while (w && ((uintptr_t)dst & 15))
 	{
 	    s = (uint32_t) *src++;
 	    d = (uint32_t) *dst;
@@ -4322,7 +4322,7 @@ sse2_composite_add_n_8_8 (pixman_implementation_t *imp,
 	mask_line += mask_stride;
 	w = width;
 
-	while (w && ((unsigned long)dst & 15))
+	while (w && ((uintptr_t)dst & 15))
 	{
 	    m = (uint32_t) *mask++;
 	    d = (uint32_t) *dst;
@@ -4414,7 +4414,7 @@ sse2_composite_add_n_8 (pixman_implementation_t *imp,
 	dst_line += dst_stride;
 	w = width;
 
-	while (w && ((unsigned long)dst & 15))
+	while (w && ((uintptr_t)dst & 15))
 	{
 	    *dst = (uint8_t)_mm_cvtsi128_si32 (
 		_mm_adds_epu8 (
@@ -4474,7 +4474,7 @@ sse2_composite_add_8_8 (pixman_implementation_t *imp,
 	w = width;
 
 	/* Small head */
-	while (w && (unsigned long)dst & 3)
+	while (w && (uintptr_t)dst & 3)
 	{
 	    t = (*dst) + (*src++);
 	    *dst++ = t | (0 - (t >> 8));
@@ -4582,7 +4582,7 @@ sse2_blt (pixman_implementation_t *imp,
 	dst_bytes += dst_stride;
 	w = byte_width;
 
-	while (w >= 2 && ((unsigned long)d & 3))
+	while (w >= 2 && ((uintptr_t)d & 3))
 	{
 	    *(uint16_t *)d = *(uint16_t *)s;
 	    w -= 2;
@@ -4590,7 +4590,7 @@ sse2_blt (pixman_implementation_t *imp,
 	    d += 2;
 	}
 
-	while (w >= 4 && ((unsigned long)d & 15))
+	while (w >= 4 && ((uintptr_t)d & 15))
 	{
 	    *(uint32_t *)d = *(uint32_t *)s;
 
@@ -4697,7 +4697,7 @@ sse2_composite_over_x888_8_8888 (pixman_implementation_t *imp,
 
         w = width;
 
-        while (w && (unsigned long)dst & 15)
+        while (w && (uintptr_t)dst & 15)
         {
             s = 0xff000000 | *src++;
             m = (uint32_t) *mask++;
@@ -4821,7 +4821,7 @@ sse2_composite_over_8888_8_8888 (pixman_implementation_t *imp,
 
         w = width;
 
-        while (w && (unsigned long)dst & 15)
+        while (w && (uintptr_t)dst & 15)
         {
 	    uint32_t sa;
 
@@ -4960,7 +4960,7 @@ sse2_composite_over_reverse_n_8888 (pixman_implementation_t *imp,
 	dst_line += dst_stride;
 	w = width;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    __m128i vd;
 
@@ -5045,7 +5045,7 @@ sse2_composite_over_8888_8888_8888 (pixman_implementation_t *imp,
 
         w = width;
 
-        while (w && (unsigned long)dst & 15)
+        while (w && (uintptr_t)dst & 15)
         {
 	    uint32_t sa;
 
@@ -5173,7 +5173,7 @@ scaled_nearest_scanline_sse2_8888_8888_OVER (uint32_t*       pd,
 	return;
 
     /* Align dst on a 16-byte boundary */
-    while (w && ((unsigned long)pd & 15))
+    while (w && ((uintptr_t)pd & 15))
     {
 	d = *pd;
 	s = combine1 (ps + pixman_fixed_to_int (vx), pm);
@@ -5291,7 +5291,7 @@ scaled_nearest_scanline_sse2_8888_n_8888_OVER (const uint32_t * mask,
 
     xmm_mask = create_mask_16_128 (*mask >> 24);
 
-    while (w && (unsigned long)dst & 15)
+    while (w && (uintptr_t)dst & 15)
     {
 	uint32_t s = *(src + pixman_fixed_to_int (vx));
 	vx += unit_x;
@@ -5538,7 +5538,7 @@ scaled_bilinear_scanline_sse2_8888_8888_OVER (uint32_t *       dst,
     BILINEAR_DECLARE_VARIABLES;
     uint32_t pix1, pix2, pix3, pix4;
 
-    while (w && ((unsigned long)dst & 15))
+    while (w && ((uintptr_t)dst & 15))
     {
 	BILINEAR_INTERPOLATE_ONE_PIXEL (pix1);
 
@@ -5639,7 +5639,7 @@ scaled_bilinear_scanline_sse2_8888_8_8888_OVER (uint32_t *       dst,
     uint32_t pix1, pix2, pix3, pix4;
     uint32_t m;
 
-    while (w && ((unsigned long)dst & 15))
+    while (w && ((uintptr_t)dst & 15))
     {
 	uint32_t sa;
 
@@ -5930,7 +5930,7 @@ sse2_fetch_x8r8g8b8 (pixman_iter_t *iter, const uint32_t *mask)
 
     iter->bits += iter->stride;
 
-    while (w && ((unsigned long)dst) & 0x0f)
+    while (w && ((uintptr_t)dst) & 0x0f)
     {
 	*dst++ = (*src++) | 0xff000000;
 	w--;
@@ -5966,7 +5966,7 @@ sse2_fetch_r5g6b5 (pixman_iter_t *iter, const uint32_t *mask)
 
     iter->bits += iter->stride;
 
-    while (w && ((unsigned long)dst) & 0x0f)
+    while (w && ((uintptr_t)dst) & 0x0f)
     {
 	uint16_t s = *src++;
 
@@ -6012,7 +6012,7 @@ sse2_fetch_a8 (pixman_iter_t *iter, const uint32_t *mask)
 
     iter->bits += iter->stride;
 
-    while (w && (((unsigned long)dst) & 15))
+    while (w && (((uintptr_t)dst) & 15))
     {
         *dst++ = *(src++) << 24;
         w--;

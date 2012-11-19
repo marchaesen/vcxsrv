@@ -877,7 +877,7 @@ cygwin*)
 esac
 AC_ARG_ENABLE([driglx-direct],
     [AS_HELP_STRING([--disable-driglx-direct],
-        [enable direct rendering in GLX and EGL for DRI \
+        [disable direct rendering in GLX and EGL for DRI \
             @<:@default=auto@:>@])],
     [driglx_direct="$enableval"],
     [driglx_direct="$driglx_direct_default"])
@@ -1675,8 +1675,8 @@ if test "x$enable_gallium_llvm" = xyes; then
 	fi
 	LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags`
 	LLVM_BINDIR=`$LLVM_CONFIG --bindir`
-	LLVM_CXXFLAGS=`$LLVM_CONFIG --cxxflags`
-	LLVM_CPPFLAGS=`$LLVM_CONFIG --cppflags`
+	LLVM_CXXFLAGS=`$LLVM_CONFIG --cxxflags|sed -e 's/-DNDEBUG\>//g' -e 's/-pedantic//g' -e 's/-Wcovered-switch-default//g'`
+	LLVM_CPPFLAGS=`$LLVM_CONFIG --cppflags|sed -e 's/-DNDEBUG\>//g' -e 's/-pedantic//g' -e 's/-Wcovered-switch-default//g'`
 	LLVM_INCLUDEDIR=`$LLVM_CONFIG --includedir`
 	LLVM_LIBDIR=`$LLVM_CONFIG --libdir`
 	DEFINES="${DEFINES} -DHAVE_LLVM=`echo $LLVM_VERSION | sed -e 's/\([[0-9]]\)\.\([[0-9]]\)/0x0\10\2/g'`"
@@ -2013,6 +2013,8 @@ AC_CONFIG_FILES([configs/current
 		src/mesa/drivers/x11/Makefile
 		src/mesa/libdricore/Makefile
 		src/mesa/main/tests/Makefile
+		src/mesa/main/tests/hash_table/Makefile
+		src/mesa/program/Makefile
 		src/mesa/x86-64/Makefile
 		src/mesa/x86/Makefile])
 
