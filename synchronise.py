@@ -1,6 +1,9 @@
+#!/usr/bin/python
 import os,sys,shutil,re,stat
 
 from optparse import OptionParser
+
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 
 usage = "usage: %prog [options] <SrcDir> <DestDir>"
 parser = OptionParser(usage=usage)
