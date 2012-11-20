@@ -1,9 +1,14 @@
-@echo off
+#!/bin/sh
 
-set OUTFILE=base.ml_s.part
+INDIR=$1
+OUTFILE=base.ml_s.part
 
-if exist %OUTFILE% del %OUTFILE%
+> $OUTFILE
 
-gawk "{   printf """  *		%%s			=	pc+%%s\n""", $1, $2; }" < layoutsMapping.lst >> %OUTFILE%
+awk '{ 
+  printf "  *		%s			=	pc+%s\n", $1, $2; 
+}' < $INDIR/layoutsMapping.lst >> $OUTFILE
 
-gawk "{   printf """  *		%%s(%%s)			=	pc+%%s(%%s)\n""", $1, $2, $3, $4; }" < variantsMapping.lst >> %OUTFILE%
+awk '{ 
+  printf "  *		%s(%s)			=	pc+%s(%s)\n", $1, $2, $3, $4; 
+}' < $INDIR/variantsMapping.lst >> $OUTFILE

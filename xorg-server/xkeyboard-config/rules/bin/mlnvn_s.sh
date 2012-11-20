@@ -1,8 +1,12 @@
-@echo off
-set variant=%1
+#!/bin/sh
 
-set OUTFILE=base.ml%variant%v%variant%_s.part
+variant=$1
 
-if exist %OUTFILE% del %OUTFILE%
+INDIR=$2
+OUTFILE=base.ml${variant}v${variant}_s.part
 
-gawk "{  printf """  *		%%s		%%s	=	+%%s(%%s):%variant%\n""", $1, $2, $3, $4;}" < variantsMapping.lst >> %OUTFILE%
+> $OUTFILE
+
+awk '{
+  printf "  *		%s		%s	=	+%s(%s):'${variant}'\n", $1, $2, $3, $4;
+}' < $INDIR/variantsMapping.lst >> $OUTFILE

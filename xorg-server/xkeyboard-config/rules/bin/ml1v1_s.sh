@@ -1,7 +1,10 @@
-@echo off
+#!/bin/sh
 
-set OUTFILE=base.ml1v1_s.part
+INDIR=$1
+OUTFILE=base.ml1v1_s.part
 
-if exist %OUTFILE% del %OUTFILE%
+> $OUTFILE
 
-gawk "{   printf """  *		%%s		%%s		=	pc+%%s(%%s)\n""", $1, $2, $3, $4; }" < variantsMapping.lst >> %OUTFILE%
+awk '{ 
+  printf "  *		%s		%s		=	pc+%s(%s)\n", $1, $2, $3, $4; 
+}' < $INDIR/variantsMapping.lst >> $OUTFILE
