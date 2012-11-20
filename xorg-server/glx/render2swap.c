@@ -365,12 +365,12 @@ __glXDispSwap_DrawArrays(GLbyte * pc)
             break;
         case GL_SECONDARY_COLOR_ARRAY:
             CALL_EnableClientState(GET_DISPATCH(), (GL_SECONDARY_COLOR_ARRAY));
-            CALL_SecondaryColorPointerEXT(GET_DISPATCH(),
+            CALL_SecondaryColorPointer(GET_DISPATCH(),
                                           (numVals, datatype, stride, pc));
             break;
         case GL_FOG_COORD_ARRAY:
             CALL_EnableClientState(GET_DISPATCH(), (GL_FOG_COORD_ARRAY));
-            CALL_FogCoordPointerEXT(GET_DISPATCH(), (datatype, stride, pc));
+            CALL_FogCoordPointer(GET_DISPATCH(), (datatype, stride, pc));
             break;
         default:
             break;

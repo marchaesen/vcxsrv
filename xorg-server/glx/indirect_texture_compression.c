@@ -42,7 +42,7 @@
 #include "dispatch.h"
 
 int
-__glXDisp_GetCompressedTexImageARB(struct __GLXclientStateRec *cl, GLbyte * pc)
+__glXDisp_GetCompressedTexImage(struct __GLXclientStateRec *cl, GLbyte * pc)
 {
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
@@ -64,7 +64,7 @@ __glXDisp_GetCompressedTexImageARB(struct __GLXclientStateRec *cl, GLbyte * pc)
         if (compsize != 0) {
             __GLX_GET_ANSWER_BUFFER(answer, cl, compsize, 1);
             __glXClearErrorOccured();
-            CALL_GetCompressedTexImageARB(GET_DISPATCH(),
+            CALL_GetCompressedTexImage(GET_DISPATCH(),
                                           (target, level, answer));
         }
 
@@ -86,7 +86,7 @@ __glXDisp_GetCompressedTexImageARB(struct __GLXclientStateRec *cl, GLbyte * pc)
 }
 
 int
-__glXDispSwap_GetCompressedTexImageARB(struct __GLXclientStateRec *cl,
+__glXDispSwap_GetCompressedTexImage(struct __GLXclientStateRec *cl,
                                        GLbyte * pc)
 {
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
@@ -110,7 +110,7 @@ __glXDispSwap_GetCompressedTexImageARB(struct __GLXclientStateRec *cl,
         if (compsize != 0) {
             __GLX_GET_ANSWER_BUFFER(answer, cl, compsize, 1);
             __glXClearErrorOccured();
-            CALL_GetCompressedTexImageARB(GET_DISPATCH(),
+            CALL_GetCompressedTexImage(GET_DISPATCH(),
                                           (target, level, answer));
         }
 

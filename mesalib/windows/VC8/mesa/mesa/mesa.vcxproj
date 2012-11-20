@@ -198,6 +198,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\es1_conversion.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\format_pack.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\glformats.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\hash_table.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pack.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pixeltransfer.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\querymatrix.c" />
@@ -243,7 +244,10 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\get.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\getstring.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\hash.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\program\hash_table.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\program\hash_table.c">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)/hash_table_program.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)/hash_table_program.obj</ObjectFileName>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\program\ir_to_mesa.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\program\string_to_uint_map.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\program\lex.yy.c" />

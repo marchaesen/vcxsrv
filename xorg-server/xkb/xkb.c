@@ -5645,14 +5645,14 @@ ProcXkbListComponents(ClientPtr client)
     rep.type = X_Reply;
     rep.deviceID = dev->id;
     rep.sequenceNumber = client->sequence;
-    rep.length = 0,
-    rep.nKeymaps = 0,
-    rep.nKeycodes = 0,
-    rep.nTypes = 0,
-    rep.nCompatMaps = 0,
-    rep.nSymbols = 0,
-    rep.nGeometries = 0,
-    rep.extra = 0
+    rep.length = 0;
+    rep.nKeymaps = 0;
+    rep.nKeycodes = 0;
+    rep.nTypes = 0;
+    rep.nCompatMaps = 0;
+    rep.nSymbols = 0;
+    rep.nGeometries = 0;
+    rep.extra = 0;
 
     if (client->swapped) {
         swaps(&rep.sequenceNumber);

@@ -404,9 +404,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_statevars.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\program\hash_table.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\program\lex.yy.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -702,6 +699,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\drawtex.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\hash_table.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\program\hash_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
