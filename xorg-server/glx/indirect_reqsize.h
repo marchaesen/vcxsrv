@@ -79,15 +79,18 @@ extern PURE _X_HIDDEN int __glXConvolutionParameterivReqSize(const GLbyte *pc, B
 extern PURE _X_HIDDEN int __glXSeparableFilter2DReqSize(const GLbyte *pc, Bool swap);
 extern PURE _X_HIDDEN int __glXTexImage3DReqSize(const GLbyte *pc, Bool swap);
 extern PURE _X_HIDDEN int __glXTexSubImage3DReqSize(const GLbyte *pc, Bool swap);
-extern PURE _X_HIDDEN int __glXCompressedTexImage1DARBReqSize(const GLbyte *pc, Bool swap);
-extern PURE _X_HIDDEN int __glXCompressedTexImage2DARBReqSize(const GLbyte *pc, Bool swap);
-extern PURE _X_HIDDEN int __glXCompressedTexImage3DARBReqSize(const GLbyte *pc, Bool swap);
-extern PURE _X_HIDDEN int __glXCompressedTexSubImage1DARBReqSize(const GLbyte *pc, Bool swap);
-extern PURE _X_HIDDEN int __glXCompressedTexSubImage2DARBReqSize(const GLbyte *pc, Bool swap);
-extern PURE _X_HIDDEN int __glXCompressedTexSubImage3DARBReqSize(const GLbyte *pc, Bool swap);
+extern PURE _X_HIDDEN int __glXCompressedTexImage1DReqSize(const GLbyte *pc, Bool swap);
+extern PURE _X_HIDDEN int __glXCompressedTexImage2DReqSize(const GLbyte *pc, Bool swap);
+extern PURE _X_HIDDEN int __glXCompressedTexImage3DReqSize(const GLbyte *pc, Bool swap);
+extern PURE _X_HIDDEN int __glXCompressedTexSubImage1DReqSize(const GLbyte *pc, Bool swap);
+extern PURE _X_HIDDEN int __glXCompressedTexSubImage2DReqSize(const GLbyte *pc, Bool swap);
+extern PURE _X_HIDDEN int __glXCompressedTexSubImage3DReqSize(const GLbyte *pc, Bool swap);
+extern PURE _X_HIDDEN int __glXPointParameterfvReqSize(const GLbyte *pc, Bool swap);
+extern PURE _X_HIDDEN int __glXPointParameterivReqSize(const GLbyte *pc, Bool swap);
+extern PURE _X_HIDDEN int __glXDrawBuffersReqSize(const GLbyte *pc, Bool swap);
 extern PURE _X_HIDDEN int __glXProgramStringARBReqSize(const GLbyte *pc, Bool swap);
-extern PURE _X_HIDDEN int __glXDrawBuffersARBReqSize(const GLbyte *pc, Bool swap);
-extern PURE _X_HIDDEN int __glXPointParameterfvEXTReqSize(const GLbyte *pc, Bool swap);
+extern PURE _X_HIDDEN int __glXDeleteFramebuffersReqSize(const GLbyte *pc, Bool swap);
+extern PURE _X_HIDDEN int __glXDeleteRenderbuffersReqSize(const GLbyte *pc, Bool swap);
 extern PURE _X_HIDDEN int __glXLoadProgramNVReqSize(const GLbyte *pc, Bool swap);
 extern PURE _X_HIDDEN int __glXProgramParameters4dvNVReqSize(const GLbyte *pc, Bool swap);
 extern PURE _X_HIDDEN int __glXProgramParameters4fvNVReqSize(const GLbyte *pc, Bool swap);
@@ -105,11 +108,8 @@ extern PURE _X_HIDDEN int __glXVertexAttribs4dvNVReqSize(const GLbyte *pc, Bool 
 extern PURE _X_HIDDEN int __glXVertexAttribs4fvNVReqSize(const GLbyte *pc, Bool swap);
 extern PURE _X_HIDDEN int __glXVertexAttribs4svNVReqSize(const GLbyte *pc, Bool swap);
 extern PURE _X_HIDDEN int __glXVertexAttribs4ubvNVReqSize(const GLbyte *pc, Bool swap);
-extern PURE _X_HIDDEN int __glXPointParameterivNVReqSize(const GLbyte *pc, Bool swap);
 extern PURE _X_HIDDEN int __glXProgramNamedParameter4dvNVReqSize(const GLbyte *pc, Bool swap);
 extern PURE _X_HIDDEN int __glXProgramNamedParameter4fvNVReqSize(const GLbyte *pc, Bool swap);
-extern PURE _X_HIDDEN int __glXDeleteFramebuffersEXTReqSize(const GLbyte *pc, Bool swap);
-extern PURE _X_HIDDEN int __glXDeleteRenderbuffersEXTReqSize(const GLbyte *pc, Bool swap);
 
 #  undef PURE
 

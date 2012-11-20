@@ -100,20 +100,20 @@ extern _X_INTERNAL PURE FASTCALL GLint __glGetHistogramParameterfv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetHistogramParameteriv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetMinmaxParameterfv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetMinmaxParameteriv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glPointParameterfv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glPointParameteriv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetQueryObjectiv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetQueryObjectuiv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetQueryiv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetVertexAttribdv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetVertexAttribfv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetVertexAttribiv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetProgramivARB_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint __glGetVertexAttribdvARB_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint __glGetVertexAttribfvARB_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint __glGetVertexAttribivARB_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint __glGetQueryObjectivARB_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint __glGetQueryObjectuivARB_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint __glGetQueryivARB_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint __glPointParameterfvEXT_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetFramebufferAttachmentParameteriv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetProgramivNV_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetVertexAttribdvNV_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetVertexAttribfvNV_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetVertexAttribivNV_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint __glPointParameterivNV_size(GLenum);
-extern _X_INTERNAL PURE FASTCALL GLint __glGetFramebufferAttachmentParameterivEXT_size(GLenum);
 
 #  undef PURE
 #  undef FASTCALL

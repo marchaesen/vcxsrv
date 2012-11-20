@@ -3209,57 +3209,57 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->ActiveTextureARB) {
-        void ** procp = (void **) &disp->ActiveTextureARB;
+    if(!disp->ActiveTexture) {
+        void ** procp = (void **) &disp->ActiveTexture;
         snprintf(symboln, sizeof(symboln), "%sActiveTexture", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->ActiveTextureARB) {
-        void ** procp = (void **) &disp->ActiveTextureARB;
+    if(!disp->ActiveTexture) {
+        void ** procp = (void **) &disp->ActiveTexture;
         snprintf(symboln, sizeof(symboln), "%sActiveTextureARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->ClientActiveTextureARB) {
-        void ** procp = (void **) &disp->ClientActiveTextureARB;
+    if(!disp->ClientActiveTexture) {
+        void ** procp = (void **) &disp->ClientActiveTexture;
         snprintf(symboln, sizeof(symboln), "%sClientActiveTexture", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->ClientActiveTextureARB) {
-        void ** procp = (void **) &disp->ClientActiveTextureARB;
+    if(!disp->ClientActiveTexture) {
+        void ** procp = (void **) &disp->ClientActiveTexture;
         snprintf(symboln, sizeof(symboln), "%sClientActiveTextureARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord1dARB) {
-        void ** procp = (void **) &disp->MultiTexCoord1dARB;
+    if(!disp->MultiTexCoord1d) {
+        void ** procp = (void **) &disp->MultiTexCoord1d;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord1d", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord1dARB) {
-        void ** procp = (void **) &disp->MultiTexCoord1dARB;
+    if(!disp->MultiTexCoord1d) {
+        void ** procp = (void **) &disp->MultiTexCoord1d;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord1dARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord1dvARB) {
-        void ** procp = (void **) &disp->MultiTexCoord1dvARB;
+    if(!disp->MultiTexCoord1dv) {
+        void ** procp = (void **) &disp->MultiTexCoord1dv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord1dv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord1dvARB) {
-        void ** procp = (void **) &disp->MultiTexCoord1dvARB;
+    if(!disp->MultiTexCoord1dv) {
+        void ** procp = (void **) &disp->MultiTexCoord1dv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord1dvARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
@@ -3293,85 +3293,85 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->MultiTexCoord1iARB) {
-        void ** procp = (void **) &disp->MultiTexCoord1iARB;
+    if(!disp->MultiTexCoord1i) {
+        void ** procp = (void **) &disp->MultiTexCoord1i;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord1i", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord1iARB) {
-        void ** procp = (void **) &disp->MultiTexCoord1iARB;
+    if(!disp->MultiTexCoord1i) {
+        void ** procp = (void **) &disp->MultiTexCoord1i;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord1iARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord1ivARB) {
-        void ** procp = (void **) &disp->MultiTexCoord1ivARB;
+    if(!disp->MultiTexCoord1iv) {
+        void ** procp = (void **) &disp->MultiTexCoord1iv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord1iv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord1ivARB) {
-        void ** procp = (void **) &disp->MultiTexCoord1ivARB;
+    if(!disp->MultiTexCoord1iv) {
+        void ** procp = (void **) &disp->MultiTexCoord1iv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord1ivARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord1sARB) {
-        void ** procp = (void **) &disp->MultiTexCoord1sARB;
+    if(!disp->MultiTexCoord1s) {
+        void ** procp = (void **) &disp->MultiTexCoord1s;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord1s", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord1sARB) {
-        void ** procp = (void **) &disp->MultiTexCoord1sARB;
+    if(!disp->MultiTexCoord1s) {
+        void ** procp = (void **) &disp->MultiTexCoord1s;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord1sARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord1svARB) {
-        void ** procp = (void **) &disp->MultiTexCoord1svARB;
+    if(!disp->MultiTexCoord1sv) {
+        void ** procp = (void **) &disp->MultiTexCoord1sv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord1sv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord1svARB) {
-        void ** procp = (void **) &disp->MultiTexCoord1svARB;
+    if(!disp->MultiTexCoord1sv) {
+        void ** procp = (void **) &disp->MultiTexCoord1sv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord1svARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord2dARB) {
-        void ** procp = (void **) &disp->MultiTexCoord2dARB;
+    if(!disp->MultiTexCoord2d) {
+        void ** procp = (void **) &disp->MultiTexCoord2d;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord2d", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord2dARB) {
-        void ** procp = (void **) &disp->MultiTexCoord2dARB;
+    if(!disp->MultiTexCoord2d) {
+        void ** procp = (void **) &disp->MultiTexCoord2d;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord2dARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord2dvARB) {
-        void ** procp = (void **) &disp->MultiTexCoord2dvARB;
+    if(!disp->MultiTexCoord2dv) {
+        void ** procp = (void **) &disp->MultiTexCoord2dv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord2dv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord2dvARB) {
-        void ** procp = (void **) &disp->MultiTexCoord2dvARB;
+    if(!disp->MultiTexCoord2dv) {
+        void ** procp = (void **) &disp->MultiTexCoord2dv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord2dvARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
@@ -3405,85 +3405,85 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->MultiTexCoord2iARB) {
-        void ** procp = (void **) &disp->MultiTexCoord2iARB;
+    if(!disp->MultiTexCoord2i) {
+        void ** procp = (void **) &disp->MultiTexCoord2i;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord2i", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord2iARB) {
-        void ** procp = (void **) &disp->MultiTexCoord2iARB;
+    if(!disp->MultiTexCoord2i) {
+        void ** procp = (void **) &disp->MultiTexCoord2i;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord2iARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord2ivARB) {
-        void ** procp = (void **) &disp->MultiTexCoord2ivARB;
+    if(!disp->MultiTexCoord2iv) {
+        void ** procp = (void **) &disp->MultiTexCoord2iv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord2iv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord2ivARB) {
-        void ** procp = (void **) &disp->MultiTexCoord2ivARB;
+    if(!disp->MultiTexCoord2iv) {
+        void ** procp = (void **) &disp->MultiTexCoord2iv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord2ivARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord2sARB) {
-        void ** procp = (void **) &disp->MultiTexCoord2sARB;
+    if(!disp->MultiTexCoord2s) {
+        void ** procp = (void **) &disp->MultiTexCoord2s;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord2s", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord2sARB) {
-        void ** procp = (void **) &disp->MultiTexCoord2sARB;
+    if(!disp->MultiTexCoord2s) {
+        void ** procp = (void **) &disp->MultiTexCoord2s;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord2sARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord2svARB) {
-        void ** procp = (void **) &disp->MultiTexCoord2svARB;
+    if(!disp->MultiTexCoord2sv) {
+        void ** procp = (void **) &disp->MultiTexCoord2sv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord2sv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord2svARB) {
-        void ** procp = (void **) &disp->MultiTexCoord2svARB;
+    if(!disp->MultiTexCoord2sv) {
+        void ** procp = (void **) &disp->MultiTexCoord2sv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord2svARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord3dARB) {
-        void ** procp = (void **) &disp->MultiTexCoord3dARB;
+    if(!disp->MultiTexCoord3d) {
+        void ** procp = (void **) &disp->MultiTexCoord3d;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord3d", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord3dARB) {
-        void ** procp = (void **) &disp->MultiTexCoord3dARB;
+    if(!disp->MultiTexCoord3d) {
+        void ** procp = (void **) &disp->MultiTexCoord3d;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord3dARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord3dvARB) {
-        void ** procp = (void **) &disp->MultiTexCoord3dvARB;
+    if(!disp->MultiTexCoord3dv) {
+        void ** procp = (void **) &disp->MultiTexCoord3dv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord3dv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord3dvARB) {
-        void ** procp = (void **) &disp->MultiTexCoord3dvARB;
+    if(!disp->MultiTexCoord3dv) {
+        void ** procp = (void **) &disp->MultiTexCoord3dv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord3dvARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
@@ -3517,85 +3517,85 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->MultiTexCoord3iARB) {
-        void ** procp = (void **) &disp->MultiTexCoord3iARB;
+    if(!disp->MultiTexCoord3i) {
+        void ** procp = (void **) &disp->MultiTexCoord3i;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord3i", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord3iARB) {
-        void ** procp = (void **) &disp->MultiTexCoord3iARB;
+    if(!disp->MultiTexCoord3i) {
+        void ** procp = (void **) &disp->MultiTexCoord3i;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord3iARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord3ivARB) {
-        void ** procp = (void **) &disp->MultiTexCoord3ivARB;
+    if(!disp->MultiTexCoord3iv) {
+        void ** procp = (void **) &disp->MultiTexCoord3iv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord3iv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord3ivARB) {
-        void ** procp = (void **) &disp->MultiTexCoord3ivARB;
+    if(!disp->MultiTexCoord3iv) {
+        void ** procp = (void **) &disp->MultiTexCoord3iv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord3ivARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord3sARB) {
-        void ** procp = (void **) &disp->MultiTexCoord3sARB;
+    if(!disp->MultiTexCoord3s) {
+        void ** procp = (void **) &disp->MultiTexCoord3s;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord3s", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord3sARB) {
-        void ** procp = (void **) &disp->MultiTexCoord3sARB;
+    if(!disp->MultiTexCoord3s) {
+        void ** procp = (void **) &disp->MultiTexCoord3s;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord3sARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord3svARB) {
-        void ** procp = (void **) &disp->MultiTexCoord3svARB;
+    if(!disp->MultiTexCoord3sv) {
+        void ** procp = (void **) &disp->MultiTexCoord3sv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord3sv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord3svARB) {
-        void ** procp = (void **) &disp->MultiTexCoord3svARB;
+    if(!disp->MultiTexCoord3sv) {
+        void ** procp = (void **) &disp->MultiTexCoord3sv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord3svARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord4dARB) {
-        void ** procp = (void **) &disp->MultiTexCoord4dARB;
+    if(!disp->MultiTexCoord4d) {
+        void ** procp = (void **) &disp->MultiTexCoord4d;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4d", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord4dARB) {
-        void ** procp = (void **) &disp->MultiTexCoord4dARB;
+    if(!disp->MultiTexCoord4d) {
+        void ** procp = (void **) &disp->MultiTexCoord4d;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4dARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord4dvARB) {
-        void ** procp = (void **) &disp->MultiTexCoord4dvARB;
+    if(!disp->MultiTexCoord4dv) {
+        void ** procp = (void **) &disp->MultiTexCoord4dv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4dv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord4dvARB) {
-        void ** procp = (void **) &disp->MultiTexCoord4dvARB;
+    if(!disp->MultiTexCoord4dv) {
+        void ** procp = (void **) &disp->MultiTexCoord4dv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4dvARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
@@ -3629,58 +3629,1241 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->MultiTexCoord4iARB) {
-        void ** procp = (void **) &disp->MultiTexCoord4iARB;
+    if(!disp->MultiTexCoord4i) {
+        void ** procp = (void **) &disp->MultiTexCoord4i;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4i", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord4iARB) {
-        void ** procp = (void **) &disp->MultiTexCoord4iARB;
+    if(!disp->MultiTexCoord4i) {
+        void ** procp = (void **) &disp->MultiTexCoord4i;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4iARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord4ivARB) {
-        void ** procp = (void **) &disp->MultiTexCoord4ivARB;
+    if(!disp->MultiTexCoord4iv) {
+        void ** procp = (void **) &disp->MultiTexCoord4iv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4iv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord4ivARB) {
-        void ** procp = (void **) &disp->MultiTexCoord4ivARB;
+    if(!disp->MultiTexCoord4iv) {
+        void ** procp = (void **) &disp->MultiTexCoord4iv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4ivARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord4sARB) {
-        void ** procp = (void **) &disp->MultiTexCoord4sARB;
+    if(!disp->MultiTexCoord4s) {
+        void ** procp = (void **) &disp->MultiTexCoord4s;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4s", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord4sARB) {
-        void ** procp = (void **) &disp->MultiTexCoord4sARB;
+    if(!disp->MultiTexCoord4s) {
+        void ** procp = (void **) &disp->MultiTexCoord4s;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4sARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord4svARB) {
-        void ** procp = (void **) &disp->MultiTexCoord4svARB;
+    if(!disp->MultiTexCoord4sv) {
+        void ** procp = (void **) &disp->MultiTexCoord4sv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4sv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultiTexCoord4svARB) {
-        void ** procp = (void **) &disp->MultiTexCoord4svARB;
+    if(!disp->MultiTexCoord4sv) {
+        void ** procp = (void **) &disp->MultiTexCoord4sv;
         snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4svARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexImage1D) {
+        void ** procp = (void **) &disp->CompressedTexImage1D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage1D", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexImage1D) {
+        void ** procp = (void **) &disp->CompressedTexImage1D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage1DARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexImage2D) {
+        void ** procp = (void **) &disp->CompressedTexImage2D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage2D", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexImage2D) {
+        void ** procp = (void **) &disp->CompressedTexImage2D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage2DARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexImage3D) {
+        void ** procp = (void **) &disp->CompressedTexImage3D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage3D", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexImage3D) {
+        void ** procp = (void **) &disp->CompressedTexImage3D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage3DARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexImage3D) {
+        void ** procp = (void **) &disp->CompressedTexImage3D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage3DOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexSubImage1D) {
+        void ** procp = (void **) &disp->CompressedTexSubImage1D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage1D", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexSubImage1D) {
+        void ** procp = (void **) &disp->CompressedTexSubImage1D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage1DARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexSubImage2D) {
+        void ** procp = (void **) &disp->CompressedTexSubImage2D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage2D", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexSubImage2D) {
+        void ** procp = (void **) &disp->CompressedTexSubImage2D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage2DARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexSubImage3D) {
+        void ** procp = (void **) &disp->CompressedTexSubImage3D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage3D", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexSubImage3D) {
+        void ** procp = (void **) &disp->CompressedTexSubImage3D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage3DARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompressedTexSubImage3D) {
+        void ** procp = (void **) &disp->CompressedTexSubImage3D;
+        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage3DOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetCompressedTexImage) {
+        void ** procp = (void **) &disp->GetCompressedTexImage;
+        snprintf(symboln, sizeof(symboln), "%sGetCompressedTexImage", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetCompressedTexImage) {
+        void ** procp = (void **) &disp->GetCompressedTexImage;
+        snprintf(symboln, sizeof(symboln), "%sGetCompressedTexImageARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LoadTransposeMatrixd) {
+        void ** procp = (void **) &disp->LoadTransposeMatrixd;
+        snprintf(symboln, sizeof(symboln), "%sLoadTransposeMatrixd", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LoadTransposeMatrixd) {
+        void ** procp = (void **) &disp->LoadTransposeMatrixd;
+        snprintf(symboln, sizeof(symboln), "%sLoadTransposeMatrixdARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LoadTransposeMatrixf) {
+        void ** procp = (void **) &disp->LoadTransposeMatrixf;
+        snprintf(symboln, sizeof(symboln), "%sLoadTransposeMatrixf", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LoadTransposeMatrixf) {
+        void ** procp = (void **) &disp->LoadTransposeMatrixf;
+        snprintf(symboln, sizeof(symboln), "%sLoadTransposeMatrixfARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultTransposeMatrixd) {
+        void ** procp = (void **) &disp->MultTransposeMatrixd;
+        snprintf(symboln, sizeof(symboln), "%sMultTransposeMatrixd", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultTransposeMatrixd) {
+        void ** procp = (void **) &disp->MultTransposeMatrixd;
+        snprintf(symboln, sizeof(symboln), "%sMultTransposeMatrixdARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultTransposeMatrixf) {
+        void ** procp = (void **) &disp->MultTransposeMatrixf;
+        snprintf(symboln, sizeof(symboln), "%sMultTransposeMatrixf", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultTransposeMatrixf) {
+        void ** procp = (void **) &disp->MultTransposeMatrixf;
+        snprintf(symboln, sizeof(symboln), "%sMultTransposeMatrixfARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SampleCoverage) {
+        void ** procp = (void **) &disp->SampleCoverage;
+        snprintf(symboln, sizeof(symboln), "%sSampleCoverage", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SampleCoverage) {
+        void ** procp = (void **) &disp->SampleCoverage;
+        snprintf(symboln, sizeof(symboln), "%sSampleCoverageARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BlendFuncSeparate) {
+        void ** procp = (void **) &disp->BlendFuncSeparate;
+        snprintf(symboln, sizeof(symboln), "%sBlendFuncSeparate", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BlendFuncSeparate) {
+        void ** procp = (void **) &disp->BlendFuncSeparate;
+        snprintf(symboln, sizeof(symboln), "%sBlendFuncSeparateEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BlendFuncSeparate) {
+        void ** procp = (void **) &disp->BlendFuncSeparate;
+        snprintf(symboln, sizeof(symboln), "%sBlendFuncSeparateINGR", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BlendFuncSeparate) {
+        void ** procp = (void **) &disp->BlendFuncSeparate;
+        snprintf(symboln, sizeof(symboln), "%sBlendFuncSeparateOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FogCoordPointer) {
+        void ** procp = (void **) &disp->FogCoordPointer;
+        snprintf(symboln, sizeof(symboln), "%sFogCoordPointer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FogCoordPointer) {
+        void ** procp = (void **) &disp->FogCoordPointer;
+        snprintf(symboln, sizeof(symboln), "%sFogCoordPointerEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FogCoordd) {
+        void ** procp = (void **) &disp->FogCoordd;
+        snprintf(symboln, sizeof(symboln), "%sFogCoordd", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FogCoordd) {
+        void ** procp = (void **) &disp->FogCoordd;
+        snprintf(symboln, sizeof(symboln), "%sFogCoorddEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FogCoorddv) {
+        void ** procp = (void **) &disp->FogCoorddv;
+        snprintf(symboln, sizeof(symboln), "%sFogCoorddv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FogCoorddv) {
+        void ** procp = (void **) &disp->FogCoorddv;
+        snprintf(symboln, sizeof(symboln), "%sFogCoorddvEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultiDrawArrays) {
+        void ** procp = (void **) &disp->MultiDrawArrays;
+        snprintf(symboln, sizeof(symboln), "%sMultiDrawArrays", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultiDrawArrays) {
+        void ** procp = (void **) &disp->MultiDrawArrays;
+        snprintf(symboln, sizeof(symboln), "%sMultiDrawArraysEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterf) {
+        void ** procp = (void **) &disp->PointParameterf;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterf", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterf) {
+        void ** procp = (void **) &disp->PointParameterf;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterfARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterf) {
+        void ** procp = (void **) &disp->PointParameterf;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterfEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterf) {
+        void ** procp = (void **) &disp->PointParameterf;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterfSGIS", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterfv) {
+        void ** procp = (void **) &disp->PointParameterfv;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterfv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterfv) {
+        void ** procp = (void **) &disp->PointParameterfv;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterfvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterfv) {
+        void ** procp = (void **) &disp->PointParameterfv;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterfvEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterfv) {
+        void ** procp = (void **) &disp->PointParameterfv;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterfvSGIS", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameteri) {
+        void ** procp = (void **) &disp->PointParameteri;
+        snprintf(symboln, sizeof(symboln), "%sPointParameteri", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameteri) {
+        void ** procp = (void **) &disp->PointParameteri;
+        snprintf(symboln, sizeof(symboln), "%sPointParameteriNV", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameteriv) {
+        void ** procp = (void **) &disp->PointParameteriv;
+        snprintf(symboln, sizeof(symboln), "%sPointParameteriv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameteriv) {
+        void ** procp = (void **) &disp->PointParameteriv;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterivNV", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3b) {
+        void ** procp = (void **) &disp->SecondaryColor3b;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3b", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3b) {
+        void ** procp = (void **) &disp->SecondaryColor3b;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3bEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3bv) {
+        void ** procp = (void **) &disp->SecondaryColor3bv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3bv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3bv) {
+        void ** procp = (void **) &disp->SecondaryColor3bv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3bvEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3d) {
+        void ** procp = (void **) &disp->SecondaryColor3d;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3d", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3d) {
+        void ** procp = (void **) &disp->SecondaryColor3d;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3dEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3dv) {
+        void ** procp = (void **) &disp->SecondaryColor3dv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3dv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3dv) {
+        void ** procp = (void **) &disp->SecondaryColor3dv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3dvEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3i) {
+        void ** procp = (void **) &disp->SecondaryColor3i;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3i", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3i) {
+        void ** procp = (void **) &disp->SecondaryColor3i;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3iEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3iv) {
+        void ** procp = (void **) &disp->SecondaryColor3iv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3iv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3iv) {
+        void ** procp = (void **) &disp->SecondaryColor3iv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3ivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3s) {
+        void ** procp = (void **) &disp->SecondaryColor3s;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3s", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3s) {
+        void ** procp = (void **) &disp->SecondaryColor3s;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3sEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3sv) {
+        void ** procp = (void **) &disp->SecondaryColor3sv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3sv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3sv) {
+        void ** procp = (void **) &disp->SecondaryColor3sv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3svEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3ub) {
+        void ** procp = (void **) &disp->SecondaryColor3ub;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3ub", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3ub) {
+        void ** procp = (void **) &disp->SecondaryColor3ub;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3ubEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3ubv) {
+        void ** procp = (void **) &disp->SecondaryColor3ubv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3ubv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3ubv) {
+        void ** procp = (void **) &disp->SecondaryColor3ubv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3ubvEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3ui) {
+        void ** procp = (void **) &disp->SecondaryColor3ui;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3ui", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3ui) {
+        void ** procp = (void **) &disp->SecondaryColor3ui;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3uiEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3uiv) {
+        void ** procp = (void **) &disp->SecondaryColor3uiv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3uiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3uiv) {
+        void ** procp = (void **) &disp->SecondaryColor3uiv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3uivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3us) {
+        void ** procp = (void **) &disp->SecondaryColor3us;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3us", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3us) {
+        void ** procp = (void **) &disp->SecondaryColor3us;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3usEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3usv) {
+        void ** procp = (void **) &disp->SecondaryColor3usv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3usv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColor3usv) {
+        void ** procp = (void **) &disp->SecondaryColor3usv;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3usvEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColorPointer) {
+        void ** procp = (void **) &disp->SecondaryColorPointer;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColorPointer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SecondaryColorPointer) {
+        void ** procp = (void **) &disp->SecondaryColorPointer;
+        snprintf(symboln, sizeof(symboln), "%sSecondaryColorPointerEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2d) {
+        void ** procp = (void **) &disp->WindowPos2d;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2d", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2d) {
+        void ** procp = (void **) &disp->WindowPos2d;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2dARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2d) {
+        void ** procp = (void **) &disp->WindowPos2d;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2dMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2dv) {
+        void ** procp = (void **) &disp->WindowPos2dv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2dv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2dv) {
+        void ** procp = (void **) &disp->WindowPos2dv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2dvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2dv) {
+        void ** procp = (void **) &disp->WindowPos2dv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2dvMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2f) {
+        void ** procp = (void **) &disp->WindowPos2f;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2f", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2f) {
+        void ** procp = (void **) &disp->WindowPos2f;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2fARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2f) {
+        void ** procp = (void **) &disp->WindowPos2f;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2fMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2fv) {
+        void ** procp = (void **) &disp->WindowPos2fv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2fv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2fv) {
+        void ** procp = (void **) &disp->WindowPos2fv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2fvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2fv) {
+        void ** procp = (void **) &disp->WindowPos2fv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2fvMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2i) {
+        void ** procp = (void **) &disp->WindowPos2i;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2i", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2i) {
+        void ** procp = (void **) &disp->WindowPos2i;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2iARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2i) {
+        void ** procp = (void **) &disp->WindowPos2i;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2iMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2iv) {
+        void ** procp = (void **) &disp->WindowPos2iv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2iv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2iv) {
+        void ** procp = (void **) &disp->WindowPos2iv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2ivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2iv) {
+        void ** procp = (void **) &disp->WindowPos2iv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2ivMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2s) {
+        void ** procp = (void **) &disp->WindowPos2s;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2s", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2s) {
+        void ** procp = (void **) &disp->WindowPos2s;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2sARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2s) {
+        void ** procp = (void **) &disp->WindowPos2s;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2sMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2sv) {
+        void ** procp = (void **) &disp->WindowPos2sv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2sv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2sv) {
+        void ** procp = (void **) &disp->WindowPos2sv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2svARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos2sv) {
+        void ** procp = (void **) &disp->WindowPos2sv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos2svMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3d) {
+        void ** procp = (void **) &disp->WindowPos3d;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3d", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3d) {
+        void ** procp = (void **) &disp->WindowPos3d;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3dARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3d) {
+        void ** procp = (void **) &disp->WindowPos3d;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3dMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3dv) {
+        void ** procp = (void **) &disp->WindowPos3dv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3dv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3dv) {
+        void ** procp = (void **) &disp->WindowPos3dv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3dvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3dv) {
+        void ** procp = (void **) &disp->WindowPos3dv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3dvMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3f) {
+        void ** procp = (void **) &disp->WindowPos3f;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3f", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3f) {
+        void ** procp = (void **) &disp->WindowPos3f;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3fARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3f) {
+        void ** procp = (void **) &disp->WindowPos3f;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3fMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3fv) {
+        void ** procp = (void **) &disp->WindowPos3fv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3fv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3fv) {
+        void ** procp = (void **) &disp->WindowPos3fv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3fvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3fv) {
+        void ** procp = (void **) &disp->WindowPos3fv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3fvMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3i) {
+        void ** procp = (void **) &disp->WindowPos3i;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3i", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3i) {
+        void ** procp = (void **) &disp->WindowPos3i;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3iARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3i) {
+        void ** procp = (void **) &disp->WindowPos3i;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3iMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3iv) {
+        void ** procp = (void **) &disp->WindowPos3iv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3iv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3iv) {
+        void ** procp = (void **) &disp->WindowPos3iv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3ivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3iv) {
+        void ** procp = (void **) &disp->WindowPos3iv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3ivMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3s) {
+        void ** procp = (void **) &disp->WindowPos3s;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3s", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3s) {
+        void ** procp = (void **) &disp->WindowPos3s;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3sARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3s) {
+        void ** procp = (void **) &disp->WindowPos3s;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3sMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3sv) {
+        void ** procp = (void **) &disp->WindowPos3sv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3sv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3sv) {
+        void ** procp = (void **) &disp->WindowPos3sv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3svARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->WindowPos3sv) {
+        void ** procp = (void **) &disp->WindowPos3sv;
+        snprintf(symboln, sizeof(symboln), "%sWindowPos3svMESA", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BeginQuery) {
+        void ** procp = (void **) &disp->BeginQuery;
+        snprintf(symboln, sizeof(symboln), "%sBeginQuery", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BeginQuery) {
+        void ** procp = (void **) &disp->BeginQuery;
+        snprintf(symboln, sizeof(symboln), "%sBeginQueryARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindBuffer) {
+        void ** procp = (void **) &disp->BindBuffer;
+        snprintf(symboln, sizeof(symboln), "%sBindBuffer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindBuffer) {
+        void ** procp = (void **) &disp->BindBuffer;
+        snprintf(symboln, sizeof(symboln), "%sBindBufferARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BufferData) {
+        void ** procp = (void **) &disp->BufferData;
+        snprintf(symboln, sizeof(symboln), "%sBufferData", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BufferData) {
+        void ** procp = (void **) &disp->BufferData;
+        snprintf(symboln, sizeof(symboln), "%sBufferDataARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BufferSubData) {
+        void ** procp = (void **) &disp->BufferSubData;
+        snprintf(symboln, sizeof(symboln), "%sBufferSubData", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BufferSubData) {
+        void ** procp = (void **) &disp->BufferSubData;
+        snprintf(symboln, sizeof(symboln), "%sBufferSubDataARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeleteBuffers) {
+        void ** procp = (void **) &disp->DeleteBuffers;
+        snprintf(symboln, sizeof(symboln), "%sDeleteBuffers", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeleteBuffers) {
+        void ** procp = (void **) &disp->DeleteBuffers;
+        snprintf(symboln, sizeof(symboln), "%sDeleteBuffersARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeleteQueries) {
+        void ** procp = (void **) &disp->DeleteQueries;
+        snprintf(symboln, sizeof(symboln), "%sDeleteQueries", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeleteQueries) {
+        void ** procp = (void **) &disp->DeleteQueries;
+        snprintf(symboln, sizeof(symboln), "%sDeleteQueriesARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->EndQuery) {
+        void ** procp = (void **) &disp->EndQuery;
+        snprintf(symboln, sizeof(symboln), "%sEndQuery", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->EndQuery) {
+        void ** procp = (void **) &disp->EndQuery;
+        snprintf(symboln, sizeof(symboln), "%sEndQueryARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenBuffers) {
+        void ** procp = (void **) &disp->GenBuffers;
+        snprintf(symboln, sizeof(symboln), "%sGenBuffers", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenBuffers) {
+        void ** procp = (void **) &disp->GenBuffers;
+        snprintf(symboln, sizeof(symboln), "%sGenBuffersARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenQueries) {
+        void ** procp = (void **) &disp->GenQueries;
+        snprintf(symboln, sizeof(symboln), "%sGenQueries", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenQueries) {
+        void ** procp = (void **) &disp->GenQueries;
+        snprintf(symboln, sizeof(symboln), "%sGenQueriesARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetBufferParameteriv) {
+        void ** procp = (void **) &disp->GetBufferParameteriv;
+        snprintf(symboln, sizeof(symboln), "%sGetBufferParameteriv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetBufferParameteriv) {
+        void ** procp = (void **) &disp->GetBufferParameteriv;
+        snprintf(symboln, sizeof(symboln), "%sGetBufferParameterivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetBufferPointerv) {
+        void ** procp = (void **) &disp->GetBufferPointerv;
+        snprintf(symboln, sizeof(symboln), "%sGetBufferPointerv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetBufferPointerv) {
+        void ** procp = (void **) &disp->GetBufferPointerv;
+        snprintf(symboln, sizeof(symboln), "%sGetBufferPointervARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetBufferPointerv) {
+        void ** procp = (void **) &disp->GetBufferPointerv;
+        snprintf(symboln, sizeof(symboln), "%sGetBufferPointervOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetBufferSubData) {
+        void ** procp = (void **) &disp->GetBufferSubData;
+        snprintf(symboln, sizeof(symboln), "%sGetBufferSubData", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetBufferSubData) {
+        void ** procp = (void **) &disp->GetBufferSubData;
+        snprintf(symboln, sizeof(symboln), "%sGetBufferSubDataARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryObjectiv) {
+        void ** procp = (void **) &disp->GetQueryObjectiv;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryObjectiv) {
+        void ** procp = (void **) &disp->GetQueryObjectiv;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryObjectuiv) {
+        void ** procp = (void **) &disp->GetQueryObjectuiv;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectuiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryObjectuiv) {
+        void ** procp = (void **) &disp->GetQueryObjectuiv;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectuivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryiv) {
+        void ** procp = (void **) &disp->GetQueryiv;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryiv) {
+        void ** procp = (void **) &disp->GetQueryiv;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsBuffer) {
+        void ** procp = (void **) &disp->IsBuffer;
+        snprintf(symboln, sizeof(symboln), "%sIsBuffer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsBuffer) {
+        void ** procp = (void **) &disp->IsBuffer;
+        snprintf(symboln, sizeof(symboln), "%sIsBufferARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsQuery) {
+        void ** procp = (void **) &disp->IsQuery;
+        snprintf(symboln, sizeof(symboln), "%sIsQuery", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsQuery) {
+        void ** procp = (void **) &disp->IsQuery;
+        snprintf(symboln, sizeof(symboln), "%sIsQueryARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MapBuffer) {
+        void ** procp = (void **) &disp->MapBuffer;
+        snprintf(symboln, sizeof(symboln), "%sMapBuffer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MapBuffer) {
+        void ** procp = (void **) &disp->MapBuffer;
+        snprintf(symboln, sizeof(symboln), "%sMapBufferARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MapBuffer) {
+        void ** procp = (void **) &disp->MapBuffer;
+        snprintf(symboln, sizeof(symboln), "%sMapBufferOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UnmapBuffer) {
+        void ** procp = (void **) &disp->UnmapBuffer;
+        snprintf(symboln, sizeof(symboln), "%sUnmapBuffer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UnmapBuffer) {
+        void ** procp = (void **) &disp->UnmapBuffer;
+        snprintf(symboln, sizeof(symboln), "%sUnmapBufferARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UnmapBuffer) {
+        void ** procp = (void **) &disp->UnmapBuffer;
+        snprintf(symboln, sizeof(symboln), "%sUnmapBufferOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -3688,6 +4871,62 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->AttachShader) {
         void ** procp = (void **) &disp->AttachShader;
         snprintf(symboln, sizeof(symboln), "%sAttachShader", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindAttribLocation) {
+        void ** procp = (void **) &disp->BindAttribLocation;
+        snprintf(symboln, sizeof(symboln), "%sBindAttribLocation", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindAttribLocation) {
+        void ** procp = (void **) &disp->BindAttribLocation;
+        snprintf(symboln, sizeof(symboln), "%sBindAttribLocationARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BlendEquationSeparate) {
+        void ** procp = (void **) &disp->BlendEquationSeparate;
+        snprintf(symboln, sizeof(symboln), "%sBlendEquationSeparate", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BlendEquationSeparate) {
+        void ** procp = (void **) &disp->BlendEquationSeparate;
+        snprintf(symboln, sizeof(symboln), "%sBlendEquationSeparateEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BlendEquationSeparate) {
+        void ** procp = (void **) &disp->BlendEquationSeparate;
+        snprintf(symboln, sizeof(symboln), "%sBlendEquationSeparateATI", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BlendEquationSeparate) {
+        void ** procp = (void **) &disp->BlendEquationSeparate;
+        snprintf(symboln, sizeof(symboln), "%sBlendEquationSeparateOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompileShader) {
+        void ** procp = (void **) &disp->CompileShader;
+        snprintf(symboln, sizeof(symboln), "%sCompileShader", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CompileShader) {
+        void ** procp = (void **) &disp->CompileShader;
+        snprintf(symboln, sizeof(symboln), "%sCompileShaderARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -3727,9 +4966,107 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->DisableVertexAttribArray) {
+        void ** procp = (void **) &disp->DisableVertexAttribArray;
+        snprintf(symboln, sizeof(symboln), "%sDisableVertexAttribArray", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DisableVertexAttribArray) {
+        void ** procp = (void **) &disp->DisableVertexAttribArray;
+        snprintf(symboln, sizeof(symboln), "%sDisableVertexAttribArrayARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawBuffers) {
+        void ** procp = (void **) &disp->DrawBuffers;
+        snprintf(symboln, sizeof(symboln), "%sDrawBuffers", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawBuffers) {
+        void ** procp = (void **) &disp->DrawBuffers;
+        snprintf(symboln, sizeof(symboln), "%sDrawBuffersARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawBuffers) {
+        void ** procp = (void **) &disp->DrawBuffers;
+        snprintf(symboln, sizeof(symboln), "%sDrawBuffersATI", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DrawBuffers) {
+        void ** procp = (void **) &disp->DrawBuffers;
+        snprintf(symboln, sizeof(symboln), "%sDrawBuffersNV", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->EnableVertexAttribArray) {
+        void ** procp = (void **) &disp->EnableVertexAttribArray;
+        snprintf(symboln, sizeof(symboln), "%sEnableVertexAttribArray", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->EnableVertexAttribArray) {
+        void ** procp = (void **) &disp->EnableVertexAttribArray;
+        snprintf(symboln, sizeof(symboln), "%sEnableVertexAttribArrayARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetActiveAttrib) {
+        void ** procp = (void **) &disp->GetActiveAttrib;
+        snprintf(symboln, sizeof(symboln), "%sGetActiveAttrib", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetActiveAttrib) {
+        void ** procp = (void **) &disp->GetActiveAttrib;
+        snprintf(symboln, sizeof(symboln), "%sGetActiveAttribARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetActiveUniform) {
+        void ** procp = (void **) &disp->GetActiveUniform;
+        snprintf(symboln, sizeof(symboln), "%sGetActiveUniform", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetActiveUniform) {
+        void ** procp = (void **) &disp->GetActiveUniform;
+        snprintf(symboln, sizeof(symboln), "%sGetActiveUniformARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->GetAttachedShaders) {
         void ** procp = (void **) &disp->GetAttachedShaders;
         snprintf(symboln, sizeof(symboln), "%sGetAttachedShaders", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetAttribLocation) {
+        void ** procp = (void **) &disp->GetAttribLocation;
+        snprintf(symboln, sizeof(symboln), "%sGetAttribLocation", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetAttribLocation) {
+        void ** procp = (void **) &disp->GetAttribLocation;
+        snprintf(symboln, sizeof(symboln), "%sGetAttribLocationARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -3755,9 +5092,128 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->GetShaderSource) {
+        void ** procp = (void **) &disp->GetShaderSource;
+        snprintf(symboln, sizeof(symboln), "%sGetShaderSource", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetShaderSource) {
+        void ** procp = (void **) &disp->GetShaderSource;
+        snprintf(symboln, sizeof(symboln), "%sGetShaderSourceARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->GetShaderiv) {
         void ** procp = (void **) &disp->GetShaderiv;
         snprintf(symboln, sizeof(symboln), "%sGetShaderiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetUniformLocation) {
+        void ** procp = (void **) &disp->GetUniformLocation;
+        snprintf(symboln, sizeof(symboln), "%sGetUniformLocation", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetUniformLocation) {
+        void ** procp = (void **) &disp->GetUniformLocation;
+        snprintf(symboln, sizeof(symboln), "%sGetUniformLocationARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetUniformfv) {
+        void ** procp = (void **) &disp->GetUniformfv;
+        snprintf(symboln, sizeof(symboln), "%sGetUniformfv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetUniformfv) {
+        void ** procp = (void **) &disp->GetUniformfv;
+        snprintf(symboln, sizeof(symboln), "%sGetUniformfvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetUniformiv) {
+        void ** procp = (void **) &disp->GetUniformiv;
+        snprintf(symboln, sizeof(symboln), "%sGetUniformiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetUniformiv) {
+        void ** procp = (void **) &disp->GetUniformiv;
+        snprintf(symboln, sizeof(symboln), "%sGetUniformivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribPointerv) {
+        void ** procp = (void **) &disp->GetVertexAttribPointerv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribPointerv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribPointerv) {
+        void ** procp = (void **) &disp->GetVertexAttribPointerv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribPointervARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribPointerv) {
+        void ** procp = (void **) &disp->GetVertexAttribPointerv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribPointervNV", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribdv) {
+        void ** procp = (void **) &disp->GetVertexAttribdv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribdv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribdv) {
+        void ** procp = (void **) &disp->GetVertexAttribdv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribdvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribfv) {
+        void ** procp = (void **) &disp->GetVertexAttribfv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribfv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribfv) {
+        void ** procp = (void **) &disp->GetVertexAttribfv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribfvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribiv) {
+        void ** procp = (void **) &disp->GetVertexAttribiv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribiv) {
+        void ** procp = (void **) &disp->GetVertexAttribiv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribivARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -3772,6 +5228,34 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->IsShader) {
         void ** procp = (void **) &disp->IsShader;
         snprintf(symboln, sizeof(symboln), "%sIsShader", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LinkProgram) {
+        void ** procp = (void **) &disp->LinkProgram;
+        snprintf(symboln, sizeof(symboln), "%sLinkProgram", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LinkProgram) {
+        void ** procp = (void **) &disp->LinkProgram;
+        snprintf(symboln, sizeof(symboln), "%sLinkProgramARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ShaderSource) {
+        void ** procp = (void **) &disp->ShaderSource;
+        snprintf(symboln, sizeof(symboln), "%sShaderSource", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ShaderSource) {
+        void ** procp = (void **) &disp->ShaderSource;
+        snprintf(symboln, sizeof(symboln), "%sShaderSourceARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -3800,6 +5284,706 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->StencilOpSeparate) {
         void ** procp = (void **) &disp->StencilOpSeparate;
         snprintf(symboln, sizeof(symboln), "%sStencilOpSeparateATI", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform1f) {
+        void ** procp = (void **) &disp->Uniform1f;
+        snprintf(symboln, sizeof(symboln), "%sUniform1f", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform1f) {
+        void ** procp = (void **) &disp->Uniform1f;
+        snprintf(symboln, sizeof(symboln), "%sUniform1fARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform1fv) {
+        void ** procp = (void **) &disp->Uniform1fv;
+        snprintf(symboln, sizeof(symboln), "%sUniform1fv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform1fv) {
+        void ** procp = (void **) &disp->Uniform1fv;
+        snprintf(symboln, sizeof(symboln), "%sUniform1fvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform1i) {
+        void ** procp = (void **) &disp->Uniform1i;
+        snprintf(symboln, sizeof(symboln), "%sUniform1i", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform1i) {
+        void ** procp = (void **) &disp->Uniform1i;
+        snprintf(symboln, sizeof(symboln), "%sUniform1iARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform1iv) {
+        void ** procp = (void **) &disp->Uniform1iv;
+        snprintf(symboln, sizeof(symboln), "%sUniform1iv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform1iv) {
+        void ** procp = (void **) &disp->Uniform1iv;
+        snprintf(symboln, sizeof(symboln), "%sUniform1ivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform2f) {
+        void ** procp = (void **) &disp->Uniform2f;
+        snprintf(symboln, sizeof(symboln), "%sUniform2f", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform2f) {
+        void ** procp = (void **) &disp->Uniform2f;
+        snprintf(symboln, sizeof(symboln), "%sUniform2fARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform2fv) {
+        void ** procp = (void **) &disp->Uniform2fv;
+        snprintf(symboln, sizeof(symboln), "%sUniform2fv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform2fv) {
+        void ** procp = (void **) &disp->Uniform2fv;
+        snprintf(symboln, sizeof(symboln), "%sUniform2fvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform2i) {
+        void ** procp = (void **) &disp->Uniform2i;
+        snprintf(symboln, sizeof(symboln), "%sUniform2i", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform2i) {
+        void ** procp = (void **) &disp->Uniform2i;
+        snprintf(symboln, sizeof(symboln), "%sUniform2iARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform2iv) {
+        void ** procp = (void **) &disp->Uniform2iv;
+        snprintf(symboln, sizeof(symboln), "%sUniform2iv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform2iv) {
+        void ** procp = (void **) &disp->Uniform2iv;
+        snprintf(symboln, sizeof(symboln), "%sUniform2ivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform3f) {
+        void ** procp = (void **) &disp->Uniform3f;
+        snprintf(symboln, sizeof(symboln), "%sUniform3f", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform3f) {
+        void ** procp = (void **) &disp->Uniform3f;
+        snprintf(symboln, sizeof(symboln), "%sUniform3fARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform3fv) {
+        void ** procp = (void **) &disp->Uniform3fv;
+        snprintf(symboln, sizeof(symboln), "%sUniform3fv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform3fv) {
+        void ** procp = (void **) &disp->Uniform3fv;
+        snprintf(symboln, sizeof(symboln), "%sUniform3fvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform3i) {
+        void ** procp = (void **) &disp->Uniform3i;
+        snprintf(symboln, sizeof(symboln), "%sUniform3i", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform3i) {
+        void ** procp = (void **) &disp->Uniform3i;
+        snprintf(symboln, sizeof(symboln), "%sUniform3iARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform3iv) {
+        void ** procp = (void **) &disp->Uniform3iv;
+        snprintf(symboln, sizeof(symboln), "%sUniform3iv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform3iv) {
+        void ** procp = (void **) &disp->Uniform3iv;
+        snprintf(symboln, sizeof(symboln), "%sUniform3ivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform4f) {
+        void ** procp = (void **) &disp->Uniform4f;
+        snprintf(symboln, sizeof(symboln), "%sUniform4f", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform4f) {
+        void ** procp = (void **) &disp->Uniform4f;
+        snprintf(symboln, sizeof(symboln), "%sUniform4fARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform4fv) {
+        void ** procp = (void **) &disp->Uniform4fv;
+        snprintf(symboln, sizeof(symboln), "%sUniform4fv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform4fv) {
+        void ** procp = (void **) &disp->Uniform4fv;
+        snprintf(symboln, sizeof(symboln), "%sUniform4fvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform4i) {
+        void ** procp = (void **) &disp->Uniform4i;
+        snprintf(symboln, sizeof(symboln), "%sUniform4i", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform4i) {
+        void ** procp = (void **) &disp->Uniform4i;
+        snprintf(symboln, sizeof(symboln), "%sUniform4iARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform4iv) {
+        void ** procp = (void **) &disp->Uniform4iv;
+        snprintf(symboln, sizeof(symboln), "%sUniform4iv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform4iv) {
+        void ** procp = (void **) &disp->Uniform4iv;
+        snprintf(symboln, sizeof(symboln), "%sUniform4ivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UniformMatrix2fv) {
+        void ** procp = (void **) &disp->UniformMatrix2fv;
+        snprintf(symboln, sizeof(symboln), "%sUniformMatrix2fv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UniformMatrix2fv) {
+        void ** procp = (void **) &disp->UniformMatrix2fv;
+        snprintf(symboln, sizeof(symboln), "%sUniformMatrix2fvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UniformMatrix3fv) {
+        void ** procp = (void **) &disp->UniformMatrix3fv;
+        snprintf(symboln, sizeof(symboln), "%sUniformMatrix3fv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UniformMatrix3fv) {
+        void ** procp = (void **) &disp->UniformMatrix3fv;
+        snprintf(symboln, sizeof(symboln), "%sUniformMatrix3fvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UniformMatrix4fv) {
+        void ** procp = (void **) &disp->UniformMatrix4fv;
+        snprintf(symboln, sizeof(symboln), "%sUniformMatrix4fv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UniformMatrix4fv) {
+        void ** procp = (void **) &disp->UniformMatrix4fv;
+        snprintf(symboln, sizeof(symboln), "%sUniformMatrix4fvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UseProgram) {
+        void ** procp = (void **) &disp->UseProgram;
+        snprintf(symboln, sizeof(symboln), "%sUseProgram", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->UseProgram) {
+        void ** procp = (void **) &disp->UseProgram;
+        snprintf(symboln, sizeof(symboln), "%sUseProgramObjectARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ValidateProgram) {
+        void ** procp = (void **) &disp->ValidateProgram;
+        snprintf(symboln, sizeof(symboln), "%sValidateProgram", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ValidateProgram) {
+        void ** procp = (void **) &disp->ValidateProgram;
+        snprintf(symboln, sizeof(symboln), "%sValidateProgramARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib1d) {
+        void ** procp = (void **) &disp->VertexAttrib1d;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1d", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib1d) {
+        void ** procp = (void **) &disp->VertexAttrib1d;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1dARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib1dv) {
+        void ** procp = (void **) &disp->VertexAttrib1dv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1dv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib1dv) {
+        void ** procp = (void **) &disp->VertexAttrib1dv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1dvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib1s) {
+        void ** procp = (void **) &disp->VertexAttrib1s;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1s", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib1s) {
+        void ** procp = (void **) &disp->VertexAttrib1s;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1sARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib1sv) {
+        void ** procp = (void **) &disp->VertexAttrib1sv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1sv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib1sv) {
+        void ** procp = (void **) &disp->VertexAttrib1sv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1svARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib2d) {
+        void ** procp = (void **) &disp->VertexAttrib2d;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2d", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib2d) {
+        void ** procp = (void **) &disp->VertexAttrib2d;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2dARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib2dv) {
+        void ** procp = (void **) &disp->VertexAttrib2dv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2dv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib2dv) {
+        void ** procp = (void **) &disp->VertexAttrib2dv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2dvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib2s) {
+        void ** procp = (void **) &disp->VertexAttrib2s;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2s", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib2s) {
+        void ** procp = (void **) &disp->VertexAttrib2s;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2sARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib2sv) {
+        void ** procp = (void **) &disp->VertexAttrib2sv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2sv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib2sv) {
+        void ** procp = (void **) &disp->VertexAttrib2sv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2svARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib3d) {
+        void ** procp = (void **) &disp->VertexAttrib3d;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3d", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib3d) {
+        void ** procp = (void **) &disp->VertexAttrib3d;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3dARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib3dv) {
+        void ** procp = (void **) &disp->VertexAttrib3dv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3dv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib3dv) {
+        void ** procp = (void **) &disp->VertexAttrib3dv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3dvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib3s) {
+        void ** procp = (void **) &disp->VertexAttrib3s;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3s", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib3s) {
+        void ** procp = (void **) &disp->VertexAttrib3s;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3sARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib3sv) {
+        void ** procp = (void **) &disp->VertexAttrib3sv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3sv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib3sv) {
+        void ** procp = (void **) &disp->VertexAttrib3sv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3svARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Nbv) {
+        void ** procp = (void **) &disp->VertexAttrib4Nbv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Nbv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Nbv) {
+        void ** procp = (void **) &disp->VertexAttrib4Nbv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NbvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Niv) {
+        void ** procp = (void **) &disp->VertexAttrib4Niv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Niv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Niv) {
+        void ** procp = (void **) &disp->VertexAttrib4Niv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Nsv) {
+        void ** procp = (void **) &disp->VertexAttrib4Nsv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Nsv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Nsv) {
+        void ** procp = (void **) &disp->VertexAttrib4Nsv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NsvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Nub) {
+        void ** procp = (void **) &disp->VertexAttrib4Nub;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Nub", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Nub) {
+        void ** procp = (void **) &disp->VertexAttrib4Nub;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NubARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Nubv) {
+        void ** procp = (void **) &disp->VertexAttrib4Nubv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Nubv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Nubv) {
+        void ** procp = (void **) &disp->VertexAttrib4Nubv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NubvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Nuiv) {
+        void ** procp = (void **) &disp->VertexAttrib4Nuiv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Nuiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Nuiv) {
+        void ** procp = (void **) &disp->VertexAttrib4Nuiv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NuivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Nusv) {
+        void ** procp = (void **) &disp->VertexAttrib4Nusv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Nusv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4Nusv) {
+        void ** procp = (void **) &disp->VertexAttrib4Nusv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NusvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4bv) {
+        void ** procp = (void **) &disp->VertexAttrib4bv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4bv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4bv) {
+        void ** procp = (void **) &disp->VertexAttrib4bv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4bvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4d) {
+        void ** procp = (void **) &disp->VertexAttrib4d;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4d", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4d) {
+        void ** procp = (void **) &disp->VertexAttrib4d;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4dARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4dv) {
+        void ** procp = (void **) &disp->VertexAttrib4dv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4dv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4dv) {
+        void ** procp = (void **) &disp->VertexAttrib4dv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4dvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4iv) {
+        void ** procp = (void **) &disp->VertexAttrib4iv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4iv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4iv) {
+        void ** procp = (void **) &disp->VertexAttrib4iv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4ivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4s) {
+        void ** procp = (void **) &disp->VertexAttrib4s;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4s", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4s) {
+        void ** procp = (void **) &disp->VertexAttrib4s;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4sARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4sv) {
+        void ** procp = (void **) &disp->VertexAttrib4sv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4sv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4sv) {
+        void ** procp = (void **) &disp->VertexAttrib4sv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4svARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4ubv) {
+        void ** procp = (void **) &disp->VertexAttrib4ubv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4ubv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4ubv) {
+        void ** procp = (void **) &disp->VertexAttrib4ubv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4ubvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4uiv) {
+        void ** procp = (void **) &disp->VertexAttrib4uiv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4uiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4uiv) {
+        void ** procp = (void **) &disp->VertexAttrib4uiv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4uivARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4usv) {
+        void ** procp = (void **) &disp->VertexAttrib4usv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4usv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttrib4usv) {
+        void ** procp = (void **) &disp->VertexAttrib4usv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4usvARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribPointer) {
+        void ** procp = (void **) &disp->VertexAttribPointer;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribPointer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribPointer) {
+        void ** procp = (void **) &disp->VertexAttribPointer;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribPointerARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -3846,6 +6030,90 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->BeginConditionalRender) {
+        void ** procp = (void **) &disp->BeginConditionalRender;
+        snprintf(symboln, sizeof(symboln), "%sBeginConditionalRender", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BeginConditionalRender) {
+        void ** procp = (void **) &disp->BeginConditionalRender;
+        snprintf(symboln, sizeof(symboln), "%sBeginConditionalRenderNV", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BeginTransformFeedback) {
+        void ** procp = (void **) &disp->BeginTransformFeedback;
+        snprintf(symboln, sizeof(symboln), "%sBeginTransformFeedback", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BeginTransformFeedback) {
+        void ** procp = (void **) &disp->BeginTransformFeedback;
+        snprintf(symboln, sizeof(symboln), "%sBeginTransformFeedbackEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindBufferBase) {
+        void ** procp = (void **) &disp->BindBufferBase;
+        snprintf(symboln, sizeof(symboln), "%sBindBufferBase", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindBufferBase) {
+        void ** procp = (void **) &disp->BindBufferBase;
+        snprintf(symboln, sizeof(symboln), "%sBindBufferBaseEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindBufferRange) {
+        void ** procp = (void **) &disp->BindBufferRange;
+        snprintf(symboln, sizeof(symboln), "%sBindBufferRange", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindBufferRange) {
+        void ** procp = (void **) &disp->BindBufferRange;
+        snprintf(symboln, sizeof(symboln), "%sBindBufferRangeEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindFragDataLocation) {
+        void ** procp = (void **) &disp->BindFragDataLocation;
+        snprintf(symboln, sizeof(symboln), "%sBindFragDataLocationEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindFragDataLocation) {
+        void ** procp = (void **) &disp->BindFragDataLocation;
+        snprintf(symboln, sizeof(symboln), "%sBindFragDataLocation", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClampColor) {
+        void ** procp = (void **) &disp->ClampColor;
+        snprintf(symboln, sizeof(symboln), "%sClampColorARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClampColor) {
+        void ** procp = (void **) &disp->ClampColor;
+        snprintf(symboln, sizeof(symboln), "%sClampColor", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->ClearBufferfi) {
         void ** procp = (void **) &disp->ClearBufferfi;
         snprintf(symboln, sizeof(symboln), "%sClearBufferfi", symbol_prefix);
@@ -3874,9 +6142,499 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->ColorMaski) {
+        void ** procp = (void **) &disp->ColorMaski;
+        snprintf(symboln, sizeof(symboln), "%sColorMaskIndexedEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ColorMaski) {
+        void ** procp = (void **) &disp->ColorMaski;
+        snprintf(symboln, sizeof(symboln), "%sColorMaski", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Disablei) {
+        void ** procp = (void **) &disp->Disablei;
+        snprintf(symboln, sizeof(symboln), "%sDisableIndexedEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Disablei) {
+        void ** procp = (void **) &disp->Disablei;
+        snprintf(symboln, sizeof(symboln), "%sDisablei", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Enablei) {
+        void ** procp = (void **) &disp->Enablei;
+        snprintf(symboln, sizeof(symboln), "%sEnableIndexedEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Enablei) {
+        void ** procp = (void **) &disp->Enablei;
+        snprintf(symboln, sizeof(symboln), "%sEnablei", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->EndConditionalRender) {
+        void ** procp = (void **) &disp->EndConditionalRender;
+        snprintf(symboln, sizeof(symboln), "%sEndConditionalRender", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->EndConditionalRender) {
+        void ** procp = (void **) &disp->EndConditionalRender;
+        snprintf(symboln, sizeof(symboln), "%sEndConditionalRenderNV", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->EndTransformFeedback) {
+        void ** procp = (void **) &disp->EndTransformFeedback;
+        snprintf(symboln, sizeof(symboln), "%sEndTransformFeedback", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->EndTransformFeedback) {
+        void ** procp = (void **) &disp->EndTransformFeedback;
+        snprintf(symboln, sizeof(symboln), "%sEndTransformFeedbackEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetBooleani_v) {
+        void ** procp = (void **) &disp->GetBooleani_v;
+        snprintf(symboln, sizeof(symboln), "%sGetBooleanIndexedvEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetBooleani_v) {
+        void ** procp = (void **) &disp->GetBooleani_v;
+        snprintf(symboln, sizeof(symboln), "%sGetBooleani_v", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetFragDataLocation) {
+        void ** procp = (void **) &disp->GetFragDataLocation;
+        snprintf(symboln, sizeof(symboln), "%sGetFragDataLocationEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetFragDataLocation) {
+        void ** procp = (void **) &disp->GetFragDataLocation;
+        snprintf(symboln, sizeof(symboln), "%sGetFragDataLocation", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetIntegeri_v) {
+        void ** procp = (void **) &disp->GetIntegeri_v;
+        snprintf(symboln, sizeof(symboln), "%sGetIntegerIndexedvEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetIntegeri_v) {
+        void ** procp = (void **) &disp->GetIntegeri_v;
+        snprintf(symboln, sizeof(symboln), "%sGetIntegeri_v", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->GetStringi) {
         void ** procp = (void **) &disp->GetStringi;
         snprintf(symboln, sizeof(symboln), "%sGetStringi", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexParameterIiv) {
+        void ** procp = (void **) &disp->GetTexParameterIiv;
+        snprintf(symboln, sizeof(symboln), "%sGetTexParameterIivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexParameterIiv) {
+        void ** procp = (void **) &disp->GetTexParameterIiv;
+        snprintf(symboln, sizeof(symboln), "%sGetTexParameterIiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexParameterIuiv) {
+        void ** procp = (void **) &disp->GetTexParameterIuiv;
+        snprintf(symboln, sizeof(symboln), "%sGetTexParameterIuivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexParameterIuiv) {
+        void ** procp = (void **) &disp->GetTexParameterIuiv;
+        snprintf(symboln, sizeof(symboln), "%sGetTexParameterIuiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTransformFeedbackVarying) {
+        void ** procp = (void **) &disp->GetTransformFeedbackVarying;
+        snprintf(symboln, sizeof(symboln), "%sGetTransformFeedbackVarying", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTransformFeedbackVarying) {
+        void ** procp = (void **) &disp->GetTransformFeedbackVarying;
+        snprintf(symboln, sizeof(symboln), "%sGetTransformFeedbackVaryingEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetUniformuiv) {
+        void ** procp = (void **) &disp->GetUniformuiv;
+        snprintf(symboln, sizeof(symboln), "%sGetUniformuivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetUniformuiv) {
+        void ** procp = (void **) &disp->GetUniformuiv;
+        snprintf(symboln, sizeof(symboln), "%sGetUniformuiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribIiv) {
+        void ** procp = (void **) &disp->GetVertexAttribIiv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribIivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribIiv) {
+        void ** procp = (void **) &disp->GetVertexAttribIiv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribIiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribIuiv) {
+        void ** procp = (void **) &disp->GetVertexAttribIuiv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribIuivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetVertexAttribIuiv) {
+        void ** procp = (void **) &disp->GetVertexAttribIuiv;
+        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribIuiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsEnabledi) {
+        void ** procp = (void **) &disp->IsEnabledi;
+        snprintf(symboln, sizeof(symboln), "%sIsEnabledIndexedEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsEnabledi) {
+        void ** procp = (void **) &disp->IsEnabledi;
+        snprintf(symboln, sizeof(symboln), "%sIsEnabledi", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexParameterIiv) {
+        void ** procp = (void **) &disp->TexParameterIiv;
+        snprintf(symboln, sizeof(symboln), "%sTexParameterIivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexParameterIiv) {
+        void ** procp = (void **) &disp->TexParameterIiv;
+        snprintf(symboln, sizeof(symboln), "%sTexParameterIiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexParameterIuiv) {
+        void ** procp = (void **) &disp->TexParameterIuiv;
+        snprintf(symboln, sizeof(symboln), "%sTexParameterIuivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexParameterIuiv) {
+        void ** procp = (void **) &disp->TexParameterIuiv;
+        snprintf(symboln, sizeof(symboln), "%sTexParameterIuiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TransformFeedbackVaryings) {
+        void ** procp = (void **) &disp->TransformFeedbackVaryings;
+        snprintf(symboln, sizeof(symboln), "%sTransformFeedbackVaryings", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TransformFeedbackVaryings) {
+        void ** procp = (void **) &disp->TransformFeedbackVaryings;
+        snprintf(symboln, sizeof(symboln), "%sTransformFeedbackVaryingsEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform1ui) {
+        void ** procp = (void **) &disp->Uniform1ui;
+        snprintf(symboln, sizeof(symboln), "%sUniform1uiEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform1ui) {
+        void ** procp = (void **) &disp->Uniform1ui;
+        snprintf(symboln, sizeof(symboln), "%sUniform1ui", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform1uiv) {
+        void ** procp = (void **) &disp->Uniform1uiv;
+        snprintf(symboln, sizeof(symboln), "%sUniform1uivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform1uiv) {
+        void ** procp = (void **) &disp->Uniform1uiv;
+        snprintf(symboln, sizeof(symboln), "%sUniform1uiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform2ui) {
+        void ** procp = (void **) &disp->Uniform2ui;
+        snprintf(symboln, sizeof(symboln), "%sUniform2uiEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform2ui) {
+        void ** procp = (void **) &disp->Uniform2ui;
+        snprintf(symboln, sizeof(symboln), "%sUniform2ui", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform2uiv) {
+        void ** procp = (void **) &disp->Uniform2uiv;
+        snprintf(symboln, sizeof(symboln), "%sUniform2uivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform2uiv) {
+        void ** procp = (void **) &disp->Uniform2uiv;
+        snprintf(symboln, sizeof(symboln), "%sUniform2uiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform3ui) {
+        void ** procp = (void **) &disp->Uniform3ui;
+        snprintf(symboln, sizeof(symboln), "%sUniform3uiEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform3ui) {
+        void ** procp = (void **) &disp->Uniform3ui;
+        snprintf(symboln, sizeof(symboln), "%sUniform3ui", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform3uiv) {
+        void ** procp = (void **) &disp->Uniform3uiv;
+        snprintf(symboln, sizeof(symboln), "%sUniform3uivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform3uiv) {
+        void ** procp = (void **) &disp->Uniform3uiv;
+        snprintf(symboln, sizeof(symboln), "%sUniform3uiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform4ui) {
+        void ** procp = (void **) &disp->Uniform4ui;
+        snprintf(symboln, sizeof(symboln), "%sUniform4uiEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform4ui) {
+        void ** procp = (void **) &disp->Uniform4ui;
+        snprintf(symboln, sizeof(symboln), "%sUniform4ui", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform4uiv) {
+        void ** procp = (void **) &disp->Uniform4uiv;
+        snprintf(symboln, sizeof(symboln), "%sUniform4uivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Uniform4uiv) {
+        void ** procp = (void **) &disp->Uniform4uiv;
+        snprintf(symboln, sizeof(symboln), "%sUniform4uiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribI1iv) {
+        void ** procp = (void **) &disp->VertexAttribI1iv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribI1ivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribI1iv) {
+        void ** procp = (void **) &disp->VertexAttribI1iv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribI1iv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribI1uiv) {
+        void ** procp = (void **) &disp->VertexAttribI1uiv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribI1uivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribI1uiv) {
+        void ** procp = (void **) &disp->VertexAttribI1uiv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribI1uiv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribI4bv) {
+        void ** procp = (void **) &disp->VertexAttribI4bv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4bvEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribI4bv) {
+        void ** procp = (void **) &disp->VertexAttribI4bv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4bv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribI4sv) {
+        void ** procp = (void **) &disp->VertexAttribI4sv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4svEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribI4sv) {
+        void ** procp = (void **) &disp->VertexAttribI4sv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4sv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribI4ubv) {
+        void ** procp = (void **) &disp->VertexAttribI4ubv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4ubvEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribI4ubv) {
+        void ** procp = (void **) &disp->VertexAttribI4ubv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4ubv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribI4usv) {
+        void ** procp = (void **) &disp->VertexAttribI4usv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4usvEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribI4usv) {
+        void ** procp = (void **) &disp->VertexAttribI4usv;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4usv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribIPointer) {
+        void ** procp = (void **) &disp->VertexAttribIPointer;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribIPointerEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->VertexAttribIPointer) {
+        void ** procp = (void **) &disp->VertexAttribIPointer;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribIPointer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PrimitiveRestartIndex) {
+        void ** procp = (void **) &disp->PrimitiveRestartIndex;
+        snprintf(symboln, sizeof(symboln), "%sPrimitiveRestartIndex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PrimitiveRestartIndex) {
+        void ** procp = (void **) &disp->PrimitiveRestartIndex;
+        snprintf(symboln, sizeof(symboln), "%sPrimitiveRestartIndexNV", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexBuffer) {
+        void ** procp = (void **) &disp->TexBuffer;
+        snprintf(symboln, sizeof(symboln), "%sTexBufferARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexBuffer) {
+        void ** procp = (void **) &disp->TexBuffer;
+        snprintf(symboln, sizeof(symboln), "%sTexBuffer", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -3909,212 +6667,58 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->LoadTransposeMatrixdARB) {
-        void ** procp = (void **) &disp->LoadTransposeMatrixdARB;
-        snprintf(symboln, sizeof(symboln), "%sLoadTransposeMatrixd", symbol_prefix);
+    if(!disp->VertexAttribDivisor) {
+        void ** procp = (void **) &disp->VertexAttribDivisor;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribDivisorARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->LoadTransposeMatrixdARB) {
-        void ** procp = (void **) &disp->LoadTransposeMatrixdARB;
-        snprintf(symboln, sizeof(symboln), "%sLoadTransposeMatrixdARB", symbol_prefix);
+    if(!disp->VertexAttribDivisor) {
+        void ** procp = (void **) &disp->VertexAttribDivisor;
+        snprintf(symboln, sizeof(symboln), "%sVertexAttribDivisor", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->LoadTransposeMatrixfARB) {
-        void ** procp = (void **) &disp->LoadTransposeMatrixfARB;
-        snprintf(symboln, sizeof(symboln), "%sLoadTransposeMatrixf", symbol_prefix);
+    if(!disp->BindProgramARB) {
+        void ** procp = (void **) &disp->BindProgramARB;
+        snprintf(symboln, sizeof(symboln), "%sBindProgramARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->LoadTransposeMatrixfARB) {
-        void ** procp = (void **) &disp->LoadTransposeMatrixfARB;
-        snprintf(symboln, sizeof(symboln), "%sLoadTransposeMatrixfARB", symbol_prefix);
+    if(!disp->BindProgramARB) {
+        void ** procp = (void **) &disp->BindProgramARB;
+        snprintf(symboln, sizeof(symboln), "%sBindProgramNV", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultTransposeMatrixdARB) {
-        void ** procp = (void **) &disp->MultTransposeMatrixdARB;
-        snprintf(symboln, sizeof(symboln), "%sMultTransposeMatrixd", symbol_prefix);
+    if(!disp->DeleteProgramsARB) {
+        void ** procp = (void **) &disp->DeleteProgramsARB;
+        snprintf(symboln, sizeof(symboln), "%sDeleteProgramsARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultTransposeMatrixdARB) {
-        void ** procp = (void **) &disp->MultTransposeMatrixdARB;
-        snprintf(symboln, sizeof(symboln), "%sMultTransposeMatrixdARB", symbol_prefix);
+    if(!disp->DeleteProgramsARB) {
+        void ** procp = (void **) &disp->DeleteProgramsARB;
+        snprintf(symboln, sizeof(symboln), "%sDeleteProgramsNV", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultTransposeMatrixfARB) {
-        void ** procp = (void **) &disp->MultTransposeMatrixfARB;
-        snprintf(symboln, sizeof(symboln), "%sMultTransposeMatrixf", symbol_prefix);
+    if(!disp->GenProgramsARB) {
+        void ** procp = (void **) &disp->GenProgramsARB;
+        snprintf(symboln, sizeof(symboln), "%sGenProgramsARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->MultTransposeMatrixfARB) {
-        void ** procp = (void **) &disp->MultTransposeMatrixfARB;
-        snprintf(symboln, sizeof(symboln), "%sMultTransposeMatrixfARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SampleCoverageARB) {
-        void ** procp = (void **) &disp->SampleCoverageARB;
-        snprintf(symboln, sizeof(symboln), "%sSampleCoverage", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SampleCoverageARB) {
-        void ** procp = (void **) &disp->SampleCoverageARB;
-        snprintf(symboln, sizeof(symboln), "%sSampleCoverageARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexImage1DARB) {
-        void ** procp = (void **) &disp->CompressedTexImage1DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage1D", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexImage1DARB) {
-        void ** procp = (void **) &disp->CompressedTexImage1DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage1DARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexImage2DARB) {
-        void ** procp = (void **) &disp->CompressedTexImage2DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage2D", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexImage2DARB) {
-        void ** procp = (void **) &disp->CompressedTexImage2DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage2DARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexImage3DARB) {
-        void ** procp = (void **) &disp->CompressedTexImage3DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage3D", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexImage3DARB) {
-        void ** procp = (void **) &disp->CompressedTexImage3DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage3DARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexImage3DARB) {
-        void ** procp = (void **) &disp->CompressedTexImage3DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexImage3DOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexSubImage1DARB) {
-        void ** procp = (void **) &disp->CompressedTexSubImage1DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage1D", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexSubImage1DARB) {
-        void ** procp = (void **) &disp->CompressedTexSubImage1DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage1DARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexSubImage2DARB) {
-        void ** procp = (void **) &disp->CompressedTexSubImage2DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage2D", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexSubImage2DARB) {
-        void ** procp = (void **) &disp->CompressedTexSubImage2DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage2DARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexSubImage3DARB) {
-        void ** procp = (void **) &disp->CompressedTexSubImage3DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage3D", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexSubImage3DARB) {
-        void ** procp = (void **) &disp->CompressedTexSubImage3DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage3DARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompressedTexSubImage3DARB) {
-        void ** procp = (void **) &disp->CompressedTexSubImage3DARB;
-        snprintf(symboln, sizeof(symboln), "%sCompressedTexSubImage3DOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetCompressedTexImageARB) {
-        void ** procp = (void **) &disp->GetCompressedTexImageARB;
-        snprintf(symboln, sizeof(symboln), "%sGetCompressedTexImage", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetCompressedTexImageARB) {
-        void ** procp = (void **) &disp->GetCompressedTexImageARB;
-        snprintf(symboln, sizeof(symboln), "%sGetCompressedTexImageARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DisableVertexAttribArrayARB) {
-        void ** procp = (void **) &disp->DisableVertexAttribArrayARB;
-        snprintf(symboln, sizeof(symboln), "%sDisableVertexAttribArray", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DisableVertexAttribArrayARB) {
-        void ** procp = (void **) &disp->DisableVertexAttribArrayARB;
-        snprintf(symboln, sizeof(symboln), "%sDisableVertexAttribArrayARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->EnableVertexAttribArrayARB) {
-        void ** procp = (void **) &disp->EnableVertexAttribArrayARB;
-        snprintf(symboln, sizeof(symboln), "%sEnableVertexAttribArray", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->EnableVertexAttribArrayARB) {
-        void ** procp = (void **) &disp->EnableVertexAttribArrayARB;
-        snprintf(symboln, sizeof(symboln), "%sEnableVertexAttribArrayARB", symbol_prefix);
+    if(!disp->GenProgramsARB) {
+        void ** procp = (void **) &disp->GenProgramsARB;
+        snprintf(symboln, sizeof(symboln), "%sGenProgramsNV", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -4161,44 +6765,16 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->GetVertexAttribdvARB) {
-        void ** procp = (void **) &disp->GetVertexAttribdvARB;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribdv", symbol_prefix);
+    if(!disp->IsProgramARB) {
+        void ** procp = (void **) &disp->IsProgramARB;
+        snprintf(symboln, sizeof(symboln), "%sIsProgramARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
 
-    if(!disp->GetVertexAttribdvARB) {
-        void ** procp = (void **) &disp->GetVertexAttribdvARB;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribdvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetVertexAttribfvARB) {
-        void ** procp = (void **) &disp->GetVertexAttribfvARB;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribfv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetVertexAttribfvARB) {
-        void ** procp = (void **) &disp->GetVertexAttribfvARB;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribfvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetVertexAttribivARB) {
-        void ** procp = (void **) &disp->GetVertexAttribivARB;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetVertexAttribivARB) {
-        void ** procp = (void **) &disp->GetVertexAttribivARB;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribivARB", symbol_prefix);
+    if(!disp->IsProgramARB) {
+        void ** procp = (void **) &disp->IsProgramARB;
+        snprintf(symboln, sizeof(symboln), "%sIsProgramNV", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -4294,34 +6870,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->VertexAttrib1dARB) {
-        void ** procp = (void **) &disp->VertexAttrib1dARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1d", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib1dARB) {
-        void ** procp = (void **) &disp->VertexAttrib1dARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1dARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib1dvARB) {
-        void ** procp = (void **) &disp->VertexAttrib1dvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1dv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib1dvARB) {
-        void ** procp = (void **) &disp->VertexAttrib1dvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1dvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->VertexAttrib1fARB) {
         void ** procp = (void **) &disp->VertexAttrib1fARB;
         snprintf(symboln, sizeof(symboln), "%sVertexAttrib1f", symbol_prefix);
@@ -4346,62 +6894,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->VertexAttrib1fvARB) {
         void ** procp = (void **) &disp->VertexAttrib1fvARB;
         snprintf(symboln, sizeof(symboln), "%sVertexAttrib1fvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib1sARB) {
-        void ** procp = (void **) &disp->VertexAttrib1sARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1s", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib1sARB) {
-        void ** procp = (void **) &disp->VertexAttrib1sARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1sARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib1svARB) {
-        void ** procp = (void **) &disp->VertexAttrib1svARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1sv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib1svARB) {
-        void ** procp = (void **) &disp->VertexAttrib1svARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib1svARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib2dARB) {
-        void ** procp = (void **) &disp->VertexAttrib2dARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2d", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib2dARB) {
-        void ** procp = (void **) &disp->VertexAttrib2dARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2dARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib2dvARB) {
-        void ** procp = (void **) &disp->VertexAttrib2dvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2dv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib2dvARB) {
-        void ** procp = (void **) &disp->VertexAttrib2dvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2dvARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -4434,62 +6926,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->VertexAttrib2sARB) {
-        void ** procp = (void **) &disp->VertexAttrib2sARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2s", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib2sARB) {
-        void ** procp = (void **) &disp->VertexAttrib2sARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2sARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib2svARB) {
-        void ** procp = (void **) &disp->VertexAttrib2svARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2sv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib2svARB) {
-        void ** procp = (void **) &disp->VertexAttrib2svARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib2svARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib3dARB) {
-        void ** procp = (void **) &disp->VertexAttrib3dARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3d", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib3dARB) {
-        void ** procp = (void **) &disp->VertexAttrib3dARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3dARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib3dvARB) {
-        void ** procp = (void **) &disp->VertexAttrib3dvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3dv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib3dvARB) {
-        void ** procp = (void **) &disp->VertexAttrib3dvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3dvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->VertexAttrib3fARB) {
         void ** procp = (void **) &disp->VertexAttrib3fARB;
         snprintf(symboln, sizeof(symboln), "%sVertexAttrib3f", symbol_prefix);
@@ -4514,174 +6950,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->VertexAttrib3fvARB) {
         void ** procp = (void **) &disp->VertexAttrib3fvARB;
         snprintf(symboln, sizeof(symboln), "%sVertexAttrib3fvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib3sARB) {
-        void ** procp = (void **) &disp->VertexAttrib3sARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3s", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib3sARB) {
-        void ** procp = (void **) &disp->VertexAttrib3sARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3sARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib3svARB) {
-        void ** procp = (void **) &disp->VertexAttrib3svARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3sv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib3svARB) {
-        void ** procp = (void **) &disp->VertexAttrib3svARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib3svARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NbvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NbvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Nbv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NbvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NbvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NbvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NivARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NivARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Niv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NivARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NivARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NsvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NsvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Nsv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NsvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NsvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NsvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NubARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NubARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Nub", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NubARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NubARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NubARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NubvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NubvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Nubv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NubvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NubvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NubvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NuivARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NuivARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Nuiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NuivARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NuivARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NuivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NusvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NusvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4Nusv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4NusvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4NusvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4NusvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4bvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4bvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4bv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4bvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4bvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4bvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4dARB) {
-        void ** procp = (void **) &disp->VertexAttrib4dARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4d", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4dARB) {
-        void ** procp = (void **) &disp->VertexAttrib4dARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4dARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4dvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4dvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4dv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4dvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4dvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4dvARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -4714,408 +6982,9 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->VertexAttrib4ivARB) {
-        void ** procp = (void **) &disp->VertexAttrib4ivARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4iv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4ivARB) {
-        void ** procp = (void **) &disp->VertexAttrib4ivARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4ivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4sARB) {
-        void ** procp = (void **) &disp->VertexAttrib4sARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4s", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4sARB) {
-        void ** procp = (void **) &disp->VertexAttrib4sARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4sARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4svARB) {
-        void ** procp = (void **) &disp->VertexAttrib4svARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4sv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4svARB) {
-        void ** procp = (void **) &disp->VertexAttrib4svARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4svARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4ubvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4ubvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4ubv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4ubvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4ubvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4ubvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4uivARB) {
-        void ** procp = (void **) &disp->VertexAttrib4uivARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4uiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4uivARB) {
-        void ** procp = (void **) &disp->VertexAttrib4uivARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4uivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4usvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4usvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4usv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttrib4usvARB) {
-        void ** procp = (void **) &disp->VertexAttrib4usvARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttrib4usvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribPointerARB) {
-        void ** procp = (void **) &disp->VertexAttribPointerARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribPointer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribPointerARB) {
-        void ** procp = (void **) &disp->VertexAttribPointerARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribPointerARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindBufferARB) {
-        void ** procp = (void **) &disp->BindBufferARB;
-        snprintf(symboln, sizeof(symboln), "%sBindBuffer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindBufferARB) {
-        void ** procp = (void **) &disp->BindBufferARB;
-        snprintf(symboln, sizeof(symboln), "%sBindBufferARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BufferDataARB) {
-        void ** procp = (void **) &disp->BufferDataARB;
-        snprintf(symboln, sizeof(symboln), "%sBufferData", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BufferDataARB) {
-        void ** procp = (void **) &disp->BufferDataARB;
-        snprintf(symboln, sizeof(symboln), "%sBufferDataARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BufferSubDataARB) {
-        void ** procp = (void **) &disp->BufferSubDataARB;
-        snprintf(symboln, sizeof(symboln), "%sBufferSubData", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BufferSubDataARB) {
-        void ** procp = (void **) &disp->BufferSubDataARB;
-        snprintf(symboln, sizeof(symboln), "%sBufferSubDataARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteBuffersARB) {
-        void ** procp = (void **) &disp->DeleteBuffersARB;
-        snprintf(symboln, sizeof(symboln), "%sDeleteBuffers", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteBuffersARB) {
-        void ** procp = (void **) &disp->DeleteBuffersARB;
-        snprintf(symboln, sizeof(symboln), "%sDeleteBuffersARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenBuffersARB) {
-        void ** procp = (void **) &disp->GenBuffersARB;
-        snprintf(symboln, sizeof(symboln), "%sGenBuffers", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenBuffersARB) {
-        void ** procp = (void **) &disp->GenBuffersARB;
-        snprintf(symboln, sizeof(symboln), "%sGenBuffersARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetBufferParameterivARB) {
-        void ** procp = (void **) &disp->GetBufferParameterivARB;
-        snprintf(symboln, sizeof(symboln), "%sGetBufferParameteriv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetBufferParameterivARB) {
-        void ** procp = (void **) &disp->GetBufferParameterivARB;
-        snprintf(symboln, sizeof(symboln), "%sGetBufferParameterivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetBufferPointervARB) {
-        void ** procp = (void **) &disp->GetBufferPointervARB;
-        snprintf(symboln, sizeof(symboln), "%sGetBufferPointerv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetBufferPointervARB) {
-        void ** procp = (void **) &disp->GetBufferPointervARB;
-        snprintf(symboln, sizeof(symboln), "%sGetBufferPointervARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetBufferPointervARB) {
-        void ** procp = (void **) &disp->GetBufferPointervARB;
-        snprintf(symboln, sizeof(symboln), "%sGetBufferPointervOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetBufferSubDataARB) {
-        void ** procp = (void **) &disp->GetBufferSubDataARB;
-        snprintf(symboln, sizeof(symboln), "%sGetBufferSubData", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetBufferSubDataARB) {
-        void ** procp = (void **) &disp->GetBufferSubDataARB;
-        snprintf(symboln, sizeof(symboln), "%sGetBufferSubDataARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsBufferARB) {
-        void ** procp = (void **) &disp->IsBufferARB;
-        snprintf(symboln, sizeof(symboln), "%sIsBuffer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsBufferARB) {
-        void ** procp = (void **) &disp->IsBufferARB;
-        snprintf(symboln, sizeof(symboln), "%sIsBufferARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MapBufferARB) {
-        void ** procp = (void **) &disp->MapBufferARB;
-        snprintf(symboln, sizeof(symboln), "%sMapBuffer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MapBufferARB) {
-        void ** procp = (void **) &disp->MapBufferARB;
-        snprintf(symboln, sizeof(symboln), "%sMapBufferARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MapBufferARB) {
-        void ** procp = (void **) &disp->MapBufferARB;
-        snprintf(symboln, sizeof(symboln), "%sMapBufferOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->UnmapBufferARB) {
-        void ** procp = (void **) &disp->UnmapBufferARB;
-        snprintf(symboln, sizeof(symboln), "%sUnmapBuffer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->UnmapBufferARB) {
-        void ** procp = (void **) &disp->UnmapBufferARB;
-        snprintf(symboln, sizeof(symboln), "%sUnmapBufferARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->UnmapBufferARB) {
-        void ** procp = (void **) &disp->UnmapBufferARB;
-        snprintf(symboln, sizeof(symboln), "%sUnmapBufferOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BeginQueryARB) {
-        void ** procp = (void **) &disp->BeginQueryARB;
-        snprintf(symboln, sizeof(symboln), "%sBeginQuery", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BeginQueryARB) {
-        void ** procp = (void **) &disp->BeginQueryARB;
-        snprintf(symboln, sizeof(symboln), "%sBeginQueryARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteQueriesARB) {
-        void ** procp = (void **) &disp->DeleteQueriesARB;
-        snprintf(symboln, sizeof(symboln), "%sDeleteQueries", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteQueriesARB) {
-        void ** procp = (void **) &disp->DeleteQueriesARB;
-        snprintf(symboln, sizeof(symboln), "%sDeleteQueriesARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->EndQueryARB) {
-        void ** procp = (void **) &disp->EndQueryARB;
-        snprintf(symboln, sizeof(symboln), "%sEndQuery", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->EndQueryARB) {
-        void ** procp = (void **) &disp->EndQueryARB;
-        snprintf(symboln, sizeof(symboln), "%sEndQueryARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenQueriesARB) {
-        void ** procp = (void **) &disp->GenQueriesARB;
-        snprintf(symboln, sizeof(symboln), "%sGenQueries", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenQueriesARB) {
-        void ** procp = (void **) &disp->GenQueriesARB;
-        snprintf(symboln, sizeof(symboln), "%sGenQueriesARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetQueryObjectivARB) {
-        void ** procp = (void **) &disp->GetQueryObjectivARB;
-        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetQueryObjectivARB) {
-        void ** procp = (void **) &disp->GetQueryObjectivARB;
-        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetQueryObjectuivARB) {
-        void ** procp = (void **) &disp->GetQueryObjectuivARB;
-        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectuiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetQueryObjectuivARB) {
-        void ** procp = (void **) &disp->GetQueryObjectuivARB;
-        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectuivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetQueryivARB) {
-        void ** procp = (void **) &disp->GetQueryivARB;
-        snprintf(symboln, sizeof(symboln), "%sGetQueryiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetQueryivARB) {
-        void ** procp = (void **) &disp->GetQueryivARB;
-        snprintf(symboln, sizeof(symboln), "%sGetQueryivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsQueryARB) {
-        void ** procp = (void **) &disp->IsQueryARB;
-        snprintf(symboln, sizeof(symboln), "%sIsQuery", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsQueryARB) {
-        void ** procp = (void **) &disp->IsQueryARB;
-        snprintf(symboln, sizeof(symboln), "%sIsQueryARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->AttachObjectARB) {
         void ** procp = (void **) &disp->AttachObjectARB;
         snprintf(symboln, sizeof(symboln), "%sAttachObjectARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompileShaderARB) {
-        void ** procp = (void **) &disp->CompileShaderARB;
-        snprintf(symboln, sizeof(symboln), "%sCompileShader", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CompileShaderARB) {
-        void ** procp = (void **) &disp->CompileShaderARB;
-        snprintf(symboln, sizeof(symboln), "%sCompileShaderARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -5144,20 +7013,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->DetachObjectARB) {
         void ** procp = (void **) &disp->DetachObjectARB;
         snprintf(symboln, sizeof(symboln), "%sDetachObjectARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetActiveUniformARB) {
-        void ** procp = (void **) &disp->GetActiveUniformARB;
-        snprintf(symboln, sizeof(symboln), "%sGetActiveUniform", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetActiveUniformARB) {
-        void ** procp = (void **) &disp->GetActiveUniformARB;
-        snprintf(symboln, sizeof(symboln), "%sGetActiveUniformARB", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -5193,468 +7048,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->GetObjectParameterivARB) {
         void ** procp = (void **) &disp->GetObjectParameterivARB;
         snprintf(symboln, sizeof(symboln), "%sGetObjectParameterivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetShaderSourceARB) {
-        void ** procp = (void **) &disp->GetShaderSourceARB;
-        snprintf(symboln, sizeof(symboln), "%sGetShaderSource", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetShaderSourceARB) {
-        void ** procp = (void **) &disp->GetShaderSourceARB;
-        snprintf(symboln, sizeof(symboln), "%sGetShaderSourceARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetUniformLocationARB) {
-        void ** procp = (void **) &disp->GetUniformLocationARB;
-        snprintf(symboln, sizeof(symboln), "%sGetUniformLocation", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetUniformLocationARB) {
-        void ** procp = (void **) &disp->GetUniformLocationARB;
-        snprintf(symboln, sizeof(symboln), "%sGetUniformLocationARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetUniformfvARB) {
-        void ** procp = (void **) &disp->GetUniformfvARB;
-        snprintf(symboln, sizeof(symboln), "%sGetUniformfv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetUniformfvARB) {
-        void ** procp = (void **) &disp->GetUniformfvARB;
-        snprintf(symboln, sizeof(symboln), "%sGetUniformfvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetUniformivARB) {
-        void ** procp = (void **) &disp->GetUniformivARB;
-        snprintf(symboln, sizeof(symboln), "%sGetUniformiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetUniformivARB) {
-        void ** procp = (void **) &disp->GetUniformivARB;
-        snprintf(symboln, sizeof(symboln), "%sGetUniformivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LinkProgramARB) {
-        void ** procp = (void **) &disp->LinkProgramARB;
-        snprintf(symboln, sizeof(symboln), "%sLinkProgram", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LinkProgramARB) {
-        void ** procp = (void **) &disp->LinkProgramARB;
-        snprintf(symboln, sizeof(symboln), "%sLinkProgramARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ShaderSourceARB) {
-        void ** procp = (void **) &disp->ShaderSourceARB;
-        snprintf(symboln, sizeof(symboln), "%sShaderSource", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ShaderSourceARB) {
-        void ** procp = (void **) &disp->ShaderSourceARB;
-        snprintf(symboln, sizeof(symboln), "%sShaderSourceARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform1fARB) {
-        void ** procp = (void **) &disp->Uniform1fARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform1f", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform1fARB) {
-        void ** procp = (void **) &disp->Uniform1fARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform1fARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform1fvARB) {
-        void ** procp = (void **) &disp->Uniform1fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform1fv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform1fvARB) {
-        void ** procp = (void **) &disp->Uniform1fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform1fvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform1iARB) {
-        void ** procp = (void **) &disp->Uniform1iARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform1i", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform1iARB) {
-        void ** procp = (void **) &disp->Uniform1iARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform1iARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform1ivARB) {
-        void ** procp = (void **) &disp->Uniform1ivARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform1iv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform1ivARB) {
-        void ** procp = (void **) &disp->Uniform1ivARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform1ivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform2fARB) {
-        void ** procp = (void **) &disp->Uniform2fARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform2f", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform2fARB) {
-        void ** procp = (void **) &disp->Uniform2fARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform2fARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform2fvARB) {
-        void ** procp = (void **) &disp->Uniform2fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform2fv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform2fvARB) {
-        void ** procp = (void **) &disp->Uniform2fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform2fvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform2iARB) {
-        void ** procp = (void **) &disp->Uniform2iARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform2i", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform2iARB) {
-        void ** procp = (void **) &disp->Uniform2iARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform2iARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform2ivARB) {
-        void ** procp = (void **) &disp->Uniform2ivARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform2iv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform2ivARB) {
-        void ** procp = (void **) &disp->Uniform2ivARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform2ivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform3fARB) {
-        void ** procp = (void **) &disp->Uniform3fARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform3f", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform3fARB) {
-        void ** procp = (void **) &disp->Uniform3fARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform3fARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform3fvARB) {
-        void ** procp = (void **) &disp->Uniform3fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform3fv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform3fvARB) {
-        void ** procp = (void **) &disp->Uniform3fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform3fvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform3iARB) {
-        void ** procp = (void **) &disp->Uniform3iARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform3i", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform3iARB) {
-        void ** procp = (void **) &disp->Uniform3iARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform3iARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform3ivARB) {
-        void ** procp = (void **) &disp->Uniform3ivARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform3iv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform3ivARB) {
-        void ** procp = (void **) &disp->Uniform3ivARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform3ivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform4fARB) {
-        void ** procp = (void **) &disp->Uniform4fARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform4f", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform4fARB) {
-        void ** procp = (void **) &disp->Uniform4fARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform4fARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform4fvARB) {
-        void ** procp = (void **) &disp->Uniform4fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform4fv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform4fvARB) {
-        void ** procp = (void **) &disp->Uniform4fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform4fvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform4iARB) {
-        void ** procp = (void **) &disp->Uniform4iARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform4i", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform4iARB) {
-        void ** procp = (void **) &disp->Uniform4iARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform4iARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform4ivARB) {
-        void ** procp = (void **) &disp->Uniform4ivARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform4iv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform4ivARB) {
-        void ** procp = (void **) &disp->Uniform4ivARB;
-        snprintf(symboln, sizeof(symboln), "%sUniform4ivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->UniformMatrix2fvARB) {
-        void ** procp = (void **) &disp->UniformMatrix2fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniformMatrix2fv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->UniformMatrix2fvARB) {
-        void ** procp = (void **) &disp->UniformMatrix2fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniformMatrix2fvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->UniformMatrix3fvARB) {
-        void ** procp = (void **) &disp->UniformMatrix3fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniformMatrix3fv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->UniformMatrix3fvARB) {
-        void ** procp = (void **) &disp->UniformMatrix3fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniformMatrix3fvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->UniformMatrix4fvARB) {
-        void ** procp = (void **) &disp->UniformMatrix4fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniformMatrix4fv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->UniformMatrix4fvARB) {
-        void ** procp = (void **) &disp->UniformMatrix4fvARB;
-        snprintf(symboln, sizeof(symboln), "%sUniformMatrix4fvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->UseProgramObjectARB) {
-        void ** procp = (void **) &disp->UseProgramObjectARB;
-        snprintf(symboln, sizeof(symboln), "%sUseProgram", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->UseProgramObjectARB) {
-        void ** procp = (void **) &disp->UseProgramObjectARB;
-        snprintf(symboln, sizeof(symboln), "%sUseProgramObjectARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ValidateProgramARB) {
-        void ** procp = (void **) &disp->ValidateProgramARB;
-        snprintf(symboln, sizeof(symboln), "%sValidateProgram", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ValidateProgramARB) {
-        void ** procp = (void **) &disp->ValidateProgramARB;
-        snprintf(symboln, sizeof(symboln), "%sValidateProgramARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindAttribLocationARB) {
-        void ** procp = (void **) &disp->BindAttribLocationARB;
-        snprintf(symboln, sizeof(symboln), "%sBindAttribLocation", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindAttribLocationARB) {
-        void ** procp = (void **) &disp->BindAttribLocationARB;
-        snprintf(symboln, sizeof(symboln), "%sBindAttribLocationARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetActiveAttribARB) {
-        void ** procp = (void **) &disp->GetActiveAttribARB;
-        snprintf(symboln, sizeof(symboln), "%sGetActiveAttrib", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetActiveAttribARB) {
-        void ** procp = (void **) &disp->GetActiveAttribARB;
-        snprintf(symboln, sizeof(symboln), "%sGetActiveAttribARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetAttribLocationARB) {
-        void ** procp = (void **) &disp->GetAttribLocationARB;
-        snprintf(symboln, sizeof(symboln), "%sGetAttribLocation", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetAttribLocationARB) {
-        void ** procp = (void **) &disp->GetAttribLocationARB;
-        snprintf(symboln, sizeof(symboln), "%sGetAttribLocationARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DrawBuffersARB) {
-        void ** procp = (void **) &disp->DrawBuffersARB;
-        snprintf(symboln, sizeof(symboln), "%sDrawBuffers", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DrawBuffersARB) {
-        void ** procp = (void **) &disp->DrawBuffersARB;
-        snprintf(symboln, sizeof(symboln), "%sDrawBuffersARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DrawBuffersARB) {
-        void ** procp = (void **) &disp->DrawBuffersARB;
-        snprintf(symboln, sizeof(symboln), "%sDrawBuffersATI", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DrawBuffersARB) {
-        void ** procp = (void **) &disp->DrawBuffersARB;
-        snprintf(symboln, sizeof(symboln), "%sDrawBuffersNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ClampColorARB) {
-        void ** procp = (void **) &disp->ClampColorARB;
-        snprintf(symboln, sizeof(symboln), "%sClampColorARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ClampColorARB) {
-        void ** procp = (void **) &disp->ClampColorARB;
-        snprintf(symboln, sizeof(symboln), "%sClampColor", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -5701,6 +7094,391 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->BindFramebuffer) {
+        void ** procp = (void **) &disp->BindFramebuffer;
+        snprintf(symboln, sizeof(symboln), "%sBindFramebuffer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindFramebuffer) {
+        void ** procp = (void **) &disp->BindFramebuffer;
+        snprintf(symboln, sizeof(symboln), "%sBindFramebufferEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindFramebuffer) {
+        void ** procp = (void **) &disp->BindFramebuffer;
+        snprintf(symboln, sizeof(symboln), "%sBindFramebufferOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindRenderbuffer) {
+        void ** procp = (void **) &disp->BindRenderbuffer;
+        snprintf(symboln, sizeof(symboln), "%sBindRenderbuffer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindRenderbuffer) {
+        void ** procp = (void **) &disp->BindRenderbuffer;
+        snprintf(symboln, sizeof(symboln), "%sBindRenderbufferEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindRenderbuffer) {
+        void ** procp = (void **) &disp->BindRenderbuffer;
+        snprintf(symboln, sizeof(symboln), "%sBindRenderbufferOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BlitFramebuffer) {
+        void ** procp = (void **) &disp->BlitFramebuffer;
+        snprintf(symboln, sizeof(symboln), "%sBlitFramebuffer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BlitFramebuffer) {
+        void ** procp = (void **) &disp->BlitFramebuffer;
+        snprintf(symboln, sizeof(symboln), "%sBlitFramebufferEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CheckFramebufferStatus) {
+        void ** procp = (void **) &disp->CheckFramebufferStatus;
+        snprintf(symboln, sizeof(symboln), "%sCheckFramebufferStatus", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CheckFramebufferStatus) {
+        void ** procp = (void **) &disp->CheckFramebufferStatus;
+        snprintf(symboln, sizeof(symboln), "%sCheckFramebufferStatusEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->CheckFramebufferStatus) {
+        void ** procp = (void **) &disp->CheckFramebufferStatus;
+        snprintf(symboln, sizeof(symboln), "%sCheckFramebufferStatusOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeleteFramebuffers) {
+        void ** procp = (void **) &disp->DeleteFramebuffers;
+        snprintf(symboln, sizeof(symboln), "%sDeleteFramebuffers", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeleteFramebuffers) {
+        void ** procp = (void **) &disp->DeleteFramebuffers;
+        snprintf(symboln, sizeof(symboln), "%sDeleteFramebuffersEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeleteFramebuffers) {
+        void ** procp = (void **) &disp->DeleteFramebuffers;
+        snprintf(symboln, sizeof(symboln), "%sDeleteFramebuffersOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeleteRenderbuffers) {
+        void ** procp = (void **) &disp->DeleteRenderbuffers;
+        snprintf(symboln, sizeof(symboln), "%sDeleteRenderbuffers", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeleteRenderbuffers) {
+        void ** procp = (void **) &disp->DeleteRenderbuffers;
+        snprintf(symboln, sizeof(symboln), "%sDeleteRenderbuffersEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeleteRenderbuffers) {
+        void ** procp = (void **) &disp->DeleteRenderbuffers;
+        snprintf(symboln, sizeof(symboln), "%sDeleteRenderbuffersOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferRenderbuffer) {
+        void ** procp = (void **) &disp->FramebufferRenderbuffer;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferRenderbuffer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferRenderbuffer) {
+        void ** procp = (void **) &disp->FramebufferRenderbuffer;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferRenderbufferEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferRenderbuffer) {
+        void ** procp = (void **) &disp->FramebufferRenderbuffer;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferRenderbufferOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTexture1D) {
+        void ** procp = (void **) &disp->FramebufferTexture1D;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture1D", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTexture1D) {
+        void ** procp = (void **) &disp->FramebufferTexture1D;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture1DEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTexture2D) {
+        void ** procp = (void **) &disp->FramebufferTexture2D;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture2D", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTexture2D) {
+        void ** procp = (void **) &disp->FramebufferTexture2D;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture2DEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTexture2D) {
+        void ** procp = (void **) &disp->FramebufferTexture2D;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture2DOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTexture3D) {
+        void ** procp = (void **) &disp->FramebufferTexture3D;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture3D", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTexture3D) {
+        void ** procp = (void **) &disp->FramebufferTexture3D;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture3DEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTexture3D) {
+        void ** procp = (void **) &disp->FramebufferTexture3D;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture3DOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTextureLayer) {
+        void ** procp = (void **) &disp->FramebufferTextureLayer;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTextureLayer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTextureLayer) {
+        void ** procp = (void **) &disp->FramebufferTextureLayer;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTextureLayerARB", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->FramebufferTextureLayer) {
+        void ** procp = (void **) &disp->FramebufferTextureLayer;
+        snprintf(symboln, sizeof(symboln), "%sFramebufferTextureLayerEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenFramebuffers) {
+        void ** procp = (void **) &disp->GenFramebuffers;
+        snprintf(symboln, sizeof(symboln), "%sGenFramebuffers", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenFramebuffers) {
+        void ** procp = (void **) &disp->GenFramebuffers;
+        snprintf(symboln, sizeof(symboln), "%sGenFramebuffersEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenFramebuffers) {
+        void ** procp = (void **) &disp->GenFramebuffers;
+        snprintf(symboln, sizeof(symboln), "%sGenFramebuffersOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenRenderbuffers) {
+        void ** procp = (void **) &disp->GenRenderbuffers;
+        snprintf(symboln, sizeof(symboln), "%sGenRenderbuffers", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenRenderbuffers) {
+        void ** procp = (void **) &disp->GenRenderbuffers;
+        snprintf(symboln, sizeof(symboln), "%sGenRenderbuffersEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenRenderbuffers) {
+        void ** procp = (void **) &disp->GenRenderbuffers;
+        snprintf(symboln, sizeof(symboln), "%sGenRenderbuffersOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenerateMipmap) {
+        void ** procp = (void **) &disp->GenerateMipmap;
+        snprintf(symboln, sizeof(symboln), "%sGenerateMipmap", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenerateMipmap) {
+        void ** procp = (void **) &disp->GenerateMipmap;
+        snprintf(symboln, sizeof(symboln), "%sGenerateMipmapEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenerateMipmap) {
+        void ** procp = (void **) &disp->GenerateMipmap;
+        snprintf(symboln, sizeof(symboln), "%sGenerateMipmapOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetFramebufferAttachmentParameteriv) {
+        void ** procp = (void **) &disp->GetFramebufferAttachmentParameteriv;
+        snprintf(symboln, sizeof(symboln), "%sGetFramebufferAttachmentParameteriv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetFramebufferAttachmentParameteriv) {
+        void ** procp = (void **) &disp->GetFramebufferAttachmentParameteriv;
+        snprintf(symboln, sizeof(symboln), "%sGetFramebufferAttachmentParameterivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetFramebufferAttachmentParameteriv) {
+        void ** procp = (void **) &disp->GetFramebufferAttachmentParameteriv;
+        snprintf(symboln, sizeof(symboln), "%sGetFramebufferAttachmentParameterivOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetRenderbufferParameteriv) {
+        void ** procp = (void **) &disp->GetRenderbufferParameteriv;
+        snprintf(symboln, sizeof(symboln), "%sGetRenderbufferParameteriv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetRenderbufferParameteriv) {
+        void ** procp = (void **) &disp->GetRenderbufferParameteriv;
+        snprintf(symboln, sizeof(symboln), "%sGetRenderbufferParameterivEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetRenderbufferParameteriv) {
+        void ** procp = (void **) &disp->GetRenderbufferParameteriv;
+        snprintf(symboln, sizeof(symboln), "%sGetRenderbufferParameterivOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsFramebuffer) {
+        void ** procp = (void **) &disp->IsFramebuffer;
+        snprintf(symboln, sizeof(symboln), "%sIsFramebuffer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsFramebuffer) {
+        void ** procp = (void **) &disp->IsFramebuffer;
+        snprintf(symboln, sizeof(symboln), "%sIsFramebufferEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsFramebuffer) {
+        void ** procp = (void **) &disp->IsFramebuffer;
+        snprintf(symboln, sizeof(symboln), "%sIsFramebufferOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsRenderbuffer) {
+        void ** procp = (void **) &disp->IsRenderbuffer;
+        snprintf(symboln, sizeof(symboln), "%sIsRenderbuffer", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsRenderbuffer) {
+        void ** procp = (void **) &disp->IsRenderbuffer;
+        snprintf(symboln, sizeof(symboln), "%sIsRenderbufferEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsRenderbuffer) {
+        void ** procp = (void **) &disp->IsRenderbuffer;
+        snprintf(symboln, sizeof(symboln), "%sIsRenderbufferOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->RenderbufferStorage) {
+        void ** procp = (void **) &disp->RenderbufferStorage;
+        snprintf(symboln, sizeof(symboln), "%sRenderbufferStorage", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->RenderbufferStorage) {
+        void ** procp = (void **) &disp->RenderbufferStorage;
+        snprintf(symboln, sizeof(symboln), "%sRenderbufferStorageEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->RenderbufferStorage) {
+        void ** procp = (void **) &disp->RenderbufferStorage;
+        snprintf(symboln, sizeof(symboln), "%sRenderbufferStorageOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->RenderbufferStorageMultisample) {
         void ** procp = (void **) &disp->RenderbufferStorageMultisample;
         snprintf(symboln, sizeof(symboln), "%sRenderbufferStorageMultisample", symbol_prefix);
@@ -5718,20 +7496,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->FramebufferTextureFaceARB) {
         void ** procp = (void **) &disp->FramebufferTextureFaceARB;
         snprintf(symboln, sizeof(symboln), "%sFramebufferTextureFaceARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribDivisorARB) {
-        void ** procp = (void **) &disp->VertexAttribDivisorARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribDivisorARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribDivisorARB) {
-        void ** procp = (void **) &disp->VertexAttribDivisorARB;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribDivisor", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -5764,20 +7528,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->TexBufferARB) {
-        void ** procp = (void **) &disp->TexBufferARB;
-        snprintf(symboln, sizeof(symboln), "%sTexBufferARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TexBufferARB) {
-        void ** procp = (void **) &disp->TexBufferARB;
-        snprintf(symboln, sizeof(symboln), "%sTexBuffer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->BindVertexArray) {
         void ** procp = (void **) &disp->BindVertexArray;
         snprintf(symboln, sizeof(symboln), "%sBindVertexArray", symbol_prefix);
@@ -5792,6 +7542,27 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->DeleteVertexArrays) {
+        void ** procp = (void **) &disp->DeleteVertexArrays;
+        snprintf(symboln, sizeof(symboln), "%sDeleteVertexArrays", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeleteVertexArrays) {
+        void ** procp = (void **) &disp->DeleteVertexArrays;
+        snprintf(symboln, sizeof(symboln), "%sDeleteVertexArraysAPPLE", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeleteVertexArrays) {
+        void ** procp = (void **) &disp->DeleteVertexArrays;
+        snprintf(symboln, sizeof(symboln), "%sDeleteVertexArraysOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->GenVertexArrays) {
         void ** procp = (void **) &disp->GenVertexArrays;
         snprintf(symboln, sizeof(symboln), "%sGenVertexArrays", symbol_prefix);
@@ -5802,6 +7573,27 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->GenVertexArrays) {
         void ** procp = (void **) &disp->GenVertexArrays;
         snprintf(symboln, sizeof(symboln), "%sGenVertexArraysOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsVertexArray) {
+        void ** procp = (void **) &disp->IsVertexArray;
+        snprintf(symboln, sizeof(symboln), "%sIsVertexArray", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsVertexArray) {
+        void ** procp = (void **) &disp->IsVertexArray;
+        snprintf(symboln, sizeof(symboln), "%sIsVertexArrayAPPLE", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->IsVertexArray) {
+        void ** procp = (void **) &disp->IsVertexArray;
+        snprintf(symboln, sizeof(symboln), "%sIsVertexArrayOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -5935,6 +7727,20 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->MultiDrawElementsBaseVertex) {
         void ** procp = (void **) &disp->MultiDrawElementsBaseVertex;
         snprintf(symboln, sizeof(symboln), "%sMultiDrawElementsBaseVertex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ProvokingVertex) {
+        void ** procp = (void **) &disp->ProvokingVertex;
+        snprintf(symboln, sizeof(symboln), "%sProvokingVertexEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ProvokingVertex) {
+        void ** procp = (void **) &disp->ProvokingVertex;
+        snprintf(symboln, sizeof(symboln), "%sProvokingVertex", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -6103,6 +7909,34 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->SamplerParameteriv) {
         void ** procp = (void **) &disp->SamplerParameteriv;
         snprintf(symboln, sizeof(symboln), "%sSamplerParameteriv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryObjecti64v) {
+        void ** procp = (void **) &disp->GetQueryObjecti64v;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryObjecti64v", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryObjecti64v) {
+        void ** procp = (void **) &disp->GetQueryObjecti64v;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryObjecti64vEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryObjectui64v) {
+        void ** procp = (void **) &disp->GetQueryObjectui64v;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectui64v", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetQueryObjectui64v) {
+        void ** procp = (void **) &disp->GetQueryObjectui64v;
+        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectui64vEXT", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -6982,62 +8816,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->PointParameterfEXT) {
-        void ** procp = (void **) &disp->PointParameterfEXT;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterf", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterfEXT) {
-        void ** procp = (void **) &disp->PointParameterfEXT;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterfARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterfEXT) {
-        void ** procp = (void **) &disp->PointParameterfEXT;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterfEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterfEXT) {
-        void ** procp = (void **) &disp->PointParameterfEXT;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterfSGIS", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterfvEXT) {
-        void ** procp = (void **) &disp->PointParameterfvEXT;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterfv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterfvEXT) {
-        void ** procp = (void **) &disp->PointParameterfvEXT;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterfvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterfvEXT) {
-        void ** procp = (void **) &disp->PointParameterfvEXT;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterfvEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterfvEXT) {
-        void ** procp = (void **) &disp->PointParameterfvEXT;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterfvSGIS", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->LockArraysEXT) {
         void ** procp = (void **) &disp->LockArraysEXT;
         snprintf(symboln, sizeof(symboln), "%sLockArraysEXT", symbol_prefix);
@@ -7048,62 +8826,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->UnlockArraysEXT) {
         void ** procp = (void **) &disp->UnlockArraysEXT;
         snprintf(symboln, sizeof(symboln), "%sUnlockArraysEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3bEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3bEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3b", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3bEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3bEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3bEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3bvEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3bvEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3bv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3bvEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3bvEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3bvEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3dEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3dEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3d", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3dEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3dEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3dEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3dvEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3dvEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3dv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3dvEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3dvEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3dvEXT", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -7136,174 +8858,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->SecondaryColor3iEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3iEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3i", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3iEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3iEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3iEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3ivEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3ivEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3iv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3ivEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3ivEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3ivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3sEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3sEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3s", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3sEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3sEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3sEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3svEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3svEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3sv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3svEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3svEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3svEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3ubEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3ubEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3ub", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3ubEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3ubEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3ubEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3ubvEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3ubvEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3ubv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3ubvEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3ubvEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3ubvEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3uiEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3uiEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3ui", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3uiEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3uiEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3uiEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3uivEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3uivEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3uiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3uivEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3uivEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3uivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3usEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3usEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3us", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3usEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3usEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3usEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3usvEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3usvEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3usv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColor3usvEXT) {
-        void ** procp = (void **) &disp->SecondaryColor3usvEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColor3usvEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColorPointerEXT) {
-        void ** procp = (void **) &disp->SecondaryColorPointerEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColorPointer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SecondaryColorPointerEXT) {
-        void ** procp = (void **) &disp->SecondaryColorPointerEXT;
-        snprintf(symboln, sizeof(symboln), "%sSecondaryColorPointerEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MultiDrawArraysEXT) {
-        void ** procp = (void **) &disp->MultiDrawArraysEXT;
-        snprintf(symboln, sizeof(symboln), "%sMultiDrawArrays", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MultiDrawArraysEXT) {
-        void ** procp = (void **) &disp->MultiDrawArraysEXT;
-        snprintf(symboln, sizeof(symboln), "%sMultiDrawArraysEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->MultiDrawElementsEXT) {
         void ** procp = (void **) &disp->MultiDrawElementsEXT;
         snprintf(symboln, sizeof(symboln), "%sMultiDrawElements", symbol_prefix);
@@ -7314,48 +8868,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->MultiDrawElementsEXT) {
         void ** procp = (void **) &disp->MultiDrawElementsEXT;
         snprintf(symboln, sizeof(symboln), "%sMultiDrawElementsEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FogCoordPointerEXT) {
-        void ** procp = (void **) &disp->FogCoordPointerEXT;
-        snprintf(symboln, sizeof(symboln), "%sFogCoordPointer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FogCoordPointerEXT) {
-        void ** procp = (void **) &disp->FogCoordPointerEXT;
-        snprintf(symboln, sizeof(symboln), "%sFogCoordPointerEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FogCoorddEXT) {
-        void ** procp = (void **) &disp->FogCoorddEXT;
-        snprintf(symboln, sizeof(symboln), "%sFogCoordd", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FogCoorddEXT) {
-        void ** procp = (void **) &disp->FogCoorddEXT;
-        snprintf(symboln, sizeof(symboln), "%sFogCoorddEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FogCoorddvEXT) {
-        void ** procp = (void **) &disp->FogCoorddvEXT;
-        snprintf(symboln, sizeof(symboln), "%sFogCoorddv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FogCoorddvEXT) {
-        void ** procp = (void **) &disp->FogCoorddvEXT;
-        snprintf(symboln, sizeof(symboln), "%sFogCoorddvEXT", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -7388,373 +8900,9 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->BlendFuncSeparateEXT) {
-        void ** procp = (void **) &disp->BlendFuncSeparateEXT;
-        snprintf(symboln, sizeof(symboln), "%sBlendFuncSeparate", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BlendFuncSeparateEXT) {
-        void ** procp = (void **) &disp->BlendFuncSeparateEXT;
-        snprintf(symboln, sizeof(symboln), "%sBlendFuncSeparateEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BlendFuncSeparateEXT) {
-        void ** procp = (void **) &disp->BlendFuncSeparateEXT;
-        snprintf(symboln, sizeof(symboln), "%sBlendFuncSeparateINGR", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BlendFuncSeparateEXT) {
-        void ** procp = (void **) &disp->BlendFuncSeparateEXT;
-        snprintf(symboln, sizeof(symboln), "%sBlendFuncSeparateOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->ResizeBuffersMESA) {
         void ** procp = (void **) &disp->ResizeBuffersMESA;
         snprintf(symboln, sizeof(symboln), "%sResizeBuffersMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2dMESA) {
-        void ** procp = (void **) &disp->WindowPos2dMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2d", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2dMESA) {
-        void ** procp = (void **) &disp->WindowPos2dMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2dARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2dMESA) {
-        void ** procp = (void **) &disp->WindowPos2dMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2dMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2dvMESA) {
-        void ** procp = (void **) &disp->WindowPos2dvMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2dv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2dvMESA) {
-        void ** procp = (void **) &disp->WindowPos2dvMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2dvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2dvMESA) {
-        void ** procp = (void **) &disp->WindowPos2dvMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2dvMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2fMESA) {
-        void ** procp = (void **) &disp->WindowPos2fMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2f", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2fMESA) {
-        void ** procp = (void **) &disp->WindowPos2fMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2fARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2fMESA) {
-        void ** procp = (void **) &disp->WindowPos2fMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2fMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2fvMESA) {
-        void ** procp = (void **) &disp->WindowPos2fvMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2fv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2fvMESA) {
-        void ** procp = (void **) &disp->WindowPos2fvMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2fvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2fvMESA) {
-        void ** procp = (void **) &disp->WindowPos2fvMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2fvMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2iMESA) {
-        void ** procp = (void **) &disp->WindowPos2iMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2i", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2iMESA) {
-        void ** procp = (void **) &disp->WindowPos2iMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2iARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2iMESA) {
-        void ** procp = (void **) &disp->WindowPos2iMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2iMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2ivMESA) {
-        void ** procp = (void **) &disp->WindowPos2ivMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2iv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2ivMESA) {
-        void ** procp = (void **) &disp->WindowPos2ivMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2ivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2ivMESA) {
-        void ** procp = (void **) &disp->WindowPos2ivMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2ivMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2sMESA) {
-        void ** procp = (void **) &disp->WindowPos2sMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2s", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2sMESA) {
-        void ** procp = (void **) &disp->WindowPos2sMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2sARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2sMESA) {
-        void ** procp = (void **) &disp->WindowPos2sMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2sMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2svMESA) {
-        void ** procp = (void **) &disp->WindowPos2svMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2sv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2svMESA) {
-        void ** procp = (void **) &disp->WindowPos2svMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2svARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos2svMESA) {
-        void ** procp = (void **) &disp->WindowPos2svMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos2svMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3dMESA) {
-        void ** procp = (void **) &disp->WindowPos3dMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3d", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3dMESA) {
-        void ** procp = (void **) &disp->WindowPos3dMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3dARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3dMESA) {
-        void ** procp = (void **) &disp->WindowPos3dMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3dMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3dvMESA) {
-        void ** procp = (void **) &disp->WindowPos3dvMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3dv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3dvMESA) {
-        void ** procp = (void **) &disp->WindowPos3dvMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3dvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3dvMESA) {
-        void ** procp = (void **) &disp->WindowPos3dvMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3dvMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3fMESA) {
-        void ** procp = (void **) &disp->WindowPos3fMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3f", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3fMESA) {
-        void ** procp = (void **) &disp->WindowPos3fMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3fARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3fMESA) {
-        void ** procp = (void **) &disp->WindowPos3fMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3fMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3fvMESA) {
-        void ** procp = (void **) &disp->WindowPos3fvMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3fv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3fvMESA) {
-        void ** procp = (void **) &disp->WindowPos3fvMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3fvARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3fvMESA) {
-        void ** procp = (void **) &disp->WindowPos3fvMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3fvMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3iMESA) {
-        void ** procp = (void **) &disp->WindowPos3iMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3i", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3iMESA) {
-        void ** procp = (void **) &disp->WindowPos3iMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3iARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3iMESA) {
-        void ** procp = (void **) &disp->WindowPos3iMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3iMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3ivMESA) {
-        void ** procp = (void **) &disp->WindowPos3ivMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3iv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3ivMESA) {
-        void ** procp = (void **) &disp->WindowPos3ivMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3ivARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3ivMESA) {
-        void ** procp = (void **) &disp->WindowPos3ivMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3ivMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3sMESA) {
-        void ** procp = (void **) &disp->WindowPos3sMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3s", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3sMESA) {
-        void ** procp = (void **) &disp->WindowPos3sMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3sARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3sMESA) {
-        void ** procp = (void **) &disp->WindowPos3sMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3sMESA", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3svMESA) {
-        void ** procp = (void **) &disp->WindowPos3svMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3sv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3svMESA) {
-        void ** procp = (void **) &disp->WindowPos3svMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3svARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->WindowPos3svMESA) {
-        void ** procp = (void **) &disp->WindowPos3svMESA;
-        snprintf(symboln, sizeof(symboln), "%sWindowPos3svMESA", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -7836,51 +8984,9 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->BindProgramNV) {
-        void ** procp = (void **) &disp->BindProgramNV;
-        snprintf(symboln, sizeof(symboln), "%sBindProgramARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindProgramNV) {
-        void ** procp = (void **) &disp->BindProgramNV;
-        snprintf(symboln, sizeof(symboln), "%sBindProgramNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteProgramsNV) {
-        void ** procp = (void **) &disp->DeleteProgramsNV;
-        snprintf(symboln, sizeof(symboln), "%sDeleteProgramsARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteProgramsNV) {
-        void ** procp = (void **) &disp->DeleteProgramsNV;
-        snprintf(symboln, sizeof(symboln), "%sDeleteProgramsNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->ExecuteProgramNV) {
         void ** procp = (void **) &disp->ExecuteProgramNV;
         snprintf(symboln, sizeof(symboln), "%sExecuteProgramNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenProgramsNV) {
-        void ** procp = (void **) &disp->GenProgramsNV;
-        snprintf(symboln, sizeof(symboln), "%sGenProgramsARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenProgramsNV) {
-        void ** procp = (void **) &disp->GenProgramsNV;
-        snprintf(symboln, sizeof(symboln), "%sGenProgramsNV", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -7920,27 +9026,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->GetVertexAttribPointervNV) {
-        void ** procp = (void **) &disp->GetVertexAttribPointervNV;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribPointerv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetVertexAttribPointervNV) {
-        void ** procp = (void **) &disp->GetVertexAttribPointervNV;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribPointervARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetVertexAttribPointervNV) {
-        void ** procp = (void **) &disp->GetVertexAttribPointervNV;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribPointervNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->GetVertexAttribdvNV) {
         void ** procp = (void **) &disp->GetVertexAttribdvNV;
         snprintf(symboln, sizeof(symboln), "%sGetVertexAttribdvNV", symbol_prefix);
@@ -7958,20 +9043,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->GetVertexAttribivNV) {
         void ** procp = (void **) &disp->GetVertexAttribivNV;
         snprintf(symboln, sizeof(symboln), "%sGetVertexAttribivNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsProgramNV) {
-        void ** procp = (void **) &disp->IsProgramNV;
-        snprintf(symboln, sizeof(symboln), "%sIsProgramARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsProgramNV) {
-        void ** procp = (void **) &disp->IsProgramNV;
-        snprintf(symboln, sizeof(symboln), "%sIsProgramNV", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -8417,34 +9488,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->PointParameteriNV) {
-        void ** procp = (void **) &disp->PointParameteriNV;
-        snprintf(symboln, sizeof(symboln), "%sPointParameteri", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameteriNV) {
-        void ** procp = (void **) &disp->PointParameteriNV;
-        snprintf(symboln, sizeof(symboln), "%sPointParameteriNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterivNV) {
-        void ** procp = (void **) &disp->PointParameterivNV;
-        snprintf(symboln, sizeof(symboln), "%sPointParameteriv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterivNV) {
-        void ** procp = (void **) &disp->PointParameterivNV;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterivNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->ActiveStencilFaceEXT) {
         void ** procp = (void **) &disp->ActiveStencilFaceEXT;
         snprintf(symboln, sizeof(symboln), "%sActiveStencilFaceEXT", symbol_prefix);
@@ -8459,51 +9502,9 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->DeleteVertexArraysAPPLE) {
-        void ** procp = (void **) &disp->DeleteVertexArraysAPPLE;
-        snprintf(symboln, sizeof(symboln), "%sDeleteVertexArrays", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteVertexArraysAPPLE) {
-        void ** procp = (void **) &disp->DeleteVertexArraysAPPLE;
-        snprintf(symboln, sizeof(symboln), "%sDeleteVertexArraysAPPLE", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteVertexArraysAPPLE) {
-        void ** procp = (void **) &disp->DeleteVertexArraysAPPLE;
-        snprintf(symboln, sizeof(symboln), "%sDeleteVertexArraysOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->GenVertexArraysAPPLE) {
         void ** procp = (void **) &disp->GenVertexArraysAPPLE;
         snprintf(symboln, sizeof(symboln), "%sGenVertexArraysAPPLE", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsVertexArrayAPPLE) {
-        void ** procp = (void **) &disp->IsVertexArrayAPPLE;
-        snprintf(symboln, sizeof(symboln), "%sIsVertexArray", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsVertexArrayAPPLE) {
-        void ** procp = (void **) &disp->IsVertexArrayAPPLE;
-        snprintf(symboln, sizeof(symboln), "%sIsVertexArrayAPPLE", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsVertexArrayAPPLE) {
-        void ** procp = (void **) &disp->IsVertexArrayAPPLE;
-        snprintf(symboln, sizeof(symboln), "%sIsVertexArrayOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -8550,20 +9551,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->PrimitiveRestartIndexNV) {
-        void ** procp = (void **) &disp->PrimitiveRestartIndexNV;
-        snprintf(symboln, sizeof(symboln), "%sPrimitiveRestartIndex", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PrimitiveRestartIndexNV) {
-        void ** procp = (void **) &disp->PrimitiveRestartIndexNV;
-        snprintf(symboln, sizeof(symboln), "%sPrimitiveRestartIndexNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->PrimitiveRestartNV) {
         void ** procp = (void **) &disp->PrimitiveRestartNV;
         snprintf(symboln, sizeof(symboln), "%sPrimitiveRestartNV", symbol_prefix);
@@ -8571,513 +9558,9 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->AlphaFuncxOES) {
-        void ** procp = (void **) &disp->AlphaFuncxOES;
-        snprintf(symboln, sizeof(symboln), "%sAlphaFuncxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->AlphaFuncxOES) {
-        void ** procp = (void **) &disp->AlphaFuncxOES;
-        snprintf(symboln, sizeof(symboln), "%sAlphaFuncx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ClearColorxOES) {
-        void ** procp = (void **) &disp->ClearColorxOES;
-        snprintf(symboln, sizeof(symboln), "%sClearColorxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ClearColorxOES) {
-        void ** procp = (void **) &disp->ClearColorxOES;
-        snprintf(symboln, sizeof(symboln), "%sClearColorx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ClearDepthxOES) {
-        void ** procp = (void **) &disp->ClearDepthxOES;
-        snprintf(symboln, sizeof(symboln), "%sClearDepthxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ClearDepthxOES) {
-        void ** procp = (void **) &disp->ClearDepthxOES;
-        snprintf(symboln, sizeof(symboln), "%sClearDepthx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ClipPlanexOES) {
-        void ** procp = (void **) &disp->ClipPlanexOES;
-        snprintf(symboln, sizeof(symboln), "%sClipPlanexOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ClipPlanexOES) {
-        void ** procp = (void **) &disp->ClipPlanexOES;
-        snprintf(symboln, sizeof(symboln), "%sClipPlanex", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Color4xOES) {
-        void ** procp = (void **) &disp->Color4xOES;
-        snprintf(symboln, sizeof(symboln), "%sColor4xOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Color4xOES) {
-        void ** procp = (void **) &disp->Color4xOES;
-        snprintf(symboln, sizeof(symboln), "%sColor4x", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DepthRangexOES) {
-        void ** procp = (void **) &disp->DepthRangexOES;
-        snprintf(symboln, sizeof(symboln), "%sDepthRangexOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DepthRangexOES) {
-        void ** procp = (void **) &disp->DepthRangexOES;
-        snprintf(symboln, sizeof(symboln), "%sDepthRangex", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FogxOES) {
-        void ** procp = (void **) &disp->FogxOES;
-        snprintf(symboln, sizeof(symboln), "%sFogxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FogxOES) {
-        void ** procp = (void **) &disp->FogxOES;
-        snprintf(symboln, sizeof(symboln), "%sFogx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FogxvOES) {
-        void ** procp = (void **) &disp->FogxvOES;
-        snprintf(symboln, sizeof(symboln), "%sFogxvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FogxvOES) {
-        void ** procp = (void **) &disp->FogxvOES;
-        snprintf(symboln, sizeof(symboln), "%sFogxv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FrustumxOES) {
-        void ** procp = (void **) &disp->FrustumxOES;
-        snprintf(symboln, sizeof(symboln), "%sFrustumxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FrustumxOES) {
-        void ** procp = (void **) &disp->FrustumxOES;
-        snprintf(symboln, sizeof(symboln), "%sFrustumx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetClipPlanexOES) {
-        void ** procp = (void **) &disp->GetClipPlanexOES;
-        snprintf(symboln, sizeof(symboln), "%sGetClipPlanexOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetClipPlanexOES) {
-        void ** procp = (void **) &disp->GetClipPlanexOES;
-        snprintf(symboln, sizeof(symboln), "%sGetClipPlanex", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetFixedvOES) {
-        void ** procp = (void **) &disp->GetFixedvOES;
-        snprintf(symboln, sizeof(symboln), "%sGetFixedvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetFixedvOES) {
-        void ** procp = (void **) &disp->GetFixedvOES;
-        snprintf(symboln, sizeof(symboln), "%sGetFixedv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetLightxvOES) {
-        void ** procp = (void **) &disp->GetLightxvOES;
-        snprintf(symboln, sizeof(symboln), "%sGetLightxvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetLightxvOES) {
-        void ** procp = (void **) &disp->GetLightxvOES;
-        snprintf(symboln, sizeof(symboln), "%sGetLightxv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetMaterialxvOES) {
-        void ** procp = (void **) &disp->GetMaterialxvOES;
-        snprintf(symboln, sizeof(symboln), "%sGetMaterialxvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetMaterialxvOES) {
-        void ** procp = (void **) &disp->GetMaterialxvOES;
-        snprintf(symboln, sizeof(symboln), "%sGetMaterialxv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetTexEnvxvOES) {
-        void ** procp = (void **) &disp->GetTexEnvxvOES;
-        snprintf(symboln, sizeof(symboln), "%sGetTexEnvxvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetTexEnvxvOES) {
-        void ** procp = (void **) &disp->GetTexEnvxvOES;
-        snprintf(symboln, sizeof(symboln), "%sGetTexEnvxv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->GetTexGenxvOES) {
         void ** procp = (void **) &disp->GetTexGenxvOES;
         snprintf(symboln, sizeof(symboln), "%sGetTexGenxvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetTexParameterxvOES) {
-        void ** procp = (void **) &disp->GetTexParameterxvOES;
-        snprintf(symboln, sizeof(symboln), "%sGetTexParameterxvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetTexParameterxvOES) {
-        void ** procp = (void **) &disp->GetTexParameterxvOES;
-        snprintf(symboln, sizeof(symboln), "%sGetTexParameterxv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LightModelxOES) {
-        void ** procp = (void **) &disp->LightModelxOES;
-        snprintf(symboln, sizeof(symboln), "%sLightModelxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LightModelxOES) {
-        void ** procp = (void **) &disp->LightModelxOES;
-        snprintf(symboln, sizeof(symboln), "%sLightModelx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LightModelxvOES) {
-        void ** procp = (void **) &disp->LightModelxvOES;
-        snprintf(symboln, sizeof(symboln), "%sLightModelxvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LightModelxvOES) {
-        void ** procp = (void **) &disp->LightModelxvOES;
-        snprintf(symboln, sizeof(symboln), "%sLightModelxv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LightxOES) {
-        void ** procp = (void **) &disp->LightxOES;
-        snprintf(symboln, sizeof(symboln), "%sLightxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LightxOES) {
-        void ** procp = (void **) &disp->LightxOES;
-        snprintf(symboln, sizeof(symboln), "%sLightx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LightxvOES) {
-        void ** procp = (void **) &disp->LightxvOES;
-        snprintf(symboln, sizeof(symboln), "%sLightxvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LightxvOES) {
-        void ** procp = (void **) &disp->LightxvOES;
-        snprintf(symboln, sizeof(symboln), "%sLightxv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LineWidthxOES) {
-        void ** procp = (void **) &disp->LineWidthxOES;
-        snprintf(symboln, sizeof(symboln), "%sLineWidthxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LineWidthxOES) {
-        void ** procp = (void **) &disp->LineWidthxOES;
-        snprintf(symboln, sizeof(symboln), "%sLineWidthx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LoadMatrixxOES) {
-        void ** procp = (void **) &disp->LoadMatrixxOES;
-        snprintf(symboln, sizeof(symboln), "%sLoadMatrixxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->LoadMatrixxOES) {
-        void ** procp = (void **) &disp->LoadMatrixxOES;
-        snprintf(symboln, sizeof(symboln), "%sLoadMatrixx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MaterialxOES) {
-        void ** procp = (void **) &disp->MaterialxOES;
-        snprintf(symboln, sizeof(symboln), "%sMaterialxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MaterialxOES) {
-        void ** procp = (void **) &disp->MaterialxOES;
-        snprintf(symboln, sizeof(symboln), "%sMaterialx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MaterialxvOES) {
-        void ** procp = (void **) &disp->MaterialxvOES;
-        snprintf(symboln, sizeof(symboln), "%sMaterialxvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MaterialxvOES) {
-        void ** procp = (void **) &disp->MaterialxvOES;
-        snprintf(symboln, sizeof(symboln), "%sMaterialxv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MultMatrixxOES) {
-        void ** procp = (void **) &disp->MultMatrixxOES;
-        snprintf(symboln, sizeof(symboln), "%sMultMatrixxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MultMatrixxOES) {
-        void ** procp = (void **) &disp->MultMatrixxOES;
-        snprintf(symboln, sizeof(symboln), "%sMultMatrixx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MultiTexCoord4xOES) {
-        void ** procp = (void **) &disp->MultiTexCoord4xOES;
-        snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4xOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->MultiTexCoord4xOES) {
-        void ** procp = (void **) &disp->MultiTexCoord4xOES;
-        snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4x", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Normal3xOES) {
-        void ** procp = (void **) &disp->Normal3xOES;
-        snprintf(symboln, sizeof(symboln), "%sNormal3xOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Normal3xOES) {
-        void ** procp = (void **) &disp->Normal3xOES;
-        snprintf(symboln, sizeof(symboln), "%sNormal3x", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->OrthoxOES) {
-        void ** procp = (void **) &disp->OrthoxOES;
-        snprintf(symboln, sizeof(symboln), "%sOrthoxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->OrthoxOES) {
-        void ** procp = (void **) &disp->OrthoxOES;
-        snprintf(symboln, sizeof(symboln), "%sOrthox", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterxOES) {
-        void ** procp = (void **) &disp->PointParameterxOES;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterxOES) {
-        void ** procp = (void **) &disp->PointParameterxOES;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterxvOES) {
-        void ** procp = (void **) &disp->PointParameterxvOES;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterxvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointParameterxvOES) {
-        void ** procp = (void **) &disp->PointParameterxvOES;
-        snprintf(symboln, sizeof(symboln), "%sPointParameterxv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointSizexOES) {
-        void ** procp = (void **) &disp->PointSizexOES;
-        snprintf(symboln, sizeof(symboln), "%sPointSizexOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PointSizexOES) {
-        void ** procp = (void **) &disp->PointSizexOES;
-        snprintf(symboln, sizeof(symboln), "%sPointSizex", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PolygonOffsetxOES) {
-        void ** procp = (void **) &disp->PolygonOffsetxOES;
-        snprintf(symboln, sizeof(symboln), "%sPolygonOffsetxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->PolygonOffsetxOES) {
-        void ** procp = (void **) &disp->PolygonOffsetxOES;
-        snprintf(symboln, sizeof(symboln), "%sPolygonOffsetx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->RotatexOES) {
-        void ** procp = (void **) &disp->RotatexOES;
-        snprintf(symboln, sizeof(symboln), "%sRotatexOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->RotatexOES) {
-        void ** procp = (void **) &disp->RotatexOES;
-        snprintf(symboln, sizeof(symboln), "%sRotatex", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SampleCoveragexOES) {
-        void ** procp = (void **) &disp->SampleCoveragexOES;
-        snprintf(symboln, sizeof(symboln), "%sSampleCoveragexOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->SampleCoveragexOES) {
-        void ** procp = (void **) &disp->SampleCoveragexOES;
-        snprintf(symboln, sizeof(symboln), "%sSampleCoveragex", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ScalexOES) {
-        void ** procp = (void **) &disp->ScalexOES;
-        snprintf(symboln, sizeof(symboln), "%sScalexOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ScalexOES) {
-        void ** procp = (void **) &disp->ScalexOES;
-        snprintf(symboln, sizeof(symboln), "%sScalex", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TexEnvxOES) {
-        void ** procp = (void **) &disp->TexEnvxOES;
-        snprintf(symboln, sizeof(symboln), "%sTexEnvxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TexEnvxOES) {
-        void ** procp = (void **) &disp->TexEnvxOES;
-        snprintf(symboln, sizeof(symboln), "%sTexEnvx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TexEnvxvOES) {
-        void ** procp = (void **) &disp->TexEnvxvOES;
-        snprintf(symboln, sizeof(symboln), "%sTexEnvxvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TexEnvxvOES) {
-        void ** procp = (void **) &disp->TexEnvxvOES;
-        snprintf(symboln, sizeof(symboln), "%sTexEnvxv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -9096,499 +9579,9 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->TexParameterxOES) {
-        void ** procp = (void **) &disp->TexParameterxOES;
-        snprintf(symboln, sizeof(symboln), "%sTexParameterxOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TexParameterxOES) {
-        void ** procp = (void **) &disp->TexParameterxOES;
-        snprintf(symboln, sizeof(symboln), "%sTexParameterx", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TexParameterxvOES) {
-        void ** procp = (void **) &disp->TexParameterxvOES;
-        snprintf(symboln, sizeof(symboln), "%sTexParameterxvOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TexParameterxvOES) {
-        void ** procp = (void **) &disp->TexParameterxvOES;
-        snprintf(symboln, sizeof(symboln), "%sTexParameterxv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TranslatexOES) {
-        void ** procp = (void **) &disp->TranslatexOES;
-        snprintf(symboln, sizeof(symboln), "%sTranslatexOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TranslatexOES) {
-        void ** procp = (void **) &disp->TranslatexOES;
-        snprintf(symboln, sizeof(symboln), "%sTranslatex", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ClipPlanefOES) {
-        void ** procp = (void **) &disp->ClipPlanefOES;
-        snprintf(symboln, sizeof(symboln), "%sClipPlanefOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ClipPlanefOES) {
-        void ** procp = (void **) &disp->ClipPlanefOES;
-        snprintf(symboln, sizeof(symboln), "%sClipPlanef", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FrustumfOES) {
-        void ** procp = (void **) &disp->FrustumfOES;
-        snprintf(symboln, sizeof(symboln), "%sFrustumfOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FrustumfOES) {
-        void ** procp = (void **) &disp->FrustumfOES;
-        snprintf(symboln, sizeof(symboln), "%sFrustumf", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetClipPlanefOES) {
-        void ** procp = (void **) &disp->GetClipPlanefOES;
-        snprintf(symboln, sizeof(symboln), "%sGetClipPlanefOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetClipPlanefOES) {
-        void ** procp = (void **) &disp->GetClipPlanefOES;
-        snprintf(symboln, sizeof(symboln), "%sGetClipPlanef", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->OrthofOES) {
-        void ** procp = (void **) &disp->OrthofOES;
-        snprintf(symboln, sizeof(symboln), "%sOrthofOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->OrthofOES) {
-        void ** procp = (void **) &disp->OrthofOES;
-        snprintf(symboln, sizeof(symboln), "%sOrthof", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->DepthBoundsEXT) {
         void ** procp = (void **) &disp->DepthBoundsEXT;
         snprintf(symboln, sizeof(symboln), "%sDepthBoundsEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BlendEquationSeparateEXT) {
-        void ** procp = (void **) &disp->BlendEquationSeparateEXT;
-        snprintf(symboln, sizeof(symboln), "%sBlendEquationSeparate", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BlendEquationSeparateEXT) {
-        void ** procp = (void **) &disp->BlendEquationSeparateEXT;
-        snprintf(symboln, sizeof(symboln), "%sBlendEquationSeparateEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BlendEquationSeparateEXT) {
-        void ** procp = (void **) &disp->BlendEquationSeparateEXT;
-        snprintf(symboln, sizeof(symboln), "%sBlendEquationSeparateATI", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BlendEquationSeparateEXT) {
-        void ** procp = (void **) &disp->BlendEquationSeparateEXT;
-        snprintf(symboln, sizeof(symboln), "%sBlendEquationSeparateOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindFramebufferEXT) {
-        void ** procp = (void **) &disp->BindFramebufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sBindFramebuffer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindFramebufferEXT) {
-        void ** procp = (void **) &disp->BindFramebufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sBindFramebufferEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindFramebufferEXT) {
-        void ** procp = (void **) &disp->BindFramebufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sBindFramebufferOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindRenderbufferEXT) {
-        void ** procp = (void **) &disp->BindRenderbufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sBindRenderbuffer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindRenderbufferEXT) {
-        void ** procp = (void **) &disp->BindRenderbufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sBindRenderbufferEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindRenderbufferEXT) {
-        void ** procp = (void **) &disp->BindRenderbufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sBindRenderbufferOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CheckFramebufferStatusEXT) {
-        void ** procp = (void **) &disp->CheckFramebufferStatusEXT;
-        snprintf(symboln, sizeof(symboln), "%sCheckFramebufferStatus", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CheckFramebufferStatusEXT) {
-        void ** procp = (void **) &disp->CheckFramebufferStatusEXT;
-        snprintf(symboln, sizeof(symboln), "%sCheckFramebufferStatusEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CheckFramebufferStatusEXT) {
-        void ** procp = (void **) &disp->CheckFramebufferStatusEXT;
-        snprintf(symboln, sizeof(symboln), "%sCheckFramebufferStatusOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteFramebuffersEXT) {
-        void ** procp = (void **) &disp->DeleteFramebuffersEXT;
-        snprintf(symboln, sizeof(symboln), "%sDeleteFramebuffers", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteFramebuffersEXT) {
-        void ** procp = (void **) &disp->DeleteFramebuffersEXT;
-        snprintf(symboln, sizeof(symboln), "%sDeleteFramebuffersEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteFramebuffersEXT) {
-        void ** procp = (void **) &disp->DeleteFramebuffersEXT;
-        snprintf(symboln, sizeof(symboln), "%sDeleteFramebuffersOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteRenderbuffersEXT) {
-        void ** procp = (void **) &disp->DeleteRenderbuffersEXT;
-        snprintf(symboln, sizeof(symboln), "%sDeleteRenderbuffers", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteRenderbuffersEXT) {
-        void ** procp = (void **) &disp->DeleteRenderbuffersEXT;
-        snprintf(symboln, sizeof(symboln), "%sDeleteRenderbuffersEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DeleteRenderbuffersEXT) {
-        void ** procp = (void **) &disp->DeleteRenderbuffersEXT;
-        snprintf(symboln, sizeof(symboln), "%sDeleteRenderbuffersOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferRenderbufferEXT) {
-        void ** procp = (void **) &disp->FramebufferRenderbufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferRenderbuffer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferRenderbufferEXT) {
-        void ** procp = (void **) &disp->FramebufferRenderbufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferRenderbufferEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferRenderbufferEXT) {
-        void ** procp = (void **) &disp->FramebufferRenderbufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferRenderbufferOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferTexture1DEXT) {
-        void ** procp = (void **) &disp->FramebufferTexture1DEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture1D", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferTexture1DEXT) {
-        void ** procp = (void **) &disp->FramebufferTexture1DEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture1DEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferTexture2DEXT) {
-        void ** procp = (void **) &disp->FramebufferTexture2DEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture2D", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferTexture2DEXT) {
-        void ** procp = (void **) &disp->FramebufferTexture2DEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture2DEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferTexture2DEXT) {
-        void ** procp = (void **) &disp->FramebufferTexture2DEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture2DOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferTexture3DEXT) {
-        void ** procp = (void **) &disp->FramebufferTexture3DEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture3D", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferTexture3DEXT) {
-        void ** procp = (void **) &disp->FramebufferTexture3DEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture3DEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferTexture3DEXT) {
-        void ** procp = (void **) &disp->FramebufferTexture3DEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferTexture3DOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenFramebuffersEXT) {
-        void ** procp = (void **) &disp->GenFramebuffersEXT;
-        snprintf(symboln, sizeof(symboln), "%sGenFramebuffers", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenFramebuffersEXT) {
-        void ** procp = (void **) &disp->GenFramebuffersEXT;
-        snprintf(symboln, sizeof(symboln), "%sGenFramebuffersEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenFramebuffersEXT) {
-        void ** procp = (void **) &disp->GenFramebuffersEXT;
-        snprintf(symboln, sizeof(symboln), "%sGenFramebuffersOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenRenderbuffersEXT) {
-        void ** procp = (void **) &disp->GenRenderbuffersEXT;
-        snprintf(symboln, sizeof(symboln), "%sGenRenderbuffers", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenRenderbuffersEXT) {
-        void ** procp = (void **) &disp->GenRenderbuffersEXT;
-        snprintf(symboln, sizeof(symboln), "%sGenRenderbuffersEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenRenderbuffersEXT) {
-        void ** procp = (void **) &disp->GenRenderbuffersEXT;
-        snprintf(symboln, sizeof(symboln), "%sGenRenderbuffersOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenerateMipmapEXT) {
-        void ** procp = (void **) &disp->GenerateMipmapEXT;
-        snprintf(symboln, sizeof(symboln), "%sGenerateMipmap", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenerateMipmapEXT) {
-        void ** procp = (void **) &disp->GenerateMipmapEXT;
-        snprintf(symboln, sizeof(symboln), "%sGenerateMipmapEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GenerateMipmapEXT) {
-        void ** procp = (void **) &disp->GenerateMipmapEXT;
-        snprintf(symboln, sizeof(symboln), "%sGenerateMipmapOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetFramebufferAttachmentParameterivEXT) {
-        void ** procp = (void **) &disp->GetFramebufferAttachmentParameterivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetFramebufferAttachmentParameteriv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetFramebufferAttachmentParameterivEXT) {
-        void ** procp = (void **) &disp->GetFramebufferAttachmentParameterivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetFramebufferAttachmentParameterivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetFramebufferAttachmentParameterivEXT) {
-        void ** procp = (void **) &disp->GetFramebufferAttachmentParameterivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetFramebufferAttachmentParameterivOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetRenderbufferParameterivEXT) {
-        void ** procp = (void **) &disp->GetRenderbufferParameterivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetRenderbufferParameteriv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetRenderbufferParameterivEXT) {
-        void ** procp = (void **) &disp->GetRenderbufferParameterivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetRenderbufferParameterivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetRenderbufferParameterivEXT) {
-        void ** procp = (void **) &disp->GetRenderbufferParameterivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetRenderbufferParameterivOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsFramebufferEXT) {
-        void ** procp = (void **) &disp->IsFramebufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sIsFramebuffer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsFramebufferEXT) {
-        void ** procp = (void **) &disp->IsFramebufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sIsFramebufferEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsFramebufferEXT) {
-        void ** procp = (void **) &disp->IsFramebufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sIsFramebufferOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsRenderbufferEXT) {
-        void ** procp = (void **) &disp->IsRenderbufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sIsRenderbuffer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsRenderbufferEXT) {
-        void ** procp = (void **) &disp->IsRenderbufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sIsRenderbufferEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsRenderbufferEXT) {
-        void ** procp = (void **) &disp->IsRenderbufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sIsRenderbufferOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->RenderbufferStorageEXT) {
-        void ** procp = (void **) &disp->RenderbufferStorageEXT;
-        snprintf(symboln, sizeof(symboln), "%sRenderbufferStorage", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->RenderbufferStorageEXT) {
-        void ** procp = (void **) &disp->RenderbufferStorageEXT;
-        snprintf(symboln, sizeof(symboln), "%sRenderbufferStorageEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->RenderbufferStorageEXT) {
-        void ** procp = (void **) &disp->RenderbufferStorageEXT;
-        snprintf(symboln, sizeof(symboln), "%sRenderbufferStorageOES", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BlitFramebufferEXT) {
-        void ** procp = (void **) &disp->BlitFramebufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sBlitFramebuffer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BlitFramebufferEXT) {
-        void ** procp = (void **) &disp->BlitFramebufferEXT;
-        snprintf(symboln, sizeof(symboln), "%sBlitFramebufferEXT", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -9607,188 +9600,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->BindFragDataLocationEXT) {
-        void ** procp = (void **) &disp->BindFragDataLocationEXT;
-        snprintf(symboln, sizeof(symboln), "%sBindFragDataLocationEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindFragDataLocationEXT) {
-        void ** procp = (void **) &disp->BindFragDataLocationEXT;
-        snprintf(symboln, sizeof(symboln), "%sBindFragDataLocation", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetFragDataLocationEXT) {
-        void ** procp = (void **) &disp->GetFragDataLocationEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetFragDataLocationEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetFragDataLocationEXT) {
-        void ** procp = (void **) &disp->GetFragDataLocationEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetFragDataLocation", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetUniformuivEXT) {
-        void ** procp = (void **) &disp->GetUniformuivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetUniformuivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetUniformuivEXT) {
-        void ** procp = (void **) &disp->GetUniformuivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetUniformuiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetVertexAttribIivEXT) {
-        void ** procp = (void **) &disp->GetVertexAttribIivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribIivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetVertexAttribIivEXT) {
-        void ** procp = (void **) &disp->GetVertexAttribIivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribIiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetVertexAttribIuivEXT) {
-        void ** procp = (void **) &disp->GetVertexAttribIuivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribIuivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetVertexAttribIuivEXT) {
-        void ** procp = (void **) &disp->GetVertexAttribIuivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetVertexAttribIuiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform1uiEXT) {
-        void ** procp = (void **) &disp->Uniform1uiEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform1uiEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform1uiEXT) {
-        void ** procp = (void **) &disp->Uniform1uiEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform1ui", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform1uivEXT) {
-        void ** procp = (void **) &disp->Uniform1uivEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform1uivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform1uivEXT) {
-        void ** procp = (void **) &disp->Uniform1uivEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform1uiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform2uiEXT) {
-        void ** procp = (void **) &disp->Uniform2uiEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform2uiEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform2uiEXT) {
-        void ** procp = (void **) &disp->Uniform2uiEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform2ui", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform2uivEXT) {
-        void ** procp = (void **) &disp->Uniform2uivEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform2uivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform2uivEXT) {
-        void ** procp = (void **) &disp->Uniform2uivEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform2uiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform3uiEXT) {
-        void ** procp = (void **) &disp->Uniform3uiEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform3uiEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform3uiEXT) {
-        void ** procp = (void **) &disp->Uniform3uiEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform3ui", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform3uivEXT) {
-        void ** procp = (void **) &disp->Uniform3uivEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform3uivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform3uivEXT) {
-        void ** procp = (void **) &disp->Uniform3uivEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform3uiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform4uiEXT) {
-        void ** procp = (void **) &disp->Uniform4uiEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform4uiEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform4uiEXT) {
-        void ** procp = (void **) &disp->Uniform4uiEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform4ui", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform4uivEXT) {
-        void ** procp = (void **) &disp->Uniform4uivEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform4uivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->Uniform4uivEXT) {
-        void ** procp = (void **) &disp->Uniform4uivEXT;
-        snprintf(symboln, sizeof(symboln), "%sUniform4uiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->VertexAttribI1iEXT) {
         void ** procp = (void **) &disp->VertexAttribI1iEXT;
         snprintf(symboln, sizeof(symboln), "%sVertexAttribI1iEXT", symbol_prefix);
@@ -9803,20 +9614,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->VertexAttribI1ivEXT) {
-        void ** procp = (void **) &disp->VertexAttribI1ivEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribI1ivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribI1ivEXT) {
-        void ** procp = (void **) &disp->VertexAttribI1ivEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribI1iv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->VertexAttribI1uiEXT) {
         void ** procp = (void **) &disp->VertexAttribI1uiEXT;
         snprintf(symboln, sizeof(symboln), "%sVertexAttribI1uiEXT", symbol_prefix);
@@ -9827,20 +9624,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->VertexAttribI1uiEXT) {
         void ** procp = (void **) &disp->VertexAttribI1uiEXT;
         snprintf(symboln, sizeof(symboln), "%sVertexAttribI1ui", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribI1uivEXT) {
-        void ** procp = (void **) &disp->VertexAttribI1uivEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribI1uivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribI1uivEXT) {
-        void ** procp = (void **) &disp->VertexAttribI1uivEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribI1uiv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -9957,20 +9740,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->VertexAttribI4bvEXT) {
-        void ** procp = (void **) &disp->VertexAttribI4bvEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4bvEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribI4bvEXT) {
-        void ** procp = (void **) &disp->VertexAttribI4bvEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4bv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->VertexAttribI4iEXT) {
         void ** procp = (void **) &disp->VertexAttribI4iEXT;
         snprintf(symboln, sizeof(symboln), "%sVertexAttribI4iEXT", symbol_prefix);
@@ -9995,34 +9764,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->VertexAttribI4ivEXT) {
         void ** procp = (void **) &disp->VertexAttribI4ivEXT;
         snprintf(symboln, sizeof(symboln), "%sVertexAttribI4iv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribI4svEXT) {
-        void ** procp = (void **) &disp->VertexAttribI4svEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4svEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribI4svEXT) {
-        void ** procp = (void **) &disp->VertexAttribI4svEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4sv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribI4ubvEXT) {
-        void ** procp = (void **) &disp->VertexAttribI4ubvEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4ubvEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribI4ubvEXT) {
-        void ** procp = (void **) &disp->VertexAttribI4ubvEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4ubv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -10055,139 +9796,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->VertexAttribI4usvEXT) {
-        void ** procp = (void **) &disp->VertexAttribI4usvEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4usvEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribI4usvEXT) {
-        void ** procp = (void **) &disp->VertexAttribI4usvEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribI4usv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribIPointerEXT) {
-        void ** procp = (void **) &disp->VertexAttribIPointerEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribIPointerEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->VertexAttribIPointerEXT) {
-        void ** procp = (void **) &disp->VertexAttribIPointerEXT;
-        snprintf(symboln, sizeof(symboln), "%sVertexAttribIPointer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferTextureLayerEXT) {
-        void ** procp = (void **) &disp->FramebufferTextureLayerEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferTextureLayer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferTextureLayerEXT) {
-        void ** procp = (void **) &disp->FramebufferTextureLayerEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferTextureLayerARB", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->FramebufferTextureLayerEXT) {
-        void ** procp = (void **) &disp->FramebufferTextureLayerEXT;
-        snprintf(symboln, sizeof(symboln), "%sFramebufferTextureLayerEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ColorMaskIndexedEXT) {
-        void ** procp = (void **) &disp->ColorMaskIndexedEXT;
-        snprintf(symboln, sizeof(symboln), "%sColorMaskIndexedEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ColorMaskIndexedEXT) {
-        void ** procp = (void **) &disp->ColorMaskIndexedEXT;
-        snprintf(symboln, sizeof(symboln), "%sColorMaski", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DisableIndexedEXT) {
-        void ** procp = (void **) &disp->DisableIndexedEXT;
-        snprintf(symboln, sizeof(symboln), "%sDisableIndexedEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->DisableIndexedEXT) {
-        void ** procp = (void **) &disp->DisableIndexedEXT;
-        snprintf(symboln, sizeof(symboln), "%sDisablei", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->EnableIndexedEXT) {
-        void ** procp = (void **) &disp->EnableIndexedEXT;
-        snprintf(symboln, sizeof(symboln), "%sEnableIndexedEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->EnableIndexedEXT) {
-        void ** procp = (void **) &disp->EnableIndexedEXT;
-        snprintf(symboln, sizeof(symboln), "%sEnablei", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetBooleanIndexedvEXT) {
-        void ** procp = (void **) &disp->GetBooleanIndexedvEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetBooleanIndexedvEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetBooleanIndexedvEXT) {
-        void ** procp = (void **) &disp->GetBooleanIndexedvEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetBooleani_v", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetIntegerIndexedvEXT) {
-        void ** procp = (void **) &disp->GetIntegerIndexedvEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetIntegerIndexedvEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetIntegerIndexedvEXT) {
-        void ** procp = (void **) &disp->GetIntegerIndexedvEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetIntegeri_v", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsEnabledIndexedEXT) {
-        void ** procp = (void **) &disp->IsEnabledIndexedEXT;
-        snprintf(symboln, sizeof(symboln), "%sIsEnabledIndexedEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->IsEnabledIndexedEXT) {
-        void ** procp = (void **) &disp->IsEnabledIndexedEXT;
-        snprintf(symboln, sizeof(symboln), "%sIsEnabledi", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->ClearColorIiEXT) {
         void ** procp = (void **) &disp->ClearColorIiEXT;
         snprintf(symboln, sizeof(symboln), "%sClearColorIiEXT", symbol_prefix);
@@ -10202,191 +9810,9 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->GetTexParameterIivEXT) {
-        void ** procp = (void **) &disp->GetTexParameterIivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetTexParameterIivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetTexParameterIivEXT) {
-        void ** procp = (void **) &disp->GetTexParameterIivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetTexParameterIiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetTexParameterIuivEXT) {
-        void ** procp = (void **) &disp->GetTexParameterIuivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetTexParameterIuivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetTexParameterIuivEXT) {
-        void ** procp = (void **) &disp->GetTexParameterIuivEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetTexParameterIuiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TexParameterIivEXT) {
-        void ** procp = (void **) &disp->TexParameterIivEXT;
-        snprintf(symboln, sizeof(symboln), "%sTexParameterIivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TexParameterIivEXT) {
-        void ** procp = (void **) &disp->TexParameterIivEXT;
-        snprintf(symboln, sizeof(symboln), "%sTexParameterIiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TexParameterIuivEXT) {
-        void ** procp = (void **) &disp->TexParameterIuivEXT;
-        snprintf(symboln, sizeof(symboln), "%sTexParameterIuivEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TexParameterIuivEXT) {
-        void ** procp = (void **) &disp->TexParameterIuivEXT;
-        snprintf(symboln, sizeof(symboln), "%sTexParameterIuiv", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BeginConditionalRenderNV) {
-        void ** procp = (void **) &disp->BeginConditionalRenderNV;
-        snprintf(symboln, sizeof(symboln), "%sBeginConditionalRender", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BeginConditionalRenderNV) {
-        void ** procp = (void **) &disp->BeginConditionalRenderNV;
-        snprintf(symboln, sizeof(symboln), "%sBeginConditionalRenderNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->EndConditionalRenderNV) {
-        void ** procp = (void **) &disp->EndConditionalRenderNV;
-        snprintf(symboln, sizeof(symboln), "%sEndConditionalRender", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->EndConditionalRenderNV) {
-        void ** procp = (void **) &disp->EndConditionalRenderNV;
-        snprintf(symboln, sizeof(symboln), "%sEndConditionalRenderNV", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BeginTransformFeedbackEXT) {
-        void ** procp = (void **) &disp->BeginTransformFeedbackEXT;
-        snprintf(symboln, sizeof(symboln), "%sBeginTransformFeedback", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BeginTransformFeedbackEXT) {
-        void ** procp = (void **) &disp->BeginTransformFeedbackEXT;
-        snprintf(symboln, sizeof(symboln), "%sBeginTransformFeedbackEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindBufferBaseEXT) {
-        void ** procp = (void **) &disp->BindBufferBaseEXT;
-        snprintf(symboln, sizeof(symboln), "%sBindBufferBase", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindBufferBaseEXT) {
-        void ** procp = (void **) &disp->BindBufferBaseEXT;
-        snprintf(symboln, sizeof(symboln), "%sBindBufferBaseEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->BindBufferOffsetEXT) {
         void ** procp = (void **) &disp->BindBufferOffsetEXT;
         snprintf(symboln, sizeof(symboln), "%sBindBufferOffsetEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindBufferRangeEXT) {
-        void ** procp = (void **) &disp->BindBufferRangeEXT;
-        snprintf(symboln, sizeof(symboln), "%sBindBufferRange", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindBufferRangeEXT) {
-        void ** procp = (void **) &disp->BindBufferRangeEXT;
-        snprintf(symboln, sizeof(symboln), "%sBindBufferRangeEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->EndTransformFeedbackEXT) {
-        void ** procp = (void **) &disp->EndTransformFeedbackEXT;
-        snprintf(symboln, sizeof(symboln), "%sEndTransformFeedback", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->EndTransformFeedbackEXT) {
-        void ** procp = (void **) &disp->EndTransformFeedbackEXT;
-        snprintf(symboln, sizeof(symboln), "%sEndTransformFeedbackEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetTransformFeedbackVaryingEXT) {
-        void ** procp = (void **) &disp->GetTransformFeedbackVaryingEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetTransformFeedbackVarying", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetTransformFeedbackVaryingEXT) {
-        void ** procp = (void **) &disp->GetTransformFeedbackVaryingEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetTransformFeedbackVaryingEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TransformFeedbackVaryingsEXT) {
-        void ** procp = (void **) &disp->TransformFeedbackVaryingsEXT;
-        snprintf(symboln, sizeof(symboln), "%sTransformFeedbackVaryings", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->TransformFeedbackVaryingsEXT) {
-        void ** procp = (void **) &disp->TransformFeedbackVaryingsEXT;
-        snprintf(symboln, sizeof(symboln), "%sTransformFeedbackVaryingsEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ProvokingVertexEXT) {
-        void ** procp = (void **) &disp->ProvokingVertexEXT;
-        snprintf(symboln, sizeof(symboln), "%sProvokingVertexEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->ProvokingVertexEXT) {
-        void ** procp = (void **) &disp->ProvokingVertexEXT;
-        snprintf(symboln, sizeof(symboln), "%sProvokingVertex", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -10461,34 +9887,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
-    if(!disp->GetQueryObjecti64vEXT) {
-        void ** procp = (void **) &disp->GetQueryObjecti64vEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetQueryObjecti64v", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetQueryObjecti64vEXT) {
-        void ** procp = (void **) &disp->GetQueryObjecti64vEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetQueryObjecti64vEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetQueryObjectui64vEXT) {
-        void ** procp = (void **) &disp->GetQueryObjectui64vEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectui64v", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->GetQueryObjectui64vEXT) {
-        void ** procp = (void **) &disp->GetQueryObjectui64vEXT;
-        snprintf(symboln, sizeof(symboln), "%sGetQueryObjectui64vEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
     if(!disp->EGLImageTargetRenderbufferStorageOES) {
         void ** procp = (void **) &disp->EGLImageTargetRenderbufferStorageOES;
         snprintf(symboln, sizeof(symboln), "%sEGLImageTargetRenderbufferStorageOES", symbol_prefix);
@@ -10499,6 +9897,608 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->EGLImageTargetTexture2DOES) {
         void ** procp = (void **) &disp->EGLImageTargetTexture2DOES;
         snprintf(symboln, sizeof(symboln), "%sEGLImageTargetTexture2DOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->AlphaFuncx) {
+        void ** procp = (void **) &disp->AlphaFuncx;
+        snprintf(symboln, sizeof(symboln), "%sAlphaFuncxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->AlphaFuncx) {
+        void ** procp = (void **) &disp->AlphaFuncx;
+        snprintf(symboln, sizeof(symboln), "%sAlphaFuncx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClearColorx) {
+        void ** procp = (void **) &disp->ClearColorx;
+        snprintf(symboln, sizeof(symboln), "%sClearColorxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClearColorx) {
+        void ** procp = (void **) &disp->ClearColorx;
+        snprintf(symboln, sizeof(symboln), "%sClearColorx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClearDepthx) {
+        void ** procp = (void **) &disp->ClearDepthx;
+        snprintf(symboln, sizeof(symboln), "%sClearDepthxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClearDepthx) {
+        void ** procp = (void **) &disp->ClearDepthx;
+        snprintf(symboln, sizeof(symboln), "%sClearDepthx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Color4x) {
+        void ** procp = (void **) &disp->Color4x;
+        snprintf(symboln, sizeof(symboln), "%sColor4xOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Color4x) {
+        void ** procp = (void **) &disp->Color4x;
+        snprintf(symboln, sizeof(symboln), "%sColor4x", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DepthRangex) {
+        void ** procp = (void **) &disp->DepthRangex;
+        snprintf(symboln, sizeof(symboln), "%sDepthRangexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DepthRangex) {
+        void ** procp = (void **) &disp->DepthRangex;
+        snprintf(symboln, sizeof(symboln), "%sDepthRangex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Fogx) {
+        void ** procp = (void **) &disp->Fogx;
+        snprintf(symboln, sizeof(symboln), "%sFogxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Fogx) {
+        void ** procp = (void **) &disp->Fogx;
+        snprintf(symboln, sizeof(symboln), "%sFogx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Fogxv) {
+        void ** procp = (void **) &disp->Fogxv;
+        snprintf(symboln, sizeof(symboln), "%sFogxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Fogxv) {
+        void ** procp = (void **) &disp->Fogxv;
+        snprintf(symboln, sizeof(symboln), "%sFogxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Frustumf) {
+        void ** procp = (void **) &disp->Frustumf;
+        snprintf(symboln, sizeof(symboln), "%sFrustumfOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Frustumf) {
+        void ** procp = (void **) &disp->Frustumf;
+        snprintf(symboln, sizeof(symboln), "%sFrustumf", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Frustumx) {
+        void ** procp = (void **) &disp->Frustumx;
+        snprintf(symboln, sizeof(symboln), "%sFrustumxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Frustumx) {
+        void ** procp = (void **) &disp->Frustumx;
+        snprintf(symboln, sizeof(symboln), "%sFrustumx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LightModelx) {
+        void ** procp = (void **) &disp->LightModelx;
+        snprintf(symboln, sizeof(symboln), "%sLightModelxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LightModelx) {
+        void ** procp = (void **) &disp->LightModelx;
+        snprintf(symboln, sizeof(symboln), "%sLightModelx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LightModelxv) {
+        void ** procp = (void **) &disp->LightModelxv;
+        snprintf(symboln, sizeof(symboln), "%sLightModelxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LightModelxv) {
+        void ** procp = (void **) &disp->LightModelxv;
+        snprintf(symboln, sizeof(symboln), "%sLightModelxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Lightx) {
+        void ** procp = (void **) &disp->Lightx;
+        snprintf(symboln, sizeof(symboln), "%sLightxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Lightx) {
+        void ** procp = (void **) &disp->Lightx;
+        snprintf(symboln, sizeof(symboln), "%sLightx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Lightxv) {
+        void ** procp = (void **) &disp->Lightxv;
+        snprintf(symboln, sizeof(symboln), "%sLightxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Lightxv) {
+        void ** procp = (void **) &disp->Lightxv;
+        snprintf(symboln, sizeof(symboln), "%sLightxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LineWidthx) {
+        void ** procp = (void **) &disp->LineWidthx;
+        snprintf(symboln, sizeof(symboln), "%sLineWidthxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LineWidthx) {
+        void ** procp = (void **) &disp->LineWidthx;
+        snprintf(symboln, sizeof(symboln), "%sLineWidthx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LoadMatrixx) {
+        void ** procp = (void **) &disp->LoadMatrixx;
+        snprintf(symboln, sizeof(symboln), "%sLoadMatrixxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->LoadMatrixx) {
+        void ** procp = (void **) &disp->LoadMatrixx;
+        snprintf(symboln, sizeof(symboln), "%sLoadMatrixx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Materialx) {
+        void ** procp = (void **) &disp->Materialx;
+        snprintf(symboln, sizeof(symboln), "%sMaterialxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Materialx) {
+        void ** procp = (void **) &disp->Materialx;
+        snprintf(symboln, sizeof(symboln), "%sMaterialx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Materialxv) {
+        void ** procp = (void **) &disp->Materialxv;
+        snprintf(symboln, sizeof(symboln), "%sMaterialxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Materialxv) {
+        void ** procp = (void **) &disp->Materialxv;
+        snprintf(symboln, sizeof(symboln), "%sMaterialxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultMatrixx) {
+        void ** procp = (void **) &disp->MultMatrixx;
+        snprintf(symboln, sizeof(symboln), "%sMultMatrixxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultMatrixx) {
+        void ** procp = (void **) &disp->MultMatrixx;
+        snprintf(symboln, sizeof(symboln), "%sMultMatrixx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultiTexCoord4x) {
+        void ** procp = (void **) &disp->MultiTexCoord4x;
+        snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4xOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->MultiTexCoord4x) {
+        void ** procp = (void **) &disp->MultiTexCoord4x;
+        snprintf(symboln, sizeof(symboln), "%sMultiTexCoord4x", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Normal3x) {
+        void ** procp = (void **) &disp->Normal3x;
+        snprintf(symboln, sizeof(symboln), "%sNormal3xOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Normal3x) {
+        void ** procp = (void **) &disp->Normal3x;
+        snprintf(symboln, sizeof(symboln), "%sNormal3x", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Orthof) {
+        void ** procp = (void **) &disp->Orthof;
+        snprintf(symboln, sizeof(symboln), "%sOrthofOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Orthof) {
+        void ** procp = (void **) &disp->Orthof;
+        snprintf(symboln, sizeof(symboln), "%sOrthof", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Orthox) {
+        void ** procp = (void **) &disp->Orthox;
+        snprintf(symboln, sizeof(symboln), "%sOrthoxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Orthox) {
+        void ** procp = (void **) &disp->Orthox;
+        snprintf(symboln, sizeof(symboln), "%sOrthox", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointSizex) {
+        void ** procp = (void **) &disp->PointSizex;
+        snprintf(symboln, sizeof(symboln), "%sPointSizexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointSizex) {
+        void ** procp = (void **) &disp->PointSizex;
+        snprintf(symboln, sizeof(symboln), "%sPointSizex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PolygonOffsetx) {
+        void ** procp = (void **) &disp->PolygonOffsetx;
+        snprintf(symboln, sizeof(symboln), "%sPolygonOffsetxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PolygonOffsetx) {
+        void ** procp = (void **) &disp->PolygonOffsetx;
+        snprintf(symboln, sizeof(symboln), "%sPolygonOffsetx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Rotatex) {
+        void ** procp = (void **) &disp->Rotatex;
+        snprintf(symboln, sizeof(symboln), "%sRotatexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Rotatex) {
+        void ** procp = (void **) &disp->Rotatex;
+        snprintf(symboln, sizeof(symboln), "%sRotatex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SampleCoveragex) {
+        void ** procp = (void **) &disp->SampleCoveragex;
+        snprintf(symboln, sizeof(symboln), "%sSampleCoveragexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SampleCoveragex) {
+        void ** procp = (void **) &disp->SampleCoveragex;
+        snprintf(symboln, sizeof(symboln), "%sSampleCoveragex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Scalex) {
+        void ** procp = (void **) &disp->Scalex;
+        snprintf(symboln, sizeof(symboln), "%sScalexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Scalex) {
+        void ** procp = (void **) &disp->Scalex;
+        snprintf(symboln, sizeof(symboln), "%sScalex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexEnvx) {
+        void ** procp = (void **) &disp->TexEnvx;
+        snprintf(symboln, sizeof(symboln), "%sTexEnvxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexEnvx) {
+        void ** procp = (void **) &disp->TexEnvx;
+        snprintf(symboln, sizeof(symboln), "%sTexEnvx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexEnvxv) {
+        void ** procp = (void **) &disp->TexEnvxv;
+        snprintf(symboln, sizeof(symboln), "%sTexEnvxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexEnvxv) {
+        void ** procp = (void **) &disp->TexEnvxv;
+        snprintf(symboln, sizeof(symboln), "%sTexEnvxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexParameterx) {
+        void ** procp = (void **) &disp->TexParameterx;
+        snprintf(symboln, sizeof(symboln), "%sTexParameterxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexParameterx) {
+        void ** procp = (void **) &disp->TexParameterx;
+        snprintf(symboln, sizeof(symboln), "%sTexParameterx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Translatex) {
+        void ** procp = (void **) &disp->Translatex;
+        snprintf(symboln, sizeof(symboln), "%sTranslatexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->Translatex) {
+        void ** procp = (void **) &disp->Translatex;
+        snprintf(symboln, sizeof(symboln), "%sTranslatex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClipPlanef) {
+        void ** procp = (void **) &disp->ClipPlanef;
+        snprintf(symboln, sizeof(symboln), "%sClipPlanefOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClipPlanef) {
+        void ** procp = (void **) &disp->ClipPlanef;
+        snprintf(symboln, sizeof(symboln), "%sClipPlanef", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClipPlanex) {
+        void ** procp = (void **) &disp->ClipPlanex;
+        snprintf(symboln, sizeof(symboln), "%sClipPlanexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ClipPlanex) {
+        void ** procp = (void **) &disp->ClipPlanex;
+        snprintf(symboln, sizeof(symboln), "%sClipPlanex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetClipPlanef) {
+        void ** procp = (void **) &disp->GetClipPlanef;
+        snprintf(symboln, sizeof(symboln), "%sGetClipPlanefOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetClipPlanef) {
+        void ** procp = (void **) &disp->GetClipPlanef;
+        snprintf(symboln, sizeof(symboln), "%sGetClipPlanef", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetClipPlanex) {
+        void ** procp = (void **) &disp->GetClipPlanex;
+        snprintf(symboln, sizeof(symboln), "%sGetClipPlanexOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetClipPlanex) {
+        void ** procp = (void **) &disp->GetClipPlanex;
+        snprintf(symboln, sizeof(symboln), "%sGetClipPlanex", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetFixedv) {
+        void ** procp = (void **) &disp->GetFixedv;
+        snprintf(symboln, sizeof(symboln), "%sGetFixedvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetFixedv) {
+        void ** procp = (void **) &disp->GetFixedv;
+        snprintf(symboln, sizeof(symboln), "%sGetFixedv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetLightxv) {
+        void ** procp = (void **) &disp->GetLightxv;
+        snprintf(symboln, sizeof(symboln), "%sGetLightxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetLightxv) {
+        void ** procp = (void **) &disp->GetLightxv;
+        snprintf(symboln, sizeof(symboln), "%sGetLightxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetMaterialxv) {
+        void ** procp = (void **) &disp->GetMaterialxv;
+        snprintf(symboln, sizeof(symboln), "%sGetMaterialxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetMaterialxv) {
+        void ** procp = (void **) &disp->GetMaterialxv;
+        snprintf(symboln, sizeof(symboln), "%sGetMaterialxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexEnvxv) {
+        void ** procp = (void **) &disp->GetTexEnvxv;
+        snprintf(symboln, sizeof(symboln), "%sGetTexEnvxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexEnvxv) {
+        void ** procp = (void **) &disp->GetTexEnvxv;
+        snprintf(symboln, sizeof(symboln), "%sGetTexEnvxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexParameterxv) {
+        void ** procp = (void **) &disp->GetTexParameterxv;
+        snprintf(symboln, sizeof(symboln), "%sGetTexParameterxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetTexParameterxv) {
+        void ** procp = (void **) &disp->GetTexParameterxv;
+        snprintf(symboln, sizeof(symboln), "%sGetTexParameterxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterx) {
+        void ** procp = (void **) &disp->PointParameterx;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterxOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterx) {
+        void ** procp = (void **) &disp->PointParameterx;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterx", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterxv) {
+        void ** procp = (void **) &disp->PointParameterxv;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PointParameterxv) {
+        void ** procp = (void **) &disp->PointParameterxv;
+        snprintf(symboln, sizeof(symboln), "%sPointParameterxv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexParameterxv) {
+        void ** procp = (void **) &disp->TexParameterxv;
+        snprintf(symboln, sizeof(symboln), "%sTexParameterxvOES", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexParameterxv) {
+        void ** procp = (void **) &disp->TexParameterxv;
+        snprintf(symboln, sizeof(symboln), "%sTexParameterxv", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
