@@ -258,6 +258,8 @@ xkb_symbols "biblical" {
 	key <SPCE> { [ space, space, thinspace, nobreakspace ] };
 };
 
+// EXTRAS
+
 // Biblical hebrew (SIL) US Standard layout version 1.5
 // This map is based closely on v 1.5 of the standard. The only deviation being the replacement of the composite characters sin and shin 
 // by their more recent Unicodev6 counterparts
@@ -267,7 +269,7 @@ xkb_symbols "biblical" {
 // This linux port created and maintained by Dennis Meulensteen, dennis@meulensteen.nl
 partial alphanumeric_keys 
 xkb_symbols "biblicalSIL" {
-	name[Group1]= "Israel - Biblical Hebrew SIL Phonetic";
+	name[Group1]= "Hebrew (Biblical, SIL phonetic)";
 	key.type = "FOUR_LEVEL_SEMIALPHABETIC";
 
 	key <TLDE> { [ U20AC,		U20AA,		U0024 ] }; 			//Euro, 		Shekel, 		Dollar		-

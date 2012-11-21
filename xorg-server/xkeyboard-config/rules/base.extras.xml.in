@@ -7,57 +7,50 @@
       <configItem>
         <name>apl</name>
         <_shortDescription>apl</_shortDescription>
-        <_description>APL Keyboard Symbols</_description>
+        <_description>APL keyboard symbols</_description>
         <languageList><iso639Id>eng</iso639Id></languageList>
       </configItem>
       <variantList>
         <variant>
           <configItem>
             <name>dyalog</name>
-            <shortDescription>dyalog</shortDescription>
-            <description>dyalog</description>
+            <shortDescription>dlg</shortDescription>
+            <description>APL keyboard symbols (Dyalog)</description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>sax</name>
             <shortDescription>sax</shortDescription>
-            <description>sax</description>
+            <description>APL keyboard symbols (sax)</description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>unified</name>
-            <shortDescription>unified</shortDescription>
-            <description>unified</description>
+            <shortDescription>ufd</shortDescription>
+            <description>APL keyboard symbols (unified)</description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>apl2</name>
             <shortDescription>apl2</shortDescription>
-            <description>apl2</description>
+            <description>APL keyboard symbols (IBM APL2)</description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>aplplusII</name>
-            <shortDescription>aplplusII</shortDescription>
-            <description>aplplusII</description>
+            <shortDescription>aplII</shortDescription>
+            <description>APL keyboard symbols (Manugistics APL*PLUS II)</description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>aplx</name>
             <shortDescription>aplx</shortDescription>
-            <description>aplx</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
-            <name>dyalog_base</name>
-            <shortDescription>dyalog_base</shortDescription>
-            <description>dyalog without box or op-codes</description>
+            <description>APL keyboard symbols (APLX unified)</description>
           </configItem>
         </variant>
       </variantList>
@@ -362,14 +355,14 @@
       <configItem>
         <name>il</name>
         <_shortDescription>he</_shortDescription>
-        <_description>Hebrew (Biblical SIL)</_description>
+        <_description>Hebrew</_description>
         <languageList><iso639Id>heb</iso639Id></languageList>
       </configItem>
       <variantList>
         <variant>
           <configItem>
-            <name>SIL Phonetic</name>
-            <_description>Biblical SIL phonetic</_description>
+            <name>biblicalSIL</name>
+            <_description>Hebrew (Biblical, SIL phonetic)</_description>
             <languageList><iso639Id>heb</iso639Id></languageList>
           </configItem>
         </variant>

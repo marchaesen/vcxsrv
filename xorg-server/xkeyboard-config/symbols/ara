@@ -62,8 +62,6 @@ xkb_symbols "basic" {
     key <AB09> {  [     Arabic_zain,         period       ]     };
     key <AB10> {  [      Arabic_zah, Arabic_question_mark ]     };
 
-    include "level3(ralt_switch)"
-
     // End alphanumeric section
 };
 

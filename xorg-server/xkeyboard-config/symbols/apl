@@ -41,6 +41,8 @@
 default partial alphanumeric_keys
 xkb_symbols "basic" {
 	include "apl(dyalog_base)"	// forward reference good APL keyboard without Dyalogs extras
+
+	name[Group1]= "APL keyboard symbols";
 };
 
 // ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
@@ -62,7 +64,6 @@ xkb_symbols "basic" {
 
 partial hidden alphanumeric_keys
 xkb_symbols "common" {
-	name[Group1]= "APL";
 
 	key <AB01> { [	U2282		] }; // Z: ⊂ -- Subset Of
 	key <AB02> { [	U2283		] }; // X: ⊃ -- Superset Of
@@ -127,7 +128,7 @@ xkb_symbols "common" {
 
 partial alphanumeric_keys
 xkb_symbols "unified" {
-	name[Group1]= "APL Keyboard Symbols: Unified Layout";
+	name[Group1]= "APL keyboard symbols (unified)";
 
 	include "apl(common)"
 
@@ -160,7 +161,7 @@ xkb_symbols "unified" {
 
 partial alphanumeric_keys
 xkb_symbols "sax" {
-	name[Group1]= "APL Keyboard Symbols";
+	name[Group1]= "APL keyboard symbols (sax)";
 
 	include "apl(unified)"
 
@@ -222,7 +223,7 @@ xkb_symbols "sax" {
 
 partial alphanumeric_keys
 xkb_symbols "apl2" {
-	name[Group1]= "APL Keyboard Symbols: IBM APL2";
+	name[Group1]= "APL keyboard symbols (IBM APL2)";
 
 	include "apl(common)"
 
@@ -282,10 +283,10 @@ xkb_symbols "apl2" {
 
 partial alphanumeric_keys
 xkb_symbols "aplplusII" {
-	name[Group1]= "APL Keyboard Symbols: Manugistics APL*PLUS II";
 	// AFS - short for APL Functional Symbol
 
 	include "apl(apl2)"
+	name[Group1]= "APL keyboard symbols (Manugistics APL*PLUS II)";
 
 	key <AC10> { [	bracketleft,	parenleft,	U234E	] }; // ;: ⍎ -- [See B key in SAX layout]
 	key <AC11> { [	bracketright,	parenright,	U2355	] }; // ': ⍕ -- [See N key in SAX layout] 
@@ -319,9 +320,9 @@ xkb_symbols "aplplusII" {
 
 partial alphanumeric_keys
 xkb_symbols "aplx" {
-	name[Group1]= "APL Keyboard Symbols: APLX Unified APL Layout";
-
 	include "apl(unified)"
+
+	name[Group1]= "APL keyboard symbols (APLX unified)";
 
 	key <AB08> { [	U235D,		U236A	] }; // ,: ⍝ ⍪ -- APL Functional Symbol Up Shoe Jot / APL Functional Symbol Comma Bar
 	key <AB09> { [	U2340,		U2364	] }; // .: ⍀ ⍤ -- APL Functional Symbol Backslash Bar / APL Functional Symbol Jot Diaeresis
@@ -361,9 +362,8 @@ xkb_symbols "aplx" {
 // the alphabet and similar. If this keyboard is placed as the 2nd layout then it can
 // be reached with a latching shift to increase group by one.
 
-partial alphanumeric_keys
+partial hidden alphanumeric_keys
 xkb_symbols "dyalog_base" {
-	name[Group1]="APL";
 
 
 // ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
@@ -433,9 +433,8 @@ xkb_symbols "dyalog_base" {
 	key <TLDE> { [ U22c4			] };	// diamond
 };
 
-partial keypad_keys
+partial hidden keypad_keys
 xkb_symbols "dyalog_box" {
-	name[Group1]="Dyalog box";
 
 // ┌───┬───┬───┬───┐
 // │   │   │   │   │
@@ -463,8 +462,8 @@ xkb_symbols "dyalog_box" {
 
 }; 
 
+partial hidden
 xkb_symbols "dyalog_codes" {
-	name[Group1]="Dyalog Codes";
 
 //	Layout of private use area for this. In the style of the Unicode book
 //
@@ -601,6 +600,6 @@ xkb_symbols "dyalog" {
 	include "apl(dyalog_base)"
 	include "apl(dyalog_box)"
 	include "apl(dyalog_codes)"
-	name[Group1] = "Dyalog APL complete";
+	name[Group1] = "APL keyboard symbols (Dyalog)";
 };
 
