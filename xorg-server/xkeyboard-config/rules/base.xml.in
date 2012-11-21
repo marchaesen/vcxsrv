@@ -1296,7 +1296,7 @@
         <variant>
           <configItem>
             <name>dvorak-intl</name>
-            <_description>English (Dvorak international with dead keys)</_description>
+            <_description>English (Dvorak, international with dead keys)</_description>
           </configItem>
         </variant>
         <variant>
@@ -1375,9 +1375,15 @@
         <variant>
           <configItem>
             <name>workman</name>
-            <_description>English (US, Workman)</_description>
+            <_description>English (Workman)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>workman-intl</name>
+            <_description>English (Workman, international with dead keys)</_description>
+           </configItem>
+         </variant>
       </variantList>
     </layout>
     <layout>
@@ -4235,7 +4241,7 @@
         <name>rs</name>
         <!-- Keyboard indicator for Serbian layouts -->
         <_shortDescription>sr</_shortDescription>
-        <_description>Serbian (Cyrillic)</_description>
+        <_description>Serbian</_description>
         <languageList>
           <iso639Id>srp</iso639Id>
         </languageList>
@@ -5511,7 +5517,7 @@
           <configItem>
             <name>gag</name>
             <_shortDescription>gag</_shortDescription>
-            <_description>Gagauz</_description>
+            <_description>Moldavian (Gagauz)</_description>
             <languageList><iso639Id>gag</iso639Id></languageList>
           </configItem>
         </variant>
