@@ -36,6 +36,7 @@
 #define HAS_WINSOCK 1
 #endif
 #include <sys/types.h>
+#include <signal.h>
 #include "winclipboard.h"
 #ifdef __CYGWIN__
 #include <errno.h>
@@ -431,7 +432,7 @@ winClipboardProc(void *pvNotUsed)
     else {
         ErrorF("winClipboardProc - Clipboard disabled  - Exit from server \n");
         /* clipboard thread has exited, stop server as well */
-        kill(getpid(), SIGTERM);
+        raise(SIGTERM);
     }
 
     return NULL;

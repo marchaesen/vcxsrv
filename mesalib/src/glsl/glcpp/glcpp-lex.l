@@ -120,7 +120,7 @@ HEXADECIMAL_INTEGER	0[xX][0-9a-fA-F]+[uU]?
 		return SPACE;
 }
 
-{HASH}version {
+{HASH}version{HSPACE}+ {
 	yylval->str = ralloc_strdup (yyextra, yytext);
 	yyextra->space_tokens = 0;
 	return HASH_VERSION;
@@ -135,7 +135,7 @@ HEXADECIMAL_INTEGER	0[xX][0-9a-fA-F]+[uU]?
 	return OTHER;
 }
 
-{HASH}line {
+{HASH}line{HSPACE}+ {
 	return HASH_LINE;
 }
 
@@ -158,7 +158,7 @@ HEXADECIMAL_INTEGER	0[xX][0-9a-fA-F]+[uU]?
 	return HASH_IF;
 }
 
-{HASH}elif {
+{HASH}elif/[^_a-zA-Z0-9] {
 	yyextra->lexing_if = 1;
 	yyextra->space_tokens = 0;
 	return HASH_ELIF;

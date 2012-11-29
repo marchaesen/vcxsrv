@@ -263,7 +263,7 @@ winMWExtWMCreateFrame(RootlessWindowPtr pFrame, ScreenPtr pScreen,
     strcat(pszClass, pszWindowID);
 
 #if CYGMULTIWINDOW_DEBUG
-    winDebug("winCreateWindowsWindow - Creating class: %s\n", pszClass);
+    winDebug("winMWExtWMCreateFrame - Creating class: %s\n", pszClass);
 #endif
 
     /* Setup our window class */

@@ -71,6 +71,7 @@ __stdcall unsigned long GetTickCount(void);
 #if !defined(WIN32) || !defined(__MINGW32__)
 #include <sys/time.h>
 #include <sys/resource.h>
+# define SMART_SCHEDULE_POSSIBLE
 #endif
 #include "misc.h"
 #include <X11/X.h>
@@ -212,6 +213,9 @@ sig_atomic_t inSignalContext = FALSE;
 OsSigHandlerPtr
 OsSignal(int sig, OsSigHandlerPtr handler)
 {
+#if defined(WIN32) && !defined(__CYGWIN__)
+    return signal(sig, handler);
+#else
     struct sigaction act, oact;
 
     sigemptyset(&act.sa_mask);
@@ -222,6 +226,7 @@ OsSignal(int sig, OsSigHandlerPtr handler)
     if (sigaction(sig, &act, &oact))
         perror("sigaction");
     return oact.sa_handler;
+#endif
 }
 
 /*
@@ -894,6 +899,7 @@ ProcessCommandLine(int argc, char *argv[])
             i = skip - 1;
         }
 #endif
+#ifdef SMART_SCHEDULE_POSSIBLE
         else if (strcmp(argv[i], "-dumbSched") == 0) {
             SmartScheduleDisable = TRUE;
         }
@@ -912,6 +918,7 @@ ProcessCommandLine(int argc, char *argv[])
             else
                 UseMsg();
         }
+#endif
         else if (strcmp(argv[i], "-render") == 0) {
             if (++i < argc) {
                 int policy = PictureParseCmapPolicy(argv[i]);
@@ -1123,6 +1130,7 @@ XNFstrdup(const char *s)
 void
 SmartScheduleStopTimer(void)
 {
+#ifdef SMART_SCHEDULE_POSSIBLE
     struct itimerval timer;
 
     if (SmartScheduleDisable)
@@ -1132,11 +1140,13 @@ SmartScheduleStopTimer(void)
     timer.it_value.tv_sec = 0;
     timer.it_value.tv_usec = 0;
     (void) setitimer(ITIMER_REAL, &timer, 0);
+#endif
 }
 
 void
 SmartScheduleStartTimer(void)
 {
+#ifdef SMART_SCHEDULE_POSSIBLE
     struct itimerval timer;
 
     if (SmartScheduleDisable)
@@ -1146,6 +1156,7 @@ SmartScheduleStartTimer(void)
     timer.it_value.tv_sec = 0;
     timer.it_value.tv_usec = SmartScheduleInterval * 1000;
     setitimer(ITIMER_REAL, &timer, 0);
+#endif
 }
 
 static void
@@ -1157,6 +1168,7 @@ SmartScheduleTimer(int sig)
 void
 SmartScheduleInit(void)
 {
+#ifdef SMART_SCHEDULE_POSSIBLE
     struct sigaction act;
 
     if (SmartScheduleDisable)
@@ -1172,6 +1184,7 @@ SmartScheduleInit(void)
         perror("sigaction for smart scheduler");
         SmartScheduleDisable = TRUE;
     }
+#endif
 }
 
 #ifdef SIG_BLOCK
@@ -1227,10 +1240,10 @@ OsBlockSIGIO(void)
         sigprocmask(SIG_BLOCK, &set, &PreviousSigIOMask);
         ret = sigismember(&PreviousSigIOMask, SIGIO);
         return ret;
-    } else
-        return 1;
+    }
 #endif
 #endif
+    return 1;
 }
 
 void

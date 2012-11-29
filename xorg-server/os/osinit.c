@@ -102,6 +102,7 @@ OsRegisterSigWrapper(OsSigWrapperPtr newSigWrapper)
  * OsSigHandler --
  *    Catch unexpected signals and exit or continue cleanly.
  */
+#if !defined(WIN32) || defined(__CYGWIN__)
 static void
 #ifdef SA_SIGINFO
 OsSigHandler(int signo, siginfo_t * sip, void *unused)
@@ -146,6 +147,7 @@ OsSigHandler(int signo)
     FatalError("Caught signal %d (%s). Server aborting\n",
                signo, strsignal(signo));
 }
+#endif /* !WIN32 || __CYGWIN__ */
 
 void
 OsInit(void)
@@ -155,6 +157,7 @@ OsInit(void)
     char fname[PATH_MAX];
 
     if (!been_here) {
+#if !defined(WIN32) || defined(__CYGWIN__)
         struct sigaction act, oact;
         int i;
 
@@ -181,6 +184,8 @@ OsInit(void)
                        siglist[i], strerror(errno));
             }
         }
+#endif /* !WIN32 || __CYGWIN__ */
+
 #ifdef HAVE_BACKTRACE
         /*
          * initialize the backtracer, since the ctor calls dlopen(), which
@@ -241,8 +246,10 @@ OsInit(void)
 #endif
         }
 
+#if !defined(WIN32) || defined(__CYGWIN__)
         if (getpgrp() == 0)
             setpgid(0, 0);
+#endif
 
 #ifdef RLIMIT_DATA
         if (limitDataSpace >= 0) {

@@ -53,7 +53,7 @@
 /*
  * DDX-specific extensions.
  */
-static ExtensionModule extensionModules[] = {
+static const ExtensionModule extensionModules[] = {
 #ifdef XF86VIDMODE
     {
 	XFree86VidModeExtensionInit,

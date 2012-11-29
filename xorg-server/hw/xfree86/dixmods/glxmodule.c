@@ -47,7 +47,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 static MODULESETUPPROTO(glxSetup);
 
-static ExtensionModule GLXExt = {
+static const ExtensionModule GLXExt = {
     GlxExtensionInit,
     "GLX",
     &noGlxExtension

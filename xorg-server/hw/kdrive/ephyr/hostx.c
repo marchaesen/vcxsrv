@@ -881,7 +881,9 @@ host_screen_from_window(Window w)
     struct EphyrHostScreen *result = NULL;
 
     for (index = 0; index < HostX.n_screens; index++) {
-        if (HostX.screens[index].win == w || HostX.screens[index].peer_win == w) {
+        if (HostX.screens[index].win == w
+            || HostX.screens[index].peer_win == w
+            || HostX.screens[index].win_pre_existing == w) {
             result = &HostX.screens[index];
             goto out;
         }

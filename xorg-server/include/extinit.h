@@ -68,10 +68,6 @@ extern _X_EXPORT Bool noDbeExtension;
 extern void DbeExtensionInit(void);
 #endif
 
-#ifdef DMXEXT
-extern void DMXExtensionInit(void);
-#endif
-
 #if defined(DPMSExtension)
 #include <X11/extensions/dpmsconst.h>
 extern _X_EXPORT Bool noDPMSExtension;

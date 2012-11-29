@@ -41,6 +41,9 @@
 
 #include "xkbsrv.h"
 
+/* C does not have a logical XOR operator, so we use a macro instead */
+#define LOGICAL_XOR(a,b) ((!(a) && (b)) || ((a) && !(b)))
+
 static Bool g_winKeyState[NUM_KEYCODES];
 
 /*
@@ -259,36 +262,54 @@ winRestoreModeKeyStates(void)
         XkbStateFieldFromRec(&inputInfo.keyboard->key->xkbInfo->state);
     winDebug("winRestoreModeKeyStates: state %d\n", internalKeyStates);
 
-    /* 
-     * NOTE: The C XOR operator, ^, will not work here because it is
-     * a bitwise operator, not a logical operator.  C does not
-     * have a logical XOR operator, so we use a macro instead.
-     */
+    /* Check if modifier keys are pressed, and if so, fake a press */
+    {
+        BOOL ctrl = (GetAsyncKeyState(VK_CONTROL) < 0);
+        BOOL shift = (GetAsyncKeyState(VK_SHIFT) < 0);
+        BOOL alt = (GetAsyncKeyState(VK_LMENU) < 0);
+        BOOL altgr = (GetAsyncKeyState(VK_RMENU) < 0);
 
-    /* Has the key state changed? */
+        if (ctrl && altgr)
+            ctrl = FALSE;
+
+        if (LOGICAL_XOR(internalKeyStates & ControlMask, ctrl))
+            winSendKeyEvent(KEY_LCtrl, ctrl);
+
+        if (LOGICAL_XOR(internalKeyStates & ShiftMask, shift))
+            winSendKeyEvent(KEY_ShiftL, shift);
+
+        if (LOGICAL_XOR(internalKeyStates & Mod1Mask, alt))
+            winSendKeyEvent(KEY_Alt, alt);
+
+        if (LOGICAL_XOR(internalKeyStates & Mod5Mask, altgr))
+            winSendKeyEvent(KEY_AltLang, altgr);
+    }
+
+    /*
+       Check if latching modifier key states have changed, and if so,
+       fake a press and a release to toggle the modifier to the correct
+       state
+    */
     dwKeyState = GetKeyState(VK_NUMLOCK) & 0x0001;
-    if (WIN_XOR(internalKeyStates & NumLockMask, dwKeyState)) {
+    if (LOGICAL_XOR(internalKeyStates & NumLockMask, dwKeyState)) {
         winSendKeyEvent(KEY_NumLock, TRUE);
         winSendKeyEvent(KEY_NumLock, FALSE);
     }
 
-    /* Has the key state changed? */
     dwKeyState = GetKeyState(VK_CAPITAL) & 0x0001;
-    if (WIN_XOR(internalKeyStates & LockMask, dwKeyState)) {
+    if (LOGICAL_XOR(internalKeyStates & LockMask, dwKeyState)) {
         winSendKeyEvent(KEY_CapsLock, TRUE);
         winSendKeyEvent(KEY_CapsLock, FALSE);
     }
 
-    /* Has the key state changed? */
     dwKeyState = GetKeyState(VK_SCROLL) & 0x0001;
-    if (WIN_XOR(internalKeyStates & ScrollLockMask, dwKeyState)) {
+    if (LOGICAL_XOR(internalKeyStates & ScrollLockMask, dwKeyState)) {
         winSendKeyEvent(KEY_ScrollLock, TRUE);
         winSendKeyEvent(KEY_ScrollLock, FALSE);
     }
 
-    /* Has the key state changed? */
     dwKeyState = GetKeyState(VK_KANA) & 0x0001;
-    if (WIN_XOR(internalKeyStates & KanaMask, dwKeyState)) {
+    if (LOGICAL_XOR(internalKeyStates & KanaMask, dwKeyState)) {
         winSendKeyEvent(KEY_HKTG, TRUE);
         winSendKeyEvent(KEY_HKTG, FALSE);
     }

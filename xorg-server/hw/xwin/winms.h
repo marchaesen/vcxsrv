@@ -30,7 +30,6 @@
  * Authors:	Harold L Hunt II
  */
 
-#define NONAMELESSUNION
 #define DIRECTDRAW_VERSION	0x0300
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN

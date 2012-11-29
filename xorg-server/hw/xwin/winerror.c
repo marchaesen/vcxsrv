@@ -59,15 +59,16 @@ OsVendorVErrorF(const char *pszFormat, va_list va_args)
 #endif
 
 /*
- * os/util.c/FatalError () calls our vendor ErrorF, so the message
- * from a FatalError will be logged.  Thus, the message for the
- * fatal error is not passed to this function.
+ * os/log.c:FatalError () calls our vendor ErrorF, so the message
+ * from a FatalError will be logged.
  *
  * Attempt to do last-ditch, safe, important cleanup here.
  */
 void
 OsVendorFatalError(const char *f, va_list args)
 {
+    char errormsg[1024] = "";
+
     /* Don't give duplicate warning if UseMsg was called */
     if (g_fSilentFatalError)
         return;
@@ -78,9 +79,28 @@ OsVendorFatalError(const char *f, va_list args)
     }
     LogClose(EXIT_ERR_ABORT);
 
-    winMessageBoxF("A fatal error has occurred and " PROJECT_NAME
-                   " will now exit.\n" "Please open %s for more information.\n",
-                   MB_ICONERROR, (g_pszLogFile ? g_pszLogFile : "the logfile"));
+    /* Format the error message */
+    vsnprintf(errormsg, sizeof(errormsg), f, args);
+
+    /*
+       Sometimes the error message needs a bit of cosmetic cleaning
+       up for use in a dialog box...
+     */
+    {
+        char *s;
+
+        while ((s = strstr(errormsg, "\n\t")) != NULL) {
+            s[0] = ' ';
+            s[1] = '\n';
+        }
+    }
+
+    winMessageBoxF("A fatal error has occurred and " PROJECT_NAME " will now exit.\n\n"
+                   "%s\n\n"
+                   "Please open %s for more information.\n",
+                   MB_ICONERROR,
+                   errormsg,
+                   (g_pszLogFile ? g_pszLogFile : "the logfile"));
 }
 
 /*

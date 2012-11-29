@@ -77,7 +77,7 @@ Bool g_fKeyboardHookLL = FALSE;
 Bool g_fNoHelpMessageBox = FALSE;
 Bool g_fSoftwareCursor = FALSE;
 Bool g_fSilentDupError = FALSE;
-Bool g_fNativeGl = FALSE;
+Bool g_fNativeGl = TRUE;
 
 #ifdef XWIN_CLIPBOARD
 /*

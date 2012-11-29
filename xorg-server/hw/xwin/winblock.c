@@ -86,4 +86,13 @@ winBlockHandler(ScreenPtr pScreen,
             DispatchMessage(&msg);
         }
     }
+
+  /*
+    At least one X client has asked to suspend the screensaver, so
+    reset Windows' display idle timer
+  */
+#ifdef SCREENSAVER
+  if (screenSaverSuspended)
+    SetThreadExecutionState(ES_DISPLAY_REQUIRED);
+#endif
 }

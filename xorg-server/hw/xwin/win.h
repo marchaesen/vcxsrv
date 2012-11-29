@@ -133,6 +133,8 @@
 
 #define WIN_MAX_KEYS_PER_KEY	4
 
+#define NONAMELESSUNION
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -247,9 +249,6 @@ static unsigned int PROFPT##point = 0;\
 if (++PROFPT##point % thresh == 0)\
 ErrorF (#point ": PROFILEPOINT hit %u times\n", PROFPT##point);\
 }
-
-/* We use xor this macro for detecting toggle key state changes */
-#define WIN_XOR(a,b) ((!(a) && (b)) || ((a) && !(b)))
 
 #define DEFINE_ATOM_HELPER(func,atom_name)			\
 static Atom func (void) {					\

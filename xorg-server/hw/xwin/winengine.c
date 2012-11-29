@@ -92,7 +92,7 @@ winDetectSupportedEngines(void)
         else {
             /* We have DirectDraw */
             winErrorFVerb(2,
-                          "winDetectSupportedEngines - DirectDraw installed\n");
+                          "winDetectSupportedEngines - DirectDraw installed, allowing ShadowDD\n");
             g_dwEnginesSupported |= WIN_SERVER_SHADOW_DD;
 
 #ifdef XWIN_PRIMARYFB
@@ -100,7 +100,7 @@ winDetectSupportedEngines(void)
             if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT) {
                 g_dwEnginesSupported |= WIN_SERVER_PRIMARY_DD;
                 winErrorFVerb(2,
-                              "winDetectSupportedEngines - Allowing PrimaryDD\n");
+                              "winDetectSupportedEngines - Windows NT, allowing PrimaryDD\n");
             }
 #endif
         }
@@ -112,7 +112,7 @@ winDetectSupportedEngines(void)
         if (SUCCEEDED(ddrval)) {
             /* We have DirectDraw4 */
             winErrorFVerb(2,
-                          "winDetectSupportedEngines - DirectDraw4 installed\n");
+                          "winDetectSupportedEngines - DirectDraw4 installed, allowing ShadowDDNL\n");
             g_dwEnginesSupported |= WIN_SERVER_SHADOW_DDNL;
         }
 

@@ -1847,6 +1847,10 @@ SetCompatOutput(xf86CrtcConfigPtr config)
         output = config->output[config->compat_output];
     }
 
+    /* All outputs are disconnected, select one to fake */
+    if (!output && config->num_output)
+        output = config->output[0];
+
     return output;
 }
 

@@ -142,7 +142,7 @@ winInitializeScreenDefaults(void)
 #endif
     defaultScreenInfo.fMultipleMonitors = FALSE;
     defaultScreenInfo.fLessPointer = FALSE;
-    defaultScreenInfo.iResizeMode = notAllowed;
+    defaultScreenInfo.iResizeMode = resizeWithRandr;
     defaultScreenInfo.fNoTrayIcon = FALSE;
     defaultScreenInfo.iE3BTimeout = WIN_E3B_DEFAULT;
     defaultScreenInfo.fUseWinKillKey = WIN_DEFAULT_WIN_KILL;
@@ -1161,6 +1161,8 @@ winLogVersionInfo(void)
     ErrorF("Vendor: %s\n", XVENDORNAME);
     ErrorF("Release: %d.%d.%d.%d\n", XORG_VERSION_MAJOR,
            XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP);
-    ErrorF("%s\n\n", BUILDERSTRING);
+    if (strlen(BUILDERSTRING))
+        ErrorF("%s\n", BUILDERSTRING);
     ErrorF("Contact: %s\n", BUILDERADDR);
+    ErrorF("\n");
 }
