@@ -259,7 +259,7 @@ winMWExtWMCreateFrame(RootlessWindowPtr pFrame, ScreenPtr pScreen,
     pszWindowID[sizeof(pszWindowID) - 1] = 0;
     strcat(pszClass, pszWindowID);
 
-    winDebug("winCreateWindowsWindow - Creating class: %s\n", pszClass);
+    winDebug("winMWExtWMCreateFrame - Creating class: %s\n", pszClass);
 
     /* Setup our window class */
     wc.cbSize = sizeof(wc);

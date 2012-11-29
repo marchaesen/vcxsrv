@@ -199,8 +199,8 @@ ddxGiveUp(enum ExitCode error)
     }
 
 #ifdef XWIN_MULTIWINDOW
-  /* Unload libraries for taskbar grouping */
-  winTaskbarDestroy ();
+    /* Unload libraries for taskbar grouping */
+    winPropertyStoreDestroy();
 
     /* Notify the worker threads we're exiting */
     winDeinitMultiWindowWM();
@@ -830,7 +830,7 @@ winUseMsg(void)
     ErrorF("-resize=none|scrollbars|randr"
            "\tIn windowed mode, [don't] allow resizing of the window. 'scrollbars'\n"
            "\tmode gives the window scrollbars as needed, 'randr' mode uses the RANR\n"
-	         "\textension to resize the X screen.  'randr' is the default.\n");
+           "\textension to resize the X screen.  'randr' is the default.\n");
 
     ErrorF("-rootless\n" "\tRun the server in rootless mode.\n");
 
@@ -862,10 +862,10 @@ winUseMsg(void)
     ErrorF("-[no]unixkill\n" "\tCtrl+Alt+Backspace exits the X Server.\n");
 
     ErrorF("-[no]wgl\n"
-           "\tEnable the GLX extension to use the native Windows WGL interface for accelerated OpenGL\n");
+           "\tEnable the GLX extension to use the native Windows WGL interface for hardware-accelerated OpenGL\n");
 
-  ErrorF ("-swrastwgl\n"
-	  "\tEnable the GLX extension to use the native Windows WGL interface based on the swrast interface for accelerated OpenGL\n");
+    ErrorF("-swrastwgl\n"
+           "\tEnable the GLX extension to use the native Windows WGL interface based on the swrast interface for accelerated OpenGL\n");
 
     ErrorF("-[no]winkill\n" "\tAlt+F4 exits the X Server.\n");
 
@@ -970,6 +970,10 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 
     /* Detect supported engines */
     winDetectSupportedEngines();
+#ifdef XWIN_MULTIWINDOW
+    /* Load libraries for taskbar grouping */
+    winPropertyStoreInit();
+#endif
 
 #ifdef XWIN_MULTIWINDOW
   /* Load libraries for taskbar grouping */

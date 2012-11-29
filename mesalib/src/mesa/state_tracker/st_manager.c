@@ -624,6 +624,8 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
       api = API_OPENGLES2;
       break;
    case ST_PROFILE_OPENGL_CORE:
+      api = API_OPENGL_CORE;
+      break;
    default:
       *error = ST_CONTEXT_ERROR_BAD_API;
       return NULL;
@@ -644,16 +646,18 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
       return NULL;
    }
 
+   if (attribs->flags & ST_CONTEXT_FLAG_DEBUG)
+      st->ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_DEBUG_BIT;
+   if (attribs->flags & ST_CONTEXT_FLAG_FORWARD_COMPATIBLE)
+      st->ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT;
+
    /* need to perform version check */
    if (attribs->major > 1 || attribs->minor > 0) {
       _mesa_compute_version(st->ctx);
 
-      /* Is the actual version less than the requested version?  Mesa can't
-       * yet enforce the added restrictions of a forward-looking context, so
-       * fail that too.
+      /* Is the actual version less than the requested version?
        */
-      if (st->ctx->Version < attribs->major * 10 + attribs->minor
-	  || (attribs->flags & ~ST_CONTEXT_FLAG_DEBUG) != 0) {
+      if (st->ctx->Version < attribs->major * 10 + attribs->minor) {
 	 *error = ST_CONTEXT_ERROR_BAD_VERSION;
          st_destroy_context(st);
          return NULL;
@@ -884,6 +888,7 @@ static const struct st_api st_gl_api = {
    ST_API_OPENGL,
 #if FEATURE_GL
    ST_PROFILE_DEFAULT_MASK |
+   ST_PROFILE_OPENGL_CORE_MASK |
 #endif
 #if FEATURE_ES1
    ST_PROFILE_OPENGL_ES1_MASK |

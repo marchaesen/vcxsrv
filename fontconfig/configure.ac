@@ -34,7 +34,7 @@ dnl This is the package version number, not the shared library
 dnl version.  This same version number must appear in fontconfig/fontconfig.h
 dnl Yes, it is a pain to synchronize version numbers.  Unfortunately, it's
 dnl not possible to extract the version number here from fontconfig.h
-AM_INIT_AUTOMAKE(fontconfig, 2.10.1)
+AM_INIT_AUTOMAKE(fontconfig, 2.10.2)
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
 dnl libtool versioning
@@ -126,6 +126,7 @@ dnl ==========================================================================
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h regex.h stdlib.h string.h unistd.h sys/vfs.h sys/statfs.h sys/param.h sys/mount.h])
+AX_CREATE_STDINT_H([src/fcstdint.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

@@ -145,7 +145,7 @@ QuartzSetupScreen(int index,
     return TRUE;
 }
 
-static ExtensionModule quartzExtensions[] = {
+static const ExtensionModule quartzExtensions[] = {
     /* PseudoramiX needs to be done before RandR, so
      * it is in miinitext.c until it can be reordered.
      * { PseudoramiXExtensionInit, "PseudoramiX", &noPseudoramiXExtension },

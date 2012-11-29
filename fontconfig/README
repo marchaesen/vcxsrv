@@ -1,11 +1,34 @@
                               Fontconfig
              Font configuration and customization library
-                            Version 2.10.1
+                            Version 2.10.2
                               2012-03-11
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.10.2
+
+Akira TAGOH (13):
+      Bug 53585 - Two highly-visible typos in src/fcxml.c
+      Fix for libtoolize's warnings
+      Bug 54138 - X_OK permission is invalid for win32 access(..) calls
+      Bug 52573 - patch required to build 2.10.x with oldish GNU C library headers
+      deal with warnings as errors for the previous change
+      Fix wrongly squashing for the network path on Win32.
+      Fix syntax errors in fonts.dtd.
+      autogen.sh: Add -I option to tell aclocal a place for external m4 files
+      Use automake variable instead of cleaning files in clean-local
+      Bug 56531 - autogen.sh fails due to missing 'm4' directory
+      Bug 57114 - regression on FcFontMatch with namelang
+      Update CaseFolding.txt to Unicode 6.2
+      Bug 57286 - Remove UnBatang and Baekmuk Batang from monospace in 65-nonlatin.conf
+
+Behdad Esfahbod (1):
+      Fix N'ko orthography
+
+Jeremy Huddleston Sequoia (1):
+      Remove _CONFIG_FIXUPS_H_ guards, so multiple includes of "config.h" result in the correct values
 
 2.10.1
 

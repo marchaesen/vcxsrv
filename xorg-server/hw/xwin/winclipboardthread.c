@@ -36,6 +36,7 @@
 #define HAS_WINSOCK 1
 #endif
 #include <sys/types.h>
+#include <signal.h>
 #include "winclipboard.h"
 #ifdef __CYGWIN__
 #include <errno.h>

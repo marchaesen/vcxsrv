@@ -407,4 +407,6 @@ extern DevPrivateKeyRec dmxGlyphSetPrivateKeyRec;
 
 #define dmxGlyphSetPrivateKey (&dmxGlyphSetPrivateKeyRec) /**< Private index for GlyphSets */
 
+void DMXExtensionInit(void);
+
 #endif                          /* DMX_H */

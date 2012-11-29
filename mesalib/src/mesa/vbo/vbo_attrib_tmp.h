@@ -113,18 +113,54 @@ static inline float conv_i2_to_i(int i2)
    return (float)val.x;
 }
 
-static inline float conv_i10_to_norm_float(int i10)
+static inline float conv_i10_to_norm_float(const struct gl_context *ctx, int i10)
 {
    struct attr_bits_10 val;
    val.x = i10;
-   return (2.0F * (float)val.x + 1.0F) * (1.0F  / 511.0F);
+
+   /* Traditionally, OpenGL has had two equations for converting from
+    * normalized fixed-point data to floating-point data.  In the OpenGL 3.2
+    * specification, these are equations 2.2 and 2.3, respectively:
+    *
+    *    f = (2c + 1)/(2^b - 1).                                (2.2)
+    *
+    * Comments below this equation state: "In general, this representation is
+    * used for signed normalized fixed-point parameters in GL commands, such
+    * as vertex attribute values."  Which is what we're doing here.
+    *
+    *    f = max{c/(2^(b-1) - 1), -1.0}                         (2.3)
+    *
+    * Comments below this equation state: "In general, this representation is
+    * used for signed normalized fixed-point texture or floating point values."
+    *
+    * OpenGL 4.2+ and ES 3.0 remedy this and state that equation 2.3 (above)
+    * is used in every case.  They remove equation 2.2 completely.
+    */
+   if (_mesa_is_gles3(ctx) ||
+       (ctx->API == API_OPENGL_CORE && ctx->Version >= 42)) {
+      /* Equation 2.3 above. */
+      float f = ((float) val.x) / 511.0F;
+      return MAX2(f, -1.0);
+   } else {
+      /* Equation 2.2 above. */
+      return (2.0F * (float)val.x + 1.0F) * (1.0F  / 1023.0F);
+   }
 }
 
-static inline float conv_i2_to_norm_float(int i2)
+static inline float conv_i2_to_norm_float(const struct gl_context *ctx, int i2)
 {
    struct attr_bits_2 val;
    val.x = i2;
-   return (float)val.x;
+
+   if (_mesa_is_gles3(ctx) ||
+       (ctx->API == API_OPENGL_CORE && ctx->Version >= 42)) {
+      /* Equation 2.3 above. */
+      float f = (float) val.x;
+      return MAX2(f, -1.0);
+   } else {
+      /* Equation 2.2 above. */
+      return (2.0F * (float)val.x + 1.0F) * (1.0F / 3.0F);
+   }
 }
 
 #define ATTRI10_1( A, I10 ) ATTR( A, 1, GL_FLOAT, conv_i10_to_i((I10) & 0x3ff), 0, 0, 1 )
@@ -142,30 +178,30 @@ static inline float conv_i2_to_norm_float(int i2)
 				conv_i2_to_i(((I10) >> 30) & 0x3))
 
 
-#define ATTRI10N_1( A, I10 ) ATTR( A, 1, GL_FLOAT, conv_i10_to_norm_float((I10) & 0x3ff), 0, 0, 1 )
-#define ATTRI10N_2( A, I10 ) ATTR( A, 2, GL_FLOAT, \
-				conv_i10_to_norm_float((I10) & 0x3ff),		\
-				conv_i10_to_norm_float(((I10) >> 10) & 0x3ff), 0, 1 )
-#define ATTRI10N_3( A, I10 ) ATTR( A, 3, GL_FLOAT, \
-				conv_i10_to_norm_float((I10) & 0x3ff),	    \
-				conv_i10_to_norm_float(((I10) >> 10) & 0x3ff), \
-				conv_i10_to_norm_float(((I10) >> 20) & 0x3ff), 1 )
-#define ATTRI10N_4( A, I10 ) ATTR( A, 4, GL_FLOAT, \
-				conv_i10_to_norm_float((I10) & 0x3ff),		\
-				conv_i10_to_norm_float(((I10) >> 10) & 0x3ff), \
-				conv_i10_to_norm_float(((I10) >> 20) & 0x3ff), \
-				conv_i2_to_norm_float(((I10) >> 30) & 0x3))
+#define ATTRI10N_1(ctx, A, I10) ATTR(A, 1, GL_FLOAT, conv_i10_to_norm_float(ctx, (I10) & 0x3ff), 0, 0, 1 )
+#define ATTRI10N_2(ctx, A, I10) ATTR(A, 2, GL_FLOAT, \
+				conv_i10_to_norm_float(ctx, (I10) & 0x3ff),		\
+				conv_i10_to_norm_float(ctx, ((I10) >> 10) & 0x3ff), 0, 1 )
+#define ATTRI10N_3(ctx, A, I10) ATTR(A, 3, GL_FLOAT, \
+				conv_i10_to_norm_float(ctx, (I10) & 0x3ff),	    \
+				conv_i10_to_norm_float(ctx, ((I10) >> 10) & 0x3ff), \
+				conv_i10_to_norm_float(ctx, ((I10) >> 20) & 0x3ff), 1 )
+#define ATTRI10N_4(ctx, A, I10) ATTR(A, 4, GL_FLOAT, \
+				conv_i10_to_norm_float(ctx, (I10) & 0x3ff),		\
+				conv_i10_to_norm_float(ctx, ((I10) >> 10) & 0x3ff), \
+				conv_i10_to_norm_float(ctx, ((I10) >> 20) & 0x3ff), \
+				conv_i2_to_norm_float(ctx, ((I10) >> 30) & 0x3))
 
-#define ATTR_UI(val, type, normalized, attr, arg) do {		\
+#define ATTR_UI(ctx, val, type, normalized, attr, arg) do {	\
    if ((type) == GL_UNSIGNED_INT_2_10_10_10_REV) {		\
       if (normalized) {						\
 	 ATTRUI10N_##val((attr), (arg));			\
       } else {							\
 	 ATTRUI10_##val((attr), (arg));				\
       }								\
-   }   else if ((type) == GL_INT_2_10_10_10_REV) {		\
+   } else if ((type) == GL_INT_2_10_10_10_REV) {		\
       if (normalized) {						\
-	 ATTRI10N_##val((attr), (arg));				\
+	 ATTRI10N_##val(ctx, (attr), (arg));			\
       } else {							\
 	 ATTRI10_##val((attr), (arg));				\
       }								\
@@ -173,11 +209,11 @@ static inline float conv_i2_to_norm_float(int i2)
       ERROR(GL_INVALID_VALUE);					\
    } while(0)
 
-#define ATTR_UI_INDEX(val, type, normalized, index, arg) do {	\
+#define ATTR_UI_INDEX(ctx, val, type, normalized, index, arg) do {	\
       if ((index) == 0) {					\
-	 ATTR_UI(val, (type), normalized, 0, (arg));			\
+	 ATTR_UI(ctx, val, (type), normalized, 0, (arg));		\
       } else if ((index) < MAX_VERTEX_GENERIC_ATTRIBS) {		\
-	 ATTR_UI(val, (type), normalized, VBO_ATTRIB_GENERIC0 + (index), (arg)); \
+	 ATTR_UI(ctx, val, (type), normalized, VBO_ATTRIB_GENERIC0 + (index), (arg)); \
       } else								\
 	 ERROR(GL_INVALID_VALUE);					\
    } while(0)
@@ -799,103 +835,122 @@ TAG(VertexAttrib4fvNV)(GLuint index, const GLfloat * v)
       ATTR4FV(index, v);
 }
 
+#define ERROR_IF_NOT_PACKED_TYPE(ctx, type, func) \
+   if (type != GL_INT_2_10_10_10_REV && type != GL_UNSIGNED_INT_2_10_10_10_REV) { \
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(type)", func); \
+      return; \
+   }
 
 static void GLAPIENTRY
 TAG(VertexP2ui)(GLenum type, GLuint value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(2, type, 0, VBO_ATTRIB_POS, value);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexP2ui");
+   ATTR_UI(ctx, 2, type, 0, VBO_ATTRIB_POS, value);
 }
 
 static void GLAPIENTRY
 TAG(VertexP2uiv)(GLenum type, const GLuint *value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(2, type, 0, VBO_ATTRIB_POS, value[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexP2uiv");
+   ATTR_UI(ctx, 2, type, 0, VBO_ATTRIB_POS, value[0]);
 }
 
 static void GLAPIENTRY
 TAG(VertexP3ui)(GLenum type, GLuint value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(3, type, 0, VBO_ATTRIB_POS, value);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexP3ui");
+   ATTR_UI(ctx, 3, type, 0, VBO_ATTRIB_POS, value);
 }
 
 static void GLAPIENTRY
 TAG(VertexP3uiv)(GLenum type, const GLuint *value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(3, type, 0, VBO_ATTRIB_POS, value[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexP3uiv");
+   ATTR_UI(ctx, 3, type, 0, VBO_ATTRIB_POS, value[0]);
 }
 
 static void GLAPIENTRY
 TAG(VertexP4ui)(GLenum type, GLuint value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(4, type, 0, VBO_ATTRIB_POS, value);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexP4ui");
+   ATTR_UI(ctx, 4, type, 0, VBO_ATTRIB_POS, value);
 }
 
 static void GLAPIENTRY
 TAG(VertexP4uiv)(GLenum type, const GLuint *value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(4, type, 0, VBO_ATTRIB_POS, value[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexP4uiv");
+   ATTR_UI(ctx, 4, type, 0, VBO_ATTRIB_POS, value[0]);
 }
 
 static void GLAPIENTRY
 TAG(TexCoordP1ui)(GLenum type, GLuint coords)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(1, type, 0, VBO_ATTRIB_TEX0, coords);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glTexCoordP1ui");
+   ATTR_UI(ctx, 1, type, 0, VBO_ATTRIB_TEX0, coords);
 }
 
 static void GLAPIENTRY
 TAG(TexCoordP1uiv)(GLenum type, const GLuint *coords)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(1, type, 0, VBO_ATTRIB_TEX0, coords[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glTexCoordP1uiv");
+   ATTR_UI(ctx, 1, type, 0, VBO_ATTRIB_TEX0, coords[0]);
 }
 
 static void GLAPIENTRY
 TAG(TexCoordP2ui)(GLenum type, GLuint coords)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(2, type, 0, VBO_ATTRIB_TEX0, coords);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glTexCoordP2ui");
+   ATTR_UI(ctx, 2, type, 0, VBO_ATTRIB_TEX0, coords);
 }
 
 static void GLAPIENTRY
 TAG(TexCoordP2uiv)(GLenum type, const GLuint *coords)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(2, type, 0, VBO_ATTRIB_TEX0, coords[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glTexCoordP2uiv");
+   ATTR_UI(ctx, 2, type, 0, VBO_ATTRIB_TEX0, coords[0]);
 }
 
 static void GLAPIENTRY
 TAG(TexCoordP3ui)(GLenum type, GLuint coords)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(3, type, 0, VBO_ATTRIB_TEX0, coords);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glTexCoordP3ui");
+   ATTR_UI(ctx, 3, type, 0, VBO_ATTRIB_TEX0, coords);
 }
 
 static void GLAPIENTRY
 TAG(TexCoordP3uiv)(GLenum type, const GLuint *coords)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(3, type, 0, VBO_ATTRIB_TEX0, coords[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glTexCoordP3uiv");
+   ATTR_UI(ctx, 3, type, 0, VBO_ATTRIB_TEX0, coords[0]);
 }
 
 static void GLAPIENTRY
 TAG(TexCoordP4ui)(GLenum type, GLuint coords)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(4, type, 0, VBO_ATTRIB_TEX0, coords);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glTexCoordP4ui");
+   ATTR_UI(ctx, 4, type, 0, VBO_ATTRIB_TEX0, coords);
 }
 
 static void GLAPIENTRY
 TAG(TexCoordP4uiv)(GLenum type, const GLuint *coords)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(4, type, 0, VBO_ATTRIB_TEX0, coords[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glTexCoordP4uiv");
+   ATTR_UI(ctx, 4, type, 0, VBO_ATTRIB_TEX0, coords[0]);
 }
 
 static void GLAPIENTRY
@@ -903,7 +958,8 @@ TAG(MultiTexCoordP1ui)(GLenum target, GLenum type, GLuint coords)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLuint attr = (target & 0x7) + VBO_ATTRIB_TEX0;
-   ATTR_UI(1, type, 0, attr, coords);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glMultiTexCoordP1ui");
+   ATTR_UI(ctx, 1, type, 0, attr, coords);
 }
 
 static void GLAPIENTRY
@@ -911,7 +967,8 @@ TAG(MultiTexCoordP1uiv)(GLenum target, GLenum type, const GLuint *coords)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLuint attr = (target & 0x7) + VBO_ATTRIB_TEX0;
-   ATTR_UI(1, type, 0, attr, coords[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glMultiTexCoordP1uiv");
+   ATTR_UI(ctx, 1, type, 0, attr, coords[0]);
 }
 
 static void GLAPIENTRY
@@ -919,7 +976,8 @@ TAG(MultiTexCoordP2ui)(GLenum target, GLenum type, GLuint coords)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLuint attr = (target & 0x7) + VBO_ATTRIB_TEX0;
-   ATTR_UI(2, type, 0, attr, coords);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glMultiTexCoordP2ui");
+   ATTR_UI(ctx, 2, type, 0, attr, coords);
 }
 
 static void GLAPIENTRY
@@ -927,7 +985,8 @@ TAG(MultiTexCoordP2uiv)(GLenum target, GLenum type, const GLuint *coords)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLuint attr = (target & 0x7) + VBO_ATTRIB_TEX0;
-   ATTR_UI(2, type, 0, attr, coords[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glMultiTexCoordP2uiv");
+   ATTR_UI(ctx, 2, type, 0, attr, coords[0]);
 }
 
 static void GLAPIENTRY
@@ -935,7 +994,8 @@ TAG(MultiTexCoordP3ui)(GLenum target, GLenum type, GLuint coords)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLuint attr = (target & 0x7) + VBO_ATTRIB_TEX0;
-   ATTR_UI(3, type, 0, attr, coords);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glMultiTexCoordP3ui");
+   ATTR_UI(ctx, 3, type, 0, attr, coords);
 }
 
 static void GLAPIENTRY
@@ -943,7 +1003,8 @@ TAG(MultiTexCoordP3uiv)(GLenum target, GLenum type, const GLuint *coords)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLuint attr = (target & 0x7) + VBO_ATTRIB_TEX0;
-   ATTR_UI(3, type, 0, attr, coords[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glMultiTexCoordP3uiv");
+   ATTR_UI(ctx, 3, type, 0, attr, coords[0]);
 }
 
 static void GLAPIENTRY
@@ -951,7 +1012,8 @@ TAG(MultiTexCoordP4ui)(GLenum target, GLenum type, GLuint coords)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLuint attr = (target & 0x7) + VBO_ATTRIB_TEX0;
-   ATTR_UI(4, type, 0, attr, coords);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glMultiTexCoordP4ui");
+   ATTR_UI(ctx, 4, type, 0, attr, coords);
 }
 
 static void GLAPIENTRY
@@ -959,63 +1021,72 @@ TAG(MultiTexCoordP4uiv)(GLenum target, GLenum type, const GLuint *coords)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLuint attr = (target & 0x7) + VBO_ATTRIB_TEX0;
-   ATTR_UI(4, type, 0, attr, coords[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glMultiTexCoordP4uiv");
+   ATTR_UI(ctx, 4, type, 0, attr, coords[0]);
 }
 
 static void GLAPIENTRY
 TAG(NormalP3ui)(GLenum type, GLuint coords)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(3, type, 1, VBO_ATTRIB_NORMAL, coords);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glNormalP3ui");
+   ATTR_UI(ctx, 3, type, 1, VBO_ATTRIB_NORMAL, coords);
 }
 
 static void GLAPIENTRY
 TAG(NormalP3uiv)(GLenum type, const GLuint *coords)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(3, type, 1, VBO_ATTRIB_NORMAL, coords[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glNormalP3uiv");
+   ATTR_UI(ctx, 3, type, 1, VBO_ATTRIB_NORMAL, coords[0]);
 }
 
 static void GLAPIENTRY
 TAG(ColorP3ui)(GLenum type, GLuint color)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(3, type, 1, VBO_ATTRIB_COLOR0, color);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glColorP3ui");
+   ATTR_UI(ctx, 3, type, 1, VBO_ATTRIB_COLOR0, color);
 }
 
 static void GLAPIENTRY
 TAG(ColorP3uiv)(GLenum type, const GLuint *color)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(3, type, 1, VBO_ATTRIB_COLOR0, color[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glColorP3uiv");
+   ATTR_UI(ctx, 3, type, 1, VBO_ATTRIB_COLOR0, color[0]);
 }
 
 static void GLAPIENTRY
 TAG(ColorP4ui)(GLenum type, GLuint color)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(4, type, 1, VBO_ATTRIB_COLOR0, color);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glColorP4ui");
+   ATTR_UI(ctx, 4, type, 1, VBO_ATTRIB_COLOR0, color);
 }
 
 static void GLAPIENTRY
 TAG(ColorP4uiv)(GLenum type, const GLuint *color)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(4, type, 1, VBO_ATTRIB_COLOR0, color[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glColorP4uiv");
+   ATTR_UI(ctx, 4, type, 1, VBO_ATTRIB_COLOR0, color[0]);
 }
 
 static void GLAPIENTRY
 TAG(SecondaryColorP3ui)(GLenum type, GLuint color)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(3, type, 1, VBO_ATTRIB_COLOR1, color);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glSecondaryColorP3ui");
+   ATTR_UI(ctx, 3, type, 1, VBO_ATTRIB_COLOR1, color);
 }
 
 static void GLAPIENTRY
 TAG(SecondaryColorP3uiv)(GLenum type, const GLuint *color)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI(3, type, 1, VBO_ATTRIB_COLOR1, color[0]);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glSecondaryColorP3uiv");
+   ATTR_UI(ctx, 3, type, 1, VBO_ATTRIB_COLOR1, color[0]);
 }
 
 static void GLAPIENTRY
@@ -1023,7 +1094,8 @@ TAG(VertexAttribP1ui)(GLuint index, GLenum type, GLboolean normalized,
 		      GLuint value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI_INDEX(1, type, normalized, index, value);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexAttribP1ui");
+   ATTR_UI_INDEX(ctx, 1, type, normalized, index, value);
 }
 
 static void GLAPIENTRY
@@ -1031,7 +1103,8 @@ TAG(VertexAttribP2ui)(GLuint index, GLenum type, GLboolean normalized,
 		      GLuint value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI_INDEX(2, type, normalized, index, value);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexAttribP2ui");
+   ATTR_UI_INDEX(ctx, 2, type, normalized, index, value);
 }
 
 static void GLAPIENTRY
@@ -1039,7 +1112,8 @@ TAG(VertexAttribP3ui)(GLuint index, GLenum type, GLboolean normalized,
 		      GLuint value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI_INDEX(3, type, normalized, index, value);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexAttribP3ui");
+   ATTR_UI_INDEX(ctx, 3, type, normalized, index, value);
 }
 
 static void GLAPIENTRY
@@ -1047,7 +1121,8 @@ TAG(VertexAttribP4ui)(GLuint index, GLenum type, GLboolean normalized,
 		      GLuint value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI_INDEX(4, type, normalized, index, value);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexAttribP4ui");
+   ATTR_UI_INDEX(ctx, 4, type, normalized, index, value);
 }
 
 static void GLAPIENTRY
@@ -1055,7 +1130,8 @@ TAG(VertexAttribP1uiv)(GLuint index, GLenum type, GLboolean normalized,
 		       const GLuint *value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI_INDEX(1, type, normalized, index, *value);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexAttribP1uiv");
+   ATTR_UI_INDEX(ctx, 1, type, normalized, index, *value);
 }
 
 static void GLAPIENTRY
@@ -1063,7 +1139,8 @@ TAG(VertexAttribP2uiv)(GLuint index, GLenum type, GLboolean normalized,
 		       const GLuint *value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI_INDEX(2, type, normalized, index, *value);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexAttribP2uiv");
+   ATTR_UI_INDEX(ctx, 2, type, normalized, index, *value);
 }
 
 static void GLAPIENTRY
@@ -1071,7 +1148,8 @@ TAG(VertexAttribP3uiv)(GLuint index, GLenum type, GLboolean normalized,
 		       const GLuint *value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI_INDEX(3, type, normalized, index, *value);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexAttribP3uiv");
+   ATTR_UI_INDEX(ctx, 3, type, normalized, index, *value);
 }
 
 static void GLAPIENTRY
@@ -1079,7 +1157,8 @@ TAG(VertexAttribP4uiv)(GLuint index, GLenum type, GLboolean normalized,
 		      const GLuint *value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   ATTR_UI_INDEX(4, type, normalized, index, *value);
+   ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexAttribP4uiv");
+   ATTR_UI_INDEX(ctx, 4, type, normalized, index, *value);
 }
 
 

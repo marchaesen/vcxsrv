@@ -154,5 +154,17 @@ winTaskbarDestroy (void);
 void
 winSetAppID (HWND hWnd, const char* AppID);
 
+void
+ winPropertyStoreInit(void);
+
+void
+ winPropertyStoreDestroy(void);
+
+void
+ winSetAppUserModelID(HWND hWnd, const char *AppID);
+
+void
+ winShowWindowOnTaskbar(HWND hWnd, BOOL show);
+
 #endif                          /* XWIN_MULTIWINDOW */
 #endif

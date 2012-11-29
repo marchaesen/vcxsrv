@@ -65,6 +65,7 @@ from The Open Group.
 #endif                          /* HAS_SHM */
 #include "dix.h"
 #include "miline.h"
+#include "glx_extinit.h"
 
 #define VFB_DEFAULT_WIDTH      1280
 #define VFB_DEFAULT_HEIGHT     1024
@@ -884,11 +885,29 @@ vfbScreenInit(ScreenPtr pScreen, int argc, char **argv)
 
 }                               /* end vfbScreenInit */
 
+static const ExtensionModule vfbExtensions[] = {
+#ifdef GLXEXT
+    { GlxExtensionInit, "GLX", &noGlxExtension },
+#endif
+};
+
+static
+void vfbExtensionInit(void)
+{
+    int i;
+
+    for (i = 0; i < ARRAY_SIZE(vfbExtensions); i++)
+        LoadExtension(&vfbExtensions[i], TRUE);
+}
+
 void
 InitOutput(ScreenInfo * screenInfo, int argc, char **argv)
 {
     int i;
     int NumFormats = 0;
+
+    if (serverGeneration == 1)
+        vfbExtensionInit();
 
     /* initialize pixmap formats */
 

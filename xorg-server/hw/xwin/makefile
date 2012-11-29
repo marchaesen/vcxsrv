@@ -32,7 +32,8 @@ SRCS_MULTIWINDOW = \
 	winmultiwindowshape.c \
 	winmultiwindowwindow.c \
 	winmultiwindowwm.c \
-	winmultiwindowwndproc.c
+	winmultiwindowwndproc.c \
+	winSetAppUserModelID.c
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
 endif
 
@@ -108,6 +109,7 @@ SRCS =	InitInput.c \
 	winshaddd.c \
 	winshadddnl.c \
 	winshadgdi.c \
+	wintaskbar.c \
 	wintrayicon.c \
 	winvalargs.c \
 	winwakeup.c \

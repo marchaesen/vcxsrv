@@ -80,14 +80,15 @@ INCLUDES = 						\
 
 EXTRA_DIST = makealias
 
-noinst_HEADERS=fcint.h fcftint.h fcdeprecate.h
+noinst_HEADERS=fcint.h fcftint.h fcdeprecate.h fcstdint.h
 
 ALIAS_FILES = fcalias.h fcaliastail.h fcftalias.h fcftaliastail.h
 
 BUILT_SOURCES = $(ALIAS_FILES) \
 	../fc-case/fccase.h \
 	../fc-glyphname/fcglyphname.h \
-	../fc-lang/fclang.h
+	../fc-lang/fclang.h \
+	stamp-fcstdint
 
 noinst_PROGRAMS = fcarch
 
@@ -158,7 +159,13 @@ fcftaliastail.h: fcftalias.h
 fcftalias.h: $(top_srcdir)/src/makealias $(PUBLIC_FT_FILES)
 	$(AM_V_GEN) sh $(top_srcdir)/src/makealias "$(top_srcdir)/src" fcftalias.h fcftaliastail.h $(PUBLIC_FT_FILES)
 
+stamp-fcstdint: $(top_builddir)/config.status
+	$(AM_V_GEN) cd $(top_builddir) &&	\
+	$(SHELL) ./config.status src/fcstdint.h
+	@touch $@
+
 CLEANFILES = $(ALIAS_FILES)
+DISTCLEANFILES = stamp-fcstdint fcstdint.h
 
 fontconfig.def: $(PUBLIC_FILES) $(PUBLIC_FT_FILES)
 	echo Generating $@

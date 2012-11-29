@@ -23,7 +23,7 @@
 # PERFORMANCE OF THIS SOFTWARE.
 #
 
-INCLUDES=-I${top_srcdir}/src -I${top_srcdir} $(WARN_CFLAGS)
+INCLUDES=-I${top_builddir}/src -I${top_srcdir}/src -I${top_srcdir} $(WARN_CFLAGS)
 
 TMPL=fcglyphname.tmpl.h
 STMPL=${top_srcdir}/fc-glyphname/${TMPL}

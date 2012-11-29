@@ -175,6 +175,24 @@ winClipboardFlushXEvents(HWND hwnd,
                 break;
             }
 
+              /* Access the clipboard */
+            if (!ClipboardOpened)
+            {
+              if (!OpenClipboard (hwnd))
+              {
+                ErrorF ("winClipboardFlushXEvents - SelectionRequest - "
+                        "OpenClipboard () failed: %08lx\n",
+                        GetLastError ());
+
+                /* Abort */
+                fAbort = TRUE;
+                goto winClipboardFlushXEvents_SelectionRequest_Done;
+              }
+	  
+              /* Indicate that clipboard was opened */
+              fCloseClipboard = TRUE;
+            }
+
             /* Check that clipboard format is available */
             if (fUseUnicode && !IsClipboardFormatAvailable(CF_UNICODETEXT)) {
                 static int count;       /* Hack to stop acroread spamming the log */
@@ -202,23 +220,6 @@ winClipboardFlushXEvents(HWND hwnd,
                 goto winClipboardFlushXEvents_SelectionRequest_Done;
             }
 
-            /* Access the clipboard */
-	  if (!ClipboardOpened)
-	  {
-	    if (!OpenClipboard (hwnd))
-	      {
-	        ErrorF ("winClipboardFlushXEvents - SelectionRequest - "
-		        "OpenClipboard () failed: %08lx\n",
-		        GetLastError ());
-
-	        /* Abort */
-	        fAbort = TRUE;
-	         goto winClipboardFlushXEvents_SelectionRequest_Done;
-	      }
-	  
-	    /* Indicate that clipboard was opened */
-	    fCloseClipboard = TRUE;
-	  }
             /* Setup the string style */
             if (event.xselectionrequest.target == XA_STRING)
                 xiccesStyle = XStringStyle;
