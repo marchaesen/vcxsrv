@@ -269,7 +269,17 @@ struct __DRItexBufferExtensionRec {
  * Used by drivers that implement DRI2
  */
 #define __DRI2_FLUSH "DRI2_Flush"
-#define __DRI2_FLUSH_VERSION 3
+#define __DRI2_FLUSH_VERSION 4
+
+#define __DRI2_FLUSH_DRAWABLE (1 << 0) /* the drawable should be flushed. */
+#define __DRI2_FLUSH_CONTEXT  (1 << 1) /* glFlush should be called */
+
+enum __DRI2throttleReason {
+   __DRI2_THROTTLE_SWAPBUFFER,
+   __DRI2_THROTTLE_COPYSUBBUFFER,
+   __DRI2_THROTTLE_FLUSHFRONT
+};
+
 struct __DRI2flushExtensionRec {
     __DRIextension base;
     void (*flush)(__DRIdrawable *drawable);
@@ -283,6 +293,27 @@ struct __DRI2flushExtensionRec {
      * \since 3
      */
     void (*invalidate)(__DRIdrawable *drawable);
+
+    /**
+     * This function reduces the number of flushes in the driver by combining
+     * several operations into one call.
+     *
+     * It can:
+     * - throttle
+     * - flush a drawable
+     * - flush a context
+     *
+     * \param context           the context
+     * \param drawable          the drawable to flush
+     * \param flags             a combination of _DRI2_FLUSH_xxx flags
+     * \param throttle_reason   the reason for throttling, 0 = no throttling
+     *
+     * \since 4
+     */
+    void (*flush_with_flags)(__DRIcontext *ctx,
+                             __DRIdrawable *drawable,
+                             unsigned flags,
+                             enum __DRI2throttleReason throttle_reason);
 };
 
 
@@ -293,12 +324,6 @@ struct __DRI2flushExtensionRec {
 
 #define __DRI2_THROTTLE "DRI2_Throttle"
 #define __DRI2_THROTTLE_VERSION 1
-
-enum __DRI2throttleReason {
-   __DRI2_THROTTLE_SWAPBUFFER,
-   __DRI2_THROTTLE_COPYSUBBUFFER,
-   __DRI2_THROTTLE_FLUSHFRONT
-};
 
 struct __DRI2throttleExtensionRec {
    __DRIextension base;
