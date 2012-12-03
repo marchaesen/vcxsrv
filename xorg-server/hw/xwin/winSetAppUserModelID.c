@@ -28,6 +28,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xwindows.h>
+#include <pthread.h>
 #include "winwindow.h"
 #include "os.h"
 #include "winmsg.h"

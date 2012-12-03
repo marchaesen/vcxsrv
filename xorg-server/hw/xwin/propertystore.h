@@ -26,7 +26,7 @@
 
 #include <windows.h>
 
-#ifdef __MINGW64_VERSION_MAJOR
+#if defined(__MINGW64_VERSION_MAJOR) || defined(_MSC_VER)
 /* If we are using headers from mingw-w64 project, it provides the PSDK headers this needs ... */
 #include <propkey.h>
 #include <propsys.h>
