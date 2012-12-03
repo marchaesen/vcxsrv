@@ -108,6 +108,6 @@ int
 main (int argc, const char *argv[])
 {
     return fuzzer_test_main ("rotate", 15000,
-			     0x03A24D51,
+			     0x5236FD9F,
 			     test_transform, argc, argv);
 }

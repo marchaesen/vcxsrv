@@ -1093,7 +1093,11 @@ barrier_is_blocking(const struct PointerBarrier * barrier,
         if (dir & BarrierNegativeX && x1 == (barrier->x1 - 1))
             return FALSE;
         /* startpoint adjacent to barrier, moving towards -> block */
-        if (x1 == barrier->x1 && y1 >= barrier->y1 && y1 <= barrier->y2) {
+        if (dir & BarrierPositiveX && x1 == (barrier->x1 - 1) && y1 >= barrier->y1 && y1 <= barrier->y2) {
+            *distance = 0;
+            return TRUE;
+        }
+        if (dir & BarrierNegativeX && x1 == barrier->x1 && y1 >= barrier->y1 && y1 <= barrier->y2) {
             *distance = 0;
             return TRUE;
         }
@@ -1105,7 +1109,11 @@ barrier_is_blocking(const struct PointerBarrier * barrier,
         if (dir & BarrierNegativeY && y1 == (barrier->y1 - 1))
             return FALSE;
         /* startpoint adjacent to barrier, moving towards -> block */
-        if (y1 == barrier->y1 && x1 >= barrier->x1 && x1 <= barrier->x2) {
+        if (dir & BarrierPositiveY && y1 == (barrier->y1 - 1) && x1 >= barrier->x1 && x1 <= barrier->x2) {
+            *distance = 0;
+            return TRUE;
+        }
+        if (dir & BarrierNegativeY && y1 == barrier->y1 && x1 >= barrier->x1 && x1 <= barrier->x2) {
             *distance = 0;
             return TRUE;
         }

@@ -40,7 +40,10 @@ if CROSS_COMPILING
 $(TARG): $(STMPL) fc-glyphname.c $(SGLYPHNAME)
 	@echo Warning: cannot rebuild $(TARG) when cross-compiling
 else
-$(TARG): $(STMPL) fc-glyphname$(EXEEXT) $(SGLYPHNAME)
+## BUILT_SOURCES doesn't effect to 'distcheck'
+## so $(ALIAS_FILES) has to be appeared prior to fc-glyphname$(EXEEXT)
+## to make sure availability.
+$(TARG): $(STMPL) $(ALIAS_FILES) fc-glyphname$(EXEEXT) $(SGLYPHNAME)
 	$(AM_V_GEN) $(RM) $(TARG); \
 	./fc-glyphname$(EXEEXT) $(SGLYPHNAME) < $(STMPL) > $(TARG).tmp && \
 	mv $(TARG).tmp $(TARG)
@@ -48,10 +51,10 @@ endif
 
 ALIAS_FILES = fcalias.h fcaliastail.h
 
-BUILT_SOURCES = $(ALIAS_FILES) $(TARG)
+BUILT_SOURCES = $(ALIAS_FILES)
 
 $(ALIAS_FILES):
-	touch $(ALIAS_FILES)
+	$(AM_V_GEN) touch $@
 
 CLEANFILES = $(ALIAS_FILES)
 

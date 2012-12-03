@@ -463,49 +463,42 @@ TouchEventHistoryPush(TouchPointInfoPtr ti, const DeviceEvent *ev)
 void
 TouchEventHistoryReplay(TouchPointInfoPtr ti, DeviceIntPtr dev, XID resource)
 {
-    InternalEvent *tel;
-    ValuatorMask *mask;
-    int i, nev;
-    int flags;
+    int i;
 
     if (!ti->history)
         return;
 
-    tel = InitEventList(GetMaximumEventsNum());
-    mask = valuator_mask_new(0);
+    TouchDeliverDeviceClassesChangedEvent(ti, ti->history[0].time, resource);
 
-    valuator_mask_set_double(mask, 0, ti->history[0].valuators.data[0]);
-    valuator_mask_set_double(mask, 1, ti->history[0].valuators.data[1]);
-
-    flags = TOUCH_CLIENT_ID | TOUCH_REPLAYING;
-    if (ti->emulate_pointer)
-        flags |= TOUCH_POINTER_EMULATED;
-    /* Generate events based on a fake touch begin event to get DCCE events if
-     * needed */
-    /* FIXME: This needs to be cleaned up */
-    nev = GetTouchEvents(tel, dev, ti->client_id, XI_TouchBegin, flags, mask);
-    for (i = 0; i < nev; i++) {
-        /* Send saved touch begin event */
-        if (tel[i].any.type == ET_TouchBegin) {
-            DeviceEvent *ev = &ti->history[0];
-            ev->flags |= TOUCH_REPLAYING;
-            DeliverTouchEvents(dev, ti, (InternalEvent*)ev, resource);
-        }
-        else {/* Send DCCE event */
-            tel[i].any.time = ti->history[0].time;
-            DeliverTouchEvents(dev, ti, tel + i, resource);
-        }
-    }
-
-    valuator_mask_free(&mask);
-    FreeEventList(tel, GetMaximumEventsNum());
-
-    /* First event was TouchBegin, already replayed that one */
-    for (i = 1; i < ti->history_elements; i++) {
+    for (i = 0; i < ti->history_elements; i++) {
         DeviceEvent *ev = &ti->history[i];
 
         ev->flags |= TOUCH_REPLAYING;
         DeliverTouchEvents(dev, ti, (InternalEvent *) ev, resource);
+    }
+}
+
+void
+TouchDeliverDeviceClassesChangedEvent(TouchPointInfoPtr ti, Time time,
+                                      XID resource)
+{
+    DeviceIntPtr dev;
+    int num_events = 0;
+    InternalEvent dcce;
+
+    dixLookupDevice(&dev, ti->sourceid, serverClient, DixWriteAccess);
+
+    if (!dev)
+        return;
+
+    /* UpdateFromMaster generates at most one event */
+    UpdateFromMaster(&dcce, dev, DEVCHANGE_POINTER_EVENT, &num_events);
+    BUG_WARN(num_events > 1);
+
+    if (num_events) {
+        dcce.any.time = time;
+        /* FIXME: This doesn't do anything */
+        dev->public.processInputProc(&dcce, dev);
     }
 }
 

@@ -1066,24 +1066,14 @@ ActivateEarlyAccept(DeviceIntPtr dev, TouchPointInfoPtr ti)
 static void
 EmitTouchEnd(DeviceIntPtr dev, TouchPointInfoPtr ti, int flags, XID resource)
 {
-    InternalEvent *tel = InitEventList(GetMaximumEventsNum());
-    ValuatorMask *mask = valuator_mask_new(2);
-    int i, nev;
-
-    valuator_mask_set_double(mask, 0,
-                             valuator_mask_get_double(ti->valuators, 0));
-    valuator_mask_set_double(mask, 1,
-                             valuator_mask_get_double(ti->valuators, 1));
+    InternalEvent event;
 
     flags |= TOUCH_CLIENT_ID;
     if (ti->emulate_pointer)
         flags |= TOUCH_POINTER_EMULATED;
-    nev = GetTouchEvents(tel, dev, ti->client_id, XI_TouchEnd, flags, mask);
-    for (i = 0; i < nev; i++)
-        DeliverTouchEvents(dev, ti, tel + i, resource);
-
-    valuator_mask_free(&mask);
-    FreeEventList(tel, GetMaximumEventsNum());
+    TouchDeliverDeviceClassesChangedEvent(ti, GetTimeInMillis(), resource);
+    GetDixTouchEnd(&event, dev, ti, flags);
+    DeliverTouchEvents(dev, ti, &event, resource);
 }
 
 /**

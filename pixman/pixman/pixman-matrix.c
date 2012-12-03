@@ -62,7 +62,7 @@ pixman_transform_point_3d (const struct pixman_transform *transform,
 	{
 	    partial = ((pixman_fixed_48_16_t) transform->matrix[j][i] *
 	               (pixman_fixed_48_16_t) vector->vector[i]);
-	    v += partial >> 16;
+	    v += (partial + 0x8000) >> 16;
 	}
 	
 	if (v > pixman_max_fixed_48_16 || v < pixman_min_fixed_48_16)
@@ -96,16 +96,16 @@ pixman_transform_point (const struct pixman_transform *transform,
 	{
 	    partial = ((pixman_fixed_32_32_t) transform->matrix[j][i] *
 	               (pixman_fixed_32_32_t) vector->vector[i]);
-	    v[j] += partial >> 2;
+	    v[j] += (partial + 2) >> 2;
 	}
     }
     
-    if (!(v[2] >> 16))
+    if (!((v[2] + 0x8000) >> 16))
 	return FALSE;
 
     for (j = 0; j < 2; j++)
     {
-	quo = v[j] / (v[2] >> 16);
+	quo = v[j] / ((v[2] + 0x8000) >> 16);
 	if (quo > pixman_max_fixed_48_16 || quo < pixman_min_fixed_48_16)
 	    return FALSE;
 	vector->vector[j] = (pixman_fixed_t) quo;
@@ -138,7 +138,7 @@ pixman_transform_multiply (struct pixman_transform *      dst,
 		    (pixman_fixed_32_32_t) l->matrix[dy][o] *
 		    (pixman_fixed_32_32_t) r->matrix[o][dx];
 
-		v += partial >> 16;
+		v += (partial + 0x8000) >> 16;
 	    }
 
 	    if (v > pixman_max_fixed_48_16 || v < pixman_min_fixed_48_16)

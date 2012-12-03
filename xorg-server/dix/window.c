@@ -3095,6 +3095,8 @@ dixSaveScreens(ClientPtr client, int on, int mode)
             UpdateCurrentTimeIf();
             nt_list_for_each_entry(dev, inputInfo.devices, next)
                 lastDeviceEventTime[dev->id] = currentTime;
+            lastDeviceEventTime[XIAllDevices] = currentTime;
+            lastDeviceEventTime[XIAllMasterDevices] = currentTime;
         }
         SetScreenSaverTimer();
     }

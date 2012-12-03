@@ -393,6 +393,8 @@ ScreenSaverFreeSuspend(pointer value, XID id)
             UpdateCurrentTimeIf();
             nt_list_for_each_entry(dev, inputInfo.devices, next)
                 lastDeviceEventTime[dev->id] = currentTime;
+            lastDeviceEventTime[XIAllDevices] = currentTime;
+            lastDeviceEventTime[XIAllMasterDevices] = currentTime;
             SetScreenSaverTimer();
         }
     }

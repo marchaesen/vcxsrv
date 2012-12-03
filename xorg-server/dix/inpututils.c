@@ -910,11 +910,7 @@ input_option_set_value(InputOption *opt, const char *value)
 double
 fp1616_to_double(FP1616 in)
 {
-    double ret;
-
-    ret = (double) (in >> 16);
-    ret += (double) (in & 0xffff) * (1.0 / (1UL << 16));        /* Optimized: ldexp((double)(in & 0xffff), -16); */
-    return ret;
+    return pixman_fixed_to_double(in);
 }
 
 double
@@ -930,20 +926,7 @@ fp3232_to_double(FP3232 in)
 FP1616
 double_to_fp1616(double in)
 {
-    FP1616 ret;
-    int32_t integral;
-    double tmp;
-    uint32_t frac_d;
-
-    tmp = floor(in);
-    integral = (int32_t) tmp;
-
-    tmp = (in - integral) * (1UL << 16);        /* Optimized: ldexp(in - integral, 16) */
-    frac_d = (uint16_t) tmp;
-
-    ret = integral << 16;
-    ret |= frac_d & 0xffff;
-    return ret;
+    return pixman_double_to_fixed(in);
 }
 
 FP3232

@@ -156,7 +156,7 @@ struct util_format_description
    unsigned nr_channels:3;
 
    /**
-    * Whether all channels have the same number of (whole) bytes.
+    * Whether all channels have the same number of (whole) bytes and type.
     */
    unsigned is_array:1;
 
@@ -589,16 +589,6 @@ util_format_is_pure_sint(enum pipe_format format);
 
 boolean
 util_format_is_pure_uint(enum pipe_format format);
-
-/**
- * Whether the format is a simple array format where all channels
- * are of the same type and can be loaded from memory as a vector.
- *
- * If format is 4 channel it can be swizzled (eg BGRA) as long
- * as the alpha is the 3rd channel.
- */
-boolean
-util_format_is_array(const struct util_format_description *desc);
 
 /**
  * Check if the src format can be blitted to the destination format with

@@ -264,6 +264,8 @@ RRInit(void)
             return FALSE;
         if (!RROutputInit())
             return FALSE;
+        if (!RRProviderInit())
+            return FALSE;
         RRGeneration = serverGeneration;
     }
     if (!dixRegisterPrivateKey(&rrPrivKeyRec, PRIVATE_SCREEN, 0))

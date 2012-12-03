@@ -2,6 +2,19 @@
 // the third shift level can be reached
 //
 
+// Ensure a mapping to a real modifier for LevelThree
+partial modifier_keys
+xkb_symbols "modifier_mapping" {
+  key.type[Group1] = "ONE_LEVEL";
+
+  replace key <LVL3> {
+    vmods = LevelThree,
+    symbols[Group1] = [ ISO_Level3_Shift ],
+    actions[Group1] = [ SetMods(modifiers=LevelThree) ]
+  };
+  modifier_map Mod5 { <LVL3> };
+};
+
 // the default behavior is for the right Alt key (AltGr) to generate the
 // third engraved symbol
 default partial modifier_keys
@@ -10,7 +23,7 @@ xkb_symbols "ralt_switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
     };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };
 
 // Right Alt key never chooses 3rd level.
@@ -38,6 +51,7 @@ xkb_symbols "ralt_switch_multikey" {
     type[Group1]="TWO_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift, Multi_key ]
     };
+  include "level3(modifier_mapping)"
 };
 
 // special case or right Alt switch - for use with grp:alts_toggle
@@ -55,7 +69,7 @@ xkb_symbols "ralt_switch_for_alts_toggle" {
     symbols[Group1] = [ ISO_Level3_Shift, ISO_Next_Group ],
     virtualMods= AltGr
   };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };
 
 // using the level(alt_switch) map, either Alt key temporarily chooses
@@ -72,7 +86,7 @@ xkb_symbols "lalt_switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
     };
-  modifier_map Mod5   { <LALT> };
+  include "level3(modifier_mapping)"
 };
 
 // using the level(switch) map, the right Control key temporarily
@@ -83,7 +97,7 @@ xkb_symbols "switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
     };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };
 
 // using the level(menu_switch) map, the Menu key temporarily
@@ -94,7 +108,7 @@ xkb_symbols "menu_switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
     };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };
 
 // using the level3(win_switch) map, the either Windows' logo key
@@ -113,7 +127,7 @@ xkb_symbols "lwin_switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
     };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };
 
 // using the level(rwin_switch) map, the right Windows' logo key
@@ -126,7 +140,7 @@ xkb_symbols "rwin_switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
     };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };
 
 // using the level3(enter_switch) map, the Enter key on the keypad
@@ -138,7 +152,7 @@ xkb_symbols "enter_switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
     };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };
 
 partial modifier_keys
@@ -147,7 +161,7 @@ xkb_symbols "caps_switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
   };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };
 
 partial modifier_keys
@@ -156,7 +170,7 @@ xkb_symbols "bksl_switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
   };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };
 
 partial modifier_keys
@@ -165,7 +179,7 @@ xkb_symbols "lsgt_switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
   };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };
 
 partial modifier_keys
@@ -174,7 +188,7 @@ xkb_symbols "caps_switch_latch" {
     type[Group1]="THREE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift, ISO_Level3_Shift, ISO_Level3_Latch ]
   };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };
 
 partial modifier_keys
@@ -183,7 +197,7 @@ xkb_symbols "bksl_switch_latch" {
     type[Group1]="THREE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift, ISO_Level3_Shift, ISO_Level3_Latch ]
   };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };
 
 partial modifier_keys
@@ -192,5 +206,5 @@ xkb_symbols "lsgt_switch_latch" {
     type[Group1]="THREE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift, ISO_Level3_Shift, ISO_Level3_Latch ]
   };
-  modifier_map Mod5   { ISO_Level3_Shift };
+  include "level3(modifier_mapping)"
 };

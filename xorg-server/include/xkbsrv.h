@@ -171,6 +171,7 @@ typedef struct _XkbSrvInfo {
     KeyCode mouseKey;
     KeyCode inactiveKey;
     KeyCode slowKey;
+    KeyCode slowKeyEnableKey;
     KeyCode repeatKey;
     CARD8 krgTimerActive;
     CARD8 beepType;

@@ -251,14 +251,14 @@ choose_pixel_format(const struct gl_config *v)
 }
 
 static void
-swrast_delete_renderbuffer(struct gl_renderbuffer *rb)
+swrast_delete_renderbuffer(struct gl_context *ctx, struct gl_renderbuffer *rb)
 {
     struct dri_swrast_renderbuffer *xrb = dri_swrast_renderbuffer(rb);
 
     TRACE;
 
     free(xrb->Base.Buffer);
-    _mesa_delete_renderbuffer(rb);
+    _mesa_delete_renderbuffer(ctx, rb);
 }
 
 /* see bytes_per_line in libGL */
@@ -706,7 +706,7 @@ dri_create_context(gl_api api,
     (void) flags;
 
     switch (api) {
-    case API_OPENGL:
+    case API_OPENGL_COMPAT:
         if (major_version > 2
 	    || (major_version == 2 && minor_version > 1)) {
             *error = __DRI_CTX_ERROR_BAD_VERSION;
@@ -768,7 +768,7 @@ dri_create_context(gl_api api,
     switch (api) {
     case API_OPENGL_CORE:
         /* XXX fix me, fall-through for now */
-    case API_OPENGL:
+    case API_OPENGL_COMPAT:
         _mesa_enable_1_3_extensions(mesaCtx);
         _mesa_enable_1_4_extensions(mesaCtx);
         _mesa_enable_1_5_extensions(mesaCtx);

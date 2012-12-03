@@ -1273,10 +1273,6 @@ if test "x$enable_egl" = xyes; then
 
     if test "$enable_static" != yes; then
         # build egl_glx when libGL is built
-        if test "x$enable_glx" = xyes; then
-	    HAVE_EGL_DRIVER_GLX=1
-        fi
-
         PKG_CHECK_MODULES([LIBUDEV], [libudev > 150],
                           [have_libudev=yes],[have_libudev=no])
         if test "$have_libudev" = yes; then
@@ -1534,8 +1530,7 @@ for plat in $egl_platforms; do
 		;;
 
 	wayland)
-		PKG_CHECK_MODULES([WAYLAND], [wayland-client >= 0.99.0 wayland-server >= 0.99.0],, \
-				  [AC_MSG_ERROR([cannot find libwayland-client])])
+		PKG_CHECK_MODULES([WAYLAND], [wayland-client >= 1.0.2 wayland-server >= 1.0.2])
 		GALLIUM_WINSYS_DIRS="$GALLIUM_WINSYS_DIRS sw/wayland"
 
                 WAYLAND_PREFIX=`$PKG_CONFIG --variable=prefix wayland-client`
@@ -1545,6 +1540,10 @@ for plat in $egl_platforms; do
 
 	x11)
 		PKG_CHECK_MODULES([XCB_DRI2], [x11-xcb xcb-dri2 >= 1.8 xcb-xfixes])
+
+                if test "x$enable_glx" = xyes; then
+                        HAVE_EGL_DRIVER_GLX=1
+                fi
 		;;
 
 	drm)

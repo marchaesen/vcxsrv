@@ -39,7 +39,10 @@ if CROSS_COMPILING
 $(TARG):$(ORTH) fc-lang.c $(STMPL)
 	@echo Warning: cannot rebuild $(TARG) when cross-compiling
 else
-$(TARG):$(ORTH) fc-lang${EXEEXT} $(STMPL)
+## BUILT_SOURCES doesn't effect to 'distcheck'
+## so $(ALIAS_FILES) has to be appeared prior to fc-lang$(EXEEXT)
+## to make sure availability.
+$(TARG):$(ORTH) $(ALIAS_FILES) fc-lang${EXEEXT} $(STMPL)
 	$(AM_V_GEN) $(RM) $(TARG); \
 	./fc-lang${EXEEXT} -d ${srcdir} $(ORTH) < $(STMPL) > $(TARG).tmp && \
 	mv $(TARG).tmp $(TARG)
@@ -47,10 +50,10 @@ endif
 
 ALIAS_FILES = fcalias.h fcaliastail.h
 
-BUILT_SOURCES = $(ALIAS_FILES) $(TARG)
+BUILT_SOURCES = $(ALIAS_FILES)
 
 $(ALIAS_FILES):
-	touch $(ALIAS_FILES)
+	$(AM_V_GEN) touch $@
 
 CLEANFILES = $(ALIAS_FILES)
 
