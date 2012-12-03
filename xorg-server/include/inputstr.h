@@ -331,7 +331,7 @@ typedef struct _DDXTouchPointInfo {
     uint32_t ddx_id;            /* touch ID given by the DDX */
     Bool emulate_pointer;
 
-    ValuatorMask *valuators;    /* last recorded axis values */
+    ValuatorMask *valuators;    /* last axis values as posted, pre-transform */
 } DDXTouchPointInfoRec;
 
 typedef struct _TouchClassRec {

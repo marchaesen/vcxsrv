@@ -413,10 +413,10 @@ bits_image_fetch_pixel_convolution (bits_image_t   *image,
 	}
     }
 
-    satot >>= 16;
-    srtot >>= 16;
-    sgtot >>= 16;
-    sbtot >>= 16;
+    satot = (satot + 0x8000) >> 16;
+    srtot = (srtot + 0x8000) >> 16;
+    sgtot = (sgtot + 0x8000) >> 16;
+    sbtot = (sbtot + 0x8000) >> 16;
 
     satot = CLIP (satot, 0, 0xff);
     srtot = CLIP (srtot, 0, 0xff);

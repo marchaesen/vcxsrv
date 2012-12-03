@@ -291,8 +291,8 @@ AccessXKRGExpire(OsTimerPtr timer, CARD32 now, pointer arg)
         return 4000;
     }
     xkbi->krgTimerActive = _OFF_TIMER;
-    cn.keycode = 0;
-    cn.eventType = 0;
+    cn.keycode = xkbi->slowKeyEnableKey;
+    cn.eventType = KeyPress;
     cn.requestMajor = 0;
     cn.requestMinor = 0;
     if (xkbi->desc->ctrls->enabled_ctrls & XkbSlowKeysMask) {
@@ -304,6 +304,7 @@ AccessXKRGExpire(OsTimerPtr timer, CARD32 now, pointer arg)
         LogMessage(X_INFO, "XKB SlowKeys are now enabled. Hold shift to disable.\n");
     }
 
+    xkbi->slowKeyEnableKey = 0;
     return 0;
 }
 
@@ -462,6 +463,7 @@ AccessXFilterPressEvent(DeviceEvent *event, DeviceIntPtr keybd)
     if (ctrls->enabled_ctrls & XkbAccessXKeysMask) {
         /* check for magic sequences */
         if ((sym[0] == XK_Shift_R) || (sym[0] == XK_Shift_L)) {
+            xkbi->slowKeyEnableKey = key;
             if (XkbAX_NeedFeedback(ctrls, XkbAX_SlowWarnFBMask)) {
                 xkbi->krgTimerActive = _KRG_WARN_TIMER;
                 xkbi->krgTimer = TimerSet(xkbi->krgTimer, 0, 4000,

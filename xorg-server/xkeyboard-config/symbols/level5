@@ -2,6 +2,19 @@
 // the third shift level can be reached
 //
 
+// Ensure a mapping to a real modifier for LevelFive
+partial modifier_keys
+xkb_symbols "modifier_mapping" {
+  key.type[Group1] = "ONE_LEVEL";
+
+  replace key <MDSW> {
+    vmods = LevelFive,
+    symbols[Group1] = [ ISO_Level5_Shift ],
+    actions[Group1] = [ SetMods(modifiers=LevelFive) ]
+  };
+  modifier_map Mod3 { <MDSW> };
+};
+
 // using the level(switch) map, the right Control key temporarily
 // chooses the fifth shift level (until it is released).
 partial modifier_keys
@@ -10,7 +23,7 @@ xkb_symbols "rctrl_switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level5_Shift ]
     };
-  modifier_map Mod3   { ISO_Level5_Shift };
+  include "level5(modifier_mapping)"
 };
 
 partial modifier_keys
@@ -19,7 +32,7 @@ xkb_symbols "lsgt_switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level5_Shift ]
     };
-  modifier_map Mod3   { ISO_Level5_Shift };
+  include "level5(modifier_mapping)"
 };
 
 partial modifier_keys
@@ -28,7 +41,7 @@ xkb_symbols "ralt_switch" {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level5_Shift ]
     };
-  modifier_map Mod3   { ISO_Level5_Shift };
+  include "level5(modifier_mapping)"
 };
 
 
@@ -43,12 +56,7 @@ xkb_symbols "lock" {
   // See also: compat/level5(level5_lock)
   key.type[Group1] = "ONE_LEVEL";
 
-  replace key <MDSW> {
-    vmods = LevelFive,
-    symbols[Group1] = [ ISO_Level5_Shift ],
-    actions[Group1] = [ SetMods(modifiers=LevelFive) ]
-  };
-  modifier_map Mod3 { <MDSW> };
+  include "level5(modifier_mapping)"
 
   replace key <HYPR> {
     vmods = NumLock,

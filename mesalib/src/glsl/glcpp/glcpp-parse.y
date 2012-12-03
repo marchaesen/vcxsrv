@@ -1054,26 +1054,67 @@ _token_paste (glcpp_parser_t *parser, token_t *token, token_t *other)
 		return combined;
 	}
 
-	/* Two string-valued tokens can usually just be mashed
-	 * together.
+	/* Two string-valued (or integer) tokens can usually just be
+	 * mashed together. (We also handle a string followed by an
+	 * integer here as well.)
 	 *
-	 * XXX: This isn't actually legitimate. Several things here
-	 * should result in a diagnostic since the result cannot be a
-	 * valid, single pre-processing token. For example, pasting
-	 * "123" and "abc" is not legal, but we don't catch that
-	 * here. */
-	if ((token->type == IDENTIFIER || token->type == OTHER || token->type == INTEGER_STRING) &&
-	    (other->type == IDENTIFIER || other->type == OTHER || other->type == INTEGER_STRING))
+	 * There are some exceptions here. Notably, if the first token
+	 * is an integer (or a string representing an integer), then
+	 * the second token must also be an integer or must be a
+	 * string representing an integer that begins with a digit.
+	 */
+	if ((token->type == IDENTIFIER || token->type == OTHER || token->type == INTEGER_STRING || token->type == INTEGER) &&
+	    (other->type == IDENTIFIER || other->type == OTHER || other->type == INTEGER_STRING || other->type == INTEGER))
 	{
 		char *str;
+		int combined_type;
 
-		str = ralloc_asprintf (token, "%s%s", token->value.str,
-				       other->value.str);
-		combined = _token_create_str (token, token->type, str);
+		/* Check that pasting onto an integer doesn't create a
+		 * non-integer, (that is, only digits can be
+		 * pasted. */
+		if (token->type == INTEGER_STRING || token->type == INTEGER)
+		{
+			switch (other->type) {
+			case INTEGER_STRING:
+				if (other->value.str[0] < '0' ||
+				    other->value.str[0] > '9')
+					goto FAIL;
+				break;
+			case INTEGER:
+				if (other->value.ival < 0)
+					goto FAIL;
+				break;
+			default:
+				goto FAIL;
+			}
+		}
+
+		if (token->type == INTEGER)
+			str = ralloc_asprintf (token, "%" PRIiMAX,
+					       token->value.ival);
+		else
+			str = ralloc_strdup (token, token->value.str);
+					       
+
+		if (other->type == INTEGER)
+			ralloc_asprintf_append (&str, "%" PRIiMAX,
+						other->value.ival);
+		else
+			ralloc_strcat (&str, other->value.str);
+
+		/* New token is same type as original token, unless we
+		 * started with an integer, in which case we will be
+		 * creating an integer-string. */
+		combined_type = token->type;
+		if (combined_type == INTEGER)
+			combined_type = INTEGER_STRING;
+
+		combined = _token_create_str (token, combined_type, str);
 		combined->location = token->location;
 		return combined;
 	}
 
+    FAIL:
 	glcpp_error (&token->location, parser, "");
 	ralloc_asprintf_rewrite_tail (&parser->info_log, &parser->info_log_length, "Pasting \"");
 	_token_print (&parser->info_log, &parser->info_log_length, token);
@@ -1300,16 +1341,28 @@ _arguments_parse (argument_list_t *arguments,
 }
 
 static token_list_t *
-_token_list_create_with_one_space (void *ctx)
+_token_list_create_with_one_ival (void *ctx, int type, int ival)
 {
 	token_list_t *list;
-	token_t *space;
+	token_t *node;
 
 	list = _token_list_create (ctx);
-	space = _token_create_ival (list, SPACE, SPACE);
-	_token_list_append (list, space);
+	node = _token_create_ival (list, type, ival);
+	_token_list_append (list, node);
 
 	return list;
+}
+
+static token_list_t *
+_token_list_create_with_one_space (void *ctx)
+{
+	return _token_list_create_with_one_ival (ctx, SPACE, SPACE);
+}
+
+static token_list_t *
+_token_list_create_with_one_integer (void *ctx, int ival)
+{
+	return _token_list_create_with_one_ival (ctx, INTEGER, ival);
 }
 
 /* Perform macro expansion on 'list', placing the resulting tokens
@@ -1528,8 +1581,18 @@ _glcpp_parser_expand_node (glcpp_parser_t *parser,
 		return NULL;
 	}
 
-	/* Look up this identifier in the hash table. */
+	*last = node;
 	identifier = token->value.str;
+
+	/* Special handling for __LINE__ and __FILE__, (not through
+	 * the hash table). */
+	if (strcmp(identifier, "__LINE__") == 0)
+		return _token_list_create_with_one_integer (parser, node->token->location.first_line);
+
+	if (strcmp(identifier, "__FILE__") == 0)
+		return _token_list_create_with_one_integer (parser, node->token->location.source);
+
+	/* Look up this identifier in the hash table. */
 	macro = hash_table_find (parser->defines, identifier);
 
 	/* Not a macro, so no expansion needed. */
@@ -1550,14 +1613,12 @@ _glcpp_parser_expand_node (glcpp_parser_t *parser,
 		final = _token_create_str (parser, OTHER, str);
 		expansion = _token_list_create (parser);
 		_token_list_append (expansion, final);
-		*last = node;
 		return expansion;
 	}
 
 	if (! macro->is_function)
 	{
 		token_list_t *replacement;
-		*last = node;
 
 		/* Replace a macro defined as empty with a SPACE token. */
 		if (macro->replacements == NULL)

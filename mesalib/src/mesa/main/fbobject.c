@@ -78,7 +78,7 @@ static struct gl_framebuffer IncompleteFramebuffer;
 
 
 static void
-delete_dummy_renderbuffer(struct gl_renderbuffer *rb)
+delete_dummy_renderbuffer(struct gl_context *ctx, struct gl_renderbuffer *rb)
 {
    /* no op */
 }
@@ -1072,14 +1072,14 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_ALPHA8:
    case GL_ALPHA12:
    case GL_ALPHA16:
-      return ctx->API == API_OPENGL && ctx->Extensions.ARB_framebuffer_object
+      return ctx->API == API_OPENGL_COMPAT && ctx->Extensions.ARB_framebuffer_object
          ? GL_ALPHA : 0;
    case GL_LUMINANCE:
    case GL_LUMINANCE4:
    case GL_LUMINANCE8:
    case GL_LUMINANCE12:
    case GL_LUMINANCE16:
-      return ctx->API == API_OPENGL && ctx->Extensions.ARB_framebuffer_object
+      return ctx->API == API_OPENGL_COMPAT && ctx->Extensions.ARB_framebuffer_object
          ? GL_LUMINANCE : 0;
    case GL_LUMINANCE_ALPHA:
    case GL_LUMINANCE4_ALPHA4:
@@ -1088,14 +1088,14 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_LUMINANCE12_ALPHA4:
    case GL_LUMINANCE12_ALPHA12:
    case GL_LUMINANCE16_ALPHA16:
-      return ctx->API == API_OPENGL && ctx->Extensions.ARB_framebuffer_object
+      return ctx->API == API_OPENGL_COMPAT && ctx->Extensions.ARB_framebuffer_object
          ? GL_LUMINANCE_ALPHA : 0;
    case GL_INTENSITY:
    case GL_INTENSITY4:
    case GL_INTENSITY8:
    case GL_INTENSITY12:
    case GL_INTENSITY16:
-      return ctx->API == API_OPENGL && ctx->Extensions.ARB_framebuffer_object
+      return ctx->API == API_OPENGL_COMPAT && ctx->Extensions.ARB_framebuffer_object
          ? GL_INTENSITY : 0;
    case GL_RGB8:
       return GL_RGB;
@@ -1146,11 +1146,11 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
          ? GL_DEPTH_STENCIL_EXT : 0;
    case GL_DEPTH_COMPONENT32F:
       return ctx->Version >= 30
-         || (ctx->API == API_OPENGL && ctx->Extensions.ARB_depth_buffer_float)
+         || (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.ARB_depth_buffer_float)
          ? GL_DEPTH_COMPONENT : 0;
    case GL_DEPTH32F_STENCIL8:
       return ctx->Version >= 30
-         || (ctx->API == API_OPENGL && ctx->Extensions.ARB_depth_buffer_float)
+         || (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.ARB_depth_buffer_float)
          ? GL_DEPTH_STENCIL : 0;
    case GL_RED:
    case GL_R16:
@@ -1169,7 +1169,7 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    /* signed normalized texture formats */
    case GL_R8_SNORM:
       return ctx->Version >= 30
-         || (ctx->API == API_OPENGL && ctx->Extensions.EXT_texture_snorm)
+         || (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.EXT_texture_snorm)
          ? GL_RED : 0;
    case GL_RED_SNORM:
    case GL_R16_SNORM:
@@ -1177,7 +1177,7 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
          ? GL_RED : 0;
    case GL_RG8_SNORM:
       return ctx->Version >= 30
-         || (ctx->API == API_OPENGL && ctx->Extensions.EXT_texture_snorm)
+         || (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.EXT_texture_snorm)
          ? GL_RG : 0;
    case GL_RG_SNORM:
    case GL_RG16_SNORM:
@@ -1185,7 +1185,7 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
          ? GL_RG : 0;
    case GL_RGB8_SNORM:
       return ctx->Version >= 30
-         || (ctx->API == API_OPENGL && ctx->Extensions.EXT_texture_snorm)
+         || (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.EXT_texture_snorm)
          ? GL_RGB : 0;
    case GL_RGB_SNORM:
    case GL_RGB16_SNORM:
@@ -1193,7 +1193,7 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
          ? GL_RGB : 0;
    case GL_RGBA8_SNORM:
       return ctx->Version >= 30
-         || (ctx->API == API_OPENGL && ctx->Extensions.EXT_texture_snorm)
+         || (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.EXT_texture_snorm)
          ? GL_RGBA : 0;
    case GL_RGBA_SNORM:
    case GL_RGBA16_SNORM:
@@ -1202,37 +1202,37 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_ALPHA_SNORM:
    case GL_ALPHA8_SNORM:
    case GL_ALPHA16_SNORM:
-      return ctx->API == API_OPENGL &&
+      return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.EXT_texture_snorm &&
              ctx->Extensions.ARB_framebuffer_object ? GL_ALPHA : 0;
    case GL_LUMINANCE_SNORM:
    case GL_LUMINANCE8_SNORM:
    case GL_LUMINANCE16_SNORM:
-      return ctx->API == API_OPENGL &&
+      return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.EXT_texture_snorm &&
              ctx->Extensions.ARB_framebuffer_object ? GL_LUMINANCE : 0;
    case GL_LUMINANCE_ALPHA_SNORM:
    case GL_LUMINANCE8_ALPHA8_SNORM:
    case GL_LUMINANCE16_ALPHA16_SNORM:
-      return ctx->API == API_OPENGL &&
+      return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.EXT_texture_snorm &&
              ctx->Extensions.ARB_framebuffer_object ? GL_LUMINANCE_ALPHA : 0;
    case GL_INTENSITY_SNORM:
    case GL_INTENSITY8_SNORM:
    case GL_INTENSITY16_SNORM:
-      return ctx->API == API_OPENGL &&
+      return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.EXT_texture_snorm &&
              ctx->Extensions.ARB_framebuffer_object ? GL_INTENSITY : 0;
    case GL_R16F:
    case GL_R32F:
       return ctx->Version >= 30
-         || (ctx->API == API_OPENGL &&
+         || (ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.ARB_texture_rg &&
              ctx->Extensions.ARB_texture_float) ? GL_RED : 0;
    case GL_RG16F:
    case GL_RG32F:
       return ctx->Version >= 30
-         || (ctx->API == API_OPENGL &&
+         || (ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.ARB_texture_rg &&
              ctx->Extensions.ARB_texture_float) ? GL_RG : 0;
    case GL_RGB16F:
@@ -1247,22 +1247,22 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
          ? GL_RGBA : 0;
    case GL_ALPHA16F_ARB:
    case GL_ALPHA32F_ARB:
-      return ctx->API == API_OPENGL &&
+      return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.ARB_texture_float &&
              ctx->Extensions.ARB_framebuffer_object ? GL_ALPHA : 0;
    case GL_LUMINANCE16F_ARB:
    case GL_LUMINANCE32F_ARB:
-      return ctx->API == API_OPENGL &&
+      return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.ARB_texture_float &&
              ctx->Extensions.ARB_framebuffer_object ? GL_LUMINANCE : 0;
    case GL_LUMINANCE_ALPHA16F_ARB:
    case GL_LUMINANCE_ALPHA32F_ARB:
-      return ctx->API == API_OPENGL &&
+      return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.ARB_texture_float &&
              ctx->Extensions.ARB_framebuffer_object ? GL_LUMINANCE_ALPHA : 0;
    case GL_INTENSITY16F_ARB:
    case GL_INTENSITY32F_ARB:
-      return ctx->API == API_OPENGL &&
+      return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.ARB_texture_float &&
              ctx->Extensions.ARB_framebuffer_object ? GL_INTENSITY : 0;
    case GL_RGB9_E5:
@@ -1321,7 +1321,7 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_INTENSITY16UI_EXT:
    case GL_INTENSITY32I_EXT:
    case GL_INTENSITY32UI_EXT:
-      return ctx->API == API_OPENGL &&
+      return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.EXT_texture_integer &&
              ctx->Extensions.ARB_framebuffer_object ? GL_INTENSITY : 0;
 
@@ -1331,7 +1331,7 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_LUMINANCE16UI_EXT:
    case GL_LUMINANCE32I_EXT:
    case GL_LUMINANCE32UI_EXT:
-      return ctx->API == API_OPENGL &&
+      return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.EXT_texture_integer &&
              ctx->Extensions.ARB_framebuffer_object ? GL_LUMINANCE : 0;
 
@@ -1341,7 +1341,7 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_LUMINANCE_ALPHA16UI_EXT:
    case GL_LUMINANCE_ALPHA32I_EXT:
    case GL_LUMINANCE_ALPHA32UI_EXT:
-      return ctx->API == API_OPENGL &&
+      return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.EXT_texture_integer &&
              ctx->Extensions.ARB_framebuffer_object ? GL_LUMINANCE_ALPHA : 0;
 
@@ -1351,7 +1351,7 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_ALPHA16UI_EXT:
    case GL_ALPHA32I_EXT:
    case GL_ALPHA32UI_EXT:
-      return ctx->API == API_OPENGL &&
+      return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.EXT_texture_integer &&
              ctx->Extensions.ARB_framebuffer_object ? GL_ALPHA : 0;
 
@@ -2498,7 +2498,7 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
       }
       return;
    case GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE:
-      if ((ctx->API != API_OPENGL || !ctx->Extensions.ARB_framebuffer_object)
+      if ((ctx->API != API_OPENGL_COMPAT || !ctx->Extensions.ARB_framebuffer_object)
           && ctx->API != API_OPENGL_CORE
           && !_mesa_is_gles3(ctx)) {
          goto invalid_pname_enum;
@@ -2716,127 +2716,16 @@ compatible_color_datatypes(gl_format srcFormat, gl_format dstFormat)
 }
 
 
-/**
- * Return the equivalent non-generic internal format.
- * This is useful for comparing whether two internal formats are semantically
- * equivalent.
- */
-static GLenum
-get_nongeneric_internalformat(GLenum format)
-{
-   switch (format) {
-      /* GL 1.1 formats. */
-      case 4:
-      case GL_RGBA:
-         return GL_RGBA8;
-
-      case 3:
-      case GL_RGB:
-         return GL_RGB8;
-
-      case 2:
-      case GL_LUMINANCE_ALPHA:
-         return GL_LUMINANCE8_ALPHA8;
-
-      case 1:
-      case GL_LUMINANCE:
-         return GL_LUMINANCE8;
-
-      case GL_ALPHA:
-         return GL_ALPHA8;
-
-      case GL_INTENSITY:
-         return GL_INTENSITY8;
-
-      /* GL_ARB_texture_rg */
-      case GL_RED:
-         return GL_R8;
-
-      case GL_RG:
-         return GL_RG8;
-
-      /* GL_EXT_texture_sRGB */
-      case GL_SRGB:
-         return GL_SRGB8;
-
-      case GL_SRGB_ALPHA:
-         return GL_SRGB8_ALPHA8;
-
-      case GL_SLUMINANCE:
-         return GL_SLUMINANCE8;
-
-      case GL_SLUMINANCE_ALPHA:
-         return GL_SLUMINANCE8_ALPHA8;
-
-      /* GL_EXT_texture_snorm */
-      case GL_RGBA_SNORM:
-         return GL_RGBA8_SNORM;
-
-      case GL_RGB_SNORM:
-         return GL_RGB8_SNORM;
-
-      case GL_RG_SNORM:
-         return GL_RG8_SNORM;
-
-      case GL_RED_SNORM:
-         return GL_R8_SNORM;
-
-      case GL_LUMINANCE_ALPHA_SNORM:
-         return GL_LUMINANCE8_ALPHA8_SNORM;
-
-      case GL_LUMINANCE_SNORM:
-         return GL_LUMINANCE8_SNORM;
-
-      case GL_ALPHA_SNORM:
-         return GL_ALPHA8_SNORM;
-
-      case GL_INTENSITY_SNORM:
-         return GL_INTENSITY8_SNORM;
-
-      default:
-         return format;
-   }
-}
-
-
-static GLenum
-get_linear_internalformat(GLenum format)
-{
-   switch (format) {
-   case GL_SRGB:
-      return GL_RGB;
-
-   case GL_SRGB_ALPHA:
-      return GL_RGBA;
-
-   case GL_SRGB8:
-      return GL_RGB8;
-
-   case GL_SRGB8_ALPHA8:
-      return GL_RGBA8;
-
-   case GL_SLUMINANCE:
-      return GL_LUMINANCE8;
-
-   case GL_SLUMINANCE_ALPHA:
-      return GL_LUMINANCE8_ALPHA8;
-
-   default:
-      return format;
-   }
-}
-
-
 static GLboolean
-compatible_resolve_formats(const struct gl_renderbuffer *colorReadRb,
-                           const struct gl_renderbuffer *colorDrawRb)
+compatible_resolve_formats(const struct gl_renderbuffer *readRb,
+                           const struct gl_renderbuffer *drawRb)
 {
    GLenum readFormat, drawFormat;
 
    /* The simple case where we know the backing Mesa formats are the same.
     */
-   if (_mesa_get_srgb_format_linear(colorReadRb->Format) ==
-       _mesa_get_srgb_format_linear(colorDrawRb->Format)) {
+   if (_mesa_get_srgb_format_linear(readRb->Format) ==
+       _mesa_get_srgb_format_linear(drawRb->Format)) {
       return GL_TRUE;
    }
 
@@ -2850,10 +2739,10 @@ compatible_resolve_formats(const struct gl_renderbuffer *colorReadRb,
     *
     * Blits between linear and sRGB formats are also allowed.
     */
-   readFormat = get_nongeneric_internalformat(colorReadRb->InternalFormat);
-   drawFormat = get_nongeneric_internalformat(colorDrawRb->InternalFormat);
-   readFormat = get_linear_internalformat(readFormat);
-   drawFormat = get_linear_internalformat(drawFormat);
+   readFormat = _mesa_get_nongeneric_internalformat(readRb->InternalFormat);
+   drawFormat = _mesa_get_nongeneric_internalformat(drawRb->InternalFormat);
+   readFormat = _mesa_get_linear_internalformat(readFormat);
+   drawFormat = _mesa_get_linear_internalformat(drawFormat);
 
    if (readFormat == drawFormat) {
       return GL_TRUE;
@@ -3153,7 +3042,7 @@ invalidate_framebuffer_storage(GLenum target, GLsizei numAttachments,
             /* Accumulation buffers and auxilary buffers were removed in
              * OpenGL 3.1, and they never existed in OpenGL ES.
              */
-            if (ctx->API != API_OPENGL)
+            if (ctx->API != API_OPENGL_COMPAT)
                goto invalid_enum;
             break;
          case GL_COLOR:

@@ -176,16 +176,11 @@ fonts-conf.5: local-fontconfig-user.sgml version.sgml confdir.sgml
 $(man3_MANS): func.refs
 func.refs: local-fontconfig-devel.sgml $(DOCS_DEPS)
 	$(AM_V_GEN) $(RM) $@; \
-	[ "x$(builddir)" != "x$(srcdir)" ] &&		\
-	for f in $(DOC_FUNCS_SGML); do			\
-		$(RM) $(builddir)/$$f || :;		\
-		$(LN_S) $(srcdir)/$$f $(builddir)/$$f;	\
-	done || :; \
 	$(DOC2MAN) -o devel-man local-fontconfig-devel.sgml && \
 	mv devel-man/manpage.refs func.refs &&	\
 	mv devel-man/*.3 . &&			\
 	$(RM) devel-man/manpage.* &&		\
-	rmdir devel-man
+	rmdir devel-man || rm $@ || :
 confdir.sgml: $(srcdir)/confdir.sgml.in
 	$(AM_V_GEN) sed -e 's,@CONFDIR\@,${CONFDIR},' $(srcdir)/$@.in | awk '{if (NR > 1) printf("\n"); printf("%s", $$0);}' > $@
 ##
@@ -207,7 +202,7 @@ local-fontconfig-devel.sgml: $(srcdir)/fontconfig-devel.sgml
 all-local: $(BUILT_DOCS) $(HTML_DIR)/*
 clean-local:
 	$(RM) -r $(HTML_DIR) devel-man
-	[ "x$(builddir)" != "x$(srcdir)" ] && $(RM) $(builddir)/fontconfig-user.sgml $(builddir)/fontconfig-devel.sgml || :
+	[ "x$(builddir)" != "x$(srcdir)" ] && $(RM) $(builddir)/*.sgml || :
 else
 htmldoc_DATA += $(srcdir)/$(HTML_DIR)/*
 all-local:

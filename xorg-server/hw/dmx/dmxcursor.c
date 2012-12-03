@@ -346,6 +346,8 @@ dmxComputeScreenOrigins(void)
             screenInfo.screens[i]->y -= minY;
         }
     }
+
+    update_desktop_dimensions();
 }
 
 /** Recompute origin information in the #dmxScreens list.  This is

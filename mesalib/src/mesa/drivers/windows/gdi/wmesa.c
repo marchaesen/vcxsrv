@@ -426,9 +426,9 @@ static void clear(struct gl_context *ctx, GLbitfield mask)
 
 
 static void
-wmesa_delete_renderbuffer(struct gl_renderbuffer *rb)
+wmesa_delete_renderbuffer(struct gl_context *ctx, struct gl_renderbuffer *rb)
 {
-    free(rb);
+    _mesa_delete_renderbuffer(ctx, rb);
 }
 
 
@@ -610,7 +610,7 @@ WMesaContext WMesaCreateContext(HDC hDC,
 
     /* initialize the Mesa context data */
     ctx = &c->gl_ctx;
-    _mesa_initialize_context(ctx, API_OPENGL, visual,
+    _mesa_initialize_context(ctx, API_OPENGL_COMPAT, visual,
                              NULL, &functions);
 
     /* visual no longer needed - it was copied by _mesa_initialize_context() */

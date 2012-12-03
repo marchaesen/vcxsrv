@@ -118,7 +118,7 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
 
     switch (api) {
     case __DRI_API_OPENGL:
-            mesa_api = API_OPENGL;
+            mesa_api = API_OPENGL_COMPAT;
             break;
     case __DRI_API_GLES:
             mesa_api = API_OPENGLES;
