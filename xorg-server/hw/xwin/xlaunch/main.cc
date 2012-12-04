@@ -44,6 +44,69 @@
 
 #include <sstream>
 
+static bool ContainPrintableChars(const char *Buf, unsigned Nbr)
+{
+  for (int i=0; i<Nbr; i++)
+  {
+    if (Buf[i]>0x20)
+      return true;
+  }
+  return false;
+}
+
+static bool CheckOutput(HANDLE hChildStdoutRd, int hStdOut, HANDLE hConsoleOutput, HWND hConsoleWnd)
+{
+  DWORD NbrAvail=0;
+	PeekNamedPipe(hChildStdoutRd, NULL, NULL, NULL, &NbrAvail, NULL);
+  if (NbrAvail)
+  {
+    char Buf[128];
+    size_t Nbr = _read(hStdOut, Buf, sizeof(Buf));
+  	DWORD NbrWritten;
+		WriteConsole(hConsoleOutput, Buf, Nbr, &NbrWritten, NULL);
+    if (hConsoleWnd && ContainPrintableChars(Buf,NbrWritten))
+    {
+      // Only show console again when there are new characters printed
+      ShowWindow(hConsoleWnd, SW_SHOW );  // make it visible again
+      return true;
+    }
+  }
+  return false;
+}
+
+#define NRINPUTS 50
+
+static int CheckInput(HANDLE hConsoleInput, char *Buf, HWND hConsoleWnd)
+{
+  INPUT_RECORD Input[NRINPUTS];
+  DWORD NbrAvail=0;
+  GetNumberOfConsoleInputEvents(hConsoleInput, &NbrAvail);
+  int w=0;
+  if (NbrAvail)
+  {
+    DWORD NbrRead=0;
+    ReadConsoleInput(hConsoleInput, Input, NRINPUTS, &NbrRead);
+    for (int i=0; i<NbrRead; i++)
+    {
+      if (Input[i].EventType==KEY_EVENT && Input[i].Event.KeyEvent.bKeyDown)
+      {
+        char Char=Input[i].Event.KeyEvent.uChar.AsciiChar;
+        if (Char)
+        {
+          Buf[w++]=Char;
+          if (Char==0xd)
+          {
+            Buf[w++]=0xa; // Convert cariage return to cariage return + line feed
+            if (hConsoleWnd) ShowWindow(hConsoleWnd, SW_HIDE );  // make it invisible again
+          }
+        }
+      }
+    }
+  }
+  return w;
+}
+
+
 /// @brief Send WM_ENDSESSION to all program windows.
 /// This will shutdown the started xserver
 BOOL CALLBACK KillWindowsProc(HWND hwnd, LPARAM lParam)
@@ -54,7 +117,7 @@ BOOL CALLBACK KillWindowsProc(HWND hwnd, LPARAM lParam)
 
 /// @brief Actual wizard implementation.
 /// This is based on generic CWizard but handles the special dialogs
-class CMyWizard : public CWizard 
+class CMyWizard : public CWizard
 {
     public:
     private:
@@ -62,7 +125,7 @@ class CMyWizard : public CWizard
     public:
         /// @brief Constructor.
         /// Set wizard pages.
-        CMyWizard() : CWizard() 
+        CMyWizard() : CWizard()
         {
             AddPage(IDD_DISPLAY, IDS_DISPLAY_TITLE, IDS_DISPLAY_SUBTITLE);
             AddPage(IDD_CLIENTS, IDS_CLIENTS_TITLE, IDS_CLIENTS_SUBTITLE);
@@ -88,7 +151,7 @@ class CMyWizard : public CWizard
         /// @brief Handle the PSN_WIZNEXT message.
         /// @param hwndDlg Handle to active page dialog.
         /// @param index Index of current page.
-        /// @return TRUE if the message was handled. FALSE otherwise. 
+        /// @return TRUE if the message was handled. FALSE otherwise.
         virtual BOOL WizardNext(HWND hwndDlg, unsigned index)
         {
 #ifdef _DEBUG
@@ -209,7 +272,7 @@ class CMyWizard : public CWizard
                     // Check for valid input
                     if (!config.broadcast && config.xdmcp_host.empty())
                         SetWindowLong(hwndDlg, DWL_MSGRESULT, -1);
-                    else	
+                    else
                         SetWindowLong(hwndDlg, DWL_MSGRESULT, IDD_EXTRA);
                     if (IsDlgButtonChecked(hwndDlg, IDC_XDMCP_TERMINATE))
                         config.xdmcpterminate = true;
@@ -254,7 +317,7 @@ class CMyWizard : public CWizard
         /// @brief Handle PSN_WIZFINISH message.
         /// @param hwndDlg Handle to active page dialog.
         /// @param index Index of current page.
-        /// @return TRUE if the message was handled. FALSE otherwise. 
+        /// @return TRUE if the message was handled. FALSE otherwise.
         virtual BOOL WizardFinish(HWND hwndDlg, unsigned index)
         {
 #ifdef _DEBUG
@@ -267,7 +330,7 @@ class CMyWizard : public CWizard
         /// if required).
         /// @param hwndDlg Handle to active page dialog.
         /// @param index Index of current page.
-        /// @return TRUE if the message was handled. FALSE otherwise. 
+        /// @return TRUE if the message was handled. FALSE otherwise.
         virtual BOOL WizardBack(HWND hwndDlg, unsigned index)
         {
             switch (PageID(index))
@@ -280,7 +343,7 @@ class CMyWizard : public CWizard
                 case IDD_EXTRA: // temporary. fontpath is disabled
                     switch (config.client)
                     {
-                        case CConfig::NoClient:	
+                        case CConfig::NoClient:
                             SetWindowLong(hwndDlg, DWL_MSGRESULT, IDD_CLIENTS);
                             return TRUE;
                         case CConfig::StartProgram:
@@ -297,7 +360,7 @@ class CMyWizard : public CWizard
         /// @brief Handle PSN_SETACTIVE message.
         /// @param hwndDlg Handle to active page dialog.
         /// @param index Index of current page.
-        /// @return TRUE if the message was handled. FALSE otherwise. 
+        /// @return TRUE if the message was handled. FALSE otherwise.
         virtual BOOL WizardActivate(HWND hwndDlg, unsigned index)
         {
 #ifdef _DEBUG
@@ -370,27 +433,27 @@ class CMyWizard : public CWizard
             char szFileTitle[512];
             char szFile[MAX_PATH];
             HINSTANCE hInst = GetModuleHandle(NULL);
-            
+
             LoadString(hInst, IDS_SAVE_TITLE, szTitle, sizeof(szTitle));
             LoadString(hInst, IDS_SAVE_FILETITLE, szFileTitle, sizeof(szFileTitle));
             LoadString(hInst, IDS_SAVE_FILTER, szFilter, sizeof(szFilter));
-            for (unsigned i=0; szFilter[i]; i++) 
-                if (szFilter[i] == '%') 
-                    szFilter[i] = '\0'; 
+            for (unsigned i=0; szFilter[i]; i++)
+                if (szFilter[i] == '%')
+                    szFilter[i] = '\0';
 
             strcpy(szFile, "config.xlaunch");
 
             OPENFILENAME ofn;
             memset(&ofn, 0, sizeof(OPENFILENAME));
-            ofn.lStructSize = sizeof(OPENFILENAME); 
-            ofn.hwndOwner = parent; 
-            ofn.lpstrFilter = szFilter; 
-            ofn.lpstrFile= szFile; 
-            ofn.nMaxFile = sizeof(szFile)/ sizeof(*szFile); 
-            ofn.lpstrFileTitle = szFileTitle; 
-            ofn.nMaxFileTitle = sizeof(szFileTitle); 
-            ofn.lpstrInitialDir = (LPSTR)NULL; 
-            ofn.Flags = OFN_SHOWHELP | OFN_OVERWRITEPROMPT; 
+            ofn.lStructSize = sizeof(OPENFILENAME);
+            ofn.hwndOwner = parent;
+            ofn.lpstrFilter = szFilter;
+            ofn.lpstrFile= szFile;
+            ofn.nMaxFile = sizeof(szFile)/ sizeof(*szFile);
+            ofn.lpstrFileTitle = szFileTitle;
+            ofn.nMaxFileTitle = sizeof(szFileTitle);
+            ofn.lpstrInitialDir = (LPSTR)NULL;
+            ofn.Flags = OFN_SHOWHELP | OFN_OVERWRITEPROMPT;
             ofn.lpstrTitle = szTitle;
 
             if (GetSaveFileName(&ofn))
@@ -403,16 +466,16 @@ class CMyWizard : public CWizard
                 sprintf(Message,"Failure: %s\n", e.what());
                 MessageBox(NULL,Message,"Exception",MB_OK);
                 }
-            } 
+            }
         }
     public:
-           
+
         /// @brief Handle messages fo the dialog pages.
         /// @param hwndDlg Handle of active dialog.
         /// @param uMsg Message code.
         /// @param wParam Message parameter.
         /// @param lParam Message parameter.
-        /// @param psp Handle to sheet paramters. 
+        /// @param psp Handle to sheet paramters.
         virtual INT_PTR PageDispatch(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam, PROPSHEETPAGE *psp)
         {
             HWND hwnd;
@@ -459,7 +522,7 @@ class CMyWizard : public CWizard
                             }
                             break;
                         case IDD_PROGRAM:
-                            // Init program dialog. Check local and remote buttons 
+                            // Init program dialog. Check local and remote buttons
                             CheckRadioButton(hwndDlg, IDC_CLIENT_LOCAL, IDC_CLIENT_REMOTE, config.local?IDC_CLIENT_LOCAL:IDC_CLIENT_REMOTE);
                             EnableRemoteProgramGroup(hwndDlg, config.local?FALSE:TRUE);
                             // Fill combo boxes
@@ -502,7 +565,7 @@ class CMyWizard : public CWizard
                             CheckRadioButton(hwndDlg, IDC_MULTIWINDOW, IDC_NODECORATION, LOWORD(wParam)-4);
                             SetFocus(GetDlgItem(hwndDlg, LOWORD(wParam)-4));
                             break;
-                        // Disable unavailable controls 
+                        // Disable unavailable controls
                         case IDC_CLIENT_REMOTE:
                         case IDC_CLIENT_LOCAL:
                             EnableRemoteProgramGroup(hwndDlg, LOWORD(wParam) == IDC_CLIENT_REMOTE);
@@ -519,7 +582,7 @@ class CMyWizard : public CWizard
             // pass messages to parent
             return CWizard::PageDispatch(hwndDlg, uMsg, wParam, lParam, psp);
         }
-        
+
         /// @brief Try to connect to server.
         /// Repeat until successful, server died or maximum number of retries
         /// reached.
@@ -540,7 +603,7 @@ class CMyWizard : public CWizard
             }
             return NULL;
         }
-               
+
         /// @brief Do the actual start of VCXsrv and clients
         void StartUp()
         {
@@ -575,7 +638,7 @@ class CMyWizard : public CWizard
             {
                 if (config.broadcast)
                     buffer += "-broadcast ";
-                else 
+                else
                 {
                     if (config.indirect)
                         buffer += "-indirect ";
@@ -631,7 +694,6 @@ class CMyWizard : public CWizard
                       remotepassword=std::string(" -pw ")+config.remotepassword;
                     if (!config.privatekey.empty())
                       remotepassword+=std::string(" -i \"")+config.privatekey+"\"";
-                      // Need to use -console since certain commands will not execute when no console
                     _snprintf(cmdline,512,"plink -ssh -X%s %s %s",
                                 remotepassword.c_str(), host.c_str(),config.remoteprogram.c_str());
                     client += cmdline;
@@ -645,8 +707,7 @@ class CMyWizard : public CWizard
             // Prepare program startup
             STARTUPINFO si, sic;
             PROCESS_INFORMATION pi, pic;
-            HANDLE handles[2];
-            DWORD hcount = 0; 
+            DWORD hcount = 0;
             Display *dpy = NULL;
 
             ZeroMemory( &si, sizeof(si) );
@@ -656,18 +717,17 @@ class CMyWizard : public CWizard
             sic.cb = sizeof(sic);
             ZeroMemory( &pic, sizeof(pic) );
 
-            // Start VCXsrv process. 
+            // Start VCXsrv process.
 #ifdef _DEBUG
             printf("%s\n", buffer.c_str());
 #endif
             char CurDir[MAX_PATH];
             GetModuleFileName(NULL,CurDir,MAX_PATH);
             *strrchr(CurDir,'\\')=0;
-            
-            if( !CreateProcess( NULL, (CHAR*)buffer.c_str(), NULL, NULL, 
-                        TRUE, 0, NULL, CurDir, &si, &pi )) 
+
+            if( !CreateProcess( NULL, (CHAR*)buffer.c_str(), NULL, NULL,
+                        TRUE, 0, NULL, CurDir, &si, &pi ))
                 throw win32_error("CreateProcess failed");
-            handles[hcount++] = pi.hProcess;
 
             if (!client.empty())
             {
@@ -693,28 +753,21 @@ class CMyWizard : public CWizard
                 dpy = WaitForServer(pi.hProcess);
                 if (dpy == NULL)
                 {
-                    while (hcount--)
-                        TerminateProcess(handles[hcount], (DWORD)-1);
+                    TerminateProcess(pi.hProcess, (DWORD)-1);
                     throw std::runtime_error("Connection to server failed");
                 }
-                
+
 #ifdef _DEBUG
                 printf("%s\n", client.c_str());
 #endif
 
-                // Hide a console window 
-                // FIXME: This may make it impossible to enter the password
-                sic.dwFlags = STARTF_USESHOWWINDOW;
-                sic.wShowWindow = SW_HIDE;
-                
-                // Start the child process. 
+                // Start the child process.
 
+                #if 1
                 // Create a console, otherwise some commands will not execute with plink
-                #ifdef WITH_FLASH
-                AllocConsole();
-                #else
                 HWINSTA h=GetProcessWindowStation();
                 HWINSTA horig=h;
+                HWND hConsoleWnd=NULL;
                 if (h)
                 {
                   h=CreateWindowStationW(NULL, 0, STANDARD_RIGHTS_READ, NULL);
@@ -723,104 +776,98 @@ class CMyWizard : public CWizard
                   AllocConsole();
                   SetProcessWindowStation(horig);
                   CloseWindowStation(h);
+                  hConsoleWnd=GetConsoleWindow();
+                  ShowWindow(hConsoleWnd, SW_HIDE );  // make it hidden, the disadvantage of this method is that the console window flashes
                 }
-                #endif
 
-                #if 1
-            {
-              HANDLE hChildStdinRd;
-              HANDLE hChildStdinWr;
-              HANDLE hChildStdoutRd;
-              HANDLE hChildStdoutWr;
-              HANDLE hChildStdinWrDup;
-              HANDLE hChildStdoutRdDup;
-              SECURITY_ATTRIBUTES saAttr;
-              BOOL fSuccess;
-              STARTUPINFO StartupInfo;
-              memset(&StartupInfo,0,sizeof(StartupInfo));
-              StartupInfo.cb=sizeof(STARTUPINFO);
-              PROCESS_INFORMATION ProcessInfo;
+                HANDLE hChildStdinRd;
+                HANDLE hChildStdinWr;
+                HANDLE hChildStdoutRd;
+                HANDLE hChildStdoutWr;
+                SECURITY_ATTRIBUTES saAttr;
+                BOOL fSuccess;
 
-              saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
-              saAttr.bInheritHandle = TRUE;
-              saAttr.lpSecurityDescriptor = NULL;
+                saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
+                saAttr.bInheritHandle = TRUE;
+                saAttr.lpSecurityDescriptor = NULL;
 
-              if (!CreatePipe(&hChildStdinRd, &hChildStdinWr, &saAttr, 0))
-                throw win32_error("CreatePipe failed", GetLastError());
+                if (!CreatePipe(&hChildStdinRd, &hChildStdinWr, &saAttr, 0))
+                  throw win32_error("CreatePipe failed", GetLastError());
 
-              /* Create new output read handle and the input write handle. Set
-               * the inheritance properties to FALSE. Otherwise, the child inherits
-               * the these handles; resulting in non-closeable handles to the pipes
-               * being created. */
-              fSuccess = DuplicateHandle(GetCurrentProcess(), hChildStdinWr,
-                GetCurrentProcess(), &hChildStdinWrDup, 0,
-                FALSE, DUPLICATE_SAME_ACCESS);
-              if (!fSuccess)
-                throw win32_error("DuplicateHandle failed", GetLastError());
-              /* Close the inheritable version of ChildStdin that we're using. */
-              CloseHandle(hChildStdinWr);
+                // Ensure the write handle to the pipe for STDIN is not inherited. 
+                if ( ! SetHandleInformation(hChildStdinWr, HANDLE_FLAG_INHERIT, 0) )
+                  throw win32_error("SetHandleInformation failed", GetLastError());
+ 
+                if (!CreatePipe(&hChildStdoutRd, &hChildStdoutWr, &saAttr, 0))
+                  throw win32_error("CreatePipe failed", GetLastError());
 
-              if (!CreatePipe(&hChildStdoutRd, &hChildStdoutWr, &saAttr, 0))
-                throw win32_error("CreatePipe failed", GetLastError());
+                // Ensure the read handle to the pipe for STDOUT is not inherited. 
+                if ( ! SetHandleInformation(hChildStdoutRd, HANDLE_FLAG_INHERIT, 0) )
+                  throw win32_error("SetHandleInformation failed", GetLastError());
 
-              fSuccess = DuplicateHandle(GetCurrentProcess(), hChildStdoutRd,
-                GetCurrentProcess(), &hChildStdoutRdDup, 0,
-                FALSE, DUPLICATE_SAME_ACCESS);
-              if (!fSuccess)
-                throw win32_error("DuplicateHandle failed", GetLastError());
-              CloseHandle(hChildStdoutRd);
+                sic.dwFlags = STARTF_USESTDHANDLES;
+                sic.hStdInput = hChildStdinRd;
+                sic.hStdOutput = hChildStdoutWr;
+                sic.hStdError = hChildStdoutWr;
 
-              int hStdIn = _open_osfhandle((long)hChildStdinWrDup, _O_WRONLY|_O_TEXT);
-              FILE *pStdIn = _fdopen(hStdIn, "w");
-              int hStdOut = _open_osfhandle((long)hChildStdoutRdDup, _O_RDONLY|_O_TEXT);
-              FILE *pStdOut = _fdopen(hStdOut, "r");
-
-              StartupInfo.dwFlags = STARTF_USESTDHANDLES;
-              StartupInfo.hStdInput = hChildStdinRd;
-              StartupInfo.hStdOutput = hChildStdoutWr;
-              StartupInfo.hStdError = hChildStdoutWr;
-
-              if (!CreateProcess(NULL,(CHAR*)client.c_str(),NULL,NULL,TRUE,CREATE_NO_WINDOW,NULL, CurDir, &StartupInfo, &ProcessInfo))
-              {
-                DWORD err = GetLastError();
-                while (hcount--)
-                  TerminateProcess(handles[hcount], (DWORD)-1);
-                throw win32_error("CreateProcess failed", err);
-              }
-              CloseHandle(hChildStdinRd);
-              CloseHandle(hChildStdoutWr);
-
-              CloseHandle(ProcessInfo.hThread);
-              char Buf[256];
-              size_t Nbr;
-              std::string output;
-              while ( (Nbr=fread(Buf,1,sizeof(Buf)-1,pStdOut)) > 0)
-              {
-                output+=Buf;
-              }
-              if (!output.empty())
-              {
-                MessageBox(NULL,output.c_str(),"Child output",MB_OK);
-              }
-            }
-                #else
-                if( !CreateProcess( NULL, (CHAR*)client.c_str(), NULL, NULL,
-                            FALSE, 0, NULL, CurDir, &sic, &pic )) 
+                if (!CreateProcess(NULL,(CHAR*)client.c_str(),NULL,NULL,TRUE,0,NULL, CurDir, &sic, &pic))
                 {
-                    DWORD err = GetLastError();
-                    while (hcount--)
-                        TerminateProcess(handles[hcount], (DWORD)-1);
-                    throw win32_error("CreateProcess failed", err);
+                  DWORD err = GetLastError();
+                  TerminateProcess(pi.hProcess, (DWORD)-1);
+                  throw win32_error("CreateProcess failed", err);
                 }
-                #endif
-                handles[hcount++] = pic.hProcess;
-                #ifdef WITHFLASH
-                ShowWindow( GetConsoleWindow(), SW_HIDE );  // make it hidden
+                CloseHandle(hChildStdinRd);
+                CloseHandle(hChildStdoutWr);
+                CloseHandle(pic.hThread);
+
+                int hStdIn = _open_osfhandle((long)hChildStdinWr, _O_WRONLY|_O_BINARY);
+                int hStdOut = _open_osfhandle((long)hChildStdoutRd, _O_RDONLY|_O_BINARY);
+                HANDLE hConsoleInput=GetStdHandle(STD_INPUT_HANDLE);
+                HANDLE hConsoleOutput=GetStdHandle(STD_OUTPUT_HANDLE);
+                SetConsoleMode(hConsoleInput, 0);  // Needed to disable local echo, and return only upon carriage return of read function
+                while (1)
+				        {
+                  char Buf[NRINPUTS];
+                  if (!WaitForSingleObject(pic.hProcess, 20 ))
+                  {
+                      // Child does not exist anymore, but it could be that there is still error output in the pipes
+                      // So wait some time, that then check the output again
+                    Sleep(500);
+                    if (CheckOutput(hChildStdoutRd, hStdOut, hConsoleOutput, hConsoleWnd))
+                    {
+                      // Wait some input to close the window
+                      while (!CheckInput(hConsoleInput, Buf, hConsoleWnd)) Sleep(10);
+                    }
+  						      break;
+                  }
+                  CheckOutput(hChildStdoutRd, hStdOut, hConsoleOutput, hConsoleWnd);
+                    
+                  int w=CheckInput(hConsoleInput, Buf, hConsoleWnd);
+                  if (w)
+                  {  // Write it to the client
+ 				            _write(hStdIn, Buf, w);
+					        }
+				        }
+                #else
+                // Hide a console window
+                // FIXME: This may make it impossible to enter the password
+                sic.dwFlags = STARTF_USESHOWWINDOW;
+                sic.wShowWindow = SW_HIDE;
+
+                if( !CreateProcess( NULL, (CHAR*)client.c_str(), NULL, NULL,
+                            FALSE, 0, NULL, CurDir, &sic, &pic ))
+                {
+                  DWORD err = GetLastError();
+                  while (hcount--)
+                      TerminateProcess(handles[hcount], (DWORD)-1);
+                  throw win32_error("CreateProcess failed", err);
+                }
+                CloseHandle( pic.hThread );
                 #endif
             }
 
-            // Wait until any child process exits.
-            DWORD ret = WaitForMultipleObjects(hcount, handles, FALSE, INFINITE );
+            // Wait until child process exits.
+            DWORD ret = WaitForSingleObject(pic.hProcess, INFINITE );
 
 #ifdef _DEBUG
             printf("killing process!\n");
@@ -828,11 +875,11 @@ class CMyWizard : public CWizard
             // Check if Xsrv is still running, but only when we started a local program
             if (config.local)
             {
-            DWORD exitcode;
-            GetExitCodeProcess(pi.hProcess, &exitcode);
-            unsigned counter = 0;
-            while (exitcode == STILL_ACTIVE)
-            {
+              DWORD exitcode;
+              GetExitCodeProcess(pi.hProcess, &exitcode);
+              unsigned counter = 0;
+              while (exitcode == STILL_ACTIVE)
+              {
                 if (++counter > 10)
                     TerminateProcess(pi.hProcess, (DWORD)-1);
                 else
@@ -840,16 +887,13 @@ class CMyWizard : public CWizard
                     EnumThreadWindows(pi.dwThreadId, KillWindowsProc, 0);
                 Sleep(500);
                 GetExitCodeProcess(pi.hProcess, &exitcode);
-            }
-            // Kill the client
-            TerminateProcess(pic.hProcess, (DWORD)-1);
+              }
             }
 
-            // Close process and thread handles. 
+            // Close process and thread handles.
             CloseHandle( pi.hProcess );
             CloseHandle( pi.hThread );
             CloseHandle( pic.hProcess );
-            CloseHandle( pic.hThread );
         }
 };
 
@@ -865,7 +909,7 @@ int main(int argc, char **argv)
         {
             if (argv[i] == NULL)
                 continue;
-            
+
             std::string arg(argv[i]);
             if (arg == "-load" && i + 1 < argc)
             {
@@ -882,7 +926,7 @@ int main(int argc, char **argv)
             }
         }
 
-        int ret = 0; 
+        int ret = 0;
         if (skip_wizard || (ret =dialog.ShowModal()) != 0)
             dialog.StartUp();
 #ifdef _DEBUG
@@ -897,7 +941,3 @@ int main(int argc, char **argv)
         return -1;
     }
 }
-
-
-
-
