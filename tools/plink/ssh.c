@@ -1193,6 +1193,7 @@ static void c_write_stderr(int trusted, const char *buf, int len)
     for (i = 0; i < len; i++)
 	if (buf[i] != '\r' && (trusted || buf[i] == '\n' || (buf[i] & 0x60)))
 	    fputc(buf[i], stderr);
+    fflush(stderr);
 }
 
 static void c_write(Ssh ssh, const char *buf, int len)
