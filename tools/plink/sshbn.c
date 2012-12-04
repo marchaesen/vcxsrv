@@ -599,7 +599,7 @@ static void internal_add_shifted(BignumInt *number,
 
     while (addend) {
 	addend += number[word];
-	number[word] = (BignumInt) addend & BIGNUM_INT_MASK;
+	number[word] = (BignumInt) (addend & BIGNUM_INT_MASK);
 	addend >>= BIGNUM_INT_BITS;
 	word++;
     }
@@ -1430,7 +1430,7 @@ Bignum bigadd(Bignum a, Bignum b)
     for (i = 1; i <= rlen; i++) {
         carry += (i <= (int)a[0] ? a[i] : 0);
         carry += (i <= (int)b[0] ? b[i] : 0);
-        ret[i] = (BignumInt) carry & BIGNUM_INT_MASK;
+        ret[i] = (BignumInt) (carry & BIGNUM_INT_MASK);
         carry >>= BIGNUM_INT_BITS;
         if (ret[i] != 0 && i > maxspot)
             maxspot = i;
@@ -1460,7 +1460,7 @@ Bignum bigsub(Bignum a, Bignum b)
     for (i = 1; i <= rlen; i++) {
         carry += (i <= (int)a[0] ? a[i] : 0);
         carry += (i <= (int)b[0] ? b[i] ^ BIGNUM_INT_MASK : BIGNUM_INT_MASK);
-        ret[i] = (BignumInt) carry & BIGNUM_INT_MASK;
+        ret[i] = (BignumInt) (carry & BIGNUM_INT_MASK);
         carry >>= BIGNUM_INT_BITS;
         if (ret[i] != 0 && i > maxspot)
             maxspot = i;
@@ -1529,7 +1529,7 @@ Bignum bignum_add_long(Bignum number, unsigned long addendx)
 	carry += addend & BIGNUM_INT_MASK;
 	carry += (i <= (int)number[0] ? number[i] : 0);
 	addend >>= BIGNUM_INT_BITS;
-	ret[i] = (BignumInt) carry & BIGNUM_INT_MASK;
+	ret[i] = (BignumInt) (carry & BIGNUM_INT_MASK);
 	carry >>= BIGNUM_INT_BITS;
 	if (ret[i] != 0)
 	    maxspot = i;
