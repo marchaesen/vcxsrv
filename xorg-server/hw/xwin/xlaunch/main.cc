@@ -766,18 +766,13 @@ class CMyWizard : public CWizard
                 #if 1
                 // Create a console, otherwise some commands will not execute with plink
                 HWINSTA h=GetProcessWindowStation();
-                HWINSTA horig=h;
                 HWND hConsoleWnd=NULL;
                 if (h)
                 {
-                  h=CreateWindowStationW(NULL, 0, STANDARD_RIGHTS_READ, NULL);
-                  if (h)
-                    SetProcessWindowStation(h);
                   AllocConsole();
-                  SetProcessWindowStation(horig);
-                  CloseWindowStation(h);
                   hConsoleWnd=GetConsoleWindow();
                   ShowWindow(hConsoleWnd, SW_HIDE );  // make it hidden, the disadvantage of this method is that the console window flashes
+                  // but we must be able to show it when the client puts some output
                 }
 
                 HANDLE hChildStdinRd;
@@ -797,7 +792,7 @@ class CMyWizard : public CWizard
                 // Ensure the write handle to the pipe for STDIN is not inherited. 
                 if ( ! SetHandleInformation(hChildStdinWr, HANDLE_FLAG_INHERIT, 0) )
                   throw win32_error("SetHandleInformation failed", GetLastError());
- 
+
                 if (!CreatePipe(&hChildStdoutRd, &hChildStdoutWr, &saAttr, 0))
                   throw win32_error("CreatePipe failed", GetLastError());
 
@@ -826,28 +821,33 @@ class CMyWizard : public CWizard
                 HANDLE hConsoleOutput=GetStdHandle(STD_OUTPUT_HANDLE);
                 SetConsoleMode(hConsoleInput, 0);  // Needed to disable local echo, and return only upon carriage return of read function
                 while (1)
-				        {
+                {
                   char Buf[NRINPUTS];
                   if (!WaitForSingleObject(pic.hProcess, 20 ))
                   {
                       // Child does not exist anymore, but it could be that there is still error output in the pipes
                       // So wait some time, that then check the output again
                     Sleep(500);
-                    if (CheckOutput(hChildStdoutRd, hStdOut, hConsoleOutput, hConsoleWnd))
+                    if (CheckOutput(hChildStdoutRd, hStdOut, hConsoleOutput, hConsoleWnd) || IsWindowVisible(hConsoleWnd))
                     {
                       // Wait some input to close the window
                       while (!CheckInput(hConsoleInput, Buf, hConsoleWnd)) Sleep(10);
                     }
-  						      break;
+                    break;
+                  }
+                  if (!WaitForSingleObject(pi.hProcess, 0))
+                  {
+                    TerminateProcess(pic.hProcess, (DWORD)-1);
+                    break;
                   }
                   CheckOutput(hChildStdoutRd, hStdOut, hConsoleOutput, hConsoleWnd);
-                    
+
                   int w=CheckInput(hConsoleInput, Buf, hConsoleWnd);
                   if (w)
                   {  // Write it to the client
- 				            _write(hStdIn, Buf, w);
-					        }
-				        }
+                    _write(hStdIn, Buf, w);
+                  }
+                }
                 #else
                 // Hide a console window
                 // FIXME: This may make it impossible to enter the password
