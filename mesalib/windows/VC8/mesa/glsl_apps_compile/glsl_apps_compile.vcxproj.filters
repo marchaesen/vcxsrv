@@ -135,9 +135,6 @@
     <ClCompile Include="..\..\..\..\src\glsl\s_expression.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\program\hash_table.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\program\symbol_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -247,6 +244,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\builtin_compiler\builtin_stubs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\hash_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

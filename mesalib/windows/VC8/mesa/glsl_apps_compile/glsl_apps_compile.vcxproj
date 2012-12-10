@@ -166,7 +166,8 @@
     <ClCompile Include="..\..\..\..\src\glsl\ralloc.c" />
     <ClCompile Include="..\..\..\..\src\glsl\strtod.c" />
     <ClCompile Include="..\..\..\..\src\glsl\s_expression.cpp" />
-    <ClCompile Include="..\..\..\..\src\mesa\program\hash_table.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\hash_table.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\symbol_table.c" />
   </ItemGroup>
   <ItemGroup>

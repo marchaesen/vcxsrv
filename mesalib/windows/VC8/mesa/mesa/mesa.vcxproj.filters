@@ -704,7 +704,10 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\hash_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\program\hash_table.c">
+    <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\set.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
