@@ -373,6 +373,10 @@ compute_image_info (pixman_image_t *image)
     case PIXMAN_FILTER_CONVOLUTION:
 	break;
 
+    case PIXMAN_FILTER_SEPARABLE_CONVOLUTION:
+	flags |= FAST_PATH_SEPARABLE_CONVOLUTION_FILTER;
+	break;
+
     default:
 	flags |= FAST_PATH_NO_CONVOLUTION_FILTER;
 	break;
@@ -515,8 +519,9 @@ compute_image_info (pixman_image_t *image)
      * if all channels are opaque, so we simply turn it off
      * unconditionally for those images.
      */
-    if (image->common.alpha_map					||
-	image->common.filter == PIXMAN_FILTER_CONVOLUTION	||
+    if (image->common.alpha_map						||
+	image->common.filter == PIXMAN_FILTER_CONVOLUTION		||
+        image->common.filter == PIXMAN_FILTER_SEPARABLE_CONVOLUTION     ||
 	image->common.component_alpha)
     {
 	flags &= ~(FAST_PATH_IS_OPAQUE | FAST_PATH_SAMPLES_OPAQUE);
@@ -679,6 +684,19 @@ pixman_image_set_filter (pixman_image_t *      image,
     if (params == common->filter_params && filter == common->filter)
 	return TRUE;
 
+    if (filter == PIXMAN_FILTER_SEPARABLE_CONVOLUTION)
+    {
+	int width = pixman_fixed_to_int (params[0]);
+	int height = pixman_fixed_to_int (params[1]);
+	int x_phase_bits = pixman_fixed_to_int (params[2]);
+	int y_phase_bits = pixman_fixed_to_int (params[3]);
+	int n_x_phases = (1 << x_phase_bits);
+	int n_y_phases = (1 << y_phase_bits);
+
+	return_val_if_fail (
+	    n_params == 4 + n_x_phases * width + n_y_phases * height, FALSE);
+    }
+    
     new_params = NULL;
     if (params)
     {

@@ -116,6 +116,163 @@ util_create_rgba_texture(struct pipe_context *pipe,
 
 
 /**
+ * Copy 2D rect from one place to another.
+ * Position and sizes are in pixels.
+ * src_stride may be negative to do vertical flip of pixels from source.
+ */
+void
+util_copy_rect(ubyte * dst,
+               enum pipe_format format,
+               unsigned dst_stride,
+               unsigned dst_x,
+               unsigned dst_y,
+               unsigned width,
+               unsigned height,
+               const ubyte * src,
+               int src_stride,
+               unsigned src_x,
+               unsigned src_y)
+{
+   unsigned i;
+   int src_stride_pos = src_stride < 0 ? -src_stride : src_stride;
+   int blocksize = util_format_get_blocksize(format);
+   int blockwidth = util_format_get_blockwidth(format);
+   int blockheight = util_format_get_blockheight(format);
+
+   assert(blocksize > 0);
+   assert(blockwidth > 0);
+   assert(blockheight > 0);
+
+   dst_x /= blockwidth;
+   dst_y /= blockheight;
+   width = (width + blockwidth - 1)/blockwidth;
+   height = (height + blockheight - 1)/blockheight;
+   src_x /= blockwidth;
+   src_y /= blockheight;
+
+   dst += dst_x * blocksize;
+   src += src_x * blocksize;
+   dst += dst_y * dst_stride;
+   src += src_y * src_stride_pos;
+   width *= blocksize;
+
+   if (width == dst_stride && width == src_stride)
+      memcpy(dst, src, height * width);
+   else {
+      for (i = 0; i < height; i++) {
+         memcpy(dst, src, width);
+         dst += dst_stride;
+         src += src_stride;
+      }
+   }
+}
+
+
+/**
+ * Copy 3D box from one place to another.
+ * Position and sizes are in pixels.
+ */
+void
+util_copy_box(ubyte * dst,
+              enum pipe_format format,
+              unsigned dst_stride, unsigned dst_slice_stride,
+              unsigned dst_x, unsigned dst_y, unsigned dst_z,
+              unsigned width, unsigned height, unsigned depth,
+              const ubyte * src,
+              int src_stride, unsigned src_slice_stride,
+              unsigned src_x, unsigned src_y, unsigned src_z)
+{
+   unsigned z;
+   dst += dst_z * dst_slice_stride;
+   src += src_z * src_slice_stride;
+   for (z = 0; z < depth; ++z) {
+      util_copy_rect(dst,
+                     format,
+                     dst_stride,
+                     dst_x, dst_y,
+                     width, height,
+                     src,
+                     src_stride,
+                     src_x, src_y);
+
+      dst += dst_slice_stride;
+      src += src_slice_stride;
+   }
+}
+
+
+void
+util_fill_rect(ubyte * dst,
+               enum pipe_format format,
+               unsigned dst_stride,
+               unsigned dst_x,
+               unsigned dst_y,
+               unsigned width,
+               unsigned height,
+               union util_color *uc)
+{
+   const struct util_format_description *desc = util_format_description(format);
+   unsigned i, j;
+   unsigned width_size;
+   int blocksize = desc->block.bits / 8;
+   int blockwidth = desc->block.width;
+   int blockheight = desc->block.height;
+
+   assert(blocksize > 0);
+   assert(blockwidth > 0);
+   assert(blockheight > 0);
+
+   dst_x /= blockwidth;
+   dst_y /= blockheight;
+   width = (width + blockwidth - 1)/blockwidth;
+   height = (height + blockheight - 1)/blockheight;
+
+   dst += dst_x * blocksize;
+   dst += dst_y * dst_stride;
+   width_size = width * blocksize;
+
+   switch (blocksize) {
+   case 1:
+      if(dst_stride == width_size)
+         memset(dst, uc->ub, height * width_size);
+      else {
+         for (i = 0; i < height; i++) {
+            memset(dst, uc->ub, width_size);
+            dst += dst_stride;
+         }
+      }
+      break;
+   case 2:
+      for (i = 0; i < height; i++) {
+         uint16_t *row = (uint16_t *)dst;
+         for (j = 0; j < width; j++)
+            *row++ = uc->us;
+         dst += dst_stride;
+      }
+      break;
+   case 4:
+      for (i = 0; i < height; i++) {
+         uint32_t *row = (uint32_t *)dst;
+         for (j = 0; j < width; j++)
+            *row++ = uc->ui;
+         dst += dst_stride;
+      }
+      break;
+   default:
+      for (i = 0; i < height; i++) {
+         ubyte *row = dst;
+         for (j = 0; j < width; j++) {
+            memcpy(row, uc, blocksize);
+            row += blocksize;
+         }
+         dst += dst_stride;
+      }
+      break;
+   }
+}
+
+
+/**
  * Fallback function for pipe->resource_copy_region().
  * Note: (X,Y)=(0,0) is always the upper-left corner.
  */
@@ -133,7 +290,6 @@ util_resource_copy_region(struct pipe_context *pipe,
    const uint8_t *src_map;
    enum pipe_format src_format, dst_format;
    struct pipe_box dst_box;
-   int z;
 
    assert(src && dst);
    if (!src || !dst)
@@ -181,19 +337,14 @@ util_resource_copy_region(struct pipe_context *pipe,
       assert(src_box->depth == 1);
       memcpy(dst_map, src_map, src_box->width);
    } else {
-      for (z = 0; z < src_box->depth; ++z) {
-         util_copy_rect(dst_map,
-                        dst_format,
-                        dst_trans->stride,
-                        0, 0,
-                        src_box->width, src_box->height,
-                        src_map,
-                        src_trans->stride,
-                        0, 0);
-
-         dst_map += dst_trans->layer_stride;
-         src_map += src_trans->layer_stride;
-      }
+      util_copy_box(dst_map,
+                    dst_format,
+                    dst_trans->stride, dst_trans->layer_stride,
+                    0, 0, 0,
+                    src_box->width, src_box->height, src_box->depth,
+                    src_map,
+                    src_trans->stride, src_trans->layer_stride,
+                    0, 0, 0);
    }
 
    pipe->transfer_unmap(pipe, dst_trans);

@@ -35,6 +35,20 @@ FcFileIsDir (const FcChar8 *file)
     return S_ISDIR(statb.st_mode);
 }
 
+FcBool
+FcFileIsLink (const FcChar8 *file)
+{
+#if HAVE_LSTAT
+    struct stat statb;
+
+    if (lstat ((const char *)file, &statb) != 0)
+	return FcFalse;
+    return S_ISLNK (statb.st_mode);
+#else
+    return FcFalse;
+#endif
+}
+
 static FcBool
 FcFileScanFontConfig (FcFontSet		*set,
 		      FcBlanks		*blanks,

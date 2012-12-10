@@ -6,6 +6,9 @@
 
 void show_image (pixman_image_t *image);
 
+pixman_image_t *
+pixman_image_from_file (const char *filename, pixman_format_code_t format);
+
 GdkPixbuf *pixbuf_from_argb32 (uint32_t *bits,
                                int width,
                                int height,

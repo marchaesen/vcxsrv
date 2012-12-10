@@ -1029,6 +1029,66 @@ texfetch_funcs[] =
       NULL
    },
    {
+      MESA_FORMAT_ETC2_RGB8,
+      NULL,
+      _mesa_fetch_texel_2d_f_etc2_rgb8,
+      NULL
+   },
+   {
+      MESA_FORMAT_ETC2_SRGB8,
+      NULL,
+      _mesa_fetch_texel_2d_f_etc2_srgb8,
+      NULL
+   },
+   {
+      MESA_FORMAT_ETC2_RGBA8_EAC,
+      NULL,
+      _mesa_fetch_texel_2d_f_etc2_rgba8_eac,
+      NULL
+   },
+   {
+      MESA_FORMAT_ETC2_SRGB8_ALPHA8_EAC,
+      NULL,
+      _mesa_fetch_texel_2d_f_etc2_srgb8_alpha8_eac,
+      NULL
+   },
+   {
+      MESA_FORMAT_ETC2_R11_EAC,
+      NULL,
+      _mesa_fetch_texel_2d_f_etc2_r11_eac,
+      NULL
+   },
+   {
+      MESA_FORMAT_ETC2_RG11_EAC,
+      NULL,
+      _mesa_fetch_texel_2d_f_etc2_rg11_eac,
+      NULL
+   },
+   {
+      MESA_FORMAT_ETC2_SIGNED_R11_EAC,
+      NULL,
+      _mesa_fetch_texel_2d_f_etc2_signed_r11_eac,
+      NULL
+   },
+   {
+      MESA_FORMAT_ETC2_SIGNED_RG11_EAC,
+      NULL,
+      _mesa_fetch_texel_2d_f_etc2_signed_rg11_eac,
+      NULL
+   },
+   {
+      MESA_FORMAT_ETC2_RGB8_PUNCHTHROUGH_ALPHA1,
+      NULL,
+      _mesa_fetch_texel_2d_f_etc2_rgb8_punchthrough_alpha1,
+      NULL
+   },
+   {
+      MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1,
+      NULL,
+      _mesa_fetch_texel_2d_f_etc2_srgb8_punchthrough_alpha1,
+      NULL
+   },
+   {
       MESA_FORMAT_SIGNED_A8,
       fetch_texel_1d_signed_a8,
       fetch_texel_2d_signed_a8,

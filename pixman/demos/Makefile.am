@@ -6,7 +6,8 @@ AM_LDFLAGS = $(OPENMP_CFLAGS)
 LDADD = $(top_builddir)/pixman/libpixman-1.la -lm $(GTK_LIBS) $(PNG_LIBS)
 INCLUDES = -I$(top_srcdir)/pixman -I$(top_builddir)/pixman $(GTK_CFLAGS) $(PNG_CFLAGS)
 
-GTK_UTILS = gtk-utils.c gtk-utils.h ../test/utils.c ../test/utils.h
+GTK_UTILS = gtk-utils.c gtk-utils.h ../test/utils.c ../test/utils.h \
+            ../test/utils-prng.c ../test/utils-prng.h
 
 DEMOS =				\
 	clip-test		\
@@ -14,6 +15,7 @@ DEMOS =				\
 	composite-test		\
 	gradient-test		\
 	radial-test		\
+	conical-test		\
 	alpha-test		\
 	screen-test		\
 	convolution-test	\
@@ -22,9 +24,10 @@ DEMOS =				\
 	quad2quad		\
 	checkerboard		\
 	srgb-trap-test		\
-	srgb-test
+	srgb-test		\
+	scale
 
-EXTRA_DIST = parrot.c parrot.jpg
+EXTRA_DIST = parrot.c parrot.jpg scale.ui
 
 gradient_test_SOURCES = gradient-test.c $(GTK_UTILS)
 alpha_test_SOURCES = alpha-test.c $(GTK_UTILS)
@@ -35,10 +38,12 @@ trap_test_SOURCES = trap-test.c $(GTK_UTILS)
 screen_test_SOURCES = screen-test.c $(GTK_UTILS)
 convolution_test_SOURCES = convolution-test.c $(GTK_UTILS)
 radial_test_SOURCES = radial-test.c $(GTK_UTILS)
+conical_test_SOURCES = conical-test.c $(GTK_UTILS)
 tri_test_SOURCES = tri-test.c $(GTK_UTILS)
 checkerboard_SOURCES = checkerboard.c $(GTK_UTILS)
 srgb_test_SOURCES = srgb-test.c $(GTK_UTILS)
 srgb_trap_test_SOURCES = srgb-trap-test.c $(GTK_UTILS)
+scale_SOURCES = scale.c $(GTK_UTILS)
 
 noinst_PROGRAMS = $(DEMOS)
 

@@ -1743,6 +1743,8 @@ FcConfigFileExists (const FcChar8 *dir, const FcChar8 *file)
 #else
     if ((!path[0] || path[strlen((char *) path)-1] != '/') && file[0] != '/')
 	strcat ((char *) path, "/");
+    else
+	osize--;
 #endif
     strcat ((char *) path, (char *) file);
 

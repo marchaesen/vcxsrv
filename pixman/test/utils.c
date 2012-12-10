@@ -27,10 +27,11 @@
 #include <png.h>
 #endif
 
-/* Random number seed
+/* Random number generator state
  */
 
-uint32_t lcg_seed;
+prng_t prng_state_data;
+prng_t *prng_state;
 
 /*----------------------------------------------------------------------------*\
  *  CRC-32 version 2.0.0 by Craig Bruce, 2006-04-29.
@@ -237,14 +238,6 @@ compute_crc32_for_image (uint32_t        crc32,
     return crc32;
 }
 
-pixman_bool_t
-is_little_endian (void)
-{
-    volatile uint16_t endian_check_var = 0x1234;
-
-    return (*(volatile uint8_t *)&endian_check_var == 0x34);
-}
-
 /* perform endian conversion of pixel data
  */
 void
@@ -431,13 +424,11 @@ uint8_t *
 make_random_bytes (int n_bytes)
 {
     uint8_t *bytes = fence_malloc (n_bytes);
-    int i;
 
     if (!bytes)
 	return NULL;
 
-    for (i = 0; i < n_bytes; ++i)
-	bytes[i] = lcg_rand () & 0xff;
+    prng_randmemset (bytes, n_bytes, 0);
 
     return bytes;
 }
@@ -689,9 +680,9 @@ get_random_seed (void)
 {
     union { double d; uint32_t u32; } t;
     t.d = gettime();
-    lcg_srand (t.u32);
+    prng_srand (t.u32);
 
-    return lcg_rand_u32 ();
+    return prng_rand ();
 }
 
 #ifdef HAVE_SIGACTION
@@ -785,7 +776,7 @@ initialize_palette (pixman_indexed_t *palette, uint32_t depth, int is_rgb)
     uint32_t mask = (1 << depth) - 1;
 
     for (i = 0; i < 32768; ++i)
-	palette->ent[i] = lcg_rand() & mask;
+	palette->ent[i] = prng_rand() & mask;
 
     memset (palette->rgba, 0, sizeof (palette->rgba));
 
@@ -805,7 +796,7 @@ initialize_palette (pixman_indexed_t *palette, uint32_t depth, int is_rgb)
 	{
 	    uint32_t old_idx;
 
-	    rgba24 = lcg_rand();
+	    rgba24 = prng_rand();
 	    i15 = CONVERT_15 (rgba24, is_rgb);
 
 	    old_idx = palette->ent[i15];

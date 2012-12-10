@@ -9,16 +9,16 @@ make_random_region (pixman_region32_t *region)
 
     pixman_region32_init (region);
 
-    n_boxes = lcg_rand_n (64);
+    n_boxes = prng_rand_n (64);
     while (n_boxes--)
     {
 	int32_t x, y;
 	uint32_t w, h;
 
-	x = (int32_t)lcg_rand_u32() >> 2;
-	y = (int32_t)lcg_rand_u32() >> 2;
-	w = lcg_rand_u32() >> 2;
-	h = lcg_rand_u32() >> 2;
+	x = (int32_t)prng_rand() >> 2;
+	y = (int32_t)prng_rand() >> 2;
+	w = prng_rand() >> 2;
+	h = prng_rand() >> 2;
 
 	pixman_region32_union_rect (region, region, x, y, w, h);
     }
@@ -37,12 +37,12 @@ random_coord (pixman_region32_t *region, pixman_bool_t x)
     int n_boxes;
     int begin, end;
 
-    if (lcg_rand_n (14))
+    if (prng_rand_n (14))
     {
 	bb = pixman_region32_rectangles (region, &n_boxes);
 	if (n_boxes == 0)
 	    goto use_extent;
-	b = bb + lcg_rand_n (n_boxes);
+	b = bb + prng_rand_n (n_boxes);
     }
     else
     {
@@ -62,12 +62,12 @@ random_coord (pixman_region32_t *region, pixman_bool_t x)
 	end = b->y2;
     }
 
-    switch (lcg_rand_n (5))
+    switch (prng_rand_n (5))
     {
     case 0:
-	return begin - lcg_rand_u32();
+	return begin - prng_rand();
     case 1:
-	return end + lcg_rand_u32 ();
+	return end + prng_rand ();
     case 2:
 	return end;
     case 3:
@@ -111,14 +111,14 @@ test_region_contains_rectangle (int i, int verbose)
     pixman_region32_t region;
     uint32_t r, r1, r2, r3, r4, crc32;
 
-    lcg_srand (i);
+    prng_srand (i);
 
     make_random_region (&region);
 
     box.x1 = random_coord (&region, TRUE);
-    box.x2 = box.x1 + lcg_rand_u32 ();
+    box.x2 = box.x1 + prng_rand ();
     box.y1 = random_coord (&region, FALSE);
-    box.y2 = box.y1 + lcg_rand_u32 ();
+    box.y2 = box.y1 + prng_rand ();
 
     if (verbose)
     {
@@ -163,7 +163,7 @@ main (int argc, const char *argv[])
 {
     return fuzzer_test_main ("region_contains",
 			     1000000,
-			     0xD2BF8C73,
+			     0x548E0F3F,
 			     test_region_contains_rectangle,
 			     argc, argv);
 }

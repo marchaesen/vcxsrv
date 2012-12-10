@@ -860,7 +860,7 @@ AC_CACHE_VAL(ac_cv_tls, [
 #error OpenBSD has broken __thread support
 #endif
 
-int $kw test;], [], ac_cv_tls=$kw)
+int $kw test;], [], [ac_cv_tls=$kw; break])
     done
 ])
 AC_MSG_RESULT($ac_cv_tls)

@@ -8,9 +8,14 @@
 int
 main (int argc, char **argv)
 {
-    uint8_t *alpha = make_random_bytes (WIDTH * HEIGHT);
-    uint32_t *src = (uint32_t *)make_random_bytes (WIDTH * HEIGHT * 4);
-    uint32_t *dest = (uint32_t *)make_random_bytes (WIDTH * HEIGHT * 4);
+    uint8_t *alpha;
+    uint32_t *src, *dest;
+
+    prng_srand (0);
+
+    alpha = make_random_bytes (WIDTH * HEIGHT);
+    src = (uint32_t *)make_random_bytes (WIDTH * HEIGHT * 4);
+    dest = (uint32_t *)make_random_bytes (WIDTH * HEIGHT * 4);
 
     pixman_image_t *a = pixman_image_create_bits (PIXMAN_a8, WIDTH, HEIGHT, (uint32_t *)alpha, WIDTH);
     pixman_image_t *d = pixman_image_create_bits (PIXMAN_a8r8g8b8, WIDTH, HEIGHT, dest, WIDTH * 4);

@@ -3,6 +3,72 @@
 #include "../test/utils.h"
 #include "gtk-utils.h"
 
+pixman_image_t *
+pixman_image_from_file (const char *filename, pixman_format_code_t format)
+{
+    GdkPixbuf *pixbuf;
+    pixman_image_t *image;
+    int width, height;
+    uint32_t *data, *d;
+    uint8_t *gdk_data;
+    int n_channels;
+    int j, i;
+    int stride;
+
+    if (!(pixbuf = gdk_pixbuf_new_from_file (filename, NULL)))
+	return NULL;
+
+    image = NULL;
+
+    width = gdk_pixbuf_get_width (pixbuf);
+    height = gdk_pixbuf_get_height (pixbuf);
+    n_channels = gdk_pixbuf_get_n_channels (pixbuf);
+    gdk_data = gdk_pixbuf_get_pixels (pixbuf);
+    stride = gdk_pixbuf_get_rowstride (pixbuf);
+
+    if (!(data = malloc (width * height * sizeof (uint32_t))))
+	goto out;
+
+    d = data;
+    for (j = 0; j < height; ++j)
+    {
+	uint8_t *gdk_line = gdk_data;
+
+	for (i = 0; i < width; ++i)
+	{
+	    int r, g, b, a;
+	    uint32_t pixel;
+
+	    r = gdk_line[0];
+	    g = gdk_line[1];
+	    b = gdk_line[2];
+
+	    if (n_channels == 4)
+		a = gdk_line[3];
+	    else
+		a = 0xff;
+
+	    r = (r * a + 127) / 255;
+	    g = (g * a + 127) / 255;
+	    b = (b * a + 127) / 255;
+
+	    pixel = (a << 24) | (r << 16) | (g << 8) | b;
+
+	    *d++ = pixel;
+	    gdk_line += n_channels;
+	}
+
+	gdk_data += stride;
+    }
+
+    image = pixman_image_create_bits (
+	format, width, height, data, width * 4);
+
+out:
+    g_object_unref (pixbuf);
+    return image;
+}
+
 GdkPixbuf *
 pixbuf_from_argb32 (uint32_t *bits,
 		    int width,

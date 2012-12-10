@@ -455,6 +455,14 @@ analyze_extent (pixman_image_t       *image,
 	    height = params[1];
 	    break;
 
+	case PIXMAN_FILTER_SEPARABLE_CONVOLUTION:
+	    params = image->common.filter_params;
+	    x_off = - pixman_fixed_e - ((params[0] - pixman_fixed_1) >> 1);
+	    y_off = - pixman_fixed_e - ((params[1] - pixman_fixed_1) >> 1);
+	    width = params[0];
+	    height = params[1];
+	    break;
+	    
 	case PIXMAN_FILTER_GOOD:
 	case PIXMAN_FILTER_BEST:
 	case PIXMAN_FILTER_BILINEAR:

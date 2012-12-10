@@ -6,6 +6,7 @@ libpixman_sources =			\
 	pixman-combine32.c		\
 	pixman-combine-float.c		\
 	pixman-conical-gradient.c	\
+	pixman-filter.c			\
 	pixman-x86.c			\
 	pixman-mips.c			\
 	pixman-arm.c			\

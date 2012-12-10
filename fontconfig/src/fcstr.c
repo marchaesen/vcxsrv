@@ -38,7 +38,6 @@ FcStrCopy (const FcChar8 *s)
 {
     int     len;
     FcChar8 *r;
-
     if (!s)
 	return 0;
     len = strlen ((char *) s) + 1;
@@ -1204,7 +1203,7 @@ FcStrSetAddLangs (FcStrSet *strs, const char *languages)
 	    if (normalized_lang)
 	    {
 		FcStrSetAdd (strs, normalized_lang);
-		free (normalized_lang);
+		FcStrFree (normalized_lang);
 		ret = FcTrue;
 	    }
 	}
@@ -1216,7 +1215,7 @@ FcStrSetAddLangs (FcStrSet *strs, const char *languages)
 	if (normalized_lang)
 	{
 	    FcStrSetAdd (strs, normalized_lang);
-	    free (normalized_lang);
+	    FcStrFree (normalized_lang);
 	    ret = FcTrue;
 	}
     }

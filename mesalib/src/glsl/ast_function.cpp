@@ -275,9 +275,10 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
    /* If the function call is a constant expression, don't generate any
     * instructions; just generate an ir_constant.
     *
-    * Function calls were first allowed to be constant expressions in GLSL 1.20.
+    * Function calls were first allowed to be constant expressions in GLSL
+    * 1.20 and GLSL ES 3.00.
     */
-   if (state->language_version >= 120) {
+   if (state->is_version(120, 300)) {
       ir_constant *value = sig->constant_expression_value(actual_parameters, NULL);
       if (value != NULL) {
 	 return value;
@@ -324,7 +325,8 @@ match_function_by_name(const char *name,
       goto done; /* no match */
 
    /* Is the function hidden by a variable (impossible in 1.10)? */
-   if (state->language_version != 110 && state->symbols->get_variable(name))
+   if (!state->symbols->separate_function_namespace
+       && state->symbols->get_variable(name))
       goto done; /* no match */
 
    if (f != NULL) {
@@ -1242,9 +1244,8 @@ ast_function_expression::hir(exec_list *instructions,
       }
 
       if (constructor_type->is_array()) {
-	 if (state->language_version <= 110) {
-	    _mesa_glsl_error(& loc, state,
-			     "array constructors forbidden in GLSL 1.10");
+         if (!state->check_version(120, 300, &loc,
+                                   "array constructors forbidden")) {
 	    return ir_rvalue::error_value(ctx);
 	 }
 
@@ -1367,11 +1368,11 @@ ast_function_expression::hir(exec_list *instructions,
        *    "It is an error to construct matrices from other matrices. This
        *    is reserved for future use."
        */
-      if (state->language_version == 110 && matrix_parameters > 0
-	  && constructor_type->is_matrix()) {
-	 _mesa_glsl_error(& loc, state, "cannot construct `%s' from a "
-			  "matrix in GLSL 1.10",
-			  constructor_type->name);
+      if (matrix_parameters > 0
+          && constructor_type->is_matrix()
+          && !state->check_version(120, 100, &loc,
+                                   "cannot construct `%s' from a matrix",
+                                   constructor_type->name)) {
 	 return ir_rvalue::error_value(ctx);
       }
 

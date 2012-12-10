@@ -17,9 +17,11 @@ Cextend.en:					en_US.ISO8859-1
 English_United-States.437:			C
 C.UTF-8:					en_US.UTF-8
 XCOMM a3 is not an ISO 639 language code, but in Cyrillic, "Z" looks like "3".
-a3:						a3_AZ.KOI8-C
-a3_AZ:						a3_AZ.KOI8-C
-a3_AZ.koi8c:					a3_AZ.KOI8-C
+a3:						az_AZ.KOI8-C
+a3_AZ:						az_AZ.KOI8-C
+a3_AZ.koi8c:					az_AZ.KOI8-C
+a3_AZ.KOI-C:					az_AZ.KOI8-C
+a3_AZ.UTF-8:					az_AZ.UTF-8
 af:						af_ZA.ISO8859-1
 af_ZA:						af_ZA.ISO8859-1
 af_ZA.iso88591:					af_ZA.ISO8859-1
@@ -50,6 +52,7 @@ ar_EG:						ar_EG.ISO8859-6
 ar_EG.iso88596:					ar_EG.ISO8859-6
 ar_EG.ISO-8859-6:				ar_EG.ISO8859-6
 ar_EG.utf8:					ar_EG.UTF-8
+ar_IN:						ar_IN.UTF-8
 ar_IN.utf8:					ar_IN.UTF-8
 ar_IQ:						ar_IQ.ISO8859-6
 ar_IQ.iso88596:					ar_IQ.ISO8859-6
@@ -100,6 +103,7 @@ ar_TN.iso88596:					ar_TN.ISO8859-6
 ar_TN.ISO-8859-6:				ar_TN.ISO8859-6
 ar_TN.utf8:					ar_TN.UTF-8
 as:						as_IN.UTF-8
+as_IN:						as_IN.UTF-8
 as_IN.utf8:					as_IN.UTF-8
 ar_YE:						ar_YE.ISO8859-6
 ar_YE.iso88596:					ar_YE.ISO8859-6
@@ -128,7 +132,9 @@ bg_BG.iso88595:					bg_BG.ISO8859-5
 bg_BG.ISO-8859-5:				bg_BG.ISO8859-5
 bg_BG.koi8r:					bg_BG.KOI8-R
 be_BG.utf8:					bg_BG.UTF-8
+bn_IN:						bn_IN.UTF-8
 bn_IN.utf8:					bn_IN.UTF-8
+bo_IN:						bo_IN.UTF-8
 bo_IN.utf8:					bo_IN.UTF-8
 br:						br_FR.ISO8859-1
 br_FR:						br_FR.ISO8859-1
@@ -188,7 +194,7 @@ cs_CS:						cs_CZ.ISO8859-2
 cs_CS.ISO8859-2:				cs_CZ.ISO8859-2
 cs_CZ:						cs_CZ.ISO8859-2
 cs_CZ.iso88592:					cs_CZ.ISO8859-2
-cs_CS.iso8859-2:                                cs_CS.ISO8859-2
+cs_CS.iso8859-2:                                cs_CZ.ISO8859-2
 cs_CZ.ISO-8859-2:				cs_CZ.ISO8859-2
 cs_CZ.ISO_8859-2:				cs_CZ.ISO8859-2
 cs_CZ.utf8:					cs_CZ.UTF-8
@@ -297,6 +303,7 @@ en_BE:						en_BE.ISO8859-1
 en_BE@euro:					en_BE.ISO8859-15
 en_BE.utf8:					en_BE.UTF-8
 en_BW:						en_BW.ISO8859-1
+en_BW.utf8:					en_BW.UTF-8
 en_BW.iso88591:					en_BW.ISO8859-1
 en_BW.ISO-8859-1:				en_BW.ISO8859-1
 en_CA:						en_CA.ISO8859-1
@@ -304,6 +311,7 @@ en_CA.iso88591:					en_CA.ISO8859-1
 en_CA.ISO-8859-1:				en_CA.ISO8859-1
 en_CA.ISO_8859-1:				en_CA.ISO8859-1
 en_CA.utf8:					en_CA.UTF-8
+en_DL.utf8:					en_DL.UTF-8
 en_GB:						en_GB.ISO8859-1
 en_GB.88591:					en_GB.ISO8859-1
 en_GB.88591.en:					en_GB.ISO8859-1
@@ -319,6 +327,7 @@ ENG_GB.8859.in:					en_GB.ISO8859-1
 en_HK:						en_HK.ISO8859-1
 en_HK.iso88591:					en_HK.ISO8859-1
 en_HK.ISO-8859-1:				en_HK.ISO8859-1
+en_HK.utf8:					en_HK.UTF-8						
 en_IE:						en_IE.ISO8859-1
 en_IE.iso88591:					en_IE.ISO8859-1
 en_IE.ISO-8859-1:				en_IE.ISO8859-1
@@ -328,15 +337,18 @@ en_IE.ISO-8859-15@euro:				en_IE.ISO8859-15
 en_IE@euro:					en_IE.ISO8859-15
 en_IE.UTF-8@euro:				en_IE.UTF-8
 en_IE.utf8:					en_IE.UTF-8
+en_IN.utf8:					en_IN.UTF-8
 en_IN:						en_IN.ISO8859-1
 en_NZ:						en_NZ.ISO8859-1
 en_NZ.iso88591:					en_NZ.ISO8859-1
 en_NZ.ISO-8859-1:				en_NZ.ISO8859-1
 en_NZ.utf8:					en_NZ.UTF-8
 en_PH:						en_PH.ISO8859-1
+en_PH.utf8:					en_PH.UTF-8
 en_PH.iso88591:					en_PH.ISO8859-1
 en_PH.ISO-8859-1:				en_PH.ISO8859-1
 en_SG:						en_SG.ISO8859-1
+en_SG.utf8:					en_SG.UTF-8
 en_SG.iso88591:					en_SG.ISO8859-1
 en_SG.ISO-8859-1:				en_SG.ISO8859-1
 en_US:						en_US.ISO8859-1
@@ -362,6 +374,7 @@ en_ZA.iso885915:				en_ZA.ISO8859-15
 en_ZA.ISO-8859-15:				en_ZA.ISO8859-15
 en_ZA.utf8:					en_ZA.UTF-8
 en_ZW:						en_ZW.ISO8859-1
+en_ZW.utf8:					en_ZS.UTF-8
 en_ZW.iso88591:					en_ZW.ISO8859-1
 en_ZW.ISO-8859-1:				en_ZW.ISO8859-1
 eo:						eo_XX.ISO8859-3
@@ -602,6 +615,7 @@ gl_ES.ISO-8859-15@euro:				gl_ES.ISO8859-15
 gl_ES@euro:					gl_ES.ISO8859-15
 gl_ES.UTF-8@euro:				gl_ES.UTF-8
 gl_ES.utf8:					gl_ES.UTF-8
+gu_IN:						gu_IN.UTF-8
 gu_IN.utf8:					gu_IN.UTF-8
 gv:						gv_GB.ISO8859-1
 gv_GB:						gv_GB.ISO8859-1
@@ -629,6 +643,7 @@ hi_IN.isciidev:					hi_IN.ISCII-DEV
 hi_IN.utf8:					hi_IN.UTF-8
 HI_IN.UTF-8:					hi_IN.UTF-8
 hne:						hne_IN.UTF-8
+hne_IN:						hne_IN.UTF-8
 hne_IN.utf8:					hne_IN.UTF-8
 hr:						hr_HR.ISO8859-2
 hr_HR:						hr_HR.ISO8859-2
@@ -674,6 +689,8 @@ it_IT.ISO-8859-15@euro:				it_IT.ISO8859-15
 it_IT@euro:					it_IT.ISO8859-15
 it_IT.utf8:					it_IT.UTF-8
 it_IT.UTF-8@euro:				it_IT.UTF-8
+XCOMM NUNACOM is an encoding for the Inuktitut syllabics
+XCOMM we have little else on this encoding.
 iu:						iu_CA.NUNACOM-8
 iu_CA:						iu_CA.NUNACOM-8
 iu_CA.nunacom8:					iu_CA.NUNACOM-8
@@ -684,13 +701,7 @@ iw_IL:						he_IL.ISO8859-8
 Iw_IL:						he_IL.ISO8859-8
 iw_IL.iso88598:					he_IL.ISO8859-8
 iw_IL.ISO-8859-8:				he_IL.ISO8859-8
-#ifndef __uxp__
 ja_JP:						ja_JP.eucJP
-#else /* __uxp__ */
-ja_JP:						ja_JP.U90
-ja_JP.U90:					ja_JP.U90
-ja_JP.S90:					ja_JP.S90
-#endif /* __uxp__ */
 ja:						ja_JP.eucJP
 ja.JIS:						ja_JP.JIS7
 ja.SJIS:					ja_JP.SJIS
@@ -721,7 +732,10 @@ kl_GL.iso88591:					kl_GL.ISO8859-1
 kl_GL.ISO-8859-1:				kl_GL.ISO8859-1
 kl_GL.iso885915:				kl_GL.ISO8859-15
 kl_GL.utf8:					kl_GL.UTF-8
+km_KH:						mk_KH.UTF-8
+km_KH.utf8:					mk_KH.UTF-8
 kn:						kn_IN.UTF-8
+kn_IN:						kn_IN.UTF-8
 kn_IN.utf8:					kn_IN.UTF-8
 ko:						ko_KR.eucKR
 ko.UTF-8:					ko_KR.UTF-8
@@ -734,6 +748,7 @@ ko_KR.euckr:					ko_KR.eucKR
 ko_KR.utf8:					ko_KR.UTF-8
 KO_KR.UTF-8:					ko_KR.UTF-8
 ks:						ks_IN.UTF-8
+ks_IN:						ks_IN.UTF-8
 ks_IN.utf8:					ks_IN.UTF-8
 ks_IN@devanagari:				ks_IN@devanagari.UTF-8
 ks_IN@devanagari.utf8:				ks_IN@devanagari.UTF-8
@@ -748,6 +763,7 @@ kw_GB.ISO-8859-15:				kw_GB.ISO8859-15
 ky:						ky_KG.UTF-8
 ky_KG:							ky_KG.UTF-8
 ky_KG.UTF-8:					ky_KG.UTF-8
+ky_KG.utf8:					ky_KG.UTF-8
 lo:						lo_LA.MULELAO-1
 lo_LA:						lo_LA.MULELAO-1
 lo_LA.cp1133:					lo_LA.IBM-CP1133
@@ -778,6 +794,7 @@ lv_LV.ISO-8859-13:				lv_LV.ISO8859-13
 lv_LV.ISO_8859-13:				lv_LV.ISO8859-13
 lv_LV.utf8:					lv_LV.UTF-8
 mai:						mai_IN.UTF-8
+mai_IN:						mai_IN.UTF-8
 mai_IN.utf8:					mai_IN.UTF-8
 mi:						mi_NZ.ISO8859-1
 mi_NZ:						mi_NZ.ISO8859-1
@@ -792,6 +809,7 @@ mk_MK.microsoft-cp1251:				mk_MK.CP1251
 mk_MK.MICROSOFT-CP1251:				mk_MK.CP1251
 mk_MK.utf8:					mk_MK.UTF-8
 ml:						ml_IN.UTF-8
+ml_IN:						ml_IN.UTF-8
 ml_IN.utf8:					ml_IN.UTF-8
 mr:						mr_IN.UTF-8
 mr_IN:						mr_IN.UTF-8
@@ -811,6 +829,7 @@ nb_NO.ISO-8859-1:				nb_NO.ISO8859-1
 nb_NO.iso885915:				nb_NO.ISO8859-15
 nb_NO.ISO-8859-15:				nb_NO.ISO8859-15
 nb_NO.utf8:					nb_NO.UTF-8
+ne_NP:						ne_NP.UTF-8
 ne_NP.utf8:					ne_NP.UTF-8
 nl:						nl_NL.ISO8859-1
 nl.ISO8859-15:					nl_NL.ISO8859-15
@@ -880,8 +899,10 @@ oc_FR.iso885915:				oc_FR.ISO8859-15
 oc_FR.ISO-8859-15:				oc_FR.ISO8859-15
 oc_FR@euro:					oc_FR.ISO8859-15
 or:						or_IN.UTF-8
+or_IN:						or_IN.UTF-8
 or_IN.utf8:					or_IN.UTF-8
 pa:						pa_IN.UTF-8
+pa_IN:						pa_IN.UTF-8
 pa_IN.utf8:					pa_IN.UTF-8
 pa_PK.utf8:					pa_PK.UTF-8
 pd:						pd_US.ISO8859-1
@@ -961,7 +982,8 @@ rw_RW.ISO-8859-1:           rw_RW.ISO8859-1
 rw_RW.utf8:                 rw_RW.UTF-8
 sd:						sd_IN.UTF-8
 sd_IN.utf8:					sd_IN.UTF-8
-sd:						sd_IN@devanagari.UTF-8
+sd@devanagari:					sd_IN@devanagari.UTF-8
+sd_IN@devanagari:				sd_IN@devanagari.UTF-8
 sd_IN@devanagari.utf8:				sd_IN@devanagari.UTF-8
 se_NO:						se_NO.UTF-8
 se_NO.utf8:					se_NO.UTF-8
@@ -1000,11 +1022,11 @@ sr@cyrillic:					sr_RS.UTF-8
 sr_YU@cyrillic:					sr_RS.UTF-8
 sr_YU.utf8:					sr_RS.UTF-8
 sr_YU.UTF-8@cyrillic:				sr_RS.UTF-8
-sr_CS:						sr_RS.UTF-8
-sr@Latn:					sr_RS.UTF-8@latin
-sr_CS@Latn:					sr_RS.UTF-8@latin
-sr_CS.utf8:					sr_RS.UTF-8
-sr_CS.UTF-8@Latn:				sr_RS.UTF-8@latin
+sr_CS:						sr_CS.UTF-8
+sr@Latn:					sr_CS.UTF-8@latin
+sr_CS@Latn:					sr_CS.UTF-8@latin
+sr_CS.utf8:					sr_CS.UTF-8
+sr_CS.UTF-8@Latn:				sr_CS.UTF-8@latin
 sr_RS:						sr_RS.UTF-8
 sr@latin:					sr_RS.UTF-8@latin
 sr_RS@latin:				sr_RS.UTF-8@latin
@@ -1048,6 +1070,7 @@ ta_IN:						ta_IN.TSCII-0
 ta_IN.tscii:					ta_IN.TSCII-0
 ta_IN.tscii0:					ta_IN.TSCII-0
 te:						te_IN.UTF-8
+te.UTF-8:					te_IN.UTF-8
 te_IN.utf8:					te_IN.UTF-8
 tg:						tg_TJ.KOI8-C
 tg_TJ:						tg_TJ.KOI8-C
@@ -1092,6 +1115,7 @@ uk_UA.microsoft-cp1251:				uk_UA.CP1251
 uk_UA.MICROSOFT-CP1251:				uk_UA.CP1251
 uk_UA.utf8:					uk_UA.UTF-8
 ur:						ur_IN.UTF-8
+ur_IN:						ur_IN.UTF-8
 ur_IN.utf8:					ur_IN.UTF-8
 ur:						ur_PK.CP1256
 ur_PK:						ur_PK.CP1256
@@ -1153,6 +1177,10 @@ zh_HK.Big5_hkscs:				zh_HK.big5hkscs
 zh_HK.Big5HKSCS:				zh_HK.big5hkscs
 zh_HK.BIG5-HKSCS:				zh_HK.big5hkscs
 zh_HK.BIG5_HKSCS:				zh_HK.big5hkscs
+zh_HK.Big5-HKSCS:				zh_HK.big5hkscs
+zh_HK.big5-hkscs:				zh_HK.big5hkscs
+zh_HK.Big5-HKSCS:				zh_HK.big5hkscs
+zh_HK.Big5HKSCS:				zh_HK.big5hkscs
 zh_HK.Big5:					zh_HK.big5
 zh_HK.utf8:					zh_HK.UTF-8
 ZH_HK.UTF-8:					zh_HK.UTF-8
@@ -1210,8 +1238,8 @@ german:						de_DE.ISO8859-1
 german.iso88591:				de_CH.ISO8859-1
 greek:						el_GR.ISO8859-7
 greek.iso88597:					el_GR.ISO8859-7
-hebrew:						iw_IL.ISO8859-8
-hebrew.iso88598:				iw_IL.ISO8859-8
+hebrew:						he_IL.ISO8859-8
+hebrew.iso88598:				he_IL.ISO8859-8
 hrvatski:					hr_HR.ISO8859-2
 hungarian:					hu_HU.ISO8859-2
 icelandic.iso88591:				is_IS.ISO8859-1
@@ -1254,102 +1282,102 @@ iso_8859_15:					en_US.ISO8859-15
 #ifdef WIN32
 XCOMM Microsoft Windows/NT 4.0 SP3
 XCOMM parser doesn't grok embedded spaces in locale name
-Afrikaans_South Africa.1252:			af_ZA.iso8859-1
-Arabic_Bahrain.1256:				ar_BH.iso8859-6
-Arabic_Algeria.1256:				ar_DZ.iso8859-6
-Arabic_Egypt.1256:				ar_EG.iso8859-6
-Arabic_Iraq.1256:				ar_IQ.iso8859-6
-Arabic_Jordan.1256:				ar_JO.iso8859-6
-Arabic_Kuwait.1256:				ar_KW.iso8859-6
-Arabic_Lebanon.1256:				ar_LB.iso8859-6
-Arabic_Libya.1256:				ar_LY.iso8859-6
-Arabic_Morocco.1256:				ar_MA.iso8859-6
-Arabic_Oman.1256:				ar_OM.iso8859-6
-Arabic_Qatar.1256:				ar_QA.iso8859-6
-Arabic_Saudi Arabia.1256:			ar_SA.iso8859-6
-Arabic_Tunisia.1256:				ar_TN.iso8859-6
-Arabic_Yemen.1256:				ar_YE.iso8859-6
-Belarusian_Belarus.1251:			be_BY.iso8859-5
-Bulgarian_Bulgaria.1251:			bg_BG.iso8859-5
-Catalan_Andorra.1252:				ca_AD.iso8859-1
-Catalan_Spain.1252:				ca_ES.iso8859-1
-Catalan_France.1252:				ca_FR.iso8859-1
-Catalan_Italy.1252:				ca_IT.iso8859-1
-Czech_Czech Republic.1250:			cs_CZ.iso8859-2
-Danish_Denmark.1252:				da_DK.iso8859-1
-German_Austria.1252:				de_AT.iso8859-1
-German_Switzerland.1252:			de_CH.iso8859-1
-German_Germany.1252:				de_DE.iso8859-1
-German_Liechtenstein.1252:			de_LI.iso8859-1
-German_Luxembourg.1252:				de_LU.iso8859-1
-Greek_Greece.1253:				el_GR.iso8859-7
-English_Australia.1252:				en_AU.iso8859-1
-English_Belize.1252:				en_BZ.iso8859-1
-English_Canada.1252:				en_CA.iso8859-1
-English_Ireland.1252:				en_IE.iso8859-1
-English_Jamaica.1252:				en_JM.iso8859-1
-English_New Zealand.1252:			en_NZ.iso8859-1
-English_Trinidad y Tobago.1252:			en_TT.iso8859-1
-English_United Kingdom.1252:			en_UK.iso8859-1
-English_United States.1252:			en_US.iso8859-1
-English_South Africa.1252:			en_ZA.iso8859-1
-Spanish_Argentina.1252:				es_AR.iso8859-1
-Spanish_Bolivia.1252:				es_BO.iso8859-1
-Spanish_Chile.1252:				es_CL.iso8859-1
-Spanish_Colombia.1252:				es_CO.iso8859-1
-Spanish_Costa Rica.1252:			es_CR.iso8859-1
-Spanish_Dominican Republic.1252:		es_DO.iso8859-1
-Spanish_Ecuador.1252:				es_EC.iso8859-1
-Spanish - Modern Sort_Spain.1252:		es_ES.iso8859-1
-Spanish - Traditional Sort_Spain.1252:		es_ES.iso8859-1
-Spanish_Guatemala.1252:				es_GT.iso8859-1
-Spanish_Honduras.1252:				es_HN.iso8859-1
-Spanish_Mexican.1252:				es_MX.iso8859-1
-Spanish_Nicaragua.1252:				es_NI.iso8859-1
-Spanish_Panama.1252:				es_PA.iso8859-1
-Spanish_Paraguay.1252:				es_PY.iso8859-1
-Spanish_Peru.1252:				es_PE.iso8859-1
-Spanish_Puerto Rico.1252:			es_PR.iso8859-1
-Spanish_El Salvador.1252:			es_SV.iso8859-1
-Spanish_Uruguay.1252:				es_UY.iso8859-1
-Spanish_Venezuela.1252:				es_VE.iso8859-1
-Estonian_Estonia.1257:				et_EE.iso8859-13
-Basque_Spain.1252:				eu_ES.iso8859-1
-Finnish_Finland.1252:				fi_FI.iso8859-1
-French_Belgium.1252:				fr_BE.iso8859-1
-French_Canada.1252:				fr_CA.iso8859-1
-French_Switzerland.1252:			fr_CH.iso8859-1
-French_France.1252:				fr_FR.iso8859-1
-French_Luxembourg.1252:				fr_LU.iso8859-1
-Faeroese_Faeroe Islands.1252:			fo_FO.iso8859-1
-Hebrew_Israel.1255:				he_IL.iso8859-8
-Croatian_Croatia.1250:				hr_HR.iso8859-2
-Hungarian_Hungary.1250:				hu_HU.iso8859-2
-Indonesian_Indonesia.1252:			id_ID.iso8859-1
-Icelandic_Iceland.1252:				is_IS.iso8859-1
-Italian_Switzerland.1252:			it_CH.iso8859-1
-Italian_Italy.1252:				it_IT.iso8859-1
+Afrikaans_South Africa.1252:			af_ZA.ISO8859-1
+Arabic_Bahrain.1256:				ar_BH.ISO8859-6
+Arabic_Algeria.1256:				ar_DZ.ISO8859-6
+Arabic_Egypt.1256:				ar_EG.ISO8859-6
+Arabic_Iraq.1256:				ar_IQ.ISO8859-6
+Arabic_Jordan.1256:				ar_JO.ISO8859-6
+Arabic_Kuwait.1256:				ar_KW.ISO8859-6
+Arabic_Lebanon.1256:				ar_LB.ISO8859-6
+Arabic_Libya.1256:				ar_LY.ISO8859-6
+Arabic_Morocco.1256:				ar_MA.ISO8859-6
+Arabic_Oman.1256:				ar_OM.ISO8859-6
+Arabic_Qatar.1256:				ar_QA.ISO8859-6
+Arabic_Saudi Arabia.1256:			ar_SA.ISO8859-6
+Arabic_Tunisia.1256:				ar_TN.ISO8859-6
+Arabic_Yemen.1256:				ar_YE.ISO8859-6
+Belarusian_Belarus.1251:			be_BY.ISO8859-5
+Bulgarian_Bulgaria.1251:			bg_BG.ISO8859-5
+Catalan_Andorra.1252:				ca_AD.ISO8859-1
+Catalan_Spain.1252:				ca_ES.ISO8859-1
+Catalan_France.1252:				ca_FR.ISO8859-1
+Catalan_Italy.1252:				ca_IT.ISO8859-1
+Czech_Czech Republic.1250:			cs_CZ.ISO8859-2
+Danish_Denmark.1252:				da_DK.ISO8859-1
+German_Austria.1252:				de_AT.ISO8859-1
+German_Switzerland.1252:			de_CH.ISO8859-1
+German_Germany.1252:				de_DE.ISO8859-1
+German_Liechtenstein.1252:			de_LI.ISO8859-1
+German_Luxembourg.1252:				de_LU.ISO8859-1
+Greek_Greece.1253:				el_GR.ISO8859-7
+English_Australia.1252:				en_AU.ISO8859-1
+English_Belize.1252:				en_BZ.ISO8859-1
+English_Canada.1252:				en_CA.ISO8859-1
+English_Ireland.1252:				en_IE.ISO8859-1
+English_Jamaica.1252:				en_JM.ISO8859-1
+English_New Zealand.1252:			en_NZ.ISO8859-1
+English_Trinidad y Tobago.1252:			en_TT.ISO8859-1
+English_United Kingdom.1252:			en_UK.ISO8859-1
+English_United States.1252:			en_US.ISO8859-1
+English_South Africa.1252:			en_ZA.ISO8859-1
+Spanish_Argentina.1252:				es_AR.ISO8859-1
+Spanish_Bolivia.1252:				es_BO.ISO8859-1
+Spanish_Chile.1252:				es_CL.ISO8859-1
+Spanish_Colombia.1252:				es_CO.ISO8859-1
+Spanish_Costa Rica.1252:			es_CR.ISO8859-1
+Spanish_Dominican Republic.1252:		es_DO.ISO8859-1
+Spanish_Ecuador.1252:				es_EC.ISO8859-1
+Spanish - Modern Sort_Spain.1252:		es_ES.ISO8859-1
+Spanish - Traditional Sort_Spain.1252:		es_ES.ISO8859-1
+Spanish_Guatemala.1252:				es_GT.ISO8859-1
+Spanish_Honduras.1252:				es_HN.ISO8859-1
+Spanish_Mexican.1252:				es_MX.ISO8859-1
+Spanish_Nicaragua.1252:				es_NI.ISO8859-1
+Spanish_Panama.1252:				es_PA.ISO8859-1
+Spanish_Paraguay.1252:				es_PY.ISO8859-1
+Spanish_Peru.1252:				es_PE.ISO8859-1
+Spanish_Puerto Rico.1252:			es_PR.ISO8859-1
+Spanish_El Salvador.1252:			es_SV.ISO8859-1
+Spanish_Uruguay.1252:				es_UY.ISO8859-1
+Spanish_Venezuela.1252:				es_VE.ISO8859-1
+Estonian_Estonia.1257:				et_EE.ISO8859-13
+Basque_Spain.1252:				eu_ES.ISO8859-1
+Finnish_Finland.1252:				fi_FI.ISO8859-1
+French_Belgium.1252:				fr_BE.ISO8859-1
+French_Canada.1252:				fr_CA.ISO8859-1
+French_Switzerland.1252:			fr_CH.ISO8859-1
+French_France.1252:				fr_FR.ISO8859-1
+French_Luxembourg.1252:				fr_LU.ISO8859-1
+Faeroese_Faeroe Islands.1252:			fo_FO.ISO8859-1
+Hebrew_Israel.1255:				he_IL.ISO8859-8
+Croatian_Croatia.1250:				hr_HR.ISO8859-2
+Hungarian_Hungary.1250:				hu_HU.ISO8859-2
+Indonesian_Indonesia.1252:			id_ID.ISO8859-1
+Icelandic_Iceland.1252:				is_IS.ISO8859-1
+Italian_Switzerland.1252:			it_CH.ISO8859-1
+Italian_Italy.1252:				it_IT.ISO8859-1
 Japanese_Japan.932:				ja_JP.SJIS
 Korean_Korea.949:				ko_KR.EUC
-Lithuanian_Lithuania.1257:			lt_LT.iso8859-13
-Latvian_Latvia.1257:				lv_LV.iso8859-13
-Dutch_Belgium.1252:				nl_BE.iso8859-1
-Dutch_Netherlands.1252:				nl_NL.iso8859-1
-Norwegian (Nynorsk)_Norway.1252:		no_NO.iso8859-1
-Norwegian (Bokmål)_Norway.1252:			no_NO.iso8859-1
-Polish_Poland.1250:				pl_PL.iso8859-2
-Portuguese_Brazil.1252:				pt_BR.iso8859-1
-Portuguese_Portugal.1252:			pt_PT.iso8859-1
-Romanian_Romania.1250:				ro_RO.iso8859-2
-Russian_Russia.1251:				ru_RU.iso8859-5
-Slovak_Slovakia.1250:				sk_SK.iso8859-2
-Slovene_Slovenia.1250:				sl_SI.iso8859-2
-Albanian_Albania.1250:				sq_AL.iso8859-2
+Lithuanian_Lithuania.1257:			lt_LT.ISO8859-13
+Latvian_Latvia.1257:				lv_LV.ISO8859-13
+Dutch_Belgium.1252:				nl_BE.ISO8859-1
+Dutch_Netherlands.1252:				nl_NL.ISO8859-1
+Norwegian (Nynorsk)_Norway.1252:		no_NO.ISO8859-1
+Norwegian (Bokmål)_Norway.1252:			no_NO.ISO8859-1
+Polish_Poland.1250:				pl_PL.ISO8859-2
+Portuguese_Brazil.1252:				pt_BR.ISO8859-1
+Portuguese_Portugal.1252:			pt_PT.ISO8859-1
+Romanian_Romania.1250:				ro_RO.ISO8859-2
+Russian_Russia.1251:				ru_RU.ISO8859-5
+Slovak_Slovakia.1250:				sk_SK.ISO8859-2
+Slovene_Slovenia.1250:				sl_SI.ISO8859-2
+Albanian_Albania.1250:				sq_AL.ISO8859-2
 Serbian (Latin)_Serbia.1250:			sr_RS.UTF-8@latin
-Swedish_Finland.1252:				sv_FI.iso8859-1
-Swedish_Sweden.1252:				sv_SE.iso8859-1
-Turkish_Turkey.1254:				tr_TR.iso8859-9
-Ukrainian_Ukraine.1251:				uk_UA.iso8859-5
+Swedish_Finland.1252:				sv_FI.ISO8859-1
+Swedish_Sweden.1252:				sv_SE.ISO8859-1
+Turkish_Turkey.1254:				tr_TR.ISO8859-9
+Ukrainian_Ukraine.1251:				uk_UA.ISO8859-5
 Chinese(PRC)_People's Republic of China.936:	zh_CN.EUC
 Chinese(PRC)_Hong Kong.950:			zh_HK.EUC
 Chinese(Singapore)_Signapore.936:		zh_SG.EUC
@@ -1358,9 +1386,5 @@ Chinese(Taiwan)_Taiwan.950:			zh_TW.EUC
 XCOMM Other miscellaneous locale names
 ISO8859-1:					en_US.ISO8859-1
 ISO-8859-1:					en_US.ISO8859-1
-#ifndef __uxp__
 japan:						ja_JP.eucJP
-#else
-japan:						ja_JP.U90
-#endif
 Japanese-EUC:					ja_JP.eucJP

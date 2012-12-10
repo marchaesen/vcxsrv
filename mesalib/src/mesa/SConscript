@@ -107,6 +107,7 @@ main_sources = [
     'main/renderbuffer.c',
     'main/samplerobj.c',
     'main/scissor.c',
+    'main/set.c',
     'main/shaderapi.c',
     'main/shaderobj.c',
     'main/shader_query.cpp',
@@ -293,7 +294,7 @@ env.Append(CPPPATH = [Dir('.').abspath])
 
 program_sources = [
     'program/arbprogparse.c',
-    'program/hash_table.c',
+    'program/prog_hash_table.c',
     'program/ir_to_mesa.cpp',
     'program/program.c',
     'program/program_parse_extra.c',

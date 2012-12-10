@@ -66,7 +66,7 @@ _mesa_ast_to_hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
 {
    _mesa_glsl_initialize_variables(instructions, state);
 
-   state->symbols->language_version = state->language_version;
+   state->symbols->separate_function_namespace = state->language_version == 110;
 
    state->current_function = NULL;
 
@@ -121,7 +121,7 @@ apply_implicit_conversion(const glsl_type *to, ir_rvalue * &from,
    /* This conversion was added in GLSL 1.20.  If the compilation mode is
     * GLSL 1.10, the conversion is skipped.
     */
-   if (state->language_version < 120)
+   if (!state->is_version(120, 0))
       return false;
 
    /* From page 27 (page 33 of the PDF) of the GLSL 1.50 spec:
@@ -390,8 +390,7 @@ bit_logic_result_type(const struct glsl_type *type_a,
                       ast_operators op,
                       struct _mesa_glsl_parse_state *state, YYLTYPE *loc)
 {
-    if (state->language_version < 130) {
-       _mesa_glsl_error(loc, state, "bit operations require GLSL 1.30");
+    if (!state->check_bitwise_operations_allowed(loc)) {
        return glsl_type::error_type;
     }
 
@@ -446,10 +445,7 @@ modulus_result_type(const struct glsl_type *type_a,
 		    const struct glsl_type *type_b,
 		    struct _mesa_glsl_parse_state *state, YYLTYPE *loc)
 {
-   if (state->language_version < 130) {
-      _mesa_glsl_error(loc, state,
-                       "operator '%%' is reserved in %s",
-                       state->version_string);
+   if (!state->check_version(130, 300, loc, "operator '%%' is reserved")) {
       return glsl_type::error_type;
    }
 
@@ -553,8 +549,7 @@ shift_result_type(const struct glsl_type *type_a,
                   ast_operators op,
                   struct _mesa_glsl_parse_state *state, YYLTYPE *loc)
 {
-   if (state->language_version < 130) {
-      _mesa_glsl_error(loc, state, "bit operations require GLSL 1.30");
+   if (!state->check_bitwise_operations_allowed(loc)) {
       return glsl_type::error_type;
    }
 
@@ -694,15 +689,17 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
                           lhs->variable_referenced()->name);
          error_emitted = true;
 
-      } else if (state->language_version <= 110 && lhs->type->is_array()) {
+      } else if (lhs->type->is_array() &&
+                 !state->check_version(120, 300, &lhs_loc,
+                                       "whole array assignment forbidden")) {
 	 /* From page 32 (page 38 of the PDF) of the GLSL 1.10 spec:
 	  *
 	  *    "Other binary or unary expressions, non-dereferenced
 	  *     arrays, function names, swizzles with repeated fields,
 	  *     and constants cannot be l-values."
+          *
+          * The restriction on arrays is lifted in GLSL 1.20 and GLSL ES 3.00.
 	  */
-	 _mesa_glsl_error(&lhs_loc, state, "whole array assignment is not "
-			  "allowed in GLSL 1.10 or GLSL ES 1.00.");
 	 error_emitted = true;
       } else if (!lhs->is_lvalue()) {
 	 _mesa_glsl_error(& lhs_loc, state, "non-lvalue in assignment");
@@ -1099,9 +1096,7 @@ ast_expression::hir(exec_list *instructions,
 
    case ast_lshift:
    case ast_rshift:
-       if (state->language_version < 130) {
-          _mesa_glsl_error(&loc, state, "operator %s requires GLSL 1.30",
-              operator_string(this->oper));
+       if (!state->check_bitwise_operations_allowed(&loc)) {
           error_emitted = true;
        }
 
@@ -1155,10 +1150,9 @@ ast_expression::hir(exec_list *instructions,
 	 _mesa_glsl_error(& loc, state, "operands of `%s' must have the same "
 			  "type", (this->oper == ast_equal) ? "==" : "!=");
 	 error_emitted = true;
-      } else if ((state->language_version <= 110)
-		 && (op[0]->type->is_array() || op[1]->type->is_array())) {
-	 _mesa_glsl_error(& loc, state, "array comparisons forbidden in "
-			  "GLSL 1.10");
+      } else if ((op[0]->type->is_array() || op[1]->type->is_array()) &&
+                 !state->check_version(120, 300, &loc,
+                                       "array comparisons forbidden")) {
 	 error_emitted = true;
       }
 
@@ -1185,8 +1179,7 @@ ast_expression::hir(exec_list *instructions,
    case ast_bit_not:
       op[0] = this->subexpressions[0]->hir(instructions, state);
 
-      if (state->language_version < 130) {
-	 _mesa_glsl_error(&loc, state, "bit-wise operations require GLSL 1.30");
+      if (!state->check_bitwise_operations_allowed(&loc)) {
 	 error_emitted = true;
       }
 
@@ -1424,9 +1417,10 @@ ast_expression::hir(exec_list *instructions,
        *    "The second and third expressions must be the same type, but can
        *    be of any type other than an array."
        */
-      if ((state->language_version <= 110) && type->is_array()) {
-	 _mesa_glsl_error(& loc, state, "Second and third operands of ?: "
-			  "operator must not be arrays.");
+      if (type->is_array() &&
+          !state->check_version(120, 300, &loc,
+                                "Second and third operands of ?: operator "
+                                "cannot be arrays")) {
 	 error_emitted = true;
       }
 
@@ -1660,15 +1654,18 @@ ast_expression::hir(exec_list *instructions,
           array->type->element_type()->is_sampler() &&
           const_index == NULL) {
 
-	 if (state->language_version == 100) {
-	    _mesa_glsl_warning(&loc, state,
-			       "sampler arrays indexed with non-constant "
-			       "expressions is optional in GLSL ES 1.00");
-	 } else if (state->language_version < 130) {
-	    _mesa_glsl_warning(&loc, state,
-			       "sampler arrays indexed with non-constant "
-			       "expressions is forbidden in GLSL 1.30 and "
-			       "later");
+         if (!state->is_version(130, 100)) {
+            if (state->es_shader) {
+               _mesa_glsl_warning(&loc, state,
+                                  "sampler arrays indexed with non-constant "
+                                  "expressions is optional in %s",
+                                  state->get_version_string());
+            } else {
+               _mesa_glsl_warning(&loc, state,
+                                  "sampler arrays indexed with non-constant "
+                                  "expressions will be forbidden in GLSL 1.30 and "
+                                  "later");
+            }
 	 } else {
 	    _mesa_glsl_error(&loc, state,
 			     "sampler arrays indexed with non-constant "
@@ -2288,7 +2285,7 @@ get_variable_being_redeclared(ir_variable *var, ast_declaration *decl,
        *    * gl_Color
        *    * gl_SecondaryColor
        */
-   } else if (state->language_version >= 130
+   } else if (state->is_version(130, 0)
 	      && (strcmp(var->name, "gl_FrontColor") == 0
 		  || strcmp(var->name, "gl_BackColor") == 0
 		  || strcmp(var->name, "gl_FrontSecondaryColor") == 0
@@ -2355,10 +2352,9 @@ process_initializer(ir_variable *var, ast_declaration *decl,
     *    directly by an application via API commands, or indirectly by
     *    OpenGL."
     */
-   if ((state->language_version <= 110)
-       && (var->mode == ir_var_uniform)) {
-      _mesa_glsl_error(& initializer_loc, state,
-		       "cannot initialize uniforms in GLSL 1.10");
+   if (var->mode == ir_var_uniform) {
+      state->check_version(120, 0, &initializer_loc,
+                           "cannot initialize uniforms");
    }
 
    if (var->type->is_sampler()) {
@@ -2608,23 +2604,23 @@ ast_declarator_list::hir(exec_list *instructions,
        *
        *     Local variables can only use the qualifier const."
        *
-       * This is relaxed in GLSL 1.30.  It is also relaxed by any extension
-       * that adds the 'layout' keyword.
+       * This is relaxed in GLSL 1.30 and GLSL ES 3.00.  It is also relaxed by
+       * any extension that adds the 'layout' keyword.
        */
-      if ((state->language_version < 130)
+      if (!state->is_version(130, 300)
 	  && !state->ARB_explicit_attrib_location_enable
 	  && !state->ARB_fragment_coord_conventions_enable) {
 	 if (this->type->qualifier.flags.q.out) {
 	    _mesa_glsl_error(& loc, state,
 			     "`out' qualifier in declaration of `%s' "
 			     "only valid for function parameters in %s.",
-			     decl->identifier, state->version_string);
+			     decl->identifier, state->get_version_string());
 	 }
 	 if (this->type->qualifier.flags.q.in) {
 	    _mesa_glsl_error(& loc, state,
 			     "`in' qualifier in declaration of `%s' "
 			     "only valid for function parameters in %s.",
-			     decl->identifier, state->version_string);
+			     decl->identifier, state->get_version_string());
 	 }
 	 /* FINISHME: Test for other invalid qualifiers. */
       }
@@ -2703,6 +2699,13 @@ ast_declarator_list::hir(exec_list *instructions,
 	     *    "The attribute qualifier can be used only with float,
 	     *    floating-point vectors, and matrices. Attribute variables
 	     *    cannot be declared as arrays or structures."
+             *
+             * From page 33 (page 39 of the PDF) of the GLSL ES 3.00 spec:
+             *
+             *    "Vertex shader inputs can only be float, floating-point
+             *    vectors, matrices, signed and unsigned integers and integer
+             *    vectors. Vertex shader inputs cannot be arrays or
+             *    structures."
 	     */
 	    const glsl_type *check_type = var->type->is_array()
 	       ? var->type->fields.array : var->type;
@@ -2712,7 +2715,7 @@ ast_declarator_list::hir(exec_list *instructions,
 	       break;
 	    case GLSL_TYPE_UINT:
 	    case GLSL_TYPE_INT:
-	       if (state->language_version > 120)
+	       if (state->is_version(120, 300))
 		  break;
 	       /* FALLTHROUGH */
 	    default:
@@ -2724,11 +2727,10 @@ ast_declarator_list::hir(exec_list *instructions,
 	       error_emitted = true;
 	    }
 
-	    if (!error_emitted && (state->language_version <= 130)
-		&& var->type->is_array()) {
-	       _mesa_glsl_error(& loc, state,
-				"vertex shader input / attribute cannot have "
-				"array type");
+	    if (!error_emitted && var->type->is_array() &&
+                !state->check_version(140, 0, &loc,
+                                      "vertex shader input / attribute "
+                                      "cannot have array type")) {
 	       error_emitted = true;
 	    }
 	 }
@@ -2740,8 +2742,16 @@ ast_declarator_list::hir(exec_list *instructions,
        *    "If a vertex output is a signed or unsigned integer or integer
        *    vector, then it must be qualified with the interpolation qualifier
        *    flat."
+       *
+       * From section 4.3.4 of the GLSL 3.00 ES spec:
+       *    "Fragment shader inputs that are signed or unsigned integers or
+       *    integer vectors must be qualified with the interpolation qualifier
+       *    flat."
+       *
+       * Since vertex outputs and fragment inputs must have matching
+       * qualifiers, these two requirements are equivalent.
        */
-      if (state->language_version >= 130
+      if (state->is_version(130, 300)
           && state->target == vertex_shader
           && state->current_function == NULL
           && var->type->is_integer()
@@ -2760,8 +2770,10 @@ ast_declarator_list::hir(exec_list *instructions,
        *    "interpolation qualifiers may only precede the qualifiers in,
        *    centroid in, out, or centroid out in a declaration. They do not apply
        *    to the deprecated storage qualifiers varying or centroid varying."
+       *
+       * These deprecated storage qualifiers do not exist in GLSL ES 3.00.
        */
-      if (state->language_version >= 130
+      if (state->is_version(130, 0)
           && this->type->qualifier.has_interpolation()
           && this->type->qualifier.flags.q.varying) {
 
@@ -2786,8 +2798,14 @@ ast_declarator_list::hir(exec_list *instructions,
        *    "Outputs from a vertex shader (out) and inputs to a fragment
        *    shader (in) can be further qualified with one or more of these
        *    interpolation qualifiers"
+       *
+       * From page 31 (page 37 of the PDF) of the GLSL ES 3.00 spec:
+       *    "These interpolation qualifiers may only precede the qualifiers
+       *    in, centroid in, out, or centroid out in a declaration. They do
+       *    not apply to inputs into a vertex shader or outputs from a
+       *    fragment shader."
        */
-      if (state->language_version >= 130
+      if (state->is_version(130, 300)
           && this->type->qualifier.has_interpolation()) {
 
          const char *i = this->type->qualifier.interpolation_string();
@@ -2816,8 +2834,12 @@ ast_declarator_list::hir(exec_list *instructions,
 
       /* From section 4.3.4 of the GLSL 1.30 spec:
        *    "It is an error to use centroid in in a vertex shader."
+       *
+       * From section 4.3.4 of the GLSL ES 3.00 spec:
+       *    "It is an error to use centroid in or interpolation qualifiers in
+       *    a vertex shader input."
        */
-      if (state->language_version >= 130
+      if (state->is_version(130, 300)
           && this->type->qualifier.flags.q.centroid
           && this->type->qualifier.flags.q.in
           && state->target == vertex_shader) {
@@ -2829,13 +2851,8 @@ ast_declarator_list::hir(exec_list *instructions,
 
       /* Precision qualifiers exists only in GLSL versions 1.00 and >= 1.30.
        */
-      if (this->type->specifier->precision != ast_precision_none
-          && state->language_version != 100
-          && state->language_version < 130) {
-
-         _mesa_glsl_error(&loc, state,
-                          "precision qualifiers are supported only in GLSL ES "
-                          "1.00, and GLSL 1.30 and later");
+      if (this->type->specifier->precision != ast_precision_none) {
+         state->check_precision_qualifiers_allowed(&loc);
       }
 
 
@@ -3077,8 +3094,9 @@ ast_parameter_declarator::hir(exec_list *instructions,
     * allowed.  This restriction is removed in GLSL 1.20, and in GLSL ES.
     */
    if ((var->mode == ir_var_inout || var->mode == ir_var_out)
-       && type->is_array() && state->language_version == 110) {
-      _mesa_glsl_error(&loc, state, "Arrays cannot be out or inout parameters in GLSL 1.10");
+       && type->is_array()
+       && !state->check_version(120, 100, &loc,
+                                "Arrays cannot be out or inout parameters")) {
       type = glsl_type::error_type;
    }
 
@@ -3161,7 +3179,8 @@ ast_function::hir(exec_list *instructions,
     *
     * Note that this language does not appear in GLSL 1.10.
     */
-   if ((state->current_function != NULL) && (state->language_version != 110)) {
+   if ((state->current_function != NULL) &&
+       state->is_version(120, 100)) {
       YYLTYPE loc = this->get_location();
       _mesa_glsl_error(&loc, state,
 		       "declaration of function `%s' not allowed within "
@@ -3872,11 +3891,7 @@ ast_type_specifier::hir(exec_list *instructions,
    YYLTYPE loc = this->get_location();
 
    if (this->precision != ast_precision_none
-       && state->language_version != 100
-       && state->language_version < 130) {
-      _mesa_glsl_error(&loc, state,
-                       "precision qualifiers exist only in "
-                       "GLSL ES 1.00, and GLSL 1.30 and later");
+       && !state->check_precision_qualifiers_allowed(&loc)) {
       return NULL;
    }
    if (this->precision != ast_precision_none
