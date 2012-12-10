@@ -182,7 +182,7 @@ FcLangNormalize (const FcChar8 *lang)
 {
     FcChar8 *result = NULL, *s, *orig;
     char *territory, *encoding, *modifier;
-    size_t llen, tlen = 0, mlen = 0;
+    size_t llen, tlen = 0, mlen = 0, ssize;
 
     if (!lang || !*lang)
 	return NULL;
@@ -197,6 +197,10 @@ FcLangNormalize (const FcChar8 *lang)
     s = FcStrCopy (lang);
     if (!s)
 	goto bail;
+    /* store the original length of 's' here to let FcMemFree know
+     * the correct size since we breaks 's' from now on.
+     */
+    ssize = strlen ((const char *)s) + 1;
 
     /* from the comments in glibc:
      *
@@ -282,6 +286,11 @@ FcLangNormalize (const FcChar8 *lang)
 	else
 	{
 	    result = s;
+	    /* we'll miss the opportunity to reduce the correct size
+	     * of the allocated memory for the string after that.
+	     */
+	    FcMemFree (FC_MEM_STRING, ssize);
+	    FcMemAlloc (FC_MEM_STRING, strlen((const char *)s) + 1);
 	    s = NULL;
 	    goto bail1;
 	}
@@ -295,6 +304,11 @@ FcLangNormalize (const FcChar8 *lang)
 	else
 	{
 	    result = s;
+	    /* we'll miss the opportunity to reduce the correct size
+	     * of the allocated memory for the string after that.
+	     */
+	    FcMemFree (FC_MEM_STRING, ssize);
+	    FcMemAlloc (FC_MEM_STRING, strlen((const char *)s) + 1);
 	    s = NULL;
 	    goto bail1;
 	}
@@ -312,14 +326,22 @@ FcLangNormalize (const FcChar8 *lang)
     else
     {
 	result = s;
+	/* we'll miss the opportunity to reduce the correct size
+	 * of the allocated memory for the string after that.
+	 */
+	FcMemFree (FC_MEM_STRING, ssize);
+	FcMemAlloc (FC_MEM_STRING, strlen((const char *)s) + 1);
 	s = NULL;
     }
   bail1:
     if (orig)
-	free (orig);
+	FcStrFree (orig);
   bail0:
     if (s)
+    {
 	free (s);
+	FcMemFree (FC_MEM_STRING, ssize);
+    }
   bail:
     if (FcDebug () & FC_DBG_LANGSET)
     {

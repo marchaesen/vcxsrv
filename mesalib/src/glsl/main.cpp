@@ -48,6 +48,7 @@ initialize_context(struct gl_context *ctx, gl_api api)
     * everything in order to compile the built-in functions.
     */
    ctx->Const.GLSLVersion = 140;
+   ctx->Extensions.ARB_ES3_compatibility = true;
 
    ctx->Const.MaxClipPlanes = 8;
    ctx->Const.MaxDrawBuffers = 2;
@@ -190,6 +191,7 @@ compile_shader(struct gl_context *ctx, struct gl_shader *shader)
    shader->symbols = state->symbols;
    shader->CompileStatus = !state->error;
    shader->Version = state->language_version;
+   shader->IsES = state->es_shader;
    memcpy(shader->builtins_to_link, state->builtins_to_link,
 	  sizeof(shader->builtins_to_link[0]) * state->num_builtins_to_link);
    shader->num_builtins_to_link = state->num_builtins_to_link;

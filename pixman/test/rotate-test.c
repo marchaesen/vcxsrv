@@ -43,13 +43,13 @@ static const pixman_transform_t transforms[] =
 };
 
 #define RANDOM_FORMAT()							\
-    (formats[lcg_rand_n (ARRAY_LENGTH (formats))])
+    (formats[prng_rand_n (ARRAY_LENGTH (formats))])
 
 #define RANDOM_OP()							\
-    (ops[lcg_rand_n (ARRAY_LENGTH (ops))])
+    (ops[prng_rand_n (ARRAY_LENGTH (ops))])
 
 #define RANDOM_TRANSFORM()						\
-    (&(transforms[lcg_rand_n (ARRAY_LENGTH (transforms))]))
+    (&(transforms[prng_rand_n (ARRAY_LENGTH (transforms))]))
 
 static void
 on_destroy (pixman_image_t *image, void *data)
@@ -63,10 +63,8 @@ make_image (void)
     pixman_format_code_t format = RANDOM_FORMAT();
     uint32_t *bytes = malloc (WIDTH * HEIGHT * 4);
     pixman_image_t *image;
-    int i;
 
-    for (i = 0; i < WIDTH * HEIGHT * 4; ++i)
-	((uint8_t *)bytes)[i] = lcg_rand_n (256);
+    prng_randmemset (bytes, WIDTH * HEIGHT * 4, 0);
 
     image = pixman_image_create_bits (
 	format, WIDTH, HEIGHT, bytes, WIDTH * 4);
@@ -86,7 +84,7 @@ test_transform (int testnum, int verbose)
     pixman_image_t *src, *dest;
     uint32_t crc;
 
-    lcg_srand (testnum);
+    prng_srand (testnum);
     
     src = make_image ();
     dest = make_image ();
@@ -108,6 +106,6 @@ int
 main (int argc, const char *argv[])
 {
     return fuzzer_test_main ("rotate", 15000,
-			     0x5236FD9F,
+			     0xECF5E426,
 			     test_transform, argc, argv);
 }

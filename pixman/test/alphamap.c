@@ -307,6 +307,8 @@ main (int argc, char **argv)
 {
     int i, j, a, b, x, y;
 
+    prng_srand (0);
+
     for (i = 0; i < ARRAY_LENGTH (formats); ++i)
     {
 	for (j = 0; j < ARRAY_LENGTH (formats); ++j)

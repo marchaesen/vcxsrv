@@ -1849,7 +1849,7 @@ static void
 FcParseDir (FcConfigParse *parse)
 {
     const FcChar8 *attr, *data;
-    FcChar8 *prefix = NULL;
+    FcChar8 *prefix = NULL, *p;
 #ifdef _WIN32
     FcChar8         buffer[1000];
 #endif
@@ -1868,13 +1868,14 @@ FcParseDir (FcConfigParse *parse)
 	size_t plen = strlen ((const char *)prefix);
 	size_t dlen = strlen ((const char *)data);
 
-	FcMemFree (FC_MEM_STRING, plen + 1);
-	prefix = realloc (prefix, plen + 1 + dlen + 1);
-	if (!prefix)
+	p = realloc (prefix, plen + 1 + dlen + 1);
+	if (!p)
 	{
 	    FcConfigMessage (parse, FcSevereError, "out of memory");
 	    goto bail;
 	}
+	prefix = p;
+	FcMemFree (FC_MEM_STRING, plen + 1);
 	FcMemAlloc (FC_MEM_STRING, plen + 1 + dlen + 1);
 	prefix[plen] = FC_DIR_SEPARATOR;
 	memcpy (&prefix[plen + 1], data, dlen);
@@ -1947,7 +1948,7 @@ static void
 FcParseCacheDir (FcConfigParse *parse)
 {
     const FcChar8 *attr;
-    FcChar8 *prefix = NULL, *data;
+    FcChar8 *prefix = NULL, *p, *data;
 
     attr = FcConfigGetAttribute (parse, "prefix");
     if (attr && FcStrCmp (attr, (const FcChar8 *)"xdg") == 0)
@@ -1963,13 +1964,15 @@ FcParseCacheDir (FcConfigParse *parse)
 	size_t plen = strlen ((const char *)prefix);
 	size_t dlen = strlen ((const char *)data);
 
-	FcMemFree (FC_MEM_STRING, plen + 1);
-	prefix = realloc (prefix, plen + 1 + dlen + 1);
-	if (!prefix)
+	p = realloc (prefix, plen + 1 + dlen + 1);
+	if (!p)
 	{
 	    FcConfigMessage (parse, FcSevereError, "out of memory");
+	    data = prefix;
 	    goto bail;
 	}
+	prefix = p;
+	FcMemFree (FC_MEM_STRING, plen + 1);
 	FcMemAlloc (FC_MEM_STRING, plen + 1 + dlen + 1);
 	prefix[plen] = FC_DIR_SEPARATOR;
 	memcpy (&prefix[plen + 1], data, dlen);
@@ -2043,7 +2046,7 @@ FcParseInclude (FcConfigParse *parse)
     const FcChar8   *attr;
     FcBool	    ignore_missing = FcFalse;
     FcBool	    deprecated = FcFalse;
-    FcChar8	    *prefix = NULL;
+    FcChar8	    *prefix = NULL, *p;
 
     s = FcStrBufDoneStatic (&parse->pstack->str);
     if (!s)
@@ -2065,13 +2068,14 @@ FcParseInclude (FcConfigParse *parse)
 	size_t plen = strlen ((const char *)prefix);
 	size_t dlen = strlen ((const char *)s);
 
-	FcMemFree (FC_MEM_STRING, plen + 1);
-	prefix = realloc (prefix, plen + 1 + dlen + 1);
-	if (!prefix)
+	p = realloc (prefix, plen + 1 + dlen + 1);
+	if (!p)
 	{
 	    FcConfigMessage (parse, FcSevereError, "out of memory");
 	    goto bail;
 	}
+	prefix = p;
+	FcMemFree (FC_MEM_STRING, plen + 1);
 	FcMemAlloc (FC_MEM_STRING, plen + 1 + dlen + 1);
 	prefix[plen] = FC_DIR_SEPARATOR;
 	memcpy (&prefix[plen + 1], s, dlen);
@@ -2085,8 +2089,10 @@ FcParseInclude (FcConfigParse *parse)
         FcChar8 *filename;
 
         filename = FcConfigFilename(s);
-        if ((deprecated == FcTrue) && filename)
-        {
+	if (deprecated == FcTrue &&
+	    filename != NULL &&
+	    !FcFileIsLink (filename))
+	{
             FcConfigMessage (parse, FcSevereWarning, "reading configurations from %s is deprecated.", s);
         }
         if(filename)

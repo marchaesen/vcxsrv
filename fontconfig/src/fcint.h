@@ -764,6 +764,9 @@ FcGetDefaultLang (void);
 /* fcdir.c */
 
 FcPrivate FcBool
+FcFileIsLink (const FcChar8 *file);
+
+FcPrivate FcBool
 FcFileScanConfig (FcFontSet	*set,
 		  FcStrSet	*dirs,
 		  FcBlanks	*blanks,

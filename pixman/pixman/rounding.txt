@@ -132,3 +132,36 @@ And so the final formula for the index k of x0 in the image is:
 
 Computing the result is then simply a matter of convolving all the
 pixels starting at k with all the samples in the matrix.
+
+
+--- SEPARABLE_CONVOLUTION
+
+For this filter, x is first rounded to one of n regularly spaced
+subpixel positions. This subpixel position determines which of n
+convolution matrices is being used.
+
+Then, as in a regular convolution filter, the first pixel to be used
+is determined:
+
+    	k = floor (x - (width - 1) / 2.0 - e)
+
+and then the image pixels starting there are convolved with the chosen
+matrix. If we write x = xi + frac, where xi is an integer, we get
+
+	k = xi + floor (frac - (width - 1) / 2.0 - e)
+
+so the location of k relative to x is given by:
+
+    (k + 0.5 - x) = xi + floor (frac - (width - 1) / 2.0 - e) + 0.5 - x
+
+                  = floor (frac - (width - 1) / 2.0 - e) + 0.5 - frac
+
+which means the contents of the matrix corresponding to (frac) should
+contain width samplings of the function, with the first sample at:
+
+       floor (frac - (width - 1) / 2.0 - e) + 0.5 - frac
+
+This filter is called separable because each of the k x k convolution
+matrices is specified with two k-wide vectors, one for each dimension,
+where each entry in the matrix is computed as the product of the
+corresponding entries in the vectors.

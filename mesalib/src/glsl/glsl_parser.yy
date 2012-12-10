@@ -137,6 +137,9 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
 %token HVEC2 HVEC3 HVEC4 DVEC2 DVEC3 DVEC4 FVEC2 FVEC3 FVEC4
 %token SAMPLER3DRECT
 %token SIZEOF CAST NAMESPACE USING
+%token COHERENT RESTRICT READONLY WRITEONLY RESOURCE ATOMIC_UINT PATCH SAMPLE
+%token SUBROUTINE SAMPLER2DMS ISAMPLER2DMS USAMPLER2DMS SAMPLER2DMSARRAY
+%token ISAMPLER2DMSARRAY USAMPLER2DMSARRAY
 
 %token ERROR_TOK
 
@@ -258,54 +261,12 @@ version_statement:
 	/* blank - no #version specified: defaults are already set */
 	| VERSION_TOK INTCONSTANT EOL
 	{
-	   bool supported = false;
-
-	   switch ($2) {
-	   case 100:
-	      state->es_shader = true;
-	      supported = state->ctx->API == API_OPENGLES2 ||
-		          state->ctx->Extensions.ARB_ES2_compatibility;
-	      break;
-	   case 110:
-	   case 120:
-	      /* FINISHME: Once the OpenGL 3.0 'forward compatible' context or
-	       * the OpenGL 3.2 Core context is supported, this logic will need
-	       * change.  Older versions of GLSL are no longer supported
-	       * outside the compatibility contexts of 3.x.
-	       */
-	   case 130:
-	   case 140:
-	   case 150:
-	   case 330:
-	   case 400:
-	   case 410:
-	   case 420:
-	      supported = _mesa_is_desktop_gl(state->ctx) &&
-			  ((unsigned) $2) <= state->ctx->Const.GLSLVersion;
-	      break;
-	   default:
-	      supported = false;
-	      break;
-	   }
-
-	   state->language_version = $2;
-	   state->version_string =
-	      ralloc_asprintf(state, "GLSL%s %d.%02d",
-			      state->es_shader ? " ES" : "",
-			      state->language_version / 100,
-			      state->language_version % 100);
-
-	   if (!supported) {
-	      _mesa_glsl_error(& @2, state, "%s is not supported. "
-			       "Supported versions are: %s\n",
-			       state->version_string,
-			       state->supported_version_string);
-	   }
-
-	   if (state->language_version >= 140) {
-	      state->ARB_uniform_buffer_object_enable = true;
-	   }
+           state->process_version_directive(&@2, $2, NULL);
 	}
+        | VERSION_TOK INTCONSTANT any_identifier EOL
+        {
+           state->process_version_directive(&@2, $2, $3);
+        }
 	;
 
 pragma_statement:
@@ -315,10 +276,11 @@ pragma_statement:
 	| PRAGMA_OPTIMIZE_OFF EOL
 	| PRAGMA_INVARIANT_ALL EOL
 	{
-	   if (state->language_version == 110) {
+	   if (!state->is_version(120, 100)) {
 	      _mesa_glsl_warning(& @1, state,
-				 "pragma `invariant(all)' not supported in %s",
-				 state->version_string);
+				 "pragma `invariant(all)' not supported in %s "
+                                 "(GLSL ES 1.00 or GLSL 1.20 required).",
+				 state->get_version_string());
 	   } else {
 	      state->all_invariant = true;
 	   }
@@ -1126,6 +1088,7 @@ layout_qualifier_id_list:
 integer_constant:
 	INTCONSTANT { $$ = $1; }
 	| UINTCONSTANT { $$ = $1; }
+	;
 
 layout_qualifier_id:
 	any_identifier
@@ -1181,6 +1144,8 @@ layout_qualifier_id:
 	         $$.flags.q.shared = 1;
 	      } else if (strcmp($1, "column_major") == 0) {
 	         $$.flags.q.column_major = 1;
+	      } else if (strcmp($1, "row_major") == 0) {
+	         $$.flags.q.row_major = 1;
 	      }
 
 	      if ($$.flags.i && state->ARB_uniform_buffer_object_warn) {
@@ -1498,32 +1463,17 @@ basic_type_specifier_nonarray:
 
 precision_qualifier:
 	HIGHP	  {
-		     if (!state->es_shader && state->language_version < 130)
-			_mesa_glsl_error(& @1, state,
-				         "precision qualifier forbidden "
-					 "in %s (1.30 or later "
-					 "required)\n",
-					 state->version_string);
+                     state->check_precision_qualifiers_allowed(&@1);
 
 		     $$ = ast_precision_high;
 		  }
 	| MEDIUMP {
-		     if (!state->es_shader && state->language_version < 130)
-			_mesa_glsl_error(& @1, state,
-					 "precision qualifier forbidden "
-					 "in %s (1.30 or later "
-					 "required)\n",
-					 state->version_string);
+                     state->check_precision_qualifiers_allowed(&@1);
 
 		     $$ = ast_precision_medium;
 		  }
 	| LOWP	  {
-		     if (!state->es_shader && state->language_version < 130)
-			_mesa_glsl_error(& @1, state,
-					 "precision qualifier forbidden "
-					 "in %s (1.30 or later "
-					 "required)\n",
-					 state->version_string);
+                     state->check_precision_qualifiers_allowed(&@1);
 
 		     $$ = ast_precision_low;
 		  }

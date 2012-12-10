@@ -107,7 +107,7 @@ random_format (const pixman_format_code_t *formats)
     i = 0;
     while (formats[i] != PIXMAN_null)
 	++i;
-    return formats[lcg_rand_n (i)];
+    return formats[prng_rand_n (i)];
 }
 
 static pixman_image_t *
@@ -122,27 +122,27 @@ create_image (int max_size, const pixman_format_code_t *formats, uint32_t flags)
     int i;
     pixman_image_destroy_func_t destroy;
 
-    if ((flags & ALLOW_SOLID) && lcg_rand_n (4) == 0)
+    if ((flags & ALLOW_SOLID) && prng_rand_n (4) == 0)
     {
 	pixman_color_t color;
 
-	color.alpha = lcg_rand_u32();
-	color.red = lcg_rand_u32();
-	color.green = lcg_rand_u32();
-	color.blue = lcg_rand_u32();
+	color.alpha = prng_rand();
+	color.red = prng_rand();
+	color.green = prng_rand();
+	color.blue = prng_rand();
 
 	return pixman_image_create_solid_fill (&color);
     }
 
-    width = lcg_rand_n (max_size) + 1;
-    height = lcg_rand_n (max_size) + 1;
+    width = prng_rand_n (max_size) + 1;
+    height = prng_rand_n (max_size) + 1;
     format = random_format (formats);
 
     bpp = PIXMAN_FORMAT_BPP (format);
-    stride = (width * bpp + 7) / 8 + lcg_rand_n (17);
+    stride = (width * bpp + 7) / 8 + prng_rand_n (17);
     stride = (stride + 3) & ~3;
 
-    if (lcg_rand_n (64) == 0)
+    if (prng_rand_n (64) == 0)
     {
 	if (!(data = (uint32_t *)make_random_bytes (stride * height)))
 	{
@@ -153,34 +153,28 @@ create_image (int max_size, const pixman_format_code_t *formats, uint32_t flags)
     }
     else
     {
-	uint8_t *d8;
-
 	data = malloc (stride * height);
-
-	d8 = (uint8_t *)data;
-	for (i = 0; i < height * stride; ++i)
-	    d8[i] = lcg_rand_n (256);
-
+	prng_randmemset (data, height * stride, 0);
 	destroy = destroy_malloced;
     }
 
     image = pixman_image_create_bits (format, width, height, data, stride);
     pixman_image_set_destroy_function (image, destroy, data);
 
-    if ((flags & ALLOW_CLIPPED) && lcg_rand_n (8) == 0)
+    if ((flags & ALLOW_CLIPPED) && prng_rand_n (8) == 0)
     {
 	pixman_box16_t clip_boxes[8];
 	pixman_region16_t clip;
-	int n = lcg_rand_n (8) + 1;
+	int n = prng_rand_n (8) + 1;
 
 	for (i = 0; i < n; i++)
 	{
-	    clip_boxes[i].x1 = lcg_rand_n (width);
-	    clip_boxes[i].y1 = lcg_rand_n (height);
+	    clip_boxes[i].x1 = prng_rand_n (width);
+	    clip_boxes[i].y1 = prng_rand_n (height);
 	    clip_boxes[i].x2 =
-		clip_boxes[i].x1 + lcg_rand_n (width - clip_boxes[i].x1);
+		clip_boxes[i].x1 + prng_rand_n (width - clip_boxes[i].x1);
 	    clip_boxes[i].y2 =
-		clip_boxes[i].y1 + lcg_rand_n (height - clip_boxes[i].y1);
+		clip_boxes[i].y1 + prng_rand_n (height - clip_boxes[i].y1);
 	}
 
 	pixman_region_init_rects (&clip, clip_boxes, n);
@@ -188,27 +182,27 @@ create_image (int max_size, const pixman_format_code_t *formats, uint32_t flags)
 	pixman_region_fini (&clip);
     }
 
-    if ((flags & ALLOW_SOURCE_CLIPPING) && lcg_rand_n (4) == 0)
+    if ((flags & ALLOW_SOURCE_CLIPPING) && prng_rand_n (4) == 0)
     {
 	pixman_image_set_source_clipping (image, TRUE);
 	pixman_image_set_has_client_clip (image, TRUE);
     }
 
-    if ((flags & ALLOW_ALPHA_MAP) && lcg_rand_n (16) == 0)
+    if ((flags & ALLOW_ALPHA_MAP) && prng_rand_n (16) == 0)
     {
 	pixman_image_t *alpha_map;
 	int alpha_x, alpha_y;
 
-	alpha_x = lcg_rand_n (width);
-	alpha_y = lcg_rand_n (height);
+	alpha_x = prng_rand_n (width);
+	alpha_y = prng_rand_n (height);
 	alpha_map =
 	    create_image (max_size, formats, (flags & ~(ALLOW_ALPHA_MAP | ALLOW_SOLID)));
 	pixman_image_set_alpha_map (image, alpha_map, alpha_x, alpha_y);
 	pixman_image_unref (alpha_map);
     }
 
-    if ((flags & ALLOW_REPEAT) && lcg_rand_n (2) == 0)
-	pixman_image_set_repeat (image, lcg_rand_n (4));
+    if ((flags & ALLOW_REPEAT) && prng_rand_n (2) == 0)
+	pixman_image_set_repeat (image, prng_rand_n (4));
 
     image_endian_swap (image);
 
@@ -230,7 +224,7 @@ test_glyphs (int testnum, int verbose)
     int n_glyphs, i;
     pixman_glyph_cache_t *cache;
 
-    lcg_srand (testnum);
+    prng_srand (testnum);
 
     cache = pixman_glyph_cache_create ();
 
@@ -245,13 +239,13 @@ test_glyphs (int testnum, int verbose)
 
     pixman_glyph_cache_freeze (cache);
 
-    n_glyphs = lcg_rand_n (MAX_GLYPHS);
+    n_glyphs = prng_rand_n (MAX_GLYPHS);
     for (i = 0; i < n_glyphs; ++i)
 	glyph_images[i] = create_image (32, glyph_formats, 0);
 
     for (i = 0; i < 4 * n_glyphs; ++i)
     {
-	int g = lcg_rand_n (n_glyphs);
+	int g = prng_rand_n (n_glyphs);
 	pixman_image_t *glyph_img = glyph_images[g];
 	void *key1 = KEY1 (glyph_img);
 	void *key2 = KEY2 (glyph_img);
@@ -264,21 +258,21 @@ test_glyphs (int testnum, int verbose)
 	}
 
 	glyphs[i].glyph = glyph;
-	glyphs[i].x = lcg_rand_n (128);
-	glyphs[i].y = lcg_rand_n (128);
+	glyphs[i].x = prng_rand_n (128);
+	glyphs[i].y = prng_rand_n (128);
     }
 
-    if (lcg_rand_n (2) == 0)
+    if (prng_rand_n (2) == 0)
     {
-	int src_x = lcg_rand_n (300) - 150;
-	int src_y = lcg_rand_n (300) - 150;
-	int mask_x = lcg_rand_n (64) - 32;
-	int mask_y = lcg_rand_n (64) - 32;
-	int dest_x = lcg_rand_n (64) - 32;
-	int dest_y = lcg_rand_n (64) - 32;
-	int width = lcg_rand_n (64);
-	int height = lcg_rand_n (64);
-	pixman_op_t op = operators[lcg_rand_n (ARRAY_LENGTH (operators))];
+	int src_x = prng_rand_n (300) - 150;
+	int src_y = prng_rand_n (300) - 150;
+	int mask_x = prng_rand_n (64) - 32;
+	int mask_y = prng_rand_n (64) - 32;
+	int dest_x = prng_rand_n (64) - 32;
+	int dest_y = prng_rand_n (64) - 32;
+	int width = prng_rand_n (64);
+	int height = prng_rand_n (64);
+	pixman_op_t op = operators[prng_rand_n (ARRAY_LENGTH (operators))];
 	pixman_format_code_t format = random_format (glyph_formats);
 
 	pixman_composite_glyphs (
@@ -292,11 +286,11 @@ test_glyphs (int testnum, int verbose)
     }
     else
     {
-	pixman_op_t op = operators[lcg_rand_n (ARRAY_LENGTH (operators))];
-	int src_x = lcg_rand_n (300) - 150;
-	int src_y = lcg_rand_n (300) - 150;
-	int dest_x = lcg_rand_n (64) - 32;
-	int dest_y = lcg_rand_n (64) - 32;
+	pixman_op_t op = operators[prng_rand_n (ARRAY_LENGTH (operators))];
+	int src_x = prng_rand_n (300) - 150;
+	int src_y = prng_rand_n (300) - 150;
+	int dest_x = prng_rand_n (64) - 32;
+	int dest_y = prng_rand_n (64) - 32;
 
 	pixman_composite_glyphs_no_mask (
 	    op, source, dest,
@@ -333,6 +327,6 @@ int
 main (int argc, const char *argv[])
 {
     return fuzzer_test_main ("glyph", 30000,	
-			     0x79E74996,
+			     0xFA478A79,
 			     test_glyphs, argc, argv);
 }

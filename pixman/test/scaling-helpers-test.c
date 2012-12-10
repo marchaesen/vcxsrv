@@ -52,14 +52,15 @@ int
 main (void)
 {
     int i;
+    prng_srand (0);
     for (i = 0; i < 10000; i++)
     {
 	int32_t left_pad1, left_tz1, width1, right_tz1, right_pad1;
 	int32_t left_pad2, left_tz2, width2, right_tz2, right_pad2;
-	pixman_fixed_t vx = lcg_rand_N(10000 << 16) - (3000 << 16);
-	int32_t width = lcg_rand_N(10000);
-	int32_t source_image_width = lcg_rand_N(10000) + 1;
-	pixman_fixed_t unit_x = lcg_rand_N(10 << 16) + 1;
+	pixman_fixed_t vx = prng_rand_n(10000 << 16) - (3000 << 16);
+	int32_t width = prng_rand_n(10000);
+	int32_t source_image_width = prng_rand_n(10000) + 1;
+	pixman_fixed_t unit_x = prng_rand_n(10 << 16) + 1;
 	width1 = width2 = width;
 
 	bilinear_pad_repeat_get_scanline_bounds_ref (source_image_width,

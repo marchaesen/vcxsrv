@@ -1,5 +1,6 @@
 # Tests (sorted by expected completion time)
 TESTPROGRAMS =			\
+	prng-test		\
 	a1-trap-test		\
 	pdf-op-test		\
 	region-test		\
@@ -33,8 +34,10 @@ BENCHMARKS =			\
 # Utility functions
 libutils_sources =		\
 	utils.c			\
+	utils-prng.c		\
 	$(NULL)
 
 libutils_headers =		\
 	utils.h			\
+	utils-prng.h		\
 	$(NULL)

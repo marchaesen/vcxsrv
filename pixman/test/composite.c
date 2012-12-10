@@ -725,19 +725,19 @@ image_fini (image_t *info)
 static int
 random_size (void)
 {
-    return lcg_rand_n (ARRAY_LENGTH (sizes));
+    return prng_rand_n (ARRAY_LENGTH (sizes));
 }
 
 static int
 random_color (void)
 {
-    return lcg_rand_n (ARRAY_LENGTH (colors));
+    return prng_rand_n (ARRAY_LENGTH (colors));
 }
 
 static int
 random_format (void)
 {
-    return lcg_rand_n (ARRAY_LENGTH (formats));
+    return prng_rand_n (ARRAY_LENGTH (formats));
 }
 
 static pixman_bool_t
@@ -748,15 +748,15 @@ run_test (uint32_t seed)
     int ca;
     int ok;
 
-    lcg_srand (seed);
+    prng_srand (seed);
 
     image_init (&dst, random_color(), random_format(), 1);
     image_init (&src, random_color(), random_format(), random_size());
     image_init (&mask, random_color(), random_format(), random_size());
 
-    op = &(operators [lcg_rand_n (ARRAY_LENGTH (operators))]);
+    op = &(operators [prng_rand_n (ARRAY_LENGTH (operators))]);
 
-    ca = lcg_rand_n (3);
+    ca = prng_rand_n (3);
 
     switch (ca)
     {

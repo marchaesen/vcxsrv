@@ -67,7 +67,7 @@ static const pixman_op_t op_list[] =
 static float
 rand_float (void)
 {
-    uint32_t u = lcg_rand_u32();
+    uint32_t u = prng_rand();
 
     return *(float *)&u;
 }
@@ -123,7 +123,7 @@ main ()
     
     impl = _pixman_internal_only_get_implementation();
     
-    lcg_srand (0);
+    prng_srand (0);
 
     for (i = 0; i < ARRAY_LENGTH (op_list); ++i)
     {

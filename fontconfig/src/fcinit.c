@@ -72,7 +72,7 @@ FcInitLoadConfig (void)
 
     if (config->cacheDirs && config->cacheDirs->num == 0)
     {
-	FcChar8 *prefix;
+	FcChar8 *prefix, *p;
 	size_t plen;
 
 	fprintf (stderr,
@@ -81,12 +81,15 @@ FcInitLoadConfig (void)
 		 "Fontconfig warning: adding <cachedir>%s</cachedir>\n",
 		 FC_CACHEDIR);
 	prefix = FcConfigXdgCacheHome ();
-	plen = prefix ? strlen ((const char *)prefix) : 0;
 	if (!prefix)
 	    goto bail;
-	prefix = realloc (prefix, plen + 12);
-	if (!prefix)
+	plen = strlen ((const char *)prefix);
+	p = realloc (prefix, plen + 12);
+	if (!p)
 	    goto bail;
+	prefix = p;
+	FcMemFree (FC_MEM_STRING, plen + 1);
+	FcMemAlloc (FC_MEM_STRING, plen + 12);
 	memcpy (&prefix[plen], FC_DIR_SEPARATOR_S "fontconfig", 11);
 	prefix[plen + 11] = 0;
 	fprintf (stderr,
@@ -98,11 +101,12 @@ FcInitLoadConfig (void)
 	  bail:
 	    fprintf (stderr,
 		     "Fontconfig error: out of memory");
-	    free (prefix);
+	    if (prefix)
+		FcStrFree (prefix);
 	    FcConfigDestroy (config);
 	    return FcInitFallbackConfig ();
 	}
-	free (prefix);
+	FcStrFree (prefix);
     }
 
     return config;
