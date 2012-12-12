@@ -138,13 +138,6 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
 	    fflush (stdout);
 	}
 	
-	if (!dir)
-	{
-	    if (verbose)
-		printf ("skipping, no such directory\n");
-	    continue;
-	}
-	
 	if (FcStrSetMember (processed_dirs, dir))
 	{
 	    if (verbose)

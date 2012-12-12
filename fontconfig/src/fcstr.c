@@ -1193,7 +1193,7 @@ FcStrSetAddLangs (FcStrSet *strs, const char *languages)
     while ((next = strchr (p, ':')))
     {
 	len = next - p;
-	len = FC_MIN (len, 128);
+	len = FC_MIN (len, 127);
 	strncpy ((char *) lang, p, len);
 	lang[len] = 0;
 	/* ignore an empty item */

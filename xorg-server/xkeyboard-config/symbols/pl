@@ -283,8 +283,6 @@ xkb_symbols "dvp" {
     // home row, right side
     key <AC09> { [ n,            N,              nacute,          Nacute     ] };
     key <AC10> { [ s,            S,              sacute,          Sacute     ] };
-    key <AC11> { [ minus,        underscore,     hyphen                      ], type[Group1] = "FOUR_LEVEL_ALPHABETIC" };
-    key <BKSL> { [ backslash,    bar                                         ] };
 
     // lower row, left side
     key <AB03> { [ j,            J,              doublelowquotemark, rightdoublequotemark ] };

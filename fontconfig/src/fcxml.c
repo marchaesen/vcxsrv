@@ -1861,6 +1861,7 @@ FcParseDir (FcConfigParse *parse)
     if (!data)
     {
 	FcConfigMessage (parse, FcSevereError, "out of memory");
+	data = prefix;
 	goto bail;
     }
     if (prefix)

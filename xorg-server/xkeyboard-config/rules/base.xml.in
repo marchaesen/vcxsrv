@@ -1598,6 +1598,12 @@
       <variantList>
         <variant>
           <configItem>
+            <name>legacy</name>
+            <_description>German (legacy)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>nodeadkeys</name>
             <_description>German (Austria, eliminate dead keys)</_description>
           </configItem>

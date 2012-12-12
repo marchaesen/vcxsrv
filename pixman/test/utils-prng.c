@@ -27,6 +27,10 @@
 #include "utils.h"
 #include "utils-prng.h"
 
+#if defined(GCC_VECTOR_EXTENSIONS_SUPPORTED) && defined(__SSE2__)
+#include <xmmintrin.h>
+#endif
+
 void smallprng_srand_r (smallprng_t *x, uint32_t seed)
 {
     uint32_t i;
@@ -76,6 +80,14 @@ store_rand_128_data (void *addr, prng_rand_128_data_t *d, int aligned)
     {
         *(uint8x16 *)addr = d->vb;
         return;
+    }
+    else
+    {
+#ifdef __SSE2__
+        /* workaround for http://gcc.gnu.org/PR55614 */
+        _mm_storeu_si128 (addr, _mm_loadu_si128 ((__m128i *)d));
+        return;
+#endif
     }
 #endif
     /* we could try something better for unaligned writes (packed attribute),

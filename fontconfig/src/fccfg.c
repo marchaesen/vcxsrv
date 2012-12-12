@@ -398,7 +398,7 @@ FcConfigSetCurrent (FcConfig *config)
     if (config == _fcConfig)
 	return FcTrue;
 
-    if (!config->fonts)
+    if (!config->fonts[FcSetSystem])
 	if (!FcConfigBuildFonts (config))
 	    return FcFalse;
 
