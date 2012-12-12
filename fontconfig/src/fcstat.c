@@ -178,8 +178,9 @@ FcDirChecksum (const FcChar8 *dir, time_t *checksum)
 {
     struct Adler32 ctx;
     struct dirent **files;
-    int n, ret = 0;
+    int n;
 #ifndef HAVE_STRUCT_DIRENT_D_TYPE
+    int ret = 0;
     size_t len = strlen ((const char *)dir);
 #endif
 
@@ -229,8 +230,10 @@ FcDirChecksum (const FcChar8 *dir, time_t *checksum)
 	free (files[n]);
     }
     free (files);
+#ifndef HAVE_STRUCT_DIRENT_D_TYPE
     if (ret == -1)
 	return -1;
+#endif
 
     *checksum = Adler32Finish (&ctx);
 
