@@ -27,9 +27,9 @@
 #include <inttypes.h>
 #include "glheader.h"
 #include "mfeatures.h"
+#include "texcompress.h"
 #include "texstore.h"
 
-struct swrast_texture_image;
 
 GLboolean
 _mesa_texstore_etc1_rgb8(TEXSTORE_PARAMS);
@@ -65,50 +65,6 @@ GLboolean
 _mesa_texstore_etc2_srgb8_punchthrough_alpha1(TEXSTORE_PARAMS);
 
 void
-_mesa_fetch_texel_2d_f_etc1_rgb8(const struct swrast_texture_image *texImage,
-                                 GLint i, GLint j, GLint k, GLfloat *texel);
-void
-_mesa_fetch_texel_2d_f_etc2_rgb8(const struct swrast_texture_image *texImage,
-                                 GLint i, GLint j, GLint k, GLfloat *texel);
-void
-_mesa_fetch_texel_2d_f_etc2_srgb8(const struct swrast_texture_image *texImage,
-                                  GLint i, GLint j, GLint k, GLfloat *texel);
-
-void
-_mesa_fetch_texel_2d_f_etc2_rgba8_eac(const struct swrast_texture_image *texImage,
-                                      GLint i, GLint j, GLint k, GLfloat *texel);
-void
-_mesa_fetch_texel_2d_f_etc2_srgb8_alpha8_eac(const struct
-                                            swrast_texture_image *texImage,
-                                            GLint i, GLint j,
-                                            GLint k, GLfloat *texel);
-void
-_mesa_fetch_texel_2d_f_etc2_r11_eac(const struct swrast_texture_image *texImage,
-                                    GLint i, GLint j, GLint k, GLfloat *texel);
-void
-_mesa_fetch_texel_2d_f_etc2_rg11_eac(const struct swrast_texture_image *texImage,
-                                     GLint i, GLint j, GLint k, GLfloat *texel);
-void
-_mesa_fetch_texel_2d_f_etc2_signed_r11_eac(const struct
-                                           swrast_texture_image *texImage,
-                                           GLint i, GLint j,
-                                           GLint k, GLfloat *texel);
-void
-_mesa_fetch_texel_2d_f_etc2_signed_rg11_eac(const struct
-                                            swrast_texture_image *texImage,
-                                            GLint i, GLint j,
-                                            GLint k, GLfloat *texel);
-void
-_mesa_fetch_texel_2d_f_etc2_rgb8_punchthrough_alpha1(
-                                 const struct swrast_texture_image *texImage,
-                                 GLint i, GLint j,
-                                 GLint k, GLfloat *texel);
-void
-_mesa_fetch_texel_2d_f_etc2_srgb8_punchthrough_alpha1(
-                                 const struct swrast_texture_image *texImage,
-                                 GLint i, GLint j,
-                                 GLint k, GLfloat *texel);
-void
 _mesa_etc1_unpack_rgba8888(uint8_t *dst_row,
                            unsigned dst_stride,
                            const uint8_t *src_row,
@@ -123,4 +79,8 @@ _mesa_unpack_etc2_format(uint8_t *dst_row,
                          unsigned src_width,
                          unsigned src_height,
                          gl_format format);
+
+compressed_fetch_func
+_mesa_get_etc_fetch_func(gl_format format);
+
 #endif

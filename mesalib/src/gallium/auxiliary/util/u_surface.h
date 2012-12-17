@@ -42,8 +42,7 @@ extern "C" {
 
 extern void
 u_surface_default_template(struct pipe_surface *view,
-                           const struct pipe_resource *texture,
-                           unsigned bind);
+                           const struct pipe_resource *texture);
 
 extern boolean
 util_create_rgba_texture(struct pipe_context *ctx,
@@ -97,6 +96,10 @@ util_clear_depth_stencil(struct pipe_context *pipe,
                          unsigned stencil,
                          unsigned dstx, unsigned dsty,
                          unsigned width, unsigned height);
+
+extern boolean
+util_try_blit_via_copy_region(struct pipe_context *ctx,
+                              const struct pipe_blit_info *blit);
 
 
 #ifdef __cplusplus

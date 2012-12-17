@@ -1,7 +1,7 @@
 #include "../test/utils.h"
 #include "gtk-utils.h"
 
-#define NUM_GRADIENTS 7
+#define NUM_GRADIENTS 9
 #define NUM_STOPS 3
 #define NUM_REPEAT 4
 #define SIZE 128
@@ -28,6 +28,9 @@
  * centers (0, 0) and (1, 0), but with different radiuses. From left
  * to right:
  *
+ * - Degenerate start circle completely inside the end circle
+ *     0.00 -> 1.75; dr = 1.75 > 0; a = 1 - 1.75^2 < 0
+ *
  * - Small start circle completely inside the end circle
  *     0.25 -> 1.75; dr =  1.5 > 0; a = 1 - 1.50^2 < 0
  *
@@ -49,15 +52,20 @@
  * - Small end circle completely inside the start circle
  *     1.75 -> 0.25; dr = -1.5 > 0; a = 1 - 1.50^2 < 0
  *
+ * - Degenerate end circle completely inside the start circle
+ *     0.00 -> 1.75; dr = 1.75 > 0; a = 1 - 1.75^2 < 0
+ *
  */
 
 const static double radiuses[NUM_GRADIENTS] = {
+    0.00,
     0.25,
     0.50,
     0.50,
     1.00,
     1.00,
     1.50,
+    1.75,
     1.75
 };
 
@@ -139,6 +147,8 @@ main (int argc, char **argv)
 					 WIDTH, HEIGHT,
 					 NULL, 0);
 
+    draw_checkerboard (dest_img, 25, 0xffaaaaaa, 0xffbbbbbb);
+    
     pixman_transform_init_identity (&transform);
 
     /*

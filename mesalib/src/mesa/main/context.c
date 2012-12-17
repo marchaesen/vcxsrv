@@ -935,8 +935,8 @@ _mesa_initialize_context(struct gl_context *ctx,
       return GL_FALSE;
    }
 
-   /* setup the API dispatch tables */
-   ctx->Exec = _mesa_create_exec_table(ctx);
+   /* setup the API dispatch tables with all nop functions */
+   ctx->Exec = _mesa_alloc_dispatch_table(_gloffset_COUNT);
 
    if (!ctx->Exec) {
       _mesa_reference_shared_state(ctx, &ctx->Shared, NULL);
@@ -971,7 +971,6 @@ _mesa_initialize_context(struct gl_context *ctx,
 	 return GL_FALSE;
       }
 
-      _mesa_install_save_vtxfmt( ctx, &ctx->ListState.ListVtxfmt );
       /* fall-through */
    case API_OPENGL_CORE:
       break;
@@ -1462,7 +1461,7 @@ _mesa_make_current( struct gl_context *newCtx,
       }
 
       if (newCtx->FirstTimeCurrent) {
-         _mesa_compute_version(newCtx);
+         assert(newCtx->Version > 0);
 
          newCtx->Extensions.String = _mesa_make_extension_string(newCtx);
 

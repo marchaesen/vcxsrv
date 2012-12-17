@@ -750,7 +750,7 @@ functions) and frees the memory that was allocated for it.
 .nf
 \fBvoid\fR
 \fBXftDrawString8 (XftDraw         *\fId\fB,\fR
-\fB                XRenderColor    *\fIcolor\fB,\fR
+\fB                XftColor        *\fIcolor\fB,\fR
 \fB                XftFont         *\fIfont\fB,\fR
 \fB                int             \fIx\fB,\fR
 \fB                int             \fIy\fB,\fR
@@ -770,14 +770,11 @@ in
 .I color
 at position
 .IR x , " y" .
-The
-.B XRenderColor
-data type is defined by the X Rendering Extension library.
 .PP
 .nf
 \fBvoid\fR
 \fBXftDrawRect (XftDraw        *\fId\fB,\fR
-\fB             XRenderColor   *\fIcolor\fB,\fR
+\fB             XftColor       *\fIcolor\fB,\fR
 \fB             int            \fIx\fB,\fR
 \fB             int            \fIy\fB,\fR
 \fB             unsigned int   \fIwidth\fB,\fR

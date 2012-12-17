@@ -494,6 +494,14 @@ void st_init_extensions(struct st_context *st)
           PIPE_FORMAT_B10G10R10A2_SSCALED } },
    };
 
+   static const struct st_extension_format_mapping tbo_rgb32[] = {
+      { {o(ARB_texture_buffer_object_rgb32) },
+        { PIPE_FORMAT_R32G32B32_FLOAT,
+          PIPE_FORMAT_R32G32B32_UINT,
+          PIPE_FORMAT_R32G32B32_SINT,
+        } },
+   };
+
    /*
     * Extensions that are supported by all Gallium drivers:
     */
@@ -570,10 +578,7 @@ void st_init_extensions(struct st_context *st)
    glsl_feature_level = screen->get_param(screen, PIPE_CAP_GLSL_FEATURE_LEVEL);
 
    if (glsl_feature_level >= 140) {
-      if (ctx->API == API_OPENGL_CORE)
-         ctx->Const.GLSLVersion = 140;
-      else
-         ctx->Const.GLSLVersion = 130;
+      ctx->Const.GLSLVersion = 140;
    } else if (glsl_feature_level >= 130) {
       ctx->Const.GLSLVersion = 130;
    } else {
@@ -664,6 +669,24 @@ void st_init_extensions(struct st_context *st)
    if (ctx->Const.MinMapBufferAlignment >= 64) {
       ctx->Extensions.ARB_map_buffer_alignment = GL_TRUE;
    }
-   if (screen->get_param(screen, PIPE_CAP_TEXTURE_BUFFER_OBJECTS))
+   if (screen->get_param(screen, PIPE_CAP_TEXTURE_BUFFER_OBJECTS)) {
       ctx->Extensions.ARB_texture_buffer_object = GL_TRUE;
+      init_format_extensions(st, tbo_rgb32, Elements(tbo_rgb32),
+                             PIPE_BUFFER, PIPE_BIND_SAMPLER_VIEW);
+   }
+
+
+   /* Unpacking a varying in the fragment shader costs 1 texture indirection.
+    * If the number of available texture indirections is very limited, then we
+    * prefer to disable varying packing rather than run the risk of varying
+    * packing preventing a shader from running.
+    */
+   if (screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
+                                PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS) <= 8) {
+      /* We can't disable varying packing if transform feedback is available,
+       * because transform feedback code assumes a packed varying layout.
+       */
+      if (!ctx->Extensions.EXT_transform_feedback)
+         ctx->Const.DisableVaryingPacking = GL_TRUE;
+   }
 }
