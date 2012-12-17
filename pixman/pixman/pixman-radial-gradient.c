@@ -109,7 +109,7 @@ radial_compute_color (double                    a,
 	}
 	else
 	{
-	    if (t * dr > mindr)
+	    if (t * dr >= mindr)
 		return _pixman_gradient_walker_pixel (walker, t);
 	}
 
@@ -145,9 +145,9 @@ radial_compute_color (double                    a,
 	}
 	else
 	{
-	    if (t0 * dr > mindr)
+	    if (t0 * dr >= mindr)
 		return _pixman_gradient_walker_pixel (walker, t0);
-	    else if (t1 * dr > mindr)
+	    else if (t1 * dr >= mindr)
 		return _pixman_gradient_walker_pixel (walker, t1);
 	}
     }

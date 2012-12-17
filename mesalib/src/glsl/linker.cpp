@@ -76,6 +76,8 @@ extern "C" {
 #include "main/shaderobj.h"
 }
 
+#define ALIGN(value, alignment)  (((value) + alignment - 1) & ~(alignment - 1))
+
 /**
  * Visitor that determines whether or not a variable is ever written.
  */
@@ -200,19 +202,38 @@ linker_warning(gl_shader_program *prog, const char *fmt, ...)
 
 
 void
-link_invalidate_variable_locations(gl_shader *sh, enum ir_variable_mode mode,
-				   int generic_base)
+link_invalidate_variable_locations(gl_shader *sh, int input_base,
+                                   int output_base)
 {
    foreach_list(node, sh->ir) {
       ir_variable *const var = ((ir_instruction *) node)->as_variable();
 
-      if ((var == NULL) || (var->mode != (unsigned) mode))
-	 continue;
+      if (var == NULL)
+         continue;
+
+      int base;
+      switch (var->mode) {
+      case ir_var_in:
+         base = input_base;
+         break;
+      case ir_var_out:
+         base = output_base;
+         break;
+      default:
+         continue;
+      }
 
       /* Only assign locations for generic attributes / varyings / etc.
        */
-      if ((var->location >= generic_base) && !var->explicit_location)
-	  var->location = -1;
+      if ((var->location >= base) && !var->explicit_location)
+         var->location = -1;
+
+      if ((var->location == -1) && !var->explicit_location) {
+         var->is_unmatched_generic_inout = 1;
+         var->location_frac = 0;
+      } else {
+         var->is_unmatched_generic_inout = 0;
+      }
    }
 }
 
@@ -1309,8 +1330,6 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
       (target_index == MESA_SHADER_VERTEX) ? ir_var_in : ir_var_out;
 
 
-   link_invalidate_variable_locations(sh, direction, generic_base);
-
    /* Temporary storage for the set of attributes that need locations assigned.
     */
    struct temp_attr {
@@ -1352,6 +1371,7 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
 	 if (prog->AttributeBindings->get(binding, var->name)) {
 	    assert(binding >= VERT_ATTRIB_GENERIC0);
 	    var->location = binding;
+            var->is_unmatched_generic_inout = 0;
 	 }
       } else if (target_index == MESA_SHADER_FRAGMENT) {
 	 unsigned binding;
@@ -1360,6 +1380,7 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
 	 if (prog->FragDataBindings->get(binding, var->name)) {
 	    assert(binding >= FRAG_RESULT_DATA0);
 	    var->location = binding;
+            var->is_unmatched_generic_inout = 0;
 
 	    if (prog->FragDataIndexBindings->get(index, var->name)) {
 	       var->index = index;
@@ -1475,6 +1496,7 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
       }
 
       to_assign[i].var->location = generic_base + location;
+      to_assign[i].var->is_unmatched_generic_inout = 0;
       used_locations |= (use_mask << location);
    }
 
@@ -1498,7 +1520,7 @@ demote_shader_inputs_and_outputs(gl_shader *sh, enum ir_variable_mode mode)
        * its value is used by other shader stages.  This will cause the variable
        * to have a location assigned.
        */
-      if (var->location == -1) {
+      if (var->is_unmatched_generic_inout) {
 	 var->mode = ir_var_auto;
       }
    }
@@ -1517,18 +1539,12 @@ public:
    static bool is_same(const tfeedback_decl &x, const tfeedback_decl &y);
    bool assign_location(struct gl_context *ctx, struct gl_shader_program *prog,
                         ir_variable *output_var);
-   bool accumulate_num_outputs(struct gl_shader_program *prog, unsigned *count);
+   unsigned get_num_outputs() const;
    bool store(struct gl_context *ctx, struct gl_shader_program *prog,
               struct gl_transform_feedback_info *info, unsigned buffer,
               const unsigned max_outputs) const;
-
-   /**
-    * True if assign_location() has been called for this object.
-    */
-   bool is_assigned() const
-   {
-      return this->location != -1;
-   }
+   ir_variable *find_output_var(gl_shader_program *prog,
+                                gl_shader *producer) const;
 
    bool is_next_buffer_separator() const
    {
@@ -1541,19 +1557,8 @@ public:
    }
 
    /**
-    * Determine whether this object refers to the variable var.
-    */
-   bool matches_var(ir_variable *var) const
-   {
-      if (this->is_clip_distance_mesa)
-         return strcmp(var->name, "gl_ClipDistanceMESA") == 0;
-      else
-         return strcmp(var->name, this->var_name) == 0;
-   }
-
-   /**
     * The total number of varying components taken up by this variable.  Only
-    * valid if is_assigned() is true.
+    * valid if assign_location() has been called.
     */
    unsigned num_components() const
    {
@@ -1596,6 +1601,17 @@ private:
     * variable.  -1 if a location hasn't been assigned yet.
     */
    int location;
+
+   /**
+    * If non-zero, then this variable may be packed along with other variables
+    * into a single varying slot, so this offset should be applied when
+    * accessing components.  For example, an offset of 1 means that the x
+    * component of this variable is actually stored in component y of the
+    * location specified by \c location.
+    *
+    * Only valid if location != -1.
+    */
+   unsigned location_frac;
 
    /**
     * If location != -1, the number of vector elements in this variable, or 1
@@ -1736,6 +1752,8 @@ tfeedback_decl::assign_location(struct gl_context *ctx,
       /* Array variable */
       const unsigned matrix_cols =
          output_var->type->fields.array->matrix_columns;
+      const unsigned vector_elements =
+         output_var->type->fields.array->vector_elements;
       unsigned actual_array_size = this->is_clip_distance_mesa ?
          prog->Vert.ClipDistanceArraySize : output_var->type->array_size();
 
@@ -1751,16 +1769,22 @@ tfeedback_decl::assign_location(struct gl_context *ctx,
          if (this->is_clip_distance_mesa) {
             this->location =
                output_var->location + this->array_subscript / 4;
+            this->location_frac = this->array_subscript % 4;
          } else {
-            this->location =
-               output_var->location + this->array_subscript * matrix_cols;
+            unsigned fine_location
+               = output_var->location * 4 + output_var->location_frac;
+            unsigned array_elem_size = vector_elements * matrix_cols;
+            fine_location += array_elem_size * this->array_subscript;
+            this->location = fine_location / 4;
+            this->location_frac = fine_location % 4;
          }
          this->size = 1;
       } else {
          this->location = output_var->location;
+         this->location_frac = output_var->location_frac;
          this->size = actual_array_size;
       }
-      this->vector_elements = output_var->type->fields.array->vector_elements;
+      this->vector_elements = vector_elements;
       this->matrix_columns = matrix_cols;
       if (this->is_clip_distance_mesa)
          this->type = GL_FLOAT;
@@ -1775,6 +1799,7 @@ tfeedback_decl::assign_location(struct gl_context *ctx,
          return false;
       }
       this->location = output_var->location;
+      this->location_frac = output_var->location_frac;
       this->size = 1;
       this->vector_elements = output_var->type->vector_elements;
       this->matrix_columns = output_var->type->matrix_columns;
@@ -1802,34 +1827,14 @@ tfeedback_decl::assign_location(struct gl_context *ctx,
 }
 
 
-bool
-tfeedback_decl::accumulate_num_outputs(struct gl_shader_program *prog,
-                                       unsigned *count)
+unsigned
+tfeedback_decl::get_num_outputs() const
 {
    if (!this->is_varying()) {
-      return true;
+      return 0;
    }
 
-   if (!this->is_assigned()) {
-      /* From GL_EXT_transform_feedback:
-       *   A program will fail to link if:
-       *
-       *   * any variable name specified in the <varyings> array is not
-       *     declared as an output in the geometry shader (if present) or
-       *     the vertex shader (if no geometry shader is present);
-       */
-      linker_error(prog, "Transform feedback varying %s undeclared.",
-                   this->orig_name);
-      return false;
-   }
-
-   unsigned translated_size = this->size;
-   if (this->is_clip_distance_mesa)
-      translated_size = (translated_size + 3) / 4;
-
-   *count += translated_size * this->matrix_columns;
-
-   return true;
+   return (this->num_components() + this->location_frac + 3)/4;
 }
 
 
@@ -1867,35 +1872,23 @@ tfeedback_decl::store(struct gl_context *ctx, struct gl_shader_program *prog,
       return false;
    }
 
-   unsigned translated_size = this->size;
-   if (this->is_clip_distance_mesa)
-      translated_size = (translated_size + 3) / 4;
-   unsigned components_so_far = 0;
-   for (unsigned index = 0; index < translated_size; ++index) {
-      for (unsigned v = 0; v < this->matrix_columns; ++v) {
-         unsigned num_components = this->vector_elements;
-         assert(info->NumOutputs < max_outputs);
-         info->Outputs[info->NumOutputs].ComponentOffset = 0;
-         if (this->is_clip_distance_mesa) {
-            if (this->is_subscripted) {
-               num_components = 1;
-               info->Outputs[info->NumOutputs].ComponentOffset =
-                  this->array_subscript % 4;
-            } else {
-               num_components = MIN2(4, this->size - components_so_far);
-            }
-         }
-         info->Outputs[info->NumOutputs].OutputRegister =
-            this->location + v + index * this->matrix_columns;
-         info->Outputs[info->NumOutputs].NumComponents = num_components;
-         info->Outputs[info->NumOutputs].OutputBuffer = buffer;
-         info->Outputs[info->NumOutputs].DstOffset = info->BufferStride[buffer];
-         ++info->NumOutputs;
-         info->BufferStride[buffer] += num_components;
-         components_so_far += num_components;
-      }
+   unsigned location = this->location;
+   unsigned location_frac = this->location_frac;
+   unsigned num_components = this->num_components();
+   while (num_components > 0) {
+      unsigned output_size = MIN2(num_components, 4 - location_frac);
+      assert(info->NumOutputs < max_outputs);
+      info->Outputs[info->NumOutputs].ComponentOffset = location_frac;
+      info->Outputs[info->NumOutputs].OutputRegister = location;
+      info->Outputs[info->NumOutputs].NumComponents = output_size;
+      info->Outputs[info->NumOutputs].OutputBuffer = buffer;
+      info->Outputs[info->NumOutputs].DstOffset = info->BufferStride[buffer];
+      ++info->NumOutputs;
+      info->BufferStride[buffer] += output_size;
+      num_components -= output_size;
+      location++;
+      location_frac = 0;
    }
-   assert(components_so_far == this->num_components());
 
    info->Varyings[info->NumVarying].Name = ralloc_strdup(prog, this->orig_name);
    info->Varyings[info->NumVarying].Type = this->type;
@@ -1903,6 +1896,29 @@ tfeedback_decl::store(struct gl_context *ctx, struct gl_shader_program *prog,
    info->NumVarying++;
 
    return true;
+}
+
+
+ir_variable *
+tfeedback_decl::find_output_var(gl_shader_program *prog,
+                                gl_shader *producer) const
+{
+   const char *name = this->is_clip_distance_mesa
+      ? "gl_ClipDistanceMESA" : this->var_name;
+   ir_variable *var = producer->symbols->get_variable(name);
+   if (var && var->mode == ir_var_out)
+      return var;
+
+   /* From GL_EXT_transform_feedback:
+    *   A program will fail to link if:
+    *
+    *   * any variable name specified in the <varyings> array is not
+    *     declared as an output in the geometry shader (if present) or
+    *     the vertex shader (if no geometry shader is present);
+    */
+   linker_error(prog, "Transform feedback varying %s undeclared.",
+                this->orig_name);
+   return NULL;
 }
 
 
@@ -1951,57 +1967,290 @@ parse_tfeedback_decls(struct gl_context *ctx, struct gl_shader_program *prog,
 
 
 /**
- * Assign a location for a variable that is produced in one pipeline stage
- * (the "producer") and consumed in the next stage (the "consumer").
+ * Data structure recording the relationship between outputs of one shader
+ * stage (the "producer") and inputs of another (the "consumer").
+ */
+class varying_matches
+{
+public:
+   varying_matches(bool disable_varying_packing);
+   ~varying_matches();
+   void record(ir_variable *producer_var, ir_variable *consumer_var);
+   unsigned assign_locations();
+   void store_locations(unsigned producer_base, unsigned consumer_base) const;
+
+private:
+   /**
+    * If true, this driver disables varying packing, so all varyings need to
+    * be aligned on slot boundaries, and take up a number of slots equal to
+    * their number of matrix columns times their array size.
+    */
+   const bool disable_varying_packing;
+
+   /**
+    * Enum representing the order in which varyings are packed within a
+    * packing class.
+    *
+    * Currently we pack vec4's first, then vec2's, then scalar values, then
+    * vec3's.  This order ensures that the only vectors that are at risk of
+    * having to be "double parked" (split between two adjacent varying slots)
+    * are the vec3's.
+    */
+   enum packing_order_enum {
+      PACKING_ORDER_VEC4,
+      PACKING_ORDER_VEC2,
+      PACKING_ORDER_SCALAR,
+      PACKING_ORDER_VEC3,
+   };
+
+   static unsigned compute_packing_class(ir_variable *var);
+   static packing_order_enum compute_packing_order(ir_variable *var);
+   static int match_comparator(const void *x_generic, const void *y_generic);
+
+   /**
+    * Structure recording the relationship between a single producer output
+    * and a single consumer input.
+    */
+   struct match {
+      /**
+       * Packing class for this varying, computed by compute_packing_class().
+       */
+      unsigned packing_class;
+
+      /**
+       * Packing order for this varying, computed by compute_packing_order().
+       */
+      packing_order_enum packing_order;
+      unsigned num_components;
+
+      /**
+       * The output variable in the producer stage.
+       */
+      ir_variable *producer_var;
+
+      /**
+       * The input variable in the consumer stage.
+       */
+      ir_variable *consumer_var;
+
+      /**
+       * The location which has been assigned for this varying.  This is
+       * expressed in multiples of a float, with the first generic varying
+       * (i.e. the one referred to by VERT_RESULT_VAR0 or FRAG_ATTRIB_VAR0)
+       * represented by the value 0.
+       */
+      unsigned generic_location;
+   } *matches;
+
+   /**
+    * The number of elements in the \c matches array that are currently in
+    * use.
+    */
+   unsigned num_matches;
+
+   /**
+    * The number of elements that were set aside for the \c matches array when
+    * it was allocated.
+    */
+   unsigned matches_capacity;
+};
+
+
+varying_matches::varying_matches(bool disable_varying_packing)
+   : disable_varying_packing(disable_varying_packing)
+{
+   /* Note: this initial capacity is rather arbitrarily chosen to be large
+    * enough for many cases without wasting an unreasonable amount of space.
+    * varying_matches::record() will resize the array if there are more than
+    * this number of varyings.
+    */
+   this->matches_capacity = 8;
+   this->matches = (match *)
+      malloc(sizeof(*this->matches) * this->matches_capacity);
+   this->num_matches = 0;
+}
+
+
+varying_matches::~varying_matches()
+{
+   free(this->matches);
+}
+
+
+/**
+ * Record the given producer/consumer variable pair in the list of variables
+ * that should later be assigned locations.
  *
- * \param input_var is the input variable declaration in the consumer.
+ * It is permissible for \c consumer_var to be NULL (this happens if a
+ * variable is output by the producer and consumed by transform feedback, but
+ * not consumed by the consumer).
  *
- * \param output_var is the output variable declaration in the producer.
- *
- * \param input_index is the counter that keeps track of assigned input
- *        locations in the consumer.
- *
- * \param output_index is the counter that keeps track of assigned output
- *        locations in the producer.
- *
- * It is permissible for \c input_var to be NULL (this happens if a variable
- * is output by the producer and consumed by transform feedback, but not
- * consumed by the consumer).
- *
- * If the variable has already been assigned a location, this function has no
- * effect.
+ * If \c producer_var has already been paired up with a consumer_var, or
+ * producer_var is part of fixed pipeline functionality (and hence already has
+ * a location assigned), this function has no effect.
  */
 void
-assign_varying_location(ir_variable *input_var, ir_variable *output_var,
-                        unsigned *input_index, unsigned *output_index)
+varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
 {
-   if (output_var->location != -1) {
-      /* Location already assigned. */
+   if (!producer_var->is_unmatched_generic_inout) {
+      /* Either a location already exists for this variable (since it is part
+       * of fixed functionality), or it has already been recorded as part of a
+       * previous match.
+       */
       return;
    }
 
-   if (input_var) {
-      assert(input_var->location == -1);
-      input_var->location = *input_index;
+   if (this->num_matches == this->matches_capacity) {
+      this->matches_capacity *= 2;
+      this->matches = (match *)
+         realloc(this->matches,
+                 sizeof(*this->matches) * this->matches_capacity);
+   }
+   this->matches[this->num_matches].packing_class
+      = this->compute_packing_class(producer_var);
+   this->matches[this->num_matches].packing_order
+      = this->compute_packing_order(producer_var);
+   if (this->disable_varying_packing) {
+      unsigned slots = producer_var->type->is_array()
+         ? (producer_var->type->length
+            * producer_var->type->fields.array->matrix_columns)
+         : producer_var->type->matrix_columns;
+      this->matches[this->num_matches].num_components = 4 * slots;
+   } else {
+      this->matches[this->num_matches].num_components
+         = producer_var->type->component_slots();
+   }
+   this->matches[this->num_matches].producer_var = producer_var;
+   this->matches[this->num_matches].consumer_var = consumer_var;
+   this->num_matches++;
+   producer_var->is_unmatched_generic_inout = 0;
+   if (consumer_var)
+      consumer_var->is_unmatched_generic_inout = 0;
+}
+
+
+/**
+ * Choose locations for all of the variable matches that were previously
+ * passed to varying_matches::record().
+ */
+unsigned
+varying_matches::assign_locations()
+{
+   /* Sort varying matches into an order that makes them easy to pack. */
+   qsort(this->matches, this->num_matches, sizeof(*this->matches),
+         &varying_matches::match_comparator);
+
+   unsigned generic_location = 0;
+
+   for (unsigned i = 0; i < this->num_matches; i++) {
+      /* Advance to the next slot if this varying has a different packing
+       * class than the previous one, and we're not already on a slot
+       * boundary.
+       */
+      if (i > 0 &&
+          this->matches[i - 1].packing_class
+          != this->matches[i].packing_class) {
+         generic_location = ALIGN(generic_location, 4);
+      }
+
+      this->matches[i].generic_location = generic_location;
+
+      generic_location += this->matches[i].num_components;
    }
 
-   output_var->location = *output_index;
+   return (generic_location + 3) / 4;
+}
+
+
+/**
+ * Update the producer and consumer shaders to reflect the locations
+ * assignments that were made by varying_matches::assign_locations().
+ */
+void
+varying_matches::store_locations(unsigned producer_base,
+                                 unsigned consumer_base) const
+{
+   for (unsigned i = 0; i < this->num_matches; i++) {
+      ir_variable *producer_var = this->matches[i].producer_var;
+      ir_variable *consumer_var = this->matches[i].consumer_var;
+      unsigned generic_location = this->matches[i].generic_location;
+      unsigned slot = generic_location / 4;
+      unsigned offset = generic_location % 4;
+
+      producer_var->location = producer_base + slot;
+      producer_var->location_frac = offset;
+      if (consumer_var) {
+         assert(consumer_var->location == -1);
+         consumer_var->location = consumer_base + slot;
+         consumer_var->location_frac = offset;
+      }
+   }
+}
+
+
+/**
+ * Compute the "packing class" of the given varying.  This is an unsigned
+ * integer with the property that two variables in the same packing class can
+ * be safely backed into the same vec4.
+ */
+unsigned
+varying_matches::compute_packing_class(ir_variable *var)
+{
+   /* In this initial implementation we conservatively assume that variables
+    * can only be packed if their base type (float/int/uint/bool) matches and
+    * their interpolation and centroid qualifiers match.
+    *
+    * TODO: relax these restrictions when the driver back-end permits.
+    */
+   unsigned packing_class = var->centroid ? 1 : 0;
+   packing_class *= 4;
+   packing_class += var->interpolation;
+   packing_class *= GLSL_TYPE_ERROR;
+   packing_class += var->type->get_scalar_type()->base_type;
+   return packing_class;
+}
+
+
+/**
+ * Compute the "packing order" of the given varying.  This is a sort key we
+ * use to determine when to attempt to pack the given varying relative to
+ * other varyings in the same packing class.
+ */
+varying_matches::packing_order_enum
+varying_matches::compute_packing_order(ir_variable *var)
+{
+   const glsl_type *element_type = var->type;
 
    /* FINISHME: Support for "varying" records in GLSL 1.50. */
-   assert(!output_var->type->is_record());
-
-   if (output_var->type->is_array()) {
-      const unsigned slots = output_var->type->length
-         * output_var->type->fields.array->matrix_columns;
-
-      *output_index += slots;
-      *input_index += slots;
-   } else {
-      const unsigned slots = output_var->type->matrix_columns;
-
-      *output_index += slots;
-      *input_index += slots;
+   while (element_type->base_type == GLSL_TYPE_ARRAY) {
+      element_type = element_type->fields.array;
    }
+
+   switch (element_type->vector_elements) {
+   case 1: return PACKING_ORDER_SCALAR;
+   case 2: return PACKING_ORDER_VEC2;
+   case 3: return PACKING_ORDER_VEC3;
+   case 4: return PACKING_ORDER_VEC4;
+   default:
+      assert(!"Unexpected value of vector_elements");
+      return PACKING_ORDER_VEC4;
+   }
+}
+
+
+/**
+ * Comparison function passed to qsort() to sort varyings by packing_class and
+ * then by packing_order.
+ */
+int
+varying_matches::match_comparator(const void *x_generic, const void *y_generic)
+{
+   const match *x = (const match *) x_generic;
+   const match *y = (const match *) y_generic;
+
+   if (x->packing_class != y->packing_class)
+      return x->packing_class - y->packing_class;
+   return x->packing_order - y->packing_order;
 }
 
 
@@ -2052,14 +2301,16 @@ is_varying_var(GLenum shaderType, const ir_variable *var)
  */
 bool
 assign_varying_locations(struct gl_context *ctx,
+			 void *mem_ctx,
 			 struct gl_shader_program *prog,
 			 gl_shader *producer, gl_shader *consumer,
                          unsigned num_tfeedback_decls,
                          tfeedback_decl *tfeedback_decls)
 {
    /* FINISHME: Set dynamically when geometry shader support is added. */
-   unsigned output_index = VERT_RESULT_VAR0;
-   unsigned input_index = FRAG_ATTRIB_VAR0;
+   const unsigned producer_base = VERT_RESULT_VAR0;
+   const unsigned consumer_base = FRAG_ATTRIB_VAR0;
+   varying_matches matches(ctx->Const.DisableVaryingPacking);
 
    /* Operate in a total of three passes.
     *
@@ -2071,10 +2322,6 @@ assign_varying_locations(struct gl_context *ctx,
     * 3. Mark input variables in the consumer that do not have locations as
     *    not being inputs.  This lets the optimizer eliminate them.
     */
-
-   link_invalidate_variable_locations(producer, ir_var_out, VERT_RESULT_VAR0);
-   if (consumer)
-      link_invalidate_variable_locations(consumer, ir_var_in, FRAG_ATTRIB_VAR0);
 
    foreach_list(node, producer->ir) {
       ir_variable *const output_var = ((ir_instruction *) node)->as_variable();
@@ -2089,23 +2336,51 @@ assign_varying_locations(struct gl_context *ctx,
          input_var = NULL;
 
       if (input_var) {
-         assign_varying_location(input_var, output_var, &input_index,
-                                 &output_index);
+         matches.record(output_var, input_var);
       }
+   }
 
-      for (unsigned i = 0; i < num_tfeedback_decls; ++i) {
-         if (!tfeedback_decls[i].is_varying())
-            continue;
+   for (unsigned i = 0; i < num_tfeedback_decls; ++i) {
+      if (!tfeedback_decls[i].is_varying())
+         continue;
 
-         if (!tfeedback_decls[i].is_assigned() &&
-             tfeedback_decls[i].matches_var(output_var)) {
-            if (output_var->location == -1) {
-               assign_varying_location(input_var, output_var, &input_index,
-                                       &output_index);
-            }
-            if (!tfeedback_decls[i].assign_location(ctx, prog, output_var))
-               return false;
-         }
+      ir_variable *output_var
+         = tfeedback_decls[i].find_output_var(prog, producer);
+
+      if (output_var == NULL)
+         return false;
+
+      if (output_var->is_unmatched_generic_inout) {
+         matches.record(output_var, NULL);
+      }
+   }
+
+   const unsigned slots_used = matches.assign_locations();
+   matches.store_locations(producer_base, consumer_base);
+
+   for (unsigned i = 0; i < num_tfeedback_decls; ++i) {
+      if (!tfeedback_decls[i].is_varying())
+         continue;
+
+      ir_variable *output_var
+         = tfeedback_decls[i].find_output_var(prog, producer);
+
+      if (!tfeedback_decls[i].assign_location(ctx, prog, output_var))
+         return false;
+   }
+
+   if (ctx->Const.DisableVaryingPacking) {
+      /* Transform feedback code assumes varyings are packed, so if the driver
+       * has disabled varying packing, make sure it does not support transform
+       * feedback.
+       */
+      assert(!ctx->Extensions.EXT_transform_feedback);
+   } else {
+      lower_packed_varyings(mem_ctx, producer_base, slots_used, ir_var_out,
+                            producer);
+      if (consumer) {
+         lower_packed_varyings(mem_ctx, consumer_base, slots_used, ir_var_in,
+                               consumer);
       }
    }
 
@@ -2118,7 +2393,7 @@ assign_varying_locations(struct gl_context *ctx,
          if ((var == NULL) || (var->mode != ir_var_in))
             continue;
 
-         if (var->location == -1) {
+         if (var->is_unmatched_generic_inout) {
             if (prog->Version <= 120) {
                /* On page 25 (page 31 of the PDF) of the GLSL 1.20 spec:
                 *
@@ -2215,8 +2490,7 @@ store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
 
    unsigned num_outputs = 0;
    for (unsigned i = 0; i < num_tfeedback_decls; ++i)
-      if (!tfeedback_decls[i].accumulate_num_outputs(prog, &num_outputs))
-         return false;
+      num_outputs += tfeedback_decls[i].get_num_outputs();
 
    prog->LinkedTransformFeedback.Outputs =
       rzalloc_array(prog,
@@ -2568,13 +2842,27 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       if (!prog->LinkStatus)
 	 goto done;
 
-      if (ctx->ShaderCompilerOptions[i].LowerClipDistance)
-         lower_clip_distance(prog->_LinkedShaders[i]->ir);
+      if (ctx->ShaderCompilerOptions[i].LowerClipDistance) {
+         lower_clip_distance(prog->_LinkedShaders[i]);
+      }
 
       unsigned max_unroll = ctx->ShaderCompilerOptions[i].MaxUnrollIterations;
 
       while (do_common_optimization(prog->_LinkedShaders[i]->ir, true, false, max_unroll))
 	 ;
+   }
+
+   /* Mark all generic shader inputs and outputs as unpaired. */
+   if (prog->_LinkedShaders[MESA_SHADER_VERTEX] != NULL) {
+      link_invalidate_variable_locations(
+            prog->_LinkedShaders[MESA_SHADER_VERTEX],
+            VERT_ATTRIB_GENERIC0, VERT_RESULT_VAR0);
+   }
+   /* FINISHME: Geometry shaders not implemented yet */
+   if (prog->_LinkedShaders[MESA_SHADER_FRAGMENT] != NULL) {
+      link_invalidate_variable_locations(
+            prog->_LinkedShaders[MESA_SHADER_FRAGMENT],
+            FRAG_ATTRIB_VAR0, FRAG_RESULT_DATA0);
    }
 
    /* FINISHME: The value of the max_attribute_index parameter is
@@ -2623,7 +2911,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 	 continue;
 
       if (!assign_varying_locations(
-             ctx, prog, prog->_LinkedShaders[prev], prog->_LinkedShaders[i],
+				    ctx, mem_ctx, prog, prog->_LinkedShaders[prev], prog->_LinkedShaders[i],
              i == MESA_SHADER_FRAGMENT ? num_tfeedback_decls : 0,
              tfeedback_decls))
 	 goto done;
@@ -2636,7 +2924,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
        * locations for use by transform feedback.
        */
       if (!assign_varying_locations(
-             ctx, prog, prog->_LinkedShaders[prev], NULL, num_tfeedback_decls,
+				    ctx, mem_ctx, prog, prog->_LinkedShaders[prev], NULL, num_tfeedback_decls,
              tfeedback_decls))
          goto done;
    }

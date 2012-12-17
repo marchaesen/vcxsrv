@@ -1053,29 +1053,6 @@ void util_blitter_custom_clear_depth(struct blitter_context *blitter,
                               0, PIPE_FORMAT_NONE, &color, depth, 0, NULL, custom_dsa);
 }
 
-static
-boolean is_overlap(int dstx, int dsty, int dstz,
-		   const struct pipe_box *srcbox)
-{
-   struct pipe_box src = *srcbox;
-
-   if (src.width < 0) {
-      src.x += src.width;
-      src.width = -src.width;
-   }
-   if (src.height < 0) {
-      src.y += src.height;
-      src.height = -src.height;
-   }
-   if (src.depth < 0) {
-      src.z += src.depth;
-      src.depth = -src.depth;
-   }
-   return src.x < dstx+src.width && src.x+src.width > dstx &&
-          src.y < dsty+src.height && src.y+src.height > dsty &&
-          src.z < dstz+src.depth && src.z+src.depth > dstz;
-}
-
 void util_blitter_default_dst_texture(struct pipe_surface *dst_templ,
                                       struct pipe_resource *dst,
                                       unsigned dstlevel,
@@ -1083,12 +1060,6 @@ void util_blitter_default_dst_texture(struct pipe_surface *dst_templ,
                                       const struct pipe_box *srcbox)
 {
     memset(dst_templ, 0, sizeof(*dst_templ));
-    dst_templ->format = dst->format;
-    if (util_format_is_depth_or_stencil(dst->format)) {
-	dst_templ->usage = PIPE_BIND_DEPTH_STENCIL;
-    } else {
-	dst_templ->usage = PIPE_BIND_RENDER_TARGET;
-    }
     dst_templ->format = util_format_linear(dst->format);
     dst_templ->u.tex.level = dstlevel;
     dst_templ->u.tex.first_layer = dstz;
@@ -1267,11 +1238,6 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
       return;
    }
 
-   /* Sanity checks. */
-   if (dst->texture == src->texture &&
-       dst->u.tex.level == src->u.tex.first_level) {
-      assert(!is_overlap(dstx, dsty, 0, srcbox));
-   }
    /* XXX should handle 3d regions */
    assert(srcbox->depth == 1);
 
@@ -1743,7 +1709,6 @@ void util_blitter_custom_resolve_color(struct blitter_context *blitter,
    surf_tmpl.u.tex.level = dst_level;
    surf_tmpl.u.tex.first_layer = dst_layer;
    surf_tmpl.u.tex.last_layer = dst_layer;
-   surf_tmpl.usage = PIPE_BIND_RENDER_TARGET;
 
    dstsurf = pipe->create_surface(pipe, dst, &surf_tmpl);
 
@@ -1821,150 +1786,4 @@ void util_blitter_custom_color(struct blitter_context *blitter,
    blitter_restore_fb_state(ctx);
    blitter_restore_render_cond(ctx);
    blitter_unset_running_flag(ctx);
-}
-
-/* Return whether this is an RGBA, Z, S, or combined ZS format.
- */
-static unsigned get_format_mask(enum pipe_format format)
-{
-   const struct util_format_description *desc = util_format_description(format);
-
-   assert(desc);
-
-   if (util_format_has_depth(desc)) {
-      if (util_format_has_stencil(desc)) {
-         return PIPE_MASK_ZS;
-      } else {
-         return PIPE_MASK_Z;
-      }
-   } else {
-      if (util_format_has_stencil(desc)) {
-         return PIPE_MASK_S;
-      } else {
-         return PIPE_MASK_RGBA;
-      }
-   }
-}
-
-/* Return if the box is totally inside the resource.
- */
-static boolean is_box_inside_resource(const struct pipe_resource *res,
-                                      const struct pipe_box *box,
-                                      unsigned level)
-{
-   unsigned width = 1, height = 1, depth = 1;
-
-   switch (res->target) {
-   case PIPE_BUFFER:
-      width = res->width0;
-      height = 1;
-      depth = 1;
-      break;
-   case PIPE_TEXTURE_1D:
-      width = u_minify(res->width0, level);
-      height = 1;
-      depth = 1;
-      break;
-   case PIPE_TEXTURE_2D:
-   case PIPE_TEXTURE_RECT:
-      width = u_minify(res->width0, level);
-      height = u_minify(res->height0, level);
-      depth = 1;
-      break;
-   case PIPE_TEXTURE_3D:
-      width = u_minify(res->width0, level);
-      height = u_minify(res->height0, level);
-      depth = u_minify(res->depth0, level);
-      break;
-   case PIPE_TEXTURE_CUBE:
-      width = u_minify(res->width0, level);
-      height = u_minify(res->height0, level);
-      depth = 6;
-      break;
-   case PIPE_TEXTURE_1D_ARRAY:
-      width = u_minify(res->width0, level);
-      height = 1;
-      depth = res->array_size;
-      break;
-   case PIPE_TEXTURE_2D_ARRAY:
-      width = u_minify(res->width0, level);
-      height = u_minify(res->height0, level);
-      depth = res->array_size;
-      break;
-   case PIPE_TEXTURE_CUBE_ARRAY:
-      width = u_minify(res->width0, level);
-      height = u_minify(res->height0, level);
-      depth = res->array_size;
-      assert(res->array_size % 6 == 0);
-      break;
-   case PIPE_MAX_TEXTURE_TYPES:;
-   }
-
-   return box->x >= 0 &&
-          box->x + box->width <= (int) width &&
-          box->y >= 0 &&
-          box->y + box->height <= (int) height &&
-          box->z >= 0 &&
-          box->z + box->depth <= (int) depth;
-}
-
-static unsigned get_sample_count(const struct pipe_resource *res)
-{
-   return res->nr_samples ? res->nr_samples : 1;
-}
-
-boolean util_try_blit_via_copy_region(struct pipe_context *ctx,
-                                      const struct pipe_blit_info *blit)
-{
-   unsigned mask = get_format_mask(blit->dst.format);
-
-   /* No format conversions. */
-   if (blit->src.resource->format != blit->src.format ||
-       blit->dst.resource->format != blit->dst.format ||
-       !util_is_format_compatible(
-          util_format_description(blit->src.resource->format),
-          util_format_description(blit->dst.resource->format))) {
-      return FALSE;
-   }
-
-   /* No masks, no filtering, no scissor. */
-   if ((blit->mask & mask) != mask ||
-       blit->filter != PIPE_TEX_FILTER_NEAREST ||
-       blit->scissor_enable) {
-      return FALSE;
-   }
-
-   /* No flipping. */
-   if (blit->src.box.width < 0 ||
-       blit->src.box.height < 0 ||
-       blit->src.box.depth < 0) {
-      return FALSE;
-   }
-
-   /* No scaling. */
-   if (blit->src.box.width != blit->dst.box.width ||
-       blit->src.box.height != blit->dst.box.height ||
-       blit->src.box.depth != blit->dst.box.depth) {
-      return FALSE;
-   }
-
-   /* No out-of-bounds access. */
-   if (!is_box_inside_resource(blit->src.resource, &blit->src.box,
-                               blit->src.level) ||
-       !is_box_inside_resource(blit->dst.resource, &blit->dst.box,
-                               blit->dst.level)) {
-      return FALSE;
-   }
-
-   /* Sample counts must match. */
-   if (get_sample_count(blit->src.resource) !=
-       get_sample_count(blit->dst.resource)) {
-      return FALSE;
-   }
-
-   ctx->resource_copy_region(ctx, blit->dst.resource, blit->dst.level,
-                             blit->dst.box.x, blit->dst.box.y, blit->dst.box.z,
-                             blit->src.resource, blit->src.level,
-                             &blit->src.box);
-   return TRUE;
 }

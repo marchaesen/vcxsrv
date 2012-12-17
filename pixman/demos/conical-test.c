@@ -46,40 +46,6 @@ create_conical (int index)
 	&c, pixman_double_to_fixed (angle), stops, NUM_STOPS);
 }
 
-#define CHECK_SIZE 25
-
-static void
-fill_checkerboard (pixman_image_t *image, int width, int height)
-{
-#define C1 0xaaaa
-#define C2 0x8888
-
-    pixman_color_t check1 = { C1, C1, C1, 0xffff };
-    pixman_color_t check2 = { C2, C2, C2, 0xffff };
-    pixman_image_t *c1, *c2;
-    int i, j;
-
-    c1 = pixman_image_create_solid_fill (&check1);
-    c2 = pixman_image_create_solid_fill (&check2);
-
-    for (j = 0; j < height; j += CHECK_SIZE)
-    {
-	for (i = 0; i < width; i += CHECK_SIZE)
-	{
-	    pixman_image_t *src;
-
-	    if ((((i / CHECK_SIZE) ^ (j / CHECK_SIZE)) & 1) == 0)
-		src = c1;
-	    else
-		src = c2;
-	    
-	    pixman_image_composite32 (PIXMAN_OP_SRC, src, NULL, image,
-				      0, 0, 0, 0, i, j,
-				      CHECK_SIZE, CHECK_SIZE);
-	}
-    }
-}
-
 int
 main (int argc, char **argv)
 {
@@ -92,8 +58,8 @@ main (int argc, char **argv)
     dest_img = pixman_image_create_bits (PIXMAN_a8r8g8b8,
 					 WIDTH, HEIGHT,
 					 NULL, 0);
-
-    fill_checkerboard (dest_img, WIDTH, HEIGHT);
+ 
+    draw_checkerboard (dest_img, 25, 0xffaaaaaa, 0xff888888);
 
     pixman_transform_init_identity (&transform);
 

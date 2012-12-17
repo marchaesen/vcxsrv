@@ -124,6 +124,11 @@ a8r8g8b8_to_rgba_np (uint32_t *dst, uint32_t *src, int n_pixels);
 pixman_bool_t
 write_png (pixman_image_t *image, const char *filename);
 
+void
+draw_checkerboard (pixman_image_t *image,
+		   int check_size,
+		   uint32_t color1, uint32_t color2);
+
 /* A pair of macros which can help to detect corruption of
  * floating point registers after a function call. This may
  * happen if _mm_empty() call is forgotten in MMX/SSE2 fast

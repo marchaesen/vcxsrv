@@ -60,7 +60,6 @@
 #include "pipe/p_shader_tokens.h"
 #include "util/u_tile.h"
 #include "util/u_blit.h"
-#include "util/u_blitter.h"
 #include "util/u_format.h"
 #include "util/u_surface.h"
 #include "util/u_sampler.h"
@@ -1089,14 +1088,8 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
       goto fallback;
    }
 
-   /* Disable conditional rendering. */
-   if (st->render_condition) {
-      pipe->render_condition(pipe, NULL, 0);
-   }
-
    memset(&surf_tmpl, 0, sizeof(surf_tmpl));
    surf_tmpl.format = util_format_linear(stImage->pt->format);
-   surf_tmpl.usage = dst_usage;
    surf_tmpl.u.tex.level = stImage->base.Level;
    surf_tmpl.u.tex.first_layer = stImage->base.Face + destZ;
    surf_tmpl.u.tex.last_layer = stImage->base.Face + destZ;
@@ -1115,13 +1108,6 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
                     0.0, PIPE_TEX_MIPFILTER_NEAREST,
                     color_writemask, 0);
    pipe_surface_reference(&dest_surface, NULL);
-
-   /* Restore conditional rendering state. */
-   if (st->render_condition) {
-      pipe->render_condition(pipe, st->render_condition,
-                             st->condition_mode);
-   }
-
    return;
 
 fallback:

@@ -548,6 +548,60 @@ write_png (pixman_image_t *image, const char *filename)
 
 #endif
 
+static void
+color8_to_color16 (uint32_t color8, pixman_color_t *color16)
+{
+    color16->alpha = ((color8 & 0xff000000) >> 24);
+    color16->red =   ((color8 & 0x00ff0000) >> 16);
+    color16->green = ((color8 & 0x0000ff00) >> 8);
+    color16->blue =  ((color8 & 0x000000ff) >> 0);
+
+    color16->alpha |= color16->alpha << 8;
+    color16->red   |= color16->red << 8;
+    color16->blue  |= color16->blue << 8;
+    color16->green |= color16->green << 8;
+}
+
+void
+draw_checkerboard (pixman_image_t *image,
+		   int check_size,
+		   uint32_t color1, uint32_t color2)
+{
+    pixman_color_t check1, check2;
+    pixman_image_t *c1, *c2;
+    int n_checks_x, n_checks_y;
+    int i, j;
+
+    color8_to_color16 (color1, &check1);
+    color8_to_color16 (color2, &check2);
+    
+    c1 = pixman_image_create_solid_fill (&check1);
+    c2 = pixman_image_create_solid_fill (&check2);
+
+    n_checks_x = (
+	pixman_image_get_width (image) + check_size - 1) / check_size;
+    n_checks_y = (
+	pixman_image_get_height (image) + check_size - 1) / check_size;
+
+    for (j = 0; j < n_checks_y; j++)
+    {
+	for (i = 0; i < n_checks_x; i++)
+	{
+	    pixman_image_t *src;
+
+	    if (((i ^ j) & 1))
+		src = c1;
+	    else
+		src = c2;
+
+	    pixman_image_composite32 (PIXMAN_OP_SRC, src, NULL, image,
+				      0, 0, 0, 0,
+				      i * check_size, j * check_size,
+				      check_size, check_size);
+	}
+    }
+}
+
 /*
  * A function, which can be used as a core part of the test programs,
  * intended to detect various problems with the help of fuzzing input

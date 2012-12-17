@@ -44,7 +44,6 @@
 #include "texcompress.h"
 #include "texcompress_s3tc.h"
 #include "texstore.h"
-#include "swrast/s_context.h"
 #include "format_unpack.h"
 
 
@@ -58,7 +57,7 @@
 #define DXTN_LIBNAME "libtxc_dxtn.so"
 #endif
 
-typedef void (*dxtFetchTexelFuncExt)( GLint srcRowstride, GLubyte *pixdata, GLint col, GLint row, GLvoid *texelOut );
+typedef void (*dxtFetchTexelFuncExt)( GLint srcRowstride, const GLubyte *pixdata, GLint col, GLint row, GLvoid *texelOut );
 
 static dxtFetchTexelFuncExt fetch_ext_rgb_dxt1 = NULL;
 static dxtFetchTexelFuncExt fetch_ext_rgba_dxt1 = NULL;
@@ -332,165 +331,105 @@ _mesa_texstore_rgba_dxt5(TEXSTORE_PARAMS)
 }
 
 
+/** Report problem with dxt texture decompression, once */
 static void
-fetch_texel_2d_rgb_dxt1(const struct swrast_texture_image *texImage,
-                        GLint i, GLint j, GLint k, GLubyte *texel)
+problem(const char *func)
+{
+   static GLboolean warned = GL_FALSE;
+   if (!warned) {
+      _mesa_debug(NULL, "attempted to decode DXT texture without "
+                  "library available: %s\n", func);
+      warned = GL_TRUE;
+   }
+}
+
+
+static void
+fetch_rgb_dxt1(const GLubyte *map, const GLuint imageOffsets[],
+               GLint rowStride, GLint i, GLint j, GLint k, GLfloat *texel)
 {
    if (fetch_ext_rgb_dxt1) {
-      GLint sliceOffset = k ? texImage->ImageOffsets[k] / 2 : 0;
-      fetch_ext_rgb_dxt1(texImage->RowStride,
-                         texImage->Map + sliceOffset, i, j, texel);
+      GLuint sliceOffset = k ? imageOffsets[k] / 2 : 0;
+      GLubyte tex[4];
+      fetch_ext_rgb_dxt1(rowStride, map + sliceOffset, i, j, tex);
+      texel[RCOMP] = UBYTE_TO_FLOAT(tex[RCOMP]);
+      texel[GCOMP] = UBYTE_TO_FLOAT(tex[GCOMP]);
+      texel[BCOMP] = UBYTE_TO_FLOAT(tex[BCOMP]);
+      texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
    }
-   else
-      _mesa_debug(NULL, "attempted to decode s3tc texture without library available: fetch_texel_2d_rgb_dxt1");
+   else {
+      problem("rgb_dxt1");
+   }
 }
-
-
-void
-_mesa_fetch_texel_rgb_dxt1(const struct swrast_texture_image *texImage,
-                           GLint i, GLint j, GLint k, GLfloat *texel)
-{
-   /* just sample as GLubyte and convert to float here */
-   GLubyte rgba[4];
-   fetch_texel_2d_rgb_dxt1(texImage, i, j, k, rgba);
-   texel[RCOMP] = UBYTE_TO_FLOAT(rgba[RCOMP]);
-   texel[GCOMP] = UBYTE_TO_FLOAT(rgba[GCOMP]);
-   texel[BCOMP] = UBYTE_TO_FLOAT(rgba[BCOMP]);
-   texel[ACOMP] = UBYTE_TO_FLOAT(rgba[ACOMP]);
-}
-
 
 static void
-fetch_texel_2d_rgba_dxt1(const struct swrast_texture_image *texImage,
-                         GLint i, GLint j, GLint k, GLubyte *texel)
+fetch_rgba_dxt1(const GLubyte *map, const GLuint imageOffsets[],
+                GLint rowStride, GLint i, GLint j, GLint k, GLfloat *texel)
 {
    if (fetch_ext_rgba_dxt1) {
-      GLint sliceOffset = k ? texImage->ImageOffsets[k] / 2 : 0;
-      fetch_ext_rgba_dxt1(texImage->RowStride,
-                          texImage->Map + sliceOffset, i, j, texel);
+      GLuint sliceOffset = k ? imageOffsets[k] / 2 : 0;
+      GLubyte tex[4];
+      fetch_ext_rgba_dxt1(rowStride, map + sliceOffset, i, j, tex);
+      texel[RCOMP] = UBYTE_TO_FLOAT(tex[RCOMP]);
+      texel[GCOMP] = UBYTE_TO_FLOAT(tex[GCOMP]);
+      texel[BCOMP] = UBYTE_TO_FLOAT(tex[BCOMP]);
+      texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
    }
-   else
-      _mesa_debug(NULL, "attempted to decode s3tc texture without library available: fetch_texel_2d_rgba_dxt1\n");
+   else {
+      problem("rgba_dxt1");
+   }
 }
-
-
-void
-_mesa_fetch_texel_rgba_dxt1(const struct swrast_texture_image *texImage,
-                            GLint i, GLint j, GLint k, GLfloat *texel)
-{
-   /* just sample as GLubyte and convert to float here */
-   GLubyte rgba[4];
-   fetch_texel_2d_rgba_dxt1(texImage, i, j, k, rgba);
-   texel[RCOMP] = UBYTE_TO_FLOAT(rgba[RCOMP]);
-   texel[GCOMP] = UBYTE_TO_FLOAT(rgba[GCOMP]);
-   texel[BCOMP] = UBYTE_TO_FLOAT(rgba[BCOMP]);
-   texel[ACOMP] = UBYTE_TO_FLOAT(rgba[ACOMP]);
-}
-
 
 static void
-fetch_texel_2d_rgba_dxt3(const struct swrast_texture_image *texImage,
-                         GLint i, GLint j, GLint k, GLubyte *texel)
+fetch_rgba_dxt3(const GLubyte *map, const GLuint imageOffsets[],
+                GLint rowStride, GLint i, GLint j, GLint k, GLfloat *texel)
 {
    if (fetch_ext_rgba_dxt3) {
-      GLint sliceOffset = k ? texImage->ImageOffsets[k] : 0;
-      fetch_ext_rgba_dxt3(texImage->RowStride,
-                          texImage->Map + sliceOffset, i, j, texel);
+      GLuint sliceOffset = k ? imageOffsets[k] : 0;
+      GLubyte tex[4];
+      fetch_ext_rgba_dxt3(rowStride, map + sliceOffset, i, j, tex);
+      texel[RCOMP] = UBYTE_TO_FLOAT(tex[RCOMP]);
+      texel[GCOMP] = UBYTE_TO_FLOAT(tex[GCOMP]);
+      texel[BCOMP] = UBYTE_TO_FLOAT(tex[BCOMP]);
+      texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
    }
-   else
-      _mesa_debug(NULL, "attempted to decode s3tc texture without library available: fetch_texel_2d_rgba_dxt3\n");
+   else {
+      problem("rgba_dxt3");
+   }
 }
-
-
-void
-_mesa_fetch_texel_rgba_dxt3(const struct swrast_texture_image *texImage,
-                            GLint i, GLint j, GLint k, GLfloat *texel)
-{
-   /* just sample as GLubyte and convert to float here */
-   GLubyte rgba[4];
-   fetch_texel_2d_rgba_dxt3(texImage, i, j, k, rgba);
-   texel[RCOMP] = UBYTE_TO_FLOAT(rgba[RCOMP]);
-   texel[GCOMP] = UBYTE_TO_FLOAT(rgba[GCOMP]);
-   texel[BCOMP] = UBYTE_TO_FLOAT(rgba[BCOMP]);
-   texel[ACOMP] = UBYTE_TO_FLOAT(rgba[ACOMP]);
-}
-
 
 static void
-fetch_texel_2d_rgba_dxt5(const struct swrast_texture_image *texImage,
-                         GLint i, GLint j, GLint k, GLubyte *texel)
+fetch_rgba_dxt5(const GLubyte *map, const GLuint imageOffsets[],
+                GLint rowStride, GLint i, GLint j, GLint k, GLfloat *texel)
 {
    if (fetch_ext_rgba_dxt5) {
-      GLint sliceOffset = k ? texImage->ImageOffsets[k] : 0;
-      fetch_ext_rgba_dxt5(texImage->RowStride,
-                          texImage->Map + sliceOffset, i, j, texel);
+      GLuint sliceOffset = k ? imageOffsets[k] : 0;
+      GLubyte tex[4];
+      fetch_ext_rgba_dxt5(rowStride, map + sliceOffset, i, j, tex);
+      texel[RCOMP] = UBYTE_TO_FLOAT(tex[RCOMP]);
+      texel[GCOMP] = UBYTE_TO_FLOAT(tex[GCOMP]);
+      texel[BCOMP] = UBYTE_TO_FLOAT(tex[BCOMP]);
+      texel[ACOMP] = UBYTE_TO_FLOAT(tex[ACOMP]);
    }
-   else
-      _mesa_debug(NULL, "attempted to decode s3tc texture without library available: fetch_texel_2d_rgba_dxt5\n");
+   else {
+      problem("rgba_dxt5");
+   }
 }
 
 
-void
-_mesa_fetch_texel_rgba_dxt5(const struct swrast_texture_image *texImage,
-                            GLint i, GLint j, GLint k, GLfloat *texel)
+compressed_fetch_func
+_mesa_get_dxt_fetch_func(gl_format format)
 {
-   /* just sample as GLubyte and convert to float here */
-   GLubyte rgba[4];
-   fetch_texel_2d_rgba_dxt5(texImage, i, j, k, rgba);
-   texel[RCOMP] = UBYTE_TO_FLOAT(rgba[RCOMP]);
-   texel[GCOMP] = UBYTE_TO_FLOAT(rgba[GCOMP]);
-   texel[BCOMP] = UBYTE_TO_FLOAT(rgba[BCOMP]);
-   texel[ACOMP] = UBYTE_TO_FLOAT(rgba[ACOMP]);
-}
-
-void
-_mesa_fetch_texel_srgb_dxt1(const struct swrast_texture_image *texImage,
-                            GLint i, GLint j, GLint k, GLfloat *texel)
-{
-   /* just sample as GLubyte and convert to float here */
-   GLubyte rgba[4];
-   fetch_texel_2d_rgb_dxt1(texImage, i, j, k, rgba);
-   texel[RCOMP] = _mesa_nonlinear_to_linear(rgba[RCOMP]);
-   texel[GCOMP] = _mesa_nonlinear_to_linear(rgba[GCOMP]);
-   texel[BCOMP] = _mesa_nonlinear_to_linear(rgba[BCOMP]);
-   texel[ACOMP] = UBYTE_TO_FLOAT(rgba[ACOMP]);
-}
-
-void
-_mesa_fetch_texel_srgba_dxt1(const struct swrast_texture_image *texImage,
-                             GLint i, GLint j, GLint k, GLfloat *texel)
-{
-   /* just sample as GLubyte and convert to float here */
-   GLubyte rgba[4];
-   fetch_texel_2d_rgba_dxt1(texImage, i, j, k, rgba);
-   texel[RCOMP] = _mesa_nonlinear_to_linear(rgba[RCOMP]);
-   texel[GCOMP] = _mesa_nonlinear_to_linear(rgba[GCOMP]);
-   texel[BCOMP] = _mesa_nonlinear_to_linear(rgba[BCOMP]);
-   texel[ACOMP] = UBYTE_TO_FLOAT(rgba[ACOMP]);
-}
-
-void
-_mesa_fetch_texel_srgba_dxt3(const struct swrast_texture_image *texImage,
-                             GLint i, GLint j, GLint k, GLfloat *texel)
-{
-   /* just sample as GLubyte and convert to float here */
-   GLubyte rgba[4];
-   fetch_texel_2d_rgba_dxt3(texImage, i, j, k, rgba);
-   texel[RCOMP] = _mesa_nonlinear_to_linear(rgba[RCOMP]);
-   texel[GCOMP] = _mesa_nonlinear_to_linear(rgba[GCOMP]);
-   texel[BCOMP] = _mesa_nonlinear_to_linear(rgba[BCOMP]);
-   texel[ACOMP] = UBYTE_TO_FLOAT(rgba[ACOMP]);
-}
-
-void
-_mesa_fetch_texel_srgba_dxt5(const struct swrast_texture_image *texImage,
-                             GLint i, GLint j, GLint k, GLfloat *texel)
-{
-   /* just sample as GLubyte and convert to float here */
-   GLubyte rgba[4];
-   fetch_texel_2d_rgba_dxt5(texImage, i, j, k, rgba);
-   texel[RCOMP] = _mesa_nonlinear_to_linear(rgba[RCOMP]);
-   texel[GCOMP] = _mesa_nonlinear_to_linear(rgba[GCOMP]);
-   texel[BCOMP] = _mesa_nonlinear_to_linear(rgba[BCOMP]);
-   texel[ACOMP] = UBYTE_TO_FLOAT(rgba[ACOMP]);
+   switch (format) {
+   case MESA_FORMAT_RGB_DXT1:
+      return fetch_rgb_dxt1;
+   case MESA_FORMAT_RGBA_DXT1:
+      return fetch_rgba_dxt1;
+   case MESA_FORMAT_RGBA_DXT3:
+      return fetch_rgba_dxt3;
+   case MESA_FORMAT_RGBA_DXT5:
+      return fetch_rgba_dxt5;
+   default:
+      return NULL;
+   }
 }

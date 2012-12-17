@@ -437,6 +437,24 @@ public:
    unsigned has_initializer:1;
 
    /**
+    * Is this variable a generic output or input that has not yet been matched
+    * up to a variable in another stage of the pipeline?
+    *
+    * This is used by the linker as scratch storage while assigning locations
+    * to generic inputs and outputs.
+    */
+   unsigned is_unmatched_generic_inout:1;
+
+   /**
+    * If non-zero, then this variable may be packed along with other variables
+    * into a single varying slot, so this offset should be applied when
+    * accessing components.  For example, an offset of 1 means that the x
+    * component of this variable is actually stored in component y of the
+    * location specified by \c location.
+    */
+   unsigned location_frac:2;
+
+   /**
     * \brief Layout qualifier for gl_FragDepth.
     *
     * This is not equal to \c ir_depth_layout_none if and only if this
