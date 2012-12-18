@@ -252,6 +252,9 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\hash_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\lower_packed_varyings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\glsl\strtod.h">
