@@ -1505,7 +1505,7 @@ void
 DeactivatePointerGrab(DeviceIntPtr mouse)
 {
     GrabPtr grab = mouse->deviceGrab.grab;
-    DeviceIntPtr dev;
+    DeviceIntPtr dev=mouse;
     Bool wasPassive = mouse->deviceGrab.fromPassiveGrab;
     Bool wasImplicit = (mouse->deviceGrab.fromPassiveGrab &&
                         mouse->deviceGrab.implicitGrab);
