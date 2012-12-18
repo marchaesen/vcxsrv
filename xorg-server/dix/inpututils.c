@@ -1016,6 +1016,21 @@ xi2mask_free(XI2Mask **mask)
 }
 
 /**
+ * Test if the bit for event type is set for this device only.
+ *
+ * @return TRUE if the bit is set, FALSE otherwise
+ */
+Bool
+xi2mask_isset_for_device(XI2Mask *mask, const DeviceIntPtr dev, int event_type)
+{
+    BUG_WARN(dev->id < 0);
+    BUG_WARN(dev->id >= mask->nmasks);
+    BUG_WARN(bits_to_bytes(event_type + 1) > mask->mask_size);
+
+    return BitIsOn(mask->masks[dev->id], event_type);
+}
+
+/**
  * Test if the bit for event type is set for this device, or the
  * XIAllDevices/XIAllMasterDevices (if applicable) is set.
  *
@@ -1026,15 +1041,12 @@ xi2mask_isset(XI2Mask *mask, const DeviceIntPtr dev, int event_type)
 {
     int set = 0;
 
-    BUG_WARN(dev->id < 0);
-    BUG_WARN(dev->id >= mask->nmasks);
-    BUG_WARN(bits_to_bytes(event_type + 1) > mask->mask_size);
-
-    set = ! !BitIsOn(mask->masks[XIAllDevices], event_type);
-    if (!set)
-        set = ! !BitIsOn(mask->masks[dev->id], event_type);
-    if (!set && IsMaster(dev))
-        set = ! !BitIsOn(mask->masks[XIAllMasterDevices], event_type);
+    if (xi2mask_isset_for_device(mask, inputInfo.all_devices, event_type))
+        set = 1;
+    else if (xi2mask_isset_for_device(mask, dev, event_type))
+        set = 1;
+    else if (IsMaster(dev) && xi2mask_isset_for_device(mask, inputInfo.all_master_devices, event_type))
+        set = 1;
 
     return set;
 }

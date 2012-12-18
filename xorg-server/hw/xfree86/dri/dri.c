@@ -320,6 +320,7 @@ DRIScreenInit(ScreenPtr pScreen, DRIInfoPtr pDRIInfo, int *pDRMFD)
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     DRIContextFlags flags = 0;
     DRIContextPrivPtr pDRIContextPriv;
+    static Bool drm_server_inited;
 
     /* If the DRI extension is disabled, do not initialize the DRI */
     if (noXFree86DRIExtension) {
@@ -345,6 +346,10 @@ DRIScreenInit(ScreenPtr pScreen, DRIInfoPtr pDRIInfo, int *pDRMFD)
         return FALSE;
     }
 #endif
+    if (drm_server_inited == FALSE) {
+        drmSetServerInfo(&DRIDRMServerInfo);
+        drm_server_inited = TRUE;
+    }
 
     if (!DRIOpenDRMMaster(pScrn, pDRIInfo->SAREASize,
                           pDRIInfo->busIdString, pDRIInfo->drmDriverName))
@@ -790,8 +795,6 @@ DRIExtensionInit(void)
         return FALSE;
 
     RegisterBlockAndWakeupHandlers(DRIBlockHandler, DRIWakeupHandler, NULL);
-
-    drmSetServerInfo(&DRIDRMServerInfo);
 
     return TRUE;
 }

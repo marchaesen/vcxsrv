@@ -36,7 +36,13 @@ xi2mask_test(void)
     XI2Mask *xi2mask = NULL, *mergemask = NULL;
     unsigned char *mask;
     DeviceIntRec dev;
+    DeviceIntRec all_devices, all_master_devices;
     int i;
+
+    all_devices.id = XIAllDevices;
+    inputInfo.all_devices = &all_devices;
+    all_master_devices.id = XIAllMasterDevices;
+    inputInfo.all_master_devices = &all_master_devices;
 
     /* size >= nmasks * 2 for the test cases below */
     xi2mask = xi2mask_new_with_size(MAXDEVICES + 2, (MAXDEVICES + 2) * 2);

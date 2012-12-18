@@ -723,22 +723,26 @@ ProcessPointerEvent(InternalEvent *ev, DeviceIntPtr mouse)
         changed |= XkbPointerButtonMask;
     }
     else if (event->type == ET_ButtonRelease) {
-        if (xkbi) {
-            xkbi->lockedPtrButtons &= ~(1 << (event->detail.key & 0x7));
+        if (IsMaster(dev)) {
+            DeviceIntPtr source;
+            int rc;
 
-            if (IsMaster(dev)) {
-                DeviceIntPtr source;
-                int rc;
+            rc = dixLookupDevice(&source, event->sourceid, serverClient,
+                    DixWriteAccess);
+            if (rc != Success)
+                ErrorF("[xkb] bad sourceid '%d' on button release event.\n",
+                        event->sourceid);
+            else if (!IsXTestDevice(source, GetMaster(dev, MASTER_POINTER))) {
+                DeviceIntPtr xtest_device;
 
-                rc = dixLookupDevice(&source, event->sourceid, serverClient,
-                                     DixWriteAccess);
-                if (rc != Success)
-                    ErrorF("[xkb] bad sourceid '%d' on button release event.\n",
-                           event->sourceid);
-                else if (!IsXTestDevice(source, GetMaster(dev, MASTER_POINTER)))
+                xtest_device = GetXTestDevice(GetMaster(dev, MASTER_POINTER));
+                if (button_is_down(xtest_device, ev->device_event.detail.button, BUTTON_PROCESSED))
                     XkbFakeDeviceButton(dev, FALSE, event->detail.key);
             }
         }
+
+        if (xkbi)
+            xkbi->lockedPtrButtons &= ~(1 << (event->detail.key & 0x7));
 
         changed |= XkbPointerButtonMask;
     }

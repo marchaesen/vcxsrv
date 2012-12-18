@@ -57,6 +57,7 @@ XI2Mask *xi2mask_new(void);
 XI2Mask *xi2mask_new_with_size(size_t, size_t); /* don't use it */
 void xi2mask_free(XI2Mask **mask);
 Bool xi2mask_isset(XI2Mask *mask, const DeviceIntPtr dev, int event_type);
+Bool xi2mask_isset_for_device(XI2Mask *mask, const DeviceIntPtr dev, int event_type);
 void xi2mask_set(XI2Mask *mask, int deviceid, int event_type);
 void xi2mask_zero(XI2Mask *mask, int deviceid);
 void xi2mask_merge(XI2Mask *dest, const XI2Mask *source);
