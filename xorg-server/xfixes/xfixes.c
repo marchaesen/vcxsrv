@@ -74,7 +74,7 @@ ProcXFixesQueryVersion(ClientPtr client)
 
     if (version_compare(stuff->majorVersion, stuff->minorVersion,
                         SERVER_XFIXES_MAJOR_VERSION,
-                        SERVER_XFIXES_MAJOR_VERSION) < 0) {
+                        SERVER_XFIXES_MINOR_VERSION) < 0) {
         rep.majorVersion = stuff->majorVersion;
         rep.minorVersion = stuff->minorVersion;
     }

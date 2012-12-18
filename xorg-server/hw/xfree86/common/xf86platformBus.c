@@ -377,14 +377,6 @@ xf86platformProbeDev(DriverPtr drvp)
             continue;
     }
 
-    /*
-     * If all of the above fails, which can happen if X was started without
-     * configuration or if BusID wasn't set for non-PCI devices, use the first
-     * device by default.
-     */
-    if (!foundScreen && xf86_num_platform_devices > 0 && numDevs > 0)
-        foundScreen = probeSingleDevice(&xf86_platform_devices[0], drvp, devList[0], 0);
-
     /* if autoaddgpu devices is enabled then go find a few more and add them as GPU screens */
     if (xf86Info.autoAddGPU && numDevs) {
         for (j = 0; j < xf86_num_platform_devices; j++) {

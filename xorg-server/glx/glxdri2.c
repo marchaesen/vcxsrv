@@ -514,7 +514,7 @@ create_driver_context(__GLXDRIcontext * context,
         unsigned minor_ver;
         uint32_t flags;
         int reset;
-        int api;
+        int api = __DRI_API_OPENGL;
 
         if (num_attribs != 0) {
             if (!dri2_convert_glx_attribs(screen, num_attribs, attribs,

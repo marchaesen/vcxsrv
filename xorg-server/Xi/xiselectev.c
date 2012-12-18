@@ -37,6 +37,57 @@
 #include "xiselectev.h"
 
 /**
+ * Ruleset:
+ * - if A has XIAllDevices, B may select on device X
+ * - If A has XIAllDevices, B may select on XIAllMasterDevices
+ * - If A has XIAllMasterDevices, B may select on device X
+ * - If A has XIAllMasterDevices, B may select on XIAllDevices
+ * - if A has device X, B may select on XIAllDevices/XIAllMasterDevices
+ */
+static int check_for_touch_selection_conflicts(ClientPtr B, WindowPtr win, int deviceid)
+{
+    OtherInputMasks *inputMasks = wOtherInputMasks(win);
+    InputClients *A = NULL;
+
+    if (inputMasks)
+        A = inputMasks->inputClients;
+    for (; A; A = A->next) {
+        DeviceIntPtr tmp;
+
+        if (CLIENT_ID(A->resource) == B->index)
+            continue;
+
+        if (deviceid == XIAllDevices)
+            tmp = inputInfo.all_devices;
+        else if (deviceid == XIAllMasterDevices)
+            tmp = inputInfo.all_master_devices;
+        else
+            dixLookupDevice(&tmp, deviceid, serverClient, DixReadAccess);
+        if (!tmp)
+            return BadImplementation;       /* this shouldn't happen */
+
+        /* A has XIAllDevices */
+        if (xi2mask_isset_for_device(A->xi2mask, inputInfo.all_devices, XI_TouchBegin)) {
+            if (deviceid == XIAllDevices)
+                return BadAccess;
+        }
+
+        /* A has XIAllMasterDevices */
+        if (xi2mask_isset_for_device(A->xi2mask, inputInfo.all_master_devices, XI_TouchBegin)) {
+            if (deviceid == XIAllMasterDevices)
+                return BadAccess;
+        }
+
+        /* A has this device */
+        if (xi2mask_isset_for_device(A->xi2mask, tmp, XI_TouchBegin))
+            return BadAccess;
+    }
+
+    return Success;
+}
+
+
+/**
  * Check the given mask (in len bytes) for invalid mask bits.
  * Invalid mask bits are any bits above XI2LastEvent.
  *
@@ -169,30 +220,11 @@ ProcXISelectEvents(ClientPtr client)
              * same devices, including master devices.
              * XXX: This breaks if a device goes from floating to attached. */
             if (BitIsOn(bits, XI_TouchBegin)) {
-                OtherInputMasks *inputMasks = wOtherInputMasks(win);
-                InputClients *iclient = NULL;
-
-                if (inputMasks)
-                    iclient = inputMasks->inputClients;
-                for (; iclient; iclient = iclient->next) {
-                    DeviceIntPtr tmp;
-
-                    if (CLIENT_ID(iclient->resource) == client->index)
-                        continue;
-
-                    if (evmask->deviceid == XIAllDevices)
-                        tmp = inputInfo.all_devices;
-                    else if (evmask->deviceid == XIAllMasterDevices)
-                        tmp = inputInfo.all_master_devices;
-                    else
-                        dixLookupDevice(&tmp, evmask->deviceid, serverClient,
-                                        DixReadAccess);
-                    if (!tmp)
-                        return BadImplementation;       /* this shouldn't happen */
-
-                    if (xi2mask_isset(iclient->xi2mask, tmp, XI_TouchBegin))
-                        return BadAccess;
-                }
+                rc = check_for_touch_selection_conflicts(client,
+                                                         win,
+                                                         evmask->deviceid);
+                if (rc != Success)
+                    return rc;
             }
         }
 
