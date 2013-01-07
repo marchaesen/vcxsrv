@@ -1,3 +1,14 @@
+$(OBJDIR)\fcobjshash.gperf: fcobjshash.gperf.h fcobjs.h
+	cp $< $<.c
+	$(CPP) -EP -I.. $<.c | \
+	python cleangperf.py | \
+	gawk '/CUT_OUT_BEGIN/ { no_write=1; next; }; /CUT_OUT_END/ { no_write=0; next; }; { if (!no_write) print; next; };' - > $@.tmp
+	mv -f $@.tmp $@
+	rm $<.c
+
+$(OBJDIR)\fcobjshash.h: $(OBJDIR)\fcobjshash.gperf
+	gperf -m 100 $< > $@
+
 
 load_makefile NORELDBG=1 ..\fc-case\makefile
 load_makefile NORELDBG=1 ..\fc-glyphname\makefile
@@ -27,7 +38,6 @@ CSRCS = \
 	fcstat.c \
 	fcstr.c \
 	fcxml.c \
-	\
 	ftglue.c
 
 LIBRARY = libfontconfig
@@ -36,12 +46,12 @@ PUBLIC_FILES = \
 	..\fontconfig\fontconfig.h \
 	fcdeprecate.h \
 	..\fontconfig\fcprivate.h
-	
+
 PUBLIC_FT_FILES = \
 	..\fontconfig\fcfreetype.h
 
 DEFINES += FC_CACHEDIR="""getenv(\"""TEMP\""")""" FC_DEFAULT_FONTS="""WINDOWSFONTDIR"""
-INCLUDES := .. $(INCLUDES) $(MHMAKECONF)\freetype\include $(MHMAKECONF)\libxml2\include $(MHMAKECONF)\iconv\include
+INCLUDES := .. $(OBJDIR) $(INCLUDES) $(MHMAKECONF)\freetype\include $(MHMAKECONF)\libxml2\include $(MHMAKECONF)\iconv\include
 
 fcalias.h fcaliastail.h: makealias.py $(PUBLIC_FILES)
 	python makealias.py . fcalias.h fcaliastail.h $(PUBLIC_FILES)

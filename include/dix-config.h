@@ -74,7 +74,7 @@
 /* Define to 1 if you have the <byteswap.h> header file. */
 #define HAVE_BYTESWAP_H 1
 
-/* Define to 1 if you have cbrt */
+/* Define to 1 if you have the `cbrt' function. */
 #undef HAVE_CBRT
 
 /* Define to 1 if you have the <dbm.h> header file. */
@@ -167,6 +167,9 @@
 
 /* Define to use libgcrypt SHA1 functions */
 #undef HAVE_SHA1_IN_LIBGCRYPT
+
+/* Define to use libnettle SHA1 functions */
+#undef HAVE_SHA1_IN_LIBNETTLE
 
 /* Define to use libsha1 for SHA1 */
 #undef HAVE_SHA1_IN_LIBSHA1
@@ -464,6 +467,9 @@
 
 /* Define to 1 if typeof works with your compiler. */
 #undef HAVE_TYPEOF
+
+/* Define to __typeof__ if your compiler spells it that way. */
+#undef typeof
 
 /* The compiler supported TLS storage class, prefering initial-exec if tls_model is supported */
 #undef TLS
