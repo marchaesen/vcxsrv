@@ -398,19 +398,18 @@ input_constrain_cursor(DeviceIntPtr dev, ScreenPtr screen,
     struct PointerBarrier *nearest = NULL;
     PointerBarrierClientPtr c;
     Time ms = GetTimeInMillis();
-    BarrierEvent ev = {
-        .header = ET_Internal,
-        .type = 0,
-        .length = sizeof (BarrierEvent),
-        .time = ms,
-        .deviceid = dev->id,
-        .sourceid = dev->id,
-        .dx = dest_x - current_x,
-        .dy = dest_y - current_y,
-        .root = screen->root->drawable.id,
-    };
     InternalEvent *barrier_events = events;
     DeviceIntPtr master;
+    BarrierEvent ev;
+    ev.header = ET_Internal;
+    ev.type = 0;
+    ev.length = sizeof (BarrierEvent);
+    ev.time = ms;
+    ev.deviceid = dev->id;
+    ev.sourceid = dev->id;
+    ev.dx = dest_x - current_x;
+    ev.dy = dest_y - current_y;
+    ev.root = screen->root->drawable.id;
 
     if (nevents)
         *nevents = 0;
@@ -648,24 +647,24 @@ BarrierFreeBarrier(void *data, XID id)
     for (dev = inputInfo.devices; dev; dev = dev->next) {
         struct PointerBarrierDevice *pbd;
         int root_x, root_y;
-        BarrierEvent ev = {
-            .header = ET_Internal,
-            .type = ET_BarrierLeave,
-            .length = sizeof (BarrierEvent),
-            .time = ms,
-            /* .deviceid */
-            .sourceid = 0,
-            .barrierid = c->id,
-            .window = c->window,
-            .root = screen->root->drawable.id,
-            .dx = 0,
-            .dy = 0,
-            /* .root_x */
-            /* .root_y */
-            /* .dt */
-            /* .event_id */
-            .flags = XIBarrierPointerReleased,
-        };
+        BarrierEvent ev;
+        ev.header = ET_Internal;
+        ev.type = ET_BarrierLeave;
+        ev.length = sizeof (BarrierEvent);
+        ev.time = ms;
+        /* .deviceid */
+        ev.sourceid = 0;
+        ev.barrierid = c->id;
+        ev.window = c->window;
+        ev.root = screen->root->drawable.id;
+        ev.dx = 0;
+        ev.dy = 0;
+        /* .root_x */
+        /* .root_y */
+        /* .dt */
+        /* .event_id */
+        ev.flags = XIBarrierPointerReleased;
+
 
 
         if (dev->type != MASTER_POINTER)
@@ -729,22 +728,22 @@ static void remove_master_func(pointer res, XID id, pointer devid)
     pbd = GetBarrierDevice(barrier, *deviceid);
 
     if (pbd->hit) {
-        BarrierEvent ev = {
-            .header = ET_Internal,
-            .type =ET_BarrierLeave,
-            .length = sizeof (BarrierEvent),
-            .time = ms,
-            .deviceid = *deviceid,
-            .sourceid = 0,
-            .dx = 0,
-            .dy = 0,
-            .root = barrier->screen->root->drawable.id,
-            .window = barrier->window,
-            .dt = ms - pbd->last_timestamp,
-            .flags = XIBarrierPointerReleased,
-            .event_id = pbd->barrier_event_id,
-            .barrierid = barrier->id,
-        };
+        BarrierEvent ev;
+        ev.header = ET_Internal;
+        ev.type =ET_BarrierLeave;
+        ev.length = sizeof (BarrierEvent);
+        ev.time = ms;
+        ev.deviceid = *deviceid;
+        ev.sourceid = 0;
+        ev.dx = 0;
+        ev.dy = 0;
+        ev.root = barrier->screen->root->drawable.id;
+        ev.window = barrier->window;
+        ev.dt = ms - pbd->last_timestamp;
+        ev.flags = XIBarrierPointerReleased;
+        ev.event_id = pbd->barrier_event_id;
+        ev.barrierid = barrier->id;
+
 
         mieqEnqueue(dev, (InternalEvent *) &ev);
     }

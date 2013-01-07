@@ -1671,7 +1671,7 @@ ProcessBarrierEvent(InternalEvent *e, DeviceIntPtr dev)
 
     rc = EventToXI2(e, &ev);
     if (rc != Success) {
-        ErrorF("[Xi] event conversion from %s failed with code %d\n", __func__, rc);
+        ErrorF("[Xi] event conversion from %s failed with code %d\n", __FUNCTION__, rc);
         return;
     }
 

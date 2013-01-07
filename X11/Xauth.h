@@ -27,6 +27,14 @@ in this Software without prior written authorization from The Open Group.
 #ifndef _Xauth_h
 #define _Xauth_h
 
+/* struct xauth is full of implicit padding to properly align the pointers
+   after the length fields.   We can't clean that up without breaking ABI,
+   so tell clang not to bother complaining about it. */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
+#endif
+
 typedef struct xauth {
     unsigned short   family;
     unsigned short   address_length;
@@ -38,6 +46,10 @@ typedef struct xauth {
     unsigned short   data_length;
     char   	    *data;
 } Xauth;
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #ifndef _XAUTH_STRUCT_ONLY
 
