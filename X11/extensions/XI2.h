@@ -30,7 +30,7 @@
    See commit libXi-1.4.2-21-ge8531dd */
 
 #define XI_2_Major                              2
-#define XI_2_Minor                              2
+#define XI_2_Minor                              3
 
 /* Property event flags */
 #define XIPropertyDeleted                       0
@@ -160,6 +160,11 @@
 #define XITouchPendingEnd                       (1 << 16)
 #define XITouchEmulatingPointer                 (1 << 17)
 
+/* Barrier event flags */
+#define XIBarrierPointerReleased                (1 << 0)
+#define XIBarrierDeviceIsGrabbed                (1 << 1)
+
+
 /* Touch modes */
 #define XIDirectTouch                           1
 #define XIDependentTouch                        2
@@ -199,7 +204,9 @@
 #define XI_RawTouchBegin                 22
 #define XI_RawTouchUpdate                23
 #define XI_RawTouchEnd                   24
-#define XI_LASTEVENT                     XI_RawTouchEnd
+#define XI_BarrierHit                    25 /* XI 2.3 */
+#define XI_BarrierLeave                  26
+#define XI_LASTEVENT                     XI_BarrierLeave
 /* NOTE: XI2LASTEVENT in xserver/include/inputstr.h must be the same value
  * as XI_LASTEVENT if the server is supposed to handle masks etc. for this
  * type of event. */
@@ -232,5 +239,7 @@
 #define XI_RawTouchBeginMask             (1 << XI_RawTouchBegin)
 #define XI_RawTouchEndMask               (1 << XI_RawTouchEnd)
 #define XI_RawTouchUpdateMask            (1 << XI_RawTouchUpdate)
+#define XI_BarrierHitMask                (1 << XI_BarrierHit)
+#define XI_BarrierLeaveMask              (1 << XI_BarrierLeave)
 
 #endif /* _XI2_H_ */
