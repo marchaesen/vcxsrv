@@ -253,7 +253,7 @@ NetWMToWinIconAlpha(uint32_t * icon)
     ii.fIcon = TRUE;
     ii.xHotspot = 0;            /* ignored */
     ii.yHotspot = 0;            /* ignored */
-    ii.hbmColor = CreateDIBSection(hdc, (BITMAPINFO *) & bmh,
+    ii.hbmColor = CreateDIBSection(hdc, (BITMAPINFO *) &bmh,
                                    DIB_RGB_COLORS, (void **) &DIB_pixels, NULL,
                                    0);
     ReleaseDC(NULL, hdc);

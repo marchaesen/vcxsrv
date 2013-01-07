@@ -27,9 +27,7 @@
 @TYPE2@		int%				@ARG2@		ntype
 @PURPOSE@	Register object types
 @DESC@
-Register <parameter>ntype</parameter> new object types. Returns FcFalse if
-some of the names cannot be
-registered (due to allocation failure). Otherwise returns FcTrue.
+Deprecated.  Does nothing.  Returns FcFalse.
 @@
 
 @RET@		FcBool
@@ -38,7 +36,7 @@ registered (due to allocation failure). Otherwise returns FcTrue.
 @TYPE2@		int% 				@ARG2@		ntype
 @PURPOSE@	Unregister object types
 @DESC@
-Unregister <parameter>ntype</parameter> object types. Returns FcTrue.
+Deprecated.  Does nothing.  Returns FcFalse.
 @@
 
 @RET@		const FcObjectType *

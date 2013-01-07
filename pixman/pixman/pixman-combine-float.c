@@ -42,6 +42,8 @@
 #define force_inline __inline__
 #endif
 
+#define IS_ZERO(f)     (-FLT_MIN < (f) && (f) < FLT_MIN)
+
 typedef float (* combine_channel_t) (float sa, float s, float da, float d);
 
 static force_inline void
@@ -201,56 +203,56 @@ get_factor (combine_factor_t factor, float sa, float da)
 	break;
 
     case SA_OVER_DA:
-	if (da == 0.0f)
+	if (IS_ZERO (da))
 	    f = 1.0f;
 	else
 	    f = CLAMP (sa / da);
 	break;
 
     case DA_OVER_SA:
-	if (sa == 0.0f)
+	if (IS_ZERO (sa))
 	    f = 1.0f;
 	else
 	    f = CLAMP (da / sa);
 	break;
 
     case INV_SA_OVER_DA:
-	if (da == 0.0f)
+	if (IS_ZERO (da))
 	    f = 1.0f;
 	else
 	    f = CLAMP ((1.0f - sa) / da);
 	break;
 
     case INV_DA_OVER_SA:
-	if (sa == 0.0f)
+	if (IS_ZERO (sa))
 	    f = 1.0f;
 	else
 	    f = CLAMP ((1.0f - da) / sa);
 	break;
 
     case ONE_MINUS_SA_OVER_DA:
-	if (da == 0.0f)
+	if (IS_ZERO (da))
 	    f = 0.0f;
 	else
 	    f = CLAMP (1.0f - sa / da);
 	break;
 
     case ONE_MINUS_DA_OVER_SA:
-	if (sa == 0.0f)
+	if (IS_ZERO (sa))
 	    f = 0.0f;
 	else
 	    f = CLAMP (1.0f - da / sa);
 	break;
 
     case ONE_MINUS_INV_DA_OVER_SA:
-	if (sa == 0.0f)
+	if (IS_ZERO (sa))
 	    f = 0.0f;
 	else
 	    f = CLAMP (1.0f - (1.0f - da) / sa);
 	break;
 
     case ONE_MINUS_INV_SA_OVER_DA:
-	if (da == 0.0f)
+	if (IS_ZERO (da))
 	    f = 0.0f;
 	else
 	    f = CLAMP (1.0f - (1.0f - sa) / da);
@@ -403,11 +405,11 @@ blend_lighten (float sa, float s, float da, float d)
 static force_inline float
 blend_color_dodge (float sa, float s, float da, float d)
 {
-    if (d == 0.0f)
+    if (IS_ZERO (d))
 	return 0.0f;
     else if (d * sa >= sa * da - s * da)
 	return sa * da;
-    else if (sa - s == 0.0f)
+    else if (IS_ZERO (sa - s))
 	return sa * da;
     else
 	return sa * sa * d / (sa - s);
@@ -420,7 +422,7 @@ blend_color_burn (float sa, float s, float da, float d)
 	return sa * da;
     else if (sa * (da - d) >= s * da)
 	return 0.0f;
-    else if (s == 0.0f)
+    else if (IS_ZERO (s))
 	return 0.0f;
     else
 	return sa * (da - sa * (da - d) / s);
@@ -440,14 +442,14 @@ blend_soft_light (float sa, float s, float da, float d)
 {
     if (2 * s < sa)
     {
-	if (da == 0.0f)
+	if (IS_ZERO (da))
 	    return d * sa;
 	else
 	    return d * sa - d * (da - d) * (sa - 2 * s) / da;
     }
     else
     {
-	if (da == 0.0f)
+	if (IS_ZERO (da))
 	{
 	    return 0.0f;
 	}

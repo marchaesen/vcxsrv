@@ -754,7 +754,7 @@ ProcXF86DRICreateContext(register ClientPtr client)
     if (!ephyrDRICreateContext(stuff->screen,
                                stuff->visual,
                                &context_id,
-                               (drm_context_t *) & rep.hHWContext)) {
+                               (drm_context_t *) &rep.hHWContext)) {
         return BadValue;
     }
 
@@ -964,7 +964,7 @@ ProcXF86DRICreateDrawable(ClientPtr client)
 
     if (!ephyrDRICreateDrawable(stuff->screen,
                                 remote_win,
-                                (drm_drawable_t *) & rep.hHWDrawable)) {
+                                (drm_drawable_t *) &rep.hHWDrawable)) {
         EPHYR_LOG_ERROR("failed to create dri drawable\n");
         return BadValue;
     }

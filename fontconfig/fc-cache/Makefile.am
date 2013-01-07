@@ -65,3 +65,5 @@ CLEANFILES += ${man_MANS}
 else
 all-local:
 endif
+
+-include $(top_srcdir)/git.mk

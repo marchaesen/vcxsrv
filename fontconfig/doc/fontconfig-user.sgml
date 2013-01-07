@@ -434,8 +434,9 @@ zero for purely fractional values (e.g. use 0.5 instead of .5 and -0.5
 instead of -.5).
   </para></refsect2>
   <refsect2><title><literal>&lt;matrix&gt;</literal></title><para>
-This element holds the four <literal>&lt;double&gt;</literal> elements of an affine
-transformation.
+This element holds four numerical expressions of an affine transformation.
+At their simplest these will be four <literal>&lt;double&gt;</literal> elements
+but they can also be more involved expressions.
   </para></refsect2>
   <refsect2><title><literal>&lt;range&gt;</literal></title><para>
 This element holds the two <literal>&lt;int&gt;</literal> elements of a range
@@ -451,7 +452,12 @@ a RFC-3066-style languages or more.
   </para></refsect2>
   <refsect2><title><literal>&lt;name&gt;</literal></title><para>
 Holds a property name.  Evaluates to the first value from the property of
-the font, not the pattern.
+the pattern.  If the 'target' attribute is not present, it will default to
+'default', in which case the property is returned from the font pattern
+during a target="font" match, and to the pattern during a target="pattern"
+match.  The attribute can also take the values 'font' or 'pattern' to
+explicitly choose which pattern to use.  It is an error to use a target
+of 'font' in a match that has target="pattern".
   </para></refsect2>
   <refsect2><title><literal>&lt;const&gt;</literal></title><para>
 Holds the name of a constant; these are always integers and serve as

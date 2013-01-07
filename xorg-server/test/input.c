@@ -406,7 +406,7 @@ _dix_test_xi_convert(DeviceEvent *ev, int expected_rc, int expected_count)
         assert(kbp->same_screen == FALSE);
 
         while (--count > 0) {
-            deviceValuator *v = (deviceValuator *) & xi[count];
+            deviceValuator *v = (deviceValuator *) &xi[count];
 
             assert(v->type == DeviceValuator);
             assert(v->num_valuators <= 6);

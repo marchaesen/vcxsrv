@@ -490,7 +490,7 @@ init_glapi_relocs(void)
     char run_time_patch[] = {
         0x65, 0xa1, 0, 0, 0, 0  /* movl %gs:0,%eax */
     };
-    GLuint *offset = (GLuint *) & run_time_patch[2];    /* 32-bits for x86/32 */
+    GLuint *offset = (GLuint *) &run_time_patch[2];    /* 32-bits for x86/32 */
     const GLubyte *const get_disp = (const GLubyte *) run_time_patch;
     GLubyte *curr_func = (GLubyte *) gl_dispatch_functions_start;
 

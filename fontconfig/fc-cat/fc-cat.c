@@ -67,17 +67,15 @@ extern int optind, opterr, optopt;
 #endif
 
 /*
- * POSIX has broken stdio so that getc must do thread-safe locking,
+ * POSIX has broken stdio so that putc must do thread-safe locking,
  * this is a serious performance problem for applications doing large
- * amounts of IO with getc (as is done here).  If available, use
- * the getc_unlocked varient instead.
+ * amounts of IO with putc (as is done here).  If available, use
+ * the putc_unlocked varient instead.
  */
  
-#if defined(getc_unlocked) || defined(_IO_getc_unlocked)
-#define GETC(f) getc_unlocked(f)
+#if defined(putc_unlocked) || defined(_IO_putc_unlocked)
 #define PUTC(c,f) putc_unlocked(c,f)
 #else
-#define GETC(f) getc(f)
 #define PUTC(c,f) putc(c,f)
 #endif
 

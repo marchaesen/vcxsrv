@@ -73,7 +73,7 @@ ephyrHostProxyDoForward(pointer a_request_buffer,
     GetXReq(forward_req);
     memmove(forward_req, in_req, 4);
 
-    if (!_XReply(dpy, (xReply *) & reply, 0, FALSE)) {
+    if (!_XReply(dpy, (xReply *) &reply, 0, FALSE)) {
         EPHYR_LOG_ERROR("failed to get reply\n");
         goto out;
     }

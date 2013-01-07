@@ -1051,7 +1051,7 @@ __glXSwapGetFBConfigsSGIX(__GLXclientState * cl, GLbyte * pc)
     new_req.length = req->length;
     new_req.screen = req->screen;
 
-    return (__glXSwapGetFBConfigs(cl, (GLbyte *) & new_req));
+    return (__glXSwapGetFBConfigs(cl, (GLbyte *) &new_req));
 }
 
 int

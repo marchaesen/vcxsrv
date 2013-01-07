@@ -1042,7 +1042,7 @@ winCheckDisplayNumber(void)
                       NULL,
                       GetLastError(),
                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                      (LPTSTR) & lpMsgBuf, 0, NULL);
+                      (LPTSTR) &lpMsgBuf, 0, NULL);
         ErrorF("winCheckDisplayNumber - CreateMutex failed: %s\n",
                (LPSTR) lpMsgBuf);
         LocalFree(lpMsgBuf);

@@ -6,3 +6,5 @@ fontconfig_headers=		\
 	fcprivate.h
 
 fontconfiginclude_HEADERS = $(fontconfig_headers)
+
+-include $(top_srcdir)/git.mk

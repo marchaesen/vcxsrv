@@ -237,7 +237,7 @@ __glXVForwardPipe0WithReply(__GLXclientState * cl, GLbyte * pc)
     /*
      * get the reply from the back-end server
      */
-    _XReply(dpy, (xReply *) & be_reply, 0, False);
+    _XReply(dpy, (xReply *) &be_reply, 0, False);
     be_buf_size = be_reply.length << 2;
     if (be_buf_size > 0) {
         be_buf = (char *) malloc(be_buf_size);
@@ -331,7 +331,7 @@ __glXVForwardAllWithReply(__GLXclientState * cl, GLbyte * pc)
         /*
          * get the reply from the back-end server
          */
-        _XReply(dpy, (xReply *) & be_reply, 0, False);
+        _XReply(dpy, (xReply *) &be_reply, 0, False);
         be_buf_size = be_reply.length << 2;
         if (be_buf_size > 0) {
             be_buf = (char *) malloc(be_buf_size);

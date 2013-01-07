@@ -2881,7 +2881,7 @@ sse2_composite_src_x888_0565 (pixman_implementation_t *imp,
 	while (w && (uintptr_t)dst & 15)
 	{
 	    s = *src++;
-	    *dst = CONVERT_8888_TO_0565 (s);
+	    *dst = convert_8888_to_0565 (s);
 	    dst++;
 	    w--;
 	}
@@ -2901,7 +2901,7 @@ sse2_composite_src_x888_0565 (pixman_implementation_t *imp,
 	while (w)
 	{
 	    s = *src++;
-	    *dst = CONVERT_8888_TO_0565 (s);
+	    *dst = convert_8888_to_0565 (s);
 	    dst++;
 	    w--;
 	}
@@ -3321,7 +3321,7 @@ sse2_fill (pixman_implementation_t *imp,
            int                      y,
            int                      width,
            int                      height,
-           uint32_t		    xor)
+           uint32_t		    filler)
 {
     uint32_t byte_width;
     uint8_t *byte_line;
@@ -3338,9 +3338,9 @@ sse2_fill (pixman_implementation_t *imp,
 	byte_width = width;
 	stride *= 1;
 
-	b = xor & 0xff;
+	b = filler & 0xff;
 	w = (b << 8) | b;
-	xor = (w << 16) | w;
+	filler = (w << 16) | w;
     }
     else if (bpp == 16)
     {
@@ -3349,7 +3349,7 @@ sse2_fill (pixman_implementation_t *imp,
 	byte_width = 2 * width;
 	stride *= 2;
 
-        xor = (xor & 0xffff) * 0x00010001;
+        filler = (filler & 0xffff) * 0x00010001;
     }
     else if (bpp == 32)
     {
@@ -3363,7 +3363,7 @@ sse2_fill (pixman_implementation_t *imp,
 	return FALSE;
     }
 
-    xmm_def = create_mask_2x32_128 (xor, xor);
+    xmm_def = create_mask_2x32_128 (filler, filler);
 
     while (height--)
     {
@@ -3374,21 +3374,21 @@ sse2_fill (pixman_implementation_t *imp,
 
 	if (w >= 1 && ((uintptr_t)d & 1))
 	{
-	    *(uint8_t *)d = xor;
+	    *(uint8_t *)d = filler;
 	    w -= 1;
 	    d += 1;
 	}
 
 	while (w >= 2 && ((uintptr_t)d & 3))
 	{
-	    *(uint16_t *)d = xor;
+	    *(uint16_t *)d = filler;
 	    w -= 2;
 	    d += 2;
 	}
 
 	while (w >= 4 && ((uintptr_t)d & 15))
 	{
-	    *(uint32_t *)d = xor;
+	    *(uint32_t *)d = filler;
 
 	    w -= 4;
 	    d += 4;
@@ -3439,7 +3439,7 @@ sse2_fill (pixman_implementation_t *imp,
 
 	while (w >= 4)
 	{
-	    *(uint32_t *)d = xor;
+	    *(uint32_t *)d = filler;
 
 	    w -= 4;
 	    d += 4;
@@ -3447,14 +3447,14 @@ sse2_fill (pixman_implementation_t *imp,
 
 	if (w >= 2)
 	{
-	    *(uint16_t *)d = xor;
+	    *(uint16_t *)d = filler;
 	    w -= 2;
 	    d += 2;
 	}
 
 	if (w >= 1)
 	{
-	    *(uint8_t *)d = xor;
+	    *(uint8_t *)d = filler;
 	    w -= 1;
 	    d += 1;
 	}
@@ -5970,7 +5970,7 @@ sse2_fetch_r5g6b5 (pixman_iter_t *iter, const uint32_t *mask)
     {
 	uint16_t s = *src++;
 
-	*dst++ = CONVERT_0565_TO_8888 (s);
+	*dst++ = convert_0565_to_8888 (s);
 	w--;
     }
 
@@ -5995,7 +5995,7 @@ sse2_fetch_r5g6b5 (pixman_iter_t *iter, const uint32_t *mask)
     {
 	uint16_t s = *src++;
 
-	*dst++ = CONVERT_0565_TO_8888 (s);
+	*dst++ = convert_0565_to_8888 (s);
 	w--;
     }
 

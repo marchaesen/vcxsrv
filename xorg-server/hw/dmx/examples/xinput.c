@@ -303,8 +303,8 @@ main(int argc, char **argv)
 
             XNextEvent(display, &event);
             for (i = 0; i < cnt; i++) {
-                XDeviceMotionEvent *e = (XDeviceMotionEvent *) & event;
-                XDeviceButtonEvent *b = (XDeviceButtonEvent *) & event;
+                XDeviceMotionEvent *e = (XDeviceMotionEvent *) &event;
+                XDeviceButtonEvent *b = (XDeviceButtonEvent *) &event;
 
                 if (event.type == event_type[i]) {
                     printf("%s id=%lu (%d @ %d,%d; s=0x%04x, d=%d, t=%lu)"

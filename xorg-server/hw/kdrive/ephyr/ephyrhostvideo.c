@@ -304,7 +304,7 @@ ephyrHostXVAdaptorArrayAt(const EphyrHostXVAdaptorArray * a_this, int a_index)
 
     if (a_index >= a_this->nb_adaptors)
         return NULL;
-    return (EphyrHostXVAdaptor *) & a_this->adaptors[a_index];
+    return (EphyrHostXVAdaptor *) &a_this->adaptors[a_index];
 }
 
 char
@@ -668,7 +668,7 @@ ephyrHostXVQueryImageAttributes(int a_port_id,
     /*
      * read the reply
      */
-    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+    if (!_XReply(dpy, (xReply *) &rep, 0, xFalse)) {
         EPHYR_LOG_ERROR("QeryImageAttribute req failed\n");
         goto out;
     }

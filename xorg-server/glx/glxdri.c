@@ -1069,7 +1069,7 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
 
     /* Map the framebuffer region. */
     status = drmMap(fd, hFB, framebuffer.size,
-                    (drmAddressPtr) & framebuffer.base);
+                    (drmAddressPtr) &framebuffer.base);
     if (status != 0) {
         LogMessage(X_ERROR, "AIGLX error: drmMap of framebuffer failed (%s)\n",
                    strerror(-status));

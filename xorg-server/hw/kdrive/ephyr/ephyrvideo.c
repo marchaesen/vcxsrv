@@ -495,7 +495,7 @@ ephyrXVPrivQueryHostAdaptors(EphyrXVPriv * a_this)
         port_priv_offset = a_this->adaptors[i].nPorts;
         for (j = 0; j < a_this->adaptors[i].nPorts; j++) {
             EphyrPortPriv *port_privs_base =
-                (EphyrPortPriv *) & a_this->adaptors[i].
+                (EphyrPortPriv *) &a_this->adaptors[i].
                 pPortPrivates[port_priv_offset];
             EphyrPortPriv *port_priv = &port_privs_base[j];
 

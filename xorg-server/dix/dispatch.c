@@ -2454,7 +2454,7 @@ ProcListInstalledColormaps(ClientPtr client)
     preply->type = X_Reply;
     preply->sequenceNumber = client->sequence;
     nummaps = (*pWin->drawable.pScreen->ListInstalledColormaps)
-        (pWin->drawable.pScreen, (Colormap *) & preply[1]);
+        (pWin->drawable.pScreen, (Colormap *) &preply[1]);
     preply->nColormaps = nummaps;
     preply->length = nummaps;
     WriteReplyToClient(client, sizeof(xListInstalledColormapsReply), preply);

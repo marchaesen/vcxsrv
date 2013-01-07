@@ -6,8 +6,8 @@ CACHEDIR=`pwd`/cache.dir
 
 ECHO=true
 
-FCLIST=../fc-list/fc-list
-FCCACHE=../fc-cache/fc-cache
+FCLIST=../fc-list/fc-list$EXEEXT
+FCCACHE=../fc-cache/fc-cache$EXEEXT
 
 FONT1=$TESTDIR/4x6.pcf
 FONT2=$TESTDIR/8x16.pcf

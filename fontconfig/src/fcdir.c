@@ -126,10 +126,10 @@ FcFileScanConfig (FcFontSet	*set,
 FcBool
 FcFileScan (FcFontSet	    *set,
 	    FcStrSet	    *dirs,
-	    FcFileCache	    *cache, /* XXX unused */
+	    FcFileCache	    *cache FC_UNUSED,
 	    FcBlanks	    *blanks,
 	    const FcChar8   *file,
-	    FcBool	    force)
+	    FcBool	    force FC_UNUSED)
 {
     return FcFileScanConfig (set, dirs, blanks, file, FcConfigGetCurrent ());
 }
@@ -316,7 +316,7 @@ FcDirCacheRead (const FcChar8 *dir, FcBool force, FcConfig *config)
 }
 
 FcBool
-FcDirSave (FcFontSet *set, FcStrSet * dirs, const FcChar8 *dir)
+FcDirSave (FcFontSet *set FC_UNUSED, FcStrSet * dirs FC_UNUSED, const FcChar8 *dir FC_UNUSED)
 {
     return FcFalse; /* XXX deprecated */
 }

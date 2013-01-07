@@ -108,7 +108,7 @@ winDetectSupportedEngines(void)
         /* Try to query for DirectDraw4 interface */
         ddrval = IDirectDraw_QueryInterface(lpdd,
                                             &IID_IDirectDraw4,
-                                            (LPVOID *) & lpdd4);
+                                            (LPVOID *) &lpdd4);
         if (SUCCEEDED(ddrval)) {
             /* We have DirectDraw4 */
             winErrorFVerb(2,

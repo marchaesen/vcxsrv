@@ -2064,7 +2064,7 @@ mmx_fill (pixman_implementation_t *imp,
           int                      y,
           int                      width,
           int                      height,
-          uint32_t		   xor)
+          uint32_t		   filler)
 {
     uint64_t fill;
     __m64 vfill;
@@ -2084,7 +2084,7 @@ mmx_fill (pixman_implementation_t *imp,
 	byte_line = (uint8_t *)(((uint8_t *)bits) + stride * y + x);
 	byte_width = width;
 	stride *= 1;
-        xor = (xor & 0xff) * 0x01010101;
+        filler = (filler & 0xff) * 0x01010101;
     }
     else if (bpp == 16)
     {
@@ -2092,7 +2092,7 @@ mmx_fill (pixman_implementation_t *imp,
 	byte_line = (uint8_t *)(((uint16_t *)bits) + stride * y + x);
 	byte_width = 2 * width;
 	stride *= 2;
-        xor = (xor & 0xffff) * 0x00010001;
+        filler = (filler & 0xffff) * 0x00010001;
     }
     else
     {
@@ -2102,7 +2102,7 @@ mmx_fill (pixman_implementation_t *imp,
 	stride *= 4;
     }
 
-    fill = ((uint64_t)xor << 32) | xor;
+    fill = ((uint64_t)filler << 32) | filler;
     vfill = to_m64 (fill);
 
 #if defined __GNUC__ && defined USE_X86_MMX
@@ -2129,21 +2129,21 @@ mmx_fill (pixman_implementation_t *imp,
 
 	if (w >= 1 && ((uintptr_t)d & 1))
 	{
-	    *(uint8_t *)d = (xor & 0xff);
+	    *(uint8_t *)d = (filler & 0xff);
 	    w--;
 	    d++;
 	}
 
 	if (w >= 2 && ((uintptr_t)d & 3))
 	{
-	    *(uint16_t *)d = xor;
+	    *(uint16_t *)d = filler;
 	    w -= 2;
 	    d += 2;
 	}
 
 	while (w >= 4 && ((uintptr_t)d & 7))
 	{
-	    *(uint32_t *)d = xor;
+	    *(uint32_t *)d = filler;
 
 	    w -= 4;
 	    d += 4;
@@ -2182,20 +2182,20 @@ mmx_fill (pixman_implementation_t *imp,
 
 	while (w >= 4)
 	{
-	    *(uint32_t *)d = xor;
+	    *(uint32_t *)d = filler;
 
 	    w -= 4;
 	    d += 4;
 	}
 	if (w >= 2)
 	{
-	    *(uint16_t *)d = xor;
+	    *(uint16_t *)d = filler;
 	    w -= 2;
 	    d += 2;
 	}
 	if (w >= 1)
 	{
-	    *(uint8_t *)d = (xor & 0xff);
+	    *(uint8_t *)d = (filler & 0xff);
 	    w--;
 	    d++;
 	}
@@ -2230,7 +2230,7 @@ mmx_composite_src_x888_0565 (pixman_implementation_t *imp,
 	while (w && (uintptr_t)dst & 7)
 	{
 	    s = *src++;
-	    *dst = CONVERT_8888_TO_0565 (s);
+	    *dst = convert_8888_to_0565 (s);
 	    dst++;
 	    w--;
 	}
@@ -2253,7 +2253,7 @@ mmx_composite_src_x888_0565 (pixman_implementation_t *imp,
 	while (w)
 	{
 	    s = *src++;
-	    *dst = CONVERT_8888_TO_0565 (s);
+	    *dst = convert_8888_to_0565 (s);
 	    dst++;
 	    w--;
 	}
@@ -3136,13 +3136,13 @@ mmx_composite_add_0565_0565 (pixman_implementation_t *imp,
 	    if (s)
 	    {
 		d = *dst;
-		s = CONVERT_0565_TO_8888 (s);
+		s = convert_0565_to_8888 (s);
 		if (d)
 		{
-		    d = CONVERT_0565_TO_8888 (d);
+		    d = convert_0565_to_8888 (d);
 		    UN8x4_ADD_UN8x4 (s, d);
 		}
-		*dst = CONVERT_8888_TO_0565 (s);
+		*dst = convert_8888_to_0565 (s);
 	    }
 	    dst++;
 	    w--;
@@ -3174,13 +3174,13 @@ mmx_composite_add_0565_0565 (pixman_implementation_t *imp,
 	    if (s)
 	    {
 		d = *dst;
-		s = CONVERT_0565_TO_8888 (s);
+		s = convert_0565_to_8888 (s);
 		if (d)
 		{
-		    d = CONVERT_0565_TO_8888 (d);
+		    d = convert_0565_to_8888 (d);
 		    UN8x4_ADD_UN8x4 (s, d);
 		}
-		*dst = CONVERT_8888_TO_0565 (s);
+		*dst = convert_8888_to_0565 (s);
 	    }
 	    dst++;
 	}
@@ -3824,7 +3824,7 @@ mmx_fetch_r5g6b5 (pixman_iter_t *iter, const uint32_t *mask)
     {
 	uint16_t s = *src++;
 
-	*dst++ = CONVERT_0565_TO_8888 (s);
+	*dst++ = convert_0565_to_8888 (s);
 	w--;
     }
 
@@ -3847,7 +3847,7 @@ mmx_fetch_r5g6b5 (pixman_iter_t *iter, const uint32_t *mask)
     {
 	uint16_t s = *src++;
 
-	*dst++ = CONVERT_0565_TO_8888 (s);
+	*dst++ = convert_0565_to_8888 (s);
 	w--;
     }
 

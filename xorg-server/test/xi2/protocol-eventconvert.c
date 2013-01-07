@@ -694,7 +694,7 @@ test_values_XIDeviceChangedEvent(DeviceChangedEvent *in,
             assert(k->num_keycodes == in->keys.max_keycode -
                    in->keys.min_keycode + 1);
 
-            kc = (uint32_t *) & k[1];
+            kc = (uint32_t *) &k[1];
             for (j = 0; j < k->num_keycodes; j++) {
                 if (swap) {
                     swapl(&kc[j]);
@@ -984,6 +984,221 @@ test_convert_XITouchOwnershipEvent(void)
     }
 }
 
+static void
+test_XIBarrierEvent(BarrierEvent *in)
+{
+    xXIBarrierEvent *out, *swapped;
+    int count;
+    int rc;
+    int eventlen;
+    FP3232 value;
+
+    rc = EventToXI((InternalEvent*)in, (xEvent**)&out, &count);
+    assert(rc == BadMatch);
+
+    rc = EventToCore((InternalEvent*)in, (xEvent**)&out, &count);
+    assert(rc == BadMatch);
+
+    rc = EventToXI2((InternalEvent*)in, (xEvent**)&out);
+
+    assert(out->type == GenericEvent);
+    assert(out->extension == 0); /* IReqCode defaults to 0 */
+    assert(out->evtype == GetXI2Type(in->type));
+    assert(out->time == in->time);
+    assert(out->deviceid == in->deviceid);
+    assert(out->sourceid == in->sourceid);
+    assert(out->barrier == in->barrierid);
+    assert(out->flags == in->flags);
+    assert(out->event == in->window);
+    assert(out->root == in->root);
+    assert(out->dtime == in->dt);
+    assert(out->eventid == in->event_id);
+    assert(out->root_x == double_to_fp1616(in->root_x));
+    assert(out->root_y == double_to_fp1616(in->root_y));
+
+    value = double_to_fp3232(in->dx);
+    assert(out->dx.integral == value.integral);
+    assert(out->dx.frac == value.frac);
+    value = double_to_fp3232(in->dy);
+    assert(out->dy.integral == value.integral);
+    assert(out->dy.frac == value.frac);
+
+    eventlen = sizeof(xEvent) + out->length * 4;
+    swapped = calloc(1, eventlen);
+    XI2EventSwap((xGenericEvent *) out, (xGenericEvent *) swapped);
+
+    swaps(&swapped->sequenceNumber);
+    swapl(&swapped->length);
+    swaps(&swapped->evtype);
+    swaps(&swapped->deviceid);
+    swapl(&swapped->time);
+    swapl(&swapped->eventid);
+    swapl(&swapped->root);
+    swapl(&swapped->event);
+    swapl(&swapped->barrier);
+    swapl(&swapped->dtime);
+    swaps(&swapped->sourceid);
+    swapl(&swapped->root_x);
+    swapl(&swapped->root_y);
+    swapl(&swapped->dx.integral);
+    swapl(&swapped->dx.frac);
+    swapl(&swapped->dy.integral);
+    swapl(&swapped->dy.frac);
+
+    assert(memcmp(swapped, out, eventlen) == 0);
+
+    free(swapped);
+    free(out);
+}
+
+static void
+test_convert_XIBarrierEvent(void)
+{
+    BarrierEvent in;
+
+    memset(&in, 0, sizeof(in));
+    in.header = ET_Internal;
+    in.type = ET_BarrierHit;
+    in.length = sizeof(in);
+    in.time = 0;
+    in.deviceid = 1;
+    in.sourceid = 2;
+
+    test_XIBarrierEvent(&in);
+
+    in.deviceid = 1;
+    while(in.deviceid & 0xFFFF) {
+        test_XIBarrierEvent(&in);
+        in.deviceid <<= 1;
+    }
+    in.deviceid = 0;
+
+    in.sourceid = 1;
+    while(in.sourceid & 0xFFFF) {
+        test_XIBarrierEvent(&in);
+        in.sourceid <<= 1;
+    }
+    in.sourceid = 0;
+
+    in.flags = 1;
+    while(in.flags) {
+        test_XIBarrierEvent(&in);
+        in.flags <<= 1;
+    }
+
+    in.barrierid = 1;
+    while(in.barrierid) {
+        test_XIBarrierEvent(&in);
+        in.barrierid <<= 1;
+    }
+
+    in.dt = 1;
+    while(in.dt) {
+        test_XIBarrierEvent(&in);
+        in.dt <<= 1;
+    }
+
+    in.event_id = 1;
+    while(in.event_id) {
+        test_XIBarrierEvent(&in);
+        in.event_id <<= 1;
+    }
+
+    in.window = 1;
+    while(in.window) {
+        test_XIBarrierEvent(&in);
+        in.window <<= 1;
+    }
+
+    in.root = 1;
+    while(in.root) {
+        test_XIBarrierEvent(&in);
+        in.root <<= 1;
+    }
+
+    /* pseudo-random 16 bit numbers */
+    in.root_x = 1;
+    test_XIBarrierEvent(&in);
+    in.root_x = 1.3;
+    test_XIBarrierEvent(&in);
+    in.root_x = 264.908;
+    test_XIBarrierEvent(&in);
+    in.root_x = 35638.292;
+    test_XIBarrierEvent(&in);
+
+    in.root_x = -1;
+    test_XIBarrierEvent(&in);
+    in.root_x = -1.3;
+    test_XIBarrierEvent(&in);
+    in.root_x = -264.908;
+    test_XIBarrierEvent(&in);
+    in.root_x = -35638.292;
+    test_XIBarrierEvent(&in);
+
+    in.root_y = 1;
+    test_XIBarrierEvent(&in);
+    in.root_y = 1.3;
+    test_XIBarrierEvent(&in);
+    in.root_y = 264.908;
+    test_XIBarrierEvent(&in);
+    in.root_y = 35638.292;
+    test_XIBarrierEvent(&in);
+
+    in.root_y = -1;
+    test_XIBarrierEvent(&in);
+    in.root_y = -1.3;
+    test_XIBarrierEvent(&in);
+    in.root_y = -264.908;
+    test_XIBarrierEvent(&in);
+    in.root_y = -35638.292;
+    test_XIBarrierEvent(&in);
+
+    /* equally pseudo-random 32 bit numbers */
+    in.dx = 1;
+    test_XIBarrierEvent(&in);
+    in.dx = 1.3;
+    test_XIBarrierEvent(&in);
+    in.dx = 264.908;
+    test_XIBarrierEvent(&in);
+    in.dx = 35638.292;
+    test_XIBarrierEvent(&in);
+    in.dx = 2947813871.2342;
+    test_XIBarrierEvent(&in);
+
+    in.dx = -1;
+    test_XIBarrierEvent(&in);
+    in.dx = -1.3;
+    test_XIBarrierEvent(&in);
+    in.dx = -264.908;
+    test_XIBarrierEvent(&in);
+    in.dx = -35638.292;
+    test_XIBarrierEvent(&in);
+    in.dx = -2947813871.2342;
+    test_XIBarrierEvent(&in);
+
+    in.dy = 1;
+    test_XIBarrierEvent(&in);
+    in.dy = 1.3;
+    test_XIBarrierEvent(&in);
+    in.dy = 264.908;
+    test_XIBarrierEvent(&in);
+    in.dy = 35638.292;
+    test_XIBarrierEvent(&in);
+    in.dy = 2947813871.2342;
+    test_XIBarrierEvent(&in);
+
+    in.dy = -1;
+    test_XIBarrierEvent(&in);
+    in.dy = -1.3;
+    test_XIBarrierEvent(&in);
+    in.dy = -264.908;
+    test_XIBarrierEvent(&in);
+    in.dy = -35638.292;
+    test_XIBarrierEvent(&in);
+    in.dy = -2947813871.2342;
+    test_XIBarrierEvent(&in);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -992,6 +1207,7 @@ main(int argc, char **argv)
     test_convert_XIDeviceEvent();
     test_convert_XIDeviceChangedEvent();
     test_convert_XITouchOwnershipEvent();
+    test_convert_XIBarrierEvent();
 
     return 0;
 }

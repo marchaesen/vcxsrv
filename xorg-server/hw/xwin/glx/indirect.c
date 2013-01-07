@@ -224,7 +224,7 @@ glxWinErrorMessage(void)
     if (!FormatMessage
         (FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS |
          FORMAT_MESSAGE_MAX_WIDTH_MASK, NULL, last_error, 0,
-         (LPTSTR) & errorbuffer, sizeof(errorbuffer), NULL)) {
+         (LPTSTR) &errorbuffer, sizeof(errorbuffer), NULL)) {
         snprintf(errorbuffer, sizeof(errorbuffer), "Unknown error");
     }
 
@@ -1370,7 +1370,7 @@ glxWinDeferredCreateContext(__GLXWinContext * gc, __GLXWinDrawable * draw)
             }
 
             draw->hDIB =
-                CreateDIBSection(draw->dibDC, (BITMAPINFO *) & bmpHeader,
+                CreateDIBSection(draw->dibDC, (BITMAPINFO *) &bmpHeader,
                                  DIB_RGB_COLORS, &pBits, 0, 0);
             if (draw->dibDC == NULL) {
                 ErrorF("CreateDIBSection error: %s\n", glxWinErrorMessage());

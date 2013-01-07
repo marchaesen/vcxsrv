@@ -88,7 +88,7 @@ CalcServerVersionAndExtensions(void)
         req->glxCode = X_GLXQueryVersion;
         req->majorVersion = GLX_SERVER_MAJOR_VERSION;
         req->minorVersion = GLX_SERVER_MINOR_VERSION;
-        _XReply(dpy, (xReply *) & reply, 0, False);
+        _XReply(dpy, (xReply *) &reply, 0, False);
         UnlockDisplay(dpy);
         SyncHandle();
 
@@ -147,7 +147,7 @@ CalcServerVersionAndExtensions(void)
         req->glxCode = X_GLXQueryServerString;
         req->screen = DefaultScreen(dpy);
         req->name = GLX_EXTENSIONS;
-        _XReply(dpy, (xReply *) & reply, 0, False);
+        _XReply(dpy, (xReply *) &reply, 0, False);
 
         length = (int) reply.length;
         numbytes = (int) reply.n;

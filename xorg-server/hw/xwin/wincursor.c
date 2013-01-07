@@ -104,7 +104,7 @@ winPointerWarpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 
         /* Translate the client area coords to screen coords */
         MapWindowPoints(pScreenPriv->hwndScreen,
-                        HWND_DESKTOP, (LPPOINT) & rcClient, 2);
+                        HWND_DESKTOP, (LPPOINT) &rcClient, 2);
 
         /* 
          * Update the Windows cursor position so that we don't
@@ -275,7 +275,7 @@ winLoadCursor(ScreenPtr pScreen, CursorPtr pCursor, int screen)
     if (!lpBits) {
         /* Bicolor, use a palettized DIB */
         WIN_DEBUG_MSG("winLoadCursor: Trying two color cursor\n");
-        pbmi = (BITMAPINFO *) & bi;
+        pbmi = (BITMAPINFO *) &bi;
         memset(pbmi, 0, sizeof(BITMAPINFOHEADER));
         pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
         pbmi->bmiHeader.biWidth = pScreenPriv->cursor.sm_cx;
@@ -358,7 +358,7 @@ winLoadCursor(ScreenPtr pScreen, CursorPtr pCursor, int screen)
                 CreateCompatibleBitmap(hDC, pScreenPriv->cursor.sm_cx,
                                        pScreenPriv->cursor.sm_cy);
             SetDIBits(hDC, hXor, 0, pScreenPriv->cursor.sm_cy, lpBits,
-                      (BITMAPINFO *) & bi, DIB_RGB_COLORS);
+                      (BITMAPINFO *) &bi, DIB_RGB_COLORS);
             ReleaseDC(NULL, hDC);
         }
         free(lpBits);

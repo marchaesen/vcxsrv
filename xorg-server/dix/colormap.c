@@ -658,15 +658,15 @@ FreeCell(ColormapPtr pmap, Pixel i, int channel)
     default:         /* so compiler can see that everything gets initialized */
     case PSEUDOMAP:
     case REDMAP:
-        pent = (EntryPtr) & pmap->red[i];
+        pent = (EntryPtr) &pmap->red[i];
         pCount = &pmap->freeRed;
         break;
     case GREENMAP:
-        pent = (EntryPtr) & pmap->green[i];
+        pent = (EntryPtr) &pmap->green[i];
         pCount = &pmap->freeGreen;
         break;
     case BLUEMAP:
-        pent = (EntryPtr) & pmap->blue[i];
+        pent = (EntryPtr) &pmap->blue[i];
         pCount = &pmap->freeBlue;
         break;
     }
@@ -1400,7 +1400,7 @@ QueryColors(ColormapPtr pmap, int count, Pixel * ppixIn, xrgb * prgbList,
                 errVal = BadValue;
             }
             else {
-                pent = (EntryPtr) & pmap->red[pixel];
+                pent = (EntryPtr) &pmap->red[pixel];
                 if (pent->fShared) {
                     prgb->red = pent->co.shco.red->color;
                     prgb->green = pent->co.shco.green->color;

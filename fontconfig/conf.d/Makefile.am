@@ -92,3 +92,5 @@ uninstall-local:
 	    echo $(RM) $$i;					\
 	    $(RM) $$i;						\
 	  done)
+
+-include $(top_srcdir)/git.mk

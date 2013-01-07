@@ -280,7 +280,7 @@ ProcXF86DRICreateContext(register ClientPtr client)
 
     if (!DRICreateContext(pScreen,
                           NULL,
-                          stuff->context, (drm_context_t *) & rep.hHWContext)) {
+                          stuff->context, (drm_context_t *) &rep.hHWContext)) {
         return BadValue;
     }
 
@@ -329,7 +329,7 @@ ProcXF86DRICreateDrawable(ClientPtr client)
         return rc;
 
     if (!DRICreateDrawable(screenInfo.screens[stuff->screen], client,
-                           pDrawable, (drm_drawable_t *) & rep.hHWDrawable)) {
+                           pDrawable, (drm_drawable_t *) &rep.hHWDrawable)) {
         return BadValue;
     }
 

@@ -6196,8 +6196,8 @@
       </option>
       <option>
         <configItem>
-          <name>altwin:swap_lalt_lwin</name>
-          <_description>Left Alt is swapped with Left Win</_description>
+          <name>altwin:swap_alt_win</name>
+          <_description>Alt is swapped with Win</_description>
         </configItem>
       </option>
     </group>

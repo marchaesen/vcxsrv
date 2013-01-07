@@ -134,11 +134,6 @@ main (int argc, char **argv)
     i = 1;
 #endif
 
-    if (!FcInit ())
-    {
-	fprintf (stderr, "Can't init font config library\n");
-	return 1;
-    }
     if (argv[i])
     {
 	pat = FcNameParse ((FcChar8 *) argv[i]);

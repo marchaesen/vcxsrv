@@ -678,4 +678,10 @@ extern _X_EXPORT void input_option_set_value(InputOption *opt,
 extern _X_HIDDEN Bool point_on_screen(ScreenPtr pScreen, int x, int y);
 extern _X_HIDDEN void update_desktop_dimensions(void);
 
+extern _X_HIDDEN void input_constrain_cursor(DeviceIntPtr pDev, ScreenPtr screen,
+                                             int current_x, int current_y,
+                                             int dest_x, int dest_y,
+                                             int *out_x, int *out_y,
+                                             int *nevents, InternalEvent* events);
+
 #endif                          /* INPUT_H */

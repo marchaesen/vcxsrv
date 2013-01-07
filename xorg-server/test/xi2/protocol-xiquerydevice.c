@@ -171,7 +171,7 @@ reply_XIQueryDevice_data(ClientPtr client, int len, char *data, void *closure)
                        (xkb->max_key_code - xkb->min_key_code + 1));
                 assert(any->length == (2 + ki->num_keycodes));
 
-                kc = (uint32_t *) & ki[1];
+                kc = (uint32_t *) &ki[1];
                 for (k = 0; k < ki->num_keycodes; k++, kc++) {
                     if (client->swapped)
                         swapl(kc);

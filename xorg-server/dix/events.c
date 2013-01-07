@@ -219,6 +219,9 @@ static void CheckVirtualMotion(DeviceIntPtr pDev, QdEventPtr qe,
 static void CheckPhysLimits(DeviceIntPtr pDev, CursorPtr cursor,
                             Bool generateEvents, Bool confineToScreen,
                             ScreenPtr pScreen);
+static Bool IsWrongPointerBarrierClient(ClientPtr client,
+                                        DeviceIntPtr dev,
+                                        xEvent *event);
 
 /** Key repeat hack. Do not use but in TryClientEvents */
 extern BOOL EventIsKeyRepeat(xEvent *event);
@@ -2092,6 +2095,9 @@ DeliverEventToInputClients(DeviceIntPtr dev, InputClients * inputclients,
         if (IsInterferingGrab(client, dev, events))
             continue;
 
+        if (IsWrongPointerBarrierClient(client, dev, events))
+            continue;
+
         mask = GetEventMask(dev, events, inputclients);
 
         if (XaceHook(XACE_RECEIVE_ACCESS, client, win, events, count))
@@ -2446,6 +2452,8 @@ FixUpEventFromWindow(SpritePtr pSprite,
         case XI_DeviceChanged:
         case XI_HierarchyChanged:
         case XI_PropertyEvent:
+        case XI_BarrierHit:
+        case XI_BarrierLeave:
             return;
         default:
             break;
@@ -5043,7 +5051,7 @@ GrabDevice(ClientPtr client, DeviceIntPtr dev,
     grab = grabInfo->grab;
     if (grab && grab->grabtype != grabtype)
         *status = AlreadyGrabbed;
-    if (grab && !SameClient(grab, client))
+    else if (grab && !SameClient(grab, client))
         *status = AlreadyGrabbed;
     else if ((!pWin->realized) ||
              (confineTo &&
@@ -6079,4 +6087,20 @@ IsInterferingGrab(ClientPtr client, DeviceIntPtr dev, xEvent *event)
     }
 
     return FALSE;
+}
+
+/* PointerBarrier events are only delivered to the client that created that
+ * barrier */
+static Bool
+IsWrongPointerBarrierClient(ClientPtr client, DeviceIntPtr dev, xEvent *event)
+{
+    xXIBarrierEvent *ev = (xXIBarrierEvent*)event;
+
+    if (ev->type != GenericEvent || ev->extension != IReqCode)
+        return FALSE;
+
+    if (ev->evtype != XI_BarrierHit && ev->evtype != XI_BarrierLeave)
+        return FALSE;
+
+    return client->index != CLIENT_ID(ev->barrier);
 }

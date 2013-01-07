@@ -265,6 +265,32 @@ fixes_pointer_barriers_test(void)
     x2 = x + 100;
     assert(!barrier_is_blocking(&barrier, x1, y1, x2, y2, &distance));
 
+    /* ray vert barrier */
+    barrier.x1 = x;
+    barrier.x2 = x;
+    barrier.y1 = -1;
+    barrier.y2 = y + 100;
+
+    /* ray barrier simple case */
+    y1 = y;
+    y2 = y;
+    x1 = x + 50;
+    x2 = x - 50;
+    assert(barrier_is_blocking(&barrier, x1, y1, x2, y2, &distance));
+
+    /* endpoint outside y range; should be blocked */
+    y1 = y - 1000;
+    y2 = y - 1000;
+    x1 = x + 50;
+    x2 = x - 50;
+    assert(barrier_is_blocking(&barrier, x1, y1, x2, y2, &distance));
+
+    /* endpoint outside y range */
+    y1 = y + 150;
+    y2 = y + 150;
+    x1 = x + 50;
+    x2 = x - 50;
+    assert(!barrier_is_blocking(&barrier, x1, y1, x2, y2, &distance));
 }
 
 static void

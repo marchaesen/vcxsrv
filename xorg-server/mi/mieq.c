@@ -407,6 +407,10 @@ ChangeDeviceID(DeviceIntPtr dev, InternalEvent *event)
     case ET_RawTouchUpdate:
         event->raw_event.deviceid = dev->id;
         break;
+    case ET_BarrierHit:
+    case ET_BarrierLeave:
+        event->barrier_event.deviceid = dev->id;
+        break;
     default:
         ErrorF("[mi] Unknown event type (%d), cannot change id.\n",
                event->any.type);

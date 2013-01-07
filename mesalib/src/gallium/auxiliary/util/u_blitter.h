@@ -83,6 +83,15 @@ struct blitter_context
                           enum blitter_attrib_type type,
                           const union pipe_color_union *color);
 
+   /**
+    * Get the next surface layer for the pipe surface, i.e. make a copy
+    * of the surface and increment the first and last layer by 1.
+    *
+    * This callback is exposed, so that drivers can override it if needed.
+    */
+   struct pipe_surface *(*get_next_surface_layer)(struct pipe_context *pipe,
+                                                  struct pipe_surface *surf);
+
    /* Whether the blitter is running. */
    boolean running;
 
@@ -217,14 +226,15 @@ void util_blitter_copy_texture(struct blitter_context *blitter,
                                boolean copy_all_samples);
 
 /**
- * Same as util_blitter_copy_texture with the capabilities of util_blitter_blit,
- * but dst and src are pipe_surface and pipe_sampler_view, respectively.
- * The mipmap level and dstz are part of the views.
+ * This is a generic implementation of pipe->blit, which accepts
+ * sampler/surface views instead of resources.
+ *
+ * The layer and mipmap level are specified by the views.
  *
  * Drivers can use this to change resource properties (like format, width,
  * height) by changing how the views interpret them, instead of changing
- * pipe_resource directly. This is usually needed to accelerate copying of
- * compressed formats.
+ * pipe_resource directly. This is used to blit resources of formats which
+ * are not renderable.
  *
  * src_width0 and src_height0 are sampler_view-private properties that
  * override pipe_resource. The blitter uses them for computation of texture
@@ -236,8 +246,7 @@ void util_blitter_copy_texture(struct blitter_context *blitter,
  */
 void util_blitter_blit_generic(struct blitter_context *blitter,
                                struct pipe_surface *dst,
-                               int dstx, int dsty,
-                               unsigned dst_width, unsigned dst_height,
+                               const struct pipe_box *dstbox,
                                struct pipe_sampler_view *src,
                                const struct pipe_box *srcbox,
                                unsigned src_width0, unsigned src_height0,
@@ -255,8 +264,7 @@ void util_blitter_blit(struct blitter_context *blitter,
 void util_blitter_default_dst_texture(struct pipe_surface *dst_templ,
                                       struct pipe_resource *dst,
                                       unsigned dstlevel,
-                                      unsigned dstz,
-                                      const struct pipe_box *srcbox);
+                                      unsigned dstz);
 
 /**
  * Helper function to initialize a view for copy_texture_view.

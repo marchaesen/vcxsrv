@@ -87,7 +87,7 @@ ftglue_stream_seek( FT_Stream   stream,
     if ( stream->read( stream, pos, 0, 0 ) )
       error = FT_Err_Invalid_Stream_Operation;
   }
-  else if ( pos > stream->size )
+  else if ( pos < 0 || (FT_ULong) pos > stream->size )
     error = FT_Err_Invalid_Stream_Operation;
 
   if ( !error )
@@ -257,6 +257,5 @@ Exit:
 }
 
 #undef QALLOC
-#define __ftglue__
 #include "fcaliastail.h"
 #undef __ftglue__

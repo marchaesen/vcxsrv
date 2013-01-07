@@ -232,7 +232,7 @@ winAllocateFBShadowDD(ScreenPtr pScreen)
     /* Get a DirectDraw2 interface pointer */
     ddrval = IDirectDraw_QueryInterface(pScreenPriv->pdd,
                                         &IID_IDirectDraw2,
-                                        (LPVOID *) & pScreenPriv->pdd2);
+                                        (LPVOID *) &pScreenPriv->pdd2);
     if (FAILED(ddrval)) {
         ErrorF("winAllocateFBShadowDD - Failed DD2 query: %08x\n",
                (unsigned int) ddrval);
@@ -507,7 +507,7 @@ winShadowUpdateDD(ScreenPtr pScreen, shadowBufPtr pBuf)
     ptOrigin.x = pScreenInfo->dwXOffset;
     ptOrigin.y = pScreenInfo->dwYOffset;
     MapWindowPoints(pScreenPriv->hwndScreen,
-                    HWND_DESKTOP, (LPPOINT) & ptOrigin, 1);
+                    HWND_DESKTOP, (LPPOINT) &ptOrigin, 1);
 
     /* Unlock the shadow surface, so we can blit */
     ddrval = IDirectDrawSurface2_Unlock(pScreenPriv->pddsShadow, NULL);
@@ -853,7 +853,7 @@ winBltExposedRegionsShadowDD(ScreenPtr pScreen)
     ptOrigin.y = pScreenInfo->dwYOffset;
 
     MapWindowPoints(pScreenPriv->hwndScreen,
-                    HWND_DESKTOP, (LPPOINT) & ptOrigin, 1);
+                    HWND_DESKTOP, (LPPOINT) &ptOrigin, 1);
     rcDest.left = ptOrigin.x;
     rcDest.right = ptOrigin.x + pScreenInfo->dwWidth;
     rcDest.top = ptOrigin.y;
@@ -996,7 +996,7 @@ winRedrawScreenShadowDD(ScreenPtr pScreen)
     ptOrigin.x = pScreenInfo->dwXOffset;
     ptOrigin.y = pScreenInfo->dwYOffset;
     MapWindowPoints(pScreenPriv->hwndScreen,
-                    HWND_DESKTOP, (LPPOINT) & ptOrigin, 1);
+                    HWND_DESKTOP, (LPPOINT) &ptOrigin, 1);
     rcDest.left = ptOrigin.x;
     rcDest.right = ptOrigin.x + pScreenInfo->dwWidth;
     rcDest.top = ptOrigin.y;

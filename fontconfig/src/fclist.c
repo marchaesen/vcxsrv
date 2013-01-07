@@ -33,7 +33,6 @@ FcObjectSetCreate (void)
     os = (FcObjectSet *) malloc (sizeof (FcObjectSet));
     if (!os)
 	return 0;
-    FcMemAlloc (FC_MEM_OBJECTSET, sizeof (FcObjectSet));
     os->nobject = 0;
     os->sobject = 0;
     os->objects = 0;
@@ -57,9 +56,6 @@ FcObjectSetAdd (FcObjectSet *os, const char *object)
 	    objects = (const char **) malloc (s * sizeof (const char *));
 	if (!objects)
 	    return FcFalse;
-	if (os->sobject)
-	    FcMemFree (FC_MEM_OBJECTPTR, os->sobject * sizeof (const char *));
-	FcMemAlloc (FC_MEM_OBJECTPTR, s * sizeof (const char *));
 	os->objects = objects;
 	os->sobject = s;
     }
@@ -67,14 +63,14 @@ FcObjectSetAdd (FcObjectSet *os, const char *object)
     low = 0;
     mid = 0;
     c = 1;
-    object = (char *)FcSharedStr ((FcChar8 *)object);
+    object = strdup (object);
     while (low <= high)
     {
 	mid = (low + high) >> 1;
 	c = os->objects[mid] - object;
 	if (c == 0)
 	{
-	    FcSharedStrFree ((FcChar8 *)object);
+	    FcFree (object);
 	    return FcTrue;
 	}
 	if (c < 0)
@@ -99,12 +95,10 @@ FcObjectSetDestroy (FcObjectSet *os)
     if (os->objects)
     {
 	for (i = 0; i < os->nobject; i++)
-	    FcSharedStrFree ((FcChar8 *)os->objects[i]);
+	    FcFree (os->objects[i]);
 
-	FcMemFree (FC_MEM_OBJECTPTR, os->sobject * sizeof (const char *));
 	free ((void *) os->objects);
     }
-    FcMemFree (FC_MEM_OBJECTSET, sizeof (FcObjectSet));
     free (os);
 }
 
@@ -342,7 +336,6 @@ FcListHashTableCleanup (FcListHashTable *table)
 	{
 	    next = bucket->next;
 	    FcPatternDestroy (bucket->pattern);
-	    FcMemFree (FC_MEM_LISTBUCK, sizeof (FcListBucket));
 	    free (bucket);
 	}
 	table->buckets[i] = 0;
@@ -418,7 +411,6 @@ FcListAppend (FcListHashTable	*table,
     bucket = (FcListBucket *) malloc (sizeof (FcListBucket));
     if (!bucket)
 	goto bail0;
-    FcMemAlloc (FC_MEM_LISTBUCK, sizeof (FcListBucket));
     bucket->next = 0;
     bucket->hash = hash;
     bucket->pattern = FcPatternCreate ();
@@ -469,7 +461,6 @@ FcListAppend (FcListHashTable	*table,
 bail2:
     FcPatternDestroy (bucket->pattern);
 bail1:
-    FcMemFree (FC_MEM_LISTBUCK, sizeof (FcListBucket));
     free (bucket);
 bail0:
     return FcFalse;
@@ -569,7 +560,6 @@ FcFontSetList (FcConfig	    *config,
 	    if (!FcFontSetAdd (ret, bucket->pattern))
 		goto bail2;
 	    table.buckets[i] = bucket->next;
-	    FcMemFree (FC_MEM_LISTBUCK, sizeof (FcListBucket));
 	    free (bucket);
 	}
 

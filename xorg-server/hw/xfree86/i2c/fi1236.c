@@ -91,7 +91,7 @@ MT2032_getid(FI1236Ptr f)
     CARD8 in;
 
     in = 0x11;
-    I2C_WriteRead(&(f->d), (I2CByte *) & in, 1, out, 4);
+    I2C_WriteRead(&(f->d), (I2CByte *) &in, 1, out, 4);
     xf86DrvMsg(f->d.pI2CBus->scrnIndex, X_INFO,
                "MT2032: Company code 0x%02x%02x, part code 0x%02x, revision code 0x%02x\n",
                out[0], out[1], out[2], out[3]);
@@ -432,7 +432,7 @@ MT2032_get_afc_hint(FI1236Ptr f)
     CARD8 AFC;
 
     in = 0x0e;
-    I2C_WriteRead(&(f->d), (I2CByte *) & in, 1, out, 2);
+    I2C_WriteRead(&(f->d), (I2CByte *) &in, 1, out, 2);
     AFC = (out[0] >> 4) & 0x7;
 #if 0
     xf86DrvMsg(f->d.pI2CBus->scrnIndex, X_INFO, "AFC=%d TAD1=%d TAD2=%d\n",
@@ -467,7 +467,7 @@ MT2032_dump_status(FI1236Ptr f)
     CARD8 TAD2, TAD1;
 
     in = 0x0e;
-    I2C_WriteRead(&(f->d), (I2CByte *) & in, 1, out, 2);
+    I2C_WriteRead(&(f->d), (I2CByte *) &in, 1, out, 2);
     XOK = out[0] & 1;
     LO1LK = (out[0] >> 2) & 1;
     LO2LK = (out[0] >> 1) & 1;
@@ -589,12 +589,12 @@ FI1236_tune(FI1236Ptr f, CARD32 frequency)
 
     if ((f->type == TUNER_TYPE_FM1216ME) || (f->type == TUNER_TYPE_FI1236W)) {
         f->tuner_data.aux = 0x20;
-        I2C_WriteRead(&(f->d), (I2CByte *) & (f->tuner_data), 5, NULL, 0);
+        I2C_WriteRead(&(f->d), (I2CByte *) &(f->tuner_data), 5, NULL, 0);
         I2C_WriteRead(&(f->d), NULL, 0, &data, 1);
         xf86DrvMsg(f->d.pI2CBus->scrnIndex, X_INFO, "Tuner status %x\n", data);
     }
     else
-        I2C_WriteRead(&(f->d), (I2CByte *) & (f->tuner_data), 4, NULL, 0);
+        I2C_WriteRead(&(f->d), (I2CByte *) &(f->tuner_data), 4, NULL, 0);
 }
 
 void

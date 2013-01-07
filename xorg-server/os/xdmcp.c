@@ -751,7 +751,7 @@ receive_packet(int socketfd)
     XdmcpHeader header;
 
     /* read message off socket */
-    if (!XdmcpFill(socketfd, &buffer, (XdmcpNetaddr) & from, &fromlen))
+    if (!XdmcpFill(socketfd, &buffer, (XdmcpNetaddr) &from, &fromlen))
         return;
 
     /* reset retransmission backoff */
@@ -1059,7 +1059,7 @@ send_query_msg(void)
 
         for (i = 0; i < NumBroadcastAddresses; i++)
             XdmcpFlush(xdmcpSocket, &buffer,
-                       (XdmcpNetaddr) & BroadcastAddresses[i],
+                       (XdmcpNetaddr) &BroadcastAddresses[i],
                        sizeof(struct sockaddr_in));
     }
 #if defined(IPv6) && defined(AF_INET6)
@@ -1098,7 +1098,7 @@ send_query_msg(void)
         if (SOCKADDR_FAMILY(ManagerAddress) == AF_INET6)
             socketfd = xdmcpSocket6;
 #endif
-        XdmcpFlush(socketfd, &buffer, (XdmcpNetaddr) & ManagerAddress,
+        XdmcpFlush(socketfd, &buffer, (XdmcpNetaddr) &ManagerAddress,
                    ManagerAddressLen);
     }
 }
@@ -1223,7 +1223,7 @@ send_request_msg(void)
         socketfd = xdmcpSocket6;
 #endif
     if (XdmcpFlush(socketfd, &buffer,
-                   (XdmcpNetaddr) & req_sockaddr, req_socklen))
+                   (XdmcpNetaddr) &req_sockaddr, req_socklen))
         state = XDM_AWAIT_REQUEST_RESPONSE;
 }
 
@@ -1316,7 +1316,7 @@ send_manage_msg(void)
     if (SOCKADDR_FAMILY(req_sockaddr) == AF_INET6)
         socketfd = xdmcpSocket6;
 #endif
-    XdmcpFlush(socketfd, &buffer, (XdmcpNetaddr) & req_sockaddr, req_socklen);
+    XdmcpFlush(socketfd, &buffer, (XdmcpNetaddr) &req_sockaddr, req_socklen);
 }
 
 static void
@@ -1373,7 +1373,7 @@ send_keepalive_msg(void)
     if (SOCKADDR_FAMILY(req_sockaddr) == AF_INET6)
         socketfd = xdmcpSocket6;
 #endif
-    XdmcpFlush(socketfd, &buffer, (XdmcpNetaddr) & req_sockaddr, req_socklen);
+    XdmcpFlush(socketfd, &buffer, (XdmcpNetaddr) &req_sockaddr, req_socklen);
 }
 
 static void

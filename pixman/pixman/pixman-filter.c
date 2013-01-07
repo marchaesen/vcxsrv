@@ -231,6 +231,8 @@ create_1d_filter (int             *width,
     *width = ceil (size);
 
     p = params = malloc (*width * n_phases * sizeof (pixman_fixed_t));
+    if (!params)
+        return NULL;
 
     step = 1.0 / n_phases;
 
@@ -309,7 +311,7 @@ pixman_filter_create_separable_convolution (int             *n_values,
 {
     double sx = fabs (pixman_fixed_to_double (scale_x));
     double sy = fabs (pixman_fixed_to_double (scale_y));
-    pixman_fixed_t *horz, *vert, *params;
+    pixman_fixed_t *horz = NULL, *vert = NULL, *params = NULL;
     int subsample_x, subsample_y;
     int width, height;
 
@@ -319,9 +321,14 @@ pixman_filter_create_separable_convolution (int             *n_values,
     horz = create_1d_filter (&width, reconstruct_x, sample_x, sx, subsample_x);
     vert = create_1d_filter (&height, reconstruct_y, sample_y, sy, subsample_y);
 
+    if (!horz || !vert)
+        goto out;
+    
     *n_values = 4 + width * subsample_x + height * subsample_y;
     
     params = malloc (*n_values * sizeof (pixman_fixed_t));
+    if (!params)
+        goto out;
 
     params[0] = pixman_int_to_fixed (width);
     params[1] = pixman_int_to_fixed (height);
@@ -333,6 +340,7 @@ pixman_filter_create_separable_convolution (int             *n_values,
     memcpy (params + 4 + width * subsample_x, vert,
 	    height * subsample_y * sizeof (pixman_fixed_t));
 
+out:
     free (horz);
     free (vert);
 

@@ -916,10 +916,13 @@ scale_to_desktop(DeviceIntPtr dev, ValuatorMask *mask,
  * @param[in,out] devy y desktop-wide coordinate in device coordinate system
  * @param[in,out] screenx x coordinate in desktop coordinate system
  * @param[in,out] screeny y coordinate in desktop coordinate system
+ * @param[out] nevents Number of barrier events added to events
+ * @param[in,out] events List of events barrier events are added to
  */
 static ScreenPtr
 positionSprite(DeviceIntPtr dev, int mode, ValuatorMask *mask,
-               double *devx, double *devy, double *screenx, double *screeny)
+               double *devx, double *devy, double *screenx, double *screeny,
+               int *nevents, InternalEvent* events)
 {
     ScreenPtr scr = miPointerGetScreen(dev);
     double tmpx, tmpy;
@@ -933,7 +936,7 @@ positionSprite(DeviceIntPtr dev, int mode, ValuatorMask *mask,
     /* miPointerSetPosition takes care of crossing screens for us, as well as
      * clipping to the current screen. Coordinates returned are in desktop
      * coord system */
-    scr = miPointerSetPosition(dev, mode, screenx, screeny);
+    scr = miPointerSetPosition(dev, mode, screenx, screeny, nevents, events);
 
     /* If we were constrained, rescale x/y from the screen coordinates so
      * the device valuators reflect the correct position. For screen
@@ -1319,6 +1322,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
     int sx, sy;                         /* for POINTER_SCREEN */
     ValuatorMask mask;
     ScreenPtr scr;
+    int num_barrier_events = 0;
 
     switch (type) {
     case MotionNotify:
@@ -1395,7 +1399,10 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
     }
 
     scr = positionSprite(pDev, (flags & POINTER_ABSOLUTE) ? Absolute : Relative,
-                         &mask, &devx, &devy, &screenx, &screeny);
+                         &mask, &devx, &devy, &screenx, &screeny,
+                         &num_barrier_events, events);
+    num_events += num_barrier_events;
+    events += num_barrier_events;
 
     /* screenx, screeny are in desktop coordinates,
        mask is in device coordinates per-screen (the event data)
@@ -1945,7 +1952,7 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
         scr = scale_to_desktop(dev, &mask, &devx, &devy, &screenx, &screeny);
     if (emulate_pointer)
         scr = positionSprite(dev, Absolute, &mask,
-                             &devx, &devy, &screenx, &screeny);
+                             &devx, &devy, &screenx, &screeny, NULL, NULL);
 
     /* see fill_pointer_events for coordinate systems */
     if (emulate_pointer)

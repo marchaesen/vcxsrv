@@ -201,7 +201,7 @@ st_MapTextureImage(struct gl_context *ctx,
    if (mode & GL_MAP_INVALIDATE_RANGE_BIT)
       pipeMode |= PIPE_TRANSFER_DISCARD_RANGE;
 
-   map = st_texture_image_map(st, stImage, slice, pipeMode, x, y, w, h);
+   map = st_texture_image_map(st, stImage, pipeMode, x, y, slice, w, h, 1);
    if (map) {
       *mapOut = map;
       *rowStrideOut = stImage->transfer->stride;
@@ -572,37 +572,68 @@ decompress_with_blit(struct gl_context * ctx,
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   struct st_texture_image *stImage = st_texture_image(texImage);
-   struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
+   struct pipe_screen *screen = pipe->screen;
    const GLuint width = texImage->Width;
    const GLuint height = texImage->Height;
-   struct pipe_resource *dst_texture;
+   const GLuint depth = texImage->Depth;
+   struct pipe_resource *src = st_texture_object(texImage->TexObject)->pt;
+   struct pipe_resource *dst;
+   struct pipe_resource dst_templ;
+   enum pipe_format pipe_format;
+   gl_format mesa_format;
+   GLenum gl_target = texImage->TexObject->Target;
+   enum pipe_texture_target pipe_target;
    struct pipe_blit_info blit;
    unsigned bind = (PIPE_BIND_RENDER_TARGET | PIPE_BIND_TRANSFER_READ);
    struct pipe_transfer *tex_xfer;
    ubyte *map;
 
-   /* create temp / dest surface */
-   if (!util_create_rgba_texture(pipe, width, height, bind,
-                                 &dst_texture)) {
-      _mesa_problem(ctx, "util_create_rgba_texture() failed "
-                    "in decompress_with_blit()");
+   /* GetTexImage only returns a single face for cubemaps. */
+   if (gl_target == GL_TEXTURE_CUBE_MAP) {
+      gl_target = GL_TEXTURE_2D;
+   }
+
+   pipe_target = gl_target_to_pipe(gl_target);
+
+   /* Find the best match for the format+type combo. */
+   pipe_format = st_choose_format(pipe->screen, GL_RGBA8, format, type,
+                                  pipe_target, 0, bind);
+   if (pipe_format == PIPE_FORMAT_NONE) {
+      /* unable to get an rgba format!?! */
+      _mesa_problem(ctx, "%s: cannot find a supported format", __func__);
       return;
    }
 
-   blit.src.resource = stObj->pt;
+   /* create the destination texture */
+   memset(&dst_templ, 0, sizeof(dst_templ));
+   dst_templ.target = pipe_target;
+   dst_templ.format = pipe_format;
+   dst_templ.bind = bind;
+   dst_templ.usage = PIPE_USAGE_STAGING;
+
+   st_gl_texture_dims_to_pipe_dims(gl_target, width, height, depth,
+                                   &dst_templ.width0, &dst_templ.height0,
+                                   &dst_templ.depth0, &dst_templ.array_size);
+
+   dst = screen->resource_create(screen, &dst_templ);
+   if (!dst) {
+      _mesa_problem(ctx, "%s: cannot create a temporary texture", __func__);
+      return;
+   }
+
+   blit.src.resource = src;
    blit.src.level = texImage->Level;
-   blit.src.format = util_format_linear(stObj->pt->format);
-   blit.dst.resource = dst_texture;
+   blit.src.format = util_format_linear(src->format);
+   blit.dst.resource = dst;
    blit.dst.level = 0;
-   blit.dst.format = dst_texture->format;
+   blit.dst.format = dst->format;
    blit.src.box.x = blit.dst.box.x = 0;
    blit.src.box.y = blit.dst.box.y = 0;
-   blit.src.box.z = 0; /* XXX compressed array textures? */
+   blit.src.box.z = texImage->Face;
    blit.dst.box.z = 0;
    blit.src.box.width = blit.dst.box.width = width;
    blit.src.box.height = blit.dst.box.height = height;
-   blit.src.box.depth = blit.dst.box.depth = 1;
+   blit.src.box.depth = blit.dst.box.depth = depth;
    blit.mask = PIPE_MASK_RGBA;
    blit.filter = PIPE_TEX_FILTER_NEAREST;
    blit.scissor_enable = FALSE;
@@ -612,33 +643,38 @@ decompress_with_blit(struct gl_context * ctx,
 
    pixels = _mesa_map_pbo_dest(ctx, &ctx->Pack, pixels);
 
-   map = pipe_transfer_map(pipe, dst_texture, 0, 0,
-                           PIPE_TRANSFER_READ,
-                           0, 0, width, height, &tex_xfer);
+   map = pipe_transfer_map_3d(pipe, dst, 0, PIPE_TRANSFER_READ,
+                              0, 0, 0, width, height, depth, &tex_xfer);
    if (!map) {
       goto end;
    }
 
+   mesa_format = st_pipe_format_to_mesa_format(pipe_format);
+
    /* copy/pack data into user buffer */
-   if (_mesa_format_matches_format_and_type(stImage->base.TexFormat,
-                                            format, type,
+   if (_mesa_format_matches_format_and_type(mesa_format, format, type,
                                             ctx->Pack.SwapBytes)) {
       /* memcpy */
-      const uint bytesPerRow = width * util_format_get_blocksize(stImage->pt->format);
-      /* map the dst_surface so we can read from it */
-      GLuint row;
-      for (row = 0; row < height; row++) {
-         GLvoid *dest = _mesa_image_address2d(&ctx->Pack, pixels, width,
-                                              height, format, type, row, 0);
-         memcpy(dest, map, bytesPerRow);
-         map += tex_xfer->stride;
+      const uint bytesPerRow = width * util_format_get_blocksize(pipe_format);
+      GLuint row, slice;
+
+      for (slice = 0; slice < depth; slice++) {
+         ubyte *slice_map = map;
+
+         for (row = 0; row < height; row++) {
+            GLvoid *dest = _mesa_image_address3d(&ctx->Pack, pixels,
+                                                 width, height, format,
+                                                 type, slice, row, 0);
+            memcpy(dest, slice_map, bytesPerRow);
+            slice_map += tex_xfer->stride;
+         }
+         map += tex_xfer->layer_stride;
       }
-      pipe_transfer_unmap(pipe, tex_xfer);
    }
    else {
       /* format translation via floats */
-      GLuint row;
-      enum pipe_format pformat = util_format_linear(dst_texture->format);
+      GLuint row, slice;
+      enum pipe_format pformat = util_format_linear(dst->format);
       GLfloat *rgba;
 
       rgba = malloc(width * 4 * sizeof(GLfloat));
@@ -647,20 +683,24 @@ decompress_with_blit(struct gl_context * ctx,
          goto end;
       }
 
-      for (row = 0; row < height; row++) {
-         const GLbitfield transferOps = 0x0; /* bypassed for glGetTexImage() */
-         GLvoid *dest = _mesa_image_address2d(&ctx->Pack, pixels, width,
-                                              height, format, type, row, 0);
+      for (slice = 0; slice < depth; slice++) {
+         for (row = 0; row < height; row++) {
+            const GLbitfield transferOps = 0x0; /* bypassed for glGetTexImage() */
+            GLvoid *dest = _mesa_image_address3d(&ctx->Pack, pixels,
+                                                 width, height, format,
+                                                 type, slice, row, 0);
 
-         if (ST_DEBUG & DEBUG_FALLBACK)
-            debug_printf("%s: fallback format translation\n", __FUNCTION__);
+            if (ST_DEBUG & DEBUG_FALLBACK)
+               debug_printf("%s: fallback format translation\n", __FUNCTION__);
 
-         /* get float[4] rgba row from surface */
-         pipe_get_tile_rgba_format(tex_xfer, map, 0, row, width, 1,
-                                   pformat, rgba);
+            /* get float[4] rgba row from surface */
+            pipe_get_tile_rgba_format(tex_xfer, map, 0, row, width, 1,
+                                      pformat, rgba);
 
-         _mesa_pack_rgba_span_float(ctx, width, (GLfloat (*)[4]) rgba, format,
-                                    type, dest, &ctx->Pack, transferOps);
+            _mesa_pack_rgba_span_float(ctx, width, (GLfloat (*)[4]) rgba, format,
+                                       type, dest, &ctx->Pack, transferOps);
+         }
+         map += tex_xfer->layer_stride;
       }
 
       free(rgba);
@@ -671,7 +711,7 @@ end:
       pipe_transfer_unmap(pipe, tex_xfer);
 
    _mesa_unmap_pbo_dest(ctx, &ctx->Pack);
-   pipe_resource_reference(&dst_texture, NULL);
+   pipe_resource_reference(&dst, NULL);
 }
 
 
@@ -722,12 +762,23 @@ fallback_copy_texsubimage(struct gl_context *ctx,
    GLvoid *texDest;
    enum pipe_transfer_usage transfer_usage;
    void *map;
+   unsigned dst_width = width;
+   unsigned dst_height = height;
+   unsigned dst_depth = 1;
 
    if (ST_DEBUG & DEBUG_FALLBACK)
       debug_printf("%s: fallback processing\n", __FUNCTION__);
 
    if (st_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
       srcY = strb->Base.Height - srcY - height;
+   }
+
+   if (stImage->pt->target == PIPE_TEXTURE_1D_ARRAY) {
+      /* Move y/height to z/depth for 1D array textures.  */
+      destZ = destY;
+      destY = 0;
+      dst_depth = dst_height;
+      dst_height = 1;
    }
 
    map = pipe_transfer_map(pipe,
@@ -745,9 +796,9 @@ fallback_copy_texsubimage(struct gl_context *ctx,
    else
       transfer_usage = PIPE_TRANSFER_WRITE;
 
-   /* XXX this used to ignore destZ param */
-   texDest = st_texture_image_map(st, stImage, destZ, transfer_usage,
-                                  destX, destY, width, height);
+   texDest = st_texture_image_map(st, stImage, transfer_usage,
+                                  destX, destY, destZ,
+                                  dst_width, dst_height, dst_depth);
 
    if (baseFormat == GL_DEPTH_COMPONENT ||
        baseFormat == GL_DEPTH_STENCIL) {
@@ -775,8 +826,16 @@ fallback_copy_texsubimage(struct gl_context *ctx,
             if (scaleOrBias) {
                _mesa_scale_and_bias_depth_uint(ctx, width, data);
             }
-            pipe_put_tile_z(stImage->transfer, texDest, 0, row, width, 1,
-                            data);
+
+            if (stImage->pt->target == PIPE_TEXTURE_1D_ARRAY) {
+               pipe_put_tile_z(stImage->transfer,
+                               texDest + row*stImage->transfer->layer_stride,
+                               0, 0, width, 1, data);
+            }
+            else {
+               pipe_put_tile_z(stImage->transfer, texDest, 0, row, width, 1,
+                               data);
+            }
          }
       }
       else {
@@ -792,12 +851,19 @@ fallback_copy_texsubimage(struct gl_context *ctx,
 
       if (tempSrc && texDest) {
          const GLint dims = 2;
-         const GLint dstRowStride = stImage->transfer->stride;
+         GLint dstRowStride;
          struct gl_texture_image *texImage = &stImage->base;
          struct gl_pixelstore_attrib unpack = ctx->DefaultPacking;
 
          if (st_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
             unpack.Invert = GL_TRUE;
+         }
+
+         if (stImage->pt->target == PIPE_TEXTURE_1D_ARRAY) {
+            dstRowStride = stImage->transfer->layer_stride;
+         }
+         else {
+            dstRowStride = stImage->transfer->stride;
          }
 
          /* get float/RGBA image from framebuffer */
@@ -901,6 +967,43 @@ compatible_src_dst_formats(struct gl_context *ctx,
 }
 
 
+/**
+ * Do pipe->blit. Return FALSE if the blitting is unsupported
+ * for the given formats.
+ */
+static GLboolean
+st_pipe_blit(struct pipe_context *pipe, struct pipe_blit_info *blit)
+{
+   struct pipe_screen *screen = pipe->screen;
+   unsigned dst_usage;
+
+   if (util_format_is_depth_or_stencil(blit->dst.format)) {
+      dst_usage = PIPE_BIND_DEPTH_STENCIL;
+   }
+   else {
+      dst_usage = PIPE_BIND_RENDER_TARGET;
+   }
+
+   /* try resource_copy_region in case the format is not supported
+    * for rendering */
+   if (util_try_blit_via_copy_region(pipe, blit)) {
+      return GL_TRUE; /* done */
+   }
+
+   /* check the format support */
+   if (!screen->is_format_supported(screen, blit->src.format,
+                                    PIPE_TEXTURE_2D, 0,
+                                    PIPE_BIND_SAMPLER_VIEW) ||
+       !screen->is_format_supported(screen, blit->dst.format,
+                                    PIPE_TEXTURE_2D, 0,
+                                    dst_usage)) {
+      return GL_FALSE;
+   }
+
+   pipe->blit(pipe, blit);
+   return GL_TRUE;
+}
+
 
 /**
  * Do a CopyTex[Sub]Image1/2/3D() using a hardware (blit) path if possible.
@@ -929,7 +1032,7 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
    struct pipe_surface surf_tmpl;
    unsigned dst_usage;
    unsigned blit_mask;
-   GLint srcY0, srcY1;
+   GLint srcY0, srcY1, yStep;
 
    /* make sure finalize_textures has been called? 
     */
@@ -950,10 +1053,12 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
    if (do_flip) {
       srcY1 = strb->Base.Height - srcY - height;
       srcY0 = srcY1 + height;
+      yStep = -1;
    }
    else {
       srcY0 = srcY;
       srcY1 = srcY0 + height;
+      yStep = 1;
    }
 
    if (ctx->_ImageTransferState) {
@@ -962,16 +1067,6 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
 
    /* Compressed and subsampled textures aren't supported for blitting. */
    if (!util_format_is_plain(dest_format)) {
-      goto fallback;
-   }
-
-   if (texImage->TexObject->Target == GL_TEXTURE_1D_ARRAY) {
-      /* 1D arrays might be thought of as 2D images but the actual layout
-       * might not be that way.  At some points, we convert OpenGL's 1D
-       * array 'height' into gallium 'layers' and that prevents the blit
-       * utility code from doing the right thing.  Simpy use the memcpy-based
-       * fallback.
-       */
       goto fallback;
    }
 
@@ -1055,27 +1150,38 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
       blit.mask = blit_mask;
       blit.filter = PIPE_TEX_FILTER_NEAREST;
 
-      /* try resource_copy_region in case the format is not supported
-       * for rendering */
-      if (util_try_blit_via_copy_region(pipe, &blit)) {
-         return; /* done */
-      }
+      /* 1D array textures need special treatment.
+       * Blit rows from the source to layers in the destination. */
+      if (texImage->TexObject->Target == GL_TEXTURE_1D_ARRAY) {
+         int y, layer;
 
-      /* check the format support */
-      if (!screen->is_format_supported(screen, src_format,
-                                       PIPE_TEXTURE_2D, 0,
-                                       PIPE_BIND_SAMPLER_VIEW) ||
-          !screen->is_format_supported(screen, dest_format,
-                                       PIPE_TEXTURE_2D, 0,
-                                       dst_usage)) {
-         goto fallback;
-      }
+         for (y = srcY0, layer = 0; layer < height; y += yStep, layer++) {
+            blit.src.box.y = y;
+            blit.src.box.height = 1;
+            blit.dst.box.y = 0;
+            blit.dst.box.height = 1;
+            blit.dst.box.z = destY + layer;
 
-      pipe->blit(pipe, &blit);
+            if (!st_pipe_blit(pipe, &blit)) {
+               goto fallback;
+            }
+         }
+      }
+      else {
+         /* All the other texture targets. */
+         if (!st_pipe_blit(pipe, &blit)) {
+            goto fallback;
+         }
+      }
       return;
    }
 
    /* try u_blit */
+   if (texImage->TexObject->Target == GL_TEXTURE_1D_ARRAY) {
+      /* u_blit cannot copy 1D array textures as required by CopyTexSubImage */
+      goto fallback;
+   }
+
    color_writemask = compatible_src_dst_formats(ctx, &strb->Base, texImage);
 
    if (!color_writemask ||

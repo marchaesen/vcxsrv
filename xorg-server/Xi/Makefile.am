@@ -78,6 +78,8 @@ libXi_la_SOURCES =	\
 	ungrdevk.h \
 	xiallowev.c \
 	xiallowev.h \
+	xibarriers.c \
+	xibarriers.h \
 	xichangecursor.c \
 	xichangecursor.h \
 	xichangehierarchy.c \

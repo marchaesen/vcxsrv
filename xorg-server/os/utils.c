@@ -1639,7 +1639,7 @@ System(const char *cmdline)
                            NULL,
                            GetLastError(),
                            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                           (LPTSTR) & buffer, 0, NULL)) {
+                           (LPTSTR) &buffer, 0, NULL)) {
             ErrorF("[xkb] Starting '%s' failed!\n", cmdline);
         }
         else {

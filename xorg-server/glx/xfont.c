@@ -168,7 +168,7 @@ __glXDisp_UseXFont(__GLXclientState * cl, GLbyte * pc)
     }
 
     CALL_GetIntegerv(GET_DISPATCH(),
-                     (GL_LIST_INDEX, (GLint *) & currentListIndex));
+                     (GL_LIST_INDEX, (GLint *) &currentListIndex));
     if (currentListIndex != 0) {
         /*
          ** A display list is currently being made.  It is an error

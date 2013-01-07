@@ -337,7 +337,7 @@ winAllocateFBShadowGDI(ScreenPtr pScreen)
     pScreenPriv->hbmpShadow = CreateDIBSection(pScreenPriv->hdcScreen,
                                                (BITMAPINFO *) pScreenPriv->
                                                pbmih, DIB_RGB_COLORS,
-                                               (VOID **) & pScreenInfo->pfb,
+                                               (VOID **) &pScreenInfo->pfb,
                                                NULL, 0);
     if (pScreenPriv->hbmpShadow == NULL || pScreenInfo->pfb == NULL) {
         winW32Error(2, "winAllocateFBShadowGDI - CreateDIBSection failed:");

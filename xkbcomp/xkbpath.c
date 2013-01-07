@@ -213,9 +213,6 @@ XkbAddDirectoryToPath(const char *dir)
         XkbClearIncludePath();
         return True;
     }
-#ifdef __UNIXOS2__
-    dir = (char *) __XOS2RedirRoot(dir);
-#endif
     len = strlen(dir);
     if (len + 2 >= PATH_MAX)
     {                           /* allow for '/' and at least one character */

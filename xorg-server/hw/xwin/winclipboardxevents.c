@@ -157,7 +157,7 @@ winClipboardFlushXEvents(HWND hwnd,
                  */
                 iReturn = XSendEvent(pDisplay,
                                      eventSelection.requestor,
-                                     False, 0L, (XEvent *) & eventSelection);
+                                     False, 0L, (XEvent *) &eventSelection);
                 if (iReturn == BadValue || iReturn == BadWindow) {
                     ErrorF("winClipboardFlushXEvents - SelectionRequest - "
                            "XSendEvent () failed\n");
@@ -341,7 +341,7 @@ winClipboardFlushXEvents(HWND hwnd,
             /* Notify the requesting window that the operation has completed */
             iReturn = XSendEvent(pDisplay,
                                  eventSelection.requestor,
-                                 False, 0L, (XEvent *) & eventSelection);
+                                 False, 0L, (XEvent *) &eventSelection);
             if (iReturn == BadValue || iReturn == BadWindow) {
                 ErrorF("winClipboardFlushXEvents - SelectionRequest - "
                        "XSendEvent () failed\n");
@@ -380,7 +380,7 @@ winClipboardFlushXEvents(HWND hwnd,
                 /* Notify the requesting window that the operation is complete */
                 iReturn = XSendEvent(pDisplay,
                                      eventSelection.requestor,
-                                     False, 0L, (XEvent *) & eventSelection);
+                                     False, 0L, (XEvent *) &eventSelection);
                 if (iReturn == BadValue || iReturn == BadWindow) {
                     /*
                      * Should not be a problem if XSendEvent fails because

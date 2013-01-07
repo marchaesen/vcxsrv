@@ -249,7 +249,7 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
 
     /* Create a DirectDraw object, store the address at lpdd */
     ddrval = (*g_fpDirectDrawCreate) (NULL,
-                                      (LPDIRECTDRAW *) & pScreenPriv->pdd,
+                                      (LPDIRECTDRAW *) &pScreenPriv->pdd,
                                       NULL);
     if (FAILED(ddrval)) {
         ErrorF("winAllocateFBShadowDDNL - Could not start "
@@ -264,7 +264,7 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
     /* Get a DirectDraw4 interface pointer */
     ddrval = IDirectDraw_QueryInterface(pScreenPriv->pdd,
                                         &IID_IDirectDraw4,
-                                        (LPVOID *) & pScreenPriv->pdd4);
+                                        (LPVOID *) &pScreenPriv->pdd4);
     if (FAILED(ddrval)) {
         ErrorF("winAllocateFBShadowDDNL - Failed DD4 query: %08x\n",
                (unsigned int) ddrval);
@@ -541,7 +541,7 @@ winShadowUpdateDDNL(ScreenPtr pScreen, shadowBufPtr pBuf)
     ptOrigin.x = pScreenInfo->dwXOffset;
     ptOrigin.y = pScreenInfo->dwYOffset;
     MapWindowPoints(pScreenPriv->hwndScreen,
-                    HWND_DESKTOP, (LPPOINT) & ptOrigin, 1);
+                    HWND_DESKTOP, (LPPOINT) &ptOrigin, 1);
 
     /*
      * Handle small regions with multiple blits,
@@ -880,7 +880,7 @@ winBltExposedRegionsShadowDDNL(ScreenPtr pScreen)
     ptOrigin.y = pScreenInfo->dwYOffset;
 
     MapWindowPoints(pScreenPriv->hwndScreen,
-                    HWND_DESKTOP, (LPPOINT) & ptOrigin, 1);
+                    HWND_DESKTOP, (LPPOINT) &ptOrigin, 1);
     rcDest.left = ptOrigin.x;
     rcDest.right = ptOrigin.x + pScreenInfo->dwWidth;
     rcDest.top = ptOrigin.y;
@@ -990,7 +990,7 @@ winRedrawScreenShadowDDNL(ScreenPtr pScreen)
     ptOrigin.x = pScreenInfo->dwXOffset;
     ptOrigin.y = pScreenInfo->dwYOffset;
     MapWindowPoints(pScreenPriv->hwndScreen,
-                    HWND_DESKTOP, (LPPOINT) & ptOrigin, 1);
+                    HWND_DESKTOP, (LPPOINT) &ptOrigin, 1);
     rcDest.left = ptOrigin.x;
     rcDest.right = ptOrigin.x + pScreenInfo->dwWidth;
     rcDest.top = ptOrigin.y;

@@ -137,7 +137,7 @@ winReshapeMultiWindow(WindowPtr pWin)
 
         /* Translate client rectangle coords to screen coords */
         /* NOTE: Only transforms top and left members */
-        ClientToScreen(pWinPriv->hWnd, (LPPOINT) & rcClient);
+        ClientToScreen(pWinPriv->hWnd, (LPPOINT) &rcClient);
 
         /* Get window rectangle */
         if (!GetWindowRect(pWinPriv->hWnd, &rcWindow)) {

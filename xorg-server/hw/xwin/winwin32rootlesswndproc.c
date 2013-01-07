@@ -780,7 +780,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                           NULL,
                           GetLastError(),
                           MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                          (LPTSTR) & lpMsgBuf, 0, NULL);
+                          (LPTSTR) &lpMsgBuf, 0, NULL);
 
             ErrorF("winMWExtWMWindowProc - BitBlt failed: %s\n",
                    (LPSTR) lpMsgBuf);
@@ -1058,7 +1058,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             if (!pRLWinPriv->fMovingOrSizing
                 /*&& (pWinPos->flags & SWP_SHOWWINDOW) */ ) {
                 GetClientRect(hwnd, &rcClient);
-                MapWindowPoints(hwnd, HWND_DESKTOP, (LPPOINT) & rcClient, 2);
+                MapWindowPoints(hwnd, HWND_DESKTOP, (LPPOINT) &rcClient, 2);
 
                 if (!(pWinPos->flags & SWP_NOMOVE)
                     && !(pWinPos->flags & SWP_NOSIZE)) {
@@ -1263,7 +1263,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         GetClientRect(hwnd, &rcClient);
 
-        MapWindowPoints(hwnd, HWND_DESKTOP, (LPPOINT) & rcClient, 2);
+        MapWindowPoints(hwnd, HWND_DESKTOP, (LPPOINT) &rcClient, 2);
 
         if (winIsInternalWMRunning(pScreenInfo))
             winAdjustXWindow(pWin, hwnd);

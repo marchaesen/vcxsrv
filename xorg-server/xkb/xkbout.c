@@ -522,7 +522,7 @@ XkbWriteXKBSymbols(FILE * file,
                     for (s = 0; s < XkbKeyGroupWidth(xkb, i, g); s++) {
                         if (s != 0)
                             fprintf(file, ", ");
-                        WriteXKBAction(file, xkb, (XkbAnyAction *) & acts[s]);
+                        WriteXKBAction(file, xkb, (XkbAnyAction *) &acts[s]);
                     }
                     fprintf(file, " ]");
                     acts += XkbKeyGroupsWidth(xkb, i);

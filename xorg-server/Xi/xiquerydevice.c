@@ -304,7 +304,7 @@ ListKeyInfo(DeviceIntPtr dev, xXIKeyInfo * info)
     info->length = sizeof(xXIKeyInfo) / 4 + info->num_keycodes;
     info->sourceid = dev->key->sourceid;
 
-    kc = (uint32_t *) & info[1];
+    kc = (uint32_t *) &info[1];
     for (i = xkb->min_key_code; i <= xkb->max_key_code; i++, kc++)
         *kc = i;
 
@@ -321,7 +321,7 @@ SwapKeyInfo(DeviceIntPtr dev, xXIKeyInfo * info)
     swaps(&info->length);
     swaps(&info->sourceid);
 
-    for (i = 0, key = (uint32_t *) & info[1]; i < info->num_keycodes;
+    for (i = 0, key = (uint32_t *) &info[1]; i < info->num_keycodes;
          i++, key++)
         swapl(key);
 

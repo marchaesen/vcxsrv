@@ -359,6 +359,10 @@ have_depth:
         dfb->blueMask = 0;
         break;
 
+#if 0
+    // Removed because Mountain Lion removed support for
+    // 15bit backing stores.  We can possibly re-add
+    // this once libXplugin is updated to work around it.
     case 15:
         dfb->visuals = TrueColorMask;     //LARGE_VISUALS;
         dfb->preferredCVC = TrueColor;
@@ -369,6 +373,7 @@ have_depth:
         dfb->greenMask = GM_ARGB(0, 5, 5, 5);
         dfb->blueMask = BM_ARGB(0, 5, 5, 5);
         break;
+#endif
 
     //        case 24:
     default:

@@ -58,12 +58,12 @@ FcAllocGlyphName (FcChar32 ucs, FcChar8 *name)
     return gn;
 }
 
-static void 
+static void
 fatal (const char *file, int lineno, const char *msg)
 {
     if (lineno)
         fprintf (stderr, "%s:%d: %s\n", file, lineno, msg);
-    else 
+    else
 	fprintf (stderr, "%s: %s\n", file, msg);
 
     exit (1);
@@ -100,7 +100,7 @@ scan (FILE *f, char *filename)
     FcGlyphName	    *gn;
     int		    lineno = 0;
     int		    len;
-    
+
     while (fgets (buf, sizeof (buf), f))
     {
 	lineno++;
@@ -177,7 +177,7 @@ find_hash (void)
     int	h;
 
     h = nraw + nraw / 4;
-    if ((h & 1) == 0) 
+    if ((h & 1) == 0)
 	h++;
     while (!isprime(h-2) || !isprime(h))
 	h += 2;
@@ -201,12 +201,12 @@ FcHashGlyphName (const FcChar8 *name)
 static void
 insert (FcGlyphName *gn, FcGlyphName **table, FcChar32 h)
 {
-    int		i, r = 0;
+    unsigned int	i, r = 0;
 
     i = (int) (h % hash);
     while (table[i])
     {
-	if (!r) r = (int) (h % rehash + 1);
+	if (!r) r = (h % rehash + 1);
 	i += r;
 	if (i >= hash)
 	    i -= hash;
@@ -217,8 +217,8 @@ insert (FcGlyphName *gn, FcGlyphName **table, FcChar32 h)
 static void
 dump (FcGlyphName * const *table, const char *name)
 {
-    int	    i;
-    
+    unsigned int	    i;
+
     printf ("static const FcGlyphId %s[%d] = {\n", name, hash);
 
     for (i = 0; i < hash; i++)
@@ -226,19 +226,19 @@ dump (FcGlyphName * const *table, const char *name)
 	    printf ("    %d,\n", rawindex(table[i]));
 	else
 	    printf ("    -1,\n");
-    
+
     printf ("};\n");
 }
 
 int
-main (int argc, char **argv)
+main (int argc FC_UNUSED, char **argv)
 {
     char	*files[MAX_GLYPHFILE];
     char	line[1024];
     FILE	*f;
     int		i;
-    char	*type;
-    
+    const char	*type;
+
     i = 0;
     while (argv[i+1])
     {
@@ -249,7 +249,7 @@ main (int argc, char **argv)
     }
     files[i] = 0;
     qsort (files, i, sizeof (char *), compare_string);
-    for (i = 0; files[i]; i++) 
+    for (i = 0; files[i]; i++)
     {
 	f = fopen (files[i], "r");
 	if (!f)
@@ -260,27 +260,27 @@ main (int argc, char **argv)
     qsort (raw, nraw, sizeof (FcGlyphName *), compare_glyphname);
 
     find_hash ();
-    
+
     for (i = 0; i < nraw; i++)
     {
 	insert (raw[i], name_to_ucs, FcHashGlyphName (raw[i]->name));
 	insert (raw[i], ucs_to_name, raw[i]->ucs);
     }
-    
+
     /*
      * Scan the input until the marker is found
      */
-    
+
     while (fgets (line, sizeof (line), stdin))
     {
 	if (!strncmp (line, "@@@", 3))
 	    break;
 	fputs (line, stdout);
     }
-    
+
     printf ("/* %d glyphnames in %d entries, %d%% occupancy */\n\n",
 	    nraw, hash, nraw * 100 / hash);
-	      
+
     printf ("#define FC_GLYPHNAME_HASH %u\n", hash);
     printf ("#define FC_GLYPHNAME_REHASH %u\n", rehash);
     printf ("#define FC_GLYPHNAME_MAXLEN %d\n\n", max_name_len);
@@ -290,16 +290,16 @@ main (int argc, char **argv)
 	type = "int16_t";
     else
 	type = "int32_t";
-    
+
     printf ("typedef %s FcGlyphId;\n\n", type);
-    
+
     /*
      * Dump out entries
      */
-    
+
     printf ("static const struct { const FcChar32 ucs; const FcChar8 name[%d]; } _fc_glyph_names[%d] = {\n",
 	    max_name_len + 1, nraw);
-    
+
     for (i = 0; i < nraw; i++)
 	printf ("    { 0x%lx, \"%s\" },\n",
 		(unsigned long) raw[i]->ucs, raw[i]->name);
@@ -311,7 +311,7 @@ main (int argc, char **argv)
      */
 
     dump (name_to_ucs, "_fc_name_to_ucs");
-    
+
     /*
      * Dump out ucs_to_name table
      */
@@ -319,7 +319,7 @@ main (int argc, char **argv)
 
     while (fgets (line, sizeof (line), stdin))
 	fputs (line, stdout);
-    
+
     fflush (stdout);
     exit (ferror (stdout));
 }
