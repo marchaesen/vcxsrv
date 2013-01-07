@@ -30,7 +30,6 @@
 #include "resource.h"
 
 extern _X_EXPORT RESTYPE RegionResType;
-extern _X_EXPORT RESTYPE PointerBarrierType;
 extern _X_EXPORT int XFixesErrorBase;
 
 #define VERIFY_REGION(pRegion, rid, client, mode)			\
@@ -52,20 +51,6 @@ extern _X_EXPORT int XFixesErrorBase;
 extern _X_EXPORT RegionPtr
  XFixesRegionCopy(RegionPtr pRegion);
 
-struct PointerBarrier {
-    CARD16 x1, x2, y1, y2;
-    CARD32 directions;
-};
-
-extern int
- barrier_get_direction(int, int, int, int);
-extern BOOL
-barrier_is_blocking(const struct PointerBarrier *, int, int, int, int,
-                    double *);
-extern BOOL barrier_is_blocking_direction(const struct PointerBarrier *, int);
-extern void
-
-barrier_clamp_to_barrier(struct PointerBarrier *barrier, int dir, int *x,
-                         int *y);
+#include "xibarriers.h"
 
 #endif                          /* _XFIXES_H_ */

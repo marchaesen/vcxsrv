@@ -45,12 +45,12 @@ XauFileName (void)
 {
     const char *slashDotXauthority = "/.Xauthority";
     char    *name;
-    static int	bsize;
+    static size_t	bsize;
     static int atexit_registered = 0;
 #ifdef WIN32
     char    dir[128];
 #endif
-    int	    size;
+    size_t  size;
 
     if ((name = getenv ("XAUTHORITY")))
 	return name;
@@ -70,7 +70,7 @@ XauFileName (void)
     if (size > bsize) {
 	if (buf)
 	    free (buf);
-	buf = malloc ((unsigned) size);
+	buf = malloc (size);
 	if (!buf)
 	    return NULL;
 

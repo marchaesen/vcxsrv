@@ -76,7 +76,7 @@ CanvasExpose(Widget w, XEvent * event, Region region)
 
     if (!XtIsRealized(w))
         return;
-    XtCallCallbacks(w, XtNcanvasExposeCallback, (XtPointer) & data);
+    XtCallCallbacks(w, XtNcanvasExposeCallback, (XtPointer) &data);
 }
 
 static void
@@ -162,4 +162,4 @@ CanvasClassRec canvasClassRec = {
      }
 };
 
-WidgetClass canvasWidgetClass = (WidgetClass) & canvasClassRec;
+WidgetClass canvasWidgetClass = (WidgetClass) &canvasClassRec;

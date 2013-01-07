@@ -358,7 +358,7 @@ skip_percent (FcFormatContext *c)
 
     /* skip an optional width specifier */
     if (strtol ((const char *) c->format, (char **) &c->format, 10))
-	/* don't care */;
+        {/* don't care */}
 
     if (!expect_char (c, '{'))
 	return FcFalse;
@@ -790,7 +790,7 @@ interpret_simple (FcFormatContext *c,
 }
 
 static FcBool
-cescape (FcFormatContext *c,
+cescape (FcFormatContext *c FC_UNUSED,
 	 const FcChar8   *str,
 	 FcStrBuf        *buf)
 {
@@ -811,7 +811,7 @@ cescape (FcFormatContext *c,
 }
 
 static FcBool
-shescape (FcFormatContext *c,
+shescape (FcFormatContext *c FC_UNUSED,
 	  const FcChar8   *str,
 	  FcStrBuf        *buf)
 {
@@ -829,7 +829,7 @@ shescape (FcFormatContext *c,
 }
 
 static FcBool
-xmlescape (FcFormatContext *c,
+xmlescape (FcFormatContext *c FC_UNUSED,
 	   const FcChar8   *str,
 	   FcStrBuf        *buf)
 {
@@ -1193,11 +1193,18 @@ FcPatternFormat (FcPattern *pat,
 {
     FcStrBuf        buf;
     FcChar8         buf_static[8192 - 1024];
+    FcPattern      *alloced = NULL;
     FcBool          ret;
+
+    if (!pat)
+	alloced = pat = FcPatternCreate ();
 
     FcStrBufInit (&buf, buf_static, sizeof (buf_static));
 
     ret = FcPatternFormatToBuf (pat, format, &buf);
+
+    if (alloced)
+      FcPatternDestroy (alloced);
 
     if (ret)
 	return FcStrBufDone (&buf);

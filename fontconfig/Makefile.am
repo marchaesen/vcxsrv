@@ -21,10 +21,15 @@
 #  TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 #  PERFORMANCE OF THIS SOFTWARE.
 
-DOCSRC=@DOCSRC@
 SUBDIRS=fontconfig fc-case fc-lang fc-glyphname src \
 	fc-cache fc-cat fc-list fc-match fc-pattern fc-query fc-scan \
-	conf.d $(DOCSRC) test
+	conf.d test
+if ENABLE_DOCS
+SUBDIRS += doc
+DIST_SUBDIRS = $(SUBDIRS)
+else
+DIST_SUBDIRS = $(SUBDIRS) doc
+endif
 
 AUTOMAKE_OPTIONS = dist-bzip2
 ACLOCAL_AMFLAGS = -I m4
@@ -148,3 +153,7 @@ debuild-dirs: distdir
 	$(RM) -r $(distdir).orig
 	cp -a $(distdir) $(distdir).orig
 	$(RM) -r $(distdir).orig/debian
+
+DISTCHECK_CONFIGURE_FLAGS =
+
+-include $(top_srcdir)/git.mk

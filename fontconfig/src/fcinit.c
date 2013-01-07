@@ -25,6 +25,16 @@
 #include "fcint.h"
 #include <stdlib.h>
 
+#if defined(FC_ATOMIC_INT_NIL)
+#pragma message("Could not find any system to define atomic_int macros, library may NOT be thread-safe.")
+#endif
+#if defined(FC_MUTEX_IMPL_NIL)
+#pragma message("Could not find any system to define mutex macros, library may NOT be thread-safe.")
+#endif
+#if defined(FC_ATOMIC_INT_NIL) || defined(FC_MUTEX_IMPL_NIL)
+#pragma message("To suppress these warnings, define FC_NO_MT.")
+#endif
+
 static FcConfig *
 FcInitFallbackConfig (void)
 {
@@ -88,8 +98,6 @@ FcInitLoadConfig (void)
 	if (!p)
 	    goto bail;
 	prefix = p;
-	FcMemFree (FC_MEM_STRING, plen + 1);
-	FcMemAlloc (FC_MEM_STRING, plen + 12);
 	memcpy (&prefix[plen], FC_DIR_SEPARATOR_S "fontconfig", 11);
 	prefix[plen + 11] = 0;
 	fprintf (stderr,
@@ -137,17 +145,7 @@ FcInitLoadConfigAndFonts (void)
 FcBool
 FcInit (void)
 {
-    FcConfig	*config;
-
-    if (_fcConfig)
-	return FcTrue;
-    config = FcInitLoadConfigAndFonts ();
-    if (!config)
-	return FcFalse;
-    FcConfigSetCurrent (config);
-    if (FcDebug() & FC_DBG_MEMORY)
-	FcMemReport ();
-    return FcTrue;
+    return FcConfigInit ();
 }
 
 /*
@@ -156,13 +154,9 @@ FcInit (void)
 void
 FcFini (void)
 {
-    if (_fcConfig)
-	FcConfigDestroy (_fcConfig);
-
-    FcObjectFini ();
+    FcConfigFini ();
     FcCacheFini ();
-    if (FcDebug() & FC_DBG_MEMORY)
-	FcMemReport ();
+    FcDefaultFini ();
 }
 
 /*
@@ -176,8 +170,7 @@ FcInitReinitialize (void)
     config = FcInitLoadConfigAndFonts ();
     if (!config)
 	return FcFalse;
-    FcConfigSetCurrent (config);
-    return FcTrue;
+    return FcConfigSetCurrent (config);
 }
 
 FcBool
@@ -205,105 +198,6 @@ FcInitBringUptoDate (void)
     return FcInitReinitialize ();
 }
 
-static struct {
-    char    name[16];
-    int	    alloc_count;
-    int	    alloc_mem;
-    int	    free_count;
-    int	    free_mem;
-} FcInUse[FC_MEM_NUM] = {
-    { "charset" },
-    { "charleaf" },
-    { "fontset" },
-    { "fontptr" },
-    { "objectset" },
-    { "objectptr" },
-    { "matrix" },
-    { "pattern" },
-    { "patelt" },
-    { "vallist" },
-    { "substate" },
-    { "string" },
-    { "listbuck" },
-    { "strset" },
-    { "strlist" },
-    { "config" },
-    { "langset" },
-    { "atomic" },
-    { "blanks" },
-    { "cache" },
-    { "strbuf" },
-    { "subst" },
-    { "objecttype" },
-    { "constant" },
-    { "test" },
-    { "expr" },
-    { "vstack" },
-    { "attr" },
-    { "pstack" },
-    { "sharedstr" },
-};
-
-static int  FcAllocCount, FcAllocMem;
-static int  FcFreeCount, FcFreeMem;
-
-static int  FcMemNotice = 1*1024*1024;
-
-static int  FcAllocNotify, FcFreeNotify;
-
-void
-FcMemReport (void)
-{
-    int	i;
-    printf ("Fc Memory Usage:\n");
-    printf ("\t   Which       Alloc           Free           Active\n");
-    printf ("\t           count   bytes   count   bytes   count   bytes\n");
-    for (i = 0; i < FC_MEM_NUM; i++)
-	printf ("%16.16s%8d%8d%8d%8d%8d%8d\n",
-		FcInUse[i].name,
-		FcInUse[i].alloc_count, FcInUse[i].alloc_mem,
-		FcInUse[i].free_count, FcInUse[i].free_mem,
-		FcInUse[i].alloc_count - FcInUse[i].free_count,
-		FcInUse[i].alloc_mem - FcInUse[i].free_mem);
-    printf ("%16.16s%8d%8d%8d%8d%8d%8d\n",
-	    "Total",
-	    FcAllocCount, FcAllocMem,
-	    FcFreeCount, FcFreeMem,
-	    FcAllocCount - FcFreeCount,
-	    FcAllocMem - FcFreeMem);
-    FcAllocNotify = 0;
-    FcFreeNotify = 0;
-}
-
-void
-FcMemAlloc (int kind, int size)
-{
-    if (FcDebug() & FC_DBG_MEMORY)
-    {
-	FcInUse[kind].alloc_count++;
-	FcInUse[kind].alloc_mem += size;
-	FcAllocCount++;
-	FcAllocMem += size;
-	FcAllocNotify += size;
-	if (FcAllocNotify > FcMemNotice)
-	    FcMemReport ();
-    }
-}
-
-void
-FcMemFree (int kind, int size)
-{
-    if (FcDebug() & FC_DBG_MEMORY)
-    {
-	FcInUse[kind].free_count++;
-	FcInUse[kind].free_mem += size;
-	FcFreeCount++;
-	FcFreeMem += size;
-	FcFreeNotify += size;
-	if (FcFreeNotify > FcMemNotice)
-	    FcMemReport ();
-    }
-}
 #define __fcinit__
 #include "fcaliastail.h"
 #undef __fcinit__

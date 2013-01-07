@@ -23,17 +23,13 @@
  */
 
 #include "fcint.h"
-#include <assert.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdio.h>
 
 static double
 FcCompareNumber (FcValue *value1, FcValue *value2)
 {
     double  v1, v2, v;
 
-    switch (value1->type) {
+    switch ((int) value1->type) {
     case FcTypeInteger:
 	v1 = (double) value1->u.i;
 	break;
@@ -43,7 +39,7 @@ FcCompareNumber (FcValue *value1, FcValue *value2)
     default:
 	return -1.0;
     }
-    switch (value2->type) {
+    switch ((int) value2->type) {
     case FcTypeInteger:
 	v2 = (double) value2->u.i;
 	break;
@@ -86,9 +82,9 @@ FcCompareLang (FcValue *v1, FcValue *v2)
     FcLangResult    result;
     FcValue value1 = FcValueCanonicalize(v1), value2 = FcValueCanonicalize(v2);
 
-    switch (value1.type) {
+    switch ((int) value1.type) {
     case FcTypeLangSet:
-	switch (value2.type) {
+	switch ((int) value2.type) {
 	case FcTypeLangSet:
 	    result = FcLangSetCompare (value1.u.l, value2.u.l);
 	    break;
@@ -101,7 +97,7 @@ FcCompareLang (FcValue *v1, FcValue *v2)
 	}
 	break;
     case FcTypeString:
-	switch (value2.type) {
+	switch ((int) value2.type) {
 	case FcTypeLangSet:
 	    result = FcLangSetHasLang (value2.u.l, value1.u.s);
 	    break;
@@ -146,7 +142,7 @@ FcCompareSize (FcValue *value1, FcValue *value2)
 {
     double  v1, v2, v;
 
-    switch (value1->type) {
+    switch ((int) value1->type) {
     case FcTypeInteger:
 	v1 = value1->u.i;
 	break;
@@ -156,7 +152,7 @@ FcCompareSize (FcValue *value1, FcValue *value2)
     default:
 	return -1;
     }
-    switch (value2->type) {
+    switch ((int) value2->type) {
     case FcTypeInteger:
 	v2 = value2->u.i;
 	break;
@@ -563,8 +559,7 @@ FcFontRenderPrepare (FcConfig	    *config,
 }
 
 static FcPattern *
-FcFontSetMatchInternal (FcConfig    *config,
-			FcFontSet   **sets,
+FcFontSetMatchInternal (FcFontSet   **sets,
 			int	    nsets,
 			FcPattern   *p,
 			FcResult    *result)
@@ -658,7 +653,7 @@ FcFontSetMatch (FcConfig    *config,
 	if (!config)
 	    return 0;
     }
-    best = FcFontSetMatchInternal (config, sets, nsets, p, result);
+    best = FcFontSetMatchInternal (sets, nsets, p, result);
     if (best)
 	return FcFontRenderPrepare (config, p, best);
     else
@@ -691,7 +686,7 @@ FcFontMatch (FcConfig	*config,
     if (config->fonts[FcSetApplication])
 	sets[nsets++] = config->fonts[FcSetApplication];
 
-    best = FcFontSetMatchInternal (config, sets, nsets, p, result);
+    best = FcFontSetMatchInternal (sets, nsets, p, result);
     if (best)
 	return FcFontRenderPrepare (config, p, best);
     else
@@ -794,7 +789,7 @@ FcFontSetSortDestroy (FcFontSet *fs)
 }
 
 FcFontSet *
-FcFontSetSort (FcConfig	    *config,
+FcFontSetSort (FcConfig	    *config FC_UNUSED,
 	       FcFontSet    **sets,
 	       int	    nsets,
 	       FcPattern    *p,

@@ -287,7 +287,7 @@ AddInputDevice(ClientPtr client, DeviceProc deviceProc, Bool autoStart)
     dev->coreEvents = TRUE;
 
     /* sprite defaults */
-    dev->spriteInfo = (SpriteInfoPtr) & dev[1];
+    dev->spriteInfo = (SpriteInfoPtr) &dev[1];
 
     /*  security creation/labeling check
      */
@@ -949,7 +949,7 @@ CloseDevice(DeviceIntPtr dev)
 
     free(dev->name);
 
-    classes = (ClassesPtr) & dev->key;
+    classes = (ClassesPtr) &dev->key;
     FreeAllDeviceClasses(classes);
 
     if (IsMaster(dev)) {

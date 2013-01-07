@@ -242,12 +242,12 @@ _pixman_implementation_fill (pixman_implementation_t *imp,
                              int                      y,
                              int                      width,
                              int                      height,
-                             uint32_t                 xor)
+                             uint32_t                 filler)
 {
     while (imp)
     {
 	if (imp->fill &&
-	    ((*imp->fill) (imp, bits, stride, bpp, x, y, width, height, xor)))
+	    ((*imp->fill) (imp, bits, stride, bpp, x, y, width, height, filler)))
 	{
 	    return TRUE;
 	}

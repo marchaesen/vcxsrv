@@ -36,6 +36,7 @@ CSRCS=allowev.c \
 	ungrdevb.c \
 	ungrdevk.c \
 	xiallowev.c \
+	xibarriers.c \
 	xichangecursor.c \
 	xichangehierarchy.c \
 	xigetclientpointer.c \

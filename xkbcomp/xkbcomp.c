@@ -47,9 +47,6 @@
 #include "tokens.h"
 #include <X11/extensions/XKBgeom.h>
 
-#ifdef __UNIXOS2__
-#define chdir _chdir2
-#endif
 
 #ifdef WIN32
 #define S_IRGRP 0

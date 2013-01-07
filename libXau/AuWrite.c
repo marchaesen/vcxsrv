@@ -36,7 +36,7 @@ write_short (unsigned short s, FILE *file)
 
     file_short[0] = (s & (unsigned)0xff00) >> 8;
     file_short[1] = s & 0xff;
-    if (fwrite ((char *) file_short, (int) sizeof (file_short), 1, file) != 1)
+    if (fwrite ((char *) file_short, sizeof (file_short), 1, file) != 1)
 	return 0;
     return 1;
 }
@@ -46,7 +46,7 @@ write_counted_string (unsigned short count, char *string, FILE *file)
 {
     if (write_short (count, file) == 0)
 	return 0;
-    if (fwrite (string, (int) sizeof (char), (int) count, file) != count)
+    if (fwrite (string, sizeof (char), count, file) != count)
 	return 0;
     return 1;
 }

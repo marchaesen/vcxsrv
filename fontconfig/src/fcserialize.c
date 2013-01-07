@@ -151,6 +151,5 @@ FcStrSerialize (FcSerialize *serialize, const FcChar8 *str)
     strcpy ((char *) str_serialize, (const char *) str);
     return str_serialize;
 }
-#define __fcserialize__
 #include "fcaliastail.h"
 #undef __fcserialize__

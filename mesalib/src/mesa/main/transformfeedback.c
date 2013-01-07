@@ -34,6 +34,7 @@
 #include "bufferobj.h"
 #include "context.h"
 #include "hash.h"
+#include "macros.h"
 #include "mfeatures.h"
 #include "mtypes.h"
 #include "transformfeedback.h"
@@ -79,6 +80,7 @@ reference_transform_feedback_object(struct gl_transform_feedback_object **ptr,
       }
       else {
          obj->RefCount++;
+         obj->EverBound = GL_TRUE;
          *ptr = obj;
       }
    }
@@ -177,6 +179,7 @@ new_transform_feedback(struct gl_context *ctx, GLuint name)
    if (obj) {
       obj->Name = name;
       obj->RefCount = 1;
+      obj->EverBound = GL_FALSE;
    }
    return obj;
 }
@@ -246,6 +249,83 @@ _mesa_init_transform_feedback_functions(struct dd_function_table *driver)
 
 
 /**
+ * Fill in the correct Size value for each buffer in \c obj.
+ *
+ * From the GL 4.3 spec, section 6.1.1 ("Binding Buffer Objects to Indexed
+ * Targets"):
+ *
+ *   BindBufferBase binds the entire buffer, even when the size of the buffer
+ *   is changed after the binding is established. It is equivalent to calling
+ *   BindBufferRange with offset zero, while size is determined by the size of
+ *   the bound buffer at the time the binding is used.
+ *
+ *   Regardless of the size specified with BindBufferRange, or indirectly with
+ *   BindBufferBase, the GL will never read or write beyond the end of a bound
+ *   buffer. In some cases this constraint may result in visibly different
+ *   behavior when a buffer overflow would otherwise result, such as described
+ *   for transform feedback operations in section 13.2.2.
+ */
+static void
+compute_transform_feedback_buffer_sizes(
+      struct gl_transform_feedback_object *obj)
+{
+   unsigned i = 0;
+   for (i = 0; i < MAX_FEEDBACK_BUFFERS; ++i) {
+      GLintptr offset = obj->Offset[i];
+      GLsizeiptr buffer_size
+         = obj->Buffers[i] == NULL ? 0 : obj->Buffers[i]->Size;
+      GLsizeiptr available_space
+         = buffer_size <= offset ? 0 : buffer_size - offset;
+      GLsizeiptr computed_size;
+      if (obj->RequestedSize[i] == 0) {
+         /* No size was specified at the time the buffer was bound, so allow
+          * writing to all available space in the buffer.
+          */
+         computed_size = available_space;
+      } else {
+         /* A size was specified at the time the buffer was bound, however
+          * it's possible that the buffer has shrunk since then.  So only
+          * allow writing to the minimum of the specified size and the space
+          * available.
+          */
+         computed_size = MIN2(available_space, obj->RequestedSize[i]);
+      }
+
+      /* Legal sizes must be multiples of four, so round down if necessary. */
+      obj->Size[i] = computed_size & ~0x3;
+   }
+}
+
+
+/**
+ * Compute the maximum number of vertices that can be written to the currently
+ * enabled transform feedback buffers without overflowing any of them.
+ */
+unsigned
+_mesa_compute_max_transform_feedback_vertices(
+      const struct gl_transform_feedback_object *obj,
+      const struct gl_transform_feedback_info *info)
+{
+   unsigned max_index = 0xffffffff;
+   unsigned i;
+
+   for (i = 0; i < info->NumBuffers; ++i) {
+      unsigned stride = info->BufferStride[i];
+      unsigned max_for_this_buffer;
+
+      /* Skip any inactive buffers, which have a stride of 0. */
+      if (stride == 0)
+	 continue;
+
+      max_for_this_buffer = obj->Size[i] / (4 * stride);
+      max_index = MIN2(max_index, max_for_this_buffer);
+   }
+
+   return max_index;
+}
+
+
+/**
  ** Begin API functions
  **/
 
@@ -256,6 +336,7 @@ _mesa_BeginTransformFeedback(GLenum mode)
    struct gl_transform_feedback_object *obj;
    struct gl_transform_feedback_info *info;
    GLuint i;
+   unsigned vertices_per_prim;
    GET_CURRENT_CONTEXT(ctx);
 
    obj = ctx->TransformFeedback.CurrentObject;
@@ -276,9 +357,13 @@ _mesa_BeginTransformFeedback(GLenum mode)
 
    switch (mode) {
    case GL_POINTS:
+      vertices_per_prim = 1;
+      break;
    case GL_LINES:
+      vertices_per_prim = 2;
+      break;
    case GL_TRIANGLES:
-      /* legal */
+      vertices_per_prim = 3;
       break;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glBeginTransformFeedback(mode)");
@@ -303,6 +388,20 @@ _mesa_BeginTransformFeedback(GLenum mode)
    FLUSH_VERTICES(ctx, _NEW_TRANSFORM_FEEDBACK);
    obj->Active = GL_TRUE;
    ctx->TransformFeedback.Mode = mode;
+
+   compute_transform_feedback_buffer_sizes(obj);
+
+   if (_mesa_is_gles3(ctx)) {
+      /* In GLES3, we are required to track the usage of the transform
+       * feedback buffer and report INVALID_OPERATION if a draw call tries to
+       * exceed it.  So compute the maximum number of vertices that we can
+       * write without overflowing any of the buffers currently being used for
+       * feedback.
+       */
+      unsigned max_vertices
+         = _mesa_compute_max_transform_feedback_vertices(obj, info);
+      obj->GlesRemainingPrims = max_vertices / vertices_per_prim;
+   }
 
    assert(ctx->Driver.BeginTransformFeedback);
    ctx->Driver.BeginTransformFeedback(ctx, mode, obj);
@@ -362,7 +461,7 @@ bind_buffer_range(struct gl_context *ctx, GLuint index,
    obj->BufferNames[index] = bufObj->Name;
 
    obj->Offset[index] = offset;
-   obj->Size[index] = size;
+   obj->RequestedSize[index] = size;
 }
 
 
@@ -421,7 +520,6 @@ _mesa_bind_buffer_base_transform_feedback(struct gl_context *ctx,
 					  struct gl_buffer_object *bufObj)
 {
    struct gl_transform_feedback_object *obj;
-   GLsizeiptr size;
 
    obj = ctx->TransformFeedback.CurrentObject;
 
@@ -436,12 +534,7 @@ _mesa_bind_buffer_base_transform_feedback(struct gl_context *ctx,
       return;
    }
 
-   /* default size is the buffer size rounded down to nearest
-    * multiple of four.
-    */
-   size = bufObj->Size & ~0x3;
-
-   bind_buffer_range(ctx, index, bufObj, 0, size);
+   bind_buffer_range(ctx, index, bufObj, 0, 0);
 }
 
 
@@ -457,7 +550,6 @@ _mesa_BindBufferOffsetEXT(GLenum target, GLuint index, GLuint buffer,
    struct gl_transform_feedback_object *obj;
    struct gl_buffer_object *bufObj;
    GET_CURRENT_CONTEXT(ctx);
-   GLsizeiptr size;
 
    if (target != GL_TRANSFORM_FEEDBACK_BUFFER) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glBindBufferOffsetEXT(target)");
@@ -497,12 +589,7 @@ _mesa_BindBufferOffsetEXT(GLenum target, GLuint index, GLuint buffer,
       return;
    }
 
-   /* default size is the buffer size rounded down to nearest
-    * multiple of four.
-    */
-   size = (bufObj->Size - offset) & ~0x3;
-
-   bind_buffer_range(ctx, index, bufObj, offset, size);
+   bind_buffer_range(ctx, index, bufObj, offset, 0);
 }
 
 
@@ -708,14 +795,19 @@ _mesa_GenTransformFeedbacks(GLsizei n, GLuint *names)
 GLboolean GLAPIENTRY
 _mesa_IsTransformFeedback(GLuint name)
 {
+   struct gl_transform_feedback_object *obj;
    GET_CURRENT_CONTEXT(ctx);
 
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, GL_FALSE);
 
-   if (name && _mesa_lookup_transform_feedback_object(ctx, name))
-      return GL_TRUE;
-   else
+   if (name == 0)
       return GL_FALSE;
+
+   obj = _mesa_lookup_transform_feedback_object(ctx, name);
+   if (obj == NULL)
+      return GL_FALSE;
+
+   return obj->EverBound;
 }
 
 
@@ -734,8 +826,7 @@ _mesa_BindTransformFeedback(GLenum target, GLuint name)
       return;
    }
 
-   if (ctx->TransformFeedback.CurrentObject->Active &&
-       !ctx->TransformFeedback.CurrentObject->Paused) {
+   if (_mesa_is_xfb_active_and_unpaused(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
               "glBindTransformFeedback(transform is active, or not paused)");
       return;
@@ -805,7 +896,7 @@ _mesa_PauseTransformFeedback(void)
 
    obj = ctx->TransformFeedback.CurrentObject;
 
-   if (!obj->Active || obj->Paused) {
+   if (!_mesa_is_xfb_active_and_unpaused(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
            "glPauseTransformFeedback(feedback not active or already paused)");
       return;

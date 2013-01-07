@@ -766,10 +766,10 @@ pixman_fill (uint32_t *bits,
              int       y,
              int       width,
              int       height,
-             uint32_t xor)
+             uint32_t  filler)
 {
     return _pixman_implementation_fill (
-	get_implementation(), bits, stride, bpp, x, y, width, height, xor);
+	get_implementation(), bits, stride, bpp, x, y, width, height, filler);
 }
 
 static uint32_t
@@ -828,7 +828,7 @@ color_to_pixel (const pixman_color_t *color,
 	c = c >> 24;
     else if (format == PIXMAN_r5g6b5 ||
              format == PIXMAN_b5g6r5)
-	c = CONVERT_8888_TO_0565 (c);
+	c = convert_8888_to_0565 (c);
 
 #if 0
     printf ("color: %x %x %x %x\n", color->alpha, color->red, color->green, color->blue);

@@ -28,6 +28,7 @@ AM_CFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src/mapi \
 	-I$(top_srcdir)/src/mesa/ \
+	$(VISIBILITY_CFLAGS) \
 	$(LIBRARY_INCLUDES) \
 	$(DEFINES) \
 	$(LIBRARY_DEFINES) \

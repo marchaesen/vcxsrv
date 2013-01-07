@@ -212,10 +212,12 @@ EnableDisableExtension(const char *name, Bool enable)
 void
 EnableDisableExtensionError(const char *name, Bool enable)
 {
-    ExtensionToggle *ext = &ExtensionToggleList[0];
+    ExtensionToggle *ext;
+    int i;
     Bool found = FALSE;
 
-    for (ext = &ExtensionToggleList[0]; ext->name != NULL; ext++) {
+    for (i = 0; i < ARRAY_SIZE(ExtensionToggleList); i++) {
+        ext = &ExtensionToggleList[i];
         if ((strcmp(name, ext->name) == 0) && (ext->disablePtr == NULL)) {
             ErrorF("[mi] Extension \"%s\" can not be disabled\n", name);
             found = TRUE;
@@ -226,7 +228,8 @@ EnableDisableExtensionError(const char *name, Bool enable)
         ErrorF("[mi] Extension \"%s\" is not recognized\n", name);
     ErrorF("[mi] Only the following extensions can be run-time %s:\n",
            enable ? "enabled" : "disabled");
-    for (ext = &ExtensionToggleList[0]; ext->name != NULL; ext++) {
+    for (i = 0; i < ARRAY_SIZE(ExtensionToggleList); i++) {
+        ext = &ExtensionToggleList[i];
         if (ext->disablePtr != NULL) {
             ErrorF("[mi]    %s\n", ext->name);
         }

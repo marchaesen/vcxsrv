@@ -1,8 +1,7 @@
 # -*- encoding: utf-8 -*-
 #
-# $Id $
-#
-# Copyright © 2003 Keith Packard
+# Copyright © 2003  Keith Packard
+# Copyright © 2013  Google, Inc.
 #
 # Permission to use, copy, modify, distribute, and sell this software and its
 # documentation for any purpose is hereby granted without fee, provided that
@@ -22,47 +21,13 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 #
+# Google Author(s): Behdad Esfahbod
 
-INCLUDES=-I${top_builddir}/src -I${top_srcdir}/src -I${top_srcdir} $(WARN_CFLAGS)
+TAG=case
+DEPS = $(srcdir)/CaseFolding.txt
+ARGS = $(srcdir)/CaseFolding.txt
+DIST = $(srcdir)/CaseFolding.txt
 
-TMPL=fccase.tmpl.h
-STMPL=${top_srcdir}/fc-case/${TMPL}
-TARG=fccase.h
+include $(top_srcdir)/Tools.mk
 
-noinst_PROGRAMS=fc-case
-
-noinst_HEADERS=$(TARG)
-
-fc_case_SOURCES= \
-	fc-case.c
-
-CASEFOLDING=CaseFolding.txt
-SCASEFOLDING=${top_srcdir}/fc-case/CaseFolding.txt
-
-EXTRA_DIST = $(TARG) $(TMPL) $(CASEFOLDING)
-
-if CROSS_COMPILING
-$(TARG): $(STMPL) fc-case.c $(SCASEFOLDING)
-	@echo Warning: cannot rebuild $(TARG) when cross-compiling
-else
-## BUILT_SOURCES doesn't effect to 'distcheck'
-## so $(ALIAS_FILES) has to be appeared prior to fc-case$(EXEEXT)
-## to make sure availability.
-$(TARG): $(STMPL) $(ALIAS_FILES) fc-case$(EXEEXT) $(SCASEFOLDING)
-	$(AM_V_GEN) $(RM) $(TARG); \
-	./fc-case$(EXEEXT) $(SCASEFOLDING) < $(STMPL) > $(TARG).tmp && \
-	mv $(TARG).tmp $(TARG)
-endif
-
-ALIAS_FILES = fcalias.h fcaliastail.h
-
-BUILT_SOURCES = $(ALIAS_FILES)
-
-$(ALIAS_FILES): 
-	$(AM_V_GEN) touch $@
-
-CLEANFILES = $(ALIAS_FILES)
-
-DISTCLEANFILES = $(TARG)
-
-MAINTAINERCLEANFILES = $(TARG)
+-include $(top_srcdir)/git.mk

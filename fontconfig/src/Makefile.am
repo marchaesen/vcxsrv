@@ -21,6 +21,8 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
+EXTRA_DIST =
+
 if OS_WIN32
 
 export_symbols = -export-symbols fontconfig.def
@@ -78,7 +80,7 @@ INCLUDES = 						\
 	-DFC_CACHEDIR='"$(FC_CACHEDIR)"'                \
 	-DFONTCONFIG_PATH='"$(BASECONFIGDIR)"'
 
-EXTRA_DIST = makealias
+EXTRA_DIST += makealias
 
 noinst_HEADERS=fcint.h fcftint.h fcdeprecate.h fcstdint.h
 
@@ -88,7 +90,9 @@ BUILT_SOURCES = $(ALIAS_FILES) \
 	../fc-case/fccase.h \
 	../fc-glyphname/fcglyphname.h \
 	../fc-lang/fclang.h \
-	stamp-fcstdint
+	stamp-fcstdint \
+	fcobjshash.h \
+	fcobjshash.gperf
 
 noinst_PROGRAMS = fcarch
 
@@ -99,9 +103,30 @@ noinst_PROGRAMS = fcarch
 ../fc-lang/fclang.h:
 	cd ../fc-lang && $(MAKE) $(AM_MAKEFLAGS) fclang.h
 
+fcobjshash.gperf: fcobjshash.gperf.h fcobjs.h
+	$(AM_V_GEN) $(CPP) -I$(top_srcdir) $< | \
+	$(SED) 's/^ *//;s/ *, */,/' | \
+	$(GREP) '^[^#]' | \
+	awk ' \
+		/CUT_OUT_BEGIN/ { no_write=1; next; }; \
+		/CUT_OUT_END/ { no_write=0; next; }; \
+		{ if (!no_write) print; next; }; \
+	' - > $@.tmp && \
+	mv -f $@.tmp $@ || ( $(RM) $@.tmp && false )
+
+fcobjshash.h: fcobjshash.gperf
+	$(AM_V_GEN) $(top_srcdir)/missing --run gperf -m 100 $< > $@.tmp && \
+	mv -f $@.tmp $@ || ( $(RM) $@.tmp && false )
+
+EXTRA_DIST += \
+	fcobjshash.gperf.h \
+	fcobjshash.gperf \
+	fcobjshash.h
+
 libfontconfig_la_SOURCES = \
 	fcarch.h \
 	fcatomic.c \
+	fcatomic.h \
 	fcblanks.c \
 	fccache.c \
 	fccfg.c \
@@ -117,11 +142,16 @@ libfontconfig_la_SOURCES = \
 	fclist.c \
 	fcmatch.c \
 	fcmatrix.c \
+	fcmutex.h \
 	fcname.c \
+	fcobjs.c \
+	fcobjs.h \
+	fcobjshash.h \
 	fcpat.c \
 	fcserialize.c \
 	fcstat.c \
 	fcstr.c \
+	fcwindows.h \
 	fcxml.c \
 	ftglue.h \
 	ftglue.c
@@ -164,15 +194,17 @@ stamp-fcstdint: $(top_builddir)/config.status
 	$(SHELL) ./config.status src/fcstdint.h
 	@touch $@
 
-CLEANFILES = $(ALIAS_FILES)
+CLEANFILES = $(ALIAS_FILES) fontconfig.def
 DISTCLEANFILES = stamp-fcstdint fcstdint.h
 
 fontconfig.def: $(PUBLIC_FILES) $(PUBLIC_FT_FILES)
 	echo Generating $@
 	(echo EXPORTS; \
 	(cat $(PUBLIC_FILES) $(PUBLIC_FT_FILES) || echo 'FcERROR ()' ) | \
-	grep '^Fc[^ ]* *(' | sed -e 's/ *(.*$$//' -e 's/^/	/' | \
+	$(GREP) '^Fc[^ ]* *(' | $(SED) -e 's/ *(.*$$//' -e 's/^/	/' | \
 	sort; \
 	echo LIBRARY libfontconfig-@LIBT_CURRENT_MINUS_AGE@.dll; \
 	echo VERSION @LIBT_CURRENT@.@LIBT_REVISION@) >$@
-	@ ! grep -q FcERROR $@ || ($(RM) $@; false)
+	@ ! $(GREP) -q FcERROR $@ || ($(RM) $@; false)
+
+-include $(top_srcdir)/git.mk

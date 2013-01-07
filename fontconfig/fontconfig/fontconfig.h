@@ -181,10 +181,10 @@ typedef int		FcBool;
 #define FC_LCD_LEGACY	    3
 
 typedef enum _FcType {
-    FcTypeVoid, 
-    FcTypeInteger, 
-    FcTypeDouble, 
-    FcTypeString, 
+    FcTypeVoid,
+    FcTypeInteger,
+    FcTypeDouble,
+    FcTypeString,
     FcTypeBool,
     FcTypeMatrix,
     FcTypeCharSet,
@@ -424,7 +424,7 @@ FcCharSetCreate (void);
 /* deprecated alias for FcCharSetCreate */
 FcPublic FcCharSet *
 FcCharSetNew (void);
-    
+
 FcPublic void
 FcCharSetDestroy (FcCharSet *fcs);
 
@@ -734,21 +734,25 @@ FcMatrixShear (FcMatrix *m, double sh, double sv);
 
 /* fcname.c */
 
+/* Deprecated.  Does nothing.  Returns FcFalse. */
 FcPublic FcBool
 FcNameRegisterObjectTypes (const FcObjectType *types, int ntype);
 
+/* Deprecated.  Does nothing.  Returns FcFalse. */
 FcPublic FcBool
 FcNameUnregisterObjectTypes (const FcObjectType *types, int ntype);
-    
+
 FcPublic const FcObjectType *
 FcNameGetObjectType (const char *object);
 
+/* Deprecated.  Does nothing.  Returns FcFalse. */
 FcPublic FcBool
 FcNameRegisterConstants (const FcConstant *consts, int nconsts);
 
+/* Deprecated.  Does nothing.  Returns FcFalse. */
 FcPublic FcBool
 FcNameUnregisterConstants (const FcConstant *consts, int nconsts);
-    
+
 FcPublic const FcConstant *
 FcNameGetConstant (const FcChar8 *string);
 

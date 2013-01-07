@@ -64,8 +64,8 @@ const GCOps fbGCOps = {
 Bool
 fbCreateGC(GCPtr pGC)
 {
-    pGC->ops = (GCOps *) & fbGCOps;
-    pGC->funcs = (GCFuncs *) & fbGCFuncs;
+    pGC->ops = (GCOps *) &fbGCOps;
+    pGC->funcs = (GCFuncs *) &fbGCFuncs;
 
     /* fb wants to translate before scan conversion */
     pGC->miTranslate = 1;

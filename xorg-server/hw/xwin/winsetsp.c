@@ -112,7 +112,7 @@ winSetSpansNativeGDI(DrawablePtr pDrawable,
                           0, 0,
                           *piWidths, 1,
                           pSrcs,
-                          (BITMAPINFO*)&bmi,
+                          (BITMAPINFO *) &bmi,
                           DIB_RGB_COLORS, g_copyROP[pGC->alu]);
 
             pSrcs += PixmapBytePad(*piWidths, pDrawable->depth);
@@ -155,7 +155,7 @@ winSetSpansNativeGDI(DrawablePtr pDrawable,
                           0, 0,
                           *piWidths, 1,
                           pSrcs,
-                          (BITMAPINFO *) & bmi,
+                          (BITMAPINFO *) &bmi,
                           DIB_RGB_COLORS, g_copyROP[pGC->alu]);
 
             pSrcs += PixmapBytePad(*piWidths, pDrawable->depth);

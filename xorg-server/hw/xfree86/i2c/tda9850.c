@@ -131,6 +131,6 @@ tda9850_getstatus(TDA9850Ptr t)
 {
     CARD16 status;
 
-    I2C_WriteRead(&(t->d), NULL, 0, (I2CByte *) & status, 2);
+    I2C_WriteRead(&(t->d), NULL, 0, (I2CByte *) &status, 2);
     return status;
 }

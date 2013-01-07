@@ -35,7 +35,7 @@ read_short (unsigned short *shortp, FILE *file)
 {
     unsigned char   file_short[2];
 
-    if (fread ((char *) file_short, (int) sizeof (file_short), 1, file) != 1)
+    if (fread ((char *) file_short, sizeof (file_short), 1, file) != 1)
 	return 0;
     *shortp = file_short[0] * 256 + file_short[1];
     return 1;
@@ -55,7 +55,7 @@ read_counted_string (unsigned short *countp, char **stringp, FILE *file)
     	data = malloc ((unsigned) len);
     	if (!data)
 	    return 0;
-    	if (fread (data, (int) sizeof (char), (int) len, file) != len) {
+	if (fread (data, sizeof (char), len, file) != len) {
 	    bzero (data, len);
 	    free (data);
 	    return 0;

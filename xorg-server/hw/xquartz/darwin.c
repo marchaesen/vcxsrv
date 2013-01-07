@@ -230,13 +230,15 @@ DarwinScreenInit(ScreenPtr pScreen, int argc, char **argv)
     }
 
     // TODO: Make PseudoColor visuals not suck in TrueColor mode
-    //    if(dfb->depth > 8)
-    //        miSetVisualTypesAndMasks(8, PseudoColorMask, 8, PseudoColor, 0, 0, 0);
-    if (dfb->depth > 15)
-        miSetVisualTypesAndMasks(15, TrueColorMask, 5, TrueColor,
-                                 RM_ARGB(0, 5, 5, 5), GM_ARGB(0, 5, 5,
-                                                              5),
-                                 BM_ARGB(0, 5, 5, 5));
+    // if(dfb->depth > 8)
+    //    miSetVisualTypesAndMasks(8, PseudoColorMask, 8, PseudoColor, 0, 0, 0);
+    //
+    // TODO: Re-add support for 15bit
+    // if (dfb->depth > 15)
+    //    miSetVisualTypesAndMasks(15, TrueColorMask, 5, TrueColor,
+    //                             RM_ARGB(0, 5, 5, 5), GM_ARGB(0, 5, 5,
+    //                                                          5),
+    //                             BM_ARGB(0, 5, 5, 5));
     if (dfb->depth > 24)
         miSetVisualTypesAndMasks(24, TrueColorMask, 8, TrueColor,
                                  RM_ARGB(0, 8, 8, 8), GM_ARGB(0, 8, 8,

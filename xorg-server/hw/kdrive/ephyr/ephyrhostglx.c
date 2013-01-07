@@ -121,7 +121,7 @@ ephyrHostGLXQueryVersion(int *a_major, int *a_minor)
     req->glxCode = X_GLXQueryVersion;
     req->majorVersion = 2;
     req->minorVersion = 1;
-    _XReply(dpy, (xReply *) & reply, 0, False);
+    _XReply(dpy, (xReply *) &reply, 0, False);
     UnlockDisplay(dpy);
     SyncHandle();
 
@@ -207,7 +207,7 @@ ephyrHostGLXGetStringFromServer(int a_screen_number,
     req->for_whom = default_screen;
     req->name = a_string_name;
 
-    _XReply(dpy, (xReply *) & reply, 0, False);
+    _XReply(dpy, (xReply *) &reply, 0, False);
 
     length = reply.length * 4;
     if (!length) {
@@ -303,7 +303,7 @@ ephyrHostGLXGetVisualConfigsInternal(enum VisualConfRequestType a_type,
         break;
     }
 
-    if (!_XReply(dpy, (xReply *) & reply, 0, False)) {
+    if (!_XReply(dpy, (xReply *) &reply, 0, False)) {
         EPHYR_LOG_ERROR("unknown error\n");
         UnlockDisplay(dpy);
         goto out;
@@ -615,7 +615,7 @@ ephyrHostGLXMakeCurrent(int a_drawable, int a_readable,
     }
 
     memset(&reply, 0, sizeof(reply));
-    if (!_XReply(dpy, (xReply *) & reply, 0, False)) {
+    if (!_XReply(dpy, (xReply *) &reply, 0, False)) {
         EPHYR_LOG_ERROR("failed to get reply from host\n");
         UnlockDisplay(dpy);
         SyncHandle();
@@ -735,7 +735,7 @@ ephyrHostIsContextDirect(int a_ctxt_id, int *a_is_direct)
     req->reqType = major_opcode;
     req->glxCode = X_GLXIsDirect;
     req->context = remote_glx_ctxt_id;
-    if (!_XReply(dpy, (xReply *) & reply, 0, False)) {
+    if (!_XReply(dpy, (xReply *) &reply, 0, False)) {
         EPHYR_LOG_ERROR("fail in reading reply from host\n");
         UnlockDisplay(dpy);
         SyncHandle();

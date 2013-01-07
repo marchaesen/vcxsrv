@@ -59,26 +59,32 @@ static void MD5Transform(FcChar32 buf[4], FcChar32 in[16]);
 static FcBool
 FcCacheIsMmapSafe (int fd)
 {
-    static FcBool is_initialized = FcFalse;
-    static FcBool is_env_available = FcFalse;
-    static FcBool use_mmap = FcFalse;
+    enum {
+      MMAP_NOT_INITIALIZED = 0,
+      MMAP_USE,
+      MMAP_DONT_USE,
+      MMAP_CHECK_FS,
+    } status;
+    static void *static_status;
 
-    if (!is_initialized)
+    status = (intptr_t) fc_atomic_ptr_get (&static_status);
+
+    if (status == MMAP_NOT_INITIALIZED)
     {
-	const char *env;
-
-	env = getenv ("FONTCONFIG_USE_MMAP");
-	if (env)
-	{
-	    if (FcNameBool ((const FcChar8 *)env, &use_mmap))
-		is_env_available = FcTrue;
-	}
-	is_initialized = FcTrue;
+	const char *env = getenv ("FONTCONFIG_USE_MMAP");
+	FcBool use;
+	if (env && FcNameBool ((const FcChar8 *) env, &use))
+	    status =  use ? MMAP_USE : MMAP_DONT_USE;
+	else
+	    status = MMAP_CHECK_FS;
+	(void) fc_atomic_ptr_cmpexch (&static_status, NULL, (void *) status);
     }
-    if (is_env_available)
-	return use_mmap;
 
-    return FcIsFsMmapSafe (fd);
+    if (status == MMAP_CHECK_FS)
+	return FcIsFsMmapSafe (fd);
+    else
+	return status == MMAP_USE;
+
 }
 
 static const char bin2hex[] = { '0', '1', '2', '3',
@@ -227,7 +233,7 @@ typedef struct _FcCacheSkip FcCacheSkip;
 
 struct _FcCacheSkip {
     FcCache	    *cache;
-    int		    ref;
+    FcRef	    ref;
     intptr_t	    size;
     dev_t	    cache_dev;
     ino_t	    cache_ino;
@@ -242,6 +248,7 @@ struct _FcCacheSkip {
 
 #define FC_CACHE_MAX_LEVEL  16
 
+/* Protected by cache_lock below */
 static FcCacheSkip	*fcCacheChains[FC_CACHE_MAX_LEVEL];
 static int		fcCacheMaxLevel;
 
@@ -301,6 +308,50 @@ FcRandom(void)
     return result;
 }
 
+
+static FcMutex *cache_lock;
+
+static void
+lock_cache (void)
+{
+  FcMutex *lock;
+retry:
+  lock = fc_atomic_ptr_get (&cache_lock);
+  if (!lock) {
+    lock = (FcMutex *) malloc (sizeof (FcMutex));
+    FcMutexInit (lock);
+    if (!fc_atomic_ptr_cmpexch (&cache_lock, NULL, lock)) {
+      FcMutexFinish (lock);
+      goto retry;
+    }
+
+    FcMutexLock (lock);
+    /* Initialize random state */
+    FcRandom ();
+    return;
+  }
+  FcMutexLock (lock);
+}
+
+static void
+unlock_cache (void)
+{
+  FcMutexUnlock (cache_lock);
+}
+
+static void
+free_lock (void)
+{
+  FcMutex *lock;
+  lock = fc_atomic_ptr_get (&cache_lock);
+  if (lock && fc_atomic_ptr_cmpexch (&cache_lock, lock, NULL)) {
+    FcMutexFinish (lock);
+    free (lock);
+  }
+}
+
+
+
 /*
  * Generate a random level number, distributed
  * so that each level is 1/4 as likely as the one before
@@ -333,6 +384,8 @@ FcCacheInsert (FcCache *cache, struct stat *cache_stat)
     FcCacheSkip    *s, **next;
     int		    i, level;
 
+    lock_cache ();
+
     /*
      * Find links along each chain
      */
@@ -362,7 +415,7 @@ FcCacheInsert (FcCache *cache, struct stat *cache_stat)
 
     s->cache = cache;
     s->size = cache->size;
-    s->ref = 1;
+    FcRefInit (&s->ref, 1);
     if (cache_stat)
     {
 	s->cache_dev = cache_stat->st_dev;
@@ -384,11 +437,13 @@ FcCacheInsert (FcCache *cache, struct stat *cache_stat)
 	s->next[i] = *update[i];
 	*update[i] = s;
     }
+
+    unlock_cache ();
     return FcTrue;
 }
 
 static FcCacheSkip *
-FcCacheFindByAddr (void *object)
+FcCacheFindByAddrUnlocked (void *object)
 {
     int	    i;
     FcCacheSkip    **next = fcCacheChains;
@@ -409,8 +464,18 @@ FcCacheFindByAddr (void *object)
     return NULL;
 }
 
+static FcCacheSkip *
+FcCacheFindByAddr (void *object)
+{
+    FcCacheSkip *ret;
+    lock_cache ();
+    ret = FcCacheFindByAddrUnlocked (object);
+    unlock_cache ();
+    return ret;
+}
+
 static void
-FcCacheRemove (FcCache *cache)
+FcCacheRemoveUnlocked (FcCache *cache)
 {
     FcCacheSkip	    **update[FC_CACHE_MAX_LEVEL];
     FcCacheSkip	    *s, **next;
@@ -440,20 +505,25 @@ FcCacheFindByStat (struct stat *cache_stat)
 {
     FcCacheSkip	    *s;
 
+    lock_cache ();
     for (s = fcCacheChains[0]; s; s = s->next[0])
 	if (s->cache_dev == cache_stat->st_dev &&
 	    s->cache_ino == cache_stat->st_ino &&
 	    s->cache_mtime == cache_stat->st_mtime)
 	{
-	    s->ref++;
+	    FcRefInc (&s->ref);
+	    unlock_cache ();
 	    return s->cache;
 	}
+    unlock_cache ();
     return NULL;
 }
 
 static void
-FcDirCacheDispose (FcCache *cache)
+FcDirCacheDisposeUnlocked (FcCache *cache)
 {
+    FcCacheRemoveUnlocked (cache);
+
     switch (cache->magic) {
     case FC_CACHE_MAGIC_ALLOC:
 	free (cache);
@@ -466,7 +536,6 @@ FcDirCacheDispose (FcCache *cache)
 #endif
 	break;
     }
-    FcCacheRemove (cache);
 }
 
 void
@@ -475,20 +544,22 @@ FcCacheObjectReference (void *object)
     FcCacheSkip *skip = FcCacheFindByAddr (object);
 
     if (skip)
-	skip->ref++;
+	FcRefInc (&skip->ref);
 }
 
 void
 FcCacheObjectDereference (void *object)
 {
-    FcCacheSkip	*skip = FcCacheFindByAddr (object);
+    FcCacheSkip	*skip;
 
+    lock_cache ();
+    skip = FcCacheFindByAddrUnlocked (object);
     if (skip)
     {
-	skip->ref--;
-	if (skip->ref <= 0)
-	    FcDirCacheDispose (skip->cache);
+	if (FcRefDec (&skip->ref) <= 1)
+	    FcDirCacheDisposeUnlocked (skip->cache);
     }
+    unlock_cache ();
 }
 
 void
@@ -499,6 +570,8 @@ FcCacheFini (void)
     for (i = 0; i < FC_CACHE_MAX_LEVEL; i++)
 	assert (fcCacheChains[i] == NULL);
     assert (fcCacheMaxLevel == 0);
+
+    free_lock ();
 }
 
 static FcBool
@@ -527,7 +600,7 @@ FcDirCacheMapFd (int fd, struct stat *fd_stat, struct stat *dir_stat)
     FcCache	*cache;
     FcBool	allocated = FcFalse;
 
-    if (fd_stat->st_size < sizeof (FcCache))
+    if (fd_stat->st_size < (int) sizeof (FcCache))
 	return NULL;
     cache = FcCacheFindByStat (fd_stat);
     if (cache)
@@ -582,7 +655,7 @@ FcDirCacheMapFd (int fd, struct stat *fd_stat, struct stat *dir_stat)
     }
     if (cache->magic != FC_CACHE_MAGIC_MMAP ||
 	cache->version < FC_CACHE_CONTENT_VERSION ||
-	cache->size != fd_stat->st_size ||
+	cache->size != (intptr_t) fd_stat->st_size ||
 	!FcCacheTimeValid (cache, dir_stat) ||
 	!FcCacheInsert (cache, fd_stat))
     {
@@ -612,7 +685,7 @@ FcDirCacheReference (FcCache *cache, int nref)
     FcCacheSkip *skip = FcCacheFindByAddr (cache);
 
     if (skip)
-	skip->ref += nref;
+	FcRefAdd (&skip->ref, nref);
 }
 
 void
@@ -666,7 +739,7 @@ FcDirCacheLoadFile (const FcChar8 *cache_file, struct stat *file_stat)
  * the magic number and the size field
  */
 static FcBool
-FcDirCacheValidateHelper (int fd, struct stat *fd_stat, struct stat *dir_stat, void *closure)
+FcDirCacheValidateHelper (int fd, struct stat *fd_stat, struct stat *dir_stat, void *closure FC_UNUSED)
 {
     FcBool  ret = FcTrue;
     FcCache	c;
@@ -843,7 +916,7 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
     FcChar8	    *test_dir;
     FcCacheSkip     *skip;
     struct stat     cache_stat;
-    int		    magic;
+    unsigned int    magic;
     int		    written;
 
     /*
@@ -937,13 +1010,16 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
      * new cache file is not read again.  If it's large, we don't do that
      * such that we reload it, using mmap, which is shared across processes.
      */
-    if (cache->size < FC_CACHE_MIN_MMAP &&
-	(skip = FcCacheFindByAddr (cache)) &&
-	FcStat (cache_hashed, &cache_stat))
+    if (cache->size < FC_CACHE_MIN_MMAP && FcStat (cache_hashed, &cache_stat))
     {
-	skip->cache_dev = cache_stat.st_dev;
-	skip->cache_ino = cache_stat.st_ino;
-	skip->cache_mtime = cache_stat.st_mtime;
+	lock_cache ();
+	if ((skip = FcCacheFindByAddrUnlocked (cache)))
+	{
+	    skip->cache_dev = cache_stat.st_dev;
+	    skip->cache_ino = cache_stat.st_ino;
+	    skip->cache_mtime = cache_stat.st_mtime;
+	}
+	unlock_cache ();
     }
 
     FcStrFree (cache_hashed);

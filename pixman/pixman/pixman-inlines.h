@@ -314,36 +314,36 @@ scanline_func_name (dst_type_t       *dst,							\
 												\
 		if (a1 == 0xff)									\
 		{										\
-		    *dst = CONVERT_ ## SRC_FORMAT ## _TO_ ## DST_FORMAT (s1);			\
+		    *dst = convert_ ## SRC_FORMAT ## _to_ ## DST_FORMAT (s1);			\
 		}										\
 		else if (s1)									\
 		{										\
-		    d = CONVERT_ ## DST_FORMAT ## _TO_8888 (*dst);				\
-		    s1 = CONVERT_ ## SRC_FORMAT ## _TO_8888 (s1);				\
+		    d = convert_ ## DST_FORMAT ## _to_8888 (*dst);				\
+		    s1 = convert_ ## SRC_FORMAT ## _to_8888 (s1);				\
 		    a1 ^= 0xff;									\
 		    UN8x4_MUL_UN8_ADD_UN8x4 (d, a1, s1);					\
-		    *dst = CONVERT_8888_TO_ ## DST_FORMAT (d);					\
+		    *dst = convert_8888_to_ ## DST_FORMAT (d);					\
 		}										\
 		dst++;										\
 												\
 		if (a2 == 0xff)									\
 		{										\
-		    *dst = CONVERT_ ## SRC_FORMAT ## _TO_ ## DST_FORMAT (s2);			\
+		    *dst = convert_ ## SRC_FORMAT ## _to_ ## DST_FORMAT (s2);			\
 		}										\
 		else if (s2)									\
 		{										\
-		    d = CONVERT_## DST_FORMAT ## _TO_8888 (*dst);				\
-		    s2 = CONVERT_## SRC_FORMAT ## _TO_8888 (s2);				\
+		    d = convert_## DST_FORMAT ## _to_8888 (*dst);				\
+		    s2 = convert_## SRC_FORMAT ## _to_8888 (s2);				\
 		    a2 ^= 0xff;									\
 		    UN8x4_MUL_UN8_ADD_UN8x4 (d, a2, s2);					\
-		    *dst = CONVERT_8888_TO_ ## DST_FORMAT (d);					\
+		    *dst = convert_8888_to_ ## DST_FORMAT (d);					\
 		}										\
 		dst++;										\
 	    }											\
 	    else /* PIXMAN_OP_SRC */								\
 	    {											\
-		*dst++ = CONVERT_ ## SRC_FORMAT ## _TO_ ## DST_FORMAT (s1);			\
-		*dst++ = CONVERT_ ## SRC_FORMAT ## _TO_ ## DST_FORMAT (s2);			\
+		*dst++ = convert_ ## SRC_FORMAT ## _to_ ## DST_FORMAT (s1);			\
+		*dst++ = convert_ ## SRC_FORMAT ## _to_ ## DST_FORMAT (s2);			\
 	    }											\
 	}											\
 												\
@@ -358,21 +358,21 @@ scanline_func_name (dst_type_t       *dst,							\
 												\
 		if (a1 == 0xff)									\
 		{										\
-		    *dst = CONVERT_ ## SRC_FORMAT ## _TO_ ## DST_FORMAT (s1);			\
+		    *dst = convert_ ## SRC_FORMAT ## _to_ ## DST_FORMAT (s1);			\
 		}										\
 		else if (s1)									\
 		{										\
-		    d = CONVERT_## DST_FORMAT ## _TO_8888 (*dst);				\
-		    s1 = CONVERT_ ## SRC_FORMAT ## _TO_8888 (s1);				\
+		    d = convert_## DST_FORMAT ## _to_8888 (*dst);				\
+		    s1 = convert_ ## SRC_FORMAT ## _to_8888 (s1);				\
 		    a1 ^= 0xff;									\
 		    UN8x4_MUL_UN8_ADD_UN8x4 (d, a1, s1);					\
-		    *dst = CONVERT_8888_TO_ ## DST_FORMAT (d);					\
+		    *dst = convert_8888_to_ ## DST_FORMAT (d);					\
 		}										\
 		dst++;										\
 	    }											\
 	    else /* PIXMAN_OP_SRC */								\
 	    {											\
-		*dst++ = CONVERT_ ## SRC_FORMAT ## _TO_ ## DST_FORMAT (s1);			\
+		*dst++ = convert_ ## SRC_FORMAT ## _to_ ## DST_FORMAT (s1);			\
 	    }											\
 	}											\
 }

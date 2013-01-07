@@ -1,14 +1,4 @@
 
-#INCLUDES = 						\
-#	-I$(top_srcdir)					\
-#	-I$(top_srcdir)/src				\
-#	$(FREETYPE_CFLAGS)				\
-#	$(LIBXML2_CFLAGS)				\
-#	$(EXPAT_CFLAGS)					\
-#	$(WARN_CFLAGS)					\
-#	-DFC_CACHEDIR='"$(FC_CACHEDIR)"'                \
-#	-DFONTCONFIG_PATH='"$(CONFDIR)"'
-
 load_makefile NORELDBG=1 ..\fc-case\makefile
 load_makefile NORELDBG=1 ..\fc-glyphname\makefile
 load_makefile NORELDBG=1 ..\fc-lang\makefile
@@ -31,6 +21,7 @@ CSRCS = \
 	fcmatch.c \
 	fcmatrix.c \
 	fcname.c \
+	fcobjs.c \
 	fcpat.c \
 	fcserialize.c \
 	fcstat.c \

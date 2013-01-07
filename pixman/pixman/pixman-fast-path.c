@@ -507,15 +507,15 @@ fast_composite_over_n_8_0565 (pixman_implementation_t *imp,
 		else
 		{
 		    d = *dst;
-		    d = over (src, CONVERT_0565_TO_0888 (d));
+		    d = over (src, convert_0565_to_0888 (d));
 		}
-		*dst = CONVERT_8888_TO_0565 (d);
+		*dst = convert_8888_to_0565 (d);
 	    }
 	    else if (m)
 	    {
 		d = *dst;
-		d = over (in (src, m), CONVERT_0565_TO_0888 (d));
-		*dst = CONVERT_8888_TO_0565 (d);
+		d = over (in (src, m), convert_0565_to_0888 (d));
+		*dst = convert_8888_to_0565 (d);
 	    }
 	    dst++;
 	}
@@ -541,7 +541,7 @@ fast_composite_over_n_8888_0565_ca (pixman_implementation_t *imp,
     if (src == 0)
 	return;
 
-    src16 = CONVERT_8888_TO_0565 (src);
+    src16 = convert_8888_to_0565 (src);
 
     PIXMAN_IMAGE_GET_LINE (dest_image, dest_x, dest_y, uint16_t, dst_stride, dst_line, 1);
     PIXMAN_IMAGE_GET_LINE (mask_image, mask_x, mask_y, uint32_t, mask_stride, mask_line, 1);
@@ -566,14 +566,14 @@ fast_composite_over_n_8888_0565_ca (pixman_implementation_t *imp,
 		else
 		{
 		    d = *dst;
-		    d = over (src, CONVERT_0565_TO_0888 (d));
-		    *dst = CONVERT_8888_TO_0565 (d);
+		    d = over (src, convert_0565_to_0888 (d));
+		    *dst = convert_8888_to_0565 (d);
 		}
 	    }
 	    else if (ma)
 	    {
 		d = *dst;
-		d = CONVERT_0565_TO_0888 (d);
+		d = convert_0565_to_0888 (d);
 
 		s = src;
 
@@ -582,7 +582,7 @@ fast_composite_over_n_8888_0565_ca (pixman_implementation_t *imp,
 		ma = ~ma;
 		UN8x4_MUL_UN8x4_ADD_UN8x4 (d, ma, s);
 
-		*dst = CONVERT_8888_TO_0565 (d);
+		*dst = convert_8888_to_0565 (d);
 	    }
 	    dst++;
 	}
@@ -729,9 +729,9 @@ fast_composite_over_8888_0565 (pixman_implementation_t *imp,
 		else
 		{
 		    d = *dst;
-		    d = over (s, CONVERT_0565_TO_0888 (d));
+		    d = over (s, convert_0565_to_0888 (d));
 		}
-		*dst = CONVERT_8888_TO_0565 (d);
+		*dst = convert_8888_to_0565 (d);
 	    }
 	    dst++;
 	}
@@ -762,7 +762,7 @@ fast_composite_src_x888_0565 (pixman_implementation_t *imp,
 	while (w--)
 	{
 	    s = *src++;
-	    *dst = CONVERT_8888_TO_0565 (s);
+	    *dst = convert_8888_to_0565 (s);
 	    dst++;
 	}
     }
@@ -838,13 +838,13 @@ fast_composite_add_0565_0565 (pixman_implementation_t *imp,
 	    if (s)
 	    {
 		d = *dst;
-		s = CONVERT_0565_TO_8888 (s);
+		s = convert_0565_to_8888 (s);
 		if (d)
 		{
-		    d = CONVERT_0565_TO_8888 (d);
+		    d = convert_0565_to_8888 (d);
 		    UN8x4_ADD_UN8x4 (s, d);
 		}
-		*dst = CONVERT_8888_TO_0565 (s);
+		*dst = convert_8888_to_0565 (s);
 	    }
 	    dst++;
 	}
@@ -1094,7 +1094,7 @@ fast_composite_over_n_1_0565 (pixman_implementation_t *imp,
 
     if (srca == 0xff)
     {
-	src565 = CONVERT_8888_TO_0565 (src);
+	src565 = convert_8888_to_0565 (src);
 	while (height--)
 	{
 	    dst = dst_line;
@@ -1142,8 +1142,8 @@ fast_composite_over_n_1_0565 (pixman_implementation_t *imp,
 		}
 		if (bitcache & bitmask)
 		{
-		    d = over (src, CONVERT_0565_TO_0888 (*dst));
-		    *dst = CONVERT_8888_TO_0565 (d);
+		    d = over (src, convert_0565_to_0888 (*dst));
+		    *dst = convert_8888_to_0565 (d);
 		}
 		bitmask = UPDATE_BITMASK (bitmask);
 		dst++;
@@ -1176,7 +1176,7 @@ fast_composite_solid_fill (pixman_implementation_t *imp,
     else if (dest_image->bits.format == PIXMAN_r5g6b5 ||
              dest_image->bits.format == PIXMAN_b5g6r5)
     {
-	src = CONVERT_8888_TO_0565 (src);
+	src = convert_8888_to_0565 (src);
     }
 
     pixman_fill (dest_image->bits.bits, dest_image->bits.rowstride,
@@ -2067,12 +2067,12 @@ pixman_fill1 (uint32_t *bits,
               int       y,
               int       width,
               int       height,
-              uint32_t  xor)
+              uint32_t  filler)
 {
     uint32_t *dst = bits + y * stride + (x >> 5);
     int offs = x & 31;
 
-    if (xor & 1)
+    if (filler & 1)
     {
 	while (height--)
 	{
@@ -2097,11 +2097,11 @@ pixman_fill8 (uint32_t *bits,
               int       y,
               int       width,
               int       height,
-              uint32_t xor)
+              uint32_t  filler)
 {
     int byte_stride = stride * (int) sizeof (uint32_t);
     uint8_t *dst = (uint8_t *) bits;
-    uint8_t v = xor & 0xff;
+    uint8_t v = filler & 0xff;
     int i;
 
     dst = dst + y * byte_stride + x;
@@ -2122,12 +2122,12 @@ pixman_fill16 (uint32_t *bits,
                int       y,
                int       width,
                int       height,
-               uint32_t xor)
+               uint32_t  filler)
 {
     int short_stride =
 	(stride * (int)sizeof (uint32_t)) / (int)sizeof (uint16_t);
     uint16_t *dst = (uint16_t *)bits;
-    uint16_t v = xor & 0xffff;
+    uint16_t v = filler & 0xffff;
     int i;
 
     dst = dst + y * short_stride + x;
@@ -2148,7 +2148,7 @@ pixman_fill32 (uint32_t *bits,
                int       y,
                int       width,
                int       height,
-               uint32_t  xor)
+               uint32_t  filler)
 {
     int i;
 
@@ -2157,7 +2157,7 @@ pixman_fill32 (uint32_t *bits,
     while (height--)
     {
 	for (i = 0; i < width; ++i)
-	    bits[i] = xor;
+	    bits[i] = filler;
 
 	bits += stride;
     }
@@ -2172,24 +2172,24 @@ fast_path_fill (pixman_implementation_t *imp,
                 int                      y,
                 int                      width,
                 int                      height,
-                uint32_t		 xor)
+                uint32_t		 filler)
 {
     switch (bpp)
     {
     case 1:
-	pixman_fill1 (bits, stride, x, y, width, height, xor);
+	pixman_fill1 (bits, stride, x, y, width, height, filler);
 	break;
 
     case 8:
-	pixman_fill8 (bits, stride, x, y, width, height, xor);
+	pixman_fill8 (bits, stride, x, y, width, height, filler);
 	break;
 
     case 16:
-	pixman_fill16 (bits, stride, x, y, width, height, xor);
+	pixman_fill16 (bits, stride, x, y, width, height, filler);
 	break;
 
     case 32:
-	pixman_fill32 (bits, stride, x, y, width, height, xor);
+	pixman_fill32 (bits, stride, x, y, width, height, filler);
 	break;
 
     default:

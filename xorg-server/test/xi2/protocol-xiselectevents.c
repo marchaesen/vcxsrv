@@ -98,7 +98,7 @@ request_XISelectEvent(xXISelectEventsReq * req, int error)
     xXIEventMask *mask, *next;
 
     req->length = (sz_xXISelectEventsReq / 4);
-    mask = (xXIEventMask *) & req[1];
+    mask = (xXIEventMask *) &req[1];
     for (i = 0; i < req->num_masks; i++) {
         req->length += sizeof(xXIEventMask) / 4 + mask->mask_len;
         mask = (xXIEventMask *) ((char *) &mask[1] + mask->mask_len * 4);
@@ -111,7 +111,7 @@ request_XISelectEvent(xXISelectEventsReq * req, int error)
 
     client.swapped = TRUE;
 
-    mask = (xXIEventMask *) & req[1];
+    mask = (xXIEventMask *) &req[1];
     for (i = 0; i < req->num_masks; i++) {
         next = (xXIEventMask *) ((char *) &mask[1] + mask->mask_len * 4);
         swaps(&mask->deviceid);
@@ -156,7 +156,7 @@ request_XISelectEvents_masks(xXISelectEventsReq * req)
     int nmasks = (XI2LASTEVENT + 7) / 8;
     unsigned char *bits;
 
-    mask = (xXIEventMask *) & req[1];
+    mask = (xXIEventMask *) &req[1];
     req->win = ROOT_WINDOW_ID;
 
     /* if a clients submits more than 100 masks, consider it insane and untested */
@@ -312,7 +312,7 @@ test_XISelectEvents(void)
     req->num_masks = 1;
 
     printf("Triggering bogus mask length error\n");
-    mask = (xXIEventMask *) & req[1];
+    mask = (xXIEventMask *) &req[1];
     mask->deviceid = 0;
     mask->mask_len = 0xFFFF;
     request_XISelectEvent(req, BadLength);
@@ -320,7 +320,7 @@ test_XISelectEvents(void)
     /* testing various device ids */
     printf("Testing existing device ids.\n");
     for (i = 0; i < 6; i++) {
-        mask = (xXIEventMask *) & req[1];
+        mask = (xXIEventMask *) &req[1];
         mask->deviceid = i;
         mask->mask_len = 1;
         req->win = ROOT_WINDOW_ID;
@@ -332,7 +332,7 @@ test_XISelectEvents(void)
     for (i = 6; i <= 0xFFFF; i++) {
         req->win = ROOT_WINDOW_ID;
         req->num_masks = 1;
-        mask = (xXIEventMask *) & req[1];
+        mask = (xXIEventMask *) &req[1];
         mask->deviceid = i;
         mask->mask_len = 1;
         request_XISelectEvent(req, BadDevice);

@@ -32,7 +32,6 @@ FcBlanksCreate (void)
     b = malloc (sizeof (FcBlanks));
     if (!b)
 	return 0;
-    FcMemAlloc (FC_MEM_BLANKS, sizeof (FcBlanks));
     b->nblank = 0;
     b->sblank = 0;
     b->blanks = 0;
@@ -43,11 +42,7 @@ void
 FcBlanksDestroy (FcBlanks *b)
 {
     if (b->blanks)
-    {
-	FcMemFree (FC_MEM_BLANKS, b->sblank * sizeof (FcChar32));
 	free (b->blanks);
-    }
-    FcMemFree (FC_MEM_BLANKS, sizeof (FcBlanks));
     free (b);
 }
 
@@ -70,9 +65,6 @@ FcBlanksAdd (FcBlanks *b, FcChar32 ucs4)
 	    c = (FcChar32 *) malloc (sblank * sizeof (FcChar32));
 	if (!c)
 	    return FcFalse;
-	if (b->sblank)
-	    FcMemFree (FC_MEM_BLANKS, b->sblank * sizeof (FcChar32));
-	FcMemAlloc (FC_MEM_BLANKS, sblank * sizeof (FcChar32));
 	b->sblank = sblank;
 	b->blanks = c;
     }

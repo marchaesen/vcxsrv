@@ -263,9 +263,6 @@ void
 _pixman_bits_image_dest_iter_init (pixman_image_t *image, pixman_iter_t *iter);
 
 void
-_pixman_solid_fill_iter_init (pixman_image_t *image, pixman_iter_t  *iter);
-
-void
 _pixman_linear_gradient_iter_init (pixman_image_t *image, pixman_iter_t  *iter);
 
 void
@@ -455,7 +452,7 @@ typedef pixman_bool_t (*pixman_fill_func_t) (pixman_implementation_t *imp,
 					     int                      y,
 					     int                      width,
 					     int                      height,
-					     uint32_t                 xor);
+					     uint32_t                 filler);
 typedef pixman_bool_t (*pixman_iter_init_func_t) (pixman_implementation_t *imp,
 						  pixman_iter_t           *iter);
 
@@ -542,7 +539,7 @@ _pixman_implementation_fill (pixman_implementation_t *imp,
                              int                      y,
                              int                      width,
                              int                      height,
-                             uint32_t                 xor);
+                             uint32_t                 filler);
 
 pixman_bool_t
 _pixman_implementation_src_iter_init (pixman_implementation_t       *imp,
@@ -884,22 +881,51 @@ pixman_list_move_to_front (pixman_list_t *list, pixman_link_t *link)
 
 /* Conversion between 8888 and 0565 */
 
-#define CONVERT_8888_TO_0565(s)						\
-    ((((s) >> 3) & 0x001f) |						\
-     (((s) >> 5) & 0x07e0) |						\
-     (((s) >> 8) & 0xf800))
+static force_inline uint16_t
+convert_8888_to_0565 (uint32_t s)
+{
+    /* The following code can be compiled into just 4 instructions on ARM */
+    uint32_t a, b;
+    a = (s >> 3) & 0x1F001F;
+    b = s & 0xFC00;
+    a |= a >> 5;
+    a |= b >> 5;
+    return (uint16_t)a;
+}
 
-#define CONVERT_0565_TO_0888(s)						\
-    (((((s) << 3) & 0xf8) | (((s) >> 2) & 0x7)) |			\
-     ((((s) << 5) & 0xfc00) | (((s) >> 1) & 0x300)) |			\
-     ((((s) << 8) & 0xf80000) | (((s) << 3) & 0x70000)))
+static force_inline uint32_t
+convert_0565_to_0888 (uint16_t s)
+{
+    return (((((s) << 3) & 0xf8) | (((s) >> 2) & 0x7)) |
+            ((((s) << 5) & 0xfc00) | (((s) >> 1) & 0x300)) |
+            ((((s) << 8) & 0xf80000) | (((s) << 3) & 0x70000)));
+}
 
-#define CONVERT_0565_TO_8888(s) (CONVERT_0565_TO_0888(s) | 0xff000000)
+static force_inline uint32_t
+convert_0565_to_8888 (uint16_t s)
+{
+    return convert_0565_to_0888 (s) | 0xff000000;
+}
 
 /* Trivial versions that are useful in macros */
-#define CONVERT_8888_TO_8888(s) (s)
-#define CONVERT_x888_TO_8888(s) ((s) | 0xff000000)
-#define CONVERT_0565_TO_0565(s) (s)
+
+static force_inline uint32_t
+convert_8888_to_8888 (uint32_t s)
+{
+    return s;
+}
+
+static force_inline uint32_t
+convert_x888_to_8888 (uint32_t s)
+{
+    return s | 0xff000000;
+}
+
+static force_inline uint16_t
+convert_0565_to_0565 (uint16_t s)
+{
+    return s;
+}
 
 #define PIXMAN_FORMAT_IS_WIDE(f)					\
     (PIXMAN_FORMAT_A (f) > 8 ||						\

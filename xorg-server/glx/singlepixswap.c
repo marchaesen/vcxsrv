@@ -177,9 +177,9 @@ __glXDispSwap_GetTexImage(__GLXclientState * cl, GLbyte * pc)
         __GLX_SWAP_INT(&width);
         __GLX_SWAP_INT(&height);
         __GLX_SWAP_INT(&depth);
-        ((xGLXGetTexImageReply *) & __glXReply)->width = width;
-        ((xGLXGetTexImageReply *) & __glXReply)->height = height;
-        ((xGLXGetTexImageReply *) & __glXReply)->depth = depth;
+        ((xGLXGetTexImageReply *) &__glXReply)->width = width;
+        ((xGLXGetTexImageReply *) &__glXReply)->height = height;
+        ((xGLXGetTexImageReply *) &__glXReply)->depth = depth;
         __GLX_SEND_HEADER();
         __GLX_SEND_VOID_ARRAY(compsize);
     }
@@ -291,8 +291,8 @@ GetSeparableFilter(__GLXclientState * cl, GLbyte * pc, GLXContextTag tag)
         __GLX_SWAP_REPLY_HEADER();
         __GLX_SWAP_INT(&width);
         __GLX_SWAP_INT(&height);
-        ((xGLXGetSeparableFilterReply *) & __glXReply)->width = width;
-        ((xGLXGetSeparableFilterReply *) & __glXReply)->height = height;
+        ((xGLXGetSeparableFilterReply *) &__glXReply)->width = width;
+        ((xGLXGetSeparableFilterReply *) &__glXReply)->height = height;
         __GLX_SEND_VOID_ARRAY(compsize + compsize2);
     }
 
@@ -377,8 +377,8 @@ GetConvolutionFilter(__GLXclientState * cl, GLbyte * pc, GLXContextTag tag)
         __GLX_SWAP_REPLY_HEADER();
         __GLX_SWAP_INT(&width);
         __GLX_SWAP_INT(&height);
-        ((xGLXGetConvolutionFilterReply *) & __glXReply)->width = width;
-        ((xGLXGetConvolutionFilterReply *) & __glXReply)->height = height;
+        ((xGLXGetConvolutionFilterReply *) &__glXReply)->width = width;
+        ((xGLXGetConvolutionFilterReply *) &__glXReply)->height = height;
         __GLX_SEND_VOID_ARRAY(compsize);
     }
 
@@ -453,7 +453,7 @@ GetHistogram(__GLXclientState * cl, GLbyte * pc, GLXContextTag tag)
         __GLX_BEGIN_REPLY(compsize);
         __GLX_SWAP_REPLY_HEADER();
         __GLX_SWAP_INT(&width);
-        ((xGLXGetHistogramReply *) & __glXReply)->width = width;
+        ((xGLXGetHistogramReply *) &__glXReply)->width = width;
         __GLX_SEND_VOID_ARRAY(compsize);
     }
 
@@ -595,7 +595,7 @@ GetColorTable(__GLXclientState * cl, GLbyte * pc, GLXContextTag tag)
         __GLX_BEGIN_REPLY(compsize);
         __GLX_SWAP_REPLY_HEADER();
         __GLX_SWAP_INT(&width);
-        ((xGLXGetColorTableReply *) & __glXReply)->width = width;
+        ((xGLXGetColorTableReply *) &__glXReply)->width = width;
         __GLX_SEND_VOID_ARRAY(compsize);
     }
 

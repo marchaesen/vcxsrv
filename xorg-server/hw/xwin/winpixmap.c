@@ -107,7 +107,7 @@ winCreatePixmapNativeGDI(ScreenPtr pScreen,
     /* Create a DIB for the pixmap */
     pPixmapPriv->hBitmap = winCreateDIBNativeGDI(iWidth, iHeight, iDepth,
                                                  &pPixmapPriv->pbBits,
-                                                 (BITMAPINFO **) & pPixmapPriv->
+                                                 (BITMAPINFO **) &pPixmapPriv->
                                                  pbmih);
 
     winDebug("winCreatePixmap () - Created a pixmap %08x, %dx%dx%d, for "

@@ -539,7 +539,7 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
                        &pScreenPriv->ptWMProc,
                        &pScreenPriv->ptXMsgProc,
                        &pScreenPriv->pmServerStarted,
-                       pScreenInfo->dwScreen, (HWND) & pScreenPriv->hwndScreen,
+                       pScreenInfo->dwScreen, (HWND) &pScreenPriv->hwndScreen,
 #ifdef XWIN_MULTIWINDOWINTWM
                        pScreenInfo->fInternalWM ||
 #endif

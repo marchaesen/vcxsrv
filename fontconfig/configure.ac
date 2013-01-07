@@ -105,6 +105,8 @@ AC_SUBST(WARN_CFLAGS)
 
 dnl ==========================================================================
 
+AX_CC_FOR_BUILD()
+AC_ARG_VAR(CC_FOR_BUILD, [build system C compiler])
 AM_CONDITIONAL(CROSS_COMPILING, test $cross_compiling = yes)
 AM_CONDITIONAL(ENABLE_SHARED, test "$enable_shared" = "yes")
 
@@ -151,7 +153,7 @@ AC_LINK_IFELSE([AC_LANG_SOURCE([[
 	}
 	]])],[
 		AC_MSG_RESULT([yes])
-		AC_DEFINE([HAVE_POSIX_FADVISE], [1], [Define to 1 if you have the `posix_fadvise' function.])
+		AC_DEFINE([HAVE_POSIX_FADVISE], [1], [Define to 1 if you have the 'posix_fadvise' function.])
 	],[AC_MSG_RESULT([no])])
 CFLAGS="$fc_saved_CFLAGS"
 
@@ -567,6 +569,42 @@ AC_SUBST(CONFIGDIR)
 AC_SUBST(xmldir)
 AC_SUBST(XMLDIR)
 
+
+dnl ===========================================================================
+
+#
+# Thread-safety primitives
+#
+
+AC_CACHE_CHECK([for Intel atomic primitives], fc_cv_have_intel_atomic_primitives, [
+	fc_cv_have_intel_atomic_primitives=false
+	AC_TRY_LINK([
+		void memory_barrier (void) { __sync_synchronize (); }
+		int atomic_add (int *i) { return __sync_fetch_and_add (i, 1); }
+		int mutex_trylock (int *m) { return __sync_lock_test_and_set (m, 1); }
+		void mutex_unlock (int *m) { __sync_lock_release (m); }
+		], [], fc_cv_have_intel_atomic_primitives=true
+	)
+])
+if $fc_cv_have_intel_atomic_primitives; then
+	AC_DEFINE(HAVE_INTEL_ATOMIC_PRIMITIVES, 1, [Have Intel __sync_* atomic primitives])
+fi
+
+AC_CHECK_HEADERS(sched.h)
+AC_CHECK_FUNCS(sched_yield)
+
+have_pthread=false
+if test "$os_win32" = no; then
+	AX_PTHREAD([have_pthread=true])
+fi
+if $have_pthread; then
+	AC_DEFINE(HAVE_PTHREAD, 1, [Have POSIX threads])
+fi
+AM_CONDITIONAL(HAVE_PTHREAD, $have_pthread)
+
+
+dnl ===========================================================================
+
 #
 # Let people not build/install docs if they don't have docbook
 #
@@ -596,7 +634,6 @@ AC_ARG_ENABLE(docs,
 AM_CONDITIONAL(ENABLE_DOCS, test "x$enable_docs" = xyes)
 
 if test "x$enable_docs" = xyes; then
-	DOCSRC="doc"
 	tmp=funcs.$$
 	cat $srcdir/doc/*.fncs | awk '
 	/^@TITLE@/	{ if (!done) { printf ("%s\n", $2); done = 1; } }
@@ -606,11 +643,8 @@ if test "x$enable_docs" = xyes; then
 	echo DOCMAN3 $DOCMAN3
 	rm -f $tmp
 else
-	DOCSRC=""
 	DOCMAN3=""
 fi
-
-AC_SUBST(DOCSRC)
 AC_SUBST(DOCMAN3)
 
 

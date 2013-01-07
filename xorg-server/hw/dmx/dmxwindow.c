@@ -786,7 +786,7 @@ dmxWindowExposures(WindowPtr pWindow, RegionPtr prgn, RegionPtr other_exposed)
     if (pWinPriv->window) {
         while (XCheckIfEvent(dmxScreen->beDisplay, &ev,
                              dmxWindowExposurePredicate,
-                             (XPointer) & pWinPriv->window)) {
+                             (XPointer) &pWinPriv->window)) {
             /* Handle expose events -- this should not be necessary
                since the base window in which the root window was
                created is guaranteed to be on top (override_redirect),

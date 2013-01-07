@@ -38,7 +38,6 @@ FcMatrixCopy (const FcMatrix *mat)
     r = (FcMatrix *) malloc (sizeof (*r) );
     if (!r)
 	return 0;
-    FcMemAlloc (FC_MEM_MATRIX, sizeof (FcMatrix));
     *r = *mat;
     return r;
 }
@@ -47,10 +46,7 @@ void
 FcMatrixFree (FcMatrix *mat)
 {
     if (mat != &FcIdentityMatrix)
-    {
-	FcMemFree (FC_MEM_MATRIX, sizeof (FcMatrix));
 	free (mat);
-    }
 }
 
 FcBool

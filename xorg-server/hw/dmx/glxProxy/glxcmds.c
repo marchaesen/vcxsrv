@@ -1276,7 +1276,7 @@ MakeCurrent(__GLXclientState * cl,
             be_req->context =
                 (unsigned int) (glxc ? glxc->real_ids[s - from_screen] : 0);
             be_req->oldContextTag = GetCurrentBackEndTag(cl, tag, s);
-            if (!_XReply(dpy, (xReply *) & be_reply, 0, False)) {
+            if (!_XReply(dpy, (xReply *) &be_reply, 0, False)) {
 
                 /* The make current failed */
                 UnlockDisplay(dpy);
@@ -1331,7 +1331,7 @@ MakeCurrent(__GLXclientState * cl,
                 be_new_req->context =
                     (unsigned int) (glxc ? glxc->real_ids[s - from_screen] : 0);
                 be_new_req->oldContextTag = GetCurrentBackEndTag(cl, tag, s);
-                if (!_XReply(dpy, (xReply *) & be_new_reply, 0, False)) {
+                if (!_XReply(dpy, (xReply *) &be_new_reply, 0, False)) {
 
                     /* The make current failed */
                     UnlockDisplay(dpy);
@@ -1362,7 +1362,7 @@ MakeCurrent(__GLXclientState * cl,
                 ext_req->context =
                     (unsigned int) (glxc ? glxc->real_ids[s - from_screen] : 0);
                 ext_req->oldContextTag = GetCurrentBackEndTag(cl, tag, s);
-                if (!_XReply(dpy, (xReply *) & ext_reply, 0, False)) {
+                if (!_XReply(dpy, (xReply *) &ext_reply, 0, False)) {
 
                     /* The make current failed */
                     UnlockDisplay(dpy);
@@ -2177,7 +2177,7 @@ __glXDoSwapBuffers(__GLXclientState * cl, XID drawId, GLXContextTag tag)
             finishReq->glxCode = X_GLsop_Finish;
             finishReq->contextTag =
                 (tag ? GetCurrentBackEndTag(cl, tag, s) : 0);
-            (void) _XReply(dpy, (xReply *) & reply, 0, False);
+            (void) _XReply(dpy, (xReply *) &reply, 0, False);
             UnlockDisplay(dpy);
             SyncHandle();
         }
@@ -2605,7 +2605,7 @@ __glXQueryExtensionsString(__GLXclientState * cl, GLbyte * pc)
     be_req->reqType = dmxScreen->glxMajorOpcode;
     be_req->glxCode = X_GLXQueryServerString;
     be_req->screen = DefaultScreen(dpy);
-    _XReply(dpy, (xReply *) & be_reply, 0, False);
+    _XReply(dpy, (xReply *) &be_reply, 0, False);
     len = (int) be_reply.length;
     numbytes = (int) be_reply.n;
     slop = numbytes * __GLX_SIZE_INT8 & 3;
@@ -2690,7 +2690,7 @@ __glXQueryServerString(__GLXclientState * cl, GLbyte * pc)
     be_req->glxCode = X_GLXQueryServerString;
     be_req->screen = DefaultScreen(dpy);
     be_req->name = name;
-    _XReply(dpy, (xReply *) & be_reply, 0, False);
+    _XReply(dpy, (xReply *) &be_reply, 0, False);
     len = (int) be_reply.length;
     numbytes = (int) be_reply.n;
     slop = numbytes * __GLX_SIZE_INT8 & 3;
@@ -3045,7 +3045,7 @@ __glXGetFBConfigsSGIX(__GLXclientState * cl, GLbyte * pc)
     new_req.length = req->length;
     new_req.screen = req->screen;
 
-    return (__glXGetFBConfigs(cl, (GLbyte *) & new_req));
+    return (__glXGetFBConfigs(cl, (GLbyte *) &new_req));
 }
 
 int
@@ -3591,7 +3591,7 @@ __glXGetDrawableAttributes(__GLXclientState * cl, GLbyte * pc)
     be_req->glxCode = X_GLXGetDrawableAttributes;
     be_req->drawable = be_drawable;
     be_req->length = req->length;
-    if (!_XReply(dpy, (xReply *) & reply, 0, False)) {
+    if (!_XReply(dpy, (xReply *) &reply, 0, False)) {
         UnlockDisplay(dpy);
         SyncHandle();
         return (BE_TO_CLIENT_ERROR(dmxLastErrorEvent.error_code));

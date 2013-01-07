@@ -151,7 +151,7 @@ XF86DRIQueryVersion(Display * dpy, int *majorVersion, int *minorVersion,
     GetReq(XF86DRIQueryVersion, req);
     req->reqType = info->codes->major_opcode;
     req->driReqType = X_XF86DRIQueryVersion;
-    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+    if (!_XReply(dpy, (xReply *) &rep, 0, xFalse)) {
         UnlockDisplay(dpy);
         SyncHandle();
         TRACE("QueryVersion... return False");
@@ -181,7 +181,7 @@ XF86DRIQueryDirectRenderingCapable(Display * dpy, int screen, Bool *isCapable)
     req->reqType = info->codes->major_opcode;
     req->driReqType = X_XF86DRIQueryDirectRenderingCapable;
     req->screen = screen;
-    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+    if (!_XReply(dpy, (xReply *) &rep, 0, xFalse)) {
         UnlockDisplay(dpy);
         SyncHandle();
         TRACE("QueryDirectRenderingCapable... return False");
@@ -210,7 +210,7 @@ XF86DRIOpenConnection(Display * dpy, int screen,
     req->reqType = info->codes->major_opcode;
     req->driReqType = X_XF86DRIOpenConnection;
     req->screen = screen;
-    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+    if (!_XReply(dpy, (xReply *) &rep, 0, xFalse)) {
         UnlockDisplay(dpy);
         SyncHandle();
         TRACE("OpenConnection... return False");
@@ -260,7 +260,7 @@ XF86DRIAuthConnection(Display * dpy, int screen, drm_magic_t magic)
     req->screen = screen;
     req->magic = magic;
     rep.authenticated = 0;
-    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse) || !rep.authenticated) {
+    if (!_XReply(dpy, (xReply *) &rep, 0, xFalse) || !rep.authenticated) {
         UnlockDisplay(dpy);
         SyncHandle();
         TRACE("AuthConnection... return False");
@@ -311,7 +311,7 @@ XF86DRIGetClientDriverName(Display * dpy, int screen,
     req->reqType = info->codes->major_opcode;
     req->driReqType = X_XF86DRIGetClientDriverName;
     req->screen = screen;
-    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+    if (!_XReply(dpy, (xReply *) &rep, 0, xFalse)) {
         UnlockDisplay(dpy);
         SyncHandle();
         TRACE("GetClientDriverName... return False");
@@ -362,7 +362,7 @@ XF86DRICreateContextWithConfig(Display * dpy, int screen, int configID,
     req->screen = screen;
     *context = XAllocID(dpy);
     req->context = *context;
-    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+    if (!_XReply(dpy, (xReply *) &rep, 0, xFalse)) {
         UnlockDisplay(dpy);
         SyncHandle();
         TRACE("CreateContext... return False");
@@ -421,7 +421,7 @@ XF86DRICreateDrawable(Display * dpy, int screen,
     req->driReqType = X_XF86DRICreateDrawable;
     req->screen = screen;
     req->drawable = drawable;
-    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+    if (!_XReply(dpy, (xReply *) &rep, 0, xFalse)) {
         UnlockDisplay(dpy);
         SyncHandle();
         TRACE("CreateDrawable... return False");
@@ -503,7 +503,7 @@ XF86DRIGetDrawableInfo(Display * dpy, int screen, Drawable drawable,
     req->screen = screen;
     req->drawable = drawable;
 
-    if (!_XReply(dpy, (xReply *) & rep, 1, xFalse)) {
+    if (!_XReply(dpy, (xReply *) &rep, 1, xFalse)) {
         UnlockDisplay(dpy);
         SyncHandle();
         TRACE("GetDrawableInfo... return False");
@@ -585,7 +585,7 @@ XF86DRIGetDeviceInfo(Display * dpy, int screen, drm_handle_t * hFrameBuffer,
     req->reqType = info->codes->major_opcode;
     req->driReqType = X_XF86DRIGetDeviceInfo;
     req->screen = screen;
-    if (!_XReply(dpy, (xReply *) & rep, 0, xFalse)) {
+    if (!_XReply(dpy, (xReply *) &rep, 0, xFalse)) {
         UnlockDisplay(dpy);
         SyncHandle();
         TRACE("GetDeviceInfo... return False");

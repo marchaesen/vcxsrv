@@ -7,7 +7,7 @@
  * documentation for any purpose is hereby granted without fee, provided that
  * the above copyright notice appear in all copies and that both that
  * copyright notice and this permission notice appear in supporting
-  * documentation, and that the name of the author(s) not be used in
+ * documentation, and that the name of the author(s) not be used in
  * advertising or publicity pertaining to distribution of the software without
  * specific, written prior permission.  The authors make no
  * representations about the suitability of this software for any purpose.  It
@@ -79,7 +79,6 @@ FcAtomicCreate (const FcChar8   *file)
     FcAtomic	*atomic = malloc (total_len);
     if (!atomic)
 	return 0;
-    FcMemAlloc (FC_MEM_ATOMIC, total_len);
 
     atomic->file = (FcChar8 *) (atomic + 1);
     strcpy ((char *) atomic->file, (char *) file);
@@ -224,11 +223,6 @@ FcAtomicUnlock (FcAtomic *atomic)
 void
 FcAtomicDestroy (FcAtomic *atomic)
 {
-    FcMemFree (FC_MEM_ATOMIC, sizeof (FcAtomic) +
-	       strlen ((char *) atomic->file) * 4 + 4 +
-	       sizeof (NEW_NAME) + sizeof (LCK_NAME) +
-	       sizeof (TMP_NAME));
-
     free (atomic);
 }
 #define __fcatomic__

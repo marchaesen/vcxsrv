@@ -888,7 +888,7 @@ pixman_image_get_format (pixman_image_t *image)
     if (image->type == BITS)
 	return image->bits.format;
 
-    return 0;
+    return PIXMAN_null;
 }
 
 uint32_t

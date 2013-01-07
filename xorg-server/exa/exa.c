@@ -620,8 +620,8 @@ exaCreateGC(GCPtr pGC)
 
     swap(pExaScr, pScreen, CreateGC);
     if ((ret = (*pScreen->CreateGC) (pGC))) {
-        wrap(pExaGC, pGC, funcs, (GCFuncs *) & exaGCFuncs);
-        wrap(pExaGC, pGC, ops, (GCOps *) & exaOps);
+        wrap(pExaGC, pGC, funcs, (GCFuncs *) &exaGCFuncs);
+        wrap(pExaGC, pGC, ops, (GCOps *) &exaOps);
     }
     swap(pExaScr, pScreen, CreateGC);
 

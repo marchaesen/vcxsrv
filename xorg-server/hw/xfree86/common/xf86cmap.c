@@ -608,7 +608,7 @@ CMapRefreshColors(ColormapPtr pmap, int defs, int *indices)
     case GrayScale:
         for (i = 0; i < defs; i++) {
             index = indices[i];
-            entry = (EntryPtr) & pmap->red[index];
+            entry = (EntryPtr) &pmap->red[index];
 
             if (entry->fShared) {
                 colors[index].red =

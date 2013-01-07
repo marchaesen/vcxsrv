@@ -201,13 +201,14 @@
 <!ATTLIST double xml:space (default|preserve) 'preserve'>
 <!ELEMENT string (#PCDATA)>
 <!ATTLIST string xml:space (default|preserve) 'preserve'>
-<!ELEMENT matrix (double,double,double,double)>
+<!ELEMENT matrix ((%expr;), (%expr;), (%expr;), (%expr;))>
 <!ELEMENT bool (#PCDATA)>
 <!ELEMENT charset (int|range)*>
 <!ELEMENT range (int,int)>
 <!ELEMENT langset (string)*>
 <!ELEMENT name (#PCDATA)>
-<!ATTLIST name xml:space (default|preserve) 'preserve'>
+<!ATTLIST name xml:space (default|preserve) 'preserve'
+	  target (default|font|pattern) 'default'>
 <!ELEMENT const (#PCDATA)>
 <!ATTLIST const xml:space (default|preserve) 'preserve'>
 <!ELEMENT or (%expr;)*>

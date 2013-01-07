@@ -74,7 +74,7 @@ __glXDisp_GetCompressedTexImage(struct __GLXclientStateRec *cl, GLbyte * pc)
         }
         else {
             __GLX_BEGIN_REPLY(compsize);
-            ((xGLXGetTexImageReply *) & __glXReply)->width = compsize;
+            ((xGLXGetTexImageReply *) &__glXReply)->width = compsize;
             __GLX_SEND_HEADER();
             __GLX_SEND_VOID_ARRAY(compsize);
         }
@@ -120,7 +120,7 @@ __glXDispSwap_GetCompressedTexImage(struct __GLXclientStateRec *cl,
         }
         else {
             __GLX_BEGIN_REPLY(compsize);
-            ((xGLXGetTexImageReply *) & __glXReply)->width = compsize;
+            ((xGLXGetTexImageReply *) &__glXReply)->width = compsize;
             __GLX_SEND_HEADER();
             __GLX_SEND_VOID_ARRAY(compsize);
         }

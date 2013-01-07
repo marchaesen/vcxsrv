@@ -118,6 +118,7 @@ noinst_PROGRAMS =	\
 edit_sgml_SOURCES =	\
 	edit-sgml.c	\
 	$(NULL)
+edit_sgml_CC = $(CC_FOR_BUILD)
 #
 check_SCRIPTS =			\
 	check-missing-doc	\
@@ -150,14 +151,9 @@ noinst_PROGRAMS +=	\
 htmldoc_DATA += $(HTML_DIR)/*
 
 ##
-if CROSS_COMPILING
-.fncs.sgml:
-	@echo Warning: cannot rebuild $@ when cross-compiling
-else
 .fncs.sgml:
 	$(AM_V_GEN) $(RM) $@; \
 	$(builddir)/edit-sgml$(EXEEXT) $(srcdir)/func.sgml < '$(srcdir)/$*.fncs' > $*.sgml
-endif
 .sgml.txt:
 	$(AM_V_GEN) $(RM) $@; \
 	$(DOC2TXT) $*.sgml
@@ -203,8 +199,18 @@ all-local: $(BUILT_DOCS) $(HTML_DIR)/*
 clean-local:
 	$(RM) -r $(HTML_DIR) devel-man
 	[ "x$(builddir)" != "x$(srcdir)" ] && $(RM) $(builddir)/*.sgml || :
+dist-local-check-docs-enabled:
+	@true
 else
 htmldoc_DATA += $(srcdir)/$(HTML_DIR)/*
 all-local:
 clean-local:
+dist-local-check-docs-enabled:
+	@echo "*** --enable-man must be used in order to make dist"
+	@false
 endif
+
+# force doc rebulid after configure
+dist-hook-local: dist-local-check-docs-enabled
+
+-include $(top_srcdir)/git.mk

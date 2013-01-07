@@ -9,7 +9,8 @@ AM_CPPFLAGS= \
 	-I$(top_srcdir)/src/xkb \
 	-I$(top_srcdir)/src/xlibi18n \
 	-I$(top_srcdir)/src \
-	-D_BSD_SOURCE
+	-D_BSD_SOURCE \
+        -DXCMSDIR=\"$(X11dir)\"
 
 AM_CFLAGS= \
 	$(X11_CFLAGS) \
@@ -84,7 +85,7 @@ libxcms_la_SOURCES = \
                   xyY.c \
                   Xcmsint.h
 
-X11dir = $(libdir)/X11
+X11dir = $(X11_DATADIR)
 dist_X11_DATA = Xcms.txt
 
 

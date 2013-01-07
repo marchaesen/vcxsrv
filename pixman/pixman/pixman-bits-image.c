@@ -1114,7 +1114,7 @@ convert_a8 (const uint8_t *row, int x)
 static force_inline uint32_t
 convert_r5g6b5 (const uint8_t *row, int x)
 {
-    return CONVERT_0565_TO_0888 (*((uint16_t *)row + x));
+    return convert_0565_to_0888 (*((uint16_t *)row + x));
 }
 
 #define MAKE_SEPARABLE_CONVOLUTION_FETCHER(name, format, repeat_mode)  \

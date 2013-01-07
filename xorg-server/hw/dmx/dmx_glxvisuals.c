@@ -61,7 +61,7 @@ GetGLXVisualConfigs(Display * dpy, int screen, int *nconfigs)
     req->reqType = majorOpcode;
     req->glxCode = X_GLXGetVisualConfigs;
     req->screen = screen;
-    if (!_XReply(dpy, (xReply *) & reply, 0, False)) {
+    if (!_XReply(dpy, (xReply *) &reply, 0, False)) {
         /* Something is busted. Punt. */
         UnlockDisplay(dpy);
         SyncHandle();
@@ -252,7 +252,7 @@ GetGLXFBConfigs(Display * dpy, int glxMajorOpcode, int *nconfigs)
 
     *nconfigs = 0;
 
-    if (!_XReply(dpy, (xReply *) & reply, 0, False)) {
+    if (!_XReply(dpy, (xReply *) &reply, 0, False)) {
         /* Something is busted. Punt. */
         UnlockDisplay(dpy);
         SyncHandle();

@@ -429,6 +429,9 @@
 /* Define to 1 if typeof works with your compiler. */
 #undef HAVE_TYPEOF
 
+/* Define to __typeof__ if your compiler spells it that way. */
+#undef typeof
+
 /* The compiler supported TLS storage class, prefering initial-exec if tls_model is supported */
 #undef TLS
 

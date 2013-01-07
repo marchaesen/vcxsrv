@@ -72,8 +72,21 @@ xkb_symbols "alt_super_win" {
 };
 
 partial modifier_keys 
+xkb_symbols "swap_alt_win" {
+    include "altwin(swap_lalt_lwin)"
+    include "altwin(swap_ralt_rwin)"
+};
+
+partial hidden modifier_keys 
 xkb_symbols "swap_lalt_lwin" {
     key <LALT> { type[Group1] = "ONE_LEVEL",
                  symbols[Group1] = [ Super_L ] };
     key <LWIN> {	[	Alt_L,	Meta_L		]	};
+};
+
+partial hidden modifier_keys 
+xkb_symbols "swap_ralt_rwin" {
+    key <RALT> { type[Group1] = "ONE_LEVEL",
+                 symbols[Group1] = [ Super_R ] };
+    key <RWIN> {	[	Alt_R,	Meta_R		]	};
 };

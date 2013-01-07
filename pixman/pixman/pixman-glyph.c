@@ -508,7 +508,7 @@ add_glyphs (pixman_glyph_cache_t *cache,
     uint32_t glyph_flags = 0;
     pixman_composite_func_t func = NULL;
     pixman_implementation_t *implementation = NULL;
-    uint32_t dest_format;
+    pixman_format_code_t dest_format;
     uint32_t dest_flags;
     pixman_box32_t dest_box;
     pixman_composite_info_t info;
