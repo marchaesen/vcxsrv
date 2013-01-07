@@ -67,6 +67,7 @@
 #define Time    uint32_t
 #define Atom    uint32_t
 #define Cursor  uint32_t
+#define Barrier uint32_t
 
 /**
  * XI2 Request opcodes
@@ -92,9 +93,10 @@
 #define X_XIDeleteProperty              58
 #define X_XIGetProperty                 59
 #define X_XIGetSelectedEvents           60
+#define X_XIBarrierReleasePointer       61
 
 /** Number of XI requests */
-#define XI2REQUESTS (X_XIGetSelectedEvents - X_XIQueryPointer + 1)
+#define XI2REQUESTS (X_XIBarrierReleasePointer - X_XIQueryPointer + 1)
 /** Number of XI2 events */
 #define XI2EVENTS   (XI_LASTEVENT + 1)
 
@@ -154,7 +156,7 @@ typedef struct {
     uint16_t    type;           /**< Always ButtonClass */
     uint16_t    length;         /**< Length in 4 byte units */
     uint16_t    sourceid;       /**< source device for this class */
-    uint16_t    num_buttons;    /**< Number of buttons provide */
+    uint16_t    num_buttons;    /**< Number of buttons provided */
 } xXIButtonInfo;
 
 /**
@@ -815,6 +817,22 @@ typedef struct {
 } xXIGetPropertyReply;
 #define sz_xXIGetPropertyReply               32
 
+typedef struct {
+    uint16_t    deviceid;
+    uint16_t    pad;
+    Barrier     barrier;
+    uint32_t    eventid;
+} xXIBarrierReleasePointerInfo;
+
+typedef struct {
+    uint8_t     reqType;                /**< Input extension major opcode */
+    uint8_t     ReqType;                /**< Always X_XIBarrierReleasePointer */
+    uint16_t    length;
+    uint32_t    num_barriers;
+    /* array of xXIBarrierReleasePointerInfo */
+} xXIBarrierReleasePointerReq;
+#define sz_xXIBarrierReleasePointerReq       8
+
 /*************************************************************************************
  *                                                                                   *
  *                                      EVENTS                                       *
@@ -1021,7 +1039,7 @@ typedef struct
     uint8_t     type;                   /**< Always GenericEvent */
     uint8_t     extension;              /**< XI extension offset */
     uint16_t    sequenceNumber;
-    uint32_t    length;                 /**< Length in 4 byte uints */
+    uint32_t    length;                 /**< Length in 4 byte units */
     uint16_t    evtype;                 /**< ::XI_PropertyEvent */
     uint16_t    deviceid;
     Time        time;
@@ -1035,10 +1053,39 @@ typedef struct
     uint32_t    pad3;
 } xXIPropertyEvent;
 
+typedef struct
+{
+    uint8_t     type;                   /**< Always GenericEvent */
+    uint8_t     extension;              /**< XI extension offset */
+    uint16_t    sequenceNumber;
+    uint32_t    length;                 /**< Length in 4 byte units */
+    uint16_t    evtype;                 /**< ::XI_BarrierHit or ::XI_BarrierLeave */
+    uint16_t    deviceid;
+    Time        time;
+    uint32_t    eventid;
+    Window      root;
+    Window      event;
+    Barrier     barrier;
+/* └──────── 32 byte boundary ────────┘ */
+    uint32_t    dtime;
+    uint32_t    flags;                  /**< ::XIBarrierPointerReleased
+                                             ::XIBarrierDeviceIsGrabbed */
+    uint16_t    sourceid;
+    int16_t     pad;
+    FP1616      root_x;
+    FP1616      root_y;
+    FP3232      dx;
+    FP3232      dy;
+} xXIBarrierEvent;
+
+typedef xXIBarrierEvent xXIBarrierHitEvent;
+typedef xXIBarrierEvent xXIBarrierPointerReleasedEvent;
+typedef xXIBarrierEvent xXIBarrierLeaveEvent;
 
 #undef Window
 #undef Time
 #undef Atom
 #undef Cursor
+#undef Barrier
 
 #endif /* _XI2PROTO_H_ */
