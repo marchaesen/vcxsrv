@@ -20,6 +20,7 @@ CSRCS = \
 	fccache.c \
 	fccfg.c \
 	fccharset.c \
+	fccompat.c \
 	fcdbg.c \
 	fcdefault.c \
 	fcdir.c \
@@ -50,7 +51,6 @@ PUBLIC_FILES = \
 PUBLIC_FT_FILES = \
 	..\fontconfig\fcfreetype.h
 
-DEFINES += FC_CACHEDIR="""getenv(\"""TEMP\""")""" FC_DEFAULT_FONTS="""WINDOWSFONTDIR"""
 INCLUDES := .. $(OBJDIR) $(INCLUDES) $(MHMAKECONF)\freetype\include $(MHMAKECONF)\libxml2\include $(MHMAKECONF)\iconv\include
 
 fcalias.h fcaliastail.h: makealias.py $(PUBLIC_FILES)
