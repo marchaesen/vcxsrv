@@ -60,6 +60,8 @@ AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_PROG_CC
+AC_USE_SYSTEM_EXTENSIONS
+AC_SYS_LARGEFILE
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_LIBTOOL_WIN32_DLL
@@ -139,7 +141,7 @@ AC_TYPE_PID_T
 # Checks for library functions.
 AC_FUNC_VPRINTF
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([geteuid getuid link memmove memset mkstemp strchr strrchr strtol getopt getopt_long sysconf ftruncate chsize rand random lrand48 random_r rand_r regcomp regerror regexec regfree fstatvfs fstatfs lstat])
+AC_CHECK_FUNCS([geteuid getuid link memmove memset mkstemp mkostemp _mktemp_s strchr strrchr strtol getopt getopt_long sysconf ftruncate chsize rand random lrand48 random_r rand_r regcomp regerror regexec regfree fstatvfs fstatfs lstat])
 
 dnl AC_CHECK_FUNCS doesn't check for header files.
 dnl posix_fadvise() may be not available in older libc.
@@ -598,6 +600,9 @@ if test "$os_win32" = no; then
 	AX_PTHREAD([have_pthread=true])
 fi
 if $have_pthread; then
+	LIBS="$PTHREAD_LIBS $LIBS"
+	CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+	CC="$PTHREAD_CC"
 	AC_DEFINE(HAVE_PTHREAD, 1, [Have POSIX threads])
 fi
 AM_CONDITIONAL(HAVE_PTHREAD, $have_pthread)

@@ -156,7 +156,7 @@ FcDirCacheOpenFile (const FcChar8 *cache_file, struct stat *file_stat)
     if (FcStat (cache_file, file_stat) < 0)
         return -1;
 #endif
-    fd = open((char *) cache_file, O_RDONLY | O_BINARY);
+    fd = FcOpen((char *) cache_file, O_RDONLY | O_BINARY);
     if (fd < 0)
 	return fd;
 #ifndef _WIN32
@@ -978,7 +978,7 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
     if (!FcAtomicLock (atomic))
 	goto bail3;
 
-    fd = open((char *)FcAtomicNewFile (atomic), O_RDWR | O_CREAT | O_BINARY, 0666);
+    fd = FcOpen((char *)FcAtomicNewFile (atomic), O_RDWR | O_CREAT | O_BINARY, 0666);
     if (fd == -1)
 	goto bail4;
 
@@ -1456,7 +1456,7 @@ FcDirCacheCreateTagFile (const FcChar8 *cache_dir)
 	    goto bail1;
 	if (!FcAtomicLock (atomic))
 	    goto bail2;
-	fd = open((char *)FcAtomicNewFile (atomic), O_RDWR | O_CREAT, 0644);
+	fd = FcOpen((char *)FcAtomicNewFile (atomic), O_RDWR | O_CREAT, 0644);
 	if (fd == -1)
 	    goto bail3;
 	fp = fdopen(fd, "wb");
