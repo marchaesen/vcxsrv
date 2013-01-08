@@ -2579,10 +2579,10 @@ addtag(FcChar8 *complex_, FT_ULong tag)
 {
     FcChar8 tagstring[OTLAYOUT_ID_LEN + 1];
 
-    tagstring[0] = (FcChar8)(tag >> 24),
-    tagstring[1] = (FcChar8)(tag >> 16),
-    tagstring[2] = (FcChar8)(tag >> 8),
-    tagstring[3] = (FcChar8)(tag);
+    tagstring[0] = (FcChar8)((tag >> 24)&0xff),
+    tagstring[1] = (FcChar8)((tag >> 16)&0xff),
+    tagstring[2] = (FcChar8)((tag >> 8)&0xff),
+    tagstring[3] = (FcChar8)((tag)&0xff);
     tagstring[4] = '\0';
 
     /* skip tags which aren't alphabetic, under the assumption that

@@ -93,7 +93,7 @@ FcStat (const FcChar8 *file, struct stat *statb)
 	return -1;
 
     rc = GetLongPathName (full_path_name, full_path_name, sizeof (full_path_name));
-    statb->st_ino = FcStringHash ((const FcChar8 *) full_path_name);
+    statb->st_ino = FcStringHash ((const FcChar8 *) full_path_name)&0xffff;
 
     statb->st_mode = _S_IREAD | _S_IWRITE;
     statb->st_mode |= (statb->st_mode >> 3) | (statb->st_mode >> 6);
