@@ -717,6 +717,13 @@ FcCharSetSerialize(FcSerialize *serialize, const FcCharSet *cs);
 FcPrivate FcChar16 *
 FcCharSetGetNumbers(const FcCharSet *c);
 
+/* fccompat.c */
+FcPrivate int
+FcOpen(const char *pathname, int flags, ...);
+
+FcPrivate int
+FcMakeTempfile (char *template);
+
 /* fcdbg.c */
 
 FcPrivate void

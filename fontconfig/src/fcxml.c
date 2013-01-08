@@ -2979,7 +2979,7 @@ FcConfigParseAndLoad (FcConfig	    *config,
     if (FcDebug () & FC_DBG_CONFIG)
 	printf ("\tLoading config file %s\n", filename);
 
-    fd = open ((char *) filename, O_RDONLY);
+    fd = FcOpen ((char *) filename, O_RDONLY);
     if (fd == -1) {
 	FcStrFree (filename);
 	goto bail0;

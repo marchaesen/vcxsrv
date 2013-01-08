@@ -336,7 +336,7 @@ FcIsFsMmapSafe (int fd)
 FcBool
 FcIsFsMtimeBroken (const FcChar8 *dir)
 {
-    int fd = open ((const char *) dir, O_RDONLY);
+    int fd = FcOpen ((const char *) dir, O_RDONLY);
 
     if (fd != -1)
     {

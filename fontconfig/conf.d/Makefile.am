@@ -25,6 +25,7 @@ DOC_FILES= \
 	README
 
 CONF_LINKS = \
+	10-scale-bitmap-fonts.conf \
 	20-unhint-small-vera.conf \
 	30-urw-aliases.conf \
 	30-metric-aliases.conf \
@@ -49,6 +50,7 @@ templatedir = $(TEMPLATEDIR)
 template_DATA =				\
 	10-autohint.conf		\
 	10-no-sub-pixel.conf		\
+	10-scale-bitmap-fonts.conf	\
 	10-sub-pixel-bgr.conf		\
 	10-sub-pixel-rgb.conf		\
 	10-sub-pixel-vbgr.conf		\

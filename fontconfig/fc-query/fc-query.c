@@ -100,7 +100,6 @@ main (int argc, char **argv)
     FcChar8     *format = NULL;
     int		err = 0;
     int		i;
-    FcBlanks    *blanks;
 #if HAVE_GETOPT_LONG || HAVE_GETOPT
     int		c;
 

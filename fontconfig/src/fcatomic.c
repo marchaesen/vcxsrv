@@ -50,7 +50,6 @@
 #include "fcint.h"
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
@@ -109,7 +108,7 @@ FcAtomicLock (FcAtomic *atomic)
 
     strcpy ((char *) atomic->tmp, (char *) atomic->file);
     strcat ((char *) atomic->tmp, TMP_NAME);
-    fd = mkstemp ((char *) atomic->tmp);
+    fd = FcMakeTempfile ((char *) atomic->tmp);
     if (fd < 0)
 	return FcFalse;
     f = fdopen (fd, "w");

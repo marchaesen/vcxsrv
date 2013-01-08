@@ -131,6 +131,7 @@ libfontconfig_la_SOURCES = \
 	fccache.c \
 	fccfg.c \
 	fccharset.c \
+	fccompat.c \
 	fcdbg.c \
 	fcdefault.c \
 	fcdir.c \
