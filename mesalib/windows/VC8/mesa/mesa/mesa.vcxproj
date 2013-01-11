@@ -150,6 +150,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\link_functions.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_uniforms.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_uniform_initializers.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\link_varyings.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\loop_analysis.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\loop_controls.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\loop_unroll.cpp" />

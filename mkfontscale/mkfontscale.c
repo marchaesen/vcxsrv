@@ -848,10 +848,12 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
 	} else
 #endif
 	{
+#ifndef WIN32
 	    if (lstat(filename, &f_stat))
 		goto done;
 	    if (S_ISLNK(f_stat.st_mode))
 		tprio = 0;
+#endif
 	}
         if(doBitmaps)
             rc = bitmapIdentify(filename, &xlfd_name);
