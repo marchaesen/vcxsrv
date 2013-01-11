@@ -1,11 +1,5 @@
-enums.c
-glapi_mapi_tmp.h
-mapi_abi.py
-remap_helper.h
 dispatch.h
-glapitable.h
-glapitemp.h
-glprocs.h
+enums.c
 indirect.c
 indirect.h
 indirect_dispatch.c
@@ -19,5 +13,5 @@ indirect_size.h
 indirect_size_get.c
 indirect_size_get.h
 indirect_table.c
-glapi_gentable.c
-/Makefile
+mapi_abi.py
+remap_helper.h

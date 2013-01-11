@@ -86,7 +86,7 @@ test $TEST_TYPE $FILE || {
 	exit 1
 }
 
-if test -z "$AUTOGEN_SUBDIR_MODE"; then
+if test -z "$AUTOGEN_SUBDIR_MODE" -a -z "$NOCONFIGURE"; then
         if test -z "$*"; then
                 echo "I am going to run ./configure with no arguments - if you wish "
                 echo "to pass any to it, please specify them on the $0 command line."
@@ -115,7 +115,7 @@ echo Running $AUTOCONF
 $AUTOCONF
 cd $ORIGDIR
 
-if test -z "$AUTOGEN_SUBDIR_MODE"; then
+if test -z "$AUTOGEN_SUBDIR_MODE" -a -z "$NOCONFIGURE"; then
 	echo Running $srcdir/configure "$@"
         $srcdir/configure "$@"
 

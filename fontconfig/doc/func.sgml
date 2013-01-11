@@ -46,7 +46,7 @@
 @?SYNOPSIS@
 @SYNOPSIS@
 @:@
-#include &lt;fontconfig.h&gt;
+#include &lt;fontconfig/fontconfig.h&gt;
 @;@
 	</funcsynopsisinfo>
 @{PROTOTYPE@

@@ -1,4 +1,3 @@
-/Makefile
 lex.yy.c
 program_parse.output
 program_parse.tab.c

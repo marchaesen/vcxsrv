@@ -51,14 +51,9 @@ AC_CHECK_PROGS([MAKE], [gmake make])
 AC_CHECK_PROGS([PYTHON2], [python2 python])
 AC_PROG_SED
 AC_PROG_MKDIR_P
-AC_PATH_PROG([MKDEP], [makedepend])
 
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
-
-if test "x$MKDEP" = "x"; then
-    AC_MSG_ERROR([makedepend is required to build Mesa])
-fi
 
 AC_PROG_YACC
 AC_PATH_PROG([YACC_INST], $YACC)
@@ -76,10 +71,7 @@ if test "x$INDENT" != "xcat"; then
     AC_SUBST(INDENT_FLAGS, '-i4 -nut -br -brs -npcs -ce -TGLubyte -TGLbyte -TBool')
 fi
 
-dnl Our fallback install-sh is a symlink to minstall. Use the existing
-dnl configuration in that case.
 AC_PROG_INSTALL
-test "x$INSTALL" = "x$ac_install_sh" && INSTALL='$(MINSTALL)'
 
 dnl We need a POSIX shell for parts of the build. Assume we have one
 dnl in most cases.
@@ -125,21 +117,6 @@ if test "x$GCC" = xyes -a "x$acv_mesa_CLANG" = xno; then
         AC_MSG_RESULT([yes])
     fi
 fi
-
-
-MKDEP_OPTIONS=-fdepend
-dnl Ask gcc where it's keeping its secret headers
-if test "x$GCC" = xyes; then
-    for dir in include include-fixed; do
-        GCC_INCLUDES=`$CC -print-file-name=$dir`
-        if test "x$GCC_INCLUDES" != x && \
-           test "$GCC_INCLUDES" != "$dir" && \
-           test -d "$GCC_INCLUDES"; then
-            MKDEP_OPTIONS="$MKDEP_OPTIONS -I$GCC_INCLUDES"
-        fi
-    done
-fi
-AC_SUBST([MKDEP_OPTIONS])
 
 dnl Make sure the pkg-config macros are defined
 m4_ifndef([PKG_PROG_PKG_CONFIG],
@@ -319,15 +296,6 @@ xnono )
 esac
 
 AM_CONDITIONAL(BUILD_SHARED, test "x$enable_shared" = xyes)
-
-dnl
-dnl mklib options
-dnl
-AC_ARG_VAR([MKLIB_OPTIONS],[Options for the Mesa library script, mklib])
-if test "$enable_static" = yes; then
-    MKLIB_OPTIONS="$MKLIB_OPTIONS -static"
-fi
-AC_SUBST([MKLIB_OPTIONS])
 
 dnl
 dnl other compiler options
@@ -524,9 +492,6 @@ if test "x$enable_asm" = xyes; then
     esac
 fi
 AC_SUBST([MESA_ASM_FILES])
-
-dnl PIC code macro
-MESA_PIC_FLAGS
 
 dnl Check to see if dlopen is in default libraries (like Solaris, which
 dnl has it in libc), or if libdl is needed to get it.
@@ -1398,6 +1363,7 @@ if test "x$enable_openvg" = xyes; then
     VG_PC_LIB_PRIV="-lm $CLOCK_LIB $PTHREAD_LIBS $DLOPEN_LIBS"
     AC_SUBST([VG_PC_LIB_PRIV])
 fi
+AM_CONDITIONAL(HAVE_OPENVG, test "x$enable_openvg" = xyes)
 
 dnl
 dnl D3D1X configuration
@@ -1452,9 +1418,16 @@ dnl
 
 AC_ARG_WITH([libclc-path],
    [AS_HELP_STRING([--with-libclc-path],
-         [Path to libclc builtins library.  Example: --with-libclc-path=\$HOME/libclc/])],
+         [DEPRECATED: See http://dri.freedesktop.org/wiki/GalliumCompute#How_to_Install])],
    [LIBCLC_PATH="$withval"],
    [LIBCLC_PATH=""])
+
+if test "x$LIBCLC_PATH" != x; then
+   AC_MSG_ERROR([The --with-libclc-path option has been deprecated.
+                  Please review the updated build instructions for clover:
+		  http://dri.freedesktop.org/wiki/GalliumCompute])
+fi
+
 
 AC_ARG_WITH([clang-libdir],
    [AS_HELP_STRING([--with-clang-libdir],
@@ -1462,7 +1435,10 @@ AC_ARG_WITH([clang-libdir],
    [CLANG_LIBDIR="$withval"],
    [CLANG_LIBDIR=""])
 
-AC_SUBST([LIBCLC_PATH])
+LIBCLC_INCLUDEDIR=`pkg-config --variable=includedir libclc`
+LIBCLC_LIBEXECDIR=`pkg-config --variable=libexecdir libclc`
+AC_SUBST([LIBCLC_INCLUDEDIR])
+AC_SUBST([LIBCLC_LIBEXECDIR])
 
 if test "x$enable_opencl" = xyes; then
     if test "x$with_gallium_drivers" = x; then
@@ -1473,9 +1449,17 @@ if test "x$enable_opencl" = xyes; then
         AC_MSG_ERROR([gcc >= 4.6 is required to build clover])
     fi
 
+    if test "x$LIBCLC_INCLUDEDIR" == x || test "x$LIBCLC_LIBEXECDIR" == x; then
+        AC_MSG_ERROR([pkg-config cannot use libclc.pc which is required to build clover])
+    fi
+
     GALLIUM_STATE_TRACKERS_DIRS="$GALLIUM_STATE_TRACKERS_DIRS clover"
     GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS opencl"
     enable_gallium_loader=yes
+fi
+
+if test "x$enable_gallium_gbm" = xyes || test "x$enable_opencl" = xyes; then
+    GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS pipe-loader"
 fi
 
 dnl
@@ -1500,8 +1484,10 @@ AC_SUBST([CLANG_RESOURCE_DIR])
 case "x$enable_opengl$enable_gles1$enable_gles2" in
 x*yes*)
     EGL_CLIENT_APIS="$EGL_CLIENT_APIS "'$(GL_LIB)'
+    HAVE_OPENGL=yes
     ;;
 esac
+AM_CONDITIONAL(HAVE_OPENGL, test "x$HAVE_OPENGL" = xyes)
 
 AC_SUBST([VG_LIB_DEPS])
 AC_SUBST([EGL_CLIENT_APIS])
@@ -1699,7 +1685,7 @@ if test "x$enable_gallium_llvm" = xyes; then
 	LLVM_CXXFLAGS=`strip_unwanted_llvm_flags "$LLVM_CONFIG --cxxflags"`
 	LLVM_INCLUDEDIR=`$LLVM_CONFIG --includedir`
 	LLVM_LIBDIR=`$LLVM_CONFIG --libdir`
-	DEFINES="${DEFINES} -DHAVE_LLVM=`echo $LLVM_VERSION | sed -e 's/\([[0-9]]\)\.\([[0-9]]\)/0x0\10\2/g'`"
+	DEFINES="${DEFINES} -DHAVE_LLVM=0x0$LLVM_VERSION_INT"
 	MESA_LLVM=1
 
 	dnl Check for Clang interanl headers
@@ -1713,9 +1699,11 @@ if test "x$enable_gallium_llvm" = xyes; then
         fi
     else
 	MESA_LLVM=0
+	LLVM_VERSION_INT=0
     fi
 else
     MESA_LLVM=0
+    LLVM_VERSION_INT=0
 fi
 
 dnl Directory for XVMC libs
@@ -1730,7 +1718,7 @@ dnl
 dnl Gallium Tests
 dnl
 if test "x$enable_gallium_tests" = xyes; then
-    SRC_DIRS="$SRC_DIRS gallium/tests/trivial"
+    SRC_DIRS="$SRC_DIRS gallium/tests/trivial gallium/tests/unit"
     enable_gallium_loader=yes
 fi
 
@@ -1790,7 +1778,7 @@ gallium_require_llvm() {
 gallium_require_drm_loader() {
     if test "x$enable_gallium_loader" = xyes; then
         PKG_CHECK_MODULES([LIBUDEV], [libudev], [],
-                          AC_MSG_ERROR([Gallium drm loader requrires libudev]))
+                          AC_MSG_ERROR([Gallium drm loader requires libudev]))
         if test "x$have_libdrm" != xyes; then
             AC_MSG_ERROR([Gallium drm loader requires libdrm >= $LIBDRM_REQUIRED])
         fi
@@ -1823,10 +1811,12 @@ if test "x$with_gallium_drivers" != x; then
     for driver in $gallium_drivers; do
         case "x$driver" in
         xsvga)
+            HAVE_GALLIUM_SVGA=yes
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS svga softpipe"
             gallium_check_st "svga/drm" "dri-vmwgfx" "" "xa-vmwgfx"
             ;;
         xi915)
+            HAVE_GALLIUM_I915=yes
             PKG_CHECK_MODULES([INTEL], [libdrm_intel >= $LIBDRM_INTEL_REQUIRED])
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS i915 softpipe"
             if test "x$MESA_LLVM" = x1; then
@@ -1836,12 +1826,14 @@ if test "x$with_gallium_drivers" != x; then
             gallium_check_st "i915/drm" "dri-i915" "xorg-i915"
             ;;
         xr300)
+            HAVE_GALLIUM_R300=yes
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             gallium_require_llvm "Gallium R300"
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS r300"
             gallium_check_st "radeon/drm" "dri-r300" "xorg-r300" "" "xvmc-r300" "vdpau-r300"
             ;;
         xr600)
+            HAVE_GALLIUM_R600=yes
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS r600"
@@ -1858,6 +1850,7 @@ if test "x$with_gallium_drivers" != x; then
             gallium_check_st "radeon/drm" "dri-r600" "xorg-r600" "" "xvmc-r600" "vdpau-r600"
             ;;
         xradeonsi)
+            HAVE_GALLIUM_RADEONSI=yes
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS radeonsi"
@@ -1866,14 +1859,17 @@ if test "x$with_gallium_drivers" != x; then
             gallium_check_st "radeon/drm" "dri-radeonsi" "xorg-radeonsi" "" "" "vdpau-radeonsi" ""
             ;;
         xnouveau)
+            HAVE_GALLIUM_NOUVEAU=yes
             PKG_CHECK_MODULES([NOUVEAU], [libdrm_nouveau >= $LIBDRM_NOUVEAU_REQUIRED])
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS nouveau nv30 nv50 nvc0"
             gallium_check_st "nouveau/drm" "dri-nouveau" "xorg-nouveau" "" "xvmc-nouveau" "vdpau-nouveau"
             ;;
         xswrast)
+            HAVE_GALLIUM_SOFTPIPE=yes
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS softpipe"
             if test "x$MESA_LLVM" = x1; then
+                HAVE_GALLIUM_LLVMPIPE=yes
                 GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS llvmpipe"
             fi
 
@@ -1899,16 +1895,24 @@ if test "x$with_gallium_drivers" != x; then
         esac
     done
 fi
+AM_CONDITIONAL(HAVE_GALLIUM_SVGA, test "x$HAVE_GALLIUM_SVGA" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_I915, test "x$HAVE_GALLIUM_I915" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_R300, test "x$HAVE_GALLIUM_R300" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_R600, test "x$HAVE_GALLIUM_R600" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_RADEONSI, test "x$HAVE_GALLIUM_RADEONSI" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_NOUVEAU, test "x$HAVE_GALLIUM_NOUVEAU" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_SOFTPIPE, test "x$HAVE_GALLIUM_SOFTPIPE" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_LLVMPIPE, test "x$HAVE_GALLIUM_LLVMPIPE" = xyes)
 
 if test "x$enable_gallium_loader" = xyes; then
     GALLIUM_WINSYS_DIRS="$GALLIUM_WINSYS_DIRS sw/null"
     GALLIUM_PIPE_LOADER_DEFINES="-DHAVE_PIPE_LOADER_SW"
-    GALLIUM_PIPE_LOADER_LIBS="\$(TOP)/src/gallium/auxiliary/pipe-loader/libpipe_loader.a"
-    GALLIUM_PIPE_LOADER_LIBS="$GALLIUM_PIPE_LOADER_LIBS \$(TOP)/src/gallium/winsys/sw/null/libws_null.a"
+    GALLIUM_PIPE_LOADER_LIBS="\$(top_builddir)/src/gallium/auxiliary/pipe-loader/libpipe_loader.la"
+    GALLIUM_PIPE_LOADER_LIBS="$GALLIUM_PIPE_LOADER_LIBS \$(top_builddir)/src/gallium/winsys/sw/null/libws_null.la"
 
     if test "x$HAVE_WINSYS_XLIB" = xyes; then
         GALLIUM_PIPE_LOADER_DEFINES="$GALLIUM_PIPE_LOADER_DEFINES -DHAVE_PIPE_LOADER_XLIB"
-        GALLIUM_PIPE_LOADER_LIBS="$GALLIUM_PIPE_LOADER_LIBS \$(TOP)/src/gallium/winsys/sw/xlib/libws_xlib.a"
+        GALLIUM_PIPE_LOADER_LIBS="$GALLIUM_PIPE_LOADER_LIBS \$(top_builddir)/src/gallium/winsys/sw/xlib/libws_xlib.la"
     fi
 
     if test "x$enable_gallium_drm_loader" = xyes; then
@@ -1951,13 +1955,30 @@ AM_CONDITIONAL(USE_R600_LLVM_COMPILER, test x$USE_R600_LLVM_COMPILER = xyes)
 AM_CONDITIONAL(HAVE_LOADER_GALLIUM, test x$enable_gallium_loader = xyes)
 AM_CONDITIONAL(HAVE_DRM_LOADER_GALLIUM, test x$enable_gallium_drm_loader = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_COMPUTE, test x$enable_opencl = xyes)
+AM_CONDITIONAL(HAVE_MESA_LLVM, test x$MESA_LLVM = x1)
+AM_CONDITIONAL(LLVM_NEEDS_FNORTTI, test $LLVM_VERSION_INT -ge 302)
+
 AC_SUBST([GALLIUM_MAKE_DIRS])
 
+AM_CONDITIONAL(NEED_LIBPROGRAM, test "x$with_gallium_drivers" != x -o \
+                                     "x$enable_xlib_glx" = xyes -o \
+                                     "x$enable_osmesa" = xyes)
 AM_CONDITIONAL(HAVE_X11_DRIVER, echo "$DRIVER_DIRS" | grep 'x11' >/dev/null 2>&1)
 
 AM_CONDITIONAL(HAVE_X86_ASM, echo "$DEFINES" | grep 'X86_ASM' >/dev/null 2>&1)
 AM_CONDITIONAL(HAVE_X86_64_ASM, echo "$DEFINES" | grep 'X86_64_ASM' >/dev/null 2>&1)
 AM_CONDITIONAL(HAVE_SPARC_ASM, echo "$DEFINES" | grep 'SPARC_ASM' >/dev/null 2>&1)
+
+AC_SUBST([VDPAU_MAJOR], 1)
+AC_SUBST([VDPAU_MINOR], 0)
+
+AC_SUBST([XVMC_MAJOR], 1)
+AC_SUBST([XVMC_MINOR], 0)
+
+AC_SUBST([XA_MAJOR], 1)
+AC_SUBST([XA_MINOR], 0)
+AC_SUBST([XA_TINY], 0)
+AC_SUBST([XA_VERSION], "$XA_MAJOR.$XA_MINOR.$XA_TINY")
 
 dnl prepend CORE_DIRS to SRC_DIRS
 SRC_DIRS="$CORE_DIRS $SRC_DIRS"
@@ -1971,8 +1992,7 @@ CFLAGS="$CFLAGS $USER_CFLAGS"
 CXXFLAGS="$CXXFLAGS $USER_CXXFLAGS"
 
 dnl Substitute the config
-AC_CONFIG_FILES([configs/current
-		Makefile
+AC_CONFIG_FILES([Makefile
 		src/Makefile
 		src/egl/Makefile
 		src/egl/drivers/Makefile
@@ -1985,12 +2005,80 @@ AC_CONFIG_FILES([configs/current
 		src/egl/wayland/wayland-egl/Makefile
 		src/egl/wayland/wayland-egl/wayland-egl.pc
 		src/gallium/Makefile
+		src/gallium/auxiliary/Makefile
 		src/gallium/auxiliary/pipe-loader/Makefile
 		src/gallium/drivers/Makefile
+		src/gallium/drivers/i915/Makefile
+		src/gallium/drivers/llvmpipe/Makefile
+		src/gallium/drivers/nouveau/Makefile
+		src/gallium/drivers/nv30/Makefile
+		src/gallium/drivers/nv50/Makefile
+		src/gallium/drivers/nvc0/Makefile
 		src/gallium/drivers/r300/Makefile
 		src/gallium/drivers/r600/Makefile
+		src/gallium/drivers/radeon/Makefile
+		src/gallium/drivers/radeonsi/Makefile
+		src/gallium/drivers/rbug/Makefile
+		src/gallium/drivers/softpipe/Makefile
+		src/gallium/drivers/svga/Makefile
+		src/gallium/drivers/trace/Makefile
+		src/gallium/state_trackers/Makefile
 		src/gallium/state_trackers/clover/Makefile
+		src/gallium/state_trackers/dri/Makefile
+		src/gallium/state_trackers/dri/drm/Makefile
+		src/gallium/state_trackers/dri/sw/Makefile
+		src/gallium/state_trackers/egl/Makefile
+		src/gallium/state_trackers/gbm/Makefile
+		src/gallium/state_trackers/glx/Makefile
+		src/gallium/state_trackers/vdpau/Makefile
+		src/gallium/state_trackers/vega/Makefile
+		src/gallium/state_trackers/xa/Makefile
+		src/gallium/state_trackers/xorg/Makefile
+		src/gallium/state_trackers/xvmc/Makefile
+		src/gallium/targets/Makefile
+		src/gallium/targets/dri-i915/Makefile
+		src/gallium/targets/dri-nouveau/Makefile
+		src/gallium/targets/dri-r300/Makefile
+		src/gallium/targets/dri-r600/Makefile
+		src/gallium/targets/dri-radeonsi/Makefile
+		src/gallium/targets/dri-swrast/Makefile
+		src/gallium/targets/dri-vmwgfx/Makefile
+		src/gallium/targets/egl-static/Makefile
+		src/gallium/targets/gbm/Makefile
 		src/gallium/targets/opencl/Makefile
+		src/gallium/targets/pipe-loader/Makefile
+		src/gallium/targets/libgl-xlib/Makefile
+		src/gallium/targets/vdpau-nouveau/Makefile
+		src/gallium/targets/vdpau-r300/Makefile
+		src/gallium/targets/vdpau-r600/Makefile
+		src/gallium/targets/vdpau-radeonsi/Makefile
+		src/gallium/targets/vdpau-softpipe/Makefile
+		src/gallium/targets/xa-vmwgfx/Makefile
+		src/gallium/targets/xa-vmwgfx/xatracker.pc
+		src/gallium/targets/xorg-i915/Makefile
+		src/gallium/targets/xorg-nouveau/Makefile
+		src/gallium/targets/xorg-r300/Makefile
+		src/gallium/targets/xorg-r600/Makefile
+		src/gallium/targets/xorg-radeonsi/Makefile
+		src/gallium/targets/xvmc-nouveau/Makefile
+		src/gallium/targets/xvmc-r300/Makefile
+		src/gallium/targets/xvmc-r600/Makefile
+		src/gallium/targets/xvmc-softpipe/Makefile
+		src/gallium/tests/trivial/Makefile
+		src/gallium/tests/unit/Makefile
+		src/gallium/winsys/Makefile
+		src/gallium/winsys/i915/drm/Makefile
+		src/gallium/winsys/i915/sw/Makefile
+		src/gallium/winsys/nouveau/drm/Makefile
+		src/gallium/winsys/radeon/drm/Makefile
+		src/gallium/winsys/svga/drm/Makefile
+		src/gallium/winsys/sw/Makefile
+		src/gallium/winsys/sw/dri/Makefile
+		src/gallium/winsys/sw/fbdev/Makefile
+		src/gallium/winsys/sw/null/Makefile
+		src/gallium/winsys/sw/wayland/Makefile
+		src/gallium/winsys/sw/wrapper/Makefile
+		src/gallium/winsys/sw/xlib/Makefile
 		src/gbm/Makefile
 		src/gbm/main/gbm.pc
 		src/glsl/Makefile
@@ -2139,9 +2227,9 @@ echo "        Shared-glapi:    $enable_shared_glapi"
 
 dnl Compiler options
 # cleanup the CFLAGS/CXXFLAGS/DEFINES vars
-cflags=`echo $CFLAGS $PIC_FLAGS | \
+cflags=`echo $CFLAGS | \
     $SED 's/^ *//;s/  */ /;s/ *$//'`
-cxxflags=`echo $CXXFLAGS $PIC_FLAGS | \
+cxxflags=`echo $CXXFLAGS | \
     $SED 's/^ *//;s/  */ /;s/ *$//'`
 defines=`echo $DEFINES | $SED 's/^ *//;s/  */ /;s/ *$//'`
 echo ""

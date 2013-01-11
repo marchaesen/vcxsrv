@@ -177,7 +177,7 @@ else
 	AC_DEFINE(HAVE_DLOPEN,1,[Use dlopen to load shared libraries])
 	AC_CHECK_HEADERS([dlfcn.h])
 fi
-if test x$ac_cv_header_dlcfn_h -o x$ac_cv_header_dl_h; then
+if test "x$ac_cv_header_dlfcn_h" = xyes -o "x$ac_cv_header_dl_h" = xyes; then
 	HAVE_LOADABLE_MODULES=yes
 else
 	HAVE_LOADABLE_MODULES=no
