@@ -1,11 +1,112 @@
                               Fontconfig
              Font configuration and customization library
-                            Version 2.10.2
-                              2012-03-11
+                      Version 2.10.91 (2.11 RC1)
+                              2013-01-10
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.10.91 (2.11 RC1)
+
+Akira TAGOH (19):
+      Fix a potability issue about stdint.h
+      Fix build issues on clean tree
+      Do not show the deprecation warning if it is a symlink
+      Fix a typo
+      Fix the wrong estimation for the memory usage information in fontconfig
+      Remove the duplicate null-check
+      Remove the dead code
+      clean up
+      Fix a typo that accessing to the out of array
+      Fix a memory leak
+      Check the system font to be initialized
+      Missing header file for _mkdir declaration
+      Clean up the unused variable
+      Bug 47705 - Using O_CLOEXEC
+      missing header file to declare _mkdir
+      Fix a build fail on mingw
+      Fix a typo in the manpages template
+      Bug 29312 - RFE: feature to indicate which characters are missing to satisfy the language support
+      Update the date in README properly
+
+Behdad Esfahbod (73):
+      Fix typo
+      Parse matrices of expressions
+      Fix compiler warnings
+      Fix unused-parameter warnings
+      Fix more warnings
+      Fix sign-compare warnings
+      Fix warning
+      Fix more warnings
+      Fixup from 4f6767470f52b287a2923e7e6d8de5fae1993f67
+      Remove memory accounting and reporting
+      Allow target="font/pattern/default" in <name> elements
+      Don't warn if an unknown element is used in an expression
+      Unbreak build when FC_ARCHITECTURE is defined
+      Remove unneeded stuff
+      Enable fcarch assert checks even when FC_ARCHITECTURE is explicitly given
+      Make tests run on Windows
+      Initialize matrix during name parsing
+      Adjust docs for recent changes
+      Warn if <name target="font"> appears in <match target="pattern">
+      Make FC_DBG_OBJTYPES debug messages into warnings
+      Refuse to set value to unsupported types during config too
+      Add NULL check
+      Don't crash in FcPatternDestroy with NULL pattern
+      Don't crash in FcPatternFormat() with NULL pattern
+      Minor
+      Whitespace
+      Deprecate FcName(Un)RegisterObjectTypes / FcName(Un)RegisterConstants
+      Use a static perfect hash table for object-name lookup
+      Switch .gitignore to git.mk
+      Remove shared-str pool
+      Fix build stuff
+      Add build stuff for threadsafety primitives
+      Add thread-safety primitives
+      Make refcounts, patterns, charsets, strings, and FcLang thread-safe
+      Make FcGetDefaultLang and FcGetDefaultLangs thread-safe
+      Make FcInitDebug() idempotent
+      Make FcDefaultFini() threadsafe
+      Refactor; contain default config in fccfg.c
+      Minor
+      Make default-FcConfig threadsafe
+      Minor
+      Make FcCacheIsMmapSafe() threadsafe
+      Minor
+      Make cache refcounting threadsafe
+      Add a big cache lock
+      Make random-state initialization threadsafe
+      Make cache hash threadsafe
+      Make FcDirCacheDispose() threadsafe
+      Make fcobjs.c thread-safe
+      Warn about undefined/invalid attributes during config parsing
+      Fixup fcobjs.c
+      Remove FcSharedStr*
+      Fix compiler warnings
+      Minor
+      Fix build and warnings on win32
+      Use CC_FOR_BUILD to generate source files
+      Fix more warnings.
+      Trying to fix distcheck
+      Fix build around true/false
+      Work around Sun CPP
+      Really fix cross-compiling and building of tools this time
+      Second try to make Sun CPP happy
+      Ugh, add Tools.mk
+      Minor
+      Don't use blanks for fc-query
+      Remove FcInit() calls from tools
+      Add 10-scale-bitmap-fonts.conf and enable by default
+      Oops, add the actual file
+      Fix pthreads setup
+      Fix memory corruption!
+      Add pthread test
+      Add atomic ops for Solaris
+      Make linker happy
+
+Jon TURNEY (1):
+      Fix build when srcdir != builddir
 
 2.10.2
 

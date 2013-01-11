@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <errno.h>
@@ -826,6 +827,9 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
     while((entry = readdir(dirp)) != NULL) {
         int have_face = 0;
         char *xlfd_name = NULL;
+	struct stat f_stat;
+	int tprio = 1;
+
         xlfd = NULL;
 
 	if (xl) {
@@ -836,6 +840,19 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
 
         filename = dsprintf("%s%s", dirname, entry->d_name);
 
+#define PRIO(x) ((x << 1) + tprio)
+#ifdef DT_LNK
+	if (entry->d_type != DT_UNKNOWN) {
+	    if (entry->d_type == DT_LNK)
+		tprio = 0;
+	} else
+#endif
+	{
+	    if (lstat(filename, &f_stat))
+		goto done;
+	    if (S_ISLNK(f_stat.st_mode))
+		tprio = 0;
+	}
         if(doBitmaps)
             rc = bitmapIdentify(filename, &xlfd_name);
         else
@@ -896,7 +913,7 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
                 xlfd = listCons(s, xlfd);
             } else {
                 /* Not a reencodable font -- skip all the rest of the loop body */
-                putHash(entries, xlfd_name, entry->d_name, filePrio(entry->d_name));
+                putHash(entries, xlfd_name, entry->d_name, PRIO(filePrio(entry->d_name)));
                 goto done;
             }
         }
@@ -930,7 +947,7 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
                     found = 1;
                     snprintf(buf, MAXFONTNAMELEN, "%s-%s",
                             lp->value, encoding->value);
-                    putHash(entries, buf, entry->d_name, filePrio(entry->d_name));
+                    putHash(entries, buf, entry->d_name, PRIO(filePrio(entry->d_name)));
                 }
             }
             for(encoding = extra_encodings; encoding;
@@ -939,7 +956,7 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
                     /* Do not set found! */
                     snprintf(buf, MAXFONTNAMELEN, "%s-%s",
                             lp->value, encoding->value);
-                    putHash(entries, buf, entry->d_name, filePrio(entry->d_name));
+                    putHash(entries, buf, entry->d_name, PRIO(filePrio(entry->d_name)));
                 }
             }
         }
@@ -949,6 +966,7 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
         deepDestroyList(xlfd);
         xlfd = NULL;
         free(filename);
+#undef PRIO
     }
 
     closedir(dirp);

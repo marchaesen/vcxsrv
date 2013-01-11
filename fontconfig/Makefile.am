@@ -23,7 +23,7 @@
 
 SUBDIRS=fontconfig fc-case fc-lang fc-glyphname src \
 	fc-cache fc-cat fc-list fc-match fc-pattern fc-query fc-scan \
-	conf.d test
+	fc-validate conf.d test
 if ENABLE_DOCS
 SUBDIRS += doc
 DIST_SUBDIRS = $(SUBDIRS)

@@ -71,8 +71,8 @@ if [ $version != $last ]; then
 	# header
 	#
 	(sed '/^2\.[0-9.]*/,$d' README | 
-		sed -e "s/Version.*/Version $version_note/" \
-		    -e "s/200.*/$date/" | awk '
+		sed -r -e "s/Version.*/Version $version_note/" \
+		    -e "s/[0-9]{4}\-[0-9]{2}\-[0-9]{2}$/$date/" | awk '
 		    /^[ \t]/ {
 				gsub ("^[ \t]*", "");
 				gsub ("[ \t]*$", "");

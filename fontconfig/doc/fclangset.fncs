@@ -178,6 +178,14 @@ Returns a string set of all languages in <parameter>langset</parameter>.
 Returns a string set of all known languages.
 @@
 
+@RET@		FcChar8 *
+@FUNC@		FcLangNormalize
+@TYPE1@		const FcChar8 *			@ARG1@		lang
+@PURPOSE@	Normalize the language string
+@DESC@
+Returns a string to make <parameter>lang</parameter> suitable on fontconfig.
+@@
+
 @RET@		const FcCharSet *
 @FUNC@		FcLangGetCharSet
 @TYPE1@		const FcChar8 *			@ARG1@		lang

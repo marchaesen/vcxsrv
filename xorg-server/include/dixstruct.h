@@ -90,12 +90,12 @@ typedef struct _Client {
     Mask clientAsMask;
     short index;
     unsigned char majorOp, minorOp;
-    int swapped:1;
-    int local:1;
-    int big_requests:1;          /* supports large requests */
-    int clientGone:1;
-    int closeDownMode:2;
-    int clientState:2;
+    unsigned int swapped:1;
+    unsigned int local:1;
+    unsigned int big_requests:1; /* supports large requests */
+    unsigned int clientGone:1;
+    unsigned int closeDownMode:2;
+    unsigned int clientState:2;
     char smart_priority;
     short noClientException;      /* this client died or needs to be killed */
     int priority;

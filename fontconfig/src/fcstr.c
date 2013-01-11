@@ -1217,6 +1217,17 @@ FcStrSetDel (FcStrSet *set, const FcChar8 *s)
     return FcFalse;
 }
 
+/* TODO Make public */
+static FcStrSet *
+FcStrSetReference (FcStrSet *set)
+{
+    if (FcRefIsConst (&set->ref))
+	return set;
+
+    FcRefInc (&set->ref);
+    return set;
+}
+
 void
 FcStrSetDestroy (FcStrSet *set)
 {
@@ -1245,7 +1256,7 @@ FcStrListCreate (FcStrSet *set)
     if (!list)
 	return 0;
     list->set = set;
-    FcRefInc (&set->ref);
+    FcStrSetReference (set);
     list->n = 0;
     return list;
 }

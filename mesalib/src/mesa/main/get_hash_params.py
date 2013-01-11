@@ -204,12 +204,6 @@ descriptor=[
   [ "TEXTURE_COORD_ARRAY_TYPE", "LOC_CUSTOM, TYPE_ENUM, offsetof(struct gl_client_array, Type), NO_EXTRA" ],
   [ "TEXTURE_COORD_ARRAY_STRIDE", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_client_array, Stride), NO_EXTRA" ],
 
-# GL_ARB_ES2_compatibility
-  [ "SHADER_COMPILER", "CONST(1), extra_ARB_ES2_compatibility" ],
-  [ "MAX_VARYING_VECTORS", "CONTEXT_INT(Const.MaxVarying), extra_ARB_ES2_compatibility" ],
-  [ "MAX_VERTEX_UNIFORM_VECTORS", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_ES2_compatibility" ],
-  [ "MAX_FRAGMENT_UNIFORM_VECTORS", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_ES2_compatibility" ],
-
 # GL_ARB_multitexture
   [ "MAX_TEXTURE_UNITS", "CONTEXT_INT(Const.MaxTextureUnits), NO_EXTRA" ],
   [ "CLIENT_ACTIVE_TEXTURE", "LOC_CUSTOM, TYPE_INT, 0, NO_EXTRA" ],
@@ -232,15 +226,8 @@ descriptor=[
 # GL_OES_point_sprite
   [ "POINT_SPRITE_NV", "CONTEXT_BOOL(Point.PointSprite), extra_NV_point_sprite_ARB_point_sprite" ],
 
-# GL_ARB_fragment_shader
-  [ "MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB", "CONTEXT_INT(Const.FragmentProgram.MaxUniformComponents), extra_ARB_fragment_shader" ],
-
 # GL_ARB_vertex_shader
-  [ "MAX_VERTEX_UNIFORM_COMPONENTS_ARB", "CONTEXT_INT(Const.VertexProgram.MaxUniformComponents), extra_ARB_vertex_shader" ],
   [ "MAX_VARYING_FLOATS_ARB", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_vertex_shader" ],
-
-# GL_EXT_texture_lod_bias
-  [ "MAX_TEXTURE_LOD_BIAS_EXT", "CONTEXT_FLOAT(Const.MaxTextureLodBias), NO_EXTRA" ],
 ]},
 
 
@@ -317,6 +304,73 @@ descriptor=[
 
 # GL_NV_read_buffer
   [ "READ_BUFFER", "LOC_CUSTOM, TYPE_ENUM, NO_OFFSET, extra_NV_read_buffer_api_gl" ],
+
+# GL_ARB_ES2_compatibility
+  [ "SHADER_COMPILER", "CONST(1), extra_ARB_ES2_compatibility_api_es2" ],
+  [ "MAX_VARYING_VECTORS", "CONTEXT_INT(Const.MaxVarying), extra_ARB_ES2_compatibility_api_es2" ],
+  [ "MAX_VERTEX_UNIFORM_VECTORS", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_ES2_compatibility_api_es2" ],
+  [ "MAX_FRAGMENT_UNIFORM_VECTORS", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_ES2_compatibility_api_es2" ],
+]},
+
+# GLES3 is not a typo.
+{ "apis": ["GL", "GLES", "GLES3", "GL_CORE"], "params": [
+# GL_EXT_texture_lod_bias
+  [ "MAX_TEXTURE_LOD_BIAS_EXT", "CONTEXT_FLOAT(Const.MaxTextureLodBias), NO_EXTRA" ],
+]},
+
+
+# Enums in  OpenGL and ES 3.0
+{ "apis": ["GL", "GL_CORE", "GLES3"], "params": [
+# GL 3.0 / GLES3
+  [ "NUM_EXTENSIONS", "LOC_CUSTOM, TYPE_INT, 0, extra_gl30_es3" ],
+  [ "MAJOR_VERSION", "LOC_CUSTOM, TYPE_INT, 0, extra_gl30_es3" ],
+  [ "MINOR_VERSION", "LOC_CUSTOM, TYPE_INT, 0, extra_gl30_es3" ],
+
+# GL_ARB_ES3_compatibility
+  [ "MAX_ELEMENT_INDEX", "CONTEXT_INT64(Const.MaxElementIndex), extra_ARB_ES3_compatibility_api_es3"],
+
+# GL_ARB_fragment_shader
+  [ "MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB", "CONTEXT_INT(Const.FragmentProgram.MaxUniformComponents), extra_ARB_fragment_shader" ],
+
+# GL_ARB_framebuffer_object
+  [ "MAX_SAMPLES", "CONTEXT_INT(Const.MaxSamples), extra_ARB_framebuffer_object_EXT_framebuffer_multisample" ],
+
+# GL_ARB_sync
+  [ "MAX_SERVER_WAIT_TIMEOUT", "CONTEXT_INT64(Const.MaxServerWaitTimeout), extra_ARB_sync" ],
+
+# GL_ARB_transform_feedback2
+  [ "TRANSFORM_FEEDBACK_BUFFER_PAUSED", "LOC_CUSTOM, TYPE_BOOLEAN, 0, extra_ARB_transform_feedback2_api_es3" ],
+  [ "TRANSFORM_FEEDBACK_BUFFER_ACTIVE", "LOC_CUSTOM, TYPE_BOOLEAN, 0, extra_ARB_transform_feedback2_api_es3" ],
+  [ "TRANSFORM_FEEDBACK_BINDING", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_transform_feedback2_api_es3" ],
+
+# GL_ARB_uniform_buffer_object
+  [ "MAX_VERTEX_UNIFORM_BLOCKS", "CONTEXT_INT(Const.VertexProgram.MaxUniformBlocks), extra_ARB_uniform_buffer_object" ],
+  [ "MAX_FRAGMENT_UNIFORM_BLOCKS", "CONTEXT_INT(Const.FragmentProgram.MaxUniformBlocks), extra_ARB_uniform_buffer_object" ],
+  [ "MAX_COMBINED_UNIFORM_BLOCKS", "CONTEXT_INT(Const.MaxCombinedUniformBlocks), extra_ARB_uniform_buffer_object" ],
+  [ "MAX_UNIFORM_BLOCK_SIZE", "CONTEXT_INT(Const.MaxUniformBlockSize), extra_ARB_uniform_buffer_object" ],
+  [ "MAX_UNIFORM_BUFFER_BINDINGS", "CONTEXT_INT(Const.MaxUniformBufferBindings), extra_ARB_uniform_buffer_object" ],
+  [ "MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS", "CONTEXT_INT(Const.VertexProgram.MaxCombinedUniformComponents), extra_ARB_uniform_buffer_object" ],
+  [ "MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS", "CONTEXT_INT(Const.FragmentProgram.MaxCombinedUniformComponents), extra_ARB_uniform_buffer_object" ],
+  [ "UNIFORM_BUFFER_OFFSET_ALIGNMENT", "CONTEXT_INT(Const.UniformBufferOffsetAlignment), extra_ARB_uniform_buffer_object" ],
+  [ "UNIFORM_BUFFER_BINDING", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_uniform_buffer_object" ],
+
+# GL_ARB_vertex_shader
+  [ "MAX_VERTEX_UNIFORM_COMPONENTS_ARB", "CONTEXT_INT(Const.VertexProgram.MaxUniformComponents), extra_ARB_vertex_shader" ],
+
+# GL_EXT_framebuffer_blit
+# NOTE: GL_DRAW_FRAMEBUFFER_BINDING_EXT == GL_FRAMEBUFFER_BINDING_EXT
+  [ "READ_FRAMEBUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_framebuffer_blit" ],
+
+# GL_EXT_pixel_buffer_object
+  [ "PIXEL_PACK_BUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_pixel_buffer_object" ],
+  [ "PIXEL_UNPACK_BUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_pixel_buffer_object" ],
+
+# GL_EXT_transform_feedback
+  [ "TRANSFORM_FEEDBACK_BUFFER_BINDING", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_transform_feedback" ],
+  [ "RASTERIZER_DISCARD", "CONTEXT_BOOL(RasterDiscard), extra_EXT_transform_feedback" ],
+  [ "MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS", "CONTEXT_INT(Const.MaxTransformFeedbackInterleavedComponents), extra_EXT_transform_feedback" ],
+  [ "MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS", "CONTEXT_INT(Const.MaxTransformFeedbackBuffers), extra_EXT_transform_feedback" ],
+  [ "MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS", "CONTEXT_INT(Const.MaxTransformFeedbackSeparateComponents), extra_EXT_transform_feedback" ],
 ]},
 
 { "apis": ["GLES", "GLES2"], "params": [
@@ -327,10 +381,6 @@ descriptor=[
 
 # Enums unique to OpenGL ES 2.0
 { "apis": ["GLES2"], "params": [
-  [ "MAX_FRAGMENT_UNIFORM_VECTORS", "LOC_CUSTOM, TYPE_INT, 0, NO_EXTRA" ],
-  [ "MAX_VARYING_VECTORS", "CONTEXT_INT(Const.MaxVarying), NO_EXTRA" ],
-  [ "MAX_VERTEX_UNIFORM_VECTORS", "LOC_CUSTOM, TYPE_INT, 0, NO_EXTRA" ],
-  [ "SHADER_COMPILER", "CONST(1), NO_EXTRA" ],
 # OES_get_program_binary
   [ "NUM_SHADER_BINARY_FORMATS", "CONST(0), NO_EXTRA" ],
   [ "SHADER_BINARY_FORMATS", "CONST(0), NO_EXTRA" ],
@@ -536,10 +586,6 @@ descriptor=[
   [ "SECONDARY_COLOR_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_array_object, VertexAttrib[VERT_ATTRIB_COLOR1].BufferObj), NO_EXTRA" ],
   [ "FOG_COORDINATE_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_array_object, VertexAttrib[VERT_ATTRIB_FOG].BufferObj), NO_EXTRA" ],
 
-# GL_EXT_pixel_buffer_object
-  [ "PIXEL_PACK_BUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_pixel_buffer_object" ],
-  [ "PIXEL_UNPACK_BUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_pixel_buffer_object" ],
-
 # GL_ARB_vertex_program
 # == GL_VERTEX_PROGRAM_NV
   [ "VERTEX_PROGRAM_ARB", "CONTEXT_BOOL(VertexProgram.Enabled), extra_ARB_vertex_program" ],
@@ -580,37 +626,15 @@ descriptor=[
   [ "NUM_LOOPBACK_COMPONENTS_ATI", "CONST(3), extra_ATI_fragment_shader" ],
   [ "NUM_INPUT_INTERPOLATOR_COMPONENTS_ATI", "CONST(3), extra_ATI_fragment_shader" ],
 
-# GL_EXT_framebuffer_blit
-# NOTE: GL_DRAW_FRAMEBUFFER_BINDING_EXT == GL_FRAMEBUFFER_BINDING_EXT
-  [ "READ_FRAMEBUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_framebuffer_blit" ],
-
 # GL_EXT_provoking_vertex
   [ "PROVOKING_VERTEX_EXT", "CONTEXT_ENUM(Light.ProvokingVertex), extra_EXT_provoking_vertex" ],
   [ "QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION_EXT", "CONTEXT_BOOL(Const.QuadsFollowProvokingVertexConvention), extra_EXT_provoking_vertex" ],
 
-# GL_ARB_framebuffer_object
-  [ "MAX_SAMPLES", "CONTEXT_INT(Const.MaxSamples), extra_ARB_framebuffer_object_EXT_framebuffer_multisample" ],
-
 # GL_ARB_seamless_cube_map
   [ "TEXTURE_CUBE_MAP_SEAMLESS", "CONTEXT_BOOL(Texture.CubeMapSeamless), extra_ARB_seamless_cube_map" ],
 
-# GL_ARB_sync
-  [ "MAX_SERVER_WAIT_TIMEOUT", "CONTEXT_INT64(Const.MaxServerWaitTimeout), extra_ARB_sync" ],
-
 # GL_EXT_texture_integer
   [ "RGBA_INTEGER_MODE_EXT", "BUFFER_BOOL(_IntegerColor), extra_EXT_texture_integer" ],
-
-# GL_EXT_transform_feedback
-  [ "TRANSFORM_FEEDBACK_BUFFER_BINDING", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_transform_feedback" ],
-  [ "RASTERIZER_DISCARD", "CONTEXT_BOOL(RasterDiscard), extra_EXT_transform_feedback" ],
-  [ "MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS", "CONTEXT_INT(Const.MaxTransformFeedbackInterleavedComponents), extra_EXT_transform_feedback" ],
-  [ "MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS", "CONTEXT_INT(Const.MaxTransformFeedbackBuffers), extra_EXT_transform_feedback" ],
-  [ "MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS", "CONTEXT_INT(Const.MaxTransformFeedbackSeparateComponents), extra_EXT_transform_feedback" ],
-
-# GL_ARB_transform_feedback2
-  [ "TRANSFORM_FEEDBACK_BUFFER_PAUSED", "LOC_CUSTOM, TYPE_BOOLEAN, 0, extra_ARB_transform_feedback2" ],
-  [ "TRANSFORM_FEEDBACK_BUFFER_ACTIVE", "LOC_CUSTOM, TYPE_BOOLEAN, 0, extra_ARB_transform_feedback2" ],
-  [ "TRANSFORM_FEEDBACK_BINDING", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_transform_feedback2" ],
 
 # GL_ARB_transform_feedback3
   [ "MAX_TRANSFORM_FEEDBACK_BUFFERS", "CONTEXT_INT(Const.MaxTransformFeedbackBuffers), extra_ARB_transform_feedback3" ],
@@ -642,9 +666,6 @@ descriptor=[
   [ "SAMPLER_BINDING", "LOC_CUSTOM, TYPE_INT, GL_SAMPLER_BINDING, NO_EXTRA" ],
 
 # GL 3.0
-  [ "NUM_EXTENSIONS", "LOC_CUSTOM, TYPE_INT, 0, extra_version_30" ],
-  [ "MAJOR_VERSION", "LOC_CUSTOM, TYPE_INT, 0, extra_version_30" ],
-  [ "MINOR_VERSION", "LOC_CUSTOM, TYPE_INT, 0, extra_version_30" ],
   [ "CONTEXT_FLAGS", "CONTEXT_INT(Const.ContextFlags), extra_version_30" ],
 
 # GL3.0 / GL_EXT_framebuffer_sRGB
@@ -671,17 +692,8 @@ descriptor=[
   [ "MAX_DUAL_SOURCE_DRAW_BUFFERS", "CONTEXT_INT(Const.MaxDualSourceDrawBuffers), extra_ARB_blend_func_extended" ],
 
 # GL_ARB_uniform_buffer_object
-  [ "MAX_VERTEX_UNIFORM_BLOCKS", "CONTEXT_INT(Const.VertexProgram.MaxUniformBlocks), extra_ARB_uniform_buffer_object" ],
-  [ "MAX_FRAGMENT_UNIFORM_BLOCKS", "CONTEXT_INT(Const.FragmentProgram.MaxUniformBlocks), extra_ARB_uniform_buffer_object" ],
   [ "MAX_GEOMETRY_UNIFORM_BLOCKS", "CONTEXT_INT(Const.GeometryProgram.MaxUniformBlocks), extra_ARB_uniform_buffer_object_and_geometry_shader" ],
-  [ "MAX_COMBINED_UNIFORM_BLOCKS", "CONTEXT_INT(Const.MaxCombinedUniformBlocks), extra_ARB_uniform_buffer_object" ],
-  [ "MAX_UNIFORM_BLOCK_SIZE", "CONTEXT_INT(Const.MaxUniformBlockSize), extra_ARB_uniform_buffer_object" ],
-  [ "MAX_UNIFORM_BUFFER_BINDINGS", "CONTEXT_INT(Const.MaxUniformBufferBindings), extra_ARB_uniform_buffer_object" ],
-  [ "MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS", "CONTEXT_INT(Const.VertexProgram.MaxCombinedUniformComponents), extra_ARB_uniform_buffer_object" ],
-  [ "MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS", "CONTEXT_INT(Const.FragmentProgram.MaxCombinedUniformComponents), extra_ARB_uniform_buffer_object" ],
   [ "MAX_COMBINED_GEOMETRY_UNIFORM_COMPONENTS", "CONTEXT_INT(Const.GeometryProgram.MaxCombinedUniformComponents), extra_ARB_uniform_buffer_object_and_geometry_shader" ],
-  [ "UNIFORM_BUFFER_OFFSET_ALIGNMENT", "CONTEXT_INT(Const.UniformBufferOffsetAlignment), extra_ARB_uniform_buffer_object" ],
-  [ "UNIFORM_BUFFER_BINDING", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_uniform_buffer_object" ],
 
 # GL_ARB_timer_query
   [ "TIMESTAMP", "LOC_CUSTOM, TYPE_INT64, 0, extra_ARB_timer_query" ],

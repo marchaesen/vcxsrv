@@ -52,7 +52,7 @@ typedef int		FcBool;
 
 #define FC_MAJOR	2
 #define FC_MINOR	10
-#define FC_REVISION	2
+#define FC_REVISION	91
 
 #define FC_VERSION	((FC_MAJOR * 10000) + (FC_MINOR * 100) + (FC_REVISION))
 
@@ -579,6 +579,9 @@ FcInitBringUptoDate (void);
 /* fclang.c */
 FcPublic FcStrSet *
 FcGetLangs (void);
+
+FcPublic FcChar8 *
+FcLangNormalize (const FcChar8 *lang);
 
 FcPublic const FcCharSet *
 FcLangGetCharSet (const FcChar8 *lang);
