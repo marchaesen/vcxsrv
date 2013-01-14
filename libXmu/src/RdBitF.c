@@ -303,10 +303,6 @@ AccessFile(char *path, char *pathbuf, int len_pathbuf, char **pathret)
 
     /* try the places set in the environment */
     drive = getenv ("_XBASEDRIVE");
-#ifdef __UNIXOS2__
-    if (!drive)
-	drive = getenv ("X11ROOT");
-#endif
     if (!drive)
 	drive = "C:";
     len = strlen (drive) + strlen (path);
@@ -319,7 +315,6 @@ AccessFile(char *path, char *pathbuf, int len_pathbuf, char **pathret)
 	return 1;
     }
 
-#ifndef __UNIXOS2__
     /* one last place to look */
     drive = getenv ("HOMEDRIVE");
     if (drive) {
@@ -354,7 +349,6 @@ AccessFile(char *path, char *pathbuf, int len_pathbuf, char **pathret)
 	    }
 	}
     }
-#endif
     return 0;
 }
 
@@ -389,9 +383,6 @@ XmuReadBitmapDataFromFile(_Xconst char *filename, unsigned int *width,
     FILE *fstream;
     int status;
 
-#ifdef __UNIXOS2__
-    filename = __XOS2RedirRoot(filename);
-#endif
     if ((fstream = fopen_file (filename, "r")) == NULL) {
 	return BitmapOpenFailed;
     }

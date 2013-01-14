@@ -583,6 +583,21 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname, GLint *param
 
       *params = shProg->NumUniformBlocks;
       return;
+   case GL_PROGRAM_BINARY_RETRIEVABLE_HINT:
+      /* This enum isn't part of the OES extension for OpenGL ES 2.0.  It is
+       * only available with desktop OpenGL 3.0+ with the
+       * GL_ARB_get_program_binary extension or OpenGL ES 3.0.
+       *
+       * On desktop, we ignore the 3.0+ requirement because it is silly.
+       */
+      if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
+         break;
+
+      *params = shProg->BinaryRetreivableHint;
+      return;
+   case GL_PROGRAM_BINARY_LENGTH:
+      *params = 0;
+      return;
    default:
       break;
    }
@@ -1500,9 +1515,64 @@ _mesa_ShaderBinary(GLint n, const GLuint* shaders, GLenum binaryformat,
 
 #endif /* FEATURE_ES2 */
 
+void GLAPIENTRY
+_mesa_GetProgramBinary(GLuint program, GLsizei bufSize, GLsizei *length,
+                       GLenum *binaryFormat, GLvoid *binary)
+{
+   struct gl_shader_program *shProg;
+   GET_CURRENT_CONTEXT(ctx);
+
+   ASSERT_OUTSIDE_BEGIN_END(ctx);
+
+   shProg = _mesa_lookup_shader_program_err(ctx, program, "glGetProgramBinary");
+   if (!shProg)
+      return;
+
+   if (!shProg->LinkStatus) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGetProgramBinary(program %u not linked)",
+                  shProg->Name);
+      return;
+   }
+
+   if (bufSize < 0){
+      _mesa_error(ctx, GL_INVALID_VALUE, "glGetProgramBinary(bufSize < 0)");
+      return;
+   }
+
+   /* The ARB_get_program_binary spec says:
+    *
+    *     "If <length> is NULL, then no length is returned."
+    */
+   if (length != NULL)
+      *length = 0;
+
+   (void) binaryFormat;
+   (void) binary;
+}
 
 void GLAPIENTRY
-_mesa_ProgramParameteriARB(GLuint program, GLenum pname, GLint value)
+_mesa_ProgramBinary(GLuint program, GLenum binaryFormat,
+                    const GLvoid *binary, GLsizei length)
+{
+   struct gl_shader_program *shProg;
+   GET_CURRENT_CONTEXT(ctx);
+
+   ASSERT_OUTSIDE_BEGIN_END(ctx);
+
+   shProg = _mesa_lookup_shader_program_err(ctx, program, "glProgramBinary");
+   if (!shProg)
+      return;
+
+   (void) binaryFormat;
+   (void) binary;
+   (void) length;
+   _mesa_error(ctx, GL_INVALID_OPERATION, __FUNCTION__);
+}
+
+
+void GLAPIENTRY
+_mesa_ProgramParameteri(GLuint program, GLenum pname, GLint value)
 {
    struct gl_shader_program *shProg;
    GET_CURRENT_CONTEXT(ctx);
@@ -1516,6 +1586,9 @@ _mesa_ProgramParameteriARB(GLuint program, GLenum pname, GLint value)
 
    switch (pname) {
    case GL_GEOMETRY_VERTICES_OUT_ARB:
+      if (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_geometry_shader4)
+         break;
+
       if (value < 1 ||
           (unsigned) value > ctx->Const.MaxGeometryOutputVertices) {
          _mesa_error(ctx, GL_INVALID_VALUE,
@@ -1524,8 +1597,11 @@ _mesa_ProgramParameteriARB(GLuint program, GLenum pname, GLint value)
          return;
       }
       shProg->Geom.VerticesOut = value;
-      break;
+      return;
    case GL_GEOMETRY_INPUT_TYPE_ARB:
+      if (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_geometry_shader4)
+         break;
+
       switch (value) {
       case GL_POINTS:
       case GL_LINES:
@@ -1540,8 +1616,11 @@ _mesa_ProgramParameteriARB(GLuint program, GLenum pname, GLint value)
                      _mesa_lookup_enum_by_nr(value));
          return;
       }
-      break;
+      return;
    case GL_GEOMETRY_OUTPUT_TYPE_ARB:
+      if (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_geometry_shader4)
+         break;
+
       switch (value) {
       case GL_POINTS:
       case GL_LINE_STRIP:
@@ -1554,12 +1633,58 @@ _mesa_ProgramParameteriARB(GLuint program, GLenum pname, GLint value)
                      _mesa_lookup_enum_by_nr(value));
          return;
       }
-      break;
+      return;
+   case GL_PROGRAM_BINARY_RETRIEVABLE_HINT:
+      /* This enum isn't part of the OES extension for OpenGL ES 2.0, but it
+       * is part of OpenGL ES 3.0.  For the ES2 case, this function shouldn't
+       * even be in the dispatch table, so we shouldn't need to expclicitly
+       * check here.
+       *
+       * On desktop, we ignore the 3.0+ requirement because it is silly.
+       */
+
+      /* The ARB_get_program_binary extension spec says:
+       *
+       *     "An INVALID_VALUE error is generated if the <value> argument to
+       *     ProgramParameteri is not TRUE or FALSE."
+       */
+      if (value != GL_TRUE && value != GL_FALSE) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glProgramParameteri(pname=%s, value=%d): "
+                     "value must be 0 or 1.",
+                     _mesa_lookup_enum_by_nr(pname),
+                     value);
+         return;
+      }
+
+      /* No need to notify the driver.  Any changes will actually take effect
+       * the next time the shader is linked.
+       *
+       * The ARB_get_program_binary extension spec says:
+       *
+       *     "To indicate that a program binary is likely to be retrieved,
+       *     ProgramParameteri should be called with <pname>
+       *     PROGRAM_BINARY_RETRIEVABLE_HINT and <value> TRUE. This setting
+       *     will not be in effect until the next time LinkProgram or
+       *     ProgramBinary has been called successfully."
+       *
+       * The resloution of issue 9 in the extension spec also says:
+       *
+       *     "The application may use the PROGRAM_BINARY_RETRIEVABLE_HINT hint
+       *     to indicate to the GL implementation that this program will
+       *     likely be saved with GetProgramBinary at some point. This will
+       *     give the GL implementation the opportunity to track any state
+       *     changes made to the program before being saved such that when it
+       *     is loaded again a recompile can be avoided."
+       */
+      shProg->BinaryRetreivableHint = value;
+      return;
    default:
-      _mesa_error(ctx, GL_INVALID_ENUM, "glProgramParameteriARB(pname=%s)",
-                  _mesa_lookup_enum_by_nr(pname));
       break;
    }
+
+   _mesa_error(ctx, GL_INVALID_ENUM, "glProgramParameteri(pname=%s)",
+               _mesa_lookup_enum_by_nr(pname));
 }
 
 void

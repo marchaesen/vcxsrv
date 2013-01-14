@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <getopt.h>
+
 #include "glcpp.h"
 #include "main/mtypes.h"
 #include "main/shaderobj.h"
@@ -94,6 +96,37 @@ load_text_file(void *ctx, const char *filename)
 	return text;
 }
 
+/* Initialize only those things that glcpp cares about.
+ */
+static void
+init_fake_gl_context (struct gl_context *gl_ctx)
+{
+	gl_ctx->API = API_OPENGL_COMPAT;
+	gl_ctx->Const.DisableGLSLLineContinuations = false;
+}
+
+static void
+usage (void)
+{
+	fprintf (stderr,
+		 "Usage: glcpp [OPTIONS] [--] [<filename>]\n"
+		 "\n"
+		 "Pre-process the given filename (stdin if no filename given).\n"
+		 "The following options are supported:\n"
+		 "    --disable-line-continuations      Do not interpret lines ending with a\n"
+		 "                                      backslash ('\\') as a line continuation.\n");
+}
+
+enum {
+	DISABLE_LINE_CONTINUATIONS_OPT = CHAR_MAX + 1
+};
+
+const static struct option
+long_options[] = {
+	{"disable-line-continuations", no_argument, 0, DISABLE_LINE_CONTINUATIONS_OPT },
+	{0,                            0,           0, 0 }
+};
+
 int
 main (int argc, char *argv[])
 {
@@ -102,16 +135,36 @@ main (int argc, char *argv[])
 	char *info_log = ralloc_strdup(ctx, "");
 	const char *shader;
 	int ret;
+	struct gl_context gl_ctx;
+	int c;
 
-	if (argc) {
-		filename = argv[1];
+	init_fake_gl_context (&gl_ctx);
+
+	while ((c = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
+		switch (c) {
+		case DISABLE_LINE_CONTINUATIONS_OPT:
+			gl_ctx.Const.DisableGLSLLineContinuations = true;
+			break;
+		default:
+			usage ();
+			exit (1);
+		}
+	}
+
+	if (optind + 1 < argc) {
+		printf ("Unexpected argument: %s\n", argv[optind+1]);
+		usage ();
+		exit (1);
+	}
+	if (optind < argc) {
+		filename = argv[optind];
 	}
 
 	shader = load_text_file (ctx, filename);
 	if (shader == NULL)
 	   return 1;
 
-	ret = glcpp_preprocess(ctx, &shader, &info_log, NULL, API_OPENGL_COMPAT);
+	ret = glcpp_preprocess(ctx, &shader, &info_log, NULL, &gl_ctx);
 
 	printf("%s", shader);
 	fprintf(stderr, "%s", info_log);

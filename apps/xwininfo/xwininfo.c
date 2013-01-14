@@ -1826,7 +1826,7 @@ get_net_wm_name (xcb_connection_t *gnwn_dpy, xcb_window_t win)
 #define UTF8_SHORT_TAIL 3
 #define UTF8_LONG_TAIL 4
 static int
-is_valid_utf8 (const char *string, int len)
+is_valid_utf8 (const char *string, size_t len)
 {
     unsigned long codepoint;
     int rem, i;
@@ -1947,7 +1947,7 @@ get_friendly_name (const char *string, const char *prefix)
     const char *name_start = string;
     char *lowered_name, *n;
     Bool first = True;
-    int prefix_len = strlen (prefix);
+    size_t prefix_len = strlen (prefix);
 
     if (strncmp (name_start, prefix, prefix_len) == 0) {
 	name_start += prefix_len;

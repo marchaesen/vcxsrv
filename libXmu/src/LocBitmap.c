@@ -156,12 +156,7 @@ XmuLocatePixmapFile(Screen *screen, _Xconst char *name,
 
 	switch (i) {
 	  case 1:
-#ifndef __UNIXOS2__
 	    if (!(name[0] == '/' || ((name[0] == '.') && name[1] == '/')))
-#else
-	    if (!(name[0] == '/' || (name[0] == '.' && name[1] == '/') ||
-		  (isalpha(name[0]) && name[1] == ':')))
-#endif
 	      continue;
 	    fn = (char *) name;
 	    try_plain_name = False;
@@ -186,9 +181,6 @@ XmuLocatePixmapFile(Screen *screen, _Xconst char *name,
 
 	data = NULL;
 	pixmap = None;
-#ifdef __UNIXOS2__
-	fn = (char*)__XOS2RedirRoot(fn);
-#endif
 	if (XmuReadBitmapDataFromFile (fn, &width, &height, &data,
 				       &xhot, &yhot) == BitmapSuccess) {
 	    pixmap = XCreatePixmapFromBitmapData (dpy, root, (char *) data,

@@ -43,9 +43,6 @@ extern unsigned	sleep ();
 #define link rename
 #endif
 #endif
-#ifdef __UNIXOS2__
-#define link rename
-#endif
 
 int
 XauLockAuth (

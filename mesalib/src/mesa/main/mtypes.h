@@ -1634,9 +1634,20 @@ struct gl_array_attrib
    GLuint LockFirst;            /**< GL_EXT_compiled_vertex_array */
    GLuint LockCount;            /**< GL_EXT_compiled_vertex_array */
 
-   /** GL 3.1 (slightly different from GL_NV_primitive_restart) */
+   /**
+    * \name Primitive restart controls
+    *
+    * Primitive restart is enabled if either \c PrimitiveRestart or
+    * \c PrimitiveRestart is set.  If \c PrimitiveRestart is set, then
+    * \c RestartIndex is used as the cut vertex.  Otherwise ~0 is used.
+    */
+   /*@{*/
    GLboolean PrimitiveRestart;
+   GLboolean PrimitiveRestartFixedIndex;
+   GLboolean _PrimitiveRestart;
    GLuint RestartIndex;
+   GLuint _RestartIndex;
+   /*@}*/
 
    /* GL_ARB_vertex_buffer_object */
    struct gl_buffer_object *ArrayBufferObj;
@@ -2301,6 +2312,11 @@ struct gl_shader_program
    GLuint Name;  /**< aka handle or ID */
    GLint RefCount;  /**< Reference count */
    GLboolean DeletePending;
+
+   /**
+    * Is the application intending to glGetProgramBinary this program?
+    */
+   GLboolean BinaryRetreivableHint;
 
    /**
     * Flags that the linker should not reject the program if it lacks
@@ -2973,6 +2989,12 @@ struct gl_constants
     * \sa _mesa_init_constants
     */
    GLuint64 MaxElementIndex;
+
+   /**
+    * Disable interpretation of line continuations (lines ending with a
+    * backslash character ('\') in GLSL source.
+    */
+   GLboolean DisableGLSLLineContinuations;
 };
 
 

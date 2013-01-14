@@ -80,11 +80,6 @@ from The Open Group.
 
 static
 Xtransport_table Xtransports[] = {
-#if defined(STREAMSCONN)
-    { &TRANS(TLITCPFuncs),	TRANS_TLI_TCP_INDEX },
-    { &TRANS(TLIINETFuncs),	TRANS_TLI_INET_INDEX },
-    { &TRANS(TLITLIFuncs),	TRANS_TLI_TLI_INDEX },
-#endif /* STREAMSCONN */
 #if defined(TCPCONN)
     { &TRANS(SocketTCPFuncs),	TRANS_SOCKET_TCP_INDEX },
 #if defined(IPv6) && defined(AF_INET6)

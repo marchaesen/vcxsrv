@@ -847,12 +847,16 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
 		tprio = 0;
 	} else
 #endif
+#ifdef S_ISLNK
 	{
 	    if (lstat(filename, &f_stat))
 		goto done;
 	    if (S_ISLNK(f_stat.st_mode))
 		tprio = 0;
 	}
+#else
+	;
+#endif
         if(doBitmaps)
             rc = bitmapIdentify(filename, &xlfd_name);
         else

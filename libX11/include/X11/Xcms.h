@@ -31,6 +31,14 @@
 
 #include <X11/Xlib.h>
 
+/* The Xcms structs are full of implicit padding to properly align members.
+   We can't clean that up without breaking ABI, so tell clang not to bother
+   complaining about it. */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
+#endif
+
     /*
      * XCMS Status Values
      */
@@ -797,6 +805,10 @@ extern Status XcmsTekHVCWhiteShiftColors(
 extern Visual *XcmsVisualOfCCC (
     XcmsCCC		/* ccc */
 );
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 _XFUNCPROTOEND
 
