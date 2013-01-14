@@ -42,6 +42,14 @@ from The Open Group.
 #include <X11/Xproto.h>		/* to declare xEvent */
 #include <X11/XlibConf.h>	/* for configured options like XTHREADS */
 
+/* The Xlib structs are full of implicit padding to properly align members.
+   We can't clean that up without breaking ABI, so tell clang not to bother
+   complaining about it. */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
+#endif
+
 #ifdef WIN32
 #define _XFlush _XFlushIt
 #endif
@@ -1366,6 +1374,10 @@ extern void xlocaledir(
     char *buf,
     int buf_len
 );
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 _XFUNCPROTOEND
 

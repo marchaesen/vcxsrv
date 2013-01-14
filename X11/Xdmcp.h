@@ -114,7 +114,7 @@ typedef struct _XdmAuthKey {
 
 
 /* implementation-independent network address structure.
-   Equiv to sockaddr* for sockets and netbuf* for STREAMS. */
+   Equiv to sockaddr* for sockets. */
 
 typedef char *XdmcpNetaddr;
 

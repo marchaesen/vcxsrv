@@ -81,6 +81,14 @@ _Xmblen(
    November 2000. Its presence is indicated through the following macro. */
 #define X_HAVE_UTF8_STRING 1
 
+/* The Xlib structs are full of implicit padding to properly align members.
+   We can't clean that up without breaking ABI, so tell clang not to bother
+   complaining about it. */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
+#endif
+
 typedef char *XPointer;
 
 typedef int Bool;
@@ -4018,6 +4026,10 @@ extern void XFreeEventData(
     Display*			/* dpy */,
     XGenericEventCookie*	/* cookie*/
 );
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 _XFUNCPROTOEND
 

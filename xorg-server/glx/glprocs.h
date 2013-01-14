@@ -1556,9 +1556,6 @@ static const char gl_string_table[] =
 #define gl_dispatch_stub_726 mgl_dispatch_stub_726
 #define gl_dispatch_stub_727 mgl_dispatch_stub_727
 #define gl_dispatch_stub_728 mgl_dispatch_stub_728
-#define gl_dispatch_stub_783 mgl_dispatch_stub_783
-#define gl_dispatch_stub_784 mgl_dispatch_stub_784
-#define gl_dispatch_stub_785 mgl_dispatch_stub_785
 #define gl_dispatch_stub_828 mgl_dispatch_stub_828
 #define gl_dispatch_stub_829 mgl_dispatch_stub_829
 #define gl_dispatch_stub_830 mgl_dispatch_stub_830
@@ -1648,9 +1645,6 @@ void GLAPIENTRY gl_dispatch_stub_366(GLenum target, GLenum pname, GLint * params
 void GLAPIENTRY gl_dispatch_stub_726(GLuint id, GLenum pname, GLint64 * params);
 void GLAPIENTRY gl_dispatch_stub_727(GLuint id, GLenum pname, GLuint64 * params);
 void GLAPIENTRY gl_dispatch_stub_728(GLuint id, GLenum target);
-void GLAPIENTRY gl_dispatch_stub_783(GLuint program, GLsizei bufSize, GLsizei * length, GLenum * binaryFormat, GLvoid * binary);
-void GLAPIENTRY gl_dispatch_stub_784(GLuint program, GLenum binaryFormat, const GLvoid * binary, GLsizei length);
-void GLAPIENTRY gl_dispatch_stub_785(GLuint program, GLenum pname, GLint value);
 void GLAPIENTRY gl_dispatch_stub_828(GLfloat x, GLfloat y, GLfloat z, GLfloat width, GLfloat height);
 void GLAPIENTRY gl_dispatch_stub_829(const GLfloat * coords);
 void GLAPIENTRY gl_dispatch_stub_830(GLint x, GLint y, GLint z, GLint width, GLint height);
@@ -2506,9 +2500,9 @@ static const glprocs_table_t static_functions[] = {
     NAME_FUNC_OFFSET(12765, glGetShaderPrecisionFormat, glGetShaderPrecisionFormat, NULL, 780),
     NAME_FUNC_OFFSET(12792, glReleaseShaderCompiler, glReleaseShaderCompiler, NULL, 781),
     NAME_FUNC_OFFSET(12816, glShaderBinary, glShaderBinary, NULL, 782),
-    NAME_FUNC_OFFSET(12831, gl_dispatch_stub_783, gl_dispatch_stub_783, NULL, 783),
-    NAME_FUNC_OFFSET(12850, gl_dispatch_stub_784, gl_dispatch_stub_784, NULL, 784),
-    NAME_FUNC_OFFSET(12866, gl_dispatch_stub_785, gl_dispatch_stub_785, NULL, 785),
+    NAME_FUNC_OFFSET(12831, glGetProgramBinary, glGetProgramBinary, NULL, 783),
+    NAME_FUNC_OFFSET(12850, glProgramBinary, glProgramBinary, NULL, 784),
+    NAME_FUNC_OFFSET(12866, glProgramParameteri, glProgramParameteri, NULL, 785),
     NAME_FUNC_OFFSET(12886, glDebugMessageCallbackARB, glDebugMessageCallbackARB, NULL, 786),
     NAME_FUNC_OFFSET(12912, glDebugMessageControlARB, glDebugMessageControlARB, NULL, 787),
     NAME_FUNC_OFFSET(12937, glDebugMessageInsertARB, glDebugMessageInsertARB, NULL, 788),
@@ -3140,9 +3134,9 @@ static const glprocs_table_t static_functions[] = {
     NAME_FUNC_OFFSET(26039, gl_dispatch_stub_727, gl_dispatch_stub_727, NULL, 727),
     NAME_FUNC_OFFSET(26064, glClearDepthf, glClearDepthf, NULL, 778),
     NAME_FUNC_OFFSET(26081, glDepthRangef, glDepthRangef, NULL, 779),
-    NAME_FUNC_OFFSET(26098, gl_dispatch_stub_783, gl_dispatch_stub_783, NULL, 783),
-    NAME_FUNC_OFFSET(26120, gl_dispatch_stub_784, gl_dispatch_stub_784, NULL, 784),
-    NAME_FUNC_OFFSET(26139, gl_dispatch_stub_785, gl_dispatch_stub_785, NULL, 785),
+    NAME_FUNC_OFFSET(26098, glGetProgramBinary, glGetProgramBinary, NULL, 783),
+    NAME_FUNC_OFFSET(26120, glProgramBinary, glProgramBinary, NULL, 784),
+    NAME_FUNC_OFFSET(26139, glProgramParameteri, glProgramParameteri, NULL, 785),
     NAME_FUNC_OFFSET(26162, gl_dispatch_stub_838, gl_dispatch_stub_838, NULL, 838),
     NAME_FUNC_OFFSET(26178, gl_dispatch_stub_839, gl_dispatch_stub_839, NULL, 839),
     NAME_FUNC_OFFSET(26197, glSecondaryColor3fEXT, glSecondaryColor3fEXT, NULL, 848),
