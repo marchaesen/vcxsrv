@@ -271,7 +271,8 @@ _mesa_bytes_per_pixel(GLenum format, GLenum type)
    case GL_UNSIGNED_INT_10_10_10_2:
    case GL_UNSIGNED_INT_2_10_10_10_REV:
       if (format == GL_RGBA || format == GL_BGRA || format == GL_ABGR_EXT ||
-          format == GL_RGBA_INTEGER_EXT || format == GL_BGRA_INTEGER_EXT)
+          format == GL_RGBA_INTEGER_EXT || format == GL_BGRA_INTEGER_EXT ||
+          format == GL_RGB)
          return sizeof(GLuint);
       else
          return -1;
@@ -353,21 +354,9 @@ _mesa_bytes_per_vertex_attrib(GLint comps, GLenum type)
  * Test if the given format is an integer (non-normalized) format.
  */
 GLboolean
-_mesa_is_enum_format_integer(GLenum format)
+_mesa_is_enum_format_unsigned_int(GLenum format)
 {
    switch (format) {
-   /* generic integer formats */
-   case GL_RED_INTEGER_EXT:
-   case GL_GREEN_INTEGER_EXT:
-   case GL_BLUE_INTEGER_EXT:
-   case GL_ALPHA_INTEGER_EXT:
-   case GL_RGB_INTEGER_EXT:
-   case GL_RGBA_INTEGER_EXT:
-   case GL_BGR_INTEGER_EXT:
-   case GL_BGRA_INTEGER_EXT:
-   case GL_LUMINANCE_INTEGER_EXT:
-   case GL_LUMINANCE_ALPHA_INTEGER_EXT:
-   case GL_RG_INTEGER:
    /* specific integer formats */
    case GL_RGBA32UI_EXT:
    case GL_RGB32UI_EXT:
@@ -393,6 +382,34 @@ _mesa_is_enum_format_integer(GLenum format)
    case GL_INTENSITY8UI_EXT:
    case GL_LUMINANCE8UI_EXT:
    case GL_LUMINANCE_ALPHA8UI_EXT:
+   case GL_RGB10_A2UI:
+      return GL_TRUE;
+   default:
+      return GL_FALSE;
+   }
+}
+
+
+/**
+ * Test if the given format is an integer (non-normalized) format.
+ */
+GLboolean
+_mesa_is_enum_format_signed_int(GLenum format)
+{
+   switch (format) {
+   /* generic integer formats */
+   case GL_RED_INTEGER_EXT:
+   case GL_GREEN_INTEGER_EXT:
+   case GL_BLUE_INTEGER_EXT:
+   case GL_ALPHA_INTEGER_EXT:
+   case GL_RGB_INTEGER_EXT:
+   case GL_RGBA_INTEGER_EXT:
+   case GL_BGR_INTEGER_EXT:
+   case GL_BGRA_INTEGER_EXT:
+   case GL_LUMINANCE_INTEGER_EXT:
+   case GL_LUMINANCE_ALPHA_INTEGER_EXT:
+   case GL_RG_INTEGER:
+   /* specific integer formats */
    case GL_RGBA32I_EXT:
    case GL_RGB32I_EXT:
    case GL_RG32I:
@@ -417,11 +434,21 @@ _mesa_is_enum_format_integer(GLenum format)
    case GL_INTENSITY8I_EXT:
    case GL_LUMINANCE8I_EXT:
    case GL_LUMINANCE_ALPHA8I_EXT:
-   case GL_RGB10_A2UI:
       return GL_TRUE;
    default:
       return GL_FALSE;
    }
+}
+
+
+/**
+ * Test if the given format is an integer (non-normalized) format.
+ */
+GLboolean
+_mesa_is_enum_format_integer(GLenum format)
+{
+   return _mesa_is_enum_format_unsigned_int(format) ||
+          _mesa_is_enum_format_signed_int(format);
 }
 
 
@@ -1028,6 +1055,32 @@ _mesa_base_format_has_channel(GLenum base_format, GLenum pname)
    }
 
    return GL_FALSE;
+}
+
+
+/**
+ * Returns the number of channels/components for a base format.
+ */
+GLint
+_mesa_base_format_component_count(GLenum base_format)
+{
+   switch (base_format) {
+   case GL_RED:
+   case GL_ALPHA:
+   case GL_INTENSITY:
+   case GL_DEPTH_COMPONENT:
+      return 1;
+   case GL_RG:
+   case GL_LUMINANCE_ALPHA:
+   case GL_DEPTH_STENCIL:
+      return 2;
+   case GL_RGB:
+      return 3;
+   case GL_RGBA:
+      return 4;
+   default:
+      return -1;
+   }
 }
 
 

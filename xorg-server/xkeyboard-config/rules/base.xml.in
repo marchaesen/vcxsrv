@@ -1388,18 +1388,6 @@
     </layout>
     <layout>
       <configItem>
-        <name>ad</name>
-        <!-- Keyboard indicator for Catalan layouts -->
-        <_shortDescription>ca</_shortDescription>
-        <_description>Catalan</_description>
-        <languageList>
-          <iso639Id>cat</iso639Id>
-        </languageList>
-      </configItem>
-      <variantList/>
-    </layout>
-    <layout>
-      <configItem>
         <name>af</name>
         <!-- Keyboard indicator for Afghani layouts -->
         <_shortDescription>fa</_shortDescription>
@@ -6361,7 +6349,7 @@
     <group allowMultipleSelection="true">
       <!-- Special shortcuts for the Euro character -->
       <configItem>
-        <name>eurosign</name>
+        <name>currencysign</name>
         <_description>Adding currency signs to certain keys</_description>
       </configItem>
       <option>

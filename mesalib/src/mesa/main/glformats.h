@@ -62,6 +62,12 @@ extern GLboolean
 _mesa_is_enum_format_integer(GLenum format);
 
 extern GLboolean
+_mesa_is_enum_format_unsigned_int(GLenum format);
+
+extern GLboolean
+_mesa_is_enum_format_signed_int(GLenum format);
+
+extern GLboolean
 _mesa_is_enum_format_or_type_integer(GLenum format, GLenum type);
 
 extern GLboolean
@@ -93,6 +99,9 @@ _mesa_base_format_to_integer_format(GLenum format);
 
 extern GLboolean
 _mesa_base_format_has_channel(GLenum base_format, GLenum pname);
+
+extern GLint
+_mesa_base_format_component_count(GLenum base_format);
 
 extern GLenum
 _mesa_generic_compressed_format_to_uncompressed_format(GLenum format);

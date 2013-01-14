@@ -66,9 +66,6 @@ from The Open Group.
 #if defined(TCPCONN) || defined(UNIXCONN)
 #include "Xtranssock.c"
 #endif
-#ifdef STREAMSCONN
-#include "Xtranstli.c"
-#endif
 #include "Xtrans.c"
 #include "Xtransutil.c"
 

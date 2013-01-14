@@ -242,11 +242,6 @@ XmuConvertStandardSelection(Widget w, Time time, Atom *selection, Atom *target,
 	return True;
     }
 #endif
-#ifdef DNETCONN
-    if (*target == XA_DECNET_ADDRESS(d)) {
-	return False;		/* XXX niy */
-    }
-#endif
     if (*target == XA_USER(d)) {
 	char *name = (char*)getenv("USER");
 	if (name == NULL) return False;
@@ -312,14 +307,10 @@ XmuConvertStandardSelection(Widget w, Time time, Atom *selection, Atom *target,
 	return True;
     }
     if (*target == XA_TARGETS(d)) {
-#if defined(unix) && defined(DNETCONN)
-#  define NUM_TARGETS 9
+#if defined(unix)
+#  define NUM_TARGETS 8
 #else
-#  if defined(unix) || defined(DNETCONN)
-#    define NUM_TARGETS 8
-#  else
-#    define NUM_TARGETS 7
-#  endif
+#  define NUM_TARGETS 7
 #endif
 	Atom* std_targets = (Atom*)XtMalloc(NUM_TARGETS*sizeof(Atom));
 	int i = 0;
@@ -332,9 +323,6 @@ XmuConvertStandardSelection(Widget w, Time time, Atom *selection, Atom *target,
 	std_targets[i++] = XA_CLIENT_WINDOW(d);
 #ifdef unix
 	std_targets[i++] = XA_OWNER_OS(d);
-#endif
-#ifdef DNETCONN
-	std_targets[i++] = XA_DECNET_ADDRESS(d);
 #endif
 	*value = (XPointer)std_targets;
 	*type = XA_ATOM;

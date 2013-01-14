@@ -66,12 +66,6 @@ TransportSW _XimTransportRec[] = {
 #if defined(UNIXCONN) || defined(LOCALCONN)
     { "local",      _XimTransConf }, /* use X transport lib */
 #endif /* UNIXCONN */
-#ifdef DNETCONN
-    { "dnet",     _XimTransConf }, /* use X transport lib */
-#endif /* DNETCONN */
-#ifdef STREAMSCONN
-    { "streams",    _XimTransConf }, /* use X transport lib */
-#endif /* STREAMSCONN */
     { (char *)NULL, (Bool (*)(Xim, char *))NULL },
 };
 

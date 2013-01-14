@@ -847,6 +847,7 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
 		tprio = 0;
 	} else
 #endif
+#ifdef S_ISLNK
 	{
 #ifndef WIN32
 	    if (lstat(filename, &f_stat))
@@ -855,6 +856,9 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
 		tprio = 0;
 #endif
 	}
+#else
+	;
+#endif
         if(doBitmaps)
             rc = bitmapIdentify(filename, &xlfd_name);
         else

@@ -35,36 +35,19 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xmd.h>
 #include <X11/Xdmcp.h>
 
-#ifdef STREAMSCONN
-#include <tiuser.h>
-#else
 #ifdef WIN32
 #include <X11/Xwinsock.h>
 #else
 #include <sys/socket.h>
-#endif
 #endif
 
 int
 XdmcpFlush (int fd, XdmcpBufferPtr buffer, XdmcpNetaddr to, int tolen)
 {
     int result;
-#ifdef STREAMSCONN
-    struct t_unitdata dataunit;
-
-    dataunit.addr.buf = to;
-    dataunit.addr.len = tolen;
-    dataunit.opt.len = 0;	/* default options */
-    dataunit.udata.buf = (char *)buffer->data;
-    dataunit.udata.len = buffer->pointer;
-    result = t_sndudata(fd, &dataunit);
-    if (result < 0)
-	return FALSE;
-#else
     result = sendto (fd, (char *)buffer->data, buffer->pointer, 0,
 		     (struct sockaddr *)to, tolen);
     if (result != buffer->pointer)
 	return FALSE;
-#endif
     return TRUE;
 }

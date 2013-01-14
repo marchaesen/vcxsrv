@@ -310,6 +310,12 @@ descriptor=[
   [ "MAX_VARYING_VECTORS", "CONTEXT_INT(Const.MaxVarying), extra_ARB_ES2_compatibility_api_es2" ],
   [ "MAX_VERTEX_UNIFORM_VECTORS", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_ES2_compatibility_api_es2" ],
   [ "MAX_FRAGMENT_UNIFORM_VECTORS", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_ES2_compatibility_api_es2" ],
+  [ "NUM_SHADER_BINARY_FORMATS", "CONST(0), extra_ARB_ES2_compatibility_api_es2" ],
+  [ "SHADER_BINARY_FORMATS", "CONST(0), extra_ARB_ES2_compatibility_api_es2" ],
+
+# GL_ARB_get_program_binary / GL_OES_get_program_binary
+  [ "NUM_PROGRAM_BINARY_FORMATS", "CONST(0), extra_ARB_shader_objects" ],
+  [ "PROGRAM_BINARY_FORMATS", "LOC_CUSTOM, TYPE_INVALID, 0, extra_ARB_shader_objects" ],
 ]},
 
 # GLES3 is not a typo.
@@ -378,14 +384,6 @@ descriptor=[
   [ "TEXTURE_BINDING_EXTERNAL_OES", "LOC_CUSTOM, TYPE_INT, TEXTURE_EXTERNAL_INDEX, extra_OES_EGL_image_external" ],
   [ "TEXTURE_EXTERNAL_OES", "LOC_CUSTOM, TYPE_BOOLEAN, 0, extra_OES_EGL_image_external" ],
 ]},
-
-# Enums unique to OpenGL ES 2.0
-{ "apis": ["GLES2"], "params": [
-# OES_get_program_binary
-  [ "NUM_SHADER_BINARY_FORMATS", "CONST(0), NO_EXTRA" ],
-  [ "SHADER_BINARY_FORMATS", "CONST(0), NO_EXTRA" ],
-]},
-
 
 # Remaining enums are only in OpenGL
 { "apis": ["GL", "GL_CORE"], "params": [
