@@ -263,7 +263,13 @@
             <_description>Polish (international with dead keys)</_description>
           </configItem>
         </variant>
-      </variantList>
+        <variant>
+          <configItem>
+            <name>colemak</name>
+            <_description>Polish (Colemak)</_description>
+          </configItem>
+        </variant>
+       </variantList>
     </layout>
     <layout>
       <configItem>

@@ -124,55 +124,6 @@ xkb_symbols "qwertz" {
     include "level3(ralt_switch)"
 };
 
-// A Polish keymap with a comprehensive set of quotes, dashes, and dead accents
-// 
-// See http://marcinwolinski.pl/keyboard/ for a description.
-//
-// ┌────┐
-// │ 2 4│   2 = Shift,  4 = Level3 + Shift
-// │ 1 3│   1 = Normal, 3 = Level3
-// └────┘
-// ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
-// │ ~ ~ │ ! ' │ @ " │ # ˝ │ $ ¸ │ % ˇ │ ^ ^ │ & ˘ │ * ˙ │ ( ̣ │ ) ° │ _ ¯ │ + ˛ ┃ ⌫ Back  ┃
-// │ ` ` │ 1 ¡ │ 2 © │ 3 • │ 4 § │ 5 € │ 6 ¢ │ 7 − │ 8 × │ 9 ÷ │ 0 ° │ - – │ = — ┃  space  ┃
-// ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
-// ┃       ┃ Q   │ W   │ E Ę │ R   │ T   │ Y   │ U   │ I   │ O Ó │ P   │ { « │ } » ┃ Enter ┃
-// ┃Tab ↹  ┃ q   │ w   │ e ę │ r   │ t   │ y   │ u   │ i   │ o ó │ p   │ [ ‹ │ ] › ┃   ⏎   ┃
-// ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
-// ┃        ┃ A Ą │ S Ś │ D   │ F   │ G   │ H   │ J   │ K   │ L Ł │ : “ │ " ” │ | ¶ ┃      ┃
-// ┃Caps ⇬  ┃ a ą │ s ś │ d   │ f   │ g   │ h   │ j   │ k   │ l ł │ ; ‘ │ ' ’ │ \   ┃      ┃
-// ┣━━━━━━━━┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
-// ┃             │ Z Ż │ X Ź │ C Ć │ V   │ B   │ N Ń │ M   │ < „ │ > · │ ? ¿ ┃             ┃
-// ┃Shift ⇧      │ z ż │ x ź │ c ć │ v   │ b   │ n ń │ m   │ , ‚ │ . … │ / ⁄ ┃Shift ⇧      ┃
-// ┣━━━━━━━┳━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
-// ┃       ┃       ┃       ┃ ␣                               ⍽ ┃       ┃       ┃       ┃
-// ┃Ctrl   ┃Meta   ┃Alt    ┃ ␣           Space               ⍽ ┃AltGr ⇮┃Menu   ┃Ctrl   ┃
-// ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
-
-partial alphanumeric_keys
-xkb_symbols "intl" {
-
-    include "latin(intl)"
-
-    name[Group1]="Polish (international with dead keys)";
-
-    key <AD03>	{ [         e,          E,      eogonek,      Eogonek ]	};
-    key <AD09>	{ [         o,          O,       oacute,       Oacute ]	};
-
-    key <AC01>	{ [         a,          A,      aogonek,      Aogonek ]	};
-    key <AC02>	{ [         s,          S,       sacute,       Sacute ]	};
-    key <AC09>	{ [         l,          L,      lstroke,      Lstroke ]	};
-
-    key <AB01>	{ [         z,          Z,    zabovedot,    Zabovedot ]	};
-    key <AB02>	{ [         x,          X,       zacute,       Zacute ]	};
-    key <AB03>	{ [         c,          C,       cacute,       Cacute ]	};
-    key <AB06>	{ [         n,          N,       nacute,       Nacute ]	};
-
-    include "kpdl(comma)"
-
-    include "level3(ralt_switch)"
-};
-
 // Polish Dvorak keymaps
 // by Rafal Rzepecki <divide@users.sf.net>
 
@@ -477,5 +428,77 @@ xkb_symbols "ru_phonetic_dvorak" {
    include "kpdl(comma)"
 
    include "level3(ralt_switch)"
+};
+
+// EXTRAS:
+
+// A Polish keymap with a comprehensive set of quotes, dashes, and dead accents
+// 
+// See http://marcinwolinski.pl/keyboard/ for a description.
+//
+// ┌────┐
+// │ 2 4│   2 = Shift,  4 = Level3 + Shift
+// │ 1 3│   1 = Normal, 3 = Level3
+// └────┘
+// ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
+// │ ~ ~ │ ! ' │ @ " │ # ˝ │ $ ¸ │ % ˇ │ ^ ^ │ & ˘ │ * ˙ │ ( ̣ │ ) ° │ _ ¯ │ + ˛ ┃ ⌫ Back  ┃
+// │ ` ` │ 1 ¡ │ 2 © │ 3 • │ 4 § │ 5 € │ 6 ¢ │ 7 − │ 8 × │ 9 ÷ │ 0 ° │ - – │ = — ┃  space  ┃
+// ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
+// ┃       ┃ Q   │ W   │ E Ę │ R   │ T   │ Y   │ U   │ I   │ O Ó │ P   │ { « │ } » ┃ Enter ┃
+// ┃Tab ↹  ┃ q   │ w   │ e ę │ r   │ t   │ y   │ u   │ i   │ o ó │ p   │ [ ‹ │ ] › ┃   ⏎   ┃
+// ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
+// ┃        ┃ A Ą │ S Ś │ D   │ F   │ G   │ H   │ J   │ K   │ L Ł │ : “ │ " ” │ | ¶ ┃      ┃
+// ┃Caps ⇬  ┃ a ą │ s ś │ d   │ f   │ g   │ h   │ j   │ k   │ l ł │ ; ‘ │ ' ’ │ \   ┃      ┃
+// ┣━━━━━━━━┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
+// ┃             │ Z Ż │ X Ź │ C Ć │ V   │ B   │ N Ń │ M   │ < „ │ > · │ ? ¿ ┃             ┃
+// ┃Shift ⇧      │ z ż │ x ź │ c ć │ v   │ b   │ n ń │ m   │ , ‚ │ . … │ / ⁄ ┃Shift ⇧      ┃
+// ┣━━━━━━━┳━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
+// ┃       ┃       ┃       ┃ ␣                               ⍽ ┃       ┃       ┃       ┃
+// ┃Ctrl   ┃Meta   ┃Alt    ┃ ␣           Space               ⍽ ┃AltGr ⇮┃Menu   ┃Ctrl   ┃
+// ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
+
+partial alphanumeric_keys
+xkb_symbols "intl" {
+
+    include "latin(intl)"
+
+    name[Group1]="Polish (international with dead keys)";
+
+    key <AD03>	{ [         e,          E,      eogonek,      Eogonek ]	};
+    key <AD09>	{ [         o,          O,       oacute,       Oacute ]	};
+
+    key <AC01>	{ [         a,          A,      aogonek,      Aogonek ]	};
+    key <AC02>	{ [         s,          S,       sacute,       Sacute ]	};
+    key <AC09>	{ [         l,          L,      lstroke,      Lstroke ]	};
+
+    key <AB01>	{ [         z,          Z,    zabovedot,    Zabovedot ]	};
+    key <AB02>	{ [         x,          X,       zacute,       Zacute ]	};
+    key <AB03>	{ [         c,          C,       cacute,       Cacute ]	};
+    key <AB06>	{ [         n,          N,       nacute,       Nacute ]	};
+
+    include "kpdl(comma)"
+
+    include "level3(ralt_switch)"
+};
+
+// Polish Colemak
+// by Tomek Piotrowski <tomek.piotrowski@atteo.com>
+//
+partial alphanumeric_keys
+xkb_symbols "colemak" {
+    include "us(colemak)"
+    name[Group1]= "Polish (Colemak)";
+
+    key <AB01> { [            z,            Z,       zabovedot,        Zabovedot ] };
+    key <AB02> { [            x,            X, 	        zacute,           Zacute ] };
+    key <AB03> { [            c,            C,          cacute,           Cacute ] };
+    key <AC01> { [            a,            A,         aogonek,          Aogonek ] };
+    key <AC03> { [            s,            S,          sacute,           Sacute ] }; 
+    key <AC07> { [            n,            N,          nacute,           Nacute ] };
+    key <AC08> { [            e,            E,         eogonek,          Eogonek ] };
+    key <AC10> { [            o,            O,          oacute,           Oacute ] };
+    key <AD07> { [            l,            L,         lstroke,          Lstroke ] };
+
+    include "level3(ralt_switch)"
 };
 
