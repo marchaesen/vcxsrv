@@ -549,8 +549,9 @@ FcFontRenderPrepare (FcConfig	    *config,
 	fe = FcPatternObjectFindElt (font, pe->object);
 	if (!fe)
 	{
-	    v = FcValueCanonicalize(&FcPatternEltValues(pe)->value);
-	    FcPatternObjectAdd (new, pe->object, v, FcTrue);
+	    FcPatternObjectListAdd (new, pe->object,
+				    FcValueListDuplicate (FcPatternEltValues(pe)),
+				    FcFalse);
 	}
     }
 

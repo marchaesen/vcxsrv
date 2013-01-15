@@ -1445,8 +1445,8 @@ xkb_symbols "jhelum" {
      key <AE03>  { [   3,numbersign, U0A69,	numbersign ] };
      key <AE04>  { [   4,dollar,	U0A6A,	dollar     ] };
      key <AE05>  { [   5,percent,U0A6B,	percent    ] };
-     key <AE06>  { [   6,asciicircum, U0A6C,asciicircum ] };
-     key <AE07>  { [   7,ampersand,U0A6D,ampersand  ] };
+     key <AE06>  { [   6,U0A73, U0A6C,asciicircum ] };
+     key <AE07>  { [   7,U0A72,U0A6D,ampersand  ] };
      key <AE08>  { [   8,asterisk,U0A6E,	asterisk   ] };
      key <AE09>  { [   9,parenleft,U0A6F,parenleft  ] };
      key <AE10>  { [   0,parenright,U0A66,parenright ] };
@@ -1462,23 +1462,23 @@ xkb_symbols "jhelum" {
      key <AD05>   { [   U0A42,   U0A0A   ] };  // T: u, uu
      key <AD06>   { [   U0A30,	U0A5C   ] };  // Y: ra, raa
      key <AD07>   { [   U0A26,   U0A27   ] };  // U: tha, thha
-     key <AD08>   { [   U0A17,   U0A18   ] };  // I:ga, gha
+     key <AD08>   { [   U0A17,   U0A18, U0A5A   ] };  // I:ga, gha
      key <AD09>   { [   U0A24,   U0A1F   ] };  // O: ta, tha
-     key <AD10>   { [   U0A2A,   U0A5E   ] };  // P: pa, pha
+     key <AD10>   { [   U0A2A,   U0A5E, VoidSymbol,U0A5E  ] };  // P: pa, pha
      key <AD11>   { [   U0A21,   U0A22,   bracketleft,   braceleft   ] };  
      key <AD12>	 { [   U0A19,   U0A1E,   bracketright, braceright   ] };
      
      //A Row
      key <AC01>   { [   U0A4B,	 U0A13  ] };   // A: o, oo
-     key <AC02>   { [   U0A40,    U0A0F   ] };  // S: e, ee
+     key <AC02>   { [   U0A47,    U0A0F   ] };  // S: e, ee
      key <AC03>   { [   U0A4D,    U0A05   ] };  // D: halant, aa
      key <AC04>   { [   U0A3F,    U0A07   ] };  // F: i, aa
      key <AC05>   { [   U0A41,    U0A09   ] };  // G: u, uh
      key <AC06>   { [   U0A39,    U0A20   ] };  // H: ha, thha
-     key <AC07>   { [   U0A1C,    U0A1D   ] };  // J: ja, jha
-     key <AC08>   { [   U0A15,    U0A16   ] };  // K: ka, kha
-     key <AC09>   { [   U0A32,	 U0A25   ] };  // L: la, tha
-     key <AC10>   { [   U0A38,   semicolon, colon  ] }; //; sa
+     key <AC07>   { [   U0A1C,    U0A1D, U0A5B   ] };  // J: ja, jha
+     key <AC08>   { [   U0A15,    U0A16,VoidSymbol ,U0A59   ] };  // K: ka, kha
+     key <AC09>   { [   U0A32,	 U0A25, U0A33   ] };  // L: la, tha
+     key <AC10>   { [   U0A38,   colon, U0A36  ] }; //; sa
      key <AC11>   { [apostrophe, quotedbl ] };
  
      //Z Row
