@@ -10,7 +10,7 @@ dist_symbols_DATA = \
  fi fr gb gr it \
  jp kr lt lv nl \
  no pl pt ro ru \
- se sk solaris tr tuv \
+ se sk solaris tr \
  tw ua us
 
 DATA_FILES=$(dist_symbols_DATA:%=$(DESTDIR)\%)
