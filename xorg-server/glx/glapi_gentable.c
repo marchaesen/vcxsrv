@@ -8585,6 +8585,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->GetInternalformativ) {
+        void ** procp = (void **) &disp->GetInternalformativ;
+        snprintf(symboln, sizeof(symboln), "%sGetInternalformativ", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->TexStorage1D) {
         void ** procp = (void **) &disp->TexStorage1D;
         snprintf(symboln, sizeof(symboln), "%sTexStorage1D", symbol_prefix);
