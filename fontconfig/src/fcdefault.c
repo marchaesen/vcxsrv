@@ -104,11 +104,81 @@ retry:
     return lang;
 }
 
+static FcChar8 *default_prgname;
+
+FcChar8 *
+FcGetPrgname (void)
+{
+    FcChar8 *prgname;
+retry:
+    prgname = fc_atomic_ptr_get (&default_prgname);
+    if (!prgname)
+    {
+#ifdef _WIN32
+	char buf[MAX_PATH+1];
+
+	/* TODO This is ASCII-only; fix it. */
+	if (GetModuleFileNameA (GetModuleHandle (NULL), buf, sizeof (buf) / sizeof (buf[0])) > 0)
+	{
+	    char *p;
+	    unsigned int len;
+
+	    p = strrchr (buf, '\\');
+	    if (p)
+		p++;
+	    else
+		p = buf;
+
+	    len = strlen (p);
+
+	    if (len > 4 && 0 == strcmp (p + len - 4, ".exe"))
+	    {
+		len -= 4;
+		buf[len] = '\0';
+	    }
+
+	    prgname = FcStrdup (p);
+	}
+#else
+	char buf[8192];
+	unsigned int len;
+
+	len = readlink ("/proc/self/exe", buf, sizeof (buf) - 1);
+	if (len > 0)
+	{
+	    char *p;
+
+	    p = strrchr (buf, '/');
+	    if (p)
+		p++;
+	    else
+		p = buf;
+
+	    prgname = FcStrdup (p);
+	}
+#endif
+
+	if (!prgname)
+	    prgname = FcStrdup ("");
+
+	if (!fc_atomic_ptr_cmpexch (&default_prgname, NULL, prgname)) {
+	    free (prgname);
+	    goto retry;
+	}
+    }
+
+    if (prgname && !prgname[0])
+	return NULL;
+
+    return prgname;
+}
+
 void
 FcDefaultFini (void)
 {
     FcChar8  *lang;
     FcStrSet *langs;
+    FcChar8  *prgname;
 
     lang = fc_atomic_ptr_get (&default_lang);
     if (lang && fc_atomic_ptr_cmpexch (&default_lang, lang, NULL)) {
@@ -119,6 +189,11 @@ FcDefaultFini (void)
     if (langs && fc_atomic_ptr_cmpexch (&default_langs, langs, NULL)) {
 	FcRefInit (&langs->ref, 1);
 	FcStrSetDestroy (langs);
+    }
+
+    prgname = fc_atomic_ptr_get (&default_prgname);
+    if (prgname && fc_atomic_ptr_cmpexch (&default_prgname, prgname, NULL)) {
+	free (prgname);
     }
 }
 
@@ -195,7 +270,7 @@ FcDefaultSubstitute (FcPattern *pattern)
      * exact matched "en" has higher score than ll-cc.
      */
     v2.type = FcTypeString;
-    v2.u.s = FcStrdup ("en-us");
+    v2.u.s = (FcChar8 *) "en-us";
     if (FcPatternObjectGet (pattern, FC_FAMILYLANG_OBJECT, 0, &v) == FcResultNoMatch)
     {
 	FcPatternObjectAdd (pattern, FC_FAMILYLANG_OBJECT, namelang, FcTrue);
@@ -211,7 +286,13 @@ FcDefaultSubstitute (FcPattern *pattern)
 	FcPatternObjectAdd (pattern, FC_FULLNAMELANG_OBJECT, namelang, FcTrue);
 	FcPatternObjectAddWithBinding (pattern, FC_FULLNAMELANG_OBJECT, v2, FcValueBindingWeak, FcTrue);
     }
-    FcFree (v2.u.s);
+
+    if (FcPatternObjectGet (pattern, FC_PRGNAME_OBJECT, 0, &v) == FcResultNoMatch)
+    {
+	FcChar8 *prgname = FcGetPrgname ();
+	if (prgname)
+	    FcPatternObjectAddString (pattern, FC_PRGNAME_OBJECT, prgname);
+    }
 }
 #define __fcdefault__
 #include "fcaliastail.h"

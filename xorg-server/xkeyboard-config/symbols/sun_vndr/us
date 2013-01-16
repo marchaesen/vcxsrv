@@ -1,5 +1,5 @@
 //
-// Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+// Copyright (c) 2010, 2012, Oracle and/or its affiliates. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the
@@ -26,375 +26,180 @@
 // or other dealings in this Software without prior written authorization
 // of the copyright holder.
 //
-//
-//Copyright 1996, 1998  The Open Group
-//
-//All Rights Reserved.
-//
-//The above copyright notice and this permission notice shall be
-//included in all copies or substantial portions of the Software.
-//
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-//EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-//MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-//IN NO EVENT SHALL THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR
-//OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-//ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-//OTHER DEALINGS IN THE SOFTWARE.
-//
-//Except as contained in this notice, the name of The Open Group shall
-//not be used in advertising or otherwise to promote the sale, use or
-//other dealings in this Software without prior written authorization
-//from The Open Group.
-//
 
-//
-// CDDL HEADER START
-//
-// The contents of this file are subject to the terms of the
-// Common Development and Distribution License (the "License").
-// You may not use this file except in compliance with the License.
-//
-// You can obtain a copy of the license at src/OPENSOLARIS.LICENSE
-// or http://www.opensolaris.org/os/licensing.
-// See the License for the specific language governing permissions
-// and limitations under the License.
-//
-// When distributing Covered Code, include this CDDL HEADER in each
-// file and include the License file at src/OPENSOLARIS.LICENSE.
-// If applicable, add the following below this CDDL HEADER, with the
-// fields enclosed by brackets "[]" replaced with your own identifying
-// information: Portions Copyright [yyyy] [name of copyright owner]
-//
-// CDDL HEADER END
-//
-
-// Symbols shared by all Sun Keyboard layouts
+partial default alphanumeric_keys
 xkb_symbols "sunbasic" {
-    include "srvr_ctrl(xfree86)"
-
-    // Needed for left function keys and volume keys
-    // Need to include this before us(basic) otherwise tilde is mapped to 
-    // a jp key
-    include "inet(evdev)"
 
     include "us(basic)"
-    include "srvr_ctrl(fkey2vt)"
-    include "pc(editing)"
-    include "keypad(x11)"
-
-    key <ESC>  { [ Escape               ]                       };
-
-    // the extra key on most European keyboards
-    key <LSGT> { [ less,    greater,      bar,    brokenbar   ] };
-
-    // these keys are common to almost all layouts
-    key <BKSL> { [ backslash,    bar    ]                       };
-    key <SPCE> { [ space                ]                       };
-
-    key <BKSP> { [ BackSpace            ]                       };
-    key  <TAB> { [ Tab,  ISO_Left_Tab   ]                       };
-    key <RTRN> { [ Return               ]                       };
-
-    key <NMLK> { [ Num_Lock, Pointer_EnableKeys               ] };
-
-    key <COMP> { [ Multi_key            ]                       };
-    // End alphanumeric section
-
-    key <LFSH> { [ Shift_L              ]                       };
-    key <LCTL> { [ Control_L            ]                       };
-
-    key <RTSH> { [ Shift_R              ]                       };
-    key <RCTL> { [ Control_R            ]                       };
-
-
-    // begin modifier mappings
-    modifier_map Shift  { Shift_L, Shift_R };
-    modifier_map Lock   { Caps_Lock };
-    modifier_map Control{ Control_L, Control_R };
-    modifier_map Mod2   { Num_Lock };
-
-    //  Fake keys for virtual<->real modifiers mapping 
-    key <LVL3> { [ ISO_Level3_Shift      ]                     };
-    key <MDSW> { [ Mode_switch           ]                     };
-    modifier_map Mod5   { <LVL3>, <MDSW> };
-
-    key <ALT>  { [ NoSymbol, Alt_L       ]                     };
-    key <LALT> {        [       Alt_L,  Alt_L           ]       };
-    key <LWIN> {        [       Meta_L                  ]       };
-    key <RWIN> {        [       Meta_R                  ]       };
-    modifier_map Mod1   { Alt_L };
-    modifier_map Mod4   { Meta_L, Meta_R };
-
-//    key <LALT> { [ Alt_L		]			};
-//    key <ALGR> { [ Mode_switch	]			};
-//    key <LMTA> { [ Meta_L		]			};
-//    key <RMTA> { [ Meta_R		]			};
-
-    include "sun_vndr/us(left_funkeys)"
-
     include "capslock(capslock)"
-    //include "capslock(shiftlock)"
-
-
-// This default section uses the same symbols as other XKB implementations
-// for greater compatibility & AccessX MouseKeys support, but it is
-// different than the traditional Sun key mappings that date back to the
-// Sun Type 2 keyboard, in which the right side numpad were "R" function
-// keys.  To restore the original behavior, comment out this section and
-// uncomment the section below that lists the R key mappings.
-    key <KPDV> {        [  KP_Divide            ]       };
-    key <KPMU> {        [  KP_Multiply          ]       };
-    key <KPSU> {        [  KP_Subtract          ]       };
-
-    key  <KP7> {        [  KP_Home,     KP_7    ]       };
-    key  <KP8> {        [  KP_Up,       KP_8    ]       };
-    key  <KP9> {        [  KP_Prior,    KP_9    ]       };
-    key <KPAD> {        [       KP_Add          ]       };
-
-    key  <KP4> {        [  KP_Left,     KP_4    ]       };
-    key  <KP5> {        [  KP_Begin,    KP_5    ]       };
-    key  <KP6> {        [  KP_Right,    KP_6    ]       };
-
-    key  <KP1> {        [  KP_End,      KP_1    ]       };
-    key  <KP2> {        [  KP_Down,     KP_2    ]       };
-    key  <KP3> {        [  KP_Next,     KP_3    ]       };
-    key <KPEN> {        [       KP_Enter        ]       };
-
-    key  <KP0> {        [  KP_Insert,   KP_0    ]       };
-    key <KPDL> {  	[  KP_Delete, KP_Decimal ]    	};
-
-// End New Keypad section - Begin Sun traditional Keypad section
-
-//    key  <KP7> { [ R7,        R7              ], [ KP_7, Home         ] };
-//    key  <KP8> { [ Up, R8               ], [ KP_8               ] };
-//    key  <KP9> { [ R9,        R9              ], [ KP_9, Prior        ] };
-//    key <KPAD> { [ KP_Add             ]                       };
-//
-//    key  <KP4> { [ Left, R10          ], [ KP_4               ] };
-//    key  <KP5> { [ R11,       R11             ], [ KP_5               ] };
-//    key  <KP6> { [ Right, R12         ], [ KP_6               ] };
-//
-//    key  <KP1> { [ R13,       R13             ], [ KP_1,      End     ] };
-//    key  <KP2> { [ Down, R14          ], [ KP_2               ] };
-//    key  <KP3> { [ R15,       R15             ], [ KP_3,      Next    ] };
-//    key <KPEN> { [ KP_Enter           ]                       };
-//    key  <KP0> { [ KP_Insert, KP_Insert], [ KP_0              ]       };
-//    key <KPDL> { [ Delete, Delete     ], [ KP_Decimal ]       };
-
-// End "Keypad" section
+    include "srvr_ctrl(xfree86)"
 
 };
 
+partial alphanumeric_keys
+xkb_symbols "sun_type6" {
 
-xkb_symbols "left_funkeys" {
-    // Suppliment to inet(evdev) for added functionality of left-funkeys
-    //key <STOP> { [ NoSymbol ],      [ L1, L1   ]       };
-    //key <AGAI> { [ NoSymbol ],      [ L2, L2   ]       };
-    //key <PROP> { [ NoSymbol ],      [ L3, L3   ]       };
-    //key <UNDO> { [ NoSymbol ],      [ L4, L4   ]       };
-    //key <FRNT> { [ NoSymbol ],      [ L5, L5   ]       };
-    //key <COPY> { [ NoSymbol ],      [ L6, L6   ]       };
-    //key <OPEN> { [ NoSymbol ],      [ L7, L7   ]       };
-    //key <PAST> { [ NoSymbol ],      [ L8, L8   ]       };
-    //key <FIND> { [ NoSymbol ],      [ L9, L9   ]       };
-    //key <CUT>  { [ NoSymbol ],      [ L10, L10 ]       };
+	name[Group1]= "English (US, Sun Type 6/7)";
 
-    // The above symbols were chosen for better compatibility withother xkb
-    // mappings.  The old mappings are kepy below in case someone needs them
-    key <STOP> { [ L1,        L1,  SunStop    ]       };
-    key <AGAI> { [ L2,        L2,  SunAgain   ]       };
-    key <PROP> { [ L3,        L3,  SunProps   ]       };
-    key <UNDO> { [ L4,        L4,  SunUndo    ]       };
-    key <FRNT> { [ L5,        L5,  SunFront   ]       };
-    key <COPY> { [ L6,        L6,  SunCopy    ]       };
-    key <OPEN> { [ L7,        L7,  SunOpen    ]       };
-    key <PAST> { [ L8,        L8,  SunPaste   ]       };
-    key <FIND> { [ L9,        L9,  SunFind    ]       };
-    key <CUT>  { [ L10,       L10, SunCut     ]       };
-};
-
-hidden
-xkb_symbols "volumekeys" {
-    // Suppliment to inet(evdev) for added functionality of audio keys
-    key <MUTE> { [ NoSymbol,    SunVideoDegauss         ]       };
-    key <VOL-> { [ NoSymbol,    XF86MonBrightnessDown   ]       };
-    key <VOL+> { [ NoSymbol,    XF86MonBrightnessUp     ]       };
-
-    // The above symbols were chosen for better compatibility withother xkb
-    // mappings.  The old mappings are kepy below in case someone needs them
-    //key <MUTE> { [ SunAudioMute,      SunVideoDegauss         ]       };
-    //key <VOL-> { [ SunAudioLowerVolume,       SunVideoLowerBrightness ]       };
-    //key <VOL+> { [ SunAudioRaiseVolume,       SunVideoRaiseBrightness ]       };
-    //key <POWR> { [ SunPowerSwitch,    SunPowerSwitchShift     ]       };
-};
-
-
-// US/ASCII layout for a Type 4 Sun keyboard
-xkb_symbols "type4basic" {
     include "sun_vndr/us(sunbasic)"
-
-    // A few alphanumeric keys are different
-    key <AE04> { [ 4, dollar,  EuroSign	]	};
-    key <AE05> { [ 5, percent,  EuroSign	]	};
-    key <AD03> { [ e, E,  EuroSign	]	};
-
-    key <LNFD> { [ Linefeed		]			};
-
-    // Begin "Editing" section
-    key <PRSC> { [ R2,	R2,  Print		] };
-    key <SCLK> { [ R3,	R3,  Scroll_Lock, Break	] };
-    key <PAUS> { [ R1,	R1,  Pause		] };
-
-    // End "Editing" section, begin "Keypad"
-    key <KPEQ> { [ R4,	KP_Equal,  KP_Equal		] };
-
-};
-
-xkb_symbols "type4" {
-    include "sun_vndr/us(type4basic)"
-
-    key <BKSL> { [ backslash, bar,  brokenbar	]	};
-};
-
-// US/ASCII layout for a Type 5 Sun keyboard
-xkb_symbols "type5basic" {
-    include "sun_vndr/us(sunbasic)"
-    include "sun_vndr/us(volumekeys)"
-
-    // Begin "Editing" section
-    key <PRSC> { [ R2, R2,  Print, SunSys_Req	]	};
-    key <SCLK> { [ R3, R3,  Scroll_Lock	]	};
-    key <PAUS> { [ R1, R1,  Pause, Break	]	};
-    // End "Editing" section
-};
-
-xkb_symbols "type5" {
-    include "sun_vndr/us(type5basic)"
-
-    // A few alphanumeric keys are different
-    key <AE04> { [ 4, dollar,  EuroSign	]	};
-    key <AE05> { [ 5, percent,  EuroSign	]	};
-    key <AD03> { [ e, E	,  EuroSign	]	};
-    key <BKSL> { [ backslash, bar,  brokenbar	]	};
-};
-
-// US/ASCII layout for a Type 5 Sun keyboard
-xkb_symbols "type5hobobasic" {
-    include "sun_vndr/us(type5basic)"
-};
-
-xkb_symbols "type5hobo" {
-    include "sun_vndr/us(type5hobobasic)"
-
-    // A few alphanumeric keys are different
-    key <AE04> { [ 4, dollar,  EuroSign   ]       };
-    key <AE05> { [ 5, percent,  EuroSign   ]       };
-    key <AD03> { [ e, E,  EuroSign   ]       };
-    key <BKSL> { [ backslash, bar,  brokenbar  ]       };
-
-    // Here is the hobo keypad:
-
-    key <AE07> { [ 7, ampersand, NoSymbol, NoSymbol, KP_7       ] };
-    key <AE08> { [ 8, asterisk,  NoSymbol, NoSymbol, KP_8       ] };
-    key <AE09> { [ 9, parenleft, NoSymbol, NoSymbol, KP_9       ] };
-    key <AE10> { [ 0, parenright, NoSymbol, NoSymbol, KP_Multiply] };
-
-    key <AD07> { [ u, U, NoSymbol, NoSymbol, KP_4       ] };
-    key <AD08> { [ i, I, NoSymbol, NoSymbol, KP_5       ] };
-    key <AD09> { [ o, O, NoSymbol, NoSymbol, KP_6       ] };
-    key <AD10> { [ p, P, NoSymbol, NoSymbol, KP_Subtract] };
-
-    key <AC07> { [ j, J, NoSymbol, NoSymbol, KP_1       ] };
-    key <AC08> { [ k, K, NoSymbol, NoSymbol, KP_2       ] };
-    key <AC09> { [ l, L, NoSymbol, NoSymbol, KP_3       ] };
-    key <AC10> { [ semicolon, colon, NoSymbol, NoSymbol, KP_Add   ] };
-
-    key <RTRN> { [ Return, NoSymbol, NoSymbol, KP_Enter    ] };
-
-    key <AB07> { [ m, M,  NoSymbol, NoSymbol, KP_0       ] };
-
-    key <AB09> { [ period, greater, NoSymbol, NoSymbol, KP_Decimal] };
-    key <AB10> { [ slash, question, NoSymbol, NoSymbol, KP_Divide ] };
-};
-
-
-xkb_symbols "type6" {
-    include "sun_vndr/us(sunbasic)"
-    include "sun_vndr/us(volumekeys)"
     include "eurosign(4)"
     include "level3(ralt_switch)"
 
-    key <SYRQ> { [ SunSys_Req                   ]};
+    key <COMP> { [		Multi_key			] };
+    key <SYRQ> { [		SunSys_Req			] };
 };
 
-
-
-xkb_symbols "pc101" {
-    include "us(pc101)"
-    key <RALT> { [ Mode_switch, Meta_R	] };
+partial alphanumeric_keys
+	xkb_symbols "basic" {
+	include "sun_vndr/us(sunbasic)"
 };
 
-xkb_symbols "pc102" {
-    include "us(pc102)"
-    key <RALT> { [ Mode_switch, Meta_R	] };
+partial alphanumeric_keys
+	xkb_symbols "euro" {
+	include "us(euro)"
 };
 
-xkb_symbols "pc104" {
-    include "us(pc104)"
+partial alphanumeric_keys
+	xkb_symbols "intl" {
+	include "us(intl)"
 };
 
-xkb_symbols "pc101currency" {
-
-    key <AE04> { [ 4, dollar		], [ EuroSign	]	};
-    key <AE05> { [ 5, percent		], [ EuroSign	]	};
-    key <AD03> { [ e, E			], [ EuroSign	]	};
-    key <BKSL> { [ backslash, bar	], [ brokenbar			]};
+partial alphanumeric_keys
+	xkb_symbols "alt-intl" {
+	include "us(alt-intl)"
 };
 
-xkb_symbols "US101A_Sun" {
+partial alphanumeric_keys
+	xkb_symbols "dvorak" {
+	include "us(dvorak)"
+};
 
-    key <AE04> { [ 4, dollar		], [ EuroSign	]	};
-    key <AE05> { [ 5, percent		], [ EuroSign	]	};
-    key <AD03> { [ e, E			], [ EuroSign	]	};
-    key <BKSL> { [ backslash, bar	], [ brokenbar			]};
+partial alphanumeric_keys
+	xkb_symbols "dvorak-intl" {
+	include "us(dvorak-intl)"
+};
 
-    // Begin "Editing" section
-    key <PRSC> { [ L5, L5		], [ Print, SunSys_Req 		]};
-    key <SCLK> { [ L7, L7		], [  Scroll_Lock		]};
-    key <PAUS> { [ L1, L1		], [ Pause, Break 		]};
-    key  <INS> { [ L8, L8		], [  Insert			]};
-    key <HOME> { [ L6, L6		], [  Home			]};
-    key <PGUP> { [ L3, L3		], [  Prior			]};
+partial alphanumeric_keys
+	xkb_symbols "dvorak-alt-intl" {
+	include "us(dvorak-alt-intl)"
+};
 
+partial alphanumeric_keys
+	xkb_symbols "dvorak-l" {
+	include "us(dvorak-l)"
+};
 
-    key <DELE> { [ L10, L10		], [ Delete			]};
-    key  <END> { [ L9, L9		], [  End			]};
-    key <PGDN> { [ L4, L4		], [  Next			]};
+partial alphanumeric_keys
+	xkb_symbols "dvorak-r" {
+	include "us(dvorak-r)"
+};
 
-    key   <UP> {	[  Up			]	};
-    key <LEFT> {	[  Left			]	};
-    key <DOWN> {	[  Down			]	};
-    key <RGHT> {	[  Right		]	};
+partial alphanumeric_keys
+	xkb_symbols "dvorak-classic" {
+	include "us(dvorak-classic)"
+};
 
-    key <KPDV> { [ R5, R5		], [ KP_Divide	]	};
-    key <KPMU> { [ R6, R6		], [ KP_Multiply	]	};
+partial alphanumeric_keys
+	xkb_symbols "dvp" {
+	include "us(dvp)"
+};
 
-    key  <KP7> { [ R7, KP_7		], [ KP_7, Home		]	};
-    key  <KP8> { [ KP_Up, KP_8		], [ KP_8		]	};
-    key  <KP9> { [ R9, KP_9		], [ KP_9, Prior	]	};
-    key <KPAD> { [ KP_Add		]				};
+partial alphanumeric_keys
+	xkb_symbols "rus" {
+	include "us(rus)"
+};
 
-    key  <KP4> { [ KP_Left, KP_4	], [ KP_4		]	};
-    key  <KP5> { [ R11,	KP_5		], [ KP_5		]	};
-    key  <KP6> { [ KP_Right, KP_6	], [ KP_6		]	};
+partial alphanumeric_keys
+	xkb_symbols "mac" {
+	include "us(mac)"
+};
 
-    key  <KP1> { [ R13,	KP_1		], [ KP_1, End		]	};
-    key  <KP2> { [ KP_Down, KP_2	], [ KP_2		]	};
-    key  <KP3> { [ R15,	KP_3		], [ KP_3, Next		]	};
-    key <KPEN> { [ KP_Enter		]				};
+partial alphanumeric_keys
+	xkb_symbols "colemak" {
+	include "us(colemak)"
+};
 
-    key <LALT> { [ Meta_L		]				};
-    key <RALT> { [ Alt_L		]				};
-    key <RCTL> { [ Multi_key		]				};
+partial alphanumeric_keys
+	xkb_symbols "altgr-intl" {
+	include "us(altgr-intl)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "classmate" {
+	include "us(classmate)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "classmate-intl" {
+	include "us(classmate-intl)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "classmate-alt-intl" {
+	include "us(classmate-alt-intl)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "classmate-altgr-intl" {
+	include "us(classmate-altgr-intl)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "olpc" {
+	include "us(olpc)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "olpc2" {
+	include "us(olpc2)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "chr" {
+	include "us(chr)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "hbs" {
+	include "us(hbs)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "htcdream" {
+	include "us(htcdream)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "workman" {
+	include "us(workman)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "workman-intl" {
+	include "us(workman-intl)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "cz_sk_de" {
+	include "us(cz_sk_de)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "intl-unicode" {
+	include "us(intl-unicode)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "alt-intl-unicode" {
+	include "us(alt-intl-unicode)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "ats" {
+	include "us(ats)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "crd" {
+	include "us(crd)"
 };

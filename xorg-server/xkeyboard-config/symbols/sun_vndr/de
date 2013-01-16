@@ -1,6 +1,5 @@
 //
-//
-// Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+// Copyright (c) 2010, 2012, Oracle and/or its affiliates. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the
@@ -28,31 +27,12 @@
 // of the copyright holder.
 //
 
-//
-// CDDL HEADER START
-//
-// The contents of this file are subject to the terms of the
-// Common Development and Distribution License (the "License").
-// You may not use this file except in compliance with the License.
-//
-// You can obtain a copy of the license at src/OPENSOLARIS.LICENSE
-// or http://www.opensolaris.org/os/licensing.
-// See the License for the specific language governing permissions
-// and limitations under the License.
-//
-// When distributing Covered Code, include this CDDL HEADER in each
-// file and include the License file at src/OPENSOLARIS.LICENSE.
-// If applicable, add the following below this CDDL HEADER, with the
-// fields enclosed by brackets "[]" replaced with your own identifying
-// information: Portions Copyright [yyyy] [name of copyright owner]
-//
-// CDDL HEADER END
-//
-
 partial default alphanumeric_keys
-xkb_symbols "type6" {
+xkb_symbols "sun_type6" {
 
-    name[Group1]="Germany";
+    name[Group1]="German (Sun Type 6/7)";
+
+	include "sun_vndr/us(sun_type6)"
 
     key <TLDE> { [     asciicircum,           degree                   ] };
     key <AE02> { [               2,         quotedbl,     twosuperior  ] }; 
@@ -86,55 +66,106 @@ xkb_symbols "type6" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "type4" {
-
-    name[Group1]="Germany - Sun type 4";
-
-    key <BKSL>  { [           less,     braceleft     					      ] };
-    key <BRCR>  { [        greater,    braceright     					      ] };
-    key <DELE>  { [         Delete                                                            ] };
-
-    key <AE01> { [               1,          plus,               exclam                       ] };
-    key <AE02> { [               2,      quotedbl,                   at,            oneeighth ]	};
-    key <AE03> { [               3,      asterisk,           numbersign,             sterling ]	};
-    key <AE04> { [               4,      ccedilla,                 cent                       ]	};
-    key <AE05> { [               5,       percent,           asciitilde                       ] };
-    key <AE06> { [               6,     ampersand,              section                       ] };
-    key <AE07> { [               7,         slash,                  bar                       ] };
-    key <AE08> { [               8,     parenleft,               degree                       ] };
-    key <AE09> { [               9,    parenright,            backslash                       ] };
-    key <AE10> { [               0,         equal,          asciicircum                       ] };
-    Key <AE11> { [      quoteright,      question,            quoteleft                       ] };
-    key <AE12> { [ dead_circumflex,    dead_grave                                             ] };
-
-    key <AD03>	{ [              e,             E,             EuroSign,             EuroSign ]	};
-    key <AD06>	{ [              z,             Z,            leftarrow,                  yen ]	};
-    key <AD11>	{ [     udiaeresis,        egrave,       dead_diaeresis,       dead_abovering ] };
-    key <AD12>	{ [ dead_diaeresis,    dead_acute                                             ] };
-
-    key <AC02>  { [              s,             S                                             ] };
-    key <AC07>  { [              j,             J,        dead_belowdot,        dead_abovedot ] };
-    key <AC10>	{ [     odiaeresis,        eacute,     dead_doubleacute,        dead_belowdot ] };
-    key <AC11>	{ [     adiaeresis,        agrave,      dead_circumflex,           dead_caron ] };
-    key <TLDE>	{ [         dollar,    dead_tilde,             sterling                       ] };
-
-    key <AB01>	{ [              y,             Y,       guillemotright                       ] };
-    key <AB02>	{ [              x,             X,        guillemotleft 	              ] };
-    key <AB04>	{ [              v,             V,   doublelowquotemark,   singlelowquotemark ]	};
-    key <AB05>	{ [              b,             B,  leftdoublequotemark,  leftsinglequotemark ] };
-    key <AB06>	{ [              n,             N, rightdoublequotemark, rightsinglequotemark ]	};    
-    key <AB07>  { [              m,             M,                   mu                       ] };
-    key <AB08>  { [          comma,     semicolon,       periodcentered,             multiply ] };
-    key <AB09>	{ [         period,         colon                                             ] };
-    key <AB10>	{ [          minus,    underscore                                             ] };
-
-	include "level3(ralt_switch)"
-	include "kpdl(comma)"
-
+	xkb_symbols "basic" {
+	include "sun_vndr/de(sun_type6)"
 };
 
+partial alphanumeric_keys
+	xkb_symbols "legacy" {
+	include "de(legacy)"
+};
 
 partial alphanumeric_keys
-	xkb_symbols "basic" {
-	include "sun_vndr/de(type6)"
+	xkb_symbols "nodeadkeys" {
+	include "de(nodeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "deadgraveacute" {
+	include "de(deadgraveacute)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "deadacute" {
+	include "de(deadacute)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "ro" {
+	include "de(ro)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "ro_nodeadkeys" {
+	include "de(ro_nodeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "dvorak" {
+	include "de(dvorak)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "Sundeadkeys" {
+	include "de(Sundeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "sundeadkeys" {
+	include "de(sundeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "neo_base" {
+	include "de(neo_base)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "neo" {
+	include "de(neo)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "mac" {
+	include "de(mac)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "mac_nodeadkeys" {
+	include "de(mac_nodeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "dsb" {
+	include "de(dsb)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "dsb_qwertz" {
+	include "de(dsb_qwertz)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "qwerty" {
+	include "de(qwerty)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "ru" {
+	include "de(ru)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "htcdream" {
+	include "de(htcdream)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "us" {
+	include "de(us)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "hu" {
+	include "de(hu)"
 };

@@ -38,7 +38,7 @@ xkb_symbols "deva" {
 	// INSCRIPT in place of the symbols that are here for now.  But this
 	// requires XKB to map 1 key into two to three other key presses.
 	key <AE03> { [ U0969, numbersign,  3, numbersign  ] };
-	key <AE04> { [ U096a, dollar,      4, dollar      ] };
+	key <AE04> { [ U096a, dollar,      4		  ] };
 	key <AE05> { [ U096b, percent,     5, percent     ] };
 	key <AE06> { [ U096c, asciicircum, 6, asciicircum ] };
 	key <AE07> { [ U096d, ampersand,   7, ampersand   ] };
@@ -89,6 +89,8 @@ xkb_symbols "deva" {
 
 	// space, space, Zero-Width-Non-Joiner (ZWNJ), Zero-Width-Joiner (ZWJ):
 	include "nbsp(zwnj3zwj4)"
+        include "rupeesign(4)"
+        include "level3(ralt_switch)"
 };
 
 //Name		:	Bolnagri (Combined)
@@ -110,7 +112,7 @@ xkb_symbols "bolnagri" {
     key <AE01>  { [   1,	exclam,		U0967,		exclam	   ] };
     key <AE02>  { [   2,	at,		U0968,		at	   ] };
     key <AE03>  { [   3,    	numbersign, 	U0969,		numbersign ] };
-    key <AE04>  { [   4,	U20B9,		U096A,		dollar     ] }; // Rupee symbol on $
+    key <AE04>  { [   4,	dollar,		U096A			    ] }; // Rupee symbol on AltGr+4
     key <AE05>  { [   5,	percent,	U096B,		percent    ] };
     key <AE06>  { [   6,	asciicircum,	U096C,		asciicircum ] };
     key <AE07>  { [   7,	ampersand,	U096D,		ampersand  ] };
@@ -165,7 +167,9 @@ xkb_symbols "bolnagri" {
 //    modifier_map Lock   { Caps_Lock };
 //    modifier_map Control{ Control_L };
 //    modifier_map Mod3   { Mode_switch };
+
     include "level3(ralt_switch)"
+    include "rupeesign(4)"
 };
 
 // based on a keyboard map from an 'xkb/symbols/ben' file
@@ -234,6 +238,9 @@ xkb_symbols "ben" {
       key <AB08> { [      comma,      U09B7 ]       };
       key <AB09> { [      period,     U0964 ]       };
       key <AB10> { [      U09DF,  U09AF	]       };
+
+    include "level3(ralt_switch)"
+    include "rupeesign(4)"
 };
 
 xkb_symbols "ben_probhat" {
@@ -307,6 +314,8 @@ xkb_symbols "ben_probhat" {
 //   modifier_map Lock   { Caps_Lock };
 //   modifier_map Control{ Control_L };
 
+    include "level3(ralt_switch)"
+    include "rupeesign(4)"
 };
 
 // Bengali Baishakhi, Bengali Baishakhi Inscript, Bengali Bornona, Uni Gitanjali Layouts are added by Promathesh Mandal <promathesh812004@gmail.com>
@@ -670,6 +679,8 @@ xkb_symbols "guj" {
       key <AB08> { [      comma,     U0AB7  ]       };
       key <AB09> { [      period,    U0964  ]       };
       key <AB10> { [      U0AAF, question   ]       };
+      include "rupeesign(4)"
+      include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys 
@@ -736,7 +747,8 @@ xkb_symbols "kan" {
 	symbols[Group1] = [ Mode_switch, Multi_key ],
 	virtualMods = AltGr
     };
-
+    include "rupeesign(4)"
+    include "level3(ralt_switch)"
 };
 
 // Description : A keymap for Malayalam
@@ -828,6 +840,9 @@ xkb_symbols "mal" {
     key <AB09> { [ period     , U0200d ] };
     key <AB10> { [ U0d2f , question   ] };
 
+    include "rupeesign(4)"
+    include "level3(ralt_switch)"
+
 };
 
 //Name		:	Lalitha
@@ -845,7 +860,7 @@ xkb_symbols "mal_lalitha" {
     key <AE01>  { [   1,	exclam,	U0D67,		exclam	   ] };
     key <AE02>  { [   2,	at,		U0D68,		at	   ] };
     key <AE03>  { [   3,    	numbersign, 	U0D69,		numbersign ] };
-    key <AE04>  { [   4,	dollar,		U0D6A,		dollar     ] };
+    key <AE04>  { [   4,	dollar,		U0D6A			     ] };
     key <AE05>  { [   5,	percent,	U0D6B,		percent    ] };
     key <AE06>  { [   6,	asciicircum,	U0D6C,		asciicircum ] };
     key <AE07>  { [   7,	ampersand,	U0D6D,		ampersand  ] };
@@ -901,6 +916,7 @@ xkb_symbols "mal_lalitha" {
 //    modifier_map Control{ Control_L };
 //    modifier_map Mod3   { Mode_switch };
     include "level3(ralt_switch)"
+    include "rupeesign(4)"
 };
 
 
@@ -964,6 +980,8 @@ xkb_symbols "ori" {
 	symbols[Group1] = [ Mode_switch, Multi_key ],
 	virtualMods = AltGr
     };
+    include "rupeesign(4)"
+    include "level3(ralt_switch)"
 };
 
 // based on a keyboard map from an 'xkb/symbols/tml' file
@@ -1029,6 +1047,9 @@ xkb_symbols "tam" {
       key <AB08> { [      comma,      U0BB7 ]       };
       key <AB09> { [      period,     U0964 ]       };
       key <AB10> { [      U0BAF,  question  ]       };
+
+      include "level3(ralt_switch)"
+      include "rupeesign(4)"
 };
 
 partial alphanumeric_keys 
@@ -1340,6 +1361,8 @@ xkb_symbols "tel" {
         symbols[Group1] = [ Mode_switch, Multi_key ],
         virtualMods = AltGr
     };
+    include "rupeesign(4)"
+    include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys 
@@ -1425,6 +1448,9 @@ xkb_symbols "guru" {
       key <AB08> { [      comma,     less       ]       };
       key <AB09> { [      period,    U0964  ]       };
       key <AB10> { [      U0A2F, question   ]       };
+
+    include "rupeesign(4)"
+    include "level3(ralt_switch)"
 };
 
 //Name		:	Jhelum (Refind Inscript)
@@ -1443,7 +1469,7 @@ xkb_symbols "jhelum" {
      key <AE01>  { [   1,exclam,	U0A67,	exclam	   ] };
      key <AE02>  { [   2,at,	U0A68,	at	   ] };
      key <AE03>  { [   3,numbersign, U0A69,	numbersign ] };
-     key <AE04>  { [   4,dollar,	U0A6A,	dollar     ] };
+     key <AE04>  { [   4,dollar,	U0A6A		 ] };
      key <AE05>  { [   5,percent,U0A6B,	percent    ] };
      key <AE06>  { [   6,U0A73, U0A6C,asciicircum ] };
      key <AE07>  { [   7,U0A72,U0A6D,ampersand  ] };
@@ -1458,7 +1484,7 @@ xkb_symbols "jhelum" {
      key <AD01>   { [   U0A4C, 	U0A14   ] };  // Q: oo, ooh
      key <AD02>   { [   U0A48,  	U0A10	] };  // W: ee, ae
      key <AD03>   { [   U0A3E,   U0A06  ] };  // E: a, aa
-     key <AD04>   { [   U0A40,	U0A08  	] };  // R: ee, ai
+     key <AD04>   { [   U0A40,	U0A08, U20B9  	] };  // R: ee, ai, rupeesign
      key <AD05>   { [   U0A42,   U0A0A   ] };  // T: u, uu
      key <AD06>   { [   U0A30,	U0A5C   ] };  // Y: ra, raa
      key <AD07>   { [   U0A26,   U0A27   ] };  // U: tha, thha
@@ -1563,6 +1589,8 @@ xkb_symbols "olpc" {
   include "nbsp(zwnj3zwj4)"
 
   include "group(olpc)"
+  include "rupeesign(4)"
+  include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys 
@@ -1628,6 +1656,7 @@ xkb_symbols "hin-wx" {
       key <AB10> {       [      slash,      question        ]       };
 
     include "level3(ralt_switch)"
+    include "rupeesign(4)"
 };
 
 partial alphanumeric_keys

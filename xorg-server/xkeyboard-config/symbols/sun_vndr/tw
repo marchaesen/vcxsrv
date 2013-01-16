@@ -1,5 +1,5 @@
 //
-// Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+// Copyright (c) 2010, 2012, Oracle and/or its affiliates. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the
@@ -27,52 +27,34 @@
 // of the copyright holder.
 //
 
-//
-// CDDL HEADER START
-//
-// The contents of this file are subject to the terms of the
-// Common Development and Distribution License (the "License").
-// You may not use this file except in compliance with the License.
-//
-// You can obtain a copy of the license at src/OPENSOLARIS.LICENSE
-// or http://www.opensolaris.org/os/licensing.
-// See the License for the specific language governing permissions
-// and limitations under the License.
-//
-// When distributing Covered Code, include this CDDL HEADER in each
-// file and include the License file at src/OPENSOLARIS.LICENSE.
-// If applicable, add the following below this CDDL HEADER, with the
-// fields enclosed by brackets "[]" replaced with your own identifying
-// information: Portions Copyright [yyyy] [name of copyright owner]
-//
-// CDDL HEADER END
-//
+default partial alphanumeric_keys
+xkb_symbols "sun_type6" {
 
-// Taiwanese layout for a Type 6 Sun keyboard
-partial
-xkb_symbols "type6" {
-    // A few keys are different from US layout - only those are shown here
+	name[Group1]= "Taiwanese (Sun Type 6/7)";
+
+	include "sun_vndr/us(sunbasic)"
+
     key <ALGR> { [ Henkan_Mode          ]                       };
     key <BKSL> { [ backslash, bar,  brokenbar   ]               };
 
 };
 
-
-// Taiwanese layout for a Type 4 Sun keyboard
-
-xkb_symbols "type4" {
-
-    key <BKSL> { [ backslash, bar,  brokenbar	]		};
-
-    key <COMP> { [ Henkan_Mode		]			};
-
+partial alphanumeric_keys
+	xkb_symbols "basic" {
+	include "sun_vndr/tw(sun_type6)"
 };
 
-// Taiwanese layout for a Type 5 Sun keyboard
-xkb_symbols "type5" {
+partial alphanumeric_keys
+	xkb_symbols "tw" {
+	include "tw(tw)"
+};
 
-    // A few keys are different
-    key <ALGR> { [ Henkan_Mode		]			};
-    key <BKSL> { [ backslash, bar,  brokenbar	]		};
+partial alphanumeric_keys
+	xkb_symbols "indigenous" {
+	include "tw(indigenous)"
+};
 
+partial alphanumeric_keys
+	xkb_symbols "saisiyat" {
+	include "tw(saisiyat)"
 };

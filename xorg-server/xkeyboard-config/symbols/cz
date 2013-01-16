@@ -175,3 +175,10 @@ xkb_symbols "dvorak-ucw" {
 
     include "level3(ralt_switch)"
 };
+
+// EXTRAS:
+
+partial alphanumeric_keys
+	xkb_symbols "sun_type6" {
+	include "sun_vndr/cz(sun_type6)"
+};

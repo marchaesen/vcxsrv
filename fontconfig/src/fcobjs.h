@@ -41,4 +41,6 @@ FC_OBJECT (EMBEDDED_BITMAP,	FcTypeBool)
 FC_OBJECT (DECORATIVE,		FcTypeBool)
 FC_OBJECT (LCD_FILTER,		FcTypeInteger)
 FC_OBJECT (NAMELANG,		FcTypeString)
+FC_OBJECT (FONT_FEATURES,	FcTypeString)
+FC_OBJECT (PRGNAME,		FcTypeString)
 /* ^-------------- Add new objects here. */

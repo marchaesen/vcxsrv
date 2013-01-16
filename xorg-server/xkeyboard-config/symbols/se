@@ -310,3 +310,10 @@ xkb_symbols "swl" {
   key <AE09> { [ 0x110c97b, 0x110c90a, 0x110c98b, 0x110c965 ] };
   key <AE10> { [ 0x110c974, 0x110c909, 0x110c98c, 0x110c968 ] };
 };
+
+// EXTRAS:
+
+partial alphanumeric_keys
+	xkb_symbols "sun_type6" {
+	include "sun_vndr/se(sun_type6)"
+};

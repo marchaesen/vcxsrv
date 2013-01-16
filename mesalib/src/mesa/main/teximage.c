@@ -1893,23 +1893,30 @@ texture_error_check( struct gl_context *ctx,
     * requires GL_OES_texture_float) are filtered elsewhere.
     */
 
-   if (_mesa_is_gles(ctx) && !_mesa_is_gles3(ctx)) {
-      if (format != internalFormat) {
+   if (_mesa_is_gles(ctx)) {
+      if (_mesa_is_gles3(ctx)) {
+         err = _mesa_es3_error_check_format_and_type(format, type,
+                                                     internalFormat,
+                                                     dimensions);
+      } else {
+         if (format != internalFormat) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glTexImage%dD(format = %s, internalFormat = %s)",
                      dimensions,
                      _mesa_lookup_enum_by_nr(format),
                      _mesa_lookup_enum_by_nr(internalFormat));
          return GL_TRUE;
-      }
+         }
 
-      err = _mesa_es_error_check_format_and_type(format, type, dimensions);
+         err = _mesa_es_error_check_format_and_type(format, type, dimensions);
+      }
       if (err != GL_NO_ERROR) {
          _mesa_error(ctx, err,
-                     "glTexImage%dD(format = %s, type = %s)",
+                     "glTexImage%dD(format = %s, type = %s, internalFormat = %s)",
                      dimensions,
                      _mesa_lookup_enum_by_nr(format),
-                     _mesa_lookup_enum_by_nr(type));
+                     _mesa_lookup_enum_by_nr(type),
+                     _mesa_lookup_enum_by_nr(internalFormat));
          return GL_TRUE;
       }
    }
@@ -2340,6 +2347,8 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
                          GLint width, GLint height, GLint border )
 {
    GLint baseFormat;
+   struct gl_renderbuffer *rb;
+   GLenum rb_internal_format;
 
    /* check target */
    if (!legal_texsubimage_target(ctx, dimensions, target)) {
@@ -2384,6 +2393,13 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
       return GL_TRUE;
    }
 
+   rb = _mesa_get_read_renderbuffer_for_format(ctx, internalFormat);
+   if (rb == NULL) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glCopyTexImage%dD(read buffer)", dimensions);
+      return GL_TRUE;
+   }
+
    /* OpenGL ES 1.x and OpenGL ES 2.0 impose additional restrictions on the
     * internalFormat.
     */
@@ -2409,6 +2425,8 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
       return GL_TRUE;
    }
 
+   rb_internal_format = rb->InternalFormat;
+
    if (!_mesa_source_buffer_exists(ctx, baseFormat)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glCopyTexImage%dD(missing readbuffer)", dimensions);
@@ -2423,13 +2441,20 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
     *      integer format and the read color buffer is an integer format."
     */
    if (_mesa_is_color_format(internalFormat)) {
-      struct gl_renderbuffer *rb = ctx->ReadBuffer->_ColorReadBuffer;
-
-      if (_mesa_is_enum_format_integer(rb->InternalFormat) !=
-	  _mesa_is_enum_format_integer(internalFormat)) {
-	 _mesa_error(ctx, GL_INVALID_OPERATION,
-		     "glCopyTexImage%dD(integer vs non-integer)", dimensions);
-	 return GL_TRUE;
+      bool is_int = _mesa_is_enum_format_integer(internalFormat);
+      bool is_rbint = _mesa_is_enum_format_integer(rb_internal_format);
+      if (is_int || is_rbint) {
+         if (is_int != is_rbint) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glCopyTexImage%dD(integer vs non-integer)", dimensions);
+            return GL_TRUE;
+         } else if (_mesa_is_gles(ctx) &&
+                    _mesa_is_enum_format_unsigned_int(internalFormat) !=
+                      _mesa_is_enum_format_unsigned_int(rb_internal_format)) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glCopyTexImage%dD(signed vs unsigned integer)", dimensions);
+            return GL_TRUE;
+         }
       }
    }
 
@@ -3340,9 +3365,7 @@ copyteximage(struct gl_context *ctx, GLuint dims,
                                     border, internalFormat, texFormat);
 
          /* Allocate texture memory (no pixel data yet) */
-         ctx->Driver.TexImage(ctx, dims, texImage,
-                              GL_NONE, GL_NONE,
-                              NULL, &ctx->Unpack);
+         ctx->Driver.AllocTextureImageBuffer(ctx, texImage);
 
          if (_mesa_clip_copytexsubimage(ctx, &dstX, &dstY, &srcX, &srcY,
                                         &width, &height)) {

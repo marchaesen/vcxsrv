@@ -1,5 +1,5 @@
 //
-// Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+// Copyright (c) 2010, 2012, Oracle and/or its affiliates. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the
@@ -27,33 +27,12 @@
 // of the copyright holder.
 //
 
-//
-// CDDL HEADER START
-//
-// The contents of this file are subject to the terms of the
-// Common Development and Distribution License (the "License").
-// You may not use this file except in compliance with the License.
-//
-// You can obtain a copy of the license at src/OPENSOLARIS.LICENSE
-// or http://www.opensolaris.org/os/licensing.
-// See the License for the specific language governing permissions
-// and limitations under the License.
-//
-// When distributing Covered Code, include this CDDL HEADER in each
-// file and include the License file at src/OPENSOLARIS.LICENSE.
-// If applicable, add the following below this CDDL HEADER, with the
-// fields enclosed by brackets "[]" replaced with your own identifying
-// information: Portions Copyright [yyyy] [name of copyright owner]
-//
-// CDDL HEADER END
-//
-
-
 partial default alphanumeric_keys
-xkb_symbols "type6" {
+xkb_symbols "sun_type6" {
 
-    name[Group1]="Ukraine";
+    name[Group1]="Ukrainian (Sun Type 6)";
 
+	include "sun_vndr/us(sun_type6)"
 
     key	<TLDE> {	[	    grave,	asciitilde,	apostrophe,	asciitilde	]	};
     key	<AE01> {	[		1,	    exclam,	1,	    exclam 	]	};
@@ -108,10 +87,49 @@ xkb_symbols "type6" {
     key	<AB10> {	[	    slash,	  question,	slash,	  question	        ]	};
 
 	include "level3(ralt_switch)"
-
 };
 
 partial alphanumeric_keys
 	xkb_symbols "basic" {
-	include "sun_vndr/ua(type6)"
+	include "sun_vndr/ua(sun_type6)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "unicode" {
+	include "ua(unicode)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "legacy" {
+	include "ua(legacy)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "winkeys" {
+	include "ua(winkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "typewriter" {
+	include "ua(typewriter)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "phonetic" {
+	include "ua(phonetic)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "rstu" {
+	include "ua(rstu)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "rstu_ru" {
+	include "ua(rstu_ru)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "homophonic" {
+	include "ua(homophonic)"
 };

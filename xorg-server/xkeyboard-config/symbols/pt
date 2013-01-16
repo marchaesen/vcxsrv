@@ -218,3 +218,10 @@ xkb_symbols "nativo-epo" {
     key <AB06> { [  gcircumflex,     Gcircumflex,                    q,                Q ] };
 
 };
+
+// EXTRAS:
+
+partial alphanumeric_keys
+	xkb_symbols "sun_type6" {
+	include "sun_vndr/pt(sun_type6)"
+};

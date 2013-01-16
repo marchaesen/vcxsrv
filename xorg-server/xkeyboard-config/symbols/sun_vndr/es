@@ -1,5 +1,5 @@
 //
-// Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+// Copyright (c) 2010, 2012, Oracle and/or its affiliates. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the
@@ -26,32 +26,13 @@
 // or other dealings in this Software without prior written authorization
 // of the copyright holder.
 //
- 
-//
-// CDDL HEADER START
-//
-// The contents of this file are subject to the terms of the
-// Common Development and Distribution License (the "License").
-// You may not use this file except in compliance with the License.
-//
-// You can obtain a copy of the license at src/OPENSOLARIS.LICENSE
-// or http://www.opensolaris.org/os/licensing.
-// See the License for the specific language governing permissions
-// and limitations under the License.
-//
-// When distributing Covered Code, include this CDDL HEADER in each
-// file and include the License file at src/OPENSOLARIS.LICENSE.
-// If applicable, add the following below this CDDL HEADER, with the
-// fields enclosed by brackets "[]" replaced with your own identifying
-// information: Portions Copyright [yyyy] [name of copyright owner]
-//
-// CDDL HEADER END
-//
 
 partial default alphanumeric_keys
-xkb_symbols "type6" {
+xkb_symbols "sun_type6" {
 
-    name[Group1]="Spain";
+    name[Group1]="Spanish (Sun Type 6/7)";
+
+	include "sun_vndr/us(sun_type6)"
 
     key <TLDE> { [       masculine,     ordfeminine,     backslash ] };
     key <LSGT> { [            less,         greater                ] };
@@ -78,68 +59,59 @@ xkb_symbols "type6" {
     key <AB10> { [           minus,      underscore                ] };
    
         include "level3(ralt_switch)"
-
 };
-
-
-partial alphanumeric_keys
-xkb_symbols "type4" {
-    
-    name[Group1]="Spain - Sun type 4";
-
-    key <BKSL> { [ bracketleft, braceleft,  guillemotleft    ] };
-    key <BRCR> { [ bracketright, braceright,  guillemotright ] };
-    key <AE02> { [ 2, quotedbl,  at                 ] };
-    key <AE03> { [ 3, periodcentered,  numbersign       ] };
-    key <AE05> { [ 5, percent,  degree           ] };
-    key <AE06> { [ 6, ampersand,  notsign          ] };
-    key <AE07> { [ 7, slash             ]                       };
-    key <AE08> { [ 8, parenleft         ]                       };
-    key <AE09> { [ 9, parenright, backslash        ] };
-    key <AE10> { [ 0, equal,  bar              ] };
-    key <AE11> { [ quoteright, question,  quoteleft        ] };
-    key <AE12> { [ exclamdown, questiondown ] };
-    key <AD03> { [ e, E,  EuroSign         ] };
-    key <AD09> { [ o, O,  masculine        ] };
-    key <AD11> { [ dead_grave, dead_circumflex,  asciicircum ] };
-    key <AD12> { [ plus, asterisk,  asciitilde       ] };
-    key <AC01> { [ a, A,  ordfeminine      ] };
-    key <AC10> { [ ntilde, Ntilde               ]                       };
-    key <AC11> { [ dead_acute, dead_diaeresis ]                       };
-    key <TLDE> { [ ccedilla, Ccedilla             ]                       };
-    key <RALT> { [ Alt_R                ]                       };
-    key <LCTL> { [ Caps_Lock ] };
-    key <CAPS> { [ Control_L ] };
-    key <LSGT> { [ less, greater        ]                       };
-    key <AB08> { [ comma, semicolon     ]                       };
-    key <AB09> { [ period, colon        ]                       };
-    key <AB10> { [ minus, underscore    ]                       };
-    
-};
- 
-
-partial alphanumeric_keys
-xkb_symbols "type5" {
-    include "sun_vndr/es(type4)"
-
-    name[Group1]="Spain - Sun type 5";
- 
-    key <AE03> { [ 3, periodcentered,  numbersign                 ] };
-    key <AE04> { [ 4, dollar,  asciicircum                ] };
-    key <AE05> { [ 5, percent,  asciitilde                 ] };
-    key <AE07> { [ 7, slash,  braceleft                  ]};
-    key <AE08> { [ 8, parenleft,  bracketleft                ]};
-    key <AE09> { [ 9, parenright,  bracketright               ]};
-    key <AE10> { [ 0, equal,  braceright                 ]};
-    key <AE11> { [ quoteright, question,  quoteleft                  ] };
-    key <AD11> { [ dead_grave, dead_circumflex,  bracketleft ] };
-    key <AD12> { [ dead_acute, dead_diaeresis, braceleft      ] };
- 
-	include "level3(ralt_switch)"
-};
-
 
 partial alphanumeric_keys
 	xkb_symbols "basic" {
-	include "sun_vndr/es(type6)"
+	include "sun_vndr/es(sun_type6)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "Sundeadkeys" {
+	include "es(Sundeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "sundeadkeys" {
+	include "es(sundeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "nodeadkeys" {
+	include "es(nodeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "dvorak" {
+	include "es(dvorak)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "cat" {
+	include "es(cat)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "ast" {
+	include "es(ast)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "mac" {
+	include "es(mac)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "olpc" {
+	include "es(olpc)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "deadtilde" {
+	include "es(deadtilde)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "olpc2" {
+	include "es(olpc2)"
 };

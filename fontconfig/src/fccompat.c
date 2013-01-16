@@ -100,7 +100,11 @@ FcMakeTempfile (char *template)
        return -1;
    fd = FcOpen(template, O_RDWR | O_EXCL | O_CREAT, 0600);
 #else
-#error no secure functions to create a temporary file
+   /* warn at the runtime for just debugging purpose why something may
+    * goes wrong. mingw may not have one, but it shouldn't be reached since
+    * this function isn't used so far.
+    */
+   fprintf(stderr, "Fontconfig warning: No secure functions to create a temporary file\n");
 #endif
 
     return fd;

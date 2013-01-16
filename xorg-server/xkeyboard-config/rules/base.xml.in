@@ -1199,8 +1199,64 @@
     </model>
     <model>
       <configItem>
-        <name>sun6</name>
-        <_description>Sun Type 5/6</_description>
+        <name>sun_type7_usb</name>
+        <_description>Sun Type 7 USB</_description>
+        <vendor>Sun Microsystems</vendor>
+      </configItem>
+    </model>
+    <model>
+      <configItem>
+        <name>sun_type7_euro_usb</name>
+        <_description>Sun Type 7 USB (European layout)</_description>
+        <vendor>Sun Microsystems</vendor>
+      </configItem>
+    </model>
+    <model>
+      <configItem>
+        <name>sun_type7_unix_usb</name>
+        <_description>Sun Type 7 USB (Unix layout)</_description>
+        <vendor>Sun Microsystems</vendor>
+      </configItem>
+    </model>
+    <model>
+      <configItem>
+        <name>sun_type7_jp_usb</name>
+        <_description>Sun Type 7 USB (Japanese layout) / Japanese 106-key</_description>
+        <vendor>Sun Microsystems</vendor>
+      </configItem>
+    </model>
+    <model>
+      <configItem>
+        <name>sun_type6_usb</name>
+        <_description>Sun Type 6/7 USB</_description>
+        <vendor>Sun Microsystems</vendor>
+      </configItem>
+    </model>
+    <model>
+      <configItem>
+        <name>sun_type6_euro_usb</name>
+        <_description>Sun Type 6/7 USB (European layout)</_description>
+        <vendor>Sun Microsystems</vendor>
+      </configItem>
+    </model>
+    <model>
+      <configItem>
+        <name>sun_type6_unix_usb</name>
+        <_description>Sun Type 6 USB (Unix layout)</_description>
+        <vendor>Sun Microsystems</vendor>
+      </configItem>
+    </model>
+    <model>
+      <configItem>
+        <name>sun_type6_jp_usb</name>
+        <_description>Sun Type 6 USB (Japanese layout)</_description>
+        <vendor>Sun Microsystems</vendor>
+      </configItem>
+    </model>
+    <model>
+      <configItem>
+        <name>sun_type6_jp</name>
+        <_description>Sun Type 6 (Japanese layout)</_description>
         <vendor>Sun Microsystems</vendor>
       </configItem>
     </model>
@@ -6594,6 +6650,18 @@
           <name>esperanto:dvorak</name>
           <_description>To the corresponding key in a Dvorak keyboard.</_description>
        </configItem>
+      </option>
+    </group>
+    <group allowMultipleSelection="true">
+      <configItem>
+        <name>solaris</name>
+        <_description>Maintain key compatibility with old Solaris keycodes</_description>
+      </configItem>
+      <option>
+        <configItem>
+          <name>solaris:sun_compat</name>
+          <_description>Sun Key compatibility</_description>
+        </configItem>
       </option>
     </group>
     <group allowMultipleSelection="true">
