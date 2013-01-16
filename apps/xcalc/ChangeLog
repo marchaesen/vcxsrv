@@ -1,3 +1,75 @@
+commit 7e67bcb9563302f4e89be7a2afb1ae30c185689e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Jan 14 23:08:54 2013 -0800
+
+    xcalc 1.0.5
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit fa70ea30be4c1a13d553785da8f6e920471655d4
+Author: Eric S. Raymond <esr@thyrsus.com>
+Date:   Thu Aug 23 06:12:20 2012 -0400
+
+    Use table markup rather than tab stops.  Aids DocBook translation.
+
+commit 1e885381028c2e94a7f83a6489f11ed00f18b530
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Sep 28 20:28:31 2011 -0700
+
+    Strip trailing whitespace
+    
+    Performed with: find * -type f | xargs perl -i -p -e 's{[ \t]+$}{}'
+    git diff -w & git diff -b show no diffs from this change
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit cad47868c99d4eac0ae2ad305399143a9aed3b2d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Sep 28 20:27:03 2011 -0700
+
+    Add const to parse_double() args to fix gcc -Wwrite-strings warnings
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c8ef1bb20266365a46ea82dfff79c78b6c61337d
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 19 10:06:55 2011 -0500
+
+    config: move man pages into their own directory
+    
+    Use services provided by XORG_MANPAGE_SECTIONS.
+    Use standard Makefile for man pages.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit c9c8030e71d2a3d6663f177963d8dcf148a46067
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Jan 13 17:15:36 2011 -0500
+
+    man: replace hard coded man page section with substitution strings
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 8cc897e03ff972d2f2addf54ed54d014845cc9bb
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Jan 13 11:15:47 2011 -0500
+
+    man: remove trailing spaces and tabs
+    
+    Using s/[ \t]*$//
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit d1dac5141b2398d5490453e0ff150b3db836a15f
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Jan 12 15:29:49 2011 -0500
+
+    config: replace deprecated AC_HELP_STRING with AS_HELP_STRING
+    
+    This silences an Automake warning.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
 commit 2755eae3be5fc239da792c46a10426281ee77b85
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Nov 26 13:53:42 2010 -0800

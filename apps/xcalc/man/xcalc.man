@@ -1,5 +1,6 @@
+.\" t
 .\" Copyright (c) 1994  X Consortium
-.\" 
+.\"
 .\" Permission is hereby granted, free of charge, to any person obtaining
 .\" a copy of this software and associated documentation files (the
 .\" "Software"), to deal in the Software without restriction, including
@@ -7,10 +8,10 @@
 .\" distribute, sublicense, and/or sell copies of the Software, and to
 .\" permit persons to whom the Software is furnished to do so, subject to
 .\" the following conditions:
-.\" 
+.\"
 .\" The above copyright notice and this permission notice shall be included
 .\" in all copies or substantial portions of the Software.
-.\" 
+.\"
 .\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
 .\" OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 .\" MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -18,7 +19,7 @@
 .\" OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 .\" ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 .\" OTHER DEALINGS IN THE SOFTWARE.
-.\" 
+.\"
 .\" Except as contained in this notice, the name of the X Consortium shall
 .\" not be used in advertising or otherwise to promote the sale, use or
 .\" other dealings in this Software without prior written authorization
@@ -55,7 +56,7 @@ with two additional options:
 .PP
 .TP 8
 .B \-stipple
-This option indicates that the background of the calculator should be 
+This option indicates that the background of the calculator should be
 drawn using a stipple of the foreground and background colors.  On monochrome
 displays improves the appearance.
 .PP
@@ -68,17 +69,17 @@ it will emulate a TI-30.
 .PP
 .I Pointer Usage:
 Operations may be performed with pointer button 1, or in some cases,
-with the keyboard.  
+with the keyboard.
 Many common calculator operations have keyboard accelerators.
-To quit, press pointer button 3 on the AC key of the TI calculator, 
+To quit, press pointer button 3 on the AC key of the TI calculator,
 or the ON key of the HP calculator.
 .PP
 .I Calculator Key Usage (TI mode):
-The numbered keys, the +/- key, and the +, -, *, /, and = keys all do exactly 
+The numbered keys, the +/- key, and the +, -, *, /, and = keys all do exactly
 what you would expect them to.  It should be noted that the operators obey
 the standard rules of precedence.  Thus, entering "3+4*5=" results in "23",
-not "35".  The parentheses can be used to override this.  For example, 
-"(1+2+3)*(4+5+6)=" results in "6*15=90".  
+not "35".  The parentheses can be used to override this.  For example,
+"(1+2+3)*(4+5+6)=" results in "6*15=90".
 .PP
 The entire number in the calculator display can be selected, in order to
 paste the result of a calculation into text.
@@ -133,8 +134,8 @@ Changes the DRG mode, as indicated by 'DEG', 'RAD', or 'GRAD' at the bottom of
 of the calculator ``liquid crystal'' display.
 When in 'DEG' mode, numbers in the display are taken as being
 degrees.  In 'RAD' mode, numbers are in radians, and in 'GRAD' mode, numbers
-are in grads.  When inverted, the DRG key has a feature of 
-converting degrees to radians to grads and vice-versa.  Example:  put the 
+are in grads.  When inverted, the DRG key has a feature of
+converting degrees to radians to grads and vice-versa.  Example:  put the
 calculator into 'DEG' mode, and enter "45 INV DRG".  The display should now
 show something along the lines of ".785398", which is 45 degrees converted to
 radians.
@@ -156,13 +157,13 @@ For example, entering "3 INV log" should result in "1000".
 The corresponding action procedure is \fBlogarithm()\fP.
 .TP 10
 .B ln
-Calculates the log (base e) of the number in the display.  When inverted, 
+Calculates the log (base e) of the number in the display.  When inverted,
 it raises "e" to the number in the display.  For example, entering "e ln"
 should result in "1".
 The corresponding action procedure is \fBnaturalLog()\fR.
 .TP 10
 .B y^x
-Raises the number on the left to the power of the number on the right.  For 
+Raises the number on the left to the power of the number on the right.  For
 example "2 y^x 3 =" results in "8", which is 2^3.  For a further example,
 "(1+2+3) y^x (1+2) =" equals "6 y^x 3" which equals "216".
 The corresponding action procedure is \fBpower()\fR.
@@ -224,7 +225,7 @@ Decimal point.  The action procedure is \fBdecimal()\fP.
 .sp
 .PP
 .I Calculator Key Usage (RPN mode):
-The number keys, CHS (change sign), +, -, *, /, and ENTR keys all do exactly 
+The number keys, CHS (change sign), +, -, *, /, and ENTR keys all do exactly
 what you would expect them to do.  Many of the remaining keys are the same as
 in TI mode.  The differences are detailed below.  The action procedure
 for the ENTR key is \fBenter()\fR.
@@ -247,12 +248,12 @@ on an HP calculator, but \fIxcalc\fR does not display
 multiple legends on each key.  See the individual function keys for details.
 .TP 10
 .B 10^x
-Raises "10.0" to the number in the top of the stack.  
+Raises "10.0" to the number in the top of the stack.
 When inverted, it calculates the log (base 10) of the number in the display.
 The corresponding action procedure is \fBtenpower()\fR.
 .TP 10
 .B e^x
-Raises "e" to the number in the top of the stack.  
+Raises "e" to the number in the top of the stack.
 When inverted, it calculates the log (base e) of the number in the display.
 The action procedure is \fBepower()\fR.
 .TP 10
@@ -281,7 +282,7 @@ These keys were used for programming functions on the HP-10C.  Their
 functionality has not been duplicated in \fIxcalc\fR.
 .PP
 Finally, there are two additional action procedures:
-\fBbell()\fR, which rings the bell; 
+\fBbell()\fR, which rings the bell;
 and \fBselection()\fR, which performs a cut on the
 entire number in the calculator's ``liquid crystal'' display.
 .SH ACCELERATORS
@@ -292,62 +293,62 @@ The numeric keypad accelerators provided by \fIxcalc\fP
 should be intuitively correct.
 The accelerators defined by \fIxcalc\fP on the main keyboard are given below:
 .PP
-.nf
-.ta .5i 1.0i 1.5i 2.0i 2.5i 3.0i 3.5i 4.0i 4.5i 5.0i 5.5i 6.0i 6.5i 7.0i
-	TI Key	HP Key	Keyboard Accelerator	TI Function	HP Function
-	
-	SQRT	SQRT	r			squareRoot()	squareRoot()
-	AC	ON	space			clear()		clear()
-	AC	<-	Delete			clear()		back()
-	AC	<-	Backspace		clear()		back()
-	AC	<-	Control-H		clear()		back()
-	AC		Clear			clear()
-	AC	ON	q			quit()		quit()
-	AC	ON	Control-C		quit()		quit()
+.TS
+l l l l l.
+TI Key	HP Key	Keyboard Accelerator	TI Function	HP Function
+_
+SQRT	SQRT	r	squareRoot()	squareRoot()
+AC	ON	space	clear()	clear()
+AC	<-	Delete	clear()	back()
+AC	<-	Backspace	clear()	back()
+AC	<-	Control-H	clear()	back()
+AC		Clear	clear()
+AC	ON	q	quit()	quit()
+AC	ON	Control-C	quit()	quit()
 
-	INV	i	i			inverse()		inverse()
-	sin	s	s			sine()		sine()
-	cos	c	c			cosine()		cosine()
-	tan	t	t			tangent()	tangent()
-	DRG	DRG	d			degree()		degree()
+INV	i	i	inverse()	inverse()
+sin	s	s	sine()	sine()
+cos	c	c	cosine()	cosine()
+tan	t	t	tangent()	tangent()
+DRG	DRG	d	degree()	degree()
 
-	e		e			e()
-	ln	ln	l			naturalLog()	naturalLog()
-	y^x	y^x	^			power()		power()
+e		e	e()
+ln	ln	l	naturalLog()	naturalLog()
+y^x	y^x	^	power()	power()
 
-	PI	PI	p			pi()		pi()
-	x!	x!	!			factorial()	factorial()
-	(		(			leftParen()
-	)		)			rightParen()
+PI	PI	p	pi()	pi()
+x!	x!	!	factorial()	factorial()
+(		(	leftParen()
+)		)	rightParen()
 
-	/	/	/			divide()		divide()
-	*	*	*			multiply()	multiply()
-	-	-	-			subtract()	subtract()
-	+	+	+			add()		add()
-	=		=			equal()
+/	/	/	divide()	divide()
+*	*	*	multiply()	multiply()
+-	-	-	subtract()	subtract()
++	+	+	add()	add()
+\&=		\&=	equal()
 
-	0..9	0..9	0..9			digit()		digit()
-	.	.	.			decimal()	decimal()
-	+/-	CHS	n			negate()		negate()
+0..9	0..9	0..9	digit()	digit()
+.	.	.	decimal()	decimal()
++/-	CHS	n	negate()	negate()
 
-		x:y	x					XexchangeY()
-		ENTR	Return					enter()
-		ENTR	Linefeed					enter()
-.fi
+	x:y	x		XexchangeY()
+	ENTR	Return		enter()
+	ENTR	Linefeed		enter()
+.TE
 .PP
 .SH CUSTOMIZATION
 The application class name is XCalc.
 .PP
-\fIxcalc\fP has an enormous application defaults file which specifies 
+\fIxcalc\fP has an enormous application defaults file which specifies
 the position, label, and function of each key on the calculator.
 It also gives translations to serve as keyboard accelerators.
 Because these resources are not specified in the source code, you can create
 a customized calculator by writing a private application defaults file,
-using the Athena Command and Form widget resources to specify the size and 
-position of buttons, the label for each button, and the function of 
+using the Athena Command and Form widget resources to specify the size and
+position of buttons, the label for each button, and the function of
 each button.
 .PP
-The foreground and background colors of each calculator key can be 
+The foreground and background colors of each calculator key can be
 individually specified.
 For the TI calculator, a classical color resource specification might be:
 .sp
@@ -373,26 +374,26 @@ the widgets which compose \fIxcalc\fR.  In the notation below,
 indentation indicates hierarchical structure.  The widget class name
 is given first, followed by the widget instance name.
 .nf
-.ta .5i 1.0i 1.5i 2.0i 2.5i 3.0i 3.5i 4.0i 4.5i 5.0i 5.5i 6.0i 6.5i 7.0i
-.sp
+.ft CW
 XCalc xcalc
-	Form  ti  \fIor\fR  hp    \fI(the name depends on the mode)\fR
-		Form  bevel
-			Form  screen
-				Label  M
-				Toggle  LCD
-				Label  INV
-				Label  DEG
-				Label  RAD
-				Label  GRAD
-				Label  P
-		Command  button1
-		Command  button2
-		Command  button3
+        Form  ti  \fIor\fR  hp    \fI(the name depends on the mode)\fR
+                Form  bevel
+                        Form  screen
+                                Label  M
+                                Toggle  LCD
+                                Label  INV
+                                Label  DEG
+                                Label  RAD
+                                Label  GRAD
+                                Label  P
+                Command  button1
+                Command  button2
+                Command  button3
 \fIand so on, ...\fR
-		Command  button38
-		Command  button39
-		Command  button40
+                Command  button38
+                Command  button39
+                Command  button40
+.ft
 .fi
 .SH APPLICATION RESOURCES
 .PP
@@ -409,7 +410,7 @@ The name of the symbol used to represent the pointer.
 The default is ``hand2''.
 .fi
 .SH COLORS
-If you would like xcalc to use its ti colors, include the following 
+If you would like xcalc to use its ti colors, include the following
 in the #ifdef COLOR section of the file you read with xrdb:
 .sp 1
 *customization:                 -color
@@ -420,7 +421,7 @@ customization file:
 .IR __apploaddir__/XCalc-color .
 .fi
 .SH "SEE ALSO"
-X(__miscmansuffix__), xrdb(1), the Athena Widget Set
+X(__miscmansuffix__), xrdb(__appmansuffix__), the Athena Widget Set
 .SH BUGS
 .PP
 HP mode is not completely debugged.  In particular, the stack is
@@ -433,5 +434,12 @@ See \fIX(__miscmansuffix__)\fP for a full statement of rights and permissions.
 John Bradley, University of Pennsylvania
 .br
 Mark Rosenstein, MIT Project Athena
-.br 
+.br
 Donna Converse, MIT X Consortium
+.\" --------------------------------------------------------------------
+.\" Emacs settings
+.\" --------------------------------------------------------------------
+.\" Local Variables:
+.\" mode: nroff
+.\" tab-width: 15
+.\" End:

@@ -770,6 +770,9 @@ FcInitDebug (void);
 FcPrivate FcChar8 *
 FcGetDefaultLang (void);
 
+FcPrivate FcChar8 *
+FcGetPrgname (void);
+
 FcPrivate void
 FcDefaultFini (void);
 

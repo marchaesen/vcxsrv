@@ -1,5 +1,5 @@
 //
-// Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+// Copyright (c) 2010, 2012, Oracle and/or its affiliates. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the
@@ -27,31 +27,12 @@
 // of the copyright holder.
 //
 
-//
-// CDDL HEADER START
-//
-// The contents of this file are subject to the terms of the
-// Common Development and Distribution License (the "License").
-// You may not use this file except in compliance with the License.
-//
-// You can obtain a copy of the license at src/OPENSOLARIS.LICENSE
-// or http://www.opensolaris.org/os/licensing.
-// See the License for the specific language governing permissions
-// and limitations under the License.
-//
-// When distributing Covered Code, include this CDDL HEADER in each
-// file and include the License file at src/OPENSOLARIS.LICENSE.
-// If applicable, add the following below this CDDL HEADER, with the
-// fields enclosed by brackets "[]" replaced with your own identifying
-// information: Portions Copyright [yyyy] [name of copyright owner]
-//
-// CDDL HEADER END
-//
+partial default alphanumeric_keys
+xkb_symbols "sun_type6_de" {
 
-partial default alphanumeric_keys 
-xkb_symbols "de_type6" {
+    name[Group1]= "German (Switzerland, Sun Type 6/7)";
 
-    name[Group1]= "Switzerland - German";
+	include "sun_vndr/us(sun_type6)"
 
     key <TLDE> { [    section,     degree                           ] };
     key <AE01> { [          1,       plus,          bar             ] };
@@ -86,12 +67,12 @@ xkb_symbols "de_type6" {
 
 };
 
-
-
 partial alphanumeric_keys 
-xkb_symbols "fr_type6" {
+xkb_symbols "sun_type6_fr" {
 
-    name[Group1]= "Switzerland - French, Sun type 6";
+    name[Group1]= "French (Switzerland, Sun Type 6/7)";
+
+	include "sun_vndr/us(sun_type6)"
 
     key <TLDE> { [    section,     degree                           ] };
     key <AE01> { [          1,       plus,          bar             ] };
@@ -126,8 +107,62 @@ xkb_symbols "fr_type6" {
 
 };
 
-
 partial alphanumeric_keys
 	xkb_symbols "basic" {
-	include "sun_vndr/ch(de_type6)"
+	include "sun_vndr/ch(sun_type6_de)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "legacy" {
+	include "ch(legacy)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "de" {
+	include "ch(de)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "de_Sundeadkeys" {
+	include "ch(de_Sundeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "de_sundeadkeys" {
+	include "ch(de_sundeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "de_nodeadkeys" {
+	include "ch(de_nodeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "fr" {
+	include "ch(fr)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "fr_Sundeadkeys" {
+	include "ch(fr_Sundeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "fr_sundeadkeys" {
+	include "ch(fr_sundeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "fr_nodeadkeys" {
+	include "ch(fr_nodeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "de_mac" {
+	include "ch(de_mac)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "fr_mac" {
+	include "ch(fr_mac)"
 };

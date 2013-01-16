@@ -99,9 +99,21 @@
 
 ! $thinkpads = thinkpad thinkpad60 thinkpadz60
 
-! $sun_t6_custom = ara be br ca ch cz de dk \
-                   ee es fi fr gb gr it kr \
-                   lt lv nl no pl pt ro ru \
-                   se sk tr tw ua
+! $sun = sun_type6_jp sun_type6_usb sun_type6_euro_usb \
+         sun_type6_jp_usb sun_type6_unix_usb sun_type7_jp_usb \
+         sun_type7_usb sun_type7_euro_usb sun_type7_unix_usb
+
+! $sun_jp = sun_type6_jp sun_type6_jp_usb sun_type7_jp_usb
+
+// Sun Type_6_7 keyboards with custom layouts
+! $sun_custom = ara be br ca ch cz de dk \
+                ee es fi fr gb gr it jp \
+                kr lt lv nl no pl pt ro \
+                ru se sk tr tw ua us
+
+! $sun_var =  sun_type6 sun_type6_suncompat sun_type6_de sun_type6_fr \
+              sun_type7 sun_type7_suncompat suncompat
+
+! $sun_compat = sun_type6 sun_type6_suncompat sun_type7_suncompat suncompat
 
 ! $htcdreamlayouts = us it de

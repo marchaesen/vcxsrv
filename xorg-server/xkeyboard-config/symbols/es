@@ -215,3 +215,10 @@ xkb_symbols "olpc2" {
 
     include "level3(ralt_switch)"
 };
+
+// EXTRAS:
+
+partial alphanumeric_keys
+	xkb_symbols "sun_type6" {
+	include "sun_vndr/es(sun_type6)"
+};

@@ -251,3 +251,10 @@ xkb_symbols "colemak" {
     key <AD09>	{ [         y,          Y,    leftarrow,          yen ] };
     key <AD10>	{ [    oslash,   Ooblique,   dead_acute, dead_doubleacute ] };
 };
+
+// EXTRAS:
+
+partial alphanumeric_keys
+	xkb_symbols "sun_type6" {
+	include "sun_vndr/no(sun_type6)"
+};

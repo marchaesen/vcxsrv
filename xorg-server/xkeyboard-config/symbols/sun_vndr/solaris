@@ -1,6 +1,5 @@
-//-------------------------------------------------------------------------
 //
-// Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+// Copyright (c) 2010, 2012, Oracle and/or its affiliates. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the
@@ -27,187 +26,87 @@
 // or other dealings in this Software without prior written authorization
 // of the copyright holder.
 //
-//-------------------------------------------------------------------------
-//
 
-//
-// CDDL HEADER START
-//
-// The contents of this file are subject to the terms of the
-// Common Development and Distribution License (the "License").
-// You may not use this file except in compliance with the License.
-//
-// You can obtain a copy of the license at src/OPENSOLARIS.LICENSE
-// or http://www.opensolaris.org/os/licensing.
-// See the License for the specific language governing permissions
-// and limitations under the License.
-//
-// When distributing Covered Code, include this CDDL HEADER in each
-// file and include the License file at src/OPENSOLARIS.LICENSE.
-// If applicable, add the following below this CDDL HEADER, with the
-// fields enclosed by brackets "[]" replaced with your own identifying
-// information: Portions Copyright [yyyy] [name of copyright owner]
-//
-// CDDL HEADER END
-//
-
-// Default map provides backwards compatibility with Sun keyboards from
-// long ago and the key mappings still used in Solaris Xsun today
-
-partial default
+partial
 xkb_symbols "defaults_common" {
 
-    // Left side keys were labeled L1-L10 on Sun Type 2 & Type 3 keyboards
-    // and the names have stuck (you can spot a longtime Sun admin when you
-    // hear them say to hit "L1-A" to enter the OpenBoot PROM)
-    // These names get mapped to the keysyms F11-F20
-    key <STOP> { [ L1,  L1              ], [ SunStop    ]       };
-    key <AGAI> { [ L2,  L2              ], [ SunAgain   ]       };
-    key <PROP> { [ L3,  L3              ], [ SunProps   ]       };
-    key <UNDO> { [ L4,  L4              ], [ SunUndo    ]       };
-    key <FRNT> { [ L5,  L5              ], [ SunFront   ]       };
-    key <COPY> { [ L6,  L6              ], [ SunCopy    ]       };
-    key <OPEN> { [ L7,  L7              ], [ SunOpen    ]       };
-    key <PAST> { [ L8,  L8              ], [ SunPaste   ]       };
-    key <FIND> { [ L9,  L9              ], [ SunFind    ]       };
-    key <CUT>  { [ L10, L10             ], [ SunCut     ]       };
+    key <MUTE> { [ XF86AudioMute         ] };
+    key <VOL-> { [ XF86AudioLowerVolume  ] };
+    key <VOL+> { [ XF86AudioRaiseVolume  ] };
+    key <POWR> { [ XF86PowerOff          ] };
+    key <STOP> { [ Cancel                ] };
+    key <AGAI> { [ Redo                  ] };
+    key <PROP> { [ SunProps              ] };
+    key <UNDO> { [ Undo                  ] };
+    key <FRNT> { [ SunFront              ] };
+    key <COPY> { [ XF86Copy              ] };
+    key <OPEN> { [ SunOpen               ] };
+    key <PAST> { [ XF86Paste             ] };
+    key <FIND> { [ Find                  ] };
+    key <CUT>  { [ XF86Cut               ] };
+    key <HELP> { [ Help                  ] };
+    key <LNFD> { [ Linefeed              ] };
 
-    // And on the right side, the function keys were labeled R1-R15,
-    // which get mapped to the keysyms F21-F35
-    // This includes the keys that became the numeric keypad
-    key <PAUS> { [ R1,  R1              ], [ Pause              ] };
-    key <PRSC> { [ R2,  R2              ], [ Print              ] };
-    key <SCLK> { [ R3,  R3              ], [ Scroll_Lock, Break ] };
+    key <LALT> { [	Alt_L,  Alt_L	] };
+    key <LWIN> { [	Meta_L	        ] };
+    key <RWIN> { [	Meta_R			] };
 
-    key <KPEQ> { [ KP_Equal             ], [ R4, KP_Equal       ] };
-    key <KPDV> { [ KP_Divide            ], [ R5, KP_Divide      ] };
-    key <KPMU> { [ KP_Multiply          ], [ R6, KP_Multiply    ] };
+// The following is needed for virtual hotkeys
 
-    key  <KP7> { [ KP_Home,  KP_7, R7   ], [ R7, KP_7, Home     ] };
-    key  <KP8> { [ KP_Up,    KP_8, R8   ], [ R8, KP_8, Up       ] };
-    key  <KP9> { [ KP_Prior, KP_9, R9   ], [ R9, KP_9, Prior    ] };
+    key <I150> { [ XF86Sleep             ] };
+    key <I160> { [ XF86ScreenSaver       ] };
+    key <I235> { [ XF86Display           ] };
 
-    key  <KP4> { [ KP_Left,  KP_4, R10  ], [ R10, KP_4, Left    ] };
-    key  <KP5> { [ KP_Begin, KP_5, R11  ], [ R11, KP_5          ] };
-    key  <KP6> { [ KP_Right, KP_6, R12  ], [ R12, KP_6, Right   ] };
+// Common Sun Modifiers
 
-    key  <KP1> { [ KP_End,   KP_1, R13  ], [ R13, KP_1, End     ] };
-    key  <KP2> { [ KP_Down,  KP_2, R14  ], [ R14, KP_2, Down    ] };
-    key  <KP3> { [ KP_Next,  KP_3, R15  ], [ R15, KP_3, Next    ] };
+    modifier_map Shift	{ Shift_R, Shift_L };
+    modifier_map Mod2	{ Num_Lock };
+    modifier_map Mod4   { Meta_L, Meta_R };
 
-    // F11 & F12 are mapped to SunF36 and SunF37 since they were added
-    // after F11-F35 were already assigned on Sun keyboards
-    key <FK11> { [ SunF36               ], [ F11                ] };
-    key <FK12> { [ SunF37               ], [ F12                ] };
-
-    // These were added to the keyboard much later and simply got mapped
-    // to their logical names
-    key <HELP> { [ Help                 ]                       };
-    key <MUTE> { [  SunAudioMute,	SunVideoDegauss		]	};
-    key <VOL-> { [  SunAudioLowerVolume,SunVideoLowerBrightness ]	};
-    key <VOL+> { [  SunAudioRaiseVolume,SunVideoRaiseBrightness	]	};
-    key <POWR> { [  XF86Sleep,		XF86Hibernate		]	};
-
-//    key <LALT> { [ Alt_L                ]                       };
-//    key <LMTA> { [ Meta_L               ]                       };
-//    key <RMTA> { [ Meta_R               ]                       };
-//    key <COMP> { [ Multi_key            ]                       };
 };
 
 partial default
 xkb_symbols "defaults" {
-    include "sun_vndr/solaris(defaults_common)"
-//    key <RALT> { [ Mode_switch          ]                       };
-//    key <ALGR> { [ Mode_switch          ]                       };
 
-    // begin modifier mappings
-//    modifier_map Shift          { Shift_R, Shift_L };
-//    modifier_map Mod1           { Alt_L };
-//    modifier_map Mod2           { Num_Lock };
-//    modifier_map Mod3           { Alt_R, Mode_switch };
-//    modifier_map Mod4           { Meta_L, Meta_R };
+    include "sun_vndr/solaris(defaults_common)"
+
+    modifier_map Mod1   { Alt_L };
+
 };
 
-partial default
+partial
 xkb_symbols "defaults_type7jp" {
+
     include "sun_vndr/solaris(defaults_common)"
-    // begin modifier mappings
-    modifier_map Shift          { Shift_R, Shift_L };
-    modifier_map Mod1           { Alt_L , Alt_R};
-    modifier_map Mod2           { Num_Lock };
-    modifier_map Mod3           { Mode_switch };
-    modifier_map Mod4           { Meta_L, Meta_R };
-};
 
-// Map the keys to the actual key names instead of the ancient Sun function
-// keys
-partial
-xkb_symbols "keynames" {
-    key <FK11> { [ F11          ],      [ SunF36   ]    };
-    key <FK12> { [ F12          ],      [ SunF37   ]    };
-
-    key <STOP> { [ Cancel	],	[ F11	]	};
-    key <AGAI> { [ Redo		],	[ F12	]	};
-    key <PROP> { [ SunProps	],	[ F13	]	};
-    key <UNDO> { [ Undo		],	[ F14	]	};
-    key <FRNT> { [ SunFront	],	[ F15	]	};
-    key <COPY> { [ SunCopy	],	[ F16	]	};
-    key <OPEN> { [ SunOpen	],	[ F17	]	};
-    key <PAST> { [ SunPaste	],	[ F18	]	};
-    key <FIND> { [ Find		],	[ F19	]	};
-    key <CUT>  { [ SunCut	],	[ F20	]	};
-
-    key <HELP> { [ Help		]	                };
-
-    key <PAUS> {  [  Pause                      ]       };
-    key <PRSC> {  [  Print                      ]       };
-    key <SCLK> {  [  Scroll_Lock, Break         ]       };
-
-    key  <KP7> {        [  KP_Home,     KP_7    ]       };
-    key  <KP8> {        [  KP_Up,       KP_8    ]       };
-    key  <KP9> {        [  KP_Prior,    KP_9    ]       };
-
-    key  <KP4> {        [  KP_Left,     KP_4    ]       };
-    key  <KP5> {        [  KP_Begin,    KP_5    ]       };
-    key  <KP6> {        [  KP_Right,    KP_6    ]       };
-
-    key  <KP1> {        [  KP_End,      KP_1    ]       };
-    key  <KP2> {        [  KP_Down,     KP_2    ]       };
-    key  <KP3> {        [  KP_Next,     KP_3    ]       };
-
-    key <KPEN> {        [       KP_Enter        ]       };
-    key <KPEQ> {        [       KP_Equal        ]       };
-
-    key <MUTE> { [ SunAudioMute,	SunVideoDegauss		]	};
-    key <VOL-> { [ SunAudioLowerVolume, SunVideoLowerBrightness ]	};
-    key <VOL+> { [ SunAudioRaiseVolume, SunVideoRaiseBrightness	]	};
-    key <POWR> { [ SunPowerSwitch,	SunPowerSwitchShift	]	};
-
-    key <LALT> { [ Alt_L                ]                       };
-    key <RALT> { [ Mode_switch          ]                       };
-    key <ALGR> { [ Mode_switch          ]                       };
-    key <LMTA> { [ Meta_L               ]                       };
-    key <RMTA> { [ Meta_R               ]                       };
-    key <COMP> { [ Multi_key            ]                       };
+    modifier_map Mod1  { Alt_L, Alt_R   };
 
 };
 
-// Map the keys to the XFree86 key names instead of the Sun key names
 partial
-xkb_symbols "xf86keynames" {
-    key <STOP> { [ XF86Stop	],	[ F11	]	};
-    key <AGAI> { [ Redo		],	[ F12	]	};
-    key <PROP> { [ SunProps	],	[ F13	]	};
-    key <UNDO> { [ Undo		],	[ F14	]	};
-    key <FRNT> { [ SunFront	],	[ F15	]	};
-    key <COPY> { [ XF86Copy	],	[ F16	]	};
-    key <OPEN> { [ XF86Open	],	[ F17	]	};
-    key <PAST> { [ XF86Paste	],	[ F18	]	};
-    key <FIND> { [ Find		],	[ F19	]	};
-    key <CUT>  { [ XF86Cut	],	[ F20	]	};
+xkb_symbols "sun_compat" {
 
-    key <MUTE> { [ XF86AudioMute,	SunVideoDegauss		]	};
-    key <VOL-> { [ XF86AudioLowerVolume,SunVideoLowerBrightness ]	};
-    key <VOL+> { [ XF86AudioRaiseVolume,SunVideoRaiseBrightness	]	};
-    key <POWR> { [ XF86Sleep,		XF86PowerDown	]	};
+	key <STOP> { [ L1,        L1,  SunStop    ]       };
+	key <AGAI> { [ L2,        L2,  SunAgain   ]       };
+	key <PROP> { [ L3,        L3,  SunProps   ]       };
+	key <UNDO> { [ L4,        L4,  SunUndo    ]       };
+	key <FRNT> { [ L5,        L5,  SunFront   ]       };
+	key <COPY> { [ L6,        L6,  SunCopy    ]       };
+	key <OPEN> { [ L7,        L7,  SunOpen    ]       };
+	key <PAST> { [ L8,        L8,  SunPaste   ]       };
+	key <FIND> { [ L9,        L9,  SunFind    ]       };
+	key <CUT>  { [ L10,       L10, SunCut     ]       };
+
+// F11 & F12 are mapped to SunF36 and SunF37 since they were added
+// after F11-F35 were already assigned on Sun keyboards
+	key <FK11> { [ SunF36               ], [ F11                ] };
+	key <FK12> { [ SunF37               ], [ F12                ] };
+
+// These were added to the keyboard much later and simply got mapped
+// to their logical names
+	key <HELP> { [  Help						] };
+	key <MUTE> { [  SunAudioMute,        SunVideoDegauss		] };
+	key <VOL-> { [  SunAudioLowerVolume, SunVideoLowerBrightness	] };
+	key <VOL+> { [  SunAudioRaiseVolume, SunVideoRaiseBrightness	] };
+	key <POWR> { [  XF86Sleep,           XF86Hibernate		] };
 };

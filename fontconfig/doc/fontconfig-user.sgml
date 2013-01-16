@@ -131,6 +131,8 @@ convenience for the applications' rendering mechanism.
   fontversion     Int     Version number of the font
   capability      String  List of layout capabilities in the font
   embolden        Bool    Rasterizer should synthetically embolden the font
+  fontfeatures    String  List of the feature tags in OpenType to be enabled
+  prgname         String  String  Name of the running program
     </programlisting>
   </refsect2>
   <refsect2>

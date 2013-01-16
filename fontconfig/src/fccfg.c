@@ -1478,6 +1478,7 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 			   FcPattern   *p_pat,
 			   FcMatchKind kind)
 {
+    FcValue v;
     FcSubst	    *s;
     FcSubState	    *st;
     int		    i;
@@ -1512,6 +1513,12 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 		FcPatternObjectAddWithBinding (p, FC_LANG_OBJECT, v, FcValueBindingWeak, FcTrue);
 	    }
 	    FcStrListDone (l);
+	}
+	if (FcPatternObjectGet (p, FC_PRGNAME_OBJECT, 0, &v) == FcResultNoMatch)
+	{
+	    FcChar8 *prgname = FcGetPrgname ();
+	    if (prgname)
+		FcPatternObjectAddString (p, FC_PRGNAME_OBJECT, prgname);
 	}
 	break;
     case FcMatchFont:

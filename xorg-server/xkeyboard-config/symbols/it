@@ -298,3 +298,10 @@ xkb_symbols "ibm" {
 
 };
 
+
+// EXTRAS:
+
+partial alphanumeric_keys
+	xkb_symbols "sun_type6" {
+	include "sun_vndr/it(sun_type6)"
+};

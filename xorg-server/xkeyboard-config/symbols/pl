@@ -502,3 +502,8 @@ xkb_symbols "colemak" {
     include "level3(ralt_switch)"
 };
 
+partial alphanumeric_keys
+       xkb_symbols "sun_type6" {
+       include "sun_vndr/pl(sun_type6)"
+};
+

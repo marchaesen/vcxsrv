@@ -1,5 +1,5 @@
 //
-// Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+// Copyright (c) 2010, 2012, Oracle and/or its affiliates. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the
@@ -27,31 +27,12 @@
 // of the copyright holder.
 //
 
-//
-// CDDL HEADER START
-//
-// The contents of this file are subject to the terms of the
-// Common Development and Distribution License (the "License").
-// You may not use this file except in compliance with the License.
-//
-// You can obtain a copy of the license at src/OPENSOLARIS.LICENSE
-// or http://www.opensolaris.org/os/licensing.
-// See the License for the specific language governing permissions
-// and limitations under the License.
-//
-// When distributing Covered Code, include this CDDL HEADER in each
-// file and include the License file at src/OPENSOLARIS.LICENSE.
-// If applicable, add the following below this CDDL HEADER, with the
-// fields enclosed by brackets "[]" replaced with your own identifying
-// information: Portions Copyright [yyyy] [name of copyright owner]
-//
-// CDDL HEADER END
-//
+partial default alphanumeric_keys
+xkb_symbols "sun_type6" {
 
-partial alphanumeric_keys
-xkb_symbols "type6" {
+    name[Group1]="Swedish (Sun Type 6/7)";
 
-    name[Group1]="Sweden";
+	include "sun_vndr/us(sun_type6)"
 
     key <TLDE> { [         section,         onehalf                ] };
     key <LSGT> { [            less,         greater,           bar ] };
@@ -77,203 +58,54 @@ xkb_symbols "type6" {
 
         include "level3(ralt_switch)"
         include "kpdl(comma)"
-
 };
 
-// Swedish layout for a Type 5/5c Sun keyboard
-xkb_symbols "type5" {
-    include "sun_vndr/us(type5)+se(basic)"
-
-    // Begin alphanumeric section
-    // These two are not supposed to be dead.
-    // A few others supposedly ARE dead, but don't care for now.
-    key <AC12> { [ apostrophe, asterisk ],      [       grave ] };
-    key <AD12> { [                      ],      [  asciitilde ] };
-
-    key <RTSH> { [      Shift_R         ]       };
-
-    key <LALT> { [      Alt_L           ]       };
-    key <ALGR> { [      Mode_switch     ]       };
-    key <LMTA> { [      Meta_L          ]       };
-    key <RMTA> { [      Meta_R          ]       };
-    key <COMP> { [      Multi_key       ]       };
-    // End alphanumeric section
-
-    // Begin "Function" section
-    key <FK01> { [ F1           ]                       };
-    key <FK02> { [ F2           ]                       };
-    key <FK03> { [ F3           ]                       };
-    key <FK04> { [ F4           ]                       };
-    key <FK05> { [ F5           ]                       };
-    key <FK06> { [ F6           ]                       };
-    key <FK07> { [ F7           ]                       };
-    key <FK08> { [ F8           ]                       };
-    key <FK09> { [ F9           ]                       };
-    key <FK10> { [ F10          ]                       };
-    key <FK11> { [ F11          ],      [ SunF36]       };
-    key <FK12> { [ F12          ],      [ SunF37]       };
-    key <STOP> { [ Cancel       ],      [ F11   ]       };
-    key <AGAI> { [ Redo         ],      [ F12   ]       };
-    key <PROP> { [ SunProps     ],      [ F13   ]       };
-    key <UNDO> { [ Undo         ],      [ F14   ]       };
-    key <FRNT> { [ SunFront     ],      [ F15   ]       };
-    key <COPY> { [ SunCopy      ],      [ F16   ]       };
-    key <OPEN> { [ SunOpen      ],      [ F17   ]       };
-    key <PAST> { [ SunPaste     ],      [ F18   ]       };
-    key <FIND> { [ Find         ],      [ F19   ]       };
-    key <CUT>  { [ SunCut       ],      [ F20   ]       };
-    // End "Function" section
-
-    // Begin "Editing" section
-    key <PRSC> { [ Print        ],      [ Sys_Req, SunSys_Req ] };
-    key <SCLK> { [ Scroll_Lock  ]                       };
-    key <PAUS> { [ Pause        ],      [ Break ]       };
-    key <LEFT> { [ Left         ]                       };
-    key <RGHT> { [ Right        ]                       };
-    key <UP>   { [ Up           ]                       };
-    key <DOWN> { [ Down         ]                       };
-
-    key <DELE> { [ Delete       ]                       };
-    key <INS>  { [ Insert       ]                       };
-    key <PGUP> { [ Prior        ]                       };
-    key <PGDN> { [ Next         ]                       };
-    key <HOME> { [ Home         ]                       };
-    key <END>  { [ End          ]                       };
-    key <HELP> { [ Help         ]                       };
-    // End "Editing" section
-    
-    // Begin "Keypad" section
-    key <NMLK> { [ Num_Lock             ]                               };
-    key <KPDV> { [ KP_Divide            ],      [       F25     ]       };
-    key <KPMU> { [ KP_Multiply          ],      [       F26     ]       };
-    key <KPSU> { [ KP_Subtract          ]                               };
-
-    key  <KP7> { [  KP_Home,    KP_7    ],      [       F27     ]       };
-    key  <KP8> { [  KP_Up,      KP_8    ],      [       F28     ]       };
-    key  <KP9> { [  KP_Prior,   KP_9    ],      [       F29     ]       };
-    key <KPAD> { [      KP_Add          ]                               };
-
-    key  <KP4> { [  KP_Left,    KP_4    ],      [       F30     ]       };
-    key  <KP5> { [  KP_Begin,   KP_5    ],      [       F31     ]       };
-    key  <KP6> { [  KP_Right,   KP_6    ],      [       F32     ]       };
-
-    key  <KP1> { [  KP_End,     KP_1    ],      [       F33     ]       };
-    key  <KP2> { [  KP_Down,    KP_2    ],      [       F34     ]       };
-    key  <KP3> { [  KP_Next,    KP_3    ],      [       F35     ]       };
-    key <KPEN> { [      KP_Enter        ]                               };
-
-    key  <KP0> { [  KP_Insert,  KP_0    ]                               };
-    key <KPDL> { [  KP_Delete,  KP_Decimal ]                            };
-    // End "Keypad" section, 
-
-    // Begin "four keys up on the right"
-    key <MUTE> { [  SunAudioMute,       SunVideoDegauss         ]       };
-    key <VOL-> { [  SunAudioLowerVolume,SunVideoLowerBrightness ]       };
-    key <VOL+> { [  SunAudioRaiseVolume,SunVideoRaiseBrightness ]       };
-    key <POWR> { [  SunPowerSwitch,     SunPowerSwitchShift     ]       };
-    // End "four keys up on the right"
-
-    // Begin modifier mappings
-    modifier_map Shift  { Shift_R };
-    modifier_map Mod1   { Meta_L, Meta_R };
-    modifier_map Mod2   { Num_Lock };
-    modifier_map Mod3   { Mode_switch };
-    modifier_map Mod4   { Alt_L };
-    // End modifier mappings
-};
-
-// Swedish layout for a Type 4 Sun keyboard
-xkb_symbols "type4" {
-    include "sun_vndr/us(type4basic)+se(basic)"
-
-    // Begin alphanumeric section
-    // These two are not supposed to be dead.
-    // A few others supposedly ARE dead, but don't care for now.
-    key <AC12> { [ apostrophe, asterisk ],      [       grave ] };
-    key <AD12> { [                      ],      [  asciitilde ] };
-
-    key <AF14> { [      asciitilde,     asciicircum     ] };
-
-    key <RTSH> { [      Shift_R         ]       };
-
-    key <LALT> { [      Alt_L           ]       };
-    key <ALGR> { [      Mode_switch     ]       };
-    key <LMTA> { [      Meta_L          ]       };
-    key <RMTA> { [      Meta_R          ]       };
-    key <COMP> { [      Multi_key       ]       };
-    // End alphanumeric section
-
-    // Begin "Function" section
-    key <FK01> { [ F1           ]                       };
-    key <FK02> { [ F2           ]                       };
-    key <FK03> { [ F3           ]                       };
-    key <FK04> { [ F4           ]                       };
-    key <FK05> { [ F5           ]                       };
-    key <FK06> { [ F6           ]                       };
-    key <FK07> { [ F7           ]                       };
-    key <FK08> { [ F8           ]                       };
-    key <FK09> { [ F9           ]                       };
-    key <FK10> { [ F10          ]                       };
-    key <FK11> { [ F11          ],      [ SunF36]       };
-    key <FK12> { [ F12          ],      [ SunF37]       };
-    key <STOP> { [ Cancel       ],      [ F11   ]       };
-    key <AGAI> { [ Redo         ],      [ F12   ]       };
-    key <PROP> { [ SunProps     ],      [ F13   ]       };
-    key <UNDO> { [ Undo         ],      [ F14   ]       };
-    key <FRNT> { [ SunFront     ],      [ F15   ]       };
-    key <COPY> { [ SunCopy      ],      [ F16   ]       };
-    key <OPEN> { [ SunOpen      ],      [ F17   ]       };
-    key <PAST> { [ SunPaste     ],      [ F18   ]       };
-    key <FIND> { [ Find         ],      [ F19   ]       };
-    key <CUT>  { [ SunCut       ],      [ F20   ]       };
-    // End "Function" section
-
-    // Begin "Editing" section
-    key <LNFD> { [ Linefeed     ]       };
-    key <DELE> { [ Delete       ]                       };
-    key <PRSC> { [ Print        ],      [ Sys_Req, SunSys_Req ] };
-    key <SCLK> { [ Scroll_Lock  ]                       };
-    key <PAUS> { [ Pause        ],      [ Break ]       };
-    key <HELP> { [ Help         ]                       };
-    // End "Editing" section
-    
-   // Begin "Keypad" section
-    key <NMLK> { [ Num_Lock             ]                               };
-    key <KPEQ> { [ KP_Equal             ]                               };
-    key <KPDV> { [ KP_Divide            ],      [       F25     ]       };
-    key <KPMU> { [ KP_Multiply          ],      [       F26     ]       };
-    key <KPSU> { [ KP_Subtract          ]                               };
-
-    key  <KP7> { [  KP_Home,    KP_7    ],      [       F27     ]       };
-    key  <KP8> { [  KP_Up,      KP_8    ],      [       F28     ]       };
-    key  <KP9> { [  KP_Prior,   KP_9    ],      [       F29     ]       };
-    key <KPAD> { [      KP_Add          ]                               };
-
-    key  <KP4> { [  KP_Left,    KP_4    ],      [       F30     ]       };
-    key  <KP5> { [  KP_Begin,   KP_5    ],      [       F31     ]       };
-    key  <KP6> { [  KP_Right,   KP_6    ],      [       F32     ]       };
-
-    key  <KP1> { [  KP_End,     KP_1    ],      [       F33     ]       };
-    key  <KP2> { [  KP_Down,    KP_2    ],      [       F34     ]       };
-    key  <KP3> { [  KP_Next,    KP_3    ],      [       F35     ]       };
-    key <KPEN> { [      KP_Enter        ]                               };
-
-    key  <KP0> { [  KP_Insert,  KP_0    ]                               };
-    key <KPDL> { [  KP_Delete,  KP_Decimal ]                            };
-    // End "Keypad" section, 
-
-    // Begin modifier mappings
-    modifier_map Shift  { Shift_R };
-    modifier_map Mod1   { Alt_L };
-    modifier_map Mod2   { Num_Lock };
-    modifier_map Mod3   { Mode_switch };
-    modifier_map Mod4   { Meta_L };
-    modifier_map Mod5   { Meta_R };
-    // End modifier mappings
-};
-
-
-partial default alphanumeric_keys
+partial alphanumeric_keys
 	xkb_symbols "basic" {
-	include "sun_vndr/se(type6)"
+	include "sun_vndr/se(sun_type6)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "se" {
+	include "se(se)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "nodeadkeys" {
+	include "se(nodeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "dvorak" {
+	include "se(dvorak)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "rus" {
+	include "se(rus)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "rus_nodeadkeys" {
+	include "se(rus_nodeadkeys)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "smi" {
+	include "se(smi)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "mac" {
+	include "se(mac)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "svdvorak" {
+	include "se(svdvorak)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "swl" {
+	include "se(swl)"
 };

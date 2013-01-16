@@ -211,3 +211,15 @@ xkb_symbols "fr_mac" {
 	[ agrave,	adiaeresis,   braceleft		]
     };
 };
+
+// EXTRAS:
+
+partial alphanumeric_keys
+	xkb_symbols "sun_type6_de" {
+	include "sun_vndr/ch(sun_type6_de)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "sun_type6_fr" {
+	include "sun_vndr/ch(sun_type6_fr)"
+};
