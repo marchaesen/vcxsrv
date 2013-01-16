@@ -8,9 +8,9 @@
  *  RPN mode added and port to X11 by Mark Rosenstein, MIT Project Athena
  *
  *  Modified to be a client of the Xt toolkit and the Athena widget set by
- *  Donna Converse, MIT X Consortium.  This is all that remains of the 
+ *  Donna Converse, MIT X Consortium.  This is all that remains of the
  *  original calculator, and it still needs to be rewritten.  The HP
- *  functionality should be separated from the TI functionality. 
+ *  functionality should be separated from the TI functionality.
  *  Beware the HP functions: there are still errors here.
  *
  *  Geoffrey Coram fixed most of the HP mode bugs.
@@ -62,7 +62,7 @@ double (*pow_p)() = pow;
 jmp_buf env;
 #endif
 
- 
+
 /* This section is all of the state machine that implements the calculator
  * functions.  Much of it is shared between the infix and rpn modes.
  */
@@ -73,7 +73,7 @@ static double drg2rad=PI/180.0;  /* Conversion factors for trig funcs */
 static double rad2drg=180.0/PI;
 static int entered=1;  /* true if display contains a valid number.
                           if==2, then use 'dnum', rather than the string
-                          stored in the display.  (for accuracy) 
+                          stored in the display.  (for accuracy)
                           if==3, then error occurred, only CLR & AC work */
 /* entered seems to be overloaded - dmc */
 static int lift_enabled = 0;	/* for rpn mode only */
@@ -104,12 +104,12 @@ static int    priority(int op);
 
 /*
  * The following is to deal with the unfortunate assumption that if errno
- * is non-zero then an error has occurred.  On some systems (e.g. Ultrix), 
+ * is non-zero then an error has occurred.  On some systems (e.g. Ultrix),
  * sscanf will call lower level routines that will set errno.
  */
 
 static void
-parse_double (char *src, char *fmt, double *dp)
+parse_double (const char *src, const char *fmt, double *dp)
 {
     int olderrno = errno;
 
@@ -123,7 +123,7 @@ parse_double (char *src, char *fmt, double *dp)
 int pre_op(int keynum)
 {
     if (keynum==-1) return(0);
- 
+
     errno = 0;			/* for non-IEEE machines */
 
     if ( (entered==3) && !(keynum==kCLR || keynum==kOFF)) {
@@ -203,7 +203,7 @@ DrawDisplay(void)
         char *estr = index(dispstr,'e');  /* search for exponent part */
         if (!estr) dispstr[12]='\0';      /* no exp, just trunc. */
         else {
-            if ((int) strlen(estr) <= 4) 
+            if ((int) strlen(estr) <= 4)
                 sprintf(tmp,"%.8s",dispstr); /* leftmost 8 chars */
             else
                 sprintf(tmp,"%.7s",dispstr); /* leftmost 7 chars */
@@ -280,7 +280,7 @@ numeric(int keynum)
   }
   if ((int) strlen(dispstr) >= MAXDISP)
     return;
-    
+
     switch (keynum){
       case kONE:	st[0] = '1'; break;
       case kTWO:	st[0] = '2'; break;
@@ -328,7 +328,7 @@ bkspf(void)
 #else
 	  if (dispstr[strlen(dispstr)-1] == '.')
              Dpoint=0;
-#endif	  
+#endif
 	  dispstr[strlen(dispstr)-1] = 0;
       }
       if (strlen(dispstr) == 0) {
@@ -444,7 +444,7 @@ twoop(int keynum)
     PushOp(keynum);		/* with the new one */
     return;
   }
-  
+
   if (entered==1)
     parse_double(dispstr,"%lf",&dnum);
 
@@ -463,9 +463,9 @@ twoop(int keynum)
 
     /* now, if the current op (keynum) is of
        higher priority than the lastop, the current
-       op and number are just pushed on top 
+       op and number are just pushed on top
        Priorities:  (Y^X) > *,/ > +,- */
-    
+
     if (priority(keynum) > priority(lastop)) {
       PushNum(dnum);
       PushOp(lastop);
@@ -490,8 +490,8 @@ twoop(int keynum)
   else { /* op stack is empty, push op and num */
     PushOp(keynum);
     PushNum(dnum);
-  } 
-}                      
+  }
+}
 
 /* Two operand functions for rpn calc */
 void
@@ -583,7 +583,7 @@ equf(void)
   sprintf(dispstr,"%.8g",dnum);
   DrawDisplay();
 }
-        
+
 void
 lparf(void)
 {
@@ -618,7 +618,7 @@ rparf(void)
 
   if (!flagPAREN)
     return;
-  
+
   clrdisp++;
   Dpoint=exponent=0;
 
@@ -669,7 +669,7 @@ drgf(void)
     flagINV=0;
     sprintf(dispstr,"%.8g",dnum);
   }
-                         
+
   flagINV=0;
   drgmode = (drgmode + 1) % 3;
   switch (drgmode) {
@@ -751,11 +751,11 @@ oneop(int keynum)
 		 break;
 	       }
 	       dtmp = floor(dnum); i = dtmp;
-	       for (j=1,dnum=1.0; j<=i; j++) 
+	       for (j=1,dnum=1.0; j<=i; j++)
 		 dnum*=(float) j;
 	       break;
   }
-  
+
   if (entered==3) {  /* error */
     DrawDisplay();
     return;

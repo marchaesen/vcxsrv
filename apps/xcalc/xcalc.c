@@ -68,7 +68,7 @@ char	dispstr[LCD_STR_LEN];		/* string to show up in the LCD */
 Atom	wm_delete_window;		/* see ICCCM section 5.2.2 */
 
 /*
- *	local data 
+ *	local data
  */
 static Display	*dpy = NULL;		/* connection to the X server */
 static Widget	toplevel=NULL;  	/* top level shell widget */
@@ -120,7 +120,7 @@ main(int argc, char **argv)
     toplevel = XtAppInitialize(&xtcontext, "XCalc", Options, XtNumber(Options),
 			       &argc, argv, NULL, NULL, 0);
     if (argc != 1) Syntax(argc, argv);
-    
+
     XtSetArg(args[0], XtNinput, True);
     XtSetValues(toplevel, args, ONE);
 
@@ -131,7 +131,7 @@ main(int argc, char **argv)
 
     XtAppAddActions(xtcontext, Actions, ActionsCount);
 
-    XtOverrideTranslations(toplevel, 
+    XtOverrideTranslations(toplevel,
 	   XtParseTranslationTable("<Message>WM_PROTOCOLS: quit()\n"));
 
     XtRealizeWidget(toplevel);
@@ -203,7 +203,7 @@ static void create_display(Widget parent)
 				XtNumber(args));
 
     /* INV - the inverse function indicator */
-    ind[XCalc_INVERSE] = XtCreateManagedWidget("INV", labelWidgetClass, 
+    ind[XCalc_INVERSE] = XtCreateManagedWidget("INV", labelWidgetClass,
 					 screen, args, XtNumber(args));
 
     /* DEG - the degrees switch indicator */
@@ -225,8 +225,8 @@ static void create_display(Widget parent)
 
 /*
  *	Do all the buttons.  The application defaults file will give the
- *	default button placement, default button labels, and default 
- *      actions connected to the buttons.  The user can change any of 
+ *	default button placement, default button labels, and default
+ *      actions connected to the buttons.  The user can change any of
  *      these defaults in an environment-specific resource file.
  */
 
@@ -292,7 +292,7 @@ void Quit(void)
     exit(0);
 }
 
-/*  
+/*
  *	recite and die.
  */
 static void Syntax(int argc, char **argv)
@@ -311,7 +311,7 @@ static void Syntax(int argc, char **argv)
     exit(1);
 }
 
-/*    
+/*
  * I use actions on the toggle widget to support selections.  This
  * means that the user may not do a partial selection of the number
  * displayed in the `liquid crystal display.'  Copying numbers into

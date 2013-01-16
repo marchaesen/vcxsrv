@@ -77,7 +77,7 @@ terminus-font-4.30
 ttf-bitstream-vera-1.10
 windowswmproto-1.0.4
 xbitmaps-1.1.1
-xcalc-1.0.4.1
+xcalc-1.0.5
 xcb-proto git version
 xclock-1.0.6
 xcmiscproto-1.2.2

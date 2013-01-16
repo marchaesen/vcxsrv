@@ -197,7 +197,7 @@ XCalc*ti.button39.translations: #override<Btn1Down>,<Btn1Up>:negate()unset()
 XCalc*ti.button40.label:	=
 XCalc*ti.button40.translations: #override<Btn1Down>,<Btn1Up>:equal()unset()
 
-XCalc*ti.button1.horizDistance:	4	
+XCalc*ti.button1.horizDistance:	4
 XCalc*ti.button1.vertDistance:	12
 XCalc*ti.button1.fromVert:	bevel
 XCalc*ti.button2.fromHoriz:	button1

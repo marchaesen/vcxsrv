@@ -167,7 +167,7 @@ static void clearit(Widget w, XEvent *e, String *vector, Cardinal *count)
     clearf();
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void cosine(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -258,7 +258,7 @@ static void exchange(Widget w, XEvent *e, String *vector, Cardinal *count)
     oneop(kEXC);
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void factorial(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -274,7 +274,7 @@ static void inverse(Widget w, XEvent *e, String *vector, Cardinal *count)
     invf();
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void leftParen(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -282,7 +282,7 @@ static void leftParen(Widget w, XEvent *e, String *vector, Cardinal *count)
     lparf();
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void logarithm(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -298,7 +298,7 @@ static void multiply(Widget w, XEvent *e, String *vector, Cardinal *count)
     rpn ? twof(kMUL) : twoop(kMUL);
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void naturalLog(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -306,7 +306,7 @@ static void naturalLog(Widget w, XEvent *e, String *vector, Cardinal *count)
     oneop(kLN);
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void negate(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -328,7 +328,7 @@ static void off(Widget w, XEvent *e, String *vector, Cardinal *count)
     offf();
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void pi(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -336,7 +336,7 @@ static void pi(Widget w, XEvent *e, String *vector, Cardinal *count)
     oneop(kPI);
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void power(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -361,7 +361,7 @@ static void recall(Widget w, XEvent *e, String *vector, Cardinal *count)
     rpn ? memf(kRCL) : oneop(kRCL);
     post_op();
 }
-	
+
 /*ARGSUSED*/
 static void reciprocal(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -369,7 +369,7 @@ static void reciprocal(Widget w, XEvent *e, String *vector, Cardinal *count)
     oneop(kRECIP);
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void rightParen(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -377,7 +377,7 @@ static void rightParen(Widget w, XEvent *e, String *vector, Cardinal *count)
     rparf();
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void roll(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -423,7 +423,7 @@ static void squareRoot(Widget w, XEvent *e, String *vector, Cardinal *count)
     oneop(kSQRT);
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void store(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -439,7 +439,7 @@ static void subtract(Widget w, XEvent *e, String *vector, Cardinal *count)
     rpn ? twof(kSUB) : twoop(kSUB);
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void sum(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -447,7 +447,7 @@ static void sum(Widget w, XEvent *e, String *vector, Cardinal *count)
     rpn ? memf(kSUM) : oneop(kSUM);
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void tangent(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -455,7 +455,7 @@ static void tangent(Widget w, XEvent *e, String *vector, Cardinal *count)
     oneop(kTAN);
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void tenpower(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
@@ -463,7 +463,7 @@ static void tenpower(Widget w, XEvent *e, String *vector, Cardinal *count)
     oneop(k10X);
     post_op();
 }
-   
+
 /*ARGSUSED*/
 static void XexchangeY(Widget w, XEvent *e, String *vector, Cardinal *count)
 {
