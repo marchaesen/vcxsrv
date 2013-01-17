@@ -337,8 +337,8 @@ FcConfigAddCache (FcConfig *config, FcCache *cache,
 	    if (!FcConfigAcceptFont (config, font))
 		continue;
 		
-	    nref++;
-	    FcFontSetAdd (config->fonts[set], font);
+	    if (FcFontSetAdd (config->fonts[set], font))
+		nref++;
 	}
 	FcDirCacheReference (cache, nref);
     }

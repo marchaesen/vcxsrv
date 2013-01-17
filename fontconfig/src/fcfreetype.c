@@ -1706,7 +1706,8 @@ FcFreeTypeQueryFace (const FT_Face  face,
     {
 	const char *font_format = FT_Get_X11_Font_Format (face);
 	if (font_format)
-	    FcPatternAddString (pat, FC_FONTFORMAT, (FcChar8 *) font_format);
+	    if (!FcPatternAddString (pat, FC_FONTFORMAT, (FcChar8 *) font_format))
+		goto bail2;
     }
 #endif
 

@@ -449,6 +449,9 @@ FcCacheFindByAddrUnlocked (void *object)
     FcCacheSkip    **next = fcCacheChains;
     FcCacheSkip    *s;
 
+    if (!object)
+	return NULL;
+
     /*
      * Walk chain pointers one level at a time
      */
@@ -556,7 +559,7 @@ FcCacheObjectDereference (void *object)
     skip = FcCacheFindByAddrUnlocked (object);
     if (skip)
     {
-	if (FcRefDec (&skip->ref) <= 1)
+	if (FcRefDec (&skip->ref) == 1)
 	    FcDirCacheDisposeUnlocked (skip->cache);
     }
     unlock_cache ();
@@ -1109,6 +1112,7 @@ FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose)
 			    cache_dir, ent->d_name, target_dir);
 		remove = FcTrue;
 	    }
+	    FcDirCacheUnload (cache);
 	}
 	if (remove)
 	{
@@ -1118,7 +1122,6 @@ FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose)
 		ret = FcFalse;
 	    }
 	}
-	FcDirCacheUnload (cache);
         FcStrFree (file_name);
     }
 
