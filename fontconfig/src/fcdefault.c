@@ -23,6 +23,7 @@
  */
 
 #include "fcint.h"
+#include <limits.h>
 #include <string.h>
 
 /* MT-safe */
@@ -139,27 +140,38 @@ retry:
 
 	    prgname = FcStrdup (p);
 	}
+#elif defined (HAVE_GETPROGNAME)
+	const char *q = getprogname ();
+	if (q)
+	    prgname = FcStrdup (q);
+	else
+	    prgname = FcStrdup ("");
 #else
-	char buf[8192];
+	char buf[PATH_MAX + 1];
 	unsigned int len;
+	char *p = NULL;
 
 	len = readlink ("/proc/self/exe", buf, sizeof (buf) - 1);
 	if (len > 0)
 	{
-	    char *p;
-
-	    p = strrchr (buf, '/');
-	    if (p)
-		p++;
-	    else
-		p = buf;
-
-	    prgname = FcStrdup (p);
+	    buf[len] = '\0';
+	    p = buf;
 	}
-#endif
+
+	if (p)
+	{
+	    char *r = strrchr (p, '/');
+	    if (r)
+		r++;
+	    else
+		r = p;
+
+	    prgname = FcStrdup (r);
+	}
 
 	if (!prgname)
 	    prgname = FcStrdup ("");
+#endif
 
 	if (!fc_atomic_ptr_cmpexch (&default_prgname, NULL, prgname)) {
 	    free (prgname);
