@@ -94,6 +94,10 @@
 #define IDC_DISABLEAC_DESC            269
 #define IDC_XDMCP_TERMINATE           270
 
+#define IDC_PROMPT_DESC               280
+#define IDC_INPUT                     281
+#define IDC_PASSWORD                  282
+
 #define IDS_DISPLAY_TITLE             300
 #define IDS_DISPLAY_SUBTITLE          301
 #define IDS_CLIENTS_TITLE             302

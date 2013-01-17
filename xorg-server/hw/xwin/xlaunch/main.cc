@@ -54,56 +54,104 @@ static bool ContainPrintableChars(const char *Buf, unsigned Nbr)
   return false;
 }
 
-static bool CheckOutput(HANDLE hChildStdoutRd, int hStdOut, HANDLE hConsoleOutput, HWND hConsoleWnd)
+/*
+ * Process messages for the prompt dialog.
+ */
+
+static INT_PTR CALLBACK DisplayPromptDlgProc (HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
+{
+  static LPARAM Param;
+  static UINT PasswordChar;
+  switch (message)
+  {
+    case WM_INITDIALOG:
+    {
+      HWND hwndDesk=GetForegroundWindow();
+      RECT rc, rcDlg, rcDesk;
+
+      PasswordChar=SendDlgItemMessage(hwndDialog, IDC_INPUT, EM_GETPASSWORDCHAR, 0, 0);
+
+      GetWindowRect (hwndDesk, &rcDesk);
+      GetWindowRect (hwndDialog, &rcDlg);
+      CopyRect (&rc, &rcDesk);
+
+      OffsetRect (&rcDlg, -rcDlg.left, -rcDlg.top);
+      OffsetRect (&rc, -rc.left, -rc.top);
+      OffsetRect (&rc, -rcDlg.right, -rcDlg.bottom);
+
+      SetWindowPos (hwndDialog,
+      HWND_TOPMOST,
+      rcDesk.left + (rc.right / 2),
+      rcDesk.top + (rc.bottom / 2),
+      0, 0,
+      SWP_NOSIZE | SWP_FRAMECHANGED);
+
+      Param=lParam;
+      SendDlgItemMessage(hwndDialog, IDC_PROMPT_DESC, WM_SETTEXT, 0, lParam);
+      return TRUE;
+    }
+    break;
+
+    case WM_COMMAND:
+      switch (LOWORD (wParam))
+      {
+        case IDOK:
+          SendDlgItemMessage(hwndDialog, IDC_INPUT, WM_GETTEXT, 128, Param);
+          EndDialog(hwndDialog, Param);
+          return TRUE;
+        case IDCANCEL:
+          EndDialog(hwndDialog, NULL);
+          return TRUE;
+        case IDC_PASSWORD:
+        {
+          HWND hDlg=GetDlgItem(hwndDialog, IDC_INPUT);
+          if (HIWORD(wParam)==BN_CLICKED)
+          {
+            if (BST_CHECKED==SendDlgItemMessage(hwndDialog, IDC_PASSWORD, BM_GETCHECK, 0, 0))
+              SendMessage(hDlg, EM_SETPASSWORDCHAR, 0, 0);
+            else
+              SendMessage(hDlg, EM_SETPASSWORDCHAR, (WPARAM)PasswordChar, 0);
+          }
+          InvalidateRect(hDlg, NULL, TRUE);
+        }
+        return TRUE;
+      }
+      break;
+
+    case WM_CLOSE:
+      EndDialog (hwndDialog, NULL);
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+static bool CheckOutput(HANDLE hChildStdoutRd, int hStdOut, int hStdIn)
 {
   DWORD NbrAvail=0;
-	PeekNamedPipe(hChildStdoutRd, NULL, NULL, NULL, &NbrAvail, NULL);
+  PeekNamedPipe(hChildStdoutRd, NULL, NULL, NULL, &NbrAvail, NULL);
   if (NbrAvail)
   {
     char Buf[128];
-    size_t Nbr = _read(hStdOut, Buf, sizeof(Buf));
-  	DWORD NbrWritten;
-		WriteConsole(hConsoleOutput, Buf, Nbr, &NbrWritten, NULL);
-    if (hConsoleWnd && ContainPrintableChars(Buf,NbrWritten))
+    size_t Nbr = _read(hStdOut, Buf, sizeof(Buf)-1);
+    if (ContainPrintableChars(Buf,Nbr))
     {
-      // Only show console again when there are new characters printed
-      ShowWindow(hConsoleWnd, SW_SHOW );  // make it visible again
+      Buf[Nbr]=0;
+      INT_PTR Ret = DialogBoxParam (GetModuleHandle(NULL), "IDD_PROMPT", NULL, DisplayPromptDlgProc, (LPARAM)Buf);
+
+      if (Ret)
+      {
+        char *Data=(char*)Ret;
+        // Write it to the client
+        _write(hStdIn, Data, strlen(Data));
+        _write(hStdIn, "\x0d\x0a", 2);
+      }
+
       return true;
     }
+
   }
   return false;
-}
-
-#define NRINPUTS 50
-
-static int CheckInput(HANDLE hConsoleInput, char *Buf, HWND hConsoleWnd)
-{
-  INPUT_RECORD Input[NRINPUTS];
-  DWORD NbrAvail=0;
-  GetNumberOfConsoleInputEvents(hConsoleInput, &NbrAvail);
-  int w=0;
-  if (NbrAvail)
-  {
-    DWORD NbrRead=0;
-    ReadConsoleInput(hConsoleInput, Input, NRINPUTS, &NbrRead);
-    for (int i=0; i<NbrRead; i++)
-    {
-      if (Input[i].EventType==KEY_EVENT && Input[i].Event.KeyEvent.bKeyDown)
-      {
-        char Char=Input[i].Event.KeyEvent.uChar.AsciiChar;
-        if (Char)
-        {
-          Buf[w++]=Char;
-          if (Char==0xd)
-          {
-            Buf[w++]=0xa; // Convert cariage return to cariage return + line feed
-            if (hConsoleWnd) ShowWindow(hConsoleWnd, SW_HIDE );  // make it invisible again
-          }
-        }
-      }
-    }
-  }
-  return w;
 }
 
 
@@ -822,17 +870,12 @@ class CMyWizard : public CWizard
                 SetConsoleMode(hConsoleInput, 0);  // Needed to disable local echo, and return only upon carriage return of read function
                 while (1)
                 {
-                  char Buf[NRINPUTS];
                   if (!WaitForSingleObject(pic.hProcess, 20 ))
                   {
                       // Child does not exist anymore, but it could be that there is still error output in the pipes
                       // So wait some time, that then check the output again
                     Sleep(500);
-                    if (CheckOutput(hChildStdoutRd, hStdOut, hConsoleOutput, hConsoleWnd) || IsWindowVisible(hConsoleWnd))
-                    {
-                      // Wait some input to close the window
-                      while (!CheckInput(hConsoleInput, Buf, hConsoleWnd)) Sleep(10);
-                    }
+                    CheckOutput(hChildStdoutRd, hStdOut, hStdIn);
                     break;
                   }
                   if (!WaitForSingleObject(pi.hProcess, 0))
@@ -840,13 +883,7 @@ class CMyWizard : public CWizard
                     TerminateProcess(pic.hProcess, (DWORD)-1);
                     break;
                   }
-                  CheckOutput(hChildStdoutRd, hStdOut, hConsoleOutput, hConsoleWnd);
-
-                  int w=CheckInput(hConsoleInput, Buf, hConsoleWnd);
-                  if (w)
-                  {  // Write it to the client
-                    _write(hStdIn, Buf, w);
-                  }
+                  CheckOutput(hChildStdoutRd, hStdOut, hStdIn);
                 }
                 #else
                 // Hide a console window
