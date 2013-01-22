@@ -45,6 +45,7 @@ enum {
    GL  = (1 << API_OPENGL_COMPAT) | (1 << API_OPENGL_CORE),
    ES1 = 1 << API_OPENGLES,
    ES2 = 1 << API_OPENGLES2,
+   ES3 = 1 << (API_OPENGL_LAST + 1),
 };
 
 /**
@@ -232,6 +233,7 @@ static const struct extension extension_table[] = {
    { "GL_EXT_unpack_subimage",                     o(dummy_true),                                         ES2, 2011 },
    { "GL_EXT_vertex_array_bgra",                   o(EXT_vertex_array_bgra),                   GL,             2008 },
    { "GL_EXT_vertex_array",                        o(dummy_true),                              GLL,            1995 },
+   { "GL_EXT_color_buffer_float",                  o(dummy_true),                                         ES3, 2013 },
 
    /* OES extensions */
    { "GL_OES_blend_equation_separate",             o(EXT_blend_equation_separate),                  ES1,       2009 },
@@ -243,6 +245,7 @@ static const struct extension extension_table[] = {
    { "GL_OES_depth24",                             o(EXT_framebuffer_object),                       ES1 | ES2, 2005 },
    { "GL_OES_depth32",                             o(dummy_false),                     DISABLE,                2005 },
    { "GL_OES_depth_texture",                       o(ARB_depth_texture),                                  ES2, 2006 },
+   { "GL_OES_depth_texture_cube_map",              o(OES_depth_texture_cube_map),                         ES2, 2012 },
    { "GL_OES_draw_texture",                        o(OES_draw_texture),                             ES1,       2004 },
    /*  FIXME: Mesa expects GL_OES_EGL_image to be available in OpenGL contexts. */
    { "GL_OES_EGL_image",                           o(OES_EGL_image),                           GL | ES1 | ES2, 2006 },
@@ -745,6 +748,9 @@ _mesa_make_extension_string(struct gl_context *ctx)
    const struct extension *i;
    unsigned j;
    unsigned maxYear = ~0;
+   unsigned api_set = (1 << ctx->API);
+   if (_mesa_is_gles3(ctx))
+      api_set |= ES3;
 
    /* Check if the MESA_EXTENSION_MAX_YEAR env var is set */
    {
@@ -761,7 +767,7 @@ _mesa_make_extension_string(struct gl_context *ctx)
    for (i = extension_table; i->name != 0; ++i) {
       if (base[i->offset] &&
           i->year <= maxYear &&
-          (i->api_set & (1 << ctx->API))) {
+          (i->api_set & api_set)) {
 	 length += strlen(i->name) + 1; /* +1 for space */
 	 ++count;
       }
@@ -791,7 +797,7 @@ _mesa_make_extension_string(struct gl_context *ctx)
    for (i = extension_table; i->name != 0; ++i) {
       if (base[i->offset] &&
           i->year <= maxYear &&
-          (i->api_set & (1 << ctx->API))) {
+          (i->api_set & api_set)) {
          extension_indices[j++] = i - extension_table;
       }
    }
@@ -801,7 +807,7 @@ _mesa_make_extension_string(struct gl_context *ctx)
    /* Build the extension string.*/
    for (j = 0; j < count; ++j) {
       i = &extension_table[extension_indices[j]];
-      assert(base[i->offset] && (i->api_set & (1 << ctx->API)));
+      assert(base[i->offset] && (i->api_set & api_set));
       strcat(exts, i->name);
       strcat(exts, " ");
    }
@@ -822,6 +828,9 @@ _mesa_get_extension_count(struct gl_context *ctx)
 {
    GLboolean *base;
    const struct extension *i;
+   unsigned api_set = (1 << ctx->API);
+   if (_mesa_is_gles3(ctx))
+      api_set |= ES3;
 
    /* only count once */
    if (ctx->Extensions.Count != 0)
@@ -829,7 +838,7 @@ _mesa_get_extension_count(struct gl_context *ctx)
 
    base = (GLboolean *) &ctx->Extensions;
    for (i = extension_table; i->name != 0; ++i) {
-      if (base[i->offset] && (i->api_set & (1 << ctx->API))) {
+      if (base[i->offset] && (i->api_set & api_set)) {
 	 ctx->Extensions.Count++;
       }
    }
@@ -845,11 +854,14 @@ _mesa_get_enabled_extension(struct gl_context *ctx, GLuint index)
    const GLboolean *base;
    size_t n;
    const struct extension *i;
+   unsigned api_set = (1 << ctx->API);
+   if (_mesa_is_gles3(ctx))
+      api_set |= ES3;
 
    base = (GLboolean*) &ctx->Extensions;
    n = 0;
    for (i = extension_table; i->name != 0; ++i) {
-      if (base[i->offset] && (i->api_set & (1 << ctx->API))) {
+      if (base[i->offset] && (i->api_set & api_set)) {
          if (n == index)
             return (const GLubyte*) i->name;
          else

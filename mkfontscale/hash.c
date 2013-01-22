@@ -79,7 +79,7 @@ destroyHashTable(HashTablePtr table)
 char *
 getHash(HashTablePtr table, const char *key)
 {
-    int i = hash(key);
+    unsigned int i = hash(key);
     HashBucketPtr bp;
     for(bp = table[i]; bp; bp = bp->next) {
         if(strcasecmp(bp->key, key) == 0)
@@ -91,7 +91,7 @@ getHash(HashTablePtr table, const char *key)
 int
 putHash(HashTablePtr table, char *key, char *value, int prio)
 {
-    int i = hash(key);
+    unsigned int i = hash(key);
     char *keycopy = NULL, *valuecopy = NULL;
     HashBucketPtr bp;
     for(bp = table[i]; bp; bp = bp->next) {

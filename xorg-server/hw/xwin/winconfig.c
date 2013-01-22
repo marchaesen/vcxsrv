@@ -81,8 +81,7 @@ WinCmdlineRec g_cmdline = {
     0                           /* emulate3Timeout */
 };
 
-winInfoRec
-g_winInfo = {
+winInfoRec g_winInfo = {
     {                           /* keyboard */
      0,                         /* leds */
      500,                       /* delay */
@@ -763,7 +762,7 @@ ParseOptionValue(int scrnIndex, pointer options, OptionInfoPtr p)
             break;
         case OPTV_STRING:
             if (*s == '\0') {
-                winDebug ( "Option \"%s\" requires an string value\n", p->name);
+                winDebug ( "Option \"%s\" requires a string value\n", p->name);
                 p->found = FALSE;
             }
             else {

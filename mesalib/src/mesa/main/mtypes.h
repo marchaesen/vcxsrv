@@ -2274,7 +2274,6 @@ struct gl_uniform_buffer_variable
 {
    char *Name;
    const struct glsl_type *Type;
-   unsigned int Buffer;
    unsigned int Offset;
    GLboolean RowMajor;
 };
@@ -3134,6 +3133,7 @@ struct gl_extensions
    GLboolean S3_s3tc;
    GLboolean OES_EGL_image;
    GLboolean OES_draw_texture;
+   GLboolean OES_depth_texture_cube_map;
    GLboolean OES_EGL_image_external;
    GLboolean OES_compressed_ETC1_RGB8_texture;
    GLboolean extension_sentinel;
@@ -3440,9 +3440,28 @@ struct gl_context
    /** \name API function pointer tables */
    /*@{*/
    gl_api API;
-   struct _glapi_table *Save;	/**< Display list save functions */
-   struct _glapi_table *Exec;	/**< Execute functions */
-   struct _glapi_table *CurrentDispatch;  /**< == Save or Exec !! */
+   /**
+    * The current dispatch table for non-displaylist-saving execution, either
+    * BeginEnd or OutsideBeginEnd
+    */
+   struct _glapi_table *Exec;
+   /**
+    * The normal dispatch table for non-displaylist-saving, non-begin/end
+    */
+   struct _glapi_table *OutsideBeginEnd;
+   /** The dispatch table used between glNewList() and glEndList() */
+   struct _glapi_table *Save;
+   /**
+    * The dispatch table used between glBegin() and glEnd() (outside of a
+    * display list).  Only valid functions between those two are set, which is
+    * mostly just the set in a GLvertexformat struct.
+    */
+   struct _glapi_table *BeginEnd;
+   /**
+    * Tracks the current dispatch table out of the 3 above, so that it can be
+    * re-set on glXMakeCurrent().
+    */
+   struct _glapi_table *CurrentDispatch;
    /*@}*/
 
    struct gl_config Visual;

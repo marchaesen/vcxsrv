@@ -12,7 +12,7 @@ xkb_symbols "basic" {
 
     key <AE01> {	[ 0x1000586,  0x1000556	]	};
     key <AE02> {	[ 0x1000571,  0x1000541	]	};
-    key <AE03> {	[ 0x1002013,  0x1002014 ]	};
+    key <AE03> {	[ 0x100058a,  0x1002014 ]	};
     key <AE04> {	[     comma,  dollar	]	};
     key <AE05> {	[ 0x1000589,  0x1002026	] 	};
     key <AE06> {	[ 0x100055e,  percent	]	};

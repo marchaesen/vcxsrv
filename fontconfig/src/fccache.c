@@ -31,7 +31,6 @@
 #include <dirent.h>
 #include <string.h>
 #include <sys/types.h>
-#include <time.h>
 #include <assert.h>
 #if defined(HAVE_MMAP) || defined(__CYGWIN__)
 #  include <unistd.h>
@@ -251,62 +250,6 @@ struct _FcCacheSkip {
 /* Protected by cache_lock below */
 static FcCacheSkip	*fcCacheChains[FC_CACHE_MAX_LEVEL];
 static int		fcCacheMaxLevel;
-
-
-static int32_t
-FcRandom(void)
-{
-    int32_t result;
-
-#if HAVE_RANDOM_R
-    static struct random_data fcrandbuf;
-    static char statebuf[256];
-    static FcBool initialized = FcFalse;
-
-    if (initialized != FcTrue)
-    {
-	initstate_r(time(NULL), statebuf, 256, &fcrandbuf);
-	initialized = FcTrue;
-    }
-
-    random_r(&fcrandbuf, &result);
-#elif HAVE_RANDOM
-    static char statebuf[256];
-    char *state;
-    static FcBool initialized = FcFalse;
-
-    if (initialized != FcTrue)
-    {
-	state = initstate(time(NULL), statebuf, 256);
-	initialized = FcTrue;
-    }
-    else
-	state = setstate(statebuf);
-
-    result = random();
-
-    setstate(state);
-#elif HAVE_LRAND48
-    result = lrand48();
-#elif HAVE_RAND_R
-    static unsigned int seed = time(NULL);
-
-    result = rand_r(&seed);
-#elif HAVE_RAND
-    static FcBool initialized = FcFalse;
-
-    if (initialized != FcTrue)
-    {
-	srand(time(NULL));
-	initialized = FcTrue;
-    }
-    result = rand();
-#else
-# error no random number generator function available.
-#endif
-
-    return result;
-}
 
 
 static FcMutex *cache_lock;

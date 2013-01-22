@@ -26,6 +26,10 @@
 #ifndef WINGLOBALS_H
 #define WINGLOBALS_H
 
+#ifdef HAVE_XWIN_CONFIG_H
+#include <xwin-config.h>
+#endif
+
 /*
  * References to external symbols
  */

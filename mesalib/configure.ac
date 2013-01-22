@@ -33,7 +33,7 @@ LIBDRM_REQUIRED=2.4.24
 LIBDRM_RADEON_REQUIRED=2.4.40
 LIBDRM_INTEL_REQUIRED=2.4.38
 LIBDRM_NVVIEUX_REQUIRED=2.4.33
-LIBDRM_NOUVEAU_REQUIRED=2.4.33
+LIBDRM_NOUVEAU_REQUIRED="2.4.33 libdrm >= 2.4.41"
 DRI2PROTO_REQUIRED=2.6
 GLPROTO_REQUIRED=1.4.14
 LIBDRM_XORG_REQUIRED=2.4.24
@@ -49,6 +49,7 @@ AM_PROG_CC_C_O
 AM_PROG_AS
 AC_CHECK_PROGS([MAKE], [gmake make])
 AC_CHECK_PROGS([PYTHON2], [python2 python])
+AX_PYTHON_MODULE([libxml2], [needed])
 AC_PROG_SED
 AC_PROG_MKDIR_P
 
@@ -724,16 +725,12 @@ if test "x$enable_dri" = xno; then
     enable_shared_glapi=no
 fi
 
-# TODO: Get rid of SHARED_GLAPI variable
-SHARED_GLAPI="0"
 if test "x$enable_shared_glapi" = xyes; then
-    SHARED_GLAPI="1"
     # libGL will use libglapi for function lookups (IN_DRI_DRIVER means to use
     # the remap table)
     DEFINES="$DEFINES -DIN_DRI_DRIVER"
     CORE_DIRS="mapi/shared-glapi"
 fi
-AC_SUBST([SHARED_GLAPI])
 AM_CONDITIONAL(HAVE_SHARED_GLAPI, test "x$enable_shared_glapi" = xyes)
 
 dnl

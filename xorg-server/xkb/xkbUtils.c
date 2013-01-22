@@ -642,6 +642,7 @@ XkbComputeCompatState(XkbSrvInfoPtr xkbi)
     CARD16 grp_mask;
     XkbStatePtr state = &xkbi->state;
     XkbCompatMapPtr map;
+    XkbControlsPtr ctrls;
 
     if (!state || !xkbi->desc || !xkbi->desc->ctrls || !xkbi->desc->compat)
         return;
@@ -650,9 +651,14 @@ XkbComputeCompatState(XkbSrvInfoPtr xkbi)
     grp_mask = map->groups[state->group].mask;
     state->compat_state = state->mods | grp_mask;
     state->compat_lookup_mods = state->lookup_mods | grp_mask;
+    ctrls= xkbi->desc->ctrls;
 
-    if (xkbi->desc->ctrls->enabled_ctrls & XkbIgnoreGroupLockMask)
-        grp_mask = map->groups[state->base_group].mask;
+    if (ctrls->enabled_ctrls & XkbIgnoreGroupLockMask) {
+	unsigned char grp = state->base_group+state->latched_group;
+	if (grp >= ctrls->num_groups)
+	    grp = XkbAdjustGroup(XkbCharToInt(grp), ctrls);
+        grp_mask = map->groups[grp].mask;
+    }
     state->compat_grab_mods = state->grab_mods | grp_mask;
     return;
 }

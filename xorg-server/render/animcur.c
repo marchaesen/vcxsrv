@@ -143,6 +143,8 @@ AnimCurScreenBlockHandler(ScreenPtr pScreen,
     Bool activeDevice = FALSE;
     CARD32 now = 0, soonest = ~0;       /* earliest time to wakeup again */
 
+    Unwrap(as, pScreen, BlockHandler);
+
     for (dev = inputInfo.devices; dev; dev = dev->next) {
         if (IsPointerDevice(dev) && pScreen == dev->spriteInfo->anim.pScreen) {
             if (!activeDevice) {
@@ -180,7 +182,6 @@ AnimCurScreenBlockHandler(ScreenPtr pScreen,
     if (activeDevice)
         AdjustWaitForDelay(pTimeout, soonest - now);
 
-    Unwrap(as, pScreen, BlockHandler);
     (*pScreen->BlockHandler) (pScreen, pTimeout, pReadmask);
     if (activeDevice)
         Wrap(as, pScreen, BlockHandler, AnimCurScreenBlockHandler);

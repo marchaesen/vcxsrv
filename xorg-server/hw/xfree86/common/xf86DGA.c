@@ -1033,6 +1033,9 @@ DGAProcessKeyboardEvent(ScreenPtr pScreen, DGAEvent * event, DeviceIntPtr keybd)
 
     UpdateDeviceState(keybd, &ev);
 
+    if (!IsMaster(keybd))
+        return;
+
     /*
      * Deliver the DGA event
      */
@@ -1074,6 +1077,7 @@ DGAProcessPointerEvent(ScreenPtr pScreen, DGAEvent * event, DeviceIntPtr mouse)
     DeviceEvent ev = {
         .header = ET_Internal,
         .length = sizeof(ev),
+        .detail.key = event->detail,
         .type = event->subtype,
         .corestate = butc ? butc->state : 0
     };
@@ -1082,6 +1086,9 @@ DGAProcessPointerEvent(ScreenPtr pScreen, DGAEvent * event, DeviceIntPtr mouse)
         ev.corestate |= XkbStateFieldFromRec(&master->key->xkbInfo->state);
 
     UpdateDeviceState(mouse, &ev);
+
+    if (!IsMaster(mouse))
+        return;
 
     /*
      * Deliver the DGA event
@@ -1188,9 +1195,6 @@ DGAHandleEvent(int screen_num, InternalEvent *ev, DeviceIntPtr device)
 
     /* DGA not initialized on this screen */
     if (!pScreenPriv)
-        return;
-
-    if (!IsMaster(device))
         return;
 
     switch (event->subtype) {

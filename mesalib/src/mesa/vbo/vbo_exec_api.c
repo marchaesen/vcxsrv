@@ -658,8 +658,6 @@ vbo_exec_EvalMesh1(GLenum mode, GLint i1, GLint i2)
    GLfloat u, du;
    GLenum prim;
 
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
-
    switch (mode) {
    case GL_POINT:
       prim = GL_POINTS;
@@ -695,8 +693,6 @@ vbo_exec_EvalMesh2(GLenum mode, GLint i1, GLint i2, GLint j1, GLint j2)
    GET_CURRENT_CONTEXT(ctx);
    GLfloat u, du, v, dv, v1, u1;
    GLint i, j;
-
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    switch (mode) {
    case GL_POINT:
@@ -771,9 +767,6 @@ vbo_exec_EvalMesh2(GLenum mode, GLint i1, GLint i2, GLint j1, GLint j2)
 static void GLAPIENTRY
 vbo_exec_Rectf(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2)
 {
-   GET_CURRENT_CONTEXT(ctx);
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
-
    CALL_Begin(GET_DISPATCH(), (GL_QUADS));
    CALL_Vertex2f(GET_DISPATCH(), (x1, y1));
    CALL_Vertex2f(GET_DISPATCH(), (x2, y1));
@@ -789,54 +782,61 @@ vbo_exec_Rectf(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2)
 static void GLAPIENTRY vbo_exec_Begin( GLenum mode )
 {
    GET_CURRENT_CONTEXT( ctx ); 
+   struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
+   int i;
 
-   if (ctx->Driver.CurrentExecPrimitive == PRIM_OUTSIDE_BEGIN_END) {
-      struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
-      int i;
-
-      if (!_mesa_valid_prim_mode(ctx, mode, "glBegin")) {
-         return;
-      }
-
-      vbo_draw_method(vbo_context(ctx), DRAW_BEGIN_END);
-
-      if (ctx->Driver.PrepareExecBegin)
-	 ctx->Driver.PrepareExecBegin(ctx);
-
-      if (ctx->NewState) {
-	 _mesa_update_state( ctx );
-
-	 CALL_Begin(ctx->Exec, (mode));
-	 return;
-      }
-
-      if (!_mesa_valid_to_render(ctx, "glBegin")) {
-         return;
-      }
-
-      /* Heuristic: attempt to isolate attributes occuring outside
-       * begin/end pairs.
-       */
-      if (exec->vtx.vertex_size && !exec->vtx.attrsz[0]) 
-	 vbo_exec_FlushVertices_internal(exec, GL_FALSE);
-
-      i = exec->vtx.prim_count++;
-      exec->vtx.prim[i].mode = mode;
-      exec->vtx.prim[i].begin = 1;
-      exec->vtx.prim[i].end = 0;
-      exec->vtx.prim[i].indexed = 0;
-      exec->vtx.prim[i].weak = 0;
-      exec->vtx.prim[i].pad = 0;
-      exec->vtx.prim[i].start = exec->vtx.vert_count;
-      exec->vtx.prim[i].count = 0;
-      exec->vtx.prim[i].num_instances = 1;
-      exec->vtx.prim[i].base_instance = 0;
-
-      ctx->Driver.CurrentExecPrimitive = mode;
+   if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glBegin");
+      return;
    }
-   else 
-      _mesa_error( ctx, GL_INVALID_OPERATION, "glBegin" );
-      
+
+   if (!_mesa_valid_prim_mode(ctx, mode, "glBegin")) {
+      return;
+   }
+
+   vbo_draw_method(vbo_context(ctx), DRAW_BEGIN_END);
+
+   if (ctx->NewState) {
+      _mesa_update_state( ctx );
+
+      CALL_Begin(ctx->Exec, (mode));
+      return;
+   }
+
+   if (!_mesa_valid_to_render(ctx, "glBegin")) {
+      return;
+   }
+
+   /* Heuristic: attempt to isolate attributes occuring outside
+    * begin/end pairs.
+    */
+   if (exec->vtx.vertex_size && !exec->vtx.attrsz[0])
+      vbo_exec_FlushVertices_internal(exec, GL_FALSE);
+
+   i = exec->vtx.prim_count++;
+   exec->vtx.prim[i].mode = mode;
+   exec->vtx.prim[i].begin = 1;
+   exec->vtx.prim[i].end = 0;
+   exec->vtx.prim[i].indexed = 0;
+   exec->vtx.prim[i].weak = 0;
+   exec->vtx.prim[i].pad = 0;
+   exec->vtx.prim[i].start = exec->vtx.vert_count;
+   exec->vtx.prim[i].count = 0;
+   exec->vtx.prim[i].num_instances = 1;
+   exec->vtx.prim[i].base_instance = 0;
+
+   ctx->Driver.CurrentExecPrimitive = mode;
+
+   ctx->Exec = ctx->BeginEnd;
+   /* We may have been called from a display list, in which case we should
+    * leave dlist.c's dispatch table in place.
+    */
+   if (ctx->CurrentDispatch == ctx->OutsideBeginEnd) {
+      ctx->CurrentDispatch = ctx->BeginEnd;
+      _glapi_set_dispatch(ctx->CurrentDispatch);
+   } else {
+      assert(ctx->CurrentDispatch == ctx->Save);
+   }
 }
 
 
@@ -846,26 +846,32 @@ static void GLAPIENTRY vbo_exec_Begin( GLenum mode )
 static void GLAPIENTRY vbo_exec_End( void )
 {
    GET_CURRENT_CONTEXT( ctx ); 
+   struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
 
-   if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END) {
-      struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
-
-      if (exec->vtx.prim_count > 0) {
-         /* close off current primitive */
-         int idx = exec->vtx.vert_count;
-         int i = exec->vtx.prim_count - 1;
-
-         exec->vtx.prim[i].end = 1; 
-         exec->vtx.prim[i].count = idx - exec->vtx.prim[i].start;
-      }
-
-      ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;
-
-      if (exec->vtx.prim_count == VBO_MAX_PRIM)
-	 vbo_exec_vtx_flush( exec, GL_FALSE );
+   if (ctx->Driver.CurrentExecPrimitive == PRIM_OUTSIDE_BEGIN_END) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glEnd");
+      return;
    }
-   else 
-      _mesa_error( ctx, GL_INVALID_OPERATION, "glEnd" );
+
+   ctx->Exec = ctx->OutsideBeginEnd;
+   if (ctx->CurrentDispatch == ctx->BeginEnd) {
+      ctx->CurrentDispatch = ctx->OutsideBeginEnd;
+      _glapi_set_dispatch(ctx->CurrentDispatch);
+   }
+
+   if (exec->vtx.prim_count > 0) {
+      /* close off current primitive */
+      int idx = exec->vtx.vert_count;
+      int i = exec->vtx.prim_count - 1;
+
+      exec->vtx.prim[i].end = 1;
+      exec->vtx.prim[i].count = idx - exec->vtx.prim[i].start;
+   }
+
+   ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;
+
+   if (exec->vtx.prim_count == VBO_MAX_PRIM)
+      vbo_exec_vtx_flush( exec, GL_FALSE );
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
       _mesa_flush(ctx);

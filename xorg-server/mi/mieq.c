@@ -627,7 +627,11 @@ mieqProcessInputEvents(void)
         mieqProcessDeviceEvent(dev, &event, screen);
 
         /* Update the sprite now. Next event may be from different device. */
-        if (event.any.type == ET_Motion && master)
+        if (master &&
+            (event.any.type == ET_Motion ||
+             ((event.any.type == ET_TouchBegin ||
+               event.any.type == ET_TouchUpdate) &&
+              event.device_event.flags & TOUCH_POINTER_EMULATED)))
             miPointerUpdateSprite(dev);
 
 #ifdef XQUARTZ
