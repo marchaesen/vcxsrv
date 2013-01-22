@@ -25,9 +25,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src/mapi \
 	-I$(top_srcdir)/src/mesa/ \
-	$(LIBRARY_INCLUDES) \
 	$(DEFINES) \
-	$(LIBRARY_DEFINES) \
 	$(API_DEFINES)
 AM_CFLAGS = $(VISIBILITY_CFLAGS)
 AM_CXXFLAGS = $(VISIBILITY_CXXFLAGS)
@@ -37,7 +35,8 @@ AM_LFLAGS = --nounistd -o$(LEX_OUTPUT_ROOT).c
 include Makefile.sources
 
 noinst_LTLIBRARIES = libglsl.la
-noinst_PROGRAMS = glsl_compiler glsl_test
+check_PROGRAMS = glsl_test
+noinst_PROGRAMS = glsl_compiler
 
 libglsl_la_SOURCES = \
 	glsl_lexer.ll \

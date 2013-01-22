@@ -462,7 +462,7 @@
         <variant>
           <configItem>
             <name>sun_type6</name>
-            <_description>Portuguese (Brazil,Sun Type 6/7)</_description>
+            <_description>Portuguese (Brazil, Sun Type 6/7)</_description>
           </configItem>
         </variant>
 	  </variantList>
@@ -693,7 +693,7 @@
       <configItem>
         <name>ch</name>
         <_shortDescription>de</_shortDescription>
-        <_description>>German (Switzerland)</_description>
+        <_description>German (Switzerland)</_description>
 	  </configItem>
 	  <variantList>
         <variant>

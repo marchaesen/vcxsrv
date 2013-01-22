@@ -5648,16 +5648,9 @@ save_Begin(GLenum mode)
    Node *n;
    GLboolean error = GL_FALSE;
 
-   if (mode > GL_POLYGON) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glBegin(mode=%x)", mode);
+   if (ctx->ExecuteFlag && !_mesa_valid_prim_mode(ctx, mode, "glBegin")) {
       error = GL_TRUE;
    }
-   if (ctx->ExecuteFlag) {
-      if (!_mesa_valid_prim_mode(ctx, mode, "glBegin")) {
-	 error = GL_TRUE;
-      }
-   }
-
    else if (ctx->Driver.CurrentSavePrimitive == PRIM_UNKNOWN) {
       /* Typically the first begin.  This may raise an error on
        * playback, depending on whether CallList is issued from inside
@@ -6013,35 +6006,6 @@ save_VertexAttrib4fvARB(GLuint index, const GLfloat * v)
    else
       index_error();
 }
-
-
-/* GL_ARB_shader_objects, GL_ARB_vertex/fragment_shader */
-
-static void GLAPIENTRY
-exec_BindAttribLocationARB(GLuint program, GLuint index, const GLchar *name)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_BindAttribLocation(ctx->Exec, (program, index, name));
-}
-
-static GLint GLAPIENTRY
-exec_GetAttribLocationARB(GLuint program, const GLchar *name)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   return CALL_GetAttribLocation(ctx->Exec, (program, name));
-}
-
-static GLint GLAPIENTRY
-exec_GetUniformLocationARB(GLuint program, const GLchar *name)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   return CALL_GetUniformLocation(ctx->Exec, (program, name));
-}
-/* XXX more shader functions needed here */
-
 
 static void GLAPIENTRY
 save_BlitFramebufferEXT(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
@@ -6983,25 +6947,6 @@ save_TexParameterIuiv(GLenum target, GLenum pname, const GLuint *params)
       CALL_TexParameterIuiv(ctx->Exec, (target, pname, params));
    }
 }
-
-/** GL_EXT_texture_integer */
-static void GLAPIENTRY
-exec_GetTexParameterIiv(GLenum target, GLenum pname, GLint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetTexParameterIiv(ctx->Exec, (target, pname, params));
-}
-
-/** GL_EXT_texture_integer */
-static void GLAPIENTRY
-exec_GetTexParameterIuiv(GLenum target, GLenum pname, GLuint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetTexParameterIuiv(ctx->Exec, (target, pname, params));
-}
-
 
 /* GL_ARB_instanced_arrays */
 static void GLAPIENTRY
@@ -8710,7 +8655,7 @@ _mesa_EndList(void)
 {
    GET_CURRENT_CONTEXT(ctx);
    SAVE_FLUSH_VERTICES(ctx);
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+   FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glEndList\n");
@@ -8850,721 +8795,6 @@ _mesa_ListBase(GLuint base)
    ctx->List.ListBase = base;
 }
 
-
-/* Can no longer assume ctx->Exec->Func is equal to _mesa_Func.
- */
-static void GLAPIENTRY
-exec_Finish(void)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_Finish(ctx->Exec, ());
-}
-
-static void GLAPIENTRY
-exec_Flush(void)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_Flush(ctx->Exec, ());
-}
-
-static void GLAPIENTRY
-exec_GetBooleanv(GLenum pname, GLboolean *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetBooleanv(ctx->Exec, (pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetClipPlane(GLenum plane, GLdouble * equation)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetClipPlane(ctx->Exec, (plane, equation));
-}
-
-static void GLAPIENTRY
-exec_GetDoublev(GLenum pname, GLdouble *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetDoublev(ctx->Exec, (pname, params));
-}
-
-static GLenum GLAPIENTRY
-exec_GetError(void)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   return CALL_GetError(ctx->Exec, ());
-}
-
-static void GLAPIENTRY
-exec_GetFloatv(GLenum pname, GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetFloatv(ctx->Exec, (pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetIntegerv(GLenum pname, GLint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetIntegerv(ctx->Exec, (pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetLightfv(GLenum light, GLenum pname, GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetLightfv(ctx->Exec, (light, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetLightiv(GLenum light, GLenum pname, GLint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetLightiv(ctx->Exec, (light, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetMapdv(GLenum target, GLenum query, GLdouble * v)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetMapdv(ctx->Exec, (target, query, v));
-}
-
-static void GLAPIENTRY
-exec_GetMapfv(GLenum target, GLenum query, GLfloat * v)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetMapfv(ctx->Exec, (target, query, v));
-}
-
-static void GLAPIENTRY
-exec_GetMapiv(GLenum target, GLenum query, GLint * v)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetMapiv(ctx->Exec, (target, query, v));
-}
-
-static void GLAPIENTRY
-exec_GetMaterialfv(GLenum face, GLenum pname, GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetMaterialfv(ctx->Exec, (face, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetMaterialiv(GLenum face, GLenum pname, GLint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetMaterialiv(ctx->Exec, (face, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetPixelMapfv(GLenum map, GLfloat *values)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetPixelMapfv(ctx->Exec, (map, values));
-}
-
-static void GLAPIENTRY
-exec_GetPixelMapuiv(GLenum map, GLuint *values)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetPixelMapuiv(ctx->Exec, (map, values));
-}
-
-static void GLAPIENTRY
-exec_GetPixelMapusv(GLenum map, GLushort *values)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetPixelMapusv(ctx->Exec, (map, values));
-}
-
-static void GLAPIENTRY
-exec_GetPolygonStipple(GLubyte * dest)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetPolygonStipple(ctx->Exec, (dest));
-}
-
-static const GLubyte *GLAPIENTRY
-exec_GetString(GLenum name)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   return CALL_GetString(ctx->Exec, (name));
-}
-
-static void GLAPIENTRY
-exec_GetTexEnvfv(GLenum target, GLenum pname, GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetTexEnvfv(ctx->Exec, (target, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetTexEnviv(GLenum target, GLenum pname, GLint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetTexEnviv(ctx->Exec, (target, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetTexGendv(GLenum coord, GLenum pname, GLdouble *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetTexGendv(ctx->Exec, (coord, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetTexGenfv(GLenum coord, GLenum pname, GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetTexGenfv(ctx->Exec, (coord, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetTexGeniv(GLenum coord, GLenum pname, GLint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetTexGeniv(ctx->Exec, (coord, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetTexImage(GLenum target, GLint level, GLenum format,
-                 GLenum type, GLvoid * pixels)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetTexImage(ctx->Exec, (target, level, format, type, pixels));
-}
-
-static void GLAPIENTRY
-exec_GetTexLevelParameterfv(GLenum target, GLint level,
-                            GLenum pname, GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetTexLevelParameterfv(ctx->Exec, (target, level, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetTexLevelParameteriv(GLenum target, GLint level,
-                            GLenum pname, GLint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetTexLevelParameteriv(ctx->Exec, (target, level, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetTexParameterfv(GLenum target, GLenum pname, GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetTexParameterfv(ctx->Exec, (target, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetTexParameteriv(GLenum target, GLenum pname, GLint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetTexParameteriv(ctx->Exec, (target, pname, params));
-}
-
-static GLboolean GLAPIENTRY
-exec_IsEnabled(GLenum cap)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   return CALL_IsEnabled(ctx->Exec, (cap));
-}
-
-static void GLAPIENTRY
-exec_PixelStoref(GLenum pname, GLfloat param)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_PixelStoref(ctx->Exec, (pname, param));
-}
-
-static void GLAPIENTRY
-exec_PixelStorei(GLenum pname, GLint param)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_PixelStorei(ctx->Exec, (pname, param));
-}
-
-static void GLAPIENTRY
-exec_ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,
-                GLenum format, GLenum type, GLvoid * pixels)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_ReadPixels(ctx->Exec, (x, y, width, height, format, type, pixels));
-}
-
-static GLint GLAPIENTRY
-exec_RenderMode(GLenum mode)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   return CALL_RenderMode(ctx->Exec, (mode));
-}
-
-static void GLAPIENTRY
-exec_FeedbackBuffer(GLsizei size, GLenum type, GLfloat * buffer)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_FeedbackBuffer(ctx->Exec, (size, type, buffer));
-}
-
-static void GLAPIENTRY
-exec_SelectBuffer(GLsizei size, GLuint * buffer)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_SelectBuffer(ctx->Exec, (size, buffer));
-}
-
-static GLboolean GLAPIENTRY
-exec_AreTexturesResident(GLsizei n, const GLuint * texName,
-                         GLboolean * residences)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   return CALL_AreTexturesResident(ctx->Exec, (n, texName, residences));
-}
-
-static void GLAPIENTRY
-exec_ColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_ColorPointer(ctx->Exec, (size, type, stride, ptr));
-}
-
-static void GLAPIENTRY
-exec_DeleteTextures(GLsizei n, const GLuint * texName)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_DeleteTextures(ctx->Exec, (n, texName));
-}
-
-static void GLAPIENTRY
-exec_DisableClientState(GLenum cap)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_DisableClientState(ctx->Exec, (cap));
-}
-
-static void GLAPIENTRY
-exec_EdgeFlagPointer(GLsizei stride, const GLvoid * vptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_EdgeFlagPointer(ctx->Exec, (stride, vptr));
-}
-
-static void GLAPIENTRY
-exec_EnableClientState(GLenum cap)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_EnableClientState(ctx->Exec, (cap));
-}
-
-static void GLAPIENTRY
-exec_GenTextures(GLsizei n, GLuint * texName)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GenTextures(ctx->Exec, (n, texName));
-}
-
-static void GLAPIENTRY
-exec_GetPointerv(GLenum pname, GLvoid **params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetPointerv(ctx->Exec, (pname, params));
-}
-
-static void GLAPIENTRY
-exec_IndexPointer(GLenum type, GLsizei stride, const GLvoid *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_IndexPointer(ctx->Exec, (type, stride, ptr));
-}
-
-static void GLAPIENTRY
-exec_InterleavedArrays(GLenum format, GLsizei stride, const GLvoid * pointer)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_InterleavedArrays(ctx->Exec, (format, stride, pointer));
-}
-
-static GLboolean GLAPIENTRY
-exec_IsTexture(GLuint texture)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   return CALL_IsTexture(ctx->Exec, (texture));
-}
-
-static void GLAPIENTRY
-exec_NormalPointer(GLenum type, GLsizei stride, const GLvoid *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_NormalPointer(ctx->Exec, (type, stride, ptr));
-}
-
-static void GLAPIENTRY
-exec_PopClientAttrib(void)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_PopClientAttrib(ctx->Exec, ());
-}
-
-static void GLAPIENTRY
-exec_PushClientAttrib(GLbitfield mask)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_PushClientAttrib(ctx->Exec, (mask));
-}
-
-static void GLAPIENTRY
-exec_TexCoordPointer(GLint size, GLenum type, GLsizei stride,
-                     const GLvoid *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_TexCoordPointer(ctx->Exec, (size, type, stride, ptr));
-}
-
-static void GLAPIENTRY
-exec_GetCompressedTexImageARB(GLenum target, GLint level, GLvoid * img)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetCompressedTexImage(ctx->Exec, (target, level, img));
-}
-
-static void GLAPIENTRY
-exec_VertexPointer(GLint size, GLenum type, GLsizei stride,
-                   const GLvoid *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_VertexPointer(ctx->Exec, (size, type, stride, ptr));
-}
-
-static void GLAPIENTRY
-exec_CopyConvolutionFilter1D(GLenum target, GLenum internalFormat,
-                             GLint x, GLint y, GLsizei width)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_CopyConvolutionFilter1D(ctx->Exec,
-                                (target, internalFormat, x, y, width));
-}
-
-static void GLAPIENTRY
-exec_CopyConvolutionFilter2D(GLenum target, GLenum internalFormat,
-                             GLint x, GLint y, GLsizei width, GLsizei height)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_CopyConvolutionFilter2D(ctx->Exec,
-                                (target, internalFormat, x, y, width,
-                                 height));
-}
-
-static void GLAPIENTRY
-exec_GetColorTable(GLenum target, GLenum format, GLenum type, GLvoid * data)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetColorTable(ctx->Exec, (target, format, type, data));
-}
-
-static void GLAPIENTRY
-exec_GetColorTableParameterfv(GLenum target, GLenum pname, GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetColorTableParameterfv(ctx->Exec, (target, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetColorTableParameteriv(GLenum target, GLenum pname, GLint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetColorTableParameteriv(ctx->Exec, (target, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetConvolutionFilter(GLenum target, GLenum format, GLenum type,
-                          GLvoid * image)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetConvolutionFilter(ctx->Exec, (target, format, type, image));
-}
-
-static void GLAPIENTRY
-exec_GetConvolutionParameterfv(GLenum target, GLenum pname, GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetConvolutionParameterfv(ctx->Exec, (target, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetConvolutionParameteriv(GLenum target, GLenum pname, GLint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetConvolutionParameteriv(ctx->Exec, (target, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetHistogram(GLenum target, GLboolean reset, GLenum format,
-                  GLenum type, GLvoid *values)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetHistogram(ctx->Exec, (target, reset, format, type, values));
-}
-
-static void GLAPIENTRY
-exec_GetHistogramParameterfv(GLenum target, GLenum pname, GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetHistogramParameterfv(ctx->Exec, (target, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetHistogramParameteriv(GLenum target, GLenum pname, GLint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetHistogramParameteriv(ctx->Exec, (target, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetMinmax(GLenum target, GLboolean reset, GLenum format,
-               GLenum type, GLvoid *values)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetMinmax(ctx->Exec, (target, reset, format, type, values));
-}
-
-static void GLAPIENTRY
-exec_GetMinmaxParameterfv(GLenum target, GLenum pname, GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetMinmaxParameterfv(ctx->Exec, (target, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetMinmaxParameteriv(GLenum target, GLenum pname, GLint *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetMinmaxParameteriv(ctx->Exec, (target, pname, params));
-}
-
-static void GLAPIENTRY
-exec_GetSeparableFilter(GLenum target, GLenum format, GLenum type,
-                        GLvoid *row, GLvoid *column, GLvoid *span)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_GetSeparableFilter(ctx->Exec,
-                           (target, format, type, row, column, span));
-}
-
-static void GLAPIENTRY
-exec_SeparableFilter2D(GLenum target, GLenum internalFormat,
-                       GLsizei width, GLsizei height, GLenum format,
-                       GLenum type, const GLvoid *row, const GLvoid *column)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_SeparableFilter2D(ctx->Exec,
-                          (target, internalFormat, width, height, format,
-                           type, row, column));
-}
-
-static void GLAPIENTRY
-exec_ColorPointerEXT(GLint size, GLenum type, GLsizei stride,
-                     GLsizei count, const GLvoid *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_ColorPointerEXT(ctx->Exec, (size, type, stride, count, ptr));
-}
-
-static void GLAPIENTRY
-exec_EdgeFlagPointerEXT(GLsizei stride, GLsizei count, const GLboolean *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_EdgeFlagPointerEXT(ctx->Exec, (stride, count, ptr));
-}
-
-static void GLAPIENTRY
-exec_IndexPointerEXT(GLenum type, GLsizei stride, GLsizei count,
-                     const GLvoid *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_IndexPointerEXT(ctx->Exec, (type, stride, count, ptr));
-}
-
-static void GLAPIENTRY
-exec_NormalPointerEXT(GLenum type, GLsizei stride, GLsizei count,
-                      const GLvoid *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_NormalPointerEXT(ctx->Exec, (type, stride, count, ptr));
-}
-
-static void GLAPIENTRY
-exec_TexCoordPointerEXT(GLint size, GLenum type, GLsizei stride,
-                        GLsizei count, const GLvoid *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_TexCoordPointerEXT(ctx->Exec, (size, type, stride, count, ptr));
-}
-
-static void GLAPIENTRY
-exec_VertexPointerEXT(GLint size, GLenum type, GLsizei stride,
-                      GLsizei count, const GLvoid *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_VertexPointerEXT(ctx->Exec, (size, type, stride, count, ptr));
-}
-
-static void GLAPIENTRY
-exec_LockArraysEXT(GLint first, GLsizei count)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_LockArraysEXT(ctx->Exec, (first, count));
-}
-
-static void GLAPIENTRY
-exec_UnlockArraysEXT(void)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_UnlockArraysEXT(ctx->Exec, ());
-}
-
-static void GLAPIENTRY
-exec_ClientActiveTextureARB(GLenum target)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_ClientActiveTexture(ctx->Exec, (target));
-}
-
-static void GLAPIENTRY
-exec_SecondaryColorPointerEXT(GLint size, GLenum type,
-                              GLsizei stride, const GLvoid *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_SecondaryColorPointer(ctx->Exec, (size, type, stride, ptr));
-}
-
-static void GLAPIENTRY
-exec_FogCoordPointerEXT(GLenum type, GLsizei stride, const GLvoid *ptr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_FogCoordPointer(ctx->Exec, (type, stride, ptr));
-}
-
-/* GL_EXT_multi_draw_arrays */
-static void GLAPIENTRY
-exec_MultiDrawArraysEXT(GLenum mode, const GLint *first,
-                        const GLsizei *count, GLsizei primcount)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_MultiDrawArrays(ctx->Exec, (mode, first, count, primcount));
-}
-
-/* GL_IBM_multimode_draw_arrays */
-static void GLAPIENTRY
-exec_MultiModeDrawArraysIBM(const GLenum * mode, const GLint * first,
-                            const GLsizei * count, GLsizei primcount,
-                            GLint modestride)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_MultiModeDrawArraysIBM(ctx->Exec,
-                               (mode, first, count, primcount, modestride));
-}
-
-/* GL_IBM_multimode_draw_arrays */
-static void GLAPIENTRY
-exec_MultiModeDrawElementsIBM(const GLenum * mode,
-                              const GLsizei * count,
-                              GLenum type,
-                              const GLvoid * const *indices,
-                              GLsizei primcount, GLint modestride)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
-   CALL_MultiModeDrawElementsIBM(ctx->Exec,
-                                 (mode, count, type, indices, primcount,
-                                  modestride));
-}
-
 /**
  * Setup the given dispatch table to point to Mesa's display list
  * building functions.
@@ -9573,14 +8803,17 @@ exec_MultiModeDrawElementsIBM(const GLenum * mode,
  * initialized from _mesa_init_api_defaults and from the active vtxfmt
  * struct.
  */
-struct _glapi_table *
-_mesa_create_save_table(const struct gl_context *ctx)
+void
+_mesa_initialize_save_table(const struct gl_context *ctx)
 {
-   struct _glapi_table *table;
+   struct _glapi_table *table = ctx->Save;
+   int numEntries = MAX2(_gloffset_COUNT, _glapi_get_dispatch_table_size());
 
-   table = _mesa_alloc_dispatch_table(_gloffset_COUNT);
-   if (table == NULL)
-      return NULL;
+   /* Initially populate the dispatch table with the contents of the
+    * normal-execution dispatch table.  This lets us skip populating functions
+    * that should be called directly instead of compiled into display lists.
+    */
+   memcpy(table, ctx->Exec, numEntries * sizeof(_glapi_proc));
 
    _mesa_loopback_init_api_table(ctx, table);
 
@@ -9603,7 +8836,6 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_ColorMaterial(table, save_ColorMaterial);
    SET_CopyPixels(table, save_CopyPixels);
    SET_CullFace(table, save_CullFace);
-   SET_DeleteLists(table, _mesa_DeleteLists);
    SET_DepthFunc(table, save_DepthFunc);
    SET_DepthMask(table, save_DepthMask);
    SET_DepthRange(table, save_DepthRange);
@@ -9613,51 +8845,17 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_DrawPixels(table, save_DrawPixels);
    SET_Enable(table, save_Enable);
    SET_Enablei(table, save_EnableIndexed);
-   SET_EndList(table, _mesa_EndList);
    SET_EvalMesh1(table, save_EvalMesh1);
    SET_EvalMesh2(table, save_EvalMesh2);
-   SET_Finish(table, exec_Finish);
-   SET_Flush(table, exec_Flush);
    SET_Fogf(table, save_Fogf);
    SET_Fogfv(table, save_Fogfv);
    SET_Fogi(table, save_Fogi);
    SET_Fogiv(table, save_Fogiv);
    SET_FrontFace(table, save_FrontFace);
    SET_Frustum(table, save_Frustum);
-   SET_GenLists(table, _mesa_GenLists);
-   SET_GetBooleanv(table, exec_GetBooleanv);
-   SET_GetClipPlane(table, exec_GetClipPlane);
-   SET_GetDoublev(table, exec_GetDoublev);
-   SET_GetError(table, exec_GetError);
-   SET_GetFloatv(table, exec_GetFloatv);
-   SET_GetIntegerv(table, exec_GetIntegerv);
-   SET_GetLightfv(table, exec_GetLightfv);
-   SET_GetLightiv(table, exec_GetLightiv);
-   SET_GetMapdv(table, exec_GetMapdv);
-   SET_GetMapfv(table, exec_GetMapfv);
-   SET_GetMapiv(table, exec_GetMapiv);
-   SET_GetMaterialfv(table, exec_GetMaterialfv);
-   SET_GetMaterialiv(table, exec_GetMaterialiv);
-   SET_GetPixelMapfv(table, exec_GetPixelMapfv);
-   SET_GetPixelMapuiv(table, exec_GetPixelMapuiv);
-   SET_GetPixelMapusv(table, exec_GetPixelMapusv);
-   SET_GetPolygonStipple(table, exec_GetPolygonStipple);
-   SET_GetString(table, exec_GetString);
-   SET_GetTexEnvfv(table, exec_GetTexEnvfv);
-   SET_GetTexEnviv(table, exec_GetTexEnviv);
-   SET_GetTexGendv(table, exec_GetTexGendv);
-   SET_GetTexGenfv(table, exec_GetTexGenfv);
-   SET_GetTexGeniv(table, exec_GetTexGeniv);
-   SET_GetTexImage(table, exec_GetTexImage);
-   SET_GetTexLevelParameterfv(table, exec_GetTexLevelParameterfv);
-   SET_GetTexLevelParameteriv(table, exec_GetTexLevelParameteriv);
-   SET_GetTexParameterfv(table, exec_GetTexParameterfv);
-   SET_GetTexParameteriv(table, exec_GetTexParameteriv);
    SET_Hint(table, save_Hint);
    SET_IndexMask(table, save_IndexMask);
    SET_InitNames(table, save_InitNames);
-   SET_IsEnabled(table, exec_IsEnabled);
-   SET_IsList(table, _mesa_IsList);
    SET_LightModelf(table, save_LightModelf);
    SET_LightModelfv(table, save_LightModelfv);
    SET_LightModeli(table, save_LightModeli);
@@ -9691,8 +8889,6 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_PixelMapfv(table, save_PixelMapfv);
    SET_PixelMapuiv(table, save_PixelMapuiv);
    SET_PixelMapusv(table, save_PixelMapusv);
-   SET_PixelStoref(table, exec_PixelStoref);
-   SET_PixelStorei(table, exec_PixelStorei);
    SET_PixelTransferf(table, save_PixelTransferf);
    SET_PixelTransferi(table, save_PixelTransferi);
    SET_PixelZoom(table, save_PixelZoom);
@@ -9731,15 +8927,11 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_RasterPos4s(table, save_RasterPos4s);
    SET_RasterPos4sv(table, save_RasterPos4sv);
    SET_ReadBuffer(table, save_ReadBuffer);
-   SET_ReadPixels(table, exec_ReadPixels);
-   SET_RenderMode(table, exec_RenderMode);
    SET_Rotated(table, save_Rotated);
    SET_Rotatef(table, save_Rotatef);
    SET_Scaled(table, save_Scaled);
    SET_Scalef(table, save_Scalef);
    SET_Scissor(table, save_Scissor);
-   SET_FeedbackBuffer(table, exec_FeedbackBuffer);
-   SET_SelectBuffer(table, exec_SelectBuffer);
    SET_ShadeModel(table, save_ShadeModel);
    SET_StencilFunc(table, save_StencilFunc);
    SET_StencilMask(table, save_StencilMask);
@@ -9765,30 +8957,14 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_Viewport(table, save_Viewport);
 
    /* GL 1.1 */
-   SET_AreTexturesResident(table, exec_AreTexturesResident);
    SET_BindTexture(table, save_BindTexture);
-   SET_ColorPointer(table, exec_ColorPointer);
    SET_CopyTexImage1D(table, save_CopyTexImage1D);
    SET_CopyTexImage2D(table, save_CopyTexImage2D);
    SET_CopyTexSubImage1D(table, save_CopyTexSubImage1D);
    SET_CopyTexSubImage2D(table, save_CopyTexSubImage2D);
-   SET_DeleteTextures(table, exec_DeleteTextures);
-   SET_DisableClientState(table, exec_DisableClientState);
-   SET_EdgeFlagPointer(table, exec_EdgeFlagPointer);
-   SET_EnableClientState(table, exec_EnableClientState);
-   SET_GenTextures(table, exec_GenTextures);
-   SET_GetPointerv(table, exec_GetPointerv);
-   SET_IndexPointer(table, exec_IndexPointer);
-   SET_InterleavedArrays(table, exec_InterleavedArrays);
-   SET_IsTexture(table, exec_IsTexture);
-   SET_NormalPointer(table, exec_NormalPointer);
-   SET_PopClientAttrib(table, exec_PopClientAttrib);
    SET_PrioritizeTextures(table, save_PrioritizeTextures);
-   SET_PushClientAttrib(table, exec_PushClientAttrib);
-   SET_TexCoordPointer(table, exec_TexCoordPointer);
    SET_TexSubImage1D(table, save_TexSubImage1D);
    SET_TexSubImage2D(table, save_TexSubImage2D);
-   SET_VertexPointer(table, exec_VertexPointer);
 
    /* GL 1.2 */
    SET_CopyTexSubImage3D(table, save_CopyTexSubImage3D);
@@ -9819,26 +8995,10 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_ConvolutionParameteriv(table, save_ConvolutionParameteriv);
    SET_CopyColorSubTable(table, save_CopyColorSubTable);
    SET_CopyColorTable(table, save_CopyColorTable);
-   SET_CopyConvolutionFilter1D(table, exec_CopyConvolutionFilter1D);
-   SET_CopyConvolutionFilter2D(table, exec_CopyConvolutionFilter2D);
-   SET_GetColorTable(table, exec_GetColorTable);
-   SET_GetColorTableParameterfv(table, exec_GetColorTableParameterfv);
-   SET_GetColorTableParameteriv(table, exec_GetColorTableParameteriv);
-   SET_GetConvolutionFilter(table, exec_GetConvolutionFilter);
-   SET_GetConvolutionParameterfv(table, exec_GetConvolutionParameterfv);
-   SET_GetConvolutionParameteriv(table, exec_GetConvolutionParameteriv);
-   SET_GetHistogram(table, exec_GetHistogram);
-   SET_GetHistogramParameterfv(table, exec_GetHistogramParameterfv);
-   SET_GetHistogramParameteriv(table, exec_GetHistogramParameteriv);
-   SET_GetMinmax(table, exec_GetMinmax);
-   SET_GetMinmaxParameterfv(table, exec_GetMinmaxParameterfv);
-   SET_GetMinmaxParameteriv(table, exec_GetMinmaxParameteriv);
-   SET_GetSeparableFilter(table, exec_GetSeparableFilter);
    SET_Histogram(table, save_Histogram);
    SET_Minmax(table, save_Minmax);
    SET_ResetHistogram(table, save_ResetHistogram);
    SET_ResetMinmax(table, save_ResetMinmax);
-   SET_SeparableFilter2D(table, exec_SeparableFilter2D);
 
    /* 2. GL_EXT_blend_color */
 #if 0
@@ -9859,18 +9019,7 @@ _mesa_create_save_table(const struct gl_context *ctx)
 #if 0
    SET_ColorTableSGI(table, save_ColorTable);
    SET_ColorSubTableSGI(table, save_ColorSubTable);
-   SET_GetColorTableSGI(table, exec_GetColorTable);
-   SET_GetColorTableParameterfvSGI(table, exec_GetColorTableParameterfv);
-   SET_GetColorTableParameterivSGI(table, exec_GetColorTableParameteriv);
 #endif
-
-   /* 30. GL_EXT_vertex_array */
-   SET_ColorPointerEXT(table, exec_ColorPointerEXT);
-   SET_EdgeFlagPointerEXT(table, exec_EdgeFlagPointerEXT);
-   SET_IndexPointerEXT(table, exec_IndexPointerEXT);
-   SET_NormalPointerEXT(table, exec_NormalPointerEXT);
-   SET_TexCoordPointerEXT(table, exec_TexCoordPointerEXT);
-   SET_VertexPointerEXT(table, exec_VertexPointerEXT);
 
    /* 37. GL_EXT_blend_minmax */
 #if 0
@@ -9881,24 +9030,8 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_PointParameterf(table, save_PointParameterfEXT);
    SET_PointParameterfv(table, save_PointParameterfvEXT);
 
-   /* 97. GL_EXT_compiled_vertex_array */
-   SET_LockArraysEXT(table, exec_LockArraysEXT);
-   SET_UnlockArraysEXT(table, exec_UnlockArraysEXT);
-
-   /* 145. GL_EXT_secondary_color */
-   SET_SecondaryColorPointer(table, exec_SecondaryColorPointerEXT);
-
-   /* 148. GL_EXT_multi_draw_arrays */
-   SET_MultiDrawArrays(table, exec_MultiDrawArraysEXT);
-
-   /* 149. GL_EXT_fog_coord */
-   SET_FogCoordPointer(table, exec_FogCoordPointerEXT);
-
    /* 173. GL_EXT_blend_func_separate */
    SET_BlendFuncSeparate(table, save_BlendFuncSeparateEXT);
-
-   /* 196. GL_MESA_resize_buffers */
-   SET_ResizeBuffersMESA(table, _mesa_ResizeBuffersMESA);
 
    /* 197. GL_MESA_window_pos */
    SET_WindowPos2d(table, save_WindowPos2dMESA);
@@ -9926,19 +9059,12 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_WindowPos4sMESA(table, save_WindowPos4sMESA);
    SET_WindowPos4svMESA(table, save_WindowPos4svMESA);
 
-   /* 200. GL_IBM_multimode_draw_arrays */
-   SET_MultiModeDrawArraysIBM(table, exec_MultiModeDrawArraysIBM);
-   SET_MultiModeDrawElementsIBM(table, exec_MultiModeDrawElementsIBM);
-
    /* 233. GL_NV_vertex_program */
    /* The following commands DO NOT go into display lists:
     * AreProgramsResidentNV, IsProgramNV, GenProgramsNV, DeleteProgramsNV,
     * VertexAttribPointerNV, GetProgram*, GetVertexAttrib*
     */
    SET_BindProgramARB(table, save_BindProgramNV);
-   SET_DeleteProgramsARB(table, _mesa_DeleteProgramsARB);
-   SET_GenProgramsARB(table, _mesa_GenProgramsARB);
-   SET_IsProgramARB(table, _mesa_IsProgramARB);
 
    /* 244. GL_ATI_envmap_bumpmap */
    SET_TexBumpParameterivATI(table, save_TexBumpParameterivATI);
@@ -9955,40 +9081,11 @@ _mesa_create_save_table(const struct gl_context *ctx)
    /* 268. GL_EXT_stencil_two_side */
    SET_ActiveStencilFaceEXT(table, save_ActiveStencilFaceEXT);
 
-   /* 273. GL_APPLE_vertex_array_object */
-   SET_BindVertexArrayAPPLE(table, _mesa_BindVertexArrayAPPLE);
-   SET_DeleteVertexArrays(table, _mesa_DeleteVertexArrays);
-   SET_GenVertexArraysAPPLE(table, _mesa_GenVertexArraysAPPLE);
-   SET_IsVertexArray(table, _mesa_IsVertexArray);
-
-   /* 310. GL_EXT_framebuffer_object */
-   SET_GenFramebuffers(table, _mesa_GenFramebuffers);
-   SET_BindFramebuffer(table, _mesa_BindFramebuffer);
-   SET_DeleteFramebuffers(table, _mesa_DeleteFramebuffers);
-   SET_CheckFramebufferStatus(table, _mesa_CheckFramebufferStatus);
-   SET_GenRenderbuffers(table, _mesa_GenRenderbuffers);
-   SET_BindRenderbuffer(table, _mesa_BindRenderbuffer);
-   SET_DeleteRenderbuffers(table, _mesa_DeleteRenderbuffers);
-   SET_RenderbufferStorage(table, _mesa_RenderbufferStorage);
-   SET_FramebufferTexture1D(table, _mesa_FramebufferTexture1D);
-   SET_FramebufferTexture2D(table, _mesa_FramebufferTexture2D);
-   SET_FramebufferTexture3D(table, _mesa_FramebufferTexture3D);
-   SET_FramebufferRenderbuffer(table, _mesa_FramebufferRenderbuffer);
-   SET_GenerateMipmap(table, _mesa_GenerateMipmap);
-
-   /* 317. GL_EXT_framebuffer_multisample */
-   SET_RenderbufferStorageMultisample(table, _mesa_RenderbufferStorageMultisample);
-
-   /* GL_ARB_vertex_array_object */
-   SET_BindVertexArray(table, _mesa_BindVertexArray);
-   SET_GenVertexArrays(table, _mesa_GenVertexArrays);
-
    /* ???. GL_EXT_depth_bounds_test */
    SET_DepthBoundsEXT(table, save_DepthBoundsEXT);
 
    /* ARB 1. GL_ARB_multitexture */
    SET_ActiveTexture(table, save_ActiveTextureARB);
-   SET_ClientActiveTexture(table, exec_ClientActiveTextureARB);
 
    /* ARB 3. GL_ARB_transpose_matrix */
    SET_LoadTransposeMatrixd(table, save_LoadTransposeMatrixdARB);
@@ -10006,7 +9103,6 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_CompressedTexSubImage3D(table, save_CompressedTexSubImage3DARB);
    SET_CompressedTexSubImage2D(table, save_CompressedTexSubImage2DARB);
    SET_CompressedTexSubImage1D(table, save_CompressedTexSubImage1DARB);
-   SET_GetCompressedTexImage(table, exec_GetCompressedTexImageARB);
 
    /* ARB 14. GL_ARB_point_parameters */
    /* aliased with EXT_point_parameters functions */
@@ -10017,18 +9113,8 @@ _mesa_create_save_table(const struct gl_context *ctx)
    /* ARB 26. GL_ARB_vertex_program */
    /* ARB 27. GL_ARB_fragment_program */
    /* glVertexAttrib* functions alias the NV ones, handled elsewhere */
-   SET_VertexAttribPointer(table, _mesa_VertexAttribPointer);
-   SET_EnableVertexAttribArray(table, _mesa_EnableVertexAttribArray);
-   SET_DisableVertexAttribArray(table, _mesa_DisableVertexAttribArray);
    SET_ProgramStringARB(table, save_ProgramStringARB);
    SET_BindProgramARB(table, save_BindProgramNV);
-   SET_DeleteProgramsARB(table, _mesa_DeleteProgramsARB);
-   SET_GenProgramsARB(table, _mesa_GenProgramsARB);
-   SET_IsProgramARB(table, _mesa_IsProgramARB);
-   SET_GetVertexAttribdv(table, _mesa_GetVertexAttribdv);
-   SET_GetVertexAttribfv(table, _mesa_GetVertexAttribfv);
-   SET_GetVertexAttribiv(table, _mesa_GetVertexAttribiv);
-   SET_GetVertexAttribPointerv(table, _mesa_GetVertexAttribPointerv);
    SET_ProgramEnvParameter4dARB(table, save_ProgramEnvParameter4dARB);
    SET_ProgramEnvParameter4dvARB(table, save_ProgramEnvParameter4dvARB);
    SET_ProgramEnvParameter4fARB(table, save_ProgramEnvParameter4fARB);
@@ -10037,30 +9123,7 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_ProgramLocalParameter4dvARB(table, save_ProgramLocalParameter4dvARB);
    SET_ProgramLocalParameter4fARB(table, save_ProgramLocalParameter4fARB);
    SET_ProgramLocalParameter4fvARB(table, save_ProgramLocalParameter4fvARB);
-   SET_GetProgramEnvParameterdvARB(table, _mesa_GetProgramEnvParameterdvARB);
-   SET_GetProgramEnvParameterfvARB(table, _mesa_GetProgramEnvParameterfvARB);
-   SET_GetProgramLocalParameterdvARB(table,
-                                     _mesa_GetProgramLocalParameterdvARB);
-   SET_GetProgramLocalParameterfvARB(table,
-                                     _mesa_GetProgramLocalParameterfvARB);
-   SET_GetProgramivARB(table, _mesa_GetProgramivARB);
-   SET_GetProgramStringARB(table, _mesa_GetProgramStringARB);
 
-   /* ARB 28. GL_ARB_vertex_buffer_object */
-   /* None of the extension's functions get compiled */
-   SET_BindBuffer(table, _mesa_BindBuffer);
-   SET_BufferData(table, _mesa_BufferData);
-   SET_BufferSubData(table, _mesa_BufferSubData);
-   SET_DeleteBuffers(table, _mesa_DeleteBuffers);
-   SET_GenBuffers(table, _mesa_GenBuffers);
-   SET_GetBufferParameteriv(table, _mesa_GetBufferParameteriv);
-   SET_GetBufferPointerv(table, _mesa_GetBufferPointerv);
-   SET_GetBufferSubData(table, _mesa_GetBufferSubData);
-   SET_IsBuffer(table, _mesa_IsBuffer);
-   SET_MapBuffer(table, _mesa_MapBuffer);
-   SET_UnmapBuffer(table, _mesa_UnmapBuffer);
-
-   _mesa_init_queryobj_dispatch(ctx, table); /* glGetQuery, etc */
    SET_BeginQuery(table, save_BeginQueryARB);
    SET_EndQuery(table, save_EndQueryARB);
    SET_QueryCounter(table, save_QueryCounter);
@@ -10069,8 +9132,6 @@ _mesa_create_save_table(const struct gl_context *ctx)
 
    SET_BlitFramebuffer(table, save_BlitFramebufferEXT);
 
-   /* GL_ARB_shader_objects */
-   _mesa_init_shader_dispatch(ctx, table); /* Plug in glCreate/Delete/Get, etc */
    SET_UseProgram(table, save_UseProgramObjectARB);
    SET_Uniform1f(table, save_Uniform1fARB);
    SET_Uniform2f(table, save_Uniform2fARB);
@@ -10098,12 +9159,6 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_UniformMatrix3x4fv(table, save_UniformMatrix3x4fv);
    SET_UniformMatrix4x3fv(table, save_UniformMatrix4x3fv);
 
-   /* ARB 30/31/32. GL_ARB_shader_objects, GL_ARB_vertex/fragment_shader */
-   SET_BindAttribLocation(table, exec_BindAttribLocationARB);
-   SET_GetAttribLocation(table, exec_GetAttribLocationARB);
-   SET_GetUniformLocation(table, exec_GetUniformLocationARB);
-   /* XXX additional functions need to be implemented here! */
-
    /* 299. GL_EXT_blend_equation_separate */
    SET_BlendEquationSeparate(table, save_BlendEquationSeparateEXT);
 
@@ -10111,31 +9166,14 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_ProgramEnvParameters4fvEXT(table, save_ProgramEnvParameters4fvEXT);
    SET_ProgramLocalParameters4fvEXT(table, save_ProgramLocalParameters4fvEXT);
 
-   /* ARB 50. GL_ARB_map_buffer_range */
-   SET_MapBufferRange(table, _mesa_MapBufferRange); /* no dlist save */
-   SET_FlushMappedBufferRange(table, _mesa_FlushMappedBufferRange); /* no dl */
-
-   /* ARB 51. GL_ARB_texture_buffer_object */
-   SET_TexBuffer(table, _mesa_TexBuffer); /* no dlist save */
-
-   /* ARB 59. GL_ARB_copy_buffer */
-   SET_CopyBufferSubData(table, _mesa_CopyBufferSubData); /* no dlist save */
-
    /* 364. GL_EXT_provoking_vertex */
    SET_ProvokingVertex(table, save_ProvokingVertexEXT);
-
-   /* 371. GL_APPLE_object_purgeable */
-   SET_ObjectPurgeableAPPLE(table, _mesa_ObjectPurgeableAPPLE);
-   SET_ObjectUnpurgeableAPPLE(table, _mesa_ObjectUnpurgeableAPPLE);
-   SET_GetObjectParameterivAPPLE(table, _mesa_GetObjectParameterivAPPLE);
 
    /* GL_EXT_texture_integer */
    SET_ClearColorIiEXT(table, save_ClearColorIi);
    SET_ClearColorIuiEXT(table, save_ClearColorIui);
    SET_TexParameterIiv(table, save_TexParameterIiv);
    SET_TexParameterIuiv(table, save_TexParameterIuiv);
-   SET_GetTexParameterIiv(table, exec_GetTexParameterIiv);
-   SET_GetTexParameterIuiv(table, exec_GetTexParameterIuiv);
 
    /* 377. GL_EXT_separate_shader_objects */
    SET_UseShaderProgramEXT(table, save_UseShaderProgramEXT);
@@ -10169,11 +9207,6 @@ _mesa_create_save_table(const struct gl_context *ctx)
    (void) save_Uniform4uiv;
 #endif
 
-   /* These are not compiled into display lists: */
-   SET_BindBufferBase(table, _mesa_BindBufferBase);
-   SET_BindBufferOffsetEXT(table, _mesa_BindBufferOffsetEXT);
-   SET_BindBufferRange(table, _mesa_BindBufferRange);
-   SET_TransformFeedbackVaryings(table, _mesa_TransformFeedbackVaryings);
    /* These are: */
    SET_BeginTransformFeedback(table, save_BeginTransformFeedback);
    SET_EndTransformFeedback(table, save_EndTransformFeedback);
@@ -10195,8 +9228,6 @@ _mesa_create_save_table(const struct gl_context *ctx)
    /* GL_NV_texture_barrier */
    SET_TextureBarrierNV(table, save_TextureBarrierNV);
 
-   /* GL_ARB_sampler_objects */
-   _mesa_init_sampler_object_dispatch(ctx, table); /* plug in Gen/Get/etc functions */
    SET_BindSampler(table, save_BindSampler);
    SET_SamplerParameteri(table, save_SamplerParameteri);
    SET_SamplerParameterf(table, save_SamplerParameterf);
@@ -10221,27 +9252,10 @@ _mesa_create_save_table(const struct gl_context *ctx)
    SET_EndConditionalRender(table, save_EndConditionalRender);
 
    /* GL_ARB_sync */
-   _mesa_init_sync_dispatch(table);
    SET_WaitSync(table, save_WaitSync);
-
-   /* GL_ARB_texture_storage (no dlist support) */
-   SET_TexStorage1D(table, _mesa_TexStorage1D);
-   SET_TexStorage2D(table, _mesa_TexStorage2D);
-   SET_TexStorage3D(table, _mesa_TexStorage3D);
-   SET_TextureStorage1DEXT(table, _mesa_TextureStorage1DEXT);
-   SET_TextureStorage2DEXT(table, _mesa_TextureStorage2DEXT);
-   SET_TextureStorage3DEXT(table, _mesa_TextureStorage3DEXT);
-
-   /* GL_ARB_debug_output (no dlist support) */
-   _mesa_init_errors_dispatch(table);
 
    /* GL_ARB_uniform_buffer_object */
    SET_UniformBlockBinding(table, save_UniformBlockBinding);
-
-   /* GL_NV_primitive_restart */
-   SET_PrimitiveRestartIndex(table, _mesa_PrimitiveRestartIndex);
-
-   return table;
 }
 
 

@@ -1438,6 +1438,7 @@ UpdateTouchesForGrab(DeviceIntPtr mouse)
                 ti->listeners[0].type = LISTENER_POINTER_GRAB;
             else
                 ti->listeners[0].type = LISTENER_GRAB;
+            ti->listeners[0].grab = grab;
         }
     }
 }
@@ -1521,7 +1522,7 @@ DeactivatePointerGrab(DeviceIntPtr mouse)
                emulate a ButtonRelease here. So pretend the listener
                already has the end event */
             if (grab->grabtype == CORE || grab->grabtype == XI ||
-                    !xi2mask_isset(dev->deviceGrab.grab->xi2mask, dev, XI_TouchBegin))
+                    !xi2mask_isset(mouse->deviceGrab.grab->xi2mask, mouse, XI_TouchBegin))
                 ti->listeners[0].state = LISTENER_HAS_END;
             TouchListenerAcceptReject(mouse, ti, 0, XIRejectTouch);
         }
@@ -1550,15 +1551,6 @@ DeactivatePointerGrab(DeviceIntPtr mouse)
         ReattachToOldMaster(mouse);
 
     ComputeFreezes();
-
-    /* If an explicit grab was deactivated, we must remove it from the head of
-     * all the touches' listener lists. */
-    for (i = 0; mouse->touch && i < mouse->touch->num_touches; i++) {
-        TouchPointInfoPtr ti = mouse->touch->touches + i;
-
-        if (ti->active && TouchResourceIsOwner(ti, grab_resource))
-            TouchListenerAcceptReject(mouse, ti, 0, XIRejectTouch);
-    }
 }
 
 /**
@@ -2246,7 +2238,7 @@ DeliverEventsToWindow(DeviceIntPtr pDev, WindowPtr pWin, xEvent
  * @return TRUE if the event should be discarded, FALSE otherwise.
  */
 static BOOL
-FilterRawEvents(const ClientPtr client, const GrabPtr grab)
+FilterRawEvents(const ClientPtr client, const GrabPtr grab, WindowPtr root)
 {
     XIClientPtr client_xi_version;
     int cmp;
@@ -2262,7 +2254,10 @@ FilterRawEvents(const ClientPtr client, const GrabPtr grab)
                           client_xi_version->minor_version, 2, 0);
     /* XI 2.0: if device is grabbed, skip
        XI 2.1: if device is grabbed by us, skip, we've already delivered */
-    return (cmp == 0) ? TRUE : SameClient(grab, client);
+    if (cmp == 0)
+        return TRUE;
+
+    return (grab->window != root) ? FALSE : SameClient(grab, client);
 }
 
 /**
@@ -2315,7 +2310,7 @@ DeliverRawEvent(RawDeviceEvent *ev, DeviceIntPtr device)
              */
             ic.next = NULL;
 
-            if (!FilterRawEvents(rClient(&ic), grab))
+            if (!FilterRawEvents(rClient(&ic), grab, root))
                 DeliverEventToInputClients(device, &ic, root, xi, 1,
                                            filter, NULL, &c, &m);
         }

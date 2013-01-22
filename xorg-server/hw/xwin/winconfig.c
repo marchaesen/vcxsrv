@@ -762,7 +762,7 @@ ParseOptionValue(int scrnIndex, pointer options, OptionInfoPtr p)
         case OPTV_STRING:
             if (*s == '\0') {
                 winDrvMsg(scrnIndex, X_WARNING,
-                          "Option \"%s\" requires an string value\n", p->name);
+                          "Option \"%s\" requires a string value\n", p->name);
                 p->found = FALSE;
             }
             else {

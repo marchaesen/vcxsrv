@@ -141,20 +141,6 @@ _mesa_init_sync_object_functions(struct dd_function_table *driver)
    driver->ServerWaitSync = _mesa_wait_sync;
 }
 
-
-void
-_mesa_init_sync_dispatch(struct _glapi_table *disp)
-{
-   SET_IsSync(disp, _mesa_IsSync);
-   SET_DeleteSync(disp, _mesa_DeleteSync);
-   SET_FenceSync(disp, _mesa_FenceSync);
-   SET_ClientWaitSync(disp, _mesa_ClientWaitSync);
-   SET_WaitSync(disp, _mesa_WaitSync);
-   SET_GetInteger64v(disp, _mesa_GetInteger64v);
-   SET_GetSynciv(disp, _mesa_GetSynciv);
-}
-
-
 /**
  * Allocate/init the context state related to sync objects.
  */
@@ -234,7 +220,6 @@ _mesa_DeleteSync(GLsync sync)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_sync_object *const syncObj = (struct gl_sync_object *) sync;
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    /* From the GL_ARB_sync spec:
     *
@@ -358,7 +343,6 @@ _mesa_WaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_sync_object *const syncObj = (struct gl_sync_object *) sync;
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    if (!_mesa_validate_sync(ctx, syncObj)) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glWaitSync (not a valid sync object)");
@@ -388,7 +372,6 @@ _mesa_GetSynciv(GLsync sync, GLenum pname, GLsizei bufSize, GLsizei *length,
    struct gl_sync_object *const syncObj = (struct gl_sync_object *) sync;
    GLsizei size = 0;
    GLint v[1];
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    if (!_mesa_validate_sync(ctx, syncObj)) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glGetSynciv (not a valid sync object)");

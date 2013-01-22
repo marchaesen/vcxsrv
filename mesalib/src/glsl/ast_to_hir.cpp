@@ -1933,6 +1933,31 @@ is_varying_var(ir_variable *var, _mesa_glsl_parser_targets target)
 }
 
 
+/**
+ * Matrix layout qualifiers are only allowed on certain types
+ */
+static void
+validate_matrix_layout_for_type(struct _mesa_glsl_parse_state *state,
+				YYLTYPE *loc,
+				const glsl_type *type)
+{
+   if (!type->is_matrix() && !type->is_record()) {
+      _mesa_glsl_error(loc, state,
+                       "uniform block layout qualifiers row_major and "
+                       "column_major can only be applied to matrix and "
+                       "structure types");
+   } else if (type->is_record()) {
+      /* We allow 'layout(row_major)' on structure types because it's the only
+       * way to get row-major layouts on matrices contained in structures.
+       */
+      _mesa_glsl_warning(loc, state,
+                         "uniform block layout qualifiers row_major and "
+                         "column_major applied to structure types is not "
+                         "strictly conformant and my be rejected by other "
+                         "compilers");
+   }
+}
+
 static void
 apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 				 ir_variable *var,
@@ -2251,12 +2276,14 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 		       "members");
    }
 
-   if (!ubo_qualifiers_valid &&
-       (qual->flags.q.row_major || qual->flags.q.column_major)) {
-      _mesa_glsl_error(loc, state,
-                       "uniform block layout qualifiers row_major and "
-		       "column_major can only be applied to uniform block "
-		       "members");
+   if (qual->flags.q.row_major || qual->flags.q.column_major) {
+      if (!ubo_qualifiers_valid) {
+	 _mesa_glsl_error(loc, state,
+			  "uniform block layout qualifiers row_major and "
+			  "column_major can only be applied to uniform block "
+			  "members");
+      } else
+	 validate_matrix_layout_for_type(state, loc, var->type);
    }
 }
 
@@ -4105,6 +4132,12 @@ ast_uniform_block::hir(exec_list *instructions,
    struct gl_uniform_block *ubo = get_next_uniform_block(state);
    ubo->Name = ralloc_strdup(state->uniform_blocks, this->block_name);
 
+   if (!state->symbols->add_uniform_block(ubo)) {
+      YYLTYPE loc = this->get_location();
+      _mesa_glsl_error(&loc, state, "Uniform block name `%s' already taken in "
+                       "the current scope.\n", ubo->Name);
+   }
+
    unsigned int num_variables = 0;
    foreach_list_typed(ast_declarator_list, decl_list, link, &declarations) {
       foreach_list_const(node, &decl_list->declarations) {
@@ -4133,7 +4166,6 @@ ast_uniform_block::hir(exec_list *instructions,
 
 	 ubo_var->Name = ralloc_strdup(state->uniform_blocks, var->name);
 	 ubo_var->Type = var->type;
-	 ubo_var->Buffer = ubo - state->uniform_blocks;
 	 ubo_var->Offset = 0; /* Assigned at link time. */
 
 	 if (var->type->is_matrix() ||

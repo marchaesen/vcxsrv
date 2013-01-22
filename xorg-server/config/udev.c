@@ -267,7 +267,7 @@ device_removed(struct udev_device *device)
 
         if (strncmp(sysname,"card", 4) != 0)
             return;
-        ErrorF("removing GPU device %s %d\n", syspath, path);
+        ErrorF("removing GPU device %s %s\n", syspath, path);
         if (!path)
             return;
 

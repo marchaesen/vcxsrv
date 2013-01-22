@@ -724,6 +724,9 @@ FcOpen(const char *pathname, int flags, ...);
 FcPrivate int
 FcMakeTempfile (char *template);
 
+FcPrivate int32_t
+FcRandom (void);
+
 /* fcdbg.c */
 
 FcPrivate void

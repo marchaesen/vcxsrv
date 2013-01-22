@@ -148,11 +148,11 @@ retry:
 	    prgname = FcStrdup ("");
 #else
 	char buf[PATH_MAX + 1];
-	unsigned int len;
+	int len;
 	char *p = NULL;
 
 	len = readlink ("/proc/self/exe", buf, sizeof (buf) - 1);
-	if (len > 0)
+	if (len != -1)
 	{
 	    buf[len] = '\0';
 	    p = buf;

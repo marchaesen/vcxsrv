@@ -31,11 +31,20 @@
 
 #include "fcint.h"
 
+#include <errno.h>
+#if HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#if HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
 #if HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 #ifdef O_CLOEXEC
 #define FC_O_CLOEXEC O_CLOEXEC
@@ -46,6 +55,58 @@
 #define FC_O_LARGEFILE O_LARGEFILE
 #else
 #define FC_O_LARGEFILE 0
+#endif
+#ifdef O_BINARY
+#define FC_O_BINARY O_BINARY
+#else
+#define FC_O_BINARY 0
+#endif
+#ifdef O_TEMPORARY
+#define FC_O_TEMPORARY O_TEMPORARY
+#else
+#define FC_O_TEMPORARY 0
+#endif
+#ifdef O_NOINHERIT
+#define FC_O_NOINHERIT O_NOINHERIT
+#else
+#define FC_O_NOINHERIT 0
+#endif
+
+#if !defined (HAVE_MKOSTEMP) && !defined(HAVE_MKSTEMP) && !defined(HAVE__MKTEMP_S)
+static int
+mkstemp (char *template)
+{
+    static const char s[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    int fd, i;
+    size_t l;
+
+    if (template == NULL)
+    {
+	errno = EINVAL;
+	return -1;
+    }
+    l = strlen (template);
+    if (l < 6 || strcmp (&template[l - 6], "XXXXXX") != 0)
+    {
+	errno = EINVAL;
+	return -1;
+    }
+    do
+    {
+	errno = 0;
+	for (i = l - 6; i < l; i++)
+	{
+	    int r = FcRandom ();
+	    template[i] = s[r % 62];
+	}
+	fd = FcOpen (template, FC_O_BINARY | O_CREAT | O_EXCL | FC_O_TEMPORARY | FC_O_NOINHERIT | O_RDWR, 0600);
+    } while (fd < 0 && errno == EEXIST);
+    if (fd >= 0)
+	errno = 0;
+
+    return fd;
+}
+#define HAVE_MKSTEMP 1
 #endif
 
 int
@@ -84,7 +145,7 @@ FcMakeTempfile (char *template)
 #  ifdef F_DUPFD_CLOEXEC
     if (fd != -1)
     {
-	int newfd = fcntl(fd, F_DUPFD_CLOEXEC);
+	int newfd = fcntl(fd, F_DUPFD_CLOEXEC, STDIN_FILENO);
 
 	close(fd);
 	fd = newfd;
@@ -108,4 +169,59 @@ FcMakeTempfile (char *template)
 #endif
 
     return fd;
+}
+
+int32_t
+FcRandom(void)
+{
+    int32_t result;
+
+#if HAVE_RANDOM_R
+    static struct random_data fcrandbuf;
+    static char statebuf[256];
+    static FcBool initialized = FcFalse;
+
+    if (initialized != FcTrue)
+    {
+	initstate_r(time(NULL), statebuf, 256, &fcrandbuf);
+	initialized = FcTrue;
+    }
+
+    random_r(&fcrandbuf, &result);
+#elif HAVE_RANDOM
+    static char statebuf[256];
+    char *state;
+    static FcBool initialized = FcFalse;
+
+    if (initialized != FcTrue)
+    {
+	state = initstate(time(NULL), statebuf, 256);
+	initialized = FcTrue;
+    }
+    else
+	state = setstate(statebuf);
+
+    result = random();
+
+    setstate(state);
+#elif HAVE_LRAND48
+    result = lrand48();
+#elif HAVE_RAND_R
+    static unsigned int seed = time(NULL);
+
+    result = rand_r(&seed);
+#elif HAVE_RAND
+    static FcBool initialized = FcFalse;
+
+    if (initialized != FcTrue)
+    {
+	srand(time(NULL));
+	initialized = FcTrue;
+    }
+    result = rand();
+#else
+# error no random number generator function available.
+#endif
+
+    return result;
 }

@@ -1896,8 +1896,7 @@ texture_error_check( struct gl_context *ctx,
    if (_mesa_is_gles(ctx)) {
       if (_mesa_is_gles3(ctx)) {
          err = _mesa_es3_error_check_format_and_type(format, type,
-                                                     internalFormat,
-                                                     dimensions);
+                                                     internalFormat);
       } else {
          if (format != internalFormat) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
@@ -2006,7 +2005,8 @@ texture_error_check( struct gl_context *ctx,
    }
 
    /* additional checks for depth textures */
-   if (_mesa_base_tex_format(ctx, internalFormat) == GL_DEPTH_COMPONENT) {
+   if (_mesa_base_tex_format(ctx, internalFormat) == GL_DEPTH_COMPONENT
+       || _mesa_base_tex_format(ctx, internalFormat) == GL_DEPTH_STENCIL) {
       /* Only 1D, 2D, rect, array and cube textures supported, not 3D
        * Cubemaps are only supported for GL version > 3.0 or with EXT_gpu_shader4 */
       if (target != GL_TEXTURE_1D &&
@@ -2020,7 +2020,8 @@ texture_error_check( struct gl_context *ctx,
           target != GL_TEXTURE_RECTANGLE_ARB &&
           target != GL_PROXY_TEXTURE_RECTANGLE_ARB &&
          !((_mesa_is_cube_face(target) || target == GL_PROXY_TEXTURE_CUBE_MAP) &&
-           (ctx->Version >= 30 || ctx->Extensions.EXT_gpu_shader4)) &&
+           (ctx->Version >= 30 || ctx->Extensions.EXT_gpu_shader4
+            || (ctx->API == API_OPENGLES2 && ctx->Extensions.OES_depth_texture_cube_map))) &&
           !((target == GL_TEXTURE_CUBE_MAP_ARRAY ||
              target == GL_PROXY_TEXTURE_CUBE_MAP_ARRAY) &&
             ctx->Extensions.ARB_texture_cube_map_array)) {
@@ -2347,6 +2348,7 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
                          GLint width, GLint height, GLint border )
 {
    GLint baseFormat;
+   GLint rb_base_format;
    struct gl_renderbuffer *rb;
    GLenum rb_internal_format;
 
@@ -2420,12 +2422,85 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
 
    baseFormat = _mesa_base_tex_format(ctx, internalFormat);
    if (baseFormat < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
+      _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glCopyTexImage%dD(internalFormat)", dimensions);
       return GL_TRUE;
    }
 
    rb_internal_format = rb->InternalFormat;
+   rb_base_format = _mesa_base_tex_format(ctx, rb->InternalFormat);
+   if (_mesa_is_color_format(internalFormat)) {
+      if (rb_base_format < 0) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glCopyTexImage%dD(internalFormat)", dimensions);
+         return GL_TRUE;
+      }
+   }
+
+   if (_mesa_is_gles(ctx)) {
+      bool valid = true;
+      if (_mesa_base_format_component_count(baseFormat) >
+          _mesa_base_format_component_count(rb_base_format)) {
+         valid = false;
+      }
+      if (baseFormat == GL_DEPTH_COMPONENT ||
+          baseFormat == GL_DEPTH_STENCIL ||
+          rb_base_format == GL_DEPTH_COMPONENT ||
+          rb_base_format == GL_DEPTH_STENCIL ||
+          ((baseFormat == GL_LUMINANCE_ALPHA ||
+            baseFormat == GL_ALPHA) &&
+           rb_base_format != GL_RGBA) ||
+          internalFormat == GL_RGB9_E5) {
+         valid = false;
+      }
+      if (internalFormat == GL_RGB9_E5) {
+         valid = false;
+      }
+      if (!valid) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glCopyTexImage%dD(internalFormat)", dimensions);
+         return GL_TRUE;
+      }
+   }
+
+   if ((_mesa_is_desktop_gl(ctx) &&
+        ctx->Extensions.ARB_framebuffer_object) ||
+       _mesa_is_gles3(ctx)) {
+      bool rb_is_srgb = false;
+      bool dst_is_srgb = false;
+
+      if (ctx->Extensions.EXT_framebuffer_sRGB &&
+          _mesa_get_format_color_encoding(rb->Format) == GL_SRGB) {
+         rb_is_srgb = true;
+      }
+
+      if (_mesa_get_linear_internalformat(internalFormat) != internalFormat) {
+         dst_is_srgb = true;
+      }
+
+      if (rb_is_srgb != dst_is_srgb) {
+         /* Page 190 (page 211 of the PDF) in section 8.6 of the OpenGL 4.3
+          * Core Profile spec says:
+          *
+          *     "An INVALID_OPERATION error is generated under any of the
+          *     following conditions:
+          *
+          *     ...
+          *
+          *     - if the value of FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING
+          *       for the framebuffer attachment corresponding to the read
+          *       buffer is LINEAR (see section 9.2.3) and internalformat
+          *       is one of the sRGB formats in table 8.23
+          *     - if the value of FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING
+          *       for the framebuffer attachment corresponding to the read
+          *       buffer is SRGB and internalformat is not one of the sRGB
+          *       formats. in table 8.23."
+          */
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glCopyTexImage%dD(srgb usage mismatch)", dimensions);
+         return GL_TRUE;
+      }
+   }
 
    if (!_mesa_source_buffer_exists(ctx, baseFormat)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
@@ -2869,7 +2944,7 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
    gl_format texFormat;
    GLboolean dimensionsOK, sizeOK;
 
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+   FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE)) {
       if (compressed)
@@ -3099,7 +3174,7 @@ _mesa_EGLImageTargetTexture2DOES (GLenum target, GLeglImageOES image)
    struct gl_texture_image *texImage;
    bool valid_target;
    GET_CURRENT_CONTEXT(ctx);
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+   FLUSH_VERTICES(ctx, 0);
 
    switch (target) {
    case GL_TEXTURE_2D:
@@ -3161,7 +3236,7 @@ texsubimage(struct gl_context *ctx, GLuint dims, GLenum target, GLint level,
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
 
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+   FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glTexSubImage%uD %s %d %d %d %d %d %d %d %s %s %p\n",
@@ -3300,7 +3375,7 @@ copyteximage(struct gl_context *ctx, GLuint dims,
    const GLuint face = _mesa_tex_target_to_face(target);
    gl_format texFormat;
 
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+   FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glCopyTexImage%uD %s %d %s %d %d %d %d %d\n",
@@ -3423,7 +3498,7 @@ copytexsubimage(struct gl_context *ctx, GLuint dims, GLenum target, GLint level,
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
 
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+   FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glCopyTexSubImage%uD %s %d %d %d %d %d %d %d %d\n",
@@ -3671,7 +3746,7 @@ compressed_tex_sub_image(GLuint dims, GLenum target, GLint level,
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
    GET_CURRENT_CONTEXT(ctx);
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+   FLUSH_VERTICES(ctx, 0);
 
    if (compressed_subtexture_error_check(ctx, dims, target, level,
                                          xoffset, yoffset, zoffset,
@@ -3937,7 +4012,7 @@ _mesa_TexBuffer(GLenum target, GLenum internalFormat, GLuint buffer)
    gl_format format;
 
    GET_CURRENT_CONTEXT(ctx);
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+   FLUSH_VERTICES(ctx, 0);
 
    if (!(ctx->API == API_OPENGL_CORE &&
          ctx->Extensions.ARB_texture_buffer_object)) {

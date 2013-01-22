@@ -56,7 +56,7 @@ static void
 static void
  winKeybdCtrl(DeviceIntPtr pDevice, KeybdCtrl * pCtrl);
 
-/* 
+/*
  * Translate a Windows WM_[SYS]KEY(UP/DOWN) message
  * into an ASCII scan code.
  *
@@ -134,7 +134,7 @@ winKeybdCtrl(DeviceIntPtr pDevice, KeybdCtrl * pCtrl)
 {
 }
 
-/* 
+/*
  * See Porting Layer Definition - p. 18
  * winKeybdProc is known as a DeviceProc.
  */
@@ -509,8 +509,8 @@ winCheckKeyPressed(WPARAM wParam, LPARAM lParam)
     return FALSE;
 }
 
-/* Only on shift release message is sent even if both are pressed.
- * Fix this here 
+/* Only one shift release message is sent even if both are pressed.
+ * Fix this here
  */
 void
 winFixShiftKeys(int iScanCode)

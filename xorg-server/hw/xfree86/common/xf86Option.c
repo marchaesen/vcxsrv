@@ -515,7 +515,7 @@ ParseOptionValue(int scrnIndex, XF86OptionPtr options, OptionInfoPtr p,
             if (*s == '\0') {
                 if (markUsed) {
                     xf86DrvMsg(scrnIndex, X_WARNING,
-                               "Option \"%s\" requires an string value\n",
+                               "Option \"%s\" requires a string value\n",
                                p->name);
                 }
                 p->found = FALSE;

@@ -1895,16 +1895,16 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
         if (!mask_in ||
             !valuator_mask_isset(mask_in, 0) ||
             !valuator_mask_isset(mask_in, 1)) {
-            ErrorF("%s: Attempted to start touch without x/y (driver bug)\n",
-                   dev->name);
+            ErrorFSigSafe("%s: Attempted to start touch without x/y "
+                          "(driver bug)\n", dev->name);
             return 0;
         }
         break;
     case XI_TouchUpdate:
         event->type = ET_TouchUpdate;
         if (!mask_in || valuator_mask_num_valuators(mask_in) <= 0) {
-            ErrorF("%s: TouchUpdate with no valuators? Driver bug\n",
-                   dev->name);
+            ErrorFSigSafe("%s: TouchUpdate with no valuators? Driver bug\n",
+                          dev->name);
         }
         break;
     case XI_TouchEnd:

@@ -46,8 +46,6 @@ _mesa_GetActiveUniform(GLhandleARB program, GLuint index,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program, "glGetActiveUniform");
 
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
-
    if (!shProg)
       return;
 
@@ -59,7 +57,7 @@ _mesa_GetActiveUniform(GLhandleARB program, GLuint index,
    const struct gl_uniform_storage *const uni = &shProg->UniformStorage[index];
 
    if (nameOut) {
-      _mesa_copy_string(nameOut, maxLength, length, uni->name);
+      _mesa_get_uniform_name(uni, maxLength, length, nameOut);
    }
 
    if (size) {
@@ -122,6 +120,16 @@ _mesa_GetActiveUniformsiv(GLuint program,
 
       case GL_UNIFORM_NAME_LENGTH:
 	 params[i] = strlen(uni->name) + 1;
+
+         /* Page 61 (page 73 of the PDF) in section 2.11 of the OpenGL ES 3.0
+          * spec says:
+          *
+          *     "If the active uniform is an array, the uniform name returned
+          *     in name will always be the name of the uniform array appended
+          *     with "[0]"."
+          */
+         if (uni->array_elements != 0)
+            params[i] += 3;
 	 break;
 
       case GL_UNIFORM_BLOCK_INDEX:
@@ -583,8 +591,6 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
    enum glsl_base_type basicType;
    struct gl_uniform_storage *uni;
 
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
-
    if (!validate_uniform_parameters(ctx, shProg, location, count,
 				    &loc, &offset, "glUniform", false))
       return;
@@ -835,8 +841,6 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
    unsigned components;
    unsigned elements;
    struct gl_uniform_storage *uni;
-
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    if (!validate_uniform_parameters(ctx, shProg, location, count,
 				    &loc, &offset, "glUniformMatrix", false))

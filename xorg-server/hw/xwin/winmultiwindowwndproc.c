@@ -42,7 +42,7 @@
 #include "winmsg.h"
 #include "inputstr.h"
 
-extern void winUpdateWindowPosition(HWND hWnd, Bool reshape, HWND * zstyle);
+extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
 /*
  * Local globals
@@ -870,41 +870,36 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* */
         if (!pWin->overrideRedirect) {
+            HWND zstyle = HWND_NOTOPMOST;
+
             /* Flag that this window needs to be made active when clicked */
             SetProp(hwnd, WIN_NEEDMANAGE_PROP, (HANDLE) 1);
 
-            if (!(GetWindowLongPtr(hwnd, GWL_EXSTYLE) & WS_EX_APPWINDOW)) {
-                HWND zstyle = HWND_NOTOPMOST;
+            /* Set the transient style flags */
+            if (GetParent(hwnd))
+                SetWindowLongPtr(hwnd, GWL_STYLE,
+                                 WS_POPUP | WS_OVERLAPPED | WS_SYSMENU |
+                                 WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+            /* Set the window standard style flags */
+            else
+                SetWindowLongPtr(hwnd, GWL_STYLE,
+                                 (WS_POPUP | WS_OVERLAPPEDWINDOW |
+                                  WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
+                                 & ~WS_CAPTION & ~WS_SIZEBOX);
 
-                /* Set the window extended style flags */
-                SetWindowLongPtr(hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
+            winUpdateWindowPosition(hwnd, &zstyle);
 
-                /* Set the transient style flags */
-                if (GetParent(hwnd))
-                    SetWindowLongPtr(hwnd, GWL_STYLE,
-                                     WS_POPUP | WS_OVERLAPPED | WS_SYSMENU |
-                                     WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-                /* Set the window standard style flags */
-                else
-                    SetWindowLongPtr(hwnd, GWL_STYLE,
-                                     (WS_POPUP | WS_OVERLAPPEDWINDOW |
-                                      WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
-                                     & ~WS_CAPTION & ~WS_SIZEBOX);
+            {
+                WinXWMHints hints;
 
-                winUpdateWindowPosition(hwnd, FALSE, &zstyle);
-
-                {
-                    WinXWMHints hints;
-
-                    if (winMultiWindowGetWMHints(pWin, &hints)) {
-                        /*
-                           Give the window focus, unless it has an InputHint
-                           which is FALSE (this is used by e.g. glean to
-                           avoid every test window grabbing the focus)
-                         */
-                        if (!((hints.flags & InputHint) && (!hints.input))) {
-                            SetForegroundWindow(hwnd);
-                        }
+                if (winMultiWindowGetWMHints(pWin, &hints)) {
+                    /*
+                       Give the window focus, unless it has an InputHint
+                       which is FALSE (this is used by e.g. glean to
+                       avoid every test window grabbing the focus)
+                     */
+                    if (!((hints.flags & InputHint) && (!hints.input))) {
+                        SetForegroundWindow(hwnd);
                     }
                 }
             }

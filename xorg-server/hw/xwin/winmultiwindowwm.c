@@ -186,7 +186,7 @@ static void
  winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle);
 
 void
- winUpdateWindowPosition(HWND hWnd, Bool reshape, HWND * zstyle);
+ winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
 /*
  * Local globals
@@ -590,6 +590,45 @@ UpdateIcon(WMInfoPtr pWMInfo, Window iWindow)
     winUpdateIcon(hWnd, pWMInfo->pDisplay, iWindow, hIconNew);
 }
 
+/*
+ * Updates the style of a HWND according to its X style properties
+ */
+
+static void
+UpdateStyle(WMInfoPtr pWMInfo, Window iWindow)
+{
+    HWND hWnd;
+    HWND zstyle = HWND_NOTOPMOST;
+    UINT flags;
+
+    hWnd = getHwnd(pWMInfo, iWindow);
+    if (!hWnd)
+        return;
+
+    /* Determine the Window style, which determines borders and clipping region... */
+    winApplyHints(pWMInfo->pDisplay, iWindow, hWnd, &zstyle);
+    winUpdateWindowPosition(hWnd, &zstyle);
+
+    /* Apply the updated window style, without changing it's show or activation state */
+    flags = SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE;
+    if (zstyle == HWND_NOTOPMOST)
+        flags |= SWP_NOZORDER | SWP_NOOWNERZORDER;
+    SetWindowPos(hWnd, NULL, 0, 0, 0, 0, flags);
+
+    /*
+       Use the WS_EX_TOOLWINDOW style to remove window from Alt-Tab window switcher
+
+       According to MSDN, this is supposed to remove the window from the taskbar as well,
+       if we SW_HIDE before changing the style followed by SW_SHOW afterwards.
+
+       But that doesn't seem to work reliably, and causes the window to flicker, so use
+       the iTaskbarList interface to tell the taskbar to show or hide this window.
+     */
+    winShowWindowOnTaskbar(hWnd,
+                           (GetWindowLongPtr(hWnd, GWL_EXSTYLE) &
+                            WS_EX_APPWINDOW) ? TRUE : FALSE);
+}
+
 #if 0
 /*
  * Fix up any differences between the X11 and Win32 window stacks
@@ -737,13 +776,19 @@ winMultiWindowWMProc(void *pArg)
                             (unsigned char *) &(pNode->msg.hwndWindow), 1);
             UpdateName(pWMInfo, pNode->msg.iWindow);
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
-            {
-                HWND zstyle = HWND_NOTOPMOST;
+            UpdateStyle(pWMInfo, pNode->msg.iWindow);
 
-                winApplyHints(pWMInfo->pDisplay, pNode->msg.iWindow,
-                              pNode->msg.hwndWindow, &zstyle);
-                winUpdateWindowPosition(pNode->msg.hwndWindow, TRUE, &zstyle);
+
+            /* Reshape */
+            {
+                WindowPtr pWin =
+                    GetProp(pNode->msg.hwndWindow, WIN_WINDOW_PROP);
+                if (pWin) {
+                    winReshapeMultiWindow(pWin);
+                    winUpdateRgnMultiWindow(pWin);
+                }
             }
+
             break;
 
         case WM_WM_UNMAP:
@@ -802,6 +847,19 @@ winMultiWindowWMProc(void *pArg)
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
             break;
 
+        case WM_WM_HINTS_EVENT:
+            {
+            XWindowAttributes attr;
+
+            /* Don't do anything if this is an override-redirect window */
+            XGetWindowAttributes (pWMInfo->pDisplay, pNode->msg.iWindow, &attr);
+            if (attr.override_redirect)
+              break;
+
+            UpdateStyle(pWMInfo, pNode->msg.iWindow);
+            }
+            break;
+
         case WM_WM_CHANGE_STATE:
             /* Minimize the window in Windows */
             winMinimizeWindow(pNode->msg.iWindow);
@@ -851,6 +909,7 @@ winMultiWindowXMsgProc(void *pArg)
     Atom atmWmHints;
     Atom atmWmChange;
     Atom atmNetWmIcon;
+    Atom atmWindowState, atmMotifWmHints, atmWindowType, atmNormalHints;
     int iReturn;
     XIconSize *xis;
 
@@ -977,6 +1036,10 @@ winMultiWindowXMsgProc(void *pArg)
     atmWmHints = XInternAtom(pProcArg->pDisplay, "WM_HINTS", False);
     atmWmChange = XInternAtom(pProcArg->pDisplay, "WM_CHANGE_STATE", False);
     atmNetWmIcon = XInternAtom(pProcArg->pDisplay, "_NET_WM_ICON", False);
+    atmWindowState = XInternAtom(pProcArg->pDisplay, "_NET_WM_STATE", False);
+    atmMotifWmHints = XInternAtom(pProcArg->pDisplay, "_MOTIF_WM_HINTS", False);
+    atmWindowType = XInternAtom(pProcArg->pDisplay, "_NET_WM_WINDOW_TYPE", False);
+    atmNormalHints = XInternAtom(pProcArg->pDisplay, "WM_NORMAL_HINTS", False);
 
     /*
        iiimxcf had a bug until 2009-04-27, assuming that the
@@ -1114,14 +1177,34 @@ winMultiWindowXMsgProc(void *pArg)
                 /* Other fields ignored */
                 winSendMessageToWM(pProcArg->pWMInfo, &msg);
             }
-            else if ((event.xproperty.atom == atmWmHints) ||
-                     (event.xproperty.atom == atmNetWmIcon)) {
-                memset(&msg, 0, sizeof(msg));
-                msg.msg = WM_WM_ICON_EVENT;
-                msg.iWindow = event.xproperty.window;
+            else {
+                /*
+                   Several properties are considered for WM hints, check if this property change affects any of them...
+                   (this list needs to be kept in sync with winApplyHints())
+                 */
+                if ((event.xproperty.atom == atmWmHints) ||
+                    (event.xproperty.atom == atmWindowState) ||
+                    (event.xproperty.atom == atmMotifWmHints) ||
+                    (event.xproperty.atom == atmWindowType) ||
+                    (event.xproperty.atom == atmNormalHints)) {
+                    memset(&msg, 0, sizeof(msg));
+                    msg.msg = WM_WM_HINTS_EVENT;
+                    msg.iWindow = event.xproperty.window;
 
-                /* Other fields ignored */
-                winSendMessageToWM(pProcArg->pWMInfo, &msg);
+                    /* Other fields ignored */
+                    winSendMessageToWM(pProcArg->pWMInfo, &msg);
+                }
+
+                /* Not an else as WM_HINTS affects both style and icon */
+                if ((event.xproperty.atom == atmWmHints) ||
+                    (event.xproperty.atom == atmNetWmIcon)) {
+                    memset(&msg, 0, sizeof(msg));
+                    msg.msg = WM_WM_ICON_EVENT;
+                    msg.iWindow = event.xproperty.window;
+
+                    /* Other fields ignored */
+                    winSendMessageToWM(pProcArg->pWMInfo, &msg);
+                }
             }
         }
         else if (event.type == ClientMessage
@@ -1749,7 +1832,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
 }
 
 void
-winUpdateWindowPosition(HWND hWnd, Bool reshape, HWND * zstyle)
+winUpdateWindowPosition(HWND hWnd, HWND * zstyle)
 {
     int iX, iY, iWidth, iHeight;
     int iDx, iDy;
@@ -1800,8 +1883,4 @@ winUpdateWindowPosition(HWND hWnd, Bool reshape, HWND * zstyle)
     SetWindowPos(hWnd, *zstyle, rcNew.left, rcNew.top,
                  rcNew.right - rcNew.left, rcNew.bottom - rcNew.top, 0);
 
-    if (reshape) {
-        winReshapeMultiWindow(pWin);
-        winUpdateRgnMultiWindow(pWin);
-    }
 }

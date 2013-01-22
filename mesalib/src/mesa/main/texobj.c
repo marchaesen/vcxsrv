@@ -468,7 +468,7 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
    }
 
    if (t->MaxLevel < baseLevel) {
-      incomplete(t, BASE, "MAX_LEVEL (%d) < BASE_LEVEL (%d)",
+      incomplete(t, MIPMAP, "MAX_LEVEL (%d) < BASE_LEVEL (%d)",
 		 t->MaxLevel, baseLevel);
       return;
    }
@@ -576,7 +576,7 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
       GLuint width, height, depth, face;
 
       if (minLevel > maxLevel) {
-         incomplete(t, BASE, "minLevel > maxLevel");
+         incomplete(t, MIPMAP, "minLevel > maxLevel");
          return;
       }
 
@@ -959,7 +959,6 @@ _mesa_GenTextures( GLsizei n, GLuint *textures )
    GET_CURRENT_CONTEXT(ctx);
    GLuint first;
    GLint i;
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    if (n < 0) {
       _mesa_error( ctx, GL_INVALID_VALUE, "glGenTextures" );
@@ -1069,7 +1068,8 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *textures)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLint i;
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx); /* too complex */
+
+   FLUSH_VERTICES(ctx, 0); /* too complex */
 
    if (!textures)
       return;
@@ -1184,7 +1184,6 @@ _mesa_BindTexture( GLenum target, GLuint texName )
    struct gl_texture_unit *texUnit = _mesa_get_current_tex_unit(ctx);
    struct gl_texture_object *newTexObj = NULL;
    GLint targetIndex;
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glBindTexture %s %d\n",
@@ -1290,7 +1289,8 @@ _mesa_PrioritizeTextures( GLsizei n, const GLuint *texName,
 {
    GET_CURRENT_CONTEXT(ctx);
    GLint i;
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+
+   FLUSH_VERTICES(ctx, 0);
 
    if (n < 0) {
       _mesa_error( ctx, GL_INVALID_VALUE, "glPrioritizeTextures" );
@@ -1427,8 +1427,6 @@ _mesa_InvalidateTexSubImage(GLuint texture, GLint level, GLint xoffset,
    struct gl_texture_object *t;
    struct gl_texture_image *image;
    GET_CURRENT_CONTEXT(ctx);
-
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    t = invalidate_tex_image_error_check(ctx, texture, level,
                                         "glInvalidateTexSubImage");
@@ -1567,8 +1565,6 @@ void GLAPIENTRY
 _mesa_InvalidateTexImage(GLuint texture, GLint level)
 {
    GET_CURRENT_CONTEXT(ctx);
-
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    invalidate_tex_image_error_check(ctx, texture, level,
                                     "glInvalidateTexImage");

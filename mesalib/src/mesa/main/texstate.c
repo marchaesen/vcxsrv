@@ -297,8 +297,6 @@ _mesa_ActiveTexture(GLenum texture)
             ctx->Const.MaxTextureCoordUnits);
 
    ASSERT(k <= Elements(ctx->Texture.Unit));
-   
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glActiveTexture %s\n",
@@ -329,7 +327,6 @@ _mesa_ClientActiveTexture(GLenum texture)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLuint texUnit = texture - GL_TEXTURE0;
-   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    if (MESA_VERBOSE & (VERBOSE_API | VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glClientActiveTexture %s\n",
@@ -480,6 +477,43 @@ update_tex_combine(struct gl_context *ctx, struct gl_texture_unit *texUnit)
    }
 }
 
+static void
+update_texgen(struct gl_context *ctx)
+{
+   GLuint unit;
+
+   /* Setup texgen for those texture coordinate sets that are in use */
+   for (unit = 0; unit < ctx->Const.MaxTextureCoordUnits; unit++) {
+      struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];
+
+      texUnit->_GenFlags = 0x0;
+
+      if (!(ctx->Texture._EnabledCoordUnits & (1 << unit)))
+	 continue;
+
+      if (texUnit->TexGenEnabled) {
+	 if (texUnit->TexGenEnabled & S_BIT) {
+	    texUnit->_GenFlags |= texUnit->GenS._ModeBit;
+	 }
+	 if (texUnit->TexGenEnabled & T_BIT) {
+	    texUnit->_GenFlags |= texUnit->GenT._ModeBit;
+	 }
+	 if (texUnit->TexGenEnabled & R_BIT) {
+	    texUnit->_GenFlags |= texUnit->GenR._ModeBit;
+	 }
+	 if (texUnit->TexGenEnabled & Q_BIT) {
+	    texUnit->_GenFlags |= texUnit->GenQ._ModeBit;
+	 }
+
+	 ctx->Texture._TexGenEnabled |= ENABLE_TEXGEN(unit);
+	 ctx->Texture._GenFlags |= texUnit->_GenFlags;
+      }
+
+      ASSERT(unit < Elements(ctx->TextureMatrixStack));
+      if (ctx->TextureMatrixStack[unit].Top->type != MATRIX_IDENTITY)
+	 ctx->Texture._TexMatEnabled |= ENABLE_TEXMAT(unit);
+   }
+}
 
 /**
  * \note This routine refers to derived texture matrix values to
@@ -500,11 +534,6 @@ update_texture_state( struct gl_context *ctx )
    if (ctx->Shader.CurrentVertexProgram &&
        ctx->Shader.CurrentVertexProgram->LinkStatus) {
       vprog = ctx->Shader.CurrentVertexProgram->_LinkedShaders[MESA_SHADER_VERTEX]->Program;
-   } else if (ctx->VertexProgram._Enabled) {
-      /* XXX enable this if/when non-shader vertex programs get
-       * texture fetches:
-       vprog = &ctx->VertexProgram.Current->Base;
-       */
    }
 
    if (ctx->Shader.CurrentFragmentProgram &&
@@ -623,7 +652,8 @@ update_texture_state( struct gl_context *ctx )
       if (enabledFragTargets)
          enabledFragUnits |= (1 << unit);
 
-      update_tex_combine(ctx, texUnit);
+      if (!fprog)
+         update_tex_combine(ctx, texUnit);
    }
 
 
@@ -637,37 +667,8 @@ update_texture_state( struct gl_context *ctx )
       ctx->Texture._EnabledCoordUnits = enabledFragUnits;
    }
 
-   /* Setup texgen for those texture coordinate sets that are in use */
-   for (unit = 0; unit < ctx->Const.MaxTextureCoordUnits; unit++) {
-      struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];
-
-      texUnit->_GenFlags = 0x0;
-
-      if (!(ctx->Texture._EnabledCoordUnits & (1 << unit)))
-	 continue;
-
-      if (texUnit->TexGenEnabled) {
-	 if (texUnit->TexGenEnabled & S_BIT) {
-	    texUnit->_GenFlags |= texUnit->GenS._ModeBit;
-	 }
-	 if (texUnit->TexGenEnabled & T_BIT) {
-	    texUnit->_GenFlags |= texUnit->GenT._ModeBit;
-	 }
-	 if (texUnit->TexGenEnabled & R_BIT) {
-	    texUnit->_GenFlags |= texUnit->GenR._ModeBit;
-	 }
-	 if (texUnit->TexGenEnabled & Q_BIT) {
-	    texUnit->_GenFlags |= texUnit->GenQ._ModeBit;
-	 }
-
-	 ctx->Texture._TexGenEnabled |= ENABLE_TEXGEN(unit);
-	 ctx->Texture._GenFlags |= texUnit->_GenFlags;
-      }
-
-      ASSERT(unit < Elements(ctx->TextureMatrixStack));
-      if (ctx->TextureMatrixStack[unit].Top->type != MATRIX_IDENTITY)
-	 ctx->Texture._TexMatEnabled |= ENABLE_TEXMAT(unit);
-   }
+   if (!fprog || !vprog)
+      update_texgen(ctx);
 }
 
 

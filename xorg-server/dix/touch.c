@@ -675,15 +675,20 @@ TouchResourceIsOwner(TouchPointInfoPtr ti, XID resource)
  * Add the resource to this touch's listeners.
  */
 void
-TouchAddListener(TouchPointInfoPtr ti, XID resource, enum InputLevel level,
-                 enum TouchListenerType type, enum TouchListenerState state,
-                 WindowPtr window)
+TouchAddListener(TouchPointInfoPtr ti, XID resource, int resource_type,
+                 enum InputLevel level, enum TouchListenerType type,
+                 enum TouchListenerState state, WindowPtr window,
+                 GrabPtr grab)
 {
     ti->listeners[ti->num_listeners].listener = resource;
+    ti->listeners[ti->num_listeners].resource_type = resource_type;
     ti->listeners[ti->num_listeners].level = level;
     ti->listeners[ti->num_listeners].state = state;
     ti->listeners[ti->num_listeners].type = type;
     ti->listeners[ti->num_listeners].window = window;
+    ti->listeners[ti->num_listeners].grab = grab;
+    if (grab)
+        ti->num_grabs++;
     ti->num_listeners++;
 }
 
@@ -701,6 +706,11 @@ TouchRemoveListener(TouchPointInfoPtr ti, XID resource)
     for (i = 0; i < ti->num_listeners; i++) {
         if (ti->listeners[i].listener == resource) {
             int j;
+
+            if (ti->listeners[i].grab) {
+                ti->listeners[i].grab = NULL;
+                ti->num_grabs--;
+            }
 
             for (j = i; j < ti->num_listeners - 1; j++)
                 ti->listeners[j] = ti->listeners[j + 1];
@@ -732,9 +742,9 @@ TouchAddGrabListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
         type = LISTENER_POINTER_GRAB;
     }
 
-    TouchAddListener(ti, grab->resource, grab->grabtype,
-                     type, LISTENER_AWAITING_BEGIN, grab->window);
-    ti->num_grabs++;
+    /* grab listeners are always RT_NONE since we keep the grab pointer */
+    TouchAddListener(ti, grab->resource, RT_NONE, grab->grabtype,
+                     type, LISTENER_AWAITING_BEGIN, grab->window, grab);
 }
 
 /**
@@ -789,8 +799,8 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
             if (!xi2mask_isset(iclients->xi2mask, dev, XI_TouchOwnership))
                 TouchEventHistoryAllocate(ti);
 
-            TouchAddListener(ti, iclients->resource, XI2,
-                             type, LISTENER_AWAITING_BEGIN, win);
+            TouchAddListener(ti, iclients->resource, RT_INPUTCLIENT, XI2,
+                             type, LISTENER_AWAITING_BEGIN, win, NULL);
             return TRUE;
         }
     }
@@ -804,9 +814,9 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
                 continue;
 
             TouchEventHistoryAllocate(ti);
-            TouchAddListener(ti, iclients->resource, XI,
+            TouchAddListener(ti, iclients->resource, RT_INPUTCLIENT, XI,
                              LISTENER_POINTER_REGULAR, LISTENER_AWAITING_BEGIN,
-                             win);
+                             win, NULL);
             return TRUE;
         }
     }
@@ -819,9 +829,9 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
         /* window owner */
         if (IsMaster(dev) && (win->eventMask & core_filter)) {
             TouchEventHistoryAllocate(ti);
-            TouchAddListener(ti, win->drawable.id, CORE,
+            TouchAddListener(ti, win->drawable.id, RT_WINDOW, CORE,
                              LISTENER_POINTER_REGULAR, LISTENER_AWAITING_BEGIN,
-                             win);
+                             win, NULL);
             return TRUE;
         }
 
@@ -831,8 +841,8 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
                 continue;
 
             TouchEventHistoryAllocate(ti);
-            TouchAddListener(ti, oclients->resource, CORE,
-                             type, LISTENER_AWAITING_BEGIN, win);
+            TouchAddListener(ti, oclients->resource, RT_OTHERCLIENT, CORE,
+                             type, LISTENER_AWAITING_BEGIN, win, NULL);
             return TRUE;
         }
     }

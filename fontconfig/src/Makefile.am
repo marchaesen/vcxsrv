@@ -31,8 +31,9 @@ fontconfig_def_dependency = fontconfig.def
 
 # gcc import library install/uninstall
 
-install-libtool-import-lib: 
-	$(INSTALL) .libs/libfontconfig.dll.a $(DESTDIR)$(libdir)
+install-libtool-import-lib: libfontconfig.la
+	$(MKDIR_P) $(DESTDIR)$(libdir)
+	$(INSTALL) .libs/libfontconfig.dll.a $(DESTDIR)$(libdir)/libfontconfig.dll.a
 	$(INSTALL) fontconfig.def $(DESTDIR)$(libdir)/fontconfig.def
 
 uninstall-libtool-import-lib:
