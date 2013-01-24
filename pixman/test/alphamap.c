@@ -26,25 +26,6 @@ static const int origins[] =
     0, 10, -100
 };
 
-static const char *
-format_name (pixman_format_code_t format)
-{
-    if (format == PIXMAN_a8)
-	return "a8";
-    else if (format == PIXMAN_a2r10g10b10)
-	return "a2r10g10b10";
-    else if (format == PIXMAN_a8r8g8b8)
-	return "a8r8g8b8";
-    else if (format == PIXMAN_a4r4g4b4)
-	return "a4r4g4b4";
-    else if (format == PIXMAN_null)
-	return "none";
-    else
-	assert (0);
-
-    return "<unknown - bug in alphamap.c>";
-}
-
 static void
 on_destroy (pixman_image_t *image, void *data)
 {

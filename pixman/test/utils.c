@@ -870,6 +870,168 @@ initialize_palette (pixman_indexed_t *palette, uint32_t depth, int is_rgb)
     }
 }
 
+const char *
+operator_name (pixman_op_t op)
+{
+    switch (op)
+    {
+    case PIXMAN_OP_CLEAR: return "PIXMAN_OP_CLEAR";
+    case PIXMAN_OP_SRC: return "PIXMAN_OP_SRC";
+    case PIXMAN_OP_DST: return "PIXMAN_OP_DST";
+    case PIXMAN_OP_OVER: return "PIXMAN_OP_OVER";
+    case PIXMAN_OP_OVER_REVERSE: return "PIXMAN_OP_OVER_REVERSE";
+    case PIXMAN_OP_IN: return "PIXMAN_OP_IN";
+    case PIXMAN_OP_IN_REVERSE: return "PIXMAN_OP_IN_REVERSE";
+    case PIXMAN_OP_OUT: return "PIXMAN_OP_OUT";
+    case PIXMAN_OP_OUT_REVERSE: return "PIXMAN_OP_OUT_REVERSE";
+    case PIXMAN_OP_ATOP: return "PIXMAN_OP_ATOP";
+    case PIXMAN_OP_ATOP_REVERSE: return "PIXMAN_OP_ATOP_REVERSE";
+    case PIXMAN_OP_XOR: return "PIXMAN_OP_XOR";
+    case PIXMAN_OP_ADD: return "PIXMAN_OP_ADD";
+    case PIXMAN_OP_SATURATE: return "PIXMAN_OP_SATURATE";
+
+    case PIXMAN_OP_DISJOINT_CLEAR: return "PIXMAN_OP_DISJOINT_CLEAR";
+    case PIXMAN_OP_DISJOINT_SRC: return "PIXMAN_OP_DISJOINT_SRC";
+    case PIXMAN_OP_DISJOINT_DST: return "PIXMAN_OP_DISJOINT_DST";
+    case PIXMAN_OP_DISJOINT_OVER: return "PIXMAN_OP_DISJOINT_OVER";
+    case PIXMAN_OP_DISJOINT_OVER_REVERSE: return "PIXMAN_OP_DISJOINT_OVER_REVERSE";
+    case PIXMAN_OP_DISJOINT_IN: return "PIXMAN_OP_DISJOINT_IN";
+    case PIXMAN_OP_DISJOINT_IN_REVERSE: return "PIXMAN_OP_DISJOINT_IN_REVERSE";
+    case PIXMAN_OP_DISJOINT_OUT: return "PIXMAN_OP_DISJOINT_OUT";
+    case PIXMAN_OP_DISJOINT_OUT_REVERSE: return "PIXMAN_OP_DISJOINT_OUT_REVERSE";
+    case PIXMAN_OP_DISJOINT_ATOP: return "PIXMAN_OP_DISJOINT_ATOP";
+    case PIXMAN_OP_DISJOINT_ATOP_REVERSE: return "PIXMAN_OP_DISJOINT_ATOP_REVERSE";
+    case PIXMAN_OP_DISJOINT_XOR: return "PIXMAN_OP_DISJOINT_XOR";
+
+    case PIXMAN_OP_CONJOINT_CLEAR: return "PIXMAN_OP_CONJOINT_CLEAR";
+    case PIXMAN_OP_CONJOINT_SRC: return "PIXMAN_OP_CONJOINT_SRC";
+    case PIXMAN_OP_CONJOINT_DST: return "PIXMAN_OP_CONJOINT_DST";
+    case PIXMAN_OP_CONJOINT_OVER: return "PIXMAN_OP_CONJOINT_OVER";
+    case PIXMAN_OP_CONJOINT_OVER_REVERSE: return "PIXMAN_OP_CONJOINT_OVER_REVERSE";
+    case PIXMAN_OP_CONJOINT_IN: return "PIXMAN_OP_CONJOINT_IN";
+    case PIXMAN_OP_CONJOINT_IN_REVERSE: return "PIXMAN_OP_CONJOINT_IN_REVERSE";
+    case PIXMAN_OP_CONJOINT_OUT: return "PIXMAN_OP_CONJOINT_OUT";
+    case PIXMAN_OP_CONJOINT_OUT_REVERSE: return "PIXMAN_OP_CONJOINT_OUT_REVERSE";
+    case PIXMAN_OP_CONJOINT_ATOP: return "PIXMAN_OP_CONJOINT_ATOP";
+    case PIXMAN_OP_CONJOINT_ATOP_REVERSE: return "PIXMAN_OP_CONJOINT_ATOP_REVERSE";
+    case PIXMAN_OP_CONJOINT_XOR: return "PIXMAN_OP_CONJOINT_XOR";
+
+    case PIXMAN_OP_MULTIPLY: return "PIXMAN_OP_MULTIPLY";
+    case PIXMAN_OP_SCREEN: return "PIXMAN_OP_SCREEN";
+    case PIXMAN_OP_OVERLAY: return "PIXMAN_OP_OVERLAY";
+    case PIXMAN_OP_DARKEN: return "PIXMAN_OP_DARKEN";
+    case PIXMAN_OP_LIGHTEN: return "PIXMAN_OP_LIGHTEN";
+    case PIXMAN_OP_COLOR_DODGE: return "PIXMAN_OP_COLOR_DODGE";
+    case PIXMAN_OP_COLOR_BURN: return "PIXMAN_OP_COLOR_BURN";
+    case PIXMAN_OP_HARD_LIGHT: return "PIXMAN_OP_HARD_LIGHT";
+    case PIXMAN_OP_SOFT_LIGHT: return "PIXMAN_OP_SOFT_LIGHT";
+    case PIXMAN_OP_DIFFERENCE: return "PIXMAN_OP_DIFFERENCE";
+    case PIXMAN_OP_EXCLUSION: return "PIXMAN_OP_EXCLUSION";
+    case PIXMAN_OP_HSL_HUE: return "PIXMAN_OP_HSL_HUE";
+    case PIXMAN_OP_HSL_SATURATION: return "PIXMAN_OP_HSL_SATURATION";
+    case PIXMAN_OP_HSL_COLOR: return "PIXMAN_OP_HSL_COLOR";
+    case PIXMAN_OP_HSL_LUMINOSITY: return "PIXMAN_OP_HSL_LUMINOSITY";
+
+    case PIXMAN_OP_NONE:
+	return "<invalid operator 'none'>";
+    };
+
+    return "<unknown operator>";
+}
+
+const char *
+format_name (pixman_format_code_t format)
+{
+    switch (format)
+    {
+/* 32bpp formats */
+    case PIXMAN_a8r8g8b8: return "a8r8g8b8";
+    case PIXMAN_x8r8g8b8: return "x8r8g8b8";
+    case PIXMAN_a8b8g8r8: return "a8b8g8r8";
+    case PIXMAN_x8b8g8r8: return "x8b8g8r8";
+    case PIXMAN_b8g8r8a8: return "b8g8r8a8";
+    case PIXMAN_b8g8r8x8: return "b8g8r8x8";
+    case PIXMAN_r8g8b8a8: return "r8g8b8a8";
+    case PIXMAN_r8g8b8x8: return "r8g8b8x8";
+    case PIXMAN_x14r6g6b6: return "x14r6g6b6";
+    case PIXMAN_x2r10g10b10: return "x2r10g10b10";
+    case PIXMAN_a2r10g10b10: return "a2r10g10b10";
+    case PIXMAN_x2b10g10r10: return "x2b10g10r10";
+    case PIXMAN_a2b10g10r10: return "a2b10g10r10";
+
+/* sRGB formats */
+    case PIXMAN_a8r8g8b8_sRGB: return "a8r8g8b8_sRGB";
+
+/* 24bpp formats */
+    case PIXMAN_r8g8b8: return "r8g8b8";
+    case PIXMAN_b8g8r8: return "b8g8r8";
+
+/* 16bpp formats */
+    case PIXMAN_r5g6b5: return "r5g6b5";
+    case PIXMAN_b5g6r5: return "b5g6r5";
+
+    case PIXMAN_a1r5g5b5: return "a1r5g5b5";
+    case PIXMAN_x1r5g5b5: return "x1r5g5b5";
+    case PIXMAN_a1b5g5r5: return "a1b5g5r5";
+    case PIXMAN_x1b5g5r5: return "x1b5g5r5";
+    case PIXMAN_a4r4g4b4: return "a4r4g4b4";
+    case PIXMAN_x4r4g4b4: return "x4r4g4b4";
+    case PIXMAN_a4b4g4r4: return "a4b4g4r4";
+    case PIXMAN_x4b4g4r4: return "x4b4g4r4";
+
+/* 8bpp formats */
+    case PIXMAN_a8: return "a8";
+    case PIXMAN_r3g3b2: return "r3g3b2";
+    case PIXMAN_b2g3r3: return "b2g3r3";
+    case PIXMAN_a2r2g2b2: return "a2r2g2b2";
+    case PIXMAN_a2b2g2r2: return "a2b2g2r2";
+
+#if 0
+    case PIXMAN_x4c4: return "x4c4";
+    case PIXMAN_g8: return "g8";
+#endif
+    case PIXMAN_c8: return "x4c4 / c8";
+    case PIXMAN_x4g4: return "x4g4 / g8";
+
+    case PIXMAN_x4a4: return "x4a4";
+
+/* 4bpp formats */
+    case PIXMAN_a4: return "a4";
+    case PIXMAN_r1g2b1: return "r1g2b1";
+    case PIXMAN_b1g2r1: return "b1g2r1";
+    case PIXMAN_a1r1g1b1: return "a1r1g1b1";
+    case PIXMAN_a1b1g1r1: return "a1b1g1r1";
+
+    case PIXMAN_c4: return "c4";
+    case PIXMAN_g4: return "g4";
+
+/* 1bpp formats */
+    case PIXMAN_a1: return "a1";
+
+    case PIXMAN_g1: return "g1";
+
+/* YUV formats */
+    case PIXMAN_yuy2: return "yuy2";
+    case PIXMAN_yv12: return "yv12";
+    };
+
+    /* Fake formats.
+     *
+     * This is separate switch to prevent GCC from complaining
+     * that the values are not in the pixman_format_code_t enum.
+     */
+    switch ((uint32_t)format)
+    {
+    case PIXMAN_null: return "null"; 
+    case PIXMAN_solid: return "solid"; 
+    case PIXMAN_pixbuf: return "pixbuf"; 
+    case PIXMAN_rpixbuf: return "rpixbuf"; 
+    case PIXMAN_unknown: return "unknown"; 
+    };
+
+    return "<unknown format>";
+};
+
 static double
 round_channel (double p, int m)
 {

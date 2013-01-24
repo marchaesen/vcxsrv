@@ -56,14 +56,12 @@ AC_PROG_MKDIR_P
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
 
-AC_PROG_YACC
-AC_PATH_PROG([YACC_INST], $YACC)
-if test ! -f "$srcdir/src/glsl/glcpp/glcpp-parse.c"; then
-    if test -z "$YACC_INST"; then
-        AC_MSG_ERROR([yacc not found - unable to compile glcpp-parse.y])
-    fi
-fi
-AC_PROG_LEX
+AX_PROG_BISON([],
+              AS_IF([test ! -f "$srcdir/src/glsl/glcpp/glcpp-parse.c"]
+                    [AC_MSG_ERROR([bison not found - unable to compile glcpp-parse.y])]))
+AX_PROG_FLEX([],
+             AS_IF([test ! -f "$srcdir/src/glsl/glcpp/glcpp-lex.c"]
+                   [AC_MSG_ERROR([flex not found - unable to compile glcpp-lex.l])]))
 
 AC_PATH_PROG([PERL], [perl])
 
@@ -1967,6 +1965,8 @@ AM_CONDITIONAL(HAVE_X86_ASM, echo "$DEFINES" | grep 'X86_ASM' >/dev/null 2>&1)
 AM_CONDITIONAL(HAVE_X86_64_ASM, echo "$DEFINES" | grep 'X86_64_ASM' >/dev/null 2>&1)
 AM_CONDITIONAL(HAVE_SPARC_ASM, echo "$DEFINES" | grep 'SPARC_ASM' >/dev/null 2>&1)
 
+AM_CONDITIONAL(CROSS_COMPILING, test "x$cross_compiling" = xyes)
+
 AC_SUBST([VDPAU_MAJOR], 1)
 AC_SUBST([VDPAU_MINOR], 0)
 
@@ -2080,8 +2080,6 @@ AC_CONFIG_FILES([Makefile
 		src/gbm/main/gbm.pc
 		src/glsl/Makefile
 		src/glsl/builtin_compiler/Makefile
-		src/glsl/glcpp/Makefile
-		src/glsl/tests/Makefile
 		src/glx/Makefile
 		src/glx/tests/Makefile
 		src/gtest/Makefile

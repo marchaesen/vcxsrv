@@ -200,9 +200,9 @@ test_composite (int      testnum,
 #define M(r,c)								\
 	transform.matrix[r][c]
 
-	printf ("src_fmt=%08X, dst_fmt=%08X\n", src_fmt, dst_fmt);
-	printf ("op=%d, repeat=%d, transform=\n",
-	        op, repeat);
+	printf ("src_fmt=%s, dst_fmt=%s\n", format_name (src_fmt), format_name (dst_fmt));
+	printf ("op=%s, repeat=%d, transform=\n",
+	        operator_name (op), repeat);
 	printf (" { { { 0x%08x, 0x%08x, 0x%08x },\n"
 		"     { 0x%08x, 0x%08x, 0x%08x },\n"
 		"     { 0x%08x, 0x%08x, 0x%08x },\n"
