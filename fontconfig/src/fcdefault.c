@@ -147,6 +147,9 @@ retry:
 	else
 	    prgname = FcStrdup ("");
 #else
+# if defined (HAVE_GETEXECNAME)
+	const char *p = getexecname ();
+# else
 	char buf[PATH_MAX + 1];
 	int len;
 	char *p = NULL;
@@ -157,7 +160,7 @@ retry:
 	    buf[len] = '\0';
 	    p = buf;
 	}
-
+# endif
 	if (p)
 	{
 	    char *r = strrchr (p, '/');

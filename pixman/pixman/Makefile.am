@@ -85,7 +85,7 @@ noinst_LTLIBRARIES += libpixman-iwmmxt.la
 libpixman_1_la_LIBADD += libpixman-iwmmxt.la
 
 libpixman_iwmmxt_la-pixman-mmx.lo: pixman-mmx.c
-	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(IWMMXT_CFLAGS) -MT libpixman_iwmmxt_la-pixman-mmx.lo -MD -MP -MF $(DEPDIR)/libpixman_iwmmxt_la-pixman-mmx.Tpo -c -o libpixman_iwmmxt_la-pixman-mmx.lo `test -f 'pixman-mmx.c' || echo '$(srcdir)/'`pixman-mmx.c
+	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(IWMMXT_CFLAGS) -MT libpixman_iwmmxt_la-pixman-mmx.lo -MD -MP -MF $(DEPDIR)/libpixman_iwmmxt_la-pixman-mmx.Tpo -c -o libpixman_iwmmxt_la-pixman-mmx.lo `test -f 'pixman-mmx.c' || echo '$(srcdir)/'`pixman-mmx.c
 	$(AM_V_at)$(am__mv) $(DEPDIR)/libpixman_iwmmxt_la-pixman-mmx.Tpo $(DEPDIR)/libpixman_iwmmxt_la-pixman-mmx.Plo
 
 libpixman_iwmmxt_la_DEPENDENCIES = $(am__DEPENDENCIES_1)

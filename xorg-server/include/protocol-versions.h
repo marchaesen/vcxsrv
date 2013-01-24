@@ -127,7 +127,7 @@
 
 /* X Input */
 #define SERVER_XI_MAJOR_VERSION			2
-#define SERVER_XI_MINOR_VERSION			2
+#define SERVER_XI_MINOR_VERSION			3
 
 /* XKB */
 #define SERVER_XKB_MAJOR_VERSION		1

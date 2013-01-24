@@ -329,8 +329,10 @@ test_composite (int testnum, int verbose)
 
     if (verbose)
     {
-	printf ("op=%d, src_fmt=%08X, dst_fmt=%08X, mask_fmt=%08X\n",
-	    op, src_fmt, dst_fmt, mask_fmt);
+        printf ("op=%s\n", operator_name (op));
+	printf ("src_fmt=%s, dst_fmt=%s, mask_fmt=%s\n",
+	    format_name (src_fmt), format_name (dst_fmt),
+	    format_name (mask_fmt));
 	printf ("src_width=%d, src_height=%d, dst_width=%d, dst_height=%d\n",
 	    src_width, src_height, dst_width, dst_height);
 	printf ("src_x=%d, src_y=%d, dst_x=%d, dst_y=%d\n",
