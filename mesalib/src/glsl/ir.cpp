@@ -306,11 +306,32 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
       break;
 
    case ir_unop_noise:
+   case ir_unop_unpack_half_2x16_split_x:
+   case ir_unop_unpack_half_2x16_split_y:
       this->type = glsl_type::float_type;
       break;
 
    case ir_unop_any:
       this->type = glsl_type::bool_type;
+      break;
+
+   case ir_unop_pack_snorm_2x16:
+   case ir_unop_pack_snorm_4x8:
+   case ir_unop_pack_unorm_2x16:
+   case ir_unop_pack_unorm_4x8:
+   case ir_unop_pack_half_2x16:
+      this->type = glsl_type::uint_type;
+      break;
+
+   case ir_unop_unpack_snorm_2x16:
+   case ir_unop_unpack_unorm_2x16:
+   case ir_unop_unpack_half_2x16:
+      this->type = glsl_type::vec2_type;
+      break;
+
+   case ir_unop_unpack_snorm_4x8:
+   case ir_unop_unpack_unorm_4x8:
+      this->type = glsl_type::vec4_type;
       break;
 
    default:
@@ -364,10 +385,15 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
    case ir_binop_bit_and:
    case ir_binop_bit_xor:
    case ir_binop_bit_or:
+       assert(!op0->type->is_matrix());
+       assert(!op1->type->is_matrix());
       if (op0->type->is_scalar()) {
-	 this->type = op1->type;
+         this->type = op1->type;
       } else if (op1->type->is_scalar()) {
-	 this->type = op0->type;
+         this->type = op0->type;
+      } else {
+          assert(op0->type->vector_elements == op1->type->vector_elements);
+          this->type = op0->type;
       }
       break;
 
@@ -384,6 +410,10 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
 
    case ir_binop_dot:
       this->type = glsl_type::float_type;
+      break;
+
+   case ir_binop_pack_half_2x16_split:
+      this->type = glsl_type::uint_type;
       break;
 
    case ir_binop_lshift:
@@ -454,6 +484,18 @@ static const char *const operator_strs[] = {
    "cos_reduced",
    "dFdx",
    "dFdy",
+   "packSnorm2x16",
+   "packSnorm4x8",
+   "packUnorm2x16",
+   "packUnorm4x8",
+   "packHalf2x16",
+   "unpackSnorm2x16",
+   "unpackSnorm4x8",
+   "unpackUnorm2x16",
+   "unpackUnorm4x8",
+   "unpackHalf2x16",
+   "unpackHalf2x16_split_x",
+   "unpackHalf2x16_split_y",
    "noise",
    "+",
    "-",
@@ -480,6 +522,7 @@ static const char *const operator_strs[] = {
    "min",
    "max",
    "pow",
+   "packHalf2x16_split",
    "ubo_load",
    "vector",
 };
@@ -1493,7 +1536,6 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->has_initializer = false;
    this->location = -1;
    this->location_frac = 0;
-   this->uniform_block = -1;
    this->warn_extension = NULL;
    this->constant_value = NULL;
    this->constant_initializer = NULL;
@@ -1553,8 +1595,8 @@ modes_match(unsigned a, unsigned b)
       return true;
 
    /* Accept "in" vs. "const in" */
-   if ((a == ir_var_const_in && b == ir_var_in) ||
-       (b == ir_var_const_in && a == ir_var_in))
+   if ((a == ir_var_const_in && b == ir_var_function_in) ||
+       (b == ir_var_const_in && a == ir_var_function_in))
       return true;
 
    return false;

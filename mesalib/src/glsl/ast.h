@@ -804,11 +804,12 @@ public:
 class ast_uniform_block : public ast_node {
 public:
    ast_uniform_block(ast_type_qualifier layout,
-		     const char *block_name,
-		     ast_declarator_list *member_list)
-   : layout(layout), block_name(block_name)
+                     const char *instance_name,
+		     ast_expression *array_size)
+   : layout(layout), block_name(NULL), instance_name(instance_name),
+     array_size(array_size)
    {
-      declarations.push_degenerate_list_at_head(&member_list->link);
+      /* empty */
    }
 
    virtual ir_rvalue *hir(exec_list *instructions,
@@ -816,8 +817,28 @@ public:
 
    ast_type_qualifier layout;
    const char *block_name;
+
+   /**
+    * Declared name of the block instance, if specified.
+    *
+    * If the block does not have an instance name, this field will be
+    * \c NULL.
+    */
+   const char *instance_name;
+
    /** List of ast_declarator_list * */
    exec_list declarations;
+
+   /**
+    * Declared array size of the block instance
+    *
+    * If the block is not declared as an array, this field will be \c NULL.
+    *
+    * \note
+    * A block can only be an array if it also has an instance name.  If this
+    * field is not \c NULL, ::instance_name must also not be \c NULL.
+    */
+   ast_expression *array_size;
 };
 /*@}*/
 

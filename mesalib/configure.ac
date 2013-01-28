@@ -608,8 +608,10 @@ AC_ARG_ENABLE([vdpau],
    [enable_vdpau=auto])
 AC_ARG_ENABLE([opencl],
    [AS_HELP_STRING([--enable-opencl],
-         [enable OpenCL library @<:@default=no@:>@])],
-   [enable_opencl="$enableval"],
+         [enable OpenCL library NOTE: Enabling this option will also enable
+          --with-llvm-shared-libs
+          @<:@default=no@:>@])],
+   [enable_opencl="$enableval" with_llvm_shared_libs="$enableval"],
    [enable_opencl=no])
 AC_ARG_ENABLE([xlib_glx],
     [AS_HELP_STRING([--enable-xlib-glx],
@@ -1660,10 +1662,7 @@ if test "x$enable_gallium_llvm" = xyes; then
     if test "x$LLVM_CONFIG" != xno; then
 	LLVM_VERSION=`$LLVM_CONFIG --version | sed 's/svn.*//g'`
 	LLVM_VERSION_INT=`echo $LLVM_VERSION | sed -e 's/\([[0-9]]\)\.\([[0-9]]\)/\10\2/g'`
-        if test "x$with_llvm_shared_libs" = xyes; then
-	    dnl We can't use $LLVM_VERSION because it has 'svn' stripped out,
-	    LLVM_LIBS="-lLLVM-`$LLVM_CONFIG --version`"
-	else
+        if test "x$with_llvm_shared_libs" != xyes; then
             LLVM_COMPONENTS="engine bitwriter"
             if $LLVM_CONFIG --components | grep -q '\<mcjit\>'; then
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} mcjit"
@@ -1672,7 +1671,6 @@ if test "x$enable_gallium_llvm" = xyes; then
             if test "x$enable_opencl" = xyes; then
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} ipo linker instrumentation"
             fi
-            LLVM_LIBS="`$LLVM_CONFIG --libs ${LLVM_COMPONENTS}`"
 	fi
 	LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags`
 	LLVM_BINDIR=`$LLVM_CONFIG --bindir`
@@ -1797,7 +1795,7 @@ radeon_llvm_check() {
                       configure flag])
     fi
     AC_MSG_WARN([Please ensure you use the latest llvm tree from git://people.freedesktop.org/~tstellar/llvm master before submitting a bug])
-    LLVM_LIBS="$LLVM_LIBS `$LLVM_CONFIG --libs r600`"
+    LLVM_COMPONENTS="${LLVM_COMPONENTS} r600"
 }
 
 dnl Gallium drivers
@@ -1836,12 +1834,13 @@ if test "x$with_gallium_drivers" != x; then
             if test "x$enable_r600_llvm" = xyes -o "x$enable_opencl" = xyes; then
                 radeon_llvm_check
                 NEED_RADEON_GALLIUM=yes;
+                LLVM_COMPONENTS="${LLVM_COMPONENTS} ipo"
             fi
             if test "x$enable_r600_llvm" = xyes; then
                 USE_R600_LLVM_COMPILER=yes;
             fi
             if test "x$enable_opencl" = xyes -a "x$with_llvm_shared_libs" = xno; then
-                LLVM_LIBS="${LLVM_LIBS} `$LLVM_CONFIG --libs bitreader asmparser`"
+                LLVM_COMPONENTS="${LLVM_COMPONENTS} bitreader asmparser"
             fi
             gallium_check_st "radeon/drm" "dri-r600" "xorg-r600" "" "xvmc-r600" "vdpau-r600"
             ;;
@@ -1891,6 +1890,50 @@ if test "x$with_gallium_drivers" != x; then
         esac
     done
 fi
+
+dnl Set LLVM_LIBS - This is done after the driver configuration so
+dnl that drivers can add additonal components to LLVM_COMPONENTS.
+dnl Previously, gallium drivers were updating LLVM_LIBS directly
+dnl by calling llvm-config --libs ${DRIVER_LLVM_COMPONENTS}, but
+dnl this was causing the same libraries to be appear multiple times
+dnl in LLVM_LIBS.
+
+if test "x$MESA_LLVM" != x0; then
+
+    LLVM_LIBS="`$LLVM_CONFIG --libs ${LLVM_COMPONENTS}`"
+
+    if test "x$with_llvm_shared_libs" = xyes; then
+        dnl We can't use $LLVM_VERSION because it has 'svn' stripped out,
+        LLVM_SO_NAME=LLVM-`$LLVM_CONFIG --version`
+        AC_CHECK_FILE("$LLVM_LIBDIR/lib$LLVM_SO_NAME.so", llvm_have_one_so=yes,)
+
+        if test "x$llvm_have_one_so" = xyes; then
+            dnl LLVM was built using auto*, so there is only one shared object.
+            LLVM_LIBS="-l$LLVM_SO_NAME"
+        else
+            dnl If LLVM was built with CMake, there will be one shared object per
+            dnl component.
+            AC_CHECK_FILE("$LLVM_LIBDIR/libLLVMTarget.so",,
+                    AC_MSG_ERROR([Could not find llvm shared libraries:
+	Please make sure you have built llvm with the --enable-shared option
+	and that your llvm libraries are installed in $LLVM_LIBDIR
+	If you have installed your llvm libraries to a different directory you
+	can use the --with-llvm-prefix= configure flag to specify this directory.
+	NOTE: Mesa is attempting to use llvm shared libraries because you have
+	passed one of the following options to configure:
+		--with-llvm-shared-libs
+		--enable-opencl
+	If you do not want to build with llvm shared libraries and instead want to
+	use llvm static libraries then remove these options from your configure
+	invocation and reconfigure.]))
+
+           dnl We don't need to update LLVM_LIBS in this case because the LLVM
+           dnl install uses a shared object for each compoenent and we have
+           dnl already added all of these objects to LLVM_LIBS.
+        fi
+    fi
+fi
+
 AM_CONDITIONAL(HAVE_GALLIUM_SVGA, test "x$HAVE_GALLIUM_SVGA" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_I915, test "x$HAVE_GALLIUM_I915" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_R300, test "x$HAVE_GALLIUM_R300" = xyes)

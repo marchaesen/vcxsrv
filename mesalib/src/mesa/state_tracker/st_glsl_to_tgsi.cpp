@@ -984,10 +984,13 @@ type_size(const struct glsl_type *type)
        * at link time.
        */
       return 1;
-   default:
-      assert(0);
-      return 0;
+   case GLSL_TYPE_INTERFACE:
+   case GLSL_TYPE_VOID:
+   case GLSL_TYPE_ERROR:
+      assert(!"Invalid type in type_size");
+      break;
    }
+   return 0;
 }
 
 /**
@@ -1932,10 +1935,23 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
       }
       break;
    }
+   case ir_unop_pack_snorm_2x16:
+   case ir_unop_pack_unorm_2x16:
+   case ir_unop_pack_half_2x16:
+   case ir_unop_pack_snorm_4x8:
+   case ir_unop_pack_unorm_4x8:
+   case ir_unop_unpack_snorm_2x16:
+   case ir_unop_unpack_unorm_2x16:
+   case ir_unop_unpack_half_2x16:
+   case ir_unop_unpack_half_2x16_split_x:
+   case ir_unop_unpack_half_2x16_split_y:
+   case ir_unop_unpack_snorm_4x8:
+   case ir_unop_unpack_unorm_4x8:
+   case ir_binop_pack_half_2x16_split:
    case ir_quadop_vector:
-      /* This operation should have already been handled.
+      /* This operation is not supported, or should have already been handled.
        */
-      assert(!"Should not get here.");
+      assert(!"Invalid ir opcode in glsl_to_tgsi_visitor::visit()");
       break;
    }
 
@@ -2001,21 +2017,18 @@ glsl_to_tgsi_visitor::visit(ir_dereference_variable *ir)
         				       var->location);
          this->variables.push_tail(entry);
          break;
-      case ir_var_in:
-      case ir_var_inout:
+      case ir_var_shader_in:
          /* The linker assigns locations for varyings and attributes,
           * including deprecated builtins (like gl_Color), user-assign
           * generic attributes (glBindVertexLocation), and
           * user-defined varyings.
-          *
-          * FINISHME: We would hit this path for function arguments.  Fix!
           */
          assert(var->location != -1);
          entry = new(mem_ctx) variable_storage(var,
                                                PROGRAM_INPUT,
                                                var->location);
          break;
-      case ir_var_out:
+      case ir_var_shader_out:
          assert(var->location != -1);
          entry = new(mem_ctx) variable_storage(var,
                                                PROGRAM_OUTPUT,
@@ -2304,7 +2317,7 @@ glsl_to_tgsi_visitor::visit(ir_assignment *ir)
       assert(!ir->lhs->type->is_scalar() && !ir->lhs->type->is_vector());
       l.writemask = WRITEMASK_XYZW;
    } else if (ir->lhs->type->is_scalar() &&
-              ir->lhs->variable_referenced()->mode == ir_var_out) {
+              ir->lhs->variable_referenced()->mode == ir_var_shader_out) {
       /* FINISHME: This hack makes writing to gl_FragDepth, which lives in the
        * FINISHME: W component of fragment shader output zero, work correctly.
        */
@@ -2581,8 +2594,8 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
       ir_rvalue *param_rval = (ir_rvalue *)iter.get();
       ir_variable *param = (ir_variable *)sig_iter.get();
 
-      if (param->mode == ir_var_in ||
-          param->mode == ir_var_inout) {
+      if (param->mode == ir_var_function_in ||
+          param->mode == ir_var_function_inout) {
          variable_storage *storage = find_variable_storage(param);
          assert(storage);
 
@@ -2617,8 +2630,8 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
       ir_rvalue *param_rval = (ir_rvalue *)iter.get();
       ir_variable *param = (ir_variable *)sig_iter.get();
 
-      if (param->mode == ir_var_out ||
-          param->mode == ir_var_inout) {
+      if (param->mode == ir_var_function_out ||
+          param->mode == ir_var_function_inout) {
          variable_storage *storage = find_variable_storage(param);
          assert(storage);
 

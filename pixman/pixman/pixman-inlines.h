@@ -88,6 +88,42 @@ pixman_fixed_to_bilinear_weight (pixman_fixed_t x)
 	   ((1 << BILINEAR_INTERPOLATION_BITS) - 1);
 }
 
+#if BILINEAR_INTERPOLATION_BITS <= 4
+/* Inspired by Filter_32_opaque from Skia */
+static force_inline uint32_t
+bilinear_interpolation (uint32_t tl, uint32_t tr,
+			uint32_t bl, uint32_t br,
+			int distx, int disty)
+{
+    int distxy, distxiy, distixy, distixiy;
+    uint32_t lo, hi;
+
+    distx <<= (4 - BILINEAR_INTERPOLATION_BITS);
+    disty <<= (4 - BILINEAR_INTERPOLATION_BITS);
+
+    distxy = distx * disty;
+    distxiy = (distx << 4) - distxy;	/* distx * (16 - disty) */
+    distixy = (disty << 4) - distxy;	/* disty * (16 - distx) */
+    distixiy =
+	16 * 16 - (disty << 4) -
+	(distx << 4) + distxy; /* (16 - distx) * (16 - disty) */
+
+    lo = (tl & 0xff00ff) * distixiy;
+    hi = ((tl >> 8) & 0xff00ff) * distixiy;
+
+    lo += (tr & 0xff00ff) * distxiy;
+    hi += ((tr >> 8) & 0xff00ff) * distxiy;
+
+    lo += (bl & 0xff00ff) * distixy;
+    hi += ((bl >> 8) & 0xff00ff) * distixy;
+
+    lo += (br & 0xff00ff) * distxy;
+    hi += ((br >> 8) & 0xff00ff) * distxy;
+
+    return ((lo >> 8) & 0xff00ff) | (hi & ~0xff00ff);
+}
+
+#else
 #if SIZEOF_LONG > 4
 
 static force_inline uint32_t
@@ -184,6 +220,7 @@ bilinear_interpolation (uint32_t tl, uint32_t tr,
 }
 
 #endif
+#endif // BILINEAR_INTERPOLATION_BITS <= 4
 
 /*
  * For each scanline fetched from source image with PAD repeat:

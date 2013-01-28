@@ -188,9 +188,6 @@ general_composite_rect  (pixman_implementation_t *imp,
     compose = _pixman_implementation_lookup_combiner (
 	imp->toplevel, op, component_alpha, narrow);
 
-    if (!compose)
-	return;
-
     for (i = 0; i < height; ++i)
     {
 	uint32_t *s, *m, *d;

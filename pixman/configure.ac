@@ -968,6 +968,22 @@ fi
 AC_MSG_RESULT($support_for_attribute_constructor)
 AC_SUBST(TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR)
 
+dnl =====================================
+dnl __float128
+
+support_for_float128=no
+
+AC_MSG_CHECKING(for __float128)
+AC_LINK_IFELSE([AC_LANG_SOURCE([[
+__float128 a = 1.0Q, b = 2.0Q; int main (void) { return a + b; }
+]])], support_for_float128=yes)
+
+if test x$support_for_float128 = xyes; then
+   AC_DEFINE([HAVE_FLOAT128], [], [Whether the tool chain supports __float128])
+fi
+
+AC_MSG_RESULT($support_for_float128)
+
 dnl ==================
 dnl libpng
 

@@ -39,6 +39,7 @@ typedef struct
     GtkAdjustment *     scale_x_adjustment;
     GtkAdjustment *     scale_y_adjustment;
     GtkAdjustment *     rotate_adjustment;
+    GtkAdjustment *	subsample_adjustment;
     int                 scaled_width;
     int                 scaled_height;
 } app_t;
@@ -236,7 +237,8 @@ rescale (GtkWidget *may_be_null, app_t *app)
 	get_value (app, filters, "reconstruct_y_combo_box"),
 	get_value (app, filters, "sample_x_combo_box"),
 	get_value (app, filters, "sample_y_combo_box"),
-        4, 4);
+	gtk_adjustment_get_value (app->subsample_adjustment),
+	gtk_adjustment_get_value (app->subsample_adjustment));
 
     pixman_image_set_filter (app->original, PIXMAN_FILTER_SEPARABLE_CONVOLUTION, params, n_params);
 
@@ -360,10 +362,13 @@ app_new (pixman_image_t *original)
         GTK_ADJUSTMENT (gtk_builder_get_object (app->builder, "scale_y_adjustment"));
     app->rotate_adjustment =
         GTK_ADJUSTMENT (gtk_builder_get_object (app->builder, "rotate_adjustment"));
+    app->subsample_adjustment =
+	GTK_ADJUSTMENT (gtk_builder_get_object (app->builder, "subsample_adjustment"));
 
     g_signal_connect (app->scale_x_adjustment, "value_changed", G_CALLBACK (rescale), app);
     g_signal_connect (app->scale_y_adjustment, "value_changed", G_CALLBACK (rescale), app);
     g_signal_connect (app->rotate_adjustment, "value_changed", G_CALLBACK (rescale), app);
+    g_signal_connect (app->subsample_adjustment, "value_changed", G_CALLBACK (rescale), app);
     
     widget = get_widget (app, "scale_x_scale");
     gtk_scale_add_mark (GTK_SCALE (widget), 0.0, GTK_POS_LEFT, NULL);

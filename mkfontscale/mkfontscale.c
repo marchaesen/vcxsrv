@@ -20,6 +20,8 @@
   THE SOFTWARE.
 */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -896,10 +898,9 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
                 BDF_PropertyRec prop;
                 rc = FT_Get_BDF_Property(face, "FONT", &prop);
                 if(rc == 0 && prop.type == BDF_PROPERTY_TYPE_ATOM) {
-                    xlfd_name = malloc(strlen(prop.u.atom) + 1);
+                    xlfd_name = strdup(prop.u.atom);
                     if(xlfd_name == NULL)
                         goto done;
-                    strcpy(xlfd_name, prop.u.atom);
                 }
             }
         }

@@ -497,7 +497,7 @@ pixman_implementation_t *
 _pixman_implementation_create (pixman_implementation_t *fallback,
 			       const pixman_fast_path_t *fast_paths);
 
-pixman_bool_t
+void
 _pixman_implementation_lookup_composite (pixman_implementation_t  *toplevel,
 					 pixman_op_t               op,
 					 pixman_format_code_t      src_format,
@@ -1052,7 +1052,7 @@ _pixman_log_error (const char *function, const char *message);
 
 #else
 
-#define _pixman_log_error(f,m) do { } while (0)				\
+#define _pixman_log_error(f,m) do { } while (0)
 
 #define return_if_fail(expr)						\
     do                                                                  \
@@ -1076,6 +1076,27 @@ _pixman_log_error (const char *function, const char *message);
     }									\
     while (0)
 #endif
+
+/*
+ * Matrix
+ */
+
+typedef struct { pixman_fixed_48_16_t v[3]; } pixman_vector_48_16_t;
+
+pixman_bool_t
+pixman_transform_point_31_16 (const pixman_transform_t    *t,
+                              const pixman_vector_48_16_t *v,
+                              pixman_vector_48_16_t       *result);
+
+void
+pixman_transform_point_31_16_3d (const pixman_transform_t    *t,
+                                 const pixman_vector_48_16_t *v,
+                                 pixman_vector_48_16_t       *result);
+
+void
+pixman_transform_point_31_16_affine (const pixman_transform_t    *t,
+                                     const pixman_vector_48_16_t *v,
+                                     pixman_vector_48_16_t       *result);
 
 /*
  * Timers
