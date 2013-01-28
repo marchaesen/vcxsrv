@@ -79,6 +79,7 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
    ast_case_label_list *case_label_list;
    ast_case_statement *case_statement;
    ast_case_statement_list *case_statement_list;
+   ast_uniform_block *uniform_block;
 
    struct {
       ast_node *cond;
@@ -112,6 +113,7 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
 %token STRUCT VOID_TOK WHILE
 %token <identifier> IDENTIFIER TYPE_IDENTIFIER NEW_IDENTIFIER
 %type <identifier> any_identifier
+%type <uniform_block> instance_name_opt
 %token <real> FLOATCONSTANT
 %token <n> INTCONSTANT UINTCONSTANT BOOLCONSTANT
 %token <identifier> FIELD_SELECTION
@@ -221,6 +223,7 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
 %type <node> declaration_statement
 %type <node> jump_statement
 %type <node> uniform_block
+%type <uniform_block> basic_uniform_block
 %type <struct_specifier> struct_specifier
 %type <declarator_list> struct_declaration_list
 %type <declarator_list> struct_declaration
@@ -1884,31 +1887,27 @@ function_definition:
 
 /* layout_qualifieropt is packed into this rule */
 uniform_block:
-	UNIFORM NEW_IDENTIFIER '{' member_list '}' ';'
+	basic_uniform_block
 	{
-	   void *ctx = state;
-	   $$ = new(ctx) ast_uniform_block(*state->default_uniform_qualifier,
-					   $2, $4);
-
-	   if (!state->ARB_uniform_buffer_object_enable) {
-	      _mesa_glsl_error(& @1, state,
-			       "#version 140 / GL_ARB_uniform_buffer_object "
-			       "required for defining uniform blocks\n");
-	   } else if (state->ARB_uniform_buffer_object_warn) {
-	      _mesa_glsl_warning(& @1, state,
-				 "#version 140 / GL_ARB_uniform_buffer_object "
-				 "required for defining uniform blocks\n");
-	   }
+	   $$ = $1;
 	}
-	| layout_qualifier UNIFORM NEW_IDENTIFIER '{' member_list '}' ';'
+	| layout_qualifier basic_uniform_block
 	{
-	   void *ctx = state;
-
-	   ast_type_qualifier qual = *state->default_uniform_qualifier;
-	   if (!qual.merge_qualifier(& @1, state, $1)) {
+	   ast_uniform_block *block = $2;
+	   if (!block->layout.merge_qualifier(& @1, state, $1)) {
 	      YYERROR;
 	   }
-	   $$ = new(ctx) ast_uniform_block(qual, $3, $5);
+	   $$ = block;
+	}
+	;
+
+basic_uniform_block:
+	UNIFORM NEW_IDENTIFIER '{' member_list '}' instance_name_opt ';'
+	{
+	   ast_uniform_block *const block = $6;
+
+	   block->block_name = $2;
+	   block->declarations.push_degenerate_list_at_head(& $4->link);
 
 	   if (!state->ARB_uniform_buffer_object_enable) {
 	      _mesa_glsl_error(& @1, state,
@@ -1919,6 +1918,49 @@ uniform_block:
 				 "#version 140 / GL_ARB_uniform_buffer_object "
 				 "required for defining uniform blocks\n");
 	   }
+
+	   /* Since block arrays require names, and both features are added in
+	    * the same language versions, we don't have to explicitly
+	    * version-check both things.
+	    */
+	   if (block->instance_name != NULL
+	       && !(state->language_version == 300 && state->es_shader)) {
+	      _mesa_glsl_error(& @1, state,
+			       "#version 300 es required for using uniform "
+			       "blocks with an instance name\n");
+	   }
+
+	   $$ = block;
+	}
+	;
+
+instance_name_opt:
+	/* empty */
+	{
+	   $$ = new(state) ast_uniform_block(*state->default_uniform_qualifier,
+					     NULL,
+					     NULL);
+	}
+	| NEW_IDENTIFIER
+	{
+	   $$ = new(state) ast_uniform_block(*state->default_uniform_qualifier,
+					     $1,
+					     NULL);
+	}
+	| NEW_IDENTIFIER '[' constant_expression ']'
+	{
+	   $$ = new(state) ast_uniform_block(*state->default_uniform_qualifier,
+					     $1,
+					     $3);
+	}
+	| NEW_IDENTIFIER '[' ']'
+	{
+	   _mesa_glsl_error(& @1, state,
+			    "instance block arrays must be explicitly sized\n");
+
+	   $$ = new(state) ast_uniform_block(*state->default_uniform_qualifier,
+					     $1,
+					     NULL);
 	}
 	;
 

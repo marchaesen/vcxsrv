@@ -696,7 +696,7 @@ _mesa_combine_programs(struct gl_context *ctx,
    const GLuint newLength = lenA + lenB;
    GLboolean usedTemps[MAX_PROGRAM_TEMPS];
    GLuint firstTemp = 0;
-   GLbitfield inputsB;
+   GLbitfield64 inputsB;
    GLuint i;
 
    ASSERT(progA->Target == progB->Target);
@@ -724,7 +724,7 @@ _mesa_combine_programs(struct gl_context *ctx,
    if (newProg->Target == GL_FRAGMENT_PROGRAM_ARB) {
       const struct gl_fragment_program *fprogA, *fprogB;
       struct gl_fragment_program *newFprog;
-      GLbitfield progB_inputsRead = progB->InputsRead;
+      GLbitfield64 progB_inputsRead = progB->InputsRead;
       GLint progB_colorFile, progB_colorIndex;
 
       fprogA = gl_fragment_program_const(progA);
@@ -840,8 +840,8 @@ _mesa_find_used_registers(const struct gl_program *prog,
 
       for (j = 0; j < n; j++) {
          if (inst->SrcReg[j].File == file) {
-            ASSERT(inst->SrcReg[j].Index < usedSize);
-            if(inst->SrcReg[j].Index < usedSize)
+            ASSERT(inst->SrcReg[j].Index < (GLint) usedSize);
+            if (inst->SrcReg[j].Index < (GLint) usedSize)
                used[inst->SrcReg[j].Index] = GL_TRUE;
          }
       }
@@ -908,23 +908,23 @@ _mesa_valid_register_index(const struct gl_context *ctx,
       return GL_TRUE;  /* XXX or maybe false? */
 
    case PROGRAM_TEMPORARY:
-      return index >= 0 && index < c->MaxTemps;
+      return index >= 0 && index < (GLint) c->MaxTemps;
 
    case PROGRAM_ENV_PARAM:
-      return index >= 0 && index < c->MaxEnvParams;
+      return index >= 0 && index < (GLint) c->MaxEnvParams;
 
    case PROGRAM_LOCAL_PARAM:
-      return index >= 0 && index < c->MaxLocalParams;
+      return index >= 0 && index < (GLint) c->MaxLocalParams;
 
    case PROGRAM_UNIFORM:
    case PROGRAM_STATE_VAR:
       /* aka constant buffer */
-      return index >= 0 && index < c->MaxUniformComponents / 4;
+      return index >= 0 && index < (GLint) c->MaxUniformComponents / 4;
 
    case PROGRAM_CONSTANT:
       /* constant buffer w/ possible relative negative addressing */
       return (index > (int) c->MaxUniformComponents / -4 &&
-              index < c->MaxUniformComponents / 4);
+              index < (int) c->MaxUniformComponents / 4);
 
    case PROGRAM_INPUT:
       if (index < 0)
@@ -932,11 +932,11 @@ _mesa_valid_register_index(const struct gl_context *ctx,
 
       switch (shaderType) {
       case MESA_SHADER_VERTEX:
-         return index < VERT_ATTRIB_GENERIC0 + c->MaxAttribs;
+         return index < VERT_ATTRIB_GENERIC0 + (GLint) c->MaxAttribs;
       case MESA_SHADER_FRAGMENT:
-         return index < FRAG_ATTRIB_VAR0 + ctx->Const.MaxVarying;
+         return index < FRAG_ATTRIB_VAR0 + (GLint) ctx->Const.MaxVarying;
       case MESA_SHADER_GEOMETRY:
-         return index < GEOM_ATTRIB_VAR0 + ctx->Const.MaxVarying;
+         return index < GEOM_ATTRIB_VAR0 + (GLint) ctx->Const.MaxVarying;
       default:
          return GL_FALSE;
       }
@@ -947,17 +947,17 @@ _mesa_valid_register_index(const struct gl_context *ctx,
 
       switch (shaderType) {
       case MESA_SHADER_VERTEX:
-         return index < VERT_RESULT_VAR0 + ctx->Const.MaxVarying;
+         return index < VERT_RESULT_VAR0 + (GLint) ctx->Const.MaxVarying;
       case MESA_SHADER_FRAGMENT:
-         return index < FRAG_RESULT_DATA0 + ctx->Const.MaxDrawBuffers;
+         return index < FRAG_RESULT_DATA0 + (GLint) ctx->Const.MaxDrawBuffers;
       case MESA_SHADER_GEOMETRY:
-         return index < GEOM_RESULT_VAR0 + ctx->Const.MaxVarying;
+         return index < GEOM_RESULT_VAR0 + (GLint) ctx->Const.MaxVarying;
       default:
          return GL_FALSE;
       }
 
    case PROGRAM_ADDRESS:
-      return index >= 0 && index < c->MaxAddressRegs;
+      return index >= 0 && index < (GLint) c->MaxAddressRegs;
 
    default:
       _mesa_problem(ctx,

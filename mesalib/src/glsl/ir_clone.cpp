@@ -50,7 +50,6 @@ ir_variable::clone(void *mem_ctx, struct hash_table *ht) const
    var->interpolation = this->interpolation;
    var->location = this->location;
    var->index = this->index;
-   var->uniform_block = this->uniform_block;
    var->warn_extension = this->warn_extension;
    var->origin_upper_left = this->origin_upper_left;
    var->pixel_center_integer = this->pixel_center_integer;
@@ -76,6 +75,8 @@ ir_variable::clone(void *mem_ctx, struct hash_table *ht) const
    if (this->constant_initializer)
       var->constant_initializer =
 	 this->constant_initializer->clone(mem_ctx, ht);
+
+   var->interface_type = this->interface_type;
 
    if (ht) {
       hash_table_insert(ht, var, (void *)const_cast<ir_variable *>(this));
@@ -375,10 +376,15 @@ ir_constant::clone(void *mem_ctx, struct hash_table *ht) const
       return c;
    }
 
-   default:
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_VOID:
+   case GLSL_TYPE_ERROR:
+   case GLSL_TYPE_INTERFACE:
       assert(!"Should not get here.");
-      return NULL;
+      break;
    }
+
+   return NULL;
 }
 
 

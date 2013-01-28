@@ -315,10 +315,9 @@ pcfIdentify(fontFile *f, char **name)
     if(i >= nprops)
         goto fail;
 
-    s = malloc(strlen(strings + props[i].value) + 1);
+    s = strdup(strings + props[i].value);
     if(s == NULL)
         goto fail;
-    strcpy(s, strings + props[i].value);
     *name = s;
     free(strings);
     free(props);

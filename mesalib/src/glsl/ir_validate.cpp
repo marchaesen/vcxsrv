@@ -329,6 +329,38 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->operands[0]->type == ir->type);
       break;
 
+   case ir_unop_pack_snorm_2x16:
+   case ir_unop_pack_unorm_2x16:
+   case ir_unop_pack_half_2x16:
+      assert(ir->type == glsl_type::uint_type);
+      assert(ir->operands[0]->type == glsl_type::vec2_type);
+      break;
+
+   case ir_unop_pack_snorm_4x8:
+   case ir_unop_pack_unorm_4x8:
+      assert(ir->type == glsl_type::uint_type);
+      assert(ir->operands[0]->type == glsl_type::vec4_type);
+      break;
+
+   case ir_unop_unpack_snorm_2x16:
+   case ir_unop_unpack_unorm_2x16:
+   case ir_unop_unpack_half_2x16:
+      assert(ir->type == glsl_type::vec2_type);
+      assert(ir->operands[0]->type == glsl_type::uint_type);
+      break;
+
+   case ir_unop_unpack_snorm_4x8:
+   case ir_unop_unpack_unorm_4x8:
+      assert(ir->type == glsl_type::vec4_type);
+      assert(ir->operands[0]->type == glsl_type::uint_type);
+      break;
+
+   case ir_unop_unpack_half_2x16_split_x:
+   case ir_unop_unpack_half_2x16_split_y:
+      assert(ir->type == glsl_type::float_type);
+      assert(ir->operands[0]->type == glsl_type::uint_type);
+      break;
+
    case ir_unop_noise:
       /* XXX what can we assert here? */
       break;
@@ -421,6 +453,12 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->operands[0]->type->base_type == GLSL_TYPE_FLOAT);
       assert(ir->operands[0]->type->is_vector());
       assert(ir->operands[0]->type == ir->operands[1]->type);
+      break;
+
+   case ir_binop_pack_half_2x16_split:
+      assert(ir->type == glsl_type::uint_type);
+      assert(ir->operands[0]->type == glsl_type::float_type);
+      assert(ir->operands[1]->type == glsl_type::float_type);
       break;
 
    case ir_binop_ubo_load:
@@ -605,8 +643,8 @@ ir_validate::visit_enter(ir_call *ir)
          printf("ir_call parameter type mismatch:\n");
          goto dump_ir;
       }
-      if (formal_param->mode == ir_var_out
-          || formal_param->mode == ir_var_inout) {
+      if (formal_param->mode == ir_var_function_out
+          || formal_param->mode == ir_var_function_inout) {
          if (!actual_param->is_lvalue()) {
             printf("ir_call out/inout parameters must be lvalues:\n");
             goto dump_ir;

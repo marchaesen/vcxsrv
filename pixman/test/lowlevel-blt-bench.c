@@ -630,6 +630,8 @@ tests_tbl[] =
     { "src_0565_0565",         PIXMAN_r5g6b5,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_r5g6b5 },
     { "src_1555_0565",         PIXMAN_a1r5g5b5,    0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_r5g6b5 },
     { "src_0565_1555",         PIXMAN_r5g6b5,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a1r5g5b5 },
+    { "src_8_8",               PIXMAN_a8,          0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a8 },
+    { "src_n_8",               PIXMAN_a8,          1, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a8 },
     { "src_n_8_0565",          PIXMAN_a8r8g8b8,    1, PIXMAN_OP_SRC,     PIXMAN_a8,       0, PIXMAN_r5g6b5 },
     { "src_n_8_1555",          PIXMAN_a8r8g8b8,    1, PIXMAN_OP_SRC,     PIXMAN_a8,       0, PIXMAN_a1r5g5b5 },
     { "src_n_8_4444",          PIXMAN_a8r8g8b8,    1, PIXMAN_OP_SRC,     PIXMAN_a8,       0, PIXMAN_a4r4g4b4 },
@@ -772,7 +774,7 @@ main (int argc, char *argv[])
 
     for (i = 0; i < ARRAY_LENGTH (tests_tbl); i++)
     {
-	if (strcmp (pattern, "all") == 0 || strstr (tests_tbl[i].testname, pattern))
+	if (strcmp (pattern, "all") == 0 || strcmp (tests_tbl[i].testname, pattern) == 0)
 	{
 	    bench_composite (tests_tbl[i].testname,
 			     tests_tbl[i].src_fmt,

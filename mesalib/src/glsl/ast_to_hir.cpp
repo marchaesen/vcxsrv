@@ -857,13 +857,10 @@ do_comparison(void *mem_ctx, int operation, ir_rvalue *op0, ir_rvalue *op1)
    case GLSL_TYPE_ERROR:
    case GLSL_TYPE_VOID:
    case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_INTERFACE:
       /* I assume a comparison of a struct containing a sampler just
        * ignores the sampler present in the type.
        */
-      break;
-
-   default:
-      assert(!"Should not get here.");
       break;
    }
 
@@ -1625,6 +1622,15 @@ ast_expression::hir(exec_list *instructions,
 	 }
       } else if (array->type->array_size() == 0) {
 	 _mesa_glsl_error(&loc, state, "unsized array index must be constant");
+      } else if (array->type->is_array()
+                 && array->type->fields.array->is_interface()) {
+         /* Page 46 in section 4.3.7 of the OpenGL ES 3.00 spec says:
+          *
+          *     "All indexes used to index a uniform block array must be
+          *     constant integral expressions."
+          */
+         _mesa_glsl_error(&loc, state,
+                          "uniform block array index must be constant");
       } else {
 	 if (array->type->is_array()) {
 	    /* whole_variable_referenced can return NULL if the array is a
@@ -1924,11 +1930,11 @@ is_varying_var(ir_variable *var, _mesa_glsl_parser_targets target)
 {
    switch (target) {
    case vertex_shader:
-      return var->mode == ir_var_out;
+      return var->mode == ir_var_shader_out;
    case fragment_shader:
-      return var->mode == ir_var_in;
+      return var->mode == ir_var_shader_in;
    default:
-      return var->mode == ir_var_out || var->mode == ir_var_in;
+      return var->mode == ir_var_shader_out || var->mode == ir_var_shader_in;
    }
 }
 
@@ -1997,13 +2003,16 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
     * the setting alone.
     */
    if (qual->flags.q.in && qual->flags.q.out)
-      var->mode = ir_var_inout;
-   else if (qual->flags.q.attribute || qual->flags.q.in
+      var->mode = ir_var_function_inout;
+   else if (qual->flags.q.in)
+      var->mode = is_parameter ? ir_var_function_in : ir_var_shader_in;
+   else if (qual->flags.q.attribute
 	    || (qual->flags.q.varying && (state->target == fragment_shader)))
-      var->mode = ir_var_in;
-   else if (qual->flags.q.out
-	    || (qual->flags.q.varying && (state->target == vertex_shader)))
-      var->mode = ir_var_out;
+      var->mode = ir_var_shader_in;
+   else if (qual->flags.q.out)
+      var->mode = is_parameter ? ir_var_function_out : ir_var_shader_out;
+   else if (qual->flags.q.varying && (state->target == vertex_shader))
+      var->mode = ir_var_shader_out;
    else if (qual->flags.q.uniform)
       var->mode = ir_var_uniform;
 
@@ -2028,10 +2037,8 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
        * Similar text exists in the section on vertex shader outputs.
        *
        * Similar text exists in the GLSL ES 3.00 spec, except that the GLSL ES
-       * 3.00 spec claims to allow structs as well.  However, this is likely
-       * an error, since section 11 of the spec ("Counting of Inputs and
-       * Outputs") enumerates all possible types of interstage linkage
-       * variables, and it does not mention structs.
+       * 3.00 spec allows structs as well.  Varying structs are also allowed
+       * in GLSL 1.50.
        */
       switch (var->type->get_scalar_type()->base_type) {
       case GLSL_TYPE_FLOAT:
@@ -2046,6 +2053,8 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
                           state->get_version_string());
          break;
       case GLSL_TYPE_STRUCT:
+         if (state->is_version(150, 300))
+            break;
          _mesa_glsl_error(loc, state,
                           "varying variables may not be of type struct");
          break;
@@ -2058,15 +2067,16 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
    if (state->all_invariant && (state->current_function == NULL)) {
       switch (state->target) {
       case vertex_shader:
-	 if (var->mode == ir_var_out)
+	 if (var->mode == ir_var_shader_out)
 	    var->invariant = true;
 	 break;
       case geometry_shader:
-	 if ((var->mode == ir_var_in) || (var->mode == ir_var_out))
+	 if ((var->mode == ir_var_shader_in)
+             || (var->mode == ir_var_shader_out))
 	    var->invariant = true;
 	 break;
       case fragment_shader:
-	 if (var->mode == ir_var_in)
+	 if (var->mode == ir_var_shader_in)
 	    var->invariant = true;
 	 break;
       }
@@ -2082,8 +2092,8 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
       var->interpolation = INTERP_QUALIFIER_NONE;
 
    if (var->interpolation != INTERP_QUALIFIER_NONE &&
-       !(state->target == vertex_shader && var->mode == ir_var_out) &&
-       !(state->target == fragment_shader && var->mode == ir_var_in)) {
+       !(state->target == vertex_shader && var->mode == ir_var_shader_out) &&
+       !(state->target == fragment_shader && var->mode == ir_var_shader_in)) {
       _mesa_glsl_error(loc, state,
 		       "interpolation qualifier `%s' can only be applied to "
 		       "vertex shader outputs and fragment shader inputs.",
@@ -2116,7 +2126,7 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
        */
       switch (state->target) {
       case vertex_shader:
-	 if (!global_scope || (var->mode != ir_var_in)) {
+	 if (!global_scope || (var->mode != ir_var_shader_in)) {
 	    fail = true;
 	    string = "input";
 	 }
@@ -2129,7 +2139,7 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 	 break;
 
       case fragment_shader:
-	 if (!global_scope || (var->mode != ir_var_out)) {
+	 if (!global_scope || (var->mode != ir_var_shader_out)) {
 	    fail = true;
 	    string = "output";
 	 }
@@ -2440,7 +2450,7 @@ process_initializer(ir_variable *var, ast_declaration *decl,
 		       "cannot initialize samplers");
    }
 
-   if ((var->mode == ir_var_in) && (state->current_function == NULL)) {
+   if ((var->mode == ir_var_shader_in) && (state->current_function == NULL)) {
       _mesa_glsl_error(& initializer_loc, state,
 		       "cannot initialize %s shader input / %s",
 		       _mesa_glsl_shader_target_name(state->target),
@@ -2579,12 +2589,12 @@ ast_declarator_list::hir(exec_list *instructions,
 			     "Undeclared variable `%s' cannot be marked "
 			     "invariant\n", decl->identifier);
 	 } else if ((state->target == vertex_shader)
-	       && (earlier->mode != ir_var_out)) {
+	       && (earlier->mode != ir_var_shader_out)) {
 	    _mesa_glsl_error(& loc, state,
 			     "`%s' cannot be marked invariant, vertex shader "
 			     "outputs only\n", decl->identifier);
 	 } else if ((state->target == fragment_shader)
-	       && (earlier->mode != ir_var_in)) {
+	       && (earlier->mode != ir_var_shader_in)) {
 	    _mesa_glsl_error(& loc, state,
 			     "`%s' cannot be marked invariant, fragment shader "
 			     "inputs only\n", decl->identifier);
@@ -2707,16 +2717,13 @@ ast_declarator_list::hir(exec_list *instructions,
 				       & loc, this->ubo_qualifiers_valid, false);
 
       if (this->type->qualifier.flags.q.invariant) {
-	 if ((state->target == vertex_shader) && !(var->mode == ir_var_out ||
-						   var->mode == ir_var_inout)) {
-	    /* FINISHME: Note that this doesn't work for invariant on
-	     * a function signature outval
-	     */
+	 if ((state->target == vertex_shader) &&
+             var->mode != ir_var_shader_out) {
 	    _mesa_glsl_error(& loc, state,
 			     "`%s' cannot be marked invariant, vertex shader "
 			     "outputs only\n", var->name);
 	 } else if ((state->target == fragment_shader) &&
-		    !(var->mode == ir_var_in || var->mode == ir_var_inout)) {
+		    var->mode != ir_var_shader_in) {
 	    /* FINISHME: Note that this doesn't work for invariant on
 	     * a function signature inval
 	     */
@@ -2753,7 +2760,7 @@ ast_declarator_list::hir(exec_list *instructions,
 			     "global scope%s",
 			     mode, var->name, extra);
 	 }
-      } else if (var->mode == ir_var_in) {
+      } else if (var->mode == ir_var_shader_in) {
          var->read_only = true;
 
 	 if (state->target == vertex_shader) {
@@ -2833,7 +2840,7 @@ ast_declarator_list::hir(exec_list *instructions,
           && state->target == vertex_shader
           && state->current_function == NULL
           && var->type->is_integer()
-          && var->mode == ir_var_out
+          && var->mode == ir_var_shader_out
           && var->interpolation != INTERP_QUALIFIER_FLAT) {
 
          _mesa_glsl_error(&loc, state, "If a vertex output is an integer, "
@@ -3137,7 +3144,8 @@ ast_parameter_declarator::hir(exec_list *instructions,
    }
 
    is_void = false;
-   ir_variable *var = new(ctx) ir_variable(type, this->identifier, ir_var_in);
+   ir_variable *var = new(ctx)
+      ir_variable(type, this->identifier, ir_var_function_in);
 
    /* Apply any specified qualifiers to the parameter declaration.  Note that
     * for function parameters the default mode is 'in'.
@@ -3151,7 +3159,7 @@ ast_parameter_declarator::hir(exec_list *instructions,
     *    as out or inout function parameters, nor can they be assigned
     *    into."
     */
-   if ((var->mode == ir_var_inout || var->mode == ir_var_out)
+   if ((var->mode == ir_var_function_inout || var->mode == ir_var_function_out)
        && type->contains_sampler()) {
       _mesa_glsl_error(&loc, state, "out and inout parameters cannot contain samplers");
       type = glsl_type::error_type;
@@ -3171,7 +3179,7 @@ ast_parameter_declarator::hir(exec_list *instructions,
     * So for GLSL 1.10, passing an array as an out or inout parameter is not
     * allowed.  This restriction is removed in GLSL 1.20, and in GLSL ES.
     */
-   if ((var->mode == ir_var_inout || var->mode == ir_var_out)
+   if ((var->mode == ir_var_function_inout || var->mode == ir_var_function_out)
        && type->is_array()
        && !state->check_version(120, 100, &loc,
                                 "Arrays cannot be out or inout parameters")) {
@@ -4018,35 +4026,50 @@ ast_type_specifier::hir(exec_list *instructions,
 }
 
 
-ir_rvalue *
-ast_struct_specifier::hir(exec_list *instructions,
-			  struct _mesa_glsl_parse_state *state)
+/**
+ * Process a structure or interface block tree into an array of structure fields
+ *
+ * After parsing, where there are some syntax differnces, structures and
+ * interface blocks are almost identical.  They are similar enough that the
+ * AST for each can be processed the same way into a set of
+ * \c glsl_struct_field to describe the members.
+ *
+ * \return
+ * The number of fields processed.  A pointer to the array structure fields is
+ * stored in \c *fields_ret.
+ */
+unsigned
+ast_process_structure_or_interface_block(exec_list *instructions,
+					 struct _mesa_glsl_parse_state *state,
+					 exec_list *declarations,
+					 YYLTYPE &loc,
+					 glsl_struct_field **fields_ret,
+                                         bool is_interface,
+                                         bool block_row_major)
 {
    unsigned decl_count = 0;
 
-   /* Make an initial pass over the list of structure fields to determine how
+   /* Make an initial pass over the list of fields to determine how
     * many there are.  Each element in this list is an ast_declarator_list.
     * This means that we actually need to count the number of elements in the
     * 'declarations' list in each of the elements.
     */
-   foreach_list_typed (ast_declarator_list, decl_list, link,
-		       &this->declarations) {
+   foreach_list_typed (ast_declarator_list, decl_list, link, declarations) {
       foreach_list_const (decl_ptr, & decl_list->declarations) {
 	 decl_count++;
       }
    }
 
-   /* Allocate storage for the structure fields and process the field
+   /* Allocate storage for the fields and process the field
     * declarations.  As the declarations are processed, try to also convert
     * the types to HIR.  This ensures that structure definitions embedded in
-    * other structure definitions are processed.
+    * other structure definitions or in interface blocks are processed.
     */
    glsl_struct_field *const fields = ralloc_array(state, glsl_struct_field,
 						  decl_count);
 
    unsigned i = 0;
-   foreach_list_typed (ast_declarator_list, decl_list, link,
-		       &this->declarations) {
+   foreach_list_typed (ast_declarator_list, decl_list, link, declarations) {
       const char *type_name;
 
       decl_list->type->specifier->hir(instructions, state);
@@ -4055,7 +4078,6 @@ ast_struct_specifier::hir(exec_list *instructions,
        * embedded structure definitions have been removed from the language.
        */
       if (state->es_shader && decl_list->type->specifier->structure != NULL) {
-	 YYLTYPE loc = this->get_location();
 	 _mesa_glsl_error(&loc, state, "Embedded structure definitions are "
 			  "not allowed in GLSL ES 1.00.");
       }
@@ -4065,25 +4087,88 @@ ast_struct_specifier::hir(exec_list *instructions,
 
       foreach_list_typed (ast_declaration, decl, link,
 			  &decl_list->declarations) {
-	 const struct glsl_type *field_type = decl_type;
+         /* From the GL_ARB_uniform_buffer_object spec:
+          *
+          *     "Sampler types are not allowed inside of uniform
+          *      blocks. All other types, arrays, and structures
+          *      allowed for uniforms are allowed within a uniform
+          *      block."
+          */
+         const struct glsl_type *field_type = decl_type;
+
+         if (is_interface && field_type->contains_sampler()) {
+            YYLTYPE loc = decl_list->get_location();
+            _mesa_glsl_error(&loc, state,
+                             "Uniform in non-default uniform block contains sampler\n");
+         }
+
+         const struct ast_type_qualifier *const qual =
+            & decl_list->type->qualifier;
+         if (qual->flags.q.std140 ||
+             qual->flags.q.packed ||
+             qual->flags.q.shared) {
+            _mesa_glsl_error(&loc, state,
+                             "uniform block layout qualifiers std140, packed, and "
+                             "shared can only be applied to uniform blocks, not "
+                             "members");
+         }
+
 	 if (decl->is_array) {
-	    YYLTYPE loc = decl->get_location();
 	    field_type = process_array_type(&loc, decl_type, decl->array_size,
 					    state);
 	 }
 	 fields[i].type = (field_type != NULL)
 	    ? field_type : glsl_type::error_type;
 	 fields[i].name = decl->identifier;
+
+         if (qual->flags.q.row_major || qual->flags.q.column_major) {
+            if (!field_type->is_matrix() && !field_type->is_record()) {
+               _mesa_glsl_error(&loc, state,
+                                "uniform block layout qualifiers row_major and "
+                                "column_major can only be applied to matrix and "
+                                "structure types");
+            } else
+               validate_matrix_layout_for_type(state, &loc, field_type);
+         }
+
+         if (field_type->is_matrix() ||
+             (field_type->is_array() && field_type->fields.array->is_matrix())) {
+            fields[i].row_major = block_row_major;
+            if (qual->flags.q.row_major)
+               fields[i].row_major = true;
+            else if (qual->flags.q.column_major)
+               fields[i].row_major = false;
+         }
+
 	 i++;
       }
    }
 
    assert(i == decl_count);
 
+   *fields_ret = fields;
+   return decl_count;
+}
+
+
+ir_rvalue *
+ast_struct_specifier::hir(exec_list *instructions,
+			  struct _mesa_glsl_parse_state *state)
+{
+   YYLTYPE loc = this->get_location();
+   glsl_struct_field *fields;
+   unsigned decl_count =
+      ast_process_structure_or_interface_block(instructions,
+					       state,
+					       &this->declarations,
+					       loc,
+					       &fields,
+                                               false,
+                                               false);
+
    const glsl_type *t =
       glsl_type::get_record_instance(fields, decl_count, this->name);
 
-   YYLTYPE loc = this->get_location();
    if (!state->symbols->add_type(name, t)) {
       _mesa_glsl_error(& loc, state, "struct `%s' previously defined", name);
    } else {
@@ -4102,96 +4187,98 @@ ast_struct_specifier::hir(exec_list *instructions,
    return NULL;
 }
 
-static struct gl_uniform_block *
-get_next_uniform_block(struct _mesa_glsl_parse_state *state)
-{
-   if (state->num_uniform_blocks >= state->uniform_block_array_size) {
-      state->uniform_block_array_size *= 2;
-      if (state->uniform_block_array_size <= 4)
-	 state->uniform_block_array_size = 4;
-
-      state->uniform_blocks = reralloc(state,
-				       state->uniform_blocks,
-				       struct gl_uniform_block,
-				       state->uniform_block_array_size);
-   }
-
-   memset(&state->uniform_blocks[state->num_uniform_blocks],
-	  0, sizeof(*state->uniform_blocks));
-   return &state->uniform_blocks[state->num_uniform_blocks++];
-}
-
 ir_rvalue *
 ast_uniform_block::hir(exec_list *instructions,
 		       struct _mesa_glsl_parse_state *state)
 {
+   YYLTYPE loc = this->get_location();
+
    /* The ast_uniform_block has a list of ast_declarator_lists.  We
     * need to turn those into ir_variables with an association
     * with this uniform block.
     */
-   struct gl_uniform_block *ubo = get_next_uniform_block(state);
-   ubo->Name = ralloc_strdup(state->uniform_blocks, this->block_name);
-
-   if (!state->symbols->add_uniform_block(ubo)) {
-      YYLTYPE loc = this->get_location();
-      _mesa_glsl_error(&loc, state, "Uniform block name `%s' already taken in "
-                       "the current scope.\n", ubo->Name);
-   }
-
-   unsigned int num_variables = 0;
-   foreach_list_typed(ast_declarator_list, decl_list, link, &declarations) {
-      foreach_list_const(node, &decl_list->declarations) {
-	 num_variables++;
-      }
+   enum glsl_interface_packing packing;
+   if (this->layout.flags.q.shared) {
+      packing = GLSL_INTERFACE_PACKING_SHARED;
+   } else if (this->layout.flags.q.packed) {
+      packing = GLSL_INTERFACE_PACKING_PACKED;
+   } else {
+      /* The default layout is std140.
+       */
+      packing = GLSL_INTERFACE_PACKING_STD140;
    }
 
    bool block_row_major = this->layout.flags.q.row_major;
+   exec_list declared_variables;
+   glsl_struct_field *fields;
+   unsigned int num_variables =
+      ast_process_structure_or_interface_block(&declared_variables,
+                                               state,
+                                               &this->declarations,
+                                               loc,
+                                               &fields,
+                                               true,
+                                               block_row_major);
 
-   ubo->Uniforms = rzalloc_array(state->uniform_blocks,
-				 struct gl_uniform_buffer_variable,
-				 num_variables);
+   const glsl_type *block_type =
+      glsl_type::get_interface_instance(fields,
+                                        num_variables,
+                                        packing,
+                                        this->block_name);
 
-   foreach_list_typed(ast_declarator_list, decl_list, link, &declarations) {
-      exec_list declared_variables;
+   if (!state->symbols->add_type(block_type->name, block_type)) {
+      YYLTYPE loc = this->get_location();
+      _mesa_glsl_error(&loc, state, "Uniform block name `%s' already taken in "
+                       "the current scope.\n", this->block_name);
+   }
 
-      decl_list->hir(&declared_variables, state);
+   /* Since interface blocks cannot contain statements, it should be
+    * impossible for the block to generate any instructions.
+    */
+   assert(declared_variables.is_empty());
 
-      foreach_list_const(node, &declared_variables) {
-	 ir_variable *var = (ir_variable *)node;
+   /* Page 39 (page 45 of the PDF) of section 4.3.7 in the GLSL ES 3.00 spec
+    * says:
+    *
+    *     "If an instance name (instance-name) is used, then it puts all the
+    *     members inside a scope within its own name space, accessed with the
+    *     field selector ( . ) operator (analogously to structures)."
+    */
+   if (this->instance_name) {
+      ir_variable *var;
 
-	 struct gl_uniform_buffer_variable *ubo_var =
-	    &ubo->Uniforms[ubo->NumUniforms++];
+      if (this->array_size != NULL) {
+         const glsl_type *block_array_type =
+            process_array_type(&loc, block_type, this->array_size, state);
 
-	 var->uniform_block = ubo - state->uniform_blocks;
-
-	 ubo_var->Name = ralloc_strdup(state->uniform_blocks, var->name);
-	 ubo_var->Type = var->type;
-	 ubo_var->Offset = 0; /* Assigned at link time. */
-
-	 if (var->type->is_matrix() ||
-	     (var->type->is_array() && var->type->fields.array->is_matrix())) {
-	    ubo_var->RowMajor = block_row_major;
-	    if (decl_list->type->qualifier.flags.q.row_major)
-	       ubo_var->RowMajor = true;
-	    else if (decl_list->type->qualifier.flags.q.column_major)
-	       ubo_var->RowMajor = false;
-	 }
-
-	 /* From the GL_ARB_uniform_buffer_object spec:
-	  *
-	  *     "Sampler types are not allowed inside of uniform
-	  *      blocks. All other types, arrays, and structures
-	  *      allowed for uniforms are allowed within a uniform
-	  *      block."
-	  */
-	 if (var->type->contains_sampler()) {
-	    YYLTYPE loc = decl_list->get_location();
-	    _mesa_glsl_error(&loc, state,
-			     "Uniform in non-default uniform block contains sampler\n");
-	 }
+         var = new(state) ir_variable(block_array_type,
+                                      this->instance_name,
+                                      ir_var_uniform);
+      } else {
+         var = new(state) ir_variable(block_type,
+                                      this->instance_name,
+                                      ir_var_uniform);
       }
 
-      instructions->append_list(&declared_variables);
+      var->interface_type = block_type;
+      state->symbols->add_variable(var);
+      instructions->push_tail(var);
+   } else {
+      /* In order to have an array size, the block must also be declared with
+       * an instane name.
+       */
+      assert(this->array_size == NULL);
+
+      for (unsigned i = 0; i < num_variables; i++) {
+         ir_variable *var =
+            new(state) ir_variable(fields[i].type,
+                                   ralloc_strdup(state, fields[i].name),
+                                   ir_var_uniform);
+         var->interface_type = block_type;
+
+         state->symbols->add_variable(var);
+         instructions->push_tail(var);
+      }
    }
 
    return NULL;
@@ -4222,7 +4309,7 @@ detect_conflicting_assignments(struct _mesa_glsl_parse_state *state,
 	 gl_FragData_assigned = true;
       else if (strncmp(var->name, "gl_", 3) != 0) {
 	 if (state->target == fragment_shader &&
-	     (var->mode == ir_var_out || var->mode == ir_var_inout)) {
+	     var->mode == ir_var_shader_out) {
 	    user_defined_fs_output_assigned = true;
 	    user_defined_fs_output = var;
 	 }
