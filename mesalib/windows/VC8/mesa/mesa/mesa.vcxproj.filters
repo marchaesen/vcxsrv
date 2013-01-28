@@ -719,6 +719,12 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\formatquery.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\link_uniform_blocks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\link_uniform_block_active_visitor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\glsl\strtod.h">

@@ -127,6 +127,8 @@
     <ClCompile Include="..\..\..\..\src\glsl\linker.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_functions.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_uniforms.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\link_uniform_blocks.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\link_uniform_block_active_visitor.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_uniform_initializers.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_varyings.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\loop_analysis.cpp" />
@@ -169,6 +171,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\strtod.c" />
     <ClCompile Include="..\..\..\..\src\glsl\s_expression.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\main\hash_table.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\imports.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\symbol_table.c" />
   </ItemGroup>
