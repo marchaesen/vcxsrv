@@ -534,7 +534,6 @@ void st_init_extensions(struct st_context *st)
    ctx->Extensions.EXT_blend_minmax = GL_TRUE;
    ctx->Extensions.EXT_framebuffer_blit = GL_TRUE;
    ctx->Extensions.EXT_framebuffer_object = GL_TRUE;
-   ctx->Extensions.EXT_framebuffer_multisample = GL_TRUE;
    ctx->Extensions.EXT_fog_coord = GL_TRUE;
    ctx->Extensions.EXT_gpu_program_parameters = GL_TRUE;
    ctx->Extensions.EXT_pixel_buffer_object = GL_TRUE;
@@ -653,6 +652,13 @@ void st_init_extensions(struct st_context *st)
          break;
       }
    }
+   if (ctx->Const.MaxSamples == 1) {
+      /* one sample doesn't really make sense */
+      ctx->Const.MaxSamples = 0;
+   }
+   else if (ctx->Const.MaxSamples >= 2) {
+      ctx->Extensions.EXT_framebuffer_multisample = GL_TRUE;
+   }
 
    if (ctx->Const.MaxDualSourceDrawBuffers > 0)
       ctx->Extensions.ARB_blend_func_extended = GL_TRUE;
@@ -679,6 +685,13 @@ void st_init_extensions(struct st_context *st)
    }
    if (screen->get_param(screen, PIPE_CAP_TEXTURE_BUFFER_OBJECTS)) {
       ctx->Extensions.ARB_texture_buffer_object = GL_TRUE;
+
+      ctx->Const.TextureBufferOffsetAlignment =
+         screen->get_param(screen, PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT);
+
+      if (ctx->Const.TextureBufferOffsetAlignment)
+         ctx->Extensions.ARB_texture_buffer_range = GL_TRUE;
+
       init_format_extensions(st, tbo_rgb32, Elements(tbo_rgb32),
                              PIPE_BUFFER, PIPE_BIND_SAMPLER_VIEW);
    }

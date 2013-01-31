@@ -564,6 +564,7 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MaxTextureMaxAnisotropy = MAX_TEXTURE_MAX_ANISOTROPY;
    ctx->Const.MaxTextureLodBias = MAX_TEXTURE_LOD_BIAS;
    ctx->Const.MaxTextureBufferSize = 65536;
+   ctx->Const.TextureBufferOffsetAlignment = 1;
    ctx->Const.MaxArrayLockSize = MAX_ARRAY_LOCK_SIZE;
    ctx->Const.SubPixelBits = SUB_PIXEL_BITS;
    ctx->Const.MinPointSize = MIN_POINT_SIZE;
@@ -1662,11 +1663,6 @@ _mesa_record_error(struct gl_context *ctx, GLenum error)
 
    if (ctx->ErrorValue == GL_NO_ERROR) {
       ctx->ErrorValue = error;
-   }
-
-   /* Call device driver's error handler, if any.  This is used on the Mac. */
-   if (ctx->Driver.Error) {
-      ctx->Driver.Error(ctx);
    }
 }
 

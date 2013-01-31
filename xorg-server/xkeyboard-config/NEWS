@@ -1,3 +1,6 @@
+2.8	18 bugs fixed
+	Most important change: a lot of materials updated from Oracle (Sun keyboards)
+	Updated translations
 2.7	8 bugs fixed, most important:
 	- Fxx fixed (CTRL+ALT type)
 	- *.dir files not produced any more

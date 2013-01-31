@@ -24,7 +24,7 @@
      </othercredit>
    </authorgroup>
    <releaseinfo>X Version 11, Release &fullrelvers;</releaseinfo>
-   <releaseinfo>Version 0.7</releaseinfo>
+   <releaseinfo>Version 1.2</releaseinfo>
    <copyright><year>1993</year><year>1994</year>
      <holder>NCR Corporation - Dayton, Ohio, USA</holder>
    </copyright>
@@ -378,7 +378,8 @@ provide a more familiar interface that can be used to port existing code.
 <para>
 A macro is defined in Xtrans.h for TRANS(func) that creates a unique function
 name depending on where the code is compiled. For example, when built for
-Xlib, TRANS(OpenCOTSClient) becomes <function>_X11TransOpenCOTSClient</function>.
+Xlib, <function>TRANS(OpenCOTSClient)</function> becomes
+<function>_X11TransOpenCOTSClient</function>.
 </para>
 <para>
 All failures are considered fatal, and the connection should be closed
@@ -389,64 +390,85 @@ errno will be available for debugging purposes.
 <title>Core Interface API</title>
 <itemizedlist mark='bullet'>
   <listitem>
-    <para>
-XtransConnInfo TRANS(OpenCOTSClient)(char *address)
-    </para>
+    <funcsynopsis id='TRANSOpenCOTSClient'>
+      <funcprototype>
+        <funcdef>XtransConnInfo <function>TRANS(OpenCOTSClient)</function></funcdef>
+        <paramdef>char *<parameter>address</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function creates a Connection-Oriented Transport that is
 suitable for use by a client. The parameter <parameter>address</parameter>
-contains the full address of the server to which this endpoint will be connected.  This
-functions returns an opaque transport connection object on success, or
-NULL on failure.
+contains the full address of the server to which this endpoint will be
+connected.  This function returns an opaque transport connection object on
+success, or <constant>NULL</constant> on failure.
     </para>
   </listitem>
   <listitem>
-    <para>
-XtransConnInfo TRANS(OpenCOTSServer)(char *address)
-    </para>
+    <funcsynopsis id='TRANSOpenCOTSServer'>
+      <funcprototype>
+        <funcdef>XtransConnInfo <function>TRANS(OpenCOTSServer)</function></funcdef>
+        <paramdef>char *<parameter>address</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function creates a Connection-Oriented Transport that is suitable
 for use by a server. The parameter <parameter>address</parameter> contains the
-full address to which this server will be bound. This functions returns an opaque
-transport connection object on success, or NULL on failure.
+full address to which this server will be bound. This function returns an
+opaque transport connection object on success, or <constant>NULL</constant>
+on failure.
     </para>
   </listitem>
   <listitem>
-    <para>
-XtransConnInfo TRANS(OpenCLTSClient)(char *address)
-    </para>
+    <funcsynopsis id='TRANSOpenCLTSClient'>
+      <funcprototype>
+        <funcdef>XtransConnInfo <function>TRANS(OpenCLTSClient)</function></funcdef>
+        <paramdef>char *<parameter>address</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function creates a Connection-Less Transport that is suitable for
 use by a client. The parameter <parameter>address</parameter> contains the
-full address of the server to which this endpoint will be connected. This functions
-returns an opaque transport connection object on success, or NULL on failure.
+full address of the server to which this endpoint will be connected. This
+function returns an opaque transport connection object on success, or
+<constant>NULL</constant> on failure.
     </para>
   </listitem>
   <listitem>
-    <para>
-XtransConnInfo TRANS(OpenCLTSServer)(char *address)
-    </para>
+    <funcsynopsis id='TRANSOpenCLTSServer'>
+      <funcprototype>
+        <funcdef>XtransConnInfo <function>TRANS(OpenCLTSServer)</function></funcdef>
+        <paramdef>char *<parameter>address</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function creates a Connection-Less Transport that is suitable for
 use by a server. The parameter <parameter>address</parameter> contains the
-full address to which this server will be bound. This functions returns an opaque
-transport connection object on success, or NULL on failure.
+full address to which this server will be bound. This function returns an
+opaque transport connection object on success, or <constant>NULL</constant>
+on failure.
     </para>
   </listitem>
   <listitem>
-    <para>
-int TRANS(SetOption)(XtransConnInfo connection, int option, int arg)
-    </para>
+    <funcsynopsis id='TRANSSetOption'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(SetOption)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+        <paramdef>int <parameter>option</parameter></paramdef>
+        <paramdef>int <parameter>arg</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function sets transport options, similar to the way
 <function>setsockopt()</function> and <function>ioctl()</function> work.
 The parameter <parameter>connection</parameter> is an endpoint
-that was obtained from _XTransOpen*() functions. The parameter
-<parameter>option</parameter> contains the option that will be set. The actual
-values for option are defined in a later section. The parameter
-<parameter>arg</parameter> can be used to pass in an additional value that may
-be required by some options. This function return 0 on
-success and -1 on failure.
+that was obtained from <function>_XTransOpen*()</function> functions.
+The parameter <parameter>option</parameter> contains the option that will
+be set. The actual values for <parameter>option</parameter> are defined in a
+<link linkend='Transport_Option_Definition'>later section</link>.
+The parameter <parameter>arg</parameter> can be used to pass
+in an additional value that may be required by some options.
+This function returns 0 on success and -1 on failure.
     </para>
     <note><para>
 Based on current usage, the complimentary function
@@ -454,16 +476,21 @@ Based on current usage, the complimentary function
     </para></note>
   </listitem>
   <listitem>
-    <para>
-int TRANS(CreateListener)(XtransConnInfo connection, char *port, int flags)
-    </para>
+    <funcsynopsis id='TRANSCreateListener'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(CreateListener)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+        <paramdef>char *<parameter>port</parameter></paramdef>
+        <paramdef>int <parameter>flags</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function sets up the server endpoint for listening. The parameter
 <parameter>connection</parameter> is an endpoint that was obtained from
 <function>TRANS(OpenCOTSServer)()</function> or
 <function>TRANS(OpenCLTSServer)()</function>. The parameter
-<parameter>port</parameter> specifies the
-port to which this endpoint should be bound for listening. If port is NULL,
+<parameter>port</parameter> specifies the port to which this endpoint
+should be bound for listening. If port is <constant>NULL</constant>,
 then the transport may attempt to allocate any available TSAP for this
 connection. If the transport cannot support this, then this function will
 return a failure. The <parameter>flags</parameter> parameter can be set
@@ -474,9 +501,12 @@ function itself to fail. This function return 0 on success and -1 on failure.
     </para>
   </listitem>
   <listitem>
-    <para>
-int TRANS(ResetListener)(XtransConnInfo connection)
-    </para>
+    <funcsynopsis id='TRANSResetListener'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(ResetListener)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 When a server is restarted, certain listen ports may need to be reset.
 For example, unix domain needs to check that the file used for
@@ -491,44 +521,61 @@ This function will return one of the following values:
     </para>
   </listitem>
   <listitem>
-    <para>
-XtransConnInfo TRANS(Accept)(XtransConnInfo connection)
-    </para>
+    <funcsynopsis id='TRANSAccept'>
+      <funcprototype>
+        <funcdef>XtransConnInfo <function>TRANS(Accept)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 Once a connection indication is received, this function can be called to
 accept the connection. The parameter <parameter>connection</parameter> is
 an opened and bound endpoint that was obtained from
 <function>TRANS(OpenCOTSServer)()</function> and passed to
 <function>TRANS(CreateListener)()</function>. This function will return a
-new opaque transport connection object upon success, NULL otherwise.
+new opaque transport connection object upon success,
+<constant>NULL</constant> otherwise.
     </para>
   </listitem>
   <listitem>
-    <para>
-int TRANS(Connect)(XtransConnInfo connection, char *address)
-    </para>
+    <funcsynopsis id='TRANSConnect'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(Connect)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+        <paramdef>char *<parameter>address</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function creates a connection to a server. The parameter
 <parameter>connection</parameter> is an endpoint that was obtained
 from <function>TRANS(OpenCOTSClient)()</function>. The parameter
 <parameter>address</parameter> specifies the TSAP to which this endpoint
-should connect. If the
-protocol is included in the address, it will be ignored. This function
-return 0 on success and -1 on failure.
+should connect. If the protocol is included in the address, it will be
+ignored. This function returns 0 on success and -1 on failure.
     </para>
   </listitem>
   <listitem>
+    <funcsynopsis id='TRANSBytesReadable'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(BytesReadable)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+        <paramdef>BytesReadable_t *<parameter>pend</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
-int TRANS(BytesReadable)(XtransConnInfo connection, BytesReadable_t *pend);
-    </para>
-    <para>
-This function provides the same functionality as the BytesReadable macro.
+This function provides the same functionality as the
+<function>BytesReadable</function> macro.
     </para>
   </listitem>
   <listitem>
-    <para>
-int TRANS(Read)(XtransConnInfo connection, char *buf, int size)
-    </para>
+    <funcsynopsis id='TRANSRead'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(Read)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+        <paramdef>char *<parameter>buf</parameter></paramdef>
+        <paramdef>int <parameter>size</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function will return the number of bytes requested on a COTS
 connection, and will return the minimum of the number bytes requested or
@@ -536,34 +583,52 @@ the size of the incoming packet on a CLTS connection.
     </para>
   </listitem>
   <listitem>
-    <para>
-int TRANS(Write)(XtransConnInfo connection, char *buf, int size)
-    </para>
+    <funcsynopsis id='TRANSWrite'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(Write)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+        <paramdef>char *<parameter>buf</parameter></paramdef>
+        <paramdef>int <parameter>size</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function will write the requested number of bytes on a COTS
 connection, and will send a packet of the requested size on a CLTS connection.
     </para>
   </listitem>
   <listitem>
-    <para>
-int TRANS(Readv)(XtransConnInfo connection, struct iovec *buf, int size)
-    </para>
+    <funcsynopsis id='TRANSReadv'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(Readv)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+        <paramdef>struct iovec *<parameter>buf</parameter></paramdef>
+        <paramdef>int <parameter>size</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 Similar to <function>TRANS(Read)()</function>.
     </para>
   </listitem>
   <listitem>
-    <para>
-  int TRANS(Writev)(XtransConnInfo connection, struct iovec *buf, int size)
-    </para>
+    <funcsynopsis id='TRANSWritev'>
+      <funcprototype>
+        <funcdef>  int <function>TRANS(Writev)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+        <paramdef>struct iovec *<parameter>buf</parameter></paramdef>
+        <paramdef>int <parameter>size</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 Similar to <function>TRANS(Write)()</function>.
     </para>
   </listitem>
   <listitem>
-    <para>
-int TRANS(Disconnect)(XtransConnInfo connection)
-    </para>
+    <funcsynopsis id='TRANSDisconnect'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(Disconnect)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function is used when an orderly disconnect is desired. This function
 breaks the connection on the transport. It is similar to the socket function
@@ -571,9 +636,12 @@ breaks the connection on the transport. It is similar to the socket function
     </para>
   </listitem>
   <listitem>
-    <para>
-int TRANS(Close)(XtransConnInfo connection)
-    </para>
+    <funcsynopsis id='TRANSClose'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(Close)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function closes the transport, unbinds it, and frees all resources that
 was associated with the transport. If a <function>TRANS(Disconnect)</function>
@@ -581,58 +649,75 @@ call was not made on the connection, a disorderly disconnect may occur.
     </para>
   </listitem>
   <listitem>
-    <para>
-int TRANS(IsLocal)(XtransConnInfo connection)
-    </para>
+    <funcsynopsis id='TRANSIsLocal'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(IsLocal)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 Returns TRUE if it is a local transport.
     </para>
   </listitem>
   <listitem>
+    <funcsynopsis id='TRANSGetMyAddr'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(GetMyAddr)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+        <paramdef>int *<parameter>familyp</parameter></paramdef>
+        <paramdef>int *<parameter>addrlenp</parameter></paramdef>
+        <paramdef>Xtransaddr **<parameter>addrp</parameter></paramdef>
+       </funcprototype>
+    </funcsynopsis>
     <para>
-int TRANS(GetMyAddr)(XtransConnInfo connection, int *familyp, int *addrlenp,
-Xtransaddr **addrp)
-    </para>
-    <para>
-This function is similar to
-<function>getsockname()</function>.
+This function is similar to <function>getsockname()</function>.
 This function will allocate space for the address, so it must be freed by
 the caller. Not all transports will have a valid address until a connection
 is established.  This function should not be used until the connection is
-established with
-<function>Connect()</function> or
+established with <function>Connect()</function> or
 <function>Accept()</function>.
     </para>
   </listitem>
   <listitem>
+    <funcsynopsis id='TRANSGetPeerAddr'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(GetPeerAddr)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+        <paramdef>int *<parameter>familyp</parameter></paramdef>
+        <paramdef>int *<parameter>addrlenp</parameter></paramdef>
+        <paramdef>Xtransaddr **<parameter>addrp</parameter></paramdef>
+       </funcprototype>
+    </funcsynopsis>
     <para>
-int TRANS(GetPeerAddr)(XtransConnInfo connection, int *familyp, int *addrlenp,
-Xtransaddr **addrp)
-    </para>
-    <para>
-This function is similar to
-<function>getpeername()</function>.
+This function is similar to <function>getpeername()</function>.
 This function will allocate space for the address, so it must be freed by
 the caller. Not all transports will have a valid address until a connection
 is established.  This function should not be used until the connection is
-established with
-<function>Connect()</function> or
+established with <function>Connect()</function> or
 <function>Accept()</function>.
     </para>
   </listitem>
   <listitem>
-    <para>
-int TRANS(GetConnectionNumber)(XtransConnInfo connection)
-    </para>
+    <funcsynopsis id='TRANSGetConnectionNumber'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(GetConnectionNumber)</function></funcdef>
+        <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 Returns the file descriptor associated with this transport.
     </para>
   </listitem>
   <listitem>
-    <para>
-int TRANS(MakeAllCOTSServerListeners)(char *port, int *partial_ret,
-int *count_ret, XtransConnInfo **connections_ret)
-    </para>
+    <funcsynopsis id='TRANSMakeAllCOTSServerListeners'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(MakeAllCOTSServerListeners)</function></funcdef>
+        <paramdef>char *<parameter>port</parameter></paramdef>
+        <paramdef>int *<parameter>partial_ret</parameter></paramdef>
+        <paramdef>int *<parameter>count_ret</parameter></paramdef>
+        <paramdef>XtransConnInfo **<parameter>connections_ret</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function should be used by most servers. It will try to establish
 a COTS server endpoint for each transport listed in the transport table.
@@ -643,10 +728,15 @@ is the list of transports.
     </para>
   </listitem>
   <listitem>
-    <para>
-int TRANS(MakeAllCLTSServerListeners)( char *port, int *partial_ret,
-int *count_ret, XtransConnInfo **connections_ret)
-    </para>
+    <funcsynopsis id='TRANSMakeAllCLTSServerListeners'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(MakeAllCLTSServerListeners)</function></funcdef>
+        <paramdef>char *<parameter>port</parameter></paramdef>
+        <paramdef>int *<parameter>partial_ret</parameter></paramdef>
+        <paramdef>int *<parameter>count_ret</parameter></paramdef>
+        <paramdef>XtransConnInfo **<parameter>connections_ret</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function should be used by most servers. It will try to establish a
 CLTS server endpoint for each transport listed in the transport table.
@@ -668,13 +758,19 @@ convenience.
 </para>
 <itemizedlist mark='bullet'>
   <listitem>
-    <para>
-int TRANS(ConvertAddress)(int *familyp, int *addrlenp, Xtransaddr *addrp)
-    </para>
+    <funcsynopsis id='TRANSConvertAddress'>
+      <funcprototype>
+        <funcdef>int <function>TRANS(ConvertAddress)</function></funcdef>
+        <paramdef>int *<parameter>familyp</parameter></paramdef>
+        <paramdef>int *<parameter>addrlenp</parameter></paramdef>
+        <paramdef>Xtransaddr *<parameter>addrp</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function converts a sockaddr based address to an X authorization based
-address (ie AF_INET, AF_UNIX to the X protocol definition (ie FamilyInternet,
-FamilyLocal)).
+address (ie <symbol>AF_INET</symbol>, <symbol>AF_UNIX</symbol> to the X
+protocol definition (ie <symbol>FamilyInternet</symbol>,
+<symbol>FamilyLocal</symbol>)).
     </para>
   </listitem>
 </itemizedlist>
@@ -685,8 +781,8 @@ FamilyLocal)).
 <title>Transport Option Definition</title>
 <para>
 The following options are defined for the
-<function>TRANS(SetOption)()</function>
- function. If an OS or transport does not support any of these options,
+<link linkend='TRANSSetOption'><function>TRANS(SetOption)()</function></link>
+function. If an OS or transport does not support any of these options,
 then it will silently ignore the option.
 </para>
 
@@ -726,18 +822,22 @@ the <code>#ifdef SUNSYSV</code> should be handled inside these functions.
 
 <itemizedlist mark='bullet'>
   <listitem>
-    <para>
-XtransConnInfo *OpenCOTSClient (
-struct _Xtransport *thistrans, char *protocol, char *host, char *port)
-    </para>
+    <funcsynopsis id='OpenCOTSClient'>
+      <funcprototype>
+        <funcdef>XtransConnInfo *<function>OpenCOTSClient</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+        <paramdef>char *<parameter>protocol</parameter></paramdef>
+        <paramdef>char *<parameter>host</parameter></paramdef>
+        <paramdef>char *<parameter>port</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function creates a Connection-Oriented Transport. The parameter
-<parameter>thistrans</parameter>
-points to an Xtransport entry in the transport table. The parameters
-<parameter>protocol</parameter>,
-<parameter>host</parameter>,  and
-<parameter>port</parameter>, point to strings containing the corresponding
-parts of the address that was passed into <function>TRANS(OpenCOTSClient)()</function>.
+<parameter>thistrans</parameter> points to an Xtransport entry in the
+transport table. The parameters <parameter>protocol</parameter>,
+<parameter>host</parameter>, and <parameter>port</parameter>, point to
+strings containing the corresponding parts of the address that was passed into
+<link linkend='TRANSOpenCOTSClient'><function>TRANS(OpenCOTSClient)()</function></link>.
 This function must allocate and initialize the contents of the XtransConnInfo
 structure that is returned by this function. This function will open the
 transport, and bind it into the transport namespace if applicable. The local
@@ -746,39 +846,44 @@ this function.
     </para>
   </listitem>
   <listitem>
-    <para>
-XtransConnInfo *OpenCOTSServer (
-struct _Xtransport *thistrans, char *protocol, char *host, char *port)
-    </para>
+    <funcsynopsis id='OpenCOTSServer'>
+      <funcprototype>
+        <funcdef>XtransConnInfo *<function>OpenCOTSServer</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+        <paramdef>char *<parameter>protocol</parameter></paramdef>
+        <paramdef>char *<parameter>host</parameter></paramdef>
+        <paramdef>char *<parameter>port</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function creates a Connection-Oriented Transport. The parameter
-<parameter>thistrans</parameter>
-points to an Xtransport entry in the transport table. The
-parameters
-<parameter>protocol</parameter>,
-<parameter>host</parameter>, and
-<parameter>port</parameter> point to strings containing the
-corresponding parts of the address that was passed into
-<function>TRANS(OpenCOTSClient)()</function>.
+<parameter>thistrans</parameter> points to an Xtransport entry in the
+transport table. The parameters <parameter>protocol</parameter>,
+<parameter>host</parameter>, and <parameter>port</parameter> point to
+strings containing the corresponding parts of the address that was passed into
+<link linkend='TRANSOpenCOTSServer'><function>TRANS(OpenCOTSServer)()</function></link>.
 This function must allocate and initialize the contents of the
 XtransConnInfo structure that is returned by this function. This function
 will open the transport.
     </para>
   </listitem>
   <listitem>
-    <para>
-XtransConnInfo *OpenCLTSClient (
-struct _Xtransport *thistrans, char *protocol, char *host, char *port)
-    </para>
+    <funcsynopsis id='OpenCLTSClient'>
+      <funcprototype>
+        <funcdef>XtransConnInfo *<function>OpenCLTSClient</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+        <paramdef>char *<parameter>protocol</parameter></paramdef>
+        <paramdef>char *<parameter>host</parameter></paramdef>
+        <paramdef>char *<parameter>port</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function creates a Connection-Less Transport. The parameter
-<parameter>thistrans</parameter>
-points to an Xtransport entry in the transport table. The parameters
-<parameter>protocol</parameter>,
-<parameter>host</parameter>, and
-<parameter>port</parameter> point to strings containing the
-corresponding parts of the address that was passed into
-<function>TRANS(OpenCOTSClient)()</function>.
+<parameter>thistrans</parameter> points to an Xtransport entry in the
+transport table. The parameters <parameter>protocol</parameter>,
+<parameter>host</parameter>, and <parameter>port</parameter> point to strings
+containing the corresponding parts of the address that was passed into
+<link linkend='TRANSOpenCLTSClient'><function>TRANS(OpenCLTSClient)()</function></link>.
 This function must allocate and initialize the contents of the XtransConnInfo
 structure that is returned by this function. This function will open the
 transport, and bind it into the transport namespace if applicable. The
@@ -787,28 +892,36 @@ in by this function.
     </para>
   </listitem>
   <listitem>
-    <para>
-XtransConnInfo *OpenCLTSServer (
-struct _Xtransport *thistrans, char *protocol, char *host, char *port)
-    </para>
+    <funcsynopsis id='OpenCLTSServer'>
+      <funcprototype>
+        <funcdef>XtransConnInfo *<function>OpenCLTSServer</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+        <paramdef>char *<parameter>protocol</parameter></paramdef>
+        <paramdef>char *<parameter>host</parameter></paramdef>
+        <paramdef>char *<parameter>port</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function creates a Connection-Less Transport. The parameter
-<parameter>thistrans</parameter>
-points to an Xtransport entry in the transport table. The  parameters
-<parameter>protocol</parameter>,
-<parameter>host</parameter>, and
-<parameter>port</parameter> point to strings containing the
-corresponding parts of the address that was passed into
-<function>TRANS(OpenCOTSClient)()</function>.
+<parameter>thistrans</parameter> points to an Xtransport entry in the
+transport table. The parameters <parameter>protocol</parameter>,
+<parameter>host</parameter>, and <parameter>port</parameter> point to strings
+containing the corresponding parts of the address that was passed into
+<link linkend='TRANSOpenCLTSServer'><function>TRANS(OpenCLTSServer)()</function></link>.
 This function must allocate and initialize the contents of the
 XtransConnInfo structure that is returned by this function. This
 function will open the transport.
     </para>
   </listitem>
   <listitem>
-    <para>
-int SetOption (struct _Xtransport *thistrans, int option, int arg)
-    </para>
+    <funcsynopsis id='SetOption'>
+      <funcprototype>
+        <funcdef>int <function>SetOption</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+        <paramdef>int <parameter>option</parameter></paramdef>
+        <paramdef>int <parameter>arg</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function provides a transport dependent way of implementing the
 options defined by the X Transport Interface. In the current prototype,
@@ -818,9 +931,14 @@ different transport type is added, or a transport dependent option is defined.
     </para>
   </listitem>
   <listitem>
-    <para>
-int CreateListener (struct _Xtransport *thistrans, char *port, int flags )
-    </para>
+    <funcsynopsis id='CreateListener'>
+      <funcprototype>
+        <funcdef>int <function>CreateListener</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+        <paramdef>char <parameter>*port</parameter></paramdef>
+        <paramdef>int <parameter>flags</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function takes a transport endpoint opened for a server, and sets it
 up to listen for incoming connection requests. The parameter
@@ -838,17 +956,23 @@ listen for incoming connection requests.
     </para>
   </listitem>
   <listitem>
-    <para>
-int ResetListener (struct _Xtransport *thistrans)
-    </para>
+    <funcsynopsis id='ResetListener'>
+      <funcprototype>
+        <funcdef>int <function>ResetListener</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function resets the transport for listening.
     </para>
   </listitem>
   <listitem>
-    <para>
- XtransConnInfo Accept(struct _Xtransport *thistrans)
-    </para>
+    <funcsynopsis id='Accept'>
+      <funcprototype>
+        <funcdef> XtransConnInfo <function>Accept</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function creates a new transport endpoint as a result of an
 incoming connection request. The parameter
@@ -859,13 +983,17 @@ structure describing the new endpoint is returned from this function
     </para>
   </listitem>
   <listitem>
-    <para>
-int Connect(struct _Xtransport *thistrans, char *host, char *port )
-    </para>
+    <funcsynopsis id='Connect'>
+      <funcprototype>
+        <funcdef>int <function>Connect</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+        <paramdef>char *<parameter>host</parameter></paramdef>
+        <paramdef>char *<parameter>port</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function establishes a connection to a server. The parameters
-<parameter>host</parameter>  and
-<parameter>port</parameter>
+<parameter>host</parameter> and <parameter>port</parameter>
 describe the server to which the connection should be
 established. The connection will be established so that
 <function>Read()</function> and
@@ -873,52 +1001,80 @@ established. The connection will be established so that
     </para>
   </listitem>
   <listitem>
+    <funcsynopsis id='BytesReadable'>
+      <funcprototype>
+        <funcdef>int <function>BytesReadable</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+        <paramdef>BytesReadable_t *<parameter>pend</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
-int BytesReadable(struct _Xtransport *thistrans, BytesReadable_t *pend )
-    </para>
-    <para>
-This function replaces the
-<function>BytesReadable()</function>
-macro. This allows each transport to have it’s own mechanism for determining
+This function replaces the <function>BytesReadable()</function>
+macro. This allows each transport to have its own mechanism for determining
 how much data is ready to be read.
     </para>
   </listitem>
   <listitem>
+    <funcsynopsis id='Read'>
+      <funcprototype>
+        <funcdef>int <function>Read</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+        <paramdef>char *<parameter>buf</parameter></paramdef>
+        <paramdef>int <parameter>size</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
-int Read(struct _Xtransport *thistrans, char *buf, int size )
-    </para>
-    <para>
-This function reads size bytes into buf from the connection.
-    </para>
-  </listitem>
-  <listitem>
-    <para>
-int Write(struct _Xtransport *thistrans, char *buf, int size )
-    </para>
-    <para>
-This function writes size bytes from buf to the connection.
+This function reads <parameter>size</parameter> bytes into
+<parameter>buf</parameter> from the connection.
     </para>
   </listitem>
   <listitem>
+    <funcsynopsis id='Write'>
+      <funcprototype>
+        <funcdef>int <function>Write</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+        <paramdef>char *<parameter>buf</parameter></paramdef>
+        <paramdef>int <parameter>size</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
-int Readv(struct _Xtransport *thistrans, struct iovec *buf, int size )
+This function writes <parameter>size</parameter> bytes from
+<parameter>buf</parameter> to the connection.
     </para>
+  </listitem>
+  <listitem>
+    <funcsynopsis id='Readv'>
+      <funcprototype>
+        <funcdef>int <function>Readv</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+        <paramdef>struct iovec *<parameter>buf</parameter></paramdef>
+        <paramdef>int <parameter>size</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function performs a <function>readv()</function> on the connection.
     </para>
   </listitem>
   <listitem>
-    <para>
-int Writev(struct _Xtransport *thistrans, struct iovec *buf, int size )
-    </para>
+    <funcsynopsis id='Writev'>
+      <funcprototype>
+        <funcdef>int <function>Writev</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+        <paramdef>struct iovec *<parameter>buf</parameter></paramdef>
+        <paramdef>int <parameter>size</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function performs a <function>writev()</function> on the connection.
     </para>
   </listitem>
   <listitem>
-    <para>
-int Disconnect(struct _Xtransport *thistrans)
-    </para>
+    <funcsynopsis id='Disconnect'>
+      <funcprototype>
+        <funcdef>int <function>Disconnect</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function initiates an orderly shutdown of a connection. If a
 transport does not distinguish between orderly and disorderly
@@ -926,9 +1082,12 @@ disconnects, then a call to this function will have no affect.
     </para>
   </listitem>
   <listitem>
-    <para>
-int Close(struct _Xtransport *thistrans)
-    </para>
+    <funcsynopsis id='Close'>
+      <funcprototype>
+        <funcdef>int <function>Close</function></funcdef>
+        <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
+      </funcprototype>
+    </funcsynopsis>
     <para>
 This function will break the connection, and close the endpoint.
     </para>
@@ -1100,11 +1259,7 @@ All functions names in the source are of the format
 <function>TRANS()</function>
 macro is defined as
 <programlisting language="C">
-#if (__STDC__ &amp;&amp; !defined(UNIXCPP)) || defined(ANSICPP)
 #define TRANS(func) _PROTOCOLTrans##func
-#else
-#define TRANS(func) _PROTOCOLTrans/**/func
-#endif
 </programlisting>
 </para>
 

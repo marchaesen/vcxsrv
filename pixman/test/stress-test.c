@@ -205,13 +205,21 @@ rand_y (pixman_image_t *image)
 	return log_rand ();
 }
 
+typedef enum
+{
+    DONT_CARE,
+    PREFER_ALPHA,
+    REQUIRE_ALPHA
+} alpha_preference_t;
+
 static pixman_format_code_t
-random_format (pixman_bool_t prefer_alpha)
+random_format (alpha_preference_t alpha)
 {
     pixman_format_code_t format;
     int n = prng_rand_n (ARRAY_LENGTH (image_formats));
 
-    if (prefer_alpha && prng_rand_n (4) != 0)
+    if (alpha >= PREFER_ALPHA &&
+	(alpha == REQUIRE_ALPHA || prng_rand_n (4) != 0))
     {
         do
         {
@@ -227,7 +235,7 @@ random_format (pixman_bool_t prefer_alpha)
 }
 
 static pixman_image_t *
-create_random_bits_image (pixman_bool_t prefer_alpha)
+create_random_bits_image (alpha_preference_t alpha_preference)
 {
     pixman_format_code_t format;
     pixman_indexed_t *indexed;
@@ -241,7 +249,7 @@ create_random_bits_image (pixman_bool_t prefer_alpha)
     int n_coefficients = 0;
 
     /* format */
-    format = random_format (prefer_alpha);
+    format = random_format (alpha_preference);
 
     indexed = NULL;
     if (PIXMAN_FORMAT_TYPE (format) == PIXMAN_TYPE_COLOR)
@@ -410,7 +418,7 @@ set_general_properties (pixman_image_t *image, pixman_bool_t allow_alpha_map)
 	pixman_image_t *alpha_map;
 	int16_t x, y;
 
-	alpha_map = create_random_bits_image (FALSE);
+	alpha_map = create_random_bits_image (DONT_CARE);
 
 	if (alpha_map)
 	{
@@ -493,7 +501,7 @@ set_general_properties (pixman_image_t *image, pixman_bool_t allow_alpha_map)
 		    width = INT32_MAX - x;
 		if (height + y < y)
 		    height = INT32_MAX - y;
-		
+
 		pixman_region32_union_rect (
 		    &region, &region, x, y, width, height);
 	    }
@@ -716,7 +724,7 @@ create_random_image (void)
     {
     default:
     case 0:
-	result = create_random_bits_image (FALSE);
+	result = create_random_bits_image (DONT_CARE);
 	break;
 
     case 1:
@@ -848,62 +856,66 @@ run_test (uint32_t seed, pixman_bool_t verbose, uint32_t mod)
     }
 
     source = mask = dest = NULL;
-    
+
     prng_srand (seed);
 
     if (prng_rand_n (8) == 0)
     {
         int n_traps;
         pixman_trapezoid_t *trapezoids;
+	int p = prng_rand_n (3);
 
-        dest = create_random_bits_image (TRUE);
+	if (p == 0)
+	    dest = create_random_bits_image (DONT_CARE);
+	else
+	    dest = create_random_bits_image (REQUIRE_ALPHA);
 
-        if (dest)
-        {
-            set_general_properties (dest, TRUE);
+	if (!dest)
+	    goto out;
 
-            trapezoids = create_random_trapezoids (
-                &n_traps, dest->bits.width, dest->bits.height);
+	set_general_properties (dest, TRUE);
 
-            if (trapezoids)
-            {
-                switch (prng_rand_n (3))
-                {
-                case 0:
-                    pixman_rasterize_trapezoid (
-                        dest, &trapezoids[prng_rand_n (n_traps)],
-                        rand_x (dest), rand_y (dest));
-                    break;
+	if (!(trapezoids = create_random_trapezoids (
+		  &n_traps, dest->bits.width, dest->bits.height)))
+	{
+	    goto out;
+	}
 
-                case 1:
-                    source = create_random_image ();
+	switch (p)
+	{
+	case 0:
+	    source = create_random_image ();
 
-                    if (source)
-                    {
-                        op = op_list [prng_rand_n (ARRAY_LENGTH (op_list))];
-                        
-                        pixman_composite_trapezoids (
-                            op, source, dest,
-                            random_format (TRUE),
-                            rand_x (source), rand_y (source),
-                            rand_x (dest), rand_y (dest),
-                            n_traps, trapezoids);
-                    }
-                    break;
+	    if (source)
+	    {
+		op = op_list [prng_rand_n (ARRAY_LENGTH (op_list))];
 
-                case 2:
-                    pixman_add_trapezoids (
-                        dest, rand_x (dest), rand_y (dest), n_traps, trapezoids);
-                    break;
-                }
+		pixman_composite_trapezoids (
+		    op, source, dest,
+		    random_format (REQUIRE_ALPHA),
+		    rand_x (source), rand_y (source),
+		    rand_x (dest), rand_y (dest),
+		    n_traps, trapezoids);
+	    }
+	    break;
 
-                free (trapezoids);
-            }
+	case 1:
+	    pixman_rasterize_trapezoid (
+		dest, &trapezoids[prng_rand_n (n_traps)],
+		rand_x (dest), rand_y (dest));
+	    break;
+
+	case 2:
+	    pixman_add_trapezoids (
+		dest, rand_x (dest), rand_y (dest), n_traps, trapezoids);
+	    break;
         }
+
+	free (trapezoids);
     }
     else
     {
-        dest = create_random_bits_image (FALSE);
+        dest = create_random_bits_image (DONT_CARE);
         source = create_random_image ();
         mask = create_random_image ();
 
@@ -917,16 +929,17 @@ run_test (uint32_t seed, pixman_bool_t verbose, uint32_t mod)
                                       source, mask, dest,
                                       rand_x (source), rand_y (source),
                                       rand_x (mask), rand_y (mask),
-                                      0, 0, 
+                                      0, 0,
                                       dest->bits.width,
                                       dest->bits.height);
         }
     }
 
-        if (source)
-            pixman_image_unref (source);
-        if (mask)
-            pixman_image_unref (mask);
+out:
+    if (source)
+	pixman_image_unref (source);
+    if (mask)
+	pixman_image_unref (mask);
     if (dest)
 	pixman_image_unref (dest);
 }

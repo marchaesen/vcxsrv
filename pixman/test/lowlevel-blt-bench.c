@@ -33,6 +33,14 @@
 #define L1CACHE_SIZE (8 * 1024)
 #define L2CACHE_SIZE (128 * 1024)
 
+/* This is applied to both L1 and L2 tests - alternatively, you could
+ * parameterise bench_L or split it into two functions. It could be
+ * read at runtime on some architectures, but it only really matters
+ * that it's a number that's an integer divisor of both cacheline
+ * lengths, and further, it only really matters for caches that don't
+ * do allocate0on-write. */
+#define CACHELINE_LENGTH (32) /* bytes */
+
 #define WIDTH  1920
 #define HEIGHT 1080
 #define BUFSIZE (WIDTH * HEIGHT * 4)
@@ -168,18 +176,29 @@ bench_L  (pixman_op_t              op,
           int                      width,
           int                      lines_count)
 {
-    int64_t      i, j;
+    int64_t      i, j, k;
     int          x = 0;
     int          q = 0;
     volatile int qx;
 
     for (i = 0; i < n; i++)
     {
-	/* touch destination buffer to fetch it into L1 cache */
-	for (j = 0; j < width + 64; j += 16) {
-	    q += dst[j];
-	    q += src[j];
-	}
+        /* For caches without allocate-on-write, we need to force the
+         * destination buffer back into the cache on each iteration,
+         * otherwise if they are evicted during the test, they remain
+         * uncached. This doesn't matter for tests which read the
+         * destination buffer, or for caches that do allocate-on-write,
+         * but in those cases this loop just adds constant time, which
+         * should be successfully cancelled out.
+         */
+        for (j = 0; j < lines_count; j++)
+        {
+            for (k = 0; k < width + 62; k += CACHELINE_LENGTH / sizeof *dst)
+            {
+                q += dst[j * WIDTH + k];
+            }
+            q += dst[j * WIDTH + width + 62];
+        }
 	if (++x >= 64)
 	    x = 0;
 	call_func (func, op, src_img, mask_img, dst_img, x, 0, x, 0, 63 - x, 0, width, lines_count);

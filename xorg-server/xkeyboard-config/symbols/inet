@@ -97,7 +97,7 @@ xkb_symbols "evdev" {
     key <UNDO>   {      [ Undo                  ]       };
     key <FRNT>   {      [ SunFront              ]       };
     key <COPY>   {      [ XF86Copy              ]       };
-    key <OPEN>   {      [ SunOpen               ]       };
+    key <OPEN>   {      [ XF86Open              ]       };
     key <PAST>   {      [ XF86Paste             ]       };
     key <FIND>   {      [ Find                  ]       };
     key <CUT>    {      [ XF86Cut               ]       };

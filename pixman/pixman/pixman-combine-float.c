@@ -653,10 +653,12 @@ clip_color (rgb_t *color, float a)
     float l = get_lum (color);
     float n = channel_min (color);
     float x = channel_max (color);
+    float t;
 
     if (n < 0.0f)
     {
-	if ((l - n) < 4 * FLT_EPSILON)
+	t = l - n;
+	if (IS_ZERO (t))
 	{
 	    color->r = 0.0f;
 	    color->g = 0.0f;
@@ -664,14 +666,15 @@ clip_color (rgb_t *color, float a)
 	}
 	else
 	{
-	    color->r = l + (((color->r - l) * l) / (l - n));
-	    color->g = l + (((color->g - l) * l) / (l - n));
-	    color->b = l + (((color->b - l) * l) / (l - n));
+	    color->r = l + (((color->r - l) * l) / t);
+	    color->g = l + (((color->g - l) * l) / t);
+	    color->b = l + (((color->b - l) * l) / t);
 	}
     }
     if (x > a)
     {
-	if ((x - l) < 4 * FLT_EPSILON)
+	t = x - l;
+	if (IS_ZERO (t))
 	{
 	    color->r = a;
 	    color->g = a;
@@ -679,9 +682,9 @@ clip_color (rgb_t *color, float a)
 	}
 	else
 	{
-	    color->r = l + (((color->r - l) * (a - l) / (x - l)));
-	    color->g = l + (((color->g - l) * (a - l) / (x - l)));
-	    color->b = l + (((color->b - l) * (a - l) / (x - l)));
+	    color->r = l + (((color->r - l) * (a - l) / t));
+	    color->g = l + (((color->g - l) * (a - l) / t));
+	    color->b = l + (((color->b - l) * (a - l) / t));
 	}
     }
 }
@@ -702,6 +705,7 @@ static void
 set_sat (rgb_t *src, float sat)
 {
     float *max, *mid, *min;
+    float t;
 
     if (src->r > src->g)
     {
@@ -752,14 +756,16 @@ set_sat (rgb_t *src, float sat)
 	}
     }
 
-    if (*max > *min)
+    t = *max - *min;
+
+    if (IS_ZERO (t))
     {
-	*mid = (((*mid - *min) * sat) / (*max - *min));
-	*max = sat;
+	*mid = *max = 0.0f;
     }
     else
     {
-	*mid = *max = 0.0f;
+	*mid = ((*mid - *min) * sat) / t;
+	*max = sat;
     }
 
     *min = 0.0f;
