@@ -8634,6 +8634,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->TexBufferRange) {
+        void ** procp = (void **) &disp->TexBufferRange;
+        snprintf(symboln, sizeof(symboln), "%sTexBufferRange", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->InvalidateBufferData) {
         void ** procp = (void **) &disp->InvalidateBufferData;
         snprintf(symboln, sizeof(symboln), "%sInvalidateBufferData", symbol_prefix);
