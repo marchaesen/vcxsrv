@@ -67,6 +67,12 @@ inline string stringify(const T& x)
   return o.str();
 }
 
+#ifdef WIN32
+typedef unsigned _int64 mh_basetime_t;
+#else
+typedef unsigned long mh_basetime_t;
+#endif
+
 #define TIMESAFETY 3
 class mh_time
 {
@@ -76,13 +82,13 @@ class mh_time
     NOTEXISTTIME=1,
     DIRTIME     =2+TIMESAFETY
   };
-  unsigned long m_Time;
+  mh_basetime_t m_Time;
 
   bool operator < (const mh_time &Src);
 public:
   mh_time(){m_Time=DATENOTVALID;}
-  mh_time(time_t Time) : m_Time((unsigned long)Time) {}
-  mh_time(unsigned long Time) : m_Time(Time) {}
+  mh_time(time_t Time) : m_Time((mh_basetime_t)Time) {}
+  mh_time(mh_basetime_t Time) : m_Time(Time) {}
   mh_time(const mh_time &Time) : m_Time(Time.m_Time) {}
 
   void SetDir(void)

@@ -1227,7 +1227,7 @@ mh_pid_t mhmakefileparser::ExecuteCommand(string Command, bool &IgnoreError, str
     break;
   }
   if (!Command.length())
-    (mh_pid_t)0;
+    return (mh_pid_t)0;
   string InCommand=Command;
   if (g_Quiet)
     Echo=false;

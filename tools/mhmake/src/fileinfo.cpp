@@ -96,6 +96,16 @@ string fileinfo::GetName() const
 ///////////////////////////////////////////////////////////////////////////////
 mh_time_t fileinfo::realGetDate() const
 {
+#ifdef WIN32
+  WIN32_FILE_ATTRIBUTE_DATA Attr;
+  BOOL Ret=GetFileAttributesEx(m_AbsFileName.c_str(), GetFileExInfoStandard, &Attr);
+  if (!Ret)
+    ((fileinfo*)this)->m_Date.SetNotExist();
+  else if (Attr.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)
+    ((fileinfo*)this)->m_Date.SetDir();
+  else
+    ((fileinfo*)this)->m_Date=*(mh_basetime_t*)&Attr.ftLastWriteTime;
+#else
   struct stat Buf;
   if (-1==stat(m_AbsFileName.c_str(),&Buf))
     ((fileinfo*)this)->m_Date.SetNotExist();
@@ -103,6 +113,7 @@ mh_time_t fileinfo::realGetDate() const
     ((fileinfo*)this)->m_Date.SetDir();
   else
     ((fileinfo*)this)->m_Date=Buf.st_mtime;
+#endif
   return m_Date;
 }
 
@@ -141,7 +152,13 @@ bool fileinfo::IsDir() const
 ///////////////////////////////////////////////////////////////////////////////
 void fileinfo::SetDateToNow()
 {
+#ifdef WIN32
+  FILETIME ft;
+  GetSystemTimeAsFileTime(&ft);
+  m_Date=*(mh_basetime_t*)&ft;
+#else
   m_Date=time(NULL);
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

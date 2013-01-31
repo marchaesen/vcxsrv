@@ -1190,7 +1190,13 @@ mh_time_t mhmakefileparser::m_sBuildTime;
 
 void mhmakefileparser::InitBuildTime()
 {
+#ifdef WIN32
+  FILETIME ft;
+  GetSystemTimeAsFileTime(&ft);
+  m_sBuildTime=*(mh_basetime_t*)&ft;
+#else
   m_sBuildTime=time(NULL);
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

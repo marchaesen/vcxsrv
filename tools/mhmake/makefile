@@ -6,17 +6,23 @@ MHMAKESLNFILE=mhmakevc10.sln
 BUILDCMD=devenv.com $(MHMAKESLNFILE) /build
 endif
 
+ifdef IS64
+SUBCONF=|x64
+SUBCONFDIR=64
+else
+SUBCONF=|Win32
+endif
 .PHONY: all mhmake_dbg mhmake cleanthis
 
-all: debug\mhmake_dbg.exe release\mhmake.exe
+all: debug$(SUBCONFDIR)\mhmake_dbg.exe release$(SUBCONFDIR)\mhmake.exe
 
 DEPS=$(wildcard src\*)
 
-debug\mhmake_dbg.exe: $(DEPS)
-	$(BUILDCMD) "Debug|Win32" 
+debug$(SUBCONFDIR)\mhmake_dbg.exe: $(DEPS)
+	$(BUILDCMD) "Debug$(SUBCONF)" 
 
-release\mhmake.exe: $(DEPS)
-	$(BUILDCMD) "Release|Win32" 
+release$(SUBCONFDIR)\mhmake.exe: $(DEPS)
+	$(BUILDCMD) "Release$(SUBCONF)" 
 
 clean: cleanthis
 
