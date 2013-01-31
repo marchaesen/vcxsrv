@@ -58,7 +58,9 @@ noinst_LTLIBRARIES += libpixman-arm-simd.la
 libpixman_arm_simd_la_SOURCES = \
 	pixman-arm-simd.c	\
 	pixman-arm-common.h	\
-	pixman-arm-simd-asm.S
+	pixman-arm-simd-asm.S   \
+	pixman-arm-simd-asm-scaled.S \
+	pixman-arm-simd-asm.h
 libpixman_1_la_LIBADD += libpixman-arm-simd.la
 
 ASM_CFLAGS_arm_simd=
