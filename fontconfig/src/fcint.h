@@ -208,6 +208,7 @@ typedef enum _FcOp {
     FcOpField, FcOpConst,
     FcOpAssign, FcOpAssignReplace,
     FcOpPrependFirst, FcOpPrepend, FcOpAppend, FcOpAppendLast,
+    FcOpDelete, FcOpDeleteAll,
     FcOpQuest,
     FcOpOr, FcOpAnd, FcOpEqual, FcOpNotEqual,
     FcOpContains, FcOpListing, FcOpNotContains,

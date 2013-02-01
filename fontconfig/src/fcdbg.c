@@ -79,7 +79,7 @@ void
 FcValuePrintWithPosition (const FcValue v, FcBool show_pos_mark)
 {
     if (show_pos_mark)
-	printf (" [insert here] ");
+	printf (" [marker] ");
     else
 	printf (" ");
     _FcValuePrintFile (stdout, v);
@@ -110,7 +110,7 @@ FcValueListPrintWithPosition (FcValueListPtr l, const FcValueListPtr pos)
 	FcValueBindingPrint (l);
     }
     if (!pos)
-	printf (" [insert here]");
+	printf (" [marker]");
 }
 
 void
@@ -222,6 +222,8 @@ FcOpPrint (FcOp op_)
     case FcOpPrependFirst: printf ("PrependFirst"); break;
     case FcOpAppend: printf ("Append"); break;
     case FcOpAppendLast: printf ("AppendLast"); break;
+    case FcOpDelete: printf ("Delete"); break;
+    case FcOpDeleteAll: printf ("DeleteAll"); break;
     case FcOpQuest: printf ("Quest"); break;
     case FcOpOr: printf ("Or"); break;
     case FcOpAnd: printf ("And"); break;
