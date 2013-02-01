@@ -1701,6 +1701,16 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 	    case FcOpAppendLast:
 		FcConfigPatternAdd (p, e->object, l, FcTrue);
 		break;
+	    case FcOpDelete:
+		if (t)
+		{
+		    FcConfigDel (&st[i].elt->values, st[i].value);
+		    break;
+		}
+		/* fall through ... */
+	    case FcOpDeleteAll:
+		FcConfigPatternDel (p, e->object);
+		break;
 	    default:
                 FcValueListDestroy (l);
 		break;

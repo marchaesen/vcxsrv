@@ -2495,7 +2495,7 @@
         <_shortDescription>hr</_shortDescription>
         <_description>Croatian</_description>
         <languageList>
-          <iso639Id>scr</iso639Id>
+          <iso639Id>hrv</iso639Id>
         </languageList>
       </configItem>
       <variantList>
@@ -3887,7 +3887,7 @@
         <_shortDescription>mn</_shortDescription>
         <_description>Mongolian</_description>
         <languageList>
-          <iso639Id>mng</iso639Id>
+          <iso639Id>mon</iso639Id>
         </languageList>
       </configItem>
       <variantList/>
@@ -4877,7 +4877,7 @@
         <_shortDescription>zh</_shortDescription>
         <_description>Taiwanese</_description>
         <languageList>
-          <iso639Id>trv</iso639Id>
+          <iso639Id>fox</iso639Id>
         </languageList>
       </configItem>
       <variantList>
@@ -4897,6 +4897,11 @@
               <iso639Id>ssf</iso639Id>
               <iso639Id>tao</iso639Id>
               <iso639Id>tsu</iso639Id>
+              <iso639Id>trv</iso639Id>
+              <iso639Id>xnb</iso639Id>
+              <iso639Id>sxr</iso639Id>
+              <iso639Id>uun</iso639Id>
+              <iso639Id>fos</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -5174,7 +5179,7 @@
             <_shortDescription>sd</_shortDescription>
             <_description>Sindhi</_description>
             <languageList>
-              <iso639Id>sd</iso639Id>
+              <iso639Id>snd</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -5362,7 +5367,7 @@
             <_shortDescription>fr</_shortDescription>
             <_description>French (Mali, alternative)</_description>
             <languageList>
-              <iso639Id>fr</iso639Id>
+              <iso639Id>fra</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -5372,6 +5377,9 @@
             <!-- Keyboard indicator for English layouts -->
             <_shortDescription>en</_shortDescription>
             <_description>English (Mali, US Macintosh)</_description>
+            <languageList>
+              <iso639Id>eng</iso639Id>
+            </languageList>
           </configItem>
         </variant>
         <variant>
@@ -5380,6 +5388,9 @@
             <!-- Keyboard indicator for English layouts -->
             <_shortDescription>en</_shortDescription>
             <_description>English (Mali, US international)</_description>
+            <languageList>
+              <iso639Id>eng</iso639Id>
+            </languageList>
           </configItem>
         </variant>
       </variantList>

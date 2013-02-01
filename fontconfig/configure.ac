@@ -68,6 +68,7 @@ AC_LIBTOOL_WIN32_DLL
 AM_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 PKG_PROG_PKG_CONFIG
+m4_ifdef([PKG_INSTALLDIR], [PKG_INSTALLDIR], AC_SUBST([pkgconfigdir], ${libdir}/pkgconfig))
 
 AC_MSG_CHECKING([for RM macro])
 _predefined_rm=`make -p -f /dev/null 2>/dev/null|grep '^RM ='|sed -e 's/^RM = //'`

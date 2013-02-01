@@ -425,6 +425,8 @@ with "same" binding using the value from the matched pattern element.
   "prepend_first"         Insert at head of list  Insert at head of list
   "append"                Append after matching   Append at end of list
   "append_last"           Append at end of list   Append at end of list
+  "delete"                Delete matching value   Delete all values
+  "delete_all"            Delete all values       Delete all values
     </programlisting>
   </para></refsect2>
   <refsect2><title><literal>&lt;int&gt;</literal>, <literal>&lt;double&gt;</literal>, <literal>&lt;string&gt;</literal>, <literal>&lt;bool&gt;</literal></title><para>

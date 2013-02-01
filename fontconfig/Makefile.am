@@ -59,7 +59,6 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/mkinstalldirs \
 	`find "$(srcdir)" -type f -name Makefile.in -print`
 
-pkgconfigdir=$(libdir)/pkgconfig
 pkgconfig_DATA = fontconfig.pc
 
 baseconfigdir = $(BASECONFIGDIR)

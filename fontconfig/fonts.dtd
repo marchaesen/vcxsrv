@@ -140,7 +140,7 @@
     if 'target' is 'font', execute the match on the result of a font
     selection.
 -->
-<!ELEMENT match (test*, edit*)>
+<!ELEMENT match (test*, edit*)+>
 <!ATTLIST match
 	  target (pattern|font|scan) "pattern">
 
@@ -189,7 +189,7 @@
 <!ELEMENT edit (%expr;)*>
 <!ATTLIST edit
 	  name CDATA	    #REQUIRED
-	  mode (assign|assign_replace|prepend|append|prepend_first|append_last) "assign"
+	  mode (assign|assign_replace|prepend|append|prepend_first|append_last|delete|delete_all) "assign"
 	  binding (weak|strong|same) "weak">
 
 <!--
