@@ -812,6 +812,13 @@ FcFontSetSerializeAlloc (FcSerialize *serialize, const FcFontSet *s);
 FcPrivate FcFontSet *
 FcFontSetSerialize (FcSerialize *serialize, const FcFontSet * s);
 
+/* fchash.c */
+FcPrivate FcChar8 *
+FcHashGetSHA256Digest (const FcChar8 *input_strings,
+		       size_t         len);
+FcPrivate FcChar8 *
+FcHashGetSHA256DigestFromFile (const FcChar8 *filename);
+
 /* fcxml.c */
 FcPrivate void
 FcTestDestroy (FcTest *test);
