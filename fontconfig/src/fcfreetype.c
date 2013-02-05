@@ -1123,6 +1123,8 @@ FcFreeTypeQueryFace (const FT_Face  face,
     FcChar8	    *style = 0;
     int		    st;
 
+    FcChar8	    *hashstr;
+
     pat = FcPatternCreate ();
     if (!pat)
 	goto bail0;
@@ -1633,6 +1635,13 @@ FcFreeTypeQueryFace (const FT_Face  face,
 
     if (!FcPatternAddBool (pat, FC_DECORATIVE, decorative))
 	goto bail1;
+
+    hashstr = FcHashGetSHA256DigestFromFile (file);
+    if (!hashstr)
+	goto bail1;
+    if (!FcPatternAddString (pat, FC_HASH, hashstr))
+	goto bail1;
+    free (hashstr);
 
     /*
      * Compute the unicode coverage for the font

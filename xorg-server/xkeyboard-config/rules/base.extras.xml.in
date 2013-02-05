@@ -60,7 +60,7 @@
         <name>ca</name>
         <_shortDescription>fr</_shortDescription>
         <_description>French (Canada)</_description>
-        <languageList><iso639Id>fr</iso639Id></languageList>
+        <languageList><iso639Id>fra</iso639Id></languageList>
       </configItem>
       <variantList>
         <variant>

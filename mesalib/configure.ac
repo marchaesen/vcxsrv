@@ -611,7 +611,7 @@ AC_ARG_ENABLE([opencl],
          [enable OpenCL library NOTE: Enabling this option will also enable
           --with-llvm-shared-libs
           @<:@default=no@:>@])],
-   [enable_opencl="$enableval" with_llvm_shared_libs="$enableval"],
+   [],
    [enable_opencl=no])
 AC_ARG_ENABLE([xlib_glx],
     [AS_HELP_STRING([--enable-xlib-glx],
@@ -699,6 +699,16 @@ fi
 
 if test "x$enable_dri$enable_xlib_glx" = xyesyes; then
     AC_MSG_ERROR([DRI and Xlib-GLX cannot be built together])
+fi
+
+if test "x$enable_opengl$enable_xlib_glx" = xnoyes; then
+    AC_MSG_ERROR([Xlib-GLX cannot be built without OpenGL])
+fi
+
+# Disable GLX if OpenGL is not enabled
+if test "x$enable_glx$enable_opengl" = xyesno; then
+    AC_MSG_WARN([OpenGL not enabled, disabling GLX])
+    enable_glx=no
 fi
 
 # Disable GLX if DRI and Xlib-GLX are not enabled
@@ -1619,8 +1629,13 @@ AC_ARG_ENABLE([gallium-llvm],
 AC_ARG_WITH([llvm-shared-libs],
     [AS_HELP_STRING([--with-llvm-shared-libs],
         [link with LLVM shared libraries @<:@default=disabled@:>@])],
-    [with_llvm_shared_libs=yes],
+    [],
     [with_llvm_shared_libs=no])
+AS_IF([test x$enable_opencl = xyes],
+    [
+        AC_MSG_WARN([OpenCL required, forcing LLVM shared libraries])
+        with_llvm_shared_libs=yes
+    ])
 
 AC_ARG_WITH([llvm-prefix],
     [AS_HELP_STRING([--with-llvm-prefix],
