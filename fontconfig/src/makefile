@@ -27,6 +27,7 @@ CSRCS = \
 	fcformat.c \
 	fcfreetype.c \
 	fcfs.c \
+	fchash.c \
 	fcinit.c \
 	fclang.c \
 	fclist.c \
