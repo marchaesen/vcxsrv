@@ -1287,11 +1287,12 @@ glsl_to_tgsi_visitor::try_emit_mad_for_and_not(ir_expression *ir, int try_operan
 bool
 glsl_to_tgsi_visitor::try_emit_sat(ir_expression *ir)
 {
-   /* Saturates were only introduced to vertex programs in
-    * NV_vertex_program3, so don't give them to drivers in the VP.
+   /* Emit saturates in the vertex shader only if SM 3.0 is supported.
     */
-   if (this->prog->Target == GL_VERTEX_PROGRAM_ARB)
+   if (this->prog->Target == GL_VERTEX_PROGRAM_ARB &&
+       !st_context(this->ctx)->has_shader_model3) {
       return false;
+   }
 
    ir_rvalue *sat_src = ir->as_rvalue_to_saturate();
    if (!sat_src)
@@ -2931,32 +2932,12 @@ glsl_to_tgsi_visitor::visit(ir_discard *ir)
 void
 glsl_to_tgsi_visitor::visit(ir_if *ir)
 {
-   glsl_to_tgsi_instruction *cond_inst, *if_inst;
-   glsl_to_tgsi_instruction *prev_inst;
-
-   prev_inst = (glsl_to_tgsi_instruction *)this->instructions.get_tail();
+   glsl_to_tgsi_instruction *if_inst;
 
    ir->condition->accept(this);
    assert(this->result.file != PROGRAM_UNDEFINED);
 
-   if (this->options->EmitCondCodes) {
-      cond_inst = (glsl_to_tgsi_instruction *)this->instructions.get_tail();
-
-      /* See if we actually generated any instruction for generating
-       * the condition.  If not, then cook up a move to a temp so we
-       * have something to set cond_update on.
-       */
-      if (cond_inst == prev_inst) {
-         st_src_reg temp = get_temp(glsl_type::bool_type);
-         cond_inst = emit(ir->condition, TGSI_OPCODE_MOV, st_dst_reg(temp), result);
-      }
-      cond_inst->cond_update = GL_TRUE;
-
-      if_inst = emit(ir->condition, TGSI_OPCODE_IF);
-      if_inst->dst.cond_mask = COND_NE;
-   } else {
-      if_inst = emit(ir->condition, TGSI_OPCODE_IF, undef_dst, this->result);
-   }
+   if_inst = emit(ir->condition, TGSI_OPCODE_IF, undef_dst, this->result);
 
    this->instructions.push_tail(if_inst);
 
@@ -5175,21 +5156,52 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       const struct gl_shader_compiler_options *options =
             &ctx->ShaderCompilerOptions[_mesa_shader_type_to_index(prog->_LinkedShaders[i]->Type)];
 
+      /* If there are forms of indirect addressing that the driver
+       * cannot handle, perform the lowering pass.
+       */
+      if (options->EmitNoIndirectInput || options->EmitNoIndirectOutput ||
+          options->EmitNoIndirectTemp || options->EmitNoIndirectUniform) {
+         lower_variable_index_to_cond_assign(ir,
+                                             options->EmitNoIndirectInput,
+                                             options->EmitNoIndirectOutput,
+                                             options->EmitNoIndirectTemp,
+                                             options->EmitNoIndirectUniform);
+      }
+
+      if (ctx->Extensions.ARB_shading_language_packing) {
+         unsigned lower_inst = LOWER_PACK_SNORM_2x16 |
+                               LOWER_UNPACK_SNORM_2x16 |
+                               LOWER_PACK_UNORM_2x16 |
+                               LOWER_UNPACK_UNORM_2x16 |
+                               LOWER_PACK_SNORM_4x8 |
+                               LOWER_UNPACK_SNORM_4x8 |
+                               LOWER_UNPACK_UNORM_4x8 |
+                               LOWER_PACK_UNORM_4x8 |
+                               LOWER_PACK_HALF_2x16 |
+                               LOWER_UNPACK_HALF_2x16;
+
+         lower_packing_builtins(ir, lower_inst);
+      }
+
+      do_mat_op_to_vec(ir);
+      lower_instructions(ir,
+                         MOD_TO_FRACT |
+                         DIV_TO_MUL_RCP |
+                         EXP_TO_EXP2 |
+                         LOG_TO_LOG2 |
+                         (options->EmitNoPow ? POW_TO_EXP2 : 0) |
+                         (!ctx->Const.NativeIntegers ? INT_DIV_TO_MUL_RCP : 0));
+
+      lower_ubo_reference(prog->_LinkedShaders[i], ir);
+      do_vec_index_to_cond_assign(ir);
+      lower_quadop_vector(ir, false);
+      lower_noise(ir);
+      if (options->MaxIfDepth == 0) {
+         lower_discard(ir);
+      }
+
       do {
-         unsigned what_to_lower = MOD_TO_FRACT | DIV_TO_MUL_RCP |
-            EXP_TO_EXP2 | LOG_TO_LOG2;
-         if (options->EmitNoPow)
-            what_to_lower |= POW_TO_EXP2;
-         if (!ctx->Const.NativeIntegers)
-            what_to_lower |= INT_DIV_TO_MUL_RCP;
-
          progress = false;
-
-         /* Lowering */
-         do_mat_op_to_vec(ir);
-         lower_instructions(ir, what_to_lower);
-
-         lower_ubo_reference(prog->_LinkedShaders[i], ir);
 
          progress = do_lower_jumps(ir, true, true, options->EmitNoMainReturn, options->EmitNoCont, options->EmitNoLoops) || progress;
 
@@ -5197,30 +5209,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 					   options->MaxUnrollIterations)
 	   || progress;
 
-         progress = lower_quadop_vector(ir, false) || progress;
-
-         if (options->MaxIfDepth == 0)
-            progress = lower_discard(ir) || progress;
-
          progress = lower_if_to_cond_assign(ir, options->MaxIfDepth) || progress;
-
-         if (options->EmitNoNoise)
-            progress = lower_noise(ir) || progress;
-
-         /* If there are forms of indirect addressing that the driver
-          * cannot handle, perform the lowering pass.
-          */
-         if (options->EmitNoIndirectInput || options->EmitNoIndirectOutput
-             || options->EmitNoIndirectTemp || options->EmitNoIndirectUniform)
-           progress =
-             lower_variable_index_to_cond_assign(ir,
-        					 options->EmitNoIndirectInput,
-        					 options->EmitNoIndirectOutput,
-        					 options->EmitNoIndirectTemp,
-        					 options->EmitNoIndirectUniform)
-             || progress;
-
-         progress = do_vec_index_to_cond_assign(ir) || progress;
 
       } while (progress);
 
