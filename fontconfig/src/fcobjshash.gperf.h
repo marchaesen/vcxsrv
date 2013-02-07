@@ -21,6 +21,6 @@ struct FcObjectTypeInfo {
 };
 
 %%
-#define FC_OBJECT(NAME, Type) FC_##NAME, FC_##NAME##_OBJECT
+#define FC_OBJECT(NAME, Type, Cmp) FC_##NAME, FC_##NAME##_OBJECT
 #include "fcobjs.h"
 #undef FC_OBJECT

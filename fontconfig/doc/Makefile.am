@@ -53,7 +53,10 @@ SUFFIXES =	\
 TESTS =				\
 	check-missing-doc	\
 	$(NULL)
-TESTS_ENVIRONMENT=top_srcdir=${top_srcdir} sh
+TESTS_ENVIRONMENT = \
+	top_srcdir=${top_srcdir}; export top_srcdir; \
+	$(NULL)
+LOG_COMPILER = sh
 #
 DOC2HTML = docbook2html
 DOC2TXT  = docbook2txt

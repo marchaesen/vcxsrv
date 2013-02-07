@@ -425,7 +425,7 @@ typedef struct _FcCaseFold {
 
 #define FC_CACHE_MAGIC_MMAP	    0xFC02FC04
 #define FC_CACHE_MAGIC_ALLOC	    0xFC02FC05
-#define FC_CACHE_CONTENT_VERSION    3
+#define FC_CACHE_CONTENT_VERSION    4
 
 struct _FcAtomic {
     FcChar8	*file;		/* original file name */
@@ -858,7 +858,7 @@ FcListPatternMatchAny (const FcPattern *p,
 
 enum {
   FC_INVALID_OBJECT = 0,
-#define FC_OBJECT(NAME, Type) FC_##NAME##_OBJECT,
+#define FC_OBJECT(NAME, Type, Cmp) FC_##NAME##_OBJECT,
 #include "fcobjs.h"
 #undef FC_OBJECT
   FC_ONE_AFTER_MAX_BASE_OBJECT

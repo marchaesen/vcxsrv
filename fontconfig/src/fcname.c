@@ -29,7 +29,7 @@
 #include <stdio.h>
 
 static const FcObjectType FcObjects[] = {
-#define FC_OBJECT(NAME, Type) { FC_##NAME, Type },
+#define FC_OBJECT(NAME, Type, Cmp) { FC_##NAME, Type },
 #include "fcobjs.h"
 #undef FC_OBJECT
 };

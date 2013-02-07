@@ -567,7 +567,7 @@ util_format_is_float(enum pipe_format format);
 
 
 boolean
-util_format_is_rgb_no_alpha(enum pipe_format format);
+util_format_has_alpha(enum pipe_format format);
 
 
 boolean
@@ -772,30 +772,6 @@ util_format_get_component_bits(enum pipe_format format,
    }
 }
 
-static INLINE boolean
-util_format_has_alpha(enum pipe_format format)
-{
-   const struct util_format_description *desc = util_format_description(format);
-
-   assert(format);
-   if (!format) {
-      return FALSE;
-   }
-
-   switch (desc->colorspace) {
-   case UTIL_FORMAT_COLORSPACE_RGB:
-   case UTIL_FORMAT_COLORSPACE_SRGB:
-      return desc->swizzle[3] != UTIL_FORMAT_SWIZZLE_1;
-   case UTIL_FORMAT_COLORSPACE_YUV:
-      return FALSE;
-   case UTIL_FORMAT_COLORSPACE_ZS:
-      return FALSE;
-   default:
-      assert(0);
-      return FALSE;
-   }
-}
-
 /**
  * Given a linear RGB colorspace format, return the corresponding SRGB
  * format, or PIPE_FORMAT_NONE if none.
@@ -822,6 +798,10 @@ util_format_srgb(enum pipe_format format)
       return PIPE_FORMAT_A8R8G8B8_SRGB;
    case PIPE_FORMAT_X8R8G8B8_UNORM:
       return PIPE_FORMAT_X8R8G8B8_SRGB;
+   case PIPE_FORMAT_R8G8B8A8_UNORM:
+      return PIPE_FORMAT_R8G8B8A8_SRGB;
+   case PIPE_FORMAT_R8G8B8X8_UNORM:
+      return PIPE_FORMAT_R8G8B8X8_SRGB;
    case PIPE_FORMAT_DXT1_RGB:
       return PIPE_FORMAT_DXT1_SRGB;
    case PIPE_FORMAT_DXT1_RGBA:
@@ -861,6 +841,10 @@ util_format_linear(enum pipe_format format)
       return PIPE_FORMAT_A8R8G8B8_UNORM;
    case PIPE_FORMAT_X8R8G8B8_SRGB:
       return PIPE_FORMAT_X8R8G8B8_UNORM;
+   case PIPE_FORMAT_R8G8B8A8_SRGB:
+      return PIPE_FORMAT_R8G8B8A8_UNORM;
+   case PIPE_FORMAT_R8G8B8X8_SRGB:
+      return PIPE_FORMAT_R8G8B8X8_UNORM;
    case PIPE_FORMAT_DXT1_SRGB:
       return PIPE_FORMAT_DXT1_RGB;
    case PIPE_FORMAT_DXT1_SRGBA:
