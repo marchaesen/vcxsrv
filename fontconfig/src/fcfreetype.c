@@ -775,47 +775,26 @@ FcSfntNameLanguage (FT_SfntName *sname)
 /* Order is significant.  For example, some B&H fonts are hinted by
    URW++, and both strings appear in the notice. */
 
-static const char notice_foundry_data[] =
-	"Bigelow\0b&h\0"
-	"Adobe\0adobe\0"
-	"Bitstream\0bitstream\0"
-	"Monotype\0monotype\0"
-	"Linotype\0linotype\0"
-	"LINOTYPE-HELL\0linotype\0"
-	"IBM\0ibm\0"
-	"URW\0urw\0"
-	"International Typeface Corporation\0itc\0"
-	"Tiro Typeworks\0tiro\0"
-	"XFree86\0xfree86\0"
-	"Microsoft\0microsoft\0"
-	"Omega\0omega\0"
-	"Font21\0hwan\0"
-	"HanYang System\0hanyang";
-
-struct _notice_foundry {
-    /* these are the offsets into the
-     * notice_foundry_data array.
-     */
-    unsigned char notice_offset;
-    unsigned char foundry_offset;
-};
-
-static const struct _notice_foundry FcNoticeFoundries[] = {
-    { 0, 8 },
-    { 12, 18 },
-    { 24, 34 },
-    { 44, 53 },
-    { 62, 71 },
-    { 80, 94 },
-    { 103, 107 },
-    { 111, 115 },
-    { 119, 154 },
-    { 158, 173 },
-    { 178, 186 },
-    { 194, 204 },
-    { 214, 220 },
-    { 226, 233 },
-    { 238, 253 }
+static const char *FcNoticeFoundries[][2] =
+    {
+     {"Adobe", "adobe"},
+     {"Bigelow", "b&h"},
+     {"Bitstream", "bitstream"},
+     {"Gnat", "culmus"},
+     {"Iorsh", "culmus"},
+     {"HanYang System", "hanyang"},
+     {"Font21", "hwan"},
+     {"IBM", "ibm"},
+     {"International Typeface Corporation", "itc"},
+     {"Linotype", "linotype"},
+     {"LINOTYPE-HELL", "linotype"},
+     {"Microsoft", "microsoft"},
+     {"Monotype", "monotype"},
+     {"Omega", "omega"},
+     {"Tiro Typeworks", "tiro"},
+     {"URW", "urw"},
+     {"XFree86", "xfree86"},
+     {"Xorg", "xorg"},
 };
 
 #define NUM_NOTICE_FOUNDRIES	(int) (sizeof (FcNoticeFoundries) / sizeof (FcNoticeFoundries[0]))
@@ -828,9 +807,8 @@ FcNoticeFoundry(const FT_String *notice)
     if (notice)
 	for(i = 0; i < NUM_NOTICE_FOUNDRIES; i++)
         {
-            const struct _notice_foundry *nf = &FcNoticeFoundries[i];
-            const char *n = notice_foundry_data + nf->notice_offset;
-            const char *f = notice_foundry_data + nf->foundry_offset;
+            const char *n = FcNoticeFoundries[i][0];
+            const char *f = FcNoticeFoundries[i][1];
 
 	    if (strstr ((const char *) notice, n))
 		return (const FcChar8 *) f;
@@ -871,6 +849,7 @@ static const struct {
     { "B&H",  "b&h"},
     { "BITS", "bitstream"},
     { "CANO", "cannon"},
+    { "CLM",  "culmus"},
     { "DYNA", "dynalab"},
     { "EPSN", "epson"},
     { "FJ",   "fujitsu"},

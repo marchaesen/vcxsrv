@@ -66,3 +66,27 @@ if [ -d mesa             ]; then echo Updating mesa             ; pushd mesa    
 ../vcxsrv.released/synchronise.py -e libxtrans          ../vcxsrv.released/X11/xtrans
 ../vcxsrv.released/synchronise.py -e mesa ../vcxsrv.released/mesalib --skip-dir=tests  --skip-dir=gtest --skip-dir=x86-64 --skip-dir=tnl_dd --skip-dir=sparc --skip-dir=tools --skip-dir=libdricore --skip-dir=x11 --skip-dir=osmesa --skip-dir=radeon --skip-dir=r200 --skip-dir=nouveau --skip-dir=intel --skip-dir=i965 --skip-dir=i915 --skip-dir=vgapi --skip-dir=shared-glapi --skip-dir=es1api  --skip-dir=es2api --skip-dir=gtest --skip-dir=glx --skip-dir=builtins --skip-dir=vl --skip-dir=gallium/docs --skip-dir=gallium/drivers --skip-dir=gallium/include --skip-dir=gallium/state_trackers --skip-dir=gallium/targets --skip-dir=gallium/winsys --skip-dir=gbm --skip-dir=getopt --skip-dir=egl --skip-dir=cso_cache --skip-dir=target-helpers --skip-dir=tgsi --skip-dir=translate --skip-dir=rtasm --skip-dir=pipebuffer --skip-dir=postprocess --skip-dir=rbug --skip-dir=pipe-loader --skip-dir=os --skip-dir=indices --skip-dir=gallivm --skip-dir=draw --skip-dir=pci_ids --skip-dir=doxygen --skip-dir=OLD --skip-dir=CL --skip-dir=c99
 
+# show all latest commit hashes
+if [ -d xserver          ]; then  pushd xserver         > /dev/null ; echo "xserver         " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d libxcb           ]; then  pushd libxcb          > /dev/null ; echo "libxcb          " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d libxcb/xcb-proto ]; then  pushd libxcb/xcb-proto> /dev/null ; echo "libxcb/xcb-proto" `git log | head -n1`; popd > /dev/null ; fi
+if [ -d xkeyboard-config ]; then  pushd xkeyboard-config> /dev/null ; echo "xkeyboard-config" `git log | head -n1`; popd > /dev/null ; fi
+if [ -d libX11           ]; then  pushd libX11          > /dev/null ; echo "libX11          " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d libXdmcp         ]; then  pushd libXdmcp        > /dev/null ; echo "libXdmcp        " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d libXext          ]; then  pushd libXext         > /dev/null ; echo "libXext         " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d libfontenc       ]; then  pushd libfontenc      > /dev/null ; echo "libfontenc      " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d libXinerama      ]; then  pushd libXinerama     > /dev/null ; echo "libXinerama     " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d libXau           ]; then  pushd libXau          > /dev/null ; echo "libXau          " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d xkbcomp          ]; then  pushd xkbcomp         > /dev/null ; echo "xkbcomp         " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d pixman           ]; then  pushd pixman          > /dev/null ; echo "pixman          " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d xextproto        ]; then  pushd xextproto       > /dev/null ; echo "xextproto       " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d randrproto       ]; then  pushd randrproto      > /dev/null ; echo "randrproto      " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d glproto          ]; then  pushd glproto         > /dev/null ; echo "glproto         " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d mkfontscale      ]; then  pushd mkfontscale     > /dev/null ; echo "mkfontscale     " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d xwininfo         ]; then  pushd xwininfo        > /dev/null ; echo "xwininfo        " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d libXft           ]; then  pushd libXft          > /dev/null ; echo "libXft          " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d libXmu           ]; then  pushd libXmu          > /dev/null ; echo "libXmu          " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d libxtrans        ]; then  pushd libxtrans       > /dev/null ; echo "libxtrans       " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d fontconfig       ]; then  pushd fontconfig      > /dev/null ; echo "fontconfig      " `git log | head -n1`; popd > /dev/null ; fi
+if [ -d mesa             ]; then  pushd mesa            > /dev/null ; echo "mesa            " `git log | head -n1`; popd > /dev/null ; fi
+
