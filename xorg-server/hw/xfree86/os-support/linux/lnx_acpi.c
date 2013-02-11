@@ -82,18 +82,21 @@ lnxACPIGetEventFromOs(int fd, pmEvent * events, int num)
 
         video = strtok(ev, " ");
 
-        GFX = strtok(NULL, " ");
+        if (!(GFX = strtok(NULL, " ")))
+            return 0;
 #if 0
         ErrorF("GFX: %s\n", GFX);
 #endif
 
-        notify = strtok(NULL, " ");
+        if (!(notify = strtok(NULL, " ")))
+            return 0;
         notify_l = strtoul(notify, NULL, 16);
 #if 0
         ErrorF("notify: 0x%lx\n", notify_l);
 #endif
 
-        data = strtok(NULL, " ");
+        if (!(data = strtok(NULL, " ")))
+            return 0;
         data_l = strtoul(data, NULL, 16);
 #if 0
         ErrorF("data: 0x%lx\n", data_l);
