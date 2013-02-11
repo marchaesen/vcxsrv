@@ -1263,7 +1263,7 @@ TouchCopyValuatorData(DeviceEvent *ev, TouchPointInfoPtr ti)
 {
     int i;
 
-    for (i = 0; i < sizeof(ev->valuators.mask) * 8; i++)
+    for (i = 0; i < ARRAY_SIZE(ev->valuators.data); i++)
         if (BitIsOn(ev->valuators.mask, i))
             valuator_mask_set_double(ti->valuators, i, ev->valuators.data[i]);
 }

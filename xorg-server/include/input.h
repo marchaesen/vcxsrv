@@ -62,6 +62,7 @@ SOFTWARE.
 #define DEVICE_ON	1
 #define DEVICE_OFF	2
 #define DEVICE_CLOSE	3
+#define DEVICE_ABORT	4
 
 #define POINTER_RELATIVE	(1 << 1)
 #define POINTER_ABSOLUTE	(1 << 2)
@@ -69,6 +70,7 @@ SOFTWARE.
 #define POINTER_SCREEN		(1 << 4)        /* Data in screen coordinates */
 #define POINTER_NORAW		(1 << 5)        /* Don't generate RawEvents */
 #define POINTER_EMULATED	(1 << 6)        /* Event was emulated from another event */
+#define POINTER_DESKTOP		(1 << 7)        /* Data in desktop coordinates */
 
 /* GetTouchEvent flags */
 #define TOUCH_ACCEPT            (1 << 0)
@@ -268,6 +270,7 @@ extern void DisableAllDevices(void);
 extern int InitAndStartDevices(void);
 
 extern void CloseDownDevices(void);
+extern void AbortDevices(void);
 
 extern void UndisplayDevices(void);
 

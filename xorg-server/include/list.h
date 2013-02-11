@@ -358,7 +358,7 @@ xorg_list_is_empty(struct xorg_list *head)
  * struct foo *element = list;
  * while ((element = nt_list_next(element, next)) { }
  *
- * This macro is not safe for node deletion. Use xorg_list_for_each_entry_safe
+ * This macro is not safe for node deletion. Use nt_list_for_each_entry_safe
  * instead.
  *
  * @param list The list or current element.

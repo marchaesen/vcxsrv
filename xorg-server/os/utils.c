@@ -1990,6 +1990,38 @@ FormatUInt64(uint64_t num, char *string)
     string[len] = '\0';
 }
 
+/**
+ * Format a double number as %.2f.
+ */
+void
+FormatDouble(double dbl, char *string)
+{
+    int slen = 0;
+    uint64_t frac;
+
+    frac = (dbl > 0 ? dbl : -dbl) * 100.0 + 0.5;
+    frac %= 100;
+
+    /* write decimal part to string */
+    if (dbl < 0 && dbl > -1)
+        string[slen++] = '-';
+    FormatInt64((int64_t)dbl, &string[slen]);
+
+    while(string[slen] != '\0')
+        slen++;
+
+    /* append fractional part, but only if we have enough characters. We
+     * expect string to be 21 chars (incl trailing \0) */
+    if (slen <= 17) {
+        string[slen++] = '.';
+        if (frac < 10)
+            string[slen++] = '0';
+
+        FormatUInt64(frac, &string[slen]);
+    }
+}
+
+
 /* Format a number into a hexadecimal string in a signal safe manner. The string
  * should be at least 17 characters in order to handle all uint64_t values. */
 void

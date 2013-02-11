@@ -776,10 +776,32 @@ add_to_scroll_valuator(DeviceIntPtr dev, ValuatorMask *mask, int valuator, doubl
  * @param[in,out] mask Valuator data for this event, modified in-place.
  */
 static void
-moveRelative(DeviceIntPtr dev, ValuatorMask *mask)
+moveRelative(DeviceIntPtr dev, int flags, ValuatorMask *mask)
 {
     int i;
     Bool clip_xy = IsMaster(dev) || !IsFloating(dev);
+
+    /* for abs devices in relative mode, we've just scaled wrong, since we
+       mapped the device's shape into the screen shape. Undo this. */
+    if ((flags & POINTER_ABSOLUTE) == 0 && dev->valuator &&
+        dev->valuator->axes[0].min_value < dev->valuator->axes[0].max_value) {
+
+        double ratio = 1.0 * screenInfo.width/screenInfo.height;
+
+        if (ratio > 1.0) {
+            double y;
+            if (valuator_mask_fetch_double(mask, 1, &y)) {
+                y *= ratio;
+                valuator_mask_set_double(mask, 1, y);
+            }
+        } else {
+            double x;
+            if (valuator_mask_fetch_double(mask, 0, &x)) {
+                x *= ratio;
+                valuator_mask_set_double(mask, 0, x);
+            }
+        }
+    }
 
     /* calc other axes, clip, drop back into valuators */
     for (i = 0; i < valuator_mask_size(mask); i++) {
@@ -820,27 +842,33 @@ accelPointer(DeviceIntPtr dev, ValuatorMask *valuators, CARD32 ms)
  * device's coordinate range.
  *
  * @param dev The device to scale for.
- * @param[in, out] mask The mask in desktop coordinates, modified in place
+ * @param[in, out] mask The mask in desktop/screen coordinates, modified in place
  * to contain device coordinate range.
+ * @param flags If POINTER_SCREEN is set, mask is in per-screen coordinates.
+ *              Otherwise, mask is in desktop coords.
  */
 static void
-scale_from_screen(DeviceIntPtr dev, ValuatorMask *mask)
+scale_from_screen(DeviceIntPtr dev, ValuatorMask *mask, int flags)
 {
     double scaled;
     ScreenPtr scr = miPointerGetScreen(dev);
 
     if (valuator_mask_isset(mask, 0)) {
-        scaled = valuator_mask_get_double(mask, 0) + scr->x;
+        scaled = valuator_mask_get_double(mask, 0);
+        if (flags & POINTER_SCREEN)
+            scaled += scr->x;
         scaled = rescaleValuatorAxis(scaled,
                                      NULL, dev->valuator->axes + 0,
-                                     0, scr->width);
+                                     screenInfo.x, screenInfo.width);
         valuator_mask_set_double(mask, 0, scaled);
     }
     if (valuator_mask_isset(mask, 1)) {
-        scaled = valuator_mask_get_double(mask, 1) + scr->y;
+        scaled = valuator_mask_get_double(mask, 1);
+        if (flags & POINTER_SCREEN)
+            scaled += scr->y;
         scaled = rescaleValuatorAxis(scaled,
                                      NULL, dev->valuator->axes + 1,
-                                     0, scr->height);
+                                     screenInfo.y, screenInfo.height);
         valuator_mask_set_double(mask, 1, scaled);
     }
 }
@@ -1174,6 +1202,27 @@ transform(struct pixman_f_transform *m, double *x, double *y)
     *y = p.v[1];
 }
 
+static void
+transformRelative(DeviceIntPtr dev, ValuatorMask *mask)
+{
+    double x = 0, y = 0;
+
+    valuator_mask_fetch_double(mask, 0, &x);
+    valuator_mask_fetch_double(mask, 1, &y);
+
+    transform(&dev->relative_transform, &x, &y);
+
+    if (x)
+        valuator_mask_set_double(mask, 0, x);
+    else
+        valuator_mask_unset(mask, 0);
+
+    if (y)
+        valuator_mask_set_double(mask, 1, y);
+    else
+        valuator_mask_unset(mask, 1);
+}
+
 /**
  * Apply the device's transformation matrix to the valuator mask and replace
  * the scaled values in mask. This transformation only applies to valuators
@@ -1201,7 +1250,7 @@ transformAbsolute(DeviceIntPtr dev, ValuatorMask *mask)
         ox = dev->last.valuators[0];
         oy = dev->last.valuators[1];
 
-        pixman_f_transform_invert(&invert, &dev->transform);
+        pixman_f_transform_invert(&invert, &dev->scale_and_transform);
         transform(&invert, &ox, &oy);
 
         x = ox;
@@ -1214,7 +1263,7 @@ transformAbsolute(DeviceIntPtr dev, ValuatorMask *mask)
     if (valuator_mask_isset(mask, 1))
         oy = y = valuator_mask_get_double(mask, 1);
 
-    transform(&dev->transform, &x, &y);
+    transform(&dev->scale_and_transform, &x, &y);
 
     if (valuator_mask_isset(mask, 0) || ox != x)
         valuator_mask_set_double(mask, 0, x);
@@ -1363,10 +1412,10 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
     /* valuators are in driver-native format (rel or abs) */
 
     if (flags & POINTER_ABSOLUTE) {
-        if (flags & POINTER_SCREEN) {    /* valuators are in screen coords */
+        if (flags & (POINTER_SCREEN | POINTER_DESKTOP)) {    /* valuators are in screen/desktop coords */
             sx = valuator_mask_get(&mask, 0);
             sy = valuator_mask_get(&mask, 1);
-            scale_from_screen(pDev, &mask);
+            scale_from_screen(pDev, &mask, flags);
         }
 
         transformAbsolute(pDev, &mask);
@@ -1375,12 +1424,14 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
             set_raw_valuators(raw, &mask, raw->valuators.data);
     }
     else {
+        transformRelative(pDev, &mask);
+
         if (flags & POINTER_ACCELERATE)
             accelPointer(pDev, &mask, ms);
         if ((flags & POINTER_NORAW) == 0)
             set_raw_valuators(raw, &mask, raw->valuators.data);
 
-        moveRelative(pDev, &mask);
+        moveRelative(pDev, flags, &mask);
     }
 
     /* valuators are in device coordinate system in absolute coordinates */

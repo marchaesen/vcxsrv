@@ -747,6 +747,15 @@ _XkbFilterActionMessage(XkbSrvInfoPtr xkbi,
     XkbMessageAction *pMsg;
     DeviceIntPtr kbd;
 
+    if ((filter->keycode != 0) && (filter->keycode != keycode))
+	return 1;
+
+    /* This can happen if the key repeats, and the state (modifiers or group)
+       changes meanwhile. */
+    if ((filter->keycode == keycode) && pAction &&
+	(pAction->type != XkbSA_ActionMessage))
+	return 1;
+
     kbd = xkbi->device;
     if (filter->keycode == 0) { /* initial press */
         pMsg = &pAction->msg;
@@ -774,20 +783,27 @@ _XkbFilterActionMessage(XkbSrvInfoPtr xkbi,
     }
     else if (filter->keycode == keycode) {
         pMsg = &filter->upAction.msg;
-        if (pMsg->flags & XkbSA_MessageOnRelease) {
-            xkbActionMessage msg;
+	if (pAction == NULL) {
+	    if (pMsg->flags & XkbSA_MessageOnRelease) {
+		xkbActionMessage msg;
 
-            msg.keycode = keycode;
-            msg.press = 0;
-            msg.keyEventFollows =
-                ((pMsg->flags & XkbSA_MessageGenKeyEvent) != 0);
-            memcpy((char *) msg.message, (char *) pMsg->message,
-                   XkbActionMessageLength);
-            XkbSendActionMessage(kbd, &msg);
+		msg.keycode = keycode;
+		msg.press = 0;
+		msg.keyEventFollows =
+		    ((pMsg->flags & XkbSA_MessageGenKeyEvent) != 0);
+		memcpy((char *) msg.message, (char *) pMsg->message,
+		       XkbActionMessageLength);
+		XkbSendActionMessage(kbd, &msg);
+	    }
+	    filter->keycode = 0;
+	    filter->active = 0;
+	    return ((pMsg->flags & XkbSA_MessageGenKeyEvent) != 0);
+	} else if (memcmp(pMsg, pAction, 8) == 0) {
+	    /* Repeat: If we send the same message, avoid multiple messages
+	       on release from piling up. */
+	    filter->keycode = 0;
+	    filter->active = 0;
         }
-        filter->keycode = 0;
-        filter->active = 0;
-        return ((pMsg->flags & XkbSA_MessageGenKeyEvent) != 0);
     }
     return 1;
 }
@@ -803,14 +819,20 @@ _XkbFilterRedirectKey(XkbSrvInfoPtr xkbi,
     xkbDeviceInfoPtr xkbPrivPtr = XKBDEVICEINFO(xkbi->device);
     ProcessInputProc backupproc;
 
+    if ((filter->keycode != 0) && (filter->keycode != keycode))
+        return 1;
+
+    /* This can happen if the key repeats, and the state (modifiers or group)
+       changes meanwhile. */
+    if ((filter->keycode == keycode) && pAction &&
+	(pAction->type != XkbSA_RedirectKey))
+	return 1;
+
     /* never actually used uninitialised, but gcc isn't smart enough
      * to work that out. */
     memset(&old, 0, sizeof(old));
     memset(&old_prev, 0, sizeof(old_prev));
     memset(&ev, 0, sizeof(ev));
-
-    if ((filter->keycode != 0) && (filter->keycode != keycode))
-        return 1;
 
     GetSpritePosition(xkbi->device, &x, &y);
     ev.header = ET_Internal;
@@ -870,49 +892,60 @@ _XkbFilterRedirectKey(XkbSrvInfoPtr xkbi,
             xkbi->state = old;
             xkbi->prev_state = old_prev;
         }
+	return 0;
     }
-    else if (filter->keycode == keycode) {
+    else {
+	/* If it is a key release, or we redirect to another key, release the
+	   previous new_key.  Otherwise, repeat. */
+	ev.detail.key = filter->upAction.redirect.new_key;
+	if (pAction == NULL ||  ev.detail.key != pAction->redirect.new_key) {
+	    ev.type = ET_KeyRelease;
+	    filter->active = 0;
+	}
+	else {
+	    ev.type = ET_KeyPress;
+	    ev.key_repeat = TRUE;
+	}
 
-        ev.type = ET_KeyRelease;
-        ev.detail.key = filter->upAction.redirect.new_key;
+	mask = XkbSARedirectVModsMask(&filter->upAction.redirect);
+	mods = XkbSARedirectVMods(&filter->upAction.redirect);
+	if (mask)
+	    XkbVirtualModsToReal(xkbi->desc, mask, &mask);
+	if (mods)
+	    XkbVirtualModsToReal(xkbi->desc, mods, &mods);
+	mask |= filter->upAction.redirect.mods_mask;
+	mods |= filter->upAction.redirect.mods;
 
-        mask = XkbSARedirectVModsMask(&filter->upAction.redirect);
-        mods = XkbSARedirectVMods(&filter->upAction.redirect);
-        if (mask)
-            XkbVirtualModsToReal(xkbi->desc, mask, &mask);
-        if (mods)
-            XkbVirtualModsToReal(xkbi->desc, mods, &mods);
-        mask |= filter->upAction.redirect.mods_mask;
-        mods |= filter->upAction.redirect.mods;
+	if (mask || mods) {
+	    old = xkbi->state;
+	    old_prev = xkbi->prev_state;
+	    xkbi->state.base_mods &= ~mask;
+	    xkbi->state.base_mods |= (mods & mask);
+	    xkbi->state.latched_mods &= ~mask;
+	    xkbi->state.latched_mods |= (mods & mask);
+	    xkbi->state.locked_mods &= ~mask;
+	    xkbi->state.locked_mods |= (mods & mask);
+	    XkbComputeDerivedState(xkbi);
+	    xkbi->prev_state = xkbi->state;
+	}
 
-        if (mask || mods) {
-            old = xkbi->state;
-            old_prev = xkbi->prev_state;
-            xkbi->state.base_mods &= ~mask;
-            xkbi->state.base_mods |= (mods & mask);
-            xkbi->state.latched_mods &= ~mask;
-            xkbi->state.latched_mods |= (mods & mask);
-            xkbi->state.locked_mods &= ~mask;
-            xkbi->state.locked_mods |= (mods & mask);
-            XkbComputeDerivedState(xkbi);
-            xkbi->prev_state = xkbi->state;
-        }
+	UNWRAP_PROCESS_INPUT_PROC(xkbi->device, xkbPrivPtr, backupproc);
+	xkbi->device->public.processInputProc((InternalEvent *) &ev,
+					      xkbi->device);
+	COND_WRAP_PROCESS_INPUT_PROC(xkbi->device, xkbPrivPtr, backupproc,
+				     xkbUnwrapProc);
 
-        UNWRAP_PROCESS_INPUT_PROC(xkbi->device, xkbPrivPtr, backupproc);
-        xkbi->device->public.processInputProc((InternalEvent *) &ev,
-                                              xkbi->device);
-        COND_WRAP_PROCESS_INPUT_PROC(xkbi->device, xkbPrivPtr, backupproc,
-                                     xkbUnwrapProc);
+	if (mask || mods) {
+	    xkbi->state = old;
+	    xkbi->prev_state = old_prev;
+	}
 
-        if (mask || mods) {
-            xkbi->state = old;
-            xkbi->prev_state = old_prev;
-        }
-
-        filter->keycode = 0;
-        filter->active = 0;
+	/* We return 1 in case we have sent a release event because the new_key
+	   has changed.  Then, subsequently, we will call this function again
+	   with the same pAction, which will create the press for the new
+	   new_key. */
+	return (pAction && ev.detail.key != pAction->redirect.new_key);
     }
-    return 0;
 }
 
 static int

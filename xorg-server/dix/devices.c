@@ -93,9 +93,10 @@ SOFTWARE.
 static void RecalculateMasterButtons(DeviceIntPtr slave);
 
 static void
-DeviceSetTransform(DeviceIntPtr dev, float *transform)
+DeviceSetTransform(DeviceIntPtr dev, float *transform_data)
 {
     struct pixman_f_transform scale;
+    struct pixman_f_transform transform;
     double sx, sy;
     int x, y;
 
@@ -122,16 +123,21 @@ DeviceSetTransform(DeviceIntPtr dev, float *transform)
     /* transform */
     for (y = 0; y < 3; y++)
         for (x = 0; x < 3; x++)
-            dev->transform.m[y][x] = *transform++;
+            transform.m[y][x] = *transform_data++;
 
-    pixman_f_transform_multiply(&dev->transform, &scale, &dev->transform);
+    pixman_f_transform_multiply(&dev->scale_and_transform, &scale, &transform);
 
     /* scale */
     pixman_f_transform_init_scale(&scale, 1.0 / sx, 1.0 / sy);
     scale.m[0][2] = -dev->valuator->axes[0].min_value / sx;
     scale.m[1][2] = -dev->valuator->axes[1].min_value / sy;
 
-    pixman_f_transform_multiply(&dev->transform, &dev->transform, &scale);
+    pixman_f_transform_multiply(&dev->scale_and_transform, &dev->scale_and_transform, &scale);
+
+    /* remove translation component for relative movements */
+    dev->relative_transform = transform;
+    dev->relative_transform.m[0][2] = 0;
+    dev->relative_transform.m[1][2] = 0;
 }
 
 /**
@@ -308,9 +314,10 @@ AddInputDevice(ClientPtr client, DeviceProc deviceProc, Bool autoStart)
     /* unity matrix */
     memset(transform, 0, sizeof(transform));
     transform[0] = transform[4] = transform[8] = 1.0f;
-    dev->transform.m[0][0] = 1.0;
-    dev->transform.m[1][1] = 1.0;
-    dev->transform.m[2][2] = 1.0;
+    dev->relative_transform.m[0][0] = 1.0;
+    dev->relative_transform.m[1][1] = 1.0;
+    dev->relative_transform.m[2][2] = 1.0;
+    dev->scale_and_transform = dev->relative_transform;
 
     XIChangeDeviceProperty(dev, XIGetKnownProperty(XI_PROP_TRANSFORM),
                            XIGetKnownProperty(XATOM_FLOAT), 32,
@@ -516,6 +523,12 @@ DisableAllDevices(void)
 {
     DeviceIntPtr dev, tmp;
 
+    /* Disable slave devices first, excluding XTest devices */
+    nt_list_for_each_entry_safe(dev, tmp, inputInfo.devices, next) {
+        if (!IsXTestDevice(dev, NULL) && !IsMaster(dev))
+            DisableDevice(dev, FALSE);
+    }
+    /* Disable XTest devices */
     nt_list_for_each_entry_safe(dev, tmp, inputInfo.devices, next) {
         if (!IsMaster(dev))
             DisableDevice(dev, FALSE);
@@ -1040,6 +1053,25 @@ CloseDownDevices(void)
     XkbDeleteRulesDflts();
 
     OsReleaseSignals();
+}
+
+/**
+ * Signal all devices that we're in the process of aborting.
+ * This function is called from a signal handler.
+ */
+void
+AbortDevices(void)
+{
+    DeviceIntPtr dev;
+    nt_list_for_each_entry(dev, inputInfo.devices, next) {
+        if (!IsMaster(dev))
+            (*dev->deviceProc) (dev, DEVICE_ABORT);
+    }
+
+    nt_list_for_each_entry(dev, inputInfo.off_devices, next) {
+        if (!IsMaster(dev))
+            (*dev->deviceProc) (dev, DEVICE_ABORT);
+    }
 }
 
 /**

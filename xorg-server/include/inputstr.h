@@ -588,8 +588,12 @@ typedef struct _DeviceIntRec {
         XIPropertyHandlerPtr handlers;  /* NULL-terminated */
     } properties;
 
-    /* coordinate transformation matrix for absolute input devices */
-    struct pixman_f_transform transform;
+    /* coordinate transformation matrix for relative movement. Matrix with
+     * the translation component dropped */
+    struct pixman_f_transform relative_transform;
+    /* scale matrix for absolute devices, this is the combined matrix of
+       [1/scale] . [transform] . [scale]. See DeviceSetTransform */
+    struct pixman_f_transform scale_and_transform;
 
     /* XTest related master device id */
     int xtest_master_id;

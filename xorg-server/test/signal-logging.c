@@ -41,15 +41,22 @@ struct signed_number_format_test {
     char string[21];
 };
 
+struct float_number_format_test {
+    double number;
+    char string[21];
+};
+
 static Bool
-check_signed_number_format_test(const struct signed_number_format_test *test)
+check_signed_number_format_test(long int number)
 {
     char string[21];
+    char expected[21];
 
-    FormatInt64(test->number, string);
-    if(strncmp(string, test->string, 21) != 0) {
-        fprintf(stderr, "Failed to convert %jd to decimal string (%s vs %s)\n",
-                test->number, test->string, string);
+    sprintf(expected, "%ld", number);
+    FormatInt64(number, string);
+    if(strncmp(string, expected, 21) != 0) {
+        fprintf(stderr, "Failed to convert %jd to decimal string (expected %s but got %s)\n",
+                number, expected, string);
         return FALSE;
     }
 
@@ -57,125 +64,90 @@ check_signed_number_format_test(const struct signed_number_format_test *test)
 }
 
 static Bool
-check_number_format_test(const struct number_format_test *test)
+check_float_format_test(double number)
 {
     char string[21];
+    char expected[21];
 
-    FormatUInt64(test->number, string);
-    if(strncmp(string, test->string, 21) != 0) {
+    /* we currently always print float as .2f */
+    sprintf(expected, "%.2f", number);
+
+    FormatDouble(number, string);
+    if(strncmp(string, expected, 21) != 0) {
+        fprintf(stderr, "Failed to convert %f to string (%s vs %s)\n",
+                number, expected, string);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static Bool
+check_number_format_test(long unsigned int number)
+{
+    char string[21];
+    char expected[21];
+
+    sprintf(expected, "%lu", number);
+
+    FormatUInt64(number, string);
+    if(strncmp(string, expected, 21) != 0) {
         fprintf(stderr, "Failed to convert %ju to decimal string (%s vs %s)\n",
-                test->number, test->string, string);
+                number, expected, string);
         return FALSE;
     }
-    FormatUInt64Hex(test->number, string);
-    if(strncmp(string, test->hex_string, 17) != 0) {
-        fprintf(stderr,
-                "Failed to convert %ju to hexadecimal string (%s vs %s)\n",
-                test->number, test->hex_string, string);
+
+    sprintf(expected, "%lx", number);
+    FormatUInt64Hex(number, string);
+    if(strncmp(string, expected, 17) != 0) {
+        fprintf(stderr, "Failed to convert %ju to hexadecimal string (%s vs %s)\n",
+                number, expected, string);
         return FALSE;
     }
 
     return TRUE;
 }
+
+/* FIXME: max range stuff */
+double float_tests[] = { 0, 5, 0.1, 0.01, 5.2342, 10.2301,
+                         -1, -2.00, -0.6023, -1203.30
+                        };
 
 static void
 number_formatting(void)
 {
     int i;
-    struct number_format_test unsigned_tests[] = {
-        { /* Zero */
-            0,
-            "0",
-            "0",
-        },
-        { /* Single digit number */
-            5,
-            "5",
-            "5",
-        },
-        { /* Two digit decimal number */
-            12,
-            "12",
-            "c",
-        },
-        { /* Two digit hex number */
-            37,
-            "37",
-            "25",
-        },
-        { /* Large < 32 bit number */
-            0xC90B2,
-            "823474",
-            "c90b2",
-        },
-        { /* Large > 32 bit number */
-            0x15D027BF211B37A,
-            "98237498237498234",
-            "15d027bf211b37a",
-        },
-        { /* Maximum 64-bit number */
-            0xFFFFFFFFFFFFFFFF,
-            "18446744073709551615",
-            "ffffffffffffffff",
-        },
+    long unsigned int unsigned_tests[] = { 0,/* Zero */
+                                           5, /* Single digit number */
+                                           12, /* Two digit decimal number */
+                                           37, /* Two digit hex number */
+                                           0xC90B2, /* Large < 32 bit number */
+                                           0x15D027BF211B37A, /* Large > 32 bit number */
+                                           0xFFFFFFFFFFFFFFFF, /* Maximum 64-bit number */
     };
 
-    struct signed_number_format_test signed_tests[] = {
-        { /* Zero */
-            0,
-            "0",
-        },
-        { /* Single digit number */
-            5,
-            "5",
-        },
-        { /* Two digit decimal number */
-            12,
-            "12",
-        },
-        { /* Two digit hex number */
-            37,
-            "37",
-        },
-        { /* Large < 32 bit number */
-            0xC90B2,
-            "823474",
-        },
-        { /* Large > 32 bit number */
-            0x15D027BF211B37A,
-            "98237498237498234",
-        },
-        { /* Maximum 64-bit signed number */
-            0x7FFFFFFFFFFFFFFF,
-            "9223372036854775807",
-        },
-        { /* Single digit number */
-            -1,
-            "-1",
-        },
-        { /* Two digit decimal number */
-            -12,
-            "-12",
-        },
-        { /* Large < 32 bit number */
-            -0xC90B2,
-            "-823474",
-        },
-        { /* Large > 32 bit number */
-            -0x15D027BF211B37A,
-            "-98237498237498234",
-        },
-        { /* Maximum 64-bit number */
-            -0x7FFFFFFFFFFFFFFF,
-            "-9223372036854775807",
-        },
-    };
+    long int signed_tests[] = { 0,/* Zero */
+                                5, /* Single digit number */
+                                12, /* Two digit decimal number */
+                                37, /* Two digit hex number */
+                                0xC90B2, /* Large < 32 bit number */
+                                0x15D027BF211B37A, /* Large > 32 bit number */
+                                0x7FFFFFFFFFFFFFFF, /* Maximum 64-bit signed number */
+                                -1, /* Single digit number */
+                                -12, /* Two digit decimal number */
+                                -0xC90B2, /* Large < 32 bit number */
+                                -0x15D027BF211B37A, /* Large > 32 bit number */
+                                -0x7FFFFFFFFFFFFFFF, /* Maximum 64-bit signed number */
+    } ;
 
     for (i = 0; i < sizeof(unsigned_tests) / sizeof(unsigned_tests[0]); i++)
-        assert(check_number_format_test(unsigned_tests + i));
+        assert(check_number_format_test(unsigned_tests[i]));
 
     for (i = 0; i < sizeof(unsigned_tests) / sizeof(signed_tests[0]); i++)
-        assert(check_signed_number_format_test(signed_tests + i));
+        assert(check_signed_number_format_test(signed_tests[i]));
+
+    for (i = 0; i < sizeof(float_tests) / sizeof(float_tests[0]); i++)
+        assert(check_float_format_test(float_tests[i]));
 }
 
 #pragma GCC diagnostic ignored "-Wformat-security"
@@ -291,6 +263,30 @@ static void logging_format(void)
         assert(strcmp(logmsg, expected) == 0);
         ptr <<= 1;
     } while(ptr);
+
+
+    for (i = 0; i < sizeof(float_tests)/sizeof(float_tests[0]); i++) {
+        double d = float_tests[i];
+        char expected[30];
+        sprintf(expected, "(EE) %.2f\n", d);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%f\n", d);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+
+        /* test for length modifiers, we just ignore them atm */
+        LogMessageVerbSigSafe(X_ERROR, -1, "%.3f\n", d);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+
+        LogMessageVerbSigSafe(X_ERROR, -1, "%3f\n", d);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+
+        LogMessageVerbSigSafe(X_ERROR, -1, "%.0f\n", d);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+    }
+
 
     LogClose(EXIT_NO_ERROR);
     unlink(log_file_path);

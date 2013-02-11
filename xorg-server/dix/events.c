@@ -4569,6 +4569,7 @@ DeviceEnterLeaveEvent(DeviceIntPtr mouse,
 {
     GrabPtr grab = mouse->deviceGrab.grab;
     xXIEnterEvent *event;
+    WindowPtr focus;
     int filter;
     int btlen, len, i;
     DeviceIntPtr kbd;
@@ -4609,6 +4610,11 @@ DeviceEnterLeaveEvent(DeviceIntPtr mouse,
         event->group.latched_group = kbd->key->xkbInfo->state.latched_group;
         event->group.locked_group = kbd->key->xkbInfo->state.locked_group;
     }
+
+    focus = (kbd) ? kbd->focus->win : None;
+    if ((focus != NoneWin) &&
+        ((pWin == focus) || (focus == PointerRootWin) || IsParent(focus, pWin)))
+        event->focus = TRUE;
 
     FixUpEventFromWindow(mouse->spriteInfo->sprite, (xEvent *) event, pWin,
                          None, FALSE);

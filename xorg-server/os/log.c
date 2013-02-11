@@ -298,7 +298,13 @@ pnprintf(char *string, size_t size, const char *f, va_list args)
             continue;
         }
 
-        switch (f[++f_idx]) {
+        f_idx++;
+
+        /* silently swallow length modifiers */
+        while (f_idx < f_len && ((f[f_idx] >= '0' && f[f_idx] <= '9') || f[f_idx] == '.'))
+            f_idx++;
+
+        switch (f[f_idx]) {
         case 's':
             string_arg = va_arg(args, char*);
             p_len = strlen_sigsafe(string_arg);
@@ -345,7 +351,16 @@ pnprintf(char *string, size_t size, const char *f, va_list args)
             for (i = 0; i < p_len && s_idx < size - 1; i++)
                 string[s_idx++] = number[i];
             break;
+        case 'f':
+            {
+                double d = va_arg(args, double);
+                FormatDouble(d, number);
+                p_len = strlen_sigsafe(number);
 
+                for (i = 0; i < p_len && s_idx < size - 1; i++)
+                    string[s_idx++] = number[i];
+            }
+            break;
         default:
             va_arg(args, char*);
             string[s_idx++] = '%';
@@ -648,7 +663,7 @@ AbortServer(void)
 #endif
     CloseWellKnownConnections();
     OsCleanup(TRUE);
-    CloseDownDevices();
+    AbortDevices();
     AbortDDX(EXIT_ERR_ABORT);
     fflush(stderr);
     if (CoreDump)
