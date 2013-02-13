@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.4.10 API Reference</title>
+<title>FreeType-2.4.11 API Reference</title>
 <style type="text/css">
   body { font-family: Verdana, Geneva, Arial, Helvetica, serif;
          color: #000000;
@@ -35,7 +35,7 @@
 <table align=center><tr><td><font size=-1>[<a href="ft2-index.html">Index</a>]</font></td>
 <td width="100%"></td>
 <td><font size=-1>[<a href="ft2-toc.html">TOC</a>]</font></td></tr></table>
-<center><h1>FreeType-2.4.10 API Reference</h1></center>
+<center><h1>FreeType-2.4.11 API Reference</h1></center>
 
 <center><h1>
 Base Interface
@@ -919,7 +919,7 @@ Defined in FT_FREETYPE_H (freetype/freetype.h).
 
 </pre></table><br>
 <table align=center width="87%"><tr><td>
-<p>A macro that returns true whenever a face object contains vertical metrics.</p>
+<p>A macro that returns true whenever a face object contains real vertical metrics (and not only synthesized ones).</p>
 </td></tr></table><br>
 </td></tr></table>
 <hr width="75%">
@@ -2249,6 +2249,7 @@ Defined in FT_FREETYPE_H (freetype/freetype.h).
 </td></tr></table>
 <table align=center width="87%" cellpadding=5><tr bgcolor="#EEEEFF"><td><em><b>note</b></em></td></tr><tr><td>
 <p>Although drivers may select the bitmap strike matching the request, you should not rely on this if you intend to select a particular bitmap strike. Use <a href="ft2-base_interface.html#FT_Select_Size">FT_Select_Size</a> instead in that case.</p>
+<p>The relation between the requested size and the resulting glyph size is dependent entirely on how the size is defined in the source face. The font designer chooses the final size of each glyph relative to this size. For more information refer to &lsquo;http://www.freetype.org/freetype2/docs/glyphs/glyphs-2.html&rsquo;</p>
 </td></tr></table>
 </td></tr></table>
 <hr width="75%">
@@ -2351,6 +2352,9 @@ Defined in FT_FREETYPE_H (freetype/freetype.h).
 </td></tr></table>
 <table align=center width="87%" cellpadding=5><tr bgcolor="#EEEEFF"><td><em><b>return</b></em></td></tr><tr><td>
 <p>FreeType error code. 0&nbsp;means success.</p>
+</td></tr></table>
+<table align=center width="87%" cellpadding=5><tr bgcolor="#EEEEFF"><td><em><b>note</b></em></td></tr><tr><td>
+<p>You should not rely on the resulting glyphs matching, or being constrained, to this pixel size. Refer to <a href="ft2-base_interface.html#FT_Request_Size">FT_Request_Size</a> to understand how requested sizes relate to actual sizes.</p>
 </td></tr></table>
 </td></tr></table>
 <hr width="75%">
@@ -2490,11 +2494,12 @@ Defined in FT_FREETYPE_H (freetype/freetype.h).
 <p>Note that by default, the glyph loader doesn't render outlines into bitmaps. The following flags are used to modify this default behaviour to more specific and useful cases.</p>
 </td></tr>
 <tr valign=top><td><b>FT_LOAD_NO_SCALE</b></td><td>
-<p>Don't scale the outline glyph loaded, but keep it in font units.</p>
+<p>Don't scale the loaded outline glyph but keep it in font units.</p>
 <p>This flag implies <a href="ft2-base_interface.html#FT_LOAD_XXX">FT_LOAD_NO_HINTING</a> and <a href="ft2-base_interface.html#FT_LOAD_XXX">FT_LOAD_NO_BITMAP</a>, and unsets <a href="ft2-base_interface.html#FT_LOAD_XXX">FT_LOAD_RENDER</a>.</p>
+<p>If the font is &lsquo;tricky&rsquo; (see <a href="ft2-base_interface.html#FT_FACE_FLAG_XXX">FT_FACE_FLAG_TRICKY</a> for more), using FT_LOAD_NO_SCALE usually yields meaningless outlines because the subglyphs must be scaled and positioned with hinting instructions. This can be solved by loading the font without FT_LOAD_NO_SCALE and setting the character size to &lsquo;font-&gt;units_per_EM&rsquo;.</p>
 </td></tr>
 <tr valign=top><td><b>FT_LOAD_NO_HINTING</b></td><td>
-<p>Disable hinting. This generally generates &lsquo;blurrier&rsquo; bitmap glyph when the glyph is rendered in any of the anti-aliased modes. See also the note below.</p>
+<p>Disable hinting. This generally generates &lsquo;blurrier&rsquo; bitmap glyphs when the glyph are rendered in any of the anti-aliased modes. See also the note below.</p>
 <p>This flag is implied by <a href="ft2-base_interface.html#FT_LOAD_XXX">FT_LOAD_NO_SCALE</a>.</p>
 </td></tr>
 <tr valign=top><td><b>FT_LOAD_RENDER</b></td><td>
@@ -2507,7 +2512,8 @@ Defined in FT_FREETYPE_H (freetype/freetype.h).
 </td></tr>
 <tr valign=top><td colspan=0><b>FT_LOAD_VERTICAL_LAYOUT</b></td></tr>
 <tr valign=top><td></td><td>
-<p>Load the glyph for vertical text layout. <i>Don't</i> use it as it is problematic currently.</p>
+<p>Load the glyph for vertical text layout. In particular, the &lsquo;advance&rsquo; value in the <a href="ft2-base_interface.html#FT_GlyphSlotRec">FT_GlyphSlotRec</a> structure is set to the &lsquo;vertAdvance&rsquo; value of the &lsquo;metrics&rsquo; field.</p>
+<p>In case <a href="ft2-base_interface.html#FT_HAS_VERTICAL">FT_HAS_VERTICAL</a> doesn't return true, you shouldn't use this flag currently. Reason is that in this case vertical metrics get synthesized, and those values are not always consistent across various font formats.</p>
 </td></tr>
 <tr valign=top><td><b>FT_LOAD_FORCE_AUTOHINT</b></td><td>
 <p>Indicates that the auto-hinter is preferred over the font's native hinter. See also the note below.</p>

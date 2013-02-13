@@ -361,14 +361,17 @@
     FT_TRACE2(( "-- Number of tables: %10u\n",    sfnt.num_tables ));
     FT_TRACE2(( "-- Format version:   0x%08lx\n", sfnt.format_tag ));
 
-    /* check first */
-    error = check_table_dir( &sfnt, stream );
-    if ( error )
+    if ( sfnt.format_tag != TTAG_OTTO )
     {
-      FT_TRACE2(( "tt_face_load_font_dir:"
-                  " invalid table directory for TrueType\n" ));
+      /* check first */
+      error = check_table_dir( &sfnt, stream );
+      if ( error )
+      {
+        FT_TRACE2(( "tt_face_load_font_dir:"
+                    " invalid table directory for TrueType\n" ));
 
-      goto Exit;
+        goto Exit;
+      }
     }
 
     face->num_tables = sfnt.num_tables;
@@ -1239,11 +1242,11 @@
     num_ranges = face->gasp.numRanges;
     FT_TRACE3(( "numRanges: %u\n", num_ranges ));
 
-    if ( FT_QNEW_ARRAY( gaspranges, num_ranges ) ||
-         FT_FRAME_ENTER( num_ranges * 4L )      )
+    if ( FT_QNEW_ARRAY( face->gasp.gaspRanges, num_ranges ) ||
+         FT_FRAME_ENTER( num_ranges * 4L )                  )
       goto Exit;
 
-    face->gasp.gaspRanges = gaspranges;
+    gaspranges = face->gasp.gaspRanges;
 
     for ( j = 0; j < num_ranges; j++ )
     {

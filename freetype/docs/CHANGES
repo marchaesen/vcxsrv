@@ -1,4 +1,64 @@
 
+CHANGES BETWEEN 2.4.10 and 2.4.11
+
+  I. IMPORTANT BUG FIXES
+
+    - Some vulnerabilities in the  BDF implementation have been fixed.
+      Users of this font format should upgrade.
+
+
+  II. IMPORTANT CHANGES
+
+    - Subpixel  hinting support  has been  contributed by  Infinality,
+      based on Greg Hitchcock's whitepaper at
+
+        http://www.microsoft.com/typography/cleartype/truetypecleartype.aspx
+
+      Originally, it was a separate patch available from
+
+        http://www.infinality.net/blog/
+
+      and which has been integrated.
+
+      Note that  ClearType support is not  completely implemented!  In
+      particular,  full support  for the  options `compatible_widths',
+      `symmetrical_smoothing,  and  `bgr'  (via the  GETINFO  bytecode
+      instruction) is missing.
+
+      Activation of  subpixel hinting  support can be  controlled with
+      the `TT_CONFIG_OPTION_SUBPIXEL_HINTING' configuration option; it
+      is switched off by default.  This feature is still experimental;
+      we welcome test reports!
+
+    - Support for OpenType collections (OTC) has been added.
+
+    - Pure CFF fonts within an SFNT wrapper are now supported.
+
+
+  III. MISCELLANEOUS
+
+    - Minor rendering improvements to the auto-hinter.
+
+    - `FT_GlyphSlot_Oblique' now uses a shear angle of 12°.
+
+    - Experimental support  to handle `property modules',  for example
+      to control the  behaviour of the auto-hinter.   The API consists
+      of two new functions, `FT_Property_Set' and `FT_Property_Get'.
+
+      The code is  still subject to change and should  not be used for
+      production.
+
+    - The `ftdiff' demo program now supports UTF-8 encoded input files
+      for option `-f'.
+
+    - Using keys `r' and `R', you can now adjust the stroker radius in
+      the `ftview' demo program.
+
+    - Other, minor fixes and improvements.
+
+
+======================================================================
+
 CHANGES BETWEEN 2.4.9 and 2.4.10
 
   I. IMPORTANT BUG FIXES
@@ -47,7 +107,7 @@ CHANGES BETWEEN 2.4.8 and 2.4.9
     - The  demo  programs  no  longer  recognize  and  handle  default
       suffixes; you now have to always specify the complete font name.
 
-    - Better rendering and LCD mode cycling added to ftview.
+    - Better rendering and LCD mode cycling added to `ftview'.
 
 
 ======================================================================
@@ -234,7 +294,7 @@ CHANGES BETWEEN 2.4.1 and 2.4.2
       The  two  new   functions  increment  the  respective   counter.
       `FT_Done_Library' and `FT_Done_Face' then only destroy a library
       or face if the counter is 1, otherwise they simply decrement the
-      counter. 
+      counter.
 
 
 ======================================================================
