@@ -4558,7 +4558,7 @@ sse2_composite_add_n_8888 (pixman_implementation_t *imp,
 	dst = dst_line;
 	dst_line += dst_stride;
 
-	while (w && (unsigned long)dst & 15)
+	while (w && (uintptr_t)dst & 15)
 	{
 	    d = *dst;
 	    *dst++ =
@@ -4617,7 +4617,7 @@ sse2_composite_add_n_8_8888 (pixman_implementation_t *imp,
 	mask_line += mask_stride;
 	w = width;
 
-	while (w && ((unsigned long)dst & 15))
+	while (w && ((uintptr_t)dst & 15))
 	{
 	    uint8_t m = *mask++;
 	    if (m)

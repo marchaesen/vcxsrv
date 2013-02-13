@@ -1821,9 +1821,7 @@ sections have the following format:
 .PP
 The
 .B Identifier
-and
-.B Device
-entries are mandatory.
+entry is mandatory.
 All others are optional.
 .PP
 The
@@ -1841,11 +1839,10 @@ The entries available
 for this section are:
 .TP 7
 .BI "Device  \*q" device\-id \*q
-This mandatory entry specifies the
+This entry specifies the
 .B Device
-section to be used for this screen.
-This is what ties a specific graphics card to a screen.
-The
+section to be used for this screen.  When multiple graphics cards are
+present, this is what ties a specific card to a screen.  The
 .I device\-id
 must match the
 .B Identifier

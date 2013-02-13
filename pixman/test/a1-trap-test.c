@@ -45,6 +45,14 @@ main (int argc, char **argv)
     assert (bits[1] == 0xffffffff);
     assert (bits[1 * WIDTH + 0] == 0xffffffff);
     assert (bits[1 * WIDTH + 1] == 0xffffffff);
+
+    /* The check-formats test depends on operator_name() and format_name() returning
+     * these precise formats, so if those change, check-formats.c must be updated too.
+     */
+    assert (
+        strcmp (operator_name (PIXMAN_OP_DISJOINT_OVER), "PIXMAN_OP_DISJOINT_OVER") == 0);
+    assert (
+        strcmp (format_name (PIXMAN_r5g6b5), "r5g6b5") == 0);
     
     return 0;
 }

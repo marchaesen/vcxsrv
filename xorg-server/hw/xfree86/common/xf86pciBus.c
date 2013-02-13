@@ -1147,14 +1147,62 @@ xf86VideoPtrToDriverList(struct pci_device *dev,
         driverList[0] = "i128";
         break;
     case 0x8086:
-        if ((dev->device_id == 0x00d1) || (dev->device_id == 0x7800)) {
-            driverList[0] = "i740";
-        }
-        else if (dev->device_id == 0x8108) {
-            break;              /* "hooray" for poulsbo */
-        }
-        else {
-            driverList[0] = "intel";
+	switch (dev->device_id)
+	{
+		/* Intel i740 */
+		case 0x00d1:
+		case 0x7800:
+			driverList[0] = "i740";
+			break;
+		/* GMA500/Poulsbo */
+		case 0x8108:
+		case 0x8109:
+			/* Try psb driver on Poulsbo - if available */
+			driverList[0] = "psb";
+			driverList[1] = "psb_drv";
+			break;
+		/* GMA600/Oaktrail */
+		case 0x4100:
+		case 0x4101:
+		case 0x4102:
+		case 0x4103:
+		case 0x4104:
+		case 0x4105:
+		case 0x4106:
+		case 0x4107:
+		/* Atom E620/Oaktrail */
+		case 0x4108:
+		/* Medfield */
+		case 0x0130:
+		case 0x0131:
+		case 0x0132:
+		case 0x0133:
+		case 0x0134:
+		case 0x0135:
+		case 0x0136:
+		case 0x0137:
+		/* GMA 3600/CDV */
+		case 0x0be0:
+		case 0x0be1:
+		case 0x0be2:
+		case 0x0be3:
+		case 0x0be4:
+		case 0x0be5:
+		case 0x0be6:
+		case 0x0be7:
+		case 0x0be8:
+		case 0x0be9:
+		case 0x0bea:
+		case 0x0beb:
+		case 0x0bec:
+		case 0x0bed:
+		case 0x0bee:
+		case 0x0bef:
+			/* Use fbdev/vesa driver on Oaktrail, Medfield, CDV */
+			break;
+		default:
+			driverList[0] = "intel";
+			break;
         }
         break;
     case 0x102b:

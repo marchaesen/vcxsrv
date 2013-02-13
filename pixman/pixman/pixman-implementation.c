@@ -150,9 +150,16 @@ _pixman_implementation_lookup_composite (pixman_implementation_t  *toplevel,
     }
 
     /* We should never reach this point */
-    _pixman_log_error (FUNC, "No known composite function\n");
+    _pixman_log_error (
+        FUNC,
+        "No composite function found\n"
+        "\n"
+        "The most likely cause of this is that this system has issues with\n"
+        "thread local storage\n");
+
     *out_imp = NULL;
     *out_func = dummy_composite_rect;
+    return;
 
 update_cache:
     if (i)

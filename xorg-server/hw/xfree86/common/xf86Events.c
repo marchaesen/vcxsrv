@@ -272,9 +272,9 @@ xf86Wakeup(pointer blockData, int err, pointer pReadmask)
     }
 
     if (err >= 0) {             /* we don't want the handlers called if select() */
-        IHPtr ih;               /* returned with an error condition, do we?      */
+        IHPtr ih, ih_tmp;       /* returned with an error condition, do we?      */
 
-        for (ih = InputHandlers; ih; ih = ih->next) {
+        nt_list_for_each_entry_safe(ih, ih_tmp, InputHandlers, next) {
             if (ih->enabled && ih->fd >= 0 && ih->ihproc &&
                 (FD_ISSET(ih->fd, ((fd_set *) pReadmask)) != 0)) {
                 ih->ihproc(ih->fd, ih->data);

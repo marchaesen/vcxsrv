@@ -19,6 +19,12 @@
 #endif
 
 #if defined (__GNUC__)
+#  define unlikely(expr) __builtin_expect ((expr), 0)
+#else
+#  define unlikely(expr)  (expr)
+#endif
+
+#if defined (__GNUC__)
 #  define MAYBE_UNUSED  __attribute__((unused))
 #else
 #  define MAYBE_UNUSED
