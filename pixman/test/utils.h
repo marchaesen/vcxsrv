@@ -189,6 +189,14 @@ typedef struct
 } color_t;
 
 void
+do_composite (pixman_op_t op,
+	      const color_t *src,
+	      const color_t *mask,
+	      const color_t *dst,
+	      color_t *result,
+	      pixman_bool_t component_alpha);
+
+void
 round_color (pixman_format_code_t format, color_t *color);
 
 typedef struct
@@ -217,3 +225,14 @@ pixel_checker_get_min (const pixel_checker_t *checker, color_t *color,
 pixman_bool_t
 pixel_checker_check (const pixel_checker_t *checker,
 		     uint32_t pixel, color_t *color);
+
+void
+pixel_checker_convert_pixel_to_color (const pixel_checker_t *checker,
+                                      uint32_t pixel, color_t *color);
+
+void
+pixel_checker_get_masks (const pixel_checker_t *checker,
+                         uint32_t              *am,
+                         uint32_t              *rm,
+                         uint32_t              *gm,
+                         uint32_t              *bm);

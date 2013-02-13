@@ -372,6 +372,11 @@ RRCrtcDetachScanoutPixmap(RRCrtcPtr crtc)
     ret = pScrPriv->rrCrtcSetScanoutPixmap(crtc, NULL);
     if (crtc->scanout_pixmap) {
         master->StopPixmapTracking(mscreenpix, crtc->scanout_pixmap);
+        /*
+         * Unref the pixmap twice: once for the original reference, and once
+         * for the reference implicitly added by PixmapShareToSlave.
+         */
+        master->DestroyPixmap(crtc->scanout_pixmap->master_pixmap);
         master->DestroyPixmap(crtc->scanout_pixmap->master_pixmap);
         crtc->pScreen->DestroyPixmap(crtc->scanout_pixmap);
     }

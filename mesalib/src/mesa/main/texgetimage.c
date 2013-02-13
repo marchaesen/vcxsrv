@@ -311,6 +311,41 @@ get_tex_rgba_compressed(struct gl_context *ctx, GLuint dimensions,
 
 
 /**
+ * Return a base GL format given the user-requested format
+ * for glGetTexImage().
+ */
+static GLenum
+_mesa_base_pack_format(GLenum format)
+{
+   switch (format) {
+   case GL_ABGR_EXT:
+   case GL_BGRA:
+   case GL_BGRA_INTEGER:
+   case GL_RGBA_INTEGER:
+      return GL_RGBA;
+   case GL_BGR:
+   case GL_BGR_INTEGER:
+   case GL_RGB_INTEGER:
+      return GL_RGB;
+   case GL_RED_INTEGER:
+      return GL_RED;
+   case GL_GREEN_INTEGER:
+      return GL_GREEN;
+   case GL_BLUE_INTEGER:
+      return GL_BLUE;
+   case GL_ALPHA_INTEGER:
+      return GL_ALPHA;
+   case GL_LUMINANCE_INTEGER_EXT:
+      return GL_LUMINANCE;
+   case GL_LUMINANCE_ALPHA_INTEGER_EXT:
+      return GL_LUMINANCE_ALPHA;
+   default:
+      return format;
+   }
+}
+
+
+/**
  * Get an uncompressed color texture image.
  */
 static void
@@ -323,7 +358,7 @@ get_tex_rgba_uncompressed(struct gl_context *ctx, GLuint dimensions,
    const gl_format texFormat =
       _mesa_get_srgb_format_linear(texImage->TexFormat);
    const GLuint width = texImage->Width;
-   const GLenum destBaseFormat = _mesa_base_tex_format(ctx, format);
+   GLenum destBaseFormat = _mesa_base_pack_format(format);
    GLenum rebaseFormat = GL_NONE;
    GLuint height = texImage->Height;
    GLuint depth = texImage->Depth;
@@ -332,6 +367,7 @@ get_tex_rgba_uncompressed(struct gl_context *ctx, GLuint dimensions,
    GLuint (*rgba_uint)[4];
    GLboolean tex_is_integer = _mesa_is_format_integer_color(texImage->TexFormat);
    GLboolean tex_is_uint = _mesa_is_format_unsigned(texImage->TexFormat);
+   GLenum texBaseFormat = _mesa_get_format_base_format(texImage->TexFormat);
 
    /* Allocate buffer for one row of texels */
    rgba = malloc(4 * width * sizeof(GLfloat));
@@ -367,6 +403,50 @@ get_tex_rgba_uncompressed(struct gl_context *ctx, GLuint dimensions,
        * returns L=R+G+B.
        */
       rebaseFormat = GL_LUMINANCE_ALPHA; /* this covers GL_LUMINANCE too */
+   }
+   else if (texImage->_BaseFormat != texBaseFormat) {
+      /* The internal format and the real format differ, so we can't rely
+       * on the unpack functions setting the correct constant values.
+       * (e.g. reading back GL_RGB8 which is actually RGBA won't set alpha=1)
+       */
+      switch (texImage->_BaseFormat) {
+      case GL_RED:
+         if ((texBaseFormat == GL_RGBA ||
+              texBaseFormat == GL_RGB ||
+              texBaseFormat == GL_RG) &&
+             (destBaseFormat == GL_RGBA ||
+              destBaseFormat == GL_RGB ||
+              destBaseFormat == GL_RG ||
+              destBaseFormat == GL_GREEN)) {
+            rebaseFormat = texImage->_BaseFormat;
+            break;
+         }
+         /* fall through */
+      case GL_RG:
+         if ((texBaseFormat == GL_RGBA ||
+              texBaseFormat == GL_RGB) &&
+             (destBaseFormat == GL_RGBA ||
+              destBaseFormat == GL_RGB ||
+              destBaseFormat == GL_BLUE)) {
+            rebaseFormat = texImage->_BaseFormat;
+            break;
+         }
+         /* fall through */
+      case GL_RGB:
+         if (texBaseFormat == GL_RGBA &&
+             (destBaseFormat == GL_RGBA ||
+              destBaseFormat == GL_ALPHA ||
+              destBaseFormat == GL_LUMINANCE_ALPHA)) {
+            rebaseFormat = texImage->_BaseFormat;
+         }
+         break;
+
+      case GL_ALPHA:
+         if (destBaseFormat != GL_ALPHA) {
+            rebaseFormat = texImage->_BaseFormat;
+         }
+         break;
+      }
    }
 
    for (img = 0; img < depth; img++) {
@@ -467,16 +547,18 @@ get_tex_memcpy(struct gl_context *ctx, GLenum format, GLenum type,
 {
    const GLenum target = texImage->TexObject->Target;
    GLboolean memCopy = GL_FALSE;
+   GLenum texBaseFormat = _mesa_get_format_base_format(texImage->TexFormat);
 
    /*
     * Check if we can use memcpy to copy from the hardware texture
     * format to the user's format/type.
     * Note that GL's pixel transfer ops don't apply to glGetTexImage()
     */
-   if (target == GL_TEXTURE_1D ||
-       target == GL_TEXTURE_2D ||
-       target == GL_TEXTURE_RECTANGLE ||
-       _mesa_is_cube_face(target)) {
+   if ((target == GL_TEXTURE_1D ||
+        target == GL_TEXTURE_2D ||
+        target == GL_TEXTURE_RECTANGLE ||
+        _mesa_is_cube_face(target)) &&
+       texBaseFormat == texImage->_BaseFormat) {
       memCopy = _mesa_format_matches_format_and_type(texImage->TexFormat,
                                                      format, type,
                                                      ctx->Pack.SwapBytes);

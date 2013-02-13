@@ -1014,15 +1014,13 @@ float pixman_unorm_to_float (uint16_t u, int n_bits);
 
 #endif
 
-#ifdef DEBUG
-
 void
 _pixman_log_error (const char *function, const char *message);
 
 #define return_if_fail(expr)                                            \
     do                                                                  \
     {                                                                   \
-	if (!(expr))							\
+	if (unlikely (!(expr)))                                         \
 	{								\
 	    _pixman_log_error (FUNC, "The expression " # expr " was false"); \
 	    return;							\
@@ -1033,7 +1031,7 @@ _pixman_log_error (const char *function, const char *message);
 #define return_val_if_fail(expr, retval)                                \
     do                                                                  \
     {                                                                   \
-	if (!(expr))                                                    \
+	if (unlikely (!(expr)))                                         \
 	{								\
 	    _pixman_log_error (FUNC, "The expression " # expr " was false"); \
 	    return (retval);						\
@@ -1044,38 +1042,10 @@ _pixman_log_error (const char *function, const char *message);
 #define critical_if_fail(expr)						\
     do									\
     {									\
-	if (!(expr))							\
+	if (unlikely (!(expr)))                                         \
 	    _pixman_log_error (FUNC, "The expression " # expr " was false"); \
     }									\
     while (0)
-
-
-#else
-
-#define _pixman_log_error(f,m) do { } while (0)
-
-#define return_if_fail(expr)						\
-    do                                                                  \
-    {                                                                   \
-	if (!(expr))							\
-	    return;							\
-    }                                                                   \
-    while (0)
-
-#define return_val_if_fail(expr, retval)                                \
-    do                                                                  \
-    {                                                                   \
-	if (!(expr))							\
-	    return (retval);						\
-    }                                                                   \
-    while (0)
-
-#define critical_if_fail(expr)						\
-    do									\
-    {									\
-    }									\
-    while (0)
-#endif
 
 /*
  * Matrix

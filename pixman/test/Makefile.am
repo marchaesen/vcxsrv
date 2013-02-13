@@ -8,6 +8,6 @@ AM_CPPFLAGS = -I$(top_srcdir)/pixman -I$(top_builddir)/pixman $(PNG_CFLAGS)
 libutils_la_SOURCES = $(libutils_sources) $(libutils_headers)
 
 noinst_LTLIBRARIES = libutils.la
-noinst_PROGRAMS = $(TESTPROGRAMS) $(BENCHMARKS)
+noinst_PROGRAMS = $(TESTPROGRAMS) $(OTHERPROGRAMS)
 
 TESTS = $(TESTPROGRAMS)

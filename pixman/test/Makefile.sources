@@ -6,6 +6,7 @@ TESTPROGRAMS =			\
 	region-test		\
 	region-translate-test	\
 	combiner-test		\
+	pixel-test		\
 	fetch-test		\
 	rotate-test		\
 	oob-test		\
@@ -28,8 +29,9 @@ TESTPROGRAMS =			\
 	$(NULL)
 
 # Benchmarks
-BENCHMARKS =			\
+OTHERPROGRAMS =                 \
 	lowlevel-blt-bench	\
+        check-formats           \
 	$(NULL)
 
 # Utility functions

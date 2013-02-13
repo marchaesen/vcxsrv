@@ -460,8 +460,8 @@ bench_composite (char * testname,
     printf ("%24s %c", testname, func != pixman_image_composite_wrapper ?
             '-' : '=');
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     l1test_width = L1CACHE_SIZE / 8 - 64;
     if (l1test_width < 1)
@@ -480,8 +480,8 @@ bench_composite (char * testname,
             ((t3 - t2) - (t2 - t1)) / 1000000.);
     fflush (stdout);
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     nlines = (L2CACHE_SIZE / l1test_width) /
 	((PIXMAN_FORMAT_BPP(src_fmt) + PIXMAN_FORMAT_BPP(dst_fmt)) / 8);
@@ -499,8 +499,8 @@ bench_composite (char * testname,
             ((t3 - t2) - (t2 - t1)) / 1000000.);
     fflush (stdout);
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     n = 1 + npix / (WIDTH * HEIGHT);
     t1 = gettime ();
@@ -515,8 +515,8 @@ bench_composite (char * testname,
         ((double)n * (WIDTH - 64) * HEIGHT / ((t3 - t2) - (t2 - t1)) * bytes_per_pix) * (100.0 / bandwidth) );
     fflush (stdout);
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     n = 1 + npix / (8 * TILEWIDTH * TILEWIDTH);
     t1 = gettime ();
@@ -529,8 +529,8 @@ bench_composite (char * testname,
     printf ("  HT:%6.2f", (double)pix_cnt / ((t3 - t2) - (t2 - t1)) / 1000000.);
     fflush (stdout);
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     n = 1 + npix / (8 * TILEWIDTH * TILEWIDTH);
     t1 = gettime ();
@@ -543,8 +543,8 @@ bench_composite (char * testname,
     printf ("  VT:%6.2f", (double)pix_cnt / ((t3 - t2) - (t2 - t1)) / 1000000.);
     fflush (stdout);
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     n = 1 + npix / (8 * TILEWIDTH * TILEWIDTH);
     t1 = gettime ();
@@ -557,8 +557,8 @@ bench_composite (char * testname,
     printf ("  R:%6.2f", (double)pix_cnt / ((t3 - t2) - (t2 - t1)) / 1000000.);
     fflush (stdout);
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     n = 1 + npix / (16 * TINYWIDTH * TINYWIDTH);
     t1 = gettime ();

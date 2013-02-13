@@ -1033,6 +1033,283 @@ format_name (pixman_format_code_t format)
 };
 
 static double
+calc_op (pixman_op_t op, double src, double dst, double srca, double dsta)
+{
+#define mult_chan(src, dst, Fa, Fb) MIN ((src) * (Fa) + (dst) * (Fb), 1.0)
+
+    double Fa, Fb;
+
+    switch (op)
+    {
+    case PIXMAN_OP_CLEAR:
+    case PIXMAN_OP_DISJOINT_CLEAR:
+    case PIXMAN_OP_CONJOINT_CLEAR:
+	return mult_chan (src, dst, 0.0, 0.0);
+
+    case PIXMAN_OP_SRC:
+    case PIXMAN_OP_DISJOINT_SRC:
+    case PIXMAN_OP_CONJOINT_SRC:
+	return mult_chan (src, dst, 1.0, 0.0);
+
+    case PIXMAN_OP_DST:
+    case PIXMAN_OP_DISJOINT_DST:
+    case PIXMAN_OP_CONJOINT_DST:
+	return mult_chan (src, dst, 0.0, 1.0);
+
+    case PIXMAN_OP_OVER:
+	return mult_chan (src, dst, 1.0, 1.0 - srca);
+
+    case PIXMAN_OP_OVER_REVERSE:
+	return mult_chan (src, dst, 1.0 - dsta, 1.0);
+
+    case PIXMAN_OP_IN:
+	return mult_chan (src, dst, dsta, 0.0);
+
+    case PIXMAN_OP_IN_REVERSE:
+	return mult_chan (src, dst, 0.0, srca);
+
+    case PIXMAN_OP_OUT:
+	return mult_chan (src, dst, 1.0 - dsta, 0.0);
+
+    case PIXMAN_OP_OUT_REVERSE:
+	return mult_chan (src, dst, 0.0, 1.0 - srca);
+
+    case PIXMAN_OP_ATOP:
+	return mult_chan (src, dst, dsta, 1.0 - srca);
+
+    case PIXMAN_OP_ATOP_REVERSE:
+	return mult_chan (src, dst, 1.0 - dsta,  srca);
+
+    case PIXMAN_OP_XOR:
+	return mult_chan (src, dst, 1.0 - dsta, 1.0 - srca);
+
+    case PIXMAN_OP_ADD:
+	return mult_chan (src, dst, 1.0, 1.0);
+
+    case PIXMAN_OP_SATURATE:
+    case PIXMAN_OP_DISJOINT_OVER_REVERSE:
+	if (srca == 0.0)
+	    Fa = 1.0;
+	else
+	    Fa = MIN (1.0, (1.0 - dsta) / srca);
+	return mult_chan (src, dst, Fa, 1.0);
+
+    case PIXMAN_OP_DISJOINT_OVER:
+	if (dsta == 0.0)
+	    Fb = 1.0;
+	else
+	    Fb = MIN (1.0, (1.0 - srca) / dsta);
+	return mult_chan (src, dst, 1.0, Fb);
+
+    case PIXMAN_OP_DISJOINT_IN:
+	if (srca == 0.0)
+	    Fa = 0.0;
+	else
+	    Fa = MAX (0.0, 1.0 - (1.0 - dsta) / srca);
+	return mult_chan (src, dst, Fa, 0.0);
+
+    case PIXMAN_OP_DISJOINT_IN_REVERSE:
+	if (dsta == 0.0)
+	    Fb = 0.0;
+	else
+	    Fb = MAX (0.0, 1.0 - (1.0 - srca) / dsta);
+	return mult_chan (src, dst, 0.0, Fb);
+
+    case PIXMAN_OP_DISJOINT_OUT:
+	if (srca == 0.0)
+	    Fa = 1.0;
+	else
+	    Fa = MIN (1.0, (1.0 - dsta) / srca);
+	return mult_chan (src, dst, Fa, 0.0);
+
+    case PIXMAN_OP_DISJOINT_OUT_REVERSE:
+	if (dsta == 0.0)
+	    Fb = 1.0;
+	else
+	    Fb = MIN (1.0, (1.0 - srca) / dsta);
+	return mult_chan (src, dst, 0.0, Fb);
+
+    case PIXMAN_OP_DISJOINT_ATOP:
+	if (srca == 0.0)
+	    Fa = 0.0;
+	else
+	    Fa = MAX (0.0, 1.0 - (1.0 - dsta) / srca);
+	if (dsta == 0.0)
+	    Fb = 1.0;
+	else
+	    Fb = MIN (1.0, (1.0 - srca) / dsta);
+	return mult_chan (src, dst, Fa, Fb);
+
+    case PIXMAN_OP_DISJOINT_ATOP_REVERSE:
+	if (srca == 0.0)
+	    Fa = 1.0;
+	else
+	    Fa = MIN (1.0, (1.0 - dsta) / srca);
+	if (dsta == 0.0)
+	    Fb = 0.0;
+	else
+	    Fb = MAX (0.0, 1.0 - (1.0 - srca) / dsta);
+	return mult_chan (src, dst, Fa, Fb);
+
+    case PIXMAN_OP_DISJOINT_XOR:
+	if (srca == 0.0)
+	    Fa = 1.0;
+	else
+	    Fa = MIN (1.0, (1.0 - dsta) / srca);
+	if (dsta == 0.0)
+	    Fb = 1.0;
+	else
+	    Fb = MIN (1.0, (1.0 - srca) / dsta);
+	return mult_chan (src, dst, Fa, Fb);
+
+    case PIXMAN_OP_CONJOINT_OVER:
+	if (dsta == 0.0)
+	    Fb = 0.0;
+	else
+	    Fb = MAX (0.0, 1.0 - srca / dsta);
+	return mult_chan (src, dst, 1.0, Fb);
+
+    case PIXMAN_OP_CONJOINT_OVER_REVERSE:
+	if (srca == 0.0)
+	    Fa = 0.0;
+	else
+	    Fa = MAX (0.0, 1.0 - dsta / srca);
+	return mult_chan (src, dst, Fa, 1.0);
+
+    case PIXMAN_OP_CONJOINT_IN:
+	if (srca == 0.0)
+	    Fa = 1.0;
+	else
+	    Fa = MIN (1.0, dsta / srca);
+	return mult_chan (src, dst, Fa, 0.0);
+
+    case PIXMAN_OP_CONJOINT_IN_REVERSE:
+	if (dsta == 0.0)
+	    Fb = 1.0;
+	else
+	    Fb = MIN (1.0, srca / dsta);
+	return mult_chan (src, dst, 0.0, Fb);
+
+    case PIXMAN_OP_CONJOINT_OUT:
+	if (srca == 0.0)
+	    Fa = 0.0;
+	else
+	    Fa = MAX (0.0, 1.0 - dsta / srca);
+	return mult_chan (src, dst, Fa, 0.0);
+
+    case PIXMAN_OP_CONJOINT_OUT_REVERSE:
+	if (dsta == 0.0)
+	    Fb = 0.0;
+	else
+	    Fb = MAX (0.0, 1.0 - srca / dsta);
+	return mult_chan (src, dst, 0.0, Fb);
+
+    case PIXMAN_OP_CONJOINT_ATOP:
+	if (srca == 0.0)
+	    Fa = 1.0;
+	else
+	    Fa = MIN (1.0, dsta / srca);
+	if (dsta == 0.0)
+	    Fb = 0.0;
+	else
+	    Fb = MAX (0.0, 1.0 - srca / dsta);
+	return mult_chan (src, dst, Fa, Fb);
+
+    case PIXMAN_OP_CONJOINT_ATOP_REVERSE:
+	if (srca == 0.0)
+	    Fa = 0.0;
+	else
+	    Fa = MAX (0.0, 1.0 - dsta / srca);
+	if (dsta == 0.0)
+	    Fb = 1.0;
+	else
+	    Fb = MIN (1.0, srca / dsta);
+	return mult_chan (src, dst, Fa, Fb);
+
+    case PIXMAN_OP_CONJOINT_XOR:
+	if (srca == 0.0)
+	    Fa = 0.0;
+	else
+	    Fa = MAX (0.0, 1.0 - dsta / srca);
+	if (dsta == 0.0)
+	    Fb = 0.0;
+	else
+	    Fb = MAX (0.0, 1.0 - srca / dsta);
+	return mult_chan (src, dst, Fa, Fb);
+
+    case PIXMAN_OP_MULTIPLY:
+    case PIXMAN_OP_SCREEN:
+    case PIXMAN_OP_OVERLAY:
+    case PIXMAN_OP_DARKEN:
+    case PIXMAN_OP_LIGHTEN:
+    case PIXMAN_OP_COLOR_DODGE:
+    case PIXMAN_OP_COLOR_BURN:
+    case PIXMAN_OP_HARD_LIGHT:
+    case PIXMAN_OP_SOFT_LIGHT:
+    case PIXMAN_OP_DIFFERENCE:
+    case PIXMAN_OP_EXCLUSION:
+    case PIXMAN_OP_HSL_HUE:
+    case PIXMAN_OP_HSL_SATURATION:
+    case PIXMAN_OP_HSL_COLOR:
+    case PIXMAN_OP_HSL_LUMINOSITY:
+    default:
+	abort();
+	return 0; /* silence MSVC */
+    }
+#undef mult_chan
+}
+
+void
+do_composite (pixman_op_t op,
+	      const color_t *src,
+	      const color_t *mask,
+	      const color_t *dst,
+	      color_t *result,
+	      pixman_bool_t component_alpha)
+{
+    color_t srcval, srcalpha;
+
+    if (mask == NULL)
+    {
+	srcval = *src;
+
+	srcalpha.r = src->a;
+	srcalpha.g = src->a;
+	srcalpha.b = src->a;
+	srcalpha.a = src->a;
+    }
+    else if (component_alpha)
+    {
+	srcval.r = src->r * mask->r;
+	srcval.g = src->g * mask->g;
+	srcval.b = src->b * mask->b;
+	srcval.a = src->a * mask->a;
+
+	srcalpha.r = src->a * mask->r;
+	srcalpha.g = src->a * mask->g;
+	srcalpha.b = src->a * mask->b;
+	srcalpha.a = src->a * mask->a;
+    }
+    else
+    {
+	srcval.r = src->r * mask->a;
+	srcval.g = src->g * mask->a;
+	srcval.b = src->b * mask->a;
+	srcval.a = src->a * mask->a;
+
+	srcalpha.r = src->a * mask->a;
+	srcalpha.g = src->a * mask->a;
+	srcalpha.b = src->a * mask->a;
+	srcalpha.a = src->a * mask->a;
+    }
+
+    result->r = calc_op (op, srcval.r, dst->r, srcalpha.r, dst->a);
+    result->g = calc_op (op, srcval.g, dst->g, srcalpha.g, dst->a);
+    result->b = calc_op (op, srcval.b, dst->b, srcalpha.b, dst->a);
+    result->a = calc_op (op, srcval.a, dst->a, srcalpha.a, dst->a);
+}
+
+static double
 round_channel (double p, int m)
 {
     int t;
@@ -1144,6 +1421,59 @@ pixel_checker_split_pixel (const pixel_checker_t *checker, uint32_t pixel,
     *b = (pixel & checker->bm) >> checker->bs;
 }
 
+void
+pixel_checker_get_masks (const pixel_checker_t *checker,
+                         uint32_t              *am,
+                         uint32_t              *rm,
+                         uint32_t              *gm,
+                         uint32_t              *bm)
+{
+    if (am)
+        *am = checker->am;
+    if (rm)
+        *rm = checker->rm;
+    if (gm)
+        *gm = checker->gm;
+    if (bm)
+        *bm = checker->bm;
+}
+
+void
+pixel_checker_convert_pixel_to_color (const pixel_checker_t *checker,
+                                      uint32_t pixel, color_t *color)
+{
+    int a, r, g, b;
+
+    pixel_checker_split_pixel (checker, pixel, &a, &r, &g, &b);
+
+    if (checker->am == 0)
+        color->a = 1.0;
+    else
+        color->a = a / (double)(checker->am >> checker->as);
+
+    if (checker->rm == 0)
+        color->r = 0.0;
+    else
+        color->r = r / (double)(checker->rm >> checker->rs);
+
+    if (checker->gm == 0)
+        color->g = 0.0;
+    else
+        color->g = g / (double)(checker->gm >> checker->gs);
+
+    if (checker->bm == 0)
+        color->b = 0.0;
+    else
+        color->b = b / (double)(checker->bm >> checker->bs);
+
+    if (PIXMAN_FORMAT_TYPE (checker->format) == PIXMAN_TYPE_ARGB_SRGB)
+    {
+	color->r = convert_srgb_to_linear (color->r);
+	color->g = convert_srgb_to_linear (color->g);
+	color->b = convert_srgb_to_linear (color->b);
+    }
+}
+
 static int32_t
 convert (double v, uint32_t width, uint32_t mask, uint32_t shift, double def)
 {
@@ -1183,7 +1513,7 @@ get_limits (const pixel_checker_t *checker, double limit,
 
 /* The acceptable deviation in units of [0.0, 1.0]
  */
-#define DEVIATION (0.004)
+#define DEVIATION (0.0064)
 
 void
 pixel_checker_get_max (const pixel_checker_t *checker, color_t *color,
