@@ -4,5 +4,5 @@ DESTDIR=$(MHMAKECONF)\xorg-server\fonts
 
 all: $(DESTDIR)\fonts.conf
 
-$(DESTDIR)\fonts.conf: fonts.conf
-	copy $< $@
+$(DESTDIR)\fonts.conf: $(DESTDIR) fonts.conf
+	copy fonts.conf $@
