@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 function check-error {
     if [ $? -ne 0 ]; then
         echo $1
