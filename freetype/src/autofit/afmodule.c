@@ -30,7 +30,7 @@
 #endif
 
 #include <freetype/internal/ftobjs.h>
-#include FT_INTERNAL_DEBUG_H
+#include <freetype/internal/ftdebug.h>
 #include FT_AUTOHINTER_H
 #include FT_SERVICE_PROPERTIES_H
 
