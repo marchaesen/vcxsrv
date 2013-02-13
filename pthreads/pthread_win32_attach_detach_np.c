@@ -8,10 +8,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -33,6 +34,10 @@
  *      if not, write to the Free Software Foundation, Inc.,
  *      59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
+
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #include "pthread.h"
 #include "implement.h"
@@ -70,7 +75,7 @@ pthread_win32_process_attach_np ()
    *
    * This should take care of any security issues.
    */
-#if defined(__GNUC__) || _MSC_VER < 1400
+#if defined(__GNUC__) || defined(PTW32_CONFIG_MSVC7)
   if(GetSystemDirectory(QuserExDLLPathBuf, sizeof(QuserExDLLPathBuf)))
   {
     (void) strncat(QuserExDLLPathBuf,
@@ -89,7 +94,7 @@ pthread_win32_process_attach_np ()
 
   if (ptw32_h_quserex != NULL)
     {
-      ptw32_register_cancelation = (DWORD (*)(PAPCFUNC, HANDLE, DWORD))
+      ptw32_register_cancellation = (DWORD (*)(PAPCFUNC, HANDLE, DWORD))
 #if defined(NEED_UNICODE_CONSTS)
 	GetProcAddress (ptw32_h_quserex,
 			(const TCHAR *) TEXT ("QueueUserAPCEx"));
@@ -98,9 +103,9 @@ pthread_win32_process_attach_np ()
 #endif
     }
 
-  if (NULL == ptw32_register_cancelation)
+  if (NULL == ptw32_register_cancellation)
     {
-      ptw32_register_cancelation = ptw32_RegisterCancelation;
+      ptw32_register_cancellation = ptw32_Registercancellation;
 
       if (ptw32_h_quserex != NULL)
 	{
@@ -123,7 +128,7 @@ pthread_win32_process_attach_np ()
 
       if (queue_user_apc_ex_init == NULL || !queue_user_apc_ex_init ())
 	{
-	  ptw32_register_cancelation = ptw32_RegisterCancelation;
+	  ptw32_register_cancellation = ptw32_Registercancellation;
 
 	  (void) FreeLibrary (ptw32_h_quserex);
 	  ptw32_h_quserex = 0;
@@ -155,7 +160,10 @@ pthread_win32_process_detach_np ()
 	  if (sp->detachState == PTHREAD_CREATE_DETACHED)
 	    {
 	      ptw32_threadDestroy (sp->ptHandle);
-	      TlsSetValue (ptw32_selfThreadKey->key, NULL);
+	      if (ptw32_selfThreadKey)
+	        {
+	    	  TlsSetValue (ptw32_selfThreadKey->key, NULL);
+	        }
 	    }
 	}
 
@@ -230,7 +238,7 @@ pthread_win32_thread_detach_np ()
                        (PTW32_INTERLOCKED_LONG)-1);
               /*
                * If there are no waiters then the next thread to block will
-               * sleep, wakeup immediately and then go back to sleep.
+               * sleep, wake up immediately and then go back to sleep.
                * See pthread_mutex_lock.c.
                */
               SetEvent(mx->event);
@@ -241,7 +249,10 @@ pthread_win32_thread_detach_np ()
 	    {
 	      ptw32_threadDestroy (sp->ptHandle);
 
-	      TlsSetValue (ptw32_selfThreadKey->key, NULL);
+	      if (ptw32_selfThreadKey)
+	        {
+	    	  TlsSetValue (ptw32_selfThreadKey->key, NULL);
+	        }
 	    }
 	}
     }

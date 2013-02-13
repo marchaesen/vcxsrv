@@ -6,10 +6,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -97,7 +98,7 @@ typedef struct {
   CRITICAL_SECTION cs;
 } sharedInt_t;
 
-static sharedInt_t pop_count = {0, {0}};
+static sharedInt_t pop_count;
 
 static void
 increment_pop_count(void * arg)
@@ -141,6 +142,8 @@ main()
   int i;
   pthread_t t[NUMTHREADS + 1];
 
+  memset(&pop_count, 0, sizeof(sharedInt_t));
+
   InitializeCriticalSection(&pop_count.cs);
 
   assert((t[0] = pthread_self()).p != NULL);
@@ -153,7 +156,7 @@ main()
     }
 
   /*
-   * Code to control or munipulate child threads should probably go here.
+   * Code to control or manipulate child threads should probably go here.
    */
   Sleep(1000);
 

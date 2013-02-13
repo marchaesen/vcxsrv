@@ -21,9 +21,12 @@ Changes in 1.13.2.0
           libXext
           glproto
           libxcb
+     cvs update until 13/02/2013 of pthreads
      inputproto 2.2.99.1
      bdftopcf 1.0.4
      xcalc 1.0.5
+     openssl-1.0.1e
+     freetype-2.4.11
 
 - xlaunch: solved problem of prompt not being shown in xp
 - Use fonts.conf file in fontconfig

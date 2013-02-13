@@ -6,10 +6,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -54,8 +55,8 @@ typedef struct {
   CRITICAL_SECTION cs;
 } sharedInt_t;
 
-static sharedInt_t numOnce = {0, {0}};
-static sharedInt_t numThreads = {0, {0}};
+static sharedInt_t numOnce;
+static sharedInt_t numThreads;
 
 void
 myfunc(void)
@@ -83,6 +84,9 @@ main()
   pthread_t t[NUM_THREADS][NUM_ONCE];
   int i, j;
   
+  memset(&numOnce, 0, sizeof(sharedInt_t));
+  memset(&numThreads, 0, sizeof(sharedInt_t));
+
   InitializeCriticalSection(&numThreads.cs);
   InitializeCriticalSection(&numOnce.cs);
 
@@ -91,7 +95,11 @@ main()
       once[j] = o;
 
       for (i = 0; i < NUM_THREADS; i++)
-        assert(pthread_create(&t[i][j], NULL, mythread, (void *)(size_t)j) == 0);
+        {
+	  /* GCC build: create was failing with EAGAIN after 790 threads */
+          while (0 != pthread_create(&t[i][j], NULL, mythread, (void *)(size_t)j))
+	    sched_yield();
+        }
     }
 
   for (j = 0; j < NUM_ONCE; j++)

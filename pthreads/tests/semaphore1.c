@@ -6,10 +6,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -85,7 +86,12 @@ thr(void * arg)
 
   if ( result == -1 )
   {
-    int err = errno;
+	  int err =
+#if defined(PTW32_USES_SEPARATE_CRT)
+	  GetLastError();
+#else
+      errno;
+#endif
     if (err != EAGAIN)
     {
       printf("thread: sem_trywait 1: expecting error %s: got %s\n",
@@ -126,7 +132,12 @@ main()
 
   if (result2 == -1)
   {
-    int err = errno;
+    int err =
+#if defined(PTW32_USES_SEPARATE_CRT)
+      GetLastError();
+#else
+      errno;
+#endif
     if (err != EAGAIN)
     {
       printf("main: sem_trywait 1: expecting error %s: got %s\n",

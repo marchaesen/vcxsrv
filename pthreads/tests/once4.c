@@ -6,10 +6,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -58,8 +59,8 @@ typedef struct {
   CRITICAL_SECTION cs;
 } sharedInt_t;
 
-static sharedInt_t numOnce = {0, {0}};
-static sharedInt_t numThreads = {0, {0}};
+static sharedInt_t numOnce;
+static sharedInt_t numThreads;
 
 typedef struct {
   int threadnum;
@@ -94,7 +95,7 @@ myinitfunc(void)
   LeaveCriticalSection(&numOnce.cs);
   /* Simulate slow once routine so that following threads pile up behind it */
   Sleep(10);
-  /* test for cancelation late so we're sure to have waiters. */
+  /* test for cancellation late so we're sure to have waiters. */
   pthread_testcancel();
 }
 
@@ -107,7 +108,7 @@ mythread(void * arg)
   /*
    * Cancel every thread. These threads are deferred cancelable only, so
    * only the thread performing the init_routine will see it (there are
-   * no other cancelation points here). The result will be that every thread
+   * no other cancellation points here). The result will be that every thread
    * eventually cancels only when it becomes the new initter.
    */
   pthread_t self = pthread_self();
@@ -139,7 +140,16 @@ main()
 {
   pthread_t t[NUM_THREADS][NUM_ONCE];
   int i, j;
-  
+
+#if defined(PTW32_CONFIG_MSVC6) && defined(__CLEANUP_CXX)
+  puts("If this test fails or hangs, rebuild the library with /EHa instead of /EHs.");
+  puts("(This is a known issue with Microsoft VC++6.0.)");
+  fflush(stdout);
+#endif
+
+  memset(&numOnce, 0, sizeof(sharedInt_t));
+  memset(&numThreads, 0, sizeof(sharedInt_t));
+
   InitializeCriticalSection(&print_lock);
   InitializeCriticalSection(&numThreads.cs);
   InitializeCriticalSection(&numOnce.cs);
@@ -166,7 +176,9 @@ main()
 	  bag_t * bag = &threadbag[i][j];
 	  bag->threadnum = i;
 	  bag->oncenum = j;
-          assert(pthread_create(&t[i][j], NULL, mythread, (void *) bag) == 0);
+          /* GCC build: create was failing with EAGAIN after 790 threads */
+          while (0 != pthread_create(&t[i][j], NULL, mythread, (void *)bag))
+            sched_yield();
         }
     }
 

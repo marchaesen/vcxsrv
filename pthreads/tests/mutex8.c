@@ -35,7 +35,6 @@
  */
 
 #include "test.h"
-#include <sys/timeb.h>
 
 static int lockCount = 0;
 

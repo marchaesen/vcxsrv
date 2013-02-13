@@ -1,3 +1,20 @@
+2012-10-04  Ross Johnson  <ross at homemail dot com dot au>
+
+	* pthread_join.html (pthread_tryjoin_np): Added description.
+	* index.html (pthread_tryjoin_np): Added link.
+
+2012-09-20  Ross Johnson  <ross at homemail dot com dot au>
+
+	* cpu_set.html: New manual page.
+	* pthread_create.html: Updated.
+	* index.html: Updated.
+	* sched_setaffinity.html: Fixed corrupted formatting.
+	
+2012-08-19  Ross Johnson  <ross at homemail dot com dot au>
+
+	* pthread_join.html(pthread_timedjoin_np): Added.
+	* index.html(pthread_timedjoin_np): Added link.
+
 2011-03-26  Ross Johnson  <ross at homemail dot com dot au>
 
 	* pthread_nutex_init.html (robust mutexes): Added

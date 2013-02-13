@@ -6,26 +6,27 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
  *      following World Wide Web location:
  *      http://sources.redhat.com/pthreads-win32/contributors.html
- * 
+ *
  *      This library is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public
  *      License as published by the Free Software Foundation; either
  *      version 2 of the License, or (at your option) any later version.
- * 
+ *
  *      This library is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *      Lesser General Public License for more details.
- * 
+ *
  *      You should have received a copy of the GNU Lesser General Public
  *      License along with this library in the file COPYING.LIB;
  *      if not, write to the Free Software Foundation, Inc.,
@@ -36,22 +37,22 @@
  * Test Synopsis: Test cleanup handler executes (when thread is canceled).
  *
  * Test Method (Validation or Falsification):
- * - 
+ * -
  *
  * Requirements Tested:
  * -
  *
  * Features Tested:
- * - 
+ * -
  *
  * Cases Tested:
- * - 
+ * -
  *
  * Description:
- * - 
+ * -
  *
  * Environment:
- * - 
+ * -
  *
  * Input:
  * - None.
@@ -97,7 +98,7 @@ typedef struct {
   CRITICAL_SECTION cs;
 } sharedInt_t;
 
-static sharedInt_t pop_count = {0, {0}};
+static sharedInt_t pop_count;
 
 static void
 #ifdef __CLEANUP_C
@@ -133,10 +134,10 @@ mythread(void * arg)
 #endif
   pthread_cleanup_push(increment_pop_count, (void *) &pop_count);
   /*
-   * We don't have true async cancelation - it relies on the thread
+   * We don't have true async cancellation - it relies on the thread
    * at least re-entering the run state at some point.
    * We wait up to 10 seconds, waking every 0.1 seconds,
-   * for a cancelation to be applied to us.
+   * for a cancellation to be applied to us.
    */
   for (bag->count = 0; bag->count < 100; bag->count++)
     Sleep(100);
@@ -156,6 +157,8 @@ main()
   int i;
   pthread_t t[NUMTHREADS + 1];
 
+  memset(&pop_count, 0, sizeof(sharedInt_t));
+
   InitializeCriticalSection(&pop_count.cs);
 
   assert((t[0] = pthread_self()).p != NULL);
@@ -168,7 +171,7 @@ main()
     }
 
   /*
-   * Code to control or munipulate child threads should probably go here.
+   * Code to control or manipulate child threads should probably go here.
    */
   Sleep(500);
 
@@ -188,10 +191,10 @@ main()
   for (i = 1; i <= NUMTHREADS; i++)
     {
       if (!threadbag[i].started)
-	{
-	  failed |= !threadbag[i].started;
-	  fprintf(stderr, "Thread %d: started %d\n", i, threadbag[i].started);
-	}
+	    {
+    	  failed |= !threadbag[i].started;
+    	  fprintf(stderr, "Thread %d: started %d\n", i, threadbag[i].started);
+	    }
     }
 
   assert(!failed);
@@ -207,7 +210,7 @@ main()
 
       assert(pthread_join(t[i], &result) == 0);
 
-      fail = ((int)(size_t)result != (int) PTHREAD_CANCELED);
+      fail = (result != PTHREAD_CANCELED);
 
       if (fail)
 	{

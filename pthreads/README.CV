@@ -686,15 +686,15 @@ Sleep( 1 ); // @AT
       *              a timeout
       *
       * Note:
-      *      ptw32_sem_timedwait is a cancelation point,
+      *      ptw32_sem_timedwait is a cancellation point,
       *      hence providing the
-      *      mechanism for making pthread_cond_wait a cancelation
+      *      mechanism for making pthread_cond_wait a cancellation
       *      point. We use the cleanup mechanism to ensure we
       *      re-lock the mutex and decrement the waiters count
       *      if we are canceled.
       */
       if (ptw32_sem_timedwait (&(cv->sema), abstime) == -1)         {
-          result = errno;
+          result = PTW32_GET_ERRNO();
         }
     }
 
@@ -1272,7 +1272,7 @@ ptw32_cond_wait_cleanup(void * args)
       */
       if (sem_post(&(cv->semBlockLock)) != 0)
         {(sem_post(&(cv->semBlockLock))
-          *resultPtr = errno;
+          *resultPtr = PTW32_GET_ERRNO();
           return;
         }
     }
@@ -1286,7 +1286,7 @@ ptw32_cond_wait_cleanup(void * args)
       */
       if (sem_post(&(cv->semBlockQueue)) != 0)
         {(sem_post(&(cv->semBlockQueue))
-          *resultPtr = errno;
+          *resultPtr = PTW32_GET_ERRNO();
           return;
         }
     }
@@ -1385,7 +1385,7 @@ ptw32_cond_timedwait (pthread_cond_t * cond,
        */
       if (ptw32_sem_timedwait (&(cv->semBlockQueue), abstime) != 0)
         {(ptw32_sem_timedwait
-          result = errno;
+          result = PTW32_GET_ERRNO();
         }
     }
 

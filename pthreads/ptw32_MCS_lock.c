@@ -8,10 +8,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -89,6 +90,10 @@
  * }
  */
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include "pthread.h"
 #include "sched.h"
 #include "implement.h"
@@ -114,7 +119,7 @@ ptw32_mcs_flag_set (HANDLE * flag)
 }
 
 /*
- * ptw32_mcs_flag_set -- wait for notification from another.
+ * ptw32_mcs_flag_wait -- wait for notification from another.
  * 
  * Store an event handle in the flag and wait on it if the flag has not been
  * set, and proceed without creating an event otherwise.
@@ -122,7 +127,7 @@ ptw32_mcs_flag_set (HANDLE * flag)
 INLINE void 
 ptw32_mcs_flag_wait (HANDLE * flag)
 {
-  if ((PTW32_INTERLOCKED_LONG)0 ==
+  if ((PTW32_INTERLOCKED_SIZE)0 ==
         PTW32_INTERLOCKED_EXCHANGE_ADD_SIZE((PTW32_INTERLOCKED_SIZEPTR)flag,
                                             (PTW32_INTERLOCKED_SIZE)0)) /* MBR fence */
     {

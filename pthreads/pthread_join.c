@@ -9,10 +9,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -34,6 +35,10 @@
  *      if not, write to the Free Software Foundation, Inc.,
  *      59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
+
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #include "pthread.h"
 #include "implement.h"
@@ -123,9 +128,9 @@ pthread_join (pthread_t thread, void **value_ptr)
       else
 	{
 	  /*
-	   * Pthread_join is a cancelation point.
+	   * Pthread_join is a cancellation point.
 	   * If we are canceled then our target thread must not be
-	   * detached (destroyed). This is guarranteed because
+	   * detached (destroyed). This is guaranteed because
 	   * pthreadCancelableWait will not return if we
 	   * are canceled.
 	   */

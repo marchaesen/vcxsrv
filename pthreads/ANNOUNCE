@@ -1,8 +1,8 @@
-	     PTHREADS-WIN32 RELEASE 2.9.0 (2007-??-??)
-	     -----------------------------------------
-	 Web Site: http://sources.redhat.com/pthreads-win32/
-	FTP Site: ftp://sources.redhat.com/pub/pthreads-win32
-	 Maintainer: Ross Johnson <rpj@callisto.canberra.edu.au>
+PTHREADS-WIN32 RELEASE 2.9.1 (2012-05-27)
+-----------------------------------------
+Web Site: http://sourceware.org/pthreads-win32/
+FTP Site: ftp://sourceware.org/pub/pthreads-win32
+Maintainer: Ross Johnson <ross.johnson@loungebythelake.net>
 
 
 We are pleased to announce the availability of a new release of
@@ -11,6 +11,11 @@ Threads component of the POSIX 1003.1 2001 Standard for Microsoft's
 Win32 environment. Some functions from other sections of POSIX
 1003.1 2001 are also supported including semaphores and scheduling
 functions.
+
+This release replaces an extremely brief 2.9.0 release and adds
+some last minute non-code changes were made to embed better
+descriptive properties in the dlls to indicate target architecture
+and build environments.
 
 Some common non-portable functions are also implemented for
 additional compatibility, as are a few functions specific
@@ -23,7 +28,7 @@ General Public License (LGPL).
 Acknowledgements
 ----------------
 This library is based originally on a Win32 pthreads
-implementation contributed by John Bossom <John.Bossom@cognos.com>.
+implementation contributed by John Bossom.
 
 The implementation of Condition Variables uses algorithms developed
 by Alexander Terekhov and Louis Thomas.
@@ -50,7 +55,7 @@ were extracted from it.
 There is also a separate CONTRIBUTORS file. This file and others are
 on the web site:
 
-	http://sources.redhat.com/pthreads-win32
+	http://sourceware.org/pthreads-win32
 
 As much as possible, the ChangeLog file acknowledges contributions to the
 code base in more detail.
@@ -70,7 +75,7 @@ These are now documented in the BUGS file.
 Level of standards conformance
 ------------------------------
 
-The following POSIX 1003.1 2001 options are defined and set to 200112L:
+The following POSIX options are defined and set to 200809L:
 
       _POSIX_THREADS
       _POSIX_THREAD_SAFE_FUNCTIONS
@@ -81,8 +86,7 @@ The following POSIX 1003.1 2001 options are defined and set to 200112L:
       _POSIX_SPIN_LOCKS
       _POSIX_BARRIERS
 
-
-The following POSIX 1003.1 2001 options are defined and set to -1:
+The following POSIX options are defined and set to -1:
 
       _POSIX_THREAD_ATTR_STACKADDR
       _POSIX_THREAD_PRIO_INHERIT
@@ -90,7 +94,7 @@ The following POSIX 1003.1 2001 options are defined and set to -1:
       _POSIX_THREAD_PROCESS_SHARED
 
 
-The following POSIX 1003.1 2001 limits are defined and set:
+The following POSIX limits are defined and set:
 
       _POSIX_THREAD_THREADS_MAX
       _POSIX_SEM_VALUE_MAX
@@ -249,6 +253,8 @@ The following functions are implemented:
       sched_get_priority_max
       sched_get_priority_min
       sched_rr_get_interval  (returns an error ENOTSUP)
+      sched_getaffinity
+      sched_setaffinity
       sched_setscheduler     (only supports SCHED_OTHER)
       sched_getscheduler     (only supports SCHED_OTHER)
       sched_yield
@@ -263,10 +269,14 @@ The following functions are implemented:
       ---------------------------
       Non-portable routines (see the README.NONPORTABLE file for usage)
       ---------------------------
+      pthread_timedjoin_np
+      pthread_tryjoin_np
       pthread_getw32threadhandle_np
       pthread_timechange_handler_np
       pthread_delay_np
       pthread_getunique_np
+      pthread_getaffinity_np
+      pthread_setaffinity_np
       pthread_mutexattr_getkind_np
       pthread_mutexattr_setkind_np	(types: PTHREAD_MUTEX_FAST_NP,
 						PTHREAD_MUTEX_ERRORCHECK_NP,
@@ -274,14 +284,15 @@ The following functions are implemented:
 						PTHREAD_MUTEX_ADAPTIVE_NP,
 						PTHREAD_MUTEX_TIMED_NP)
       pthread_num_processors_np
-      pthread_win32_process_attach_np	(Required when statically linking
-                                         the library)
-      pthread_win32_process_detach_np	(Required when statically linking
-                                         the library)
-      pthread_win32_thread_attach_np	(Required when statically linking
-                                         the library)
-      pthread_win32_thread_detach_np	(Required when statically linking
-                                         the library)
+      (The following four routines may be required when linking statically.
+       The process_* routines should not be needed for MSVC or GCC.)
+      pthread_win32_process_attach_np
+      pthread_win32_process_detach_np
+      (The following routines should only be needed to manage implicit
+       POSIX handles i.e. when Win native threads call POSIX thread routines
+       (other than pthread_create))
+      pthread_win32_thread_attach_np
+      pthread_win32_thread_detach_np
 
       ---------------------------
       Static Initializers
@@ -295,6 +306,19 @@ The following functions are implemented:
       PTHREAD_COND_INITIALIZER
       PTHREAD_RWLOCK_INITIALIZER
       PTHREAD_SPINLOCK_INITIALIZER
+
+      ---------------------------
+      CPU Affinity Mask Support
+      ---------------------------
+      CPU_ZERO
+      CPU_EQUAL
+      CPU_COUNT
+      CPU_SET
+      CPU_CLR
+      CPU_ISSET
+      CPU_AND
+      CPU_OR
+      CPU_XOR
 
 
 The library includes two non-API functions for creating cancellation

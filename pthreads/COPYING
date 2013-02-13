@@ -6,7 +6,7 @@ This file is Copyrighted
 
     This file is covered under the following Copyright:
 
-	Copyright (C) 2001,2006 Ross P. Johnson
+	Copyright (C) 2001,2012 Ross P. Johnson
 	All rights reserved.
 
 	Everyone is permitted to copy and distribute verbatim copies
@@ -32,7 +32,7 @@ Pthreads-win32 is covered by the GNU Lesser General Public License
     A copy of the GNU Lesser General Public License is distributed with
     pthreads-win32 under the filename:
 
-	    COPYING.LIB
+	    COPYING.FSF
 
     You should have received a copy of the version 2.1 GNU Lesser General
     Public License with pthreads-win32; if not, write to:
@@ -45,7 +45,8 @@ Pthreads-win32 is covered by the GNU Lesser General Public License
 
     The contact addresses for pthreads-win32 is as follows:
 
-        Web:	http://sources.redhat.com/pthreads-win32
+        Homepage1: http://sourceware.org/pthreads-win32/
+        Homepage2: http://sourceforge.net/projects/pthreads4w/
         Email:  Ross Johnson
                 Please use: Firstname.Lastname@homemail.com.au
 
