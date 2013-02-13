@@ -6,10 +6,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -91,17 +92,14 @@ main()
 
   assert(lockCount == 1);
 
-  assert(pthread_mutex_unlock(&mutex) == IS_ROBUST?EPERM:0);
+  assert(pthread_mutex_unlock(&mutex) == (IS_ROBUST?EPERM:0));
 
   Sleep (100);
 
-  assert(lockCount == IS_ROBUST?1:2);
+  assert(lockCount == (IS_ROBUST?1:2));
 
   END_MUTEX_STALLED_ROBUST(mxAttr)
 
-  exit(0);
-
-  /* Never reached */
   return 0;
 }
 

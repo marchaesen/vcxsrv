@@ -46,7 +46,7 @@
 /* Do we know about type mode_t? */
 #undef HAVE_MODE_T
 
-/* 
+/*
  * Define if GCC has atomic builtins, i.e. __sync_* intrinsics
  * __sync_lock_* is implemented in mingw32 gcc 4.5.2 at least
  * so this define does not turn those on or off. If you get an
@@ -148,6 +148,4 @@
 #define HAVE_C_INLINE
 #endif
 
-
-
-#endif
+#endif /* PTW32_CONFIG_H */

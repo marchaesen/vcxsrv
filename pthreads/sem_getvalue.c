@@ -15,10 +15,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -40,6 +41,10 @@
  *      if not, write to the Free Software Foundation, Inc.,
  *      59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
+
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #include "pthread.h"
 #include "semaphore.h"
@@ -77,34 +82,38 @@ sem_getvalue (sem_t * sem, int *sval)
       *      pointed to by sem in the int pointed to by sval.
       */
 {
-  if (sem == NULL || *sem == NULL || sval == NULL)
+  int result = 0;
+
+  if (NULL == sem || NULL == *sem || NULL == sval)
     {
-      errno = EINVAL;
-      return -1;
+      result = EINVAL;
     }
   else
     {
-      long value;
       register sem_t s = *sem;
-      int result = 0;
 
       if ((result = pthread_mutex_lock(&s->lock)) == 0)
         {
-	  /* See sem_destroy.c
-	   */
-	  if (*sem == NULL)
-	    {
-	      (void) pthread_mutex_unlock (&s->lock);
-	      errno = EINVAL;
-	      return -1;
-	    }
-
-          value = s->value;
-          (void) pthread_mutex_unlock(&s->lock);
-          *sval = value;
+    	  /*
+    	   *  See sem_destroy.c
+    	   */
+    	  if (*sem == NULL /* don't test 's' here */)
+    	    {
+    		  result = EINVAL;
+    	    }
+    	  else
+    	    {
+    		  *sval = s->value;
+    	    }
+		  (void) pthread_mutex_unlock (&s->lock);
         }
-
-      return result;
     }
 
+  if (result != 0)
+    {
+      PTW32_SET_ERRNO(result);
+      return -1;
+    }
+
+  return 0;
 }				/* sem_getvalue */

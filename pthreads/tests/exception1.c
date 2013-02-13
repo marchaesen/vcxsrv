@@ -6,10 +6,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -153,7 +154,7 @@ canceledThread(void * arg)
   {
     /*
      * We wait up to 10 seconds, waking every 0.1 seconds,
-     * for a cancelation to be applied to us.
+     * for a cancellation to be applied to us.
      */
     for (count = 0; count < 100; count++)
       Sleep(100);
@@ -168,7 +169,7 @@ canceledThread(void * arg)
   {
     /*
      * We wait up to 10 seconds, waking every 0.1 seconds,
-     * for a cancelation to be applied to us.
+     * for a cancellation to be applied to us.
      */
     for (count = 0; count < 100; count++)
       Sleep(100);
@@ -205,7 +206,7 @@ main()
     }
 
   /*
-   * Code to control or munipulate child threads should probably go here.
+   * Code to control or manipulate child threads should probably go here.
    */
   Sleep(1000);
 

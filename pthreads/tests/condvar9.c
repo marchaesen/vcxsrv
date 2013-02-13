@@ -6,10 +6,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -34,7 +35,7 @@
  * --------------------------------------------------------------------------
  *
  * Test Synopsis:
- * - Test multiple pthread_cond_broadcasts with thread cancelation.
+ * - Test multiple pthread_cond_broadcasts with thread cancellation.
  *
  * Test Method (Validation or Falsification):
  * - Validation
@@ -128,7 +129,7 @@ mythread(void * arg)
   assert(pthread_mutex_lock(&cvthing.lock) == 0);
 
   /*
-   * pthread_cond_timedwait is a cancelation point and we're
+   * pthread_cond_timedwait is a cancellation point and we're
    * going to cancel some threads deliberately.
    */
 #ifdef _MSC_VER
@@ -199,7 +200,7 @@ main()
 	}
 
       /*
-       * Code to control or munipulate child threads should probably go here.
+       * Code to control or manipulate child threads should probably go here.
        */
       cvthing.shared = 0;
 

@@ -25,7 +25,7 @@ pthread_win32_test_features_np(int mask)
 			QUSEREX.DLL is available and the AlertDrv.sys
 			driver is loaded into Windows, providing
 			alertable (pre-emptive) asyncronous threads
-			cancelation. If this feature returns FALSE
+			cancellation. If this feature returns FALSE
 			then the default async cancel scheme is in
 			use, which cannot cancel blocked threads.
 
@@ -111,7 +111,7 @@ pthread_mutexattr_getkind_np(pthread_mutexattr_t * attr, int *kind)
                 PTHREAD_MUTEX_RECURSIVE
 
 int
-pthread_delay_np (const struct timespec *interval);
+pthread_delay_np (const struct timespec *interval)
 
         This routine causes a thread to delay execution for a specific period of time.
         This period ends at the current time plus the specified interval. The routine
@@ -121,9 +121,9 @@ pthread_delay_np (const struct timespec *interval);
 
         Specifying an interval of zero (0) seconds and zero (0) nanoseconds is
         allowed and can be used to force the thread to give up the processor or to
-        deliver a pending cancelation request.
+        deliver a pending cancellation request.
 
-        This routine is a cancelation point.
+        This routine is a cancellation point.
 
         The timespec structure contains the following two fields:
 
@@ -137,6 +137,16 @@ pthread_delay_np (const struct timespec *interval);
 
         0          Successful completion. 
         [EINVAL]   The value specified by interval is invalid. 
+
+int
+pthread_timedjoin_np (pthread_t thread, void **value_ptr, const struct timespec *abstime)
+
+int
+pthread_tryjoin_np (pthread_t thread, void **value_ptr)
+
+		These function is added for compatibility with Linux.
+		
+
 
 int
 pthread_num_processors_np (void)
@@ -158,26 +168,18 @@ pthread_win32_thread_attach_np (void);
 BOOL
 pthread_win32_thread_detach_np (void);
 
-	These functions contain the code normally run via dllMain
-	when the library is used as a dll but which need to be
-	called explicitly by an application when the library
-	is statically linked. As of version 2.9.0 of the library, static
-	builds using either MSC or GCC will call pthread_win32_process_*
-	automatically at application startup and exit respectively.
+	These functions contain the code normally run via DllMain
+	when the library is used as a dll. As of version 2.9.0 of the
+	library, static builds using either MSC or GCC will call
+	pthread_win32_process_* automatically at application startup and
+	exit respectively.
 
-	Otherwise, you will need to call pthread_win32_process_attach_np()
-	before you can call any pthread routines when statically linking.
-	You should call pthread_win32_process_detach_np() before
-	exiting your application to clean up.
-
-	pthread_win32_thread_attach_np() is currently a no-op, but
-	pthread_win32_thread_detach_np() is needed to clean up
-	the implicit pthread handle that is allocated to a Win32 thread if
-	it calls any pthreads routines. Call this routine when the
-	Win32 thread exits.
-
-	Threads created through pthread_create() do not	need to call
-	pthread_win32_thread_detach_np().
+	pthread_win32_thread_attach_np() is currently a no-op.
+	
+	pthread_win32_thread_detach_np() is not a no-op. It cleans up the
+	implicit pthread handle that is allocated to any thread not started
+	via pthread_create(). Such non-posix threads should call this routine
+	when they exit, or call pthread_exit() to both cleanup and exit.
 
 	These functions invariably return TRUE except for
 	pthread_win32_process_attach_np() which will return FALSE
@@ -402,7 +404,7 @@ pthread_hash()
 A single more general purpose function could also be defined as a
 basis for at least the last two of the above functions.
 
-First we need to list the freedoms and constraints with restpect
+First we need to list the freedoms and constraints with respect
 to pthread_t so that we can be sure our solution is compatible with the
 standard.
 
@@ -772,12 +774,14 @@ I have not provided any solution to the problem of handling extra values embedde
 in pthread_t, e.g. debugging or trap information that an implementation is entitled
 to include. Therefore none of this replaces the portability and flexibility of API
 functions but what functions are needed? The threads standard is unlikely to
-include that can be implemented by a combination of existing features and more
-generic functions (several references in the threads rationale suggest this.
+include new functions that can be implemented by a combination of existing features
+and more generic functions (several references in the threads rationale suggest this).
 Therefore I propose that the following function could replace the several functions
 that have been suggested in conversations:
 
 pthread_t * pthread_normalize(pthread_t * handle);
 
 For most existing pthreads implementations this function, or macro, would reduce to
-a no-op with zero call overhead.
+a no-op with zero call overhead. Most of the other desired operations on pthread_t
+values (null, compare, hash, etc.) can be trivially derived from this and other
+standard functions.

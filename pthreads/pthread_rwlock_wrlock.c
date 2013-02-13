@@ -8,10 +8,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -33,6 +34,10 @@
  *      if not, write to the Free Software Foundation, Inc.,
  *      59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
+
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #include <limits.h>
 
@@ -97,10 +102,10 @@ pthread_rwlock_wrlock (pthread_rwlock_t * rwlock)
 	  rwl->nCompletedSharedAccessCount = -rwl->nSharedAccessCount;
 
 	  /*
-	   * This routine may be a cancelation point
+	   * This routine may be a cancellation point
 	   * according to POSIX 1003.1j section 18.1.2.
 	   */
-#if defined(_MSC_VER) && _MSC_VER < 1400
+#if defined(PTW32_CONFIG_MSVC7)
 #pragma inline_depth(0)
 #endif
 	  pthread_cleanup_push (ptw32_rwlock_cancelwrwait, (void *) rwl);
@@ -113,7 +118,7 @@ pthread_rwlock_wrlock (pthread_rwlock_t * rwlock)
 	  while (result == 0 && rwl->nCompletedSharedAccessCount < 0);
 
 	  pthread_cleanup_pop ((result != 0) ? 1 : 0);
-#if defined(_MSC_VER) && _MSC_VER < 1400
+#if defined(PTW32_CONFIG_MSVC7)
 #pragma inline_depth()
 #endif
 

@@ -6,10 +6,11 @@
  *
  *      Pthreads-win32 - POSIX Threads Library for Win32
  *      Copyright(C) 1998 John E. Bossom
- *      Copyright(C) 1999,2005 Pthreads-win32 contributors
- * 
- *      Contact Email: rpj@callisto.canberra.edu.au
- * 
+ *      Copyright(C) 1999,2012 Pthreads-win32 contributors
+ *
+ *      Homepage1: http://sourceware.org/pthreads-win32/
+ *      Homepage2: http://sourceforge.net/projects/pthreads4w/
+ *
  *      The current list of contributors is contained
  *      in the file CONTRIBUTORS included with the source
  *      code distribution. The list can also be seen at the
@@ -125,9 +126,20 @@ main(int argc, char* argv[])
 
       printf("You should see an \"abnormal termination\" message\n");
       fflush(stdout);
+
       result = system("exception2.exe die");
-      exit(0);
+
+      printf("\"exception2.exe die\" returned status %d\n", result);
+
+      /*
+       * result should be 0, 1 or 3 depending on build settings
+       */
+      exit((result == 0 || result == 1 || result == 3) ? 0 : 1);
     }
+
+#if defined(NO_ERROR_DIALOGS)
+  SetErrorMode(SEM_NOGPFAULTERRORBOX);
+#endif
 
   assert((mt = pthread_self()).p != NULL);
 
@@ -136,7 +148,7 @@ main(int argc, char* argv[])
       assert(pthread_create(&et[i], NULL, exceptionedThread, NULL) == 0);
     }
 
-  Sleep(1000);
+  Sleep(100);
 
   /*
    * Success.

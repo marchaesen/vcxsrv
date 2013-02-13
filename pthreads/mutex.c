@@ -44,7 +44,6 @@
 #include "implement.h"
 
 
-#include "ptw32_mutex_check_need_init.c"
 #include "pthread_mutex_init.c"
 #include "pthread_mutex_destroy.c"
 #include "pthread_mutexattr_init.c"
