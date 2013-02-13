@@ -119,7 +119,7 @@ elsif ($FLAVOR =~ /CE/)
     $base_cflags.=' -I$(WCECOMPAT)/include'		if (defined($ENV{'WCECOMPAT'}));
     $base_cflags.=' -I$(PORTSDK_LIBPATH)/../../include'	if (defined($ENV{'PORTSDK_LIBPATH'}));
     $opt_cflags=' /MC /O1i';	# optimize for space, but with intrinsics...
-    $dbg_clfags=' /MC /Od -DDEBUG -D_DEBUG';
+    $dbg_cflags=' /MC /Od -DDEBUG -D_DEBUG';
     $lflags="/NOLOGO /OPT:REF /OPT:ICF /LTCG:STATUS $wcelflag";
     $lflagsd="/NOLOGO $wcelflag";
     }

@@ -1,4 +1,4 @@
-  FreeType 2.4.10
+  FreeType 2.4.11
   ===============
 
   Please   read   the  docs/CHANGES   file,   it  contains   IMPORTANT
@@ -19,9 +19,9 @@
 
   and download one of the following files.
 
-    freetype-doc-2.4.10.tar.bz2
-    freetype-doc-2.4.10.tar.gz
-    ftdoc2410.zip
+    freetype-doc-2.4.11.tar.bz2
+    freetype-doc-2.4.11.tar.gz
+    ftdoc2411.zip
 
 
   Bugs
@@ -44,7 +44,7 @@
 
 ----------------------------------------------------------------------
 
-Copyright 2006-2011 by
+Copyright 2006-2012 by
 David Turner, Robert Wilhelm, and Werner Lemberg.
 
 This  file is  part of  the FreeType  project, and  may only  be used,
