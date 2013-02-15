@@ -636,7 +636,7 @@ xkb_symbols "ruu" {
     key <AD03> {    [	Cyrillic_u,	Cyrillic_U, Byelorussian_shortu, Byelorussian_SHORTU ]	};
     key <AD04> {    [	Cyrillic_ka,	Cyrillic_KA,	registered			]	};	// Registered tm
     key <AD05> {    [	Cyrillic_ie,	Cyrillic_IE,	Cyrillic_io,	Cyrillic_IO	]	};
-    key <AD07> {    [Cyrillic_ge, Cyrillic_GE, Ukrainian_ghe_with_upturn, Ukrainian_GHE_WITH_UPTURN ] };
+    key <AD07> {    [Cyrillic_ghe, Cyrillic_GHE, Ukrainian_ghe_with_upturn, Ukrainian_GHE_WITH_UPTURN ] };
     key <AD10> {    [	Cyrillic_ze,	Cyrillic_ZE,	U00B6				]	};	// Pilcrow Sign
     key <AD12> {    [Cyrillic_hardsign,	Cyrillic_HARDSIGN, Ukrainian_yi, Ukrainian_YI	]	};
     key <AC02> {    [	Cyrillic_yeru,	Cyrillic_YERU,	Ukrainian_i,  Ukrainian_I	]	};

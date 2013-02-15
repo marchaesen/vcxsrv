@@ -28,7 +28,7 @@ AC_DEFUN([XORG_TLS], [
         ac_cv_tls=none
         keywords="__thread __declspec(thread)"
         for kw in $keywords ; do
-            AC_TRY_COMPILE([int $kw test;], [], ac_cv_tls=$kw)
+            AC_TRY_COMPILE([int $kw test;], [], ac_cv_tls=$kw ; break ;)
         done
     ])
     AC_MSG_RESULT($ac_cv_tls)

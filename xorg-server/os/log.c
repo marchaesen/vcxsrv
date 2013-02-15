@@ -304,6 +304,9 @@ pnprintf(char *string, size_t size, const char *f, va_list args)
         while (f_idx < f_len && ((f[f_idx] >= '0' && f[f_idx] <= '9') || f[f_idx] == '.'))
             f_idx++;
 
+        if (f_idx >= f_len)
+            break;
+
         switch (f[f_idx]) {
         case 's':
             string_arg = va_arg(args, char*);
