@@ -26,7 +26,7 @@ authorization from the authors.
 -->
 <!-- This file describes version 4 of XFixes. -->
 <xcb header="xfixes" extension-xname="XFIXES" extension-name="XFixes"
-    major-version="4" minor-version="0">
+    major-version="5" minor-version="0">
   <import>xproto</import>
   <import>render</import>
   <import>shape</import>
@@ -330,5 +330,33 @@ authorization from the authors.
 
   <request name="ShowCursor" opcode="30">
     <field type="WINDOW" name="window" />
+  </request>
+
+  <!-- Version 5 -->
+
+  <xidtype name="BARRIER" />
+
+  <enum name="DirectionMask">
+    <item name="PositiveX"><bit>0</bit></item>
+    <item name="PositiveY"><bit>1</bit></item>
+    <item name="NegativeX"><bit>2</bit></item>
+    <item name="NegativeY"><bit>3</bit></item>
+  </enum>
+
+  <request name="CreatePointerBarrier" opcode="31">
+    <field type="BARRIER" name="barrier" />
+    <field type="WINDOW" name="window" />
+    <field type="CARD16" name="x1" />
+    <field type="CARD16" name="y1" />
+    <field type="CARD16" name="x2" />
+    <field type="CARD16" name="y2" />
+    <field type="CARD32" name="directions" mask="DirectionMask" />
+    <pad bytes="2" />
+    <field type="CARD16" name="num_devices" />
+    <list type="CARD16" name="devices"><fieldref>num_devices</fieldref></list>
+  </request>
+
+  <request name="DeletePointerBarrier" opcode="32">
+    <field type="BARRIER" name="barrier" />
   </request>
 </xcb>

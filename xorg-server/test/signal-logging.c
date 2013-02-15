@@ -199,6 +199,14 @@ static void logging_format(void)
     read_log_msg(logmsg);
     assert(strcmp(logmsg, "(EE) substituted string\n") == 0);
 
+    /* Invalid format */
+#warning Ignore compiler warning below "lacks type at end of format".  This is intentional.
+    LogMessageVerbSigSafe(X_ERROR, -1, "%4", 4);
+    read_log_msg(logmsg);
+    assert(strcmp(logmsg, "(EE) ") == 0);
+    LogMessageVerbSigSafe(X_ERROR, -1, "\n");
+    fseek(f, 0, SEEK_END);
+
     /* number substitution */
     ui = 0;
     do {
