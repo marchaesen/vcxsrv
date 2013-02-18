@@ -90,6 +90,11 @@ XFontStruct **info)	/* RETURN */
 		    Xrealloc ((char *) flist,
 			      (unsigned) (sizeof(char *) * (size+1)));
 
+		if (tmp_finfo)
+		    finfo = tmp_finfo;
+		if (tmp_flist)
+		    flist = tmp_flist;
+
 		if ((! tmp_finfo) || (! tmp_flist)) {
 		    /* free all the memory that we allocated */
 		    for (j=(i-1); (j >= 0); j--) {
@@ -97,14 +102,10 @@ XFontStruct **info)	/* RETURN */
 			if (finfo[j].properties)
 			    Xfree((char *) finfo[j].properties);
 		    }
-		    if (tmp_flist) Xfree((char *) tmp_flist);
-		    else Xfree((char *) flist);
-		    if (tmp_finfo) Xfree((char *) tmp_finfo);
-		    else Xfree((char *) finfo);
+		    Xfree((char *) flist);
+		    Xfree((char *) finfo);
 		    goto clearwire;
 		}
-		finfo = tmp_finfo;
-		flist = tmp_flist;
 	    }
 	    else {
 		if (! (finfo = (XFontStruct *)
