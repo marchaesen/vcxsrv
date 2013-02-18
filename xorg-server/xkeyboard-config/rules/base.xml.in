@@ -3148,6 +3148,12 @@
         </variant>
         <variant>
           <configItem>
+            <name>T3</name>
+            <_description>German (T3)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>ro</name>
             <_description>Romanian (Germany)</_description>
             <languageList><iso639Id>rum</iso639Id></languageList>

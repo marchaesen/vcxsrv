@@ -104,6 +104,84 @@ xkb_symbols "deadacute" {
     key <BKSL>	{ [numbersign, apostrophe,   dead_grave,   dead_grave ]	};
 };
 
+
+partial alphanumeric_keys
+xkb_symbols "T3" {
+    include "latin(type4)"
+
+    name[Group1]="German (T3)";
+
+    key.type[Group1] = "EIGHT_LEVEL";
+    key <TLDE> { [ dead_circumflex,          degree,        multiply,        NoSymbol,           U204A,            hyphen,             bar,        NoSymbol ] };
+    key <AE01> { [               1,          exclam, rightsinglequotemark,   NoSymbol,     onesuperior,        exclamdown,           U02B9,        NoSymbol ] };
+    key <AE02> { [               2,        quotedbl,     twosuperior,        NoSymbol,     twosuperior,          currency,           U02BA,        NoSymbol ] };
+    key <AE03> { [               3,         section,   threesuperior,        NoSymbol,   threesuperior,          sterling,           U02BF,        NoSymbol ] };
+    key <AE04> { [               4,          dollar,          emdash,        NoSymbol,      onequarter,            0x20AC,           U02BE,        NoSymbol ] };
+    key <AE05> { [               5,         percent,      exclamdown,        NoSymbol,         onehalf,           uparrow,           U02C1,        NoSymbol ] };
+    key <AE06> { [               6,       ampersand,    questiondown,        NoSymbol,   threequarters,         downarrow,           U02C0,        NoSymbol ] };
+    key <AE07> { [               7,           slash,       braceleft,        NoSymbol,       oneeighth,         leftarrow,       braceleft,        NoSymbol ] };
+    key <AE08> { [               8,       parenleft,     bracketleft,        NoSymbol,    threeeighths,        rightarrow,      braceright,        NoSymbol ] };
+    key <AE09> { [               9,      parenright,    bracketright,        NoSymbol,     fiveeighths,         plusminus,     bracketleft,        NoSymbol ] };
+    key <AE10> { [               0,           equal,      braceright,        NoSymbol,    seveneighths,         trademark,    bracketright,        NoSymbol ] };
+    key <AE11> { [          ssharp,        question,       backslash,        NoSymbol,       backslash,      questiondown,           U02BB,        NoSymbol ] };
+    key <AE12> { [      dead_acute,      dead_grave,   dead_abovedot,        NoSymbol,    dead_cedilla,       dead_ogonek,         notsign,        NoSymbol ] };
+
+    key.type[Group1] = "EIGHT_LEVEL_ALPHABETIC";
+    key <AD01> { [               q,               Q,              at,        NoSymbol,           U0242,           U0241,           U030D,        NoSymbol ] };
+    key <AD02> { [               w,               W,      dead_caron,        NoSymbol,           U02B7,           U2126,   dead_abovedot,        NoSymbol ] };
+    key <AD03> { [               e,               E,        EuroSign,        NoSymbol,              oe,              OE,      dead_breve,        NoSymbol ] };
+    key <AD04> { [               r,               R,  dead_diaeresis,        NoSymbol,       paragraph,      registered, dead_circumflex,        NoSymbol ] };
+    key <AD05> { [               t,               T,     dead_macron,        NoSymbol,           UA78C,           UA78B,  dead_diaeresis,        NoSymbol ] };
+    key <AD06> { [               z,               Z, dead_doubleacute,       NoSymbol,           U027C,             yen, dead_invertedbreve,     NoSymbol ] };
+    key <AD07> { [               u,               U,      dead_breve,        NoSymbol,           U0223,           U0222,      dead_caron,        NoSymbol ] };
+    key <AD08> { [               i,               I,      dead_tilde,        NoSymbol,        idotless,           U214D, dead_abovecomma,        NoSymbol ] };
+    key <AD09> { [               o,               O,  dead_abovering,        NoSymbol,          oslash,          Oslash,       dead_horn,        NoSymbol ] };
+    key <AD10> { [               p,               P,       dead_hook,        NoSymbol,           thorn,           THORN,       dead_hook,        NoSymbol ] };
+    key <AD11> { [      udiaeresis,      Udiaeresis,       dead_horn,        NoSymbol,           U017F,  dead_abovering,      dead_grave,        NoSymbol ] };
+    key.type[Group1] = "EIGHT_LEVEL";
+    key <AD12> { [            plus,        asterisk,      asciitilde,        NoSymbol,      dead_tilde,     dead_macron,              at,        NoSymbol ] };
+
+    key.type[Group1] = "ONE_LEVEL";
+    key <CAPS>  { [ Caps_Lock	]	};
+    key.type[Group1] = "EIGHT_LEVEL_ALPHABETIC";
+    key <AC01> { [               a,               A,   lessthanequal,        NoSymbol,              ae,              AE,           U0329,        NoSymbol ] };
+    key <AC02> { [               s,               S, greaterthanequal,       NoSymbol,          ssharp,         section,   dead_belowdot,        NoSymbol ] };
+    key <AC03> { [               d,               D,           U2300,        NoSymbol,             eth,             ETH, dead_belowbreve,        NoSymbol ] };
+    key <AC04> { [               f,               F,         minutes,        NoSymbol,           U0294,     ordfeminine, dead_belowcircumflex,   NoSymbol ] };
+    key <AC05> { [               g,               G,         seconds,        NoSymbol,             eng,             ENG, dead_belowmacron,       NoSymbol ] };
+    key <AC06> { [               h,               H,           U1E9E,        NoSymbol,           U0272,           U019D,           U0332,        NoSymbol ] };
+    key <AC07> { [               j,               J,    dead_cedilla,        NoSymbol,           U0133,           U0132,  dead_belowring,        NoSymbol ] };
+    key <AC08> { [               k,               K, dead_belowcomma,        NoSymbol,             kra, dead_belowcomma,           U0335,        NoSymbol ] };
+    key <AC09> { [               l,               L,     dead_ogonek,        NoSymbol,         lstroke,         Lstroke,           U0338,        NoSymbol ] };
+    key <AC10> { [      odiaeresis,      Odiaeresis,   dead_belowdot,        NoSymbol,      dead_acute, dead_doubleacute,         degree,        NoSymbol ] };
+    key <AC11> { [      adiaeresis,      Adiaeresis,     dead_stroke,        NoSymbol,           U019B,           U1E9E,         minutes,        NoSymbol ] };
+    key.type[Group1] = "EIGHT_LEVEL";
+    key <BKSL> { [      numbersign,      apostrophe,      registered,        NoSymbol,           schwa,           SCHWA,         seconds,        NoSymbol ] };
+
+    key <LSGT> { [            less,         greater,             bar,        NoSymbol,           U0149,       brokenbar,           U266A,        NoSymbol ] };
+    key.type[Group1] = "EIGHT_LEVEL_ALPHABETIC";
+    key <AB01> { [               y,               Y,           U203A,        NoSymbol,           U0292,           U01B7,   guillemotleft,        NoSymbol ] };
+    key <AB02> { [               x,               X,  guillemotright,        NoSymbol, doublelowquotemark, singlelowquotemark, guillemotright,   NoSymbol ] };
+    key <AB03> { [               c,               C,       copyright,        NoSymbol,            cent,       copyright,  Greek_horizbar,        NoSymbol ] };
+    key <AB04> { [               v,               V,   guillemotleft,        NoSymbol, leftdoublequotemark, leftsinglequotemark,   U2039,        NoSymbol ] };
+    key <AB05> { [               b,               B,           U2039,        NoSymbol, rightdoublequotemark, rightsinglequotemark, U203A,        NoSymbol ] };
+    key <AB06> { [               n,               N,          endash,        NoSymbol,           U019E,           U0220,          endash,        NoSymbol ] };
+    key <AB07> { [               m,               M,        Greek_mu,        NoSymbol,              mu,       masculine,          emdash,        NoSymbol ] };
+    key.type[Group1] = "EIGHT_LEVEL";
+    key <AB08> { [           comma,       semicolon,           U02BB,        NoSymbol,        ellipsis,        multiply,          dollar,        NoSymbol ] };
+    key <AB09> { [          period,           colon,           U200C,        NoSymbol,  periodcentered,        division,      numbersign,        NoSymbol ] };
+    key <AB10> { [           minus,      underscore,          hyphen,        NoSymbol,           U0140,           U013F,           U2011,        NoSymbol ] };
+
+    key <SPCE> { [           space,           space,    nobreakspace,        NoSymbol,           U202F,           U200C,    nobreakspace,        NoSymbol ] };
+
+    include "kpdl(comma)"
+
+    // We do not support the correct level selection mechanism yet, this is
+    //just for testing:
+    include "level5(rctrl_switch)"
+    include "level3(ralt_switch)"
+ };
+
 partial alphanumeric_keys
 xkb_symbols "ro" {
     // add romanian-specific letters to the basic German layout.

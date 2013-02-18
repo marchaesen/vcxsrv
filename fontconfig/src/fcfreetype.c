@@ -2561,7 +2561,8 @@ FcFreeTypeCharSet (FT_Face face, FcBlanks *blanks)
  * except for 'DFLT'.
  */
 #define FcIsSpace(x)	    (040 == (x))
-#define FcIsValidScript(x)  (FcIsLower(x) || FcIsUpper (x) || FcIsSpace(x))
+#define FcIsDigit(c)	    (('0' <= (c) && (c) <= '9'))
+#define FcIsValidScript(x)  (FcIsLower(x) || FcIsUpper (x) || FcIsDigit(x) || FcIsSpace(x))
 			
 static void
 addtag(FcChar8 *complex_, FT_ULong tag)
@@ -2574,7 +2575,7 @@ addtag(FcChar8 *complex_, FT_ULong tag)
     tagstring[3] = (FcChar8)(tag);
     tagstring[4] = '\0';
 
-    /* skip tags which aren't alphabetic, under the assumption that
+    /* skip tags which aren't alphanumeric, under the assumption that
      * they're probably broken
      */
     if (!FcIsValidScript(tagstring[0]) ||
