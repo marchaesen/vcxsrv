@@ -94,7 +94,7 @@ XStoreBuffer (
 {
     if ((buffer < 0) || (buffer > 7)) return 0;
     return XChangeProperty(dpy, RootWindow(dpy, 0), n_to_atom[buffer],
-	XA_STRING, 8, PropModeReplace, (unsigned char *) bytes, nbytes);
+	XA_STRING, 8, PropModeReplace, (_Xconst unsigned char *) bytes, nbytes);
 }
 
 int

@@ -3791,24 +3791,22 @@ _mesa_get_texstore_func(gl_format format)
 }
 
 
-static GLboolean
-_mesa_texstore_memcpy(TEXSTORE_PARAMS)
+GLboolean
+_mesa_texstore_needs_transfer_ops(struct gl_context *ctx,
+                                  GLenum baseInternalFormat,
+                                  gl_format dstFormat)
 {
    GLenum dstType;
 
-   /* There are different restrictions depending on the base format... */
+   /* There are different rules depending on the base format. */
    switch (baseInternalFormat) {
    case GL_DEPTH_COMPONENT:
    case GL_DEPTH_STENCIL:
-      /* Depth scale and bias are not allowed. */
-      if (ctx->Pixel.DepthScale != 1.0f ||
-          ctx->Pixel.DepthBias != 0.0f) {
-        return GL_FALSE;
-      }
-      break;
+      return ctx->Pixel.DepthScale != 1.0f ||
+             ctx->Pixel.DepthBias != 0.0f;
 
    case GL_STENCIL_INDEX:
-      break;
+      return GL_FALSE;
 
    default:
       /* Color formats.
@@ -3817,10 +3815,20 @@ _mesa_texstore_memcpy(TEXSTORE_PARAMS)
        */
       dstType = _mesa_get_format_datatype(dstFormat);
 
-      if (dstType != GL_INT && dstType != GL_UNSIGNED_INT &&
-          ctx->_ImageTransferState) {
-         return GL_FALSE;
-      }
+      return dstType != GL_INT && dstType != GL_UNSIGNED_INT &&
+             ctx->_ImageTransferState;
+   }
+}
+
+
+GLboolean
+_mesa_texstore_can_use_memcpy(struct gl_context *ctx,
+                              GLenum baseInternalFormat, gl_format dstFormat,
+                              GLenum srcFormat, GLenum srcType,
+                              const struct gl_pixelstore_attrib *srcPacking)
+{
+   if (_mesa_texstore_needs_transfer_ops(ctx, baseInternalFormat, dstFormat)) {
+      return GL_FALSE;
    }
 
    /* The base internal format and the base Mesa format must match. */
@@ -3831,6 +3839,17 @@ _mesa_texstore_memcpy(TEXSTORE_PARAMS)
    /* The Mesa format must match the input format and type. */
    if (!_mesa_format_matches_format_and_type(dstFormat, srcFormat, srcType,
                                              srcPacking->SwapBytes)) {
+      return GL_FALSE;
+   }
+
+   return GL_TRUE;
+}
+
+static GLboolean
+_mesa_texstore_memcpy(TEXSTORE_PARAMS)
+{
+   if (!_mesa_texstore_can_use_memcpy(ctx, baseInternalFormat, dstFormat,
+                                      srcFormat, srcType, srcPacking)) {
       return GL_FALSE;
    }
 

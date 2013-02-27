@@ -62,7 +62,7 @@ XChangeProperty (
 	len = ((long)nelements + 3)>>2;
 	if (dpy->bigreq_size || req->length + len <= (unsigned) 65535) {
 	    SetReqLen(req, len, len);
-	    Data (dpy, (char *)data, nelements);
+	    Data (dpy, (_Xconst char *)data, nelements);
 	} /* else force BadLength */
         break;
 
@@ -71,7 +71,7 @@ XChangeProperty (
 	if (dpy->bigreq_size || req->length + len <= (unsigned) 65535) {
 	    SetReqLen(req, len, len);
 	    len = (long)nelements << 1;
-	    Data16 (dpy, (short *) data, len);
+	    Data16 (dpy, (_Xconst short *) data, len);
 	} /* else force BadLength */
 	break;
 
@@ -80,7 +80,7 @@ XChangeProperty (
 	if (dpy->bigreq_size || req->length + len <= (unsigned) 65535) {
 	    SetReqLen(req, len, len);
 	    len = (long)nelements << 2;
-	    Data32 (dpy, (long *) data, len);
+	    Data32 (dpy, (_Xconst long *) data, len);
 	} /* else force BadLength */
 	break;
 

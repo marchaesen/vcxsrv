@@ -94,7 +94,7 @@ XStringToKeysym(_Xconst char *s)
     {
 	entry = &_XkeyTable[idx];
 	if ((entry[0] == sig1) && (entry[1] == sig2) &&
-	    !strcmp(s, (char *)entry + 6))
+	    !strcmp(s, (const char *)entry + 6))
 	{
 	    val = (entry[2] << 24) | (entry[3] << 16) |
 	          (entry[4] << 8)  | entry[5];

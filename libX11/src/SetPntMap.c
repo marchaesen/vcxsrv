@@ -43,7 +43,7 @@ XSetPointerMapping (
     GetReq (SetPointerMapping, req);
     req->nElts = nmaps;
     req->length += (nmaps + 3)>>2;
-    Data (dpy, (char *)map, (long) nmaps);
+    Data (dpy, (_Xconst char *)map, (long) nmaps);
     if (_XReply (dpy, (xReply *)&rep, 0, xFalse) == 0)
 	rep.success = MappingSuccess;
     UnlockDisplay(dpy);
