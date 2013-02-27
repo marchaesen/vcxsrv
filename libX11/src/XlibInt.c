@@ -43,6 +43,7 @@ from The Open Group.
 #include <X11/Xpoll.h>
 #include <assert.h>
 #include <stdio.h>
+#include <unistd.h>
 #ifdef WIN32
 #include <direct.h>
 #endif

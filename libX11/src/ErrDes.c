@@ -55,6 +55,7 @@ SOFTWARE.
 #include <X11/Xos.h>
 #include "Xresource.h"
 #include <stdio.h>
+#include <unistd.h>
 
 #ifndef ERRORDB
 #ifndef XERRORDB

@@ -86,6 +86,7 @@ SOFTWARE.
 #include <X11/Xos_r.h>
 #endif
 #include <stdio.h>
+#include <unistd.h>
 #include <ctype.h>
 
 

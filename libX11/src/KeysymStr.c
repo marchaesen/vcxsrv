@@ -34,6 +34,7 @@ in this Software without prior written authorization from The Open Group.
 #include "Xresinternal.h"
 
 #include <stdio.h> /* sprintf */
+#include <unistd.h> /* snprintf */
 
 #define NEEDVTABLE
 #include "ks_tables.h"
