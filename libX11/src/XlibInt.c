@@ -1451,7 +1451,7 @@ static int _XPrintDefaultError(
 	mesg, BUFSIZ);
     (void) fprintf(fp, mesg, event->request_code);
     if (event->request_code < 128) {
-	sprintf(number, "%d", event->request_code);
+	snprintf(number, sizeof(number), "%d", event->request_code);
 	XGetErrorDatabaseText(dpy, "XRequest", number, "", buffer, BUFSIZ);
     } else {
 	for (ext = dpy->ext_procs;
@@ -1471,7 +1471,7 @@ static int _XPrintDefaultError(
 	fputs("  ", fp);
 	(void) fprintf(fp, mesg, event->minor_code);
 	if (ext) {
-	    sprintf(mesg, "%s.%d", ext->name, event->minor_code);
+	    snprintf(mesg, sizeof(mesg), "%s.%d", ext->name, event->minor_code);
 	    XGetErrorDatabaseText(dpy, "XRequest", mesg, "", buffer, BUFSIZ);
 	    (void) fprintf(fp, " (%s)", buffer);
 	}
@@ -1494,8 +1494,8 @@ static int _XPrintDefaultError(
 		bext = ext;
 	}
 	if (bext)
-	    sprintf(buffer, "%s.%d", bext->name,
-		    event->error_code - bext->codes.first_error);
+	    snprintf(buffer, sizeof(buffer), "%s.%d", bext->name,
+                     event->error_code - bext->codes.first_error);
 	else
 	    strcpy(buffer, "Value");
 	XGetErrorDatabaseText(dpy, mtype, buffer, "", mesg, BUFSIZ);
@@ -1741,7 +1741,7 @@ void _Xbcopy(b1, b2, length)
 #ifdef DataRoutineIsProcedure
 void Data(
 	Display *dpy,
-	char *data,
+	_Xconst char *data,
 	long len)
 {
 	if (dpy->bufptr + (len) <= dpy->bufmax) {
@@ -1758,7 +1758,7 @@ void Data(
 int
 _XData32(
     Display *dpy,
-    register long *data,
+    register _Xconst long *data,
     unsigned len)
 {
     register int *buf;
@@ -1800,7 +1800,7 @@ _XData32(
 
 static doData16(
     register Display *dpy,
-    short *data,
+    _Xconst short *data,
     unsigned len,
     char *packbuffer)
 {
@@ -1833,7 +1833,7 @@ static doData16(
 
 _XData16 (
     Display *dpy,
-    short *data,
+    _Xconst short *data,
     unsigned len)
 {
     char packbuffer[PACKBUFFERSIZE];
@@ -1855,7 +1855,7 @@ _XData16 (
 
 static doData32(
     register Display *dpy
-    long *data,
+    _Xconst long *data,
     unsigned len,
     char *packbuffer)
 {
@@ -1886,7 +1886,7 @@ static doData32(
 
 void _XData32(
     Display *dpy,
-    long *data,
+    _Xconst long *data,
     unsigned len)
 {
     char packbuffer[PACKBUFFERSIZE];

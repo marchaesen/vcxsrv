@@ -8,9 +8,7 @@ xkb_symbols "modifier_mapping" {
   key.type[Group1] = "ONE_LEVEL";
 
   replace key <MDSW> {
-    vmods = LevelFive,
-    symbols[Group1] = [ ISO_Level5_Shift ],
-    actions[Group1] = [ SetMods(modifiers=LevelFive) ]
+    symbols[Group1] = [ ISO_Level5_Shift ]
   };
   modifier_map Mod3 { <MDSW> };
 };

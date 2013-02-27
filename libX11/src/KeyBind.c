@@ -1014,7 +1014,7 @@ XRebindKeysym (
     dpy->key_bindings = p;
     dpy->free_funcs->key_bindings = _XFreeKeyBindings;
     p->next = tmp;	/* chain onto list */
-    memcpy (p->string, (char *) str, nbytes);
+    memcpy (p->string, str, nbytes);
     p->len = nbytes;
     memcpy ((char *) p->modifiers, (char *) mlist, nb);
     p->key = keysym;

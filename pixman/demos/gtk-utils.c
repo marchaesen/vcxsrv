@@ -95,14 +95,31 @@ pixbuf_from_argb32 (uint32_t *bits,
 static gboolean
 on_expose (GtkWidget *widget, GdkEventExpose *expose, gpointer data)
 {
-    GdkPixbuf *pixbuf = data;
+    pixman_image_t *pimage = data;
+    int width = pixman_image_get_width (pimage);
+    int height = pixman_image_get_height (pimage);
+    int stride = pixman_image_get_stride (pimage);
+    cairo_surface_t *cimage;
+    cairo_format_t format;
+    cairo_t *cr;
+
+    if (pixman_image_get_format (pimage) == PIXMAN_x8r8g8b8)
+	format = CAIRO_FORMAT_RGB24;
+    else
+	format = CAIRO_FORMAT_ARGB32;
+
+    cimage = cairo_image_surface_create_for_data (
+	(uint8_t *)pixman_image_get_data (pimage),
+	format, width, height, stride);
     
-    gdk_draw_pixbuf (widget->window, NULL,
-		     pixbuf, 0, 0, 0, 0,
-		     gdk_pixbuf_get_width (pixbuf),
-		     gdk_pixbuf_get_height (pixbuf),
-		     GDK_RGB_DITHER_NONE,
-		     0, 0);
+    cr = gdk_cairo_create (widget->window);
+
+    cairo_rectangle (cr, 0, 0, width, height);
+    cairo_set_source_surface (cr, cimage, 0, 0);
+    cairo_fill (cr);
+
+    cairo_destroy (cr);
+    cairo_surface_destroy (cimage);
     
     return TRUE;
 }
@@ -111,7 +128,6 @@ void
 show_image (pixman_image_t *image)
 {
     GtkWidget *window;
-    GdkPixbuf *pixbuf;
     int width, height;
     int argc;
     char **argv;
@@ -132,22 +148,15 @@ show_image (pixman_image_t *image)
 
     format = pixman_image_get_format (image);
 
-    /* Three cases:
-     *
-     *  - image is a8r8g8b8_sRGB: we will display without modification
-     *    under the assumption that the monitor is sRGB
-     *
-     *  - image is a8r8g8b8: we will display without modification
-     *    under the assumption that whoever created the image
-     *    probably did it wrong by using sRGB inputs
-     *
-     *  - other: we will convert to a8r8g8b8 under the assumption that
-     *    whoever created the image probably did it wrong.
+    /* We always display the image as if it contains sRGB data. That
+     * means that no conversion should take place when the image
+     * has the a8r8g8b8_sRGB format.
      */
     switch (format)
     {
     case PIXMAN_a8r8g8b8_sRGB:
     case PIXMAN_a8r8g8b8:
+    case PIXMAN_x8r8g8b8:
 	copy = pixman_image_ref (image);
 	break;
 
@@ -161,11 +170,7 @@ show_image (pixman_image_t *image)
 	break;
     }
 
-    pixbuf = pixbuf_from_argb32 (pixman_image_get_data (copy),
-				 width, height,
-				 pixman_image_get_stride (copy));
-    
-    g_signal_connect (window, "expose_event", G_CALLBACK (on_expose), pixbuf);
+    g_signal_connect (window, "expose_event", G_CALLBACK (on_expose), copy);
     g_signal_connect (window, "delete_event", G_CALLBACK (gtk_main_quit), NULL);
     
     gtk_widget_show (window);

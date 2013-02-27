@@ -110,7 +110,7 @@ GetHomeDir(
 	len2 = strlen (ptr2);
     }
     if ((len1 + len2 + 1) < len)
-	sprintf (dest, "%s%s", ptr1, (ptr2) ? ptr2 : "");
+	snprintf (dest, len, "%s%s", ptr1, (ptr2) ? ptr2 : "");
     else
 	*dest = '\0';
 #else

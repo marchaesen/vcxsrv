@@ -109,7 +109,7 @@ XGetErrorText(
 
     if (nbytes == 0) return 0;
     if (code <= BadImplementation && code > 0) {
-	sprintf(buf, "%d", code);
+        snprintf(buf, sizeof(buf), "%d", code);
         (void) XGetErrorDatabaseText(dpy, "XProtoError", buf,
                                      _XErrorList + _XErrorOffsets[code],
 				     buffer, nbytes);
@@ -125,11 +125,12 @@ XGetErrorText(
 	    bext = ext;
     }
     if (!buffer[0] && bext) {
-	sprintf(buf, "%s.%d", bext->name, code - bext->codes.first_error);
+	snprintf(buf, sizeof(buf), "%s.%d",
+                 bext->name, code - bext->codes.first_error);
 	(void) XGetErrorDatabaseText(dpy, "XProtoError", buf, "", buffer, nbytes);
     }
     if (!buffer[0])
-	sprintf(buffer, "%d", code);
+	snprintf(buffer, nbytes, "%d", code);
     return 0;
 }
 
@@ -190,7 +191,7 @@ XGetErrorDatabaseText(
 	else
 	    tptr = Xmalloc (tlen);
 	if (tptr) {
-	    sprintf(tptr, "%s.%s", name, type);
+	    snprintf(tptr, tlen, "%s.%s", name, type);
 	    XrmGetResource(db, tptr, "ErrorType.ErrorNumber",
 	      &type_str, &result);
 	    if (tptr != temp)

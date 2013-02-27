@@ -8,9 +8,7 @@ xkb_symbols "modifier_mapping" {
   key.type[Group1] = "ONE_LEVEL";
 
   replace key <LVL3> {
-    vmods = LevelThree,
-    symbols[Group1] = [ ISO_Level3_Shift ],
-    actions[Group1] = [ SetMods(modifiers=LevelThree) ]
+    symbols[Group1] = [ ISO_Level3_Shift ]
   };
   modifier_map Mod5 { <LVL3> };
 };

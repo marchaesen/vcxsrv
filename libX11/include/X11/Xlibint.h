@@ -577,7 +577,7 @@ extern void _XFlushGCCache(Display *dpy, GC gc);
  * 32 bit word alignment.  Transmit if the buffer fills.
  *
  * "dpy" is a pointer to a Display.
- * "data" is a pinter to a data buffer.
+ * "data" is a pointer to a data buffer.
  * "len" is the length of the data buffer.
  */
 #ifndef DataRoutineIsProcedure
@@ -587,7 +587,7 @@ extern void _XFlushGCCache(Display *dpy, GC gc);
 		dpy->bufptr += ((len) + 3) & ~3;\
 	} else\
 		_XSend(dpy, data, len);\
-	}
+}
 #endif /* DataRoutineIsProcedure */
 
 
@@ -613,17 +613,17 @@ extern void _XFlushGCCache(Display *dpy, GC gc);
     dpy->bufptr += (n);
 
 #ifdef WORD64
-#define Data16(dpy, data, len) _XData16(dpy, (short *)data, len)
-#define Data32(dpy, data, len) _XData32(dpy, (long *)data, len)
+#define Data16(dpy, data, len) _XData16(dpy, (_Xconst short *)data, len)
+#define Data32(dpy, data, len) _XData32(dpy, (_Xconst long *)data, len)
 #else
-#define Data16(dpy, data, len) Data((dpy), (char *)(data), (len))
+#define Data16(dpy, data, len) Data((dpy), (_Xconst char *)(data), (len))
 #define _XRead16Pad(dpy, data, len) _XReadPad((dpy), (char *)(data), (len))
 #define _XRead16(dpy, data, len) _XRead((dpy), (char *)(data), (len))
 #ifdef LONG64
-#define Data32(dpy, data, len) _XData32(dpy, (long *)data, len)
+#define Data32(dpy, data, len) _XData32(dpy, (_Xconst long *)data, len)
 extern int _XData32(
 	     Display *dpy,
-	     register long *data,
+	     register _Xconst long *data,
 	     unsigned len
 );
 extern void _XRead32(
@@ -632,7 +632,7 @@ extern void _XRead32(
 	     long len
 );
 #else
-#define Data32(dpy, data, len) Data((dpy), (char *)(data), (len))
+#define Data32(dpy, data, len) Data((dpy), (_Xconst char *)(data), (len))
 #define _XRead32(dpy, data, len) _XRead((dpy), (char *)(data), (len))
 #endif
 #endif /* not WORD64 */
