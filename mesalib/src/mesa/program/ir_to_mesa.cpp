@@ -1478,6 +1478,13 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
       assert(!"not supported");
       break;
 
+   case ir_triop_lrp:
+      /* ir_triop_lrp operands are (x, y, a) while
+       * OPCODE_LRP operands are (a, y, x) to match ARB_fragment_program.
+       */
+      emit(ir, OPCODE_LRP, result_dst, op[2], op[1], op[0]);
+      break;
+
    case ir_quadop_vector:
       /* This operation should have already been handled.
        */
@@ -2037,6 +2044,9 @@ ir_to_mesa_visitor::visit(ir_texture *ir)
       dx = this->result;
       ir->lod_info.grad.dPdy->accept(this);
       dy = this->result;
+      break;
+   case ir_txf_ms:
+      assert(!"Unexpected ir_txf_ms opcode");
       break;
    }
 

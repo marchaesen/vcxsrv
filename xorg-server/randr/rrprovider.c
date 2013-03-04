@@ -389,6 +389,8 @@ RRProviderDestroyResource (pointer value, XID pid)
     {
         rrScrPriv(pScreen);
 
+        if (pScrPriv->rrProviderDestroy)
+            (*pScrPriv->rrProviderDestroy)(pScreen, provider);
         pScrPriv->provider = NULL;
     }
     free(provider);

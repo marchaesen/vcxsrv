@@ -116,30 +116,7 @@ _XkbReadCopyData32(int *wire,long *to,int num_words)
     }
     return 1;
 }
-#endif
-#ifdef WORD64
-int
-_XkbReadCopyData32(int *from,long *lp,int num_words)
-{
-long *lpack;
-long mask32 = 0x00000000ffffffff;
-long maskw, i, bits;
 
-    lpack = (long *)from;
-    bits = 32;
-
-    for (i=0;i<num_words;i++) {
-	maskw = mask32 << bits;
-	*lp++ = (*lpack & maskw) >> bits;
-	bits = bits ^ 32;
-	if (bits)
-	    lpack++;
-    }
-    return 1;
-}
-#endif
-
-#if defined(LONG64) || defined(WORD64)
 int
 _XkbReadBufferCopy32(XkbReadBufferPtr from,long *to,int num_words)
 {
@@ -149,9 +126,7 @@ _XkbReadBufferCopy32(XkbReadBufferPtr from,long *to,int num_words)
     from->data+= (4*num_words);
     return True;
 }
-#endif
 
-#ifdef LONG64
 int
 _XkbWriteCopyData32 (register unsigned long *from,CARD32 *to,int len)
 {
@@ -163,9 +138,6 @@ _XkbWriteCopyData32 (register unsigned long *from,CARD32 *to,int len)
 }
 #endif /* LONG64 */
 
-#ifdef WORD64
-_XkbWriteCopyData32 Not Implemented Yet for sizeof(int)==8
-#endif
 
 char *
 _XkbPeekAtReadBuffer(XkbReadBufferPtr from,int size)

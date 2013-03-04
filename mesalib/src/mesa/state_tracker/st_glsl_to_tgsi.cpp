@@ -1942,6 +1942,10 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
       }
       break;
    }
+   case ir_triop_lrp:
+      /* note: we have to reorder the three args here */
+      emit(ir, TGSI_OPCODE_LRP, result_dst, op[2], op[1], op[0]);
+      break;
    case ir_unop_pack_snorm_2x16:
    case ir_unop_pack_unorm_2x16:
    case ir_unop_pack_half_2x16:
@@ -2741,6 +2745,9 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
 	 ir->offset->accept(this);
 	 offset = this->result;
       }
+      break;
+   case ir_txf_ms:
+      assert(!"Unexpected ir_txf_ms opcode");
       break;
    }
 

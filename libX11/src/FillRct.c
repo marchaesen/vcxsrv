@@ -44,12 +44,6 @@ XFillRectangle(
     unsigned int height) /* CARD16 */
 {
     xRectangle *rect;
-#ifdef MUSTCOPY
-    xRectangle rectdata;
-    long len = SIZEOF(xRectangle);
-
-    rect = &rectdata;
-#endif /* MUSTCOPY */
 
     LockDisplay(dpy);
     FlushGC(dpy, gc);
@@ -66,30 +60,21 @@ XFillRectangle(
        && ((dpy->bufptr + SIZEOF(xRectangle)) <= dpy->bufmax)
        && (((char *)dpy->bufptr - (char *)req) < size) ) {
 	 req->length += SIZEOF(xRectangle) >> 2;
-#ifndef MUSTCOPY
          rect = (xRectangle *) dpy->bufptr;
 	 dpy->bufptr += SIZEOF(xRectangle);
-#endif /* not MUSTCOPY */
 	 }
 
     else {
 	GetReqExtra(PolyFillRectangle, SIZEOF(xRectangle), req);
 	req->drawable = d;
 	req->gc = gc->gid;
-#ifdef MUSTCOPY
-	dpy->bufptr -= SIZEOF(xRectangle);
-#else
 	rect = (xRectangle *) NEXTPTR(req,xPolyFillRectangleReq);
-#endif /* MUSTCOPY */
 	}
     rect->x = x;
     rect->y = y;
     rect->width = width;
     rect->height = height;
 
-#ifdef MUSTCOPY
-    Data (dpy, (char *) rect, len);
-#endif /* MUSTCOPY */
     }
     UnlockDisplay(dpy);
     SyncHandle();

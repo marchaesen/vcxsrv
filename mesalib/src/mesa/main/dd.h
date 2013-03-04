@@ -638,6 +638,7 @@ struct dd_function_table {
    struct gl_query_object * (*NewQueryObject)(struct gl_context *ctx, GLuint id);
    void (*DeleteQuery)(struct gl_context *ctx, struct gl_query_object *q);
    void (*BeginQuery)(struct gl_context *ctx, struct gl_query_object *q);
+   void (*QueryCounter)(struct gl_context *ctx, struct gl_query_object *q);
    void (*EndQuery)(struct gl_context *ctx, struct gl_query_object *q);
    void (*CheckQuery)(struct gl_context *ctx, struct gl_query_object *q);
    void (*WaitQuery)(struct gl_context *ctx, struct gl_query_object *q);
@@ -833,6 +834,14 @@ struct dd_function_table {
     * This should be equivalent to glGetInteger64v(GL_TIMESTAMP);
     */
    uint64_t (*GetTimestamp)(struct gl_context *ctx);
+
+   /**
+    * \name GL_ARB_texture_multisample
+    */
+   void (*GetSamplePosition)(struct gl_context *ctx,
+                             struct gl_framebuffer *fb,
+                             GLuint index,
+                             GLfloat *outValue);
 };
 
 

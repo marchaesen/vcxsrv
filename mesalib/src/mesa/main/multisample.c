@@ -28,6 +28,7 @@
 #include "main/macros.h"
 #include "main/multisample.h"
 #include "main/mtypes.h"
+#include "main/fbobject.h"
 
 
 /**
@@ -59,4 +60,55 @@ _mesa_init_multisample(struct gl_context *ctx)
    ctx->Multisample.SampleCoverage = GL_FALSE;
    ctx->Multisample.SampleCoverageValue = 1.0;
    ctx->Multisample.SampleCoverageInvert = GL_FALSE;
+
+   /* ARB_texture_multisample / GL3.2 additions */
+   ctx->Multisample.SampleMask = GL_FALSE;
+   ctx->Multisample.SampleMaskValue = ~(GLbitfield)0;
+}
+
+
+void GLAPIENTRY
+_mesa_GetMultisamplefv(GLenum pname, GLuint index, GLfloat * val)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   switch (pname) {
+   case GL_SAMPLE_POSITION: {
+      if (index >= ctx->DrawBuffer->Visual.samples) {
+         _mesa_error( ctx, GL_INVALID_VALUE, "glGetMultisamplefv(index)" );
+         return;
+      }
+
+      ctx->Driver.GetSamplePosition(ctx, ctx->DrawBuffer, index, val);
+
+      /* winsys FBOs are upside down */
+      if (_mesa_is_winsys_fbo(ctx->DrawBuffer))
+         val[1] = 1 - val[1];
+
+      return;
+   }
+
+   default:
+      _mesa_error( ctx, GL_INVALID_ENUM, "glGetMultisamplefv(pname)" );
+      return;
+   }
+}
+
+void GLAPIENTRY
+_mesa_SampleMaski(GLuint index, GLbitfield mask)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.ARB_texture_multisample) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glSampleMaski");
+      return;
+   }
+
+   if (index != 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glSampleMaski(index)");
+      return;
+   }
+
+   FLUSH_VERTICES(ctx, _NEW_MULTISAMPLE);
+   ctx->Multisample.SampleMaskValue = mask;
 }

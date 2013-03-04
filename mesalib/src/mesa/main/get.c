@@ -354,6 +354,7 @@ EXTRA_EXT(ARB_timer_query);
 EXTRA_EXT(ARB_map_buffer_alignment);
 EXTRA_EXT(ARB_texture_cube_map_array);
 EXTRA_EXT(ARB_texture_buffer_range);
+EXTRA_EXT(ARB_texture_multisample);
 
 static const int
 extra_NV_primitive_restart[] = {
@@ -693,6 +694,8 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
    case GL_TEXTURE_BINDING_RECTANGLE_NV:
    case GL_TEXTURE_BINDING_EXTERNAL_OES:
    case GL_TEXTURE_BINDING_CUBE_MAP_ARRAY:
+   case GL_TEXTURE_BINDING_2D_MULTISAMPLE:
+   case GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY:
       unit = ctx->Texture.CurrentUnit;
       v->value_int =
 	 ctx->Texture.Unit[unit].CurrentTex[d->offset]->Name;
@@ -1631,6 +1634,15 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
       if (!ctx->Extensions.ARB_uniform_buffer_object)
 	 goto invalid_enum;
       v->value_int = ctx->UniformBufferBindings[index].Size;
+      return TYPE_INT;
+
+   /* ARB_texture_multisample / GL3.2 */
+   case GL_SAMPLE_MASK_VALUE:
+      if (index != 0)
+         goto invalid_value;
+      if (!ctx->Extensions.ARB_texture_multisample)
+         goto invalid_enum;
+      v->value_int = ctx->Multisample.SampleMaskValue;
       return TYPE_INT;
    }
 

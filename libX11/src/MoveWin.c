@@ -44,20 +44,11 @@ XMoveWindow (
     req->window = w;
     req->mask = CWX | CWY;
 
-#ifdef MUSTCOPY
-    {
-	long lx = (long) x, ly = (long) y;
-	dpy->bufptr -= 8;
-	Data32 (dpy, (long *) &lx, 4);	/* order dictated by CWX and CWY */
-	Data32 (dpy, (long *) &ly, 4);
-    }
-#else
     {
 	CARD32 *valuePtr = (CARD32 *) NEXTPTR(req,xConfigureWindowReq);
 	*valuePtr++ = x;
 	*valuePtr = y;
     }
-#endif /* MUSTCOPY */
     UnlockDisplay(dpy);
     SyncHandle();
     return 1;

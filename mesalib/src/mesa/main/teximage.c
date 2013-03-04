@@ -661,7 +661,7 @@ _mesa_is_proxy_texture(GLenum target)
     * NUM_TEXTURE_TARGETS should match number of terms below, except there's no
     * proxy for GL_TEXTURE_BUFFER and GL_TEXTURE_EXTERNAL_OES.
     */
-   assert(NUM_TEXTURE_TARGETS == 8 + 2);
+   assert(NUM_TEXTURE_TARGETS == 10 + 2);
 
    return (target == GL_PROXY_TEXTURE_1D ||
            target == GL_PROXY_TEXTURE_2D ||
@@ -670,7 +670,9 @@ _mesa_is_proxy_texture(GLenum target)
            target == GL_PROXY_TEXTURE_RECTANGLE_NV ||
            target == GL_PROXY_TEXTURE_1D_ARRAY_EXT ||
            target == GL_PROXY_TEXTURE_2D_ARRAY_EXT ||
-           target == GL_PROXY_TEXTURE_CUBE_MAP_ARRAY);
+           target == GL_PROXY_TEXTURE_CUBE_MAP_ARRAY ||
+           target == GL_PROXY_TEXTURE_2D_MULTISAMPLE ||
+           target == GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY);
 }
 
 
@@ -711,6 +713,12 @@ _mesa_get_proxy_target(GLenum target)
    case GL_TEXTURE_CUBE_MAP_ARRAY:
    case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
       return GL_PROXY_TEXTURE_CUBE_MAP_ARRAY;
+   case GL_TEXTURE_2D_MULTISAMPLE:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
+      return GL_PROXY_TEXTURE_2D_MULTISAMPLE;
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      return GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY;
    default:
       _mesa_problem(NULL, "unexpected target in _mesa_get_proxy_target()");
       return 0;
@@ -788,6 +796,18 @@ _mesa_select_tex_object(struct gl_context *ctx,
       case GL_TEXTURE_EXTERNAL_OES:
          return ctx->Extensions.OES_EGL_image_external
             ? texUnit->CurrentTex[TEXTURE_EXTERNAL_INDEX] : NULL;
+      case GL_TEXTURE_2D_MULTISAMPLE:
+         return ctx->Extensions.ARB_texture_multisample
+            ? texUnit->CurrentTex[TEXTURE_2D_MULTISAMPLE_INDEX] : NULL;
+      case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
+         return ctx->Extensions.ARB_texture_multisample
+            ? ctx->Texture.ProxyTex[TEXTURE_2D_MULTISAMPLE_INDEX] : NULL;
+      case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+         return ctx->Extensions.ARB_texture_multisample
+            ? texUnit->CurrentTex[TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX] : NULL;
+      case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
+         return ctx->Extensions.ARB_texture_multisample
+            ? ctx->Texture.ProxyTex[TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX] : NULL;
       default:
          _mesa_problem(NULL, "bad target in _mesa_select_tex_object()");
          return NULL;
@@ -918,6 +938,16 @@ get_proxy_tex_image(struct gl_context *ctx, GLenum target, GLint level)
          return NULL;
       texIndex = TEXTURE_CUBE_ARRAY_INDEX;
       break;
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
+      if (level > 0)
+         return 0;
+      texIndex = TEXTURE_2D_MULTISAMPLE_INDEX;
+      break;
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      if (level > 0)
+         return 0;
+      texIndex = TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX;
+      break;
    default:
       return NULL;
    }
@@ -987,6 +1017,13 @@ _mesa_max_texture_levels(struct gl_context *ctx, GLenum target)
    case GL_TEXTURE_BUFFER:
       return ctx->API == API_OPENGL_CORE &&
              ctx->Extensions.ARB_texture_buffer_object ? 1 : 0;
+   case GL_TEXTURE_2D_MULTISAMPLE:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      return _mesa_is_desktop_gl(ctx)
+         && ctx->Extensions.ARB_texture_multisample
+         ? 1 : 0;
    case GL_TEXTURE_EXTERNAL_OES:
       /* fall-through */
    default:
@@ -1020,6 +1057,8 @@ _mesa_get_texture_dimensions(GLenum target)
    case GL_TEXTURE_1D_ARRAY:
    case GL_PROXY_TEXTURE_1D_ARRAY:
    case GL_TEXTURE_EXTERNAL_OES:
+   case GL_TEXTURE_2D_MULTISAMPLE:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
       return 2;
    case GL_TEXTURE_3D:
    case GL_PROXY_TEXTURE_3D:
@@ -1027,6 +1066,8 @@ _mesa_get_texture_dimensions(GLenum target)
    case GL_PROXY_TEXTURE_2D_ARRAY:
    case GL_TEXTURE_CUBE_MAP_ARRAY:
    case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
       return 3;
    case GL_TEXTURE_BUFFER:
       /* fall-through */
@@ -1068,6 +1109,8 @@ _mesa_get_tex_max_num_levels(GLenum target, GLsizei width, GLsizei height,
       break;
    case GL_TEXTURE_RECTANGLE:
    case GL_TEXTURE_EXTERNAL_OES:
+   case GL_TEXTURE_2D_MULTISAMPLE:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
       return 1;
    default:
       assert(0);
@@ -1153,6 +1196,8 @@ clear_teximage_fields(struct gl_texture_image *img)
    img->HeightLog2 = 0;
    img->DepthLog2 = 0;
    img->TexFormat = MESA_FORMAT_NONE;
+   img->NumSamples = 0;
+   img->FixedSampleLocations = GL_TRUE;
 }
 
 
@@ -1196,6 +1241,9 @@ _mesa_init_teximage_fields(struct gl_context *ctx,
    img->Width2 = width - 2 * border;   /* == 1 << img->WidthLog2; */
    img->WidthLog2 = _mesa_logbase2(img->Width2);
 
+   img->NumSamples = 0;
+   img->FixedSampleLocations = GL_TRUE;
+
    switch(target) {
    case GL_TEXTURE_1D:
    case GL_TEXTURE_BUFFER:
@@ -1234,6 +1282,8 @@ _mesa_init_teximage_fields(struct gl_context *ctx,
    case GL_PROXY_TEXTURE_2D:
    case GL_PROXY_TEXTURE_RECTANGLE:
    case GL_PROXY_TEXTURE_CUBE_MAP:
+   case GL_TEXTURE_2D_MULTISAMPLE:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
       img->Height2 = height - 2 * border; /* == 1 << img->HeightLog2; */
       img->HeightLog2 = _mesa_logbase2(img->Height2);
       if (depth == 0)
@@ -1246,6 +1296,8 @@ _mesa_init_teximage_fields(struct gl_context *ctx,
    case GL_PROXY_TEXTURE_2D_ARRAY:
    case GL_TEXTURE_CUBE_MAP_ARRAY:
    case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
       img->Height2 = height - 2 * border; /* == 1 << img->HeightLog2; */
       img->HeightLog2 = _mesa_logbase2(img->Height2);
       img->Depth2 = depth; /* no border */
@@ -1317,6 +1369,8 @@ _mesa_legal_texture_dimensions(struct gl_context *ctx, GLenum target,
 
    case GL_TEXTURE_2D:
    case GL_PROXY_TEXTURE_2D:
+   case GL_TEXTURE_2D_MULTISAMPLE:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
       maxSize = 1 << (ctx->Const.MaxTextureLevels - 1);
       maxSize >>= level;
       if (width < 2 * border || width > 2 * border + maxSize)
@@ -1399,6 +1453,8 @@ _mesa_legal_texture_dimensions(struct gl_context *ctx, GLenum target,
 
    case GL_TEXTURE_2D_ARRAY_EXT:
    case GL_PROXY_TEXTURE_2D_ARRAY_EXT:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
       maxSize = 1 << (ctx->Const.MaxTextureLevels - 1);
       maxSize >>= level;
       if (width < 2 * border || width > 2 * border + maxSize)
@@ -4101,4 +4157,184 @@ _mesa_TexBufferRange(GLenum target, GLenum internalFormat, GLuint buffer,
    }
 
    texbufferrange(ctx, target, internalFormat, bufObj, offset, size);
+}
+
+static GLboolean
+is_renderable_texture_format(struct gl_context *ctx, GLenum internalformat)
+{
+   /* Everything that is allowed for renderbuffers,
+    * except for a base format of GL_STENCIL_INDEX.
+    */
+   GLenum baseFormat = _mesa_base_fbo_format(ctx, internalformat);
+   return baseFormat != 0 && baseFormat != GL_STENCIL_INDEX;
+}
+
+/** GL_ARB_texture_multisample */
+static GLboolean
+check_multisample_target(GLuint dims, GLenum target)
+{
+   switch(target) {
+   case GL_TEXTURE_2D_MULTISAMPLE:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
+      return dims == 2;
+
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      return dims == 3;
+
+   default:
+      return GL_FALSE;
+   }
+}
+
+static void
+teximagemultisample(GLuint dims, GLenum target, GLsizei samples,
+                    GLint internalformat, GLsizei width, GLsizei height,
+                    GLsizei depth, GLboolean fixedsamplelocations)
+{
+   struct gl_texture_object *texObj;
+   struct gl_texture_image *texImage;
+   GLboolean sizeOK, dimensionsOK;
+   gl_format texFormat;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!(ctx->Extensions.ARB_texture_multisample
+      && _mesa_is_desktop_gl(ctx))) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glTexImage%uDMultisample", dims);
+      return;
+   }
+
+   if (!check_multisample_target(dims, target)) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glTexImage%uDMultisample(target)", dims);
+      return;
+   }
+
+   /* check that the specified internalformat is color/depth/stencil-renderable;
+    * refer GL3.1 spec 4.4.4
+    */
+
+   if (!is_renderable_texture_format(ctx, internalformat)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+            "glTexImage%uDMultisample(internalformat=%s)",
+            dims,
+            _mesa_lookup_enum_by_nr(internalformat));
+      return;
+   }
+
+   if (_mesa_is_enum_format_integer(internalformat)) {
+      if (samples > ctx->Const.MaxIntegerSamples) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+               "glTexImage%uDMultisample(samples>GL_MAX_INTEGER_SAMPLES)",
+               dims);
+         return;
+      }
+   }
+   else if (_mesa_is_depth_or_stencil_format(internalformat)) {
+      if (samples > ctx->Const.MaxDepthTextureSamples) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+               "glTexImage%uDMultisample(samples>GL_MAX_DEPTH_TEXTURE_SAMPLES)",
+               dims);
+         return;
+      }
+   }
+   else {
+      if (samples > ctx->Const.MaxColorTextureSamples) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+               "glTexImage%uDMultisample(samples>GL_MAX_COLOR_TEXTURE_SAMPLES)",
+               dims);
+         return;
+      }
+   }
+
+   /* TODO: should ask the driver for the exact limit for this internalformat
+    * once IDR's internalformat_query bits land
+    */
+
+   texObj = _mesa_get_current_tex_object(ctx, target);
+   texImage = _mesa_get_tex_image(ctx, texObj, 0, 0);
+
+   if (texImage == NULL) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage%uDMultisample()", dims);
+      return;
+   }
+
+   texFormat = _mesa_choose_texture_format(ctx, texObj, target, 0,
+         internalformat, GL_NONE, GL_NONE);
+   assert(texFormat != MESA_FORMAT_NONE);
+
+   dimensionsOK = _mesa_legal_texture_dimensions(ctx, target, 0,
+         width, height, depth, 0);
+
+   sizeOK = ctx->Driver.TestProxyTexImage(ctx, target, 0, texFormat,
+         width, height, depth, 0);
+
+   if (_mesa_is_proxy_texture(target)) {
+      if (dimensionsOK && sizeOK) {
+         _mesa_init_teximage_fields(ctx, texImage,
+               width, height, depth, 0, internalformat, texFormat);
+         texImage->NumSamples = samples;
+         texImage->FixedSampleLocations = fixedsamplelocations;
+      }
+      else {
+         /* clear all image fields */
+         _mesa_init_teximage_fields(ctx, texImage,
+               0, 0, 0, 0, GL_NONE, MESA_FORMAT_NONE);
+      }
+   }
+   else {
+      if (!dimensionsOK) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+               "glTexImage%uDMultisample(invalid width or height)", dims);
+         return;
+      }
+
+      if (!sizeOK) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY,
+               "glTexImage%uDMultisample(texture too large)", dims);
+         return;
+      }
+
+      ctx->Driver.FreeTextureImageBuffer(ctx, texImage);
+
+      _mesa_init_teximage_fields(ctx, texImage,
+            width, height, depth, 0, internalformat, texFormat);
+
+      texImage->NumSamples = samples;
+      texImage->FixedSampleLocations = fixedsamplelocations;
+
+      if (width > 0 && height > 0 && depth > 0) {
+
+         if (!ctx->Driver.AllocTextureStorage(ctx, texObj, 1,
+                  width, height, depth)) {
+            /* tidy up the texture image state. strictly speaking,
+             * we're allowed to just leave this in whatever state we
+             * like, but being tidy is good.
+             */
+            _mesa_init_teximage_fields(ctx, texImage,
+                  0, 0, 0, 0, GL_NONE, MESA_FORMAT_NONE);
+         }
+      }
+
+      _mesa_update_fbo_texture(ctx, texObj, 0, 0);
+   }
+}
+
+void GLAPIENTRY
+_mesa_TexImage2DMultisample(GLenum target, GLsizei samples,
+                            GLint internalformat, GLsizei width,
+                            GLsizei height, GLboolean fixedsamplelocations)
+{
+   teximagemultisample(2, target, samples, internalformat,
+         width, height, 1, fixedsamplelocations);
+}
+
+void GLAPIENTRY
+_mesa_TexImage3DMultisample(GLenum target, GLsizei samples,
+                            GLint internalformat, GLsizei width,
+                            GLsizei height, GLsizei depth,
+                            GLboolean fixedsamplelocations)
+{
+   teximagemultisample(3, target, samples, internalformat,
+         width, height, depth, fixedsamplelocations);
 }

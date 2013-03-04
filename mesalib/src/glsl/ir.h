@@ -1118,6 +1118,13 @@ enum ir_expression_operation {
     */
    ir_last_binop = ir_binop_ubo_load,
 
+   ir_triop_lrp,
+
+   /**
+    * A sentinel marking the last of the ternary operations.
+    */
+   ir_last_triop = ir_triop_lrp,
+
    ir_quadop_vector,
 
    /**
@@ -1128,24 +1135,19 @@ enum ir_expression_operation {
 
 class ir_expression : public ir_rvalue {
 public:
+   ir_expression(int op, const struct glsl_type *type,
+                 ir_rvalue *op0, ir_rvalue *op1 = NULL,
+                 ir_rvalue *op2 = NULL, ir_rvalue *op3 = NULL);
+
    /**
     * Constructor for unary operation expressions
     */
-   ir_expression(int op, const struct glsl_type *type, ir_rvalue *);
    ir_expression(int op, ir_rvalue *);
 
    /**
     * Constructor for binary operation expressions
     */
-   ir_expression(int op, const struct glsl_type *type,
-		 ir_rvalue *, ir_rvalue *);
    ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1);
-
-   /**
-    * Constructor for quad operator expressions
-    */
-   ir_expression(int op, const struct glsl_type *type,
-		 ir_rvalue *, ir_rvalue *, ir_rvalue *, ir_rvalue *);
 
    virtual ir_expression *as_expression()
    {
@@ -1422,6 +1424,7 @@ enum ir_texture_opcode {
    ir_txl,		/**< Texture look-up with explicit LOD */
    ir_txd,		/**< Texture look-up with partial derivatvies */
    ir_txf,		/**< Texel fetch with explicit LOD */
+   ir_txf_ms,           /**< Multisample texture fetch */
    ir_txs		/**< Texture size */
 };
 
@@ -1443,6 +1446,8 @@ enum ir_texture_opcode {
  * (txl <type> <sampler> <coordinate> 0 1 ( ) <lod>)
  * (txd <type> <sampler> <coordinate> 0 1 ( ) (dPdx dPdy))
  * (txf <type> <sampler> <coordinate> 0       <lod>)
+ * (txf_ms
+ *      <type> <sampler> <coordinate>         <sample_index>)
  * (txs <type> <sampler> <lod>)
  */
 class ir_texture : public ir_rvalue {
@@ -1509,6 +1514,7 @@ public:
    union {
       ir_rvalue *lod;		/**< Floating point LOD */
       ir_rvalue *bias;		/**< Floating point LOD bias */
+      ir_rvalue *sample_index;  /**< MSAA sample index */
       struct {
 	 ir_rvalue *dPdx;	/**< Partial derivative of coordinate wrt X */
 	 ir_rvalue *dPdy;	/**< Partial derivative of coordinate wrt Y */

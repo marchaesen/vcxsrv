@@ -1885,6 +1885,27 @@ xf86RandR13ConstrainCursorHarder(DeviceIntPtr dev, ScreenPtr screen, int mode, i
     }
 }
 
+static void
+xf86RandR14ProviderDestroy(ScreenPtr screen, RRProviderPtr provider)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+    xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
+    
+    if (config->randr_provider == provider) {
+        if (config->randr_provider->offload_sink) {
+            DetachOffloadGPU(screen);
+            config->randr_provider->offload_sink = NULL;
+        }
+        else if (config->randr_provider->output_source) {
+            DetachOutputGPU(screen);
+            config->randr_provider->output_source = NULL;
+        }
+        else if (screen->current_master)
+            DetachUnboundGPU(screen);
+    }
+    config->randr_provider = NULL;
+}
+
 static Bool
 xf86RandR12Init12(ScreenPtr pScreen)
 {
@@ -1914,6 +1935,7 @@ xf86RandR12Init12(ScreenPtr pScreen)
     rp->rrProviderSetProperty = xf86RandR14ProviderSetProperty;
     rp->rrProviderGetProperty = xf86RandR14ProviderGetProperty;
     rp->rrCrtcSetScanoutPixmap = xf86CrtcSetScanoutPixmap;
+    rp->rrProviderDestroy = xf86RandR14ProviderDestroy;
 
     pScrn->PointerMoved = xf86RandR12PointerMoved;
     pScrn->ChangeGamma = xf86RandR12ChangeGamma;

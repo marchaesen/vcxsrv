@@ -213,7 +213,7 @@ extern int _XkbCopyFromReadBuffer(
 );
 
 
-#if defined(WORD64) || defined(LONG64)
+#ifdef LONG64
 extern	int _XkbReadCopyData32(
     int *		/* from */,
     long *		/* to */,

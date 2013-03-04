@@ -743,16 +743,8 @@ xf86CrtcCloseScreen(ScreenPtr screen)
     }
     /* detach any providers */
     if (config->randr_provider) {
-        if (config->randr_provider->offload_sink) {
-            DetachOffloadGPU(screen);
-            config->randr_provider->offload_sink = NULL;
-        }
-        else if (config->randr_provider->output_source) {
-            DetachOutputGPU(screen);
-            config->randr_provider->output_source = NULL;
-        }
-        else if (screen->current_master)
-            DetachUnboundGPU(screen);
+        RRProviderDestroy(config->randr_provider);
+        config->randr_provider = NULL;
     }
     return TRUE;
 }
@@ -1848,8 +1840,10 @@ SetCompatOutput(xf86CrtcConfigPtr config)
     }
 
     /* All outputs are disconnected, select one to fake */
-    if (!output && config->num_output)
-        output = config->output[0];
+    if (!output && config->num_output) {
+        config->compat_output = 0;
+        output = config->output[config->compat_output];
+    }
 
     return output;
 }

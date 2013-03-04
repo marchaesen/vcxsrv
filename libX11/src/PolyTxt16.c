@@ -168,18 +168,7 @@ XDrawText16(
 		}
 	    	elt->len = 254;
 
-#if defined(MUSTCOPY) || defined(MUSTCOPY2B)
-		{
-		    register int i;
-		    register unsigned char *cp;
-		    for (i = 0, cp = ((unsigned char *)elt) + 2; i < 254; i++) {
-			*cp++ = CharacterOffset[i].byte1;
-			*cp++ = CharacterOffset[i].byte2;
-		    }
-		}
-#else
 		memcpy ((char *) (elt + 1), (char *)CharacterOffset, 254 * 2);
-#endif
 		PartialNChars = PartialNChars - 254;
 		CharacterOffset += 254;
 
@@ -213,21 +202,9 @@ XDrawText16(
 		}
 	    	elt->len = PartialNChars;
 
-#if defined(MUSTCOPY) || defined(MUSTCOPY2B)
-		{
-		    register int i;
-		    register unsigned char *cp;
-		    for (i = 0, cp = ((unsigned char *)elt) + 2; i < PartialNChars;
-			 i++) {
-			*cp++ = CharacterOffset[i].byte1;
-			*cp++ = CharacterOffset[i].byte2;
-		    }
-		}
-#else
 		memcpy ((char *) (elt + 1), (char *)CharacterOffset,
 			PartialNChars *
 2);
-#endif
 	    }
 	}
     item++;

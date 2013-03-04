@@ -6282,8 +6282,20 @@
       </option>
       <option>
         <configItem>
+          <name>compose:lwin-altgr</name>
+          <_description>3rd level of Left Win</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
           <name>compose:rwin</name>
           <_description>Right Win</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>compose:rwin-altgr</name>
+          <_description>3rd level of Right Win</_description>
         </configItem>
       </option>
       <option>
@@ -6294,8 +6306,20 @@
       </option>
       <option>
         <configItem>
+          <name>compose:menu-altgr</name>
+          <_description>3rd level of Menu</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
           <name>compose:lctrl</name>
           <_description>Left Ctrl</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>compose:lctrl-altgr</name>
+          <_description>3rd level of Left Ctrl</_description>
         </configItem>
       </option>
       <option>
@@ -6306,14 +6330,32 @@
       </option>
       <option>
         <configItem>
+          <name>compose:rctrl-altgr</name>
+          <_description>3rd level of Right Ctrl</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
           <name>compose:caps</name>
           <_description>Caps Lock</_description>
         </configItem>
       </option>
       <option>
         <configItem>
+          <name>compose:caps-altgr</name>
+          <_description>3rd level of Caps Lock</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
           <name>compose:102</name>
           <_description>&lt;Less/Greater&gt;</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>compose:102-altgr</name>
+          <_description>3rd level of &lt;Less/Greater&gt;</_description>
         </configItem>
       </option>
       <option>
