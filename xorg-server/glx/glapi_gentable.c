@@ -7745,6 +7745,34 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->GetMultisamplefv) {
+        void ** procp = (void **) &disp->GetMultisamplefv;
+        snprintf(symboln, sizeof(symboln), "%sGetMultisamplefv", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SampleMaski) {
+        void ** procp = (void **) &disp->SampleMaski;
+        snprintf(symboln, sizeof(symboln), "%sSampleMaski", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexImage2DMultisample) {
+        void ** procp = (void **) &disp->TexImage2DMultisample;
+        snprintf(symboln, sizeof(symboln), "%sTexImage2DMultisample", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexImage3DMultisample) {
+        void ** procp = (void **) &disp->TexImage3DMultisample;
+        snprintf(symboln, sizeof(symboln), "%sTexImage3DMultisample", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->BlendEquationSeparateiARB) {
         void ** procp = (void **) &disp->BlendEquationSeparateiARB;
         snprintf(symboln, sizeof(symboln), "%sBlendEquationSeparateiARB", symbol_prefix);
@@ -8826,6 +8854,13 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->VertexPointerEXT) {
         void ** procp = (void **) &disp->VertexPointerEXT;
         snprintf(symboln, sizeof(symboln), "%sVertexPointerEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DiscardFramebufferEXT) {
+        void ** procp = (void **) &disp->DiscardFramebufferEXT;
+        snprintf(symboln, sizeof(symboln), "%sDiscardFramebufferEXT", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
