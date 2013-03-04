@@ -37,7 +37,9 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <X11/keysym.h>
 #include "XKBlibint.h"
 
+#ifdef XKB_IN_SERVER
 #define XkbVirtualModsToReal    SrvXkbVirtualModsToReal
+#endif
 
 /***====================================================================***/
 
