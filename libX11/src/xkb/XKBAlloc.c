@@ -30,7 +30,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <config.h>
 #endif
 
-#ifndef XKB_IN_SERVER
 
 #include <stdio.h>
 #include "Xlibint.h"
@@ -39,17 +38,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <X11/extensions/XKBproto.h>
 #include "XKBlibint.h"
 
-#else
-
-#include <stdio.h>
-#include <X11/X.h>
-#include <X11/Xproto.h>
-#include "misc.h"
-#include "inputstr.h"
-#include <X11/extensions/XKBsrv.h>
-#include <X11/extensions/XKBgeom.h>
-
-#endif /* XKB_IN_SERVER */
 
 /***===================================================================***/
 

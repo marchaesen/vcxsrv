@@ -30,31 +30,12 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <config.h>
 #endif
 
-#ifndef XKB_IN_SERVER
 
 #include <stdio.h>
 #include "Xlibint.h"
 #include "XKBlibint.h"
 #include <X11/extensions/XKBgeom.h>
 #include <X11/extensions/XKBproto.h>
-
-#else
-
-#include <stdio.h>
-#include <X11/X.h>
-#include <X11/Xproto.h>
-#include "misc.h"
-#include "inputstr.h"
-#include <X11/extensions/XKBsrv.h>
-#include <X11/extensions/XKBgeom.h>
-
-#endif /* XKB_IN_SERVER */
-
-#ifdef X_NOT_POSIX
-#define Size_t unsigned int
-#else
-#define Size_t size_t
-#endif
 
 /***====================================================================***/
 
@@ -476,7 +457,7 @@ _XkbGeomAlloc(	XPointer *		old,
 		unsigned short *	num,
 		unsigned short *	total,
 		int			num_new,
-		Size_t			sz_elem)
+		size_t			sz_elem)
 {
     if (num_new<1)
 	return Success;

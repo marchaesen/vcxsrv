@@ -32,7 +32,7 @@ authorization from the X Consortium and the XFree86 Project.
 #endif
 #include "Xlibint.h"
 
-#if defined(XF86BIGFONT) && !defined(MUSTCOPY)
+#if defined(XF86BIGFONT)
 #define USE_XF86BIGFONT
 #endif
 #ifdef USE_XF86BIGFONT
@@ -228,31 +228,9 @@ _XQueryFont (
     fs->ascent 			= cvtINT16toInt (reply.fontAscent);
     fs->descent 		= cvtINT16toInt (reply.fontDescent);
 
-#ifdef MUSTCOPY
-    {
-	xCharInfo *xcip;
-
-	xcip = (xCharInfo *) &reply.minBounds;
-	fs->min_bounds.lbearing = cvtINT16toShort(xcip->leftSideBearing);
-	fs->min_bounds.rbearing = cvtINT16toShort(xcip->rightSideBearing);
-	fs->min_bounds.width = cvtINT16toShort(xcip->characterWidth);
-	fs->min_bounds.ascent = cvtINT16toShort(xcip->ascent);
-	fs->min_bounds.descent = cvtINT16toShort(xcip->descent);
-	fs->min_bounds.attributes = xcip->attributes;
-
-	xcip = (xCharInfo *) &reply.maxBounds;
-	fs->max_bounds.lbearing = cvtINT16toShort(xcip->leftSideBearing);
-	fs->max_bounds.rbearing =  cvtINT16toShort(xcip->rightSideBearing);
-	fs->max_bounds.width =  cvtINT16toShort(xcip->characterWidth);
-	fs->max_bounds.ascent =  cvtINT16toShort(xcip->ascent);
-	fs->max_bounds.descent =  cvtINT16toShort(xcip->descent);
-	fs->max_bounds.attributes = xcip->attributes;
-    }
-#else
     /* XXX the next two statements won't work if short isn't 16 bits */
     fs->min_bounds = * (XCharStruct *) &reply.minBounds;
     fs->max_bounds = * (XCharStruct *) &reply.maxBounds;
-#endif /* MUSTCOPY */
 
     fs->n_properties = reply.nFontProps;
     /*
@@ -276,7 +254,6 @@ _XQueryFont (
      * If no characters in font, then it is a bad font, but
      * shouldn't try to read nothing.
      */
-    /* have to unpack charinfos on some machines (CRAY) */
     fs->per_char = NULL;
     if (reply.nCharInfos > 0){
 	nbytes = reply.nCharInfos * sizeof(XCharStruct);
@@ -288,27 +265,8 @@ _XQueryFont (
 	    return (XFontStruct *)NULL;
 	}
 
-#ifdef MUSTCOPY
-	{
-	    register XCharStruct *cs = fs->per_char;
-	    register int i;
-
-	    for (i = 0; i < reply.nCharInfos; i++, cs++) {
-		xCharInfo xcip;
-
-		_XRead(dpy, (char *)&xcip, SIZEOF(xCharInfo));
-		cs->lbearing = cvtINT16toShort(xcip.leftSideBearing);
-		cs->rbearing = cvtINT16toShort(xcip.rightSideBearing);
-		cs->width =  cvtINT16toShort(xcip.characterWidth);
-		cs->ascent =  cvtINT16toShort(xcip.ascent);
-		cs->descent =  cvtINT16toShort(xcip.descent);
-		cs->attributes = xcip.attributes;
-	    }
-	}
-#else
 	nbytes = reply.nCharInfos * SIZEOF(xCharInfo);
 	_XRead16 (dpy, (char *)fs->per_char, nbytes);
-#endif
     }
 
     /* call out to any extensions interested */

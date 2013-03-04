@@ -232,6 +232,9 @@ typedef Bool (*RRProviderSetOffloadSinkProcPtr)(ScreenPtr pScreen,
                                          RRProviderPtr offload_sink);
 
 
+typedef void (*RRProviderDestroyProcPtr)(ScreenPtr pScreen,
+                                         RRProviderPtr provider);
+
 /* These are for 1.0 compatibility */
 
 typedef struct _rrRefresh {
@@ -330,6 +333,9 @@ typedef struct _rrScrPriv {
     Bool discontiguous;
 
     RRProviderPtr provider;
+
+    RRProviderDestroyProcPtr rrProviderDestroy;
+
 } rrScrPrivRec, *rrScrPrivPtr;
 
 extern _X_EXPORT DevPrivateKeyRec rrPrivKeyRec;

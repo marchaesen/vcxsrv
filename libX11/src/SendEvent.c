@@ -67,12 +67,7 @@ XSendEvent(
 	req->destination = w;
 	req->propagate = propagate;
 	req->eventMask = event_mask;
-#ifdef WORD64
-	/* avoid quad-alignment problems */
-	memcpy ((char *) req->eventdata, (char *) &ev, SIZEOF(xEvent));
-#else
 	req->event = ev;
-#endif /* WORD64 */
     }
 
     UnlockDisplay(dpy);

@@ -44,18 +44,6 @@ XMoveResizeWindow(
     GetReqExtra(ConfigureWindow, 16, req);
     req->window = w;
     req->mask = CWX | CWY | CWWidth | CWHeight;
-#ifdef MUSTCOPY
-    {
-	long lx = x, ly = y;
-	unsigned long lwidth = width, lheight = height;
-
-	dpy->bufptr -= 16;
-	Data32 (dpy, (long *) &lx, 4);	/* order must match values of */
-	Data32 (dpy, (long *) &ly, 4);	/* CWX, CWY, CWWidth, and CWHeight */
-	Data32 (dpy, (long *) &lwidth, 4);
-	Data32 (dpy, (long *) &lheight, 4);
-    }
-#else
     {
 	register CARD32 *valuePtr =
 	  (CARD32 *) NEXTPTR(req,xConfigureWindowReq);
@@ -64,7 +52,6 @@ XMoveResizeWindow(
 	*valuePtr++ = width;
 	*valuePtr   = height;
     }
-#endif /* MUSTCOPY */
     UnlockDisplay(dpy);
     SyncHandle();
     return 1;

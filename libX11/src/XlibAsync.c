@@ -100,11 +100,6 @@ _XGetAsyncReply(
 	    _XRead(dpy, replbuf + len, size - len);
 	    buf = replbuf;
 	    len = size;
-#ifdef MUSTCOPY
-	} else {
-	    memcpy(replbuf, buf, size);
-	    buf = replbuf;
-#endif
 	}
 
 	if (discard && rep->generic.length > extra &&

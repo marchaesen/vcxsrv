@@ -137,12 +137,7 @@ int XImageByteOrder(Display *dpy) { return (ImageByteOrder(dpy)); }
 
 unsigned long XNextRequest(Display *dpy)
 {
-#ifdef WORD64
-    WORD64ALIGN
-    return dpy->request + 1;
-#else
     return (NextRequest(dpy));
-#endif
 }
 
 unsigned long XLastKnownRequestProcessed(Display *dpy)

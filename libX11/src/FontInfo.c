@@ -29,7 +29,7 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "Xlibint.h"
 
-#if defined(XF86BIGFONT) && !defined(MUSTCOPY)
+#if defined(XF86BIGFONT)
 #define USE_XF86BIGFONT
 #endif
 #ifdef USE_XF86BIGFONT
@@ -133,31 +133,9 @@ XFontStruct **info)	/* RETURN */
 	fs->ascent 		= cvtINT16toInt (reply.fontAscent);
 	fs->descent 		= cvtINT16toInt (reply.fontDescent);
 
-#ifdef MUSTCOPY
-	{
-	    xCharInfo *xcip;
-
-	    xcip = (xCharInfo *) &reply.minBounds;
-	    fs->min_bounds.lbearing = xcip->leftSideBearing;
-	    fs->min_bounds.rbearing = xcip->rightSideBearing;
-	    fs->min_bounds.width = xcip->characterWidth;
-	    fs->min_bounds.ascent = xcip->ascent;
-	    fs->min_bounds.descent = xcip->descent;
-	    fs->min_bounds.attributes = xcip->attributes;
-
-	    xcip = (xCharInfo *) &reply.maxBounds;
-	    fs->max_bounds.lbearing = xcip->leftSideBearing;
-	    fs->max_bounds.rbearing = xcip->rightSideBearing;
-	    fs->max_bounds.width = xcip->characterWidth;
-	    fs->max_bounds.ascent = xcip->ascent;
-	    fs->max_bounds.descent = xcip->descent;
-	    fs->max_bounds.attributes = xcip->attributes;
-	}
-#else
 	/* XXX the next two statements won't work if short isn't 16 bits */
 	fs->min_bounds = * (XCharStruct *) &reply.minBounds;
 	fs->max_bounds = * (XCharStruct *) &reply.maxBounds;
-#endif /* MUSTCOPY */
 
 	fs->n_properties = reply.nFontProps;
 	if (fs->n_properties > 0) {

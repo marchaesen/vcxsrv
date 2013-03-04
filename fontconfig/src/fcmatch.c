@@ -269,7 +269,8 @@ FcObjectToMatcher (FcObject object,
 	    break;
 	}
     }
-    if (!_FcMatchers[object].compare ||
+    if (object > FC_MAX_BASE_OBJECT ||
+	!_FcMatchers[object].compare ||
 	_FcMatchers[object].strong == -1 ||
 	_FcMatchers[object].weak == -1)
 	return NULL;
@@ -910,6 +911,13 @@ FcFontSetSort (FcConfig	    *config FC_UNUSED,
 			}
 			patternLangSat[i] = FcTrue;
 			satisfies = FcTrue;
+			/* adjust score to ensure it's not more than 10000.0
+			 * which would means the lang didn't satisfy the requirements
+			 */
+			if (nodeps[f]->score[PRI_LANG_STRONG] > 10000.0)
+			    nodeps[f]->score[PRI_LANG_STRONG] = 10000.0;
+			if (nodeps[f]->score[PRI_LANG_WEAK] > 10000.0)
+			    nodeps[f]->score[PRI_LANG_WEAK] = 10000.0;
 			break;
 		    }
 		}

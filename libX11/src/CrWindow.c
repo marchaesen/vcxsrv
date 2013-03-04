@@ -57,20 +57,11 @@ Window XCreateSimpleWindow(
     wid = req->wid = XAllocID(dpy);
     req->mask = CWBackPixel | CWBorderPixel;
 
-#ifdef MUSTCOPY
-    {
-	unsigned long lbackground = background, lborder = border;
-	dpy->bufptr -= 8;
-	Data32 (dpy, (long *) &lbackground, 4);
-	Data32 (dpy, (long *) &lborder, 4);
-    }
-#else
     {
 	register CARD32 *valuePtr = (CARD32 *) NEXTPTR(req,xCreateWindowReq);
 	*valuePtr++ = background;
 	*valuePtr = border;
     }
-#endif /* MUSTCOPY */
 
     UnlockDisplay(dpy);
     SyncHandle();

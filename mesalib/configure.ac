@@ -1688,6 +1688,9 @@ if test "x$enable_gallium_llvm" = xyes; then
         if $LLVM_CONFIG --components | grep -q '\<mcjit\>'; then
             LLVM_COMPONENTS="${LLVM_COMPONENTS} mcjit"
         fi
+        if $LLVM_CONFIG --components | grep -q '\<oprofilejit\>'; then
+            LLVM_COMPONENTS="${LLVM_COMPONENTS} oprofilejit"
+        fi
 
         if test "x$enable_opencl" = xyes; then
             LLVM_COMPONENTS="${LLVM_COMPONENTS} ipo linker instrumentation"
@@ -1747,7 +1750,7 @@ AC_SUBST([VDPAU_LIB_INSTALL_DIR])
 dnl Directory for OpenCL libs
 AC_ARG_WITH([opencl-libdir],
     [AS_HELP_STRING([--with-opencl-libdir=DIR],
-        [directory for the OpenCL libraries @<:@default=${libdir}/opencl@:>@])],
+        [directory for auxiliary libraries used by the OpenCL implementation @<:@default=${libdir}/opencl@:>@])],
     [OPENCL_LIB_INSTALL_DIR="$withval"],
     [OPENCL_LIB_INSTALL_DIR='${libdir}/opencl'])
 AC_SUBST([OPENCL_LIB_INSTALL_DIR])

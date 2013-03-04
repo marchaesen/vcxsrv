@@ -36,9 +36,6 @@ XRestackWindows (
     int n)
 {
     int i = 0;
-#ifdef MUSTCOPY
-    unsigned long val = Below;		/* needed for macro below */
-#endif
 
     LockDisplay(dpy);
     while (windows++, ++i < n) {
@@ -47,18 +44,12 @@ XRestackWindows (
     	GetReqExtra (ConfigureWindow, 8, req);
 	req->window = *windows;
 	req->mask = CWSibling | CWStackMode;
-#ifdef MUSTCOPY
-	dpy->bufptr -= 8;
-	Data32 (dpy, (long *)(windows-1), 4);
-	Data32 (dpy, (long *)&val, 4);
-#else
 	{
 	    register CARD32 *values = (CARD32 *)
 	      NEXTPTR(req,xConfigureWindowReq);
 	    *values++ = *(windows-1);
 	    *values   = Below;
 	}
-#endif /* MUSTCOPY */
 	}
     UnlockDisplay(dpy);
     SyncHandle();

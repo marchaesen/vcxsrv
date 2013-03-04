@@ -80,12 +80,8 @@ _XcmsModuloF(
 #define XCMS_FABS(x)		((x) < 0.0 ? -(x) : (x))
 
 /* XCMS_DMAXPOWTWO - largest power of two exactly representable as a double */
-#ifdef _CRAY
-#define XCMS_DMAXPOWTWO	((double)(1 < 47))
-#else
 #define XCMS_DMAXPOWTWO	((double)(XCMS_LONG_MAX) * \
 	    (1L << ((XCMS_NBITS(double)-XCMS_DEXPLEN) - XCMS_NBITS(int) + 1)))
-#endif
 
 /*
  *	LOCAL VARIABLES

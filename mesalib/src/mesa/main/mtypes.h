@@ -993,6 +993,12 @@ struct gl_multisample_attrib
    GLboolean SampleCoverage;
    GLfloat SampleCoverageValue;
    GLboolean SampleCoverageInvert;
+
+   /* ARB_texture_multisample / GL3.2 additions */
+   GLboolean SampleMask;
+   GLbitfield SampleMaskValue; /* GL spec defines this as an array but >32x MSAA is
+                                * madness
+                                */
 };
 
 
@@ -1148,6 +1154,8 @@ struct gl_stencil_attrib
  */
 typedef enum
 {
+   TEXTURE_2D_MULTISAMPLE_INDEX,
+   TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX,
    TEXTURE_CUBE_ARRAY_INDEX,
    TEXTURE_BUFFER_INDEX,
    TEXTURE_2D_ARRAY_INDEX,
@@ -1167,6 +1175,8 @@ typedef enum
  * Used for Texture.Unit[]._ReallyEnabled flags.
  */
 /*@{*/
+#define TEXTURE_2D_MULTISAMPLE_BIT (1 << TEXTURE_2D_MULTISAMPLE_INDEX)
+#define TEXTURE_2D_MULTISAMPLE_ARRAY_BIT (1 << TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX)
 #define TEXTURE_CUBE_ARRAY_BIT (1 << TEXTURE_CUBE_ARRAY_INDEX)
 #define TEXTURE_BUFFER_BIT   (1 << TEXTURE_BUFFER_INDEX)
 #define TEXTURE_2D_ARRAY_BIT (1 << TEXTURE_2D_ARRAY_INDEX)
@@ -1212,6 +1222,10 @@ struct gl_texture_image
    GLuint Level;                /**< Which mipmap level am I? */
    /** Cube map face: index into gl_texture_object::Image[] array */
    GLuint Face;
+
+   /** GL_ARB_texture_multisample */
+   GLuint NumSamples;               /**< Sample count, or 0 for non-multisample */
+   GLboolean FixedSampleLocations;  /**< Same sample locations for all pixels? */
 };
 
 
@@ -3027,6 +3041,11 @@ struct gl_constants
     * backslash character ('\') in GLSL source.
     */
    GLboolean DisableGLSLLineContinuations;
+
+   /** GL_ARB_texture_multisample */
+   GLint MaxColorTextureSamples;
+   GLint MaxDepthTextureSamples;
+   GLint MaxIntegerSamples;
 };
 
 

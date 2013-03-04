@@ -128,11 +128,7 @@ typedef char *XPointer;
 #define BitmapBitOrder(dpy) 	(((_XPrivDisplay)dpy)->bitmap_bit_order)
 #define BitmapPad(dpy) 		(((_XPrivDisplay)dpy)->bitmap_pad)
 #define ImageByteOrder(dpy) 	(((_XPrivDisplay)dpy)->byte_order)
-#ifdef CRAY /* unable to get WORD64 without pulling in other symbols */
-#define NextRequest(dpy)	XNextRequest(dpy)
-#else
 #define NextRequest(dpy)	(((_XPrivDisplay)dpy)->request + 1)
-#endif
 #define LastKnownRequestProcessed(dpy)	(((_XPrivDisplay)dpy)->last_request_read)
 
 /* macros for screen oriented applications (toolkit) */

@@ -195,34 +195,6 @@ ir_assignment::ir_assignment(ir_rvalue *lhs, ir_rvalue *rhs,
    this->set_lhs(lhs);
 }
 
-
-ir_expression::ir_expression(int op, const struct glsl_type *type,
-			     ir_rvalue *op0)
-{
-   assert(get_num_operands(ir_expression_operation(op)) == 1);
-   this->ir_type = ir_type_expression;
-   this->type = type;
-   this->operation = ir_expression_operation(op);
-   this->operands[0] = op0;
-   this->operands[1] = NULL;
-   this->operands[2] = NULL;
-   this->operands[3] = NULL;
-}
-
-ir_expression::ir_expression(int op, const struct glsl_type *type,
-			     ir_rvalue *op0, ir_rvalue *op1)
-{
-   assert(((op1 == NULL) && (get_num_operands(ir_expression_operation(op)) == 1))
-	  || (get_num_operands(ir_expression_operation(op)) == 2));
-   this->ir_type = ir_type_expression;
-   this->type = type;
-   this->operation = ir_expression_operation(op);
-   this->operands[0] = op0;
-   this->operands[1] = op1;
-   this->operands[2] = NULL;
-   this->operands[3] = NULL;
-}
-
 ir_expression::ir_expression(int op, const struct glsl_type *type,
 			     ir_rvalue *op0, ir_rvalue *op1,
 			     ir_rvalue *op2, ir_rvalue *op3)
@@ -234,6 +206,12 @@ ir_expression::ir_expression(int op, const struct glsl_type *type,
    this->operands[1] = op1;
    this->operands[2] = op2;
    this->operands[3] = op3;
+#ifndef NDEBUG
+   int num_operands = get_num_operands(this->operation);
+   for (int i = num_operands; i < 4; i++) {
+      assert(this->operands[i] == NULL);
+   }
+#endif
 }
 
 ir_expression::ir_expression(int op, ir_rvalue *op0)
@@ -438,6 +416,9 @@ ir_expression::get_num_operands(ir_expression_operation op)
    if (op <= ir_last_binop)
       return 2;
 
+   if (op <= ir_last_triop)
+      return 3;
+
    if (op == ir_quadop_vector)
       return 4;
 
@@ -524,6 +505,7 @@ static const char *const operator_strs[] = {
    "pow",
    "packHalf2x16_split",
    "ubo_load",
+   "lrp",
    "vector",
 };
 
@@ -1325,7 +1307,7 @@ ir_dereference::is_lvalue() const
 }
 
 
-static const char *tex_opcode_strs[] = { "tex", "txb", "txl", "txd", "txf", "txs" };
+static const char *tex_opcode_strs[] = { "tex", "txb", "txl", "txd", "txf", "txf_ms", "txs" };
 
 const char *ir_texture::opcode_string()
 {

@@ -45,12 +45,6 @@ XDrawLine (
     int y2)
 {
     register xSegment *segment;
-#ifdef MUSTCOPY
-    xSegment segmentdata;
-    long len = SIZEOF(xSegment);
-
-    segment = &segmentdata;
-#endif /* not MUSTCOPY */
 
     LockDisplay(dpy);
     FlushGC(dpy, gc);
@@ -67,31 +61,21 @@ XDrawLine (
        && (((char *)dpy->bufptr - (char *)req) < (gc->values.line_width ?
 						  wsize : zsize)) ) {
 	 req->length += SIZEOF(xSegment) >> 2;
-#ifndef MUSTCOPY
          segment = (xSegment *) dpy->bufptr;
 	 dpy->bufptr += SIZEOF(xSegment);
-#endif /* not MUSTCOPY */
 	 }
 
     else {
 	GetReqExtra (PolySegment, SIZEOF(xSegment), req);
 	req->drawable = d;
 	req->gc = gc->gid;
-#ifdef MUSTCOPY
-	dpy->bufptr -= SIZEOF(xSegment);
-#else
 	segment = (xSegment *) NEXTPTR(req,xPolySegmentReq);
-#endif /* MUSTCOPY */
 	}
 
     segment->x1 = x1;
     segment->y1 = y1;
     segment->x2 = x2;
     segment->y2 = y2;
-
-#ifdef MUSTCOPY
-    Data (dpy, (char *) &segmentdata, len);
-#endif /* MUSTCOPY */
 
     UnlockDisplay(dpy);
     SyncHandle();

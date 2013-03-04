@@ -658,6 +658,16 @@ descriptor=[
   [ "TEXTURE_BUFFER_FORMAT_ARB", "LOC_CUSTOM, TYPE_INT, 0, extra_texture_buffer_object" ],
   [ "TEXTURE_BUFFER_ARB", "LOC_CUSTOM, TYPE_INT, 0, extra_texture_buffer_object" ],
 
+# GL_ARB_texture_multisample / GL 3.2
+  [ "TEXTURE_BINDING_2D_MULTISAMPLE", "LOC_CUSTOM, TYPE_INT, TEXTURE_2D_MULTISAMPLE_INDEX, extra_ARB_texture_multisample" ],
+  [ "TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY", "LOC_CUSTOM, TYPE_INT, TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX, extra_ARB_texture_multisample" ],
+  [ "MAX_COLOR_TEXTURE_SAMPLES", "CONTEXT_INT(Const.MaxColorTextureSamples), extra_ARB_texture_multisample" ],
+  [ "MAX_DEPTH_TEXTURE_SAMPLES", "CONTEXT_INT(Const.MaxDepthTextureSamples), extra_ARB_texture_multisample" ],
+  [ "MAX_INTEGER_SAMPLES", "CONTEXT_INT(Const.MaxIntegerSamples), extra_ARB_texture_multisample" ],
+  [ "SAMPLE_MASK", "CONTEXT_BOOL(Multisample.SampleMask), extra_ARB_texture_multisample" ],
+  [ "MAX_SAMPLE_MASK_WORDS", "CONST(1), extra_ARB_texture_multisample" ],
+
+
 # GL_ARB_sampler_objects / GL 3.3
   [ "SAMPLER_BINDING", "LOC_CUSTOM, TYPE_INT, GL_SAMPLER_BINDING, NO_EXTRA" ],
 

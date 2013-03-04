@@ -494,38 +494,10 @@ XkbSetNames(	Display *	dpy,
     if (which&XkbGroupNamesMask)
 	_XkbCopyAtoms(dpy,names->groups,groups,XkbNumKbdGroups);
     if (which&XkbKeyNamesMask) {
-#ifdef WORD64
-	char *tmp;
-	register int i;
-	BufAlloc(char *,tmp,nKeys*XkbKeyNameLength);
-	for (i=0;i<nKeys;i++,tmp+= XkbKeyNameLength) {
-	    tmp[0]= names->keys[firstKey+i].name[0];
-	    tmp[1]= names->keys[firstKey+i].name[1];
-	    tmp[2]= names->keys[firstKey+i].name[2];
-	    tmp[3]= names->keys[firstKey+i].name[3];
-	}
-#else
 	Data(dpy,(char *)&names->keys[firstKey],nKeys*XkbKeyNameLength);
-#endif
     }
     if (which&XkbKeyAliasesMask) {
-#ifdef WORD64
-	char *tmp;
-	register int i;
-	BufAlloc(char *,tmp,nKA*XkbKeyNameLength*2);
-	for (i=0;i<nKeys;i++,tmp+= 2*XkbKeyNameLength) {
-	    tmp[0]= names->key_aliases[i].real[0];
-	    tmp[1]= names->key_aliases[i].real[1];
-	    tmp[2]= names->key_aliases[i].real[2];
-	    tmp[3]= names->key_aliases[i].real[3];
-	    tmp[4]= names->key_aliases[i].alias[0];
-	    tmp[5]= names->key_aliases[i].alias[1];
-	    tmp[6]= names->key_aliases[i].alias[2];
-	    tmp[7]= names->key_aliases[i].alias[3];
-	}
-#else
 	Data(dpy,(char *)names->key_aliases,nKA*XkbKeyNameLength*2);
-#endif
     }
     if (which&XkbRGNamesMask) {
 	Data32(dpy,(long *)names->radio_groups,nRG*4);
@@ -750,38 +722,10 @@ XkbChangeNames(Display *dpy,XkbDescPtr xkb,XkbNameChangesPtr changes)
     if (which&XkbGroupNamesMask)
 	_XkbCopyAtoms(dpy,names->groups,groups,XkbNumKbdGroups);
     if (which&XkbKeyNamesMask) {
-#ifdef WORD64
-	char *tmp;
-	register int i;
-	BufAlloc(char *,tmp,nKeys*4);
-	for (i=0;i<nKeys;i++,tmp+= 4) {
-	    tmp[0]= names->keys[firstKey+i].name[0];
-	    tmp[1]= names->keys[firstKey+i].name[1];
-	    tmp[2]= names->keys[firstKey+i].name[2];
-	    tmp[3]= names->keys[firstKey+i].name[3];
-	}
-#else
 	Data(dpy,(char *)&names->keys[firstKey],nKeys*XkbKeyNameLength);
-#endif
     }
     if (which&XkbKeyAliasesMask) {
-#ifdef WORD64
-	char *tmp;
-	register int i;
-	BufAlloc(char *,tmp,nKA*XkbKeyNameLength*2);
-	for (i=0;i<nKeys;i++,tmp+= 2*XkbKeyNameLength) {
-	    tmp[0]= names->key_aliases[i].real[0];
-	    tmp[1]= names->key_aliases[i].real[1];
-	    tmp[2]= names->key_aliases[i].real[2];
-	    tmp[3]= names->key_aliases[i].real[3];
-	    tmp[4]= names->key_aliases[i].alias[0];
-	    tmp[5]= names->key_aliases[i].alias[1];
-	    tmp[6]= names->key_aliases[i].alias[2];
-	    tmp[7]= names->key_aliases[i].alias[3];
-	}
-#else
 	Data(dpy,(char *)names->key_aliases,nKA*XkbKeyNameLength*2);
-#endif
     }
     if (which&XkbRGNamesMask) {
 	Data32(dpy,(long *)names->radio_groups,nRG*4);

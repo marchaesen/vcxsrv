@@ -438,7 +438,12 @@ xf86platformAddDevice(int index)
     }
 
    scr_index = AddGPUScreen(xf86GPUScreens[i]->ScreenInit, 0, NULL);
-
+   if (scr_index == -1) {
+       xf86DeleteScreen(xf86GPUScreens[i]);
+       xf86UnclaimPlatformSlot(&xf86_platform_devices[index], NULL);
+       xf86NumGPUScreens = old_screens;
+       return -1;
+   }
    dixSetPrivate(&xf86GPUScreens[i]->pScreen->devPrivates,
                  xf86ScreenKey, xf86GPUScreens[i]);
 

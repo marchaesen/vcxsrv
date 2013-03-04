@@ -745,6 +745,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
    GLenum intFormat = GL_NONE; /* color buffers' internal format */
    GLuint minWidth = ~0, minHeight = ~0, maxWidth = 0, maxHeight = 0;
    GLint numSamples = -1;
+   GLint fixedSampleLocations = -1;
    GLint i;
    GLuint j;
 
@@ -814,10 +815,27 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
          f = texImg->_BaseFormat;
          attFormat = texImg->TexFormat;
          numImages++;
+
          if (!is_format_color_renderable(ctx, attFormat, texImg->InternalFormat) &&
              !is_legal_depth_format(ctx, f)) {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT;
             fbo_incomplete("texture attachment incomplete", -1);
+            return;
+         }
+
+         if (numSamples < 0)
+            numSamples = texImg->NumSamples;
+         else if (numSamples != texImg->NumSamples) {
+            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
+            fbo_incomplete("inconsistent sample count", -1);
+            return;
+         }
+
+         if (fixedSampleLocations < 0)
+            fixedSampleLocations = texImg->FixedSampleLocations;
+         else if (fixedSampleLocations != texImg->FixedSampleLocations) {
+            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
+            fbo_incomplete("inconsistent fixed sample locations", -1);
             return;
          }
       }
@@ -829,24 +847,35 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
          f = att->Renderbuffer->InternalFormat;
          attFormat = att->Renderbuffer->Format;
          numImages++;
+
+         if (numSamples < 0)
+            numSamples = att->Renderbuffer->NumSamples;
+         else if (numSamples != att->Renderbuffer->NumSamples) {
+            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
+            fbo_incomplete("inconsistent sample count", -1);
+            return;
+         }
+
+         /* RENDERBUFFER has fixedSampleLocations implicitly true */
+         if (fixedSampleLocations < 0)
+            fixedSampleLocations = GL_TRUE;
+         else if (fixedSampleLocations != GL_TRUE) {
+            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
+            fbo_incomplete("inconsistent fixed sample locations", -1);
+            return;
+         }
       }
       else {
          assert(att->Type == GL_NONE);
          continue;
       }
 
-      if (att->Renderbuffer && numSamples < 0) {
-         /* first buffer */
-         numSamples = att->Renderbuffer->NumSamples;
-      }
-
       /* check if integer color */
       fb->_IntegerColor = _mesa_is_format_integer_color(attFormat);
 
-      /* Error-check width, height, format, samples
-       */
+      /* Error-check width, height, format */
       if (numImages == 1) {
-         /* save format, num samples */
+         /* save format */
          if (i >= 0) {
             intFormat = f;
          }
@@ -865,12 +894,6 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
                fbo_incomplete("format mismatch", -1);
                return;
             }
-         }
-         if (att->Renderbuffer &&
-             att->Renderbuffer->NumSamples != numSamples) {
-            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
-            fbo_incomplete("inconsistant number of samples", i);
-            return;
          }
       }
 
@@ -2069,7 +2092,8 @@ framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
             err = (texObj->Target != GL_TEXTURE_3D) &&
                 (texObj->Target != GL_TEXTURE_1D_ARRAY_EXT) &&
                 (texObj->Target != GL_TEXTURE_2D_ARRAY_EXT) &&
-                (texObj->Target != GL_TEXTURE_CUBE_MAP_ARRAY);
+                (texObj->Target != GL_TEXTURE_CUBE_MAP_ARRAY) &&
+                (texObj->Target != GL_TEXTURE_2D_MULTISAMPLE_ARRAY);
          }
          else {
             /* Make sure textarget is consistent with the texture's type */
@@ -2103,7 +2127,8 @@ framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
       }
       else if ((texObj->Target == GL_TEXTURE_1D_ARRAY_EXT) ||
                (texObj->Target == GL_TEXTURE_2D_ARRAY_EXT) ||
-               (texObj->Target == GL_TEXTURE_CUBE_MAP_ARRAY)) {
+               (texObj->Target == GL_TEXTURE_CUBE_MAP_ARRAY) ||
+               (texObj->Target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY)) {
          if (zoffset < 0 ||
              zoffset >= (GLint) ctx->Const.MaxArrayTextureLayers) {
             _mesa_error(ctx, GL_INVALID_VALUE,
@@ -2254,6 +2279,11 @@ _mesa_FramebufferTexture2D(GLenum target, GLenum attachment,
       case GL_TEXTURE_2D_ARRAY:
          error = (_mesa_is_gles(ctx) && ctx->Version < 30)
             || !ctx->Extensions.EXT_texture_array;
+         break;
+      case GL_TEXTURE_2D_MULTISAMPLE:
+      case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+         error = _mesa_is_gles(ctx)
+            || !ctx->Extensions.ARB_texture_multisample;
          break;
       default:
          error = GL_TRUE;

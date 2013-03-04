@@ -262,47 +262,6 @@ _XomGetFontSetFromCharSet(
     return (FontSet) NULL;
 }
 
-#ifdef MUSTCOPY
-static void
-cs_to_xchar2b(
-    register char *from,
-    register XChar2b *to,
-    register length)
-{
-    while (length-- > 0) {
-	to->byte1 = *from++;
-	to->byte2 = *from++;
-	to++;
-    }
-}
-
-static void
-cs_to_xchar2b_gl(
-    register char *from,
-    register XChar2b *to,
-    register length)
-{
-    while (length-- > 0) {
-	to->byte1 = *from++ & 0x7f;
-	to->byte2 = *from++ & 0x7f;
-	to++;
-    }
-}
-
-static void
-cs_to_xchar2b_gr(
-    register char *from,
-    register XChar2b *to,
-    register length)
-{
-    while (length-- > 0) {
-	to->byte1 = *from++ | 0x80;
-	to->byte2 = *from++ | 0x80;
-	to++;
-    }
-}
-#endif
-
 static void
 shift_to_gl(
     register char *text,
@@ -358,10 +317,6 @@ _XomConvert(
     XlcCharSet charset;
     int length, cs_left, ret;
     FontSet font_set;
-#ifdef MUSTCOPY
-    XChar2b *xchar2b;
-    char *buf, buf_local[BUFSIZ];
-#endif
 
     cs = *to;
     cs_left = *to_left;
@@ -380,45 +335,17 @@ _XomConvert(
 
     length = *to_left - cs_left;
 
-#ifdef MUSTCOPY
-    if (font_set->is_xchar2b) {
-	buf = (length > BUFSIZ) ? Xmalloc(length) : buf_local;
-	if (buf == NULL)
-	    return -1;
-	memcpy(buf, (char *) *to, length);
-
-	xchar2b = (XChar2b *) *to;
-	length >>= 1;
-
-	if (font_set->side == charset->side)
-	    cs_to_xchar2b(buf, xchar2b, length);
-	else if (font_set->side == XlcGL)
-	    cs_to_xchar2b_gl(buf, xchar2b, length);
+    if (font_set->side != charset->side) {
+	if (font_set->side == XlcGL)
+	    shift_to_gl(*to, length);
 	else if (font_set->side == XlcGR)
-	    cs_to_xchar2b_gr(buf, xchar2b, length);
-	else
-	    cs_to_xchar2b(buf, xchar2b, length);
-
-	if (buf != buf_local)
-	    Xfree(buf);
-
-	*to = (XPointer) (xchar2b + length);
-	*to_left -= length;
-    } else
-#endif
-    {
-	if (font_set->side != charset->side) {
-	    if (font_set->side == XlcGL)
-		shift_to_gl(*to, length);
-	    else if (font_set->side == XlcGR)
-		shift_to_gr(*to, length);
-	}
-
-	if (font_set->is_xchar2b)
-	    length >>= 1;
-	*to = cs;
-	*to_left -= length;
+	    shift_to_gr(*to, length);
     }
+
+    if (font_set->is_xchar2b)
+	length >>= 1;
+    *to = cs;
+    *to_left -= length;
 
     *((XFontStruct **) args[0]) = font_set->font;
     *((Bool *) args[1]) = font_set->is_xchar2b;

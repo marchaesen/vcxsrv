@@ -111,15 +111,8 @@ XHostAddress *XListHosts (
 	_XRead (dpy, (char *) buf, nbytes);
 
 	for (i = 0; i < reply.nHosts; i++) {
-#ifdef WORD64
-	    xHostEntry xhe;
-	    memcpy((char *)&xhe, bp, SIZEOF(xHostEntry));
-	    op->family = xhe.family;
-	    op->length = xhe.length;
-#else
 	    op->family = ((xHostEntry *) bp)->family;
 	    op->length =((xHostEntry *) bp)->length;
-#endif
 	    if (op->family == FamilyServerInterpreted) {
 		char *tp = (char *) (bp + SIZEOF(xHostEntry));
 		char *vp = memchr(tp, 0, op->length);
