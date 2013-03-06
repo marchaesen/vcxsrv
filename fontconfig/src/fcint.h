@@ -501,7 +501,9 @@ struct _FcConfig {
 
     FcRef	ref;                /* reference count */
 
-    FcExprPage *expr_pool;	    /* pool of FcExpr's */
+    FcExprPage  *expr_pool;	    /* pool of FcExpr's */
+
+    FcChar8     *sysRoot;	    /* override the system root directory */
 };
 
 typedef struct _FcFileTime {
@@ -819,6 +821,13 @@ FcHashGetSHA256Digest (const FcChar8 *input_strings,
 FcPrivate FcChar8 *
 FcHashGetSHA256DigestFromFile (const FcChar8 *filename);
 
+/* fcinit.c */
+FcPrivate FcConfig *
+FcInitLoadOwnConfig (FcConfig *config);
+
+FcPrivate FcConfig *
+FcInitLoadOwnConfigAndFonts (FcConfig *config);
+
 /* fcxml.c */
 FcPrivate void
 FcTestDestroy (FcTest *test);
@@ -1071,6 +1080,10 @@ FcStrContainsWord (const FcChar8 *s1, const FcChar8 *s2);
 
 FcPrivate FcBool
 FcStrUsesHome (const FcChar8 *s);
+
+FcPrivate FcChar8 *
+FcStrBuildFilename (const FcChar8 *path,
+		    ...);
 
 FcPrivate FcChar8 *
 FcStrLastSlash (const FcChar8  *path);

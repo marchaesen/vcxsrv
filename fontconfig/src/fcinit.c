@@ -65,14 +65,16 @@ FcGetVersion (void)
  * Load the configuration files
  */
 FcConfig *
-FcInitLoadConfig (void)
+FcInitLoadOwnConfig (FcConfig *config)
 {
-    FcConfig	*config;
+    if (!config)
+    {
+	config = FcConfigCreate ();
+	if (!config)
+	    return NULL;
+    }
 
     FcInitDebug ();
-    config = FcConfigCreate ();
-    if (!config)
-	return NULL;
 
     if (!FcConfigParseAndLoad (config, 0, FcTrue))
     {
@@ -120,15 +122,19 @@ FcInitLoadConfig (void)
     return config;
 }
 
+FcConfig *
+FcInitLoadConfig (void)
+{
+    return FcInitLoadOwnConfig (NULL);
+}
+
 /*
  * Load the configuration files and scan for available fonts
  */
 FcConfig *
-FcInitLoadConfigAndFonts (void)
+FcInitLoadOwnConfigAndFonts (FcConfig *config)
 {
-    FcConfig	*config = FcInitLoadConfig ();
-
-    FcInitDebug ();
+    config = FcInitLoadOwnConfig (config);
     if (!config)
 	return 0;
     if (!FcConfigBuildFonts (config))
@@ -137,6 +143,12 @@ FcInitLoadConfigAndFonts (void)
 	return 0;
     }
     return config;
+}
+
+FcConfig *
+FcInitLoadConfigAndFonts (void)
+{
+    return FcInitLoadOwnConfigAndFonts (NULL);
 }
 
 /*

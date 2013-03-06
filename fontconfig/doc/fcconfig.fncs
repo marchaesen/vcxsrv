@@ -371,3 +371,24 @@ and parsed.  If 'complain' is FcFalse, no warning will be displayed if
 Returns FcFalse if some error occurred while loading the file, either a
 parse error, semantic error or allocation failure. Otherwise returns FcTrue.
 @@
+
+@RET@		const FcChar8 *
+@FUNC@		FcConfigGetSysRoot
+@TYPE1@		const FcConfig *		@ARG1@		config
+@PURPOSE@	Obtain the system root directory
+@DESC@
+Obtrains the system root directory in 'config' if available.
+@@
+
+@RET@		void
+@FUNC@		FcConfigSetSysRoot
+@TYPE1@		FcConfig *			@ARG1@		config
+@TYPE2@		const FcChar8 *			@ARG2@		sysroot
+@PURPOSE@	Set the system root directory
+@DESC@
+Set 'sysroot' as the system root directory. fontconfig prepend 'sysroot'
+to the cache directories in order to allow people to generate caches at
+the build time. Note that this causes changing current config. i.e.
+this function calls FcConfigSetCurrent() internally.
+@@
+

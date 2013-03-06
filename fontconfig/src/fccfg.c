@@ -123,6 +123,8 @@ FcConfigCreate (void)
 
     config->expr_pool = NULL;
 
+    config->sysRoot = NULL;
+
     FcRefInit (&config->ref, 1);
 
     return config;
@@ -292,6 +294,8 @@ FcConfigDestroy (FcConfig *config)
       free (page);
       page = next;
     }
+    if (config->sysRoot)
+	FcStrFree (config->sysRoot);
 
     free (config);
 }
@@ -2309,6 +2313,59 @@ FcConfigAcceptFont (FcConfig	    *config,
 	return FcFalse;
     return FcTrue;
 }
+
+const FcChar8 *
+FcConfigGetSysRoot (const FcConfig *config)
+{
+    if (!config)
+    {
+	config = FcConfigGetCurrent ();
+	if (!config)
+	    return NULL;
+    }
+
+    return config->sysRoot;
+}
+
+void
+FcConfigSetSysRoot (FcConfig      *config,
+		    const FcChar8 *sysroot)
+{
+    FcChar8 *s;
+    FcBool init = FcFalse;
+
+    if (!config)
+    {
+	/* We can't use FcConfigGetCurrent() here to ensure
+	 * the sysroot is set prior to initialize FcConfig,
+	 * to avoid loading caches from non-sysroot dirs.
+	 * So postpone the initialization later.
+	 */
+	config = fc_atomic_ptr_get (&_fcConfig);
+	if (!config)
+	{
+	    config = FcConfigCreate ();
+	    if (!config)
+		return;
+	    init = FcTrue;
+	}
+    }
+
+    s = FcStrCopyFilename (sysroot);
+    if (!s)
+	return;
+
+    if (config->sysRoot)
+	FcStrFree (config->sysRoot);
+
+    config->sysRoot = s;
+    if (init)
+    {
+	config = FcInitLoadOwnConfigAndFonts (config);
+	FcConfigSetCurrent (config);
+    }
+}
+
 #define __fccfg__
 #include "fcaliastail.h"
 #undef __fccfg__
