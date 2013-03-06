@@ -3368,52 +3368,61 @@ struct gl_dlist_state
    } Current;
 };
 
+/** @{
+ *
+ * These are a mapping of the GL_ARB_debug_output enums to small enums
+ * suitable for use as an array index.
+ */
+
+enum mesa_debug_source {
+   MESA_DEBUG_SOURCE_API,
+   MESA_DEBUG_SOURCE_WINDOW_SYSTEM,
+   MESA_DEBUG_SOURCE_SHADER_COMPILER,
+   MESA_DEBUG_SOURCE_THIRD_PARTY,
+   MESA_DEBUG_SOURCE_APPLICATION,
+   MESA_DEBUG_SOURCE_OTHER,
+   MESA_DEBUG_SOURCE_COUNT,
+};
+
+enum mesa_debug_type {
+   MESA_DEBUG_TYPE_ERROR,
+   MESA_DEBUG_TYPE_DEPRECATED,
+   MESA_DEBUG_TYPE_UNDEFINED,
+   MESA_DEBUG_TYPE_PORTABILITY,
+   MESA_DEBUG_TYPE_PERFORMANCE,
+   MESA_DEBUG_TYPE_OTHER,
+   MESA_DEBUG_TYPE_COUNT,
+};
+
+enum mesa_debug_severity {
+   MESA_DEBUG_SEVERITY_LOW,
+   MESA_DEBUG_SEVERITY_MEDIUM,
+   MESA_DEBUG_SEVERITY_HIGH,
+   MESA_DEBUG_SEVERITY_COUNT,
+};
+
+/** @} */
+
 /**
  * An error, warning, or other piece of debug information for an application
  * to consume via GL_ARB_debug_output.
  */
 struct gl_debug_msg
 {
-   GLenum source;
-   GLenum type;
+   enum mesa_debug_source source;
+   enum mesa_debug_type type;
    GLuint id;
-   GLenum severity;
+   enum mesa_debug_severity severity;
    GLsizei length;
    GLcharARB *message;
 };
 
-typedef enum {
-   API_ERROR_UNKNOWN,
-   API_ERROR_COUNT
-} gl_api_error;
-
-typedef enum {
-   WINSYS_ERROR_UNKNOWN,
-   WINSYS_ERROR_COUNT
-} gl_winsys_error;
-
-typedef enum {
-   SHADER_ERROR_UNKNOWN,
-   SHADER_ERROR_COUNT
-} gl_shader_error;
-
-typedef enum {
-   OTHER_ERROR_UNKNOWN,
-   OTHER_ERROR_OUT_OF_MEMORY,
-   OTHER_ERROR_COUNT
-} gl_other_error;
-
-struct gl_client_namespace
+struct gl_debug_namespace
 {
    struct _mesa_HashTable *IDs;
    unsigned ZeroID; /* a HashTable won't take zero, so store its state here */
-   struct simple_node Severity[3]; /* lists of IDs in the hash table */
-};
-
-struct gl_client_debug
-{
-   GLboolean Defaults[3][2][6]; /* severity, source, type */
-   struct gl_client_namespace Namespaces[2][6]; /* source, type */
+   /** lists of IDs in the hash table at each severity */
+   struct simple_node Severity[MESA_DEBUG_SEVERITY_COUNT];
 };
 
 struct gl_debug_state
@@ -3421,11 +3430,8 @@ struct gl_debug_state
    GLDEBUGPROCARB Callback;
    GLvoid *CallbackData;
    GLboolean SyncOutput;
-   GLboolean ApiErrors[API_ERROR_COUNT];
-   GLboolean WinsysErrors[WINSYS_ERROR_COUNT];
-   GLboolean ShaderErrors[SHADER_ERROR_COUNT];
-   GLboolean OtherErrors[OTHER_ERROR_COUNT];
-   struct gl_client_debug ClientIDs;
+   GLboolean Defaults[MESA_DEBUG_SEVERITY_COUNT][MESA_DEBUG_SOURCE_COUNT][MESA_DEBUG_TYPE_COUNT];
+   struct gl_debug_namespace Namespaces[MESA_DEBUG_SOURCE_COUNT][MESA_DEBUG_TYPE_COUNT];
    struct gl_debug_msg Log[MAX_DEBUG_LOGGED_MESSAGES];
    GLint NumMessages;
    GLint NextMsg;

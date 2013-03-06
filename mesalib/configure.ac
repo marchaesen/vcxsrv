@@ -832,20 +832,6 @@ if test "x$enable_dri" = xyes; then
     fi
 fi
 
-dnl Find out if X is available.
-PKG_CHECK_MODULES([X11], [x11], [no_x=no], [no_x=yes])
-
-dnl Try to tell the user that the --x-* options are only used when
-dnl pkg-config is not available. This must be right after AC_PATH_XTRA.
-m4_divert_once([HELP_BEGIN],
-[These options are only used when the X libraries cannot be found by the
-pkg-config utility.])
-
-dnl We need X for xlib and dri, so bomb now if it's not found
-if test "x$enable_glx" = xyes -a "x$no_x" = xyes; then
-    AC_MSG_ERROR([X11 development libraries needed for GLX])
-fi
-
 dnl Direct rendering or just indirect rendering
 case "$host_os" in
 gnu*)
@@ -1095,7 +1081,7 @@ if test "x$enable_dri" = xyes; then
     fi
 
     # if we are building any dri driver other than swrast or using the dri state tracker ...
-    if test -n "$DRI_DIRS" -a x"$DRI_DIRS" != xswrast || test "x$enable_dri" = xyes; then
+    if test -n "$DRI_DIRS" -a x"$DRI_DIRS" != xswrast -a "x$enable_dri" = xyes; then
         # ... libdrm is required
         if test "x$have_libdrm" != xyes; then
             AC_MSG_ERROR([DRI drivers requires libdrm >= $LIBDRM_REQUIRED])

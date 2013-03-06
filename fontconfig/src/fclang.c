@@ -1027,9 +1027,11 @@ FcLangSetOperate(const FcLangSet	*a,
 						 const FcChar8	*s))
 {
     FcLangSet	*langset = FcLangSetCopy (a);
-    FcStrList	*sl = FcStrListCreate (FcLangSetGetLangs (b));
+    FcStrSet	*set = FcLangSetGetLangs (b);
+    FcStrList	*sl = FcStrListCreate (set);
     FcChar8	*str;
 
+    FcStrSetDestroy (set);
     while ((str = FcStrListNext (sl)))
     {
 	func (langset, str);
