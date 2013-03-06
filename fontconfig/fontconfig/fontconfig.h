@@ -420,6 +420,13 @@ FcConfigSubstitute (FcConfig	*config,
 		    FcPattern	*p,
 		    FcMatchKind	kind);
 
+FcPublic const FcChar8 *
+FcConfigGetSysRoot (const FcConfig *config);
+
+FcPublic void
+FcConfigSetSysRoot (FcConfig      *config,
+		    const FcChar8 *sysroot);
+
 /* fccharset.c */
 FcPublic FcCharSet*
 FcCharSetCreate (void);

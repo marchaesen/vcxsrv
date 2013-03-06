@@ -67,6 +67,7 @@
 const struct option longopts[] = {
     {"force", 0, 0, 'f'},
     {"really-force", 0, 0, 'r'},
+    {"sysroot", 0, 0, 'y'},
     {"system-only", 0, 0, 's'},
     {"version", 0, 0, 'V'},
     {"verbose", 0, 0, 'v'},
@@ -85,26 +86,28 @@ usage (char *program, int error)
 {
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
-    fprintf (file, "usage: %s [-frsvVh] [--force|--really-force] [--system-only] [--verbose] [--version] [--help] [dirs]\n",
+    fprintf (file, "usage: %s [-frsvVh] [-y SYSROOT] [--force|--really-force] [--sysroot=SYSROOT] [--system-only] [--verbose] [--version] [--help] [dirs]\n",
 	     program);
 #else
-    fprintf (file, "usage: %s [-frsvVh] [dirs]\n",
+    fprintf (file, "usage: %s [-frsvVh] [-y SYSROOT] [dirs]\n",
 	     program);
 #endif
     fprintf (file, "Build font information caches in [dirs]\n"
 	     "(all directories in font configuration by default).\n");
     fprintf (file, "\n");
 #if HAVE_GETOPT_LONG
-    fprintf (file, "  -f, --force          scan directories with apparently valid caches\n");
-    fprintf (file, "  -r, --really-force   erase all existing caches, then rescan\n");
-    fprintf (file, "  -s, --system-only    scan system-wide directories only\n");
-    fprintf (file, "  -v, --verbose        display status information while busy\n");
-    fprintf (file, "  -V, --version        display font config version and exit\n");
-    fprintf (file, "  -h, --help           display this help and exit\n");
+    fprintf (file, "  -f, --force              scan directories with apparently valid caches\n");
+    fprintf (file, "  -r, --really-force       erase all existing caches, then rescan\n");
+    fprintf (file, "  -s, --system-only        scan system-wide directories only\n");
+    fprintf (file, "  -y, --sysroot=SYSROOT    prepend SYSROOT to all paths for scanning\n");
+    fprintf (file, "  -v, --verbose            display status information while busy\n");
+    fprintf (file, "  -V, --version            display font config version and exit\n");
+    fprintf (file, "  -h, --help               display this help and exit\n");
 #else
     fprintf (file, "  -f         (force)   scan directories with apparently valid caches\n");
     fprintf (file, "  -r,   (really force) erase all existing caches, then rescan\n");
     fprintf (file, "  -s         (system)  scan system-wide directories only\n");
+    fprintf (file, "  -y SYSROOT (sysroot) prepend SYSROOT to all paths for scanning\n");
     fprintf (file, "  -v         (verbose) display status information while busy\n");
     fprintf (file, "  -V         (version) display font config version and exit\n");
     fprintf (file, "  -h         (help)    display this help and exit\n");
@@ -270,6 +273,7 @@ main (int argc, char **argv)
     FcBool	really_force = FcFalse;
     FcBool	systemOnly = FcFalse;
     FcConfig	*config;
+    FcChar8     *sysroot = NULL;
     int		i;
     int		changed;
     int		ret;
@@ -277,9 +281,9 @@ main (int argc, char **argv)
     int		c;
 
 #if HAVE_GETOPT_LONG
-    while ((c = getopt_long (argc, argv, "frsVvh", longopts, NULL)) != -1)
+    while ((c = getopt_long (argc, argv, "frsy:Vvh", longopts, NULL)) != -1)
 #else
-    while ((c = getopt (argc, argv, "frsVvh")) != -1)
+    while ((c = getopt (argc, argv, "frsy:Vvh")) != -1)
 #endif
     {
 	switch (c) {
@@ -291,6 +295,9 @@ main (int argc, char **argv)
 	    break;
 	case 's':
 	    systemOnly = FcTrue;
+	    break;
+	case 'y':
+	    sysroot = FcStrCopy ((const FcChar8 *)optarg);
 	    break;
 	case 'V':
 	    fprintf (stderr, "fontconfig version %d.%d.%d\n", 
@@ -312,7 +319,16 @@ main (int argc, char **argv)
 
     if (systemOnly)
 	FcConfigEnableHome (FcFalse);
-    config = FcInitLoadConfig ();
+    if (sysroot)
+    {
+	FcConfigSetSysRoot (NULL, sysroot);
+	FcStrFree (sysroot);
+	config = FcConfigGetCurrent();
+    }
+    else
+    {
+	config = FcInitLoadConfig ();
+    }
     if (!config)
     {
 	fprintf (stderr, "%s: Can't init font config library\n", argv[0]);

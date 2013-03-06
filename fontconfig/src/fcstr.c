@@ -30,6 +30,7 @@
 #include <regex.h>
 #endif
 
+
 /* Objects MT-safe for readonly access. */
 
 FcChar8 *
@@ -864,6 +865,64 @@ FcStrUsesHome (const FcChar8 *s)
 }
 
 FcChar8 *
+FcStrBuildFilename (const FcChar8 *path,
+		    ...)
+{
+    va_list ap;
+    FcStrSet *sset = FcStrSetCreate ();
+    FcStrList *list;
+    FcChar8 *s, *ret = NULL, *p;
+    size_t len = 0;
+
+    if (!sset || !path)
+	return NULL;
+
+    if (!FcStrSetAdd (sset, path))
+	goto bail0;
+
+    va_start (ap, path);
+    while (1)
+    {
+	s = (FcChar8 *)va_arg (ap, FcChar8 *);
+	if (!s)
+	    break;
+	if (!FcStrSetAdd (sset, s))
+	    goto bail1;
+    }
+    list = FcStrListCreate (sset);
+    while ((s = FcStrListNext (list)))
+    {
+	len += strlen ((const char *)s) + 1;
+    }
+    list->n = 0;
+    ret = malloc (sizeof (FcChar8) * (len + 1));
+    if (!ret)
+	goto bail2;
+    p = ret;
+    while ((s = FcStrListNext (list)))
+    {
+	if (p != ret)
+	{
+	    p[0] = FC_DIR_SEPARATOR;
+	    p++;
+	}
+	len = strlen ((const char *)s);
+	memcpy (p, s, len);
+	p += len;
+    }
+    *p = 0;
+
+bail2:
+    FcStrListDone (list);
+bail1:
+    va_end (ap);
+bail0:
+    FcStrSetDestroy (sset);
+
+    return ret;
+}
+
+FcChar8 *
 FcStrCopyFilename (const FcChar8 *s)
 {
     FcChar8 *new;
@@ -1052,8 +1111,7 @@ FcStrCanonFilename (const FcChar8 *s)
 	FcChar8	cwd[FC_MAX_FILE_LEN + 2];
 	if (getcwd ((char *) cwd, FC_MAX_FILE_LEN) == NULL)
 	    return NULL;
-	strcat ((char *) cwd, "/");
-	full = FcStrPlus (cwd, s);
+	full = FcStrBuildFilename (cwd, s, NULL);
 	file = FcStrCanonAbsoluteFilename (full);
 	FcStrFree (full);
 	return file;

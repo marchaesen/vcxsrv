@@ -426,7 +426,7 @@ setCode(unsigned from, unsigned to, unsigned row_size,
         }
     } else if(*encsize <= index) {
         *encsize = 0x10000;
-        if((newenc = realloc(enc, *encsize))==NULL)
+        if((newenc = realloc(*enc, (*encsize) * sizeof(unsigned short)))==NULL)
             return 1;
         *enc = newenc;
     }

@@ -435,6 +435,7 @@ input_constrain_cursor(DeviceIntPtr dev, ScreenPtr screen,
     dir = barrier_get_direction(current_x, current_y, x, y);
 
     while (dir != 0) {
+        int new_sequence;
         struct PointerBarrierDevice *pbd;
 
         c = barrier_find_nearest(cs, master, dir, current_x, current_y, x, y);
@@ -444,6 +445,8 @@ input_constrain_cursor(DeviceIntPtr dev, ScreenPtr screen,
         nearest = &c->barrier;
 
         pbd = GetBarrierDevice(c, master->id);
+        new_sequence = !pbd->hit;
+
         pbd->seen = TRUE;
         pbd->hit = TRUE;
 
@@ -466,7 +469,7 @@ input_constrain_cursor(DeviceIntPtr dev, ScreenPtr screen,
         ev.event_id = pbd->barrier_event_id;
         ev.barrierid = c->id;
 
-        ev.dt = ms - pbd->last_timestamp;
+        ev.dt = new_sequence ? 0 : ms - pbd->last_timestamp;
         ev.window = c->window;
         pbd->last_timestamp = ms;
 
@@ -676,8 +679,8 @@ BarrierFreeBarrier(void *data, XID id)
             continue;
 
         ev.deviceid = dev->id;
-        ev.event_id = pbd->barrier_event_id,
-        ev.dt = ms - pbd->last_timestamp,
+        ev.event_id = pbd->barrier_event_id;
+        ev.dt = ms - pbd->last_timestamp;
 
         GetSpritePosition(dev, &root_x, &root_y);
         ev.root_x = root_x;
