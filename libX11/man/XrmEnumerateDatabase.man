@@ -84,6 +84,8 @@
 .SH NAME
 XrmEnumerateDatabase \- enumerate resource database entries
 .SH SYNTAX
+.HP
+#include <X11/Xresource.h>
 .TS
 lw(.5i) lw(2i) lw(2.5i).
 T{

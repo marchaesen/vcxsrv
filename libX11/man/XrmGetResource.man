@@ -85,6 +85,8 @@
 XrmGetResource, XrmQGetResource, XrmQGetSearchList, XrmQGetSearchResource \- retrieve database resources and search lists
 .SH SYNTAX
 .HP
+#include <X11/Xresource.h>
+.HP
 Bool XrmGetResource\^(\^XrmDatabase \fIdatabase\fP\^, char *\fIstr_name\fP\^,
 char *\fIstr_class\fP\^, char **\fIstr_type_return\fP\^, XrmValue
 *\fIvalue_return\fP\^); 

@@ -52,6 +52,7 @@
 #define fbCreatePixmap wfbCreatePixmap
 #define fbCreatePixmapBpp wfbCreatePixmapBpp
 #define fbCreateWindow wfbCreateWindow
+#define fbDestroyGlyphCache wfbDestroyGlyphCache
 #define fbDestroyPixmap wfbDestroyPixmap
 #define fbDestroyWindow wfbDestroyWindow
 #define fbDoCopy wfbDoCopy

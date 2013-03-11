@@ -1062,26 +1062,24 @@ if test "x$enable_dri" = xyes; then
     DRI_DIRS=`echo "$DRI_DIRS" | $SED 's/  */ /g'`
 
     # Check for expat
-    if test "x$enable_dri" = xyes; then
-        EXPAT_INCLUDES=""
-        EXPAT_LIB=-lexpat
-        AC_ARG_WITH([expat],
-            [AS_HELP_STRING([--with-expat=DIR],
-                [expat install directory])],[
-            EXPAT_INCLUDES="-I$withval/include"
-            CPPFLAGS="$CPPFLAGS $EXPAT_INCLUDES"
-            LDFLAGS="$LDFLAGS -L$withval/$LIB_DIR"
-            EXPAT_LIB="-L$withval/$LIB_DIR -lexpat"
-            ])
-        AC_CHECK_HEADER([expat.h],[],[AC_MSG_ERROR([Expat required for DRI.])])
-	save_LIBS="$LIBS"
-        AC_CHECK_LIB([expat],[XML_ParserCreate],[],
-            [AC_MSG_ERROR([Expat required for DRI.])])
-	LIBS="$save_LIBS"
-    fi
+    EXPAT_INCLUDES=""
+    EXPAT_LIB=-lexpat
+    AC_ARG_WITH([expat],
+        [AS_HELP_STRING([--with-expat=DIR],
+            [expat install directory])],[
+        EXPAT_INCLUDES="-I$withval/include"
+        CPPFLAGS="$CPPFLAGS $EXPAT_INCLUDES"
+        LDFLAGS="$LDFLAGS -L$withval/$LIB_DIR"
+        EXPAT_LIB="-L$withval/$LIB_DIR -lexpat"
+        ])
+    AC_CHECK_HEADER([expat.h],[],[AC_MSG_ERROR([Expat required for DRI.])])
+    save_LIBS="$LIBS"
+    AC_CHECK_LIB([expat],[XML_ParserCreate],[],
+        [AC_MSG_ERROR([Expat required for DRI.])])
+    LIBS="$save_LIBS"
 
-    # if we are building any dri driver other than swrast or using the dri state tracker ...
-    if test -n "$DRI_DIRS" -a x"$DRI_DIRS" != xswrast -a "x$enable_dri" = xyes; then
+    # If we are building any DRI driver other than swrast.
+    if test -n "$DRI_DIRS" -a x"$DRI_DIRS" != xswrast; then
         # ... libdrm is required
         if test "x$have_libdrm" != xyes; then
             AC_MSG_ERROR([DRI drivers requires libdrm >= $LIBDRM_REQUIRED])
@@ -1148,14 +1146,6 @@ case $DRI_DIRS in
     HAVE_SWRAST_DRI=yes;
     ;;
 esac
-
-AM_CONDITIONAL(HAVE_I915_DRI, test x$HAVE_I915_DRI = xyes)
-AM_CONDITIONAL(HAVE_I965_DRI, test x$HAVE_I965_DRI = xyes)
-AM_CONDITIONAL(HAVE_NOUVEAU_DRI, test x$HAVE_NOUVEAU_DRI = xyes)
-AM_CONDITIONAL(HAVE_R200_DRI, test x$HAVE_R200_DRI = xyes)
-AM_CONDITIONAL(HAVE_RADEON_DRI, test x$HAVE_RADEON_DRI = xyes)
-AM_CONDITIONAL(HAVE_SWRAST_DRI, test x$HAVE_SWRAST_DRI = xyes)
-AM_CONDITIONAL(HAVE_COMMON_DRI, test x$HAVE_COMMON_DRI = xyes)
 
 dnl
 dnl OSMesa configuration
@@ -1755,6 +1745,7 @@ gallium_check_st() {
     fi
     if test "x$HAVE_ST_DRI" = xyes && test "x$2" != x; then
          GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS $2"
+         HAVE_COMMON_DRI=yes
     fi
     if test "x$HAVE_ST_XORG" = xyes && test "x$3" != x; then
          GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS $3"
@@ -1995,6 +1986,14 @@ for driver in $GALLIUM_DRIVERS_DIRS; do
 	    ;;
     esac
 done
+
+AM_CONDITIONAL(HAVE_I915_DRI, test x$HAVE_I915_DRI = xyes)
+AM_CONDITIONAL(HAVE_I965_DRI, test x$HAVE_I965_DRI = xyes)
+AM_CONDITIONAL(HAVE_NOUVEAU_DRI, test x$HAVE_NOUVEAU_DRI = xyes)
+AM_CONDITIONAL(HAVE_R200_DRI, test x$HAVE_R200_DRI = xyes)
+AM_CONDITIONAL(HAVE_RADEON_DRI, test x$HAVE_RADEON_DRI = xyes)
+AM_CONDITIONAL(HAVE_SWRAST_DRI, test x$HAVE_SWRAST_DRI = xyes)
+AM_CONDITIONAL(HAVE_COMMON_DRI, test x$HAVE_COMMON_DRI = xyes)
 
 AM_CONDITIONAL(HAVE_GALAHAD_GALLIUM, test x$HAVE_GALAHAD_GALLIUM = xyes)
 AM_CONDITIONAL(HAVE_IDENTITY_GALLIUM, test x$HAVE_IDENTITY_GALLIUM = xyes)

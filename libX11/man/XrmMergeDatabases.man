@@ -83,6 +83,8 @@
 XrmMergeDatabases, XrmCombineDatabase, XrmCombineFileDatabase \- merge resource databases
 .SH SYNTAX
 .HP
+#include <X11/Xresource.h>
+.HP
 void XrmMergeDatabases(\^XrmDatabase \fIsource_db\fP, XrmDatabase
 *\fItarget_db\fP\^); 
 .HP

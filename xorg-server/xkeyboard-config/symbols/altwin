@@ -7,6 +7,14 @@ xkb_symbols "meta_alt" {
 //  modifier_map Mod4	{};
 };
 
+// Alt is mapped to the Win-keys (and the usual Alt keys).
+partial modifier_keys 
+xkb_symbols "alt_win" {
+    key <LWIN> {	[ 	Alt_L   		]	};
+    key <RWIN> {	[ 	Alt_R           	]	};
+    modifier_map Mod1 { <LWIN>, <RWIN> };
+};
+
 // Control is mapped to the Win-keys (and the usual Ctrl keys).
 partial modifier_keys 
 xkb_symbols "ctrl_win" {
