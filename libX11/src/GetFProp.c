@@ -29,27 +29,24 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "Xlibint.h"
 
-Bool XGetFontProperty (
+Bool
+XGetFontProperty(
     XFontStruct *fs,
     register Atom name,
     unsigned long *valuePtr)
 {
     /* XXX this is a simple linear search for now.  If the
-      protocol is changed to sort the property list, this should
-      become a binary search. */
+       protocol is changed to sort the property list, this should
+       become a binary search. */
     register XFontProp *prop = fs->properties;
     register XFontProp *last = prop + fs->n_properties;
+
     while (prop != last) {
-	if (prop->name == name) {
-	    *valuePtr = prop->card32;
-	    return (1);
-	    }
-	prop++;
-	}
-    return (0);
+        if (prop->name == name) {
+            *valuePtr = prop->card32;
+            return (1);
+        }
+        prop++;
     }
-
-
-
-
-
+    return (0);
+}

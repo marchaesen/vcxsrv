@@ -83,6 +83,8 @@
 XrmInitialize, XrmParseCommand, XrmValue, XrmOptionKind, XrmOptionDescRec \- initialize the Resource Manager, Resource Manager structures, and parse the command line
 .SH SYNTAX
 .HP
+#include <X11/Xresource.h>
+.HP
 void XrmInitialize\^(void\^);
 .HP
 void XrmParseCommand\^(\^XrmDatabase *\fIdatabase\fP\^, XrmOptionDescList

@@ -83,6 +83,8 @@
 XrmUniqueQuark, XrmStringToQuark, XrmPermStringToQuark, XrmQuarkToString, XrmStringToQuarkList, XrmStringToBindingQuarkList \- manipulate resource quarks
 .SH SYNOPSIS
 .HP
+#include <X11/Xresource.h>
+.HP
 XrmQuark XrmUniqueQuark\^(void); 
 .LP
 \&#define XrmStringToName(string) XrmStringToQuark(string)

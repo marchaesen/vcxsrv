@@ -6221,6 +6221,12 @@
       </option>
       <option>
         <configItem>
+          <name>altwin:alt_win</name>
+          <_description>Alt is mapped to Win keys (and the usual Alt keys)</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
           <name>altwin:ctrl_win</name>
           <_description>Control is mapped to Win keys (and the usual Ctrl keys)</_description>
         </configItem>

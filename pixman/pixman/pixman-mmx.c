@@ -44,8 +44,6 @@
 #include "pixman-combine32.h"
 #include "pixman-inlines.h"
 
-#define no_vERBOSE
-
 #ifdef VERBOSE
 #define CHECKPOINT() error_f ("at %s %d\n", __FUNCTION__, __LINE__)
 #else

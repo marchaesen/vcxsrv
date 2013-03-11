@@ -429,7 +429,7 @@ retry:
     if (config == cfg)
 	return FcTrue;
 
-    if (!config->fonts[FcSetSystem])
+    if (config && !config->fonts[FcSetSystem])
 	if (!FcConfigBuildFonts (config))
 	    return FcFalse;
 

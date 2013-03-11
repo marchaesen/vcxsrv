@@ -37,8 +37,8 @@ locale.dir: locale.dir.pre
 	cat locale.dir.l2 locale.dir.l1 > locale.dir
 
 if HAVE_PERL
-TESTS_ENVIRONMENT = $(PERL)
-TESTS = $(srcdir)/compose-check.pl
+LOG_COMPILER = $(PERL)
+TESTS = compose-check.pl
 endif HAVE_PERL
 
 
