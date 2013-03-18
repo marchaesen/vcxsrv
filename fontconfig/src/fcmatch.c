@@ -532,7 +532,10 @@ FcFontRenderPrepare (FcConfig	    *config,
     {
 	pe = &FcPatternElts(pat)[i];
 	fe = FcPatternObjectFindElt (font, pe->object);
-	if (!fe)
+	if (!fe &&
+	    pe->object != FC_FAMILYLANG_OBJECT &&
+	    pe->object != FC_STYLELANG_OBJECT &&
+	    pe->object != FC_FULLNAMELANG_OBJECT)
 	{
 	    FcPatternObjectListAdd (new, pe->object,
 				    FcValueListDuplicate (FcPatternEltValues(pe)),

@@ -171,9 +171,9 @@ static void update_raster_state( struct st_context *st )
             raster->sprite_coord_enable |= 1 << i;
          }
       }
-      if (fragProg->Base.InputsRead & FRAG_BIT_PNTC) {
+      if (fragProg->Base.InputsRead & VARYING_BIT_PNTC) {
          raster->sprite_coord_enable |=
-            1 << (FRAG_ATTRIB_PNTC - FRAG_ATTRIB_TEX0);
+            1 << (VARYING_SLOT_PNTC - VARYING_SLOT_TEX0);
       }
 
       raster->point_quad_rasterization = 1;
@@ -183,7 +183,7 @@ static void update_raster_state( struct st_context *st )
     */
    if (vertProg) {
       if (vertProg->Base.Id == 0) {
-         if (vertProg->Base.OutputsWritten & BITFIELD64_BIT(VERT_RESULT_PSIZ)) {
+         if (vertProg->Base.OutputsWritten & BITFIELD64_BIT(VARYING_SLOT_PSIZ)) {
             /* generated program which emits point size */
             raster->point_size_per_vertex = TRUE;
          }

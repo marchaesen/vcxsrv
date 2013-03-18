@@ -58,12 +58,7 @@ XWMHints *XAllocWMHints (void)
 
 XClassHint *XAllocClassHint (void)
 {
-    register XClassHint *h;
-
-    if ((h = (XClassHint *) Xcalloc (1, (unsigned) sizeof (XClassHint))))
-      h->res_name = h->res_class = NULL;
-
-    return h;
+    return Xcalloc (1, sizeof (XClassHint));
 }
 
 

@@ -1,5 +1,6 @@
   altwin:menu		=	+altwin(menu)
   altwin:meta_alt	=	+altwin(meta_alt)
+  altwin:alt_win	=	+altwin(alt_win)
   altwin:ctrl_win	=	+altwin(ctrl_win)
   altwin:ctrl_alt_win	=	+altwin(ctrl_alt_win)
   altwin:meta_win	=	+altwin(meta_win)

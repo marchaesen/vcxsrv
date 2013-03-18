@@ -93,6 +93,8 @@
 XrmGetFileDatabase, XrmPutFileDatabase, XrmGetStringDatabase, XrmLocaleOfDatabase, XrmGetDatabase, XrmSetDatabase, XrmDestroyDatabase \- retrieve and store resource databases
 .SH SYNTAX
 .HP
+#include <X11/Xresource.h>
+.HP
 XrmDatabase XrmGetFileDatabase\^(\^char *\fIfilename\fP\^); 
 .HP
 void XrmPutFileDatabase\^(\^XrmDatabase \fIdatabase\fP\^, char

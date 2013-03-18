@@ -702,14 +702,14 @@ int 		*num_gi;
     _XlcCloseConverter(conv);
     _XlcDestroyLC(lcd);
 
-    *gi = (_XUDCGIInf *)Xmalloc(sizeof(_XUDCGIInf));
-    (*gi)->charset_str = (char *)Xmalloc(strlen(charsetname)+1);
-    strcpy((*gi)->charset_str,charsetname);
-    (*gi)->glyph_index = glyph;
+    *gi = Xmalloc(sizeof(_XUDCGIInf));
     if(*gi == NULL){
 	_xudc_utyerrno = 0x03 ;
         return(_XUDC_ERROR);
     }
+    (*gi)->charset_str = Xmalloc(strlen(charsetname)+1);
+    strcpy((*gi)->charset_str,charsetname);
+    (*gi)->glyph_index = glyph;
     *num_gi = 1;
     return(0);
 }
