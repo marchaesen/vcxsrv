@@ -89,7 +89,7 @@ _mesa_insert_mvp_dp4_code(struct gl_context *ctx, struct gl_vertex_program *vpro
    for (i = 0; i < 4; i++) {
       newInst[i].Opcode = OPCODE_DP4;
       newInst[i].DstReg.File = PROGRAM_OUTPUT;
-      newInst[i].DstReg.Index = VERT_RESULT_HPOS;
+      newInst[i].DstReg.Index = VARYING_SLOT_POS;
       newInst[i].DstReg.WriteMask = (WRITEMASK_X << i);
       newInst[i].SrcReg[0].File = PROGRAM_STATE_VAR;
       newInst[i].SrcReg[0].Index = mvpRef[i];
@@ -109,7 +109,7 @@ _mesa_insert_mvp_dp4_code(struct gl_context *ctx, struct gl_vertex_program *vpro
    vprog->Base.Instructions = newInst;
    vprog->Base.NumInstructions = newLen;
    vprog->Base.InputsRead |= VERT_BIT_POS;
-   vprog->Base.OutputsWritten |= BITFIELD64_BIT(VERT_RESULT_HPOS);
+   vprog->Base.OutputsWritten |= BITFIELD64_BIT(VARYING_SLOT_POS);
 }
 
 
@@ -188,7 +188,7 @@ _mesa_insert_mvp_mad_code(struct gl_context *ctx, struct gl_vertex_program *vpro
 
    newInst[3].Opcode = OPCODE_MAD;
    newInst[3].DstReg.File = PROGRAM_OUTPUT;
-   newInst[3].DstReg.Index = VERT_RESULT_HPOS;
+   newInst[3].DstReg.Index = VARYING_SLOT_POS;
    newInst[3].DstReg.WriteMask = WRITEMASK_XYZW;
    newInst[3].SrcReg[0].File = PROGRAM_INPUT;
    newInst[3].SrcReg[0].Index = VERT_ATTRIB_POS;
@@ -211,7 +211,7 @@ _mesa_insert_mvp_mad_code(struct gl_context *ctx, struct gl_vertex_program *vpro
    vprog->Base.Instructions = newInst;
    vprog->Base.NumInstructions = newLen;
    vprog->Base.InputsRead |= VERT_BIT_POS;
-   vprog->Base.OutputsWritten |= BITFIELD64_BIT(VERT_RESULT_HPOS);
+   vprog->Base.OutputsWritten |= BITFIELD64_BIT(VARYING_SLOT_POS);
 }
 
 
@@ -240,7 +240,7 @@ _mesa_insert_mvp_code(struct gl_context *ctx, struct gl_vertex_program *vprog)
  * \param saturate True if writes to color outputs should be clamped to [0, 1]
  *
  * \note
- * This function sets \c FRAG_BIT_FOGC in \c fprog->Base.InputsRead.
+ * This function sets \c VARYING_BIT_FOGC in \c fprog->Base.InputsRead.
  *
  * \todo With a little work, this function could be adapted to add fog code
  * to vertex programs too.
@@ -323,7 +323,7 @@ _mesa_append_fog_code(struct gl_context *ctx,
       inst->DstReg.Index = fogFactorTemp;
       inst->DstReg.WriteMask = WRITEMASK_X;
       inst->SrcReg[0].File = PROGRAM_INPUT;
-      inst->SrcReg[0].Index = FRAG_ATTRIB_FOGC;
+      inst->SrcReg[0].Index = VARYING_SLOT_FOGC;
       inst->SrcReg[0].Swizzle = SWIZZLE_XXXX;
       inst->SrcReg[1].File = PROGRAM_STATE_VAR;
       inst->SrcReg[1].Index = fogPRefOpt;
@@ -348,7 +348,7 @@ _mesa_append_fog_code(struct gl_context *ctx,
       inst->SrcReg[0].Swizzle
          = (fog_mode == GL_EXP) ? SWIZZLE_ZZZZ : SWIZZLE_WWWW;
       inst->SrcReg[1].File = PROGRAM_INPUT;
-      inst->SrcReg[1].Index = FRAG_ATTRIB_FOGC;
+      inst->SrcReg[1].Index = VARYING_SLOT_FOGC;
       inst->SrcReg[1].Swizzle = SWIZZLE_XXXX;
       inst++;
       if (fog_mode == GL_EXP2) {
@@ -411,7 +411,7 @@ _mesa_append_fog_code(struct gl_context *ctx,
    /* install new instructions */
    fprog->Base.Instructions = newInst;
    fprog->Base.NumInstructions = inst - newInst;
-   fprog->Base.InputsRead |= FRAG_BIT_FOGC;
+   fprog->Base.InputsRead |= VARYING_BIT_FOGC;
    assert(fprog->Base.OutputsWritten & (1 << FRAG_RESULT_COLOR));
 }
 
@@ -507,7 +507,7 @@ void
 _mesa_remove_output_reads(struct gl_program *prog, gl_register_file type)
 {
    GLuint i;
-   GLint outputMap[VERT_RESULT_MAX];
+   GLint outputMap[VARYING_SLOT_MAX];
    GLuint numVaryingReads = 0;
    GLboolean usedTemps[MAX_PROGRAM_TEMPS];
    GLuint firstTemp = 0;
@@ -517,7 +517,7 @@ _mesa_remove_output_reads(struct gl_program *prog, gl_register_file type)
 
    assert(type == PROGRAM_OUTPUT);
 
-   for (i = 0; i < VERT_RESULT_MAX; i++)
+   for (i = 0; i < VARYING_SLOT_MAX; i++)
       outputMap[i] = -1;
 
    /* look for instructions which read from varying vars */
@@ -576,7 +576,7 @@ _mesa_remove_output_reads(struct gl_program *prog, gl_register_file type)
 
       /* insert new MOV instructions here */
       inst = prog->Instructions + endPos;
-      for (var = 0; var < VERT_RESULT_MAX; var++) {
+      for (var = 0; var < VARYING_SLOT_MAX; var++) {
          if (outputMap[var] >= 0) {
             /* MOV VAR[var], TEMP[tmp]; */
             inst->Opcode = OPCODE_MOV;
@@ -615,10 +615,10 @@ _mesa_nop_fragment_program(struct gl_context *ctx, struct gl_fragment_program *p
    inst[0].DstReg.File = PROGRAM_OUTPUT;
    inst[0].DstReg.Index = FRAG_RESULT_COLOR;
    inst[0].SrcReg[0].File = PROGRAM_INPUT;
-   if (prog->Base.InputsRead & FRAG_BIT_COL0)
-      inputAttr = FRAG_ATTRIB_COL0;
+   if (prog->Base.InputsRead & VARYING_BIT_COL0)
+      inputAttr = VARYING_SLOT_COL0;
    else
-      inputAttr = FRAG_ATTRIB_TEX0;
+      inputAttr = VARYING_SLOT_TEX0;
    inst[0].SrcReg[0].Index = inputAttr;
 
    inst[1].Opcode = OPCODE_END;
@@ -657,7 +657,7 @@ _mesa_nop_vertex_program(struct gl_context *ctx, struct gl_vertex_program *prog)
 
    inst[0].Opcode = OPCODE_MOV;
    inst[0].DstReg.File = PROGRAM_OUTPUT;
-   inst[0].DstReg.Index = VERT_RESULT_COL0;
+   inst[0].DstReg.Index = VARYING_SLOT_COL0;
    inst[0].SrcReg[0].File = PROGRAM_INPUT;
    if (prog->Base.InputsRead & VERT_BIT_COLOR0)
       inputAttr = VERT_ATTRIB_COLOR0;
@@ -673,7 +673,7 @@ _mesa_nop_vertex_program(struct gl_context *ctx, struct gl_vertex_program *prog)
    prog->Base.Instructions = inst;
    prog->Base.NumInstructions = 2;
    prog->Base.InputsRead = BITFIELD64_BIT(inputAttr);
-   prog->Base.OutputsWritten = BITFIELD64_BIT(VERT_RESULT_COL0);
+   prog->Base.OutputsWritten = BITFIELD64_BIT(VARYING_SLOT_COL0);
 
    /*
     * Now insert code to do standard modelview/projection transformation.

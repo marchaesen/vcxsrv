@@ -152,10 +152,10 @@ struct st_vertex_program
    GLuint index_to_input[PIPE_MAX_SHADER_INPUTS];
    GLuint num_inputs;
 
-   /** Maps VERT_RESULT_x to slot */
-   GLuint result_to_output[VERT_RESULT_MAX];
-   ubyte output_semantic_name[VERT_RESULT_MAX];
-   ubyte output_semantic_index[VERT_RESULT_MAX];
+   /** Maps VARYING_SLOT_x to slot */
+   GLuint result_to_output[VARYING_SLOT_MAX];
+   ubyte output_semantic_name[VARYING_SLOT_MAX];
+   ubyte output_semantic_index[VARYING_SLOT_MAX];
    GLuint num_outputs;
 
    /** List of translated variants of this vertex program.
@@ -198,14 +198,14 @@ struct st_geometry_program
    /** map GP input back to VP output */
    GLuint input_map[PIPE_MAX_SHADER_INPUTS];
 
-   /** maps a Mesa GEOM_ATTRIB_x to a packed TGSI input index */
-   GLuint input_to_index[GEOM_ATTRIB_MAX];
-   /** maps a TGSI input index back to a Mesa GEOM_ATTRIB_x */
+   /** maps a Mesa VARYING_SLOT_x to a packed TGSI input index */
+   GLuint input_to_index[VARYING_SLOT_MAX];
+   /** maps a TGSI input index back to a Mesa VARYING_SLOT_x */
    GLuint index_to_input[PIPE_MAX_SHADER_INPUTS];
 
    GLuint num_inputs;
 
-   GLuint input_to_slot[GEOM_ATTRIB_MAX];  /**< Maps GEOM_ATTRIB_x to slot */
+   GLuint input_to_slot[VARYING_SLOT_MAX];  /**< Maps VARYING_SLOT_x to slot */
    GLuint num_input_slots;
 
    ubyte input_semantic_name[PIPE_MAX_SHADER_INPUTS];

@@ -344,23 +344,17 @@ dummy_enum_func(void)
 {
    gl_buffer_index bi = BUFFER_FRONT_LEFT;
    gl_face_index fi = FACE_POS_X;
-   gl_frag_attrib fa = FRAG_ATTRIB_WPOS;
    gl_frag_result fr = FRAG_RESULT_DEPTH;
    gl_texture_index ti = TEXTURE_2D_ARRAY_INDEX;
    gl_vert_attrib va = VERT_ATTRIB_POS;
-   gl_vert_result vr = VERT_RESULT_HPOS;
-   gl_geom_attrib ga = GEOM_ATTRIB_POSITION;
-   gl_geom_result gr = GEOM_RESULT_POS;
+   gl_varying_slot vs = VARYING_SLOT_POS;
 
    (void) bi;
    (void) fi;
-   (void) fa;
    (void) fr;
    (void) ti;
    (void) va;
-   (void) vr;
-   (void) ga;
-   (void) gr;
+   (void) vs;
 }
 
 
@@ -410,7 +404,7 @@ one_time_init( struct gl_context *ctx )
 #if defined(DEBUG) && defined(__DATE__) && defined(__TIME__)
       if (MESA_VERBOSE != 0) {
 	 _mesa_debug(ctx, "Mesa %s DEBUG build %s %s\n",
-		     MESA_VERSION_STRING, __DATE__, __TIME__);
+		     PACKAGE_VERSION, __DATE__, __TIME__);
       }
 #endif
 
@@ -677,9 +671,9 @@ static void
 check_context_limits(struct gl_context *ctx)
 {
    /* check that we don't exceed the size of various bitfields */
-   assert(VERT_RESULT_MAX <=
+   assert(VARYING_SLOT_MAX <=
 	  (8 * sizeof(ctx->VertexProgram._Current->Base.OutputsWritten)));
-   assert(FRAG_ATTRIB_MAX <=
+   assert(VARYING_SLOT_MAX <=
 	  (8 * sizeof(ctx->FragmentProgram._Current->Base.InputsRead)));
 
    assert(MAX_COMBINED_TEXTURE_IMAGE_UNITS <= 8 * sizeof(GLbitfield));

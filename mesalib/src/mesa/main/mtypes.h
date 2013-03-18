@@ -209,209 +209,100 @@ typedef enum
 
 
 /**
- * Indexes for vertex program result attributes.  Note that
- * _mesa_vert_result_to_frag_attrib() and _mesa_frag_attrib_to_vert_result() make
- * assumptions about the layout of this enum.
+ * Indexes for vertex shader outputs, geometry shader inputs/outputs, and
+ * fragment shader inputs.
+ *
+ * Note that some of these values are not available to all pipeline stages.
+ *
+ * When this enum is updated, the following code must be updated too:
+ * - vertResults (in prog_print.c's arb_output_attrib_string())
+ * - fragAttribs (in prog_print.c's arb_input_attrib_string())
+ * - _mesa_varying_slot_in_fs()
  */
 typedef enum
 {
-   VERT_RESULT_HPOS = 0,
-   VERT_RESULT_COL0 = 1,
-   VERT_RESULT_COL1 = 2,
-   VERT_RESULT_FOGC = 3,
-   VERT_RESULT_TEX0 = 4,
-   VERT_RESULT_TEX1 = 5,
-   VERT_RESULT_TEX2 = 6,
-   VERT_RESULT_TEX3 = 7,
-   VERT_RESULT_TEX4 = 8,
-   VERT_RESULT_TEX5 = 9,
-   VERT_RESULT_TEX6 = 10,
-   VERT_RESULT_TEX7 = 11,
-   VERT_RESULT_PSIZ = 12,
-   VERT_RESULT_BFC0 = 13,
-   VERT_RESULT_BFC1 = 14,
-   VERT_RESULT_EDGE = 15,
-   VERT_RESULT_CLIP_VERTEX = 16,
-   VERT_RESULT_CLIP_DIST0 = 17,
-   VERT_RESULT_CLIP_DIST1 = 18,
-   VERT_RESULT_VAR0 = 19,  /**< shader varying */
-   VERT_RESULT_MAX = (VERT_RESULT_VAR0 + MAX_VARYING)
-} gl_vert_result;
+   VARYING_SLOT_POS,
+   VARYING_SLOT_COL0, /* COL0 and COL1 must be contiguous */
+   VARYING_SLOT_COL1,
+   VARYING_SLOT_FOGC,
+   VARYING_SLOT_TEX0, /* TEX0-TEX7 must be contiguous */
+   VARYING_SLOT_TEX1,
+   VARYING_SLOT_TEX2,
+   VARYING_SLOT_TEX3,
+   VARYING_SLOT_TEX4,
+   VARYING_SLOT_TEX5,
+   VARYING_SLOT_TEX6,
+   VARYING_SLOT_TEX7,
+   VARYING_SLOT_PSIZ, /* Does not appear in FS */
+   VARYING_SLOT_BFC0, /* Does not appear in FS */
+   VARYING_SLOT_BFC1, /* Does not appear in FS */
+   VARYING_SLOT_EDGE, /* Does not appear in FS */
+   VARYING_SLOT_CLIP_VERTEX, /* Does not appear in FS */
+   VARYING_SLOT_CLIP_DIST0,
+   VARYING_SLOT_CLIP_DIST1,
+   VARYING_SLOT_PRIMITIVE_ID, /* Does not appear in VS */
+   VARYING_SLOT_LAYER, /* Appears only as GS output */
+   VARYING_SLOT_FACE, /* FS only */
+   VARYING_SLOT_PNTC, /* FS only */
+   VARYING_SLOT_VAR0, /* First generic varying slot */
+   VARYING_SLOT_MAX = VARYING_SLOT_VAR0 + MAX_VARYING
+} gl_varying_slot;
+
+
+/**
+ * Bitflags for varying slots.
+ */
+/*@{*/
+#define VARYING_BIT_POS BITFIELD64_BIT(VARYING_SLOT_POS)
+#define VARYING_BIT_COL0 BITFIELD64_BIT(VARYING_SLOT_COL0)
+#define VARYING_BIT_COL1 BITFIELD64_BIT(VARYING_SLOT_COL1)
+#define VARYING_BIT_FOGC BITFIELD64_BIT(VARYING_SLOT_FOGC)
+#define VARYING_BIT_TEX0 BITFIELD64_BIT(VARYING_SLOT_TEX0)
+#define VARYING_BIT_TEX1 BITFIELD64_BIT(VARYING_SLOT_TEX1)
+#define VARYING_BIT_TEX2 BITFIELD64_BIT(VARYING_SLOT_TEX2)
+#define VARYING_BIT_TEX3 BITFIELD64_BIT(VARYING_SLOT_TEX3)
+#define VARYING_BIT_TEX4 BITFIELD64_BIT(VARYING_SLOT_TEX4)
+#define VARYING_BIT_TEX5 BITFIELD64_BIT(VARYING_SLOT_TEX5)
+#define VARYING_BIT_TEX6 BITFIELD64_BIT(VARYING_SLOT_TEX6)
+#define VARYING_BIT_TEX7 BITFIELD64_BIT(VARYING_SLOT_TEX7)
+#define VARYING_BIT_TEX(U) BITFIELD64_BIT(VARYING_SLOT_TEX0 + (U))
+#define VARYING_BITS_TEX_ANY BITFIELD64_RANGE(VARYING_SLOT_TEX0, \
+                                              MAX_TEXTURE_COORD_UNITS)
+#define VARYING_BIT_PSIZ BITFIELD64_BIT(VARYING_SLOT_PSIZ)
+#define VARYING_BIT_BFC0 BITFIELD64_BIT(VARYING_SLOT_BFC0)
+#define VARYING_BIT_BFC1 BITFIELD64_BIT(VARYING_SLOT_BFC1)
+#define VARYING_BIT_EDGE BITFIELD64_BIT(VARYING_SLOT_EDGE)
+#define VARYING_BIT_CLIP_VERTEX BITFIELD64_BIT(VARYING_SLOT_CLIP_VERTEX)
+#define VARYING_BIT_CLIP_DIST0 BITFIELD64_BIT(VARYING_SLOT_CLIP_DIST0)
+#define VARYING_BIT_CLIP_DIST1 BITFIELD64_BIT(VARYING_SLOT_CLIP_DIST1)
+#define VARYING_BIT_PRIMITIVE_ID BITFIELD64_BIT(VARYING_SLOT_PRIMITIVE_ID)
+#define VARYING_BIT_LAYER BITFIELD64_BIT(VARYING_SLOT_LAYER)
+#define VARYING_BIT_FACE BITFIELD64_BIT(VARYING_SLOT_FACE)
+#define VARYING_BIT_PNTC BITFIELD64_BIT(VARYING_SLOT_PNTC)
+#define VARYING_BIT_VAR(V) BITFIELD64_BIT(VARYING_SLOT_VAR0 + (V))
+/*@}*/
 
 
 /*********************************************/
 
 /**
- * Indexes for geometry program attributes.
+ * Determine if the given gl_varying_slot appears in the fragment shader.
  */
-typedef enum
+static inline GLboolean
+_mesa_varying_slot_in_fs(gl_varying_slot slot)
 {
-   GEOM_ATTRIB_POSITION = 0,
-   GEOM_ATTRIB_COLOR0 = 1,
-   GEOM_ATTRIB_COLOR1 = 2,
-   GEOM_ATTRIB_SECONDARY_COLOR0 = 3,
-   GEOM_ATTRIB_SECONDARY_COLOR1 = 4,
-   GEOM_ATTRIB_FOG_FRAG_COORD = 5,
-   GEOM_ATTRIB_POINT_SIZE = 6,
-   GEOM_ATTRIB_CLIP_VERTEX = 7,
-   GEOM_ATTRIB_PRIMITIVE_ID = 8,
-   GEOM_ATTRIB_TEX_COORD = 9,
-
-   GEOM_ATTRIB_VAR0 = 16,
-   GEOM_ATTRIB_MAX = (GEOM_ATTRIB_VAR0 + MAX_VARYING)
-} gl_geom_attrib;
-
-/**
- * Bitflags for geometry attributes.
- * These are used in bitfields in many places.
- */
-/*@{*/
-#define GEOM_BIT_COLOR0      (1 << GEOM_ATTRIB_COLOR0)
-#define GEOM_BIT_COLOR1      (1 << GEOM_ATTRIB_COLOR1)
-#define GEOM_BIT_SCOLOR0     (1 << GEOM_ATTRIB_SECONDARY_COLOR0)
-#define GEOM_BIT_SCOLOR1     (1 << GEOM_ATTRIB_SECONDARY_COLOR1)
-#define GEOM_BIT_TEX_COORD   (1 << GEOM_ATTRIB_TEX_COORD)
-#define GEOM_BIT_FOG_COORD   (1 << GEOM_ATTRIB_FOG_FRAG_COORD)
-#define GEOM_BIT_POSITION    (1 << GEOM_ATTRIB_POSITION)
-#define GEOM_BIT_POINT_SIDE  (1 << GEOM_ATTRIB_POINT_SIZE)
-#define GEOM_BIT_CLIP_VERTEX (1 << GEOM_ATTRIB_CLIP_VERTEX)
-#define GEOM_BIT_PRIM_ID     (1 << GEOM_ATTRIB_PRIMITIVE_ID)
-#define GEOM_BIT_VAR0        (1 << GEOM_ATTRIB_VAR0)
-
-#define GEOM_BIT_VAR(g)  (1 << (GEOM_BIT_VAR0 + (g)))
-/*@}*/
-
-
-/**
- * Indexes for geometry program result attributes
- */
-typedef enum
-{
-   GEOM_RESULT_POS  = 0,
-   GEOM_RESULT_COL0  = 1,
-   GEOM_RESULT_COL1  = 2,
-   GEOM_RESULT_SCOL0 = 3,
-   GEOM_RESULT_SCOL1 = 4,
-   GEOM_RESULT_FOGC = 5,
-   GEOM_RESULT_TEX0 = 6,
-   GEOM_RESULT_TEX1 = 7,
-   GEOM_RESULT_TEX2 = 8,
-   GEOM_RESULT_TEX3 = 9,
-   GEOM_RESULT_TEX4 = 10,
-   GEOM_RESULT_TEX5 = 11,
-   GEOM_RESULT_TEX6 = 12,
-   GEOM_RESULT_TEX7 = 13,
-   GEOM_RESULT_PSIZ = 14,
-   GEOM_RESULT_CLPV = 15,
-   GEOM_RESULT_PRID = 16,
-   GEOM_RESULT_LAYR = 17,
-   GEOM_RESULT_VAR0 = 18,  /**< shader varying, should really be 16 */
-   /* ### we need to -2 because var0 is 18 instead 16 like in the others */
-   GEOM_RESULT_MAX  =  (GEOM_RESULT_VAR0 + MAX_VARYING - 2)
-} gl_geom_result;
-
-
-/**
- * Indexes for fragment program input attributes.  Note that
- * _mesa_vert_result_to_frag_attrib() and frag_attrib_to_vert_result() make
- * assumptions about the layout of this enum.
- */
-typedef enum
-{
-   FRAG_ATTRIB_WPOS = 0,
-   FRAG_ATTRIB_COL0 = 1,
-   FRAG_ATTRIB_COL1 = 2,
-   FRAG_ATTRIB_FOGC = 3,
-   FRAG_ATTRIB_TEX0 = 4,
-   FRAG_ATTRIB_TEX1 = 5,
-   FRAG_ATTRIB_TEX2 = 6,
-   FRAG_ATTRIB_TEX3 = 7,
-   FRAG_ATTRIB_TEX4 = 8,
-   FRAG_ATTRIB_TEX5 = 9,
-   FRAG_ATTRIB_TEX6 = 10,
-   FRAG_ATTRIB_TEX7 = 11,
-   FRAG_ATTRIB_FACE = 12,  /**< front/back face */
-   FRAG_ATTRIB_PNTC = 13,  /**< sprite/point coord */
-   FRAG_ATTRIB_CLIP_DIST0 = 14,
-   FRAG_ATTRIB_CLIP_DIST1 = 15,
-   FRAG_ATTRIB_VAR0 = 16,  /**< shader varying */
-   FRAG_ATTRIB_MAX = (FRAG_ATTRIB_VAR0 + MAX_VARYING)
-} gl_frag_attrib;
-
-
-/**
- * Convert from a gl_vert_result value to the corresponding gl_frag_attrib.
- *
- * VERT_RESULT_HPOS is converted to FRAG_ATTRIB_WPOS.
- *
- * gl_vert_result values which have no corresponding gl_frag_attrib
- * (VERT_RESULT_PSIZ, VERT_RESULT_BFC0, VERT_RESULT_BFC1, and
- * VERT_RESULT_EDGE) are converted to a value of -1.
- */
-static inline int
-_mesa_vert_result_to_frag_attrib(gl_vert_result vert_result)
-{
-   if (vert_result >= VERT_RESULT_CLIP_DIST0)
-      return vert_result - VERT_RESULT_CLIP_DIST0 + FRAG_ATTRIB_CLIP_DIST0;
-   else if (vert_result <= VERT_RESULT_TEX7)
-      return vert_result;
-   else
-      return -1;
+   switch (slot) {
+   case VARYING_SLOT_PSIZ:
+   case VARYING_SLOT_BFC0:
+   case VARYING_SLOT_BFC1:
+   case VARYING_SLOT_EDGE:
+   case VARYING_SLOT_CLIP_VERTEX:
+   case VARYING_SLOT_LAYER:
+      return GL_FALSE;
+   default:
+      return GL_TRUE;
+   }
 }
-
-
-/**
- * Convert from a gl_frag_attrib value to the corresponding gl_vert_result.
- *
- * FRAG_ATTRIB_WPOS is converted to VERT_RESULT_HPOS.
- *
- * gl_frag_attrib values which have no corresponding gl_vert_result
- * (FRAG_ATTRIB_FACE and FRAG_ATTRIB_PNTC) are converted to a value of -1.
- */
-static inline int
-_mesa_frag_attrib_to_vert_result(gl_frag_attrib frag_attrib)
-{
-   if (frag_attrib <= FRAG_ATTRIB_TEX7)
-      return frag_attrib;
-   else if (frag_attrib >= FRAG_ATTRIB_CLIP_DIST0)
-      return frag_attrib - FRAG_ATTRIB_CLIP_DIST0 + VERT_RESULT_CLIP_DIST0;
-   else
-      return -1;
-}
-
-
-/**
- * Bitflags for fragment program input attributes.
- */
-/*@{*/
-#define FRAG_BIT_WPOS  (1 << FRAG_ATTRIB_WPOS)
-#define FRAG_BIT_COL0  (1 << FRAG_ATTRIB_COL0)
-#define FRAG_BIT_COL1  (1 << FRAG_ATTRIB_COL1)
-#define FRAG_BIT_FOGC  (1 << FRAG_ATTRIB_FOGC)
-#define FRAG_BIT_FACE  (1 << FRAG_ATTRIB_FACE)
-#define FRAG_BIT_PNTC  (1 << FRAG_ATTRIB_PNTC)
-#define FRAG_BIT_TEX0  (1 << FRAG_ATTRIB_TEX0)
-#define FRAG_BIT_TEX1  (1 << FRAG_ATTRIB_TEX1)
-#define FRAG_BIT_TEX2  (1 << FRAG_ATTRIB_TEX2)
-#define FRAG_BIT_TEX3  (1 << FRAG_ATTRIB_TEX3)
-#define FRAG_BIT_TEX4  (1 << FRAG_ATTRIB_TEX4)
-#define FRAG_BIT_TEX5  (1 << FRAG_ATTRIB_TEX5)
-#define FRAG_BIT_TEX6  (1 << FRAG_ATTRIB_TEX6)
-#define FRAG_BIT_TEX7  (1 << FRAG_ATTRIB_TEX7)
-#define FRAG_BIT_VAR0  (1 << FRAG_ATTRIB_VAR0)
-
-#define FRAG_BIT_TEX(U)  (FRAG_BIT_TEX0 << (U))
-#define FRAG_BIT_VAR(V)  (FRAG_BIT_VAR0 << (V))
-
-#define FRAG_BITS_TEX_ANY (FRAG_BIT_TEX0|	\
-			   FRAG_BIT_TEX1|	\
-			   FRAG_BIT_TEX2|	\
-			   FRAG_BIT_TEX3|	\
-			   FRAG_BIT_TEX4|	\
-			   FRAG_BIT_TEX5|	\
-			   FRAG_BIT_TEX6|	\
-			   FRAG_BIT_TEX7)
-/*@}*/
 
 
 /**
@@ -2065,7 +1956,7 @@ struct gl_fragment_program
     * For inputs that do not have an interpolation qualifier specified in
     * GLSL, the value is INTERP_QUALIFIER_NONE.
     */
-   enum glsl_interp_qualifier InterpQualifier[FRAG_ATTRIB_MAX];
+   enum glsl_interp_qualifier InterpQualifier[VARYING_SLOT_MAX];
 
    /**
     * Bitfield indicating, for each fragment shader input, 1 if that input
