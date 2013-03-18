@@ -651,8 +651,8 @@ _mesa_DebugMessageControlARB(GLenum gl_source, GLenum gl_type,
       return;
    }
 
-   source = gl_enum_to_debug_severity(gl_source);
-   type = gl_enum_to_debug_severity(gl_type);
+   source = gl_enum_to_debug_source(gl_source);
+   type = gl_enum_to_debug_type(gl_type);
    severity = gl_enum_to_debug_severity(gl_severity);
 
    control_app_messages(ctx, source, type, severity, count, ids, enabled);
@@ -848,8 +848,8 @@ _mesa_problem( const struct gl_context *ctx, const char *fmtString, ... )
       _mesa_vsnprintf( str, MAX_DEBUG_MESSAGE_LENGTH, fmtString, args );
       va_end( args );
       fprintf(stderr, "Mesa %s implementation error: %s\n",
-              MESA_VERSION_STRING, str);
-      fprintf(stderr, "Please report at bugs.freedesktop.org\n");
+              PACKAGE_VERSION, str);
+      fprintf(stderr, "Please report at " PACKAGE_BUGREPORT "\n");
    }
 }
 

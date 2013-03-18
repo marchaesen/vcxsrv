@@ -35,6 +35,7 @@ LIBDRM_RADEON_REQUIRED=2.4.42
 LIBDRM_INTEL_REQUIRED=2.4.38
 LIBDRM_NVVIEUX_REQUIRED=2.4.33
 LIBDRM_NOUVEAU_REQUIRED="2.4.33 libdrm >= 2.4.41"
+LIBDRM_FREEDRENO_REQUIRED=2.4.39
 DRI2PROTO_REQUIRED=2.6
 GLPROTO_REQUIRED=1.4.14
 LIBDRM_XORG_REQUIRED=2.4.24
@@ -432,7 +433,6 @@ AC_ARG_ENABLE([asm],
     [enable_asm=yes]
 )
 asm_arch=""
-MESA_ASM_FILES=""
 AC_MSG_CHECKING([whether to enable assembly])
 test "x$enable_asm" = xno && AC_MSG_RESULT([no])
 # disable if cross compiling on x86/x86_64 since we must run gen_matypes
@@ -473,17 +473,14 @@ if test "x$enable_asm" = xyes; then
     case "$asm_arch" in
     x86)
         DEFINES="$DEFINES -DUSE_X86_ASM -DUSE_MMX_ASM -DUSE_3DNOW_ASM -DUSE_SSE_ASM"
-        MESA_ASM_FILES='$(X86_FILES)'
         AC_MSG_RESULT([yes, x86])
         ;;
     x86_64)
         DEFINES="$DEFINES -DUSE_X86_64_ASM"
-        MESA_ASM_FILES='$(X86_64_FILES)'
         AC_MSG_RESULT([yes, x86_64])
         ;;
     sparc)
         DEFINES="$DEFINES -DUSE_SPARC_ASM"
-        MESA_ASM_FILES='$(SPARC_FILES)'
         AC_MSG_RESULT([yes, sparc])
         ;;
     *)
@@ -491,7 +488,6 @@ if test "x$enable_asm" = xyes; then
         ;;
     esac
 fi
-AC_SUBST([MESA_ASM_FILES])
 
 dnl Check to see if dlopen is in default libraries (like Solaris, which
 dnl has it in libc), or if libdl is needed to get it.
@@ -590,13 +586,6 @@ AC_ARG_ENABLE([xa],
         [enable build of the XA X Acceleration API @<:@default=no@:>@])],
     [enable_xa="$enableval"],
     [enable_xa=no])
-dnl Broken, unmaintained. Don't want to see bug reports about it without patches.
-enable_d3d1x=no
-dnl AC_ARG_ENABLE([d3d1x],
-dnl     [AS_HELP_STRING([--enable-d3d1x],
-dnl         [enable support for Direct3D 10 & 11 low-level API @<:@default=no@:>@])],
-dnl     [enable_d3d1x="$enableval"],
-dnl     [enable_d3d1x=no])
 AC_ARG_ENABLE([gbm],
    [AS_HELP_STRING([--enable-gbm],
          [enable gbm library @<:@default=auto@:>@])],
@@ -660,7 +649,7 @@ GALLIUM_DRIVERS_DEFAULT="r300,r600,svga,swrast"
 AC_ARG_WITH([gallium-drivers],
     [AS_HELP_STRING([--with-gallium-drivers@<:@=DIRS...@:>@],
         [comma delimited Gallium drivers list, e.g.
-        "i915,nouveau,r300,r600,radeonsi,svga,swrast"
+        "i915,nouveau,r300,r600,radeonsi,freedreno,svga,swrast"
         @<:@default=r300,r600,svga,swrast@:>@])],
     [with_gallium_drivers="$withval"],
     [with_gallium_drivers="$GALLIUM_DRIVERS_DEFAULT"])
@@ -678,7 +667,6 @@ if test "x$enable_opengl" = xno -a \
         "x$enable_openvg" = xno -a \
         "x$enable_xorg" = xno -a \
         "x$enable_xa" = xno -a \
-        "x$enable_d3d1x" = xno -a \
         "x$enable_xvmc" = xno -a \
         "x$enable_vdpau" = xno -a \
         "x$enable_opencl" = xno; then
@@ -805,6 +793,8 @@ fi
 
 if test "x$enable_osmesa" = xyes; then
     DRIVER_DIRS="$DRIVER_DIRS osmesa"
+    GALLIUM_STATE_TRACKERS_DIRS="osmesa $GALLIUM_STATE_TRACKERS_DIRS"
+    GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS osmesa"
 fi
 
 AC_SUBST([SRC_DIRS])
@@ -1357,19 +1347,6 @@ fi
 AM_CONDITIONAL(HAVE_OPENVG, test "x$enable_openvg" = xyes)
 
 dnl
-dnl D3D1X configuration
-dnl
-
-if test "x$enable_d3d1x" = xyes; then
-    if test "x$with_gallium_drivers" = x; then
-        AC_MSG_ERROR([cannot enable D3D1X without Gallium])
-    fi
-
-    GALLIUM_STATE_TRACKERS_DIRS="d3d1x $GALLIUM_STATE_TRACKERS_DIRS"
-    HAVE_ST_D3D1X=yes
-fi
-
-dnl
 dnl Gallium G3DVL configuration
 dnl
 AC_ARG_ENABLE([gallium-g3dvl],
@@ -1795,7 +1772,7 @@ radeon_llvm_check() {
                       configure flag])
     fi
     AC_MSG_WARN([Please ensure you use the latest llvm tree from git://people.freedesktop.org/~tstellar/llvm master before submitting a bug])
-    LLVM_COMPONENTS="${LLVM_COMPONENTS} r600"
+    LLVM_COMPONENTS="${LLVM_COMPONENTS} r600 bitreader"
 }
 
 dnl Gallium drivers
@@ -1860,6 +1837,13 @@ if test "x$with_gallium_drivers" != x; then
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS nouveau nv30 nv50 nvc0"
             gallium_check_st "nouveau/drm" "dri-nouveau" "xorg-nouveau" "" "xvmc-nouveau" "vdpau-nouveau"
+            ;;
+        xfreedreno)
+            HAVE_GALLIUM_FREEDRENO=yes
+            PKG_CHECK_MODULES([FREEDRENO], [libdrm_freedreno >= $LIBDRM_FREEDRENO_REQUIRED])
+            gallium_require_drm_loader
+            GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS freedreno"
+            gallium_check_st "freedreno/drm" "dri-freedreno" "" "" "" ""
             ;;
         xswrast)
             HAVE_GALLIUM_SOFTPIPE=yes
@@ -1941,6 +1925,7 @@ AM_CONDITIONAL(HAVE_GALLIUM_R300, test "x$HAVE_GALLIUM_R300" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_R600, test "x$HAVE_GALLIUM_R600" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_RADEONSI, test "x$HAVE_GALLIUM_RADEONSI" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_NOUVEAU, test "x$HAVE_GALLIUM_NOUVEAU" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_FREEDRENO, test "x$HAVE_GALLIUM_FREEDRENO" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_SOFTPIPE, test "x$HAVE_GALLIUM_SOFTPIPE" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_LLVMPIPE, test "x$HAVE_GALLIUM_LLVMPIPE" = xyes)
 
@@ -2059,6 +2044,7 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/auxiliary/Makefile
 		src/gallium/auxiliary/pipe-loader/Makefile
 		src/gallium/drivers/Makefile
+		src/gallium/drivers/freedreno/Makefile
 		src/gallium/drivers/i915/Makefile
 		src/gallium/drivers/llvmpipe/Makefile
 		src/gallium/drivers/nouveau/Makefile
@@ -2081,12 +2067,14 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/state_trackers/egl/Makefile
 		src/gallium/state_trackers/gbm/Makefile
 		src/gallium/state_trackers/glx/Makefile
+		src/gallium/state_trackers/osmesa/Makefile
 		src/gallium/state_trackers/vdpau/Makefile
 		src/gallium/state_trackers/vega/Makefile
 		src/gallium/state_trackers/xa/Makefile
 		src/gallium/state_trackers/xorg/Makefile
 		src/gallium/state_trackers/xvmc/Makefile
 		src/gallium/targets/Makefile
+		src/gallium/targets/dri-freedreno/Makefile
 		src/gallium/targets/dri-i915/Makefile
 		src/gallium/targets/dri-nouveau/Makefile
 		src/gallium/targets/dri-r300/Makefile
@@ -2097,6 +2085,7 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/targets/egl-static/Makefile
 		src/gallium/targets/gbm/Makefile
 		src/gallium/targets/opencl/Makefile
+		src/gallium/targets/osmesa/Makefile
 		src/gallium/targets/pipe-loader/Makefile
 		src/gallium/targets/libgl-xlib/Makefile
 		src/gallium/targets/vdpau-nouveau/Makefile
@@ -2117,6 +2106,7 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/tests/trivial/Makefile
 		src/gallium/tests/unit/Makefile
 		src/gallium/winsys/Makefile
+		src/gallium/winsys/freedreno/drm/Makefile
 		src/gallium/winsys/i915/drm/Makefile
 		src/gallium/winsys/i915/sw/Makefile
 		src/gallium/winsys/nouveau/drm/Makefile
