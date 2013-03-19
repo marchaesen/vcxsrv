@@ -32,6 +32,10 @@
 #define MESA_CONFIG_H_INCLUDED
 
 
+#define PACKAGE_VERSION  "9.2-devel"
+#define PACKAGE_BUGREPORT "https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa"
+
+
 /**
  * \name OpenGL implementation limits
  */
