@@ -489,6 +489,14 @@ extern void *_XGetRequest(Display *dpy, CARD8 type, size_t len);
 	req = (xReq *) _XGetRequest(dpy, X_/**/name, SIZEOF(xReq))
 #endif
 
+/*
+ * MakeBigReq sets the CARD16 "req->length" to 0 and inserts a new CARD32
+ * length, after req->length, before the data in the request.  The new length
+ * includes the "n" extra 32-bit words.
+ *
+ * Do not use MakeBigReq if there is no data already in the request.
+ * req->length must already be >= 2.
+ */
 #ifdef LONG64
 #define MakeBigReq(req,n) \
     { \
@@ -496,7 +504,7 @@ extern void *_XGetRequest(Display *dpy, CARD8 type, size_t len);
     CARD32 _BRlen = req->length - 1; \
     req->length = 0; \
     _BRdat = ((CARD32 *)req)[_BRlen]; \
-    memmove(((char *)req) + 8, ((char *)req) + 4, _BRlen << 2); \
+    memmove(((char *)req) + 8, ((char *)req) + 4, (_BRlen - 1) << 2); \
     ((CARD32 *)req)[1] = _BRlen + n + 2; \
     Data32(dpy, &_BRdat, 4); \
     }
@@ -507,12 +515,19 @@ extern void *_XGetRequest(Display *dpy, CARD8 type, size_t len);
     CARD32 _BRlen = req->length - 1; \
     req->length = 0; \
     _BRdat = ((CARD32 *)req)[_BRlen]; \
-    memmove(((char *)req) + 8, ((char *)req) + 4, _BRlen << 2); \
+    memmove(((char *)req) + 8, ((char *)req) + 4, (_BRlen - 1) << 2); \
     ((CARD32 *)req)[1] = _BRlen + n + 2; \
     Data32(dpy, &_BRdat, 4); \
     }
 #endif
 
+/*
+ * SetReqLen increases the count of 32-bit words in the request by "n",
+ * or by "badlen" if "n" is too large.
+ *
+ * Do not use SetReqLen if "req" does not already have data after the
+ * xReq header.  req->length must already be >= 2.
+ */
 #ifndef __clang_analyzer__
 #define SetReqLen(req,n,badlen) \
     if ((req->length + n) > (unsigned)65535) { \
