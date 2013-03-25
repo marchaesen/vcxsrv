@@ -971,6 +971,8 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
     size_t buffer_size;
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 
+    framebuffer.base = NULL;
+
     if (!xf86LoaderCheckSymbol("DRIQueryDirectRenderingCapable") ||
         !DRIQueryDirectRenderingCapable(pScreen, &isCapable) || !isCapable) {
         LogMessage(X_INFO,

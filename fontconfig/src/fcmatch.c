@@ -77,6 +77,24 @@ FcCompareFamily (FcValue *v1, FcValue *v2)
 }
 
 static double
+FcComparePostScript (FcValue *v1, FcValue *v2)
+{
+    const FcChar8 *v1_string = FcValueString (v1);
+    const FcChar8 *v2_string = FcValueString (v2);
+    int n;
+    size_t len;
+
+    if (FcToLower (*v1_string) != FcToLower (*v2_string) &&
+	*v1_string != ' ' && *v2_string != ' ')
+	return 1.0;
+
+    n = FcStrMatchIgnoreCaseAndDelims (v1_string, v2_string, (const FcChar8 *)" -");
+    len = strlen ((const char *)v1_string);
+
+    return (double)(len - n) / (double)len;
+}
+
+static double
 FcCompareLang (FcValue *v1, FcValue *v2)
 {
     FcLangResult    result;
@@ -198,6 +216,7 @@ FcCompareFilename (FcValue *v1, FcValue *v2)
 #define PRI_FcCompareFilename(n)	PRI1(n)
 #define PRI_FcCompareCharSet(n)		PRI1(n)
 #define PRI_FcCompareLang(n)		PRI1(n)
+#define PRI_FcComparePostScript(n)	PRI1(n)
 
 #define FC_OBJECT(NAME, Type, Cmp)	PRI_##Cmp(NAME)
 
@@ -219,8 +238,10 @@ typedef enum _FcMatcherPriority {
     PRI1(CHARSET),
     PRI_FAMILY_STRONG,
     PRI_LANG_STRONG,
+    PRI_POSTSCRIPT_NAME_STRONG,
     PRI_LANG_WEAK,
     PRI_FAMILY_WEAK,
+    PRI_POSTSCRIPT_NAME_WEAK,
     PRI1(SPACING),
     PRI1(PIXEL_SIZE),
     PRI1(STYLE),

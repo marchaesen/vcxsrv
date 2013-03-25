@@ -2747,7 +2747,6 @@ init_system_idle_counter(const char *name, int deviceid)
 {
     CARD64 resolution;
     XSyncValue idle;
-    IdleCounterPriv *priv = malloc(sizeof(IdleCounterPriv));
     SyncCounter *idle_time_counter;
 
     IdleTimeQueryValue(NULL, &idle);
@@ -2758,10 +2757,14 @@ init_system_idle_counter(const char *name, int deviceid)
                                                 IdleTimeQueryValue,
                                                 IdleTimeBracketValues);
 
-    priv->deviceid = deviceid;
-    priv->value_less = priv->value_greater = NULL;
+    if (idle_time_counter != NULL) {
+        IdleCounterPriv *priv = malloc(sizeof(IdleCounterPriv));
 
-    idle_time_counter->pSysCounterInfo->private = priv;
+        priv->value_less = priv->value_greater = NULL;
+        priv->deviceid = deviceid;
+
+        idle_time_counter->pSysCounterInfo->private = priv;
+    }
 
     return idle_time_counter;
 }
@@ -2786,6 +2789,6 @@ void SyncRemoveDeviceIdleTime(SyncCounter *counter)
     /* FreeAllResources() frees all system counters before the devices are
        shut down, check if there are any left before freeing the device's
        counter */
-    if (!xorg_list_is_empty(&SysCounterList))
+    if (counter && !xorg_list_is_empty(&SysCounterList))
         xorg_list_del(&counter->pSysCounterInfo->entry);
 }

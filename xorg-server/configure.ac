@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.14.0, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2013-03-05"
-RELEASE_NAME="Keemun Mao Feng"
+AC_INIT([xorg-server], 1.14.99.0, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2013-03-18"
+RELEASE_NAME="Pok Pok Meyer Lemon"
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 
@@ -307,6 +307,13 @@ AC_CHECK_HEADER([execinfo.h],[
         AC_DEFINE(HAVE_EXECINFO_H, 1, [Have execinfo.h])
     ])]
 )
+
+PKG_CHECK_MODULES(LIBUNWIND, libunwind, [HAVE_LIBUNWIND=yes], [HAVE_LIBUNWIND=no])
+if test "x$HAVE_LIBUNWIND" = xyes; then
+	AC_DEFINE(HAVE_LIBUNWIND, 1, [Have libunwind support])
+fi
+AM_CONDITIONAL(HAVE_LIBUNWIND, [test "x$HAVE_LIBUNWIND" = xyes])
+
 
 dnl ---------------------------------------------------------------------------
 dnl Bus options and CPU capabilities.  Replaces logic in
@@ -788,7 +795,7 @@ XPROTO="xproto >= 7.0.22"
 RANDRPROTO="randrproto >= 1.4.0"
 RENDERPROTO="renderproto >= 0.11"
 XEXTPROTO="xextproto >= 7.1.99"
-INPUTPROTO="inputproto >= 2.2.99.1"
+INPUTPROTO="inputproto >= 2.3"
 KBPROTO="kbproto >= 1.0.3"
 FONTSPROTO="fontsproto"
 FIXESPROTO="fixesproto >= 5.0"
@@ -1336,7 +1343,7 @@ AC_DEFINE(BIGREQS, 1, [Support BigRequests extension])
 
 if test "x$SPECIAL_DTRACE_OBJECTS" = "xyes" ; then
   DIX_LIB='$(top_builddir)/dix/dix.O'
-  OS_LIB='$(top_builddir)/os/os.O $(SHA1_LIBS) $(DLOPEN_LIBS)'
+  OS_LIB='$(top_builddir)/os/os.O $(SHA1_LIBS) $(DLOPEN_LIBS) $(LIBUNWIND_LIBS)'
 else
   DIX_LIB='$(top_builddir)/dix/libdix.la'
   OS_LIB='$(top_builddir)/os/libos.la'

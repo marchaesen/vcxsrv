@@ -1821,15 +1821,10 @@ KdEnqueueKeyboardEvent(KdKeyboardInfo * ki,
                        unsigned char scan_code, unsigned char is_up)
 {
     unsigned char key_code;
-    KeyClassPtr keyc = NULL;
-    KeybdCtrl *ctrl = NULL;
     int type;
 
     if (!ki || !ki->dixdev || !ki->dixdev->kbdfeed || !ki->dixdev->key)
         return;
-
-    keyc = ki->dixdev->key;
-    ctrl = &ki->dixdev->kbdfeed->ctrl;
 
     if (scan_code >= ki->minScanCode && scan_code <= ki->maxScanCode) {
         key_code = scan_code + KD_MIN_KEYCODE - ki->minScanCode;
@@ -1864,7 +1859,6 @@ void
 KdEnqueuePointerEvent(KdPointerInfo * pi, unsigned long flags, int rx, int ry,
                       int rz)
 {
-    CARD32 ms;
     unsigned char buttons;
     int x, y, z;
     int (*matrix)[3] = kdPointerMatrix.matrix;
@@ -1874,8 +1868,6 @@ KdEnqueuePointerEvent(KdPointerInfo * pi, unsigned long flags, int rx, int ry,
 
     if (!pi)
         return;
-
-    ms = GetTimeInMillis();
 
     /* we don't need to transform z, so we don't. */
     if (flags & KD_MOUSE_DELTA) {

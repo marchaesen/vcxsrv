@@ -105,7 +105,9 @@ __ATTRIB(__DRI_ATTRIB_BUFFER_SIZE, rgbBits),
         __ATTRIB(__DRI_ATTRIB_BIND_TO_TEXTURE_RGB, bindToTextureRgb),
         __ATTRIB(__DRI_ATTRIB_BIND_TO_TEXTURE_RGBA, bindToTextureRgba),
         __ATTRIB(__DRI_ATTRIB_BIND_TO_MIPMAP_TEXTURE, bindToMipmapTexture),
-        __ATTRIB(__DRI_ATTRIB_YINVERTED, yInverted),};
+        __ATTRIB(__DRI_ATTRIB_YINVERTED, yInverted),
+        __ATTRIB(__DRI_ATTRIB_FRAMEBUFFER_SRGB_CAPABLE, sRGBCapable),
+        };
 
 static void
 setScalar(__GLXconfig * config, unsigned int attrib, unsigned int value)

@@ -37,11 +37,14 @@ _pixman_gradient_walker_init (pixman_gradient_walker_t *walker,
     walker->stops     = gradient->stops;
     walker->left_x    = 0;
     walker->right_x   = 0x10000;
-    walker->stepper   = 0;
-    walker->left_ag   = 0;
-    walker->left_rb   = 0;
-    walker->right_ag  = 0;
-    walker->right_rb  = 0;
+    walker->a_s       = 0.0f;
+    walker->a_b       = 0.0f;
+    walker->r_s       = 0.0f;
+    walker->r_b       = 0.0f;
+    walker->g_s       = 0.0f;
+    walker->g_b       = 0.0f;
+    walker->b_s       = 0.0f;
+    walker->b_b       = 0.0f;
     walker->repeat    = repeat;
 
     walker->need_reset = TRUE;
@@ -55,6 +58,9 @@ gradient_walker_reset (pixman_gradient_walker_t *walker,
     pixman_color_t *left_c, *right_c;
     int n, count = walker->num_stops;
     pixman_gradient_stop_t *stops = walker->stops;
+    float la, lr, lg, lb;
+    float ra, rr, rg, rb;
+    float lx, rx;
 
     if (walker->repeat == PIXMAN_REPEAT_NORMAL)
     {
@@ -116,24 +122,49 @@ gradient_walker_reset (pixman_gradient_walker_t *walker,
 	    left_c = right_c;
     }
 
-    walker->left_x   = left_x;
-    walker->right_x  = right_x;
-    walker->left_ag  = ((left_c->alpha >> 8) << 16)   | (left_c->green >> 8);
-    walker->left_rb  = ((left_c->red & 0xff00) << 8)  | (left_c->blue >> 8);
-    walker->right_ag = ((right_c->alpha >> 8) << 16)  | (right_c->green >> 8);
-    walker->right_rb = ((right_c->red & 0xff00) << 8) | (right_c->blue >> 8);
+    /* The alpha channel is scaled to be in the [0, 255] interval,
+     * and the red/green/blue channels are scaled to be in [0, 1].
+     * This ensures that after premultiplication all channels will
+     * be in the [0, 255] interval.
+     */
+    la = (left_c->alpha * (1.0f/257.0f));
+    lr = (left_c->red * (1.0f/257.0f));
+    lg = (left_c->green * (1.0f/257.0f));
+    lb = (left_c->blue * (1.0f/257.0f));
 
-    if (walker->left_x == walker->right_x                ||
-        (walker->left_ag == walker->right_ag &&
-	 walker->left_rb == walker->right_rb))
+    ra = (right_c->alpha * (1.0f/257.0f));
+    rr = (right_c->red * (1.0f/257.0f));
+    rg = (right_c->green * (1.0f/257.0f));
+    rb = (right_c->blue * (1.0f/257.0f));
+    
+    lx = left_x * (1.0f/65536.0f);
+    rx = right_x * (1.0f/65536.0f);
+    
+    if (FLOAT_IS_ZERO (rx - lx) || left_x == INT32_MIN || right_x == INT32_MAX)
     {
-	walker->stepper = 0;
+	walker->a_s = walker->r_s = walker->g_s = walker->b_s = 0.0f;
+	walker->a_b = (la + ra) / 2.0f;
+	walker->r_b = (lr + rr) / 510.0f;
+	walker->g_b = (lg + rg) / 510.0f;
+	walker->b_b = (lb + rb) / 510.0f;
     }
     else
     {
-	int32_t width = right_x - left_x;
-	walker->stepper = ((1 << 24) + width / 2) / width;
+	float w_rec = 1.0f / (rx - lx);
+
+	walker->a_b = (la * rx - ra * lx) * w_rec;
+	walker->r_b = (lr * rx - rr * lx) * w_rec * (1.0f/255.0f);
+	walker->g_b = (lg * rx - rg * lx) * w_rec * (1.0f/255.0f);
+	walker->b_b = (lb * rx - rb * lx) * w_rec * (1.0f/255.0f);
+
+	walker->a_s = (ra - la) * w_rec;
+	walker->r_s = (rr - lr) * w_rec * (1.0f/255.0f);
+	walker->g_s = (rg - lg) * w_rec * (1.0f/255.0f);
+	walker->b_s = (rb - lb) * w_rec * (1.0f/255.0f);
     }
+   
+    walker->left_x = left_x;
+    walker->right_x = right_x;
 
     walker->need_reset = FALSE;
 }
@@ -142,31 +173,30 @@ uint32_t
 _pixman_gradient_walker_pixel (pixman_gradient_walker_t *walker,
                                pixman_fixed_48_16_t      x)
 {
-    int dist, idist;
-    uint32_t t1, t2, a, color;
+    float a, r, g, b;
+    uint8_t a8, r8, g8, b8;
+    uint32_t v;
+    float y;
 
     if (walker->need_reset || x < walker->left_x || x >= walker->right_x)
-	gradient_walker_reset (walker, x);
+        gradient_walker_reset (walker, x);
 
-    dist  = ((int)(x - walker->left_x) * walker->stepper) >> 16;
-    idist = 256 - dist;
+    y = x * (1.0f / 65536.0f);
 
-    /* combined INTERPOLATE and premultiply */
-    t1 = walker->left_rb * idist + walker->right_rb * dist;
-    t1 = (t1 >> 8) & 0xff00ff;
+    a = walker->a_s * y + walker->a_b;
+    r = a * (walker->r_s * y + walker->r_b);
+    g = a * (walker->g_s * y + walker->g_b);
+    b = a * (walker->b_s * y + walker->b_b);
 
-    t2  = walker->left_ag * idist + walker->right_ag * dist;
-    t2 &= 0xff00ff00;
+    a8 = a + 0.5f;
+    r8 = r + 0.5f;
+    g8 = g + 0.5f;
+    b8 = b + 0.5f;
 
-    color = t2 & 0xff000000;
-    a     = t2 >> 24;
+    v = ((a8 << 24) & 0xff000000) |
+        ((r8 << 16) & 0x00ff0000) |
+        ((g8 <<  8) & 0x0000ff00) |
+        ((b8 >>  0) & 0x000000ff);
 
-    t1  = t1 * a + 0x800080;
-    t1  = (t1 + ((t1 >> 8) & 0xff00ff)) >> 8;
-
-    t2  = (t2 >> 8) * a + 0x800080;
-    t2  = (t2 + ((t2 >> 8) & 0xff00ff));
-
-    return (color | (t1 & 0xff00ff) | (t2 & 0xff00));
+    return v;
 }
-

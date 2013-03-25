@@ -31,6 +31,7 @@
 
 extern Window EphyrPreExistingHostWin;
 extern Bool EphyrWantGrayScale;
+extern Bool EphyrWantResize;
 extern Bool kdHasPointer;
 extern Bool kdHasKbd;
 
@@ -116,6 +117,7 @@ ddxUseMsg(void)
     ErrorF("-host-cursor         Re-use exisiting X host server cursor\n");
     ErrorF("-fullscreen          Attempt to run Xephyr fullscreen\n");
     ErrorF("-grayscale           Simulate 8bit grayscale\n");
+    ErrorF("-resizeable          Make Xephyr windows resizeable\n");
     ErrorF
         ("-fakexa              Simulate acceleration using software rendering\n");
     ErrorF("-verbosity <level>   Set log verbosity level\n");
@@ -208,6 +210,10 @@ ddxProcessArgument(int argc, char **argv, int i)
     }
     else if (!strcmp(argv[i], "-grayscale")) {
         EphyrWantGrayScale = 1;
+        return 1;
+    }
+    else if (!strcmp(argv[i], "-resizeable")) {
+        EphyrWantResize = 1;
         return 1;
     }
     else if (!strcmp(argv[i], "-fakexa")) {

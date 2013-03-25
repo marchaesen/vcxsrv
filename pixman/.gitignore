@@ -34,6 +34,7 @@ demos/composite-test
 demos/conical-test
 demos/convolution-test
 demos/gradient-test
+demos/linear-gradient
 demos/quad2quad
 demos/radial-test
 demos/scale
@@ -66,6 +67,7 @@ test/lowlevel-blt-bench
 test/oob-test
 test/pdf-op-test
 test/prng-test
+test/radial-perf-test
 test/region-contains-test
 test/region-test
 test/region-translate

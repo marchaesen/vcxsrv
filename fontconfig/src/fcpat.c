@@ -843,6 +843,8 @@ FcPatternObjectGet (const FcPattern *p, FcObject object, int id, FcValue *v)
     FcPatternElt   *e;
     FcValueListPtr l;
 
+    if (!p)
+	return FcResultNoMatch;
     e = FcPatternObjectFindElt (p, object);
     if (!e)
 	return FcResultNoMatch;

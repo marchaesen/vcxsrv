@@ -30,6 +30,80 @@
 #include <errno.h>
 #include <string.h>
 
+#ifdef HAVE_LIBUNWIND
+
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <dlfcn.h>
+
+void
+xorg_backtrace(void)
+{
+    unw_cursor_t cursor;
+    unw_context_t context;
+    unw_word_t off;
+    unw_proc_info_t pip;
+    int ret, i = 0;
+    char procname[256];
+    const char *filename;
+    Dl_info dlinfo;
+
+    pip.unwind_info = NULL;
+    ret = unw_getcontext(&context);
+    if (ret) {
+        ErrorFSigSafe("unw_getcontext failed: %s [%d]\n", unw_strerror(ret),
+                ret);
+        return;
+    }
+
+    ret = unw_init_local(&cursor, &context);
+    if (ret) {
+        ErrorFSigSafe("unw_init_local failed: %s [%d]\n", unw_strerror(ret),
+                ret);
+        return;
+    }
+
+    ErrorFSigSafe("\n");
+    ErrorFSigSafe("Backtrace:\n");
+    ret = unw_step(&cursor);
+    while (ret > 0) {
+        ret = unw_get_proc_info(&cursor, &pip);
+        if (ret) {
+            ErrorFSigSafe("unw_get_proc_info failed: %s [%d]\n",
+                    unw_strerror(ret), ret);
+            break;
+        }
+
+        ret = unw_get_proc_name(&cursor, procname, 256, &off);
+        if (ret && ret != -UNW_ENOMEM) {
+            if (ret != -UNW_EUNSPEC)
+                ErrorFSigSafe("unw_get_proc_name failed: %s [%d]\n",
+                        unw_strerror(ret), ret);
+            procname[0] = '?';
+            procname[1] = 0;
+        }
+
+        if (dladdr((void *)(pip.start_ip + off), &dlinfo) && dlinfo.dli_fname &&
+                *dlinfo.dli_fname)
+            filename = dlinfo.dli_fname;
+        else
+            filename = "?";
+
+        ErrorFSigSafe("%u: %s (%s%s+0x%x) [%p]\n", i++, filename, procname,
+            ret == -UNW_ENOMEM ? "..." : "", (int)off,
+            (void *)(pip.start_ip + off));
+
+        ret = unw_step(&cursor);
+        if (ret < 0)
+            ErrorFSigSafe("unw_step failed: %s [%d]\n", unw_strerror(ret), ret);
+    }
+    ErrorFSigSafe("\n");
+}
+#else /* HAVE_LIBUNWIND */
 #ifdef HAVE_BACKTRACE
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -244,5 +318,6 @@ xorg_backtrace(void)
     return;
 }
 
+#endif
 #endif
 #endif
