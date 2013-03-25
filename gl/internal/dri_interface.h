@@ -942,7 +942,7 @@ struct __DRIdri2ExtensionRec {
  * extensions.
  */
 #define __DRI_IMAGE "DRI_IMAGE"
-#define __DRI_IMAGE_VERSION 6
+#define __DRI_IMAGE_VERSION 7
 
 /**
  * These formats correspond to the similarly named MESA_FORMAT_*
@@ -1025,6 +1025,9 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_ATTRIB_WIDTH	0x2004 /* available in versions 4+ */
 #define __DRI_IMAGE_ATTRIB_HEIGHT	0x2005
 #define __DRI_IMAGE_ATTRIB_COMPONENTS	0x2006 /* available in versions 5+ */
+#define __DRI_IMAGE_ATTRIB_FD           0x2007 /* available in versions
+                                                * 7+. Each query will return a
+                                                * new fd. */
 
 /**
  * \name Reasons that __DRIimageExtensionRec::createImageFromTexture might fail
@@ -1121,6 +1124,16 @@ struct __DRIimageExtensionRec {
                                          int level,
                                          unsigned *error,
                                          void *loaderPrivate);
+   /**
+    * Like createImageFromNames, but takes a prime fd instead.
+    *
+    * \since 7
+    */
+   __DRIimage *(*createImageFromFds)(__DRIscreen *screen,
+                                     int width, int height, int fourcc,
+                                     int *fds, int num_fds,
+                                     int *strides, int *offsets,
+                                     void *loaderPrivate);
 };
 
 
