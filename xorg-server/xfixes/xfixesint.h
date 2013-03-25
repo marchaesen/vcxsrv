@@ -291,8 +291,10 @@ int
  SProcXFixesDestroyPointerBarrier(ClientPtr client);
 
 /* Xinerama */
+#ifdef PANORAMIX
 extern int (*PanoramiXSaveXFixesVector[XFixesNumberRequests]) (ClientPtr);
 void PanoramiXFixesInit(void);
 void PanoramiXFixesReset(void);
+#endif
 
 #endif                          /* _XFIXESINT_H_ */

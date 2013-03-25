@@ -119,7 +119,7 @@ struct xorg_list {
  *
  * @param The list to initialized.
  */
-static void
+static inline void
 xorg_list_init(struct xorg_list *list)
 {
     list->next = list->prev = list;

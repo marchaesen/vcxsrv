@@ -413,7 +413,6 @@ static void
 xf86VTSwitch(void)
 {
     int i;
-    static int prevSIGIO;
     InputInfoPtr pInfo;
     IHPtr ih;
 

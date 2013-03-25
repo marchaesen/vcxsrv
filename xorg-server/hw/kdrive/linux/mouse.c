@@ -441,10 +441,8 @@ ps2SkipInit(KdPointerInfo * pi, int ninit, Bool ret_next)
 {
     Kmouse *km = pi->driverPrivate;
     int c = -1;
-    int skipping;
     Bool waiting;
 
-    skipping = 0;
     waiting = FALSE;
     while (ninit || ret_next) {
         c = MouseReadByte(&km->iob, MOUSE_TIMEOUT);
@@ -469,8 +467,6 @@ static Bool
 ps2Init(KdPointerInfo * pi)
 {
     Kmouse *km = pi->driverPrivate;
-    int skipping;
-    Bool waiting;
     int id;
     unsigned char *init;
     int ninit;
@@ -483,8 +479,6 @@ ps2Init(KdPointerInfo * pi)
      */
     if (!MouseWriteByte(km->iob.fd, PSMC_SEND_DEV_ID, 100))
         return FALSE;
-    skipping = 0;
-    waiting = FALSE;
     id = ps2SkipInit(pi, 0, TRUE);
     switch (id) {
     case 3:

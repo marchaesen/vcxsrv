@@ -320,15 +320,17 @@ localRegisterFreeBoxCallback(ScreenPtr pScreen,
     newCallbacks = realloc(offman->FreeBoxesUpdateCallback,
                            sizeof(FreeBoxCallbackProcPtr) *
                            (offman->NumCallbacks + 1));
+    if (!newCallbacks)
+        return FALSE;
+    else
+        offman->FreeBoxesUpdateCallback = newCallbacks;
 
     newPrivates = realloc(offman->devPrivates,
                           sizeof(DevUnion) * (offman->NumCallbacks + 1));
-
-    if (!newCallbacks || !newPrivates)
+    if (!newPrivates)
         return FALSE;
-
-    offman->FreeBoxesUpdateCallback = newCallbacks;
-    offman->devPrivates = newPrivates;
+    else
+        offman->devPrivates = newPrivates;
 
     offman->FreeBoxesUpdateCallback[offman->NumCallbacks] = FreeBoxCallback;
     offman->devPrivates[offman->NumCallbacks].ptr = devPriv;

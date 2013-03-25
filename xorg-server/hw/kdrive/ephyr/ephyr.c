@@ -56,6 +56,7 @@ typedef struct _EphyrInputPrivate {
 } EphyrKbdPrivate, EphyrPointerPrivate;
 
 Bool EphyrWantGrayScale = 0;
+Bool EphyrWantResize = 0;
 
 Bool
 ephyrInitialize(KdCardInfo * card, EphyrPriv * priv)
@@ -237,13 +238,11 @@ ephyrMapFramebuffer(KdScreenInfo * screen)
     KdComputePointerMatrix(&m, ephyrRandr, screen->width, screen->height);
     KdSetPointerMatrix(&m);
 
-    priv->bytes_per_line =
-        ((screen->width * screen->fb.bitsPerPixel + 31) >> 5) << 2;
-
     buffer_height = ephyrBufferHeight(screen);
 
     priv->base =
-        hostx_screen_init(screen, screen->width, screen->height, buffer_height);
+        hostx_screen_init(screen, screen->width, screen->height, buffer_height,
+                          &priv->bytes_per_line, &screen->fb.bitsPerPixel);
 
     if ((scrpriv->randr & RR_Rotate_0) && !(scrpriv->randr & RR_Reflect_All)) {
         scrpriv->shadow = FALSE;

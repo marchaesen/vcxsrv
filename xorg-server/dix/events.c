@@ -1200,6 +1200,9 @@ PlayReleasedEvents(void)
                 case ET_KeyRelease:
                 case ET_ProximityIn:
                 case ET_ProximityOut:
+                case ET_TouchBegin:
+                case ET_TouchUpdate:
+                case ET_TouchEnd:
                     ev->root_x += screenInfo.screens[0]->x -
                         pDev->spriteInfo->sprite->screen->x;
                     ev->root_y += screenInfo.screens[0]->y -

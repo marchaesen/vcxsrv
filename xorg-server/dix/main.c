@@ -357,6 +357,8 @@ main(int argc, char *argv[], char *envp[])
 
         FreeFonts();
 
+        FreeAllAtoms();
+
         FreeAuditTimer();
 
         if (dispatchException & DE_TERMINATE) {

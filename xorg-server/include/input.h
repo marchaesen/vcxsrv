@@ -638,6 +638,11 @@ extern _X_HIDDEN void valuator_set_mode(DeviceIntPtr dev, int axis, int mode);
    xfixes/cursor.c uses it to determine if the cursor is enabled */
 extern Bool EnableCursor;
 
+/* Set to FALSE by default - ChangeWindowAttributes sets it to TRUE on
+ * CWCursor, xfixes/cursor.c uses it to determine if the cursor is enabled
+ */
+extern Bool CursorVisible;
+
 extern _X_EXPORT ValuatorMask *valuator_mask_new(int num_valuators);
 extern _X_EXPORT void valuator_mask_free(ValuatorMask **mask);
 extern _X_EXPORT void valuator_mask_set_range(ValuatorMask *mask,

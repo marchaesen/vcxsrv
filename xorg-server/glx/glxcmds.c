@@ -913,7 +913,7 @@ __glXDisp_CopyContext(__GLXclientState * cl, GLbyte * pc)
 
 enum {
     GLX_VIS_CONFIG_UNPAIRED = 18,
-    GLX_VIS_CONFIG_PAIRED = 20
+    GLX_VIS_CONFIG_PAIRED = 22
 };
 
 enum {
@@ -1005,8 +1005,17 @@ __glXDisp_GetVisualConfigs(__GLXclientState * cl, GLbyte * pc)
         buf[p++] = modes->samples;
         buf[p++] = GLX_SAMPLE_BUFFERS_SGIS;
         buf[p++] = modes->sampleBuffers;
-        buf[p++] = 0;           /* copy over visualSelectGroup (GLX_VISUAL_SELECT_GROUP_SGIX)? */
-        buf[p++] = 0;
+        /* Add attribute only if its value is not default. */
+        if (modes->sRGBCapable != GL_FALSE) {
+            buf[p++] = GLX_FRAMEBUFFER_SRGB_CAPABLE_EXT;
+            buf[p++] = modes->sRGBCapable;
+        }
+        /* Don't add visualSelectGroup (GLX_VISUAL_SELECT_GROUP_SGIX)?
+         * Pad the remaining place with zeroes, so that attributes count is constant. */
+        while (p < GLX_VIS_CONFIG_TOTAL) {
+            buf[p++] = 0;
+            buf[p++] = 0;
+        }
 
         assert(p == GLX_VIS_CONFIG_TOTAL);
         if (client->swapped) {
@@ -1017,7 +1026,7 @@ __glXDisp_GetVisualConfigs(__GLXclientState * cl, GLbyte * pc)
     return Success;
 }
 
-#define __GLX_TOTAL_FBCONFIG_ATTRIBS (36)
+#define __GLX_TOTAL_FBCONFIG_ATTRIBS (37)
 #define __GLX_FBCONFIG_ATTRIBS_LENGTH (__GLX_TOTAL_FBCONFIG_ATTRIBS * 2)
 /**
  * Send the set of GLXFBConfigs to the client.  There is not currently
@@ -1109,6 +1118,15 @@ DoGetFBConfigs(__GLXclientState * cl, unsigned screen)
         WRITE_PAIR(GLX_BIND_TO_MIPMAP_TEXTURE_EXT, modes->bindToMipmapTexture);
         WRITE_PAIR(GLX_BIND_TO_TEXTURE_TARGETS_EXT,
                    modes->bindToTextureTargets);
+        /* Add attribute only if its value is not default. */
+        if (modes->sRGBCapable != GL_FALSE) {
+            WRITE_PAIR(GLX_FRAMEBUFFER_SRGB_CAPABLE_EXT, modes->sRGBCapable);
+        }
+        /* Pad the remaining place with zeroes, so that attributes count is constant. */
+        while (p < __GLX_FBCONFIG_ATTRIBS_LENGTH) {
+            WRITE_PAIR(0, 0);
+        }
+        assert(p == __GLX_FBCONFIG_ATTRIBS_LENGTH);
 
         if (client->swapped) {
             __GLX_SWAP_INT_ARRAY(buf, __GLX_FBCONFIG_ATTRIBS_LENGTH);

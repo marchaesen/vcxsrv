@@ -262,6 +262,9 @@ __GLXconfig *__glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber) 
                                         c->bindToTextureTargets = 0;
                                         c->yInverted = 0;
 
+                                        /* EXT_framebuffer_sRGB */
+                                        c->sRGBCapable = GL_FALSE;
+
                                         c = c->next;
                                     }
                                 }

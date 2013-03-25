@@ -902,7 +902,8 @@ TouchSetupListeners(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev)
 }
 
 /**
- * Remove the touch pointer grab from the device. Called from AllowSome()
+ * Remove the touch pointer grab from the device. Called from
+ * DeactivatePointerGrab()
  */
 void
 TouchRemovePointerGrab(DeviceIntPtr dev)

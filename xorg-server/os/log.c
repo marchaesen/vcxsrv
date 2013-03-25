@@ -279,6 +279,10 @@ LogSetParameter(LogParameter param, int value)
     }
 }
 
+/**
+ * Signal-safe snprintf, with some limitations over snprintf. Be careful
+ * which directives you use.
+ */
 static int
 pnprintf(char *string, size_t size, const char *f, va_list args)
 {

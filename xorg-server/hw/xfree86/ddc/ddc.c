@@ -91,15 +91,16 @@ resort(unsigned char *s_block)
     unsigned char *d_new, *d_ptr, *d_end, *s_ptr, *s_end;
     unsigned char tmp;
 
+    s_ptr = find_header(s_block);
+    if (!s_ptr)
+        return NULL;
     s_end = s_block + EDID1_LEN;
+
     d_new = malloc(EDID1_LEN);
     if (!d_new)
         return NULL;
     d_end = d_new + EDID1_LEN;
 
-    s_ptr = find_header(s_block);
-    if (!s_ptr)
-        return NULL;
     for (d_ptr = d_new; d_ptr < d_end; d_ptr++) {
         tmp = *(s_ptr++);
         *d_ptr = tmp;

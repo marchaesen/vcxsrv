@@ -3073,6 +3073,7 @@ XkbComputeGetIndicatorMapReplySize(XkbIndicatorPtr indicators,
             nIndicators++;
     }
     rep->length = (nIndicators * SIZEOF(xkbIndicatorMapWireDesc)) / 4;
+    rep->nIndicators = nIndicators;
     return Success;
 }
 
@@ -3984,13 +3985,11 @@ _XkbSetNamesCheck(ClientPtr client, DeviceIntPtr dev,
                   xkbSetNamesReq * stuff, CARD32 *data)
 {
     XkbDescRec *xkb;
-    XkbNamesRec *names;
     CARD32 *tmp;
     Atom bad;
 
     tmp = data;
     xkb = dev->key->xkbInfo->desc;
-    names = xkb->names;
 
     if (stuff->which & XkbKeyTypeNamesMask) {
         int i;

@@ -222,7 +222,6 @@ _XkbFilterSetState(XkbSrvInfoPtr xkbi,
 
 #define	LATCH_KEY_DOWN	1
 #define	LATCH_PENDING	2
-#define	NO_LATCH	3
 
 static int
 _XkbFilterLatchState(XkbSrvInfoPtr xkbi,
@@ -230,6 +229,7 @@ _XkbFilterLatchState(XkbSrvInfoPtr xkbi,
 {
 
     if (filter->keycode == 0) { /* initial press */
+        AccessXCancelRepeatKey(xkbi,keycode);
         filter->keycode = keycode;
         filter->active = 1;
         filter->filterOthers = 1;
@@ -250,91 +250,102 @@ _XkbFilterLatchState(XkbSrvInfoPtr xkbi,
     else if (pAction && (filter->priv == LATCH_PENDING)) {
         if (((1 << pAction->type) & XkbSA_BreakLatch) != 0) {
             filter->active = 0;
-            if (filter->upAction.type == XkbSA_LatchMods)
-                xkbi->state.latched_mods &= ~filter->upAction.mods.mask;
-            else
-                xkbi->state.latched_group -=
-                    XkbSAGroup(&filter->upAction.group);
-        }
-        else if ((pAction->type == filter->upAction.type) &&
-                 (pAction->mods.flags == filter->upAction.mods.flags) &&
-                 (pAction->mods.mask == filter->upAction.mods.mask)) {
-            if (filter->upAction.mods.flags & XkbSA_LatchToLock) {
-                XkbControlsPtr ctrls = xkbi->desc->ctrls;
-
-                if (filter->upAction.type == XkbSA_LatchMods)
-                    pAction->mods.type = XkbSA_LockMods;
-                else
-                    pAction->group.type = XkbSA_LockGroup;
-                if (XkbAX_NeedFeedback(ctrls, XkbAX_StickyKeysFBMask) &&
-                    (ctrls->enabled_ctrls & XkbStickyKeysMask)) {
-                    XkbDDXAccessXBeep(xkbi->device, _BEEP_STICKY_LOCK,
-                                      XkbStickyKeysMask);
-                }
-            }
-            else {
-                if (filter->upAction.type == XkbSA_LatchMods)
-                    pAction->mods.type = XkbSA_SetMods;
-                else
-                    pAction->group.type = XkbSA_SetGroup;
-            }
-            if (filter->upAction.type == XkbSA_LatchMods)
-                xkbi->state.latched_mods &= ~filter->upAction.mods.mask;
-            else
-                xkbi->state.latched_group -=
-                    XkbSAGroup(&filter->upAction.group);
-            filter->active = 0;
+            /* If one latch is broken, all latches are broken, so it's no use
+               to find out which particular latch this filter tracks. */
+            xkbi->state.latched_mods = 0;
+            xkbi->state.latched_group = 0;
         }
     }
-    else if (filter->keycode == keycode) {      /* release */
+    else if (filter->keycode == keycode && filter->priv != LATCH_PENDING){
+        /* The test above for LATCH_PENDING skips subsequent releases of the
+           key after it has been released first time and the latch became
+           pending. */
         XkbControlsPtr ctrls = xkbi->desc->ctrls;
-        int needBeep;
-        int beepType = _BEEP_NONE;
+        int needBeep = ((ctrls->enabled_ctrls & XkbStickyKeysMask) &&
+                        XkbAX_NeedFeedback(ctrls, XkbAX_StickyKeysFBMask));
 
-        needBeep = ((ctrls->enabled_ctrls & XkbStickyKeysMask) &&
-                    XkbAX_NeedFeedback(ctrls, XkbAX_StickyKeysFBMask));
         if (filter->upAction.type == XkbSA_LatchMods) {
-            xkbi->clearMods = filter->upAction.mods.mask;
-            if ((filter->upAction.mods.flags & XkbSA_ClearLocks) &&
-                (xkbi->clearMods & xkbi->state.locked_mods) ==
-                xkbi->clearMods) {
-                xkbi->state.locked_mods &= ~xkbi->clearMods;
-                filter->priv = NO_LATCH;
-                beepType = _BEEP_STICKY_UNLOCK;
+            unsigned char mask = filter->upAction.mods.mask;
+            unsigned char common;
+
+            xkbi->clearMods = mask;
+
+            /* ClearLocks */
+            common = mask & xkbi->state.locked_mods;
+            if ((filter->upAction.mods.flags & XkbSA_ClearLocks) && common) {
+                mask &= ~common;
+                xkbi->state.locked_mods &= ~common;
+                if (needBeep)
+                    XkbDDXAccessXBeep(xkbi->device, _BEEP_STICKY_UNLOCK,
+                                      XkbStickyKeysMask);
+            }
+            /* LatchToLock */
+            common = mask & xkbi->state.latched_mods;
+            if ((filter->upAction.mods.flags & XkbSA_LatchToLock) && common) {
+                unsigned char newlocked;
+
+                mask &= ~common;
+                newlocked = common & ~xkbi->state.locked_mods;
+                if(newlocked){
+                    xkbi->state.locked_mods |= newlocked;
+                    if (needBeep)
+                        XkbDDXAccessXBeep(xkbi->device, _BEEP_STICKY_LOCK,
+                                          XkbStickyKeysMask);
+
+                }
+                xkbi->state.latched_mods &= ~common;
+            }
+            /* Latch remaining modifiers, if any. */
+            if (mask) {
+                xkbi->state.latched_mods |= mask;
+                filter->priv = LATCH_PENDING;
+                if (needBeep)
+                    XkbDDXAccessXBeep(xkbi->device, _BEEP_STICKY_LATCH,
+                                      XkbStickyKeysMask);
             }
         }
         else {
             xkbi->groupChange = -XkbSAGroup(&filter->upAction.group);
+            /* ClearLocks */
             if ((filter->upAction.group.flags & XkbSA_ClearLocks) &&
                 (xkbi->state.locked_group)) {
                 xkbi->state.locked_group = 0;
-                filter->priv = NO_LATCH;
-                beepType = _BEEP_STICKY_UNLOCK;
+                if (needBeep)
+                    XkbDDXAccessXBeep(xkbi->device, _BEEP_STICKY_UNLOCK,
+                                      XkbStickyKeysMask);
+            }
+            /* LatchToLock */
+            else if ((filter->upAction.group.flags & XkbSA_LatchToLock)
+                     && (xkbi->state.latched_group)) {
+                xkbi->state.locked_group  += XkbSAGroup(&filter->upAction.group);
+                xkbi->state.latched_group -= XkbSAGroup(&filter->upAction.group);
+                if(XkbSAGroup(&filter->upAction.group) && needBeep)
+                    XkbDDXAccessXBeep(xkbi->device, _BEEP_STICKY_LOCK,
+                                      XkbStickyKeysMask);
+            }
+            /* Latch group */
+            else if(XkbSAGroup(&filter->upAction.group)){
+                xkbi->state.latched_group += XkbSAGroup(&filter->upAction.group);
+                filter->priv = LATCH_PENDING;
+                if (needBeep)
+                    XkbDDXAccessXBeep(xkbi->device, _BEEP_STICKY_LATCH,
+                                      XkbStickyKeysMask);
             }
         }
-        if (filter->priv == NO_LATCH) {
+
+        if (filter->priv != LATCH_PENDING)
             filter->active = 0;
-        }
-        else {
-            filter->priv = LATCH_PENDING;
-            if (filter->upAction.type == XkbSA_LatchMods) {
-                xkbi->state.latched_mods |= filter->upAction.mods.mask;
-                needBeep = xkbi->state.latched_mods ? needBeep : 0;
-                xkbi->state.latched_mods |= filter->upAction.mods.mask;
-            }
-            else {
-                xkbi->state.latched_group +=
-                    XkbSAGroup(&filter->upAction.group);
-            }
-            if (needBeep && (beepType == _BEEP_NONE))
-                beepType = _BEEP_STICKY_LATCH;
-        }
-        if (needBeep && (beepType != _BEEP_NONE))
-            XkbDDXAccessXBeep(xkbi->device, beepType, XkbStickyKeysMask);
     }
-    else if (filter->priv == LATCH_KEY_DOWN) {
-        filter->priv = NO_LATCH;
-        filter->filterOthers = 0;
+    else if (pAction && (filter->priv == LATCH_KEY_DOWN)) {
+        /* Latch was broken before it became pending: degrade to a
+           SetMods/SetGroup. */
+        if (filter->upAction.type == XkbSA_LatchMods)
+            filter->upAction.type = XkbSA_SetMods;
+        else
+            filter->upAction.type = XkbSA_SetGroup;
+        filter->filter = _XkbFilterSetState;
+        filter->priv = 0;
+        return filter->filter(xkbi, filter, keycode, pAction);
     }
     return 1;
 }

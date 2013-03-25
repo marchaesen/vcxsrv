@@ -702,7 +702,7 @@ ProcXvUngrabPort(ClientPtr client)
 static int
 ProcXvStopVideo(ClientPtr client)
 {
-    int status, rc;
+    int status, ret;
     DrawablePtr pDraw;
     XvPortPtr pPort;
 
@@ -716,9 +716,9 @@ ProcXvStopVideo(ClientPtr client)
         return status;
     }
 
-    rc = dixLookupDrawable(&pDraw, stuff->drawable, client, 0, DixWriteAccess);
-    if (rc != Success)
-        return rc;
+    ret = dixLookupDrawable(&pDraw, stuff->drawable, client, 0, DixWriteAccess);
+    if (ret != Success)
+        return ret;
 
     return XvdiStopVideo(client, pPort, pDraw);
 }

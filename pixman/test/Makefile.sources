@@ -28,9 +28,10 @@ TESTPROGRAMS =			\
 	composite		\
 	$(NULL)
 
-# Benchmarks
+# Other programs
 OTHERPROGRAMS =                 \
 	lowlevel-blt-bench	\
+	radial-perf-test	\
         check-formats           \
 	$(NULL)
 

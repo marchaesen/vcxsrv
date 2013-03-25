@@ -185,19 +185,15 @@ fbGlyphs(CARD8 op,
     if (maskFormat) {
 	pixman_format_code_t format;
 	pixman_box32_t extents;
-	int x, y;
 
 	format = maskFormat->format | (maskFormat->depth << 24);
 
 	pixman_glyph_get_extents(glyphCache, n_glyphs, pglyphs, &extents);
 
-	x = extents.x1;
-	y = extents.y1;
-
 	pixman_composite_glyphs(op, srcImage, dstImage, format,
 				xSrc + srcXoff + xDst, ySrc + srcYoff + yDst,
-				x, y,
-				x + dstXoff, y + dstYoff,
+				extents.x1, extents.y1,
+				extents.x1 + dstXoff, extents.y1 + dstYoff,
 				extents.x2 - extents.x1,
 				extents.y2 - extents.y1,
 				glyphCache, n_glyphs, pglyphs);

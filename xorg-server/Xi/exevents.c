@@ -1126,20 +1126,22 @@ static void
 TouchPuntToNextOwner(DeviceIntPtr dev, TouchPointInfoPtr ti,
                      TouchOwnershipEvent *ev)
 {
+    TouchListener *listener = &ti->listeners[0]; /* new owner */
+
     /* Deliver the ownership */
-    if (ti->listeners[0].state == LISTENER_AWAITING_OWNER ||
-        ti->listeners[0].state == LISTENER_EARLY_ACCEPT)
+    if (listener->state == LISTENER_AWAITING_OWNER ||
+        listener->state == LISTENER_EARLY_ACCEPT)
         DeliverTouchEvents(dev, ti, (InternalEvent *) ev,
-                           ti->listeners[0].listener);
-    else if (ti->listeners[0].state == LISTENER_AWAITING_BEGIN) {
+                           listener->listener);
+    else if (listener->state == LISTENER_AWAITING_BEGIN) {
         /* We can't punt to a pointer listener unless all older pointer
          * emulated touches have been seen already. */
-        if ((ti->listeners[0].type == LISTENER_POINTER_GRAB ||
-             ti->listeners[0].type == LISTENER_POINTER_REGULAR) &&
+        if ((listener->type == LISTENER_POINTER_GRAB ||
+             listener->type == LISTENER_POINTER_REGULAR) &&
             ti != FindOldestPointerEmulatedTouch(dev))
             return;
 
-        TouchEventHistoryReplay(ti, dev, ti->listeners[0].listener);
+        TouchEventHistoryReplay(ti, dev, listener->listener);
     }
 
     /* If we've just removed the last grab and the touch has physically
@@ -1150,7 +1152,7 @@ TouchPuntToNextOwner(DeviceIntPtr dev, TouchPointInfoPtr ti,
         return;
     }
 
-    if (ti->listeners[0].state == LISTENER_EARLY_ACCEPT)
+    if (listener->state == LISTENER_EARLY_ACCEPT)
         ActivateEarlyAccept(dev, ti);
 }
 
@@ -1376,7 +1378,7 @@ DeliverTouchEmulatedEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
 
     /* We don't deliver pointer events to non-owners */
     if (!TouchResourceIsOwner(ti, listener->listener))
-        return Success;
+        return !Success;
 
     nevents = TouchConvertToPointerEvent(ev, &motion, &button);
     BUG_RETURN_VAL(nevents == 0, BadValue);
@@ -1398,7 +1400,7 @@ DeliverTouchEmulatedEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
             /* 'grab' is the passive grab, but if the grab isn't active,
              * don't deliver */
             if (!dev->deviceGrab.grab)
-                return Success;
+                return !Success;
 
             if (grab->ownerEvents) {
                 WindowPtr focus = NullWindow;
@@ -1896,13 +1898,16 @@ DeliverTouchEndEvent(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev,
         goto out;
     }
 
+    /* A client is waiting for the begin, don't give it a TouchEnd */
     if (listener->state == LISTENER_AWAITING_BEGIN) {
         listener->state = LISTENER_HAS_END;
         goto out;
     }
 
     /* Event in response to reject */
-    if (ev->device_event.flags & TOUCH_REJECT) {
+    if (ev->device_event.flags & TOUCH_REJECT ||
+        (ev->device_event.flags & TOUCH_ACCEPT && !TouchResourceIsOwner(ti, listener->listener))) {
+        /* Touch has been rejected, or accepted by its owner which is not this listener */
         if (listener->state != LISTENER_HAS_END)
             rc = DeliverOneTouchEvent(client, dev, ti, grab, win, ev);
         listener->state = LISTENER_HAS_END;
@@ -1924,12 +1929,6 @@ DeliverTouchEndEvent(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev,
 
         if (normal_end)
             listener->state = LISTENER_HAS_END;
-    }
-    else if (ev->device_event.flags & TOUCH_ACCEPT) {
-        /* Touch has been accepted by its owner, which is not this listener */
-        if (listener->state != LISTENER_HAS_END)
-            rc = DeliverOneTouchEvent(client, dev, ti, grab, win, ev);
-        listener->state = LISTENER_HAS_END;
     }
 
  out:

@@ -193,7 +193,8 @@ hostx_set_cmap_entry(unsigned char idx,
                      unsigned char r, unsigned char g, unsigned char b);
 
 void *hostx_screen_init(EphyrScreenInfo screen,
-                        int width, int height, int buffer_height);
+                        int width, int height, int buffer_height,
+                        int *bytes_per_line, int *bits_per_pixel);
 
 void
 

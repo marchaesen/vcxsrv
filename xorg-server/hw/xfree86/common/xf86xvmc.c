@@ -158,8 +158,10 @@ xf86XvMCScreenInit(ScreenPtr pScreen,
     if (!(pAdapt = malloc(sizeof(XvMCAdaptorRec) * num_adaptors)))
         return FALSE;
 
-    if (!dixRegisterPrivateKey(&XF86XvMCScreenKeyRec, PRIVATE_SCREEN, 0))
+    if (!dixRegisterPrivateKey(&XF86XvMCScreenKeyRec, PRIVATE_SCREEN, 0)) {
+        free(pAdapt);
         return FALSE;
+    }
 
     if (!(pScreenPriv = malloc(sizeof(xf86XvMCScreenRec)))) {
         free(pAdapt);
