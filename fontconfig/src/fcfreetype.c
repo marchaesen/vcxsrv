@@ -1101,6 +1101,8 @@ FcFreeTypeQueryFace (const FT_Face  face,
 
     FcChar8	    *style = 0;
     int		    st;
+    char	    psname[256];
+    const char	    *tmp;
 
     FcChar8	    *hashstr;
 
@@ -1201,7 +1203,6 @@ FcFreeTypeQueryFace (const FT_Face  face,
 		case TT_NAME_ID_PREFERRED_FAMILY:
 		case TT_NAME_ID_FONT_FAMILY:
 #if 0	
-		case TT_NAME_ID_PS_NAME:
 		case TT_NAME_ID_UNIQUE_ID:
 #endif
 		    if (FcDebug () & FC_DBG_SCANV)
@@ -1346,6 +1347,52 @@ FcFreeTypeQueryFace (const FT_Face  face,
 	free (family);
 	++nfamily;
     }
+
+    /* Add the PostScript name into the cache */
+    tmp = FT_Get_Postscript_Name (face);
+    if (!tmp)
+    {
+	FcChar8 *family, *familylang = NULL;
+	size_t len;
+	int n = 0;
+
+	/* Workaround when FT_Get_Postscript_Name didn't give any name.
+	 * try to find out the English family name and convert.
+	 */
+	while (FcPatternObjectGetString (pat, FC_FAMILYLANG_OBJECT, n, &familylang) == FcResultMatch)
+	{
+	    if (FcStrCmp (familylang, (const FcChar8 *)"en") == 0)
+		break;
+	    n++;
+	    familylang = NULL;
+	}
+	if (!familylang)
+	    n = 0;
+
+	if (FcPatternObjectGetString (pat, FC_FAMILY_OBJECT, n, &family) != FcResultMatch)
+	    goto bail1;
+	len = strlen ((const char *)family);
+	/* the literal name in PostScript Language is limited to 127 characters though,
+	 * It is the architectural limit. so assuming 255 characters may works enough.
+	 */
+	for (i = 0; i < len && i < 255; i++)
+	{
+	    /* those characters are not allowed to be the literal name in PostScript */
+	    static const char exclusive_chars[] = "\x04()/<>[]{}\t\f\r\n ";
+
+	    if (strchr(exclusive_chars, family[i]) != NULL)
+		psname[i] = '-';
+	    else
+		psname[i] = family[i];
+	}
+	psname[i] = 0;
+    }
+    else
+    {
+	strcpy (psname, tmp);
+    }
+    if (!FcPatternAddString (pat, FC_POSTSCRIPT_NAME, (const FcChar8 *)psname))
+	goto bail1;
 
     if (!FcPatternAddString (pat, FC_FILE, file))
 	goto bail1;

@@ -1,3 +1,5 @@
+#include <float.h>
+
 #ifndef PIXMAN_PRIVATE_H
 #define PIXMAN_PRIVATE_H
 
@@ -317,13 +319,12 @@ _pixman_image_validate (pixman_image_t *image);
  */
 typedef struct
 {
-    uint32_t                left_ag;
-    uint32_t                left_rb;
-    uint32_t                right_ag;
-    uint32_t                right_rb;
+    float		    a_s, a_b;
+    float		    r_s, r_b;
+    float		    g_s, g_b;
+    float		    b_s, b_b;
     pixman_fixed_t	    left_x;
     pixman_fixed_t          right_x;
-    pixman_fixed_t          stepper;
 
     pixman_gradient_stop_t *stops;
     int                     num_stops;
@@ -878,6 +879,8 @@ pixman_list_move_to_front (pixman_list_t *list, pixman_link_t *link)
 #define MOD(a, b) ((a) < 0 ? ((b) - ((-(a) - 1) % (b))) - 1 : (a) % (b))
 
 #define CLIP(v, low, high) ((v) < (low) ? (low) : ((v) > (high) ? (high) : (v)))
+
+#define FLOAT_IS_ZERO(f)     (-FLT_MIN < (f) && (f) < FLT_MIN)
 
 /* Conversion between 8888 and 0565 */
 

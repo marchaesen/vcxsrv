@@ -743,7 +743,7 @@ xf86TokenToOptName(const OptionInfoRec * table, int token)
     const OptionInfoRec *p;
 
     p = xf86TokenToOptinfo(table, token);
-    return p->name;
+    return p ? p->name : NULL;
 }
 
 Bool

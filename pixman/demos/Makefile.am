@@ -15,6 +15,7 @@ DEMOS =				\
 	composite-test		\
 	gradient-test		\
 	radial-test		\
+	linear-gradient		\
 	conical-test		\
 	alpha-test		\
 	screen-test		\
@@ -38,6 +39,7 @@ trap_test_SOURCES = trap-test.c $(GTK_UTILS)
 screen_test_SOURCES = screen-test.c $(GTK_UTILS)
 convolution_test_SOURCES = convolution-test.c $(GTK_UTILS)
 radial_test_SOURCES = radial-test.c $(GTK_UTILS)
+linear_gradient_SOURCES = linear-gradient.c $(GTK_UTILS)
 conical_test_SOURCES = conical-test.c $(GTK_UTILS)
 tri_test_SOURCES = tri-test.c $(GTK_UTILS)
 checkerboard_SOURCES = checkerboard.c $(GTK_UTILS)

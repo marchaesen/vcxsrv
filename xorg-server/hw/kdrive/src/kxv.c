@@ -1174,7 +1174,6 @@ void
 KdXVDisable(ScreenPtr pScreen)
 {
     XvScreenPtr pxvs;
-    KdXVScreenPtr ScreenPriv;
     XvAdaptorPtr pAdaptor;
     XvPortPtr pPort;
     XvPortRecPrivatePtr pPriv;
@@ -1184,7 +1183,6 @@ KdXVDisable(ScreenPtr pScreen)
         return;
 
     pxvs = GET_XV_SCREEN(pScreen);
-    ScreenPriv = GET_KDXV_SCREEN(pScreen);
 
     for (i = 0; i < pxvs->nAdaptors; i++) {
         pAdaptor = &pxvs->pAdaptors[i];

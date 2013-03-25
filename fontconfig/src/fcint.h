@@ -1063,6 +1063,9 @@ FcStrBufData (FcStrBuf *buf, const FcChar8 *s, int len);
 FcPrivate int
 FcStrCmpIgnoreBlanksAndCase (const FcChar8 *s1, const FcChar8 *s2);
 
+FcPrivate int
+FcStrCmpIgnoreCaseAndDelims (const FcChar8 *s1, const FcChar8 *s2, const FcChar8 *delims);
+
 FcPrivate FcBool
 FcStrRegexCmp (const FcChar8 *s, const FcChar8 *regex);
 
@@ -1077,6 +1080,9 @@ FcStrContainsIgnoreCase (const FcChar8 *s1, const FcChar8 *s2);
 
 FcPrivate const FcChar8 *
 FcStrContainsWord (const FcChar8 *s1, const FcChar8 *s2);
+
+FcPrivate int
+FcStrMatchIgnoreCaseAndDelims (const FcChar8 *s1, const FcChar8 *s2, const FcChar8 *delims);
 
 FcPrivate FcBool
 FcStrUsesHome (const FcChar8 *s);

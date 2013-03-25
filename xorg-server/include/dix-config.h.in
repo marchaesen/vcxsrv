@@ -60,6 +60,9 @@
 /* Has backtrace support */
 #undef HAVE_BACKTRACE
 
+/* Has libunwind support */
+#undef HAVE_LIBUNWIND
+
 /* Define to 1 if you have the <byteswap.h> header file. */
 #undef HAVE_BYTESWAP_H
 

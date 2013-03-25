@@ -16,7 +16,6 @@
  * Externing inputInfo is not the nice way to do it but it works.
  */
 #include "inputstr.h"
-extern InputInfo inputInfo;
 
 DevPrivateKeyRec xf86CursorScreenKeyRec;
 

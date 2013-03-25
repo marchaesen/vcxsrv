@@ -102,6 +102,9 @@ struct __GLXconfig {
     GLint bindToMipmapTexture;
     GLint bindToTextureTargets;
     GLint yInverted;
+
+    /* ARB_framebuffer_sRGB */
+    GLint sRGBCapable;
 };
 
 GLint glxConvertToXVisualType(int visualType);

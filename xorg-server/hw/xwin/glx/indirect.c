@@ -2208,6 +2208,7 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
         c->base.bindToMipmapTexture = -1;
         c->base.bindToTextureTargets = -1;
         c->base.yInverted = -1;
+        c->base.sRGBCapable = 0;
 
         n++;
 
@@ -2605,6 +2606,7 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
             GLX_TEXTURE_1D_BIT_EXT | GLX_TEXTURE_2D_BIT_EXT |
             GLX_TEXTURE_RECTANGLE_BIT_EXT;
         c->base.yInverted = -1;
+        c->base.sRGBCapable = 0;
 
         n++;
 

@@ -800,6 +800,7 @@ PanoramiXCompositeGetOverlayWindow(ClientPtr client)
                                      RT_WINDOW, client, DixGetAttrAccess);
         if (rc != Success) {
             client->errorValue = stuff->window;
+            free(overlayWin);
             return rc;
         }
         pScreen = pWin->drawable.pScreen;
@@ -809,8 +810,10 @@ PanoramiXCompositeGetOverlayWindow(ClientPtr client)
          * interest in the overlay window
          */
         pOc = compCreateOverlayClient(pScreen, client);
-        if (pOc == NULL)
+        if (pOc == NULL) {
+            free(overlayWin);
             return BadAlloc;
+        }
 
         /*
          * Make sure the overlay window exists
@@ -819,6 +822,7 @@ PanoramiXCompositeGetOverlayWindow(ClientPtr client)
         if (cs->pOverlayWin == NULL)
             if (!compCreateOverlayWindow(pScreen)) {
                 FreeResource(pOc->resource, RT_NONE);
+                free(overlayWin);
                 return BadAlloc;
             }
 
@@ -828,6 +832,7 @@ PanoramiXCompositeGetOverlayWindow(ClientPtr client)
                       DixGetAttrAccess);
         if (rc != Success) {
             FreeResource(pOc->resource, RT_NONE);
+            free(overlayWin);
             return rc;
         }
     }

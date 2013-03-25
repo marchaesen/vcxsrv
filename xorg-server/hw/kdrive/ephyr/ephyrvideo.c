@@ -1006,7 +1006,6 @@ ephyrPutVideo(KdScreenInfo * a_info,
     EphyrPortPriv *port_priv = a_port_priv;
     BoxRec clipped_area, dst_box;
     int result = BadImplementation;
-    int drw_x = 0, drw_y = 0, drw_w = 0, drw_h = 0;
 
     EPHYR_RETURN_VAL_IF_FAIL(a_info->pScreen, BadValue);
     EPHYR_RETURN_VAL_IF_FAIL(a_drawable && port_priv, BadValue);
@@ -1023,11 +1022,6 @@ ephyrPutVideo(KdScreenInfo * a_info,
         EPHYR_LOG_ERROR("failed to simple clip\n");
         goto out;
     }
-
-    drw_x = clipped_area.x1;
-    drw_y = clipped_area.y1;
-    drw_w = clipped_area.x2 - clipped_area.x1;
-    drw_h = clipped_area.y2 - clipped_area.y1;
 
     if (!ephyrHostXVPutVideo(a_info->pScreen->myNum,
                              port_priv->port_number,
@@ -1055,7 +1049,6 @@ ephyrGetVideo(KdScreenInfo * a_info,
     EphyrPortPriv *port_priv = a_port_priv;
     BoxRec clipped_area, dst_box;
     int result = BadImplementation;
-    int drw_x = 0, drw_y = 0, drw_w = 0, drw_h = 0;
 
     EPHYR_RETURN_VAL_IF_FAIL(a_info && a_info->pScreen, BadValue);
     EPHYR_RETURN_VAL_IF_FAIL(a_drawable && port_priv, BadValue);
@@ -1072,11 +1065,6 @@ ephyrGetVideo(KdScreenInfo * a_info,
         EPHYR_LOG_ERROR("failed to simple clip\n");
         goto out;
     }
-
-    drw_x = clipped_area.x1;
-    drw_y = clipped_area.y1;
-    drw_w = clipped_area.x2 - clipped_area.x1;
-    drw_h = clipped_area.y2 - clipped_area.y1;
 
     if (!ephyrHostXVGetVideo(a_info->pScreen->myNum,
                              port_priv->port_number,
@@ -1104,7 +1092,6 @@ ephyrPutStill(KdScreenInfo * a_info,
     EphyrPortPriv *port_priv = a_port_priv;
     BoxRec clipped_area, dst_box;
     int result = BadImplementation;
-    int drw_x = 0, drw_y = 0, drw_w = 0, drw_h = 0;
 
     EPHYR_RETURN_VAL_IF_FAIL(a_info && a_info->pScreen, BadValue);
     EPHYR_RETURN_VAL_IF_FAIL(a_drawable && port_priv, BadValue);
@@ -1121,11 +1108,6 @@ ephyrPutStill(KdScreenInfo * a_info,
         EPHYR_LOG_ERROR("failed to simple clip\n");
         goto out;
     }
-
-    drw_x = clipped_area.x1;
-    drw_y = clipped_area.y1;
-    drw_w = clipped_area.x2 - clipped_area.x1;
-    drw_h = clipped_area.y2 - clipped_area.y1;
 
     if (!ephyrHostXVPutStill(a_info->pScreen->myNum,
                              port_priv->port_number,
@@ -1153,7 +1135,6 @@ ephyrGetStill(KdScreenInfo * a_info,
     EphyrPortPriv *port_priv = a_port_priv;
     BoxRec clipped_area, dst_box;
     int result = BadImplementation;
-    int drw_x = 0, drw_y = 0, drw_w = 0, drw_h = 0;
 
     EPHYR_RETURN_VAL_IF_FAIL(a_info && a_info->pScreen, BadValue);
     EPHYR_RETURN_VAL_IF_FAIL(a_drawable && port_priv, BadValue);
@@ -1170,11 +1151,6 @@ ephyrGetStill(KdScreenInfo * a_info,
         EPHYR_LOG_ERROR("failed to simple clip\n");
         goto out;
     }
-
-    drw_x = clipped_area.x1;
-    drw_y = clipped_area.y1;
-    drw_w = clipped_area.x2 - clipped_area.x1;
-    drw_h = clipped_area.y2 - clipped_area.y1;
 
     if (!ephyrHostXVGetStill(a_info->pScreen->myNum,
                              port_priv->port_number,

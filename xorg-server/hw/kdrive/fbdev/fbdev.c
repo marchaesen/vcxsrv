@@ -465,16 +465,6 @@ fbdevRandRSetConfig(ScreenPtr pScreen,
     int oldheight;
     int oldmmwidth;
     int oldmmheight;
-    int newwidth, newheight;
-
-    if (screen->randr & (RR_Rotate_0 | RR_Rotate_180)) {
-        newwidth = pSize->width;
-        newheight = pSize->height;
-    }
-    else {
-        newwidth = pSize->height;
-        newheight = pSize->width;
-    }
 
     if (wasEnabled)
         KdDisableScreen(pScreen);

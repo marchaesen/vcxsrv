@@ -1435,6 +1435,8 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                     }
                 }
 
+                CursorVisible = TRUE;
+
                 if (pWin->realized)
                     WindowHasNewCursor(pWin);
 
@@ -3433,6 +3435,8 @@ ChangeWindowDeviceCursor(WindowPtr pWin, DeviceIntPtr pDev, CursorPtr pCursor)
     }
 
  out:
+    CursorVisible = TRUE;
+
     if (pWin->realized)
         WindowHasNewCursor(pWin);
 

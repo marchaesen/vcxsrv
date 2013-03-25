@@ -131,8 +131,7 @@ typedef struct _CursorScreen {
 #define Unwrap(as,s,elt,backup)	(((backup) = (s)->elt), (s)->elt = (as)->elt)
 
 /* The cursor doesn't show up until the first XDefineCursor() */
-static Bool CursorVisible = FALSE;
-
+Bool CursorVisible = FALSE;
 Bool EnableCursor = TRUE;
 
 static Bool
@@ -144,12 +143,7 @@ CursorDisplayCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
 
     Unwrap(cs, pScreen, DisplayCursor, backupProc);
 
-    /*
-     * Have to check ConnectionInfo to distinguish client requests from
-     * initial root window setup.  Not a great way to do it, I admit.
-     */
-    if (ConnectionInfo)
-        CursorVisible = EnableCursor;
+    CursorVisible = CursorVisible && EnableCursor;
 
     if (cs->pCursorHideCounts != NULL || !CursorVisible) {
         ret = (*pScreen->DisplayCursor) (pDev, pScreen, NullCursor);
