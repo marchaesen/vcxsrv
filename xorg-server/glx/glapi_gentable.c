@@ -8669,6 +8669,20 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->TexStorage2DMultisample) {
+        void ** procp = (void **) &disp->TexStorage2DMultisample;
+        snprintf(symboln, sizeof(symboln), "%sTexStorage2DMultisample", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->TexStorage3DMultisample) {
+        void ** procp = (void **) &disp->TexStorage3DMultisample;
+        snprintf(symboln, sizeof(symboln), "%sTexStorage3DMultisample", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->InvalidateBufferData) {
         void ** procp = (void **) &disp->InvalidateBufferData;
         snprintf(symboln, sizeof(symboln), "%sInvalidateBufferData", symbol_prefix);
