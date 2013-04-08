@@ -38,7 +38,7 @@ name[Group1]="Moldavian (Gagauz)";
     // Alphanumeric section								
     key <TLDE> 	{	[	grave,	asciitilde			]	};
     key <AE01> 	{	[	1,	exclam			]	};
-    key <AE02> 	{	[	2,	quotedb1,	at		]	};
+    key <AE02> 	{	[	2,	quotedbl,	at	]	};
     key <AE03> 	{	[	3,	numbersign			]	};
     key <AE04> 	{	[	4,	semicolon,	dollar		]	};
     key <AE05> 	{	[	5,	percent,	EuroSign,	cent	]	};

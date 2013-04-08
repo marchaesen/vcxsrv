@@ -29,7 +29,7 @@ FC_VALIDATE_SRC=${top_srcdir}/fc-validate
 
 SGML = ${FC_VALIDATE_SRC}/fc-validate.sgml
 
-INCLUDES=-I${top_srcdir} $(FREETYPE_CFLAGS) $(WARN_CFLAGS)
+AM_CPPFLAGS=-I${top_srcdir} $(FREETYPE_CFLAGS) $(WARN_CFLAGS)
 
 BUILT_MANS=fc-validate.1
 

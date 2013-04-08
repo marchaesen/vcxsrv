@@ -1009,7 +1009,9 @@ glsl_to_tgsi_visitor::get_temp(const glsl_type *type)
    src.reladdr = NULL;
    src.negate = 0;
 
-   if (type->is_array() || type->is_matrix()) {
+   if (!options->EmitNoIndirectTemp &&
+       (type->is_array() || type->is_matrix())) {
+
       src.file = PROGRAM_ARRAY;
       src.index = next_array << 16 | 0x8000;
       array_sizes[next_array] = type_size(type);
@@ -2772,6 +2774,9 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
    case ir_txf_ms:
       assert(!"Unexpected ir_txf_ms opcode");
       break;
+   case ir_lod:
+      assert(!"Unexpected ir_lod opcode");
+      break;
    }
 
    if (ir->projector) {
@@ -3191,7 +3196,7 @@ glsl_to_tgsi_visitor::simplify_cmp(void)
          prevWriteMask = tempWrites[inst->dst.index];
          tempWrites[inst->dst.index] |= inst->dst.writemask;
       } else
-         break;
+         continue;
 
       /* For a CMP to be considered a conditional write, the destination
        * register and source register two must be the same. */

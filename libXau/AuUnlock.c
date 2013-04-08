@@ -42,18 +42,16 @@ _Xconst char *file_name)
     if (strlen (file_name) > 1022)
 	return 0;
 #ifndef WIN32
-    (void) strcpy (creat_name, file_name);
-    (void) strcat (creat_name, "-c");
+    snprintf (creat_name, sizeof(creat_name), "%s-c", file_name);
 #endif
-    (void) strcpy (link_name, file_name);
-    (void) strcat (link_name, "-l");
+    snprintf (link_name, sizeof(link_name), "%s-l", file_name);
     /*
      * I think this is the correct order
      */
 #ifndef WIN32
-    (void) unlink (creat_name);
+    (void) remove (creat_name);
 #endif
-    (void) unlink (link_name);
+    (void) remove (link_name);
 
     return 1;
 }

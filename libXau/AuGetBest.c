@@ -38,14 +38,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xos_r.h>
 #endif
 
-static int
-binaryEqual (_Xconst char *a, _Xconst char *b, int len)
-{
-    while (len--)
-	if (*a++ != *b++)
-	    return 0;
-    return 1;
-}
+#define binaryEqual(a, b, len) (memcmp(a, b, len) == 0)
 
 Xauth *
 XauGetBestAuthByAddr (
@@ -129,17 +122,17 @@ XauGetBestAuthByAddr (
 	if ((family == FamilyWild || entry->family == FamilyWild ||
 	     (entry->family == family &&
 	     ((address_length == entry->address_length &&
-	      binaryEqual (entry->address, address, (int)address_length))
+	      binaryEqual (entry->address, address, address_length))
 #ifdef hpux
 	     || (family == FamilyLocal &&
 		fully_qual_address_length == entry->address_length &&
 	     	binaryEqual (entry->address, fully_qual_address,
-		    (int) fully_qual_address_length))
+		    fully_qual_address_length))
 #endif
 	    ))) &&
 	    (number_length == 0 || entry->number_length == 0 ||
 	     (number_length == entry->number_length &&
-	      binaryEqual (entry->number, number, (int)number_length))))
+	      binaryEqual (entry->number, number, number_length))))
 	{
 	    if (best_type == 0)
 	    {

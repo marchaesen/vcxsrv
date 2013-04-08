@@ -24,6 +24,7 @@
 
 #include "glheader.h"
 #include "context.h"
+#include "blend.h"
 #include "enable.h"
 #include "enums.h"
 #include "extensions.h"
@@ -356,6 +357,13 @@ EXTRA_EXT(ARB_map_buffer_alignment);
 EXTRA_EXT(ARB_texture_cube_map_array);
 EXTRA_EXT(ARB_texture_buffer_range);
 EXTRA_EXT(ARB_texture_multisample);
+
+static const int
+extra_ARB_color_buffer_float_or_glcore[] = {
+   EXT(ARB_color_buffer_float),
+   EXTRA_API_GL_CORE,
+   EXTRA_END
+};
 
 static const int
 extra_NV_primitive_restart[] = {
@@ -767,13 +775,13 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
 
    case GL_FOG_COLOR:
-      if(ctx->Color._ClampFragmentColor)
+      if (_mesa_get_clamp_fragment_color(ctx))
          COPY_4FV(v->value_float_4, ctx->Fog.Color);
       else
          COPY_4FV(v->value_float_4, ctx->Fog.ColorUnclamped);
       break;
    case GL_COLOR_CLEAR_VALUE:
-      if(ctx->Color._ClampFragmentColor) {
+      if (_mesa_get_clamp_fragment_color(ctx)) {
          v->value_float_4[0] = CLAMP(ctx->Color.ClearColor.f[0], 0.0F, 1.0F);
          v->value_float_4[1] = CLAMP(ctx->Color.ClearColor.f[1], 0.0F, 1.0F);
          v->value_float_4[2] = CLAMP(ctx->Color.ClearColor.f[2], 0.0F, 1.0F);
@@ -782,13 +790,13 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
          COPY_4FV(v->value_float_4, ctx->Color.ClearColor.f);
       break;
    case GL_BLEND_COLOR_EXT:
-      if(ctx->Color._ClampFragmentColor)
+      if (_mesa_get_clamp_fragment_color(ctx))
          COPY_4FV(v->value_float_4, ctx->Color.BlendColor);
       else
          COPY_4FV(v->value_float_4, ctx->Color.BlendColorUnclamped);
       break;
    case GL_ALPHA_TEST_REF:
-      if(ctx->Color._ClampFragmentColor)
+      if (_mesa_get_clamp_fragment_color(ctx))
          v->value_float = ctx->Color.AlphaRef;
       else
          v->value_float = ctx->Color.AlphaRefUnclamped;
@@ -868,7 +876,7 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
  * \param func name of calling glGet*v() function for error reporting
  * \param d the struct value_desc that has the extra constraints
  *
- * \return GL_FALSE if one of the constraints was not satisfied,
+ * \return GL_FALSE if all of the constraints were not satisfied,
  *     otherwise GL_TRUE.
  */
 static GLboolean

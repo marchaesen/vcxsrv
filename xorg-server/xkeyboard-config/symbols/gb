@@ -169,7 +169,8 @@ xkb_symbols "mac" {
 
     key <AE02> {	[               2,              at,         EuroSign	]	};
     key <AE03> {	[               3,        sterling,       numbersign	]	};
-    key <LSGT> {	[               grave,  asciitilde ]	};
+    key <TLDE> {	[         section,       plusminus ]	};
+    key <LSGT> {	[           grave,      asciitilde ]	};
 
     // End alphanumeric section
     

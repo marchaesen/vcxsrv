@@ -29,7 +29,7 @@ FC_QUERY_SRC=${top_srcdir}/fc-query
 
 SGML = ${FC_QUERY_SRC}/fc-query.sgml
 
-INCLUDES=-I${top_srcdir} $(FREETYPE_CFLAGS) $(WARN_CFLAGS)
+AM_CPPFLAGS=-I${top_srcdir} $(FREETYPE_CFLAGS) $(WARN_CFLAGS)
 
 BUILT_MANS=fc-query.1
 

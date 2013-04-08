@@ -465,6 +465,20 @@ fbdevRandRSetConfig(ScreenPtr pScreen,
     int oldheight;
     int oldmmwidth;
     int oldmmheight;
+    int newwidth, newheight, newmmwidth, newmmheight;
+
+    if (screen->randr & (RR_Rotate_0 | RR_Rotate_180)) {
+        newwidth = pSize->width;
+        newheight = pSize->height;
+        newmmwidth = pSize->mmWidth;
+        newmmheight = pSize->mmHeight;
+    }
+    else {
+        newwidth = pSize->height;
+        newheight = pSize->width;
+        newmmwidth = pSize->mmHeight;
+        newmmheight = pSize->mmWidth;
+    }
 
     if (wasEnabled)
         KdDisableScreen(pScreen);
@@ -481,6 +495,10 @@ fbdevRandRSetConfig(ScreenPtr pScreen,
      */
 
     scrpriv->randr = KdAddRotation(screen->randr, randr);
+    pScreen->width = newwidth;
+    pScreen->height = newheight;
+    pScreen->mmWidth = newmmwidth;
+    pScreen->mmHeight = newmmheight;
 
     fbdevUnmapFramebuffer(screen);
 

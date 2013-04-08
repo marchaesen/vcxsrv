@@ -32,7 +32,7 @@ TOOL=./$(DIR)$(EXEEXT_FOR_BUILD)
 
 EXTRA_DIST = $(TARG) $(TMPL) $(TSRC) $(DIST)
 
-INCLUDES = \
+AM_CPPFLAGS = \
 	   -I$(builddir) \
 	   -I$(srcdir) \
 	   -I$(top_builddir)/src \
@@ -43,7 +43,7 @@ INCLUDES = \
 	   $(WARN_CFLAGS)
 
 $(TOOL): $(TSRC) $(ALIAS_FILES)
-	$(AM_V_GEN) $(CC_FOR_BUILD) -o $(TOOL) $< $(INCLUDES)
+	$(AM_V_GEN) $(CC_FOR_BUILD) -o $(TOOL) $< $(AM_CPPFLAGS)
 
 $(TARG): $(TMPL) $(TSRC) $(DEPS)
 	$(AM_V_GEN) $(MAKE) $(TOOL) && \
