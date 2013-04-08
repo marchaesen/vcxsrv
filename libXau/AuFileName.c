@@ -30,6 +30,9 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xauth.h>
 #include <X11/Xos.h>
 #include <stdlib.h>
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 static char *buf = NULL;
 

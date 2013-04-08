@@ -1,5 +1,7 @@
 SHAREDLIB = libXau
 
+DEFINES += HAVE_CONFIG_H
+
 CSRCS = AuDispose.c \
 	AuFileName.c \
 	AuGetAddr.c \
