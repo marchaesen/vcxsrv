@@ -1676,6 +1676,17 @@ This optional entry specifies a mode to be marked as the preferred initial mode
 of the monitor.
 (RandR 1.2-supporting drivers only)
 .TP 7
+.BI "Option \*qZoomModes\*q \*q" name " " name " " ... \*q
+This optional entry specifies modes to be marked as zoom modes.
+It is possible to switch to the next and previous mode via
+.BR Ctrl+Alt+Keypad\-Plus " and " Ctrl+Alt+Keypad\-Minus .
+All these keypad available modes are selected from the screen mode list.
+This list is a copy of the compatibility output monitor mode list.
+Since this output is the output connected to the lowest
+dot-area monitor, as determined from its largest size mode, that
+monitor defines the available zoom modes.
+(RandR 1.2-supporting drivers only)
+.TP 7
 .BI "Option \*qPosition\*q \*q" x " " y \*q
 This optional entry specifies the position of the monitor within the X
 screen.

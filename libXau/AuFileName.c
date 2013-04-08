@@ -57,9 +57,8 @@ XauFileName (void)
     name = getenv ("HOME");
     if (!name) {
 #ifdef WIN32
-	(void) strcpy (dir, "/users/");
 	if ((name = getenv("USERNAME"))) {
-	    (void) strcat (dir, name);
+	    snprintf(dir, sizeof(dir), "/users/%s", name);
 	    name = dir;
 	}
 	if (!name)
@@ -81,7 +80,7 @@ XauFileName (void)
 
 	bsize = size;
     }
-    strcpy (buf, name);
-    strcat (buf, slashDotXauthority + (name[1] == '\0' ? 1 : 0));
+    snprintf (buf, bsize, "%s%s", name,
+              slashDotXauthority + (name[1] == '\0' ? 1 : 0));
     return buf;
 }

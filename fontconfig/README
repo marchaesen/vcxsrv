@@ -1,11 +1,72 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.10.91 (2.11 RC1)
-                              2013-01-10
+                      Version 2.10.92 (2.11 RC2)
+                              2013-03-29
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.10.92 (2.11 RC2)
+
+Akira TAGOH (33):
+      Fix the build fail on MinGW
+      Bug 50497 - RFE: Add OpenType feature tags support
+      Improve FcGetPrgname() to work on BSD
+      Better fix for 2fe5ddfd
+      Add missing file descriptor to F_DUPFD_CLOEXEC
+      Fix mkstemp absence for some platform
+      Fix installation on MinGW32
+      Add another approach to FC_PRGNAME for Solaris 10 or before
+      remove the unnecessary code
+      Bug 59385 - Do the right thing for intermixed edit and test elements
+      Bug 23757 - Add mode="delete" to <edit>
+      Modernize configure.ac
+      Use AM_MISSING_PROG instead of hardcoding missing
+      Revert "test: Use SH_LOG_COMPILER and AM_TESTS_ENVIRONMENT"
+      Use AM_MISSING_PROG instead of hardcoding missing
+      Bug 50733 - Add font-file hash?
+      Bug 60312 - DIST_SUBDIRS should never appear in a conditional
+      Update _FcMatchers definition logic
+      Bump the cache version to 4
+      Add Culmus foundry to the vendor list
+      Bug 60748 - broken conf.d/10-autohint.conf and conf.d/10-unhinted.conf
+      Bug 60783 - Add Liberation Sans Narrow to 30-metric-aliases.conf
+      Fix a typo
+      Fix a crash when the object is non-builtin object
+      Fix broken sort order with FcFontSort()
+      Fix a memory leak
+      Bug 59456 - Adding a --sysroot like option to fc-cache
+      Do not copy FC_*LANG_OBJECT even if it's not available on the pattern
+      Fix a SIGSEGV on FcPatternGet* with NULL pattern
+      Bug 38737 - Wishlist: support FC_POSTSCRIPT_NAME
+      Minor cleanup
+      Bump libtool revision
+      Minor fix
+
+Behdad Esfahbod (12):
+      Resepct $NOCONFIGURE
+      Ensure we find the uninstalled fontconfig header
+      Copy all values from pattern to font if the font doesn't have the element
+      Minor
+      Bug 59379 - FC_PRGNAME
+      Remove unused checks for common functions
+      Minor
+      Fix fc-cache crash caused by looking up NULL object incorrectly
+      Fix FC_PRGNAME default
+      Fix readlink failure
+      Accept digits as part of OpenType script tags
+      Fix crash with FcConfigSetCurrent(NULL)
+
+Christoph J. Thompson (1):
+      Use the PKG_INSTALLDIR macro.
+
+Colin Walters (1):
+      build: Only use PKG_INSTALLDIR if available
+
+Quentin Glidic (2):
+      test: Use SH_LOG_COMPILER and AM_TESTS_ENVIRONMENT
+      Use LOG_COMPILER and AM_TESTS_ENVIRONMENT
 
 2.10.91 (2.11 RC1)
 

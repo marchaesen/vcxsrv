@@ -784,6 +784,8 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
    numImages = 0;
    fb->Width = 0;
    fb->Height = 0;
+   fb->_AllColorBuffersFixedPoint = GL_TRUE;
+   fb->_HasSNormOrFloatColorBuffer = GL_FALSE;
 
    /* Start at -2 to more easily loop over all attachment points.
     *  -2: depth buffer
@@ -899,6 +901,19 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
 
       /* check if integer color */
       fb->_IntegerColor = _mesa_is_format_integer_color(attFormat);
+
+      /* Update _AllColorBuffersFixedPoint and _HasSNormOrFloatColorBuffer. */
+      if (i >= 0) {
+         GLenum type = _mesa_get_format_datatype(attFormat);
+
+         fb->_AllColorBuffersFixedPoint =
+            fb->_AllColorBuffersFixedPoint &&
+            (type == GL_UNSIGNED_NORMALIZED || type == GL_SIGNED_NORMALIZED);
+
+         fb->_HasSNormOrFloatColorBuffer =
+            fb->_HasSNormOrFloatColorBuffer ||
+            type == GL_SIGNED_NORMALIZED || type == GL_FLOAT;
+      }
 
       /* Error-check width, height, format */
       if (numImages == 1) {
@@ -1537,15 +1552,16 @@ renderbuffer_storage(GLenum target, GLenum internalFormat,
       /* NumSamples == 0 indicates non-multisampling */
       samples = 0;
    }
-
-   /* check the sample count;
-    * note: driver may choose to use more samples than what's requested
-    */
-   sample_count_error = _mesa_check_sample_count(ctx, target,
-         internalFormat, samples);
-   if (sample_count_error != GL_NO_ERROR) {
-      _mesa_error(ctx, sample_count_error, "%s(samples)", func);
-      return;
+   else {
+      /* check the sample count;
+       * note: driver may choose to use more samples than what's requested
+       */
+      sample_count_error = _mesa_check_sample_count(ctx, target,
+            internalFormat, samples);
+      if (sample_count_error != GL_NO_ERROR) {
+         _mesa_error(ctx, sample_count_error, "%s(samples)", func);
+         return;
+      }
    }
 
    rb = ctx->CurrentRenderbuffer;

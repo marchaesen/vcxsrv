@@ -227,9 +227,10 @@ typedef enum _FcMatcherPriorityDummy {
 #undef FC_OBJECT
 
 #undef PRI1
-#define PRI1(n)			\
-    PRI_ ## n ## _STRONG,	\
-    PRI_ ## n ## _WEAK
+#define PRI1(n)					\
+    PRI_ ## n,					\
+    PRI_ ## n ## _STRONG = PRI_ ## n,		\
+    PRI_ ## n ## _WEAK = PRI_ ## n
 
 typedef enum _FcMatcherPriority {
     PRI1(HASH),
@@ -237,9 +238,8 @@ typedef enum _FcMatcherPriority {
     PRI1(FOUNDRY),
     PRI1(CHARSET),
     PRI_FAMILY_STRONG,
-    PRI_LANG_STRONG,
     PRI_POSTSCRIPT_NAME_STRONG,
-    PRI_LANG_WEAK,
+    PRI1(LANG),
     PRI_FAMILY_WEAK,
     PRI_POSTSCRIPT_NAME_WEAK,
     PRI1(SPACING),
@@ -910,8 +910,7 @@ FcFontSetSort (FcConfig	    *config FC_UNUSED,
 	 * If this node matches any language, go check
 	 * which ones and satisfy those entries
 	 */
-	if (nodeps[f]->score[PRI_LANG_STRONG] < 2000 ||
-	    nodeps[f]->score[PRI_LANG_WEAK] < 2000)
+	if (nodeps[f]->score[PRI_LANG] < 2000)
 	{
 	    for (i = 0; i < nPatternLang; i++)
 	    {
@@ -935,13 +934,6 @@ FcFontSetSort (FcConfig	    *config FC_UNUSED,
 			}
 			patternLangSat[i] = FcTrue;
 			satisfies = FcTrue;
-			/* adjust score to ensure it's not more than 10000.0
-			 * which would means the lang didn't satisfy the requirements
-			 */
-			if (nodeps[f]->score[PRI_LANG_STRONG] > 10000.0)
-			    nodeps[f]->score[PRI_LANG_STRONG] = 10000.0;
-			if (nodeps[f]->score[PRI_LANG_WEAK] > 10000.0)
-			    nodeps[f]->score[PRI_LANG_WEAK] = 10000.0;
 			break;
 		    }
 		}
@@ -949,8 +941,7 @@ FcFontSetSort (FcConfig	    *config FC_UNUSED,
 	}
 	if (!satisfies)
 	{
-	    nodeps[f]->score[PRI_LANG_STRONG] = 10000.0;
-	    nodeps[f]->score[PRI_LANG_WEAK] = 10000.0;
+	    nodeps[f]->score[PRI_LANG] = 10000.0;
 	}
     }
 

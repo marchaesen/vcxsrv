@@ -1,76 +1,65 @@
+/*
+ * Copyright 2013 VMware, Inc.
+ * All Rights Reserved.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sub license, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ * 
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial portions
+ * of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS AND/OR ITS SUPPLIERS BE LIABLE FOR
+ * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 
 
-#include "util/u_inlines.h"
-#include "util/u_transfer.h"
+#include "pipe/p_defines.h"
+#include "pipe/p_state.h"
+#include "util/u_format.h"
+#include "util/u_math.h"
+#include "util/u_resource.h"
 
-static INLINE struct u_resource *
-u_resource( struct pipe_resource *res )
+
+/**
+ * Return the size of the resource in bytes.
+ */
+unsigned
+util_resource_size(const struct pipe_resource *res)
 {
-   return (struct u_resource *)res;
+   unsigned width = res->width0;
+   unsigned height = res->height0;
+   unsigned depth = res->depth0;
+   unsigned size = 0;
+   unsigned level;
+
+   for (level = 0; level <= res->last_level; level++) {
+      unsigned slices;
+
+      if (res->target == PIPE_TEXTURE_CUBE)
+         slices = 6;
+      else if (res->target == PIPE_TEXTURE_3D)
+         slices = depth;
+      else
+         slices = res->array_size;
+
+      size += (util_format_get_nblocksy(res->format, height) *
+               util_format_get_stride(res->format, width) * slices);
+
+      width  = u_minify(width, 1);
+      height = u_minify(height, 1);
+      depth = u_minify(depth, 1);
+   }
+
+   return size;
 }
-
-boolean u_resource_get_handle_vtbl(struct pipe_screen *screen,
-                                   struct pipe_resource *resource,
-                                   struct winsys_handle *handle)
-{
-   struct u_resource *ur = u_resource(resource);
-   return ur->vtbl->resource_get_handle(screen, resource, handle);
-}
-
-void u_resource_destroy_vtbl(struct pipe_screen *screen,
-                             struct pipe_resource *resource)
-{
-   struct u_resource *ur = u_resource(resource);
-   ur->vtbl->resource_destroy(screen, resource);
-}
-
-void *u_transfer_map_vtbl(struct pipe_context *context,
-                          struct pipe_resource *resource,
-                          unsigned level,
-                          unsigned usage,
-                          const struct pipe_box *box,
-                          struct pipe_transfer **transfer)
-{
-   struct u_resource *ur = u_resource(resource);
-   return ur->vtbl->transfer_map(context, resource, level, usage, box,
-                                 transfer);
-}
-
-void u_transfer_flush_region_vtbl( struct pipe_context *pipe,
-                                   struct pipe_transfer *transfer,
-                                   const struct pipe_box *box)
-{
-   struct u_resource *ur = u_resource(transfer->resource);
-   ur->vtbl->transfer_flush_region(pipe, transfer, box);
-}
-
-void u_transfer_unmap_vtbl( struct pipe_context *pipe,
-                            struct pipe_transfer *transfer )
-{
-   struct u_resource *ur = u_resource(transfer->resource);
-   ur->vtbl->transfer_unmap(pipe, transfer);
-}
-
-void u_transfer_inline_write_vtbl( struct pipe_context *pipe,
-                                   struct pipe_resource *resource,
-                                   unsigned level,
-                                   unsigned usage,
-                                   const struct pipe_box *box,
-                                   const void *data,
-                                   unsigned stride,
-                                   unsigned layer_stride)
-{
-   struct u_resource *ur = u_resource(resource);
-   ur->vtbl->transfer_inline_write(pipe,
-                                   resource,
-                                   level,
-                                   usage,
-                                   box,
-                                   data,
-                                   stride,
-                                   layer_stride);
-}
-
-
-
-
