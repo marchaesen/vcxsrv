@@ -29,7 +29,7 @@ FC_PATTERN_SRC=${top_srcdir}/fc-pattern
 
 SGML = ${FC_PATTERN_SRC}/fc-pattern.sgml
 
-INCLUDES=-I${top_srcdir} $(WARN_CFLAGS)
+AM_CPPFLAGS=-I${top_srcdir} $(WARN_CFLAGS)
 
 BUILT_MANS=fc-pattern.1
 

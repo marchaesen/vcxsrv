@@ -53,6 +53,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/ltmain.sh \
 	$(srcdir)/missing \
 	$(srcdir)/mkinstalldirs \
+	$(srcdir)/test-driver \
 	`find "$(srcdir)" -type f -name Makefile.in -print`
 
 pkgconfig_DATA = fontconfig.pc

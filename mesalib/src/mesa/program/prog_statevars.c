@@ -31,6 +31,7 @@
 
 #include "main/glheader.h"
 #include "main/context.h"
+#include "main/blend.h"
 #include "main/imports.h"
 #include "main/macros.h"
 #include "main/mtypes.h"
@@ -239,14 +240,14 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
       {
          /* state[1] is the texture unit */
          const GLuint unit = (GLuint) state[1];
-         if(ctx->Color._ClampFragmentColor)
+         if (_mesa_get_clamp_fragment_color(ctx))
             COPY_4V(value, ctx->Texture.Unit[unit].EnvColor);
          else
             COPY_4V(value, ctx->Texture.Unit[unit].EnvColorUnclamped);
       }
       return;
    case STATE_FOG_COLOR:
-      if(ctx->Color._ClampFragmentColor)
+      if (_mesa_get_clamp_fragment_color(ctx))
          COPY_4V(value, ctx->Fog.Color);
       else
          COPY_4V(value, ctx->Fog.ColorUnclamped);
@@ -870,6 +871,9 @@ append_token(char *dst, gl_state_index k)
       break;
    case STATE_CURRENT_ATTRIB:
       append(dst, "current");
+      break;
+   case STATE_CURRENT_ATTRIB_MAYBE_VP_CLAMPED:
+      append(dst, "currentAttribMaybeVPClamped");
       break;
    case STATE_NORMAL_SCALE:
       append(dst, "normalScale");

@@ -428,6 +428,7 @@ extern XF86ConfigPtr xf86configptr;
 
 typedef enum {
     OPTION_PREFERRED_MODE,
+    OPTION_ZOOM_MODES,
     OPTION_POSITION,
     OPTION_BELOW,
     OPTION_RIGHT_OF,
@@ -446,6 +447,7 @@ typedef enum {
 
 static OptionInfoRec xf86OutputOptions[] = {
     {OPTION_PREFERRED_MODE, "PreferredMode", OPTV_STRING, {0}, FALSE},
+    {OPTION_ZOOM_MODES, "ZoomModes", OPTV_STRING, {0}, FALSE },
     {OPTION_POSITION, "Position", OPTV_STRING, {0}, FALSE},
     {OPTION_BELOW, "Below", OPTV_STRING, {0}, FALSE},
     {OPTION_RIGHT_OF, "RightOf", OPTV_STRING, {0}, FALSE},
@@ -1418,6 +1420,90 @@ preferredMode(ScrnInfoPtr pScrn, xf86OutputPtr output)
     return preferred_mode;
 }
 
+/** identify a token
+ * args
+ *   *src     a string with zero or more tokens, e.g. "tok0 tok1",
+ *   **token  stores a pointer to the first token character,
+ *   *len     stores the token length.
+ * return
+ *   a pointer into src[] at the token terminating character, or
+ *   NULL if no token is found.
+ */
+static const char *
+gettoken(const char *src, const char **token, int *len)
+{
+    const char *delim = " \t";
+    int skip;
+
+    if (!src)
+        return NULL;
+
+    skip = strspn(src, delim);
+    *token = &src[skip];
+
+    *len = strcspn(*token, delim);
+    /* Support for backslash escaped delimiters could be implemented
+     * here.
+     */
+
+    /* (*token)[0] != '\0'  <==>  *len > 0 */
+    if (*len > 0)
+        return &(*token)[*len];
+    else
+        return NULL;
+}
+
+/** Check for a user configured zoom mode list, Option "ZoomModes":
+ *
+ * Section "Monitor"
+ *   Identifier "a21inch"
+ *   Option "ZoomModes" "1600x1200 1280x1024 1280x1024 640x480"
+ * EndSection
+ *
+ * Each user mode name is searched for independently so the list
+ * specification order is free.  An output mode is matched at most
+ * once, a mode with an already set M_T_USERDEF type bit is skipped.
+ * Thus a repeat mode name specification matches the next output mode
+ * with the same name.
+ *
+ * Ctrl+Alt+Keypad-{Plus,Minus} zooms {in,out} by selecting the
+ * {next,previous} M_T_USERDEF mode in the screen modes list, itself
+ * sorted toward lower dot area or lower dot clock frequency, see
+ *   modes/xf86Crtc.c: xf86SortModes() xf86SetScrnInfoModes(), and
+ *   common/xf86Cursor.c: xf86ZoomViewport().
+ */
+static int
+processZoomModes(xf86OutputPtr output)
+{
+    const char *zoom_modes;
+    int count = 0;
+
+    zoom_modes = xf86GetOptValString(output->options, OPTION_ZOOM_MODES);
+
+    if (zoom_modes) {
+        const char *token, *next;
+        int len;
+
+        next = gettoken(zoom_modes, &token, &len);
+        while (next) {
+            DisplayModePtr mode;
+
+            for (mode = output->probed_modes; mode; mode = mode->next)
+                if (!strncmp(token, mode->name, len)  /* prefix match */
+                    && mode->name[len] == '\0'        /* equal length */
+                    && !(mode->type & M_T_USERDEF)) { /* no rematch */
+                    mode->type |= M_T_USERDEF;
+                    break;
+                }
+
+            count++;
+            next = gettoken(next, &token, &len);
+        }
+    }
+
+    return count;
+}
+
 static void
 GuessRangeFromModes(MonPtr mon, DisplayModePtr mode)
 {
@@ -1712,6 +1798,9 @@ xf86ProbeOutputModes(ScrnInfoPtr scrn, int maxX, int maxY)
                 }
             }
         }
+
+        /* Ctrl+Alt+Keypad-{Plus,Minus} zoom mode: M_T_USERDEF mode type */
+        processZoomModes(output);
 
         output->initial_rotation = xf86OutputInitialRotation(output);
 

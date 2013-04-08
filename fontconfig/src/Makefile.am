@@ -70,7 +70,7 @@ uninstall-ms-import-lib:
 
 endif
 
-INCLUDES = 						\
+AM_CPPFLAGS = 						\
 	-I$(top_srcdir)					\
 	-I$(top_srcdir)/src				\
 	$(FREETYPE_CFLAGS)				\

@@ -29,7 +29,7 @@ SGML = ${FC_LIST_SRC}/fc-list.sgml
 
 bin_PROGRAMS=fc-list
 
-INCLUDES=-I${top_srcdir} $(WARN_CFLAGS)
+AM_CPPFLAGS=-I${top_srcdir} $(WARN_CFLAGS)
 
 BUILT_MANS=fc-list.1
 

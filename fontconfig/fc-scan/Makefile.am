@@ -29,7 +29,7 @@ FC_SCAN_SRC=${top_srcdir}/fc-scan
 
 SGML = ${FC_SCAN_SRC}/fc-scan.sgml
 
-INCLUDES=-I${top_srcdir} $(FREETYPE_CFLAGS) $(WARN_CFLAGS)
+AM_CPPFLAGS=-I${top_srcdir} $(FREETYPE_CFLAGS) $(WARN_CFLAGS)
 
 BUILT_MANS=fc-scan.1
 

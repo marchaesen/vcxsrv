@@ -120,6 +120,7 @@ public:
    virtual class ir_dereference *       as_dereference()      { return NULL; }
    virtual class ir_dereference_array *	as_dereference_array() { return NULL; }
    virtual class ir_dereference_variable *as_dereference_variable() { return NULL; }
+   virtual class ir_dereference_record *as_dereference_record() { return NULL; }
    virtual class ir_expression *        as_expression()       { return NULL; }
    virtual class ir_rvalue *            as_rvalue()           { return NULL; }
    virtual class ir_loop *              as_loop()             { return NULL; }
@@ -1425,7 +1426,8 @@ enum ir_texture_opcode {
    ir_txd,		/**< Texture look-up with partial derivatvies */
    ir_txf,		/**< Texel fetch with explicit LOD */
    ir_txf_ms,           /**< Multisample texture fetch */
-   ir_txs		/**< Texture size */
+   ir_txs,		/**< Texture size */
+   ir_lod		/**< Texture lod query */
 };
 
 
@@ -1449,6 +1451,7 @@ enum ir_texture_opcode {
  * (txf_ms
  *      <type> <sampler> <coordinate>         <sample_index>)
  * (txs <type> <sampler> <lod>)
+ * (lod <type> <sampler> <coordinate>)
  */
 class ir_texture : public ir_rvalue {
 public:
@@ -1737,6 +1740,11 @@ public:
 					struct hash_table *) const;
 
    virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
+
+   virtual ir_dereference_record *as_dereference_record()
+   {
+      return this;
+   }
 
    /**
     * Get the variable that is ultimately referenced by an r-value

@@ -417,8 +417,7 @@ draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
    key.st = st;
    key.bitmap = GL_TRUE;
    key.clamp_color = st->clamp_frag_color_in_shader &&
-                     st->ctx->Color._ClampFragmentColor &&
-                     !st->ctx->DrawBuffer->_IntegerColor;
+                     st->ctx->Color._ClampFragmentColor;
 
    fpv = st_get_fp_variant(st, st->fp, &key);
 
@@ -766,6 +765,7 @@ st_Bitmap(struct gl_context *ctx, GLint x, GLint y,
       /* create pass-through vertex shader now */
       const uint semantic_names[] = { TGSI_SEMANTIC_POSITION,
                                       TGSI_SEMANTIC_COLOR,
+        st->needs_texcoord_semantic ? TGSI_SEMANTIC_TEXCOORD :
                                       TGSI_SEMANTIC_GENERIC };
       const uint semantic_indexes[] = { 0, 0, 0 };
       st->bitmap.vs = util_make_vertex_passthrough_shader(st->pipe, 3,

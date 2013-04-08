@@ -47,6 +47,7 @@
 #include "teximage.h"
 #include "texobj.h"
 #include "texstate.h"
+#include "texstorage.h"
 #include "mtypes.h"
 #include "glformats.h"
 
@@ -4194,7 +4195,8 @@ check_multisample_target(GLuint dims, GLenum target)
 static void
 teximagemultisample(GLuint dims, GLenum target, GLsizei samples,
                     GLint internalformat, GLsizei width, GLsizei height,
-                    GLsizei depth, GLboolean fixedsamplelocations)
+                    GLsizei depth, GLboolean fixedsamplelocations,
+                    GLboolean immutable, const char *func)
 {
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
@@ -4206,12 +4208,12 @@ teximagemultisample(GLuint dims, GLenum target, GLsizei samples,
 
    if (!(ctx->Extensions.ARB_texture_multisample
       && _mesa_is_desktop_gl(ctx))) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glTexImage%uDMultisample", dims);
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
 
    if (!check_multisample_target(dims, target)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glTexImage%uDMultisample(target)", dims);
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(target)", func);
       return;
    }
 
@@ -4219,26 +4221,40 @@ teximagemultisample(GLuint dims, GLenum target, GLsizei samples,
     * refer GL3.1 spec 4.4.4
     */
 
+   if (immutable && !_mesa_is_legal_tex_storage_format(ctx, internalformat)) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+            "%s(internalformat=%s not legal for immutable-format)",
+            func, _mesa_lookup_enum_by_nr(internalformat));
+      return;
+   }
+
    if (!is_renderable_texture_format(ctx, internalformat)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
-            "glTexImage%uDMultisample(internalformat=%s)",
-            dims,
-            _mesa_lookup_enum_by_nr(internalformat));
+            "%s(internalformat=%s)",
+            func, _mesa_lookup_enum_by_nr(internalformat));
       return;
    }
 
    sample_count_error = _mesa_check_sample_count(ctx, target,
          internalformat, samples);
    if (sample_count_error != GL_NO_ERROR) {
-      _mesa_error(ctx, sample_count_error, "glTexImage%uDMultisample(samples)", dims);
+      _mesa_error(ctx, sample_count_error, "%s(samples)", func);
       return;
    }
 
    texObj = _mesa_get_current_tex_object(ctx, target);
+
+   if (immutable && (!texObj || (texObj->Name == 0))) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+            "%s(texture object 0)",
+            func);
+      return;
+   }
+
    texImage = _mesa_get_tex_image(ctx, texObj, 0, 0);
 
    if (texImage == NULL) {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage%uDMultisample()", dims);
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s()", func);
       return;
    }
 
@@ -4268,13 +4284,19 @@ teximagemultisample(GLuint dims, GLenum target, GLsizei samples,
    else {
       if (!dimensionsOK) {
          _mesa_error(ctx, GL_INVALID_VALUE,
-               "glTexImage%uDMultisample(invalid width or height)", dims);
+               "%s(invalid width or height)", func);
          return;
       }
 
       if (!sizeOK) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY,
-               "glTexImage%uDMultisample(texture too large)", dims);
+               "%s(texture too large)", func);
+         return;
+      }
+
+      /* Check if texObj->Immutable is set */
+      if (texObj->Immutable) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(immutable)", func);
          return;
       }
 
@@ -4299,6 +4321,7 @@ teximagemultisample(GLuint dims, GLenum target, GLsizei samples,
          }
       }
 
+      texObj->Immutable = immutable;
       _mesa_update_fbo_texture(ctx, texObj, 0, 0);
    }
 }
@@ -4309,7 +4332,7 @@ _mesa_TexImage2DMultisample(GLenum target, GLsizei samples,
                             GLsizei height, GLboolean fixedsamplelocations)
 {
    teximagemultisample(2, target, samples, internalformat,
-         width, height, 1, fixedsamplelocations);
+         width, height, 1, fixedsamplelocations, GL_FALSE, "glTexImage2DMultisample");
 }
 
 void GLAPIENTRY
@@ -4319,5 +4342,25 @@ _mesa_TexImage3DMultisample(GLenum target, GLsizei samples,
                             GLboolean fixedsamplelocations)
 {
    teximagemultisample(3, target, samples, internalformat,
-         width, height, depth, fixedsamplelocations);
+         width, height, depth, fixedsamplelocations, GL_FALSE, "glTexImage3DMultisample");
+}
+
+
+void GLAPIENTRY
+_mesa_TexStorage2DMultisample(GLenum target, GLsizei samples,
+                              GLenum internalformat, GLsizei width,
+                              GLsizei height, GLboolean fixedsamplelocations)
+{
+   teximagemultisample(2, target, samples, internalformat,
+         width, height, 1, fixedsamplelocations, GL_TRUE, "glTexStorage2DMultisample");
+}
+
+void GLAPIENTRY
+_mesa_TexStorage3DMultisample(GLenum target, GLsizei samples,
+                              GLenum internalformat, GLsizei width,
+                              GLsizei height, GLsizei depth,
+                              GLboolean fixedsamplelocations)
+{
+   teximagemultisample(3, target, samples, internalformat,
+         width, height, depth, fixedsamplelocations, GL_TRUE, "glTexStorage3DMultisample");
 }
