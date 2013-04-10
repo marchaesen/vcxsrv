@@ -1,0 +1,302 @@
+.\" Copyright 1991, Digital Equipment Corporation.
+.\" Copyright 1991, 1994, 1998  The Open Group
+.\"
+.\" Permission to use, copy, modify, distribute, and sell this software and its
+.\" documentation for any purpose is hereby granted without fee, provided that
+.\" the above copyright notice appear in all copies and that both that
+.\" copyright notice and this permission notice appear in supporting
+.\" documentation.
+.\"
+.\" The above copyright notice and this permission notice shall be included
+.\" in all copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+.\" OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+.\" MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+.\" IN NO EVENT SHALL THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR
+.\" OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+.\" ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+.\" OTHER DEALINGS IN THE SOFTWARE.
+.\"
+.\" Except as contained in this notice, the name of The Open Group shall
+.\" not be used in advertising or otherwise to promote the sale, use or
+.\" other dealings in this Software without prior written authorization
+.\" from The Open Group.
+.\"
+.TH XRDB 1 __xorgversion__
+.SH NAME
+xrdb - X server resource database utility
+.SH SYNOPSIS
+.B xrdb
+[-option ...] [\fIfilename\fP]
+.SH DESCRIPTION
+.I Xrdb
+is used to get or set the contents of the RESOURCE_MANAGER property
+on the root window of screen 0, or the SCREEN_RESOURCES property on
+the root window of any or all screens, or everything combined.
+You would normally run this program from your X startup file.
+.LP
+Most X clients use the RESOURCE_MANAGER and SCREEN_RESOURCES properties to
+get user preferences about
+color, fonts, and so on for applications.  Having this information in
+the server (where it is available to all clients) instead of on disk,
+solves the problem in previous versions of X that required you to
+maintain \fIdefaults\fP files on every machine that you might use.
+It also allows for dynamic changing of defaults without editing files.
+.LP
+The RESOURCE_MANAGER property is used for resources that apply to all
+screens of the display.  The SCREEN_RESOURCES property on each screen
+specifies additional (or overriding) resources to be used for that screen.
+(When there is only one screen, SCREEN_RESOURCES is normally not used,
+all resources are just placed in the RESOURCE_MANAGER property.)
+.LP
+The file specified by
+.I filename
+(or the contents from standard input if - or no filename is given)
+is optionally passed through the C preprocessor with the
+following symbols defined, based on the capabilities of the server
+being used:
+.TP 8
+.B SERVERHOST=\fIhostname\fP
+the hostname portion of the display to which you are connected.
+.TP 8
+.B SRVR_\fIname\fB
+the SERVERHOST hostname string turned into a legal identifier.
+For example, "my-dpy.lcs.mit.edu" becomes SRVR_my_dpy_lcs_mit_edu.
+.TP 8
+.B HOST=\fIhostname\fP
+the same as
+.BR SERVERHOST .
+.TP 8
+.B DISPLAY_NUM=\fInum\fP
+the number of the display on the server host.
+.TP 8
+.B CLIENTHOST=\fIhostname\fP
+the name of the host on which
+.I xrdb
+is running.
+.TP 8
+.B CLNT_\fIname\fB
+the CLIENTHOST hostname string turned into a legal identifier.
+For example, "expo.lcs.mit.edu" becomes CLNT_expo_lcs_mit_edu.
+.TP 8
+.B RELEASE=\fInum\fP
+the vendor release number for the server.  The interpretation of this
+number will vary depending on VENDOR.
+.TP 8
+.B REVISION=\fInum\fP
+the X protocol minor version supported by this server (currently 0).
+.TP 8
+.B VERSION=\fInum\fP
+the X protocol major version supported by this server (should always be 11).
+.TP 8
+.B VENDOR="\fIvendor\fP"
+a string literal specifying the vendor of the server.
+.TP 8
+.B VNDR_\fIname\fP
+the VENDOR name string turned into a legal identifier.
+For example, "MIT X Consortium" becomes VNDR_MIT_X_Consortium.
+.TP 8
+.B EXT_\fIname\fP
+A symbol is defined for each protocol extension supported by the server.
+Each extension string name is turned into a legal identifier.
+For example, "X3D-PEX" becomes EXT_X3D_PEX.
+.TP 8
+.B NUM_SCREENS=\fInum\fP
+the total number of screens.
+.TP 8
+.B SCREEN_NUM=\fInum\fP
+the number of the current screen (from zero).
+.TP 8
+.B BITS_PER_RGB=\fInum\fP
+the number of significant bits in an RGB color specification.  This is the
+log base 2 of the number of distinct shades of each primary that the hardware
+can generate.  Note that it usually is not related to PLANES.
+.TP 8
+.B CLASS=\fIvisualclass\fP
+one of StaticGray, GrayScale, StaticColor, PseudoColor, TrueColor,
+DirectColor.  This is the visual class of the root window.
+.TP 8
+.B CLASS_\fIvisualclass\fP=\fIvisualid\fP
+the visual class of the root window in a form you can \fI#ifdef\fP on.
+The value is the numeric id of the visual.
+.TP 8
+.B COLOR
+defined only if CLASS is one of StaticColor, PseudoColor, TrueColor, or
+DirectColor.
+.TP 8
+.B CLASS_\fIvisualclass\fP_\fIdepth\fP=\fInum\fP
+A symbol is defined for each visual supported for the screen.
+The symbol includes the class of the visual and its depth;
+the value is the numeric id of the visual.
+(If more than one visual has the same class and depth, the numeric id
+of the first one reported by the server is used.)
+.TP 8
+.B HEIGHT=\fInum\fP
+the height of the root window in pixels.
+.TP 8
+.B WIDTH=\fInum\fP
+the width of the root window in pixels.
+.TP 8
+.B PLANES=\fInum\fP
+the number of bit planes (the depth) of the root window.
+.TP 8
+.B X_RESOLUTION=\fInum\fP
+the x resolution of the screen in pixels per meter.
+.TP 8
+.B Y_RESOLUTION=\fInum\fP
+the y resolution of the screen in pixels per meter.
+.LP
+SRVR_\fIname\fP, CLNT_\fIname\fP, VNDR_\fIname\fP, and EXT_\fIname\fP
+identifiers are formed by changing all characters other than letters
+and digits into underscores (_).
+.LP
+Lines that begin with an exclamation mark (!) are ignored and may
+be used as comments.
+.LP
+Note that since
+.I xrdb
+can read from standard input, it can be used to
+the change the contents of properties directly from
+a terminal or from a shell script.
+.SH "OPTIONS"
+.PP
+.I xrdb
+program accepts the following options:
+.TP 8
+.B \-help
+This option (or any unsupported option) will cause a brief description of
+the allowable options and parameters to be printed.
+.TP 8
+.B \-display \fIdisplay\fP
+This option specifies the X server to be used; see \fIX(__miscmansuffix__)\fP.
+It also specifies the screen to use for the \fI-screen\fP option,
+and it specifies the screen from which preprocessor symbols are
+derived for the \fI-global\fP option.
+.TP 8
+.B \-all
+This option indicates that operation should be performed on the
+screen-independent resource property (RESOURCE_MANAGER), as well as
+the screen-specific property (SCREEN_RESOURCES) on every screen of the
+display.  For example, when used in conjunction with \fI-query\fP,
+the contents of all properties are output.  For \fI-load\fP, \fI-override\fP
+and \fI-merge\fP,
+the input file is processed once for each screen.  The resources which occur
+in common in the output for every screen are collected, and these are applied
+as the screen-independent resources.  The remaining resources are applied
+for each individual per-screen property.  This the default mode of operation.
+.TP 8
+.B \-global
+This option indicates that the operation should only be performed on
+the screen-independent RESOURCE_MANAGER property.
+.TP 8
+.B \-screen
+This option indicates that the operation should only be performed on
+the SCREEN_RESOURCES property of the default screen of the display.
+.TP 8
+.B \-screens
+This option indicates that the operation should be performed on
+the SCREEN_RESOURCES property of each screen of the display.
+For \fI-load\fP, \fI-override\fP and \fI-merge\fP, the input file is
+processed for each screen.
+.TP 8
+.B \-n
+This option indicates that changes to the specified properties (when used with
+\fI-load\fP, \fI-override\fP or \fI-merge\fP)
+or to the resource file (when used with \fI-edit\fP) should be shown on the
+standard output, but should not be performed.
+.TP 8
+.B \-quiet
+This option indicates that warning about duplicate entries should not be
+displayed.
+.TP 8
+.B -cpp \fIfilename\fP
+This option specifies the pathname of the C preprocessor program to be used.
+Although
+.I xrdb
+was designed to use CPP, any program that acts as a filter
+and accepts the -D, -I, and -U options may be used.
+.TP 8
+.B -nocpp
+This option indicates that
+.I xrdb
+should not run the input file through a preprocessor before loading it
+into properties.
+.TP 8
+.B \-symbols
+This option indicates that the symbols that are defined for the preprocessor
+should be printed onto the standard output.
+.TP 8
+.B \-query
+This option indicates that the current contents of the specified
+properties should be printed onto the standard output.  Note that since
+preprocessor commands in the input resource file are part of the input
+file, not part of the property, they won't appear in the output from this
+option.  The
+.B \-edit
+option can be used to merge the contents of properties back into the input
+resource file without damaging preprocessor commands.
+.TP 8
+.B \-load
+This option indicates that the input should be loaded as the new value
+of the specified properties, replacing whatever was there (i.e.
+the old contents are removed).  This is the default action.
+.TP 8
+.B \-override
+This option indicates that the input should be added to, instead of
+replacing, the current contents of the specified properties.
+New entries override previous entries.
+.TP 8
+.B \-merge
+This option indicates that the input should be merged and lexicographically
+sorted with, instead of replacing, the current contents of the specified
+properties.
+.TP 8
+.B \-remove
+This option indicates that the specified properties should be removed
+from the server.
+.TP 8
+.B \-retain
+This option indicates that the server should be instructed not to reset if
+\fIxrdb\fP is the first client.  This should never be necessary under normal
+conditions, since \fIxdm\fP and \fIxinit\fP always act as the first client.
+.TP 8
+.B \-edit \fIfilename\fP
+This option indicates that the contents of the specified properties
+should be edited into the given file, replacing any values already listed
+there.  This allows you to put changes that you have made to your defaults
+back into your resource file, preserving any comments or preprocessor lines.
+.TP 8
+.B \-backup \fIstring\fP
+This option specifies a suffix to be appended to the filename used with
+.B \-edit
+to generate a backup file.
+.TP 8
+.B \-D\fIname[=value]\fP
+This option is passed through to the preprocessor and is used to define
+symbols for use with conditionals such as
+.I #ifdef.
+.TP 8
+.B \-U\fIname\fP
+This option is passed through to the preprocessor and is used to remove
+any definitions of this symbol.
+.TP 8
+.B \-I\fIdirectory\fP
+This option is passed through to the preprocessor and is used to specify
+a directory to search for files that are referenced with
+.I #include.
+.SH FILES
+Generalizes \fI~/.Xdefaults\fP files.
+.SH "SEE ALSO"
+X(__miscmansuffix__), appres(__appmansuffix__), listres(__appmansuffix__),
+Xlib Resource Manager documentation, Xt resource documentation
+.SH ENVIRONMENT
+.TP 8
+.B DISPLAY
+to figure out which display to use.
+.SH BUGS
+.PP
+The default for no arguments should be to query, not to overwrite, so that
+it is consistent with other programs.
+.SH AUTHORS
+Bob Scheifler, Phil Karlton, rewritten from the original by Jim Gettys
