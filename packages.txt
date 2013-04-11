@@ -87,6 +87,7 @@ xhost-1.0.5
 xineramaproto-1.2.1
 xkbcomp git version
 xkeyboard-config git version
+xrdb git version
 xproto-7.0.23
 xserver git version
 xtrans git version
