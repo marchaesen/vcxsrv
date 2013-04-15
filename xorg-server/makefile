@@ -88,6 +88,7 @@ EXTRASTOBUILD =  \
  ..\apps\xclock\$(NOSERVOBJDIR)\xclock.exe \
  ..\apps\xwininfo\$(NOSERVOBJDIR)\xwininfo.exe \
  ..\apps\xhost\$(NOSERVOBJDIR)\xhost.exe \
+ ..\apps\xrdb\$(NOSERVOBJDIR)\xrdb.exe \
  ..\apps\xauth\$(NOSERVOBJDIR)\xauth.exe \
  ..\tools\plink\$(NOSERVOBJDIR)\plink.exe \
  hw\xwin\swrastwgl_dri\$(NOSERVOBJDIR)\swrastwgl_dri.dll \

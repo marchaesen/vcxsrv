@@ -120,6 +120,7 @@ EXPORTS
   XFreeColormap
   XFreeColors
   XFreeCursor
+  XFreeExtensionList
   XFreeFont
   XFreeFontSet
   XFreeGC
@@ -208,6 +209,7 @@ EXPORTS
   XKeysymToString
   XKillClient
   XListDepths
+  XListExtensions
   XListHosts
   XListPixmapFormats
   XLoadFont

@@ -53,6 +53,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <unistd.h>
 
 #ifdef NEED_SYS_PARAM_H
 # include <sys/param.h>		/* defines MAXHOSTNAMELEN on BSD & Linux */
