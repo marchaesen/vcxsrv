@@ -3,7 +3,7 @@ Prerequisits:
   Visual C++ 2010 Express Edition is probably also ok (not tested)
 - Perl (cygwin perl (http://www.cygwin.com/), strawberry perl (http://strawberryperl.com)  or activestate perl (http://www.activestate.com/activeperl/) )
 - Python (2.7 used: http://www.python.org/) + libxml2 python bindings
-- Gnuwin32 gawk, gzip, flex, bison (and it's dependancies), sed (and it's dependancies (http://gnuwin32.sourceforge.net/), gperf
+- Gnuwin32 gperf, gawk, gzip, flex, bison (and it's dependancies), sed (and it's dependancies (http://gnuwin32.sourceforge.net/), gperf
 - nasm (http://nasm.sourceforge.net). Make sure the nasm directory is in your path
 - Make sure that the gnuwin32 binaries are in a directory path with no spaces, like 'C:\gnuwin32\bin'
 - Make sure the environment PATH includes the directory where the gnuwin32 binaries are
