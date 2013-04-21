@@ -53,10 +53,10 @@ check-error 'Error compiling mhmake for debug'
 
 export MHMAKECONF=`cygpath -da .`
 
-tools/mhmake/release/mhmake -C xorg-server MAKESERVER=1 DEBUG=1
+tools/mhmake/release/mhmake $PARBUILD -C xorg-server MAKESERVER=1 DEBUG=1
 check-error 'Error compiling vcxsrv for debug'
 
-tools/mhmake/release/mhmake.exe -C xorg-server MAKESERVER=1
+tools/mhmake/release/mhmake.exe $PARBUILD -C xorg-server MAKESERVER=1
 check-error 'Error compiling vcxsrv for release'
 
 cd xorg-server/installer
