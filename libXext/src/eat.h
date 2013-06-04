@@ -29,6 +29,10 @@
 #include <X11/Xmd.h>  /* for LONG64 on 64-bit platforms */
 #include <limits.h>
 
+#ifdef _MSC_VER
+#define inline __inline
+#endif
+
 static inline void _XEatDataWords(Display *dpy, unsigned long n)
 {
 # ifndef LONG64

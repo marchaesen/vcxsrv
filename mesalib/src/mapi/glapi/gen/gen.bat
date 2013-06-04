@@ -22,5 +22,5 @@ glX_proto_send.py -m init_c > indirect_init.c
 
 gl_enums.py -f gl_and_es_API.xml > enums.c
 remap_helper.py -f gl_and_es_API.xml > remap_helper.h
-copy ..\..\mapi\mapi_abi.py
+copy ..\..\mapi_abi.py
 mapi_abi.py --printer glapi --mode lib gl_and_es_API.xml > glapi_mapi_tmp.h

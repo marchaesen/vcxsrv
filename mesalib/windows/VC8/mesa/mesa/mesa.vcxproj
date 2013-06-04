@@ -103,6 +103,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\glsl\ast_array_index.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\ast_expr.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\ast_function.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\ast_to_hir.cpp" />
@@ -148,6 +149,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\ir_variable_refcount.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\linker.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_functions.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\link_interface_blocks.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_uniforms.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_uniform_blocks.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_uniform_block_active_visitor.cpp" />
@@ -163,11 +165,13 @@
     <ClCompile Include="..\..\..\..\src\glsl\lower_jumps.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_clip_distance.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_mat_op_to_vec.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\lower_named_interface_blocks.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_noise.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_packed_varyings.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_texture_projection.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_variable_index_to_cond_assign.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vector.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\lower_vector_insert.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_cond_assign.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_swizzle.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_algebraic.cpp" />
@@ -181,6 +185,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_dead_code_local.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_dead_functions.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_flatten_nested_if_blocks.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\opt_flip_matrices.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_function_inlining.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_if_simplification.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_noop_swizzle.cpp" />
@@ -208,6 +213,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\pack.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pixeltransfer.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\querymatrix.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\remap.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\set.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderapi.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderobj.c" />

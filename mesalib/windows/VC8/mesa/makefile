@@ -46,7 +46,8 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\mesa\main\glapitable.h \
       ..\..\..\src\mesa\main\enums.c \
       ..\..\..\src\mesa\main\api_exec.c \
-      ..\..\..\src\mesa\main\get_hash.h
+      ..\..\..\src\mesa\main\get_hash.h \
+      ..\..\..\src\mesa\main\remap_helper.h
 
 all: Release\swrast_dri.dll Debug\swrast_dri.dll
 
@@ -62,11 +63,13 @@ all: Release\swrast_dri.dll Debug\swrast_dri.dll
 ..\..\..\src\mesa\main\api_exec.c: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\mapi\glapi\gen\gl_genexec.py
 	cd ..\..\..\src\mapi\glapi\gen & python gl_genexec.py -f gl_and_es_API.xml > ..\..\..\mesa\main\api_exec.c
 
-API_DEFINES=-DFEATURE_GL=1
 GET_HASH_GEN = ..\..\..\src\mesa\main\get_hash_generator.py
-GET_HASH_GEN_FLAGS := $(patsubst -DFEATURE_%=1,-a %, $(patsubst -DFEATURE_%=0,,$(API_DEFINES)))
 ..\..\..\src\mesa\main\get_hash.h: ..\..\..\src\mapi\glapi\gen\gl_and_es_API.xml ..\..\..\src\mesa\main\get_hash_params.py $(GET_HASH_GEN)
-	python $(GET_HASH_GEN) $(GET_HASH_GEN_FLAGS) -f $< > $@
+	python $(GET_HASH_GEN) -f $< > $@
+
+REMAP_HELPER = ..\..\..\src\mapi\glapi\gen\remap_helper.py
+..\..\..\src\mesa\main\remap_helper.h: ..\..\..\src\mapi\glapi\gen\gl_and_es_API.xml $(REMAP_HELPER)
+	python $(REMAP_HELPER) -f $< > $@
 
 Debug\swrast_dri.dll: $(DEPS)
 	$(BUILDCMD) "Debug|Win32"

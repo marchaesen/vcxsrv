@@ -176,7 +176,7 @@ struct _DeviceChangedEvent {
     struct {
         uint32_t min;           /**< Minimum value */
         uint32_t max;           /**< Maximum value */
-        double value;           /**< Current value */;
+        double value;           /**< Current value */
         /* FIXME: frac parts of min/max */
         uint32_t resolution;    /**< Resolution counts/m */
         uint8_t mode;           /**< Relative or Absolute */

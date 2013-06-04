@@ -21,6 +21,6 @@
 
 ./gl_enums.py -f gl_and_es_API.xml > enums.c
 ./remap_helper.py -f gl_and_es_API.xml > remap_helper.h
-cp ../../mapi/mapi_abi.py .
+cp ../../mapi_abi.py .
 ./mapi_abi.py --printer glapi --mode lib gl_and_es_API.xml > glapi_mapi_tmp.h
 

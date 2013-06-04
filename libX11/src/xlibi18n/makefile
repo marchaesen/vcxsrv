@@ -43,7 +43,7 @@ LIBRARY = libi18n
 #libi18n_la_LIBADD = \
 #	 $(IM_LIBS) $(LC_LIBS) $(OM_LIBS)
 
-INCLUDES += ..\..\include\X11
+INCLUDES += ..\..\include\X11 ..
 DEFINES += XLOCALELIBDIR="\".\"" LIB11_DLL
 
 CSRCS = \
@@ -76,5 +76,5 @@ CSRCS = \
 	utf8WMProps.c\
 	utf8Wrap.c\
 	wcWrap.c
-	
+
 
