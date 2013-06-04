@@ -274,7 +274,7 @@ xf86OpenConsole(void)
              * this is to make sure we don't continue until the activate
              * signal is received.
              */
-            if (!xf86Screens[0]->vtSema)
+            if (!xf86VTOwner())
                 sleep(5);
         }
 #endif                          /* HAS_USL_VTS */

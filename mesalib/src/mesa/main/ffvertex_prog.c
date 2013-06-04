@@ -36,7 +36,6 @@
 #include "main/glheader.h"
 #include "main/mtypes.h"
 #include "main/macros.h"
-#include "main/mfeatures.h"
 #include "main/enums.h"
 #include "main/ffvertex_prog.h"
 #include "program/program.h"
@@ -608,7 +607,6 @@ static void emit_op3fn(struct tnl_program *p,
 
    inst = &p->program->Base.Instructions[nr];
    inst->Opcode = (enum prog_opcode) op;
-   inst->Data = 0;
 
    emit_arg( &inst->SrcReg[0], src0 );
    emit_arg( &inst->SrcReg[1], src1 );
@@ -700,16 +698,11 @@ static void emit_normalize_vec3( struct tnl_program *p,
 				 struct ureg dest,
 				 struct ureg src )
 {
-#if 0
-   /* XXX use this when drivers are ready for NRM3 */
-   emit_op1(p, OPCODE_NRM3, dest, WRITEMASK_XYZ, src);
-#else
    struct ureg tmp = get_temp(p);
    emit_op2(p, OPCODE_DP3, tmp, WRITEMASK_X, src, src);
    emit_op1(p, OPCODE_RSQ, tmp, WRITEMASK_X, tmp);
    emit_op2(p, OPCODE_MUL, dest, 0, src, swizzle1(tmp, X));
    release_temp(p, tmp);
-#endif
 }
 
 
@@ -1681,7 +1674,7 @@ _mesa_get_fixed_func_vertex_program(struct gl_context *ctx)
          return NULL;
 
       create_new_program( &key, prog,
-                          ctx->mvp_with_dp4,
+                          ctx->ShaderCompilerOptions[MESA_SHADER_VERTEX].PreferDP4,
                           ctx->Const.VertexProgram.MaxTemps );
 
 #if 0

@@ -383,8 +383,7 @@ AnimCursorCreate(CursorPtr *cursors, CARD32 *deltas, int ncursor,
     ac->elts = (AnimCurElt *) (ac + 1);
 
     for (i = 0; i < ncursor; i++) {
-        cursors[i]->refcnt++;
-        ac->elts[i].pCursor = cursors[i];
+        ac->elts[i].pCursor = RefCursor(cursors[i]);
         ac->elts[i].delay = deltas[i];
     }
 

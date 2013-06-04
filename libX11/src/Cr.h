@@ -2,6 +2,8 @@
 #ifndef _CR_H_
 #define _CR_H_
 
+#include <X11/Xlib.h>
+
 extern int _XUpdateGCCache(
     register GC gc,
     register unsigned long mask,

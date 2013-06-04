@@ -460,7 +460,7 @@ are:
 .\" and operation.
 .\".CP T 1
 .\"Display Functions
-.TS H
+.TS
 lw(1.5i) cw(.5i) lw(2i).
 _
 .sp 6p
@@ -469,7 +469,6 @@ Function Name	Value	Operation
 .sp 6p
 _
 .sp 6p
-.TH
 T{
 .ZN GXclear
 T}	T{

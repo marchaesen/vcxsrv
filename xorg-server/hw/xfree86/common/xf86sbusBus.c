@@ -641,14 +641,16 @@ xf86SbusCmapLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices,
     int i, index;
     sbusCmapPtr cmap;
     struct fbcmap fbcmap;
-    unsigned char *data = malloc(numColors * 3);
+    unsigned char *data;
 
     cmap = SBUSCMAPPTR(pScrn->pScreen);
     if (!cmap)
         return;
     fbcmap.count = 0;
     fbcmap.index = indices[0];
-    fbcmap.red = data;
+    fbcmap.red = data = malloc(numColors * 3);
+    if (!data)
+        return;
     fbcmap.green = data + numColors;
     fbcmap.blue = fbcmap.green + numColors;
     for (i = 0; i < numColors; i++) {

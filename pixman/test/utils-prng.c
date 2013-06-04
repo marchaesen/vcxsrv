@@ -107,6 +107,7 @@ randmemset_internal (prng_t                  *prng,
 {
     prng_t local_prng = *prng;
     prng_rand_128_data_t randdata;
+    size_t i;
 
     while (size >= 16)
     {
@@ -138,6 +139,22 @@ randmemset_internal (prng_t                  *prng,
                 };
                 randdata.vb &= (t.vb >= const_40);
             }
+            if (flags & RANDMEMSET_MORE_FFFFFFFF)
+            {
+                const uint32x4 const_C0000000 =
+                {
+                    0xC0000000, 0xC0000000, 0xC0000000, 0xC0000000
+                };
+                randdata.vw |= ((t.vw << 30) >= const_C0000000);
+            }
+            if (flags & RANDMEMSET_MORE_00000000)
+            {
+                const uint32x4 const_40000000 =
+                {
+                    0x40000000, 0x40000000, 0x40000000, 0x40000000
+                };
+                randdata.vw &= ((t.vw << 30) >= const_40000000);
+            }
 #else
             #define PROCESS_ONE_LANE(i)                                       \
                 if (flags & RANDMEMSET_MORE_FF)                               \
@@ -155,6 +172,18 @@ randmemset_internal (prng_t                  *prng,
                     mask_00 |= mask_00 >> 2;                                  \
                     mask_00 |= mask_00 >> 4;                                  \
                     randdata.w[i] &= mask_00;                                 \
+                }                                                             \
+                if (flags & RANDMEMSET_MORE_FFFFFFFF)                         \
+                {                                                             \
+                    int32_t mask_ff = ((t.w[i] << 30) & (t.w[i] << 31)) &     \
+                                       0x80000000;                            \
+                    randdata.w[i] |= mask_ff >> 31;                           \
+                }                                                             \
+                if (flags & RANDMEMSET_MORE_00000000)                         \
+                {                                                             \
+                    int32_t mask_00 = ((t.w[i] << 30) | (t.w[i] << 31)) &     \
+                                       0x80000000;                            \
+                    randdata.w[i] &= mask_00 >> 31;                           \
                 }
 
             PROCESS_ONE_LANE (0)
@@ -198,7 +227,8 @@ randmemset_internal (prng_t                  *prng,
         }
         size -= 16;
     }
-    while (size > 0)
+    i = 0;
+    while (i < size)
     {
         uint8_t randbyte = prng_rand_r (&local_prng) & 0xFF;
         if (flags != 0)
@@ -208,9 +238,25 @@ randmemset_internal (prng_t                  *prng,
                 randbyte = 0xFF;
             if ((flags & RANDMEMSET_MORE_00) && (t < 0x40))
                 randbyte = 0x00;
+            if (i % 4 == 0 && i + 4 <= size)
+            {
+                t = prng_rand_r (&local_prng) & 0xFF;
+                if ((flags & RANDMEMSET_MORE_FFFFFFFF) && (t >= 0xC0))
+                {
+                    memset(&buf[i], 0xFF, 4);
+                    i += 4;
+                    continue;
+                }
+                if ((flags & RANDMEMSET_MORE_00000000) && (t < 0x40))
+                {
+                    memset(&buf[i], 0x00, 4);
+                    i += 4;
+                    continue;
+                }
+            }
         }
-        *buf++ = randbyte;
-        size--;
+        buf[i] = randbyte;
+        i++;
     }
     *prng = local_prng;
 }
@@ -218,8 +264,10 @@ randmemset_internal (prng_t                  *prng,
 /*
  * Fill memory buffer with random data. Flags argument may be used
  * to tweak some statistics properties:
- *    RANDMEMSET_MORE_00 - set ~25% of bytes to 0x00
- *    RANDMEMSET_MORE_FF - set ~25% of bytes to 0xFF
+ *    RANDMEMSET_MORE_00        - set ~25% of bytes to 0x00
+ *    RANDMEMSET_MORE_FF        - set ~25% of bytes to 0xFF
+ *    RANDMEMSET_MORE_00000000  - ~25% chance for 00000000 4-byte clusters
+ *    RANDMEMSET_MORE_FFFFFFFF  - ~25% chance for FFFFFFFF 4-byte clusters
  */
 void prng_randmemset_r (prng_t                  *prng,
                         void                    *voidbuf,

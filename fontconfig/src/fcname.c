@@ -318,6 +318,12 @@ FcNameFindNext (const FcChar8 *cur, const char *delim, FcChar8 *save, FcChar8 *l
 
     while ((c = *cur))
     {
+	if (!isspace (c))
+	    break;
+	++cur;
+    }
+    while ((c = *cur))
+    {
 	if (c == '\\')
 	{
 	    ++cur;

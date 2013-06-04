@@ -590,6 +590,8 @@ extern int TouchAcceptReject(ClientPtr client, DeviceIntPtr dev, int mode,
 extern void TouchEndPhysicallyActiveTouches(DeviceIntPtr dev);
 extern void TouchDeliverDeviceClassesChangedEvent(TouchPointInfoPtr ti,
                                                   Time time, XID resource);
+extern void TouchEmitTouchEnd(DeviceIntPtr dev, TouchPointInfoPtr ti, int flags, XID resource);
+extern void TouchAcceptAndEnd(DeviceIntPtr dev, int touchid);
 
 /* misc event helpers */
 extern Mask GetEventMask(DeviceIntPtr dev, xEvent *ev, InputClientsPtr clients);

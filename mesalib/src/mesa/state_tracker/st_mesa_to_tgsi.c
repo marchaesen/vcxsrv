@@ -269,6 +269,8 @@ st_translate_texture_target( GLuint textarget,
    }
 
    switch( textarget ) {
+   case TEXTURE_2D_MULTISAMPLE_INDEX: return TGSI_TEXTURE_2D_MSAA;
+   case TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX: return TGSI_TEXTURE_2D_ARRAY_MSAA;
    case TEXTURE_BUFFER_INDEX: return TGSI_TEXTURE_BUFFER;
    case TEXTURE_1D_INDEX:   return TGSI_TEXTURE_1D;
    case TEXTURE_2D_INDEX:   return TGSI_TEXTURE_2D;
@@ -554,8 +556,6 @@ translate_opcode( unsigned op )
       return TGSI_OPCODE_DDY;
    case OPCODE_DP2:
       return TGSI_OPCODE_DP2;
-   case OPCODE_DP2A:
-      return TGSI_OPCODE_DP2A;
    case OPCODE_DP3:
       return TGSI_OPCODE_DP3;
    case OPCODE_DP4:
@@ -608,10 +608,6 @@ translate_opcode( unsigned op )
       return TGSI_OPCODE_MUL;
    case OPCODE_NOP:
       return TGSI_OPCODE_NOP;
-   case OPCODE_NRM3:
-      return TGSI_OPCODE_NRM;
-   case OPCODE_NRM4:
-      return TGSI_OPCODE_NRM4;
    case OPCODE_POW:
       return TGSI_OPCODE_POW;
    case OPCODE_RCP:
@@ -663,6 +659,7 @@ translate_opcode( unsigned op )
 
 static void
 compile_instruction(
+   struct gl_context *ctx,
    struct st_translate *t,
    const struct prog_instruction *inst,
    boolean clamp_dst_color_output)
@@ -695,10 +692,17 @@ compile_instruction(
    case OPCODE_CAL:
    case OPCODE_ELSE:
    case OPCODE_ENDLOOP:
-   case OPCODE_IF:
       debug_assert(num_dst == 0);
       ureg_label_insn( ureg,
                        translate_opcode( inst->Opcode ),
+                       src, num_src,
+                       get_label( t, inst->BranchTarget ));
+      return;
+
+   case OPCODE_IF:
+      debug_assert(num_dst == 0);
+      ureg_label_insn( ureg,
+                       ctx->Const.NativeIntegers ? TGSI_OPCODE_UIF : TGSI_OPCODE_IF,
                        src, num_src,
                        get_label( t, inst->BranchTarget ));
       return;
@@ -1217,7 +1221,7 @@ st_translate_mesa_program(
    }
 
    /* texture samplers */
-   for (i = 0; i < ctx->Const.MaxTextureImageUnits; i++) {
+   for (i = 0; i < ctx->Const.FragmentProgram.MaxTextureImageUnits; i++) {
       if (program->SamplersUsed & (1 << i)) {
          t->samplers[i] = ureg_DECL_sampler( ureg, i );
       }
@@ -1227,7 +1231,7 @@ st_translate_mesa_program(
     */
    for (i = 0; i < program->NumInstructions; i++) {
       set_insn_start( t, ureg_get_instruction_number( ureg ));
-      compile_instruction( t, &program->Instructions[i], clamp_color );
+      compile_instruction( ctx, t, &program->Instructions[i], clamp_color );
    }
 
    /* Fix up all emitted labels:

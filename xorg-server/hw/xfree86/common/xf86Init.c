@@ -819,7 +819,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
     if (serverGeneration != 1) {
         xf86Resetting = TRUE;
         /* All screens are in the same state, so just check the first */
-        if (!xf86Screens[0]->vtSema) {
+        if (!xf86VTOwner()) {
 #ifdef HAS_USL_VTS
             ioctl(xf86Info.consoleFd, VT_RELDISP, VT_ACKACQ);
 #endif

@@ -158,10 +158,12 @@ xkb_symbols "mac" {
 partial alphanumeric_keys
 xkb_symbols "olpc" {
 
+    // http://wiki.laptop.org/go/OLPC_Spanish_Keyboard
+
     include "us(basic)"
     name[Group1]="Spanish";
 
-    key <TLDE> { [    masculine,    ordfeminine      ] };
+    key <AE00> { [    masculine,    ordfeminine      ] };
     key <AE01> { [            1,         exclam,             bar ] };
     key <AE02> { [            2,       quotedbl,              at ] };
     key <AE03> { [            3,     dead_grave,      numbersign,   grave           ] };
@@ -180,13 +182,54 @@ xkb_symbols "olpc" {
 
     key <AC10> { [       ntilde,        Ntilde                  ] };
     key <AC11> { [         plus,       asterisk,      dead_tilde ] };
-    key <BKSL> { [ bracketright,     braceright,      section    ] };
+    key <AC12> { [ bracketright,     braceright,      section    ] };
 
     key <AB08> { [        comma,      semicolon                  ] };
     key <AB09> { [       period,          colon                  ] };
     key <AB10> { [        minus,     underscore                  ] };
   
     key <I219> { [         less,        greater,  ISO_Next_Group ] };
+
+    include "level3(ralt_switch)"
+};
+
+partial alphanumeric_keys
+xkb_symbols "olpcm" {
+
+    // Mechanical (non-membrane) OLPC Spanish keyboard layout.
+    // See: http://wiki.laptop.org/go/OLPC_Spanish_Non-membrane_Keyboard
+
+    include "us(basic)"
+    name[Group1]="Spain";
+
+    key <AE00> { [    questiondown,    exclamdown, backslash      ] };
+    key <AE01> { [            1,         exclam,             bar ] };
+    key <AE02> { [            2,       quotedbl,              at ] };
+    key <AE03> { [            3,     dead_grave,      numbersign,   grave           ] };
+    key <AE04> { [            4,     dollar,     asciitilde,     dead_tilde ] };
+    key <AE05> { [            5,        percent,     asciicircum,   dead_circumflex ] };
+    key <AE06> { [            6,      ampersand,         notsign ] };
+    key <AE07> { [            7,          slash,       backslash ] };   // no '\' label on olpcm, leave for compatibility
+    key <AE08> { [            8,      parenleft,    masculine                ] };
+    key <AE09> { [            9,     parenright,    ordfeminine                 ] };
+    key <AE10> { [            0,          equal                  ] };
+    key <AE11> { [   apostrophe,       question                  ] };
+
+    key <AD03> { [            e,              E,        EuroSign ] };
+    key <AD11> { [   dead_acute, dead_diaeresis,     dead_abovering, acute  ] };
+    key <AD12> { [  plus,      asterisk                  ] };
+
+    key <AC10> { [       ntilde,        Ntilde                  ] };
+    // no AC11 or AC12 on olpcm
+
+    key <AB08> { [        comma,      semicolon                  ] };
+    key <AB09> { [       period,          colon                  ] };
+    key <AB10> { [        minus,     underscore                  ] };
+
+    key <AA02>  { [        less,        greater ] };
+    key <AA06>  { [  bracketleft,      braceleft,   ccedilla,         Ccedilla  ] };
+    key <AA07>  { [  bracketright,     braceright                ] };
+
 
     include "level3(ralt_switch)"
 };

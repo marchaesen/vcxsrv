@@ -52,7 +52,7 @@ XSetFontPath (
 	}
 	nbytes = (n + 3) & ~3;
 	req->length += nbytes >> 2;
-	if ((p = (char *) Xmalloc ((unsigned) nbytes))) {
+	if ((p = Xmalloc (nbytes))) {
 		/*
 	 	 * pack into counted strings.
 	 	 */

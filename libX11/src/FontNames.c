@@ -29,6 +29,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include <limits.h>
 
 char **
 XListFonts(
@@ -40,11 +41,13 @@ int *actualCount)	/* RETURN */
     register long nbytes;
     register unsigned i;
     register int length;
-    char **flist;
-    char *ch;
+    char **flist = NULL;
+    char *ch = NULL;
+    char *chend;
+    int count = 0;
     xListFontsReply rep;
     register xListFontsReq *req;
-    register long rlen;
+    unsigned long rlen;
 
     LockDisplay(dpy);
     GetReq(ListFonts, req);
@@ -62,15 +65,17 @@ int *actualCount)	/* RETURN */
     }
 
     if (rep.nFonts) {
-	flist = (char **)Xmalloc ((unsigned)rep.nFonts * sizeof(char *));
-	rlen = rep.length << 2;
-	ch = (char *) Xmalloc((unsigned) (rlen + 1));
+	flist = Xmalloc (rep.nFonts * sizeof(char *));
+	if (rep.length < (LONG_MAX >> 2)) {
+	    rlen = rep.length << 2;
+	    ch = Xmalloc(rlen + 1);
 	    /* +1 to leave room for last null-terminator */
+	}
 
 	if ((! flist) || (! ch)) {
 	    if (flist) Xfree((char *) flist);
 	    if (ch) Xfree(ch);
-	    _XEatData(dpy, (unsigned long) rlen);
+	    _XEatDataWords(dpy, rep.length);
 	    *actualCount = 0;
 	    UnlockDisplay(dpy);
 	    SyncHandle();
@@ -81,17 +86,21 @@ int *actualCount)	/* RETURN */
 	/*
 	 * unpack into null terminated strings.
 	 */
+	chend = ch + (rlen + 1);
 	length = *(unsigned char *)ch;
 	*ch = 1; /* make sure it is non-zero for XFreeFontNames */
 	for (i = 0; i < rep.nFonts; i++) {
-	    flist[i] = ch + 1;  /* skip over length */
-	    ch += length + 1;  /* find next length ... */
-	    length = *(unsigned char *)ch;
-	    *ch = '\0';  /* and replace with null-termination */
+	    if (ch + length < chend) {
+		flist[i] = ch + 1;  /* skip over length */
+		ch += length + 1;  /* find next length ... */
+		length = *(unsigned char *)ch;
+		*ch = '\0';  /* and replace with null-termination */
+		count++;
+	    } else
+		flist[i] = NULL;
 	}
     }
-    else flist = (char **) NULL;
-    *actualCount = rep.nFonts;
+    *actualCount = count;
     UnlockDisplay(dpy);
     SyncHandle();
     return (flist);

@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -32,6 +33,7 @@
 #ifndef _VBO_H
 #define _VBO_H
 
+#include <stdbool.h>
 #include "main/glheader.h"
 
 struct gl_client_array;
@@ -70,6 +72,15 @@ struct _mesa_index_buffer {
 GLboolean _vbo_CreateContext( struct gl_context *ctx );
 void _vbo_DestroyContext( struct gl_context *ctx );
 void _vbo_InvalidateState( struct gl_context *ctx, GLuint new_state );
+
+
+void
+vbo_initialize_exec_dispatch(const struct gl_context *ctx,
+                             struct _glapi_table *exec);
+
+void
+vbo_initialize_save_dispatch(const struct gl_context *ctx,
+                             struct _glapi_table *exec);
 
 
 typedef void (*vbo_draw_func)( struct gl_context *ctx,
@@ -158,6 +169,15 @@ void vbo_bind_arrays(struct gl_context *ctx);
 size_t
 vbo_count_tessellated_primitives(GLenum mode, GLuint count,
                                  GLuint num_instances);
+
+void
+vbo_try_prim_conversion(struct _mesa_prim *p);
+
+bool
+vbo_can_merge_prims(const struct _mesa_prim *p0, const struct _mesa_prim *p1);
+
+void
+vbo_merge_prims(struct _mesa_prim *p0, const struct _mesa_prim *p1);
 
 void
 vbo_sw_primitive_restart(struct gl_context *ctx,

@@ -29,7 +29,6 @@
 
 
 #include "main/compiler.h"
-#include "main/mfeatures.h"
 
 struct gl_function_pool_remap {
    int pool_index;
@@ -41,8 +40,6 @@ struct gl_function_remap {
    int dispatch_offset; /* for sanity check */
 };
 
-
-#if FEATURE_remap_table
 
 extern int
 driDispatchRemapTable[];
@@ -61,38 +58,6 @@ _mesa_map_static_functions(void);
 
 extern void
 _mesa_init_remap_table(void);
-
-#else /* FEATURE_remap_table */
-
-static inline const char *
-_mesa_get_function_spec(int func_index)
-{
-   return NULL;
-}
-
-static inline int
-_mesa_map_function_spec(const char *spec)
-{
-   return -1;
-}
-
-static inline void
-_mesa_map_function_array(const struct gl_function_remap *func_array)
-{
-}
-
-static inline void
-_mesa_map_static_functions(void)
-{
-}
-
-
-static inline void
-_mesa_init_remap_table(void)
-{
-}
-
-#endif /* FEATURE_remap_table */
 
 
 #endif /* REMAP_H */

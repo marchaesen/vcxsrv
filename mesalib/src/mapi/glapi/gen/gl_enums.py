@@ -43,7 +43,6 @@ class PrintGlEnums(gl_XML.gl_print_base):
 
     def printRealHeader(self):
         print '#include "main/glheader.h"'
-        print '#include "main/mfeatures.h"'
         print '#include "main/enums.h"'
         print '#include "main/imports.h"'
         print '#include "main/mtypes.h"'
@@ -115,7 +114,7 @@ const char *_mesa_lookup_enum_by_nr( int nr )
 /**
  * Primitive names
  */
-static const char *prim_names[PRIM_UNKNOWN + 1] = {
+static const char *prim_names[PRIM_MAX+3] = {
    "GL_POINTS",
    "GL_LINES",
    "GL_LINE_LOOP",
@@ -126,8 +125,11 @@ static const char *prim_names[PRIM_UNKNOWN + 1] = {
    "GL_QUADS",
    "GL_QUAD_STRIP",
    "GL_POLYGON",
+   "GL_LINES_ADJACENCY",
+   "GL_LINE_STRIP_ADJACENCY",
+   "GL_TRIANGLES_ADJACENCY",
+   "GL_TRIANGLE_STRIP_ADJACENCY",
    "outside begin/end",
-   "inside unknown primitive",
    "unknown state"
 };
 

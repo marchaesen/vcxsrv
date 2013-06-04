@@ -1,7 +1,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXext], [1.3.1],
+AC_INIT([libXext], [1.3.2],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXext])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
@@ -37,6 +37,12 @@ AC_SUBST(XEXT_SOREV)
 
 # Obtain compiler/linker options for depedencies
 PKG_CHECK_MODULES(XEXT, [xproto >= 7.0.13] [x11 >= 1.1.99.1] [xextproto >= 7.1.99])
+
+# Check for _XEatDataWords function that may be patched into older Xlib releases
+SAVE_LIBS="$LIBS"
+LIBS="$XEXT_LIBS"
+AC_CHECK_FUNCS([_XEatDataWords])
+LIBS="$SAVE_LIBS"
 
 # Allow checking code with lint, sparse, etc.
 XORG_WITH_LINT

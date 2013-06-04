@@ -26,9 +26,10 @@ sale, use or other dealings in this Software without prior written
 authorization from the authors.
 -->
 <xcb header="res" extension-xname="X-Resource" extension-name="Res"
-    major-version="1" minor-version="0">
+    major-version="1" minor-version="2">
     <import>xproto</import>
 
+    <!-- v1.0 -->
     <struct name="Client">
         <field type="CARD32" name="resource_base" />
         <field type="CARD32" name="resource_mask" />
@@ -39,6 +40,41 @@ authorization from the authors.
         <field type="CARD32" name="count" />
     </struct>
 
+    <!-- v1.2 -->
+    <struct name="ClientIdSpec">
+        <field type="CARD32" name="client" />
+        <field type="CARD32" name="mask" />
+    </struct>
+
+    <struct name="ClientIdValue">
+        <field type="ClientIdSpec" name="spec" />
+        <field type="CARD32" name="length" />
+        <list type="CARD8" name="client_ids">
+            <fieldref>length</fieldref>
+        </list>
+    </struct>
+
+    <struct name="ResourceIdSpec">
+        <field type="CARD32" name="resource" />
+        <field type="CARD32" name="type" />
+    </struct>
+
+    <struct name="ResourceSizeSpec">
+        <field type="ResourceIdSpec" name="spec" />
+        <field type="CARD32" name="bytes" />
+        <field type="CARD32" name="ref_count" />
+        <field type="CARD32" name="use_count" />
+    </struct>
+
+    <struct name="ResourceSizeValue">
+        <field type="ResourceSizeSpec" name="size" />
+        <field type="CARD32" name="num_cross_references" />
+        <list type="ResourceSizeSpec" name="cross_references">
+            <fieldref>num_cross_references</fieldref>
+        </list>
+    </struct>
+
+    <!-- v1.0 -->
     <request name="QueryVersion" opcode="0">
         <field type="CARD8" name="client_major" />
         <field type="CARD8" name="client_minor" />
@@ -78,6 +114,38 @@ authorization from the authors.
             <pad bytes="1" />
             <field type="CARD32" name="bytes" />
             <field type="CARD32" name="bytes_overflow" />
+        </reply>
+    </request>
+
+    <!-- v1.2 -->
+    <request name="QueryClientIds" opcode="4">
+        <field type="CARD32" name="num_specs" />
+        <list type="ClientIdSpec" name="specs">
+            <fieldref>num_specs</fieldref>
+        </list>
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD32" name="num_ids" />
+            <pad bytes="20" />
+            <list type="ClientIdValue" name="ids">
+                <fieldref>num_ids</fieldref>
+            </list>
+        </reply>
+    </request>
+
+    <request name="QueryResourceBytes" opcode="5">
+        <field type="CARD32" name="client" />
+        <field type="CARD32" name="num_specs" />
+        <list type="ResourceIdSpec" name="specs">
+            <fieldref>num_specs</fieldref>
+        </list>
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD32" name="num_sizes" />
+            <pad bytes="20" />
+            <list type="ResourceSizeValue" name="sizes">
+                <fieldref>num_sizes</fieldref>
+            </list>
         </reply>
     </request>
 </xcb>

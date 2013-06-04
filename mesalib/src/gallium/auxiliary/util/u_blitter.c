@@ -100,7 +100,7 @@ struct blitter_context_priv
    void *velem_state;
    void *velem_uint_state;
    void *velem_sint_state;
-   void *velem_state_readbuf;
+   void *velem_state_readbuf[4]; /**< X, XY, XYZ, XYZW */
 
    /* Sampler state. */
    void *sampler_state;
@@ -239,7 +239,8 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    /* rasterizer state */
    memset(&rs_state, 0, sizeof(rs_state));
    rs_state.cull_face = PIPE_FACE_NONE;
-   rs_state.gl_rasterization_rules = 1;
+   rs_state.half_pixel_center = 1;
+   rs_state.bottom_edge_rule = 1;
    rs_state.flatshade = 1;
    rs_state.depth_clip = 1;
    ctx->rs_state = pipe->create_rasterizer_state(pipe, &rs_state);
@@ -285,9 +286,19 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    }
 
    if (ctx->has_stream_out) {
-      velem[0].src_format = PIPE_FORMAT_R32_UINT;
-      velem[0].vertex_buffer_index = ctx->base.vb_slot;
-      ctx->velem_state_readbuf = pipe->create_vertex_elements_state(pipe, 1, &velem[0]);
+      static enum pipe_format formats[4] = {
+         PIPE_FORMAT_R32_UINT,
+         PIPE_FORMAT_R32G32_UINT,
+         PIPE_FORMAT_R32G32B32_UINT,
+         PIPE_FORMAT_R32G32B32A32_UINT
+      };
+
+      for (i = 0; i < 4; i++) {
+         velem[0].src_format = formats[i];
+         velem[0].vertex_buffer_index = ctx->base.vb_slot;
+         ctx->velem_state_readbuf[i] =
+               pipe->create_vertex_elements_state(pipe, 1, &velem[0]);
+      }
    }
 
    /* fragment shaders are created on-demand */
@@ -352,8 +363,11 @@ void util_blitter_destroy(struct blitter_context *blitter)
       pipe->delete_vertex_elements_state(pipe, ctx->velem_sint_state);
       pipe->delete_vertex_elements_state(pipe, ctx->velem_uint_state);
    }
-   if (ctx->velem_state_readbuf)
-      pipe->delete_vertex_elements_state(pipe, ctx->velem_state_readbuf);
+   for (i = 0; i < 4; i++) {
+      if (ctx->velem_state_readbuf[i]) {
+         pipe->delete_vertex_elements_state(pipe, ctx->velem_state_readbuf[i]);
+      }
+   }
 
    for (i = 0; i < PIPE_MAX_TEXTURE_TYPES; i++) {
       if (ctx->fs_texfetch_col[i])
@@ -490,7 +504,7 @@ static void blitter_restore_fragment_states(struct blitter_context_priv *ctx)
    /* XXX check whether these are saved and whether they need to be restored
     * (depending on the operation) */
    pipe->set_stencil_ref(pipe, &ctx->base.saved_stencil_ref);
-   pipe->set_viewport_state(pipe, &ctx->base.saved_viewport);
+   pipe->set_viewport_states(pipe, 0, 1, &ctx->base.saved_viewport);
 }
 
 static void blitter_check_saved_fb_state(struct blitter_context_priv *ctx)
@@ -585,7 +599,7 @@ static void blitter_set_rectangle(struct blitter_context_priv *ctx,
    ctx->viewport.translate[1] = 0.5f * ctx->dst_height;
    ctx->viewport.translate[2] = 0.0f;
    ctx->viewport.translate[3] = 0.0f;
-   ctx->base.pipe->set_viewport_state(ctx->base.pipe, &ctx->viewport);
+   ctx->base.pipe->set_viewport_states(ctx->base.pipe, 0, 1, &ctx->viewport);
 }
 
 static void blitter_set_clear_color(struct blitter_context_priv *ctx,
@@ -1387,7 +1401,7 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
 
    pipe->bind_vertex_elements_state(pipe, ctx->velem_state);
    if (scissor) {
-      pipe->set_scissor_state(pipe, scissor);
+      pipe->set_scissor_states(pipe, 0, 1, scissor);
    }
 
    blitter_set_common_draw_rect_state(ctx, scissor != NULL);
@@ -1482,7 +1496,7 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
    blitter_restore_textures(ctx);
    blitter_restore_fb_state(ctx);
    if (scissor) {
-      pipe->set_scissor_state(pipe, &ctx->base.saved_scissor);
+      pipe->set_scissor_states(pipe, 0, 1, &ctx->base.saved_scissor);
    }
    blitter_restore_render_cond(ctx);
    blitter_unset_running_flag(ctx);
@@ -1739,7 +1753,7 @@ void util_blitter_copy_buffer(struct blitter_context *blitter,
    vb.stride = 4;
 
    pipe->set_vertex_buffers(pipe, ctx->base.vb_slot, 1, &vb);
-   pipe->bind_vertex_elements_state(pipe, ctx->velem_state_readbuf);
+   pipe->bind_vertex_elements_state(pipe, ctx->velem_state_readbuf[0]);
    pipe->bind_vs_state(pipe, ctx->vs_pos_only);
    if (ctx->has_geometry_shader)
       pipe->bind_gs_state(pipe, NULL);
@@ -1754,6 +1768,66 @@ void util_blitter_copy_buffer(struct blitter_context *blitter,
    blitter_restore_render_cond(ctx);
    blitter_unset_running_flag(ctx);
    pipe_so_target_reference(&so_target, NULL);
+}
+
+void util_blitter_clear_buffer(struct blitter_context *blitter,
+                               struct pipe_resource *dst,
+                               unsigned offset, unsigned size,
+                               unsigned num_channels,
+                               const union pipe_color_union *clear_value)
+{
+   struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
+   struct pipe_context *pipe = ctx->base.pipe;
+   struct pipe_vertex_buffer vb = {0};
+   struct pipe_stream_output_target *so_target;
+
+   assert(num_channels >= 1);
+   assert(num_channels <= 4);
+
+   /* IMPORTANT:  DON'T DO ANY BOUNDS CHECKING HERE!
+    *
+    * R600 uses this to initialize texture resources, so width0 might not be
+    * what you think it is.
+    */
+
+   /* Streamout is required. */
+   if (!ctx->has_stream_out) {
+      assert(!"Streamout unsupported in util_blitter_clear_buffer()");
+      return;
+   }
+
+   /* Some alignment is required. */
+   if (offset % 4 != 0 || size % 4 != 0) {
+      assert(!"Bad alignment in util_blitter_clear_buffer()");
+      return;
+   }
+
+   u_upload_data(ctx->upload, 0, num_channels*4, clear_value,
+                 &vb.buffer_offset, &vb.buffer);
+   vb.stride = 0;
+
+   blitter_set_running_flag(ctx);
+   blitter_check_saved_vertex_states(ctx);
+   blitter_disable_render_cond(ctx);
+
+   pipe->set_vertex_buffers(pipe, ctx->base.vb_slot, 1, &vb);
+   pipe->bind_vertex_elements_state(pipe,
+                                    ctx->velem_state_readbuf[num_channels-1]);
+   pipe->bind_vs_state(pipe, ctx->vs_pos_only);
+   if (ctx->has_geometry_shader)
+      pipe->bind_gs_state(pipe, NULL);
+   pipe->bind_rasterizer_state(pipe, ctx->rs_discard_state);
+
+   so_target = pipe->create_stream_output_target(pipe, dst, offset, size);
+   pipe->set_stream_output_targets(pipe, 1, &so_target, 0);
+
+   util_draw_arrays(pipe, PIPE_PRIM_POINTS, 0, size / 4);
+
+   blitter_restore_vertex_states(ctx);
+   blitter_restore_render_cond(ctx);
+   blitter_unset_running_flag(ctx);
+   pipe_so_target_reference(&so_target, NULL);
+   pipe_resource_reference(&vb.buffer, NULL);
 }
 
 /* probably radeon specific */

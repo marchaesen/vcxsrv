@@ -672,6 +672,30 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
    void *ctx = state;
    bool error_emitted = (lhs->type->is_error() || rhs->type->is_error());
 
+   /* If the assignment LHS comes back as an ir_binop_vector_extract
+    * expression, move it to the RHS as an ir_triop_vector_insert.
+    */
+   if (lhs->ir_type == ir_type_expression) {
+      ir_expression *const expr = lhs->as_expression();
+
+      if (unlikely(expr->operation == ir_binop_vector_extract)) {
+         ir_rvalue *new_rhs =
+            validate_assignment(state, lhs->type, rhs, is_initializer);
+
+         if (new_rhs == NULL) {
+            _mesa_glsl_error(& lhs_loc, state, "type mismatch");
+            return lhs;
+         } else {
+            rhs = new(ctx) ir_expression(ir_triop_vector_insert,
+                                         expr->operands[0]->type,
+                                         expr->operands[0],
+                                         new_rhs,
+                                         expr->operands[1]);
+            lhs = expr->operands[0]->clone(ctx, NULL);
+         }
+      }
+   }
+
    ir_variable *lhs_var = lhs->variable_referenced();
    if (lhs_var)
       lhs_var->assigned = true;
@@ -904,7 +928,7 @@ get_scalar_boolean_operand(exec_list *instructions,
  * If name refers to a builtin array whose maximum allowed size is less than
  * size, report an error and return true.  Otherwise return false.
  */
-static bool
+void
 check_builtin_array_max_size(const char *name, unsigned size,
                              YYLTYPE loc, struct _mesa_glsl_parse_state *state)
 {
@@ -918,7 +942,6 @@ check_builtin_array_max_size(const char *name, unsigned size,
       _mesa_glsl_error(&loc, state, "`gl_TexCoord' array size cannot "
                        "be larger than gl_MaxTextureCoords (%u)\n",
                        state->Const.MaxTextureCoords);
-      return true;
    } else if (strcmp("gl_ClipDistance", name) == 0
               && size > state->Const.MaxClipPlanes) {
       /* From section 7.1 (Vertex Shader Special Variables) of the
@@ -933,9 +956,7 @@ check_builtin_array_max_size(const char *name, unsigned size,
       _mesa_glsl_error(&loc, state, "`gl_ClipDistance' array size cannot "
                        "be larger than gl_MaxClipDistances (%u)\n",
                        state->Const.MaxClipPlanes);
-      return true;
    }
-   return false;
 }
 
 /**
@@ -1517,172 +1538,11 @@ ast_expression::hir(exec_list *instructions,
       op[0] = subexpressions[0]->hir(instructions, state);
       op[1] = subexpressions[1]->hir(instructions, state);
 
-      error_emitted = op[0]->type->is_error() || op[1]->type->is_error();
+      result = _mesa_ast_array_index_to_hir(ctx, state, op[0], op[1],
+					    loc, index_loc);
 
-      ir_rvalue *const array = op[0];
-
-      result = new(ctx) ir_dereference_array(op[0], op[1]);
-
-      /* Do not use op[0] after this point.  Use array.
-       */
-      op[0] = NULL;
-
-
-      if (error_emitted)
-	 break;
-
-      if (!array->type->is_array()
-	  && !array->type->is_matrix()
-	  && !array->type->is_vector()) {
-	 _mesa_glsl_error(& index_loc, state,
-			  "cannot dereference non-array / non-matrix / "
-			  "non-vector");
+      if (result->type->is_error())
 	 error_emitted = true;
-      }
-
-      if (!op[1]->type->is_integer()) {
-	 _mesa_glsl_error(& index_loc, state,
-			  "array index must be integer type");
-	 error_emitted = true;
-      } else if (!op[1]->type->is_scalar()) {
-	 _mesa_glsl_error(& index_loc, state,
-			  "array index must be scalar");
-	 error_emitted = true;
-      }
-
-      /* If the array index is a constant expression and the array has a
-       * declared size, ensure that the access is in-bounds.  If the array
-       * index is not a constant expression, ensure that the array has a
-       * declared size.
-       */
-      ir_constant *const const_index = op[1]->constant_expression_value();
-      if (const_index != NULL) {
-	 const int idx = const_index->value.i[0];
-	 const char *type_name;
-	 unsigned bound = 0;
-
-	 if (array->type->is_matrix()) {
-	    type_name = "matrix";
-	 } else if (array->type->is_vector()) {
-	    type_name = "vector";
-	 } else {
-	    type_name = "array";
-	 }
-
-	 /* From page 24 (page 30 of the PDF) of the GLSL 1.50 spec:
-	  *
-	  *    "It is illegal to declare an array with a size, and then
-	  *    later (in the same shader) index the same array with an
-	  *    integral constant expression greater than or equal to the
-	  *    declared size. It is also illegal to index an array with a
-	  *    negative constant expression."
-	  */
-	 if (array->type->is_matrix()) {
-	    if (array->type->row_type()->vector_elements <= idx) {
-	       bound = array->type->row_type()->vector_elements;
-	    }
-	 } else if (array->type->is_vector()) {
-	    if (array->type->vector_elements <= idx) {
-	       bound = array->type->vector_elements;
-	    }
-	 } else {
-	    if ((array->type->array_size() > 0)
-		&& (array->type->array_size() <= idx)) {
-	       bound = array->type->array_size();
-	    }
-	 }
-
-	 if (bound > 0) {
-	    _mesa_glsl_error(& loc, state, "%s index must be < %u",
-			     type_name, bound);
-	    error_emitted = true;
-	 } else if (idx < 0) {
-	    _mesa_glsl_error(& loc, state, "%s index must be >= 0",
-			     type_name);
-	    error_emitted = true;
-	 }
-
-	 if (array->type->is_array()) {
-	    /* If the array is a variable dereference, it dereferences the
-	     * whole array, by definition.  Use this to get the variable.
-	     *
-	     * FINISHME: Should some methods for getting / setting / testing
-	     * FINISHME: array access limits be added to ir_dereference?
-	     */
-	    ir_variable *const v = array->whole_variable_referenced();
-	    if ((v != NULL) && (unsigned(idx) > v->max_array_access)) {
-	       v->max_array_access = idx;
-
-               /* Check whether this access will, as a side effect, implicitly
-                * cause the size of a built-in array to be too large.
-                */
-               if (check_builtin_array_max_size(v->name, idx+1, loc, state))
-                  error_emitted = true;
-            }
-	 }
-      } else if (array->type->array_size() == 0) {
-	 _mesa_glsl_error(&loc, state, "unsized array index must be constant");
-      } else if (array->type->is_array()
-                 && array->type->fields.array->is_interface()) {
-         /* Page 46 in section 4.3.7 of the OpenGL ES 3.00 spec says:
-          *
-          *     "All indexes used to index a uniform block array must be
-          *     constant integral expressions."
-          */
-         _mesa_glsl_error(&loc, state,
-                          "uniform block array index must be constant");
-      } else {
-	 if (array->type->is_array()) {
-	    /* whole_variable_referenced can return NULL if the array is a
-	     * member of a structure.  In this case it is safe to not update
-	     * the max_array_access field because it is never used for fields
-	     * of structures.
-	     */
-	    ir_variable *v = array->whole_variable_referenced();
-	    if (v != NULL)
-	       v->max_array_access = array->type->array_size() - 1;
-	 }
-      }
-
-      /* From page 23 (29 of the PDF) of the GLSL 1.30 spec:
-       *
-       *    "Samplers aggregated into arrays within a shader (using square
-       *    brackets [ ]) can only be indexed with integral constant
-       *    expressions [...]."
-       *
-       * This restriction was added in GLSL 1.30.  Shaders using earlier version
-       * of the language should not be rejected by the compiler front-end for
-       * using this construct.  This allows useful things such as using a loop
-       * counter as the index to an array of samplers.  If the loop in unrolled,
-       * the code should compile correctly.  Instead, emit a warning.
-       */
-      if (array->type->is_array() &&
-          array->type->element_type()->is_sampler() &&
-          const_index == NULL) {
-
-         if (!state->is_version(130, 100)) {
-            if (state->es_shader) {
-               _mesa_glsl_warning(&loc, state,
-                                  "sampler arrays indexed with non-constant "
-                                  "expressions is optional in %s",
-                                  state->get_version_string());
-            } else {
-               _mesa_glsl_warning(&loc, state,
-                                  "sampler arrays indexed with non-constant "
-                                  "expressions will be forbidden in GLSL 1.30 and "
-                                  "later");
-            }
-	 } else {
-	    _mesa_glsl_error(&loc, state,
-			     "sampler arrays indexed with non-constant "
-			     "expressions is forbidden in GLSL 1.30 and "
-			     "later");
-	    error_emitted = true;
-	 }
-      }
-
-      if (error_emitted)
-	 result->type = glsl_type::error_type;
 
       break;
    }
@@ -1842,6 +1702,9 @@ process_array_type(YYLTYPE *loc, const glsl_type *base, ast_node *array_size,
 {
    unsigned length = 0;
 
+   if (base == NULL)
+      return glsl_type::error_type;
+
    /* From page 19 (page 25) of the GLSL 1.20 spec:
     *
     *     "Only one-dimensional arrays may be declared."
@@ -1894,7 +1757,8 @@ process_array_type(YYLTYPE *loc, const glsl_type *base, ast_node *array_size,
 		       "allowed in GLSL ES 1.00.");
    }
 
-   return glsl_type::get_array_instance(base, length);
+   const glsl_type *array_type = glsl_type::get_array_instance(base, length);
+   return array_type != NULL ? array_type : glsl_type::error_type;
 }
 
 
@@ -3365,10 +3229,17 @@ ast_function::hir(exec_list *instructions,
 			     "match prototype", name);
 	 }
 
-	 if (is_definition && sig->is_defined) {
-	    YYLTYPE loc = this->get_location();
-
-	    _mesa_glsl_error(& loc, state, "function `%s' redefined", name);
+         if (sig->is_defined) {
+            if (is_definition) {
+               YYLTYPE loc = this->get_location();
+               _mesa_glsl_error(& loc, state, "function `%s' redefined", name);
+            } else {
+               /* We just encountered a prototype that exactly matches a
+                * function that's already been defined.  This is redundant,
+                * and we should ignore it.
+                */
+               return NULL;
+            }
 	 }
       }
    } else {
@@ -4149,8 +4020,14 @@ ast_process_structure_or_interface_block(exec_list *instructions,
           *      blocks. All other types, arrays, and structures
           *      allowed for uniforms are allowed within a uniform
           *      block."
+          *
+          * It should be impossible for decl_type to be NULL here.  Cases that
+          * might naturally lead to decl_type being NULL, especially for the
+          * is_interface case, will have resulted in compilation having
+          * already halted due to a syntax error.
           */
-         const struct glsl_type *field_type = decl_type;
+         const struct glsl_type *field_type =
+            decl_type != NULL ? decl_type : glsl_type::error_type;
 
          if (is_interface && field_type->contains_sampler()) {
             YYLTYPE loc = decl_list->get_location();
@@ -4173,18 +4050,27 @@ ast_process_structure_or_interface_block(exec_list *instructions,
 	    field_type = process_array_type(&loc, decl_type, decl->array_size,
 					    state);
 	 }
-	 fields[i].type = (field_type != NULL)
-	    ? field_type : glsl_type::error_type;
+         fields[i].type = field_type;
 	 fields[i].name = decl->identifier;
 
          if (qual->flags.q.row_major || qual->flags.q.column_major) {
-            if (!field_type->is_matrix() && !field_type->is_record()) {
+            if (!qual->flags.q.uniform) {
+               _mesa_glsl_error(&loc, state,
+                                "row_major and column_major can only be "
+                                "applied to uniform interface blocks.");
+            } else if (!field_type->is_matrix() && !field_type->is_record()) {
                _mesa_glsl_error(&loc, state,
                                 "uniform block layout qualifiers row_major and "
                                 "column_major can only be applied to matrix and "
                                 "structure types");
             } else
                validate_matrix_layout_for_type(state, &loc, field_type);
+         }
+
+         if (qual->flags.q.uniform && qual->has_interpolation()) {
+            _mesa_glsl_error(&loc, state,
+                             "interpolation qualifiers cannot be used "
+                             "with uniform interface blocks");
          }
 
          if (field_type->is_matrix() ||
@@ -4244,12 +4130,12 @@ ast_struct_specifier::hir(exec_list *instructions,
 }
 
 ir_rvalue *
-ast_uniform_block::hir(exec_list *instructions,
-		       struct _mesa_glsl_parse_state *state)
+ast_interface_block::hir(exec_list *instructions,
+		          struct _mesa_glsl_parse_state *state)
 {
    YYLTYPE loc = this->get_location();
 
-   /* The ast_uniform_block has a list of ast_declarator_lists.  We
+   /* The ast_interface_block has a list of ast_declarator_lists.  We
     * need to turn those into ir_variables with an association
     * with this uniform block.
     */
@@ -4276,16 +4162,32 @@ ast_uniform_block::hir(exec_list *instructions,
                                                true,
                                                block_row_major);
 
+   ir_variable_mode var_mode;
+   const char *iface_type_name;
+   if (this->layout.flags.q.in) {
+      var_mode = ir_var_shader_in;
+      iface_type_name = "in";
+   } else if (this->layout.flags.q.out) {
+      var_mode = ir_var_shader_out;
+      iface_type_name = "out";
+   } else if (this->layout.flags.q.uniform) {
+      var_mode = ir_var_uniform;
+      iface_type_name = "uniform";
+   } else {
+      assert(!"interface block layout qualifier not found!");
+   }
+
    const glsl_type *block_type =
       glsl_type::get_interface_instance(fields,
                                         num_variables,
                                         packing,
                                         this->block_name);
 
-   if (!state->symbols->add_type(block_type->name, block_type)) {
+   if (!state->symbols->add_interface(block_type->name, block_type, var_mode)) {
       YYLTYPE loc = this->get_location();
-      _mesa_glsl_error(&loc, state, "Uniform block name `%s' already taken in "
-                       "the current scope.\n", this->block_name);
+      _mesa_glsl_error(&loc, state, "Interface block `%s' with type `%s' "
+                       "already taken in the current scope.\n",
+                       this->block_name, iface_type_name);
    }
 
    /* Since interface blocks cannot contain statements, it should be
@@ -4309,11 +4211,11 @@ ast_uniform_block::hir(exec_list *instructions,
 
          var = new(state) ir_variable(block_array_type,
                                       this->instance_name,
-                                      ir_var_uniform);
+                                      var_mode);
       } else {
          var = new(state) ir_variable(block_type,
                                       this->instance_name,
-                                      ir_var_uniform);
+                                      var_mode);
       }
 
       var->interface_type = block_type;
@@ -4329,7 +4231,7 @@ ast_uniform_block::hir(exec_list *instructions,
          ir_variable *var =
             new(state) ir_variable(fields[i].type,
                                    ralloc_strdup(state, fields[i].name),
-                                   ir_var_uniform);
+                                   var_mode);
          var->interface_type = block_type;
 
          state->symbols->add_variable(var);

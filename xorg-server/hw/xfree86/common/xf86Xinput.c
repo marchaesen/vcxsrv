@@ -870,7 +870,7 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
     }
 
     /* Enable it if it's properly initialised and we're currently in the VT */
-    if (enable && dev->inited && dev->startup && xf86Screens[0]->vtSema) {
+    if (enable && dev->inited && dev->startup && xf86VTOwner()) {
         OsBlockSignals();
         EnableDevice(dev, TRUE);
         if (!dev->enabled) {

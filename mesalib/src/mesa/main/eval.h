@@ -27,9 +27,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -37,22 +38,9 @@
 #define EVAL_H
 
 
-#include "main/mfeatures.h"
 #include "main/mtypes.h"
 #include <stdbool.h>
 
-
-#define _MESA_INIT_EVAL_VTXFMT(vfmt, impl)         \
-   do {                                            \
-      (vfmt)->EvalCoord1f  = impl ## EvalCoord1f;  \
-      (vfmt)->EvalCoord1fv = impl ## EvalCoord1fv; \
-      (vfmt)->EvalCoord2f  = impl ## EvalCoord2f;  \
-      (vfmt)->EvalCoord2fv = impl ## EvalCoord2fv; \
-      (vfmt)->EvalPoint1   = impl ## EvalPoint1;   \
-      (vfmt)->EvalPoint2   = impl ## EvalPoint2;   \
-      (vfmt)->EvalMesh1    = impl ## EvalMesh1;    \
-      (vfmt)->EvalMesh2    = impl ## EvalMesh2;    \
-   } while (0)
 
 extern GLuint _mesa_evaluator_components( GLenum target );
 
@@ -77,8 +65,7 @@ extern GLfloat *_mesa_copy_map_points2d(GLenum target,
 
 extern void
 _mesa_install_eval_vtxfmt(struct _glapi_table *disp,
-                          const GLvertexformat *vfmt,
-                          bool beginend);
+                          const GLvertexformat *vfmt);
 
 extern void _mesa_init_eval( struct gl_context *ctx );
 extern void _mesa_free_eval_data( struct gl_context *ctx );

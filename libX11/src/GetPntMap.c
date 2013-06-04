@@ -29,6 +29,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include <limits.h>
 
 #ifdef MIN		/* some systems define this in <sys/param.h> */
 #undef MIN
@@ -42,7 +43,7 @@ int XGetPointerMapping (
 
 {
     unsigned char mapping[256];	/* known fixed size */
-    long nbytes, remainder = 0;
+    unsigned long nbytes, remainder = 0;
     xGetPointerMappingReply rep;
     register xReq *req;
 
@@ -54,9 +55,15 @@ int XGetPointerMapping (
 	return 0;
     }
 
-    nbytes = (long)rep.length << 2;
-
     /* Don't count on the server returning a valid value */
+    if (rep.length >= (INT_MAX >> 2)) {
+	_XEatDataWords(dpy, rep.length);
+	UnlockDisplay(dpy);
+	SyncHandle();
+	return 0;
+    }
+
+    nbytes = (unsigned long) rep.length << 2;
     if (nbytes > sizeof mapping) {
 	remainder = nbytes - sizeof mapping;
 	nbytes = sizeof mapping;
@@ -69,7 +76,7 @@ int XGetPointerMapping (
 	}
 
     if (remainder)
-	_XEatData(dpy, (unsigned long)remainder);
+	_XEatData(dpy, remainder);
 
     UnlockDisplay(dpy);
     SyncHandle();
@@ -86,8 +93,8 @@ XGetKeyboardMapping (Display *dpy,
 			     int count,
 			     int *keysyms_per_keycode)
 {
-    long nbytes;
-    unsigned long nkeysyms;
+    unsigned long nbytes;
+    CARD32 nkeysyms;
     register KeySym *mapping = NULL;
     xGetKeyboardMappingReply rep;
     register xGetKeyboardMappingReq *req;
@@ -102,17 +109,19 @@ XGetKeyboardMapping (Display *dpy,
 	return (KeySym *) NULL;
     }
 
-    nkeysyms = (unsigned long) rep.length;
+    nkeysyms = rep.length;
     if (nkeysyms > 0) {
-	nbytes = nkeysyms * sizeof (KeySym);
-	mapping = (KeySym *) Xmalloc ((unsigned) nbytes);
-	nbytes = nkeysyms << 2;
+	if (nkeysyms < (INT_MAX / sizeof (KeySym))) {
+	    nbytes = nkeysyms * sizeof (KeySym);
+	    mapping = Xmalloc (nbytes);
+	}
 	if (! mapping) {
-	    _XEatData(dpy, (unsigned long) nbytes);
+	    _XEatDataWords(dpy, rep.length);
 	    UnlockDisplay(dpy);
 	    SyncHandle();
 	    return (KeySym *) NULL;
 	}
+	nbytes = nkeysyms << 2;
 	_XRead32 (dpy, (long *) mapping, nbytes);
     }
     *keysyms_per_keycode = rep.keySymsPerKeyCode;

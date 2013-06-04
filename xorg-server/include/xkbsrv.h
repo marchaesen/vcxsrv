@@ -751,6 +751,9 @@ extern _X_EXPORT void XkbSetRulesDflts(XkbRMLVOSet *    /* rmlvo */
 extern _X_EXPORT void XkbDeleteRulesDflts(void
     );
 
+extern _X_EXPORT void XkbDeleteRulesUsed(void
+    );
+
 extern _X_EXPORT int SProcXkbDispatch(ClientPtr /* client */
     );
 

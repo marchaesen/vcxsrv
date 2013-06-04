@@ -459,6 +459,50 @@ FcStrMatchIgnoreCaseAndDelims (const FcChar8 *s1, const FcChar8 *s2, const FcCha
     return w1.src - s1 - 1;
 }
 
+FcBool
+FcStrGlobMatch (const FcChar8 *glob,
+		const FcChar8 *string)
+{
+    FcChar8	c;
+
+    while ((c = *glob++))
+    {
+	switch (c) {
+	case '*':
+	    /* short circuit common case */
+	    if (!*glob)
+		return FcTrue;
+	    /* short circuit another common case */
+	    if (strchr ((char *) glob, '*') == 0)
+	    {
+		size_t l1, l2;
+
+		l1 = strlen ((char *) string);
+		l2 = strlen ((char *) glob);
+		if (l1 < l2)
+		    return FcFalse;
+		string += (l1 - l2);
+	    }
+	    while (*string)
+	    {
+		if (FcStrGlobMatch (glob, string))
+		    return FcTrue;
+		string++;
+	    }
+	    return FcFalse;
+	case '?':
+	    if (*string++ == '\0')
+		return FcFalse;
+	    break;
+	default:
+	    if (*string++ != c)
+		return FcFalse;
+	    break;
+	}
+    }
+    return *string == '\0';
+}
+
 const FcChar8 *
 FcStrStrIgnoreCase (const FcChar8 *s1, const FcChar8 *s2)
 {

@@ -145,12 +145,11 @@ int  *num_codeset;
             if(!_XlcCompareISOLatin1(charset_str,buf)){
                 num_ret += 1;
                 if(num_ret == 1){
-                    ret = (int *)Xmalloc(sizeof(int));
+		    ret = Xmalloc(sizeof(int));
                 } else {
 		    int *prev_ret = ret;
 
-		    ret =
-                        (int *)Xrealloc(ret,num_ret*sizeof(int));
+		    ret = Xrealloc(ret, num_ret * sizeof(int));
 		    if (ret == NULL){
 			Xfree(prev_ret);
 		    }
@@ -272,7 +271,7 @@ int  *num_gr;
         sprintf(buf, "fs%d.charset.udc_area", codeset-1);
         _XlcGetLocaleDataBase(lcd, "XLC_FONTSET", buf, &value, &count);
         if(count > 0){
-            udc = (_XUDCGlyphRegion *)Xmalloc(count * sizeof(_XUDCGlyphRegion));
+            udc = Xmalloc(count * sizeof(_XUDCGlyphRegion));
             if(udc == NULL){
 		_xudc_utyerrno = 0x03 ;
 		_xudc_utyerrno |= (0x0b<<8) ;
@@ -524,7 +523,7 @@ int  *num_cr;
 	return(ret);
     }
 
-    crr = (_XUDCCodeRegion *)Xmalloc(num_gr*sizeof(_XUDCCodeRegion));
+    crr = Xmalloc(num_gr * sizeof(_XUDCCodeRegion));
     if(crr == NULL){
 	Xfree(gr);
 	_xudc_utyerrno = 0x03 ;

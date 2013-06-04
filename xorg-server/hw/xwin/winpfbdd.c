@@ -510,8 +510,6 @@ static Bool
 winHotKeyAltTabPrimaryDD(ScreenPtr pScreen)
 {
     winScreenPriv(pScreen);
-    winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
-    RECT rcClient, rcSrc;
     HRESULT ddrval = DD_OK;
 
     winDebug ("\nwinHotKeyAltTabPrimaryDD\n\n");
@@ -523,11 +521,6 @@ winHotKeyAltTabPrimaryDD(ScreenPtr pScreen)
     if (pScreenPriv->pddsPrimary == NULL || pScreenPriv->pddsOffscreen == NULL)
         return FALSE;
 
-    /* Get client area in screen coords */
-    GetClientRect(pScreenPriv->hwndScreen, &rcClient);
-    MapWindowPoints(pScreenPriv->hwndScreen,
-                    HWND_DESKTOP, (LPPOINT) &rcClient, 2);
-
     /* Did we loose the primary surface? */
     ddrval = IDirectDrawSurface2_IsLost(pScreenPriv->pddsPrimary);
     if (ddrval == DD_OK) {
@@ -536,12 +529,6 @@ winHotKeyAltTabPrimaryDD(ScreenPtr pScreen)
             FatalError("winHotKeyAltTabPrimaryDD - Failed unlocking primary "
                        "surface\n");
     }
-
-    /* Setup a source rectangle */
-    rcSrc.left = 0;
-    rcSrc.top = 0;
-    rcSrc.right = pScreenInfo->dwWidth;
-    rcSrc.bottom = pScreenInfo->dwHeight;
 
     /* Blit the primary surface to the offscreen surface */
     ddrval = IDirectDrawSurface2_Blt(pScreenPriv->pddsOffscreen, NULL,  /* should be rcDest */

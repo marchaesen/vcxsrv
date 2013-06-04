@@ -43,13 +43,14 @@ mapi_sources = [
     'u_execmem.c',
 ]
 for s in mapi_sources:
-    o = env.SharedObject(s[:-2], '../mapi/' + s)
+    o = env.SharedObject(s[:-2], '../' + s)
     glapi_sources.append(o)
 
 #
 # Assembly sources
 #
-if env['gcc'] and env['platform'] not in ('cygwin', 'darwin', 'windows'):
+if (env['gcc'] or env['clang']) and \
+   env['platform'] not in ('cygwin', 'darwin', 'windows'):
     GLAPI = '#src/mapi/glapi/'
 
     if env['machine'] == 'x86':
@@ -93,11 +94,6 @@ if env['gcc'] and env['platform'] not in ('cygwin', 'darwin', 'windows'):
             )
     else:
         pass
-
-if env['toolchain'] == 'crossmingw':
-    # compile these files without -gstabs option
-    glapi_sources = env.compile_without_gstabs(glapi_sources, "glapi_dispatch.c")
-    glapi_sources = env.compile_without_gstabs(glapi_sources, "glapi_getproc.c")
 
 glapi = env.ConvenienceLibrary(
     target = 'glapi',

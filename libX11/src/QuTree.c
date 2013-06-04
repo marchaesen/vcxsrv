@@ -37,7 +37,7 @@ Status XQueryTree (
     Window **children,	/* RETURN */
     unsigned int *nchildren)  /* RETURN */
 {
-    long nbytes;
+    unsigned long nbytes;
     xQueryTreeReply rep;
     register xResourceReq *req;
 
@@ -52,14 +52,14 @@ Status XQueryTree (
     *children = (Window *) NULL;
     if (rep.nChildren != 0) {
 	nbytes = rep.nChildren * sizeof(Window);
-	*children = (Window *) Xmalloc((unsigned) nbytes);
-	nbytes = rep.nChildren << 2;
+	*children = Xmalloc(nbytes);
 	if (! *children) {
-	    _XEatData(dpy, (unsigned long) nbytes);
+	    _XEatDataWords(dpy, rep.length);
 	    UnlockDisplay(dpy);
 	    SyncHandle();
 	    return (0);
 	}
+	nbytes = rep.nChildren << 2;
 	_XRead32 (dpy, (long *) *children, nbytes);
     }
     *parent = rep.parent;

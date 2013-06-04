@@ -53,8 +53,13 @@ Status XAllocColorCells(
     status = _XReply(dpy, (xReply *)&rep, 0, xFalse);
 
     if (status) {
-	_XRead32 (dpy, (long *) pixels, 4L * (long) (rep.nPixels));
-	_XRead32 (dpy, (long *) masks, 4L * (long) (rep.nMasks));
+	if ((rep.nPixels > ncolors) || (rep.nMasks > nplanes)) {
+	    _XEatDataWords(dpy, rep.length);
+	    status = 0; /* Failure */
+	} else {
+	    _XRead32 (dpy, (long *) pixels, 4L * (long) (rep.nPixels));
+	    _XRead32 (dpy, (long *) masks, 4L * (long) (rep.nMasks));
+	}
     }
 
     UnlockDisplay(dpy);

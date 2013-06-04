@@ -39,6 +39,8 @@
 #include <X11/extensions/extutil.h>
 #include <X11/extensions/Xdbe.h>
 #include <X11/extensions/dbeproto.h>
+#include <limits.h>
+#include "eat.h"
 
 static XExtensionInfo _dbe_info_data;
 static XExtensionInfo *dbe_info = &_dbe_info_data;
@@ -352,9 +354,12 @@ XdbeScreenVisualInfo *XdbeGetVisualInfo (
        *num_screens = rep.m;
 
     /* allocate list of visual information to be returned */
-    if (!(scrVisInfo =
-        (XdbeScreenVisualInfo *)Xmalloc(
-        (unsigned)(*num_screens * sizeof(XdbeScreenVisualInfo))))) {
+    if ((*num_screens > 0) && (*num_screens < 65536))
+        scrVisInfo = Xmalloc(*num_screens * sizeof(XdbeScreenVisualInfo));
+    else
+        scrVisInfo = NULL;
+    if (scrVisInfo == NULL) {
+        _XEatDataWords(dpy, rep.length);
         UnlockDisplay (dpy);
         SyncHandle ();
         return NULL;
@@ -362,25 +367,27 @@ XdbeScreenVisualInfo *XdbeGetVisualInfo (
 
     for (i = 0; i < *num_screens; i++)
     {
-        int nbytes;
         int j;
-        long c;
+        unsigned long c;
 
-        _XRead32 (dpy, &c, sizeof(CARD32));
-        scrVisInfo[i].count = c;
+        _XRead32 (dpy, (long *) &c, sizeof(CARD32));
 
-        nbytes = scrVisInfo[i].count * sizeof(XdbeVisualInfo);
+        if (c < 65536) {
+            scrVisInfo[i].count = c;
+            scrVisInfo[i].visinfo = Xmalloc(c * sizeof(XdbeVisualInfo));
+        } else
+            scrVisInfo[i].visinfo = NULL;
 
         /* if we can not allocate the list of visual/depth info
          * then free the lists that we already allocate as well
          * as the visual info list itself
          */
-        if (!(scrVisInfo[i].visinfo = (XdbeVisualInfo *)Xmalloc(
-            (unsigned)nbytes))) {
+        if (scrVisInfo[i].visinfo == NULL) {
             for (j = 0; j < i; j++) {
                 Xfree ((char *)scrVisInfo[j].visinfo);
             }
             Xfree ((char *)scrVisInfo);
+            _XEatDataWords(dpy, rep.length);
             UnlockDisplay (dpy);
             SyncHandle ();
             return NULL;

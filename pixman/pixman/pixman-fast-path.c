@@ -2261,89 +2261,27 @@ fast_write_back_r5g6b5 (pixman_iter_t *iter)
     }
 }
 
-typedef struct
-{
-    pixman_format_code_t	format;
-    pixman_iter_get_scanline_t	get_scanline;
-    pixman_iter_write_back_t	write_back;
-} fetcher_info_t;
-
-static const fetcher_info_t fetchers[] =
-{
-    { PIXMAN_r5g6b5, fast_fetch_r5g6b5, fast_write_back_r5g6b5 },
-    { PIXMAN_null }
-};
-
-static pixman_bool_t
-fast_src_iter_init (pixman_implementation_t *imp, pixman_iter_t *iter)
-{
-    pixman_image_t *image = iter->image;
-
-#define FLAGS								\
+#define IMAGE_FLAGS							\
     (FAST_PATH_STANDARD_FLAGS | FAST_PATH_ID_TRANSFORM |		\
      FAST_PATH_BITS_IMAGE | FAST_PATH_SAMPLES_COVER_CLIP_NEAREST)
 
-    if ((iter->iter_flags & ITER_NARROW)			&&
-	(iter->image_flags & FLAGS) == FLAGS)
-    {
-	const fetcher_info_t *f;
-
-	for (f = &fetchers[0]; f->format != PIXMAN_null; f++)
-	{
-	    if (image->common.extended_format_code == f->format)
-	    {
-		uint8_t *b = (uint8_t *)image->bits.bits;
-		int s = image->bits.rowstride * 4;
-
-		iter->bits = b + s * iter->y + iter->x * PIXMAN_FORMAT_BPP (f->format) / 8;
-		iter->stride = s;
-
-		iter->get_scanline = f->get_scanline;
-		return TRUE;
-	    }
-	}
-    }
-
-    return FALSE;
-}
-
-static pixman_bool_t
-fast_dest_iter_init (pixman_implementation_t *imp, pixman_iter_t *iter)
+static const pixman_iter_info_t fast_iters[] = 
 {
-    pixman_image_t *image = iter->image;
+    { PIXMAN_r5g6b5, IMAGE_FLAGS, ITER_NARROW | ITER_SRC,
+      _pixman_iter_init_bits_stride, fast_fetch_r5g6b5, NULL },
 
-    if ((iter->iter_flags & ITER_NARROW)		&&
-	(iter->image_flags & FAST_PATH_STD_DEST_FLAGS) == FAST_PATH_STD_DEST_FLAGS)
-    {
-	const fetcher_info_t *f;
+    { PIXMAN_r5g6b5, FAST_PATH_STD_DEST_FLAGS,
+      ITER_NARROW | ITER_DEST,
+      _pixman_iter_init_bits_stride,
+      fast_fetch_r5g6b5, fast_write_back_r5g6b5 },
+    
+    { PIXMAN_r5g6b5, FAST_PATH_STD_DEST_FLAGS,
+      ITER_NARROW | ITER_DEST | ITER_IGNORE_RGB | ITER_IGNORE_ALPHA,
+      _pixman_iter_init_bits_stride,
+      fast_dest_fetch_noop, fast_write_back_r5g6b5 },
 
-	for (f = &fetchers[0]; f->format != PIXMAN_null; f++)
-	{
-	    if (image->common.extended_format_code == f->format)
-	    {
-		uint8_t *b = (uint8_t *)image->bits.bits;
-		int s = image->bits.rowstride * 4;
-
-		iter->bits = b + s * iter->y + iter->x * PIXMAN_FORMAT_BPP (f->format) / 8;
-		iter->stride = s;
-
-		if ((iter->iter_flags & (ITER_IGNORE_RGB | ITER_IGNORE_ALPHA)) ==
-		    (ITER_IGNORE_RGB | ITER_IGNORE_ALPHA))
-		{
-		    iter->get_scanline = fast_dest_fetch_noop;
-		}
-		else
-		{
-		    iter->get_scanline = f->get_scanline;
-		}
-		iter->write_back = f->write_back;
-		return TRUE;
-	    }
-	}
-    }
-    return FALSE;
-}
-
+    { PIXMAN_null },
+};
 
 pixman_implementation_t *
 _pixman_implementation_create_fast_path (pixman_implementation_t *fallback)
@@ -2351,8 +2289,7 @@ _pixman_implementation_create_fast_path (pixman_implementation_t *fallback)
     pixman_implementation_t *imp = _pixman_implementation_create (fallback, c_fast_paths);
 
     imp->fill = fast_path_fill;
-    imp->src_iter_init = fast_src_iter_init;
-    imp->dest_iter_init = fast_dest_iter_init;
+    imp->iter_info = fast_iters;
 
     return imp;
 }

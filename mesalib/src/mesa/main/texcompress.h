@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #ifndef TEXCOMPRESS_H
@@ -27,7 +28,6 @@
 
 #include "formats.h"
 #include "glheader.h"
-#include "mfeatures.h"
 
 struct gl_context;
 
@@ -51,9 +51,8 @@ _mesa_compressed_image_address(GLint col, GLint row, GLint img,
 
 /** A function to fetch one texel from a compressed texture */
 typedef void (*compressed_fetch_func)(const GLubyte *map,
-                                      const GLuint imageOffsets[],
                                       GLint rowStride,
-                                      GLint i, GLint j, GLint k,
+                                      GLint i, GLint j,
                                       GLfloat *texel);
 
 extern compressed_fetch_func

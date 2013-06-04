@@ -47,6 +47,18 @@ Produce a C header file as output (.h extension).
 .B \-dflts
 Compute defaults for any missing components, such as key names.
 .TP 8
+.B \-em1 \fImsg\fP
+Print \fImsg\fP before printing first error message.
+.TP 8
+.B \-emp \fImsg\fP
+Print \fImsg\fP at the start of each message line.
+.TP 8
+.B \-eml \fImsg\fP
+If there were any errors, print \fImsg\fP before exiting.
+.TP 8
+.B \-help, -?
+Show available options.
+.TP 8
 .B \-I\fIdir\fP
 Specifies top-level directories to be searched for files included by the
 keymap description.  After all directories specified by \-I options

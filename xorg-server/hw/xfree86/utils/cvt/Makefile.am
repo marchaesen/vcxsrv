@@ -24,6 +24,7 @@ bin_PROGRAMS = cvt
 
 INCLUDES = $(XORG_INCS) \
 	   -I$(top_srcdir)/hw/xfree86/ddc \
+	   -I$(top_srcdir)/hw/xfree86/modes \
 	   -I$(top_srcdir)/hw/xfree86/parser
 
 # gah

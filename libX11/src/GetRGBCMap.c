@@ -99,8 +99,7 @@ Status XGetRGBColormaps (
     /*
      * allocate array
      */
-    cmaps = (XStandardColormap *) Xmalloc (ncmaps *
-					   sizeof (XStandardColormap));
+    cmaps = Xmalloc (ncmaps * sizeof (XStandardColormap));
     if (!cmaps) {
 	if (data) Xfree ((char *) data);
 	return False;

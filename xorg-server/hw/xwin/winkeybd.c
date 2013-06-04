@@ -342,7 +342,6 @@ winIsFakeCtrl_L(UINT message, WPARAM wParam, LPARAM lParam)
     Bool fReturn;
 
     static Bool lastWasControlL = FALSE;
-    static UINT lastMessage;
     static LONG lastTime;
 
     /*
@@ -366,7 +365,6 @@ winIsFakeCtrl_L(UINT message, WPARAM wParam, LPARAM lParam)
 
         if (!fReturn) {
             lastWasControlL = TRUE;
-            lastMessage = message;
             lastTime = lTime;
         }
         else {

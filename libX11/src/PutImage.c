@@ -680,7 +680,7 @@ SendXYImage(
 
     length = ROUNDUP(length, 4);
     if ((dpy->bufptr + length) > dpy->bufmax) {
-	if ((buf = _XAllocScratch(dpy, (unsigned long) (length))) == NULL) {
+	if ((buf = _XAllocScratch(dpy, length)) == NULL) {
 	    UnGetReq(PutImage);
 	    return;
 	}
@@ -703,13 +703,13 @@ SendXYImage(
 	bytes_per_temp_plane = bytes_per_line * req->height;
 	temp_length = ROUNDUP(bytes_per_temp_plane * image->depth, 4);
 	if (buf == dpy->bufptr) {
-	    if (! (temp = _XAllocScratch(dpy, (unsigned long) temp_length))) {
+	    if (! (temp = _XAllocScratch(dpy, temp_length))) {
 		UnGetReq(PutImage);
 		return;
 	    }
 	}
 	else
-	    if ((extra = temp = Xmalloc((unsigned) temp_length)) == NULL) {
+	    if ((extra = temp = Xmalloc(temp_length)) == NULL) {
 		UnGetReq(PutImage);
 		return;
 	    }
@@ -778,8 +778,7 @@ SendZImage(
 	  (req_yoffset * image->bytes_per_line) +
 	  ((req_xoffset * image->bits_per_pixel) >> 3);
     if ((image->bits_per_pixel == 4) && ((unsigned int) req_xoffset & 0x01)) {
-	if (! (shifted_src = (unsigned char *)
-	       Xmalloc((unsigned) (req->height * image->bytes_per_line)))) {
+	if (! (shifted_src = Xmalloc(req->height * image->bytes_per_line))) {
 	    UnGetReq(PutImage);
 	    return;
 	}
@@ -810,7 +809,7 @@ SendZImage(
 	dest = (unsigned char *)dpy->bufptr;
     else
 	if ((dest = (unsigned char *)
-	     _XAllocScratch(dpy, (unsigned long)(length))) == NULL) {
+	     _XAllocScratch(dpy, length)) == NULL) {
 	    if (shifted_src) Xfree((char *) shifted_src);
 	    UnGetReq(PutImage);
 	    return;
@@ -1001,7 +1000,7 @@ XPutImage (
 	    img.bits_per_pixel = dest_bits_per_pixel;
 	    img.bytes_per_line = ROUNDUP((dest_bits_per_pixel * width),
 					 dest_scanline_pad) >> 3;
-	    img.data = Xmalloc((unsigned) (img.bytes_per_line * height));
+	    img.data = Xmalloc(img.bytes_per_line * height);
 	    if (img.data == NULL)
 		return 0;
 	    _XInitImageFuncPtrs(&img);

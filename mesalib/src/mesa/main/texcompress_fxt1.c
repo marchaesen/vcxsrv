@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -34,7 +35,6 @@
 #include "colormac.h"
 #include "image.h"
 #include "macros.h"
-#include "mfeatures.h"
 #include "mipmap.h"
 #include "texcompress.h"
 #include "texcompress_fxt1.h"
@@ -1616,8 +1616,8 @@ fxt1_decode_1 (const void *texture, GLint stride, /* in pixels */
 
 
 static void
-fetch_rgb_fxt1(const GLubyte *map, const GLuint imageOffsets[],
-               GLint rowStride, GLint i, GLint j, GLint k, GLfloat *texel)
+fetch_rgb_fxt1(const GLubyte *map,
+               GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
    GLubyte rgba[4];
    fxt1_decode_1(map, rowStride, i, j, rgba);
@@ -1629,8 +1629,8 @@ fetch_rgb_fxt1(const GLubyte *map, const GLuint imageOffsets[],
 
 
 static void
-fetch_rgba_fxt1(const GLubyte *map, const GLuint imageOffsets[],
-                GLint rowStride, GLint i, GLint j, GLint k, GLfloat *texel)
+fetch_rgba_fxt1(const GLubyte *map,
+                GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
    GLubyte rgba[4];
    fxt1_decode_1(map, rowStride, i, j, rgba);

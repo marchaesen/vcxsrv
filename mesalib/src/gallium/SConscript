@@ -27,28 +27,6 @@ if not env['msvc']:
         'drivers/i915/SConscript',
     ])
 
-if env['drm']:
-    # These drivers depend on drm headers
-    if env['drm_radeon']:
-        SConscript([
-            'drivers/r300/SConscript',
-            'drivers/r600/SConscript',
-        ])
-        if env['llvm']:
-            SConscript([
-                'drivers/radeonsi/SConscript',
-            ])
-    # XXX: nouveau drivers have a tight dependency on libdrm, so to enable
-    # we need some version logic before we enable them. Also, ATM there is
-    # no nouveau target in scons
-    # if env['drm_nouveau']:
-    #     SConscript([
-    #         'drivers/nouveau/SConscript', 
-    #         'drivers/nv50/SConscript', 
-    #         'drivers/nvc0/SConscript', 
-    #         'drivers/nvfx/SConscript',
-    #     ])
-
 #
 # State trackers
 #
@@ -96,6 +74,11 @@ if not env['msvc']:
         'winsys/i915/sw/SConscript',
     ])
 
+if env['platform'] == 'haiku':
+    SConscript([
+        'winsys/sw/hgl/SConscript',
+    ])
+
 if env['dri']:
     SConscript([
         'winsys/sw/dri/SConscript',
@@ -108,11 +91,6 @@ if env['dri']:
     if env['drm_intel']:
         SConscript([
             'winsys/i915/drm/SConscript',
-        ])
-
-    if env['drm_radeon']:
-        SConscript([
-            'winsys/radeon/drm/SConscript',
         ])
 
 #
@@ -141,32 +119,25 @@ if not env['embedded']:
             'targets/libgl-gdi/SConscript',
         ])
 
+    if env['platform'] == 'haiku':
+        SConscript([
+            'targets/haiku-softpipe/SConscript',
+        ])
+
     if env['dri']:
         SConscript([
             'targets/SConscript.dri',
             'targets/dri-swrast/SConscript',
             'targets/dri-vmwgfx/SConscript',
-            #'targets/dri-nouveau/SConscript',
         ])
         if env['drm_intel']:
             SConscript([
                 'targets/dri-i915/SConscript',
             ])
-        if env['drm_radeon']:
-            SConscript([
-                'targets/dri-r300/SConscript',
-                'targets/dri-r600/SConscript',
-            ])
-            if env['llvm']:
-                SConscript([
-                    'targets/dri-radeonsi/SConscript',
-                ])
 
     if env['xorg'] and env['drm']:
         SConscript([
             #'targets/xorg-i915/SConscript',
-            #'targets/xorg-nouveau/SConscript',
-            #'targets/xorg-radeon/SConscript',
         ])
 
 

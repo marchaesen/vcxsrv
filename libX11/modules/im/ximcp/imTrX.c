@@ -372,7 +372,7 @@ _XimXGetReadData(
 		XFree(prop_ret);
 	    return False;
 	}
-	if (buf_len >= length) {
+	if (buf_len >= (int)nitems) {
 	    (void)memcpy(buf, prop_ret, (int)nitems);
 	    *ret_len  = (int)nitems;
 	    if (bytes_after_ret > 0) {

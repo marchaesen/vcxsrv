@@ -464,6 +464,28 @@ TellChanged(WindowPtr pWin, pointer value)
     return WT_WALKCHILDREN;
 }
 
+void
+RRSetChanged(ScreenPtr pScreen)
+{
+    /* set changed bits on the master screen only */
+    ScreenPtr master;
+    rrScrPriv(pScreen);
+    rrScrPrivPtr mastersp;
+
+    if (pScreen->isGPU) {
+        master = pScreen->current_master;
+        if (!master)
+            return;
+        mastersp = rrGetScrPriv(master);
+    }
+    else {
+        master = pScreen;
+        mastersp = pScrPriv;
+    }
+
+    mastersp->changed = TRUE;
+}
+
 /*
  * Something changed; send events and adjust pointer position
  */
@@ -484,7 +506,7 @@ RRTellChanged(ScreenPtr pScreen)
         mastersp = pScrPriv;
     }
 
-    if (pScrPriv->changed) {
+    if (mastersp->changed) {
         UpdateCurrentTimeIf();
         if (mastersp->configChanged) {
             mastersp->lastConfigTime = currentTime;

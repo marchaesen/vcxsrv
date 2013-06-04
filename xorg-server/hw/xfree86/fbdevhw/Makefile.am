@@ -10,7 +10,7 @@ else
 libfbdevhw_la_SOURCES = fbdevhwstub.c
 endif
 
-INCLUDES = $(XORG_INCS) -I$(srcdir)/../i2c
+INCLUDES = $(XORG_INCS) -I$(srcdir)/../i2c -I$(srcdir)/../modes -I$(srcdir)/../ddc -I$(srcdir)/../parser
 
 AM_CFLAGS = $(DIX_CFLAGS) $(XORG_CFLAGS)
 

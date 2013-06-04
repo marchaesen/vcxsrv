@@ -243,6 +243,8 @@ Bool PixmapSyncDirtyHelper(PixmapDirtyUpdatePtr dirty, RegionPtr dirty_region)
     }
 
     dst = dirty->slave_dst->master_pixmap;
+    if (!dst)
+        dst = dirty->slave_dst;
 
     RegionTranslate(dirty_region, -dirty->x, -dirty->y);
     n = RegionNumRects(dirty_region);

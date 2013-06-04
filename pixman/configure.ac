@@ -53,8 +53,8 @@ AC_PREREQ([2.57])
 #
 
 m4_define([pixman_major], 0)
-m4_define([pixman_minor], 29)
-m4_define([pixman_micro], 3)
+m4_define([pixman_minor], 31)
+m4_define([pixman_micro], 1)
 
 m4_define([pixman_version],[pixman_major.pixman_minor.pixman_micro])
 
@@ -279,7 +279,7 @@ AC_MSG_CHECKING(whether to use Loongson MMI assembler)
 
 xserver_save_CFLAGS=$CFLAGS
 CFLAGS=" $LS_CFLAGS $CFLAGS -I$srcdir"
-AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+AC_LINK_IFELSE([AC_LANG_SOURCE([[
 #ifndef __mips_loongson_vector_rev
 #error "Loongson Multimedia Instructions are only available on Loongson"
 #endif
@@ -843,6 +843,13 @@ AC_CHECK_HEADER(sys/time.h, have_sys_time_h=yes, have_sys_time_h=no)
 if test x$have_gettimeofday = xyes && test x$have_sys_time_h = xyes; then
    AC_DEFINE(HAVE_GETTIMEOFDAY, 1, [Whether we have gettimeofday()])
 fi
+
+dnl =====================================
+dnl Check for missing sqrtf() as, e.g., for Solaris 9
+
+AC_SEARCH_LIBS([sqrtf], [m], [],
+               [AC_DEFINE([sqrtf], [sqrt],
+                          [Define to sqrt if you do not have the `sqrtf' function.])])
 
 dnl =====================================
 dnl Thread local storage

@@ -87,21 +87,24 @@ static void send_sync(xcb_connection_t *c)
 
 static void get_socket_back(xcb_connection_t *c)
 {
-    while(c->out.return_socket && c->out.socket_moving)
-        pthread_cond_wait(&c->out.socket_cond, &c->iolock);
-    if(!c->out.return_socket)
-        return;
+    while (c->out.return_socket) {
+        /* we are about to release the lock,
+           so make a copy of the current status */
+        xcb_return_socket_func_t return_socket = c->out.return_socket;
+        void *socket_closure = c->out.socket_closure;
+        int socket_seq = c->out.socket_seq;
 
-    c->out.socket_moving = 1;
-    pthread_mutex_unlock(&c->iolock);
-    c->out.return_socket(c->out.socket_closure);
-    pthread_mutex_lock(&c->iolock);
-    c->out.socket_moving = 0;
+        pthread_mutex_unlock(&c->iolock);
+        return_socket(socket_closure);
+        pthread_mutex_lock(&c->iolock);
 
-    pthread_cond_broadcast(&c->out.socket_cond);
-    c->out.return_socket = 0;
-    c->out.socket_closure = 0;
-    _xcb_in_replies_done(c);
+        /* make sure nobody else has acquired the socket */
+        if (socket_seq == c->out.socket_seq) {
+            c->out.return_socket = 0;
+            c->out.socket_closure = 0;
+            _xcb_in_replies_done(c);
+        }
+    }
 }
 
 /* Public interface */
@@ -273,12 +276,13 @@ int xcb_take_socket(xcb_connection_t *c, void (*return_socket)(void *closure), v
      * write requests, so keep flushing until we're done
      */
     do
-	    ret = _xcb_out_flush_to(c, c->out.request);
+        ret = _xcb_out_flush_to(c, c->out.request);
     while (ret && c->out.request != c->out.request_written);
     if(ret)
     {
         c->out.return_socket = return_socket;
         c->out.socket_closure = closure;
+        ++c->out.socket_seq;
         if(flags)
             _xcb_in_expect_reply(c, c->out.request, WORKAROUND_EXTERNAL_SOCKET_OWNER, flags);
         assert(c->out.request == c->out.request_written);
@@ -315,11 +319,9 @@ int xcb_flush(xcb_connection_t *c)
 
 int _xcb_out_init(_xcb_out *out)
 {
-    if(pthread_cond_init(&out->socket_cond, 0))
-        return 0;
     out->return_socket = 0;
     out->socket_closure = 0;
-    out->socket_moving = 0;
+    out->socket_seq = 0;
 
     if(pthread_cond_init(&out->cond, 0))
         return 0;

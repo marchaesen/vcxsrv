@@ -52,10 +52,10 @@ xkb_symbols "basic" {
 
     key <AB01> { [	   w,          W                                  ] };
     key <AB02> { [	   x,          X                                  ] };
-    key <AB03> { [	   c,          C,       ccedilla,       Ccedilla  ] };
+    key <AB03> { [	   c,          C                                  ] };
     key <AB04> { [	   v,          V                                  ] };
     key <AB05> { [	   b,          B                                  ] };
-    key <AB06> { [	   n,          N,    0x01000014B,      0x0100014A ] };
+    key <AB06> { [	   n,          N,    0x0100014B,      0x0100014A ] };
     key <AB07> { [     comma,   question,      0x01000327                 ] };
     key <AB08> { [ semicolon,     period                                  ] };
     key <AB09> { [     colon,      slash                                  ] };

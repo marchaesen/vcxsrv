@@ -59,7 +59,7 @@ authorization from the authors.
   <xsd:complexType name="caseexpr">
     <xsd:sequence>
       <!-- case expression: -->
-      <xsd:group ref="expression" minOccurs="1" maxOccurs="1" />
+      <xsd:group ref="expression" minOccurs="1" maxOccurs="unbounded" />
       <!-- match -->
       <xsd:group ref="fields" minOccurs="1" maxOccurs="unbounded" />
       <xsd:choice>

@@ -481,8 +481,14 @@ class BitcaseType(ComplexType):
     '''
     def __init__(self, index, name, elt, *parent):
         elts = list(elt)
-        self.expr = Expression(elts[0] if len(elts) else elt, self)
-        ComplexType.__init__(self, name, elts[1:])        
+        self.expr = []
+        fields = []
+        for elt in elts:
+            if elt.tag == 'enumref':
+                self.expr.append(Expression(elt, self))
+            else:
+                fields.append(elt)
+        ComplexType.__init__(self, name, fields)
         self.has_name = True
         self.index = 1
         self.lenfield_parent = list(parent) + [self]
@@ -510,8 +516,9 @@ class BitcaseType(ComplexType):
     def resolve(self, module):
         if self.resolved:
             return
-        
-        self.expr.resolve(module, self.parents+[self])
+
+        for e in self.expr:
+            e.resolve(module, self.parents+[self])
 
         # Resolve the bitcase expression
         ComplexType.resolve(self, module)
@@ -593,8 +600,7 @@ class Event(ComplexType):
         ComplexType.__init__(self, name, elt)
         self.opcodes = {}
 
-        tmp = elt.get('no-sequence-number')
-        self.has_seq = (tmp == None or tmp.lower() == 'false' or tmp == '0')
+        self.has_seq = not bool(elt.get('no-sequence-number'))
 
         self.doc = None
         for item in list(elt):

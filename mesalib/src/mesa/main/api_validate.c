@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include <stdbool.h>
@@ -28,7 +29,6 @@
 #include "bufferobj.h"
 #include "context.h"
 #include "imports.h"
-#include "mfeatures.h"
 #include "mtypes.h"
 #include "enums.h"
 #include "vbo/vbo.h"
@@ -201,12 +201,11 @@ check_index_bounds(struct gl_context *ctx, GLsizei count, GLenum type,
  * Is 'mode' a valid value for glBegin(), glDrawArrays(), glDrawElements(),
  * etc?  The set of legal values depends on whether geometry shaders/programs
  * are supported.
+ * Note: This may be called during display list compilation.
  */
-GLboolean
-_mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name)
+bool
+_mesa_is_valid_prim_mode(struct gl_context *ctx, GLenum mode)
 {
-   bool valid_enum;
-
    switch (mode) {
    case GL_POINTS:
    case GL_LINES:
@@ -215,24 +214,32 @@ _mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name)
    case GL_TRIANGLES:
    case GL_TRIANGLE_STRIP:
    case GL_TRIANGLE_FAN:
-      valid_enum = true;
-      break;
+      return true;
    case GL_QUADS:
    case GL_QUAD_STRIP:
    case GL_POLYGON:
-      valid_enum = (ctx->API == API_OPENGL_COMPAT);
-      break;
+      return (ctx->API == API_OPENGL_COMPAT);
    case GL_LINES_ADJACENCY:
    case GL_LINE_STRIP_ADJACENCY:
    case GL_TRIANGLES_ADJACENCY:
    case GL_TRIANGLE_STRIP_ADJACENCY:
-      valid_enum = _mesa_is_desktop_gl(ctx)
-         && ctx->Extensions.ARB_geometry_shader4;
-      break;
+      return _mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_geometry_shader4;
    default:
-      valid_enum = false;
-      break;
+      return false;
    }
+}
+
+
+/**
+ * Is 'mode' a valid value for glBegin(), glDrawArrays(), glDrawElements(),
+ * etc?  Also, do additional checking related to transformation feedback.
+ * Note: this function cannot be called during glNewList(GL_COMPILE) because
+ * this code depends on current transform feedback state.
+ */
+GLboolean
+_mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name)
+{
+   bool valid_enum = _mesa_is_valid_prim_mode(ctx, mode);
 
    if (!valid_enum) {
       _mesa_error(ctx, GL_INVALID_ENUM, "%s(mode=%x)", name, mode);

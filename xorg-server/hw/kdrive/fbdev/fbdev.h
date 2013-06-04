@@ -49,7 +49,7 @@ typedef struct _fbdevScrPriv {
 } FbdevScrPriv;
 
 extern KdCardFuncs fbdevFuncs;
-extern char *fbdevDevicePath;
+extern const char *fbdevDevicePath;
 
 Bool
  fbdevCardInit(KdCardInfo * card);

@@ -88,7 +88,7 @@ winClipboardThreadExit(void *arg);
 void *
 winClipboardProc(void *pvNotUsed)
 {
-    Atom atomClipboard, atomClipboardManager;
+    Atom atomClipboard;
     int iReturn;
     HWND hwnd = NULL;
     int iConnectionNumber = 0;
@@ -208,9 +208,8 @@ winClipboardProc(void *pvNotUsed)
     iMaxDescriptor = iConnectionNumber + 1;
 #endif
 
-    /* Create atoms */
+    /* Create atom */
     atomClipboard = XInternAtom(pDisplay, "CLIPBOARD", False);
-    atomClipboardManager = XInternAtom(pDisplay, "CLIPBOARD_MANAGER", False);
     XInternAtom (pDisplay, WIN_LOCAL_PROPERTY, False);
     XInternAtom (pDisplay, "UTF8_STRING", False);
     XInternAtom (pDisplay, "COMPOUND_TEXT", False);

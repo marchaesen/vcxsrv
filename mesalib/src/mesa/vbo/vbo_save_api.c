@@ -74,7 +74,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "main/enums.h"
 #include "main/eval.h"
 #include "main/macros.h"
-#include "main/mfeatures.h"
 #include "main/api_validate.h"
 #include "main/api_arrayelt.h"
 #include "main/vtxfmt.h"
@@ -306,9 +305,9 @@ _save_reset_counters(struct gl_context *ctx)
  * previous prim.
  */
 static void
-vbo_merge_prims(struct gl_context *ctx,
-                struct _mesa_prim *prim_list,
-                GLuint *prim_count)
+merge_prims(struct gl_context *ctx,
+            struct _mesa_prim *prim_list,
+            GLuint *prim_count)
 {
    GLuint i;
    struct _mesa_prim *prev_prim = prim_list;
@@ -316,19 +315,13 @@ vbo_merge_prims(struct gl_context *ctx,
    for (i = 1; i < *prim_count; i++) {
       struct _mesa_prim *this_prim = prim_list + i;
 
-      if (this_prim->mode == prev_prim->mode &&
-          this_prim->mode == GL_QUADS &&
-          this_prim->count % 4 == 0 &&
-          prev_prim->count % 4 == 0 &&
-          this_prim->start == prev_prim->start + prev_prim->count &&
-          this_prim->basevertex == prev_prim->basevertex &&
-          this_prim->num_instances == prev_prim->num_instances &&
-          this_prim->base_instance == prev_prim->base_instance) {
+      vbo_try_prim_conversion(this_prim);
+
+      if (vbo_can_merge_prims(prev_prim, this_prim)) {
          /* We've found a prim that just extend the previous one.  Tack it
           * onto the previous one, and let this primitive struct get dropped.
           */
-         prev_prim->count += this_prim->count;
-         prev_prim->end = this_prim->end;
+         vbo_merge_prims(prev_prim, this_prim);
          continue;
       }
 
@@ -421,7 +414,7 @@ _save_compile_vertex_list(struct gl_context *ctx)
     */
    save->copied.nr = _save_copy_vertices(ctx, node, save->buffer);
 
-   vbo_merge_prims(ctx, node->prim, &node->prim_count);
+   merge_prims(ctx, node->prim, &node->prim_count);
 
    /* Deal with GL_COMPILE_AND_EXECUTE:
     */
@@ -476,6 +469,8 @@ _save_compile_vertex_list(struct gl_context *ctx)
 
 
 /**
+ * This is called when we fill a vertex buffer before we hit a glEnd().
+ * We
  * TODO -- If no new vertices have been stored, don't bother saving it.
  */
 static void
@@ -584,7 +579,11 @@ _save_copy_from_current(struct gl_context *ctx)
 }
 
 
-/* Flush existing data, set new attrib size, replay copied vertices.
+/**
+ * Called when we increase the size of a vertex attribute.  For example,
+ * if we've seen one or more glTexCoord2f() calls and now we get a
+ * glTexCoord3f() call.
+ * Flush existing data, set new attrib size, replay copied vertices.
  */
 static void
 _save_upgrade_vertex(struct gl_context *ctx, GLuint attr, GLuint newsz)
@@ -641,7 +640,7 @@ _save_upgrade_vertex(struct gl_context *ctx, GLuint attr, GLuint newsz)
     * and will need fixup at runtime.
     */
    if (save->copied.nr) {
-      GLfloat *data = save->copied.buffer;
+      const GLfloat *data = save->copied.buffer;
       GLfloat *dest = save->buffer;
       GLuint j;
 
@@ -683,6 +682,11 @@ _save_upgrade_vertex(struct gl_context *ctx, GLuint attr, GLuint newsz)
 }
 
 
+/**
+ * This is called when the size of a vertex attribute changes.
+ * For example, after seeing one or more glTexCoord2f() calls we
+ * get a glTexCoord4f() or glTexCoord1f() call.
+ */
 static void
 save_fixup_vertex(struct gl_context *ctx, GLuint attr, GLuint sz)
 {
@@ -709,6 +713,11 @@ save_fixup_vertex(struct gl_context *ctx, GLuint attr, GLuint sz)
 }
 
 
+/**
+ * Reset the current size of all vertex attributes to the default
+ * value of 0.  This signals that we haven't yet seen any per-vertex
+ * commands such as glNormal3f() or glTexCoord2f().
+ */
 static void
 _save_reset_vertex(struct gl_context *ctx)
 {
@@ -861,7 +870,7 @@ dlist_fallback(struct gl_context *ctx)
    else {
       _mesa_install_save_vtxfmt(ctx, &ctx->ListState.ListVtxfmt);
    }
-   ctx->Driver.SaveNeedFlush = 0;
+   ctx->Driver.SaveNeedFlush = GL_FALSE;
 }
 
 
@@ -931,15 +940,16 @@ _save_CallLists(GLsizei n, GLenum type, const GLvoid * v)
 
 
 
-/* This begin is hooked into ...  Updating of
- * ctx->Driver.CurrentSavePrimitive is already taken care of.
+/**
+ * Called via ctx->Driver.NotifySaveBegin() when a glBegin is getting
+ * compiled into a display list.
+ * Updating of ctx->Driver.CurrentSavePrimitive is already taken care of.
  */
 GLboolean
 vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode)
 {
    struct vbo_save_context *save = &vbo_context(ctx)->save;
-
-   GLuint i = save->prim_count++;
+   const GLuint i = save->prim_count++;
 
    assert(i < save->prim_max);
    save->prim[i].mode = mode & VBO_SAVE_PRIM_MODE_MASK;
@@ -960,7 +970,13 @@ vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode)
    else {
       _mesa_install_save_vtxfmt(ctx, &save->vtxfmt);
    }
-   ctx->Driver.SaveNeedFlush = 1;
+
+   /* We need to call SaveFlushVertices() if there's state change */
+   ctx->Driver.SaveNeedFlush = GL_TRUE;
+
+   /* GL_TRUE means we've handled this glBegin here; don't compile a BEGIN
+    * opcode into the display list.
+    */
    return GL_TRUE;
 }
 
@@ -970,7 +986,7 @@ _save_End(void)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct vbo_save_context *save = &vbo_context(ctx)->save;
-   GLint i = save->prim_count - 1;
+   const GLint i = save->prim_count - 1;
 
    ctx->Driver.CurrentSavePrimitive = PRIM_OUTSIDE_BEGIN_END;
    save->prim[i].end = 1;
@@ -991,198 +1007,6 @@ _save_End(void)
    else {
       _mesa_install_save_vtxfmt(ctx, &ctx->ListState.ListVtxfmt);
    }
-}
-
-
-/* These are all errors as this vtxfmt is only installed inside
- * begin/end pairs.
- */
-static void GLAPIENTRY
-_save_DrawElements(GLenum mode, GLsizei count, GLenum type,
-                   const GLvoid * indices)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) count;
-   (void) type;
-   (void) indices;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION, "glDrawElements");
-}
-
-
-static void GLAPIENTRY
-_save_DrawRangeElements(GLenum mode, GLuint start, GLuint end,
-                        GLsizei count, GLenum type, const GLvoid * indices)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) start;
-   (void) end;
-   (void) count;
-   (void) type;
-   (void) indices;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION, "glDrawRangeElements");
-}
-
-
-static void GLAPIENTRY
-_save_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
-                             const GLvoid * indices, GLint basevertex)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) count;
-   (void) type;
-   (void) indices;
-   (void) basevertex;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION, "glDrawElements");
-}
-
-
-static void GLAPIENTRY
-_save_DrawRangeElementsBaseVertex(GLenum mode,
-                                  GLuint start,
-                                  GLuint end,
-                                  GLsizei count,
-                                  GLenum type,
-                                  const GLvoid * indices, GLint basevertex)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) start;
-   (void) end;
-   (void) count;
-   (void) type;
-   (void) indices;
-   (void) basevertex;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION, "glDrawRangeElements");
-}
-
-
-static void GLAPIENTRY
-_save_DrawArrays(GLenum mode, GLint start, GLsizei count)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) start;
-   (void) count;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION, "glDrawArrays");
-}
-
-
-static void GLAPIENTRY
-_save_MultiDrawElements(GLenum mode, const GLsizei *count, GLenum type,
-                        const GLvoid **indices, GLsizei primcount)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) count;
-   (void) type;
-   (void) indices;
-   (void) primcount;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION, "glMultiDrawElements");
-}
-
-
-static void GLAPIENTRY
-_save_MultiDrawElementsBaseVertex(GLenum mode, const GLsizei *count,
-                                  GLenum type, const GLvoid * const *indices,
-                                  GLsizei primcount, const GLint *basevertex)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) count;
-   (void) type;
-   (void) indices;
-   (void) primcount;
-   (void) basevertex;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION,
-                       "glMultiDrawElementsBaseVertex");
-}
-
-
-static void GLAPIENTRY
-_save_DrawTransformFeedback(GLenum mode, GLuint name)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) name;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION, "glDrawTransformFeedback");
-}
-
-
-static void GLAPIENTRY
-_save_DrawTransformFeedbackStream(GLenum mode, GLuint name, GLuint stream)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) name;
-   (void) stream;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION,
-                       "glDrawTransformFeedbackStream");
-}
-
-
-static void GLAPIENTRY
-_save_DrawTransformFeedbackInstanced(GLenum mode, GLuint name,
-                                     GLsizei primcount)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) name;
-   (void) primcount;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION,
-                       "glDrawTransformFeedbackInstanced");
-}
-
-
-static void GLAPIENTRY
-_save_DrawTransformFeedbackStreamInstanced(GLenum mode, GLuint name,
-                                           GLuint stream, GLsizei primcount)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) name;
-   (void) stream;
-   (void) primcount;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION,
-                       "glDrawTransformFeedbackStreamInstanced");
-}
-
-
-static void GLAPIENTRY
-_save_Rectf(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) x1;
-   (void) y1;
-   (void) x2;
-   (void) y2;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION, "glRectf");
-}
-
-
-static void GLAPIENTRY
-_save_EvalMesh1(GLenum mode, GLint i1, GLint i2)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) i1;
-   (void) i2;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION, "glEvalMesh1");
-}
-
-
-static void GLAPIENTRY
-_save_EvalMesh2(GLenum mode, GLint i1, GLint i2, GLint j1, GLint j2)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   (void) mode;
-   (void) i1;
-   (void) i2;
-   (void) j1;
-   (void) j2;
-   _mesa_compile_error(ctx, GL_INVALID_OPERATION, "glEvalMesh2");
 }
 
 
@@ -1233,8 +1057,14 @@ _save_OBE_DrawArrays(GLenum mode, GLint start, GLsizei count)
    struct vbo_save_context *save = &vbo_context(ctx)->save;
    GLint i;
 
-   if (!_mesa_validate_DrawArrays(ctx, mode, start, count))
+   if (!_mesa_is_valid_prim_mode(ctx, mode)) {
+      _mesa_compile_error(ctx, GL_INVALID_ENUM, "glDrawArrays(mode)");
       return;
+   }
+   if (count < 0) {
+      _mesa_compile_error(ctx, GL_INVALID_VALUE, "glDrawArrays(count<0)");
+      return;
+   }
 
    if (save->out_of_memory)
       return;
@@ -1263,8 +1093,20 @@ _save_OBE_DrawElements(GLenum mode, GLsizei count, GLenum type,
    struct vbo_save_context *save = &vbo_context(ctx)->save;
    GLint i;
 
-   if (!_mesa_validate_DrawElements(ctx, mode, count, type, indices, 0))
+   if (!_mesa_is_valid_prim_mode(ctx, mode)) {
+      _mesa_compile_error(ctx, GL_INVALID_ENUM, "glDrawElements(mode)");
       return;
+   }
+   if (count < 0) {
+      _mesa_compile_error(ctx, GL_INVALID_VALUE, "glDrawElements(count<0)");
+      return;
+   }
+   if (type != GL_UNSIGNED_BYTE &&
+       type != GL_UNSIGNED_SHORT &&
+       type != GL_UNSIGNED_INT) {
+      _mesa_compile_error(ctx, GL_INVALID_VALUE, "glDrawElements(count<0)");
+      return;
+   }
 
    if (save->out_of_memory)
       return;
@@ -1310,9 +1152,26 @@ _save_OBE_DrawRangeElements(GLenum mode, GLuint start, GLuint end,
    GET_CURRENT_CONTEXT(ctx);
    struct vbo_save_context *save = &vbo_context(ctx)->save;
 
-   if (!_mesa_validate_DrawRangeElements(ctx, mode,
-                                         start, end, count, type, indices, 0))
+   if (!_mesa_is_valid_prim_mode(ctx, mode)) {
+      _mesa_compile_error(ctx, GL_INVALID_ENUM, "glDrawRangeElements(mode)");
       return;
+   }
+   if (count < 0) {
+      _mesa_compile_error(ctx, GL_INVALID_VALUE,
+                          "glDrawRangeElements(count<0)");
+      return;
+   }
+   if (type != GL_UNSIGNED_BYTE &&
+       type != GL_UNSIGNED_SHORT &&
+       type != GL_UNSIGNED_INT) {
+      _mesa_compile_error(ctx, GL_INVALID_ENUM, "glDrawRangeElements(type)");
+      return;
+   }
+   if (end < start) {
+      _mesa_compile_error(ctx, GL_INVALID_VALUE,
+                          "glDrawRangeElements(end < start)");
+      return;
+   }
 
    if (save->out_of_memory)
       return;
@@ -1360,9 +1219,8 @@ _save_vtxfmt_init(struct gl_context *ctx)
    struct vbo_save_context *save = &vbo_context(ctx)->save;
    GLvertexformat *vfmt = &save->vtxfmt;
 
-   _MESA_INIT_ARRAYELT_VTXFMT(vfmt, _ae_);
+   vfmt->ArrayElement = _ae_ArrayElement;
 
-   vfmt->Begin = _save_Begin;
    vfmt->Color3f = _save_Color3f;
    vfmt->Color3fv = _save_Color3fv;
    vfmt->Color4f = _save_Color4f;
@@ -1485,28 +1343,40 @@ _save_vtxfmt_init(struct gl_context *ctx)
 
    /* This will all require us to fallback to saving the list as opcodes:
     */
-   _MESA_INIT_DLIST_VTXFMT(vfmt, _save_);       /* inside begin/end */
+   vfmt->CallList = _save_CallList;
+   vfmt->CallLists = _save_CallLists;
 
-   _MESA_INIT_EVAL_VTXFMT(vfmt, _save_);
+   vfmt->EvalCoord1f = _save_EvalCoord1f;
+   vfmt->EvalCoord1fv = _save_EvalCoord1fv;
+   vfmt->EvalCoord2f = _save_EvalCoord2f;
+   vfmt->EvalCoord2fv = _save_EvalCoord2fv;
+   vfmt->EvalPoint1 = _save_EvalPoint1;
+   vfmt->EvalPoint2 = _save_EvalPoint2;
 
    /* These calls all generate GL_INVALID_OPERATION since this vtxfmt is
     * only used when we're inside a glBegin/End pair.
     */
    vfmt->Begin = _save_Begin;
-   vfmt->Rectf = _save_Rectf;
-   vfmt->DrawArrays = _save_DrawArrays;
-   vfmt->DrawElements = _save_DrawElements;
-   vfmt->DrawRangeElements = _save_DrawRangeElements;
-   vfmt->DrawElementsBaseVertex = _save_DrawElementsBaseVertex;
-   vfmt->DrawRangeElementsBaseVertex = _save_DrawRangeElementsBaseVertex;
-   vfmt->MultiDrawElementsEXT = _save_MultiDrawElements;
-   vfmt->MultiDrawElementsBaseVertex = _save_MultiDrawElementsBaseVertex;
-   vfmt->DrawTransformFeedback = _save_DrawTransformFeedback;
-   vfmt->DrawTransformFeedbackStream = _save_DrawTransformFeedbackStream;
-   vfmt->DrawTransformFeedbackInstanced = _save_DrawTransformFeedbackInstanced;
-   vfmt->DrawTransformFeedbackStreamInstanced =
-         _save_DrawTransformFeedbackStreamInstanced;
 }
+
+
+/**
+ * Initialize the dispatch table with the VBO functions for display
+ * list compilation.
+ */
+void
+vbo_initialize_save_dispatch(const struct gl_context *ctx,
+                             struct _glapi_table *exec)
+{
+   SET_DrawArrays(exec, _save_OBE_DrawArrays);
+   SET_DrawElements(exec, _save_OBE_DrawElements);
+   SET_DrawRangeElements(exec, _save_OBE_DrawRangeElements);
+   SET_MultiDrawElementsEXT(exec, _save_OBE_MultiDrawElements);
+   SET_MultiDrawElementsBaseVertex(exec, _save_OBE_MultiDrawElementsBaseVertex);
+   SET_Rectf(exec, _save_OBE_Rectf);
+   /* Note: other glDraw functins aren't compiled into display lists */
+}
+
 
 
 void
@@ -1516,8 +1386,7 @@ vbo_save_SaveFlushVertices(struct gl_context *ctx)
 
    /* Noop when we are actually active:
     */
-   if (ctx->Driver.CurrentSavePrimitive == PRIM_INSIDE_UNKNOWN_PRIM ||
-       ctx->Driver.CurrentSavePrimitive <= GL_POLYGON)
+   if (ctx->Driver.CurrentSavePrimitive <= PRIM_MAX)
       return;
 
    if (save->vert_count || save->prim_count)
@@ -1526,7 +1395,7 @@ vbo_save_SaveFlushVertices(struct gl_context *ctx)
    _save_copy_to_current(ctx);
    _save_reset_vertex(ctx);
    _save_reset_counters(ctx);
-   ctx->Driver.SaveNeedFlush = 0;
+   ctx->Driver.SaveNeedFlush = GL_FALSE;
 }
 
 
@@ -1548,7 +1417,7 @@ vbo_save_NewList(struct gl_context *ctx, GLuint list, GLenum mode)
 
    _save_reset_vertex(ctx);
    _save_reset_counters(ctx);
-   ctx->Driver.SaveNeedFlush = 0;
+   ctx->Driver.SaveNeedFlush = GL_FALSE;
 }
 
 
@@ -1559,8 +1428,7 @@ vbo_save_EndList(struct gl_context *ctx)
 
    /* EndList called inside a (saved) Begin/End pair?
     */
-   if (ctx->Driver.CurrentSavePrimitive != PRIM_OUTSIDE_BEGIN_END) {
-
+   if (_mesa_inside_dlist_begin_end(ctx)) {
       if (save->prim_count > 0) {
          GLint i = save->prim_count - 1;
          ctx->Driver.CurrentSavePrimitive = PRIM_OUTSIDE_BEGIN_END;
@@ -1700,14 +1568,4 @@ vbo_save_api_init(struct vbo_save_context *save)
    /* These will actually get set again when binding/drawing */
    for (i = 0; i < VBO_ATTRIB_MAX; i++)
       save->inputs[i] = &save->arrays[i];
-
-   /* Hook our array functions into the outside-begin-end vtxfmt in 
-    * ctx->ListState.
-    */
-   ctx->ListState.ListVtxfmt.Rectf = _save_OBE_Rectf;
-   ctx->ListState.ListVtxfmt.DrawArrays = _save_OBE_DrawArrays;
-   ctx->ListState.ListVtxfmt.DrawElements = _save_OBE_DrawElements;
-   ctx->ListState.ListVtxfmt.DrawRangeElements = _save_OBE_DrawRangeElements;
-   ctx->ListState.ListVtxfmt.MultiDrawElementsEXT = _save_OBE_MultiDrawElements;
-   ctx->ListState.ListVtxfmt.MultiDrawElementsBaseVertex = _save_OBE_MultiDrawElementsBaseVertex;
 }

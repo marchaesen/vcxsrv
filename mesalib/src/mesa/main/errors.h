@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -72,6 +73,16 @@ _mesa_gl_debug(struct gl_context *ctx,
                enum mesa_debug_type type,
                enum mesa_debug_severity severity,
                const char *fmtString, ...) PRINTFLIKE(5, 6);
+
+#define _mesa_perf_debug(ctx, sev, ...) do {                              \
+   static GLuint msg_id = 0;                                              \
+   if (unlikely(ctx->Const.ContextFlags & GL_CONTEXT_FLAG_DEBUG_BIT)) {   \
+      _mesa_gl_debug(ctx, &msg_id,                                        \
+                     MESA_DEBUG_TYPE_PERFORMANCE,                         \
+                     sev,                                                 \
+                     __VA_ARGS__);                                        \
+   }                                                                      \
+} while (0)
 
 extern void
 _mesa_shader_debug(struct gl_context *ctx, GLenum type, GLuint *id,

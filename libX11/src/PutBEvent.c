@@ -41,7 +41,7 @@ _XPutBackEvent (
 	XEvent store = *event;
 
 	if (!dpy->qfree) {
-    	    if ((dpy->qfree = (_XQEvent *) Xmalloc (sizeof (_XQEvent))) == NULL) {
+	    if ((dpy->qfree = Xmalloc (sizeof (_XQEvent))) == NULL) {
 		return 0;
 	    }
 	    dpy->qfree->next = NULL;

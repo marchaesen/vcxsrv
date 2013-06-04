@@ -113,7 +113,7 @@ XOpenDisplay (
 /*
  * Attempt to allocate a display structure. Return NULL if allocation fails.
  */
-	if ((dpy = (Display *)Xcalloc(1, sizeof(Display))) == NULL) {
+	if ((dpy = Xcalloc(1, sizeof(Display))) == NULL) {
 		return(NULL);
 	}
 
@@ -247,9 +247,7 @@ XOpenDisplay (
 	dpy->qlen = 0;
 
 	/* Set up free-function record */
-	if ((dpy->free_funcs = (_XFreeFuncRec *)Xcalloc(1,
-							sizeof(_XFreeFuncRec)))
-	    == NULL) {
+	if ((dpy->free_funcs = Xcalloc(1, sizeof(_XFreeFuncRec))) == NULL) {
 	    OutOfMemory (dpy);
 	    return(NULL);
 	}
@@ -317,7 +315,7 @@ XOpenDisplay (
 	    return (NULL);
 	}
 
-	dpy->vendor = (char *) Xmalloc((unsigned) (u.setup->nbytesVendor + 1));
+	dpy->vendor = Xmalloc(u.setup->nbytesVendor + 1);
 	if (dpy->vendor == NULL) {
 	    OutOfMemory(dpy);
 	    return (NULL);
@@ -343,9 +341,7 @@ XOpenDisplay (
 /*
  * Now iterate down setup information.....
  */
-	dpy->pixmap_format =
-	    (ScreenFormat *)Xmalloc(
-		(unsigned) (dpy->nformats *sizeof(ScreenFormat)));
+	dpy->pixmap_format = Xcalloc(dpy->nformats, sizeof(ScreenFormat));
 	if (dpy->pixmap_format == NULL) {
 	        OutOfMemory (dpy);
 		return(NULL);
@@ -373,8 +369,7 @@ XOpenDisplay (
 /*
  * next the Screen structures.
  */
-	dpy->screens =
-	    (Screen *)Xmalloc((unsigned) dpy->nscreens*sizeof(Screen));
+	dpy->screens = Xcalloc(dpy->nscreens, sizeof(Screen));
 	if (dpy->screens == NULL) {
 	        OutOfMemory (dpy);
 		return(NULL);
@@ -416,8 +411,7 @@ XOpenDisplay (
 /*
  * lets set up the depth structures.
  */
-	    sp->depths = (Depth *)Xmalloc(
-			(unsigned)sp->ndepths*sizeof(Depth));
+	    sp->depths = Xcalloc(sp->ndepths, sizeof(Depth));
 	    if (sp->depths == NULL) {
 		OutOfMemory (dpy);
 		return(NULL);
@@ -439,8 +433,7 @@ XOpenDisplay (
 		dp->nvisuals = u.dp->nVisuals;
 		u.dp = (xDepth *) (((char *) u.dp) + sz_xDepth);
 		if (dp->nvisuals > 0) {
-		    dp->visuals =
-		      (Visual *)Xmalloc((unsigned)dp->nvisuals*sizeof(Visual));
+		    dp->visuals = Xcalloc(dp->nvisuals, sizeof(Visual));
 		    if (dp->visuals == NULL) {
 			OutOfMemory (dpy);
 			return(NULL);
@@ -553,7 +546,7 @@ XOpenDisplay (
 		    dpy->xdefaults[reply.nItems] = '\0';
 		}
 		else if (reply.propertyType != None)
-		    _XEatData(dpy, reply.nItems * (reply.format >> 3));
+		    _XEatDataWords(dpy, reply.length);
 	    }
 	}
 	UnlockDisplay(dpy);

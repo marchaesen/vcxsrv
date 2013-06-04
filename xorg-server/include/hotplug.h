@@ -40,6 +40,7 @@ struct OdevAttribute {
 
 struct OdevAttributes {
     struct xorg_list list;
+    Bool unowned;
 };
 
 struct OdevAttributes *

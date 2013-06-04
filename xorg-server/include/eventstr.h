@@ -123,6 +123,7 @@ struct _DeviceEvent {
     int corestate;    /**< Core key/button state BEFORE the event */
     int key_repeat;   /**< Internally-generated key repeat event */
     uint32_t flags;   /**< Flags to be copied into the generated event */
+    uint32_t resource; /**< Touch event resource, only for TOUCH_REPLAYING */
 };
 
 /**
@@ -175,6 +176,7 @@ struct _DeviceChangedEvent {
     struct {
         uint32_t min;           /**< Minimum value */
         uint32_t max;           /**< Maximum value */
+        double value;           /**< Current value */;
         /* FIXME: frac parts of min/max */
         uint32_t resolution;    /**< Resolution counts/m */
         uint8_t mode;           /**< Relative or Absolute */

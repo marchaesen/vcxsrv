@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  *
  * Authors:
  *    Keith Whitwell <keith@tungstengraphics.com>
@@ -47,7 +48,6 @@ void vbo_exec_init( struct gl_context *ctx )
       return;
 
    vbo_exec_vtx_init( exec );
-   vbo_exec_array_init( exec );
 
    ctx->Driver.NeedFlush = 0;
    ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;
@@ -68,7 +68,6 @@ void vbo_exec_destroy( struct gl_context *ctx )
    }
 
    vbo_exec_vtx_destroy( exec );
-   vbo_exec_array_destroy( exec );
 }
 
 
@@ -79,10 +78,26 @@ void vbo_exec_destroy( struct gl_context *ctx )
  */ 
 void vbo_exec_invalidate_state( struct gl_context *ctx, GLuint new_state )
 {
-   struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
+   struct vbo_context *vbo = vbo_context(ctx);
+   struct vbo_exec_context *exec = &vbo->exec;
 
-   if (new_state & (_NEW_PROGRAM|_NEW_ARRAY)) {
+   if (!exec->validating && new_state & (_NEW_PROGRAM|_NEW_ARRAY)) {
       exec->array.recalculate_inputs = GL_TRUE;
+
+      /* If we ended up here because a VAO was deleted, the _DrawArrays
+       * pointer which pointed to the VAO might be invalid now, so set it
+       * to NULL.  This prevents crashes in driver functions like Clear
+       * where driver state validation might occur, but the vbo module is
+       * still in an invalid state.
+       *
+       * Drivers should skip vertex array state validation if _DrawArrays
+       * is NULL.  It also has no effect on performance, because attrib
+       * bindings will be recalculated anyway.
+       */
+      if (vbo->last_draw_method == DRAW_ARRAYS) {
+         ctx->Array._DrawArrays = NULL;
+         vbo->last_draw_method = DRAW_NONE;
+      }
    }
 
    if (new_state & _NEW_EVAL)
@@ -141,4 +156,103 @@ vbo_count_tessellated_primitives(GLenum mode, GLuint count,
       break;
    }
    return num_primitives * num_instances;
+}
+
+
+
+/**
+ * In some degenarate cases we can improve our ability to merge
+ * consecutive primitives.  For example:
+ * glBegin(GL_LINE_STRIP);
+ * glVertex(1);
+ * glVertex(1);
+ * glEnd();
+ * glBegin(GL_LINE_STRIP);
+ * glVertex(1);
+ * glVertex(1);
+ * glEnd();
+ * Can be merged as a GL_LINES prim with four vertices.
+ *
+ * This function converts 2-vertex line strips/loops into GL_LINES, etc.
+ */
+void
+vbo_try_prim_conversion(struct _mesa_prim *p)
+{
+   if (p->mode == GL_LINE_STRIP && p->count == 2) {
+      /* convert 2-vertex line strip to a separate line */
+      p->mode = GL_LINES;
+   }
+   else if ((p->mode == GL_TRIANGLE_STRIP || p->mode == GL_TRIANGLE_FAN)
+       && p->count == 3) {
+      /* convert 3-vertex tri strip or fan to a separate triangle */
+      p->mode = GL_TRIANGLES;
+   }
+
+   /* Note: we can't convert a 4-vertex quad strip to a separate quad
+    * because the vertex ordering is different.  We'd have to muck
+    * around in the vertex data to make it work.
+    */
+}
+
+
+/**
+ * Helper function for determining if two subsequent glBegin/glEnd
+ * primitives can be combined.  This is only possible for GL_POINTS,
+ * GL_LINES, GL_TRIANGLES and GL_QUADS.
+ * If we return true, it means that we can concatenate p1 onto p0 (and
+ * discard p1).
+ */
+bool
+vbo_can_merge_prims(const struct _mesa_prim *p0, const struct _mesa_prim *p1)
+{
+   if (!p0->begin ||
+       !p1->begin ||
+       !p0->end ||
+       !p1->end)
+      return false;
+
+   /* The prim mode must match (ex: both GL_TRIANGLES) */
+   if (p0->mode != p1->mode)
+      return false;
+
+   /* p1's vertices must come right after p0 */
+   if (p0->start + p0->count != p1->start)
+      return false;
+
+   if (p0->basevertex != p1->basevertex ||
+       p0->num_instances != p1->num_instances ||
+       p0->base_instance != p1->base_instance)
+      return false;
+
+   /* can always merge subsequent GL_POINTS primitives */
+   if (p0->mode == GL_POINTS)
+      return true;
+
+   /* independent lines with no extra vertices */
+   if (p0->mode == GL_LINES && p0->count % 2 == 0 && p1->count % 2 == 0)
+      return true;
+
+   /* independent tris */
+   if (p0->mode == GL_TRIANGLES && p0->count % 3 == 0 && p1->count % 3 == 0)
+      return true;
+
+   /* independent quads */
+   if (p0->mode == GL_QUADS && p0->count % 4 == 0 && p1->count % 4 == 0)
+      return true;
+
+   return false;
+}
+
+
+/**
+ * If we've determined that p0 and p1 can be merged, this function
+ * concatenates p1 onto p0.
+ */
+void
+vbo_merge_prims(struct _mesa_prim *p0, const struct _mesa_prim *p1)
+{
+   assert(vbo_can_merge_prims(p0, p1));
+
+   p0->count += p1->count;
+   p0->end = p1->end;
 }

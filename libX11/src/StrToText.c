@@ -78,7 +78,7 @@ Status XStringListToTextProperty (
 	    }
 	}
     } else {
-	proto.value = (unsigned char *) Xmalloc (1);	/* easier for client */
+	proto.value = Xmalloc (1);		/* easier for client */
 	if (!proto.value) return False;
 
 	proto.value[0] = '\0';

@@ -34,7 +34,6 @@
 #include "main/image.h"
 #include "main/bufferobj.h"
 #include "main/macros.h"
-#include "main/mfeatures.h"
 #include "main/pbo.h"
 #include "program/program.h"
 #include "program/prog_print.h"
@@ -299,7 +298,7 @@ make_bitmap_texture(struct gl_context *ctx, GLsizei width, GLsizei height,
     * Create texture to hold bitmap pattern.
     */
    pt = st_texture_create(st, st->internal_target, st->bitmap.tex_format,
-                          0, width, height, 1, 1,
+                          0, width, height, 1, 1, 0,
                           PIPE_BIND_SAMPLER_VIEW);
    if (!pt) {
       _mesa_unmap_pbo_source(ctx, unpack);
@@ -567,7 +566,7 @@ reset_cache(struct st_context *st)
    cache->texture = st_texture_create(st, PIPE_TEXTURE_2D,
                                       st->bitmap.tex_format, 0,
                                       BITMAP_CACHE_WIDTH, BITMAP_CACHE_HEIGHT,
-                                      1, 1,
+                                      1, 1, 0,
 				      PIPE_BIND_SAMPLER_VIEW);
 }
 
@@ -826,7 +825,8 @@ st_init_bitmap(struct st_context *st)
 
    /* init baseline rasterizer state once */
    memset(&st->bitmap.rasterizer, 0, sizeof(st->bitmap.rasterizer));
-   st->bitmap.rasterizer.gl_rasterization_rules = 1;
+   st->bitmap.rasterizer.half_pixel_center = 1;
+   st->bitmap.rasterizer.bottom_edge_rule = 1;
    st->bitmap.rasterizer.depth_clip = 1;
 
    /* find a usable texture format */

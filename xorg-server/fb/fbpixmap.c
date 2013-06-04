@@ -67,6 +67,7 @@ fbCreatePixmapBpp(ScreenPtr pScreen, int width, int height, int depth, int bpp,
     pPixmap->devKind = paddedWidth;
     pPixmap->refcnt = 1;
     pPixmap->devPrivate.ptr = (pointer) ((char *) pPixmap + base + adjust);
+    pPixmap->master_pixmap = NULL;
 
 #ifdef FB_DEBUG
     pPixmap->devPrivate.ptr =

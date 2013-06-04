@@ -84,6 +84,7 @@
 #include "dpmsproc.h"
 #endif
 
+#include "xf86platformBus.h"
 /*
  * This is a toggling variable:
  *  FALSE = No VT switching keys have been pressed last time around
@@ -427,7 +428,7 @@ xf86VTSwitch(void)
      * Since all screens are currently all in the same state it is sufficient
      * check the first.  This might change in future.
      */
-    if (xf86Screens[0]->vtSema) {
+    if (xf86VTOwner()) {
 
         DebugF("xf86VTSwitch: Leaving, xf86Exiting is %s\n",
                BOOLTOSTRING((dispatchException & DE_TERMINATE) ? TRUE : FALSE));
@@ -559,6 +560,11 @@ xf86VTSwitch(void)
 
         for (ih = InputHandlers; ih; ih = ih->next)
             xf86EnableInputHandler(ih);
+
+#ifdef XSERVER_PLATFORM_BUS
+        /* check for any new output devices */
+        xf86platformVTProbe();
+#endif
 
         OsReleaseSIGIO();
     }
@@ -767,4 +773,13 @@ void
 DDXRingBell(int volume, int pitch, int duration)
 {
     xf86OSRingBell(volume, pitch, duration);
+}
+
+Bool
+xf86VTOwner(void)
+{
+    /* at system startup xf86Screens[0] won't be set - but we will own the VT */
+    if (xf86NumScreens == 0)
+	return TRUE;
+    return xf86Screens[0]->vtSema;
 }

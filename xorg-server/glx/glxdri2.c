@@ -835,7 +835,7 @@ glxDRILeaveVT(ScrnInfoPtr scrn)
     __GLXDRIscreen *screen = (__GLXDRIscreen *)
         glxGetScreen(xf86ScrnToScreen(scrn));
 
-    LogMessage(X_INFO, "AIGLX: Suspending AIGLX clients for VT switch\n");
+    LogMessageVerbSigSafe(X_INFO, -1, "AIGLX: Suspending AIGLX clients for VT switch\n");
 
     glxSuspendClients();
 
@@ -946,7 +946,7 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
                      &screen->fd, &driverName, &deviceName)) {
         LogMessage(X_INFO,
                    "AIGLX: Screen %d is not DRI2 capable\n", pScreen->myNum);
-        return NULL;
+        goto handle_error;
     }
 
     screen->base.destroy = __glXDRIscreenDestroy;

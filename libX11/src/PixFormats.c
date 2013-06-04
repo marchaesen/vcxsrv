@@ -38,8 +38,8 @@ XPixmapFormatValues *XListPixmapFormats (
     Display *dpy,
     int *count)	/* RETURN */
 {
-    XPixmapFormatValues *formats = (XPixmapFormatValues *)
-	Xmalloc((unsigned) (dpy->nformats * sizeof (XPixmapFormatValues)));
+    XPixmapFormatValues *formats =
+	Xmalloc(dpy->nformats * sizeof (XPixmapFormatValues));
 
     if (formats) {
 	register int i;

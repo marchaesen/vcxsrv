@@ -486,6 +486,10 @@ extern _X_EXPORT void
  RRDeliverScreenEvent(ClientPtr client, WindowPtr pWin, ScreenPtr pScreen);
 
 /* randr.c */
+/* set a screen change on the primary screen */
+extern _X_EXPORT void
+RRSetChanged(ScreenPtr pScreen);
+
 /*
  * Send all pending events
  */

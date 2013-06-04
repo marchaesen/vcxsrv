@@ -1642,12 +1642,6 @@
       <variantList>
         <variant>
           <configItem>
-            <name>legacy</name>
-            <_description>German (legacy)</_description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
             <name>nodeadkeys</name>
             <_description>German (Austria, eliminate dead keys)</_description>
           </configItem>
@@ -3223,10 +3217,18 @@
         <variant>
           <configItem>
             <name>ru</name>
+            <!-- Keyboard indicator for Russian layouts -->
+            <_shortDescription>ru</_shortDescription>
             <_description>Russian (Germany, phonetic)</_description>
             <languageList>
               <iso639Id>rus</iso639Id>
             </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>legacy</name>
+            <_description>German (legacy)</_description>
           </configItem>
         </variant>
       </variantList>
@@ -4266,6 +4268,12 @@
         </variant>
         <variant>
           <configItem>
+            <name>mac</name>
+            <_description>Russian (Macintosh)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>srp</name>
             <_description>Serbian (Russia)</_description>
             <languageList><iso639Id>rus</iso639Id>
@@ -5115,7 +5123,7 @@
             <name>CloGaelach</name>
             <_description>CloGaelach</_description>
             <languageList>
-              <iso639Id>gla</iso639Id>
+              <iso639Id>gle</iso639Id>
             </languageList>
           </configItem>
         </variant>

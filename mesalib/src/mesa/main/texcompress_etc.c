@@ -38,7 +38,6 @@
  */
 
 #include <stdbool.h>
-#include "mfeatures.h"
 #include "texcompress.h"
 #include "texcompress_etc.h"
 #include "texstore.h"
@@ -1223,8 +1222,8 @@ _mesa_unpack_etc2_format(uint8_t *dst_row,
 
 
 static void
-fetch_etc1_rgb8(const GLubyte *map, const GLuint imageOffsets[],
-                GLint rowStride, GLint i, GLint j, GLint k,
+fetch_etc1_rgb8(const GLubyte *map,
+                GLint rowStride, GLint i, GLint j,
                 GLfloat *texel)
 {
    struct etc1_block block;
@@ -1244,9 +1243,8 @@ fetch_etc1_rgb8(const GLubyte *map, const GLuint imageOffsets[],
 
 
 static void
-fetch_etc2_rgb8(const GLubyte *map, const GLuint imageOffsets[],
-                GLint rowStride, GLint i, GLint j, GLint k,
-                GLfloat *texel)
+fetch_etc2_rgb8(const GLubyte *map,
+                GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
    struct etc2_block block;
    uint8_t dst[3];
@@ -1266,9 +1264,8 @@ fetch_etc2_rgb8(const GLubyte *map, const GLuint imageOffsets[],
 }
 
 static void
-fetch_etc2_srgb8(const GLubyte *map, const GLuint imageOffsets[],
-                 GLint rowStride, GLint i, GLint j, GLint k,
-                 GLfloat *texel)
+fetch_etc2_srgb8(const GLubyte *map,
+                 GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
    struct etc2_block block;
    uint8_t dst[3];
@@ -1288,9 +1285,8 @@ fetch_etc2_srgb8(const GLubyte *map, const GLuint imageOffsets[],
 }
 
 static void
-fetch_etc2_rgba8_eac(const GLubyte *map, const GLuint imageOffsets[],
-                     GLint rowStride, GLint i, GLint j, GLint k,
-                     GLfloat *texel)
+fetch_etc2_rgba8_eac(const GLubyte *map,
+                     GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
    struct etc2_block block;
    uint8_t dst[4];
@@ -1308,9 +1304,8 @@ fetch_etc2_rgba8_eac(const GLubyte *map, const GLuint imageOffsets[],
 }
 
 static void
-fetch_etc2_srgb8_alpha8_eac(const GLubyte *map, const GLuint imageOffsets[],
-                            GLint rowStride, GLint i, GLint j, GLint k,
-                            GLfloat *texel)
+fetch_etc2_srgb8_alpha8_eac(const GLubyte *map,
+                            GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
    struct etc2_block block;
    uint8_t dst[4];
@@ -1328,9 +1323,8 @@ fetch_etc2_srgb8_alpha8_eac(const GLubyte *map, const GLuint imageOffsets[],
 }
 
 static void
-fetch_etc2_r11_eac(const GLubyte *map, const GLuint imageOffsets[],
-                   GLint rowStride, GLint i, GLint j, GLint k,
-                   GLfloat *texel)
+fetch_etc2_r11_eac(const GLubyte *map,
+                   GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
    struct etc2_block block;
    GLushort dst;
@@ -1348,9 +1342,8 @@ fetch_etc2_r11_eac(const GLubyte *map, const GLuint imageOffsets[],
 }
 
 static void
-fetch_etc2_rg11_eac(const GLubyte *map, const GLuint imageOffsets[],
-                    GLint rowStride, GLint i, GLint j, GLint k,
-                    GLfloat *texel)
+fetch_etc2_rg11_eac(const GLubyte *map,
+                    GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
    struct etc2_block block;
    GLushort dst[2];
@@ -1373,9 +1366,8 @@ fetch_etc2_rg11_eac(const GLubyte *map, const GLuint imageOffsets[],
 }
 
 static void
-fetch_etc2_signed_r11_eac(const GLubyte *map, const GLuint imageOffsets[],
-                          GLint rowStride, GLint i, GLint j, GLint k,
-                          GLfloat *texel)
+fetch_etc2_signed_r11_eac(const GLubyte *map,
+                          GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
    struct etc2_block block;
    GLushort dst;
@@ -1393,9 +1385,8 @@ fetch_etc2_signed_r11_eac(const GLubyte *map, const GLuint imageOffsets[],
 }
 
 static void
-fetch_etc2_signed_rg11_eac(const GLubyte *map, const GLuint imageOffsets[],
-                           GLint rowStride, GLint i, GLint j, GLint k,
-                           GLfloat *texel)
+fetch_etc2_signed_rg11_eac(const GLubyte *map,
+                           GLint rowStride, GLint i, GLint j, GLfloat *texel)
 {
    struct etc2_block block;
    GLushort dst[2];
@@ -1419,8 +1410,7 @@ fetch_etc2_signed_rg11_eac(const GLubyte *map, const GLuint imageOffsets[],
 
 static void
 fetch_etc2_rgb8_punchthrough_alpha1(const GLubyte *map,
-                                    const GLuint imageOffsets[],
-                                    GLint rowStride, GLint i, GLint j, GLint k,
+                                    GLint rowStride, GLint i, GLint j,
                                     GLfloat *texel)
 {
    struct etc2_block block;
@@ -1441,10 +1431,8 @@ fetch_etc2_rgb8_punchthrough_alpha1(const GLubyte *map,
 
 static void
 fetch_etc2_srgb8_punchthrough_alpha1(const GLubyte *map,
-                                     const GLuint imageOffsets[],
                                      GLint rowStride,
-                                     GLint i, GLint j, GLint k,
-                                     GLfloat *texel)
+                                     GLint i, GLint j, GLfloat *texel)
 {
    struct etc2_block block;
    uint8_t dst[4];

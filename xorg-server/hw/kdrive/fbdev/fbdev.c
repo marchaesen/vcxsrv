@@ -30,7 +30,7 @@
 
 extern int KdTsPhyScreen;
 
-char *fbdevDevicePath = NULL;
+const char *fbdevDevicePath = NULL;
 
 static Bool
 fbdevInitialize(KdCardInfo * card, FbdevPriv * priv)
@@ -206,13 +206,23 @@ fbdevScreenInitialize(KdScreenInfo * screen, FbdevScrPriv * scrpriv)
     depth = priv->var.bits_per_pixel;
     gray = priv->var.grayscale;
 
+    /* Calculate fix.line_length if it's zero */
+    if (!priv->fix.line_length)
+        priv->fix.line_length = (priv->var.xres_virtual * depth + 7) / 8;
+
     switch (priv->fix.visual) {
+    case FB_VISUAL_MONO01:
+    case FB_VISUAL_MONO10:
+        screen->fb.visuals = (1 << StaticGray);
+        break;
     case FB_VISUAL_PSEUDOCOLOR:
-        if (gray) {
-            screen->fb.visuals = (1 << StaticGray);
+        screen->fb.visuals = (1 << StaticGray);
+        if (priv->var.bits_per_pixel == 1) {
+            /* Override to monochrome, to have preallocated black/white */
+            priv->fix.visual = FB_VISUAL_MONO01;
+        } else if (gray) {
             /* could also support GrayScale, but what's the point? */
-        }
-        else {
+        } else {
             screen->fb.visuals = ((1 << StaticGray) |
                                   (1 << GrayScale) |
                                   (1 << StaticColor) |
@@ -309,6 +319,21 @@ fbdevWindowLinear(ScreenPtr pScreen,
     return (CARD8 *) priv->fb + row * priv->fix.line_length + offset;
 }
 
+static void *
+fbdevWindowAfb(ScreenPtr pScreen,
+               CARD32 row,
+               CARD32 offset, int mode, CARD32 *size, void *closure)
+{
+    KdScreenPriv(pScreen);
+    FbdevPriv *priv = pScreenPriv->card->driver;
+
+    if (!pScreenPriv->enabled)
+        return 0;
+    /* offset to next plane */
+    *size = priv->var.yres_virtual * priv->fix.line_length;
+    return (CARD8 *) priv->fb + row * priv->fix.line_length + offset;
+}
+
 Bool
 fbdevMapFramebuffer(KdScreenInfo * screen)
 {
@@ -316,7 +341,8 @@ fbdevMapFramebuffer(KdScreenInfo * screen)
     KdPointerMatrix m;
     FbdevPriv *priv = screen->card->driver;
 
-    if (scrpriv->randr != RR_Rotate_0)
+    if (scrpriv->randr != RR_Rotate_0 ||
+        priv->fix.type != FB_TYPE_PACKED_PIXELS)
         scrpriv->shadow = TRUE;
     else
         scrpriv->shadow = FALSE;
@@ -392,33 +418,88 @@ fbdevSetShadow(ScreenPtr pScreen)
 
     window = fbdevWindowLinear;
     update = 0;
-    if (scrpriv->randr)
-        if (priv->var.bits_per_pixel == 16) {
-            switch (scrpriv->randr) {
-            case RR_Rotate_90:
-                if (useYX)
-                    update = shadowUpdateRotate16_90YX;
-                else
-                    update = shadowUpdateRotate16_90;
-                break;
-            case RR_Rotate_180:
-                update = shadowUpdateRotate16_180;
-                break;
-            case RR_Rotate_270:
-                if (useYX)
-                    update = shadowUpdateRotate16_270YX;
-                else
-                    update = shadowUpdateRotate16_270;
-                break;
-            default:
-                update = shadowUpdateRotate16;
-                break;
+    switch (priv->fix.type) {
+    case FB_TYPE_PACKED_PIXELS:
+        if (scrpriv->randr)
+            if (priv->var.bits_per_pixel == 16) {
+                switch (scrpriv->randr) {
+                case RR_Rotate_90:
+                    if (useYX)
+                        update = shadowUpdateRotate16_90YX;
+                    else
+                        update = shadowUpdateRotate16_90;
+                    break;
+                case RR_Rotate_180:
+                    update = shadowUpdateRotate16_180;
+                    break;
+                case RR_Rotate_270:
+                    if (useYX)
+                        update = shadowUpdateRotate16_270YX;
+                    else
+                        update = shadowUpdateRotate16_270;
+                    break;
+                default:
+                    update = shadowUpdateRotate16;
+                    break;
+                }
             }
-        }
+            else
+                update = shadowUpdateRotatePacked;
         else
-            update = shadowUpdateRotatePacked;
-    else
-        update = shadowUpdatePacked;
+            update = shadowUpdatePacked;
+        break;
+
+    case FB_TYPE_PLANES:
+        window = fbdevWindowAfb;
+        switch (priv->var.bits_per_pixel) {
+        case 4:
+            update = shadowUpdateAfb4;
+            break;
+
+        case 8:
+            update = shadowUpdateAfb8;
+            break;
+
+        default:
+            FatalError("Bitplanes with bpp %u are not yet supported\n",
+                       priv->var.bits_per_pixel);
+        }
+        break;
+
+    case FB_TYPE_INTERLEAVED_PLANES:
+        if (priv->fix.type_aux == 2) {
+            switch (priv->var.bits_per_pixel) {
+            case 4:
+                update = shadowUpdateIplan2p4;
+                break;
+
+            case 8:
+                update = shadowUpdateIplan2p8;
+                break;
+
+            default:
+                FatalError("Atari interleaved bitplanes with bpp %u are not yet supported\n",
+                           priv->var.bits_per_pixel);
+            }
+        } else {
+            FatalError("Interleaved bitplanes with interleave %u are not yet supported\n",
+                       priv->fix.type_aux);
+        }
+        break;
+
+    case FB_TYPE_TEXT:
+        FatalError("Text frame buffers are not yet supported\n");
+        break;
+
+    case FB_TYPE_VGA_PLANES:
+        FatalError("VGA planes are not yet supported\n");
+        break;
+
+    default:
+        FatalError("Unsupported frame buffer type %u\n", priv->fix.type);
+        break;
+    }
+
     return KdShadowSet(pScreen, scrpriv->randr, update, window);
 }
 
@@ -573,6 +654,26 @@ fbdevCreateColormap(ColormapPtr pmap)
     xColorItem *pdefs;
 
     switch (priv->fix.visual) {
+    case FB_VISUAL_MONO01:
+        pScreen->whitePixel = 0;
+        pScreen->blackPixel = 1;
+        pmap->red[0].co.local.red = 65535;
+        pmap->red[0].co.local.green = 65535;
+        pmap->red[0].co.local.blue = 65535;
+        pmap->red[1].co.local.red = 0;
+        pmap->red[1].co.local.green = 0;
+        pmap->red[1].co.local.blue = 0;
+        return TRUE;
+    case FB_VISUAL_MONO10:
+        pScreen->blackPixel = 0;
+        pScreen->whitePixel = 1;
+        pmap->red[0].co.local.red = 0;
+        pmap->red[0].co.local.green = 0;
+        pmap->red[0].co.local.blue = 0;
+        pmap->red[1].co.local.red = 65535;
+        pmap->red[1].co.local.green = 65535;
+        pmap->red[1].co.local.blue = 65535;
+        return TRUE;
     case FB_VISUAL_STATIC_PSEUDOCOLOR:
         pVisual = pmap->pVisual;
         nent = pVisual->ColormapEntries;

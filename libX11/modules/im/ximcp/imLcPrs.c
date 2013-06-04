@@ -41,6 +41,8 @@ OR PERFORMANCE OF THIS SOFTWARE.
 #include "Ximint.h"
 #include <sys/stat.h>
 #include <stdio.h>
+#include <limits.h>
+#include "pathmax.h"
 
 #define XLC_BUFSIZE 256
 
@@ -55,6 +57,8 @@ extern int _Xmbstoutf8(
     const char	*str,
     int		len
 );
+
+static void parsestringfile(FILE *fp, Xim im, int depth);
 
 /*
  *	Parsing File Format:
@@ -304,9 +308,9 @@ static char*
 TransFileName(Xim im, char *name)
 {
    char *home = NULL, *lcCompose = NULL;
-   char dir[XLC_BUFSIZE];
-   char *i = name, *ret, *j;
-   int l = 0;
+   char dir[XLC_BUFSIZE] = "";
+   char *i = name, *ret = NULL, *j;
+   size_t l = 0;
 
    while (*i) {
       if (*i == '%') {
@@ -316,30 +320,51 @@ TransFileName(Xim im, char *name)
                  l++;
    	         break;
    	      case 'H':
-   	         home = getenv("HOME");
-   	         if (home)
-                     l += strlen(home);
+                 if (home == NULL)
+                     home = getenv("HOME");
+                 if (home) {
+                     size_t Hsize = strlen(home);
+                     if (Hsize > PATH_MAX)
+                         /* your home directory length is ridiculous */
+                         goto end;
+                     l += Hsize;
+                 }
    	         break;
    	      case 'L':
                  if (lcCompose == NULL)
                      lcCompose = _XlcFileName(im->core.lcd, COMPOSE_FILE);
-                 if (lcCompose)
-                     l += strlen(lcCompose);
+                 if (lcCompose) {
+                     size_t Lsize = strlen(lcCompose);
+                     if (Lsize > PATH_MAX)
+                         /* your compose pathname length is ridiculous */
+                         goto end;
+                     l += Lsize;
+                 }
    	         break;
    	      case 'S':
-                 xlocaledir(dir, XLC_BUFSIZE);
-                 l += strlen(dir);
+                 if (dir[0] == '\0')
+                     xlocaledir(dir, XLC_BUFSIZE);
+                 if (dir[0]) {
+                     size_t Ssize = strlen(dir);
+                     if (Ssize > PATH_MAX)
+                         /* your locale directory path length is ridiculous */
+                         goto end;
+                     l += Ssize;
+                 }
    	         break;
    	  }
       } else {
       	  l++;
       }
       i++;
+      if (l > PATH_MAX)
+          /* your expanded path length is ridiculous */
+          goto end;
    }
 
    j = ret = Xmalloc(l+1);
    if (ret == NULL)
-      return ret;
+      goto end;
    i = name;
    while (*i) {
       if (*i == '%') {
@@ -371,6 +396,7 @@ TransFileName(Xim im, char *name)
       }
    }
    *j = '\0';
+end:
    Xfree(lcCompose);
    return ret;
 }
@@ -423,7 +449,8 @@ static int
 parseline(
     FILE *fp,
     Xim   im,
-    char* tokenbuf)
+    char* tokenbuf,
+    int   depth)
 {
     int token;
     DTModifier modifier_mask;
@@ -470,11 +497,13 @@ parseline(
                 goto error;
             if ((filename = TransFileName(im, tokenbuf)) == NULL)
                 goto error;
+            if (++depth > 100)
+                goto error;
             infp = _XFopenFile(filename, "r");
                 Xfree(filename);
             if (infp == NULL)
                 goto error;
-            _XimParseStringFile(infp, im);
+            parsestringfile(infp, im, depth);
             fclose(infp);
             return (0);
 	} else if ((token == KEY) && (strcmp("None", tokenbuf) == 0)) {
@@ -668,17 +697,28 @@ _XimParseStringFile(
     FILE *fp,
     Xim   im)
 {
+    parsestringfile(fp, im, 0);
+}
+
+static void
+parsestringfile(
+    FILE *fp,
+    Xim   im,
+    int   depth)
+{
     char tb[8192];
     char* tbp;
     struct stat st;
 
     if (fstat (fileno (fp), &st) != -1) {
 	unsigned long size = (unsigned long) st.st_size;
+	if (st.st_size >= INT_MAX)
+	    return;
 	if (size <= sizeof tb) tbp = tb;
 	else tbp = malloc (size);
 
 	if (tbp != NULL) {
-	    while (parseline(fp, im, tbp) >= 0) {}
+	    while (parseline(fp, im, tbp, depth) >= 0) {}
 	    if (tbp != tb) free (tbp);
 	}
     }

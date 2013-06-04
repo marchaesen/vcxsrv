@@ -26,7 +26,6 @@
  *    Chia-I Wu <olv@lunarg.com>
  */
 
-#include "main/mfeatures.h"
 #include "main/texobj.h"
 #include "main/teximage.h"
 #include "util/u_inlines.h"
@@ -132,6 +131,7 @@ st_bind_surface(struct gl_context *ctx, GLenum target,
    stObj->width0 = ps->width;
    stObj->height0 = ps->height;
    stObj->depth0 = 1;
+   stObj->surface_format = ps->format;
 
    _mesa_dirty_texobj(ctx, texObj, GL_TRUE);
 }

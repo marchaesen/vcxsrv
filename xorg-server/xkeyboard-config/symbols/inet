@@ -120,6 +120,8 @@ xkb_symbols "evdev" {
     key <FK22>   {      [ XF86TouchpadOn        ]       };
     key <FK23>   {      [ XF86TouchpadOff       ]       };
 
+    key <FK20>   {      [ XF86AudioMicMute      ]       };
+
 //  key <I120>   {      [ ]       }; // KEY_MACRO 
     key <I126>   {      [ plusminus             ]       };
     key <I128>   {      [ XF86LaunchA           ]       };

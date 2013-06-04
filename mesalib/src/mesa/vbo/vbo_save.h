@@ -34,7 +34,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef VBO_SAVE_H
 #define VBO_SAVE_H
 
-#include "main/mfeatures.h"
 #include "main/mtypes.h"
 #include "vbo.h"
 #include "vbo_attrib.h"
@@ -127,10 +126,10 @@ struct vbo_save_context {
    struct gl_client_array arrays[VBO_ATTRIB_MAX];
    const struct gl_client_array *inputs[VBO_ATTRIB_MAX];
 
-   GLubyte attrsz[VBO_ATTRIB_MAX];
-   GLenum attrtype[VBO_ATTRIB_MAX];
-   GLubyte active_sz[VBO_ATTRIB_MAX];
-   GLuint vertex_size;
+   GLubyte attrsz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */
+   GLenum attrtype[VBO_ATTRIB_MAX];  /**< GL_FLOAT, GL_INT, etc */
+   GLubyte active_sz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */
+   GLuint vertex_size;  /**< size in GLfloats */
 
    GLboolean out_of_memory;  /**< True if last VBO allocation failed */
 

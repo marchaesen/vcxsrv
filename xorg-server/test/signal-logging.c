@@ -158,6 +158,8 @@ static void logging_format(void)
     char buf[1024];
     int i;
     unsigned int ui;
+    long li;
+    unsigned long lui;
     FILE *f;
     char read_buf[2048];
     char *logmsg;
@@ -194,6 +196,23 @@ static void logging_format(void)
     read_log_msg(logmsg);
     assert(strcmp(logmsg, "(EE) %s %d %u %% %p %i\n") == 0);
 
+    /* literal % */
+    LogMessageVerbSigSafe(X_ERROR, -1, "test %%\n");
+    read_log_msg(logmsg);
+    assert(strcmp(logmsg, "(EE) test %\n") == 0);
+
+    /* character */
+    LogMessageVerbSigSafe(X_ERROR, -1, "test %c\n", 'a');
+    read_log_msg(logmsg);
+    assert(strcmp(logmsg, "(EE) test a\n") == 0);
+
+    /* something unsupported % */
+    LogMessageVerbSigSafe(X_ERROR, -1, "test %Q\n");
+    read_log_msg(logmsg);
+    assert(strstr(logmsg, "BUG") != NULL);
+    LogMessageVerbSigSafe(X_ERROR, -1, "\n");
+    fseek(f, 0, SEEK_END);
+
     /* string substitution */
     LogMessageVerbSigSafe(X_ERROR, -1, "%s\n", "substituted string");
     read_log_msg(logmsg);
@@ -207,6 +226,14 @@ static void logging_format(void)
     LogMessageVerbSigSafe(X_ERROR, -1, "\n");
     fseek(f, 0, SEEK_END);
 
+#warning Ignore compiler warning below "unknown conversion type character".  This is intentional.
+    /* %hld is bogus */
+    LogMessageVerbSigSafe(X_ERROR, -1, "%hld\n", 4);
+    read_log_msg(logmsg);
+    assert(strstr(logmsg, "BUG") != NULL);
+    LogMessageVerbSigSafe(X_ERROR, -1, "\n");
+    fseek(f, 0, SEEK_END);
+
     /* number substitution */
     ui = 0;
     do {
@@ -215,11 +242,46 @@ static void logging_format(void)
         LogMessageVerbSigSafe(X_ERROR, -1, "%u\n", ui);
         read_log_msg(logmsg);
         assert(strcmp(logmsg, expected) == 0);
+
+        sprintf(expected, "(EE) %x\n", ui);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%x\n", ui);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+
         if (ui == 0)
             ui = 1;
         else
             ui <<= 1;
     } while(ui);
+
+    lui = 0;
+    do {
+        char expected[30];
+        sprintf(expected, "(EE) %lu\n", lui);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%lu\n", lui);
+        read_log_msg(logmsg);
+
+        sprintf(expected, "(EE) %lld\n", (unsigned long long)ui);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%lld\n", (unsigned long long)ui);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+
+        sprintf(expected, "(EE) %lx\n", lui);
+        printf("%s\n", expected);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%lx\n", lui);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+
+        sprintf(expected, "(EE) %llx\n", (unsigned long long)ui);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%llx\n", (unsigned long long)ui);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+
+        if (lui == 0)
+            lui = 1;
+        else
+            lui <<= 1;
+    } while(lui);
 
     /* signed number substitution */
     i = 0;
@@ -229,7 +291,6 @@ static void logging_format(void)
         LogMessageVerbSigSafe(X_ERROR, -1, "%d\n", i);
         read_log_msg(logmsg);
         assert(strcmp(logmsg, expected) == 0);
-
 
         sprintf(expected, "(EE) %d\n", i | INT_MIN);
         LogMessageVerbSigSafe(X_ERROR, -1, "%d\n", i | INT_MIN);
@@ -242,19 +303,35 @@ static void logging_format(void)
             i <<= 1;
     } while(i > INT_MIN);
 
-    /* hex number substitution */
-    ui = 0;
+    li = 0;
     do {
         char expected[30];
-        sprintf(expected, "(EE) %x\n", ui);
-        LogMessageVerbSigSafe(X_ERROR, -1, "%x\n", ui);
+        sprintf(expected, "(EE) %ld\n", li);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%ld\n", li);
         read_log_msg(logmsg);
         assert(strcmp(logmsg, expected) == 0);
-        if (ui == 0)
-            ui = 1;
+
+        sprintf(expected, "(EE) %ld\n", li | LONG_MIN);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%ld\n", li | LONG_MIN);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+
+        sprintf(expected, "(EE) %lld\n", (long long)li);
+        LogMessageVerbSigSafe(X_ERROR, -1, "%lld\n", (long long)li);
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+
+        sprintf(expected, "(EE) %lld\n", (long long)(li | LONG_MIN));
+        LogMessageVerbSigSafe(X_ERROR, -1, "%lld\n", (long long)(li | LONG_MIN));
+        read_log_msg(logmsg);
+        assert(strcmp(logmsg, expected) == 0);
+
+        if (li == 0)
+            li = 1;
         else
-            ui <<= 1;
-    } while(ui);
+            li <<= 1;
+    } while(li > LONG_MIN);
+
 
     /* pointer substitution */
     /* we print a null-pointer differently to printf */

@@ -292,6 +292,7 @@ CreateClassesChangedEvent(InternalEvent *event,
             dce->valuators[i].mode = slave->valuator->axes[i].mode;
             dce->valuators[i].name = slave->valuator->axes[i].label;
             dce->valuators[i].scroll = slave->valuator->axes[i].scroll;
+            dce->valuators[i].value = slave->valuator->axisVal[i];
         }
     }
     if (slave->key) {
@@ -312,11 +313,11 @@ rescaleValuatorAxis(double coord, AxisInfoPtr from, AxisInfoPtr to,
 
     if (from && from->min_value < from->max_value) {
         fmin = from->min_value;
-        fmax = from->max_value;
+        fmax = from->max_value + 1;
     }
     if (to && to->min_value < to->max_value) {
         tmin = to->min_value;
-        tmax = to->max_value;
+        tmax = to->max_value + 1;
     }
 
     if (fmin == tmin && fmax == tmax)
@@ -784,6 +785,29 @@ add_to_scroll_valuator(DeviceIntPtr dev, ValuatorMask *mask, int valuator, doubl
 }
 
 
+static void
+scale_for_device_resolution(DeviceIntPtr dev, ValuatorMask *mask)
+{
+    double x;
+    ValuatorClassPtr v = dev->valuator;
+    int xrange = v->axes[0].max_value - v->axes[0].min_value + 1;
+    int yrange = v->axes[1].max_value - v->axes[1].min_value + 1;
+
+    double screen_ratio = 1.0 * screenInfo.width/screenInfo.height;
+    double device_ratio = 1.0 * xrange/yrange;
+    double resolution_ratio = 1.0;
+    double ratio;
+
+    if (!valuator_mask_fetch_double(mask, 0, &x))
+        return;
+
+    if (v->axes[0].resolution != 0 && v->axes[1].resolution != 0)
+        resolution_ratio = 1.0 * v->axes[0].resolution/v->axes[1].resolution;
+
+    ratio = device_ratio/resolution_ratio/screen_ratio;
+    valuator_mask_set_double(mask, 0, x * ratio);
+}
+
 /**
  * Move the device's pointer by the values given in @valuators.
  *
@@ -795,27 +819,14 @@ moveRelative(DeviceIntPtr dev, int flags, ValuatorMask *mask)
 {
     int i;
     Bool clip_xy = IsMaster(dev) || !IsFloating(dev);
+    ValuatorClassPtr v = dev->valuator;
 
     /* for abs devices in relative mode, we've just scaled wrong, since we
        mapped the device's shape into the screen shape. Undo this. */
-    if ((flags & POINTER_ABSOLUTE) == 0 && dev->valuator &&
-        dev->valuator->axes[0].min_value < dev->valuator->axes[0].max_value) {
-
-        double ratio = 1.0 * screenInfo.width/screenInfo.height;
-
-        if (ratio > 1.0) {
-            double y;
-            if (valuator_mask_fetch_double(mask, 1, &y)) {
-                y *= ratio;
-                valuator_mask_set_double(mask, 1, y);
-            }
-        } else {
-            double x;
-            if (valuator_mask_fetch_double(mask, 0, &x)) {
-                x *= ratio;
-                valuator_mask_set_double(mask, 0, x);
-            }
-        }
+    if ((flags & POINTER_ABSOLUTE) == 0 && v && v->numAxes > 1 &&
+        v->axes[0].min_value < v->axes[0].max_value &&
+        v->axes[1].min_value < v->axes[1].max_value) {
+        scale_for_device_resolution(dev, mask);
     }
 
     /* calc other axes, clip, drop back into valuators */
@@ -928,9 +939,9 @@ scale_to_desktop(DeviceIntPtr dev, ValuatorMask *mask,
 
     /* scale x&y to desktop coordinates */
     *screenx = rescaleValuatorAxis(x, dev->valuator->axes + 0, NULL,
-                                   screenInfo.x, screenInfo.width - 1);
+                                   screenInfo.x, screenInfo.width);
     *screeny = rescaleValuatorAxis(y, dev->valuator->axes + 1, NULL,
-                                   screenInfo.y, screenInfo.height - 1);
+                                   screenInfo.y, screenInfo.height);
 
     *devx = x;
     *devy = y;
@@ -1375,6 +1386,12 @@ QueuePointerEvents(DeviceIntPtr device, int type,
  * is the last coordinate on the first screen and must be rescaled for the
  * event to be m. XI2 clients that do their own coordinate mapping would
  * otherwise interpret the position of the device elsewere to the cursor.
+ * However, this scaling leads to losses:
+ * if we have two ScreenRecs we scale from e.g. [0..44704]  (Wacom I4) to
+ * [0..2048[. that gives us 2047.954 as desktop coord, or the per-screen
+ * coordinate 1023.954. Scaling that back into the device coordinate range
+ * gives us 44703. So off by one device unit. It's a bug, but we'll have to
+ * live with it because with all this scaling, we just cannot win.
  *
  * @return the number of events written into events.
  */

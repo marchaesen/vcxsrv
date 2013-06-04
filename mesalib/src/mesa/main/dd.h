@@ -22,9 +22,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -354,7 +355,9 @@ struct dd_function_table {
     * \param mode  bitmask of GL_MAP_READ_BIT, GL_MAP_WRITE_BIT and
     *              GL_MAP_INVALIDATE_RANGE_BIT (if writing)
     * \param mapOut  returns start of mapping of region of interest
-    * \param rowStrideOut  returns row stride (in bytes)
+    * \param rowStrideOut returns row stride (in bytes).  In the case of a
+    * compressed texture, this is the byte stride between one row of blocks
+    * and another.
     */
    void (*MapTextureImage)(struct gl_context *ctx,
 			   struct gl_texture_image *texImage,
@@ -622,7 +625,7 @@ struct dd_function_table {
                          struct gl_framebuffer *fb,
                          struct gl_renderbuffer_attachment *att);
    void (*FinishRenderTexture)(struct gl_context *ctx,
-                               struct gl_renderbuffer_attachment *att);
+                               struct gl_renderbuffer *rb);
    void (*ValidateFramebuffer)(struct gl_context *ctx,
                                struct gl_framebuffer *fb);
    /*@}*/
@@ -682,10 +685,9 @@ struct dd_function_table {
    GLuint CurrentExecPrimitive;
 
    /**
-    * Current state of an in-progress compilation.  
-    *
-    * May take on any of the additional values PRIM_OUTSIDE_BEGIN_END,
-    * PRIM_INSIDE_UNKNOWN_PRIM or PRIM_UNKNOWN defined above.
+    * Current glBegin state of an in-progress compilation.  May be
+    * GL_POINTS, GL_TRIANGLE_STRIP, etc. or PRIM_OUTSIDE_BEGIN_END
+    * or PRIM_UNKNOWN.
     */
    GLuint CurrentSavePrimitive;
 
@@ -694,15 +696,16 @@ struct dd_function_table {
 #define FLUSH_UPDATE_CURRENT  0x2
    /**
     * Set by the driver-supplied T&L engine whenever vertices are buffered
-    * between glBegin()/glEnd() objects or __struct gl_contextRec::Current is not
-    * updated.
+    * between glBegin()/glEnd() objects or __struct gl_contextRec::Current
+    * is not updated.  A bitmask of the FLUSH_x values above.
     *
     * The dd_function_table::FlushVertices call below may be used to resolve
     * these conditions.
     */
-   GLuint NeedFlush;
-   GLuint SaveNeedFlush;
+   GLbitfield NeedFlush;
 
+   /** Need to call SaveFlushVertices() upon state change? */
+   GLboolean SaveNeedFlush;
 
    /* Called prior to any of the GLvertexformat functions being
     * called.  Paired with Driver.FlushVertices().
@@ -848,28 +851,17 @@ struct dd_function_table {
 
 
 /**
- * Transform/Clip/Lighting interface
+ * Per-vertex functions.
  *
- * Drivers present a reduced set of the functions possible in
- * glBegin()/glEnd() objects.  Core mesa provides translation stubs for the
- * remaining functions to map down to these entry points.
+ * These are the functions which can appear between glBegin and glEnd.
+ * Depending on whether we're inside or outside a glBegin/End pair
+ * and whether we're in immediate mode or building a display list, these
+ * functions behave differently.  This structure allows us to switch
+ * between those modes more easily.
  *
- * These are the initial values to be installed into dispatch by
- * mesa.  If the T&L driver wants to modify the dispatch table
- * while installed, it must do so itself.  It would be possible for
- * the vertexformat to install its own initial values for these
- * functions, but this way there is an obvious list of what is
- * expected of the driver.
- *
- * If the driver wants to hook in entry points other than those
- * listed, it must restore them to their original values in
- * the disable() callback, below.
+ * Generally, these pointers point to functions in the VBO module.
  */
 typedef struct {
-   /**
-    * \name Vertex
-    */
-   /*@{*/
    void (GLAPIENTRYP ArrayElement)( GLint );
    void (GLAPIENTRYP Color3f)( GLfloat, GLfloat, GLfloat );
    void (GLAPIENTRYP Color3fv)( const GLfloat * );
@@ -1017,84 +1009,6 @@ typedef struct {
    void (GLAPIENTRYP VertexAttribP4uiv)( GLuint index, GLenum type,
 					 GLboolean normalized,
 					 const GLuint *value);
-
-   /*@}*/
-
-   void (GLAPIENTRYP Rectf)( GLfloat, GLfloat, GLfloat, GLfloat );
-
-   /**
-    * \name Array
-    */
-   /*@{*/
-   void (GLAPIENTRYP DrawArrays)( GLenum mode, GLint start, GLsizei count );
-   void (GLAPIENTRYP DrawElements)( GLenum mode, GLsizei count, GLenum type,
-			 const GLvoid *indices );
-   void (GLAPIENTRYP DrawRangeElements)( GLenum mode, GLuint start,
-			      GLuint end, GLsizei count,
-			      GLenum type, const GLvoid *indices );
-   void (GLAPIENTRYP MultiDrawElementsEXT)( GLenum mode, const GLsizei *count,
-					    GLenum type,
-					    const GLvoid **indices,
-					    GLsizei primcount);
-   void (GLAPIENTRYP DrawElementsBaseVertex)( GLenum mode, GLsizei count,
-					      GLenum type,
-					      const GLvoid *indices,
-					      GLint basevertex );
-   void (GLAPIENTRYP DrawRangeElementsBaseVertex)( GLenum mode, GLuint start,
-						   GLuint end, GLsizei count,
-						   GLenum type,
-						   const GLvoid *indices,
-						   GLint basevertex);
-   void (GLAPIENTRYP MultiDrawElementsBaseVertex)( GLenum mode,
-						   const GLsizei *count,
-						   GLenum type,
-						   const GLvoid * const *indices,
-						   GLsizei primcount,
-						   const GLint *basevertex);
-   void (GLAPIENTRYP DrawArraysInstanced)(GLenum mode, GLint first,
-                                          GLsizei count, GLsizei primcount);
-   void (GLAPIENTRYP DrawArraysInstancedBaseInstance)(GLenum mode, GLint first,
-                                                      GLsizei count, GLsizei primcount,
-                                                      GLuint baseinstance);
-   void (GLAPIENTRYP DrawElementsInstanced)(GLenum mode, GLsizei count,
-                                            GLenum type, const GLvoid *indices,
-                                            GLsizei primcount);
-   void (GLAPIENTRYP DrawElementsInstancedBaseInstance)(GLenum mode, GLsizei count,
-                                                        GLenum type, const GLvoid *indices,
-                                                        GLsizei primcount, GLuint baseinstance);
-   void (GLAPIENTRYP DrawElementsInstancedBaseVertex)(GLenum mode, GLsizei count,
-                                            GLenum type, const GLvoid *indices,
-                                            GLsizei primcount, GLint basevertex);
-   void (GLAPIENTRYP DrawElementsInstancedBaseVertexBaseInstance)(GLenum mode, GLsizei count,
-                                                                  GLenum type, const GLvoid *indices,
-                                                                  GLsizei primcount, GLint basevertex,
-                                                                  GLuint baseinstance);
-   void (GLAPIENTRYP DrawTransformFeedback)(GLenum mode, GLuint name);
-   void (GLAPIENTRYP DrawTransformFeedbackStream)(GLenum mode, GLuint name,
-                                                  GLuint stream);
-   void (GLAPIENTRYP DrawTransformFeedbackInstanced)(GLenum mode, GLuint name,
-                                                     GLsizei primcount);
-   void (GLAPIENTRYP DrawTransformFeedbackStreamInstanced)(GLenum mode,
-                                                           GLuint name,
-                                                           GLuint stream,
-                                                           GLsizei primcount);
-   /*@}*/
-
-   /**
-    * \name Eval
-    *
-    * If you don't support eval, fallback to the default vertex format
-    * on receiving an eval call and use the pipeline mechanism to
-    * provide partial T&L acceleration.
-    *
-    * Mesa will provide a set of helper functions to do eval within
-    * accelerated vertex formats, eventually...
-    */
-   /*@{*/
-   void (GLAPIENTRYP EvalMesh1)( GLenum mode, GLint i1, GLint i2 );
-   void (GLAPIENTRYP EvalMesh2)( GLenum mode, GLint i1, GLint i2, GLint j1, GLint j2 );
-   /*@}*/
-
 } GLvertexformat;
 
 

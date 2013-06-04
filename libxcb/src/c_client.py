@@ -688,10 +688,20 @@ def _c_serialize_helper_switch(context, self, complex_name,
     switch_expr = _c_accessor_get_expr(self.expr, None)
 
     for b in self.bitcases:            
-        bitcase_expr = _c_accessor_get_expr(b.type.expr, None)
-        code_lines.append('    if(%s & %s) {' % (switch_expr, bitcase_expr))
-#        code_lines.append('        printf("switch %s: entering bitcase section %s (mask=%%%%d)...\\n", %s);' % 
-#                          (self.name[-1], b.type.name[-1], bitcase_expr))
+        len_expr = len(b.type.expr)
+        for n, expr in enumerate(b.type.expr):
+            bitcase_expr = _c_accessor_get_expr(expr, None)
+            # only one <enumref> in the <bitcase>
+            if len_expr == 1:
+                code_lines.append('    if(%s & %s) {' % (switch_expr, bitcase_expr))
+            # multiple <enumref> in the <bitcase>
+            elif n == 0: # first
+                code_lines.append('    if((%s & %s) ||' % (switch_expr, bitcase_expr))
+            elif len_expr == (n + 1): # last
+                code_lines.append('       (%s & %s)) {' % (switch_expr, bitcase_expr))
+            else: # between first and last
+                code_lines.append('       (%s & %s) ||' % (switch_expr, bitcase_expr))
+
         b_prefix = prefix
         if b.type.has_name:
             b_prefix = prefix + [(b.c_field_name, '.', b.type)]

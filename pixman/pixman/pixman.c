@@ -605,7 +605,7 @@ pixman_image_composite32 (pixman_op_t      op,
     else
     {
 	mask_format = PIXMAN_null;
-	info.mask_flags = FAST_PATH_IS_OPAQUE;
+	info.mask_flags = FAST_PATH_IS_OPAQUE | FAST_PATH_NO_ALPHA_MAP;
     }
 
     dest_format = dest->common.extended_format_code;

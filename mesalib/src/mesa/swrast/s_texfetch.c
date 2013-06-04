@@ -18,9 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -97,10 +98,17 @@ static void
 fetch_compressed(const struct swrast_texture_image *swImage,
                  GLint i, GLint j, GLint k, GLfloat *texel)
 {
-   swImage->FetchCompressedTexel(swImage->Map,
-                                 swImage->ImageOffsets,
-                                 swImage->RowStride,
-                                 i, j, k, texel);
+   /* The FetchCompressedTexel function takes an integer pixel rowstride,
+    * while the image's rowstride is bytes per row of blocks.
+    */
+   GLuint bw, bh;
+   GLuint texelBytes = _mesa_get_format_bytes(swImage->Base.TexFormat);
+   _mesa_get_format_block_size(swImage->Base.TexFormat, &bw, &bh);
+   assert(swImage->RowStride * bw % texelBytes == 0);
+
+   swImage->FetchCompressedTexel(swImage->ImageSlices[k],
+                                 swImage->RowStride * bw / texelBytes,
+                                 i, j, texel);
 }
 
 

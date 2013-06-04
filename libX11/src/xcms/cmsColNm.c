@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <limits.h>
 #define XK_LATIN1
 #include <X11/keysymdef.h>
 #include "Cv.h"
@@ -542,7 +543,10 @@ stringSectionSize(
     char *pBuf;
     char *f1;
     char *f2;
-    int i;
+    size_t i;
+
+    unsigned int numEntries = 0;
+    unsigned int sectionSize = 0;
 
     *pNumEntries = 0;
     *pSectionSize = 0;
@@ -576,25 +580,36 @@ stringSectionSize(
 	    return(XcmsFailure);
 	}
 
-	(*pNumEntries)++;
+	numEntries++;
+	if (numEntries >= INT_MAX)
+	    return(XcmsFailure);
 
-	(*pSectionSize) += (i = strlen(f1)) + 1;
+	i = strlen(f1);
+	if (i >= INT_MAX - sectionSize)
+	    return(XcmsFailure);
+	sectionSize += i + 1;
 	for (; i; i--, f1++) {
 	    /* REMOVE SPACES FROM COUNT */
 	    if (isspace(*f1)) {
-		(*pSectionSize)--;
+		sectionSize--;
 	    }
 	}
 
-	(*pSectionSize) += (i = strlen(f2)) + 1;
+	i = strlen(f2);
+	if (i >= INT_MAX - sectionSize)
+	    return(XcmsFailure);
+	sectionSize += i + 1;
 	for (; i; i--, f2++) {
 	    /* REMOVE SPACES FROM COUNT */
 	    if (isspace(*f2)) {
-		(*pSectionSize)--;
+		sectionSize--;
 	    }
 	}
 
     }
+
+    *pNumEntries = (int) numEntries;
+    *pSectionSize = (int) sectionSize;
 
     return(XcmsSuccess);
 }

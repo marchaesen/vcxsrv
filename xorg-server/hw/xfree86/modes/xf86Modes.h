@@ -36,9 +36,6 @@
 #include "xorgVersion.h"
 #include "edid.h"
 #include "xf86Parser.h"
-#if XF86_MODES_RENAME
-#include "xf86Rename.h"
-#endif
 
 extern _X_EXPORT double xf86ModeHSync(const DisplayModeRec * mode);
 extern _X_EXPORT double xf86ModeVRefresh(const DisplayModeRec * mode);
@@ -110,6 +107,9 @@ extern _X_EXPORT DisplayModePtr
 xf86GetMonitorModes(ScrnInfoPtr pScrn, XF86ConfMonitorPtr conf_monitor);
 
 extern _X_EXPORT DisplayModePtr xf86GetDefaultModes(void);
+
+extern _X_EXPORT void
+xf86SaveModeContents(DisplayModePtr intern, const DisplayModeRec *mode);
 
 extern _X_EXPORT void
  xf86DDCApplyQuirks(int scrnIndex, xf86MonPtr DDC);

@@ -1,11 +1,28 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.10.92 (2.11 RC2)
-                              2013-03-29
+                      Version 2.10.93 (2.11 RC3)
+                              2013-05-20
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.10.93 (2.11 RC3)
+
+Akira TAGOH (10):
+      Bug 62980 - matching native fonts with even :lang=en
+      Ensure closing fp on error
+      Obtain fonts data via FT_Face instead of opening a file directly
+      Revert the previous change and rework to not export freetype API outside fcfreetype.c
+      documented FC_HASH and FC_POSTSCRIPT_NAME
+      Bug 63329 - make check fails: .. contents:: :depth: 2
+      Use the glob matching for filename
+      Bug 63452 - conf.d/README outdated
+      Fix missing OSAtomicCompareAndSwapPtrBarrier() on Mac OS X 10.4
+      Bug 63922 - FcFreeTypeQueryFace fails on postscripts fonts loaded from memory
+
+Sebastian Freundt (1):
+      build-chain, replace INCLUDES directive by AM_CPPFLAGS
 
 2.10.92 (2.11 RC2)
 

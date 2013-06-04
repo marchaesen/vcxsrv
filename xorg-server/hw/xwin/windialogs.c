@@ -439,7 +439,6 @@ winChangeDepthDlgProc(HWND hwndDialog, UINT message,
 {
     static winPrivScreenPtr s_pScreenPriv = NULL;
     static winScreenInfo *s_pScreenInfo = NULL;
-    static ScreenPtr s_pScreen = NULL;
 
     winDebug("winChangeDepthDlgProc\n");
 
@@ -451,11 +450,10 @@ winChangeDepthDlgProc(HWND hwndDialog, UINT message,
         /* Store pointers to private structures for future use */
         s_pScreenPriv = (winPrivScreenPtr) lParam;
         s_pScreenInfo = s_pScreenPriv->pScreenInfo;
-        s_pScreen = s_pScreenInfo->pScreen;
 
         winDebug("winChangeDepthDlgProc - WM_INITDIALOG - s_pScreenPriv: %08x, "
-                 "s_pScreenInfo: %08x, s_pScreen: %08x\n",
-                 s_pScreenPriv, s_pScreenInfo, s_pScreen);
+                 "s_pScreenInfo: %08x\n",
+                 s_pScreenPriv, s_pScreenInfo);
 
         winDebug("winChangeDepthDlgProc - WM_INITDIALOG - orig bpp: %d, "
                  "current bpp: %d\n",
@@ -560,8 +558,6 @@ static wBOOL CALLBACK
 winAboutDlgProc(HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static winPrivScreenPtr s_pScreenPriv = NULL;
-    static winScreenInfo *s_pScreenInfo = NULL;
-    static ScreenPtr s_pScreen = NULL;
 
     winDebug("winAboutDlgProc\n");
 
@@ -570,10 +566,8 @@ winAboutDlgProc(HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_INITDIALOG:
         winDebug("winAboutDlgProc - WM_INITDIALOG\n");
 
-        /* Store pointers to private structures for future use */
+        /* Store pointer to private structure for future use */
         s_pScreenPriv = (winPrivScreenPtr) lParam;
-        s_pScreenInfo = s_pScreenPriv->pScreenInfo;
-        s_pScreen = s_pScreenInfo->pScreen;
 
         winInitDialog(hwndDialog);
 

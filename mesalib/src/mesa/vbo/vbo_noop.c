@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -29,12 +30,10 @@
 
 
 #include "main/glheader.h"
-#include "main/api_arrayelt.h"
 #include "main/context.h"
 #include "main/dispatch.h"
 #include "main/dlist.h"
 #include "main/eval.h"
-#include "main/mfeatures.h"
 #include "vbo/vbo_noop.h"
 
 static void GLAPIENTRY
@@ -332,6 +331,12 @@ _mesa_noop_EvalPoint2(GLint a, GLint b)
 }
 
 static void GLAPIENTRY
+_mesa_noop_ArrayElement(GLint elem)
+{
+}
+
+
+static void GLAPIENTRY
 _mesa_noop_Begin(GLenum mode)
 {
 }
@@ -347,73 +352,6 @@ _mesa_noop_PrimitiveRestartNV(void)
 }
 
 
-static void GLAPIENTRY
-_mesa_noop_Rectf(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2)
-{
-}
-
-
-static void GLAPIENTRY
-_mesa_noop_DrawArrays(GLenum mode, GLint start, GLsizei count)
-{
-}
-
-static void GLAPIENTRY
-_mesa_noop_DrawElements(GLenum mode, GLsizei count, GLenum type,
-                        const GLvoid * indices)
-{
-}
-
-static void GLAPIENTRY
-_mesa_noop_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
-                                  const GLvoid * indices, GLint basevertex)
-{
-}
-
-
-static void GLAPIENTRY
-_mesa_noop_DrawRangeElements(GLenum mode,
-                             GLuint start, GLuint end,
-                             GLsizei count, GLenum type,
-                             const GLvoid * indices)
-{
-}
-
-static void GLAPIENTRY
-_mesa_noop_MultiDrawElements(GLenum mode, const GLsizei * count, GLenum type,
-                             const GLvoid ** indices, GLsizei primcount)
-{
-}
-
-static void GLAPIENTRY
-_mesa_noop_DrawRangeElementsBaseVertex(GLenum mode,
-                                       GLuint start, GLuint end,
-                                       GLsizei count, GLenum type,
-                                       const GLvoid * indices,
-                                       GLint basevertex)
-{
-}
-
-static void GLAPIENTRY
-_mesa_noop_MultiDrawElementsBaseVertex(GLenum mode, const GLsizei * count,
-                                       GLenum type,
-                                       const GLvoid * const *indices,
-                                       GLsizei primcount,
-                                       const GLint * basevertex)
-{
-}
-
-static void GLAPIENTRY
-_mesa_noop_EvalMesh1(GLenum mode, GLint i1, GLint i2)
-{
-}
-
-static void GLAPIENTRY
-_mesa_noop_EvalMesh2(GLenum mode, GLint i1, GLint i2, GLint j1, GLint j2)
-{
-}
-
-
 /**
  * Build a vertexformat of functions that are no-ops.
  * These are used in out-of-memory situations when we have no VBO
@@ -422,11 +360,12 @@ _mesa_noop_EvalMesh2(GLenum mode, GLint i1, GLint i2, GLint j1, GLint j2)
 void
 _mesa_noop_vtxfmt_init(GLvertexformat * vfmt)
 {
-   _MESA_INIT_ARRAYELT_VTXFMT(vfmt, _ae_);
+   vfmt->ArrayElement = _mesa_noop_ArrayElement;
 
    vfmt->Begin = _mesa_noop_Begin;
 
-   _MESA_INIT_DLIST_VTXFMT(vfmt, _mesa_);
+   vfmt->CallList = _mesa_CallList;
+   vfmt->CallLists = _mesa_CallLists;
 
    vfmt->Color3f = _mesa_noop_Color3f;
    vfmt->Color3fv = _mesa_noop_Color3fv;
@@ -437,7 +376,12 @@ _mesa_noop_vtxfmt_init(GLvertexformat * vfmt)
 
    vfmt->PrimitiveRestartNV = _mesa_noop_PrimitiveRestartNV;
 
-   _MESA_INIT_EVAL_VTXFMT(vfmt, _mesa_noop_);
+   vfmt->EvalCoord1f = _mesa_noop_EvalCoord1f;
+   vfmt->EvalCoord1fv = _mesa_noop_EvalCoord1fv;
+   vfmt->EvalCoord2f = _mesa_noop_EvalCoord2f;
+   vfmt->EvalCoord2fv = _mesa_noop_EvalCoord2fv;
+   vfmt->EvalPoint1 = _mesa_noop_EvalPoint1;
+   vfmt->EvalPoint2 = _mesa_noop_EvalPoint2;
 
    vfmt->FogCoordfEXT = _mesa_noop_FogCoordfEXT;
    vfmt->FogCoordfvEXT = _mesa_noop_FogCoordfvEXT;
@@ -486,16 +430,6 @@ _mesa_noop_vtxfmt_init(GLvertexformat * vfmt)
    vfmt->VertexAttrib3fvARB = _mesa_noop_VertexAttrib3fvARB;
    vfmt->VertexAttrib4fARB = _mesa_noop_VertexAttrib4fARB;
    vfmt->VertexAttrib4fvARB = _mesa_noop_VertexAttrib4fvARB;
-
-   vfmt->Rectf = _mesa_noop_Rectf;
-
-   vfmt->DrawArrays = _mesa_noop_DrawArrays;
-   vfmt->DrawElements = _mesa_noop_DrawElements;
-   vfmt->DrawRangeElements = _mesa_noop_DrawRangeElements;
-   vfmt->MultiDrawElementsEXT = _mesa_noop_MultiDrawElements;
-   vfmt->DrawElementsBaseVertex = _mesa_noop_DrawElementsBaseVertex;
-   vfmt->DrawRangeElementsBaseVertex = _mesa_noop_DrawRangeElementsBaseVertex;
-   vfmt->MultiDrawElementsBaseVertex = _mesa_noop_MultiDrawElementsBaseVertex;
 }
 
 

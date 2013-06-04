@@ -106,7 +106,10 @@ int main (int argc, char *argv[])
 {
     const uint32_t ref_crc[RANDMEMSET_MORE_00_AND_FF + 1] =
     {
-        0xBA06763D, 0x103FC550, 0x8B59ABA5, 0xD82A0F39
+        0xBA06763D, 0x103FC550, 0x8B59ABA5, 0xD82A0F39,
+        0xD2321099, 0xFD8C5420, 0xD3B7C42A, 0xFC098093,
+        0x85E01DE0, 0x6680F8F7, 0x4D32DD3C, 0xAE52382B,
+        0x149E6CB5, 0x8B336987, 0x15DCB2B3, 0x8A71B781
     };
     uint32_t crc1, crc2;
     uint32_t ref, seed, seed0, seed1, seed2, seed3;

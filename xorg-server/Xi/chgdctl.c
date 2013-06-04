@@ -122,6 +122,12 @@ ProcXChangeDeviceControl(ClientPtr client)
     if (ret != Success)
         goto out;
 
+    /* XTest devices are special, none of the below apply to them anyway */
+    if (IsXTestDevice(dev, NULL)) {
+        ret = BadMatch;
+        goto out;
+    }
+
 
     rep.repType = X_Reply;
     rep.RepType = X_ChangeDeviceControl;

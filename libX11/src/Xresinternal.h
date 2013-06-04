@@ -2,6 +2,8 @@
 #ifndef _XRESINTERNAL_H_
 #define _XRESINTERNAL_H_
 
+#include <X11/Xlib.h>
+#include <X11/Xresource.h>
 #include <inttypes.h>
 
 /* type defines */

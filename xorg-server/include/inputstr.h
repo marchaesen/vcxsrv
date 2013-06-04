@@ -485,7 +485,7 @@ typedef struct _GrabInfoRec {
     TimeStamp grabTime;
     Bool fromPassiveGrab;       /* true if from passive grab */
     Bool implicitGrab;          /* implicit from ButtonPress */
-    GrabPtr activeGrab;
+    GrabPtr unused;             /* Kept for ABI stability, remove soon */
     GrabPtr grab;
     CARD8 activatingKey;
     void (*ActivateGrab) (DeviceIntPtr /*device */ ,

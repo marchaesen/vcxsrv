@@ -617,8 +617,10 @@ sparcPromPathname2Node(const char *pathName)
         return 0;
     strcpy(name, pathName);
     name[i + 1] = 0;
-    if (name[0] != '/')
+    if (name[0] != '/') {
+        free(name);
         return 0;
+    }
     p = strchr(name + 1, '/');
     if (p)
         *p = 0;
@@ -629,8 +631,10 @@ sparcPromPathname2Node(const char *pathName)
         *regstr++ = 0;
     else
         regstr = p;
-    if (name + 1 == regstr)
+    if (name + 1 == regstr) {
+        free(name);
         return 0;
+    }
     promGetSibling(0);
     i = promWalkPathname2Node(name + 1, regstr, promRootNode, 0);
     free(name);

@@ -25,7 +25,6 @@
  * 
  **************************************************************************/
 
-#include "main/mfeatures.h"
 #include "main/bufferobj.h"
 #include "main/enums.h"
 #include "main/fbobject.h"
@@ -78,6 +77,8 @@ gl_target_to_pipe(GLenum target)
    case GL_TEXTURE_2D:
    case GL_PROXY_TEXTURE_2D:
    case GL_TEXTURE_EXTERNAL_OES:
+   case GL_TEXTURE_2D_MULTISAMPLE:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
       return PIPE_TEXTURE_2D;
    case GL_TEXTURE_RECTANGLE_NV:
    case GL_PROXY_TEXTURE_RECTANGLE_NV:
@@ -99,6 +100,8 @@ gl_target_to_pipe(GLenum target)
       return PIPE_TEXTURE_1D_ARRAY;
    case GL_TEXTURE_2D_ARRAY_EXT:
    case GL_PROXY_TEXTURE_2D_ARRAY_EXT:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+   case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
       return PIPE_TEXTURE_2D_ARRAY;
    case GL_TEXTURE_BUFFER:
       return PIPE_BUFFER;
@@ -408,7 +411,7 @@ guess_and_alloc_texture(struct st_context *st,
                                  ptWidth,
                                  ptHeight,
                                  ptDepth,
-                                 ptLayers,
+                                 ptLayers, 0,
                                  bindings);
 
    stObj->lastLevel = lastLevel;
@@ -496,7 +499,7 @@ st_AllocTextureImageBuffer(struct gl_context *ctx,
                                       ptWidth,
                                       ptHeight,
                                       ptDepth,
-                                      ptLayers,
+                                      ptLayers, 0,
                                       bindings);
       return stImage->pt != NULL;
    }
@@ -1492,7 +1495,7 @@ st_finalize_texture(struct gl_context *ctx,
    GLuint face;
    struct st_texture_image *firstImage;
    enum pipe_format firstImageFormat;
-   GLuint ptWidth, ptHeight, ptDepth, ptLayers;
+   GLuint ptWidth, ptHeight, ptDepth, ptLayers, ptNumSamples;
 
    if (_mesa_is_texture_complete(tObj, &tObj->Sampler)) {
       /* The texture is complete and we know exactly how many mipmap levels
@@ -1537,6 +1540,11 @@ st_finalize_texture(struct gl_context *ctx,
       pipe_sampler_view_release(st->pipe, &stObj->sampler_view);
    }
 
+   /* If this texture comes from a window system, there is nothing else to do. */
+   if (stObj->surface_based) {
+      return GL_TRUE;
+   }
+
    /* Find gallium format for the Mesa texture */
    firstImageFormat = st_mesa_format_to_pipe_format(firstImage->base.TexFormat);
 
@@ -1556,6 +1564,7 @@ st_finalize_texture(struct gl_context *ctx,
       /* convert GL dims to Gallium dims */
       st_gl_texture_dims_to_pipe_dims(stObj->base.Target, width, height, depth,
                                       &ptWidth, &ptHeight, &ptDepth, &ptLayers);
+      ptNumSamples = firstImage->base.NumSamples;
    }
 
    /* If we already have a gallium texture, check that it matches the texture
@@ -1563,11 +1572,12 @@ st_finalize_texture(struct gl_context *ctx,
     */
    if (stObj->pt) {
       if (stObj->pt->target != gl_target_to_pipe(stObj->base.Target) ||
-          !st_sampler_compat_formats(stObj->pt->format, firstImageFormat) ||
+          stObj->pt->format != firstImageFormat ||
           stObj->pt->last_level < stObj->lastLevel ||
           stObj->pt->width0 != ptWidth ||
           stObj->pt->height0 != ptHeight ||
           stObj->pt->depth0 != ptDepth ||
+          stObj->pt->nr_samples != ptNumSamples ||
           stObj->pt->array_size != ptLayers)
       {
          /* The gallium texture does not match the Mesa texture so delete the
@@ -1591,7 +1601,7 @@ st_finalize_texture(struct gl_context *ctx,
                                     ptWidth,
                                     ptHeight,
                                     ptDepth,
-                                    ptLayers,
+                                    ptLayers, ptNumSamples,
                                     bindings);
 
       if (!stObj->pt) {
@@ -1637,11 +1647,14 @@ st_AllocTextureStorage(struct gl_context *ctx,
                        GLsizei height, GLsizei depth)
 {
    const GLuint numFaces = _mesa_num_tex_faces(texObj->Target);
+   struct gl_texture_image *texImage = texObj->Image[0][0];
    struct st_context *st = st_context(ctx);
    struct st_texture_object *stObj = st_texture_object(texObj);
+   struct pipe_screen *screen = st->pipe->screen;
    GLuint ptWidth, ptHeight, ptDepth, ptLayers, bindings;
    enum pipe_format fmt;
    GLint level;
+   int num_samples = texImage->NumSamples;
 
    assert(levels > 0);
 
@@ -1651,9 +1664,29 @@ st_AllocTextureStorage(struct gl_context *ctx,
    stObj->depth0 = depth;
    stObj->lastLevel = levels - 1;
 
-   fmt = st_mesa_format_to_pipe_format(texObj->Image[0][0]->TexFormat);
+   fmt = st_mesa_format_to_pipe_format(texImage->TexFormat);
 
    bindings = default_bindings(st, fmt);
+
+   /* Raise the sample count if the requested one is unsupported. */
+   if (num_samples > 1) {
+      boolean found = FALSE;
+
+      for (; num_samples <= ctx->Const.MaxSamples; num_samples++) {
+         if (screen->is_format_supported(screen, fmt, PIPE_TEXTURE_2D,
+                                         num_samples,
+                                         PIPE_BIND_SAMPLER_VIEW)) {
+            /* Update the sample count in gl_texture_image as well. */
+            texImage->NumSamples = num_samples;
+            found = TRUE;
+            break;
+         }
+      }
+
+      if (!found) {
+         return GL_FALSE;
+      }
+   }
 
    st_gl_texture_dims_to_pipe_dims(texObj->Target,
                                    width, height, depth,
@@ -1662,11 +1695,11 @@ st_AllocTextureStorage(struct gl_context *ctx,
    stObj->pt = st_texture_create(st,
                                  gl_target_to_pipe(texObj->Target),
                                  fmt,
-                                 levels,
+                                 levels - 1,
                                  ptWidth,
                                  ptHeight,
                                  ptDepth,
-                                 ptLayers,
+                                 ptLayers, num_samples,
                                  bindings);
    if (!stObj->pt)
       return GL_FALSE;

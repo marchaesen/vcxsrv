@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.14.99.0, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2013-03-18"
-RELEASE_NAME="Pok Pok Meyer Lemon"
+AC_INIT([xorg-server], 1.14.99.1, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2013-04-24"
+RELEASE_NAME="Sweet Tea"
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 
@@ -2222,6 +2222,14 @@ AC_SUBST([exec_prefix])
 AC_SUBST([prefix])
 
 AC_CONFIG_COMMANDS([sdksyms], [touch hw/xfree86/sdksyms.dep])
+
+if test "x$CONFIG_HAL" = xno && test "x$CONFIG_UDEV" = xno; then
+    AC_WARN([
+             ***********************************************
+             Neither HAL nor udev backend will be enabled.
+             Input device hotplugging will not be available!
+             ***********************************************])
+fi
 
 AC_OUTPUT([
 Makefile

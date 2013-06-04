@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -217,7 +218,7 @@ extern GLboolean
 _swrast_alloc_texture_image_buffer(struct gl_context *ctx,
                                    struct gl_texture_image *texImage);
 
-extern void
+extern GLboolean
 _swrast_init_texture_image(struct gl_texture_image *texImage);
 
 extern void
@@ -269,15 +270,7 @@ _swrast_render_texture(struct gl_context *ctx,
 
 extern void
 _swrast_finish_render_texture(struct gl_context *ctx,
-                              struct gl_renderbuffer_attachment *att);
-
-
-
-extern GLboolean
-_swrast_AllocTextureStorage(struct gl_context *ctx,
-                            struct gl_texture_object *texObj,
-                            GLsizei levels, GLsizei width,
-                            GLsizei height, GLsizei depth);
+                              struct gl_renderbuffer *rb);
 
 
 /**

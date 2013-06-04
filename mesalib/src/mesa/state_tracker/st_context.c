@@ -49,6 +49,7 @@
 #include "st_cb_eglimage.h"
 #include "st_cb_fbo.h"
 #include "st_cb_feedback.h"
+#include "st_cb_msaa.h"
 #include "st_cb_program.h"
 #include "st_cb_queryobj.h"
 #include "st_cb_readpixels.h"
@@ -187,6 +188,10 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
 
    st->needs_texcoord_semantic =
       screen->get_param(screen, PIPE_CAP_TGSI_TEXCOORD);
+   st->apply_texture_swizzle_to_border_color =
+      !!(screen->get_param(screen, PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK) &
+         (PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_NV50 |
+          PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_R600));
 
    /* GL limits and extensions */
    st_init_limits(st);
@@ -203,6 +208,8 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
 static void st_init_driver_flags(struct gl_driver_flags *f)
 {
    f->NewArray = ST_NEW_VERTEX_ARRAYS;
+   f->NewRasterizerDiscard = ST_NEW_RASTERIZER;
+   f->NewUniformBuffer = ST_NEW_UNIFORM_BUFFER;
 }
 
 struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
@@ -233,7 +240,7 @@ struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
     * driver prefers DP4 or MUL/MAD for vertex transformation.
     */
    if (debug_get_option_mesa_mvp_dp4())
-      _mesa_set_mvp_with_dp4( ctx, GL_TRUE );
+      ctx->ShaderCompilerOptions[MESA_SHADER_VERTEX].PreferDP4 = GL_TRUE;
 
    return st_create_context_priv(ctx, pipe, options);
 }
@@ -340,6 +347,7 @@ void st_init_driver_functions(struct dd_function_table *functions)
 
    st_init_fbo_functions(functions);
    st_init_feedback_functions(functions);
+   st_init_msaa_functions(functions);
    st_init_program_functions(functions);
    st_init_query_functions(functions);
    st_init_cond_render_functions(functions);

@@ -34,6 +34,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/extensions/extutil.h>
 #include <X11/extensions/multibufproto.h>
 #include <X11/extensions/multibuf.h>
+#include "eat.h"
 
 static XExtensionInfo _multibuf_info_data;
 static XExtensionInfo *multibuf_info = &_multibuf_info_data;
@@ -408,7 +409,7 @@ Status XmbufGetWindowAttributes (
 	attr->buffers = (Multibuffer *) Xmalloc((unsigned) nbytes);
 	nbytes = rep.length << 2;
 	if (! attr->buffers) {
-	    _XEatData(dpy, (unsigned long) nbytes);
+	    _XEatDataWords(dpy, rep.length);
 	    UnlockDisplay(dpy);
 	    SyncHandle();
 	    return (0);

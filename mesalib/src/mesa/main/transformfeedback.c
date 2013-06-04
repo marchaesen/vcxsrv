@@ -16,9 +16,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -35,7 +36,6 @@
 #include "context.h"
 #include "hash.h"
 #include "macros.h"
-#include "mfeatures.h"
 #include "mtypes.h"
 #include "transformfeedback.h"
 #include "shaderapi.h"
@@ -385,7 +385,9 @@ _mesa_BeginTransformFeedback(GLenum mode)
       }
    }
 
-   FLUSH_VERTICES(ctx, _NEW_TRANSFORM_FEEDBACK);
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
+
    obj->Active = GL_TRUE;
    ctx->TransformFeedback.Mode = mode;
 
@@ -422,7 +424,9 @@ _mesa_EndTransformFeedback(void)
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_TRANSFORM_FEEDBACK);
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
+
    ctx->TransformFeedback.CurrentObject->Active = GL_FALSE;
    ctx->TransformFeedback.CurrentObject->Paused = GL_FALSE;
    ctx->TransformFeedback.CurrentObject->EndedAnytime = GL_TRUE;
@@ -443,7 +447,7 @@ bind_buffer_range(struct gl_context *ctx, GLuint index,
    struct gl_transform_feedback_object *obj =
       ctx->TransformFeedback.CurrentObject;
 
-   /* Note: no need to FLUSH_VERTICES or flag _NEW_TRANSFORM_FEEDBACK, because
+   /* Note: no need to FLUSH_VERTICES or flag NewTransformFeedback, because
     * transform feedback buffers can't be changed while transform feedback is
     * active.
     */
@@ -687,7 +691,7 @@ _mesa_TransformFeedbackVaryings(GLuint program, GLsizei count,
 
    shProg->TransformFeedback.BufferMode = bufferMode;
 
-   /* No need to set _NEW_TRANSFORM_FEEDBACK (or invoke FLUSH_VERTICES) since
+   /* No need to invoke FLUSH_VERTICES or flag NewTransformFeedback since
     * the varyings won't be used until shader link time.
     */
 }
@@ -898,7 +902,9 @@ _mesa_PauseTransformFeedback(void)
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_TRANSFORM_FEEDBACK);
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
+
    obj->Paused = GL_TRUE;
 
    assert(ctx->Driver.PauseTransformFeedback);
@@ -924,7 +930,9 @@ _mesa_ResumeTransformFeedback(void)
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_TRANSFORM_FEEDBACK);
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
+
    obj->Paused = GL_FALSE;
 
    assert(ctx->Driver.ResumeTransformFeedback);

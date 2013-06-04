@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include "xf86.h"
+#include "xf86Modes.h"
 #include "vbe.h"
 #include <X11/extensions/dpmsconst.h>
 

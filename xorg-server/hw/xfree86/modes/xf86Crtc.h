@@ -25,9 +25,6 @@
 
 #include <edid.h>
 #include "randrstr.h"
-#if XF86_MODES_RENAME
-#include "xf86Rename.h"
-#endif
 #include "xf86Modes.h"
 #include "xf86Cursor.h"
 #include "xf86i2c.h"

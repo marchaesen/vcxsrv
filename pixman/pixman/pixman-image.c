@@ -502,8 +502,10 @@ compute_image_info (pixman_image_t *image)
 	break;
     }
 
-    /* Alpha map */
-    if (!image->common.alpha_map)
+    /* Alpha maps are only supported for BITS images, so it's always
+     * safe to ignore their presense for non-BITS images
+     */
+    if (!image->common.alpha_map || image->type != BITS)
     {
 	flags |= FAST_PATH_NO_ALPHA_MAP;
     }
@@ -918,10 +920,10 @@ _pixman_image_get_solid (pixman_implementation_t *imp,
 	pixman_iter_t iter;
 
     otherwise:
-	_pixman_implementation_src_iter_init (
+	_pixman_implementation_iter_init (
 	    imp, &iter, image, 0, 0, 1, 1,
 	    (uint8_t *)&result,
-	    ITER_NARROW, image->common.flags);
+	    ITER_NARROW | ITER_SRC, image->common.flags);
 	
 	result = *iter.get_scanline (&iter, NULL);
     }

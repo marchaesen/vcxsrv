@@ -5554,19 +5554,27 @@ FAST_NEAREST_MAINLOOP_COMMON (sse2_8888_n_8888_normal_OVER,
 			      scaled_nearest_scanline_sse2_8888_n_8888_OVER,
 			      uint32_t, uint32_t, uint32_t, NORMAL, TRUE, TRUE)
 
-#define BMSK ((1 << BILINEAR_INTERPOLATION_BITS) - 1)
-
-#define BILINEAR_DECLARE_VARIABLES						\
+#if BILINEAR_INTERPOLATION_BITS < 8
+# define BILINEAR_DECLARE_VARIABLES						\
     const __m128i xmm_wt = _mm_set_epi16 (wt, wt, wt, wt, wt, wt, wt, wt);	\
     const __m128i xmm_wb = _mm_set_epi16 (wb, wb, wb, wb, wb, wb, wb, wb);	\
-    const __m128i xmm_xorc8 = _mm_set_epi16 (0, 0, 0, 0, BMSK, BMSK, BMSK, BMSK);\
-    const __m128i xmm_addc8 = _mm_set_epi16 (0, 0, 0, 0, 1, 1, 1, 1);		\
-    const __m128i xmm_xorc7 = _mm_set_epi16 (0, BMSK, 0, BMSK, 0, BMSK, 0, BMSK);\
-    const __m128i xmm_addc7 = _mm_set_epi16 (0, 1, 0, 1, 0, 1, 0, 1);		\
-    const __m128i xmm_ux = _mm_set_epi16 (unit_x&0xffff, unit_x&0xffff, unit_x&0xffff, unit_x&0xffff,	\
-					  unit_x&0xffff, unit_x&0xffff, unit_x&0xffff, unit_x&0xffff);	\
+    const __m128i xmm_addc = _mm_set_epi16 (0, 1, 0, 1, 0, 1, 0, 1);		\
+    const __m128i xmm_ux = _mm_set_epi16 (unit_x&0xffff, (-unit_x)&0xffff, unit_x&0xffff, (-unit_x)&0xffff,	\
+					  unit_x&0xffff, (-unit_x)&0xffff, unit_x&0xffff, (-unit_x)&0xffff);	\
     const __m128i xmm_zero = _mm_setzero_si128 ();				\
-    __m128i xmm_x = _mm_set_epi16 (vx&0xffff, vx&0xffff, vx&0xffff, vx&0xffff, vx&0xffff, vx&0xffff, vx&0xffff, vx&0xffff)
+    __m128i xmm_x = _mm_set_epi16 (vx&0xffff, (-(vx + 1))&0xffff, vx&0xffff, (-(vx + 1))&0xffff,		\
+				   vx&0xffff, (-(vx + 1))&0xffff, vx&0xffff, (-(vx + 1))&0xffff)
+#else
+# define BILINEAR_DECLARE_VARIABLES						\
+    const __m128i xmm_wt = _mm_set_epi16 (wt, wt, wt, wt, wt, wt, wt, wt);	\
+    const __m128i xmm_wb = _mm_set_epi16 (wb, wb, wb, wb, wb, wb, wb, wb);	\
+    const __m128i xmm_addc = _mm_set_epi16 (0, 0, 0, 0, 1, 1, 1, 1);		\
+    const __m128i xmm_ux = _mm_set_epi16 (unit_x&0xffff, unit_x&0xffff, unit_x&0xffff, unit_x&0xffff,	\
+					  (-unit_x)&0xffff, (-unit_x)&0xffff, (-unit_x)&0xffff, (-unit_x)&0xffff);	\
+    const __m128i xmm_zero = _mm_setzero_si128 ();				\
+    __m128i xmm_x = _mm_set_epi16 (vx&0xffff, vx&0xffff, vx&0xffff, vx&0xffff,				\
+				   (-(vx + 1))&0xffff, (-(vx + 1))&0xffff, (-(vx + 1))&0xffff, (-(vx + 1))&0xffff)
+#endif
 
 #define BILINEAR_INTERPOLATE_ONE_PIXEL(pix)					\
 do {										\
@@ -5585,8 +5593,8 @@ do {										\
     if (BILINEAR_INTERPOLATION_BITS < 8)					\
     {										\
 	/* calculate horizontal weights */					\
-	xmm_wh = _mm_add_epi16 (xmm_addc7, _mm_xor_si128 (xmm_xorc7,		\
-		   _mm_srli_epi16 (xmm_x, 16 - BILINEAR_INTERPOLATION_BITS)));	\
+	xmm_wh = _mm_add_epi16 (xmm_addc, _mm_srli_epi16 (xmm_x,		\
+					16 - BILINEAR_INTERPOLATION_BITS));	\
 	xmm_x = _mm_add_epi16 (xmm_x, xmm_ux);					\
 	/* horizontal interpolation */						\
 	a = _mm_madd_epi16 (_mm_unpackhi_epi16 (_mm_shuffle_epi32 (		\
@@ -5595,8 +5603,8 @@ do {										\
     else									\
     {										\
 	/* calculate horizontal weights */					\
-	xmm_wh = _mm_add_epi16 (xmm_addc8, _mm_xor_si128 (xmm_xorc8,		\
-		_mm_srli_epi16 (xmm_x, 16 - BILINEAR_INTERPOLATION_BITS)));	\
+	xmm_wh = _mm_add_epi16 (xmm_addc, _mm_srli_epi16 (xmm_x,		\
+					16 - BILINEAR_INTERPOLATION_BITS));	\
 	xmm_x = _mm_add_epi16 (xmm_x, xmm_ux);					\
 	/* horizontal interpolation */						\
 	xmm_lo = _mm_mullo_epi16 (a, xmm_wh);					\
@@ -6332,52 +6340,23 @@ sse2_fetch_a8 (pixman_iter_t *iter, const uint32_t *mask)
     return iter->buffer;
 }
 
-typedef struct
-{
-    pixman_format_code_t	format;
-    pixman_iter_get_scanline_t	get_scanline;
-} fetcher_info_t;
-
-static const fetcher_info_t fetchers[] =
-{
-    { PIXMAN_x8r8g8b8,		sse2_fetch_x8r8g8b8 },
-    { PIXMAN_r5g6b5,		sse2_fetch_r5g6b5 },
-    { PIXMAN_a8,		sse2_fetch_a8 },
-    { PIXMAN_null }
-};
-
-static pixman_bool_t
-sse2_src_iter_init (pixman_implementation_t *imp, pixman_iter_t *iter)
-{
-    pixman_image_t *image = iter->image;
-
-#define FLAGS								\
+#define IMAGE_FLAGS							\
     (FAST_PATH_STANDARD_FLAGS | FAST_PATH_ID_TRANSFORM |		\
      FAST_PATH_BITS_IMAGE | FAST_PATH_SAMPLES_COVER_CLIP_NEAREST)
 
-    if ((iter->iter_flags & ITER_NARROW)			&&
-	(iter->image_flags & FLAGS) == FLAGS)
-    {
-	const fetcher_info_t *f;
-
-	for (f = &fetchers[0]; f->format != PIXMAN_null; f++)
-	{
-	    if (image->common.extended_format_code == f->format)
-	    {
-		uint8_t *b = (uint8_t *)image->bits.bits;
-		int s = image->bits.rowstride * 4;
-
-		iter->bits = b + s * iter->y + iter->x * PIXMAN_FORMAT_BPP (f->format) / 8;
-		iter->stride = s;
-
-		iter->get_scanline = f->get_scanline;
-		return TRUE;
-	    }
-	}
-    }
-
-    return FALSE;
-}
+static const pixman_iter_info_t sse2_iters[] = 
+{
+    { PIXMAN_x8r8g8b8, IMAGE_FLAGS, ITER_NARROW,
+      _pixman_iter_init_bits_stride, sse2_fetch_x8r8g8b8, NULL
+    },
+    { PIXMAN_r5g6b5, IMAGE_FLAGS, ITER_NARROW,
+      _pixman_iter_init_bits_stride, sse2_fetch_r5g6b5, NULL
+    },
+    { PIXMAN_a8, IMAGE_FLAGS, ITER_NARROW,
+      _pixman_iter_init_bits_stride, sse2_fetch_a8, NULL
+    },
+    { PIXMAN_null },
+};
 
 #if defined(__GNUC__) && !defined(__x86_64__) && !defined(__amd64__)
 __attribute__((__force_align_arg_pointer__))
@@ -6435,7 +6414,7 @@ _pixman_implementation_create_sse2 (pixman_implementation_t *fallback)
     imp->blt = sse2_blt;
     imp->fill = sse2_fill;
 
-    imp->src_iter_init = sse2_src_iter_init;
+    imp->iter_info = sse2_iters;
 
     return imp;
 }

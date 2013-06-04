@@ -127,7 +127,7 @@ ProcXUngrabDeviceButton(ClientPtr client)
         (stuff->modifiers & ~AllModifiersMask))
         return BadValue;
 
-    temporaryGrab = AllocGrab();
+    temporaryGrab = AllocGrab(NULL);
     if (!temporaryGrab)
         return BadAlloc;
 

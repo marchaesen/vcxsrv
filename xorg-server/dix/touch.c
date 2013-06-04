@@ -263,6 +263,7 @@ void
 TouchFreeTouchPoint(DeviceIntPtr device, int index)
 {
     TouchPointInfoPtr ti;
+    int i;
 
     if (!device->touch || index >= device->touch->num_touches)
         return;
@@ -270,6 +271,9 @@ TouchFreeTouchPoint(DeviceIntPtr device, int index)
 
     if (ti->active)
         TouchEndTouch(device, ti);
+
+    for (i = 0; i < ti->num_listeners; i++)
+        TouchRemoveListener(ti, ti->listeners[0].listener);
 
     valuator_mask_free(&ti->valuators);
     free(ti->sprite.spriteTrace);
@@ -365,6 +369,8 @@ TouchBeginTouch(DeviceIntPtr dev, int sourceid, uint32_t touchid,
 void
 TouchEndTouch(DeviceIntPtr dev, TouchPointInfoPtr ti)
 {
+    int i;
+
     if (ti->emulate_pointer) {
         GrabPtr grab;
 
@@ -375,6 +381,9 @@ TouchEndTouch(DeviceIntPtr dev, TouchPointInfoPtr ti)
                 (*dev->deviceGrab.DeactivateGrab) (dev);
         }
     }
+
+    for (i = 0; i < ti->num_listeners; i++)
+        TouchRemoveListener(ti, ti->listeners[0].listener);
 
     ti->active = FALSE;
     ti->pending_finish = FALSE;
@@ -474,7 +483,21 @@ TouchEventHistoryReplay(TouchPointInfoPtr ti, DeviceIntPtr dev, XID resource)
         DeviceEvent *ev = &ti->history[i];
 
         ev->flags |= TOUCH_REPLAYING;
-        DeliverTouchEvents(dev, ti, (InternalEvent *) ev, resource);
+        ev->resource = resource;
+        /* FIXME:
+           We're replaying ti->history which contains the TouchBegin +
+           all TouchUpdates for ti. This needs to be passed on to the next
+           listener. If that is a touch listener, everything is dandy.
+           If the TouchBegin however triggers a sync passive grab, the
+           TouchUpdate events must be sent to EnqueueEvent so the events end
+           up in syncEvents.pending to be forwarded correctly in a
+           subsequent ComputeFreeze().
+
+           However, if we just send them to EnqueueEvent the sync'ing device
+           prevents handling of touch events for ownership listeners who
+           want the events right here, right now.
+         */
+        dev->public.processInputProc((InternalEvent*)ev, dev);
     }
 }
 
@@ -620,14 +643,14 @@ TouchConvertToPointerEvent(const InternalEvent *event,
     BUG_WARN_MSG(!(event->device_event.flags & TOUCH_POINTER_EMULATED),
                  "Non-emulating touch event\n");
 
-    *motion_event = *event;
+    motion_event->device_event = event->device_event;
     motion_event->any.type = ET_Motion;
     motion_event->device_event.detail.button = 0;
     motion_event->device_event.flags = XIPointerEmulated;
 
     if (nevents > 1) {
         BUG_RETURN_VAL(!button_event, 0);
-        *button_event = *event;
+        button_event->device_event = event->device_event;
         button_event->any.type = ptrtype;
         button_event->device_event.flags = XIPointerEmulated;
         /* detail is already correct */
@@ -678,15 +701,23 @@ void
 TouchAddListener(TouchPointInfoPtr ti, XID resource, int resource_type,
                  enum InputLevel level, enum TouchListenerType type,
                  enum TouchListenerState state, WindowPtr window,
-                 GrabPtr grab)
+                 const GrabPtr grab)
 {
+    GrabPtr g = NULL;
+
+    /* We need a copy of the grab, not the grab itself since that may be
+     * deleted by a UngrabButton request and leaves us with a dangling
+     * pointer */
+    if (grab)
+        g = AllocGrab(grab);
+
     ti->listeners[ti->num_listeners].listener = resource;
     ti->listeners[ti->num_listeners].resource_type = resource_type;
     ti->listeners[ti->num_listeners].level = level;
     ti->listeners[ti->num_listeners].state = state;
     ti->listeners[ti->num_listeners].type = type;
     ti->listeners[ti->num_listeners].window = window;
-    ti->listeners[ti->num_listeners].grab = grab;
+    ti->listeners[ti->num_listeners].grab = g;
     if (grab)
         ti->num_grabs++;
     ti->num_listeners++;
@@ -704,21 +735,25 @@ TouchRemoveListener(TouchPointInfoPtr ti, XID resource)
     int i;
 
     for (i = 0; i < ti->num_listeners; i++) {
-        if (ti->listeners[i].listener == resource) {
-            int j;
+        int j;
+        TouchListener *listener = &ti->listeners[i];
 
-            if (ti->listeners[i].grab) {
-                ti->listeners[i].grab = NULL;
-                ti->num_grabs--;
-            }
+        if (listener->listener != resource)
+            continue;
 
-            for (j = i; j < ti->num_listeners - 1; j++)
-                ti->listeners[j] = ti->listeners[j + 1];
-            ti->num_listeners--;
-            ti->listeners[ti->num_listeners].listener = 0;
-            ti->listeners[ti->num_listeners].state = LISTENER_AWAITING_BEGIN;
-            return TRUE;
+        if (listener->grab) {
+            FreeGrab(listener->grab);
+            listener->grab = NULL;
+            ti->num_grabs--;
         }
+
+        for (j = i; j < ti->num_listeners - 1; j++)
+            ti->listeners[j] = ti->listeners[j + 1];
+        ti->num_listeners--;
+        ti->listeners[ti->num_listeners].listener = 0;
+        ti->listeners[ti->num_listeners].state = LISTENER_AWAITING_BEGIN;
+
+        return TRUE;
     }
     return FALSE;
 }
@@ -874,7 +909,7 @@ TouchSetupListeners(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev)
     SpritePtr sprite = &ti->sprite;
     WindowPtr win;
 
-    if (dev->deviceGrab.grab)
+    if (dev->deviceGrab.grab && !dev->deviceGrab.fromPassiveGrab)
         TouchAddActiveGrabListener(dev, ti, ev, dev->deviceGrab.grab);
 
     /* We set up an active touch listener for existing touches, but not any
@@ -954,11 +989,11 @@ TouchListenerGone(XID resource)
                 continue;
 
             for (j = 0; j < ti->num_listeners; j++) {
-                if (ti->listeners[j].listener != resource)
+                if (CLIENT_BITS(ti->listeners[j].listener) != resource)
                     continue;
 
                 nev = GetTouchOwnershipEvents(events, dev, ti, XIRejectTouch,
-                                              resource, 0);
+                                              ti->listeners[j].listener, 0);
                 for (k = 0; k < nev; k++)
                     mieqProcessDeviceEvent(dev, events + k, NULL);
 
@@ -1060,4 +1095,47 @@ TouchEndPhysicallyActiveTouches(DeviceIntPtr dev)
     OsReleaseSignals();
 
     FreeEventList(eventlist, GetMaximumEventsNum());
+}
+
+/**
+ * Generate and deliver a TouchEnd event.
+ *
+ * @param dev The device to deliver the event for.
+ * @param ti The touch point record to deliver the event for.
+ * @param flags Internal event flags. The called does not need to provide
+ *        TOUCH_CLIENT_ID and TOUCH_POINTER_EMULATED, this function will ensure
+ *        they are set appropriately.
+ * @param resource The client resource to deliver to, or 0 for all clients.
+ */
+void
+TouchEmitTouchEnd(DeviceIntPtr dev, TouchPointInfoPtr ti, int flags, XID resource)
+{
+    InternalEvent event;
+
+    /* We're not processing a touch end for a frozen device */
+    if (dev->deviceGrab.sync.frozen)
+        return;
+
+    flags |= TOUCH_CLIENT_ID;
+    if (ti->emulate_pointer)
+        flags |= TOUCH_POINTER_EMULATED;
+    TouchDeliverDeviceClassesChangedEvent(ti, GetTimeInMillis(), resource);
+    GetDixTouchEnd(&event, dev, ti, flags);
+    DeliverTouchEvents(dev, ti, &event, resource);
+    if (ti->num_grabs == 0)
+        UpdateDeviceState(dev, &event.device_event);
+}
+
+void
+TouchAcceptAndEnd(DeviceIntPtr dev, int touchid)
+{
+    TouchPointInfoPtr ti = TouchFindByClientID(dev, touchid);
+    if (!ti)
+        return;
+
+    TouchListenerAcceptReject(dev, ti, 0, XIAcceptTouch);
+    if (ti->pending_finish)
+        TouchEmitTouchEnd(dev, ti, 0, 0);
+    if (ti->num_listeners <= 1)
+        TouchEndTouch(dev, ti);
 }

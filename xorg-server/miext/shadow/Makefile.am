@@ -9,7 +9,11 @@ endif
 libshadow_la_SOURCES =		\
 	shadow.c		\
 	shadow.h		\
+	shafb4.c		\
+	shafb8.c		\
 	shalloc.c		\
+	shiplan2p4.c		\
+	shiplan2p8.c		\
 	shpacked.c		\
 	shplanar8.c		\
 	shplanar.c		\

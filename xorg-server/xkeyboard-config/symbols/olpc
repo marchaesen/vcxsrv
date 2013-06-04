@@ -13,9 +13,9 @@ xkb_symbols "olpc" {
     modifier_map Mod4 { KP_Prior  }; // KP_Prior is the "O" game key
     modifier_map Mod5 { KP_Next   }; // KP_Next  is the "X" game key
 
-    key <I220> { [ XF86Search    ] }; // search key
-    key <I221> { [ XF86Meeting   ] }; // fn+search key
+    key <I220> { [ XF86Search    ] }; // search key (unpopulated on olpcm, harmless)
+    key <I221> { [ XF86Meeting   ] }; // fn+search key (unpopulated on olpcm, harmless)
     key <I236> { [ XF86Start     ] }; // gear key (fn+space)
-    key <I147> { [ XF86TaskPane  ] }; // frame key (the top-right key)
-    key <I224> { [ XF86Messenger ] }; // overlay key (next to frame key)
+    key <I147> { [ XF86TaskPane  ] }; // frame key (the top-right key) (unpopulated on olpcm, harmless)
+    key <I224> { [ XF86Messenger ] }; // overlay key (next to frame key) (unpopulated on olpcm, harmless)
 };

@@ -198,11 +198,6 @@ extern _X_EXPORT void *xf86GetPointerScreenFuncs(void);
 extern _X_EXPORT void xf86InitOrigins(void);
 extern _X_EXPORT void xf86ReconfigureLayout(void);
 
-/* xf86cvt.c */
-extern _X_EXPORT DisplayModePtr xf86CVTMode(int HDisplay, int VDisplay,
-                                            float VRefresh, Bool Reduced,
-                                            Bool Interlaced);
-
 /* xf86DPMS.c */
 
 extern _X_EXPORT Bool xf86DPMSInit(ScreenPtr pScreen, DPMSSetProcPtr set,
@@ -243,6 +238,7 @@ extern _X_EXPORT void xf86InterceptSigIll(void (*sigillhandler) (void));
 extern _X_EXPORT Bool xf86EnableVTSwitch(Bool new);
 extern _X_EXPORT void xf86ProcessActionEvent(ActionEvent action, void *arg);
 extern _X_EXPORT void xf86PrintBacktrace(void);
+extern _X_EXPORT Bool xf86VTOwner(void);
 
 /* xf86Helper.c */
 
@@ -413,26 +409,6 @@ extern _X_EXPORT void
 xf86PrintModes(ScrnInfoPtr scrp);
 extern _X_EXPORT void
 xf86ShowClockRanges(ScrnInfoPtr scrp, ClockRangePtr clockRanges);
-extern _X_EXPORT double
-xf86ModeHSync(const DisplayModeRec * mode);
-extern _X_EXPORT double
-xf86ModeVRefresh(const DisplayModeRec * mode);
-extern _X_EXPORT void
-xf86SetModeDefaultName(DisplayModePtr mode);
-extern _X_EXPORT void
-xf86SetModeCrtc(DisplayModePtr p, int adjustFlags);
-extern _X_EXPORT DisplayModePtr
-xf86DuplicateMode(const DisplayModeRec * pMode);
-extern _X_EXPORT void
-xf86SaveModeContents(DisplayModePtr intern, const DisplayModeRec * pMode);
-extern _X_EXPORT DisplayModePtr
-xf86DuplicateModes(ScrnInfoPtr pScrn, DisplayModePtr modeList);
-extern _X_EXPORT Bool
-xf86ModesEqual(const DisplayModeRec * pMode1, const DisplayModeRec * pMode2);
-extern _X_EXPORT void
-xf86PrintModeline(int scrnIndex, DisplayModePtr mode);
-extern _X_EXPORT DisplayModePtr
-xf86ModesAdd(DisplayModePtr modes, DisplayModePtr new);
 
 /* xf86Option.c */
 
